@@ -1,0 +1,309 @@
+{
+  "n_titles": 800,
+  "n_store_name_in_title": 210,
+  "rate": 0.2625,
+  "examples": [
+    {
+      "dish": "天丼",
+      "title": "天周, 祇園天周, 天富良天周, 京都, 日本, 天周風かき揚げ天丼, ぎおん天ぷら, 天ぷら天周, きょうと, みやこ, きょうのみやこ, にっぽん, にほん, KAKIAGE TENDON, Tensyu, Kyoto, Japan, Nippon, Nihon",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "祇園天周"
+    },
+    {
+      "dish": "餃子",
+      "title": "steamed dumpling of pork and garlic chives ニラ入りの蒸し餃子",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "steam"
+    },
+    {
+      "dish": "餃子",
+      "title": "steamed dumpling of pork and garlic chives ニラ入りの蒸し餃子",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "steam"
+    },
+    {
+      "dish": "餃子",
+      "title": "Best Ever Rice Topped with Fried Egg and Shrimp, Matsumoto, Nagano, Japan, 極王天津飯, 餃子の王将, 餃子的王將, アリオ松本店, 松本, まつもとし, 長野縣, 長野県, ながのけん, 日本, にっぽん, にほん",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "agano"
+    },
+    {
+      "dish": "餃子",
+      "title": "肉汁餃子製作所 ダンダダン酒場 別府店",
+      "license": "by-nc-sa",
+      "source": "flickr",
+      "store": "餃子製作所"
+    },
+    {
+      "dish": "餃子",
+      "title": "今宵は弊社めしパ。前菜は餃子の皮にピザソースとチーズ、豆板醤をのせてパリパリに焼いて、味のシルクロード(笑)。向こうではチヂミ焼いてます。でもメインは麻婆創作大会という、カオスなパーティー。",
+      "license": "by",
+      "source": "flickr",
+      "store": "パリパリ"
+    },
+    {
+      "dish": "チャーハン",
+      "title": "#三宅島 の人気中華料理屋ココナッツガーデンで食べた名物 #南国チャーハン はニンニク、豆板醤、島唐辛子入りのピリ辛でスタミナ系のガッツリ味！昼時にはあれよあれよと満席でした。 #tamashima #miyakejima",
+      "license": "by-nc-sa",
+      "source": "flickr",
+      "store": "ココナッツガーデン"
+    },
+    {
+      "dish": "チャーハン",
+      "title": "半熟たまごのかに玉チャーハン",
+      "license": "by-nc-sa",
+      "source": "flickr",
+      "store": "半熟たまご"
+    },
+    {
+      "dish": "チャーハン",
+      "title": "四川風担々麺＠チャーハン達人",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "チャーハン達人"
+    },
+    {
+      "dish": "チャーハン",
+      "title": "磯丸水産, 神田今川橋店, 東京, 日本, 蟹チャーハン, とうきょう, にっぽん, にほん, Isomaru Suisan, Tokyo, Japan, Nippon, Nihon",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "とうきょう"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "デニーズ ビーフシチュー / Denny's beef stew",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "s bee"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "DEMIオリジナルハンバーグ ビーフシチュー風",
+      "license": "by-nc-sa",
+      "source": "flickr",
+      "store": "オリジナル"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ビーフシチュー",
+      "title": "東京自由行 淺草 吃美食 浅草 洋食 ビーフシチュー ヨシカミ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "ヨシカミ"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "Charcoal BBQ, Steak, Yakiniku, Yamatake Store, Family owned Hida Beef Restaurant, Hida Beef, Hida-gyu, Takayama, Gifu, Japan, 山武商店, 山武, 飛騨高山, 飛騨牛, 飛騨牛レストラン, 炭火焼, ステーキ, 焼肉, 高山, たかやまし, 岐阜縣, 岐阜県, ぎふけん, 日本, にっぽん, にほん",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "山武商店"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "Charcoal BBQ, Steak, Yakiniku, Yamatake Store, Family owned Hida Beef Restaurant, Hida Beef, Hida-gyu, Takayama, Gifu, Japan, 山武商店, 山武, 飛騨高山, 飛騨牛, 飛騨牛レストラン, 炭火焼, ステーキ, 焼肉, 高山, たかやまし, 岐阜縣, 岐阜県, ぎふけん, 日本, にっぽん, にほん",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "山武商店"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "Charcoal BBQ, Steak, Yakiniku, Yamatake Store, Family owned Hida Beef Restaurant, Hida Beef, Hida-gyu, Takayama, Gifu, Japan, 山武商店, 山武, 飛騨高山, 飛騨牛, 飛騨牛レストラン, 炭火焼, ステーキ, 焼肉, 高山, たかやまし, 岐阜縣, 岐阜県, ぎふけん, 日本, にっぽん, にほん",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "山武商店"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "Charcoal BBQ, Steak, Yakiniku, Yamatake Store, Family owned Hida Beef Restaurant, Hida Beef, Hida-gyu, Takayama, Gifu, Japan, 山武商店, 山武, 飛騨高山, 飛騨牛, 飛騨牛レストラン, 炭火焼, ステーキ, 焼肉, 高山, たかやまし, 岐阜縣, 岐阜県, ぎふけん, 日本, にっぽん, にほん",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "山武商店"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "Charcoal BBQ, Steak, Yakiniku, Yamatake Store, Family owned Hida Beef Restaurant, Hida Beef, Hida-gyu, Takayama, Gifu, Japan, 山武商店, 山武, 飛騨高山, 飛騨牛, 飛騨牛レストラン, 炭火焼, ステーキ, 焼肉, 高山, たかやまし, 岐阜縣, 岐阜県, ぎふけん, 日本, にっぽん, にほん",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "山武商店"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "Charcoal BBQ, Steak, Yakiniku, Yamatake Store, Family owned Hida Beef Restaurant, Hida Beef, Hida-gyu, Takayama, Gifu, Japan, 山武商店, 山武, 飛騨高山, 飛騨牛, 飛騨牛レストラン, 炭火焼, ステーキ, 焼肉, 高山, たかやまし, 岐阜縣, 岐阜県, ぎふけん, 日本, にっぽん, にほん",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "山武商店"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "Charcoal BBQ, Steak, Yakiniku, Yamatake Store, Family owned Hida Beef Restaurant, Hida Beef, Hida-gyu, Takayama, Gifu, Japan, 山武商店, 山武, 飛騨高山, 飛騨牛, 飛騨牛レストラン, 炭火焼, ステーキ, 焼肉, 高山, たかやまし, 岐阜縣, 岐阜県, ぎふけん, 日本, にっぽん, にほん",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "山武商店"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "いきなり！ステーキ",
+      "license": "by-nc-nd",
+      "source": "flickr",
+      "store": "いきなり"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "Charcoal BBQ, Steak, Yakiniku, Yamatake Store, Family owned Hida Beef Restaurant, Hida Beef, Hida-gyu, Takayama, Gifu, Japan, 山武商店, 山武, 飛騨高山, 飛騨牛, 飛騨牛レストラン, 炭火焼, ステーキ, 焼肉, 高山, たかやまし, 岐阜縣, 岐阜県, ぎふけん, 日本, にっぽん, にほん",
+      "license": "by-sa",
+      "source": "flickr",
+      "store": "山武商店"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "ステーキ弁当とドクターペッパー Steak & Dr. Pepper",
+      "license": "by",
+      "source": "flickr",
+      "store": "ペッパー"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "平牧金華豚ステーキ, 四季旬彩 豚肉料理 平田牧場 匠, 東京ミッドタウン, 六本木",
+      "license": "by-nc",
+      "source": "flickr",
+      "store": "四季旬彩"
+    },
+    {
+      "dish": "ステーキ",
+      "title": "たつをシェフ、黒毛和牛ステーキを水島弘史先生の教えに従って焼 く。うますぎ！",
+      "license": "by",
+      "source": "flickr",
+      "store": "黒毛和牛"
+    },
+    {
+      "dish": "中華料理",
+      "title": "#三宅島 の人気中華料理屋ココナッツガーデンで食べた名物 #南国チャーハン はニンニク、豆板醤、島唐辛子入りのピリ辛でスタミナ系のガッツリ味！昼時にはあれよあれよと満席でした。 #tamashima #miyakejima",
+      "license": "by-nc-sa",
+      "source": "flickr",
+      "store": "ココナッツガーデン"
+    },
+    {
+      "dish": "中華料理",
+      "title": "注文せざるを得ない。＞ 「SPEC劇中で主人公の当麻紗綾が中華料理屋で必ず注文する大好物の餃子」",
+      "license": "by",
+      "source": "flickr",
+      "store": "中華料理屋"
+    },
+    {
+      "dish": "中華料理",
+      "title": "中華料理福来臨, 福島県南相馬市でボランティア Volunteer at Minamisoma city, Fukushima pref. Affected by the Tsunami of Earthquake and Fukushima Daiichi Nuclear Accident",
+      "license": "by",
+      "source": "flickr",
+      "store": "中華料理福来臨"
+    }
+  ],
+  "commercial_ok_rate": 0.5310344827586206,
+  "license_breakdown": {
+    "by-nc-nd": 464,
+    "by-sa": 543,
+    "by-nc-sa": 365,
+    "by": 835,
+    "by-nc": 330,
+    "cc0": 7,
+    "by-nd": 65,
+    "pdm": 1
+  },
+  "commons_totalhits": {
+    "ラーメン": 27743,
+    "寿司": 24559,
+    "うどん": 4408,
+    "焼肉": 3030,
+    "カレーライス": 2183,
+    "Japanese food": 88917
+  },
+  "wikimedia_store_verified": 0.005,
+  "wikimedia_dish_verified": 0.0017,
+  "caveat": "題名の文字列一致であって目視ではない。Openverse の result_count は240 で頭打ちなので枚数には使わない。"
+}
