@@ -159,6 +159,9 @@
 		},
 		"loading": "검색 중...",
 		"noLocationsFound": "위치를 찾을 수 없습니다",
+		"locationConfirmation": {
+			"error": "위치 확인에 실패했습니다"
+		},
 		"advancedToggle": {
 			"open": "더 많은 옵션",
 			"close": "상세 검색 닫기"

@@ -159,6 +159,9 @@
 		},
 		"loading": "搜索中...",
 		"noLocationsFound": "未找到位置",
+		"locationConfirmation": {
+			"error": "位置确认失败"
+		},
 		"advancedToggle": {
 			"open": "更多选项",
 			"close": "关闭高级搜索"

@@ -112,6 +112,8 @@ export interface Palette {
 	brandTintSoft: string;
 
 	// ───────── セマンティック ─────────
+	/** 成功・確定を示すアイコン（地点確定の ✓ 等） */
+	success: string;
 	/** 注意・必須バッジの文字 */
 	danger: string;
 	/** 選択された除外条件チップの地など、より強い警告色 */
@@ -163,6 +165,7 @@ const light: Palette = {
 	brandTint: "#FDEBE7", // search advancedToggle / DistanceSlider badge
 	brandTintSoft: "#FFF7F5", // DistanceSlider recommendedRow
 
+	success: "#16A34A", // LocationAutocomplete 地点確定の ✓（#1502）
 	danger: "#DC2626", // search requiredText
 	dangerStrong: "#EF4444", // search selectedRestrictionChip
 	dangerTint: "#FEE2E2", // search requiredBadge
@@ -204,6 +207,7 @@ const dark: Palette = {
 	brandTint: "#3A241F", // brand を暗面へ混色
 	brandTintSoft: "#2A1D1A", // brandTint よりさらに淡い混色
 
+	success: "#81C995", // 暗面では明度を上げないと視認性を保てない（danger と同じ方針で手動調整）
 	danger: "#FF8A80", // 暗面では明度を上げないと文字用途で AA を割る
 	dangerStrong: "#FF6B6B",
 	dangerTint: "#4A2320", // danger を暗面へ混色
