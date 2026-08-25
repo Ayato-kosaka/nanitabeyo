@@ -13,8 +13,21 @@
   - e2e-web / e2e-mobile の «匿名には出さない» テスト … **存在しないので当然通る**
   - 撮影シナリオ `account-delete-1511.mjs` … 走らせなければ落ちない
 
-«出ること» を見ていたのは `tests/authenticated/` の 2 本だけで、あれは実アカウントが要る
-tier なので既定のフィルタに乗らない。結果、**ボタンだけ無いのに全部緑**になった（#1375 と同じ形）。
+«出ること» を見ていたのは `tests/authenticated/` の 2 本だけである。
+
+【訂正】このコメントは最初「あの tier は既定のフィルタに乗らないから走らない」と書いていたが、
+**誤り**だった。`tier1-2`（既定）は `test:ci:android` を testPathPattern 無しで実行するため、
+`tests/authenticated/` は毎晩走る対象に入っている（除外されるのは mutation / probe / catalog だけ）。
+`TEST_USER_EMAIL` / `TEST_USER_PASSWORD` も workflow に渡っている。
+
+本当の理由は、**その毎晩の run 自体が 16 晩連続で success になっていない**ことだった
+（e2e-mobile-test.yml の schedule 実行。最後の success は 2026-08-09 の run 76。
+以降 08-10〜08-25 は failure か cancelled のいずれか）。捕まえる仕掛けはあったが、
+**仕掛けが動いていることを誰も確かめていなかった**。#1579 と同じ根で、
+e2e-web が 4 晩赤かった #1592 の実機版にあたる。
+
+だからこのファイルが要る。**jest は pr-check で毎回・数十秒で走る**ので、
+実機 CI の健康状態に依存せずこの 1 点を守れる。
 
 このファイルは jest（= pr-check.yml で必ず走る）で «出ること» を見る。
 実機を待たずに、押せる行がそこに在ることをここで落とす。
