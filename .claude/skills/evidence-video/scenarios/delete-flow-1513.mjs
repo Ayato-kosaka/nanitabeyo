@@ -19,8 +19,16 @@ import { record, ok, solidCard, writeNote, OUT } from "./harness.mjs";
 const BASE = process.env.EVIDENCE_BASE || "http://localhost:8788";
 const IMG = `data:image/svg+xml;base64,${Buffer.from(solidCard("F05537")).toString("base64")}`;
 
-const MEDIA_ID = "media-mine-1";
-const REVIEW_ID = "review-1";
+/*
+⚠️ **UUID の形でないと投稿が 1 件も出ない。**
+
+`posts.tsx` は #1477 の対策として `?ids=` を UUID 形式でフィルタし、
+1 件も残らなければ API を呼ばずに «見つかりません» を出す。
+`"media-mine-1"` のような読みやすい ID を置くと、モックまで到達せず
+`dish-action-more` が現れないまま撮影が落ちる（run 32836956437 で実測）。
+*/
+const MEDIA_ID = "11111111-1111-1111-1111-000000000001";
+const REVIEW_ID = "11111111-1111-1111-1111-000000000002";
 
 const restaurant = {
 	id: "restaurant-1",
@@ -147,7 +155,21 @@ async function shootScheme(scheme) {
 
 			// 1) 自分の投稿にだけ出る «…» ボタン
 			const more = page.getByTestId("dish-action-more").first();
-			await more.waitFor({ state: "visible", timeout: 15000 });
+			try {
+				await more.waitFor({ state: "visible", timeout: 15000 });
+			} catch (cause) {
+				// «…» が出ない理由はたいてい «投稿がそもそも描画されていない» である。
+				// 素の Timeout だけだと毎回 01-feed を目視するはめになるので、
+				// 先に «見つかりません» かどうかを判定してメッセージに書く
+				const bodyText = await page.locator("body").innerText().catch(() => "");
+				const notFound = /見つかりません|Not found/i.test(bodyText);
+				throw new Error(
+					notFound
+						? `投稿が描画されていない（«見つかりません» が出ている）。posts.tsx は ?ids= を UUID 形式で` +
+							` フィルタする（#1477）ので、MEDIA_ID=${MEDIA_ID} が UUID かどうかをまず疑うこと`
+						: `dish-action-more が出ない。01-feed を見て何が描画されているか確かめること: ${cause}`,
+				);
+			}
 			await shot("02-more-button");
 
 			// 2) メニュー（編集 / 削除 / 写真は変更できません）
