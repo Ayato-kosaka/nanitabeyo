@@ -537,6 +537,8 @@ export class UsersService {
           reviewCount: item.dish.reviewCount,
           averageRating: item.dish.averageRating,
           categoryImageUrl: item.dish.categoryImageUrl,
+          // #1375 カテゴリの正式表記（ローマ字の dish.name をユーザーに見せないため）
+          categoryLabels: item.dish.categoryLabels,
         },
         dishMedia:
           (item.mediaId ? dishMediaById.get(item.mediaId) : undefined) ?? null,

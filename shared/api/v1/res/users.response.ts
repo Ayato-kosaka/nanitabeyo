@@ -94,6 +94,15 @@ export type MyDishItem = {
 		 * （#1375 追補2 決定3）。表示側の実装は PR5 のスコープで、この PR は契約を通すだけ。
 		 */
 		categoryImageUrl: string;
+		/**
+		 * #1375 `dish_categories.labels`（言語コード → 表記）。取れなければ null。
+		 *
+		 * 表示名に `name`（= その店でのその料理の呼び名）だけを使うと、SNS 取り込み由来の
+		 * 記録が «udon» のようにローマ字で出る（オーナー実機指摘）。
+		 * クライアントは **`labels[言語] → labels["en"] → name`** の順で解決すること
+		 * （`app-expo/features/myDishes/dishCategoryLabel.ts`）。
+		 */
+		categoryLabels: Record<string, string> | null;
 	};
 
 	/**
