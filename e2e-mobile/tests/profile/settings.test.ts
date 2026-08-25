@@ -202,6 +202,8 @@ describe("端末設定画面のハプティクストグル（匿名ユーザー�
 		// 後始末: 既定値（オン）へ戻す
 		await deviceSettingsScreen.toggleHaptics();
 		await deviceSettingsScreen.expectHapticsToggleValue(true);
+	});
+
 	// ─ テストケース: 匿名時は通知カテゴリのカードが表示されない ─
 	// 手順:
 	//   1. 設定画面を表示する（匿名状態）
@@ -212,12 +214,14 @@ describe("端末設定画面のハプティクストグル（匿名ユーザー�
 	// tests/authenticated/notification-preferences.test.ts が検証する
 	it("匿名時は通知カテゴリのカードが表示されない", async () => {
 		const tabBar = new TabBar();
-		const profileScreen = new ProfileScreen();
 		const settingsScreen = new SettingsScreen();
 		const section = new NotificationSettingsSection();
 
+		// ⚠️ `ProfileScreen.gotoSettings()` は使えない。#1402 で **歯車の 1 階層が無くなり**、
+		//    マイページタブがそのまま設定画面になっている（このファイルの他のテストも同じ形）。
+		//    main 由来の #1510 のテストがこのメソッドを前提に書かれており、
+		//    このブランチへ合流したときに存在しないメソッドの呼び出しとして残っていた
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
 		await settingsScreen.expectLoaded();
 
 		const hasNotificationCard = await section.exists();
