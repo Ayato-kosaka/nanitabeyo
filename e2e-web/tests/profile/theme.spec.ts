@@ -51,8 +51,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	//   2. 3 択がすべて表示され、「システム追従」だけが選択済みであることを検証
 	test("既定はシステム追従で、3 択がすべて表示される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
+		await settingsPage.gotoDeviceSettings();
 
 		await expect(settingsPage.themeSelector).toBeVisible();
 		await expect(settingsPage.themeOption("system")).toBeVisible();
@@ -74,8 +74,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	// どこかでライトの色が壊れている。
 	test("ライト → ダーク → ライトで面色が往復し、ライトは元の値に戻る", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
+		await settingsPage.gotoDeviceSettings();
 
 		await settingsPage.selectTheme("light");
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", LIGHT.surface);
@@ -100,12 +100,12 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	// 「保存経路が動いていること」を検証したことにならない（読み出しだけのテストになる）。
 	test("選んだテーマがリロード後も保持される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
+		await settingsPage.gotoDeviceSettings();
 		await settingsPage.selectTheme("dark");
 
 		await appPage.reload();
-		await settingsPage.expectLoaded();
+		await expect(settingsPage.themeSelector).toBeVisible();
 
 		await expect(settingsPage.themeOptionCheck("dark")).toBeVisible();
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", DARK.surface);
@@ -119,8 +119,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	test("システム追従は OS のカラースキームに従う", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await appPage.emulateMedia({ colorScheme: "dark" });
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
+		await settingsPage.gotoDeviceSettings();
 
 		await expect(settingsPage.themeOptionCheck("system")).toBeVisible();
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", DARK.surface);
@@ -137,8 +137,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	test("明示的なライトは OS のダーク設定より優先される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await appPage.emulateMedia({ colorScheme: "dark" });
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
+		await settingsPage.gotoDeviceSettings();
 
 		await settingsPage.selectTheme("light");
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", LIGHT.surface);
@@ -158,8 +158,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 		const searchPage = new SearchPage(appPage);
 		const tabBar = new TabBar(appPage);
 
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
+		await settingsPage.gotoDeviceSettings();
 		await settingsPage.selectTheme("dark");
 
 		await tabBar.gotoSearch();
@@ -178,8 +178,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 		const searchPage = new SearchPage(appPage);
 		const tabBar = new TabBar(appPage);
 
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
+		await settingsPage.gotoDeviceSettings();
 		await settingsPage.selectTheme("light");
 
 		await tabBar.gotoSearch();
@@ -197,8 +197,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	// tests/search/search-accessibility.spec.ts と同じ判定基準に揃えてある。
 	test("ダークでも axe の重大な違反(critical/serious)が無い", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
+		await settingsPage.gotoDeviceSettings();
 		await settingsPage.selectTheme("dark");
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", DARK.surface);
 

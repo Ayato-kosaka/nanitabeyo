@@ -28,6 +28,7 @@ import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import type { Palette } from "@/constants/Palette";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SettingsToggleItem } from "@/features/settings/components/SettingsToggleItem";
+import { ThemeSelector } from "@/features/settings/components/ThemeSelector";
 import { setHapticsEnabled } from "@/features/settings/hapticsSettingsStore";
 import { useHapticsEnabled } from "@/features/settings/hooks/useHapticsEnabled";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -94,15 +95,29 @@ export default function DeviceSettingsScreen() {
 					{/* #1504 端末に閉じた設定であることを明示する。SET-02/05/06 が増えても文言は変わらない */}
 					<Text style={styles.description}>{i18n.t("Settings.deviceSettings.description")}</Text>
 
-					{/* 端末ローカルの設定。以後 SET-02(通知) / SET-05(ダークモード) / SET-06(言語) もこのカードに並ぶ */}
+					{/* 端末ローカルの設定。以後 SET-02(通知) / SET-06(言語) もこのカードに並ぶ */}
 					<Card style={styles.card}>
 						<SettingsToggleItem
 							label={i18n.t("Settings.hapticsEnabled")}
 							value={hapticsEnabled}
 							onValueChange={handleToggleHaptics}
-							isLast
 							testID="settings-haptics-toggle"
 						/>
+					</Card>
+
+					{/* #1583 SET-05 表示テーマ。この画面が最初から想定していた住人
+					    （上の «今後 SET-05(ダークモード) が並ぶ» の実現）。
+					    `theme_preference_v1` は端末に閉じており、この画面の約束
+					    «ログインし直しても・別端末でも引き継がれない» と一致する。
+
+					    見出しを別に立てているのは、上のカードがトグル・こちらが 3 択ラジオで
+					    操作の種類が違うため。同じカードに混ぜると «押すと切り替わる行» と
+					    «押すと選ばれる行» が並んで読みにくい */}
+					<Text style={styles.sectionTitle} accessibilityRole="header">
+						{i18n.t("Settings.theme.sectionTitle")}
+					</Text>
+					<Card style={styles.card}>
+						<ThemeSelector />
 					</Card>
 				</ScrollView>
 			</SafeAreaView>
@@ -139,5 +154,14 @@ const createStyles = (colors: Palette) =>
 		},
 		card: {
 			padding: 0,
+		},
+		// #1583 テーマセクションの見出し（カードの外に置く。profile/index.tsx から写した値）
+		sectionTitle: {
+			fontSize: 13,
+			fontWeight: "700",
+			color: colors.textSecondary,
+			marginTop: 16,
+			marginHorizontal: 32,
+			marginBottom: 8,
 		},
 	});

@@ -55,6 +55,9 @@ export const NON_INDEXABLE_DEEP_LINK_ROUTES: readonly string[] = [
 	// push される Stack 画面のため web の直リンク着地が現に起きる。除外側に置くと
 	// «未ログインでは中身が無い» という理由が嘘になるので、スモーク対象にする
 	"profile/device-settings",
+	// #1583 なに食べよについて。規約・ガイドライン・版数だけの画面なのでログイン不要で、
+	// 問い合わせ対応で URL を直に渡す使い方も想定している。device-settings と同じ理由でスモーク対象
+	"profile/about",
 ];
 
 /**

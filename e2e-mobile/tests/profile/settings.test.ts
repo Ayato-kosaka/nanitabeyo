@@ -37,8 +37,9 @@ describe("設定項目（匿名ユーザー）", () => {
 	//   2. 以下の項目が表示されることを検証:
 	//      - ご意見・不具合(settings-feedback) / レビューを書く(settings-leave-review、ネイティブのみ)
 	//      - ブロック済みの料理トピック(settings-blocked-topics) / 端末設定(settings-device-settings)
-	//      - 利用規約(settings-terms)
-	//      - プライバシーポリシー(settings-privacy)
+	//      - 端末設定(settings-device-settings) / なに食べよについて(settings-about)
+	//   ⚠️ #1583 で規約 4 行・応援する・バージョンは «なに食べよについて»、
+	//      表示テーマは «端末設定» へ移った
 	it("設定メニューの各項目が表示される", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
@@ -49,12 +50,31 @@ describe("設定項目（匿名ユーザー）", () => {
 		await settingsScreen.expectLoaded();
 
 		await waitUntilVisible(settingsScreen.feedbackItem);
-		await waitUntilVisible(settingsScreen.leaveReviewItem);
 		await waitUntilVisible(settingsScreen.blockedTopicsItem);
-		// #1504 端末設定は規約カードの直上に置いた行。規約 4 行より上にいるので順序も併せて固定される
 		await waitUntilVisible(settingsScreen.deviceSettingsItem);
+		// #1583 «なに食べよについて» への行
+		await waitUntilVisible(settingsScreen.aboutItem);
+	});
+
+	// ─ テストケース: «なに食べよについて» に応援する・規約・バージョンが揃う ─
+	// #1583 オーナー指定の中身。**«応援する» はネイティブでしか出ない**ので、
+	// この 1 本は web 側では代替できない（e2e-web は行が無いことを検証している）。
+	it("«なに食べよについて» に応援する・規約・バージョンが揃う", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const settingsScreen = new SettingsScreen();
+
+		await tabBar.gotoProfile();
+		await profileScreen.expectLoaded();
+		await settingsScreen.expectLoaded();
+		await settingsScreen.openAbout();
+
+		await waitUntilVisible(settingsScreen.leaveReviewItem);
+		await waitUntilVisible(settingsScreen.guidelinesItem);
 		await waitUntilVisible(settingsScreen.termsItem);
 		await waitUntilVisible(settingsScreen.privacyItem);
+		await waitUntilVisible(settingsScreen.copyrightItem);
+		await waitUntilVisible(settingsScreen.versionSection);
 	});
 
 	// ─ テストケース: プライバシーポリシー行で法務ドキュメント画面へ遷移する ─
@@ -113,6 +133,8 @@ describe("設定項目（匿名ユーザー）", () => {
 
 		await tabBar.gotoProfile();
 		await settingsScreen.expectLoaded();
+		// #1583 バージョンは «なに食べよについて» ページへ移った
+		await settingsScreen.openAbout();
 
 		await waitUntilVisible(settingsScreen.versionSection);
 

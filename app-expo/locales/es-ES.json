@@ -849,7 +849,6 @@
 			}
 		},
 		"sendFeedback": "Enviar comentarios",
-		"leaveReview": "Dejar reseña",
 		"rateDialogTitle": "¿Te gusta la aplicación?",
 		"rateDialogMessage": "Si te gusta, por favor calíficanos en la tienda. Abriremos la página de reseñas.",
 		"rateDialogOk": "Calificar ahora",
@@ -887,6 +886,11 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "Mis votaciones de grupo"
+		},
+		"support": "Apoyar a CraveCatch",
+		"about": {
+			"navigationLabel": "Acerca de CraveCatch",
+			"title": "Acerca de CraveCatch"
 		}
 	},
 	"Dialog": {

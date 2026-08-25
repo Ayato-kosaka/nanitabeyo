@@ -36,6 +36,8 @@ export class SettingsPage {
 	 * トグル本体はこの行から push される端末設定画面にあり、`pages/DeviceSettingsPage.ts` が持つ。
 	 */
 	readonly deviceSettingsItem: Locator;
+	/** #1583 マイページ → «なに食べよについて» の行 */
+	readonly aboutItem: Locator;
 	/**
 	 * バージョン表示（#1495 SUP-03）。"{version}({短縮コミットID})" の 1 行、例: "1.14.0(abc1234)"。
 	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx
@@ -82,6 +84,8 @@ export class SettingsPage {
 		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
 		this.languageItem = page.getByTestId("settings-language");
 		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
+		// #1583 マイページ → なに食べよについて の行
+		this.aboutItem = page.getByTestId("settings-about");
 		this.versionText = page.getByTestId("settings-version-section");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.logoutConfirmDialog = page.getByTestId("modal-surface");
@@ -132,9 +136,38 @@ export class SettingsPage {
 		await expect(this.feedbackItem).toBeVisible();
 	}
 
+	/*
+	#1583 設定項目は 3 画面に散っている。
+	  マイページ …… いいね / 保存 / ご意見 / ブロック済み / 通報履歴 / 言語 / 投票 /
+	                （端末設定へ）/（なに食べよについてへ）/ ログアウト
+	  端末設定 ……… ハプティクス / 表示テーマ
+	  なに食べよについて … 応援する / 規約 4 種 / バージョン
+	テーマとリーガルの行は **マイページには無い**ので、下の 2 つで先に移動すること。
+	*/
+
 	/** #1504 端末設定行をタップして端末設定画面（`/[locale]/profile/device-settings`）へ遷移する */
 	async openDeviceSettings(): Promise<void> {
 		await this.deviceSettingsItem.click();
+		// #1583 表示テーマがここへ移った
+		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1583 «なに食べよについて» 行をタップして `/[locale]/profile/about` へ遷移する */
+	async openAbout(): Promise<void> {
+		await this.aboutItem.click();
+		await expect(this.termsItem).toBeVisible();
+	}
+
+	/** #1583 端末設定ページへ直接遷移する（導線ではなく画面の中身を見たいとき） */
+	async gotoDeviceSettings(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/device-settings`);
+		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1583 «なに食べよについて» へ直接遷移する */
+	async gotoAbout(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/about`);
+		await expect(this.termsItem).toBeVisible();
 	}
 
 	/**

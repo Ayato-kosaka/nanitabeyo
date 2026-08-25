@@ -37,6 +37,11 @@ export class SettingsScreen {
 	/** ご意見・不具合（フィードバック）行（既存 testID） */
 	readonly feedbackItem = by.id("settings-feedback");
 	/** レビューを書く（ストア誘導）行。ネイティブのみ表示（既存 testID） */
+	/**
+	 * «なに食べよ を応援する»（ストア誘導）行。ネイティブのみ表示（testID は据え置き）。
+	 * #1583 でラベルが «レビューを書く» から変わり、置き場所も «なに食べよについて» ページへ移った。
+	 * **マイページには無い。** `openAbout()` で移動してから触ること。
+	 */
 	readonly leaveReviewItem = by.id("settings-leave-review");
 	/**
 	 * ブロック済みの料理カテゴリ行（既存 testID）。
@@ -65,6 +70,8 @@ export class SettingsScreen {
 	 * トグル本体はこの行から push される端末設定画面にあり、`screens/DeviceSettingsScreen.ts` が持つ。
 	 */
 	readonly deviceSettingsItem = by.id("settings-device-settings");
+	/** #1583 マイページ → «なに食べよについて» の行 */
+	readonly aboutItem = by.id("settings-about");
 	/**
 	 * バージョン表示（#1495 SUP-03、既存 testID）。
 	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx（web/native 共通）。
@@ -72,10 +79,13 @@ export class SettingsScreen {
 	 */
 	readonly versionSection = by.id("settings-version-section");
 
-	/**
-	 * #1509 表示テーマの 3 択セレクタ（システム追従 / ライト / ダーク）。
-	 * 設定画面の最上段にあり、初期表示でスクロール無しに触れる。
-	 */
+	/*
+	 #1509 表示テーマの 3 択セレクタ（システム追従 / ライト / ダーク）。
+	*/
+	/*
+	⚠️ #1583 で **マイページから «端末設定» ページへ移った**。マイページを開いただけでは
+	   見えないので、`openDeviceSettings()` で移動してから触ること。
+	*/
 	readonly themeSelector = by.id("settings-theme-selector");
 	/**
 	 * ログアウト確認ダイアログのタイトル（ja-JP: `Settings.logoutConfirmTitle`）。
@@ -153,6 +163,9 @@ export class SettingsScreen {
 	 * バージョン行（settings-version-section）の実測テキストを読む（#1495）。
 	 * `getAttributes()` の戻り値は iOS / Android で型が分かれるため、`text` だけを拾う
 	 * （tests/profile/profile-tab-deep-link.test.ts と同じ絞り方）。
+	 *
+	 * ⚠️ #1583 でバージョンは «なに食べよについて» ページへ移った。
+	 *    呼ぶ前に `openAbout()` で移動しておくこと。
 	 */
 	async getVersionText(): Promise<string> {
 		const attributes = (await element(this.versionSection).getAttributes()) as { text?: string };
@@ -207,6 +220,8 @@ export class SettingsScreen {
 
 	/** プライバシーポリシー行をタップして法務ドキュメント画面へ遷移する（#1368 でモーダル起動から変更） */
 	async openPrivacyPolicy(): Promise<void> {
+		// #1583 規約 4 行は «なに食べよについて» ページへ移った。先に移動してから押す
+		await this.openAbout();
 		await tapWhenVisible(this.privacyItem);
 	}
 
@@ -233,7 +248,34 @@ export class SettingsScreen {
 	 * **行ごとに**踏まないと見つからない。行の指定をここで引けるようにしておく。
 	 */
 	async openLegalDocument(doc: LegalDocumentKey): Promise<void> {
+		// #1583 規約 4 行は «なに食べよについて» ページへ移った。先に移動してから押す
+		await this.openAbout();
 		await tapWhenVisible(this.legalItemByDoc[doc]);
+	}
+
+	/**
+	 * #1583 «なに食べよについて» 行をタップしてそのページへ遷移する。
+	 *
+	 * `openDeviceSettings()` と同じ理由で、タップ前に «見えるまでスクロール» する
+	 * （この行もマイページのかなり下にあり、エミュレータの画面高では初期表示で画面外）。
+	 */
+	async openAbout(): Promise<void> {
+		await waitFor(element(this.aboutItem))
+			.toBeVisible()
+			.whileElement(by.id("settings-scroll"))
+			.scroll(300, "down");
+		await tapWhenVisible(this.aboutItem);
+		await waitUntilVisible(this.termsItem);
+	}
+
+	/**
+	 * #1583 «なに食べよについて» ページが出ていることを検証する。
+	 *
+	 * `expectLoaded()`（マイページ）と混同しないこと。規約 4 行から戻ったときの着地は
+	 * マイページではなく **このページ**である。
+	 */
+	async expectAboutLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(by.id("about-screen-title"), timeout);
 	}
 
 	/**
