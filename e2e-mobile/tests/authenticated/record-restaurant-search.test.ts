@@ -1,7 +1,13 @@
-import { describeAuthenticated, launchAppWithSession } from "../../fixtures/e2e";
+import { by, describeAuthenticated, device, element, launchAppWithSession } from "../../fixtures/e2e";
 import { DEFAULT_TIMEOUT, tapWhenVisible, waitUntilVisible } from "../../utils/waits";
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { TabBar } from "../../screens/TabBar";
+
+/*
+⚠️ `by` / `element` / `device` は **必ず `fixtures/e2e` から import すること。**
+Detox はこれらのグローバル型を宣言しているので **tsc は素通しする**が、実行時には
+定義されておらず `ReferenceError: by is not defined` で落ちる（run 32818524649 で実測）。
+*/
 
 /**
  * 🔎 「食べたを記録」の店名検索ボックスが **実機で潰れていない**ことを見る。

@@ -11,9 +11,9 @@ import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import {
 	clusterMyDishPins,
-	isSameClusterScale,
+	isSameClusterViewport,
 	regionForCluster,
-	type ClusterScale,
+	type ClusterViewport,
 	type MyDishPinCluster,
 } from "../clustering";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
@@ -90,16 +90,28 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	// 1 つも変わらない。それでも Region をそのまま state に入れていたため、
 	// `onRegionChangeComplete` が寄こす新しいオブジェクトで参照が変わり、
 	// **地図を少し動かすたびに最大 300 個のマーカーが作り直されていた**。
-	const [clusterScale, setClusterScale] = useState<ClusterScale>(() => ({
+	//
+	// #1375（実機: マップのクラッシュ）**中心も持つ。ただし «粗く» 持つ。**
+	// 中心が無いと «いま見えている範囲か» を判定できず、東京を拡大していても
+	// 北海道と福岡のピンまでマーカーとして作り続けることになる（それが落ちる原因の本体）。
+	// 中心は delta の 25% 以上動いたときだけ更新するので、pan で毎回畳み直すことはない。
+	const [clusterViewport, setClusterViewport] = useState<ClusterViewport>(() => ({
+		latitude: initialRegion.latitude,
+		longitude: initialRegion.longitude,
 		latitudeDelta: initialRegion.latitudeDelta,
 		longitudeDelta: initialRegion.longitudeDelta,
 	}));
-	// 5% 未満の倍率変化も畳み方に影響しないので、前の値（= 同じ参照）を返して memo を保つ
+	// 畳み方にも間引きにも影響しない程度の変化なら、前の値（= 同じ参照）を返して memo を保つ
 	const updateClusterScale = useCallback((region: Region) => {
-		setClusterScale((prev) =>
-			isSameClusterScale(prev, region)
+		setClusterViewport((prev) =>
+			isSameClusterViewport(prev, region)
 				? prev
-				: { latitudeDelta: region.latitudeDelta, longitudeDelta: region.longitudeDelta },
+				: {
+						latitude: region.latitude,
+						longitude: region.longitude,
+						latitudeDelta: region.latitudeDelta,
+						longitudeDelta: region.longitudeDelta,
+					},
 		);
 	}, []);
 	// #1375 実機確認（2 巡目）: 「ズームインしてから…」の注意文とボタン無効化は廃止した。
@@ -254,7 +266,7 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 
 	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
 	// 無関係な state 更新で 300 個のマーカーへ props が流れない
-	const clusters = useMemo(() => clusterMyDishPins(pins, clusterScale), [pins, clusterScale]);
+	const clusters = useMemo(() => clusterMyDishPins(pins, clusterViewport), [pins, clusterViewport]);
 
 	// クラスタを押したら «もう一段ほどく»。中のピンの外接矩形へ寄せる
 	const handleClusterPress = useCallback(
@@ -309,7 +321,12 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 				initialRegion={initialRegion}
 				onMapReady={handleMapReady}
 				onRegionChangeComplete={handleRegionChangeComplete}>
-				{markers}
+				{/* #1375（実機: マップの重さ）**隠れている間はマーカーを 1 つも置かない。**
+				    3 ビューは keep-alive（`my-dishes/index.tsx`）で、list / Calendar を見ている間も
+				    Map は `display: "none"` で生きている。`enabled` は取得を止めるだけなので、
+				    これが無いとネイティブのマーカーが常駐し続ける。
+				    viewport も取得結果も store / ref が持っているので、戻ったときの見た目は変わらない */}
+				{enabled ? markers : null}
 			</MapView>
 
 			{showInitialLoading && (

@@ -48,6 +48,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /** 見た目が確定したと判断してから焼き直しを止めるまでの待ち時間（ms） */
 export const MARKER_TRACKING_SETTLE_MS = 250;
 
+/*
+**画像が永久に返ってこない場合の保険。**
+
+`onContentReady` は画像の `onLoadEnd` で呼ばれるが、`expo-image` にはタイムアウトが無い。
+圏外に近い / 署名 URL が失効して応答が返らない / 画像ホストが落ちている、のいずれかで
+`onLoadEnd` が来なければ、そのマーカーは **地図が動く限り毎フレーム焼き直され続ける**。
+300 ピンの大半がその状態になれば、修正前とまったく同じ症状（重い・落ちる）へ戻る。
+
+そこで «絵が出揃った合図» が来なくても、この時間で強制的に焼き直しを止める。
+そのあと画像が遅れて届いても `signature` は変わらないので、
+`onContentReady` が呼ばれて再び 250ms 後に確定し直すだけである（絵は正しく出る）。
+*/
+export const MARKER_TRACKING_MAX_WAIT_MS = 3_000;
+
 export type MarkerViewTracking = {
 	/** `Marker` の `tracksViewChanges` へそのまま渡す */
 	tracksViewChanges: boolean;
@@ -63,32 +77,59 @@ export type MarkerViewTracking = {
  */
 export function useMarkerViewTracking(signature: string): MarkerViewTracking {
 	const [tracksViewChanges, setTracksViewChanges] = useState(true);
-	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const maxWaitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const clearTimer = useCallback(() => {
-		if (timerRef.current !== null) {
-			clearTimeout(timerRef.current);
-			timerRef.current = null;
+	const clearTimers = useCallback(() => {
+		if (settleTimerRef.current !== null) {
+			clearTimeout(settleTimerRef.current);
+			settleTimerRef.current = null;
+		}
+		if (maxWaitTimerRef.current !== null) {
+			clearTimeout(maxWaitTimerRef.current);
+			maxWaitTimerRef.current = null;
 		}
 	}, []);
 
-	// 見た目の入力が変わったら焼き直しを再開する。予約済みの停止は取り消す
-	// （古い絵で確定させないため）
+	/*
+	見た目の入力が変わったら焼き直しを再開し、保険のタイマーを引き直す。
+
+	⚠️ **初回は素通しする。** この effect はマウント時にも走るが、そこで `clearTimers()` を
+	呼ぶと、画像がメモリキャッシュに当たって effect より **前** に `onLoadEnd` を
+	発火させていた場合、予約済みの停止を取り消してしまう。以後 `onContentReady` を
+	呼ぶ口は無いので、そのマーカーは焼き直しが止まらないまま残る。
+	初回は state が既に `true` なので、やることは何も無い。
+	*/
+	const isFirstRunRef = useRef(true);
 	useEffect(() => {
-		clearTimer();
-		setTracksViewChanges(true);
-	}, [clearTimer, signature]);
+		if (isFirstRunRef.current) {
+			isFirstRunRef.current = false;
+		} else {
+			clearTimers();
+			setTracksViewChanges(true);
+		}
+		maxWaitTimerRef.current = setTimeout(() => {
+			maxWaitTimerRef.current = null;
+			setTracksViewChanges(false);
+		}, MARKER_TRACKING_MAX_WAIT_MS);
+		return () => {
+			if (maxWaitTimerRef.current !== null) {
+				clearTimeout(maxWaitTimerRef.current);
+				maxWaitTimerRef.current = null;
+			}
+		};
+	}, [clearTimers, signature]);
 
 	// アンマウント後に setState しない
-	useEffect(() => clearTimer, [clearTimer]);
+	useEffect(() => clearTimers, [clearTimers]);
 
 	const onContentReady = useCallback(() => {
-		clearTimer();
-		timerRef.current = setTimeout(() => {
-			timerRef.current = null;
+		clearTimers();
+		settleTimerRef.current = setTimeout(() => {
+			settleTimerRef.current = null;
 			setTracksViewChanges(false);
 		}, MARKER_TRACKING_SETTLE_MS);
-	}, [clearTimer]);
+	}, [clearTimers]);
 
 	return { tracksViewChanges, onContentReady };
 }

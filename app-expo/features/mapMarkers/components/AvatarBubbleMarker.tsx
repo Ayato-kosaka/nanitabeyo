@@ -1,9 +1,10 @@
 // app-expo/features/mapMarkers/components/AvatarBubbleMarker.tsx
 
-import React from "react";
+import React, { useMemo } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { Marker } from "@/components/MapView";
 import { useMarkerViewTracking } from "../hooks/useMarkerViewTracking";
+import { getCacheKeyForImage } from "@/lib/image";
 import { Image } from "expo-image";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 
@@ -74,6 +75,22 @@ export function AvatarBubbleMarker({
 	*/
 	const { tracksViewChanges, onContentReady } = useMarkerViewTracking(`${uri ?? ""}|${color}|${isActive}`);
 
+	/*
+	#1375（実機: マップの重さ）**`cacheKey` を必ず付ける。**
+
+	サムネイルは署名付きの CDN URL で、署名部分は定期的に回る。URL 文字列をそのまま
+	キーにすると **同じ写真なのに毎回キャッシュミス**になり、地図を開くたびに最大 300 枚を
+	取り直す。`getCacheKeyForImage` はクエリを落とした部分をキーにするので当たる。
+
+	アプリ内の画像消費側（一覧 / Calendar / カード / 下部シート / 通知）は全部これを
+	通しており、**このマーカーだけが例外だった**。下部シートは同じ写真を正しいキーで
+	読んでいたため、1 枚の写真が二重にデコードされてもいた。
+
+	`useMemo` にしてあるのは、インラインで組むと毎レンダー新しいオブジェクトが
+	`expo-image` へ渡るため。
+	*/
+	const source = useMemo(() => (uri ? { uri, cacheKey: getCacheKeyForImage(uri) } : undefined), [uri]);
+
 	return (
 		<Marker
 			{...props}
@@ -107,7 +124,7 @@ export function AvatarBubbleMarker({
 								height: imageSize,
 							},
 						]}
-						source={uri ? { uri } : undefined}
+						source={source}
 						contentFit="cover"
 						transition={100}
 						cachePolicy="memory-disk" // #785 DishMediaContent と同一ポリシーにすることで iOS SDWebImage のパイプライン競合を防止

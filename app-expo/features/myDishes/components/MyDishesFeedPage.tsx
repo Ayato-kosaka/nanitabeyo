@@ -31,6 +31,7 @@ PR5 の contextual filter chips も、このページ側のオーバーレイと
 横スクロールの途中で 2 つ見えてしまう。
 */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { asApiList } from "@/lib/apiList";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { shallow } from "zustand/shallow";
 
@@ -216,13 +217,20 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 				// `clearByKey` より «後» に決着すると、ここで書いたものが誰にも消されず残ってしまい、
 				// 次に同じ店を開いたとき古い並びのまま固定される
 				if (cancelled) return;
-				upsertDishMediaEntries(res.items);
+				/*
+				#1561 と同じ理由でここも `asApiList` を通す。**成功ハンドラの中なので
+				throw は unhandled rejection になり、しかも `requestedKeyRef` が既に立っている**ため
+				二度と取り直されず、スピナーが固着する（200 は返るが `items` が無い応答で起きる）。
+				0 件へ落とせば、通常どおり «空» の表示へ縮退する。
+				*/
+				const rows = asApiList(res.items);
+				upsertDishMediaEntries(rows);
 				// Q4: 取得直後のサーバ値を dirty 判定の基準に取る
 				const snapshot: Record<string, boolean> = {};
-				for (const item of res.items) snapshot[String(item.dish_media.id)] = Boolean(item.dish_media.isSaved);
+				for (const item of rows) snapshot[String(item.dish_media.id)] = Boolean(item.dish_media.isSaved);
 				initialSavedRef.current = snapshot;
 
-				const fetchedIds = res.items.map((item) => String(item.dish_media.id));
+				const fetchedIds = rows.map((item) => String(item.dish_media.id));
 				// ⚠️ 並び順は **Sheet / リストで見えている順**（= `mediaIds`）に揃える。API の戻り順に
 				// 任せると、`itemKey` / `dishMediaId` から引いた index が指す料理と実際の並びがずれる
 				void updateMediaIdsByKeyAsync(entriesKey, Promise.resolve(fetchedIds), (_prev, ids) => {
