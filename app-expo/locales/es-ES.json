@@ -802,6 +802,12 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "Mis votaciones de grupo"
+		},
+		"hapticsEnabled": "Retroalimentación háptica",
+		"deviceSettings": {
+			"navigationLabel": "Ajustes del dispositivo",
+			"title": "Ajustes del dispositivo",
+			"description": "Estos ajustes se guardan solo en este dispositivo. No se transfieren a otros dispositivos ni cuentas."
 		}
 	},
 	"Dialog": {

@@ -30,6 +30,11 @@ export class SettingsPage {
 	/** ブロック済みの料理トピック行 */
 	readonly blockedTopicsItem: Locator;
 	/**
+	 * #1504 端末設定行（規約カードの直上）。
+	 * トグル本体はこの行から push される端末設定画面にあり、`pages/DeviceSettingsPage.ts` が持つ。
+	 */
+	readonly deviceSettingsItem: Locator;
+	/**
 	 * バージョン表示（#1495 SUP-03）。"{version}({短縮コミットID})" の 1 行、例: "1.14.0(abc1234)"。
 	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx
 	 */
@@ -73,6 +78,7 @@ export class SettingsPage {
 		this.privacyItem = page.getByTestId("settings-privacy");
 		this.copyrightItem = page.getByTestId("settings-copyright");
 		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
+		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
 		this.versionText = page.getByTestId("settings-version-section");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.logoutConfirmDialog = page.getByTestId("modal-surface");
@@ -121,6 +127,11 @@ export class SettingsPage {
 	 */
 	async expectLoaded(): Promise<void> {
 		await expect(this.feedbackItem).toBeVisible();
+	}
+
+	/** #1504 端末設定行をタップして端末設定画面（`/[locale]/profile/device-settings`）へ遷移する */
+	async openDeviceSettings(): Promise<void> {
+		await this.deviceSettingsItem.click();
 	}
 
 	/**

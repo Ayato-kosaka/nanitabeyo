@@ -802,6 +802,12 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "グループ投票の履歴"
+		},
+		"hapticsEnabled": "触覚フィードバック",
+		"deviceSettings": {
+			"navigationLabel": "端末設定",
+			"title": "端末設定",
+			"description": "この端末にのみ保存される設定です。他の端末やアカウントには引き継がれません。"
 		}
 	},
 	"Dialog": {

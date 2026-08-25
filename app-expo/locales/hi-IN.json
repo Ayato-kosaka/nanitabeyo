@@ -802,6 +802,12 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "मेरे समूह वोट"
+		},
+		"hapticsEnabled": "हैप्टिक फ़ीडबैक",
+		"deviceSettings": {
+			"navigationLabel": "डिवाइस सेटिंग्स",
+			"title": "डिवाइस सेटिंग्स",
+			"description": "ये सेटिंग्स केवल इसी डिवाइस पर सहेजी जाती हैं। ये अन्य डिवाइस या खातों पर लागू नहीं होतीं।"
 		}
 	},
 	"Dialog": {

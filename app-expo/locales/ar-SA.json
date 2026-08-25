@@ -802,6 +802,12 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "تصويتاتي الجماعية"
+		},
+		"hapticsEnabled": "التغذية الراجعة اللمسية",
+		"deviceSettings": {
+			"navigationLabel": "إعدادات الجهاز",
+			"title": "إعدادات الجهاز",
+			"description": "يتم حفظ هذه الإعدادات على هذا الجهاز فقط، ولا تنتقل إلى أجهزة أو حسابات أخرى."
 		}
 	},
 	"Dialog": {

@@ -802,6 +802,12 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "그룹 투표 내역"
+		},
+		"hapticsEnabled": "햅틱 피드백",
+		"deviceSettings": {
+			"navigationLabel": "기기 설정",
+			"title": "기기 설정",
+			"description": "이 기기에만 저장되는 설정입니다. 다른 기기나 계정으로는 이어지지 않습니다."
 		}
 	},
 	"Dialog": {

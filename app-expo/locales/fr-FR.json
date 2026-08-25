@@ -802,6 +802,12 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "Mes votes de groupe"
+		},
+		"hapticsEnabled": "Retour haptique",
+		"deviceSettings": {
+			"navigationLabel": "Paramètres de l'appareil",
+			"title": "Paramètres de l'appareil",
+			"description": "Ces paramètres sont enregistrés uniquement sur cet appareil. Ils ne sont pas transférés vers d'autres appareils ou comptes."
 		}
 	},
 	"Dialog": {

@@ -802,6 +802,12 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "My group votes"
+		},
+		"hapticsEnabled": "Haptic Feedback",
+		"deviceSettings": {
+			"navigationLabel": "Device Settings",
+			"title": "Device Settings",
+			"description": "These settings are saved on this device only. They are not carried over to other devices or accounts."
 		}
 	},
 	"Dialog": {
