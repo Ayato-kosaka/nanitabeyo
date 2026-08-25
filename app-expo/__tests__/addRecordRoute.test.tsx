@@ -111,8 +111,9 @@ jest.mock("react-native-safe-area-context", () => {
 	return {
 		useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 		useSafeAreaFrame: () => ({ x: 0, y: 0, width: 390, height: 800 }),
-		SafeAreaView: ({ children, testID }: { children: React.ReactNode; testID?: string }) =>
-			ReactActual.createElement(RNView, { testID }, children),
+		// #1375 `edges` を検証できるよう、そのまま props として通す
+		SafeAreaView: ({ children, testID, edges }: { children: React.ReactNode; testID?: string; edges?: string[] }) =>
+			ReactActual.createElement(RNView, { testID, edges }, children),
 	};
 });
 
@@ -628,5 +629,25 @@ describe("#1375 食べたを記録の店選択も SNS と同じ部品", () => {
 		});
 		// モックした RestaurantNameSearch は selectedName を受け取ると器を 1 つ出す
 		expect(has(tree, "sns-import-selected-restaurant")).toBe(true);
+	});
+});
+
+/*
+#1375（実機 iOS のスクリーンショットで発覚）
+
+**この画面はヘッダを持たないので、上端のセーフエリアを自分で確保しなければならない。**
+
+このアプリで上端の余白を入れているのは `ScreenHeader`（`paddingTop: insets.top + 8`）で、
+ヘッダを持つ画面が `edges={[]}` なのはそのためである。この画面は «ヘッダを出さない» と
+決めた結果、その役目を引き継ぐものが無くなり、iOS でタブがダイナミックアイランドの下に
+潜って読めなくなっていた（run 32818524649 の iOS スクリーンショットで実測）。
+
+⚠️ ここが落ちたら、また上端が隠れている。
+*/
+describe("上端のセーフエリア", () => {
+	it("ヘッダが無い画面なので、SafeAreaView が top を確保する", async () => {
+		const tree = await render();
+		const screen = tree.root.findAll((n) => n.props?.testID === "sns-import-screen")[0];
+		expect(screen.props.edges).toContain("top");
 	});
 });

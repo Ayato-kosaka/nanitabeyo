@@ -82,7 +82,22 @@
 		"submitFailed": "No se pudo enviar tu voto",
 		"participantsList": "Participantes: {{names}}",
 		"noParticipants": "Aún no hay participantes",
-		"noVotes": "Aún no hay votos"
+		"noVotes": "Aún no hay votos",
+		"myVotes": {
+			"pageTitle": "Mis votaciones de grupo",
+			"loadFailed": "No se pudieron cargar tus votaciones de grupo",
+			"noCandidates": "Sin opciones",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} y {{count}} más",
+			"participantSummary": "{{count}} han votado",
+			"decidedLabel": "Ganador: {{name}}",
+			"votedLabel": "Has votado",
+			"notVotedLabel": "No has votado",
+			"itemAccessibilityLabel": "Votación de grupo del {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "Aún no has iniciado ninguna votación de grupo",
+			"emptyDescription": "Busca comida, elige algunas opciones y pide a tus amigos que voten.",
+			"emptyAction": "Crear una votación"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",
@@ -806,6 +821,21 @@
 			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
+		},
+		"language": {
+			"navigationLabel": "Idioma",
+			"pageTitle": "Idioma",
+			"systemDefault": "Seguir la configuración del dispositivo",
+			"switching": "Cambiando de idioma…"
+		},
+		"hapticsEnabled": "Retroalimentación háptica",
+		"deviceSettings": {
+			"navigationLabel": "Ajustes del dispositivo",
+			"title": "Ajustes del dispositivo",
+			"description": "Estos ajustes se guardan solo en este dispositivo. No se transfieren a otros dispositivos ni cuentas."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "Mis votaciones de grupo"
 		}
 	},
 	"Dialog": {
@@ -979,7 +1009,8 @@
 				"description": "Filtra por las categorías más frecuentes entre los registros mostrados",
 				"count": "{{label}} ({{count}})",
 				"showAll": "Ver más ({{count}} más)"
-			}
+			},
+			"activeCount": "{{count}} filtros activos"
 		},
 		"empty": {
 			"description": "Los platos que guardes o registres como comidos aparecerán aquí."
@@ -1025,7 +1056,8 @@
 					"title": "Filtra cuando crezca",
 					"body": "Filtra por “quiero comer / comido”, plato, zona, con quién y franja horaria. Está para reducir opciones, no para añadirlas."
 				}
-			}
+			},
+			"replay": "Ver el tutorial de nuevo"
 		},
 		"deleted": {
 			"label": "Eliminada",
@@ -1092,7 +1124,7 @@
 			"pickRestaurant": "Elegir local",
 			"pick": "Elegir",
 			"change": "Cambiar",
-			"hint": "Primero elige el local. Después podrás añadir foto, reseña breve, categoría, precio y valoración (la foto es opcional).",
+			"hint": "Primero elige un restaurante. Después selecciona el plato y añade una foto (opcional), una breve reseña, el precio y tu valoración.",
 			"done": "Registrado como comido"
 		}
 	},

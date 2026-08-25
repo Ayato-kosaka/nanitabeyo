@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { asApiList } from "@/lib/apiList";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Image } from "expo-image";
 // #1375（6 巡目・オーナー指示）右のボタンは «地図から探す» なので、
@@ -117,8 +118,10 @@ export function RestaurantNameSearch({
 				});
 
 				if (latestRequestIdRef.current !== requestId) return;
-				setResults(response);
-				setStatus(response.length > 0 ? "success" : "empty");
+				// #1375 API を信じない。**state へ入れる前に**配列へ落とす（#1561 と同型）
+				const rows = asApiList(response);
+				setResults(rows);
+				setStatus(rows.length > 0 ? "success" : "empty");
 			} catch (error) {
 				if (latestRequestIdRef.current !== requestId) return;
 				setResults([]);
@@ -348,135 +351,156 @@ export function RestaurantNameSearch({
 
 const createStyles = (c: Palette) =>
 	StyleSheet.create({
-	container: { flex: 1 },
-	inputContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderRadius: 16,
-		backgroundColor: c.surface,
-		borderWidth: 1,
-		borderColor: c.border,
-	},
-	searchIcon: {
-		marginLeft: 16,
-	},
-	input: {
-		flex: 1,
-		paddingHorizontal: 12,
-		paddingVertical: 16,
-		fontSize: 16,
-		color: c.textPrimary,
-	},
-	clearButton: {
-		padding: 12,
-	},
-	// 確定した店名は «入力の続き» ではなく «決まった値» なので、少し強く見せる
-	inputSelected: {
-		fontWeight: "700",
-	},
-	// #1375 «地図から探す» は入力欄の中の右端。赤くしない（副次的な導線で、CTA ではない）
-	mapButton: {
-		paddingHorizontal: 14,
-		paddingVertical: 12,
-		marginRight: 2,
-		borderLeftWidth: StyleSheet.hairlineWidth,
-		borderLeftColor: c.borderMuted,
-	},
-	candidateRow: {
-		marginTop: 8,
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 6,
-	},
-	// 候補は «小さく»（実機指摘）。本文のチップ（13pt）より一回り下げる
-	candidateChip: {
-		paddingHorizontal: 10,
-		paddingVertical: 5,
-		borderRadius: 14,
-		backgroundColor: c.surfaceSubtle,
-	},
-	candidateChipSelected: {
-		backgroundColor: c.brandTintAlt,
-	},
-	candidateLabel: {
-		fontSize: 12,
-		color: c.textSecondaryStrong,
-	},
-	candidateLabelSelected: {
-		color: c.brand,
-		fontWeight: "700",
-	},
-	resultsPanel: {
-		marginTop: 12,
-		backgroundColor: c.surface,
-		borderRadius: 16,
-		shadowColor: FixedColors.shadow,
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	resultsList: {
-		maxHeight: 280,
-	},
-	resultItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderBottomWidth: 0.5,
-		borderBottomColor: c.divider,
-	},
-	lastResultItem: {
-		borderBottomWidth: 0,
-	},
-	resultImage: {
-		width: 40,
-		height: 40,
-		borderRadius: 8,
-		marginRight: 12,
-		backgroundColor: c.surfaceSubtle,
-	},
-	resultName: {
-		flex: 1,
-		fontSize: 16,
-		color: c.textPrimary,
-		fontWeight: "600",
-	},
-	// 0 件・失敗のときは «説明 + 逃げ道のボタン» を縦に積むので、行ではなく列にする
-	centerColumn: {
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 12,
-		paddingVertical: 20,
-		paddingHorizontal: 16,
-	},
-	emptyActionButton: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 16,
-		backgroundColor: c.brandTintAlt,
-	},
-	emptyActionLabel: {
-		fontSize: 13,
-		fontWeight: "700",
-		color: c.brand,
-	},
-	centerRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 20,
-		paddingHorizontal: 16,
-	},
-	loadingText: {
-		marginLeft: 8,
-		fontSize: 14,
-		color: c.textSecondary,
-	},
-	emptyText: {
-		fontSize: 14,
-		color: c.textSecondary,
-		textAlign: "center",
-	},
-});
+		/*
+		#1375（6 巡目・実機で 2 回指摘）**`flex: 1` を置かない。**
+
+		以前はここが `flex: 1` だった。呼び出し元（「食べたを記録」タブ・SNS 取り込みタブ）は
+		どちらも高さを決めない普通の縦並びの中にこの部品を置くので、ネイティブでは
+		**この器の高さが 0 に潰れ、入力欄ごと見えなくなる**。
+
+		⚠️ web（react-native-web）はこの状況で高さが潰れないため、**web のスクリーンショットでは
+		正常に見える**。実機だけで再現する。この差のせいで «直した» と誤って報告した。
+		結果パネルは自前の maxHeight を持っているので、器は中身なりの高さでよい。
+		*/
+		container: {},
+		inputContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			borderRadius: 16,
+			backgroundColor: c.surface,
+			borderWidth: 1,
+			borderColor: c.border,
+		},
+		searchIcon: {
+			marginLeft: 16,
+			// #1375（6 巡目・オーナー指示）**アイコンを潰さない。**
+			// 横並びの既定 flexShrink は 1 なので、店名が長いと «決まった値» のテキストに
+			// 押されてこの虫眼鏡が数 px まで縮んでいた（スクショで確認）。
+			// アイコンは縮まない側、伸縮するのは入力欄だけ、と決める
+			flexShrink: 0,
+		},
+		input: {
+			flex: 1,
+			// web は flex アイテムの最小幅が «中身の幅» なので、長い店名だと縮まず
+			// 隣のアイコンを押し出す。0 を明示して «縮むのはここ» を成立させる
+			minWidth: 0,
+			paddingHorizontal: 12,
+			paddingVertical: 16,
+			fontSize: 16,
+			color: c.textPrimary,
+		},
+		clearButton: {
+			padding: 12,
+			flexShrink: 0,
+		},
+		// 確定した店名は «入力の続き» ではなく «決まった値» なので、少し強く見せる
+		inputSelected: {
+			fontWeight: "700",
+		},
+		// #1375 «地図から探す» は入力欄の中の右端。赤くしない（副次的な導線で、CTA ではない）
+		mapButton: {
+			flexShrink: 0,
+			paddingHorizontal: 14,
+			paddingVertical: 12,
+			marginRight: 2,
+			borderLeftWidth: StyleSheet.hairlineWidth,
+			borderLeftColor: c.borderMuted,
+		},
+		candidateRow: {
+			marginTop: 8,
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 6,
+		},
+		// 候補は «小さく»（実機指摘）。本文のチップ（13pt）より一回り下げる
+		candidateChip: {
+			paddingHorizontal: 10,
+			paddingVertical: 5,
+			borderRadius: 14,
+			backgroundColor: c.surfaceSubtle,
+		},
+		candidateChipSelected: {
+			backgroundColor: c.brandTintAlt,
+		},
+		candidateLabel: {
+			fontSize: 12,
+			color: c.textSecondaryStrong,
+		},
+		candidateLabelSelected: {
+			color: c.brand,
+			fontWeight: "700",
+		},
+		resultsPanel: {
+			marginTop: 12,
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		resultsList: {
+			maxHeight: 280,
+		},
+		resultItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			borderBottomWidth: 0.5,
+			borderBottomColor: c.divider,
+		},
+		lastResultItem: {
+			borderBottomWidth: 0,
+		},
+		resultImage: {
+			width: 40,
+			height: 40,
+			borderRadius: 8,
+			marginRight: 12,
+			backgroundColor: c.surfaceSubtle,
+		},
+		resultName: {
+			flex: 1,
+			fontSize: 16,
+			color: c.textPrimary,
+			fontWeight: "600",
+		},
+		// 0 件・失敗のときは «説明 + 逃げ道のボタン» を縦に積むので、行ではなく列にする
+		centerColumn: {
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 12,
+			paddingVertical: 20,
+			paddingHorizontal: 16,
+		},
+		emptyActionButton: {
+			paddingHorizontal: 16,
+			paddingVertical: 10,
+			borderRadius: 16,
+			backgroundColor: c.brandTintAlt,
+		},
+		emptyActionLabel: {
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.brand,
+		},
+		centerRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			paddingVertical: 20,
+			paddingHorizontal: 16,
+		},
+		loadingText: {
+			marginLeft: 8,
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		emptyText: {
+			fontSize: 14,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+	});

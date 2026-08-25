@@ -21,6 +21,7 @@ import {
   DishCategoryGroupVoteDishMediaSearchStatus,
   DishCategoryGroupVoteSearchContext,
 } from '@shared/v1/res';
+import { pickWinnerCandidate } from './dish-category-group-votes.ranking';
 
 export type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
 
@@ -29,6 +30,33 @@ export type DishCategoryGroupVoteDetailRecord = {
   candidates: PrismaDishCategoryGroupVoteCandidates[];
   participants: PrismaDishCategoryGroupVoteParticipants[];
   votes: PrismaDishCategoryGroupVoteCandidateVotes[];
+};
+
+/**
+ * #1505 一覧の行に出すサムネイル + 候補名の件数。
+ *
+ * 3 件はデザイン側の決定（44pt のサムネイルを 3 枚重ねた幅が、
+ * 文字列 2 行とシェブロンを置いても最小幅の端末で溢れない上限）。
+ * 4 件目以降は candidateCount との差から「+N」として表現するので、ここを増やすと
+ * 画面側の「+N」の意味も変わる。増減させるときは両方を見ること。
+ */
+const ME_LIST_CANDIDATE_PREVIEW_LIMIT = 3;
+
+export type MeDishCategoryGroupVoteCandidatePreviewRecord = {
+  displayName: string;
+  imageUrl: string;
+};
+
+export type MeDishCategoryGroupVoteSessionRecord = {
+  id: string;
+  shareToken: string;
+  hasVoted: boolean;
+  candidateCount: number;
+  candidatePreviews: MeDishCategoryGroupVoteCandidatePreviewRecord[];
+  participantCount: number;
+  winnerName: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 @Injectable()
@@ -226,6 +254,209 @@ export class DishCategoryGroupVotesRepository {
         );
       }
     }
+  }
+
+  /**
+   * #1505 【設計】GET /v1/users/me/dish-category-group-votes 用。
+   * **自分が主催(host_user_id = 自分)したセッションだけ**を返す。
+   *
+   * オーナー指示により、参加しただけ(participants に自分が居るだけ)のセッションは一覧に出さない。
+   * 絞り込みは呼び出し側やクライアントではなくこの where 句 1 箇所に閉じる。
+   * ここで返さなかった行は API のどの層からも復元できないので、
+   * 「一覧に他人の投票が混ざらない」保証もこの 1 箇所を見れば足りる。
+   *
+   * ページングは updated_at 降順の単一カーソル。session の更新
+   * (候補追加・削除・dish_media 固定・submitVote の touchSession)で updated_at が動くため、
+   * 主催した投票の「最後に動きがあった順」で並ぶ。
+   */
+  async findMeSessions(
+    db: PrismaExecutor,
+    userId: string,
+    cursor?: string,
+    limit = 20,
+  ): Promise<{
+    items: MeDishCategoryGroupVoteSessionRecord[];
+    nextCursor: string | null;
+  }> {
+    const whereClause: Prisma.dish_category_group_vote_sessionsWhereInput = {
+      host_user_id: userId,
+    };
+    if (cursor) {
+      whereClause.updated_at = { lt: new Date(cursor) };
+    }
+
+    const sessions = await db.dish_category_group_vote_sessions.findMany({
+      where: whereClause,
+      orderBy: { updated_at: 'desc' },
+      take: limit + 1,
+      select: {
+        id: true,
+        share_token: true,
+        created_at: true,
+        updated_at: true,
+        _count: {
+          select: {
+            dish_category_group_vote_candidates: {
+              where: { deleted_at: null },
+            },
+            // 参加者数は「何人が投票したか」として行に出す。
+            // 下の participants select は自分の 1 件しか引かないので、そこからは数えられない。
+            dish_category_group_vote_participants: true,
+          },
+        },
+        dish_category_group_vote_participants: {
+          where: { user_id: userId },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+
+    // #479 【設計】limit+1 件取得できた場合のみ nextCursor を返す
+    const hasMore = sessions.length > limit;
+    const page = hasMore ? sessions.slice(0, limit) : sessions;
+    const nextCursor = hasMore
+      ? page[page.length - 1].updated_at.toISOString()
+      : null;
+
+    // #1505 【設計】候補と得票は **ページ全体を 2 クエリでまとめて引く**。
+    // セッションごとに引くと 1 ページ 20 行で 40 クエリになり、一覧を開くだけで DB を叩き潰す。
+    const previewsBySessionId = await this.buildCandidatePreviews(
+      db,
+      page.map((session) => session.id),
+    );
+
+    return {
+      items: page.map((session) => {
+        const preview = previewsBySessionId.get(session.id);
+        return {
+          id: session.id,
+          shareToken: session.share_token,
+          // 主催者自身が自分の投票に投票済みかどうか。主催と投票済みは独立なので残す。
+          hasVoted: session.dish_category_group_vote_participants.length > 0,
+          candidateCount: session._count.dish_category_group_vote_candidates,
+          candidatePreviews: preview?.previews ?? [],
+          participantCount:
+            session._count.dish_category_group_vote_participants,
+          winnerName: preview?.winnerName ?? null,
+          createdAt: session.created_at,
+          updatedAt: session.updated_at,
+        };
+      }),
+      nextCursor,
+    };
+  }
+
+  /**
+   * #1505 一覧の行に出す «料理» を作る。セッション ID ごとに
+   * 「先頭 3 件のサムネイル + 候補名」と「勝者名（確定していれば）」を返す。
+   *
+   * クエリは 2 本だけに保つ。
+   * 1. ページ内の全セッションの未削除候補（display_order 昇順）
+   * 2. その候補に対する得票を groupBy で候補 × reaction の件数に畳んだもの
+   *
+   * 得票を集計ビューに持たない方針（assembler と同じ）なのでここで数えるが、
+   * 数えるのは «取得済みの候補 ID に紐づく行だけ» で、セッション単位のループでは引かない。
+   */
+  private async buildCandidatePreviews(
+    db: PrismaExecutor,
+    sessionIds: string[],
+  ): Promise<
+    Map<
+      string,
+      {
+        previews: MeDishCategoryGroupVoteCandidatePreviewRecord[];
+        winnerName: string | null;
+      }
+    >
+  > {
+    const result = new Map<
+      string,
+      {
+        previews: MeDishCategoryGroupVoteCandidatePreviewRecord[];
+        winnerName: string | null;
+      }
+    >();
+    if (sessionIds.length === 0) return result;
+
+    const candidates = await db.dish_category_group_vote_candidates.findMany({
+      where: { session_id: { in: sessionIds }, deleted_at: null },
+      // 一覧のサムネイルは結果画面の候補の並びと同じ順にする（display_order が表示順の正本）。
+      orderBy: [{ session_id: 'asc' }, { display_order: 'asc' }],
+      select: {
+        id: true,
+        session_id: true,
+        display_name: true,
+        image_url: true,
+        display_order: true,
+      },
+    });
+
+    if (candidates.length === 0) return result;
+
+    // 候補 ID × reaction の件数。votes 本体は行に出さないので、明細は引かない。
+    const voteCounts =
+      await db.dish_category_group_vote_candidate_votes.groupBy({
+        by: ['candidate_id', 'reaction'],
+        where: {
+          candidate_id: { in: candidates.map((candidate) => candidate.id) },
+        },
+        _count: { _all: true },
+      });
+
+    const countsByCandidateId = new Map<
+      string,
+      { likeCount: number; dislikeCount: number }
+    >();
+    for (const row of voteCounts) {
+      const counts = countsByCandidateId.get(row.candidate_id) ?? {
+        likeCount: 0,
+        dislikeCount: 0,
+      };
+      // reaction は 'like' | 'dislike' の 2 値だが DB は String なので、
+      // 未知の値が入っていてもどちらのカウントにも足さずに黙って無視する
+      // （一覧が 500 で落ちるより、勝者が出ないほうが害が小さい）。
+      if (row.reaction === 'like') counts.likeCount += row._count._all;
+      if (row.reaction === 'dislike') counts.dislikeCount += row._count._all;
+      countsByCandidateId.set(row.candidate_id, counts);
+    }
+
+    const candidatesBySessionId = new Map<string, typeof candidates>();
+    for (const candidate of candidates) {
+      const bucket = candidatesBySessionId.get(candidate.session_id) ?? [];
+      bucket.push(candidate);
+      candidatesBySessionId.set(candidate.session_id, bucket);
+    }
+
+    for (const [sessionId, sessionCandidates] of candidatesBySessionId) {
+      const winner = pickWinnerCandidate(
+        sessionCandidates.map((candidate) => {
+          const counts = countsByCandidateId.get(candidate.id) ?? {
+            likeCount: 0,
+            dislikeCount: 0,
+          };
+          return {
+            candidateId: candidate.id,
+            likeCount: counts.likeCount,
+            dislikeCount: counts.dislikeCount,
+            displayOrder: candidate.display_order,
+            displayName: candidate.display_name,
+          };
+        }),
+      );
+
+      result.set(sessionId, {
+        previews: sessionCandidates
+          .slice(0, ME_LIST_CANDIDATE_PREVIEW_LIMIT)
+          .map((candidate) => ({
+            displayName: candidate.display_name,
+            imageUrl: candidate.image_url,
+          })),
+        winnerName: winner?.displayName ?? null,
+      });
+    }
+
+    return result;
   }
 
   async findCandidateById(

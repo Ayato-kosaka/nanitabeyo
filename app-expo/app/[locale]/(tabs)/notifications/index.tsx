@@ -59,6 +59,9 @@ export default function NotificationsScreen() {
 	const { lightImpact } = useHaptics();
 	const { user } = useAuth();
 	const notifications = useNotifications();
+	// #1375 依存に入れるのは **関数だけ**。`notifications` はレンダーのたびに別オブジェクトになるので、
+	// これを `useFocusEffect` の依存へ入れると通知 API を無限に叩き続ける（useCursorPagination 参照）
+	const { refresh: refreshNotifications } = notifications;
 	const { markAllAsRead } = useMarkNotificationsRead();
 	const { unreadCount, refresh: notificationUnreadCountRefresh } = useNotificationUnreadCount();
 	const { locale } = useLocale();
@@ -75,7 +78,7 @@ export default function NotificationsScreen() {
 			inFlightRef.current = true;
 			(async () => {
 				try {
-					await notifications.refresh();
+					await refreshNotifications();
 					await notificationUnreadCountRefresh(); // 未読数リフレッシュが先
 					await markAllAsRead(); // その後に全件既読
 				} finally {
@@ -84,7 +87,7 @@ export default function NotificationsScreen() {
 				}
 			})();
 			return () => {};
-		}, [user?.id, notifications, markAllAsRead, notificationUnreadCountRefresh]),
+		}, [user?.id, refreshNotifications, markAllAsRead, notificationUnreadCountRefresh]),
 	);
 
 	// #通知機能 【仕様】通知タップ時の遷移処理

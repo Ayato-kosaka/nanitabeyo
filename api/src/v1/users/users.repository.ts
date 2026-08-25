@@ -44,6 +44,8 @@ export type MyDishRowEntity = {
     averageRating: number;
     /** #1398 PR1: `dish_categories.image_url`（NOT NULL）。写真なし行のフォールバック画像に使う */
     categoryImageUrl: string;
+    /** #1375 dish_categories.labels（言語コード → 表記）。ローマ字の dish.name を見せないために使う */
+    categoryLabels: Record<string, string> | null;
   };
   /** カーソル生成用（sort ごとに必要な要素だけ使う） */
   cursorSource: {
@@ -106,6 +108,7 @@ type DishColumns = {
   d_updated_at: Date;
   d_lock_no: number;
   d_category_image_url: string;
+  d_category_labels: Record<string, string> | null;
 };
 
 type MyDishRawRow = RestaurantColumns &
@@ -227,6 +230,7 @@ export class UsersRepository {
           reviewCount: row.review_count,
           averageRating: roundToOneDecimal(row.average_rating),
           categoryImageUrl: row.d_category_image_url,
+          categoryLabels: row.d_category_labels ?? null,
         },
         cursorSource: {
           row_key: row.row_key,

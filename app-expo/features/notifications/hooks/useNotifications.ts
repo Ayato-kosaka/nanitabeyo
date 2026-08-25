@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { asApiList } from "@/lib/apiList";
 import { useCursorPagination } from "../../../hooks/useCursorPagination";
 import { useAPICall } from "../../../hooks/useAPICall";
 import type { QueryNotificationsResponse, NotificationItem } from "@shared/api/v1/res";
@@ -29,7 +30,7 @@ export const useNotifications = () => {
 				requestPayload: params,
 			});
 			return {
-				data: response.data || [],
+				data: asApiList(response.data),
 				nextCursor: response.nextCursor,
 			};
 		},

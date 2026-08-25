@@ -102,6 +102,17 @@ export const FixedColors = {
 	 * （テーマで暗くすると明るい地図の上で浮いてしまう）。
 	 */
 	mapMarkerSurface: "#FFFFFF",
+	/**
+	 * 地図タイルの上に直接載る文字（マーカーの店名ラベル）。
+	 * 地図は常にライト配色なので、テーマに追従させず濃い墨色で固定する
+	 * （暗面テーマで白文字にすると、明るい地図の上で読めなくなる）。
+	 */
+	mapMarkerLabel: "#111827",
+	/**
+	 * 同上の «選択中» の文字色。#1375 の状態オレンジ（`#ED6C02`）を、
+	 * 白フチ越しでも読めるよう一段濃くしたもの（白との比 4.2:1）。
+	 */
+	mapMarkerLabelActive: "#B4400F",
 	/** 地図上のブランド色（ピンの縁・「Google マップで開く」の文字）。地図が常にライトなので固定 */
 	brandOnMap: "#F05537",
 	/** 地図上のブランド淡地（フローティングボタンのグラデ）。地図が常にライトなので固定 */
@@ -199,6 +210,10 @@ export interface Palette {
 	dangerTint: string;
 	/** 破壊的操作の文字（ログアウト） */
 	destructive: string;
+	/** 確認ダイアログの見出し（Material の onSurface 系。#1577） */
+	dialogTitle: string;
+	/** 確認ダイアログの本文（Material の onSurfaceVariant 系。#1577） */
+	dialogMessage: string;
 	/** 濃い警告文字（`#B91C1C` 系統。ライトでは danger より濃いため分けてある） */
 	dangerEmphasis: string;
 
@@ -259,6 +274,8 @@ const light: Palette = {
 	dangerStrong: "#EF4444", // search selectedRestrictionChip
 	dangerTint: "#FEE2E2", // search requiredBadge
 	destructive: "#FF3E33", // profile/settings.tsx ログアウト
+	dialogTitle: "#1C1B1F", // #1577 DialogProvider が直書きしていた値の写し（M3 onSurface）
+	dialogMessage: "#49454F", // 同上（M3 onSurfaceVariant）
 	dangerEmphasis: "#B91C1C", // #1469 MyDishesCalendarView.tsx footerErrorText
 
 	ctaBackground: "#000000", // search searchFab gradient(充足)
@@ -312,6 +329,8 @@ const dark: Palette = {
 	dangerStrong: "#FF6B6B",
 	dangerTint: "#4A2320", // danger を暗面へ混色
 	destructive: "#FF8A80",
+	dialogTitle: "#E5E2E1", // schemes.dark.onSurface
+	dialogMessage: "#C4C7C7", // schemes.dark.onSurfaceVariant
 	dangerEmphasis: "#FF8A80", // danger と同値へ収束（暗面では明度を上げないと文字用途で AA を割る）
 
 	ctaBackground: "#E5E2E1", // 暗面では CTA を反転させる（黒地の CTA は背景に沈む）

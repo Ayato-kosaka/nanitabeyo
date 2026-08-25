@@ -21,21 +21,29 @@ URL のパラメータで消せるものではない。
 
 埋め込みは別オリジンなので、**中の DOM は触れない**（web の iframe は同一オリジンポリシー、
 ネイティブも注入は Instagram のクラス名依存になり向こうの変更で無言で壊れる）。
-そこで **外側から位置とサイズだけで切り取る**。
+そこで **外側から位置と拡大率だけで切り取る**。
 
-写真の寸法は «iframe の幅» だけで決まる（高さを増やしても写真は大きくならない）。
-つまり iframe を**セルの高さと同じ幅**で描けば、写真はセルを覆う大きさになる。
-あとは写真の中心をセルの中心へ合わせ、はみ出しを `overflow: hidden` で捨てればよい。
-これは既存の写真の `contentFit: "cover"` と同じ振る舞いで、隙間（黒帯）は絶対に出ない。
+    ┌ 切り取り枠（セル全面 / overflow: hidden / 中身を中央寄せ）
+    │   ┌ 写真の箱（幅 = セル幅、高さ = 幅 × 写真の縦横比）… これを scale で拡大する
+    │   │   ┌ 埋め込み本体（幅 = セル幅の «素のまま»。上へ header ぶんずらす）
+    │   │   │   ヘッダ帯 ← 箱の外へ出るので見えない
+    │   │   │   写真     ← 箱いっぱい
+    │   │   │   いいね欄 ← 箱の外へ出るので見えない
+
+⚠️ **埋め込み本体を «セルの高さぶんの幅» まで引き伸ばしてはいけない。**
+最初はそう作ったが、それだと **Android でセルが真っ黒になった**（実機 Detox /
+run 32724564583・32727534712 で 2 回再現。iOS は同じ設定で描けていた）。
+Android の WebView は与えられた寸法ぶんの描画面を確保するので、実寸で 2000px を
+超える幅を渡すと描けなくなる。**本体は素の幅のまま置き、拡大は transform で行う。**
+transform はプラットフォームのビュー変換なので新しい描画面を作らない。
 
 ## 定数の根拠と、外れたときに何が起きるか
 
-- `EMBED_HEADER_RATIO`: ヘッダ帯の高さ ÷ iframe 幅。上の実測 17/320 から。
-  外れると写真の中心が上下に少しずれる（隙間は出ない）
+- `EMBED_HEADER_RATIO`: ヘッダ帯の高さ ÷ 幅。実機の動画のコマから 17/320。
+  外れると写真の上下が少しずれる（隙間は出ない）
 - `EMBED_MEDIA_ASPECT`: 写真の «高さ ÷ 幅»。**1（正方形）を採る。**
-  実測値は 400/320 = 1.25（4:5）だったが、1.25 を前提にすると、Instagram が
-  正方形で返した投稿で **写真がセルより小さくなり黒帯が出る**。
-  1 を前提にしておけば、4:5 が来たときは上下が切り取られるだけで済む。
+  実測は 4:5 だったが、1.25 を前提にすると正方形の投稿で写真がセルより小さくなり
+  黒帯が出る。1 なら 4:5 が来ても上下が切れるだけで済む。
   «隙間が出る» より «少し切れる» を選ぶ、という判断である
 */
 
@@ -49,15 +57,8 @@ export const EMBED_HEADER_RATIO = 17 / 320;
 export const EMBED_MEDIA_ASPECT = 1;
 
 /**
- * 埋め込み全体の高さ ÷ 幅。**写真の下端が入りきる最小限**にする。
- *
- * ⚠️ 大きくしすぎてはいけない。初版は 2 にしていたが、それだと Android で
- * **セルが真っ黒になった**（実機 Detox / run 32724564583。iOS は同じ設定でも描けていた）。
- * 幅はセルの高さぶん（端末実寸で約 2000px）あるので、高さを 2 倍にすると
- * 描画面が 4000px を超え、Android の WebView が扱えるテクスチャの上限を越える。
- *
- * 必要なのは «ヘッダ + 写真» が収まる高さだけで、その下（いいね欄・白帯）は
- * どのみち切り取って捨てる。ヘッダ 0.053 + 写真 1.0 に少しの余裕を足した値にする。
+ * 埋め込み本体の高さ ÷ 幅。**写真の下端が入りきる最小限**にする。
+ * その下（いいね欄・白帯）はどのみち箱の外へ出るので、余分に高くしても描画が重くなるだけ。
  */
 export const EMBED_FRAME_HEIGHT_RATIO = EMBED_HEADER_RATIO + EMBED_MEDIA_ASPECT + 0.05;
 
@@ -71,43 +72,30 @@ export const EMBED_FRAME_HEIGHT_RATIO = EMBED_HEADER_RATIO + EMBED_MEDIA_ASPECT 
 export const EMBED_OVERSCAN = 1.02;
 
 export type EmbedCropLayout = {
-	/** 埋め込み（iframe / WebView）に与える幅 */
+	/** 埋め込み本体（iframe / WebView）に与える幅。**セル幅そのまま**（引き伸ばさない） */
 	frameWidth: number;
-	/** 埋め込みに与える高さ */
+	/** 埋め込み本体に与える高さ */
 	frameHeight: number;
-	/** 切り取り枠の中での埋め込みの位置（負値になる。= 左と上を切り落とす） */
-	left: number;
-	top: number;
+	/** 埋め込み本体を上へずらす量（ヘッダ帯を箱の外へ追い出す）。負値で指定する */
+	frameTop: number;
+	/** 写真の箱の高さ（幅は frameWidth と同じ） */
+	mediaHeight: number;
+	/** 写真の箱をセル全面へ広げる拡大率 */
+	scale: number;
 };
 
-/**
- * セルの寸法から、埋め込みをどう置けば «写真だけが全面に出るか» を返す。
- *
- * 呼び出し側は、返り値の `frameWidth` / `frameHeight` を埋め込みに与え、
- * `left` / `top` で位置をずらし、**親を `overflow: "hidden"` にする**こと。
- * 親が切り取らないと、はみ出した Instagram の UI がセルの外へ出て他の要素に重なる。
- *
- * セルの寸法がまだ確定していない（0 以下）ときは null を返す。呼び出し側は
- * `onLayout` で寸法が来るまで埋め込みを描かない。中途半端な寸法で一度描くと、
- * WebView がその寸法でページを読み込んでしまい、切り取り位置がずれたまま残る。
- */
 export function computeEmbedCropLayout(cell: { width: number; height: number }): EmbedCropLayout | null {
 	if (!(cell.width > 0) || !(cell.height > 0)) return null;
 
-	// 写真がセルの高さを覆う幅。写真の高さ = 幅 × EMBED_MEDIA_ASPECT なので逆算する。
-	// ⚠️ 横長のセル（タブレット等）では、高さから決めた幅がセル幅に届かず
-	// **左右に隙間が出る**。幅側の要求とを比べて大きいほうを採る（= cover）
-	const frameWidth = Math.max((cell.height * EMBED_OVERSCAN) / EMBED_MEDIA_ASPECT, cell.width * EMBED_OVERSCAN);
+	// 本体は «素の幅» のまま。ここを大きくすると Android が描けなくなる（ヘッダ参照）
+	const frameWidth = cell.width;
 	const frameHeight = frameWidth * EMBED_FRAME_HEIGHT_RATIO;
-
 	const mediaTop = frameWidth * EMBED_HEADER_RATIO;
 	const mediaHeight = frameWidth * EMBED_MEDIA_ASPECT;
 
-	return {
-		frameWidth,
-		frameHeight,
-		// 写真の中心をセルの中心へ合わせる
-		left: (cell.width - frameWidth) / 2,
-		top: cell.height / 2 - (mediaTop + mediaHeight / 2),
-	};
+	// 縦も横も覆う拡大率（= contentFit: "cover"）。写真の箱は幅 = セル幅なので、
+	// 横は 1 倍で既に足りている。縦を満たす倍率を採り、overscan を掛けて必ずはみ出させる
+	const scale = Math.max((cell.height * EMBED_OVERSCAN) / mediaHeight, EMBED_OVERSCAN);
+
+	return { frameWidth, frameHeight, frameTop: -mediaTop, mediaHeight, scale };
 }

@@ -56,7 +56,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { Instagram, MapPin, MapPinned, Music2, Search, X, Youtube } from "lucide-react-native";
+import { Instagram, Link2, MapPin, MapPinned, Music2, Search, X, Youtube } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -344,6 +344,18 @@ export default function SnsImportScreen() {
 					requestPayload: area ? { url, lat: area.lat, lng: area.lng, radius: RESOLVE_RADIUS_M } : { url },
 				},
 			);
+			/*
+			#1375（全画面のクラッシュ棚卸し）**形を確かめてから state へ入れる。**
+
+			以前はここで無条件に `setResolved(response)` していた。直後の
+			`response.prefill.…` が throw して catch に入っても **state はもう汚れており**、
+			次のレンダーで `resolved.source` / `resolved.metadata` / `resolved.candidates` を
+			無条件に掘って TypeError → アプリ全体の ErrorBoundary へ抜ける。
+			`try/catch` は原理的に防げない（throw するのは次のレンダー。#1561 と同型）。
+			*/
+			if (!response?.source || !response.metadata || !response.candidates || !response.prefill) {
+				throw new Error("resolve response is malformed");
+			}
 			setResolved(response);
 			// 読み取り直しでキャプションは畳み直す（前の投稿の展開状態を引き継がない）
 			setIsCaptionExpanded(false);
@@ -505,7 +517,19 @@ export default function SnsImportScreen() {
 	const canSave = dishCategoryId !== null && restaurantId !== null && !isSaving;
 
 	return (
-		<SafeAreaView edges={["bottom"]} style={styles.container} testID="sns-import-screen">
+		/*
+		#1375（実機 iOS のスクリーンショットで発覚）**上端の余白（`"top"`）を外さない。**
+
+		この画面は «ヘッダを出さない» と決めた（下のコメント）が、**このアプリで上端の
+		セーフエリアを確保しているのは `ScreenHeader`**（`paddingTop: insets.top + 8`）である。
+		ヘッダを消したときに、その役目を引き継ぐものが無くなっていた。
+
+		結果、iOS ではタブ（「SNS から」「食べたを記録」）が **ダイナミックアイランドの下に
+		潜って読めなくなっていた**（run 32818524649 の iOS スクリーンショットで実測）。
+		ヘッダを持つ他の画面が `edges={[]}` なのは `ScreenHeader` が入れているからで、
+		**ヘッダの無いこの画面だけは自分で入れる必要がある。**
+		*/
+		<SafeAreaView edges={["top", "bottom"]} style={styles.container} testID="sns-import-screen">
 			{/* #1375 実機確認: **ヘッダは出さない。** タブ自体が見出しの役割を持つので、
 			    その上にもう 1 段タイトル帯を置くと «同じことを 2 回言う» 形になる。
 			    戻る導線はヘッダではなく «下へ引いて閉じる»（`dismissGesture`）が担う。
@@ -674,12 +698,21 @@ export default function SnsImportScreen() {
 											{!!resolved.source.provider &&
 												(() => {
 													// #1375 4 巡目: 名前だけだと素っ気ないのでロゴを左に添える
-													const ProviderIcon = PROVIDER_ICONS[resolved.source.provider];
+													/*
+													#1375（全画面のクラッシュ棚卸し）**`?? Link2` を外さないこと。**
+
+													`PROVIDER_ICONS` は instagram / tiktok / youtube の 3 つしか持たない。
+													サーバが 4 つ目（X / Threads 等）を返した瞬間ここが `undefined` になり、
+													`<undefined />` を描いて React が
+													「Element type is invalid」で throw する。render 中なので
+													**アプリ全体が «予期しないエラー»** になる。
+													*/
+													const ProviderIcon = PROVIDER_ICONS[resolved.source.provider] ?? Link2;
 													return (
 														<View style={styles.providerRow}>
 															<ProviderIcon size={16} color={colors.brand} />
 															<Text style={styles.provider} testID="sns-import-provider">
-																{PROVIDER_LABELS[resolved.source.provider]}
+																{PROVIDER_LABELS[resolved.source.provider] ?? resolved.source.provider}
 															</Text>
 														</View>
 													);

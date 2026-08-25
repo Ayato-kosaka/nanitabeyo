@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect } from "react";
+import { asApiList } from "@/lib/apiList";
 import { View, Text, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { GridList } from "@/components/collapsible-tabs/GridList";
@@ -44,17 +45,30 @@ export function LikeTab() {
 				},
 			);
 			return {
-				data: response.data || [],
+				// #1375 `|| []` は null / undefined しか止めない。`data: {}` のような
+				// «形は返ったが配列ではない» 応答は素通りする（lib/apiList.ts 参照）
+				data: asApiList(response.data),
 				nextCursor: response.nextCursor,
 			};
 		},
 		[callBackend],
 	);
 
+	/*
+	#1375（全画面のクラッシュ棚卸し）⚠️ **`error` を条件から外さないこと。**
+
+	`handleAsyncAction`（`stores/useDishMediaEntriesStore.ts`）は取得に失敗したとき
+	`hasFetchedInitialByKey` を **false のまま** `isLoading` を false に戻す。
+	`error` を見ないと «失敗 → isLoading が落ちる → effect 再実行 → また失敗» で
+	**無限に叩き続ける**（オフライン・500・401 のいずれでも起きる）。
+
+	同じ罠は `RestaurantReviewsTab.tsx` と `restaurant/[restaurantId]/feed.tsx` に
+	申し送り付きで塞がれている。**ここだけ抜けていた。**
+	*/
 	useEffect(() => {
-		if (hasFetchedInitial || isLoading) return;
+		if (hasFetchedInitial || isLoading || error) return;
 		fetchInitialByKey(profileLikesEntriesKey, {}, fetcher);
-	}, [profileLikesEntriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
+	}, [profileLikesEntriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading, error]);
 
 	const handleItemPress = useCallback(
 		(dishMediaId: string, index: number) => {

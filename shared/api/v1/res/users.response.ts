@@ -8,6 +8,7 @@ import { DishMediaEntry } from "./dish-media.response";
 import { SupabaseUsers } from "../../../converters/convert_users";
 import { RestaurantsEntity } from "./restaurants.response";
 import { MyDishStatus } from "../dto/users/query-my-dishes.dto";
+import { MeDishCategoryGroupVoteListItem } from "./dish-category-group-votes.response";
 
 /**
  * ユーザープロフィール情報
@@ -39,6 +40,9 @@ export type QueryMeBlockedDishCategoriesResponse = PaginatedResponse<SupabaseDis
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
 export type QueryMeSavedDishMediaResponse = PaginatedResponse<DishMediaEntry>;
+
+/** GET /v1/users/me/dish-category-group-votes のレスポンス型 */
+export type QueryMeDishCategoryGroupVotesResponse = PaginatedResponse<MeDishCategoryGroupVoteListItem>;
 
 /** GET /v1/users/me/saved-restaurants のレスポンス型 */
 export type QueryMeSavedRestaurantsResponse = PaginatedResponse<{
@@ -90,6 +94,15 @@ export type MyDishItem = {
 		 * （#1375 追補2 決定3）。表示側の実装は PR5 のスコープで、この PR は契約を通すだけ。
 		 */
 		categoryImageUrl: string;
+		/**
+		 * #1375 `dish_categories.labels`（言語コード → 表記）。取れなければ null。
+		 *
+		 * 表示名に `name`（= その店でのその料理の呼び名）だけを使うと、SNS 取り込み由来の
+		 * 記録が «udon» のようにローマ字で出る（オーナー実機指摘）。
+		 * クライアントは **`labels[言語] → labels["en"] → name`** の順で解決すること
+		 * （`app-expo/features/myDishes/dishCategoryLabel.ts`）。
+		 */
+		categoryLabels: Record<string, string> | null;
 	};
 
 	/**

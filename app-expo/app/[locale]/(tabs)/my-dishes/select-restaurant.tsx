@@ -16,7 +16,7 @@ import {
 	type QueryRestaurantsResponse,
 	ErrorCode,
 } from "@shared/api/v1/res";
-import type { CreateRestaurantDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
+import type { CreateRestaurantDto, QueryRestaurantsDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import { asApiList } from "@/lib/apiList";
@@ -25,6 +25,7 @@ import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
+import { RestaurantLabelMarker } from "@/features/restaurantPicker/components/RestaurantLabelMarker";
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import {
 	SavedRestaurantsSheet,
@@ -44,6 +45,15 @@ type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
  * - 地図上のPOIタップ or 検索バーからレストラン選択でレストラン作成＆詳細画面へ遷移
  * - 保存したお店を地図上にマーカー表示、カード表示
  */
+/**
+ * #1375 地図に同時に置くアプリ内お店ピンの上限。
+ *
+ * マーカーは 1 個ごとにネイティブ側でビットマップになるため、無制限に置くと重くなり、
+ * 低メモリ端末では落ちる（#1375 で my-dishes のマップが実際に落ちた）。
+ * 「探す」ために必要な密度はこの程度で足りる。
+ */
+const MAX_NEARBY_RESTAURANT_PINS = 40;
+
 export default function SelectRestaurantScreen() {
 	/**
 	 * #1375（3 巡目）`?mode=pick` — «お店を 1 件選んで戻る» モード。
@@ -77,10 +87,61 @@ export default function SelectRestaurantScreen() {
 		longitudeDelta: 0.01,
 	});
 
+	/*
+	#1375（オーナー指示 8 巡目）**「お店を探す」ときは、保存したピンではなく
+	アプリ内のお店データを、店名の文字付きで出す。**
+
+	保存済みのピンだけが出ていたので、«まだ保存していない店を探す» という
+	この画面本来の目的に対して、地図に何の手がかりも無かった。
+
+	引くのは `GET /v1/restaurants/search`（**自前の restaurants テーブル**。
+	Google Places は呼ばないので課金枠を消費しない — この endpoint 自身の申し送りにある）。
+
+	⚠️ **上限を設ける。** マーカーは 1 個ごとにネイティブでビットマップになるので、
+	無制限に置くと重くなり、低メモリ端末では落ちる（#1375 でマップ画面が実際に落ちた）。
+	*/
+	const [nearbyRestaurants, setNearbyRestaurants] = useState<QueryRestaurantsResponse>([]);
+	const nearbyRequestRef = useRef(0);
+	const fetchNearbyRestaurants = useCallback(
+		async (region: Region) => {
+			if (!isPickMode) return;
+			const requestId = ++nearbyRequestRef.current;
+			try {
+				const response = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>(
+					"v1/restaurants/search",
+					{
+						method: "GET",
+						requestPayload: {
+							lat: region.latitude,
+							lng: region.longitude,
+							radius: Math.max(region.latitudeDelta, region.longitudeDelta) * 50000,
+						},
+					},
+				);
+				// 追い越しを捨てる（指を離すたびに投げるので、古い応答が後から届きうる）
+				if (requestId !== nearbyRequestRef.current) return;
+				setNearbyRestaurants(asApiList(response).slice(0, MAX_NEARBY_RESTAURANT_PINS));
+			} catch (error) {
+				// 地図の手がかりが出ないだけなので、画面は止めない（スナックバーも出さない）
+				logFrontendEvent({
+					event_name: "nearby_restaurants_search_error",
+					error_level: "warn",
+					payload: { error },
+				});
+			}
+		},
+		[callBackend, isPickMode, logFrontendEvent],
+	);
+
 	// Handle region change with debouncing
-	const handleRegionChangeComplete = useCallback((region: Region) => {
-		currentRegion.current = region;
-	}, []);
+	const handleRegionChangeComplete = useCallback(
+		(region: Region) => {
+			currentRegion.current = region;
+			// 指を離したときだけ引く（pan の最中には投げない）
+			void fetchNearbyRestaurants(region);
+		},
+		[fetchNearbyRestaurants],
+	);
 
 	// #644 【設計】レストラン作成＆詳細画面へ遷移する関数（ストアにキャッシュ→ナビゲーション）
 	// #525 【設計】エラーハンドリングを整備し、422/404/network_error 等を適切にスナックバーで通知
@@ -272,6 +333,29 @@ export default function SelectRestaurantScreen() {
 	);
 
 	// #644 【設計】保存したお店のマーカー押下時の処理（ストア upsert → 遷移）
+	/*
+	#1375（オーナー指示 8 巡目）アプリ内のお店ピンを押したとき。
+
+	**1 回目で選択、2 回目で確定**（保存済みピンと同じ作法）にする。
+	いきなり確定すると、地図を触っていて指が当たっただけで記録の店が決まってしまう。
+	*/
+	const handleNearbyRestaurantMarkerPress = useCallback(
+		(item: QueryRestaurantsResponse[number]) => {
+			lightImpact();
+			if (activeRestaurantId === item.restaurant.id) {
+				usePickedRestaurantStore.getState().setPicked({
+					restaurantId: item.restaurant.id,
+					name: item.restaurant.name,
+					restaurant: item.restaurant,
+				});
+				router.back();
+				return;
+			}
+			setActiveRestaurantId(item.restaurant.id);
+		},
+		[activeRestaurantId, lightImpact],
+	);
+
 	const handleSavedRestaurantMarkerPress = useCallback(
 		(restaurant: SavedRestaurant) => {
 			lightImpact();
@@ -475,6 +559,62 @@ export default function SelectRestaurantScreen() {
 		[createAndOpenRestaurant, getLocationDetails, lightImpact, logFrontendEvent, searchSavedRestaurants],
 	);
 
+	/*
+	#1375（実機: マップの重さ）**マーカー配列を memo で固定する。**
+
+	素の `.map` だと、検索文字を 1 文字打つ・シートの開閉といった **マーカーと無関係な
+	state 更新のたびに**、全マーカーへ新しい `coordinate`（毎回新しいオブジェクト）と
+	新しい `onPress`（毎回新しい関数）が流れる。View Marker はネイティブでビットマップに
+	なるので、props が変わるたびに焼き直しの対象になる。
+	my-dishes の Map（`MyDishesMapView`）は同じ理由で既に memo している。
+	*/
+	/*
+	#1375（オーナー指示 8 巡目）**pick モードはアプリ内のお店（店名つき）を出す。**
+	それ以外（この画面を単体で開く経路）は従来どおり «保存したお店» を出す。
+	*/
+	const markers = useMemo(
+		() =>
+			isPickMode
+				? nearbyRestaurants.map((item) => (
+						<RestaurantLabelMarker
+							key={item.restaurant.id}
+							coordinate={{
+								latitude: item.restaurant.latitude,
+								longitude: item.restaurant.longitude,
+							}}
+							name={item.restaurant.name}
+							uri={item.restaurant.imageUrls?.sm}
+							isActive={activeRestaurantId === item.restaurant.id}
+							onPress={() => handleNearbyRestaurantMarkerPress(item)}
+						/>
+					))
+				: savedRestaurants.map((item: SavedRestaurant) => (
+				<AvatarBubbleMarker
+					key={item.restaurant.id}
+					coordinate={{
+						latitude: item.restaurant.latitude,
+						longitude: item.restaurant.longitude,
+					}}
+					onPress={() => handleSavedRestaurantMarkerPress(item)}
+					color={
+						// 地図タイルは常にライト配色のため、非アクティブのバブルは固定白（FixedColors 参照）
+						activeRestaurantId === item.restaurant.id ? colors.brand : FixedColors.mapMarkerSurface
+					}
+					isActive={activeRestaurantId === item.restaurant.id}
+					uri={item.restaurant.imageUrls?.sm}
+				/>
+				)),
+		[
+			activeRestaurantId,
+			colors.brand,
+			handleNearbyRestaurantMarkerPress,
+			handleSavedRestaurantMarkerPress,
+			isPickMode,
+			nearbyRestaurants,
+			savedRestaurants,
+		],
+	);
+
 	return (
 		<View style={styles.container}>
 			{/* Map */}
@@ -486,22 +626,7 @@ export default function SelectRestaurantScreen() {
 				onRegionChangeComplete={handleRegionChangeComplete}
 				onPoiClick={handlePoiPress}>
 				{/* #644 【設計】保存したお店のマーカー表示 */}
-				{savedRestaurants.map((item: SavedRestaurant) => (
-					<AvatarBubbleMarker
-						key={item.restaurant.id}
-						coordinate={{
-							latitude: item.restaurant.latitude,
-							longitude: item.restaurant.longitude,
-						}}
-						onPress={() => handleSavedRestaurantMarkerPress(item)}
-						color={
-							// 地図タイルは常にライト配色のため、非アクティブのバブルは固定白（FixedColors 参照）
-							activeRestaurantId === item.restaurant.id ? colors.brand : FixedColors.mapMarkerSurface
-						}
-						isActive={activeRestaurantId === item.restaurant.id}
-						uri={item.restaurant.imageUrls?.sm}
-					/>
-				))}
+				{markers}
 			</MapView>
 
 			{/* Loading Indicator */}
@@ -574,7 +699,15 @@ export default function SelectRestaurantScreen() {
 				</View>
 			</View>
 
-			{/* Saved Restaurants BottomSheet */}
+			{/* Saved Restaurants BottomSheet
+
+			    #1375（オーナー指示）**「お店を選ぶ」ときは出さない。**
+			    記録の途中でこの画面へ来る人は «探している店» が決まっているので、
+			    保存済みの一覧が下から出ても選択の役に立たず、地図と検索結果を隠すだけになる。
+			    保存済みの店は地図上のピンとして見えているので、そこから選べる。
+
+			    ⚠️ pick モード以外（この画面を単体で開く経路）では従来どおり出す。 */}
+			{!isPickMode && (
 			<SavedRestaurantsSheet
 				ref={savedRestaurantsSheetRef}
 				visible={isSheetVisible}
@@ -586,6 +719,7 @@ export default function SelectRestaurantScreen() {
 				onRestaurantReviewPress={handleSavedRestaurantReviewPress}
 				onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
 			/>
+			)}
 		</View>
 	);
 }

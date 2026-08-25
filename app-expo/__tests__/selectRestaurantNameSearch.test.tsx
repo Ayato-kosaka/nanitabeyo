@@ -196,4 +196,34 @@ describe("#1398 (PR6) 店名検索コンポーネント（RestaurantNameSearch�
 
 		expect(mockOnSelectRestaurant).toHaveBeenCalledWith(SEARCH_RESULT);
 	});
+
+	/**
+	 * #1375（6 巡目・実機で 2 回指摘）**外側の器に `flex` を持たせない。**
+	 *
+	 * 呼び出し元（「食べたを記録」タブ・SNS 取り込みタブ）はどちらも高さを決めない
+	 * 普通の縦並びの中にこの部品を置く。そこで器が `flex: 1` だと、ネイティブでは
+	 * 高さが 0 に潰れて **入力欄ごと見えなくなる**。
+	 *
+	 * ⚠️ web（react-native-web）では潰れないので、**スクリーンショットでは正常に見える**。
+	 * この差のせいで «直した» と誤って報告した経緯がある。だからここは «見た目» ではなく
+	 * **スタイルの値そのもの**を固定する。
+	 */
+	it("外側の器に flex を持たせない（実機で高さが 0 に潰れるため）", async () => {
+		const tree = await render(<NameSearchHarness />);
+		const input = findByTestId(tree, "select-restaurant-name-search-input");
+
+		// 入力欄から外側の器までのすべての親のスタイルを集める
+		const flexValues: unknown[] = [];
+		for (let node = input.parent; node; node = node.parent) {
+			const style = node.props?.style;
+			for (const entry of Array.isArray(style) ? style : [style]) {
+				if (entry && typeof entry === "object" && "flex" in entry) {
+					flexValues.push((entry as { flex: unknown }).flex);
+				}
+			}
+		}
+		// 入力欄自身の flex: 1（横方向に伸びる）は正しいので、器側だけを見る。
+		// 器に flex が 1 つでも付いていたら、それが潰れの原因になる
+		expect(flexValues).not.toContain(1);
+	});
 });

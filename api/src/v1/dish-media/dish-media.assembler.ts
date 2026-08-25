@@ -85,6 +85,8 @@ export class DishMediaAssembler {
         // Explicitly add only the required additional fields for DishMediaEntry.dish
         reviewCount: src.dish.reviewCount,
         averageRating: src.dish.averageRating,
+        // #1375 カテゴリの正式表記（ローマ字の name をユーザーに見せないため）
+        categoryLabels: src.dish.categoryLabels,
       };
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
