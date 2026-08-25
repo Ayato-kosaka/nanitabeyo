@@ -138,10 +138,21 @@ export class SettingsScreen {
 	 * `whileElement(...).scroll()` を使っている。画面の入口であるこのメソッドだけが
 	 * «初期表示で見えている» を前提にしていたので、同じ作法へ揃えた。
 	 * 既に見えていればスクロールは 1 度も走らない。
+	 *
+	 * ⚠️ **スクロールの前に «画面がある» ことを待つこと。**
+	 * `whileElement(...).scroll()` は対象コンテナの出現を **待たない**。まだ描画されて
+	 * いなければ `No elements found for MATCHER(id == "settings-scroll")` で
+	 * **即座に**落ちる（`waitUntilVisible` なら timeout まで待つ）。
+	 * iOS の遅いランナー（1 テスト 100〜200 秒かかる回）で実測した
+	 * （run 32882521476。マイページがまだ出ていないうちにスクロールへ入って落ちていた）。
 	 */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		// scroll() は withTimeout を持たないため、待ち時間は waitUntilVisible 側で見る。
-		// スクロールで «見えるところまで» 運んでから、通常の可視待ちで確定させる。
+		// 1) まず画面そのものの出現を待つ。ここを飛ばすと «要素が無い» で即死する
+		await waitFor(element(by.id("settings-scroll")))
+			.toExist()
+			.withTimeout(timeout);
+		// 2) 目的の行が画面外なら、見えるところまで運ぶ
+		//    scroll() は withTimeout を持たないため、待ち時間は下の waitUntilVisible 側で見る
 		await waitFor(element(this.feedbackItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
 		await waitUntilVisible(this.feedbackItem, timeout);
 	}
@@ -220,7 +231,9 @@ export class SettingsScreen {
 	 * 見えるところまでスクロールしてから押す。既に見えていれば 1 度も動かさずに返る。
 	 */
 	async openLanguage(): Promise<void> {
-		await waitFor(element(this.languageItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
+		// #1583 コンテナの出現待ちを含む `expectRowVisible()` を通す
+		//（素の whileElement(...).scroll() は «画面がまだ無い» と即死する）
+		await this.expectRowVisible(this.languageItem);
 		await tapWhenVisible(this.languageItem);
 	}
 
@@ -258,15 +271,18 @@ export class SettingsScreen {
 	 *
 	 * 既に見えていればスクロールは 1 度も走らない。
 	 */
-	async expectRowVisible(matcher: Detox.NativeMatcher): Promise<void> {
+	async expectRowVisible(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		// `expectLoaded()` と同じ理由でコンテナの出現を先に待つ（scroll() は待たない）
+		await waitFor(element(by.id("settings-scroll")))
+			.toExist()
+			.withTimeout(timeout);
 		await waitFor(element(matcher)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
 	}
 
 	async openDeviceSettings(): Promise<void> {
-		await waitFor(element(this.deviceSettingsItem))
-			.toBeVisible()
-			.whileElement(by.id("settings-scroll"))
-			.scroll(300, "down");
+		// #1583 コンテナの出現待ちを含む `expectRowVisible()` を通す
+		//（素の whileElement(...).scroll() は «画面がまだ無い» と即死する）
+		await this.expectRowVisible(this.deviceSettingsItem);
 		await tapWhenVisible(this.deviceSettingsItem);
 	}
 
@@ -289,10 +305,9 @@ export class SettingsScreen {
 	 * （この行もマイページのかなり下にあり、エミュレータの画面高では初期表示で画面外）。
 	 */
 	async openAbout(): Promise<void> {
-		await waitFor(element(this.aboutItem))
-			.toBeVisible()
-			.whileElement(by.id("settings-scroll"))
-			.scroll(300, "down");
+		// #1583 コンテナの出現待ちを含む `expectRowVisible()` を通す
+		//（素の whileElement(...).scroll() は «画面がまだ無い» と即死する）
+		await this.expectRowVisible(this.aboutItem);
 		await tapWhenVisible(this.aboutItem);
 		await waitUntilVisible(this.termsItem);
 	}
@@ -324,7 +339,9 @@ export class SettingsScreen {
 	 * 項目が «プロフィール要約 + いいね/保存の 2 行» の分だけ下へずれたので、この関数の重要度は上がった。
 	 */
 	async scrollToLogout(): Promise<void> {
-		await waitFor(element(this.logoutItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
+		// #1583 コンテナの出現待ちを含む `expectRowVisible()` を通す
+		//（素の whileElement(...).scroll() は «画面がまだ無い» と即死する）
+		await this.expectRowVisible(this.logoutItem);
 	}
 
 	/**
