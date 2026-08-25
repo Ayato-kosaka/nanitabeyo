@@ -17,6 +17,18 @@ Instagram の `/embed/` は、こちらが要求していない UI を必ず一�
 `/embed/captioned/` ではなく `/embed/` を使ってもこの内訳は変わらない（実測済み）。
 URL のパラメータで消せるものではない。
 
+## ⚠️ 拡大はしない（オーナー判断 2026-08-25）
+
+一度は «写真がセル全面を覆う» ように `transform: scale` で拡大していたが、実機で
+
+- 拡大した中身が指の動きを **ドラッグとして食う**（フィードを送りたいのに中身が動く）
+- Instagram 自身の再生ボタンも一緒に拡大・移動して **押しにくい**
+- 結果として **再生できない**
+
+という状態になった。オーナー判断で **拡大をやめ、等倍で置く**。
+写真はセル幅いっぱい・正方形で、上下にはアプリの地色が残る。
+«既存の写真投稿と同じ全画面» にはならないが、**触って操作できること**を優先する。
+
 ## どう切り取るか
 
 埋め込みは別オリジンなので、**中の DOM は触れない**（web の iframe は同一オリジンポリシー、
@@ -24,7 +36,7 @@ URL のパラメータで消せるものではない。
 そこで **外側から位置と拡大率だけで切り取る**。
 
     ┌ 切り取り枠（セル全面 / overflow: hidden / 中身を中央寄せ）
-    │   ┌ 写真の箱（幅 = セル幅、高さ = 幅 × 写真の縦横比）… これを scale で拡大する
+    │   ┌ 写真の箱（幅 = セル幅、高さ = 幅 × 写真の縦横比）… 等倍で中央に置く
     │   │   ┌ 埋め込み本体（幅 = セル幅の «素のまま»。上へ header ぶんずらす）
     │   │   │   ヘッダ帯 ← 箱の外へ出るので見えない
     │   │   │   写真     ← 箱いっぱい
@@ -62,15 +74,6 @@ export const EMBED_MEDIA_ASPECT = 1;
  */
 export const EMBED_FRAME_HEIGHT_RATIO = EMBED_HEADER_RATIO + EMBED_MEDIA_ASPECT + 0.05;
 
-/**
- * 写真をセルより何割大きく敷くか。
- *
- * ぴったり（1.0）にすると、写真の上下端とセルの上下端が **数値上ちょうど一致**する。
- * 端末の丸め（小数のレイアウト）が 1px でも逆に転ぶと、そこに黒い線が出る。
- * 2% だけ大きく敷いて、必ず «少しはみ出している» 状態にしておく。
- */
-export const EMBED_OVERSCAN = 1.02;
-
 export type EmbedCropLayout = {
 	/** 埋め込み本体（iframe / WebView）に与える幅。**セル幅そのまま**（引き伸ばさない） */
 	frameWidth: number;
@@ -80,8 +83,6 @@ export type EmbedCropLayout = {
 	frameTop: number;
 	/** 写真の箱の高さ（幅は frameWidth と同じ） */
 	mediaHeight: number;
-	/** 写真の箱をセル全面へ広げる拡大率 */
-	scale: number;
 };
 
 export function computeEmbedCropLayout(cell: { width: number; height: number }): EmbedCropLayout | null {
@@ -93,9 +94,5 @@ export function computeEmbedCropLayout(cell: { width: number; height: number }):
 	const mediaTop = frameWidth * EMBED_HEADER_RATIO;
 	const mediaHeight = frameWidth * EMBED_MEDIA_ASPECT;
 
-	// 縦も横も覆う拡大率（= contentFit: "cover"）。写真の箱は幅 = セル幅なので、
-	// 横は 1 倍で既に足りている。縦を満たす倍率を採り、overscan を掛けて必ずはみ出させる
-	const scale = Math.max((cell.height * EMBED_OVERSCAN) / mediaHeight, EMBED_OVERSCAN);
-
-	return { frameWidth, frameHeight, frameTop: -mediaTop, mediaHeight, scale };
+	return { frameWidth, frameHeight, frameTop: -mediaTop, mediaHeight };
 }

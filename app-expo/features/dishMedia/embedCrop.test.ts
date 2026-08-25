@@ -2,7 +2,8 @@
 #1375（案 A）埋め込みの切り取り計算。
 
 守るのは 4 点。
-1. 写真がセルを必ず覆う（**隙間＝黒帯を作らない**）。これが案 A の目的そのもの
+1. **拡大しない**（オーナー判断 2026-08-25）。拡大すると指の動きが中身のドラッグに取られ、
+   Instagram 自身の再生ボタンも動いて押せなくなる。写真はセル幅いっぱいの等倍で置く
 2. Instagram のヘッダといいね欄がセルの外へ出る（＝ 切り取られる）
 3. **埋め込み本体をセル幅より広くしない**（広げると Android が真っ黒になる）
 4. 寸法が確定するまでは何も返さない
@@ -12,14 +13,7 @@ import {
 	EMBED_HEADER_RATIO,
 	EMBED_MEDIA_ASPECT,
 	computeEmbedCropLayout,
-	type EmbedCropLayout,
 } from "./embedCrop";
-
-/** 拡大後に、写真の箱がどれだけの大きさになるか */
-const scaledMedia = (layout: EmbedCropLayout) => ({
-	width: layout.frameWidth * layout.scale,
-	height: layout.mediaHeight * layout.scale,
-});
 
 /** 実機・実端末で出うるセル寸法 */
 const CELLS = [
@@ -30,13 +24,20 @@ const CELLS = [
 ];
 
 describe("computeEmbedCropLayout", () => {
-	it.each(CELLS)("$name: 写真がセル全体を覆う（黒帯を作らない）", ({ width, height }) => {
+	/*
+	オーナー判断（2026-08-25）**拡大しない。**
+
+	以前は «写真がセル全面を覆う» ことを守っていたが、そのために掛けていた拡大が
+	  - 指の動きを中身のドラッグとして食う
+	  - Instagram 自身の再生ボタンを動かして押しにくくする
+	という副作用を生み、**再生できない**状態になっていた。
+	いまは写真をセル幅いっぱいの **等倍** で置く（上下にはアプリの地色が残る）。
+	*/
+	it.each(CELLS)("$name: 写真はセル幅いっぱい・等倍（拡大しない）", ({ width, height }) => {
 		const layout = computeEmbedCropLayout({ width, height });
 		expect(layout).not.toBeNull();
-		const media = scaledMedia(layout!);
-		// 箱は中央寄せで置くので、縦横とも «セル以上» なら覆えている
-		expect(media.width).toBeGreaterThanOrEqual(width);
-		expect(media.height).toBeGreaterThanOrEqual(height);
+		expect(layout!.frameWidth).toBe(width);
+		expect(layout!.mediaHeight).toBeCloseTo(width * EMBED_MEDIA_ASPECT, 5);
 	});
 
 	/**
@@ -46,8 +47,7 @@ describe("computeEmbedCropLayout", () => {
 	 * 超える幅を WebView へ渡していた。Android の WebView は与えられた寸法ぶんの描画面を
 	 * 確保するため、そこまで大きいと何も描かれない（iOS には同じ上限が無く描けていた）。
 	 *
-	 * 本体は素の幅のまま置き、拡大は transform（プラットフォームのビュー変換で、
-	 * 新しい描画面を作らない）で行う。ここが再び大きくなると Android が黒に戻る。
+	 * 本体は素の幅のまま置く。ここが再び大きくなると Android が黒に戻る。
 	 */
 	it.each(CELLS)("$name: 埋め込み本体をセル幅より広くしない（Android が描けなくなる）", ({ width }) => {
 		const layout = computeEmbedCropLayout({ width, height: 800 })!;
@@ -70,10 +70,11 @@ describe("computeEmbedCropLayout", () => {
 		expect(layout.frameHeight + layout.frameTop).toBeGreaterThan(layout.mediaHeight);
 	});
 
-	it("拡大率は 1 倍を下回らない（縮めると隙間が出る）", () => {
-		for (const cell of CELLS) {
-			expect(computeEmbedCropLayout(cell)!.scale).toBeGreaterThanOrEqual(1);
-		}
+	// 拡大をやめた以上、レイアウトに «倍率» という概念を残さない。
+	// 残っていると「少しだけ拡大する」が後からこっそり戻ってくる
+	it("レイアウトに拡大率を持たない", () => {
+		const layout = computeEmbedCropLayout({ width: 393, height: 759 })!;
+		expect(Object.keys(layout).sort()).toEqual(["frameHeight", "frameTop", "frameWidth", "mediaHeight"]);
 	});
 
 	it("寸法が確定していないときは null（中途半端な寸法で描かせない）", () => {

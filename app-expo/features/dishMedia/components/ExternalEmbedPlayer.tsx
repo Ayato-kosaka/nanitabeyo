@@ -182,6 +182,29 @@ export function ExternalEmbedPlayer({
 		[embed.provider, logFrontendEvent, NativeWebView],
 	);
 
+	/*
+	#1375（オーナー実機指摘「リールが再生できない」）**1 タップで再生まで行く。**
+
+	それまでは «1 タップ目で操作モードへ入るだけ / 2 タップ目で Instagram の再生ボタンを押す»
+	の 2 段だった。人は 1 回押して何も起きなければそこで諦めるので、実質 «再生できない» と同じである。
+
+	WebView の中は同一プロセスで、`injectJavaScript` は **埋め込みページの文脈で動く**
+	（iframe と違って同一オリジン制約に当たらない）。操作モードへ入った直後に
+	`video.play()` を試み、`video` がまだ無ければ中央を 1 回クリックする。
+
+	⚠️ web（iframe）では注入できない。web は 2 タップのままである。
+	⚠️ 失敗しても何もしない。ここで例外を投げると WebView ごと落ちる
+	*/
+	const webViewRef = useRef<{ injectJavaScript: (script: string) => void } | null>(null);
+	const requestPlay = useCallback(() => {
+		webViewRef.current?.injectJavaScript(`(function(){try{
+			var v=document.querySelector('video');
+			if(v){ v.muted=true; var p=v.play(); if(p&&p.catch){p.catch(function(){});} return; }
+			var el=document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
+			if(el){ el.click(); }
+		}catch(e){}})(); true;`);
+	}, []);
+
 	// WebView 不在ビルド用: 投稿そのものをアプリ内ブラウザで開く
 	const handleOpenExternally = useCallback(() => {
 		lightImpact();
@@ -197,7 +220,9 @@ export function ExternalEmbedPlayer({
 			payload: { provider: embed.provider },
 		});
 		setInteractive(true);
-	}, [embed.provider, lightImpact, logFrontendEvent]);
+		// 描画が落ち着いてから注入する（操作モードへ入った同じフレームでは video がまだ無い）
+		setTimeout(requestPlay, 300);
+	}, [embed.provider, lightImpact, logFrontendEvent, requestPlay]);
 
 	const handleExitInteractive = useCallback(() => {
 		lightImpact();
@@ -295,7 +320,7 @@ export function ExternalEmbedPlayer({
 					testID="external-embed-webview">
 					{/* セルの寸法が確定するまで WebView を作らない。中途半端な幅で読み込ませると、
 					    Instagram がその幅でレイアウトしてしまい切り取り位置がずれたまま残る */}
-					{/* 写真の箱。ここを拡大してセル全面へ広げる。
+					{/* 写真の箱。**等倍で中央へ置く**（拡大しない。理由は ../embedCrop.ts のヘッダ）。
 					    ⚠️ WebView 本体は **素の幅のまま**にすること。大きな寸法を渡すと
 					    Android が描画面を確保できずセルが真っ黒になる（../embedCrop.ts のヘッダ） */}
 					{crop !== null && (
@@ -304,9 +329,9 @@ export function ExternalEmbedPlayer({
 								width: crop.frameWidth,
 								height: crop.mediaHeight,
 								overflow: "hidden",
-								transform: [{ scale: crop.scale }],
 							}}>
 							<NativeWebView
+								ref={webViewRef}
 								source={{ uri: source.embedUrl }}
 								style={[
 									styles.webView,
@@ -406,7 +431,7 @@ const styles = StyleSheet.create({
 		...StyleSheet.absoluteFillObject,
 		overflow: "hidden",
 		backgroundColor: FixedColors.mediaBackground,
-		// 写真の箱を中央へ置く（拡大は箱の中心を軸に効くので、これで «cover» になる）
+		// 写真の箱を中央へ置く（等倍なので、上下にはアプリの地色が残る）
 		alignItems: "center",
 		justifyContent: "center",
 	},

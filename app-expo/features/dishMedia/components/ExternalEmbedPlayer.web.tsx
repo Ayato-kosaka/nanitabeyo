@@ -89,14 +89,13 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 				testID="external-embed-webview">
 				{/* セルの寸法が確定するまで iframe を作らない。中途半端な幅で読み込ませると、
 				    Instagram がその幅でレイアウトしてしまい切り取り位置がずれたまま残る */}
-				{/* 写真の箱。ここを拡大してセル全面へ広げる（計算の根拠は ../embedCrop.ts） */}
+				{/* 写真の箱。**等倍で中央へ置く**（拡大しない。理由は ../embedCrop.ts のヘッダ） */}
 				{crop !== null && (
 					<View
 						style={{
 							width: crop.frameWidth,
 							height: crop.mediaHeight,
 							overflow: "hidden",
-							transform: [{ scale: crop.scale }],
 						}}>
 						{React.createElement("iframe", {
 							src: source.embedUrl,
@@ -144,7 +143,7 @@ const styles = StyleSheet.create({
 	container: {
 		...StyleSheet.absoluteFillObject,
 		backgroundColor: FixedColors.mediaBackground,
-		// 写真の箱を中央へ置く（拡大は箱の中心を軸に効くので、これで «cover» になる）
+		// 写真の箱を中央へ置く（等倍なので、上下にはアプリの地色が残る）
 		alignItems: "center",
 		justifyContent: "center",
 		// #1375（案 A）はみ出した Instagram の UI をここで捨てる。
