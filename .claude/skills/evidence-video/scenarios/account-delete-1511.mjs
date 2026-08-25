@@ -27,7 +27,12 @@ async function shootScheme(scheme) {
 				}
 			}, scheme);
 
-			await page.goto(`${BASE}/ja-JP/profile/settings`, { waitUntil: "domcontentloaded" });
+			/*
+			#1583 でこの行の置き場所が変わった。旧設定画面 `profile/settings` は削除済みで、
+			削除行はマイページ（`profile`）のログアウトの直下にある。
+			古い URL のままだとこのシナリオは «画面が開かない» で落ちる。
+			*/
+			await page.goto(`${BASE}/ja-JP/profile`, { waitUntil: "domcontentloaded" });
 			await page.waitForTimeout(3500);
 			await shot("01-screen");
 
@@ -46,7 +51,7 @@ async function shootScheme(scheme) {
 			この機能の受け入れ条件は「取り消せないことがユーザーに伝わったうえで削除できる」ことで、
 			それを担っているのは 2 段階の確認ダイアログ
 			（1 枚目 = 何が起きるかの説明 / 2 枚目 = 取り消せないことへの明示的な同意）である。
-			settings.tsx の handleDeleteAccount がその 2 枚を順に出す。
+			マイページ（profile/index.tsx）の handleDeleteAccount がその 2 枚を順に出す。
 
 			**最後まで押し切らない。** 2 枚目はキャンセルで閉じる。
 			撮影用のモックとはいえ、削除を完了させる導線を毎回走らせる必要は無い。
