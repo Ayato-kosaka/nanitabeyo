@@ -13,6 +13,7 @@ from typing import Any
 from google.cloud import bigquery
 
 from pg_sync_common import (
+    RESTAURANT_ERROR_CHECKS,
     SyncStats,
     assert_quality_gate_passed,
     backup_table_to_gcs,
@@ -259,7 +260,9 @@ def main() -> None:
     args = parse_args()
     run_id = require_run_id(args.run_id)
     pipeline = BigQueryPipeline()
-    assert_quality_gate_passed(pipeline, run_id)
+    assert_quality_gate_passed(
+        pipeline, run_id, required_checks=RESTAURANT_ERROR_CHECKS
+    )
     sync_id = new_sync_id()
     started_at = utc_now()
     stats = SyncStats()
@@ -272,7 +275,9 @@ def main() -> None:
         if row_count == 0:
             raise RuntimeError("restaurant_catalogが0件です")
         # 大きなCSV export中に同じrunのcatalogが再生成された場合を検知する。
-        assert_quality_gate_passed(pipeline, run_id)
+        assert_quality_gate_passed(
+            pipeline, run_id, required_checks=RESTAURANT_ERROR_CHECKS
+        )
         connection = connect_postgres(args.schema, allow_public=args.allow_public)
         if not args.dry_run and not args.skip_backup:
             backup_table_to_gcs(connection, args.schema, "restaurants", run_id=run_id)

@@ -175,6 +175,9 @@
 		},
 		"loading": "Searching...",
 		"noLocationsFound": "No locations found",
+		"locationConfirmation": {
+			"error": "Failed to confirm location"
+		},
 		"advancedToggle": {
 			"open": "More options",
 			"close": "Close advanced search"
@@ -861,6 +864,25 @@
 		"logout": "Logout",
 		"logoutConfirmTitle": "Log out?",
 		"logoutConfirmMessage": "You'll need to log in again to manage your posts and reviews.",
+		"notifications": {
+			"sectionTitle": "Notifications",
+			"osDisabledTitle": "Notifications are turned off for this device",
+			"osDisabledDescription": "Your choices here are saved, but this device won't receive push notifications.",
+			"openOsSettings": "Open device settings",
+			"updateFailed": "Couldn't save your setting",
+			"likes": {
+				"title": "Likes",
+				"description": "When someone likes your post or review"
+			},
+			"saves": {
+				"title": "Saves",
+				"description": "When someone saves your post"
+			},
+			"group_votes": {
+				"title": "Group votes",
+				"description": "When there's activity in a group vote you joined"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "Blocked dish categories",
 			"pageTitle": "Blocked dish categories",

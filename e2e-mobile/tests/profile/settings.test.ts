@@ -6,6 +6,7 @@ import { ProfileScreen } from "../../screens/ProfileScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
 import { DeviceSettingsScreen } from "../../screens/DeviceSettingsScreen";
 import { LegalScreen } from "../../screens/LegalScreen";
+import { NotificationSettingsSection } from "../../screens/NotificationSettingsSection";
 
 /**
  * ⚙️ 設定項目（匿名ユーザー）のテスト（e2e-web の tests/profile/settings.spec.ts に対応）
@@ -201,5 +202,29 @@ describe("端末設定画面のハプティクストグル（匿名ユーザー�
 		// 後始末: 既定値（オン）へ戻す
 		await deviceSettingsScreen.toggleHaptics();
 		await deviceSettingsScreen.expectHapticsToggleValue(true);
+	// ─ テストケース: 匿名時は通知カテゴリのカードが表示されない ─
+	// 手順:
+	//   1. 設定画面を表示する（匿名状態）
+	//   2. 通知カード（settings-notifications-card）が存在しないことを検証
+	//
+	// #1510 匿名ユーザーは Push Token を登録しない（PushTokenRegistration）ため、
+	// 受け取り方を設定させても届く先が無い。ログイン済み側（3 カテゴリのトグルが出る）は
+	// tests/authenticated/notification-preferences.test.ts が検証する
+	it("匿名時は通知カテゴリのカードが表示されない", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const settingsScreen = new SettingsScreen();
+		const section = new NotificationSettingsSection();
+
+		await tabBar.gotoProfile();
+		await profileScreen.gotoSettings();
+		await settingsScreen.expectLoaded();
+
+		const hasNotificationCard = await section.exists();
+		assert.equal(
+			hasNotificationCard,
+			false,
+			"匿名ユーザーには settings-notifications-card が表示されないはず",
+		);
 	});
 });

@@ -360,6 +360,7 @@ model dish_media_views {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model dish_reviews {
   id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   dish_id                String                   @db.Uuid
@@ -380,6 +381,7 @@ model dish_reviews {
   lock_no                Int                      @default(0)
   /// #1513 論理削除日時。NULL は未削除。読み取り経路は必ず deleted_at IS NULL で絞る
   deleted_at             DateTime?                @db.Timestamptz(6)
+  eaten_at               DateTime?                @db.Date
   dishes                 dishes                   @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users                  users?                   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -390,6 +392,7 @@ model dish_reviews {
   @@schema("dev")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dishes {
@@ -400,6 +403,8 @@ model dishes {
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
   updated_at      DateTime        @default(now()) @db.Timestamptz(6)
   lock_no         Int             @default(0)
+  data_origin     String          @default("user_or_google")
+  synced_at       DateTime?       @db.Timestamptz(6)
   dish_media      dish_media[]
   dish_reviews    dish_reviews[]
   dish_categories dish_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -635,6 +640,10 @@ model restaurants {
   created_at         DateTime                  @default(now()) @db.Timestamptz(6)
   location           Unsupported("geography")? @default(dbgenerated("(st_setsrid(st_makepoint(longitude, latitude), 4326))::geography"))
   image_path         String?
+  source_seed_id     String?                   @db.Uuid
+  source_names       String[]                  @default([])
+  source_row_hash    String?
+  synced_at          DateTime?                 @db.Timestamptz(6)
   dishes             dishes[]
   restaurant_bids    restaurant_bids[]
 

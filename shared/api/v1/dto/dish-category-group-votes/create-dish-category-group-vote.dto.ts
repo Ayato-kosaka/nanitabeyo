@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsNumber, IsString, Max, Min, ValidateNested } from "class-validator";
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Max, Min, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 
 /**
@@ -93,4 +93,23 @@ export class CreateDishCategoryGroupVoteDto {
 	@ValidateNested({ each: true })
 	@Type(() => CreateDishCategoryGroupVoteCandidateDto)
 	candidates!: CreateDishCategoryGroupVoteCandidateDto[];
+
+	/**
+	 * #1507 【設計】再送を安全にするための冪等キー（クライアント生成の UUID v4）。
+	 *
+	 * 同じホストが同じキーで再送した場合、API は新しいセッションを作らず既存の
+	 * セッション（同じ shareToken）をそのまま 201 で返す。
+	 *
+	 * - **ヘッダではなく body で受ける**: このリポジトリの API 層には呼び出しごとの
+	 *   カスタムヘッダを渡す口が無い（`useAPICall` / `fetchWithAuth` はヘッダ固定）。
+	 *   共通の `Idempotency-Key` ヘッダへ寄せるのは REL-10 の全体方針の話なので、
+	 *   ここでは変更を DTO に閉じる。
+	 * - **`@IsOptional()`**: キーを送らない旧クライアントは従来どおり動く（後方互換）。
+	 *   DB 側も NULL 許容で、PostgreSQL の UNIQUE は NULL 同士を衝突と見なさない。
+	 * - **`@IsUUID(4)`**: 形式を固定して、キー空間の汚染と極端に長い値を DTO 層で弾く。
+	 *   「リトライをまたいで同じ値か」をクライアント側でも検証しやすくなる。
+	 */
+	@IsOptional()
+	@IsUUID(4)
+	idempotencyKey?: string;
 }

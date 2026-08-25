@@ -144,8 +144,15 @@ gh api repos/{owner}/{repo}/actions/workflows/db-migrate.yml/runs
   **実行ブランチ（= main）へ自動 commit・push される**。api のデプロイ
   （`api-deploy.yml`）はこのコミット済み schema からビルドする（デプロイ時に
   DB を introspect しない）ので、これが型の正本である
-- `shared/supabase/database.types.ts` と `shared/converters/` は**手で追従させる**。
-  自動生成は 2026-08-21 に廃止した（`shared/converters/README.md`）
+- `shared/supabase/database.types.ts` は **`db-migrate.yml` が自動で再生成し、同じ commit で
+  push する**（#1575）。手で直す必要は無い
+- **手で追従させるのは `shared/converters/` だけ**である（`shared/converters/README.md`）。
+  列が増減したら、対応する `convert_<table>.ts` の両方向の関数へ反映する
+- `db-migrate.yml` は push する前に `pnpm -F shared build` を実行して
+  「Supabase 型の列集合 ≡ Prisma 型の列集合」を検算する。**落ちた場合は main へ push せず**、
+  生成物を `chore/db-introspect-<from_file>` ブランチへ退避して run を失敗させる。
+  その場合はそのブランチから PR を作り、converters を追従させてマージすること。
+  DB だけが先行する状態になるが、規則 3（additive のみ）の範囲なので既存コードは動き続ける
 - `CREATE INDEX CONCURRENTLY` を含む migration は、適用後に**索引が VALID か必ず確認する**。
   失敗しても INVALID な索引が残り、`IF NOT EXISTS` が以後ずっとスキップする。
   確認は `scripts/db-checks/assert_index_valid.py` を `db-script-run.yml` から流す

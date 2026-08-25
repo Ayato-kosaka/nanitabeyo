@@ -175,6 +175,9 @@
 		},
 		"loading": "検索中...",
 		"noLocationsFound": "場所が見つかりません",
+		"locationConfirmation": {
+			"error": "地点の確認に失敗しました"
+		},
 		"advancedToggle": {
 			"open": "さらにこだわる",
 			"close": "詳細検索を閉じる"
@@ -861,6 +864,25 @@
 		"logout": "ログアウト",
 		"logoutConfirmTitle": "ログアウトしますか？",
 		"logoutConfirmMessage": "再度ログインするまで、投稿やレビューの管理ができなくなります。",
+		"notifications": {
+			"sectionTitle": "通知",
+			"osDisabledTitle": "端末の通知がオフになっています",
+			"osDisabledDescription": "ここでの設定は保存されますが、この端末には通知が届きません。",
+			"openOsSettings": "端末の設定を開く",
+			"updateFailed": "設定を保存できませんでした",
+			"likes": {
+				"title": "いいね",
+				"description": "自分の投稿やレビューにいいねがついたとき"
+			},
+			"saves": {
+				"title": "保存",
+				"description": "自分の投稿が保存されたとき"
+			},
+			"group_votes": {
+				"title": "グループ投票",
+				"description": "参加しているグループ投票に動きがあったとき"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "ブロック済みの料理カテゴリ",
 			"pageTitle": "ブロック済みの料理カテゴリ",

@@ -76,6 +76,10 @@ export { CreateFrontendLogBatchDto, CREATE_FRONTEND_LOG_BATCH_MAX_SIZE } from ".
 
 export { QueryNotificationsDto } from "./notifications/query-notifications.dto";
 export { CreateDeviceTokenDto } from "./notifications/create-device-token.dto";
+export {
+	UpdateNotificationPreferenceDto,
+	UpdateNotificationPreferenceParamsDto,
+} from "./notifications/update-notification-preference.dto";
 
 export { CreateDishCategoryGroupVoteDto } from "./dish-category-group-votes/create-dish-category-group-vote.dto";
 export { SubmitDishCategoryGroupVoteDto } from "./dish-category-group-votes/submit-dish-category-group-vote.dto";

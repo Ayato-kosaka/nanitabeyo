@@ -142,7 +142,20 @@ type MyDishPinRawRow = RestaurantColumns & {
   is_own_media_deleted: boolean;
 };
 
+/*
+#843 で `restaurants` / `dishes` に «推薦カタログの同期メタ» が増えた。
+この画面はどれも使わないが、`PrismaRestaurants` / `PrismaDishes` を満たす必要がある。
+
+**SQL で引かずに既定値で埋める。** 使わない列のために毎ページ 4 列を余計に読むのは
+無駄で、ここは 964MB の dish_reviews を含む経路である（#1395 B-2 の判断と同じ）。
+返り値がそのままクライアントへ出るわけではなく、`RestaurantsEntity` へ畳まれる際に
+落ちるので、既定値で埋めても API の応答は変わらない。
+*/
 const toRestaurant = (row: RestaurantColumns): PrismaRestaurants => ({
+  source_seed_id: null,
+  source_names: [],
+  source_row_hash: null,
+  synced_at: null,
   id: row.r_id,
   google_place_id: row.r_google_place_id,
   name: row.r_name,
@@ -220,6 +233,10 @@ export class UsersRepository {
         distanceMeters: row.distance_meters,
         restaurant: toRestaurant(row),
         dish: {
+          // #843 の同期メタ。この画面では使わないが型を満たす必要がある
+          // （SQL で引かない理由は toRestaurant の申し送りと同じ）
+          data_origin: 'user_or_google',
+          synced_at: null,
           id: row.d_id,
           restaurant_id: row.d_restaurant_id,
           category_id: row.d_category_id,
