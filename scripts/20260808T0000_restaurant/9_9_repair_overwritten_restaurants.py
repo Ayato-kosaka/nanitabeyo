@@ -45,6 +45,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from google.api_core.exceptions import Forbidden
 from google.cloud import storage
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -100,11 +101,22 @@ def resolve_backup_blob(client: storage.Client, schema: str, uri: str | None) ->
 
     # object名は {prefix}/{YYYYmmdd-HHMMSS}/{schema}/restaurants-{run_id}.csv なので、
     # 名前の辞書順が時刻順になる。最新＝直近の同期の直前状態である。
-    candidates = [
-        blob
-        for blob in client.list_blobs(bucket_name, prefix=prefix)
-        if f"/{schema}/restaurants-" in blob.name and blob.name.endswith(".csv")
-    ]
+    #
+    # 自動選択には storage.objects.list が要る。9_1 を動かしている WIF の SA は
+    # backup の «書き込み» はできても «一覧» はできない（実測で 403）。その場合は
+    # 9_1 のログが出している URI を --backup-uri で渡してもらう。
+    try:
+        candidates = [
+            blob
+            for blob in client.list_blobs(bucket_name, prefix=prefix)
+            if f"/{schema}/restaurants-" in blob.name and blob.name.endswith(".csv")
+        ]
+    except Forbidden as error:
+        raise RuntimeError(
+            "backupの一覧取得が拒否されました（storage.objects.list が無い）。"
+            "9_1 の実行ログにある «同期前backupを保存しました: gs://...» の URI を "
+            "--backup-uri で指定してください。"
+        ) from error
     if not candidates:
         raise ValueError(f"backupが1件も見つかりません: gs://{bucket_name}/{prefix}")
     latest = max(candidates, key=lambda blob: blob.name)
