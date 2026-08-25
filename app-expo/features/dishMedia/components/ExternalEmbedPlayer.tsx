@@ -225,6 +225,24 @@ export function ExternalEmbedPlayer({
 		[interactive, openInAppBrowser, source?.embedUrl],
 	);
 
+	/*
+	#1375（案 A）Instagram の埋め込みが連れてくるヘッダ・いいね欄・白帯を切り取り、
+	写真だけをセル全面に敷く。計算の根拠は ../embedCrop.ts のヘッダを参照。
+
+	⚠️ **この 3 つの hook を下の early return より後ろへ置いてはいけない。**
+	`isActive` / `appActive` / `isScreenFocused` はフィードを送るたびに切り替わるので、
+	early return を挟むと «同じコンポーネントが呼ぶ hook の本数» が描画のたびに変わり、
+	React が `Rendered fewer hooks than expected` で落ちる（= フィードを送っただけで
+	クラッシュする）。実際に条件付き hook の状態で入っていたのを、eslint の
+	react-hooks/rules-of-hooks が検出した
+	*/
+	const [cell, setCell] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+	const handleLayout = useCallback((event: LayoutChangeEvent) => {
+		const { width, height } = event.nativeEvent.layout;
+		setCell((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
+	}, []);
+	const crop = useMemo(() => computeEmbedCropLayout(cell), [cell]);
+
 	// 画面が裏（アプリがバックグラウンド / 呼び出し元がフォーカスを失った）なら描かない
 	// = 音もメモリも解放する
 	if (!isActive || !appActive || isScreenFocused === false) return null;
@@ -237,15 +255,6 @@ export function ExternalEmbedPlayer({
 			</View>
 		);
 	}
-
-	// #1375（案 A）Instagram の埋め込みが連れてくるヘッダ・いいね欄・白帯を切り取り、
-	// 写真だけをセル全面に敷く。計算の根拠は ../embedCrop.ts のヘッダを参照
-	const [cell, setCell] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-	const handleLayout = useCallback((event: LayoutChangeEvent) => {
-		const { width, height } = event.nativeEvent.layout;
-		setCell((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
-	}, []);
-	const crop = useMemo(() => computeEmbedCropLayout(cell), [cell]);
 
 	const inlineAvailable = source !== null && NativeWebView !== null && !renderProcessGone;
 	const playButton = (
