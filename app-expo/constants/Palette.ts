@@ -180,6 +180,10 @@ export interface Palette {
 	dangerTint: string;
 	/** 破壊的操作の文字（ログアウト） */
 	destructive: string;
+	/** 確認ダイアログの見出し（Material の onSurface 系。#1577） */
+	dialogTitle: string;
+	/** 確認ダイアログの本文（Material の onSurfaceVariant 系。#1577） */
+	dialogMessage: string;
 	/** 濃い警告文字（`#B91C1C` 系統。ライトでは danger より濃いため分けてある） */
 	dangerEmphasis: string;
 
@@ -240,6 +244,8 @@ const light: Palette = {
 	dangerStrong: "#EF4444", // search selectedRestrictionChip
 	dangerTint: "#FEE2E2", // search requiredBadge
 	destructive: "#FF3E33", // profile/settings.tsx ログアウト
+	dialogTitle: "#1C1B1F", // #1577 DialogProvider が直書きしていた値の写し（M3 onSurface）
+	dialogMessage: "#49454F", // 同上（M3 onSurfaceVariant）
 	dangerEmphasis: "#B91C1C", // #1469 MyDishesCalendarView.tsx footerErrorText
 
 	ctaBackground: "#000000", // search searchFab gradient(充足)
@@ -293,6 +299,8 @@ const dark: Palette = {
 	dangerStrong: "#FF6B6B",
 	dangerTint: "#4A2320", // danger を暗面へ混色
 	destructive: "#FF8A80",
+	dialogTitle: "#E5E2E1", // schemes.dark.onSurface
+	dialogMessage: "#C4C7C7", // schemes.dark.onSurfaceVariant
 	dangerEmphasis: "#FF8A80", // danger と同値へ収束（暗面では明度を上げないと文字用途で AA を割る）
 
 	ctaBackground: "#E5E2E1", // 暗面では CTA を反転させる（黒地の CTA は背景に沈む）
