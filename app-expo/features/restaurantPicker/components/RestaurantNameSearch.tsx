@@ -348,7 +348,18 @@ export function RestaurantNameSearch({
 
 const createStyles = (c: Palette) =>
 	StyleSheet.create({
-		container: { flex: 1 },
+		/*
+		#1375（6 巡目・実機で 2 回指摘）**`flex: 1` を置かない。**
+
+		以前はここが `flex: 1` だった。呼び出し元（「食べたを記録」タブ・SNS 取り込みタブ）は
+		どちらも高さを決めない普通の縦並びの中にこの部品を置くので、ネイティブでは
+		**この器の高さが 0 に潰れ、入力欄ごと見えなくなる**。
+
+		⚠️ web（react-native-web）はこの状況で高さが潰れないため、**web のスクリーンショットでは
+		正常に見える**。実機だけで再現する。この差のせいで «直した» と誤って報告した。
+		結果パネルは自前の maxHeight を持っているので、器は中身なりの高さでよい。
+		*/
+		container: {},
 		inputContainer: {
 			flexDirection: "row",
 			alignItems: "center",
