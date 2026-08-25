@@ -120,20 +120,36 @@ async function shootScheme(scheme) {
 			await sheet.waitFor({ state: "visible", timeout: 10000 });
 			await shot("03-report-sheet");
 
-			// 理由の選択肢がどう並んでいるかを絵で残す。文言はアプリの i18n に任せる
+			/*
+			理由を選ぶ。**選ばないと «送信» が disabled のままで、
+			クリックしても何も起きない**（ReportContentSheet の `disabled={!reasonCode}`）。
+			run 32825715797 はここを踏んで 04 で撮影が止まり、
+			#1584 で足した 05 / 06 が 1 枚も撮れないまま «成功» になった。
+			*/
+			await page.getByTestId("report-reason-spam").first().click();
+			await page.waitForTimeout(300);
+
 			const detailsInput = page.getByTestId("report-details-input").first();
 			if (await detailsInput.count()) {
 				await detailsInput.click().catch(() => {});
 				await detailsInput.fill("[E2E] エビデンス撮影のための入力です").catch(() => {});
 				await page.waitForTimeout(400);
-				await shot("04-report-filled");
+			}
+			await shot("04-report-filled");
+
+			// 撮る前に «送信» が押せる状態か確かめる。disabled のまま先へ進むと
+			// 05 以降が撮れないのに撮影自体は成功扱いになる
+			const submit = page.getByTestId("report-submit").first();
+			await submit.waitFor({ state: "visible", timeout: 10000 });
+			if (await submit.isDisabled().catch(() => false)) {
+				throw new Error("report-submit が disabled のまま。理由の選択が効いていない");
 			}
 
 			/*
 			#1584 ここからが «送ったあと» の面。オーナー指摘（受付文言 / 報告履歴）の検証。
 			POST はモックが 200 を返すだけなので dev の DB へは 1 行も書かない。
 			*/
-			await page.getByTestId("report-submit").first().click();
+			await submit.click();
 			const accepted = page.getByTestId("report-accepted");
 			await accepted.waitFor({ state: "visible", timeout: 10000 });
 			await page.waitForTimeout(500);

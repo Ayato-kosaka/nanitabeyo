@@ -27,6 +27,8 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Check, CircleCheck, Flag, X } from "lucide-react-native";
 
+import { useRouter } from "expo-router";
+
 import { PrimaryButton } from "@/components/PrimaryButton";
 // #1514 このシートはフィード（常に暗いメディア面）の上ではなく «画面の面» として開くため、
 // メディア用の FixedColors ではなくテーマ追従のトークンを使う
@@ -36,6 +38,7 @@ import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { CreateContentReportDto } from "@shared/api/v1/dto";
 import type { CreateContentReportResponse } from "@shared/api/v1/res";
@@ -277,6 +280,18 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 function AcceptedView({ onClose }: { onClose: () => void }) {
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
+	const router = useRouter();
+	const { locale } = useLocale();
+
+	/**
+	 * #1584 履歴へ移動する前にシートを閉じる。開いたままだと、戻ってきたときに
+	 * 受付完了の面が残り「もう一度送れるのか」と読めてしまう。
+	 */
+	const handleOpenHistory = useCallback(() => {
+		onClose();
+		router.push({ pathname: "/[locale]/(tabs)/profile/content-reports", params: { locale } });
+	}, [onClose, router, locale]);
+
 	return (
 		<View style={styles.accepted} testID="report-accepted">
 			<CircleCheck size={44} color={colors.success} />
@@ -288,6 +303,10 @@ function AcceptedView({ onClose }: { onClose: () => void }) {
 				style={styles.acceptedButton}
 				testID="report-accepted-close"
 			/>
+			{/* #1584 主導線は «閉じる» なので、履歴は控えめな文字ボタンにする */}
+			<TouchableOpacity onPress={handleOpenHistory} accessibilityRole="link" testID="report-accepted-history">
+				<Text style={styles.acceptedHistoryLink}>{i18n.t("Report.accepted.history")}</Text>
+			</TouchableOpacity>
 		</View>
 	);
 }

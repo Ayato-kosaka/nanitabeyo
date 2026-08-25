@@ -47,6 +47,11 @@ jest.mock("@/components/PrimaryButton", () => {
 	};
 });
 
+/** #1584 router.push() の実体。履歴への遷移先を観測するために保持する */
+const mockRouterPush = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockRouterPush }) }));
+jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP" }) }));
+
 /** callBackend() の実体。各テストが差し替える */
 let mockCallBackend: jest.Mock;
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
@@ -111,6 +116,7 @@ describe.each(TARGET_TYPES)("ReportContentSheet（targetType: %s）", (targetTyp
 	};
 
 	beforeEach(() => {
+		mockRouterPush.mockClear();
 		mockCallBackend = jest.fn().mockResolvedValue({
 			reportId: "report-1",
 			status: "pending",
@@ -168,6 +174,40 @@ describe.each(TARGET_TYPES)("ReportContentSheet（targetType: %s）", (targetTyp
 		expect(exists(renderer, "report-accepted")).toBe(true);
 		// 受付番号は出さない（問い合わせ窓口が無いのに番号だけ見せない）
 		expect(JSON.stringify(renderer.toJSON())).not.toContain("report-1");
+	});
+
+	/*
+	#1584 受付の面から «あなたの報告履歴» へ行けること。
+
+	この導線は一度、コミットメッセージにだけ書かれて **実装が入っていなかった**
+	（013ef236。エビデンス撮影で発覚した）。文字ボタン 1 個なので
+	他のテストは全部通ってしまう。ここで固定しておく。
+	*/
+	it("受付の面から報告履歴へ移動できる", async () => {
+		const renderer = renderSheet();
+
+		await press(renderer, "report-reason-spam");
+		await press(renderer, "report-submit");
+
+		expect(exists(renderer, "report-accepted")).toBe(true);
+		expect(exists(renderer, "report-accepted-history")).toBe(true);
+	});
+
+	it("報告履歴へ移動するときは先にシートを閉じる", async () => {
+		const onClose = jest.fn();
+		const renderer = renderSheet(onClose);
+
+		await press(renderer, "report-reason-spam");
+		await press(renderer, "report-submit");
+		await press(renderer, "report-accepted-history");
+
+		// 閉じずに遷移すると、戻ってきたとき受付完了の面が残り
+		// 「もう一度送れるのか」と読めてしまう
+		expect(onClose).toHaveBeenCalled();
+		expect(mockRouterPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/profile/content-reports",
+			params: { locale: "ja-JP" },
+		});
 	});
 
 	it("重複通報（alreadyReported）でも見え方は同じ", async () => {
