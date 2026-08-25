@@ -740,6 +740,25 @@
 		"logout": "로그아웃",
 		"logoutConfirmTitle": "로그아웃하시겠어요?",
 		"logoutConfirmMessage": "다시 로그인해야 게시물과 리뷰를 관리할 수 있습니다.",
+		"notifications": {
+			"sectionTitle": "알림",
+			"osDisabledTitle": "이 기기의 알림이 꺼져 있습니다",
+			"osDisabledDescription": "여기서 선택한 설정은 저장되지만, 이 기기로는 알림이 오지 않습니다.",
+			"openOsSettings": "기기 설정 열기",
+			"updateFailed": "설정을 저장하지 못했습니다",
+			"likes": {
+				"title": "좋아요",
+				"description": "내 게시물이나 리뷰에 좋아요가 눌렸을 때"
+			},
+			"saves": {
+				"title": "저장",
+				"description": "내 게시물이 저장되었을 때"
+			},
+			"group_votes": {
+				"title": "그룹 투표",
+				"description": "참여 중인 그룹 투표에 변화가 있을 때"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "차단된 요리 카테고리",
 			"pageTitle": "차단된 요리 카테고리",

@@ -740,6 +740,25 @@
 		"logout": "Cerrar sesión",
 		"logoutConfirmTitle": "¿Cerrar sesión?",
 		"logoutConfirmMessage": "Deberás iniciar sesión de nuevo para gestionar tus publicaciones y reseñas.",
+		"notifications": {
+			"sectionTitle": "Notificaciones",
+			"osDisabledTitle": "Las notificaciones están desactivadas en este dispositivo",
+			"osDisabledDescription": "Tus opciones se guardan, pero este dispositivo no recibirá notificaciones.",
+			"openOsSettings": "Abrir ajustes del dispositivo",
+			"updateFailed": "No se pudo guardar el ajuste",
+			"likes": {
+				"title": "Me gusta",
+				"description": "Cuando alguien indica que le gusta tu publicación o reseña"
+			},
+			"saves": {
+				"title": "Guardados",
+				"description": "Cuando alguien guarda tu publicación"
+			},
+			"group_votes": {
+				"title": "Votaciones de grupo",
+				"description": "Cuando hay actividad en una votación de grupo a la que te uniste"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "Categorías de platos bloqueadas",
 			"pageTitle": "Categorías de platos bloqueadas",

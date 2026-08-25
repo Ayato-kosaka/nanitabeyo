@@ -195,6 +195,12 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		dangerStrong: "#EF4444",
 		dangerTint: "#FEE2E2",
 		destructive: "#FF3E33",
+		// #1510 通知設定カードの «OS 通知が拒否されています» バナー。
+		// 3 つとも NotificationSettingsCard.tsx が直書きしていたリテラルを
+		// そのまま写しただけなので、ライトの見た目は 1px も変わらない。
+		warningTint: "#FEF3C7",
+		warningText: "#92400E",
+		warningAction: "#B45309",
 		ctaBackground: "#000000",
 		ctaBackgroundDisabled: "#999999",
 		ctaLabel: "#FFFFFF",

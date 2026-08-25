@@ -86,7 +86,30 @@ export class NotificationJobService {
       recipientId,
     });
 
-    // 4. Expo Push を送信
+    // 4. #1510 SET-02 プッシュ配信の可否をユーザー設定で判定する
+    //
+    // 【設計】判定はここ（upsert 済み・push 直前）にしか置かない。
+    //   - 「オフ = プッシュ送信のみ抑止。通知一覧には残す」がリーダー判断（Issue #1510）。
+    //     手順 3 の upsert を条件付きにすると、後で再びオンにしても過去分は永久に見えない
+    //     （抑止は可逆、レコード不作成は不可逆）。迷ったら可逆側に倒す
+    //   - 未読バッジは `thread_updated_at > last_read_at` で数えるため、
+    //     一覧に残す限りバッジも従来どおり動き、経路の分岐が増えない
+    //   - `sendPushNotification()` の内側には入れない。あの関数は recipientId とメッセージしか
+    //     受け取らず種別を知らないため、種別が手元にあるここで判定するほうが変更が局所で済む
+    const { allowed, category } = await this.service.isPushAllowedForKind(
+      recipientId,
+      { targetTable, actionType },
+    );
+    if (!allowed) {
+      this.logger.log(
+        'NotificationPushSuppressedByPreference',
+        'processNotificationJob',
+        { notificationId, recipientId, category, actionType, targetTable },
+      );
+      return;
+    }
+
+    // 5. Expo Push を送信
     // 連打エラーなどは事前にエラーがスローされる想定。
     // #1557 【設計】message が null のときは push を送らない（匿名ホスト宛て。
     // 通知行は 3. で upsert 済みなので、後日アカウント登録すれば一覧には出る）
