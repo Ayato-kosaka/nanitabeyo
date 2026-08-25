@@ -119,6 +119,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	},
 	plugins: [
 		"expo-router",
+		/*
+		#1375（オーナー指摘「クラッシュはマップ画面だけじゃない」）
+		**ネイティブのクラッシュを原因つきで捕まえるための config plugin。**
+
+		これが無いとネイティブ側のシンボル情報が上がらず、
+		クラッシュしても «どこで落ちたか» が読めないレポートになる。
+
+		⚠️ この行はネイティブ差分である。**OTA では配れない**ので、
+		このブランチ（ネイティブ変更を集めるブランチ）から出ない。
+		実際に有効になるのは `EXPO_PUBLIC_SENTRY_DSN` が設定されたビルドだけ
+		（`lib/crashSdk.ts` が DSN 無しでは初期化しない）。
+		*/
+		"@sentry/react-native/expo",
 		"expo-video",
 		"expo-audio",
 		"expo-notifications",
