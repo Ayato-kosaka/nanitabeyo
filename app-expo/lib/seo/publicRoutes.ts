@@ -47,7 +47,15 @@ export const INDEXABLE_ROUTES: readonly string[] = [
  */
 // #1508 profile/language はゲストでも使える（ログインは「サーバーへ設定を同期するか」だけを分ける）。
 // 未ログインの直リンクでも 3 択が描画されるので、除外ではなくスモーク対象に入れる。
-export const NON_INDEXABLE_DEEP_LINK_ROUTES: readonly string[] = ["profile", "notifications", "profile/language"];
+export const NON_INDEXABLE_DEEP_LINK_ROUTES: readonly string[] = [
+	"profile",
+	"notifications",
+	"profile/language",
+	// #1504 端末設定。ログイン不要（端末に閉じた設定だけを置く画面）で、マイページから
+	// push される Stack 画面のため web の直リンク着地が現に起きる。除外側に置くと
+	// «未ログインでは中身が無い» という理由が嘘になるので、スモーク対象にする
+	"profile/device-settings",
+];
 
 /**
  * 直リンクスモーク（`e2e-web/tests/smoke/deep-link.spec.ts` /

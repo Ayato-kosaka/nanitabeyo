@@ -790,6 +790,12 @@
 			"pageTitle": "语言",
 			"systemDefault": "跟随设备设置",
 			"switching": "正在切换语言…"
+		},
+		"hapticsEnabled": "触感反馈",
+		"deviceSettings": {
+			"navigationLabel": "设备设置",
+			"title": "设备设置",
+			"description": "这些设置仅保存在本设备上，不会同步到其他设备或账号。"
 		}
 	},
 	"Dialog": {

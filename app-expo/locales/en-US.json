@@ -790,6 +790,12 @@
 			"pageTitle": "Language",
 			"systemDefault": "Use device language",
 			"switching": "Switching language…"
+		},
+		"hapticsEnabled": "Haptic Feedback",
+		"deviceSettings": {
+			"navigationLabel": "Device Settings",
+			"title": "Device Settings",
+			"description": "These settings are saved on this device only. They are not carried over to other devices or accounts."
 		}
 	},
 	"Dialog": {

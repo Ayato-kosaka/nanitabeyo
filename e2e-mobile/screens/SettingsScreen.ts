@@ -56,6 +56,11 @@ export class SettingsScreen {
 	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID） */
 	readonly logoutItem = by.id("settings-logout");
 	/**
+	 * #1504 端末設定行（規約カードの直上）。
+	 * トグル本体はこの行から push される端末設定画面にあり、`screens/DeviceSettingsScreen.ts` が持つ。
+	 */
+	readonly deviceSettingsItem = by.id("settings-device-settings");
+	/**
 	 * バージョン表示（#1495 SUP-03、既存 testID）。
 	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx（web/native 共通）。
 	 * "{version}({短縮コミットID})" の 1 行（例: "1.14.0(abc1234)"）で描画される。
@@ -189,6 +194,22 @@ export class SettingsScreen {
 	/** プライバシーポリシー行をタップして法務ドキュメント画面へ遷移する（#1368 でモーダル起動から変更） */
 	async openPrivacyPolicy(): Promise<void> {
 		await tapWhenVisible(this.privacyItem);
+	}
+
+	/**
+	 * 端末設定行をタップして端末設定画面へ遷移する（#1504）。
+	 *
+	 * ⚠️ この行は規約カードの直上（= マイページのかなり下）にあり、エミュレータの画面高では
+	 * 初期表示で画面外にいることがある。`scrollToLogout()` と同じ理由で、タップ前に
+	 * `whileElement(...).scroll()` で «見えるまでスクロール» してから押す
+	 * （既に見えていればスクロールは 1 度も走らない）。
+	 */
+	async openDeviceSettings(): Promise<void> {
+		await waitFor(element(this.deviceSettingsItem))
+			.toBeVisible()
+			.whileElement(by.id("settings-scroll"))
+			.scroll(300, "down");
+		await tapWhenVisible(this.deviceSettingsItem);
 	}
 
 	/**

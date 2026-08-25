@@ -235,10 +235,25 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	// ⚠️ `pins` は ref 経由で読む（独立レビュー指摘 High）。ハンドラを `pins` に依存させると、
 	// ピンが届くたびに identity が変わり、マーカー最大 300 個へ新しい props が流れて
 	// Android では 300 回のビットマップ再生成に繋がる
-	const pinsRef = useRef(pins);
+	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
+	// 無関係な state 更新で 300 個のマーカーへ props が流れない
+	const clusters = useMemo(() => clusterMyDishPins(pins, clusterViewport), [pins, clusterViewport]);
+
+	/*
+	#1375 **下部の帯・Feed の並びは «地図に実際に出ているピン» に揃える。**
+
+	間引き（表示域の外は描かない）と上限（`MAX_RENDERED_CLUSTERS`）を入れた結果、
+	`pins`（取得した全件）と «地図に見えているもの» が食い違うようになった。
+	帯の責務は「いま Map に出ているピンを横に並べる」（このファイル冒頭と
+	`MyDishesMapSheet.tsx` の申し送り）なので、ここで揃えないと
+	**帯には居るのに地図にピンが無い**という状態になる。件数の見出しも同じ理由でずれる。
+	*/
+	const visiblePins = useMemo(() => clusters.flatMap((cluster) => cluster.pins), [clusters]);
+
+	const pinsRef = useRef(visiblePins);
 	useEffect(() => {
-		pinsRef.current = pins;
-	}, [pins]);
+		pinsRef.current = visiblePins;
+	}, [visiblePins]);
 
 	const handlePinPress = useCallback(
 		(pin: MyDishPin) => {
@@ -264,9 +279,6 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 		if (first) handlePinPress(first);
 	}, [handlePinPress]);
 
-	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
-	// 無関係な state 更新で 300 個のマーカーへ props が流れない
-	const clusters = useMemo(() => clusterMyDishPins(pins, clusterViewport), [pins, clusterViewport]);
 
 	// クラスタを押したら «もう一段ほどく»。中のピンの外接矩形へ寄せる
 	const handleClusterPress = useCallback(
@@ -378,9 +390,9 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 			{/* #1375 実機確認（2 巡目）: 帯を上へ引き上げたら、先頭のピンから Feed を開く
 			    （タイルを押したときと同じ経路。並びも同じものを置く） */}
 			<MyDishesMapSheet
-				pins={pins}
+				pins={visiblePins}
 				onSelectPin={handlePinPress}
-				onSwipeUp={pins.length > 0 ? handleSheetSwipeUp : undefined}
+				onSwipeUp={visiblePins.length > 0 ? handleSheetSwipeUp : undefined}
 			/>
 		</View>
 	);
