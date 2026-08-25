@@ -26,6 +26,8 @@ export function convertSupabaseToPrisma_DishReviews(supabase: SupabaseDishReview
     imported_user_name: supabase.imported_user_name,
     imported_user_avatar: supabase.imported_user_avatar,
     created_at: new Date(supabase.created_at),
+    // #1551 食べた日。NULL の間は created_at の日付として扱う（migration 20260826T0000）
+    eaten_at: supabase.eaten_at !== null ? new Date(supabase.eaten_at) : null,
   };
 }
 
@@ -49,5 +51,9 @@ export function convertPrismaToSupabase_DishReviews(prisma: PrismaDishReviews): 
     imported_user_name: prisma.imported_user_name,
     imported_user_avatar: prisma.imported_user_avatar,
     created_at: prisma.created_at?.toISOString() ?? null,
+    // ⚠️ eaten_at は DATE（時刻を持たない列）。`toISOString()` をそのまま入れると
+    //    "2026-08-24T00:00:00.000Z" になり、DB が返す "2026-08-24" と形が食い違う。
+    //    日付部分だけを渡す（時刻を持たない理由は migration 20260826T0000 の冒頭を参照）
+    eaten_at: prisma.eaten_at !== null ? prisma.eaten_at.toISOString().slice(0, 10) : null,
   };
 }
