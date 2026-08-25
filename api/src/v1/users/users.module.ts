@@ -14,6 +14,7 @@ import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
 import { UsersAssembler } from './users.assembler';
 import { DishCategoriesModule } from '../dish-categories/dish-categories.module';
 import { RestaurantsModule } from '../restaurants/restaurants.module';
+import { SupabaseAdminModule } from '../../core/supabase-admin/supabase-admin.module';
 
 @Module({
   imports: [
@@ -25,6 +26,8 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     CloudTasksModule,
     DishCategoriesModule,
     RestaurantsModule,
+    // #1511 アカウント削除で Supabase Auth のユーザーを物理削除するため
+    SupabaseAdminModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, UsersRepository, UsersMapper, UsersAssembler],

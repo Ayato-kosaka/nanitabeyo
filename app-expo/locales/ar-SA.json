@@ -159,9 +159,6 @@
 		},
 		"loading": "جارٍ البحث...",
 		"noLocationsFound": "لم يتم العثور على مواقع",
-		"locationConfirmation": {
-			"error": "فشل تأكيد الموقع"
-		},
 		"advancedToggle": {
 			"open": "خيارات إضافية",
 			"close": "إغلاق البحث المتقدم"
@@ -241,6 +238,9 @@
 		"recentLocations": {
 			"title": "المواقع الأخيرة",
 			"clear": "مسح المواقع الأخيرة"
+		},
+		"locationConfirmation": {
+			"error": "فشل تأكيد الموقع"
 		}
 	},
 	"Onboarding": {
@@ -740,6 +740,28 @@
 		"logout": "تسجيل الخروج",
 		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
 		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
+		"deleteAccount": "حذف الحساب",
+		"deleteAccountInProgress": "جارٍ الحذف…",
+		"deleteAccountConfirmTitle": "هل تريد حذف حسابك؟",
+		"deleteAccountConfirmMessage": "لن يظهر ملفك الشخصي بعد الآن، وستختفي منشوراتك ومراجعاتك من القوائم والبحث. وسيتم حذف صورك ومقاطع الفيديو، بالإضافة إلى الإعجابات والعناصر المحفوظة وعمليات الحظر.\n\nلا يمكن التراجع عن هذا الإجراء.",
+		"deleteAccountConfirmButton": "متابعة",
+		"deleteAccountFinalTitle": "هل تريد الحذف فعلاً؟",
+		"deleteAccountFinalMessage": "لا يمكن استعادة حسابك وبياناتك، ولن تتمكن من تسجيل الدخول مرة أخرى بالحساب نفسه.",
+		"deleteAccountFinalButton": "حذف نهائي",
+		"deleteAccountSuccess": "تم حذف حسابك",
+		"deleteAccountError": "تعذّر حذف حسابك. يُرجى المحاولة لاحقًا.",
+		"blockedTopics": {
+			"navigationLabel": "فئات الأطباق المحظورة",
+			"pageTitle": "فئات الأطباق المحظورة",
+			"title": "أطباق محظورة",
+			"empty": "لا توجد أطباق محظورة",
+			"loading": "جاري التحميل...",
+			"unblockButton": "إلغاء الحظر",
+			"unblockTitle": "إلغاء حظر فئة الطبق هذه؟",
+			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
+			"unblockConfirm": "إلغاء الحظر",
+			"unblocked": "تم إلغاء الحظر"
+		},
 		"notifications": {
 			"sectionTitle": "الإشعارات",
 			"osDisabledTitle": "الإشعارات موقوفة على هذا الجهاز",
@@ -758,18 +780,6 @@
 				"title": "تصويت المجموعة",
 				"description": "عند حدوث نشاط في تصويت مجموعة انضممت إليها"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "فئات الأطباق المحظورة",
-			"pageTitle": "فئات الأطباق المحظورة",
-			"title": "أطباق محظورة",
-			"empty": "لا توجد أطباق محظورة",
-			"loading": "جاري التحميل...",
-			"unblockButton": "إلغاء الحظر",
-			"unblockTitle": "إلغاء حظر فئة الطبق هذه؟",
-			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
-			"unblockConfirm": "إلغاء الحظر",
-			"unblocked": "تم إلغاء الحظر"
 		}
 	},
 	"Dialog": {

@@ -159,9 +159,6 @@
 		},
 		"loading": "検索中...",
 		"noLocationsFound": "場所が見つかりません",
-		"locationConfirmation": {
-			"error": "地点の確認に失敗しました"
-		},
 		"advancedToggle": {
 			"open": "さらにこだわる",
 			"close": "詳細検索を閉じる"
@@ -241,6 +238,9 @@
 		"recentLocations": {
 			"title": "最近使った場所",
 			"clear": "最近使った場所を消去"
+		},
+		"locationConfirmation": {
+			"error": "地点の確認に失敗しました"
 		}
 	},
 	"Onboarding": {
@@ -740,6 +740,28 @@
 		"logout": "ログアウト",
 		"logoutConfirmTitle": "ログアウトしますか？",
 		"logoutConfirmMessage": "再度ログインするまで、投稿やレビューの管理ができなくなります。",
+		"deleteAccount": "アカウントを削除",
+		"deleteAccountInProgress": "削除しています…",
+		"deleteAccountConfirmTitle": "アカウントを削除しますか？",
+		"deleteAccountConfirmMessage": "プロフィールは表示されなくなり、投稿・レビューは一覧や検索から消えます。写真と動画は削除され、いいね・保存・ブロックの記録も消えます。\n\nこの操作は取り消せません。",
+		"deleteAccountConfirmButton": "削除に進む",
+		"deleteAccountFinalTitle": "本当に削除しますか？",
+		"deleteAccountFinalMessage": "アカウントとデータは復元できません。同じアカウントで再度ログインすることもできません。",
+		"deleteAccountFinalButton": "完全に削除する",
+		"deleteAccountSuccess": "アカウントを削除しました",
+		"deleteAccountError": "アカウントを削除できませんでした。時間をおいてもう一度お試しください。",
+		"blockedTopics": {
+			"navigationLabel": "ブロック済みの料理カテゴリ",
+			"pageTitle": "ブロック済みの料理カテゴリ",
+			"title": "ブロックしている料理",
+			"empty": "ブロックしている料理はありません",
+			"loading": "読み込み中...",
+			"unblockButton": "ブロックを解除",
+			"unblockTitle": "ブロックを解除しますか？",
+			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
+			"unblockConfirm": "解除する",
+			"unblocked": "ブロックを解除しました"
+		},
 		"notifications": {
 			"sectionTitle": "通知",
 			"osDisabledTitle": "端末の通知がオフになっています",
@@ -758,18 +780,6 @@
 				"title": "グループ投票",
 				"description": "参加しているグループ投票に動きがあったとき"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "ブロック済みの料理カテゴリ",
-			"pageTitle": "ブロック済みの料理カテゴリ",
-			"title": "ブロックしている料理",
-			"empty": "ブロックしている料理はありません",
-			"loading": "読み込み中...",
-			"unblockButton": "ブロックを解除",
-			"unblockTitle": "ブロックを解除しますか？",
-			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
-			"unblockConfirm": "解除する",
-			"unblocked": "ブロックを解除しました"
 		}
 	},
 	"Dialog": {

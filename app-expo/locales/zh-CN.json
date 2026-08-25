@@ -159,9 +159,6 @@
 		},
 		"loading": "搜索中...",
 		"noLocationsFound": "未找到位置",
-		"locationConfirmation": {
-			"error": "位置确认失败"
-		},
 		"advancedToggle": {
 			"open": "更多选项",
 			"close": "关闭高级搜索"
@@ -241,6 +238,9 @@
 		"recentLocations": {
 			"title": "最近使用的地点",
 			"clear": "清除最近使用的地点"
+		},
+		"locationConfirmation": {
+			"error": "位置确认失败"
 		}
 	},
 	"Onboarding": {
@@ -740,6 +740,28 @@
 		"logout": "登出",
 		"logoutConfirmTitle": "要退出登录吗？",
 		"logoutConfirmMessage": "再次登录后才能管理你的帖子和评论。",
+		"deleteAccount": "删除账号",
+		"deleteAccountInProgress": "正在删除…",
+		"deleteAccountConfirmTitle": "要删除账号吗？",
+		"deleteAccountConfirmMessage": "你的个人资料将不再显示，发布的内容和评价会从列表和搜索中消失。照片和视频将被删除，点赞、收藏和屏蔽记录也会一并清除。\n\n此操作无法撤销。",
+		"deleteAccountConfirmButton": "继续",
+		"deleteAccountFinalTitle": "确定要删除吗？",
+		"deleteAccountFinalMessage": "账号和数据无法恢复，也无法再使用同一账号登录。",
+		"deleteAccountFinalButton": "永久删除",
+		"deleteAccountSuccess": "账号已删除",
+		"deleteAccountError": "无法删除账号，请稍后重试。",
+		"blockedTopics": {
+			"navigationLabel": "已屏蔽的菜品类别",
+			"pageTitle": "已屏蔽的菜品类别",
+			"title": "已屏蔽的菜品",
+			"empty": "没有已屏蔽的菜品",
+			"loading": "加载中...",
+			"unblockButton": "取消屏蔽",
+			"unblockTitle": "取消屏蔽此菜品类别？",
+			"unblockMessage": "此菜品类别将重新添加到推荐中。",
+			"unblockConfirm": "取消屏蔽",
+			"unblocked": "已取消屏蔽"
+		},
 		"notifications": {
 			"sectionTitle": "通知",
 			"osDisabledTitle": "此设备的通知已关闭",
@@ -758,18 +780,6 @@
 				"title": "群组投票",
 				"description": "你参与的群组投票有新动态时"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "已屏蔽的菜品类别",
-			"pageTitle": "已屏蔽的菜品类别",
-			"title": "已屏蔽的菜品",
-			"empty": "没有已屏蔽的菜品",
-			"loading": "加载中...",
-			"unblockButton": "取消屏蔽",
-			"unblockTitle": "取消屏蔽此菜品类别？",
-			"unblockMessage": "此菜品类别将重新添加到推荐中。",
-			"unblockConfirm": "取消屏蔽",
-			"unblocked": "已取消屏蔽"
 		}
 	},
 	"Dialog": {

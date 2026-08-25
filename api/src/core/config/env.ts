@@ -101,6 +101,19 @@ const envSchema = z.object({
    * app 側の `EXPO_PUBLIC_WEB_BASE_URL` と同じ値を入れる。
    */
   WEB_BASE_URL: z.string().url().default('https://app.nanitabeyo.net'),
+  /**
+   * #1511 アカウント削除で Supabase Auth のユーザーを **物理削除**するために使う。
+   *
+   * `SUPABASE_URL` はプロジェクトの API エンドポイント（例: https://xxxx.supabase.co）、
+   * `SUPABASE_SERVICE_ROLE_KEY` は admin API（`/auth/v1/admin/users/:id`）を呼べる鍵。
+   *
+   * ⚠️ **optional にしてある。** service_role 鍵を Cloud Run へ持たせるのは権限の拡大であり、
+   * オーナーの承認を得てから配線する（#1511 のリーダー判断で保留になっている 2 点のうちの 1 つ）。
+   * 未設定でも API 全体が起動不能にならないようにし、
+   * 「アカウント削除だけが 503 になる」形で失敗を局所化する（supabase-admin.service.ts 参照）。
+   */
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 });
 
 /**

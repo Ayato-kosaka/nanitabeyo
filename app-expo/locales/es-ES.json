@@ -159,9 +159,6 @@
 		},
 		"loading": "Buscando...",
 		"noLocationsFound": "No se encontraron ubicaciones",
-		"locationConfirmation": {
-			"error": "No se pudo confirmar la ubicación"
-		},
 		"advancedToggle": {
 			"open": "Más opciones",
 			"close": "Cerrar búsqueda avanzada"
@@ -241,6 +238,9 @@
 		"recentLocations": {
 			"title": "Ubicaciones recientes",
 			"clear": "Borrar ubicaciones recientes"
+		},
+		"locationConfirmation": {
+			"error": "No se pudo confirmar la ubicación"
 		}
 	},
 	"Onboarding": {
@@ -740,6 +740,28 @@
 		"logout": "Cerrar sesión",
 		"logoutConfirmTitle": "¿Cerrar sesión?",
 		"logoutConfirmMessage": "Deberás iniciar sesión de nuevo para gestionar tus publicaciones y reseñas.",
+		"deleteAccount": "Eliminar cuenta",
+		"deleteAccountInProgress": "Eliminando…",
+		"deleteAccountConfirmTitle": "¿Eliminar tu cuenta?",
+		"deleteAccountConfirmMessage": "Tu perfil dejará de mostrarse y tus publicaciones y reseñas desaparecerán de las listas y de la búsqueda. Tus fotos y vídeos se eliminarán, junto con tus me gusta, guardados y bloqueos.\n\nEsta acción no se puede deshacer.",
+		"deleteAccountConfirmButton": "Continuar",
+		"deleteAccountFinalTitle": "¿Seguro que quieres eliminarla?",
+		"deleteAccountFinalMessage": "Tu cuenta y tus datos no se podrán restaurar. Tampoco podrás volver a iniciar sesión con la misma cuenta.",
+		"deleteAccountFinalButton": "Eliminar definitivamente",
+		"deleteAccountSuccess": "Tu cuenta se ha eliminado",
+		"deleteAccountError": "No se ha podido eliminar tu cuenta. Inténtalo de nuevo más tarde.",
+		"blockedTopics": {
+			"navigationLabel": "Categorías de platos bloqueadas",
+			"pageTitle": "Categorías de platos bloqueadas",
+			"title": "Platos bloqueados",
+			"empty": "No hay platos bloqueados",
+			"loading": "Cargando...",
+			"unblockButton": "Desbloquear",
+			"unblockTitle": "¿Desbloquear esta categoría de plato?",
+			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
+			"unblockConfirm": "Desbloquear",
+			"unblocked": "Desbloqueado"
+		},
 		"notifications": {
 			"sectionTitle": "Notificaciones",
 			"osDisabledTitle": "Las notificaciones están desactivadas en este dispositivo",
@@ -758,18 +780,6 @@
 				"title": "Votaciones de grupo",
 				"description": "Cuando hay actividad en una votación de grupo a la que te uniste"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "Categorías de platos bloqueadas",
-			"pageTitle": "Categorías de platos bloqueadas",
-			"title": "Platos bloqueados",
-			"empty": "No hay platos bloqueados",
-			"loading": "Cargando...",
-			"unblockButton": "Desbloquear",
-			"unblockTitle": "¿Desbloquear esta categoría de plato?",
-			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
-			"unblockConfirm": "Desbloquear",
-			"unblocked": "Desbloqueado"
 		}
 	},
 	"Dialog": {

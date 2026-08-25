@@ -159,9 +159,6 @@
 		},
 		"loading": "खोज जारी...",
 		"noLocationsFound": "कोई स्थान नहीं मिला",
-		"locationConfirmation": {
-			"error": "स्थान की पुष्टि करने में विफल"
-		},
 		"advancedToggle": {
 			"open": "अधिक विकल्प",
 			"close": "उन्नत खोज बंद करें"
@@ -241,6 +238,9 @@
 		"recentLocations": {
 			"title": "हाल के स्थान",
 			"clear": "हाल के स्थान साफ़ करें"
+		},
+		"locationConfirmation": {
+			"error": "स्थान की पुष्टि करने में विफल"
 		}
 	},
 	"Onboarding": {
@@ -740,6 +740,28 @@
 		"logout": "लॉग आउट",
 		"logoutConfirmTitle": "लॉग आउट करें?",
 		"logoutConfirmMessage": "अपनी पोस्ट और समीक्षाएं प्रबंधित करने के लिए आपको फिर से लॉगिन करना होगा।",
+		"deleteAccount": "खाता हटाएँ",
+		"deleteAccountInProgress": "हटाया जा रहा है…",
+		"deleteAccountConfirmTitle": "क्या आप अपना खाता हटाना चाहते हैं?",
+		"deleteAccountConfirmMessage": "आपकी प्रोफ़ाइल अब नहीं दिखेगी, और आपकी पोस्ट व समीक्षाएँ सूचियों और खोज से हट जाएँगी। आपकी फ़ोटो और वीडियो हटा दिए जाएँगे, साथ ही लाइक, सहेजे गए आइटम और ब्लॉक भी।\n\nयह क्रिया पूर्ववत नहीं की जा सकती।",
+		"deleteAccountConfirmButton": "जारी रखें",
+		"deleteAccountFinalTitle": "क्या वाकई हटाना है?",
+		"deleteAccountFinalMessage": "आपका खाता और डेटा वापस नहीं लाया जा सकता। आप उसी खाते से दोबारा साइन इन भी नहीं कर पाएंगे।",
+		"deleteAccountFinalButton": "स्थायी रूप से हटाएँ",
+		"deleteAccountSuccess": "आपका खाता हटा दिया गया",
+		"deleteAccountError": "खाता नहीं हटाया जा सका। कृपया बाद में पुनः प्रयास करें।",
+		"blockedTopics": {
+			"navigationLabel": "ब्लॉक की गई व्यंजन श्रेणियाँ",
+			"pageTitle": "ब्लॉक की गई व्यंजन श्रेणियाँ",
+			"title": "ब्लॉक किए गए व्यंजन",
+			"empty": "कोई ब्लॉक किए गए व्यंजन नहीं",
+			"loading": "लोड हो रहा है...",
+			"unblockButton": "अनब्लॉक करें",
+			"unblockTitle": "इस व्यंजन श्रेणी को अनब्लॉक करें?",
+			"unblockMessage": "यह व्यंजन श्रेणी सिफारिशों में वापस जोड़ दी जाएगी।",
+			"unblockConfirm": "अनब्लॉक करें",
+			"unblocked": "अनब्लॉक किया गया"
+		},
 		"notifications": {
 			"sectionTitle": "सूचनाएँ",
 			"osDisabledTitle": "इस डिवाइस पर सूचनाएँ बंद हैं",
@@ -758,18 +780,6 @@
 				"title": "समूह मतदान",
 				"description": "जब आपके शामिल समूह मतदान में कोई गतिविधि हो"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "ब्लॉक की गई व्यंजन श्रेणियाँ",
-			"pageTitle": "ब्लॉक की गई व्यंजन श्रेणियाँ",
-			"title": "ब्लॉक किए गए व्यंजन",
-			"empty": "कोई ब्लॉक किए गए व्यंजन नहीं",
-			"loading": "लोड हो रहा है...",
-			"unblockButton": "अनब्लॉक करें",
-			"unblockTitle": "इस व्यंजन श्रेणी को अनब्लॉक करें?",
-			"unblockMessage": "यह व्यंजन श्रेणी सिफारिशों में वापस जोड़ दी जाएगी।",
-			"unblockConfirm": "अनब्लॉक करें",
-			"unblocked": "अनब्लॉक किया गया"
 		}
 	},
 	"Dialog": {

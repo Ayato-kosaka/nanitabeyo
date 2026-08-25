@@ -731,6 +731,7 @@ model users {
   username         String             @unique(map: "uq_users_username") @db.Citext
   preferred_locale String
   avatar_path      String?
+  /// #1511 アカウント削除(匿名化)の実行時刻。NULL = 有効なユーザー
   deleted_at       DateTime?          @db.Timestamptz(6)
   dish_media       dish_media[]
   dish_media_likes dish_media_likes[]

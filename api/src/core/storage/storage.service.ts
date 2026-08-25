@@ -198,6 +198,64 @@ export class StorageService {
   }
 
   /* ---------------------------------------------------------------------- */
+  /*                     Delete File (存在しなくても成功)                   */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * #1511 実体が無くてもエラーにしない削除。
+   *
+   * アカウント削除は **冪等**でなければならない（途中で落ちても再実行で完了できること）。
+   * `deleteFile()` は 404 でも throw するため、2 回目の実行が必ず失敗してしまう。
+   * 「消えている」は目的が達成された状態なので、ここでは成功として返す。
+   *
+   * @returns 実際に削除したら true / 元から無ければ false
+   */
+  async deleteFileIfExists(path: string): Promise<boolean> {
+    try {
+      await this.bucket.file(path).delete({ ignoreNotFound: true });
+      return true;
+    } catch (err) {
+      this.logger.warn('GcsDeleteIfExistsError', 'deleteFileIfExists', {
+        error_message: (err as Error).message,
+        path,
+      });
+      return false;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                      Delete Files by Prefix (前方一致)                 */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * #1511 プレフィクス配下のオブジェクトをまとめて削除する。
+   *
+   * 派生ファイル（リサイズ画像 `resized-image/.../<size>.webp`、
+   * トランスコード動画 `transcoded-video/.../<format>/...`）は
+   * **名前を 1 つずつ再現できない**（サイズ・フォーマットの一覧を呼び出し側が知らない）。
+   * 実体を残さないためには前方一致で消すしかない。
+   *
+   * ⚠️ prefix はディレクトリ境界（`/` 終わり）で渡すこと。`.../users/avatar_path/<id>`
+   * のように `/` 無しで渡すと `<id>2` のような別レコードまで巻き込む。
+   * ここでは呼び出し側の事故を防ぐため、末尾に `/` が無ければ付ける。
+   *
+   * @returns 削除を試みた prefix（ログ用）
+   */
+  async deleteFilesByPrefix(prefix: string): Promise<void> {
+    const normalized = prefix.endsWith('/') ? prefix : `${prefix}/`;
+    try {
+      await this.bucket.deleteFiles({ prefix: normalized, force: true });
+      this.logger.debug('GcsPrefixDeleted', 'deleteFilesByPrefix', {
+        prefix: normalized,
+      });
+    } catch (err) {
+      // 冪等性を優先し、ここでは throw しない（呼び出し側は再実行で回収できる）
+      this.logger.warn('GcsPrefixDeleteError', 'deleteFilesByPrefix', {
+        error_message: (err as Error).message,
+        prefix: normalized,
+      });
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /*                           Check File Exists                            */
   /* ---------------------------------------------------------------------- */
   async fileExists(path: string): Promise<boolean> {

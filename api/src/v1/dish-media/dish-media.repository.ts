@@ -31,6 +31,8 @@ import { ClsService } from 'nestjs-cls';
 import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
 import { prioritizeReviewsByLanguage } from './review-ordering';
 import { buildLanguageWhereClause } from './language-where';
+// #1511 退会したユーザーの投稿・レビューを外す where 断片（共有リンクの OGP でも使う）
+import { NOT_AUTHORED_BY_DELETED_USER } from './deleted-user-filter';
 import { MediaProcessingStatus } from '@shared/v1/res';
 
 /** #817 優先言語のレビュー先読みクエリの戻り値 */
@@ -190,6 +192,13 @@ export class DishMediaRepository {
       WHERE 1=1
         -- カテゴリ
         AND d.category_id = (SELECT category_id FROM params)
+        -- #1511 退会したユーザーの投稿はフィードに出さない（作者の users.deleted_at で判定）。
+        -- user_id が NULL の取り込みメディアは対象外なので NOT EXISTS で書く
+        AND NOT EXISTS (
+          SELECT 1 FROM users u
+          WHERE u.id = dm.user_id
+            AND u.deleted_at IS NOT NULL
+        )
         -- #1257 実体（GCS original）が届いていない行を検索候補から除外する。
         -- media_processing_status を「加工完了フラグ」としてではなく「原本到達の代理指標」として使う。
         -- 単純に processing のみを弾く案では、原本のダウンロードに恒久的に失敗して
@@ -485,6 +494,12 @@ export class DishMediaRepository {
         LEFT JOIN dish_media_analysis_results dmar
           ON dmar.dish_media_id = dm.id
         WHERE d.restaurant_id = ${restaurantId}::uuid
+          -- #1511 退会したユーザーの投稿は店舗の投稿一覧にも出さない
+          AND NOT EXISTS (
+            SELECT 1 FROM users u
+            WHERE u.id = dm.user_id
+              AND u.deleted_at IS NOT NULL
+          )
           -- #1257 findDishMediaIds と同じ理由で、実体（GCS original）が届いていない行を
           -- レストラン詳細の一覧からも除外する。ここを漏らすと、検索には出なくなった
           -- 未着メディアが店舗ページ経由でだけ露出し続ける。
@@ -548,6 +563,9 @@ export class DishMediaRepository {
 
     let whereClause: Prisma.dish_reviewsWhereInput = {
       user_id: userId,
+      // #1511 退会したユーザーのレビューは一覧に出さない。
+      // 「自分のレビュー」を引く経路だが、退会後は本人にも他人にも出さない
+      ...NOT_AUTHORED_BY_DELETED_USER,
     };
     if (options.type === 'cursor' && options.cursor) {
       whereClause.created_at = {
@@ -766,7 +784,10 @@ export class DishMediaRepository {
     );
 
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
-      where: { id: { in: dishMediaIds } },
+      // #1511 退会したユーザーの投稿は id 指定で引かれても返さない。
+      // ここは詳細・共有リンク・保存/いいね一覧まで含めた「ID から実体を作る」唯一の入口なので、
+      // ここを塞ぐと個別の呼び出し元へ同じフィルタを配って回らずに済む
+      where: { id: { in: dishMediaIds }, ...NOT_AUTHORED_BY_DELETED_USER },
       include: {
         dish_media_likes: { where: { user_id: userId } }, // User がいいねしているか
         dish_media_analysis_results: true, // #292 【設計】いいね数は like_total から取得（トゥルース源）
@@ -774,6 +795,8 @@ export class DishMediaRepository {
           include: {
             restaurants: true,
             dish_reviews: {
+              // #1511 同じ料理に付いた «他人の» レビューのうち、退会者のものを落とす
+              where: { ...NOT_AUTHORED_BY_DELETED_USER },
               orderBy: { created_at: 'asc' }, // #509 【設計】dish_reviews の並び順を古い→新しいに統一
               take: reviewLimit,
               include: { users: true },
@@ -799,7 +822,9 @@ export class DishMediaRepository {
     // Calculate review count and average rating per dish
     const avgByDish = await this.prisma.prisma.dish_reviews.groupBy({
       by: ['dish_id'],
-      where: { dish_id: { in: dishIds } },
+      // #1511 表示から外したレビューを件数・平均点に数えると、
+      // 「レビュー 3 件」と書いてあるのに 2 件しか出ない、というズレになる
+      where: { dish_id: { in: dishIds }, ...NOT_AUTHORED_BY_DELETED_USER },
       _avg: { rating: true },
       _count: { dish_id: true },
     });
@@ -925,7 +950,12 @@ export class DishMediaRepository {
             // #817 【設計】正規形(zh-hans)をそのまま DB 値へ突き合わせると、
             // 実際に保存されている zh-CN に一致しない。必ず候補集合で引くこと。
             // #1052 組み立ては language-where.ts の純粋関数へ寄せてテスト可能にした。
-            OR: buildLanguageWhereClause(preferredLanguageCodes),
+            // #1511 退会者のレビューを落とす。言語条件が既に OR なので AND で束ねる
+            //（spread すると片方の OR が消える）
+            AND: [
+              { OR: buildLanguageWhereClause(preferredLanguageCodes) },
+              NOT_AUTHORED_BY_DELETED_USER,
+            ],
           },
           orderBy: { created_at: 'asc' }, // #509 【設計】古い→新しい
           take: reviewLimit,
