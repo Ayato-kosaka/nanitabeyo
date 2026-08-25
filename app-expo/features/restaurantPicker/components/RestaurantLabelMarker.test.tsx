@@ -41,10 +41,11 @@ jest.mock("expo-image", () => {
 });
 
 const latestTracks = () => markerProps[markerProps.length - 1]?.tracksViewChanges;
+/** ツリーに出ている文字列をすべて拾う（`Text` の型名に依存しない） */
 const textsOf = (tree: ReturnType<typeof create>): string[] =>
 	tree.root
-		.findAll((n) => typeof n.type === "string" && n.type === "Text")
-		.flatMap((n) => (Array.isArray(n.props.children) ? n.props.children : [n.props.children]))
+		.findAll(() => true)
+		.flatMap((n) => (Array.isArray(n.props?.children) ? n.props.children : [n.props?.children]))
 		.filter((c): c is string => typeof c === "string");
 
 const coordinate = { latitude: 35.68, longitude: 139.76 };
