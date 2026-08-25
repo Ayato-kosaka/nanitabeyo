@@ -43,6 +43,11 @@ export class SettingsScreen {
 	 * #1132 で文言は「料理トピック」→「料理カテゴリ」へ変わったが、testID は据え置かれている。
 	 */
 	readonly blockedTopicsItem = by.id("settings-blocked-topics");
+	/**
+	 * 自分が作成/参加したグループ投票の一覧行（#1505 で追加）。
+	 * 対応画面: screens/MyDishCategoryGroupVotesScreen.ts
+	 */
+	readonly myGroupVotesItem = by.id("settings-my-group-votes");
 	/** コミュニティガイドライン行（既存 testID） */
 	readonly guidelinesItem = by.id("settings-guidelines");
 	/** 利用規約行（既存 testID） */
@@ -175,6 +180,15 @@ export class SettingsScreen {
 	 */
 	async openBlockedTopics(): Promise<void> {
 		await tapWhenVisible(this.blockedTopicsItem);
+	}
+
+	/**
+	 * 「グループ投票の履歴」行をタップして一覧画面へ遷移する（#1505）。
+	 * e2e-web は `/ja-JP/profile/dish-category-group-votes` へ URL 直遷移するが、
+	 * ネイティブには代替経路が無いため settings.test.ts / openBlockedTopics と同じく実 UI 導線をタップする。
+	 */
+	async openMyGroupVotes(): Promise<void> {
+		await tapWhenVisible(this.myGroupVotesItem);
 	}
 
 	/** プライバシーポリシー行をタップして法務ドキュメント画面へ遷移する（#1368 でモーダル起動から変更） */

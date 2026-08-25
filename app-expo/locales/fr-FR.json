@@ -82,7 +82,22 @@
 		"submitFailed": "Impossible d'envoyer votre vote",
 		"participantsList": "Participants : {{names}}",
 		"noParticipants": "Aucun participant pour le moment",
-		"noVotes": "Aucun vote pour le moment"
+		"noVotes": "Aucun vote pour le moment",
+		"myVotes": {
+			"pageTitle": "Mes votes de groupe",
+			"loadFailed": "Impossible de charger vos votes de groupe",
+			"noCandidates": "Aucun choix",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} et {{count}} de plus",
+			"participantSummary": "{{count}} ont voté",
+			"decidedLabel": "Gagnant : {{name}}",
+			"votedLabel": "Vous avez voté",
+			"notVotedLabel": "Vous n'avez pas voté",
+			"itemAccessibilityLabel": "Vote de groupe du {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "Vous n'avez encore lancé aucun vote de groupe",
+			"emptyDescription": "Cherchez un plat, proposez quelques choix et demandez à vos amis de voter.",
+			"emptyAction": "Créer un vote"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",
@@ -394,9 +409,6 @@
 		"share": {
 			"title": "Découvrez {{dishName}}"
 		},
-		"save": {
-			"savedMessage": "Ajouté à Envie d'essayer"
-		},
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
 		},
@@ -406,10 +418,10 @@
 			"likeInactive": "Aimer {{name}}",
 			"saveActive": "Retirer {{name}} de Envie d'essayer",
 			"saveInactive": "Ajouter {{name}} à Envie d'essayer",
-			"recordEaten": "Enregistrer {{name}} comme goûté",
 			"share": "Partager {{name}}",
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}",
+			"recordEaten": "Enregistrer {{name}} comme goûté",
 			"recordEatenAgain": "Enregistrer à nouveau chez {{name}} (déjà enregistré)"
 		},
 		"processing": "Traitement du média...",
@@ -421,6 +433,9 @@
 		},
 		"info": {
 			"walkFromShibuya": "À 13 min à pied de la gare de Shibuya"
+		},
+		"save": {
+			"savedMessage": "Ajouté à Envie d'essayer"
 		},
 		"embed": {
 			"play": "Lire sur {{provider}}"
@@ -437,19 +452,33 @@
 	"Tabs": {
 		"home": "Accueil",
 		"search": "Recherche",
+		"review": "Avis",
 		"notifications": "Notifications",
 		"profile": "Profil",
 		"labels": {
 			"search": "Recherche",
+			"review": "Avis",
 			"notifications": "Notifications",
 			"profile": "Profil",
-			"myDishes": "Mes plats",
-			"review": "Avis"
+			"myDishes": "Mes plats"
 		},
-		"myDishes": "Mes plats",
-		"review": "Avis"
+		"myDishes": "Mes plats"
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "Avis",
+			"saved": "Enregistré",
+			"liked": "J'aime",
+			"wallet": "Portefeuille"
+		},
+		"tabs": {
+			"deposits": "Dépôts",
+			"earnings": "Revenus",
+			"saved-posts": "Publications",
+			"saved-topics": "Plats",
+			"wallet-deposit": "Dépôts",
+			"wallet-earning": "Revenus"
+		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -479,10 +508,6 @@
 			"refunded": "Remboursé",
 			"paid": "Payé",
 			"pending": "En attente"
-		},
-		"menu": {
-			"likedPosts": "Publications aimées",
-			"savedDishCategories": "Catégories de plats enregistrées"
 		},
 		"buttons": {
 			"editProfile": "Modifier le profil",
@@ -524,19 +549,9 @@
 			"bioLength": "La bio doit contenir 150 caractères ou moins"
 		},
 		"guestDisplayName": "Invité",
-		"tabGroups": {
-			"reviews": "Avis",
-			"saved": "Enregistré",
-			"liked": "J'aime",
-			"wallet": "Portefeuille"
-		},
-		"tabs": {
-			"deposits": "Dépôts",
-			"earnings": "Revenus",
-			"saved-posts": "Publications",
-			"saved-topics": "Plats",
-			"wallet-deposit": "Dépôts",
-			"wallet-earning": "Revenus"
+		"menu": {
+			"likedPosts": "Publications aimées",
+			"savedDishCategories": "Catégories de plats enregistrées"
 		}
 	},
 	"NotFound": {
@@ -696,26 +711,6 @@
 			"title": "Détails du restaurant"
 		}
 	},
-	"SelectRestaurant": {
-		"title": "Sélectionner un restaurant",
-		"searchThisArea": "Rechercher à nouveau dans cette zone",
-		"savedRestaurantList": "Liste des restaurants enregistrés",
-		"postPhotoVideo": "Publier une photo/vidéo",
-		"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
-		"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche.",
-		"nameSearch": {
-			"placeholder": "Rechercher par nom de restaurant",
-			"searching": "Recherche en cours…",
-			"noResults": "Aucun restaurant correspondant trouvé. Appuyez sur un restaurant sur la carte pour l'ajouter.",
-			"error": "Échec de la recherche. Veuillez réessayer."
-		},
-		"accessibility": {
-			"clearNameSearch": "Effacer la recherche par nom de restaurant"
-		},
-		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
-		"pickTitle": "Choisir un établissement",
-		"pickOnMap": "Chercher sur la carte"
-	},
 	"Feedback": {
 		"title": "Envoyer Commentaires/Rapport de Bug",
 		"labels": {
@@ -771,11 +766,14 @@
 		"continue_with_apple": "Continuer avec Apple"
 	},
 	"Settings": {
-		"hapticsEnabled": "Retour haptique",
-		"deviceSettings": {
-			"navigationLabel": "Paramètres de l'appareil",
-			"title": "Paramètres de l'appareil",
-			"description": "Ces paramètres sont enregistrés uniquement sur cet appareil. Ils ne sont pas transférés vers d'autres appareils ou comptes."
+		"title": "Paramètres",
+		"theme": {
+			"sectionTitle": "Apparence",
+			"options": {
+				"system": "Suivre le réglage du système",
+				"light": "Clair",
+				"dark": "Sombre"
+			}
 		},
 		"sendFeedback": "Envoyer des commentaires",
 		"leaveReview": "Laisser un avis",
@@ -802,14 +800,14 @@
 			"unblockConfirm": "Débloquer",
 			"unblocked": "Débloqué"
 		},
-		"title": "Paramètres",
-		"theme": {
-			"sectionTitle": "Apparence",
-			"options": {
-				"system": "Suivre le réglage du système",
-				"light": "Clair",
-				"dark": "Sombre"
-			}
+		"myGroupVotes": {
+			"navigationLabel": "Mes votes de groupe"
+		},
+		"hapticsEnabled": "Retour haptique",
+		"deviceSettings": {
+			"navigationLabel": "Paramètres de l'appareil",
+			"title": "Paramètres de l'appareil",
+			"description": "Ces paramètres sont enregistrés uniquement sur cet appareil. Ils ne sont pas transférés vers d'autres appareils ou comptes."
 		}
 	},
 	"Dialog": {
@@ -840,6 +838,55 @@
 		"openInGoogleMaps": "Ouvrir dans Google Maps",
 		"shareWithFriends": "Partager avec des amis",
 		"cancel": "Annuler"
+	},
+	"Review": {
+		"title": "Publier un Avis",
+		"hero": {
+			"title": "Rédige des avis sur des restaurants recommandés\net publie les plats que tu as mangés"
+		},
+		"guest": {
+			"description": "Connectez-vous pour écrire des avis",
+			"loginButton": "Se Connecter"
+		},
+		"authenticated": {
+			"postButton": "✏️ Publier un avis de restaurant"
+		},
+		"selectRestaurant": {
+			"title": "Sélectionner un restaurant",
+			"searchThisArea": "Rechercher à nouveau dans cette zone",
+			"savedRestaurantList": "Liste des restaurants enregistrés",
+			"postPhotoVideo": "Publier une photo/vidéo",
+			"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
+			"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche."
+		},
+		"emptyState": {
+			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
+		},
+		"everybodyPostsTitle": "Choisir un plat à évaluer",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "Détails du restaurant"
+		}
+	},
+	"SelectRestaurant": {
+		"title": "Sélectionner un restaurant",
+		"searchThisArea": "Rechercher à nouveau dans cette zone",
+		"savedRestaurantList": "Liste des restaurants enregistrés",
+		"postPhotoVideo": "Publier une photo/vidéo",
+		"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
+		"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche.",
+		"nameSearch": {
+			"placeholder": "Rechercher par nom de restaurant",
+			"searching": "Recherche en cours…",
+			"noResults": "Aucun restaurant correspondant trouvé. Appuyez sur un restaurant sur la carte pour l'ajouter.",
+			"error": "Échec de la recherche. Veuillez réessayer."
+		},
+		"accessibility": {
+			"clearNameSearch": "Effacer la recherche par nom de restaurant"
+		},
+		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
+		"pickTitle": "Choisir un établissement",
+		"pickOnMap": "Chercher sur la carte"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1045,35 +1092,6 @@
 			"change": "Modifier",
 			"hint": "Choisissez d’abord un restaurant. Sélectionnez ensuite le plat, puis ajoutez une photo (facultative), un court avis, le prix et votre note.",
 			"done": "Enregistré comme mangé"
-		}
-	},
-	"Review": {
-		"title": "Publier un Avis",
-		"hero": {
-			"title": "Rédige des avis sur des restaurants recommandés\net publie les plats que tu as mangés"
-		},
-		"guest": {
-			"description": "Connectez-vous pour écrire des avis",
-			"loginButton": "Se Connecter"
-		},
-		"authenticated": {
-			"postButton": "✏️ Publier un avis de restaurant"
-		},
-		"selectRestaurant": {
-			"title": "Sélectionner un restaurant",
-			"searchThisArea": "Rechercher à nouveau dans cette zone",
-			"savedRestaurantList": "Liste des restaurants enregistrés",
-			"postPhotoVideo": "Publier une photo/vidéo",
-			"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
-			"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche."
-		},
-		"emptyState": {
-			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
-		},
-		"everybodyPostsTitle": "Choisir un plat à évaluer",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "Détails du restaurant"
 		}
 	},
 	"Tutorial": {

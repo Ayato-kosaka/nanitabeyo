@@ -82,7 +82,22 @@
 		"submitFailed": "无法提交投票",
 		"participantsList": "参与者：{{names}}",
 		"noParticipants": "还没有参与者",
-		"noVotes": "还没有投票"
+		"noVotes": "还没有投票",
+		"myVotes": {
+			"pageTitle": "我的分组投票",
+			"loadFailed": "无法加载分组投票",
+			"noCandidates": "暂无候选",
+			"candidateSeparator": "、",
+			"candidateSummaryMore": "{{names}}等{{count}}项",
+			"participantSummary": "{{count}}人已投票",
+			"decidedLabel": "结果：{{name}}",
+			"votedLabel": "已投票",
+			"notVotedLabel": "未投票",
+			"itemAccessibilityLabel": "{{date}}的群组投票。{{summary}}。{{participants}}。{{status}}",
+			"emptyTitle": "您还没有发起过分组投票",
+			"emptyDescription": "搜索美食并选出候选后，就可以邀请朋友投票。",
+			"emptyAction": "创建投票"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
@@ -394,9 +409,6 @@
 		"share": {
 			"title": "看看{{dishName}}"
 		},
-		"save": {
-			"savedMessage": "已保存到想吃"
-		},
 		"buttons": {
 			"viewRestaurant": "查看餐厅"
 		},
@@ -406,10 +418,10 @@
 			"likeInactive": "点赞{{name}}",
 			"saveActive": "将{{name}}从想吃中移除",
 			"saveInactive": "将{{name}}保存到想吃",
-			"recordEaten": "将{{name}}记录为吃过",
 			"share": "分享{{name}}",
 			"openMap": "打开{{name}}的地图",
 			"reviewLike": "为{{username}}的点评点赞",
+			"recordEaten": "将{{name}}记录为吃过",
 			"recordEatenAgain": "再次记录在{{name}}吃过（已记录）"
 		},
 		"processing": "正在处理媒体...",
@@ -421,6 +433,9 @@
 		},
 		"info": {
 			"walkFromShibuya": "距离涩谷站步行13分钟"
+		},
+		"save": {
+			"savedMessage": "已保存到想吃"
 		},
 		"embed": {
 			"play": "在{{provider}}上播放"
@@ -437,19 +452,33 @@
 	"Tabs": {
 		"home": "首页",
 		"search": "搜索",
+		"review": "评论",
 		"notifications": "通知",
 		"profile": "个人资料",
 		"labels": {
 			"search": "搜索",
+			"review": "评论",
 			"notifications": "通知",
 			"profile": "个人资料",
-			"myDishes": "我的美食",
-			"review": "评论"
+			"myDishes": "我的美食"
 		},
-		"myDishes": "我的美食",
-		"review": "评论"
+		"myDishes": "我的美食"
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "评论",
+			"saved": "已保存",
+			"liked": "喜欢",
+			"wallet": "钱包"
+		},
+		"tabs": {
+			"deposits": "存款",
+			"earnings": "收益",
+			"saved-posts": "帖子",
+			"saved-topics": "菜品",
+			"wallet-deposit": "存款",
+			"wallet-earning": "收益"
+		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -479,10 +508,6 @@
 			"refunded": "已退款",
 			"paid": "已支付",
 			"pending": "待定"
-		},
-		"menu": {
-			"likedPosts": "点赞的帖子",
-			"savedDishCategories": "已保存的菜品类别"
 		},
 		"buttons": {
 			"editProfile": "编辑个人资料",
@@ -524,19 +549,9 @@
 			"bioLength": "简介不能超过150个字符"
 		},
 		"guestDisplayName": "访客",
-		"tabGroups": {
-			"reviews": "评论",
-			"saved": "已保存",
-			"liked": "喜欢",
-			"wallet": "钱包"
-		},
-		"tabs": {
-			"deposits": "存款",
-			"earnings": "收益",
-			"saved-posts": "帖子",
-			"saved-topics": "菜品",
-			"wallet-deposit": "存款",
-			"wallet-earning": "收益"
+		"menu": {
+			"likedPosts": "点赞的帖子",
+			"savedDishCategories": "已保存的菜品类别"
 		}
 	},
 	"NotFound": {
@@ -696,26 +711,6 @@
 			"title": "餐厅详情"
 		}
 	},
-	"SelectRestaurant": {
-		"title": "选择要点评的餐厅",
-		"searchThisArea": "搜索此区域",
-		"savedRestaurantList": "已保存的餐厅",
-		"postPhotoVideo": "发布照片/视频",
-		"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
-		"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。",
-		"nameSearch": {
-			"placeholder": "按店名搜索",
-			"searching": "搜索中…",
-			"noResults": "未找到匹配的店铺。请点击地图上的店铺进行添加。",
-			"error": "搜索失败，请重试。"
-		},
-		"accessibility": {
-			"clearNameSearch": "清除店名搜索"
-		},
-		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
-		"pickTitle": "选择店铺",
-		"pickOnMap": "在地图上查找店铺"
-	},
 	"Feedback": {
 		"title": "发送反馈/错误报告",
 		"labels": {
@@ -771,11 +766,14 @@
 		"continue_with_apple": "使用 Apple 继续"
 	},
 	"Settings": {
-		"hapticsEnabled": "触感反馈",
-		"deviceSettings": {
-			"navigationLabel": "设备设置",
-			"title": "设备设置",
-			"description": "这些设置仅保存在本设备上，不会同步到其他设备或账号。"
+		"title": "设置",
+		"theme": {
+			"sectionTitle": "外观",
+			"options": {
+				"system": "跟随系统设置",
+				"light": "浅色",
+				"dark": "深色"
+			}
 		},
 		"sendFeedback": "发送反馈",
 		"leaveReview": "留下评价",
@@ -802,14 +800,14 @@
 			"unblockConfirm": "取消屏蔽",
 			"unblocked": "已取消屏蔽"
 		},
-		"title": "设置",
-		"theme": {
-			"sectionTitle": "外观",
-			"options": {
-				"system": "跟随系统设置",
-				"light": "浅色",
-				"dark": "深色"
-			}
+		"myGroupVotes": {
+			"navigationLabel": "我的分组投票"
+		},
+		"hapticsEnabled": "触感反馈",
+		"deviceSettings": {
+			"navigationLabel": "设备设置",
+			"title": "设备设置",
+			"description": "这些设置仅保存在本设备上，不会同步到其他设备或账号。"
 		}
 	},
 	"Dialog": {
@@ -840,6 +838,55 @@
 		"openInGoogleMaps": "在 Google 地图中打开",
 		"shareWithFriends": "与朋友分享",
 		"cancel": "取消"
+	},
+	"Review": {
+		"title": "发布评论",
+		"hero": {
+			"title": "写推荐餐厅的点评\n并发布你吃过的菜品"
+		},
+		"guest": {
+			"description": "登录以撰写评论",
+			"loginButton": "登录"
+		},
+		"authenticated": {
+			"postButton": "✏️ 发布餐厅评论"
+		},
+		"selectRestaurant": {
+			"title": "选择要点评的餐厅",
+			"searchThisArea": "搜索此区域",
+			"savedRestaurantList": "已保存的餐厅",
+			"postPhotoVideo": "发布照片/视频",
+			"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
+			"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。"
+		},
+		"emptyState": {
+			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
+		},
+		"everybodyPostsTitle": "选择要评论的菜品",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "餐厅详情"
+		}
+	},
+	"SelectRestaurant": {
+		"title": "选择要点评的餐厅",
+		"searchThisArea": "搜索此区域",
+		"savedRestaurantList": "已保存的餐厅",
+		"postPhotoVideo": "发布照片/视频",
+		"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
+		"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。",
+		"nameSearch": {
+			"placeholder": "按店名搜索",
+			"searching": "搜索中…",
+			"noResults": "未找到匹配的店铺。请点击地图上的店铺进行添加。",
+			"error": "搜索失败，请重试。"
+		},
+		"accessibility": {
+			"clearNameSearch": "清除店名搜索"
+		},
+		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
+		"pickTitle": "选择店铺",
+		"pickOnMap": "在地图上查找店铺"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1045,35 +1092,6 @@
 			"change": "更改",
 			"hint": "请先选择餐厅，然后选择菜品，再填写照片（可选）、简短评价、价格和推荐度。",
 			"done": "已记录为吃过"
-		}
-	},
-	"Review": {
-		"title": "发布评论",
-		"hero": {
-			"title": "写推荐餐厅的点评\n并发布你吃过的菜品"
-		},
-		"guest": {
-			"description": "登录以撰写评论",
-			"loginButton": "登录"
-		},
-		"authenticated": {
-			"postButton": "✏️ 发布餐厅评论"
-		},
-		"selectRestaurant": {
-			"title": "选择要点评的餐厅",
-			"searchThisArea": "搜索此区域",
-			"savedRestaurantList": "已保存的餐厅",
-			"postPhotoVideo": "发布照片/视频",
-			"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
-			"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。"
-		},
-		"emptyState": {
-			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
-		},
-		"everybodyPostsTitle": "选择要评论的菜品",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "餐厅详情"
 		}
 	},
 	"Tutorial": {

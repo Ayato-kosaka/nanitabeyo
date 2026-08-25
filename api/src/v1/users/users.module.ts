@@ -14,6 +14,7 @@ import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
 import { UsersAssembler } from './users.assembler';
 import { DishCategoriesModule } from '../dish-categories/dish-categories.module';
 import { RestaurantsModule } from '../restaurants/restaurants.module';
+import { DishCategoryGroupVotesModule } from '../dish-category-group-votes/dish-category-group-votes.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     CloudTasksModule,
     DishCategoriesModule,
     RestaurantsModule,
+    DishCategoryGroupVotesModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, UsersRepository, UsersMapper, UsersAssembler],
