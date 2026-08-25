@@ -189,12 +189,19 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 
 	// ─ テストケース: ダークでもコントラストの重大な違反が出ない ─
 	// 手順:
-	//   1. ダークにした設定画面を axe で監査する
-	//   2. critical / serious の違反が無いことを検証
+	//   1. 端末設定でダークに切り替える
+	//   2. **設定が載っている 3 画面すべて**を axe で監査する
+	//   3. critical / serious の違反が無いことを検証
 	//
 	// axe の color-contrast 規則は「暗い面に暗い文字」「明るい面に明るい文字」を機械検出する。
 	// ダーク対応で最も起きやすい事故（面だけ暗くして文字を黒のまま残す）はここで捕まる。
 	// tests/search/search-accessibility.spec.ts と同じ判定基準に揃えてある。
+	//
+	// ⚠️ #1583 で **監査対象を 1 画面から 3 画面へ広げた。**
+	// テーマの切替 UI が «端末設定» へ移ったので、素直に書き換えると監査対象も
+	// 端末設定（コントロール 2 つだけの小さな画面）だけになり、それまで見ていた
+	// マイページ（行が 10 以上ある）が監査から外れる。**移設で監査が痩せる**ので、
+	// 切替と監査を分け、規約 4 行を持つ «なに食べよについて» も足してある。
 	test("ダークでも axe の重大な違反(critical/serious)が無い", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
@@ -202,14 +209,29 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 		await settingsPage.selectTheme("dark");
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", DARK.surface);
 
-		const results = await new AxeBuilder({ page: appPage }).include("body").analyze();
-		const seriousOrCritical = results.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
+		/** 今表示されている画面を axe に掛け、critical / serious が無いことを見る */
+		const auditCurrentScreen = async (label: string) => {
+			const results = await new AxeBuilder({ page: appPage }).include("body").analyze();
+			const seriousOrCritical = results.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
 
-		expect(
-			seriousOrCritical,
-			seriousOrCritical
-				.map((v) => `${v.id}(${v.impact}): ${v.description}\n  ${v.nodes.map((n) => n.target).join(", ")}`)
-				.join("\n"),
-		).toEqual([]);
+			expect(
+				seriousOrCritical,
+				`${label}:\n` +
+					seriousOrCritical
+						.map((v) => `${v.id}(${v.impact}): ${v.description}\n  ${v.nodes.map((n) => n.target).join(", ")}`)
+						.join("\n"),
+			).toEqual([]);
+		};
+
+		await auditCurrentScreen("端末設定");
+
+		// マイページ（#1583 以前はここが唯一の監査対象だった）
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+		await auditCurrentScreen("マイページ");
+
+		// なに食べよについて（#1583 で新設。規約 4 行 + バージョン）
+		await settingsPage.openAbout();
+		await auditCurrentScreen("なに食べよについて");
 	});
 });
