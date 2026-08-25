@@ -71,12 +71,19 @@ const entry = {
 	],
 };
 
-const mock = (url, request) => {
+const mock = (url) => {
+	/*
+	⚠️ posts 画面（`?ids=`）が期待する封筒は **`{ items, notFound }`** である
+	（app/[locale]/(tabs)/posts.tsx が `res.items` を読む）。
+	`{ data, nextCursor }` を返すとフィードが 1 件も描画されず、
+	`dish-action-more` が現れないまま撮影が落ちる（run 32823007640 で実測）。
+	*/
+	if (url.includes("/v1/dish-media") && url.includes("ids="))
+		return { body: ok({ items: [entry], notFound: [] }) };
 	// DELETE は成功させる（押し切った先の «削除しました» まで撮るため）
 	if (url.includes(`/v1/dish-media/${MEDIA_ID}`)) {
 		return { body: ok({ deletedDishMediaId: MEDIA_ID, deletedDishReviewIds: ["review-1"] }) };
 	}
-	if (url.includes("/v1/dish-media")) return { body: ok({ data: [entry], nextCursor: null }) };
 	return null;
 };
 
