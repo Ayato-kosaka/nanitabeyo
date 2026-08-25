@@ -126,8 +126,23 @@ export class SettingsScreen {
 	 * #1402 以前は ScreenHeader のタイトル「設定」（`by.text`）を見ていたが、その画面ごと無くなった。
 	 * 代わりに «必ず出る行» の testID を見る。**この Screen Object からロケール依存の
 	 * セレクタが 1 つ減った**（Android の端末ロケールに引きずられて落ちる経路が 1 本消えた。#1031 B4）。
+	 *
+	 * ## なぜ «見えるまでスクロール» するのか（#1583）
+	 * `settings-feedback` はマイページの 3 枚目のカードにあり、**匿名だと上に大きな
+	 * «ようこそ、ゲストさん» カードが入るぶん初期表示で画面外へ落ちる**
+	 * （run 32849947323 の testFnFailure.png で実測。いいね／保存のカードまでで画面が終わっていた）。
+	 * Detox の `toBeVisible()` は «面積の 75% 以上が可視» を要求するので、
+	 * スクロールせずに待つと 25 秒待って必ず落ちる。
+	 *
+	 * `openDeviceSettings()` / `scrollToLogout()` が既に同じ理由で
+	 * `whileElement(...).scroll()` を使っている。画面の入口であるこのメソッドだけが
+	 * «初期表示で見えている» を前提にしていたので、同じ作法へ揃えた。
+	 * 既に見えていればスクロールは 1 度も走らない。
 	 */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		// scroll() は withTimeout を持たないため、待ち時間は waitUntilVisible 側で見る。
+		// スクロールで «見えるところまで» 運んでから、通常の可視待ちで確定させる。
+		await waitFor(element(this.feedbackItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
 		await waitUntilVisible(this.feedbackItem, timeout);
 	}
 
