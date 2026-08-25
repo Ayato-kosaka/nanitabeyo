@@ -800,14 +800,20 @@
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
 		},
-		"myGroupVotes": {
-			"navigationLabel": "Mis votaciones de grupo"
+		"language": {
+			"navigationLabel": "Idioma",
+			"pageTitle": "Idioma",
+			"systemDefault": "Seguir la configuración del dispositivo",
+			"switching": "Cambiando de idioma…"
 		},
 		"hapticsEnabled": "Retroalimentación háptica",
 		"deviceSettings": {
 			"navigationLabel": "Ajustes del dispositivo",
 			"title": "Ajustes del dispositivo",
 			"description": "Estos ajustes se guardan solo en este dispositivo. No se transfieren a otros dispositivos ni cuentas."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "Mis votaciones de grupo"
 		}
 	},
 	"Dialog": {

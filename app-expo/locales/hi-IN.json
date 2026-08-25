@@ -800,14 +800,20 @@
 			"unblockConfirm": "अनब्लॉक करें",
 			"unblocked": "अनब्लॉक किया गया"
 		},
-		"myGroupVotes": {
-			"navigationLabel": "मेरे समूह वोट"
+		"language": {
+			"navigationLabel": "भाषा",
+			"pageTitle": "भाषा",
+			"systemDefault": "डिवाइस की सेटिंग के अनुसार",
+			"switching": "भाषा बदली जा रही है…"
 		},
 		"hapticsEnabled": "हैप्टिक फ़ीडबैक",
 		"deviceSettings": {
 			"navigationLabel": "डिवाइस सेटिंग्स",
 			"title": "डिवाइस सेटिंग्स",
 			"description": "ये सेटिंग्स केवल इसी डिवाइस पर सहेजी जाती हैं। ये अन्य डिवाइस या खातों पर लागू नहीं होतीं।"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "मेरे समूह वोट"
 		}
 	},
 	"Dialog": {

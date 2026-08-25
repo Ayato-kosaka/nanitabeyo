@@ -800,14 +800,20 @@
 			"unblockConfirm": "إلغاء الحظر",
 			"unblocked": "تم إلغاء الحظر"
 		},
-		"myGroupVotes": {
-			"navigationLabel": "تصويتاتي الجماعية"
+		"language": {
+			"navigationLabel": "اللغة",
+			"pageTitle": "اللغة",
+			"systemDefault": "اتباع إعدادات الجهاز",
+			"switching": "جارٍ تغيير اللغة…"
 		},
 		"hapticsEnabled": "التغذية الراجعة اللمسية",
 		"deviceSettings": {
 			"navigationLabel": "إعدادات الجهاز",
 			"title": "إعدادات الجهاز",
 			"description": "يتم حفظ هذه الإعدادات على هذا الجهاز فقط، ولا تنتقل إلى أجهزة أو حسابات أخرى."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "تصويتاتي الجماعية"
 		}
 	},
 	"Dialog": {

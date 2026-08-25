@@ -43,6 +43,8 @@ export class SettingsScreen {
 	 * #1132 で文言は「料理トピック」→「料理カテゴリ」へ変わったが、testID は据え置かれている。
 	 */
 	readonly blockedTopicsItem = by.id("settings-blocked-topics");
+	/** 表示言語行（#1508。Card 2 の最終行として追加された） */
+	readonly languageItem = by.id("settings-language");
 	/**
 	 * 自分が作成/参加したグループ投票の一覧行（#1505 で追加）。
 	 * 対応画面: screens/MyDishCategoryGroupVotesScreen.ts
@@ -180,6 +182,18 @@ export class SettingsScreen {
 	 */
 	async openBlockedTopics(): Promise<void> {
 		await tapWhenVisible(this.blockedTopicsItem);
+	}
+
+	/**
+	 * 表示言語の選択画面へ遷移する（#1508）。
+	 *
+	 * ⚠️ この行は Card 2 の最終行で、エミュレータの画面高では初期表示から少し外れることがある。
+	 * `scrollToLogout()` と同じ理由（Detox の `toBeVisible()` は面積の 75% 以上の可視を要求する）で、
+	 * 見えるところまでスクロールしてから押す。既に見えていれば 1 度も動かさずに返る。
+	 */
+	async openLanguage(): Promise<void> {
+		await waitFor(element(this.languageItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
+		await tapWhenVisible(this.languageItem);
 	}
 
 	/**

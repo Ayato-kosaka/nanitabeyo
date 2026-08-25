@@ -29,6 +29,8 @@ export class SettingsPage {
 	readonly copyrightItem: Locator;
 	/** ブロック済みの料理トピック行 */
 	readonly blockedTopicsItem: Locator;
+	/** 表示言語行（#1508。Card 2 の最終行） */
+	readonly languageItem: Locator;
 	/**
 	 * #1504 端末設定行（規約カードの直上）。
 	 * トグル本体はこの行から push される端末設定画面にあり、`pages/DeviceSettingsPage.ts` が持つ。
@@ -78,6 +80,7 @@ export class SettingsPage {
 		this.privacyItem = page.getByTestId("settings-privacy");
 		this.copyrightItem = page.getByTestId("settings-copyright");
 		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
+		this.languageItem = page.getByTestId("settings-language");
 		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
 		this.versionText = page.getByTestId("settings-version-section");
 		this.logoutItem = page.getByTestId("settings-logout");

@@ -309,6 +309,20 @@ export default function ProfileScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
+	// #1508 【設計】表示言語の選択画面への遷移
+	const handleNavigateToLanguage = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "settings_language_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/language",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, router, locale]);
+
 	// #1505 【設計】自分が主催したグループ投票の一覧画面への遷移
 	const handleNavigateToMyGroupVotes = useCallback(() => {
 		lightImpact();
@@ -586,6 +600,13 @@ export default function ProfileScreen() {
 							label={i18n.t("Settings.blockedTopics.navigationLabel")}
 							onPress={handleNavigateToBlockedTopics}
 							testID="settings-blocked-topics"
+							accessibilityRole="link"
+						/>
+						{/* #1508 【設計】表示言語の選択画面へ遷移 */}
+						<ProfileMenuItem
+							label={i18n.t("Settings.language.navigationLabel")}
+							onPress={handleNavigateToLanguage}
+							testID="settings-language"
 							accessibilityRole="link"
 						/>
 						{/* #1505 【設計】自分が主催したグループ投票の一覧画面へ遷移 */}
