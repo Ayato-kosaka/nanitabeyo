@@ -491,15 +491,15 @@ export default function SnsImportScreen() {
 		**ヘッダの無いこの画面だけは自分で入れる必要がある。**
 		*/
 		<SafeAreaView edges={["top", "bottom"]} style={styles.container} testID="sns-import-screen">
-			{/* #1375（9 巡目・オーナー指摘）**戻るボタンを置く。下へ引いて閉じるは廃止した。**
+			{/* #1375 実機確認: ＋ の基本導線は SNS 取り込み。上部タブで「食べた」の追加へ切り替える。
+			    背景は敷かず、選択中だけ濃い黒＋下線で示す */}
+			{/* #1375（9 巡目・オーナー指示）**戻るボタンはタブと同じ行の左に置く。**
 
-			    それまでは «つまみを下へ引く» が唯一の戻る導線で、つまみ自体を押せるようにして
-			    代替としていた。実機で «戻れない» と指摘されたので、**見て分かる ← を置く**。
-			    引いて閉じるジェスチャ（PanResponder）は、あると «画面のスクロールのつもりが
-			    閉じてしまう» 事故の側だけが残るので一緒に外した。
-
-			    タイトル帯は置かない（下のタブが見出しの役割を持つので、二重になる）。 */}
-			<View style={styles.headerRow}>
+			    8 巡目までは «下へ引いて閉じる» だけで、9 巡目でその上へ ← の帯を 1 段足した。
+			    オーナー指示は「SNS から / 食べたを記録 の**左**に置いて、縦を分けないでほしい」。
+			    帯を 1 段減らすぶん、貼り付け欄が上へ来る。
+			    引いて閉じるジェスチャ（PanResponder）は 9 巡目で廃止済み。 */}
+			<View style={styles.tabRow}>
 				<TouchableOpacity
 					testID="sns-import-screen-back"
 					onPress={handleBack}
@@ -509,11 +509,6 @@ export default function SnsImportScreen() {
 					hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
 					<ChevronLeft size={24} color={colors.textPrimary} />
 				</TouchableOpacity>
-			</View>
-
-			{/* #1375 実機確認: ＋ の基本導線は SNS 取り込み。上部タブで「食べた」の追加へ切り替える。
-			    背景は敷かず、選択中だけ濃い黒＋下線で示す */}
-			<View style={styles.tabRow}>
 				{TABS.map((t) => (
 					<TouchableOpacity
 						key={t}
@@ -902,20 +897,18 @@ const createStyles = (c: Palette) =>
 		flex: 1,
 		backgroundColor: c.surface,
 	},
-	headerRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingTop: 4,
-		paddingBottom: 4,
-		paddingHorizontal: 4,
-	},
+	// #1375（9 巡目）戻るボタンはタブ行の中。タブの文字とベースラインが揃うよう縦は詰める
 	backButton: {
-		padding: 8,
+		paddingVertical: 4,
+		paddingRight: 4,
 	},
 	tabRow: {
 		flexDirection: "row",
+		// #1375（9 巡目）戻るボタンを同じ行へ入れたので、下端（タブの下線）で揃える
+		alignItems: "flex-end",
 		gap: 20,
-		paddingHorizontal: 16,
+		paddingHorizontal: 12,
+		paddingTop: 8,
 		paddingBottom: 4,
 	},
 	// #1375 実機確認（2 巡目）: 「上部のボタンの位置がズレている」の中身。

@@ -711,11 +711,11 @@ const createStyles = (c: Palette) =>
 			alignItems: "center",
 			gap: 12,
 			paddingHorizontal: 16,
-			// #1375（9 巡目・オーナー指摘）**フッターの下の余白を詰める。**
-			// 下側は SafeAreaView(edges=["bottom"]) が端末のインセットを別途入れるため、
-			// 上下を同じだけ取ると «ボタンの下だけ間延びして見える»。上 12 / 下 6 にする
+			// #1375（9 巡目・オーナー指示）**フッターの下の余白は 0。**
+			// 下側は SafeAreaView(edges=["bottom"]) が端末のインセットを別途入れるので、
+			// ここで足すぶんはそのまま «ボタンの下だけ間延びして見える» ことになる
 			paddingTop: 12,
-			paddingBottom: 6,
+			paddingBottom: 0,
 			borderTopWidth: 1,
 			// #1375（5 巡目・デザインレビュー #18）`#EEE` は正本のパレットに無い。罫線は #E5E7EB へ統一
 			borderTopColor: c.borderMuted,

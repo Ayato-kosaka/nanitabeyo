@@ -26,7 +26,7 @@ import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
-import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
+import { MY_DISH_STATUS_ORANGE } from "@/features/myDishes/statusColors";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { ReportContentSheet } from "./ReportContentSheet";
 import { OwnPostActions } from "./OwnPostActions";
@@ -441,7 +441,19 @@ function ActionButtonsContent({
 							{ name: restaurant.name },
 						)}
 						aria-selected={isSaved}>
-						<Bookmark size={28} color={FixedColors.onMedia} fill={isSaved ? FixedColors.onMedia : "transparent"} />
+						{/*
+						#1375（9 巡目・オーナー指示）**押してある «食べたい» はオレンジで塗る。**
+
+						それまでは «白の塗り» で状態を示していたが、写真の上では
+						«白の輪郭（未保存）» と «白の塗り（保存済み）» の差が読めなかった。
+						一覧のバッジで承認された同じオレンジ（`MY_DISH_STATUS_ORANGE`）へ揃える。
+						⚠️ 下のラベルは白のまま（オーナー指示）。**アイコンだけを色で示す。**
+						*/}
+						<Bookmark
+							size={28}
+							color={isSaved ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia}
+							fill={isSaved ? MY_DISH_STATUS_ORANGE : "transparent"}
+						/>
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("MyDishes.filters.status.want")}</Text>
 				</View>
@@ -464,11 +476,11 @@ function ActionButtonsContent({
 							)}
 							// 読み上げでも «記録済み» が分かるようにする（色だけに頼らない）
 							aria-selected={!!isEaten}>
-							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_COLORS.eaten.fill : FixedColors.onMedia} />
+							{/* #1375（9 巡目・オーナー指示）記録済みは «食べたい» と同じオレンジ。
+							    ⚠️ ラベルは白のまま（**色を付けるのはアイコンだけ**） */}
+							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia} />
 						</TouchableOpacity>
-						<Text style={[styles.actionText, isEaten && styles.actionTextEaten]}>
-							{i18n.t("Map.actions.writeReviewForThisDish")}
-						</Text>
+						<Text style={styles.actionText}>{i18n.t("Map.actions.writeReviewForThisDish")}</Text>
 					</View>
 				)}
 
@@ -571,8 +583,4 @@ const styles = StyleSheet.create({
 	},
 	// #1375（5 巡目）記録済み。色の正は my-dishes と同じ（`features/myDishes/statusColors.ts`）ので、
 	// 一覧・カレンダー・地図で «食べた» を表している赤とここが必ず一致する
-	actionTextEaten: {
-		color: MY_DISH_STATUS_COLORS.eaten.fill,
-		fontWeight: "700",
-	},
 });
