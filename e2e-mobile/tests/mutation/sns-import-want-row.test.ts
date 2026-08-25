@@ -14,7 +14,7 @@ import {
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { TabBar } from "../../screens/TabBar";
 import { createDisposableAuthenticatedSession, revokeDisposableSession } from "../../utils/disposableSession";
-import { IMPORT_REEL_URL, fetchMyWantDishes, resolveImport } from "../../utils/snsImport";
+import { IMPORT_REEL_URL, fetchMyWantDishes, resolveImport, titleOfWantRow } from "../../utils/snsImport";
 
 /**
  * 📥 SNS 取り込み → 「食べたい」→ 一覧に出る、までの通し確認 @mutation（#1375 / 9〜10 巡目）
@@ -51,6 +51,7 @@ describeMutation("SNS 取り込み → 食べたい → 一覧に出る @mutatio
 	let session: E2ESession | null = null;
 	let restaurantId: string;
 	let dishCategoryId: string;
+	let beforeKeys: Set<string>;
 
 	beforeAll(async () => {
 		session = await createDisposableAuthenticatedSession();
@@ -60,11 +61,36 @@ describeMutation("SNS 取り込み → 食べたい → 一覧に出る @mutatio
 		// （UI 側の候補の並びに依存しないため。DB へは 1 行も書かない）
 		const resolved = await resolveImport(session.accessToken);
 		const pickedRestaurant = resolved.prefill.restaurantId ?? resolved.candidates.restaurants[0]?.restaurantId;
-		const pickedCategory = resolved.prefill.dishCategoryId ?? resolved.candidates.dishCategories[0]?.dishCategoryId;
 		assert.ok(pickedRestaurant, "resolve が店舗候補を 1 つも返しませんでした（この spec の前提が崩れています）。");
-		assert.ok(pickedCategory, "resolve が料理カテゴリ候補を 1 つも返しませんでした（この spec の前提が崩れています）。");
 		restaurantId = pickedRestaurant;
-		dishCategoryId = pickedCategory;
+
+		/*
+		⚠️ **「使い捨てユーザーだから一覧は空」は誤りだった**（run 32880759041）。
+		`createDisposableAuthenticatedSession` が発行するのは «新しいセッション» であって
+		«新しいユーザー» ではない。実際にはその時点で 17 件入っていた。
+
+		そこで «件数» では判定しない。取り込みの自然キーは
+		（投稿 × 料理）＝（restaurant, category）なので、**まだ取り込んでいない料理カテゴリ**を
+		選べば、その 1 行だけが確実に新しく増える。増えた行の料理名を掴んでおき、
+		«その名前がアプリの一覧に出るか» を見る。
+		*/
+		const before = await fetchMyWantDishes(session.accessToken);
+		beforeKeys = new Set(before.data.map((row) => row.key));
+		const used = new Set(
+			before.data.filter((row) => row.restaurant.id === restaurantId).map((row) => row.dish.category_id),
+		);
+		const candidates = [
+			resolved.prefill.dishCategoryId,
+			...resolved.candidates.dishCategories.map((c) => c.dishCategoryId),
+		].filter((id): id is string => Boolean(id));
+		assert.ok(candidates.length > 0, "resolve が料理カテゴリ候補を 1 つも返しませんでした。");
+		const unused = candidates.find((id) => !used.has(id));
+		assert.ok(
+			unused,
+			`この店舗（${restaurantId}）へは候補の料理カテゴリを全て取り込み済みで、` +
+				" «新しく 1 行増える» 状況を作れませんでした。別の投稿 URL か別の店舗が要ります。",
+		);
+		dishCategoryId = unused;
 	});
 
 	afterAll(async () => {
@@ -78,8 +104,8 @@ describeMutation("SNS 取り込み → 食べたい → 一覧に出る @mutatio
 		await tabBar.gotoMyDishes();
 		await myDishes.selectView("list");
 		await waitUntilVisible(by.id("my-dishes-list"), 120_000);
-		const hadItemsBefore = await existsNow(by.id("my-dishes-list-item"));
-		assert.equal(hadItemsBefore, false, "使い捨てユーザーの一覧が空ではありません（前提が崩れています）。");
+		// ⚠️ ここで «空であること» を前提にしない（上の beforeAll のコメント参照）。
+		//    見たいのは «この後で増える 1 行が、起動し直さずに出るか» だけである。
 
 		// 2. ＋ → 取り込み画面。URL を貼って読み取る
 		await tapWhenVisible(myDishes.recordButton);
@@ -104,21 +130,38 @@ describeMutation("SNS 取り込み → 食べたい → 一覧に出る @mutatio
 		await scrollUntilVisible(by.id("sns-import-save-button"));
 		await tapWhenVisible(by.id("sns-import-save-button"), 60_000);
 
-		// 5. 起動し直さずに一覧へ戻ってくる。ここに出ていなければ «取り込んだのに出ない»
+		// 5. 起動し直さずに一覧へ戻ってくる
 		await waitUntilVisible(by.id("my-dishes-list"), 60_000);
-		await waitUntilVisible(by.id("my-dishes-list-item").withAncestor(by.id("my-dishes-list")), 60_000);
+
+		/*
+		6. **増えた 1 行が、起動し直さずに一覧へ出ているか。**
+
+		サーバー側で «増えた行» を特定し、その料理名がアプリの一覧に描かれていることを見る。
+		件数では判定しない（この spec のユーザーは既に多数の記録を持っている）。
+		*/
+		const after = await fetchMyWantDishes(session!.accessToken);
+		const added = after.data.filter((row) => !beforeKeys.has(row.key));
+		assert.equal(
+			added.length,
+			1,
+			`取り込みで «食べたい» が 1 行だけ増えるはずが ${added.length} 行でした。` +
+				` （保存自体が失敗している可能性があります）`,
+		);
+		const title = titleOfWantRow(added[0]);
+		assert.ok(title, `増えた行に料理名がありません。row=${JSON.stringify(added[0])}`);
+
+		// **ここが本題。** アプリを起動し直していないので、キャッシュを捨てていなければ出ない
+		await waitUntilVisible(by.text(title), 30_000);
 
 		// 写真が引けていること（無地のプレースホルダーは «メディアが出ない» そのもの）
 		const hasPlaceholder = await existsNow(by.id("my-dishes-list-item-placeholder"));
 		assert.equal(hasPlaceholder, false, "一覧に無地のプレースホルダーが出ています（= 写真が 1 つも引けていない）。");
-		// 取り込み由来であることの印（#1375 9 巡目で足したロゴ）
-		await waitUntilVisible(by.id("my-dishes-list-item-provider-badge"), 30_000);
 	});
 
-	it("サーバーが返す一覧にも、その行がメディアと料理名の材料つきで載っている", async () => {
+	it("増えた行には、メディアと料理名の材料が揃っている", async () => {
 		const { data } = await fetchMyWantDishes(session!.accessToken);
-		assert.equal(data.length, 1, `«食べたい» が 1 件のはずが ${data.length} 件でした。`);
-		const row = data[0];
+		const row = data.find((item) => !beforeKeys.has(item.key));
+		assert.ok(row, "増えた行が見つかりませんでした（1 つ目のテストが失敗しているはずです）。");
 		assert.ok(row.dishMedia !== null, `dishMedia が null です。row=${JSON.stringify(row)}`);
 		const hasName =
 			(row.dish.categoryLabels && Object.keys(row.dish.categoryLabels).length > 0) ||
