@@ -56,7 +56,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { Instagram, MapPin, MapPinned, Music2, Search, X, Youtube } from "lucide-react-native";
+import { Instagram, Link2, MapPin, MapPinned, Music2, Search, X, Youtube } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -344,6 +344,18 @@ export default function SnsImportScreen() {
 					requestPayload: area ? { url, lat: area.lat, lng: area.lng, radius: RESOLVE_RADIUS_M } : { url },
 				},
 			);
+			/*
+			#1375（全画面のクラッシュ棚卸し）**形を確かめてから state へ入れる。**
+
+			以前はここで無条件に `setResolved(response)` していた。直後の
+			`response.prefill.…` が throw して catch に入っても **state はもう汚れており**、
+			次のレンダーで `resolved.source` / `resolved.metadata` / `resolved.candidates` を
+			無条件に掘って TypeError → アプリ全体の ErrorBoundary へ抜ける。
+			`try/catch` は原理的に防げない（throw するのは次のレンダー。#1561 と同型）。
+			*/
+			if (!response?.source || !response.metadata || !response.candidates || !response.prefill) {
+				throw new Error("resolve response is malformed");
+			}
 			setResolved(response);
 			// 読み取り直しでキャプションは畳み直す（前の投稿の展開状態を引き継がない）
 			setIsCaptionExpanded(false);
@@ -686,12 +698,21 @@ export default function SnsImportScreen() {
 											{!!resolved.source.provider &&
 												(() => {
 													// #1375 4 巡目: 名前だけだと素っ気ないのでロゴを左に添える
-													const ProviderIcon = PROVIDER_ICONS[resolved.source.provider];
+													/*
+													#1375（全画面のクラッシュ棚卸し）**`?? Link2` を外さないこと。**
+
+													`PROVIDER_ICONS` は instagram / tiktok / youtube の 3 つしか持たない。
+													サーバが 4 つ目（X / Threads 等）を返した瞬間ここが `undefined` になり、
+													`<undefined />` を描いて React が
+													「Element type is invalid」で throw する。render 中なので
+													**アプリ全体が «予期しないエラー»** になる。
+													*/
+													const ProviderIcon = PROVIDER_ICONS[resolved.source.provider] ?? Link2;
 													return (
 														<View style={styles.providerRow}>
 															<ProviderIcon size={16} color={colors.brand} />
 															<Text style={styles.provider} testID="sns-import-provider">
-																{PROVIDER_LABELS[resolved.source.provider]}
+																{PROVIDER_LABELS[resolved.source.provider] ?? resolved.source.provider}
 															</Text>
 														</View>
 													);

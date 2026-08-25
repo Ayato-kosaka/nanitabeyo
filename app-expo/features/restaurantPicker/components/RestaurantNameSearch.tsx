@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { asApiList } from "@/lib/apiList";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Image } from "expo-image";
 // #1375（6 巡目・オーナー指示）右のボタンは «地図から探す» なので、
@@ -117,8 +118,10 @@ export function RestaurantNameSearch({
 				});
 
 				if (latestRequestIdRef.current !== requestId) return;
-				setResults(response);
-				setStatus(response.length > 0 ? "success" : "empty");
+				// #1375 API を信じない。**state へ入れる前に**配列へ落とす（#1561 と同型）
+				const rows = asApiList(response);
+				setResults(rows);
+				setStatus(rows.length > 0 ? "success" : "empty");
 			} catch (error) {
 				if (latestRequestIdRef.current !== requestId) return;
 				setResults([]);

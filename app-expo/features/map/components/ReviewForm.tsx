@@ -831,7 +831,10 @@ export function ReviewForm({
 					isLiked: false,
 					likeCount: 0,
 					mediaUrl: mediaState.media.uri,
-					thumbnailImageUrl: mediaState.media.type === "video" ? mediaState.media.thumbnailUri! : mediaState.media.uri,
+					thumbnailImageUrl: mediaState.media.type === "video"
+						? // #1375 サムネイル生成に失敗すると `!` で undefined がストアへ入り、投稿直後だけ真っ黒なセルになる
+							(mediaState.media.thumbnailUri ?? mediaState.media.uri)
+						: mediaState.media.uri,
 					// #511 ローカルの uri をセットして読み込むため、処理済み状態にする
 					media_processing_status: "completed",
 					thumbnail_processing_status: "completed",
