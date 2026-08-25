@@ -33,7 +33,7 @@
    （app/[locale]/_layout.tsx）ため、開いた BlurModal がある状態で push すると
    遷移先が portal の下に潜って触れなくなる（#1359 で地図が踏んだ）。
 */
-import React, { useCallback } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
 	View,
 	Text,
@@ -59,6 +59,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Env } from "@/constants/Env";
+import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -67,6 +68,7 @@ import i18n from "@/lib/i18n";
 import { isGuestUser } from "@/lib/authGuest";
 import type { LegalDocumentType } from "@/lib/legalRoute";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import type { DeleteMeResponse } from "@shared/api/v1/res";
 
 
 export default function ProfileScreen() {
@@ -83,6 +85,15 @@ export default function ProfileScreen() {
 	const { locale } = useLocale();
 	const { showDialog, confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
+	const { callBackend } = useAPICall();
+	/**
+	 * #1511 アカウント削除の実行中フラグ。
+	 * `ref` と `state` を両方持つのは、**押下の抑止**（同期的に読める ref）と
+	 * **行の表示**（再描画が要る state）で要求が違うため。state だけだと
+	 * 連打の 2 回目が再描画前に通る（DialogProvider の `confirming` と同じ考え方）。
+	 */
+	const isDeletingAccountRef = useRef(false);
+	const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
 	// #467 【設計】プロフィールをグローバルストアから取得し、自動ロードを実行
 	useEnsureOwnProfileLoaded();
@@ -284,6 +295,111 @@ export default function ProfileScreen() {
 		}
 	}, [logout, mediumImpact, logFrontendEvent, confirm]);
 
+	/**
+	 * #1511 ACC-01 アカウント削除。
+	 *
+	 * ## この行が «消えていた» 経緯（#1583 で復旧）
+	 * #1533 はこの導線を旧設定画面 `profile/settings.tsx` に足した。その後 #1375 の
+	 * 最終同期（e4ee0369）が旧設定画面ごとファイルを消したため、**main では
+	 * `settings-delete-account` が app-expo のどこにも存在しない**状態になっていた。
+	 * i18n・API・E2E・撮影シナリオは揃っているのにボタンだけ無い、という
+	 * «作った側だけあって使う側が無い»（#1375 と同じ形）。ここへ移設して塞ぐ。
+	 *
+	 * ## 二段確認にしている理由
+	 * この操作は **取り消せない**。アプリ DB 側は匿名化（論理削除）だが、Supabase Auth の
+	 * アカウントは物理削除するので、同じ資格情報での再ログイン経路が残らない。
+	 * 猶予期間も置いていない（#1511 のリーダー判断）ので、誤操作を戻す手段が UI にしかない。
+	 * そこで「何が起きるかの説明」と「取り消せないことへの明示的な同意」を分けて 2 枚出す。
+	 *
+	 * ## ログアウトを try/catch で包む理由
+	 * 削除が成功した時点で **Auth 側のアカウントは既に存在しない**。その状態で
+	 * `signOut()` を呼ぶとサーバ往復（`POST /auth/v1/logout`）が 401/403 になり得る。
+	 * ここで throw させると「削除は成功したのにエラー表示のままログイン状態で留まる」
+	 * という最悪の見え方になるため、失敗してもローカルの後始末として扱って先へ進む
+	 *（画面遷移は AuthProvider の SIGNED_OUT ハンドラが担う）。
+	 */
+	const handleDeleteAccount = useCallback(async () => {
+		mediumImpact();
+		logFrontendEvent({
+			event_name: "settings_delete_account_pressed",
+			error_level: "log",
+			payload: {},
+		});
+
+		// 1 枚目: 何が起きるかの説明
+		const acknowledged = await confirm({
+			title: i18n.t("Settings.deleteAccountConfirmTitle"),
+			message: i18n.t("Settings.deleteAccountConfirmMessage"),
+			confirmLabel: i18n.t("Settings.deleteAccountConfirmButton"),
+			cancelLabel: i18n.t("Common.cancel"),
+		});
+		if (!acknowledged) {
+			logFrontendEvent({
+				event_name: "settings_delete_account_cancelled",
+				error_level: "log",
+				payload: { step: "explain" },
+			});
+			return;
+		}
+
+		// 2 枚目: 取り消せないことへの明示的な同意
+		const confirmed = await confirm({
+			title: i18n.t("Settings.deleteAccountFinalTitle"),
+			message: i18n.t("Settings.deleteAccountFinalMessage"),
+			confirmLabel: i18n.t("Settings.deleteAccountFinalButton"),
+			cancelLabel: i18n.t("Common.cancel"),
+		});
+		if (!confirmed) {
+			logFrontendEvent({
+				event_name: "settings_delete_account_cancelled",
+				error_level: "log",
+				payload: { step: "final" },
+			});
+			return;
+		}
+
+		// 二度押しで DELETE が 2 回飛ぶのを防ぐ（2 回目は 404 になるだけだが、
+		// ユーザーにはエラーとして見えてしまう）
+		if (isDeletingAccountRef.current) return;
+		isDeletingAccountRef.current = true;
+		setIsDeletingAccount(true);
+
+		try {
+			await callBackend<Record<string, never>, DeleteMeResponse>("/v1/users/me", {
+				method: "DELETE",
+				requestPayload: {},
+			});
+
+			logFrontendEvent({
+				event_name: "settings_delete_account_success",
+				error_level: "log",
+				payload: {},
+			});
+			showSnackbar(i18n.t("Settings.deleteAccountSuccess"));
+
+			try {
+				await logout({ scope: "local" });
+			} catch (error) {
+				// 削除済みアカウントの signOut は失敗しうる。削除自体は成功しているので握る
+				logFrontendEvent({
+					event_name: "settings_delete_account_logout_error",
+					error_level: "warn",
+					payload: { error: (error as Error).message },
+				});
+			}
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "settings_delete_account_error",
+				error_level: "error",
+				payload: { error: (error as Error)?.message ?? String(error) },
+			});
+			showSnackbar(i18n.t("Settings.deleteAccountError"));
+		} finally {
+			isDeletingAccountRef.current = false;
+			setIsDeletingAccount(false);
+		}
+	}, [mediumImpact, logFrontendEvent, confirm, callBackend, showSnackbar, logout]);
+
 	// #951 【設計】フィードバック画面へ遷移(モーダル起動から変更)
 	const handleSendFeedback = useCallback(() => {
 		lightImpact();
@@ -400,6 +516,33 @@ export default function ProfileScreen() {
 								label={i18n.t("Settings.logout")}
 								onPress={handleLogout}
 								testID="settings-logout"
+								textStyle={{
+									color: colors.destructive,
+									fontWeight: "700",
+								}}
+								accessibilityRole="button"
+							/>
+						)}
+						{/*
+						  #1511 【仕様】アカウント削除はログイン済み（非匿名）ユーザーにのみ出す。
+						  ゲストには users 行が無く、削除対象となる実体を持たない（API も AuthUserGuard）。
+
+						  ログアウトの «下» に置くのは、破壊力の弱い導線を先に見せるため。
+
+						  ⚠️ 色は `colors.destructive` を使う。#1533 は旧設定画面でログアウトより濃い赤を
+						     直書きしていたが、あれはライト固定の値でダークの対がなく、#1509 でテーマ対応した
+						     この画面には持ち込めない（assert:no-hardcoded-colors も落とす）。ログアウトと
+						     同じ赤になるが、この行の «強さ» は文言と二段確認が担っているので色で差を付けない。
+						*/}
+						{!isGuest && (
+							<SettingsMenuItem
+								label={
+									isDeletingAccount
+										? i18n.t("Settings.deleteAccountInProgress")
+										: i18n.t("Settings.deleteAccount")
+								}
+								onPress={handleDeleteAccount}
+								testID="settings-delete-account"
 								textStyle={{
 									color: colors.destructive,
 									fontWeight: "700",

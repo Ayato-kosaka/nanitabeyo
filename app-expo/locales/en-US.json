@@ -419,8 +419,8 @@
 			"viewRestaurant": "View {{name}}'s restaurant details",
 			"likeActive": "Unlike {{name}}",
 			"likeInactive": "Like {{name}}",
-			"saveActive": "Remove {{name}} from Want to Eat",
-			"saveInactive": "Add {{name}} to Want to Eat",
+			"saveActive": "Unsave {{name}}",
+			"saveInactive": "Save {{name}}",
 			"share": "Share {{name}}",
 			"openMap": "Open map for {{name}}",
 			"reviewLike": "Like {{username}}'s review",
@@ -502,7 +502,8 @@
 			"saved-posts": "Posts",
 			"saved-dish-categories": "Dishes",
 			"wallet-deposit": "Deposits",
-			"wallet-earning": "Earnings"
+			"wallet-earning": "Earnings",
+			"saved-topics": "Dishes"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -520,7 +521,8 @@
 			"noLikedDishMediaEntries": "No liked posts",
 			"noSavedItems": "No saved items",
 			"noSavedPosts": "When you find interesting posts, use \"Save\" to revisit them",
-			"noSavedDishCategories": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
+			"noSavedDishCategories": "When you find interesting dishes, use \"Save\" to explore nearby restaurants",
+			"noSavedTopics": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
 		},
 		"reviews": {
 			"filter": {
@@ -594,7 +596,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category",
-			"writeReviewForThisDish": "Record as eaten",
+			"writeReviewForThisDish": "Write a review for this dish",
 			"useTypedDishCategory": "Use “{{name}}”"
 		},
 		"inputs": {
@@ -862,6 +864,28 @@
 		"about": {
 			"navigationLabel": "About CraveCatch",
 			"title": "About CraveCatch"
+		},
+		"deleteAccount": "Delete account",
+		"deleteAccountInProgress": "Deleting…",
+		"deleteAccountConfirmTitle": "Delete your account?",
+		"deleteAccountConfirmMessage": "Your profile will no longer be shown, and your posts and reviews will disappear from lists and search. Your photos and videos will be deleted, along with your likes, saves and blocks.\n\nThis cannot be undone.",
+		"deleteAccountConfirmButton": "Continue",
+		"deleteAccountFinalTitle": "Really delete?",
+		"deleteAccountFinalMessage": "Your account and data cannot be restored. You will not be able to sign in again with the same account.",
+		"deleteAccountFinalButton": "Delete permanently",
+		"deleteAccountSuccess": "Your account has been deleted",
+		"deleteAccountError": "We could not delete your account. Please try again later.",
+		"blockedTopics": {
+			"navigationLabel": "Blocked dish categories",
+			"pageTitle": "Blocked dish categories",
+			"title": "Blocked dishes",
+			"empty": "No blocked dishes",
+			"loading": "Loading...",
+			"unblockButton": "Unblock",
+			"unblockTitle": "Unblock this dish category?",
+			"unblockMessage": "This dish category will be added back to recommendations.",
+			"unblockConfirm": "Unblock",
+			"unblocked": "Unblocked"
 		}
 	},
 	"Dialog": {
@@ -1213,6 +1237,81 @@
 				"dish_media": "Post",
 				"dish_reviews": "Review"
 			}
+		}
+	},
+	"Topics": {
+		"deepDive": {
+			"title": "Narrow this style"
+		},
+		"tutorial": {
+			"helpLabel": "How to use this screen",
+			"helpHint": "Show the dish recommendation tutorial from the beginning",
+			"skip": "Skip",
+			"next": "Next",
+			"finish": "Start exploring",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Step {{current}} of {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "Choose a dish that catches your eye",
+					"body": "Swipe left or right to compare dishes. When you find one you want, tap “Choose this!”"
+				},
+				"deepDive": {
+					"title": "Search deeper to match your mood",
+					"body": "Still deciding? Pick a style to narrow the suggestions to similar dishes."
+				},
+				"topicActions": {
+					"title": "Make suggestions fit your taste",
+					"save": "Save: Keep a dish so you can revisit it later",
+					"block": "Block: Stop dishes you don't like from being suggested again"
+				},
+				"groupVote": {
+					"title": "Decide with friends",
+					"body": "Share the suggestions with the people joining you and vote together."
+				}
+			}
+		},
+		"HideTopicModal": {
+			"title": "Hide",
+			"description": "Please tell us the reason for hiding (optional)",
+			"placeholder": "Enter a reason...",
+			"confirm": "Hide"
+		},
+		"Loading": {
+			"title": "Curating 6 perfect dishes for you",
+			"subtitle": "Your recommendations will be ready soon!"
+		},
+		"errors": {
+			"fetchFailed": "Failed to fetch dishes",
+			"invalidSearchParams": "Invalid search parameters"
+		},
+		"empty": "No dishes available",
+		"retry": "Back to search",
+		"chooseThis": "Choose this!",
+		"hiddenMessage": "{{title}} has been hidden",
+		"BlockTopicModal": {
+			"title": "Block this dish?",
+			"description": "Blocked dish categories will no longer appear in recommendations.",
+			"note": "You can unblock it anytime from Settings.",
+			"confirm": "Block"
+		},
+		"blockedMessage": "Blocked {{title}}",
+		"savedMessage": "Saved",
+		"reloadDialog": {
+			"title": "Find more options?",
+			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
+			"confirm": "Search again",
+			"cancel": "Close"
+		},
+		"imageLoadFailed": "Failed to load image",
+		"tapToReload": "Tap to reload",
+		"headerTitle": "Recommended Dishes for You",
+		"subCopy": "Tap on a dish you like to find restaurants",
+		"accessibility": {
+			"blockTopic": "Remove {{title}} from recommendations",
+			"saveTopic": "Save {{title}}",
+			"unsaveTopic": "Unsave {{title}}",
+			"thumbnail": "{{title}} thumbnail, {{index}} of {{total}}"
 		}
 	}
 }

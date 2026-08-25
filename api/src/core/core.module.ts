@@ -11,6 +11,7 @@ import { ExternalApiModule } from './external-api/external-api.module';
 import { PromptModule } from './prompt/prompt.module';
 import { TranscoderModule } from './transcoder/transcoder.module';
 import { CookieQueueModule } from './cookie-queue/cookie-queue.module';
+import { SupabaseAdminModule } from './supabase-admin/supabase-admin.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { CookieQueueModule } from './cookie-queue/cookie-queue.module';
     PromptModule,
     TranscoderModule,
     CookieQueueModule,
+    SupabaseAdminModule,
   ],
   exports: [
     LoggerModule,
@@ -36,6 +38,7 @@ import { CookieQueueModule } from './cookie-queue/cookie-queue.module';
     PromptModule,
     TranscoderModule,
     CookieQueueModule,
+    SupabaseAdminModule,
   ],
 })
 export class CoreModule {}

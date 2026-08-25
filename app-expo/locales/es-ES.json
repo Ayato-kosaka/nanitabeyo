@@ -419,8 +419,8 @@
 			"viewRestaurant": "Ver detalles del restaurante de {{name}}",
 			"likeActive": "Quitar me gusta de {{name}}",
 			"likeInactive": "Me gusta {{name}}",
-			"saveActive": "Quitar {{name}} de Quiero comer",
-			"saveInactive": "Añadir {{name}} a Quiero comer",
+			"saveActive": "Quitar {{name}} de guardados",
+			"saveInactive": "Guardar {{name}}",
 			"share": "Compartir {{name}}",
 			"openMap": "Abrir el mapa de {{name}}",
 			"reviewLike": "Me gusta la reseña de {{username}}",
@@ -502,7 +502,8 @@
 			"saved-posts": "Publicaciones",
 			"saved-dish-categories": "Platos",
 			"wallet-deposit": "Depósitos",
-			"wallet-earning": "Ganancias"
+			"wallet-earning": "Ganancias",
+			"saved-topics": "Platos"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -520,7 +521,8 @@
 			"noLikedDishMediaEntries": "No hay publicaciones con me gusta",
 			"noSavedItems": "No hay elementos guardados",
 			"noSavedPosts": "Cuando encuentres publicaciones interesantes, usa \"Guardar\" para revisarlas",
-			"noSavedDishCategories": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
+			"noSavedDishCategories": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos",
+			"noSavedTopics": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
 		},
 		"reviews": {
 			"filter": {
@@ -595,7 +597,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "Seleccionar categoría de plato",
-			"writeReviewForThisDish": "Registrar como comido",
+			"writeReviewForThisDish": "Escribir una reseña de este plato",
 			"useTypedDishCategory": "Usar «{{name}}»"
 		},
 		"inputs": {
@@ -862,6 +864,28 @@
 		"about": {
 			"navigationLabel": "Acerca de CraveCatch",
 			"title": "Acerca de CraveCatch"
+		},
+		"deleteAccount": "Eliminar cuenta",
+		"deleteAccountInProgress": "Eliminando…",
+		"deleteAccountConfirmTitle": "¿Eliminar tu cuenta?",
+		"deleteAccountConfirmMessage": "Tu perfil dejará de mostrarse y tus publicaciones y reseñas desaparecerán de las listas y de la búsqueda. Tus fotos y vídeos se eliminarán, junto con tus me gusta, guardados y bloqueos.\n\nEsta acción no se puede deshacer.",
+		"deleteAccountConfirmButton": "Continuar",
+		"deleteAccountFinalTitle": "¿Seguro que quieres eliminarla?",
+		"deleteAccountFinalMessage": "Tu cuenta y tus datos no se podrán restaurar. Tampoco podrás volver a iniciar sesión con la misma cuenta.",
+		"deleteAccountFinalButton": "Eliminar definitivamente",
+		"deleteAccountSuccess": "Tu cuenta se ha eliminado",
+		"deleteAccountError": "No se ha podido eliminar tu cuenta. Inténtalo de nuevo más tarde.",
+		"blockedTopics": {
+			"navigationLabel": "Categorías de platos bloqueadas",
+			"pageTitle": "Categorías de platos bloqueadas",
+			"title": "Platos bloqueados",
+			"empty": "No hay platos bloqueados",
+			"loading": "Cargando...",
+			"unblockButton": "Desbloquear",
+			"unblockTitle": "¿Desbloquear esta categoría de plato?",
+			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
+			"unblockConfirm": "Desbloquear",
+			"unblocked": "Desbloqueado"
 		}
 	},
 	"Dialog": {
@@ -1213,6 +1237,81 @@
 				"dish_media": "Publicación",
 				"dish_reviews": "Reseña"
 			}
+		}
+	},
+	"Topics": {
+		"deepDive": {
+			"title": "Filtrar este estilo"
+		},
+		"tutorial": {
+			"helpLabel": "Cómo usar esta pantalla",
+			"helpHint": "Mostrar el tutorial de recomendaciones desde el principio",
+			"skip": "Omitir",
+			"next": "Siguiente",
+			"finish": "Empezar",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Paso {{current}} de {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "Elige un plato que te apetezca",
+					"body": "Desliza a izquierda o derecha para comparar platos. Cuando te decidas, toca «¡Elegir este!»."
+				},
+				"deepDive": {
+					"title": "Profundiza según tu estado de ánimo",
+					"body": "¿Aún no te decides? Elige un estilo para acotar las sugerencias."
+				},
+				"topicActions": {
+					"title": "Adapta las sugerencias a tus gustos",
+					"save": "Guardar: vuelve a ver este plato más tarde",
+					"block": "Bloquear: deja de recibir sugerencias de platos que no te gustan"
+				},
+				"groupVote": {
+					"title": "Decide con amigos",
+					"body": "Comparte las sugerencias con tu grupo y votad juntos."
+				}
+			}
+		},
+		"HideTopicModal": {
+			"title": "Ocultar",
+			"description": "Dinos la razón para ocultarlo (opcional)",
+			"placeholder": "Introduce una razón...",
+			"confirm": "Ocultar"
+		},
+		"Loading": {
+			"title": "Seleccionando 6 platos perfectos para ti",
+			"subtitle": "¡Tus recomendaciones estarán listas pronto!"
+		},
+		"errors": {
+			"fetchFailed": "No se pudieron obtener los platos",
+			"invalidSearchParams": "Parámetros de búsqueda inválidos"
+		},
+		"empty": "No hay platos disponibles",
+		"retry": "Volver a la búsqueda",
+		"chooseThis": "¡Este!",
+		"hiddenMessage": "{{title}} se ha ocultado",
+		"BlockTopicModal": {
+			"title": "¿Bloquear este plato?",
+			"description": "Las categorías de platos bloqueadas ya no aparecerán en las recomendaciones.",
+			"note": "Puedes desbloquearlo en cualquier momento desde Configuración.",
+			"confirm": "Bloquear"
+		},
+		"blockedMessage": "{{title}} se ha bloqueado",
+		"savedMessage": "Guardado",
+		"reloadDialog": {
+			"title": "¿Buscar más opciones?",
+			"message": "Ahora solo hay unas pocas recomendaciones. Volveremos a buscar con las mismas condiciones.",
+			"confirm": "Buscar de nuevo",
+			"cancel": "Cerrar"
+		},
+		"imageLoadFailed": "Error al cargar la imagen",
+		"tapToReload": "Toca para recargar",
+		"headerTitle": "Platos Recomendados para Ti",
+		"subCopy": "Toca un plato que te guste para encontrar restaurantes",
+		"accessibility": {
+			"blockTopic": "Quitar {{title}} de las recomendaciones",
+			"saveTopic": "Guardar {{title}}",
+			"unsaveTopic": "Quitar {{title}} de guardados",
+			"thumbnail": "Miniatura de {{title}}, {{index}} de {{total}}"
 		}
 	}
 }

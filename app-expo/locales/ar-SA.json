@@ -419,8 +419,8 @@
 			"viewRestaurant": "عرض تفاصيل مطعم {{name}}",
 			"likeActive": "إلغاء الإعجاب بـ {{name}}",
 			"likeInactive": "الإعجاب بـ {{name}}",
-			"saveActive": "إزالة {{name}} من «أريد تجربته»",
-			"saveInactive": "إضافة {{name}} إلى «أريد تجربته»",
+			"saveActive": "إلغاء حفظ {{name}}",
+			"saveInactive": "حفظ {{name}}",
 			"share": "مشاركة {{name}}",
 			"openMap": "فتح خريطة {{name}}",
 			"reviewLike": "الإعجاب بمراجعة {{username}}",
@@ -502,7 +502,8 @@
 			"saved-posts": "المنشورات",
 			"saved-dish-categories": "الأطباق",
 			"wallet-deposit": "الودائع",
-			"wallet-earning": "الأرباح"
+			"wallet-earning": "الأرباح",
+			"saved-topics": "الأطباق"
 		},
 		"numberSuffix": {
 			"million": "م",
@@ -520,7 +521,8 @@
 			"noLikedDishMediaEntries": "لا توجد منشورات معجبة",
 			"noSavedItems": "لا توجد عناصر محفوظة",
 			"noSavedPosts": "عندما تجد منشورات مثيرة للاهتمام، استخدم \"حفظ\" لمراجعتها",
-			"noSavedDishCategories": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة"
+			"noSavedDishCategories": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة",
+			"noSavedTopics": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة"
 		},
 		"reviews": {
 			"filter": {
@@ -595,7 +597,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "اختر فئة الطبق",
-			"writeReviewForThisDish": "سجّل أنك تناولته",
+			"writeReviewForThisDish": "اكتب مراجعة لهذا الطبق",
 			"useTypedDishCategory": "استخدام «{{name}}»"
 		},
 		"inputs": {
@@ -862,6 +864,28 @@
 		"about": {
 			"navigationLabel": "حول CraveCatch",
 			"title": "حول CraveCatch"
+		},
+		"deleteAccount": "حذف الحساب",
+		"deleteAccountInProgress": "جارٍ الحذف…",
+		"deleteAccountConfirmTitle": "هل تريد حذف حسابك؟",
+		"deleteAccountConfirmMessage": "لن يظهر ملفك الشخصي بعد الآن، وستختفي منشوراتك ومراجعاتك من القوائم والبحث. وسيتم حذف صورك ومقاطع الفيديو، بالإضافة إلى الإعجابات والعناصر المحفوظة وعمليات الحظر.\n\nلا يمكن التراجع عن هذا الإجراء.",
+		"deleteAccountConfirmButton": "متابعة",
+		"deleteAccountFinalTitle": "هل تريد الحذف فعلاً؟",
+		"deleteAccountFinalMessage": "لا يمكن استعادة حسابك وبياناتك، ولن تتمكن من تسجيل الدخول مرة أخرى بالحساب نفسه.",
+		"deleteAccountFinalButton": "حذف نهائي",
+		"deleteAccountSuccess": "تم حذف حسابك",
+		"deleteAccountError": "تعذّر حذف حسابك. يُرجى المحاولة لاحقًا.",
+		"blockedTopics": {
+			"navigationLabel": "فئات الأطباق المحظورة",
+			"pageTitle": "فئات الأطباق المحظورة",
+			"title": "أطباق محظورة",
+			"empty": "لا توجد أطباق محظورة",
+			"loading": "جاري التحميل...",
+			"unblockButton": "إلغاء الحظر",
+			"unblockTitle": "إلغاء حظر فئة الطبق هذه؟",
+			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
+			"unblockConfirm": "إلغاء الحظر",
+			"unblocked": "تم إلغاء الحظر"
 		}
 	},
 	"Dialog": {
@@ -1213,6 +1237,81 @@
 				"dish_media": "منشور",
 				"dish_reviews": "مراجعة"
 			}
+		}
+	},
+	"Topics": {
+		"deepDive": {
+			"title": "تصفية بهذا النمط"
+		},
+		"tutorial": {
+			"helpLabel": "كيفية استخدام هذه الشاشة",
+			"helpHint": "عرض دليل اقتراحات الأطباق من البداية",
+			"skip": "تخطي",
+			"next": "التالي",
+			"finish": "ابدأ",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "الخطوة {{current}} من {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "اختر طبقًا يعجبك",
+					"body": "اسحب يمينًا أو يسارًا لمقارنة الأطباق. عندما تقرر، اضغط على «اختر هذا!»."
+				},
+				"deepDive": {
+					"title": "تعمّق في البحث حسب مزاجك",
+					"body": "لم تقرر بعد؟ اختر نمطًا لتضييق الاقتراحات إلى أطباق مشابهة."
+				},
+				"topicActions": {
+					"title": "نظّم الاقتراحات حسب ذوقك",
+					"save": "حفظ: ارجع إلى الطبق لاحقًا",
+					"block": "حظر: أوقف اقتراح الأطباق التي لا تناسب ذوقك مستقبلاً"
+				},
+				"groupVote": {
+					"title": "قرر مع الأصدقاء",
+					"body": "شارك الاقتراحات مع من سيأكلون معك وصوّتوا معًا."
+				}
+			}
+		},
+		"HideTopicModal": {
+			"title": "إخفاء",
+			"description": "أخبرنا سبب الإخفاء (اختياري)",
+			"placeholder": "أدخل السبب...",
+			"confirm": "إخفاء"
+		},
+		"Loading": {
+			"title": "نختار لك 6 أطباق مثالية",
+			"subtitle": "ستكون توصياتك جاهزة قريبًا!"
+		},
+		"errors": {
+			"fetchFailed": "فشل في جلب الأطباق",
+			"invalidSearchParams": "معلمات بحث غير صالحة"
+		},
+		"empty": "لا توجد أطباق متاحة",
+		"retry": "العودة إلى البحث",
+		"chooseThis": "اختر هذا!",
+		"hiddenMessage": "تم إخفاء {{title}}",
+		"BlockTopicModal": {
+			"title": "حظر هذا الطبق؟",
+			"description": "لن تظهر فئات الأطباق المحظورة بعد الآن في التوصيات.",
+			"note": "يمكنك إلغاء الحظر في أي وقت من الإعدادات.",
+			"confirm": "حظر"
+		},
+		"blockedMessage": "تم حظر {{title}}",
+		"savedMessage": "تم الحفظ",
+		"reloadDialog": {
+			"title": "هل تريد العثور على المزيد من الخيارات؟",
+			"message": "هناك عدد قليل فقط من التوصيات الآن. سنبحث مرة أخرى باستخدام نفس الشروط.",
+			"confirm": "ابحث مرة أخرى",
+			"cancel": "إغلاق"
+		},
+		"imageLoadFailed": "فشل تحميل الصورة",
+		"tapToReload": "اضغط لإعادة التحميل",
+		"headerTitle": "الأطباق الموصى بها لك",
+		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم",
+		"accessibility": {
+			"blockTopic": "إزالة {{title}} من التوصيات",
+			"saveTopic": "حفظ {{title}}",
+			"unsaveTopic": "إلغاء حفظ {{title}}",
+			"thumbnail": "صورة مصغرة لـ {{title}}، {{index}} من {{total}}"
 		}
 	}
 }

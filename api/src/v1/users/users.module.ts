@@ -15,6 +15,7 @@ import { UsersAssembler } from './users.assembler';
 import { DishCategoriesModule } from '../dish-categories/dish-categories.module';
 import { RestaurantsModule } from '../restaurants/restaurants.module';
 import { DishCategoryGroupVotesModule } from '../dish-category-group-votes/dish-category-group-votes.module';
+import { SupabaseAdminModule } from '../../core/supabase-admin/supabase-admin.module';
 
 @Module({
   imports: [
@@ -27,6 +28,8 @@ import { DishCategoryGroupVotesModule } from '../dish-category-group-votes/dish-
     DishCategoriesModule,
     RestaurantsModule,
     DishCategoryGroupVotesModule,
+    // #1511 アカウント削除で Supabase Auth のユーザーを物理削除するため
+    SupabaseAdminModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, UsersRepository, UsersMapper, UsersAssembler],
