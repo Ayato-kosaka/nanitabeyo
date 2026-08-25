@@ -85,6 +85,18 @@ async function shootScheme(scheme) {
 			}
 			await page.waitForTimeout(1200);
 			await shot("03-about");
+
+			// ── 4. 戻る（行き止まりを作っていないこと）──
+			// 1 画面を 3 画面へ割った以上、**帰ってこられること**まで撮らないと通し確認にならない。
+			// ScreenHeader は素の testID ではなく `${testID}-back` を出す。
+			await page.getByTestId("about-screen-back").click();
+			await page.getByTestId("settings-about").waitFor({ state: "visible", timeout: 10000 });
+			const backPath = new URL(page.url()).pathname.replace(/\/$/, "");
+			if (!backPath.endsWith("/ja-JP/profile")) {
+				throw new Error(`«なに食べよについて» の戻るでマイページへ帰っていない: ${page.url()}`);
+			}
+			await page.waitForTimeout(800);
+			await shot("04-back-to-profile");
 		},
 	});
 }
@@ -100,6 +112,7 @@ await writeNote("settings1583", [
 	"- 01-profile … マイページ。ページへ送る 2 行があり、移した行は残っていない",
 	"- 02-device-settings … 端末設定。表示テーマがここへ移った（#1504 のハプティクスと同居。**本命**）",
 	"- 03-about … なに食べよについて。規約 4 行とバージョン（**本命**）",
+	"- 04-back-to-profile … «なに食べよについて» の戻るでマイページへ帰れること（行き止まりでない）",
 	"",
 	"⚠️ «なに食べよ を応援する» は web では出ない（ストアが無い）。その行は Detox 側で撮る。",
 	"",
