@@ -51,6 +51,8 @@ export interface DishMediaEntryEntity {
   dish: PrismaDishes & {
     reviewCount: number;
     averageRating: number;
+    /** #1375 dish_categories.labels（言語コード → 表記）。取れなければ null */
+    categoryLabels: Record<string, string> | null;
   };
   dish_media: PrismaDishMedia & {
     isMine: boolean;
@@ -798,6 +800,12 @@ export class DishMediaRepository {
         dishes: {
           include: {
             restaurants: true,
+            // #1375（オーナー実機指摘「うどんで絞ったら udon が出る」）
+            // 表示名に使う dishes.name は «その店でのその料理の呼び名» で、SNS 取り込み由来だと
+            // ローマ字が入る。カテゴリの正式表記（言語コード → 表記）を一緒に返し、
+            // クライアントが «利用者の言語 → 英語 → 店での呼び名» の順で出せるようにする。
+            // labels 列だけを select するので、この join で読む量は最小に留まる。
+            dish_categories: { select: { labels: true } },
             dish_reviews: {
               orderBy: { created_at: 'asc' }, // #509 【設計】dish_reviews の並び順を古い→新しいに統一
               take: reviewLimit,
@@ -907,6 +915,12 @@ export class DishMediaRepository {
             ...dishMedia.dishes,
             reviewCount: dishStats?.reviewCount ?? 0,
             averageRating: dishStats?.averageRating ?? 0,
+            // #1375 カテゴリの正式表記（ローマ字の dishes.name をユーザーに見せないため）
+            categoryLabels:
+              (dishMedia.dishes.dish_categories?.labels as Record<
+                string,
+                string
+              > | null) ?? null,
           },
           dish_media: {
             ...(dishMedia as PrismaDishMedia),

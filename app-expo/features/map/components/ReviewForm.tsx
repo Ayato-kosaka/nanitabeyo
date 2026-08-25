@@ -808,6 +808,10 @@ export function ReviewForm({
 					...createDishResponse,
 					reviewCount: 1,
 					averageRating: rating,
+					// #1375 投稿直後の楽観更新。作成 API はカテゴリの正式表記を返さないので null。
+					// 表示は dish.name へ落ちる（`dishCategoryLabel.ts`）ので壊れない。
+					// 次に一覧を引き直したときサーバの値で埋まる
+					categoryLabels: null,
 				};
 
 				// dish-media.media_path をアップロード
