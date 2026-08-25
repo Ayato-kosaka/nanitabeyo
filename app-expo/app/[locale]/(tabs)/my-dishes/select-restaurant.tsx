@@ -475,6 +475,36 @@ export default function SelectRestaurantScreen() {
 		[createAndOpenRestaurant, getLocationDetails, lightImpact, logFrontendEvent, searchSavedRestaurants],
 	);
 
+	/*
+	#1375（実機: マップの重さ）**マーカー配列を memo で固定する。**
+
+	素の `.map` だと、検索文字を 1 文字打つ・シートの開閉といった **マーカーと無関係な
+	state 更新のたびに**、全マーカーへ新しい `coordinate`（毎回新しいオブジェクト）と
+	新しい `onPress`（毎回新しい関数）が流れる。View Marker はネイティブでビットマップに
+	なるので、props が変わるたびに焼き直しの対象になる。
+	my-dishes の Map（`MyDishesMapView`）は同じ理由で既に memo している。
+	*/
+	const markers = useMemo(
+		() =>
+			savedRestaurants.map((item: SavedRestaurant) => (
+				<AvatarBubbleMarker
+					key={item.restaurant.id}
+					coordinate={{
+						latitude: item.restaurant.latitude,
+						longitude: item.restaurant.longitude,
+					}}
+					onPress={() => handleSavedRestaurantMarkerPress(item)}
+					color={
+						// 地図タイルは常にライト配色のため、非アクティブのバブルは固定白（FixedColors 参照）
+						activeRestaurantId === item.restaurant.id ? colors.brand : FixedColors.mapMarkerSurface
+					}
+					isActive={activeRestaurantId === item.restaurant.id}
+					uri={item.restaurant.imageUrls?.sm}
+				/>
+			)),
+		[activeRestaurantId, colors.brand, handleSavedRestaurantMarkerPress, savedRestaurants],
+	);
+
 	return (
 		<View style={styles.container}>
 			{/* Map */}
@@ -486,22 +516,7 @@ export default function SelectRestaurantScreen() {
 				onRegionChangeComplete={handleRegionChangeComplete}
 				onPoiClick={handlePoiPress}>
 				{/* #644 【設計】保存したお店のマーカー表示 */}
-				{savedRestaurants.map((item: SavedRestaurant) => (
-					<AvatarBubbleMarker
-						key={item.restaurant.id}
-						coordinate={{
-							latitude: item.restaurant.latitude,
-							longitude: item.restaurant.longitude,
-						}}
-						onPress={() => handleSavedRestaurantMarkerPress(item)}
-						color={
-							// 地図タイルは常にライト配色のため、非アクティブのバブルは固定白（FixedColors 参照）
-							activeRestaurantId === item.restaurant.id ? colors.brand : FixedColors.mapMarkerSurface
-						}
-						isActive={activeRestaurantId === item.restaurant.id}
-						uri={item.restaurant.imageUrls?.sm}
-					/>
-				))}
+				{markers}
 			</MapView>
 
 			{/* Loading Indicator */}

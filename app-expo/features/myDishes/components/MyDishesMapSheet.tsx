@@ -35,6 +35,18 @@ import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishSt
 
 /** 1 枚あたりの幅。3 枚強が見える幅にして「横に続きがある」ことを見せる */
 const TILE_WIDTH = 104;
+/** タイルの間隔（`listContent` の `gap` と必ず同じ値にすること） */
+const TILE_GAP = 8;
+
+/**
+ * タイルは固定幅なので、位置は計算で出せる。
+ * 渡さないと 300 件ぶんのレイアウトを実測で積み上げることになる。
+ */
+const getTileLayout = (_data: ArrayLike<MyDishPin> | null | undefined, index: number) => ({
+	length: TILE_WIDTH,
+	offset: (TILE_WIDTH + TILE_GAP) * index,
+	index,
+});
 
 const PinTile = memo(function PinTile({ pin, onPress }: { pin: MyDishPin; onPress: (pin: MyDishPin) => void }) {
 	const styles = useThemedStyles(createStyles);
@@ -139,7 +151,14 @@ export function MyDishesMapSheet({
 				// Map と合わせて同じサムネイルを二重に一括取得してしまう（独立レビュー指摘）
 				initialNumToRender={5}
 				windowSize={3}
-				removeClippedSubviews
+				/*
+				#1375 **`removeClippedSubviews` は付けない。**
+				横向きの FlatList では «スクロールするとタイルが白いまま戻らない» という
+				既知の不具合があり（RN 自身が横向きでの使用を勧めていない）、
+				節約できるぶんより «帯が真っ白» の方が損である。
+				代わりに `getItemLayout` で 300 件ぶんのレイアウト計算を消す。
+				*/
+				getItemLayout={getTileLayout}
 			/>
 		</View>
 	);
@@ -193,7 +212,7 @@ const createStyles = (c: Palette) =>
 		listContent: {
 			paddingHorizontal: 16,
 			paddingTop: 8,
-			gap: 8,
+			gap: TILE_GAP,
 			// #1375（5 巡目・デザインレビュー #8）右下の FAB（＋、56pt + 右余白 16）が
 			// 最後のタイルと店名を隠していた。タイルが FAB の下へ入らないよう右を空ける
 			paddingRight: 88,
