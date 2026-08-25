@@ -319,7 +319,13 @@ def iter_source_records(
         result = build_common_row(
             run_id=run_id,
             source="food_permit",
-            source_record_id=row.source_record_id,
+            # 1_6 の旧実装は source_record_id をファイル名の先頭48文字から
+            # 作っており、同じ自治体の別ファイルどうしで衝突した（根本は
+            # food_permits.py で修正済み）。既に取り込んだ raw を作り直さずに
+            # 「1 source record = 1 row」を保つため、内容ハッシュを添えて
+            # ここでも一意性を担保する。ID が既に一意な新しい raw でも
+            # 決定的に同じ値になり、二重に付くことはない。
+            source_record_id=f"{row.source_record_id}#{row.record_hash[:12]}",
             source_release=row.source_release,
             name=row.name,
             name_language_code="ja",

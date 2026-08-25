@@ -21,13 +21,23 @@ name: PR Check
 #   app-expo/** だけに絞るとこの Issue が守ろうとしている事故そのものを取りこぼす。
 on:
   pull_request:
+  # #1575 main へ直接入った commit も検査する。PR を経由しない変更（人による直 push）で
+  # main が赤くなり、誰も気づかないまま放置される事故が 2 回起きた。
+  #
+  # ⚠️ これは db-migrate.yml の自動 commit には効かない。GITHUB_TOKEN による push は
+  #    新しい workflow run を起こさない（GitHub の仕様）ため。あちらは workflow 自身が
+  #    push 前に shared をビルドして検算する形で塞いである。ここはあくまで人の直 push 用。
+  push:
+    branches: [main]
 
 # 同一 PR へ続けて push したとき、古い run の結果はもう誰も見ないのでキャンセルする。
 # 既存 workflow が cancel-in-progress: false なのはデプロイ／E2E を中断させないためで、
 # PR ゲートは逆に「最新 commit の結果だけが要る」ため true にする。
 # group に workflow 名と PR 番号を含めているので、PR をまたいでキャンセルし合うことはない。
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  # push イベントには pull_request.number が無いので commit SHA へ落とす
+  # （空文字だと main への連続 push が互いをキャンセルし合う）。
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 permissions:

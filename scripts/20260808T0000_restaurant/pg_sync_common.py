@@ -19,9 +19,41 @@ from pipeline_common import BigQueryPipeline, utc_now
 
 LOGGER = logging.getLogger(__name__)
 ALLOWED_SCHEMAS = {"dev", "public"}
-# 8_1の現行ERROR check数。将来checkを追加することは許すが、部分insertでこれを
-# 下回るvalidationは同期判定に使わない。
-MIN_ERROR_CHECK_COUNT = 17
+# 同期session専用の statement_timeout（30分）。詳細は connect_postgres を参照。
+STATEMENT_TIMEOUT_MS = 30 * 60 * 1000
+
+# 8_1 が書く ERROR check の名前。「部分insertのvalidationで同期を承認しない」を、
+# 件数ではなく**名前の集合**で担保する。件数だけを見ると «17件は揃っているが
+# 中身が違う» を通してしまい、check を1件足して1件消したときに気付けない。
+#
+# 集合を restaurants 側と dish_media 側に分けているのは、同期scriptが書く表と
+# 対応させるためである。9_1 が書くのは restaurants だけなので、dish_media 経路
+# （4_x）を流さない run でも restaurants の同期は判定できる必要がある。
+RESTAURANT_ERROR_CHECKS = frozenset(
+    {
+        "source_record_key_unique",
+        "seed_non_empty",
+        "seed_id_unique",
+        "one_source_record_one_link",
+        "one_match_row_per_seed",
+        "accepted_google_place_id_unique",
+        "restaurant_catalog_non_empty",
+        "restaurant_google_place_id_unique",
+        "restaurant_required_fields_valid",
+        "existing_pg_restaurants_preserved",
+        "existing_pg_serving_values_preserved",
+        "jp_gate_category_count",
+    }
+)
+DISH_MEDIA_ERROR_CHECKS = frozenset(
+    {
+        "dish_media_id_unique",
+        "dish_media_publish_rules",
+        "dish_media_references_exist",
+        "coverage_cross_product_complete",
+        "coverage_pair_unique",
+    }
+)
 
 
 @dataclass
@@ -52,6 +84,13 @@ def connect_postgres(schema: str, *, allow_public: bool) -> PgConnection:
         cursor.execute(
             sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema))
         )
+        # サーバ側の既定 statement_timeout は「APIが投げる対話クエリ」を想定した
+        # 短い値である。この同期は57万行を1文でINSERTするバッチなので、その既定に
+        # 当たって落ちる（実測: dry-run が apply_sync の途中で
+        # "canceling statement due to statement timeout"）。
+        # 0（無制限）にはしない。lock待ちで無限に居座ると、advisory lockを掴んだまま
+        # 次の実行も止めてしまうため、十分大きい有限値で頭打ちにする。
+        cursor.execute(f"SET statement_timeout = '{STATEMENT_TIMEOUT_MS}ms'")
         # 手動実行でも二つのterminalから同じschemaへ同時publishされ得る。
         # transaction advisory lockで9_1/9_2を直列化し、staging判定後の競合を防ぐ。
         cursor.execute(
@@ -62,9 +101,19 @@ def connect_postgres(schema: str, *, allow_public: bool) -> PgConnection:
 
 
 def assert_quality_gate_passed(
-    pipeline: BigQueryPipeline, run_id: str, *, lookback_days: int = 30
+    pipeline: BigQueryPipeline,
+    run_id: str,
+    *,
+    required_checks: frozenset[str],
+    lookback_days: int = 30,
 ) -> None:
-    """最新8_1実行のERRORが全件PASSしたことを強制する。"""
+    """最新8_1実行のERRORが全件PASSしたことを強制する。
+
+    ``required_checks`` は、呼び出し側が書き込む表に対応する ERROR check の名前。
+    この集合が最新validationに1つでも欠けていれば同期しない。実行された ERROR
+    check のうち1件でも落ちていれば、``required_checks`` の外であっても止める
+    （catalog は互いに参照し合うので、隣の表が壊れている状態で書きたくない）。
+    """
 
     query = f"""
       WITH validation_candidates AS (
@@ -114,9 +163,9 @@ def assert_quality_gate_passed(
         ANY_VALUE(latest_validation.validation_id) AS validation_id,
         ANY_VALUE(latest_validation.checked_at) AS checked_at,
         ANY_VALUE(catalog_state.built_at) AS catalog_built_at,
-        COUNT(DISTINCT IF(
+        ARRAY_AGG(DISTINCT IF(
           latest_results.severity = 'ERROR', latest_results.check_name, NULL
-        )) AS error_check_count,
+        ) IGNORE NULLS) AS error_check_names,
         COUNTIF(latest_results.severity = 'ERROR' AND NOT latest_results.passed)
           AS failed_error_count
       FROM latest_validation
@@ -138,8 +187,14 @@ def assert_quality_gate_passed(
             )
         )
     )
-    if row.validation_id is None or row.error_check_count < MIN_ERROR_CHECK_COUNT:
-        raise RuntimeError("8_1_validate_catalogs.py の完全なERROR検証結果がありません")
+    if row.validation_id is None:
+        raise RuntimeError("8_1_validate_catalogs.py の検証結果がありません")
+    missing = sorted(required_checks - set(row.error_check_names or []))
+    if missing:
+        raise RuntimeError(
+            "8_1_validate_catalogs.py の ERROR 検証結果に必要なcheckが"
+            f"{len(missing)}件ありません: {', '.join(missing)}"
+        )
     if row.failed_error_count:
         raise RuntimeError(
             f"品質ゲートに未解決ERRORが{row.failed_error_count}件あります"

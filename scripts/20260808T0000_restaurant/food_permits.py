@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import re
 import sqlite3
@@ -256,6 +257,7 @@ def iter_permit_rows(
         latitude_column = pick(headers, LATITUDE_HINTS)
         longitude_column = pick(headers, LONGITUDE_HINTS)
         jurisdiction = path.stem.split("__")[0]
+        file_key = hashlib.sha256(path.stem.encode("utf-8")).hexdigest()[:16]
         stats["files_used"] += 1
 
         for index, row in enumerate(rows, start=2):
@@ -303,7 +305,11 @@ def iter_permit_rows(
 
             yield PermitRow(
                 jurisdiction=jurisdiction,
-                source_record_id=f"{path.stem[:48]}:{index}",
+                # ファイル名を48文字で切ると、同じ自治体の別ファイルどうしで
+                # 衝突する（実測: 334キーが最大10ファイル分を共有し、
+                # source_records と seed_catalog に重複行を生んだ）。
+                # 全体のハッシュを使えば長さを抑えたまま一意になる。
+                source_record_id=f"{file_key}:{index}",
                 name=name,
                 address=address,
                 business_type=business,

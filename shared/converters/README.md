@@ -20,7 +20,8 @@
 ## 2026-08-21 以前は自動生成だった（もうやらない）
 
 `pnpm generate:converters` が Google スプレッドシート（GAS WebAPI）から列定義を取り、
-このディレクトリを丸ごと生成していた。**この仕組みは廃止した。** 理由は 3 つ。
+このディレクトリを丸ごと生成していた。**この仕組みは廃止した**（生成器は #1575 で削除済み）。
+理由は 3 つ。
 
 1. **スプレッドシートは二次情報になった。** `schema.prisma` は `db-migrate.yml` の
    `regenerate_prisma` が `prisma db pull` で **実 DB から** introspect している。
@@ -35,13 +36,13 @@
 
 ## DB を変えたときにやること
 
-`db-migrate.yml` を流すと `schema.prisma` は**自動で**更新される。
-**手で追従させるのは次の 2 つ。**
+`db-migrate.yml` を流すと、`schema.prisma` と `shared/supabase/database.types.ts` は
+**どちらも自動で**更新される（#1575。あちらが `supabase gen types` まで実行する）。
 
-1. **`shared/supabase/database.types.ts`** — `Row` / `Insert` / `Update` の 3 箇所を直す
-   - nullable な列は `string | null`。`Insert` / `Update` では `?:` にする
-   - `DEFAULT` を持つ NOT NULL の列は、`Insert` では `?:` にする（値を省略できるため）
-2. **`shared/converters/convert_<table>.ts`** — 列の増減を両方向の関数へ反映する
+**手で追従させるのはこのディレクトリだけである。**
+
+`shared/converters/convert_<table>.ts` の**両方向の関数へ**列の増減を反映する。
+変換規則は上表のとおり。
 
 そのうえで次を通すこと。`shared` の `tsc` が「Supabase 型と Prisma 型の食い違い」を
 そのまま検出するので、**ここが実質の検査になる**。
@@ -50,6 +51,10 @@
 pnpm --filter shared build
 pnpm --filter api typecheck
 ```
+
+`db-migrate.yml` は push する前に `pnpm -F shared build` を自分で実行する。
+落ちた場合は main へ push せず、生成物を `chore/db-introspect-<from_file>` ブランチへ
+退避して run を失敗させる。**その退避ブランチで converters を追従させ、PR を出すこと。**
 
 ## 新しいテーブルを足したとき
 
