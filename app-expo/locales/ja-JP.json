@@ -555,7 +555,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "料理カテゴリを選択",
-			"writeReviewForThisDish": "食べたを記録"
+			"writeReviewForThisDish": "食べたを記録",
+			"useTypedDishCategory": "「{{name}}」で決める"
 		},
 		"inputs": {
 			"price": "料金",
@@ -572,14 +573,16 @@
 			"enterBidAmount": "入札額を入力",
 			"enterDishCategory": "料理カテゴリを入力 (例: カレーライス、天ぷら)",
 			"searchRestaurantsForReview": "店名やエリアで検索",
-			"searchAreaForReview": "エリアで検索"
+			"searchAreaForReview": "エリアで検索",
+			"searchDishCategory": "料理名で検索"
 		},
 		"labels": {
 			"endDate": "終了日:",
 			"paymentProcessing": "決済処理中...",
 			"restaurant": "お店",
 			"dishCategory": "料理カテゴリ",
-			"dishesAtThisRestaurant": "このお店の料理"
+			"dishesAtThisRestaurant": "このお店の料理",
+			"noDishesAtThisRestaurant": "このお店にはまだ記録がありません。料理名を入力してください"
 		},
 		"tabs": {
 			"reviews": "レビュー"
@@ -1040,7 +1043,7 @@
 			"pickRestaurant": "お店を選ぶ",
 			"pick": "選ぶ",
 			"change": "変更",
-			"hint": "まずお店を選んでください。選ぶと写真・一言レビュー・料理カテゴリー・料金・おすすめ度を入力できます（写真なしでも記録できます）。",
+			"hint": "まずお店を選んでください。次に料理を選び、写真（任意）・一言レビュー・料金・おすすめ度を入力できます。",
 			"done": "食べたを記録しました"
 		}
 	},

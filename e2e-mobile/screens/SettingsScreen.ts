@@ -58,6 +58,11 @@ export class SettingsScreen {
 	 * トグル本体はこの行から push される端末設定画面にあり、`screens/DeviceSettingsScreen.ts` が持つ。
 	 */
 	readonly deviceSettingsItem = by.id("settings-device-settings");
+	 * バージョン表示（#1495 SUP-03、既存 testID）。
+	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx（web/native 共通）。
+	 * "{version}({短縮コミットID})" の 1 行（例: "1.14.0(abc1234)"）で描画される。
+	 */
+	readonly versionSection = by.id("settings-version-section");
 
 	/**
 	 * #1509 表示テーマの 3 択セレクタ（システム追従 / ライト / ダーク）。
@@ -134,6 +139,16 @@ export class SettingsScreen {
 	/** そのテーマが選択済みかを **待たずに** 判定する（hasLogoutItem と同じ考え方） */
 	async isThemeSelected(preference: ThemePreferenceKey): Promise<boolean> {
 		return existsNow(this.themeOptionCheck(preference));
+	}
+
+	/**
+	 * バージョン行（settings-version-section）の実測テキストを読む（#1495）。
+	 * `getAttributes()` の戻り値は iOS / Android で型が分かれるため、`text` だけを拾う
+	 * （tests/profile/profile-tab-deep-link.test.ts と同じ絞り方）。
+	 */
+	async getVersionText(): Promise<string> {
+		const attributes = (await element(this.versionSection).getAttributes()) as { text?: string };
+		return attributes.text ?? "";
 	}
 
 	/**

@@ -3,12 +3,15 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { getCacheKeyForImage } from "@/lib/image";
 import { toErrorLogString } from "@/lib/errorMessage";
 import i18n from "@/lib/i18n";
+import { asApiList } from "@/lib/apiList";
 import type { DishMediaEntry, QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
 
 /**
@@ -35,13 +38,22 @@ export type ExistingDishMedia = DishMediaEntry["dish_media"] & { dish: DishMedia
 
 export function ExistingDishMediaPicker({
 	restaurantId,
+	dishCategoryId,
 	onSelect,
 	testID = "review-existing-dish-media",
 }: {
 	restaurantId: string;
+	/**
+	 * #1375（6 巡目）先に決まった料理カテゴリー。渡すと **その料理の写真だけ**に絞る。
+	 * 記録フローは «料理を選ぶ → 写真を選ぶ» の順になったので、ここに店の全料理を
+	 * 混ぜて出すと «いま記録している料理と違う写真» を選べてしまう。
+	 * null / 未指定なら従来どおり店の全メディアを出す。
+	 */
+	dishCategoryId?: string | null;
 	onSelect: (media: ExistingDishMedia) => void;
 	testID?: string;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -65,7 +77,9 @@ export function ExistingDishMediaPicker({
 				);
 				if (cancelled) return;
 				// サムネイルが引けない行は «顔» にならないので出さない
-				setEntries(response.data.filter((entry): entry is EntryWithThumbnail => !!entry.dish_media.thumbnailImageUrl));
+				setEntries(
+					asApiList(response.data).filter((entry): entry is EntryWithThumbnail => !!entry.dish_media.thumbnailImageUrl),
+				);
 			} catch (error) {
 				if (cancelled) return;
 				logFrontendEvent({
@@ -99,13 +113,22 @@ export function ExistingDishMediaPicker({
 		);
 	}
 	// 0 件・失敗のときは何も描かない（撮る・選ぶ・スキップは上に出ている）
-	if (entries.length === 0) return null;
+	/*
+	#1375（6 巡目）料理カテゴリーが決まっているなら、その料理の写真だけに絞る。
+	絞った結果が 0 件なら «この料理の写真はまだ無い» ということなので、
+	この節ごと出さない（下の «撮る / ライブラリ / スキップ» で足りる）。
+	*/
+	const visibleEntries = dishCategoryId
+		? entries.filter((entry) => entry.dish.category_id === dishCategoryId)
+		: entries;
+
+	if (visibleEntries.length === 0) return null;
 
 	return (
 		<View style={styles.container} testID={testID}>
 			<Text style={styles.heading}>{i18n.t("Map.media.pickFromExisting")}</Text>
 			<FlatList
-				data={entries}
+				data={visibleEntries}
 				keyExtractor={(entry) => entry.dish_media.id}
 				horizontal
 				showsHorizontalScrollIndicator={false}
@@ -142,38 +165,39 @@ export function ExistingDishMediaPicker({
 
 const TILE_WIDTH = 88;
 
-const styles = StyleSheet.create({
-	container: {
-		alignSelf: "stretch",
-		marginTop: 12,
-	},
-	centered: {
-		marginTop: 12,
-		alignItems: "center",
-	},
-	heading: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: "#6B7280",
-		marginBottom: 6,
-		paddingHorizontal: 12,
-	},
-	listContent: {
-		paddingHorizontal: 12,
-		gap: 8,
-	},
-	tile: {
-		width: TILE_WIDTH,
-	},
-	tileImage: {
-		width: TILE_WIDTH,
-		height: TILE_WIDTH,
-		borderRadius: 8,
-		backgroundColor: "#F3F4F6",
-	},
-	tileLabel: {
-		marginTop: 4,
-		fontSize: 11,
-		color: "#374151",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			alignSelf: "stretch",
+			marginTop: 12,
+		},
+		centered: {
+			marginTop: 12,
+			alignItems: "center",
+		},
+		heading: {
+			fontSize: 12,
+			fontWeight: "700",
+			color: c.textSecondary,
+			marginBottom: 6,
+			paddingHorizontal: 12,
+		},
+		listContent: {
+			paddingHorizontal: 12,
+			gap: 8,
+		},
+		tile: {
+			width: TILE_WIDTH,
+		},
+		tileImage: {
+			width: TILE_WIDTH,
+			height: TILE_WIDTH,
+			borderRadius: 8,
+			backgroundColor: c.surfaceSubtle,
+		},
+		tileLabel: {
+			marginTop: 4,
+			fontSize: 11,
+			color: c.textSecondaryStrong,
+		},
+	});

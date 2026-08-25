@@ -1,6 +1,8 @@
 import React, { memo } from "react";
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 
@@ -20,6 +22,8 @@ export const MyDishStatusLegend = memo(function MyDishStatusLegend({
 	style?: StyleProp<ViewStyle>;
 	testID?: string;
 }) {
+	const styles = useThemedStyles(createStyles);
+
 	return (
 		<View
 			style={[styles.row, style]}
@@ -44,30 +48,31 @@ export const MyDishStatusLegend = memo(function MyDishStatusLegend({
 	);
 });
 
-const styles = StyleSheet.create({
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 14,
-	},
-	item: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 5,
-	},
-	// 塗りの有無で区別するので、凡例の丸にも必ず枠を描く
-	// （白塗りの側は枠が無いと «何も無い» に見える）
-	dot: {
-		width: 10,
-		height: 10,
-		borderRadius: 5,
-		borderWidth: 1.5,
-	},
-	label: {
-		fontSize: 11,
-		fontWeight: "600",
-		// 説明文の淡い灰（docs/design-guidelines.md §2）
-		color: "#6B7280",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 14,
+		},
+		item: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 5,
+		},
+		// 塗りの有無で区別するので、凡例の丸にも必ず枠を描く
+		// （白塗りの側は枠が無いと «何も無い» に見える）
+		dot: {
+			width: 10,
+			height: 10,
+			borderRadius: 5,
+			borderWidth: 1.5,
+		},
+		label: {
+			fontSize: 11,
+			fontWeight: "600",
+			// 説明文の淡い灰（docs/design-guidelines.md §2）
+			color: c.textSecondary,
+		},
+	});

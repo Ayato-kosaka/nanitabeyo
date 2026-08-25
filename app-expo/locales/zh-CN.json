@@ -554,7 +554,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "选择菜品类别",
-			"writeReviewForThisDish": "记录为吃过"
+			"writeReviewForThisDish": "记录为吃过",
+			"useTypedDishCategory": "使用“{{name}}”"
 		},
 		"inputs": {
 			"price": "价格",
@@ -571,14 +572,16 @@
 			"enterBidAmount": "输入出价金额",
 			"enterDishCategory": "输入菜品类别（例如：火锅、点心）",
 			"searchRestaurantsForReview": "按名称或区域搜索",
-			"searchAreaForReview": "按区域搜索"
+			"searchAreaForReview": "按区域搜索",
+			"searchDishCategory": "按菜品名称搜索"
 		},
 		"labels": {
 			"endDate": "结束日期:",
 			"paymentProcessing": "付款处理中...",
 			"restaurant": "餐厅",
 			"dishCategory": "菜品类别",
-			"dishesAtThisRestaurant": "这家店的菜品"
+			"dishesAtThisRestaurant": "这家店的菜品",
+			"noDishesAtThisRestaurant": "这家店还没有记录。请输入菜品名称。"
 		},
 		"tabs": {
 			"reviews": "评论"
@@ -1040,7 +1043,7 @@
 			"pickRestaurant": "选择店铺",
 			"pick": "选择",
 			"change": "更改",
-			"hint": "请先选择店铺。之后可以填写照片、一句点评、菜品类别、价格和推荐度（照片可选）。",
+			"hint": "请先选择餐厅，然后选择菜品，再填写照片（可选）、简短评价、价格和推荐度。",
 			"done": "已记录为吃过"
 		}
 	},

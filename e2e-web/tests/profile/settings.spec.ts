@@ -47,6 +47,23 @@ test.describe("設定項目(匿名ユーザー)", () => {
 
 		await expect(settingsPage.logoutItem).toHaveCount(0);
 	});
+
+	// ─ テストケース: バージョン情報が表示される(#1495 SUP-03) ─
+	// 手順:
+	//   1. 設定画面を表示する
+	//   2. バージョン行(settings-version-section)が "{version}({短縮コミットID})" 形式
+	//      (例: 1.14.0(abc1234) / コミットID未設定時は 1.14.0(dev)) で表示され、
+	//      空文字や"undefined"を出していないことを検証する
+	test("バージョン情報が表示される", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await expect(settingsPage.versionText).toBeVisible();
+		const versionText = await settingsPage.versionText.innerText();
+		expect(versionText).toMatch(/^\d+\.\d+\.\d+\([^)]+\)$/);
+		expect(versionText).not.toMatch(/undefined/i);
+	});
 });
 
 /**

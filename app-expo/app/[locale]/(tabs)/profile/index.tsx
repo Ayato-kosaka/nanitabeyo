@@ -54,6 +54,7 @@ import { Card } from "@/components/Card";
 import type { Palette } from "@/constants/Palette";
 import { THEME_PREFERENCES, useAppTheme, useThemedStyles, type ThemePreference } from "@/contexts/ThemeProvider";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { VersionInfo } from "@/components/VersionInfo";
 import { ProfileHeader } from "@/features/profile/components/ProfileHeader";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
@@ -625,6 +626,8 @@ export default function ProfileScreen() {
 							/>
 						)}
 					</Card>
+
+					<VersionInfo />
 				</ScrollView>
 			</SafeAreaView>
 		</LinearGradient>

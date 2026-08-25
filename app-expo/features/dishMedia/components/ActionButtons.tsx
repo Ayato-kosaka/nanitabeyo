@@ -31,6 +31,8 @@ import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+// #1509 このアクション列は常に暗いメディア（写真・動画）の上に載るため、テーマ非追従の FixedColors を使う
+import { FixedColors } from "@/constants/Palette";
 
 interface ActionButtonsProps {
 	/**
@@ -396,7 +398,11 @@ function ActionButtonsContent({
 							{ name: restaurant.name },
 						)}
 						aria-selected={isLiked}>
-						<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
+						<Heart
+							size={28}
+							color={isLiked ? FixedColors.likeActive : FixedColors.onMedia}
+							fill={isLiked ? FixedColors.likeActive : FixedColors.onMedia}
+						/>
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
 				</View>
@@ -417,7 +423,7 @@ function ActionButtonsContent({
 							{ name: restaurant.name },
 						)}
 						aria-selected={isSaved}>
-						<Bookmark size={28} color="#FFFFFF" fill={isSaved ? "#FFFFFF" : "transparent"} />
+						<Bookmark size={28} color={FixedColors.onMedia} fill={isSaved ? FixedColors.onMedia : "transparent"} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("MyDishes.filters.status.want")}</Text>
 				</View>
@@ -440,7 +446,7 @@ function ActionButtonsContent({
 							)}
 							// 読み上げでも «記録済み» が分かるようにする（色だけに頼らない）
 							aria-selected={!!isEaten}>
-							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_COLORS.eaten.fill : "#FFFFFF"} />
+							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_COLORS.eaten.fill : FixedColors.onMedia} />
 						</TouchableOpacity>
 						<Text style={[styles.actionText, isEaten && styles.actionTextEaten]}>
 							{i18n.t("Map.actions.writeReviewForThisDish")}
@@ -455,7 +461,7 @@ function ActionButtonsContent({
 						hitSlop={buttonHitSlop}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
-						<Share size={28} color="#FFFFFF" />
+						<Share size={28} color={FixedColors.onMedia} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
 				</View>
@@ -467,7 +473,7 @@ function ActionButtonsContent({
 						hitSlop={buttonHitSlop}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("DishMediaContent.accessibility.openMap", { name: restaurant.name })}>
-						<MapPinned size={28} color="#FFFFFF" />
+						<MapPinned size={28} color={FixedColors.onMedia} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
 				</View>
@@ -500,7 +506,7 @@ const styles = StyleSheet.create({
 	actionText: {
 		fontSize: 13,
 		fontWeight: "500",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		marginTop: 4,
 		letterSpacing: 0.2,
 		// #1375（5 巡目・デザインレビュー #6）左列（`DishMediaContent` の店名・料理名）と

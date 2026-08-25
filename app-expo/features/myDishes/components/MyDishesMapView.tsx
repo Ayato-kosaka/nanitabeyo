@@ -2,16 +2,18 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StyleSheet, Text, View } from "react-native";
 import { RotateCw } from "lucide-react-native";
 import MapViewClass from "react-native-maps";
-import MapView, { Marker, type Region } from "@/components/MapView";
+import MapView, { type Region } from "@/components/MapView";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { EmptyState } from "@/components/EmptyState";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import {
 	clusterMyDishPins,
-	isSameClusterScale,
+	isSameClusterViewport,
 	regionForCluster,
-	type ClusterScale,
+	type ClusterViewport,
 	type MyDishPinCluster,
 } from "../clustering";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
@@ -32,6 +34,7 @@ import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { MyDishesMapSheet } from "./MyDishesMapSheet";
+import { MyDishClusterMarker } from "./MyDishClusterMarker";
 
 /**
  * #1396 my-dishes の Map ビュー（設計書 (2/2) §7 の PR4）。
@@ -64,6 +67,8 @@ import { MyDishesMapSheet } from "./MyDishesMapSheet";
  *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
  */
 export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { isJapanese, locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -85,16 +90,28 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	// 1 つも変わらない。それでも Region をそのまま state に入れていたため、
 	// `onRegionChangeComplete` が寄こす新しいオブジェクトで参照が変わり、
 	// **地図を少し動かすたびに最大 300 個のマーカーが作り直されていた**。
-	const [clusterScale, setClusterScale] = useState<ClusterScale>(() => ({
+	//
+	// #1375（実機: マップのクラッシュ）**中心も持つ。ただし «粗く» 持つ。**
+	// 中心が無いと «いま見えている範囲か» を判定できず、東京を拡大していても
+	// 北海道と福岡のピンまでマーカーとして作り続けることになる（それが落ちる原因の本体）。
+	// 中心は delta の 25% 以上動いたときだけ更新するので、pan で毎回畳み直すことはない。
+	const [clusterViewport, setClusterViewport] = useState<ClusterViewport>(() => ({
+		latitude: initialRegion.latitude,
+		longitude: initialRegion.longitude,
 		latitudeDelta: initialRegion.latitudeDelta,
 		longitudeDelta: initialRegion.longitudeDelta,
 	}));
-	// 5% 未満の倍率変化も畳み方に影響しないので、前の値（= 同じ参照）を返して memo を保つ
+	// 畳み方にも間引きにも影響しない程度の変化なら、前の値（= 同じ参照）を返して memo を保つ
 	const updateClusterScale = useCallback((region: Region) => {
-		setClusterScale((prev) =>
-			isSameClusterScale(prev, region)
+		setClusterViewport((prev) =>
+			isSameClusterViewport(prev, region)
 				? prev
-				: { latitudeDelta: region.latitudeDelta, longitudeDelta: region.longitudeDelta },
+				: {
+						latitude: region.latitude,
+						longitude: region.longitude,
+						latitudeDelta: region.latitudeDelta,
+						longitudeDelta: region.longitudeDelta,
+					},
 		);
 	}, []);
 	// #1375 実機確認（2 巡目）: 「ズームインしてから…」の注意文とボタン無効化は廃止した。
@@ -249,7 +266,7 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 
 	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
 	// 無関係な state 更新で 300 個のマーカーへ props が流れない
-	const clusters = useMemo(() => clusterMyDishPins(pins, clusterScale), [pins, clusterScale]);
+	const clusters = useMemo(() => clusterMyDishPins(pins, clusterViewport), [pins, clusterViewport]);
 
 	// クラスタを押したら «もう一段ほどく»。中のピンの外接矩形へ寄せる
 	const handleClusterPress = useCallback(
@@ -282,16 +299,7 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						uri={cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined}
 					/>
 				) : (
-					<Marker
-						key={cluster.id}
-						testID="my-dishes-map-cluster"
-						coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
-						onPress={() => handleClusterPress(cluster)}
-						accessibilityLabel={i18n.t("MyDishes.map.clusterA11yLabel", { count: cluster.pins.length })}>
-						<View style={styles.cluster}>
-							<Text style={styles.clusterLabel}>{cluster.pins.length}</Text>
-						</View>
-					</Marker>
+					<MyDishClusterMarker key={cluster.id} cluster={cluster} onPress={() => handleClusterPress(cluster)} />
 				),
 			),
 		[clusters, handleClusterPress, handlePinPress],
@@ -313,7 +321,12 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 				initialRegion={initialRegion}
 				onMapReady={handleMapReady}
 				onRegionChangeComplete={handleRegionChangeComplete}>
-				{markers}
+				{/* #1375（実機: マップの重さ）**隠れている間はマーカーを 1 つも置かない。**
+				    3 ビューは keep-alive（`my-dishes/index.tsx`）で、list / Calendar を見ている間も
+				    Map は `display: "none"` で生きている。`enabled` は取得を止めるだけなので、
+				    これが無いとネイティブのマーカーが常駐し続ける。
+				    viewport も取得結果も store / ref が持っているので、戻ったときの見た目は変わらない */}
+				{enabled ? markers : null}
 			</MapView>
 
 			{showInitialLoading && (
@@ -328,13 +341,13 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						testID="my-dishes-search-this-area"
 						onPress={handleSearchThisArea}
 						label={i18n.t("MyDishes.searchThisArea")}
-						icon={<RotateCw size={16} color="#111827" />}
-						colors={["#ffffff", "#ffffff"]}
+						icon={<RotateCw size={16} color={colors.textPrimaryAlt} />}
+						colors={[colors.surface, colors.surface]}
 						shadowColor="transparent"
-						labelStyle={{ color: "#111827", fontSize: 14 }}
+						labelStyle={{ color: colors.textPrimaryAlt, fontSize: 14 }}
 						loading={showButtonLoading}
 						loadingIndicatorType="native"
-						nativeLoadingColor="#111827"
+						nativeLoadingColor={colors.textPrimaryAlt}
 					/>
 				</View>
 				{/* #1375 実機確認: 「このエリアで絞り込み中」の帯は廃止した。
@@ -373,66 +386,49 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	);
 }
 
-const styles = StyleSheet.create({
-	// #1375（5 巡目）クラスタの丸。地図の上に載るので白い縁で輪郭を保つ
-	// （バッジ類と同じ考え方。`features/myDishes/components/MyDishStatusCountBadges.tsx`）
-	cluster: {
-		minWidth: 36,
-		height: 36,
-		paddingHorizontal: 6,
-		borderRadius: 18,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "rgba(17,24,39,0.82)",
-		borderWidth: 2,
-		borderColor: "#FFFFFF",
-	},
-	clusterLabel: {
-		fontSize: 14,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	container: {
-		flex: 1,
-	},
-	map: {
-		flex: 1,
-	},
-	loadingOverlay: {
-		...StyleSheet.absoluteFillObject,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(255, 255, 255, 0.5)",
-	},
-	topOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 100,
-	},
-	searchButtonContainer: {
-		marginTop: 12,
-		alignItems: "center",
-	},
-	truncatedBanner: {
-		marginTop: 8,
-		marginHorizontal: 24,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 8,
-		backgroundColor: "rgba(17, 24, 39, 0.85)",
-	},
-	truncatedText: {
-		fontSize: 12,
-		color: "#FFFFFF",
-		textAlign: "center",
-	},
-	emptyOverlay: {
-		position: "absolute",
-		top: 80,
-		left: 24,
-		right: 24,
-		bottom: 24,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		map: {
+			flex: 1,
+		},
+		loadingOverlay: {
+			...StyleSheet.absoluteFillObject,
+			justifyContent: "center",
+			alignItems: "center",
+			backgroundColor: "rgba(255, 255, 255, 0.5)",
+		},
+		topOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			zIndex: 100,
+		},
+		searchButtonContainer: {
+			marginTop: 12,
+			alignItems: "center",
+		},
+		truncatedBanner: {
+			marginTop: 8,
+			marginHorizontal: 24,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 8,
+			backgroundColor: "rgba(17, 24, 39, 0.85)",
+		},
+		truncatedText: {
+			fontSize: 12,
+			color: FixedColors.onMedia,
+			textAlign: "center",
+		},
+		emptyOverlay: {
+			position: "absolute",
+			top: 80,
+			left: 24,
+			right: 24,
+			bottom: 24,
+		},
+	});
