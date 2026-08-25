@@ -313,6 +313,17 @@ export class SettingsScreen {
 	}
 
 	/**
+	 * #1583 «なに食べよについて» の戻るボタンを押してマイページへ帰る。
+	 *
+	 * `ScreenHeader` は `${testID}-back` を出す（素の testID は出さない）。
+	 * ページを分けた以上、**帰ってこられることまで見ないと行き止まりを作れる**。
+	 * `DeviceSettingsScreen.goBack()` と同じ考え方。
+	 */
+	async goBackFromAbout(): Promise<void> {
+		await tapWhenVisible(by.id("about-screen-back"));
+	}
+
+	/**
 	 * #1583 «なに食べよについて» ページが出ていることを検証する。
 	 *
 	 * `expectLoaded()`（マイページ）と混同しないこと。規約 4 行から戻ったときの着地は

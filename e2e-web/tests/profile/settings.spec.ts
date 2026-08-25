@@ -42,6 +42,34 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		await expect(appPage.getByText("なに食べよ を応援する", { exact: true })).toHaveCount(0);
 	});
 
+	// ─ テストケース: 分けた 2 画面から «戻る» でマイページへ帰れる ─
+	// #1583 で 1 画面を 3 画面に割った以上、**行き止まりを作っていないこと**を見る必要がある。
+	// 分割そのものより «帰れなくなる» ほうが起きやすい事故で、
+	// 「行が表示される」「遷移できる」だけを見ているテストでは捕まらない。
+	//
+	// 手順:
+	//   1. マイページ → 端末設定 → 戻る → マイページに帰っていること
+	//   2. マイページ → なに食べよについて → 戻る → マイページに帰っていること
+	test("端末設定 / なに食べよについて から «戻る» でマイページへ帰れる", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		const deviceSettingsPage = new DeviceSettingsPage(appPage);
+
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await settingsPage.openDeviceSettings();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/device-settings/);
+		await deviceSettingsPage.backButton.click();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile$/);
+		await settingsPage.expectLoaded();
+
+		await settingsPage.openAbout();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about/);
+		await settingsPage.aboutBackButton.click();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile$/);
+		await settingsPage.expectLoaded();
+	});
+
 	// ─ テストケース: «なに食べよについて» に規約 4 行が揃っている ─
 	// #1583 オーナー指示（ページ遷移にする）の検証。
 	// 「応援する」は Web には出ない（ストアが無い）ので、その不在も併せて見る。

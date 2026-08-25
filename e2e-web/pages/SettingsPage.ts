@@ -39,6 +39,14 @@ export class SettingsPage {
 	/** #1583 マイページ → «なに食べよについて» の行 */
 	readonly aboutItem: Locator;
 	/**
+	 * #1583 «なに食べよについて» の戻るボタン。
+	 *
+	 * `ScreenHeader` は `${testID}-back` を出す（素の testID は出さない）。
+	 * ページを分けた以上、**戻ってこられることまで見ないと行き止まりを作れる**ので
+	 * ロケータを持たせてある（`DeviceSettingsPage.backButton` と同じ考え方）。
+	 */
+	readonly aboutBackButton: Locator;
+	/**
 	 * バージョン表示（#1495 SUP-03）。"{version}({短縮コミットID})" の 1 行、例: "1.14.0(abc1234)"。
 	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx
 	 */
@@ -95,6 +103,7 @@ export class SettingsPage {
 		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
 		// #1583 マイページ → なに食べよについて の行
 		this.aboutItem = page.getByTestId("settings-about");
+		this.aboutBackButton = page.getByTestId("about-screen-back");
 		this.versionText = page.getByTestId("settings-version-section");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.notificationsCard = page.getByTestId("settings-notifications-card");
@@ -204,7 +213,6 @@ export class SettingsPage {
 	async isNotificationToggleOn(category: "likes" | "saves" | "group_votes"): Promise<boolean> {
 		return this.notificationToggle(category).locator('input[type="checkbox"]').isChecked();
 	}
-
 
 	/**
 	 * ログアウト行をタップし、確認ダイアログを「ログアウト」で確定する。

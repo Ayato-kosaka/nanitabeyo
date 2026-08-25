@@ -76,6 +76,13 @@ describe("設定項目（匿名ユーザー）", () => {
 		await waitUntilVisible(settingsScreen.privacyItem);
 		await waitUntilVisible(settingsScreen.copyrightItem);
 		await waitUntilVisible(settingsScreen.versionSection);
+
+		// #1583 1 画面を 3 画面へ割った以上、**帰ってこられること**まで見る。
+		// 分割そのものより «行き止まりを作る» ほうが起きやすい事故で、
+		// 「行が出る」「遷移できる」だけのテストでは捕まらない。
+		// 実機は 1 本 100〜200 秒かかるので、it を増やさずこの導線の続きとして確かめる。
+		await settingsScreen.goBackFromAbout();
+		await settingsScreen.expectLoaded();
 	});
 
 	// ─ テストケース: プライバシーポリシー行で法務ドキュメント画面へ遷移する ─
@@ -191,6 +198,10 @@ describe("端末設定画面のハプティクストグル（匿名ユーザー�
 		await settingsScreen.openDeviceSettings();
 		await deviceSettingsScreen.expectLoaded();
 		await deviceSettingsScreen.expectHapticsToggleValue(true);
+
+		// #1583 «なに食べよについて» と同じ理由で、戻れることまで見る
+		await deviceSettingsScreen.goBack();
+		await settingsScreen.expectLoaded();
 	});
 
 	// ─ テストケース: タップすると状態が変わり、アプリ再起動後も保持される ─
@@ -247,10 +258,6 @@ describe("端末設定画面のハプティクストグル（匿名ユーザー�
 		await settingsScreen.expectLoaded();
 
 		const hasNotificationCard = await section.exists();
-		assert.equal(
-			hasNotificationCard,
-			false,
-			"匿名ユーザーには settings-notifications-card が表示されないはず",
-		);
+		assert.equal(hasNotificationCard, false, "匿名ユーザーには settings-notifications-card が表示されないはず");
 	});
 });
