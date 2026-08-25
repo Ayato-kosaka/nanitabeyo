@@ -104,6 +104,26 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		expect(versionText).toMatch(/^\d+\.\d+\.\d+\([^)]+\)$/);
 		expect(versionText).not.toMatch(/undefined/i);
 	});
+
+	// ─ テストケース: 匿名時は通知カードが表示されない ─
+	// 手順:
+	//   1. マイページを表示する(匿名状態)
+	//   2. 通知カード(settings-notifications-card)が存在しないことを検証
+	//
+	// #1510 匿名ユーザーは Push Token を登録しない(PushTokenRegistration)ため、
+	// 受け取り方を設定させても届く先が無い。ログイン済み側の検証は
+	// tests/authenticated/notification-preferences.spec.ts が持つ
+	//
+	// ⚠️ #1583 マージ時点で、この test は **中身がバージョン検証のまま**だった
+	//    （ベース側の取り込みで «バージョン情報が表示される» の中へ入れ子になり、
+	//      通知カードを一度も見ていなかった）。本来の assert へ戻してある。
+	test("匿名時は通知カテゴリのカードが表示されない", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await expect(settingsPage.notificationsCard).toHaveCount(0);
+	});
 });
 
 /**

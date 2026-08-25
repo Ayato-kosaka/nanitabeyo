@@ -85,7 +85,9 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	// 「画面が描画されたか」の判定材料にならない。ログイン後の導線は
 	// tests/authenticated/ 配下の spec が担保している
 	"profile/edit": "ログイン必須。未ログインでは中身が無い",
-	// #1402 で profile/settings は廃止（設定項目はマイページ本体へ統合）。キーは残さない
+	// #1402 で一度廃止したが、#1583（設定の再編）で main が復活させたので鍵も戻す。
+	// «廃止したから消す» と «復活したから戻す» が別ブランチで起きた形なので、経緯を残しておく
+	"profile/settings": "ログイン必須。未ログインでは中身が無い",
 	"profile/liked": "ログイン必須。未ログインでは中身が無い",
 	"profile/saved-topics": "ログイン必須。未ログインでは中身が無い",
 	"profile/feedback": "ログイン必須。未ログインでは中身が無い",

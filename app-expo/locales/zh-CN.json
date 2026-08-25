@@ -175,6 +175,9 @@
 		},
 		"loading": "搜索中...",
 		"noLocationsFound": "未找到位置",
+		"locationConfirmation": {
+			"error": "位置确认失败"
+		},
 		"advancedToggle": {
 			"open": "更多选项",
 			"close": "关闭高级搜索"
@@ -860,6 +863,25 @@
 		"logout": "登出",
 		"logoutConfirmTitle": "要退出登录吗？",
 		"logoutConfirmMessage": "再次登录后才能管理你的帖子和评论。",
+		"notifications": {
+			"sectionTitle": "通知",
+			"osDisabledTitle": "此设备的通知已关闭",
+			"osDisabledDescription": "这里的设置会被保存，但此设备不会收到通知。",
+			"openOsSettings": "打开设备设置",
+			"updateFailed": "无法保存设置",
+			"likes": {
+				"title": "点赞",
+				"description": "有人点赞你的帖子或评论时"
+			},
+			"saves": {
+				"title": "收藏",
+				"description": "有人收藏你的帖子时"
+			},
+			"group_votes": {
+				"title": "群组投票",
+				"description": "你参与的群组投票有新动态时"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "已屏蔽的菜品类别",
 			"pageTitle": "已屏蔽的菜品类别",
