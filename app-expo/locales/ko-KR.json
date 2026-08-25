@@ -175,9 +175,6 @@
 		},
 		"loading": "검색 중...",
 		"noLocationsFound": "위치를 찾을 수 없습니다",
-		"locationConfirmation": {
-			"error": "위치 확인에 실패했습니다"
-		},
 		"advancedToggle": {
 			"open": "더 많은 옵션",
 			"close": "상세 검색 닫기"
@@ -257,6 +254,9 @@
 		"recentLocations": {
 			"title": "최근 사용한 장소",
 			"clear": "최근 사용한 장소 지우기"
+		},
+		"locationConfirmation": {
+			"error": "위치 확인에 실패했습니다"
 		}
 	},
 	"Onboarding": {
@@ -306,7 +306,7 @@
 			"stepProgress": "{{total}}단계 중 {{current}}단계"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "이 계열로 좁히기"
 		},
@@ -327,7 +327,7 @@
 					"title": "기분에 맞춰 더 깊이 검색",
 					"body": "아직 고민된다면 원하는 계열을 골라 비슷한 요리로 범위를 좁혀보세요."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "취향에 맞게 정리하기",
 					"save": "저장: 마음에 드는 요리를 나중에 다시 볼 수 있어요",
 					"block": "차단: 취향에 맞지 않는 요리는 앞으로 추천되지 않아요"
@@ -338,7 +338,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "숨기기",
 			"description": "숨기는 이유를 알려주세요 (선택사항)",
 			"placeholder": "이유를 입력하세요...",
@@ -356,7 +356,7 @@
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "이 요리를 차단할까요?",
 			"description": "차단된 요리 카테고리는 추천에 더 이상 표시되지 않습니다.",
 			"note": "설정에서 언제든지 차단을 해제할 수 있어요.",
@@ -375,9 +375,9 @@
 		"headerTitle": "당신을 위한 추천 요리",
 		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요",
 		"accessibility": {
-			"blockTopic": "추천에서 {{title}} 제외",
-			"saveTopic": "{{title}} 저장",
-			"unsaveTopic": "{{title}} 저장 해제",
+			"blockDishCategory": "추천에서 {{title}} 제외",
+			"saveDishCategory": "{{title}} 저장",
+			"unsaveDishCategory": "{{title}} 저장 해제",
 			"thumbnail": "{{title}} 썸네일, {{total}}개 중 {{index}}번째"
 		}
 	},
@@ -466,57 +466,6 @@
 			"forbidden": "내 게시물만 편집하거나 삭제할 수 있습니다"
 		}
 	},
-	"Report": {
-		"action": "신고",
-		"title": "이 게시물 신고하기",
-		"reviewTitle": "이 리뷰 신고하기",
-		"description": "신고 사유를 선택해 주세요. 운영팀이 확인하며, 작성자에게는 알리지 않습니다.",
-		"reasons": {
-			"spam": "스팸 또는 광고",
-			"sexual": "성적인 콘텐츠",
-			"violence": "폭력적이거나 불쾌한 콘텐츠",
-			"harassment": "괴롭힘 또는 비방",
-			"illegal": "불법 행위",
-			"misinformation": "잘못된 정보",
-			"rights": "저작권 등 권리 침해",
-			"privacy": "개인정보가 노출됨",
-			"irrelevant": "음식과 관련 없음",
-			"other": "기타"
-		},
-		"detailsLabel": "자세한 내용(선택)",
-		"detailsPlaceholder": "추가로 알려주실 내용이 있으면 입력해 주세요(1,000자까지)",
-		"submit": "신고하기",
-		"submitting": "전송 중...",
-		"accepted": {
-			"title": "신고해 주셔서 감사합니다",
-			"description": "내용을 검토합니다. 결과를 개별적으로 알려드리지는 않습니다.",
-			"close": "닫기",
-			"history": "내 신고 내역"
-		},
-		"errors": {
-			"submitFailed": "신고를 보내지 못했습니다. 다시 시도해 주세요."
-		},
-		"accessibility": {
-			"open": "{{name}} 게시물 신고",
-			"openReview": "{{name}} 리뷰 신고",
-			"reason": "사유: {{reason}}",
-			"reasonSelected": "사유: {{reason}}(선택됨)",
-			"submit": "{{name}} 게시물 신고 보내기",
-			"submitReview": "{{name}} 리뷰 신고 보내기"
-		},
-		"history": {
-			"navigationLabel": "내 신고 내역",
-			"pageTitle": "내 신고 내역",
-			"empty": "아직 신고가 없습니다",
-			"emptyDescription": "게시물이나 리뷰를 신고하면 여기에 표시됩니다.",
-			"note": "검토 상태나 결과는 안내하지 않습니다.",
-			"error": "신고 내역을 불러오지 못했습니다",
-			"target": {
-				"dish_media": "게시물",
-				"dish_reviews": "리뷰"
-			}
-		}
-	},
 	"ImageCardGrid": {
 		"openItemDetails": "항목 세부정보 열기"
 	},
@@ -551,7 +500,7 @@
 			"deposits": "예치금",
 			"earnings": "수익",
 			"saved-posts": "게시물",
-			"saved-topics": "요리",
+			"saved-dish-categories": "요리",
 			"wallet-deposit": "예치금",
 			"wallet-earning": "수익"
 		},
@@ -571,7 +520,7 @@
 			"noLikedDishMediaEntries": "좋아요한 게시물이 없습니다",
 			"noSavedItems": "저장된 항목이 없습니다",
 			"noSavedPosts": "흥미로운 게시물을 찾으면 \"저장\"으로 다시 볼 수 있습니다",
-			"noSavedTopics": "흥미로운 요리를 찾으면 \"저장\"으로 주변 음식점을 탐색할 수 있습니다"
+			"noSavedDishCategories": "흥미로운 요리를 찾으면 \"저장\"으로 주변 음식점을 탐색할 수 있습니다"
 		},
 		"reviews": {
 			"filter": {
@@ -864,6 +813,18 @@
 		"logout": "로그아웃",
 		"logoutConfirmTitle": "로그아웃하시겠어요?",
 		"logoutConfirmMessage": "다시 로그인해야 게시물과 리뷰를 관리할 수 있습니다.",
+		"blockedDishCategories": {
+			"navigationLabel": "차단된 요리 카테고리",
+			"pageTitle": "차단된 요리 카테고리",
+			"title": "차단된 요리",
+			"empty": "차단된 요리가 없습니다",
+			"loading": "로딩 중...",
+			"unblockButton": "차단 해제",
+			"unblockTitle": "이 요리 카테고리를 차단 해제하시겠습니까?",
+			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
+			"unblockConfirm": "차단 해제",
+			"unblocked": "차단 해제됨"
+		},
 		"notifications": {
 			"sectionTitle": "알림",
 			"osDisabledTitle": "이 기기의 알림이 꺼져 있습니다",
@@ -882,18 +843,6 @@
 				"title": "그룹 투표",
 				"description": "참여 중인 그룹 투표에 변화가 있을 때"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "차단된 요리 카테고리",
-			"pageTitle": "차단된 요리 카테고리",
-			"title": "차단된 요리",
-			"empty": "차단된 요리가 없습니다",
-			"loading": "로딩 중...",
-			"unblockButton": "차단 해제",
-			"unblockTitle": "이 요리 카테고리를 차단 해제하시겠습니까?",
-			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
-			"unblockConfirm": "차단 해제",
-			"unblocked": "차단 해제됨"
 		},
 		"language": {
 			"navigationLabel": "언어",
@@ -1015,10 +964,10 @@
 		},
 		"map": {
 			"truncated": "핀이 많아 일부만 표시하고 있어요. 지역을 좁혀보세요.",
-			"currentLocation": "현재 위치로 이동",
 			"sheetTitle": "이 부근의 레스토랑 {{count}}곳",
 			"tileA11yLabel": "{{name}} (먹고 싶다 {{want}}건, 먹었다 {{eaten}}건)",
-			"clusterA11yLabel": "이 부근 레스토랑 {{count}}곳"
+			"clusterA11yLabel": "이 부근 레스토랑 {{count}}곳",
+			"currentLocation": "현재 위치로 이동"
 		},
 		"guest": {
 			"description": "로그인하여 먹고 싶은/먹은 음식을 기록해보세요",
@@ -1209,6 +1158,57 @@
 			"finish": "시작하기",
 			"progress": "{{current}} / {{total}}",
 			"progressAccessibility": "총 {{total}}단계 중 {{current}}단계"
+		}
+	},
+	"Report": {
+		"action": "신고",
+		"title": "이 게시물 신고하기",
+		"reviewTitle": "이 리뷰 신고하기",
+		"description": "신고 사유를 선택해 주세요. 운영팀이 확인하며, 작성자에게는 알리지 않습니다.",
+		"reasons": {
+			"spam": "스팸 또는 광고",
+			"sexual": "성적인 콘텐츠",
+			"violence": "폭력적이거나 불쾌한 콘텐츠",
+			"harassment": "괴롭힘 또는 비방",
+			"illegal": "불법 행위",
+			"misinformation": "잘못된 정보",
+			"rights": "저작권 등 권리 침해",
+			"privacy": "개인정보가 노출됨",
+			"irrelevant": "음식과 관련 없음",
+			"other": "기타"
+		},
+		"detailsLabel": "자세한 내용(선택)",
+		"detailsPlaceholder": "추가로 알려주실 내용이 있으면 입력해 주세요(1,000자까지)",
+		"submit": "신고하기",
+		"submitting": "전송 중...",
+		"accepted": {
+			"title": "신고해 주셔서 감사합니다",
+			"description": "내용을 검토합니다. 결과를 개별적으로 알려드리지는 않습니다.",
+			"close": "닫기",
+			"history": "내 신고 내역"
+		},
+		"errors": {
+			"submitFailed": "신고를 보내지 못했습니다. 다시 시도해 주세요."
+		},
+		"accessibility": {
+			"open": "{{name}} 게시물 신고",
+			"openReview": "{{name}} 리뷰 신고",
+			"reason": "사유: {{reason}}",
+			"reasonSelected": "사유: {{reason}}(선택됨)",
+			"submit": "{{name}} 게시물 신고 보내기",
+			"submitReview": "{{name}} 리뷰 신고 보내기"
+		},
+		"history": {
+			"navigationLabel": "내 신고 내역",
+			"pageTitle": "내 신고 내역",
+			"empty": "아직 신고가 없습니다",
+			"emptyDescription": "게시물이나 리뷰를 신고하면 여기에 표시됩니다.",
+			"note": "검토 상태나 결과는 안내하지 않습니다.",
+			"error": "신고 내역을 불러오지 못했습니다",
+			"target": {
+				"dish_media": "게시물",
+				"dish_reviews": "리뷰"
+			}
 		}
 	}
 }

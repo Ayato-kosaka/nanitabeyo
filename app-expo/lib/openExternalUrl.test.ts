@@ -1,7 +1,7 @@
 /**
  * #1121 `openExternalUrl` の分岐テスト。
  *
- * Web で `Linking.openURL()` が呼ばれると同一タブ遷移になり、`/ja-JP/search/topics` の
+ * Web で `Linking.openURL()` が呼ばれると同一タブ遷移になり、`/ja-JP/search/dish-categories` の
  * Google Maps fallback が「戻るとエラー」になる。ここが退行すると画面側では気付けないので、
  * Web / ネイティブそれぞれで **どちらの API を呼ぶか** を固定する。
  *

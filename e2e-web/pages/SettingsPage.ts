@@ -28,7 +28,7 @@ export class SettingsPage {
 	/** 著作権行 */
 	readonly copyrightItem: Locator;
 	/** ブロック済みの料理トピック行 */
-	readonly blockedTopicsItem: Locator;
+	readonly blockedDishCategoriesItem: Locator;
 	/** 表示言語行（#1508。Card 2 の最終行） */
 	readonly languageItem: Locator;
 	/**
@@ -88,7 +88,7 @@ export class SettingsPage {
 		this.termsItem = page.getByTestId("settings-terms");
 		this.privacyItem = page.getByTestId("settings-privacy");
 		this.copyrightItem = page.getByTestId("settings-copyright");
-		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
+		this.blockedDishCategoriesItem = page.getByTestId("settings-blocked-dish-categories");
 		this.languageItem = page.getByTestId("settings-language");
 		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
 		this.versionText = page.getByTestId("settings-version-section");

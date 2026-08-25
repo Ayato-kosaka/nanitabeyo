@@ -9,25 +9,25 @@ import { Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View } from
 import { ThumbsDown, ThumbsUp } from "lucide-react-native";
 import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
-import { height as SCREEN_HEIGHT } from "@/features/topics/constants";
-import { useTopicCardSize } from "@/features/topics/hooks/useTopicCardSize";
-import { TopicVisualCard } from "@/features/topics/components/TopicVisualCard";
-import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
+import { height as SCREEN_HEIGHT } from "@/features/dishCategories/constants";
+import { useDishCategoryCardSize } from "@/features/dishCategories/hooks/useDishCategoryCardSize";
+import { DishCategoryVisualCard } from "@/features/dishCategories/components/DishCategoryVisualCard";
+import { type DishCategoryImageResourceState } from "@/features/dishCategories/hooks/useDishCategoryImageResources";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 type Props = {
 	candidate: DishCategoryGroupVoteCandidate;
 	onVote: (reaction: DishCategoryGroupVoteReaction) => void;
-	// #1213 【設計】画面側(useTopicImageResources)で先読みした結果をここへ渡す。
-	// 渡さないと TopicVisualCard は生の uri をその場で読み込むため、候補が切り替わるたびに
+	// #1213 【設計】画面側(useDishCategoryImageResources)で先読みした結果をここへ渡す。
+	// 渡さないと DishCategoryVisualCard は生の uri をその場で読み込むため、候補が切り替わるたびに
 	// ネットワーク取得が発生し、カード背景色(#EEE)が一瞬見えてしまう。
-	imageState?: TopicImageResourceState;
+	imageState?: DishCategoryImageResourceState;
 };
 
 export function DishCategoryGroupVoteVoteCard({ candidate, onVote, imageState }: Props) {
 	const translateX = useRef(new Animated.Value(0)).current;
 	const onVoteRef = useRef(onVote);
-	const { cardWidth, cardMaxHeight } = useTopicCardSize();
+	const { cardWidth, cardMaxHeight } = useDishCategoryCardSize();
 	const cardHeight = Math.max(360, Math.min(cardMaxHeight, SCREEN_HEIGHT - 280));
 
 	useEffect(() => {
@@ -72,7 +72,7 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote, imageState }:
 	return (
 		<View style={styles.container}>
 			<Animated.View style={[styles.cardMotion, getCardMotionStyle(translateX)]} {...panResponder.panHandlers}>
-				<TopicVisualCard
+				<DishCategoryVisualCard
 					title={candidate.displayName}
 					tagline={candidate.tagline}
 					imageSource={{ uri: candidate.imageUrl }}

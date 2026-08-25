@@ -175,9 +175,6 @@
 		},
 		"loading": "Searching...",
 		"noLocationsFound": "No locations found",
-		"locationConfirmation": {
-			"error": "Failed to confirm location"
-		},
 		"advancedToggle": {
 			"open": "More options",
 			"close": "Close advanced search"
@@ -257,6 +254,9 @@
 		"recentLocations": {
 			"title": "Recent locations",
 			"clear": "Clear recent locations"
+		},
+		"locationConfirmation": {
+			"error": "Failed to confirm location"
 		}
 	},
 	"Onboarding": {
@@ -306,7 +306,7 @@
 			"stepProgress": "Step {{current}} of {{total}}"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "Narrow this style"
 		},
@@ -327,7 +327,7 @@
 					"title": "Search deeper to match your mood",
 					"body": "Still deciding? Pick a style to narrow the suggestions to similar dishes."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "Make suggestions fit your taste",
 					"save": "Save: Keep a dish so you can revisit it later",
 					"block": "Block: Stop dishes you don't like from being suggested again"
@@ -338,7 +338,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "Hide",
 			"description": "Please tell us the reason for hiding (optional)",
 			"placeholder": "Enter a reason...",
@@ -356,7 +356,7 @@
 		"retry": "Back to search",
 		"chooseThis": "Choose this!",
 		"hiddenMessage": "{{title}} has been hidden",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "Block this dish?",
 			"description": "Blocked dish categories will no longer appear in recommendations.",
 			"note": "You can unblock it anytime from Settings.",
@@ -375,9 +375,9 @@
 		"headerTitle": "Recommended Dishes for You",
 		"subCopy": "Tap on a dish you like to find restaurants",
 		"accessibility": {
-			"blockTopic": "Remove {{title}} from recommendations",
-			"saveTopic": "Save {{title}}",
-			"unsaveTopic": "Unsave {{title}}",
+			"blockDishCategory": "Remove {{title}} from recommendations",
+			"saveDishCategory": "Save {{title}}",
+			"unsaveDishCategory": "Unsave {{title}}",
 			"thumbnail": "{{title}} thumbnail, {{index}} of {{total}}"
 		}
 	},
@@ -466,57 +466,6 @@
 			"forbidden": "You can only edit or delete your own posts"
 		}
 	},
-	"Report": {
-		"action": "Report",
-		"title": "Report this post",
-		"reviewTitle": "Report this review",
-		"description": "Choose a reason for reporting. Our team will review it, and the person who posted is not notified.",
-		"reasons": {
-			"spam": "Spam or advertising",
-			"sexual": "Sexual content",
-			"violence": "Violence or disturbing content",
-			"harassment": "Harassment or abuse",
-			"illegal": "Illegal activity",
-			"misinformation": "False information",
-			"rights": "Copyright or other rights violation",
-			"privacy": "Shows personal information",
-			"irrelevant": "Not about food or dining",
-			"other": "Something else"
-		},
-		"detailsLabel": "Details (optional)",
-		"detailsPlaceholder": "Add anything that helps us review it (up to 1,000 characters)",
-		"submit": "Submit report",
-		"submitting": "Sending...",
-		"accepted": {
-			"title": "Thanks for reporting",
-			"description": "We'll review it. We don't send individual updates on the outcome.",
-			"close": "Close",
-			"history": "Your reports"
-		},
-		"errors": {
-			"submitFailed": "We couldn't send your report. Please try again."
-		},
-		"accessibility": {
-			"open": "Report the post from {{name}}",
-			"openReview": "Report the review from {{name}}",
-			"reason": "Reason: {{reason}}",
-			"reasonSelected": "Reason: {{reason}}, selected",
-			"submit": "Submit the report for the post from {{name}}",
-			"submitReview": "Submit the report for the review from {{name}}"
-		},
-		"history": {
-			"navigationLabel": "Your reports",
-			"pageTitle": "Your reports",
-			"empty": "No reports yet",
-			"emptyDescription": "When you report a post or review, it will appear here.",
-			"note": "We don't share review status or outcomes.",
-			"error": "Couldn't load your reports",
-			"target": {
-				"dish_media": "Post",
-				"dish_reviews": "Review"
-			}
-		}
-	},
 	"ImageCardGrid": {
 		"openItemDetails": "Open item details"
 	},
@@ -551,7 +500,7 @@
 			"deposits": "Deposits",
 			"earnings": "Earnings",
 			"saved-posts": "Posts",
-			"saved-topics": "Dishes",
+			"saved-dish-categories": "Dishes",
 			"wallet-deposit": "Deposits",
 			"wallet-earning": "Earnings"
 		},
@@ -571,7 +520,7 @@
 			"noLikedDishMediaEntries": "No liked posts",
 			"noSavedItems": "No saved items",
 			"noSavedPosts": "When you find interesting posts, use \"Save\" to revisit them",
-			"noSavedTopics": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
+			"noSavedDishCategories": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
 		},
 		"reviews": {
 			"filter": {
@@ -864,6 +813,18 @@
 		"logout": "Logout",
 		"logoutConfirmTitle": "Log out?",
 		"logoutConfirmMessage": "You'll need to log in again to manage your posts and reviews.",
+		"blockedDishCategories": {
+			"navigationLabel": "Blocked dish categories",
+			"pageTitle": "Blocked dish categories",
+			"title": "Blocked dishes",
+			"empty": "No blocked dishes",
+			"loading": "Loading...",
+			"unblockButton": "Unblock",
+			"unblockTitle": "Unblock this dish category?",
+			"unblockMessage": "This dish category will be added back to recommendations.",
+			"unblockConfirm": "Unblock",
+			"unblocked": "Unblocked"
+		},
 		"notifications": {
 			"sectionTitle": "Notifications",
 			"osDisabledTitle": "Notifications are turned off for this device",
@@ -882,18 +843,6 @@
 				"title": "Group votes",
 				"description": "When there's activity in a group vote you joined"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "Blocked dish categories",
-			"pageTitle": "Blocked dish categories",
-			"title": "Blocked dishes",
-			"empty": "No blocked dishes",
-			"loading": "Loading...",
-			"unblockButton": "Unblock",
-			"unblockTitle": "Unblock this dish category?",
-			"unblockMessage": "This dish category will be added back to recommendations.",
-			"unblockConfirm": "Unblock",
-			"unblocked": "Unblocked"
 		},
 		"language": {
 			"navigationLabel": "Language",
@@ -1015,10 +964,10 @@
 		},
 		"map": {
 			"truncated": "Only some pins are shown. Narrow the area to see the rest.",
-			"currentLocation": "Go to current location",
 			"sheetTitle": "{{count}} restaurants nearby",
 			"tileA11yLabel": "{{name}} (want to eat: {{want}}, eaten: {{eaten}})",
-			"clusterA11yLabel": "{{count}} restaurants here"
+			"clusterA11yLabel": "{{count}} restaurants here",
+			"currentLocation": "Go to current location"
 		},
 		"guest": {
 			"description": "Log in to start recording dishes you want to try and have eaten",
@@ -1209,6 +1158,57 @@
 			"finish": "Start exploring",
 			"progress": "{{current}} / {{total}}",
 			"progressAccessibility": "Step {{current}} of {{total}}"
+		}
+	},
+	"Report": {
+		"action": "Report",
+		"title": "Report this post",
+		"reviewTitle": "Report this review",
+		"description": "Choose a reason for reporting. Our team will review it, and the person who posted is not notified.",
+		"reasons": {
+			"spam": "Spam or advertising",
+			"sexual": "Sexual content",
+			"violence": "Violence or disturbing content",
+			"harassment": "Harassment or abuse",
+			"illegal": "Illegal activity",
+			"misinformation": "False information",
+			"rights": "Copyright or other rights violation",
+			"privacy": "Shows personal information",
+			"irrelevant": "Not about food or dining",
+			"other": "Something else"
+		},
+		"detailsLabel": "Details (optional)",
+		"detailsPlaceholder": "Add anything that helps us review it (up to 1,000 characters)",
+		"submit": "Submit report",
+		"submitting": "Sending...",
+		"accepted": {
+			"title": "Thanks for reporting",
+			"description": "We'll review it. We don't send individual updates on the outcome.",
+			"close": "Close",
+			"history": "Your reports"
+		},
+		"errors": {
+			"submitFailed": "We couldn't send your report. Please try again."
+		},
+		"accessibility": {
+			"open": "Report the post from {{name}}",
+			"openReview": "Report the review from {{name}}",
+			"reason": "Reason: {{reason}}",
+			"reasonSelected": "Reason: {{reason}}, selected",
+			"submit": "Submit the report for the post from {{name}}",
+			"submitReview": "Submit the report for the review from {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Your reports",
+			"pageTitle": "Your reports",
+			"empty": "No reports yet",
+			"emptyDescription": "When you report a post or review, it will appear here.",
+			"note": "We don't share review status or outcomes.",
+			"error": "Couldn't load your reports",
+			"target": {
+				"dish_media": "Post",
+				"dish_reviews": "Review"
+			}
 		}
 	}
 }

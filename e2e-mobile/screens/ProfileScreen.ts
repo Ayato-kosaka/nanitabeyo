@@ -16,7 +16,7 @@ import {
  * #1402 で画面の形が変わった:
  * - **4 グリッドタブは廃止**。`review-tab-grid` / `save-post-tab-grid` と
  *   サブタブ（`profile-subtab-*`）は存在しない。
- * - 残る 2 つのグリッドは «独立した画面» になった（`profile-liked` / `profile-saved-topics` の行から遷移）。
+ * - 残る 2 つのグリッドは «独立した画面» になった（`profile-liked` / `profile-saved-dish-categories` の行から遷移）。
  * - **独立した設定画面も無くなり**、その項目はこの画面の縦リストにある。
  *   歯車ボタン（`profile-settings-button`）も一緒に消えた。設定項目の Locator は
  *   `screens/SettingsScreen.ts` が持ち続ける（testID も据え置き）。
@@ -30,10 +30,10 @@ export class ProfileScreen {
 	readonly editButton = by.id("profile-edit-button");
 	/** 「いいねした投稿」の行（#1402。押すと /[locale]/profile/liked へ遷移する） */
 	readonly likedItem = by.id("profile-liked");
-	/** 「保存した料理カテゴリ」の行（#1402。押すと /[locale]/profile/saved-topics へ遷移する） */
-	readonly savedTopicsItem = by.id("profile-saved-topics");
+	/** 「保存した料理カテゴリ」の行（#1402。押すと /[locale]/profile/saved-dish-categories へ遷移する） */
+	readonly savedDishCategoriesItem = by.id("profile-saved-dish-categories");
 	/** 保存した料理カテゴリのグリッド（既存 testID。#1402 で単独画面の中身になった） */
-	readonly savedTopicsGrid = by.id("save-topic-tab-grid");
+	readonly savedDishCategoriesGrid = by.id("save-dish-category-tab-grid");
 	/** いいねした投稿のグリッド（既存 testID。#1402 で単独画面の中身になった） */
 	readonly likedGrid = by.id("like-tab-grid");
 
@@ -88,9 +88,9 @@ export class ProfileScreen {
 		await tapWhenVisible(this.likedItem);
 	}
 
-	/** 「保存した料理カテゴリ」の行をタップして一覧画面（/[locale]/profile/saved-topics）へ遷移する（#1402） */
-	async openSavedTopics(): Promise<void> {
-		await tapWhenVisible(this.savedTopicsItem);
+	/** 「保存した料理カテゴリ」の行をタップして一覧画面（/[locale]/profile/saved-dish-categories）へ遷移する（#1402） */
+	async openSavedDishCategories(): Promise<void> {
+		await tapWhenVisible(this.savedDishCategoriesItem);
 	}
 
 	/**

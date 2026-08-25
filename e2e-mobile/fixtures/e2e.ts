@@ -86,7 +86,7 @@ const APP_READY_TEST_ID = "tab-search";
 type LaunchOptions = {
 	/**
 	 * 起動時に開くディープリンク。省略時はアプリの通常起動。
-	 * ロケール依存の画面へ直接飛ぶ場合は `localeDeepLink("search/topics")` を使うこと（#1031 B4）。
+	 * ロケール依存の画面へ直接飛ぶ場合は `localeDeepLink("search/dish-categories")` を使うこと（#1031 B4）。
 	 */
 	url?: string;
 	/**

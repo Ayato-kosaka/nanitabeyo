@@ -111,12 +111,12 @@ export const useDishMediaBackgroundImageResources = ({
 	この画面は全画面サイズの画像を扱うため、フィードを開閉して回ると
 	Android の低メモリ端末で OOM に至る（＝ JS では捕まらないネイティブのクラッシュ）。
 
-	同じ役割の `features/topics/hooks/useTopicImageResources.ts` は
+	同じ役割の `features/dishCategories/hooks/useDishCategoryImageResources.ts` は
 	`releaseIfImageRef` を持っており解放している。**こちらだけ抜けていた。**
 
 	⚠️ 解放は **次のティックで**行う。いま描かれている `<Image>` が同じ ImageRef を
 	参照している最中に解放すると、その 1 フレームだけ画像が消える。
-	（topics 側の `releaseStatesDeferred` と同じ理由・同じ作法）
+	（dishCategories 側の `releaseStatesDeferred` と同じ理由・同じ作法）
 	*/
 	const releaseStatesDeferred = useCallback((states: DishMediaBackgroundImageStates) => {
 		setTimeout(() => {

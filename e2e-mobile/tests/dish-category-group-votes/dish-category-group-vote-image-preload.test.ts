@@ -8,8 +8,8 @@ import { DishCategoryGroupVoteScreen } from "../../screens/DishCategoryGroupVote
  *
  * ## 何を守るテストか
  * 投票画面は候補カードを **1 枚ずつ**しか描かない。候補を送るたびに生の uri を
- * `TopicVisualCard` へ渡していたため、既に見えているはずの画像でも取得がその場から始まり、
- * カード背景色（#EEE）のグレーが一瞬見えていた。修正は `useTopicImageResources` へ
+ * `DishCategoryVisualCard` へ渡していたため、既に見えているはずの画像でも取得がその場から始まり、
+ * カード背景色（#EEE）のグレーが一瞬見えていた。修正は `useDishCategoryImageResources` へ
  * 候補全件を渡して **画面マウント時に先読みする**というもの。
  *
  * ## 観測の仕組み（web との違い）

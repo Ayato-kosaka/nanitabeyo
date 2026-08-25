@@ -3,7 +3,7 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 // #1130 【修正】react-native の SafeAreaView は iOS 専用（Android では素の View に等しく inset を
 // 一切足さない）ため、Android だけヘッダーがステータスバーへ食い込んでいた。
-// ブロック済み料理一覧（profile/blocked-topics.tsx）や検索・プロフィールのタブ直下画面と同じく
+// ブロック済み料理一覧（profile/blocked-dish-categories.tsx）や検索・プロフィールのタブ直下画面と同じく
 // react-native-safe-area-context の SafeAreaView を使う。
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";

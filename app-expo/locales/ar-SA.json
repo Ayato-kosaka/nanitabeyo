@@ -175,9 +175,6 @@
 		},
 		"loading": "جارٍ البحث...",
 		"noLocationsFound": "لم يتم العثور على مواقع",
-		"locationConfirmation": {
-			"error": "فشل تأكيد الموقع"
-		},
 		"advancedToggle": {
 			"open": "خيارات إضافية",
 			"close": "إغلاق البحث المتقدم"
@@ -257,6 +254,9 @@
 		"recentLocations": {
 			"title": "المواقع الأخيرة",
 			"clear": "مسح المواقع الأخيرة"
+		},
+		"locationConfirmation": {
+			"error": "فشل تأكيد الموقع"
 		}
 	},
 	"Onboarding": {
@@ -306,7 +306,7 @@
 			"stepProgress": "الخطوة {{current}} من {{total}}"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "تصفية بهذا النمط"
 		},
@@ -327,7 +327,7 @@
 					"title": "تعمّق في البحث حسب مزاجك",
 					"body": "لم تقرر بعد؟ اختر نمطًا لتضييق الاقتراحات إلى أطباق مشابهة."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "نظّم الاقتراحات حسب ذوقك",
 					"save": "حفظ: ارجع إلى الطبق لاحقًا",
 					"block": "حظر: أوقف اقتراح الأطباق التي لا تناسب ذوقك مستقبلاً"
@@ -338,7 +338,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "إخفاء",
 			"description": "أخبرنا سبب الإخفاء (اختياري)",
 			"placeholder": "أدخل السبب...",
@@ -356,7 +356,7 @@
 		"retry": "العودة إلى البحث",
 		"chooseThis": "اختر هذا!",
 		"hiddenMessage": "تم إخفاء {{title}}",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "حظر هذا الطبق؟",
 			"description": "لن تظهر فئات الأطباق المحظورة بعد الآن في التوصيات.",
 			"note": "يمكنك إلغاء الحظر في أي وقت من الإعدادات.",
@@ -375,9 +375,9 @@
 		"headerTitle": "الأطباق الموصى بها لك",
 		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم",
 		"accessibility": {
-			"blockTopic": "إزالة {{title}} من التوصيات",
-			"saveTopic": "حفظ {{title}}",
-			"unsaveTopic": "إلغاء حفظ {{title}}",
+			"blockDishCategory": "إزالة {{title}} من التوصيات",
+			"saveDishCategory": "حفظ {{title}}",
+			"unsaveDishCategory": "إلغاء حفظ {{title}}",
 			"thumbnail": "صورة مصغرة لـ {{title}}، {{index}} من {{total}}"
 		}
 	},
@@ -466,57 +466,6 @@
 			"forbidden": "يمكنك تعديل أو حذف منشوراتك فقط"
 		}
 	},
-	"Report": {
-		"action": "إبلاغ",
-		"title": "الإبلاغ عن هذا المنشور",
-		"reviewTitle": "الإبلاغ عن هذه المراجعة",
-		"description": "اختر سبب الإبلاغ. سيراجع الفريق المحتوى، ولن يتم إخطار صاحب المنشور.",
-		"reasons": {
-			"spam": "رسائل مزعجة أو إعلانات",
-			"sexual": "محتوى جنسي",
-			"violence": "عنف أو محتوى مزعج",
-			"harassment": "تحرش أو إساءة",
-			"illegal": "نشاط غير قانوني",
-			"misinformation": "معلومات غير صحيحة",
-			"rights": "انتهاك حقوق (مثل حقوق النشر)",
-			"privacy": "يتضمن بيانات شخصية",
-			"irrelevant": "لا علاقة له بالطعام",
-			"other": "سبب آخر"
-		},
-		"detailsLabel": "تفاصيل إضافية (اختياري)",
-		"detailsPlaceholder": "أضف ما يساعدنا في المراجعة (حتى 1000 حرف)",
-		"submit": "إرسال البلاغ",
-		"submitting": "جارٍ الإرسال...",
-		"accepted": {
-			"title": "شكرًا على الإبلاغ",
-			"description": "سنراجع المحتوى. لا نرسل إشعارات فردية بالنتيجة.",
-			"close": "إغلاق",
-			"history": "بلاغاتك"
-		},
-		"errors": {
-			"submitFailed": "تعذّر إرسال البلاغ. حاول مرة أخرى."
-		},
-		"accessibility": {
-			"open": "الإبلاغ عن منشور {{name}}",
-			"openReview": "الإبلاغ عن مراجعة {{name}}",
-			"reason": "السبب: {{reason}}",
-			"reasonSelected": "السبب: {{reason}} (محدد)",
-			"submit": "إرسال بلاغ عن منشور {{name}}",
-			"submitReview": "إرسال بلاغ عن مراجعة {{name}}"
-		},
-		"history": {
-			"navigationLabel": "بلاغاتك",
-			"pageTitle": "بلاغاتك",
-			"empty": "لا توجد بلاغات بعد",
-			"emptyDescription": "عند الإبلاغ عن منشور أو مراجعة، سيظهر هنا.",
-			"note": "لا نشارك حالة المراجعة أو نتيجتها.",
-			"error": "تعذر تحميل بلاغاتك",
-			"target": {
-				"dish_media": "منشور",
-				"dish_reviews": "مراجعة"
-			}
-		}
-	},
 	"ImageCardGrid": {
 		"openItemDetails": "فتح تفاصيل العنصر"
 	},
@@ -551,7 +500,7 @@
 			"deposits": "الودائع",
 			"earnings": "الأرباح",
 			"saved-posts": "المنشورات",
-			"saved-topics": "الأطباق",
+			"saved-dish-categories": "الأطباق",
 			"wallet-deposit": "الودائع",
 			"wallet-earning": "الأرباح"
 		},
@@ -571,7 +520,7 @@
 			"noLikedDishMediaEntries": "لا توجد منشورات معجبة",
 			"noSavedItems": "لا توجد عناصر محفوظة",
 			"noSavedPosts": "عندما تجد منشورات مثيرة للاهتمام، استخدم \"حفظ\" لمراجعتها",
-			"noSavedTopics": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة"
+			"noSavedDishCategories": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة"
 		},
 		"reviews": {
 			"filter": {
@@ -864,6 +813,18 @@
 		"logout": "تسجيل الخروج",
 		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
 		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
+		"blockedDishCategories": {
+			"navigationLabel": "فئات الأطباق المحظورة",
+			"pageTitle": "فئات الأطباق المحظورة",
+			"title": "أطباق محظورة",
+			"empty": "لا توجد أطباق محظورة",
+			"loading": "جاري التحميل...",
+			"unblockButton": "إلغاء الحظر",
+			"unblockTitle": "إلغاء حظر فئة الطبق هذه؟",
+			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
+			"unblockConfirm": "إلغاء الحظر",
+			"unblocked": "تم إلغاء الحظر"
+		},
 		"notifications": {
 			"sectionTitle": "الإشعارات",
 			"osDisabledTitle": "الإشعارات موقوفة على هذا الجهاز",
@@ -882,18 +843,6 @@
 				"title": "تصويت المجموعة",
 				"description": "عند حدوث نشاط في تصويت مجموعة انضممت إليها"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "فئات الأطباق المحظورة",
-			"pageTitle": "فئات الأطباق المحظورة",
-			"title": "أطباق محظورة",
-			"empty": "لا توجد أطباق محظورة",
-			"loading": "جاري التحميل...",
-			"unblockButton": "إلغاء الحظر",
-			"unblockTitle": "إلغاء حظر فئة الطبق هذه؟",
-			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
-			"unblockConfirm": "إلغاء الحظر",
-			"unblocked": "تم إلغاء الحظر"
 		},
 		"language": {
 			"navigationLabel": "اللغة",
@@ -1015,10 +964,10 @@
 		},
 		"map": {
 			"truncated": "يتم عرض بعض الدبابيس فقط. يرجى تضييق نطاق المنطقة.",
-			"currentLocation": "الانتقال إلى موقعي الحالي",
 			"sheetTitle": "{{count}} مطاعم قريبة",
 			"tileA11yLabel": "{{name}} (أريد أن آكل: {{want}}، أكلت: {{eaten}})",
-			"clusterA11yLabel": "{{count}} مطاعم في هذه المنطقة"
+			"clusterA11yLabel": "{{count}} مطاعم في هذه المنطقة",
+			"currentLocation": "الانتقال إلى موقعي الحالي"
 		},
 		"guest": {
 			"description": "سجّل الدخول لتسجيل الأطباق التي تريد تجربتها والتي تناولتها",
@@ -1209,6 +1158,57 @@
 			"finish": "ابدأ",
 			"progress": "{{current}} / {{total}}",
 			"progressAccessibility": "الخطوة {{current}} من {{total}}"
+		}
+	},
+	"Report": {
+		"action": "إبلاغ",
+		"title": "الإبلاغ عن هذا المنشور",
+		"reviewTitle": "الإبلاغ عن هذه المراجعة",
+		"description": "اختر سبب الإبلاغ. سيراجع الفريق المحتوى، ولن يتم إخطار صاحب المنشور.",
+		"reasons": {
+			"spam": "رسائل مزعجة أو إعلانات",
+			"sexual": "محتوى جنسي",
+			"violence": "عنف أو محتوى مزعج",
+			"harassment": "تحرش أو إساءة",
+			"illegal": "نشاط غير قانوني",
+			"misinformation": "معلومات غير صحيحة",
+			"rights": "انتهاك حقوق (مثل حقوق النشر)",
+			"privacy": "يتضمن بيانات شخصية",
+			"irrelevant": "لا علاقة له بالطعام",
+			"other": "سبب آخر"
+		},
+		"detailsLabel": "تفاصيل إضافية (اختياري)",
+		"detailsPlaceholder": "أضف ما يساعدنا في المراجعة (حتى 1000 حرف)",
+		"submit": "إرسال البلاغ",
+		"submitting": "جارٍ الإرسال...",
+		"accepted": {
+			"title": "شكرًا على الإبلاغ",
+			"description": "سنراجع المحتوى. لا نرسل إشعارات فردية بالنتيجة.",
+			"close": "إغلاق",
+			"history": "بلاغاتك"
+		},
+		"errors": {
+			"submitFailed": "تعذّر إرسال البلاغ. حاول مرة أخرى."
+		},
+		"accessibility": {
+			"open": "الإبلاغ عن منشور {{name}}",
+			"openReview": "الإبلاغ عن مراجعة {{name}}",
+			"reason": "السبب: {{reason}}",
+			"reasonSelected": "السبب: {{reason}} (محدد)",
+			"submit": "إرسال بلاغ عن منشور {{name}}",
+			"submitReview": "إرسال بلاغ عن مراجعة {{name}}"
+		},
+		"history": {
+			"navigationLabel": "بلاغاتك",
+			"pageTitle": "بلاغاتك",
+			"empty": "لا توجد بلاغات بعد",
+			"emptyDescription": "عند الإبلاغ عن منشور أو مراجعة، سيظهر هنا.",
+			"note": "لا نشارك حالة المراجعة أو نتيجتها.",
+			"error": "تعذر تحميل بلاغاتك",
+			"target": {
+				"dish_media": "منشور",
+				"dish_reviews": "مراجعة"
+			}
 		}
 	}
 }
