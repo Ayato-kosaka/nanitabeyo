@@ -1,6 +1,6 @@
 import { test as base, expect, type Page } from "@playwright/test";
 import { waitForAnonymousSession } from "../utils/auth";
-import { seedTopicsTutorialAsSeen, seedTutorialAsSeen } from "../utils/storage";
+import { seedDishCategoriesTutorialAsSeen, seedTutorialAsSeen } from "../utils/storage";
 
 /**
  * 🧩 カスタムフィクスチャ
@@ -25,7 +25,7 @@ type AppOptions = {
 	 * 料理提案画面のスポットライトチュートリアルを表示済みにするか。
 	 * 既存の検索フローを遮らないよう既定true、専用specのみfalseにする。
 	 */
-	seedTopicsTutorialSeen: boolean;
+	seedDishCategoriesTutorialSeen: boolean;
 	/**
 	 * この spec では «出て当然» の console error / pageerror。**部分一致**したものは収集しない。
 	 *
@@ -85,17 +85,17 @@ const KNOWN_CONSOLE_NOISE: RegExp[] = [
 export const test = base.extend<AppOptions & AppFixtures>({
 	// ── オプション ──────────────────────────────────────────────
 	seedTutorialSeen: [true, { option: true }],
-	seedTopicsTutorialSeen: [true, { option: true }],
+	seedDishCategoriesTutorialSeen: [true, { option: true }],
 	allowedConsoleErrors: [[], { option: true }],
 
 	// ── context: オンボーディング / スポットライトのシードを適用 ──
 	// addInitScript はページ生成前に仕込む必要があるため context を拡張する
-	context: async ({ context, seedTopicsTutorialSeen, seedTutorialSeen }, use) => {
+	context: async ({ context, seedDishCategoriesTutorialSeen, seedTutorialSeen }, use) => {
 		if (seedTutorialSeen) {
 			await seedTutorialAsSeen(context);
 		}
-		if (seedTopicsTutorialSeen) {
-			await seedTopicsTutorialAsSeen(context);
+		if (seedDishCategoriesTutorialSeen) {
+			await seedDishCategoriesTutorialAsSeen(context);
 		}
 		await use(context);
 	},

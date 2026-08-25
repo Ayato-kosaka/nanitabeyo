@@ -3,15 +3,15 @@
 //
 // 原因の切り分け（Issue #1213 の A〜D）:
 //   候補一覧・投票結果側の小さいサムネイル（DishCategoryGroupVoteCandidateCard 等）と違い、
-//   この画面の大きな候補カードは features/topics/components/TopicVisualCard を再利用している。
-//   TopicVisualCard は cachePolicy="memory" 固定で、Topics 検索画面では
-//   features/topics/hooks/useTopicImageResources が画面マウント時に Image.loadAsync で
+//   この画面の大きな候補カードは features/dishCategories/components/DishCategoryVisualCard を再利用している。
+//   DishCategoryVisualCard は cachePolicy="memory" 固定で、DishCategories 検索画面では
+//   features/dishCategories/hooks/useDishCategoryImageResources が画面マウント時に Image.loadAsync で
 //   候補「全件」を先読みし、ready になった ImageRef を渡すことで初めて即時表示できる
 //   （#785/#802/#929 のコメント参照：同一 URL を異なる cachePolicy で読むと iOS の
 //   画像パイプラインが分かれてイベントが欠落しうるため、生の uri をその場で渡してはいけない）。
 //
 //   修正前の DishCategoryGroupVoteVoteScreen / DishCategoryGroupVoteVoteCard はこの
-//   プリロード契約に一切参加しておらず、候補が表示されるたびに TopicVisualCard へ生の uri を
+//   プリロード契約に一切参加しておらず、候補が表示されるたびに DishCategoryVisualCard へ生の uri を
 //   渡していた（＝ Image キャッシュキー/プリロードなしで毎回ネットワークから取り直す。Issue の A）。
 //   このテストは、画面マウント直後（＝ユーザーがまだ1枚もスワイプする前）に候補「全件」の
 //   先読みが cacheKey 付きで開始されること、そして表示中の候補へその読み込み結果
@@ -166,7 +166,7 @@ describe("DishCategoryGroupVoteVoteScreen の画像プリロード", () => {
 		mockDetail.current = DETAIL;
 		mockLoadAsync.mockReset();
 		mockVoteCardRender.mockReset();
-		// #1213 useTopicImageResources は Image.loadAsync の resolve を待って ready にする。
+		// #1213 useDishCategoryImageResources は Image.loadAsync の resolve を待って ready にする。
 		// テストでは pending のまま観測したいケースが無いので常に解決させておく。
 		mockLoadAsync.mockImplementation(() => Promise.resolve({ uri: "resolved" }));
 	});

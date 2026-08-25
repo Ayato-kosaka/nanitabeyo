@@ -292,7 +292,7 @@ export function ReviewForm({
 	 * **同じレビューが 2 件登録される**。
 	 *
 	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続呼び出しでもレースしない。
-	 * search/index.tsx の `isSearchingRef`、search/topics.tsx の `isSelectingTopicRef` と同じ方式。
+	 * search/index.tsx の `isSearchingRef`、search/dish-categories.tsx の `isSelectingDishCategoryRef` と同じ方式。
 	 */
 	const isSubmittingRef = useRef(false);
 	/**
@@ -771,6 +771,12 @@ export function ReviewForm({
 			let dish: DishMediaEntry["dish"] | null = null;
 			/** レビューを書く対象の dish。写真ありは `dish_media.dish_id`、写真なしは get-or-create の結果 */
 			let dishId: string;
+			/**
+			 * #1560 新規写真投稿では `POST /v1/dish-media` が **同じトランザクションで**
+			 * 作ったレビューを返す。その場合 `POST /v1/dish-reviews` は投げない。
+			 * null のままなら従来どおり単独で投げる（写真なし / 他人のメディアへの追記）。
+			 */
+			let createdDishReviewFromMedia: CreateDishMediaResponse["dishReview"] | null = null;
 			if (mediaState.status === "none") {
 				/**
 				 * #1398 (c-2) 写真なしの記録。
@@ -833,6 +839,19 @@ export function ReviewForm({
 				 * Video のアップロードが完了してからでないと、
 				 * transcoer API が失敗する可能性があるため、直列で実行する
 				 */
+				/*
+				#1560 【設計】レビューを **この 1 本に同梱する**。
+
+				以前は `POST /v1/dish-media` の直後に `POST /v1/dish-reviews` を投げていたが、
+				1 本目が成功して 2 本目が落ちる（通信断・5xx）と **写真だけが残った**。
+				`GET /v1/users/me/dishes` の候補集合は want（reactions）と eaten（dish_reviews）の
+				2 系統しか無く dish_media を起点にした系統が無いため、その行は一覧にもピンにも
+				出ず、本人が到達する導線が消える。#1513 の「投稿を削除」でも消せない（#1560）。
+
+				サーバーは media と review を同じトランザクションで書くので、部分成功が
+				原理的に起きなくなる。アップロードは依然この前に完了させること
+				（トランスコーダがアップロード済みオブジェクトを読むため）。
+				*/
 				const createDishMediaResponse = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>(
 					"v1/dish-media",
 					{
@@ -843,9 +862,17 @@ export function ReviewForm({
 							thumbnailPath,
 							mediaType: mediaState.media.type,
 							videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
+							review: {
+								comment: reviewText,
+								languageCode: locale,
+								priceCents: parsedPrice,
+								currencyCode: currencyCode ?? undefined,
+								rating,
+							},
 						},
 					},
 				);
+				createdDishReviewFromMedia = createDishMediaResponse.dishReview ?? null;
 				dish_media = {
 					...createDishMediaResponse,
 					isMine: true,
@@ -869,7 +896,10 @@ export function ReviewForm({
 				dishId = dish_media.dish_id;
 			}
 
-			const createdDishReview = await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
+			// #1560 メディアと同時に作れていれば 2 本目は投げない（部分成功の窓を作らない）
+			const createdDishReview =
+				createdDishReviewFromMedia ??
+				(await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
 				method: "POST",
 				requestPayload: {
 					dishId,
@@ -881,8 +911,8 @@ export function ReviewForm({
 					// #1398 B4 写真なしのときは `createdDishMediaId` を**送らない**。
 					// DTO 上すでに任意で、API は未指定なら `created_dish_media_id` に NULL を書く
 					...(dish_media ? { createdDishMediaId: dish_media.id } : {}),
-				},
-			});
+					},
+				}));
 
 			/**
 			 * #1398 R2 【重要】写真なし（`dish_media === null`）ではストアを 1 つも触らない。

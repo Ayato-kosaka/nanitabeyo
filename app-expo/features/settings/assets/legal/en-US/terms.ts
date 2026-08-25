@@ -1,7 +1,7 @@
 export const termsEnUs = `
 # Terms of Service
 
-Last Updated: November 2025
+Last Updated: August 2026
 
 These Terms of Service ("Terms") apply to the use of the application "CraveCatch / なに食べよ" (the "Service"). By using the Service, you agree to these Terms.
 
@@ -17,7 +17,7 @@ Users can browse, upload, share, and interact with content within the Service.
 ## 2. Accounts & Login
 
 The Service provides login only via external authentication providers.  
-The Service does not provide an account deletion function. Users may stop using the Service by logging out.
+Users may delete their account at any time from the Settings screen. Deletion anonymizes personally identifiable information and deletes the authentication account. **Deletion cannot be undone, and you will not be able to sign in again with the same account.** The scope of data retained after deletion is described in the Privacy Policy.
 
 ---
 

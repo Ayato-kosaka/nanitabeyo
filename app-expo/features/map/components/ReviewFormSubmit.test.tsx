@@ -105,7 +105,9 @@ jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockC
 jest.mock("@/hooks/useDishCategorySearch", () => ({
 	useDishCategorySearch: () => ({ createDishCategoryVariant: jest.fn() }),
 }));
-jest.mock("@/hooks/useFileUploader", () => ({ useFileUploader: () => ({ uploadFile: jest.fn() }) }));
+// #1560 新規写真投稿の経路を通すため、アップロードの戻り値をテストから差し込めるようにする
+const mockUploadFile = jest.fn();
+jest.mock("@/hooks/useFileUploader", () => ({ useFileUploader: () => ({ uploadFile: mockUploadFile }) }));
 const mockShowSnackbar = jest.fn();
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: mockShowSnackbar }) }));
 jest.mock("@/features/profile/hooks/useEnsureOwnProfileLoaded", () => ({ useEnsureOwnProfileLoaded: jest.fn() }));
@@ -437,5 +439,108 @@ describe("ReviewForm の写真なし投稿（#1398 B4 / R2）", () => {
 		await submitNoMedia();
 
 		expect(onSuccess).toHaveBeenCalledWith({ dishMedia: null, dishReviewId: "dish-review-1" });
+	});
+});
+
+/*
+#1560 【回帰】新規写真投稿を **1 本の HTTP** で終わらせる。
+
+分かれていた頃は `POST /v1/dish-media` → `POST /v1/dish-reviews` の 2 本立てで、
+1 本目が成功して 2 本目が落ちる（通信断・5xx）と写真だけが残った。
+`GET /v1/users/me/dishes` の候補集合は want（reactions）と eaten（dish_reviews）の
+2 系統しか無く **dish_media を起点にした系統が無い**ため、その行は一覧にもピンにも出ず、
+本人が到達する導線が消える。#1513 の「投稿を削除」でも消せない。
+
+ここで固定するのは «2 本目を投げないこと» そのものである。投げてしまえば、
+サーバーが 1 トランザクションにしても部分成功の窓は閉じない。
+*/
+describe("ReviewForm の新規写真投稿（#1560 1 トランザクション化）", () => {
+	let tree: TestRenderer.ReactTestRenderer;
+
+	const mountWithNewPhoto = async () => {
+		(selectMedia as jest.Mock).mockResolvedValue({
+			success: true,
+			media: { type: "image", uri: "file:///tmp/pic.jpg", mimeType: "image/jpeg" },
+		});
+		mockUploadFile.mockResolvedValue("users/u1/dish-1-media.jpg");
+		await act(async () => {
+			tree = TestRenderer.create(
+				<ReviewForm
+					restaurant={restaurant}
+					onCancel={noop}
+					onSuccess={jest.fn()}
+					initialPrice="1000"
+					initialReviewText="とてもおいしかった"
+					initialRating={5}
+				/>,
+			);
+		});
+		await act(async () => {
+			useDishCategorySelectionStore
+				.getState()
+				.setResult({ status: "selected", dishCategoryId: "dish-category-1", label: "からあげ" });
+		});
+	};
+
+	const pressSubmit = () => {
+		const pressable = tree.root
+			.findAllByProps({ testID: "review-submit-button" })
+			.find((node) => node.props.android_ripple !== undefined && typeof node.props.onPress === "function");
+		if (!pressable) throw new Error("投稿ボタンの Pressable が見つかりません");
+		act(() => pressable.props.onPress({}));
+	};
+
+	const calledEndpoints = () => mockCallBackend.mock.calls.map(([endpoint]) => endpoint);
+	const payloadOf = (endpoint: string) =>
+		mockCallBackend.mock.calls.find(([called]) => called === endpoint)?.[1]?.requestPayload;
+
+	beforeEach(() => {
+		mockCallBackend.mockReset();
+		mockUploadFile.mockReset();
+	});
+
+	afterEach(() => {
+		if (tree) act(() => tree.unmount());
+	});
+
+	it("v1/dish-media がレビュー本体を同梱して 1 本で終わり、/v1/dish-reviews を叩かない", async () => {
+		await mountWithNewPhoto();
+		// v1/dishes（get-or-create）→ v1/dish-media（レビュー同梱）
+		mockCallBackend.mockResolvedValueOnce({ id: "dish-1", restaurant_id: "restaurant-1", category_id: "c-1" });
+		mockCallBackend.mockResolvedValueOnce({
+			id: "dish-media-1",
+			dish_id: "dish-1",
+			dishReview: { id: "dish-review-1" },
+		});
+		pressSubmit();
+		await act(async () => {});
+
+		expect(calledEndpoints()).toEqual(["v1/dishes", "v1/dish-media"]);
+		expect(calledEndpoints()).not.toContain("/v1/dish-reviews");
+
+		const payload = payloadOf("v1/dish-media");
+		expect(payload.review).toEqual({
+			comment: "とてもおいしかった",
+			languageCode: "ja-JP",
+			priceCents: 1000,
+			currencyCode: "JPY",
+			rating: 5,
+		});
+		// dishId / createdDishMediaId はサーバーが決める（クライアントに決めさせない）
+		expect(payload.review).not.toHaveProperty("dishId");
+		expect(payload.review).not.toHaveProperty("createdDishMediaId");
+	});
+
+	it("サーバーがレビューを返さなければ、従来どおり /v1/dish-reviews を投げる（後方互換）", async () => {
+		await mountWithNewPhoto();
+		mockCallBackend.mockResolvedValueOnce({ id: "dish-1", restaurant_id: "restaurant-1", category_id: "c-1" });
+		// dishReview を返さない旧 API を模す
+		mockCallBackend.mockResolvedValueOnce({ id: "dish-media-1", dish_id: "dish-1" });
+		mockCallBackend.mockResolvedValueOnce({ id: "dish-review-1" });
+		pressSubmit();
+		await act(async () => {});
+
+		expect(calledEndpoints()).toEqual(["v1/dishes", "v1/dish-media", "/v1/dish-reviews"]);
+		expect(payloadOf("/v1/dish-reviews").createdDishMediaId).toBe("dish-media-1");
 	});
 });

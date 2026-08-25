@@ -18,7 +18,7 @@ test.describe("設定項目(匿名ユーザー)", () => {
 	//      - ご意見・不具合(settings-feedback)
 	//      - 利用規約(settings-terms)
 	//      - プライバシーポリシー(settings-privacy)
-	//      - ブロック済みの料理カテゴリ(settings-blocked-topics) ← #1132 で「トピック」から改称
+	//      - ブロック済みの料理カテゴリ(settings-blocked-dish-categories) ← #1132 で「トピック」から改称
 	//      - 端末設定(settings-device-settings) ← #1504 で追加。規約カードの直上
 	//   3. 「レビューを書く」(ストア誘導)は Web では表示されないことを検証
 	test("設定メニューの各項目が表示される", async ({ appPage }) => {
@@ -29,7 +29,7 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		await expect(settingsPage.feedbackItem).toBeVisible();
 		await expect(settingsPage.termsItem).toBeVisible();
 		await expect(settingsPage.privacyItem).toBeVisible();
-		await expect(settingsPage.blockedTopicsItem).toBeVisible();
+		await expect(settingsPage.blockedDishCategoriesItem).toBeVisible();
 		// #1504 端末設定は規約カードの直上に置いた行
 		await expect(settingsPage.deviceSettingsItem).toBeVisible();
 		await expect(appPage.getByText("レビューを書く", { exact: true })).toHaveCount(0);
@@ -55,15 +55,6 @@ test.describe("設定項目(匿名ユーザー)", () => {
 	//      (例: 1.14.0(abc1234) / コミットID未設定時は 1.14.0(dev)) で表示され、
 	//      空文字や"undefined"を出していないことを検証する
 	test("バージョン情報が表示される", async ({ appPage }) => {
-	// ─ テストケース: 匿名時は通知カードが表示されない ─
-	// 手順:
-	//   1. 設定画面を表示する(匿名状態)
-	//   2. 通知カード(settings-notifications-card)が存在しないことを検証
-	//
-	// #1510 匿名ユーザーは Push Token を登録しない(PushTokenRegistration)ため、
-	// 受け取り方を設定させても届く先が無い。ログイン済み側の検証は
-	// tests/authenticated/notification-preferences.spec.ts が持つ
-	test("匿名時は通知カテゴリのカードが表示されない", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
@@ -72,6 +63,26 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		const versionText = await settingsPage.versionText.innerText();
 		expect(versionText).toMatch(/^\d+\.\d+\.\d+\([^)]+\)$/);
 		expect(versionText).not.toMatch(/undefined/i);
+	});
+
+	// ─ テストケース: 匿名時は通知カードが表示されない ─
+	// 手順:
+	//   1. 設定画面を表示する(匿名状態)
+	//   2. 通知カード(settings-notifications-card)が存在しないことを検証
+	//
+	// #1510 匿名ユーザーは Push Token を登録しない(PushTokenRegistration)ため、
+	// 受け取り方を設定させても届く先が無い。ログイン済み側の検証は
+	// tests/authenticated/notification-preferences.spec.ts が持つ
+	//
+	// ⚠️ ベース取り込みの時点で、この test は **中身がバージョン検証のまま**入れ子になっていて、
+	//    バージョンも通知カードもどちらも assert されていなかった（構文としては通る）。
+	//    2 本の独立した test へ戻してある。
+	test("匿名時は通知カテゴリのカードが表示されない", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await expect(settingsPage.notificationsCard).toHaveCount(0);
 	});
 });
 
@@ -132,6 +143,5 @@ test.describe("端末設定画面のハプティクストグル(匿名ユーザ�
 		// 後始末: 既定値(オン)へ戻す
 		await deviceSettingsPage.hapticsToggleItem.click();
 		await expect(deviceSettingsPage.hapticsToggleSwitch).toBeChecked();
-		await expect(settingsPage.notificationsCard).toHaveCount(0);
 	});
 });

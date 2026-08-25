@@ -39,6 +39,8 @@ import { toErrorLogMessage } from "@/lib/errorMessage";
 /* -------------------------------------------------------------------------- */
 
 // #703 【設計】CDN JSON から取得する候補アイテムの型
+// #1553 【互換性】`topicTitle` は公開済み CDN JSON と contribution-tasks API のフィールド名
+// （DB 列 topic_title 由来）。データ契約なのでアプリ内リネームの対象外（変えるならデータ側と同時）
 type CandidateItem = {
 	category_id: string; // dish_category_id (Wikidata QID)
 	category: string; // 表示名
@@ -769,7 +771,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 							/>
 							{/* オーバーレイ */}
 							<View style={styles.detailOverlay}>
-								<Text style={styles.detailTopicTitle}>{selectedItem.topicTitle}</Text>
+								<Text style={styles.detailTitle}>{selectedItem.topicTitle}</Text>
 								<Text style={styles.detailReason} numberOfLines={3}>
 									{selectedItem.reason}
 								</Text>
@@ -1063,12 +1065,12 @@ const styles = StyleSheet.create({
 		left: 0,
 		right: 0,
 		bottom: 0,
-		backgroundColor: "rgba(0, 0, 0, 0.1)", // TopicCard と同じ
-		padding: 12, // TopicCard と同じ
-		justifyContent: "flex-end", // TopicCard と同じ（上下分離できる）
-		zIndex: 3, // TopicCard と同じ（念のため）
+		backgroundColor: "rgba(0, 0, 0, 0.1)", // DishCategoryCard と同じ
+		padding: 12, // DishCategoryCard と同じ
+		justifyContent: "flex-end", // DishCategoryCard と同じ（上下分離できる）
+		zIndex: 3, // DishCategoryCard と同じ（念のため）
 	},
-	detailTopicTitle: {
+	detailTitle: {
 		fontSize: 24,
 		fontWeight: "700",
 		color: "#FFFFFF",

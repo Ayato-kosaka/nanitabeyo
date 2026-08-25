@@ -249,17 +249,6 @@ export default function MyDishesScreen() {
 						);
 					})}
 					<View style={styles.viewSwitchSpacer} />
-					{/* #1375（オーナー指示）チュートリアルを見返す口。絞り込みの **左** に置く。
-					    以前は «一度見たら二度と開けない» 状態だった（自動で 1 回出るだけ） */}
-					<TouchableOpacity
-						testID="my-dishes-tutorial-replay"
-						onPress={handleReplayTutorial}
-						style={styles.tutorialButton}
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("MyDishes.tutorial.replay")}>
-						<HelpCircle size={18} color={colors.textSecondary} />
-					</TouchableOpacity>
-					<View style={styles.viewSwitchSpacer} />
 					<View ref={filterButtonTutorialRef} collapsable={false}>
 						<TouchableOpacity
 							testID="my-dishes-filter-button"
@@ -282,6 +271,18 @@ export default function MyDishesScreen() {
 							)}
 						</TouchableOpacity>
 					</View>
+					<View style={styles.viewSwitchSpacer} />
+					{/* #1375（9 巡目・オーナー指示）チュートリアルを見返す口は絞り込みの **右**。
+					    8 巡目までは左に置いていたが、«左＝ビュー切替、右＝道具» の並びのほうが
+					    目で追いやすい、という指摘による */}
+					<TouchableOpacity
+						testID="my-dishes-tutorial-replay"
+						onPress={handleReplayTutorial}
+						style={styles.tutorialButton}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("MyDishes.tutorial.replay")}>
+						<HelpCircle size={18} color={colors.textSecondary} />
+					</TouchableOpacity>
 				</View>
 			</View>
 

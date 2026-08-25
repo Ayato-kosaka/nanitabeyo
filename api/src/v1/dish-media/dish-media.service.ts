@@ -26,6 +26,7 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import { env } from '../../core/config/env';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
+import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import {
   buildTranscodedPath,
@@ -174,21 +175,47 @@ export class DishMediaService {
     if (!isValidUserUploadedPath(dto.mediaPath, creatorId))
       throw new NotFoundException('Invalid mediaPath');
 
-    // トランザクションで dish_media + 付随レコード作成
-    const result = await this.prisma.withTransaction(
-      (tx: Prisma.TransactionClient) =>
-        this.repo.createDishMedia(tx, dto, {
+    /*
+    #1560 【設計】レビューを一緒に受け取ったら **同じトランザクションで** 書く。
+
+    分かれていた頃は `POST /v1/dish-media` → `POST /v1/dish-reviews` の 2 本立てで、
+    1 本目が成功して 2 本目が落ちると dish_media だけが残った。
+    `GET /v1/users/me/dishes` の候補集合は want（reactions）と eaten（dish_reviews）の
+    2 系統しか無く **dish_media を起点にした系統が無い**ため、その行は一覧にもピンにも
+    出ず、本人が到達する導線が消える。#1513 の「投稿を削除」でも消せない。
+    ストレージに写真が残り続けるのに本人は見ることも消すこともできなくなる。
+
+    ⚠️ トランザクションの中で外部呼び出し（トランスコード起動・リサイズの enqueue）を
+       してはいけない。それらはコミット後に行う（下）。ロールバックされた行に対して
+       ジョブだけが走ると、実体の無い record_id をずっと参照し続ける。
+    */
+    const { media: result, review } = await this.prisma.withTransaction(
+      async (tx: Prisma.TransactionClient) => {
+        const media = await this.repo.createDishMedia(tx, dto, {
           user_id: creatorId,
           thumbnail_path: dto.thumbnailPath,
           media_processing_status: 'processing',
           thumbnail_processing_status: 'processing',
-        }),
+        });
+        const dishReview = dto.review
+          ? await this.repo.createDishReviewForMedia(
+              tx,
+              dto.review,
+              media,
+              creatorId,
+            )
+          : null;
+        return { media, review: dishReview };
+      },
     );
 
     this.logger.log('DishMediaCreated', 'createDishMedia', {
       mediaId: result.id,
       dishId: dto.dishId,
       mediaType: dto.mediaType,
+      // #1560 «同じトランザクションでレビューまで作れたか» をログから判別できるようにする。
+      // 孤児が再発したときに «2 本立ての経路を通っていた» のか «1 本で落ちた» のかが分かる
+      reviewId: review?.id ?? null,
     });
 
     if (dto.mediaType === 'video') {
@@ -238,7 +265,13 @@ export class DishMediaService {
       originalPath: dto.thumbnailPath,
     });
 
-    return convertPrismaToSupabase_DishMedia(result);
+    return {
+      ...convertPrismaToSupabase_DishMedia(result),
+      // #1560 レビューを一緒に作ったときだけ返す。送らなかった従来の呼び出しでは undefined
+      ...(review
+        ? { dishReview: convertPrismaToSupabase_DishReviews(review) }
+        : {}),
+    };
   }
 
   /* ------------------------------------------------------------------ */

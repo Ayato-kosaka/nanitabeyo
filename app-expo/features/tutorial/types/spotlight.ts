@@ -53,10 +53,16 @@ export type SpotlightStepDefinition<K extends string> = {
 };
 
 // ───────── 料理提案画面（#927）の別名。既存の呼び出し元を壊さないために残す ─────────
+// #1553 «topic» という表現をアプリ内から消したため、別名も DishCategories 系へ揃えた。
 
-export type TopicsTutorialTargetKey = "swipeArea" | "selectCta" | "deepDive" | "topicActions" | "groupVote";
-export type TopicsTutorialTargetRefs = SpotlightTargetRefs<TopicsTutorialTargetKey>;
-export type TopicsTutorialOpenReason = SpotlightOpenReason;
-export type TopicsTutorialRect = SpotlightRect;
-export type TopicsTutorialPlacement = SpotlightPlacement;
-export type TopicsTutorialStepDefinition = SpotlightStepDefinition<TopicsTutorialTargetKey>;
+export type DishCategoriesTutorialTargetKey =
+	| "swipeArea"
+	| "selectCta"
+	| "deepDive"
+	| "dishCategoryActions"
+	| "groupVote";
+export type DishCategoriesTutorialTargetRefs = SpotlightTargetRefs<DishCategoriesTutorialTargetKey>;
+export type DishCategoriesTutorialOpenReason = SpotlightOpenReason;
+export type DishCategoriesTutorialRect = SpotlightRect;
+export type DishCategoriesTutorialPlacement = SpotlightPlacement;
+export type DishCategoriesTutorialStepDefinition = SpotlightStepDefinition<DishCategoriesTutorialTargetKey>;

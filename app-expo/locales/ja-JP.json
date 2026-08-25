@@ -175,9 +175,6 @@
 		},
 		"loading": "検索中...",
 		"noLocationsFound": "場所が見つかりません",
-		"locationConfirmation": {
-			"error": "地点の確認に失敗しました"
-		},
 		"advancedToggle": {
 			"open": "さらにこだわる",
 			"close": "詳細検索を閉じる"
@@ -257,20 +254,23 @@
 		"recentLocations": {
 			"title": "最近使った場所",
 			"clear": "最近使った場所を消去"
+		},
+		"locationConfirmation": {
+			"error": "地点の確認に失敗しました"
 		}
 	},
 	"Onboarding": {
 		"step1": {
-			"problem": "何食べたいか、決まらない。",
-			"solution": "おすすめの料理が提案されるので\n「食べたい」が見つかる"
+			"problem": "そもそも何食べたいか決まらない",
+			"solution": "提案されたオススメの料理の中から選ぶだけ"
 		},
 		"step2": {
-			"problem": "お店探し。\n候補が多すぎて時間がかかる。",
-			"solution": "料理もお店も候補が厳選されているので\nすぐ決められる"
+			"problem": "お店の候補が多すぎて、\n決めるの疲れるなぁ",
+			"solution": "厳選したお店から選ぶから決めやすい！"
 		},
 		"step3": {
-			"problem": "一緒に行く人の好みも、外したくない。",
-			"solution": "友達と投票して、料理を決められる"
+			"problem": "友達の意見も聞きたいなぁ",
+			"solution": "友達と多数決で料理を決められる！"
 		},
 		"back": "前へ",
 		"next": "次へ",
@@ -306,7 +306,7 @@
 			"stepProgress": "{{total}} ステップ中 {{current}} ステップ目"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "この系統で再検索"
 		},
@@ -327,7 +327,7 @@
 					"title": "気分に合わせて深堀再検索",
 					"body": "まだ決めきれないときは、気になる系統を選ぶと近い系統で再検索できます。"
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "好みに合わせて整理",
 					"save": "保存：気になる料理をあとで見返せます",
 					"block": "ブロック：好みでない料理を今後提案しないように出来ます"
@@ -338,7 +338,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "非表示にする",
 			"description": "非表示にする理由を教えてください（任意）",
 			"placeholder": "理由を入力してください...",
@@ -356,7 +356,7 @@
 		"retry": "検索に戻る",
 		"chooseThis": "この料理にする！",
 		"hiddenMessage": "{{title}}を非表示にしました",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "この料理をブロックしますか？",
 			"description": "ブロックした料理カテゴリは、今後おすすめに表示されません。",
 			"note": "設定画面からいつでも解除できます。",
@@ -375,9 +375,9 @@
 		"headerTitle": "あなたにおすすめの料理",
 		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう",
 		"accessibility": {
-			"blockTopic": "{{title}}をおすすめから除外",
-			"saveTopic": "{{title}}を保存",
-			"unsaveTopic": "{{title}}の保存を解除",
+			"blockDishCategory": "{{title}}をおすすめから除外",
+			"saveDishCategory": "{{title}}を保存",
+			"unsaveDishCategory": "{{title}}の保存を解除",
 			"thumbnail": "{{title}}のサムネイル、{{index}}件目/{{total}}件中"
 		}
 	},
@@ -419,8 +419,8 @@
 			"viewRestaurant": "{{name}}の店舗詳細を見る",
 			"likeActive": "{{name}}のいいねを解除",
 			"likeInactive": "{{name}}にいいね",
-			"saveActive": "{{name}}の食べたいを解除",
-			"saveInactive": "{{name}}を食べたいに保存",
+			"saveActive": "{{name}}の保存を解除",
+			"saveInactive": "{{name}}を保存",
 			"share": "{{name}}をシェア",
 			"openMap": "{{name}}の地図を開く",
 			"reviewLike": "{{username}}の口コミにいいね",
@@ -467,57 +467,6 @@
 			"forbidden": "自分の投稿ではないため操作できません"
 		}
 	},
-	"Report": {
-		"action": "報告",
-		"title": "この投稿を報告する",
-		"reviewTitle": "このレビューを報告する",
-		"description": "報告の理由を選んでください。運営が内容を確認します。相手に通知されることはありません。",
-		"reasons": {
-			"spam": "スパム・宣伝",
-			"sexual": "性的なコンテンツ",
-			"violence": "暴力的・不快なコンテンツ",
-			"harassment": "嫌がらせ・誹謗中傷",
-			"illegal": "違法行為",
-			"misinformation": "誤った情報",
-			"rights": "権利侵害（著作権など）",
-			"privacy": "個人情報が写っている",
-			"irrelevant": "料理と関係がない",
-			"other": "その他"
-		},
-		"detailsLabel": "詳しい内容（任意）",
-		"detailsPlaceholder": "補足があれば入力してください（1000文字まで）",
-		"submit": "報告する",
-		"submitting": "送信中...",
-		"accepted": {
-			"title": "ご報告いただきありがとうございます",
-			"description": "内容を審査します。結果を個別にお知らせすることはありません。",
-			"close": "閉じる",
-			"history": "あなたの報告履歴"
-		},
-		"errors": {
-			"submitFailed": "報告を送信できませんでした。もう一度お試しください。"
-		},
-		"accessibility": {
-			"open": "{{name}}の投稿を報告",
-			"openReview": "{{name}}さんのレビューを報告",
-			"reason": "理由: {{reason}}",
-			"reasonSelected": "理由: {{reason}}（選択中）",
-			"submit": "{{name}}の投稿の報告を送信",
-			"submitReview": "{{name}}さんのレビューの報告を送信"
-		},
-		"history": {
-			"navigationLabel": "あなたの報告履歴",
-			"pageTitle": "あなたの報告履歴",
-			"empty": "まだ報告はありません",
-			"emptyDescription": "投稿やレビューを報告すると、ここに履歴が残ります。",
-			"note": "審査の状況や結果はお知らせしていません。",
-			"error": "報告履歴を取得できませんでした",
-			"target": {
-				"dish_media": "投稿",
-				"dish_reviews": "レビュー"
-			}
-		}
-	},
 	"ImageCardGrid": {
 		"openItemDetails": "詳細を表示"
 	},
@@ -552,9 +501,10 @@
 			"deposits": "入札",
 			"earnings": "収益",
 			"saved-posts": "投稿",
-			"saved-topics": "料理",
+			"saved-dish-categories": "料理",
 			"wallet-deposit": "入札",
-			"wallet-earning": "収益"
+			"wallet-earning": "収益",
+			"saved-topics": "料理"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -572,6 +522,7 @@
 			"noLikedDishMediaEntries": "いいねした投稿はありません",
 			"noSavedItems": "保存されたアイテムはありません",
 			"noSavedPosts": "気になる投稿を見つけたら\"保存\"で見返せます",
+			"noSavedDishCategories": "気になる料理を見つけたら\"保存\"で周辺のお店を探せます",
 			"noSavedTopics": "気になる料理を見つけたら\"保存\"で周辺のお店を探せます"
 		},
 		"reviews": {
@@ -647,7 +598,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "料理カテゴリを選択",
-			"writeReviewForThisDish": "食べたを記録",
+			"writeReviewForThisDish": "この料理にレビューを書く",
 			"useTypedDishCategory": "「{{name}}」で決める"
 		},
 		"inputs": {
@@ -865,6 +816,18 @@
 		"logout": "ログアウト",
 		"logoutConfirmTitle": "ログアウトしますか？",
 		"logoutConfirmMessage": "再度ログインするまで、投稿やレビューの管理ができなくなります。",
+		"blockedDishCategories": {
+			"navigationLabel": "ブロック済みの料理カテゴリ",
+			"pageTitle": "ブロック済みの料理カテゴリ",
+			"title": "ブロックしている料理",
+			"empty": "ブロックしている料理はありません",
+			"loading": "読み込み中...",
+			"unblockButton": "ブロックを解除",
+			"unblockTitle": "ブロックを解除しますか？",
+			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
+			"unblockConfirm": "解除する",
+			"unblocked": "ブロックを解除しました"
+		},
 		"notifications": {
 			"sectionTitle": "通知",
 			"osDisabledTitle": "端末の通知がオフになっています",
@@ -884,18 +847,6 @@
 				"description": "参加しているグループ投票に動きがあったとき"
 			}
 		},
-		"blockedTopics": {
-			"navigationLabel": "ブロック済みの料理カテゴリ",
-			"pageTitle": "ブロック済みの料理カテゴリ",
-			"title": "ブロックしている料理",
-			"empty": "ブロックしている料理はありません",
-			"loading": "読み込み中...",
-			"unblockButton": "ブロックを解除",
-			"unblockTitle": "ブロックを解除しますか？",
-			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
-			"unblockConfirm": "解除する",
-			"unblocked": "ブロックを解除しました"
-		},
 		"language": {
 			"navigationLabel": "言語",
 			"pageTitle": "言語",
@@ -910,6 +861,28 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "グループ投票の履歴"
+		},
+		"deleteAccount": "アカウントを削除",
+		"deleteAccountInProgress": "削除しています…",
+		"deleteAccountConfirmTitle": "アカウントを削除しますか？",
+		"deleteAccountConfirmMessage": "プロフィールは表示されなくなり、投稿・レビューは一覧や検索から消えます。写真と動画は削除され、いいね・保存・ブロックの記録も消えます。\n\nこの操作は取り消せません。",
+		"deleteAccountConfirmButton": "削除に進む",
+		"deleteAccountFinalTitle": "本当に削除しますか？",
+		"deleteAccountFinalMessage": "アカウントとデータは復元できません。同じアカウントで再度ログインすることもできません。",
+		"deleteAccountFinalButton": "完全に削除する",
+		"deleteAccountSuccess": "アカウントを削除しました",
+		"deleteAccountError": "アカウントを削除できませんでした。時間をおいてもう一度お試しください。",
+		"blockedTopics": {
+			"navigationLabel": "ブロック済みの料理カテゴリ",
+			"pageTitle": "ブロック済みの料理カテゴリ",
+			"title": "ブロックしている料理",
+			"empty": "ブロックしている料理はありません",
+			"loading": "読み込み中...",
+			"unblockButton": "ブロックを解除",
+			"unblockTitle": "ブロックを解除しますか？",
+			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
+			"unblockConfirm": "解除する",
+			"unblocked": "ブロックを解除しました"
 		}
 	},
 	"Dialog": {
@@ -1018,7 +991,8 @@
 			"truncated": "件数が多いため一部のピンのみ表示しています。エリアを絞り込んでください。",
 			"sheetTitle": "この付近のレストラン {{count}} 件",
 			"tileA11yLabel": "{{name}}（食べたい {{want}} 件、食べた {{eaten}} 件）",
-			"clusterA11yLabel": "このあたりのレストラン {{count}} 件"
+			"clusterA11yLabel": "このあたりのレストラン {{count}} 件",
+			"currentLocation": "現在地へ移動"
 		},
 		"guest": {
 			"description": "ログインして食べたい/食べたを記録しよう",
@@ -1209,6 +1183,132 @@
 			"finish": "使ってみる",
 			"progress": "{{current}} / {{total}}",
 			"progressAccessibility": "{{total}}ステップ中{{current}}番目"
+		}
+	},
+	"Report": {
+		"action": "報告",
+		"title": "この投稿を報告する",
+		"reviewTitle": "このレビューを報告する",
+		"description": "報告の理由を選んでください。運営が内容を確認します。相手に通知されることはありません。",
+		"reasons": {
+			"spam": "スパム・宣伝",
+			"sexual": "性的なコンテンツ",
+			"violence": "暴力的・不快なコンテンツ",
+			"harassment": "嫌がらせ・誹謗中傷",
+			"illegal": "違法行為",
+			"misinformation": "誤った情報",
+			"rights": "権利侵害（著作権など）",
+			"privacy": "個人情報が写っている",
+			"irrelevant": "料理と関係がない",
+			"other": "その他"
+		},
+		"detailsLabel": "詳しい内容（任意）",
+		"detailsPlaceholder": "補足があれば入力してください（1000文字まで）",
+		"submit": "報告する",
+		"submitting": "送信中...",
+		"accepted": {
+			"title": "ご報告いただきありがとうございます",
+			"description": "内容を審査します。結果を個別にお知らせすることはありません。",
+			"close": "閉じる",
+			"history": "あなたの報告履歴"
+		},
+		"errors": {
+			"submitFailed": "報告を送信できませんでした。もう一度お試しください。"
+		},
+		"accessibility": {
+			"open": "{{name}}の投稿を報告",
+			"openReview": "{{name}}さんのレビューを報告",
+			"reason": "理由: {{reason}}",
+			"reasonSelected": "理由: {{reason}}（選択中）",
+			"submit": "{{name}}の投稿の報告を送信",
+			"submitReview": "{{name}}さんのレビューの報告を送信"
+		},
+		"history": {
+			"navigationLabel": "あなたの報告履歴",
+			"pageTitle": "あなたの報告履歴",
+			"empty": "まだ報告はありません",
+			"emptyDescription": "投稿やレビューを報告すると、ここに履歴が残ります。",
+			"note": "審査の状況や結果はお知らせしていません。",
+			"error": "報告履歴を取得できませんでした",
+			"target": {
+				"dish_media": "投稿",
+				"dish_reviews": "レビュー"
+			}
+		}
+	},
+	"Topics": {
+		"deepDive": {
+			"title": "この系統で再検索"
+		},
+		"tutorial": {
+			"helpLabel": "この画面の使い方",
+			"helpHint": "料理提案画面のチュートリアルを最初から表示します",
+			"skip": "スキップ",
+			"next": "次へ",
+			"finish": "使ってみる",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "{{total}}ステップ中{{current}}番目",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "気になる料理を選ぼう",
+					"body": "左右にスワイプして料理を見比べられます。食べたい料理が決まったら「この料理にする！」をタップ。"
+				},
+				"deepDive": {
+					"title": "気分に合わせて深堀再検索",
+					"body": "まだ決めきれないときは、気になる系統を選ぶと近い系統で再検索できます。"
+				},
+				"topicActions": {
+					"title": "好みに合わせて整理",
+					"save": "保存：気になる料理をあとで見返せます",
+					"block": "ブロック：好みでない料理を今後提案しないように出来ます"
+				},
+				"groupVote": {
+					"title": "友達と決める",
+					"body": "一緒に食べる人と候補を共有して、みんなで投票できます。"
+				}
+			}
+		},
+		"HideTopicModal": {
+			"title": "非表示にする",
+			"description": "非表示にする理由を教えてください（任意）",
+			"placeholder": "理由を入力してください...",
+			"confirm": "非表示にする"
+		},
+		"Loading": {
+			"title": "あなたにぴったりの料理を 6つ厳選しています",
+			"subtitle": "まもなくおすすめをお見せします！"
+		},
+		"errors": {
+			"fetchFailed": "料理の取得に失敗しました",
+			"invalidSearchParams": "検索パラメータが無効です"
+		},
+		"empty": "表示できる料理がありません",
+		"retry": "検索に戻る",
+		"chooseThis": "この料理にする！",
+		"hiddenMessage": "{{title}}を非表示にしました",
+		"BlockTopicModal": {
+			"title": "この料理をブロックしますか？",
+			"description": "ブロックした料理カテゴリは、今後おすすめに表示されません。",
+			"note": "設定画面からいつでも解除できます。",
+			"confirm": "ブロックする"
+		},
+		"blockedMessage": "{{title}}をブロックしました",
+		"savedMessage": "保存しました",
+		"reloadDialog": {
+			"title": "別の候補を探しますか？",
+			"message": "現在のおすすめが少ないため、同じ条件でもう一度探します。",
+			"confirm": "探す",
+			"cancel": "閉じる"
+		},
+		"imageLoadFailed": "画像を読み込めませんでした",
+		"tapToReload": "タップして再読み込み",
+		"headerTitle": "あなたにおすすめの料理",
+		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう",
+		"accessibility": {
+			"blockTopic": "{{title}}をおすすめから除外",
+			"saveTopic": "{{title}}を保存",
+			"unsaveTopic": "{{title}}の保存を解除",
+			"thumbnail": "{{title}}のサムネイル、{{index}}件目/{{total}}件中"
 		}
 	}
 }

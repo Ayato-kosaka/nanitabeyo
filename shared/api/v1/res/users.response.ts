@@ -209,6 +209,17 @@ export type GetUserProfileResponse = UserProfile;
 /** POST /v1/users/me のレスポンス型 */
 export type UpdateUserProfileResponse = UserProfile;
 
+/**
+ * DELETE /v1/users/me のレスポンス型（#1511 ACC-01 アカウント削除）
+ *
+ * `deletedAt` は users.deleted_at に立てた時刻（ISO8601）。
+ * 削除は取り消せないため「予約した時刻」ではなく「実行した時刻」である。
+ */
+export type DeleteMeResponse = {
+	success: boolean;
+	deletedAt: string;
+};
+
 /** DELETE /v1/users/me/blocked-dish-categories/:categoryId のレスポンス型 */
 export type UnblockDishCategoryResponse = {
 	success: boolean;

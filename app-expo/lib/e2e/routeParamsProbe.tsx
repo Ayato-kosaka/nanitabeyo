@@ -8,7 +8,7 @@ import { Env } from "@/constants/Env";
  * 届いているか** を Detox から読める形で露出するプローブ（#1272）。
  *
  * ## なぜ必要か
- * iOS では `?tab=saved-topics` 付きの直リンクで起動しても先頭タブのまま着地する（#1272）。
+ * iOS では `?tab=saved-dish-categories` 付きの直リンクで起動しても先頭タブのまま着地する（#1272）。
  * これまでに 3 つの仮説（jumpToTab の ref タイミング / tabRoutes の検証漏れ /
  * useGlobalSearchParams の併用）を **すべてコード修正で試して外した**。
  * 外れ続けた根本原因は「パラメータがどの段で消えているのか観測できていない」ことにある。
@@ -66,7 +66,7 @@ export type E2ERouteParamsProbeEntries = Record<string, string | undefined>;
 /**
  * パラメータの実測値を持つ非表示の `<Text>` を返す。無効時は null（= 本番と完全に同じツリー）。
  *
- * 描画例: `local=- global=saved-topics requested=saved-topics auth=1 jump=gaveup`
+ * 描画例: `local=- global=saved-dish-categories requested=saved-dish-categories auth=1 jump=gaveup`
  * Detox は `getAttributes()` か `toHaveText` で読む。
  *
  * ⚠️ フックを使わない純関数にしてある（呼び出し側の描画分岐（早期 return 等）の

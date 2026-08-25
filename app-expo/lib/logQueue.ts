@@ -95,13 +95,31 @@ const recordFailure = (status: number | null, count: number, kind: FailureKind, 
 	// production でゲートすると #1076 の「障害が見えない」が再来するため無条件にする。
 	console.warn(`⚠️ frontend log batch dropped: kind=${kind} status=${status ?? "n/a"} count=${count}`);
 
-	// 詳細（例外オブジェクト）は従来どおり development のみ
+	// 詳細（例外オブジェクト）は development のみ。
+	//
+	// ⚠️ #1592 **HTTP ステータスを伴わない失敗は `console.error` では出さない。**
+	// `status === null` は「サーバが応答を返す前に切れた」ケース（通信断、画面遷移や
+	// リロードによる中断など）で、fetch は `TypeError: Failed to fetch` で reject する。
+	// flush は 5 秒間隔で走るので、**遷移のたびに飛んでいるリクエストが中断されて普通に起きる**。
+	//
+	// これを `console.error` で出すと、#1500 で入れた «console error が出たらテストを失敗に
+	// する» ゲートを踏み、e2e-web が画面の中身と無関係にまとめて赤くなる
+	//（2026-08-25 の main で 223 件中 73 件が失敗。8/21 が最後の緑だった）。
+	//
+	// **握り潰してはいない。** 同じ内容を `console.warn` で出す。ゲートが拾うのは
+	// `console.error` と `pageerror` だけ（`e2e-web/fixtures/test.ts`）なので、
+	// 開発時の見え方は保ったままテストの信号だけを回復できる。
+	//
+	// **ステータスを伴う失敗（400/500 など）は今までどおり `console.error`。**
+	// #1076 で検知したかった «送っているログの DTO が壊れていて 400 で全滅する» は
+	// サーバが応答を返す側なので、この切り分けで失われない。
 	if (Env.NODE_ENV === "development" && err) {
-		console.error("🚨 Failed to flush frontend log batch", {
-			message: err.message,
-			full: err,
-			count,
-		});
+		const detail = { message: err.message, full: err, count };
+		if (status === null) {
+			console.warn("⚠️ frontend log batch aborted before the server responded", detail);
+		} else {
+			console.error("🚨 Failed to flush frontend log batch", detail);
+		}
 	}
 };
 

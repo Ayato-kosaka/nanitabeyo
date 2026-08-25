@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
-import { TopicsPage } from "../../pages/TopicsPage";
+import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { ResultPage } from "../../pages/ResultPage";
 import { CONTENT_REPORT_REASON_CODES } from "@shared/api/v1/constants/contentReports";
 
@@ -51,14 +51,14 @@ test.describe("投稿の通報 @mutation", () => {
 	/** 検索フローを通って結果フィード(料理メディアカード)まで進む */
 	async function gotoResultFeed(appPage: Page) {
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 		const resultPage = new ResultPage(appPage);
 
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
 		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
-		await topicsPage.chooseFirstTopic();
+		await dishCategoriesPage.expectLoaded();
+		await dishCategoriesPage.chooseFirstDishCategory();
 		await resultPage.expectLoaded();
 
 		return resultPage;

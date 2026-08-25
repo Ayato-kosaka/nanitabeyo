@@ -41,8 +41,17 @@ jest.mock("react-native-safe-area-context", () => {
 	return {
 		useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 		useSafeAreaFrame: () => ({ x: 0, y: 0, width: 390, height: 800 }),
-		SafeAreaView: ({ children, testID }: { children: React.ReactNode; testID?: string }) =>
-			ReactActual.createElement(RNView, { testID }, children),
+		// #1375（10 巡目）`edges` もテストから観測できるよう素通しする
+		// （下端インセットの二重取りを見張るため。下の describe を参照）
+		SafeAreaView: ({
+			children,
+			testID,
+			edges,
+		}: {
+			children: React.ReactNode;
+			testID?: string;
+			edges?: readonly string[];
+		}) => ReactActual.createElement(RNView, { testID, edges }, children),
 	};
 });
 jest.mock("@/components/PrimaryButton", () => {
@@ -295,5 +304,25 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 		expect(useMyDishesFilterStore.getState().filter.status).toEqual([]);
 		expect(useMyDishesFilterStore.getState().filter.minRating).toBeNull();
 		expect(useMyDishesFilterStore.getState().filter.categoryIds).toEqual([]);
+	});
+});
+
+/*
+#1375（10 巡目・オーナー実機指摘「私の iPhone だと謎の余白がある」）
+**この画面で下端の安全領域を確保してはいけない。**
+
+絞り込み画面は `(tabs)` の中にあり、下端の安全領域は **タブバーが既に確保している**。
+ここで `edges={["bottom"]}` を足すと、ホームインジケータぶん（iPhone で約 34pt）が
+タブバーの上へ二重で入り、ボタンの下に説明のつかない帯が出る。
+
+同じ間違いを一度 my-dishes 本体で踏んでおり（`index.tsx` のコメント）、
+**この画面だけ直っていなかった**。実機でしか見えない差なので、ここで赤で止める。
+*/
+describe("#1375 下端の安全領域はタブバーに任せる（二重に取らない）", () => {
+	it("SafeAreaView に bottom を渡さない", async () => {
+		const tree = await render(<MyDishesFiltersScreen />);
+		const safeArea = tree.root.find((node) => node.props?.testID === "my-dishes-filter-screen");
+		const edges: readonly string[] = safeArea.props.edges ?? [];
+		expect(edges).not.toContain("bottom");
 	});
 });

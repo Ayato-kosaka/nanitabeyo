@@ -45,7 +45,7 @@ test.describe("マイページ(ログイン済み)", () => {
 	// 手順:
 	//   1. マイページへ遷移する
 	//   2. 「いいねした投稿」を押し、/profile/liked でグリッドが出ることを検証
-	//   3. マイページへ戻り、「保存した料理カテゴリ」を押して /profile/saved-topics を検証
+	//   3. マイページへ戻り、「保存した料理カテゴリ」を押して /profile/saved-dish-categories を検証
 	test("縦リストからいいね・保存の一覧へ遷移できる", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const profilePage = new ProfilePage(appPage);
@@ -59,7 +59,7 @@ test.describe("マイページ(ログイン済み)", () => {
 		await appPage.getByTestId("profile-liked-screen-back").click();
 		await expect(appPage).toHaveURL(/\/profile(\?|$)/);
 
-		await profilePage.openSavedTopics();
+		await profilePage.openSavedDishCategories();
 	});
 
 	// ─ テストケース: お知らせタブが表示される ─

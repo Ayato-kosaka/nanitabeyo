@@ -1,7 +1,7 @@
 /*
 このファイルの責務
 - #1486 §1 の 3 ステップオンボーディングを «画面» として提供する。
-- 課題フェーズ → 解決フェーズのタイマー、ページ送り、離脱先の決定を持つ。
+- 課題フェーズ → 解決フェーズの送り、ページ送り、離脱先の決定を持つ。
 
 見た目そのものは features/onboarding/components/OnboardingStepView.tsx が持つ。
 この画面は «どのページの、どちらのフェーズか» を決めて渡すだけにしてある。
@@ -22,7 +22,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { OnboardingScreenOptions } from "@/features/onboarding/components/OnboardingScreenOptions";
 import { OnboardingStepIndicator } from "@/features/onboarding/components/OnboardingStepIndicator";
 import { OnboardingStepView, type OnboardingPhase } from "@/features/onboarding/components/OnboardingStepView";
-import { ONBOARDING_STEPS, PROBLEM_PHASE_DURATION_MS, clampStepIndex } from "@/features/onboarding/constants";
+import { ONBOARDING_STEPS, clampStepIndex } from "@/features/onboarding/constants";
 import {
 	appRootPath,
 	onboardingLoginPath,
@@ -35,6 +35,12 @@ import { useLogger } from "@/hooks/useLogger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import i18n from "@/lib/i18n";
 
+/** 現在地。«何ページ目か» と «課題 / 解決のどちらか» を必ず組で動かす（下の設計コメント参照） */
+type OnboardingCursor = {
+	index: number;
+	phase: OnboardingPhase;
+};
+
 export default function OnboardingScreen() {
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
@@ -43,28 +49,36 @@ export default function OnboardingScreen() {
 	const { mode: rawMode } = useLocalSearchParams<{ mode?: string }>();
 	const mode: OnboardingMode = useMemo(() => parseOnboardingMode(rawMode), [rawMode]);
 
-	const [stepIndex, setStepIndex] = useState(0);
-	const [phase, setPhase] = useState<OnboardingPhase>("problem");
+	/**
+	 * 現在地 = «何ページ目の、どちらのフェーズか»。
+	 *
+	 * #1486【設計】ページ番号とフェーズを **1 つの state にまとめている**。
+	 * 解決フェーズへの切り替えが「次へ」の押下そのものになったため、1 回の押下で
+	 * ページ番号とフェーズの «どちらか» が動く。2 つに分けたままだと、待機を挟まない連打で
+	 * «同じ古い値を読んだ複数のハンドラ» がページ番号とフェーズを別々に進めてしまい、
+	 * 「解決を見せずに 2 ページ先へ飛ぶ」ような中間状態が作れてしまう。
+	 */
+	const [cursor, setCursor] = useState<OnboardingCursor>({ index: 0, phase: "problem" });
 
+	/**
+	 * 押下した «その瞬間の» 現在地。
+	 *
+	 * React の state は再描画までコミットされないので、連打では複数のハンドラが同じ値を読む
+	 *（features/onboarding/constants.ts の `clampStepIndex` に実測の顛末がある）。
+	 * ref は同期的に進むため、連打でも «1 押下 = 1 段» が保たれる。
+	 */
+	const cursorRef = useRef(cursor);
+
+	const applyCursor = useCallback((next: OnboardingCursor) => {
+		cursorRef.current = next;
+		setCursor(next);
+	}, []);
+
+	const { index: stepIndex, phase } = cursor;
 	// `clampStepIndex` を通してあるので範囲外にはならないが、添字アクセスの結果が
 	// undefined になりうることを型でも消しておく（描画側は step が必ずある前提で書かれている）
 	const step = ONBOARDING_STEPS[clampStepIndex(stepIndex)];
 	const isFirstStep = stepIndex === 0;
-	const isLastStep = stepIndex === ONBOARDING_STEPS.length - 1;
-
-	/**
-	 * #1486 §1【設計】課題フェーズを見せてから解決フェーズへ切り替える。
-	 *
-	 * `stepIndex` が変わるたびにこの effect が張り直され、まず `phase` を `"problem"` へ戻す。
-	 * これが「前のページへ戻った場合は、課題状態から解決アニメーションを再生する」
-	 *（#1486 §1 の確定仕様）の実装そのもの。フェーズをページごとに覚えてしまうと、
-	 * 戻ったときに解決状態のまま出てしまい、対比が伝わらない。
-	 */
-	useEffect(() => {
-		setPhase("problem");
-		const timeoutId = setTimeout(() => setPhase("solution"), PROBLEM_PHASE_DURATION_MS);
-		return () => clearTimeout(timeoutId);
-	}, [stepIndex]);
 
 	// 離脱は 1 回だけ。連打や、遷移中の再描画で二重に走らせない
 	const hasLeftRef = useRef(false);
@@ -90,21 +104,35 @@ export default function OnboardingScreen() {
 		router.push(onboardingLoginPath(locale) as ExternalPathString);
 	}, [locale]);
 
+	/**
+	 * 右下の矢印。**1 押下目で解決フェーズを出し、2 押下目で次のページへ送る。**
+	 *
+	 * #1486【設計】当初は「約 1.5 秒で自動的に解決フェーズへ」だったが、課題文を読み終える前に
+	 * 画面が変わるという指摘を受けて «ユーザーが送る» 形へ変えた。解決を «見る» 操作が
+	 * ユーザーの手に残っていないと、読む速さの個人差をアプリ側が決めてしまう。
+	 */
 	const handleNext = useCallback(() => {
 		lightImpact();
 
-		if (!isLastStep) {
-			// ⚠️ **クランプを外さないこと。** 連打すると複数のハンドラが同じ `stepIndex` を読むため、
+		const { index, phase: currentPhase } = cursorRef.current;
+
+		if (currentPhase === "problem") {
+			applyCursor({ index, phase: "solution" });
+			return;
+		}
+
+		if (index < ONBOARDING_STEPS.length - 1) {
+			// ⚠️ **クランプを外さないこと。** 連打すると複数のハンドラが同じ現在地を読むため、
 			// クランプが無いと添字が範囲外へ出て `step` が undefined になり画面ごと落ちる
 			//（詳細は features/onboarding/constants.ts の `clampStepIndex`）
-			setStepIndex((index) => clampStepIndex(index + 1));
+			applyCursor({ index: clampStepIndex(index + 1), phase: "problem" });
 			return;
 		}
 
 		logFrontendEvent({
 			event_name: "onboarding_steps_completed",
 			error_level: "log",
-			payload: { mode, last_step: stepIndex + 1 },
+			payload: { mode, last_step: index + 1 },
 		});
 
 		// #1486 §3 `？` から開いた場合は 3 ステップだけを見せて元の画面へ戻す
@@ -114,15 +142,23 @@ export default function OnboardingScreen() {
 			return;
 		}
 		goToLogin();
-	}, [lightImpact, isLastStep, logFrontendEvent, mode, stepIndex, leaveToApp, goToLogin]);
+	}, [lightImpact, applyCursor, logFrontendEvent, mode, leaveToApp, goToLogin]);
 
+	/**
+	 * 左下の矢印。**ページ単位で戻る**（解決フェーズから課題フェーズへは戻さない）。
+	 *
+	 * 戻り先を必ず課題フェーズにしているのが「前のページへ戻った場合は、課題状態から
+	 * 解決アニメーションを再生する」（#1486 §1 の確定仕様）の実装。フェーズをページごとに
+	 * 覚えてしまうと、戻ったときに解決状態のまま出てしまい、悩み → 解決の対比が伝わらない。
+	 */
 	const handleBack = useCallback(() => {
+		const { index } = cursorRef.current;
 		// #1486 §1 1 枚目は戻る操作無効
-		if (isFirstStep) return;
+		if (index === 0) return;
 		lightImpact();
 		// 「次へ」と同じ理由でクランプする（連打で添字が負になるのを防ぐ）
-		setStepIndex((index) => clampStepIndex(index - 1));
-	}, [isFirstStep, lightImpact]);
+		applyCursor({ index: clampStepIndex(index - 1), phase: "problem" });
+	}, [lightImpact, applyCursor]);
 
 	const handleSkip = useCallback(() => {
 		lightImpact();

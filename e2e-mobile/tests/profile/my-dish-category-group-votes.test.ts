@@ -6,7 +6,7 @@ import { ProfileScreen } from "../../screens/ProfileScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
 import { TabBar } from "../../screens/TabBar";
-import { TopicsScreen } from "../../screens/TopicsScreen";
+import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 
 /**
  * 🗳「グループ投票の履歴」一覧画面（#1505 / ネイティブ）
@@ -30,7 +30,7 @@ import { TopicsScreen } from "../../screens/TopicsScreen";
  * 投票画面まで遷移できること」だけ**に絞っている。落とした 2 ケースと理由:
  *
  * - **0 件表示**: この spec が使う匿名セッションは他の mutation spec とも共有される dev
- *   アカウントで、履歴を空に戻す手段が無い（削除導線が無いのは #1205 の topics-group-vote-
+ *   アカウントで、履歴を空に戻す手段が無い（削除導線が無いのは #1205 の dishCategories-group-vote-
  *   double-tap.test.ts と同じ事情）。0 件表示は web 側のモックでのみ担保する。
  * - **参加しただけの投票が出ないこと**: 「参加」を作るには別アカウントが共有リンクを開いて
  *   投票する必要があり、Detox 側にアカウント切り替えの仕組みが無い。除外は API の where 句
@@ -52,7 +52,7 @@ import { TopicsScreen } from "../../screens/TopicsScreen";
  */
 describeMutation("グループ投票の履歴一覧 @mutation (#1505)", () => {
 	const search = new SearchScreen();
-	const topics = new TopicsScreen();
+	const dishCategories = new DishCategoriesScreen();
 	const voteResult = new DishCategoryGroupVoteResultScreen();
 	const voteScreen = new DishCategoryGroupVoteScreen();
 	const tabBar = new TabBar();
@@ -80,9 +80,9 @@ describeMutation("グループ投票の履歴一覧 @mutation (#1505)", () => {
 		await search.typeLocation("渋谷");
 		await search.selectLocationSuggestion(0);
 		await search.submit();
-		await topics.expectLoaded();
+		await dishCategories.expectLoaded();
 
-		await topics.openGroupVote();
+		await dishCategories.openGroupVote();
 		await voteResult.expectSingleLoaded();
 
 		await tabBar.gotoProfile();

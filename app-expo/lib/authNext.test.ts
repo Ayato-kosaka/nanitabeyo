@@ -78,7 +78,7 @@ describe("resolveNextPath", () => {
 		});
 
 		it("クエリ・フラグメントは行き先の一部として保持する", () => {
-			expect(resolveNextPath("/en-US/profile?tab=saved-topics", "ja-JP")).toBe("/ja-JP/profile?tab=saved-topics");
+			expect(resolveNextPath("/en-US/profile?tab=saved-dish-categories", "ja-JP")).toBe("/ja-JP/profile?tab=saved-dish-categories");
 			expect(resolveNextPath("/en-US#section", "ja-JP")).toBe("/ja-JP#section");
 		});
 

@@ -13,6 +13,9 @@
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 
 const mockCallBackend = jest.fn();
+// #1375（9 巡目）一覧の取得に所要時間の記録を足したので、このフックは useLogger を呼ぶ。
+// 実体は supabase クライアントを読むため、ここで差し替えないとテストが起動できない
+jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
 
 import React, { act } from "react";

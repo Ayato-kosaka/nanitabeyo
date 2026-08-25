@@ -64,16 +64,24 @@ const ym = (n) => { const a = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMont
 const iso = (n, day) => { const a = ym(n); return new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), day, 3)).toISOString(); };
 // #1375 5 巡目: status を引数にした（緑=食べたい / 赤=食べた の内訳バッジを撮るため。
 // 既定は従来どおり "eaten" なので、既存の呼び出しの見え方は変わらない）
-const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status = "eaten") => ({
+// #1375（9 巡目）`provider` を渡すと «SNS から取り込んだ行» になる（一覧のロゴの確認用）。
+// 既定は undefined なので、既存の呼び出しの見え方は変わらない
+const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status = "eaten", provider) => ({
   key, status, occurredAt, savedAt: status === "want" ? occurredAt : null, eatenAt: status === "eaten" ? occurredAt : null,
   restaurant: { id: "r-1", name: "醤油ラーメン一番", image_url: "https://img.example.invalid/r.jpg" },
   dish: { id: `dish-${key}`, category_id: cat[0], name: cat[1], reviewCount: 3, averageRating: 4.2, categoryImageUrl: "https://img.example.invalid/c.jpg" },
-  dishMedia: withMedia ? { id: `dm-${key}`, thumbnailImageUrl: "https://img.example.invalid/t.jpg", mediaImageUrl: "https://img.example.invalid/m.jpg", mediaType: "image" } : null,
+  dishMedia: withMedia ? {
+    id: `dm-${key}`, thumbnailImageUrl: "https://img.example.invalid/t.jpg", mediaImageUrl: "https://img.example.invalid/m.jpg", mediaType: "image",
+    render_type: provider ? "external_embed" : "stored",
+    ...(provider ? { externalEmbed: { provider, externalContentId: "abc", canonicalUrl: "https://x/", embedStatus: "available", lastVerifiedAt: null } } : {}),
+  } : null,
   myReview: null, distanceMeters: null,
 });
 // this month: several days with records; last month: a few
 const page1 = [
-  item("a", iso(0, 2), true), item("b", iso(0, 5), true), item("b2", iso(0, 5), true), item("c", iso(0, 11), true),
+  // #1375 9 巡目: 先頭を «Instagram から取り込んだ行» にする（一覧のロゴがここに出る）
+  item("a", iso(0, 2), true, ["Q1", "ラーメン"], "eaten", "instagram"),
+  item("b", iso(0, 5), true), item("b2", iso(0, 5), true), item("c", iso(0, 11), true),
   item("d", iso(0, 14), false), item("e", iso(0, 20), true),
   item("f", iso(1, 3), true), item("g", iso(1, 9), true), item("h", iso(1, 22), true),
   // #1375 5 巡目: 同じ日に «食べたい» と «食べた» が混ざる日を作る（日バッジが緑と赤に割れる）
@@ -149,7 +157,8 @@ const EMBED_ENTRY = {
     created_at: "2026-08-01T00:00:00Z", updated_at: "2026-08-01T00:00:00Z",
     media_processing_status: "completed", thumbnail_processing_status: "completed",
     render_type: "external_embed",
-    isSaved: true, isLiked: false, likeCount: 0, isMine: false,
+    // #1375 10 巡目: «食べたい» «食べた» の両方が押してある状態を撮る（オレンジ塗りの確認）
+    isSaved: true, isLiked: false, likeCount: 0, isMine: false, isEaten: true,
     mediaUrl: null,
     thumbnailImageUrl: "https://img.example.invalid/t.jpg",
     video_duration_ms: null,

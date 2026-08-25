@@ -61,7 +61,7 @@ export function convertPrismaToSupabase_DishReviews(prisma: PrismaDishReviews): 
     updated_at: prisma.updated_at?.toISOString() ?? null,
     lock_no: prisma.lock_no,
     deleted_at: prisma.deleted_at?.toISOString() ?? null,
-    // ⚠️ eaten_at は DATE（時刻を持たない列）。`toISOString()` をそのまま入れると
+    // #1551 ⚠️ eaten_at は DATE（時刻を持たない列）。`toISOString()` をそのまま入れると
     //    "2026-08-24T00:00:00.000Z" になり、DB が返す "2026-08-24" と形が食い違う。
     //    日付部分だけを渡す（時刻を持たない理由は migration 20260826T0000 の冒頭を参照）
     //    ⚠️ `!== null` ではなく optional chaining で見る。`undefined` が `!== null` を

@@ -57,6 +57,8 @@ const makeItem = (
 		categoryImageUrl?: string | null;
 		restaurantImageUrl?: string | null;
 		isOwnMediaDeleted?: boolean;
+		/** #1375（9 巡目）取り込んだ投稿か。`render_type` と provider をまとめて差す */
+		externalEmbedProvider?: string;
 	} = {},
 ): MyDishItem =>
 	({
@@ -70,7 +72,14 @@ const makeItem = (
 		dishMedia:
 			overrides.thumbnailImageUrl === undefined || overrides.thumbnailImageUrl === null
 				? null
-				: { id: "media-1", thumbnailImageUrl: overrides.thumbnailImageUrl },
+				: {
+						id: "media-1",
+						thumbnailImageUrl: overrides.thumbnailImageUrl,
+						render_type: overrides.externalEmbedProvider ? "external_embed" : "stored",
+						externalEmbed: overrides.externalEmbedProvider
+							? { provider: overrides.externalEmbedProvider }
+							: undefined,
+					},
 		myReview: null,
 		isOwnMediaDeleted: overrides.isOwnMediaDeleted ?? false,
 	}) as unknown as MyDishItem;
@@ -356,5 +365,42 @@ describe("#1398 (PR4/7) want カードの「食べたを記録」CTA", () => {
 	it("eaten カードには CTA を出さない", async () => {
 		const tree = await renderWith([makeItem("review:eaten", { thumbnailImageUrl: "https://example.com/m.jpg" })]);
 		expect(findCta(tree)).toHaveLength(0);
+	});
+});
+
+/*
+#1375（9 巡目・オーナー指摘「リストにインスタマークが欲しい（インスタのサムネだったら）」）
+
+一覧には «自分で撮った写真» と «SNS から取り込んだもの» が混ざる。タイルを見ただけで
+どちらか分かるよう、取り込んだ投稿にだけ provider のロゴを重ねる。
+
+判定は `render_type === "external_embed"` を先に見る（`externalEmbed` は詰めていない経路が
+あるフィールドなので、その有無で stored かどうかを決めてはいけない）。
+*/
+describe("#1375 取り込んだ投稿には provider のロゴを重ねる", () => {
+	const queryResult = (items: MyDishItem[]) => ({
+		items,
+		isLoading: false,
+		isLoadingMore: false,
+		error: null,
+		hasNextPage: false,
+		loadMore: jest.fn(),
+		refresh: jest.fn(),
+	});
+	const has = (tree: TestRenderer.ReactTestRenderer, testID: string): boolean =>
+		tree.root.findAll((node) => node.props?.testID === testID).length > 0;
+
+	it("取り込んだ投稿にはロゴが出る", async () => {
+		mockUseMyDishesQuery.mockReturnValue(
+			queryResult([makeItem("a", { thumbnailImageUrl: "https://img/1.jpg", externalEmbedProvider: "instagram" })]),
+		);
+		const tree = await render();
+		expect(has(tree, "my-dishes-list-item-provider-badge")).toBe(true);
+	});
+
+	it("自分で撮った写真にはロゴを出さない", async () => {
+		mockUseMyDishesQuery.mockReturnValue(queryResult([makeItem("b", { thumbnailImageUrl: "https://img/1.jpg" })]));
+		const tree = await render();
+		expect(has(tree, "my-dishes-list-item-provider-badge")).toBe(false);
 	});
 });

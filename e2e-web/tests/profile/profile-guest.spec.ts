@@ -36,7 +36,7 @@ test.describe("マイページ(匿名ユーザー)", () => {
 
 		await tabBar.gotoProfile();
 		await expect(profilePage.likedItem).toBeVisible();
-		await expect(profilePage.savedTopicsItem).toBeVisible();
+		await expect(profilePage.savedDishCategoriesItem).toBeVisible();
 
 		await expect(appPage.getByTestId("save-post-tab-grid")).toHaveCount(0);
 		await expect(appPage.getByTestId("review-tab-grid")).toHaveCount(0);

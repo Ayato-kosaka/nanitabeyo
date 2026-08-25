@@ -497,20 +497,19 @@ describe("#1375 エリアの帯は Map に出さない", () => {
  * DishMediaMap.tsx）。共用コンポーネント自体は変更しない。
  */
 describe("#1396 M-3 mapReady 後に initialRegion へ animateToRegion で補正する", () => {
-	it("mapReady 前は animateToRegion を呼ばない", async () => {
-		await render();
-		expect(mockAnimateToRegion).not.toHaveBeenCalled();
-	});
-
-	it("mapReady 後、initialRegion（REGION_JP）へ一度だけ animateToRegion する", async () => {
+	// #1375（9 巡目）現在地が取れないときは «日本全体» へ寄せるようになったので、
+	// mapReady を待たずに 1 回動く。それでも `pendingRegionRef` は残るので、
+	// web（initialRegion を読まない）でも mapReady 後に同じ場所へ補正される
+	it("mapReady 後、日本全体（REGION_JP）へ補正する", async () => {
 		await render();
 
+		const before = mockAnimateToRegion.mock.calls.length;
 		act(() => {
 			mapReadyHandler?.();
 		});
 
-		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
-		const [region] = mockAnimateToRegion.mock.calls[0];
+		expect(mockAnimateToRegion.mock.calls.length).toBe(before + 1);
+		const [region] = mockAnimateToRegion.mock.calls[mockAnimateToRegion.mock.calls.length - 1];
 		expect(region.latitude).toBeCloseTo(36.2048);
 		expect(region.longitude).toBeCloseTo(138.2529);
 
@@ -518,7 +517,7 @@ describe("#1396 M-3 mapReady 後に initialRegion へ animateToRegion で補正�
 		act(() => {
 			mapReadyHandler?.();
 		});
-		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
+		expect(mockAnimateToRegion.mock.calls.length).toBe(before + 1);
 	});
 });
 
@@ -528,7 +527,14 @@ describe("#1396 M-3 mapReady 後に initialRegion へ animateToRegion で補正�
  * 二度目以降の取得では発火しないことを固定する。
  */
 describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せる", () => {
-	it("初回取得（pins あり）で一度だけ animateToRegion がピンの外接矩形へ呼ばれる", async () => {
+	/*
+	#1375（9 巡目・オーナー指示）**ピンの外接矩形へは寄せない。**
+
+	「初期は現在地周辺、位置情報拒否なら日本地図」という指示により、取得したピンの
+	外接矩形へ寄せる挙動は無くした。取得の完了を待って地図が動くため «開いた直後に
+	勝手に動く» ように見えていた、という理由もある。
+	*/
+	it("ピンがあっても外接矩形へは寄せず、日本全体（REGION_JP）へ寄せる", async () => {
 		mockUseMyDishesMapPinsQuery.mockReturnValue({
 			pins: [mockPin],
 			queryKey: "default",
@@ -542,8 +548,8 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 
 		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
 		const [region] = mockAnimateToRegion.mock.calls[0];
-		expect(region.latitude).toBeCloseTo(35.5);
-		expect(region.longitude).toBeCloseTo(139.5);
+		expect(region.latitude).toBeCloseTo(36.2048);
+		expect(region.longitude).toBeCloseTo(138.2529);
 	});
 
 	/**
@@ -578,9 +584,11 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
 	});
 
-	it("pins が 0 件の初回取得では animateToRegion を呼ばない", async () => {
+	it("pins が 0 件でも日本全体へは寄せる（ピンの有無で初期表示を変えない）", async () => {
 		await render();
-		expect(mockAnimateToRegion).not.toHaveBeenCalled();
+		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
+		const [region] = mockAnimateToRegion.mock.calls[0];
+		expect(region.latitude).toBeCloseTo(36.2048);
 	});
 
 	it("二度目以降の取得（queryKey 変更後の再取得）では発火せず、filter store にも触れない", async () => {
@@ -651,14 +659,15 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 			([region]) => Math.abs((region as { latitude: number }).latitude - 35.6595) < 1e-6,
 		);
 		expect(centered).toBeDefined();
-		// 現在地が取れたときは «ピンの外接矩形» へは寄せない（現在地の方が仕様上の優先）
-		const fitToPins = mockAnimateToRegion.mock.calls.find(
-			([region]) => Math.abs((region as { latitude: number }).latitude - 35.5) < 1e-6,
+		// 現在地が取れたときは «日本全体» へは寄せない（現在地の方が仕様上の優先）
+		const fitToJapan = mockAnimateToRegion.mock.calls.find(
+			([region]) => Math.abs((region as { latitude: number }).latitude - 36.2048) < 1e-3,
 		);
-		expect(fitToPins).toBeUndefined();
+		expect(fitToJapan).toBeUndefined();
 	});
 
-	it("現在地が取れない（権限拒否）ときは現在地へ寄せず、従来どおりピンの外接矩形へ寄せる", async () => {
+	// #1375（9 巡目・オーナー指示）「位置情報拒否なら日本地図」
+	it("現在地が取れない（権限拒否）ときは日本全体へ寄せる", async () => {
 		mockUseMyDishesMapPinsQuery.mockReturnValue({
 			pins: [mockPin],
 			isLoading: false,
@@ -670,10 +679,15 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 
 		await render();
 
+		const fitToJapan = mockAnimateToRegion.mock.calls.find(
+			([region]) => Math.abs((region as { latitude: number }).latitude - 36.2048) < 1e-3,
+		);
+		expect(fitToJapan).toBeDefined();
+		// 外接矩形（ピンの中心 35.5）へは寄せない
 		const fitToPins = mockAnimateToRegion.mock.calls.find(
 			([region]) => Math.abs((region as { latitude: number }).latitude - 35.5) < 1e-6,
 		);
-		expect(fitToPins).toBeDefined();
+		expect(fitToPins).toBeUndefined();
 	});
 
 	// #1375 実機確認（5 巡目）: 拡大 → リスト → Map と戻ると全国まで引かれてしまう
@@ -872,5 +886,50 @@ describe("地図に出ているピンと下部シートの一致", () => {
 
 		const lastSheetPins = sheetPinLists[sheetPinLists.length - 1] as MyDishPin[];
 		expect(lastSheetPins.map((p) => p.restaurant.id)).toEqual(["near"]);
+	});
+});
+
+/*
+#1375（9 巡目・オーナー指摘）**マップに現在地ボタン。**
+
+初期表示は現在地に寄せているが、地図を動かしたあと現在地へ戻る手段が無かった。
+（«このエリアで再検索» は範囲を変えずに引き直すだけ）
+
+押したときの 4 点セット（表示域 ref / 保存 / クラスタ倍率 / 地図の移動）が揃っていないと、
+地図と «いま見えている範囲» の認識がずれる。ここでは «地図が現在地へ動くこと» と
+«次に開いたときのために保存されること» を固定する。
+*/
+describe("#1375 現在地ボタン", () => {
+	it("押すと現在地へ寄せ、表示域として保存する", async () => {
+		mockGetCurrentLocationPosition.mockReset();
+		mockGetCurrentLocationPosition.mockImplementation(() =>
+			Promise.resolve({ latitude: 34.7025, longitude: 135.4959 } as never),
+		);
+		const tree = await render();
+		mockAnimateToRegion.mockClear();
+
+		const button = tree.root.find((node) => node.props?.testID === "my-dishes-map-current-location");
+		await act(async () => {
+			await button.props.onPress();
+		});
+
+		const moved = mockAnimateToRegion.mock.calls.find(
+			([region]) => Math.abs((region as { latitude: number }).latitude - 34.7025) < 1e-6,
+		);
+		expect(moved).toBeDefined();
+		expect(useMyDishesViewportStore.getState().region?.latitude).toBeCloseTo(34.7025);
+	});
+
+	// 位置情報が取れなくても «押しても何も起きない» で済ませる（この画面は位置情報を必須にしていない）
+	it("現在地が取れなくても落ちない", async () => {
+		const tree = await render();
+		mockAnimateToRegion.mockClear();
+
+		const button = tree.root.find((node) => node.props?.testID === "my-dishes-map-current-location");
+		await act(async () => {
+			await button.props.onPress();
+		});
+
+		expect(mockAnimateToRegion).not.toHaveBeenCalled();
 	});
 });

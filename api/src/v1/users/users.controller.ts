@@ -60,6 +60,7 @@ import {
   QueryMyDishesResponse,
   QueryMeDishMapPinsResponse,
   QueryMeDishCategoryGroupVotesResponse,
+  DeleteMeResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -114,6 +115,42 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
   ): Promise<UpdateUserProfileResponse> {
     return await this.usersService.updateUserProfile(user.id, dto);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                       DELETE /v1/users/me                          */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1511 ACC-01 アカウント削除。
+   *
+   * ⚠️ **`AuthUserGuard`（= 正規ログインのみ）。** ゲスト（匿名）ユーザーには
+   * そもそも `users` 行が無く、削除対象となる実体を持たない。ストア審査が求める
+   * 「アカウントを作成できるアプリは削除手段を提供する」も正規アカウントへの要求である。
+   *
+   * ⚠️ **取り消せない。** アプリ DB 側は匿名化（論理削除）だが、Supabase Auth の
+   * アカウントは物理削除するため、同じ資格情報での再ログイン経路は残らない。
+   * クライアントは実行前に必ず確認ダイアログでその旨を明示すること。
+   *
+   * 冪等: 途中で失敗した削除は、同じリクエストの再送で最後まで完了できる。
+   */
+  @Delete('/me')
+  @UseGuards(AuthUserGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'アカウント削除（取り消し不可・#1511）',
+    description:
+      'users 行は残したまま PII を匿名化して deleted_at を立て、本人の行動データとストレージ実体を削除し、Supabase Auth のアカウントを物理削除する。',
+  })
+  @ApiResponse({ status: 200, description: '削除成功' })
+  @ApiResponse({ status: 403, description: 'ゲストユーザーは削除できません' })
+  @ApiResponse({ status: 404, description: 'ユーザーが見つかりません' })
+  @ApiResponse({
+    status: 503,
+    description:
+      '認証アカウントの削除に失敗（再送で完了できる。アプリ DB 側の匿名化は完了している）',
+  })
+  async deleteMe(@CurrentUser() user: RequestUser): Promise<DeleteMeResponse> {
+    return await this.usersService.deleteMe(user.id);
   }
 
   /* ------------------------------------------------------------------ */

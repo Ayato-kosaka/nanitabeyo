@@ -2,7 +2,6 @@ import { strict as assert } from "node:assert";
 
 import { describeAuthenticated, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
 import { TabBar } from "../../screens/TabBar";
-import { ProfileScreen } from "../../screens/ProfileScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
 import {
 	NOTIFICATION_CATEGORY_KEYS,
@@ -43,15 +42,20 @@ describeAuthenticated("設定 > 通知カテゴリ別オン/オフ（ログイ�
 		await launchAppWithSession({ as: "authenticated" });
 	});
 
-	/** マイページ → 歯車 → 設定画面、まで進めて通知カードを返す */
+	/**
+	 * マイページ（= 設定画面）まで進めて通知カードを返す。
+	 *
+	 * ⚠️ `ProfileScreen.gotoSettings()` は使えない。#1402 で **歯車の 1 階層が無くなり**、
+	 *    マイページタブがそのまま設定画面になっている。main 由来の #1510 のテストは
+	 *    歯車があった頃の形で書かれており、このブランチへ合流したときに
+	 *    存在しないメソッドの呼び出しとして残っていた
+	 */
 	const openNotificationSection = async (): Promise<NotificationSettingsSection> => {
 		const tabBar = new TabBar();
-		const profileScreen = new ProfileScreen();
 		const settingsScreen = new SettingsScreen();
 		const section = new NotificationSettingsSection();
 
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
 		await settingsScreen.expectLoaded();
 		await section.expectVisible();
 
