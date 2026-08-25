@@ -155,10 +155,27 @@ async function shootScheme(scheme) {
 			await page.waitForTimeout(500);
 			await shot("05-accepted");
 
-			// 履歴へ移動する。**審査状況が出ていないこと**がこの絵の主眼
+			/*
+			履歴へ移動する。**審査状況が出ていないこと**がこの絵の主眼。
+
+			⚠️ 待つのは `content-reports-header-title` である。`ScreenHeader` は
+			   渡された testID を **そのままの形では DOM に出さず**、
+			   `${testID}-title` と `${testID}-back` に分けて付ける（#1031 / #1404）。
+			   素の `content-reports-header` を待つと、画面が正しく描けていても
+			   永久に見つからない（run 32836998579 で実測）。
+			*/
 			await page.getByTestId("report-accepted-history").click();
-			const historyHeader = page.getByTestId("content-reports-header");
+			const historyHeader = page.getByTestId("content-reports-header-title");
 			await historyHeader.waitFor({ state: "visible", timeout: 10000 });
+
+			// 審査状況を出していないことを «撮る前に» 機械的にも確かめる。
+			// 目視だけだと、後から «審査中» ラベルが足されたときに見落とす
+			const historyText = await page.locator("body").innerText();
+			for (const banned of ["審査中", "対応済み", "却下", "受付済み", "pending", "reviewing", "actioned", "rejected"]) {
+				if (historyText.includes(banned)) {
+					throw new Error(`報告履歴に審査状況（«${banned}»）が出ている。#1584 のオーナー確定仕様に反する`);
+				}
+			}
 			await page.waitForTimeout(1500);
 			await shot("06-history");
 		},
