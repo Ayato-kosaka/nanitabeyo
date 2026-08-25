@@ -52,9 +52,9 @@ describe("設定項目（匿名ユーザー）", () => {
 
 		await waitUntilVisible(settingsScreen.feedbackItem);
 		await waitUntilVisible(settingsScreen.blockedTopicsItem);
-		await waitUntilVisible(settingsScreen.deviceSettingsItem);
-		// #1583 «なに食べよについて» への行
-		await waitUntilVisible(settingsScreen.aboutItem);
+		// #1583 下 2 行は初期表示で画面外にいるので、見えるところまで運んでから確かめる
+		await settingsScreen.expectRowVisible(settingsScreen.deviceSettingsItem);
+		await settingsScreen.expectRowVisible(settingsScreen.aboutItem);
 	});
 
 	// ─ テストケース: «なに食べよについて» に応援する・規約・バージョンが揃う ─

@@ -248,6 +248,20 @@ export class SettingsScreen {
 	 * `whileElement(...).scroll()` で «見えるまでスクロール» してから押す
 	 * （既に見えていればスクロールは 1 度も走らない）。
 	 */
+	/**
+	 * #1583 マイページの «下のほうにある行» を、見えるところまで運んでから可視を確かめる。
+	 *
+	 * マイページは縦に長く、匿名だと上に大きな «ようこそ、ゲストさん» カードが入るぶん
+	 * 下 2 枚のカード（端末設定 / なに食べよについて / ログアウト）は初期表示で画面外にいる。
+	 * Detox の `toBeVisible()` は «面積の 75% 以上が可視» を要求するので、
+	 * 素の `waitUntilVisible()` で待つと 25 秒待って必ず落ちる（run 32867585023 で実測）。
+	 *
+	 * 既に見えていればスクロールは 1 度も走らない。
+	 */
+	async expectRowVisible(matcher: Detox.NativeMatcher): Promise<void> {
+		await waitFor(element(matcher)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
+	}
+
 	async openDeviceSettings(): Promise<void> {
 		await waitFor(element(this.deviceSettingsItem))
 			.toBeVisible()
