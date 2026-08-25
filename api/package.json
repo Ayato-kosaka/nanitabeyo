@@ -114,6 +114,9 @@
     "moduleNameMapper": {
       "^src/(.*)$": "<rootDir>/$1",
       "^@shared/v1/(.*)$": "<rootDir>/../../shared/api/v1/$1"
-    }
+    },
+    "setupFiles": [
+      "<rootDir>/../test/setup-test-env.ts"
+    ]
   }
 }
