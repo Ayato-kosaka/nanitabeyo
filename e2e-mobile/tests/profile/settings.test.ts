@@ -16,7 +16,8 @@ import { NotificationSettingsSection } from "../../screens/NotificationSettingsS
  * ## Web 版からの変更点（#1031 確定）
  * - e2e-web は `page.goto("/ja-JP/profile/settings")` で URL 直遷移するが、ネイティブには
  *   その代替経路が無いため、マイページの歯車ボタン（profile-settings-button）を実際にタップして遷移する。
- * - 「レビューを書く」（settings-leave-review）は Web では非表示だが、ネイティブでは表示される
+ * - 「なに食べよ を応援する」（settings-leave-review。#1583 で「レビューを書く」から改称）は
+ *   Web では非表示だが、ネイティブでは表示される
  *   （`Platform.OS !== "web"` 条件、#1031 §1-1 の反転）。表示のみ検証し、タップはしない（M2: ストア誘導の
  *   Linking.openURL が実際に走ってしまうため）。
  */
@@ -32,7 +33,7 @@ describe("設定画面（匿名ユーザー）", () => {
 	// 手順:
 	//   1. マイページタブ→歯車ボタンの実導線で設定画面へ遷移する
 	//   2. 以下の項目が表示されることを検証:
-	//      - ご意見・不具合(settings-feedback) / レビューを書く(settings-leave-review、ネイティブのみ)
+	//      - ご意見・不具合(settings-feedback) / なに食べよ を応援する(settings-leave-review、ネイティブのみ)
 	//      - ブロック済みの料理トピック(settings-blocked-topics) / 利用規約(settings-terms)
 	//      - プライバシーポリシー(settings-privacy)
 	it("設定メニューの各項目が表示される", async () => {

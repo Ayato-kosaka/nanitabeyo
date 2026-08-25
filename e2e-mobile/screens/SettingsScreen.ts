@@ -17,7 +17,8 @@ export type ThemePreferenceKey = "system" | "light" | "dark";
  *
  * 対応画面: app-expo/app/[locale]/(tabs)/profile/settings.tsx
  *
- * - 「レビューを書く」（ストア誘導・settings-leave-review）は Web では非表示（`Platform.OS !== "web"` 条件）だが、
+ * - 「なに食べよ を応援する」（ストア誘導・settings-leave-review。#1583 で「レビューを書く」から改称）は
+ *   Web では非表示（`Platform.OS !== "web"` 条件）だが、
  *   ネイティブでは表示される（#1031 §1-1 の反転分類）。
  *   #1031 【設計確定】M2: 共有 dev 環境・外部ストアへの書き込みを避けるため、このボタンは
  *   **表示のみ検証しタップしない**（タップすると実際に Linking.openURL が走り外部アプリへ遷移してしまう）。
@@ -39,7 +40,7 @@ export class SettingsScreen {
 	readonly title = by.text("設定");
 	/** ご意見・不具合（フィードバック）行（既存 testID） */
 	readonly feedbackItem = by.id("settings-feedback");
-	/** レビューを書く（ストア誘導）行。ネイティブのみ表示（既存 testID） */
+	/** なに食べよ を応援する（ストア誘導）行。ネイティブのみ表示（testID は #1583 でも据え置き） */
 	readonly leaveReviewItem = by.id("settings-leave-review");
 	/**
 	 * ブロック済みの料理カテゴリ行（既存 testID）。

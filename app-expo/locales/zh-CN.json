@@ -728,7 +728,6 @@
 			}
 		},
 		"sendFeedback": "发送反馈",
-		"leaveReview": "留下评价",
 		"rateDialogTitle": "您喜欢这个应用吗？",
 		"rateDialogMessage": "如果您喜欢，请在商店给我们评分。我们将打开评价页面。",
 		"rateDialogOk": "立即评分",
@@ -770,6 +769,13 @@
 			"unblockMessage": "此菜品类别将重新添加到推荐中。",
 			"unblockConfirm": "取消屏蔽",
 			"unblocked": "已取消屏蔽"
+		},
+		"support": "支持 CraveCatch",
+		"version": "版本",
+		"sections": {
+			"yours": "我的内容",
+			"device": "设备设置",
+			"about": "关于 CraveCatch"
 		}
 	},
 	"Dialog": {

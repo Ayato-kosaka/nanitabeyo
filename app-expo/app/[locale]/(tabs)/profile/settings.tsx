@@ -395,6 +395,15 @@ export default function SettingsScreen() {
 	// 判定は features/profile の isGuest と同じ共通関数（lib/authGuest.ts）へ揃えている。
 	const isGuest = !isAuthResolved || isGuestUser(user);
 
+	/**
+	 * #1583 表示するバージョン。
+	 *
+	 * `COMMIT_ID` は注入されない環境（ローカル / E2E CI）で undefined になりうるので、
+	 * そのときは括弧ごと出さない。「1.14.0(undefined)」と出すくらいなら版だけ出す。
+	 * `APP_VERSION` には #1078 の理由でフォールバックを置かないため、こちらはそのまま出す。
+	 */
+	const versionLabel = Env.COMMIT_ID ? `${Env.APP_VERSION}(${Env.COMMIT_ID})` : `${Env.APP_VERSION}`;
+
 	return (
 		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
@@ -402,33 +411,15 @@ export default function SettingsScreen() {
 				{/* #1131 E2E から「ログアウト行まで送る」ためのスクロール対象。見た目には影響しない。
 				    ログアウト行は最下段のカードにあり、端末によっては初期表示で画面外にいる */}
 				<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} testID="settings-scroll">
-					{/* #1509 Card 0: 表示テーマ（システム追従 / ライト / ダーク）。
-					    切替の効果がその場で見えるよう最上段に置く */}
+					{/* #1583 【設計】並びは «自分のもの → 通知 → 端末 → アプリについて → ログアウト» の順。
+					    «自分の中身» から «アプリそのもの» へ、内側から外側へ向かって並べている。
+					    testID は据え置き（#1504 / #1508 / #1505 の E2E を巻き添えにしないため）。 */}
+
+					{/* 自分のもの */}
 					<Text style={styles.sectionTitle} accessibilityRole="header">
-						{i18n.t("Settings.theme.sectionTitle")}
+						{i18n.t("Settings.sections.yours")}
 					</Text>
 					<Card style={styles.card}>
-						<ThemeSelector />
-					</Card>
-
-					{/* Card 1: フィードバック・レビュー・ブロック済みトピック */}
-					<Card style={styles.card}>
-						<SettingsMenuItem
-							label={i18n.t("Settings.sendFeedback")}
-							onPress={handleSendFeedback}
-							testID="settings-feedback"
-							// #951 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約)
-							accessibilityRole="link"
-						/>
-						{/* #317 【設計】Leave Review は web では非表示 */}
-						{Platform.OS !== "web" && (
-							<SettingsMenuItem
-								label={i18n.t("Settings.leaveReview")}
-								onPress={handleLeaveReview}
-								testID="settings-leave-review"
-								accessibilityRole="button"
-							/>
-						)}
 						{/* #747 【設計】ブロック済みの料理トピック管理画面へ遷移 */}
 						<SettingsMenuItem
 							label={i18n.t("Settings.blockedTopics.navigationLabel")}
@@ -445,8 +436,42 @@ export default function SettingsScreen() {
 					    auth 未確定のあいだも isGuest 側に倒れるので、一瞬だけ出て消えることはない */}
 					{!isGuest && <NotificationSettingsCard />}
 
-					{/* Card 2: Legal ＋ Logout */}
+					{/* 端末の設定 */}
+					<Text style={styles.sectionTitle} accessibilityRole="header">
+						{i18n.t("Settings.sections.device")}
+					</Text>
 					<Card style={styles.card}>
+						{/* #1583 【設計】#1509 は «切替の効果がその場で見えるよう最上段に置く» として
+						    ここを画面の一番上に置いていた。その理由はこの画面自体がテーマ追従である限り
+						    位置に依らず満たされるので、«端末に閉じて保存される設定» のまとまりへ移した
+						    （theme_preference_v1 はサーバーへ同期しない）。 */}
+						<Text style={styles.groupLabel}>{i18n.t("Settings.theme.sectionTitle")}</Text>
+						<ThemeSelector />
+					</Card>
+
+					{/* なに食べよについて */}
+					<Text style={styles.sectionTitle} accessibilityRole="header">
+						{i18n.t("Settings.sections.about")}
+					</Text>
+					<Card style={styles.card}>
+						{/* #317 【設計】ストアのレビュー導線は web では非表示（ストアが無い）。
+						    #1583 ラベルを «レビューを書く» から «応援する» へ変えた。押した先は同じ
+						    ストアのレビュー画面で、オーナー確定仕様どおり導線は 1 本だけ */}
+						{Platform.OS !== "web" && (
+							<SettingsMenuItem
+								label={i18n.t("Settings.support")}
+								onPress={handleLeaveReview}
+								testID="settings-leave-review"
+								accessibilityRole="button"
+							/>
+						)}
+						<SettingsMenuItem
+							label={i18n.t("Settings.sendFeedback")}
+							onPress={handleSendFeedback}
+							testID="settings-feedback"
+							// #951 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約)
+							accessibilityRole="link"
+						/>
 						{/* #1368 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約) */}
 						<SettingsMenuItem
 							label={i18n.t("Settings.communityGuidelines")}
@@ -469,11 +494,23 @@ export default function SettingsScreen() {
 						<SettingsMenuItem
 							label={i18n.t("Settings.copyright")}
 							onPress={() => handleLegalDocument("copyright")}
-							isLast={isGuest}
 							testID="settings-copyright"
 							accessibilityRole="link"
 						/>
-						{!isGuest && (
+						{/* #1583 バージョン。押せる行ではないので SettingsMenuItem を使わない
+						    （ChevronRight が付くと «開ける» と読める）。
+						    問い合わせのときに «アプリについて» を開けば規約もバージョンも揃う形にする */}
+						<View style={styles.versionRow} testID="settings-version">
+							<Text style={styles.versionLabel}>{i18n.t("Settings.version")}</Text>
+							<Text style={styles.versionValue} selectable>
+								{versionLabel}
+							</Text>
+						</View>
+					</Card>
+
+					{/* #1583 ログアウトは «戻れない操作» なので、他のどの分類にも混ぜず単独で最下段に置く */}
+					{!isGuest && (
+						<Card style={styles.card}>
 							<SettingsMenuItem
 								label={i18n.t("Settings.logout")}
 								onPress={handleLogout}
@@ -485,8 +522,8 @@ export default function SettingsScreen() {
 								isLast
 								accessibilityRole="button"
 							/>
-						)}
-					</Card>
+						</Card>
+					)}
 				</ScrollView>
 			</SafeAreaView>
 		</LinearGradient>
@@ -511,6 +548,31 @@ const createStyles = (c: Palette) =>
 		},
 		card: {
 			padding: 0,
+		},
+		// #1583 カード内の小見出し（«端末の設定» の中の «表示テーマ» など）
+		groupLabel: {
+			fontSize: 13,
+			fontWeight: "600",
+			color: c.textSecondary,
+			paddingHorizontal: 16,
+			paddingTop: 12,
+			paddingBottom: 4,
+		},
+		// #1583 バージョン行。押せないので ChevronRight を付けない
+		versionRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 16,
+			paddingVertical: 16,
+		},
+		versionLabel: {
+			fontSize: 16,
+			color: c.textPrimary,
+		},
+		versionValue: {
+			fontSize: 14,
+			color: c.textSecondary,
 		},
 		// #1509 テーマセクションの見出し（カードの外に置く）
 		sectionTitle: {

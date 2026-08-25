@@ -728,7 +728,6 @@
 			}
 		},
 		"sendFeedback": "ご意見・不具合",
-		"leaveReview": "レビューを書く",
 		"rateDialogTitle": "アプリを気に入っていただけましたか？",
 		"rateDialogMessage": "よければストアで評価をお願いします。レビュー画面を開きます。",
 		"rateDialogOk": "評価する",
@@ -770,6 +769,13 @@
 			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
+		},
+		"support": "なに食べよ を応援する",
+		"version": "バージョン",
+		"sections": {
+			"yours": "自分のもの",
+			"device": "端末の設定",
+			"about": "なに食べよについて"
 		}
 	},
 	"Dialog": {

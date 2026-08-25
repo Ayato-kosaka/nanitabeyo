@@ -5,7 +5,8 @@ import { expect, type Locator, type Page } from "@playwright/test";
  *
  * 対応画面: app-expo/app/[locale]/(tabs)/profile/settings.tsx
  *
- * - 「レビューを書く」（ストア誘導）は Web では非表示（Platform.OS !== "web" 条件）
+ * - 「なに食べよ を応援する」（ストア誘導。#1583 で「レビューを書く」から改称）は
+ *   Web では非表示（Platform.OS !== "web" 条件）。testID は settings-leave-review のまま
  * - 「ログアウト」はログイン済み（非匿名）ユーザーのみ表示
  * - #1368 リーガル 4 行はモーダルではなく `/[locale]/legal/<doc>` へ遷移する。
  *   遷移先の検証は `pages/LegalPage.ts` が持つ
