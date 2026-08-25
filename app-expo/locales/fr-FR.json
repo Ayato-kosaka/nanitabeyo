@@ -82,7 +82,22 @@
 		"submitFailed": "Impossible d'envoyer votre vote",
 		"participantsList": "Participants : {{names}}",
 		"noParticipants": "Aucun participant pour le moment",
-		"noVotes": "Aucun vote pour le moment"
+		"noVotes": "Aucun vote pour le moment",
+		"myVotes": {
+			"pageTitle": "Mes votes de groupe",
+			"loadFailed": "Impossible de charger vos votes de groupe",
+			"noCandidates": "Aucun choix",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} et {{count}} de plus",
+			"participantSummary": "{{count}} ont voté",
+			"decidedLabel": "Gagnant : {{name}}",
+			"votedLabel": "Vous avez voté",
+			"notVotedLabel": "Vous n'avez pas voté",
+			"itemAccessibilityLabel": "Vote de groupe du {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "Vous n'avez encore lancé aucun vote de groupe",
+			"emptyDescription": "Cherchez un plat, proposez quelques choix et demandez à vos amis de voter.",
+			"emptyAction": "Créer un vote"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",
@@ -796,6 +811,9 @@
 			"navigationLabel": "Paramètres de l'appareil",
 			"title": "Paramètres de l'appareil",
 			"description": "Ces paramètres sont enregistrés uniquement sur cet appareil. Ils ne sont pas transférés vers d'autres appareils ou comptes."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "Mes votes de groupe"
 		}
 	},
 	"Dialog": {

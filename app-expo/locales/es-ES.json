@@ -82,7 +82,22 @@
 		"submitFailed": "No se pudo enviar tu voto",
 		"participantsList": "Participantes: {{names}}",
 		"noParticipants": "Aún no hay participantes",
-		"noVotes": "Aún no hay votos"
+		"noVotes": "Aún no hay votos",
+		"myVotes": {
+			"pageTitle": "Mis votaciones de grupo",
+			"loadFailed": "No se pudieron cargar tus votaciones de grupo",
+			"noCandidates": "Sin opciones",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} y {{count}} más",
+			"participantSummary": "{{count}} han votado",
+			"decidedLabel": "Ganador: {{name}}",
+			"votedLabel": "Has votado",
+			"notVotedLabel": "No has votado",
+			"itemAccessibilityLabel": "Votación de grupo del {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "Aún no has iniciado ninguna votación de grupo",
+			"emptyDescription": "Busca comida, elige algunas opciones y pide a tus amigos que voten.",
+			"emptyAction": "Crear una votación"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",
@@ -796,6 +811,9 @@
 			"navigationLabel": "Ajustes del dispositivo",
 			"title": "Ajustes del dispositivo",
 			"description": "Estos ajustes se guardan solo en este dispositivo. No se transfieren a otros dispositivos ni cuentas."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "Mis votaciones de grupo"
 		}
 	},
 	"Dialog": {

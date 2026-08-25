@@ -82,7 +82,22 @@
 		"submitFailed": "تعذر إرسال تصويتك",
 		"participantsList": "المشاركون: {{names}}",
 		"noParticipants": "لا يوجد مشاركون بعد",
-		"noVotes": "لا توجد أصوات بعد"
+		"noVotes": "لا توجد أصوات بعد",
+		"myVotes": {
+			"pageTitle": "تصويتاتي الجماعية",
+			"loadFailed": "تعذر تحميل تصويتاتك الجماعية",
+			"noCandidates": "لا توجد خيارات",
+			"candidateSeparator": "، ",
+			"candidateSummaryMore": "{{names}} و{{count}} أخرى",
+			"participantSummary": "صوّت {{count}}",
+			"decidedLabel": "الفائز: {{name}}",
+			"votedLabel": "لقد صوّتت",
+			"notVotedLabel": "لم تصوّت بعد",
+			"itemAccessibilityLabel": "تصويت جماعي بتاريخ {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "لم تبدأ أي تصويت جماعي بعد",
+			"emptyDescription": "ابحث عن طعام واختر بعض الخيارات، ثم اطلب من أصدقائك التصويت.",
+			"emptyAction": "إنشاء تصويت"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
@@ -796,6 +811,9 @@
 			"navigationLabel": "إعدادات الجهاز",
 			"title": "إعدادات الجهاز",
 			"description": "يتم حفظ هذه الإعدادات على هذا الجهاز فقط، ولا تنتقل إلى أجهزة أو حسابات أخرى."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "تصويتاتي الجماعية"
 		}
 	},
 	"Dialog": {

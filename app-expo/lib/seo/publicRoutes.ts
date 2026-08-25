@@ -90,6 +90,8 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	"profile/food": "ログイン必須。未ログインでは中身が無い",
 	"profile/saved-topic-location": "ログイン必須。未ログインでは中身が無い",
 	"profile/search-results": "ログイン必須。未ログインでは中身が無い",
+	// #1505 GRP-01 自分が主催した投票の一覧。ログイン必須
+	"profile/dish-category-group-votes": "ログイン必須。未ログインでは中身が無い",
 
 	// 通知一覧のサブタブ。親（notifications）を踏めば同じレイアウトを通る
 	"notifications/feed": "notifications の子タブ。親ルートで同じレイアウトを検証済み",

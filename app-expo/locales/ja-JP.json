@@ -82,7 +82,22 @@
 		"submitFailed": "投票を送信できませんでした",
 		"participantsList": "参加者：{{names}}",
 		"noParticipants": "まだ参加者はいません",
-		"noVotes": "まだ投票がありません"
+		"noVotes": "まだ投票がありません",
+		"myVotes": {
+			"pageTitle": "グループ投票の履歴",
+			"loadFailed": "グループ投票を読み込めませんでした",
+			"noCandidates": "候補なし",
+			"candidateSeparator": "・",
+			"candidateSummaryMore": "{{names}} ほか{{count}}件",
+			"participantSummary": "{{count}}人が投票",
+			"decidedLabel": "決定: {{name}}",
+			"votedLabel": "投票済み",
+			"notVotedLabel": "未投票",
+			"itemAccessibilityLabel": "{{date}}のグループ投票。{{summary}}。{{participants}}。{{status}}",
+			"emptyTitle": "まだ主催したグループ投票がありません",
+			"emptyDescription": "料理を検索して候補を出すと、友達に投票をお願いできます。",
+			"emptyAction": "投票を作る"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",
@@ -796,6 +811,9 @@
 			"navigationLabel": "端末設定",
 			"title": "端末設定",
 			"description": "この端末にのみ保存される設定です。他の端末やアカウントには引き継がれません。"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "グループ投票の履歴"
 		}
 	},
 	"Dialog": {

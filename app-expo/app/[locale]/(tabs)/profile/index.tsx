@@ -323,6 +323,20 @@ export default function ProfileScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
+	// #1505 【設計】自分が主催したグループ投票の一覧画面への遷移
+	const handleNavigateToMyGroupVotes = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "settings_my_group_votes_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/dish-category-group-votes",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, router, locale]);
+
 	// #611 【設計】ストア直接遷移（market:// / itms-apps:// → https:// フォールバック）
 	const openStoreReviewPage = useCallback(async () => {
 		try {
@@ -593,6 +607,13 @@ export default function ProfileScreen() {
 							label={i18n.t("Settings.language.navigationLabel")}
 							onPress={handleNavigateToLanguage}
 							testID="settings-language"
+							accessibilityRole="link"
+						/>
+						{/* #1505 【設計】自分が主催したグループ投票の一覧画面へ遷移 */}
+						<ProfileMenuItem
+							label={i18n.t("Settings.myGroupVotes.navigationLabel")}
+							onPress={handleNavigateToMyGroupVotes}
+							testID="settings-my-group-votes"
 							accessibilityRole="link"
 						/>
 						{/* #1504 端末設定（ハプティクス等）。規約カードの直上がこの行の定位置 */}

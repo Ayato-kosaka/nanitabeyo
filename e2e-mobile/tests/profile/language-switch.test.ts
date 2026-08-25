@@ -82,8 +82,10 @@ describeJapaneseLocale("表示言語の切り替え(#1508)", () => {
 		const settingsScreen = new SettingsScreen();
 		const languageScreen = new LanguageScreen();
 
+		// #1402 で独立した設定画面は廃止され、設定項目はマイページ本体へ統合された。
+		// 「マイページを開けば設定項目が同じ画面に居る」ので 1 階層減っている（theme.test.ts と同じ形）。
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
+		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
 		await settingsScreen.openLanguage();
 
@@ -107,8 +109,10 @@ describeJapaneseLocale("表示言語の切り替え(#1508)", () => {
 		const settingsScreen = new SettingsScreen();
 		const languageScreen = new LanguageScreen();
 
+		// #1402 で独立した設定画面は廃止され、設定項目はマイページ本体へ統合された。
+		// 「マイページを開けば設定項目が同じ画面に居る」ので 1 階層減っている（theme.test.ts と同じ形）。
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
+		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
 		await settingsScreen.openLanguage();
 		await languageScreen.expectLoaded();
@@ -141,8 +145,10 @@ describeJapaneseLocale("表示言語の切り替え(#1508)", () => {
 		const settingsScreen = new SettingsScreen();
 		const languageScreen = new LanguageScreen();
 
+		// #1402 で独立した設定画面は廃止され、設定項目はマイページ本体へ統合された。
+		// 「マイページを開けば設定項目が同じ画面に居る」ので 1 階層減っている（theme.test.ts と同じ形）。
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
+		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
 		await settingsScreen.openLanguage();
 		await languageScreen.expectLoaded();

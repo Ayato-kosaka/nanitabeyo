@@ -82,7 +82,22 @@
 		"submitFailed": "无法提交投票",
 		"participantsList": "参与者：{{names}}",
 		"noParticipants": "还没有参与者",
-		"noVotes": "还没有投票"
+		"noVotes": "还没有投票",
+		"myVotes": {
+			"pageTitle": "我的分组投票",
+			"loadFailed": "无法加载分组投票",
+			"noCandidates": "暂无候选",
+			"candidateSeparator": "、",
+			"candidateSummaryMore": "{{names}}等{{count}}项",
+			"participantSummary": "{{count}}人已投票",
+			"decidedLabel": "结果：{{name}}",
+			"votedLabel": "已投票",
+			"notVotedLabel": "未投票",
+			"itemAccessibilityLabel": "{{date}}的群组投票。{{summary}}。{{participants}}。{{status}}",
+			"emptyTitle": "您还没有发起过分组投票",
+			"emptyDescription": "搜索美食并选出候选后，就可以邀请朋友投票。",
+			"emptyAction": "创建投票"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
@@ -796,6 +811,9 @@
 			"navigationLabel": "设备设置",
 			"title": "设备设置",
 			"description": "这些设置仅保存在本设备上，不会同步到其他设备或账号。"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "我的分组投票"
 		}
 	},
 	"Dialog": {

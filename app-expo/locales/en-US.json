@@ -82,7 +82,22 @@
 		"submitFailed": "Could not submit your vote",
 		"participantsList": "Participants: {{names}}",
 		"noParticipants": "No participants yet",
-		"noVotes": "No votes yet"
+		"noVotes": "No votes yet",
+		"myVotes": {
+			"pageTitle": "My group votes",
+			"loadFailed": "Could not load your group votes",
+			"noCandidates": "No choices",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} and {{count}} more",
+			"participantSummary": "{{count}} voted",
+			"decidedLabel": "Winner: {{name}}",
+			"votedLabel": "You voted",
+			"notVotedLabel": "You haven't voted",
+			"itemAccessibilityLabel": "Group vote from {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "You haven't started any group votes yet",
+			"emptyDescription": "Search for food, pick a few choices, and ask your friends to vote.",
+			"emptyAction": "Start a group vote"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
@@ -796,6 +811,9 @@
 			"navigationLabel": "Device Settings",
 			"title": "Device Settings",
 			"description": "These settings are saved on this device only. They are not carried over to other devices or accounts."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "My group votes"
 		}
 	},
 	"Dialog": {
