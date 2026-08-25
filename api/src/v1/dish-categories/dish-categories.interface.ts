@@ -7,6 +7,10 @@ export type DishCategoryCandidateNormalizedInput = {
   // market_salience / orderability 用の地域フォールバックキー
   // （狭い地域→広い地域→global）
   regionFallbackKeys: string[];
+  // #737 【設計】season 用のフォールバックキー。regionFallbackKeys の各要素へ
+  // `:month:MM` を付けたもの（例: "region:country:JP:month:08" → … → "global:month:08"）。
+  // 狭い地域→広い地域→global の順に最初に見つかった 1 件を採用する。
+  seasonFallbackKeys: string[];
   budgetIntentKeys: string[];
   timeSlotKey: string | null;
   sceneKey: string | null;
@@ -30,6 +34,9 @@ export interface DishCategoryCandidateWithScores {
   rel_score: number;
   market_salience_score: number;
   dine_out_orderability_score: number;
+  // #737 【設計】季節補正スコア。1 = 平常月（＝補正係数がちょうど 1.0 で無影響）。
+  // season の行を持たないカテゴリは SQL 側の COALESCE で 1 になる。
+  season_score: number;
   final_score: number;
   rnd_value: number;
   random_unit: number;

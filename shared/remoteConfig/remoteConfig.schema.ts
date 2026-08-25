@@ -31,6 +31,17 @@ export const remoteConfigSchema = z.object({
 	dish_category_recommendation_weight_core_ingredient: z.string(),
 	dish_category_recommendation_weight_market_salience: z.string(),
 	dish_category_recommendation_weight_dine_out_orderability: z.string(),
+	/**
+	 * #737 季節補正の重み。`final_score × (1 - w + w × season_score)` の w。
+	 *
+	 * season_score は `dish_category_features(feature_type='season')` の値で、
+	 * 平常月 = 1.0。**行が無いカテゴリは COALESCE で 1.0 になり係数もちょうど 1.0** なので、
+	 * データ未投入でも既存の挙動は一切変わらない。`"0"` にすると季節補正を完全に無効化できる。
+	 *
+	 * ⚠️ 必ず optional + default にすること（下の v1_bulk_import_preflight_enabled と同じ理由）。
+	 * 必須キーを足すと、GCS の config.json を更新するまで**実在する他キーの読み取りまで全部 throw する**。
+	 */
+	dish_category_recommendation_weight_season: z.string().optional().default("0.5"),
 	dish_category_recommendation_score_jitter_ratio: z.string(),
 	dish_category_recommendation_penalty_weight_core_ingredient: z.string(),
 	dish_category_recommendation_penalty_weight_taste: z.string(),
