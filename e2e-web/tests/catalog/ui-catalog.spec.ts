@@ -1,7 +1,7 @@
 import { test, expect } from "../../fixtures/test";
 import { OnboardingPage } from "../../pages/OnboardingPage";
 import { SearchPage } from "../../pages/SearchPage";
-import { TopicsPage } from "../../pages/TopicsPage";
+import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { ResultPage } from "../../pages/ResultPage";
 import { MyDishesPage } from "../../pages/MyDishesPage";
 import { ProfilePage } from "../../pages/ProfilePage";
@@ -133,7 +133,7 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		test.setTimeout(240_000);
 
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 		const resultPage = new ResultPage(appPage);
 
 		// 場所サジェスト（実 API）は検索フローの一部なので、同じ入力をここでそのまま撮る
@@ -143,32 +143,32 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 			await expect(searchPage.locationSuggestion(0)).toBeVisible();
 		});
 
-		const reachedTopics = await captureScreenIfReachable(
+		const reachedDishCategories = await captureScreenIfReachable(
 			appPage,
-			"search-topics",
+			"search-dishCategories",
 			async () => {
 				await searchPage.typeLocation("渋谷");
 				await searchPage.selectLocationSuggestion(0);
 				await searchPage.submitButton.click();
-				await topicsPage.expectLoaded();
+				await dishCategoriesPage.expectLoaded();
 			},
 			// カード画像の読み込みとカルーセルの初期アニメーションを待つ
 			{ settleMs: 2_000 },
 		);
 
-		if (!reachedTopics) return;
+		if (!reachedDishCategories) return;
 
 		// スポットライトチュートリアルは 4 ステップ。全ステップを 1 枚ずつ撮る
 		const tutorialSteps = [
-			{ id: "search-topics-tutorial-swipe", step: topicsPage.tutorialSwipeStep },
-			{ id: "search-topics-tutorial-deep-dive", step: topicsPage.tutorialDeepDiveStep },
-			{ id: "search-topics-tutorial-topic-actions", step: topicsPage.tutorialActionsStep },
-			{ id: "search-topics-tutorial-group-vote", step: topicsPage.tutorialGroupVoteStep },
+			{ id: "search-dish-categories-tutorial-swipe", step: dishCategoriesPage.tutorialSwipeStep },
+			{ id: "search-dish-categories-tutorial-deep-dive", step: dishCategoriesPage.tutorialDeepDiveStep },
+			{ id: "search-dish-categories-tutorial-dishCategory-actions", step: dishCategoriesPage.tutorialActionsStep },
+			{ id: "search-dish-categories-tutorial-group-vote", step: dishCategoriesPage.tutorialGroupVoteStep },
 		] as const;
 
 		const startedTutorial = await captureScreenIfReachable(appPage, tutorialSteps[0].id, async () => {
-			await topicsPage.tutorialHelpButton.click();
-			await topicsPage.expectTutorialStarted();
+			await dishCategoriesPage.tutorialHelpButton.click();
+			await dishCategoriesPage.expectTutorialStarted();
 		});
 
 		if (startedTutorial) {
@@ -177,7 +177,7 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 					appPage,
 					id,
 					async () => {
-						await topicsPage.tutorialNextButton.click();
+						await dishCategoriesPage.tutorialNextButton.click();
 						await expect(step).toBeVisible();
 					},
 					// スポットライトの移動アニメーションを待つ
@@ -193,15 +193,15 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 				// チュートリアルを開いていた場合は閉じてからカードを選ぶ。
 				// ⚠️ 最終ステップでは「スキップ」が消えて CTA が「使ってみる」(finish) に変わるため、
 				// skip だけを待つと閉じられずにテストごとタイムアウトする（run 31383154085 で実測）
-				if (await topicsPage.tutorialOverlay.isVisible()) {
-					if (await topicsPage.tutorialFinishButton.isVisible()) {
-						await topicsPage.tutorialFinishButton.click();
-					} else if (await topicsPage.tutorialSkipButton.isVisible()) {
-						await topicsPage.tutorialSkipButton.click();
+				if (await dishCategoriesPage.tutorialOverlay.isVisible()) {
+					if (await dishCategoriesPage.tutorialFinishButton.isVisible()) {
+						await dishCategoriesPage.tutorialFinishButton.click();
+					} else if (await dishCategoriesPage.tutorialSkipButton.isVisible()) {
+						await dishCategoriesPage.tutorialSkipButton.click();
 					}
-					await expect(topicsPage.tutorialOverlay).toBeHidden();
+					await expect(dishCategoriesPage.tutorialOverlay).toBeHidden();
 				}
-				await topicsPage.chooseFirstTopic();
+				await dishCategoriesPage.chooseFirstDishCategory();
 				await resultPage.expectLoaded();
 			},
 			// 地図タイル + 店舗カード（メディアの読み込みを伴う）が埋まるまで待つ。
@@ -250,8 +250,8 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		await profilePage.expectLoaded();
 		await captureScreen(appPage, "profile-guest");
 
-		await captureScreenIfReachable(appPage, "profile-saved-topics", async () => {
-			await profilePage.openSavedTopics();
+		await captureScreenIfReachable(appPage, "profile-saved-dish-categories", async () => {
+			await profilePage.openSavedDishCategories();
 		});
 
 		await captureScreenIfReachable(appPage, "profile-liked", async () => {
@@ -268,12 +268,12 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 
 	// ─ 保存料理カテゴリの地点検索（#1369 でモーダルからルートへ） ─
 	// カードから開くのが本来の導線だが、匿名ユーザーには保存が 0 件で入口が無い。
-	// 画面の見た目は topicId / topicLabelEn の有無で変わらない（フォームだけ）ので、
+	// 画面の見た目は dishCategoryId / dishCategoryLabelEn の有無で変わらない（フォームだけ）ので、
 	// カタログは直リンクで撮る（実際の検索は保存トピックからの遷移でのみ成立する）
 	test("保存料理カテゴリの地点検索", async ({ appPage }) => {
-		await captureScreenIfReachable(appPage, "profile-saved-topic-location", async () => {
-			await gotoScreen(appPage, "profile-saved-topic-location");
-			await expect(appPage.getByTestId("saved-topic-location-search-input")).toBeVisible();
+		await captureScreenIfReachable(appPage, "profile-saved-dish-category-location", async () => {
+			await gotoScreen(appPage, "profile-saved-dish-category-location");
+			await expect(appPage.getByTestId("saved-dish-category-location-search-input")).toBeVisible();
 		});
 	});
 
@@ -312,8 +312,8 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		await gotoScreen(appPage, "profile-feedback");
 		await captureScreen(appPage, "profile-feedback");
 
-		await gotoScreen(appPage, "profile-blocked-topics");
-		await captureScreen(appPage, "profile-blocked-topics", { settleMs: 2_000 });
+		await gotoScreen(appPage, "profile-blocked-dish-categories");
+		await captureScreen(appPage, "profile-blocked-dish-categories", { settleMs: 2_000 });
 	});
 
 	// ─ 直リンクのみで到達する画面 ─

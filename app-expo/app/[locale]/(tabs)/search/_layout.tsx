@@ -9,7 +9,7 @@ export default function SearchStackLayout() {
 	return (
 		<Stack screenOptions={{ headerShown: false }}>
 			<Stack.Screen name="index" />
-			<Stack.Screen name="topics" />
+			<Stack.Screen name="dish-categories" />
 			<Stack.Screen name="dish-category-group-votes" />
 			<Stack.Screen name="result" options={{ presentation: "transparentModal", headerShown: false }} />
 		</Stack>

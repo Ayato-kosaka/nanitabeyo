@@ -1,7 +1,7 @@
 import type { BulkImportDishesDto, SearchDishMediaDto } from "@shared/api/v1/dto";
 import type { BulkImportDishesResponse, DishMediaEntry, SearchDishMediaResponse } from "@shared/api/v1/res";
 import { getRemoteConfig } from "@/lib/remoteConfig";
-import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
+import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/dishCategories/constants";
 import { isNoPriceLevelsSelected } from "@/features/search/constants";
 
 type CallBackend = <TRequest extends Record<string, any> | FormData, R>(
@@ -17,7 +17,7 @@ type CallBackend = <TRequest extends Record<string, any> | FormData, R>(
  * 店舗検索・店舗候補の初回 import を 1 か所にまとめる。
  *
  * 既存 dish_media が 1 件でもあればその結果を返し、0 件の時だけ bulk import へ進む。
- * これを topics / group vote で共通利用する。
+ * これを dishCategories / group vote で共通利用する。
  */
 /**
  * #817 【設計】レビュー優先言語を「端末言語 → 検索地点の言語」の順に並べる。

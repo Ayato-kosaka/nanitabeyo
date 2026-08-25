@@ -253,7 +253,7 @@ function ActionButtonsContent({
 			bumpMyDishesRevision();
 			if (willSave) {
 				// #1401 【仕様】保存操作のみ完了フィードバックを出す(解除は状態変化が見た目で分かるため省略)。
-				// TopicCard の「見る」導線(#954)と同じ作法で、遷移先だけ my-dishes タブに変える。
+				// DishCategoryCard の「見る」導線(#954)と同じ作法で、遷移先だけ my-dishes タブに変える。
 				showSnackbar(i18n.t("DishMediaContent.save.savedMessage"), {
 					action: {
 						label: i18n.t("Common.view"),

@@ -4,7 +4,7 @@
 // この画面は `react-native` の `SafeAreaView` を使っていた。これは **iOS 専用**の実装で、
 // Android では inset を一切足さない素の View と同じ振る舞いになる（RN 公式ドキュメント記載の制約）。
 // そのため Android だけヘッダーがステータスバーへ食い込んでいた。
-// 見本として指定されたブロック済み料理一覧（profile/blocked-topics.tsx）や、
+// 見本として指定されたブロック済み料理一覧（profile/blocked-dish-categories.tsx）や、
 // 同じくタブ直下の検索・プロフィール画面は `react-native-safe-area-context` を使っており、
 // こちらは Android でも inset を適用する。
 //
@@ -135,13 +135,13 @@ describe("#1130 お知らせ一覧の SafeArea", () => {
 	});
 
 	it("見本のブロック済み料理一覧と同じ SafeArea の出所を使っている", () => {
-		const blockedTopicsSource = fs.readFileSync(
-			path.join(__dirname, "..", "app", "[locale]", "(tabs)", "profile", "blocked-topics.tsx"),
+		const blockedDishCategoriesSource = fs.readFileSync(
+			path.join(__dirname, "..", "app", "[locale]", "(tabs)", "profile", "blocked-dish-categories.tsx"),
 			"utf8",
 		);
 
 		// 見本側が react-native-safe-area-context をやめたらこのテストの前提が崩れるので、そこも固定する
-		expect(blockedTopicsSource).toContain('import { SafeAreaView } from "react-native-safe-area-context"');
+		expect(blockedDishCategoriesSource).toContain('import { SafeAreaView } from "react-native-safe-area-context"');
 	});
 });
 

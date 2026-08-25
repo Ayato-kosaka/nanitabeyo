@@ -1,7 +1,7 @@
 import { by, describeJapaneseLocale, element, expect, launchAppWithSession, visibleNow } from "../../fixtures/e2e";
 import { ResultScreen } from "../../screens/ResultScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
-import { TopicsScreen } from "../../screens/TopicsScreen";
+import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 
 /**
  * 🚫 実体未着の料理メディアが結果フィードに出ない（#1257）
@@ -36,7 +36,7 @@ import { TopicsScreen } from "../../screens/TopicsScreen";
  */
 describeJapaneseLocale("実体未着の料理メディアは結果フィードに出ない（#1257）", () => {
 	const search = new SearchScreen();
-	const topics = new TopicsScreen();
+	const dishCategories = new DishCategoriesScreen();
 	const result = new ResultScreen();
 
 	/** #530 未着カードにだけ重なるオーバーレイの文言（locales/ja-JP.json の DishMediaContent） */
@@ -58,15 +58,15 @@ describeJapaneseLocale("実体未着の料理メディアは結果フィード�
 		await search.selectLocationSuggestion(0);
 		await search.submit();
 
-		await topics.expectLoaded();
-		await topics.chooseFirstTopic();
+		await dishCategories.expectLoaded();
+		await dishCategories.chooseFirstDishCategory();
 
 		// #1156 dev のデータ次第で 0 件になり、退避ダイアログを出してトピック画面へ戻ることがある。
 		// その場合は «一覧に出るメディア» が 1 件も無いので、このテストの検証対象が存在しない
 		const outcome = await result.waitForResultOrFallback();
 		if (outcome === "fallback") {
 			await result.dismissGoogleMapsFallback();
-			await topics.expectLoaded();
+			await dishCategories.expectLoaded();
 			return;
 		}
 

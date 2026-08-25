@@ -1,6 +1,6 @@
 import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
-import { TopicsPage } from "../../pages/TopicsPage";
+import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { ResultPage } from "../../pages/ResultPage";
 
 /**
@@ -13,7 +13,7 @@ import { ResultPage } from "../../pages/ResultPage";
  * ここでは実際に検索フローを通って表示された料理メディアカードのボタン群が
  * 無名でなくなっていることを確認する。
  *
- * 実 API を経由し AI 生成待ちが発生するため @smoke 対象外とする(topics-flow.spec.ts と同様)。
+ * 実 API を経由し AI 生成待ちが発生するため @smoke 対象外とする(dish-categories-flow.spec.ts と同様)。
  */
 test.describe("店舗・料理アクションのアクセシビリティ", () => {
 	test.setTimeout(60_000);
@@ -24,14 +24,14 @@ test.describe("店舗・料理アクションのアクセシビリティ", () =>
 
 	test("料理メディアカードの操作ボタンが役割・名前を持つ", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 		const resultPage = new ResultPage(appPage);
 
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
 		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
-		await topicsPage.chooseFirstTopic();
+		await dishCategoriesPage.expectLoaded();
+		await dishCategoriesPage.chooseFirstDishCategory();
 		await resultPage.expectLoaded();
 
 		// いいね/保存ボタン: role="button" を持ち、ラベルが空でないこと(店舗名を含む)

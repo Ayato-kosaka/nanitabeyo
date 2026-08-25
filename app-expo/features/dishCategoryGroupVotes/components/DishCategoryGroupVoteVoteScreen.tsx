@@ -16,14 +16,14 @@ import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SubmitDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
 import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
-import type { Topic } from "@/types/search";
+import type { DishCategoryRecommendation } from "@/types/search";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocale } from "@/hooks/useLocale";
-import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
+import { useDishCategoryImageResources } from "@/features/dishCategories/hooks/useDishCategoryImageResources";
 import { e2eVoteImagePreloadProbeElement } from "@/lib/e2e/voteImagePreloadProbe";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
@@ -81,16 +81,16 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	}, [detail?.candidates]);
 
 	/**
-	 * #1213 【修正】候補カードは Topics 検索と同じ TopicVisualCard を描画に使うが、
+	 * #1213 【修正】候補カードは DishCategories 検索と同じ DishCategoryVisualCard を描画に使うが、
 	 * ここでは候補切り替えのたびに生の uri をその場で読み込んでいた（= プリロード契約に未参加）。
-	 * useTopicImageResources へ候補全件を渡して先読みし、ready になった ImageRef をカードへ渡すことで、
+	 * useDishCategoryImageResources へ候補全件を渡して先読みし、ready になった ImageRef をカードへ渡すことで、
 	 * 次の候補へ進んだ瞬間にはすでに読み込み済みの画像が即時表示されるようにする。
 	 */
-	const candidateTopics = useMemo<Topic[]>(
-		() => voteCandidates.map((candidate) => candidateToTopic(candidate)),
+	const candidateDishCategories = useMemo<DishCategoryRecommendation[]>(
+		() => voteCandidates.map((candidate) => candidateToDishCategory(candidate)),
 		[voteCandidates],
 	);
-	const { getImageState } = useTopicImageResources({ topics: candidateTopics, sessionKey: shareToken });
+	const { getImageState } = useDishCategoryImageResources({ dishCategories: candidateDishCategories, sessionKey: shareToken });
 
 	/**
 	 * #1213 【観測】native には「先読みが効いているか」を外から見る手段が無い（web は Resource Timing で見える）。
@@ -100,13 +100,13 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	const imagePreloadCounts = useMemo(() => {
 		let ready = 0;
 		let failed = 0;
-		for (const topic of candidateTopics) {
-			const status = getImageState(topic).status;
+		for (const dishCategory of candidateDishCategories) {
+			const status = getImageState(dishCategory).status;
 			if (status === "ready") ready += 1;
 			else if (status === "error") failed += 1;
 		}
-		return { ready, failed, total: candidateTopics.length };
-	}, [candidateTopics, getImageState]);
+		return { ready, failed, total: candidateDishCategories.length };
+	}, [candidateDishCategories, getImageState]);
 
 	// #945 【仕様】スワイプ/ボタンどちらの操作でもカードが切り替わったことを読み上げる
 	useEffect(() => {
@@ -262,7 +262,7 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 					<DishCategoryGroupVoteVoteCard
 						candidate={currentCandidate}
 						onVote={handleVote}
-						imageState={getImageState(candidateToTopic(currentCandidate))}
+						imageState={getImageState(candidateToDishCategory(currentCandidate))}
 					/>
 				) : (
 					<View style={styles.center}>
@@ -354,13 +354,13 @@ function getFilledProgressSegments(index: number, total: number) {
 	return Math.min(total, index + 1);
 }
 
-// #1213 useTopicImageResources は Topic 形状（categoryId + imageUrl がキャッシュキーの元）を前提にしているため、
-// 候補を最小限のフィールドだけ Topic 形状へ写す。displayName/tagline は表示に使わず uri とキーの算出専用。
-function candidateToTopic(candidate: DishCategoryGroupVoteCandidate): Topic {
+// #1213 useDishCategoryImageResources は DishCategoryRecommendation 形状（categoryId + imageUrl がキャッシュキーの元）を前提にしているため、
+// 候補を最小限のフィールドだけ DishCategoryRecommendation 形状へ写す。displayName/tagline は表示に使わず uri とキーの算出専用。
+function candidateToDishCategory(candidate: DishCategoryGroupVoteCandidate): DishCategoryRecommendation {
 	return {
 		category: candidate.dishCategoryId,
 		categoryId: candidate.dishCategoryId,
-		topicTitle: candidate.displayName,
+		title: candidate.displayName,
 		reason: candidate.tagline,
 		imageUrl: candidate.imageUrl,
 	};

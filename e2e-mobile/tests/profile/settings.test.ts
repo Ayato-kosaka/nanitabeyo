@@ -37,7 +37,7 @@ describe("設定項目（匿名ユーザー）", () => {
 	//   1. マイページタブを開く（#1402 以前は「歯車ボタンをタップして設定画面へ」だった）
 	//   2. 以下の項目が表示されることを検証:
 	//      - ご意見・不具合(settings-feedback) / レビューを書く(settings-leave-review、ネイティブのみ)
-	//      - ブロック済みの料理トピック(settings-blocked-topics) / 端末設定(settings-device-settings)
+	//      - ブロック済みの料理トピック(settings-blocked-dish-categories) / 端末設定(settings-device-settings)
 	//      - 利用規約(settings-terms)
 	//      - プライバシーポリシー(settings-privacy)
 	it("設定メニューの各項目が表示される", async () => {
@@ -51,7 +51,7 @@ describe("設定項目（匿名ユーザー）", () => {
 
 		await waitUntilVisible(settingsScreen.feedbackItem);
 		await waitUntilVisible(settingsScreen.leaveReviewItem);
-		await waitUntilVisible(settingsScreen.blockedTopicsItem);
+		await waitUntilVisible(settingsScreen.blockedDishCategoriesItem);
 		// #1504 端末設定は規約カードの直上に置いた行。規約 4 行より上にいるので順序も併せて固定される
 		await waitUntilVisible(settingsScreen.deviceSettingsItem);
 		await waitUntilVisible(settingsScreen.termsItem);

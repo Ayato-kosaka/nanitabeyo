@@ -185,7 +185,7 @@ export class SearchPage {
 	 * 連打でトピック画面が 5 枚積み上がっても `window.history.length` の増分は 1 のままだった。
 	 * expo-router / React Navigation の web 実装は、同一タスク内で連続した push を
 	 * 1 回の履歴エントリへまとめてしまうためと思われる。
-	 * 二重 push の観測点は **「積み上がったトピック画面の枚数」**（TopicsPage.headerTitle の件数）で、
+	 * 二重 push の観測点は **「積み上がったトピック画面の枚数」**（DishCategoriesPage.headerTitle の件数）で、
 	 * こちらは「増えていないこと」を補助的に見るだけの位置づけ。
 	 */
 	async historyLength(): Promise<number> {

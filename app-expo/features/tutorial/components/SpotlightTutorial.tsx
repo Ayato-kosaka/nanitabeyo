@@ -234,7 +234,7 @@ export function SpotlightTutorial<K extends string>({
 	openReason,
 	targetRefs,
 	steps,
-	testIDPrefix = "topics-tutorial",
+	testIDPrefix = "spotlight-tutorial",
 	swipeHint,
 	onPresented,
 	onClose,
