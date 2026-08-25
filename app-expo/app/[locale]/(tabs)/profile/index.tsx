@@ -33,7 +33,7 @@
    （app/[locale]/_layout.tsx）ため、開いた BlurModal がある状態で push すると
    遷移先が portal の下に潜って触れなくなる（#1359 で地図が踏んだ）。
 */
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import {
 	View,
 	Text,
@@ -62,6 +62,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Env } from "@/constants/Env";
+import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -215,6 +216,8 @@ export default function ProfileScreen() {
 	const { locale } = useLocale();
 	const { showDialog, confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
+	const { callBackend } = useAPICall();
+	const deletingRef = useRef(false);
 
 	// #467 【設計】プロフィールをグローバルストアから取得し、自動ロードを実行
 	useEnsureOwnProfileLoaded();
@@ -529,6 +532,59 @@ export default function ProfileScreen() {
 		}
 	}, [logout, mediumImpact, logFrontendEvent, confirm]);
 
+	// #1596 アカウント削除。2段階の確認を挟み、削除後はログアウトして初期画面へ戻る
+	const handleDeleteAccount = useCallback(async () => {
+		mediumImpact();
+		logFrontendEvent({
+			event_name: "settings_delete_account_pressed",
+			error_level: "log",
+			payload: {},
+		});
+
+		const step1 = await confirm({
+			title: i18n.t("Settings.deleteAccountConfirmTitle"),
+			message: i18n.t("Settings.deleteAccountConfirmMessage"),
+			confirmLabel: i18n.t("Settings.deleteAccountConfirmButton"),
+			cancelLabel: i18n.t("Common.cancel"),
+		});
+		if (!step1) return;
+
+		const step2 = await confirm({
+			title: i18n.t("Settings.deleteAccountFinalTitle"),
+			message: i18n.t("Settings.deleteAccountFinalMessage"),
+			confirmLabel: i18n.t("Settings.deleteAccountFinalButton"),
+			cancelLabel: i18n.t("Common.cancel"),
+		});
+		if (!step2) return;
+
+		if (deletingRef.current) return;
+		deletingRef.current = true;
+
+		showSnackbar(i18n.t("Settings.deleteAccountInProgress"));
+
+		try {
+			await callBackend<Record<string, never>, void>("v1/users/me", {
+				method: "DELETE",
+				requestPayload: {},
+			});
+			logFrontendEvent({
+				event_name: "delete_account_success",
+				error_level: "log",
+				payload: {},
+			});
+			showSnackbar(i18n.t("Settings.deleteAccountSuccess"));
+			await logout({ scope: "local" });
+		} catch (error) {
+			deletingRef.current = false;
+			logFrontendEvent({
+				event_name: "delete_account_error",
+				error_level: "error",
+				payload: { error: (error as Error).message },
+			});
+			showSnackbar(i18n.t("Settings.deleteAccountError"));
+		}
+	}, [mediumImpact, logFrontendEvent, confirm, callBackend, showSnackbar, logout]);
+
 	// #951 【設計】フィードバック画面へ遷移(モーダル起動から変更)
 	const handleSendFeedback = useCallback(() => {
 		lightImpact();
@@ -676,17 +732,29 @@ export default function ProfileScreen() {
 							accessibilityRole="link"
 						/>
 						{!isGuest && (
-							<ProfileMenuItem
-								label={i18n.t("Settings.logout")}
-								onPress={handleLogout}
-								testID="settings-logout"
-								textStyle={{
-									color: colors.destructive,
-									fontWeight: "700",
-								}}
-								isLast
-								accessibilityRole="button"
-							/>
+							<>
+								<ProfileMenuItem
+									label={i18n.t("Settings.logout")}
+									onPress={handleLogout}
+									testID="settings-logout"
+									textStyle={{
+										color: colors.destructive,
+										fontWeight: "700",
+									}}
+									accessibilityRole="button"
+								/>
+								<ProfileMenuItem
+									label={i18n.t("Settings.deleteAccount")}
+									onPress={handleDeleteAccount}
+									testID="settings-delete-account"
+									textStyle={{
+										color: colors.destructive,
+										fontWeight: "700",
+									}}
+									isLast
+									accessibilityRole="button"
+								/>
+							</>
 						)}
 					</Card>
 
