@@ -48,6 +48,18 @@ async function callApi<T>(accessToken: string, pathname: string, init: RequestIn
 	return body.data as T;
 }
 
+/** 一覧の 1 行から «画面に出る料理名» を決める（アプリ側 `resolveMyDishTitle` と同じ規則） */
+export function titleOfWantRow(
+	row: {
+		dish: { name: string | null; categoryLabels?: Record<string, string> | null };
+		restaurant: { name: string | null };
+	},
+	lang = "ja",
+): string {
+	const labels = row.dish.categoryLabels ?? undefined;
+	return labels?.[lang] || labels?.en || row.dish.name || row.restaurant.name || "";
+}
+
 export type ResolvedImport = {
 	status: string;
 	source: { provider: string | null; externalContentId: string | null; canonicalUrl: string | null } | null;
@@ -82,7 +94,13 @@ export async function fetchMyWantDishes(accessToken: string): Promise<{
 	data: {
 		key: string;
 		status: string;
-		dish: { id: string; name: string | null; categoryImageUrl: string | null; categoryLabels?: Record<string, string> | null };
+		dish: {
+			id: string;
+			category_id: string;
+			name: string | null;
+			categoryImageUrl: string | null;
+			categoryLabels?: Record<string, string> | null;
+		};
 		dishMedia: { id: string; thumbnailImageUrl: string | null; render_type?: string } | null;
 		restaurant: { id: string; name: string | null };
 	}[];
