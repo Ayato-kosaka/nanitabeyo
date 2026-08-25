@@ -987,7 +987,8 @@
 				"description": "Filtra por las categorías más frecuentes entre los registros mostrados",
 				"count": "{{label}} ({{count}})",
 				"showAll": "Ver más ({{count}} más)"
-			}
+			},
+			"activeCount": "{{count}} filtros activos"
 		},
 		"empty": {
 			"description": "Los platos que guardes o registres como comidos aparecerán aquí."
@@ -1033,7 +1034,8 @@
 					"title": "Filtra cuando crezca",
 					"body": "Filtra por “quiero comer / comido”, plato, zona, con quién y franja horaria. Está para reducir opciones, no para añadirlas."
 				}
-			}
+			},
+			"replay": "Ver el tutorial de nuevo"
 		}
 	},
 	"SnsImport": {

@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { CalendarDays, LayoutGrid, MapPinned, Plus, SlidersHorizontal } from "lucide-react-native";
+import { CalendarDays, HelpCircle, LayoutGrid, MapPinned, Plus, SlidersHorizontal } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { FixedColors, type Palette } from "@/constants/Palette";
+import {
+	selectActiveFilterCount,
+	useMyDishesFilterStore,
+} from "@/features/myDishes/stores/useMyDishesFilterStore";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
@@ -119,6 +123,9 @@ export default function MyDishesScreen() {
 	}, [lightImpact, locale]);
 
 	// #1396 【設計】フィルタ編集はルート（`my-dishes/filters`）へ push する。BlurModal は使わない（§8-5）
+	// #1375（オーナー指示）絞り込みアイコンに出すバッジの数（棚を削っているものだけ数える）
+	const activeFilterCount = useMyDishesFilterStore(selectActiveFilterCount);
+
 	const handleFilterPress = useCallback(() => {
 		lightImpact();
 		// #1375 実機確認: どのビューから開いたかを渡す。Calendar からのときは
@@ -196,9 +203,16 @@ export default function MyDishesScreen() {
 		isTutorialRequested,
 		tutorialRequestId,
 		openReason: tutorialOpenReason,
+		openManually: openTutorialManually,
 		close: closeTutorial,
 		markPresented: markTutorialPresented,
 	} = useSpotlightTutorial({ storageKey: MY_DISHES_TUTORIAL_STORAGE_KEY, canAutoOpen: true });
+
+	// #1375（オーナー指示）チュートリアルを見返す口。以前は一度見たら二度と開けなかった
+	const handleReplayTutorial = useCallback(() => {
+		lightImpact();
+		openTutorialManually();
+	}, [lightImpact, openTutorialManually]);
 
 	return (
 		<SafeAreaView edges={["top"]} style={styles.container} testID="my-dishes-screen">
@@ -234,14 +248,37 @@ export default function MyDishesScreen() {
 						);
 					})}
 					<View style={styles.viewSwitchSpacer} />
+					{/* #1375（オーナー指示）チュートリアルを見返す口。絞り込みの **左** に置く。
+					    以前は «一度見たら二度と開けない» 状態だった（自動で 1 回出るだけ） */}
+					<TouchableOpacity
+						testID="my-dishes-tutorial-replay"
+						onPress={handleReplayTutorial}
+						style={styles.tutorialButton}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("MyDishes.tutorial.replay")}>
+						<HelpCircle size={18} color={colors.textSecondary} />
+					</TouchableOpacity>
+					<View style={styles.viewSwitchSpacer} />
 					<View ref={filterButtonTutorialRef} collapsable={false}>
 						<TouchableOpacity
 							testID="my-dishes-filter-button"
 							onPress={handleFilterPress}
 							style={styles.filterButton}
 							accessibilityRole="button"
-							accessibilityLabel={i18n.t("MyDishes.filters.title")}>
+							accessibilityLabel={
+								activeFilterCount > 0
+									? i18n.t("MyDishes.filters.activeCount", { count: activeFilterCount })
+									: i18n.t("MyDishes.filters.title")
+							}>
 							<SlidersHorizontal size={18} color={colors.textPrimaryAlt} />
+							{/* #1375（オーナー指示）いま何個絞り込みが効いているかを数字で出す。
+							    アイコンだけだと «絞り込んだまま» に気づけず、
+							    «記録が消えた» と誤解する（0 のときは出さない） */}
+							{activeFilterCount > 0 && (
+								<View style={styles.filterBadge} testID="my-dishes-filter-badge">
+									<Text style={styles.filterBadgeLabel}>{activeFilterCount}</Text>
+								</View>
+							)}
 						</TouchableOpacity>
 					</View>
 				</View>
@@ -372,7 +409,11 @@ const createStyles = (c: Palette) =>
 		},
 		viewSwitch: {
 			flexDirection: "row",
-			alignItems: "center",
+			// #1375（オーナー指示・2 度目）**下端で揃える。**
+			// `center` だと、右のボタン（38 + marginBottom 8 = 46）が行の高さを決め、
+			// 38 しかないタブ側が上下に 4px ずつ振り分けられる。その下の 4px が
+			// «下線の下に残る余白» の正体だった（paddingBottom を 0 にしても消えない）
+			alignItems: "flex-end",
 		},
 		viewButton: {
 			flex: 1,
@@ -405,6 +446,36 @@ const createStyles = (c: Palette) =>
 			justifyContent: "center",
 			// 下線（高さ 2）と同じ分だけ持ち上げて、タブのアイコン列と光学的に揃える
 			marginBottom: 8,
+		},
+		// #1375（オーナー指示）チュートリアルの «?»。絞り込みより一段弱い見た目にする
+		// （枠を持たせると絞り込みと同じ強さに見え、どちらが主か分からなくなる）
+		tutorialButton: {
+			width: 32,
+			height: 32,
+			alignItems: "center",
+			justifyContent: "center",
+			marginBottom: 11,
+		},
+		// #1375（オーナー指示）絞り込みの件数バッジ。右上に重ねる
+		filterBadge: {
+			position: "absolute",
+			top: -4,
+			right: -4,
+			minWidth: 18,
+			height: 18,
+			paddingHorizontal: 5,
+			borderRadius: 9,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.brand,
+			// 地の色と接して読めなくならないよう縁を付ける（他のバッジ類と同じ考え方）
+			borderWidth: 1.5,
+			borderColor: c.surface,
+		},
+		filterBadgeLabel: {
+			fontSize: 10,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
 		},
 		body: {
 			flex: 1,

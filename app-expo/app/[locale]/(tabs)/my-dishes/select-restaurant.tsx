@@ -589,7 +589,15 @@ export default function SelectRestaurantScreen() {
 				</View>
 			</View>
 
-			{/* Saved Restaurants BottomSheet */}
+			{/* Saved Restaurants BottomSheet
+
+			    #1375（オーナー指示）**「お店を選ぶ」ときは出さない。**
+			    記録の途中でこの画面へ来る人は «探している店» が決まっているので、
+			    保存済みの一覧が下から出ても選択の役に立たず、地図と検索結果を隠すだけになる。
+			    保存済みの店は地図上のピンとして見えているので、そこから選べる。
+
+			    ⚠️ pick モード以外（この画面を単体で開く経路）では従来どおり出す。 */}
+			{!isPickMode && (
 			<SavedRestaurantsSheet
 				ref={savedRestaurantsSheetRef}
 				visible={isSheetVisible}
@@ -601,6 +609,7 @@ export default function SelectRestaurantScreen() {
 				onRestaurantReviewPress={handleSavedRestaurantReviewPress}
 				onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
 			/>
+			)}
 		</View>
 	);
 }

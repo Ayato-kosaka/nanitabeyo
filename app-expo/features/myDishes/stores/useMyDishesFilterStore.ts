@@ -328,3 +328,32 @@ export const useMyDishesFilterStore = createWithEqualityFn<MyDishesFilterStore>(
 
 	reset: () => set({ filter: DEFAULT_MY_DISHES_FILTER }),
 }));
+
+/*
+#1375（オーナー指示）**絞り込みアイコンに「いま何個効いているか」を出すための数。**
+
+数えるのは «棚を削っているもの» だけ。並び替え（`sort`）と、その同伴である
+`featureKeys` は棚を削らないので数えない（`MyDishesFeedChips.tsx` の
+「chips は棚を削る方向にだけ働く」と同じ線引き）。
+
+`status` は «食べたい / 食べた» の 2 択で、[] は «両方» ＝ 未指定なので数えない。
+`categoryIds` は選んだ個数ぶん数える（3 つ選べば 3）。
+評価は `minRating` と `ratings` のどちらかしか使わないので、合わせて高々 1 とは限らず
+`ratings` の個数で数える（複数選択できる作りのため）。
+エリアは効いていれば 1。
+*/
+export const countActiveMyDishesFilters = (filter: MyDishesFilter): number => {
+	let count = 0;
+	if (filter.status.length > 0) count += filter.status.length;
+	count += filter.categoryIds.length;
+	if (filter.minRating !== null) count += 1;
+	count += filter.ratings.length;
+	if (filter.from !== null) count += 1;
+	if (filter.to !== null) count += 1;
+	if (filter.area !== null) count += 1;
+	return count;
+};
+
+/** ストアから直接読むためのセレクタ */
+export const selectActiveFilterCount = (state: MyDishesFilterStore): number =>
+	countActiveMyDishesFilters(state.filter);
