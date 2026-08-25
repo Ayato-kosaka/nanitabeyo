@@ -394,6 +394,9 @@
 		"share": {
 			"title": "{{dishName}}をチェック"
 		},
+		"save": {
+			"savedMessage": "食べたいに保存しました"
+		},
 		"buttons": {
 			"viewRestaurant": "店を見る"
 		},
@@ -403,10 +406,10 @@
 			"likeInactive": "{{name}}にいいね",
 			"saveActive": "{{name}}の食べたいを解除",
 			"saveInactive": "{{name}}を食べたいに保存",
+			"recordEaten": "{{name}}の食べたを記録",
 			"share": "{{name}}をシェア",
 			"openMap": "{{name}}の地図を開く",
 			"reviewLike": "{{username}}の口コミにいいね",
-			"recordEaten": "{{name}}の食べたを記録",
 			"recordEatenAgain": "{{name}}で食べたをもう一度記録する（記録済み）"
 		},
 		"processing": "メディアを処理中...",
@@ -418,9 +421,6 @@
 		},
 		"info": {
 			"walkFromShibuya": "渋谷駅から徒歩13分"
-		},
-		"save": {
-			"savedMessage": "食べたいに保存しました"
 		},
 		"embed": {
 			"play": "{{provider}}で再生"
@@ -437,33 +437,19 @@
 	"Tabs": {
 		"home": "ホーム",
 		"search": "検索",
-		"review": "レビュー",
 		"notifications": "お知らせ",
 		"profile": "プロフィール",
 		"labels": {
 			"search": "さがす",
-			"review": "レビュー",
 			"notifications": "お知らせ",
 			"profile": "マイページ",
-			"myDishes": "食べたい/食べた"
+			"myDishes": "食べたい/食べた",
+			"review": "レビュー"
 		},
-		"myDishes": "食べたい/食べた"
+		"myDishes": "食べたい/食べた",
+		"review": "レビュー"
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "レビュー",
-			"saved": "保存",
-			"liked": "いいね",
-			"wallet": "ウォレット"
-		},
-		"tabs": {
-			"deposits": "入札",
-			"earnings": "収益",
-			"saved-posts": "投稿",
-			"saved-topics": "料理",
-			"wallet-deposit": "入札",
-			"wallet-earning": "収益"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -493,6 +479,10 @@
 			"refunded": "返金済み",
 			"paid": "支払済み",
 			"pending": "保留中"
+		},
+		"menu": {
+			"likedPosts": "いいねした投稿",
+			"savedDishCategories": "保存した料理カテゴリ"
 		},
 		"buttons": {
 			"editProfile": "プロフィールを編集",
@@ -534,9 +524,19 @@
 		"savedCount": "{{count}}件保存",
 		"guestBio": "ようこそ、ゲストさん 👋\n「なに食べよ」を見つけてくださりありがとうございます😊\nアカウント登録すると、写真や動画でレビューを投稿して\nグルメの楽しさをシェアできます📸✨",
 		"guestDisplayName": "ゲスト",
-		"menu": {
-			"likedPosts": "いいねした投稿",
-			"savedDishCategories": "保存した料理カテゴリ"
+		"tabGroups": {
+			"reviews": "レビュー",
+			"saved": "保存",
+			"liked": "いいね",
+			"wallet": "ウォレット"
+		},
+		"tabs": {
+			"deposits": "入札",
+			"earnings": "収益",
+			"saved-posts": "投稿",
+			"saved-topics": "料理",
+			"wallet-deposit": "入札",
+			"wallet-earning": "収益"
 		}
 	},
 	"NotFound": {
@@ -696,6 +696,26 @@
 			"title": "レストラン詳細"
 		}
 	},
+	"SelectRestaurant": {
+		"title": "レビューするお店を選択",
+		"searchThisArea": "このエリアで再検索",
+		"savedRestaurantList": "保存したお店リスト",
+		"postPhotoVideo": "写真・動画を投稿",
+		"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
+		"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。",
+		"nameSearch": {
+			"placeholder": "店名で検索",
+			"searching": "検索中…",
+			"noResults": "該当するお店が見つかりませんでした。地図の店舗をタップしてお店を登録してください。",
+			"error": "検索に失敗しました。もう一度お試しください。"
+		},
+		"accessibility": {
+			"clearNameSearch": "店名検索の入力をクリア"
+		},
+		"unsavedHint": "保存していないお店も選べます。上の検索にお店の名前を入れるか、地図のお店アイコンをタップしてください。",
+		"pickTitle": "お店を選ぶ",
+		"pickOnMap": "地図からお店を探す"
+	},
 	"Feedback": {
 		"title": "ご意見・不具合を送る",
 		"labels": {
@@ -751,14 +771,11 @@
 		"continue_with_apple": "Appleで続ける"
 	},
 	"Settings": {
-		"title": "設定",
-		"theme": {
-			"sectionTitle": "表示テーマ",
-			"options": {
-				"system": "システム設定に合わせる",
-				"light": "ライト",
-				"dark": "ダーク"
-			}
+		"hapticsEnabled": "触覚フィードバック",
+		"deviceSettings": {
+			"navigationLabel": "端末設定",
+			"title": "端末設定",
+			"description": "この端末にのみ保存される設定です。他の端末やアカウントには引き継がれません。"
 		},
 		"sendFeedback": "ご意見・不具合",
 		"leaveReview": "レビューを書く",
@@ -784,6 +801,15 @@
 			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
+		},
+		"title": "設定",
+		"theme": {
+			"sectionTitle": "表示テーマ",
+			"options": {
+				"system": "システム設定に合わせる",
+				"light": "ライト",
+				"dark": "ダーク"
+			}
 		}
 	},
 	"Dialog": {
@@ -814,55 +840,6 @@
 		"openInGoogleMaps": "Google マップで開く",
 		"shareWithFriends": "友人に共有する",
 		"cancel": "キャンセル"
-	},
-	"Review": {
-		"title": "レビューを投稿する",
-		"hero": {
-			"title": "おすすめのお店のレビューを書いて\n食べた料理を投稿しよう"
-		},
-		"guest": {
-			"description": "ログインしてレビューを書こう",
-			"loginButton": "ログインする"
-		},
-		"authenticated": {
-			"postButton": "✏️ お店のレビューを投稿しよう"
-		},
-		"selectRestaurant": {
-			"title": "レビューするお店を選択",
-			"searchThisArea": "このエリアで再検索",
-			"savedRestaurantList": "保存したお店リスト",
-			"postPhotoVideo": "写真・動画を投稿",
-			"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
-			"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。"
-		},
-		"emptyState": {
-			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
-		},
-		"everybodyPostsTitle": "レビューする料理を選択",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "レストラン詳細"
-		}
-	},
-	"SelectRestaurant": {
-		"title": "レビューするお店を選択",
-		"searchThisArea": "このエリアで再検索",
-		"savedRestaurantList": "保存したお店リスト",
-		"postPhotoVideo": "写真・動画を投稿",
-		"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
-		"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。",
-		"nameSearch": {
-			"placeholder": "店名で検索",
-			"searching": "検索中…",
-			"noResults": "該当するお店が見つかりませんでした。地図の店舗をタップしてお店を登録してください。",
-			"error": "検索に失敗しました。もう一度お試しください。"
-		},
-		"accessibility": {
-			"clearNameSearch": "店名検索の入力をクリア"
-		},
-		"unsavedHint": "保存していないお店も選べます。上の検索にお店の名前を入れるか、地図のお店アイコンをタップしてください。",
-		"pickTitle": "お店を選ぶ",
-		"pickOnMap": "地図からお店を探す"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1068,6 +1045,35 @@
 			"change": "変更",
 			"hint": "まずお店を選んでください。次に料理を選び、写真（任意）・一言レビュー・料金・おすすめ度を入力できます。",
 			"done": "食べたを記録しました"
+		}
+	},
+	"Review": {
+		"title": "レビューを投稿する",
+		"hero": {
+			"title": "おすすめのお店のレビューを書いて\n食べた料理を投稿しよう"
+		},
+		"guest": {
+			"description": "ログインしてレビューを書こう",
+			"loginButton": "ログインする"
+		},
+		"authenticated": {
+			"postButton": "✏️ お店のレビューを投稿しよう"
+		},
+		"selectRestaurant": {
+			"title": "レビューするお店を選択",
+			"searchThisArea": "このエリアで再検索",
+			"savedRestaurantList": "保存したお店リスト",
+			"postPhotoVideo": "写真・動画を投稿",
+			"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
+			"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。"
+		},
+		"emptyState": {
+			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
+		},
+		"everybodyPostsTitle": "レビューする料理を選択",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "レストラン詳細"
 		}
 	},
 	"Tutorial": {

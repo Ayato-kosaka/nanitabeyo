@@ -18,6 +18,12 @@
    testID も `settings-*` のまま据え置いてある。「設定という画面」は無くなったが
    「設定という項目群」は残っているので、E2E から名指しできる識別子まで変える理由が無い。
 
+3. **#1504 ただし «オン/オフのトグル» はこのリストへ直接並べない。**
+   「押すと画面が開く行」と「押すとその場で値が変わる行」が同じ縦リストに混ざるうえ、
+   端末設定は今後 SET-02/05/06 と増えてこの画面をトグルで埋めていく。端末に閉じた設定は
+   規約カードの直上に置いた `settings-device-settings` の 1 行から
+   `profile/device-settings` へ切り出してある（理由の詳細はそちらのファイル冒頭）。
+
 ⚠️ 自分/他人の出し分けを足さないこと。このアプリに他ユーザーのプロフィールを開く導線は
    存在しない（`/users/[id]` 等のルートも、フィードのアバターからの遷移も無い。#1402 で調査済み）。
    旧実装に残っていた `isOwnProfile`（常に true）とフォロー/メッセージのボタンは落とした。
@@ -273,6 +279,22 @@ export default function ProfileScreen() {
 
 	// ── 旧設定画面から移してきた項目 ──────────────────────────────────────────
 
+	// #1504 【設計】端末設定（この端末にだけ保存される設定）は 1 画面へ切り出してある。
+	// トグルをこのリストへ直接並べると「押すと画面が開く行」と「押すと値が変わる行」が
+	// 混ざるため（詳細は profile/device-settings.tsx の冒頭）。
+	const handleNavigateToDeviceSettings = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "settings_device_settings_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/device-settings",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, router, locale]);
+
 	// #747 【設計】ブロック済みトピック管理画面への遷移
 	const handleNavigateToBlockedTopics = useCallback(() => {
 		lightImpact();
@@ -526,7 +548,8 @@ export default function ProfileScreen() {
 						/>
 					</Card>
 
-					{/* Card 2: フィードバック・レビュー・ブロック済みトピック（旧設定画面の Card 1） */}
+					{/* Card 2: フィードバック・レビュー・ブロック済みトピック（旧設定画面の Card 1）
+					    ＋ #1504 端末設定（規約カードの直上に置く。オーナー指示） */}
 					<Card style={styles.card}>
 						<ProfileMenuItem
 							label={i18n.t("Settings.sendFeedback")}
@@ -548,8 +571,15 @@ export default function ProfileScreen() {
 						<ProfileMenuItem
 							label={i18n.t("Settings.blockedTopics.navigationLabel")}
 							onPress={handleNavigateToBlockedTopics}
-							isLast
 							testID="settings-blocked-topics"
+							accessibilityRole="link"
+						/>
+						{/* #1504 端末設定（ハプティクス等）。規約カードの直上がこの行の定位置 */}
+						<ProfileMenuItem
+							label={i18n.t("Settings.deviceSettings.navigationLabel")}
+							onPress={handleNavigateToDeviceSettings}
+							isLast
+							testID="settings-device-settings"
 							accessibilityRole="link"
 						/>
 					</Card>

@@ -394,6 +394,9 @@
 		"share": {
 			"title": "Check out {{dishName}}"
 		},
+		"save": {
+			"savedMessage": "Saved to Want to Eat"
+		},
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
@@ -403,10 +406,10 @@
 			"likeInactive": "Like {{name}}",
 			"saveActive": "Remove {{name}} from Want to Eat",
 			"saveInactive": "Add {{name}} to Want to Eat",
+			"recordEaten": "Record {{name}} as eaten",
 			"share": "Share {{name}}",
 			"openMap": "Open map for {{name}}",
 			"reviewLike": "Like {{username}}'s review",
-			"recordEaten": "Record {{name}} as eaten",
 			"recordEatenAgain": "Record eating at {{name}} again (already recorded)"
 		},
 		"processing": "Processing media...",
@@ -418,9 +421,6 @@
 		},
 		"info": {
 			"walkFromShibuya": "13 min walk from Shibuya Station"
-		},
-		"save": {
-			"savedMessage": "Saved to Want to Eat"
 		},
 		"embed": {
 			"play": "Play on {{provider}}"
@@ -437,33 +437,19 @@
 	"Tabs": {
 		"home": "Home",
 		"search": "Search",
-		"review": "Review",
 		"notifications": "Notifications",
 		"profile": "Profile",
 		"labels": {
 			"search": "Search",
-			"review": "Review",
 			"notifications": "Notifications",
 			"profile": "Profile",
-			"myDishes": "My Dishes"
+			"myDishes": "My Dishes",
+			"review": "Review"
 		},
-		"myDishes": "My Dishes"
+		"myDishes": "My Dishes",
+		"review": "Review"
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "Reviews",
-			"saved": "Saved",
-			"liked": "Liked",
-			"wallet": "Wallet"
-		},
-		"tabs": {
-			"deposits": "Deposits",
-			"earnings": "Earnings",
-			"saved-posts": "Posts",
-			"saved-topics": "Dishes",
-			"wallet-deposit": "Deposits",
-			"wallet-earning": "Earnings"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -493,6 +479,10 @@
 			"refunded": "Refunded",
 			"paid": "Paid",
 			"pending": "Pending"
+		},
+		"menu": {
+			"likedPosts": "Liked posts",
+			"savedDishCategories": "Saved dish categories"
 		},
 		"buttons": {
 			"editProfile": "Edit Profile",
@@ -534,9 +524,19 @@
 			"bioLength": "Bio must be 150 characters or less"
 		},
 		"guestDisplayName": "Guest",
-		"menu": {
-			"likedPosts": "Liked posts",
-			"savedDishCategories": "Saved dish categories"
+		"tabGroups": {
+			"reviews": "Reviews",
+			"saved": "Saved",
+			"liked": "Liked",
+			"wallet": "Wallet"
+		},
+		"tabs": {
+			"deposits": "Deposits",
+			"earnings": "Earnings",
+			"saved-posts": "Posts",
+			"saved-topics": "Dishes",
+			"wallet-deposit": "Deposits",
+			"wallet-earning": "Earnings"
 		}
 	},
 	"NotFound": {
@@ -696,6 +696,26 @@
 			"title": "Restaurant Details"
 		}
 	},
+	"SelectRestaurant": {
+		"title": "Select a restaurant to review",
+		"searchThisArea": "Search this area",
+		"savedRestaurantList": "Saved Restaurants",
+		"postPhotoVideo": "Post Photo/Video",
+		"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+		"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again.",
+		"nameSearch": {
+			"placeholder": "Search by restaurant name",
+			"searching": "Searching…",
+			"noResults": "No matching restaurants found. Tap a restaurant on the map to add it.",
+			"error": "Search failed. Please try again."
+		},
+		"accessibility": {
+			"clearNameSearch": "Clear restaurant name search"
+		},
+		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
+		"pickTitle": "Pick a shop",
+		"pickOnMap": "Find on map"
+	},
 	"Feedback": {
 		"title": "Send Feedback/Bug Report",
 		"labels": {
@@ -751,14 +771,11 @@
 		"continue_with_apple": "Continue with Apple"
 	},
 	"Settings": {
-		"title": "Settings",
-		"theme": {
-			"sectionTitle": "Appearance",
-			"options": {
-				"system": "Match system setting",
-				"light": "Light",
-				"dark": "Dark"
-			}
+		"hapticsEnabled": "Haptic Feedback",
+		"deviceSettings": {
+			"navigationLabel": "Device Settings",
+			"title": "Device Settings",
+			"description": "These settings are saved on this device only. They are not carried over to other devices or accounts."
 		},
 		"sendFeedback": "Send Feedback",
 		"leaveReview": "Leave Review",
@@ -784,6 +801,15 @@
 			"unblockMessage": "This dish category will be added back to recommendations.",
 			"unblockConfirm": "Unblock",
 			"unblocked": "Unblocked"
+		},
+		"title": "Settings",
+		"theme": {
+			"sectionTitle": "Appearance",
+			"options": {
+				"system": "Match system setting",
+				"light": "Light",
+				"dark": "Dark"
+			}
 		}
 	},
 	"Dialog": {
@@ -814,55 +840,6 @@
 		"openInGoogleMaps": "Open in Google Maps",
 		"shareWithFriends": "Share with friends",
 		"cancel": "Cancel"
-	},
-	"Review": {
-		"title": "Post a Review",
-		"hero": {
-			"title": "Write reviews of recommended restaurants\nand post the dishes you ate"
-		},
-		"guest": {
-			"description": "Log in to write reviews",
-			"loginButton": "Log In"
-		},
-		"authenticated": {
-			"postButton": "✏️ Post a restaurant review"
-		},
-		"selectRestaurant": {
-			"title": "Select a restaurant to review",
-			"searchThisArea": "Search this area",
-			"savedRestaurantList": "Saved Restaurants",
-			"postPhotoVideo": "Post Photo/Video",
-			"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
-			"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
-		},
-		"emptyState": {
-			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
-		},
-		"everybodyPostsTitle": "Choose a dish to review",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "Restaurant Details"
-		}
-	},
-	"SelectRestaurant": {
-		"title": "Select a restaurant to review",
-		"searchThisArea": "Search this area",
-		"savedRestaurantList": "Saved Restaurants",
-		"postPhotoVideo": "Post Photo/Video",
-		"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
-		"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again.",
-		"nameSearch": {
-			"placeholder": "Search by restaurant name",
-			"searching": "Searching…",
-			"noResults": "No matching restaurants found. Tap a restaurant on the map to add it.",
-			"error": "Search failed. Please try again."
-		},
-		"accessibility": {
-			"clearNameSearch": "Clear restaurant name search"
-		},
-		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
-		"pickTitle": "Pick a shop",
-		"pickOnMap": "Find on map"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1068,6 +1045,35 @@
 			"change": "Change",
 			"hint": "Pick a restaurant first. Then choose the dish, and add a photo (optional), a short review, the price and your rating.",
 			"done": "Recorded as eaten"
+		}
+	},
+	"Review": {
+		"title": "Post a Review",
+		"hero": {
+			"title": "Write reviews of recommended restaurants\nand post the dishes you ate"
+		},
+		"guest": {
+			"description": "Log in to write reviews",
+			"loginButton": "Log In"
+		},
+		"authenticated": {
+			"postButton": "✏️ Post a restaurant review"
+		},
+		"selectRestaurant": {
+			"title": "Select a restaurant to review",
+			"searchThisArea": "Search this area",
+			"savedRestaurantList": "Saved Restaurants",
+			"postPhotoVideo": "Post Photo/Video",
+			"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+			"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
+		},
+		"emptyState": {
+			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
+		},
+		"everybodyPostsTitle": "Choose a dish to review",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "Restaurant Details"
 		}
 	},
 	"Tutorial": {
