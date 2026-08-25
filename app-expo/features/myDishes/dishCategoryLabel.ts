@@ -25,8 +25,14 @@ import type { MyDishItem } from "@shared/api/v1/res";
 ユーザーに見せる文字列ではない（`MyDishesFeedChips` / `categoryFacets` と同じ規則）。
 */
 
-/** `"ja-JP"` → `"ja"`。API の labels は言語コード（地域なし）で入っている */
-export const toLanguageCode = (locale: string): string => locale.split("-")[0];
+/**
+ * `"ja-JP"` → `"ja"`。API の labels は言語コード（地域なし）で入っている。
+ *
+ * ⚠️ **`locale` が未設定でも投げないこと。** ここは描画中に呼ばれるので、
+ * 投げると画面ごと落ちる（`i18n.locale` がまだ入っていない瞬間が実在する）。
+ */
+export const toLanguageCode = (locale: string | null | undefined): string =>
+	typeof locale === "string" && locale.length > 0 ? locale.split("-")[0] : "";
 
 /**
  * 料理カテゴリの表示名を決める。
@@ -38,7 +44,7 @@ export const toLanguageCode = (locale: string): string => locale.split("-")[0];
 export function resolveDishCategoryLabel(
 	labels: Record<string, string> | null | undefined,
 	fallbackName: string | null | undefined,
-	locale: string,
+	locale: string | null | undefined,
 ): string | null {
 	const lang = toLanguageCode(locale);
 	const localized = labels?.[lang];
@@ -49,5 +55,8 @@ export function resolveDishCategoryLabel(
 }
 
 /** `MyDishItem` から直接引くための薄い包み */
-export const dishCategoryLabelOf = (item: Pick<MyDishItem, "dish">, locale: string): string | null =>
+export const dishCategoryLabelOf = (
+	item: Pick<MyDishItem, "dish">,
+	locale: string | null | undefined,
+): string | null =>
 	resolveDishCategoryLabel(item.dish.categoryLabels, item.dish.name, locale);

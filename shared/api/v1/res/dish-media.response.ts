@@ -53,6 +53,14 @@ export type DishMediaEntry = {
 	dish: SupabaseDishes & {
 		reviewCount: number;
 		averageRating: number;
+		/**
+		 * #1375 `dish_categories.labels`（言語コード → 表記）。取れなければ null。
+		 *
+		 * `name` は «その店でのその料理の呼び名» で、SNS 取り込み由来だとローマ字が入る。
+		 * 表示は **`labels[言語] → labels["en"] → name`** の順で解決すること
+		 * （`app-expo/features/myDishes/dishCategoryLabel.ts`）。
+		 */
+		categoryLabels: Record<string, string> | null;
 	};
 	dish_media: SupabaseDishMedia & {
 		isMine: boolean;

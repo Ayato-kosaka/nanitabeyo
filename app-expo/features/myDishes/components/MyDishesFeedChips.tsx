@@ -9,6 +9,7 @@ import i18n from "@/lib/i18n";
 import type { NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
 import { isRatingFilterEnabled, useMyDishesFilterStore, type MyDishesFilter } from "../stores/useMyDishesFilterStore";
 import { MY_DISHES_EVENTS } from "../analytics";
+import { resolveDishCategoryLabel } from "../dishCategoryLabel";
 
 /**
  * #1397 (PR5/5) 全画面 Feed の contextual filter chips（設計 (2/2) §10）。
@@ -91,17 +92,13 @@ export const buildMyDishesFeedChips = (
 		// Wikidata QID がそのまま chip に出て «何で絞るのか分からない» と実機で指摘された。
 		// ラベルにできる名前があるときだけ chip を出す
 		/*
-		#1375（オーナー実機指摘「うどんで絞ったら udon が出る」）**ここはまだローマ字が出うる。**
+		#1375（オーナー実機指摘「うどんで絞ったら udon が出る」）
 
 		`dish.name` は «その店でのその料理の呼び名» で、SNS 取り込み由来だとローマ字が入る。
-		絞り込み画面（`my-dishes/filters.tsx`）は `dish_categories.labels` を使って
-		正式表記へ直したが、**この chip が読む `DishMediaEntry.dish` にはその項目がまだ無い**
-		（`GET /v1/dish-media` 系の契約。別の API 変更が要る）。
-
-		⚠️ ここを直すときは `features/myDishes/dishCategoryLabel.ts` の
-		`resolveDishCategoryLabel` を通すこと（規則を 2 つ作らない）。
+		カテゴリの正式表記を優先する（規則は `features/myDishes/dishCategoryLabel.ts` に 1 本化。
+		絞り込み画面の候補ラベルも同じ関数を通している）。
 		*/
-		const name = entry?.dish.name || null;
+		const name = resolveDishCategoryLabel(entry?.dish?.categoryLabels, entry?.dish?.name, i18n.locale);
 		if (name !== null) {
 			chips.push({
 				id: "category",

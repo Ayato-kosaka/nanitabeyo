@@ -32,3 +32,18 @@ describe("resolveDishCategoryLabel", () => {
 		expect(resolveDishCategoryLabel({ ja: "", en: "Udon" }, "udon", "ja-JP")).toBe("Udon");
 	});
 });
+
+/*
+⚠️ `locale` が未設定でも **投げてはいけない**。この関数は描画中に呼ばれるので、
+投げると画面ごと落ちる（`i18n.locale` がまだ入っていない瞬間が実在し、実際にテストで踏んだ）。
+*/
+describe("locale が未設定でも落ちない", () => {
+	it.each([
+		["undefined", undefined],
+		["null", null],
+		["空文字", ""],
+	])("%s でも投げず、英語 → 店での呼び名の順で落とす", (_name, locale) => {
+		expect(resolveDishCategoryLabel({ en: "Udon" }, "udon", locale as string)).toBe("Udon");
+		expect(resolveDishCategoryLabel(null, "きつねうどん", locale as string)).toBe("きつねうどん");
+	});
+});

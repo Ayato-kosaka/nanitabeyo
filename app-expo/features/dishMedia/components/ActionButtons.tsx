@@ -457,18 +457,6 @@ function ActionButtonsContent({
 				<View style={styles.actionContainer}>
 					<TouchableOpacity
 						style={styles.actionButton}
-						onPress={handleSharePress}
-						hitSlop={buttonHitSlop}
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
-						<Share size={28} color={FixedColors.onMedia} />
-					</TouchableOpacity>
-					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
-				</View>
-
-				<View style={styles.actionContainer}>
-					<TouchableOpacity
-						style={styles.actionButton}
 						onPress={handleMapPinPress}
 						hitSlop={buttonHitSlop}
 						accessibilityRole="button"
@@ -476,6 +464,20 @@ function ActionButtonsContent({
 						<MapPinned size={28} color={FixedColors.onMedia} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
+				</View>
+
+				{/* #1375（オーナー指示 8 巡目）**「シェア」は「地図を開く」の下**。
+				    上から «自分の記録に関わる操作 → 店へ行く操作 → 人に渡す操作» の並びになる */}
+				<View style={styles.actionContainer}>
+					<TouchableOpacity
+						style={styles.actionButton}
+						onPress={handleSharePress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
+						<Share size={28} color={FixedColors.onMedia} />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
 				</View>
 			</View>
 		</GestureDetector>

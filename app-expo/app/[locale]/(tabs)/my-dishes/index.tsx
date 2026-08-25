@@ -6,6 +6,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { FixedColors, type Palette } from "@/constants/Palette";
+import { MY_DISH_STATUS_ORANGE } from "@/features/myDishes/statusColors";
 import {
 	selectActiveFilterCount,
 	useMyDishesFilterStore,
@@ -467,7 +468,9 @@ const createStyles = (c: Palette) =>
 			borderRadius: 9,
 			alignItems: "center",
 			justifyContent: "center",
-			backgroundColor: c.brand,
+			// #1375（オーナー指示 8 巡目）赤（= CTA の色）ではなくオレンジ。
+			// 状態のバッジ（食べたい / 食べた）と同じ記号色に揃える
+			backgroundColor: MY_DISH_STATUS_ORANGE,
 			// 地の色と接して読めなくならないよう縁を付ける（他のバッジ類と同じ考え方）
 			borderWidth: 1.5,
 			borderColor: c.surface,
