@@ -8,6 +8,7 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { EmptyState } from "@/components/EmptyState";
 import i18n from "@/lib/i18n";
+import { asApiList } from "@/lib/apiList";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -119,9 +120,9 @@ export default function BlockedDishCategoriesScreen() {
 				// [レビュー対応] データの更新はAPIリクエストが「成功」した後のみ行う。
 				// これによりエラー時にnextCursorが失われるのを防ぐ。
 				if (!cursor || isRefresh) {
-					setCategories(response.data);
+					setCategories(asApiList(response.data));
 				} else {
-					setCategories((prev) => [...prev, ...response.data]);
+					setCategories((prev) => [...prev, ...asApiList(response.data)]);
 				}
 
 				setNextCursor(response.nextCursor);

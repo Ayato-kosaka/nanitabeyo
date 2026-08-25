@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { Text, TouchableOpacity, StyleSheet, View } from "react-native";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { router } from "expo-router";
 import { Bookmark, Ban } from "lucide-react-native";
 import { DishCategoryRecommendation } from "@/types/search";
@@ -63,7 +65,8 @@ export const DishCategoryCard = ({
 	 */
 	tutorialTargetRefs?: Pick<DishCategoriesTutorialTargetRefs, "swipeArea" | "selectCta" | "deepDive" | "dishCategoryActions">;
 }) => {
-	// #1007 【設計】isSaved をローカル useState ではなく useDishCategoriesStore の savedByDishCategoryId から
+	const styles = useThemedStyles(createStyles);
+	// #1007 【設計】isSaved をローカル useState ではなく useDishCategoriesStore の savedByTopicId から
 	// 購読する（ActionButtons.tsx と同じ per-entity selector パターン）。Carousel の key 撤去で
 	// カードが再利用されても、dishCategory.categoryId 単位の状態としてstore側に保持されるため引き継がれる。
 	// store未登録時はサーバの保存状態(item.isSaved)を fallback とする。
@@ -286,7 +289,8 @@ export const DishCategoryCard = ({
 										)}>
 										<Bookmark
 											size={20}
-											color={isSaved ? "transparent" : "white"}
+											// 料理写真の上に載るアイコンなのでテーマで振らない
+											color={isSaved ? "transparent" : FixedColors.onMedia}
 											fill={isSaved ? "orange" : "transparent"}
 										/>
 									</TouchableOpacity>
@@ -297,8 +301,8 @@ export const DishCategoryCard = ({
 											void handleBlock();
 										}}
 										accessibilityRole="button"
-										accessibilityLabel={i18n.t("DishCategories.accessibility.blockDishCategory", { title: item.title })}>
-										<Ban size={18} color="#FFF" />
+										accessibilityLabel={i18n.t("Topics.accessibility.blockTopic", { title: item.title })}>
+										<Ban size={18} color={FixedColors.onMedia} />
 									</TouchableOpacity>
 								</View>
 							}
@@ -328,123 +332,129 @@ export const DishCategoryCard = ({
 	);
 };
 
-const styles = StyleSheet.create({
-	cardPressArea: {
-		position: "relative",
-	},
-	bottomContent: {
-		gap: 10,
-	},
-	ctaSpacer: {
-		height: 16,
-	},
-	selectButtonTarget: {
-		position: "absolute",
-		left: "10%",
-		right: "10%",
-		bottom: 0,
-		zIndex: 10,
-	},
-	selectButton: {
-		minHeight: 52,
-		borderRadius: 24,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#F05537",
-	},
-	selectButtonDisabled: {
-		opacity: 0.55,
-	},
-	selectButtonText: {
-		color: "#FFFFFF",
-		fontSize: 17,
-		fontWeight: "800",
-		letterSpacing: 0.2,
-	},
-	topButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		minWidth: 44,
-		minHeight: 44,
-		backgroundColor: "rgba(0, 0, 0, 0.3)",
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 20,
-		gap: 6,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	dishCategoryActions: {
-		gap: 12,
-	},
-	deepDiveContainer: {
-		marginTop: 10,
-		gap: 8,
-		paddingBottom: 6,
-	},
-	deepDiveTitleRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-	},
-	deepDiveTitleLine: {
-		flex: 1,
-		height: 1,
-		backgroundColor: "rgba(255, 255, 255, 0.75)",
-	},
-	deepDiveTitle: {
-		color: "#FFFFFF",
-		fontSize: 13,
-		fontWeight: "800",
-		textAlign: "center",
-		textShadowColor: "rgba(0, 0, 0, 0.9)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 3,
-	},
-	deepDiveChips: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		justifyContent: "center",
-		alignSelf: "center",
-		// #973【設計】主CTA(左右10%インセット=横幅80%)より確実に狭くし、深堀チップ行が主CTAより目立たないようにする(1〜2件時)
-		maxWidth: "76%",
-		gap: 8,
-	},
-	// #973【設計】3件時は折り返さず1行に収める。flex:1による均等割りはWebでチップが
-	// 不当に縮み文字が視認できなくなる問題があったため、固定%幅＋定幅の行コンテナに戻した
-	deepDiveChipsRow: {
-		flexWrap: "nowrap",
-		alignSelf: "center",
-		justifyContent: "space-between",
-		width: "94%",
-		maxWidth: undefined,
-	},
-	deepDiveChip: {
-		borderWidth: 1,
-		borderColor: "rgba(255, 255, 255, 0.92)",
-		backgroundColor: "rgba(255, 255, 255, 0.32)",
-		paddingHorizontal: 12,
-		paddingVertical: 7,
-		borderRadius: 14,
-		minHeight: 32,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	deepDiveChipThird: {
-		width: "31%",
-		paddingHorizontal: 6,
-	},
-	deepDiveChipText: {
-		color: "#FFFFFF",
-		fontSize: 13,
-		fontWeight: "800",
-		textAlign: "center",
-		textShadowColor: "rgba(0, 0, 0, 0.7)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 2,
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（contexts/ThemeProvider.tsx の useThemedStyles）。
+// 料理写真の上に載る文字・アイコンはテーマで振らず FixedColors を使う（constants/Palette.ts）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		cardPressArea: {
+			position: "relative",
+		},
+		bottomContent: {
+			gap: 10,
+		},
+		ctaSpacer: {
+			height: 16,
+		},
+		selectButtonTarget: {
+			position: "absolute",
+			left: "10%",
+			right: "10%",
+			bottom: 0,
+			zIndex: 10,
+		},
+		selectButton: {
+			minHeight: 52,
+			borderRadius: 24,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.brand,
+		},
+		selectButtonDisabled: {
+			opacity: 0.55,
+		},
+		selectButtonText: {
+			// ブランド色で塗った CTA の上の文字。地（c.brand）がライト / ダークで変わらないため文字も振らない
+			color: FixedColors.onFilled,
+			fontSize: 17,
+			fontWeight: "800",
+			letterSpacing: 0.2,
+		},
+		topButton: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			minWidth: 44,
+			minHeight: 44,
+			backgroundColor: "rgba(0, 0, 0, 0.3)",
+			paddingHorizontal: 16,
+			paddingVertical: 10,
+			borderRadius: 20,
+			gap: 6,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.3,
+			shadowRadius: 4,
+			elevation: 4,
+		},
+		dishCategoryActions: {
+			gap: 12,
+		},
+		deepDiveContainer: {
+			marginTop: 10,
+			gap: 8,
+			paddingBottom: 6,
+		},
+		deepDiveTitleRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+		},
+		deepDiveTitleLine: {
+			flex: 1,
+			height: 1,
+			backgroundColor: "rgba(255, 255, 255, 0.75)",
+		},
+		deepDiveTitle: {
+			// 料理写真の上に載る文字なのでテーマで振らない
+			color: FixedColors.onMedia,
+			fontSize: 13,
+			fontWeight: "800",
+			textAlign: "center",
+			textShadowColor: "rgba(0, 0, 0, 0.9)",
+			textShadowOffset: { width: 0, height: 1 },
+			textShadowRadius: 3,
+		},
+		deepDiveChips: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			justifyContent: "center",
+			alignSelf: "center",
+			// #973【設計】主CTA(左右10%インセット=横幅80%)より確実に狭くし、深堀チップ行が主CTAより目立たないようにする(1〜2件時)
+			maxWidth: "76%",
+			gap: 8,
+		},
+		// #973【設計】3件時は折り返さず1行に収める。flex:1による均等割りはWebでチップが
+		// 不当に縮み文字が視認できなくなる問題があったため、固定%幅＋定幅の行コンテナに戻した
+		deepDiveChipsRow: {
+			flexWrap: "nowrap",
+			alignSelf: "center",
+			justifyContent: "space-between",
+			width: "94%",
+			maxWidth: undefined,
+		},
+		deepDiveChip: {
+			borderWidth: 1,
+			borderColor: "rgba(255, 255, 255, 0.92)",
+			backgroundColor: "rgba(255, 255, 255, 0.32)",
+			paddingHorizontal: 12,
+			paddingVertical: 7,
+			borderRadius: 14,
+			minHeight: 32,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		deepDiveChipThird: {
+			width: "31%",
+			paddingHorizontal: 6,
+		},
+		deepDiveChipText: {
+			// 料理写真の上に載る文字なのでテーマで振らない
+			color: FixedColors.onMedia,
+			fontSize: 13,
+			fontWeight: "800",
+			textAlign: "center",
+			textShadowColor: "rgba(0, 0, 0, 0.7)",
+			textShadowOffset: { width: 0, height: 1 },
+			textShadowRadius: 2,
+		},
+	});

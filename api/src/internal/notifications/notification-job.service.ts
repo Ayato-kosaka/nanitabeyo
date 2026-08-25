@@ -86,19 +86,42 @@ export class NotificationJobService {
       recipientId,
     });
 
-    // 4. Expo Push を送信
+    // 4. #1510 SET-02 プッシュ配信の可否をユーザー設定で判定する
+    //
+    // 【設計】判定はここ（upsert 済み・push 直前）にしか置かない。
+    //   - 「オフ = プッシュ送信のみ抑止。通知一覧には残す」がリーダー判断（Issue #1510）。
+    //     手順 3 の upsert を条件付きにすると、後で再びオンにしても過去分は永久に見えない
+    //     （抑止は可逆、レコード不作成は不可逆）。迷ったら可逆側に倒す
+    //   - 未読バッジは `thread_updated_at > last_read_at` で数えるため、
+    //     一覧に残す限りバッジも従来どおり動き、経路の分岐が増えない
+    //   - `sendPushNotification()` の内側には入れない。あの関数は recipientId とメッセージしか
+    //     受け取らず種別を知らないため、種別が手元にあるここで判定するほうが変更が局所で済む
+    const { allowed, category } = await this.service.isPushAllowedForKind(
+      recipientId,
+      { targetTable, actionType },
+    );
+    if (!allowed) {
+      this.logger.log(
+        'NotificationPushSuppressedByPreference',
+        'processNotificationJob',
+        { notificationId, recipientId, category, actionType, targetTable },
+      );
+      return;
+    }
+
+    // 5. Expo Push を送信
     // 連打エラーなどは事前にエラーがスローされる想定。
-    const { title, body } = await this.buildNotificationMessage({
+    // #1557 【設計】message が null のときは push を送らない（匿名ホスト宛て。
+    // 通知行は 3. で upsert 済みなので、後日アカウント登録すれば一覧には出る）
+    const message = await this.buildNotificationMessage({
       actionType,
       targetTable,
       recipientId,
       actorId,
     });
+    if (!message) return;
 
-    await this.service.sendPushNotification(recipientId, {
-      title,
-      body,
-    });
+    await this.service.sendPushNotification(recipientId, message);
   }
 
   /**
@@ -108,15 +131,17 @@ export class NotificationJobService {
     targetTable: string,
     targetId: string,
   ): Promise<{ user_id: string | null } | null> {
+    // #1513 削除済みの投稿・レビューへの通知は作らない。「消したはずの投稿」への
+    // いいね通知が届くと、通知タブから本文を開けない行が積まれる
     if (targetTable === 'dish_media') {
-      const media = await this.prisma.prisma.dish_media.findUnique({
-        where: { id: targetId },
+      const media = await this.prisma.prisma.dish_media.findFirst({
+        where: { id: targetId, deleted_at: null },
         select: { user_id: true },
       });
       return media ?? null;
     } else if (targetTable === 'dish_reviews') {
-      const review = await this.prisma.prisma.dish_reviews.findUnique({
-        where: { id: targetId },
+      const review = await this.prisma.prisma.dish_reviews.findFirst({
+        where: { id: targetId, deleted_at: null },
         select: { user_id: true },
       });
       return review ?? null;
@@ -137,6 +162,15 @@ export class NotificationJobService {
 
   /**
    * 通知メッセージを構築
+   *
+   * #1557 【設計】このアプリの匿名ユーザーには users 行が存在しない
+   * （20260807T0000_create_share_links.sql のヘッダ参照）。users 行の不在は
+   * エラーではなく「匿名ユーザー」を意味するので、ここでは throw しない。
+   * - actor 不在（匿名ユーザーの投票。友達投票は匿名参加が仕様 →
+   *   dish-category-group-votes.controller.ts 冒頭）… ゲスト表示名で通知を作る
+   * - recipient 不在（匿名ホスト）… null を返して push を skip する。匿名ユーザーは
+   *   device token 登録も通知一覧の閲覧もできず（どちらも AuthUserGuard）配信先が無い。
+   *   throw すると Cloud Tasks が永久に成功しないジョブを retry し続けるだけになる
    */
   private async buildNotificationMessage({
     actionType,
@@ -148,17 +182,17 @@ export class NotificationJobService {
     targetTable: string;
     actorId: string;
     recipientId: string;
-  }) {
+  }): Promise<{ title: string | undefined; body: string } | null> {
     // 通知の送信者と受信者を取得
     const users = await this.userService.getUserByIds([actorId, recipientId]);
     const actor = users.find((u) => u.id === actorId);
     const recipient = users.find((u) => u.id === recipientId);
-    if (!actor) throw new Error(`ActorUserNotFound: actorId=${actorId}`);
-    if (!recipient)
-      throw new Error(`RecipientUserNotFound: recipientId=${recipientId}`);
-
-    // 通知のタイトルは、送信者の表示名を使う
-    const title = actor.display_name ?? undefined;
+    if (!recipient) {
+      this.logger.warn('RecipientUserRowMissing', 'buildNotificationMessage', {
+        recipientId,
+      });
+      return null;
+    }
 
     const SUPPORTED_LOCALES = [
       'ar',
@@ -170,6 +204,22 @@ export class NotificationJobService {
       'ko',
       'zh',
     ] as const;
+    // #1557 【互換性】匿名 actor の表示名。app-expo locales/*.json の
+    // Profile.guestDisplayName と同じ文言（プロフィールのゲスト表示と揃える。
+    // 新しい文言を増やさない）。8 ロケールは SUPPORTED_LOCALES と一致させること
+    const GUEST_DISPLAY_NAMES: Record<
+      (typeof SUPPORTED_LOCALES)[number],
+      string
+    > = {
+      ar: 'ضيف',
+      en: 'Guest',
+      es: 'Invitado',
+      fr: 'Invité',
+      hi: 'अतिथि',
+      ja: 'ゲスト',
+      ko: '게스트',
+      zh: '访客',
+    };
     const NOTIFICATION_MESSAGES: Record<
       string,
       Record<string, Record<(typeof SUPPORTED_LOCALES)[number], string>>
@@ -242,6 +292,13 @@ export class NotificationJobService {
     } else if (splitLocale && SUPPORTED_LOCALES.includes(splitLocale as any)) {
       locale = splitLocale as (typeof SUPPORTED_LOCALES)[number];
     }
+
+    // 通知のタイトルは、送信者の表示名を使う。
+    // #1557 【設計】actor の users 行が無い＝匿名ユーザーの投票（正常系）。
+    // 受信者ロケールのゲスト表示名を使う
+    const title = actor
+      ? (actor.display_name ?? undefined)
+      : GUEST_DISPLAY_NAMES[locale];
 
     const actionMessages =
       NOTIFICATION_MESSAGES[targetTable]?.[actionType] ||

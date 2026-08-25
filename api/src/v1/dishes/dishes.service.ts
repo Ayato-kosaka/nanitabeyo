@@ -505,6 +505,12 @@ export class DishesService {
           created_at:
             existingGoogleImportEntry?.restaurant.created_at ??
             new Date().toISOString(),
+          // #843 store catalog（BigQuery）同期由来の metadata。この経路は Google Places
+          // からの取り込みなので同期していない（migration 20260823T0000 の既定値と同じ）
+          source_seed_id: null,
+          source_names: [],
+          source_row_hash: null,
+          synced_at: null,
         };
 
         const dish: SupabaseDishes = {
@@ -519,6 +525,9 @@ export class DishesService {
             existingGoogleImportEntry?.dish.updated_at ??
             new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish.lock_no ?? 0,
+          // #843 catalog 同期ではない行の既定値（DB 側の DEFAULT と同じ）
+          data_origin: 'user_or_google',
+          synced_at: null,
         };
 
         const dishMedia: SupabaseDishMedia = {
@@ -545,6 +554,7 @@ export class DishesService {
             new Date().toISOString(),
           updated_at: new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish_media.lock_no ?? 0,
+          deleted_at: null, // #1513 Google import は常に未削除で作る
         };
 
         if (existingGoogleImportEntry) {
@@ -593,6 +603,12 @@ export class DishesService {
           imported_user_name: review.authorAttribution?.displayName || null,
           imported_user_avatar: review.authorAttribution?.photoUri || null,
           created_at: new Date().toISOString(),
+          // #1513 Google import は常に未削除・未編集で作る
+          updated_at: new Date().toISOString(),
+          lock_no: 0,
+          deleted_at: null,
+          // #1551 食べた日はユーザーが入力する列。Google の口コミには無いので NULL
+          eaten_at: null,
         }));
 
         // #829 【設計】未完了 Google import の再処理では既存 review ID を渡し、handler 側の skipDuplicates と合わせて retry を no-op 化する。
@@ -722,6 +738,10 @@ export class DishesService {
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
                   dishReviews.length
                 : 0,
+            // #1375 この経路（一括取り込みの応答）はカテゴリ表を引いていないので null を返す。
+            // クライアントは «無ければ dish.name» へ落ちる（dishCategoryLabel.ts）ので表示は壊れない。
+            // ここで引くために join を足すと、取り込みのたびに余計な参照が増える
+            categoryLabels: null,
           },
           dish_media: {
             ...dishMedia,
@@ -740,6 +760,7 @@ export class DishesService {
             // 作られるため dish_id が 'unknown' のまま。レスポンスは実 ID に揃える。
             dish_id: dish.id,
             username: r.imported_user_name || 'Anonymous', // ユーザー名がない場合は 'Anonymous' とする
+            isMine: false, // #1513 インポートなので自分のものではない（編集・削除の導線は出さない）
             isLiked: false, // 初期状態ではいいねされていない
             likeCount: 0, // 初期状態ではいいね数は 0
           })),

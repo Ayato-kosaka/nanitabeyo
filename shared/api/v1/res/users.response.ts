@@ -8,6 +8,7 @@ import { DishMediaEntry } from "./dish-media.response";
 import { SupabaseUsers } from "../../../converters/convert_users";
 import { RestaurantsEntity } from "./restaurants.response";
 import { MyDishStatus } from "../dto/users/query-my-dishes.dto";
+import { MeDishCategoryGroupVoteListItem } from "./dish-category-group-votes.response";
 
 /**
  * ユーザープロフィール情報
@@ -39,6 +40,9 @@ export type QueryMeBlockedDishCategoriesResponse = PaginatedResponse<SupabaseDis
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
 export type QueryMeSavedDishMediaResponse = PaginatedResponse<DishMediaEntry>;
+
+/** GET /v1/users/me/dish-category-group-votes のレスポンス型 */
+export type QueryMeDishCategoryGroupVotesResponse = PaginatedResponse<MeDishCategoryGroupVoteListItem>;
 
 /** GET /v1/users/me/saved-restaurants のレスポンス型 */
 export type QueryMeSavedRestaurantsResponse = PaginatedResponse<{
@@ -90,6 +94,15 @@ export type MyDishItem = {
 		 * （#1375 追補2 決定3）。表示側の実装は PR5 のスコープで、この PR は契約を通すだけ。
 		 */
 		categoryImageUrl: string;
+		/**
+		 * #1375 `dish_categories.labels`（言語コード → 表記）。取れなければ null。
+		 *
+		 * 表示名に `name`（= その店でのその料理の呼び名）だけを使うと、SNS 取り込み由来の
+		 * 記録が «udon» のようにローマ字で出る（オーナー実機指摘）。
+		 * クライアントは **`labels[言語] → labels["en"] → name`** の順で解決すること
+		 * （`app-expo/features/myDishes/dishCategoryLabel.ts`）。
+		 */
+		categoryLabels: Record<string, string> | null;
 	};
 
 	/**
@@ -98,8 +111,24 @@ export type MyDishItem = {
 	 * - eaten: `created_dish_media_id`。NULL ならその dish の最新メディア、それも無ければ null
 	 *
 	 * null のときはプレースホルダー表示にすること（写真なしの「食べた」記録）。
+	 *
+	 * ⚠️ #1513 `created_dish_media_id` が**削除済みメディアを指している**ときも null になる。
+	 * その場合は `isOwnMediaDeleted === true` で、別の写真へ差し替えてはいけない
+	 * （自分の食べた記録の写真が勝手に別人の写真になるため）。墓標を出すこと。
 	 */
 	dishMedia: DishMediaEntry["dish_media"] | null;
+
+	/**
+	 * #1513 自分の投稿（`myReview.created_dish_media_id` が指すメディア）が削除済みか。
+	 *
+	 * true のとき `dishMedia` は必ず null になる。行自体は残すので、クライアントは
+	 * 「この投稿は削除されました」の墓標を出す（黙って消さない）。
+	 *
+	 * 墓標を出す画面 / 黙って除外する画面の切り分け（#1513 オーナー確定）:
+	 * - **墓標を出す（行は残す）**: いいね一覧 / 保存一覧 / 通知 / レビューのサムネイル / my-dishes
+	 * - **黙って除外する（行ごと消す）**: 検索結果 / 店舗フィード / 投票候補
+	 */
+	isOwnMediaDeleted: boolean;
 
 	/**
 	 * eaten のときの自分のレビュー（★n はここから引く）。want 行では null。
@@ -156,6 +185,12 @@ export type MyDishPin = {
 	latestOccurredAt: string;
 	/** 最新行の代表メディアのサムネイル。写真なし記録しかなければ null */
 	representativeThumbnailUrl: string | null;
+	/**
+	 * #1513 最新行の自分の投稿が削除済みか。true のとき
+	 * `representativeThumbnailUrl` は null になる（別の写真へ差し替えない）。
+	 * ピン自体は残すので、クライアントは墓標のサムネイルを出す。
+	 */
+	isOwnMediaDeleted: boolean;
 };
 
 /** #1395 Map ピンの上限。超えた分は返さず `truncated: true` で明示する（黙って切らない） */

@@ -85,18 +85,36 @@ export class DishMediaAssembler {
         // Explicitly add only the required additional fields for DishMediaEntry.dish
         reviewCount: src.dish.reviewCount,
         averageRating: src.dish.averageRating,
+        // #1375 カテゴリの正式表記（ローマ字の name をユーザーに見せないため）
+        categoryLabels: src.dish.categoryLabels,
       };
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
-      const { mediaUrl } = this.getMediaUrl(src.dish_media);
+      /**
+       * #1513 【設計】削除済みの行には URL を一切作らない。
+       *
+       * 墓標を出す画面（いいね一覧 / 保存一覧 / 通知 / レビューのサムネイル）は
+       * `includeDeleted` で削除済みの行も受け取る。行は残すが、**中身は出さない**のが
+       * 「削除された」の意味なので、署名 URL の発行もここで止める
+       * （GCS の実体は当面残す方針なので、URL を作れば見えてしまう）。
+       * クライアントは `deleted_at !== null` で墓標へ切り替える。
+       */
+      // ⚠️ `!= null` で書くこと。`!== null` にすると、`deleted_at` を持たない入力
+      //（テストのフィクスチャや、この列より前に組まれたエンティティ）が undefined になり、
+      // **生きている投稿まで «削除済み» と判定されて URL が消える**（実測で 7 テストが落ちた）
+      const isDeleted = src.dish_media.deleted_at != null;
+      const { mediaUrl } = isDeleted
+        ? { mediaUrl: null }
+        : this.getMediaUrl(src.dish_media);
       const externalEmbed = this.toExternalEmbed(src.dish_media.externalEmbed);
       // #1399 external_embed は自ストレージにサムネイルが無い（thumbnail_path: ''）。
       // その場合は取り込み時に保存した外部サムネイル URL（oEmbed 由来）へ落とす。
       // Instagram のように外部サムネイルも取れない provider では null になる
-      const thumbnailImageUrl =
-        this.getThumbnailImageUrl(src.dish_media) ??
-        externalEmbed?.thumbnailUrl ??
-        null;
+      const thumbnailImageUrl = isDeleted
+        ? null
+        : (this.getThumbnailImageUrl(src.dish_media) ??
+          externalEmbed?.thumbnailUrl ??
+          null);
       const dish_media = {
         ...dishMediaBase,
         // Explicitly add only the required additional fields for DishMediaEntry.dish_media
@@ -121,6 +139,7 @@ export class DishMediaAssembler {
           username: r.username,
           isLiked: r.isLiked,
           likeCount: r.likeCount,
+          isMine: r.isMine, // #1513 編集・削除の導線を出す判定
         };
       });
 

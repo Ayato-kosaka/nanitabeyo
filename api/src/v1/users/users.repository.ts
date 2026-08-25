@@ -30,6 +30,13 @@ export type MyDishRowEntity = {
   reviewId: string | null;
   /** 代表メディア（#1395 m-7 の規則で解決済み）。写真なし記録では null */
   mediaId: string | null;
+  /**
+   * #1513 自分の投稿（own_media_id が指すメディア）が論理削除済みか。
+   *
+   * true のとき `mediaId` は必ず null になる（削除済みメディアを別の写真へ
+   * 差し替えないため）。行は消さないので、UI 側が墓標を出すのに使う。
+   */
+  isOwnMediaDeleted: boolean;
   distanceMeters: number | null;
   restaurant: PrismaRestaurants;
   dish: PrismaDishes & {
@@ -37,6 +44,8 @@ export type MyDishRowEntity = {
     averageRating: number;
     /** #1398 PR1: `dish_categories.image_url`（NOT NULL）。写真なし行のフォールバック画像に使う */
     categoryImageUrl: string;
+    /** #1375 dish_categories.labels（言語コード → 表記）。ローマ字の dish.name を見せないために使う */
+    categoryLabels: Record<string, string> | null;
   };
   /** カーソル生成用（sort ごとに必要な要素だけ使う） */
   cursorSource: {
@@ -67,6 +76,13 @@ export type MyDishPinEntity = {
    * 一覧 / Feed は assembler がここへ落ちるので、Map ピンも同じ順序で落とす。
    */
   representativeExternalThumbnailUrl: string | null;
+  /**
+   * #1513 ピンの代表行が指す自分のメディアが論理削除済みか。
+   *
+   * true のとき `representativeMedia` は null になる（別の写真へ差し替えないため）。
+   * ピンは消さないので、UI 側が墓標のサムネイルを出すのに使う。
+   */
+  isOwnMediaDeleted: boolean;
 };
 
 type RestaurantColumns = {
@@ -92,6 +108,7 @@ type DishColumns = {
   d_updated_at: Date;
   d_lock_no: number;
   d_category_image_url: string;
+  d_category_labels: Record<string, string> | null;
 };
 
 type MyDishRawRow = RestaurantColumns &
@@ -106,6 +123,8 @@ type MyDishRawRow = RestaurantColumns &
     distance_meters: number | null;
     feature_score: number | null;
     media_id: string | null;
+    /** #1513 own_media_id は非 NULL だが実体が論理削除済み（墓標を出す行） */
+    is_own_media_deleted: boolean;
     review_count: number;
     average_rating: number;
   };
@@ -119,9 +138,24 @@ type MyDishPinRawRow = RestaurantColumns & {
   media_thumbnail_processing_status: string | null;
   /** #1375 G4 SNS 取り込みの provider 側サムネイル（自ストレージへの複製が無い行の退避先） */
   media_external_thumbnail_url: string | null;
+  /** #1513 代表行の own_media_id は非 NULL だが実体が論理削除済み */
+  is_own_media_deleted: boolean;
 };
 
+/*
+#843 で `restaurants` / `dishes` に «推薦カタログの同期メタ» が増えた。
+この画面はどれも使わないが、`PrismaRestaurants` / `PrismaDishes` を満たす必要がある。
+
+**SQL で引かずに既定値で埋める。** 使わない列のために毎ページ 4 列を余計に読むのは
+無駄で、ここは 964MB の dish_reviews を含む経路である（#1395 B-2 の判断と同じ）。
+返り値がそのままクライアントへ出るわけではなく、`RestaurantsEntity` へ畳まれる際に
+落ちるので、既定値で埋めても API の応答は変わらない。
+*/
 const toRestaurant = (row: RestaurantColumns): PrismaRestaurants => ({
+  source_seed_id: null,
+  source_names: [],
+  source_row_hash: null,
+  synced_at: null,
   id: row.r_id,
   google_place_id: row.r_google_place_id,
   name: row.r_name,
@@ -195,9 +229,14 @@ export class UsersRepository {
         eatenAt: row.row_status === 'eaten' ? row.occurred_at : null,
         reviewId: row.review_id,
         mediaId: row.media_id,
+        isOwnMediaDeleted: row.is_own_media_deleted === true,
         distanceMeters: row.distance_meters,
         restaurant: toRestaurant(row),
         dish: {
+          // #843 の同期メタ。この画面では使わないが型を満たす必要がある
+          // （SQL で引かない理由は toRestaurant の申し送りと同じ）
+          data_origin: 'user_or_google',
+          synced_at: null,
           id: row.d_id,
           restaurant_id: row.d_restaurant_id,
           category_id: row.d_category_id,
@@ -208,6 +247,7 @@ export class UsersRepository {
           reviewCount: row.review_count,
           averageRating: roundToOneDecimal(row.average_rating),
           categoryImageUrl: row.d_category_image_url,
+          categoryLabels: row.d_category_labels ?? null,
         },
         cursorSource: {
           row_key: row.row_key,
@@ -268,6 +308,7 @@ export class UsersRepository {
         // #1375 G4 自ストレージへの複製が無い（= thumbnail_path が空）取り込み行のための退避先
         representativeExternalThumbnailUrl:
           row.media_external_thumbnail_url ?? null,
+        isOwnMediaDeleted: row.is_own_media_deleted === true,
       })),
       truncated,
     };
@@ -293,7 +334,9 @@ export class UsersRepository {
     const [oldestReview, oldestSaveRows] = await Promise.all([
       statuses.includes('eaten')
         ? this.prisma.prisma.dish_reviews.findFirst({
-            where: { user_id: userId },
+            // #1513 一覧の eaten 枝と同じ条件で引く。削除済みを混ぜると
+            // 「一覧に 1 件も無い月まで Calendar が遡れる」表示になる
+            where: { user_id: userId, deleted_at: null },
             orderBy: { created_at: 'asc' },
             select: { created_at: true },
           })

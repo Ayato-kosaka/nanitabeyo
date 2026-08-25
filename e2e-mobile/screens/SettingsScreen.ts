@@ -43,6 +43,13 @@ export class SettingsScreen {
 	 * #1132 で文言は「料理トピック」→「料理カテゴリ」へ変わったが、testID は据え置かれている。
 	 */
 	readonly blockedDishCategoriesItem = by.id("settings-blocked-dish-categories");
+	/** 表示言語行（#1508。Card 2 の最終行として追加された） */
+	readonly languageItem = by.id("settings-language");
+	/**
+	 * 自分が作成/参加したグループ投票の一覧行（#1505 で追加）。
+	 * 対応画面: screens/MyDishCategoryGroupVotesScreen.ts
+	 */
+	readonly myGroupVotesItem = by.id("settings-my-group-votes");
 	/** コミュニティガイドライン行（既存 testID） */
 	readonly guidelinesItem = by.id("settings-guidelines");
 	/** 利用規約行（既存 testID） */
@@ -53,6 +60,18 @@ export class SettingsScreen {
 	readonly copyrightItem = by.id("settings-copyright");
 	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID） */
 	readonly logoutItem = by.id("settings-logout");
+	/**
+	 * #1504 端末設定行（規約カードの直上）。
+	 * トグル本体はこの行から push される端末設定画面にあり、`screens/DeviceSettingsScreen.ts` が持つ。
+	 */
+	readonly deviceSettingsItem = by.id("settings-device-settings");
+	/**
+	 * バージョン表示（#1495 SUP-03、既存 testID）。
+	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx（web/native 共通）。
+	 * "{version}({短縮コミットID})" の 1 行（例: "1.14.0(abc1234)"）で描画される。
+	 */
+	readonly versionSection = by.id("settings-version-section");
+
 	/**
 	 * #1509 表示テーマの 3 択セレクタ（システム追従 / ライト / ダーク）。
 	 * 設定画面の最上段にあり、初期表示でスクロール無しに触れる。
@@ -131,6 +150,16 @@ export class SettingsScreen {
 	}
 
 	/**
+	 * バージョン行（settings-version-section）の実測テキストを読む（#1495）。
+	 * `getAttributes()` の戻り値は iOS / Android で型が分かれるため、`text` だけを拾う
+	 * （tests/profile/profile-tab-deep-link.test.ts と同じ絞り方）。
+	 */
+	async getVersionText(): Promise<string> {
+		const attributes = (await element(this.versionSection).getAttributes()) as { text?: string };
+		return attributes.text ?? "";
+	}
+
+	/**
 	 * ログアウト行が表示されているかを **待たずに** 判定する。
 	 * 匿名/ログイン済みで可視性が変わるため、TabBar.hasNotificationsTab() と同じ考え方で使う。
 	 */
@@ -155,9 +184,46 @@ export class SettingsScreen {
 		await tapWhenVisible(this.blockedDishCategoriesItem);
 	}
 
+	/**
+	 * 表示言語の選択画面へ遷移する（#1508）。
+	 *
+	 * ⚠️ この行は Card 2 の最終行で、エミュレータの画面高では初期表示から少し外れることがある。
+	 * `scrollToLogout()` と同じ理由（Detox の `toBeVisible()` は面積の 75% 以上の可視を要求する）で、
+	 * 見えるところまでスクロールしてから押す。既に見えていれば 1 度も動かさずに返る。
+	 */
+	async openLanguage(): Promise<void> {
+		await waitFor(element(this.languageItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
+		await tapWhenVisible(this.languageItem);
+	}
+
+	/**
+	 * 「グループ投票の履歴」行をタップして一覧画面へ遷移する（#1505）。
+	 * e2e-web は `/ja-JP/profile/dish-category-group-votes` へ URL 直遷移するが、
+	 * ネイティブには代替経路が無いため settings.test.ts / openBlockedTopics と同じく実 UI 導線をタップする。
+	 */
+	async openMyGroupVotes(): Promise<void> {
+		await tapWhenVisible(this.myGroupVotesItem);
+	}
+
 	/** プライバシーポリシー行をタップして法務ドキュメント画面へ遷移する（#1368 でモーダル起動から変更） */
 	async openPrivacyPolicy(): Promise<void> {
 		await tapWhenVisible(this.privacyItem);
+	}
+
+	/**
+	 * 端末設定行をタップして端末設定画面へ遷移する（#1504）。
+	 *
+	 * ⚠️ この行は規約カードの直上（= マイページのかなり下）にあり、エミュレータの画面高では
+	 * 初期表示で画面外にいることがある。`scrollToLogout()` と同じ理由で、タップ前に
+	 * `whileElement(...).scroll()` で «見えるまでスクロール» してから押す
+	 * （既に見えていればスクロールは 1 度も走らない）。
+	 */
+	async openDeviceSettings(): Promise<void> {
+		await waitFor(element(this.deviceSettingsItem))
+			.toBeVisible()
+			.whileElement(by.id("settings-scroll"))
+			.scroll(300, "down");
+		await tapWhenVisible(this.deviceSettingsItem);
 	}
 
 	/**

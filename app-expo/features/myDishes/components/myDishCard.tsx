@@ -1,7 +1,9 @@
 import React, { memo, useCallback, useMemo } from "react";
+import i18n from "@/lib/i18n";
+import { resolveDishCategoryLabel } from "../dishCategoryLabel";
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from "react-native";
 import { Utensils } from "lucide-react-native";
-import i18n from "@/lib/i18n";
+import { FixedColors } from "@/constants/Palette";
 import { getCacheKeyForImage } from "@/lib/image";
 import type { MyDishItem } from "@shared/api/v1/res";
 import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
@@ -57,8 +59,19 @@ export const useMyDishImageSource = (
 	return useMemo(() => (url ? { uri: url, cacheKey: getCacheKeyForImage(url) } : null), [url]);
 };
 
-/** カードに出す料理名。無ければ店名へ落とす（どちらも無ければ null） */
-export const resolveMyDishTitle = (item: MyDishItem): string | null => item.dish.name || item.restaurant.name || null;
+/**
+ * カードに出す料理名。無ければ店名へ落とす（どちらも無ければ null）。
+ *
+ * #1375（オーナー実機指摘）**カテゴリの正式表記を優先する。**
+ * `dish.name` は «その店でのその料理の呼び名» で、SNS 取り込み由来だと `udon` のように
+ * ローマ字が入る。一覧・Calendar でそれがそのまま出ていた
+ * （絞り込み画面とフィード上部のチップは先に直したが、**ここが残っていた**）。
+ * 規則は `features/myDishes/dishCategoryLabel.ts` に 1 本化してある。
+ */
+export const resolveMyDishTitle = (item: MyDishItem, locale?: string | null): string | null =>
+	resolveDishCategoryLabel(item.dish.categoryLabels, item.dish.name, locale ?? i18n.locale) ||
+	item.restaurant.name ||
+	null;
 
 /**
  * `occurredAt` の表示。端末のロケールに任せる（アプリ内に日付書式のヘルパが無いため）。
@@ -137,7 +150,8 @@ export const MyDishEatenButton = memo(function MyDishEatenButton({
 			hitSlop={6}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("MyDishes.actions.markAsEatenA11y")}>
-			<Utensils size={11} color="#FFFFFF" />
+			{/* 地（eatenButton = 固定の濃色）で塗り潰した上のアイコンなので固定の白でよい */}
+			<Utensils size={11} color={FixedColors.onFilled} />
 			<Text style={styles.eatenButtonText} numberOfLines={1}>
 				{i18n.t("MyDishes.actions.markAsEaten")}
 			</Text>
@@ -189,6 +203,7 @@ const styles = StyleSheet.create({
 	eatenButtonText: {
 		fontSize: 10,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		// 地（eatenButton）が固定の濃色なので、文字も固定でよい
+		color: FixedColors.onFilled,
 	},
 });

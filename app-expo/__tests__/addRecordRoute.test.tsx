@@ -111,8 +111,9 @@ jest.mock("react-native-safe-area-context", () => {
 	return {
 		useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 		useSafeAreaFrame: () => ({ x: 0, y: 0, width: 390, height: 800 }),
-		SafeAreaView: ({ children, testID }: { children: React.ReactNode; testID?: string }) =>
-			ReactActual.createElement(RNView, { testID }, children),
+		// #1375 `edges` を検証できるよう、そのまま props として通す
+		SafeAreaView: ({ children, testID, edges }: { children: React.ReactNode; testID?: string; edges?: string[] }) =>
+			ReactActual.createElement(RNView, { testID, edges }, children),
 	};
 });
 
@@ -128,6 +129,7 @@ jest.mock("react-native-paper", () => ({
 
 import SnsImportScreen from "../app/[locale]/add-record";
 import { usePickedRestaurantStore } from "../features/restaurantPicker/stores/usePickedRestaurantStore";
+import { useMyDishesRevisionStore } from "../features/myDishes/stores/useMyDishesRevisionStore";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -628,5 +630,84 @@ describe("#1375 食べたを記録の店選択も SNS と同じ部品", () => {
 		});
 		// モックした RestaurantNameSearch は selectedName を受け取ると器を 1 つ出す
 		expect(has(tree, "sns-import-selected-restaurant")).toBe(true);
+	});
+});
+
+/*
+#1375（実機 iOS のスクリーンショットで発覚）
+
+**この画面はヘッダを持たないので、上端のセーフエリアを自分で確保しなければならない。**
+
+このアプリで上端の余白を入れているのは `ScreenHeader`（`paddingTop: insets.top + 8`）で、
+ヘッダを持つ画面が `edges={[]}` なのはそのためである。この画面は «ヘッダを出さない» と
+決めた結果、その役目を引き継ぐものが無くなり、iOS でタブがダイナミックアイランドの下に
+潜って読めなくなっていた（run 32818524649 の iOS スクリーンショットで実測）。
+
+⚠️ ここが落ちたら、また上端が隠れている。
+*/
+describe("上端のセーフエリア", () => {
+	it("ヘッダが無い画面なので、SafeAreaView が top を確保する", async () => {
+		const tree = await render();
+		const screen = tree.root.findAll((n) => n.props?.testID === "sns-import-screen")[0];
+		expect(screen.props.edges).toContain("top");
+	});
+});
+
+/*
+#1375（9 巡目・オーナー指摘）**「インスタをインポートして食べたいを押したら、
+メディアと料理が出ない」**の回帰テスト。
+
+取り込み（`POST v1/dish-media/imports`）は `dish_media` と `reactions(save)` を
+**サーバー側にだけ**足す。クライアントの一覧（`useMyDishesQuery`）は
+`hasFetchedInitial` が立っている限り取り直さないので、`bumpMyDishesRevision()` で
+キャッシュを捨てないと **戻った先の一覧に取り込んだものが 1 つも出ない**。
+
+隣の «食べたを記録»（`handleEatenSuccess`）は最初からこれを呼んでいたが、
+取り込み側だけ抜けていた。**このテストは修正前のコードでは落ちる**ことを確認済み。
+*/
+describe("#1375 取り込みの直後は my-dishes のキャッシュを捨てる", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		mockCanGoBack = true;
+	});
+
+	it("「食べたいに保存」が成功したら版が上がる（＝一覧が取り直される）", async () => {
+		mockCallBackend.mockImplementation((path: string) => {
+			if (path === "v1/dish-media/imports/resolve") {
+				return Promise.resolve({
+					status: "ok",
+					reason: "resolved",
+					source: { provider: "instagram", externalContentId: "abc", canonicalUrl: "https://x/", mediaIndex: null },
+					metadata: { title: "キャプション", thumbnailUrl: null },
+					candidates: { dishCategories: [], restaurants: [] },
+					prefill: { dishCategoryId: "Q1", restaurantId: "r-1" },
+				});
+			}
+			// 取り込み本体
+			return Promise.resolve({ dishMediaId: "dm-1", dishId: "d-1", created: true, saved: true });
+		});
+
+		const tree = await render();
+		const urlInput = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		await act(async () => {
+			urlInput.props.onChangeText("https://www.instagram.com/reel/ABC/");
+		});
+		await act(async () => {
+			await tree.root.find((node) => node.props?.testID === "sns-import-resolve-button").props.onPress();
+		});
+
+		const before = useMyDishesRevisionStore.getState().revision;
+
+		const save = tree.root.find(
+			(node) => node.props?.testID === "sns-import-save-button" && typeof node.props?.onPress === "function",
+		);
+		await act(async () => {
+			await save.props.onPress();
+		});
+
+		// 取り込み本体が呼ばれていること（前提の確認。ここが false ならテストの組み方が悪い）
+		expect(mockCallBackend).toHaveBeenCalledWith("v1/dish-media/imports", expect.anything());
+		// 本題: 版が上がっていること
+		expect(useMyDishesRevisionStore.getState().revision).toBe(before + 1);
 	});
 });

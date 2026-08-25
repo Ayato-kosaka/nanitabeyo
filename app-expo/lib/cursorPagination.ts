@@ -1,3 +1,4 @@
+import { asApiList } from "@/lib/apiList";
 /**
  * カーソルページネーションのロジックを、React / Zustand から切り離した純粋な TS 関数として提供する。
  *
@@ -97,7 +98,8 @@ export const createCursorController = <TReq, TItem>(
 		setState({ isLoadingInitial: true, error: null });
 		try {
 			const response = await fetcher({ request: req });
-			const newItems = response.data;
+			// #1375 外から来た配列を信じない（lib/apiList.ts）。`data: {}` でも空で描く
+    const newItems = asApiList(response.data);
 			setState({
 				items: newItems,
 				nextCursor: response.nextCursor ?? null,
@@ -122,7 +124,8 @@ export const createCursorController = <TReq, TItem>(
 		setState({ isLoadingMore: true, error: null });
 		try {
 			const response = await fetcher({ cursor: state.nextCursor, request: lastRequest });
-			const newItems = response.data;
+			// #1375 外から来た配列を信じない（lib/apiList.ts）。`data: {}` でも空で描く
+    const newItems = asApiList(response.data);
 			setState({
 				items: [...state.items, ...newItems],
 				nextCursor: response.nextCursor ?? null,

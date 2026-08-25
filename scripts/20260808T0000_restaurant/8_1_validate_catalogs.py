@@ -22,6 +22,18 @@ from pipeline_common import BigQueryPipeline, configure_logging, require_run_id,
 LOGGER = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# dish_media 経路（4_1/4_2）を流していない run では意味を成さない検査。
+# 空の catalog に対して «S2セル×134カテゴリの全直積が未充足» と出るだけで、
+# restaurants 側の健全性とは無関係である。
+DISH_MEDIA_CHECKS = frozenset({
+    "dish_media_id_unique",
+    "dish_media_publish_rules",
+    "dish_media_references_exist",
+    "coverage_cross_product_complete",
+    "coverage_pair_unique",
+    "all_area_category_pairs_filled",
+})
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -29,6 +41,14 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--run-id")
     parser.add_argument("--expected-category-count", type=int, default=134)
+    parser.add_argument(
+        "--skip-dish-media-checks",
+        action="store_true",
+        help="dish_media 経路（4_1/4_2）を実行していない run で、media/coverage の"
+        "チェックを外す。restaurants だけを先に公開する納品では 4_2 を流さないため、"
+        "coverage_cross_product_complete が «S2セル×134カテゴリの全直積が未充足» と"
+        "して必ず ERROR になる。restaurant 側の検査だけで 9_1 の可否を判断したいときに使う",
+    )
     parser.add_argument(
         "--fail-on-warning",
         action="store_true",
@@ -270,6 +290,14 @@ def main() -> None:
         repo_root=REPO_ROOT,
     ) as step:
         results = list(pipeline.execute(validation_sql(pipeline), parameters))
+        if args.skip_dish_media_checks:
+            skipped = [r.check_name for r in results if r.check_name in DISH_MEDIA_CHECKS]
+            results = [r for r in results if r.check_name not in DISH_MEDIA_CHECKS]
+            step["skipped_dish_media_checks"] = skipped
+            LOGGER.warning(
+                "dish_media 経路の検査を外した: %s。restaurants だけを公開する納品でのみ使うこと",
+                ", ".join(skipped),
+            )
         rows: list[dict[str, Any]] = []
         for result in results:
             passed = bool(result.passed)

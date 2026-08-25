@@ -145,6 +145,21 @@ export function useAppTheme(): ThemeContextValue {
  * // コンポーネント内
  * const styles = useThemedStyles(createStyles);
  * ```
+ *
+ * ## ⚠️ `styles` を閉じ込める `useCallback` / `useMemo` の依存配列に必ず入れる
+ *
+ * リストの `renderItem` を `useCallback` で固定する書き方は速度のために普通に使うが、
+ * その依存配列から `styles` が漏れると **行だけ古いテーマのまま残る**。
+ *
+ * web ではこれが «たまに» ではなく **必ず** 起きる。`hooks/useColorScheme.web.ts` は
+ * hydration 前にライトを返すので、初回レンダーはライトのスタイルで組まれ、そのあと
+ * ダークへ解決し直される。`renderItem` が作り直されないと、シートと地だけが暗くなり
+ * 行は白いまま、という絵になる（#1513 の通知一覧で実測）。
+ *
+ * ```ts
+ * const renderItem = useCallback(({ item }) => <Row style={styles.row} />, [styles, ...]);
+ * //                                                                       ^^^^^^ 必須
+ * ```
  */
 export function useThemedStyles<T>(factory: (colors: Palette) => T): T {
 	const { colors } = useAppTheme();

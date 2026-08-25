@@ -82,7 +82,22 @@
 		"submitFailed": "投票を送信できませんでした",
 		"participantsList": "参加者：{{names}}",
 		"noParticipants": "まだ参加者はいません",
-		"noVotes": "まだ投票がありません"
+		"noVotes": "まだ投票がありません",
+		"myVotes": {
+			"pageTitle": "グループ投票の履歴",
+			"loadFailed": "グループ投票を読み込めませんでした",
+			"noCandidates": "候補なし",
+			"candidateSeparator": "・",
+			"candidateSummaryMore": "{{names}} ほか{{count}}件",
+			"participantSummary": "{{count}}人が投票",
+			"decidedLabel": "決定: {{name}}",
+			"votedLabel": "投票済み",
+			"notVotedLabel": "未投票",
+			"itemAccessibilityLabel": "{{date}}のグループ投票。{{summary}}。{{participants}}。{{status}}",
+			"emptyTitle": "まだ主催したグループ投票がありません",
+			"emptyDescription": "料理を検索して候補を出すと、友達に投票をお願いできます。",
+			"emptyAction": "投票を作る"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",
@@ -239,20 +254,23 @@
 		"recentLocations": {
 			"title": "最近使った場所",
 			"clear": "最近使った場所を消去"
+		},
+		"locationConfirmation": {
+			"error": "地点の確認に失敗しました"
 		}
 	},
 	"Onboarding": {
 		"step1": {
-			"problem": "何食べたいか、決まらない。",
-			"solution": "おすすめの料理が提案されるので\n「食べたい」が見つかる"
+			"problem": "そもそも何食べたいか決まらない",
+			"solution": "提案されたオススメの料理の中から選ぶだけ"
 		},
 		"step2": {
-			"problem": "お店探し。\n候補が多すぎて時間がかかる。",
-			"solution": "料理もお店も候補が厳選されているので\nすぐ決められる"
+			"problem": "お店の候補が多すぎて、\n決めるの疲れるなぁ",
+			"solution": "厳選したお店から選ぶから決めやすい！"
 		},
 		"step3": {
-			"problem": "一緒に行く人の好みも、外したくない。",
-			"solution": "友達と投票して、料理を決められる"
+			"problem": "友達の意見も聞きたいなぁ",
+			"solution": "友達と多数決で料理を決められる！"
 		},
 		"back": "前へ",
 		"next": "次へ",
@@ -407,7 +425,8 @@
 			"openMap": "{{name}}の地図を開く",
 			"reviewLike": "{{username}}の口コミにいいね",
 			"recordEaten": "{{name}}の食べたを記録",
-			"recordEatenAgain": "{{name}}で食べたをもう一度記録する（記録済み）"
+			"recordEatenAgain": "{{name}}で食べたをもう一度記録する（記録済み）",
+			"ownPostMenu": "{{name}}の投稿メニューを開く"
 		},
 		"processing": "メディアを処理中...",
 		"errors": {
@@ -424,6 +443,27 @@
 		},
 		"embed": {
 			"play": "{{provider}}で再生"
+		},
+		"ownPost": {
+			"menuTitle": "自分の投稿",
+			"edit": "レビューを編集",
+			"delete": "投稿を削除",
+			"cancel": "キャンセル",
+			"mediaLocked": "写真・動画は変更できません。編集できるのはコメント・評価・価格です。",
+			"deleteConfirmTitle": "投稿を削除しますか？",
+			"deleteConfirmMessage": "この投稿（写真とあなたのレビュー）を削除します。元に戻せません。",
+			"deleteConfirmButton": "削除する",
+			"deleted": "投稿を削除しました",
+			"deleteFailed": "削除できませんでした",
+			"editTitle": "レビューを編集",
+			"editComment": "コメント",
+			"editRating": "評価",
+			"editPrice": "価格",
+			"save": "保存する",
+			"saved": "レビューを更新しました",
+			"saveFailed": "更新できませんでした",
+			"conflict": "他の端末で先に更新されました。開き直してから編集してください",
+			"forbidden": "自分の投稿ではないため操作できません"
 		}
 	},
 	"ImageCardGrid": {
@@ -555,7 +595,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "料理カテゴリを選択",
-			"writeReviewForThisDish": "食べたを記録"
+			"writeReviewForThisDish": "食べたを記録",
+			"useTypedDishCategory": "「{{name}}」で決める"
 		},
 		"inputs": {
 			"price": "料金",
@@ -572,14 +613,16 @@
 			"enterBidAmount": "入札額を入力",
 			"enterDishCategory": "料理カテゴリを入力 (例: カレーライス、天ぷら)",
 			"searchRestaurantsForReview": "店名やエリアで検索",
-			"searchAreaForReview": "エリアで検索"
+			"searchAreaForReview": "エリアで検索",
+			"searchDishCategory": "料理名で検索"
 		},
 		"labels": {
 			"endDate": "終了日:",
 			"paymentProcessing": "決済処理中...",
 			"restaurant": "お店",
 			"dishCategory": "料理カテゴリ",
-			"dishesAtThisRestaurant": "このお店の料理"
+			"dishesAtThisRestaurant": "このお店の料理",
+			"noDishesAtThisRestaurant": "このお店にはまだ記録がありません。料理名を入力してください"
 		},
 		"tabs": {
 			"reviews": "レビュー"
@@ -781,6 +824,40 @@
 			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
+		},
+		"notifications": {
+			"sectionTitle": "通知",
+			"osDisabledTitle": "端末の通知がオフになっています",
+			"osDisabledDescription": "ここでの設定は保存されますが、この端末には通知が届きません。",
+			"openOsSettings": "端末の設定を開く",
+			"updateFailed": "設定を保存できませんでした",
+			"likes": {
+				"title": "いいね",
+				"description": "自分の投稿やレビューにいいねがついたとき"
+			},
+			"saves": {
+				"title": "保存",
+				"description": "自分の投稿が保存されたとき"
+			},
+			"group_votes": {
+				"title": "グループ投票",
+				"description": "参加しているグループ投票に動きがあったとき"
+			}
+		},
+		"language": {
+			"navigationLabel": "言語",
+			"pageTitle": "言語",
+			"systemDefault": "端末の設定に従う",
+			"switching": "言語を切り替えています…"
+		},
+		"hapticsEnabled": "触覚フィードバック",
+		"deviceSettings": {
+			"navigationLabel": "端末設定",
+			"title": "端末設定",
+			"description": "この端末にのみ保存される設定です。他の端末やアカウントには引き継がれません。"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "グループ投票の履歴"
 		}
 	},
 	"Dialog": {
@@ -889,7 +966,8 @@
 			"truncated": "件数が多いため一部のピンのみ表示しています。エリアを絞り込んでください。",
 			"sheetTitle": "この付近のレストラン {{count}} 件",
 			"tileA11yLabel": "{{name}}（食べたい {{want}} 件、食べた {{eaten}} 件）",
-			"clusterA11yLabel": "このあたりのレストラン {{count}} 件"
+			"clusterA11yLabel": "このあたりのレストラン {{count}} 件",
+			"currentLocation": "現在地へ移動"
 		},
 		"guest": {
 			"description": "ログインして食べたい/食べたを記録しよう",
@@ -954,7 +1032,8 @@
 				"description": "いま表示されている記録の中から、多い料理カテゴリーで絞り込みます",
 				"count": "{{label}}（{{count}}）",
 				"showAll": "もっと見る（あと{{count}}件）"
-			}
+			},
+			"activeCount": "絞り込み {{count}} 件が有効"
 		},
 		"empty": {
 			"description": "気になるお店の料理を保存したり、食べた記録をつけるとここに並びます。"
@@ -1000,7 +1079,12 @@
 					"title": "増えてきたら、ここで絞ります",
 					"body": "«食べたい / 食べた»・料理・エリア・誰と・時間帯で棚を削れます。選択肢を増やすためではなく、迷いを減らすための道具です。"
 				}
-			}
+			},
+			"replay": "チュートリアルをもう一度見る"
+		},
+		"deleted": {
+			"label": "削除されました",
+			"a11yLabel": "この投稿の写真は削除されました"
 		}
 	},
 	"SnsImport": {
@@ -1063,7 +1147,7 @@
 			"pickRestaurant": "お店を選ぶ",
 			"pick": "選ぶ",
 			"change": "変更",
-			"hint": "まずお店を選んでください。選ぶと写真・一言レビュー・料理カテゴリー・料金・おすすめ度を入力できます（写真なしでも記録できます）。",
+			"hint": "まずお店を選んでください。次に料理を選び、写真（任意）・一言レビュー・料金・おすすめ度を入力できます。",
 			"done": "食べたを記録しました"
 		}
 	},
@@ -1074,6 +1158,57 @@
 			"finish": "使ってみる",
 			"progress": "{{current}} / {{total}}",
 			"progressAccessibility": "{{total}}ステップ中{{current}}番目"
+		}
+	},
+	"Report": {
+		"action": "報告",
+		"title": "この投稿を報告する",
+		"reviewTitle": "このレビューを報告する",
+		"description": "報告の理由を選んでください。運営が内容を確認します。相手に通知されることはありません。",
+		"reasons": {
+			"spam": "スパム・宣伝",
+			"sexual": "性的なコンテンツ",
+			"violence": "暴力的・不快なコンテンツ",
+			"harassment": "嫌がらせ・誹謗中傷",
+			"illegal": "違法行為",
+			"misinformation": "誤った情報",
+			"rights": "権利侵害（著作権など）",
+			"privacy": "個人情報が写っている",
+			"irrelevant": "料理と関係がない",
+			"other": "その他"
+		},
+		"detailsLabel": "詳しい内容（任意）",
+		"detailsPlaceholder": "補足があれば入力してください（1000文字まで）",
+		"submit": "報告する",
+		"submitting": "送信中...",
+		"accepted": {
+			"title": "ご報告いただきありがとうございます",
+			"description": "内容を審査します。結果を個別にお知らせすることはありません。",
+			"close": "閉じる",
+			"history": "あなたの報告履歴"
+		},
+		"errors": {
+			"submitFailed": "報告を送信できませんでした。もう一度お試しください。"
+		},
+		"accessibility": {
+			"open": "{{name}}の投稿を報告",
+			"openReview": "{{name}}さんのレビューを報告",
+			"reason": "理由: {{reason}}",
+			"reasonSelected": "理由: {{reason}}（選択中）",
+			"submit": "{{name}}の投稿の報告を送信",
+			"submitReview": "{{name}}さんのレビューの報告を送信"
+		},
+		"history": {
+			"navigationLabel": "あなたの報告履歴",
+			"pageTitle": "あなたの報告履歴",
+			"empty": "まだ報告はありません",
+			"emptyDescription": "投稿やレビューを報告すると、ここに履歴が残ります。",
+			"note": "審査の状況や結果はお知らせしていません。",
+			"error": "報告履歴を取得できませんでした",
+			"target": {
+				"dish_media": "投稿",
+				"dish_reviews": "レビュー"
+			}
 		}
 	}
 }

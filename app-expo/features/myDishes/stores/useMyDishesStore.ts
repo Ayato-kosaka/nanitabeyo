@@ -1,6 +1,7 @@
 import { createWithEqualityFn } from "zustand/traditional";
 import i18n from "@/lib/i18n";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+import { asApiList } from "@/lib/apiList";
 import type { MyDishItem, MyDishPin } from "@shared/api/v1/res";
 
 /**
@@ -303,10 +304,12 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			if (get().generation !== generation) return;
 			set((state) => {
 				const itemPatch: Record<string, MyDishItem> = {};
-				for (const item of response.data) itemPatch[item.key] = item;
+				// #1561 API の本文の形を信じない（asApiList のヘッダ参照）
+				const rows = asApiList(response.data);
+				for (const item of rows) itemPatch[item.key] = item;
 				return {
 					itemByKey: { ...state.itemByKey, ...itemPatch },
-					itemKeysByQuery: { ...state.itemKeysByQuery, [queryKey]: response.data.map((item) => item.key) },
+					itemKeysByQuery: { ...state.itemKeysByQuery, [queryKey]: rows.map((item) => item.key) },
 					nextCursorByQuery: { ...state.nextCursorByQuery, [queryKey]: response.nextCursor ?? null },
 					oldestOccurredAtByQuery: {
 						...state.oldestOccurredAtByQuery,
@@ -353,11 +356,13 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			// queryKey へ 3 回以上切り替える」必要があり、実害は小さいと判断して見送った（#1439 レビュー）。
 			set((s) => {
 				const itemPatch: Record<string, MyDishItem> = {};
-				for (const item of response.data) itemPatch[item.key] = item;
+				// #1561 API の本文の形を信じない（asApiList のヘッダ参照）
+				const rows = asApiList(response.data);
+				for (const item of rows) itemPatch[item.key] = item;
 
 				const prevKeys = s.itemKeysByQuery[queryKey] ?? EMPTY_KEYS;
 				const prevKeySet = new Set(prevKeys);
-				const appended = response.data.map((item) => item.key).filter((key) => !prevKeySet.has(key));
+				const appended = rows.map((item) => item.key).filter((key) => !prevKeySet.has(key));
 
 				return {
 					itemByKey: { ...s.itemByKey, ...itemPatch },
@@ -393,7 +398,8 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			// 1 バイトも書かない（書くと «記録前» のピンが hasFetchedInitial 付きで復活する）
 			if (get().generation !== generation) return;
 			set((state) => ({
-				pinsByQuery: { ...state.pinsByQuery, [queryKey]: response.data },
+				// #1561 ここが undefined だと、地図のマーカー描画で画面ごと落ちる
+				pinsByQuery: { ...state.pinsByQuery, [queryKey]: asApiList(response.data) },
 				truncatedByQuery: { ...state.truncatedByQuery, [queryKey]: response.truncated },
 				hasFetchedInitialPinsByQuery: { ...state.hasFetchedInitialPinsByQuery, [queryKey]: true },
 			}));

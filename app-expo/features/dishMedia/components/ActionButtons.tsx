@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
-import { Heart, Bookmark, Share, MapPinned, UtensilsCrossed } from "lucide-react-native";
+import { Heart, Bookmark, Share, MapPinned, UtensilsCrossed, Flag } from "lucide-react-native";
 import { router } from "expo-router";
 import i18n from "@/lib/i18n";
 import { formatLikeCount } from "../utils/text";
@@ -26,11 +26,15 @@ import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
-import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
+import { MY_DISH_STATUS_ORANGE } from "@/features/myDishes/statusColors";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
+import { ReportContentSheet } from "./ReportContentSheet";
+import { OwnPostActions } from "./OwnPostActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+// #1509 このアクション列は常に暗いメディア（写真・動画）の上に載るため、テーマ非追従の FixedColors を使う
+import { FixedColors } from "@/constants/Palette";
 
 interface ActionButtonsProps {
 	/**
@@ -350,6 +354,22 @@ function ActionButtonsContent({
 		});
 	}, [dishMediaId, restaurant, shareRestaurant]);
 
+	// #1514 (SAF-01) 通報シートの開閉。
+	// 「通報された投稿」の見た目は変えないので、ここには開閉以外の state を持たせない
+	const [isReportSheetOpen, setIsReportSheetOpen] = useState(false);
+
+	const handleReportPress = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "content_report_opened",
+			error_level: "log",
+			payload: { targetType: "dish_media", targetId: String(dishMediaId) },
+		});
+		setIsReportSheetOpen(true);
+	}, [dishMediaId, lightImpact, logFrontendEvent]);
+
+	const handleReportSheetClose = useCallback(() => setIsReportSheetOpen(false), []);
+
 	const handleLayout = useCallback(
 		(event: LayoutChangeEvent) => onLayout?.(event.nativeEvent.layout.width),
 		[onLayout],
@@ -396,7 +416,11 @@ function ActionButtonsContent({
 							{ name: restaurant.name },
 						)}
 						aria-selected={isLiked}>
-						<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
+						<Heart
+							size={28}
+							color={isLiked ? FixedColors.likeActive : FixedColors.onMedia}
+							fill={isLiked ? FixedColors.likeActive : FixedColors.onMedia}
+						/>
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
 				</View>
@@ -417,7 +441,19 @@ function ActionButtonsContent({
 							{ name: restaurant.name },
 						)}
 						aria-selected={isSaved}>
-						<Bookmark size={28} color="#FFFFFF" fill={isSaved ? "#FFFFFF" : "transparent"} />
+						{/*
+						#1375（9 巡目・オーナー指示）**押してある «食べたい» はオレンジで塗る。**
+
+						それまでは «白の塗り» で状態を示していたが、写真の上では
+						«白の輪郭（未保存）» と «白の塗り（保存済み）» の差が読めなかった。
+						一覧のバッジで承認された同じオレンジ（`MY_DISH_STATUS_ORANGE`）へ揃える。
+						⚠️ 下のラベルは白のまま（オーナー指示）。**アイコンだけを色で示す。**
+						*/}
+						<Bookmark
+							size={28}
+							color={isSaved ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia}
+							fill={isSaved ? MY_DISH_STATUS_ORANGE : "transparent"}
+						/>
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("MyDishes.filters.status.want")}</Text>
 				</View>
@@ -440,25 +476,21 @@ function ActionButtonsContent({
 							)}
 							// 読み上げでも «記録済み» が分かるようにする（色だけに頼らない）
 							aria-selected={!!isEaten}>
-							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_COLORS.eaten.fill : "#FFFFFF"} />
+							{/* #1375（9 巡目・オーナー指示）記録済みは «食べたい» と同じオレンジ。
+							    ⚠️ ラベルは白のまま（**色を付けるのはアイコンだけ**） */}
+							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia} />
 						</TouchableOpacity>
-						<Text style={[styles.actionText, isEaten && styles.actionTextEaten]}>
-							{i18n.t("Map.actions.writeReviewForThisDish")}
-						</Text>
+						<Text style={styles.actionText}>{i18n.t("Map.actions.writeReviewForThisDish")}</Text>
 					</View>
 				)}
 
-				<View style={styles.actionContainer}>
-					<TouchableOpacity
-						style={styles.actionButton}
-						onPress={handleSharePress}
-						hitSlop={buttonHitSlop}
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
-						<Share size={28} color="#FFFFFF" />
-					</TouchableOpacity>
-					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
-				</View>
+				{/* #1513 自分の投稿だけに編集・削除の導線を出す。他人の投稿では
+				    ボタン自体が描画されないので、UI からは操作にたどり着けない
+				    （サーバー側でも user_id 一致を必須にして二重に担保している）。
+
+				    #1375 の並び «自分の記録に関わる操作 → 店へ行く操作 → 人に渡す操作» に従い、
+				    自分の投稿の編集・削除は «店へ行く»（地図を開く）より上に置く */}
+				{entry.dish_media.isMine && <OwnPostActions entry={entry} />}
 
 				<View style={styles.actionContainer}>
 					<TouchableOpacity
@@ -467,10 +499,50 @@ function ActionButtonsContent({
 						hitSlop={buttonHitSlop}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("DishMediaContent.accessibility.openMap", { name: restaurant.name })}>
-						<MapPinned size={28} color="#FFFFFF" />
+						<MapPinned size={28} color={FixedColors.onMedia} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
 				</View>
+
+				{/* #1375（オーナー指示 8 巡目）**「シェア」は「地図を開く」の下**。
+				    上から «自分の記録に関わる操作 → 店へ行く操作 → 人に渡す操作» の並びになる */}
+				<View style={styles.actionContainer}>
+					<TouchableOpacity
+						style={styles.actionButton}
+						onPress={handleSharePress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
+						<Share size={28} color={FixedColors.onMedia} />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
+				</View>
+
+				{/* #1514 (SAF-01) 投稿の通報導線。
+				    右レールに常設するのは、通報の敷居を上げないため（メニューの奥に隠すと、
+				    «見つけられないから通報されない» を «問題が無い» と読み違える）。
+				    レビューの通報は DishReviewsSection のレビュー行側にある。
+				    ユーザー・店舗は対象外（オーナー確定仕様） */}
+				<View style={styles.actionContainer}>
+					<TouchableOpacity
+						testID="dish-action-report"
+						style={styles.actionButton}
+						onPress={handleReportPress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Report.accessibility.open", { name: restaurant.name })}>
+						<Flag size={26} color={FixedColors.onMedia} />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("Report.action")}</Text>
+				</View>
+
+				<ReportContentSheet
+					visible={isReportSheetOpen}
+					targetType="dish_media"
+					targetId={String(dishMediaId)}
+					targetLabel={restaurant.name}
+					onClose={handleReportSheetClose}
+				/>
 			</View>
 		</GestureDetector>
 	);
@@ -500,7 +572,7 @@ const styles = StyleSheet.create({
 	actionText: {
 		fontSize: 13,
 		fontWeight: "500",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		marginTop: 4,
 		letterSpacing: 0.2,
 		// #1375（5 巡目・デザインレビュー #6）左列（`DishMediaContent` の店名・料理名）と
@@ -511,8 +583,4 @@ const styles = StyleSheet.create({
 	},
 	// #1375（5 巡目）記録済み。色の正は my-dishes と同じ（`features/myDishes/statusColors.ts`）ので、
 	// 一覧・カレンダー・地図で «食べた» を表している赤とここが必ず一致する
-	actionTextEaten: {
-		color: MY_DISH_STATUS_COLORS.eaten.fill,
-		fontWeight: "700",
-	},
 });

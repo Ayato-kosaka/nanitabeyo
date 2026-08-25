@@ -5,6 +5,8 @@ import { router } from "expo-router";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -27,6 +29,7 @@ import { useMyDishesCalendarQuery } from "../hooks/useMyDishesCalendarQuery";
 import { countMyDishStatuses } from "@/features/myDishes/statusColors";
 import { MyDishStatusLegend } from "@/features/myDishes/components/MyDishStatusLegend";
 import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishStatusCountBadges";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 
 /**
  * #1396 my-dishes の Calendar ビュー（設計書 (2/2) §4 / §7 の PR5）。
@@ -78,9 +81,22 @@ import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishSt
 
 const WEEKDAY_COUNT = 7;
 
+/**
+ * #1513 墓標の上に残す日付の数字の色。
+ *
+ * この画面の既定（`dayNumberRecorded` の `#111827`）はダークで墓標の面に沈むため、
+ * 墓標の上だけテーマ追従のトークン（ライト `#111827` / ダーク `#E5E2E1`）へ差し替える。
+ * ファクトリはモジュールスコープに置く（`useThemedStyles` の useMemo を効かせるため）。
+ */
+const createDeletedDayStyles = (colors: Palette) =>
+	StyleSheet.create({
+		dayNumber: { color: colors.textPrimaryAlt, fontWeight: "700" },
+	});
+
 type DayPressHandler = (cell: CalendarDayCell) => void;
 
 const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell | null; onPress: DayPressHandler }) {
+	const styles = useThemedStyles(createStyles);
 	const handlePress = useCallback(() => {
 		if (cell) onPress(cell);
 	}, [cell, onPress]);
@@ -92,7 +108,13 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 	const representative = cell && count > 0 ? cell.items[0] : null;
 	// #1396 【仕様】写真なしの記録（dishMedia === null）でも灰色プレースホルダーにしない。
 	// categoryImageUrl → restaurant.image_url の順で実画像へ落とす（#1375 追補2 決定3）
-	const thumbnailUrl = representative ? resolveDayThumbnailUrl(representative) : null;
+	//
+	// #1513 代表の行が «自分の投稿が削除済み» のときはフォールバックせず墓標を出す。
+	// 日付の数字は墓標の上に残す（記録がある日であることは変わらないため）ので、
+	// 数字の色だけテーマ追従のトークンで塗り直す（この画面の既定 #111827 はダークで沈む）
+	const isDeleted = representative?.isOwnMediaDeleted === true;
+	const deletedStyles = useThemedStyles(createDeletedDayStyles);
+	const thumbnailUrl = representative && !isDeleted ? resolveDayThumbnailUrl(representative) : null;
 	// `source` は memo で identity を固定する（MyDishesListView と同じ作法。
 	// インラインで作ると expo-image に毎レンダー新しい source が渡る。独立レビュー指摘）
 	const source = useMemo(
@@ -114,13 +136,27 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 			{/* #1375 実機確認: 記録が無い日は «空の器» を描かない。Instagram のストーリーアーカイブと
 			    同じく、日付の数字だけが淡く残る。記録がある日だけが円形のサムネイルとして浮き上がるので、
 			    「どの日に記録があるか」が一目でわかる（以前は全日が同じ灰色の角丸で埋まっていた） */}
-			{source ? (
+			{isDeleted ? (
+				<>
+					{/* #1513 自分の投稿が削除済みの日。日付は残し、写真の枠だけ墓標に差し替える */}
+					<View style={styles.dayCircle}>
+						<DeletedMediaTombstone variant="cell" style={StyleSheet.absoluteFill} />
+						<Text style={[styles.dayNumber, deletedStyles.dayNumber]}>{cell.day}</Text>
+					</View>
+					<View style={styles.countBadgeRow}>
+						<MyDishStatusCountBadges counts={counts} testIDPrefix="my-dishes-calendar-day-count" />
+					</View>
+				</>
+			) : source ? (
 				<>
 					<View style={styles.dayCircle}>
 						<Image
 							source={source}
 							cachePolicy="memory-disk"
 							transition={100}
+							/* #1375（9 巡目）セルの使い回しで «前の日の写真が一瞬残る» のを防ぐ。
+							   理由は MyDishesListView の同じ prop のコメントを参照 */
+							recyclingKey={cell.dateKey}
 							style={StyleSheet.absoluteFill}
 							contentFit="cover"
 							alt=""
@@ -163,6 +199,7 @@ const MonthGrid = memo(function MonthGrid({
 	month: CalendarMonth;
 	onPressDay: DayPressHandler;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const weeks = useMemo(() => {
 		const rows: (CalendarDayCell | null)[][] = [];
 		for (let i = 0; i < month.cells.length; i += WEEKDAY_COUNT) {
@@ -207,6 +244,7 @@ const MonthGrid = memo(function MonthGrid({
  *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
  */
 export function MyDishesCalendarView({ enabled = true }: { enabled?: boolean } = {}) {
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
@@ -414,122 +452,128 @@ export function MyDishesCalendarView({ enabled = true }: { enabled?: boolean } =
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	centered: {
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	listContent: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-	},
-	legend: {
-		paddingVertical: 10,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "#E5E7EB",
-	},
-	// #1375 実機確認: 月と月のあいだを広く取る。詰めると «どこからが次の月か» が読めない
-	month: {
-		marginBottom: 28,
-	},
-	// Instagram のストーリーズアーカイブと同じく **中央寄せ**。左寄せだと表ではなく見出しに見える
-	monthLabel: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#111827",
-		textAlign: "center",
-		marginBottom: 14,
-	},
-	weekdayRow: {
-		flexDirection: "row",
-		marginBottom: 4,
-	},
-	weekdayLabel: {
-		flex: 1,
-		textAlign: "center",
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	weekRow: {
-		flexDirection: "row",
-	},
-	// #1375 実機確認（2 巡目）: 縦幅を詰める。正方形セル（aspectRatio: 1）だと行の高さが
-	// 列幅そのままになり縦に間延びするので、円の直径をセル幅より小さい固定値にして
-	// 行の高さもそれに合わせる
-	dayCell: {
-		flex: 1,
-		// #1375（5 巡目・デザインレビュー #23）円がセル幅の 94%（48/51.1）で、
-		// 記録が続く週は円が繋がって 1 本の帯に見えていた。要素は減らさず余白だけ作る
-		height: 58,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	// 円形。`borderRadius: 999` ではなく `overflow: hidden` と併せて正円にする
-	dayCircle: {
-		width: 44,
-		height: 44,
-		borderRadius: 22,
-		overflow: "hidden",
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	dayScrim: {
-		...StyleSheet.absoluteFillObject,
-		backgroundColor: "rgba(0,0,0,0.18)",
-	},
-	dayNumber: {
-		fontSize: 17,
-		fontWeight: "600",
-	},
-	// 記録が無い日。円も背景も描かず、数字だけを灰で残す（参考画像はかなりはっきり見える灰）
-	dayNumberEmpty: {
-		color: "#9CA3AF",
-	},
-	// 記録はあるがサムネイルが引けなかった日（画像 URL が無い）。数字を濃く残して押せると示す
-	dayNumberRecorded: {
-		color: "#111827",
-		fontWeight: "700",
-	},
-	dayNumberOnImage: {
-		color: "#FFFFFF",
-		fontWeight: "700",
-		textShadowColor: "rgba(0,0,0,0.6)",
-		// #1446 n-2: offset は既定値（{0,0}）でも、明示しないと web / native で解釈が揃う保証が無い
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 3,
-	},
-	countBadgeRow: {
-		position: "absolute",
-		right: 2,
-		bottom: 0,
-	},
-	footer: {
-		alignItems: "center",
-		paddingVertical: 16,
-	},
-	// #1446 M-1: スピナーの有無で高さを変えないための固定枠。
-	// ここを可変にすると contentLength が往復し、`onEndReached` が自動連投になる
-	footerSpinnerSlot: {
-		height: 24,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	footerBlock: {
-		alignItems: "center",
-		gap: 12,
-		paddingTop: 8,
-	},
-	footerText: {
-		fontSize: 12,
-		color: "#9CA3AF",
-		textAlign: "center",
-	},
-	footerErrorText: {
-		fontSize: 13,
-		color: "#B91C1C",
-		textAlign: "center",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		centered: {
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		listContent: {
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+		},
+		// #1375（9 巡目・オーナー指摘）**凡例に «ボックス» を作らない。左寄せにする。**
+		// 上罫線を引くと «下に別の領域がある» ように見え、日付グリッドと切り離されて読める。
+		// 凡例は日付グリッドの注釈なので、罫線を外して同じ左端（グリッドと同じ 16）へ揃える。
+		// ⚠️ 中央寄せは MyDishStatusLegend 側の既定（`justifyContent: "center"`）なので、
+		//    ここで打ち消す。部品側の既定を変えるとマップ下部シートの見出し行も動く
+		legend: {
+			justifyContent: "flex-start",
+			paddingHorizontal: 16,
+			paddingVertical: 10,
+		},
+		// #1375 実機確認: 月と月のあいだを広く取る。詰めると «どこからが次の月か» が読めない
+		month: {
+			marginBottom: 28,
+		},
+		// Instagram のストーリーズアーカイブと同じく **中央寄せ**。左寄せだと表ではなく見出しに見える
+		monthLabel: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimaryAlt,
+			textAlign: "center",
+			marginBottom: 14,
+		},
+		weekdayRow: {
+			flexDirection: "row",
+			marginBottom: 4,
+		},
+		weekdayLabel: {
+			flex: 1,
+			textAlign: "center",
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		weekRow: {
+			flexDirection: "row",
+		},
+		// #1375 実機確認（2 巡目）: 縦幅を詰める。正方形セル（aspectRatio: 1）だと行の高さが
+		// 列幅そのままになり縦に間延びするので、円の直径をセル幅より小さい固定値にして
+		// 行の高さもそれに合わせる
+		dayCell: {
+			flex: 1,
+			// #1375（5 巡目・デザインレビュー #23）円がセル幅の 94%（48/51.1）で、
+			// 記録が続く週は円が繋がって 1 本の帯に見えていた。要素は減らさず余白だけ作る
+			height: 58,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		// 円形。`borderRadius: 999` ではなく `overflow: hidden` と併せて正円にする
+		dayCircle: {
+			width: 44,
+			height: 44,
+			borderRadius: 22,
+			overflow: "hidden",
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		dayScrim: {
+			...StyleSheet.absoluteFillObject,
+			backgroundColor: "rgba(0,0,0,0.18)",
+		},
+		dayNumber: {
+			fontSize: 17,
+			fontWeight: "600",
+		},
+		// 記録が無い日。円も背景も描かず、数字だけを灰で残す（参考画像はかなりはっきり見える灰）
+		dayNumberEmpty: {
+			color: c.textTertiary,
+		},
+		// 記録はあるがサムネイルが引けなかった日（画像 URL が無い）。数字を濃く残して押せると示す
+		dayNumberRecorded: {
+			color: c.textPrimaryAlt,
+			fontWeight: "700",
+		},
+		dayNumberOnImage: {
+			color: FixedColors.onMedia,
+			fontWeight: "700",
+			textShadowColor: "rgba(0,0,0,0.6)",
+			// #1446 n-2: offset は既定値（{0,0}）でも、明示しないと web / native で解釈が揃う保証が無い
+			textShadowOffset: { width: 0, height: 1 },
+			textShadowRadius: 3,
+		},
+		countBadgeRow: {
+			position: "absolute",
+			right: 2,
+			bottom: 0,
+		},
+		footer: {
+			alignItems: "center",
+			paddingVertical: 16,
+		},
+		// #1446 M-1: スピナーの有無で高さを変えないための固定枠。
+		// ここを可変にすると contentLength が往復し、`onEndReached` が自動連投になる
+		footerSpinnerSlot: {
+			height: 24,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		footerBlock: {
+			alignItems: "center",
+			gap: 12,
+			paddingTop: 8,
+		},
+		footerText: {
+			fontSize: 12,
+			color: c.textTertiary,
+			textAlign: "center",
+		},
+		footerErrorText: {
+			fontSize: 13,
+			color: c.dangerEmphasis,
+			textAlign: "center",
+		},
+	});

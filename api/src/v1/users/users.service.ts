@@ -24,6 +24,7 @@ import {
   QueryMyDishesDto,
   MyDishSort,
   MyDishStatus,
+  QueryMeDishCategoryGroupVotesDto,
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
@@ -40,6 +41,7 @@ import {
   MyDishItem,
   QueryMeDishMapPinsResponse,
   QueryMyDishesResponse,
+  MeDishCategoryGroupVoteListItem,
 } from '@shared/v1/res';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
@@ -51,6 +53,8 @@ import {
   encodeMyDishCursor,
   hasMyDishesFilterBeyondStatus,
 } from './my-dishes.query';
+import { DishCategoryGroupVotesRepository } from '../dish-category-group-votes/dish-category-group-votes.repository';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
@@ -65,6 +69,8 @@ export class UsersService {
     private readonly restaurantsRepo: RestaurantsRepository,
     private readonly restaurantsAssembler: RestaurantsAssembler,
     private readonly dishMediaAssembler: DishMediaAssembler,
+    private readonly dishCategoryGroupVotesRepo: DishCategoryGroupVotesRepository,
+    private readonly prismaService: PrismaService,
   ) {}
 
   async getUserByIds(userId: string[]) {
@@ -123,6 +129,9 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
 
     const dishMediaMap = new Map<
@@ -204,6 +213,9 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
 
     this.logger.debug('GetMeLikedDishMediaResult', 'getMeLikedDishMedia', {
@@ -315,6 +327,9 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
 
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
@@ -324,6 +339,63 @@ export class UsersService {
 
     return {
       data: dishMediaEntryItemsResult.items,
+      nextCursor,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*          GET /v1/users/me/dish-category-group-votes               */
+  /* ------------------------------------------------------------------ */
+  // #1505 【設計】**自分が主催(作成)した** dish_category グループ投票の一覧。
+  // 参加しただけのセッションは含まない(オーナー指示)。
+  // 認可の担保は repository の where 句(host_user_id = 自分)に閉じており、
+  // ここでは userId を JWT 由来のものだけ使い、body/query から session の所有者を受け取らない。
+  async getMeDishCategoryGroupVotes(
+    userId: string,
+    dto: QueryMeDishCategoryGroupVotesDto,
+  ): Promise<{
+    data: MeDishCategoryGroupVoteListItem[];
+    nextCursor: string | null;
+  }> {
+    this.logger.debug(
+      'GetMeDishCategoryGroupVotes',
+      'getMeDishCategoryGroupVotes',
+      {
+        userId,
+        cursor: dto.cursor,
+      },
+    );
+
+    const { items, nextCursor } =
+      await this.dishCategoryGroupVotesRepo.findMeSessions(
+        this.prismaService.prisma,
+        userId,
+        dto.cursor,
+      );
+
+    this.logger.debug(
+      'GetMeDishCategoryGroupVotesResult',
+      'getMeDishCategoryGroupVotes',
+      {
+        count: items.length,
+        nextCursor,
+      },
+    );
+
+    return {
+      data: items.map((item) => ({
+        id: item.id,
+        shareToken: item.shareToken,
+        hasVoted: item.hasVoted,
+        candidateCount: item.candidateCount,
+        // #1505 行の主役は「何を投票したのか」。候補のサムネイル・候補名・参加人数・勝者名を
+        // 一覧の時点で返し、画面が行ごとに detail を叩かなくて済むようにしている。
+        candidatePreviews: item.candidatePreviews,
+        participantCount: item.participantCount,
+        winnerName: item.winnerName,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+      })),
       nextCursor,
     };
   }
@@ -474,9 +546,14 @@ export class UsersService {
           reviewCount: item.dish.reviewCount,
           averageRating: item.dish.averageRating,
           categoryImageUrl: item.dish.categoryImageUrl,
+          // #1375 カテゴリの正式表記（ローマ字の dish.name をユーザーに見せないため）
+          categoryLabels: item.dish.categoryLabels,
         },
         dishMedia:
           (item.mediaId ? dishMediaById.get(item.mediaId) : undefined) ?? null,
+        // #1513 自分の投稿を消したときは別の写真へ差し替えず（mediaId は NULL）、
+        // このフラグで墓標を出させる。行は消さない
+        isOwnMediaDeleted: item.isOwnMediaDeleted,
         myReview: review
           ? {
               ...convertPrismaToSupabase_DishReviews(review),
@@ -565,6 +642,8 @@ export class UsersService {
             : null) ??
           pin.representativeExternalThumbnailUrl ??
           null,
+        // #1513 代表行の自分の投稿が消えているときは墓標のサムネイルを出させる
+        isOwnMediaDeleted: pin.isOwnMediaDeleted,
       })),
       truncated,
     };

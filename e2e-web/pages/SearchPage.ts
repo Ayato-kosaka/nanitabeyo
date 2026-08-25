@@ -23,6 +23,14 @@ export class SearchPage {
 	readonly locationClearButton: Locator;
 	/** 場所サジェストのリスト */
 	readonly locationSuggestions: Locator;
+	/** #1502 地点確認中(details 取得中)の表示 */
+	readonly locationConfirming: Locator;
+	/** #1502 地点確定済みの表示 */
+	readonly locationConfirmed: Locator;
+	/** #1502 地点確認失敗の表示 */
+	readonly locationConfirmationError: Locator;
+	/** #1502 地点確認失敗時の再試行ボタン */
+	readonly locationConfirmationRetry: Locator;
 	/** 「最近使った場所」のリスト（#953）。未入力でフォーカスしたときだけ描画される */
 	readonly recentLocationsList: Locator;
 	/** 「最近使った場所」を全件クリアするボタン（1件以上あるときだけ描画される） */
@@ -49,6 +57,10 @@ export class SearchPage {
 		this.locationInput = page.getByTestId("search-location-autocomplete-input");
 		this.locationClearButton = page.getByTestId("search-location-autocomplete-clear");
 		this.locationSuggestions = page.getByTestId("search-location-autocomplete-suggestions");
+		this.locationConfirming = page.getByTestId("search-location-autocomplete-confirmation-confirming");
+		this.locationConfirmed = page.getByTestId("search-location-autocomplete-confirmation-confirmed");
+		this.locationConfirmationError = page.getByTestId("search-location-autocomplete-confirmation-error");
+		this.locationConfirmationRetry = page.getByTestId("search-location-autocomplete-confirmation-retry");
 		this.recentLocationsList = page.getByTestId("search-location-autocomplete-recent-locations");
 		this.recentLocationsClearButton = page.getByTestId("search-location-autocomplete-recent-locations-clear");
 		this.submitButton = page.getByTestId("search-submit-button");

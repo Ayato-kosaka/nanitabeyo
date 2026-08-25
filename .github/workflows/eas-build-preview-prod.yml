@@ -53,7 +53,13 @@ jobs:
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # #1375 20 のままだと EAS CLI のインストールが必ず失敗する。
+          #   error @oclif/plugin-autocomplete@3.3.0: The engine "node" is incompatible
+          #   with this module. Expected version ">=22.0.0". Got "20.20.2"
+          # `eas-version: latest` で最新を取りに行くので、CLI 側が Node 22 を要求し始めた時点で
+          # このジョブは «配信できない» 状態になる（2026-08-25 の OTA 配信が実際にこれで落ちた）。
+          # ランナー自体も Node 20 の非推奨警告を出しているので 22 へ上げる。
+          node-version: "22"
           cache: "pnpm"
 
       - name: 📦 Install dependencies

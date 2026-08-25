@@ -179,6 +179,7 @@ describe("buildSitemapXml", () => {
 		["profile", "ログイン後の個人ページ"],
 		["profile/settings", "ログイン後の個人ページ"],
 		["profile/blocked-dish-categories", "ログイン後の個人ページ"],
+		["profile/device-settings", "端末に閉じた設定画面。検索から人間が踏む入口ではない（#1504）"],
 		["notifications", "ログイン後の個人ページ"],
 		["notifications/feed", "ログイン後の個人ページ"],
 		["auth/callback", "OAuth のコールバック。人間の入口ではない"],

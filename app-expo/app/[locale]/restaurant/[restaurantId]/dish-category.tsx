@@ -38,8 +38,12 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 export default function DishCategorySelectScreen() {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -113,7 +117,7 @@ export default function DishCategorySelectScreen() {
 	);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				{/* タイトルはこのヘッダーだけが持つ（フォーム側の見出しは title={null} で落とす） */}
 				<ScreenHeader
@@ -161,43 +165,44 @@ export default function DishCategorySelectScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	safeArea: {
-		flex: 1,
-	},
-	// 検索欄の «下» に置く。候補パネル（DishCategoryAutocomplete が自分の下に描く）は
-	// これより手前に出るので、打ち始めればこの一覧は隠れる
-	listSection: {
-		flex: 1,
-		paddingHorizontal: 16,
-	},
-	listHeading: {
-		fontSize: 14,
-		fontWeight: "700",
-		color: "#374151",
-		marginBottom: 8,
-	},
-	listItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		gap: 12,
-		paddingVertical: 14,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "#E5E7EB",
-	},
-	listItemLabel: {
-		flex: 1,
-		fontSize: 16,
-		color: "#111827",
-	},
-	// 件数は «その店でよく記録されている» の手がかり。主役ではないので淡く小さく
-	listItemCount: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: "#9CA3AF",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		// 検索欄の «下» に置く。候補パネル（DishCategoryAutocomplete が自分の下に描く）は
+		// これより手前に出るので、打ち始めればこの一覧は隠れる
+		listSection: {
+			flex: 1,
+			paddingHorizontal: 16,
+		},
+		listHeading: {
+			fontSize: 14,
+			fontWeight: "700",
+			color: c.textSecondaryStrong,
+			marginBottom: 8,
+		},
+		listItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			gap: 12,
+			paddingVertical: 14,
+			borderBottomWidth: StyleSheet.hairlineWidth,
+			borderBottomColor: c.borderMuted,
+		},
+		listItemLabel: {
+			flex: 1,
+			fontSize: 16,
+			color: c.textPrimaryAlt,
+		},
+		// 件数は «その店でよく記録されている» の手がかり。主役ではないので淡く小さく
+		listItemCount: {
+			fontSize: 12,
+			fontWeight: "700",
+			color: c.textTertiary,
+		},
+	});

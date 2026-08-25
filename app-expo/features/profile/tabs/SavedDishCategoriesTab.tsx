@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect } from "react";
+import { asApiList } from "@/lib/apiList";
 import { router } from "expo-router";
 import { SaveDishCategoryTab } from "./save/SaveDishCategoryTab";
 import i18n from "@/lib/i18n";
@@ -54,7 +55,7 @@ export function SavedDishCategoriesTab() {
 				},
 			);
 			return {
-				data: response.data || [],
+				data: asApiList(response.data),
 				nextCursor: response.nextCursor,
 			};
 		});
@@ -72,7 +73,7 @@ export function SavedDishCategoriesTab() {
 				},
 			);
 			return {
-				data: response.data || [],
+				data: asApiList(response.data),
 				nextCursor: response.nextCursor,
 			};
 		});
@@ -92,7 +93,7 @@ export function SavedDishCategoriesTab() {
 				},
 			);
 			return {
-				data: response.data || [],
+				data: asApiList(response.data),
 				nextCursor: response.nextCursor,
 			};
 		});

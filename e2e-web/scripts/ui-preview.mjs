@@ -64,16 +64,24 @@ const ym = (n) => { const a = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMont
 const iso = (n, day) => { const a = ym(n); return new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), day, 3)).toISOString(); };
 // #1375 5 巡目: status を引数にした（緑=食べたい / 赤=食べた の内訳バッジを撮るため。
 // 既定は従来どおり "eaten" なので、既存の呼び出しの見え方は変わらない）
-const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status = "eaten") => ({
+// #1375（9 巡目）`provider` を渡すと «SNS から取り込んだ行» になる（一覧のロゴの確認用）。
+// 既定は undefined なので、既存の呼び出しの見え方は変わらない
+const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status = "eaten", provider) => ({
   key, status, occurredAt, savedAt: status === "want" ? occurredAt : null, eatenAt: status === "eaten" ? occurredAt : null,
   restaurant: { id: "r-1", name: "醤油ラーメン一番", image_url: "https://img.example.invalid/r.jpg" },
   dish: { id: `dish-${key}`, category_id: cat[0], name: cat[1], reviewCount: 3, averageRating: 4.2, categoryImageUrl: "https://img.example.invalid/c.jpg" },
-  dishMedia: withMedia ? { id: `dm-${key}`, thumbnailImageUrl: "https://img.example.invalid/t.jpg", mediaImageUrl: "https://img.example.invalid/m.jpg", mediaType: "image" } : null,
+  dishMedia: withMedia ? {
+    id: `dm-${key}`, thumbnailImageUrl: "https://img.example.invalid/t.jpg", mediaImageUrl: "https://img.example.invalid/m.jpg", mediaType: "image",
+    render_type: provider ? "external_embed" : "stored",
+    ...(provider ? { externalEmbed: { provider, externalContentId: "abc", canonicalUrl: "https://x/", embedStatus: "available", lastVerifiedAt: null } } : {}),
+  } : null,
   myReview: null, distanceMeters: null,
 });
 // this month: several days with records; last month: a few
 const page1 = [
-  item("a", iso(0, 2), true), item("b", iso(0, 5), true), item("b2", iso(0, 5), true), item("c", iso(0, 11), true),
+  // #1375 9 巡目: 先頭を «Instagram から取り込んだ行» にする（一覧のロゴがここに出る）
+  item("a", iso(0, 2), true, ["Q1", "ラーメン"], "eaten", "instagram"),
+  item("b", iso(0, 5), true), item("b2", iso(0, 5), true), item("c", iso(0, 11), true),
   item("d", iso(0, 14), false), item("e", iso(0, 20), true),
   item("f", iso(1, 3), true), item("g", iso(1, 9), true), item("h", iso(1, 22), true),
   // #1375 5 巡目: 同じ日に «食べたい» と «食べた» が混ざる日を作る（日バッジが緑と赤に割れる）
@@ -85,6 +93,39 @@ const page1 = [
   ...[["Q2","寿司"],["Q3","カレー"],["Q4","うどん"],["Q5","そば"],["Q6","天ぷら"],["Q7","焼き鳥"],["Q8","餃子"],["Q9","パスタ"],["Q10","ハンバーガー"],["Q11","牛丼"]]
     .map((cat, i) => item(`cat-${cat[0]}`, iso(0, 3 + (i % 20)), true, cat)),
 ];
+
+// #1505 グループ投票の履歴一覧（自分が主催した投票だけ）。
+// 「勝者が決まった行 / 未決の行 / 候補 4 件以上（+N）/ 候補 0 件 / 画像が読めない行」を
+// 1 画面に並べ、**どの状態でも行の高さと左端が揃うこと**を目で見るための材料。
+const hoursAgo = (h) => new Date(Date.now() - h * 3600 * 1000).toISOString();
+const cand = (name, host = "img.example.invalid") => ({
+  displayName: name,
+  imageUrl: `https://${host}/${encodeURIComponent(name)}.jpg`,
+});
+const groupVote = (o) => ({
+  id: o.id, shareToken: `share-${o.id}`, hasVoted: o.hasVoted ?? false,
+  candidateCount: o.candidateCount, candidatePreviews: o.candidatePreviews,
+  participantCount: o.participantCount, winnerName: o.winnerName ?? null,
+  createdAt: o.updatedAt, updatedAt: o.updatedAt,
+});
+const GROUP_VOTE_ITEMS = [
+  // 勝者が決まっている（1 行目は料理名が太字。未投票ドットは出ない）
+  groupVote({ id: "decided", hasVoted: true, candidateCount: 3, participantCount: 5, winnerName: "八王子ラーメン",
+    candidatePreviews: [cand("八王子ラーメン"), cand("寿司"), cand("カレー")], updatedAt: hoursAgo(50) }),
+  // 未決 + 候補 6 件（+3 が出る）+ 自分は未投票（ドットが出る）
+  groupVote({ id: "undecided", candidateCount: 6, participantCount: 2,
+    candidatePreviews: [cand("うどん"), cand("そば"), cand("天ぷら")], updatedAt: hoursAgo(5) }),
+  // 画像が読めない行（img.broken.invalid はモックしていない）。同寸法のプレースホルダが残るはず
+  groupVote({ id: "broken-image", candidateCount: 2, participantCount: 0,
+    candidatePreviews: [cand("焼き鳥", "img.broken.invalid"), cand("餃子", "img.broken.invalid")], updatedAt: hoursAgo(1) }),
+  // 候補が 1 件も無い（全部削除された）行。左端が揃うか
+  groupVote({ id: "no-candidates", candidateCount: 0, participantCount: 0, candidatePreviews: [], updatedAt: hoursAgo(0.2) }),
+  // 長い料理名（1 行に収まらない）で行が崩れないか
+  groupVote({ id: "long-name", hasVoted: true, candidateCount: 4, participantCount: 12,
+    winnerName: "特製濃厚豚骨魚介つけ麺（全部のせ・大盛り）",
+    candidatePreviews: [cand("つけ麺"), cand("ハンバーガー"), cand("パスタ")], updatedAt: hoursAgo(24 * 40) }),
+];
+let groupVoteItems = GROUP_VOTE_ITEMS;
 
 const LONG_CAPTION = [
   "濃口醤油とラードを効かせた八王子ラーメン！半熟味玉を添えた中華そば",
@@ -188,7 +229,13 @@ await context.route("**/img.example.invalid/**", (r) => r.fulfill({ contentType:
 await context.route("**/www.instagram.com/**", (r) =>
   r.fulfill({
     contentType: "text/html",
-    body: `<html><body style="margin:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><div style="text-align:center"><div style="width:220px;height:220px;border:3px solid #E1306C;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">▶ Instagram embed<br/>(stub)</div>DZnIRziT70s</div></body></html>`,
+    // #1375（案 A）**実物の Instagram `/embed/` と同じ «積み方» にしてあるスタブ。**
+    // 実機 Detox の動画のコマを実測した内訳（セル幅 320 のとき）を再現している:
+    //   ヘッダ帯 17px 相当（幅の 5.3%）→ 写真（幅いっぱいの正方形〜4:5）→ いいね欄・コメント欄・白帯。
+    // 切り取り（features/dishMedia/embedCrop.ts）が効いているかは、
+    // **この白い部分が 1px も見えないこと**で判定する。中央に置いた「▶」は
+    // Instagram 自前の再生ボタンの位置を表す（こちらの再生ボタンと重なっていないかの確認用）
+    body: `<html><body style="margin:0;background:#fff;font-family:sans-serif"><div style="height:5.3vw;background:#fff;border-bottom:1px solid #dbdbdb;display:flex;align-items:center;gap:6px;padding:0 8px;box-sizing:border-box"><div style="width:3.5vw;height:3.5vw;border-radius:50%;background:#E1306C"></div><div style="font-size:2.2vw;color:#262626">msg.eatokyo</div><div style="margin-left:auto;font-size:2vw;color:#0095f6">Instagramで表示</div></div><div style="width:100vw;height:100vw;background:linear-gradient(160deg,#8B2E1F,#D9531E 45%,#7A2414);position:relative"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16vw;height:16vw;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:7vw">&#9654;</div></div><div style="padding:8px;background:#fff"><div style="font-size:3vw;color:#262626">&#9825; &#9836; &#8599;</div><div style="font-size:2.4vw;font-weight:700;margin-top:6px">いいね！169,527件</div><div style="font-size:2.4vw;color:#8e8e8e;margin-top:6px">コメントを追加…</div><div style="height:30vh;background:#fff"></div></div></body></html>`,
   }),
 );
 await context.route("**/localhost:9999/**", (r) => {
@@ -197,6 +244,8 @@ await context.route("**/localhost:9999/**", (r) => {
   const env = (data) => r.fulfill({ json: { success: true, data } });
   if (p.endsWith("/health")) return env({ status: "ok" });
   if (p.endsWith("/v1/users/me/dishes")) return env({ data: page1, nextCursor: null, meta: { oldestOccurredAt: iso(1, 1) } });
+  // #1505 グループ投票の履歴一覧。空状態も撮れるよう、返す配列は下のシナリオから差し替える
+  if (p.endsWith("/v1/users/me/dish-category-group-votes")) return env({ data: groupVoteItems, nextCursor: null });
   // #1375 5 巡目: Map ビューの下帯（店名 + 緑/赤の内訳バッジ + 凡例）を撮るため
   if (p.endsWith("/v1/users/me/dishes/map-pins"))
     return env({
@@ -350,5 +399,18 @@ console.log("embed iframes:", iframeCount);
 await shot("embed-feed");
 await page.waitForTimeout(4000);
 await shot("embed-feed-loaded");
+
+// 5. #1505 グループ投票の履歴一覧（行の再設計 / 空状態）
+groupVoteItems = GROUP_VOTE_ITEMS;
+await goto("/ja-JP/profile/dish-category-group-votes");
+await page.getByTestId("me-dish-category-group-votes-item").first().waitFor({ timeout: 120000 }).catch((e) => console.log("group-votes wait:", e.message));
+await page.waitForTimeout(2500);
+await shot("group-votes-list");
+
+groupVoteItems = [];
+await goto("/ja-JP/profile/dish-category-group-votes");
+await page.getByTestId("me-dish-category-group-votes-empty-state").waitFor({ timeout: 120000 }).catch((e) => console.log("group-votes empty wait:", e.message));
+await page.waitForTimeout(1500);
+await shot("group-votes-empty");
 
 await browser.close();

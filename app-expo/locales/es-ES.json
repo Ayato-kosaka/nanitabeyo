@@ -82,7 +82,22 @@
 		"submitFailed": "No se pudo enviar tu voto",
 		"participantsList": "Participantes: {{names}}",
 		"noParticipants": "Aún no hay participantes",
-		"noVotes": "Aún no hay votos"
+		"noVotes": "Aún no hay votos",
+		"myVotes": {
+			"pageTitle": "Mis votaciones de grupo",
+			"loadFailed": "No se pudieron cargar tus votaciones de grupo",
+			"noCandidates": "Sin opciones",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} y {{count}} más",
+			"participantSummary": "{{count}} han votado",
+			"decidedLabel": "Ganador: {{name}}",
+			"votedLabel": "Has votado",
+			"notVotedLabel": "No has votado",
+			"itemAccessibilityLabel": "Votación de grupo del {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "Aún no has iniciado ninguna votación de grupo",
+			"emptyDescription": "Busca comida, elige algunas opciones y pide a tus amigos que voten.",
+			"emptyAction": "Crear una votación"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",
@@ -239,20 +254,23 @@
 		"recentLocations": {
 			"title": "Ubicaciones recientes",
 			"clear": "Borrar ubicaciones recientes"
+		},
+		"locationConfirmation": {
+			"error": "No se pudo confirmar la ubicación"
 		}
 	},
 	"Onboarding": {
 		"step1": {
-			"problem": "No te decides sobre qué comer.",
-			"solution": "Te sugerimos platos recomendados\npara que encuentres lo que te apetece"
+			"problem": "Ni siquiera sabes\nqué te apetece comer.",
+			"solution": "Solo tienes que elegir entre los platos recomendados"
 		},
 		"step2": {
-			"problem": "Buscar restaurante lleva mucho tiempo\ncon tantas opciones.",
-			"solution": "Platos y restaurantes ya seleccionados,\nasí decides al momento"
+			"problem": "Hay demasiados restaurantes.\nDecidir cansa.",
+			"solution": "Eliges entre restaurantes seleccionados: ¡es fácil decidir!"
 		},
 		"step3": {
-			"problem": "Tampoco quieres fallar con los gustos de quien te acompaña.",
-			"solution": "Vota con tus amigos y decidid el plato"
+			"problem": "También quieres saber\nqué opinan tus amigos.",
+			"solution": "¡Decide el plato con tus amigos, por votación!"
 		},
 		"back": "Atrás",
 		"next": "Siguiente",
@@ -407,7 +425,8 @@
 			"openMap": "Abrir el mapa de {{name}}",
 			"reviewLike": "Me gusta la reseña de {{username}}",
 			"recordEaten": "Registrar {{name}} como comido",
-			"recordEatenAgain": "Registrar de nuevo en {{name}} (ya registrado)"
+			"recordEatenAgain": "Registrar de nuevo en {{name}} (ya registrado)",
+			"ownPostMenu": "Abrir el menú de la publicación de {{name}}"
 		},
 		"processing": "Procesando el contenido...",
 		"errors": {
@@ -424,6 +443,27 @@
 		},
 		"embed": {
 			"play": "Reproducir en {{provider}}"
+		},
+		"ownPost": {
+			"menuTitle": "Tu publicación",
+			"edit": "Editar reseña",
+			"delete": "Eliminar publicación",
+			"cancel": "Cancelar",
+			"mediaLocked": "Las fotos y los vídeos no se pueden cambiar. Puedes editar el comentario, la valoración y el precio.",
+			"deleteConfirmTitle": "¿Eliminar esta publicación?",
+			"deleteConfirmMessage": "Se eliminará la publicación: la foto y tu reseña. No se puede deshacer.",
+			"deleteConfirmButton": "Eliminar",
+			"deleted": "Publicación eliminada",
+			"deleteFailed": "No se pudo eliminar la publicación",
+			"editTitle": "Editar reseña",
+			"editComment": "Comentario",
+			"editRating": "Valoración",
+			"editPrice": "Precio",
+			"save": "Guardar",
+			"saved": "Reseña actualizada",
+			"saveFailed": "No se pudo actualizar la reseña",
+			"conflict": "Esta reseña se actualizó en otro dispositivo. Vuelve a abrirla antes de editarla.",
+			"forbidden": "Solo puedes editar o eliminar tus propias publicaciones"
 		}
 	},
 	"ImageCardGrid": {
@@ -555,7 +595,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "Seleccionar categoría de plato",
-			"writeReviewForThisDish": "Registrar como comido"
+			"writeReviewForThisDish": "Registrar como comido",
+			"useTypedDishCategory": "Usar «{{name}}»"
 		},
 		"inputs": {
 			"price": "Precio",
@@ -572,14 +613,16 @@
 			"enterBidAmount": "Ingresa el monto de la oferta",
 			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)",
 			"searchRestaurantsForReview": "Buscar por nombre o área",
-			"searchAreaForReview": "Buscar por zona"
+			"searchAreaForReview": "Buscar por zona",
+			"searchDishCategory": "Buscar por nombre de plato"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",
 			"paymentProcessing": "Procesando pago...",
 			"restaurant": "Restaurante",
 			"dishCategory": "Categoría del plato",
-			"dishesAtThisRestaurant": "Platos de este restaurante"
+			"dishesAtThisRestaurant": "Platos de este restaurante",
+			"noDishesAtThisRestaurant": "Aún no hay platos registrados aquí. Escribe un nombre de plato."
 		},
 		"tabs": {
 			"reviews": "Reseñas"
@@ -781,6 +824,40 @@
 			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
+		},
+		"notifications": {
+			"sectionTitle": "Notificaciones",
+			"osDisabledTitle": "Las notificaciones están desactivadas en este dispositivo",
+			"osDisabledDescription": "Tus opciones se guardan, pero este dispositivo no recibirá notificaciones.",
+			"openOsSettings": "Abrir ajustes del dispositivo",
+			"updateFailed": "No se pudo guardar el ajuste",
+			"likes": {
+				"title": "Me gusta",
+				"description": "Cuando alguien indica que le gusta tu publicación o reseña"
+			},
+			"saves": {
+				"title": "Guardados",
+				"description": "Cuando alguien guarda tu publicación"
+			},
+			"group_votes": {
+				"title": "Votaciones de grupo",
+				"description": "Cuando hay actividad en una votación de grupo a la que te uniste"
+			}
+		},
+		"language": {
+			"navigationLabel": "Idioma",
+			"pageTitle": "Idioma",
+			"systemDefault": "Seguir la configuración del dispositivo",
+			"switching": "Cambiando de idioma…"
+		},
+		"hapticsEnabled": "Retroalimentación háptica",
+		"deviceSettings": {
+			"navigationLabel": "Ajustes del dispositivo",
+			"title": "Ajustes del dispositivo",
+			"description": "Estos ajustes se guardan solo en este dispositivo. No se transfieren a otros dispositivos ni cuentas."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "Mis votaciones de grupo"
 		}
 	},
 	"Dialog": {
@@ -889,7 +966,8 @@
 			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda.",
 			"sheetTitle": "{{count}} restaurantes cerca",
 			"tileA11yLabel": "{{name}} (quiero comer: {{want}}, comido: {{eaten}})",
-			"clusterA11yLabel": "{{count}} restaurantes aquí"
+			"clusterA11yLabel": "{{count}} restaurantes aquí",
+			"currentLocation": "Ir a mi ubicación"
 		},
 		"guest": {
 			"description": "Inicia sesión para registrar los platos que quieres probar y los que ya comiste",
@@ -954,7 +1032,8 @@
 				"description": "Filtra por las categorías más frecuentes entre los registros mostrados",
 				"count": "{{label}} ({{count}})",
 				"showAll": "Ver más ({{count}} más)"
-			}
+			},
+			"activeCount": "{{count}} filtros activos"
 		},
 		"empty": {
 			"description": "Los platos que guardes o registres como comidos aparecerán aquí."
@@ -1000,7 +1079,12 @@
 					"title": "Filtra cuando crezca",
 					"body": "Filtra por “quiero comer / comido”, plato, zona, con quién y franja horaria. Está para reducir opciones, no para añadirlas."
 				}
-			}
+			},
+			"replay": "Ver el tutorial de nuevo"
+		},
+		"deleted": {
+			"label": "Eliminada",
+			"a11yLabel": "La foto de esta publicación se eliminó"
 		}
 	},
 	"SnsImport": {
@@ -1063,7 +1147,7 @@
 			"pickRestaurant": "Elegir local",
 			"pick": "Elegir",
 			"change": "Cambiar",
-			"hint": "Primero elige el local. Después podrás añadir foto, reseña breve, categoría, precio y valoración (la foto es opcional).",
+			"hint": "Primero elige un restaurante. Después selecciona el plato y añade una foto (opcional), una breve reseña, el precio y tu valoración.",
 			"done": "Registrado como comido"
 		}
 	},
@@ -1074,6 +1158,57 @@
 			"finish": "Empezar",
 			"progress": "{{current}} / {{total}}",
 			"progressAccessibility": "Paso {{current}} de {{total}}"
+		}
+	},
+	"Report": {
+		"action": "Denunciar",
+		"title": "Denunciar esta publicación",
+		"reviewTitle": "Denunciar esta reseña",
+		"description": "Elige un motivo. Nuestro equipo lo revisará y no se avisará a quien lo publicó.",
+		"reasons": {
+			"spam": "Spam o publicidad",
+			"sexual": "Contenido sexual",
+			"violence": "Violencia o contenido perturbador",
+			"harassment": "Acoso o insultos",
+			"illegal": "Actividad ilegal",
+			"misinformation": "Información falsa",
+			"rights": "Infracción de derechos (autor, etc.)",
+			"privacy": "Muestra datos personales",
+			"irrelevant": "No tiene que ver con comida",
+			"other": "Otro motivo"
+		},
+		"detailsLabel": "Detalles (opcional)",
+		"detailsPlaceholder": "Añade lo que nos ayude a revisarlo (hasta 1000 caracteres)",
+		"submit": "Enviar denuncia",
+		"submitting": "Enviando...",
+		"accepted": {
+			"title": "Gracias por informarnos",
+			"description": "Revisaremos el contenido. No enviamos avisos individuales sobre el resultado.",
+			"close": "Cerrar",
+			"history": "Tus informes"
+		},
+		"errors": {
+			"submitFailed": "No se pudo enviar la denuncia. Inténtalo de nuevo."
+		},
+		"accessibility": {
+			"open": "Denunciar la publicación de {{name}}",
+			"openReview": "Denunciar la reseña de {{name}}",
+			"reason": "Motivo: {{reason}}",
+			"reasonSelected": "Motivo: {{reason}} (seleccionado)",
+			"submit": "Enviar la denuncia de la publicación de {{name}}",
+			"submitReview": "Enviar la denuncia de la reseña de {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Tus informes",
+			"pageTitle": "Tus informes",
+			"empty": "Aún no hay informes",
+			"emptyDescription": "Cuando informes sobre una publicación o reseña, aparecerá aquí.",
+			"note": "No comunicamos el estado ni el resultado de la revisión.",
+			"error": "No se han podido cargar tus informes",
+			"target": {
+				"dish_media": "Publicación",
+				"dish_reviews": "Reseña"
+			}
 		}
 	}
 }

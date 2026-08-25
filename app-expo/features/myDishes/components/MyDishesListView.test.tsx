@@ -46,6 +46,7 @@ import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
 import type { MyDishItem } from "@shared/api/v1/res";
 import { MyDishesListView } from "./MyDishesListView";
+import { DELETED_MEDIA_TOMBSTONE_TEST_ID } from "@/components/DeletedMediaTombstone";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -55,6 +56,9 @@ const makeItem = (
 		thumbnailImageUrl?: string | null;
 		categoryImageUrl?: string | null;
 		restaurantImageUrl?: string | null;
+		isOwnMediaDeleted?: boolean;
+		/** #1375（9 巡目）取り込んだ投稿か。`render_type` と provider をまとめて差す */
+		externalEmbedProvider?: string;
 	} = {},
 ): MyDishItem =>
 	({
@@ -68,8 +72,16 @@ const makeItem = (
 		dishMedia:
 			overrides.thumbnailImageUrl === undefined || overrides.thumbnailImageUrl === null
 				? null
-				: { id: "media-1", thumbnailImageUrl: overrides.thumbnailImageUrl },
+				: {
+						id: "media-1",
+						thumbnailImageUrl: overrides.thumbnailImageUrl,
+						render_type: overrides.externalEmbedProvider ? "external_embed" : "stored",
+						externalEmbed: overrides.externalEmbedProvider
+							? { provider: overrides.externalEmbedProvider }
+							: undefined,
+					},
 		myReview: null,
+		isOwnMediaDeleted: overrides.isOwnMediaDeleted ?? false,
 	}) as unknown as MyDishItem;
 
 const mockUseMyDishesQuery = jest.fn();
@@ -181,6 +193,60 @@ describe("#1398 PR5 dishMedia === null の写真なしフォールバック", ()
 			tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-placeholder").length,
 		).toBeGreaterThan(0);
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-image")).toHaveLength(0);
+	});
+});
+
+describe("#1513 isOwnMediaDeleted の行は墓標になる（黙って消さない・差し替えない）", () => {
+	const queryResult = (items: MyDishItem[]) => ({
+		items,
+		isLoading: false,
+		isLoadingMore: false,
+		error: null,
+		hasNextPage: false,
+		loadMore: jest.fn(),
+		refresh: jest.fn(),
+	});
+
+	it("categoryImageUrl / restaurant.image_url があっても画像を出さず、墓標と「削除されました」を出す", async () => {
+		mockUseMyDishesQuery.mockReturnValue(
+			queryResult([
+				makeItem("review:1", {
+					categoryImageUrl: "https://example.com/category.jpg",
+					restaurantImageUrl: "https://example.com/restaurant.jpg",
+					isOwnMediaDeleted: true,
+				}),
+			]),
+		);
+		const tree = await render();
+
+		// 跡地に別の絵を入れない
+		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-image")).toHaveLength(0);
+		expect(tree.root.findAll((node) => node.props?.testID === DELETED_MEDIA_TOMBSTONE_TEST_ID).length).toBeGreaterThan(0);
+		// 文言（i18n はキーをそのまま返すモック）
+		expect(
+			tree.root.findAll((node) => typeof node.type === "string" && node.children.includes("MyDishes.deleted.label"))
+				.length,
+		).toBeGreaterThan(0);
+	});
+
+	it("行そのものは残る（一覧から消えない）", async () => {
+		mockUseMyDishesQuery.mockReturnValue(queryResult([makeItem("review:1", { isOwnMediaDeleted: true })]));
+		const tree = await render();
+
+		expect(
+			tree.root.findAll(
+				(node) => node.props?.testID === "my-dishes-list-item" && typeof node.props?.onPress === "function",
+			),
+		).toHaveLength(1);
+	});
+
+	it("削除されていない行には墓標を出さない", async () => {
+		mockUseMyDishesQuery.mockReturnValue(
+			queryResult([makeItem("review:1", { thumbnailImageUrl: "https://example.com/media.jpg" })]),
+		);
+		const tree = await render();
+
+		expect(tree.root.findAll((node) => node.props?.testID === DELETED_MEDIA_TOMBSTONE_TEST_ID)).toHaveLength(0);
 	});
 });
 
@@ -299,5 +365,42 @@ describe("#1398 (PR4/7) want カードの「食べたを記録」CTA", () => {
 	it("eaten カードには CTA を出さない", async () => {
 		const tree = await renderWith([makeItem("review:eaten", { thumbnailImageUrl: "https://example.com/m.jpg" })]);
 		expect(findCta(tree)).toHaveLength(0);
+	});
+});
+
+/*
+#1375（9 巡目・オーナー指摘「リストにインスタマークが欲しい（インスタのサムネだったら）」）
+
+一覧には «自分で撮った写真» と «SNS から取り込んだもの» が混ざる。タイルを見ただけで
+どちらか分かるよう、取り込んだ投稿にだけ provider のロゴを重ねる。
+
+判定は `render_type === "external_embed"` を先に見る（`externalEmbed` は詰めていない経路が
+あるフィールドなので、その有無で stored かどうかを決めてはいけない）。
+*/
+describe("#1375 取り込んだ投稿には provider のロゴを重ねる", () => {
+	const queryResult = (items: MyDishItem[]) => ({
+		items,
+		isLoading: false,
+		isLoadingMore: false,
+		error: null,
+		hasNextPage: false,
+		loadMore: jest.fn(),
+		refresh: jest.fn(),
+	});
+	const has = (tree: TestRenderer.ReactTestRenderer, testID: string): boolean =>
+		tree.root.findAll((node) => node.props?.testID === testID).length > 0;
+
+	it("取り込んだ投稿にはロゴが出る", async () => {
+		mockUseMyDishesQuery.mockReturnValue(
+			queryResult([makeItem("a", { thumbnailImageUrl: "https://img/1.jpg", externalEmbedProvider: "instagram" })]),
+		);
+		const tree = await render();
+		expect(has(tree, "my-dishes-list-item-provider-badge")).toBe(true);
+	});
+
+	it("自分で撮った写真にはロゴを出さない", async () => {
+		mockUseMyDishesQuery.mockReturnValue(queryResult([makeItem("b", { thumbnailImageUrl: "https://img/1.jpg" })]));
+		const tree = await render();
+		expect(has(tree, "my-dishes-list-item-provider-badge")).toBe(false);
 	});
 });

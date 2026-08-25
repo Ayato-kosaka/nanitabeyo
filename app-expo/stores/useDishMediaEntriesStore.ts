@@ -1,4 +1,6 @@
 import i18n from "@/lib/i18n";
+// #1561 API の本文の形を信じない（lib/apiList.ts のヘッダ参照）
+import { asApiList } from "@/lib/apiList";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { createWithEqualityFn } from "zustand/traditional";
@@ -129,6 +131,25 @@ export type DishMediaEntriesStore = {
 	) => Promise<void>;
 
 	// ------ public 削除メソッド ------
+
+	/**
+	 * #1513 論理削除した投稿（dish_media）をストアから取り除く。
+	 *
+	 * サーバ側で `deleted_at` が立つと以後の取得には出てこないが、**既に読み込み済みの
+	 * 画面は再取得しない限りその投稿を持ち続ける**。フィード・検索結果・いいねタブ・
+	 * 保存タブなどが同じ `entriesByMediaId` を共有しているので、ここで 1 回消せば
+	 * 全部の並びから同時に消える。
+	 *
+	 * その投稿と一緒に作られたレビュー（`created_dish_media_id` が一致するもの）も
+	 * 巻き添えで消す。サーバの削除単位と揃えないと、写真の無いレビューだけが残る。
+	 */
+	removeDishMediaEntry: (dishMediaId: string) => void;
+
+	/**
+	 * #1513 論理削除したレビュー（dish_reviews）をストアから取り除く。
+	 * 紐づく dish_media は残す（サーバの削除単位と同じ）。
+	 */
+	removeDishReview: (dishReviewId: string) => void;
 
 	/**
 	 * 画面用途キーごとのエントリと状態をクリアする。
@@ -363,6 +384,87 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 
 	// ------ 削除メソッド ------
 
+	// #1513 論理削除した投稿を全キーから取り除く（宣言箇所のコメント参照）
+	removeDishMediaEntry: (dishMediaId) =>
+		set((state) => {
+			// 一緒に消すのは「この投稿と一緒に作られたレビュー」だけ。
+			// entry.dishReviewIds は同じ *料理* に付いた他人のレビューまで含むので、
+			// それを消す集合にしてはいけない（他人の投稿の本文が巻き添えで消える）
+			const removedReviewIds = new Set<string>();
+			for (const [reviewId, review] of Object.entries(state.reviewsByReviewId)) {
+				if (String(review.created_dish_media_id) === dishMediaId) {
+					removedReviewIds.add(reviewId);
+				}
+			}
+
+			// 同じ料理の他の投稿も、消えたレビューを dishReviewIds に持っている。
+			// ここを外さないと本文欄が「存在しない id」を引き続けて 1 行分空く
+			const nextEntriesByMediaId: Record<string, NormalizedDishMediaEntry> = {};
+			for (const [mediaId, e] of Object.entries(state.entriesByMediaId)) {
+				if (mediaId === dishMediaId) continue;
+				nextEntriesByMediaId[mediaId] = e.dishReviewIds.some((id) => removedReviewIds.has(id))
+					? { ...e, dishReviewIds: e.dishReviewIds.filter((id) => !removedReviewIds.has(id)) }
+					: e;
+			}
+
+			const nextReviewsByReviewId = { ...state.reviewsByReviewId };
+			for (const reviewId of removedReviewIds) {
+				delete nextReviewsByReviewId[reviewId];
+			}
+
+			const nextMediaIdsByKey: Record<string, string[]> = {};
+			for (const [key, ids] of Object.entries(state.mediaIdsByKey)) {
+				nextMediaIdsByKey[key] = ids.filter((id) => id !== dishMediaId);
+			}
+
+			const nextReviewIdsByKey: Record<string, string[]> = {};
+			for (const [key, ids] of Object.entries(state.reviewIdsByKey)) {
+				nextReviewIdsByKey[key] = ids.filter((id) => !removedReviewIds.has(id));
+			}
+
+			return {
+				entriesByMediaId: nextEntriesByMediaId,
+				reviewsByReviewId: nextReviewsByReviewId,
+				mediaIdsByKey: nextMediaIdsByKey,
+				reviewIdsByKey: nextReviewIdsByKey,
+			};
+		}),
+
+	// #1513 論理削除したレビューだけを取り除く（dish_media は残す）
+	removeDishReview: (dishReviewId) =>
+		set((state) => {
+			const review = state.reviewsByReviewId[dishReviewId];
+			if (!review) return state;
+
+			const nextReviewsByReviewId = { ...state.reviewsByReviewId };
+			delete nextReviewsByReviewId[dishReviewId];
+
+			const nextReviewIdsByKey: Record<string, string[]> = {};
+			for (const [key, ids] of Object.entries(state.reviewIdsByKey)) {
+				nextReviewIdsByKey[key] = ids.filter((id) => id !== dishReviewId);
+			}
+
+			// entry 側の dishReviewIds からも外す。ここを忘れると
+			// selectReviewsByMediaId が消えた id を引き続けて本文欄が 1 行分空く
+			const mediaId = String(review.created_dish_media_id);
+			const entry = state.entriesByMediaId[mediaId];
+			const nextEntriesByMediaId = entry
+				? {
+						...state.entriesByMediaId,
+						[mediaId]: {
+							...entry,
+							dishReviewIds: entry.dishReviewIds.filter((id) => id !== dishReviewId),
+						},
+					}
+				: state.entriesByMediaId;
+
+			return {
+				entriesByMediaId: nextEntriesByMediaId,
+				reviewsByReviewId: nextReviewsByReviewId,
+				reviewIdsByKey: nextReviewIdsByKey,
+			};
+		}),
+
 	clearByKey: (key) =>
 		set((state) => {
 			// key 未指定 → 全リセット
@@ -468,10 +570,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			clearByKey(key);
 
 			// 1. エンティティを正規化して反映
-			upsertDishMediaEntries(response.data);
+			upsertDishMediaEntries(asApiList(response.data));
 
 			// 2. 並び順を id でセット
-			const mediaIds = response.data.map((item) => String(item.dish_media.id));
+			const mediaIds = asApiList(response.data).map((item) => String(item.dish_media.id));
 			updateMediaIdsByKey(key, () => mediaIds);
 
 			// 3. nextCursor / hasFetchedInitial の更新
@@ -494,10 +596,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
 				// 1. エンティティを正規化
-				upsertDishMediaEntries(response.data);
+				upsertDishMediaEntries(asApiList(response.data));
 
 				// 2. 並び順の末尾に追加
-				const mediaIds = response.data.map((item) => String(item.dish_media.id));
+				const mediaIds = asApiList(response.data).map((item) => String(item.dish_media.id));
 				updateMediaIdsByKey(key, (prevIds) => {
 					// #CodeQL 【バグ】重複IDを排除して追加（paginationで同じIDが返る場合に備える）
 					const newIds = mediaIds.filter((id) => !prevIds.includes(id));
@@ -520,10 +622,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			clearByKey(key);
 
 			// 1. エンティティを正規化して反映
-			upsertDishMediaEntries(response.data);
+			upsertDishMediaEntries(asApiList(response.data));
 
 			// 2. 自分のレビュー一覧の id 配列をセット（最初のレビューのみ）
-			const myReviewIds = response.data
+			const myReviewIds = asApiList(response.data)
 				.filter((item) => item.dish_reviews.length > 0)
 				.map((item) => String(item.dish_reviews[0].id));
 			updateReviewIdsByKey(key, () => myReviewIds);
@@ -549,10 +651,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
 				// 1. エンティティを正規化
-				upsertDishMediaEntries(response.data);
+				upsertDishMediaEntries(asApiList(response.data));
 
 				// 2. 自分のレビュー一覧の id 配列の末尾に追加（最初のレビューのみ）
-				const myReviewIds = response.data
+				const myReviewIds = asApiList(response.data)
 					.filter((item) => item.dish_reviews.length > 0)
 					.map((item) => String(item.dish_reviews[0].id));
 				// #CodeQL 【バグ】レビューID重複防止のため、既存IDと重複しないもののみ追加

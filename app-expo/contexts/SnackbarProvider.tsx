@@ -7,6 +7,7 @@ import { Snackbar } from "react-native-paper";
 // FullWindowOverlay はネイティブモーダルよりさらに上の window に描くための器である
 import { FullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 
 /** #936 【仕様】Undo等の任意アクションボタン。onPress後は自動でスナックバーを閉じる */
@@ -52,6 +53,9 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 	const [action, setAction] = useState<SnackbarAction | undefined>(undefined);
 	const [duration, setDuration] = useState(4000);
 	const insets = useSafeAreaInsets();
+	// #1509 Snackbar の地は PaperTheme の inverseSurface（ライトで暗面・ダークで明面に反転）。
+	// 同じ反転パターンを持つ ctaLabel を文字色に使う
+	const { colors } = useAppTheme();
 
 	// タブバーのおおよその高さ（必要に応じて調整）
 	const TAB_BAR_HEIGHT = 32;
@@ -103,7 +107,7 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 									: undefined
 							}>
 							<TouchableOpacity activeOpacity={0.8} onPress={() => setVisible(false)}>
-								<Text style={{ color: "#FFF" }}>{message}</Text>
+								<Text style={{ color: colors.ctaLabel }}>{message}</Text>
 							</TouchableOpacity>
 						</Snackbar>
 					</FullWindowOverlay>
@@ -129,7 +133,7 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 							: undefined
 					}>
 					<TouchableOpacity activeOpacity={0.8} onPress={() => setVisible(false)}>
-						<Text style={{ color: "#FFF" }}>{message}</Text>
+						<Text style={{ color: colors.ctaLabel }}>{message}</Text>
 					</TouchableOpacity>
 				</Snackbar>
 			)}

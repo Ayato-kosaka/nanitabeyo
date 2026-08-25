@@ -1,17 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { RotateCw } from "lucide-react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Navigation, RotateCw } from "lucide-react-native";
 import MapViewClass from "react-native-maps";
-import MapView, { Marker, type Region } from "@/components/MapView";
+import MapView, { type Region } from "@/components/MapView";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { EmptyState } from "@/components/EmptyState";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import {
 	clusterMyDishPins,
-	isSameClusterScale,
+	isSameClusterViewport,
 	regionForCluster,
-	type ClusterScale,
+	type ClusterViewport,
 	type MyDishPinCluster,
 } from "../clustering";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
@@ -27,11 +29,13 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
 import { MY_DISHES_EVENTS, buildMapAreaPayload } from "../analytics";
-import { boundingRegionForCoordinates, regionToArea } from "../geo";
+import { regionToArea } from "../geo";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { MyDishesMapSheet } from "./MyDishesMapSheet";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
+import { MyDishClusterMarker } from "./MyDishClusterMarker";
 
 /**
  * #1396 my-dishes の Map ビュー（設計書 (2/2) §7 の PR4）。
@@ -64,6 +68,8 @@ import { MyDishesMapSheet } from "./MyDishesMapSheet";
  *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
  */
 export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { isJapanese, locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -85,16 +91,28 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	// 1 つも変わらない。それでも Region をそのまま state に入れていたため、
 	// `onRegionChangeComplete` が寄こす新しいオブジェクトで参照が変わり、
 	// **地図を少し動かすたびに最大 300 個のマーカーが作り直されていた**。
-	const [clusterScale, setClusterScale] = useState<ClusterScale>(() => ({
+	//
+	// #1375（実機: マップのクラッシュ）**中心も持つ。ただし «粗く» 持つ。**
+	// 中心が無いと «いま見えている範囲か» を判定できず、東京を拡大していても
+	// 北海道と福岡のピンまでマーカーとして作り続けることになる（それが落ちる原因の本体）。
+	// 中心は delta の 25% 以上動いたときだけ更新するので、pan で毎回畳み直すことはない。
+	const [clusterViewport, setClusterViewport] = useState<ClusterViewport>(() => ({
+		latitude: initialRegion.latitude,
+		longitude: initialRegion.longitude,
 		latitudeDelta: initialRegion.latitudeDelta,
 		longitudeDelta: initialRegion.longitudeDelta,
 	}));
-	// 5% 未満の倍率変化も畳み方に影響しないので、前の値（= 同じ参照）を返して memo を保つ
+	// 畳み方にも間引きにも影響しない程度の変化なら、前の値（= 同じ参照）を返して memo を保つ
 	const updateClusterScale = useCallback((region: Region) => {
-		setClusterScale((prev) =>
-			isSameClusterScale(prev, region)
+		setClusterViewport((prev) =>
+			isSameClusterViewport(prev, region)
 				? prev
-				: { latitudeDelta: region.latitudeDelta, longitudeDelta: region.longitudeDelta },
+				: {
+						latitude: region.latitude,
+						longitude: region.longitude,
+						latitudeDelta: region.latitudeDelta,
+						longitudeDelta: region.longitudeDelta,
+					},
 		);
 	}, []);
 	// #1375 実機確認（2 巡目）: 「ズームインしてから…」の注意文とボタン無効化は廃止した。
@@ -187,25 +205,32 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 		};
 	}, []);
 
-	// #1396 m-1: エリア未確定だと全世界のピンが返るため、初回取得後に一度だけピンの外接矩形へ寄せる。
-	// ⚠️ store は書かない・再取得も起こさない・二度目以降の取得では発火しない（ref で一度きりに固定する）
-	const hasFitPinsRef = useRef(false);
+	/*
+	#1375（9 巡目・オーナー指示）**位置情報が取れないときは «日本全体» を出す。**
+
+	それまでは «取得した全ピンの外接矩形» へ寄せていた。記録が国内に散っていると
+	一気に引きの絵になり、しかも **取得が終わるまで動かない**ので «開いた直後に勝手に
+	動く地図» になっていた。オーナーの指示は「初期は現在地周辺、位置情報拒否なら日本地図」。
+
+	そこで、現在地が取れなかったときは **ピンを待たずに** 日本全体へ寄せる。
+	外接矩形へ寄せる処理は無くした（引きの絵という点では日本全体と大差が無く、
+	«いつ動くか分からない» という悪い性質だけが減る）。
+
+	⚠️ 前回の表示域が残っているとき（`restoredRegionRef`）はそちらが最優先で、
+	   ここは走らない（人が最後に見ていた場所を勝手に変えない）。
+	*/
+	const hasAppliedFallbackRegionRef = useRef(false);
 	useEffect(() => {
-		if (hasFitPinsRef.current) return;
-		// #1375 G2: 現在地の判定中は待つ。取れたなら現在地が優先なので、こちらは二度と走らせない
+		if (hasAppliedFallbackRegionRef.current) return;
+		// 現在地の判定中は待つ。取れたなら現在地が優先なので、こちらは二度と走らせない
 		if (locationProbe === "pending") return;
-		if (locationProbe === "resolved") {
-			hasFitPinsRef.current = true;
-			return;
-		}
-		if (!hasFetchedInitial) return;
-		hasFitPinsRef.current = true;
-		const region = boundingRegionForCoordinates(
-			pins.map((pin) => ({ latitude: pin.restaurant.latitude, longitude: pin.restaurant.longitude })),
-		);
-		if (!region) return;
-		mapRef.current?.animateToRegion(region, 1000);
-	}, [hasFetchedInitial, pins, locationProbe]);
+		hasAppliedFallbackRegionRef.current = true;
+		if (locationProbe === "resolved") return;
+		currentRegionRef.current = REGION_JP;
+		pendingRegionRef.current = REGION_JP;
+		updateClusterScale(REGION_JP);
+		mapRef.current?.animateToRegion(REGION_JP, 500);
+	}, [locationProbe, updateClusterScale]);
 
 	// #1375 実機確認: ピンを押したら **Dish Feed へ遷移**する。
 	//
@@ -218,10 +243,60 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	// ⚠️ `pins` は ref 経由で読む（独立レビュー指摘 High）。ハンドラを `pins` に依存させると、
 	// ピンが届くたびに identity が変わり、マーカー最大 300 個へ新しい props が流れて
 	// Android では 300 回のビットマップ再生成に繋がる
-	const pinsRef = useRef(pins);
+	/*
+	#1375（9 巡目・オーナー指摘）**現在地ボタン。**
+
+	初期表示は現在地に寄せているが、地図を動かしたあと戻る手段が無かった
+	（«このエリアで再検索» は範囲を変えずに引き直すだけ）。
+
+	動きは «クラスタを押したとき»（`handleClusterPress`）と同じ 4 点セットにする。
+	どれか 1 つでも欠けると、地図と «いま見えている範囲» の認識がずれる:
+	  1. `currentRegionRef` を更新（次の «このエリアで再検索» が拾う範囲）
+	  2. `setMyDishesViewportRegion` へ保存（次に開いたときここへ戻す）
+	  3. `updateClusterScale` でクラスタを畳み直す
+	  4. 地図を動かす
+
+	⚠️ 取れなかったときに何も言わないのは不親切だが、**権限の説明はここでは出さない**。
+	   この画面は位置情報を必須にしていないので、押しても動かないだけにしてログを残す。
+	*/
+	const handleCurrentLocation = useCallback(() => {
+		lightImpact();
+		getCurrentLocationPosition()
+			.then(({ latitude, longitude }) => {
+				const region: Region = { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+				currentRegionRef.current = region;
+				setMyDishesViewportRegion(region);
+				updateClusterScale(region);
+				mapRef.current?.animateToRegion(region, 500);
+			})
+			.catch((error: unknown) => {
+				logFrontendEvent({
+					event_name: "my_dishes_map_current_location_failed",
+					error_level: "warn",
+					payload: { error: error instanceof Error ? error.message : String(error) },
+				});
+			});
+	}, [lightImpact, logFrontendEvent, updateClusterScale]);
+
+	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
+	// 無関係な state 更新で 300 個のマーカーへ props が流れない
+	const clusters = useMemo(() => clusterMyDishPins(pins, clusterViewport), [pins, clusterViewport]);
+
+	/*
+	#1375 **下部の帯・Feed の並びは «地図に実際に出ているピン» に揃える。**
+
+	間引き（表示域の外は描かない）と上限（`MAX_RENDERED_CLUSTERS`）を入れた結果、
+	`pins`（取得した全件）と «地図に見えているもの» が食い違うようになった。
+	帯の責務は「いま Map に出ているピンを横に並べる」（このファイル冒頭と
+	`MyDishesMapSheet.tsx` の申し送り）なので、ここで揃えないと
+	**帯には居るのに地図にピンが無い**という状態になる。件数の見出しも同じ理由でずれる。
+	*/
+	const visiblePins = useMemo(() => clusters.flatMap((cluster) => cluster.pins), [clusters]);
+
+	const pinsRef = useRef(visiblePins);
 	useEffect(() => {
-		pinsRef.current = pins;
-	}, [pins]);
+		pinsRef.current = visiblePins;
+	}, [visiblePins]);
 
 	const handlePinPress = useCallback(
 		(pin: MyDishPin) => {
@@ -247,9 +322,6 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 		if (first) handlePinPress(first);
 	}, [handlePinPress]);
 
-	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
-	// 無関係な state 更新で 300 個のマーカーへ props が流れない
-	const clusters = useMemo(() => clusterMyDishPins(pins, clusterScale), [pins, clusterScale]);
 
 	// クラスタを押したら «もう一段ほどく»。中のピンの外接矩形へ寄せる
 	const handleClusterPress = useCallback(
@@ -279,19 +351,18 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						// しない（#1375 追補2 決定3）。`MyDishPin` はピン＝店舗単位で `dish` を持たないため、
 						// list / calendar と違い `categoryImageUrl` の段は無く `restaurant.image_url` へ直接
 						// 落ちる（設計書 (2/2) §5-2 で確定。GET .../map-pins のレスポンスは変えない）
-						uri={cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined}
+						//
+						// #1513 ただし «自分の投稿が削除済み»（isOwnMediaDeleted）のピンは
+						// `restaurant.image_url` へも落とさない。ピンは残したまま中身を墓標へ差し替える
+						uri={
+							cluster.pins[0].isOwnMediaDeleted
+								? undefined
+								: (cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined)
+						}
+						bubbleContent={cluster.pins[0].isOwnMediaDeleted ? <DeletedMediaTombstone variant="pin" /> : undefined}
 					/>
 				) : (
-					<Marker
-						key={cluster.id}
-						testID="my-dishes-map-cluster"
-						coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
-						onPress={() => handleClusterPress(cluster)}
-						accessibilityLabel={i18n.t("MyDishes.map.clusterA11yLabel", { count: cluster.pins.length })}>
-						<View style={styles.cluster}>
-							<Text style={styles.clusterLabel}>{cluster.pins.length}</Text>
-						</View>
-					</Marker>
+					<MyDishClusterMarker key={cluster.id} cluster={cluster} onPress={() => handleClusterPress(cluster)} />
 				),
 			),
 		[clusters, handleClusterPress, handlePinPress],
@@ -313,7 +384,12 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 				initialRegion={initialRegion}
 				onMapReady={handleMapReady}
 				onRegionChangeComplete={handleRegionChangeComplete}>
-				{markers}
+				{/* #1375（実機: マップの重さ）**隠れている間はマーカーを 1 つも置かない。**
+				    3 ビューは keep-alive（`my-dishes/index.tsx`）で、list / Calendar を見ている間も
+				    Map は `display: "none"` で生きている。`enabled` は取得を止めるだけなので、
+				    これが無いとネイティブのマーカーが常駐し続ける。
+				    viewport も取得結果も store / ref が持っているので、戻ったときの見た目は変わらない */}
+				{enabled ? markers : null}
 			</MapView>
 
 			{showInitialLoading && (
@@ -328,13 +404,13 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						testID="my-dishes-search-this-area"
 						onPress={handleSearchThisArea}
 						label={i18n.t("MyDishes.searchThisArea")}
-						icon={<RotateCw size={16} color="#111827" />}
-						colors={["#ffffff", "#ffffff"]}
+						icon={<RotateCw size={16} color={colors.textPrimaryAlt} />}
+						colors={[colors.surface, colors.surface]}
 						shadowColor="transparent"
-						labelStyle={{ color: "#111827", fontSize: 14 }}
+						labelStyle={{ color: colors.textPrimaryAlt, fontSize: 14 }}
 						loading={showButtonLoading}
 						loadingIndicatorType="native"
-						nativeLoadingColor="#111827"
+						nativeLoadingColor={colors.textPrimaryAlt}
 					/>
 				</View>
 				{/* #1375 実機確認: 「このエリアで絞り込み中」の帯は廃止した。
@@ -360,79 +436,91 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 				</View>
 			)}
 
+			{/* #1375（9 巡目・オーナー指摘）現在地へ戻る口。地図の右下（シートの上）へ置く */}
+			<TouchableOpacity
+				testID="my-dishes-map-current-location"
+				style={styles.currentLocationButton}
+				onPress={handleCurrentLocation}
+				accessibilityRole="button"
+				accessibilityLabel={i18n.t("MyDishes.map.currentLocation")}>
+				<Navigation size={20} color={colors.textPrimaryAlt} />
+			</TouchableOpacity>
+
 			{/* #1375 実機確認: Map 下部の常設シート。いま出ているピンを横に並べ、押すと Feed へ行く。
 			    データは `useMyDishesMapPinsQuery` が返すピンをそのまま使う（新しい API は増やさない） */}
 			{/* #1375 実機確認（2 巡目）: 帯を上へ引き上げたら、先頭のピンから Feed を開く
 			    （タイルを押したときと同じ経路。並びも同じものを置く） */}
 			<MyDishesMapSheet
-				pins={pins}
+				pins={visiblePins}
 				onSelectPin={handlePinPress}
-				onSwipeUp={pins.length > 0 ? handleSheetSwipeUp : undefined}
+				onSwipeUp={visiblePins.length > 0 ? handleSheetSwipeUp : undefined}
 			/>
 		</View>
 	);
 }
 
-const styles = StyleSheet.create({
-	// #1375（5 巡目）クラスタの丸。地図の上に載るので白い縁で輪郭を保つ
-	// （バッジ類と同じ考え方。`features/myDishes/components/MyDishStatusCountBadges.tsx`）
-	cluster: {
-		minWidth: 36,
-		height: 36,
-		paddingHorizontal: 6,
-		borderRadius: 18,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "rgba(17,24,39,0.82)",
-		borderWidth: 2,
-		borderColor: "#FFFFFF",
-	},
-	clusterLabel: {
-		fontSize: 14,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	container: {
-		flex: 1,
-	},
-	map: {
-		flex: 1,
-	},
-	loadingOverlay: {
-		...StyleSheet.absoluteFillObject,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(255, 255, 255, 0.5)",
-	},
-	topOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 100,
-	},
-	searchButtonContainer: {
-		marginTop: 12,
-		alignItems: "center",
-	},
-	truncatedBanner: {
-		marginTop: 8,
-		marginHorizontal: 24,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 8,
-		backgroundColor: "rgba(17, 24, 39, 0.85)",
-	},
-	truncatedText: {
-		fontSize: 12,
-		color: "#FFFFFF",
-		textAlign: "center",
-	},
-	emptyOverlay: {
-		position: "absolute",
-		top: 80,
-		left: 24,
-		right: 24,
-		bottom: 24,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		map: {
+			flex: 1,
+		},
+		loadingOverlay: {
+			...StyleSheet.absoluteFillObject,
+			justifyContent: "center",
+			alignItems: "center",
+			backgroundColor: "rgba(255, 255, 255, 0.5)",
+		},
+		// #1375（9 巡目）現在地ボタン。下部シートの上端より上に来る位置へ置く
+		currentLocationButton: {
+			position: "absolute",
+			right: 16,
+			bottom: 180,
+			width: 44,
+			height: 44,
+			borderRadius: 22,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.surface,
+			// 影はテーマに依らず黒でよい（ダークでは実質見えない）。正本の FixedColors を使う
+			shadowColor: FixedColors.shadow,
+			shadowOpacity: 0.15,
+			shadowRadius: 6,
+			shadowOffset: { width: 0, height: 2 },
+			elevation: 4,
+			zIndex: 100,
+		},
+		topOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			zIndex: 100,
+		},
+		searchButtonContainer: {
+			marginTop: 12,
+			alignItems: "center",
+		},
+		truncatedBanner: {
+			marginTop: 8,
+			marginHorizontal: 24,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 8,
+			backgroundColor: "rgba(17, 24, 39, 0.85)",
+		},
+		truncatedText: {
+			fontSize: 12,
+			color: FixedColors.onMedia,
+			textAlign: "center",
+		},
+		emptyOverlay: {
+			position: "absolute",
+			top: 80,
+			left: 24,
+			right: 24,
+			bottom: 24,
+		},
+	});

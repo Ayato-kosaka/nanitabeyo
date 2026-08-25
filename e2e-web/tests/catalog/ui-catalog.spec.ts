@@ -64,10 +64,10 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 				await searchPage.goto();
 				await searchPage.expectLoaded();
 				await searchPage.openOnboarding();
-				await onboardingPage.expectStep(1);
-				// 解決フェーズまで再生させてから撮る（課題だけの状態は «途中経過» で、
-				// カタログとしては «その画面が何を伝えるか» が写っているほうが役に立つ）
-				await onboardingPage.expectSolutionVisible(1);
+				// 解決フェーズを «出してから» 撮る（課題だけの状態は «途中経過» で、
+				// カタログとしては «その画面が何を伝えるか» が写っているほうが役に立つ）。
+				// 解決フェーズは自動では出ない = 矢印を 1 回押す必要がある
+				await onboardingPage.revealSolution(1);
 			},
 			{ settleMs: 500 },
 		);
@@ -79,9 +79,9 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 				appPage,
 				`onboarding-step${step}`,
 				async () => {
+					// 直前のページは解決フェーズで止まっているので、1 押下で次のページへ送られる
 					await onboardingPage.pressNext();
-					await onboardingPage.expectStep(step);
-					await onboardingPage.expectSolutionVisible(step);
+					await onboardingPage.revealSolution(step);
 				},
 				{ settleMs: 500 },
 			);

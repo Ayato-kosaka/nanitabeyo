@@ -1,10 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { CalendarDays, LayoutGrid, MapPinned, Plus, SlidersHorizontal } from "lucide-react-native";
+import { CalendarDays, HelpCircle, LayoutGrid, MapPinned, Plus, SlidersHorizontal } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { MY_DISH_STATUS_ORANGE } from "@/features/myDishes/statusColors";
+import {
+	selectActiveFilterCount,
+	useMyDishesFilterStore,
+} from "@/features/myDishes/stores/useMyDishesFilterStore";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -22,6 +29,7 @@ import {
 	type MyDishesTutorialTargetRefs,
 } from "@/features/myDishes/components/MyDishesSpotlightTutorial";
 import i18n from "@/lib/i18n";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // #1396 【設計】Map / リスト / Calendar は 3 ルートに分けず、1 ルート + `?view=` 切替にする。
 // ルートを分けるとビュー切替のたびにアンマウントが起き、Map の viewport・各ビューのスクロール
@@ -47,6 +55,8 @@ const VIEW_ICONS: Record<MyDishesView, typeof MapPinned> = {
 
 export default function MyDishesScreen() {
 	useScreenTrace("MyDishes");
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { user } = useAuth();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -114,6 +124,9 @@ export default function MyDishesScreen() {
 	}, [lightImpact, locale]);
 
 	// #1396 【設計】フィルタ編集はルート（`my-dishes/filters`）へ push する。BlurModal は使わない（§8-5）
+	// #1375（オーナー指示）絞り込みアイコンに出すバッジの数（棚を削っているものだけ数える）
+	const activeFilterCount = useMyDishesFilterStore(selectActiveFilterCount);
+
 	const handleFilterPress = useCallback(() => {
 		lightImpact();
 		// #1375 実機確認: どのビューから開いたかを渡す。Calendar からのときは
@@ -191,9 +204,16 @@ export default function MyDishesScreen() {
 		isTutorialRequested,
 		tutorialRequestId,
 		openReason: tutorialOpenReason,
+		openManually: openTutorialManually,
 		close: closeTutorial,
 		markPresented: markTutorialPresented,
 	} = useSpotlightTutorial({ storageKey: MY_DISHES_TUTORIAL_STORAGE_KEY, canAutoOpen: true });
+
+	// #1375（オーナー指示）チュートリアルを見返す口。以前は一度見たら二度と開けなかった
+	const handleReplayTutorial = useCallback(() => {
+		lightImpact();
+		openTutorialManually();
+	}, [lightImpact, openTutorialManually]);
 
 	return (
 		<SafeAreaView edges={["top"]} style={styles.container} testID="my-dishes-screen">
@@ -218,7 +238,11 @@ export default function MyDishesScreen() {
 								accessibilityRole="button"
 								accessibilityState={{ selected: isActive }}
 								accessibilityLabel={i18n.t(`MyDishes.views.${v}`)}>
-								<Icon size={22} color={isActive ? "#111827" : "#9CA3AF"} strokeWidth={isActive ? 2.2 : 1.8} />
+								<Icon
+									size={22}
+									color={isActive ? colors.textPrimaryAlt : colors.textTertiary}
+									strokeWidth={isActive ? 2.2 : 1.8}
+								/>
 								{/* 下線はアクティブのときだけ描く（非アクティブへ薄線を残すと選択が読めなくなる） */}
 								<View style={[styles.viewUnderline, !isActive && styles.viewUnderlineHidden]} />
 							</TouchableOpacity>
@@ -231,10 +255,34 @@ export default function MyDishesScreen() {
 							onPress={handleFilterPress}
 							style={styles.filterButton}
 							accessibilityRole="button"
-							accessibilityLabel={i18n.t("MyDishes.filters.title")}>
-							<SlidersHorizontal size={18} color="#111827" />
+							accessibilityLabel={
+								activeFilterCount > 0
+									? i18n.t("MyDishes.filters.activeCount", { count: activeFilterCount })
+									: i18n.t("MyDishes.filters.title")
+							}>
+							<SlidersHorizontal size={18} color={colors.textPrimaryAlt} />
+							{/* #1375（オーナー指示）いま何個絞り込みが効いているかを数字で出す。
+							    アイコンだけだと «絞り込んだまま» に気づけず、
+							    «記録が消えた» と誤解する（0 のときは出さない） */}
+							{activeFilterCount > 0 && (
+								<View style={styles.filterBadge} testID="my-dishes-filter-badge">
+									<Text style={styles.filterBadgeLabel}>{activeFilterCount}</Text>
+								</View>
+							)}
 						</TouchableOpacity>
 					</View>
+					<View style={styles.viewSwitchSpacer} />
+					{/* #1375（9 巡目・オーナー指示）チュートリアルを見返す口は絞り込みの **右**。
+					    8 巡目までは左に置いていたが、«左＝ビュー切替、右＝道具» の並びのほうが
+					    目で追いやすい、という指摘による */}
+					<TouchableOpacity
+						testID="my-dishes-tutorial-replay"
+						onPress={handleReplayTutorial}
+						style={styles.tutorialButton}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("MyDishes.tutorial.replay")}>
+						<HelpCircle size={18} color={colors.textSecondary} />
+					</TouchableOpacity>
 				</View>
 			</View>
 
@@ -297,9 +345,18 @@ export default function MyDishesScreen() {
 									    ⚠️ 捨てる範囲は変えていない（全部捨てるのが唯一ズレない）。
 									    変えたのは «取り直すタイミング» だけで、隠れているビューは
 									    `hasFetchedInitial` が false のまま待ち、見えた瞬間に取り直す */}
-									{v === "list" && <MyDishesListView enabled={isActive && isScreenFocused} />}
-									{v === "map" && <MyDishesMapView enabled={isActive && isScreenFocused} />}
-									{v === "calendar" && <MyDishesCalendarView enabled={isActive && isScreenFocused} />}
+									{/* #1375（6 巡目・オーナー指示）**1 つのビューの描画時例外でアプリごと落とさない。**
+									    「マップから絞り込みをする画面がすごいクラッシュする」への構造対策。
+									    描画中に throw すると（API が想定と違う形を返した等）アプリ全体の
+									    ErrorBoundary まで抜けて «予期しないエラー → トップへ戻る» になり、
+									    ユーザーからは «落ちた» と区別が付かない（#1561 と同じ型）。
+									    ビュー単位で捕まえれば、その場の再試行に閉じ込められる。
+									    ⚠️ これは受け皿であって原因の修正ではない。原因は別途 asApiList 等で潰す */}
+									<ErrorBoundary>
+										{v === "list" && <MyDishesListView enabled={isActive && isScreenFocused} />}
+										{v === "map" && <MyDishesMapView enabled={isActive && isScreenFocused} />}
+										{v === "calendar" && <MyDishesCalendarView enabled={isActive && isScreenFocused} />}
+									</ErrorBoundary>
 								</View>
 							);
 						})}
@@ -316,7 +373,8 @@ export default function MyDishesScreen() {
 					accessibilityLabel={i18n.t("MyDishes.record.cta")}>
 					{/* #1375 実機確認: 「記録する」の文字は出さず ＋ だけにする。
 					    ラベルは accessibilityLabel に残すので読み上げからは失われない */}
-					<Plus size={24} color="#FFFFFF" />
+					{/* brand 塗りの FAB の上。地色がライト / ダークで変わらないため文字も固定 */}
+					<Plus size={24} color={FixedColors.onFilled} />
 				</TouchableOpacity>
 			</View>
 
@@ -335,105 +393,146 @@ export default function MyDishesScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	header: {
-		paddingHorizontal: 16,
-		paddingTop: 8,
-		paddingBottom: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
-	},
-	viewSwitch: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	viewButton: {
-		flex: 1,
-		alignItems: "center",
-		paddingTop: 6,
-		gap: 8,
-	},
-	viewUnderline: {
-		height: 2,
-		alignSelf: "stretch",
-		marginHorizontal: 18,
-		borderRadius: 1,
-		backgroundColor: "#111827",
-	},
-	// 高さを変えないために透明で残す（消すとアイコンの縦位置がアクティブだけずれる）
-	viewUnderlineHidden: {
-		backgroundColor: "transparent",
-	},
-	viewSwitchSpacer: {
-		width: 12,
-	},
-	// 絞り込みは «別系統» と分かるよう、丸囲みのアイコンボタンにする
-	filterButton: {
-		width: 38,
-		height: 38,
-		borderRadius: 19,
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		alignItems: "center",
-		justifyContent: "center",
-		marginBottom: 6,
-	},
-	body: {
-		flex: 1,
-	},
-	viewPlaceholder: {
-		flex: 1,
-	},
-	// M-1: 非表示ビューを `display: "none"` で隠す。RN の View / react-native-web の両方で効く
-	hiddenView: {
-		display: "none",
-	},
-	// #1375 ゲストは「食べたい」を閲覧できる。ログインは «食べたを記録するため» の導線として
-	// 一覧の上に細く出すだけにする（画面を占有しない）
-	guestBanner: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		// #1375（5 巡目・デザインレビュー #19）パレットに無い淡ピンクをやめる。
-		// 画面上部に常時ピンクが乗ると、赤い FAB と主張が競合する。
-		// 赤はこの帯の中のログインボタン 1 点だけに残す
-		backgroundColor: "#F3F4F6",
-		borderBottomWidth: 1,
-		borderBottomColor: "#F6DCD5",
-	},
-	guestBannerText: {
-		flex: 1,
-		fontSize: 13,
-		color: "#6B7280",
-	},
-	guestBannerButton: {
-		flexShrink: 0,
-	},
-	// #1375（5 巡目）チュートリアルが ＋ の座標を測れるよう、**位置決めは器の側**へ移した。
-	// ボタン自身を position:"absolute" のままにすると、包んだ器は 0×0 のまま流れの中に残り、
-	// measureInWindow が «画面の左上の点» を返してスポットライトが明後日の方向を指す
-	fabAnchor: {
-		position: "absolute",
-		right: 16,
-		bottom: 16,
-	},
-	fab: {
-		alignItems: "center",
-		justifyContent: "center",
-		width: 56,
-		height: 56,
-		borderRadius: 28,
-		backgroundColor: "#F05537",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.2,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		header: {
+			paddingHorizontal: 16,
+			paddingTop: 8,
+			// #1375（6 巡目・オーナー指示）選択中のタブの下線と、ヘッダの区切り線の間に
+			// 余白を作らない。以前は 12 空けており «下線の下にもう一本、意味の無い帯がある»
+			// ように見えていた。下線がそのまま区切り線へ接するようにする
+			paddingBottom: 0,
+			borderBottomWidth: 1,
+			borderBottomColor: c.borderMuted,
+		},
+		viewSwitch: {
+			flexDirection: "row",
+			// #1375（オーナー指示・2 度目）**下端で揃える。**
+			// `center` だと、右のボタン（38 + marginBottom 8 = 46）が行の高さを決め、
+			// 38 しかないタブ側が上下に 4px ずつ振り分けられる。その下の 4px が
+			// «下線の下に残る余白» の正体だった（paddingBottom を 0 にしても消えない）
+			alignItems: "flex-end",
+		},
+		viewButton: {
+			flex: 1,
+			alignItems: "center",
+			paddingTop: 6,
+			gap: 8,
+		},
+		viewUnderline: {
+			height: 2,
+			alignSelf: "stretch",
+			marginHorizontal: 18,
+			borderRadius: 1,
+			backgroundColor: c.textPrimaryAlt,
+		},
+		// 高さを変えないために透明で残す（消すとアイコンの縦位置がアクティブだけずれる）
+		viewUnderlineHidden: {
+			backgroundColor: "transparent",
+		},
+		viewSwitchSpacer: {
+			width: 12,
+		},
+		// 絞り込みは «別系統» と分かるよう、丸囲みのアイコンボタンにする
+		filterButton: {
+			width: 38,
+			height: 38,
+			borderRadius: 19,
+			borderWidth: 1,
+			borderColor: c.borderMuted,
+			alignItems: "center",
+			justifyContent: "center",
+			// 下線（高さ 2）と同じ分だけ持ち上げて、タブのアイコン列と光学的に揃える
+			marginBottom: 8,
+		},
+		// #1375（オーナー指示）チュートリアルの «?»。絞り込みより一段弱い見た目にする
+		// （枠を持たせると絞り込みと同じ強さに見え、どちらが主か分からなくなる）
+		tutorialButton: {
+			width: 32,
+			height: 32,
+			alignItems: "center",
+			justifyContent: "center",
+			marginBottom: 11,
+		},
+		// #1375（オーナー指示）絞り込みの件数バッジ。右上に重ねる
+		filterBadge: {
+			position: "absolute",
+			top: -4,
+			right: -4,
+			minWidth: 18,
+			height: 18,
+			paddingHorizontal: 5,
+			borderRadius: 9,
+			alignItems: "center",
+			justifyContent: "center",
+			// #1375（オーナー指示 8 巡目）赤（= CTA の色）ではなくオレンジ。
+			// 状態のバッジ（食べたい / 食べた）と同じ記号色に揃える
+			backgroundColor: MY_DISH_STATUS_ORANGE,
+			// 地の色と接して読めなくならないよう縁を付ける（他のバッジ類と同じ考え方）
+			borderWidth: 1.5,
+			borderColor: c.surface,
+		},
+		filterBadgeLabel: {
+			fontSize: 10,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
+		},
+		body: {
+			flex: 1,
+		},
+		viewPlaceholder: {
+			flex: 1,
+		},
+		// M-1: 非表示ビューを `display: "none"` で隠す。RN の View / react-native-web の両方で効く
+		hiddenView: {
+			display: "none",
+		},
+		// #1375 ゲストは「食べたい」を閲覧できる。ログインは «食べたを記録するため» の導線として
+		// 一覧の上に細く出すだけにする（画面を占有しない）
+		guestBanner: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingHorizontal: 16,
+			paddingVertical: 10,
+			// #1375（5 巡目・デザインレビュー #19）パレットに無い淡ピンクをやめる。
+			// 画面上部に常時ピンクが乗ると、赤い FAB と主張が競合する。
+			// 赤はこの帯の中のログインボタン 1 点だけに残す
+			backgroundColor: c.surfaceSubtle,
+			borderBottomWidth: 1,
+			borderBottomColor: c.brandBorder,
+		},
+		guestBannerText: {
+			flex: 1,
+			fontSize: 13,
+			color: c.textSecondary,
+		},
+		guestBannerButton: {
+			flexShrink: 0,
+		},
+		// #1375（5 巡目）チュートリアルが ＋ の座標を測れるよう、**位置決めは器の側**へ移した。
+		// ボタン自身を position:"absolute" のままにすると、包んだ器は 0×0 のまま流れの中に残り、
+		// measureInWindow が «画面の左上の点» を返してスポットライトが明後日の方向を指す
+		fabAnchor: {
+			position: "absolute",
+			right: 16,
+			bottom: 16,
+		},
+		fab: {
+			alignItems: "center",
+			justifyContent: "center",
+			width: 56,
+			height: 56,
+			borderRadius: 28,
+			backgroundColor: c.brand,
+			shadowColor: FixedColors.badgeBackground,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.2,
+			shadowRadius: 8,
+			elevation: 6,
+		},
+	});

@@ -1,12 +1,15 @@
 import React, { useCallback, useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { FixedColors, type Palette } from "@/constants/Palette";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
 import { isRatingFilterEnabled, useMyDishesFilterStore, type MyDishesFilter } from "../stores/useMyDishesFilterStore";
 import { MY_DISHES_EVENTS } from "../analytics";
+import { resolveDishCategoryLabel } from "../dishCategoryLabel";
 
 /**
  * #1397 (PR5/5) 全画面 Feed の contextual filter chips（設計 (2/2) §10）。
@@ -88,7 +91,14 @@ export const buildMyDishesFeedChips = (
 		// ⚠️ 名前が無い dish（SNS 取り込み等）で ID へ落とさない。「Q234646」のような
 		// Wikidata QID がそのまま chip に出て «何で絞るのか分からない» と実機で指摘された。
 		// ラベルにできる名前があるときだけ chip を出す
-		const name = entry?.dish.name || null;
+		/*
+		#1375（オーナー実機指摘「うどんで絞ったら udon が出る」）
+
+		`dish.name` は «その店でのその料理の呼び名» で、SNS 取り込み由来だとローマ字が入る。
+		カテゴリの正式表記を優先する（規則は `features/myDishes/dishCategoryLabel.ts` に 1 本化。
+		絞り込み画面の候補ラベルも同じ関数を通している）。
+		*/
+		const name = resolveDishCategoryLabel(entry?.dish?.categoryLabels, entry?.dish?.name, i18n.locale);
 		if (name !== null) {
 			chips.push({
 				id: "category",
@@ -133,6 +143,7 @@ export type MyDishesFeedChipsProps = {
 };
 
 export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
+	const styles = useThemedStyles(createStyles);
 	const filter = useMyDishesFilterStore((s) => s.filter);
 	const patch = useMyDishesFilterStore((s) => s.patch);
 	const { showSnackbar } = useSnackbar();
@@ -208,41 +219,42 @@ export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		// #1375（5 巡目・デザインレビュー #7）**右のアクション列**（いいね / 保存 /
-		// 食べたを記録 / シェア / 地図）と重ならないよう右側を空ける。
-		// chips は列の最下段と同じ高さにあり、列の実幅は約 90pt ある。
-		// 56 は右上の «閉じる» だけを避ける値で、下部のこの列を想定していなかった
-		// （実際に「食べたいで絞る」が「地図を開く」のラベルへ被っていた）
-		paddingRight: 96,
-	},
-	content: {
-		gap: 8,
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-	},
-	chip: {
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 999,
-		backgroundColor: "rgba(0,0,0,0.55)",
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.35)",
-	},
-	chipActive: {
-		// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめる。
-		// 選択中は «白地に黒文字» で示す（写真の上なので地の白が一番強い）
-		backgroundColor: "#FFFFFF",
-		borderColor: "#FFFFFF",
-	},
-	chipText: {
-		fontSize: 13,
-		fontWeight: "600",
-		color: "#FFFFFF",
-	},
-	chipTextActive: {
-		// 地が白になったので文字は黒（白地に白文字を作らない）
-		color: "#111827",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			// #1375（5 巡目・デザインレビュー #7）**右のアクション列**（いいね / 保存 /
+			// 食べたを記録 / シェア / 地図）と重ならないよう右側を空ける。
+			// chips は列の最下段と同じ高さにあり、列の実幅は約 90pt ある。
+			// 56 は右上の «閉じる» だけを避ける値で、下部のこの列を想定していなかった
+			// （実際に「食べたいで絞る」が「地図を開く」のラベルへ被っていた）
+			paddingRight: 96,
+		},
+		content: {
+			gap: 8,
+			paddingHorizontal: 16,
+			paddingVertical: 8,
+		},
+		chip: {
+			paddingHorizontal: 12,
+			paddingVertical: 6,
+			borderRadius: 999,
+			backgroundColor: "rgba(0,0,0,0.55)",
+			borderWidth: 1,
+			borderColor: "rgba(255,255,255,0.35)",
+		},
+		chipActive: {
+			// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめる。
+			// 選択中は «白地に黒文字» で示す（写真の上なので地の白が一番強い）
+			backgroundColor: FixedColors.onMedia,
+			borderColor: FixedColors.onMedia,
+		},
+		chipText: {
+			fontSize: 13,
+			fontWeight: "600",
+			color: FixedColors.onMedia,
+		},
+		chipTextActive: {
+			// 地が白になったので文字は黒（白地に白文字を作らない）
+			color: c.textPrimaryAlt,
+		},
+	});

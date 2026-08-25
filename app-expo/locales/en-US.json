@@ -82,7 +82,22 @@
 		"submitFailed": "Could not submit your vote",
 		"participantsList": "Participants: {{names}}",
 		"noParticipants": "No participants yet",
-		"noVotes": "No votes yet"
+		"noVotes": "No votes yet",
+		"myVotes": {
+			"pageTitle": "My group votes",
+			"loadFailed": "Could not load your group votes",
+			"noCandidates": "No choices",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} and {{count}} more",
+			"participantSummary": "{{count}} voted",
+			"decidedLabel": "Winner: {{name}}",
+			"votedLabel": "You voted",
+			"notVotedLabel": "You haven't voted",
+			"itemAccessibilityLabel": "Group vote from {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "You haven't started any group votes yet",
+			"emptyDescription": "Search for food, pick a few choices, and ask your friends to vote.",
+			"emptyAction": "Start a group vote"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
@@ -239,20 +254,23 @@
 		"recentLocations": {
 			"title": "Recent locations",
 			"clear": "Clear recent locations"
+		},
+		"locationConfirmation": {
+			"error": "Failed to confirm location"
 		}
 	},
 	"Onboarding": {
 		"step1": {
-			"problem": "Can't decide what you want to eat.",
-			"solution": "We suggest recommended dishes,\nso you find what you're craving"
+			"problem": "You can't even decide\nwhat you feel like eating.",
+			"solution": "Just pick from the dishes we recommend"
 		},
 		"step2": {
-			"problem": "Finding a restaurant takes forever\nwith too many options.",
-			"solution": "Dishes and restaurants are both curated,\nso you can decide right away"
+			"problem": "Too many restaurants to choose from.\nDeciding is exhausting.",
+			"solution": "Pick from curated restaurants, so it's easy to decide!"
 		},
 		"step3": {
-			"problem": "You don't want to miss what your companions like either.",
-			"solution": "Vote with friends to decide on a dish"
+			"problem": "You'd like to hear\nwhat your friends think, too.",
+			"solution": "Decide the dish with friends by vote!"
 		},
 		"back": "Back",
 		"next": "Next",
@@ -407,7 +425,8 @@
 			"openMap": "Open map for {{name}}",
 			"reviewLike": "Like {{username}}'s review",
 			"recordEaten": "Record {{name}} as eaten",
-			"recordEatenAgain": "Record eating at {{name}} again (already recorded)"
+			"recordEatenAgain": "Record eating at {{name}} again (already recorded)",
+			"ownPostMenu": "Open post menu for {{name}}"
 		},
 		"processing": "Processing media...",
 		"errors": {
@@ -424,6 +443,27 @@
 		},
 		"embed": {
 			"play": "Play on {{provider}}"
+		},
+		"ownPost": {
+			"menuTitle": "Your post",
+			"edit": "Edit review",
+			"delete": "Delete post",
+			"cancel": "Cancel",
+			"mediaLocked": "Photos and videos can't be changed. You can edit the comment, rating and price.",
+			"deleteConfirmTitle": "Delete this post?",
+			"deleteConfirmMessage": "This will delete the post — the photo and your review. This can't be undone.",
+			"deleteConfirmButton": "Delete",
+			"deleted": "Post deleted",
+			"deleteFailed": "Couldn't delete the post",
+			"editTitle": "Edit review",
+			"editComment": "Comment",
+			"editRating": "Rating",
+			"editPrice": "Price",
+			"save": "Save",
+			"saved": "Review updated",
+			"saveFailed": "Couldn't update the review",
+			"conflict": "This review was updated somewhere else. Reopen it before editing.",
+			"forbidden": "You can only edit or delete your own posts"
 		}
 	},
 	"ImageCardGrid": {
@@ -554,7 +594,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category",
-			"writeReviewForThisDish": "Record as eaten"
+			"writeReviewForThisDish": "Record as eaten",
+			"useTypedDishCategory": "Use “{{name}}”"
 		},
 		"inputs": {
 			"price": "Price",
@@ -571,14 +612,16 @@
 			"enterBidAmount": "Enter bid amount",
 			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)",
 			"searchRestaurantsForReview": "Search by name or area",
-			"searchAreaForReview": "Search by area"
+			"searchAreaForReview": "Search by area",
+			"searchDishCategory": "Search by dish name"
 		},
 		"labels": {
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
 			"restaurant": "Restaurant",
 			"dishCategory": "Dish category",
-			"dishesAtThisRestaurant": "Dishes at this restaurant"
+			"dishesAtThisRestaurant": "Dishes at this restaurant",
+			"noDishesAtThisRestaurant": "No dishes recorded here yet. Type a dish name."
 		},
 		"tabs": {
 			"reviews": "Reviews"
@@ -781,6 +824,40 @@
 			"unblockMessage": "This dish category will be added back to recommendations.",
 			"unblockConfirm": "Unblock",
 			"unblocked": "Unblocked"
+		},
+		"notifications": {
+			"sectionTitle": "Notifications",
+			"osDisabledTitle": "Notifications are turned off for this device",
+			"osDisabledDescription": "Your choices here are saved, but this device won't receive push notifications.",
+			"openOsSettings": "Open device settings",
+			"updateFailed": "Couldn't save your setting",
+			"likes": {
+				"title": "Likes",
+				"description": "When someone likes your post or review"
+			},
+			"saves": {
+				"title": "Saves",
+				"description": "When someone saves your post"
+			},
+			"group_votes": {
+				"title": "Group votes",
+				"description": "When there's activity in a group vote you joined"
+			}
+		},
+		"language": {
+			"navigationLabel": "Language",
+			"pageTitle": "Language",
+			"systemDefault": "Use device language",
+			"switching": "Switching language…"
+		},
+		"hapticsEnabled": "Haptic Feedback",
+		"deviceSettings": {
+			"navigationLabel": "Device Settings",
+			"title": "Device Settings",
+			"description": "These settings are saved on this device only. They are not carried over to other devices or accounts."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "My group votes"
 		}
 	},
 	"Dialog": {
@@ -889,7 +966,8 @@
 			"truncated": "Only some pins are shown. Narrow the area to see the rest.",
 			"sheetTitle": "{{count}} restaurants nearby",
 			"tileA11yLabel": "{{name}} (want to eat: {{want}}, eaten: {{eaten}})",
-			"clusterA11yLabel": "{{count}} restaurants here"
+			"clusterA11yLabel": "{{count}} restaurants here",
+			"currentLocation": "Go to current location"
 		},
 		"guest": {
 			"description": "Log in to start recording dishes you want to try and have eaten",
@@ -954,7 +1032,8 @@
 				"description": "Narrow down by the most common dish categories among the records shown",
 				"count": "{{label}} ({{count}})",
 				"showAll": "Show more ({{count}} more)"
-			}
+			},
+			"activeCount": "{{count}} filters active"
 		},
 		"empty": {
 			"description": "Dishes you save or record as eaten will show up here."
@@ -1000,7 +1079,12 @@
 					"title": "Narrow it down as it grows",
 					"body": "Filter by want-to-eat / eaten, dish, area, who you are with and time of day. It is here to cut choices down, not to add more."
 				}
-			}
+			},
+			"replay": "Replay tutorial"
+		},
+		"deleted": {
+			"label": "Deleted",
+			"a11yLabel": "The photo for this post was deleted"
 		}
 	},
 	"SnsImport": {
@@ -1063,7 +1147,7 @@
 			"pickRestaurant": "Pick a shop",
 			"pick": "Pick",
 			"change": "Change",
-			"hint": "Pick a shop first. Then you can add a photo, a short review, the dish category, price, and rating (a photo is optional).",
+			"hint": "Pick a restaurant first. Then choose the dish, and add a photo (optional), a short review, the price and your rating.",
 			"done": "Recorded as eaten"
 		}
 	},
@@ -1074,6 +1158,57 @@
 			"finish": "Start exploring",
 			"progress": "{{current}} / {{total}}",
 			"progressAccessibility": "Step {{current}} of {{total}}"
+		}
+	},
+	"Report": {
+		"action": "Report",
+		"title": "Report this post",
+		"reviewTitle": "Report this review",
+		"description": "Choose a reason for reporting. Our team will review it, and the person who posted is not notified.",
+		"reasons": {
+			"spam": "Spam or advertising",
+			"sexual": "Sexual content",
+			"violence": "Violence or disturbing content",
+			"harassment": "Harassment or abuse",
+			"illegal": "Illegal activity",
+			"misinformation": "False information",
+			"rights": "Copyright or other rights violation",
+			"privacy": "Shows personal information",
+			"irrelevant": "Not about food or dining",
+			"other": "Something else"
+		},
+		"detailsLabel": "Details (optional)",
+		"detailsPlaceholder": "Add anything that helps us review it (up to 1,000 characters)",
+		"submit": "Submit report",
+		"submitting": "Sending...",
+		"accepted": {
+			"title": "Thanks for reporting",
+			"description": "We'll review it. We don't send individual updates on the outcome.",
+			"close": "Close",
+			"history": "Your reports"
+		},
+		"errors": {
+			"submitFailed": "We couldn't send your report. Please try again."
+		},
+		"accessibility": {
+			"open": "Report the post from {{name}}",
+			"openReview": "Report the review from {{name}}",
+			"reason": "Reason: {{reason}}",
+			"reasonSelected": "Reason: {{reason}}, selected",
+			"submit": "Submit the report for the post from {{name}}",
+			"submitReview": "Submit the report for the review from {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Your reports",
+			"pageTitle": "Your reports",
+			"empty": "No reports yet",
+			"emptyDescription": "When you report a post or review, it will appear here.",
+			"note": "We don't share review status or outcomes.",
+			"error": "Couldn't load your reports",
+			"target": {
+				"dish_media": "Post",
+				"dish_reviews": "Review"
+			}
 		}
 	}
 }

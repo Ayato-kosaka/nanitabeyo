@@ -62,6 +62,10 @@ export const mockDishItems: (DishMediaEntry & {
 			location: null,
 			address_components: null,
 			plus_code: null,
+			source_seed_id: null,
+			source_names: [],
+			source_row_hash: null,
+			synced_at: null,
 		},
 		dish: {
 			id: "dish_feed_1",
@@ -71,8 +75,12 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			data_origin: "user_or_google",
+			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_1",
@@ -100,6 +108,7 @@ export const mockDishItems: (DishMediaEntry & {
 			thumbnailImageUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 		},
 		dish_reviews: [
 			{
@@ -116,6 +125,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramen_lover",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "ramen_lover",
 				isLiked: false,
 				likeCount: 10,
@@ -134,6 +149,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "foodie123",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "foodie123",
 				isLiked: false,
 				likeCount: 10,
@@ -152,6 +173,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "tokyo_gourmet",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "tokyo_gourmet",
 				isLiked: false,
 				likeCount: 10,
@@ -174,6 +201,10 @@ export const mockDishItems: (DishMediaEntry & {
 			location: null,
 			address_components: null,
 			plus_code: null,
+			source_seed_id: null,
+			source_names: [],
+			source_row_hash: null,
+			synced_at: null,
 		},
 		dish: {
 			id: "dish_feed_2",
@@ -183,8 +214,12 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			data_origin: "user_or_google",
+			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_2",
@@ -196,6 +231,7 @@ export const mockDishItems: (DishMediaEntry & {
 			media_type: "image",
 			user_id: "user_default",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 			lock_no: 1,
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
@@ -228,6 +264,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "noodle_fan",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "noodle_fan",
 				isLiked: false,
 				likeCount: 10,
@@ -246,6 +288,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramen_king",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "ramen_king",
 				isLiked: false,
 				likeCount: 10,
@@ -264,6 +312,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "sio_master",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "sio_master",
 				isLiked: false,
 				likeCount: 10,
@@ -286,6 +340,10 @@ export const mockDishItems: (DishMediaEntry & {
 			location: null,
 			address_components: null,
 			plus_code: null,
+			source_seed_id: null,
+			source_names: [],
+			source_row_hash: null,
+			synced_at: null,
 		},
 		dish: {
 			id: "dish_feed_3",
@@ -295,8 +353,12 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			data_origin: "user_or_google",
+			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_3",
@@ -308,6 +370,7 @@ export const mockDishItems: (DishMediaEntry & {
 			media_type: "image",
 			user_id: "user_default",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 			lock_no: 1,
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
@@ -340,6 +403,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "gyoza_freak",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "gyoza_freak",
 				isLiked: false,
 				likeCount: 10,
@@ -358,6 +427,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramenholic",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "ramenholic",
 				isLiked: false,
 				likeCount: 10,
@@ -376,6 +451,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "tokyo_ramen",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "tokyo_ramen",
 				isLiked: false,
 				likeCount: 10,
@@ -398,6 +479,10 @@ export const mockDishItems: (DishMediaEntry & {
 			location: null,
 			address_components: null,
 			plus_code: null,
+			source_seed_id: null,
+			source_names: [],
+			source_row_hash: null,
+			synced_at: null,
 		},
 		dish: {
 			id: "dish_feed_4",
@@ -407,8 +492,12 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			data_origin: "user_or_google",
+			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_4",
@@ -419,6 +508,7 @@ export const mockDishItems: (DishMediaEntry & {
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
 			media_type: "image",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 			user_id: "user_default",
 			lock_no: 1,
 			created_at: "2025-08-08T17:19:02.676Z",
@@ -452,6 +542,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "spicy_addict",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "spicy_addict",
 				isLiked: false,
 				likeCount: 10,
@@ -470,6 +566,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramen_fever",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "ramen_fever",
 				isLiked: false,
 				likeCount: 10,
@@ -488,6 +590,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "hotspice",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "hotspice",
 				isLiked: false,
 				likeCount: 10,
@@ -510,6 +618,10 @@ export const mockDishItems: (DishMediaEntry & {
 			location: null,
 			address_components: null,
 			plus_code: null,
+			source_seed_id: null,
+			source_names: [],
+			source_row_hash: null,
+			synced_at: null,
 		},
 		dish: {
 			id: "dish_feed_5",
@@ -519,8 +631,12 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			data_origin: "user_or_google",
+			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_5",
@@ -531,6 +647,7 @@ export const mockDishItems: (DishMediaEntry & {
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
 			media_type: "image",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 			user_id: "user_default",
 			lock_no: 1,
 			created_at: "2025-08-08T17:19:02.676Z",
@@ -564,6 +681,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "tokyo_foodie",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "tokyo_foodie",
 				isLiked: false,
 				likeCount: 10,
@@ -582,6 +705,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramen_addict",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "ramen_addict",
 				isLiked: false,
 				likeCount: 10,
@@ -600,6 +729,12 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "midnight_snacker",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
+				eaten_at: null,
 				username: "midnight_snacker",
 				isLiked: false,
 				likeCount: 10,

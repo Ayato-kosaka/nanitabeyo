@@ -72,10 +72,18 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 		await myDishesPage.openEatenRecordFlow();
 		await myDishesPage.openEatenRestaurantPicker();
 		// #1375（3 巡目）pick モードで選ぶと統合フォームへ戻り、ReviewForm が自動でメディア選択を開く
-		const fileChooserPromise = appPage.waitForEvent("filechooser");
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 		await appPage.getByTestId("location-autocomplete-suggestion-0").click();
+
+		// #1375（6 巡目）記録フローは «お店 → 料理カテゴリー → 写真» の順。
+		// カテゴリーが決まるまで写真もコメント欄も出ない
+		await myDishesPage.chooseDishCategoryInRecordFlow("コーヒー");
+		await myDishesPage.chooseMediaInRecordFlow();
+
+		// 写真は自分で «ライブラリから選ぶ» を押して開く（記録フローは自動で開かない）
+		const fileChooserPromise = appPage.waitForEvent("filechooser");
+		await appPage.getByTestId("review-pick-from-library").click();
 		const fileChooser = await fileChooserPromise;
 		await fileChooser.setFiles(TEST_IMAGE_PATH);
 
@@ -83,11 +91,6 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 			.getByTestId("review-comment-input")
 			.fill(`[E2E] 連打耐性テスト ${new Date().toISOString()}`.slice(0, 100));
 
-		// 料理カテゴリを選択する
-		await appPage.getByTestId("review-dish-category-row").click();
-		await appPage.getByTestId("dish-category-search-input").fill("コーヒー");
-		await appPage.getByTestId("dish-category-search-suggestions").waitFor({ state: "visible" });
-		await appPage.getByTestId("dish-category-search-suggestion-0").click();
 
 		await appPage.getByTestId("review-price-input").fill("500");
 		await appPage.getByTestId("review-star-5").click();

@@ -53,6 +53,14 @@ export type DishMediaEntry = {
 	dish: SupabaseDishes & {
 		reviewCount: number;
 		averageRating: number;
+		/**
+		 * #1375 `dish_categories.labels`（言語コード → 表記）。取れなければ null。
+		 *
+		 * `name` は «その店でのその料理の呼び名» で、SNS 取り込み由来だとローマ字が入る。
+		 * 表示は **`labels[言語] → labels["en"] → name`** の順で解決すること
+		 * （`app-expo/features/myDishes/dishCategoryLabel.ts`）。
+		 */
+		categoryLabels: Record<string, string> | null;
 	};
 	dish_media: SupabaseDishMedia & {
 		isMine: boolean;
@@ -98,6 +106,14 @@ export type DishMediaEntry = {
 		username: string;
 		isLiked: boolean;
 		likeCount: number;
+		/**
+		 * #1513 閲覧者自身が書いたレビューかどうか。編集・削除の導線を出す判定に使う。
+		 *
+		 * クライアント側で `user_id === 自分の id` を組み立てさせない。所有判定は
+		 * サーバーが持つ（PATCH / DELETE の認可と同じ根拠で返す）ため、
+		 * 画面が出す導線と実際に通る操作がズレない。
+		 */
+		isMine: boolean;
 	})[];
 };
 
@@ -110,8 +126,16 @@ export type QueryDishMediaByIdsResponse = {
 	notFound: string[];
 };
 
-/** POST /v1/dish-media のレスポンス型 */
-export type CreateDishMediaResponse = SupabaseDishMedia;
+/**
+ * POST /v1/dish-media のレスポンス型。
+ *
+ * #1560 `review` を一緒に送ったときだけ `dishReview` が入る。**同じトランザクションで
+ * 書かれたもの**なので、これが返っていれば «写真だけ残ってレビューが無い» は起こり得ない。
+ * 送らなかった従来の呼び出しでは `undefined`（形は後方互換）。
+ */
+export type CreateDishMediaResponse = SupabaseDishMedia & {
+	dishReview?: SupabaseDishReviews;
+};
 
 /** POST /v1/dish-media/view のレスポンス型 */
 export type CreateDishMediaViewResponse = {
@@ -296,4 +320,21 @@ export type CreateDishMediaImportResponse = {
 	created: boolean;
 	/** その dish_media を «食べたい» として保存したか（既に保存済みなら false） */
 	saved: boolean;
+};
+
+/**
+ * DELETE /v1/dish-media/:id のレスポンス型 (#1513)
+ *
+ * 「投稿」の削除単位は dish_media 1 件と、その dish_media と一緒に作られたレビュー
+ * (dish_reviews.created_dish_media_id = :id) である。メディアが消える以上、
+ * そのメディアを前提に書かれたレビューだけを残すことはできない。
+ * 論理削除なので行は残るが、レスポンスには本文を載せない。
+ */
+export type DeleteDishMediaResponse = {
+	/** 論理削除した dish_media.id */
+	id: string;
+	/** 論理削除日時 (ISO8601) */
+	deletedAt: string;
+	/** 巻き添えで論理削除した dish_reviews.id */
+	deletedDishReviewIds: string[];
 };

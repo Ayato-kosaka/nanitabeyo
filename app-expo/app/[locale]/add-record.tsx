@@ -47,7 +47,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
 	ActivityIndicator,
 	KeyboardAvoidingView,
-	PanResponder,
 	Platform,
 	ScrollView,
 	StyleSheet,
@@ -56,10 +55,13 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { Instagram, MapPin, MapPinned, Music2, Search, X, Youtube } from "lucide-react-native";
+import { ChevronLeft, Search, X } from "lucide-react-native";
+import { resolveProviderIcon, resolveProviderLabel } from "@/features/dishMedia/providerIcon";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -81,29 +83,8 @@ import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
 import type { Region } from "react-native-maps";
-import type { SnsProvider } from "@shared/utils/snsUrl";
 import type { CreateDishMediaImportDto, ResolveDishMediaImportDto } from "@shared/api/v1/dto";
 import type { CreateDishMediaImportResponse, ResolveDishMediaImportResponse } from "@shared/api/v1/res";
-
-/**
- * provider の表示名。**固有名詞なので翻訳しない**（8 ロケールへ同じ値を 3 つずつ置くと、
- * 表記ゆれが入る余地だけが増える）。文章に混ざる形の文言は locale ファイル側に置いてある。
- */
-const PROVIDER_LABELS: Record<SnsProvider, string> = {
-	instagram: "Instagram",
-	tiktok: "TikTok",
-	youtube: "YouTube Shorts",
-};
-
-/**
- * provider 名の左に添えるロゴ（#1375 4 巡目の実機指摘）。
- * lucide に TikTok の公式グリフは無いので音符（Music2）で代用する。
- */
-const PROVIDER_ICONS: Record<SnsProvider, typeof Instagram> = {
-	instagram: Instagram,
-	tiktok: Music2,
-	youtube: Youtube,
-};
 
 /**
  * キャプションを畳んだとき（3 行）に収まりきらない可能性が高い条件。
@@ -136,6 +117,7 @@ type Tab = (typeof TABS)[number];
  * 保存する、という順番が画面から読み取れなかった（«簡素すぎる» の中身はこれである）。
  */
 function StepHeading({ step, title, testID }: { step: number; title: string; testID?: string }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.stepHeading} testID={testID}>
 			<View style={styles.stepBadge}>
@@ -148,6 +130,8 @@ function StepHeading({ step, title, testID }: { step: number; title: string; tes
 
 export default function SnsImportScreen() {
 	useScreenTrace("SnsImport");
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
@@ -218,30 +202,6 @@ export default function SnsImportScreen() {
 	 */
 	const view = useMemo(() => resolveSnsShareIntakeView(input.trim() || null), [input]);
 
-	/**
-	 * #1375 実機確認: **下へ引いて閉じる。** ヘッダを出さない代わりの戻る導線である。
-	 *
-	 * ⚠️ 本物のボトムシート（オーバーレイ）にはしていない。`Portal.Host` が `<Stack>` を
-	 * 包んでいるため、オーバーレイを開いたまま push すると遷移先が下に潜る（#1364 で実測）。
-	 * この画面は「食べたを記録」から店舗選択へ push するので、そこを踏む。
-	 * ルートのまま **ジェスチャだけ** ボトムシート相当にしてある。
-	 *
-	 * ⚠️ ジェスチャは «つまみの帯» にだけ付ける。画面全体に付けると、下のスクロールや
-	 * 入力欄のドラッグを奪う。`onMoveShouldSetPanResponder` で下方向の動きだけを拾い、
-	 * 横方向・上方向は素通しにしている。
-	 */
-	const DISMISS_DISTANCE = 80;
-	const dismissGesture = useMemo(
-		() =>
-			PanResponder.create({
-				onMoveShouldSetPanResponder: (_event, gesture) => gesture.dy > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
-				onPanResponderRelease: (_event, gesture) => {
-					if (gesture.dy > DISMISS_DISTANCE) handleBackRef.current();
-				},
-			}),
-		[],
-	);
-
 	const handleBack = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -257,13 +217,6 @@ export default function SnsImportScreen() {
 		}
 		router.replace(`/${locale}/my-dishes`);
 	}, [lightImpact, locale, logFrontendEvent, view.state]);
-
-	// PanResponder は 1 度だけ作る（毎レンダー作り直すとジェスチャが途中で切れる）ので、
-	// 最新の `handleBack` は ref 経由で読む
-	const handleBackRef = useRef(handleBack);
-	useEffect(() => {
-		handleBackRef.current = handleBack;
-	}, [handleBack]);
 
 	/**
 	 * 「食べたを記録」タブ。こちらは **公開レビューの投稿**なのでログインが要る
@@ -339,6 +292,18 @@ export default function SnsImportScreen() {
 					requestPayload: area ? { url, lat: area.lat, lng: area.lng, radius: RESOLVE_RADIUS_M } : { url },
 				},
 			);
+			/*
+			#1375（全画面のクラッシュ棚卸し）**形を確かめてから state へ入れる。**
+
+			以前はここで無条件に `setResolved(response)` していた。直後の
+			`response.prefill.…` が throw して catch に入っても **state はもう汚れており**、
+			次のレンダーで `resolved.source` / `resolved.metadata` / `resolved.candidates` を
+			無条件に掘って TypeError → アプリ全体の ErrorBoundary へ抜ける。
+			`try/catch` は原理的に防げない（throw するのは次のレンダー。#1561 と同型）。
+			*/
+			if (!response?.source || !response.metadata || !response.candidates || !response.prefill) {
+				throw new Error("resolve response is malformed");
+			}
 			setResolved(response);
 			// 読み取り直しでキャプションは畳み直す（前の投稿の展開状態を引き継がない）
 			setIsCaptionExpanded(false);
@@ -486,6 +451,19 @@ export default function SnsImportScreen() {
 				error_level: "log",
 				payload: { created: response.created, saved: response.saved },
 			});
+			/*
+			#1375（9 巡目・オーナー指摘「インスタをインポートして食べたいを押したら
+			メディアと料理が出ない」）**取り込みの直後にも my-dishes を無効化する。**
+
+			`useMyDishesQuery` は `hasFetchedInitial` が立っている限り再取得しない。
+			取り込みは `dish_media` と `reactions(save)` を **サーバー側だけ**へ足すので、
+			ここで版を上げないと戻った先の一覧はキャッシュのままで、
+			**取り込んだものが 1 つも出ない**（マップ・カレンダーも同じ版に依存している）。
+
+			隣の «食べたを記録»（`handleEatenSuccess`）は最初からこれを呼んでいた。
+			取り込み側だけ抜けていた。
+			*/
+			bumpMyDishesRevision();
 			showSnackbar(i18n.t("SnsImport.save.done"));
 			// 取り込んだものが並ぶ場所へ送る。戻るで取り込み画面へ戻らないよう replace する
 			router.replace(`/${locale}/my-dishes`);
@@ -500,28 +478,37 @@ export default function SnsImportScreen() {
 	const canSave = dishCategoryId !== null && restaurantId !== null && !isSaving;
 
 	return (
-		<SafeAreaView edges={["bottom"]} style={styles.container} testID="sns-import-screen">
-			{/* #1375 実機確認: **ヘッダは出さない。** タブ自体が見出しの役割を持つので、
-			    その上にもう 1 段タイトル帯を置くと «同じことを 2 回言う» 形になる。
-			    戻る導線はヘッダではなく «下へ引いて閉じる»（`dismissGesture`）が担う。
+		/*
+		#1375（実機 iOS のスクリーンショットで発覚）**上端の余白（`"top"`）を外さない。**
 
-			    ⚠️ 戻る手段を 1 つも持たない画面にしない。ジェスチャが効かない環境
-			    （web・アクセシビリティ操作）のために、読み上げ用の閉じるボタンを
-			    画面外に置かず **つまみ自体をボタンにして**ある */}
-			<View style={styles.grabberArea} {...dismissGesture.panHandlers}>
+		この画面は «ヘッダを出さない» と決めた（下のコメント）が、**このアプリで上端の
+		セーフエリアを確保しているのは `ScreenHeader`**（`paddingTop: insets.top + 8`）である。
+		ヘッダを消したときに、その役目を引き継ぐものが無くなっていた。
+
+		結果、iOS ではタブ（「SNS から」「食べたを記録」）が **ダイナミックアイランドの下に
+		潜って読めなくなっていた**（run 32818524649 の iOS スクリーンショットで実測）。
+		ヘッダを持つ他の画面が `edges={[]}` なのは `ScreenHeader` が入れているからで、
+		**ヘッダの無いこの画面だけは自分で入れる必要がある。**
+		*/
+		<SafeAreaView edges={["top", "bottom"]} style={styles.container} testID="sns-import-screen">
+			{/* #1375 実機確認: ＋ の基本導線は SNS 取り込み。上部タブで「食べた」の追加へ切り替える。
+			    背景は敷かず、選択中だけ濃い黒＋下線で示す */}
+			{/* #1375（9 巡目・オーナー指示）**戻るボタンはタブと同じ行の左に置く。**
+
+			    8 巡目までは «下へ引いて閉じる» だけで、9 巡目でその上へ ← の帯を 1 段足した。
+			    オーナー指示は「SNS から / 食べたを記録 の**左**に置いて、縦を分けないでほしい」。
+			    帯を 1 段減らすぶん、貼り付け欄が上へ来る。
+			    引いて閉じるジェスチャ（PanResponder）は 9 巡目で廃止済み。 */}
+			<View style={styles.tabRow}>
 				<TouchableOpacity
 					testID="sns-import-screen-back"
 					onPress={handleBack}
 					accessibilityRole="button"
-					accessibilityLabel={i18n.t("Common.close")}
-					style={styles.grabberHitArea}>
-					<View style={styles.grabber} />
+					accessibilityLabel={i18n.t("Common.back")}
+					style={styles.backButton}
+					hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+					<ChevronLeft size={24} color={colors.textPrimary} />
 				</TouchableOpacity>
-			</View>
-
-			{/* #1375 実機確認: ＋ の基本導線は SNS 取り込み。上部タブで「食べた」の追加へ切り替える。
-			    背景は敷かず、選択中だけ濃い黒＋下線で示す */}
-			<View style={styles.tabRow}>
 				{TABS.map((t) => (
 					<TouchableOpacity
 						key={t}
@@ -637,8 +624,8 @@ export default function SnsImportScreen() {
 										testID="sns-import-cancel-button"
 										onPress={handleCancelResolved}
 										label={i18n.t("SnsImport.actions.cancel")}
-										colors={["#F3F4F6", "#F3F4F6"]}
-										labelStyle={{ color: "#374151" }}
+										colors={[colors.surfaceSubtle, colors.surfaceSubtle]}
+										labelStyle={{ color: colors.textSecondaryStrong }}
 										shadowColor="transparent"
 										style={styles.resolveButton}
 									/>
@@ -669,12 +656,23 @@ export default function SnsImportScreen() {
 											{!!resolved.source.provider &&
 												(() => {
 													// #1375 4 巡目: 名前だけだと素っ気ないのでロゴを左に添える
-													const ProviderIcon = PROVIDER_ICONS[resolved.source.provider];
+													/*
+													#1375（全画面のクラッシュ棚卸し）**`?? Link2` を外さないこと。**
+
+													`PROVIDER_ICONS` は instagram / tiktok / youtube の 3 つしか持たない。
+													サーバが 4 つ目（X / Threads 等）を返した瞬間ここが `undefined` になり、
+													`<undefined />` を描いて React が
+													「Element type is invalid」で throw する。render 中なので
+													**アプリ全体が «予期しないエラー»** になる。
+													*/
+													// ⚠️ フォールバックを外さないこと（未知 provider で undefined を描いて落ちる）。
+													// 対応表と縮退は features/dishMedia/providerIcon.ts に集約してある
+													const ProviderIcon = resolveProviderIcon(resolved.source.provider);
 													return (
 														<View style={styles.providerRow}>
-															<ProviderIcon size={16} color="#F05537" />
+															<ProviderIcon size={16} color={colors.brand} />
 															<Text style={styles.provider} testID="sns-import-provider">
-																{PROVIDER_LABELS[resolved.source.provider]}
+																{resolveProviderLabel(resolved.source.provider)}
 															</Text>
 														</View>
 													);
@@ -775,7 +773,7 @@ export default function SnsImportScreen() {
 								    検索欄（アイコン付き・全幅）→ その下に小さい候補、という並びで、
 								    ② の店選択と寸法・角丸・文字サイズが一致する（実機指摘「幅が不揃い」） */}
 										<View style={styles.searchField}>
-											<Search size={18} color="#6B7280" style={styles.searchFieldIcon} />
+											<Search size={18} color={colors.textSecondary} style={styles.searchFieldIcon} />
 											<TextInput
 												testID="sns-import-dish-category-search-input"
 												value={
@@ -786,7 +784,7 @@ export default function SnsImportScreen() {
 													void searchDishCategories(text);
 												}}
 												placeholder={i18n.t("SnsImport.sections.dishCategorySearchPlaceholder")}
-												placeholderTextColor="#6B7280"
+												placeholderTextColor={colors.textSecondary}
 												autoCapitalize="none"
 												style={[
 													styles.searchFieldInput,
@@ -808,7 +806,7 @@ export default function SnsImportScreen() {
 													hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 													accessibilityRole="button"
 													accessibilityLabel={i18n.t("SelectRestaurant.accessibility.clearNameSearch")}>
-													<X size={16} color="#6B7280" />
+													<X size={16} color={colors.textSecondary} />
 												</TouchableOpacity>
 											)}
 										</View>
@@ -881,7 +879,7 @@ export default function SnsImportScreen() {
 									disabled={!canSave}
 									// #1375（5 巡目・デザインレビュー #4）無効時は透過ではなく灰へ。
 									// 赤に透過を掛けると文字が読めなくなる（参照実装の検索画面と同じ手）
-									colors={canSave ? undefined : ["#999999", "#999999"]}
+									colors={canSave ? undefined : [colors.ctaBackgroundDisabled, colors.ctaBackgroundDisabled]}
 								/>
 							</View>
 						)}
@@ -892,30 +890,25 @@ export default function SnsImportScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（contexts/ThemeProvider.tsx の useThemedStyles）
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#FFFFFF",
+		backgroundColor: c.surface,
 	},
-	grabberArea: {
-		paddingTop: 8,
-		paddingBottom: 4,
-		alignItems: "center",
-	},
-	grabberHitArea: {
-		paddingVertical: 8,
-		paddingHorizontal: 24,
-	},
-	grabber: {
-		width: 40,
-		height: 4,
-		borderRadius: 2,
-		backgroundColor: "#D1D5DB",
+	// #1375（9 巡目）戻るボタンはタブ行の中。タブの文字とベースラインが揃うよう縦は詰める
+	backButton: {
+		paddingVertical: 4,
+		paddingRight: 4,
 	},
 	tabRow: {
 		flexDirection: "row",
+		// #1375（9 巡目）戻るボタンを同じ行へ入れたので、下端（タブの下線）で揃える
+		alignItems: "flex-end",
 		gap: 20,
-		paddingHorizontal: 16,
+		paddingHorizontal: 12,
+		paddingTop: 8,
 		paddingBottom: 4,
 	},
 	// #1375 実機確認（2 巡目）: 「上部のボタンの位置がズレている」の中身。
@@ -931,17 +924,17 @@ const styles = StyleSheet.create({
 		fontSize: 22,
 		fontWeight: "700",
 		// 非選択は «薄い黒»。別の色にすると «押せない» ように見える
-		color: "#9CA3AF",
+		color: c.textTertiary,
 	},
 	tabLabelActive: {
-		color: "#111827",
+		color: c.textPrimaryAlt,
 	},
 	tabUnderline: {
 		marginTop: 6,
 		height: 3,
 		borderRadius: 2,
 		alignSelf: "stretch",
-		backgroundColor: "#111827",
+		backgroundColor: c.textPrimaryAlt,
 	},
 	keyboardAvoiding: {
 		flex: 1,
@@ -965,30 +958,30 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		backgroundColor: "#FFFFFF",
+		borderColor: c.borderMuted,
+		backgroundColor: c.surface,
 	},
 	eatenRestaurantLabel: {
 		flex: 1,
 		fontSize: 15,
 		fontWeight: "700",
-		color: "#111827",
+		color: c.textPrimaryAlt,
 	},
 	eatenRestaurantPlaceholder: {
-		color: "#9CA3AF",
+		color: c.textTertiary,
 		fontWeight: "400",
 	},
 	eatenRestaurantChange: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#F05537",
+		color: c.brand,
 	},
 	eatenHint: {
 		marginTop: 12,
 		marginHorizontal: 16,
 		fontSize: 13,
 		lineHeight: 19,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	content: {
 		paddingHorizontal: 16,
@@ -998,7 +991,7 @@ const styles = StyleSheet.create({
 		marginTop: 12,
 		fontSize: 13,
 		lineHeight: 19,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	// 手順ごとの器。枠を描くと «ここまでが 1 つの手順» が目で分かる
 	card: {
@@ -1006,8 +999,8 @@ const styles = StyleSheet.create({
 		padding: 14,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		backgroundColor: "#FFFFFF",
+		borderColor: c.borderMuted,
+		backgroundColor: c.surface,
 	},
 	stepHeading: {
 		flexDirection: "row",
@@ -1019,19 +1012,20 @@ const styles = StyleSheet.create({
 		width: 22,
 		height: 22,
 		borderRadius: 11,
-		backgroundColor: "#111827",
+		backgroundColor: c.textPrimaryAlt,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	stepBadgeText: {
 		fontSize: 12,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		// 地（stepBadge）が textPrimaryAlt なので、文字は CTA と同じ反転規則で振る
+		color: c.ctaLabel,
 	},
 	stepTitle: {
 		fontSize: 15,
 		fontWeight: "700",
-		color: "#111827",
+		color: c.textPrimaryAlt,
 	},
 	mapPickButton: {
 		marginTop: 10,
@@ -1042,12 +1036,12 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 8,
 		borderRadius: 16,
-		backgroundColor: "#FDE7E1",
+		backgroundColor: c.brandTintAlt,
 	},
 	mapPickLabel: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#F05537",
+		color: c.brand,
 	},
 	footer: {
 		gap: 8,
@@ -1055,18 +1049,18 @@ const styles = StyleSheet.create({
 		paddingTop: 12,
 		paddingBottom: 12,
 		borderTopWidth: 1,
-		// #1375（5 巡目・デザインレビュー #18）`#EEE` は正本のパレットに無い。罫線は #E5E7EB へ統一
-		borderTopColor: "#E5E7EB",
-		backgroundColor: "#FFFFFF",
+		// #1375（5 巡目・デザインレビュー #18）EEE 系の罫線は正本のパレットに無い。罫線は borderMuted（ライトで E5E7EB）へ統一
+		borderTopColor: c.borderMuted,
+		backgroundColor: c.surface,
 	},
 	footerHint: {
 		fontSize: 12,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	label: {
 		marginTop: 12,
 		fontSize: 13,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	input: {
 		marginTop: 6,
@@ -1075,12 +1069,12 @@ const styles = StyleSheet.create({
 		// #1375（5 巡目・デザインレビュー #11）②③ の検索欄と同じ寸法へ。
 		// r8 / 枠 #E5E7EB / 縦 10 / 14pt だったため、同じ縦並びで高さが 44 と 56 に割れていた
 		borderWidth: 1,
-		borderColor: "#C9C9C9",
+		borderColor: c.border,
 		borderRadius: 16,
 		paddingHorizontal: 16,
 		paddingVertical: 16,
 		fontSize: 16,
-		color: "#1A1A1A",
+		color: c.textPrimary,
 		textAlignVertical: "top",
 	},
 	resolveButton: {
@@ -1088,8 +1082,8 @@ const styles = StyleSheet.create({
 	},
 	// 固定中の URL。押しても編集できないことが «見て» 分かるように地を沈める
 	inputLocked: {
-		backgroundColor: "#F3F4F6",
-		color: "#6B7280",
+		backgroundColor: c.surfaceSubtle,
+		color: c.textSecondary,
 	},
 	saveButton: {
 		marginTop: 20,
@@ -1106,41 +1100,41 @@ const styles = StyleSheet.create({
 	provider: {
 		fontSize: 14,
 		fontWeight: "700",
-		color: "#F05537",
+		color: c.brand,
 	},
 	captionToggle: {
 		marginTop: 4,
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	metaTitle: {
 		marginTop: 4,
 		fontSize: 14,
 		lineHeight: 20,
-		color: "#374151",
+		color: c.textSecondaryStrong,
 	},
 	sectionTitle: {
 		marginTop: 20,
 		fontSize: 14,
 		fontWeight: "700",
-		color: "#1A1A1A",
+		color: c.textPrimary,
 	},
 	searchInput: {
 		marginTop: 8,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: c.borderMuted,
 		borderRadius: 8,
 		paddingHorizontal: 12,
 		paddingVertical: 10,
 		fontSize: 14,
-		color: "#111827",
+		color: c.textPrimaryAlt,
 	},
 	selectedValue: {
 		marginTop: 8,
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#F05537",
+		color: c.brand,
 	},
 	// #1375 ② の店名検索（RestaurantNameSearch）と **同じ寸法**にすること。
 	// 角丸 16 / 縦 padding 16 / 文字 16pt が揃っていないと «幅と高さが不揃い» に見える
@@ -1149,9 +1143,9 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		borderRadius: 16,
-		backgroundColor: "#FFFFFF",
+		backgroundColor: c.surface,
 		borderWidth: 1,
-		borderColor: "#C9C9C9",
+		borderColor: c.border,
 	},
 	searchFieldIcon: {
 		marginLeft: 16,
@@ -1161,7 +1155,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 16,
 		fontSize: 16,
-		color: "#1A1A1A",
+		color: c.textPrimary,
 	},
 	searchFieldInputSelected: {
 		fontWeight: "700",
@@ -1179,17 +1173,17 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 10,
 		paddingVertical: 5,
 		borderRadius: 14,
-		backgroundColor: "#F3F4F6",
+		backgroundColor: c.surfaceSubtle,
 	},
 	candidateChipSelected: {
-		backgroundColor: "#FDE7E1",
+		backgroundColor: c.brandTintAlt,
 	},
 	candidateLabel: {
 		fontSize: 12,
-		color: "#374151",
+		color: c.textSecondaryStrong,
 	},
 	candidateLabelSelected: {
-		color: "#F05537",
+		color: c.brand,
 		fontWeight: "700",
 	},
 	chipRow: {
@@ -1202,23 +1196,23 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 8,
 		borderRadius: 16,
-		backgroundColor: "#F3F4F6",
+		backgroundColor: c.surfaceSubtle,
 	},
 	chipSelected: {
-		backgroundColor: "#FDE7E1",
+		backgroundColor: c.brandTintAlt,
 	},
 	chipLabel: {
 		fontSize: 13,
-		color: "#374151",
+		color: c.textSecondaryStrong,
 	},
 	chipLabelSelected: {
-		color: "#F05537",
+		color: c.brand,
 		fontWeight: "700",
 	},
 	hint: {
 		marginTop: 12,
 		fontSize: 13,
 		lineHeight: 19,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
-});
+	});

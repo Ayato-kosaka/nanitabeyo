@@ -170,6 +170,47 @@ export class MyDishesPage {
 		await this.page.getByTestId("location-autocomplete-input").waitFor({ state: "visible" });
 	}
 
+	/**
+	 * #1375（6 巡目）記録フローの **1 歩目 = 料理カテゴリー**を済ませる。
+	 *
+	 * オーナー指示で「お店 → **料理** → 写真 → …」の順になった。カテゴリーが決まるまで
+	 * 写真の選択肢もコメント欄も出ないので、店を選んだ直後は必ずここを通る。
+	 *
+	 * その店に既存の料理があれば一覧から選び、無ければ打った名前で新規に作る。
+	 * どちらに転んでも動くよう «一覧に出たら押す / 出なければ作る» の両対応にしてある。
+	 */
+	async chooseDishCategoryInRecordFlow(name: string): Promise<void> {
+		const step = this.page.getByTestId("review-dish-category-step");
+		await step.waitFor({ state: "visible" });
+		await this.page.getByTestId("review-dish-category-step-input").fill(name);
+
+		const typedButton = this.page.getByTestId("review-dish-category-step-submit-typed");
+		const firstItem = this.page.locator('[data-testid^="review-dish-category-step-item-"]').first();
+		// 打った名前が候補に無ければ «この名前で決める» が出る。あれば候補が絞られて残る
+		await Promise.race([
+			typedButton.waitFor({ state: "visible", timeout: 15_000 }),
+			firstItem.waitFor({ state: "visible", timeout: 15_000 }),
+		]);
+		if (await typedButton.isVisible()) {
+			await typedButton.click();
+		} else {
+			await firstItem.click();
+		}
+		// 決まると写真の入口が出る（= 2 歩目へ進んだ）。コメント欄はまだ出ない
+		await this.page.getByTestId("review-add-photo-placeholder").waitFor({ state: "visible", timeout: 30_000 });
+	}
+
+	/**
+	 * 写真の選択を済ませてフォームへ進む（#1375 オーナー指示 7 巡目で 1 歩に分かれた）。
+	 *
+	 * 既定は «写真なし»。web の E2E は OS のピッカーを開けないため、
+	 * 写真ありの経路は端末側（e2e-mobile）が受け持つ。
+	 */
+	async chooseMediaInRecordFlow(): Promise<void> {
+		await this.page.getByTestId("review-skip-photo").click();
+		await this.page.getByTestId("review-comment-input").waitFor({ state: "visible", timeout: 30_000 });
+	}
+
 	/** ログイン済みユーザー向けの記録 CTA が出ていることを検証する */
 	async expectAuthenticatedViewLoaded(): Promise<void> {
 		await expect(this.recordButton).toBeVisible();

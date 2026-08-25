@@ -25,6 +25,11 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     address_components: supabase.address_components,
     plus_code: supabase.plus_code,
     created_at: new Date(supabase.created_at),
+    // #843 店提案 catalog との名寄せ監査用の metadata（migration 20260823T0000）
+    source_seed_id: supabase.source_seed_id,
+    source_names: supabase.source_names,
+    source_row_hash: supabase.source_row_hash,
+    synced_at: supabase.synced_at !== null ? new Date(supabase.synced_at) : null,
   };
 }
 
@@ -47,5 +52,9 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     address_components: prisma.address_components,
     plus_code: prisma.plus_code,
     created_at: prisma.created_at?.toISOString() ?? null,
+    source_seed_id: prisma.source_seed_id,
+    source_names: prisma.source_names,
+    source_row_hash: prisma.source_row_hash,
+    synced_at: prisma.synced_at?.toISOString() ?? null,
   };
 }

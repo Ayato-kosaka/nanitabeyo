@@ -241,8 +241,8 @@ export default function DishCategoriesScreen() {
 	const handleViewDetails = useCallback(
 		(dishCategory: DishCategoryRecommendation, originRect?: CardRect) => {
 			// #633 【Blocker】params が undefined の場合は早期 return（クラッシュ防止）
-			if (!params) {
-				showSnackbar(i18n.t("DishCategories.errors.invalidSearchParams"));
+			if (!params?.location) {
+				showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 				return;
 			}
 			if (isSelectingDishCategoryRef.current) return;
@@ -391,8 +391,8 @@ export default function DishCategoriesScreen() {
 		createdGroupVoteRef.current = null;
 	}, [searchParams]);
 	const handleOpenGroupVote = useCallback(async () => {
-		if (!params) {
-			showSnackbar(i18n.t("DishCategories.errors.invalidSearchParams"));
+		if (!params?.location) {
+			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 			return;
 		}
 
@@ -610,7 +610,7 @@ export default function DishCategoriesScreen() {
 
 	const getDeepDiveOptions = useCallback(
 		(dishCategory: DishCategoryRecommendation): DishCategoryDeepDiveOption[] => {
-			if (!params) return [];
+			if (!params?.location) return [];
 			const cacheKey = `${locale}:${dishCategory.categoryId}`;
 			const cached = deepDiveOptionsCacheRef.current.get(cacheKey);
 			if (cached) return cached;
@@ -690,7 +690,7 @@ export default function DishCategoriesScreen() {
 
 	const handleDeepDive = useCallback(
 		(dishCategory: DishCategoryRecommendation, option: DishCategoryDeepDiveOption) => {
-			if (!params) return;
+			if (!params?.location) return;
 
 			const nextParams: SearchParams = { ...params };
 			if (option.featureType === "budget_intent") {
@@ -803,11 +803,11 @@ export default function DishCategoriesScreen() {
 	const shouldShowReload = !!params && visibleDishCategories.length >= 0 && visibleDishCategories.length <= 3;
 
 	const handleReloadRecommendations = () => {
-		if (!params) return;
-		showDialog(i18n.t("DishCategories.reloadDialog.message"), {
-			title: i18n.t("DishCategories.reloadDialog.title"),
-			okLabel: i18n.t("DishCategories.reloadDialog.confirm"),
-			cancelLabel: i18n.t("DishCategories.reloadDialog.cancel"),
+		if (!params?.location) return;
+		showDialog(i18n.t("Topics.reloadDialog.message"), {
+			title: i18n.t("Topics.reloadDialog.title"),
+			okLabel: i18n.t("Topics.reloadDialog.confirm"),
+			cancelLabel: i18n.t("Topics.reloadDialog.cancel"),
 			onConfirm: async () => {
 				try {
 					await refillDishCategories(params);
