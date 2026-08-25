@@ -133,3 +133,37 @@ jobs:
       # これまでどの workflow からも実行されていなかった。
       - name: app-expo のユニットテスト
         run: pnpm --filter app-expo test
+
+      # ─────────────────────────────────────────────────────────────
+      # 2026-08-25 追加。**どれも「実際に見逃した defect」があって足している。**
+      # 推測で網を広げたのではなく、この日 1 日で 4 件すり抜けたのが根拠。
+      # ─────────────────────────────────────────────────────────────
+
+      # e2e-web / e2e-mobile はこれまでどの PR ゲートからも型検査されていなかった。
+      # 実際に以下がマージ済みブランチ上で **緑のまま**放置されていた:
+      #   - e2e-web/pages/SettingsPage.ts … 自動マージが JSDoc を縫い合わせて構文エラー
+      #     （`goto()` のコメントが `notificationToggle()` のコメントを飲み込んだ）
+      #   - e2e-mobile … #1402 で消えた `ProfileScreen.gotoSettings()` の呼び出しが 2 ファイルに残存
+      # どちらも「壊れた e2e は次に走らせるまで気づけない」形で、走らせるのは nightly か手動 dispatch。
+      # tsc なら数秒で落とせる（ローカル実測: e2e-web 約 6 秒）。
+      - name: e2e-web の型検査
+        run: pnpm --filter e2e-web typecheck
+
+      - name: e2e-mobile の型検査
+        run: pnpm --filter e2e-mobile typecheck
+
+      # `.prisma` は型検査にもテストにも掛からないため、**衝突マーカーが commit されたまま
+      # PR Check が緑**になっていた（api/prisma/schema.prisma に `<<<<<<< HEAD` が残存）。
+      # prisma validate は schema の構文とリレーションを見るので、この形は確実に落ちる。
+      # ローカル実測 約 21 秒。DB へは接続しない（スキーマの静的検証のみ）。
+      - name: Prisma スキーマを検証
+        run: pnpm --filter api exec prisma validate
+
+      # 入れ子になった `test()` / `it()` は **1 度も実行されない**のに構文としては正しく、
+      # tsc も eslint も気づかない。実際に 2 件、«assert していないのに緑» で残っていた:
+      #   - e2e-web/tests/profile/settings.spec.ts … バージョン検証の中へ通知カード検証が入れ子
+      #   - e2e-mobile/tests/profile/settings.test.ts … ハプティクスの it が閉じずに通知の it を飲み込む
+      # どちらもベース取り込みの衝突解消で «偶然» 見つかったもので、
+      # 見つからなければそのまま出ていた。ローカル実測 1 秒未満。
+      - name: e2e の spec に入れ子の test が無いことを確認
+        run: pnpm assert:no-nested-e2e-tests
