@@ -189,6 +189,8 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		brand: "#F05537",
 		brandTint: "#FDEBE7",
 		brandTintSoft: "#FFF7F5",
+		// #1502 地点確定 ✓ 用に追加。値は LocationAutocomplete に直書きされていた #16A34A の移設
+		success: "#16A34A",
 		danger: "#DC2626",
 		dangerStrong: "#EF4444",
 		dangerTint: "#FEE2E2",

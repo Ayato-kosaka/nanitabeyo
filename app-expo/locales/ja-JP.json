@@ -159,6 +159,9 @@
 		},
 		"loading": "検索中...",
 		"noLocationsFound": "場所が見つかりません",
+		"locationConfirmation": {
+			"error": "地点の確認に失敗しました"
+		},
 		"advancedToggle": {
 			"open": "さらにこだわる",
 			"close": "詳細検索を閉じる"

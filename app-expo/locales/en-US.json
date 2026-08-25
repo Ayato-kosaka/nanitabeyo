@@ -159,6 +159,9 @@
 		},
 		"loading": "Searching...",
 		"noLocationsFound": "No locations found",
+		"locationConfirmation": {
+			"error": "Failed to confirm location"
+		},
 		"advancedToggle": {
 			"open": "More options",
 			"close": "Close advanced search"

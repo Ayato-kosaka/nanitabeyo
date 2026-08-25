@@ -159,6 +159,9 @@
 		},
 		"loading": "Recherche...",
 		"noLocationsFound": "Aucun lieu trouvé",
+		"locationConfirmation": {
+			"error": "Échec de la confirmation du lieu"
+		},
 		"advancedToggle": {
 			"open": "Plus d'options",
 			"close": "Fermer la recherche avancée"

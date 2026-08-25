@@ -159,6 +159,9 @@
 		},
 		"loading": "جارٍ البحث...",
 		"noLocationsFound": "لم يتم العثور على مواقع",
+		"locationConfirmation": {
+			"error": "فشل تأكيد الموقع"
+		},
 		"advancedToggle": {
 			"open": "خيارات إضافية",
 			"close": "إغلاق البحث المتقدم"

@@ -505,11 +505,12 @@ export class DishesService {
           created_at:
             existingGoogleImportEntry?.restaurant.created_at ??
             new Date().toISOString(),
-          // #843 BigQuery 同期由来の列。Google import はその経路を通らないので未設定
-          synced_at: null,
+          // #843 store catalog（BigQuery）同期由来の metadata。この経路は Google Places
+          // からの取り込みなので同期していない（migration 20260823T0000 の既定値と同じ）
           source_seed_id: null,
           source_names: [],
           source_row_hash: null,
+          synced_at: null,
         };
 
         const dish: SupabaseDishes = {
@@ -524,8 +525,7 @@ export class DishesService {
             existingGoogleImportEntry?.dish.updated_at ??
             new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish.lock_no ?? 0,
-          // #843 Google import 由来なので既定値と同じ 'user_or_google'。
-          // BigQuery 同期経路ではないため synced_at は未設定
+          // #843 catalog 同期ではない行の既定値（DB 側の DEFAULT と同じ）
           data_origin: 'user_or_google',
           synced_at: null,
         };
@@ -601,7 +601,7 @@ export class DishesService {
           imported_user_name: review.authorAttribution?.displayName || null,
           imported_user_avatar: review.authorAttribution?.photoUri || null,
           created_at: new Date().toISOString(),
-          // #1551 「食べた日」はユーザーが自分で入れる値。Google のレビューには無い
+          // #1551 食べた日はユーザーが入力する列。Google の口コミには無いので NULL
           eaten_at: null,
         }));
 
