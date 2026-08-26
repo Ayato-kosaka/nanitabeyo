@@ -350,6 +350,20 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			// #1398 (PR4/7) 飛行中に clearQuery が走ったら、この結果は «捨てた世代» のものなので
 			// 1 バイトも書かない（書くと «記録前» の行が hasFetchedInitial 付きで復活する）
 			if (get().generation !== generation) return;
+			// #1599 【バグ】世代だけでは «引っ張って更新に追い抜かれた» を見分けられない。
+			// `fetchInitial` は `clearQuery` を通らないので **generation を進めない**からである。
+			//
+			// `fetchMore` は `isLoadingByQuery` を見て «更新中には始めない» が、逆
+			//（追加取得の飛行中に更新が始まる）は塞がれていない。`fetchInitial` が見ているのは
+			// `isLoadingByQuery` だけで、`isLoadingMoreByQuery` は見ていない。
+			//
+			// 追い抜かれたまま書くと、入れ替わった一覧の末尾へ «更新前のページ» が付き、
+			// `nextCursorByQuery` も «更新前の連鎖» の値で上書きされる。
+			// この一覧の取得は平均 4.48 秒・最大 11.23 秒なので、窓は秒の幅で開いている。
+			//
+			// 自分が使ったカーソルが今も現在値なら、まだ同じページ連鎖の上に居る。
+			// 更新が入っていれば別の値（または null）に変わっているので、そこで捨てる。
+			if (get().nextCursorByQuery[queryKey] !== cursor) return;
 			// n-1（見送り・申し送り）: ここで `queryKey` がまだ `recentQueryKeys` に生きているかは見ていない。
 			// 飛行中に他の 4 本目の queryKey で LRU から追い出されると、この結果は誰も参照しない
 			// itemByKey の行として残り続ける（次の追い出しまで）。到達には「追加取得中に他の
@@ -372,6 +386,8 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			});
 		} catch (err) {
 			if (get().generation !== generation) return;
+			// #1599 追い抜かれた取得のエラーで、更新後の一覧にエラー表示を出さない
+			if (get().nextCursorByQuery[queryKey] !== cursor) return;
 			set((s) => ({ errorByQuery: { ...s.errorByQuery, [queryKey]: toErrorMessage(err) } }));
 		} finally {
 			if (get().generation === generation) {
