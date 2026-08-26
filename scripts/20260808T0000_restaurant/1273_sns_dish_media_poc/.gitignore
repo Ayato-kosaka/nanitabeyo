@@ -61,3 +61,4 @@ out/_blog_imgs/
 !out/store_source_tos_survey.md
 !out/handle_recovery_labels.json
 !out/handle_source_host_counts.json
+!out/recovery_name_gate.json

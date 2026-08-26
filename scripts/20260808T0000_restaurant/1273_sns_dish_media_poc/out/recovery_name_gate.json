@@ -1,0 +1,101 @@
+{
+  "n": 13,
+  "passed": 5,
+  "good": 5,
+  "bad": 0,
+  "lost": 1,
+  "rows": [
+    {
+      "store": "神戸屋レストラン 浜田山店",
+      "url": "https://www.kobeyarestaurant.co.jp/",
+      "truth": "チェーン",
+      "passed": true,
+      "matched_key": "神戸屋"
+    },
+    {
+      "store": "La Coccinelle",
+      "url": "https://tokyo-sg.com/",
+      "truth": "別主体",
+      "passed": false,
+      "matched_key": null
+    },
+    {
+      "store": "そば長",
+      "url": "https://locoplace.jp/",
+      "truth": "別主体",
+      "passed": false,
+      "matched_key": null
+    },
+    {
+      "store": "ステーキハウス成しま 竜南店",
+      "url": "https://www.steakhousenarushima.com/",
+      "truth": "店固有",
+      "passed": true,
+      "matched_key": "ステー"
+    },
+    {
+      "store": "桂林",
+      "url": "https://www.hotel-sunshineaoyama.co.jp/",
+      "truth": "別主体",
+      "passed": false,
+      "matched_key": null
+    },
+    {
+      "store": "向山製作所大玉ベース店",
+      "url": "https://www.mukaiyama-ss.co.jp/",
+      "truth": "チェーン",
+      "passed": true,
+      "matched_key": "向山製作所大玉ベース"
+    },
+    {
+      "store": "C-cafeささ乃や",
+      "url": "https://www.c-cafe.net/",
+      "truth": "店固有",
+      "passed": true,
+      "matched_key": "Ccafeささ乃や"
+    },
+    {
+      "store": "Cafe Kurudot",
+      "url": "https://www.seihoukai-grp.com/kurdot/",
+      "truth": "店固有",
+      "passed": false,
+      "matched_key": null
+    },
+    {
+      "store": "コレット",
+      "url": "https://oshu.mypl.net/",
+      "truth": "別主体",
+      "passed": false,
+      "matched_key": null
+    },
+    {
+      "store": "スカーレル",
+      "url": "https://www.sapporo-kokusai.jp/",
+      "truth": "別主体",
+      "passed": false,
+      "matched_key": null
+    },
+    {
+      "store": "神在",
+      "url": "https://www.izumo-airport.co.jp/",
+      "truth": "別主体",
+      "passed": false,
+      "matched_key": null
+    },
+    {
+      "store": "錦果楼",
+      "url": "https://www.kasinoki.co.jp/",
+      "truth": "チェーン",
+      "passed": true,
+      "matched_key": "錦果楼"
+    },
+    {
+      "store": "そば処与市",
+      "url": "https://www.hawaiians.co.jp/",
+      "truth": "別主体",
+      "passed": false,
+      "matched_key": null
+    }
+  ],
+  "caveat": "n=13 の後付けの門。別の標本で効くとは限らない。"
+}
