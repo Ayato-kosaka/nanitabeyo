@@ -115,13 +115,6 @@ export type DishCategoriesStore = {
 	 */
 	clearByKey: (key?: string) => void;
 
-	/**
-	 * #1599 一覧の世代。**`clearByKey` が呼ばれるたびに 1 つ進む。**
-	 * 追加取得は開始時にこの値を控え、応答時に変わっていたら結果を捨てる。
-	 * 詳細は `useDishMediaEntriesStore.listGeneration` の宣言箇所を参照
-	 *（同じ欠陥が同じ形でこちらにもあった）。
-	 */
-	listGeneration: number;
 
 	// ------ カーソルページネーション API ------
 
@@ -207,7 +200,6 @@ export const useDishCategoriesStore = createWithEqualityFn<DishCategoriesStore>(
 	hasFetchedInitialByKey: {},
 	nextCursorByKey: {},
 	isLoadingMoreByKey: {},
-	listGeneration: 0,
 	savedByDishCategoryId: {},
 
 	// ------ 同期挿入・更新メソッド ------
@@ -275,8 +267,6 @@ export const useDishCategoriesStore = createWithEqualityFn<DishCategoriesStore>(
 			// key 未指定 → 全リセット
 			if (!key) {
 				return {
-					// #1599 飛行中の追加取得を無効化する
-					listGeneration: state.listGeneration + 1,
 					dishCategoryById: {},
 					dishCategoryIdsByKey: {},
 					isLoadingByKey: {},
@@ -332,8 +322,6 @@ export const useDishCategoriesStore = createWithEqualityFn<DishCategoriesStore>(
 				hasFetchedInitialByKey: nextHasFetchedInitialByKey,
 				nextCursorByKey: nextNextCursorByKey,
 				isLoadingMoreByKey: nextIsLoadingMoreByKey,
-				// #1599 飛行中の追加取得を無効化する
-				listGeneration: state.listGeneration + 1,
 			};
 		}),
 
@@ -360,10 +348,8 @@ export const useDishCategoriesStore = createWithEqualityFn<DishCategoriesStore>(
 		}),
 
 	fetchMoreByKey: async (key, request, fetcher) => {
-		const { nextCursorByKey, upsertDishCategories, updateDishCategoryIdsByKey, listGeneration } = get();
+		const { nextCursorByKey, upsertDishCategories, updateDishCategoryIdsByKey } = get();
 		const nextCursor = nextCursorByKey[key];
-		// #1599 応答が返るまでに一覧が入れ替わっていないかを見るための世代
-		const startGeneration = listGeneration;
 
 		// nextCursor が null の場合は何もしない
 		if (nextCursor === null || nextCursor === undefined) return;
@@ -373,8 +359,10 @@ export const useDishCategoriesStore = createWithEqualityFn<DishCategoriesStore>(
 			key,
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
-				// #1599 引っ張って更新に追い抜かれていたら、この応答は捨てる
-				if (get().listGeneration !== startGeneration) return;
+				// #1599 引っ張って更新に追い抜かれていたら、この応答は捨てる。
+				// 判定は «自分が使ったカーソルが今も現在値か»
+				//（`useDishMediaEntriesStore.fetchMoreByKey` と同じ作法）
+				if (get().nextCursorByKey[key] !== nextCursor) return;
 				// 1. エンティティを正規化
 				upsertDishCategories(asApiList(response.data));
 

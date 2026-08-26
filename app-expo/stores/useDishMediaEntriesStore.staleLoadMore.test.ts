@@ -108,15 +108,26 @@ describe("#1599 追加取得が引っ張って更新に追い抜かれたとき"
 		expect(idsOf()).toEqual([]);
 	});
 
-	it("clearByKey は呼ばれるたびに世代を進める", () => {
-		const before = useDishMediaEntriesStore.getState().listGeneration;
+	it("別のキーを片付けても、このキーの追加取得は捨てない（巻き添えにしない）", async () => {
+		// 判定を «カーソルが今も現在値か» にしたので、無関係なキーの clearByKey では
+		// 捨てられない。画面遷移のたびに他のタブの「もっと読む」が黙って消える、
+		// という副作用を避けるための性質なので、ここで固定しておく
+		await useDishMediaEntriesStore
+			.getState()
+			.fetchInitialByKey(KEY, {}, async () => ({ data: [entry("a")], nextCursor: "C1" }));
 
-		useDishMediaEntriesStore.getState().clearByKey(KEY);
-		const afterPerKey = useDishMediaEntriesStore.getState().listGeneration;
-		expect(afterPerKey).toBeGreaterThan(before);
+		const more = gate<{ data: never[]; nextCursor: string | null }>();
+		const morePromise = useDishMediaEntriesStore
+			.getState()
+			.fetchMoreByKey(KEY, {}, async () => more.promise as never);
 
-		useDishMediaEntriesStore.getState().clearByKey();
-		expect(useDishMediaEntriesStore.getState().listGeneration).toBeGreaterThan(afterPerKey);
+		// 別画面のアンマウント相当（cleanup で自分のキーだけ片付ける）
+		useDishMediaEntriesStore.getState().clearByKey("some-other-screen");
+
+		more.release({ data: [entry("b")] as never[], nextCursor: "C2" });
+		await morePromise;
+
+		expect(idsOf()).toEqual(["a", "b"]);
 	});
 });
 
