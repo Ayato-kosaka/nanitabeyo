@@ -53,3 +53,5 @@ out/_blog_imgs/
 !out/shorts_longtail_tail.json
 !out/openverse_license_supply.json
 !out/license_source_attribution.json
+!out/fb_dish_photo_worksheet.csv
+!out/fb_dish_photo_worksheet_seed.tsv
