@@ -116,7 +116,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	},
 	web: {
 		bundler: "metro",
-		output: "static",
+		output: "single",
 		favicon: "./assets/images/favicon.20260207.png",
 	},
 	locales: {

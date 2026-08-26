@@ -465,6 +465,9 @@
 			"saveFailed": "No se pudo actualizar la reseña",
 			"conflict": "Esta reseña se actualizó en otro dispositivo. Vuelve a abrirla antes de editarla.",
 			"forbidden": "Solo puedes editar o eliminar tus propias publicaciones"
+		},
+		"moreMenu": {
+			"title": "Esta publicación"
 		}
 	},
 	"ImageCardGrid": {
@@ -844,7 +847,8 @@
 			"group_votes": {
 				"title": "Votaciones de grupo",
 				"description": "Cuando hay actividad en una votación de grupo a la que te uniste"
-			}
+			},
+			"navigationLabel": "Notificaciones"
 		},
 		"language": {
 			"navigationLabel": "Idioma",

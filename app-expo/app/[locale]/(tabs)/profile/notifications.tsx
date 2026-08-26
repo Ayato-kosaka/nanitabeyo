@@ -66,7 +66,7 @@ export default function NotificationSettingsScreen() {
 		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader
-					title={i18n.t("Settings.notifications.sectionTitle")}
+					title={i18n.t("Settings.notifications.navigationLabel")}
 					onPressBack={handleBack}
 					testID="notification-settings-screen"
 				/>

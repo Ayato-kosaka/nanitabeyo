@@ -465,6 +465,9 @@
 			"saveFailed": "更新できませんでした",
 			"conflict": "他の端末で先に更新されました。開き直してから編集してください",
 			"forbidden": "自分の投稿ではないため操作できません"
+		},
+		"moreMenu": {
+			"title": "この投稿"
 		}
 	},
 	"ImageCardGrid": {
@@ -844,7 +847,8 @@
 			"group_votes": {
 				"title": "グループ投票",
 				"description": "参加しているグループ投票に動きがあったとき"
-			}
+			},
+			"navigationLabel": "通知設定"
 		},
 		"language": {
 			"navigationLabel": "言語",

@@ -465,6 +465,9 @@
 			"saveFailed": "Couldn't update the review",
 			"conflict": "This review was updated somewhere else. Reopen it before editing.",
 			"forbidden": "You can only edit or delete your own posts"
+		},
+		"moreMenu": {
+			"title": "This post"
 		}
 	},
 	"ImageCardGrid": {
@@ -844,7 +847,8 @@
 			"group_votes": {
 				"title": "Group votes",
 				"description": "When there's activity in a group vote you joined"
-			}
+			},
+			"navigationLabel": "Notifications"
 		},
 		"language": {
 			"navigationLabel": "Language",

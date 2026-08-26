@@ -274,7 +274,12 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 				<Pressable style={styles.backdrop} onPress={() => setMenuVisible(false)}>
 					{/* シート本体のタップは閉じる操作に伝播させない */}
 					<Pressable testID="own-post-menu" style={styles.sheet} onPress={() => {}}>
-						<Text style={styles.sheetTitle}>{i18n.t("DishMediaContent.ownPost.menuTitle")}</Text>
+						{/*
+						  #1629 タイトルを «自分の投稿» から «この投稿» へ変えた。
+						  このメニューは **他人の投稿でも出る**（シェアと報告が入っているため）。
+						  «自分の投稿» のままだと、他人の投稿を開いたときに嘘になる。
+						*/}
+						<Text style={styles.sheetTitle}>{i18n.t("DishMediaContent.moreMenu.title")}</Text>
 
 						{/* #1629 誰の投稿でも出る 2 行。«人に渡す» 操作をここへ畳んだ */}
 						<TouchableOpacity

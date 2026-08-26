@@ -465,6 +465,9 @@
 			"saveFailed": "Impossible de mettre à jour l'avis",
 			"conflict": "Cet avis a été modifié ailleurs. Rouvrez-le avant de le modifier.",
 			"forbidden": "Vous ne pouvez modifier ou supprimer que vos propres publications"
+		},
+		"moreMenu": {
+			"title": "Cette publication"
 		}
 	},
 	"ImageCardGrid": {
@@ -844,7 +847,8 @@
 			"group_votes": {
 				"title": "Votes de groupe",
 				"description": "Quand il se passe quelque chose dans un vote de groupe que vous avez rejoint"
-			}
+			},
+			"navigationLabel": "Notifications"
 		},
 		"language": {
 			"navigationLabel": "Langue",

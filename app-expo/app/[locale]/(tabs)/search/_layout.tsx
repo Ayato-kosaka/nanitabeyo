@@ -14,7 +14,7 @@ export default function SearchStackLayout() {
 			{/*
 			  #1629 【修正】オーナー実機報告「うどんが大きくなって、下からまたうどんが出てくる」。
 
-			  「この料理にする！」を押すと、Topics 側の `TopicCardExpandTransition` が
+			  「この料理にする！」を押すと、dish-categories 側の `DishCategoryCardExpandTransition` が
 			  **カードを画面いっぱいまで広げる**。その完了後に result へ push するのだが、
 			  この画面は `presentation: "transparentModal"` なので **既定で下からせり上がる**。
 			  result の初期表示は同じ料理画像（`DishSelectionExpandLoading`）なので、

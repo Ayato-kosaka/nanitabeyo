@@ -352,7 +352,7 @@ export default function ProfileScreen() {
 						*/}
 						{!isGuest && (
 							<SettingsMenuItem
-								label={i18n.t("Settings.notifications.sectionTitle")}
+								label={i18n.t("Settings.notifications.navigationLabel")}
 								onPress={handleNavigateToNotificationSettings}
 								testID="settings-notifications"
 								accessibilityRole="link"
