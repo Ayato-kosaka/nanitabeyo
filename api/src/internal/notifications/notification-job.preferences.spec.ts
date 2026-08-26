@@ -50,6 +50,7 @@ describe('#1510 SET-02 通知カテゴリ別のプッシュ抑止', () => {
   let repo: {
     upsertNotification: jest.Mock;
     findNotificationPreference: jest.Mock;
+    claimPushDelivery: jest.Mock;
   };
   let notificationsService: {
     sendPushNotification: jest.Mock;
@@ -72,6 +73,8 @@ describe('#1510 SET-02 通知カテゴリ別のプッシュ抑止', () => {
         .fn()
         .mockResolvedValue({ notificationId: NOTIFICATION_ID, isNew: true }),
       findNotificationPreference: jest.fn().mockResolvedValue(null),
+      // #1599 既定は「まだ送っていない＝送ってよい」
+      claimPushDelivery: jest.fn().mockResolvedValue(true),
     };
 
     notificationsService = {
