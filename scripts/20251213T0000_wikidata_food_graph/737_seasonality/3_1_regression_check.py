@@ -148,7 +148,18 @@ def main():
     cur.execute("SELECT id, COALESCE(labels->>'ja', label_en) FROM dish_categories")
     label = {r[0]: r[1] for r in cur.fetchall()}
     winter_ids = {q for q in WINTER_QIDS if q in label}
-    watch = [q.strip() for q in args.watch.split(",")] if args.watch else []
+    # QID でも料理名でも指定できる（対照群は QID を覚えていないことが多い）
+    by_label = {v: k for k, v in label.items()}
+    watch = []
+    for tok in (args.watch.split(",") if args.watch else []):
+        tok = tok.strip()
+        if not tok:
+            continue
+        cid = tok if tok in label else by_label.get(tok)
+        if cid is None:
+            logger.warning(f"--watch で指定された '{tok}' は dev に見つからない")
+            continue
+        watch.append(cid)
     missing = [q for q in WINTER_QIDS if q not in label]
     logger.info(f"冬型カテゴリ: {len(winter_ids)} / {len(WINTER_QIDS)} 件を dev で解決")
     if missing:
