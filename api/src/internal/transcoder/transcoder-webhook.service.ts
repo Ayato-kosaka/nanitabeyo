@@ -64,20 +64,44 @@ export class TranscoderWebhookService {
 
   /**
    * #511 【設計】dish_media テーブルの processing_status を更新
+   *
+   * #1599 【バグ】**既にそのステータスなら 1 行も書かない。**
+   *
+   * Pub/Sub Push は at-least-once 配送で、ハンドラが成功しても応答が届かなければ
+   * 同じ通知がもう一度届く。以前は無条件 UPDATE だったので、再配送のたびに
+   * `lock_no` が進み、`updated_at` が «何も変わっていないのに» 現在時刻へ動いていた。
+   * `updated_at` は «最後に中身が変わった時刻» として読める必要がある。
+   *
+   * `resize-image.service.ts` の同名メソッドと同じ形にしてある（片方だけ直すと、
+   * もう片方で同じ «再配送のたびに行が書き換わる» が残る）。理由の詳細はあちらの
+   * doc comment にある。
    */
   private async updateDishMediaProcessingStatus(
     recordId: string,
     status: MediaProcessingStatus,
   ): Promise<void> {
     try {
-      await this.prisma.prisma.dish_media.update({
-        where: { id: recordId },
+      const { count } = await this.prisma.prisma.dish_media.updateMany({
+        where: { id: recordId, NOT: { media_processing_status: status } },
         data: {
           media_processing_status: status,
           updated_at: new Date(),
           lock_no: { increment: 1 },
         },
       });
+
+      if (count === 0) {
+        this.logger.log(
+          'DishMediaProcessingStatusUnchanged',
+          'updateDishMediaProcessingStatus',
+          {
+            recordId,
+            status,
+            reason: 'already_in_status_or_record_missing',
+          },
+        );
+        return;
+      }
 
       this.logger.log(
         'DishMediaProcessingStatusUpdated',
