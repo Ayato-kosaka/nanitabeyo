@@ -22,6 +22,10 @@ import {
   DishCategoryGroupVoteSearchContext,
 } from '@shared/v1/res';
 import { pickWinnerCandidate } from './dish-category-group-votes.ranking';
+import {
+  formatCompositeCursor,
+  parseCompositeCursor,
+} from '../../core/pagination/composite-cursor';
 
 export type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
 
@@ -285,13 +289,28 @@ export class DishCategoryGroupVotesRepository {
     const whereClause: Prisma.dish_category_group_vote_sessionsWhereInput = {
       host_user_id: userId,
     };
-    if (cursor) {
-      whereClause.updated_at = { lt: new Date(cursor) };
+    // #1596 カーソルは (updated_at, id) の複合。updated_at 単独だと、同じ
+    // updated_at を持つ行がページ境界をまたいだとき `lt` が **同時刻の行をまとめて
+    // 飛ばす**（20 件目と 21 件目が同時刻なら 21 件目以降が一覧から消える）。
+    // touchSession は候補追加・削除・投票のたびに走るので、同一ミリ秒での複数更新は
+    // «稀» であって «起きない» ではない。
+    const parsed = parseCompositeCursor(cursor);
+    if (parsed?.id) {
+      whereClause.OR = [
+        { updated_at: { lt: parsed.at } },
+        { updated_at: parsed.at, id: { lt: parsed.id } },
+      ];
+    } else if (parsed) {
+      // 旧形式（ISO8601 のみ）。配信済みクライアントが持っているカーソルを
+      // 無効にしないため、従来どおりの絞り込みで受ける。
+      whereClause.updated_at = { lt: parsed.at };
     }
 
     const sessions = await db.dish_category_group_vote_sessions.findMany({
       where: whereClause,
-      orderBy: { updated_at: 'desc' },
+      // id を副次キーに入れて同点時の並びを固定する。ここが無いと複合カーソルの
+      // 比較と実際の並びがズレ、やはり重複・欠落が出る。
+      orderBy: [{ updated_at: 'desc' }, { id: 'desc' }],
       take: limit + 1,
       select: {
         id: true,
@@ -320,7 +339,10 @@ export class DishCategoryGroupVotesRepository {
     const hasMore = sessions.length > limit;
     const page = hasMore ? sessions.slice(0, limit) : sessions;
     const nextCursor = hasMore
-      ? page[page.length - 1].updated_at.toISOString()
+      ? formatCompositeCursor(
+          page[page.length - 1].updated_at,
+          page[page.length - 1].id,
+        )
       : null;
 
     // #1505 【設計】候補と得票は **ページ全体を 2 クエリでまとめて引く**。

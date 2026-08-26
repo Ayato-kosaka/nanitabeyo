@@ -22,6 +22,7 @@ import { shallow } from "zustand/shallow";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import { useAuth } from "@/contexts/AuthProvider";
 import { ReportContentSheet } from "./ReportContentSheet";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface DishReviewsSectionProps {
 	id: string;
@@ -36,6 +37,11 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
 	const { user } = useAuth();
+	const { showSnackbar } = useSnackbar();
+	// #1599 二重タップで 2 発飛ぶのを防ぐ。楽観更新より前に弾くこと
+	// （後にすると 2 発目がトグルを戻してから弾かれ、表示だけ巻き戻る）。
+	// ActionButtons の inFlightActionsRef（#1205）と同じ役割。
+	const inFlightLikesRef = useRef<Set<string>>(new Set());
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => {
@@ -101,52 +107,84 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 		});
 	};
 
-	const handleReviewLike = async (reviewId: string) => {
-		lightImpact();
-		const { reviewsByReviewId, updateReview } = useDishMediaEntriesStore.getState();
-		const review = reviewsByReviewId[reviewId];
-		if (!review) return;
-		const currentLikeState = review.isLiked || false;
-		const willLike = !currentLikeState;
-		let newLikeCount = willLike ? review.likeCount + 1 : Math.max(0, review.likeCount - 1);
-		updateReview(review.id, (r) => ({
-			...r,
-			isLiked: willLike,
-			likeCount: newLikeCount,
-		}));
+	// #1599 【バグ】ここは楽観更新だけして、**失敗しても戻していなかった**。
+	// オフライン・タイムアウト・5xx で callBackend が reject しても catch はログを送るだけで、
+	// 画面は「いいね済み」のまま残る。通知も出ないので、ユーザーには
+	// サーバーへ届いていないことを知る手段が無い（次にこの画面を開き直すと消えている）。
+	//
+	// 投稿本体のいいね（ActionButtons.tsx）は #1501 でロールバックとリトライ Snackbar を
+	// 入れてある。**同じ画面の同じジェスチャーで、レビュー側だけが取り残されていた。**
+	// 挙動を揃える。
+	const handleReviewLike = useCallback(
+		async (reviewId: string) => {
+			// 楽観更新より前に弾く（下の #1205 のコメント参照）
+			if (inFlightLikesRef.current.has(reviewId)) return;
+			inFlightLikesRef.current.add(reviewId);
 
-		logFrontendEvent({
-			event_name: currentLikeState ? "review_unliked" : "review_liked",
-			error_level: "log",
-			payload: {
-				reviewId: review.id,
-			},
-		});
-
-		try {
-			if (willLike) {
-				await callBackend<{}, void>(`v1/dish-reviews/${review.id}/likes`, {
-					method: "POST",
-					requestPayload: {},
-				});
-			} else {
-				await callBackend<{}, void>(`v1/dish-reviews/${review.id}/likes`, {
-					method: "DELETE",
-					requestPayload: {},
-				});
+			lightImpact();
+			const { reviewsByReviewId, updateReview } = useDishMediaEntriesStore.getState();
+			const review = reviewsByReviewId[reviewId];
+			if (!review) {
+				inFlightLikesRef.current.delete(reviewId);
+				return;
 			}
-		} catch (error) {
+			const currentLikeState = review.isLiked || false;
+			const willLike = !currentLikeState;
+			// #1501 と同じ作法。戻す値は `!willLike`（トグルの反転）ではなく、
+			// **楽観更新の直前に読んだ値そのもの**を持つ。反転で戻すと、他端末や
+			// 別画面からの更新が割り込んでいた場合に誤った値を書き戻す。
+			const previousIsLiked = currentLikeState;
+			const previousLikeCount = review.likeCount;
+			const newLikeCount = willLike ? review.likeCount + 1 : Math.max(0, review.likeCount - 1);
+			updateReview(review.id, (r) => ({
+				...r,
+				isLiked: willLike,
+				likeCount: newLikeCount,
+			}));
+
 			logFrontendEvent({
-				event_name: "review_like_reaction_failed",
+				event_name: currentLikeState ? "review_unliked" : "review_liked",
 				error_level: "log",
 				payload: {
-					error: toErrorLogMessage(error),
-					target_id: review.id,
-					action_type: "like",
+					reviewId: review.id,
 				},
 			});
-		}
-	};
+
+			try {
+				await callBackend<{}, void>(`v1/dish-reviews/${review.id}/likes`, {
+					method: willLike ? "POST" : "DELETE",
+					requestPayload: {},
+				});
+			} catch (error) {
+				// 表示をサーバーと一致させるため、操作前の値へ戻す
+				updateReview(review.id, (r) => ({
+					...r,
+					isLiked: previousIsLiked,
+					likeCount: previousLikeCount,
+				}));
+
+				logFrontendEvent({
+					event_name: "review_like_reaction_failed",
+					// 黙って戻すと «勝手に取り消された» に見えるので、起票対象の warn へ上げる
+					error_level: "warn",
+					payload: {
+						error: toErrorLogMessage(error),
+						target_id: review.id,
+						action_type: "like",
+					},
+				});
+				// 文言は投稿本体のいいねと共用（「いいねの更新に失敗しました」）。
+				// レビュー専用の文言を足すと 8 ロケール増えるが、伝える内容は同じ
+				showSnackbar(i18n.t("DishMediaContent.errors.likeReactionFailed"), {
+					action: { label: i18n.t("Common.retry"), onPress: () => void handleReviewLike(reviewId) },
+				});
+			} finally {
+				// #1205 失敗しても押し直せるよう、成功・失敗のいずれでも必ず解除する
+				inFlightLikesRef.current.delete(reviewId);
+			}
+		},
+		[callBackend, lightImpact, logFrontendEvent, showSnackbar],
+	);
 
 	// #1514 (SAF-01) レビューの通報。
 	//
@@ -219,6 +257,7 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 								<View style={styles.commentActions}>
 									<TouchableOpacity
 										style={styles.commentLikeButton}
+										testID={`review-action-like-${review.id}`}
 										onPress={() => handleReviewLike(review.id)}
 										accessibilityRole="button"
 										accessibilityLabel={i18n.t("DishMediaContent.accessibility.reviewLike", {

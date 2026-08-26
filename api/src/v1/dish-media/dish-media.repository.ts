@@ -40,6 +40,15 @@ import { buildLanguageWhereClause } from './language-where';
 // #1511 退会したユーザーの投稿・レビューを外す where 断片（共有リンクの OGP でも使う）
 import { NOT_AUTHORED_BY_DELETED_USER } from './deleted-user-filter';
 import { MediaProcessingStatus } from '@shared/v1/res';
+import {
+  buildCursorFilter,
+  buildCursorOrderBy,
+  formatCompositeCursor,
+} from '../../core/pagination/composite-cursor';
+import {
+  formatRestaurantDishMediaCursor,
+  parseRestaurantDishMediaCursor,
+} from './restaurant-dish-media-cursor';
 
 /** #817 優先言語のレビュー先読みクエリの戻り値 */
 type DishReviewWithUser = Prisma.dish_reviewsGetPayload<{
@@ -496,12 +505,16 @@ export class DishMediaRepository {
     restaurantId: string,
     { limit = 42, cursor: cursorStr }: QueryRestaurantDishMediaDto,
   ) {
-    const cursor = cursorStr
-      ? {
-          likeCount: Number(cursorStr.split('_')[0]),
-          mediaId: cursorStr.split('_')[1],
-        }
-      : null;
+    // #1599 カーソルはクライアントから来る任意の文字列なので、形を検証してから使う。
+    //
+    // 以前は `Number(...)` と `split('_')[1]` の結果を無検証で raw SQL へ流していた。
+    // 壊れたカーソルを渡すと:
+    //   - `?cursor=abc`        → mediaId が undefined
+    //   - `?cursor=1_notauuid` → `'notauuid'::uuid` で **PostgreSQL が例外を投げる（500）**
+    //   - `?cursor=abc_<uuid>` → like_count が NaN になり比較が壊れる
+    // どれも «一覧が開けない» になる。**壊れたカーソルは先頭ページへ倒す**のが正しい
+    // （`core/pagination/composite-cursor.ts` と同じ方針）。
+    const cursor = parseRestaurantDishMediaCursor(cursorStr);
     const cursorWhere = cursor
       ? Prisma.sql`
           AND (
@@ -567,7 +580,7 @@ export class DishMediaRepository {
     const last = items[items.length - 1];
     const nextCursor: string | null =
       hasMore && items.length > 0
-        ? `${last.like_count}_${last.dish_media_id}`
+        ? formatRestaurantDishMediaCursor(last.like_count, last.dish_media_id)
         : null;
 
     return { items, nextCursor };
@@ -603,9 +616,8 @@ export class DishMediaRepository {
       ...NOT_AUTHORED_BY_DELETED_USER,
     };
     if (options.type === 'cursor' && options.cursor) {
-      whereClause.created_at = {
-        lt: new Date(options.cursor),
-      };
+      // #1599 `(created_at, id)` の複合カーソル。時刻単独だと同時刻の行がページ境界で飛ぶ
+      Object.assign(whereClause, buildCursorFilter(options.cursor));
     } else if (options.type === 'ids') {
       whereClause.id = {
         in: options.ids,
@@ -617,7 +629,7 @@ export class DishMediaRepository {
 
     const reviews = await this.prisma.prisma.dish_reviews.findMany({
       where: whereClause,
-      orderBy: { created_at: 'desc' },
+      orderBy: buildCursorOrderBy(),
       take,
       include: {
         users: true,
@@ -633,7 +645,10 @@ export class DishMediaRepository {
       hasMore && limit !== undefined ? reviews.slice(0, limit) : reviews;
     const nextCursor =
       options.type === 'cursor' && hasMore && reviewsToReturn.length > 0
-        ? reviewsToReturn[reviewsToReturn.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            reviewsToReturn[reviewsToReturn.length - 1].created_at,
+            reviewsToReturn[reviewsToReturn.length - 1].id,
+          )
         : null;
 
     const { reactionSet, reviewLikeCountMap } =
@@ -681,7 +696,8 @@ export class DishMediaRepository {
       limit,
     });
 
-    let result: { dish_media_id: string; created_at: Date }[] = [];
+    // #1599 `id` は複合カーソルの第 2 キーにだけ使う（呼び出し側は参照しない）
+    let result: { id: string; dish_media_id: string; created_at: Date }[] = [];
     if (isAnonymous) {
       // 匿名ユーザーの場合は reactions テーブルから取得
       const whereClause: Prisma.reactionsWhereInput = {
@@ -689,18 +705,19 @@ export class DishMediaRepository {
         target_type: 'dish_media',
         action_type: 'like',
       };
-      if (cursor) {
-        whereClause.created_at = { lt: new Date(cursor) };
-      }
+      // #1599 `(created_at, id)` の複合カーソル
+      Object.assign(whereClause, buildCursorFilter(cursor));
 
       const likes = await this.prisma.prisma.reactions.findMany({
         where: whereClause,
-        orderBy: { created_at: 'desc' },
+        orderBy: buildCursorOrderBy(),
         take: limit + 1,
-        select: { target_id: true, created_at: true },
+        // #1599 複合カーソルの第 2 キーに使うので id も引く
+        select: { id: true, target_id: true, created_at: true },
       });
 
       result = likes.map((r) => ({
+        id: r.id,
         dish_media_id: r.target_id,
         created_at: r.created_at,
       }));
@@ -709,18 +726,18 @@ export class DishMediaRepository {
       const whereClause: Prisma.dish_media_likesWhereInput = {
         user_id: userId,
       };
-      if (cursor) {
-        whereClause.created_at = { lt: new Date(cursor) };
-      }
+      // #1599 `(created_at, id)` の複合カーソル
+      Object.assign(whereClause, buildCursorFilter(cursor));
 
       const likes = await this.prisma.prisma.dish_media_likes.findMany({
         where: whereClause,
-        orderBy: { created_at: 'desc' },
+        orderBy: buildCursorOrderBy(),
         take: limit + 1,
-        select: { dish_media_id: true, created_at: true },
+        select: { id: true, dish_media_id: true, created_at: true },
       });
 
       result = likes.map((r) => ({
+        id: r.id,
         dish_media_id: r.dish_media_id,
         created_at: r.created_at,
       }));
@@ -731,7 +748,10 @@ export class DishMediaRepository {
     const items = hasMore ? result.slice(0, limit) : result;
     const nextCursor =
       hasMore && items.length > 0
-        ? items[items.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            items[items.length - 1].created_at,
+            items[items.length - 1].id,
+          )
         : null;
 
     this.logger.debug(
@@ -765,18 +785,19 @@ export class DishMediaRepository {
       target_type: 'dish_media',
       action_type: 'save',
     };
-    if (cursor) {
-      whereClause.created_at = { lt: new Date(cursor) };
-    }
+    // #1599 `(created_at, id)` の複合カーソル
+    Object.assign(whereClause, buildCursorFilter(cursor));
 
     const saves = await this.prisma.prisma.reactions.findMany({
       where: whereClause,
-      orderBy: { created_at: 'desc' },
+      orderBy: buildCursorOrderBy(),
       take: limit + 1,
-      select: { target_id: true, created_at: true },
+      // #1599 複合カーソルの第 2 キーに使うので id も引く
+      select: { id: true, target_id: true, created_at: true },
     });
 
     const result = saves.map((r) => ({
+      id: r.id,
       dish_media_id: r.target_id,
       created_at: r.created_at,
     }));
@@ -786,7 +807,10 @@ export class DishMediaRepository {
     const items = hasMore ? result.slice(0, limit) : result;
     const nextCursor =
       hasMore && items.length > 0
-        ? items[items.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            items[items.length - 1].created_at,
+            items[items.length - 1].id,
+          )
         : null;
 
     this.logger.debug(
@@ -953,7 +977,12 @@ export class DishMediaRepository {
     const eatenDishIds = new Set<string>();
     if (userId && dishIds.length > 0) {
       const myReviewedDishes = await this.prisma.prisma.dish_reviews.findMany({
-        where: { user_id: userId, dish_id: { in: dishIds } },
+        // #1513 削除済みレビューは «食べた» 記録として数えない。
+        // schema.prisma の deleted_at は「読み取り経路は必ず deleted_at IS NULL で絞る」と
+        // 定めており、dish_reviews を読む他の経路（618 / 893 / 1224 行、restaurants /
+        // users の集計）はすべて絞っている。**ここだけが漏れていた**。
+        // 漏れていると、レビューを消しても «食べたを記録» が記録済みの見た目のまま戻らない。
+        where: { user_id: userId, dish_id: { in: dishIds }, deleted_at: null },
         distinct: ['dish_id'],
         select: { dish_id: true },
       });

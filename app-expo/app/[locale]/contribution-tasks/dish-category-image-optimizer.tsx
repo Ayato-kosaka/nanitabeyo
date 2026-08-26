@@ -131,37 +131,28 @@ export default function DishCategoryImageOptimizerPage() {
 			return;
 		}
 
-		try {
-			// const result = await callBackend<UpdateDishCategoryImagesDto, UpdateDishCategoryImagesResponse>(
-			// 	"tools/dish-categories/update-images",
-			// 	{
-			// 		method: "POST",
-			// 		requestPayload: { items },
-			// 	},
-			// );
-			// if (result.success) {
-			// 	showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitSuccess", { count: result.updatedCount }));
-			// 	// 成功後はリセット
-			// 	setSelectedMap({});
-			// 	// カテゴリを再取得
-			// 	await fetchCategories();
-			// } else {
-			// 	showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitError"));
-			// }
-			// logFrontendEvent({
-			// 	event_name: "tools_images_updated",
-			// 	error_level: "log",
-			// 	payload: { count: items.length, success: result.success },
-			// });
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "tools_images_update_error",
-				error_level: "error",
-				payload: { error },
-			});
-			showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitError"));
-		}
-	}, [selectedMap, callBackend, showSnackbar, fetchCategories, logFrontendEvent]);
+		// #1599 【バグ】ここは送信処理が丸ごとコメントアウトされたまま、ボタンだけが
+		// 生きていた。例外が起きようがないので下の catch も発火せず、
+		// **ローディングが一瞬出て消えるだけで成功も失敗も一切通知されない**。
+		// 操作者からは «更新できた» のか «何も起きなかった» のか区別が付かない。
+		//
+		// 【調べた結果】コメントアウトは消し忘れではなく、**API 側が存在しない**ため。
+		//   - `api/src/tools/dish-categories/tools-dish-categories.controller.ts` は
+		//     `GET popular-with-media` の 1 本だけで、`POST update-images` は無い
+		//   - `UpdateDishCategoryImagesDto` / `UpdateDishCategoryImagesResponse` も
+		//     リポジトリのどこにも存在しない（このコメントの中にしか出てこない）
+		//
+		// つまり **そのまま復活させても型が解決せず、通っても 404 になる**。
+		// 直し方は «API を作る» であってフロントの復活ではないので、ここでは
+		// «出来ないことを出来ないと言う» ところまでにしておく。
+		// API（#494 の【API②】）が入ったら、この分岐ごと置き換えること。
+		logFrontendEvent({
+			event_name: "tools_images_update_unavailable",
+			error_level: "warn",
+			payload: { count: items.length },
+		});
+		showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitUnavailable"));
+	}, [selectedMap, showSnackbar, logFrontendEvent]);
 
 	/* ------------------------------------------------------------------ */
 	/*                           イベントハンドラ                          */

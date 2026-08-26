@@ -100,12 +100,26 @@ export class DishesRepository {
       lock_no?: number;
     },
   ) {
-    const existing = await tx.dishes.findFirst({
-      where: {
-        restaurant_id: dish.restaurant_id,
-        category_id: dish.category_id,
-      },
-    });
+    // #1599 【バグ】ここは `findFirst` → 無ければ `create` という
+    // TOCTOU（time-of-check to time-of-use）だった。dishes には
+    // `@@unique([restaurant_id, category_id])`（dishes_restaurant_category_unique）が
+    // 張ってあるため、同じ (restaurant_id, category_id) のリクエストが同時に来ると
+    // 両方の findFirst が空振りし、後発の create が P2002 で落ちて 500 になる。
+    //
+    // ⚠️ **catch して読み直す方式は Postgres では成立しない。** ここは `tx`
+    //    （$transaction 内）で動いており、P2002 が出た時点でトランザクション全体が
+    //    aborted 状態になるので、同じ tx 内での後続クエリはすべて失敗する。
+    //    **そもそも例外を出さない**必要がある。
+    //
+    // そこで `createMany({ skipDuplicates: true })`（= INSERT ... ON CONFLICT DO NOTHING）
+    // を使う。競合しても例外にならず、トランザクションも生きたままになる。
+    // 既に dish_reviews で採っているのと同じ手（createDishReviews 参照）。
+    const where = {
+      restaurant_id: dish.restaurant_id,
+      category_id: dish.category_id,
+    };
+
+    const existing = await tx.dishes.findFirst({ where });
 
     if (existing) {
       return existing;
@@ -113,9 +127,26 @@ export class DishesRepository {
 
     const { id: _omitId, ...createData } = dish;
 
-    return tx.dishes.create({
-      data: createData,
+    await tx.dishes.createMany({
+      data: [createData],
+      skipDuplicates: true,
     });
+
+    // ON CONFLICT DO NOTHING は「自分が入れた」「他が入れた」を区別しないので、
+    // どちらの場合も読み直して確定した行を返す。
+    //
+    // 【設計】READ COMMITTED（Postgres の既定 = Prisma $transaction の既定）を前提にしている。
+    // 文ごとに新しいスナップショットを取るため、DO NOTHING が競合相手の commit を待った後の
+    // この findFirst は、その行を必ず見られる。REPEATABLE READ 以上へ上げるとここが破れる。
+    const persisted = await tx.dishes.findFirst({ where });
+
+    if (!persisted) {
+      throw new Error(
+        `createOrGetDishForCategory: dish が見つからない (restaurant_id=${dish.restaurant_id}, category_id=${dish.category_id})`,
+      );
+    }
+
+    return persisted;
   }
 
   /**

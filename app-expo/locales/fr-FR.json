@@ -906,6 +906,7 @@
 			"submitting": "Mise à jour en cours...",
 			"submitSuccess": "{{count}} images mises à jour avec succès",
 			"submitError": "Échec de la mise à jour des images",
+			"submitUnavailable": "Cette fonctionnalité n'est pas encore disponible (le côté serveur n'est pas implémenté).",
 			"reset": "Réinitialiser",
 			"selected": "Sélectionné",
 			"dishCount": "{{count}} plats"

@@ -57,7 +57,7 @@ describe('#1510 SET-02 通知カテゴリ別のプッシュ抑止', () => {
   };
   let prisma: {
     withTransaction: jest.Mock;
-    prisma: { dish_media: { findUnique: jest.Mock } };
+    prisma: { dish_media: { findFirst: jest.Mock } };
   };
   let logger: {
     debug: jest.Mock;
@@ -89,7 +89,10 @@ describe('#1510 SET-02 通知カテゴリ別のプッシュ抑止', () => {
       ),
       prisma: {
         dish_media: {
-          findUnique: jest.fn().mockResolvedValue({ user_id: RECIPIENT_ID }),
+          // #1513 で本体が `findUnique` から `findFirst`（+ `deleted_at: null`）へ
+          // 変わったのに、このモックだけ取り残されていた。結果この suite の 6 件は
+          // «findFirst is not a function» で全滅したまま緑扱いになっていた。
+          findFirst: jest.fn().mockResolvedValue({ user_id: RECIPIENT_ID }),
         },
       },
     };
@@ -105,6 +108,13 @@ describe('#1510 SET-02 通知カテゴリ別のプッシュ抑止', () => {
       getUserByIds: jest.fn().mockResolvedValue([
         { id: ACTOR_ID, display_name: 'Actor', preferred_locale: 'ja' },
         { id: RECIPIENT_ID, display_name: 'Recipient', preferred_locale: 'ja' },
+      ]),
+      // #1557 «退会した» と «そもそも users 行が無い（匿名）» を区別するために
+      // 本体が後から使い始めた取得。ここも更新し忘れていた 3 つ目のズレ。
+      // 既定は「誰も退会していない」= deleted_at なしで両者を返す。
+      getUsersByIdsIncludingDeleted: jest.fn().mockResolvedValue([
+        { id: ACTOR_ID, deleted_at: null },
+        { id: RECIPIENT_ID, deleted_at: null },
       ]),
     };
 

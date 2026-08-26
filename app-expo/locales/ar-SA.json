@@ -906,6 +906,7 @@
 			"submitting": "جارٍ التحديث...",
 			"submitSuccess": "تم تحديث {{count}} صورة بنجاح",
 			"submitError": "فشل تحديث الصور",
+			"submitUnavailable": "هذه الميزة غير متاحة بعد (لم يتم تنفيذ الجانب الخادم).",
 			"reset": "إعادة تعيين",
 			"selected": "محدد",
 			"dishCount": "{{count}} أطباق"

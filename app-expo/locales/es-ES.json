@@ -906,6 +906,7 @@
 			"submitting": "Actualizando...",
 			"submitSuccess": "{{count}} imágenes actualizadas con éxito",
 			"submitError": "Error al actualizar las imágenes",
+			"submitUnavailable": "Esta función aún no está disponible (el lado del servidor no está implementado).",
 			"reset": "Restablecer",
 			"selected": "Seleccionado",
 			"dishCount": "{{count}} platos"

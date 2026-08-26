@@ -16,6 +16,7 @@ import type {
   ContentReportReasonCode,
   ContentReportTargetType,
 } from '@shared/v1/constants/contentReports';
+import { buildCursorFilter } from '../../core/pagination/composite-cursor';
 
 /** `content_reports` の 1 行のうち、この機能が使う列だけ */
 export type ContentReportRecord = {
@@ -100,8 +101,13 @@ export class ContentReportsRepository {
    * この引数を呼び出し側の任意の値にしてはいけない（他人の通報が読めてしまう）。
    * Controller は `@CurrentUser()` の id だけを渡すこと。
    *
-   * 並びは新しい順。カーソルは `created_at` の ISO 文字列で、
-   * 同着（同一ミリ秒）が起きうるので id を第 2 キーに入れて安定させる。
+   * 並びは新しい順。同着（同一ミリ秒）が起きうるので id を第 2 キーに入れて安定させる。
+   *
+   * ⚠️ #1599 **並び順に id を足すだけでは足りない。** 以前はここが
+   * `created_at < :cursor` の単一カーソルで、`orderBy` にだけ id が入っていた。
+   * 並びは安定するが、**同時刻の行がページ境界をまたぐと丸ごと飛ぶ**のは直っていない
+   * （次ページの起点が最終行の時刻そのものなので `<` が同時刻の行を全部落とす）。
+   * カーソル側も `(created_at, id)` の複合にして初めて塞がる。
    */
   async findByReporter(
     reporterUserId: string,
@@ -111,7 +117,7 @@ export class ContentReportsRepository {
     return this.prisma.content_reports.findMany({
       where: {
         reporter_user_id: reporterUserId,
-        ...(cursor ? { created_at: { lt: new Date(cursor) } } : {}),
+        ...buildCursorFilter(cursor),
       },
       orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
       take: limit,

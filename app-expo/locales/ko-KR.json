@@ -906,6 +906,7 @@
 			"submitting": "업데이트 중...",
 			"submitSuccess": "{{count}}개 이미지가 성공적으로 업데이트되었습니다",
 			"submitError": "이미지 업데이트 실패",
+			"submitUnavailable": "이 기능은 아직 사용할 수 없습니다(서버 측이 구현되지 않았습니다).",
 			"reset": "초기화",
 			"selected": "선택됨",
 			"dishCount": "{{count}}개 요리"

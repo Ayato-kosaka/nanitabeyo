@@ -19,6 +19,29 @@ import {
  *  - Nest LoggerService を実装
  *  - Cloud Logging 向けの構造化 JSON を stdout に出力
  */
+/**
+ * #1599 ログへ残す外部 API のエンドポイントから、**クエリ文字列とフラグメントを落とす**。
+ *
+ * 認証情報（`?key=`、`?token=`）も、ユーザー由来の値（`?latlng=`、`?q=`）も、
+ * まとめてクエリに乗る。個別のキー名を列挙して弾く方式は、
+ * **新しいキー名が増えたときに黙って漏れる**ので採らない。丸ごと落とす。
+ *
+ * どの API を叩いたかは `api_name` と `pathname` で十分に分かる。
+ * パラメータの中身が要るなら `request_payload`（マスキング付き）を見る。
+ */
+export function sanitizeEndpointForLog(endpoint: string): string {
+  if (typeof endpoint !== 'string' || endpoint.length === 0) return '';
+
+  try {
+    const url = new URL(endpoint);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    // URL として解釈できない文字列でも、`?` 以降は落としておく（保険）
+    const queryIndex = endpoint.indexOf('?');
+    return queryIndex === -1 ? endpoint : endpoint.slice(0, queryIndex);
+  }
+}
+
 @Injectable({ scope: Scope.DEFAULT })
 export class AppLoggerService implements INestLoggerService {
   constructor(private readonly cls: ClsService) {}
@@ -99,7 +122,15 @@ export class AppLoggerService implements INestLoggerService {
         request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
         function_name: input.function_name,
         api_name: input.api_name,
-        endpoint: input.endpoint,
+        // #1599 **クエリ文字列は落としてから記録する。**
+        // 呼び出し側が `?key=<APIキー>` を含む URL をそのまま渡していたため、
+        // Google の API キーと、逆ジオコーディングの `latlng=`（ユーザーの現在地）が
+        // `external_api_logs` へ入っていた。ログは BigQuery へ蓄積され、
+        // error-triage 経由で **公開リポジトリの Issue へも転載される**。
+        //
+        // ここ（唯一の出口）で落とすことで、呼び出し側が何を渡しても漏れない。
+        // `safe-fetch.service.ts` も同じ方針で origin + pathname だけを渡している。
+        endpoint: sanitizeEndpointForLog(input.endpoint),
         method: input.method,
         request_payload: this.convertToBigQueryRecord(input.request_payload),
         response_payload: this.convertToBigQueryRecord(input.response_payload),
