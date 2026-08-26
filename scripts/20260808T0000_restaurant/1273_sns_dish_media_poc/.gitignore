@@ -55,3 +55,4 @@ out/_blog_imgs/
 !out/license_source_attribution.json
 !out/fb_dish_photo_worksheet.csv
 !out/fb_dish_photo_worksheet_seed.tsv
+!out/manual_import_rate_worksheet.csv
