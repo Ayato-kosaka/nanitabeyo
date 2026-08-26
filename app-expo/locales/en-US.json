@@ -886,6 +886,10 @@
 			"unblockMessage": "This dish category will be added back to recommendations.",
 			"unblockConfirm": "Unblock",
 			"unblocked": "Unblocked"
+		},
+		"account": {
+			"navigationLabel": "Account",
+			"title": "Account"
 		}
 	},
 	"Dialog": {

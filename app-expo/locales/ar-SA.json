@@ -886,6 +886,10 @@
 			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
 			"unblockConfirm": "إلغاء الحظر",
 			"unblocked": "تم إلغاء الحظر"
+		},
+		"account": {
+			"navigationLabel": "إدارة الحساب",
+			"title": "إدارة الحساب"
 		}
 	},
 	"Dialog": {

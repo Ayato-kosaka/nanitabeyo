@@ -886,6 +886,10 @@
 			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
 			"unblockConfirm": "차단 해제",
 			"unblocked": "차단 해제됨"
+		},
+		"account": {
+			"navigationLabel": "계정 관리",
+			"title": "계정 관리"
 		}
 	},
 	"Dialog": {

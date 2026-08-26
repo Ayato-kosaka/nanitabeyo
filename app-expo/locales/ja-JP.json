@@ -886,6 +886,10 @@
 			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
+		},
+		"account": {
+			"navigationLabel": "アカウント管理",
+			"title": "アカウント管理"
 		}
 	},
 	"Dialog": {

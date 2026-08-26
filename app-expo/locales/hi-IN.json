@@ -886,6 +886,10 @@
 			"unblockMessage": "यह व्यंजन श्रेणी सिफारिशों में वापस जोड़ दी जाएगी।",
 			"unblockConfirm": "अनब्लॉक करें",
 			"unblocked": "अनब्लॉक किया गया"
+		},
+		"account": {
+			"navigationLabel": "खाता प्रबंधन",
+			"title": "खाता प्रबंधन"
 		}
 	},
 	"Dialog": {

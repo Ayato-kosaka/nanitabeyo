@@ -886,6 +886,10 @@
 			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
+		},
+		"account": {
+			"navigationLabel": "Cuenta",
+			"title": "Cuenta"
 		}
 	},
 	"Dialog": {

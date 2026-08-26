@@ -27,8 +27,8 @@ import { Card } from "@/components/Card";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import type { Palette } from "@/constants/Palette";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { SettingsMenuItem } from "@/features/settings/components/SettingsMenuItem";
 import { SettingsToggleItem } from "@/features/settings/components/SettingsToggleItem";
-import { ThemeSelector } from "@/features/settings/components/ThemeSelector";
 import { setHapticsEnabled } from "@/features/settings/hapticsSettingsStore";
 import { useHapticsEnabled } from "@/features/settings/hooks/useHapticsEnabled";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -65,6 +65,20 @@ export default function DeviceSettingsScreen() {
 		router.replace({ pathname: "/[locale]/(tabs)/profile", params: { locale } });
 	}, [lightImpact, logFrontendEvent, locale]);
 
+	// #1629 【仕様】言語はマイページ本体から移設。端末設定の 1 ブロック目に集める（オーナー指示）
+	const handleNavigateToLanguage = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({ event_name: "settings_language_pressed", error_level: "log", payload: {} });
+		router.push({ pathname: "/[locale]/(tabs)/profile/language", params: { locale } });
+	}, [lightImpact, logFrontendEvent, locale]);
+
+	// #1629 【仕様】表示テーマを 1 階層深いページへ（オーナー指示）
+	const handleNavigateToTheme = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({ event_name: "settings_theme_pressed", error_level: "log", payload: {} });
+		router.push({ pathname: "/[locale]/(tabs)/profile/theme", params: { locale } });
+	}, [lightImpact, logFrontendEvent, locale]);
+
 	// #1504 【設計】ハプティクスのオン/オフ切替。オンにした場合のみ確認の振動を返す
 	// (オフへ切り替えたのに振動が鳴ると、切ったつもりが切れていないように見えるため)
 	const handleToggleHaptics = useCallback(
@@ -95,30 +109,38 @@ export default function DeviceSettingsScreen() {
 					{/* #1504 端末に閉じた設定であることを明示する。SET-02/05/06 が増えても文言は変わらない */}
 					<Text style={styles.description}>{i18n.t("Settings.deviceSettings.description")}</Text>
 
-					{/* 端末ローカルの設定。以後 SET-02(通知) / SET-06(言語) もこのカードに並ぶ */}
+					{/*
+					  #1629 【仕様】1 ブロック目は «言語» → «触覚フィードバック» → «表示テーマ» の順（オーナー指示）。
+
+					  ⚠️ #1504 は「押すと画面が開く行」と「押すとその場で値が変わる行」を同じカードに
+					     混ぜない方針だったが、**オーナーの指示でこの 3 つを 1 ブロックにまとめている**。
+					     方針を忘れて戻したのではない。並べ替えるときはオーナーへ確認すること。
+
+					  表示テーマは 3 択ラジオを直置きせず `profile/theme` へ送る（同じくオーナー指示）。
+					  これで «この画面に並ぶのは 1 行 1 設定» という形が揃う。
+					*/}
 					<Card style={styles.card}>
+						<SettingsMenuItem
+							label={i18n.t("Settings.language.navigationLabel")}
+							onPress={handleNavigateToLanguage}
+							testID="settings-language"
+							accessibilityRole="link"
+						/>
 						<SettingsToggleItem
 							label={i18n.t("Settings.hapticsEnabled")}
 							value={hapticsEnabled}
 							onValueChange={handleToggleHaptics}
 							testID="settings-haptics-toggle"
 						/>
+						<SettingsMenuItem
+							label={i18n.t("Settings.theme.sectionTitle")}
+							onPress={handleNavigateToTheme}
+							isLast
+							testID="settings-theme"
+							accessibilityRole="link"
+						/>
 					</Card>
 
-					{/* #1583 SET-05 表示テーマ。この画面が最初から想定していた住人
-					    （上の «今後 SET-05(ダークモード) が並ぶ» の実現）。
-					    `theme_preference_v1` は端末に閉じており、この画面の約束
-					    «ログインし直しても・別端末でも引き継がれない» と一致する。
-
-					    見出しを別に立てているのは、上のカードがトグル・こちらが 3 択ラジオで
-					    操作の種類が違うため。同じカードに混ぜると «押すと切り替わる行» と
-					    «押すと選ばれる行» が並んで読みにくい */}
-					<Text style={styles.sectionTitle} accessibilityRole="header">
-						{i18n.t("Settings.theme.sectionTitle")}
-					</Text>
-					<Card style={styles.card}>
-						<ThemeSelector />
-					</Card>
 				</ScrollView>
 			</SafeAreaView>
 		</LinearGradient>
@@ -154,14 +176,5 @@ const createStyles = (colors: Palette) =>
 		},
 		card: {
 			padding: 0,
-		},
-		// #1583 テーマセクションの見出し（カードの外に置く。profile/index.tsx から写した値）
-		sectionTitle: {
-			fontSize: 13,
-			fontWeight: "700",
-			color: colors.textSecondary,
-			marginTop: 16,
-			marginHorizontal: 32,
-			marginBottom: 8,
 		},
 	});
