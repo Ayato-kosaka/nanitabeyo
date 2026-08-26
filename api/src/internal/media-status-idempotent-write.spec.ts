@@ -190,6 +190,15 @@ describe('#1599 トランスコード完了の status 書き込み（TranscoderW
           provide: TranscoderService,
           useValue: { createTranscodeJob: jest.fn() },
         },
+        // #1599 ③ で TranscoderWebhookService が claim 用に StorageService を取るようになった。
+        // この suite は SUCCEEDED しか流さないので使われないが、DI は解決できる必要がある
+        {
+          provide: StorageService,
+          useValue: {
+            claimOnce: jest.fn(),
+            deleteFileIfExists: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
