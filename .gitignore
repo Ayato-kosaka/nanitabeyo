@@ -69,5 +69,5 @@ __pycache__/
 e2e-mobile/.detox-ci-logs/
 
 # --- ec2-chrome-operate の実行用チャンク（コミットしない） ---
-.claude/skills/ec2-chrome-operate/chunks/
+.claude/skills/ec2-chrome-operate/chunks*/
 .claude/skills/ec2-chrome-operate/*.local.sh
