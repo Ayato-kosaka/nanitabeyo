@@ -1,0 +1,39 @@
+{
+  "_": "#1633 未ログインの Chrome で Facebook 写真タブが見えるかの切り分け。判定ではなく到達可否だけを見た。",
+  "_env": "EC2 i-0684d39b0c1b1abb6 (ap-northeast-1, AWS のデータセンター IP) 上の Chrome。claude --chrome が操作。Facebook へはログインしていない。",
+  "_measured_at": "2026-08-26T18:40Z / 18:46Z (UTC)",
+  "part_a": {
+    "_": "記入シート全体に散らした13件。verdict は wall=ログイン壁で写真ゼロ / visible=写真が見える / unavailable=コンテンツ利用不可",
+    "summary": {"wall": 10, "visible": 0, "unavailable": 3, "other": 0},
+    "items": [
+      {"no": 2,  "verdict": "unavailable", "headline": "This content isn't available right now"},
+      {"no": 10, "verdict": "wall",        "headline": "You must log in to continue."},
+      {"no": 18, "verdict": "wall",        "headline": "You must log in to continue."},
+      {"no": 26, "verdict": "wall",        "headline": "You must log in to continue."},
+      {"no": 34, "verdict": "unavailable", "headline": "This content isn't available right now"},
+      {"no": 42, "verdict": "wall",        "headline": "You must log in to continue."},
+      {"no": 50, "verdict": "wall",        "headline": "You must log in to continue."},
+      {"no": 58, "verdict": "wall",        "headline": "You must log in to continue."},
+      {"no": 66, "verdict": "wall",        "headline": "You must log in to continue."},
+      {"no": 74, "verdict": "wall",        "headline": "You must log in to continue."},
+      {"no": 82, "verdict": "wall",        "headline": "Explore the things you love."},
+      {"no": 90, "verdict": "unavailable", "headline": "This content isn't available right now"},
+      {"no": 98, "verdict": "wall",        "headline": "Explore the things you love."}
+    ]
+  },
+  "part_b": {
+    "_": "壁を回避できる URL の形があるか。page_id=103913745072292 で試した",
+    "items": [
+      {"form": "https://www.facebook.com/<id>/photos",            "verdict": "wall",        "note": "パイロット3件とも同じ"},
+      {"form": "https://www.facebook.com/<id>",                   "verdict": "wall",        "note": "/login/?next=... へリダイレクト"},
+      {"form": "https://www.facebook.com/pg/<id>/photos/",        "verdict": "wall",        "note": "You must log in to continue."},
+      {"form": "https://www.facebook.com/profile.php?id=<id>&sk=photos", "verdict": "unavailable", "note": "This content isn't available right now"},
+      {"form": "https://www.facebook.com/<id>/photos_by",         "verdict": "unavailable", "note": "同上"},
+      {"form": "https://m.facebook.com/<id>/photos",              "verdict": "blocked",     "note": "拡張機能のドメイン許可外。未検証"},
+      {"form": "https://mbasic.facebook.com/<id>/photos",         "verdict": "wall",        "note": "ログイン選択画面"}
+    ]
+  },
+  "conclusion": "パイロット3件 + PART A 13件 = 16件で visible=0。試した5つの URL 形式すべてで写真サムネイルは1枚も出ない。未ログインのこの環境では料理写真率を測れない。",
+  "caveat": "この壁が Facebook 共通の挙動なのか、AWS のデータセンター IP に対して強く出ているだけなのかは、この環境からは切り分けられない。住宅回線のブラウザで同じ URL を開けば10秒で分かる。",
+  "evidence_png": "EC2 の /home/ubuntu/evidence/fb_wall.png（NO=10 の壁画面。agent が Read で内容確認済み。Google Drive へは未アップロード）"
+}

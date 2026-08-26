@@ -1,0 +1,3 @@
+{"no": 1, "page": "private", "dish_photo": "no", "n_dish": "0", "identifiable": "no", "recent": "unknown", "note": "未ログインのログイン必須画面のみ。写真タブもページ本体も閲覧不可", "seen": "ログイン要求で何も見えず"}
+{"no": 4, "page": "private", "dish_photo": "no", "n_dish": "0", "identifiable": "no", "recent": "unknown", "note": "未ログインのログイン必須画面のみ。写真タブの中身は一切見えない", "seen": "ログイン要求で何も見えず"}
+{"no": 12, "page": "dead", "dish_photo": "no", "n_dish": "0", "identifiable": "no", "recent": "unknown", "note": "コンテンツ利用不可の表示。削除・非公開・要ログインのいずれか判別不能", "seen": "コンテンツ利用不可のエラー画面のみ"}
