@@ -14,12 +14,20 @@
 --   （2026-08-26）。このファイルは **両方を IF NOT EXISTS で作る**ので、
 --   どちらのスキーマへ当てても «足りない方だけ» が作られる。
 --
--- 【なぜ欠けたのか】
---   - idx_restaurants_location は 20250802T0300_create_restaurants.sql:21 が
---     `CREATE INDEX`（IF NOT EXISTS なし・CONCURRENTLY なし）で作っている。public には在るので、
---     dev はそのファイルが当たる前に別経路で作られたか、当時失敗している
---   - idx_restaurants_name_trgm は 20260824T0300 で追加されたが、**dev にしか当たっていない**
---     （public への適用がまだ）
+-- 【なぜ欠けたのか（2026-08-26 に全件監査で確定）】
+--   `scripts/db-checks/audit_schema_drift.py` で dev ⇔ public を全件突き合わせた結果、
+--   **public にだけ在って dev に無いものは idx_restaurants_location ただ 1 つ**だった。
+--   逆向き（dev にだけ在る）は索引 11・列 12・テーブル 2 で、これは «dev が先行している»
+--   だけの正常な状態である。つまり食い違いの正体は次の 2 つで、性質がまったく違う。
+--
+--   1. idx_restaurants_location が dev に無い … **これだけが異常**。
+--      20250802T0300_create_restaurants.sql:21 は `CREATE INDEX`（IF NOT EXISTS なし）で
+--      作っており、public には在る。dev の restaurants がそのファイルを通っていないか、
+--      後から誰かが落としたことになる。**どちらかは追えない。**
+--      scripts/apply-migration.sh は «どこまで当てたか» を DB に記録せず、実行者が
+--      from_file を手で指定する設計で、db-migrate.yml の実行履歴も 2026-08-07 以降しか無い
+--   2. idx_restaurants_name_trgm が public に無い … これは異常ではなく、
+--      **リリース待ち**（public に無い索引は他に 11 本ある）
 --
 -- 【これが無いと何が起きているか（dev の実測・2026-08-26 / 直近 2 日）】
 --   - お店のテキスト検索: p50 10.3 秒 / p95 61.9 秒 / 最大 67.5 秒（n=53）
