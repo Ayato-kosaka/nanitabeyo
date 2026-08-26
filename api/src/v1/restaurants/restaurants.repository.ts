@@ -68,7 +68,6 @@ export class RestaurantsRepository {
     // 半径（m）→（km）
     const radiusInKm = dto.radius / 1000;
     // 緯度・経度のざっくりとしたバウンディングボックス用の度数（1度 ≒ 111km）
-    const radiusInDegrees = radiusInKm / 111;
 
     // 生 SQL で集計。Prisma のテンプレートタグにより ${} 内はバインドパラメータとして扱われる。
     // - reactions / dish_media / dishes を辿って「保存された dish_media の属するレストラン」を抽出
@@ -160,17 +159,31 @@ export class RestaurantsRepository {
       -- #1513 削除済みレビューを件数・平均に混ぜない
       ON dr.dish_id = d.id AND dr.deleted_at IS NULL
     WHERE
-      -- 粗いバウンディングボックスで先に絞り込み（インデックスがあれば活用されやすい）
-      r.latitude BETWEEN p.lat - ${radiusInDegrees} AND p.lat + ${radiusInDegrees}
-      AND r.longitude BETWEEN p.lng - ${radiusInDegrees} AND p.lng + ${radiusInDegrees}
-      -- 正確な距離フィルタ（地球半径 6371km・球面三角法）
-      AND (
-        6371 * acos(
-          cos(radians(p.lat)) * cos(radians(r.latitude))
-          * cos(radians(r.longitude) - radians(p.lng))
-          + sin(radians(p.lat)) * sin(radians(r.latitude))
-        )
-      ) <= p.radius_km
+      /*
+        #1629 【修正】ST_DWithin + 既存の GIST 索引（idx_restaurants_location）で絞る。
+
+        旧実装は latitude / longitude のバウンディングボックス + acos だったが、
+        **この 2 列に btree が 1 本も無い**ため（全 migration を検査して確認）
+        restaurants の Seq Scan になっていた。日本全体の viewport から
+        「このエリアで再検索」を押すと半径が 1,000 km 級になり、全件走査 + 集計で
+        「保存したお店の取得に失敗しました」に落ちるほど遅くなる。
+
+        restaurants.location は GENERATED ALWAYS AS
+        (ST_SetSRID(ST_MakePoint(longitude, latitude),4326)::geography) STORED で、
+        元になる latitude / longitude は NOT NULL。つまり **NULL になり得ない**ので、
+        haversine 版から乗り換えても «location が NULL の店だけ消える» は起きない
+        （schema.prisma は生成列を表現できず nullable + DEFAULT に見えるが、DDL が正）。
+        ⚠️ この SQL はテンプレートリテラルの中である。**コメントにバッククォートを書かないこと**
+           （文字列がそこで閉じる。#1375 で実際に踏んだ）。
+
+        ⚠️ geography の ST_DWithin は既定で回転楕円体で測るので、真球の haversine とは
+           境界付近で 0.3% 程度ずれる（より正確になる方向）。
+      */
+      ST_DWithin(
+        r.location,
+        ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326)::geography,
+        p.radius_km * 1000
+      )
     GROUP BY
       r.id,
       sr.last_saved_at
@@ -226,7 +239,6 @@ export class RestaurantsRepository {
 
     // Geographic fence query: find restaurants based on latitude/longitude and radius
     const radiusInKm = dto.radius / 1000; // Convert to kilometers
-    const radiusInDegrees = radiusInKm / 111; // Rough conversion (1 degree ≈ 111 km)
 
     // #1395 店名の部分一致（自前 restaurants テーブル。Google Places は呼ばない）。
     // ユーザー入力の % / _ / \ は LIKE のワイルドカードとして解釈されてしまうので、
@@ -244,9 +256,12 @@ export class RestaurantsRepository {
     // GROUP BY r.id に対して r の列だけから成る式は関数従属なので ORDER BY に直接書ける
     const orderBy =
       escapedNameQuery || dto.orderByDistance
-        ? Prisma.sql`ORDER BY (6371 * acos(cos(radians(${dto.lat})) * cos(radians(r.latitude))
-            * cos(radians(r.longitude) - radians(${dto.lng})) + sin(radians(${dto.lat}))
-            * sin(radians(r.latitude)))) ASC`
+        ? // #1629 距離順も geography で測る。WHERE の ST_DWithin と同じ土俵にしておかないと、
+          // 「絞り込みには入っているのに並び順だけ別の距離」という食い違いが起きうる
+          Prisma.sql`ORDER BY ST_Distance(
+            r.location,
+            ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography
+          ) ASC`
         : Prisma.sql`ORDER BY total_cents DESC`;
 
     const rawResult = await tx.$queryRaw<
@@ -306,11 +321,12 @@ export class RestaurantsRepository {
         -- #1513 削除済みレビューを件数・平均に混ぜない
         ON dr.dish_id = d.id AND dr.deleted_at IS NULL
       WHERE 
-        r.latitude BETWEEN ${dto.lat - radiusInDegrees} AND ${dto.lat + radiusInDegrees}
-        AND r.longitude BETWEEN ${dto.lng - radiusInDegrees} AND ${dto.lng + radiusInDegrees}
-        AND (6371 * acos(cos(radians(${dto.lat})) * cos(radians(r.latitude)) 
-            * cos(radians(r.longitude) - radians(${dto.lng})) + sin(radians(${dto.lat})) 
-            * sin(radians(r.latitude)))) <= ${radiusInKm}
+        -- #1629 ST_DWithin + 既存 GIST（詳細は searchNearbySavedRestaurants 側のコメント）
+        ST_DWithin(
+          r.location,
+          ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography,
+          ${radiusInKm * 1000}
+        )
         ${nameFilter}
       GROUP BY r.id
       ${orderBy}
