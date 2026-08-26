@@ -67,3 +67,7 @@ supabase/.temp/
 supabase/.env*.pyc
 __pycache__/
 e2e-mobile/.detox-ci-logs/
+
+# ec2-chrome-operate の実行時生成物（SKILL.md 参照）
+.claude/skills/ec2-chrome-operate/chunks/
+.claude/skills/ec2-chrome-operate/*.local.sh
