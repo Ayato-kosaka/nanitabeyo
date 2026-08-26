@@ -54,9 +54,17 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
     { id: string; actorIds: string[]; recipientIds: Set<string> }
   >;
   let nextId: number;
+  /**
+   * #1599 «この受取人へ、この actor 分の Push を送る権利» の台帳。
+   * 実装（notification_recipients.last_pushed_actor_id への条件付き UPDATE）と
+   * 同じ判定をなぞる。ここを素通しの jest.fn() にすると、
+   * «再配送で二重に送る» 欠陥がテストからは見えなくなる
+   */
+  let pushedActorByRecipient: Map<string, string>;
 
   let repo: {
     upsertNotification: jest.Mock;
+    claimPushDelivery: jest.Mock;
   };
   let notificationsService: {
     sendPushNotification: jest.Mock;
@@ -84,6 +92,7 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
   beforeEach(async () => {
     notificationsByKey = new Map();
     nextId = 0;
+    pushedActorByRecipient = new Map();
 
     repo = {
       upsertNotification: jest.fn(
@@ -93,9 +102,7 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
           recipientIds: string[],
           actorId: string,
         ) => {
-          const existing = notificationsByKey.get(
-            notification.idempotency_key,
-          );
+          const existing = notificationsByKey.get(notification.idempotency_key);
           if (existing) {
             existing.actorIds = [
               actorId,
@@ -112,6 +119,19 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
           };
           notificationsByKey.set(notification.idempotency_key, created);
           return { notificationId: created.id, isNew: true };
+        },
+      ),
+      claimPushDelivery: jest.fn(
+        async (
+          notificationId: string,
+          recipientId: string,
+          actorId: string,
+        ) => {
+          const key = `${notificationId}:${recipientId}`;
+          // 実装の `last_pushed_actor_id IS DISTINCT FROM :actorId` と同じ
+          if (pushedActorByRecipient.get(key) === actorId) return false;
+          pushedActorByRecipient.set(key, actorId);
+          return true;
         },
       ),
     };
@@ -141,9 +161,7 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
     };
 
     usersService = {
-      getUserByIds: jest
-        .fn()
-        .mockResolvedValue([HOST_USER, VOTER_USER]),
+      getUserByIds: jest.fn().mockResolvedValue([HOST_USER, VOTER_USER]),
       // #1511 / #1557 «退会» と «users 行が無い（匿名）» を区別する取得。
       // 既定では getUserByIds と同じ集合を返す = 「誰も退会していない」。
       // 退会を模す test だけがこちらを個別に上書きする。
@@ -331,7 +349,11 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
     usersService.getUserByIds.mockResolvedValue([
       HOST_USER,
       VOTER_USER,
-      { id: OTHER_VOTER_ID, display_name: 'Other Voter', preferred_locale: 'en' },
+      {
+        id: OTHER_VOTER_ID,
+        display_name: 'Other Voter',
+        preferred_locale: 'en',
+      },
     ]);
 
     await service.processNotificationJob(votePayload(VOTER_ID));
