@@ -88,10 +88,18 @@ def main() -> int:
             continue
         for col in ("page", "dish_photo", "n_dish", "identifiable", "recent"):
             r[col] = str(rec.get(col, "")).strip()
-        # note には見えたもの（seen）も残す。判定を後から検証できるようにするため
+        # note には「見えたもの」と「実際に判定した URL」も残す。
+        # 数字ID の URL が通らず店名で探し直したページがあるので、
+        # どのページを見た判定なのかを後から追えるようにしておく。
         note = str(rec.get("note", "")).strip()
         seen = str(rec.get("seen", "")).strip()
-        r["note"] = f"{note}【見えたもの: {seen}】" if seen else note
+        url = str(rec.get("judged_url", "")).strip()
+        parts = [note] if note else []
+        if seen:
+            parts.append(f"【見えたもの: {seen}】")
+        if url and url != r["url"]:
+            parts.append(f"【判定したURL: {url}】")
+        r["note"] = "".join(parts)
         filled += 1
 
     missing = sorted(set(int(r["no"]) for r in rows) - set(judgments))
