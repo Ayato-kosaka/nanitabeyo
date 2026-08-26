@@ -27,6 +27,11 @@ on:
         required: false
         default: false
         type: boolean
+      wait_timeout_minutes:
+        description: "元runがまだ走っているとき、完了を待つ上限（分）。0で待たずに即失敗する"
+        required: false
+        default: 25
+        type: number
 
 permissions:
   contents: read
@@ -36,7 +41,9 @@ jobs:
   collect:
     name: Publish ${{ inputs.artifact_name }} from run ${{ inputs.run_id }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # 元runの完了待ち（wait_timeout_minutes、既定25分）＋ダウンロードと公開の実作業が
+    # 収まる長さにする。ここが待ち時間より短いと、待っている最中にjobごと打ち切られる。
+    timeout-minutes: 35
     env:
       GCS_BUCKET: nanitabeyo-public
       GCP_KEY: ${{ secrets.GCP_SA_KEY }}
@@ -44,6 +51,7 @@ jobs:
       ARTIFACT_NAME: ${{ inputs.artifact_name }}
       SOURCE_SHA: ${{ inputs.source_sha }}
       ALLOW_FAILED_RUN: ${{ inputs.allow_failed_run }}
+      WAIT_TIMEOUT_MINUTES: ${{ inputs.wait_timeout_minutes }}
       # 元runが信頼できるWorkflowであることを .path で判定する（.name は run-name のため使えない）
       # - claude-worker.yml: テストエビデンス収集の本来の入力
       # - e2e-web-test.yml    : 手動実行で収集したUIカタログのスクリーンショット（Web）
@@ -71,6 +79,11 @@ jobs:
 
           if [[ ! "$SOURCE_SHA" =~ ^[0-9a-fA-F]{40,64}$ ]]; then
             echo "::error::source_shaは40〜64桁の16進commit SHAで指定してください。"
+            exit 1
+          fi
+
+          if [[ ! "$WAIT_TIMEOUT_MINUTES" =~ ^[0-9]+$ ]] || (( WAIT_TIMEOUT_MINUTES > 30 )); then
+            echo "::error::wait_timeout_minutesは0〜30で指定してください（jobのtimeout-minutesを超えられません）。"
             exit 1
           fi
 
@@ -110,6 +123,29 @@ jobs:
             exit 1
           fi
 
+          # ⚠️ 「まだ走っている」は失敗ではなく、**待てば解決する状態**である。
+          #
+          # 2026-08-25、run 32909994882 は元run（e2e-mobile）が in_progress のまま
+          # dispatchされ、8秒で赤くなった。実際にはオーナーが完了を目視してから
+          # 手で再dispatchし、26分後に同じ入力で成功している。
+          # つまり **待つべきところを失敗で返し、その待ちを人間にやらせていた**。
+          # エビデンス収集は元runの完了が前提なので、ここで待つのが正しい。
+          #
+          # 待ち上限は wait_timeout_minutes（既定25分。iOSのDetoxが約15分かかる）。
+          # 0を渡せば従来どおり即失敗する。
+          DEADLINE=$(( SECONDS + WAIT_TIMEOUT_MINUTES * 60 ))
+          while [[ "$STATUS" != "completed" ]]; do
+            if (( SECONDS >= DEADLINE )); then
+              echo "::error::元run（$SOURCE_URL）が完了しません（status=$STATUS）。${WAIT_TIMEOUT_MINUTES}分待って諦めました。元runが終わってから再実行するか、wait_timeout_minutesを延ばしてください。"
+              exit 1
+            fi
+            echo "元runは status=$STATUS です。30秒後に再確認します（残り $(( (DEADLINE - SECONDS) / 60 ))分）。"
+            sleep 30
+            RUN_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}")"
+            STATUS="$(jq -r '.status' <<<"$RUN_JSON")"
+            CONCLUSION="$(jq -r '.conclusion' <<<"$RUN_JSON")"
+          done
+
           # 【設計】既定では success の元runだけを通す。
           # 「緑の run から採ったエビデンス」であることが、このワークフローの出力の意味そのものだから。
           #
@@ -118,11 +154,6 @@ jobs:
           # 明示的にオプトインしたときだけ、完了済みの失敗runも許す。
           # ⚠️ このとき出力は «エビデンス» ではなく «調査用» である。ログに警告を残し、
           # PR へ貼るときは必ず「失敗runのスクリーンショット」と明記すること。
-          if [[ "$STATUS" != "completed" ]]; then
-            echo "::error::元runが完了していません（status=$STATUS）。"
-            exit 1
-          fi
-
           if [[ "$CONCLUSION" != "success" ]]; then
             if [[ "$ALLOW_FAILED_RUN" != "true" ]]; then
               echo "::error::元runが成功完了していません（status=$STATUS, conclusion=$CONCLUSION）。"
