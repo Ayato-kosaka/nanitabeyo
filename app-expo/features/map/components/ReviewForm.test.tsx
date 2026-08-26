@@ -798,17 +798,20 @@ describe("#1375 既存メディアから選ぶ", () => {
 ⚠️ この 2 本が赤くなったら、また «スピナーが回り続けて記録できない» に戻っている。
 */
 describe("#1629 取り込んだ SNS 投稿からレビューを書く", () => {
+	// ⚠️ 上の describe の `tree` はそちらのスコープに閉じているので、ここは自前で持つ
+	let embedTree: TestRenderer.ReactTestRenderer;
+
 	afterEach(() => {
-		tree?.unmount();
+		embedTree?.unmount();
 	});
 
 	/** プレビューに実際に出ている URI（上の describe と同じ testID を見る） */
-	const previewUriOf = () => tree.root.findByProps({ testID: "initial-media-preview" }).props.children;
+	const previewUriOf = () => embedTree.root.findByProps({ testID: "initial-media-preview" }).props.children;
 
 	it("サムネイルがあれば、それをプレビューにして先へ進める（loading で止まらない）", async () => {
 		const thumbnail = "https://scontent.example.test/ig-thumb.jpg";
 		await act(async () => {
-			tree = TestRenderer.create(
+			embedTree = TestRenderer.create(
 				<ReviewForm restaurant={restaurant} onCancel={noop} prefilledMedia={makeExternalEmbedMedia(thumbnail)} />,
 			);
 		});
@@ -816,13 +819,13 @@ describe("#1629 取り込んだ SNS 投稿からレビューを書く", () => {
 			await Promise.resolve();
 		});
 
-		expect(findTextNodes(tree.root, "Map.media.loadingMedia")).toHaveLength(0);
+		expect(findTextNodes(embedTree.root, "Map.media.loadingMedia")).toHaveLength(0);
 		expect(previewUriOf()).toBe(thumbnail);
 	});
 
 	it("サムネイルすら無い provider でも «写真なし» として画面が使える（loading で止まらない）", async () => {
 		await act(async () => {
-			tree = TestRenderer.create(
+			embedTree = TestRenderer.create(
 				<ReviewForm restaurant={restaurant} onCancel={noop} prefilledMedia={makeExternalEmbedMedia(null)} />,
 			);
 		});
@@ -830,6 +833,6 @@ describe("#1629 取り込んだ SNS 投稿からレビューを書く", () => {
 			await Promise.resolve();
 		});
 
-		expect(findTextNodes(tree.root, "Map.media.loadingMedia")).toHaveLength(0);
+		expect(findTextNodes(embedTree.root, "Map.media.loadingMedia")).toHaveLength(0);
 	});
 });
