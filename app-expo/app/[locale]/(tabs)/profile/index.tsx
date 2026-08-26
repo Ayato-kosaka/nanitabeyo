@@ -298,12 +298,24 @@ export default function ProfileScreen() {
 	/**
 	 * #1511 ACC-01 アカウント削除。
 	 *
-	 * ## この行が «消えていた» 経緯（#1583 で復旧）
+	 * ## この行が «消えていた» 経緯
 	 * #1533 はこの導線を旧設定画面 `profile/settings.tsx` に足した。その後 #1375 の
-	 * 最終同期（e4ee0369）が旧設定画面ごとファイルを消したため、**main では
+	 * 最終同期（e4ee0369）が旧設定画面ごとファイルを消したため、一時期 **main では
 	 * `settings-delete-account` が app-expo のどこにも存在しない**状態になっていた。
 	 * i18n・API・E2E・撮影シナリオは揃っているのにボタンだけ無い、という
-	 * «作った側だけあって使う側が無い»（#1375 と同じ形）。ここへ移設して塞ぐ。
+	 * «作った側だけあって使う側が無い»（#1375 と同じ形）。
+	 *
+	 * ⚠️ これは #1596 / PR #1597 が main 側で、この PR（#1583）が同時刻に別途、
+	 *    **互いを知らずに直した**。main 側は 2fb27f3a でマージ済み。取り込みの衝突は
+	 *    «#1583 の 3 画面構成 + このファイルの実装» の向きで解いてある。両者の差は
+	 *    実行中表示（`deleteAccountInProgress` を行のラベルに出す）と、キャンセルの
+	 *    ログ、そして下の «logout を別の try で包む» 3 点だけで、導線・色・置き場所は同じ。
+	 *
+	 * ## logout を try の «外側» に置かない理由（main 側との差）
+	 * main 側の実装は `logout()` を削除と同じ try に入れている。削除が成功した後に
+	 * `signOut()` が失敗すると catch へ落ちるため、**削除は済んでいるのにエラーの
+	 * スナックバーが出てログイン状態のままに見える**。下ではその 1 行だけを内側の
+	 * try/catch で包み、失敗してもローカルの後始末として扱って先へ進めている。
 	 *
 	 * ## 二段確認にしている理由
 	 * この操作は **取り消せない**。アプリ DB 側は匿名化（論理削除）だが、Supabase Auth の
@@ -365,7 +377,7 @@ export default function ProfileScreen() {
 		setIsDeletingAccount(true);
 
 		try {
-			await callBackend<Record<string, never>, DeleteMeResponse>("/v1/users/me", {
+			await callBackend<Record<string, never>, DeleteMeResponse>("v1/users/me", {
 				method: "DELETE",
 				requestPayload: {},
 			});
