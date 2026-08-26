@@ -794,16 +794,27 @@ dispatchしたrunが `pending` のまま動かないときは、ランナー不�
 ここを取り違えると、直すべき場所（プロンプト・権限）ではなく、関係の無い場所
 （利用上限・再実行のタイミング）を疑い続けることになる。
 
-### ⚠️ 「50 秒で落ちて Claude の出力が無い」は Claude の失敗ではない（2026-08-24 実測）
+### ⚠️ 「1 分以内に落ちて Claude の出力が無い」は Claude の失敗ではない（2026-08-24 / 08-26 実測）
 
 `読み取りワーカーが成果物を1文字も出力せずに終了しました` というエラーで 40〜60 秒で
 落ちる run が続いたとき、**並列数が多すぎる / 利用枠だと決めつけて再 dispatch を繰り返した**。
 実際の原因は step 6 **「sharedパッケージをビルド」** の型エラーで、
 **Claude Code を実行する step まで到達していなかった**（step 12 は skipped）。
+2026-08-26 には同じ形で、step 2 **「リポジトリを取得」** が `base_ref` の短縮 SHA を
+解決できずに落ちた run が、同じ «1 文字も出力せず» のエラーを出した。
 
-見分け方は下の `list_workflow_jobs` を**必ず先に**取ること。step の一覧を見れば
-「Claude Codeを実行」が `skipped` かどうかが一目で分かる。ここを飛ばすと、
-Claude 側の問題を延々と疑って何本も無駄に dispatch することになる（実際にそうなった）。
+**この誤報自体は直した。** 検証 step は `steps.claude.outcome` を見るようになったので、
+Claude が skip された run は
+
+> Claude Codeは実行されていません（前段のstepが失敗したためskipされました）。…
+> このjobで**最初に赤くなったstep**です
+
+と言う。このエラーが出たら Claude・権限・利用枠を疑わず、**ログの先頭から最初に
+赤くなった step を見る**。`base_ref` の解決ミスは validate job が dispatch 直後に
+弾く（runner を消費しない）。
+
+それでも `list_workflow_jobs` で step 一覧を取るのが最短である場合は多い。
+「Claude Codeを実行」が `skipped` かどうかが一目で分かる。
 
 このときの根本原因は `db-migrate.yml` の `regenerate_prisma` が `schema.prisma` だけを
 main へ自動 commit し、**`shared/supabase/database.types.ts` と `shared/converters/` の
