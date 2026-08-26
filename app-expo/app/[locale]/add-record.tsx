@@ -598,6 +598,8 @@ export default function SnsImportScreen() {
 									value={input}
 									onChangeText={setInput}
 									placeholder={i18n.t("SnsImport.input.placeholder")}
+									// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+									placeholderTextColor={colors.textSecondary}
 									autoCapitalize="none"
 									autoCorrect={false}
 									multiline

@@ -6,6 +6,7 @@
  * 内容表示だけに絞る。これにより、最後の候補への投票直後に確実に完了入力を表示できる。
  */
 import { useEffect, useMemo, useState } from "react";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
@@ -23,6 +24,8 @@ type Props = {
 };
 
 export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmitting, onSubmit }: Props) {
+	// #1629 プレースホルダーの色をテーマへ追従させるために読む
+	const { colors } = useAppTheme();
 	const { user, isAuthResolved } = useAuth();
 	const { isProfileResolved } = useEnsureOwnProfileLoaded();
 	const profile = useProfileStore((state) => state.profile);
@@ -110,6 +113,8 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 				}}
 				onFocus={handleNameInputFocus}
 				placeholder={i18n.t("DishCategoryGroupVotes.displayNamePlaceholder")}
+				// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+				placeholderTextColor={colors.textSecondary}
 				maxLength={8}
 			/>
 			{suggestions.length > 0 && (!isManualName || displayName.trim().length === 0) ? (
@@ -143,6 +148,8 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 				value={comment}
 				onChangeText={setComment}
 				placeholder={i18n.t("DishCategoryGroupVotes.commentPlaceholder")}
+				// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+				placeholderTextColor={colors.textSecondary}
 				multiline
 			/>
 			<View style={styles.actionRow}>
