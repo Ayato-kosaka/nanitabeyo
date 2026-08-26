@@ -1,0 +1,63 @@
+-- ==============================================================================
+-- 20260827T0000_add_missing_restaurants_indexes.sql
+-- #1629（実機フィードバック 11 巡目 / 14・15・16「検索が遅い」の真因）
+-- ==============================================================================
+-- 【目的】
+--   restaurants の近傍検索と店名検索を索引に乗せる。**dev と public で欠けている索引が違う**。
+--
+--   | 索引 | dev | public |
+--   | --- | --- | --- |
+--   | idx_restaurants_location（GIST。近傍検索） | **無い** | 有る（VALID） |
+--   | idx_restaurants_name_trgm（GIN。店名の中間一致） | 有る（VALID） | **無い** |
+--
+--   実測は `scripts/db-checks/assert_index_valid.py` を db-script-run.yml から流したもの
+--   （2026-08-26）。このファイルは **両方を IF NOT EXISTS で作る**ので、
+--   どちらのスキーマへ当てても «足りない方だけ» が作られる。
+--
+-- 【なぜ欠けたのか】
+--   - idx_restaurants_location は 20250802T0300_create_restaurants.sql:21 が
+--     `CREATE INDEX`（IF NOT EXISTS なし・CONCURRENTLY なし）で作っている。public には在るので、
+--     dev はそのファイルが当たる前に別経路で作られたか、当時失敗している
+--   - idx_restaurants_name_trgm は 20260824T0300 で追加されたが、**dev にしか当たっていない**
+--     （public への適用がまだ）
+--
+-- 【これが無いと何が起きているか（dev の実測・2026-08-26 / 直近 2 日）】
+--   - お店のテキスト検索: p50 10.3 秒 / p95 61.9 秒 / 最大 67.5 秒（n=53）
+--   - 保存したお店: p50 80 ms / p95 55.4 秒 / 最大 58.2 秒（n=20）
+--   最悪の 67 秒を 1 本分解すると、**58 秒は DB クエリが始まる前**に消えていた。
+--   `DB_POOL_MAX=1`（docs/specs/database-connection-pool.md）なので、
+--   索引の無い数秒〜十数秒のクエリが 1 本走ると後続が全部その後ろに並ぶ。
+--   **遅いクエリ 1 本が全画面へ伝染する。**
+--
+-- 【CREATE INDEX CONCURRENTLY について】
+--   - 本番テーブルへの書き込みを止めないため CONCURRENTLY を使う
+--   - CONCURRENTLY はトランザクション内で実行できない。scripts/apply-migration.sh は
+--     --single-transaction も BEGIN も使わない（autocommit）ので実行できる
+--   - **失敗すると INVALID な索引が残る**。適用後に必ず下記の確認を行うこと
+--
+-- 【適用後に必ず確認すること】
+--     python scripts/db-checks/assert_index_valid.py --schema <dev|public> \
+--       --index idx_restaurants_location --index idx_restaurants_name_trgm
+--   （db-script-run.yml から流す。読み取り専用）
+--
+-- 【既存データへの影響】
+--   無い。索引を作るだけで、行は 1 件も変わらない。
+--
+-- 【ロールバック】
+--   DROP INDEX CONCURRENTLY IF EXISTS idx_restaurants_location;
+--   DROP INDEX CONCURRENTLY IF EXISTS idx_restaurants_name_trgm;
+--   （どちらも «無かった状態» へ戻るだけ。検索が元の遅さへ戻る）
+--
+-- 【拡張】
+--   postgis は 20250802T0300:1、pg_trgm は 20250802T0259:1 で導入済み。追加不要。
+--   演算子クラスは apply-migration.sh の `SET search_path TO $DB_SCHEMA, extensions` で
+--   解決するので **無修飾**で書く。
+-- ==============================================================================
+
+-- 近傍検索（ST_DWithin / ST_Distance）が乗る索引。dev に無い
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_restaurants_location
+  ON restaurants USING GIST (location);
+
+-- 店名の中間一致（「一蘭」で「らーめん 一蘭 渋谷店」を引く）が乗る索引。public に無い
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_restaurants_name_trgm
+  ON restaurants USING GIN (name gin_trgm_ops);
