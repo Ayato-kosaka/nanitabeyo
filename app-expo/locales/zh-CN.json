@@ -803,7 +803,6 @@
 			}
 		},
 		"sendFeedback": "发送反馈",
-		"leaveReview": "留下评价",
 		"rateDialogTitle": "您喜欢这个应用吗？",
 		"rateDialogMessage": "如果您喜欢，请在商店给我们评分。我们将打开评价页面。",
 		"rateDialogOk": "立即评分",
@@ -860,6 +859,11 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "我的分组投票"
+		},
+		"support": "支持 CraveCatch",
+		"about": {
+			"navigationLabel": "关于 CraveCatch",
+			"title": "关于 CraveCatch"
 		},
 		"deleteAccount": "删除账号",
 		"deleteAccountInProgress": "正在删除…",

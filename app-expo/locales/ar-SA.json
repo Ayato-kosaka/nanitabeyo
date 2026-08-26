@@ -803,7 +803,6 @@
 			}
 		},
 		"sendFeedback": "إرسال ملاحظات",
-		"leaveReview": "اترك تقييم",
 		"rateDialogTitle": "هل تستمتع بالتطبيق؟",
 		"rateDialogMessage": "إذا أعجبك، يرجى تقييمنا على المتجر. سنفتح صفحة التقييم.",
 		"rateDialogOk": "قيّم الآن",
@@ -860,6 +859,11 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "تصويتاتي الجماعية"
+		},
+		"support": "ادعم CraveCatch",
+		"about": {
+			"navigationLabel": "حول CraveCatch",
+			"title": "حول CraveCatch"
 		},
 		"deleteAccount": "حذف الحساب",
 		"deleteAccountInProgress": "جارٍ الحذف…",

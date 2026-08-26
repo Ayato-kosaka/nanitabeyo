@@ -16,23 +16,91 @@ test.describe("設定項目(匿名ユーザー)", () => {
 	//   1. appPage で起動し、/ja-JP/profile へ遷移する（#1402 以前は /ja-JP/profile/settings）
 	//   2. 以下の項目が表示されることを検証:
 	//      - ご意見・不具合(settings-feedback)
-	//      - 利用規約(settings-terms)
-	//      - プライバシーポリシー(settings-privacy)
-	//      - ブロック済みの料理カテゴリ(settings-blocked-dish-categories) ← #1132 で「トピック」から改称
-	//      - 端末設定(settings-device-settings) ← #1504 で追加。規約カードの直上
-	//   3. 「レビューを書く」(ストア誘導)は Web では表示されないことを検証
+	//      - ブロック済みの料理カテゴリ(settings-blocked-dish-categories) ← #1553 で「トピック」から改称
+	//      - 端末設定(settings-device-settings) ← #1504 で追加
+	//      - なに食べよについて(settings-about) ← #1583 で追加
+	//   3. #1583 で «なに食べよについて» / «端末設定» へ移した行が、
+	//      マイページ側に **残っていない** ことを検証（移設であって複製ではない）
+	//   4. 「レビューを書く」(ストア誘導)は Web では表示されないことを検証
 	test("設定メニューの各項目が表示される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
 
 		await expect(settingsPage.feedbackItem).toBeVisible();
+		await expect(settingsPage.blockedDishCategoriesItem).toBeVisible();
+		await expect(settingsPage.deviceSettingsItem).toBeVisible();
+		await expect(settingsPage.aboutItem).toBeVisible();
+
+		// #1583 移設であって複製ではないこと
+		await expect(settingsPage.termsItem).toHaveCount(0);
+		await expect(settingsPage.privacyItem).toHaveCount(0);
+		await expect(settingsPage.themeSelector).toHaveCount(0);
+		await expect(settingsPage.versionText).toHaveCount(0);
+		// 旧ラベルも新ラベルも Web には出ない（ストアが無いため）
+		await expect(appPage.getByText("レビューを書く", { exact: true })).toHaveCount(0);
+		await expect(appPage.getByText("なに食べよ を応援する", { exact: true })).toHaveCount(0);
+	});
+
+	// ─ テストケース: 分けた 2 画面から «戻る» でマイページへ帰れる ─
+	// #1583 で 1 画面を 3 画面に割った以上、**行き止まりを作っていないこと**を見る必要がある。
+	// 分割そのものより «帰れなくなる» ほうが起きやすい事故で、
+	// 「行が表示される」「遷移できる」だけを見ているテストでは捕まらない。
+	//
+	// 手順:
+	//   1. マイページ → 端末設定 → 戻る → マイページに帰っていること
+	//   2. マイページ → なに食べよについて → 戻る → マイページに帰っていること
+	test("端末設定 / なに食べよについて から «戻る» でマイページへ帰れる", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		const deviceSettingsPage = new DeviceSettingsPage(appPage);
+
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await settingsPage.openDeviceSettings();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/device-settings/);
+		await deviceSettingsPage.backButton.click();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile$/);
+		await settingsPage.expectLoaded();
+
+		await settingsPage.openAbout();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about/);
+		await settingsPage.aboutBackButton.click();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile$/);
+		await settingsPage.expectLoaded();
+	});
+
+	// ─ テストケース: «なに食べよについて» に規約 4 行が揃っている ─
+	// #1583 オーナー指示（ページ遷移にする）の検証。
+	// 「応援する」は Web には出ない（ストアが無い）ので、その不在も併せて見る。
+	test("«なに食べよについて» に規約 4 行が揃っている", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await settingsPage.openAbout();
+
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about/);
+		await expect(settingsPage.guidelinesItem).toBeVisible();
 		await expect(settingsPage.termsItem).toBeVisible();
 		await expect(settingsPage.privacyItem).toBeVisible();
-		await expect(settingsPage.blockedDishCategoriesItem).toBeVisible();
-		// #1504 端末設定は規約カードの直上に置いた行
-		await expect(settingsPage.deviceSettingsItem).toBeVisible();
-		await expect(appPage.getByText("レビューを書く", { exact: true })).toHaveCount(0);
+		await expect(settingsPage.copyrightItem).toBeVisible();
+		await expect(appPage.getByTestId("settings-leave-review")).toHaveCount(0);
+	});
+
+	// ─ テストケース: 表示テーマは端末設定ページにある ─
+	// #1583 オーナー承認（2026-08-25「表示テーマは 端末設定に移して大丈夫ですよ」）。
+	test("表示テーマは端末設定ページにある", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await settingsPage.openDeviceSettings();
+
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/device-settings/);
+		await expect(settingsPage.themeOption("system")).toBeVisible();
+		await expect(settingsPage.themeOption("light")).toBeVisible();
+		await expect(settingsPage.themeOption("dark")).toBeVisible();
 	});
 
 	// ─ テストケース: 匿名時はログアウトが表示されない ─
@@ -50,14 +118,15 @@ test.describe("設定項目(匿名ユーザー)", () => {
 
 	// ─ テストケース: バージョン情報が表示される(#1495 SUP-03) ─
 	// 手順:
-	//   1. 設定画面を表示する
+	//   1. マイページから «なに食べよについて» を開く（#1583 でバージョンはそこへ移った）
 	//   2. バージョン行(settings-version-section)が "{version}({短縮コミットID})" 形式
 	//      (例: 1.14.0(abc1234) / コミットID未設定時は 1.14.0(dev)) で表示され、
 	//      空文字や"undefined"を出していないことを検証する
-	test("バージョン情報が表示される", async ({ appPage }) => {
+	test("バージョン情報が «なに食べよについて» に表示される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		await settingsPage.openAbout();
 
 		await expect(settingsPage.versionText).toBeVisible();
 		const versionText = await settingsPage.versionText.innerText();
@@ -67,7 +136,7 @@ test.describe("設定項目(匿名ユーザー)", () => {
 
 	// ─ テストケース: 匿名時は通知カードが表示されない ─
 	// 手順:
-	//   1. 設定画面を表示する(匿名状態)
+	//   1. マイページを表示する(匿名状態)
 	//   2. 通知カード(settings-notifications-card)が存在しないことを検証
 	//
 	// #1510 匿名ユーザーは Push Token を登録しない(PushTokenRegistration)ため、

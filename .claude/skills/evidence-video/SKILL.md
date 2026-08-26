@@ -31,6 +31,39 @@ description: >-
 
 ## B. 実機動画（Detox / CI）の手順
 
+⚠️ **`has-window-focus=false` で全滅したら、まず `beforeEachFailure.png` を見る。**
+
+Detox が
+`Waited for the root of the view hierarchy to have window focus and not request layout`
+で落ちたときは、**アプリではなく Android のシステムダイアログがフォーカスを奪っている**
+ことがある。run 32882521476 では «「Pixel Launcher」が繰り返し停止しています» の
+ANR ダイアログが被さっていた（`beforeEachFailure.png` に写っている。アプリ自体は
+その下で正常に描画されていた）。
+
+見分け方:
+
+- 失敗が **`beforeEach`（アプリ起動）で起きている**（`beforeEachFailure.png` が出る）
+- 同じエラーが **無関係なテストにも一斉に**出る
+- Detox の内部リトライで **失敗数が減る**（16 → 4 のように）。コードの欠陥なら減らない
+
+この形はエミュレータ側の事象なので、コードを触らずに 1 度だけ再実行して確かめる。
+**ただし «flake» で片付ける前に必ずスクリーンショットを見ること。** 要素が無いのか、
+ダイアログに覆われているのかは、絵を見れば 1 秒で分かる。
+
+⚠️ **dispatch しただけで «走る» と思ってはいけない。cancelled で消える。**
+
+`e2e-mobile-test.yml` の concurrency は **ブランチ別ではなくグローバル**
+（`group: e2e-mobile-test` / `cancel-in-progress: false`）。GitHub はこのグループに
+«実行中 1 本 + 待機 1 本» しか保持しないので、自分の run が待機中に別ブランチから
+dispatch が来ると、**自分の待機分が押し出されて cancelled になる**
+（run 32874405962 で実測。検証したつもりで何も検証できていなかった）。
+
+したがって dispatch のあとは必ず:
+
+1. グループが空いているかを先に見る（他ブランチの run が in_progress / queued でないか）
+2. dispatch 後、**conclusion が cancelled でないこと**を確認してから «実行中» と扱う
+3. 結果を待つあいだも手を止めない。待機だけのターンを作らない
+
 1. `e2e-mobile-test.yml` を workflow_dispatch で起動する。入力:
    - `record_videos: true`（.detoxrc.js の video plugin が "all" になり全テストの動画が残る）
    - `test_filter` に撮りたいフローの spec 名（例: `onboarding`）。**scope は既定の

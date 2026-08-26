@@ -53,20 +53,22 @@ test.describe("法務ドキュメント画面", () => {
 		const settingsPage = new SettingsPage(appPage);
 		const legalPage = new LegalPage(appPage);
 
+		// #1583 規約は «なに食べよについて» へ移った。マイページからの導線ごと踏む
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		await settingsPage.openAbout();
 
 		await settingsPage.termsItem.click();
 		await legalPage.expectOpened("terms");
 
 		await legalPage.goBack();
 
-		// #1402 設定は独立した画面ではなくマイページの縦リストになった
-		await expect(appPage).toHaveURL(/\/ja-JP\/profile$/);
-		await settingsPage.expectLoaded();
+		// #1583 規約は «なに食べよについて» から開いたので、戻り先もそこ
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about$/);
+		await expect(settingsPage.termsItem).toBeVisible();
 	});
 
-	// ─ テストケース: ブラウザバックでもマイページへ戻る ─
+	// ─ テストケース: ブラウザバックでも «なに食べよについて» へ戻る ─
 	// #1368 【設計】戻る責務を Navigator へ渡したこと自体の検証。モーダル時代は
 	// ブラウザバックがモーダルを閉じずにタブごと戻していた（URL が変わらないため）。
 	// 手順:
@@ -77,17 +79,19 @@ test.describe("法務ドキュメント画面", () => {
 		const settingsPage = new SettingsPage(appPage);
 		const legalPage = new LegalPage(appPage);
 
+		// #1583 規約は «なに食べよについて» へ移った。マイページからの導線ごと踏む
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		await settingsPage.openAbout();
 
 		await settingsPage.privacyItem.click();
 		await legalPage.expectOpened("privacy");
 
 		await appPage.goBack();
 
-		// #1402 設定は独立した画面ではなくマイページの縦リストになった
-		await expect(appPage).toHaveURL(/\/ja-JP\/profile$/);
-		await settingsPage.expectLoaded();
+		// #1583 規約は «なに食べよについて» から開いたので、戻り先もそこ
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about$/);
+		await expect(settingsPage.termsItem).toBeVisible();
 	});
 
 	// ─ テストケース: 履歴が無い着地でも行き止まりにならない ─

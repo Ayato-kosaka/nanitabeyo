@@ -3,6 +3,19 @@
 // 1. 2段階の確認を両方通さないと DELETE v1/users/me が飛ばないこと
 // 2. 連打しても API が 1 回しか呼ばれないこと
 // 3. 失敗時にログアウトしないこと
+// 4. #1511 ログイン済みなら行が «存在する» こと / 匿名には «出さない» こと（#1583 で追加）
+//
+// 4 を足した理由:
+// この画面の削除行は一度 main から **丸ごと消えていた**。#1533 が旧設定画面 profile/settings.tsx
+// へ置き、#1375 の最終同期（e4ee0369）がその画面ごとファイルを消したためで、API も i18n 11 キー
+// × 8 ロケールも E2E も揃っているのに押すボタンだけが無い状態だった。
+//
+// 1〜3 は findByProps で行を掴むので «消えたら赤くなる» のは同じだが、落ちたときに
+// 「導線が無い」のか「導線の挙動が壊れた」のかが読み取れない。4 はその 1 点だけを名指しで見る。
+//
+// 匿名側を見るのは #1511 の仕様（ゲストには users 行が無く API も AuthUserGuard で 403）。
+// ログアウト行の不在と対で見ているのは、«まだ auth が解決していないから出ていないだけ» と
+// 区別を付けるため。
 
 import { act } from "react";
 import TestRenderer from "react-test-renderer";
@@ -64,10 +77,13 @@ const mockShowSnackbar = jest.fn();
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: mockShowSnackbar }) }));
 
 const mockLogout = jest.fn();
+// ⚠️ ゲスト / ログイン済みを切り替えるため «可変» にしてある。`is_anonymous` が
+//    isGuestUser（lib/authGuest.ts）の判定材料。
+let mockUser: { id: string; is_anonymous: boolean } | null = { id: "user-1", is_anonymous: false };
 jest.mock("@/contexts/AuthProvider", () => ({
 	useAuth: () => ({
 		logout: mockLogout,
-		user: { id: "user-1", is_anonymous: false },
+		user: mockUser,
 		isAuthResolved: true,
 	}),
 }));
@@ -139,6 +155,33 @@ import ProfileScreen from "../app/[locale]/(tabs)/profile/index";
 describe("deleteAccountUI", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		mockUser = { id: "user-1", is_anonymous: false };
+	});
+
+	/** 指定 testID の要素が描かれているか（存在しなくても throw しない） */
+	const exists = (tree: TestRenderer.ReactTestRenderer, testID: string): boolean =>
+		tree.root.findAll((node) => node.props?.testID === testID).length > 0;
+
+	// ここが赤くなったら «削除ボタンがアプリのどこにも無い» 状態に戻っている
+	it("#1511 ログイン済みならアカウント削除の行がマイページに存在する", async () => {
+		let renderer: TestRenderer.ReactTestRenderer | undefined;
+		await act(async () => {
+			renderer = TestRenderer.create(<ProfileScreen />);
+		});
+
+		expect(exists(renderer!, "settings-delete-account")).toBe(true);
+	});
+
+	it("#1511 匿名（ゲスト）にはアカウント削除の行を出さない", async () => {
+		mockUser = { id: "guest-1", is_anonymous: true };
+
+		let renderer: TestRenderer.ReactTestRenderer | undefined;
+		await act(async () => {
+			renderer = TestRenderer.create(<ProfileScreen />);
+		});
+
+		expect(exists(renderer!, "settings-delete-account")).toBe(false);
+		expect(exists(renderer!, "settings-logout")).toBe(false);
 	});
 
 	it("2段階の確認を両方通さないと DELETE v1/users/me が飛ばない (step1でキャンセル)", async () => {

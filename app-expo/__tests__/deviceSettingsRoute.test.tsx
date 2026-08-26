@@ -175,8 +175,12 @@ describe("#1504 マイページから端末設定への導線", () => {
 
 	testID だけを見ていると「描かれてはいるが規約の下にいる」を見逃す。
 	描画順そのものを比べれば、カードをまたいで下へ移動しても赤くなる。
+
+	#1583 規約 4 行そのものは «なに食べよについて»（about.tsx）へ移ったので、
+	比較対象をその入口の行（settings-about）へ付け替えた。守りたい性質
+	«端末設定は規約の箱より上» は変わっていない。
 	*/
-	it("「端末設定」行はコミュニティガイドラインより前に描かれる", async () => {
+	it("「端末設定」行は «なに食べよについて»（規約の置き場）より前に描かれる", async () => {
 		const tree = await render(<ProfileScreen />);
 
 		const order = tree.root
@@ -184,8 +188,8 @@ describe("#1504 マイページから端末設定への導線", () => {
 			.map((node) => node.props.testID as string);
 
 		expect(order.indexOf("settings-device-settings")).toBeGreaterThanOrEqual(0);
-		expect(order.indexOf("settings-guidelines")).toBeGreaterThanOrEqual(0);
-		expect(order.indexOf("settings-device-settings")).toBeLessThan(order.indexOf("settings-guidelines"));
+		expect(order.indexOf("settings-about")).toBeGreaterThanOrEqual(0);
+		expect(order.indexOf("settings-device-settings")).toBeLessThan(order.indexOf("settings-about"));
 	});
 
 	// ⚠️ ここが赤くなったら、トグルがマイページ本体へ戻っている（#1504 のオーナー指示の差し戻し）
@@ -201,6 +205,27 @@ describe("#1504 端末設定ページ", () => {
 		const tree = await render(<DeviceSettingsScreen />);
 
 		expect(exists(tree, "settings-haptics-toggle")).toBe(true);
+	});
+
+	/*
+	#1583 表示テーマ（SET-05）の置き場所。#1504 の設計コメントが
+	«今後 SET-05(ダークモード) もこのカードに並ぶ» として最初から用意していた場所である。
+	オーナー承認済み（2026-08-25「表示テーマは 端末設定に移して大丈夫ですよ」）。
+	*/
+	it("#1583 表示テーマの 3 択を描く", async () => {
+		const tree = await render(<DeviceSettingsScreen />);
+
+		expect(exists(tree, "settings-theme-selector")).toBe(true);
+		for (const option of ["system", "light", "dark"]) {
+			expect(exists(tree, `settings-theme-${option}`)).toBe(true);
+		}
+	});
+
+	// ⚠️ ここが赤くなったら、テーマがマイページ本体へ戻っている（#1583 の差し戻し）
+	it("#1583 マイページ本体は表示テーマを描かない", async () => {
+		const tree = await render(<ProfileScreen />);
+
+		expect(exists(tree, "settings-theme-selector")).toBe(false);
 	});
 
 	it("トグルを押すと store へ反転した値を書く", async () => {

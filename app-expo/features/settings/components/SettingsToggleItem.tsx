@@ -29,7 +29,7 @@ interface SettingsToggleItemProps {
 }
 
 /**
- * #1504 【設計】設定画面のトグル行。`app/[locale]/(tabs)/profile/settings.tsx` の
+ * #1504 【設計】設定画面のトグル行。かつての `profile/settings.tsx`（#1583 で削除）の
  * `SettingsMenuItem`(遷移用の行) と見た目・アクセシビリティ・区切り線の作法を揃えた、
  * オン/オフ設定用の再利用部品。SET-02(通知) / SET-05(ダークモード) / SET-06(言語切替) も
  * このコンポーネントを使う想定のため、`features/settings` 配下の独立コンポーネントとして置く。

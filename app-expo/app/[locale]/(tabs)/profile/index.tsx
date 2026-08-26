@@ -33,7 +33,7 @@
    （app/[locale]/_layout.tsx）ため、開いた BlurModal がある状態で push すると
    遷移先が portal の下に潜って触れなくなる（#1359 で地図が踏んだ）。
 */
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
 	View,
 	Text,
@@ -41,20 +41,17 @@ import {
 	StyleSheet,
 	ScrollView,
 	Platform,
-	StyleProp,
-	TextStyle,
 	Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Check, ChevronRight, Moon, Smartphone, Sun } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { Card } from "@/components/Card";
+import { SettingsMenuItem } from "@/features/settings/components/SettingsMenuItem";
 import type { Palette } from "@/constants/Palette";
-import { THEME_PREFERENCES, useAppTheme, useThemedStyles, type ThemePreference } from "@/contexts/ThemeProvider";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { VersionInfo } from "@/components/VersionInfo";
 import { ProfileHeader } from "@/features/profile/components/ProfileHeader";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
@@ -71,136 +68,8 @@ import i18n from "@/lib/i18n";
 import { isGuestUser } from "@/lib/authGuest";
 import type { LegalDocumentType } from "@/lib/legalRoute";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import type { DeleteMeResponse } from "@shared/api/v1/res";
 
-interface ProfileMenuItemProps {
-	label: string;
-	onPress: () => void;
-	isLast?: boolean;
-	textStyle?: StyleProp<TextStyle>;
-	/** E2E テスト用: Web では data-testid として出力される */
-	testID?: string;
-	/**
-	 * #950 【仕様】画面遷移(router.push)は "link"、モーダル起動・破壊的操作等は "button" として
-	 * 支援技術に役割を伝える。Web では role="link"/"button" に対応する。
-	 */
-	accessibilityRole?: "link" | "button";
-}
-
-/**
- * #1509 SET-05 テーマ（表示モード）の 3 択セレクタ。
- *
- * ## なぜラジオ相当の «行» にしたか
- * iOS / Android の設定アプリと同型にするため。切替は即時反映で、確定ボタンを持たない
- * （その場でアプリ全体の色が変わるので、結果がそのまま確認になる）。
- *
- * ## #1402 との合流
- * 元は独立した設定画面（profile/settings.tsx）にあったが、#1402 でその画面を廃止して
- * マイページ本体へ項目を統合したため、ここへ移設した。testID（settings-theme-*）は
- * E2E から名指しされているので据え置く。
- *
- * ## アクセシビリティ
- * `accessibilityRole="radio"` + `accessibilityState.selected` で選択状態を支援技術へ伝える。
- * チェックアイコンは視覚的な冗長表現なので読み上げからは外す。
- */
-const THEME_OPTION_ICONS: Record<ThemePreference, typeof Smartphone> = {
-	system: Smartphone,
-	light: Sun,
-	dark: Moon,
-};
-
-function ThemeSelector() {
-	const { preference, setPreference, colors } = useAppTheme();
-	const styles = useThemedStyles(createStyles);
-	const { lightImpact } = useHaptics();
-	const { logFrontendEvent } = useLogger();
-
-	const handleSelect = useCallback(
-		(next: ThemePreference) => {
-			lightImpact();
-			logFrontendEvent({
-				event_name: "settings_theme_preference_changed",
-				error_level: "log",
-				payload: { from: preference, to: next },
-			});
-			setPreference(next);
-		},
-		[lightImpact, logFrontendEvent, preference, setPreference],
-	);
-
-	return (
-		<View testID="settings-theme-selector" accessibilityRole="radiogroup">
-			{THEME_PREFERENCES.map((option, index) => {
-				const Icon = THEME_OPTION_ICONS[option];
-				const isSelected = preference === option;
-				const isLast = index === THEME_PREFERENCES.length - 1;
-				const label = i18n.t(`Settings.theme.options.${option}`);
-				return (
-					<React.Fragment key={option}>
-						<TouchableOpacity
-							style={styles.themeOption}
-							onPress={() => handleSelect(option)}
-							testID={`settings-theme-${option}`}
-							accessibilityRole="radio"
-							accessibilityState={{ selected: isSelected, checked: isSelected }}
-							// #934 と同じ理由: react-native-web は accessibilityState.checked を DOM の
-							// aria-checked へ変換しないため、native/web 両対応の aria-checked を直接指定する
-							aria-checked={isSelected}
-							accessibilityLabel={label}>
-							<Icon
-								size={20}
-								color={isSelected ? colors.brand : colors.textSecondary}
-								accessibilityElementsHidden
-								importantForAccessibility="no"
-							/>
-							<Text style={[styles.themeOptionText, isSelected && styles.themeOptionTextSelected]}>{label}</Text>
-							{isSelected && (
-								// #1509 【E2E】チェックは lucide の SVG なので testID を直接載せると
-								// Detox / react-native-web のどちらで拾えるかが実装依存になる。
-								// 素の View で包んで testID を持たせ、両方から確実に見えるようにする
-								<View testID={`settings-theme-${option}-check`}>
-									<Check size={20} color={colors.brand} accessibilityElementsHidden importantForAccessibility="no" />
-								</View>
-							)}
-						</TouchableOpacity>
-						{!isLast && <View style={styles.separator} />}
-					</React.Fragment>
-				);
-			})}
-		</View>
-	);
-}
-
-function ProfileMenuItem({
-	label,
-	onPress,
-	isLast,
-	textStyle,
-	testID,
-	accessibilityRole = "button",
-}: ProfileMenuItemProps) {
-	const { colors } = useAppTheme();
-	const styles = useThemedStyles(createStyles);
-	return (
-		<>
-			<TouchableOpacity
-				style={styles.menuItem}
-				onPress={onPress}
-				testID={testID}
-				accessibilityRole={accessibilityRole}
-				accessibilityLabel={label}>
-				<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
-				{/* #950 【仕様】装飾アイコンのため読み上げ対象から除外し、行のラベルと二重に読み上げさせない */}
-				<ChevronRight
-					size={20}
-					color={colors.textTertiary}
-					accessibilityElementsHidden
-					importantForAccessibility="no"
-				/>
-			</TouchableOpacity>
-			{!isLast && <View style={styles.separator} />}
-		</>
-	);
-}
 
 export default function ProfileScreen() {
 	// #1509 テーマ切替はこの画面から行う。切替の結果がその場のこの画面に出るよう、画面自体もテーマ対応する
@@ -217,7 +86,14 @@ export default function ProfileScreen() {
 	const { showDialog, confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
 	const { callBackend } = useAPICall();
-	const deletingRef = useRef(false);
+	/**
+	 * #1511 アカウント削除の実行中フラグ。
+	 * `ref` と `state` を両方持つのは、**押下の抑止**（同期的に読める ref）と
+	 * **行の表示**（再描画が要る state）で要求が違うため。state だけだと
+	 * 連打の 2 回目が再描画前に通る（DialogProvider の `confirming` と同じ考え方）。
+	 */
+	const isDeletingAccountRef = useRef(false);
+	const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
 	// #467 【設計】プロフィールをグローバルストアから取得し、自動ロードを実行
 	useEnsureOwnProfileLoaded();
@@ -285,6 +161,17 @@ export default function ProfileScreen() {
 	// #1504 【設計】端末設定（この端末にだけ保存される設定）は 1 画面へ切り出してある。
 	// トグルをこのリストへ直接並べると「押すと画面が開く行」と「押すと値が変わる行」が
 	// 混ざるため（詳細は profile/device-settings.tsx の冒頭）。
+	// #1583 【設計】なに食べよについて（応援する / 規約 / 版数）への遷移
+	const handleNavigateToAbout = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "settings_about_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({ pathname: "/[locale]/(tabs)/profile/about", params: { locale } });
+	}, [lightImpact, logFrontendEvent, router, locale]);
+
 	const handleNavigateToDeviceSettings = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -354,130 +241,6 @@ export default function ProfileScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
-	// #611 【設計】ストア直接遷移（market:// / itms-apps:// → https:// フォールバック）
-	const openStoreReviewPage = useCallback(async () => {
-		try {
-			let primaryUrl: string;
-			let fallbackUrl: string;
-
-			if (Platform.OS === "ios") {
-				// iOS: itms-apps:// を優先、不可なら https:// にフォールバック
-				const appStoreUrl = Env.APP_STORE_URL;
-				if (!appStoreUrl) {
-					logFrontendEvent({
-						event_name: "settings_leave_review_open_store_failed",
-						error_level: "warn",
-						payload: { platform: Platform.OS, reason: "missing_app_store_url" },
-					});
-					return;
-				}
-				// URL から App ID を抽出（例: https://apps.apple.com/app/id<APP_ID>）
-				const appIdMatch = appStoreUrl.match(/id(\d+)/);
-				if (appIdMatch) {
-					primaryUrl = `itms-apps://apps.apple.com/app/id${appIdMatch[1]}?action=write-review`;
-					fallbackUrl = `${appStoreUrl}?action=write-review`;
-				} else {
-					// App ID が見つからない場合は不正な URL と判断し、スキップ
-					logFrontendEvent({
-						event_name: "settings_leave_review_open_store_failed",
-						error_level: "warn",
-						payload: {
-							platform: Platform.OS,
-							reason: "invalid_app_store_url_format",
-							appStoreUrl,
-						},
-					});
-					return;
-				}
-			} else if (Platform.OS === "android") {
-				// Android: market:// を優先、不可なら https:// にフォールバック
-				const playStoreUrl = Env.PLAY_STORE_URL;
-				if (!playStoreUrl) {
-					logFrontendEvent({
-						event_name: "settings_leave_review_open_store_failed",
-						error_level: "warn",
-						payload: { platform: Platform.OS, reason: "missing_play_store_url" },
-					});
-					return;
-				}
-				// URL からパッケージ名を抽出（例: https://play.google.com/store/apps/details?id=<package>）
-				const packageMatch = playStoreUrl.match(/id=([^&]+)/);
-
-				const packageName = packageMatch?.[1];
-				// パッケージ名は Play Store の一般的なフォーマット（英数字・ドット・アンダースコア）のみ許可
-				const isValidPackageName = typeof packageName === "string" && /^[A-Za-z0-9._]+$/.test(packageName);
-				if (isValidPackageName) {
-					primaryUrl = `market://details?id=${packageName}&showAllReviews=true`;
-					fallbackUrl = `https://play.google.com/store/apps/details?id=${packageName}&showAllReviews=true`;
-				} else {
-					// パッケージ名が抽出・検証できない場合は不正な URL で遷移しないようにスキップ
-					logFrontendEvent({
-						event_name: "settings_leave_review_open_store_failed",
-						error_level: "warn",
-						payload: {
-							platform: Platform.OS,
-							reason: "invalid_play_store_url_format",
-							playStoreUrl,
-						},
-					});
-					return;
-				}
-			} else {
-				// web など他のプラットフォームでは何もしない
-				logFrontendEvent({
-					event_name: "settings_leave_review_open_store_skipped",
-					error_level: "log",
-					payload: { platform: Platform.OS, reason: "unsupported_platform" },
-				});
-				return;
-			}
-
-			// 優先 URL を試し、開けなければフォールバック
-			const canOpenPrimary = await Linking.canOpenURL(primaryUrl);
-			const urlToOpen = canOpenPrimary ? primaryUrl : fallbackUrl;
-
-			// #1121 外部遷移は openExternalUrl へ統一する。
-			// ここは上で web を早期 return しているので実行されるのはネイティブのみ
-			await openExternalUrl(urlToOpen);
-
-			logFrontendEvent({
-				event_name: "settings_leave_review_open_store_success",
-				error_level: "log",
-				payload: { url: urlToOpen },
-			});
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "settings_leave_review_open_store_error",
-				error_level: "error",
-				payload: { error: (error as Error).message },
-			});
-			showSnackbar(i18n.t("Common.error"));
-		}
-	}, [logFrontendEvent, showSnackbar]);
-
-	// #611 【設計】満足度確認ダイアログ → OK で openStoreReviewPage()
-	const handleLeaveReview = useCallback(async () => {
-		lightImpact();
-		logFrontendEvent({
-			event_name: "settings_leave_review_pressed",
-			error_level: "log",
-			payload: {},
-		});
-
-		showDialog(i18n.t("Settings.rateDialogMessage"), {
-			title: i18n.t("Settings.rateDialogTitle"),
-			okLabel: i18n.t("Settings.rateDialogOk"),
-			cancelLabel: i18n.t("Common.cancel"),
-			onConfirm: async () => {
-				logFrontendEvent({
-					event_name: "settings_leave_review_confirmed",
-					error_level: "log",
-					payload: {},
-				});
-				await openStoreReviewPage();
-			},
-		});
-	}, [lightImpact, logFrontendEvent, showDialog, openStoreReviewPage]);
 
 	/*
 	#1368 【設計】Legal ドキュメントは BlurModal をやめて `/[locale]/legal/[doc]` へ遷移する。
@@ -532,7 +295,41 @@ export default function ProfileScreen() {
 		}
 	}, [logout, mediumImpact, logFrontendEvent, confirm]);
 
-	// #1596 アカウント削除。2段階の確認を挟み、削除後はログアウトして初期画面へ戻る
+	/**
+	 * #1511 ACC-01 アカウント削除。
+	 *
+	 * ## この行が «消えていた» 経緯
+	 * #1533 はこの導線を旧設定画面 `profile/settings.tsx` に足した。その後 #1375 の
+	 * 最終同期（e4ee0369）が旧設定画面ごとファイルを消したため、一時期 **main では
+	 * `settings-delete-account` が app-expo のどこにも存在しない**状態になっていた。
+	 * i18n・API・E2E・撮影シナリオは揃っているのにボタンだけ無い、という
+	 * «作った側だけあって使う側が無い»（#1375 と同じ形）。
+	 *
+	 * ⚠️ これは #1596 / PR #1597 が main 側で、この PR（#1583）が同時刻に別途、
+	 *    **互いを知らずに直した**。main 側は 2fb27f3a でマージ済み。取り込みの衝突は
+	 *    «#1583 の 3 画面構成 + このファイルの実装» の向きで解いてある。両者の差は
+	 *    実行中表示（`deleteAccountInProgress` を行のラベルに出す）と、キャンセルの
+	 *    ログ、そして下の «logout を別の try で包む» 3 点だけで、導線・色・置き場所は同じ。
+	 *
+	 * ## logout を try の «外側» に置かない理由（main 側との差）
+	 * main 側の実装は `logout()` を削除と同じ try に入れている。削除が成功した後に
+	 * `signOut()` が失敗すると catch へ落ちるため、**削除は済んでいるのにエラーの
+	 * スナックバーが出てログイン状態のままに見える**。下ではその 1 行だけを内側の
+	 * try/catch で包み、失敗してもローカルの後始末として扱って先へ進めている。
+	 *
+	 * ## 二段確認にしている理由
+	 * この操作は **取り消せない**。アプリ DB 側は匿名化（論理削除）だが、Supabase Auth の
+	 * アカウントは物理削除するので、同じ資格情報での再ログイン経路が残らない。
+	 * 猶予期間も置いていない（#1511 のリーダー判断）ので、誤操作を戻す手段が UI にしかない。
+	 * そこで「何が起きるかの説明」と「取り消せないことへの明示的な同意」を分けて 2 枚出す。
+	 *
+	 * ## ログアウトを try/catch で包む理由
+	 * 削除が成功した時点で **Auth 側のアカウントは既に存在しない**。その状態で
+	 * `signOut()` を呼ぶとサーバ往復（`POST /auth/v1/logout`）が 401/403 になり得る。
+	 * ここで throw させると「削除は成功したのにエラー表示のままログイン状態で留まる」
+	 * という最悪の見え方になるため、失敗してもローカルの後始末として扱って先へ進む
+	 *（画面遷移は AuthProvider の SIGNED_OUT ハンドラが担う）。
+	 */
 	const handleDeleteAccount = useCallback(async () => {
 		mediumImpact();
 		logFrontendEvent({
@@ -541,47 +338,77 @@ export default function ProfileScreen() {
 			payload: {},
 		});
 
-		const step1 = await confirm({
+		// 1 枚目: 何が起きるかの説明
+		const acknowledged = await confirm({
 			title: i18n.t("Settings.deleteAccountConfirmTitle"),
 			message: i18n.t("Settings.deleteAccountConfirmMessage"),
 			confirmLabel: i18n.t("Settings.deleteAccountConfirmButton"),
 			cancelLabel: i18n.t("Common.cancel"),
 		});
-		if (!step1) return;
+		if (!acknowledged) {
+			logFrontendEvent({
+				event_name: "settings_delete_account_cancelled",
+				error_level: "log",
+				payload: { step: "explain" },
+			});
+			return;
+		}
 
-		const step2 = await confirm({
+		// 2 枚目: 取り消せないことへの明示的な同意
+		const confirmed = await confirm({
 			title: i18n.t("Settings.deleteAccountFinalTitle"),
 			message: i18n.t("Settings.deleteAccountFinalMessage"),
 			confirmLabel: i18n.t("Settings.deleteAccountFinalButton"),
 			cancelLabel: i18n.t("Common.cancel"),
 		});
-		if (!step2) return;
+		if (!confirmed) {
+			logFrontendEvent({
+				event_name: "settings_delete_account_cancelled",
+				error_level: "log",
+				payload: { step: "final" },
+			});
+			return;
+		}
 
-		if (deletingRef.current) return;
-		deletingRef.current = true;
-
-		showSnackbar(i18n.t("Settings.deleteAccountInProgress"));
+		// 二度押しで DELETE が 2 回飛ぶのを防ぐ（2 回目は 404 になるだけだが、
+		// ユーザーにはエラーとして見えてしまう）
+		if (isDeletingAccountRef.current) return;
+		isDeletingAccountRef.current = true;
+		setIsDeletingAccount(true);
 
 		try {
-			await callBackend<Record<string, never>, void>("v1/users/me", {
+			await callBackend<Record<string, never>, DeleteMeResponse>("v1/users/me", {
 				method: "DELETE",
 				requestPayload: {},
 			});
+
 			logFrontendEvent({
-				event_name: "delete_account_success",
+				event_name: "settings_delete_account_success",
 				error_level: "log",
 				payload: {},
 			});
 			showSnackbar(i18n.t("Settings.deleteAccountSuccess"));
-			await logout({ scope: "local" });
+
+			try {
+				await logout({ scope: "local" });
+			} catch (error) {
+				// 削除済みアカウントの signOut は失敗しうる。削除自体は成功しているので握る
+				logFrontendEvent({
+					event_name: "settings_delete_account_logout_error",
+					error_level: "warn",
+					payload: { error: (error as Error).message },
+				});
+			}
 		} catch (error) {
-			deletingRef.current = false;
 			logFrontendEvent({
-				event_name: "delete_account_error",
+				event_name: "settings_delete_account_error",
 				error_level: "error",
-				payload: { error: (error as Error).message },
+				payload: { error: (error as Error)?.message ?? String(error) },
 			});
 			showSnackbar(i18n.t("Settings.deleteAccountError"));
+		} finally {
+			isDeletingAccountRef.current = false;
+			setIsDeletingAccount(false);
 		}
 	}, [mediumImpact, logFrontendEvent, confirm, callBackend, showSnackbar, logout]);
 
@@ -620,24 +447,15 @@ export default function ProfileScreen() {
 						</View>
 					)}
 
-					{/* #1509 表示テーマ（システム追従 / ライト / ダーク）。
-					    切替の効果がその場で見えるよう、リストの最上段に置く */}
-					<Text style={styles.sectionTitle} accessibilityRole="header">
-						{i18n.t("Settings.theme.sectionTitle")}
-					</Text>
-					<Card style={styles.card}>
-						<ThemeSelector />
-					</Card>
-
 					{/* Card 1: いいね・保存（旧グリッドタブの行き先） */}
 					<Card style={styles.card}>
-						<ProfileMenuItem
+						<SettingsMenuItem
 							label={i18n.t("Profile.menu.likedPosts")}
 							onPress={handleNavigateToLiked}
 							testID="profile-liked"
 							accessibilityRole="link"
 						/>
-						<ProfileMenuItem
+						<SettingsMenuItem
 							label={i18n.t("Profile.menu.savedDishCategories")}
 							onPress={handleNavigateToSavedDishCategories}
 							isLast
@@ -649,52 +467,43 @@ export default function ProfileScreen() {
 					{/* Card 2: フィードバック・レビュー・ブロック済みトピック（旧設定画面の Card 1）
 					    ＋ #1504 端末設定（規約カードの直上に置く。オーナー指示） */}
 					<Card style={styles.card}>
-						<ProfileMenuItem
+						<SettingsMenuItem
 							label={i18n.t("Settings.sendFeedback")}
 							onPress={handleSendFeedback}
 							testID="settings-feedback"
 							// #951 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約)
 							accessibilityRole="link"
 						/>
-						{/* #317 【設計】Leave Review は web では非表示 */}
-						{Platform.OS !== "web" && (
-							<ProfileMenuItem
-								label={i18n.t("Settings.leaveReview")}
-								onPress={handleLeaveReview}
-								testID="settings-leave-review"
-								accessibilityRole="button"
-							/>
-						)}
 						{/* #747 【設計】ブロック済みの料理カテゴリ管理画面へ遷移 */}
-						<ProfileMenuItem
+						<SettingsMenuItem
 							label={i18n.t("Settings.blockedDishCategories.navigationLabel")}
 							onPress={handleNavigateToBlockedDishCategories}
 							testID="settings-blocked-dish-categories"
 							accessibilityRole="link"
 						/>
 						{/* #1584 【設計】自分が出した通報の履歴。ブロック済みと同じ «自分が申告したもの» の棚 */}
-						<ProfileMenuItem
+						<SettingsMenuItem
 							label={i18n.t("Report.history.navigationLabel")}
 							onPress={handleNavigateToContentReports}
 							testID="settings-content-reports"
 							accessibilityRole="link"
 						/>
 						{/* #1508 【設計】表示言語の選択画面へ遷移 */}
-						<ProfileMenuItem
+						<SettingsMenuItem
 							label={i18n.t("Settings.language.navigationLabel")}
 							onPress={handleNavigateToLanguage}
 							testID="settings-language"
 							accessibilityRole="link"
 						/>
 						{/* #1505 【設計】自分が主催したグループ投票の一覧画面へ遷移 */}
-						<ProfileMenuItem
+						<SettingsMenuItem
 							label={i18n.t("Settings.myGroupVotes.navigationLabel")}
 							onPress={handleNavigateToMyGroupVotes}
 							testID="settings-my-group-votes"
 							accessibilityRole="link"
 						/>
 						{/* #1504 端末設定（ハプティクス等）。規約カードの直上がこの行の定位置 */}
-						<ProfileMenuItem
+						<SettingsMenuItem
 							label={i18n.t("Settings.deviceSettings.navigationLabel")}
 							onPress={handleNavigateToDeviceSettings}
 							isLast
@@ -703,62 +512,59 @@ export default function ProfileScreen() {
 						/>
 					</Card>
 
-					{/* Card 3: Legal ＋ Logout（旧設定画面の Card 2） */}
+					{/* #1583 Card 3: なに食べよについて ＋ ログアウト。
+					    リーガル 4 行と版数は about.tsx へ移した（オーナー指示: ページ遷移にする）。
+					    ログアウトはここに残す。«戻れない操作» をアプリ紹介のページへ混ぜない */}
 					<Card style={styles.card}>
-						{/* #1368 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約) */}
-						<ProfileMenuItem
-							label={i18n.t("Settings.communityGuidelines")}
-							onPress={() => handleLegalDocument("guidelines")}
-							testID="settings-guidelines"
-							accessibilityRole="link"
-						/>
-						<ProfileMenuItem
-							label={i18n.t("Settings.terms")}
-							onPress={() => handleLegalDocument("terms")}
-							testID="settings-terms"
-							accessibilityRole="link"
-						/>
-						<ProfileMenuItem
-							label={i18n.t("Settings.privacy")}
-							onPress={() => handleLegalDocument("privacy")}
-							testID="settings-privacy"
-							accessibilityRole="link"
-						/>
-						<ProfileMenuItem
-							label={i18n.t("Settings.copyright")}
-							onPress={() => handleLegalDocument("copyright")}
+						<SettingsMenuItem
+							label={i18n.t("Settings.about.navigationLabel")}
+							onPress={handleNavigateToAbout}
 							isLast={isGuest}
-							testID="settings-copyright"
+							testID="settings-about"
 							accessibilityRole="link"
 						/>
 						{!isGuest && (
-							<>
-								<ProfileMenuItem
-									label={i18n.t("Settings.logout")}
-									onPress={handleLogout}
-									testID="settings-logout"
-									textStyle={{
-										color: colors.destructive,
-										fontWeight: "700",
-									}}
-									accessibilityRole="button"
-								/>
-								<ProfileMenuItem
-									label={i18n.t("Settings.deleteAccount")}
-									onPress={handleDeleteAccount}
-									testID="settings-delete-account"
-									textStyle={{
-										color: colors.destructive,
-										fontWeight: "700",
-									}}
-									isLast
-									accessibilityRole="button"
-								/>
-							</>
+							<SettingsMenuItem
+								label={i18n.t("Settings.logout")}
+								onPress={handleLogout}
+								testID="settings-logout"
+								textStyle={{
+									color: colors.destructive,
+									fontWeight: "700",
+								}}
+								accessibilityRole="button"
+							/>
+						)}
+						{/*
+						  #1511 【仕様】アカウント削除はログイン済み（非匿名）ユーザーにのみ出す。
+						  ゲストには users 行が無く、削除対象となる実体を持たない（API も AuthUserGuard）。
+
+						  ログアウトの «下» に置くのは、破壊力の弱い導線を先に見せるため。
+
+						  ⚠️ 色は `colors.destructive` を使う。#1533 は旧設定画面でログアウトより濃い赤を
+						     直書きしていたが、あれはライト固定の値でダークの対がなく、#1509 でテーマ対応した
+						     この画面には持ち込めない（assert:no-hardcoded-colors も落とす）。ログアウトと
+						     同じ赤になるが、この行の «強さ» は文言と二段確認が担っているので色で差を付けない。
+						*/}
+						{!isGuest && (
+							<SettingsMenuItem
+								label={
+									isDeletingAccount
+										? i18n.t("Settings.deleteAccountInProgress")
+										: i18n.t("Settings.deleteAccount")
+								}
+								onPress={handleDeleteAccount}
+								testID="settings-delete-account"
+								textStyle={{
+									color: colors.destructive,
+									fontWeight: "700",
+								}}
+								isLast
+								accessibilityRole="button"
+							/>
 						)}
 					</Card>
 
-					<VersionInfo />
 				</ScrollView>
 			</SafeAreaView>
 		</LinearGradient>
@@ -785,48 +591,5 @@ const createStyles = (c: Palette) =>
 		},
 		card: {
 			padding: 0,
-		},
-		// #1509 テーマセクションの見出し（カードの外に置く）
-		sectionTitle: {
-			fontSize: 13,
-			fontWeight: "700",
-			color: c.textSecondary,
-			marginTop: 16,
-			marginHorizontal: 32,
-		},
-		menuItem: {
-			flexDirection: "row",
-			alignItems: "center",
-			justifyContent: "space-between",
-			paddingHorizontal: 16,
-			paddingVertical: 16,
-		},
-		menuItemText: {
-			fontSize: 16,
-			color: c.textPrimary,
-			fontWeight: "500",
-		},
-		separator: {
-			height: 1,
-			backgroundColor: c.divider,
-			marginHorizontal: 16,
-		},
-		// #1509 テーマ 3 択の行。アイコン + ラベル + 選択チェックの 3 カラム
-		themeOption: {
-			flexDirection: "row",
-			alignItems: "center",
-			gap: 12,
-			paddingHorizontal: 16,
-			paddingVertical: 16,
-		},
-		themeOptionText: {
-			flex: 1,
-			fontSize: 16,
-			color: c.textPrimary,
-			fontWeight: "500",
-		},
-		themeOptionTextSelected: {
-			color: c.brand,
-			fontWeight: "700",
 		},
 	});

@@ -37,9 +37,10 @@ describe("設定項目（匿名ユーザー）", () => {
 	//   1. マイページタブを開く（#1402 以前は「歯車ボタンをタップして設定画面へ」だった）
 	//   2. 以下の項目が表示されることを検証:
 	//      - ご意見・不具合(settings-feedback) / レビューを書く(settings-leave-review、ネイティブのみ)
-	//      - ブロック済みの料理トピック(settings-blocked-dish-categories) / 端末設定(settings-device-settings)
-	//      - 利用規約(settings-terms)
-	//      - プライバシーポリシー(settings-privacy)
+	//      - ブロック済みの料理カテゴリ(settings-blocked-dish-categories)
+	//      - 端末設定(settings-device-settings) / なに食べよについて(settings-about)
+	//   ⚠️ #1583 で規約 4 行・応援する・バージョンは «なに食べよについて»、
+	//      表示テーマは «端末設定» へ移った
 	it("設定メニューの各項目が表示される", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
@@ -49,13 +50,41 @@ describe("設定項目（匿名ユーザー）", () => {
 		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
 
-		await waitUntilVisible(settingsScreen.feedbackItem);
+		// #1583 `expectLoaded()` は «最上段が見えたか» しか見ない（スクロールしない）ので、
+		//       2 枚目のカードの行はここで明示的に運ぶ
+		await settingsScreen.expectRowVisible(settingsScreen.feedbackItem);
+		await settingsScreen.expectRowVisible(settingsScreen.blockedDishCategoriesItem);
+		// #1583 下 2 行は初期表示で画面外にいるので、見えるところまで運んでから確かめる
+		await settingsScreen.expectRowVisible(settingsScreen.deviceSettingsItem);
+		await settingsScreen.expectRowVisible(settingsScreen.aboutItem);
+	});
+
+	// ─ テストケース: «なに食べよについて» に応援する・規約・バージョンが揃う ─
+	// #1583 オーナー指定の中身。**«応援する» はネイティブでしか出ない**ので、
+	// この 1 本は web 側では代替できない（e2e-web は行が無いことを検証している）。
+	it("«なに食べよについて» に応援する・規約・バージョンが揃う", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const settingsScreen = new SettingsScreen();
+
+		await tabBar.gotoProfile();
+		await profileScreen.expectLoaded();
+		await settingsScreen.expectLoaded();
+		await settingsScreen.openAbout();
+
 		await waitUntilVisible(settingsScreen.leaveReviewItem);
-		await waitUntilVisible(settingsScreen.blockedDishCategoriesItem);
-		// #1504 端末設定は規約カードの直上に置いた行。規約 4 行より上にいるので順序も併せて固定される
-		await waitUntilVisible(settingsScreen.deviceSettingsItem);
+		await waitUntilVisible(settingsScreen.guidelinesItem);
 		await waitUntilVisible(settingsScreen.termsItem);
 		await waitUntilVisible(settingsScreen.privacyItem);
+		await waitUntilVisible(settingsScreen.copyrightItem);
+		await waitUntilVisible(settingsScreen.versionSection);
+
+		// #1583 1 画面を 3 画面へ割った以上、**帰ってこられること**まで見る。
+		// 分割そのものより «行き止まりを作る» ほうが起きやすい事故で、
+		// 「行が出る」「遷移できる」だけのテストでは捕まらない。
+		// 実機は 1 本 100〜200 秒かかるので、it を増やさずこの導線の続きとして確かめる。
+		await settingsScreen.goBackFromAbout();
+		await settingsScreen.expectLoaded();
 	});
 
 	// ─ テストケース: プライバシーポリシー行で法務ドキュメント画面へ遷移する ─
@@ -114,6 +143,8 @@ describe("設定項目（匿名ユーザー）", () => {
 
 		await tabBar.gotoProfile();
 		await settingsScreen.expectLoaded();
+		// #1583 バージョンは «なに食べよについて» ページへ移った
+		await settingsScreen.openAbout();
 
 		await waitUntilVisible(settingsScreen.versionSection);
 
@@ -169,6 +200,10 @@ describe("端末設定画面のハプティクストグル（匿名ユーザー�
 		await settingsScreen.openDeviceSettings();
 		await deviceSettingsScreen.expectLoaded();
 		await deviceSettingsScreen.expectHapticsToggleValue(true);
+
+		// #1583 «なに食べよについて» と同じ理由で、戻れることまで見る
+		await deviceSettingsScreen.goBack();
+		await settingsScreen.expectLoaded();
 	});
 
 	// ─ テストケース: タップすると状態が変わり、アプリ再起動後も保持される ─
@@ -225,10 +260,6 @@ describe("端末設定画面のハプティクストグル（匿名ユーザー�
 		await settingsScreen.expectLoaded();
 
 		const hasNotificationCard = await section.exists();
-		assert.equal(
-			hasNotificationCard,
-			false,
-			"匿名ユーザーには settings-notifications-card が表示されないはず",
-		);
+		assert.equal(hasNotificationCard, false, "匿名ユーザーには settings-notifications-card が表示されないはず");
 	});
 });

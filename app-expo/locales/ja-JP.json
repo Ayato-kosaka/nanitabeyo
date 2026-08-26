@@ -803,7 +803,6 @@
 			}
 		},
 		"sendFeedback": "ご意見・不具合",
-		"leaveReview": "レビューを書く",
 		"rateDialogTitle": "アプリを気に入っていただけましたか？",
 		"rateDialogMessage": "よければストアで評価をお願いします。レビュー画面を開きます。",
 		"rateDialogOk": "評価する",
@@ -860,6 +859,11 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "グループ投票の履歴"
+		},
+		"support": "なに食べよ を応援する",
+		"about": {
+			"navigationLabel": "なに食べよについて",
+			"title": "なに食べよについて"
 		},
 		"deleteAccount": "アカウントを削除",
 		"deleteAccountInProgress": "削除しています…",

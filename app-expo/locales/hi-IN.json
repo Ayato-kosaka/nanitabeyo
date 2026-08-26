@@ -803,7 +803,6 @@
 			}
 		},
 		"sendFeedback": "प्रतिक्रिया भेजें",
-		"leaveReview": "समीक्षा छोड़ें",
 		"rateDialogTitle": "क्या आपको ऐप पसंद है?",
 		"rateDialogMessage": "यदि आपको पसंद है, तो कृपया स्टोर पर हमें रेट करें। हम समीक्षा पृष्ठ खोलेंगे।",
 		"rateDialogOk": "अभी रेट करें",
@@ -860,6 +859,11 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "मेरे समूह वोट"
+		},
+		"support": "CraveCatch का समर्थन करें",
+		"about": {
+			"navigationLabel": "CraveCatch के बारे में",
+			"title": "CraveCatch के बारे में"
 		},
 		"deleteAccount": "खाता हटाएँ",
 		"deleteAccountInProgress": "हटाया जा रहा है…",

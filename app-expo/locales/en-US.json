@@ -803,7 +803,6 @@
 			}
 		},
 		"sendFeedback": "Send Feedback",
-		"leaveReview": "Leave Review",
 		"rateDialogTitle": "Are you enjoying the app?",
 		"rateDialogMessage": "If you like it, please rate us on the store. We'll open the review page.",
 		"rateDialogOk": "Rate Now",
@@ -860,6 +859,11 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "My group votes"
+		},
+		"support": "Support CraveCatch",
+		"about": {
+			"navigationLabel": "About CraveCatch",
+			"title": "About CraveCatch"
 		},
 		"deleteAccount": "Delete account",
 		"deleteAccountInProgress": "Deleting…",
