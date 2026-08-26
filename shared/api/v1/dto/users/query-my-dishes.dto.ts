@@ -15,6 +15,7 @@ import {
 	Min,
 	ValidateIf,
 } from "class-validator";
+import { IsParsableDateString } from "../is-parsable-date-string";
 
 /**
  * #1395 my-dishes（食べたい/食べた）の状態。
@@ -190,12 +191,17 @@ export class QueryMyDishesDto {
 
 	/** `occurredAt` の下限（Calendar の月窓 / 期間絞り込み）。境界を含む */
 	@IsOptional()
-	@IsISO8601()
+	// #1599 strict は «実在しない日付»（2026-02-30）を弾き、
+	// IsParsableDateString は «new Date() が解釈できない形»（2026-W01 / 20260826）を弾く。
+	// 下の rangeFilter が new Date(dto.from) をそのままクエリへ載せるので、両方要る。
+	@IsISO8601({ strict: true })
+	@IsParsableDateString()
 	from?: string;
 
 	/** `occurredAt` の上限。境界を含む */
 	@IsOptional()
-	@IsISO8601()
+	@IsISO8601({ strict: true })
+	@IsParsableDateString()
 	to?: string;
 
 	/** 並び順。既定は `-occurredAt` */
