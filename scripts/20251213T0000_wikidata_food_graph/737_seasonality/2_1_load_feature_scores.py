@@ -162,12 +162,15 @@ def main():
     from google.cloud import bigquery
 
     client = bigquery.Client(project="food-scroll")
-    job = client.load_table_from_json(
-        rows, SCORES_TABLE,
-        job_config=bigquery.LoadJobConfig(write_disposition="WRITE_APPEND"),
-    )
-    job.result()
-    logger.info(f"{job.output_rows} 行を append しました: {SCORES_TABLE}")
+    # load_table_from_json ではなく insert_rows_json を使う（581-manual と同じ）。
+    # load job はスキーマを自動検出して全列を NULLABLE と推定するため、
+    # REQUIRED 列を持つこのテーブルに対して必ず落ちる（実測 run 32998467068:
+    # "Field model has changed mode from REQUIRED to NULLABLE"）。
+    # insert_rows_json は既存スキーマをそのまま使うのでこの問題が起きない。
+    errors = client.insert_rows_json(SCORES_TABLE, rows)
+    if errors:
+        raise RuntimeError(f"insert_rows_json returned errors: {errors[:5]}")
+    logger.info(f"{len(rows)} 行を append しました: {SCORES_TABLE}")
     logger.info("=" * 80)
     logger.info("✅ Step 2-1 completed")
     logger.info("")
