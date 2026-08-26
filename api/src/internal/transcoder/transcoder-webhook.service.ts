@@ -13,6 +13,8 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import { TranscoderJobLabels } from './transcoder-webhook.interface';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from '../../core/storage/storage.service';
+import { buildTranscodeRetryClaimPath } from '../../core/storage/storage.utils';
 import { MediaProcessingStatus } from '@shared/v1/res';
 
 @Injectable()
@@ -23,6 +25,7 @@ export class TranscoderWebhookService {
     private readonly logger: AppLoggerService,
     private readonly transcoderService: TranscoderService,
     private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
   ) {
     this.client = new TranscoderServiceClient();
   }
@@ -64,20 +67,44 @@ export class TranscoderWebhookService {
 
   /**
    * #511 【設計】dish_media テーブルの processing_status を更新
+   *
+   * #1599 【バグ】**既にそのステータスなら 1 行も書かない。**
+   *
+   * Pub/Sub Push は at-least-once 配送で、ハンドラが成功しても応答が届かなければ
+   * 同じ通知がもう一度届く。以前は無条件 UPDATE だったので、再配送のたびに
+   * `lock_no` が進み、`updated_at` が «何も変わっていないのに» 現在時刻へ動いていた。
+   * `updated_at` は «最後に中身が変わった時刻» として読める必要がある。
+   *
+   * `resize-image.service.ts` の同名メソッドと同じ形にしてある（片方だけ直すと、
+   * もう片方で同じ «再配送のたびに行が書き換わる» が残る）。理由の詳細はあちらの
+   * doc comment にある。
    */
   private async updateDishMediaProcessingStatus(
     recordId: string,
     status: MediaProcessingStatus,
   ): Promise<void> {
     try {
-      await this.prisma.prisma.dish_media.update({
-        where: { id: recordId },
+      const { count } = await this.prisma.prisma.dish_media.updateMany({
+        where: { id: recordId, NOT: { media_processing_status: status } },
         data: {
           media_processing_status: status,
           updated_at: new Date(),
           lock_no: { increment: 1 },
         },
       });
+
+      if (count === 0) {
+        this.logger.log(
+          'DishMediaProcessingStatusUnchanged',
+          'updateDishMediaProcessingStatus',
+          {
+            recordId,
+            status,
+            reason: 'already_in_status_or_record_missing',
+          },
+        );
+        return;
+      }
 
       this.logger.log(
         'DishMediaProcessingStatusUpdated',
@@ -155,20 +182,53 @@ export class TranscoderWebhookService {
     });
 
     // AudioMissing かつ retry=0 の場合のみリトライ
+    //
+    // #1599 【バグ】**再配送のたびにリトライジョブを作り直していた。**
+    //
+    // Pub/Sub Push は at-least-once 配送で、ハンドラが成功しても応答が届かなければ
+    // 同じ FAILED 通知がもう一度届く。判定材料の `labels.retry` は
+    // **失敗した «元のジョブ» の label** で、こちらがリトライを作っても変わらない
+    // （リトライ側の label に retry=1 が入るだけ）。よって再配送は毎回この分岐へ入り、
+    //   - 課金されるトランスコードジョブが何本も走る
+    //   - **同じ outputUri へ複数のジョブが同時に書く**（出力が壊れうる）
+    // が起きていた。
+    //
+    // Transcoder の `CreateJobRequest` には job 名を指定する欄が無い
+    // （`ICreateJobRequest` は parent と job だけ）ので «同じ id で作れば 1 本» に
+    // できない。代わりに **作る前に GCS 上のマーカーを排他生成して権利を取る**。
+    // 取れた配送だけがジョブを作る（claim-then-create）。
     const retryCount = parseInt(labels.retry ?? '0', 10);
     if (isAudioMissing && retryCount === 0) {
+      const inputUri = jobDetails.config?.inputs?.[0]?.uri;
+      const outputUri = jobDetails.config?.output?.uri;
+      if (!inputUri || !outputUri) {
+        this.logger.error('TranscoderJobRetryError', 'handleFailed', {
+          jobId,
+          labels,
+          jobDetails,
+          message: 'InputUri or OutputUri is missing in jobDetails.config',
+        });
+        throw new Error('InputUri or OutputUri is missing');
+      }
+
+      const claimPath = buildTranscodeRetryClaimPath(outputUri, retryCount + 1);
+      const claimed = await this.storage.claimOnce(claimPath, {
+        reason: 'transcode_retry_video_only',
+        record_id,
+        failed_job: jobId,
+      });
+      if (!claimed) {
+        // 既に別の配送がリトライを作っている。ここで «成功として» 抜けるのが正しい
+        // （throw すると Pub/Sub が再配送を続け、ログだけが増える）
+        this.logger.log('TranscoderJobRetryAlreadyClaimed', 'handleFailed', {
+          jobId,
+          labels,
+          claimPath,
+        });
+        return;
+      }
+
       try {
-        const inputUri = jobDetails.config?.inputs?.[0]?.uri;
-        const outputUri = jobDetails.config?.output?.uri;
-        if (!inputUri || !outputUri) {
-          this.logger.error('TranscoderJobRetryError', 'handleFailed', {
-            jobId,
-            labels,
-            jobDetails,
-            message: 'InputUri or OutputUri is missing in jobDetails.config',
-          });
-          throw new Error('InputUri or OutputUri is missing');
-        }
         await this.transcoderService.createTranscodeJob({
           inputUri,
           outputUri,
@@ -179,9 +239,14 @@ export class TranscoderWebhookService {
           },
         });
       } catch (error) {
+        // ジョブを作れなかったのに claim を握ったままだと、**再配送でも作り直せず**
+        // この動画が永久に processing のまま残る。権利を返してから投げ直す
+        await this.storage.deleteFileIfExists(claimPath);
+
         this.logger.error('TranscoderJobRetryError', 'handleFailed', {
           jobId,
           labels,
+          claimPath,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
         throw error;
