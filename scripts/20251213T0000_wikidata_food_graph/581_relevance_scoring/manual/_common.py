@@ -34,6 +34,24 @@ CATALOG_TABLE = f"{DATASET_REF}.dish_category_catalog"
 
 # relevance feature は 0 / 0.5 / 1 の離散値のみ許可する（#581 の契約に合わせる）。
 ALLOWED_SCORES = {0.0, 0.5, 1.0}
+
+# #1637 【仕様】連続値で運用されている feature_type。
+#
+# 当初は「manual correction の score は 0 / 0.5 / 1 のみ」という契約だったが、実データは
+# そうなっていない。catalog の note に残っているレビュー確定値と実際の score を突き合わせると、
+# 離散 feature（budget_intent / dining_pace / core_ingredient）は 288 行すべて一致するのに対し、
+# 下記 5 種は 655 行すべて不一致で、実際には 0.42〜0.98 の連続値が入っている。
+#
+# つまり離散前提の検証だけが実態と合っていない。ここに挙げた型に限り 0.0〜1.0 の連続値を許す。
+# **既定は従来どおり離散**なので、新しい feature を足すときに緩む方向へは倒れない。
+CONTINUOUS_FEATURE_TYPES = {
+    "market_salience",
+    "dine_out_orderability",
+    "timeSlot",
+    "scene",
+    "taste",
+    "season",  # #737 で追加。月指数をそのまま入れるので連続
+}
 ALLOWED_CONFIDENCE = {"high", "medium", "low"}
 REASON_MAX_CHARS = 120
 
@@ -102,7 +120,9 @@ def parse_jsonl_corrections(path: str) -> List[Dict[str, Any]]:
     return rows
 
 
-def _coerce_score(raw: Any, where: str, errors: List[str]) -> Optional[float]:
+def _coerce_score(
+    raw: Any, where: str, errors: List[str], feature_type: str = ""
+) -> Optional[float]:
     try:
         score = float(raw)
     except (TypeError, ValueError):
@@ -110,10 +130,21 @@ def _coerce_score(raw: Any, where: str, errors: List[str]) -> Optional[float]:
         return None
     # 浮動小数の誤差を吸収してから許可値集合と突き合わせる
     rounded = round(score, 4)
+
+    if feature_type in CONTINUOUS_FEATURE_TYPES:
+        if not (-1e-6 <= rounded <= 1 + 1e-6):
+            errors.append(
+                f"{where}: score {raw} is out of range for continuous feature "
+                f"'{feature_type}' (0.0〜1.0 のみ許可)"
+            )
+            return None
+        return min(max(rounded, 0.0), 1.0)
+
     if not any(abs(rounded - allowed) < 1e-6 for allowed in ALLOWED_SCORES):
         errors.append(
             f"{where}: score {raw} is not in allowed set {sorted(ALLOWED_SCORES)} "
-            "(relevance feature は 0 / 0.5 / 1 のみ許可)"
+            f"(離散 feature '{feature_type}' は 0 / 0.5 / 1 のみ許可。"
+            f"連続値を使えるのは {sorted(CONTINUOUS_FEATURE_TYPES)})"
         )
         return None
     return rounded
@@ -223,7 +254,7 @@ def validate_corrections(
     issue #1383 のチェックリストに対応:
     - run_id / item_qid / feature_type / feature_key / reason が空でない
     - feature_type/feature_key が既存catalogに存在する（新規featureを弾く）
-    - score が 0/0.5/1 のみ
+    - score が 0/0.5/1 のみ（CONTINUOUS_FEATURE_TYPES に限り 0.0〜1.0 の連続値）
     - confidence が high/medium/low のみ
     - reason が120文字以内
     - item_qid が dish_category_catalog に存在する
@@ -262,7 +293,7 @@ def validate_corrections(
         if not feature_key:
             result.errors.append(f"{where}: feature_key must not be empty")
 
-        score = _coerce_score(raw.get("score"), where, result.errors)
+        score = _coerce_score(raw.get("score"), where, result.errors, feature_type)
 
         if confidence not in ALLOWED_CONFIDENCE:
             result.errors.append(

@@ -123,8 +123,14 @@ def build_params(exprs: list[str], scenario: dict, month: str, w_season: float, 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--schema", required=True, choices=["dev", "public"])
-    p.add_argument("--repeats", type=int, default=300)
+    p.add_argument("--repeats", type=int, default=300,
+                   help="jitter ありの試行回数。0 を渡すと出現率の計測を飛ばす（順位だけ見たいとき）")
     p.add_argument("--months", type=str, default="08,12")
+    p.add_argument(
+        "--watch", type=str, default=None,
+        help="final_score を追跡する QID をカンマ区切りで指定する。"
+             "feature の値を直す前後で 2 回流し、動いてよいものだけが動いたかを見る（#1637）",
+    )
     args = p.parse_args()
 
     sql, exprs = load_sql()
@@ -142,6 +148,7 @@ def main():
     cur.execute("SELECT id, COALESCE(labels->>'ja', label_en) FROM dish_categories")
     label = {r[0]: r[1] for r in cur.fetchall()}
     winter_ids = {q for q in WINTER_QIDS if q in label}
+    watch = [q.strip() for q in args.watch.split(",")] if args.watch else []
     missing = [q for q in WINTER_QIDS if q not in label]
     logger.info(f"冬型カテゴリ: {len(winter_ids)} / {len(WINTER_QIDS)} 件を dev で解決")
     if missing:
@@ -189,7 +196,18 @@ def main():
                 if shown >= 8:
                     break
 
+            if watch:
+                print("  [watch] final_score（w_season=0.25 / jitter=0）")
+                for cid in watch:
+                    if cid in score1:
+                        print(f"    {label.get(cid, cid):<12} {score1[cid]:.6f}"
+                              f"  ({rank1.get(cid)}位)")
+                    else:
+                        print(f"    {label.get(cid, cid):<12} (候補に出ていない)")
+
             # B: jitter ありで上位 6 件に冬型が入る割合
+            if args.repeats <= 0:
+                continue
             hits = {0.0: 0, 0.25: 0}
             for w in (0.0, 0.25):
                 for _ in range(args.repeats):
