@@ -22,10 +22,10 @@
 // 「削除済みも含めて読むのが正しい」場合だけ、**理由を書いて** EXCLUSIONS へ足す。
 
 import {
-  API_SRC,
   blankComments,
   lineOf,
   listSourceFiles,
+  readBraceBlock,
   readCallArguments,
   toRepoPath,
 } from '../../../test/source-scan';
@@ -56,6 +56,39 @@ const GUARDED_TABLES = ['dish_reviews', 'dish_media'] as const;
  * 削除済みも読むのが正しい場所。**理由を必ず書くこと。**
  * キーは `<リポジトリ相対パス>#<テーブル>`。
  */
+/**
+ * #1599 ネストしたリレーション指定
+ * （`include: { dish_reviews: { where: ... } }`）で、削除済みも読むのが正しい場所。
+ * **理由を必ず書くこと。** キーは `<api からの相対パス>:<行番号>`。
+ *
+ * ⚠️ 行番号込みなので、その行が動いたら落ちる。**それは意図した挙動である。**
+ * 除外は «この呼び出し» に対して与えたものであって、ファイルに対してではない。
+ */
+const NESTED_EXCLUSIONS: Readonly<Record<string, string>> = {
+  // #829 Google 一括取り込みの «再利用できる media があるか» の探索。
+  // どちらも `user_id: null`（= Google 取り込み由来）で絞っており、
+  // **その行は現状どの経路からも論理削除されない**。
+  // 唯一の削除経路 `softDeleteDishMediaWithReviews` は
+  // `deleteDishMedia`（`media.user_id !== userId` なら 403）からしか呼ばれず、
+  // `user_id` が NULL の行に一致するリクエスト者は存在しないため。
+  //
+  // 【もし将来 運営による削除経路を足すなら、ここを作り直すこと】
+  // 単に `deleted_at: null` を足すだけでは直らない。#829 は dish_media の id を
+  // (placeId, categoryId) から決定論的に導出しており、再利用を諦めて作り直そうとしても
+  // 同じ id になって `createDishMedia` の upsert が no-op になる（削除済みのまま）。
+  // 復活させるのか作り直すのかは、その削除経路の仕様と一緒に決める必要がある。
+  'src/v1/dishes/dishes.repository.ts:225':
+    '#829 Google 取り込みの再利用探索（completed）。user_id: null の行は削除されない',
+  'src/v1/dishes/dishes.repository.ts:271':
+    '#829 Google 取り込みの再利用探索（未完了）。user_id: null の行は削除されない',
+};
+
+/**
+ * Prisma のリレーション指定であることの目安。
+ * `data: { dish_media: { connect: ... } }` のような書き込みを拾わないために要る。
+ */
+const RELATION_HINT = /\b(where|select|orderBy|take|include|skip|cursor)\s*:/;
+
 const EXCLUSIONS: Readonly<Record<string, string>> = {
   // 通報の対象が «実在するか» の存在確認。削除済みのレビューを通報しようとしたときに
   // 「そんなものは無い」と返すと、通報者からは «消えたのに通報できない» に見える。
@@ -138,5 +171,79 @@ describe('#1596 論理削除テーブルの読み取りは必ず deleted_at で�
     }
 
     expect(violations).toEqual([]);
+  });
+
+  // #1599 上の検査は `dish_reviews.findMany(` のような **トップレベルの呼び出し**しか見ない。
+  // Prisma は `include: { dish_reviews: { where: ... } }` でもリレーションを読めるので、
+  // そちらは丸ごと素通しだった（#1607 の検証中に判明）。同じ不変条件なので同じ強さで守る。
+  it('ネストしたリレーション指定も deleted_at を条件に含む', () => {
+    const violations: string[] = [];
+
+    for (const file of files) {
+      const relPath = toRepoPath(file);
+      const text = blankComments(readFileSync(file, 'utf8'));
+
+      for (const table of GUARDED_TABLES) {
+        const pattern = new RegExp(`\\b${table}\\s*:\\s*\\{`, 'g');
+
+        for (const match of text.matchAll(pattern)) {
+          const openIndex = text.indexOf('{', match.index);
+          const block = readBraceBlock(text, openIndex);
+
+          // 書き込み（`data: { dish_media: { connect } }` 等）は対象外
+          if (!RELATION_HINT.test(block)) continue;
+          if (block.includes('deleted_at')) continue;
+
+          const line = lineOf(text, match.index);
+          if (NESTED_EXCLUSIONS[`${relPath}:${line}`]) continue;
+
+          violations.push(`${relPath}:${line} → include/select の ${table}`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('【自己検査】ネストした指定の絞り忘れを実際に検出できる', () => {
+    // 「トップレベルは絞っているがネストは絞っていない」形。上の 1 本目の検査は
+    // これを緑にしてしまう（見えていない）ので、2 本目が要る理由そのものになる。
+    const sample = `
+      await tx.dishes.findMany({
+        where: { id },
+        include: {
+          dish_reviews: {
+            orderBy: { created_at: 'asc' },
+            take: 3,
+          },
+        },
+      });
+    `;
+    const openIndex = sample.indexOf('{', sample.indexOf('dish_reviews:'));
+    const block = readBraceBlock(sample, openIndex);
+
+    expect(RELATION_HINT.test(block)).toBe(true);
+    expect(block.includes('deleted_at')).toBe(false);
+
+    // 絞れば検出されない
+    const fixed = block.replace('orderBy:', 'where: { deleted_at: null },\n            orderBy:');
+    expect(fixed.includes('deleted_at')).toBe(true);
+  });
+
+  it('NESTED_EXCLUSIONS に挙げた行が実在する（消えた行の除外指定が居座らない）', () => {
+    const stale = Object.keys(NESTED_EXCLUSIONS).filter((key) => {
+      const [relPath, lineText] = key.split(':');
+      const file = files.find((candidate) => toRepoPath(candidate) === relPath);
+      if (!file) return true;
+
+      const text = blankComments(readFileSync(file, 'utf8'));
+      const line = Number(lineText);
+      const source = text.split('\n')[line - 1] ?? '';
+      return !GUARDED_TABLES.some((table) =>
+        new RegExp(`\\b${table}\\s*:\\s*\\{`).test(source),
+      );
+    });
+
+    expect(stale).toEqual([]);
   });
 });
