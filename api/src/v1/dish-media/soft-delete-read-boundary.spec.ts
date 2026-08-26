@@ -21,8 +21,15 @@
 // 新しく `dish_reviews` を読む場所を足したなら、その where へ `deleted_at: null` を足す。
 // 「削除済みも含めて読むのが正しい」場合だけ、**理由を書いて** EXCLUSIONS へ足す。
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import {
+  API_SRC,
+  blankComments,
+  lineOf,
+  listSourceFiles,
+  readCallArguments,
+  toRepoPath,
+} from '../../../test/source-scan';
+import { readFileSync } from 'node:fs';
 
 /**
  * 検査対象の読み取りメソッド。
@@ -42,10 +49,6 @@ const READ_METHODS = [
   'groupBy',
 ] as const;
 
-/**
- * 削除済みも読むのが正しい場所。**理由を必ず書くこと。**
- * キーはリポジトリルートからの相対パス（POSIX 区切り）。
- */
 /** 検査対象のテーブル。schema.prisma が同じ約束をしているもの */
 const GUARDED_TABLES = ['dish_reviews', 'dish_media'] as const;
 
@@ -65,121 +68,6 @@ const EXCLUSIONS: Readonly<Record<string, string>> = {
   'src/v1/users/users.repository.ts#dish_media':
     '退会時のストレージ実体削除。削除済みの投稿のファイルも消す必要がある',
 };
-
-const API_SRC = join(__dirname, '..', '..');
-const REPO_API_ROOT = join(API_SRC, '..');
-
-function listSourceFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      out.push(...listSourceFiles(full));
-      continue;
-    }
-    if (!entry.endsWith('.ts')) continue;
-    if (entry.endsWith('.spec.ts')) continue;
-    out.push(full);
-  }
-  return out;
-}
-
-/**
- * `text` の `openIndex`（`(` の位置）に対応する `)` までを返す。
- * 文字列リテラル・テンプレートリテラルの中の括弧は数えない。
- */
-function readCallArguments(text: string, openIndex: number): string {
-  let depth = 0;
-  let quote: string | null = null;
-
-  for (let i = openIndex; i < text.length; i += 1) {
-    const ch = text[i];
-
-    if (quote) {
-      if (ch === '\\') {
-        i += 1;
-        continue;
-      }
-      if (ch === quote) quote = null;
-      continue;
-    }
-
-    if (ch === "'" || ch === '"' || ch === '`') {
-      quote = ch;
-      continue;
-    }
-    if (ch === '(') depth += 1;
-    if (ch === ')') {
-      depth -= 1;
-      if (depth === 0) return text.slice(openIndex, i + 1);
-    }
-  }
-  return text.slice(openIndex);
-}
-
-
-/**
- * コメントを **同じ長さの空白へ置き換える**（改行は残す）。
- *
- * 取り除く（詰める）のではなく空白で潰すのは、**元ファイルの行番号と文字位置を
- * そのまま使える**ようにするため。
- *
- * ⚠️ これが無いと 2 種類の嘘が両方出る。実際に両方踏んだ。
- *   1. 見逃し: 「`deleted_at` について説明したコメント」を絞っている証拠と誤認し、
- *      絞っていないのに緑になる（fix を revert しても赤くならなかった）
- *   2. 誤検知: コメントの中に書かれた `dish_media.findMany(` という **例示**を
- *      本物の呼び出しと誤認し、正しいコードを赤くする
- *      （`notifications.service.ts` の「こう書くと壊れる」という説明で踏んだ）
- *
- * 検査の正しさは「壊した状態で赤くなること」と「正しい状態で緑であること」の
- * 両方でしか確かめられない。
- */
-function blankComments(text: string): string {
-  const out = text.split('');
-  let quote: string | null = null;
-
-  const blank = (from: number, to: number) => {
-    for (let i = from; i < to && i < out.length; i += 1) {
-      if (out[i] !== '\n') out[i] = ' ';
-    }
-  };
-
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    const next = text[i + 1];
-
-    if (quote) {
-      if (ch === '\\') {
-        i += 1;
-        continue;
-      }
-      if (ch === quote) quote = null;
-      continue;
-    }
-
-    if (ch === "'" || ch === '"' || ch === '`') {
-      quote = ch;
-      continue;
-    }
-
-    if (ch === '/' && next === '/') {
-      const end = text.indexOf('\n', i);
-      const stop = end === -1 ? text.length : end;
-      blank(i, stop);
-      i = stop;
-      continue;
-    }
-
-    if (ch === '/' && next === '*') {
-      const end = text.indexOf('*/', i + 2);
-      const stop = end === -1 ? text.length : end + 2;
-      blank(i, stop);
-      i = stop - 1;
-      continue;
-    }
-  }
-  return out.join('');
-}
 
 /**
  * `where: someVariable` の形で渡されているとき、その変数の宣言に
@@ -205,7 +93,7 @@ function whereVariableHasDeletedAt(fileText: string, args: string): boolean {
 }
 
 describe('#1596 論理削除テーブルの読み取りは必ず deleted_at で絞る', () => {
-  const files = listSourceFiles(API_SRC);
+  const files = listSourceFiles();
 
   it('検査対象のソースを実際に走査できている（0 件なら検査自体が壊れている）', () => {
     expect(files.length).toBeGreaterThan(50);
@@ -215,7 +103,7 @@ describe('#1596 論理削除テーブルの読み取りは必ず deleted_at で�
     const violations: string[] = [];
 
     for (const file of files) {
-      const relPath = relative(REPO_API_ROOT, file).split(sep).join('/');
+      const relPath = toRepoPath(file);
 
       // コメントを空白で潰した版だけを見る。位置と行番号は元ファイルと一致する。
       const text = blankComments(readFileSync(file, 'utf8'));
@@ -242,7 +130,7 @@ describe('#1596 論理削除テーブルの読み取りは必ず deleted_at で�
             args.includes('deleted_at') || whereVariableHasDeletedAt(text, args);
 
           if (!satisfied) {
-            const line = text.slice(0, at).split('\n').length;
+            const line = lineOf(text, at);
             violations.push(`${relPath}:${line} → ${table}.${method}()`);
           }
         }
