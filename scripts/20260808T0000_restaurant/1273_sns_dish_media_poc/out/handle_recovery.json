@@ -1,0 +1,911 @@
+{
+  "n_targets": 108,
+  "n_skipped_refused": 27,
+  "recovered": 36,
+  "recovered_ssl": 0,
+  "ig_found": 13,
+  "ig_found_ssl": 0,
+  "html_ok_before": 158,
+  "html_ok_after": 194,
+  "n_with_website": 305,
+  "handles_before": 91,
+  "handles_after": 104,
+  "sample_size": 600,
+  "handle_rate_before": 0.15166666666666667,
+  "handle_rate_after": 0.17333333333333334,
+  "detail": [
+    {
+      "name": "居酒屋お福",
+      "website": "https://izakayamaido-ohmachi.com",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Liberta",
+      "website": "https://localplace.jp/sp/t200346464/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Goodsoundcoffeeセブンパーク天美店",
+      "website": "https://www.goodsoundcoffee.com/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "極上唐揚げ こっこ",
+      "website": "https://gokujyokaraagecocco.owst.jp",
+      "reason": "http_404",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "渋谷焼肉 ざぶとん",
+      "website": "http://www.yakiniku-zabuton.jp/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "さかなや本舗",
+      "website": "http://www.fish-japan.co.jp/index.htm",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "マンジェ ササ 六泉寺店",
+      "website": "https://m-sasa-rokusenji.owst.jp",
+      "reason": "http_404",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "ピザ・テン・フォー飯島店",
+      "website": "http://www.pizza104.biz/store/store_info.php",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "くさかんむり cafe",
+      "website": "https://kusakanmuri-cafe.wixsite.com/monou",
+      "reason": "http_404",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "味ごよみ",
+      "website": "http://j47.jp/ajigoyomi",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "やむたん",
+      "website": "http://yamutan.net",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "らーめん道場",
+      "website": "http://ww1.tiki.ne.jp/taka-sun/~",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://ww1.tiki.ne.jp/",
+      "handles": []
+    },
+    {
+      "name": "出島焼肉 ゑん",
+      "website": "https://yakiniku-en.owst.jp",
+      "reason": "http_404",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "オーブン亭北千住店",
+      "website": "http://www.via-hd.co.jp/foodream",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.via-hd.co.jp/",
+      "handles": []
+    },
+    {
+      "name": "COCO'S アルプラザ亀岡前店",
+      "website": "http://www.cocos-fstar.jp",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "神戸屋レストラン 浜田山店",
+      "website": "http://www.kobeyarestaurant.co.jp/shop/east/hamadayama.html",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.kobeyarestaurant.co.jp/",
+      "handles": [
+        "kobeya_since1918"
+      ]
+    },
+    {
+      "name": "airs burger cafe",
+      "website": "http://gpado.jp/1107-00001433-000",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "大瀧酒造(株)",
+      "website": "http://members2.jcom.home.ne.jp/ootaki_shuzou",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "やきとりいっぷく",
+      "website": "http://www8.ocn.ne.jp/~ippuku",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "グリルグロッセル",
+      "website": "http://www.geocities.jp/grill_grossel/",
+      "reason": "http_404",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Patisserie Vertu",
+      "website": "http://www.hp-s.cc/vertu",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "サンブーカ",
+      "website": "http://www.sunbuca.com/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Cafe Hatch",
+      "website": "https://peraichi.com/landing_pages/view/cafehatch",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://peraichi.com/",
+      "handles": []
+    },
+    {
+      "name": "餃子の王将小牧二重堀店",
+      "website": "http://www.ohsho.co.jp/shop/index.php?a=shop_detail&shop_id=180",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.ohsho.co.jp/",
+      "handles": []
+    },
+    {
+      "name": "台湾チャイニーズ　天天厨房（テンテンチュウボウ）",
+      "website": "http://www.tentenchubo.com",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "ちから餅本舗福田店",
+      "website": "http://yoshida-hikarigakuen.com/chikara/detail",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "元祖台湾まぜそば はなび 錦店",
+      "website": "https://www.menya-hanabi.com",
+      "reason": "http_429",
+      "recovered": true,
+      "url": "https://www.menya-hanabi.com/",
+      "handles": []
+    },
+    {
+      "name": "Shabu-Shabu Onyasai Narita",
+      "website": "http://onyasai-kumagaya.com/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "タケショク",
+      "website": "http://www.takeshoku.co.jp",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "ざわ",
+      "website": "http://www.za-wa.com/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "がぶり亭 つくば研究学園店",
+      "website": "http://gaburitei-kengaku.com",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Regal Watch Atelier",
+      "website": "http://rokuharu.jp/group.html",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://rokuharu.jp/",
+      "handles": []
+    },
+    {
+      "name": "といのドーナツ",
+      "website": "http://www.toy-no-donuts.jp/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "おかげさま",
+      "website": "http://blogs.dion.ne.jp/okagesama",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "道の駅 あらい",
+      "website": "http://www3.ocn.ne.jp/~eki-arai",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "炭火焼肉金剛園恵庭店",
+      "website": "http://www.kongo-en.co.jp",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Shinoya",
+      "website": "http://www.sansan-minamisanriku.com/%E3%81%8A%E5%BA%97%E4%B8%80%E8%A6%A7/%E9%A3%B2%E9%A3%9F%E5%BA%97/%E5%AD%A3%E7%AF%80%E6%96%99%E7%90%86-%E5%BF%97%E3%81%AE%E3%82%84/",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.sansan-minamisanriku.com/",
+      "handles": []
+    },
+    {
+      "name": "すしべん宝達店",
+      "website": "http://www.sushiben.jp/index.html",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "華山",
+      "website": "http://www11.ocn.ne.jp/~kazan",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "La Coccinelle",
+      "website": "http://tokyo-sg.com/shop/b1_05.html",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://tokyo-sg.com/",
+      "handles": [
+        "tokyosquaregarden"
+      ]
+    },
+    {
+      "name": "ジェラフル ワンズモール店",
+      "website": "http://www.gelafru.jp/entry15.html#kg38",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.gelafru.jp/",
+      "handles": []
+    },
+    {
+      "name": "そば長",
+      "website": "http://locoplace.jp/t000001153/",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://locoplace.jp/",
+      "handles": [
+        "locoplacela"
+      ]
+    },
+    {
+      "name": "鮨八",
+      "website": "http://www.geocities.jp/shisuisushi8",
+      "reason": "http_404",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "ステーキハウス成しま 竜南店",
+      "website": "http://www.steakhousenarushima.com/shop/#B000000160",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.steakhousenarushima.com/",
+      "handles": [
+        "narushima.shimada",
+        "narushima_kusanagi",
+        "steakhouse__narushima"
+      ]
+    },
+    {
+      "name": "Rosie tea house さなげ店",
+      "website": "http://rosie-tea-house.com",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "ビスヌ 篠山店",
+      "website": "https://bishnu-group.net/",
+      "reason": "urlerror",
+      "recovered": true,
+      "url": "https://bishnu-group.net/",
+      "handles": []
+    },
+    {
+      "name": "ポプラ館珈琲",
+      "website": "http://popurakan.com",
+      "reason": "urlerror",
+      "recovered": true,
+      "url": "https://popurakan.com/",
+      "handles": []
+    },
+    {
+      "name": "一休庵",
+      "website": "http://www.kasamayaki.jp/hpgen/HPB/entries/7.html",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "長沢茶屋",
+      "website": "http://nagasawa.myoko-gt.com",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "湖麺屋 Reel Cafe",
+      "website": "http://ameblo.jp/reelcafe/",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://ameblo.jp/",
+      "handles": []
+    },
+    {
+      "name": "巴寿し",
+      "website": "http://www.xn--68j472k6hb.com/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "まるか食堂",
+      "website": "https://kantetsu.love/marukashokudo",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "ひなた菓子店",
+      "website": "http://hikarikashi.jimdo.com/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "アンジェロピノ",
+      "website": "http://www.fukulabo.net/shop/shop.shtml?s=2118",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.fukulabo.net/shop/shop.shtml",
+      "handles": []
+    },
+    {
+      "name": "餃子の雪松 加治木店",
+      "website": "https://www.yukimatsugyoza.com/store/kajiki/",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.yukimatsugyoza.com/",
+      "handles": []
+    },
+    {
+      "name": "サンサン 芦野店",
+      "website": "http://homepage3.nifty.com/sansan-coffee/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "麺専門店 アラキ",
+      "website": "http://www5b.biglobe.ne.jp/~araki",
+      "reason": "http_404",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "桂林",
+      "website": "http://www.hotel-sunshineaoyama.co.jp/restaurant_new/keirin",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.hotel-sunshineaoyama.co.jp/",
+      "handles": [
+        "sunshineaoyama"
+      ]
+    },
+    {
+      "name": "すぎうらベーカリー",
+      "website": "http://www.sugiura-bakery.jp",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Oshino Organic Cafe",
+      "website": "http://ev-owners.jp/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Satoen",
+      "website": "https://satoentea.com/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "向山製作所大玉ベース店",
+      "website": "http://www.mukaiyama-ss.co.jp/caramel/info/ootama.html",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.mukaiyama-ss.co.jp/",
+      "handles": [
+        "mukaiyama_caramel"
+      ]
+    },
+    {
+      "name": "明烏",
+      "website": "http://akegarasu.sakura.ne.jp",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "C-cafeささ乃や",
+      "website": "https://www.c-cafe.net/",
+      "reason": "http_429",
+      "recovered": true,
+      "url": "https://www.c-cafe.net/",
+      "handles": [
+        "c_cafe_sasanoya"
+      ]
+    },
+    {
+      "name": "いっちょう 中筋店",
+      "website": "http://www.futabatosho.co.jp/icho/index.html",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.futabatosho.co.jp/",
+      "handles": []
+    },
+    {
+      "name": "手づくり豆腐とうみ",
+      "website": "http://www.shokokai.or.jp/01/0156010035/index.htm",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.shokokai.or.jp/",
+      "handles": []
+    },
+    {
+      "name": "Cafe Kurudot",
+      "website": "https://www.seihoukai-grp.com/kurdot/",
+      "reason": "http_429",
+      "recovered": true,
+      "url": "https://www.seihoukai-grp.com/kurdot/",
+      "handles": [
+        "kurudot_285181"
+      ]
+    },
+    {
+      "name": "一期一会別所店",
+      "website": "http://ichigoichie-zen.com/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Komugi",
+      "website": "https://pan-komugi.jimdo.com",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "喜久寿司",
+      "website": "http://captains.co.jp/syokugi/kikususi/top.htm",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "臥龍亭",
+      "website": "http://www.garyutei.jp/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "但馬ビーフレストラン楓",
+      "website": "http://www.refresh.co.jp/kaede",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.refresh.co.jp/",
+      "handles": []
+    },
+    {
+      "name": "Cafe Repos カフェ・ルポ",
+      "website": "http://cafe-repos2015.jimdo.com/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "ほっともっと",
+      "website": "https://www.hottomotto.com/stores/?id=76040",
+      "reason": "http_503",
+      "recovered": true,
+      "url": "https://www.hottomotto.com/stores/",
+      "handles": []
+    },
+    {
+      "name": "万葉庵",
+      "website": "http://www.shokokai.or.jp/18/182032S0019/index.htm",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.shokokai.or.jp/",
+      "handles": []
+    },
+    {
+      "name": "れあぷれ",
+      "website": "http://rarepre.com/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "安東食堂",
+      "website": "http://ando-syokudo.bosotown.com/index.html",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "コレット",
+      "website": "https://oshu.mypl.net/shop/00000347071",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://oshu.mypl.net/",
+      "handles": [
+        "myplstaff"
+      ]
+    },
+    {
+      "name": "おにぎり工房 かっつぁん",
+      "website": "http://katsu3.jimdo.com/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "喫茶 コロンブス",
+      "website": "http://coronbus.jp",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "GELATO LicoLico",
+      "website": "http://www.licolico.jp/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "オカザキ製パン",
+      "website": "http://www.mis.ne.jp/~bread",
+      "reason": "http_302",
+      "recovered": true,
+      "url": "https://www.mis.ne.jp/",
+      "handles": []
+    },
+    {
+      "name": "スカーレル",
+      "website": "http://www.sapporo-kokusai.jp/shop.html",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.sapporo-kokusai.jp/",
+      "handles": [
+        "sapporo_kokusai"
+      ]
+    },
+    {
+      "name": "風のキッチン",
+      "website": "http://www.kamaishi-sus.com/kaze-kitchen/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "リーフ",
+      "website": "http://www.u-genki.jp/201208/15150053000134.php",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "麺味どころ 夢源",
+      "website": "http://www.mugen-isa.com/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "ちぐさ",
+      "website": "http://www.shokokai.or.jp/32/3236118031",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.shokokai.or.jp/",
+      "handles": []
+    },
+    {
+      "name": "たけやぶ",
+      "website": "http://takeyabu.net/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "神在",
+      "website": "http://www.izumo-airport.co.jp/facilities-info/3F_kamiari.html",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.izumo-airport.co.jp/",
+      "handles": [
+        "izumoairport"
+      ]
+    },
+    {
+      "name": "錦果楼",
+      "website": "http://www.kasinoki.co.jp/home/10820/",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.kasinoki.co.jp/",
+      "handles": [
+        "kashinoki_official"
+      ]
+    },
+    {
+      "name": "そば処与市",
+      "website": "http://www.hawaiians.co.jp/guide/gourmet/grm02.html#yoichi",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.hawaiians.co.jp/",
+      "handles": [
+        "spa.resort.hawaiians"
+      ]
+    },
+    {
+      "name": "みなと菓子処",
+      "website": "http://www.iwami.or.jp/gotsucci/member/minato/index.htm",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.iwami.or.jp/",
+      "handles": []
+    },
+    {
+      "name": "Nomon's Cafe",
+      "website": "http://www.daiwa-sg.co.jp/takahamakaisuiyokuzyou/publics/index/9",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.daiwa-sg.co.jp/",
+      "handles": []
+    },
+    {
+      "name": "味のスカイライン横市店",
+      "website": "http://www.town-miyakonojo.com/aji_skyline.html",
+      "reason": "http_404",
+      "recovered": true,
+      "url": "https://www.town-miyakonojo.com/",
+      "handles": []
+    },
+    {
+      "name": "パン工房Milk",
+      "website": "http://www.localplace.jp/t000508126/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "悠悠",
+      "website": "https://tsuku2.jp/hiruzenyuyu",
+      "reason": "timeout",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "わらび野",
+      "website": "http://www.kis.janis.or.jp/~warabino712",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Gara",
+      "website": "http://garasya.com/",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "なにわ",
+      "website": "http://www.dd.iij4u.or.jp/~naniwa",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "みょうが",
+      "website": "http://www.localplace.jp/t100123190/",
+      "reason": "ssl",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "元気寿司坂下店",
+      "website": "https://c.katy.jp/genki/284/campaign.html",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "Angelus パンの家",
+      "website": "http://angelus.otemo-yan.net",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "新盛",
+      "website": "http://park20.wakwak.com/~sinsei",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "民宿青塚食堂",
+      "website": "http://www2.odn.ne.jp/aotuka",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "百姓屋敷 じろえむ",
+      "website": "http://w01.tp1.jp/~sr10381052/aisatsu_gallery.html",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "有かい園",
+      "website": "https://tsuku2.jp/arikaien",
+      "reason": "timeout",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "ビストロ・エピ",
+      "website": "http://bistroepi.hotcom-web.com",
+      "reason": "timeout",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    },
+    {
+      "name": "おおた",
+      "website": "http://www5.nkansai.ne.jp/res/oota",
+      "reason": "urlerror",
+      "recovered": false,
+      "url": null,
+      "handles": []
+    }
+  ],
+  "caveat": "http_403 と robots_disallow は相手の拒否なので回収していない。回収分の IG リンク率は既取得分と別に数えている。"
+}
