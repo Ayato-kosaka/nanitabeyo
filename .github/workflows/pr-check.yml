@@ -13,8 +13,13 @@ name: PR Check
 #     6. app-expo の lint（#1366。既存 48 errors を解消したうえで新規に追加した）
 # - 4-2（実際の config.json との値の突き合わせ）は EAS の env が要るのでここでは SKIP される。
 #   SKIP した旨は必ずログへ出る。4-2 は引き続き nightly の e2e-web-test.yml が担当する。
-# - api は入れていない。pnpm --filter api test は api/.env（secrets）を要求し、
-#   かつ現状 red（env 起因 5 suite ＋ env と無関係な DI 失敗 3 件）のため（#1112 のコメント参照）。
+# - #1596 api の jest をゲートへ入れた。以前は「api/.env（secrets）を要求し、かつ現状 red」を
+#   理由に外していたが、**外していた期間にモックが本体から静かにズレ、3 suite / 26 件が
+#   «1 度も実行されないまま緑扱い» になっていた**（アカウント削除 #1511 と通知設定 #1510 の
+#   回帰テスト。どちらも «テストがあるから安全» を根拠に出荷したもの）。
+#   secrets 依存は api/test/setup-test-env.ts が「未設定のキーだけ」ダミーで埋めて外した
+#   （実 .env / CI secret があればそちらが勝つ）。赤の実体は本体変更への追随漏れだったので、
+#   直したうえでゲートへ載せている。
 # - step は「安い順・失敗原因が特定しやすい順」に並べてある（fail-fast）。
 # - branches / paths のフィルタは意図的に付けていない。統合ブランチ宛ての PR でも回す必要があり、
 #   かつ 4-1 の入力の片方は shared/remoteConfig/remoteConfig.schema.ts なので、
@@ -151,6 +156,22 @@ jobs:
       # これまでどの workflow からも実行されていなかった。
       - name: app-expo のユニットテスト
         run: pnpm --filter app-expo test
+
+      # #1596 api のユニットテスト。ここが外れていた間に、本体の変更へ追随し忘れた
+      # モックが 3 suite（26 件）を «実行されないまま» にしていた:
+      #   - users.service.delete-me.spec.ts … UsersService へ後から足された 3 つの依存を
+      #     provider へ入れ忘れ、Nest の組み立てごと失敗（アカウント削除の回帰テスト 6 件）
+      #   - notification-job.service.spec.ts … #1510 で足した isPushAllowedForKind が
+      #     モックに無く「is not a function」（14 件）
+      #   - notification-job.preferences.spec.ts … 本体が findUnique → findFirst へ変わり、
+      #     さらに #1557 の getUsersByIdsIncludingDeleted も未追随（6 件）
+      # いずれも型検査では捕まらない（モックは any 相当で通る）。テストを回す以外に
+      # 検出手段が無い種類のズレなので、ここへ載せる。
+      #
+      # 外部 I/O は無く、api/test/setup-test-env.ts が env を埋めるので secrets 不要。
+      # ローカル実測 約 90 秒。
+      - name: api のユニットテスト
+        run: pnpm --filter api test
 
       # ─────────────────────────────────────────────────────────────
       # 2026-08-25 追加。**どれも「実際に見逃した defect」があって足している。**

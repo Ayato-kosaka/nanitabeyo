@@ -60,6 +60,7 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
   };
   let notificationsService: {
     sendPushNotification: jest.Mock;
+    isPushAllowedForKind: jest.Mock;
   };
   let prisma: {
     withTransaction: jest.Mock;
@@ -117,6 +118,13 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
 
     notificationsService = {
       sendPushNotification: jest.fn().mockResolvedValue(undefined),
+      // #1510 SET-02 で processNotificationJob が push 直前に呼ぶようになった判定。
+      // 本体へ足したときにこのモックを更新し忘れ、**この suite の 14 件が
+      // «is not a function» で全滅したまま緑扱いになっていた**（api の jest は
+      // PR ゲートに載っていないため誰も気づけなかった）。既定は「送ってよい」。
+      isPushAllowedForKind: jest
+        .fn()
+        .mockResolvedValue({ allowed: true, category: 'votes' }),
     };
 
     prisma = {

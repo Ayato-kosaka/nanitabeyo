@@ -41,6 +41,13 @@ import { RestaurantsRepository } from '../restaurants/restaurants.repository';
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { StorageService } from '../../core/storage/storage.service';
+// #1596 UsersService のコンストラクタへ後から足された 3 つ。
+// 足したときにこの suite を更新し忘れたため、Nest が
+// «DishMediaAssembler at index [9] is available?» で組み立てに失敗し、
+// **アカウント削除の回帰テスト 6 件が 1 度も走っていなかった**。
+import { DishMediaAssembler } from '../dish-media/dish-media.assembler';
+import { DishCategoryGroupVotesRepository } from '../dish-category-group-votes/dish-category-group-votes.repository';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   SupabaseAdminNotConfiguredError,
   SupabaseAdminService,
@@ -127,6 +134,9 @@ describe('UsersService#deleteMe (#1511)', () => {
         { provide: CloudTasksService, useValue: {} },
         { provide: RestaurantsRepository, useValue: {} },
         { provide: RestaurantsAssembler, useValue: {} },
+        { provide: DishMediaAssembler, useValue: {} },
+        { provide: DishCategoryGroupVotesRepository, useValue: {} },
+        { provide: PrismaService, useValue: {} },
         { provide: StorageService, useValue: storage },
         { provide: SupabaseAdminService, useValue: supabaseAdmin },
       ],

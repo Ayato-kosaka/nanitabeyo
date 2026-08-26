@@ -72,8 +72,19 @@ function matchesWhere(session: FakeSession, where: any): boolean {
       return session.host_user_id === value;
     }
     if (key === 'updated_at') {
+      // #1596 複合カーソルでは `updated_at: <Date>`（同値）と
+      // `updated_at: { lt: <Date> }`（より古い）の両方が来る。
+      // 片方しか解さないと、fake が本物と違う答えを返してテストが嘘をつく。
+      if (value instanceof Date) {
+        return session.updated_at.getTime() === value.getTime();
+      }
       const { lt } = value as { lt: Date };
       return session.updated_at.getTime() < lt.getTime();
+    }
+    if (key === 'id') {
+      // #1596 複合カーソルの第 2 キー。同一 updated_at の中を id で切る
+      const { lt } = value as { lt: string };
+      return session.id < lt;
     }
     if (key === 'dish_category_group_vote_participants') {
       const some = (value as any).some as { user_id: string };
@@ -87,7 +98,14 @@ function buildFakeDb(sessions: FakeSession[]) {
   const findMany = jest.fn(async (args: any) => {
     const filtered = sessions
       .filter((s) => matchesWhere(s, args.where))
-      .sort((a, b) => b.updated_at.getTime() - a.updated_at.getTime())
+      // #1596 本物の orderBy は [{updated_at:'desc'},{id:'desc'}]。
+      // fake 側も id で tie-break しないと、同時刻のとき «複合カーソルが
+      // 効いていない» ことを検出できない
+      .sort(
+        (a, b) =>
+          b.updated_at.getTime() - a.updated_at.getTime() ||
+          (a.id < b.id ? 1 : a.id > b.id ? -1 : 0),
+      )
       .slice(0, args.take);
 
     const participantsSelect =
@@ -322,7 +340,10 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
       'session-2',
       'session-1',
     ]);
-    expect(firstPage.nextCursor).toBe(sessions[1].updated_at.toISOString());
+    // #1596 カーソルは `<ISO8601>|<id>` の複合
+    expect(firstPage.nextCursor).toBe(
+      `${sessions[1].updated_at.toISOString()}|session-1`,
+    );
 
     const secondPage = await repository.findMeSessions(
       db,
@@ -334,6 +355,102 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
     expect(secondPage.nextCursor).toBeNull();
 
     expect(findMany).toHaveBeenCalledTimes(2);
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // #1596 同一 updated_at がページ境界をまたぐケース
+  //
+  // 旧実装は `updated_at < cursor` の単一カーソルだったため、20 件目と 21 件目が
+  // 同時刻だと **21 件目以降が一覧から永久に消えた**（次ページの起点が 20 件目の
+  // 時刻そのもので、`<` が同時刻の行をまとめて落とす）。
+  // touchSession は候補追加・削除・投票のたびに走るので、同一ミリ秒での複数更新は
+  // «稀» であって «起きない» ではない。
+  // ─────────────────────────────────────────────────────────────────
+  it('#1596 updated_at が同一の行がページ境界をまたいでも欠落しない', () => {
+    const sameMoment = new Date('2026-08-10T00:00:00.000Z');
+    const sessions: FakeSession[] = ['session-a', 'session-b', 'session-c'].map(
+      (id) => ({
+        id,
+        host_user_id: 'user-me',
+        share_token: `token-${id}`,
+        created_at: sameMoment,
+        updated_at: sameMoment,
+        candidates: [],
+        participants: [],
+      }),
+    );
+
+    const { db } = buildFakeDb(sessions);
+
+    return (async () => {
+      const firstPage = await repository.findMeSessions(
+        db,
+        'user-me',
+        undefined,
+        2,
+      );
+      // id 降順で c, b
+      expect(firstPage.items.map((i) => i.id)).toEqual([
+        'session-c',
+        'session-b',
+      ]);
+      expect(firstPage.nextCursor).toBe(
+        `${sameMoment.toISOString()}|session-b`,
+      );
+
+      const secondPage = await repository.findMeSessions(
+        db,
+        'user-me',
+        firstPage.nextCursor!,
+        2,
+      );
+      // 旧実装ではここが [] になり session-a が永久に見えなくなっていた
+      expect(secondPage.items.map((i) => i.id)).toEqual(['session-a']);
+      expect(secondPage.nextCursor).toBeNull();
+    })();
+  });
+
+  it('#1596 旧形式（ISO8601 のみ）のカーソルも受け付ける（配信済みクライアント互換）', async () => {
+    const sessions: FakeSession[] = Array.from({ length: 3 }, (_, i) => ({
+      id: `session-${i}`,
+      host_user_id: 'user-me',
+      share_token: `token-${i}`,
+      created_at: new Date(2026, 7, i + 1),
+      updated_at: new Date(2026, 7, i + 1),
+      candidates: [],
+      participants: [],
+    }));
+
+    const { db } = buildFakeDb(sessions);
+
+    const page = await repository.findMeSessions(
+      db,
+      'user-me',
+      sessions[1].updated_at.toISOString(),
+      2,
+    );
+
+    expect(page.items.map((i) => i.id)).toEqual(['session-0']);
+  });
+
+  it('#1596 壊れたカーソルは 500 にせず先頭ページを返す', async () => {
+    const sessions: FakeSession[] = [
+      {
+        id: 'session-0',
+        host_user_id: 'user-me',
+        share_token: 'token-0',
+        created_at: new Date('2026-08-01T00:00:00Z'),
+        updated_at: new Date('2026-08-01T00:00:00Z'),
+        candidates: [],
+        participants: [],
+      },
+    ];
+
+    const { db } = buildFakeDb(sessions);
+
+    const page = await repository.findMeSessions(db, 'user-me', 'not-a-date', 2);
+
+    expect(page.items.map((i) => i.id)).toEqual(['session-0']);
   });
 
   // ─────────────────────────────────────────────────────────────────

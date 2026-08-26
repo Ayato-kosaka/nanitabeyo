@@ -953,7 +953,12 @@ export class DishMediaRepository {
     const eatenDishIds = new Set<string>();
     if (userId && dishIds.length > 0) {
       const myReviewedDishes = await this.prisma.prisma.dish_reviews.findMany({
-        where: { user_id: userId, dish_id: { in: dishIds } },
+        // #1513 削除済みレビューは «食べた» 記録として数えない。
+        // schema.prisma の deleted_at は「読み取り経路は必ず deleted_at IS NULL で絞る」と
+        // 定めており、dish_reviews を読む他の経路（618 / 893 / 1224 行、restaurants /
+        // users の集計）はすべて絞っている。**ここだけが漏れていた**。
+        // 漏れていると、レビューを消しても «食べたを記録» が記録済みの見た目のまま戻らない。
+        where: { user_id: userId, dish_id: { in: dishIds }, deleted_at: null },
         distinct: ['dish_id'],
         select: { dish_id: true },
       });
