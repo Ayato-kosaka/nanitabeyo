@@ -242,7 +242,7 @@ export default function DishCategoriesScreen() {
 		(dishCategory: DishCategoryRecommendation, originRect?: CardRect) => {
 			// #633 【Blocker】params が undefined の場合は早期 return（クラッシュ防止）
 			if (!params?.location) {
-				showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
+				showSnackbar(i18n.t("DishCategories.errors.invalidSearchParams"));
 				return;
 			}
 			if (isSelectingDishCategoryRef.current) return;
@@ -392,7 +392,7 @@ export default function DishCategoriesScreen() {
 	}, [searchParams]);
 	const handleOpenGroupVote = useCallback(async () => {
 		if (!params?.location) {
-			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
+			showSnackbar(i18n.t("DishCategories.errors.invalidSearchParams"));
 			return;
 		}
 
@@ -804,10 +804,10 @@ export default function DishCategoriesScreen() {
 
 	const handleReloadRecommendations = () => {
 		if (!params?.location) return;
-		showDialog(i18n.t("Topics.reloadDialog.message"), {
-			title: i18n.t("Topics.reloadDialog.title"),
-			okLabel: i18n.t("Topics.reloadDialog.confirm"),
-			cancelLabel: i18n.t("Topics.reloadDialog.cancel"),
+		showDialog(i18n.t("DishCategories.reloadDialog.message"), {
+			title: i18n.t("DishCategories.reloadDialog.title"),
+			okLabel: i18n.t("DishCategories.reloadDialog.confirm"),
+			cancelLabel: i18n.t("DishCategories.reloadDialog.cancel"),
 			onConfirm: async () => {
 				try {
 					await refillDishCategories(params);

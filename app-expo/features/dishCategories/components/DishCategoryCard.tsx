@@ -301,7 +301,7 @@ export const DishCategoryCard = ({
 											void handleBlock();
 										}}
 										accessibilityRole="button"
-										accessibilityLabel={i18n.t("Topics.accessibility.blockTopic", { title: item.title })}>
+										accessibilityLabel={i18n.t("DishCategories.accessibility.blockDishCategory", { title: item.title })}>
 										<Ban size={18} color={FixedColors.onMedia} />
 									</TouchableOpacity>
 								</View>
