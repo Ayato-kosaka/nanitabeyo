@@ -902,6 +902,7 @@
 			"submitting": "Updating...",
 			"submitSuccess": "{{count}} images updated successfully",
 			"submitError": "Failed to update images",
+			"submitUnavailable": "This feature is not available yet (the server side is not implemented).",
 			"reset": "Reset",
 			"selected": "Selected",
 			"dishCount": "{{count}} dishes"

@@ -902,6 +902,7 @@
 			"submitting": "更新中...",
 			"submitSuccess": "{{count}}件の画像を更新しました",
 			"submitError": "画像の更新に失敗しました",
+			"submitUnavailable": "この機能はまだ利用できません（サーバー側が未実装です）",
 			"reset": "リセット",
 			"selected": "選択済み",
 			"dishCount": "{{count}}件の料理"

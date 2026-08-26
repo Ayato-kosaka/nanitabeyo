@@ -902,6 +902,7 @@
 			"submitting": "更新中...",
 			"submitSuccess": "成功更新{{count}}张图片",
 			"submitError": "图片更新失败",
+			"submitUnavailable": "此功能尚不可用（服务器端尚未实现）。",
 			"reset": "重置",
 			"selected": "已选择",
 			"dishCount": "{{count}}道菜"
