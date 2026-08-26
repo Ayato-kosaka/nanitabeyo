@@ -23,9 +23,9 @@ import {
 } from '@shared/v1/res';
 import { pickWinnerCandidate } from './dish-category-group-votes.ranking';
 import {
-  formatMeSessionsCursor,
-  parseMeSessionsCursor,
-} from './me-sessions-cursor';
+  formatCompositeCursor,
+  parseCompositeCursor,
+} from '../../core/pagination/composite-cursor';
 
 export type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
 
@@ -294,16 +294,16 @@ export class DishCategoryGroupVotesRepository {
     // 飛ばす**（20 件目と 21 件目が同時刻なら 21 件目以降が一覧から消える）。
     // touchSession は候補追加・削除・投票のたびに走るので、同一ミリ秒での複数更新は
     // «稀» であって «起きない» ではない。
-    const parsed = parseMeSessionsCursor(cursor);
+    const parsed = parseCompositeCursor(cursor);
     if (parsed?.id) {
       whereClause.OR = [
-        { updated_at: { lt: parsed.updatedAt } },
-        { updated_at: parsed.updatedAt, id: { lt: parsed.id } },
+        { updated_at: { lt: parsed.at } },
+        { updated_at: parsed.at, id: { lt: parsed.id } },
       ];
     } else if (parsed) {
       // 旧形式（ISO8601 のみ）。配信済みクライアントが持っているカーソルを
       // 無効にしないため、従来どおりの絞り込みで受ける。
-      whereClause.updated_at = { lt: parsed.updatedAt };
+      whereClause.updated_at = { lt: parsed.at };
     }
 
     const sessions = await db.dish_category_group_vote_sessions.findMany({
@@ -339,7 +339,7 @@ export class DishCategoryGroupVotesRepository {
     const hasMore = sessions.length > limit;
     const page = hasMore ? sessions.slice(0, limit) : sessions;
     const nextCursor = hasMore
-      ? formatMeSessionsCursor(
+      ? formatCompositeCursor(
           page[page.length - 1].updated_at,
           page[page.length - 1].id,
         )
