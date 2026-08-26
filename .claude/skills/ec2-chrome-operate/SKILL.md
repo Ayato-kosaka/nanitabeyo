@@ -233,6 +233,7 @@ for this session. Before any browser action, you MUST call the AskUserQuestion t
 - ログイン画面などでブロックして止まる場合も、止まった時点の画面を証跡として保存する。
 - **撮った PNG は agent 自身が `Read` ツールで開いて中身を確認し、目的の画面でなければ撮り直す。** 確認せずに「撮れた」と報告しない。
 - ファイル名は連番＋短い日本語（例: `01_設定変更後.png`）にすると一覧で内容が判別できる。
+- **`/home/ubuntu/evidence/` は EBS 上なのでブートを跨いで溜まり続ける**（2026-08-26 時点で 54 件・過去 2 週間分が残っていた）。アップロードのプロンプトに「evidence 配下の PNG を全部」と書くと、無関係な過去タスクの証跡まで上げてしまう。**対象は「今回のブートで撮ったもの」に限定させること**（`uptime -s` 以降に更新されたファイル、が確実だった）。
 
 **撮り方:**
 - 素の EC2 には `xdotool` / ImageMagick / `scrot` / `xclip` がどれも入っていない。`apt-get install -y xdotool imagemagick xclip` を本命プロンプトの前に流しておけば以後は残る。
