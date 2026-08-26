@@ -9,7 +9,15 @@
 【処理内容】
 1. 1_1 の input.jsonl を読む
 2. 1 記事ずつ API を叩き、取れたものを逐次ローカルへ書く（**中断しても再開できる**）
-3. 全件終わったら BigQuery へ append
+
+【BigQuery へは書かない】
+生の月次 PV は**ローカル JSONL に置くだけ**にする。既存の LLM パイプライン
+（575 / 581）も、Batch API の生レスポンスは `results_dir`（ローカル）に置き、
+構造化した結果だけを BigQuery へ入れている。それと同じ層構造に揃えた。
+
+生データを BigQuery に残さない代わりに、再現性は
+「スクリプト＋run_id＋Wikimedia が CC0 で誰でも再取得できること」で担保する。
+取り直しは 15 分（`--resume` で途中から再開できる）。
 
 【なぜ逐次でローカルへ書くのか】
 実測で 122 件に 15 分かかる（レート制限のため 1 件あたり 1.3 秒以上のウェイトが要る）。
@@ -18,9 +26,8 @@
 
 【使用方法】
 python3 1_2_fetch_pageviews.py --run-id 20260825T0000
-python3 1_2_fetch_pageviews.py --run-id 20260825T0000 --resume
-python3 1_2_fetch_pageviews.py --run-id 20260825T0000 --dry-run   # API は叩くが BQ へは入れない
-python3 1_2_fetch_pageviews.py --run-id 20260825T0000 --limit 5   # 動作確認用
+python3 1_2_fetch_pageviews.py --run-id 20260825T0000 --resume   # 中断から再開
+python3 1_2_fetch_pageviews.py --run-id 20260825T0000 --limit 5  # 動作確認用
 """
 
 import argparse
@@ -29,10 +36,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from google.cloud import bigquery
-
 sys.path.insert(0, str(Path(__file__).parent))
-from lib.bq import BigQueryClient
 from lib.io import ensure_directory, load_yaml_config, read_jsonl, write_jsonl
 from lib.pageviews import PageviewsClient
 
@@ -42,26 +46,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def raw_schema():
-    """dish_category_seasonality_raw のスキーマ"""
-    return [
-        bigquery.SchemaField("item_qid", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("wiki", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("article", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("ym", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("views", "INT64", mode="REQUIRED"),
-        bigquery.SchemaField("source", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("run_id", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("fetched_at", "TIMESTAMP", mode="REQUIRED"),
-    ]
-
-
 def main():
     parser = argparse.ArgumentParser(description="Fetch monthly pageviews")
     parser.add_argument("--config", type=str, default="config.yml")
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--resume", action="store_true", help="取得済みの記事を飛ばす")
-    parser.add_argument("--dry-run", action="store_true", help="BigQuery へ入れない")
     parser.add_argument("--limit", type=int, default=None, help="先頭 N 件だけ処理する")
     args = parser.parse_args()
 
@@ -137,19 +126,11 @@ def main():
             "夏物・冬物が含まれていないか 2_1 の前に確認すること。"
         )
 
-    if args.dry_run:
-        logger.info(f"Dry run: BigQuery へは入れない。ローカル出力: {raw_path}")
-        logger.info("✅ Step 1-2 (dry-run) completed")
-        return
-
-    bq_client = BigQueryClient()
-    table_id = f"{config['dataset']}.dish_category_seasonality_raw"
-    loaded = bq_client.load_from_jsonl(
-        table_id, raw_path, raw_schema(), write_disposition="WRITE_APPEND"
-    )
-    logger.info(f"BigQuery へ {loaded} 行を append しました: {table_id}")
+    logger.info(f"出力: {raw_path}")
     logger.info("=" * 80)
     logger.info("✅ Step 1-2 completed")
+    logger.info("")
+    logger.info("次: 1_3_build_curve.py --run-id <run_id>")
 
 
 if __name__ == "__main__":

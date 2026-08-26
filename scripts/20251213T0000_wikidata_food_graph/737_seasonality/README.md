@@ -9,12 +9,26 @@
 
 ```text
 Wikimedia Analytics API
-  → dish_category_seasonality_raw     (1_2: 月次PV。append-only)
-  → dish_category_seasonality_curve   (1_3: 12か月の指数。派生値)
-  → dish_category_seasonality_review  (2_2: 人の判断。append-only)
-  → dish_category_features_catalog    (3_1: approve された分だけ MERGE)
-  → PostgreSQL dish_category_features (9_2: 全置換で同期)
+  → /tmp raw_<run>.jsonl              (1_2: 月次PV。ローカルのみ)
+  → /tmp curve_<run>.jsonl            (1_3: 12か月の指数。ローカルのみ)
+  → data/review_<run>.jsonl           (人の判断。git 管理)
+  → wikidata_food_llm_feature_scores  (2_1: approve 分だけ INSERT)
+  → dish_category_features_catalog    (581_relevance_scoring/manual/2_merge_feature_scores.py)
+  → PostgreSQL dish_category_features (9_2_sync_dish_category_features.py)
 ```
+
+**season 専用の BigQuery テーブルは 1 本も作らない。migration も不要。**
+575 / 581 / 581-manual と同じ層構造に揃えてある。
+
+| | 575 / 581 | 737 (これ) |
+|---|---|---|
+| 外部の生データ | Batch API の生レスポンス → `results_dir`（ローカル） | 月次PV → `/tmp/raw_*.jsonl`（ローカル） |
+| 構造化した結果 | `wikidata_food_llm_labels` / `wikidata_food_llm_feature_scores` | **`wikidata_food_llm_feature_scores`（同じテーブル）** |
+| 採用版へ | `publish_features.sql` | **`manual/2_merge_feature_scores.py`（既存の汎用 MERGE）** |
+| serving へ | `9_x_sync_*.py` | `9_2_sync_dish_category_features.py` |
+
+`phase='pageviews'` / `model='wikimedia_pageviews'` で LLM run と監査上区別する
+（581-manual が `phase='manual'` / `model='manual'` を使うのと同じ流儀）。
 
 ## なぜ LLM ではなく Wikipedia なのか
 
@@ -47,14 +61,17 @@ Wikimedia Analytics API
 
 よくある誤解なので先に書く。**段階ごとに件数が変わる。**
 
+実際に 2026-08-26 の run で出た件数:
+
 | 段階 | 件数 | 中身 |
 |---|---|---|
-| 1_2 で PV を取る | **134 件** | gate 通過カテゴリ全部。1 件も間引かない |
-| 1_3 で曲線を作る | **134 件 × 12 か月 = 1,608 行** | curve テーブルには全部入る |
-| 2_1 でレビューに出す | **約 31 件** | 振幅 ≥1.8 かつ 月PV ≥300 かつ 36 か月以上 |
-| 3_1 で features へ publish | **約 20 件 × 12 = 240 行** | レビューで approve したものだけ |
+| `1_2` PV を取る | **134 件 / 8,834 行** | gate 通過カテゴリ全部。記事が見つからなかったもの 0 件 |
+| `1_3` 曲線を作る | **134 件 × 12 か月 = 1,608 行** | `curve_<run>.jsonl` に全部入る |
+| `1_3` レビュー対象 | **30 件** | 振幅 ≥1.8 かつ 月PV ≥300 かつ 36 か月以上 |
+| 人のレビュー | approve **19** / reject **11** | `data/review_<run>.jsonl` |
+| `2_1` scores へ INSERT | **19 × 12 = 228 行** | approve だけ |
 
-つまり **測るのは全件、曲線も全件作る。features に出るところだけ絞る。**
+つまり **測るのは全件、曲線も全件作る。BigQuery に出るところだけ絞る。**
 
 ### なぜ全件 publish しないのか
 
@@ -76,7 +93,7 @@ Wikimedia Analytics API
 
 **「一部にだけ付ける」のは手抜きではなく、狙って効かせるための設計。**
 
-## レビューの判断基準（2_1 → 2_2）
+## レビューの判断基準（`1_3` → `data/review_*.jsonl`）
 
 **機械的に全採用してはいけない。** 実測で出た偽陽性:
 
@@ -107,33 +124,28 @@ reject しても損は無い。`season` の行が無いカテゴリは推薦側�
 DB / BigQuery に影響する操作は `.github/workflows/db-script-run.yml`
 （workflow_dispatch）から実行する。ローカルから資格情報を使わない。
 
+**`1_1`〜`1_3` はローカルで完結する**（BigQuery 読み取り 1 回のみ、書き込み無し）。
+書き込みが発生する `2_1` 以降だけ `.github/workflows/db-script-run.yml` から実行する。
+
 ```bash
-# 1. 対象記事リスト（BigQuery 読み取りのみ）
-script_path: scripts/20251213T0000_wikidata_food_graph/737_seasonality/1_1_export_input.py
+# 1〜3: ローカル or db-script-run（BigQuery は読むだけ）
+python3 1_1_export_input.py                          # gate 通過 134 件 → /tmp/input.jsonl
+python3 1_2_fetch_pageviews.py --run-id <run>        # 月次PV → /tmp/raw_<run>.jsonl（実測 8 分）
+python3 1_3_build_curve.py --run-id <run>            # 曲線 + レビュー用シート
 
-# 2. ページビュー取得（実測で 122 件 15 分。--resume で中断から再開できる）
-script_path: .../1_2_fetch_pageviews.py
-args: --run-id 20260825T0000
+# 4: 人が review_<run>.jsonl の decision / reason を埋めて data/ へコミットする
 
-# 3. 季節指数を計算
-args: --run-id 20260825T0000 --dry-run   # 何件がレビュー対象になるかだけ見る
-args: --run-id 20260825T0000
+# 5: BigQuery の scores へ INSERT（★オーナー承認が要る）
+script_path: scripts/20251213T0000_wikidata_food_graph/737_seasonality/2_1_load_feature_scores.py
+args: --run-id <run> --review data/review_<run>.jsonl --dry-run
+args: --run-id <run> --review data/review_<run>.jsonl
 
-# 4. レビュー用に書き出す
-script_path: .../2_1_export_review.py
-args: --run-id 20260825T0000
+# 6: 採用版へ MERGE（★承認が要る）。**既存の汎用スクリプトをそのまま使う**
+script_path: scripts/20251213T0000_wikidata_food_graph/581_relevance_scoring/manual/2_merge_feature_scores.py
+args: --run-id <run> --expected-row-count 228 --dry-run
+args: --run-id <run> --expected-row-count 228 --apply
 
-# 5. 判断を入れる（decision と reason を埋めた JSONL を input_file_content で渡す）
-script_path: .../2_2_apply_review.py
-args: --run-id 20260825T0000 --input-jsonl /tmp/review.jsonl --reviewer owner --dry-run
-args: --run-id 20260825T0000 --input-jsonl /tmp/review.jsonl --reviewer owner
-
-# 6. features へ投入
-script_path: .../3_1_publish_features.py
-args: --run-id 20260825T0000 --dry-run
-args: --run-id 20260825T0000
-
-# 7. PostgreSQL dev へ同期（★オーナー承認が要る）
+# 7: PostgreSQL dev へ同期（★承認が要る）
 script_path: scripts/20251213T0000_wikidata_food_graph/9_2_sync_dish_category_features.py
 args: --schema dev --dry-run
 args: --schema dev
@@ -194,13 +206,14 @@ season は承認した約 20 件にしか付かないので、**残り 114 件�
 
 ## 曲線を作り直すとき
 
-`build_curve.sql` は `CREATE OR REPLACE` なので、run_id を変えて `1_3` を流し直せば
-別バージョンの曲線を作れる。**review は run_id 単位**なので、曲線を作り直したら
-レビューもやり直しになる（判断の根拠にした数字が変わるため）。
+run_id を変えて `1_2` → `1_3` を流し直せば別バージョンの曲線ができる。
+**レビューは run_id 単位**なので、曲線を作り直したらレビューもやり直しになる
+（判断の根拠にした数字が変わるため）。
 
-`publish_features.sql` の `WHEN NOT MATCHED BY SOURCE ... THEN DELETE` は、
-その `region_scope` の season 行だけを対象にする。以前 approve していたものを
-reject へ変えた場合、古い補正が残らないようにするため。
+一度 approve したものを後で reject へ変える場合、既存の汎用 MERGE は
+「source に無い行を消す」ことをしない（`WHEN NOT MATCHED BY SOURCE` を持たない）。
+catalog に残った古い season 行は、`581_relevance_scoring/manual/1_insert_feature_scores.py`
+で `score=1.0`（＝無補正）を入れて上書きする。行を消すのではなく無効化する。
 
 ## 全記事共通の季節成分を割り戻す（実装時に見つけた事故 その2）
 
@@ -215,7 +228,7 @@ Wikipedia の閲覧数には「その料理の季節性」だけでなく
 割り戻さないと、**season の行を持つ料理だけが余計に 15% 沈む**
 （行が無い料理は係数 1.0 のままなので、共通成分の分が不公平な減点になる）。
 
-`build_curve.sql` の `month_baseline` CTE で、月ごとの中央値で割り戻している。
+`1_3_build_curve.py` の `build()` が月ごとの中央値で割り戻す。
 効果（生 → 正規化後）:
 
 | 記事 | 生の 8 月指数 | 正規化後 |
@@ -254,7 +267,7 @@ Wikimedia は**直近月の集計が遅れる**ことがあり、その月だけ
 対照群であるはずの焼き鳥が振幅 34 倍になる。これがそのまま publish されると
 **7 月は全カテゴリの score が 0.1 以下**になり、季節補正が推薦を壊す。
 
-そこで `build_curve.sql` が「その月の全記事合計が中央値の
+そこで `1_3_build_curve.py` の `drop_incomplete_months()` が「その月の全記事合計が中央値の
 `min_month_completeness_ratio`（既定 0.5）未満の月」を捨てる。
 本物の季節性は夏物と冬物が逆方向に動くため**合計はほとんど動かない**のに対し、
 この断絶は 97% 減なので取り違える余地が無い。固定の「N か月前まで」にしないのは、

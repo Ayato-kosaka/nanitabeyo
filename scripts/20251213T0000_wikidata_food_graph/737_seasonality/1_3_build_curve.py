@@ -4,25 +4,37 @@
 1_3_build_curve.py
 
 【目的】
-#737 seasonality_raw の月次ページビューから 12 か月の季節指数を計算する
+#737 生の月次 PV から 12 か月の季節指数を計算し、**レビュー用のシートを書き出す**
 
-【処理内容】
-1. sql/build_curve.sql を実行（seasonality_curve を CREATE OR REPLACE）
-2. 分布のサマリを出す（何件が needs_review になったか）
+【BigQuery へは書かない】
+ここまではローカル完結。BigQuery へ入るのは、人がレビューを終えた後の
+`2_1_load_feature_scores.py` から（既存の `wikidata_food_llm_feature_scores` へ）。
+
+【計算内容】
+1. 月ごとの平均 PV ÷ 全期間の平均 PV = 生の月指数（index_raw）
+2. 未完成月を捨てる（全記事合計が中央値の N% 未満の月）
+3. 全記事共通の季節成分を割り戻す（月ごとの中央値で割る）= index_value
+4. 振幅・月平均PV・観測月数から needs_review を機械判定
+
+【出力】
+- curve_<run_id>.jsonl  : 134 件 × 12 か月の全曲線（機械可読）
+- review_<run_id>.jsonl : レビュー対象だけ。decision / reason を空で出すので人が埋める
+- review_<run_id>.md    : 人が読む表（12 か月を横に並べたもの）
 
 【使用方法】
-python3 1_3_build_curve.py --run-id 20260825T0000 --dry-run
 python3 1_3_build_curve.py --run-id 20260825T0000
 """
 
 import argparse
+import json
 import logging
+import statistics
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from lib.bq import BigQueryClient
-from lib.io import load_yaml_config
+from lib.io import ensure_directory, load_yaml_config, read_jsonl, write_jsonl
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -30,136 +42,154 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def drop_incomplete_months(rows, ratio):
+    """
+    未完成月を捨てる
+
+    Wikimedia の直近月は集計が完了しておらず、**全記事いっせいに** 90% 以上落ちた値が返る。
+    実測（2026-08-25 時点、2026-07）: おでん 2,612→200 / ラーメン 15,442→444 / 焼き鳥 2,753→80。
+    素直に指数を計算すると全カテゴリへ「その月は不人気」という偽の季節性を刻む
+    （対照群の焼き鳥ですら振幅 34 倍になることを確認済み）。
+
+    本物の季節性は夏物と冬物が逆方向に動くため**全記事合計はほとんど動かない**のに対し、
+    この断絶は 97% 減。固定の「N か月前まで」にしないのは、遅れが常に同じ長さとは限らないため。
+    """
+    total_by_ym = defaultdict(int)
+    for r in rows:
+        total_by_ym[r["ym"]] += r["views"]
+    median_total = statistics.median(total_by_ym.values())
+    dropped = sorted(ym for ym, t in total_by_ym.items() if t < ratio * median_total)
+    kept = [r for r in rows if r["ym"] not in set(dropped)]
+    return kept, dropped, total_by_ym, median_total
+
+
+def build(rows, config):
+    """月指数を計算して 1 件 = 1 カテゴリの dict にまとめる"""
+    by_item = defaultdict(list)
+    for r in rows:
+        by_item[r["item_qid"]].append(r)
+
+    # 1) 生の月指数
+    raw_index = {}
+    meta = {}
+    for qid, rs in by_item.items():
+        overall = statistics.mean(x["views"] for x in rs)
+        by_month = defaultdict(list)
+        for x in rs:
+            by_month[int(x["ym"][5:7])].append(x["views"])
+        if overall <= 0:
+            continue
+        raw_index[qid] = {m: statistics.mean(v) / overall for m, v in by_month.items()}
+        meta[qid] = {
+            "article": rs[0]["article"],
+            "wiki": rs[0]["wiki"],
+            "monthly_pv_mean": overall,
+            "months_observed": len(rs),
+        }
+
+    # 2) 全記事共通の季節成分（月ごとの中央値）を割り戻す
+    #    8 月は全記事が一律 15% 沈む（夏休みで PC からの閲覧が減る等）。
+    #    割り戻さないと、season の行を持つ料理だけが余計に沈む。
+    #    中央値を使うのは、かき氷（3.08）のような極端な料理に引きずられないため。
+    baseline = {}
+    for m in range(1, 13):
+        vals = [ri[m] for ri in raw_index.values() if m in ri]
+        baseline[m] = statistics.median(vals) if vals else 1.0
+
+    out = []
+    for qid, ri in raw_index.items():
+        idx = {m: ri.get(m, 1.0) / baseline[m] for m in range(1, 13)}
+        amp = max(idx.values()) / max(min(idx.values()), 0.01)
+        mv = meta[qid]
+        needs = (
+            mv["months_observed"] >= config["min_months_observed"]
+            and mv["monthly_pv_mean"] >= config["min_monthly_pv"]
+            and amp >= config["min_amplitude"]
+        )
+        flag = (
+            "insufficient_history" if mv["months_observed"] < config["min_months_observed"]
+            else "low_traffic" if mv["monthly_pv_mean"] < config["min_monthly_pv"]
+            else "flat" if amp < config["min_amplitude"]
+            else "ok"
+        )
+        out.append({
+            "item_qid": qid, **mv,
+            "index_value": {str(m): round(v, 3) for m, v in idx.items()},
+            "index_raw": {str(m): round(ri.get(m, 1.0), 3) for m in range(1, 13)},
+            "amplitude": round(amp, 2),
+            "monthly_pv_mean": round(mv["monthly_pv_mean"]),
+            "quality_flag": flag,
+            "needs_review": needs,
+        })
+    return out, baseline
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Build seasonality curve")
+    parser = argparse.ArgumentParser(description="Build seasonality curve (local only)")
     parser.add_argument("--config", type=str, default="config.yml")
     parser.add_argument("--run-id", type=str, required=True)
-    parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     config = load_yaml_config(Path(__file__).parent / args.config)
-    bq_client = BigQueryClient()
+    work_dir = Path(config["work_dir"])
+    ensure_directory(work_dir)
+
+    rows = read_jsonl(work_dir / f"raw_{args.run_id}.jsonl")
+    if not rows:
+        raise SystemExit(f"raw_{args.run_id}.jsonl が空です。1_2 を先に実行してください。")
 
     logger.info("=" * 80)
     logger.info("Step 1-3: Build seasonality curve")
     logger.info("=" * 80)
-    logger.info(
-        f"閾値: 振幅 >= {config['min_amplitude']} / "
-        f"月PV >= {config['min_monthly_pv']} / "
-        f"観測月数 >= {config['min_months_observed']}"
+    logger.info(f"raw: {len(rows)} 行 / {len({r['item_qid'] for r in rows})} カテゴリ")
+
+    kept, dropped, totals, median_total = drop_incomplete_months(
+        rows, float(config["min_month_completeness_ratio"])
     )
-
-    # 先に raw の件数を見て、空の run_id に対して黙って空の curve を作らないようにする
-    count_query = f"""
-    SELECT COUNT(*) AS rows_count, COUNT(DISTINCT item_qid) AS items
-    FROM `{config['dataset']}.dish_category_seasonality_raw`
-    WHERE run_id = '{args.run_id}'
-    """
-    for row in bq_client.execute_query(count_query):
-        rows_count, items = row.get("rows_count"), row.get("items")
-    logger.info(f"raw: {rows_count} 行 / {items} カテゴリ")
-
-    if not rows_count:
-        raise SystemExit(
-            f"run_id={args.run_id} の raw が 0 行です。1_2 を先に実行してください。"
-            "（空の curve を黙って作らないため中断します）"
-        )
-
-    params = {
-        "DATASET": config["dataset"],
-        "RUN_ID": args.run_id,
-        "MIN_AMPLITUDE": config["min_amplitude"],
-        "MIN_MONTHLY_PV": config["min_monthly_pv"],
-        "MIN_MONTHS_OBSERVED": config["min_months_observed"],
-        "MIN_MONTH_COMPLETENESS_RATIO": config["min_month_completeness_ratio"],
-    }
-
-    # 未完成月の検出結果は**必ず出す**。黙って月を捨てると、
-    # 後から「なぜこの月の指数が変わったのか」を追えなくなる
-    dropped_query = f"""
-    WITH raw_src AS (
-      SELECT ym, views FROM `{config['dataset']}.dish_category_seasonality_raw`
-      WHERE run_id = '{args.run_id}'
-    ),
-    month_totals AS (SELECT ym, SUM(views) total FROM raw_src GROUP BY ym),
-    med AS (SELECT APPROX_QUANTILES(total, 2)[OFFSET(1)] median_total FROM month_totals)
-    SELECT t.ym, t.total, ROUND(SAFE_DIVIDE(t.total, m.median_total), 3) AS ratio
-    FROM month_totals t CROSS JOIN med m
-    WHERE t.total < {config['min_month_completeness_ratio']} * m.median_total
-    ORDER BY t.ym
-    """
-    dropped = list(bq_client.execute_query(dropped_query))
+    # 捨てた月は**必ず出す**。黙って月を捨てると後から追えなくなる
     if dropped:
         logger.warning(f"未完成とみなして除外する月: {len(dropped)} 件")
-        for row in dropped:
-            logger.warning(
-                f"  {row.get('ym')}: 合計 {row.get('total'):,} "
-                f"（中央値比 {row.get('ratio')}）"
-            )
+        for ym in dropped:
+            logger.warning(f"  {ym}: 合計 {totals[ym]:,}（中央値比 {totals[ym]/median_total:.3f}）")
     else:
         logger.info("未完成とみなす月はありません")
 
-    if args.dry_run:
-        logger.info("Dry run: curve は作らない。閾値だけ raw から見積もる")
-        # ⚠️ build_curve.sql と**同じ未完成月フィルタ**を掛ける。
-        #    ここだけ素の raw を見ると、dry-run の見積もりと本実行の結果がずれる
-        preview = f"""
-        WITH raw_src AS (
-          SELECT item_qid, ym, views FROM `{config['dataset']}.dish_category_seasonality_raw`
-          WHERE run_id = '{args.run_id}'
-        ),
-        month_totals AS (SELECT ym, SUM(views) total FROM raw_src GROUP BY ym),
-        med AS (SELECT APPROX_QUANTILES(total, 2)[OFFSET(1)] median_total FROM month_totals),
-        usable_months AS (
-          SELECT t.ym FROM month_totals t CROSS JOIN med m
-          WHERE t.total >= {config['min_month_completeness_ratio']} * m.median_total
-        ),
-        src AS (SELECT r.* FROM raw_src r JOIN usable_months u USING (ym)),
-        per_item AS (SELECT item_qid, AVG(views) m, COUNT(*) n FROM src GROUP BY 1),
-        per_month AS (
-          SELECT item_qid, CAST(SUBSTR(ym,6,2) AS INT64) mo, AVG(views) mm FROM src GROUP BY 1,2
-        ),
-        idx AS (
-          SELECT p.item_qid, SAFE_DIVIDE(p.mm, NULLIF(i.m,0)) v, i.m, i.n
-          FROM per_month p JOIN per_item i USING(item_qid)
-        ),
-        agg AS (
-          SELECT item_qid, ANY_VALUE(m) m, ANY_VALUE(n) n,
-                 IFNULL(SAFE_DIVIDE(MAX(v), NULLIF(MIN(v),0)),1.0) amp
-          FROM idx GROUP BY 1
-        )
-        SELECT
-          COUNT(*) AS total,
-          COUNTIF(n >= {config['min_months_observed']}
-                  AND m >= {config['min_monthly_pv']}
-                  AND amp >= {config['min_amplitude']}) AS needs_review,
-          COUNTIF(amp < {config['min_amplitude']}) AS flat,
-          COUNTIF(m < {config['min_monthly_pv']}) AS low_traffic
-        FROM agg
-        """
-        for row in bq_client.execute_query(preview):
-            logger.info(
-                f"  総数 {row.get('total')} / レビュー対象 {row.get('needs_review')} / "
-                f"平坦 {row.get('flat')} / 低PV {row.get('low_traffic')}"
-            )
-        logger.info("✅ Step 1-3 (dry-run) completed")
-        return
+    curves, baseline = build(kept, config)
+    logger.info("全記事共通の季節成分（月ごとの中央値）: "
+                + " ".join(f"{m}月{baseline[m]:.2f}" for m in range(1, 13)))
 
-    sql_path = Path(__file__).parent / "sql" / "build_curve.sql"
-    bq_client.execute_query(sql_path.read_text(encoding="utf-8"), params)
+    write_jsonl(curves, work_dir / f"curve_{args.run_id}.jsonl", force=True)
 
-    summary = f"""
-    SELECT quality_flag, COUNT(DISTINCT item_qid) AS items
-    FROM `{config['dataset']}.dish_category_seasonality_curve`
-    WHERE run_id = '{args.run_id}'
-    GROUP BY quality_flag ORDER BY items DESC
-    """
-    logger.info("quality_flag の分布:")
-    for row in bq_client.execute_query(summary):
-        logger.info(f"  {row.get('quality_flag')}: {row.get('items')} 件")
+    by_flag = defaultdict(int)
+    for c in curves:
+        by_flag[c["quality_flag"]] += 1
+    logger.info("quality_flag の分布: " + " / ".join(f"{k} {v}件" for k, v in sorted(by_flag.items())))
 
-    logger.info("=" * 80)
-    logger.info("✅ Step 1-3 completed")
+    review = sorted([c for c in curves if c["needs_review"]],
+                    key=lambda c: -c["amplitude"])
+    for c in review:
+        c["decision"] = ""
+        c["reason"] = ""
+    write_jsonl(review, work_dir / f"review_{args.run_id}.jsonl", force=True)
+
+    # 人が読む用。12 か月を横に並べないと「形が変かどうか」を判断できない
+    md = [f"# #737 季節曲線レビュー（run_id: {args.run_id}）", "",
+          f"対象 {len(review)} 件 / 全 {len(curves)} 件中。"
+          "各月の値は「その月の閲覧数 ÷ 全期間平均」を、全記事共通の季節成分で割り戻したもの。1.00 = 平常月。", "",
+          "| 料理 | 記事 | " + " | ".join(f"{m}月" for m in range(1, 13)) + " | 振幅 | 月PV |",
+          "|---|---|" + "---|" * 12 + "---|---|"]
+    for c in review:
+        cells = " | ".join(f"{c['index_value'][str(m)]:.2f}" for m in range(1, 13))
+        md.append(f"| {c['item_qid']} | {c['article']} | {cells} | "
+                  f"{c['amplitude']}x | {c['monthly_pv_mean']:,} |")
+    (work_dir / f"review_{args.run_id}.md").write_text("\n".join(md) + "\n", encoding="utf-8")
+
+    logger.info(f"レビュー対象: {len(review)} 件")
+    logger.info(f"  全曲線     : {work_dir}/curve_{args.run_id}.jsonl")
+    logger.info(f"  レビュー用 : {work_dir}/review_{args.run_id}.jsonl / .md")
+    logger.info("")
+    logger.info("次: review_*.jsonl の decision（approve/reject）と reason を埋めて")
+    logger.info("    data/ へコミットし、2_1_load_feature_scores.py へ渡す")
 
 
 if __name__ == "__main__":
