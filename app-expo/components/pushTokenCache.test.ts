@@ -36,7 +36,7 @@ describe("#1599 readPushCache", () => {
 		["", "空文字"],
 		[null, "null"],
 		[undefined, "undefined"],
-	])("%s は «キャッシュ無し» として null（%s）", (raw) => {
+	])("%s は «キャッシュ無し» として null（%s）", (raw, _label) => {
 		expect(readPushCache(raw as string | null | undefined)).toBeNull();
 	});
 
@@ -44,7 +44,7 @@ describe("#1599 readPushCache", () => {
 		["{", "途中で切れた JSON"],
 		["not json at all", "JSON ではない"],
 		['{"token":', "キーだけ"],
-	])("壊れた値でも throw せず null を返す: %s（%s）", (raw) => {
+	])("壊れた値でも throw せず null を返す: %s（%s）", (raw, _label) => {
 		expect(() => readPushCache(raw)).not.toThrow();
 		expect(readPushCache(raw)).toBeNull();
 	});
@@ -58,7 +58,7 @@ describe("#1599 readPushCache", () => {
 		['{"userId":"u","platform":"ios"}', "token が無い"],
 		['{"token":"t","platform":"ios"}', "userId が無い"],
 		['{"token":"t","userId":"u"}', "platform が無い"],
-	])("JSON として読めても形が違えば null: %s（%s）", (raw) => {
+	])("JSON として読めても形が違えば null: %s（%s）", (raw, _label) => {
 		expect(readPushCache(raw)).toBeNull();
 	});
 
