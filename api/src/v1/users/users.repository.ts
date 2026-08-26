@@ -19,6 +19,11 @@ import {
   buildMyDishesOldestWantSaveQuery,
   buildMyDishesPageQuery,
 } from './my-dishes.query';
+import {
+  buildCursorFilter,
+  buildCursorOrderBy,
+  formatCompositeCursor,
+} from '../../core/pagination/composite-cursor';
 
 /** #1395 一覧 1 行ぶんの生データ（DishMediaEntry の組み立ては Service 側で行う） */
 export type MyDishRowEntity = {
@@ -389,17 +394,12 @@ export class UsersRepository {
       user_id: userId,
     };
 
-    if (cursor) {
-      whereClause.created_at = {
-        lt: new Date(cursor),
-      };
-    }
+    // #1599 `(created_at, id)` の複合カーソル。時刻単独だと同時刻の行がページ境界で飛ぶ
+    Object.assign(whereClause, buildCursorFilter(cursor));
 
     const result = await this.prisma.prisma.payouts.findMany({
       where: whereClause,
-      orderBy: {
-        created_at: 'desc',
-      },
+      orderBy: buildCursorOrderBy(),
       take: limit + 1,
     });
 
@@ -408,7 +408,10 @@ export class UsersRepository {
     const items = hasMore ? result.slice(0, limit) : result;
     const nextCursor =
       hasMore && items.length > 0
-        ? items[items.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            items[items.length - 1].created_at,
+            items[items.length - 1].id,
+          )
         : null;
 
     this.logger.debug('UserPayoutsFound', 'findUserPayouts', {
@@ -442,17 +445,12 @@ export class UsersRepository {
       user_id: userId,
     };
 
-    if (cursor) {
-      whereClause.created_at = {
-        lt: new Date(cursor),
-      };
-    }
+    // #1599 `(created_at, id)` の複合カーソル。時刻単独だと同時刻の行がページ境界で飛ぶ
+    Object.assign(whereClause, buildCursorFilter(cursor));
 
     const result = await this.prisma.prisma.restaurant_bids.findMany({
       where: whereClause,
-      orderBy: {
-        created_at: 'desc',
-      },
+      orderBy: buildCursorOrderBy(),
       take: limit + 1,
     });
 
@@ -461,7 +459,10 @@ export class UsersRepository {
     const items = hasMore ? result.slice(0, limit) : result;
     const nextCursor =
       hasMore && items.length > 0
-        ? items[items.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            items[items.length - 1].created_at,
+            items[items.length - 1].id,
+          )
         : null;
 
     this.logger.debug('UserRestaurantBidsFound', 'findUserRestaurantBids', {
@@ -577,19 +578,16 @@ export class UsersRepository {
       action_type: 'block',
     };
 
-    if (cursor) {
-      whereClause.created_at = {
-        lt: new Date(cursor),
-      };
-    }
+    // #1599 `(created_at, id)` の複合カーソル。時刻単独だと同時刻の行がページ境界で飛ぶ
+    Object.assign(whereClause, buildCursorFilter(cursor));
 
     const result = await this.prisma.prisma.reactions.findMany({
       where: whereClause,
-      orderBy: {
-        created_at: 'desc',
-      },
+      orderBy: buildCursorOrderBy(),
       take: limit + 1,
       select: {
+        // #1599 複合カーソルの第 2 キーに使うので id も引く
+        id: true,
         target_id: true,
         created_at: true,
       },
@@ -599,7 +597,10 @@ export class UsersRepository {
     const items = hasMore ? result.slice(0, limit) : result;
     const nextCursor =
       hasMore && items.length > 0
-        ? items[items.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            items[items.length - 1].created_at,
+            items[items.length - 1].id,
+          )
         : null;
 
     this.logger.debug(

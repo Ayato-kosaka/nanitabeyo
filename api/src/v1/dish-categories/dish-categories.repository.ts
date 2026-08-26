@@ -15,6 +15,11 @@ import {
   DishCategoryCandidateWithScores,
   DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
+import {
+  buildCursorFilter,
+  buildCursorOrderBy,
+  formatCompositeCursor,
+} from '../../core/pagination/composite-cursor';
 
 @Injectable()
 export class DishCategoriesRepository {
@@ -120,13 +125,12 @@ export class DishCategoriesRepository {
       target_type: 'dish_categories',
       action_type: 'save',
     };
-    if (cursor) {
-      whereClause.created_at = { lt: new Date(cursor) };
-    }
+    // #1599 `(created_at, id)` の複合カーソル。時刻単独だと同時刻の行がページ境界で飛ぶ
+    Object.assign(whereClause, buildCursorFilter(cursor));
 
     const savedEntries = await this.prisma.prisma.reactions.findMany({
       where: whereClause,
-      orderBy: { created_at: 'desc' },
+      orderBy: buildCursorOrderBy(),
       take: limit + 1,
     });
 
@@ -135,7 +139,10 @@ export class DishCategoriesRepository {
     const entries = hasMore ? savedEntries.slice(0, limit) : savedEntries;
     const nextCursor =
       hasMore && entries.length > 0
-        ? entries[entries.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            entries[entries.length - 1].created_at,
+            entries[entries.length - 1].id,
+          )
         : null;
 
     const categoryIds = entries.map((e) => e.target_id);

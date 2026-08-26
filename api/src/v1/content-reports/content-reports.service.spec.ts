@@ -321,8 +321,9 @@ describe('ContentReportsService.findMine（#1584 自分の報告履歴）', () =
     const res = await service.findMine('user-1', {});
 
     expect(res.data).toHaveLength(20);
-    // 20 件目（= 返した最後の行）の created_at が次のカーソルになる
-    expect(res.nextCursor).toBe('2026-08-20T00:00:00.000Z');
+    // #1599 20 件目（= 返した最後の行）の `(created_at, id)` が次のカーソルになる。
+    // 時刻だけだと、同時刻の行がページ境界をまたいだときにまとめて飛ぶ
+    expect(res.nextCursor).toBe('2026-08-20T00:00:00.000Z|r-19');
   });
 
   it('取りきったら nextCursor は null', async () => {
