@@ -162,15 +162,22 @@ def main():
             i_season = cols.index("season_score")
             rank0 = {r[i_id]: n for n, r in enumerate(rows0, 1)}
             rank1 = {r[i_id]: n for n, r in enumerate(rows1, 1)}
-            moved = [cid for cid in rank0 if cid in rank1 and rank0[cid] != rank1[cid]]
-            unmoved_controls = [
-                l for l in CONTROL_LABELS
-                if not any(label.get(c) == l and rank0.get(c) != rank1.get(c) for c in rank0)
-            ]
+            score0 = {r[i_id]: float(r[i_final]) for r in rows0}
+            score1 = {r[i_id]: float(r[i_final]) for r in rows1}
+
+            # 【重要】順位の差で数えてはいけない。
+            # jitter=0 だと final_score が同値のカテゴリが多数でき、ORDER BY の同点行は
+            # 並び順が不定なので «動いた» が大量に出る（12 月は score が 1 つも変わらないのに
+            # 80/134 件が動いたように見えた）。判定は score の一致で行う。
+            changed = [c for c in score0 if abs(score0[c] - score1.get(c, score0[c])) > 1e-9]
+            controls = [c for c in score0 if label.get(c) in CONTROL_LABELS]
+            controls_changed = [c for c in controls if c in changed]
 
             print(f"\n--- {sc['name']} ---")
-            print(f"順位が動いたカテゴリ: {len(moved)} / {len(rank0)} 件"
-                  f"（対照群 {len(unmoved_controls)}/{len(CONTROL_LABELS)} 件は不動）")
+            print(f"score が変わったカテゴリ: {len(changed)} / {len(score0)} 件"
+                  f"（対照群 {len(controls) - len(controls_changed)}/{len(controls)} 件は完全一致）")
+            print("  ※ 順位は上位が沈んだぶん下位が繰り上がるので «順位が動いた件数» では測らない"
+                  "（同点行の並び順も不定）")
             shown = 0
             for cid in sorted(winter_ids & rank0.keys(), key=lambda c: rank0[c]):
                 s = next((r[i_season] for r in rows1 if r[i_id] == cid), None)
