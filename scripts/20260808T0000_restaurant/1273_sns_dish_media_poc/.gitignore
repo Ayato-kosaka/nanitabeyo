@@ -59,3 +59,5 @@ out/_blog_imgs/
 !out/instagram_professional_worksheet.csv
 !out/handle_recovery.json
 !out/store_source_tos_survey.md
+!out/handle_recovery_labels.json
+!out/handle_source_host_counts.json

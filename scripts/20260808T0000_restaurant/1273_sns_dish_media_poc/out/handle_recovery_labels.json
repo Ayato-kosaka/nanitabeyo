@@ -1,0 +1,35 @@
+{
+  "purpose": "#1269 回収で新たに取れた 13 件のハンドルを目視した。回収は『ドメインルートへ落とす』手を含むので、**施設やポータルのトップページに着地していないか**を確かめる必要がある。",
+  "labeled_at": "2026-08-26",
+  "labeler": "Claude（店名とハンドル名を突き合わせて判定）",
+  "source": "out/handle_recovery.json の detail から、回収できて IG リンクが取れた 13 件すべて",
+  "store_own": [
+    {"store": "ステーキハウス成しま 竜南店", "handle": "steakhouse__narushima", "why": "店名と一致"},
+    {"store": "C-cafeささ乃や", "handle": "c_cafe_sasanoya", "why": "店名と一致"},
+    {"store": "Cafe Kurudot", "handle": "kurudot_285181", "why": "店名と一致"}
+  ],
+  "chain_or_brand": [
+    {"store": "神戸屋レストラン 浜田山店", "handle": "kobeya_since1918", "why": "神戸屋の本部アカウント。店舗単位ではない"},
+    {"store": "向山製作所大玉ベース店", "handle": "mukaiyama_caramel", "why": "自社ブランド（キャラメル）のアカウント"},
+    {"store": "錦果楼", "handle": "kashinoki_official", "why": "菓子ブランドの公式。店舗単位か不明"}
+  ],
+  "other_entity": [
+    {"store": "La Coccinelle", "handle": "tokyosquaregarden", "why": "**東京スクエアガーデン（商業施設）**の公式"},
+    {"store": "そば長", "handle": "locoplacela", "why": "**LocoPlace（ポータル）**のアカウント"},
+    {"store": "桂林", "handle": "sunshineaoyama", "why": "**施設**の公式"},
+    {"store": "コレット", "handle": "myplstaff", "why": "**まいぷれの運営スタッフ**アカウント"},
+    {"store": "スカーレル", "handle": "sapporo_kokusai", "why": "**札幌国際スキー場（施設）**の公式"},
+    {"store": "神在", "handle": "izumoairport", "why": "**出雲空港（施設）**の公式"},
+    {"store": "そば処与市", "handle": "spa.resort.hawaiians", "why": "**スパリゾートハワイアンズ（施設）**の公式"}
+  ],
+  "counts": {"店固有": 3, "チェーン・ブランド": 3, "別主体": 7, "n": 13},
+  "precision_store_own": 0.2308,
+  "precision_incl_chain": 0.4615,
+  "notes": [
+    "**別主体が 7/13 = 53.8%。** 最初の標本（18件中 5件 = 27.8%）より**明らかに悪い**。",
+    "**原因は私の回収手順にある。** 404 のときにドメインルートへ落とす手を使ったが、店舗ページが 404 になる典型的な理由は『**その店が施設・モール・ポータルの中の1ページで、ページが消えた**』ことである。ルートへ落とすと**施設のトップページ**に着地し、そこに載っている Instagram は**施設の公式アカウント**になる。",
+    "つまり **404 → ルート回収は、別主体を掴みやすい手だった**。回収そのものは成功していても、取れたハンドルの質は下がる。",
+    "**ハンドル取得率 17.33% は上振れである。** 店固有＋チェーンまでを可とすると 6/13 なので、実効は 15.17% + 6/600 = **16.17%**。店固有だけなら 15.17% + 3/600 = **15.67%**。"
+  ],
+  "caveat": "n=13 と小さい。ハンドル名と店名の突き合わせで判定しており、プロフィールは開いていない（Instagram は robots.txt で自動取得を禁止しているため）。"
+}
