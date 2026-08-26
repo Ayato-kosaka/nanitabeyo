@@ -56,3 +56,6 @@ out/_blog_imgs/
 !out/fb_dish_photo_worksheet.csv
 !out/fb_dish_photo_worksheet_seed.tsv
 !out/manual_import_rate_worksheet.csv
+!out/instagram_professional_worksheet.csv
+!out/handle_recovery.json
+!out/store_source_tos_survey.md
