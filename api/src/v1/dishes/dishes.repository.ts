@@ -279,9 +279,17 @@ export class DishesRepository {
               // ID の再利用（重複防止）と Photo Media 課金の抑止は別の関心事であり、
               // ここで status を絞ると前者が壊れる。
               //
-              // failed の place で Photo Media を毎回課金してしまう件は、
-              // tryGetPhotoMedia が reuse 判定より前にある構造の問題なので、
-              // 別途 handler 側の download skip 判定とあわせて対応する。
+              // #1053 【解決済み】ここに「failed の place で Photo Media を毎回課金して
+              // しまう件は別途対応する」と書いてあったが、**その対応は #1053 で入った**。
+              // `dishes.service.ts` の `canSkipPhotoMedia` が、再利用する media_path の
+              // 実体が GCS にあることを確かめたうえで Photo Media の呼び出しごと飛ばし、
+              // handler へは photoUri 無しで enqueue して download も skip させる。
+              //
+              // したがって「resize に失敗して failed に張り付いた place を bulk-import
+              // するたびに課金される」経路は塞がっている。写真バイナリ自体が無い
+              // （media_path が無い / 実体が消えている）place で取り直すのは、
+              // 課金の漏れではなく必要な取得である。
+              //
               // 再利用が起きたことは ExistingGoogleImportDishMediaReused ログの
               // mediaProcessingStatus で数えられる。
               OR: [
