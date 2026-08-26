@@ -144,3 +144,39 @@ export function blankComments(text: string): string {
 export function readCode(file: string): string {
   return blankComments(readFileSync(file, 'utf8'));
 }
+
+/**
+ * `text` の `openIndex`（`{` の位置）に対応する `}` までを返す。
+ * 文字列リテラル・テンプレートリテラルの中の波括弧は数えない。
+ *
+ * Prisma のネストしたリレーション指定
+ * （`include: { dish_reviews: { where: ... } }`）を丸ごと切り出すのに使う。
+ */
+export function readBraceBlock(text: string, openIndex: number): string {
+  let depth = 0;
+  let quote: string | null = null;
+
+  for (let i = openIndex; i < text.length; i += 1) {
+    const ch = text[i];
+
+    if (quote) {
+      if (ch === '\\') {
+        i += 1;
+        continue;
+      }
+      if (ch === quote) quote = null;
+      continue;
+    }
+
+    if (ch === "'" || ch === '"' || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '{') depth += 1;
+    if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) return text.slice(openIndex, i + 1);
+    }
+  }
+  return text.slice(openIndex);
+}
