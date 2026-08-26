@@ -59,15 +59,45 @@ per_month AS (
   FROM src
   GROUP BY item_qid, wiki, month
 ),
-indexed AS (
+indexed_raw AS (
   SELECT
     m.item_qid, m.wiki, i.article, m.month,
-    -- overall_mean = 0 は「5年間ずっと 0 PV」＝実質存在しない記事。
+    -- overall_mean = 0 は「全期間ずっと 0 PV」＝実質存在しない記事。
     -- 0 除算を避けつつ、後段の low_traffic で必ず弾かれる値にする
-    SAFE_DIVIDE(m.month_mean, NULLIF(i.overall_mean, 0)) AS index_value,
+    SAFE_DIVIDE(m.month_mean, NULLIF(i.overall_mean, 0)) AS index_raw,
     i.overall_mean, i.months_observed
   FROM per_month m
   JOIN per_item i USING (item_qid, wiki)
+),
+-- 【重要】全記事に共通する季節成分を割り戻す
+--
+-- Wikipedia の閲覧数には「その料理の季節性」だけでなく「その月は全記事が沈む」という
+-- 共通成分が乗っている。115 記事で実測した月ごとの中央値:
+--     1月 1.06 / 2月 0.97 / 3月 0.98 / 4月 0.92 / 5月 1.05 / 6月 1.02
+--     7月 0.95 / 8月 0.85 / 9月 1.01 / 10月 1.04 / 11月 1.03 / 12月 0.97
+-- 8 月は全記事が一律に 15% 沈む（夏休みで PC からの閲覧が減る等）。
+--
+-- 割り戻さないと、**season の行を持つ料理だけが余計に 15% 沈む**（行が無い料理は
+-- 係数 1.0 のままなので、共通成分の分だけ不公平な減点になる）。
+-- 実際、割り戻すと対照群がきれいに 1.0 付近へ戻る:
+--     焼き鳥 0.94→1.12 / ハンバーグ 0.80→0.95 / ラーメン 0.88→1.04 / 唐揚げ 0.82→0.97
+-- 「平常（0.85〜1.15）」に入る記事も 48 件 → 79 件（115 中）へ増える。
+--
+-- 中央値を使うのは、極端な季節料理（かき氷 3.08 等）に引きずられないようにするため。
+month_baseline AS (
+  SELECT month, APPROX_QUANTILES(index_raw, 2)[OFFSET(1)] AS baseline
+  FROM indexed_raw
+  WHERE index_raw IS NOT NULL
+  GROUP BY month
+),
+indexed AS (
+  SELECT
+    r.item_qid, r.wiki, r.article, r.month,
+    r.index_raw,
+    SAFE_DIVIDE(r.index_raw, NULLIF(b.baseline, 0)) AS index_value,
+    r.overall_mean, r.months_observed
+  FROM indexed_raw r
+  JOIN month_baseline b USING (month)
 ),
 stats AS (
   SELECT
@@ -83,6 +113,7 @@ SELECT
   x.article,
   x.month,
   IFNULL(x.index_value, 1.0) AS index_value,
+  IFNULL(x.index_raw, 1.0) AS index_raw,
   IFNULL(SAFE_DIVIDE(s.peak_index, NULLIF(s.trough_index, 0)), 1.0) AS amplitude,
   x.overall_mean AS monthly_pv_mean,
   x.months_observed,
