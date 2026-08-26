@@ -408,6 +408,21 @@ commit ゼロだったが、**61 ファイル・9.4 MB の Artifact は upload �
 `evidence-collect.yml` の `source_sha` は **40〜64 桁のフル SHA でなければ入力検証で落ちる**
 （短縮 SHA を渡した run 32697489584 は 10 秒で failure）。`git rev-parse <short>` で伸ばしてから渡すこと。
 
+### `claude-worker.yml` の `base_ref` も同じ。短縮 SHA は «ブランチが無い» で落ちる
+
+`base_ref` は `actions/checkout` の `ref` にそのまま渡る。**checkout は ref を
+ブランチ名・タグ名として先に解決しようとするため、短縮 SHA は解決できない。**
+
+    ##[error]A branch or tag with the name 'f528bc69' could not be found
+
+run 32913852426（撮影 run）が 27 秒で failure になったのがこれ。紛らわしいのは、
+**この失敗が最後に «成果物を1文字も出力せずに終了しました» として現れる**こと。
+checkout が転けたあとも後続 step が走り、Claude 本体が一度も起動しないまま
+出力検査に到達する。エラーの見た目は «ワーカーが黙って死んだ» なので、
+ログを上まで遡らないと checkout の 1 行に辿り着けない。
+
+`base_ref` にも `git rev-parse HEAD` のフル SHA を渡すこと（ブランチ名なら短縮の問題は無い）。
+
 ## ワーカーは `.github/workflows/` を変更できない
 
 **Claude Worker（`access=write`）は `.github/workflows/` 配下のファイルを作成・更新できない。** `claude-worker.yml` がClaude GitHub Appへ要求している権限は `contents: write` / `pull_requests: write` / `issues: write` / `actions: read` の4つで、**`workflows: write` を含まないため、GitHubがサーバ側でpushを拒否する**。
