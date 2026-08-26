@@ -150,26 +150,24 @@ export class SettingsScreen {
 	 * 代わりに «必ず出る行» の testID を見る。**この Screen Object からロケール依存の
 	 * セレクタが 1 つ減った**（Android の端末ロケールに引きずられて落ちる経路が 1 本消えた。#1031 B4）。
 	 *
-	 * ## ⚠️ ここでスクロールしてはいけない（run 32908255134 / 32916602453 で 2 度踏んだ）
+	 * ## ⚠️ ここは «存在» で判定する。可視で見ても、スクロールしてもいけない
 	 *
-	 * 以前この判定は `settings-feedback`（3 枚目のカード）まで
-	 * `whileElement(...).scroll()` で運んでいた。iOS の Detox は **スクロール対象が
-	 * 可視率 100% でないと掴めず**、しかも掴む開始点が可視範囲の外へ出ることがある。
+	 * 3 回の実機 run で 3 通りの落ち方をした。**原因は全部この 1 メソッド**である。
 	 *
-	 *     Start point {196.5, 974.5} / visible {{0,300},{393,710}} / view {{0,0},{393,710}}
-	 *     Start point {196.5, 764}   / visible {{0,409},{393,710}} / view {{0,0},{393,710}}
+	 * | run | やっていたこと | 落ち方 |
+	 * | --- | --- | --- |
+	 * | 32908255134 (iOS) | `settings-feedback` まで scroll | 開始点 y=974.5 が枠外 |
+	 * | 32916602453 (iOS) | 同上 + 開始点 0.5 を明示 | 開始点 y=764 でやはり枠外 |
+	 * | 32924313995 (Android) | 最上段の可視を待つ（scroll せず） | **前のテストが下へスクロール済みで最上段が画面外** |
 	 *
-	 * 2 回の iOS run で落ちた 2 件は **どちらもこのメソッドの中**だった
-	 *（1 回目 settings.test.ts / 2 回目 legal.test.ts）。開始点を 0.5 で明示してみたが
-	 * y=764 とやはり枠外で、**直らずに «どのテストが踏むか» が入れ替わっただけ**だった。
-	 * 数字を当て直すのは «怪しいところを触る» だけなのでやめ、原因ごと外した。
+	 * «画面が描画されたか» は **スクロール位置と無関係**であるべきなので、
+	 * `toExist()` で見る。可視（`toBeVisible`）で見た瞬間にスクロール位置へ依存し、
+	 * スクロールで解決しようとした瞬間に開始点の問題を踏む。
 	 *
-	 * «画面が出たか» の判定に、画面の中ほどまでスクロールする必要は無い。
-	 * **初期表示で必ず見えている最上段の行**（`profile-liked`）を見れば足りる。
-	 * 併せて、このあと `expectRowVisible()` が走るときコンテナが
-	 * **未スクロール（＝可視率 100%）** の状態から始まるので、そちらも掴みやすくなる。
+	 * 行が **見えている** ことが要るテストは `expectRowVisible()` を呼ぶこと。
+	 * あちらは先に `scrollTo("top")` で位置を正規化してから下向きに探す。
 	 *
-	 * 画面下部の行が要るテストは `expectRowVisible()` を明示的に呼ぶこと。
+	 * ## 参考: かつて «見えるまでスクロール» していた経緯（#1583）
 	 *
 	 * ## 参考: 以前の «見えるまでスクロール» の経緯（#1583）
 	 * `settings-feedback` はマイページの 3 枚目のカードにあり、**匿名だと上に大きな
@@ -195,9 +193,9 @@ export class SettingsScreen {
 		await waitFor(element(by.id("settings-scroll")))
 			.toExist()
 			.withTimeout(timeout);
-		// 2) **初期表示で必ず見えている最上段の行**で «描画が終わった» を判定する。
-		//    ここでスクロールしないことが肝（下の JSDoc 参照）
-		await waitUntilVisible(this.likedItem, timeout);
+		// 2) «描画が終わった» の判定は **可視ではなく存在**で見る。
+		//    可視で見るとスクロール位置に依存して落ちる（下の JSDoc）
+		await waitFor(element(this.likedItem)).toExist().withTimeout(timeout);
 	}
 
 	/** テーマ 3 択の 1 行（#1509） */
@@ -343,6 +341,20 @@ export class SettingsScreen {
 		await waitFor(element(by.id("settings-scroll")))
 			.toExist()
 			.withTimeout(timeout);
+		/*
+		 ⚠️ **先に一番上へ戻すこと。**
+		 `whileElement(...).scroll(300, "down")` は **下向きにしか探さない**。
+		 前のテストが下までスクロールした状態を引き継いでいると、目的の行が
+		 «今より上» にある場合は永久に見つからず 25 秒待って落ちる
+		 （run 32924313995 の Android で実測。«ご意見・不具合» が上に隠れていた）。
+
+		 `scrollTo("top")` は **開始点を取らない**ので、iOS で 2 度踏んだ
+		 «開始点が可視範囲の外» の問題（run 32908255134 / 32916602453）にも当たらない。
+		 既に一番上なら Detox が «これ以上スクロールできない» と投げるので、そこは握る。
+		*/
+		await element(by.id("settings-scroll"))
+			.scrollTo("top")
+			.catch(() => undefined);
 		await waitFor(element(matcher))
 			.toBeVisible()
 			.whileElement(by.id("settings-scroll"))
