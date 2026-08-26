@@ -45,6 +45,10 @@ import {
   buildCursorOrderBy,
   formatCompositeCursor,
 } from '../../core/pagination/composite-cursor';
+import {
+  formatRestaurantDishMediaCursor,
+  parseRestaurantDishMediaCursor,
+} from './restaurant-dish-media-cursor';
 
 /** #817 優先言語のレビュー先読みクエリの戻り値 */
 type DishReviewWithUser = Prisma.dish_reviewsGetPayload<{
@@ -501,12 +505,16 @@ export class DishMediaRepository {
     restaurantId: string,
     { limit = 42, cursor: cursorStr }: QueryRestaurantDishMediaDto,
   ) {
-    const cursor = cursorStr
-      ? {
-          likeCount: Number(cursorStr.split('_')[0]),
-          mediaId: cursorStr.split('_')[1],
-        }
-      : null;
+    // #1599 カーソルはクライアントから来る任意の文字列なので、形を検証してから使う。
+    //
+    // 以前は `Number(...)` と `split('_')[1]` の結果を無検証で raw SQL へ流していた。
+    // 壊れたカーソルを渡すと:
+    //   - `?cursor=abc`        → mediaId が undefined
+    //   - `?cursor=1_notauuid` → `'notauuid'::uuid` で **PostgreSQL が例外を投げる（500）**
+    //   - `?cursor=abc_<uuid>` → like_count が NaN になり比較が壊れる
+    // どれも «一覧が開けない» になる。**壊れたカーソルは先頭ページへ倒す**のが正しい
+    // （`core/pagination/composite-cursor.ts` と同じ方針）。
+    const cursor = parseRestaurantDishMediaCursor(cursorStr);
     const cursorWhere = cursor
       ? Prisma.sql`
           AND (
@@ -572,7 +580,7 @@ export class DishMediaRepository {
     const last = items[items.length - 1];
     const nextCursor: string | null =
       hasMore && items.length > 0
-        ? `${last.like_count}_${last.dish_media_id}`
+        ? formatRestaurantDishMediaCursor(last.like_count, last.dish_media_id)
         : null;
 
     return { items, nextCursor };
