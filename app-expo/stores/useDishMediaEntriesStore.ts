@@ -163,6 +163,33 @@ export type DishMediaEntriesStore = {
 	 */
 	clearByKey: (key?: string) => void;
 
+	/**
+	 * #1599 一覧の世代。**`clearByKey` が呼ばれるたびに 1 つ進む。**
+	 *
+	 * 追加取得（`fetchMore*`）は開始時にこの値を控え、応答が返った時点で
+	 * 変わっていたら **結果を捨てる**。
+	 *
+	 * ## なぜ要るのか
+	 *
+	 * 追加取得と引っ張って更新（`fetchInitial*`）は別のロード中フラグを持ち、
+	 * 互いの飛行中を見ていないので **並走できる**。この順で起きると壊れる。
+	 *
+	 *   1. 一覧の下端まで送って追加取得（cursor=C1）が飛ぶ
+	 *   2. 返る前に引っ張って更新 → 一覧が新しい 1 ページ目に入れ替わる
+	 *   3. **遅れて返った C1 の応答**が、入れ替わった後の一覧の末尾へ
+	 *      «更新前のページ» を追記し、さらに `nextCursor` を «更新前の連鎖» の
+	 *      値で上書きする
+	 *
+	 * 結果、いいねを外した投稿が末尾に復活し、以降の「もっと読む」は画面と
+	 * 別系統のカーソルを辿る（重複・欠落の原因になる）。
+	 *
+	 * ⚠️ 世代はキー別ではなく **1 本**にしてある。あるキーの更新が別キーの
+	 * 追加取得も捨てることになるが、捨てられた側は「もう一度下端まで送れば取れる」
+	 * だけで壊れない。キー別にすると全体リセット（ログアウト）の扱いが
+	 * 複雑になり、そちらを取りこぼす方が危ない。
+	 */
+	listGeneration: number;
+
 	// ------ カーソルページネーション API ------
 
 	/**
@@ -302,6 +329,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	hasFetchedInitialByKey: {},
 	nextCursorByKey: {},
 	isLoadingMoreByKey: {},
+	listGeneration: 0,
 
 	// ------ 同期挿入・更新メソッド ------
 
@@ -470,6 +498,8 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			// key 未指定 → 全リセット
 			if (!key) {
 				return {
+					// #1599 飛行中の追加取得を無効化する（宣言箇所のコメント参照）
+					listGeneration: state.listGeneration + 1,
 					entriesByMediaId: {},
 					mediaIdsByKey: {},
 					reviewsByReviewId: {},
@@ -549,6 +579,8 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			}
 
 			return {
+				// #1599 飛行中の追加取得を無効化する（宣言箇所のコメント参照）
+				listGeneration: state.listGeneration + 1,
 				entriesByMediaId: nextEntriesById,
 				mediaIdsByKey: nextMediaIdsByKey,
 				reviewsByReviewId: nextReviewsByReviewId,
@@ -584,8 +616,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 		}),
 
 	fetchMoreByKey: async (key, request, fetcher) => {
-		const { nextCursorByKey, upsertDishMediaEntries, updateMediaIdsByKey } = get();
+		const { nextCursorByKey, upsertDishMediaEntries, updateMediaIdsByKey, listGeneration } = get();
 		const nextCursor = nextCursorByKey[key];
+		// #1599 応答が返るまでに一覧が入れ替わっていないかを見るための世代
+		const startGeneration = listGeneration;
 
 		// nextCursor が null の場合は何もしない
 		if (nextCursor === null || nextCursor === undefined) return;
@@ -595,6 +629,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			key,
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
+				// #1599 引っ張って更新に追い抜かれていたら、この応答は捨てる。
+				// 追記すると «更新前のページ» が新しい一覧の末尾へ紛れ込み、
+				// nextCursor も «更新前の連鎖» の値で上書きされる
+				if (get().listGeneration !== startGeneration) return;
 				// 1. エンティティを正規化
 				upsertDishMediaEntries(asApiList(response.data));
 
@@ -639,8 +677,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 
 	// #460 【設計】fetchMoreWithReviewsByKey を新API（upsertDishMediaEntries + updateReviewIdsByKey）に移行
 	fetchMoreWithReviewsByKey: async (key, request, fetcher) => {
-		const { nextCursorByKey, upsertDishMediaEntries, updateReviewIdsByKey } = get();
+		const { nextCursorByKey, upsertDishMediaEntries, updateReviewIdsByKey, listGeneration } = get();
 		const nextCursor = nextCursorByKey[key];
+		// #1599 応答が返るまでに一覧が入れ替わっていないかを見るための世代
+		const startGeneration = listGeneration;
 
 		// nextCursor が null の場合は何もしない
 		if (nextCursor === null || nextCursor === undefined) return;
@@ -650,6 +690,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			key,
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
+				// #1599 引っ張って更新に追い抜かれていたら、この応答は捨てる。
+				// 追記すると «更新前のページ» が新しい一覧の末尾へ紛れ込み、
+				// nextCursor も «更新前の連鎖» の値で上書きされる
+				if (get().listGeneration !== startGeneration) return;
 				// 1. エンティティを正規化
 				upsertDishMediaEntries(asApiList(response.data));
 
