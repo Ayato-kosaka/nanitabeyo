@@ -1,3 +1,5 @@
+export { IsParsableDateString } from "./is-parsable-date-string";
+
 export { CreateDishMediaDto, CreateDishMediaReviewDto } from "./dish-media/create-dish-media.dto";
 export { CreateDishMediaViewDto } from "./dish-media/create-dish-media-view.dto";
 export { QueryDishMediaByIdsDto } from "./dish-media/query-dish-media-by-ids.dto";
