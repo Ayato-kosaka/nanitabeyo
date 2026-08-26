@@ -142,6 +142,27 @@ export class SettingsScreen {
 	} as const;
 
 	/**
+	 * `whileElement(...).scroll()` に渡す **スクロールの開始点**（縦方向の正規化座標）。
+	 *
+	 * ## なぜ明示するのか（run 32908255134 の iOS で実測）
+	 * 省略すると Detox が開始点を自分で決めるが、**その点がスクロールビューの
+	 * 可視範囲の外に出ることがある**。実際に出たエラー:
+	 *
+	 *     View is not scrollable at the given start point. Start point: {196.5, 974.5}
+	 *     visible bounds: {{0, 300}, {393, 710}}   view bounds: {{0, 0}, {393, 710}}
+	 *     RCTEnhancedScrollView is not visible: does not pass visibility percent threshold (100)
+	 *
+	 * 開始点の y が view bounds（0〜710）の外にあり、そこを掴もうとして落ちている。
+	 *
+	 * ⚠️ これは «コンテナの出現を待っていない» 問題（下の `expectLoaded` の JSDoc）とは
+	 *    **別の原因**である。あちらを直しても、こちらは残る。同じ症状（スクロールで落ちる）に
+	 *    原因が 2 つあった。iOS でだけ出る（Android は 16/16 が 1 発で通っている）。
+	 *
+	 * 0.5 は «ビューの縦中央»。可視範囲の内側に必ず入るので、開始点が外へ出ない。
+	 */
+	private static readonly SCROLL_START_Y = 0.5;
+
+	/**
 	 * 設定項目が表示されていることを検証する。
 	 *
 	 * #1402 以前は ScreenHeader のタイトル「設定」（`by.text`）を見ていたが、その画面ごと無くなった。
@@ -174,7 +195,10 @@ export class SettingsScreen {
 			.withTimeout(timeout);
 		// 2) 目的の行が画面外なら、見えるところまで運ぶ
 		//    scroll() は withTimeout を持たないため、待ち時間は下の waitUntilVisible 側で見る
-		await waitFor(element(this.feedbackItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
+		await waitFor(element(this.feedbackItem))
+			.toBeVisible()
+			.whileElement(by.id("settings-scroll"))
+			.scroll(300, "down", NaN, SettingsScreen.SCROLL_START_Y);
 		await waitUntilVisible(this.feedbackItem, timeout);
 	}
 
@@ -297,7 +321,10 @@ export class SettingsScreen {
 		await waitFor(element(by.id("settings-scroll")))
 			.toExist()
 			.withTimeout(timeout);
-		await waitFor(element(matcher)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
+		await waitFor(element(matcher))
+			.toBeVisible()
+			.whileElement(by.id("settings-scroll"))
+			.scroll(300, "down", NaN, SettingsScreen.SCROLL_START_Y);
 	}
 
 	async openDeviceSettings(): Promise<void> {
@@ -386,7 +413,7 @@ export class SettingsScreen {
 		await waitFor(element(this.deleteAccountItem))
 			.toBeVisible()
 			.whileElement(by.id("settings-scroll"))
-			.scroll(300, "down");
+			.scroll(300, "down", NaN, SettingsScreen.SCROLL_START_Y);
 	}
 
 	/**
