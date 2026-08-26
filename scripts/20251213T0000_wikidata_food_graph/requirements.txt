@@ -15,6 +15,12 @@ google-cloud-storage==2.10.0
 # Retry logic and backoff
 tenacity==8.2.3
 
+# config.yml の読み込み（572/575/581/737 の lib/io.py と 582 の 1_x が import する）。
+# #737 で db-script-run.yml から 737 の 2_1 を流したとき、ここに無いせいで
+# ModuleNotFoundError: No module named 'yaml' で落ちた（run 32996797464）。
+# ローカルには入っていることが多く、CI で初めて露見する類の欠落。
+PyYAML==6.0.1
+
 # PostgreSQL client (for BQ→PG sync)
 psycopg2-binary==2.9.9
 
