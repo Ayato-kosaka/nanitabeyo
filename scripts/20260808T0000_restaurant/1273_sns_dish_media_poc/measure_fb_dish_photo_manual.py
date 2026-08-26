@@ -97,8 +97,14 @@ def build(_args) -> None:
             rows.append({
                 "no": i, "page_id": pid, "name": name, "locality": locality,
                 "category": cat, "layer": layer,
-                # 写真タブを直接開く URL。ここを人がクリックする
-                "url": f"https://www.facebook.com/{pid}/photos",
+                # ページ本体を開く URL。ここを人がクリックする。
+                # **`/{pid}/photos` にしてはいけない。** 数字IDに `/photos` を直付けすると
+                # Facebook は必ず 404（「このページはご利用いただけません」）を返す。
+                # `/photos` は vanity URL へ解決された後でないと付けられないサフィックスで、
+                # 2026-08-26 に 52 件を「ページが存在しない」と誤判定する事故を起こした
+                # （実際は5件の対照実験で全件が `/{pid}` から開けた）。
+                # 写真タブへ直行したい場合は `profile.php?id={pid}&sk=photos` を使う。
+                "url": f"https://www.facebook.com/{pid}",
                 "page": "", "dish_photo": "", "n_dish": "",
                 "identifiable": "", "recent": "", "note": "",
             })
