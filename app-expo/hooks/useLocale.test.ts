@@ -82,6 +82,39 @@ describe("#1194 useLocale", () => {
 		expect(localeOf("/pt-BR/search")).toBe("pt-BR");
 	});
 
+	// #1599 LOCALE_LIKE は BCP 47 の «形» の近似でしかなく、実際のタグ規則より緩い。
+	// サブタグに [A-Za-z0-9]{2,8} を許すが、リージョンは «英字 2» か «数字 3» なので
+	// `ja-01` / `en-A1` は正規表現を通るのに Intl が RangeError を投げる。
+	//
+	//   new Date().toLocaleDateString("ja-01")  // RangeError
+	//
+	// profile/content-reports と profile/dish-category-group-votes が
+	// toLocaleDateString(locale) を直接呼んでいるため、そういう URL で入ると
+	// レンダー中に例外が飛び、画面全体が ErrorBoundary のフォールバックへ置き換わる。
+	describe("#1599 Intl へ渡して壊れるロケールは返さない", () => {
+		it.each(["ja-01", "en-A1", "ja-JP-JP-JP-JP-JP-JP-JP-JP-JP"])(
+			"%s は採らず、フォールバックへ落とす",
+			(bogus) => {
+				expect(localeOf(`/${bogus}/profile/content-reports`)).toBe("ja-JP");
+			},
+		);
+
+		it("返ってきたロケールは toLocaleDateString へ渡しても投げない", () => {
+			// ここが本体。上の 3 件は «弾けたか» だが、これは «契約が守られているか»。
+			// 新しい抜け道が増えても、この検査は落ちる
+			for (const pathname of ["/ja-01/x", "/en-A1/x", "/pt-BR/x", "/ja-JP/x", "/s/s1_AbCdEf", "/"]) {
+				const locale = localeOf(pathname);
+				expect(() => new Date(0).toLocaleDateString(locale)).not.toThrow();
+			}
+		});
+
+		// «妥当だが未対応» は従来どおり素通しであること（上の pt-BR のテストと同じ意図）。
+		// Intl 検証を «対応ロケール一覧との突き合わせ» にしてしまうと、ここが落ちる
+		it("妥当だが未対応のロケールは弾かない", () => {
+			expect(localeOf("/xx-YY/search")).toBe("xx-YY");
+		});
+	});
+
 	it("isJapanese は解決後のロケールで判定する", () => {
 		expect(renderUseLocale("/").isJapanese).toBe(true);
 		expect(renderUseLocale("/en-US/search").isJapanese).toBe(false);

@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { useLocale } from "@/hooks/useLocale";
 
 interface BidFormProps {
 	/** Initial bid amount */
@@ -24,6 +25,11 @@ interface BidFormProps {
 export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessing = false }: BidFormProps) {
 	// Internal state - isolated from parent re-renders
 	const [bidAmount, setBidAmount] = useState(initialBidAmount);
+	// #1599 隣のラベル（Map.labels.endDate）は 8 ロケール全てに翻訳があるのに、
+	// 日付の書式だけ "ja-JP" 固定だった。この画面にロケール限定のガードは無いので、
+	// 日本語以外のユーザーには «ラベルは英語・日付は 2026/9/25（年/月/日）» という
+	// ちぐはぐな表示になっていた。
+	const { locale } = useLocale();
 
 	const handleSubmit = useCallback(() => {
 		onSubmit(bidAmount);
@@ -52,7 +58,7 @@ export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessin
 				<View style={styles.bidInfoRow}>
 					<Calendar size={16} color="#666" />
 					<Text style={styles.bidInfoText}>
-						{i18n.t("Map.labels.endDate")} {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("ja-JP")}
+						{i18n.t("Map.labels.endDate")} {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(locale)}
 					</Text>
 				</View>
 			</View>
