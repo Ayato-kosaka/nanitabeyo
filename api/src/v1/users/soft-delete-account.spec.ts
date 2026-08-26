@@ -121,6 +121,37 @@ describe('#1599 退会処理の like_total 引き直しは件数に依らず 1 �
     expect(sql).toContain('RETURNING');
   });
 
+  // ⚠️ SQL 側の DISTINCT は「呼び出し側が new Set しているから冗長」ではない。
+  // 同じ id が配列に 2 回入ると UNNEST がその id の行を 2 行返し、LEFT JOIN が
+  // いいね 1 件につき 2 行に増え、COUNT が **2 倍の値**になる。
+  // like_total は画面に出る数字なので、静かに倍になる壊れ方をする。
+  // 「片方を消したら壊れる」形にしないため、両側を別々に固定しておく。
+  it('重複した id を渡されても数え上げが倍にならない（SQL 側で DISTINCT する）', async () => {
+    const tx = buildTx(['66666666-6666-4666-8666-666666666666']);
+
+    await buildRepository(tx).softDeleteUserAccount(USER_ID);
+
+    const sql = sqlTextOf(tx.$queryRaw.mock.calls[0]);
+    expect(sql).toMatch(/SELECT\s+DISTINCT/);
+  });
+
+  it('呼び出し側も重複を除いてから渡す（無駄な行を作らない）', async () => {
+    const duplicated = '77777777-7777-4777-8777-777777777777';
+    const tx = buildTx([]);
+    // 同じ dish_media に対する行が複数返る状況（実際には起こりにくいが、
+    // dish_media_likes の行が重複していれば起こりうる）
+    tx.dish_media_likes.findMany.mockResolvedValue([
+      { dish_media_id: duplicated },
+      { dish_media_id: duplicated },
+    ]);
+    tx.$queryRaw.mockResolvedValue([{ dish_media_id: duplicated }]);
+
+    await buildRepository(tx).softDeleteUserAccount(USER_ID);
+
+    const [, ...values] = tx.$queryRaw.mock.calls[0];
+    expect(values[0]).toEqual([duplicated]);
+  });
+
   it('いいねを消してから数え直す（順序が逆だと消す前の数で埋め戻す）', async () => {
     const tx = buildTx(['55555555-5555-4555-8555-555555555555']);
 
