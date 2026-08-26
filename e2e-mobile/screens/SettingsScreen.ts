@@ -260,6 +260,30 @@ export class SettingsScreen {
 	}
 
 	/**
+	 * 開いている確認ダイアログの **本文に** 指定の文字列が含まれるかを見る（#1511）。
+	 *
+	 * ⚠️ `hasText()`（= `by.text()`）で代用しないこと。あれは要素のテキストの **完全一致**で、
+	 * ダイアログ本文は段落まるごとが 1 つの Text に入る。つまり
+	 * 「この操作は取り消せません。」のような **一部分では絶対に一致しない**。
+	 *
+	 * `tests/authenticated/account-delete.test.ts` は実際にこれで落ち続けていた
+	 *（run 32916602453 の Android で実測。UI 側は正しく «この操作は取り消せません。» を
+	 *  出しており、testFnFailure.png にもはっきり写っている。**テストの見方が誤り**だった）。
+	 * 書いた本人が «部分一致で見る» と JSDoc に書いていたが、Detox はそうなっていない。
+	 *
+	 * ここでは要素の text 属性を取り出して JS 側で `includes()` する。
+	 */
+	async dialogMessageIncludes(text: string): Promise<boolean> {
+		const attrs = (await element(by.id("dialog-message")).getAttributes()) as {
+			text?: string;
+			elements?: { text?: string }[];
+		};
+		// 複数マッチ時は elements 配列で返る（Detox の仕様）
+		const bodies = attrs.elements ? attrs.elements.map((e) => e.text ?? "") : [attrs.text ?? ""];
+		return bodies.some((body) => body.includes(text));
+	}
+
+	/**
 	 * ブロック済みの料理カテゴリ行をタップして一覧画面へ遷移する（#1132）。
 	 * e2e-web は `/ja-JP/profile/blocked-dish-categories` へ URL 直遷移するが、
 	 * ネイティブには代替経路が無いため settings.test.ts と同じく実 UI 導線をタップする。
