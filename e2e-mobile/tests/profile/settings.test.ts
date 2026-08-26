@@ -50,8 +50,10 @@ describe("設定項目（匿名ユーザー）", () => {
 		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
 
-		await waitUntilVisible(settingsScreen.feedbackItem);
-		await waitUntilVisible(settingsScreen.blockedDishCategoriesItem);
+		// #1583 `expectLoaded()` は «最上段が見えたか» しか見ない（スクロールしない）ので、
+		//       2 枚目のカードの行はここで明示的に運ぶ
+		await settingsScreen.expectRowVisible(settingsScreen.feedbackItem);
+		await settingsScreen.expectRowVisible(settingsScreen.blockedDishCategoriesItem);
 		// #1583 下 2 行は初期表示で画面外にいるので、見えるところまで運んでから確かめる
 		await settingsScreen.expectRowVisible(settingsScreen.deviceSettingsItem);
 		await settingsScreen.expectRowVisible(settingsScreen.aboutItem);

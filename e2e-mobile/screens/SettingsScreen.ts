@@ -35,6 +35,8 @@ export type ThemePreferenceKey = "system" | "light" | "dark";
  */
 export class SettingsScreen {
 	/** ご意見・不具合（フィードバック）行（既存 testID） */
+	/** マイページ最上段の «いいねした投稿»。初期表示で必ず見えているので «描画完了» の目印に使う */
+	readonly likedItem = by.id("profile-liked");
 	readonly feedbackItem = by.id("settings-feedback");
 	/** レビューを書く（ストア誘導）行。ネイティブのみ表示（既存 testID） */
 	/**
@@ -142,34 +144,34 @@ export class SettingsScreen {
 	} as const;
 
 	/**
-	 * `whileElement(...).scroll()` に渡す **スクロールの開始点**（縦方向の正規化座標）。
-	 *
-	 * ## なぜ明示するのか（run 32908255134 の iOS で実測）
-	 * 省略すると Detox が開始点を自分で決めるが、**その点がスクロールビューの
-	 * 可視範囲の外に出ることがある**。実際に出たエラー:
-	 *
-	 *     View is not scrollable at the given start point. Start point: {196.5, 974.5}
-	 *     visible bounds: {{0, 300}, {393, 710}}   view bounds: {{0, 0}, {393, 710}}
-	 *     RCTEnhancedScrollView is not visible: does not pass visibility percent threshold (100)
-	 *
-	 * 開始点の y が view bounds（0〜710）の外にあり、そこを掴もうとして落ちている。
-	 *
-	 * ⚠️ これは «コンテナの出現を待っていない» 問題（下の `expectLoaded` の JSDoc）とは
-	 *    **別の原因**である。あちらを直しても、こちらは残る。同じ症状（スクロールで落ちる）に
-	 *    原因が 2 つあった。iOS でだけ出る（Android は 16/16 が 1 発で通っている）。
-	 *
-	 * 0.5 は «ビューの縦中央»。可視範囲の内側に必ず入るので、開始点が外へ出ない。
-	 */
-	private static readonly SCROLL_START_Y = 0.5;
-
-	/**
 	 * 設定項目が表示されていることを検証する。
 	 *
 	 * #1402 以前は ScreenHeader のタイトル「設定」（`by.text`）を見ていたが、その画面ごと無くなった。
 	 * 代わりに «必ず出る行» の testID を見る。**この Screen Object からロケール依存の
 	 * セレクタが 1 つ減った**（Android の端末ロケールに引きずられて落ちる経路が 1 本消えた。#1031 B4）。
 	 *
-	 * ## なぜ «見えるまでスクロール» するのか（#1583）
+	 * ## ⚠️ ここでスクロールしてはいけない（run 32908255134 / 32916602453 で 2 度踏んだ）
+	 *
+	 * 以前この判定は `settings-feedback`（3 枚目のカード）まで
+	 * `whileElement(...).scroll()` で運んでいた。iOS の Detox は **スクロール対象が
+	 * 可視率 100% でないと掴めず**、しかも掴む開始点が可視範囲の外へ出ることがある。
+	 *
+	 *     Start point {196.5, 974.5} / visible {{0,300},{393,710}} / view {{0,0},{393,710}}
+	 *     Start point {196.5, 764}   / visible {{0,409},{393,710}} / view {{0,0},{393,710}}
+	 *
+	 * 2 回の iOS run で落ちた 2 件は **どちらもこのメソッドの中**だった
+	 *（1 回目 settings.test.ts / 2 回目 legal.test.ts）。開始点を 0.5 で明示してみたが
+	 * y=764 とやはり枠外で、**直らずに «どのテストが踏むか» が入れ替わっただけ**だった。
+	 * 数字を当て直すのは «怪しいところを触る» だけなのでやめ、原因ごと外した。
+	 *
+	 * «画面が出たか» の判定に、画面の中ほどまでスクロールする必要は無い。
+	 * **初期表示で必ず見えている最上段の行**（`profile-liked`）を見れば足りる。
+	 * 併せて、このあと `expectRowVisible()` が走るときコンテナが
+	 * **未スクロール（＝可視率 100%）** の状態から始まるので、そちらも掴みやすくなる。
+	 *
+	 * 画面下部の行が要るテストは `expectRowVisible()` を明示的に呼ぶこと。
+	 *
+	 * ## 参考: 以前の «見えるまでスクロール» の経緯（#1583）
 	 * `settings-feedback` はマイページの 3 枚目のカードにあり、**匿名だと上に大きな
 	 * «ようこそ、ゲストさん» カードが入るぶん初期表示で画面外へ落ちる**
 	 * （run 32849947323 の testFnFailure.png で実測。いいね／保存のカードまでで画面が終わっていた）。
@@ -189,17 +191,13 @@ export class SettingsScreen {
 	 * （run 32882521476。マイページがまだ出ていないうちにスクロールへ入って落ちていた）。
 	 */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		// 1) まず画面そのものの出現を待つ。ここを飛ばすと «要素が無い» で即死する
+		// 1) 画面そのものの出現を待つ
 		await waitFor(element(by.id("settings-scroll")))
 			.toExist()
 			.withTimeout(timeout);
-		// 2) 目的の行が画面外なら、見えるところまで運ぶ
-		//    scroll() は withTimeout を持たないため、待ち時間は下の waitUntilVisible 側で見る
-		await waitFor(element(this.feedbackItem))
-			.toBeVisible()
-			.whileElement(by.id("settings-scroll"))
-			.scroll(300, "down", NaN, SettingsScreen.SCROLL_START_Y);
-		await waitUntilVisible(this.feedbackItem, timeout);
+		// 2) **初期表示で必ず見えている最上段の行**で «描画が終わった» を判定する。
+		//    ここでスクロールしないことが肝（下の JSDoc 参照）
+		await waitUntilVisible(this.likedItem, timeout);
 	}
 
 	/** テーマ 3 択の 1 行（#1509） */
@@ -348,7 +346,7 @@ export class SettingsScreen {
 		await waitFor(element(matcher))
 			.toBeVisible()
 			.whileElement(by.id("settings-scroll"))
-			.scroll(300, "down", NaN, SettingsScreen.SCROLL_START_Y);
+			.scroll(300, "down");
 	}
 
 	async openDeviceSettings(): Promise<void> {
@@ -437,7 +435,7 @@ export class SettingsScreen {
 		await waitFor(element(this.deleteAccountItem))
 			.toBeVisible()
 			.whileElement(by.id("settings-scroll"))
-			.scroll(300, "down", NaN, SettingsScreen.SCROLL_START_Y);
+			.scroll(300, "down");
 	}
 
 	/**
