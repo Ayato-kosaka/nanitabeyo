@@ -19,7 +19,7 @@
 publish も専用スクリプトを持たず、既存の汎用 MERGE をそのまま使う:
 
     python3 ../581_relevance_scoring/manual/2_merge_feature_scores.py \\
-      --run-id 20260825T0000_#737 --expected-row-count 240 --dry-run
+      --run-id 20260825T0000 --expected-row-count 228 --dry-run
 
 【保存される値】（LLM run と監査上区別するため偽装しない）
     task       = #737_seasonality
@@ -35,11 +35,16 @@ publish も専用スクリプトを持たず、既存の汎用 MERGE をその�
 判断そのものは `data/review_<run_id>.jsonl`（git 管理）に残す。
 BigQuery には「採用したもの」だけが入るので、汎用 MERGE がそのまま使える。
 
+【曲線 JSONL は data/ にコミットしてある】
+`--curve` を省くと `work_dir`（ローカルの /tmp）を見る。GitHub Actions
+（db-script-run.yml）から流すときは 1_1〜1_3 が動いていないので、git にある
+`data/curve_<run_id>.jsonl` を明示的に渡す。**BigQuery に入る 228 行は、この
+ファイルと review ファイルだけから決まる**（実行環境に依存しない）。
+
 【使用方法】
 python3 2_1_load_feature_scores.py --run-id 20260825T0000 \\
-  --review data/review_20260825T0000.jsonl --dry-run
-python3 2_1_load_feature_scores.py --run-id 20260825T0000 \\
-  --review data/review_20260825T0000.jsonl
+  --review data/review_20260825T0000.jsonl \\
+  --curve data/curve_20260825T0000.jsonl --dry-run
 """
 
 import argparse
@@ -67,6 +72,10 @@ def main():
     parser.add_argument("--config", type=str, default="config.yml")
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--review", type=str, required=True, help="判断済みの review JSONL")
+    parser.add_argument(
+        "--curve", type=str, default=None,
+        help="曲線 JSONL。省略時は work_dir/curve_<run_id>.jsonl（CI では data/ 配下を指定する）",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -74,15 +83,17 @@ def main():
     region_scope = config["region_scope"]
     work_dir = Path(config["work_dir"])
 
-    curves = {c["item_qid"]: c for c in read_jsonl(work_dir / f"curve_{args.run_id}.jsonl")}
+    curve_path = Path(args.curve) if args.curve else work_dir / f"curve_{args.run_id}.jsonl"
+    curves = {c["item_qid"]: c for c in read_jsonl(curve_path)}
     if not curves:
-        raise SystemExit(f"curve_{args.run_id}.jsonl が空です。1_3 を先に実行してください。")
+        raise SystemExit(f"{curve_path} が空です。1_3 を先に実行するか --curve を指定してください。")
 
     reviews = read_jsonl(Path(args.review))
     logger.info("=" * 80)
     logger.info("Step 2-1: Load season feature scores")
     logger.info("=" * 80)
     logger.info(f"run_id: {args.run_id} / region_scope: {region_scope} / レビュー {len(reviews)} 件")
+    logger.info(f"curve: {curve_path}（{len(curves)} カテゴリ）")
 
     # ── validation。1 件でも駄目なら 1 行も入れない ──
     errors = []
@@ -95,7 +106,7 @@ def main():
             errors.append(f"{i} 行目: item_qid が空")
             continue
         if qid not in curves:
-            errors.append(f"{i} 行目: {qid} は curve_{args.run_id} に存在しない")
+            errors.append(f"{i} 行目: {qid} は {curve_path.name} に存在しない")
         if decision not in VALID_DECISIONS:
             errors.append(f"{i} 行目: {qid} の decision が不正（'{decision}'）")
         if not reason:

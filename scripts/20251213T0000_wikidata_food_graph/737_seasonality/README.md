@@ -10,7 +10,7 @@
 ```text
 Wikimedia Analytics API
   → /tmp raw_<run>.jsonl              (1_2: 月次PV。ローカルのみ)
-  → /tmp curve_<run>.jsonl            (1_3: 12か月の指数。ローカルのみ)
+  → data/curve_<run>.jsonl            (1_3: 12か月の指数。git 管理)
   → data/review_<run>.jsonl           (人の判断。git 管理)
   → wikidata_food_llm_feature_scores  (2_1: approve 分だけ INSERT)
   → dish_category_features_catalog    (581_relevance_scoring/manual/2_merge_feature_scores.py)
@@ -133,12 +133,14 @@ python3 1_1_export_input.py                          # gate 通過 134 件 → /
 python3 1_2_fetch_pageviews.py --run-id <run>        # 月次PV → /tmp/raw_<run>.jsonl（実測 8 分）
 python3 1_3_build_curve.py --run-id <run>            # 曲線 + レビュー用シート
 
-# 4: 人が review_<run>.jsonl の decision / reason を埋めて data/ へコミットする
+# 4: 人が review_<run>.jsonl の decision / reason を埋め、curve_<run>.jsonl と一緒に
+#    data/ へコミットする。Actions のランナーには /tmp が無いので、2_1 が読む曲線は
+#    git 側に置く。**BigQuery に入る値はこの 2 ファイルだけで決まる**（実行環境に依存しない）
 
 # 5: BigQuery の scores へ INSERT（★オーナー承認が要る）
 script_path: scripts/20251213T0000_wikidata_food_graph/737_seasonality/2_1_load_feature_scores.py
-args: --run-id <run> --review data/review_<run>.jsonl --dry-run
-args: --run-id <run> --review data/review_<run>.jsonl
+args: --run-id <run> --review data/review_<run>.jsonl --curve data/curve_<run>.jsonl --dry-run
+args: --run-id <run> --review data/review_<run>.jsonl --curve data/curve_<run>.jsonl
 
 # 6: 採用版へ MERGE（★承認が要る）。**既存の汎用スクリプトをそのまま使う**
 script_path: scripts/20251213T0000_wikidata_food_graph/581_relevance_scoring/manual/2_merge_feature_scores.py
