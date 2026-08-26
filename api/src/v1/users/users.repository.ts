@@ -741,6 +741,12 @@ export class UsersRepository {
       //
       // 1 文の集合演算に置き換える。件数に関係なくクエリは 1 本。
       // 冪等性（実数で数え直す）はそのまま保たれる。
+      //
+      // ⚠️ SQL 側の `SELECT DISTINCT` は **上の `new Set` があるから冗長、ではない**。
+      // 同じ id が配列に 2 回入ると `UNNEST` はその id の行を 2 行返し、
+      // `LEFT JOIN` がいいね 1 件につき 2 行に増え、`COUNT` が **2 倍の値**になる。
+      // like_total は表示される数字なので、静かに倍になる壊れ方をする。
+      // 「呼び出し側が必ず重複を除いている」に依存させない（片方を消したら壊れる形にしない）。
       const likeTotalsRecalculated =
         affectedDishMediaIds.length === 0
           ? 0
@@ -752,7 +758,8 @@ export class UsersRepository {
                   FROM (
                         SELECT m.id AS dish_media_id,
                                COUNT(l.dish_media_id)::int AS cnt
-                          FROM UNNEST(${affectedDishMediaIds}::uuid[]) AS m(id)
+                          FROM (SELECT DISTINCT id
+                                  FROM UNNEST(${affectedDishMediaIds}::uuid[]) AS u(id)) AS m
                           LEFT JOIN dish_media_likes l
                                  ON l.dish_media_id = m.id
                          GROUP BY m.id
