@@ -452,4 +452,31 @@ describe("#1629 一覧から Feed へ入るときの縦ページャの並び", (
 
 		expect(useMyDishesFeedScopeStore.getState().restaurantIds).toEqual(["r-1", "r-2"]);
 	});
+
+	/*
+	#1629 出どころを «list» として置く。Feed 側はこれを見て **前後を絞らない**。
+	Map 由来（前後 1 件）と同じ扱いにすると、一覧から入った縦フリックが 3 ページで終わる
+	（オーナー実機報告「グリッドのフィードが無限に下スクロールできない」）。
+	*/
+	it("並びの出どころを «list» として置く（Feed 側が前後を絞らない根拠）", async () => {
+		useMyDishesFeedScopeStore.getState().clear();
+		mockUseMyDishesQuery.mockReturnValue({
+			items: [makeItem("review:a", { thumbnailImageUrl: "https://example.com/a.jpg", restaurantId: "r-1" })],
+			isLoading: false,
+			isLoadingMore: false,
+			error: null,
+			hasNextPage: false,
+			loadMore: jest.fn(),
+			refresh: jest.fn(),
+		});
+		const tree = await render();
+		const nodes = tree.root.findAll(
+			(node) => node.props?.testID === "my-dishes-list-item" && typeof node.props?.onPress === "function",
+		);
+		await act(async () => {
+			nodes[0].props.onPress();
+		});
+
+		expect(useMyDishesFeedScopeStore.getState().restaurantIdsSource).toBe("list");
+	});
 });

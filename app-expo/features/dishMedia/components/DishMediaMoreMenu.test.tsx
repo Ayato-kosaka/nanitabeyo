@@ -236,3 +236,26 @@ describe("#1629 他人の投稿でもメニューは出る", () => {
 		expect(mockOnReport).toHaveBeenCalledTimes(1);
 	});
 });
+
+/*
+#1629 【仕様】自分の投稿には «報告» を出さない（オーナー指摘）。
+
+自分の投稿を通報できても、消したいなら «投稿を削除» があるので意味が無く、
+運営のキューに «本人が自分を通報した» 行だけが積む。主要な SNS も
+自分の投稿には通報を出さない（出るのは編集・削除）。
+
+⚠️ シェアは自分の投稿でも出す。自分の投稿を人へ渡すのは普通の操作である。
+*/
+describe("#1629 自分の投稿には報告を出さない", () => {
+	it("自分の投稿: シェアと編集と削除は出るが、報告は出ない", async () => {
+		seedStore();
+		const renderer = renderDishMediaMoreMenu();
+		await act(async () => {
+			renderer.root.findByProps({ testID: "dish-action-more" }).props.onPress();
+		});
+
+		expect(findHosts(renderer, "dish-action-share")).toHaveLength(1);
+		expect(findHosts(renderer, "own-post-delete-button")).toHaveLength(1);
+		expect(findHosts(renderer, "dish-action-report")).toHaveLength(0);
+	});
+});

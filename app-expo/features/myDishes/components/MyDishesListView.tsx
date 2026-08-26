@@ -262,9 +262,10 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 				*/
 				useMyDishesFeedScopeStore
 					.getState()
-					.setRestaurantIds([
-						...new Set(items.filter((row) => row.dishMedia !== null).map((row) => row.restaurant.id)),
-					]);
+					.setRestaurantIds(
+						[...new Set(items.filter((row) => row.dishMedia !== null).map((row) => row.restaurant.id))],
+						"list",
+					);
 				router.push({
 					pathname: "/[locale]/(tabs)/my-dishes/feed",
 					params: {

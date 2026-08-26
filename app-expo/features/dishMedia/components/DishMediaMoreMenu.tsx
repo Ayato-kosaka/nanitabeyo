@@ -296,20 +296,28 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 
 						{/*
 						  #1514 (SAF-01) 通報。#1629 でレールからこのメニューへ移した。
+
 						  ⚠️ 通報の敷居を上げないため、**メニューの一番下へ埋めない**。
 						     シェアの直下（＝開いてすぐ見える位置）に置くこと。
+
+						  #1629 【仕様】**自分の投稿には出さない**（オーナー指摘）。
+						  自分の投稿を通報できても、消したいなら «投稿を削除» があるので意味が無く、
+						  運営のキューに «本人が自分を通報した» 行だけが積む。主要な SNS も
+						  自分の投稿には通報を出さない（出るのは編集・削除）。
 						*/}
-						<TouchableOpacity
-							testID="dish-action-report"
-							style={styles.sheetRow}
-							onPress={() => {
-								setMenuVisible(false);
-								onReport();
-							}}
-							accessibilityRole="button">
-							<Flag size={20} color={colors.textPrimaryAlt} />
-							<Text style={styles.sheetRowText}>{i18n.t("Report.action")}</Text>
-						</TouchableOpacity>
+						{!isMine && (
+							<TouchableOpacity
+								testID="dish-action-report"
+								style={styles.sheetRow}
+								onPress={() => {
+									setMenuVisible(false);
+									onReport();
+								}}
+								accessibilityRole="button">
+								<Flag size={20} color={colors.textPrimaryAlt} />
+								<Text style={styles.sheetRowText}>{i18n.t("Report.action")}</Text>
+							</TouchableOpacity>
+						)}
 
 						{/* ここから下は自分の投稿にだけ出る */}
 						{isMine && myReview && (
