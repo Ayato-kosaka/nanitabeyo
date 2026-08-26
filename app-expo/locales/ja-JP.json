@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "シェア",
 			"seeMore": "もっと見る",
-			"openMap": "地図を開く"
+			"openMap": "地図を開く",
+			"review": "レビュー"
 		},
 		"share": {
 			"title": "{{dishName}}をチェック"

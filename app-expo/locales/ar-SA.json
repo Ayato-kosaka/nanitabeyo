@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "مشاركة",
 			"seeMore": "عرض المزيد",
-			"openMap": "افتح الخريطة"
+			"openMap": "افتح الخريطة",
+			"review": "مراجعة"
 		},
 		"share": {
 			"title": "اطّلع على {{dishName}}"

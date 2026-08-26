@@ -15,6 +15,17 @@ import TestRenderer from "react-test-renderer";
 
 const mockPush = jest.fn();
 
+/*
+#1629 «…» メニュー（DishMediaMoreMenu）は `useDialog` など独自の依存を持つ。
+このファイルの関心はレールの いいね / 保存 / 食べた なので、メニューは差し替える。
+メニュー自身の挙動は DishMediaMoreMenu.test.tsx が見る。
+*/
+jest.mock("@/features/dishMedia/components/DishMediaMoreMenu", () => ({
+	DishMediaMoreMenu: function MockDishMediaMoreMenu() {
+		return null;
+	},
+}));
+
 jest.mock("expo-router", () => {
 	const stub = {
 		push: (href: unknown) => mockPush(href),

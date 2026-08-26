@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "공유하기",
 			"seeMore": "더 보기",
-			"openMap": "지도 열기"
+			"openMap": "지도 열기",
+			"review": "리뷰"
 		},
 		"share": {
 			"title": "{{dishName}} 확인해 보세요"

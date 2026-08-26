@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "分享",
 			"seeMore": "查看更多",
-			"openMap": "打开地图"
+			"openMap": "打开地图",
+			"review": "评价"
 		},
 		"share": {
 			"title": "看看{{dishName}}"

@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "Compartir",
 			"seeMore": "ver más",
-			"openMap": "Abrir mapa"
+			"openMap": "Abrir mapa",
+			"review": "Reseña"
 		},
 		"share": {
 			"title": "Mira {{dishName}}"

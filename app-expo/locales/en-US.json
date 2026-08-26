@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "Share",
 			"seeMore": "see more",
-			"openMap": "Open map"
+			"openMap": "Open map",
+			"review": "Review"
 		},
 		"share": {
 			"title": "Check out {{dishName}}"
