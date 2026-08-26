@@ -729,17 +729,38 @@ export class UsersRepository {
       // #1511 いいねを物理削除すると集計のトゥルース源 `like_total` とズレる。
       // 減算（`decrement`）ではなく **現在の実数を数え直す**のは、削除処理が
       // 再実行されても二重に引かれないようにするため（冪等性）。
-      let likeTotalsRecalculated = 0;
-      for (const dishMediaId of affectedDishMediaIds) {
-        const remaining = await tx.dish_media_likes.count({
-          where: { dish_media_id: dishMediaId },
-        });
-        const updated = await tx.dish_media_analysis_results.updateMany({
-          where: { dish_media_id: dishMediaId },
-          data: { like_total: remaining, updated_at: new Date() },
-        });
-        likeTotalsRecalculated += updated.count;
-      }
+      //
+      // #1599 【バグ】ここは対象 1 件ごとに `count` + `updateMany` の 2 クエリを
+      // 直列に投げるループだった。`affectedDishMediaIds` は **そのユーザーが
+      // いいねした dish_media の数**で上限が無く、しかも全部が 1 つの
+      // `withTransaction`（PRISMA_TX_TIMEOUT の既定は 60 秒）の中で走る。
+      //
+      // 3,000 件いいねしていれば 6,000 クエリになり、**よく使っていた人ほど
+      // 退会に失敗する**。しかも失敗の仕方が決定的なので、再実行しても同じところで
+      // 落ち続ける（利用規約は「いつでも削除できる」と約束している）。
+      //
+      // 1 文の集合演算に置き換える。件数に関係なくクエリは 1 本。
+      // 冪等性（実数で数え直す）はそのまま保たれる。
+      const likeTotalsRecalculated =
+        affectedDishMediaIds.length === 0
+          ? 0
+          : (
+              await tx.$queryRaw<{ dish_media_id: string }[]>`
+                UPDATE dish_media_analysis_results AS a
+                   SET like_total = c.cnt,
+                       updated_at = NOW()
+                  FROM (
+                        SELECT m.id AS dish_media_id,
+                               COUNT(l.dish_media_id)::int AS cnt
+                          FROM UNNEST(${affectedDishMediaIds}::uuid[]) AS m(id)
+                          LEFT JOIN dish_media_likes l
+                                 ON l.dish_media_id = m.id
+                         GROUP BY m.id
+                       ) AS c
+                 WHERE a.dish_media_id = c.dish_media_id
+                RETURNING a.dish_media_id
+              `
+            ).length;
 
       // ── 4. users 行の匿名化 + deleted_at ────────────────────────
       // ⚠️ `updateMany` にしているのは冪等性のため。既に削除済みでも 0 件更新で通る。
