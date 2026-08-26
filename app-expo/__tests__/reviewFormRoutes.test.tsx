@@ -99,6 +99,7 @@ jest.mock("@/features/profile/stores/useProfileStore", () => ({
 }));
 jest.mock("@/lib/googlePlaces", () => ({
 	getCurrencyCodeFromRestaurant: () => "JPY",
+	buildCurrencyChoices: () => ["JPY", "USD"],
 	resolveCurrencySymbol: () => "¥",
 	parseAmountString: (value: string) => Number(value),
 	toMinorAmountInteger: (value: number) => value,
