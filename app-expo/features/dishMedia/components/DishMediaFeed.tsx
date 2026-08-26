@@ -37,6 +37,11 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const clampIndex = (index: number, length: number) => Math.min(Math.max(0, index), Math.max(0, length - 1));
 
 // --- Props -------------------------------------------------------------------
+/** #1629 背景画像を先読みする «戻る側» の枚数。もう見たページなので 1 枚で足りる */
+const PRELOAD_BEHIND = 1;
+/** #1629 背景画像を先読みする «進む側» の枚数。ここを増やすと «1 個ずつ読み込む» 感じが減る */
+const PRELOAD_AHEAD = 4;
+
 interface DishMediaFeedProps {
 	// 初期表示インデックス（範囲外はクランプ）
 	initialIndex?: number;
@@ -101,9 +106,29 @@ export default function DishMediaFeed({
 	// 以前は ids 全件（my-dishes 経由だと最大 42 件）を同時に `Image.loadAsync` しており、
 	// 開いた瞬間に全画面ビットマップ 42 枚の取得・デコードが一斉に走っていた
 	// （Android は Glide 側の timeout も踏む）。窓の外は表示時に通常経路で読まれる
+	/*
+	#1629 【調整】オーナー指示「1 個 1 個読み込みで重いので、もうちょっとだけ先読みしたい。
+	先読みしすぎるとクラッシュにつながると思うので按配してほしい」。
+
+	## どこを広げ、どこを広げないのか
+
+	重さの正体は **次のカードの背景画像が、スワイプしてから取りに行かれること**である。
+	一方で «クラッシュにつながる» のは画像ではなく **動画デコーダ**の同時本数で、
+	そちらは `isNearActive`（±1）が別に握っている。したがって
+
+	- **背景画像の先読みだけを広げる**（前 1 / 後 4 = 6 枚）… 進行方向へ厚くする。
+	  戻る側は «もう見た» ので 1 枚で足りる
+	- **`windowSize` は 5 のまま**（= 前後 2 ページぶんのマウント）… ここを広げると
+	  マウントされるセルが増えて素の memory が増える
+	- **`isNearActive` は ±1 のまま**（同時に立つ動画デコーダは最大 3 本）
+
+	⚠️ ここを «全件先読み» へ戻さないこと。#802 の時点で ids 全件（my-dishes 経由だと 42 件）を
+	   同時に `Image.loadAsync` しており、開いた瞬間に全画面ビットマップ 42 枚の取得・デコードが
+	   一斉に走って Android では Glide の timeout まで踏んでいた。
+	*/
 	const preloadIds = useMemo(() => {
-		const start = Math.max(0, currentIndex - 1);
-		return ids.slice(start, currentIndex + 3);
+		const start = Math.max(0, currentIndex - PRELOAD_BEHIND);
+		return ids.slice(start, currentIndex + PRELOAD_AHEAD + 1);
 	}, [ids, currentIndex]);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
 		ids: preloadIds,
