@@ -215,7 +215,9 @@ const createStyles = (colors: Palette) =>
 		},
 		switchingOverlay: {
 			...StyleSheet.absoluteFillObject,
-			backgroundColor: "rgba(255, 255, 255, 0.85)",
+			// #1629 幕は必ずテーマで振る。白固定のままだと、この上に載る `switchingText`
+			// （`textPrimary` ＝ ダークでは明るい字）が白い幕に埋もれて読めなくなる
+			backgroundColor: colors.busyScrim,
 			alignItems: "center",
 			justifyContent: "center",
 		},

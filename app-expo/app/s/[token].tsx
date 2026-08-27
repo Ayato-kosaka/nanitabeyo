@@ -8,7 +8,7 @@ import { resolvePublicLocale } from "@/constants/seoLocales";
 import { toShareLinkHref } from "@/lib/shareLinkRoute";
 import type { ResolveShareLinkResponse } from "@shared/api/v1/res";
 import { type Palette } from "@/constants/Palette";
-import { ThemeProvider, useThemedStyles } from "@/contexts/ThemeProvider";
+import { ThemeProvider, useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 /**
  * 🔗 共有リンク `/s/:token` の着地点（#721）。
@@ -70,6 +70,7 @@ function ShareLinkResolver() {
 	const router = useRouter();
 	const { locale } = useLocale();
 	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	// #1027 と同じ理由でナビゲータの準備を待つ必要はないが、
 	// resolve が二重に走らないよう「1 回だけ実行した」ことは持つ
 	const hasResolved = useRef(false);
@@ -118,7 +119,8 @@ function ShareLinkResolver() {
 	// resolve は 1 往復で終わるので、専用のエラー画面は作らない（失敗時はホームへ落とす）
 	return (
 		<View style={styles.container} testID="share-link-resolver">
-			<ActivityIndicator size="large" />
+			{/* #1629 色を渡さないと OS 既定の灰で描かれ、ダークの地の上でほとんど見えない */}
+			<ActivityIndicator size="large" color={colors.brand} />
 		</View>
 	);
 }

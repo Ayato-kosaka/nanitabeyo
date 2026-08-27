@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from "react-native";
 // #1130 【修正】react-native の SafeAreaView は iOS 専用（Android では素の View に等しく inset を
 // 一切足さない）ため、Android だけヘッダーがステータスバーへ食い込んでいた。
 // ブロック済み料理一覧（profile/blocked-dish-categories.tsx）や検索・プロフィールのタブ直下画面と同じく
@@ -357,8 +357,16 @@ export default function NotificationsScreen() {
 							keyExtractor={(item) => item.notification.id}
 							onEndReached={notifications.loadMore}
 							onEndReachedThreshold={0.5}
-							refreshing={notifications.isLoadingInitial}
-							onRefresh={notifications.refresh}
+							// #1629 `refreshing` / `onRefresh` を直接渡すと RN が色を持たない RefreshControl を
+							// 作り、ダークの地に OS 既定の暗いスピナーが出て見えない。GridList と同じ渡し方に揃える
+							refreshControl={
+								<RefreshControl
+									refreshing={notifications.isLoadingInitial}
+									onRefresh={notifications.refresh}
+									colors={[colors.brand]}
+									tintColor={colors.brand}
+								/>
+							}
 							// 初回ロードが終わった後に表示する「空」表示
 							ListEmptyComponent={
 								<View style={styles.emptyContainer}>
