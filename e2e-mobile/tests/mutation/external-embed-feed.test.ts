@@ -23,13 +23,20 @@ import { readSessionFromEnv } from "../../utils/sessionEnv";
  *
  * | リール | 埋め込みの中身 | このセルで期待すること |
  * | --- | --- | --- |
- * | `CDg3owdFa6W`（Original audio） | 実体の `<video>` + 実 MP4 | **タップ無しで再生が始まる** = `external-embed-fallback` が出ない |
+ * | `CDg3owdFa6W`（Original audio） | 実体の `<video>` + 実 MP4 | **タップ無しで再生が始まる** = `external-embed-playing` が出る |
  * | `DZFdePPzzLI`（ライセンス楽曲） | `<video>` 無し | 再生されず «Instagram で見る» の帯（`external-embed-fallback`）が出る |
  *
- * ⚠️ **Detox の assertion だけでは «映像が動いている» ことは示せない。**
- * ここで検証しているのは «アプリが再生できると判断したか»（フォールバックの有無）まで。
- * 実際に絵が動いていることは **`record_videos: true` で撮った動画をオーナーが見て**判定する。
- * spec を緑にすることを目的にして、動画を撮らずに «再生できた» と報告しないこと。
+ * ## ⚠️ «帯が出ないこと» を «再生できたこと» と読み替えてはいけない
+ *
+ * `external-embed-fallback`（Instagram で見る の帯）は読み込み中も出ない。したがって
+ * «帯が無い» を合格条件にすると、**何も再生していなくても緑になる**（＝ 偽の «直った»）。
+ * 判定には `external-embed-playing` を使う。これはページ内のエージェントが
+ * **`<video>` の再生が実際に始まった**（`playing` イベント / `currentTime > 0`）と
+ * 報告したときにだけ現れる、寸法ゼロの印である。
+ *
+ * ⚠️ それでも **Detox の assertion は «絵が動いていること» までは示せない**（ポスター画像が
+ * 上に残る等の失敗形がある）。最終判定は **`record_videos: true` で撮った動画**で行う。
+ * spec を緑にすることを目的にして、動画を見ずに «再生できた» と報告しないこと。
  *
  * ## dev DB への書き込み（@mutation の理由）
  * beforeAll がテストユーザーとして SNS 取り込み（resolve → create ×2）を実行する。
@@ -74,14 +81,17 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		await new Promise((resolve) => setTimeout(resolve, 12_000));
 
 		/*
-		2 本のうち少なくとも 1 本は «再生できる» と判定されていること。
-		`external-embed-fallback`（Instagram で見る の帯）は **再生できない投稿にだけ**出る。
-		両方のセルで出ているなら、自動再生の経路が丸ごと効いていない。
+		2 本のうち少なくとも 1 本で **実際に再生が始まっている**こと。
+		判定は `external-embed-playing`（再生開始の報告を受けたときだけ出る印）で行う。
+		`external-embed-fallback` の有無は記録するだけで合否には使わない（読み込み中と区別できないため）。
 		*/
-		const cells: { fallback: boolean }[] = [];
+		const cells: { fallback: boolean; playing: boolean }[] = [];
 		for (let i = 0; i < 6; i++) {
 			if (await existsNow(embedWebView)) {
-				cells.push({ fallback: await existsNow(by.id("external-embed-fallback")) });
+				cells.push({
+					fallback: await existsNow(by.id("external-embed-fallback")),
+					playing: await existsNow(by.id("external-embed-playing")),
+				});
 			}
 			await element(restaurantFeed.container).swipe("up", "fast", 0.6);
 			// 次のセルの埋め込みが読み込まれ、自動再生の判定が終わるまで待つ
@@ -91,10 +101,11 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		if (cells.length === 0) {
 			throw new Error("埋め込みセルを 1 つも観測できませんでした（取り込みかフィードの経路が壊れています）。");
 		}
-		const playable = cells.filter((c) => !c.fallback).length;
-		if (playable === 0) {
+		const playing = cells.filter((c) => c.playing).length;
+		if (playing === 0) {
 			throw new Error(
-				`観測した埋め込みセル ${cells.length} 件が全て «再生できない» 判定でした。` +
+				`観測した埋め込みセル ${cells.length} 件のうち、実際に再生が始まったものが 0 件でした` +
+					`（«Instagram で見る» へ縮退: ${cells.filter((c) => c.fallback).length} 件）。` +
 					" 自動再生の注入（injectedJavaScript）が効いていない可能性があります。" +
 					" 動画（Artifact の test.mp4）で実際の見え方を確認してください。",
 			);

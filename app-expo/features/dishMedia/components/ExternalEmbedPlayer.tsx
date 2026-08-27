@@ -564,6 +564,19 @@ export function ExternalEmbedPlayer({
 					)}
 				</View>
 			)}
+			{/*
+			#1641【テスト容易性】**«再生できた» を機械で確かめられるようにする。**
+
+			`showFallbackCta` が false であることは «再生できた» の根拠にならない。
+			読み込み中（`playback === "unknown"`）でも false になるので、**何も再生していなくても
+			Detox が緑になる**（＝ 偽の «直った»）。ページ内エージェントが «本当に currentTime が
+			進んだ» と報告したときだけ現れる印を置き、spec はこれを待つ。
+
+			見た目には影響しない（寸法ゼロ・タッチも受けない）
+			*/}
+			{playback === "playing" && (
+				<View style={styles.playingMarker} pointerEvents="none" testID="external-embed-playing" />
+			)}
 			{showFallbackCta && (
 				<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">
 					{blockParentTapGesture ? (
@@ -600,6 +613,13 @@ const styles = StyleSheet.create({
 	webView: {
 		position: "absolute",
 		backgroundColor: FixedColors.mediaBackground,
+	},
+	// #1641 «再生できた» の機械可読な印。見た目には出さない
+	playingMarker: {
+		position: "absolute",
+		width: 1,
+		height: 1,
+		opacity: 0,
 	},
 	overlayContainer: {
 		...StyleSheet.absoluteFillObject,
