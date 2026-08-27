@@ -44,6 +44,7 @@ import { X } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { Portal } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 /* -------------------------------------------------------------------------- */
 /*                                Hook 定義                                   */
@@ -58,7 +59,11 @@ export interface LegacyBlurModalOptions {
 	intensity?: number;
 	/** 閉じるアイコンサイズ */
 	closeIconSize?: number;
-	/** 閉じるアイコンカラー */
+	/**
+	 * 閉じるアイコンカラー。
+	 * #1629 既定値はテーマの «補足文字» トークン（ライトでは従来と同じ `#666666`）。
+	 * モジュールスコープの既定値にできないので、未指定のときにフック内で解決する。
+	 */
 	closeIconColor?: string;
 	/** モーダル内部レイヤーの zIndex */
 	zIndex?: number;
@@ -77,7 +82,7 @@ export function useLegacyBlurModal({
 	onClose,
 	intensity = 50,
 	closeIconSize = 28,
-	closeIconColor = "#666666",
+	closeIconColor,
 	zIndex = 1100,
 	keyboardVerticalOffset = 0,
 	dismissKeyboardFirst = true,
@@ -85,6 +90,15 @@ export function useLegacyBlurModal({
 	backHandlerEnabled = true,
 }: LegacyBlurModalOptions = {}) {
 	const insets = useSafeAreaInsets();
+	/*
+	  #1629 【設計】このモーダルはオーバーレイ（ぼかし / 半透明の膜）だけをここで描き、
+	  本体の地は呼び出し側の `contentContainerStyle` が持つ。ダークで «膜だけ暗くて本体は白い»
+	  という絵にならないよう、オーバーレイをテーマへ追従させるのと同時に、
+	  呼び出し側（app/[locale]/contribution-tasks/*）の本体もトークンへ移してある。
+	*/
+	const { colors, scheme } = useAppTheme();
+	const resolvedCloseIconColor = closeIconColor ?? colors.textMuted;
+	const isDark = scheme === "dark";
 	const [visible, setVisible] = useState(false);
 	const isKeyboardVisibleRef = useRef(false);
 
@@ -180,11 +194,17 @@ export function useLegacyBlurModal({
 										testID="android-overlay"
 										style={[
 											StyleSheet.absoluteFillObject,
-											{ backgroundColor: `rgba(255,255,255,${0.5 + (intensity * 0.4) / 100})` },
+											{
+												// #1629 Android にぼかしが無いための代替。ライトは白の膜（従来どおり）、
+												// ダークは背景トークン `#141313` の膜にして、暗い画面が白く発光しないようにする。
+												backgroundColor: isDark
+													? `rgba(20,19,19,${0.5 + (intensity * 0.4) / 100})`
+													: `rgba(255,255,255,${0.5 + (intensity * 0.4) / 100})`,
+											},
 										]}
 									/>
 								) : (
-									<BlurView tint={"light"} intensity={intensity} style={StyleSheet.absoluteFill} />
+									<BlurView tint={isDark ? "dark" : "light"} intensity={intensity} style={StyleSheet.absoluteFill} />
 								)}
 							</Pressable>
 
@@ -227,7 +247,7 @@ export function useLegacyBlurModal({
 											zIndex: zIndex + 1,
 										},
 									]}>
-									<X size={closeIconSize} color={closeIconColor} />
+									<X size={closeIconSize} color={resolvedCloseIconColor} />
 								</Pressable>
 							)}
 						</View>
@@ -235,7 +255,17 @@ export function useLegacyBlurModal({
 				);
 			},
 		),
-		[visible, intensity, close, zIndex, closeIconColor, closeIconSize, keyboardVerticalOffset, handleBackdropPress],
+		[
+			visible,
+			intensity,
+			close,
+			zIndex,
+			resolvedCloseIconColor,
+			closeIconSize,
+			keyboardVerticalOffset,
+			handleBackdropPress,
+			isDark,
+		],
 	);
 
 	return { LegacyBlurModal, open, close, toggle, visible };

@@ -72,20 +72,6 @@ const COLOR_LITERAL = /["'`]#[0-9a-fA-F]{3,8}\b|["'`](?:white|black)["'`]/g;
  * ⚠️ 直書きを解消したら、その行を消すこと（残すとこのスクリプトが落ちる）。
  */
 const EXCLUSIONS = {
-	"app/[locale]/contribution-tasks/dish-category-image-optimizer.tsx":
-		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"app/[locale]/contribution-tasks/dish-category-image-review.tsx":
-		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"app/[locale]/contribution-tasks/dish-category-manual-image-supply.tsx":
-		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"app/[locale]/contribution-tasks/dish-category-manual-text-supply.tsx":
-		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"app/[locale]/contribution-tasks/dish-copy-survey.tsx":
-		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"app/[locale]/contribution-tasks/dish-ranking-summary.tsx":
-		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"features/contributionTasks/legacyBlurModal/useLegacyBlurModal.tsx":
-		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
 };
 
 /** 除外理由の最低文字数。「TODO」や空文字で通り抜けられないようにする */

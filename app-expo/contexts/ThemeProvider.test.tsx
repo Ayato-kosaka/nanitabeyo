@@ -241,7 +241,7 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		destructive: "#FF3E33",
 		// #1514 通報受付の CircleCheck。ReportContentSheet.tsx が直書きしていた
 		// リテラルの写しなので、ライトの見た目は 1px も変わらない。
-				// #1577 確認ダイアログの見出し・本文。どちらも DialogProvider.tsx が
+		// #1577 確認ダイアログの見出し・本文。どちらも DialogProvider.tsx が
 		// 直書きしていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
 		dialogTitle: "#1C1B1F",
 		dialogMessage: "#49454F",
@@ -252,6 +252,34 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		warningTint: "#FEF3C7",
 		warningText: "#92400E",
 		warningAction: "#B45309",
+		// #1629 社内タスク画面（contribution-tasks）のトークン化で追加。light はいずれも
+		// 対象ファイルに直書きされていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		backgroundAlt: "#F5F5F5",
+		surfaceSunken: "#EEEEEE",
+		surfaceFaintAlt: "#F9F9F9",
+		surfaceDisabled: "#E0E0E0",
+		surfaceDisabledStrong: "#BDBDBD",
+		surfaceSelectedInfo: "#E3F2FD",
+		surfaceSunkenStrong: "#DDDDDD",
+		surfacePlaceholderAlt: "#C9C9C9",
+		borderSoft: "#DDDDDD",
+		borderPale: "#E0E0E0",
+		borderSubtle: "#CCCCCC",
+		textPrimarySoft: "#333333",
+		textPrimaryMuted: "#444444",
+		textSecondaryDim: "#555555",
+		successStrong: "#22C55E",
+		successFill: "#22C55E",
+		successAlt: "#4CAF50",
+		brandAlt: "#FF6B35",
+		accentCoral: "#FF6B6B",
+		dangerAlt: "#D32F2F",
+		dangerVivid: "#FF3B30",
+		dangerBright: "#F44336",
+		warningAccent: "#FF9800",
+		buttonNeutralGradient: ["#6B7280", "#4B5563"],
+		buttonDisabledGradient: ["#9CA3AF", "#6B7280"],
+		buttonSuccessGradient: ["#22C55E", "#16A34A"],
 		ctaBackground: "#000000",
 		ctaBackgroundDisabled: "#999999",
 		ctaLabel: "#FFFFFF",

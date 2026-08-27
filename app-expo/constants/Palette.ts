@@ -355,6 +355,67 @@ export interface Palette {
 	/** ダミーダイアログのボタン文字（iOS のシステムブルー） */
 	alertAction: string;
 
+	// ───────── 社内タスク画面（contribution-tasks）由来（#1629） ─────────
+	/**
+	 * `app/[locale]/contribution-tasks/*` は #1363 で公開アプリから隔離した社内ツールで、
+	 * 公開画面とは別世代の配色（`#333` / `#DDD` / `#F5F5F5` 系）を持っている。
+	 * ライトの値は各画面に直書きされていたリテラルの写しなので、既存トークンと
+	 * «同じような色» に見えても値が違う。丸めて既存トークンへ寄せるとライトの見た目が変わるため、
+	 * 役割ごとに別トークンとして持つ（暗面では既存トークンと同じ値へ収束するものが多い）。
+	 */
+	/** 社内タスク画面の下地（`#F5F5F5` 系統。ライトでは background と別値） */
+	backgroundAlt: string;
+	/** 地の上のわずかに沈んだ面（進捗トラック・アバターの地・順位カードの地。`#EEE` 系統） */
+	surfaceSunken: string;
+	/** さらに淡い補助面（引用ブロック・未選択の選択肢。`#F9F9F9` 系統） */
+	surfaceFaintAlt: string;
+	/** 副次的な（灰の）ボタン・無効なボタンの地（`#E0E0E0` 系統） */
+	surfaceDisabled: string;
+	/** 送信中のボタンの地（`#BDBDBD` 系統。surfaceDisabled より一段濃い） */
+	surfaceDisabledStrong: string;
+	/** 選択済みの選択肢の淡い青地（`#E3F2FD` 系統） */
+	surfaceSelectedInfo: string;
+	/** 一段深く沈んだ面（画像プレースホルダ・進捗ドットの地。`#DDD` 系統） */
+	surfaceSunkenStrong: string;
+	/** 画像の読み込み前に見えるカードの地（`#C9C9C9` 系統。ライトでは surfacePlaceholder より濃い） */
+	surfacePlaceholderAlt: string;
+	/** 罫線（`#DDD` 系統。ライトでは borderNeutral / borderFaint と別値） */
+	borderSoft: string;
+	/** 罫線（`#E0E0E0` 系統。ライトでは borderSoft と borderFaint の中間） */
+	borderPale: string;
+	/** 罫線（`#CCC` 系統。チェックボックスの縁） */
+	borderSubtle: string;
+	/** 主要な文字（`#333` 系統。ライトでは textPrimary より淡く textSecondaryStrong より濃い） */
+	textPrimarySoft: string;
+	/** 主要な文字（`#444` 系統。ライトでは textPrimarySoft よりわずかに淡い） */
+	textPrimaryMuted: string;
+	/** 副次的な文字（`#555` 系統。ライトでは textPrimaryMuted と textMuted の中間） */
+	textSecondaryDim: string;
+	/** 選択済みを示す緑のアイコン・枠（`#22C55E` 系統。ライトでは success より明るい） */
+	successStrong: string;
+	/** 上の緑で «塗り潰した» バッジの地（白のチェックが載るので暗面では沈ませる） */
+	successFill: string;
+	/** 完了・確定を示す緑（`#4CAF50` 系統。ライトでは successStrong と別値） */
+	successAlt: string;
+	/** 社内タスク画面のアクセント（`#FF6B35` 系統。ブランドの `#F05537` とは別値） */
+	brandAlt: string;
+	/** 社内タスク画面のアクセント（`#FF6B6B` 系統。進捗バー・ローディング） */
+	accentCoral: string;
+	/** エラー文字（`#D32F2F` 系統） */
+	dangerAlt: string;
+	/** エラー文字（`#FF3B30` 系統。iOS のシステムレッド） */
+	dangerVivid: string;
+	/** エラー文字（`#F44336` 系統。Material のレッド 500） */
+	dangerBright: string;
+	/** 未回答を示す橙のアイコン（`#FF9800` 系統） */
+	warningAccent: string;
+	/** 副次操作（リセット等）のグレーのボタンのグラデ。白文字が載るので暗面でも沈んだ値を保つ */
+	buttonNeutralGradient: readonly [string, string];
+	/** 未充足のボタンのグラデ。同上 */
+	buttonDisabledGradient: readonly [string, string];
+	/** 確定操作（承認・送信）の緑のボタンのグラデ。同上 */
+	buttonSuccessGradient: readonly [string, string];
+
 	// ───────── 主要 CTA（検索ボタン） ─────────
 	/** CTA の地（充足時） */
 	ctaBackground: string;
@@ -445,6 +506,35 @@ const light: Palette = {
 	alertSeparator: "#C6C6C8", // 同 separator（不透明化した値）
 	alertAction: "#007AFF", // 同 systemBlue（ライト）
 
+	// #1629 社内タスク画面（contribution-tasks）のトークン化で追加。
+	// すべて対象ファイルに直書きされていたリテラルの写しで、ライトの見た目は 1px も変わらない。
+	backgroundAlt: "#F5F5F5", // dish-copy-survey / dish-ranking-summary / manual-*-supply の container
+	surfaceSunken: "#EEEEEE", // dish-ranking-summary の順位カード・アバター・進捗の地。元表記は #eee
+	surfaceFaintAlt: "#F9F9F9", // dish-copy-survey の未選択の選択肢 / dish-ranking-summary の引用ブロック
+	surfaceDisabled: "#E0E0E0", // manual-text-supply の「スキップ」「閉じる」ボタンの地
+	surfaceDisabledStrong: "#BDBDBD", // manual-text-supply の送信中（押せない）ボタンの地
+	surfaceSelectedInfo: "#E3F2FD", // dish-copy-survey の選択済みの選択肢
+	surfaceSunkenStrong: "#DDDDDD", // dish-ranking-summary の画像プレースホルダ / 進捗ドットの地。元表記は #DDD / #ddd
+	surfacePlaceholderAlt: "#C9C9C9", // dish-category-image-optimizer / -review の候補画像カードの地
+	borderSoft: "#DDDDDD", // dish-copy-survey / dish-ranking-summary の入力欄・区切り。元表記は #DDD / #ddd
+	borderPale: "#E0E0E0", // manual-image-supply の入力欄 / dish-copy-survey のフッター上罫
+	borderSubtle: "#CCCCCC", // dish-copy-survey のチェックボックスの縁。元表記は #CCC
+	textPrimarySoft: "#333333", // manual-*-supply / dish-copy-survey / dish-ranking-summary の本文。元表記は #333
+	textPrimaryMuted: "#444444", // dish-ranking-summary のモーダル本文。元表記は #444
+	textSecondaryDim: "#555555", // dish-ranking-summary の引用ブロックの本文。元表記は #555
+	successStrong: "#22C55E", // dish-category-image-optimizer / -review の選択済みアイコン・枠
+	successFill: "#22C55E", // 同上の «塗り潰した» チェックバッジ（ライトでは successStrong と同値）
+	successAlt: "#4CAF50", // dish-copy-survey の回答済みアイコン / manual-text-supply の進捗バー
+	brandAlt: "#FF6B35", // manual-text-supply のアクセント
+	accentCoral: "#FF6B6B", // manual-image-supply のローディング・進捗バー
+	dangerAlt: "#D32F2F", // manual-text-supply / dish-ranking-summary のエラー文字。元表記は #D32F2F / #d32f2f
+	dangerVivid: "#FF3B30", // manual-image-supply のエラー文字
+	dangerBright: "#F44336", // dish-copy-survey のエラー文字
+	warningAccent: "#FF9800", // dish-copy-survey の «未回答» アイコン
+	buttonNeutralGradient: ["#6B7280", "#4B5563"], // dish-category-image-optimizer / -review の「リセット」
+	buttonDisabledGradient: ["#9CA3AF", "#6B7280"], // dish-category-image-review の未充足時の送信
+	buttonSuccessGradient: ["#22C55E", "#16A34A"], // 同 充足時の送信
+
 	ctaBackground: "#000000", // search searchFab gradient(充足)
 	ctaBackgroundDisabled: "#999999", // search searchFab gradient(未充足)
 	ctaLabel: "#FFFFFF",
@@ -528,6 +618,35 @@ const dark: Palette = {
 	alertMessage: "#AEAEB2", // 同 secondaryLabel 相当（不透明化した値）
 	alertSeparator: "#545458", // 同 separator（不透明化した値）
 	alertAction: "#0A84FF", // 同 systemBlue（ダーク）
+
+	// #1629 社内タスク画面（contribution-tasks）。面・罫線・文字は既存トークンと同じ
+	// schemes.dark の値へ収束させる（暗面ではライト側の階調差がそもそも見えない）。
+	backgroundAlt: "#141313", // schemes.dark.background（background と同値へ収束）
+	surfaceSunken: "#2A2A2A", // schemes.dark.surfaceContainerHigh
+	surfaceFaintAlt: "#1C1B1B", // schemes.dark.surfaceContainerLow
+	surfaceDisabled: "#2A2A2A", // schemes.dark.surfaceContainerHigh（無効な面を地からわずかに浮かせる）
+	surfaceDisabledStrong: "#4A4A4A", // ctaBackgroundDisabled と同値（«押せない» を示す一段明るい灰）
+	surfaceSelectedInfo: "#1C2B36", // 青を暗面へ混色（brandTint と同じ作法。選択の «色の手掛かり» を残す）
+	surfaceSunkenStrong: "#353434", // schemes.dark.surfaceContainerHighest（surfaceSunken より一段浮かせる）
+	surfacePlaceholderAlt: "#2A2A2A", // schemes.dark.surfaceContainerHigh（surfacePlaceholder と同値へ収束）
+	borderSoft: "#444748", // schemes.dark.outlineVariant
+	borderPale: "#444748", // 同上（暗面では border 系がこの 1 値へ収束する）
+	borderSubtle: "#444748", // 同上
+	textPrimarySoft: "#E5E2E1", // schemes.dark.onSurface（ライトの #333 も暗面では «主要な文字» へ収束する）
+	textPrimaryMuted: "#E5E2E1", // 同上
+	textSecondaryDim: "#C4C7C7", // schemes.dark.onSurfaceVariant
+	successStrong: "#5FBF7F", // 暗面では明度を上げないとアイコン・枠として見えない（success と同じ方針）
+	successFill: "#2E7D46", // 塗り潰しは逆に沈ませる。上に載る白のチェック（FixedColors.onFilled）が 4.4:1 で読める
+	successAlt: "#5FBF7F", // successStrong と同値へ収束（ライトの 2 つの緑は暗面で同じ役割になる）
+	brandAlt: "#FF6B35", // 据え置き（#141313 上でコントラスト比 約 6:1、AA 可）
+	accentCoral: "#FF8A80", // danger と同値。#FF6B6B は暗面でやや濁るため一段明るくする
+	dangerAlt: "#FF8A80", // danger と同値へ収束（暗面では明度を上げないと文字用途で AA を割る）
+	dangerVivid: "#FF8A80", // 同上
+	dangerBright: "#FF8A80", // 同上
+	warningAccent: "#FFB86B", // warningAction と同値（暗面で読める橙はこの明度へ収束する）
+	buttonNeutralGradient: ["#5A5A5A", "#4A4A4A"], // 白文字（PrimaryButton の label）が読める暗い灰に保つ
+	buttonDisabledGradient: ["#4A4A4A", "#3A3A3A"], // ctaBackgroundDisabled 系。押せないことを暗さで示す
+	buttonSuccessGradient: ["#2E7D46", "#256B3A"], // successFill と同じ «沈めた緑»。白文字が読める
 
 	ctaBackground: "#E5E2E1", // 暗面では CTA を反転させる（黒地の CTA は背景に沈む）
 	ctaBackgroundDisabled: "#4A4A4A",
