@@ -84,7 +84,13 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	最小の DOM を組んで動かし、**何がどう広げられたか**を見る。
 	*/
 	describe("注入スクリプトを実際に走らせる", () => {
-		const run = (opts: { video?: boolean; images?: { w: number; h: number }[] }) => {
+		const run = (opts: {
+			video?: boolean;
+			images?: { w: number; h: number }[];
+			readyState?: string;
+			/** setInterval を手で回す回数。0 なら初回の attempt() だけ */
+			ticks?: number;
+		}) => {
 			const styles = new Map<unknown, Record<string, string>>();
 			const mk = (tag: string, extra: Record<string, unknown> = {}) => {
 				const el: Record<string, unknown> = {
@@ -112,15 +118,26 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			const video = opts.video ? mk("video", { paused: true, currentTime: 0, play: () => Promise.resolve() }) : null;
 			const appended: unknown[] = [];
 			const documentStub = {
+				readyState: opts.readyState ?? "loading",
 				documentElement: { style: {} },
 				body: { appendChild: (el: unknown) => appended.push(el) },
 				createElement: (tag: string) => mk(tag),
 				querySelector: (sel: string) => (sel === "video" ? video : null),
 				querySelectorAll: (sel: string) => (sel === "img" ? images : []),
 			};
-			const windowStub: Record<string, unknown> = {
-				ReactNativeWebView: { postMessage: jest.fn() },
-			};
+			const post = jest.fn();
+			const windowStub: Record<string, unknown> = { ReactNativeWebView: { postMessage: post } };
+
+			/*
+			`setInterval` は本物を使えない（jest のタイマーを進めても、この Function の中の
+			クロージャは同期的にしか動かせない）。**登録されたコールバックを手で回す**。
+			`ticks` を大きくしても «時間» は進まないので、締め切り（12 秒）には掛からない
+			＝ 早期判定だけを見ていることになる。
+			*/
+			const scheduled: (() => void)[] = [];
+			// 1 tick = 500ms 進む時計。締め切り（12 秒）には届かないので、早期判定だけを見ている
+			let clock = 1_000_000;
+			const DateStub = { now: () => clock };
 			// eslint-disable-next-line no-new-func
 			new Function(
 				"window",
@@ -128,6 +145,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 				"MutationObserver",
 				"setInterval",
 				"clearInterval",
+				"Date",
 				webViewProps.injectedJavaScript,
 			)(
 				windowStub,
@@ -136,10 +154,18 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 					observe() {}
 					disconnect() {}
 				},
-				() => 1,
+				(fn: () => void) => {
+					scheduled.push(fn);
+					return scheduled.length;
+				},
 				() => {},
+				DateStub,
 			);
-			return { styles, images, video, appended };
+			for (let i = 0; i < (opts.ticks ?? 0); i++) {
+				clock += 500;
+				scheduled.forEach((fn) => fn());
+			}
+			return { styles, images, video, appended, post };
 		};
 
 		it("<video> が来る前でも、リールの 1 コマ目（一番大きい画像）をセル全面へ広げる", () => {
@@ -157,6 +183,19 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			const { appended } = run({ video: false, images: [] });
 			expect(appended).toHaveLength(1);
 			expect((appended[0] as { style: { cssText: string } }).style.cssText).toContain("background:#000");
+		});
+
+		it("読み込みが終わっても <video> が無ければ、締め切りを待たず権利ブロックと判定する", () => {
+			// 実測: 権利ブロックされた投稿は <video> が最後まで作られない（1 コマ目の画像だけ在る）。
+			// 12 秒待たせても結論は変わらないので、«Instagram で見る» を早く出す
+			const { post } = run({ video: false, images: [{ w: 360, h: 638 }], readyState: "complete", ticks: 12 });
+			expect(post).toHaveBeenCalled();
+			expect(JSON.parse(post.mock.calls[0][0])).toMatchObject({ kind: "no_video", detail: "load_complete" });
+		});
+
+		it("読み込み中はまだ権利ブロックと決めつけない", () => {
+			const { post } = run({ video: false, images: [], readyState: "loading", ticks: 12 });
+			expect(post).not.toHaveBeenCalled();
 		});
 
 		it("<video> は 1 コマ目より前面へ出す（映像が出たらそちらが見える）", () => {

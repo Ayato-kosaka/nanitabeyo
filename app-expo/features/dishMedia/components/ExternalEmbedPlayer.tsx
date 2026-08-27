@@ -156,6 +156,15 @@ const AUTOPLAY_SCRIPT = `(function () {
   try { document.documentElement.style.overflow = 'hidden'; } catch (e) {}
 
   var DEADLINE_MS = 12000, TICK_MS = 250;
+  /*
+   * #1641 ページの読み込みが終わってなお <video> が無ければ、**権利ブロックされた投稿**である。
+   * 12 秒の締め切りを待たずにここで見切る（待たせても結論は変わらない）。
+   *
+   * 実測（Chrome 152）: 再生できる投稿は <video> が **t=750ms** に現れる。読み込み完了から
+   * さらに 2 秒待つので、遅い回線で «まだ描かれていないだけ» を取り違える余地はまず無い。
+   */
+  var NO_VIDEO_GRACE_MS = 2000;
+  var completeSince = 0;
   var timer = null, observer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
   var backdrop = null, fillTicks = 0, poster = null;
 
@@ -278,11 +287,17 @@ const AUTOPLAY_SCRIPT = `(function () {
       fillPoster();
       var v = document.querySelector('video');
       if (Date.now() > deadlineAt) {
-        // <video> が最後まで現れない = 権利ブロックされた投稿（何をしても再生できない）
         settle(v ? 'timeout' : 'no_video', lastError);
         return;
       }
-      if (!v) return;
+      if (!v) {
+        // 読み込みが終わっているのに <video> が無い = 権利ブロック。締め切りを待たない
+        if (document.readyState === 'complete') {
+          if (!completeSince) completeSince = Date.now();
+          else if (Date.now() - completeSince > NO_VIDEO_GRACE_MS) settle('no_video', 'load_complete');
+        }
+        return;
+      }
       prepare(v);
       if (!v.paused && v.currentTime > 0) {
         // 'playing' の購読より前に再生が始まっていた場合、イベントを取り逃す。
