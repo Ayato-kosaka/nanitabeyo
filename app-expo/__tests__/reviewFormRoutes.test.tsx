@@ -3,7 +3,7 @@
 
 ## なぜ必要か
 BlurModal 時代、この 3 つはどれも `open()` という boolean の切り替えだった。
-押した先は型でも E2E でも表現されておらず、`docs/ux/blur-modal-teardown.md` の
+押した先は型でも E2E でも表現されておらず、`docs/decisions/20260819-blur-modal-teardown.md` の
 「モーダルは表示状態が遷移と無関係」がそのまま出ていた箇所である。
 ルート化すると行き先は文字列になり、**間違えても型検査を通る**（typed routes は pathname の
 綴りは見るが、locale や doc の «取り違え» までは見ない）。#1368 の教訓と同じで、
@@ -206,7 +206,7 @@ describe("#1386 レビュー投稿フォームの料理カテゴリ選択", () =
 
 		expect(mockPush).toHaveBeenCalledTimes(1);
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category",
+			pathname: "/[locale]/restaurant/[restaurantId]/dish-category",
 			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
 		});
 	});
@@ -299,7 +299,7 @@ describe("#1386 フィードから既存メディアのレビュー投稿へ", (
 
 		expect(mockPush).toHaveBeenCalledTimes(1);
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
 			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, dishMediaId: DISH_MEDIA_ID },
 		});
 	});

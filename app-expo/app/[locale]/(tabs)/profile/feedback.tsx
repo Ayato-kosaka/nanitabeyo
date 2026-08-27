@@ -16,7 +16,7 @@ import { useLogger } from "@/hooks/useLogger";
  *
  * 以前は設定画面内の useBlurModal で表示していたが、レビューで
  * 「#949 で統一した ScreenHeader の戻る導線に合わせたい・モーダル自体をやめたい」と
- * 指摘を受け、settings / blocked-topics と同じ「Stack に push される通常画面 +
+ * 指摘を受け、settings / blocked-dish-categories と同じ「Stack に push される通常画面 +
  * ScreenHeader で戻る」構成へ変更した。フォームの状態管理・送信は
  * FeedbackForm(既存)に委譲し、この画面は導線と完了時の遷移だけを担う。
  */

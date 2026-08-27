@@ -2,7 +2,7 @@ import { test, expect } from "../../fixtures/test";
 import { TabBar } from "../../pages/TabBar";
 import { ProfilePage } from "../../pages/ProfilePage";
 import { SettingsPage } from "../../pages/SettingsPage";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 import { captureScreen, captureScreenIfReachable } from "../../utils/catalog";
 
 /**
@@ -22,7 +22,9 @@ test.skip(
 );
 
 test.describe("UI カタログ（ログイン済み） @catalog", () => {
-	test("マイページ（ログイン済み・レビュータブ・フィード）", async ({ appPage }) => {
+	// #1402 4 グリッドタブが廃止され、レビュータブ（profile-authenticated-reviews）は無くなった。
+	// profile/food への導線は «いいねした投稿» だけになったので、フィードもそこから撮る
+	test("マイページ（ログイン済み・いいね一覧・フィード）", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const profilePage = new ProfilePage(appPage);
 
@@ -31,28 +33,25 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 		// グリッドは実 API から取得したメディアを並べるため、待ちが短いとスケルトンのまま撮れてしまう
 		await captureScreen(appPage, "profile-authenticated", { settleMs: 4_000 });
 
-		const reachedReviews = await captureScreenIfReachable(
+		const reachedLiked = await captureScreenIfReachable(
 			appPage,
-			"profile-authenticated-reviews",
+			"profile-liked",
 			async () => {
-				await appPage.getByTestId("profile-tab-group-reviews").click();
-				await expect(profilePage.reviewsGrid).toBeVisible();
+				await profilePage.openLiked();
 			},
 			{ settleMs: 4_000 },
 		);
 
-		// 投稿が 1 件も無いテストユーザーではグリッドが空になり到達できない
-		if (reachedReviews) {
+		// いいねが 1 件も無いテストユーザーではグリッドが空になり到達できない
+		if (reachedLiked) {
 			await captureScreenIfReachable(
 				appPage,
 				"profile-food-feed",
 				async () => {
 					// グリッドはデータ取得中スケルトンを出す。実データのセル（画像）が出るまで待つ
-					const firstCell = profilePage.reviewsGrid.locator("img").first();
+					const firstCell = profilePage.likedGrid.locator("img").first();
 					await expect(firstCell).toBeVisible({ timeout: 30_000 });
 					await firstCell.click();
-					// URL では判定しない: タブグループ内のネスト遷移では URL バーが実表示と
-					// 一致しないことがある（pages/ResultPage.ts のコメントと同じ既知の挙動）。
 					// フィード固有のアクションボタンの出現で到達を判定する
 					await expect(appPage.getByTestId("dish-action-like").first()).toBeVisible({ timeout: 20_000 });
 				},
@@ -79,13 +78,15 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 		);
 	});
 
-	test("設定（ログイン済み・ログアウト行あり）", async ({ appPage }) => {
+	// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
+	// カタログ ID «profile-settings-authenticated» は無くなった（profile-authenticated が兼ねる）。
+	// ログアウト行の «有無» がログイン済み／匿名の唯一の差なので、それだけをここで確かめる
+	test("マイページ（ログイン済み）にログアウト行がある", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
 		await expect(settingsPage.logoutItem).toBeVisible();
-		await captureScreen(appPage, "profile-settings-authenticated");
 	});
 
 	test("お知らせ（通知一覧）", async ({ appPage }) => {
@@ -104,21 +105,24 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 		);
 	});
 
-	test("レビュー投稿導線（レビュータブ・店舗選択）", async ({ appPage }) => {
+	test("レビュー投稿導線（食べたい/食べたタブ・店舗選択）", async ({ appPage }) => {
 		test.setTimeout(120_000);
 
 		const tabBar = new TabBar(appPage);
-		const reviewPage = new ReviewPage(appPage);
+		const myDishesPage = new MyDishesPage(appPage);
 
-		await tabBar.gotoReview();
-		await reviewPage.expectAuthenticatedViewLoaded();
-		await captureScreen(appPage, "review-authenticated");
+		await tabBar.gotoMyDishes();
+		await myDishesPage.expectAuthenticatedViewLoaded();
+		await captureScreen(appPage, "my-dishes-authenticated");
 
 		await captureScreenIfReachable(
 			appPage,
-			"review-select-restaurant",
+			"my-dishes-select-restaurant",
 			async () => {
-				await appPage.getByTestId("review-post-button").click();
+				// #1375（3 巡目）: ＋ → SNS 取り込み画面 → 「食べた」タブ（統合フォーム）→
+				// 「お店を選ぶ」で pick モードの地図へ
+				await myDishesPage.openEatenRecordFlow();
+				await appPage.getByTestId("sns-import-eaten-pick-restaurant").click();
 				// 地図画面。現在地ボタンの出現をもって到達とみなす
 				await expect(appPage.getByTestId("review-select-restaurant-current-location-button")).toBeVisible({
 					timeout: 30_000,

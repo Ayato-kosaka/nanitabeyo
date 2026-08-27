@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 
 import { describeMutation, device, launchAppWithSession, waitUntil } from "../../fixtures/e2e";
-import { ReviewScreen } from "../../screens/ReviewScreen";
+import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { SelectRestaurantScreen } from "../../screens/SelectRestaurantScreen";
 import { TabBar } from "../../screens/TabBar";
 
@@ -38,7 +38,7 @@ import { TabBar } from "../../screens/TabBar";
  */
 describeMutation("レビュー投稿中のローディング @mutation", () => {
 	const tabBar = new TabBar();
-	const review = new ReviewScreen();
+	const myDishes = new MyDishesScreen();
 	const selectRestaurant = new SelectRestaurantScreen();
 
 	// #1031 【バグ】beforeAll だと前のテストが残した画面状態を次が引き継ぎ、タップがオーバーレイに阻まれる
@@ -60,8 +60,8 @@ describeMutation("レビュー投稿中のローディング @mutation", () => {
 	//   4. その状態でボタンが無効（enabled=false）であることを検証
 	//   5. 投稿が完了してフォームが閉じることを検証（後片付けを兼ねる）
 	it("投稿中はボタンにスピナーが出て押下も止まる @mutation", async () => {
-		await tabBar.gotoReview();
-		await review.gotoPostReview();
+		await tabBar.gotoMyDishes();
+		await myDishes.gotoRecordDish();
 
 		// #1031 実在のチェーン店名を使う。`isFoodAndDrinkPlaceForUser()` が true の候補でないと
 		// 地図移動だけで終わり、お店の詳細（= 投稿導線）へ進めないため
@@ -69,29 +69,31 @@ describeMutation("レビュー投稿中のローディング @mutation", () => {
 		await selectRestaurant.searchRestaurant("スターバックスコーヒー 渋谷");
 		await selectRestaurant.selectSuggestion(0);
 
-		await selectRestaurant.gotoReviewForm(ReviewScreen.FORM_TIMEOUT);
-		await review.expectFormLoaded(ReviewScreen.FORM_TIMEOUT);
+		// #1375（3 巡目）pick モードでは詳細画面へ行かず、選んだ時点で統合フォームへ戻る。
+		// #1375（6 巡目）そこで最初に出るのは **料理カテゴリー**（オーナー指示の «お店 → 料理 → 写真»）
+		await myDishes.chooseDishCategoryInRecordFlow("コーヒー", MyDishesScreen.FORM_TIMEOUT);
+		await myDishes.chooseMediaInRecordFlow({}, MyDishesScreen.FORM_TIMEOUT);
+		await myDishes.expectFormLoaded(MyDishesScreen.FORM_TIMEOUT);
 
-		await review.fillComment("[E2E] 投稿中ローディング表示テストです");
-		await review.chooseDishCategory("コーヒー");
-		await review.fillPrice("500");
-		await review.rate(5);
+		await myDishes.fillComment("[E2E] 投稿中ローディング表示テストです");
+		await myDishes.fillPrice("500");
+		await myDishes.rate(5);
 
 		// 通信中を待たれるとスピナーが消えた後の状態しか見えない（冒頭コメント参照）
 		await device.disableSynchronization();
-		await review.submit();
+		await myDishes.submit();
 
 		// スピナーは `loading` が true の間しかマウントされないため、出現したこと自体が
 		// 「isSubmitting が立った」証跡になる。画像アップロードから始まるので数秒は維持される
-		await waitUntil(() => review.isSubmitting(), {
-			timeout: ReviewScreen.FORM_TIMEOUT,
+		await waitUntil(() => myDishes.isSubmitting(), {
+			timeout: MyDishesScreen.FORM_TIMEOUT,
 			interval: 250,
 			description: "投稿ボタン内のスピナー（投稿中の表示）",
 		});
 
 		// 見た目だけでなく押下も止まっていること。`PrimaryButton` が `Pressable` へ渡す
 		// `disabled`（= loading）がネイティブの enabled 属性へ落ちる
-		const enabled = await review.isSubmitButtonEnabled();
+		const enabled = await myDishes.isSubmitButtonEnabled();
 		assert.notEqual(
 			enabled,
 			true,
@@ -103,6 +105,6 @@ describeMutation("レビュー投稿中のローディング @mutation", () => {
 		// 後片付け: 投稿を最後まで走らせ、フォームが閉じる（= 成功）ところまで見届ける。
 		// ここは通信完了待ちなので同期機構を戻してから待つ
 		await device.enableSynchronization();
-		await review.expectFormClosed(ReviewScreen.FORM_TIMEOUT);
+		await myDishes.expectFormClosed(MyDishesScreen.FORM_TIMEOUT);
 	});
 });

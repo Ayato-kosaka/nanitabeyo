@@ -39,7 +39,7 @@ describe("toInAppPath", () => {
 	describe("#1027 ロケール配下だけを採用する", () => {
 		it.each([
 			["ja-JP/profile", "/ja-JP/profile"],
-			["en-US/search/topics", "/en-US/search/topics"],
+			["en-US/search/dish-categories", "/en-US/search/dish-categories"],
 			["ja/posts", "/ja/posts"],
 		])("%s → 採用する", (path, expected) => {
 			expect(toInAppPath(path)).toBe(expected);
@@ -76,16 +76,16 @@ describe("toInAppPath", () => {
 
 	describe("#1272 クエリ文字列を行き先まで運ぶ", () => {
 		// ⚠️ これが本題。呼び出し側が渡す `Linking.parse().path` はクエリを落とすため、
-		// クエリを別引数で渡さないと `?tab=saved-topics` が iOS でアプリのどこにも届かない
+		// クエリを別引数で渡さないと `?tab=saved-dish-categories` が iOS でアプリのどこにも届かない
 		//（probe の実測 `local=- global=-` で確定。Android は expo-router 側の解決が先に
 		//  済むため顕在化しない = 「片方の OS だけ壊れる」形になる）
 		it("ロケール配下の行き先にはクエリを付けて返す", () => {
-			expect(toInAppPath("ja-JP/profile", "tab=saved-topics")).toBe("/ja-JP/profile?tab=saved-topics");
+			expect(toInAppPath("ja-JP/profile", "tab=saved-dish-categories")).toBe("/ja-JP/profile?tab=saved-dish-categories");
 		});
 
 		it("複数パラメータ・エンコード済みの値もそのまま運ぶ（再シリアライズしない）", () => {
-			expect(toInAppPath("ja-JP/profile", "tab=saved-topics&tabRequest=1712%2F34")).toBe(
-				"/ja-JP/profile?tab=saved-topics&tabRequest=1712%2F34",
+			expect(toInAppPath("ja-JP/profile", "tab=saved-dish-categories&tabRequest=1712%2F34")).toBe(
+				"/ja-JP/profile?tab=saved-dish-categories&tabRequest=1712%2F34",
 			);
 		});
 
@@ -99,7 +99,7 @@ describe("toInAppPath", () => {
 		});
 
 		it("採用しないパスはクエリがあっても採用しない", () => {
-			expect(toInAppPath("profile/settings", "tab=saved-topics")).toBeNull();
+			expect(toInAppPath("profile/settings", "tab=saved-dish-categories")).toBeNull();
 			expect(toInAppPath("ja-JP/auth/callback", "code=abc")).toBeNull();
 		});
 	});
@@ -107,7 +107,7 @@ describe("toInAppPath", () => {
 
 describe("extractQueryString（#1272）", () => {
 	it.each([
-		["クエリ付きディープリンク", "nanitabeyo:///ja-JP/profile?tab=saved-topics", "tab=saved-topics"],
+		["クエリ付きディープリンク", "nanitabeyo:///ja-JP/profile?tab=saved-dish-categories", "tab=saved-dish-categories"],
 		["複数パラメータ", "nanitabeyo:///ja-JP/profile?tab=a&tabRequest=2", "tab=a&tabRequest=2"],
 		["https の Universal Link", "https://example.com/ja-JP/profile?tab=a", "tab=a"],
 		["フラグメントは含めない", "nanitabeyo:///ja-JP/profile?tab=a#section", "tab=a"],

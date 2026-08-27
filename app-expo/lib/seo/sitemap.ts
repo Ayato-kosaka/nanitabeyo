@@ -1,5 +1,5 @@
 import { PUBLIC_LOCALES } from "@/constants/seoLocales";
-import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
+import { INDEXABLE_ROUTES } from "@/lib/seo/publicRoutes";
 
 /**
  * 🗺️ sitemap.xml の生成ロジック（#281）。
@@ -59,13 +59,10 @@ import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
  * "Duplicate without user-selected canonical" として出る見込み）。
  * 翻訳を入れるか、実体のあるロケールへ展開を絞るかは、翻訳の予定が決まってから判断する。
  */
-export const SITEMAP_ROUTES: readonly string[] = [
-	"search",
-	// #1419 "map" は外した。マップタブは `href: null` で到達不能なまま sitemap にだけ出ていた
-	"review",
-	"review/selectRestaurant",
-	...LEGAL_SITEMAP_ROUTES,
-];
+// #1503 実体は `lib/seo/publicRoutes.ts` へ移した。直リンクスモーク（e2e）と sitemap が
+// 別々の一覧を持つと、ルートを足したときに片方だけ増える（#281 で生成器が 2 本になったのと同型の事故）。
+// ここは «sitemap から見た名前» を保つための再 export で、選定の理由は上のコメントのまま。
+export const SITEMAP_ROUTES: readonly string[] = INDEXABLE_ROUTES;
 
 /**
  * #721 【重要】ロケールのトップ（`""` = `/en-US` など）は**意図的に外している**。

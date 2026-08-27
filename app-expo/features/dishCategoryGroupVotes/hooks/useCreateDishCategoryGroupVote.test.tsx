@@ -16,13 +16,17 @@
 import { act } from "react";
 import TestRenderer from "react-test-renderer";
 
-import type { SearchParams, Topic } from "@/types/search";
+import type { SearchParams, DishCategoryRecommendation } from "@/types/search";
 
 // jest.mock のファクトリから参照できるのは `mock` 始まりの変数だけ
 const mockCallBackend = jest.fn();
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
 const mockLogFrontendEvent = jest.fn();
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }) }));
+// #1507 jest-expo のネイティブモジュールモックでは `Crypto.randomUUID()` が undefined を返すため、
+// `@/lib/uuid` の generateUUID がそのまま undefined になり、冪等キーの検証が全部素通りしてしまう。
+// 実装（@/lib/uuid）は差し替えず、その土台だけを Node の同一契約の実装へ寄せる。
+jest.mock("expo-crypto", () => ({ randomUUID: () => globalThis.crypto.randomUUID() }));
 
 import { useCreateDishCategoryGroupVote } from "./useCreateDishCategoryGroupVote";
 
@@ -37,12 +41,12 @@ const searchParams = {
 	localLanguageCode: "ja",
 } as unknown as SearchParams;
 
-const topics: Topic[] = [
-	{ category: "ラーメン", topicTitle: "濃厚豚骨", reason: "近所で人気", categoryId: "cat-1", imageUrl: "https://x/1" },
+const dishCategories: DishCategoryRecommendation[] = [
+	{ category: "ラーメン", title: "濃厚豚骨", reason: "近所で人気", categoryId: "cat-1", imageUrl: "https://x/1" },
 	// 非表示のトピックは候補へ含まれない（候補件数のアサーションで効く）
 	{
 		category: "カレー",
-		topicTitle: "スパイスカレー",
+		title: "スパイスカレー",
 		reason: "話題",
 		categoryId: "cat-2",
 		imageUrl: "https://x/2",
@@ -105,12 +109,12 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 		let first!: Promise<unknown>;
 		let second!: Promise<unknown>;
 		await act(async () => {
-			first = hookRef.createGroupVote({ searchParams, topics });
-			second = hookRef.createGroupVote({ searchParams, topics });
+			first = hookRef.createGroupVote({ searchParams, dishCategories });
+			second = hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
-		// 非表示トピックは候補へ入らない（= 送っているのは visibleTopics）
+		// 非表示トピックは候補へ入らない（= 送っているのは visibleDishCategories）
 		expect(mockCallBackend.mock.calls[0][1].requestPayload.candidates).toHaveLength(1);
 
 		await create.resolve({ shareToken: "token-1" });
@@ -126,7 +130,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 
 		const results: Promise<unknown>[] = [];
 		await act(async () => {
-			for (let i = 0; i < 3; i += 1) results.push(hookRef.createGroupVote({ searchParams, topics }));
+			for (let i = 0; i < 3; i += 1) results.push(hookRef.createGroupVote({ searchParams, dishCategories }));
 		});
 
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
@@ -141,7 +145,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 
 		let first!: Promise<unknown>;
 		await act(async () => {
-			first = hookRef.createGroupVote({ searchParams, topics });
+			first = hookRef.createGroupVote({ searchParams, dishCategories });
 			// 失敗を待たずに reject されるため、ここで捕捉しておかないと unhandled rejection になる
 			first.catch(() => {});
 		});
@@ -155,7 +159,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 		const retry = deferCreate();
 		let second!: Promise<unknown>;
 		await act(async () => {
-			second = hookRef.createGroupVote({ searchParams, topics });
+			second = hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 
 		expect(mockCallBackend).toHaveBeenCalledTimes(2);
@@ -169,7 +173,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 
 		let first!: Promise<unknown>;
 		await act(async () => {
-			first = hookRef.createGroupVote({ searchParams, topics });
+			first = hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 		await create.resolve({ shareToken: "token-1" });
 		await first;
@@ -178,7 +182,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 
 		const next = deferCreate();
 		await act(async () => {
-			hookRef.createGroupVote({ searchParams, topics });
+			hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 		expect(mockCallBackend).toHaveBeenCalledTimes(2);
 		await next.resolve({ shareToken: "token-2" });
@@ -187,17 +191,110 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 	it("表示中のトピックが 0 件なら API を呼ばずに失敗し、ガードも残らない", async () => {
 		await mount();
 
-		await expect(hookRef.createGroupVote({ searchParams, topics: [{ ...topics[0], isHidden: true }] })).rejects.toThrow(
-			"No visible topics",
+		await expect(hookRef.createGroupVote({ searchParams, dishCategories: [{ ...dishCategories[0], isHidden: true }] })).rejects.toThrow(
+			"No visible dishCategories",
 		);
 		expect(mockCallBackend).not.toHaveBeenCalled();
 
 		// バリデーション失敗でガードが立ちっぱなしになっていないこと
 		const create = deferCreate();
 		await act(async () => {
-			hookRef.createGroupVote({ searchParams, topics });
+			hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
 		await create.resolve({ shareToken: "token-1" });
+	});
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// #1507 冪等キー
+	//
+	// 上のガードが守れるのは「同一 JS タスク内の連打」だけで、通信のリトライ・
+	// オフライン復帰後の再送・再マウントでは POST が二重に届く。サーバー側の冪等化は
+	// **同じキーで送られてくること**が前提なので、キーの寿命をここで固定する。
+	// ─────────────────────────────────────────────────────────────────────────
+	describe("再送をまたいで同じ冪等キーを送る（#1507）", () => {
+		/** RFC 4122 の v4（3 ブロック目が 4、4 ブロック目が 8/9/a/b） */
+		const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+		const sentKeyAt = (callIndex: number): string => mockCallBackend.mock.calls[callIndex][1].requestPayload.idempotencyKey;
+
+		it("送っているキーは UUID v4（API 側の @IsUUID(4) を通る形式）", async () => {
+			await mount();
+			const create = deferCreate();
+
+			await act(async () => {
+				hookRef.createGroupVote({ searchParams, dishCategories });
+			});
+
+			expect(sentKeyAt(0)).toMatch(UUID_V4);
+			await create.resolve({ shareToken: "token-1" });
+		});
+
+		it("失敗後に同じ入力で再試行すると、同じキーで送る（サーバーは既存セッションを返せる）", async () => {
+			await mount();
+			const failing = deferCreate();
+
+			let first!: Promise<unknown>;
+			await act(async () => {
+				first = hookRef.createGroupVote({ searchParams, dishCategories });
+				first.catch(() => {});
+			});
+			await failing.reject(new Error("network down"));
+			await expect(first).rejects.toThrow("network down");
+
+			const retry = deferCreate();
+			await act(async () => {
+				hookRef.createGroupVote({ searchParams, dishCategories });
+			});
+
+			// ここが変わると「届いていたが応答が落ちた」再送で 2 件目のセッションが出来る
+			expect(sentKeyAt(1)).toBe(sentKeyAt(0));
+			await retry.resolve({ shareToken: "token-1" });
+		});
+
+		it("成功したら次の作成は新しいキーになる（同じキーのままだと二度と新規作成できない）", async () => {
+			await mount();
+			const create = deferCreate();
+
+			let first!: Promise<unknown>;
+			await act(async () => {
+				first = hookRef.createGroupVote({ searchParams, dishCategories });
+			});
+			await create.resolve({ shareToken: "token-1" });
+			await first;
+
+			const next = deferCreate();
+			await act(async () => {
+				hookRef.createGroupVote({ searchParams, dishCategories });
+			});
+
+			expect(sentKeyAt(1)).not.toBe(sentKeyAt(0));
+			await next.resolve({ shareToken: "token-2" });
+		});
+
+		it("失敗後に候補を変えて再試行すると新しいキーになる（古い内容のセッションを返させない）", async () => {
+			await mount();
+			const failing = deferCreate();
+
+			let first!: Promise<unknown>;
+			await act(async () => {
+				first = hookRef.createGroupVote({ searchParams, dishCategories });
+				first.catch(() => {});
+			});
+			await failing.reject(new Error("network down"));
+			await expect(first).rejects.toThrow("network down");
+
+			// 1 件目を非表示にして候補を入れ替える = 別の作成意図
+			const retry = deferCreate();
+			await act(async () => {
+				hookRef.createGroupVote({
+					searchParams,
+					dishCategories: [{ ...dishCategories[0], isHidden: true }, { ...dishCategories[1], isHidden: false }],
+				});
+			});
+
+			expect(sentKeyAt(1)).not.toBe(sentKeyAt(0));
+			await retry.resolve({ shareToken: "token-2" });
+		});
 	});
 });

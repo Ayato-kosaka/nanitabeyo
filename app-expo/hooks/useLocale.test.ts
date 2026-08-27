@@ -21,8 +21,16 @@ jest.mock("expo-router", () => ({ usePathname: jest.fn() }));
 // locale はテストごとに書き換えるので、モックは «可変のオブジェクト» にしておく
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { locale: "ja-JP" } }));
 
+// #1375 実機確認: 退避先の第 1 候補は **端末の言語設定**になった（理由は useLocale.ts のコメント）。
+// テストごとに端末ロケールを差し替えられるようにしておく
+let mockDeviceLanguageTag: string | undefined = "ja-JP";
+jest.mock("expo-localization", () => ({
+	getLocales: () => (mockDeviceLanguageTag ? [{ languageTag: mockDeviceLanguageTag }] : []),
+}));
+
 beforeEach(() => {
 	i18n.locale = "ja-JP";
+	mockDeviceLanguageTag = "ja-JP";
 });
 
 /** フックを実際にレンダリングして戻り値を取り出す（この repo は react-test-renderer を使う） */
@@ -46,7 +54,7 @@ const localeOf = (pathname: string) => renderUseLocale(pathname).locale;
 
 describe("#1194 useLocale", () => {
 	it("パス先頭のロケールをそのまま使う", () => {
-		expect(localeOf("/ja-JP/search/topics")).toBe("ja-JP");
+		expect(localeOf("/ja-JP/search/dish-categories")).toBe("ja-JP");
 		expect(localeOf("/en-US")).toBe("en-US");
 	});
 
@@ -74,6 +82,39 @@ describe("#1194 useLocale", () => {
 		expect(localeOf("/pt-BR/search")).toBe("pt-BR");
 	});
 
+	// #1599 LOCALE_LIKE は BCP 47 の «形» の近似でしかなく、実際のタグ規則より緩い。
+	// サブタグに [A-Za-z0-9]{2,8} を許すが、リージョンは «英字 2» か «数字 3» なので
+	// `ja-01` / `en-A1` は正規表現を通るのに Intl が RangeError を投げる。
+	//
+	//   new Date().toLocaleDateString("ja-01")  // RangeError
+	//
+	// profile/content-reports と profile/dish-category-group-votes が
+	// toLocaleDateString(locale) を直接呼んでいるため、そういう URL で入ると
+	// レンダー中に例外が飛び、画面全体が ErrorBoundary のフォールバックへ置き換わる。
+	describe("#1599 Intl へ渡して壊れるロケールは返さない", () => {
+		it.each(["ja-01", "en-A1", "ja-JP-JP-JP-JP-JP-JP-JP-JP-JP"])(
+			"%s は採らず、フォールバックへ落とす",
+			(bogus) => {
+				expect(localeOf(`/${bogus}/profile/content-reports`)).toBe("ja-JP");
+			},
+		);
+
+		it("返ってきたロケールは toLocaleDateString へ渡しても投げない", () => {
+			// ここが本体。上の 3 件は «弾けたか» だが、これは «契約が守られているか»。
+			// 新しい抜け道が増えても、この検査は落ちる
+			for (const pathname of ["/ja-01/x", "/en-A1/x", "/pt-BR/x", "/ja-JP/x", "/s/s1_AbCdEf", "/"]) {
+				const locale = localeOf(pathname);
+				expect(() => new Date(0).toLocaleDateString(locale)).not.toThrow();
+			}
+		});
+
+		// «妥当だが未対応» は従来どおり素通しであること（上の pt-BR のテストと同じ意図）。
+		// Intl 検証を «対応ロケール一覧との突き合わせ» にしてしまうと、ここが落ちる
+		it("妥当だが未対応のロケールは弾かない", () => {
+			expect(localeOf("/xx-YY/search")).toBe("xx-YY");
+		});
+	});
+
 	it("isJapanese は解決後のロケールで判定する", () => {
 		expect(renderUseLocale("/").isJapanese).toBe(true);
 		expect(renderUseLocale("/en-US/search").isJapanese).toBe(false);
@@ -83,14 +124,44 @@ describe("#1194 useLocale", () => {
 describe("#1194 useLocale — 端末の言語設定が既定以外のとき", () => {
 	// 退避先を ja-JP 決め打ちにすると、英語端末の起動直後だけ日本語で検索してしまう
 	it("端末の言語へ寄せる（常に ja-JP へ倒さない）", () => {
-		i18n.locale = "en";
+		mockDeviceLanguageTag = "en-US";
 
 		expect(localeOf("/")).toBe("en-US");
 	});
 
 	it("端末の言語が未対応でも公開ロケールのどれかになる", () => {
-		i18n.locale = "pt-BR";
+		mockDeviceLanguageTag = "pt-BR";
 
 		expect(localeOf("/")).toBe("ja-JP");
+	});
+});
+
+/*
+#1375 実機確認の回帰テスト。
+
+共有シートからのコールドスタートで **画面が英語になった**。
+
+`i18n.locale` を設定しているのは `app/[locale]/_layout.tsx` だけで、その入力は URL の
+ロケールセグメントである。つまりロケール付き URL へ入る前は未設定で、
+`i18n.defaultLocale`（= "en-US"）が読める。退避先がそれを採っていたため、
+端末が日本語でも `/en-US/sns-import` へ push されていた。
+
+共有からの着地は `app/index.tsx` のロケール判定リダイレクトを経由しないので、
+**誰も `i18n.locale` を直していない状態でこの分岐が評価される**のが肝である。
+*/
+describe("#1375 i18n.locale が未設定（既定の en-US）でも端末の言語を採る", () => {
+	it("端末が日本語なら ja-JP になる（en-US へ倒れない）", () => {
+		// ロケール付き URL へ一度も入っていない状態＝ i18n は既定のまま
+		i18n.locale = "en-US";
+		mockDeviceLanguageTag = "ja-JP";
+
+		expect(localeOf("/")).toBe("ja-JP");
+	});
+
+	it("端末ロケールが取れない環境だけ i18n 側へ落とす", () => {
+		i18n.locale = "ko-KR";
+		mockDeviceLanguageTag = undefined;
+
+		expect(localeOf("/")).toBe("ko-KR");
 	});
 });

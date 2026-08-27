@@ -56,9 +56,10 @@ gh run watch <restore-run-id> --exit-status
 
 ## BigQueryログ調査
 
-APIの開発・レビュー・検証では、必ず`food-scroll.nanitabeyo_logs_dev`を使用する。`food-scroll.nanitabeyo_logs_prod`へ切り替えない。
+ここで扱うのは development API の検証なので、dataset は `food-scroll.nanitabeyo_logs_dev` を使う。
+**接続方法・dataset の使い分け・コスト規則の正は [`.codex/bigquery/`](../../../.codex/bigquery/)**（`access.md` / `safety-policy.md`）。ここへ書き写さないこと。
 
-BigQuery MCPが利用可能なら、read-only queryで`nanitabeyo_logs_dev`を対象にする。利用できない場合は`.codex/bigquery/access.md`に従い、`bq query --use_legacy_sql=false`を使う。
+特に、時間範囲で絞るクエリを `*_event_logs` ビューへ投げないこと（パーティション枝刈りが効かず 18.4GB/日）。生テーブル `run_googleapis_com_stdout` を `timestamp` で絞る。
 
 時間範囲は、検証deploy開始の少し前から復旧開始までに限定する。可能なら次で絞る。
 
@@ -78,7 +79,7 @@ BigQuery MCPが利用可能なら、read-only queryで`nanitabeyo_logs_dev`を�
 2. **1 GB以上なら、実行せずユーザーへ確認する。** 見積り値と、そのクエリで何を知りたいのかを添えて聞く
 3. 1 GB未満なら実行してよい
 
-この規定は `.codex/bigquery/safety-policy.md`、`access.md`、`event-catalog.md`、`query-patterns.md` の4箇所に明記されている。**リーダーはBigQueryを触る前にこれらを読むこと。**
+この規定の正は [`.codex/bigquery/safety-policy.md`](../../../.codex/bigquery/safety-policy.md)。**リーダーはBigQueryを触る前に読むこと。**
 
 スキャン量を減らす手段を先に尽くすこと。
 

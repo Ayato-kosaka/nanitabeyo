@@ -15,13 +15,16 @@ import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
 // レイヤーを載せる外枠は edges={[]}（padding を入れない）、inset は内側の本文へ明示的に当てる。
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SubmitDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
-import type { DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
+import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
+import type { DishCategoryRecommendation } from "@/types/search";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocale } from "@/hooks/useLocale";
+import { useDishCategoryImageResources } from "@/features/dishCategories/hooks/useDishCategoryImageResources";
+import { e2eVoteImagePreloadProbeElement } from "@/lib/e2e/voteImagePreloadProbe";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
 import type { DishCategoryGroupVoteDraftVote } from "../types";
@@ -76,6 +79,34 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 		// 送信時 API は deleted_at を問わないため、投票中のホスト削除レースでも完走できる。
 		return detail?.candidates.filter((candidate) => candidate.deletedAt === null) ?? [];
 	}, [detail?.candidates]);
+
+	/**
+	 * #1213 【修正】候補カードは DishCategories 検索と同じ DishCategoryVisualCard を描画に使うが、
+	 * ここでは候補切り替えのたびに生の uri をその場で読み込んでいた（= プリロード契約に未参加）。
+	 * useDishCategoryImageResources へ候補全件を渡して先読みし、ready になった ImageRef をカードへ渡すことで、
+	 * 次の候補へ進んだ瞬間にはすでに読み込み済みの画像が即時表示されるようにする。
+	 */
+	const candidateDishCategories = useMemo<DishCategoryRecommendation[]>(
+		() => voteCandidates.map((candidate) => candidateToDishCategory(candidate)),
+		[voteCandidates],
+	);
+	const { getImageState } = useDishCategoryImageResources({ dishCategories: candidateDishCategories, sessionKey: shareToken });
+
+	/**
+	 * #1213 【観測】native には「先読みが効いているか」を外から見る手段が無い（web は Resource Timing で見える）。
+	 * 実測値を Detox から読めるようにするための計数で、E2E ビルド以外では
+	 * `e2eVoteImagePreloadProbeElement` が null を返すため描画物は増えない。
+	 */
+	const imagePreloadCounts = useMemo(() => {
+		let ready = 0;
+		let failed = 0;
+		for (const dishCategory of candidateDishCategories) {
+			const status = getImageState(dishCategory).status;
+			if (status === "ready") ready += 1;
+			else if (status === "error") failed += 1;
+		}
+		return { ready, failed, total: candidateDishCategories.length };
+	}, [candidateDishCategories, getImageState]);
 
 	// #945 【仕様】スワイプ/ボタンどちらの操作でもカードが切り替わったことを読み上げる
 	useEffect(() => {
@@ -228,12 +259,20 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 					</Text>
 				</View>
 				{currentCandidate ? (
-					<DishCategoryGroupVoteVoteCard candidate={currentCandidate} onVote={handleVote} />
+					<DishCategoryGroupVoteVoteCard
+						candidate={currentCandidate}
+						onVote={handleVote}
+						imageState={getImageState(candidateToDishCategory(currentCandidate))}
+					/>
 				) : (
 					<View style={styles.center}>
 						<Text style={styles.errorText}>{i18n.t("DishCategoryGroupVotes.noVoteCandidates")}</Text>
 					</View>
 				)}
+				{/* #1213 E2E ビルドでだけ描かれる 1×1 の計測要素（通常ビルドでは null）。
+				    完了レイヤーの兄弟ではなく本文の内側に置く（外枠直下に zIndex を持たない要素でも
+				    並べない、という上のコメントの前提を崩さないため） */}
+				{e2eVoteImagePreloadProbeElement(imagePreloadCounts)}
 			</View>
 			{isCompleted ? (
 				// #1358 閉じる導線を持たせない（＝ onRequestClose を渡さない）のは旧実装の
@@ -313,4 +352,16 @@ const styles = StyleSheet.create({
 function getFilledProgressSegments(index: number, total: number) {
 	if (total <= 0) return 0;
 	return Math.min(total, index + 1);
+}
+
+// #1213 useDishCategoryImageResources は DishCategoryRecommendation 形状（categoryId + imageUrl がキャッシュキーの元）を前提にしているため、
+// 候補を最小限のフィールドだけ DishCategoryRecommendation 形状へ写す。displayName/tagline は表示に使わず uri とキーの算出専用。
+function candidateToDishCategory(candidate: DishCategoryGroupVoteCandidate): DishCategoryRecommendation {
+	return {
+		category: candidate.dishCategoryId,
+		categoryId: candidate.dishCategoryId,
+		title: candidate.displayName,
+		reason: candidate.tagline,
+		imageUrl: candidate.imageUrl,
+	};
 }

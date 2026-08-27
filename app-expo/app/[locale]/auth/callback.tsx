@@ -261,9 +261,21 @@ export default function AuthCallbackScreen() {
 					goAfterCallback();
 				}
 
+				// #1433 【設計】`access_denied` は **ユーザーが自分で止めたとき**にプロバイダが返すコード。
+				// 同意画面で拒否した / ブラウザを閉じた、が該当する。障害ではないので人間の対応は要らない。
+				//
+				// 実測（本番 2026-08-18T11:19:49Z / 1 ユーザー）: 直前に `oauth_signin_browser_dismissed` が
+				// **log レベルで**記録されており、同じ 1 回の操作をここで error として二重に積んでいた。
+				// そのユーザーはこの直後そのまま検索へ戻り、普通にアプリを使い続けている。
+				//
+				// ⚠️ 判定は `access_denied` に限ること。error があること自体を warn にすると、
+				// `server_error` や `temporarily_unavailable`（＝プロバイダ側の障害で、こちらは知りたい）まで畳む。
+				const urlShape = describeOAuthUrl(picked.url);
+				const isUserCancelled = urlShape?.error === "access_denied";
+
 				logFrontendEvent({
 					event_name: "oauth_callback_error",
-					error_level: "error",
+					error_level: isUserCancelled ? "warn" : "error",
 					payload: {
 						// #1249 【バグ】旧実装は `error instanceof Error ? error.message : String(error)` で、
 						// message が空の Error / plain object が来ると本文に何も残らず、
@@ -281,7 +293,7 @@ export default function AuthCallbackScreen() {
 						provider: rest.provider ?? null,
 						// #1062 【設計】生の URL は code / access_token を含むため記録しない
 						source: picked.source,
-						url_shape: describeOAuthUrl(picked.url),
+						url_shape: urlShape,
 					},
 				});
 			}

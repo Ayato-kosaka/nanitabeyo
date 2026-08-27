@@ -6,7 +6,7 @@ import { SearchScreen } from "../../screens/SearchScreen";
 /**
  * 🚀 オンボーディング（#1486）の表示テスト（Tier 2）
  *
- * 目的: ja-JP 初回起動時の自動表示、課題 → 解決のフェーズ切り替え、前へ / 次へ、
+ * 目的: ja-JP 初回起動時の自動表示、矢印による課題 → 解決のフェーズ送り、前へ / 次へ、
  *       完了後の再表示抑止（AsyncStorage フラグ `search_tutorial_seen_v1`）を保証する。
  *       （e2e-web の tests/search/onboarding.spec.ts に対応）
  *
@@ -49,7 +49,7 @@ describeJapaneseLocale("オンボーディング（初回起動）", () => {
 	//   1. 「未読」をシードして起動する（beforeAll）
 	//   2. オンボーディングが自動表示されることを検証
 	//   3. 1 枚目で「前へ」が **描画されていない** ことを検証（#1486 §1「1枚目は戻る操作無効」）
-	//   4. 約 1.5 秒後に解決フェーズが再生されることを検証（#1486 §1）
+	//   4. 「次へ」を押すと解決フェーズが再生されることを検証（自動では再生されない）
 	//   5. 2 枚目へ進み、「前へ」が現れることを検証
 	//   6. 「前へ」で 1 枚目へ戻り、解決アニメーションが再生され直すことを検証（#1486 §1）
 	//   7. 3 枚目まで進めて「次へ」でログイン画面へ出る（#1486 §4）
@@ -72,6 +72,9 @@ describeJapaneseLocale("オンボーディング（初回起動）", () => {
 	// なお #1486 でヘッダーの `？` 側は「タイトルが可視判定を奪う」問題そのものを直しているが
 	//（1 行固定 + ボタン幅の確保。app-expo の search/index.tsx を参照）、
 	// この spec の構成はそれとは独立に «起動が 1 回で済む» という理由で維持している。
+	// ## ⚠️ 「次へ」は 1 ページにつき 2 回
+	// 1 押下目で解決フェーズ、2 押下目で次のページ（自動では切り替わらない）。
+	// ページを送るヘルパは `goToNextStep` / `advanceToLastStep`、解決を出すだけなら `revealSolution`
 	it("初回起動で自動表示され、フェーズ切り替えと前へ/次へが効き、完了すると再起動しても表示されない", async () => {
 		// 初回起動は JS バンドル読込 + セッション注入を含むため、起動待ちと同じスケールで待つ
 		await onboarding.expectShown(LAUNCH_TIMEOUT);
@@ -83,24 +86,26 @@ describeJapaneseLocale("オンボーディング（初回起動）", () => {
 			throw new Error("1 枚目で「前へ」が描画されている（#1486 §1「1枚目は戻る操作無効」に反する）");
 		}
 
-		// ── #1486 §1: 約 1.5 秒後に解決フェーズへ切り替わる ──────────────
-		await onboarding.expectSolutionShown(1);
+		// ── 矢印を押すと解決フェーズが再生される（自動では出ない） ─────────
+		await onboarding.revealSolution(1);
 
 		// ── #1486 §1: 2 枚目では「前へ」が出る ──────────────────────────
+		// 1 枚目は解決フェーズで止まっているので、1 押下で 2 枚目へ送られる
 		await onboarding.pressNext();
 		await onboarding.expectStep(2);
-		await onboarding.expectSolutionShown(2);
+		await onboarding.revealSolution(2);
 
 		// ── #1486 §1: 戻ると課題状態から解決アニメーションを再生し直す ─────
-		// 「戻った直後に解決文が見えていないこと」は検証しない。画面切り替えとアサートの間に
-		// 1.5 秒が経ってしまうと **偽の赤**になるため、«戻ったあとに改めて解決フェーズへ到達する»
-		// ことだけを見る（e2e-web 側も同じ判断にしてある）
+		// 「戻った直後に解決文が見えていないこと」は e2e-web 側で検証する
+		//（Detox は不透明度 0 の要素の «見えなさ» を待つのが不得手で、偽の赤になりやすい）。
+		// ここでは «戻ったあとに改めて解決フェーズへ到達する» ことだけを見る
 		await onboarding.pressBack();
 		await onboarding.expectStep(1);
-		await onboarding.expectSolutionShown(1);
+		await onboarding.revealSolution(1);
 
 		// ── #1486 §4: 3 枚目の「次へ」で既存ログイン画面へ ────────────────
 		await onboarding.advanceToLastStep();
+		await onboarding.revealSolution(3);
 		await onboarding.pressNext();
 
 		// ── #1486 §5〜§7: ログインをスキップ → 許可フロー → Welcome ────────
@@ -108,9 +113,12 @@ describeJapaneseLocale("オンボーディング（初回起動）", () => {
 		await login.expectOpened();
 		await login.skip();
 		await onboarding.waitForWelcome();
-		await onboarding.pressStart();
 
-		// #1486 §7 「はじめる」でアプリ本体（検索画面）へ戻る
+		// #1486 §7 「はじめる」でアプリ本体（検索画面）へ戻る。
+		// ⚠️ 単発の pressStart + expectLoaded にしないこと。Welcome は紙吹雪が
+		// 無限ループし（確定仕様）、録画有効時はタップが取りこぼされることがある
+		//（詳細は pressStartUntilExited のコメント）。着地するまでタップし直す
+		await onboarding.pressStartUntilExited(search.headerTitle);
 		await search.expectLoaded();
 
 		// ── #1027: 既読フラグが AsyncStorage へ永続化されている ──────────

@@ -198,6 +198,64 @@ export class StorageService {
   }
 
   /* ---------------------------------------------------------------------- */
+  /*                     Delete File (存在しなくても成功)                   */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * #1511 実体が無くてもエラーにしない削除。
+   *
+   * アカウント削除は **冪等**でなければならない（途中で落ちても再実行で完了できること）。
+   * `deleteFile()` は 404 でも throw するため、2 回目の実行が必ず失敗してしまう。
+   * 「消えている」は目的が達成された状態なので、ここでは成功として返す。
+   *
+   * @returns 実際に削除したら true / 元から無ければ false
+   */
+  async deleteFileIfExists(path: string): Promise<boolean> {
+    try {
+      await this.bucket.file(path).delete({ ignoreNotFound: true });
+      return true;
+    } catch (err) {
+      this.logger.warn('GcsDeleteIfExistsError', 'deleteFileIfExists', {
+        error_message: (err as Error).message,
+        path,
+      });
+      return false;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                      Delete Files by Prefix (前方一致)                 */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * #1511 プレフィクス配下のオブジェクトをまとめて削除する。
+   *
+   * 派生ファイル（リサイズ画像 `resized-image/.../<size>.webp`、
+   * トランスコード動画 `transcoded-video/.../<format>/...`）は
+   * **名前を 1 つずつ再現できない**（サイズ・フォーマットの一覧を呼び出し側が知らない）。
+   * 実体を残さないためには前方一致で消すしかない。
+   *
+   * ⚠️ prefix はディレクトリ境界（`/` 終わり）で渡すこと。`.../users/avatar_path/<id>`
+   * のように `/` 無しで渡すと `<id>2` のような別レコードまで巻き込む。
+   * ここでは呼び出し側の事故を防ぐため、末尾に `/` が無ければ付ける。
+   *
+   * @returns 削除を試みた prefix（ログ用）
+   */
+  async deleteFilesByPrefix(prefix: string): Promise<void> {
+    const normalized = prefix.endsWith('/') ? prefix : `${prefix}/`;
+    try {
+      await this.bucket.deleteFiles({ prefix: normalized, force: true });
+      this.logger.debug('GcsPrefixDeleted', 'deleteFilesByPrefix', {
+        prefix: normalized,
+      });
+    } catch (err) {
+      // 冪等性を優先し、ここでは throw しない（呼び出し側は再実行で回収できる）
+      this.logger.warn('GcsPrefixDeleteError', 'deleteFilesByPrefix', {
+        error_message: (err as Error).message,
+        prefix: normalized,
+      });
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /*                           Check File Exists                            */
   /* ---------------------------------------------------------------------- */
   async fileExists(path: string): Promise<boolean> {
@@ -210,6 +268,67 @@ export class StorageService {
         path,
       });
       return false;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                   #1599 一度きりの権利取得（claim）                     */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * #1599 **そのパスを «自分が最初に作れたか» で排他する。**
+   *
+   * 至れり尽くせりのロックではなく、«同じ副作用を二度起こさない» ための最小の仕掛け。
+   * Cloud Tasks / Pub/Sub Push は at-least-once なので、
+   * **課金や外部ジョブ作成を伴う処理は「やってから記録する」では守れない**
+   * （記録の前に応答が落ちれば、次の配送でもう一度やってしまう）。
+   * 先に権利を取り、取れた側だけが実行する。
+   *
+   * ⚠️ `fileExists()` してから書く形にしてはいけない。その隙間に別の配送が入り込む。
+   * ここでは GCS の **`ifGenerationMatch: 0`（オブジェクトがまだ存在しないときだけ書く）**
+   * という前提条件を使う。判定と書き込みが GCS 側で 1 つになるので、
+   * 同時に 2 本来ても片方だけが成功する。
+   *
+   * ⚠️ **claim は自動では失効しない。** 取ったあと実行前にプロセスが落ちると、
+   * その処理は二度と実行されない。呼び出し側は、実行に失敗したら
+   * `deleteFileIfExists()` で claim を明示的に返すこと。
+   *
+   * @param path 権利の識別子になる GCS パス（1 つの副作用に 1 つ）
+   * @param note claim ファイルへ残す補足（誰が・何のために取ったか。調査用）
+   * @returns true = 自分が取れた（実行してよい）/ false = 既に誰かが取っている
+   */
+  async claimOnce(
+    path: string,
+    note: Record<string, string> = {},
+  ): Promise<boolean> {
+    try {
+      await this.bucket
+        .file(path)
+        .save(
+          JSON.stringify({ claimed_at: new Date().toISOString(), ...note }),
+          {
+            resumable: false,
+            contentType: 'application/json',
+            // 「まだ無いときだけ書く」。存在すれば GCS が 412 を返す
+            preconditionOpts: { ifGenerationMatch: 0 },
+          },
+        );
+
+      this.logger.log('GcsClaimAcquired', 'claimOnce', { path, ...note });
+      return true;
+    } catch (err) {
+      // 412 = preconditionFailed = 既に誰かが作っている（＝正常系）
+      if ((err as { code?: number }).code === 412) {
+        this.logger.log('GcsClaimAlreadyHeld', 'claimOnce', { path, ...note });
+        return false;
+      }
+
+      // それ以外（権限・ネットワーク）は «取れなかった» と «取られていた» の区別が
+      // つかない。握り潰すと二重実行を許すので、呼び出し側へ投げてリトライさせる
+      this.logger.error('GcsClaimError', 'claimOnce', {
+        error_message: (err as Error).message,
+        path,
+      });
+      throw err;
     }
   }
 

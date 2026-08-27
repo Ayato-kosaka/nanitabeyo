@@ -28,7 +28,7 @@ interface LocationSearchFormProps {
 	 * フォーム上部の見出し。
 	 *
 	 * #1369 `null` を渡すと描画しない。ルート化した保存料理カテゴリの地点検索
-	 * （app/[locale]/(tabs)/profile/saved-topic-location.tsx）は同じ文言を ScreenHeader が
+	 * （app/[locale]/(tabs)/profile/saved-dish-category-location.tsx）は同じ文言を ScreenHeader が
 	 * 持つため、二重に出さないための逃げ道。既定（未指定）は従来どおり見出しを描く。
 	 */
 	title?: string | null;
@@ -95,7 +95,7 @@ export function LocationSearchForm({
 							hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("Search.accessibility.useCurrentLocation")}
-							testID="saved-topic-current-location-button">
+							testID="saved-dishCategory-current-location-button">
 							<Navigation size={20} color="#000000" />
 						</TouchableOpacity>
 					}

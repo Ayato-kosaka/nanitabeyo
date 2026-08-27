@@ -1,12 +1,17 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
-import { Heart, Bookmark, Share, MapPinned } from "lucide-react-native";
+import { Heart, Bookmark, Share, MapPinned, UtensilsCrossed, Flag } from "lucide-react-native";
+import { router } from "expo-router";
 import i18n from "@/lib/i18n";
 import { formatLikeCount } from "../utils/text";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useAPICall } from "@/hooks/useAPICall";
+import { useLocale } from "@/hooks/useLocale";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import { getCacheKeyForImage } from "@/lib/image";
 import {
@@ -19,20 +24,32 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
-import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
+import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
+import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
+import { MY_DISH_STATUS_ORANGE } from "@/features/myDishes/statusColors";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
+import { ReportContentSheet } from "./ReportContentSheet";
+import { OwnPostActions } from "./OwnPostActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+// #1509 このアクション列は常に暗いメディア（写真・動画）の上に載るため、テーマ非追従の FixedColors を使う
+import { FixedColors } from "@/constants/Palette";
 
 interface ActionButtonsProps {
+	/**
+	 * #1375 実機確認（3 巡目）:「食べたを記録」ボタンを出すか。
+	 * 検索動線のフィード（DishMediaMap 系）では出さない — 探している段階で
+	 * 食べたを記録する人は居ない、というオーナー判断。既定は true（既存フィードは不変）
+	 */
+	showRecordEaten?: boolean;
 	id: string;
 	idType: IdType;
 	onLayout: (width: number) => void;
 	buttonsGesture: GestureType; // #694 【設計】親Tapとの競合を防ぐための Native Gesture
 }
 
-export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionButtonsProps) {
+export function ActionButtons({ id, idType, onLayout, buttonsGesture, showRecordEaten = true }: ActionButtonsProps) {
 	const { logFrontendEvent } = useLogger();
 
 	// ログアウト時は AuthProvider がストアを消去してから旧画面の unmount が完了するまで、
@@ -57,18 +74,29 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 
 	if (!entry) return null;
 
-	return <ActionButtonsContent entry={entry} onLayout={onLayout} buttonsGesture={buttonsGesture} />;
+	return (
+		<ActionButtonsContent
+			entry={entry}
+			onLayout={onLayout}
+			buttonsGesture={buttonsGesture}
+			showRecordEaten={showRecordEaten}
+		/>
+	);
 }
 
 function ActionButtonsContent({
 	entry,
 	onLayout,
 	buttonsGesture,
-}: Pick<ActionButtonsProps, "onLayout" | "buttonsGesture"> & { entry: NormalizedDishMediaEntry }) {
+	showRecordEaten = true,
+}: Pick<ActionButtonsProps, "onLayout" | "buttonsGesture" | "showRecordEaten"> & { entry: NormalizedDishMediaEntry }) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
-	const { isSaved, isLiked, likeCount } = entry.dish_media;
+	const { showSnackbar } = useSnackbar();
+	const { locale } = useLocale();
+	const { user } = useAuth();
+	const { isSaved, isLiked, likeCount, isEaten } = entry.dish_media;
 	const dishMediaId = entry.dish_media.id;
 	const { restaurant } = entry;
 
@@ -98,8 +126,13 @@ function ActionButtonsContent({
 
 		lightImpact();
 		const willLike = !isLiked;
+		// #1501 【修正】API失敗時に戻す「操作前の値」。!willLike(トグルの反転)ではなく、
+		// 楽観更新の直前に読んだ値そのものを保持する。反転で戻すと、他端末/別画面からの
+		// 更新が割り込んでいた場合に誤った値を書き戻してしまう
+		const previousIsLiked = isLiked;
+		const previousLikeCount = likeCount;
 		// #259 【バグ】いいね数が0未満にならないよう下限0を保証
-		let newLikeCount = willLike ? likeCount + 1 : Math.max(0, likeCount - 1);
+		const newLikeCount = willLike ? likeCount + 1 : Math.max(0, likeCount - 1);
 		const { updateEntry, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
 		updateEntry(String(dishMediaId), (entry) => ({
 			...entry,
@@ -109,6 +142,17 @@ function ActionButtonsContent({
 				likeCount: newLikeCount,
 			},
 		}));
+
+		// #1501 【修正】liked タブの一覧も dish_media 本体と同じタイミングで楽観更新し、
+		// 失敗時にロールバックできるよう更新前の一覧を保持しておく
+		// #460 【設計】いいね ON → liked タブの先頭に移動、いいね OFF → liked タブから除外
+		let previousLikedIds: string[] = [];
+		updateMediaIdsByKey(profileLikesEntriesKey, (prev) => {
+			previousLikedIds = prev;
+			return willLike
+				? [String(dishMediaId), ...prev.filter((id) => id !== String(dishMediaId))]
+				: prev.filter((id) => id !== String(dishMediaId));
+		});
 
 		logFrontendEvent({
 			event_name: willLike ? "dish_liked" : "dish_unliked",
@@ -121,24 +165,22 @@ function ActionButtonsContent({
 		});
 
 		try {
-			// #460 【設計】いいね ON → liked タブの先頭に移動、いいね OFF → liked タブから除外
-			if (willLike) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-					method: "POST",
-					requestPayload: { action_type: "like" },
-				});
-				updateMediaIdsByKey(profileLikesEntriesKey, (prev) => {
-					const without = prev.filter((id) => id !== String(dishMediaId));
-					return [String(dishMediaId), ...without];
-				});
-			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-					method: "DELETE",
-					requestPayload: { action_type: "like" },
-				});
-				updateMediaIdsByKey(profileLikesEntriesKey, (prev) => prev.filter((id) => id !== String(dishMediaId)));
-			}
+			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
+				method: willLike ? "POST" : "DELETE",
+				requestPayload: { action_type: "like" },
+			});
 		} catch (error) {
+			// #1501 【修正】API失敗時は表示をサーバーと一致させるため、操作前の値へロールバックする
+			updateEntry(String(dishMediaId), (entry) => ({
+				...entry,
+				dish_media: {
+					...entry.dish_media,
+					isLiked: previousIsLiked,
+					likeCount: previousLikeCount,
+				},
+			}));
+			updateMediaIdsByKey(profileLikesEntriesKey, () => previousLikedIds);
+
 			logFrontendEvent({
 				event_name: "dish_like_reaction_failed",
 				error_level: "warn",
@@ -149,11 +191,14 @@ function ActionButtonsContent({
 					newLikeCount: newLikeCount,
 				},
 			});
+			showSnackbar(i18n.t("DishMediaContent.errors.likeReactionFailed"), {
+				action: { label: i18n.t("Common.retry"), onPress: () => void handleLike() },
+			});
 		} finally {
 			// #1205 失敗しても押し直せるよう、成功・失敗のいずれでも必ず解除する
 			inFlightActionsRef.current.delete("like");
 		}
-	}, [callBackend, dishMediaId, isLiked, likeCount, lightImpact, logFrontendEvent]);
+	}, [callBackend, dishMediaId, isLiked, likeCount, lightImpact, logFrontendEvent, showSnackbar]);
 
 	const handleSave = useCallback(async () => {
 		// #1205 進行中なら何もしない（宣言箇所のコメント参照）。楽観更新より前に弾くこと
@@ -162,6 +207,10 @@ function ActionButtonsContent({
 
 		lightImpact();
 		const willSave = !isSaved;
+		// #1501 【修正】API失敗時に戻す「操作前の値」。!willSave(トグルの反転)ではなく、
+		// 楽観更新の直前に読んだ値そのものを保持する。反転で戻すと、他端末/別画面からの
+		// 更新が割り込んでいた場合に誤った値を書き戻してしまう
+		const previousIsSaved = isSaved;
 		const { updateEntry, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
 
 		// #460 【設計】エンティティ更新
@@ -173,6 +222,17 @@ function ActionButtonsContent({
 			},
 		}));
 
+		// #1501 【修正】saved タブの一覧も dish_media 本体と同じタイミングで楽観更新し、
+		// 失敗時にロールバックできるよう更新前の一覧を保持しておく
+		// #460 【設計】保存 ON → saved タブの先頭に移動、保存 OFF → saved タブから除外
+		let previousSavedIds: string[] = [];
+		updateMediaIdsByKey(profileSavedPostsEntriesKey, (prev) => {
+			previousSavedIds = prev;
+			return willSave
+				? [String(dishMediaId), ...prev.filter((id) => id !== String(dishMediaId))]
+				: prev.filter((id) => id !== String(dishMediaId));
+		});
+
 		logFrontendEvent({
 			event_name: willSave ? "dish_saved" : "dish_unsaved",
 			error_level: "log",
@@ -182,24 +242,49 @@ function ActionButtonsContent({
 		});
 
 		try {
-			// #460 【設計】保存 ON → saved タブの先頭に移動、保存 OFF → saved タブから除外
+			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
+				method: willSave ? "POST" : "DELETE",
+				requestPayload: { action_type: "save" },
+			});
+			// #1375 実機確認（5 巡目）: フィードで «食べたい» を外しても、戻ってリロードするまで
+			// 一覧から消えなかった。save reaction は my-dishes の want 枝の実体そのものなので、
+			// 記録（#1398）や取り込み（#1399）と同じくここでもキャッシュを捨てる。
+			// ⚠️ 失敗時は捨てない（ロールバック済みの表示と取り直しの結果が食い違う）
+			bumpMyDishesRevision();
 			if (willSave) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-					method: "POST",
-					requestPayload: { action_type: "save" },
+				// #1401 【仕様】保存操作のみ完了フィードバックを出す(解除は状態変化が見た目で分かるため省略)。
+				// DishCategoryCard の「見る」導線(#954)と同じ作法で、遷移先だけ my-dishes タブに変える。
+				showSnackbar(i18n.t("DishMediaContent.save.savedMessage"), {
+					action: {
+						label: i18n.t("Common.view"),
+						// #1401 実機確認（4 巡目）: `navigate` 単体でもまだ動かなかった。
+						// 原因はネイティブモーダル（検索結果 = transparentModal / SNS 取り込み = modal）が
+						// **タブの上に提示されたまま残る**こと。expo-router のタブ切替はモーダルの
+						// 下で起きるので、モーダルを閉じない限り画面は変わって見えない。
+						// 先に dismissAll でモーダルスタックを畳んでからタブを移す
+						onPress: () => {
+							if (router.canDismiss()) {
+								router.dismissAll();
+							}
+							router.navigate({
+								pathname: "/[locale]/(tabs)/my-dishes",
+								params: { locale },
+							});
+						},
+					},
 				});
-				updateMediaIdsByKey(profileSavedPostsEntriesKey, (prev) => {
-					const without = prev.filter((id) => id !== String(dishMediaId));
-					return [String(dishMediaId), ...without];
-				});
-			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-					method: "DELETE",
-					requestPayload: { action_type: "save" },
-				});
-				updateMediaIdsByKey(profileSavedPostsEntriesKey, (prev) => prev.filter((id) => id !== String(dishMediaId)));
 			}
 		} catch (error) {
+			// #1501 【修正】API失敗時は表示をサーバーと一致させるため、操作前の値へロールバックする
+			updateEntry(String(dishMediaId), (entry) => ({
+				...entry,
+				dish_media: {
+					...entry.dish_media,
+					isSaved: previousIsSaved,
+				},
+			}));
+			updateMediaIdsByKey(profileSavedPostsEntriesKey, () => previousSavedIds);
+
 			logFrontendEvent({
 				event_name: "dish_save_reaction_failed",
 				error_level: "log",
@@ -210,11 +295,35 @@ function ActionButtonsContent({
 					willReact: willSave,
 				},
 			});
+			showSnackbar(i18n.t("DishMediaContent.errors.saveReactionFailed"), {
+				action: { label: i18n.t("Common.retry"), onPress: () => void handleSave() },
+			});
 		} finally {
 			// #1205 失敗しても押し直せるよう、成功・失敗のいずれでも必ず解除する
 			inFlightActionsRef.current.delete("save");
 		}
-	}, [callBackend, dishMediaId, isSaved, lightImpact, logFrontendEvent]);
+	}, [callBackend, dishMediaId, isSaved, lightImpact, locale, logFrontendEvent, showSnackbar]);
+
+	// #1398 (PR3/7) 【設計】全画面 Feed から「食べた」を記録する導線。
+	// 遷移先は my-dishes カードや店舗詳細フィードと同じ既存ルート（review-from-media）で、
+	// このボタンはその呼び出し元が1つ増えるだけ。
+	//
+	// #1375 実機確認（5 巡目）: **色だけ**「記録済み」を表す（`isEaten`）。
+	// ⚠️ 押せなくはしない。`dish_reviews` に (user_id, dish_id) の一意制約は無く、
+	// 再訪 = 別の記録が正しい仕様なので、«済 = 無効化» にすると 2 回目が記録できなくなる。
+	// 伝えたいのは「もう記録した料理だ」であって「もう押せない」ではない。
+	const handleRecordEaten = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "review_from_media_navigate",
+			error_level: "log",
+			payload: { restaurant_id: restaurant.id, dish_media_id: dishMediaId, source: "ActionButtons" },
+		});
+		router.push({
+			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			params: { locale, restaurantId: restaurant.id, dishMediaId },
+		});
+	}, [lightImpact, logFrontendEvent, locale, restaurant, dishMediaId]);
 
 	const handleViewRestaurant = () => {
 		lightImpact();
@@ -244,6 +353,22 @@ function ActionButtonsContent({
 			restaurant,
 		});
 	}, [dishMediaId, restaurant, shareRestaurant]);
+
+	// #1514 (SAF-01) 通報シートの開閉。
+	// 「通報された投稿」の見た目は変えないので、ここには開閉以外の state を持たせない
+	const [isReportSheetOpen, setIsReportSheetOpen] = useState(false);
+
+	const handleReportPress = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "content_report_opened",
+			error_level: "log",
+			payload: { targetType: "dish_media", targetId: String(dishMediaId) },
+		});
+		setIsReportSheetOpen(true);
+	}, [dishMediaId, lightImpact, logFrontendEvent]);
+
+	const handleReportSheetClose = useCallback(() => setIsReportSheetOpen(false), []);
 
 	const handleLayout = useCallback(
 		(event: LayoutChangeEvent) => onLayout?.(event.nativeEvent.layout.width),
@@ -291,37 +416,81 @@ function ActionButtonsContent({
 							{ name: restaurant.name },
 						)}
 						aria-selected={isLiked}>
-						<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
+						<Heart
+							size={28}
+							color={isLiked ? FixedColors.likeActive : FixedColors.onMedia}
+							fill={isLiked ? FixedColors.likeActive : FixedColors.onMedia}
+						/>
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
 				</View>
 
-				{/* #1031 【設計】Detox から状態(保存済みか)を検証できるよう、状態別の accessibilityLabel を付与 */}
-				<TouchableOpacity
-					testID="dish-action-save"
-					style={styles.actionButton}
-					onPress={handleSave}
-					hitSlop={buttonHitSlop}
-					accessibilityRole="button"
-					accessibilityLabel={i18n.t(
-						isSaved ? "DishMediaContent.accessibility.saveActive" : "DishMediaContent.accessibility.saveInactive",
-						{ name: restaurant.name },
-					)}
-					aria-selected={isSaved}>
-					<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
-				</TouchableOpacity>
-
+				{/* #1031 【設計】Detox から状態(保存済みか)を検証できるよう、状態別の accessibilityLabel を付与。
+				    #1375（5 巡目・デザインレビュー #5）この 1 つだけ **オレンジ（`orange` = パレット外の
+				    CSS 名前色）/ サイズ 30 / ラベル無し** で、他 4 つと縦のリズムが崩れていた。
+				    他と同じ 28 + ラベル付きに揃え、状態は «塗りの有無» で示す（バッジと同じ語彙） */}
 				<View style={styles.actionContainer}>
 					<TouchableOpacity
+						testID="dish-action-save"
 						style={styles.actionButton}
-						onPress={handleSharePress}
+						onPress={handleSave}
 						hitSlop={buttonHitSlop}
 						accessibilityRole="button"
-						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
-						<Share size={28} color="#FFFFFF" />
+						accessibilityLabel={i18n.t(
+							isSaved ? "DishMediaContent.accessibility.saveActive" : "DishMediaContent.accessibility.saveInactive",
+							{ name: restaurant.name },
+						)}
+						aria-selected={isSaved}>
+						{/*
+						#1375（9 巡目・オーナー指示）**押してある «食べたい» はオレンジで塗る。**
+
+						それまでは «白の塗り» で状態を示していたが、写真の上では
+						«白の輪郭（未保存）» と «白の塗り（保存済み）» の差が読めなかった。
+						一覧のバッジで承認された同じオレンジ（`MY_DISH_STATUS_ORANGE`）へ揃える。
+						⚠️ 下のラベルは白のまま（オーナー指示）。**アイコンだけを色で示す。**
+						*/}
+						<Bookmark
+							size={28}
+							color={isSaved ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia}
+							fill={isSaved ? MY_DISH_STATUS_ORANGE : "transparent"}
+						/>
 					</TouchableOpacity>
-					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
+					<Text style={styles.actionText}>{i18n.t("MyDishes.filters.status.want")}</Text>
 				</View>
+
+				{/* #1398 (PR3/7) 【仕様】ゲストは非表示。like/save と同じ作法（isGuestUser）。
+				    トグルではないため「済」表示・aria-selected は付けない（常時活性） */}
+				{showRecordEaten && !isGuestUser(user) && (
+					<View style={styles.actionContainer}>
+						<TouchableOpacity
+							testID="dish-action-eaten"
+							style={styles.actionButton}
+							onPress={handleRecordEaten}
+							hitSlop={buttonHitSlop}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t(
+								isEaten
+									? "DishMediaContent.accessibility.recordEatenAgain"
+									: "DishMediaContent.accessibility.recordEaten",
+								{ name: restaurant.name },
+							)}
+							// 読み上げでも «記録済み» が分かるようにする（色だけに頼らない）
+							aria-selected={!!isEaten}>
+							{/* #1375（9 巡目・オーナー指示）記録済みは «食べたい» と同じオレンジ。
+							    ⚠️ ラベルは白のまま（**色を付けるのはアイコンだけ**） */}
+							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia} />
+						</TouchableOpacity>
+						<Text style={styles.actionText}>{i18n.t("Map.actions.writeReviewForThisDish")}</Text>
+					</View>
+				)}
+
+				{/* #1513 自分の投稿だけに編集・削除の導線を出す。他人の投稿では
+				    ボタン自体が描画されないので、UI からは操作にたどり着けない
+				    （サーバー側でも user_id 一致を必須にして二重に担保している）。
+
+				    #1375 の並び «自分の記録に関わる操作 → 店へ行く操作 → 人に渡す操作» に従い、
+				    自分の投稿の編集・削除は «店へ行く»（地図を開く）より上に置く */}
+				{entry.dish_media.isMine && <OwnPostActions entry={entry} />}
 
 				<View style={styles.actionContainer}>
 					<TouchableOpacity
@@ -330,10 +499,50 @@ function ActionButtonsContent({
 						hitSlop={buttonHitSlop}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("DishMediaContent.accessibility.openMap", { name: restaurant.name })}>
-						<MapPinned size={28} color="#FFFFFF" />
+						<MapPinned size={28} color={FixedColors.onMedia} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
 				</View>
+
+				{/* #1375（オーナー指示 8 巡目）**「シェア」は「地図を開く」の下**。
+				    上から «自分の記録に関わる操作 → 店へ行く操作 → 人に渡す操作» の並びになる */}
+				<View style={styles.actionContainer}>
+					<TouchableOpacity
+						style={styles.actionButton}
+						onPress={handleSharePress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
+						<Share size={28} color={FixedColors.onMedia} />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
+				</View>
+
+				{/* #1514 (SAF-01) 投稿の通報導線。
+				    右レールに常設するのは、通報の敷居を上げないため（メニューの奥に隠すと、
+				    «見つけられないから通報されない» を «問題が無い» と読み違える）。
+				    レビューの通報は DishReviewsSection のレビュー行側にある。
+				    ユーザー・店舗は対象外（オーナー確定仕様） */}
+				<View style={styles.actionContainer}>
+					<TouchableOpacity
+						testID="dish-action-report"
+						style={styles.actionButton}
+						onPress={handleReportPress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Report.accessibility.open", { name: restaurant.name })}>
+						<Flag size={26} color={FixedColors.onMedia} />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("Report.action")}</Text>
+				</View>
+
+				<ReportContentSheet
+					visible={isReportSheetOpen}
+					targetType="dish_media"
+					targetId={String(dishMediaId)}
+					targetLabel={restaurant.name}
+					onClose={handleReportSheetClose}
+				/>
 			</View>
 		</GestureDetector>
 	);
@@ -353,13 +562,25 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	actionButton: {
+		// アイコンにも文字と同じ影。白いアイコンが明るい写真に溶けないように
+		shadowColor: "rgba(0, 0, 0, 0.5)",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 1,
+		shadowRadius: 2,
 		padding: 4,
 	},
 	actionText: {
 		fontSize: 13,
 		fontWeight: "500",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		marginTop: 4,
 		letterSpacing: 0.2,
+		// #1375（5 巡目・デザインレビュー #6）左列（`DishMediaContent` の店名・料理名）と
+		// 同じ影を掛ける。明るい料理写真の上で右列だけ沈んでいた
+		textShadowColor: "rgba(0, 0, 0, 0.5)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 2,
 	},
+	// #1375（5 巡目）記録済み。色の正は my-dishes と同じ（`features/myDishes/statusColors.ts`）ので、
+	// 一覧・カレンダー・地図で «食べた» を表している赤とここが必ず一致する
 });

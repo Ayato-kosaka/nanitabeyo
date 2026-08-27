@@ -39,6 +39,8 @@ import { toErrorLogMessage } from "@/lib/errorMessage";
 /* -------------------------------------------------------------------------- */
 
 // #703 【設計】CDN JSON から取得する候補アイテムの型
+// #1553 【互換性】`topicTitle` は公開済み CDN JSON と contribution-tasks API のフィールド名
+// （DB 列 topic_title 由来）。データ契約なのでアプリ内リネームの対象外（変えるならデータ側と同時）
 type CandidateItem = {
 	category_id: string; // dish_category_id (Wikidata QID)
 	category: string; // 表示名
@@ -430,18 +432,45 @@ export default function DishCategoryManualImageSupplyScreen() {
 				});
 				successCount++;
 			} catch (err) {
-				console.error("Failed to submit item", item.category_id, err);
+				// #1599 【バグ】ここで失敗しても uploadState は "success" のまま据え置かれていた。
+				// uploadState は «画像をストレージへ上げられたか» であって «送信できたか» ではない。
+				// 据え置くと、サンクス画面の remainingItems（uploadState !== "success"）から漏れ、
+				// 「もう協力できる料理は無い」と判定されて router.back() される。
+				// ユーザーの投稿は誰にも気づかれないまま消える。
+				//
+				// 送信に失敗した item は "error" へ戻し、«まだ残っている» ものとして扱う。
+				// state.uploaded（アップロード済みのパス）は捨てないので、上げ直しにはならない。
+				setItemStates((prev) => ({
+					...prev,
+					[item.category_id]: { ...prev[item.category_id], uploadState: "error" },
+				}));
+				logFrontendEvent({
+					event_name: "dish_manual_image_supply_submit_item_failed",
+					error_level: "warn",
+					payload: { categoryId: item.category_id, error: toErrorLogMessage(err) },
+				});
 				failCount++;
 			}
 		}
 
 		logFrontendEvent({
 			event_name: "dish_manual_image_supply_submit_result",
-			error_level: "log",
+			// #1599 全滅は障害。log のままだと error-triage に乗らず、誰も気づけない
+			error_level: failCount > 0 ? "warn" : "log",
 			payload: { successCount, failCount },
 		});
 
-		setShowThanks(true);
+		// #1599 【バグ】以前は successCount / failCount を一切見ずに無条件で
+		// サンクス画面を出していた。全件失敗しても「ありがとうございました」が出るので、
+		// ユーザーは貢献できたと思い込む。1 件も通っていないならサンクスは出さない。
+		if (successCount === 0) {
+			showSnackbar("送信に失敗しました。通信環境を確認して、もう一度お試しください。");
+		} else {
+			if (failCount > 0) {
+				showSnackbar(`${successCount} 件を送信しました。${failCount} 件は失敗したので、もう一度お試しください。`);
+			}
+			setShowThanks(true);
+		}
 		} finally {
 			// #1205 ⚠️ この try..finally は今回追加した。元は最後に setIsSubmitting(false) を
 			// 直接書いており、**ループの途中で例外が抜けると解除されず送信不能のまま固まる**
@@ -449,7 +478,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 			isSubmittingRef.current = false;
 			setIsSubmitting(false);
 		}
-	}, [items, itemStates, callBackend, logFrontendEvent, cdnJsonPath, taskKey]);
+	}, [items, itemStates, callBackend, logFrontendEvent, cdnJsonPath, taskKey, showSnackbar]);
 
 	/* -------------------------------------------------------------------------- */
 	/*                              サンクス画面                                  */
@@ -769,7 +798,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 							/>
 							{/* オーバーレイ */}
 							<View style={styles.detailOverlay}>
-								<Text style={styles.detailTopicTitle}>{selectedItem.topicTitle}</Text>
+								<Text style={styles.detailTitle}>{selectedItem.topicTitle}</Text>
 								<Text style={styles.detailReason} numberOfLines={3}>
 									{selectedItem.reason}
 								</Text>
@@ -1063,12 +1092,12 @@ const styles = StyleSheet.create({
 		left: 0,
 		right: 0,
 		bottom: 0,
-		backgroundColor: "rgba(0, 0, 0, 0.1)", // TopicCard と同じ
-		padding: 12, // TopicCard と同じ
-		justifyContent: "flex-end", // TopicCard と同じ（上下分離できる）
-		zIndex: 3, // TopicCard と同じ（念のため）
+		backgroundColor: "rgba(0, 0, 0, 0.1)", // DishCategoryCard と同じ
+		padding: 12, // DishCategoryCard と同じ
+		justifyContent: "flex-end", // DishCategoryCard と同じ（上下分離できる）
+		zIndex: 3, // DishCategoryCard と同じ（念のため）
 	},
-	detailTopicTitle: {
+	detailTitle: {
 		fontSize: 24,
 		fontWeight: "700",
 		color: "#FFFFFF",

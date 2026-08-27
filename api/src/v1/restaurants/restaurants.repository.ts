@@ -88,6 +88,10 @@ export class RestaurantsRepository {
         | 'address_components'
         | 'plus_code'
         | 'created_at'
+        | 'source_seed_id'
+        | 'source_names'
+        | 'source_row_hash'
+        | 'synced_at'
       > & {
         review_count: number;
         average_rating: number;
@@ -110,7 +114,9 @@ export class RestaurantsRepository {
         MAX(rct.created_at) AS last_saved_at
       FROM reactions rct
       JOIN dish_media dm
-        ON rct.target_id::uuid = dm.id
+        -- #1513 削除しても save の reaction は残る。ここで弾かないと
+        -- 実体の無い投稿だけを根拠に店舗が「保存済み」として出続ける
+        ON rct.target_id::uuid = dm.id AND dm.deleted_at IS NULL
       JOIN dishes d
         ON d.id = dm.dish_id
       JOIN params p
@@ -133,6 +139,12 @@ export class RestaurantsRepository {
       r.address_components,
       r.plus_code,
       r.created_at,
+      -- #843 catalog 同期の metadata。GROUP BY は r.id（主キー）なので
+      -- 関数従属で r.* を選べる（GROUP BY への追記は要らない）
+      r.source_seed_id,
+      r.source_names,
+      r.source_row_hash,
+      r.synced_at,
       COUNT(dr.id)::int                    AS review_count,
       COALESCE(AVG(dr.rating), 0)::double precision AS average_rating,
       sr.last_saved_at
@@ -145,7 +157,8 @@ export class RestaurantsRepository {
     LEFT JOIN dishes d
       ON d.restaurant_id = r.id
     LEFT JOIN dish_reviews dr
-      ON dr.dish_id = d.id
+      -- #1513 削除済みレビューを件数・平均に混ぜない
+      ON dr.dish_id = d.id AND dr.deleted_at IS NULL
     WHERE
       -- 粗いバウンディングボックスで先に絞り込み（インデックスがあれば活用されやすい）
       r.latitude BETWEEN p.lat - ${radiusInDegrees} AND p.lat + ${radiusInDegrees}
@@ -182,6 +195,10 @@ export class RestaurantsRepository {
         address_components: row.address_components,
         plus_code: row.plus_code,
         created_at: row.created_at,
+        source_seed_id: row.source_seed_id,
+        source_names: row.source_names,
+        source_row_hash: row.source_row_hash,
+        synced_at: row.synced_at,
       },
       meta: {
         reviewCount: row.review_count,
@@ -196,7 +213,10 @@ export class RestaurantsRepository {
   /* ------------------------------------------------------------------ */
   async searchNearbyRestaurants(
     tx: Prisma.TransactionClient,
-    dto: QueryRestaurantsDto,
+    // #1375 4 巡目: `orderByDistance` はキャプション住所での照合用。住所は «店そのもの» を
+    // 指しているので、入札額順で 100 件に切ると肝心の店が落ちる（独立レビュー指摘 #3）。
+    // API の公開 DTO には出さず、サーバ内部の呼び出しだけが指定できる形にしておく
+    dto: QueryRestaurantsDto & { orderByDistance?: boolean },
   ): Promise<RestaurantWithMeta[]> {
     this.logger.debug('SearchNearbyRestaurants', 'searchNearbyRestaurants', {
       lat: dto.lat,
@@ -207,6 +227,27 @@ export class RestaurantsRepository {
     // Geographic fence query: find restaurants based on latitude/longitude and radius
     const radiusInKm = dto.radius / 1000; // Convert to kilometers
     const radiusInDegrees = radiusInKm / 111; // Rough conversion (1 degree ≈ 111 km)
+
+    // #1395 店名の部分一致（自前 restaurants テーブル。Google Places は呼ばない）。
+    // ユーザー入力の % / _ / \ は LIKE のワイルドカードとして解釈されてしまうので、
+    // バインドする前にエスケープする（ESCAPE '\' は ILIKE の既定）。
+    const nameQuery = dto.q?.trim() ? dto.q.trim() : null;
+    const escapedNameQuery = nameQuery
+      ? nameQuery.replace(/[\\%_]/g, (c) => `\\${c}`)
+      : null;
+    const nameFilter = escapedNameQuery
+      ? Prisma.sql`AND r.name ILIKE ${'%' + escapedNameQuery + '%'}`
+      : Prisma.empty;
+    // 店名で絞ったときは入札額順ではなく距離順にする。
+    // 店舗選択 UI で「一蘭」と打った結果が入札額で並ぶのは不自然なため
+    // 距離式は SELECT に出さない（返却行に余計な列を混ぜないため）。
+    // GROUP BY r.id に対して r の列だけから成る式は関数従属なので ORDER BY に直接書ける
+    const orderBy =
+      escapedNameQuery || dto.orderByDistance
+        ? Prisma.sql`ORDER BY (6371 * acos(cos(radians(${dto.lat})) * cos(radians(r.latitude))
+            * cos(radians(r.longitude) - radians(${dto.lng})) + sin(radians(${dto.lat}))
+            * sin(radians(r.latitude)))) ASC`
+        : Prisma.sql`ORDER BY total_cents DESC`;
 
     const rawResult = await tx.$queryRaw<
       (Pick<
@@ -222,14 +263,18 @@ export class RestaurantsRepository {
         | 'address_components'
         | 'plus_code'
         | 'created_at'
+        | 'source_seed_id'
+        | 'source_names'
+        | 'source_row_hash'
+        | 'synced_at'
       > & {
         review_count: number;
         average_rating: number;
         total_cents: number;
         max_end_date: string | null;
       })[]
-    >`
-      SELECT 
+    >(Prisma.sql`
+      SELECT
         r.id,
         r.google_place_id,
         r.name,
@@ -241,6 +286,11 @@ export class RestaurantsRepository {
         r.address_components,
         r.plus_code,
         r.created_at,
+        -- #843 catalog 同期の metadata（GROUP BY r.id への関数従属で選べる）
+        r.source_seed_id,
+        r.source_names,
+        r.source_row_hash,
+        r.synced_at,
         COALESCE(SUM(rb.amount_cents), 0)::double precision as total_cents,
         MAX(rb.end_date) as max_end_date,
         COUNT(dr.id)::int AS review_count,
@@ -253,17 +303,19 @@ export class RestaurantsRepository {
       LEFT JOIN dishes d 
         ON d.restaurant_id = r.id
       LEFT JOIN dish_reviews dr 
-        ON dr.dish_id = d.id
+        -- #1513 削除済みレビューを件数・平均に混ぜない
+        ON dr.dish_id = d.id AND dr.deleted_at IS NULL
       WHERE 
         r.latitude BETWEEN ${dto.lat - radiusInDegrees} AND ${dto.lat + radiusInDegrees}
         AND r.longitude BETWEEN ${dto.lng - radiusInDegrees} AND ${dto.lng + radiusInDegrees}
         AND (6371 * acos(cos(radians(${dto.lat})) * cos(radians(r.latitude)) 
             * cos(radians(r.longitude) - radians(${dto.lng})) + sin(radians(${dto.lat})) 
             * sin(radians(r.latitude)))) <= ${radiusInKm}
+        ${nameFilter}
       GROUP BY r.id
-      ORDER BY total_cents DESC
+      ${orderBy}
       LIMIT ${dto.limit ?? 20};
-    `;
+    `);
 
     return rawResult.map((row) => ({
       restaurant: row,
@@ -313,6 +365,7 @@ export class RestaurantsRepository {
     const result = await tx.dish_reviews.aggregate({
       where: {
         dishes: { restaurant_id },
+        deleted_at: null, // #1513 削除済みレビューを件数・平均に混ぜない
       },
       _count: { _all: true }, // Review count
       _avg: { rating: true }, // Average rating

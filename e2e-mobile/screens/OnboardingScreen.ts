@@ -36,9 +36,12 @@ import {
  * 「最終ページでは next がツリーに存在しない」という前提を全ヘルパが背負っていた（#1086）。
  * 新実装の「前へ」「次へ」「スキップ」は **別々のボタン**で、押しても別の testID へ化けない。
  *
- * ⚠️ ただし **「次へ」を押した直後に解決文言を見ないこと**。各ページは表示から約 1.5 秒後に
- * 課題フェーズ → 解決フェーズへ切り替わる（`PROBLEM_PHASE_DURATION_MS`）。
- * 待つときは固定 sleep ではなく {@link expectSolutionShown} を使う。
+ * ## ⚠️ 「次へ」は 1 ページにつき **2 回**押す
+ *
+ * 各ページは «課題フェーズ → 解決フェーズ» の 2 段構えで、自動では切り替わらない
+ *（1 押下目で解決フェーズ、2 押下目で次のページ）。«次のページへ送る» つもりの 1 押下は
+ * 解決フェーズを出すだけで終わるので、ページを送るときは {@link goToNextStep} を、
+ * 解決フェーズを出すだけのときは {@link revealSolution} を使う。
  */
 export class OnboardingScreen {
 	/** 3 ステップ画面のルート */
@@ -93,9 +96,29 @@ export class OnboardingScreen {
 	 * ⚠️ 解決文は課題フェーズでも **ツリーには存在する**（`opacity: 0` で場所だけ確保している）。
 	 * `existsNow` で判定すると課題フェーズと区別できないので、`toBeVisible`（Detox は
 	 * 可視性に不透明度を含める）で «見えている» ことを見る。
+	 *
+	 * ⚠️ 自動では再生されない。「次へ」を押していない状態で待つと必ずタイムアウトする
+	 *（押下も込みで待ちたいときは {@link revealSolution}）。
 	 */
 	async expectSolutionShown(step: 1 | 2 | 3, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.solutionText(step), timeout);
+	}
+
+	/** 解決フェーズを出す（「次へ」を 1 回押して、解決文が見えるまで待つ） */
+	async revealSolution(step: 1 | 2 | 3): Promise<void> {
+		await this.expectStep(step);
+		await this.pressNext();
+		await this.expectSolutionShown(step);
+	}
+
+	/**
+	 * 次のページへ送る（解決フェーズを出してから、もう一度「次へ」を押す）。
+	 *
+	 * 3 枚目で呼ぶとログイン画面へ抜けるので、ページ送りにだけ使うこと。
+	 */
+	async goToNextStep(from: 1 | 2 | 3): Promise<void> {
+		await this.revealSolution(from);
+		await this.pressNext();
 	}
 
 	/** 「次へ」を 1 回押す */
@@ -116,6 +139,30 @@ export class OnboardingScreen {
 	/** Welcome の「はじめる」を押す */
 	async pressStart(): Promise<void> {
 		await tapWhenPresent(this.startButton);
+	}
+
+	/**
+	 * Welcome の「はじめる」を、**画面を抜けるまでタップし直しながら**押し切る。
+	 *
+	 * Welcome は紙吹雪が無限ループする（確定仕様）うえ、record_videos 有効時は
+	 * 画面録画の負荷も乗る。この状態の iOS シミュレータでは 1 回のタップが
+	 * 取りこぼされることがあり、「押したのに Welcome のまま」で後続の遷移待ちが
+	 * タイムアウトした（録画有効の run 32609985951 / 32615946840 で計 4 連続、
+	 * 録画無効の run 32605810775 では成功、という相関の実測）。
+	 * タップは冪等（markOnboardingSeen + 遷移）なので、着地確認とセットで繰り返す。
+	 *
+	 * @param exitedMatcher 遷移先で見えるはずの要素（例: 検索ヘッダのタイトル）
+	 */
+	async pressStartUntilExited(exitedMatcher: Detox.NativeMatcher, timeout = 60_000): Promise<void> {
+		await waitUntil(
+			async () => {
+				if (await visibleNow(this.startButton, 1_000)) {
+					await tapWhenPresent(this.startButton);
+				}
+				return visibleNow(exitedMatcher, 3_000);
+			},
+			{ description: "「はじめる」でアプリ本体へ戻ること", timeout },
+		);
 	}
 
 	/**
@@ -144,13 +191,15 @@ export class OnboardingScreen {
 	}
 
 	/**
-	 * 3 ステップを最後まで進める。
+	 * 3 ステップを最後まで進める（各ページで «解決を出す» → «送る» の 2 押下）。
 	 *
-	 * @param maxSteps ページ送りの上限（無限ループ防止。現在のページ数は 3）
+	 * 押下ごとに «3 枚目に着いたか» を見て打ち切るのは、呼び出し時点で何ページ目・
+	 * どちらのフェーズに居るか分からない（1 枚目の解決フェーズから呼ばれることもある）ため。
+	 *
+	 * @param maxPresses 「次へ」の押下上限（無限ループ防止。3 ページ × 2 押下に余裕を足した値）
 	 */
-	async advanceToLastStep(maxSteps = 5): Promise<void> {
-		await this.expectStep(1);
-		for (let i = 0; i < maxSteps; i += 1) {
+	async advanceToLastStep(maxPresses = 8): Promise<void> {
+		for (let i = 0; i < maxPresses; i += 1) {
 			if (await existsNow(this.problemText(3), 1_000)) return;
 			await this.pressNext();
 		}

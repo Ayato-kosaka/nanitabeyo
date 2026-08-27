@@ -19,9 +19,9 @@ export const TUTORIAL_STORAGE_KEY = "search_tutorial_seen_v1";
 
 /**
  * 料理提案画面スポットライトチュートリアルの表示済みフラグ。
- * app-expo/features/topics/hooks/useTopicsTutorial.ts と必ず一致させる。
+ * app-expo/features/dishCategories/hooks/useDishCategoriesTutorial.ts と必ず一致させる。
  */
-export const TOPICS_TUTORIAL_STORAGE_KEY = "topics_spotlight_tutorial_seen_v1";
+export const DISH_CATEGORIES_TUTORIAL_STORAGE_KEY = "topics_spotlight_tutorial_seen_v1";
 
 /**
  * オンボーディングを「表示済み」としてシードする。
@@ -44,10 +44,10 @@ export async function seedTutorialAsSeen(context: BrowserContext): Promise<void>
  * 料理提案画面を操作する既存E2Eがスポットライトに遮られないよう、
  * 専用spec以外ではfixtureから既定で適用する。
  */
-export async function seedTopicsTutorialAsSeen(context: BrowserContext): Promise<void> {
+export async function seedDishCategoriesTutorialAsSeen(context: BrowserContext): Promise<void> {
 	await context.addInitScript((key) => {
 		window.localStorage.setItem(key, "true");
-	}, TOPICS_TUTORIAL_STORAGE_KEY);
+	}, DISH_CATEGORIES_TUTORIAL_STORAGE_KEY);
 }
 
 /**
@@ -133,5 +133,33 @@ export async function seedRecentLocations(context: BrowserContext, locations: Se
 			window.localStorage.setItem(key as string, value as string);
 		},
 		[RECENT_LOCATIONS_STORAGE_KEY, JSON.stringify(locations)] as const,
+	);
+}
+
+/**
+ * 表示テーマ（システム追従 / ライト / ダーク）の保存キー。
+ * app-expo/contexts/ThemeProvider.ts の `THEME_PREFERENCE_STORAGE_KEY` と一致させること（#1509）。
+ */
+export const THEME_PREFERENCE_STORAGE_KEY = "theme_preference_v1";
+
+/** 設定画面の 3 択と同じ型（app-expo/contexts/ThemeProvider.tsx の ThemePreference） */
+export type SeededThemePreference = "system" | "light" | "dark";
+
+/**
+ * 表示テーマの設定を事前シードする（#1509）。
+ *
+ * 「再起動しても保持される」を検証するときは **シードではなく実際に UI で切り替えてから
+ * reload する**こと（シードだと保存経路を検証したことにならない）。
+ * このシードは「ダーク状態で開いた画面を検査したい」ように、切替操作そのものが
+ * 主題ではないテストのために使う。
+ *
+ * @param context ブラウザコンテキスト（ページ生成前に呼ぶこと）
+ */
+export async function seedThemePreference(context: BrowserContext, preference: SeededThemePreference): Promise<void> {
+	await context.addInitScript(
+		([key, value]) => {
+			window.localStorage.setItem(key as string, value as string);
+		},
+		[THEME_PREFERENCE_STORAGE_KEY, preference] as const,
 	);
 }

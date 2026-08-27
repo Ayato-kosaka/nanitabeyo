@@ -10,7 +10,7 @@
 ## #1386 で「地図の店詳細」が消えた
 以前はここに «地図の店詳細（BlurModal の中身）は close してから push する» という順序の固定があった。
 #1386 で地図の店詳細シートそのものが無くなり（店詳細は
-`/[locale]/(tabs)/review/restaurant/[restaurantId]` ルート 1 本へ統合）、
+`/[locale]/restaurant/[restaurantId]` ルート 1 本へ統合）、
 ログイン導線も店詳細 1 箇所に減ったため、順序の固定は «この画面は portal を持たない» という
 不変条件へ置き換えた（下の describe）。
 
@@ -24,7 +24,7 @@ testID とボタンの結線そのものは E2E（e2e-mobile / e2e-web）が見�
 */
 import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
-import type { RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
+import type { RestaurantEntry } from "@/stores/useRestaurantStore";
 
 const mockPush = jest.fn();
 let mockUser: { id: string; is_anonymous?: boolean } | null = null;
@@ -52,13 +52,30 @@ jest.mock("expo-router", () => {
 jest.mock("@/contexts/AuthProvider", () => ({
 	useAuth: () => ({ user: mockUser, isAuthResolved: true }),
 }));
+// #1375（5 巡目・性能）画面はタブのフォーカスを見て «見えているビューだけ取得する»。
+// ナビゲータの外で画面を描くテストなので、フォーカスは «前面» 固定でよい
+jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("@/hooks/useHaptics", () => ({
 	useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }),
 }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+// #1375（5 巡目）チュートリアルは **必ずスタブ化する**。
+// 実体は Modal + 無限ループのアニメーション + 座標の測り直しを持つので、
+// マウントすると jest がアイドルにならず OOM で落ちる（実際に落ちた）。
+// 料理提案画面のテスト（groupVoteShareTokenGuard.test.tsx）が
+// TopicsSpotlightTutorial をスタブ化しているのと同じ理由。
+jest.mock("@/features/myDishes/components/MyDishesSpotlightTutorial", () => ({
+	MY_DISHES_TUTORIAL_STORAGE_KEY: "my_dishes_spotlight_tutorial_seen_v1",
+	MyDishesSpotlightTutorial: () => null,
+}));
 jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: () => {} }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+// #1402 マイページ本体がログアウトの確認ダイアログを持つようになった（旧設定画面から移動）。
+// このテストで見たいのは «押した先» だけなので、プロバイダごと潰す
+jest.mock("@/contexts/DialogProvider", () => ({
+	useDialog: () => ({ showDialog: jest.fn(), confirm: jest.fn().mockResolvedValue(false) }),
+}));
 
 jest.mock("react-native-safe-area-context", () => {
 	const ReactActual = jest.requireActual("react");
@@ -131,8 +148,9 @@ jest.mock("react-native-paper", () => ({
 }));
 
 // マイページ: 導線ボタンは ProfileHeader が描く。ここで見たいのは
-// 「ProfileTabsLayout が onLogin に何を渡しているか」なので、ヘッダーは onLogin だけ露出する器へ潰す
+// 「マイページ画面が onLogin に何を渡しているか」なので、ヘッダーは onLogin だけ露出する器へ潰す
 // （testID とボタンの結線は e2e-mobile の profile-login-button が見ている）
+// #1402 マイページは ProfileTabsLayout（4 グリッドタブ）ではなくルート本体になった
 jest.mock("@/features/profile/components/ProfileHeader", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
@@ -141,11 +159,6 @@ jest.mock("@/features/profile/components/ProfileHeader", () => {
 			ReactActual.createElement(RNView, { testID: "profile-login-button", onPress: onLogin }),
 	};
 });
-jest.mock("@/features/profile/components/ProfileTabsBar", () => ({ ProfileTabsBar: () => null }));
-jest.mock("@/features/profile/tabs/ReviewTab", () => ({ ReviewTab: () => null }));
-jest.mock("@/features/profile/tabs/LikeTab", () => ({ LikeTab: () => null }));
-jest.mock("@/features/profile/tabs/SavedPostsTab", () => ({ SavedPostsTab: () => null }));
-jest.mock("@/features/profile/tabs/SavedTopicsTab", () => ({ SavedTopicsTab: () => null }));
 jest.mock("@/features/profile/components/ProfileEditForm", () => ({ ProfileEditForm: () => null }));
 jest.mock("@/features/profile/hooks/useEnsureOwnProfileLoaded", () => ({ useEnsureOwnProfileLoaded: () => {} }));
 jest.mock("@/features/profile/stores/useProfileStore", () => ({
@@ -153,9 +166,9 @@ jest.mock("@/features/profile/stores/useProfileStore", () => ({
 		selector({ profile: { id: "profile-1", username: "tester" } }),
 }));
 
-import { SelectedRestaurantDetails as ReviewRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
-import ReviewScreen from "../app/[locale]/(tabs)/review/index";
-import { ProfileTabsLayout } from "@/features/profile/containers/ProfileTabsLayout";
+import { SelectedRestaurantDetails as ReviewRestaurantDetails } from "@/features/restaurant/components/SelectedRestaurantDetails";
+import MyDishesScreen from "../app/[locale]/(tabs)/my-dishes/index";
+import ProfileScreen from "../app/[locale]/(tabs)/profile/index";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -171,9 +184,8 @@ const restaurantEntry = {
 };
 const reviewRestaurantEntry = restaurantEntry as unknown as RestaurantEntry;
 
-// ⚠️ 描画したツリーは必ず unmount すること。ProfileTabsLayout は ?tab= 指定があると
-// jumpToTab のリトライ（setInterval / #1272）を回し、その cleanup は unmount でしか走らない。
-// 放置するとテスト終了後に setState が走り、環境の破棄と競って別のテストが謎の失敗をする
+// ⚠️ 描画したツリーは必ず unmount すること。放置するとテスト終了後に setState が走り、
+// 環境の破棄と競って別のテストが謎の失敗をする
 const mountedTrees: TestRenderer.ReactTestRenderer[] = [];
 const render = async (element: React.ReactElement) => {
 	let tree!: TestRenderer.ReactTestRenderer;
@@ -207,7 +219,7 @@ beforeEach(() => {
 
 describe("#1359 ログイン導線の push 先と next（#1386 で 4 箇所 → 3 箇所）", () => {
 	it("マイページ: next はマイページ", async () => {
-		const tree = await render(<ProfileTabsLayout />);
+		const tree = await render(<ProfileScreen />);
 
 		await press(tree, "profile-login-button");
 
@@ -218,29 +230,32 @@ describe("#1359 ログイン導線の push 先と next（#1386 で 4 箇所 → 
 		});
 	});
 
-	// #954 の `?tab=` で来ていれば、そのタブまで next に載る（履歴が無い着地でも選択タブを再現する）
-	it("マイページ: ?tab= 付きで来ていれば next にもタブが載る", async () => {
+	// #1402 【設計】旧実装は `?tab=` で来ていればその «選択タブ» を next に載せていた
+	// （履歴が無い着地でも選択タブを再現するため）。4 グリッドタブごと廃止されて
+	// マイページは URL だけで完全に再現できる画面になったので、next は常にマイページ 1 本になる。
+	// タブ指定つきの直リンクで来ても next を汚さないことを固定しておく
+	it("マイページ: 旧仕様の ?tab= 付きで来ても next にタブは載らない", async () => {
 		mockLocalParams = { tab: "liked" };
 
-		const tree = await render(<ProfileTabsLayout />);
+		const tree = await render(<ProfileScreen />);
 
 		await press(tree, "profile-login-button");
 
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/auth/login",
-			params: { locale: "ja-JP", next: "/ja-JP/profile?tab=liked" },
+			params: { locale: "ja-JP", next: "/ja-JP/profile" },
 		});
 	});
 
-	it("レビュータブ: next はレビュータブ自身（この画面は URL だけで再現できる）", async () => {
-		const tree = await render(<ReviewScreen />);
+	it("食べたい/食べたタブ: next はこのタブ自身（この画面は URL だけで再現できる）", async () => {
+		const tree = await render(<MyDishesScreen />);
 
-		await press(tree, "review-guest-login-button");
+		await press(tree, "my-dishes-guest-login-button");
 
 		expect(mockPush).toHaveBeenCalledTimes(1);
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/auth/login",
-			params: { locale: "ja-JP", next: "/ja-JP/review" },
+			params: { locale: "ja-JP", next: "/ja-JP/my-dishes" },
 		});
 	});
 
@@ -252,7 +267,7 @@ describe("#1359 ログイン導線の push 先と next（#1386 で 4 箇所 → 
 		expect(mockPush).toHaveBeenCalledTimes(1);
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/auth/login",
-			params: { locale: "ja-JP", next: `/ja-JP/review/restaurant/${RESTAURANT_ID}/review` },
+			params: { locale: "ja-JP", next: `/ja-JP/restaurant/${RESTAURANT_ID}/review` },
 		});
 	});
 
@@ -263,8 +278,8 @@ describe("#1359 ログイン導線の push 先と next（#1386 で 4 箇所 → 
 	it("ログイン済みならどの導線もログイン画面へは push しない", async () => {
 		mockUser = MEMBER;
 
-		const reviewTree = await render(<ReviewScreen />);
-		await press(reviewTree, "review-post-button");
+		const myDishesTree = await render(<MyDishesScreen />);
+		await press(myDishesTree, "my-dishes-record-button");
 
 		const detailTree = await render(<ReviewRestaurantDetails restaurantEntry={reviewRestaurantEntry} />);
 		await press(detailTree, "restaurant-detail-post-photo-button");
@@ -293,15 +308,15 @@ describe("#1386 ログイン導線を持つ画面は portal を 1 つも持た�
 		expect(mockPortal).not.toHaveBeenCalled();
 	});
 
-	it("レビュータブは Portal を 1 つも描かない", async () => {
-		const tree = await render(<ReviewScreen />);
-		await press(tree, "review-guest-login-button");
+	it("食べたい/食べたタブは Portal を 1 つも描かない", async () => {
+		const tree = await render(<MyDishesScreen />);
+		await press(tree, "my-dishes-guest-login-button");
 
 		expect(mockPortal).not.toHaveBeenCalled();
 	});
 
 	it("マイページは Portal を 1 つも描かない", async () => {
-		const tree = await render(<ProfileTabsLayout />);
+		const tree = await render(<ProfileScreen />);
 		await press(tree, "profile-login-button");
 
 		expect(mockPortal).not.toHaveBeenCalled();

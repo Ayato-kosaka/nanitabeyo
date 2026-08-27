@@ -102,16 +102,16 @@ describe("Onboarding の i18n", () => {
 		try {
 			i18n.locale = "ja-JP";
 
-			// #1486 §1 の文言（デザインレビューで一部更新）。
-			// - step1 の解決文はレビューで確定した改稿版（明示改行入り）
-			// - 長文は画面幅で折り返し位置が揺れるため、意味の切れ目に \n を入れてある。
-			//   ここを消すと狭い端末で不格好な位置で折り返す
-			expect(i18n.t("Onboarding.step1.problem")).toBe("何食べたいか、決まらない。");
-			expect(i18n.t("Onboarding.step1.solution")).toBe("おすすめの料理が提案されるので\n「食べたい」が見つかる");
-			expect(i18n.t("Onboarding.step2.problem")).toBe("お店探し。\n候補が多すぎて時間がかかる。");
-			expect(i18n.t("Onboarding.step2.solution")).toBe("料理もお店も候補が厳選されているので\nすぐ決められる");
-			expect(i18n.t("Onboarding.step3.problem")).toBe("一緒に行く人の好みも、外したくない。");
-			expect(i18n.t("Onboarding.step3.solution")).toBe("友達と投票して、料理を決められる");
+			// #1486 §1 の文言（最終検収で全 3 ページを «つぶやき → 効能» の対に書き換え）。
+			// 課題文は «ユーザーの独り言»、解決文は «だから何ができるか» で揃えてある。
+			// 長文は画面幅で折り返し位置が揺れるため、意味の切れ目に \n を入れてある。
+			// ここを消すと狭い端末で不格好な位置で折り返す
+			expect(i18n.t("Onboarding.step1.problem")).toBe("そもそも何食べたいか決まらない");
+			expect(i18n.t("Onboarding.step1.solution")).toBe("提案されたオススメの料理の中から選ぶだけ");
+			expect(i18n.t("Onboarding.step2.problem")).toBe("お店の候補が多すぎて、\n決めるの疲れるなぁ");
+			expect(i18n.t("Onboarding.step2.solution")).toBe("厳選したお店から選ぶから決めやすい！");
+			expect(i18n.t("Onboarding.step3.problem")).toBe("友達の意見も聞きたいなぁ");
+			expect(i18n.t("Onboarding.step3.solution")).toBe("友達と多数決で料理を決められる！");
 
 			// #1486 §5 / §6 / §7 の確定文言（welcome.title の 🎉 はレビューで削除が確定）
 			expect(i18n.t("Onboarding.location.title")).toBe("近くのお店を、すぐ見つけよう 📍");

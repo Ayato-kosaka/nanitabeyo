@@ -20,7 +20,7 @@ import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check } from "lucide-react-native";
 
-import { useAPICall } from "@/hooks/useAPICall";
+import { useAPICall, type ApiError } from "@/hooks/useAPICall";
 import { useWithLoading } from "@/hooks/useWithLoading";
 import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -101,9 +101,18 @@ export default function DishCategoryImageOptimizerPage() {
 				payload: { count: result.length },
 			});
 		} catch (error) {
+			// #1476 【設計】403（forbidden）は **権限機構が正しく拒否した結果**で、壊れていない。
+			// この画面は内部作業用（sitemap 対象外・アプリ内リンク無し）なので、権限の無い人が
+			// URL を直接開けば必ずこうなる。人間の対応は要らない。
+			//
+			// 実測（本番 2026-08-20T12:33:08Z / 1 ユーザー）: 匿名のまま ko-KR でこの URL を開き、
+			// 403 を受けてそのまま離脱している。壊れた機能を踏んだのではなく、入れない扉を押しただけ。
+			//
+			// ⚠️ forbidden 以外は error のまま残すこと。tools API 自体が落ちたときの信号を消さない。
+			const isForbidden = (error as ApiError | null | undefined)?.code === "forbidden";
 			logFrontendEvent({
 				event_name: "tools_categories_error",
-				error_level: "error",
+				error_level: isForbidden ? "warn" : "error",
 				payload: { error },
 			});
 			showSnackbar(i18n.t("Common.error"));
@@ -122,37 +131,28 @@ export default function DishCategoryImageOptimizerPage() {
 			return;
 		}
 
-		try {
-			// const result = await callBackend<UpdateDishCategoryImagesDto, UpdateDishCategoryImagesResponse>(
-			// 	"tools/dish-categories/update-images",
-			// 	{
-			// 		method: "POST",
-			// 		requestPayload: { items },
-			// 	},
-			// );
-			// if (result.success) {
-			// 	showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitSuccess", { count: result.updatedCount }));
-			// 	// 成功後はリセット
-			// 	setSelectedMap({});
-			// 	// カテゴリを再取得
-			// 	await fetchCategories();
-			// } else {
-			// 	showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitError"));
-			// }
-			// logFrontendEvent({
-			// 	event_name: "tools_images_updated",
-			// 	error_level: "log",
-			// 	payload: { count: items.length, success: result.success },
-			// });
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "tools_images_update_error",
-				error_level: "error",
-				payload: { error },
-			});
-			showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitError"));
-		}
-	}, [selectedMap, callBackend, showSnackbar, fetchCategories, logFrontendEvent]);
+		// #1599 【バグ】ここは送信処理が丸ごとコメントアウトされたまま、ボタンだけが
+		// 生きていた。例外が起きようがないので下の catch も発火せず、
+		// **ローディングが一瞬出て消えるだけで成功も失敗も一切通知されない**。
+		// 操作者からは «更新できた» のか «何も起きなかった» のか区別が付かない。
+		//
+		// 【調べた結果】コメントアウトは消し忘れではなく、**API 側が存在しない**ため。
+		//   - `api/src/tools/dish-categories/tools-dish-categories.controller.ts` は
+		//     `GET popular-with-media` の 1 本だけで、`POST update-images` は無い
+		//   - `UpdateDishCategoryImagesDto` / `UpdateDishCategoryImagesResponse` も
+		//     リポジトリのどこにも存在しない（このコメントの中にしか出てこない）
+		//
+		// つまり **そのまま復活させても型が解決せず、通っても 404 になる**。
+		// 直し方は «API を作る» であってフロントの復活ではないので、ここでは
+		// «出来ないことを出来ないと言う» ところまでにしておく。
+		// API（#494 の【API②】）が入ったら、この分岐ごと置き換えること。
+		logFrontendEvent({
+			event_name: "tools_images_update_unavailable",
+			error_level: "warn",
+			payload: { count: items.length },
+		});
+		showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitUnavailable"));
+	}, [selectedMap, showSnackbar, logFrontendEvent]);
 
 	/* ------------------------------------------------------------------ */
 	/*                           イベントハンドラ                          */

@@ -72,7 +72,7 @@ export class DishCategoryGroupVoteResultScreen {
 	 * ヘッダーの戻るボタンでトピック画面へ戻る。
 	 *
 	 * ⚠️ この画面は ScreenHeader に testID を渡していないため、戻るは共通の `screen-header-back` のまま。
-	 * 背面のトピック画面は #1404 で `topics-header-back` になったので id は衝突しなくなったが、
+	 * 背面のトピック画面は #1404 で `dish-categories-header-back` になったので id は衝突しなくなったが、
 	 * この画面自身にも testID を付けるまでは «共通 id を引いている» ことに変わりはない。
 	 * react-native-screens のネイティブスタックは背面の画面をビュー階層から外すため実行時は一意に解決する
 	 * 想定だが、もし「Multiple elements were matched」で落ちる場合は背面が階層に残っているということなので、

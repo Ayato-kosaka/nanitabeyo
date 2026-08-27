@@ -43,59 +43,66 @@ test.describe("法務ドキュメント画面", () => {
 		await legalPage.expectNotFound();
 	});
 
-	// ─ テストケース: 設定画面から開いて戻れる ─
+	// ─ テストケース: マイページの設定項目から開いて戻れる ─
 	// #1368 モーダル時代は「閉じる」で設定へ戻っていた。ルート化後は履歴の pop になる。
 	// 手順:
 	//   1. 設定画面を表示する
 	//   2. 利用規約行をクリックし、/legal/terms へ遷移することを検証
-	//   3. ヘッダーの戻るボタンで離脱し、設定画面へ戻ることを検証
-	test("設定の利用規約行から開き、戻るボタンで設定へ帰る", async ({ appPage }) => {
+	//   3. ヘッダーの戻るボタンで離脱し、マイページへ戻ることを検証
+	test("マイページの利用規約行から開き、戻るボタンでマイページへ帰る", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		const legalPage = new LegalPage(appPage);
 
+		// #1583 規約は «なに食べよについて» へ移った。マイページからの導線ごと踏む
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		await settingsPage.openAbout();
 
 		await settingsPage.termsItem.click();
 		await legalPage.expectOpened("terms");
 
 		await legalPage.goBack();
 
-		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/settings/);
-		await expect(settingsPage.title).toBeVisible();
+		// #1583 規約は «なに食べよについて» から開いたので、戻り先もそこ
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about$/);
+		await expect(settingsPage.termsItem).toBeVisible();
 	});
 
-	// ─ テストケース: ブラウザバックでも設定へ戻る ─
+	// ─ テストケース: ブラウザバックでも «なに食べよについて» へ戻る ─
 	// #1368 【設計】戻る責務を Navigator へ渡したこと自体の検証。モーダル時代は
 	// ブラウザバックがモーダルを閉じずにタブごと戻していた（URL が変わらないため）。
 	// 手順:
-	//   1. 設定画面からプライバシーポリシーを開く
+	//   1. マイページからプライバシーポリシーを開く
 	//   2. ブラウザバックする
-	//   3. 設定画面へ戻ることを検証
-	test("ブラウザバックで設定画面へ戻る", async ({ appPage }) => {
+	//   3. マイページへ戻ることを検証
+	test("ブラウザバックでマイページへ戻る", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		const legalPage = new LegalPage(appPage);
 
+		// #1583 規約は «なに食べよについて» へ移った。マイページからの導線ごと踏む
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		await settingsPage.openAbout();
 
 		await settingsPage.privacyItem.click();
 		await legalPage.expectOpened("privacy");
 
 		await appPage.goBack();
 
-		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/settings/);
-		await expect(settingsPage.title).toBeVisible();
+		// #1583 規約は «なに食べよについて» から開いたので、戻り先もそこ
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about$/);
+		await expect(settingsPage.termsItem).toBeVisible();
 	});
 
 	// ─ テストケース: 履歴が無い着地でも行き止まりにならない ─
 	// #1368 【設計】検索結果・共有リンク・ストア審査からの着地は履歴を持たない。
-	// `router.canGoBack()` が false のとき、戻る導線は設定画面への replace に倒れる。
+	// `router.canGoBack()` が false のとき、戻る導線はマイページへの replace に倒れる
+	// （#1402 以前は設定画面へ倒れていた。その画面が無くなったので行き先が変わった）。
 	// 手順:
 	//   1. /ja-JP/legal/terms へ直接着地する（履歴なし）
 	//   2. ヘッダーの戻るボタンを押す
-	//   3. 設定画面へ着地することを検証
-	test("直リンク着地から戻ると設定画面へ倒れる", async ({ appPage }) => {
+	//   3. マイページへ着地することを検証
+	test("直リンク着地から戻るとマイページへ倒れる", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		const legalPage = new LegalPage(appPage);
 
@@ -104,7 +111,8 @@ test.describe("法務ドキュメント画面", () => {
 
 		await legalPage.goBack();
 
-		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/settings/);
-		await expect(settingsPage.title).toBeVisible();
+		// #1402 設定は独立した画面ではなくマイページの縦リストになった
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile$/);
+		await settingsPage.expectLoaded();
 	});
 });

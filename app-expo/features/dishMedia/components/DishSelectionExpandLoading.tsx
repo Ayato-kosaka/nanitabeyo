@@ -12,7 +12,7 @@ type DishSelectionExpandLoadingProps = {
 
 // #1484 【仕様】「この料理にする！」押下後、独立したローディング画面の代わりに選択した料理画像を
 // フルスクリーン表示したまま店舗提案の取得を待つ。カードからここまで広がるアニメーション自体は
-// 遷移前の Topics 画面（TopicCardExpandTransition）が担当済みのため、ここでは広がり切った状態を
+// 遷移前の DishCategories 画面（DishCategoryCardExpandTransition）が担当済みのため、ここでは広がり切った状態を
 // そのまま静的に描画するだけでよい（ここで再度アニメーションさせると二重に動いて見える）。
 export const DishSelectionExpandLoading = ({ imageUrl }: DishSelectionExpandLoadingProps) => (
 	<View

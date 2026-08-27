@@ -56,10 +56,12 @@ import {
  * 先読み対象の枚数（#1087 / #1486）。
  *
  * ⚠️ `app-expo/features/search/constants.ts` の `PRELOAD_IMAGES` と必ず対応させること
- * （オンボーディング 6 枚 + アプリアイコン + レビューのヒーロー画像 + Apple / Google のロゴ = 10 枚）。
+ * （オンボーディング 6 枚 + アプリアイコン + Apple / Google のロゴ = 9 枚）。
+ * #1403 (PR1) レビューのヒーロー画像はレビュータブと一緒に削除され `PRELOAD_IMAGES` から
+ * 消えている（main 側の #1486 と統合ブランチのマージで 10 → 9）。
  * e2e-web の `utils/preload-assets.ts` の `PRELOAD_ASSET_KEYS` と同じ位置づけ。
  */
-export const PRELOAD_IMAGE_COUNT = 10;
+export const PRELOAD_IMAGE_COUNT = 9;
 
 /**
  * 先読み完了を待つ上限 (ms)。
@@ -95,6 +97,18 @@ export class SearchScreen {
 	readonly locationClearButton = by.id("search-location-autocomplete-clear");
 	/** 場所サジェストのリスト */
 	readonly locationSuggestions = by.id("search-location-autocomplete-suggestions");
+	/** #1502 地点確認中(details 取得中)の表示。e2e-web の locationConfirming に対応 */
+	readonly locationConfirming = by.id("search-location-autocomplete-confirmation-confirming");
+	/** #1502 地点確定済みの表示 */
+	readonly locationConfirmed = by.id("search-location-autocomplete-confirmation-confirmed");
+	/**
+	 * #1502 地点確認失敗の表示。
+	 * ⚠️ 現時点では spec から未使用。details API を失敗させる手段が無いため(下記 selectLocationSuggestion
+	 * のコメント参照)。testID 自体は実装済みなので、モック手段が入り次第 location-confirmation.test.ts へ追加すること
+	 */
+	readonly locationConfirmationError = by.id("search-location-autocomplete-confirmation-error");
+	/** #1502 地点確認失敗時の再試行ボタン。上記と同じ理由で現時点では spec 未使用 */
+	readonly locationConfirmationRetry = by.id("search-location-autocomplete-confirmation-retry");
 	/** 「最近使った場所」のリスト（#953。e2e-web の recentLocationsList に対応）。
 	 *  未入力でフォーカスしたときだけ描画される */
 	readonly recentLocationsList = by.id("search-location-autocomplete-recent-locations");
