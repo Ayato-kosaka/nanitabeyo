@@ -39,12 +39,16 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 export default function LoginScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
 	const { user, isAuthResolved } = useAuth();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	// `next` は外部（URL / ディープリンク）から来る値。行き先として採用してよいかは
 	// lib/authNext.ts で検証する。ここでは生のまま受け取るだけにする
 	const { next, skippable } = useLocalSearchParams<{ next?: string; skippable?: string }>();
@@ -165,7 +169,7 @@ export default function LoginScreen() {
 							accessibilityLabel={i18n.t("Common.back")}
 							hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
 							testID="login-screen-back">
-							<ChevronLeft size={26} color="#1A1A1A" />
+							<ChevronLeft size={26} color={colors.textPrimary} />
 						</TouchableOpacity>
 					)}
 				</View>
@@ -205,63 +209,66 @@ export default function LoginScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	safeArea: {
-		flex: 1,
-	},
-	topBar: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 20,
-		paddingTop: 12,
-		paddingBottom: 4,
-		minHeight: 44,
-	},
-	topBarSpacer: {
-		flex: 1,
-	},
-	scrollView: {
-		flex: 1,
-	},
-	scrollContent: {
-		paddingTop: 24,
-		paddingBottom: 40,
-	},
-	logo: {
-		alignSelf: "center",
-		width: 72,
-		height: 72,
-		borderRadius: 18,
-		marginBottom: 20,
-	},
-	title: {
-		fontSize: 22,
-		lineHeight: 32,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
-	},
-	subtitle: {
-		marginTop: 10,
-		marginBottom: 8,
-		paddingHorizontal: 32,
-		fontSize: 14,
-		lineHeight: 22,
-		color: "#4B5563",
-		textAlign: "center",
-	},
-	loadingContainer: {
-		paddingVertical: 64,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	skipLabel: {
-		fontSize: 15,
-		fontWeight: "600",
-		color: "#6B7280",
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		topBar: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingHorizontal: 20,
+			paddingTop: 12,
+			paddingBottom: 4,
+			minHeight: 44,
+		},
+		topBarSpacer: {
+			flex: 1,
+		},
+		scrollView: {
+			flex: 1,
+		},
+		scrollContent: {
+			paddingTop: 24,
+			paddingBottom: 40,
+		},
+		logo: {
+			alignSelf: "center",
+			width: 72,
+			height: 72,
+			borderRadius: 18,
+			marginBottom: 20,
+		},
+		title: {
+			fontSize: 22,
+			lineHeight: 32,
+			fontWeight: "700",
+			color: c.textPrimary,
+			textAlign: "center",
+		},
+		subtitle: {
+			marginTop: 10,
+			marginBottom: 8,
+			paddingHorizontal: 32,
+			fontSize: 14,
+			lineHeight: 22,
+			color: c.textSecondaryAlt,
+			textAlign: "center",
+		},
+		loadingContainer: {
+			paddingVertical: 64,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		skipLabel: {
+			fontSize: 15,
+			fontWeight: "600",
+			color: c.textSecondary,
+		},
+	});

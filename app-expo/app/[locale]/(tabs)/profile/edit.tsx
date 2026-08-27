@@ -34,11 +34,15 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 export default function ProfileEditScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 
 	// #1369 【設計】モーダル時代はマイページ（ProfileTabsLayout）が読み込んだ profile を
 	// そのまま覗いていたが、ルートは URL 直リンク・web のリロードで «単独で» 着地しうる。
@@ -128,7 +132,7 @@ export default function ProfileEditScreen() {
 	}, [logFrontendEvent, retry]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader
 					title={i18n.t("Profile.buttons.editProfile")}
@@ -159,23 +163,26 @@ export default function ProfileEditScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	safeArea: {
-		flex: 1,
-	},
-	messageContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		gap: 16,
-		paddingHorizontal: 32,
-	},
-	errorText: {
-		fontSize: 15,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		messageContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			gap: 16,
+			paddingHorizontal: 32,
+		},
+		errorText: {
+			fontSize: 15,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+	});

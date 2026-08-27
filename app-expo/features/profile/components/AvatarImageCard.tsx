@@ -10,6 +10,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { getCacheKeyForImage } from "@/lib/image";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface AvatarImageCardProps {
 	/** 現在のアバター画像URL（なければプレースホルダ） */
@@ -29,6 +31,8 @@ export function AvatarImageCard({ avatarUrl, onSelectImage, onLayout }: AvatarIm
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 
 	const [isLoading, setIsLoading] = useState(false);
 
@@ -83,13 +87,15 @@ export function AvatarImageCard({ avatarUrl, onSelectImage, onLayout }: AvatarIm
 						/>
 					) : (
 						<View style={styles.avatarPlaceholder}>
-							<Ionicons name="person-circle-outline" size={64} color="#999" />
+							<Ionicons name="person-circle-outline" size={64} color={colors.iconPlaceholder} />
 						</View>
 					)}
 
 					{/* カメラアイコンオーバーレイ */}
 					<View style={styles.cameraIconContainer}>
-						<Ionicons name="camera" size={20} color="#FFFFFF" />
+						{/* ブランド色で塗り潰した丸バッジの上のアイコン。地（brand）がライト / ダークで
+					    変わらないので、アイコンもテーマで振らない */}
+						<Ionicons name="camera" size={20} color={FixedColors.onFilled} />
 					</View>
 				</TouchableOpacity>
 			</View>
@@ -99,59 +105,63 @@ export function AvatarImageCard({ avatarUrl, onSelectImage, onLayout }: AvatarIm
 	);
 }
 
-const styles = StyleSheet.create({
-	label: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		marginBottom: 16,
-		alignSelf: "flex-start",
-	},
-	avatarWrapper: {
-		alignItems: "center",
-	},
-	avatarContainer: {
-		width: 120,
-		height: 120,
-		marginBottom: 8,
-		position: "relative",
-	},
-	avatar: {
-		width: "100%",
-		height: "100%",
-		overflow: "hidden",
-		borderRadius: 20,
-		borderWidth: 3,
-		borderColor: "#FFFFFF",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-	avatarPlaceholder: {
-		width: "100%",
-		height: "100%",
-		backgroundColor: "#F3F4F6",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	cameraIconContainer: {
-		position: "absolute",
-		bottom: 0,
-		right: 0,
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		backgroundColor: "#F05537",
-		justifyContent: "center",
-		alignItems: "center",
-		borderWidth: 2,
-		borderColor: "#FFFFFF",
-	},
-	hint: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		label: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textPrimary,
+			marginBottom: 16,
+			alignSelf: "flex-start",
+		},
+		avatarWrapper: {
+			alignItems: "center",
+		},
+		avatarContainer: {
+			width: 120,
+			height: 120,
+			marginBottom: 8,
+			position: "relative",
+		},
+		avatar: {
+			width: "100%",
+			height: "100%",
+			overflow: "hidden",
+			borderRadius: 20,
+			borderWidth: 3,
+			borderColor: c.surface,
+			// 影はテーマに依らず黒。暗面では実質見えないだけで、値としては黒のままでよい
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.15,
+			shadowRadius: 8,
+			elevation: 6,
+		},
+		avatarPlaceholder: {
+			width: "100%",
+			height: "100%",
+			backgroundColor: c.surfaceSubtle,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		cameraIconContainer: {
+			position: "absolute",
+			bottom: 0,
+			right: 0,
+			width: 36,
+			height: 36,
+			borderRadius: 18,
+			backgroundColor: c.brand,
+			justifyContent: "center",
+			alignItems: "center",
+			borderWidth: 2,
+			borderColor: c.surface,
+		},
+		hint: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+	});

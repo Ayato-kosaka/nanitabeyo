@@ -128,6 +128,22 @@ export const FixedColors = {
 	notificationLike: "#FF3040",
 	notificationSave: "#5856D6",
 	notificationVote: "#34C759",
+	/*
+	#1509 ウォレット（デポジット / 収益）の «状態» を表すチップの地色。
+
+	上の通知バッジと同じで、これは面の色ではなく **識別子** である。
+	緑 = 進行中 / 支払済、青 = 完了、橙 = 返金 / 保留 の対応が
+	ライトとダークで振れると、同じ行が別の状態に見えてしまう。
+	チップは «塗り潰し» で、上に載る字は `onFilled`（＝白）。
+	*/
+	/** active（デポジット進行中）/ paid（支払済） */
+	walletStatusActive: "#4CAF50",
+	/** completed（デポジット完了） */
+	walletStatusCompleted: "#2196F3",
+	/** refunded（返金済）/ pending（支払待ち） */
+	walletStatusPending: "#FF9800",
+	/** 未知の status が来たときのフォールバック。灰の塗り潰しなので白字が載る */
+	walletStatusUnknown: "#666666",
 } as const;
 
 export interface Palette {
@@ -166,6 +182,14 @@ export interface Palette {
 	brandTintAlt: string;
 	/** ブランドの淡い罫線（アクティブタブの下線部など） */
 	brandBorder: string;
+	/** 弱い罫線（`#E5E5E5` 系統。ライトでは borderMuted と別値のため分けてある） */
+	borderFaint: string;
+	/** 中庸の罫線（アウトラインのボタン・チェックボックス・引用の縦罫） */
+	borderNeutral: string;
+	/** 未選択チップの地（`#F5F5F5` 系統。ライトでは surfaceMuted と別値のため分けてある） */
+	surfaceChip: string;
+	/** 未選択チップの地（`#EDEFF1` 系統。ライトでは surfaceChip と別値のため分けてある） */
+	surfaceChipAlt: string;
 
 	// ───────── 文字・アイコン ─────────
 	/** 主要な文字（見出し・本文） */
@@ -210,6 +234,8 @@ export interface Palette {
 	dangerStrong: string;
 	/** 注意の淡い地（必須バッジ） */
 	dangerTint: string;
+	/** 注意のさらに淡い地（入力エラー時の入力欄。ライトでは dangerTint より淡い） */
+	dangerTintSoft: string;
 	/** 破壊的操作の文字（ログアウト） */
 	destructive: string;
 	/** 確認ダイアログの見出し（Material の onSurface 系。#1577） */
@@ -260,6 +286,10 @@ const light: Palette = {
 	surfaceFaint: "#F9FAFB", // #1469 ReviewForm.tsx 入力欄の地
 	brandTintAlt: "#FDE7E1", // #1469 my-dishes/filters.tsx / sns-import.tsx のブランド淡地
 	brandBorder: "#F6DCD5", // #1469 my-dishes/index.tsx アクティブタブ下のborderBottom
+	borderFaint: "#E5E5E5", // #1509 wallet/DepositsTab.tsx 未選択チップの枠線
+	borderNeutral: "#D1D5DB", // #1509 auth/LoginForm.tsx のピル・チェックボックス / LegalDocument.tsx の引用の縦罫
+	surfaceChip: "#F5F5F5", // #1509 wallet/DepositsTab.tsx 未選択のステータスチップの地
+	surfaceChipAlt: "#EDEFF1", // #1509 wallet/EarningsTab.tsx 未選択のステータスチップの地
 
 	textPrimary: "#1A1A1A", // ScreenHeader.tsx title / search headerTitle
 	textPrimaryAlt: "#111827", // DistanceSlider.tsx estimateLabel
@@ -282,6 +312,7 @@ const light: Palette = {
 	danger: "#DC2626", // search requiredText
 	dangerStrong: "#EF4444", // search selectedRestrictionChip
 	dangerTint: "#FEE2E2", // search requiredBadge
+	dangerTintSoft: "#FEF2F2", // #1509 ProfileEditForm.tsx 入力エラー時の入力欄の地
 	destructive: "#FF3E33", // マイページのログアウト行
 	dialogTitle: "#1C1B1F", // #1577 DialogProvider が直書きしていた値の写し（M3 onSurface）
 	dialogMessage: "#49454F", // 同上（M3 onSurfaceVariant）
@@ -319,6 +350,10 @@ const dark: Palette = {
 	surfaceFaint: "#1C1B1B", // schemes.dark.surfaceContainerLow（surfaceMuted と同値へ収束）
 	brandTintAlt: "#3A241F", // brandTint と同じ暗面混色（暗面ではこの階調差が出ない）
 	brandBorder: "#3A241F", // brandTint の暗面混色を罫線に転用（ブランド色の淡い下線を保つ）
+	borderFaint: "#444748", // schemes.dark.outlineVariant（borderMuted と同値へ収束。暗面ではこれ以上淡い罫線が見えない）
+	borderNeutral: "#444748", // schemes.dark.outlineVariant（暗面では border 系がこの 1 値へ収束する）
+	surfaceChip: "#2A2A2A", // schemes.dark.surfaceContainerHigh（未選択チップを地からわずかに浮かせる）
+	surfaceChipAlt: "#2A2A2A", // schemes.dark.surfaceContainerHigh（surfaceChip と同値へ収束）
 
 	textPrimary: "#E5E2E1", // schemes.dark.onSurface
 	textPrimaryAlt: "#E5E2E1", // 同上（ライトの #111827 / #1A1A1A はダークでは同じ役割に収束する）
@@ -341,6 +376,7 @@ const dark: Palette = {
 	danger: "#FF8A80", // 暗面では明度を上げないと文字用途で AA を割る
 	dangerStrong: "#FF6B6B",
 	dangerTint: "#4A2320", // danger を暗面へ混色
+	dangerTintSoft: "#331E1C", // dangerTint よりさらに淡い暗面混色（入力欄の地なので沈ませる）
 	destructive: "#FF8A80",
 	dialogTitle: "#E5E2E1", // schemes.dark.onSurface
 	dialogMessage: "#C4C7C7", // schemes.dark.onSurfaceVariant
