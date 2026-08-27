@@ -52,7 +52,7 @@ jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnac
 
 jest.mock("@/features/myDishes/stores/useMyDishesRevisionStore", () => ({ bumpMyDishesRevision: jest.fn() }));
 
-import { OwnPostActions } from "./OwnPostActions";
+import { DishMediaMoreMenu } from "./DishMediaMoreMenu";
 import { useDishMediaEntriesStore, type NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
 
 // React 19 では初期描画がスケジューラのタスクへ回されるため act() で包む必要がある
@@ -62,7 +62,8 @@ const DISH_MEDIA_ID = "dm-1";
 const REVIEW_ID = "review-1";
 
 const entry = {
-	dish_media: { id: DISH_MEDIA_ID },
+	// #1629 編集・削除の行は `dish_media.isMine` で出し分ける。自分の投稿として作る
+	dish_media: { id: DISH_MEDIA_ID, isMine: true },
 	restaurant: { id: "restaurant-1", name: "テスト店" },
 	dishReviewIds: [REVIEW_ID],
 } as unknown as NormalizedDishMediaEntry;
@@ -88,10 +89,14 @@ function seedStore() {
 
 let activeRenderer: TestRenderer.ReactTestRenderer | undefined;
 
-function renderOwnPostActions() {
+// #1629 シェア・報告はこのメニューへ畳まれたので、呼び出しの有無をここで見る
+const mockOnShare = jest.fn();
+const mockOnReport = jest.fn();
+
+function renderDishMediaMoreMenu() {
 	let renderer!: TestRenderer.ReactTestRenderer;
 	act(() => {
-		renderer = TestRenderer.create(<OwnPostActions entry={entry} />);
+		renderer = TestRenderer.create(<DishMediaMoreMenu entry={entry} onShare={mockOnShare} onReport={mockOnReport} />);
 	});
 	activeRenderer = renderer;
 	return renderer;
@@ -128,7 +133,7 @@ describe("#1513 削除導線は「投稿を削除」1 本", () => {
 	});
 
 	it("メニューの削除行は 1 つだけで、レビュー単体を消す導線が無い", () => {
-		const renderer = renderOwnPostActions();
+		const renderer = renderDishMediaMoreMenu();
 		act(() => {
 			findPressable(renderer, "dish-action-more").props.onPress();
 		});
@@ -147,7 +152,7 @@ describe("#1513 削除導線は「投稿を削除」1 本", () => {
 		mockConfirm.mockResolvedValueOnce(true);
 		mockCallBackend.mockResolvedValueOnce({ deletedDishReviewIds: [REVIEW_ID] });
 
-		const renderer = renderOwnPostActions();
+		const renderer = renderDishMediaMoreMenu();
 		act(() => {
 			findPressable(renderer, "dish-action-more").props.onPress();
 		});
@@ -167,7 +172,7 @@ describe("#1513 削除導線は「投稿を削除」1 本", () => {
 	it("確認を断ると API を叩かない", async () => {
 		mockConfirm.mockResolvedValueOnce(false);
 
-		const renderer = renderOwnPostActions();
+		const renderer = renderDishMediaMoreMenu();
 		act(() => {
 			findPressable(renderer, "dish-action-more").props.onPress();
 		});
@@ -176,5 +181,81 @@ describe("#1513 削除導線は「投稿を削除」1 本", () => {
 		});
 
 		expect(mockCallBackend).not.toHaveBeenCalled();
+	});
+});
+
+/*
+#1629 【仕様】«…» は他人の投稿でも出る。中身が出し分けられるだけである。
+
+⚠️ ここが赤くなったら «他人の投稿を通報できない» 状態に戻っている。
+   通報導線が UI から消えると、«見つけられないから通報されない» を
+   «問題が無い» と読み違えることになる（#1514 の設計判断）。
+*/
+describe("#1629 他人の投稿でもメニューは出る", () => {
+	const othersEntry = {
+		dish_media: { id: DISH_MEDIA_ID, isMine: false },
+		restaurant: { id: "restaurant-1", name: "テスト店" },
+		dishReviewIds: [],
+	} as unknown as NormalizedDishMediaEntry;
+
+	it("シェアと報告は出て、編集と削除は出ない", async () => {
+		let renderer: TestRenderer.ReactTestRenderer | undefined;
+		await act(async () => {
+			renderer = TestRenderer.create(
+				<DishMediaMoreMenu entry={othersEntry} onShare={mockOnShare} onReport={mockOnReport} />,
+			);
+		});
+		activeRenderer = renderer;
+
+		await act(async () => {
+			renderer!.root.findByProps({ testID: "dish-action-more" }).props.onPress();
+		});
+
+		expect(findHosts(renderer!, "dish-action-share")).toHaveLength(1);
+		expect(findHosts(renderer!, "dish-action-report")).toHaveLength(1);
+		expect(findHosts(renderer!, "own-post-edit-button")).toHaveLength(0);
+		expect(findHosts(renderer!, "own-post-delete-button")).toHaveLength(0);
+	});
+
+	it("報告を押すと、メニューを閉じて onReport を呼ぶ", async () => {
+		let renderer: TestRenderer.ReactTestRenderer | undefined;
+		await act(async () => {
+			renderer = TestRenderer.create(
+				<DishMediaMoreMenu entry={othersEntry} onShare={mockOnShare} onReport={mockOnReport} />,
+			);
+		});
+		activeRenderer = renderer;
+
+		await act(async () => {
+			renderer!.root.findByProps({ testID: "dish-action-more" }).props.onPress();
+		});
+		await act(async () => {
+			renderer!.root.findByProps({ testID: "dish-action-report" }).props.onPress();
+		});
+
+		expect(mockOnReport).toHaveBeenCalledTimes(1);
+	});
+});
+
+/*
+#1629 【仕様】自分の投稿には «報告» を出さない（オーナー指摘）。
+
+自分の投稿を通報できても、消したいなら «投稿を削除» があるので意味が無く、
+運営のキューに «本人が自分を通報した» 行だけが積む。主要な SNS も
+自分の投稿には通報を出さない（出るのは編集・削除）。
+
+⚠️ シェアは自分の投稿でも出す。自分の投稿を人へ渡すのは普通の操作である。
+*/
+describe("#1629 自分の投稿には報告を出さない", () => {
+	it("自分の投稿: シェアと編集と削除は出るが、報告は出ない", async () => {
+		seedStore();
+		const renderer = renderDishMediaMoreMenu();
+		await act(async () => {
+			renderer.root.findByProps({ testID: "dish-action-more" }).props.onPress();
+		});
+
+		expect(findHosts(renderer, "dish-action-share")).toHaveLength(1);
+		expect(findHosts(renderer, "own-post-delete-button")).toHaveLength(1);
+		expect(findHosts(renderer, "dish-action-report")).toHaveLength(0);
 	});
 });

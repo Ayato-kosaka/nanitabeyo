@@ -128,6 +128,40 @@ export const FixedColors = {
 	notificationLike: "#FF3040",
 	notificationSave: "#5856D6",
 	notificationVote: "#34C759",
+	/*
+	#1509 ウォレット（デポジット / 収益）の «状態» を表すチップの地色。
+
+	上の通知バッジと同じで、これは面の色ではなく **識別子** である。
+	緑 = 進行中 / 支払済、青 = 完了、橙 = 返金 / 保留 の対応が
+	ライトとダークで振れると、同じ行が別の状態に見えてしまう。
+	チップは «塗り潰し» で、上に載る字は `onFilled`（＝白）。
+	*/
+	/** active（デポジット進行中）/ paid（支払済） */
+	walletStatusActive: "#4CAF50",
+	/** completed（デポジット完了） */
+	walletStatusCompleted: "#2196F3",
+	/** refunded（返金済）/ pending（支払待ち） */
+	walletStatusPending: "#FF9800",
+	/** 未知の status が来たときのフォールバック。灰の塗り潰しなので白字が載る */
+	walletStatusUnknown: "#666666",
+	/*
+	#1629 オンボーディング（#1486）の «全面写真» 画面の下地。
+
+	この画面は共感写真を `StyleSheet.absoluteFill` で全面に敷き、その上に白文字・
+	白い円形ボタンだけを載せる ＝ 構造としてメディアビューアと同じである（`mediaBackground`
+	と同じ理由でテーマに追従させない）。写真が出るまでの一瞬と、写真の外側に見える墨色で、
+	ここをライトで明るくすると白文字と白い円が読めなくなる。
+	白丸ボタンの中の矢印（白地の上の文字）にも同じ値を使う ＝ 地と字で 1 セット。
+	*/
+	photoBackdrop: "#1A1A1A",
+	/*
+	#1629 Welcome 画面（#1486 §7）の紙吹雪の色。
+
+	情報を持たない純粋な装飾で、«パーティの紙片» という見立てそのものが意味である。
+	テーマで振ると彩度の違う 7 色を 2 セット持つことになり、根拠の無い色が増えるだけで
+	絵としては良くならない。`notificationLike` 等と同じく «識別子としての色» 扱いにする。
+	*/
+	confettiPieces: ["#F05537", "#FFB03A", "#FFE066", "#4ECDC4", "#8E7DFF", "#FF8FA3", "#3BC46A"],
 } as const;
 
 export interface Palette {
@@ -146,6 +180,10 @@ export interface Palette {
 	surfaceSelected: string;
 	/** web の中央カラムの外側（アプリの外の余白） */
 	appShellBackdrop: string;
+	/** 画像の読み込み前に見えるプレースホルダの地・進捗トラックの未通過部（`#E5E7EB` 系統） */
+	surfacePlaceholder: string;
+	/** 選択された «候補チップ» の淡い藍地（#1629 友達投票の名前候補） */
+	surfaceSelectedTint: string;
 
 	// ───────── 罫線・区切り ─────────
 	/** カード内の行区切り */
@@ -166,12 +204,22 @@ export interface Palette {
 	brandTintAlt: string;
 	/** ブランドの淡い罫線（アクティブタブの下線部など） */
 	brandBorder: string;
+	/** 弱い罫線（`#E5E5E5` 系統。ライトでは borderMuted と別値のため分けてある） */
+	borderFaint: string;
+	/** 中庸の罫線（アウトラインのボタン・チェックボックス・引用の縦罫） */
+	borderNeutral: string;
+	/** 未選択チップの地（`#F5F5F5` 系統。ライトでは surfaceMuted と別値のため分けてある） */
+	surfaceChip: string;
+	/** 未選択チップの地（`#EDEFF1` 系統。ライトでは surfaceChip と別値のため分けてある） */
+	surfaceChipAlt: string;
 
 	// ───────── 文字・アイコン ─────────
 	/** 主要な文字（見出し・本文） */
 	textPrimary: string;
 	/** 主要な文字（`#111827` 系統。ライトでは textPrimary と別値のため分けてある） */
 	textPrimaryAlt: string;
+	/** 主要な文字（`#1F2937` 系統。ライトでは textPrimaryAlt よりわずかに淡いため分けてある） */
+	textPrimaryDim: string;
 	/** 面の上の強い文字・アイコン（ライトでは純黒） */
 	textStrong: string;
 	/** 副次的な文字（説明・単位） */
@@ -200,6 +248,8 @@ export interface Palette {
 	brandTint: string;
 	/** ブランドのさらに淡い地（おすすめ行のハイライト） */
 	brandTintSoft: string;
+	/** ブランド色で進む進捗バーの «未通過» 側（#1629 オンボーディングの権限画面） */
+	brandTrack: string;
 
 	// ───────── セマンティック ─────────
 	/** 成功・確定を示すアイコン（地点確定の ✓ #1502 / 通報の受付完了 #1514） */
@@ -210,6 +260,9 @@ export interface Palette {
 	dangerStrong: string;
 	/** 注意の淡い地（必須バッジ） */
 	dangerTint: string;
+	/** さらに淡い注意の地（エラーバナー・エラー時の入力欄。ライトでは dangerTint より薄いため分けてある） */
+	/** 注意のさらに淡い地（削除ボタンの地。`#FEF2F2` 系統） */
+	dangerTintSoft: string;
 	/** 破壊的操作の文字（ログアウト） */
 	destructive: string;
 	/** 確認ダイアログの見出し（Material の onSurface 系。#1577） */
@@ -224,6 +277,22 @@ export interface Palette {
 	warningText: string;
 	/** 注意喚起バナーの操作リンク */
 	warningAction: string;
+
+	// ───────── OS 許可ダイアログの複製（#1629 / #1486 §5） ─────────
+	/**
+	 * オンボーディングの権限画面は、中央に **OS の許可ダイアログを模したダミー**を置く
+	 * （実物はこのダミーの上へ重なって出る）。だから他の面・文字トークンへ寄せてはいけない。
+	 * 寄せた瞬間に «実物とそっくり» という唯一の存在理由が消える。値は iOS のアラートの
+	 * システム値をライト / ダークそれぞれから採る。
+	 */
+	/** ダミーダイアログの地 */
+	alertSurface: string;
+	/** ダミーダイアログの本文 */
+	alertMessage: string;
+	/** ダミーダイアログのボタン区切り線 */
+	alertSeparator: string;
+	/** ダミーダイアログのボタン文字（iOS のシステムブルー） */
+	alertAction: string;
 
 	// ───────── 主要 CTA（検索ボタン） ─────────
 	/** CTA の地（充足時） */
@@ -250,6 +319,8 @@ const light: Palette = {
 	surfaceSubtle: "#F3F4F6", // DistanceSlider.tsx estimateRow
 	surfaceSelected: "#E5E5E5", // SelectableChip.tsx / SelectableGridItem.tsx selected
 	appShellBackdrop: "#F3F4F6", // CenteredAppShell.web.tsx outer
+	surfacePlaceholder: "#E5E7EB", // #1629 友達投票の候補画像プレースホルダ / 投票プログレスの未通過部
+	surfaceSelectedTint: "#EEF2FF", // #1629 友達投票の «選択中の名前候補» の地
 
 	divider: "#F3F4F6", // SettingsMenuItem の区切り線
 	border: "#C9C9C9", // ScreenHeader.tsx borderBottom / SelectableChip.tsx
@@ -260,9 +331,14 @@ const light: Palette = {
 	surfaceFaint: "#F9FAFB", // #1469 ReviewForm.tsx 入力欄の地
 	brandTintAlt: "#FDE7E1", // #1469 my-dishes/filters.tsx / sns-import.tsx のブランド淡地
 	brandBorder: "#F6DCD5", // #1469 my-dishes/index.tsx アクティブタブ下のborderBottom
+	borderFaint: "#E5E5E5", // #1509 wallet/DepositsTab.tsx 未選択チップの枠線
+	borderNeutral: "#D1D5DB", // アウトラインのボタン・チェックボックス・引用の縦罫・入力欄の枠線
+	surfaceChip: "#F5F5F5", // #1509 wallet/DepositsTab.tsx 未選択のステータスチップの地
+	surfaceChipAlt: "#EDEFF1", // #1509 wallet/EarningsTab.tsx 未選択のステータスチップの地
 
 	textPrimary: "#1A1A1A", // ScreenHeader.tsx title / search headerTitle
 	textPrimaryAlt: "#111827", // DistanceSlider.tsx estimateLabel
+	textPrimaryDim: "#1F2937", // #1629 友達投票の結果ヘッダー（参加者数・人数アイコン）
 	textStrong: "#000000", // search moodLabel / SelectableChip label / 現在地アイコン
 	textSecondary: "#6B7280", // search restrictionChipText / タブバー非アクティブ
 	textSecondaryAlt: "#4B5563", // DistanceSlider.tsx estimateValue
@@ -277,11 +353,13 @@ const light: Palette = {
 	brand: "#F05537",
 	brandTint: "#FDEBE7", // search advancedToggle / DistanceSlider badge
 	brandTintSoft: "#FFF7F5", // DistanceSlider recommendedRow
+	brandTrack: "#FBD9D0", // #1629 オンボーディング権限画面の進捗バーの地
 
 	success: "#16A34A", // 地点確定の ✓（#1502）/ 通報受付の CircleCheck（#1514）。白地の上で AA 可
 	danger: "#DC2626", // search requiredText
 	dangerStrong: "#EF4444", // search selectedRestrictionChip
 	dangerTint: "#FEE2E2", // search requiredBadge
+	dangerTintSoft: "#FEF2F2", // エラーバナー / エラー時の入力欄 / 候補を削除ボタンの地（main のリテラルの写し）
 	destructive: "#FF3E33", // マイページのログアウト行
 	dialogTitle: "#1C1B1F", // #1577 DialogProvider が直書きしていた値の写し（M3 onSurface）
 	dialogMessage: "#49454F", // 同上（M3 onSurfaceVariant）
@@ -289,6 +367,11 @@ const light: Palette = {
 	warningTint: "#FEF3C7", // #1510 OS 通知拒否バナーの地
 	warningText: "#92400E", // 同バナーの本文（#FEF3C7 の上で AA 可）
 	warningAction: "#B45309", // 同バナーのリンク・アイコン
+
+	alertSurface: "#F5F5F7", // #1629 iOS ライトのアラートの地（すりガラスの代替）
+	alertMessage: "#48484A", // 同 secondaryLabel 相当
+	alertSeparator: "#C6C6C8", // 同 separator（不透明化した値）
+	alertAction: "#007AFF", // 同 systemBlue（ライト）
 
 	ctaBackground: "#000000", // search searchFab gradient(充足)
 	ctaBackgroundDisabled: "#999999", // search searchFab gradient(未充足)
@@ -309,6 +392,8 @@ const dark: Palette = {
 	surfaceSubtle: "#2A2A2A", // schemes.dark.surfaceContainerHigh
 	surfaceSelected: "#353434", // schemes.dark.surfaceContainerHighest
 	appShellBackdrop: "#0E0E0E", // schemes.dark.surfaceContainerLowest（カラムより暗い外側）
+	surfacePlaceholder: "#2A2A2A", // schemes.dark.surfaceContainerHigh（暗面では «まだ何も無い» 面はここへ収束する）
+	surfaceSelectedTint: "#242737", // 藍を暗面へ混色（brandTint と同じ作法。選択の «色の手掛かり» を残す）
 
 	divider: "#2A2A2A", // schemes.dark.surfaceContainerHigh
 	border: "#444748", // schemes.dark.outlineVariant
@@ -319,9 +404,14 @@ const dark: Palette = {
 	surfaceFaint: "#1C1B1B", // schemes.dark.surfaceContainerLow（surfaceMuted と同値へ収束）
 	brandTintAlt: "#3A241F", // brandTint と同じ暗面混色（暗面ではこの階調差が出ない）
 	brandBorder: "#3A241F", // brandTint の暗面混色を罫線に転用（ブランド色の淡い下線を保つ）
+	borderFaint: "#444748", // schemes.dark.outlineVariant（borderMuted と同値へ収束。暗面ではこれ以上淡い罫線が見えない）
+	borderNeutral: "#444748", // schemes.dark.outlineVariant（暗面では border 系がこの 1 値へ収束する）
+	surfaceChip: "#2A2A2A", // schemes.dark.surfaceContainerHigh（未選択チップを地からわずかに浮かせる）
+	surfaceChipAlt: "#2A2A2A", // schemes.dark.surfaceContainerHigh（surfaceChip と同値へ収束）
 
 	textPrimary: "#E5E2E1", // schemes.dark.onSurface
 	textPrimaryAlt: "#E5E2E1", // 同上（ライトの #111827 / #1A1A1A はダークでは同じ役割に収束する）
+	textPrimaryDim: "#E5E2E1", // 同上（ライトの #1F2937 も暗面では同じ «主要な文字» へ収束する）
 	textStrong: "#E5E2E1", // 同上
 	textSecondary: "#A8ABAB", // onSurfaceVariant(#C4C7C7) をやや落として主従を保つ
 	textSecondaryAlt: "#C4C7C7", // schemes.dark.onSurfaceVariant
@@ -336,11 +426,13 @@ const dark: Palette = {
 	brand: "#F05537", // 据え置き（#141313 上でコントラスト比 約 5:1、AA 可）
 	brandTint: "#3A241F", // brand を暗面へ混色
 	brandTintSoft: "#2A1D1A", // brandTint よりさらに淡い混色
+	brandTrack: "#3A241F", // brandTint と同値。暗面で明るいピンクの帯を残すと画面から浮く
 
 	success: "#81C995", // 暗面では明度を上げないと視認性を保てない（danger と同じ方針で手動調整）。#1502 / #1514 共用
 	danger: "#FF8A80", // 暗面では明度を上げないと文字用途で AA を割る
 	dangerStrong: "#FF6B6B",
 	dangerTint: "#4A2320", // danger を暗面へ混色
+	dangerTintSoft: "#331E1C", // dangerTint よりさらに淡い暗面混色（地なので沈ませる。ライトの階調差は保つ）
 	destructive: "#FF8A80",
 	dialogTitle: "#E5E2E1", // schemes.dark.onSurface
 	dialogMessage: "#C4C7C7", // schemes.dark.onSurfaceVariant
@@ -348,6 +440,11 @@ const dark: Palette = {
 	warningTint: "#3A2E12", // 暗面へ混色した琥珀。明るい箱が浮かないようにする
 	warningText: "#FFD9A0", // #3A2E12 の上で AA を満たす明度まで上げる
 	warningAction: "#FFB86B",
+
+	alertSurface: "#2C2C2E", // iOS ダークのアラートの地
+	alertMessage: "#AEAEB2", // 同 secondaryLabel 相当（不透明化した値）
+	alertSeparator: "#545458", // 同 separator（不透明化した値）
+	alertAction: "#0A84FF", // 同 systemBlue（ダーク）
 
 	ctaBackground: "#E5E2E1", // 暗面では CTA を反転させる（黒地の CTA は背景に沈む）
 	ctaBackgroundDisabled: "#4A4A4A",

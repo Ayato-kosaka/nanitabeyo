@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "シェア",
 			"seeMore": "もっと見る",
-			"openMap": "地図を開く"
+			"openMap": "地図を開く",
+			"review": "レビュー"
 		},
 		"share": {
 			"title": "{{dishName}}をチェック"
@@ -464,6 +465,9 @@
 			"saveFailed": "更新できませんでした",
 			"conflict": "他の端末で先に更新されました。開き直してから編集してください",
 			"forbidden": "自分の投稿ではないため操作できません"
+		},
+		"moreMenu": {
+			"title": "この投稿"
 		}
 	},
 	"ImageCardGrid": {
@@ -843,7 +847,8 @@
 			"group_votes": {
 				"title": "グループ投票",
 				"description": "参加しているグループ投票に動きがあったとき"
-			}
+			},
+			"navigationLabel": "通知設定"
 		},
 		"language": {
 			"navigationLabel": "言語",
@@ -886,6 +891,10 @@
 			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
+		},
+		"account": {
+			"navigationLabel": "アカウント管理",
+			"title": "アカウント管理"
 		}
 	},
 	"Dialog": {

@@ -44,13 +44,21 @@ export function SettingsMenuItem({
 				accessibilityRole={accessibilityRole}
 				accessibilityLabel={label}>
 				<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
-				{/* #950 【仕様】装飾アイコンのため読み上げ対象から除外し、行のラベルと二重に読み上げさせない */}
-				<ChevronRight
-					size={20}
-					color={colors.textTertiary}
-					accessibilityElementsHidden
-					importantForAccessibility="no"
-				/>
+				{/*
+				  #950 【仕様】装飾アイコンのため読み上げ対象から除外し、行のラベルと二重に読み上げさせない。
+
+				  #1629 【仕様】**その場で実行する行（`accessibilityRole="button"`）には «>» を出さない。**
+				  «>» は「押すと次の画面へ行く」という約束の記号である。ログアウトやアカウント削除のような
+				  «押すとその場で確認ダイアログが出る» 行に付けると、行き先があるように読める。
+				*/}
+				{accessibilityRole === "link" && (
+					<ChevronRight
+						size={20}
+						color={colors.textTertiary}
+						accessibilityElementsHidden
+						importantForAccessibility="no"
+					/>
+				)}
 			</TouchableOpacity>
 			{!isLast && <View style={styles.separator} />}
 		</>

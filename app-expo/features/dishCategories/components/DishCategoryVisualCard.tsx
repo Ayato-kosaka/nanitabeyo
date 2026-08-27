@@ -6,6 +6,8 @@ import { ImageOff, RefreshCw } from "lucide-react-native";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import i18n from "@/lib/i18n";
 import { type DishCategoryImageResourceState } from "@/features/dishCategories/hooks/useDishCategoryImageResources";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 type DishCategoryVisualCardProps = {
 	title: string;
@@ -38,6 +40,7 @@ export function DishCategoryVisualCard({
 	onImageRetry,
 	onImageLoadError,
 }: DishCategoryVisualCardProps) {
+	const styles = useThemedStyles(createStyles);
 	const shouldShowSkeleton = imageState ? imageState.status === "idle" || imageState.status === "loading" : false;
 	const shouldShowFailureUI = imageState?.status === "error";
 	const resolvedImageSource = imageState?.status === "ready" ? imageState.image : imageSource;
@@ -85,11 +88,13 @@ export function DishCategoryVisualCard({
 				{shouldShowFailureUI && (
 					<View style={styles.failureOverlay}>
 						<View style={styles.failureContent}>
-							<ImageOff size={48} color="#FFF" strokeWidth={1.5} />
+							{/* 料理写真の面（読み込み失敗時も暗いスクリムの上）に載るアイコンなので固定の白でよい */}
+							<ImageOff size={48} color={FixedColors.onMedia} strokeWidth={1.5} />
 							<Text style={styles.failureText}>{i18n.t("DishCategories.imageLoadFailed")}</Text>
 							{onImageRetry ? (
 								<TouchableOpacity style={styles.retryButton} onPress={onImageRetry} activeOpacity={0.8}>
-									<RefreshCw size={16} color="#FFF" />
+									{/* 半透明の黒で塗ったボタンの上。地が固定なのでアイコンも固定の白 */}
+									<RefreshCw size={16} color={FixedColors.onMedia} />
 									<Text style={styles.retryText}>{i18n.t("DishCategories.tapToReload")}</Text>
 								</TouchableOpacity>
 							) : null}
@@ -109,109 +114,116 @@ export function DishCategoryVisualCard({
 	);
 }
 
-const styles = StyleSheet.create({
-	card: {
-		borderRadius: 24,
-		overflow: "hidden",
-		backgroundColor: "#EEE",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.3,
-		// #1008 【パフォーマンス】parallaxモードのスケール変換と重なるとAndroidでオーバードロー・
-		// ラスタライズ負荷が増えるため、shadowRadius/elevationを縮小する。
-		shadowRadius: 12,
-		elevation: 6,
-		position: "relative",
-	},
-	cardImage: {
-		width: "100%",
-		height: "100%",
-	},
-	skeletonOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		zIndex: 1,
-	},
-	failureOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		justifyContent: "center",
-		alignItems: "center",
-		zIndex: 2,
-	},
-	failureContent: {
-		alignItems: "center",
-		gap: 16,
-	},
-	failureText: {
-		fontSize: 16,
-		color: "#FFF",
-		fontWeight: "600",
-		textAlign: "center",
-	},
-	retryButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		backgroundColor: "rgba(0, 0, 0, 0.3)",
-		paddingHorizontal: 20,
-		paddingVertical: 12,
-		borderRadius: 24,
-	},
-	retryText: {
-		fontSize: 14,
-		color: "#FFF",
-		fontWeight: "600",
-	},
-	cardOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		padding: 24,
-		justifyContent: "space-between",
-		zIndex: 3,
-	},
-	bottomGradient: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		bottom: 0,
-		height: "72%",
-	},
-	topRightContent: {
-		alignSelf: "flex-end",
-		gap: 12,
-		zIndex: 4,
-	},
-	cardContent: {
-		flex: 1,
-		justifyContent: "flex-end",
-		zIndex: 1,
-		paddingBottom: 8,
-	},
-	// #1008 【パフォーマンス】textShadowはAndroidでラスタライズ負荷になるため撤去し、
-	// 可読性は上の bottomGradient の不透明度側で担保する。
-	cardTitle: {
-		fontSize: 32,
-		fontWeight: "700",
-		color: "#FFFFFF",
-		marginBottom: 16,
-		lineHeight: 40,
-		letterSpacing: -0.5,
-	},
-	cardDescription: {
-		fontSize: 18,
-		color: "#FFFFFF",
-		lineHeight: 28,
-		marginBottom: 18,
-		fontWeight: "500",
-	},
-});
+// #1629 【修正】画像が載る前に覗くカードの地と影がライト固定の直書きで、ダークでも明るい矩形が出ていた。
+// 写真の上に載る文字・アイコンは地が常に暗いメディアなので FixedColors（固定の白）のままにする。
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		card: {
+			borderRadius: 24,
+			overflow: "hidden",
+			backgroundColor: colors.dividerMuted,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.3,
+			// #1008 【パフォーマンス】parallaxモードのスケール変換と重なるとAndroidでオーバードロー・
+			// ラスタライズ負荷が増えるため、shadowRadius/elevationを縮小する。
+			shadowRadius: 12,
+			elevation: 6,
+			position: "relative",
+		},
+		cardImage: {
+			width: "100%",
+			height: "100%",
+		},
+		skeletonOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			bottom: 0,
+			zIndex: 1,
+		},
+		failureOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			bottom: 0,
+			justifyContent: "center",
+			alignItems: "center",
+			zIndex: 2,
+		},
+		failureContent: {
+			alignItems: "center",
+			gap: 16,
+		},
+		failureText: {
+			fontSize: 16,
+			// 料理写真（読み込み失敗時は暗いスクリム）の上に載る文字なので固定の白
+			color: FixedColors.onMedia,
+			fontWeight: "600",
+			textAlign: "center",
+		},
+		retryButton: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+			backgroundColor: "rgba(0, 0, 0, 0.3)",
+			paddingHorizontal: 20,
+			paddingVertical: 12,
+			borderRadius: 24,
+		},
+		retryText: {
+			fontSize: 14,
+			// 半透明の黒で塗ったボタンの上。地が固定なので文字も固定の白
+			color: FixedColors.onMedia,
+			fontWeight: "600",
+		},
+		cardOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			bottom: 0,
+			padding: 24,
+			justifyContent: "space-between",
+			zIndex: 3,
+		},
+		bottomGradient: {
+			position: "absolute",
+			left: 0,
+			right: 0,
+			bottom: 0,
+			height: "72%",
+		},
+		topRightContent: {
+			alignSelf: "flex-end",
+			gap: 12,
+			zIndex: 4,
+		},
+		cardContent: {
+			flex: 1,
+			justifyContent: "flex-end",
+			zIndex: 1,
+			paddingBottom: 8,
+		},
+		// #1008 【パフォーマンス】textShadowはAndroidでラスタライズ負荷になるため撤去し、
+		// 可読性は上の bottomGradient の不透明度側で担保する。
+		cardTitle: {
+			fontSize: 32,
+			fontWeight: "700",
+			// 料理写真＋下部グラデーションの上に載る見出し。地が常に暗いメディアなので固定の白
+			color: FixedColors.onMedia,
+			marginBottom: 16,
+			lineHeight: 40,
+			letterSpacing: -0.5,
+		},
+		cardDescription: {
+			fontSize: 18,
+			// 同上（写真の上の説明文）
+			color: FixedColors.onMedia,
+			lineHeight: 28,
+			marginBottom: 18,
+			fontWeight: "500",
+		},
+	});

@@ -6,6 +6,8 @@
  */
 import { StyleSheet, Text, View } from "react-native";
 import type { DishCategoryGroupVoteDetailResponse } from "@shared/api/v1/res";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 
 type Props = {
@@ -13,6 +15,7 @@ type Props = {
 };
 
 export function DishCategoryGroupVoteComments({ participants }: Props) {
+	const styles = useThemedStyles(createStyles);
 	const commenters = participants.filter((participant) => participant.comment);
 	if (commenters.length === 0) return null;
 
@@ -29,33 +32,34 @@ export function DishCategoryGroupVoteComments({ participants }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		gap: 10,
-		paddingHorizontal: 16,
-		paddingVertical: 18,
-	},
-	sectionTitle: {
-		fontSize: 16,
-		fontWeight: "800",
-		color: "#111827",
-	},
-	commentRow: {
-		padding: 12,
-		borderRadius: 8,
-		backgroundColor: "#FFFFFF",
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: "#E5E7EB",
-	},
-	name: {
-		fontSize: 13,
-		fontWeight: "800",
-		color: "#111827",
-	},
-	comment: {
-		marginTop: 4,
-		fontSize: 14,
-		lineHeight: 20,
-		color: "#374151",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			gap: 10,
+			paddingHorizontal: 16,
+			paddingVertical: 18,
+		},
+		sectionTitle: {
+			fontSize: 16,
+			fontWeight: "800",
+			color: c.textPrimaryAlt,
+		},
+		commentRow: {
+			padding: 12,
+			borderRadius: 8,
+			backgroundColor: c.surface,
+			borderWidth: StyleSheet.hairlineWidth,
+			borderColor: c.borderMuted,
+		},
+		name: {
+			fontSize: 13,
+			fontWeight: "800",
+			color: c.textPrimaryAlt,
+		},
+		comment: {
+			marginTop: 4,
+			fontSize: 14,
+			lineHeight: 20,
+			color: c.textSecondaryStrong,
+		},
+	});

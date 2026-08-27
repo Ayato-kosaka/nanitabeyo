@@ -77,7 +77,41 @@ export type MyDishesFeedPageProps = {
 	 * 見えていないページのぶんまで先に投げない（設計 (2/2) §1-3 と同じ理由）。
 	 */
 	isActive: boolean;
+	/**
+	 * #1629 【修正】**進行方向の隣のページを、前面へ来る前に取っておく。**
+	 *
+	 * オーナー実機報告（2 巡目）: 「一覧から 1 個開いて **5 秒待って**下っていくと、
+	 * ローディングが 1〜2 秒かかる」。
+	 *
+	 * 5 秒待っても速くならないのが手がかりだった。待っている間に何も起きていない、
+	 * つまり **隣のページは «前面に来た瞬間» に初めて取得を始めていた**。
+	 * `isActive` が false の間は
+	 *   ① `useMyDishes*Query`（行）と
+	 *   ② `entriesKey`（`GET /v1/dish-media?ids=`）
+	 * の両方が null で止まるので、縦フリック 1 回につき **API 2 往復を待たされる**。
+	 *
+	 * ⚠️ 1 巡目に入れた «背景画像の先読み 前1/後2 → 前1/後4» はこれに効かない。
+	 *    あれは `DishMediaFeed`（横＝同じ店舗の中）の画像の話で、
+	 *    ここで待たされているのは **縦＝別の店舗のデータ取得**である。別物だった。
+	 *
+	 * だから «取得を始めない» の判断そのものを見直す。ただし丸ごと外さない
+	 * （相手は約 964MB の `dish_reviews`）。**進行方向の 1 ページだけ**を、
+	 * しかも {@link PREFETCH_DELAY_MS} だけ遅らせて取る。遅らせるのは、
+	 * 前面のページの 2 往復を先に通すためである（API 側は `DB_POOL_MAX=1` で直列化される。
+	 * docs/specs/database-connection-pool.md）。
+	 */
+	shouldPrefetch?: boolean;
 };
+
+/**
+ * 隣のページの取得を始めるまでの待ち時間（ms）。
+ *
+ * 0 にしてはいけない。前面のページの取得と同時に投げると、API 側は
+ * `DB_POOL_MAX=1` で直列化するため **前面の表示がむしろ遅くなる**。
+ * 逆に長くしすぎると先読みの意味が無くなる（オーナーの操作は «5 秒待ってから送る»）。
+ * 前面の 2 往復が始まるのを待てる最小限として 400ms を採る。
+ */
+const PREFETCH_DELAY_MS = 400;
 
 // ⚠️ memo でくるむ（独立レビュー指摘）。外側ページャの `activeScopeIndex` が動くたびに
 // マウント中の全ページが再レンダーされ、各ページの派生クエリ 2 本が再実行されていた
@@ -86,8 +120,26 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	itemKey = null,
 	dishMediaId = null,
 	isActive,
+	shouldPrefetch = false,
 }: MyDishesFeedPageProps) {
 	const styles = useThemedStyles(createStyles);
+
+	/*
+	#1629 先読みの点火。`shouldPrefetch` が立ってから PREFETCH_DELAY_MS 後に取得を許す。
+
+	⚠️ 一度立てたら下げない。下げると `entriesKey` が null へ戻り、取得済みの ids が
+	   「まだ取っていない」ことになって、前面へ来たときに取り直しになる
+	   （この巡回で 1 度踏んだ罠と同じ形。下の clearByKey のコメント参照）。
+	*/
+	const [prefetchArmed, setPrefetchArmed] = useState(false);
+	useEffect(() => {
+		if (prefetchArmed || !shouldPrefetch) return;
+		const timer = setTimeout(() => setPrefetchArmed(true), PREFETCH_DELAY_MS);
+		return () => clearTimeout(timer);
+	}, [prefetchArmed, shouldPrefetch]);
+
+	/** 取得してよいか。前面に居るか、進行方向の隣として先読みを許されたか */
+	const shouldFetch = isActive || prefetchArmed;
 	const restaurantId = scope.kind === "restaurant" ? scope.restaurantId : null;
 	const date = scope.kind === "date" ? scope.date : null;
 	const dishMediaIdParam = dishMediaId;
@@ -105,9 +157,10 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	// `dish_reviews(user_id, dish_id)` の nested loop。§1-3）
 	// #1375 実機確認: スコープに応じて派生クエリを選ぶ。**どちらも同じ `useMyDishesStore.byQuery`**
 	// を別スライスとして引くので、store は増えていない（§8-1 の作法をそのまま踏襲）。
-	// ⚠️ `isActive` が false の間は `null` を渡して取得させない（見えていないページを先に取らない）
-	const restaurantQuery = useMyDishesRestaurantQuery(isActive ? restaurantId : null);
-	const dateQuery = useMyDishesDateQuery(isActive ? date : null);
+	// ⚠️ `shouldFetch` が false の間は `null` を渡して取得させない（見えていないページを先に取らない）。
+	//    #1629 で «進行方向の隣 1 ページだけ» は先読みを許すようにした（shouldPrefetch の JSDoc）
+	const restaurantQuery = useMyDishesRestaurantQuery(shouldFetch ? restaurantId : null);
+	const dateQuery = useMyDishesDateQuery(shouldFetch ? date : null);
 	const {
 		items,
 		queryKey: sheetQueryKey,
@@ -116,7 +169,12 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 		refresh: refreshRows,
 	} = scope.kind === "restaurant" ? restaurantQuery : dateQuery;
 
-	const entriesKey = useMemo(() => (isActive ? myDishesFeedKey(feedScopeId(scope)) : null), [isActive, scope]);
+	// #1629 手順 2 も `shouldFetch` で開ける。ここを isActive のままにすると、
+	// 行だけ先に取れて `GET /v1/dish-media?ids=` は前面へ来てから、になり先読みが半分しか効かない
+	const entriesKey = useMemo(
+		() => (shouldFetch ? myDishesFeedKey(feedScopeId(scope)) : null),
+		[shouldFetch, scope],
+	);
 
 	// §9-2 手順 2: `dishMedia !== null` の行だけを ids にする。
 	// ⚠️ 文字列へ畳んでから配列に戻すことで «中身が同じなら同じ参照» にしている。

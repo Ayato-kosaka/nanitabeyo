@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "공유하기",
 			"seeMore": "더 보기",
-			"openMap": "지도 열기"
+			"openMap": "지도 열기",
+			"review": "리뷰"
 		},
 		"share": {
 			"title": "{{dishName}} 확인해 보세요"
@@ -464,6 +465,9 @@
 			"saveFailed": "수정하지 못했습니다",
 			"conflict": "다른 기기에서 먼저 수정되었습니다. 다시 열고 편집해 주세요.",
 			"forbidden": "내 게시물만 편집하거나 삭제할 수 있습니다"
+		},
+		"moreMenu": {
+			"title": "이 게시물"
 		}
 	},
 	"ImageCardGrid": {
@@ -843,7 +847,8 @@
 			"group_votes": {
 				"title": "그룹 투표",
 				"description": "참여 중인 그룹 투표에 변화가 있을 때"
-			}
+			},
+			"navigationLabel": "알림 설정"
 		},
 		"language": {
 			"navigationLabel": "언어",
@@ -886,6 +891,10 @@
 			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
 			"unblockConfirm": "차단 해제",
 			"unblocked": "차단 해제됨"
+		},
+		"account": {
+			"navigationLabel": "계정 관리",
+			"title": "계정 관리"
 		}
 	},
 	"Dialog": {

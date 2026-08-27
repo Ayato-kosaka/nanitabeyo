@@ -28,6 +28,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import type { PermissionOutcome, PermissionPromptState } from "../permissions";
 
 /** 答えが即座に返っても、説明文を読める程度には表示し続ける */
@@ -91,6 +93,7 @@ export function OnboardingPermissionScreen({
 	onSettled,
 	testID,
 }: OnboardingPermissionScreenProps) {
+	const styles = useThemedStyles(createStyles);
 	// 進行は 1 回だけ。応答とタイムアウトが競っても二重に遷移させない
 	const hasSettledRef = useRef(false);
 	// probe が「これから尋ねられる」と言い、かつ要求が即答で返らなかった（= ダイアログが
@@ -173,7 +176,7 @@ export function OnboardingPermissionScreen({
 		};
 	}, []);
 
-	// probe の結果待ち（数十 ms）。遷移アニメーション中の背景と同じ白を敷くだけに留める
+	// probe の結果待ち（数十 ms）。遷移アニメーション中の背景と同じ面を敷くだけに留める
 	if (!isAskable) return <View style={styles.container} />;
 
 	return (
@@ -217,6 +220,7 @@ export function OnboardingPermissionScreen({
  * ボタンが 2 個なら実物（通知ダイアログ）と同じ横並び、3 個なら縦積み（位置情報ダイアログ）。
  */
 function MockPermissionDialog({ preview }: { preview: PermissionDialogPreview }) {
+	const styles = useThemedStyles(createStyles);
 	const isHorizontal = preview.buttons.length === 2;
 
 	return (
@@ -242,129 +246,131 @@ function MockPermissionDialog({ preview }: { preview: PermissionDialogPreview })
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	safeArea: {
-		flex: 1,
-	},
-	progressTrack: {
-		height: 8,
-		marginTop: 16,
-		backgroundColor: "#FBD9D0",
-		overflow: "hidden",
-	},
-	progressFill: {
-		height: "100%",
-		backgroundColor: "#F05537",
-		borderTopRightRadius: 4,
-		borderBottomRightRadius: 4,
-	},
-	// 見出しと本文は «上部» に置く（中央ではない）。中央はダミーダイアログの居場所
-	content: {
-		paddingTop: 48,
-		paddingHorizontal: 28,
-		gap: 20,
-	},
-	title: {
-		fontSize: 26,
-		lineHeight: 40,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
-	},
-	body: {
-		fontSize: 15,
-		lineHeight: 26,
-		color: "#4B5563",
-		textAlign: "center",
-	},
-	dialogArea: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	// iOS アラートの寸法感。背景はすりガラスの代わりの薄いグレー、影は控えめに
-	dialog: {
-		width: 270,
-		borderRadius: 14,
-		backgroundColor: "#F5F5F7",
-		overflow: "hidden",
-		shadowColor: "#000000",
-		shadowOpacity: 0.18,
-		shadowRadius: 24,
-		shadowOffset: { width: 0, height: 8 },
-		elevation: 8,
-	},
-	dialogTitle: {
-		fontSize: 16,
-		lineHeight: 22,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		textAlign: "center",
-		paddingTop: 19,
-		paddingHorizontal: 16,
-	},
-	dialogMessage: {
-		fontSize: 13,
-		lineHeight: 18,
-		color: "#48484A",
-		textAlign: "center",
-		paddingTop: 4,
-		paddingHorizontal: 16,
-		paddingBottom: 19,
-	},
-	dialogButtonRow: {
-		flexDirection: "row",
-	},
-	dialogButton: {
-		height: 44,
-	},
-	dialogButtonHorizontal: {
-		flex: 1,
-	},
-	dialogButtonInner: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	dialogSeparator: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		height: StyleSheet.hairlineWidth,
-		backgroundColor: "#C6C6C8",
-	},
-	dialogSeparatorVertical: {
-		right: undefined,
-		bottom: 0,
-		height: "100%",
-		width: StyleSheet.hairlineWidth,
-	},
-	dialogButtonLabel: {
-		fontSize: 17,
-		color: "#007AFF",
-	},
-	dialogButtonLabelEmphasized: {
-		fontWeight: "600",
-	},
-	// おすすめの選択肢を囲むブランド色の枠（参考デザインの «ここを押してね» 表現）
-	dialogEmphasisRing: {
-		position: "absolute",
-		top: 4,
-		left: 4,
-		right: 4,
-		bottom: 4,
-		borderWidth: 2,
-		borderColor: "#F05537",
-		borderRadius: 9,
-	},
-	footer: {
-		justifyContent: "flex-end",
-		alignItems: "center",
-		paddingBottom: 32,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		progressTrack: {
+			height: 8,
+			marginTop: 16,
+			backgroundColor: c.brandTrack,
+			overflow: "hidden",
+		},
+		progressFill: {
+			height: "100%",
+			backgroundColor: c.brand,
+			borderTopRightRadius: 4,
+			borderBottomRightRadius: 4,
+		},
+		// 見出しと本文は «上部» に置く（中央ではない）。中央はダミーダイアログの居場所
+		content: {
+			paddingTop: 48,
+			paddingHorizontal: 28,
+			gap: 20,
+		},
+		title: {
+			fontSize: 26,
+			lineHeight: 40,
+			fontWeight: "700",
+			color: c.textPrimary,
+			textAlign: "center",
+		},
+		body: {
+			fontSize: 15,
+			lineHeight: 26,
+			color: c.textSecondaryAlt,
+			textAlign: "center",
+		},
+		dialogArea: {
+			flex: 1,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		// iOS アラートの寸法感。背景はすりガラスの代わりの薄いグレー、影は控えめに。
+		// 色は alert* トークン（= OS アラートのシステム値。constants/Palette.ts のコメント参照）
+		dialog: {
+			width: 270,
+			borderRadius: 14,
+			backgroundColor: c.alertSurface,
+			overflow: "hidden",
+			shadowColor: FixedColors.shadow,
+			shadowOpacity: 0.18,
+			shadowRadius: 24,
+			shadowOffset: { width: 0, height: 8 },
+			elevation: 8,
+		},
+		dialogTitle: {
+			fontSize: 16,
+			lineHeight: 22,
+			fontWeight: "600",
+			color: c.textPrimary,
+			textAlign: "center",
+			paddingTop: 19,
+			paddingHorizontal: 16,
+		},
+		dialogMessage: {
+			fontSize: 13,
+			lineHeight: 18,
+			color: c.alertMessage,
+			textAlign: "center",
+			paddingTop: 4,
+			paddingHorizontal: 16,
+			paddingBottom: 19,
+		},
+		dialogButtonRow: {
+			flexDirection: "row",
+		},
+		dialogButton: {
+			height: 44,
+		},
+		dialogButtonHorizontal: {
+			flex: 1,
+		},
+		dialogButtonInner: {
+			flex: 1,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		dialogSeparator: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			height: StyleSheet.hairlineWidth,
+			backgroundColor: c.alertSeparator,
+		},
+		dialogSeparatorVertical: {
+			right: undefined,
+			bottom: 0,
+			height: "100%",
+			width: StyleSheet.hairlineWidth,
+		},
+		dialogButtonLabel: {
+			fontSize: 17,
+			color: c.alertAction,
+		},
+		dialogButtonLabelEmphasized: {
+			fontWeight: "600",
+		},
+		// おすすめの選択肢を囲むブランド色の枠（参考デザインの «ここを押してね» 表現）
+		dialogEmphasisRing: {
+			position: "absolute",
+			top: 4,
+			left: 4,
+			right: 4,
+			bottom: 4,
+			borderWidth: 2,
+			borderColor: c.brand,
+			borderRadius: 9,
+		},
+		footer: {
+			justifyContent: "flex-end",
+			alignItems: "center",
+			paddingBottom: 32,
+		},
+	});

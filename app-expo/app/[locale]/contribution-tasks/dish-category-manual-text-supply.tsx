@@ -4,6 +4,7 @@
 // ユーザー協力で料理カテゴリの title/subTitle を改善するための単体画面
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import {
 	View,
 	StyleSheet,
@@ -81,6 +82,8 @@ const SWIPE_THRESHOLD = 100;
 /* -------------------------------------------------------------------------- */
 
 export default function DishCategoryManualTextSupplyScreen() {
+	// #1629 プレースホルダーの色をテーマへ追従させるために読む
+	const { colors } = useAppTheme();
 	const insets = useSafeAreaInsets();
 	const { width, height } = useWindowDimensions();
 	const router = useRouter();
@@ -655,6 +658,8 @@ export default function DishCategoryManualTextSupplyScreen() {
 								value={editTitle}
 								onChangeText={setEditTitle}
 								placeholder="タイトルを入力"
+								// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+								placeholderTextColor={colors.textSecondary}
 								multiline
 							/>
 
@@ -664,6 +669,8 @@ export default function DishCategoryManualTextSupplyScreen() {
 								value={editSubTitle}
 								onChangeText={setEditSubTitle}
 								placeholder="サブタイトルを入力"
+								// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+								placeholderTextColor={colors.textSecondary}
 								multiline
 								numberOfLines={3}
 							/>

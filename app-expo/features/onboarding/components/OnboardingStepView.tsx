@@ -26,6 +26,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
+import { FixedColors } from "@/constants/Palette";
+
 import {
 	PROBLEM_INTRO_DURATION_MS,
 	PROBLEM_INTRO_TRANSLATE_Y,
@@ -177,9 +179,12 @@ export function OnboardingStepView({
 }
 
 const styles = StyleSheet.create({
+	// #1629 全面写真の下地。写真が出る前の一瞬と、写真の外側に見える墨色。
+	// この画面は写真と、その上の白文字・白い円だけで出来ているのでテーマに追従させない
+	//（理由は constants/Palette.ts の FixedColors.photoBackdrop）
 	container: {
 		flex: 1,
-		backgroundColor: "#1A1A1A",
+		backgroundColor: FixedColors.photoBackdrop,
 		overflow: "hidden",
 	},
 	content: {
@@ -214,14 +219,16 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		lineHeight: 25,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		// 全面写真（＋黒の半透明オーバーレイ）の上に載る文字。地が常に暗いので白で固定する
+		color: FixedColors.onMedia,
 		textAlign: "center",
 	},
 	solutionText: {
 		fontSize: 13,
 		lineHeight: 21,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		// 同上（写真の上の文字）
+		color: FixedColors.onMedia,
 		textAlign: "center",
 		textShadowColor: "rgba(0, 0, 0, 0.6)",
 		textShadowOffset: { width: 0, height: 1 },

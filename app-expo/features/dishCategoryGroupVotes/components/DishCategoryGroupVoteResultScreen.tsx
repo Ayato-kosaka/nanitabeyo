@@ -16,6 +16,8 @@ import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import { generateShareUrl } from "@/lib/share";
 import { createShareLink } from "@/lib/createShareLink";
 import { resolvePublicLocale } from "@/constants/seoLocales";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -42,6 +44,7 @@ type Props = {
 };
 
 export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
+	const styles = useThemedStyles(createStyles);
 	const { locale } = useLocale();
 	const isFocused = useIsFocused();
 	const { callBackend } = useAPICall();
@@ -413,45 +416,46 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
-	safeArea: {
-		flex: 1,
-		backgroundColor: "#F9FAFB",
-	},
-	// #1358 ヘッダー + 本文のラッパー。ScreenHeader の zIndex をここへ閉じ込めるためだけに存在する
-	body: {
-		flex: 1,
-	},
-	content: {
-		paddingBottom: 28,
-	},
-	center: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 12,
-		backgroundColor: "#F9FAFB",
-		padding: 24,
-	},
-	errorText: {
-		fontSize: 15,
-		color: "#374151",
-		textAlign: "center",
-	},
-	voteCtaContainer: {
-		paddingHorizontal: 16,
-		paddingTop: 16,
-	},
-	retryButton: {
-		minWidth: 160,
-	},
-	voteButton: {
-		width: "100%",
-	},
-	detailContent: {
-		padding: 18,
-		// #1358 上下は 32（移行元 BlurModal の paddingVertical 既定値）に揃える。
-		// 18 のままだと候補名や投票者名が長い小型端末でカードが画面上下端に接する
-		paddingVertical: 32,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		safeArea: {
+			flex: 1,
+			backgroundColor: c.surfaceFaint,
+		},
+		// #1358 ヘッダー + 本文のラッパー。ScreenHeader の zIndex をここへ閉じ込めるためだけに存在する
+		body: {
+			flex: 1,
+		},
+		content: {
+			paddingBottom: 28,
+		},
+		center: {
+			flex: 1,
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 12,
+			backgroundColor: c.surfaceFaint,
+			padding: 24,
+		},
+		errorText: {
+			fontSize: 15,
+			color: c.textSecondaryStrong,
+			textAlign: "center",
+		},
+		voteCtaContainer: {
+			paddingHorizontal: 16,
+			paddingTop: 16,
+		},
+		retryButton: {
+			minWidth: 160,
+		},
+		voteButton: {
+			width: "100%",
+		},
+		detailContent: {
+			padding: 18,
+			// #1358 上下は 32（移行元 BlurModal の paddingVertical 既定値）に揃える。
+			// 18 のままだと候補名や投票者名が長い小型端末でカードが画面上下端に接する
+			paddingVertical: 32,
+		},
+	});

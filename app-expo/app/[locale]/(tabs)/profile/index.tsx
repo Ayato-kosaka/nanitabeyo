@@ -214,17 +214,19 @@ export default function ProfileScreen() {
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
 	// #1508 【設計】表示言語の選択画面への遷移
-	const handleNavigateToLanguage = useCallback(() => {
+	// #1629 【修正】通知設定（アカウント単位。端末設定ではない）
+	const handleNavigateToNotificationSettings = useCallback(() => {
 		lightImpact();
-		logFrontendEvent({
-			event_name: "settings_language_pressed",
-			error_level: "log",
-			payload: {},
-		});
-		router.push({
-			pathname: "/[locale]/(tabs)/profile/language",
-			params: { locale },
-		});
+		logFrontendEvent({ event_name: "settings_notifications_pressed", error_level: "log", payload: {} });
+		router.push({ pathname: "/[locale]/(tabs)/profile/notifications", params: { locale } });
+	}, [lightImpact, logFrontendEvent, router, locale]);
+
+	// #1629 【仕様】アカウントを手放す操作（ログアウト / 削除）は profile/account へ切り出した。
+	// ゲストには実体が無いので、この行自体を出さない（下の JSX を参照）
+	const handleNavigateToAccount = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({ event_name: "settings_account_pressed", error_level: "log", payload: {} });
+		router.push({ pathname: "/[locale]/(tabs)/profile/account", params: { locale } });
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
 	// #1505 【設計】自分が主催したグループ投票の一覧画面への遷移
@@ -261,171 +263,6 @@ export default function ProfileScreen() {
 		[lightImpact, logFrontendEvent, router, locale],
 	);
 
-	// ログアウト処理を実行
-	// #950 【仕様】破壊的操作(セッション破棄)のため、押下直後に実行せず確認ダイアログを挟む
-	const handleLogout = useCallback(async () => {
-		mediumImpact();
-		logFrontendEvent({
-			event_name: "settings_logout_pressed",
-			error_level: "log",
-			payload: {},
-		});
-
-		const ok = await confirm({
-			title: i18n.t("Settings.logoutConfirmTitle"),
-			message: i18n.t("Settings.logoutConfirmMessage"),
-			confirmLabel: i18n.t("Settings.logout"),
-			cancelLabel: i18n.t("Common.cancel"),
-		});
-		if (!ok) return;
-
-		try {
-			await logout({ scope: "local" });
-			logFrontendEvent({
-				event_name: "logout_success",
-				error_level: "log",
-				payload: {},
-			});
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "logout_error",
-				error_level: "error",
-				payload: { error: (error as Error).message },
-			});
-		}
-	}, [logout, mediumImpact, logFrontendEvent, confirm]);
-
-	/**
-	 * #1511 ACC-01 アカウント削除。
-	 *
-	 * ## この行が «消えていた» 経緯
-	 * #1533 はこの導線を旧設定画面 `profile/settings.tsx` に足した。その後 #1375 の
-	 * 最終同期（e4ee0369）が旧設定画面ごとファイルを消したため、一時期 **main では
-	 * `settings-delete-account` が app-expo のどこにも存在しない**状態になっていた。
-	 * i18n・API・E2E・撮影シナリオは揃っているのにボタンだけ無い、という
-	 * «作った側だけあって使う側が無い»（#1375 と同じ形）。
-	 *
-	 * ⚠️ これは #1596 / PR #1597 が main 側で、この PR（#1583）が同時刻に別途、
-	 *    **互いを知らずに直した**。main 側は 2fb27f3a でマージ済み。取り込みの衝突は
-	 *    «#1583 の 3 画面構成 + このファイルの実装» の向きで解いてある。両者の差は
-	 *    実行中表示（`deleteAccountInProgress` を行のラベルに出す）と、キャンセルの
-	 *    ログ、そして下の «logout を別の try で包む» 3 点だけで、導線・色・置き場所は同じ。
-	 *
-	 * ## logout を try の «外側» に置かない理由（main 側との差）
-	 * main 側の実装は `logout()` を削除と同じ try に入れている。削除が成功した後に
-	 * `signOut()` が失敗すると catch へ落ちるため、**削除は済んでいるのにエラーの
-	 * スナックバーが出てログイン状態のままに見える**。下ではその 1 行だけを内側の
-	 * try/catch で包み、失敗してもローカルの後始末として扱って先へ進めている。
-	 *
-	 * ## 二段確認にしている理由
-	 * この操作は **取り消せない**。アプリ DB 側は匿名化（論理削除）だが、Supabase Auth の
-	 * アカウントは物理削除するので、同じ資格情報での再ログイン経路が残らない。
-	 * 猶予期間も置いていない（#1511 のリーダー判断）ので、誤操作を戻す手段が UI にしかない。
-	 * そこで「何が起きるかの説明」と「取り消せないことへの明示的な同意」を分けて 2 枚出す。
-	 *
-	 * ## ログアウトを try/catch で包む理由
-	 * 削除が成功した時点で **Auth 側のアカウントは既に存在しない**。その状態で
-	 * `signOut()` を呼ぶとサーバ往復（`POST /auth/v1/logout`）が 401/403 になり得る。
-	 * ここで throw させると「削除は成功したのにエラー表示のままログイン状態で留まる」
-	 * という最悪の見え方になるため、失敗してもローカルの後始末として扱って先へ進む
-	 *（画面遷移は AuthProvider の SIGNED_OUT ハンドラが担う）。
-	 */
-	const handleDeleteAccount = useCallback(async () => {
-		mediumImpact();
-		logFrontendEvent({
-			event_name: "settings_delete_account_pressed",
-			error_level: "log",
-			payload: {},
-		});
-
-		// 1 枚目: 何が起きるかの説明
-		const acknowledged = await confirm({
-			title: i18n.t("Settings.deleteAccountConfirmTitle"),
-			message: i18n.t("Settings.deleteAccountConfirmMessage"),
-			confirmLabel: i18n.t("Settings.deleteAccountConfirmButton"),
-			cancelLabel: i18n.t("Common.cancel"),
-		});
-		if (!acknowledged) {
-			logFrontendEvent({
-				event_name: "settings_delete_account_cancelled",
-				error_level: "log",
-				payload: { step: "explain" },
-			});
-			return;
-		}
-
-		// 2 枚目: 取り消せないことへの明示的な同意
-		const confirmed = await confirm({
-			title: i18n.t("Settings.deleteAccountFinalTitle"),
-			message: i18n.t("Settings.deleteAccountFinalMessage"),
-			confirmLabel: i18n.t("Settings.deleteAccountFinalButton"),
-			cancelLabel: i18n.t("Common.cancel"),
-		});
-		if (!confirmed) {
-			logFrontendEvent({
-				event_name: "settings_delete_account_cancelled",
-				error_level: "log",
-				payload: { step: "final" },
-			});
-			return;
-		}
-
-		// 二度押しで DELETE が 2 回飛ぶのを防ぐ（2 回目は 404 になるだけだが、
-		// ユーザーにはエラーとして見えてしまう）
-		if (isDeletingAccountRef.current) return;
-		isDeletingAccountRef.current = true;
-		setIsDeletingAccount(true);
-
-		try {
-			await callBackend<Record<string, never>, DeleteMeResponse>("v1/users/me", {
-				method: "DELETE",
-				requestPayload: {},
-			});
-
-			logFrontendEvent({
-				event_name: "settings_delete_account_success",
-				error_level: "log",
-				payload: {},
-			});
-			showSnackbar(i18n.t("Settings.deleteAccountSuccess"));
-
-			try {
-				await logout({ scope: "local" });
-			} catch (error) {
-				// 削除済みアカウントの signOut は失敗しうる。削除自体は成功しているので握る
-				logFrontendEvent({
-					event_name: "settings_delete_account_logout_error",
-					error_level: "warn",
-					payload: { error: (error as Error).message },
-				});
-			}
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "settings_delete_account_error",
-				error_level: "error",
-				payload: { error: (error as Error)?.message ?? String(error) },
-			});
-			showSnackbar(i18n.t("Settings.deleteAccountError"));
-		} finally {
-			isDeletingAccountRef.current = false;
-			setIsDeletingAccount(false);
-		}
-	}, [mediumImpact, logFrontendEvent, confirm, callBackend, showSnackbar, logout]);
-
-	// #951 【設計】フィードバック画面へ遷移(モーダル起動から変更)
-	const handleSendFeedback = useCallback(() => {
-		lightImpact();
-		logFrontendEvent({
-			event_name: "settings_send_feedback_pressed",
-			error_level: "log",
-			payload: { userId: user?.id },
-		});
-		router.push({
-			pathname: "/[locale]/(tabs)/profile/feedback",
-			params: { locale },
-		});
-	}, [lightImpact, logFrontendEvent, user?.id, router, locale]);
-
 	return (
 		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.container} edges={["top"]}>
@@ -447,7 +284,12 @@ export default function ProfileScreen() {
 						</View>
 					)}
 
-					{/* Card 1: いいね・保存（旧グリッドタブの行き先） */}
+					{/*
+					  #1629 【仕様】1 ブロック目の並びはオーナー指示。
+					  «いいねした投稿 / 保存した料理カテゴリー / グループ投票の履歴 / ブロック済みの料理カテゴリー»。
+					  4 つとも «自分が過去に印を付けたもの» の棚で、性質が揃っている。
+					  順番を変えるときはオーナーへ確認すること（見た目の好みではなく指示で決まっている）。
+					*/}
 					<Card style={styles.card}>
 						<SettingsMenuItem
 							label={i18n.t("Profile.menu.likedPosts")}
@@ -458,109 +300,80 @@ export default function ProfileScreen() {
 						<SettingsMenuItem
 							label={i18n.t("Profile.menu.savedDishCategories")}
 							onPress={handleNavigateToSavedDishCategories}
-							isLast
 							testID="profile-saved-dish-categories"
 							accessibilityRole="link"
 						/>
-					</Card>
-
-					{/* Card 2: フィードバック・レビュー・ブロック済みトピック（旧設定画面の Card 1）
-					    ＋ #1504 端末設定（規約カードの直上に置く。オーナー指示） */}
-					<Card style={styles.card}>
-						<SettingsMenuItem
-							label={i18n.t("Settings.sendFeedback")}
-							onPress={handleSendFeedback}
-							testID="settings-feedback"
-							// #951 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約)
-							accessibilityRole="link"
-						/>
-						{/* #747 【設計】ブロック済みの料理カテゴリ管理画面へ遷移 */}
-						<SettingsMenuItem
-							label={i18n.t("Settings.blockedDishCategories.navigationLabel")}
-							onPress={handleNavigateToBlockedDishCategories}
-							testID="settings-blocked-dish-categories"
-							accessibilityRole="link"
-						/>
-						{/* #1584 【設計】自分が出した通報の履歴。ブロック済みと同じ «自分が申告したもの» の棚 */}
-						<SettingsMenuItem
-							label={i18n.t("Report.history.navigationLabel")}
-							onPress={handleNavigateToContentReports}
-							testID="settings-content-reports"
-							accessibilityRole="link"
-						/>
-						{/* #1508 【設計】表示言語の選択画面へ遷移 */}
-						<SettingsMenuItem
-							label={i18n.t("Settings.language.navigationLabel")}
-							onPress={handleNavigateToLanguage}
-							testID="settings-language"
-							accessibilityRole="link"
-						/>
-						{/* #1505 【設計】自分が主催したグループ投票の一覧画面へ遷移 */}
+						{/* #1505 自分が主催したグループ投票の一覧 */}
 						<SettingsMenuItem
 							label={i18n.t("Settings.myGroupVotes.navigationLabel")}
 							onPress={handleNavigateToMyGroupVotes}
 							testID="settings-my-group-votes"
 							accessibilityRole="link"
 						/>
-						{/* #1504 端末設定（ハプティクス等）。規約カードの直上がこの行の定位置 */}
+						{/* #747 ブロック済みの料理カテゴリ管理 */}
 						<SettingsMenuItem
-							label={i18n.t("Settings.deviceSettings.navigationLabel")}
-							onPress={handleNavigateToDeviceSettings}
+							label={i18n.t("Settings.blockedDishCategories.navigationLabel")}
+							onPress={handleNavigateToBlockedDishCategories}
 							isLast
-							testID="settings-device-settings"
+							testID="settings-blocked-dish-categories"
 							accessibilityRole="link"
 						/>
 					</Card>
 
-					{/* #1583 Card 3: なに食べよについて ＋ ログアウト。
-					    リーガル 4 行と版数は about.tsx へ移した（オーナー指示: ページ遷移にする）。
-					    ログアウトはここに残す。«戻れない操作» をアプリ紹介のページへ混ぜない */}
+					{/*
+					  #1629 【仕様】2 ブロック目の並びもオーナー指示。
+					  «なに食べよについて / 端末設定 / あなたの報告履歴 / アカウント管理»。
+
+					  移設したもの:
+					  - ご意見・不具合 → `profile/about` の 1 ブロック目（応援するの下）
+					  - 言語 → `profile/device-settings` の 1 ブロック目
+					  - ログアウト / アカウント削除 → `profile/account`
+
+					  ⚠️ ログアウトとアカウント削除をこの一覧へ戻さないこと。«押すと戻れない» 行を
+					     閲覧系の行と同じ縦リストに並べない、というのがこのブロックの約束である。
+					*/}
 					<Card style={styles.card}>
 						<SettingsMenuItem
 							label={i18n.t("Settings.about.navigationLabel")}
 							onPress={handleNavigateToAbout}
-							isLast={isGuest}
 							testID="settings-about"
 							accessibilityRole="link"
 						/>
-						{!isGuest && (
-							<SettingsMenuItem
-								label={i18n.t("Settings.logout")}
-								onPress={handleLogout}
-								testID="settings-logout"
-								textStyle={{
-									color: colors.destructive,
-									fontWeight: "700",
-								}}
-								accessibilityRole="button"
-							/>
-						)}
+						<SettingsMenuItem
+							label={i18n.t("Settings.deviceSettings.navigationLabel")}
+							onPress={handleNavigateToDeviceSettings}
+							testID="settings-device-settings"
+							accessibilityRole="link"
+						/>
 						{/*
-						  #1511 【仕様】アカウント削除はログイン済み（非匿名）ユーザーにのみ出す。
-						  ゲストには users 行が無く、削除対象となる実体を持たない（API も AuthUserGuard）。
-
-						  ログアウトの «下» に置くのは、破壊力の弱い導線を先に見せるため。
-
-						  ⚠️ 色は `colors.destructive` を使う。#1533 は旧設定画面でログアウトより濃い赤を
-						     直書きしていたが、あれはライト固定の値でダークの対がなく、#1509 でテーマ対応した
-						     この画面には持ち込めない（assert:no-hardcoded-colors も落とす）。ログアウトと
-						     同じ赤になるが、この行の «強さ» は文言と二段確認が担っているので色で差を付けない。
+						  #1629 【修正】通知設定。#1510 で作られたカードが #1583 の再編で
+						  描画されなくなっていたので、専用ページを足して戻した。
+						  ゲストはプッシュの受け手が居ないので出さない
 						*/}
 						{!isGuest && (
 							<SettingsMenuItem
-								label={
-									isDeletingAccount
-										? i18n.t("Settings.deleteAccountInProgress")
-										: i18n.t("Settings.deleteAccount")
-								}
-								onPress={handleDeleteAccount}
-								testID="settings-delete-account"
-								textStyle={{
-									color: colors.destructive,
-									fontWeight: "700",
-								}}
+								label={i18n.t("Settings.notifications.navigationLabel")}
+								onPress={handleNavigateToNotificationSettings}
+								testID="settings-notifications"
+								accessibilityRole="link"
+							/>
+						)}
+						{/* #1584 自分が出した通報の履歴 */}
+						<SettingsMenuItem
+							label={i18n.t("Report.history.navigationLabel")}
+							onPress={handleNavigateToContentReports}
+							isLast={isGuest}
+							testID="settings-content-reports"
+							accessibilityRole="link"
+						/>
+						{/* ゲストには users 行が無く、ログアウトも削除も対象が存在しないので行ごと出さない */}
+						{!isGuest && (
+							<SettingsMenuItem
+								label={i18n.t("Settings.account.navigationLabel")}
+								onPress={handleNavigateToAccount}
 								isLast
-								accessibilityRole="button"
+								testID="settings-account"
+								accessibilityRole="link"
 							/>
 						)}
 					</Card>

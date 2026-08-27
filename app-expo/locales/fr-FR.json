@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "Partager",
 			"seeMore": "voir plus",
-			"openMap": "Ouvrir la carte"
+			"openMap": "Ouvrir la carte",
+			"review": "Avis"
 		},
 		"share": {
 			"title": "Découvrez {{dishName}}"
@@ -464,6 +465,9 @@
 			"saveFailed": "Impossible de mettre à jour l'avis",
 			"conflict": "Cet avis a été modifié ailleurs. Rouvrez-le avant de le modifier.",
 			"forbidden": "Vous ne pouvez modifier ou supprimer que vos propres publications"
+		},
+		"moreMenu": {
+			"title": "Cette publication"
 		}
 	},
 	"ImageCardGrid": {
@@ -843,7 +847,8 @@
 			"group_votes": {
 				"title": "Votes de groupe",
 				"description": "Quand il se passe quelque chose dans un vote de groupe que vous avez rejoint"
-			}
+			},
+			"navigationLabel": "Notifications"
 		},
 		"language": {
 			"navigationLabel": "Langue",
@@ -886,6 +891,10 @@
 			"unblockMessage": "Cette catégorie de plat sera réajoutée aux recommandations.",
 			"unblockConfirm": "Débloquer",
 			"unblocked": "Débloqué"
+		},
+		"account": {
+			"navigationLabel": "Compte",
+			"title": "Compte"
 		}
 	},
 	"Dialog": {
