@@ -1,0 +1,69 @@
+{
+  "_meta": {
+    "issue": "https://github.com/Ayato-kosaka/nanitabeyo/issues/1269",
+    "phase": "Phase 0 成果物: instagram_capability_matrix",
+    "surveyed_at": "2026-08-27",
+    "method": "ec2-chrome-operate（EC2 上の claude --chrome）で developers.facebook.com の一次資料を逐語確認。引用は out/docs/*.md",
+    "route": "Instagram API with Facebook Login（business_discovery は Instagram Login 版には存在しない）",
+    "caller_requirement": "呼び出し元は Facebook ページに連携済みの IG Business **または Creator** アカウント。原文: 'Perform this request on the Instagram Business or Creator IG User who is making the query.'"
+  },
+  "rows": [
+    {
+      "account_type": "business",
+      "account_discovery_possible": "yes — business_discovery.username(<handle>) で他店を引ける",
+      "media_listing_possible": "yes — /media エッジに field expansion でアクセスできる",
+      "hashtag_discovery_possible": "conditional — Instagram Public Content Access が必要（App Review + ビジネス認証）。7日30ハッシュタグ・直近24時間・1ページ50件",
+      "caption_available": "要確認（IG Media ノードの Public 表記を未取得）",
+      "permalink_available": "要確認（同上）",
+      "embed_available": "conditional — oEmbed API は Meta oEmbed Read feature が必要で App Review + ビジネス認証必須",
+      "required_permissions": [
+        "instagram_basic",
+        "instagram_manage_insights",
+        "pages_read_engagement",
+        "(Page 権限が Business Manager 経由なら ads_management または ads_read も)"
+      ],
+      "production_review_required": "no — 自分が所有・管理するビジネスのためだけのアプリなら Standard Access / App Review 不要"
+    },
+    {
+      "account_type": "creator",
+      "account_discovery_possible": "yes — 原文が 'Business or Creator IG Users' と明記",
+      "media_listing_possible": "yes",
+      "hashtag_discovery_possible": "conditional（business と同じ）",
+      "caption_available": "要確認",
+      "permalink_available": "要確認",
+      "embed_available": "conditional（business と同じ）",
+      "required_permissions": [
+        "business と同じ"
+      ],
+      "production_review_required": "no（business と同じ）"
+    },
+    {
+      "account_type": "consumer（個人アカウント）",
+      "account_discovery_possible": "no — business_discovery は Business/Creator しか返さない",
+      "media_listing_possible": "no",
+      "hashtag_discovery_possible": "no（投稿者が個人なら採用しない方針とも一致）",
+      "caption_available": "no",
+      "permalink_available": "no（API 経由では取れない）",
+      "embed_available": "要確認（公開の /embed/ URL が API と別経路なら可能性あり）",
+      "required_permissions": [],
+      "production_review_required": "n/a",
+      "coverage_loss": "★未確定。プロアカウント率の実測（下限 41.4%）の裏返しがそのまま coverage loss になる"
+    }
+  ],
+  "phase0_checklist": {
+    "Meta App 作成": "既に存在する（nanitabeyo-1273-sns-poc / なに食べよ / なに食べよ - Test1）。新規作成は不要",
+    "login / permission / access level の整理": "完了 — out/docs/02_business_discovery.md, 03_access_review.md",
+    "Business Verification / App Review の要否": "完了 — business_discovery は不要 / oEmbed API と hashtag は必要",
+    "Professional Account の public media 列挙経路": "完了 — business_discovery.username(){media{...}}",
+    "Business Discovery / hashtagged media の取得可能範囲": "完了（hashtag は IPCA 必須で実質不可）",
+    "Consumer Account の coverage loss": "★未確定。トークンが要る",
+    "Instagram embed の本番利用条件・attribution・失効時の挙動": "一部完了。oEmbed API 側は確定、公開 /embed/ 経路と失効時挙動は検証中",
+    "AI 分類時の取得可能・保存可能データ": "完了 — out/docs/04_embed_terms.md（AI/ML を名指しした条項は無いが、oEmbed 由来データは永続化・派生が strictly prohibited）"
+  },
+  "blocking_open_questions": [
+    "プロアカウント率の確定値（＝到達率の上限）。business_discovery が何も返さないことをもって非プロと判定するのが唯一の確定手段で、トークンが要る",
+    "IG プロフィールの website を business_discovery で実際に引けるか（サンプルが一次資料に無い）。誤紐付け対策の逆照合が機械化できるかが懸かっている",
+    "投稿の埋め込みが oEmbed API 無し（公開 /embed/ URL）で成立するか。成立するなら App Review とビジネス認証を回避できる",
+    "Developer Policies §6 'Don\\'t use the Instagram Platform to simply display User Content ... without our prior permission.' が本 POC の設計に及ぶか"
+  ]
+}
