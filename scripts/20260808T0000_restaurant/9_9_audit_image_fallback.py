@@ -132,6 +132,44 @@ def main() -> None:
             LOGGER.info(
                 "image_url が非空かつ dish_media が無い店: %d件", cursor.fetchone()[0]
             )
+
+            # ⑤ «実際に使われている» 料理カテゴリのうち、画像が空なのは何件か。
+            #    カタログ全体の 36.8% が空でも、使われないカテゴリばかりなら実害は小さい。
+            #    ユーザーが記録した料理が指すカテゴリだけに絞って数える。
+            cursor.execute(
+                """
+                SELECT COUNT(DISTINCT d.category_id) AS used,
+                       COUNT(DISTINCT d.category_id)
+                         FILTER (WHERE c.image_url IS NULL OR c.image_url = '') AS used_empty
+                FROM dishes d
+                JOIN dish_categories c ON c.id = d.category_id
+                """
+            )
+            used, used_empty = cursor.fetchone()
+            LOGGER.info(
+                "実際に使われている料理カテゴリ: %d種類 / うち画像が空: %d種類（%.1f%%）",
+                used,
+                used_empty,
+                (100.0 * used_empty / used) if used else 0.0,
+            )
+
+            # ⑥ 記録（dishes）単位で見た影響。カテゴリ種類ではなく «何件の記録が
+            #    プレースホルダーになるか» が、ユーザーから見た実害である。
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS dishes_total,
+                       COUNT(*) FILTER (WHERE c.image_url IS NULL OR c.image_url = '') AS dishes_empty
+                FROM dishes d
+                JOIN dish_categories c ON c.id = d.category_id
+                """
+            )
+            dishes_total, dishes_empty = cursor.fetchone()
+            LOGGER.info(
+                "記録(dishes): %d件 / うちカテゴリ画像が空: %d件（%.1f%%）",
+                dishes_total,
+                dishes_empty,
+                (100.0 * dishes_empty / dishes_total) if dishes_total else 0.0,
+            )
     finally:
         connection.rollback()
         connection.close()
