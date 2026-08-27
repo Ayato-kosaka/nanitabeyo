@@ -366,6 +366,26 @@ dry-runも実際のDMLとconstraint検査をtransaction内で行い、最後にr
 BigQueryに無いPostgreSQL行は削除しません。`--skip-backup` は復旧手段を別途確保した緊急時だけ
 使用します。
 
+#### 上書きガードの検証（#843）
+
+9_1 の「表示値を上書きする UPDATE」は、**アプリが作った行を絶対に触らない**ことが要件です
+（2026-08-24 に 7 行が壊れた事故があり、その再発防止）。この性質は SQL を読んでも
+「たまたま条件に当たっていないだけ」と区別できないので、実物の PostgreSQL で確かめます。
+
+```bash
+bash tests/test_9_1_overwrite_guard.sh   # 上書きガード本体（6項目）
+bash tests/test_9_9_backfill.sh          # backfill の行選択（5項目）
+```
+
+その場にクラスタを立てて壊し、終わったら消すので、外部の DB は要りません
+（`initdb` / `pg_ctl` / `psql` が要ります。既定は PostgreSQL 16）。
+
+どちらのテストも **「直っていない状態で落ちること」を先に確かめる**構成にしています。
+`test_9_1_overwrite_guard.sh` は旧ガードで事故を再現してから新ガードを試し、
+`test_9_9_backfill.sh` は `source_seed_id` だけで絞ると余計な行を掴むことを示します。
+新しい条件を足すときは、**その条件が無いと落ちるケース**も一緒に足してください。
+そうしないと、条件を消しても緑のままになります。
+
 ## 保留機能の受け口
 
 - `restaurant_reviews_raw`: rating原値/正規化値、本文、言語、公開状態、権利根拠を保持
