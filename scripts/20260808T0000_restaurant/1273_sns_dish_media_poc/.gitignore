@@ -62,3 +62,5 @@ out/_blog_imgs/
 !out/handle_recovery_labels.json
 !out/handle_source_host_counts.json
 !out/recovery_name_gate.json
+out/.ig_token
+!out/ig_business_discovery.json
