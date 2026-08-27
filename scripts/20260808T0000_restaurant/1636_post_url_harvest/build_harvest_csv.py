@@ -128,6 +128,13 @@ def report(doc: dict, rows: list[dict]) -> None:
                       for i in order)
     print(f"             スクロールごとの増分  {detail}", file=sys.stderr)
 
+    # スクロールで 1 件も増えていないなら、総所要のほとんどは «増えないのを待った時間» である。
+    # そのまま «1 件あたり秒» として読むと、初期表示ぶんを待ち時間で割った無意味な数になる。
+    if order and all(by_scroll.get(i, 0) == 0 for i in order if i > 0):
+        print("             ⚠ スクロールで 1 件も増えていない。"
+              "上の «1 件あたり秒» は初期表示ぶんを待ち時間で割っただけで、"
+              "収集速度として読んではいけない", file=sys.stderr)
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
