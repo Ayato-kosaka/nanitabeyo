@@ -74,16 +74,6 @@ const COLOR_LITERAL = /["'`]#[0-9a-fA-F]{3,8}\b|["'`](?:white|black)["'`]/g;
 const EXCLUSIONS = {
 	"app/+html.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/(tabs)/profile/blocked-dish-categories.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/(tabs)/profile/edit.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/(tabs)/profile/search-results.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/auth/callback.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/auth/login.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/contribution-tasks/dish-category-image-optimizer.tsx":
 		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
 	"app/[locale]/contribution-tasks/dish-category-image-review.tsx":
@@ -96,14 +86,6 @@ const EXCLUSIONS = {
 		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
 	"app/[locale]/contribution-tasks/dish-ranking-summary.tsx":
 		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"app/[locale]/onboarding/index.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/onboarding/welcome.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/s/[token].tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/AuthErrorFallback.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/ImageCardGrid.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/MapView.web.tsx":
@@ -122,28 +104,8 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/deepLinking/OpenInAppBanner.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/auth/components/LoginForm.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/contributionTasks/legacyBlurModal/useLegacyBlurModal.tsx":
 		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"features/dishCategoryGroupVotes/components/DishCategoryGroupVoteCandidateCard.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategoryGroupVotes/components/DishCategoryGroupVoteCandidateDetailModal.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategoryGroupVotes/components/DishCategoryGroupVoteComments.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategoryGroupVotes/components/DishCategoryGroupVoteCompletionModal.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategoryGroupVotes/components/DishCategoryGroupVoteInlineOverlay.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategoryGroupVotes/components/DishCategoryGroupVoteResultHeader.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategoryGroupVotes/components/DishCategoryGroupVoteResultScreen.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategoryGroupVotes/components/DishCategoryGroupVoteVoteCard.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategoryGroupVotes/components/DishCategoryGroupVoteVoteScreen.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/dishMedia/components/DishReviewsSection.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/map/components/BidForm.tsx":
@@ -160,26 +122,6 @@ const EXCLUSIONS = {
 		"地図タイル上の描画。地図は常にライト配色でテーマ非追従のため固定色が仕様。FixedColors への整理は main 由来分の追従課題",
 	"features/mapMarkers/components/MarkerBitmapRendererProvider.tsx":
 		"地図タイル上の描画。地図は常にライト配色でテーマ非追従のため固定色が仕様。FixedColors への整理は main 由来分の追従課題",
-	"features/onboarding/components/ConfettiBurst.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/onboarding/components/OnboardingPermissionScreen.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/onboarding/components/OnboardingStepIndicator.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/onboarding/components/OnboardingStepView.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/profile/components/AvatarImageCard.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/profile/components/LocationSearchForm.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/profile/components/ProfileEditForm.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/profile/tabs/wallet/DepositsTab.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/profile/tabs/wallet/EarningsTab.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/settings/components/LegalDocument.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 };
 
 /** 除外理由の最低文字数。「TODO」や空文字で通り抜けられないようにする */

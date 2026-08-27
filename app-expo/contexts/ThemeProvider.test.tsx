@@ -201,12 +201,18 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		brandTintSoft: "#FFF7F5",
 		brandTintAlt: "#FDE7E1",
 		brandBorder: "#F6DCD5",
+		// #1509 SET-06（プロフィール / 認証 / ウォレット系のトークン化）で追加。
+		// いずれも対象ファイルに書かれていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		borderFaint: "#E5E5E5",
+		borderNeutral: "#D1D5DB",
+		surfaceChip: "#F5F5F5",
+		surfaceChipAlt: "#EDEFF1",
 		// #1502 地点確定 ✓ 用に追加。値は LocationAutocomplete に直書きされていた #16A34A の移設
 		success: "#16A34A",
 		danger: "#DC2626",
 		dangerStrong: "#EF4444",
 		dangerTint: "#FEE2E2",
-		// #1629 FeedbackForm.tsx のエラーバナー / エラー時の入力欄の地（main のリテラルの写し）
+		// FeedbackForm / ProfileEditForm のエラーバナー・エラー時の入力欄の地（main のリテラルの写し）
 		dangerTintSoft: "#FEF2F2",
 		destructive: "#FF3E33",
 		// #1514 通報受付の CircleCheck。ReportContentSheet.tsx が直書きしていた
