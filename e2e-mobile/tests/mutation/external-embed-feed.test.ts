@@ -54,6 +54,26 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 	const restaurantFeed = new RestaurantFeedScreen();
 	let restaurantId: string;
 
+	/**
+	 * フィードを 1 ページ送る。
+	 *
+	 * ⚠️ **埋め込みが前面にいる間は、フィードのコンテナを掴んでスワイプできない。**
+	 * iOS の Detox は «操作する要素が 100% 見えていること» を要求するが、埋め込みセルでは
+	 * WebView がコンテナを覆うため条件を満たさず、
+	 * `View does not pass visibility percent threshold (100)` で落ちる
+	 * （run 33064372163 の iOS で実測。Android は同じ手順で通る）。
+	 *
+	 * そこで **WebView の上からスワイプする**。WebView は `pointerEvents="none"` なので
+	 * 指の動きはそのまま下の FlatList へ抜ける。
+	 * これは回避策であると同時に、**受け入れ条件 5「埋め込みの上から縦スワイプで次のセルへ行ける」
+	 * そのものの検証**になっている。
+	 */
+	const swipeFeed = async () => {
+		const embedWebView = by.id("external-embed-webview");
+		const target = (await existsNow(embedWebView)) ? embedWebView : restaurantFeed.container;
+		await element(target).swipe("up", "fast", 0.6, 0.5, 0.5);
+	};
+
 	beforeAll(async () => {
 		const session = readSessionFromEnv("authenticated");
 		if (!session) {
@@ -76,7 +96,7 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		// 埋め込みセルまでスワイプで探す（このお店の記録は少ないので通常は先頭付近にいる）
 		const embedWebView = by.id("external-embed-webview");
 		for (let i = 0; i < 10 && !(await existsNow(embedWebView)); i++) {
-			await element(restaurantFeed.container).swipe("up", "fast", 0.6);
+			await swipeFeed();
 		}
 		await waitUntilVisible(embedWebView);
 
@@ -106,7 +126,7 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 					playing: await existsNow(by.id("external-embed-playing")),
 				});
 			}
-			await element(restaurantFeed.container).swipe("up", "fast", 0.6);
+			await swipeFeed();
 			// 次のセルの埋め込みが読み込まれ、自動再生の判定が終わるまで待つ
 			await new Promise((resolve) => setTimeout(resolve, 8_000));
 		}
