@@ -1,0 +1,168 @@
+{
+  "purpose": "#1269 Phase 0 ★最重要の未測定値『Professional アカウント率』を測るための標本。business_discovery は相手が Professional でないと何も返さないため、この比率が到達率の上限になる。",
+  "source": "claude/sns-dish-media-poc-fr2zxd の out/instagram_handle_labels.json（18件, 8/19 目視）と out/handle_recovery_labels.json（13件, 8/26 目視）の全件",
+  "caveat": "96ハンドルからの無作為抽出ではなく、既に帰属ラベルが付いている31件を全部使っている。帰属ラベル別のクロス集計ができる利点と引き換えに、Professional 率そのものは96件全体を代表しない可能性がある。",
+  "n": 31,
+  "counts": {
+    "store_own": 9,
+    "chain_or_brand": 10,
+    "other_entity": 12
+  },
+  "handles": [
+    {
+      "handle": "pasteleriasanonofre",
+      "store": "サンオノフレ・スペイン菓子",
+      "attribution_label": "store_own"
+    },
+    {
+      "handle": "momosawakasiho",
+      "store": "甘泉堂 ももさわ菓子舗",
+      "attribution_label": "store_own"
+    },
+    {
+      "handle": "kajicurry",
+      "store": "Kaji Curry",
+      "attribution_label": "store_own"
+    },
+    {
+      "handle": "kuwapan2014",
+      "store": "桑ぱん",
+      "attribution_label": "store_own"
+    },
+    {
+      "handle": "dondonsunada",
+      "store": "どんどん コスパ店",
+      "attribution_label": "store_own"
+    },
+    {
+      "handle": "sala.noge",
+      "store": "Sala noge",
+      "attribution_label": "store_own"
+    },
+    {
+      "handle": "steakhouse__narushima",
+      "store": "ステーキハウス成しま 竜南店",
+      "attribution_label": "store_own"
+    },
+    {
+      "handle": "c_cafe_sasanoya",
+      "store": "C-cafeささ乃や",
+      "attribution_label": "store_own"
+    },
+    {
+      "handle": "kurudot_285181",
+      "store": "Cafe Kurudot",
+      "attribution_label": "store_own"
+    },
+    {
+      "handle": "ryugetsu_sanpouroku",
+      "store": "柳月",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "flo_prestige",
+      "store": "FLO PRESTIGE",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "uogashimeicha",
+      "store": "うおがし銘茶銀座店",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "chateraise.jp",
+      "store": "シャトレーゼ 小野店",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "afternoontea_official",
+      "store": "アフタヌーンティー 伊勢丹浦和",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "yakiniku_king_official",
+      "store": "焼肉きんぐ 福岡新宮店",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "fukushin_koushiki",
+      "store": "福しん 成増店",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "kobeya_since1918",
+      "store": "神戸屋レストラン 浜田山店",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "mukaiyama_caramel",
+      "store": "向山製作所大玉ベース店",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "kashinoki_official",
+      "store": "錦果楼",
+      "attribution_label": "chain_or_brand"
+    },
+    {
+      "handle": "tochinavi",
+      "store": "中華料理仁",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "vison_com",
+      "store": "Izurun",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "menyasyokudou",
+      "store": "月のトリコ 厚木店",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "gathering_insta",
+      "store": "Vege-Plant Cafe Bar LEBRO",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "islandeye_official",
+      "store": "なみうどん",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "tokyosquaregarden",
+      "store": "La Coccinelle",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "locoplacela",
+      "store": "そば長",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "sunshineaoyama",
+      "store": "桂林",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "myplstaff",
+      "store": "コレット",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "sapporo_kokusai",
+      "store": "スカーレル",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "izumoairport",
+      "store": "神在",
+      "attribution_label": "other_entity"
+    },
+    {
+      "handle": "spa.resort.hawaiians",
+      "store": "そば処与市",
+      "attribution_label": "other_entity"
+    }
+  ]
+}
