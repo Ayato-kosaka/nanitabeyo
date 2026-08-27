@@ -6,6 +6,7 @@ import { Play } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { MediaData } from "../../../lib/mediaSelection";
 import { getCacheKeyForImage } from "@/lib/image";
+import { FixedColors } from "@/constants/Palette";
 
 interface InitialMediaPreviewProps {
 	media: MediaData;
@@ -79,7 +80,11 @@ export function InitialMediaPreview({ media }: InitialMediaPreviewProps) {
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("Map.media.playVideo")}>
 							<View style={styles.playIconBackground}>
-								<Play size={40} color="#FFF" fill="#FFF" />
+								{/*
+								#1629 再生アイコンは «選んだ写真・動画そのもの» の上に重なる。
+								メディアの上は常に暗いので、ライトで黒くすると見えなくなる（onMedia の定義そのもの）。
+								*/}
+								<Play size={40} color={FixedColors.onMedia} fill={FixedColors.onMedia} />
 							</View>
 						</TouchableOpacity>
 					)}
@@ -163,7 +168,8 @@ const styles = StyleSheet.create({
 		aspectRatio: 9 / 16,
 		borderRadius: 12,
 		overflow: "hidden",
-		backgroundColor: "#000",
+		// #1629 動画の余白（9:16 に収まらない部分）。メディアビューアと同じで常に黒であること自体が仕様
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	videoPlayer: {
 		width: "100%",
