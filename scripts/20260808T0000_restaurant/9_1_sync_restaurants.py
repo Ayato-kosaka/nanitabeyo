@@ -153,6 +153,32 @@ def validate_staging(connection: Any) -> None:
             """
         )
         occupied_place_ids = cursor.fetchone()[0]
+
+        # #843 backfill 忘れの検知。
+        #
+        # created_by_source の既定は 'user' なので、パイプラインが過去に
+        # 投入した行も、backfill しないままだと 'user' に見える。その状態で
+        # 同期すると **オープンデータの更新が一件も反映されない**（壊れは
+        # しないが黙って止まる）。落ちるより気付きにくいので、ここで数える。
+        #
+        # 「staging に居る」かつ「PG に既に在る」かつ「pipeline でない」行が
+        # 大量にあれば、それは backfill 前である可能性が高い。
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM restaurant_sync_staging s
+            JOIN restaurants r ON r.google_place_id = s.google_place_id
+            WHERE r.created_by_source <> 'pipeline'
+              AND r.source_seed_id IS NOT NULL
+            """
+        )
+        unbackfilled = cursor.fetchone()[0]
+
+    if unbackfilled:
+        raise RuntimeError(
+            f"created_by_source が 'pipeline' でないのに source_seed_id を持つ行が{unbackfilled}件あります。"
+            "9_9_backfill_created_by_source.py を先に実行してください"
+        )
     if invalid_changes:
         raise RuntimeError(
             f"人手overrideでない既存Google Place ID変更が{invalid_changes}件あります"
@@ -198,7 +224,8 @@ def apply_sync(connection: Any) -> None:
             INSERT INTO restaurants (
               id, google_place_id, name, name_language_code, latitude, longitude,
               image_url, image_path, address_components, plus_code,
-              source_seed_id, source_names, source_row_hash, synced_at
+              source_seed_id, source_names, source_row_hash, synced_at,
+              created_by_source
             )
             SELECT
               COALESCE(s.existing_restaurant_id, gen_random_uuid()),
@@ -208,14 +235,32 @@ def apply_sync(connection: Any) -> None:
               s.seed_id,
               ARRAY(SELECT jsonb_array_elements_text(s.source_names_json::jsonb)),
               s.row_hash,
-              CURRENT_TIMESTAMP
+              CURRENT_TIMESTAMP,
+              -- #843 ここで所有者を刻む。ON CONFLICT DO NOTHING なので、既に
+              -- 存在する行（＝アプリが作った行）の created_by_source は
+              -- 書き換わらない。スナップショットに載っていたかどうかに関係なく
+              -- アプリ製の行が 'user' のまま残るのが、この設計の要点である。
+              'pipeline'
             FROM restaurant_sync_staging s
             ON CONFLICT (google_place_id) DO NOTHING
             """
         )
 
-        # BigQueryで新規作成した行だけは再実行時にcanonical値を更新する。
-        # 既存PG由来行は、表示名・位置・Google JSONを絶対に上書きしない。
+        # パイプラインが作った行だけ、再実行時にcanonical値を更新する。
+        #
+        # #843 かつてこの条件は `s.existing_restaurant_id IS NULL` だった。
+        # つまり「1_2 が撮ったスナップショットに載っていないなら新規行だろう」
+        # という **PostgreSQL の外にある古いデータへの否定条件** で判定していた。
+        # スナップショットから同期までは実測で約40時間あり、その間にアプリが
+        # 作った行はスナップショットに載らないので「新規」と誤認され、
+        # 表示値をオープンデータ値で上書きされた（2026-08-24 の dev で7行）。
+        #
+        # 判定を、行のとなりに刻まれた時間に依らない事実へ移す。これで
+        # スナップショットが何時間古かろうと、アプリが作った行は触れない。
+        #
+        # `source_seed_id IS NULL` は条件に使えない。この直後の provenance
+        # UPDATE が **アプリ製の行にも source_seed_id を付ける**ため、2回目の
+        # 実行で条件が反転してしまう。
         cursor.execute(
             """
             UPDATE restaurants r
@@ -232,7 +277,7 @@ def apply_sync(connection: Any) -> None:
               END
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
-              AND s.existing_restaurant_id IS NULL
+              AND r.created_by_source = 'pipeline'
               AND r.source_row_hash IS DISTINCT FROM s.row_hash
             """
         )
