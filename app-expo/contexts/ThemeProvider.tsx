@@ -140,6 +140,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 		// 設定を読み終わる前に触らない。既定値（system）で一瞬上書きが走ると、
 		// 保存済みの dark 端末が起動直後だけライトへ振れる
 		if (!isPreferenceLoaded) return;
+		/*
+		⚠️ **react-native-web は `setColorScheme` を実装していない。**
+
+		これは RN 0.73 で入った «ネイティブ部品の外観を上書きする» API で、web には
+		対応する概念が無い。無条件に呼ぶと
+
+		    TypeError: n.default.setColorScheme is not a function
+
+		が `ThemeProvider` の中（＝ アプリ全体の親）で投げられ、**web アプリが
+		真っ白のまま何も描かれなくなる**（preview デプロイで実測。ページの本文が空になり、
+		起動・直リンクの smoke が全滅した）。
+
+		web ではブラウザ自身の配色設定に従うのが正しく、ここで上書きするものは何も無いので、
+		実装が無い環境では黙って何もしない。
+		*/
+		if (typeof Appearance.setColorScheme !== "function") return;
 		Appearance.setColorScheme(preference === "system" ? null : preference);
 	}, [preference, isPreferenceLoaded]);
 
