@@ -53,7 +53,7 @@ run 32654704176 で、埋め込み中央の「Instagramで見る」を踏んだ�
 **このコンポーネント自身が `useIsFocused()` を呼ぶと、Portal 配下（ナビゲータ外）で
 描かれた瞬間にフックが例外を投げてアプリごと落ちる**（Detox run 32658978146 で実測）。
 */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
 	AppState,
 	type AppStateStatus,
@@ -66,6 +66,7 @@ import {
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
+import { NavigationContext } from "@react-navigation/native";
 import { Play } from "lucide-react-native";
 
 import { useHaptics } from "@/hooks/useHaptics";
@@ -240,16 +241,46 @@ export type ExternalEmbedPlayerProps = {
 	 */
 	blockParentTapGesture?: GestureType;
 	/**
-	 * 呼び出し元の画面がフォーカスを持っているか（別ルートへ push されていないか）。
+	 * ナビゲータの外（Portal 配下）で描かれるときの既定値。
 	 *
-	 * ⚠️ **ここで `useIsFocused()` を呼んではいけない。** このコンポーネントは
-	 * ActionSheet などの Portal 配下（`Portal.Host` は `<Stack>` を包んでいる = ナビゲータの外）
-	 * でも描かれるため、ナビゲーションコンテキストが無い経路があり、
-	 * フックが例外を投げてアプリごと落ちる（Detox run 32658978146 で実測）。
-	 * 判定はナビゲータ内にいる呼び出し元が行い、props で渡す。未指定なら «フォーカスあり» 扱い
+	 * ナビゲータ内にいる場合は `useIsScreenFocusedSafely` が実際のフォーカスを見るので、
+	 * この prop は使われない。未指定なら «フォーカスあり» 扱い。
 	 */
 	isScreenFocused?: boolean;
 };
+
+/**
+ * この画面が前面か（別ルートへ push されていないか）を、**例外を投げずに**判定する。
+ *
+ * ⚠️ `useIsFocused()` は使えない。このコンポーネントは ActionSheet などの Portal 配下
+ * （`Portal.Host` は `<Stack>` を包んでいる = ナビゲータの外）でも描かれるため、
+ * ナビゲーションコンテキストが無い経路があり、フックが例外を投げてアプリごと落ちる
+ * （Detox run 32658978146 で実測）。
+ *
+ * `NavigationContext` は**無ければ `undefined` を返すだけ**なので安全に読める。
+ * hook の本数も常に固定になる（条件付き hook にならない）。
+ *
+ * #1641: 以前は `isScreenFocused` prop で呼び出し元から受け取る設計だったが、
+ * **呼び出し元（`DishMediaContent`）が一度も渡していなかった**ため常に «フォーカスあり»
+ * 扱いになり、別ルートへ push しても WebView が生き残って音が鳴り続けていた。
+ * prop 経由だと «渡し忘れが無音で成立してしまう» ので、ここで自分で取る。
+ */
+function useIsScreenFocusedSafely(fallback: boolean): boolean {
+	const navigation = useContext(NavigationContext);
+	const [focused, setFocused] = useState(true);
+	useEffect(() => {
+		if (!navigation) return;
+		setFocused(navigation.isFocused());
+		const unsubscribeFocus = navigation.addListener("focus", () => setFocused(true));
+		const unsubscribeBlur = navigation.addListener("blur", () => setFocused(false));
+		return () => {
+			unsubscribeFocus();
+			unsubscribeBlur();
+		};
+	}, [navigation]);
+	// ナビゲータの外（Portal 配下）では判定できない。呼び出し元の指定 → «前面» の順で倒す
+	return navigation ? focused : fallback;
+}
 
 export function ExternalEmbedPlayer({
 	embed,
@@ -257,6 +288,7 @@ export function ExternalEmbedPlayer({
 	blockParentTapGesture,
 	isScreenFocused,
 }: ExternalEmbedPlayerProps) {
+	const screenFocused = useIsScreenFocusedSafely(isScreenFocused !== false);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	// WebView のレンダラが system に殺されたとき、黒いセルのまま放置しないための印
@@ -396,7 +428,7 @@ export function ExternalEmbedPlayer({
 
 	// 画面が裏（アプリがバックグラウンド / 呼び出し元がフォーカスを失った）なら描かない
 	// = 音もメモリも解放する
-	if (!isActive || !appActive || isScreenFocused === false) return null;
+	if (!isActive || !appActive || !screenFocused) return null;
 
 	// 削除・非公開になった投稿（#1273 §39）
 	if (embed.embedStatus === "unavailable") {
