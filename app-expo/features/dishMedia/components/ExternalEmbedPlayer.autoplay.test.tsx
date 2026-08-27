@@ -45,16 +45,14 @@ beforeAll(() => {
 	jest.spyOn(UIManager as any, "hasViewManagerConfig").mockReturnValue(true);
 });
 
-/** セルの寸法が確定するまで WebView は作られない（中途半端な幅で読ませない設計）ので、寸法を与える */
+/**
+ * #1641 WebView はセル全面に置かれるようになったので、寸法を測る手順は要らない
+ * （中身の全面化は注入した CSS が担う）。
+ */
 function renderActiveCell(): ReactTestRenderer {
 	let tree!: ReactTestRenderer;
 	act(() => {
 		tree = create(<ExternalEmbedPlayer embed={EMBED} isActive />);
-	});
-	act(() => {
-		tree.root
-			.findAllByProps({ testID: "external-embed-webview" })[0]
-			.props.onLayout({ nativeEvent: { layout: { width: 390, height: 844 } } });
 	});
 	return tree;
 }
@@ -75,6 +73,9 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		// ⚠️ iOS は onMessage が無いと injectedJavaScript が登録すらされない
 		expect(typeof webViewProps.onMessage).toBe("function");
 		expect(webViewProps.injectedJavaScript).toContain("__nbEmbedAutoplay");
+		// #1641 セル全面へ広げる指示が注入スクリプトに入っていること（黒帯を出さない）
+		expect(webViewProps.injectedJavaScript).toContain("object-fit");
+		expect(webViewProps.injectedJavaScript).toContain("100vh");
 		expect(webViewProps.mediaPlaybackRequiresUserAction).toBe(false);
 	});
 

@@ -18,6 +18,11 @@ Playwright の録画で行う。OTA 側ブランチの実装は «再生ボタ�
 再生は**こちらから起こす**。埋め込みページは `<video autoplay>` ではないので放っておいても
 絶対に動かない（実測は下の «自動再生» の節）。`injectedJavaScript` で `play()` を呼ぶ。
 
+**見せ方も注入で決める。** 同じスクリプトが `<video>` を WebView いっぱい（`object-fit: cover`）へ
+広げるので、映像はセル全面に出る（既存の料理動画セルと同じ）。外から切り取っていた頃に残っていた
+上下の黒帯は出ない。WebView 自体は素のセル寸法のままなので、拡大による粗さも
+Android の «大きな描画面が確保できず真っ黒» も起きない。
+
 - 再生できている間は、こちらの UI を**何も重ねない**（既存の動画セルと同じ見え方）
 - 権利ブロックで `<video>` が存在しない投稿だけ «Instagram で見る» の帯を出す
 - WebView が居ないビルド（現行 1.14 に OTA だけ届いた場合）も同じ帯へ縮退する
@@ -53,7 +58,7 @@ run 32654704176 で、埋め込み中央の「Instagramで見る」を踏んだ�
 **このコンポーネント自身が `useIsFocused()` を呼ぶと、Portal 配下（ナビゲータ外）で
 描かれた瞬間にフックが例外を投げてアプリごと落ちる**（Detox run 32658978146 で実測）。
 */
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
 	AppState,
 	type AppStateStatus,
@@ -62,7 +67,6 @@ import {
 	TouchableOpacity,
 	UIManager,
 	View,
-	type LayoutChangeEvent,
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
@@ -100,8 +104,6 @@ const probeNativeWebView = (): ProbeResult => {
 };
 // #1509 メディア（サムネイル）の上に重ねる再生 UI のため、テーマ非追従の FixedColors を使う
 import { FixedColors } from "@/constants/Palette";
-// #1375（案 A）Instagram の埋め込みから «写真だけ» を切り出すための寸法計算
-import { computeEmbedCropLayout } from "../embedCrop";
 
 /*
 #1641【設計】**タップ無しで自動再生する注入スクリプト。**
@@ -155,6 +157,7 @@ const AUTOPLAY_SCRIPT = `(function () {
 
   var DEADLINE_MS = 12000, TICK_MS = 250;
   var timer = null, observer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
+  var backdrop = null, fillTicks = 0;
 
   function report(kind, detail) {
     if (sent[kind]) return;
@@ -178,14 +181,47 @@ const AUTOPLAY_SCRIPT = `(function () {
     if (kind) report(kind, detail);
   }
 
+  /*
+   * <video> を **WebView の表示領域いっぱい**へ広げ、Instagram の UI を背後へ隠す。
+   *
+   * ⚠️ クラス名に一切依存しないこと。«video タグが 1 つある» ことしか前提にしない。
+   *    向こうの DOM 構造が変わっても壊れないのが、この書き方を選んでいる理由である。
+   */
+  function fill(v) {
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.style.cssText = 'position:fixed;inset:0;background:#000;z-index:2147483646';
+      document.body.appendChild(backdrop);
+    }
+    var st = v.style;
+    st.setProperty('position', 'fixed', 'important');
+    st.setProperty('inset', '0', 'important');
+    st.setProperty('width', '100vw', 'important');
+    st.setProperty('height', '100vh', 'important');
+    st.setProperty('max-width', 'none', 'important');
+    st.setProperty('max-height', 'none', 'important');
+    // 既存の料理動画セル（VideoPlayer の contentFit="cover"）と同じ見せ方に揃える
+    st.setProperty('object-fit', 'cover', 'important');
+    st.setProperty('z-index', '2147483647', 'important');
+  }
+
   function prepare(v) {
+    fill(v);
     // 属性とプロパティの両方を立てる（Instagram 側の JS が属性を見て作り直すことがある）
     v.loop = true; v.setAttribute('loop', '');
     v.playsInline = true;
     v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
     if (v.__nbBound) return;
     v.__nbBound = true;
-    v.addEventListener('playing', function () { settle('playing', v.muted ? 'muted' : 'audible'); }, false);
+    v.addEventListener('playing', function () { fill(v); settle('playing', v.muted ? 'muted' : 'audible'); }, false);
+    /*
+     * 再生開始で本体の仕事は畳むが、Instagram 側の JS が後から style を書き戻す可能性がある。
+     * **上限つき**（15 回 = 約 15 秒）で全面化だけ貼り直す。無制限に回さないこと。
+     */
+    var refill = setInterval(function () {
+      try { fill(v); } catch (e) {}
+      if (++fillTicks >= 15) clearInterval(refill);
+    }, 1000);
     // loop を向こうの JS に潰された場合の保険。ここだけは畳んだ後でも起こし直す
     v.addEventListener('ended', function () { try { v.currentTime = 0; } catch (e) {} start(); }, false);
   }
@@ -433,23 +469,10 @@ export function ExternalEmbedPlayer({
 	);
 
 	/*
-	#1375（案 A）Instagram の埋め込みが連れてくるヘッダ・いいね欄・白帯を切り取り、
-	写真だけをセル全面に敷く。計算の根拠は ../embedCrop.ts のヘッダを参照。
-
-	⚠️ **この 3 つの hook を下の early return より後ろへ置いてはいけない。**
-	`isActive` / `appActive` / `isScreenFocused` はフィードを送るたびに切り替わるので、
-	early return を挟むと «同じコンポーネントが呼ぶ hook の本数» が描画のたびに変わり、
-	React が `Rendered fewer hooks than expected` で落ちる（= フィードを送っただけで
-	クラッシュする）。実際に条件付き hook の状態で入っていたのを、eslint の
-	react-hooks/rules-of-hooks が検出した
+	#1641 切り取り（embedCrop.ts）はネイティブでは不要になった。
+	`<video>` を注入した CSS で WebView いっぱいへ広げるので、外から位置を測る必要が無い。
+	**web（`.web.tsx`）は iframe へ注入できないので、あちらは引き続き embedCrop.ts を使う。**
 	*/
-	const [cell, setCell] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-	const handleLayout = useCallback((event: LayoutChangeEvent) => {
-		const { width, height } = event.nativeEvent.layout;
-		setCell((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
-	}, []);
-	const crop = useMemo(() => computeEmbedCropLayout(cell), [cell]);
-
 	// 画面が裏（アプリがバックグラウンド / 呼び出し元がフォーカスを失った）なら描かない
 	// = 音もメモリも解放する
 	if (!isActive || !appActive || !screenFocused) return null;
@@ -512,88 +535,73 @@ export function ExternalEmbedPlayer({
 	return (
 		<>
 			{inlineAvailable && NativeWebView !== null && source !== null && (
+				/*
+				#1641【設計】**WebView をセル全面に置き、中身の全面化はページの中でやる。**
+
+				以前は «外から位置と拡大率だけで切り取る»（embedCrop.ts）方式だった。中の DOM を
+				触れないことが前提だったからである。**自動再生の注入を入れた時点でその前提は消えた。**
+
+				外から切り取る方式には実害があった。
+
+				| | 症状 |
+				| --- | --- |
+				| 等倍で中央に置く | 映像がセルの一部にしか出ず、上下に黒帯が残る（オーナー指摘） |
+				| 拡大して埋める | Android が大きな描画面を確保できずセルが真っ黒になる |
+
+				いまは注入した CSS が `<video>` 自身を WebView いっぱい（`object-fit: cover`）へ
+				広げるので、**WebView は素のセル寸法のままでよい**。拡大しないので粗くならず、
+				Instagram のヘッダ帯・いいね欄は背後へ隠れるため切り取りも要らない。
+
+				⚠️ web（`.web.tsx`）は iframe の中へ注入できないので、**embedCrop.ts の切り取りを使い続ける**。
+				*/
 				<View
-					style={styles.cropFrame}
-					onLayout={handleLayout}
+					style={styles.cell}
 					/* #1641 **常に表示専用**。タッチを一切渡さないので、縦スワイプでのフィード送りも
 					   タップでの ActionSheet も、既存の動画セルと完全に同じ経路で処理される
 					   （Android の RNCWebView は縦ドラッグを自分で消費するため、渡すと送りが死ぬ） */
 					pointerEvents="none"
 					testID="external-embed-webview">
-					{/* セルの寸法が確定するまで WebView を作らない。中途半端な幅で読み込ませると、
-					    Instagram がその幅でレイアウトしてしまい切り取り位置がずれたまま残る */}
-					{/* 写真の箱。**等倍で中央へ置く**（拡大しない。理由は ../embedCrop.ts のヘッダ）。
-					    ⚠️ WebView 本体は **素の幅のまま**にすること。大きな寸法を渡すと
-					    Android が描画面を確保できずセルが真っ黒になる（../embedCrop.ts のヘッダ） */}
-					{crop !== null && (
-						<View
-							style={{
-								width: crop.frameWidth,
-								height: crop.mediaHeight,
-								overflow: "hidden",
-							}}>
-							<NativeWebView
-								ref={webViewRef}
-								source={{ uri: source.embedUrl }}
-								style={[
-									styles.webView,
-									{
-										width: crop.frameWidth,
-										height: crop.frameHeight,
-										left: 0,
-										// ヘッダ帯ぶん上へずらして箱の外へ追い出す
-										top: crop.frameTop,
-									},
-								]}
-								allowsInlineMediaPlayback
-								mediaPlaybackRequiresUserAction={false}
-								// 表示専用なので、ユーザーの意図なく PiP へ持って行かれる余地を潰す
-								allowsPictureInPictureMediaPlayback={false}
-								/* #1641 ページ読み込みごとに自動再生エージェントを仕込む。
-								   `<video>` が現れるまで再試行し、結果を postMessage で返す */
-								injectedJavaScript={AUTOPLAY_SCRIPT}
-								onMessage={handleMessage}
-								/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
-								   まだ無いケース）に、もう一度エージェントを起こす */
-								onLoadEnd={() => webViewRef.current?.injectJavaScript(AUTOPLAY_SCRIPT)}
-								// Android: target=_blank で «画面外の新しい WebView» を作らせない（ヘッダ参照）
-								setSupportMultipleWindows={false}
-								onOpenWindow={(event: { nativeEvent: { targetUrl: string } }) =>
-									openInAppBrowser(event.nativeEvent.targetUrl, "open_window")
-								}
-								onShouldStartLoadWithRequest={handleShouldStartLoad}
-								// レンダラが殺されたら黒いセルで放置せず、再生ボタン（ブラウザ縮退）へ戻す
-								onRenderProcessGone={() => {
-									logFrontendEvent({
-										event_name: "external_embed_render_process_gone",
-										error_level: "warn",
-										payload: { provider: embed.provider, platform: "android" },
-									});
-									setRenderProcessGone(true);
-								}}
-								onContentProcessDidTerminate={() => {
-									logFrontendEvent({
-										event_name: "external_embed_render_process_gone",
-										error_level: "warn",
-										payload: { provider: embed.provider, platform: "ios" },
-									});
-									setRenderProcessGone(true);
-								}}
-							/>
-						</View>
-					)}
+					<NativeWebView
+						ref={webViewRef}
+						source={{ uri: source.embedUrl }}
+						style={styles.webView}
+						allowsInlineMediaPlayback
+						mediaPlaybackRequiresUserAction={false}
+						// 表示専用なので、ユーザーの意図なく PiP へ持って行かれる余地を潰す
+						allowsPictureInPictureMediaPlayback={false}
+						/* #1641 ページ読み込みごとに自動再生エージェントを仕込む。
+						   `<video>` が現れるまで再試行し、結果を postMessage で返す */
+						injectedJavaScript={AUTOPLAY_SCRIPT}
+						onMessage={handleMessage}
+						/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
+						   まだ無いケース）に、もう一度エージェントを起こす */
+						onLoadEnd={() => webViewRef.current?.injectJavaScript(AUTOPLAY_SCRIPT)}
+						// Android: target=_blank で «画面外の新しい WebView» を作らせない（ヘッダ参照）
+						setSupportMultipleWindows={false}
+						onOpenWindow={(event: { nativeEvent: { targetUrl: string } }) =>
+							openInAppBrowser(event.nativeEvent.targetUrl, "open_window")
+						}
+						onShouldStartLoadWithRequest={handleShouldStartLoad}
+						// レンダラが殺されたら黒いセルで放置せず、«Instagram で見る» へ戻す
+						onRenderProcessGone={() => {
+							logFrontendEvent({
+								event_name: "external_embed_render_process_gone",
+								error_level: "warn",
+								payload: { provider: embed.provider, platform: "android" },
+							});
+							setRenderProcessGone(true);
+						}}
+						onContentProcessDidTerminate={() => {
+							logFrontendEvent({
+								event_name: "external_embed_render_process_gone",
+								error_level: "warn",
+								payload: { provider: embed.provider, platform: "ios" },
+							});
+							setRenderProcessGone(true);
+						}}
+					/>
 				</View>
 			)}
-			{/*
-			#1641【テスト容易性】**«再生できた» を機械で確かめられるようにする。**
-
-			`showFallbackCta` が false であることは «再生できた» の根拠にならない。
-			読み込み中（`playback === "unknown"`）でも false になるので、**何も再生していなくても
-			Detox が緑になる**（＝ 偽の «直った»）。ページ内エージェントが «本当に currentTime が
-			進んだ» と報告したときだけ現れる印を置き、spec はこれを待つ。
-
-			見た目には影響しない（寸法ゼロ・タッチも受けない）
-			*/}
 			{playback === "playing" && (
 				<View style={styles.playingMarker} pointerEvents="none" testID="external-embed-playing" />
 			)}
@@ -619,19 +627,13 @@ export function ExternalEmbedPlayer({
 }
 
 const styles = StyleSheet.create({
-	// #1375（案 A）はみ出した Instagram の UI をここで捨てる。
-	// これが無いと切り取りが成立せず、セルの外へ白帯が出る
-	cropFrame: {
+	// #1641 セル全面。中身の全面化は注入した CSS が担うので、ここでは切り取らない
+	cell: {
 		...StyleSheet.absoluteFillObject,
-		overflow: "hidden",
 		backgroundColor: FixedColors.mediaBackground,
-		// 写真の箱を中央へ置く（等倍なので、上下にはアプリの地色が残る）
-		alignItems: "center",
-		justifyContent: "center",
 	},
-	// 位置と寸法は computeEmbedCropLayout が決めるので、ここでは絶対配置だけ宣言する
 	webView: {
-		position: "absolute",
+		flex: 1,
 		backgroundColor: FixedColors.mediaBackground,
 	},
 	// #1641 «再生できた» の機械可読な印。見た目には出さない
