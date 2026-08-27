@@ -488,9 +488,15 @@ function ActionButtonsContent({
 							    ⚠️ ラベルは白のまま（**色を付けるのはアイコンだけ**） */}
 							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia} />
 						</TouchableOpacity>
-						{/* #1629 【仕様】«この料理にレビューを書く» は右レールには長すぎた（オーナー指示）。
-							    押した先の画面タイトルは長いままで良いので、ここだけ短い語へ差し替える */}
-							<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.review")}</Text>
+						{/* #1629 【仕様】ラベルは «食べた»（オーナー指示。何も付けない）。
+
+						    経緯: «この料理にレビューを書く» → «レビュー» → **«食べた»**。
+						    1 つ上のブックマークが «食べたい» なので、対になる語でなければ
+						    「この 2 つが同じ軸の状態だ」と読めない。押した先の画面タイトルは長いままでよい。
+
+						    ⚠️ `MyDishes.filters.status.eaten` を使う。一覧の絞り込み・バッジと
+						       **同じキー**にしておくこと。別キーにすると片方だけ direction が変わる */}
+							<Text style={styles.actionText}>{i18n.t("MyDishes.filters.status.eaten")}</Text>
 					</View>
 				)}
 
