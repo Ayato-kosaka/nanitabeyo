@@ -11,6 +11,18 @@
 
 いまは `ST_DWithin` + 既存の GIST 索引（`idx_restaurants_location`）で絞っている。
 
+## 索引に乗っても遅かった（2 段目のラチェット）
+
+`ST_DWithin` で索引に乗せたあとも、半径 5km の東京駅で **9.3 秒**かかっていた。
+索引は «半径内か» までしか絞れず、`ORDER BY ST_Distance(...)` は
+**半径内の全件（21,247 行）の距離を計算してソートしてから LIMIT** していたためである。
+さらに `dishes` / `dish_reviews` / `restaurant_bids` の集計も、その 21,247 行に対して走っていた。
+
+いまは **JOIN と集計より前に候補を limit 件へ絞る**。距離順のときは PostGIS の
+KNN 演算子（`location <-> 点`）で GIST 索引から «近い順に n 件» を直接取り出す。
+ここが崩れると «索引には乗っているのに遅い» 状態へ静かに戻るので、
+`ST_DWithin` と同じ強さで見張る。
+
 ## なぜ SQL の文字列を見るのか
 
 `EXPLAIN` を CI で回すには実 DB が要る。索引が効いていることを直接見る代わりに、
@@ -45,5 +57,48 @@ describe('#1629 近傍検索は GIST 索引に乗る書き方であること', (
 
   it('geography 列（location）を使っている。latitude / longitude の生値で距離を測らない', () => {
     expect(source).toMatch(/r\.location/);
+  });
+});
+
+describe('#1629 集計より前に候補を絞っている（索引に乗っても遅い状態へ戻らない）', () => {
+  it('距離順の経路は KNN 演算子（location <-> 点）で候補を切っている', () => {
+    // 「ORDER BY r.location <-> …」の形。これが GIST 索引から «近い順に n 件» を取り出す
+    expect(source).toMatch(/ORDER BY r\.location <-> /);
+  });
+
+  it('KNN の ORDER BY には LIMIT が付いている（付いていないと索引が使われない）', () => {
+    expect(source).toMatch(/ORDER BY r\.location <-> \$\{originPoint\} LIMIT /);
+  });
+
+  it('2 つのメソッドとも「候補を絞る CTE」を持っている', () => {
+    const matches = source.match(/candidates AS \(/g) ?? [];
+    expect(matches.length).toBe(2);
+  });
+
+  it('候補 CTE は LIMIT で件数を切っている', () => {
+    // 保存済み一覧は保存日時順で、店舗検索は KNN か入札額順で切る。
+    // どちらも «絞ってから集計する» ために LIMIT が候補側に居ること
+    expect(source).toMatch(/ORDER BY\s+sr\.last_saved_at DESC\s+LIMIT /);
+    expect(source).toMatch(/ORDER BY total_cents DESC LIMIT /);
+  });
+
+  it('重いレビュー集計（dish_reviews）は、候補 CTE より後ろにしか無い', () => {
+    // dish_reviews を LEFT JOIN しているのは、候補を絞ったあとの最終 SELECT だけ。
+    // 候補 CTE の側へ移すと 21,247 行を集計する形へ戻る
+    const methods = source.split('async search').slice(1);
+    const targets = methods.filter((m) => m.includes('candidates AS ('));
+    expect(targets.length).toBe(2);
+    for (const method of targets) {
+      expect(method.indexOf('LEFT JOIN dish_reviews dr')).toBeGreaterThan(
+        method.indexOf('candidates AS ('),
+      );
+    }
+  });
+
+  it('入札額順の経路では «近い n 件» に切っていない（意味が変わるため）', () => {
+    // KNN の LIMIT は orderByDistance が真のときだけ組み立てられる
+    expect(source).toMatch(
+      /const knnOrderLimit = orderByDistance\s*\?\s*Prisma\.sql/,
+    );
   });
 });
