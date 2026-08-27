@@ -361,3 +361,26 @@ describe("#1629 ネイティブ部品への反映（Appearance.setColorScheme）
 		expect(setColorScheme).not.toHaveBeenCalled();
 	});
 });
+
+/*
+#1629 **web では `Appearance.setColorScheme` が存在しない。**
+
+react-native-web にこの API は無く、無い環境で呼ぶと ThemeProvider のレンダー直下で
+TypeError が投げられ **アプリ全体が描画されない**（実測: web ビルドで画面が真っ白）。
+jest の RN モックには関数が在るため、これだけでは気づけなかった。
+**関数を消した状態で «落ちないこと» をここで固定する。**
+*/
+describe("#1629 setColorScheme が無い環境（react-native-web）でも落ちない", () => {
+	it("関数が無くても Provider は描画でき、テーマは解決される", async () => {
+		const original = Appearance.setColorScheme;
+		// @ts-expect-error web には存在しないことの再現
+		Appearance.setColorScheme = undefined;
+		try {
+			mockedAsyncStorage.getItem.mockResolvedValue("dark");
+			const { seen } = await renderWithProvider();
+			expect(seen.current?.scheme).toBe("dark");
+		} finally {
+			Appearance.setColorScheme = original;
+		}
+	});
+});

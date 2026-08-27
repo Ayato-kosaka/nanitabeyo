@@ -140,6 +140,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 		// 設定を読み終わる前に触らない。既定値（system）で一瞬上書きが走ると、
 		// 保存済みの dark 端末が起動直後だけライトへ振れる
 		if (!isPreferenceLoaded) return;
+		/*
+		⚠️ **`typeof` の確認を外さないこと。web が丸ごと白紙になる。**
+
+		`Appearance.setColorScheme` は RN 0.73+ の API だが、**react-native-web には無い**。
+		無い環境で呼ぶと `TypeError: setColorScheme is not a function` が
+		ThemeProvider のレンダー直下で投げられ、**アプリ全体が描画されない**
+		（実測 2026-08-27: web ビルドで画面が真っ白、testID が 1 つも出ない）。
+
+		ネイティブしか見ていなかったので気づけなかった。jest の RN モックには
+		この関数が在るため**テストも緑のまま通っていた**。
+		そもそも web には «OS が描くトグルやキーボード» が無く、この上書きは要らない。
+		*/
+		if (typeof Appearance.setColorScheme !== "function") return;
 		Appearance.setColorScheme(preference === "system" ? null : preference);
 	}, [preference, isPreferenceLoaded]);
 
