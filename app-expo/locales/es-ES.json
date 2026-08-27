@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "Compartir",
 			"seeMore": "ver más",
-			"openMap": "Abrir mapa"
+			"openMap": "Abrir mapa",
+			"review": "Reseña"
 		},
 		"share": {
 			"title": "Mira {{dishName}}"
@@ -464,6 +465,9 @@
 			"saveFailed": "No se pudo actualizar la reseña",
 			"conflict": "Esta reseña se actualizó en otro dispositivo. Vuelve a abrirla antes de editarla.",
 			"forbidden": "Solo puedes editar o eliminar tus propias publicaciones"
+		},
+		"moreMenu": {
+			"title": "Esta publicación"
 		}
 	},
 	"ImageCardGrid": {
@@ -843,7 +847,8 @@
 			"group_votes": {
 				"title": "Votaciones de grupo",
 				"description": "Cuando hay actividad en una votación de grupo a la que te uniste"
-			}
+			},
+			"navigationLabel": "Notificaciones"
 		},
 		"language": {
 			"navigationLabel": "Idioma",
@@ -886,6 +891,10 @@
 			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
+		},
+		"account": {
+			"navigationLabel": "Cuenta",
+			"title": "Cuenta"
 		}
 	},
 	"Dialog": {

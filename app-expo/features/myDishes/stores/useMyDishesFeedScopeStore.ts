@@ -29,13 +29,24 @@ store が空のとき（web の直リンク・リロード）は Feed 側が 1 �
 */
 import { createWithEqualityFn } from "zustand/traditional";
 
+/**
+ * #1629 並びの出どころ。**前後を何件まで見せるかがこれで変わる。**
+ *
+ * - `map` … viewport 由来。ピンが 200 件あるエリアでは 200 ページになりうるので前後 1 件へ絞る
+ * - `list` … 一覧に出ている並び。**絞らない**。一覧は «上から順に見ていく» 面なので、
+ *   縦にフリックし続けたら一覧の最後まで行けるのが期待される挙動である（オーナー指摘）
+ */
+export type MyDishesFeedScopeSource = "map" | "list";
+
 export type MyDishesFeedScopeStore = {
 	/** 順序付きの店舗 id。空なら «並びは分からない»（Feed は 1 ページへ縮退する） */
 	restaurantIds: string[];
+	/** #1629 `restaurantIds` を置いたのが誰か。前後を絞るかどうかの判断に使う */
+	restaurantIdsSource: MyDishesFeedScopeSource | null;
 	/** 記録がある日付（YYYY-MM-DD）の昇順。空なら «並びは分からない»（Feed は 1 日へ縮退する） */
 	dateKeys: string[];
 	/** 遷移直前に置く。呼ぶのは Map / 一覧のように «並びを知っている» 側だけ */
-	setRestaurantIds: (restaurantIds: string[]) => void;
+	setRestaurantIds: (restaurantIds: string[], source: MyDishesFeedScopeSource) => void;
 	/** 遷移直前に置く。呼ぶのは Calendar のように «記録がある日を知っている» 側だけ */
 	setDateKeys: (dateKeys: string[]) => void;
 	clear: () => void;
@@ -43,10 +54,11 @@ export type MyDishesFeedScopeStore = {
 
 export const useMyDishesFeedScopeStore = createWithEqualityFn<MyDishesFeedScopeStore>()((set) => ({
 	restaurantIds: [],
+	restaurantIdsSource: null,
 	dateKeys: [],
-	setRestaurantIds: (restaurantIds) => set({ restaurantIds }),
+	setRestaurantIds: (restaurantIds, source) => set({ restaurantIds, restaurantIdsSource: source }),
 	setDateKeys: (dateKeys) => set({ dateKeys }),
-	clear: () => set({ restaurantIds: [], dateKeys: [] }),
+	clear: () => set({ restaurantIds: [], restaurantIdsSource: null, dateKeys: [] }),
 }));
 
 /**

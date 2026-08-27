@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Ellipsis, Pencil, Trash2, X } from "lucide-react-native";
+import { Ellipsis, Flag, Pencil, Share, Trash2, X } from "lucide-react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
 import i18n from "@/lib/i18n";
@@ -28,6 +28,17 @@ import type { UpdateDishReviewDto } from "@shared/api/v1/dto";
 import type { DeleteDishMediaResponse, UpdateDishReviewResponse } from "@shared/api/v1/res";
 
 /**
+ * フィード右レールの «…» メニュー。
+ *
+ * #1629 【仕様】オーナー指示で **«…» を右レールの一番下に置き、シェアと報告をこの中へ入れた**。
+ * それまで右レールは «いいね / 食べたい / レビュー / 地図 / シェア / 報告 / （自分の投稿なら）…»
+ * と 7 段あり、縦に長すぎた。人に渡す操作（シェア・報告）と自分の投稿の管理（編集・削除）を
+ * 1 つのメニューへ畳んで、レールに残すのは «その場で 1 タップで効く操作» だけにする。
+ *
+ * ⚠️ **このメニューは自分の投稿でなくても出る。** 中身が出し分けられるだけである。
+ *    以前の名前は `OwnPostActions` だったが、シェアと報告が入った時点で
+ *    «自分の投稿の» という名前は嘘になったので改名した。
+ *
  * #1513 自分の投稿に対する編集・削除の導線。
  *
  * ## ここに置いている理由
@@ -50,12 +61,18 @@ const MAX_STARS = 5;
 
 type Props = {
 	entry: NormalizedDishMediaEntry;
+	/** #1629 シェア。右レールから畳んだので、押した先の処理は呼び出し側（ActionButtons）が持つ */
+	onShare: () => void;
+	/** #1629 通報。同上 */
+	onReport: () => void;
 };
 
-export function OwnPostActions({ entry }: Props) {
+export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
 	const dishMediaId = String(entry.dish_media.id);
+	// #1629 編集・削除の行だけを出し分ける。«…» 自体は誰の投稿でも出す
+	const isMine = !!entry.dish_media.isMine;
 	const { locale } = useLocale();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
@@ -257,9 +274,53 @@ export function OwnPostActions({ entry }: Props) {
 				<Pressable style={styles.backdrop} onPress={() => setMenuVisible(false)}>
 					{/* シート本体のタップは閉じる操作に伝播させない */}
 					<Pressable testID="own-post-menu" style={styles.sheet} onPress={() => {}}>
-						<Text style={styles.sheetTitle}>{i18n.t("DishMediaContent.ownPost.menuTitle")}</Text>
+						{/*
+						  #1629 タイトルを «自分の投稿» から «この投稿» へ変えた。
+						  このメニューは **他人の投稿でも出る**（シェアと報告が入っているため）。
+						  «自分の投稿» のままだと、他人の投稿を開いたときに嘘になる。
+						*/}
+						<Text style={styles.sheetTitle}>{i18n.t("DishMediaContent.moreMenu.title")}</Text>
 
-						{myReview && (
+						{/* #1629 誰の投稿でも出る 2 行。«人に渡す» 操作をここへ畳んだ */}
+						<TouchableOpacity
+							testID="dish-action-share"
+							style={styles.sheetRow}
+							onPress={() => {
+								setMenuVisible(false);
+								onShare();
+							}}
+							accessibilityRole="button">
+							<Share size={20} color={colors.textPrimaryAlt} />
+							<Text style={styles.sheetRowText}>{i18n.t("DishMediaContent.actions.share")}</Text>
+						</TouchableOpacity>
+
+						{/*
+						  #1514 (SAF-01) 通報。#1629 でレールからこのメニューへ移した。
+
+						  ⚠️ 通報の敷居を上げないため、**メニューの一番下へ埋めない**。
+						     シェアの直下（＝開いてすぐ見える位置）に置くこと。
+
+						  #1629 【仕様】**自分の投稿には出さない**（オーナー指摘）。
+						  自分の投稿を通報できても、消したいなら «投稿を削除» があるので意味が無く、
+						  運営のキューに «本人が自分を通報した» 行だけが積む。主要な SNS も
+						  自分の投稿には通報を出さない（出るのは編集・削除）。
+						*/}
+						{!isMine && (
+							<TouchableOpacity
+								testID="dish-action-report"
+								style={styles.sheetRow}
+								onPress={() => {
+									setMenuVisible(false);
+									onReport();
+								}}
+								accessibilityRole="button">
+								<Flag size={20} color={colors.textPrimaryAlt} />
+								<Text style={styles.sheetRowText}>{i18n.t("Report.action")}</Text>
+							</TouchableOpacity>
+						)}
+
+						{/* ここから下は自分の投稿にだけ出る */}
+						{isMine && myReview && (
 							<TouchableOpacity
 								testID="own-post-edit-button"
 								style={styles.sheetRow}
@@ -270,22 +331,27 @@ export function OwnPostActions({ entry }: Props) {
 							</TouchableOpacity>
 						)}
 
-						<TouchableOpacity
-							testID="own-post-delete-button"
-							style={styles.sheetRow}
-							onPress={handleDelete}
-							accessibilityRole="button">
-							<Trash2 size={20} color={colors.danger} />
-							<Text style={[styles.sheetRowText, styles.destructiveText]}>
-								{i18n.t("DishMediaContent.ownPost.delete")}
-							</Text>
-						</TouchableOpacity>
+						{isMine && (
+							<TouchableOpacity
+								testID="own-post-delete-button"
+								style={styles.sheetRow}
+								onPress={handleDelete}
+								accessibilityRole="button">
+								<Trash2 size={20} color={colors.danger} />
+								<Text style={[styles.sheetRowText, styles.destructiveText]}>
+									{i18n.t("DishMediaContent.ownPost.delete")}
+								</Text>
+							</TouchableOpacity>
+						)}
 
 						{/* #1513 メディア差し替えの導線が「無い」ことを明示する。
-						    ここが無いと、写真を変えたい利用者は探し続けることになる */}
-						<Text testID={MEDIA_LOCKED_NOTE_TEST_ID} style={styles.lockedNote}>
-							{i18n.t("DishMediaContent.ownPost.mediaLocked")}
-						</Text>
+						    ここが無いと、写真を変えたい利用者は探し続けることになる。
+						    他人の投稿では編集自体が無いので出さない */}
+						{isMine && (
+							<Text testID={MEDIA_LOCKED_NOTE_TEST_ID} style={styles.lockedNote}>
+								{i18n.t("DishMediaContent.ownPost.mediaLocked")}
+							</Text>
+						)}
 
 						<TouchableOpacity
 							testID="own-post-menu-cancel"

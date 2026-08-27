@@ -200,8 +200,6 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/dishCategories/components/DishCategoriesError.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategories/components/DishCategoriesLoading.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 };
 
 /** 除外理由の最低文字数。「TODO」や空文字で通り抜けられないようにする */

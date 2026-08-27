@@ -17,7 +17,9 @@ export class ResultPage {
 	readonly likeButton: Locator;
 	/** 保存ボタン(表示中の料理メディアカードに対する操作) */
 	readonly saveButton: Locator;
-	/** 通報ボタン(#1514 SAF-01。押すと通報シートが開く) */
+	/** #1629 «…» メニュー。シェアと報告はこの中にある */
+	readonly moreButton: Locator;
+	/** 通報ボタン(#1514 SAF-01。**«…» メニューの中**。#1629 でレールから移動した) */
 	readonly reportButton: Locator;
 	/** 通報シート本体 */
 	readonly reportSheet: Locator;
@@ -34,6 +36,7 @@ export class ResultPage {
 		// フィードには複数カードが積まれるため、操作時は .first() 等で表示中カードに絞ること
 		this.likeButton = page.getByTestId("dish-action-like");
 		this.saveButton = page.getByTestId("dish-action-save");
+		this.moreButton = page.getByTestId("dish-action-more");
 		this.reportButton = page.getByTestId("dish-action-report");
 		this.reportSheet = page.getByTestId("report-sheet");
 		this.reportSubmitButton = page.getByTestId("report-submit");

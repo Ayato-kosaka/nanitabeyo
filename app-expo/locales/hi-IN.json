@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "साझा करें",
 			"seeMore": "और देखें",
-			"openMap": "मानचित्र खोलें"
+			"openMap": "मानचित्र खोलें",
+			"review": "समीक्षा"
 		},
 		"share": {
 			"title": "{{dishName}} देखें"
@@ -464,6 +465,9 @@
 			"saveFailed": "समीक्षा अपडेट नहीं हो सकी",
 			"conflict": "यह समीक्षा कहीं और अपडेट हो चुकी है। संपादित करने से पहले इसे दोबारा खोलें।",
 			"forbidden": "आप केवल अपनी पोस्ट संपादित या हटा सकते हैं"
+		},
+		"moreMenu": {
+			"title": "यह पोस्ट"
 		}
 	},
 	"ImageCardGrid": {
@@ -843,7 +847,8 @@
 			"group_votes": {
 				"title": "समूह मतदान",
 				"description": "जब आपके शामिल समूह मतदान में कोई गतिविधि हो"
-			}
+			},
+			"navigationLabel": "सूचना सेटिंग"
 		},
 		"language": {
 			"navigationLabel": "भाषा",
@@ -886,6 +891,10 @@
 			"unblockMessage": "यह व्यंजन श्रेणी सिफारिशों में वापस जोड़ दी जाएगी।",
 			"unblockConfirm": "अनब्लॉक करें",
 			"unblocked": "अनब्लॉक किया गया"
+		},
+		"account": {
+			"navigationLabel": "खाता प्रबंधन",
+			"title": "खाता प्रबंधन"
 		}
 	},
 	"Dialog": {

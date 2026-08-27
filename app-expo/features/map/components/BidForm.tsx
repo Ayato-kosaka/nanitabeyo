@@ -6,6 +6,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { useLocale } from "@/hooks/useLocale";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 interface BidFormProps {
 	/** Initial bid amount */
@@ -24,6 +25,8 @@ interface BidFormProps {
  */
 export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessing = false }: BidFormProps) {
 	// Internal state - isolated from parent re-renders
+	// #1629 プレースホルダーの色をテーマへ追従させるために読む
+	const { colors } = useAppTheme();
 	const [bidAmount, setBidAmount] = useState(initialBidAmount);
 	// #1599 隣のラベル（Map.labels.endDate）は 8 ロケール全てに翻訳があるのに、
 	// 日付の書式だけ "ja-JP" 固定だった。この画面にロケール限定のガードは無いので、
@@ -48,6 +51,8 @@ export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessin
 				<TextInput
 					style={styles.textInput}
 					placeholder={i18n.t("Map.placeholders.enterBidAmount")}
+					// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+					placeholderTextColor={colors.textSecondary}
 					value={bidAmount}
 					onChangeText={setBidAmount}
 					keyboardType="numeric"

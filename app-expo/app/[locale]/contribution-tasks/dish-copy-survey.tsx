@@ -4,6 +4,7 @@
 // 運営用ツール - 各料理画像にタイトル+タグラインを選択してもらう
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import {
 	View,
@@ -151,6 +152,8 @@ const COMPLETION_MESSAGE = `ご協力ありがとうございました！
 /* -------------------------------------------------------------------------- */
 
 export default function DishCopySurveyPage() {
+	// #1629 プレースホルダーの色をテーマへ追従させるために読む
+	const { colors } = useAppTheme();
 	const insets = useSafeAreaInsets();
 	const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 	const { showSnackbar } = useSnackbar();
@@ -486,6 +489,8 @@ type AnswerModalProps = {
 };
 
 function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps) {
+	// #1629 プレースホルダーの色をテーマへ追従させるために読む
+	const { colors } = useAppTheme();
 	const { height: windowHeight } = useWindowDimensions();
 
 	// モーダル計測用
@@ -676,6 +681,8 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 							<TextInput
 								style={styles.textInput}
 								placeholder="タイトル（必須）"
+								// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+								placeholderTextColor={colors.textSecondary}
 								value={state.customTitle}
 								onChangeText={(text) => setState((prev) => ({ ...prev, customTitle: text }))}
 								multiline
@@ -683,6 +690,8 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 							<TextInput
 								style={styles.textInput}
 								placeholder="タグライン（必須）"
+								// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+								placeholderTextColor={colors.textSecondary}
 								value={state.customTagline}
 								onChangeText={(text) => setState((prev) => ({ ...prev, customTagline: text }))}
 								multiline
@@ -732,6 +741,8 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 				<TextInput
 					style={styles.textArea}
 					placeholder="その他の理由（任意）"
+					// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+					placeholderTextColor={colors.textSecondary}
 					value={state.reasonFree}
 					onChangeText={(text) => setState((prev) => ({ ...prev, reasonFree: text }))}
 					multiline
@@ -762,6 +773,8 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 				<TextInput
 					style={styles.textArea}
 					placeholder="その他の理由（任意）"
+					// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+					placeholderTextColor={colors.textSecondary}
 					value={state.rejectedFree}
 					onChangeText={(text) => setState((prev) => ({ ...prev, rejectedFree: text }))}
 					multiline

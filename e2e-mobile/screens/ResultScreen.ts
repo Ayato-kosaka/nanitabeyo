@@ -37,7 +37,9 @@ export class ResultScreen {
 	readonly likeButton = by.id("dish-action-like");
 	/** 保存ボタン（⚠️ 同上） */
 	readonly saveButton = by.id("dish-action-save");
-	/** 通報ボタン（#1514 SAF-01。⚠️ 同上） */
+	/** #1629 «…» メニューを開くボタン。シェアと報告はこの中にある */
+	readonly moreButton = by.id("dish-action-more");
+	/** 通報ボタン（#1514 SAF-01。**«…» メニューの中**。#1629 でレールから移動した） */
 	readonly reportButton = by.id("dish-action-report");
 	/** 通報シート本体（Modal） */
 	readonly reportSheet = by.id("report-sheet");
@@ -211,7 +213,9 @@ export class ResultScreen {
 	 * @param index フィード内の何枚目のカードか（既定 0 = 表示中のカード）
 	 */
 	async openReportSheet(index = 0): Promise<void> {
-		await tapWhenVisible(this.reportButton, DEFAULT_TIMEOUT, index);
+		// #1629 通報はレール直置きから «…» メニューの中へ移った。先にメニューを開く
+		await tapWhenVisible(this.moreButton, DEFAULT_TIMEOUT, index);
+		await tapWhenVisible(this.reportButton, DEFAULT_TIMEOUT, 0);
 		await waitFor(element(this.reportSheet)).toBeVisible().withTimeout(DEFAULT_TIMEOUT);
 	}
 

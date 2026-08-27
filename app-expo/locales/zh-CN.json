@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "分享",
 			"seeMore": "查看更多",
-			"openMap": "打开地图"
+			"openMap": "打开地图",
+			"review": "评价"
 		},
 		"share": {
 			"title": "看看{{dishName}}"
@@ -464,6 +465,9 @@
 			"saveFailed": "更新失败",
 			"conflict": "该评价已在其他设备上更新，请重新打开后再编辑。",
 			"forbidden": "只能编辑或删除自己的帖子"
+		},
+		"moreMenu": {
+			"title": "这条投稿"
 		}
 	},
 	"ImageCardGrid": {
@@ -843,7 +847,8 @@
 			"group_votes": {
 				"title": "群组投票",
 				"description": "你参与的群组投票有新动态时"
-			}
+			},
+			"navigationLabel": "通知设置"
 		},
 		"language": {
 			"navigationLabel": "语言",
@@ -886,6 +891,10 @@
 			"unblockMessage": "此菜品类别将重新添加到推荐中。",
 			"unblockConfirm": "取消屏蔽",
 			"unblocked": "已取消屏蔽"
+		},
+		"account": {
+			"navigationLabel": "账户管理",
+			"title": "账户管理"
 		}
 	},
 	"Dialog": {

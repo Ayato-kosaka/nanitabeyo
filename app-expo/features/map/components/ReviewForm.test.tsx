@@ -181,9 +181,25 @@ const makePrefilledMedia = (mediaUrl: string | null) =>
 	({
 		id: "dish-media-1",
 		media_type: "image",
+		// #1629 既定は自ストレージの行。外部埋め込みは下の専用ファクトリで作る
+		render_type: "stored",
 		mediaUrl,
 		thumbnailImageUrl: "https://cdn.example.test/thumb.jpg",
 		dish: { name: "からあげ", category_id: "dish-category-1" },
+	}) as never;
+
+/**
+ * #1629 取り込んだ SNS 投稿（`render_type='external_embed'`）の prefilledMedia。
+ * **`mediaUrl` は常に null**（自ストレージに実体が無い）。
+ */
+const makeExternalEmbedMedia = (thumbnailImageUrl: string | null) =>
+	({
+		id: "dish-media-ig-1",
+		media_type: "image",
+		render_type: "external_embed",
+		mediaUrl: null,
+		thumbnailImageUrl,
+		dish: { name: "ラーメン", category_id: "dish-category-2" },
 	}) as never;
 
 /**
@@ -768,5 +784,55 @@ describe("#1375 既存メディアから選ぶ", () => {
 	it("既定（auto）では出さない（ピッカーが開く画面なので）", () => {
 		mount({});
 		expect(tree.root.findAll((n) => n.props?.testID === "review-existing-dish-media-host")).toHaveLength(0);
+	});
+});
+
+/*
+#1629 【回帰】取り込んだ Instagram の投稿から «レビュー» を押すと、
+「メディアを読み込み中…」から永久に進まなかった。
+
+`render_type='external_embed'` の行は `mediaUrl` が **常に null** で、#511 の
+早期 return（「加工中だから後で値が来る」前提）に吸い込まれて `loading` のまま
+放置されていた。外部埋め込みではその «後で» が永久に来ない。
+
+⚠️ この 2 本が赤くなったら、また «スピナーが回り続けて記録できない» に戻っている。
+*/
+describe("#1629 取り込んだ SNS 投稿からレビューを書く", () => {
+	// ⚠️ 上の describe の `tree` はそちらのスコープに閉じているので、ここは自前で持つ
+	let embedTree: TestRenderer.ReactTestRenderer;
+
+	afterEach(() => {
+		embedTree?.unmount();
+	});
+
+	/** プレビューに実際に出ている URI（上の describe と同じ testID を見る） */
+	const previewUriOf = () => embedTree.root.findByProps({ testID: "initial-media-preview" }).props.children;
+
+	it("サムネイルがあれば、それをプレビューにして先へ進める（loading で止まらない）", async () => {
+		const thumbnail = "https://scontent.example.test/ig-thumb.jpg";
+		await act(async () => {
+			embedTree = TestRenderer.create(
+				<ReviewForm restaurant={restaurant} onCancel={noop} prefilledMedia={makeExternalEmbedMedia(thumbnail)} />,
+			);
+		});
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		expect(findTextNodes(embedTree.root, "Map.media.loadingMedia")).toHaveLength(0);
+		expect(previewUriOf()).toBe(thumbnail);
+	});
+
+	it("サムネイルすら無い provider でも «写真なし» として画面が使える（loading で止まらない）", async () => {
+		await act(async () => {
+			embedTree = TestRenderer.create(
+				<ReviewForm restaurant={restaurant} onCancel={noop} prefilledMedia={makeExternalEmbedMedia(null)} />,
+			);
+		});
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		expect(findTextNodes(embedTree.root, "Map.media.loadingMedia")).toHaveLength(0);
 	});
 });
