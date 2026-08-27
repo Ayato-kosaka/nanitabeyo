@@ -67,3 +67,4 @@ out/.ig_token
 !out/osm_instagram_tag_count.json
 !out/ig_api_capability_matrix.md
 !out/ig_handle_source_ideas.md
+out/_ig_source_ideas/
