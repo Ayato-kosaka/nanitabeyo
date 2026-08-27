@@ -72,8 +72,6 @@ const COLOR_LITERAL = /["'`]#[0-9a-fA-F]{3,8}\b|["'`](?:white|black)["'`]/g;
  * ⚠️ 直書きを解消したら、その行を消すこと（残すとこのスクリプトが落ちる）。
  */
 const EXCLUSIONS = {
-	"app/+html.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/contribution-tasks/dish-category-image-optimizer.tsx":
 		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
 	"app/[locale]/contribution-tasks/dish-category-image-review.tsx":
@@ -86,28 +84,8 @@ const EXCLUSIONS = {
 		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
 	"app/[locale]/contribution-tasks/dish-ranking-summary.tsx":
 		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"components/ImageCardGrid.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/MapView.web.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/PrimaryButton.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/PushTokenRegistration.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/SkeletonShimmer.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/SkeletonShimmer.web.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/VideoPlayer.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/VideoPlayer.web.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/deepLinking/OpenInAppBanner.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/contributionTasks/legacyBlurModal/useLegacyBlurModal.tsx":
 		"社内タスク画面（#1363 で公開アプリから隔離済み）。main 由来の直書きで、公開画面のテーマ追従（#1469）のスコープ外",
-	"features/dishMedia/components/DishReviewsSection.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/map/components/BidForm.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/map/components/InitialMediaPreview.tsx":

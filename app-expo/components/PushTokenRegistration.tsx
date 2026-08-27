@@ -15,6 +15,7 @@ import type { CreateDeviceTokenResponse } from "@shared/api/v1/res";
 import { Env } from "@/constants/Env";
 import type { CreateDeviceTokenDto } from "@shared/api/v1/dto";
 import { readPushCache, type PushCache } from "./pushTokenCache";
+import { FixedColors } from "@/constants/Palette";
 
 const SECURE_STORE_KEY = "expo_push_token";
 
@@ -182,7 +183,9 @@ export function PushTokenRegistration() {
 				name: "default",
 				importance: Notifications.AndroidImportance.MAX,
 				vibrationPattern: [0, 250, 250, 250],
-				lightColor: "#FF231F7C",
+				// #1629 これはアプリが描く色ではなく、OS の通知 LED へ渡す ARGB のパラメータ。
+				// テーマに追従させる対象ではないので FixedColors に置いてある
+				lightColor: FixedColors.notificationLed,
 			});
 		}
 	}, []);

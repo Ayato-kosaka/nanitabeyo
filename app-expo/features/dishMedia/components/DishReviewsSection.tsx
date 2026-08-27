@@ -23,6 +23,7 @@ import { toErrorLogMessage } from "@/lib/errorMessage";
 import { useAuth } from "@/contexts/AuthProvider";
 import { ReportContentSheet } from "./ReportContentSheet";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { FixedColors } from "@/constants/Palette";
 
 interface DishReviewsSectionProps {
 	id: string;
@@ -233,9 +234,9 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 							<View style={styles.commentHeader}>
 								<Text style={styles.commentUsername}>{review.username}</Text>
 								{/* #956 【仕様】投稿者が付けた星をコメントごとに表示する。
-								    色はデフォルトの gold だとダーク背景上で悪目立ちするため、
-								    タイムスタンプ(#CCCCCC)と同系のミュートカラーに合わせる */}
-								<Stars rating={review.rating} size={11} color="#CCCCCC" />
+								    色はデフォルトの金だと動画の上で悪目立ちするため、
+								    タイムスタンプと同じ `onMediaMuted` に合わせる */}
+								<Stars rating={review.rating} size={11} color={FixedColors.onMediaMuted} />
 								<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
 							</View>
 							<View style={styles.commentContent}>
@@ -266,8 +267,8 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 										aria-selected={review.isLiked ?? false}>
 										<Heart
 											size={14}
-											color={review.isLiked ? "#FF3040" : "#CCCCCC"}
-											fill={review.isLiked ? "#FF3040" : "transparent"}
+											color={review.isLiked ? FixedColors.likeActive : FixedColors.onMediaMuted}
+											fill={review.isLiked ? FixedColors.likeActive : "transparent"}
 										/>
 									</TouchableOpacity>
 									{review.likeCount > 0 && (
@@ -286,7 +287,7 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 												name: review.username,
 											})}
 											testID={`review-action-report-${review.id}`}>
-											<Flag size={13} color="#CCCCCC" />
+											<Flag size={13} color={FixedColors.onMediaMuted} />
 										</TouchableOpacity>
 									)}
 								</View>
@@ -308,6 +309,12 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 	);
 }
 
+/*
+#1629 このセクションは全画面のメディア（写真・動画）の上に、下端の黒いグラデーションと
+一緒に載る。だからテーマで振らない（振ると、ライトのときにメディアの上へ黒い文字が出て
+何も読めなくなる）。本文・ユーザー名は `onMedia`、日時・いいね数・星・通報は一段弱い
+`onMediaMuted`、いいね済みのハートは `likeActive`。
+*/
 const styles = StyleSheet.create({
 	commentsGradient: {
 		position: "absolute",
@@ -331,13 +338,13 @@ const styles = StyleSheet.create({
 	commentUsername: {
 		fontSize: 14,
 		fontWeight: "600",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		marginRight: 8,
 		letterSpacing: 0.1,
 	},
 	commentTimestamp: {
 		fontSize: 12,
-		color: "#CCCCCC",
+		color: FixedColors.onMediaMuted,
 		fontWeight: "500",
 	},
 	commentContent: {
@@ -351,14 +358,14 @@ const styles = StyleSheet.create({
 	},
 	commentText: {
 		fontSize: 14,
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		lineHeight: 20,
 		fontWeight: "400",
 	},
 	seeMoreButton: {},
 	seeMoreText: {
 		fontSize: 12,
-		color: "#CCCCCC",
+		color: FixedColors.onMediaMuted,
 		fontWeight: "500",
 	},
 	commentActions: {
@@ -370,7 +377,7 @@ const styles = StyleSheet.create({
 	},
 	commentLikeCount: {
 		fontSize: 12,
-		color: "#CCCCCC",
+		color: FixedColors.onMediaMuted,
 		fontWeight: "500",
 	},
 	commentReportButton: {
