@@ -189,7 +189,11 @@ const AUTOPLAY_SCRIPT = `(function () {
       }
       if (!v) return;
       prepare(v);
-      if (!v.paused && v.currentTime > 0) { stopTimer(); return; }
+      if (!v.paused && v.currentTime > 0) {
+        // 'playing' の購読より前に再生が始まっていた場合、イベントを取り逃す。
+        // 見た目は正しい（帯を出さない）が «何割が再生できたか» の計測が欠けるので、ここでも報告する
+        stopTimer(); report('playing', v.muted ? 'muted' : 'audible'); return;
+      }
       if (inFlight) return;  // 前の play() が解決する前に撃つと AbortError を量産する
 
       var p;
