@@ -76,6 +76,16 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		expect(webViewProps.mediaPlaybackRequiresUserAction).toBe(false);
 	});
 
+	it("注入スクリプトにバッククォートが混ざっていない", () => {
+		/*
+		⚠️ `AUTOPLAY_SCRIPT` はテンプレートリテラルなので、**コメントに ` を書くと
+		そこで文字列が終わる**。実際にコメント中の `<video>` という表記で壊し、
+		2 suite が `... is not a function` で落ちた。目視では気付きにくいので機械で押さえる。
+		*/
+		renderActiveCell();
+		expect(webViewProps.injectedJavaScript).not.toContain("`");
+	});
+
 	/*
 	#1641 **注入スクリプトを «文字列として» ではなく実際に走らせて確かめる。**
 
@@ -174,7 +184,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			const { styles, images } = run({ video: false, images: [{ w: 150, h: 150 }, { w: 360, h: 639 }] });
 
 			const poster = styles.get(images[1]);
-			expect(poster).toMatchObject({ position: "fixed", height: "100vh", "object-fit": "cover" });
+			expect(poster).toMatchObject({ position: "fixed", height: "100vh", "object-fit": "contain" });
 			// プロフィール写真（150x150）を全面に出さない
 			expect(styles.get(images[0])).toBeUndefined();
 		});
@@ -183,6 +193,21 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			const { appended } = run({ video: false, images: [] });
 			expect(appended).toHaveLength(1);
 			expect((appended[0] as { style: { cssText: string } }).style.cssText).toContain("background:#000");
+		});
+
+		it("投稿された映像を切り取らない・引き延ばさない", () => {
+			/*
+			オーナー指摘 2026-08-27:「全画面表示というのはクロップじゃないですよ？
+			引き延ばしは除外で判断したはずです」。
+
+			リール（9:16）とセル（9:19.5 前後）は縦横比が違う。`cover` は左右を約 18% 切り、
+			`fill` は縦横比を壊す。**どちらも投稿された映像を勝手に変える**ので使わない。
+			見た目の «全画面» を追ってここが cover へ戻るのを、この検査で止める。
+			*/
+			const { styles, video } = run({ video: true, images: [] });
+			const fit = styles.get(video!)!["object-fit"];
+			expect(fit).toBe("contain");
+			expect(["cover", "fill", "none", "scale-down"]).not.toContain(fit);
 		});
 
 		it("読み込みが終わっても <video> が無ければ、締め切りを待たず権利ブロックと判定する", () => {

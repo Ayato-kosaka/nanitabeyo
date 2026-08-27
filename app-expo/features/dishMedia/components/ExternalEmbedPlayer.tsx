@@ -18,10 +18,14 @@ Playwright の録画で行う。OTA 側ブランチの実装は «再生ボタ�
 再生は**こちらから起こす**。埋め込みページは `<video autoplay>` ではないので放っておいても
 絶対に動かない（実測は下の «自動再生» の節）。`injectedJavaScript` で `play()` を呼ぶ。
 
-**見せ方も注入で決める。** 同じスクリプトが `<video>` を WebView いっぱい（`object-fit: cover`）へ
-広げるので、映像はセル全面に出る（既存の料理動画セルと同じ）。外から切り取っていた頃に残っていた
-上下の黒帯は出ない。WebView 自体は素のセル寸法のままなので、拡大による粗さも
-Android の «大きな描画面が確保できず真っ黒» も起きない。
+**見せ方も注入で決める。** 同じスクリプトが `<video>` を WebView いっぱい（`object-fit: contain`）へ
+広げるので、Instagram のヘッダ帯・いいね欄・白帯が消え、**リールだけ**がセルに出る。
+WebView 自体は素のセル寸法のままなので、拡大による粗さも Android の
+«大きな描画面が確保できず真っ黒» も起きない。
+
+⚠️ **切り取らない。** リール（9:16）とセル（9:19.5 前後）は縦横比が違うので、上下には
+こちらの地色が残る。cover で埋めると左右が約 18% 切れ、fill だと縦横比が壊れる。
+どちらも投稿された映像を勝手に変えることになる（オーナー判断 2026-08-27）。
 
 - 再生できている間は、こちらの UI を**何も重ねない**（既存の動画セルと同じ見え方）
 - 権利ブロックで `<video>` が存在しない投稿だけ «Instagram で見る» の帯を出す
@@ -204,8 +208,15 @@ const AUTOPLAY_SCRIPT = `(function () {
     st.setProperty('height', '100vh', 'important');
     st.setProperty('max-width', 'none', 'important');
     st.setProperty('max-height', 'none', 'important');
-    // 既存の料理動画セル（VideoPlayer の contentFit="cover"）と同じ見せ方に揃える
-    st.setProperty('object-fit', 'cover', 'important');
+    /*
+     * ⚠️ **cover（切り取り）にしてはいけない。** オーナー指摘 2026-08-27:
+     * 「全画面表示というのはクロップじゃないですよ？ 引き延ばしは除外で判断したはずです」。
+     *
+     * リールは 9:16、端末のセルは 9:19.5 前後なので、cover にすると左右が約 18% 切れる。
+     * fill は縦横比が壊れる。**どちらも投稿された映像を勝手に変えている**ので使わない。
+     * contain なら、リールの全体が入る最大の大きさで出る（余りはこちらの地色）。
+     */
+    st.setProperty('object-fit', 'contain', 'important');
     st.setProperty('z-index', String(z), 'important');
   }
 
@@ -611,7 +622,7 @@ export function ExternalEmbedPlayer({
 				| 等倍で中央に置く | 映像がセルの一部にしか出ず、上下に黒帯が残る（オーナー指摘） |
 				| 拡大して埋める | Android が大きな描画面を確保できずセルが真っ黒になる |
 
-				いまは注入した CSS が `<video>` 自身を WebView いっぱい（`object-fit: cover`）へ
+				いまは注入した CSS が `<video>` 自身を WebView いっぱい（`object-fit: contain`）へ
 				広げるので、**WebView は素のセル寸法のままでよい**。拡大しないので粗くならず、
 				Instagram のヘッダ帯・いいね欄は背後へ隠れるため切り取りも要らない。
 
