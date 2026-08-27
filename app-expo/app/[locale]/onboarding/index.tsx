@@ -19,6 +19,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import type { ExternalPathString } from "expo-router";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 
+import { FixedColors } from "@/constants/Palette";
 import { OnboardingScreenOptions } from "@/features/onboarding/components/OnboardingScreenOptions";
 import { OnboardingStepIndicator } from "@/features/onboarding/components/OnboardingStepIndicator";
 import { OnboardingStepView, type OnboardingPhase } from "@/features/onboarding/components/OnboardingStepView";
@@ -245,7 +246,7 @@ export default function OnboardingScreen() {
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("Onboarding.back")}
 							testID="onboarding-back">
-							<ChevronLeft size={26} color="#FFFFFF" />
+							<ChevronLeft size={26} color={FixedColors.onMedia} />
 						</TouchableOpacity>
 					)}
 
@@ -265,7 +266,7 @@ export default function OnboardingScreen() {
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Onboarding.next")}
 						testID="onboarding-next">
-						<ChevronRight size={26} color="#1A1A1A" />
+						<ChevronRight size={26} color={FixedColors.photoBackdrop} />
 					</TouchableOpacity>
 				</View>
 			</SafeAreaView>
@@ -276,9 +277,11 @@ export default function OnboardingScreen() {
 const NAV_CIRCLE_SIZE = 56;
 
 const styles = StyleSheet.create({
+	// #1629 全面写真の下地。この画面は写真とその上の白い要素だけで出来ているのでテーマに追従させない
+	//（理由は constants/Palette.ts の FixedColors.photoBackdrop）
 	container: {
 		flex: 1,
-		backgroundColor: "#1A1A1A",
+		backgroundColor: FixedColors.photoBackdrop,
 	},
 	stepArea: {
 		flex: 1,
@@ -312,7 +315,8 @@ const styles = StyleSheet.create({
 		height: NAV_CIRCLE_SIZE,
 		borderRadius: NAV_CIRCLE_SIZE / 2,
 		borderWidth: 2,
-		borderColor: "#FFFFFF",
+		// 写真の上に載る円。地が常に暗いので白のまま（FixedColors.onMedia）
+		borderColor: FixedColors.onMedia,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -321,7 +325,8 @@ const styles = StyleSheet.create({
 		width: NAV_CIRCLE_SIZE,
 		height: NAV_CIRCLE_SIZE,
 		borderRadius: NAV_CIRCLE_SIZE / 2,
-		backgroundColor: "#FFFFFF",
+		// 同上。白塗りの円と、その中の photoBackdrop の矢印で 1 セット
+		backgroundColor: FixedColors.onMedia,
 		alignItems: "center",
 		justifyContent: "center",
 	},

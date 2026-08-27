@@ -176,6 +176,19 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		surfaceSubtle: "#F3F4F6",
 		surfaceSelected: "#E5E5E5",
 		appShellBackdrop: "#F3F4F6",
+		// #1629 友達投票 / オンボーディングのトークン化で追加。light はいずれも
+		// 対象ファイルに直書きされていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		surfacePlaceholder: "#E5E7EB",
+		surfaceSelectedTint: "#EEF2FF",
+		borderInput: "#D1D5DB",
+		textPrimaryDim: "#1F2937",
+		brandTrack: "#FBD9D0",
+		dangerTintSoft: "#FEF2F2",
+		// #1629 OS 許可ダイアログの複製（#1486 §5）。iOS のシステム値をそのまま持つ
+		alertSurface: "#F5F5F7",
+		alertMessage: "#48484A",
+		alertSeparator: "#C6C6C8",
+		alertAction: "#007AFF",
 		divider: "#F3F4F6",
 		border: "#C9C9C9",
 		borderContrast: "#000000",
