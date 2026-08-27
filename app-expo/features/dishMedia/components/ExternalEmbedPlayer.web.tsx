@@ -34,7 +34,7 @@ import { Play } from "lucide-react-native";
 
 import i18n from "@/lib/i18n";
 import { buildExternalEmbedPlayerSource } from "../embedUrl";
-import { computeEmbedCropLayout } from "../embedCrop";
+import { computeEmbedCropLayout, isReelUrl } from "../embedCrop";
 import type { ExternalEmbedPlayerProps } from "./ExternalEmbedPlayer";
 // #1509 メディア埋め込みの黒背景・再生 UI はメディアを引き立てる固定色（テーマ非追従）
 import { FixedColors } from "@/constants/Palette";
@@ -45,14 +45,16 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 	const [interactive, setInteractive] = useState(false);
 	const handleActivate = useCallback(() => setInteractive(true), []);
 
-	// #1375（案 A）Instagram の埋め込みが連れてくるヘッダ・いいね欄・白帯を切り取り、
-	// 写真だけをセル全面に敷く。計算の根拠は ../embedCrop.ts のヘッダを参照
+	// #1641 Instagram の埋め込みが連れてくるヘッダ帯・いいね欄・白帯を窓の外へ追い出し、
+	// **映像を切らずに**最大の大きさで出す。計算の根拠は ../embedCrop.ts のヘッダを参照
 	const [cell, setCell] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 	const handleLayout = useCallback((event: LayoutChangeEvent) => {
 		const { width, height } = event.nativeEvent.layout;
 		setCell((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
 	}, []);
-	const crop = useMemo(() => computeEmbedCropLayout(cell), [cell]);
+	// 縦長のリールだと分かっているときだけ «枠ごとの拡大» を許す（正方形の投稿を切らないため）
+	const isReel = useMemo(() => isReelUrl(embed.canonicalUrl), [embed.canonicalUrl]);
+	const crop = useMemo(() => computeEmbedCropLayout(cell, { isReel }), [cell, isReel]);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
 	if (!isActive || source === null) return null;
@@ -103,13 +105,15 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 				testID="external-embed-webview">
 				{/* セルの寸法が確定するまで iframe を作らない。中途半端な幅で読み込ませると、
 				    Instagram がその幅でレイアウトしてしまい切り取り位置がずれたまま残る */}
-				{/* 写真の箱。**等倍で中央へ置く**（拡大しない。理由は ../embedCrop.ts のヘッダ） */}
+				{/* メディア枠。**縦横比を保ったまま枠ごと拡大する**（引き延ばさない・切らない。
+				    はみ出すのは Instagram が付けた左右の余白だけ。理由は ../embedCrop.ts のヘッダ） */}
 				{crop !== null && (
 					<View
 						style={{
 							width: crop.frameWidth,
 							height: crop.mediaHeight,
 							overflow: "hidden",
+							transform: [{ scale: crop.scale }],
 						}}>
 						{React.createElement("iframe", {
 							src: source.embedUrl,
@@ -157,11 +161,11 @@ const styles = StyleSheet.create({
 	container: {
 		...StyleSheet.absoluteFillObject,
 		backgroundColor: FixedColors.mediaBackground,
-		// 写真の箱を中央へ置く（等倍なので、上下にはアプリの地色が残る）
+		// メディア枠を中央へ置く（リールは 9:16 なので、上下にはアプリの地色が残る）
 		alignItems: "center",
 		justifyContent: "center",
-		// #1375（案 A）はみ出した Instagram の UI をここで捨てる。
-		// これが無いと切り取りが成立せず、セルの外へ白帯が出る
+		// #1641 はみ出した Instagram の UI（ヘッダ帯・いいね欄・左右の余白）をここで捨てる。
+		// これが無いとセルの外へ白帯が出る
 		overflow: "hidden",
 	},
 	overlayContainer: {

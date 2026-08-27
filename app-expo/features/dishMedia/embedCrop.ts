@@ -1,98 +1,122 @@
 /*
-#1375（オーナー判断: 案 A）**外部埋め込みから «写真の部分だけ» を切り出して全画面に敷く。**
+#1641（オーナー判断: 切り取らない）**外部埋め込みから «映像の部分だけ» を、切らずに取り出す。**
 
-## なぜ要るのか
+## これは web 専用である
 
-Instagram の `/embed/` は、こちらが要求していない UI を必ず一緒に返してくる。
-実機（Detox / Android）で撮った動画のコマを実測した内訳が次である（セル幅 320 のとき）。
+ネイティブ（`ExternalEmbedPlayer.tsx`）は埋め込みページへスクリプトを注入して
+`<video>` 自身を WebView いっぱいへ広げるので、外から位置を測る必要が無い。
+**web の `<iframe>` は instagram.com のクロスオリジンで中身に触れない**ため、
+こちらだけが «外側から位置と大きさで合わせる» 方式を続けている。
 
-    y   0 –  17   Instagram のヘッダ帯（アカウント名・「Instagram で表示」ボタン）
-    y  17 – 417   写真（幅いっぱい）
-    y 417 –  …    いいね／コメント／シェアのアイコン列、「いいね！169,527件」、
-                  「コメントを追加…」、そして何も無い白い帯
+## Instagram の埋め込みが返してくる構造（実測: Chrome 152 / 2026-08-27）
 
-これをセルへそのまま貼ると、**写真は縦の半分ほどしか占めず、下に白帯が出る**。
-既存の dish_media（写真が全画面）と並ぶと明らかに浮く、というのがオーナー指摘である。
+幅 W の器へ `https://www.instagram.com/p/{code}/embed/` を入れると、こう組まれる。
 
-`/embed/captioned/` ではなく `/embed/` を使ってもこの内訳は変わらない（実測済み）。
-URL のパラメータで消せるものではない。
+    y 0 – 54      アカウント名と「View profile」のヘッダ帯 … **幅によらず 54px 固定**
+    y 54 – 54+1.25W  メディア枠（幅いっぱい・高さは常に W × 1.25 = 4:5）
+    それ以下       いいね／コメント欄、白い帯
 
-## ⚠️ 拡大はしない（オーナー判断 2026-08-25）
+**メディア枠の中は Instagram 自身が `object-fit: contain` で収める。**
+つまり 9:16 のリールは、4:5 の枠の中で左右に余白を持って表示される（向こうも切っていない）。
 
-一度は «写真がセル全面を覆う» ように `transform: scale` で拡大していたが、実機で
+    W=320 → ヘッダ 54px / 枠 320x400
+    W=400 → ヘッダ 54px / 枠 400x500
+    W=500 → ヘッダ 54px / 枠 500x625
+    W=600 → ヘッダ 54px / 枠 600x750
 
-- 拡大した中身が指の動きを **ドラッグとして食う**（フィードを送りたいのに中身が動く）
-- Instagram 自身の再生ボタンも一緒に拡大・移動して **押しにくい**
-- 結果として **再生できない**
+## 直した 2 つの間違い（オーナー指摘 2026-08-27「web だけ正方形に切り取られたまま」）
 
-という状態になった。オーナー判断で **拡大をやめ、等倍で置く**。
-写真はセル幅いっぱい・正方形で、上下にはアプリの地色が残る。
-«既存の写真投稿と同じ全画面» にはならないが、**触って操作できること**を優先する。
+| 旧 | 何が起きていたか |
+| --- | --- |
+| ヘッダを «幅の 17/320» と**比率**で見ていた | 実際は 54px 固定。幅 393 では 21px しかずらせず、**ヘッダ帯が見えたまま**だった |
+| メディア枠を «幅 × 1（正方形）» としていた | 実際は 4:5。枠の**下 20% が窓の外**に出て、リールが切れていた |
 
-## どう切り取るか
+旧コードは «隙間が出るより少し切れる方がまし» という判断でわざと正方形にしていたが、
+オーナー判断が **「クロップじゃない。引き延ばしも除外」** で確定したので、その前提ごと入れ替える。
 
-埋め込みは別オリジンなので、**中の DOM は触れない**（web の iframe は同一オリジンポリシー、
-ネイティブも注入は Instagram のクラス名依存になり向こうの変更で無言で壊れる）。
-そこで **外側から位置と拡大率だけで切り取る**。
+## 切らずに大きく出すために «枠ごと» 拡大する
 
-    ┌ 切り取り枠（セル全面 / overflow: hidden / 中身を中央寄せ）
-    │   ┌ 写真の箱（幅 = セル幅、高さ = 幅 × 写真の縦横比）… 等倍で中央に置く
-    │   │   ┌ 埋め込み本体（幅 = セル幅の «素のまま»。上へ header ぶんずらす）
-    │   │   │   ヘッダ帯 ← 箱の外へ出るので見えない
-    │   │   │   写真     ← 箱いっぱい
-    │   │   │   いいね欄 ← 箱の外へ出るので見えない
+4:5 の枠を等倍で置くと、9:16 のリールは枠の中で左右に余白を持つぶん小さく写る
+（幅 393 のセルで実寸 276px しか無い）。そこで **枠ごと拡大して、リールの幅がセル幅に
+一致するところで止める**。はみ出すのは Instagram が付けた左右の余白だけで、
+**映像そのものは 1px も切らない**。
 
-⚠️ **埋め込み本体を «セルの高さぶんの幅» まで引き伸ばしてはいけない。**
-最初はそう作ったが、それだと **Android でセルが真っ黒になった**（実機 Detox /
-run 32724564583・32727534712 で 2 回再現。iOS は同じ設定で描けていた）。
-Android の WebView は与えられた寸法ぶんの描画面を確保するので、実寸で 2000px を
-超える幅を渡すと描けなくなる。**本体は素の幅のまま置き、拡大は transform で行う。**
-transform はプラットフォームのビュー変換なので新しい描画面を作らない。
+    拡大率 = リールの縦横比 ÷ メディア枠の縦横比 = 1.775 / 1.25 ≈ 1.42
 
-## 定数の根拠と、外れたときに何が起きるか
+⚠️ **拡大してよいのはリールだと分かっているときだけ。** 正方形の写真投稿は枠の幅を
+すでに使い切っているので、同じ拡大をすると左右が切れる。判別は `canonicalUrl` の
+`/reel/` で行う（`shared/utils/snsUrl.ts` が `p` / `reel` を保存時に保っている）。
+リールを `/p/` のリンクで取り込んだ場合は «拡大しない» 側へ倒れるだけで、
+**切れる方向へは倒れない**。
 
-- `EMBED_HEADER_RATIO`: ヘッダ帯の高さ ÷ 幅。実機の動画のコマから 17/320。
-  外れると写真の上下が少しずれる（隙間は出ない）
-- `EMBED_MEDIA_ASPECT`: 写真の «高さ ÷ 幅»。**1（正方形）を採る。**
-  実測は 4:5 だったが、1.25 を前提にすると正方形の投稿で写真がセルより小さくなり
-  黒帯が出る。1 なら 4:5 が来ても上下が切れるだけで済む。
-  «隙間が出る» より «少し切れる» を選ぶ、という判断である
+⚠️ セルが低いときは拡大率を抑える。抑えないと今度は上下が枠からはみ出して切れる。
 */
 
-/** ヘッダ帯の高さ ÷ iframe 幅（実測 17/320） */
-export const EMBED_HEADER_RATIO = 17 / 320;
+/** ヘッダ帯の高さ（px）。**幅によらず固定**（W=320/400/500/600 で 54px を実測） */
+export const EMBED_HEADER_PX = 54;
+
+/** 埋め込みがメディアへ与える枠の «高さ ÷ 幅»。常に 4:5 */
+export const EMBED_MEDIA_ASPECT = 1.25;
 
 /**
- * 写真の «高さ ÷ 幅»。正方形を前提に置く。
- * ここを実測値 1.25 にすると正方形投稿で黒帯が出るため、あえて小さい側に倒してある。
+ * リール（縦動画）の «高さ ÷ 幅»。実測 400x710 → 1.775。
+ * 16/9（1.7778）ではなく実測値を採る。**大きい値を採ると拡大しすぎて左右が切れる**ので、
+ * 迷ったら小さい側（＝ 切らない側）へ倒す。
  */
-export const EMBED_MEDIA_ASPECT = 1;
+export const EMBED_REEL_ASPECT = 1.775;
 
-/**
- * 埋め込み本体の高さ ÷ 幅。**写真の下端が入りきる最小限**にする。
- * その下（いいね欄・白帯）はどのみち箱の外へ出るので、余分に高くしても描画が重くなるだけ。
- */
-export const EMBED_FRAME_HEIGHT_RATIO = EMBED_HEADER_RATIO + EMBED_MEDIA_ASPECT + 0.05;
+/** 埋め込み本体の高さ ÷ 幅。メディア枠の下端が入りきる最小限（その下は窓の外なので描かせない） */
+export const EMBED_FRAME_HEIGHT_RATIO = EMBED_MEDIA_ASPECT + 0.4;
 
 export type EmbedCropLayout = {
-	/** 埋め込み本体（iframe / WebView）に与える幅。**セル幅そのまま**（引き伸ばさない） */
+	/** 埋め込み本体（iframe）に与える幅。**セル幅そのまま**（引き伸ばさない） */
 	frameWidth: number;
 	/** 埋め込み本体に与える高さ */
 	frameHeight: number;
-	/** 埋め込み本体を上へずらす量（ヘッダ帯を箱の外へ追い出す）。負値で指定する */
+	/** 埋め込み本体を上へずらす量（ヘッダ帯を窓の外へ追い出す）。負値 */
 	frameTop: number;
-	/** 写真の箱の高さ（幅は frameWidth と同じ） */
+	/** メディア枠の高さ（幅は frameWidth と同じ） */
 	mediaHeight: number;
+	/** メディア枠ごとの拡大率。1 なら等倍 */
+	scale: number;
 };
 
-export function computeEmbedCropLayout(cell: { width: number; height: number }): EmbedCropLayout | null {
+export type EmbedCropOptions = {
+	/**
+	 * 縦長のリールだと分かっているか。`canonicalUrl` に `/reel/` があるとき true。
+	 * 分からないときは false（＝ 拡大しない＝ 切らない）に倒すこと。
+	 */
+	isReel?: boolean;
+};
+
+/** `canonicalUrl` が «縦長のリール» を指しているか。判別できなければ false */
+export function isReelUrl(canonicalUrl: string | null | undefined): boolean {
+	if (!canonicalUrl) return false;
+	try {
+		return /\/reels?\//.test(new URL(canonicalUrl).pathname);
+	} catch {
+		return false;
+	}
+}
+
+export function computeEmbedCropLayout(
+	cell: { width: number; height: number },
+	options: EmbedCropOptions = {},
+): EmbedCropLayout | null {
 	if (!(cell.width > 0) || !(cell.height > 0)) return null;
 
-	// 本体は «素の幅» のまま。ここを大きくすると Android が描けなくなる（ヘッダ参照）
 	const frameWidth = cell.width;
 	const frameHeight = frameWidth * EMBED_FRAME_HEIGHT_RATIO;
-	const mediaTop = frameWidth * EMBED_HEADER_RATIO;
 	const mediaHeight = frameWidth * EMBED_MEDIA_ASPECT;
 
-	return { frameWidth, frameHeight, frameTop: -mediaTop, mediaHeight };
+	// リールなら «リールの幅がセル幅に一致する» ところまで枠ごと拡大する
+	const wanted = options.isReel ? EMBED_REEL_ASPECT / EMBED_MEDIA_ASPECT : 1;
+	/*
+	セルの高さで頭打ちにする。ここを外すと、低いセルで上下が窓からはみ出して
+	**切らないために入れた拡大が、逆に切る原因になる**。
+	*/
+	const maxByHeight = cell.height / mediaHeight;
+	const scale = Math.min(wanted, maxByHeight);
+
+	return { frameWidth, frameHeight, frameTop: -EMBED_HEADER_PX, mediaHeight, scale };
 }
