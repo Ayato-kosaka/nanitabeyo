@@ -1,6 +1,6 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
-import { Text } from "react-native";
+import { Appearance, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import {
@@ -267,5 +267,54 @@ describe("THEME_PREFERENCES", () => {
 	it("設定画面が並べる順は システム追従 → ライト → ダーク", () => {
 		const expected: ThemePreference[] = ["system", "light", "dark"];
 		expect([...(require("./ThemeProvider").THEME_PREFERENCES as ThemePreference[])]).toEqual(expected);
+	});
+});
+
+/*
+#1629【27】アプリ内の 3 択を «ネイティブ部品» にも効かせる。
+
+RN の Switch・キーボード・日付ピッカー・Alert などは **OS が描く**ので、
+JS 側をいくら直しても `OS = ライト / アプリ設定 = ダーク` でそこだけ白いまま残る。
+`Appearance.setColorScheme` はアプリ単位の外観を上書きする JS の API で、
+ネイティブ差分を生まないため OTA で配れる。
+
+ここで固定するのは «呼び方» である。**system のときに null を渡す**ことが要で、
+渡し忘れると「一度 dark にした端末がシステム追従へ戻しても暗いまま」になる。
+*/
+describe("#1629 ネイティブ部品への反映（Appearance.setColorScheme）", () => {
+	const setColorScheme = jest.spyOn(Appearance, "setColorScheme").mockImplementation(() => {});
+
+	beforeEach(() => setColorScheme.mockClear());
+
+	it("dark を選ぶと dark で上書きする", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue("dark");
+		await renderWithProvider();
+		expect(setColorScheme).toHaveBeenCalledWith("dark");
+	});
+
+	it("light を選ぶと light で上書きする", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue("light");
+		await renderWithProvider();
+		expect(setColorScheme).toHaveBeenCalledWith("light");
+	});
+
+	it("**system では null を渡して上書きを外す**（これを忘れると暗いまま戻らない）", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue("system");
+		await renderWithProvider();
+		expect(setColorScheme).toHaveBeenCalledWith(null);
+	});
+
+	it("設定を読み終わる前には触らない（起動直後にライトへ振れるのを防ぐ）", async () => {
+		// getItem を解決させないまま描画する
+		mockedAsyncStorage.getItem.mockReturnValue(new Promise(() => {}));
+		const { Probe } = captureTheme();
+		act(() => {
+			TestRenderer.create(
+				<ThemeProvider>
+					<Probe />
+				</ThemeProvider>,
+			);
+		});
+		expect(setColorScheme).not.toHaveBeenCalled();
 	});
 });
