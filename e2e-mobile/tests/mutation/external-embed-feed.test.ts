@@ -141,6 +141,15 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		埋め込みの読み込みと `play()` の注入を待ちながら、**1.5 秒おきにコマを撮る**。
 		オーナーはこの連番を並べて «絵が変わっているか» を見る（＝ 動いたかどうかの判定）。
 		*/
+		/*
+		⚠️ **iOS のコマは «動いた証拠» として使えない**（run 33074457233 で実測）。
+		9 枚すべてが**バイト単位で同一**になり、しかも «着地した瞬間» の 00 まで
+		読み込み済みのリールが写っていた（Android では 00 は黒い）。つまり撮り直されておらず、
+		最後の 1 枚が 9 回書かれている。`device.disableSynchronization()` を入れてから出た挙動。
+
+		同じ run の Android は 9 枚とも別のコマになる（md5 が全て異なる）ので、
+		**この撮り方自体は正しい**。iOS の動きは `record_videos: true` の `test.mp4` で確認すること。
+		*/
 		await device.takeScreenshot("autoplay-00-arrived");
 		for (let i = 1; i <= 8; i++) {
 			await new Promise((resolve) => setTimeout(resolve, 1_500));
