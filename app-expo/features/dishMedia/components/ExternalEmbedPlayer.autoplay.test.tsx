@@ -73,10 +73,98 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		// ⚠️ iOS は onMessage が無いと injectedJavaScript が登録すらされない
 		expect(typeof webViewProps.onMessage).toBe("function");
 		expect(webViewProps.injectedJavaScript).toContain("__nbEmbedAutoplay");
-		// #1641 セル全面へ広げる指示が注入スクリプトに入っていること（黒帯を出さない）
-		expect(webViewProps.injectedJavaScript).toContain("object-fit");
-		expect(webViewProps.injectedJavaScript).toContain("100vh");
 		expect(webViewProps.mediaPlaybackRequiresUserAction).toBe(false);
+	});
+
+	/*
+	#1641 **注入スクリプトを «文字列として» ではなく実際に走らせて確かめる。**
+
+	`toContain("object-fit")` のような検査は、スクリプトが壊れていても通ってしまう
+	（実際、全面化の対象を <video> だけにしていた頃も同じ文字列は入っていた）。
+	最小の DOM を組んで動かし、**何がどう広げられたか**を見る。
+	*/
+	describe("注入スクリプトを実際に走らせる", () => {
+		const run = (opts: { video?: boolean; images?: { w: number; h: number }[] }) => {
+			const styles = new Map<unknown, Record<string, string>>();
+			const mk = (tag: string, extra: Record<string, unknown> = {}) => {
+				const el: Record<string, unknown> = {
+					tagName: tag.toUpperCase(),
+					isConnected: true,
+					__nbBound: false,
+					addEventListener: jest.fn(),
+					setAttribute: jest.fn(),
+					style: {
+						setProperty: (k: string, v: string) => {
+							const own = styles.get(el) ?? {};
+							own[k] = v;
+							styles.set(el, own);
+						},
+						cssText: "",
+					},
+					...extra,
+				};
+				return el;
+			};
+
+			const images = (opts.images ?? []).map((i) =>
+				mk("img", { complete: true, naturalWidth: i.w, naturalHeight: i.h }),
+			);
+			const video = opts.video ? mk("video", { paused: true, currentTime: 0, play: () => Promise.resolve() }) : null;
+			const appended: unknown[] = [];
+			const documentStub = {
+				documentElement: { style: {} },
+				body: { appendChild: (el: unknown) => appended.push(el) },
+				createElement: (tag: string) => mk(tag),
+				querySelector: (sel: string) => (sel === "video" ? video : null),
+				querySelectorAll: (sel: string) => (sel === "img" ? images : []),
+			};
+			const windowStub: Record<string, unknown> = {
+				ReactNativeWebView: { postMessage: jest.fn() },
+			};
+			// eslint-disable-next-line no-new-func
+			new Function(
+				"window",
+				"document",
+				"MutationObserver",
+				"setInterval",
+				"clearInterval",
+				webViewProps.injectedJavaScript,
+			)(
+				windowStub,
+				documentStub,
+				class {
+					observe() {}
+					disconnect() {}
+				},
+				() => 1,
+				() => {},
+			);
+			return { styles, images, video, appended };
+		};
+
+		it("<video> が来る前でも、リールの 1 コマ目（一番大きい画像）をセル全面へ広げる", () => {
+			// 実測（Chrome 152）: 1 コマ目の <img> は t=500ms、<video> が動くのは t=1750ms。
+			// この差を埋めないとセルは 2 秒ちかく真っ黒になる
+			const { styles, images } = run({ video: false, images: [{ w: 150, h: 150 }, { w: 360, h: 639 }] });
+
+			const poster = styles.get(images[1]);
+			expect(poster).toMatchObject({ position: "fixed", height: "100vh", "object-fit": "cover" });
+			// プロフィール写真（150x150）を全面に出さない
+			expect(styles.get(images[0])).toBeUndefined();
+		});
+
+		it("地色は <video> を待たずに敷く（埋め込みページの白が一瞬見えないように）", () => {
+			const { appended } = run({ video: false, images: [] });
+			expect(appended).toHaveLength(1);
+			expect((appended[0] as { style: { cssText: string } }).style.cssText).toContain("background:#000");
+		});
+
+		it("<video> は 1 コマ目より前面へ出す（映像が出たらそちらが見える）", () => {
+			const { styles, images, video } = run({ video: true, images: [{ w: 360, h: 639 }] });
+			const zVideo = Number(styles.get(video!)!["z-index"]);
+			const zPoster = Number(styles.get(images[0])!["z-index"]);
+			expect(zVideo).toBeGreaterThan(zPoster);
+		});
 	});
 
 	it("読み込み中も、再生できているセルにも «Instagram で見る» を重ねない", () => {

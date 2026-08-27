@@ -74,6 +74,26 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		await element(target).swipe("up", "fast", 0.6, 0.5, 0.5);
 	};
 
+	/*
+	⚠️ **この spec の間だけ Detox の同期機構を切る。**
+
+	Detox（iOS）は «アプリが暇になる» のを待ってから assertion を実行する。ところが
+	埋め込みのリールは着地した瞬間から**鳴り止まずに再生し続ける**ので、アプリは
+	最後まで暇にならない。実測（run 33065565293 / iOS）では
+
+	    The app is busy with the following tasks:
+	    • There are 2 work items pending on the dispatch queue: "Main Queue".
+	    • Run loop "Main Run Loop" is awake.
+
+	が 2 分間出続け、`restaurant-feed-screen` を待つだけの最初の 1 行が
+	`Timed out while waiting for expectation` で落ちた。**同じ run の
+	`testFnFailure.png` にはフィードもリールも正しく写っている**ので、
+	アプリではなく待ち方の問題である。
+
+	自動再生を検証する spec で «再生が止まるのを待つ» ことはできない。この spec は
+	画面を眺めてコマを撮るだけで、操作のタイミングに依存しないので、
+	同期を切って明示的に待つのが正しい（`review-submit-loading.test.ts` と同じ扱い）。
+	*/
 	beforeAll(async () => {
 		const session = readSessionFromEnv("authenticated");
 		if (!session) {
@@ -91,6 +111,7 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			url: localeDeepLink(`restaurant/${restaurantId}/feed`),
 			waitForReady: false,
 		});
+		await device.disableSynchronization();
 		await waitUntilVisible(restaurantFeed.container, 120_000);
 
 		// 埋め込みセルまでスワイプで探す（このお店の記録は少ないので通常は先頭付近にいる）
@@ -147,5 +168,10 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		// ⚠️ ここで «アプリが生きていること» を必ず 1 つ検証する。
 		// スワイプ後に assertion が無いと、プロセスが死んでも緑で終わる（独立レビュー指摘 9-b）
 		await waitUntilVisible(restaurantFeed.container);
+	});
+
+	// 同じ run の後続 spec を «同期の切れた» 状態へ持ち越さない
+	afterAll(async () => {
+		await device.enableSynchronization();
 	});
 });

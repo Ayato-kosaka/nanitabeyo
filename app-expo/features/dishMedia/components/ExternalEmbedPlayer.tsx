@@ -157,7 +157,7 @@ const AUTOPLAY_SCRIPT = `(function () {
 
   var DEADLINE_MS = 12000, TICK_MS = 250;
   var timer = null, observer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
-  var backdrop = null, fillTicks = 0;
+  var backdrop = null, fillTicks = 0, poster = null;
 
   function report(kind, detail) {
     if (sent[kind]) return;
@@ -187,13 +187,8 @@ const AUTOPLAY_SCRIPT = `(function () {
    * ⚠️ クラス名に一切依存しないこと。«video タグが 1 つある» ことしか前提にしない。
    *    向こうの DOM 構造が変わっても壊れないのが、この書き方を選んでいる理由である。
    */
-  function fill(v) {
-    if (!backdrop) {
-      backdrop = document.createElement('div');
-      backdrop.style.cssText = 'position:fixed;inset:0;background:#000;z-index:2147483646';
-      document.body.appendChild(backdrop);
-    }
-    var st = v.style;
+  function stretch(el, z) {
+    var st = el.style;
     st.setProperty('position', 'fixed', 'important');
     st.setProperty('inset', '0', 'important');
     st.setProperty('width', '100vw', 'important');
@@ -202,7 +197,58 @@ const AUTOPLAY_SCRIPT = `(function () {
     st.setProperty('max-height', 'none', 'important');
     // 既存の料理動画セル（VideoPlayer の contentFit="cover"）と同じ見せ方に揃える
     st.setProperty('object-fit', 'cover', 'important');
-    st.setProperty('z-index', '2147483647', 'important');
+    st.setProperty('z-index', String(z), 'important');
+  }
+
+  /*
+   * 地色。**<video> を待たずに、スクリプトが走った瞬間に敷く。**
+   *
+   * 埋め込みページの body は白なので、敷かないと «アプリの黒 → 一瞬の白 → 映像» と
+   * 明滅する。セルの見た目を既存の料理動画セルへ揃えるための下地でもある。
+   */
+  function ensureBackdrop() {
+    if (backdrop || !document.body) return;
+    backdrop = document.createElement('div');
+    backdrop.style.cssText = 'position:fixed;inset:0;background:#000;z-index:2147483645';
+    document.body.appendChild(backdrop);
+  }
+
+  /*
+   * #1641【設計】**再生が始まるまでのつなぎに、リールの 1 コマ目（poster）を全面へ出す。**
+   *
+   * 実測（Chrome 152 / 埋め込みページの計時）:
+   *
+   *     t=500ms  1 コマ目の <img>（360x639）が出る
+   *     t=1750ms ようやく <video> の currentTime が進み始める
+   *
+   * この差ぶん、何もしないとセルは **真っ黒のまま**になる（Detox run 33065565293 の
+   * コマ 00 / 01 で実測。実機ではおよそ 2 秒）。既存の料理動画セルはその間
+   * サムネイルが出ているので、揃えるにはここを埋める必要がある。
+   *
+   * ⚠️ 取り込み時のサムネイル（dish_media.thumbnailImageUrl）では埋められない。
+   *    Instagram は複製が規約で禁じられており、**この provider では常に null** である
+   *    （api/src/v1/dish-media/dish-media.assembler.ts）。埋め込みページ自身が持つ
+   *    画像を使うのが、規約の中で 1 コマ目を出せる唯一の経路である。
+   *
+   * ⚠️ 大きい <img> «だけ» を拾う。プロフィール写真（150x150）を全面に出さないため。
+   */
+  function fillPoster() {
+    if (poster && poster.isConnected) return;
+    var imgs = document.querySelectorAll('img');
+    var best = null;
+    for (var i = 0; i < imgs.length; i++) {
+      var img = imgs[i];
+      if (!img.complete || img.naturalWidth < 200) continue;
+      if (!best || img.naturalWidth * img.naturalHeight > best.naturalWidth * best.naturalHeight) best = img;
+    }
+    if (!best) return;
+    poster = best;
+    stretch(poster, 2147483646);
+  }
+
+  function fill(v) {
+    ensureBackdrop();
+    stretch(v, 2147483647);
   }
 
   function prepare(v) {
@@ -228,6 +274,8 @@ const AUTOPLAY_SCRIPT = `(function () {
 
   function attempt() {
     try {
+      ensureBackdrop();
+      fillPoster();
       var v = document.querySelector('video');
       if (Date.now() > deadlineAt) {
         // <video> が最後まで現れない = 権利ブロックされた投稿（何をしても再生できない）
