@@ -12,6 +12,20 @@ web バンドルに一切入らない（ネイティブ側 `ExternalEmbedPlayer.
 - sandbox: allow-top-navigation を含めない。埋め込み内の第三者スクリプトが
   `window.top.location` でアプリのタブごと乗っ取るのを構造的に禁止する
 - referrerPolicy: どのページから開いたかを provider へ渡さない
+
+## ⚠️ web は自動再生できない。ネイティブ側と作りが違うのは意図的である（#1641）
+
+ネイティブ（`ExternalEmbedPlayer.tsx`）は #1641 で **タップ無しの自動再生**へ作り替え、
+操作モードと × ボタンを廃止した。**web で同じことはできない。**
+
+埋め込みページは `<video autoplay>` を出さないので、再生させるには外から `play()` を
+撃つ必要がある。ネイティブの WebView は埋め込みページを **トップレベル文書**として開くので
+`injectJavaScript` が同一オリジンの文脈で動くが、web の `<iframe>` の中は
+**instagram.com のクロスオリジン**であり、こちらからは一切触れない。
+`allow="autoplay"` を渡しても、ページ自身が `play()` を呼ばない以上は何も起きない。
+
+したがって web は **«再生ボタン → 操作モード → 埋め込み側の再生 UI»** の 2 段のままにする。
+ネイティブ側に合わせて操作モードを消すと、web だけ «永久に再生できない板» になる。
 */
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View, type LayoutChangeEvent } from "react-native";
