@@ -156,3 +156,57 @@ describe('QueryMyDishesDto', () => {
     ]);
   });
 });
+
+/**
+ * #1599 `@IsISO8601()` は ISO 8601 の «形» を見るだけで、JavaScript の `Date` が
+ * 解釈できるかは見ない。ISO 8601 には週日付（`2026-W01`）や基本形式（`20260826`）もあり、
+ * 規格として正しいのに `new Date()` では Invalid Date になる。
+ *
+ * `my-dishes.query.ts` の `rangeFilter` / `saveBounds` は受け取った文字列を
+ * `new Date(...)` して **そのままクエリの条件に載せる**（4 箇所）ので、
+ * この差がそのままバグになる。
+ */
+describe('#1599 QueryMyDishesDto の from / to は new Date() が解釈できる形だけ通す', () => {
+  it.each([
+    ['2026-08-26', '日付だけ'],
+    ['2026-08-26T00:00:00Z', '日時（Z）'],
+    ['2026-08-26T09:30:00+09:00', '日時（オフセット）'],
+    ['2026-08-26T00:00:00.000Z', 'ミリ秒つき'],
+    ['2026-08', '年月'],
+    ['2026', '年だけ'],
+  ])('%s は通る（%s）', (value) => {
+    expect(propertiesWithErrors({ from: value })).toEqual([]);
+    expect(propertiesWithErrors({ to: value })).toEqual([]);
+    // 通した以上、呼び出し側が new Date() しても壊れないこと
+    expect(Number.isNaN(new Date(value).getTime())).toBe(false);
+  });
+
+  it.each([
+    ['2026-W01', '週日付。ISO 8601 だが new Date() は Invalid Date'],
+    ['2026-W01-1', '週日付（曜日つき）。同上'],
+    ['20260826', '基本形式（ハイフン無し）。同上'],
+  ])('%s は弾く（%s）', (value) => {
+    // 前提: これらは @IsISO8601() だけなら通ってしまう形である
+    expect(Number.isNaN(new Date(value).getTime())).toBe(true);
+
+    expect(propertiesWithErrors({ from: value })).toEqual(['from']);
+    expect(propertiesWithErrors({ to: value })).toEqual(['to']);
+  });
+
+  it('2026-02-30 は弾く（new Date() が黙って 3/2 へ繰り上げてしまう）', () => {
+    // 通してしまうと「2 月 30 日以降」で検索したつもりが 3 月 2 日以降になる。
+    // 例外にならないぶん、こちらの方が気づきにくい
+    expect(new Date('2026-02-30').toISOString()).toBe('2026-03-02T00:00:00.000Z');
+
+    expect(propertiesWithErrors({ from: '2026-02-30' })).toEqual(['from']);
+  });
+
+  it('そもそも日付でない文字列も従来どおり弾く', () => {
+    expect(propertiesWithErrors({ from: 'not-a-date' })).toEqual(['from']);
+    expect(propertiesWithErrors({ from: '' })).toEqual(['from']);
+  });
+
+  it('未指定なら検査しない（省略可能のまま）', () => {
+    expect(propertiesWithErrors({})).toEqual([]);
+  });
+});

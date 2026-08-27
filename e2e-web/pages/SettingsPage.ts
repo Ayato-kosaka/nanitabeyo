@@ -36,6 +36,16 @@ export class SettingsPage {
 	 * トグル本体はこの行から push される端末設定画面にあり、`pages/DeviceSettingsPage.ts` が持つ。
 	 */
 	readonly deviceSettingsItem: Locator;
+	/** #1583 マイページ → «なに食べよについて» の行 */
+	readonly aboutItem: Locator;
+	/**
+	 * #1583 «なに食べよについて» の戻るボタン。
+	 *
+	 * `ScreenHeader` は `${testID}-back` を出す（素の testID は出さない）。
+	 * ページを分けた以上、**戻ってこられることまで見ないと行き止まりを作れる**ので
+	 * ロケータを持たせてある（`DeviceSettingsPage.backButton` と同じ考え方）。
+	 */
+	readonly aboutBackButton: Locator;
 	/**
 	 * バージョン表示（#1495 SUP-03）。"{version}({短縮コミットID})" の 1 行、例: "1.14.0(abc1234)"。
 	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx
@@ -108,6 +118,9 @@ export class SettingsPage {
 		this.blockedDishCategoriesItem = page.getByTestId("settings-blocked-dish-categories");
 		this.languageItem = page.getByTestId("settings-language");
 		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
+		// #1583 マイページ → なに食べよについて の行
+		this.aboutItem = page.getByTestId("settings-about");
+		this.aboutBackButton = page.getByTestId("about-screen-back");
 		this.versionText = page.getByTestId("settings-version-section");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.notificationsCard = page.getByTestId("settings-notifications-card");
@@ -162,6 +175,58 @@ export class SettingsPage {
 	}
 
 	/**
+	 * 設定項目のある画面（＝マイページ）へ直接遷移する（locale プレフィックス必須）。
+	 * #1402 以前は `/[locale]/profile/settings` だった。
+	 */
+	async goto(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile`);
+	}
+
+	/**
+	 * 設定項目が表示されていることを検証する。
+	 *
+	 * #1402 以前は ScreenHeader のタイトル「設定」を見ていたが、その画面ごと無くなった。
+	 * 代わりに «必ず出る行» の testID を見る（ロケール依存が 1 つ減るという副次的な利点もある）。
+	 */
+	async expectLoaded(): Promise<void> {
+		await expect(this.feedbackItem).toBeVisible();
+	}
+
+	/*
+	#1583 設定項目は 3 画面に散っている。
+	  マイページ …… いいね / 保存 / ご意見 / ブロック済み / 通報履歴 / 言語 / 投票 /
+	                （端末設定へ）/（なに食べよについてへ）/ ログアウト
+	  端末設定 ……… ハプティクス / 表示テーマ
+	  なに食べよについて … 応援する / 規約 4 種 / バージョン
+	テーマとリーガルの行は **マイページには無い**ので、下の 2 つで先に移動すること。
+	*/
+
+	/** #1504 端末設定行をタップして端末設定画面（`/[locale]/profile/device-settings`）へ遷移する */
+	async openDeviceSettings(): Promise<void> {
+		await this.deviceSettingsItem.click();
+		// #1583 表示テーマがここへ移った
+		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1583 «なに食べよについて» 行をタップして `/[locale]/profile/about` へ遷移する */
+	async openAbout(): Promise<void> {
+		await this.aboutItem.click();
+		await expect(this.termsItem).toBeVisible();
+	}
+
+	/** #1583 端末設定ページへ直接遷移する（導線ではなく画面の中身を見たいとき） */
+	async gotoDeviceSettings(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/device-settings`);
+		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1583 «なに食べよについて» へ直接遷移する */
+	async gotoAbout(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/about`);
+		await expect(this.termsItem).toBeVisible();
+	}
+
+	/**
 	 * #1510 通知カテゴリの行（トグル）を返す。**押すのはこの行。**
 	 *
 	 * `SettingsToggleItem` は行全体をタップ対象にし、Switch 側は `pointerEvents="none"` で
@@ -182,26 +247,6 @@ export class SettingsPage {
 	 */
 	async isNotificationToggleOn(category: "likes" | "saves" | "group_votes"): Promise<boolean> {
 		return this.notificationToggle(category).locator('input[type="checkbox"]').isChecked();
-	}
-
-	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
-	async goto(locale = "ja-JP"): Promise<void> {
-		await this.page.goto(`/${locale}/profile`);
-	}
-
-	/**
-	 * 設定項目が表示されていることを検証する。
-	 *
-	 * #1402 以前は ScreenHeader のタイトル「設定」を見ていたが、その画面ごと無くなった。
-	 * 代わりに «必ず出る行» の testID を見る（ロケール依存が 1 つ減るという副次的な利点もある）。
-	 */
-	async expectLoaded(): Promise<void> {
-		await expect(this.feedbackItem).toBeVisible();
-	}
-
-	/** #1504 端末設定行をタップして端末設定画面（`/[locale]/profile/device-settings`）へ遷移する */
-	async openDeviceSettings(): Promise<void> {
-		await this.deviceSettingsItem.click();
 	}
 
 	/**

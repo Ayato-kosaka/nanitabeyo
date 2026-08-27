@@ -95,6 +95,8 @@ export default function MyDishesFeedScreen() {
 	// ⚠️ 初回に読んだ並びで固定する。遷移元が裏で再検索して並びが変わっても、
 	// 開いている Feed のページが増減するとスクロール位置が飛ぶ
 	const [scopeRestaurantIds] = useState<string[]>(() => useMyDishesFeedScopeStore.getState().restaurantIds);
+	// #1629 並びの出どころ。list（一覧）由来なら前後を絞らない（下のコメント参照）
+	const [scopeSource] = useState(() => useMyDishesFeedScopeStore.getState().restaurantIdsSource);
 	const [scopeDateKeys] = useState<string[]>(() => useMyDishesFeedScopeStore.getState().dateKeys);
 
 	/** ページャに並べるスコープ */
@@ -106,10 +108,27 @@ export default function MyDishesFeedScreen() {
 			return keys.map((key) => ({ kind: "date" as const, date: key }));
 		}
 		if (restaurantId === null) return [];
-		// 遷移元が並びを置いていればその前後 1 件ずつ、無ければこの店舗だけ
-		const ids = scopeRestaurantIds.length > 0 ? sliceScopeWindow(scopeRestaurantIds, restaurantId) : [restaurantId];
+		/*
+		#1629 【修正】オーナー実機報告「グリッドのフィードが無限に下スクロールできない」。
+
+		縦ページャの中身は遷移元が置いた並びだが、**Map 由来と一覧由来を同じに扱っていた**。
+		`sliceScopeWindow` は前後 1 件しか残さないので、一覧から入ると縦は **3 ページで終わる**。
+		Map は viewport 由来でピンが 200 件あることもあり «前後 1 件» に意味があるが、
+		一覧は «上から順に見ていく» 面なので、縦にフリックし続けたら一覧の最後まで行けるのが
+		期待される挙動である。
+
+		出どころで分ける。一覧由来は絞らない。
+		⚠️ ページ数が増えてもマウントされるのは `windowSize={3}` のぶんだけで、
+		   取得は `isActive` が止めている（ページを増やしても取得は増えない）。
+		*/
+		const ids =
+			scopeRestaurantIds.length === 0
+				? [restaurantId]
+				: scopeSource === "list"
+					? scopeRestaurantIds
+					: sliceScopeWindow(scopeRestaurantIds, restaurantId);
 		return ids.map((id) => ({ kind: "restaurant" as const, restaurantId: id }));
-	}, [date, restaurantId, scopeDateKeys, scopeKind, scopeRestaurantIds]);
+	}, [date, restaurantId, scopeDateKeys, scopeKind, scopeRestaurantIds, scopeSource]);
 
 	/** 開いた時点で前面に居るページ */
 	const initialScopeIndex = useMemo(() => {
@@ -234,6 +253,10 @@ export default function MyDishesFeedScreen() {
 										itemKey={isInitialScope ? itemKey : null}
 										dishMediaId={isInitialScope ? dishMediaId : null}
 										isActive={index === activeScopeIndex}
+										/* #1629 進行方向（下）の 1 ページだけ先読みさせる。
+										   オーナー実機報告「5 秒待って下っていくとローディングが 1〜2 秒」の対処。
+										   詳細と «なぜ 1 ページだけか» は MyDishesFeedPage の shouldPrefetch の JSDoc */
+										shouldPrefetch={index === activeScopeIndex + 1}
 									/>
 								</View>
 							);

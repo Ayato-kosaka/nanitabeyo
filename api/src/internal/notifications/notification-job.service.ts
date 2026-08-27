@@ -84,12 +84,16 @@ export class NotificationJobService {
       knownUsers.filter((u) => u.deleted_at != null).map((u) => u.id),
     );
     if (deletedUserIds.has(actorId) || deletedUserIds.has(recipientId)) {
-      this.logger.log('DeletedUserNotificationSkipped', 'processNotificationJob', {
-        actorId,
-        recipientId,
-        actorDeleted: deletedUserIds.has(actorId),
-        recipientDeleted: deletedUserIds.has(recipientId),
-      });
+      this.logger.log(
+        'DeletedUserNotificationSkipped',
+        'processNotificationJob',
+        {
+          actorId,
+          recipientId,
+          actorDeleted: deletedUserIds.has(actorId),
+          recipientDeleted: deletedUserIds.has(recipientId),
+        },
+      );
       return;
     }
 
@@ -151,6 +155,33 @@ export class NotificationJobService {
     });
     if (!message) return;
 
+    // 6. #1599 【バグ】**再配送で同じ Push が 2 回届くのを止める。**
+    //
+    // Cloud Tasks は at-least-once 配送で、**ハンドラが成功したのに応答が届かなかった
+    // 場合も再実行される**。手順 3 の upsert は idempotency_key で冪等なので «通知行» は
+    // 二重にならないが、ここは無条件に走っていたため配信だけが二重になっていた。
+    // 行の冪等性と配信の冪等性は別の話である。
+    //
+    // 【設計】`isNew` で分岐してはいけない。同じ投稿への 2 人目以降のいいねは
+    // isNew: false の経路に入るので、**通知そのものが届かなくなる**。
+    // 区別すべきは «再配送» と «正当な追加イベント» であって «新規» と «既存» ではない。
+    //
+    // 「送ってから記録する」ではなく **「記録できたら送る」**。逆順にすると、
+    // 記録の前に落ちた場合にもう一度送ってしまう（＝直っていない）。
+    const claimed = await this.repo.claimPushDelivery(
+      notificationId,
+      recipientId,
+      actorId,
+    );
+    if (!claimed) {
+      this.logger.log(
+        'NotificationPushAlreadyDelivered',
+        'processNotificationJob',
+        { notificationId, recipientId, actorId },
+      );
+      return;
+    }
+
     await this.service.sendPushNotification(recipientId, message);
   }
 
@@ -178,12 +209,10 @@ export class NotificationJobService {
     } else if (targetTable === 'dish_category_group_vote_sessions') {
       // #1506 GRP-04: recipient は投票セッションのホスト。
       const session =
-        await this.prisma.prisma.dish_category_group_vote_sessions.findUnique(
-          {
-            where: { id: targetId },
-            select: { host_user_id: true },
-          },
-        );
+        await this.prisma.prisma.dish_category_group_vote_sessions.findUnique({
+          where: { id: targetId },
+          select: { host_user_id: true },
+        });
       return session ? { user_id: session.host_user_id } : null;
     }
 

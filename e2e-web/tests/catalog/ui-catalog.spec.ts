@@ -292,6 +292,7 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		// 実導線（マイページの行）から遷移する。URL 直リンクでも同じ画面に着くが、
 		// 「マイページから開ける」ことまでカタログの撮影経路に含めておく
 		await captureScreenIfReachable(appPage, "legal-terms", async () => {
+			await settingsPage.openAbout();
 			await settingsPage.termsItem.click();
 			await legalPage.expectOpened("terms");
 		});

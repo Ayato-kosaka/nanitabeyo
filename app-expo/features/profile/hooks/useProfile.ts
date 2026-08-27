@@ -6,14 +6,29 @@ import type { UpdateUserProfileDto } from "@shared/api/v1/dto";
 import { supabase } from "@/lib/supabase";
 import { useLocale } from "@/hooks/useLocale";
 import { useAuth } from "@/contexts/AuthProvider";
+import { generateUsername } from "../generateUsername";
 
 /**
  * #1233 【設計】Postgres の unique_violation（SQLSTATE 23505）。
- * PostgREST は SQLSTATE をそのまま `error.code` に載せてくるので、
- * `users_pkey` 衝突（= 同じ user.id で別の呼び出しが先に INSERT した）はこの値で判別できる。
+ * PostgREST は SQLSTATE をそのまま `error.code` に載せてくる。
  * PostgREST 独自コード（PGRST116 = 0 rows）とは名前空間が違うため取り違えない。
+ *
+ * ⚠️ #1599 このコードだけでは **どの UNIQUE でぶつかったかは分からない**。
+ * `users` には `users_pkey`（id）と `uq_users_username`（username）の 2 本があり、
+ * どちらも 23505 を返す。見分け方は下の `insertUserProfileRow` を参照。
  */
 const POSTGRES_UNIQUE_VIOLATION = "23505";
+
+/** PostgREST の「0 行」。`.single()` が行を引けなかったときに返る */
+const POSTGREST_NO_ROWS = "PGRST116";
+
+/**
+ * #1599 username を採り直して再挑戦する上限。
+ *
+ * 衝突は「同じミリ秒 × 同じ 6 桁の乱数」でしか起きないので、
+ * 1 回採り直せばまず通る。無限に粘らせないための保険として置く。
+ */
+const MAX_USERNAME_ATTEMPTS = 3;
 
 export function useProfile() {
 	const { callBackend } = useAPICall();
@@ -63,34 +78,62 @@ export function useProfile() {
 				}
 
 				if (!existingProfileId) {
-					// ユーザープロフィールが存在しない場合のみ作成
-					const timestamp = Date.now();
-					const randomSuffix = Math.floor(Math.random() * 1000)
-						.toString()
-						.padStart(3, "0");
-					const username = `user${(timestamp + parseInt(randomSuffix)).toString().slice(0, 13)}`;
+					// #1599 【バグ】以前はここで 23505 を一律「別の呼び出しが一足先に作った」
+					// （= #1233 の正常系）と決めつけて INSERT を諦めていた。だが 23505 は
+					// `uq_users_username` でも返る。**別ユーザーと username がぶつかっただけ**の
+					// ときにも諦めるため、その人は users 行が無いまま先へ進み、
+					// useEnsureOwnProfileLoaded の再取得が 404 → 「プロフィールを読み込めません」
+					// に落ちる。サインアップ直後の画面なので取り返しが利かない。
+					//
+					// 2 つは「自分の行ができているか」で見分けられる。
+					//  - 行がある … users_pkey 衝突（#1233）。諦めてよい。以降の avatar 反映は続ける
+					//  - 行が無い … username 衝突。名前を採り直せば必ず通るので再挑戦する
+					let username = generateUsername();
+					let didConflict = false;
 
-					// users テーブルに新規レコードを挿入
-					const { error: insertError } = await supabase.from("users").insert({
-						id: user.id,
-						username,
-						display_name: displayName || "nickname",
-						preferred_locale: locale,
-					});
+					for (let attempt = 1; ; attempt++) {
+						const { error: insertError } = await supabase.from("users").insert({
+							id: user.id,
+							username,
+							display_name: displayName || "nickname",
+							preferred_locale: locale,
+						});
 
-					// #1233 【修正】主キー衝突だけは throw せずに続行する。ここで throw すると
-					// 下のアバターアップロードと v1/users/me への反映がスキップされる（これが Issue の実害）。
-					// 衝突以外の INSERT エラー（RLS 違反・NOT NULL 違反など）は従来どおり
-					// user_profile_creation_error として error レベルで残したいので投げ直す。
-					const didConflict = !!insertError && insertError.code === POSTGRES_UNIQUE_VIOLATION;
-					if (insertError && !didConflict) throw insertError;
+						if (!insertError) break;
+
+						// 衝突以外の INSERT エラー（RLS 違反・NOT NULL 違反など）は従来どおり
+						// user_profile_creation_error として error レベルで残したいので投げ直す。
+						if (insertError.code !== POSTGRES_UNIQUE_VIOLATION) throw insertError;
+
+						const { data: rowAfterConflict, error: recheckError } = await supabase
+							.from("users")
+							.select("id")
+							.eq("id", user.id)
+							.single<string>();
+						if (recheckError && recheckError.code !== POSTGREST_NO_ROWS) throw recheckError;
+
+						if (rowAfterConflict) {
+							// #1233 の正常系。先着が作っているので、下のアバター反映まで続行する
+							didConflict = true;
+							break;
+						}
+
+						// username 衝突。行はまだ無いので、採り直して入れ直す
+						if (attempt >= MAX_USERNAME_ATTEMPTS) throw insertError;
+						logFrontendEvent({
+							event_name: "user_profile_username_conflict",
+							error_level: "warn",
+							payload: { user_id: user.id, attempt, error: insertError.message },
+						});
+						username = generateUsername();
+					}
 
 					if (didConflict) {
 						// 起票対象にはしないが、並走の頻度は追えるようにしておく
 						logFrontendEvent({
 							event_name: "user_profile_create_conflict",
 							error_level: "warn",
-							payload: { user_id: user.id, error: insertError?.message },
+							payload: { user_id: user.id },
 						});
 					}
 

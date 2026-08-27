@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "공유하기",
 			"seeMore": "더 보기",
-			"openMap": "지도 열기"
+			"openMap": "지도 열기",
+			"review": "리뷰"
 		},
 		"share": {
 			"title": "{{dishName}} 확인해 보세요"
@@ -465,6 +466,9 @@
 			"saveFailed": "수정하지 못했습니다",
 			"conflict": "다른 기기에서 먼저 수정되었습니다. 다시 열고 편집해 주세요.",
 			"forbidden": "내 게시물만 편집하거나 삭제할 수 있습니다"
+		},
+		"moreMenu": {
+			"title": "이 게시물"
 		}
 	},
 	"ImageCardGrid": {
@@ -804,7 +808,6 @@
 			}
 		},
 		"sendFeedback": "피드백 보내기",
-		"leaveReview": "리뷰 남기기",
 		"rateDialogTitle": "앱이 마음에 드시나요?",
 		"rateDialogMessage": "마음에 드신다면 스토어에서 평가 부탁드립니다. 리뷰 페이지를 열겠습니다.",
 		"rateDialogOk": "지금 평가하기",
@@ -845,7 +848,8 @@
 			"group_votes": {
 				"title": "그룹 투표",
 				"description": "참여 중인 그룹 투표에 변화가 있을 때"
-			}
+			},
+			"navigationLabel": "알림 설정"
 		},
 		"language": {
 			"navigationLabel": "언어",
@@ -861,6 +865,11 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "그룹 투표 내역"
+		},
+		"support": "CraveCatch 응원하기",
+		"about": {
+			"navigationLabel": "CraveCatch 정보",
+			"title": "CraveCatch 정보"
 		},
 		"deleteAccount": "계정 삭제",
 		"deleteAccountInProgress": "삭제 중…",
@@ -883,6 +892,10 @@
 			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
 			"unblockConfirm": "차단 해제",
 			"unblocked": "차단 해제됨"
+		},
+		"account": {
+			"navigationLabel": "계정 관리",
+			"title": "계정 관리"
 		}
 	},
 	"Dialog": {
@@ -903,6 +916,7 @@
 			"submitting": "업데이트 중...",
 			"submitSuccess": "{{count}}개 이미지가 성공적으로 업데이트되었습니다",
 			"submitError": "이미지 업데이트 실패",
+			"submitUnavailable": "이 기능은 아직 사용할 수 없습니다(서버 측이 구현되지 않았습니다).",
 			"reset": "초기화",
 			"selected": "선택됨",
 			"dishCount": "{{count}}개 요리"
@@ -1234,81 +1248,6 @@
 				"dish_media": "게시물",
 				"dish_reviews": "리뷰"
 			}
-		}
-	},
-	"Topics": {
-		"deepDive": {
-			"title": "이 계열로 좁히기"
-		},
-		"tutorial": {
-			"helpLabel": "이 화면 사용 방법",
-			"helpHint": "요리 추천 튜토리얼을 처음부터 표시합니다",
-			"skip": "건너뛰기",
-			"next": "다음",
-			"finish": "시작하기",
-			"progress": "{{current}} / {{total}}",
-			"progressAccessibility": "총 {{total}}단계 중 {{current}}단계",
-			"steps": {
-				"swipeAndDecide": {
-					"title": "마음에 드는 요리를 골라보세요",
-					"body": "좌우로 스와이프해 요리를 비교할 수 있어요. 먹고 싶은 요리를 정했다면 ‘이 요리로 선택!’을 눌러주세요."
-				},
-				"deepDive": {
-					"title": "기분에 맞춰 더 깊이 검색",
-					"body": "아직 고민된다면 원하는 계열을 골라 비슷한 요리로 범위를 좁혀보세요."
-				},
-				"topicActions": {
-					"title": "취향에 맞게 정리하기",
-					"save": "저장: 마음에 드는 요리를 나중에 다시 볼 수 있어요",
-					"block": "차단: 취향에 맞지 않는 요리는 앞으로 추천되지 않아요"
-				},
-				"groupVote": {
-					"title": "친구와 정하기",
-					"body": "같이 먹을 사람들과 후보를 공유하고 함께 투표할 수 있어요."
-				}
-			}
-		},
-		"HideTopicModal": {
-			"title": "숨기기",
-			"description": "숨기는 이유를 알려주세요 (선택사항)",
-			"placeholder": "이유를 입력하세요...",
-			"confirm": "숨기기"
-		},
-		"Loading": {
-			"title": "당신을 위한 완벽한 요리 6개를 엄선하고 있어요",
-			"subtitle": "추천을 곧 보여드릴게요!"
-		},
-		"errors": {
-			"fetchFailed": "요리를 가져오지 못했습니다",
-			"invalidSearchParams": "잘못된 검색 매개변수"
-		},
-		"empty": "표시할 요리가 없습니다",
-		"retry": "검색으로 돌아가기",
-		"chooseThis": "이걸로 할래!",
-		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
-		"BlockTopicModal": {
-			"title": "이 요리를 차단할까요?",
-			"description": "차단된 요리 카테고리는 추천에 더 이상 표시되지 않습니다.",
-			"note": "설정에서 언제든지 차단을 해제할 수 있어요.",
-			"confirm": "차단하기"
-		},
-		"blockedMessage": "{{title}}이(가) 차단되었습니다",
-		"savedMessage": "저장했습니다",
-		"reloadDialog": {
-			"title": "다른 메뉴를 더 찾아볼까요?",
-			"message": "지금은 추천이 많지 않아요. 같은 조건으로 다시 찾아볼게요.",
-			"confirm": "다시 검색하기",
-			"cancel": "닫기"
-		},
-		"imageLoadFailed": "이미지를 불러오지 못했습니다",
-		"tapToReload": "탭하여 다시 로드",
-		"headerTitle": "당신을 위한 추천 요리",
-		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요",
-		"accessibility": {
-			"blockTopic": "추천에서 {{title}} 제외",
-			"saveTopic": "{{title}} 저장",
-			"unsaveTopic": "{{title}} 저장 해제",
-			"thumbnail": "{{title}} 썸네일, {{total}}개 중 {{index}}번째"
 		}
 	}
 }

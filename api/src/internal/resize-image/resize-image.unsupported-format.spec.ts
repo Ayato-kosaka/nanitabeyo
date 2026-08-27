@@ -67,7 +67,7 @@ describe('#1425 ResizeImageService - デコーダが無い形式は恒久失敗'
     log: jest.Mock;
     debug: jest.Mock;
   };
-  let prisma: { prisma: { dish_media: { update: jest.Mock } } };
+  let prisma: { prisma: { dish_media: { updateMany: jest.Mock } } };
 
   const dto = {
     table: 'dish_media',
@@ -89,7 +89,11 @@ describe('#1425 ResizeImageService - デコーダが無い形式は恒久失敗'
       debug: jest.fn(),
     };
     prisma = {
-      prisma: { dish_media: { update: jest.fn().mockResolvedValue({}) } },
+      prisma: {
+        dish_media: {
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -140,9 +144,14 @@ describe('#1425 ResizeImageService - デコーダが無い形式は恒久失敗'
   it('dish_media の processing_status を failed にする', async () => {
     await expect(service.resizeAndStoreImage(dto)).rejects.toThrow();
 
-    expect(prisma.prisma.dish_media.update).toHaveBeenCalledWith(
+    // #1599 「今の値と違うときだけ書く」形になったので where に NOT が付く。
+    // 再配送で同じ status を書き直して lock_no / updated_at を動かさないため
+    expect(prisma.prisma.dish_media.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: dto.recordId },
+        where: {
+          id: dto.recordId,
+          NOT: { media_processing_status: 'failed' },
+        },
         data: expect.objectContaining({ media_processing_status: 'failed' }),
       }),
     );

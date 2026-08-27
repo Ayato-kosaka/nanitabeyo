@@ -271,6 +271,67 @@ export class StorageService {
     }
   }
 
+  /* ---------------------------------------------------------------------- */
+  /*                   #1599 一度きりの権利取得（claim）                     */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * #1599 **そのパスを «自分が最初に作れたか» で排他する。**
+   *
+   * 至れり尽くせりのロックではなく、«同じ副作用を二度起こさない» ための最小の仕掛け。
+   * Cloud Tasks / Pub/Sub Push は at-least-once なので、
+   * **課金や外部ジョブ作成を伴う処理は「やってから記録する」では守れない**
+   * （記録の前に応答が落ちれば、次の配送でもう一度やってしまう）。
+   * 先に権利を取り、取れた側だけが実行する。
+   *
+   * ⚠️ `fileExists()` してから書く形にしてはいけない。その隙間に別の配送が入り込む。
+   * ここでは GCS の **`ifGenerationMatch: 0`（オブジェクトがまだ存在しないときだけ書く）**
+   * という前提条件を使う。判定と書き込みが GCS 側で 1 つになるので、
+   * 同時に 2 本来ても片方だけが成功する。
+   *
+   * ⚠️ **claim は自動では失効しない。** 取ったあと実行前にプロセスが落ちると、
+   * その処理は二度と実行されない。呼び出し側は、実行に失敗したら
+   * `deleteFileIfExists()` で claim を明示的に返すこと。
+   *
+   * @param path 権利の識別子になる GCS パス（1 つの副作用に 1 つ）
+   * @param note claim ファイルへ残す補足（誰が・何のために取ったか。調査用）
+   * @returns true = 自分が取れた（実行してよい）/ false = 既に誰かが取っている
+   */
+  async claimOnce(
+    path: string,
+    note: Record<string, string> = {},
+  ): Promise<boolean> {
+    try {
+      await this.bucket
+        .file(path)
+        .save(
+          JSON.stringify({ claimed_at: new Date().toISOString(), ...note }),
+          {
+            resumable: false,
+            contentType: 'application/json',
+            // 「まだ無いときだけ書く」。存在すれば GCS が 412 を返す
+            preconditionOpts: { ifGenerationMatch: 0 },
+          },
+        );
+
+      this.logger.log('GcsClaimAcquired', 'claimOnce', { path, ...note });
+      return true;
+    } catch (err) {
+      // 412 = preconditionFailed = 既に誰かが作っている（＝正常系）
+      if ((err as { code?: number }).code === 412) {
+        this.logger.log('GcsClaimAlreadyHeld', 'claimOnce', { path, ...note });
+        return false;
+      }
+
+      // それ以外（権限・ネットワーク）は «取れなかった» と «取られていた» の区別が
+      // つかない。握り潰すと二重実行を許すので、呼び出し側へ投げてリトライさせる
+      this.logger.error('GcsClaimError', 'claimOnce', {
+        error_message: (err as Error).message,
+        path,
+      });
+      throw err;
+    }
+  }
+
   /**
    * ----------------------------------------------------------------------
    *                          CDN Signed URL Generation

@@ -887,9 +887,29 @@ function createSaveTx(options?: {
     // #1513 論理削除されていた既存行の復活（deleted_at を戻す）
     mediaUndelete: jest.fn().mockResolvedValue({ id: 'media-existing' }),
     embeddingCreate: jest.fn().mockResolvedValue({}),
-    reactionCreate: jest.fn().mockResolvedValue({}),
+    // #1599 ON CONFLICT DO NOTHING。count が «新しく保存したか» になる
+    reactionCreate: jest
+      .fn()
+      .mockResolvedValue({ count: options?.alreadySaved ? 0 : 1 }),
+    // #1599 同じ (provider, 投稿, 料理) の同時取り込みを直列化する advisory lock
+    advisoryLock: jest.fn().mockResolvedValue(1),
   };
   const tx = {
+    $executeRaw: calls.advisoryLock,
+    /* #1629 **この $queryRaw は «素通りさせない» ためだけに置いてある。**
+
+       初版は `$queryRaw: calls.advisoryLock` としており、本物の Prisma なら
+       `pg_advisory_xact_lock`（戻り値 void）で必ず落ちるコードを、この fake が
+       黙って通していた。結果、**テストは全部緑なのに dev の取り込みは毎回 500**
+       という状態になった（実測: Failed to deserialize column of type 'void'）。
+
+       fake は本物と同じところで落ちなければ意味が無い。 */
+    $queryRaw: jest.fn(() => {
+      throw new Error(
+        "Failed to deserialize column of type 'void'. " +
+          'advisory lock は $executeRaw で実行すること（#1629）',
+      );
+    }),
     dishes: { upsert: calls.dishUpsert },
     dish_media: {
       create: calls.mediaCreate,
@@ -914,10 +934,7 @@ function createSaveTx(options?: {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     reactions: {
-      findUnique: jest
-        .fn()
-        .mockResolvedValue(options?.alreadySaved ? { id: 'r-1' } : null),
-      create: calls.reactionCreate,
+      createMany: calls.reactionCreate,
     },
   };
   return { tx, calls };
@@ -959,7 +976,8 @@ describe('#1399 SNS 取り込みの保存', () => {
     expect(embeddingData.provider).toBe('tiktok');
 
     expect(calls.reactionCreate).toHaveBeenCalledTimes(1);
-    expect(calls.reactionCreate.mock.calls[0][0].data).toMatchObject({
+    // #1599 create({data:{...}}) から createMany({data:[{...}]}) へ変えた
+    expect(calls.reactionCreate.mock.calls[0][0].data[0]).toMatchObject({
       user_id: 'user-1',
       target_type: 'dish_media',
       action_type: 'save',
@@ -1110,7 +1128,13 @@ describe('#1399 SNS 取り込みの保存', () => {
       'user-2',
     );
 
-    expect(calls.reactionCreate).not.toHaveBeenCalled();
+    // #1599 ON CONFLICT DO NOTHING にしたので «呼ばない» ではなく
+    // «呼んでも 1 行も増えない（count: 0）» が正しい形になった。
+    // 二重に «保存した» と報告しないことをここで固定する。
+    expect(calls.reactionCreate).toHaveBeenCalledTimes(1);
+    expect(calls.reactionCreate.mock.calls[0][0]).toMatchObject({
+      skipDuplicates: true,
+    });
     expect(result).toMatchObject({ created: false, saved: false });
   });
 
@@ -1190,5 +1214,84 @@ describe('#1399 SNS 取り込みの保存', () => {
         'user-1',
       ),
     ).rejects.toThrow(/IMPORT_UNSUPPORTED/);
+  });
+});
+
+/**
+ * #1599 取り込みトランザクションの競合安全性。
+ *
+ * 「同じ SNS 投稿を、同じ料理へ、同時に 2 本取り込む」は findFirst → create の
+ * TOCTOU を踏む。tx 内で P2002 が出るとトランザクション全体が aborted になり、
+ * catch して読み直すこともできないので、«そもそも同時に来ない» 形にしてある。
+ */
+describe('#1599 取り込みの競合', () => {
+  const URL = 'https://www.tiktok.com/@scout2015/video/6718335390845095173';
+
+  const run = async (
+    tx: unknown,
+    userId = 'user-1',
+  ): Promise<{ saved: boolean }> => {
+    const { service, transport } = createHarness();
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('味噌ラーメン'),
+    });
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+    return (await service.create(
+      {
+        url: URL,
+        restaurantId: '11111111-1111-1111-1111-111111111111',
+        dishCategoryId: 'Q2',
+      },
+      userId,
+    )) as unknown as { saved: boolean };
+  };
+
+  it('dish_media を作る前に自然キーで advisory lock を取る', async () => {
+    const { tx, calls } = createSaveTx();
+    await run(tx);
+
+    expect(calls.advisoryLock).toHaveBeenCalledTimes(1);
+    // タグ付きテンプレートなので第 1 引数が文字列配列、第 2 引数以降が値
+    const [fragments, ...values] = calls.advisoryLock.mock.calls[0];
+    expect(fragments.join('?')).toContain('pg_advisory_xact_lock');
+    // ロックキーは (provider, 外部コンテンツ ID, dish) の自然キーで作る。
+    // ここが dish だけ／provider だけになると、別の投稿どうしまで直列化して
+    // しまうか、逆に同じ投稿の競合を取りこぼす。
+    expect(String(values[0])).toBe(
+      'dish_media_import:tiktok:6718335390845095173:dish-1',
+    );
+    // ロックは «無ければ作る» を判定する findFirst より前でなければ意味が無い
+    expect(calls.advisoryLock.mock.invocationCallOrder[0]).toBeLessThan(
+      calls.mediaCreate.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('reactions は P2002 を投げうる create ではなく ON CONFLICT DO NOTHING で入れる', async () => {
+    const { tx, calls } = createSaveTx();
+    await run(tx);
+
+    expect(calls.reactionCreate).toHaveBeenCalledTimes(1);
+    const arg = calls.reactionCreate.mock.calls[0][0];
+    expect(arg.skipDuplicates).toBe(true);
+    expect(arg.data).toHaveLength(1);
+    expect(arg.data[0]).toMatchObject({
+      user_id: 'user-1',
+      target_type: 'dish_media',
+      action_type: 'save',
+    });
+    // 生の create が残っていると、そこだけ P2002 で 500 になる
+    expect((tx as { reactions: Record<string, unknown> }).reactions.create).toBeUndefined();
+  });
+
+  it('競合して 1 行も増えなかったときは saved: true と偽らない', async () => {
+    const { tx, calls } = createSaveTx();
+    // ON CONFLICT DO NOTHING で弾かれた（= 別経路が先に保存していた）状況
+    calls.reactionCreate.mockResolvedValue({ count: 0 });
+
+    await expect(run(tx)).resolves.toMatchObject({ saved: false });
   });
 });

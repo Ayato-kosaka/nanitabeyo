@@ -10,6 +10,7 @@ import i18n from "@/lib/i18n";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 /**
  * #951 【設計】ご意見・不具合(フィードバック)画面。
@@ -24,6 +25,9 @@ export default function FeedbackScreen() {
 	const { lightImpact } = useHaptics();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
+	// #1629 オーナー実機報告「ご意見・不具合を送る画面もダークモードに対応してない」。
+	// 画面の地がライト固定のグラデーション直書きだったので、テーマのトークンへ移した
+	const { colors } = useAppTheme();
 
 	const handleBack = useCallback(() => {
 		lightImpact();
@@ -42,7 +46,7 @@ export default function FeedbackScreen() {
 	}, [showSnackbar]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader title={i18n.t("Feedback.title")} onPressBack={handleBack} />
 				{/* モーダル時代は useBlurModal が担っていたキーボード回避を画面側で行う */}

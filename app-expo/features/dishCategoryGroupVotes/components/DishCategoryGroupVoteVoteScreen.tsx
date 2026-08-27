@@ -17,6 +17,8 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import type { SubmitDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
 import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
 import type { DishCategoryRecommendation } from "@/types/search";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -37,6 +39,7 @@ type Props = {
 };
 
 export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
+	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
 	const { showSnackbar } = useSnackbar();
 	const { locale } = useLocale();
@@ -295,59 +298,60 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
-	safeArea: {
-		flex: 1,
-		backgroundColor: "#F9FAFB",
-	},
-	// #1358 inset を当てる本文ラッパー。完了レイヤーを外枠直下の全面に敷くために外枠から分離している
-	body: {
-		flex: 1,
-	},
-	header: {
-		paddingHorizontal: 20,
-		paddingTop: 16,
-		gap: 10,
-	},
-	progress: {
-		fontSize: 14,
-		fontWeight: "800",
-		color: "#4B5563",
-		textAlign: "center",
-	},
-	progressSegments: {
-		flexDirection: "row",
-		gap: 6,
-	},
-	progressSegment: {
-		flex: 1,
-		height: 6,
-		borderRadius: 999,
-		backgroundColor: "#E5E7EB",
-	},
-	progressSegmentActive: {
-		backgroundColor: "#F05537",
-	},
-	center: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 12,
-		padding: 24,
-		backgroundColor: "#F9FAFB",
-	},
-	completionContent: {
-		padding: 20,
-	},
-	errorText: {
-		fontSize: 15,
-		color: "#374151",
-		textAlign: "center",
-	},
-	retryButton: {
-		minWidth: 160,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		safeArea: {
+			flex: 1,
+			backgroundColor: c.surfaceFaint,
+		},
+		// #1358 inset を当てる本文ラッパー。完了レイヤーを外枠直下の全面に敷くために外枠から分離している
+		body: {
+			flex: 1,
+		},
+		header: {
+			paddingHorizontal: 20,
+			paddingTop: 16,
+			gap: 10,
+		},
+		progress: {
+			fontSize: 14,
+			fontWeight: "800",
+			color: c.textSecondaryAlt,
+			textAlign: "center",
+		},
+		progressSegments: {
+			flexDirection: "row",
+			gap: 6,
+		},
+		progressSegment: {
+			flex: 1,
+			height: 6,
+			borderRadius: 999,
+			backgroundColor: c.surfacePlaceholder,
+		},
+		progressSegmentActive: {
+			backgroundColor: c.brand,
+		},
+		center: {
+			flex: 1,
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 12,
+			padding: 24,
+			backgroundColor: c.surfaceFaint,
+		},
+		completionContent: {
+			padding: 20,
+		},
+		errorText: {
+			fontSize: 15,
+			color: c.textSecondaryStrong,
+			textAlign: "center",
+		},
+		retryButton: {
+			minWidth: 160,
+		},
+	});
 
 function getFilledProgressSegments(index: number, total: number) {
 	if (total <= 0) return 0;

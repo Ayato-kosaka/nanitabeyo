@@ -225,6 +225,30 @@ args:        --source overture --run-id restaurant-2026-08-23 --snapshot-date 20
    run_id は env が使えないので、各スクリプトに `--run-id restaurant-2026-08-25`
    のように `args` で明示してください。
 
+### 同期前 backup の読み戻し権限
+
+`9_1_sync_restaurants.py` は更新前の PostgreSQL table を
+`gs://nanitabeyo-private/system/PostgreSQL/csv_export/` へ保存します。
+workflow の SA からこの backup を読み戻すには、管理権限を持つ principal で次を
+一度適用してください。引数なしでは dry-run になり、IAM は変更されません。
+
+```bash
+./infra/gcp/20260826T0000_grant_feature_correction_backup_reader.sh
+./infra/gcp/20260826T0000_grant_feature_correction_backup_reader.sh --apply
+```
+
+このスクリプトは backup prefix を GCS managed folder にし、その folder だけに
+`roles/storage.objectViewer` を付与します。`storage.objects.list` はバケット単位の
+権限であり、bucket IAM の `resource.name.startsWith` 条件では一覧範囲を prefix に
+限定できないためです。適用後は既知 URI の読み出しに加え、必ず prefix を指定した
+一覧取得が可能です。バケット全体を一覧する権限は付与しません。
+
+managed folder の権限で一覧するリクエストには `prefix` と併せて `delimiter=/`、
+`includeFoldersAsPrefixes=true` が必要です。通常の `gcloud storage ls <prefix>` は
+後者を指定できないため 403 になりますが、Google Cloud Storage JSON API の
+`objects.list` ではこの3項目を指定すれば一覧できます。backup URI が既知の場合の
+`objects.get`（Python client の `download_as_bytes` など）には追加指定は不要です。
+
 hosted runner は 1 job 最大6時間です。`3_2` は attempts の resume
 （`algorithm_version` 単位）で続きから再開できるので、複数回 dispatch すれば
 全件を消化できます。全コーパス約300万リクエスト（1.38M seed × 実測2.17本）は

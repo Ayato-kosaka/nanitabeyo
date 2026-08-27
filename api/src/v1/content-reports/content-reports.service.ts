@@ -23,6 +23,7 @@ import type {
 
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { ContentReportsRepository } from './content-reports.repository';
+import { formatCompositeCursor } from '../../core/pagination/composite-cursor';
 
 @Injectable()
 export class ContentReportsService {
@@ -167,7 +168,11 @@ export class ContentReportsService {
         createdAt: row.created_at.toISOString(),
       })),
       nextCursor: hasMore
-        ? (page[page.length - 1]?.created_at.toISOString() ?? null)
+        ? (() => {
+            const last = page[page.length - 1];
+            // #1599 `(created_at, id)` の複合カーソル。時刻だけだと同時刻の行が飛ぶ
+            return last ? formatCompositeCursor(last.created_at, last.id) : null;
+          })()
         : null,
     };
   }

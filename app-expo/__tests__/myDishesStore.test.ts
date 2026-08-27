@@ -293,3 +293,70 @@ describe("#1396 pinsByQuery（Map ピン）", () => {
 		expect(getState().pinsByQuery[newest]?.map((p) => p.restaurant.id)).toEqual([`r-${newest}`]);
 	});
 });
+
+/**
+ * #1599 引っ張って更新に追い抜かれた追加取得を捨てる。
+ *
+ * #1398 が入れた `generation` ガードは **`clearQuery` を通る破棄**しか見ていない。
+ * `fetchInitial`（= 引っ張って更新）は `clearQuery` を呼ばないので `generation` を
+ * 進めず、飛行中の `fetchMore` はガードをすり抜けて書き込んでしまう。
+ *
+ * `fetchMore` は `isLoadingByQuery` を見て «更新中には始めない» が、逆
+ * （追加取得の飛行中に更新が始まる）は塞がれていない。`fetchInitial` が見ているのは
+ * `isLoadingByQuery` だけで、`isLoadingMoreByQuery` は見ていないためである。
+ *
+ * この一覧の取得は平均 4.48 秒・最大 11.23 秒（#1395 §0(A) の実測）なので、
+ * 窓はミリ秒ではなく秒の幅で開いている。
+ */
+describe("#1599 追加取得が引っ張って更新に追い抜かれたとき", () => {
+	it("遅れて返った古いページを一覧へ混ぜず、カーソルも上書きしない", async () => {
+		await getState().fetchInitial("q1", async () => page(["review:old-1"], "cursor-1"));
+		expect(selectMyDishesByQuery("q1")(getState()).itemKeys).toEqual(["review:old-1"]);
+
+		// 追加取得（cursor-1）を投げる。まだ返さない
+		let release!: (value: MyDishesFetchResult) => void;
+		const pending = new Promise<MyDishesFetchResult>((resolve) => {
+			release = resolve;
+		});
+		const morePromise = getState().fetchMore("q1", async () => pending);
+
+		// 返る前に引っ張って更新。«食べたい» を外したので old-1 は消えている
+		await getState().fetchInitial("q1", async () => page(["review:fresh-1"], "cursor-FRESH"));
+		expect(selectMyDishesByQuery("q1")(getState()).itemKeys).toEqual(["review:fresh-1"]);
+
+		// ここで遅れて cursor-1 の応答が返る
+		release(page(["review:old-2"], "cursor-2"));
+		await morePromise;
+
+		// 更新前のページが末尾へ紛れ込まないこと
+		expect(selectMyDishesByQuery("q1")(getState()).itemKeys).toEqual(["review:fresh-1"]);
+		// カーソルも «更新前の連鎖» の値で上書きされないこと。
+		// ここが壊れると、以降の「もっと読む」が画面と別系統を辿る
+		expect(getState().nextCursorByQuery["q1"]).toBe("cursor-FRESH");
+	});
+
+	it("追い抜かれていなければ、これまでどおり末尾へ追記する（直しすぎていない）", async () => {
+		await getState().fetchInitial("q1", async () => page(["review:a"], "cursor-1"));
+		await getState().fetchMore("q1", async () => page(["review:b"], "cursor-2"));
+
+		expect(selectMyDishesByQuery("q1")(getState()).itemKeys).toEqual(["review:a", "review:b"]);
+		expect(getState().nextCursorByQuery["q1"]).toBe("cursor-2");
+	});
+
+	it("追い抜かれた取得のエラーで、更新後の一覧をエラー表示にしない", async () => {
+		await getState().fetchInitial("q1", async () => page(["review:a"], "cursor-1"));
+
+		let fail!: (reason: Error) => void;
+		const pending = new Promise<MyDishesFetchResult>((_resolve, reject) => {
+			fail = reject;
+		});
+		const morePromise = getState().fetchMore("q1", async () => pending);
+
+		await getState().fetchInitial("q1", async () => page(["review:fresh"], "cursor-FRESH"));
+
+		fail(new Error("boom"));
+		await morePromise;
+
+		expect(getState().errorByQuery["q1"]).toBeNull();
+	});
+});

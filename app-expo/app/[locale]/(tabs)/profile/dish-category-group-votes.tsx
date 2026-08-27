@@ -25,7 +25,7 @@
 // ファクトリ（createStyles）をモジュールスコープに置いて `useThemedStyles` で組む
 // （#1509 が定めた作法。画面ごとに別のやり方を発明しない）。
 import React, { useCallback, useEffect, useState, useRef, memo } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -392,8 +392,16 @@ export default function MyDishCategoryGroupVotesScreen() {
 								ListFooterComponent={renderFooter}
 								onEndReached={handleLoadMore}
 								onEndReachedThreshold={0.5}
-								refreshing={isRefreshing}
-								onRefresh={handleRefresh}
+								// #1629 `refreshing` / `onRefresh` を直接渡すと RN が色を持たない RefreshControl を
+								// 作り、ダークの地に OS 既定の暗いスピナーが出て見えない。GridList と同じ渡し方に揃える
+								refreshControl={
+									<RefreshControl
+										refreshing={isRefreshing}
+										onRefresh={handleRefresh}
+										colors={[colors.brand]}
+										tintColor={colors.brand}
+									/>
+								}
 								contentContainerStyle={[styles.listContent, votes.length === 0 && styles.listContentEmpty]}
 								removeClippedSubviews={true}
 								initialNumToRender={10}

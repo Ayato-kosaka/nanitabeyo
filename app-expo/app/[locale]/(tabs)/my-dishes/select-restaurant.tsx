@@ -114,7 +114,19 @@ export default function SelectRestaurantScreen() {
 						requestPayload: {
 							lat: region.latitude,
 							lng: region.longitude,
-							radius: Math.max(region.latitudeDelta, region.longitudeDelta) * 50000,
+							/*
+							  #1629 【修正】半径を 50 km で頭打ちにする。
+
+							  日本全体が映っている状態（位置情報を拒否したときの初期表示）で
+							  「このエリアで再検索」を押すと、latitudeDelta が 20 度前後になり
+							  **半径 1,000 km** を投げていた。サーバ側の DTO は radius に上限を
+							  持たない（@IsPositive のみ）ので素通りし、全国の店舗を集計しようとして
+							  「保存したお店の取得に失敗しました」に落ちる。
+
+							  50 km は my-dishes の絞り込み（QueryMyDishesDto.radius の @Max）と同じ上限。
+							  ⚠️ ここを外すなら、サーバ側にも上限を入れてからにすること。
+							*/
+							radius: Math.min(Math.max(region.latitudeDelta, region.longitudeDelta) * 50000, 50000),
 						},
 					},
 				);
@@ -308,7 +320,19 @@ export default function SelectRestaurantScreen() {
 						requestPayload: {
 							lat: region.latitude,
 							lng: region.longitude,
-							radius: Math.max(region.latitudeDelta, region.longitudeDelta) * 50000,
+							/*
+							  #1629 【修正】半径を 50 km で頭打ちにする。
+
+							  日本全体が映っている状態（位置情報を拒否したときの初期表示）で
+							  「このエリアで再検索」を押すと、latitudeDelta が 20 度前後になり
+							  **半径 1,000 km** を投げていた。サーバ側の DTO は radius に上限を
+							  持たない（@IsPositive のみ）ので素通りし、全国の店舗を集計しようとして
+							  「保存したお店の取得に失敗しました」に落ちる。
+
+							  50 km は my-dishes の絞り込み（QueryMyDishesDto.radius の @Max）と同じ上限。
+							  ⚠️ ここを外すなら、サーバ側にも上限を入れてからにすること。
+							*/
+							radius: Math.min(Math.max(region.latitudeDelta, region.longitudeDelta) * 50000, 50000),
 							limit: 20,
 						},
 					},

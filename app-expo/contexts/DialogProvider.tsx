@@ -892,7 +892,16 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 								contentContainerStyle={{ paddingBottom: 4 }}
 								// confirm中でもスクロールは許可
 							>
-								<Paragraph style={styles.message}>{cur?.message ?? ""}</Paragraph>
+								{/*
+								  #1511 【設計】本文にも安定した testID を与える。ボタン（dialog-confirm-button /
+								  dialog-cancel-button）には既に付いているのに本文だけ無く、E2E から «何と書いてあるか» を
+								  確かめる手段が by.text() の **完全一致**しか無かった。本文は 1 つの Text に段落まるごと
+								  入るため、「この操作は取り消せません。」のような一部分では絶対に一致しない。
+								  実際 e2e-mobile の tests/authenticated/account-delete.test.ts はそれで落ち続けていた。
+								*/}
+								<Paragraph style={styles.message} testID="dialog-message">
+									{cur?.message ?? ""}
+								</Paragraph>
 
 								{/* prompt UI（2） */}
 								{cur?.kind === "prompt" && (

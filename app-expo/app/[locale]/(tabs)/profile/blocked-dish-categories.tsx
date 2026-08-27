@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef, memo } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -15,6 +15,8 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 import { QueryMeBlockedDishCategoriesResponse, UnblockDishCategoryResponse } from "@shared/api/v1/res";
 import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
@@ -34,6 +36,9 @@ interface BlockedCategoryItemProps {
 }
 
 const BlockedCategoryItem = memo(({ item, localeCode, onUnblock }: BlockedCategoryItemProps) => {
+	// #1509 【設計】行は memo 済みの子なので、スタイルもこの子の中で解決する
+	//（親が閉じ込めると memo が効いている間だけ古いテーマの行が残る）
+	const styles = useThemedStyles(createStyles);
 	const labels = (item.labels || {}) as Record<string, string>;
 	// 多言語対応のフォールバック処理を安全に行う
 	const categoryLabel = labels[localeCode] || labels.en || item.label_en || item.id;
@@ -76,6 +81,8 @@ export default function BlockedDishCategoriesScreen() {
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 
 	const [categories, setCategories] = useState<BlockedCategory[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -232,7 +239,7 @@ export default function BlockedDishCategoriesScreen() {
 				<LoadingIndicator size="small" />
 			</View>
 		);
-	}, [isLoadingMore]);
+	}, [isLoadingMore, styles]);
 
 	// #747 【設計】空表示
 	// #947 【仕様】EmptyState 共通コンポーネントへ置き換え。ブロック中料理画面は「ブロック解除」導線が
@@ -243,7 +250,7 @@ export default function BlockedDishCategoriesScreen() {
 	}, [isLoading]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				{/* #1132 【設計】ヘッダーのタイトル文言そのものが検証対象のため testID を付与する
 				    （ScreenHeader はタイトル Text へ `${testID}-title` を付ける。見た目は変わらない） */}
@@ -268,8 +275,16 @@ export default function BlockedDishCategoriesScreen() {
 								ListFooterComponent={renderFooter}
 								onEndReached={handleLoadMore}
 								onEndReachedThreshold={0.5}
-								refreshing={isRefreshing}
-								onRefresh={handleRefresh}
+								// #1629 `refreshing` / `onRefresh` を直接渡すと RN が色を持たない RefreshControl を
+								// 作り、ダークの地に OS 既定の暗いスピナーが出て見えない。GridList と同じ渡し方に揃える
+								refreshControl={
+									<RefreshControl
+										refreshing={isRefreshing}
+										onRefresh={handleRefresh}
+										colors={[colors.brand]}
+										tintColor={colors.brand}
+									/>
+								}
 								contentContainerStyle={styles.listContent}
 								// [ベストプラクティス] 長いリストのメモリ最適化
 								removeClippedSubviews={true}
@@ -285,80 +300,84 @@ export default function BlockedDishCategoriesScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	safeArea: {
-		flex: 1,
-	},
-	blockedDishCategoriesContainer: {
-		flex: 1,
-		marginTop: 16,
-		borderTopLeftRadius: 32,
-		borderTopRightRadius: 32,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 10,
-	},
-	sheet: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-		borderTopLeftRadius: 32,
-		borderTopRightRadius: 32,
-		overflow: "hidden",
-		paddingTop: 24,
-	},
-	loaderContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	listContent: {
-		paddingHorizontal: 16,
-		paddingBottom: 32,
-	},
-	itemContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
-		padding: 12,
-		marginBottom: 12,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 2,
-		elevation: 2,
-	},
-	categoryImage: {
-		width: 56,
-		height: 56,
-		borderRadius: 8,
-		backgroundColor: "#F3F4F6",
-	},
-	categoryLabel: {
-		flex: 1,
-		fontSize: 16,
-		fontWeight: "500",
-		color: "#1A1A1A",
-		marginLeft: 12,
-	},
-	unblockButton: {
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-		backgroundColor: "#F3F4F6",
-		borderRadius: 8,
-	},
-	unblockButtonText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#1A1A1A",
-	},
-	footerLoader: {
-		paddingVertical: 20,
-		alignItems: "center",
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		blockedDishCategoriesContainer: {
+			flex: 1,
+			marginTop: 16,
+			borderTopLeftRadius: 32,
+			borderTopRightRadius: 32,
+			// 影はテーマに依らず黒。暗面では実質見えないだけで、値としては黒のままでよい
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 10,
+		},
+		sheet: {
+			flex: 1,
+			backgroundColor: c.surface,
+			borderTopLeftRadius: 32,
+			borderTopRightRadius: 32,
+			overflow: "hidden",
+			paddingTop: 24,
+		},
+		loaderContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		listContent: {
+			paddingHorizontal: 16,
+			paddingBottom: 32,
+		},
+		itemContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			backgroundColor: c.surface,
+			borderRadius: 12,
+			padding: 12,
+			marginBottom: 12,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 1 },
+			shadowOpacity: 0.05,
+			shadowRadius: 2,
+			elevation: 2,
+		},
+		categoryImage: {
+			width: 56,
+			height: 56,
+			borderRadius: 8,
+			backgroundColor: c.surfaceSubtle,
+		},
+		categoryLabel: {
+			flex: 1,
+			fontSize: 16,
+			fontWeight: "500",
+			color: c.textPrimary,
+			marginLeft: 12,
+		},
+		unblockButton: {
+			paddingHorizontal: 16,
+			paddingVertical: 8,
+			backgroundColor: c.surfaceSubtle,
+			borderRadius: 8,
+		},
+		unblockButtonText: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textPrimary,
+		},
+		footerLoader: {
+			paddingVertical: 20,
+			alignItems: "center",
+		},
+	});

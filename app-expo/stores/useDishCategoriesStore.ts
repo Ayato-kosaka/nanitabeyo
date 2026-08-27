@@ -115,6 +115,7 @@ export type DishCategoriesStore = {
 	 */
 	clearByKey: (key?: string) => void;
 
+
 	// ------ カーソルページネーション API ------
 
 	/**
@@ -358,6 +359,10 @@ export const useDishCategoriesStore = createWithEqualityFn<DishCategoriesStore>(
 			key,
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
+				// #1599 引っ張って更新に追い抜かれていたら、この応答は捨てる。
+				// 判定は «自分が使ったカーソルが今も現在値か»
+				//（`useDishMediaEntriesStore.fetchMoreByKey` と同じ作法）
+				if (get().nextCursorByKey[key] !== nextCursor) return;
 				// 1. エンティティを正規化
 				upsertDishCategories(asApiList(response.data));
 

@@ -10,6 +10,9 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
+
 export type OnboardingStepIndicatorProps = {
 	/** 0 始まりの現在ステップ */
 	currentIndex: number;
@@ -20,6 +23,8 @@ export type OnboardingStepIndicatorProps = {
 };
 
 export function OnboardingStepIndicator({ currentIndex, accessibilityLabel, testID }: OnboardingStepIndicatorProps) {
+	const styles = useThemedStyles(createStyles);
+
 	return (
 		<View style={styles.badge} accessibilityRole="progressbar" accessibilityLabel={accessibilityLabel} testID={testID}>
 			<Text style={styles.number}>{currentIndex + 1}</Text>
@@ -27,24 +32,26 @@ export function OnboardingStepIndicator({ currentIndex, accessibilityLabel, test
 	);
 }
 
-const styles = StyleSheet.create({
-	badge: {
-		alignSelf: "center",
-		// 最終検収で «もう少し小さく» の指摘。44 → 34
-		width: 34,
-		height: 34,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#F05537",
-		// 正円ではなく squircle 気味の角丸にして «バッジ» らしさを出す（参考デザインの形）
-		borderRadius: 12,
-		// 45° 回転させたひし形シルエット。中の数字は逆回転で水平に戻す
-		transform: [{ rotate: "45deg" }],
-	},
-	number: {
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#FFFFFF",
-		transform: [{ rotate: "-45deg" }],
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		badge: {
+			alignSelf: "center",
+			// 最終検収で «もう少し小さく» の指摘。44 → 34
+			width: 34,
+			height: 34,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.brand,
+			// 正円ではなく squircle 気味の角丸にして «バッジ» らしさを出す（参考デザインの形）
+			borderRadius: 12,
+			// 45° 回転させたひし形シルエット。中の数字は逆回転で水平に戻す
+			transform: [{ rotate: "45deg" }],
+		},
+		number: {
+			fontSize: 16,
+			fontWeight: "700",
+			// ブランド色で塗ったバッジの上の数字。地（c.brand）がライト / ダークで変わらないため文字も振らない
+			color: FixedColors.onFilled,
+			transform: [{ rotate: "-45deg" }],
+		},
+	});

@@ -27,6 +27,7 @@
 */
 import React, { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
+import { FixedColors } from "@/constants/Palette";
 import Animated, {
 	Easing,
 	useAnimatedStyle,
@@ -67,8 +68,14 @@ const CYCLE_MS = 3400;
 type PieceShape = "circle" | "rect" | "ribbon";
 const SHAPES: readonly PieceShape[] = ["rect", "circle", "ribbon", "rect", "circle", "rect", "ribbon"];
 
-/** プロジェクト標準色（#F05537）を軸に、明度差のある差し色を混ぜる */
-const PIECE_COLORS = ["#F05537", "#FFB03A", "#FFE066", "#4ECDC4", "#8E7DFF", "#FF8FA3", "#3BC46A"];
+/**
+ * 紙片の色。プロジェクト標準のブランド色を軸に、明度差のある差し色を混ぜたもの。
+ *
+ * #1629 テーマ非追従（`FixedColors`）にしてある。紙吹雪は情報を持たない純粋な装飾で、
+ * «パーティの紙片» という見立て自体が意味なので、ライト / ダークで 2 セット持つ理由が無い。
+ * 根拠は constants/Palette.ts の `FixedColors.confettiPieces` のコメント。
+ */
+const PIECE_COLORS = FixedColors.confettiPieces;
 
 /**
  * 添字から決定的に «ばらけた» 0〜1 の値を作る。

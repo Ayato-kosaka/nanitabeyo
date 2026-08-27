@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "Compartir",
 			"seeMore": "ver más",
-			"openMap": "Abrir mapa"
+			"openMap": "Abrir mapa",
+			"review": "Reseña"
 		},
 		"share": {
 			"title": "Mira {{dishName}}"
@@ -465,6 +466,9 @@
 			"saveFailed": "No se pudo actualizar la reseña",
 			"conflict": "Esta reseña se actualizó en otro dispositivo. Vuelve a abrirla antes de editarla.",
 			"forbidden": "Solo puedes editar o eliminar tus propias publicaciones"
+		},
+		"moreMenu": {
+			"title": "Esta publicación"
 		}
 	},
 	"ImageCardGrid": {
@@ -804,7 +808,6 @@
 			}
 		},
 		"sendFeedback": "Enviar comentarios",
-		"leaveReview": "Dejar reseña",
 		"rateDialogTitle": "¿Te gusta la aplicación?",
 		"rateDialogMessage": "Si te gusta, por favor calíficanos en la tienda. Abriremos la página de reseñas.",
 		"rateDialogOk": "Calificar ahora",
@@ -845,7 +848,8 @@
 			"group_votes": {
 				"title": "Votaciones de grupo",
 				"description": "Cuando hay actividad en una votación de grupo a la que te uniste"
-			}
+			},
+			"navigationLabel": "Notificaciones"
 		},
 		"language": {
 			"navigationLabel": "Idioma",
@@ -861,6 +865,11 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "Mis votaciones de grupo"
+		},
+		"support": "Apoyar a CraveCatch",
+		"about": {
+			"navigationLabel": "Acerca de CraveCatch",
+			"title": "Acerca de CraveCatch"
 		},
 		"deleteAccount": "Eliminar cuenta",
 		"deleteAccountInProgress": "Eliminando…",
@@ -883,6 +892,10 @@
 			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
+		},
+		"account": {
+			"navigationLabel": "Cuenta",
+			"title": "Cuenta"
 		}
 	},
 	"Dialog": {
@@ -903,6 +916,7 @@
 			"submitting": "Actualizando...",
 			"submitSuccess": "{{count}} imágenes actualizadas con éxito",
 			"submitError": "Error al actualizar las imágenes",
+			"submitUnavailable": "Esta función aún no está disponible (el lado del servidor no está implementado).",
 			"reset": "Restablecer",
 			"selected": "Seleccionado",
 			"dishCount": "{{count}} platos"
@@ -1234,81 +1248,6 @@
 				"dish_media": "Publicación",
 				"dish_reviews": "Reseña"
 			}
-		}
-	},
-	"Topics": {
-		"deepDive": {
-			"title": "Filtrar este estilo"
-		},
-		"tutorial": {
-			"helpLabel": "Cómo usar esta pantalla",
-			"helpHint": "Mostrar el tutorial de recomendaciones desde el principio",
-			"skip": "Omitir",
-			"next": "Siguiente",
-			"finish": "Empezar",
-			"progress": "{{current}} / {{total}}",
-			"progressAccessibility": "Paso {{current}} de {{total}}",
-			"steps": {
-				"swipeAndDecide": {
-					"title": "Elige un plato que te apetezca",
-					"body": "Desliza a izquierda o derecha para comparar platos. Cuando te decidas, toca «¡Elegir este!»."
-				},
-				"deepDive": {
-					"title": "Profundiza según tu estado de ánimo",
-					"body": "¿Aún no te decides? Elige un estilo para acotar las sugerencias."
-				},
-				"topicActions": {
-					"title": "Adapta las sugerencias a tus gustos",
-					"save": "Guardar: vuelve a ver este plato más tarde",
-					"block": "Bloquear: deja de recibir sugerencias de platos que no te gustan"
-				},
-				"groupVote": {
-					"title": "Decide con amigos",
-					"body": "Comparte las sugerencias con tu grupo y votad juntos."
-				}
-			}
-		},
-		"HideTopicModal": {
-			"title": "Ocultar",
-			"description": "Dinos la razón para ocultarlo (opcional)",
-			"placeholder": "Introduce una razón...",
-			"confirm": "Ocultar"
-		},
-		"Loading": {
-			"title": "Seleccionando 6 platos perfectos para ti",
-			"subtitle": "¡Tus recomendaciones estarán listas pronto!"
-		},
-		"errors": {
-			"fetchFailed": "No se pudieron obtener los platos",
-			"invalidSearchParams": "Parámetros de búsqueda inválidos"
-		},
-		"empty": "No hay platos disponibles",
-		"retry": "Volver a la búsqueda",
-		"chooseThis": "¡Este!",
-		"hiddenMessage": "{{title}} se ha ocultado",
-		"BlockTopicModal": {
-			"title": "¿Bloquear este plato?",
-			"description": "Las categorías de platos bloqueadas ya no aparecerán en las recomendaciones.",
-			"note": "Puedes desbloquearlo en cualquier momento desde Configuración.",
-			"confirm": "Bloquear"
-		},
-		"blockedMessage": "{{title}} se ha bloqueado",
-		"savedMessage": "Guardado",
-		"reloadDialog": {
-			"title": "¿Buscar más opciones?",
-			"message": "Ahora solo hay unas pocas recomendaciones. Volveremos a buscar con las mismas condiciones.",
-			"confirm": "Buscar de nuevo",
-			"cancel": "Cerrar"
-		},
-		"imageLoadFailed": "Error al cargar la imagen",
-		"tapToReload": "Toca para recargar",
-		"headerTitle": "Platos Recomendados para Ti",
-		"subCopy": "Toca un plato que te guste para encontrar restaurantes",
-		"accessibility": {
-			"blockTopic": "Quitar {{title}} de las recomendaciones",
-			"saveTopic": "Guardar {{title}}",
-			"unsaveTopic": "Quitar {{title}} de guardados",
-			"thumbnail": "Miniatura de {{title}}, {{index}} de {{total}}"
 		}
 	}
 }

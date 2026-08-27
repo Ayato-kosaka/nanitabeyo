@@ -18,6 +18,7 @@ import type { MyDishItem } from "@shared/api/v1/res";
 import { MyDishEatenButton, resolveMyDishTitle } from "./myDishCard";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import { MY_DISHES_EVENTS } from "../analytics";
+import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { buildMarkAsEatenRoute } from "../markAsEaten";
 import { beginMarkAsEaten } from "../markAsEatenFunnel";
 import { resolveMyDishThumbnail } from "../thumbnail";
@@ -244,6 +245,27 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 				payload: { itemKey: item.key, status: item.status, hasPhoto },
 			});
 			if (hasPhoto && item.dishMedia !== null) {
+				/*
+				#1629 【修正】**一覧からフィードへ入ると縦スクロールできなかった。**
+
+				全画面 Feed は «外側 = 縦（前後のスコープ）/ 内側 = 横（そのスコープの中の記録）» の
+				2 軸で、外側の並びは `useMyDishesFeedScopeStore` から取る。ところが
+				**この store へ並びを置いていたのは Map と Calendar だけで、一覧は置いていなかった。**
+
+				結果、一覧から入ると外側のページャが **1 ページ**へ縮退し（store が空のときの仕様）、
+				縦にいくら払っても何も起きない。さらに悪いことに、直前に Map を開いていると
+				**Map の viewport 由来の並びが残っていて**、一覧とは無関係な店舗が縦に並んでいた。
+
+				ここで «いま一覧に出ている並び» を置く。重複を潰すのは、同じ店の記録が複数行あると
+				ページャの keyExtractor（店舗 id）が衝突するため。写真の無い行は Feed に入れられない
+				ので除く（この関数の先頭の分岐と同じ条件）。
+				*/
+				useMyDishesFeedScopeStore
+					.getState()
+					.setRestaurantIds(
+						[...new Set(items.filter((row) => row.dishMedia !== null).map((row) => row.restaurant.id))],
+						"list",
+					);
 				router.push({
 					pathname: "/[locale]/(tabs)/my-dishes/feed",
 					params: {
@@ -260,7 +282,7 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 				params: { locale, restaurantId: item.restaurant.id },
 			});
 		},
-		[locale, logFrontendEvent],
+		[items, locale, logFrontendEvent],
 	);
 
 	// #1398 (PR4/7) want カードの「食べたを記録」。カード全体のタップ（= 全画面 Feed）とは別経路。

@@ -245,6 +245,40 @@ export class DishMediaImportsService {
           update: {},
         });
 
+        /* 1.5 #1599 【バグ】以降の «無ければ作る» はすべて findFirst → create の
+           TOCTOU である。同じ SNS 投稿を同じ料理へ同時に取り込むリクエストが
+           2 本来ると、両方の findFirst が空振りして両方が create し、後発が
+           `dmee_provider_content_dish_uq` で P2002 になって 500 になる。
+
+           ⚠️ **catch して読み直す方式は取れない。** ここは `$transaction` 内で、
+              Postgres では P2002 が出た時点でトランザクション全体が aborted に
+              なるため、同じ tx での後続クエリはすべて失敗する。
+              «そもそも同時に来ない» ようにするしかない。
+
+           ⚠️ dish_media には自然キーの UNIQUE が無い（PK はランダム UUID）ので、
+              dmee 側だけを ON CONFLICT DO NOTHING にする手も使えない。
+              先に作った dish_media が «どこからも参照されない孤児» として
+              残ってしまう。
+
+           そこで自然キーで xact 単位の advisory lock を取り、この区間を直列化する。
+           `pg_advisory_xact_lock` は commit / rollback のどちらでも自動解放される
+           （明示的な unlock が不要で、途中で例外が出てもロックが残らない）。
+           待つのはまったく同じ (provider, 投稿, 料理) を同時に取り込む相手だけで、
+           tx 本体は短いので実質的な直列化コストは無い。 */
+        const importLockKey = `dish_media_import:${provider}:${externalContentId}:${dish.id}`;
+        /* ⚠️ `$queryRaw` ではなく `$executeRaw` を使うこと。
+
+           `pg_advisory_xact_lock` の戻り値は `void` で、`$queryRaw` は結果セットの
+           各列を Prisma の型へ復元しようとするため、**必ず**次で落ちる（#1629 / dev 実測）:
+
+             PrismaClientKnownRequestError: Raw query failed. Code: `N/A`.
+             Message: `Failed to deserialize column of type 'void'.`
+
+           つまり «同時実行のとき» ではなく **取り込みが毎回 500 になる**。
+           `::text` などへキャストして逃げることはできない（void からのキャストは無い）。
+           `$executeRaw` は列を復元せず作用行数だけを返すので、void でも通る。 */
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${importLockKey})::bigint)`;
+
         /* 2. 同じ SNS 投稿が同じ料理へ既に取り込まれていないか */
         const existing = await tx.dish_media_external_embeddings.findFirst({
           where: {
@@ -336,21 +370,18 @@ export class DishMediaImportsService {
         }
 
         /* 5. 「食べたい」= reactions(save)。ここがユーザーとの唯一の紐付けである */
-        const alreadySaved = await tx.reactions.findUnique({
-          where: {
-            user_id_target_type_target_id_action_type: {
-              user_id: userId,
-              target_type: 'dish_media',
-              target_id: dishMediaId,
-              action_type: 'save',
-            },
-          },
-          select: { id: true },
-        });
-
-        if (!alreadySaved) {
-          await tx.reactions.create({
-            data: {
+        // #1599 ここも findUnique → create の TOCTOU だった。上の advisory lock は
+        // 取り込み経路どうしの競合しか直列化しないので、別経路（通常の save）と
+        // 同時に走ると `reactions` の複合 UNIQUE
+        // (user_id, target_type, target_id, action_type) で P2002 になりうる。
+        //
+        // `createMany({ skipDuplicates: true })` = INSERT ... ON CONFLICT DO NOTHING
+        // なら競合しても例外にならず、返ってくる count がそのまま
+        // «今回このユーザーのために新しく保存したか» になる（1 = 新規 / 0 = 既存）。
+        // findUnique + create の 2 クエリが 1 クエリに減る副産物もある。
+        const savedNow = await tx.reactions.createMany({
+          data: [
+            {
               user_id: userId,
               target_type: 'dish_media',
               target_id: dishMediaId,
@@ -359,14 +390,15 @@ export class DishMediaImportsService {
               created_version: appVersion,
               lock_no: 0,
             },
-          });
-        }
+          ],
+          skipDuplicates: true,
+        });
 
         return {
           dishMediaId,
           dishId: dish.id,
           created,
-          saved: !alreadySaved,
+          saved: savedNow.count === 1,
         };
       })
       .then(async (result) => {

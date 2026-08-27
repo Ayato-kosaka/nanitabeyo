@@ -5,6 +5,8 @@ import { DishCategoryRecommendation } from "@/types/search";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import i18n from "@/lib/i18n";
 import { type DishCategoryImageResourceState } from "@/features/dishCategories/hooks/useDishCategoryImageResources";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 type DishCategoryThumbnailProps = {
 	dishCategory: DishCategoryRecommendation;
@@ -32,6 +34,7 @@ export const DishCategoryThumbnail = React.memo(function DishCategoryThumbnail({
 	onPress,
 	onImageError,
 }: DishCategoryThumbnailProps) {
+	const styles = useThemedStyles(createStyles);
 	const handlePress = useCallback(() => onPress(index), [onPress, index]);
 	const handleImageError = useCallback(() => onImageError(dishCategory), [onImageError, dishCategory]);
 
@@ -68,29 +71,32 @@ export const DishCategoryThumbnail = React.memo(function DishCategoryThumbnail({
 	);
 });
 
-const styles = StyleSheet.create({
-	thumbnail: {
-		aspectRatio: 1, // 正方形
-		borderRadius: 12,
-		overflow: "hidden",
-		borderWidth: 2,
-		borderColor: "#C9C9C9",
-		shadowColor: "#C9C9C9",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	thumbnailActive: {
-		borderColor: "#f05537",
-		shadowColor: "#f05537",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	thumbnailImage: {
-		width: "100%",
-		height: "100%",
-	},
-});
+// #1629 【修正】枠線・影がライト固定の直書きで、ダークの地の上で明るい枠が浮いていた。
+// 選択中の «ブランド色の枠» という役割は変えず、非選択の枠だけテーマへ追従させる。
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		thumbnail: {
+			aspectRatio: 1, // 正方形
+			borderRadius: 12,
+			overflow: "hidden",
+			borderWidth: 2,
+			borderColor: colors.border,
+			shadowColor: colors.border,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.3,
+			shadowRadius: 4,
+			elevation: 4,
+		},
+		thumbnailActive: {
+			borderColor: colors.brand,
+			shadowColor: colors.brand,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.3,
+			shadowRadius: 4,
+			elevation: 4,
+		},
+		thumbnailImage: {
+			width: "100%",
+			height: "100%",
+		},
+	});

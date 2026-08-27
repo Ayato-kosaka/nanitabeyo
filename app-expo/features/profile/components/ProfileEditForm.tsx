@@ -14,6 +14,8 @@ import type { UpdateUserProfileDto } from "@shared/api/v1/dto";
 import type { GetUserProfileResponse, UpdateUserProfileResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useProfileStore } from "../stores/useProfileStore";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 // #481 【仕様】APIと揃えた文字数制限
 const DISPLAY_NAME_MAX_LENGTH = 30;
@@ -45,6 +47,8 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 	const { uploadFile } = useFileUploader();
 	const { showSnackbar } = useSnackbar();
 	const insets = useSafeAreaInsets();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 
 	const profile = useProfileStore((s) => s.profile);
 
@@ -237,7 +241,7 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 							onFocus={onFocusFactory("display_name")}
 							multiline={false}
 							placeholder={i18n.t("Profile.placeholders.enterDisplayName")}
-							placeholderTextColor="#666"
+							placeholderTextColor={colors.textMuted}
 							textAlignVertical="center"
 							returnKeyType="next"
 							maxLength={DISPLAY_NAME_MAX_LENGTH}
@@ -259,7 +263,7 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 							multiline
 							numberOfLines={4}
 							placeholder={i18n.t("Profile.placeholders.enterBio")}
-							placeholderTextColor="#666"
+							placeholderTextColor={colors.textMuted}
 							textAlignVertical="top"
 							returnKeyType="default"
 							maxLength={BIO_MAX_LENGTH}
@@ -276,44 +280,48 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 	);
 }
 
-const styles = StyleSheet.create({
-	label: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		marginBottom: 8,
-	},
-	input: {
-		backgroundColor: "#F8F9FA",
-		borderRadius: 12,
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		fontSize: 15,
-		color: "#1A1A1A",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 2,
-		elevation: 1,
-		minHeight: 48,
-	},
-	bioInput: { minHeight: 80 },
-	// #481 【設計】FeedbackForm パターンに合わせたエラー/カウンター表示スタイル
-	inputError: {
-		borderWidth: 1,
-		borderColor: "#DC2626",
-		backgroundColor: "#FEF2F2",
-	},
-	characterCount: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "right",
-		marginTop: 4,
-	},
-	errorText: {
-		fontSize: 14,
-		color: "#DC2626",
-		fontWeight: "500",
-		marginTop: 4,
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		label: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textPrimary,
+			marginBottom: 8,
+		},
+		input: {
+			backgroundColor: c.surfaceMuted,
+			borderRadius: 12,
+			paddingHorizontal: 12,
+			paddingVertical: 12,
+			fontSize: 15,
+			color: c.textPrimary,
+			// 影はテーマに依らず黒。暗面では実質見えないだけで、値としては黒のままでよい
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 1 },
+			shadowOpacity: 0.05,
+			shadowRadius: 2,
+			elevation: 1,
+			minHeight: 48,
+		},
+		bioInput: { minHeight: 80 },
+		// #481 【設計】FeedbackForm パターンに合わせたエラー/カウンター表示スタイル
+		inputError: {
+			borderWidth: 1,
+			borderColor: c.danger,
+			backgroundColor: c.dangerTintSoft,
+		},
+		characterCount: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "right",
+			marginTop: 4,
+		},
+		errorText: {
+			fontSize: 14,
+			color: c.danger,
+			fontWeight: "500",
+			marginTop: 4,
+		},
+	});

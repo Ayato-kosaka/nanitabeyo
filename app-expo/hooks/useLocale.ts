@@ -15,6 +15,39 @@ import { resolvePublicLocale } from "@/constants/seoLocales";
 const LOCALE_LIKE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 
 /**
+ * #1599 その文字列を `Intl` 系 API（`toLocaleDateString` 等）へ渡して安全か。
+ *
+ * 【バグ】`LOCALE_LIKE` は BCP 47 の «形» の近似でしかなく、実際のタグ規則より緩い。
+ * サブタグに `[A-Za-z0-9]{2,8}` を許すが、BCP 47 のリージョンは «英字 2» か «数字 3» で、
+ * `ja-01` や `en-A1` はそのどちらでもない。**正規表現は通るのに `Intl` は例外を投げる。**
+ *
+ * ```
+ * new Date().toLocaleDateString("ja-01")  // RangeError: Incorrect locale information provided
+ * ```
+ *
+ * 実際に `profile/content-reports` と `profile/dish-category-group-votes` が
+ * `toLocaleDateString(locale)` を直接呼んでおり、`/ja-01/profile/content-reports` のような
+ * URL（手打ち・改変された共有リンク・クローラの誤生成）で入ると**レンダー中に例外が飛び、
+ * 画面全体が ErrorBoundary のフォールバックへ置き換わる**。一覧が一切見られなくなる。
+ *
+ * 【設計】上のコメントにあるとおり «未対応ロケールの URL ではそのセグメントを使う» のは
+ * 意図した挙動なので、対応ロケール一覧との突き合わせでは弾かない。弾くのは
+ * **`Intl` が受け付けない = 渡すと必ず壊れる**ものだけにする。
+ * `pt-BR` や `xx-YY` のような «妥当だが未対応» は従来どおり素通しになる。
+ */
+const isIntlUsableLocale = (tag: string): boolean => {
+	// Intl が無い環境（web の一部・一部の JS エンジン）では検証しようがない。
+	// その環境では toLocaleDateString も Intl を使わないので、素通しでよい。
+	if (typeof Intl === "undefined" || typeof Intl.DateTimeFormat !== "function") return true;
+	try {
+		new Intl.DateTimeFormat(tag);
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+/**
  * 🌐 現在のロケールを URL から取り出す。
  *
  * ## ⚠️ 空文字を返してはいけない（実機で踏んだ）
@@ -41,14 +74,17 @@ const LOCALE_LIKE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
  * どちらも「パス先頭が必ずロケールである」という前提が崩れる経路です。
  * 呼び出し側は 38 箇所あるので、**ここで必ず妥当な値へ寄せる**のが唯一の直し方です。
  *
- * @returns locale はロケールらしい文字列であることが保証される（空文字にはならない）
+ * @returns locale はロケールらしい文字列であることが保証される。空文字にはならず、
+ *          **`Intl` 系 API（`toLocaleDateString` 等）へ渡しても例外にならない**ことも保証する（#1599）
  */
 export const useLocale = () => {
 	const pathname = usePathname();
 
 	const locale = useMemo(() => {
 		const fromPath = pathname.split("/")[1];
-		if (fromPath && LOCALE_LIKE.test(fromPath)) return fromPath;
+		// #1599 `Intl` へ渡して壊れるものは «ロケールらしい» とは言えない。
+		// 弾いたものは以降のフォールバック（端末の言語設定）へ落ちる。
+		if (fromPath && LOCALE_LIKE.test(fromPath) && isIntlUsableLocale(fromPath)) return fromPath;
 
 		// ## ⚠️ `i18n.locale` を先に読んではいけない（#1375 実機で踏んだ）
 		//

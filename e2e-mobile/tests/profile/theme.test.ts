@@ -50,6 +50,8 @@ describe("表示テーマ（#1509 SET-05）", () => {
 		await tabBar.gotoProfile();
 		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
+		// #1583 表示テーマは «端末設定» ページへ移った。マイページにはもう無い
+		await settingsScreen.openDeviceSettings();
 		return settingsScreen;
 	};
 
@@ -62,7 +64,7 @@ describe("表示テーマ（#1509 SET-05）", () => {
 
 	// ─ テストケース: 3 択が表示され、既定はシステム追従 ─
 	// 手順:
-	//   1. マイページ→歯車の実導線で設定画面へ遷移する
+	//   1. マイページ→端末設定の実導線で遷移する（#1583 でテーマがここへ移った）
 	//   2. テーマセレクタと 3 行（システム追従 / ライト / ダーク）が表示されることを検証
 	//   3. 既定（システム追従）だけが選択済みであることを検証
 	it("3 択が表示され、既定はシステム追従", async () => {

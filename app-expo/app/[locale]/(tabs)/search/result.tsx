@@ -20,6 +20,8 @@ import { useDishMediaActions } from "@/features/dishMedia/hooks/useDishMediaActi
 import i18n from "@/lib/i18n";
 import { useLocale } from "@/hooks/useLocale";
 import { useGoogleMapsFallback } from "@/features/search/hooks/useGoogleMapsFallback";
+import { FixedColors } from "@/constants/Palette";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 const idType = "dish_media" as const;
 
@@ -39,6 +41,8 @@ export default function ResultScreen() {
 	const { locale } = useLocale();
 	const { showGoogleMapsFallbackDialog } = useGoogleMapsFallback({ source: "search_result_screen" });
 	const shownGoogleMapsFallbackKeyRef = useRef<string | null>(null);
+	// #1629 画面の地がライト固定のグラデーション直書きだったのでテーマのトークンへ移した
+	const { colors } = useAppTheme();
 
 	// #633 【防御】entriesKey が undefined の場合は戻る（クラッシュ防止）
 	useEffect(() => {
@@ -170,7 +174,7 @@ export default function ResultScreen() {
 	}, [entriesKey, currentIndex, lightImpact, logFrontendEvent, shareRestaurant]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			{/* Header with Back Button */}
 			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
 				<TouchableOpacity
@@ -179,7 +183,10 @@ export default function ResultScreen() {
 					onPress={handleCloseWithHaptic}
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Common.close")}>
-					<X size={24} color="#000" />
+					{/* この 2 つのボタンは全画面の Google Map タイルの上に直接載る。地図はアプリのテーマに
+					    追従せず常にライト配色なので、ボタンの地と字も地図用の固定色にする（ダークで暗くすると
+					    明るい地図の上で沈んで押せる場所が分からなくなる） */}
+					<X size={24} color={FixedColors.mapMarkerLabel} />
 				</TouchableOpacity>
 				{/* #659 【UI】一括シェアボタン - 閉じるボタンの直下に配置 */}
 				<TouchableOpacity
@@ -187,7 +194,7 @@ export default function ResultScreen() {
 					onPress={handleBulkShare}
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Search.result.accessibility.bulkShare")}>
-					<Share2 size={24} color="#000" />
+					<Share2 size={24} color={FixedColors.mapMarkerLabel} />
 				</TouchableOpacity>
 			</View>
 
@@ -231,11 +238,12 @@ const styles = StyleSheet.create({
 		padding: 16,
 		zIndex: 10,
 	},
+	// 地の白は「常にライト配色の地図タイルの上に載るボタン」ゆえの固定色（上の JSX のコメント参照）
 	closeButton: {
 		padding: 8,
 		borderRadius: 24,
-		backgroundColor: "#FFFFFF",
-		shadowColor: "#000",
+		backgroundColor: FixedColors.mapMarkerSurface,
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
 		shadowRadius: 12,
@@ -245,8 +253,8 @@ const styles = StyleSheet.create({
 	shareButton: {
 		padding: 8,
 		borderRadius: 24,
-		backgroundColor: "#FFFFFF",
-		shadowColor: "#000",
+		backgroundColor: FixedColors.mapMarkerSurface,
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
 		shadowRadius: 12,

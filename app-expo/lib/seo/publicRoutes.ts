@@ -55,6 +55,9 @@ export const NON_INDEXABLE_DEEP_LINK_ROUTES: readonly string[] = [
 	// push される Stack 画面のため web の直リンク着地が現に起きる。除外側に置くと
 	// «未ログインでは中身が無い» という理由が嘘になるので、スモーク対象にする
 	"profile/device-settings",
+	// #1583 なに食べよについて。規約・ガイドライン・版数だけの画面なのでログイン不要で、
+	// 問い合わせ対応で URL を直に渡す使い方も想定している。device-settings と同じ理由でスモーク対象
+	"profile/about",
 ];
 
 /**
@@ -82,9 +85,6 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	// 「画面が描画されたか」の判定材料にならない。ログイン後の導線は
 	// tests/authenticated/ 配下の spec が担保している
 	"profile/edit": "ログイン必須。未ログインでは中身が無い",
-	// #1402 で一度廃止したが、#1583（設定の再編）で main が復活させたので鍵も戻す。
-	// «廃止したから消す» と «復活したから戻す» が別ブランチで起きた形なので、経緯を残しておく
-	"profile/settings": "ログイン必須。未ログインでは中身が無い",
 	"profile/liked": "ログイン必須。未ログインでは中身が無い",
 	"profile/saved-dish-categories": "ログイン必須。未ログインでは中身が無い",
 	"profile/feedback": "ログイン必須。未ログインでは中身が無い",
@@ -97,6 +97,10 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	"profile/search-results": "ログイン必須。未ログインでは中身が無い",
 	// #1505 GRP-01 自分が主催した投票の一覧。ログイン必須
 	"profile/dish-category-group-votes": "ログイン必須。未ログインでは中身が無い",
+	// #1629 設定を «1 行 1 画面» へ分けた 3 枚。いずれもマイページからしか入らない
+	"profile/account": "ログイン必須。ログアウト / アカウント削除しか無く、未ログインでは行ごと出ない",
+	"profile/notifications": "ログイン必須。通知設定はアカウント単位で、未ログインでは受け手が居ない",
+	"profile/theme": "端末に閉じた表示テーマの選択のみ。直リンクの検証材料にならない",
 
 	// 通知一覧のサブタブ。親（notifications）を踏めば同じレイアウトを通る
 	"notifications/feed": "notifications の子タブ。親ルートで同じレイアウトを検証済み",

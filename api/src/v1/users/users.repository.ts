@@ -19,6 +19,11 @@ import {
   buildMyDishesOldestWantSaveQuery,
   buildMyDishesPageQuery,
 } from './my-dishes.query';
+import {
+  buildCursorFilter,
+  buildCursorOrderBy,
+  formatCompositeCursor,
+} from '../../core/pagination/composite-cursor';
 
 /** #1395 一覧 1 行ぶんの生データ（DishMediaEntry の組み立ては Service 側で行う） */
 export type MyDishRowEntity = {
@@ -389,17 +394,12 @@ export class UsersRepository {
       user_id: userId,
     };
 
-    if (cursor) {
-      whereClause.created_at = {
-        lt: new Date(cursor),
-      };
-    }
+    // #1599 `(created_at, id)` の複合カーソル。時刻単独だと同時刻の行がページ境界で飛ぶ
+    Object.assign(whereClause, buildCursorFilter(cursor));
 
     const result = await this.prisma.prisma.payouts.findMany({
       where: whereClause,
-      orderBy: {
-        created_at: 'desc',
-      },
+      orderBy: buildCursorOrderBy(),
       take: limit + 1,
     });
 
@@ -408,7 +408,10 @@ export class UsersRepository {
     const items = hasMore ? result.slice(0, limit) : result;
     const nextCursor =
       hasMore && items.length > 0
-        ? items[items.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            items[items.length - 1].created_at,
+            items[items.length - 1].id,
+          )
         : null;
 
     this.logger.debug('UserPayoutsFound', 'findUserPayouts', {
@@ -442,17 +445,12 @@ export class UsersRepository {
       user_id: userId,
     };
 
-    if (cursor) {
-      whereClause.created_at = {
-        lt: new Date(cursor),
-      };
-    }
+    // #1599 `(created_at, id)` の複合カーソル。時刻単独だと同時刻の行がページ境界で飛ぶ
+    Object.assign(whereClause, buildCursorFilter(cursor));
 
     const result = await this.prisma.prisma.restaurant_bids.findMany({
       where: whereClause,
-      orderBy: {
-        created_at: 'desc',
-      },
+      orderBy: buildCursorOrderBy(),
       take: limit + 1,
     });
 
@@ -461,7 +459,10 @@ export class UsersRepository {
     const items = hasMore ? result.slice(0, limit) : result;
     const nextCursor =
       hasMore && items.length > 0
-        ? items[items.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            items[items.length - 1].created_at,
+            items[items.length - 1].id,
+          )
         : null;
 
     this.logger.debug('UserRestaurantBidsFound', 'findUserRestaurantBids', {
@@ -577,19 +578,16 @@ export class UsersRepository {
       action_type: 'block',
     };
 
-    if (cursor) {
-      whereClause.created_at = {
-        lt: new Date(cursor),
-      };
-    }
+    // #1599 `(created_at, id)` の複合カーソル。時刻単独だと同時刻の行がページ境界で飛ぶ
+    Object.assign(whereClause, buildCursorFilter(cursor));
 
     const result = await this.prisma.prisma.reactions.findMany({
       where: whereClause,
-      orderBy: {
-        created_at: 'desc',
-      },
+      orderBy: buildCursorOrderBy(),
       take: limit + 1,
       select: {
+        // #1599 複合カーソルの第 2 キーに使うので id も引く
+        id: true,
         target_id: true,
         created_at: true,
       },
@@ -599,7 +597,10 @@ export class UsersRepository {
     const items = hasMore ? result.slice(0, limit) : result;
     const nextCursor =
       hasMore && items.length > 0
-        ? items[items.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            items[items.length - 1].created_at,
+            items[items.length - 1].id,
+          )
         : null;
 
     this.logger.debug(
@@ -728,17 +729,45 @@ export class UsersRepository {
       // #1511 いいねを物理削除すると集計のトゥルース源 `like_total` とズレる。
       // 減算（`decrement`）ではなく **現在の実数を数え直す**のは、削除処理が
       // 再実行されても二重に引かれないようにするため（冪等性）。
-      let likeTotalsRecalculated = 0;
-      for (const dishMediaId of affectedDishMediaIds) {
-        const remaining = await tx.dish_media_likes.count({
-          where: { dish_media_id: dishMediaId },
-        });
-        const updated = await tx.dish_media_analysis_results.updateMany({
-          where: { dish_media_id: dishMediaId },
-          data: { like_total: remaining, updated_at: new Date() },
-        });
-        likeTotalsRecalculated += updated.count;
-      }
+      //
+      // #1599 【バグ】ここは対象 1 件ごとに `count` + `updateMany` の 2 クエリを
+      // 直列に投げるループだった。`affectedDishMediaIds` は **そのユーザーが
+      // いいねした dish_media の数**で上限が無く、しかも全部が 1 つの
+      // `withTransaction`（PRISMA_TX_TIMEOUT の既定は 60 秒）の中で走る。
+      //
+      // 3,000 件いいねしていれば 6,000 クエリになり、**よく使っていた人ほど
+      // 退会に失敗する**。しかも失敗の仕方が決定的なので、再実行しても同じところで
+      // 落ち続ける（利用規約は「いつでも削除できる」と約束している）。
+      //
+      // 1 文の集合演算に置き換える。件数に関係なくクエリは 1 本。
+      // 冪等性（実数で数え直す）はそのまま保たれる。
+      //
+      // ⚠️ SQL 側の `SELECT DISTINCT` は **上の `new Set` があるから冗長、ではない**。
+      // 同じ id が配列に 2 回入ると `UNNEST` はその id の行を 2 行返し、
+      // `LEFT JOIN` がいいね 1 件につき 2 行に増え、`COUNT` が **2 倍の値**になる。
+      // like_total は表示される数字なので、静かに倍になる壊れ方をする。
+      // 「呼び出し側が必ず重複を除いている」に依存させない（片方を消したら壊れる形にしない）。
+      const likeTotalsRecalculated =
+        affectedDishMediaIds.length === 0
+          ? 0
+          : (
+              await tx.$queryRaw<{ dish_media_id: string }[]>`
+                UPDATE dish_media_analysis_results AS a
+                   SET like_total = c.cnt,
+                       updated_at = NOW()
+                  FROM (
+                        SELECT m.id AS dish_media_id,
+                               COUNT(l.dish_media_id)::int AS cnt
+                          FROM (SELECT DISTINCT id
+                                  FROM UNNEST(${affectedDishMediaIds}::uuid[]) AS u(id)) AS m
+                          LEFT JOIN dish_media_likes l
+                                 ON l.dish_media_id = m.id
+                         GROUP BY m.id
+                       ) AS c
+                 WHERE a.dish_media_id = c.dish_media_id
+                RETURNING a.dish_media_id
+              `
+            ).length;
 
       // ── 4. users 行の匿名化 + deleted_at ────────────────────────
       // ⚠️ `updateMany` にしているのは冪等性のため。既に削除済みでも 0 件更新で通る。

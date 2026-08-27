@@ -58,7 +58,8 @@ describe("法務ドキュメント画面", () => {
 			await legalScreen.goBack();
 		}
 
-		await settingsScreen.expectLoaded();
+		// #1583 規約は «なに食べよについて» から開くので、戻る先もそこ
+		await settingsScreen.expectAboutLoaded();
 	});
 
 	// ─ テストケース: 4 行それぞれが法務ドキュメント画面へ着く ─
@@ -85,6 +86,12 @@ describe("法務ドキュメント画面", () => {
 			await legalScreen.expectOpened();
 
 			await legalScreen.goBack();
+			// #1583 戻る先は «なに食べよについて»。次の周回のためマイページまで戻す。
+			// ⚠️ ここで `legalScreen.goBack()` を呼んではいけない。あちらが押すのは
+			//    `legal-screen-back` で、**この画面には存在しない**（about は `about-screen-back`）。
+			//    実機に投げる前にこの取り違えを 1 度書いてしまったので、helper 経由に固定する。
+			await settingsScreen.expectAboutLoaded();
+			await settingsScreen.goBackFromAbout();
 			await settingsScreen.expectLoaded();
 		}
 	});

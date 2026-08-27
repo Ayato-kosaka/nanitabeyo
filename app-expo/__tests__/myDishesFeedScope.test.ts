@@ -43,11 +43,27 @@ describe("useMyDishesFeedScopeStore", () => {
 	});
 
 	it("置いた並びをそのまま返し、clear で空へ戻る", () => {
-		useMyDishesFeedScopeStore.getState().setRestaurantIds(["a", "b"]);
+		useMyDishesFeedScopeStore.getState().setRestaurantIds(["a", "b"], "map");
 		expect(useMyDishesFeedScopeStore.getState().restaurantIds).toEqual(["a", "b"]);
 
 		useMyDishesFeedScopeStore.getState().clear();
 		expect(useMyDishesFeedScopeStore.getState().restaurantIds).toEqual([]);
+	});
+
+	/*
+	#1629 並びの «出どころ» も一緒に持つ。前後を絞るかどうかがこれで変わる。
+	- map … viewport 由来。200 ピンのエリアで 200 ページを作らないよう前後 1 件へ絞る
+	- list … 一覧の並び。絞らない（縦に送り続けたら一覧の最後まで行ける）
+	*/
+	it("並びの出どころを一緒に持ち、clear で消える", () => {
+		useMyDishesFeedScopeStore.getState().setRestaurantIds(["a", "b"], "list");
+		expect(useMyDishesFeedScopeStore.getState().restaurantIdsSource).toBe("list");
+
+		useMyDishesFeedScopeStore.getState().setRestaurantIds(["c"], "map");
+		expect(useMyDishesFeedScopeStore.getState().restaurantIdsSource).toBe("map");
+
+		useMyDishesFeedScopeStore.getState().clear();
+		expect(useMyDishesFeedScopeStore.getState().restaurantIdsSource).toBeNull();
 	});
 
 	// ⚠️ 永続化してはいけない。再起動後に前回の viewport 由来の並びが横スクロールへ出るのは事故

@@ -38,6 +38,11 @@ jest.mock("react-native-gesture-handler", () => {
  * 通報シートは ReportContentSheet.test.tsx が別途固定しているので、
  * ここでは **どんな props で描かれたか** だけを観測できる代役に置き換える。
  */
+// #1599 レビューいいねの失敗を Snackbar で伝えるようになったため、
+// このテスト（通報導線だけを見る）でも Provider の代役が要る。
+// ロールバック側の挙動は DishReviewsSectionLike.test.tsx が固定している。
+jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+
 jest.mock("./ReportContentSheet", () => {
 	const { View } = require("react-native");
 	return {

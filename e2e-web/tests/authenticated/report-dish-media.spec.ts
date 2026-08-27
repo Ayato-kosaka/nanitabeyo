@@ -67,14 +67,25 @@ test.describe("投稿の通報 @mutation", () => {
 	// ─ テストケース: 通報導線 → 理由選択 → 受付完了 ─
 	// 手順:
 	//   1. ログイン済みで起動し、検索フローで結果フィードを表示する
-	//   2. 通報ボタン(dish-action-report)を押して通報シートを開く
+	//   2. «…» メニュー(dish-action-more)を開き、通報(dish-action-report)を押して通報シートを開く
+	//      #1629 通報はレール直置きから «…» の中へ移った
 	//   3. 理由(スパム)を選ぶ → 送信ボタンが押せるようになる
 	//   4. 送信 → 受付完了パネル(report-accepted)が出る
 	//      (POST v1/content-reports。dev DB に 1 行残る。取り消し API は無い)
+	/**
+	 * #1629 通報シートを開く。
+	 * 通報はフィード右レールの直置きから «…» メニューの中へ移った（オーナー指示）。
+	 * 「report ボタンが見つからない」で落ちたら、まずここを疑う。
+	 */
+	const openReportSheet = async (resultPage: ResultPage) => {
+		await resultPage.moreButton.first().click();
+		await resultPage.reportButton.first().click();
+	};
+
 	test("投稿を通報すると受け付けられる @mutation", async ({ appPage }) => {
 		const resultPage = await gotoResultFeed(appPage);
 
-		await resultPage.reportButton.first().click();
+		await openReportSheet(resultPage);
 		await expect(resultPage.reportSheet).toBeVisible();
 
 		// 理由未選択では送れない(誤爆防止)。React Native Web の Pressable は
@@ -94,7 +105,8 @@ test.describe("投稿の通報 @mutation", () => {
 
 		// 通報しても投稿は消えない・隠れない。
 		// ここが崩れると、通報爆撃がそのまま検閲の道具になる
-		await expect(resultPage.reportButton.first()).toBeVisible();
+		// #1629 通報は «…» の中へ移ったので、レールに残る «…» と いいね が生きていることで見る
+		await expect(resultPage.moreButton.first()).toBeVisible();
 		await expect(resultPage.likeButton.first()).toBeVisible();
 	});
 
@@ -109,7 +121,7 @@ test.describe("投稿の通報 @mutation", () => {
 	test("通報理由が選択式で、ラベルが翻訳されている @mutation", async ({ appPage }) => {
 		const resultPage = await gotoResultFeed(appPage);
 
-		await resultPage.reportButton.first().click();
+		await openReportSheet(resultPage);
 		await expect(resultPage.reportSheet).toBeVisible();
 
 		for (const code of CONTENT_REPORT_REASON_CODES) {

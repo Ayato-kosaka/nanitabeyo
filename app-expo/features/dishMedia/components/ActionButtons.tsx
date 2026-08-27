@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
-import { Heart, Bookmark, Share, MapPinned, UtensilsCrossed, Flag } from "lucide-react-native";
+import { Heart, Bookmark, MapPinned, UtensilsCrossed } from "lucide-react-native";
 import { router } from "expo-router";
 import i18n from "@/lib/i18n";
+// #1629 いいね数の表示は消したが、楽観更新の整形に使うため import は残す（下のコメント参照）
 import { formatLikeCount } from "../utils/text";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -29,7 +30,7 @@ import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevi
 import { MY_DISH_STATUS_ORANGE } from "@/features/myDishes/statusColors";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { ReportContentSheet } from "./ReportContentSheet";
-import { OwnPostActions } from "./OwnPostActions";
+import { DishMediaMoreMenu } from "./DishMediaMoreMenu";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -422,7 +423,14 @@ function ActionButtonsContent({
 							fill={isLiked ? FixedColors.likeActive : FixedColors.onMedia}
 						/>
 					</TouchableOpacity>
-					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
+					{/*
+					  #1629 【仕様】オーナー指示で **ハートの下の数字を消した**。
+					  いいね数は «自分がこの店へ行くか» の判断材料になっておらず、
+					  数字が小さいほど押しにくくなる（社会的証明の逆効果）ため。
+
+					  ⚠️ `likeCount` は楽観更新とロールバックのために残してある（削除しないこと）。
+					     表示していないだけである。
+					*/}
 				</View>
 
 				{/* #1031 【設計】Detox から状態(保存済みか)を検証できるよう、状態別の accessibilityLabel を付与。
@@ -480,17 +488,17 @@ function ActionButtonsContent({
 							    ⚠️ ラベルは白のまま（**色を付けるのはアイコンだけ**） */}
 							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia} />
 						</TouchableOpacity>
-						<Text style={styles.actionText}>{i18n.t("Map.actions.writeReviewForThisDish")}</Text>
+						{/* #1629 【仕様】ラベルは «食べた»（オーナー指示。何も付けない）。
+
+						    経緯: «この料理にレビューを書く» → «レビュー» → **«食べた»**。
+						    1 つ上のブックマークが «食べたい» なので、対になる語でなければ
+						    「この 2 つが同じ軸の状態だ」と読めない。押した先の画面タイトルは長いままでよい。
+
+						    ⚠️ `MyDishes.filters.status.eaten` を使う。一覧の絞り込み・バッジと
+						       **同じキー**にしておくこと。別キーにすると片方だけ direction が変わる */}
+							<Text style={styles.actionText}>{i18n.t("MyDishes.filters.status.eaten")}</Text>
 					</View>
 				)}
-
-				{/* #1513 自分の投稿だけに編集・削除の導線を出す。他人の投稿では
-				    ボタン自体が描画されないので、UI からは操作にたどり着けない
-				    （サーバー側でも user_id 一致を必須にして二重に担保している）。
-
-				    #1375 の並び «自分の記録に関わる操作 → 店へ行く操作 → 人に渡す操作» に従い、
-				    自分の投稿の編集・削除は «店へ行く»（地図を開く）より上に置く */}
-				{entry.dish_media.isMine && <OwnPostActions entry={entry} />}
 
 				<View style={styles.actionContainer}>
 					<TouchableOpacity
@@ -504,37 +512,16 @@ function ActionButtonsContent({
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
 				</View>
 
-				{/* #1375（オーナー指示 8 巡目）**「シェア」は「地図を開く」の下**。
-				    上から «自分の記録に関わる操作 → 店へ行く操作 → 人に渡す操作» の並びになる */}
-				<View style={styles.actionContainer}>
-					<TouchableOpacity
-						style={styles.actionButton}
-						onPress={handleSharePress}
-						hitSlop={buttonHitSlop}
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
-						<Share size={28} color={FixedColors.onMedia} />
-					</TouchableOpacity>
-					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
-				</View>
+				{/*
+				  #1629 【仕様】«…» は右レールの**一番下**（オーナー指示）。
+				  シェア・報告・（自分の投稿なら）編集・削除は、この中へ畳んだ。
 
-				{/* #1514 (SAF-01) 投稿の通報導線。
-				    右レールに常設するのは、通報の敷居を上げないため（メニューの奥に隠すと、
-				    «見つけられないから通報されない» を «問題が無い» と読み違える）。
-				    レビューの通報は DishReviewsSection のレビュー行側にある。
-				    ユーザー・店舗は対象外（オーナー確定仕様） */}
-				<View style={styles.actionContainer}>
-					<TouchableOpacity
-						testID="dish-action-report"
-						style={styles.actionButton}
-						onPress={handleReportPress}
-						hitSlop={buttonHitSlop}
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("Report.accessibility.open", { name: restaurant.name })}>
-						<Flag size={26} color={FixedColors.onMedia} />
-					</TouchableOpacity>
-					<Text style={styles.actionText}>{i18n.t("Report.action")}</Text>
-				</View>
+				  ⚠️ シェアと報告の独立ボタンをレールへ戻さないこと。7 段あったレールを
+				     «その場で 1 タップで効く操作» だけに絞るのがこの変更の目的である。
+				  ⚠️ «…» は **他人の投稿でも出る**。中身が出し分けられるだけ。
+				     `isMine` で «…» ごと消すと、他人の投稿を通報できなくなる。
+				*/}
+				<DishMediaMoreMenu entry={entry} onShare={handleSharePress} onReport={handleReportPress} />
 
 				<ReportContentSheet
 					visible={isReportSheetOpen}

@@ -5,6 +5,7 @@ import type { MapPressEvent, MarkerPressEvent, PoiClickEvent, Region } from "rea
 import { OverlayView } from "@react-google-maps/api";
 import { TouchableOpacity } from "react-native";
 import { useGoogleMapsScript } from "./GoogleMapsScript";
+import { FixedColors } from "@/constants/Palette";
 
 /** ─────────────────────────────────────────────────────────────
  *  ネイティブと API 互換にするためのハンドル
@@ -190,9 +191,18 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 		};
 
 		/* 読み込み前・読み込み失敗時は地図の代わりに «場所だけ確保した» 面を描く。
-		   ここで null を返すとレイアウトが潰れて周りの UI がずれるため、同じ寸法の箱を残す。 */
+		   ここで null を返すとレイアウトが潰れて周りの UI がずれるため、同じ寸法の箱を残す。
+
+		   #1629 この面はテーマで振らない（`mapPlaceholderSurface`）。ここへ出てくるのは
+		   Google のタイルで、タイルはアプリのテーマに追従せず常にライト配色である。
+		   ダークで暗い箱にすると、読み込み完了の瞬間に暗 → 明のちらつきが出る。 */
 		if (!isLoaded) {
-			return <div style={{ ...containerStyle, backgroundColor: "#e9e9e9" }} data-testid="map-placeholder" />;
+			return (
+				<div
+					style={{ ...containerStyle, backgroundColor: FixedColors.mapPlaceholderSurface }}
+					data-testid="map-placeholder"
+				/>
+			);
 		}
 
 		return (

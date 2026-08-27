@@ -163,6 +163,7 @@ export type DishMediaEntriesStore = {
 	 */
 	clearByKey: (key?: string) => void;
 
+
 	// ------ カーソルページネーション API ------
 
 	/**
@@ -595,6 +596,14 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			key,
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
+				// #1599 引っ張って更新に追い抜かれていたら、この応答は捨てる。
+				// 追記すると «更新前のページ» が新しい一覧の末尾へ紛れ込み、
+				// nextCursor も «更新前の連鎖» の値で上書きされる。
+				//
+				// 判定は **自分が使ったカーソルが今も現在値か**。まだ同じページ連鎖の
+				// 上に居るならそのまま、更新や `clearByKey` が入っていれば
+				// 別の値（または undefined）になっているのでそこで捨てる。
+				if (get().nextCursorByKey[key] !== nextCursor) return;
 				// 1. エンティティを正規化
 				upsertDishMediaEntries(asApiList(response.data));
 
@@ -650,6 +659,14 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			key,
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
+				// #1599 引っ張って更新に追い抜かれていたら、この応答は捨てる。
+				// 追記すると «更新前のページ» が新しい一覧の末尾へ紛れ込み、
+				// nextCursor も «更新前の連鎖» の値で上書きされる。
+				//
+				// 判定は **自分が使ったカーソルが今も現在値か**。まだ同じページ連鎖の
+				// 上に居るならそのまま、更新や `clearByKey` が入っていれば
+				// 別の値（または undefined）になっているのでそこで捨てる。
+				if (get().nextCursorByKey[key] !== nextCursor) return;
 				// 1. エンティティを正規化
 				upsertDishMediaEntries(asApiList(response.data));
 

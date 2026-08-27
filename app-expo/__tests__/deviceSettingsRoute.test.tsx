@@ -171,21 +171,35 @@ describe("#1504 マイページから端末設定への導線", () => {
 	});
 
 	/*
-	オーナー指示の «規約ボックスの上» を «行の並び» として固定する。
+	マイページ 2 ブロック目の並びを «行の描画順» として固定する。
 
-	testID だけを見ていると「描かれてはいるが規約の下にいる」を見逃す。
-	描画順そのものを比べれば、カードをまたいで下へ移動しても赤くなる。
+	testID の有無だけを見ていると「描かれてはいるが順番が違う」を見逃す。
+	描画順そのものを比べれば、カードをまたいで移動しても赤くなる。
+
+	#1629 【仕様】オーナー指示で順番が変わった。
+	  旧: … / 端末設定 → なに食べよについて（«端末設定は規約の箱より上»）
+	  新: なに食べよについて → 端末設定 → 通知設定 → あなたの報告履歴 → アカウント管理
+	«規約より上» という旧来の性質はもう無い。ここを直すときはオーナーへ確認すること。
 	*/
-	it("「端末設定」行はコミュニティガイドラインより前に描かれる", async () => {
+	it("#1629 2 ブロック目は «なに食べよについて → 端末設定 → 通知設定 → 報告履歴 → アカウント管理» の順に描かれる", async () => {
 		const tree = await render(<ProfileScreen />);
 
 		const order = tree.root
 			.findAll((node) => typeof node.props?.testID === "string" && node.props.testID.startsWith("settings-"))
 			.map((node) => node.props.testID as string);
 
-		expect(order.indexOf("settings-device-settings")).toBeGreaterThanOrEqual(0);
-		expect(order.indexOf("settings-guidelines")).toBeGreaterThanOrEqual(0);
-		expect(order.indexOf("settings-device-settings")).toBeLessThan(order.indexOf("settings-guidelines"));
+		const expected = [
+			"settings-about",
+			"settings-device-settings",
+			"settings-notifications",
+			"settings-content-reports",
+			"settings-account",
+		];
+		for (const testID of expected) {
+			expect(order.indexOf(testID)).toBeGreaterThanOrEqual(0);
+		}
+		const indices = expected.map((testID) => order.indexOf(testID));
+		expect(indices).toEqual([...indices].sort((a, b) => a - b));
 	});
 
 	// ⚠️ ここが赤くなったら、トグルがマイページ本体へ戻っている（#1504 のオーナー指示の差し戻し）
@@ -201,6 +215,38 @@ describe("#1504 端末設定ページ", () => {
 		const tree = await render(<DeviceSettingsScreen />);
 
 		expect(exists(tree, "settings-haptics-toggle")).toBe(true);
+	});
+
+	/*
+	#1629 【仕様】表示テーマは端末設定から **1 階層深いページ**（profile/theme）へ移した（オーナー指示）。
+	端末設定に残るのは «表示テーマ» という 1 行のリンクだけである。
+
+	⚠️ ここが赤くなったら、3 択ラジオが端末設定へ戻っている（#1629 の差し戻し）。
+	*/
+	it("#1629 端末設定には «表示テーマ» の行だけがあり、3 択は描かない", async () => {
+		const tree = await render(<DeviceSettingsScreen />);
+
+		expect(exists(tree, "settings-theme")).toBe(true);
+		expect(exists(tree, "settings-theme-selector")).toBe(false);
+	});
+
+	// #1629 端末設定の 1 ブロック目は «言語 → 触覚フィードバック → 表示テーマ» の順（オーナー指示）
+	it("#1629 端末設定の 1 ブロック目は «言語 → 触覚 → テーマ» の順に描かれる", async () => {
+		const tree = await render(<DeviceSettingsScreen />);
+
+		const order = tree.root
+			.findAll((node) => typeof node.props?.testID === "string" && node.props.testID.startsWith("settings-"))
+			.map((node) => node.props.testID as string);
+
+		expect(order.indexOf("settings-language")).toBeLessThan(order.indexOf("settings-haptics-toggle"));
+		expect(order.indexOf("settings-haptics-toggle")).toBeLessThan(order.indexOf("settings-theme"));
+	});
+
+	// ⚠️ ここが赤くなったら、テーマがマイページ本体へ戻っている
+	it("マイページ本体は表示テーマの 3 択を描かない", async () => {
+		const tree = await render(<ProfileScreen />);
+
+		expect(exists(tree, "settings-theme-selector")).toBe(false);
 	});
 
 	it("トグルを押すと store へ反転した値を書く", async () => {

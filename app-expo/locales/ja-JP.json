@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "シェア",
 			"seeMore": "もっと見る",
-			"openMap": "地図を開く"
+			"openMap": "地図を開く",
+			"review": "レビュー"
 		},
 		"share": {
 			"title": "{{dishName}}をチェック"
@@ -465,6 +466,9 @@
 			"saveFailed": "更新できませんでした",
 			"conflict": "他の端末で先に更新されました。開き直してから編集してください",
 			"forbidden": "自分の投稿ではないため操作できません"
+		},
+		"moreMenu": {
+			"title": "この投稿"
 		}
 	},
 	"ImageCardGrid": {
@@ -804,7 +808,6 @@
 			}
 		},
 		"sendFeedback": "ご意見・不具合",
-		"leaveReview": "レビューを書く",
 		"rateDialogTitle": "アプリを気に入っていただけましたか？",
 		"rateDialogMessage": "よければストアで評価をお願いします。レビュー画面を開きます。",
 		"rateDialogOk": "評価する",
@@ -845,7 +848,8 @@
 			"group_votes": {
 				"title": "グループ投票",
 				"description": "参加しているグループ投票に動きがあったとき"
-			}
+			},
+			"navigationLabel": "通知設定"
 		},
 		"language": {
 			"navigationLabel": "言語",
@@ -861,6 +865,11 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "グループ投票の履歴"
+		},
+		"support": "なに食べよ を応援する",
+		"about": {
+			"navigationLabel": "なに食べよについて",
+			"title": "なに食べよについて"
 		},
 		"deleteAccount": "アカウントを削除",
 		"deleteAccountInProgress": "削除しています…",
@@ -883,6 +892,10 @@
 			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
+		},
+		"account": {
+			"navigationLabel": "アカウント管理",
+			"title": "アカウント管理"
 		}
 	},
 	"Dialog": {
@@ -903,6 +916,7 @@
 			"submitting": "更新中...",
 			"submitSuccess": "{{count}}件の画像を更新しました",
 			"submitError": "画像の更新に失敗しました",
+			"submitUnavailable": "この機能はまだ利用できません（サーバー側が未実装です）",
 			"reset": "リセット",
 			"selected": "選択済み",
 			"dishCount": "{{count}}件の料理"
@@ -1234,81 +1248,6 @@
 				"dish_media": "投稿",
 				"dish_reviews": "レビュー"
 			}
-		}
-	},
-	"Topics": {
-		"deepDive": {
-			"title": "この系統で再検索"
-		},
-		"tutorial": {
-			"helpLabel": "この画面の使い方",
-			"helpHint": "料理提案画面のチュートリアルを最初から表示します",
-			"skip": "スキップ",
-			"next": "次へ",
-			"finish": "使ってみる",
-			"progress": "{{current}} / {{total}}",
-			"progressAccessibility": "{{total}}ステップ中{{current}}番目",
-			"steps": {
-				"swipeAndDecide": {
-					"title": "気になる料理を選ぼう",
-					"body": "左右にスワイプして料理を見比べられます。食べたい料理が決まったら「この料理にする！」をタップ。"
-				},
-				"deepDive": {
-					"title": "気分に合わせて深堀再検索",
-					"body": "まだ決めきれないときは、気になる系統を選ぶと近い系統で再検索できます。"
-				},
-				"topicActions": {
-					"title": "好みに合わせて整理",
-					"save": "保存：気になる料理をあとで見返せます",
-					"block": "ブロック：好みでない料理を今後提案しないように出来ます"
-				},
-				"groupVote": {
-					"title": "友達と決める",
-					"body": "一緒に食べる人と候補を共有して、みんなで投票できます。"
-				}
-			}
-		},
-		"HideTopicModal": {
-			"title": "非表示にする",
-			"description": "非表示にする理由を教えてください（任意）",
-			"placeholder": "理由を入力してください...",
-			"confirm": "非表示にする"
-		},
-		"Loading": {
-			"title": "あなたにぴったりの料理を 6つ厳選しています",
-			"subtitle": "まもなくおすすめをお見せします！"
-		},
-		"errors": {
-			"fetchFailed": "料理の取得に失敗しました",
-			"invalidSearchParams": "検索パラメータが無効です"
-		},
-		"empty": "表示できる料理がありません",
-		"retry": "検索に戻る",
-		"chooseThis": "この料理にする！",
-		"hiddenMessage": "{{title}}を非表示にしました",
-		"BlockTopicModal": {
-			"title": "この料理をブロックしますか？",
-			"description": "ブロックした料理カテゴリは、今後おすすめに表示されません。",
-			"note": "設定画面からいつでも解除できます。",
-			"confirm": "ブロックする"
-		},
-		"blockedMessage": "{{title}}をブロックしました",
-		"savedMessage": "保存しました",
-		"reloadDialog": {
-			"title": "別の候補を探しますか？",
-			"message": "現在のおすすめが少ないため、同じ条件でもう一度探します。",
-			"confirm": "探す",
-			"cancel": "閉じる"
-		},
-		"imageLoadFailed": "画像を読み込めませんでした",
-		"tapToReload": "タップして再読み込み",
-		"headerTitle": "あなたにおすすめの料理",
-		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう",
-		"accessibility": {
-			"blockTopic": "{{title}}をおすすめから除外",
-			"saveTopic": "{{title}}を保存",
-			"unsaveTopic": "{{title}}の保存を解除",
-			"thumbnail": "{{title}}のサムネイル、{{index}}件目/{{total}}件中"
 		}
 	}
 }

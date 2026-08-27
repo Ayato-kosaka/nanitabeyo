@@ -76,9 +76,12 @@ describeAuthenticated("アカウント削除の確認（ログイン済みユー
 
 		// ── 1 枚目: 何が起きるかの説明 ──────────────────────────────
 		await settingsScreen.openDeleteAccountDialog();
-		// 影響範囲の説明に「取り消せない」が含まれていること（本文は 1 つの Text なので部分一致で見る）
+		// 影響範囲の説明に「取り消せない」が含まれていること。
+		// ⚠️ `hasText()`（= by.text()）は **完全一致**なので、段落の一部分では絶対に一致しない。
+		//    本文の text 属性を取り出して includes() する `dialogMessageIncludes()` を使う。
+		//    （このテストは以前 hasText で書かれており、UI が正しくても必ず落ちていた。#1511）
 		assert.equal(
-			await settingsScreen.hasText("この操作は取り消せません。"),
+			await settingsScreen.dialogMessageIncludes("この操作は取り消せません。"),
 			true,
 			"1 枚目の確認ダイアログに «取り消せない» の明記が無い",
 		);
