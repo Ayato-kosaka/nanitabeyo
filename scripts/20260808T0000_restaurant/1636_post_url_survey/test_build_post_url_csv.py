@@ -2,14 +2,14 @@
 """`rows_of` の scroll_index 復元だけを守るテスト。
 
 ブラウザ側は「URL の挿入順の配列」と「各スクロール時点の**累計**件数」しか返さない。
-ここを取り違えると «何スクロール目で何件増えたか» が丸ごと狂い、
-そのまま «1 万件に何時間» の見積もりが狂う。CSV は再収集できないので、
+ここを取り違えると «何回目に画面を送ったところで何件増えたか» が丸ごと狂い、
+そのまま «1 万件で何時間» の見積もりが狂う。CSV は数え直しても同じにならないので、
 壊れたまま出すと取り返しがつかない。
 """
 
 import unittest
 
-from build_harvest_csv import rows_of
+from build_post_url_csv import rows_of
 
 
 class RowsOfTest(unittest.TestCase):
@@ -33,7 +33,7 @@ class RowsOfTest(unittest.TestCase):
         self.assertTrue(all(r["collected_at"] == "2026-08-27T10:00:00Z" for r in rows))
 
     def test_累計が総数に届かなければ残りを最終スクロールへ寄せる(self) -> None:
-        # fallback 経路（LLM が HTML から拾った場合）は累計が揃わないことがある。
+        # LLM が HTML から拾った場合は累計が揃わないことがある。
         # 取りこぼして CSV の行数が減るほうが害が大きいので、落とさず最後へ寄せる。
         doc = {
             "provider": "instagram",
