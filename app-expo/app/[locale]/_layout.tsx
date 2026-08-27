@@ -80,7 +80,7 @@ function LocaleLayout() {
 	// #1509 【設計】ここは長く `const scheme = "light"` で固定されていた（= ダークモード未対応）。
 	// 設定画面の 3 択（システム追従 / ライト / ダーク）を解決した結果を使う。
 	// `getPaperTheme` は元から light / dark の両方を組み立てられるので、渡す値を変えるだけでよい。
-	const { scheme } = useAppTheme();
+	const { scheme, colors } = useAppTheme();
 	const theme = useMemo(() => getPaperTheme(scheme, locale), [scheme, locale]);
 
 	const { logFrontendEvent } = useLogger();
@@ -205,7 +205,19 @@ function LocaleLayout() {
 														{/* #940 【設計】render中の未捕捉例外で白画面になるのを防ぐ最終防波堤。
 														    再試行はアプリのルートへ戻すことで安全な状態に復帰させる */}
 														<ErrorBoundary onRetry={() => router.replace("/")}>
-															<Stack screenOptions={{ header: () => null }}>
+															{/*
+															#1629【27】**Stack へ `contentStyle` を必ず与える。**
+
+															expo-router の NavigationContainer は既定で react-navigation の
+															`DefaultTheme` を使う（`DarkTheme` を渡している箇所はリポジトリに無い）。
+															`DefaultTheme.colors.background` は `rgb(242,242,242)` の明るいグレーで、
+															画面が全面を塗り切らない瞬間 — 遷移アニメーションの最中、モーダルの背後、
+															画面のマウント直後 — に**ダークモードでもそこだけ明るく光る**。
+
+															⚠️ これは «色を直書きした» のではなく «色を書かなかった» ことで起きるので、
+															   `assert-no-hardcoded-colors.mjs` には原理的に検出できない。
+															*/}
+															<Stack screenOptions={{ header: () => null, contentStyle: { backgroundColor: colors.background } }}>
 																<Stack.Screen name="(tabs)" options={{ header: () => null }} />
 																{/* #1375 実機確認（2 巡目）: ＋ からの取り込みは iOS ネイティブのシート
 																    （背後の画面が縮む pageSheet）で出す。下スワイプで閉じるのは

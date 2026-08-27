@@ -176,6 +176,17 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		surfaceSubtle: "#F3F4F6",
 		surfaceSelected: "#E5E5E5",
 		appShellBackdrop: "#F3F4F6",
+		// #1629 友達投票 / オンボーディングのトークン化で追加。light はいずれも
+		// 対象ファイルに直書きされていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		surfacePlaceholder: "#E5E7EB",
+		surfaceSelectedTint: "#EEF2FF",
+		textPrimaryDim: "#1F2937",
+		brandTrack: "#FBD9D0",
+		// #1629 OS 許可ダイアログの複製（#1486 §5）。iOS のシステム値をそのまま持つ
+		alertSurface: "#F5F5F7",
+		alertMessage: "#48484A",
+		alertSeparator: "#C6C6C8",
+		alertAction: "#007AFF",
 		divider: "#F3F4F6",
 		border: "#C9C9C9",
 		borderContrast: "#000000",
@@ -201,11 +212,19 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		brandTintSoft: "#FFF7F5",
 		brandTintAlt: "#FDE7E1",
 		brandBorder: "#F6DCD5",
+		// #1509 SET-06（プロフィール / 認証 / ウォレット系のトークン化）で追加。
+		// いずれも対象ファイルに書かれていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		borderFaint: "#E5E5E5",
+		borderNeutral: "#D1D5DB",
+		surfaceChip: "#F5F5F5",
+		surfaceChipAlt: "#EDEFF1",
 		// #1502 地点確定 ✓ 用に追加。値は LocationAutocomplete に直書きされていた #16A34A の移設
 		success: "#16A34A",
 		danger: "#DC2626",
 		dangerStrong: "#EF4444",
 		dangerTint: "#FEE2E2",
+		// FeedbackForm / ProfileEditForm のエラーバナー・エラー時の入力欄の地（main のリテラルの写し）
+		dangerTintSoft: "#FEF2F2",
 		destructive: "#FF3E33",
 		// #1514 通報受付の CircleCheck。ReportContentSheet.tsx が直書きしていた
 		// リテラルの写しなので、ライトの見た目は 1px も変わらない。

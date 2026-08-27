@@ -44,6 +44,8 @@ import { useDishCategoriesTutorial } from "@/features/dishCategories/hooks/useDi
 import { DishCategoriesSpotlightTutorial } from "@/features/dishCategories/components/DishCategoriesSpotlightTutorial";
 import type { DishCategoriesTutorialTargetRefs } from "@/features/tutorial/types/spotlight";
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 const DEEP_DIVE_SCORE_THRESHOLD = 0.85;
 
@@ -70,6 +72,10 @@ export default function DishCategoriesScreen() {
 	// #1553 【互換性】トレース名は Firebase Performance の既存系列を分断しないため旧名 "Topics" を維持する
 	// （event_name と同じ扱い。改名するかはオーナー判断）
 	useScreenTrace("Topics");
+	// #1629 オーナー実機報告「料理提案画面自体がダークモードに対応してない」。
+	// 地・条件チップ・ヘッダーアイコンがライト固定の直書きだったのでテーマのトークンへ移した
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const { locale } = useLocale();
 	const { searchParams, pinnedDishCategory: pinnedDishCategoryParam } = useLocalSearchParams<{
 		searchParams: string;
@@ -841,7 +847,7 @@ export default function DishCategoriesScreen() {
 								styles.headerActionButton,
 								(!canOpenDishCategoriesTutorial || isTutorialRequested) && styles.headerActionButtonDisabled,
 							]}>
-							<CircleHelp size={20} color="#1A1A1A" />
+							<CircleHelp size={20} color={colors.textPrimary} />
 						</TouchableOpacity>
 						<View ref={groupVoteTutorialRef} collapsable={false} testID="dish-categories-tutorial-target-group-vote">
 							<TouchableOpacity
@@ -852,7 +858,7 @@ export default function DishCategoriesScreen() {
 								hitSlop={HEADER_ACTION_HIT_SLOP}
 								testID="dish-categories-group-vote"
 								style={[styles.headerActionButton, isCreating && styles.headerActionButtonDisabled]}>
-								<Users size={20} color="#1A1A1A" />
+								<Users size={20} color={colors.textPrimary} />
 							</TouchableOpacity>
 						</View>
 						{shouldShowReload && (
@@ -861,7 +867,7 @@ export default function DishCategoriesScreen() {
 								accessibilityRole="button"
 								hitSlop={HEADER_ACTION_HIT_SLOP}
 								style={styles.headerActionButton}>
-								<RefreshCw size={20} color="#1A1A1A" />
+								<RefreshCw size={20} color={colors.textPrimary} />
 							</TouchableOpacity>
 						)}
 					</View>
@@ -874,20 +880,20 @@ export default function DishCategoriesScreen() {
 					<View style={styles.chipRow}>
 						{/* 場所 */}
 						<View style={styles.conditionChip}>
-							<MapPin size={14} color="#f05537" />
+							<MapPin size={14} color={colors.brand} />
 							<Text style={styles.conditionChipText}>{params.locationQuery}</Text>
 						</View>
 
 						{/* 時間帯 */}
 						{/* #1015 【パフォーマンス】find() の代わりに priceLevelOptions と同型の派生Mapを参照する */}
 						<View style={styles.conditionChip}>
-							<SunMoon size={14} color="#f05537" />
+							<SunMoon size={14} color={colors.brand} />
 							<Text style={styles.conditionChipText}>{i18n.t(timeSlotsById[params.timeSlot]?.label || "")}</Text>
 						</View>
 
 						{/* 誰と行くか */}
 						<View style={styles.conditionChip}>
-							<Users size={14} color="#f05537" />
+							<Users size={14} color={colors.brand} />
 							<Text style={styles.conditionChipText}>{i18n.t(sceneOptionsById[params.scene]?.label || "")}</Text>
 						</View>
 					</View>
@@ -899,7 +905,7 @@ export default function DishCategoriesScreen() {
 							if (!priceOption) return null;
 							return (
 								<View key={budgetIntent} style={styles.conditionChip}>
-									<DollarSign size={14} color="#f05537" />
+									<DollarSign size={14} color={colors.brand} />
 									<Text style={styles.conditionChipText}>{i18n.t(priceOption.label)}</Text>
 								</View>
 							);
@@ -908,7 +914,7 @@ export default function DishCategoriesScreen() {
 						{/* 食事にかける時間（diningPace が選択されている場合のみ） */}
 						{params.diningPace && (
 							<View style={styles.conditionChip}>
-								<Timer size={14} color="#f05537" />
+								<Timer size={14} color={colors.brand} />
 								<Text style={styles.conditionChipText}>
 									{i18n.t(diningPaceOptionsById[params.diningPace]?.label || "")}
 								</Text>
@@ -918,7 +924,7 @@ export default function DishCategoriesScreen() {
 						{/* 味の好み（taste が選択されている場合のみ） */}
 						{params.taste && (
 							<View style={styles.conditionChip}>
-								<ChefHat size={14} color="#f05537" />
+								<ChefHat size={14} color={colors.brand} />
 								<Text style={styles.conditionChipText}>{i18n.t(tasteOptionsById[params.taste]?.label || "")}</Text>
 							</View>
 						)}
@@ -926,7 +932,7 @@ export default function DishCategoriesScreen() {
 						{/* 中核食材・主食系（coreIngredient が選択されている場合のみ） */}
 						{params.coreIngredient && (
 							<View style={styles.conditionChip}>
-								<ChefHat size={14} color="#f05537" />
+								<ChefHat size={14} color={colors.brand} />
 								<Text style={styles.conditionChipText}>
 									{i18n.t(coreIngredientOptionsById[params.coreIngredient]?.label || "")}
 								</Text>
@@ -1023,121 +1029,126 @@ export default function DishCategoriesScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	chipsContainer: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		gap: 8,
-	},
-	chipRow: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 8,
-	},
-	conditionChip: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "#FDEBE7",
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 24,
-		gap: 4,
-	},
-	conditionChipText: {
-		fontSize: 13,
-		color: "#f05537",
-		fontWeight: "500",
-	},
-	subCopy: {
-		fontSize: 14,
-		color: "#6B7280",
-		textAlign: "center",
-		paddingHorizontal: 20,
-		lineHeight: 20,
-	},
-	headerActions: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		minHeight: 32,
-	},
-	headerActionButton: {
-		padding: 4,
-	},
-	headerActionButtonDisabled: {
-		opacity: 0.35,
-	},
-	retryButton: {
-		backgroundColor: "#F05537",
-		paddingHorizontal: 24,
-		paddingVertical: 16,
-		borderRadius: 16,
-		shadowColor: "#F05537",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.3,
-		shadowRadius: 12,
-		elevation: 6,
-	},
-	retryButtonText: {
-		fontSize: 16,
-		color: "#FFFFFF",
-		fontWeight: "600",
-		letterSpacing: 0.3,
-	},
-	// ✅ 中央コンテンツ全体（カルーセル + サムネ）
-	main: {
-		flex: 1,
-	},
-	// ✅ カルーセル用の空きスペース（ここが flex:1）
-	carouselOuter: {
-		flex: 1,
-		justifyContent: "center",
-	},
-	carouselContainer: {
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	// #958 【修正】width は中央カラム幅に追従させる必要があるため JSX 側でインライン合成する
-	emptyContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingHorizontal: 24,
-	},
-	emptyCard: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 24,
-		padding: 32,
-		alignItems: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 8 },
-		shadowOpacity: 0.12,
-		shadowRadius: 24,
-		elevation: 8,
-		width: "100%",
-		maxWidth: 320,
-	},
-	emptyText: {
-		fontSize: 18,
-		color: "#6B7280",
-		textAlign: "center",
-		marginBottom: 24,
-		lineHeight: 28,
-		fontWeight: "500",
-	},
-	// 下部サムネイル（通常フローで一番下）
-	// #1007 【設計】個々のサムネイルのスタイル(thumbnail/thumbnailActive/thumbnailImage)は
-	// DishCategoryThumbnail.tsx へ移動した。
-	thumbnailGrid: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		flexDirection: "row",
-		flexWrap: "wrap",
-		justifyContent: "center",
-		gap: 8,
-	},
-});
+// #1629 【修正】この画面はカード（写真）以外がすべてライト固定の直書きで、ダークにしても
+// 白い地に黒い文字のままだった。色の «役割» は変えていない（ブランド色のチップはブランド色のまま）。
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			// 画面の地。ライトの見た目を変えないため background（わずかに灰）ではなく surface を使う
+			backgroundColor: colors.surface,
+		},
+		chipsContainer: {
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			gap: 8,
+		},
+		chipRow: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 8,
+		},
+		conditionChip: {
+			flexDirection: "row",
+			alignItems: "center",
+			backgroundColor: colors.brandTint,
+			paddingHorizontal: 12,
+			paddingVertical: 6,
+			borderRadius: 24,
+			gap: 4,
+		},
+		conditionChipText: {
+			fontSize: 13,
+			color: colors.brand,
+			fontWeight: "500",
+		},
+		subCopy: {
+			fontSize: 14,
+			color: colors.textSecondary,
+			textAlign: "center",
+			paddingHorizontal: 20,
+			lineHeight: 20,
+		},
+		headerActions: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+			minHeight: 32,
+		},
+		headerActionButton: {
+			padding: 4,
+		},
+		headerActionButtonDisabled: {
+			opacity: 0.35,
+		},
+		retryButton: {
+			backgroundColor: colors.brand,
+			paddingHorizontal: 24,
+			paddingVertical: 16,
+			borderRadius: 16,
+			shadowColor: colors.brand,
+			shadowOffset: { width: 0, height: 4 },
+			shadowOpacity: 0.3,
+			shadowRadius: 12,
+			elevation: 6,
+		},
+		retryButtonText: {
+			fontSize: 16,
+			// ブランド色で塗った CTA の上の文字。地がライト / ダークで変わらないため文字も振らない
+			color: FixedColors.onFilled,
+			fontWeight: "600",
+			letterSpacing: 0.3,
+		},
+		// ✅ 中央コンテンツ全体（カルーセル + サムネ）
+		main: {
+			flex: 1,
+		},
+		// ✅ カルーセル用の空きスペース（ここが flex:1）
+		carouselOuter: {
+			flex: 1,
+			justifyContent: "center",
+		},
+		carouselContainer: {
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		// #958 【修正】width は中央カラム幅に追従させる必要があるため JSX 側でインライン合成する
+		emptyContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			paddingHorizontal: 24,
+		},
+		emptyCard: {
+			backgroundColor: colors.surface,
+			borderRadius: 24,
+			padding: 32,
+			alignItems: "center",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 8 },
+			shadowOpacity: 0.12,
+			shadowRadius: 24,
+			elevation: 8,
+			width: "100%",
+			maxWidth: 320,
+		},
+		emptyText: {
+			fontSize: 18,
+			color: colors.textSecondary,
+			textAlign: "center",
+			marginBottom: 24,
+			lineHeight: 28,
+			fontWeight: "500",
+		},
+		// 下部サムネイル（通常フローで一番下）
+		// #1007 【設計】個々のサムネイルのスタイル(thumbnail/thumbnailActive/thumbnailImage)は
+		// DishCategoryThumbnail.tsx へ移動した。
+		thumbnailGrid: {
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			flexDirection: "row",
+			flexWrap: "wrap",
+			justifyContent: "center",
+			gap: 8,
+		},
+	});

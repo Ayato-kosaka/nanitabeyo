@@ -43,6 +43,7 @@ import {
 import { BlurView } from "expo-blur";
 import { X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 
 /**
@@ -58,7 +59,8 @@ export const CONTENT_KEYBOARD_DISMISS_TEST_ID = "dish-category-group-vote-inline
 /** 移行前の BlurModal の既定値をそのまま踏襲する（見た目を変えないため） */
 const BLUR_INTENSITY = 50;
 const CLOSE_ICON_SIZE = 28;
-const CLOSE_ICON_COLOR = "#666666";
+/** 背景の «すりガラス» の不透明度（Android の代替塗り）。移行前の BlurModal の既定値の写し */
+const BACKDROP_ALPHA = 0.5 + (BLUR_INTENSITY * 0.4) / 100;
 
 type Props = {
 	children: ReactNode;
@@ -94,6 +96,11 @@ export function DishCategoryGroupVoteInlineOverlay({
 	onRequestClose,
 	dismissKeyboardOnContentPress = false,
 }: Props) {
+	// #1629 【設計】バックドロップと本体（白いカード）は必ず同じ側へ揃える。
+	// バックドロップだけテーマ非追従にすると、ダークで «明るいすりガラスの上に暗いカード» という
+	// 反転した絵になる（ダークモードの典型的な漏れ）。
+	const { colors, scheme } = useAppTheme();
+	const isDark = scheme === "dark";
 	const insets = useSafeAreaInsets();
 	const isKeyboardVisibleRef = useRef(false);
 
@@ -154,11 +161,11 @@ export function DishCategoryGroupVoteInlineOverlay({
 						testID="android-overlay"
 						style={[
 							StyleSheet.absoluteFillObject,
-							{ backgroundColor: `rgba(255,255,255,${0.5 + (BLUR_INTENSITY * 0.4) / 100})` },
+							{ backgroundColor: isDark ? `rgba(0,0,0,${BACKDROP_ALPHA})` : `rgba(255,255,255,${BACKDROP_ALPHA})` },
 						]}
 					/>
 				) : (
-					<BlurView tint="light" intensity={BLUR_INTENSITY} style={StyleSheet.absoluteFill} />
+					<BlurView tint={isDark ? "dark" : "light"} intensity={BLUR_INTENSITY} style={StyleSheet.absoluteFill} />
 				)}
 			</Pressable>
 
@@ -193,7 +200,7 @@ export function DishCategoryGroupVoteInlineOverlay({
 					accessibilityLabel={i18n.t("Common.close")}
 					hitSlop={10}
 					style={[styles.closeButton, { top: insets.top, right: insets.right }]}>
-					<X size={CLOSE_ICON_SIZE} color={CLOSE_ICON_COLOR} />
+					<X size={CLOSE_ICON_SIZE} color={colors.textMuted} />
 				</Pressable>
 			) : null}
 		</View>
