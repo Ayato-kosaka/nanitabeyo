@@ -78,13 +78,7 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/(tabs)/profile/edit.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/(tabs)/profile/feedback.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/(tabs)/profile/search-results.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/(tabs)/search/result.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/(tabs)/search/dish-categories.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/auth/callback.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
@@ -152,10 +146,6 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/dishMedia/components/DishReviewsSection.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishMedia/components/DishSelectionExpandLoading.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishMedia/components/RestaurantLoading.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/map/components/BidForm.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/map/components/InitialMediaPreview.tsx":
@@ -180,8 +170,6 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/profile/components/AvatarImageCard.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/profile/components/FeedbackForm.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/profile/components/LocationSearchForm.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/profile/components/ProfileEditForm.tsx":
@@ -191,14 +179,6 @@ const EXCLUSIONS = {
 	"features/profile/tabs/wallet/EarningsTab.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/settings/components/LegalDocument.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategories/components/DishCategoryCardExpandTransition.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategories/components/DishCategoryThumbnail.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategories/components/DishCategoryVisualCard.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/dishCategories/components/DishCategoriesError.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 };
 
