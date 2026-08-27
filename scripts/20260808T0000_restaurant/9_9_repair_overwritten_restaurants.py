@@ -118,10 +118,23 @@ def resolve_backup_blob(client: storage.Client, schema: str, uri: str | None) ->
             if f"/{schema}/restaurants-" in blob.name and blob.name.endswith(".csv")
         ]
     except Forbidden as error:
+        # #1595 で backup prefix は managed folder になり、objectViewer が付いた。
+        # ただし managed folder 経由の一覧には prefix / delimiter=/ /
+        # includeFoldersAsPrefixes=true の3点が要る（README「同期前 backup の
+        # 読み戻し権限」）。include_folders_as_prefixes は
+        # google-cloud-storage 2.14 以降の引数で、requirements.txt は 2.10.0 を
+        # 固定しているため、このクライアントからは一覧できない。
+        #
+        # 一覧できなくても «URI が分かっていれば» objects.get は通る（追加指定不要）。
+        # よってここは «自動選択を諦めて URI を貰う» のが正しい出口である。
         raise RuntimeError(
-            "backupの一覧取得が拒否されました（storage.objects.list が無い）。"
+            "backupの一覧取得が拒否されました。"
+            "backup prefix は managed folder なので、一覧には delimiter と "
+            "includeFoldersAsPrefixes が必要ですが、"
+            "google-cloud-storage 2.10.0（requirements.txt で固定）は "
+            "include_folders_as_prefixes を持ちません。"
             "9_1 の実行ログにある «同期前backupを保存しました: gs://...» の URI を "
-            "--backup-uri で指定してください。"
+            "--backup-uri で指定してください（URI が分かっていれば読み出しは通ります）。"
         ) from error
     if not candidates:
         raise ValueError(f"backupが1件も見つかりません: gs://{bucket_name}/{prefix}")
