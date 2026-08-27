@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { useThemedStackScreenOptions } from "@/hooks/useThemedStackScreenOptions";
 
 // deep link 時に Search Stack の戻り先として index を積む
 export const unstable_settings = {
@@ -6,8 +7,10 @@ export const unstable_settings = {
 };
 
 export default function SearchStackLayout() {
+	// #1629【27】遷移中・モーダル背後に react-navigation 既定の明るいグレーが出るのを防ぐ
+	const screenOptions = useThemedStackScreenOptions({ headerShown: false });
 	return (
-		<Stack screenOptions={{ headerShown: false }}>
+		<Stack screenOptions={screenOptions}>
 			<Stack.Screen name="index" />
 			<Stack.Screen name="dish-categories" />
 			<Stack.Screen name="dish-category-group-votes" />
