@@ -154,7 +154,7 @@ const AUTOPLAY_SCRIPT = `(function () {
   try { document.documentElement.style.overflow = 'hidden'; } catch (e) {}
 
   var DEADLINE_MS = 12000, TICK_MS = 250;
-  var timer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
+  var timer = null, observer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
 
   function report(kind, detail) {
     if (sent[kind]) return;
@@ -165,7 +165,18 @@ const AUTOPLAY_SCRIPT = `(function () {
       }));
     } catch (e) {}
   }
-  function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+
+  /*
+   * 仕事を «畳む» のはここだけ。結論が出たら interval も MutationObserver も必ず止める。
+   *
+   * ⚠️ 止め忘れると、Instagram の埋め込みのように **常時 DOM が変わるページ**で
+   * 監視と再試行が延々と走り続け、WebView のメインスレッドを食い潰す。
+   */
+  function settle(kind, detail) {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (observer) { try { observer.disconnect(); } catch (e) {} observer = null; }
+    if (kind) report(kind, detail);
+  }
 
   function prepare(v) {
     // 属性とプロパティの両方を立てる（Instagram 側の JS が属性を見て作り直すことがある）
@@ -174,17 +185,17 @@ const AUTOPLAY_SCRIPT = `(function () {
     v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
     if (v.__nbBound) return;
     v.__nbBound = true;
-    v.addEventListener('playing', function () { stopTimer(); report('playing', v.muted ? 'muted' : 'audible'); }, false);
-    v.addEventListener('ended', function () { try { v.currentTime = 0; } catch (e) {} kick(); }, false);
+    v.addEventListener('playing', function () { settle('playing', v.muted ? 'muted' : 'audible'); }, false);
+    // loop を向こうの JS に潰された場合の保険。ここだけは畳んだ後でも起こし直す
+    v.addEventListener('ended', function () { try { v.currentTime = 0; } catch (e) {} start(); }, false);
   }
 
   function attempt() {
     try {
       var v = document.querySelector('video');
       if (Date.now() > deadlineAt) {
-        stopTimer();
         // <video> が最後まで現れない = 権利ブロックされた投稿（何をしても再生できない）
-        report(v ? 'timeout' : 'no_video', lastError);
+        settle(v ? 'timeout' : 'no_video', lastError);
         return;
       }
       if (!v) return;
@@ -192,7 +203,8 @@ const AUTOPLAY_SCRIPT = `(function () {
       if (!v.paused && v.currentTime > 0) {
         // 'playing' の購読より前に再生が始まっていた場合、イベントを取り逃す。
         // 見た目は正しい（帯を出さない）が «何割が再生できたか» の計測が欠けるので、ここでも報告する
-        stopTimer(); report('playing', v.muted ? 'muted' : 'audible'); return;
+        settle('playing', v.muted ? 'muted' : 'audible');
+        return;
       }
       if (inFlight) return;  // 前の play() が解決する前に撃つと AbortError を量産する
 
@@ -206,8 +218,7 @@ const AUTOPLAY_SCRIPT = `(function () {
         lastError = name;
         if (name === 'NotSupportedError') {
           // src が空 / デコーダが無い。何度撃っても同じなので即あきらめる
-          stopTimer();
-          report('not_supported', v.currentSrc || v.src || '(empty)');
+          settle('not_supported', v.currentSrc || v.src || '(empty)');
           return;
         }
         // NotAllowedError: 自動再生ポリシーで蹴られた。既存の動画セルは音ありだが、
@@ -217,19 +228,28 @@ const AUTOPLAY_SCRIPT = `(function () {
     } catch (e) {}
   }
 
-  function kick() {
+  /*
+   * 監視を始める。**締め切りはここでしか延ばさない。**
+   *
+   * ⚠️ MutationObserver のコールバックから締め切りを延ばしたり attempt() を直接呼んだりしない。
+   *    埋め込みは再生中も DOM を書き換え続けるので、そうすると
+   *    (1) 締め切りが永久に来ず (2) 変更のたびに querySelector と play() が走る、という
+   *    二重の暴走になる。Observer は «止まっている interval を起こし直す» だけにする。
+   */
+  function start() {
     deadlineAt = Date.now() + DEADLINE_MS;
     if (!timer) timer = setInterval(attempt, TICK_MS);
+    if (!observer) {
+      try {
+        observer = new MutationObserver(function () { if (!timer) timer = setInterval(attempt, TICK_MS); });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+      } catch (e) {}
+    }
     attempt();
   }
 
-  try {
-    var mo = new MutationObserver(function () { kick(); });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-  } catch (e) {}
-
-  W.__nbEmbedAutoplay = { kick: kick };
-  kick();
+  W.__nbEmbedAutoplay = { kick: start };
+  start();
 })(); true;`;
 
 export type ExternalEmbedPlayerProps = {
