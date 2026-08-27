@@ -202,6 +202,18 @@ export const FixedColors = {
 	 */
 	onTranslucentWhite: "#333333",
 	confettiPieces: ["#F05537", "#FFB03A", "#FFE066", "#4ECDC4", "#8E7DFF", "#FF8FA3", "#3BC46A"],
+	/*
+	#1375 my-dishes の «食べたい / 食べた» を表す状態オレンジと、その相方の白。
+
+	`notificationLike` 等と同じ «識別子としての色» である（塗りの有無で状態を表し、
+	上に載る字と縁を 1 組で配る）。値の意味と «明るくしてはいけない» 理由は
+	`features/myDishes/statusColors.ts` の JSDoc にある。
+	#1629 検査対象を .ts へ広げたのに伴い、固定色の正本であるここへ値を移した
+	（statusColors.ts はこの値を組にして配るだけになる）。
+	*/
+	myDishStatusOrange: "#ED6C02",
+	/** 上と 1 組。白塗り側の地であり、オレンジ塗り側の字・縁でもある */
+	myDishStatusOn: "#FFFFFF",
 } as const;
 
 export interface Palette {
@@ -245,6 +257,15 @@ export interface Palette {
 	inverseSurface: string;
 	/** 反転した面の上の文字（#1629。`inverseSurface` と 1 セット） */
 	onInverseSurface: string;
+	/**
+	 * 処理中に画面へかぶせる半透明の幕（#1629 言語切替の「切り替えています」）。
+	 *
+	 * ⚠️ 幕の上には `textPrimary` の文字が載る。テーマに依らず白い幕にすると、
+	 * ダークでは «白い幕の上に明るい文字» になって読めない（オーナー報告の再発源）。
+	 * メディアの上のスクリム（`FixedColors` 側）とは別物で、こちらは **アプリの面の上**
+	 * にかぶせるものなので必ずテーマで振る。
+	 */
+	busyScrim: string;
 
 	// ───────── 罫線・区切り ─────────
 	/** カード内の行区切り */
@@ -454,6 +475,7 @@ const light: Palette = {
 	promoBannerSurface: "#FBEEDD", // #1629 OpenInAppBanner のバナーの地
 	inverseSurface: "#1A1A1A", // #1629 OpenInAppBanner の「アプリを入手」ボタンの地
 	onInverseSurface: "#FFFFFF", // 同ボタンの文字
+	busyScrim: "rgba(255, 255, 255, 0.85)", // #1629 profile/language.tsx の切替中オーバーレイ（リテラルの写し）
 
 	divider: "#F3F4F6", // SettingsMenuItem の区切り線
 	border: "#C9C9C9", // ScreenHeader.tsx borderBottom / SelectableChip.tsx
@@ -567,6 +589,7 @@ const dark: Palette = {
 	promoBannerSurface: "#332B1D", // クリーム(#FBEEDD)の色相を保ったまま暗面へ混色（brandTint と同じ作法）
 	inverseSurface: "#E5E2E1", // schemes.dark.inverseSurface
 	onInverseSurface: "#313030", // schemes.dark.inverseOnSurface
+	busyScrim: "rgba(20, 19, 19, 0.85)", // background(#141313) の 85%。暗面では «暗い幕 + 明るい文字» でなければ読めない
 
 	divider: "#2A2A2A", // schemes.dark.surfaceContainerHigh
 	border: "#444748", // schemes.dark.outlineVariant

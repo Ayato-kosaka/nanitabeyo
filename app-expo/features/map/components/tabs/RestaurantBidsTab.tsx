@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, RefreshControl, ScrollView, TouchableOpacity } from "react-native";
 import { Tabs } from "@/components/collapsible-tabs";
 import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import type { QueryRestaurantBidsDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantBidsResponse } from "@shared/api/v1/res";
@@ -32,6 +33,8 @@ export function RestaurantBidsTab({ restaurantId }: RestaurantBidsTabProps) {
 	const styles = useThemedStyles(createStyles);
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
+	// #1629 引っ張って更新のスピナー色だけテーマから取る（この画面の他の色は main 由来の直書きのまま）
+	const { colors } = useAppTheme();
 
 	// 入札ステータスの定義（既存実装を維持）
 	// #1629 ステータスの色は面の色ではなく «識別子»（緑 = 進行中 / 青 = 完了 / 橙 = 返金）。
@@ -172,8 +175,16 @@ export function RestaurantBidsTab({ restaurantId }: RestaurantBidsTabProps) {
 			contentContainerStyle={styles.bidsContent}
 			// ページネーション関連のプロパティ
 			onEndReached={bids.loadMore}
-			onRefresh={bids.refresh}
-			refreshing={bids.isLoadingInitial}
+			// #1629 `refreshing` / `onRefresh` を直接渡すと RN が色を持たない RefreshControl を作り、
+			// ダークの地に OS 既定の暗いスピナーが出て見えない。GridList と同じ渡し方に揃える
+			refreshControl={
+				<RefreshControl
+					refreshing={bids.isLoadingInitial}
+					onRefresh={bids.refresh}
+					colors={[colors.brand]}
+					tintColor={colors.brand}
+				/>
+			}
 		/>
 	);
 }

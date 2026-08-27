@@ -193,6 +193,8 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		promoBannerSurface: "#FBEEDD",
 		inverseSurface: "#1A1A1A",
 		onInverseSurface: "#FFFFFF",
+		// #1629 言語切替の «切り替えています» の幕。light は language.tsx に直書きされていた値の写し
+		busyScrim: "rgba(255, 255, 255, 0.85)",
 		textPrimaryDim: "#1F2937",
 		brandTrack: "#FBD9D0",
 		// #1629 OS 許可ダイアログの複製（#1486 §5）。iOS のシステム値をそのまま持つ

@@ -647,7 +647,8 @@ export default function SnsImportScreen() {
 									/>
 								)}
 
-								{isResolving && <ActivityIndicator style={styles.spinner} />}
+								{/* #1629 色を渡さないと OS 既定の灰で描かれ、ダークの地の上でほとんど見えない */}
+							{isResolving && <ActivityIndicator style={styles.spinner} color={colors.brand} />}
 							</View>
 
 							{resolved && (

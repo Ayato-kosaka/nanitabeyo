@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef, memo } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -275,8 +275,16 @@ export default function BlockedDishCategoriesScreen() {
 								ListFooterComponent={renderFooter}
 								onEndReached={handleLoadMore}
 								onEndReachedThreshold={0.5}
-								refreshing={isRefreshing}
-								onRefresh={handleRefresh}
+								// #1629 `refreshing` / `onRefresh` を直接渡すと RN が色を持たない RefreshControl を
+								// 作り、ダークの地に OS 既定の暗いスピナーが出て見えない。GridList と同じ渡し方に揃える
+								refreshControl={
+									<RefreshControl
+										refreshing={isRefreshing}
+										onRefresh={handleRefresh}
+										colors={[colors.brand]}
+										tintColor={colors.brand}
+									/>
+								}
 								contentContainerStyle={styles.listContent}
 								// [ベストプラクティス] 長いリストのメモリ最適化
 								removeClippedSubviews={true}

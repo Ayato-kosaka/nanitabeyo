@@ -1,8 +1,8 @@
 import React, { useCallback } from "react";
 import { View, Text, Switch, TouchableOpacity, StyleSheet, StyleProp, TextStyle } from "react-native";
 
-import type { Palette } from "@/constants/Palette";
-import { useThemedStyles } from "@/contexts/ThemeProvider";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface SettingsToggleItemProps {
 	label: string;
@@ -52,6 +52,7 @@ export function SettingsToggleItem({
 	disabled,
 }: SettingsToggleItemProps) {
 	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const handlePress = useCallback(() => {
 		onValueChange(!value);
 	}, [onValueChange, value]);
@@ -78,10 +79,20 @@ export function SettingsToggleItem({
 					)}
 				</View>
 				<View pointerEvents="none">
+					{/*
+					#1629 【設計】色を渡さない `Switch` は OS 既定色で描かれ、アプリのテーマに
+					追従しない（ダークの面の上に OS ライトの淡いレールが残る）。
+					オン = ブランド色 / オフ = `trackMuted` のレールに、つまみは常に白の
+					1 組で渡す（つまみの白は iOS の既定と同じなので、ライトの見た目は変わらない）。
+					`ios_backgroundColor` はオフのときレールの下に見える色で、これも合わせる。
+					*/}
 					<Switch
 						value={value}
 						onValueChange={onValueChange}
 						disabled={disabled}
+						trackColor={{ false: colors.trackMuted, true: colors.brand }}
+						thumbColor={FixedColors.onFilled}
+						ios_backgroundColor={colors.trackMuted}
 						testID={testID ? `${testID}-switch` : undefined}
 					/>
 				</View>
