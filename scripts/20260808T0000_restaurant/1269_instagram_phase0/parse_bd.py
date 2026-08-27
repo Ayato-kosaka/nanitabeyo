@@ -23,32 +23,55 @@ def main() -> None:
         raise SystemExit("BD summary JSON がログに無い")
     src = json.loads(m.group(1))
 
+    # エラー = 相手が非プロ、とは限らない。トークン側の不備（権限不足・失効）でも同じ形で落ちる。
+    # 2026-08-27、instagram_manage_insights の無いトークンで全件 #10 になり、素朴に数えると
+    # 「プロアカウント率 0%」という嘘の測定値ができた。測定不成立を professional=False と混ぜない。
+    TOKEN_SIDE_ERRORS = {10, 190, 200, 2500, 803}
+
     rows = []
     for r in src["rows"]:
         r = dict(r)
         r["attribution_label"] = LABEL_OF.get(r["handle"], "unknown")
         r["store"] = STORE_OF.get(r["handle"])
+        if r.get("professional") is False and r.get("error_code") in TOKEN_SIDE_ERRORS:
+            r["professional"] = "unmeasured"  # トークン/アプリ側の問題。相手の種別は分かっていない
         rows.append(r)
+
+    unmeasured = [r for r in rows if r["professional"] == "unmeasured"]
+    if unmeasured:
+        print(
+            f"!!! {len(unmeasured)}/{len(rows)} 件がトークン側のエラーで測定不成立です "
+            f"(code={sorted({r.get('error_code') for r in unmeasured})})。"
+            "プロアカウント率としては数えません。",
+            file=sys.stderr,
+        )
 
     by_label = {}
     for r in rows:
         b = by_label.setdefault(r["attribution_label"], {"n": 0, "professional": 0, "with_website": 0})
         b["n"] += 1
+        if r["professional"] == "unmeasured":
+            b["unmeasured"] = b.get("unmeasured", 0) + 1
         if r["professional"] is True:
             b["professional"] += 1
             if r.get("website"):
                 b["with_website"] += 1
     for b in by_label.values():
-        b["professional_rate_pct"] = round(100 * b["professional"] / b["n"], 1) if b["n"] else None
+        judged = b["n"] - b.get("unmeasured", 0)
+        b["judged"] = judged
+        b["professional_rate_pct"] = round(100 * b["professional"] / judged, 1) if judged else None
 
     pro = [r for r in rows if r["professional"] is True]
+    judged = [r for r in rows if r["professional"] in (True, False)]
     out = {
         "purpose": "#1269 Phase 0: business_discovery による Professional アカウント率の確定値",
         "method": "business_discovery.username(<handle>) を叩き、データが返れば professional、error なら非 professional と判定した。画面目視と違い偽陰性が無い。",
         "measured_at": src.get("measured_at"),
         "n": len(rows),
+        "n_judged": len(judged),
+        "n_unmeasured": len(rows) - len(judged),
         "professional": len(pro),
-        "professional_rate_pct": round(100 * len(pro) / len(rows), 1) if rows else None,
+        "professional_rate_pct": round(100 * len(pro) / len(judged), 1) if judged else None,
         "by_attribution_label": by_label,
         "website_present": sum(1 for r in pro if r.get("website")),
         "website_rate_pct_among_professional": round(100 * sum(1 for r in pro if r.get("website")) / len(pro), 1) if pro else None,
@@ -60,7 +83,7 @@ def main() -> None:
             "total_media_sampled": sum(r.get("media_returned", 0) for r in pro),
             "total_media_with_caption": sum(r.get("media_with_caption", 0) for r in pro),
         },
-        "error_codes": sorted({(r.get("error_code"), r.get("error_subcode")) for r in rows if r["professional"] is False}, key=str),
+        "error_codes": sorted({(r.get("error_code"), r.get("error_subcode")) for r in rows if r["professional"] is not True}, key=str),
         "rows": sorted(rows, key=lambda r: (r["attribution_label"], r["handle"])),
     }
     dst = HERE / "out" / "business_discovery_result.json"
