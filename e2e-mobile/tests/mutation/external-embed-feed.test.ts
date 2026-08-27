@@ -1,4 +1,4 @@
-import { by, describeMutation, element, existsNow, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
+import { by, describeMutation, device, element, existsNow, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
 import { RestaurantFeedScreen } from "../../screens/RestaurantFeedScreen";
 import { ensureExternalEmbedImported } from "../../utils/externalEmbedImport";
 import { localeDeepLink } from "../../utils/locale";
@@ -35,8 +35,15 @@ import { readSessionFromEnv } from "../../utils/sessionEnv";
  * 報告したときにだけ現れる、寸法ゼロの印である。
  *
  * ⚠️ それでも **Detox の assertion は «絵が動いていること» までは示せない**（ポスター画像が
- * 上に残る等の失敗形がある）。最終判定は **`record_videos: true` で撮った動画**で行う。
- * spec を緑にすることを目的にして、動画を見ずに «再生できた» と報告しないこと。
+ * 上に残る等の失敗形がある）。だから **連続したコマを端末のスクリーンショットで撮る**。
+ *
+ * ## なぜ動画ではなくスクリーンショットの連写なのか
+ *
+ * `record_videos: true` の `test.mp4` は、**ヘッドレスの Android エミュレータでは
+ * ホーム画面のまま固まる**ことがある（run 33061555648 で実測。91 秒すべてホーム画面で、
+ * 端末の時計まで止まっていた。同じ run の `testDone.png` にはアプリが正しく写っている）。
+ * 動画を «動きの証拠» として当てにできないので、`device.takeScreenshot` で
+ * 1.5 秒おきに撮る。**コマ同士で絵が違えば、それが動いた証拠になる。**
  *
  * ## dev DB への書き込み（@mutation の理由）
  * beforeAll がテストユーザーとして SNS 取り込み（resolve → create ×2）を実行する。
@@ -75,10 +82,16 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 
 		/*
 		#1641 **タップを一切しない。** 自動再生が要件なので、ここで何かを押した時点で
-		「タップ無しで動く」を検証したことにならない。埋め込みの読み込みと `play()` の
-		注入が終わるまで待ち、録画に «勝手に動き出す» ところを残す。
+		「タップ無しで動く」を検証したことにならない。
+
+		埋め込みの読み込みと `play()` の注入を待ちながら、**1.5 秒おきにコマを撮る**。
+		オーナーはこの連番を並べて «絵が変わっているか» を見る（＝ 動いたかどうかの判定）。
 		*/
-		await new Promise((resolve) => setTimeout(resolve, 12_000));
+		await device.takeScreenshot("autoplay-00-arrived");
+		for (let i = 1; i <= 8; i++) {
+			await new Promise((resolve) => setTimeout(resolve, 1_500));
+			await device.takeScreenshot(`autoplay-${String(i).padStart(2, "0")}-t${(i * 1.5).toFixed(1)}s`);
+		}
 
 		/*
 		2 本のうち少なくとも 1 本で **実際に再生が始まっている**こと。
