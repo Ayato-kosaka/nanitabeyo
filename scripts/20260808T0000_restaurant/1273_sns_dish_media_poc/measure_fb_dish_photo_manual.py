@@ -132,14 +132,42 @@ def analyze(_args) -> None:
     ok = [r for r in done if r["page"].strip() == "ok"]
     n = len(ok)
     print(f"=== 記入済み {len(done)}/{len(rows)} 件 ===", file=sys.stderr)
-    print(f"  ページの状態: {dict(page)}", file=sys.stderr)
+    print(f"  ページの状態: {dict(page)}"
+          f"   （private = 非公式プレースページ・写真0枚など、店の写真に到達できないもの）",
+          file=sys.stderr)
     if not n:
         return
 
-    k = sum(1 for r in ok if r["dish_photo"].strip() == "yes")
-    lo, hi = wilson(k, n)
-    print(f"\n  **料理写真がある {k}/{n} = {k/n*100:.2f}%**"
+    # 分母は「Facebook リンクを持つ店」**全部**である。到達できなかった店は
+    # 「測れなかった」のではなく「料理写真が得られなかった」という**測定結果**であり、
+    # 自社サイト経路の 17/31 も「サイトを持つ店」全部を分母にした値なので、
+    # ここを揃えないと 2 つの経路を比較できない。
+    #
+    # そのうえで分子を 2 つに分ける。実測して分かったのは、
+    # 「料理写真がある」ページの多くが **Facebook が自動生成した非公式プレースページ**で、
+    # 写っているのは**来店客が投稿した写真**だということ。これは
+    #   ・店が運営する Page ではないので **Pages API では取得できない**
+    #   ・権利が投稿者個人にあるので **App Review を通しても使えない**
+    # よって ¥60,000 の判断に使えるのは「店の実在ページにある写真」だけである。
+    N = len(done)
+    own = [r for r in ok if r["dish_photo"].strip() == "yes"]          # 店の実在ページ
+    any_ = [r for r in done if r["dish_photo"].strip() == "yes"]       # 来店客投稿を含む
+    lo, hi = wilson(len(own), N)
+    lo_a, hi_a = wilson(len(any_), N)
+    print(f"\n  **[A] 店の実在ページに料理写真がある {len(own)}/{N} = {len(own)/N*100:.2f}%**"
           f"  95%CI {lo*100:.1f}〜{hi*100:.1f}%", file=sys.stderr)
+    print(f"      ← API で取得でき、権利の交渉相手が店になるのはこれだけ。"
+          f"**¥60,000 の判断はこの数字で行う**", file=sys.stderr)
+    print(f"  [B] 来店客の投稿も数えると   {len(any_)}/{N} = {len(any_)/N*100:.2f}%"
+          f"  95%CI {lo_a*100:.1f}〜{hi_a*100:.1f}%", file=sys.stderr)
+    print(f"      ← 取得手段も権利の裏付けも無い。**この数字を歩留まりと呼んではいけない**",
+          file=sys.stderr)
+    k = sum(1 for r in ok if r["dish_photo"].strip() == "yes")
+    l1, h1 = wilson(k, n)
+    print(f"  [C] （参考）実在ページに到達できた店だけなら {k}/{n} = {k/n*100:.2f}%"
+          f"  95%CI {l1*100:.1f}〜{h1*100:.1f}%", file=sys.stderr)
+    print(f"      ← 分母が「到達できた店」に選択されている。他経路と比較してはいけない",
+          file=sys.stderr)
 
     ident = collections.Counter(r["identifiable"].strip() for r in ok if r["identifiable"].strip())
     if ident:
@@ -156,21 +184,25 @@ def analyze(_args) -> None:
 
     print("\n=== 層別（website あり / socials のみ）===", file=sys.stderr)
     for layer in ("has_website", "socials_only"):
-        sub = [r for r in ok if r["layer"] == layer]
+        sub = [r for r in done if r["layer"] == layer]   # 分母は上と同じく「全部」
         if not sub:
             continue
-        kk = sum(1 for r in sub if r["dish_photo"].strip() == "yes")
+        kk = sum(1 for r in sub
+                 if r["page"].strip() == "ok" and r["dish_photo"].strip() == "yes")   # [A] 基準
+        aa = sum(1 for r in sub if r["dish_photo"].strip() == "yes")                  # [B] 基準
         l3, h3 = wilson(kk, len(sub))
-        print(f"  {layer:14} {kk}/{len(sub)} = **{kk/len(sub)*100:5.2f}%**"
-              f"  95%CI {l3*100:.1f}〜{h3*100:.1f}%", file=sys.stderr)
+        print(f"  {layer:14} [A] {kk}/{len(sub)} = **{kk/len(sub)*100:5.2f}%**"
+              f"  95%CI {l3*100:.1f}〜{h3*100:.1f}%"
+              f"   ／ [B] {aa}/{len(sub)} = {aa/len(sub)*100:.2f}%", file=sys.stderr)
 
     print("\n=== 自社サイト経路との比較（判定基準は同じ）===", file=sys.stderr)
     print(f"  自社サイトの店単位 precision **{OWN_SITE_STORE_PRECISION*100:.2f}%**（17/31）",
           file=sys.stderr)
-    print(f"  Facebook               **{k/n*100:.2f}%**（{k}/{n}）", file=sys.stderr)
+    print(f"  Facebook [A]           **{len(own)/N*100:.2f}%**（{len(own)}/{N}）",
+          file=sys.stderr)
 
     print("\n=== ¥60,000 の判断材料（この率が本当なら）===", file=sys.stderr)
-    for label, rate in (("下限 (CI 下端)", lo), ("点推定", k / n), ("上限 (CI 上端)", hi)):
+    for label, rate in (("下限 (CI 下端)", lo), ("点推定", len(own) / N), ("上限 (CI 上端)", hi)):
         gross = FB_SHARE_OF_POPULATION * rate
         print(f"  {label:14} 母集団の **{gross*100:5.2f}%**"
               f"（{POP*gross:,.0f} 店）に料理写真がある計算", file=sys.stderr)
