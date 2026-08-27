@@ -125,40 +125,35 @@ export class RestaurantsRepository {
         AND rct.action_type = 'save'
         AND rct.target_type = 'dish_media'
       GROUP BY d.restaurant_id
-    )
-    SELECT
-      r.id,
-      r.google_place_id,
-      r.name,
-      r.name_language_code,
-      r.latitude,
-      r.longitude,
-      r.image_url,
-      r.image_path,
-      r.address_components,
-      r.plus_code,
-      r.created_at,
-      -- #843 catalog 同期の metadata。GROUP BY は r.id（主キー）なので
-      -- 関数従属で r.* を選べる（GROUP BY への追記は要らない）
-      r.source_seed_id,
-      r.source_names,
-      r.source_row_hash,
-      r.synced_at,
-      COUNT(dr.id)::int                    AS review_count,
-      COALESCE(AVG(dr.rating), 0)::double precision AS average_rating,
-      sr.last_saved_at
-    FROM saved_restaurants sr
-    JOIN restaurants r
-      ON r.id = sr.restaurant_id
-    JOIN params p
-      ON TRUE
-    -- レビュー集計用に dishes / dish_reviews を LEFT JOIN
-    LEFT JOIN dishes d
-      ON d.restaurant_id = r.id
-    LEFT JOIN dish_reviews dr
-      -- #1513 削除済みレビューを件数・平均に混ぜない
-      ON dr.dish_id = d.id AND dr.deleted_at IS NULL
-    WHERE
+    ),
+    candidates AS (
+      /*
+        #1629 【設計】**集計より前に «返す行» を確定させる。**
+
+        旧実装は restaurants × dishes × dish_reviews を LEFT JOIN したうえで
+        GROUP BY r.id して集計し、**そのあとで** ORDER BY / LIMIT していた。
+        半径 5km の東京駅で該当 21,247 行あると、返すのは 20 行なのに
+        21,247 店ぶんのレビュー集計を回すことになる（実測 9.3 秒）。
+
+        ここでは «WHERE と ORDER BY と LIMIT/OFFSET» だけを先に済ませ、
+        集計は残った limit 件に対してだけ行う。**絞る → 集計する** の順序が要。
+
+        ⚠️ このメソッドの並び順は «保存日時の新しい順» であって距離順ではないので、
+        KNN 演算子（location <-> 点）で «近い n 件» に切ることはできない
+        （切ると «近い 20 件を保存日時で並べた先頭 20 件» になり、意味が変わる）。
+        そのぶんここは «候補集合を先に確定させる» だけに留めている。
+        もともとこの経路の駆動表は saved_restaurants（そのユーザーが保存した店だけ）
+        なので、距離で 21,247 行に広がるのは集計の側であり、候補の側ではない。
+      */
+      SELECT
+        r.id,
+        sr.last_saved_at
+      FROM saved_restaurants sr
+      JOIN restaurants r
+        ON r.id = sr.restaurant_id
+      JOIN params p
+        ON TRUE
+      WHERE
       /*
         #1629 【修正】ST_DWithin + 既存の GIST 索引（idx_restaurants_location）で絞る。
 
@@ -184,14 +179,48 @@ export class RestaurantsRepository {
         ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326)::geography,
         p.radius_km * 1000
       )
+      -- 「保存」日時の新しい順にソート（外側の ORDER BY と同一。ここで確定させる）
+      ORDER BY
+        sr.last_saved_at DESC
+      LIMIT ${dto.limit ?? 20}
+      OFFSET ${dto.offset ?? 0}
+    )
+    SELECT
+      r.id,
+      r.google_place_id,
+      r.name,
+      r.name_language_code,
+      r.latitude,
+      r.longitude,
+      r.image_url,
+      r.image_path,
+      r.address_components,
+      r.plus_code,
+      r.created_at,
+      -- #843 catalog 同期の metadata。GROUP BY は r.id（主キー）なので
+      -- 関数従属で r.* を選べる（GROUP BY への追記は要らない）
+      r.source_seed_id,
+      r.source_names,
+      r.source_row_hash,
+      r.synced_at,
+      COUNT(dr.id)::int                    AS review_count,
+      COALESCE(AVG(dr.rating), 0)::double precision AS average_rating,
+      c.last_saved_at
+    FROM candidates c
+    JOIN restaurants r
+      ON r.id = c.id
+    -- レビュー集計用に dishes / dish_reviews を LEFT JOIN。
+    -- #1629 candidates で limit 件に絞ったあとなので、集計対象は最大 limit 店ぶん
+    LEFT JOIN dishes d
+      ON d.restaurant_id = r.id
+    LEFT JOIN dish_reviews dr
+      -- #1513 削除済みレビューを件数・平均に混ぜない
+      ON dr.dish_id = d.id AND dr.deleted_at IS NULL
     GROUP BY
       r.id,
-      sr.last_saved_at
-    -- 「保存」日時の新しい順にソート
+      c.last_saved_at
     ORDER BY
-      sr.last_saved_at DESC
-    LIMIT ${dto.limit ?? 20}
-    OFFSET ${dto.offset ?? 0};
+      c.last_saved_at DESC;
   `;
 
     // メタ情報を詰め替えてドメイン層で扱いやすい形にして返す
@@ -254,15 +283,43 @@ export class RestaurantsRepository {
     // 店舗選択 UI で「一蘭」と打った結果が入札額で並ぶのは不自然なため
     // 距離式は SELECT に出さない（返却行に余計な列を混ぜないため）。
     // GROUP BY r.id に対して r の列だけから成る式は関数従属なので ORDER BY に直接書ける
-    const orderBy =
-      escapedNameQuery || dto.orderByDistance
-        ? // #1629 距離順も geography で測る。WHERE の ST_DWithin と同じ土俵にしておかないと、
-          // 「絞り込みには入っているのに並び順だけ別の距離」という食い違いが起きうる
-          Prisma.sql`ORDER BY ST_Distance(
-            r.location,
-            ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography
-          ) ASC`
-        : Prisma.sql`ORDER BY total_cents DESC`;
+    const orderByDistance = Boolean(escapedNameQuery || dto.orderByDistance);
+    const limit = dto.limit ?? 20;
+    // 検索地点。ST_DWithin / ST_Distance / KNN（<->）のすべてで同じ点を使う
+    const originPoint = Prisma.sql`ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography`;
+
+    /*
+      #1629 【設計】**KNN（<->）で候補を先に絞ってから集計する。**
+
+      旧実装は restaurants へ restaurant_bids / dishes / dish_reviews を LEFT JOIN し、
+      GROUP BY r.id で集計してから ORDER BY / LIMIT していた。半径 5km の東京駅では
+      ST_DWithin に該当する 21,247 行すべてを集計してから 20 行に切っており、
+      索引は効いているのに 9.3 秒かかっていた（GIST は «半径内か» は絞れるが
+      «距離順に並べる» ことはできないので、ORDER BY ST_Distance は全件の距離計算 + ソートになる）。
+
+      PostGIS の KNN 演算子（location <-> 点）は ORDER BY ... LIMIT n の形で
+      GIST 索引から «近い順に n 件» を直接取り出せる。これを JOIN より前に置く。
+
+      ⚠️ 並び順が距離順のときだけ KNN で切れる。**入札額順（total_cents DESC）のときに
+         «近い n 件» へ切ると «近い 20 件を入札額で並べた先頭 20 件» になり、意味が変わる**
+         （遠くの高額入札店が消える = 広告の露出が変わる）。そのため入札額順のときは
+         KNN で切らず、候補段階では restaurant_bids だけを集計して total_cents 順に切る。
+         重いレビュー集計（dishes × dish_reviews）は、どちらの経路でも
+         limit 件に絞ったあとでしか走らない。
+    */
+    // 候補段階（nearby）: 距離順のときだけ KNN で limit 件へ切る
+    const knnOrderLimit = orderByDistance
+      ? Prisma.sql`ORDER BY r.location <-> ${originPoint} LIMIT ${limit}`
+      : Prisma.empty;
+    // 候補段階（candidates）: 入札額順のときはここで total_cents 順に limit 件へ切る
+    const bidOrderLimit = orderByDistance
+      ? Prisma.empty
+      : Prisma.sql`ORDER BY total_cents DESC LIMIT ${limit}`;
+    const orderBy = orderByDistance
+      ? // #1629 距離順も geography で測る。WHERE の ST_DWithin と同じ土俵にしておかないと、
+        // 「絞り込みには入っているのに並び順だけ別の距離」という食い違いが起きうる
+        Prisma.sql`ORDER BY ST_Distance(r.location, ${originPoint}) ASC`
+      : Prisma.sql`ORDER BY total_cents DESC`;
 
     const rawResult = await tx.$queryRaw<
       (Pick<
@@ -289,6 +346,38 @@ export class RestaurantsRepository {
         max_end_date: string | null;
       })[]
     >(Prisma.sql`
+      WITH nearby AS (
+        -- #1629 JOIN より前に候補を絞る。距離順のときは KNN（location <-> 点）で
+        -- GIST 索引から «近い順に limit 件» を直接取り出す
+        SELECT r.id
+        FROM restaurants r
+        WHERE
+          -- #1629 ST_DWithin + 既存 GIST（詳細は searchNearbySavedRestaurants 側のコメント）
+          ST_DWithin(
+            r.location,
+            ${originPoint},
+            ${radiusInKm * 1000}
+          )
+          ${nameFilter}
+        ${knnOrderLimit}
+      ),
+      candidates AS (
+        -- 入札の集計は restaurant_bids だけを見る。ここで total_cents 順に切ることで、
+        -- 重いレビュー集計（dishes × dish_reviews）へ渡る行数を limit 件に抑える。
+        -- 旧実装は restaurant_bids と dish_reviews を同じ GROUP BY に混ぜていたため、
+        -- 片方の行数がもう片方の集計を水増ししていた（#1629 で分離）
+        SELECT
+          n.id,
+          COALESCE(SUM(rb.amount_cents), 0)::double precision AS total_cents,
+          MAX(rb.end_date) AS max_end_date
+        FROM nearby n
+        LEFT JOIN restaurant_bids rb ON rb.restaurant_id = n.id
+          AND rb.start_date <= CURRENT_DATE
+          AND rb.end_date > CURRENT_DATE
+          AND rb.status = 'paid'
+        GROUP BY n.id
+        ${bidOrderLimit}
+      )
       SELECT
         r.id,
         r.google_place_id,
@@ -306,31 +395,21 @@ export class RestaurantsRepository {
         r.source_names,
         r.source_row_hash,
         r.synced_at,
-        COALESCE(SUM(rb.amount_cents), 0)::double precision as total_cents,
-        MAX(rb.end_date) as max_end_date,
+        c.total_cents,
+        c.max_end_date,
         COUNT(dr.id)::int AS review_count,
         COALESCE(AVG(dr.rating), 0)::double precision AS average_rating
-      FROM restaurants r
-      LEFT JOIN restaurant_bids rb ON r.id = rb.restaurant_id 
-        AND rb.start_date <= CURRENT_DATE 
-        AND rb.end_date > CURRENT_DATE 
-        AND rb.status = 'paid'
-      LEFT JOIN dishes d 
+      FROM candidates c
+      JOIN restaurants r
+        ON r.id = c.id
+      LEFT JOIN dishes d
         ON d.restaurant_id = r.id
-      LEFT JOIN dish_reviews dr 
+      LEFT JOIN dish_reviews dr
         -- #1513 削除済みレビューを件数・平均に混ぜない
         ON dr.dish_id = d.id AND dr.deleted_at IS NULL
-      WHERE 
-        -- #1629 ST_DWithin + 既存 GIST（詳細は searchNearbySavedRestaurants 側のコメント）
-        ST_DWithin(
-          r.location,
-          ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography,
-          ${radiusInKm * 1000}
-        )
-        ${nameFilter}
-      GROUP BY r.id
+      GROUP BY r.id, c.total_cents, c.max_end_date
       ${orderBy}
-      LIMIT ${dto.limit ?? 20};
+      LIMIT ${limit};
     `);
 
     return rawResult.map((row) => ({
