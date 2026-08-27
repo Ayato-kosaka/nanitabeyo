@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { FixedColors } from "@/constants/Palette";
 
 type DishSelectionExpandLoadingProps = {
 	/** #1484 選択された料理カードの画像URL。店舗提案の取得完了までこの画像を画面に残す。 */
@@ -41,7 +42,10 @@ export const DishSelectionExpandLoading = ({ imageUrl }: DishSelectionExpandLoad
 const styles = StyleSheet.create({
 	container: {
 		...StyleSheet.absoluteFillObject,
-		backgroundColor: "#000",
+		// #1629 全画面の料理写真の «余白» なので、テーマに依らず常に黒。
+		// メディアビューア（DishMediaFeed）と同じ地であり、ここをライトで白くすると
+		// 写真がフレームから浮いて見え、演出（写真がそのまま広がる）が崩れる。
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	image: {
 		width: "100%",

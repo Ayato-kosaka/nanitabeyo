@@ -210,6 +210,8 @@ export interface Palette {
 	dangerStrong: string;
 	/** 注意の淡い地（必須バッジ） */
 	dangerTint: string;
+	/** さらに淡い注意の地（エラーバナー・エラー時の入力欄。ライトでは dangerTint より薄いため分けてある） */
+	dangerTintSoft: string;
 	/** 破壊的操作の文字（ログアウト） */
 	destructive: string;
 	/** 確認ダイアログの見出し（Material の onSurface 系。#1577） */
@@ -282,6 +284,7 @@ const light: Palette = {
 	danger: "#DC2626", // search requiredText
 	dangerStrong: "#EF4444", // search selectedRestrictionChip
 	dangerTint: "#FEE2E2", // search requiredBadge
+	dangerTintSoft: "#FEF2F2", // #1629 FeedbackForm.tsx のエラーバナー / エラー時の入力欄の地（main のリテラルの写し）
 	destructive: "#FF3E33", // マイページのログアウト行
 	dialogTitle: "#1C1B1F", // #1577 DialogProvider が直書きしていた値の写し（M3 onSurface）
 	dialogMessage: "#49454F", // 同上（M3 onSurfaceVariant）
@@ -341,6 +344,7 @@ const dark: Palette = {
 	danger: "#FF8A80", // 暗面では明度を上げないと文字用途で AA を割る
 	dangerStrong: "#FF6B6B",
 	dangerTint: "#4A2320", // danger を暗面へ混色
+	dangerTintSoft: "#331E1C", // dangerTint よりさらに淡い暗面混色（brandTint → brandTintSoft と同じ振り幅）
 	destructive: "#FF8A80",
 	dialogTitle: "#E5E2E1", // schemes.dark.onSurface
 	dialogMessage: "#C4C7C7", // schemes.dark.onSurfaceVariant

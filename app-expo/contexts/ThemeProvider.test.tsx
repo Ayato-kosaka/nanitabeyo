@@ -206,6 +206,8 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		danger: "#DC2626",
 		dangerStrong: "#EF4444",
 		dangerTint: "#FEE2E2",
+		// #1629 FeedbackForm.tsx のエラーバナー / エラー時の入力欄の地（main のリテラルの写し）
+		dangerTintSoft: "#FEF2F2",
 		destructive: "#FF3E33",
 		// #1514 通報受付の CircleCheck。ReportContentSheet.tsx が直書きしていた
 		// リテラルの写しなので、ライトの見た目は 1px も変わらない。
