@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { FixedColors, type Palette } from "@/constants/Palette";
+import { type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { View, StyleSheet, TouchableOpacity, InteractionManager } from "react-native";
 import { Navigation, RotateCw } from "lucide-react-native";
@@ -24,8 +24,26 @@ import { useLogger } from "@/hooks/useLogger";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { AvatarBubbleMarker } from "@/features/mapMarkers";
-import { RestaurantLabelMarker } from "@/features/restaurantPicker/components/RestaurantLabelMarker";
+import {
+	RestaurantClusterMarker,
+	RestaurantPinMarker,
+	type RestaurantPinCluster,
+} from "@/features/restaurantPicker/components/RestaurantPinMarkers";
+import {
+	clusterMapPins,
+	isSameClusterViewport,
+	regionForCluster,
+	type ClusterViewport,
+} from "@/features/map/clustering";
+import {
+	MAX_PICKER_MARKERS,
+	NEARBY_PIN_FETCH_LIMIT,
+	PICKER_FETCH_DEBOUNCE_MS,
+	SAVED_PIN_FETCH_LIMIT,
+	pinDetailLevelForRegion,
+	radiusForRegion,
+	type RestaurantPin,
+} from "@/features/restaurantPicker/mapPins";
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import {
 	SavedRestaurantsSheet,
@@ -45,14 +63,30 @@ type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
  * - 地図上のPOIタップ or 検索バーからレストラン選択でレストラン作成＆詳細画面へ遷移
  * - 保存したお店を地図上にマーカー表示、カード表示
  */
-/**
- * #1375 地図に同時に置くアプリ内お店ピンの上限。
- *
- * マーカーは 1 個ごとにネイティブ側でビットマップになるため、無制限に置くと重くなり、
- * 低メモリ端末では落ちる（#1375 で my-dishes のマップが実際に落ちた）。
- * 「探す」ために必要な密度はこの程度で足りる。
- */
-const MAX_NEARBY_RESTAURANT_PINS = 40;
+/*
+#1629（オーナー指摘）**「このエリアで再検索が重い。ピンが出てる数もめっちゃ多い」。**
+
+## 直す前に測ったこと
+
+- 「このエリアで再検索」1 回で描くマーカー: **API が返した件数そのまま**。
+  `limit` を渡していなかったのでサーバ既定の 20 件が効いており、
+  クライアント側の `slice(0, 40)` は一度も働いていなかった（＝ 上限が無いのと同じで、
+  サーバの既定値が変われば黙って増える）。**表示域の外のピンも全部マーカーにしていた。**
+- viewport を動かしたときの API 回数: `onRegionChangeComplete` **1 回につき 1 本**。
+  デバウンスが無く、飛んでいるリクエストのキャンセルも無い（応答を捨てるだけなので、
+  サーバ側の集計クエリは全部走り切る）。
+- radius: `max(latitudeDelta, longitudeDelta) * 50000` を 50km で頭打ち。下限は無し。
+
+## どう変えたか（大手の地図アプリの標準的な作りへ）
+
+1. 画面の外のピンはマーカーにしない（間引き）
+2. 重なるピンは 1 つの «数字の丸» へ畳む（クラスタ。`features/map/clustering.ts` を共用）
+3. 同時に描く数に上限を置く（`MAX_PICKER_MARKERS`）
+4. 引きでは点、寄りで店名つき（`pinDetailLevelForRegion`）
+5. viewport 変更はデバウンスし、前のリクエストは `AbortController` で止める
+
+数字と切り替えの基準は `features/restaurantPicker/mapPins.ts` に置き、テストで固定してある。
+*/
 
 export default function SelectRestaurantScreen() {
 	/**
@@ -101,58 +135,125 @@ export default function SelectRestaurantScreen() {
 	無制限に置くと重くなり、低メモリ端末では落ちる（#1375 でマップ画面が実際に落ちた）。
 	*/
 	const [nearbyRestaurants, setNearbyRestaurants] = useState<QueryRestaurantsResponse>([]);
+
+	/*
+	#1629 **クラスタリングの単位になる表示域。**
+
+	`onRegionChangeComplete` は指を離すたびに «新しいオブジェクト» を寄こす。そのまま
+	state に入れると中身が同じでも参照が変わり、`useMemo` が外れて全マーカーが作り直される。
+	`isSameClusterViewport` で «畳み方にも間引きにも影響しない変化» を吸収し、前の参照を保つ
+	（判定の根拠は features/map/clustering.ts）。
+	*/
+	const [clusterViewport, setClusterViewport] = useState<ClusterViewport>(() => ({
+		latitude: currentRegion.current.latitude,
+		longitude: currentRegion.current.longitude,
+		latitudeDelta: currentRegion.current.latitudeDelta,
+		longitudeDelta: currentRegion.current.longitudeDelta,
+	}));
+	const updateClusterViewport = useCallback((region: Region) => {
+		setClusterViewport((prev) =>
+			isSameClusterViewport(prev, region)
+				? prev
+				: {
+						latitude: region.latitude,
+						longitude: region.longitude,
+						latitudeDelta: region.latitudeDelta,
+						longitudeDelta: region.longitudeDelta,
+					},
+		);
+	}, []);
+
+	/*
+	#1629 **飛んでいる検索を止める / 連打の分をまとめる。**
+
+	- `nearbyAbortRef`: 直前のリクエストの `AbortController`。新しい検索を始める前に必ず止める。
+	  応答を捨てるだけ（旧実装の `requestId`）では、**サーバ側の集計クエリは全部走り切る**。
+	- `nearbyDebounceRef`: 表示域の変化をまとめるタイマー。慣性スクロールの停止や
+	  `animateToRegion` の着地でも `onRegionChangeComplete` は飛ぶので、
+	  1 操作で複数本のリクエストが並んでいた。
+	- `nearbyRequestRef`: 中断が間に合わなかった応答の追い越しを捨てる最後の砦（据え置き）。
+	*/
 	const nearbyRequestRef = useRef(0);
+	const nearbyAbortRef = useRef<AbortController | null>(null);
+	const nearbyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const fetchNearbyRestaurants = useCallback(
 		async (region: Region) => {
 			if (!isPickMode) return;
+			// 前の検索はもう要らない。応答を待たずに止める
+			nearbyAbortRef.current?.abort();
+			const controller = new AbortController();
+			nearbyAbortRef.current = controller;
 			const requestId = ++nearbyRequestRef.current;
 			try {
-				const response = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>(
-					"v1/restaurants/search",
-					{
-						method: "GET",
-						requestPayload: {
-							lat: region.latitude,
-							lng: region.longitude,
-							/*
-							  #1629 【修正】半径を 50 km で頭打ちにする。
-
-							  日本全体が映っている状態（位置情報を拒否したときの初期表示）で
-							  「このエリアで再検索」を押すと、latitudeDelta が 20 度前後になり
-							  **半径 1,000 km** を投げていた。サーバ側の DTO は radius に上限を
-							  持たない（@IsPositive のみ）ので素通りし、全国の店舗を集計しようとして
-							  「保存したお店の取得に失敗しました」に落ちる。
-
-							  50 km は my-dishes の絞り込み（QueryMyDishesDto.radius の @Max）と同じ上限。
-							  ⚠️ ここを外すなら、サーバ側にも上限を入れてからにすること。
+				const response = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>("v1/restaurants/search", {
+					method: "GET",
+					requestPayload: {
+						lat: region.latitude,
+						lng: region.longitude,
+						// 半径の決め方（上限 50km / 下限 200m）は mapPins.ts に理由付きで置いてある
+						radius: radiusForRegion(region),
+						/*
+							  #1629 【修正】`limit` を明示する。渡していなかったのでサーバ既定の 20 件が
+							  効いており、クライアント側の上限（旧 `slice(0, 40)`）は一度も働いていなかった。
+							  取った件数をそのまま描くのではなく、**畳んでから** `MAX_PICKER_MARKERS` で切る。
 							*/
-							radius: Math.min(Math.max(region.latitudeDelta, region.longitudeDelta) * 50000, 50000),
-						},
+						limit: NEARBY_PIN_FETCH_LIMIT,
 					},
-				);
+					signal: controller.signal,
+				});
 				// 追い越しを捨てる（指を離すたびに投げるので、古い応答が後から届きうる）
 				if (requestId !== nearbyRequestRef.current) return;
-				setNearbyRestaurants(asApiList(response).slice(0, MAX_NEARBY_RESTAURANT_PINS));
+				setNearbyRestaurants(asApiList(response));
 			} catch (error) {
+				// 自分で止めたものは «失敗» ではない。ログにも出さない
+				if ((error as ApiError | undefined)?.code === "aborted") return;
 				// 地図の手がかりが出ないだけなので、画面は止めない（スナックバーも出さない）
 				logFrontendEvent({
 					event_name: "nearby_restaurants_search_error",
 					error_level: "warn",
 					payload: { error },
 				});
+			} finally {
+				if (nearbyAbortRef.current === controller) nearbyAbortRef.current = null;
 			}
 		},
 		[callBackend, isPickMode, logFrontendEvent],
 	);
 
-	// Handle region change with debouncing
+	/**
+	 * 表示域が変わったときの取得。**まとめてから 1 本だけ投げる。**
+	 *
+	 * ⚠️ ここを «即時» に戻さないこと。`onRegionChangeComplete` は 1 回の操作で複数回飛ぶ。
+	 */
+	const scheduleNearbyFetch = useCallback(
+		(region: Region) => {
+			if (!isPickMode) return;
+			if (nearbyDebounceRef.current) clearTimeout(nearbyDebounceRef.current);
+			nearbyDebounceRef.current = setTimeout(() => {
+				nearbyDebounceRef.current = null;
+				void fetchNearbyRestaurants(region);
+			}, PICKER_FETCH_DEBOUNCE_MS);
+		},
+		[fetchNearbyRestaurants, isPickMode],
+	);
+
+	// 画面を離れるときに、待っているタイマーと飛んでいるリクエストを両方片付ける
+	useEffect(
+		() => () => {
+			if (nearbyDebounceRef.current) clearTimeout(nearbyDebounceRef.current);
+			nearbyAbortRef.current?.abort();
+		},
+		[],
+	);
+
 	const handleRegionChangeComplete = useCallback(
 		(region: Region) => {
 			currentRegion.current = region;
-			// 指を離したときだけ引く（pan の最中には投げない）
-			void fetchNearbyRestaurants(region);
+			// 畳み方・間引きの基準は «指を離したときの表示域»。pan 中に畳み直すと重く、ピンが動いて見える
+			updateClusterViewport(region);
+			scheduleNearbyFetch(region);
 		},
-		[fetchNearbyRestaurants],
+		[scheduleNearbyFetch, updateClusterViewport],
 	);
 
 	// #644 【設計】レストラン作成＆詳細画面へ遷移する関数（ストアにキャッシュ→ナビゲーション）
@@ -320,20 +421,9 @@ export default function SelectRestaurantScreen() {
 						requestPayload: {
 							lat: region.latitude,
 							lng: region.longitude,
-							/*
-							  #1629 【修正】半径を 50 km で頭打ちにする。
-
-							  日本全体が映っている状態（位置情報を拒否したときの初期表示）で
-							  「このエリアで再検索」を押すと、latitudeDelta が 20 度前後になり
-							  **半径 1,000 km** を投げていた。サーバ側の DTO は radius に上限を
-							  持たない（@IsPositive のみ）ので素通りし、全国の店舗を集計しようとして
-							  「保存したお店の取得に失敗しました」に落ちる。
-
-							  50 km は my-dishes の絞り込み（QueryMyDishesDto.radius の @Max）と同じ上限。
-							  ⚠️ ここを外すなら、サーバ側にも上限を入れてからにすること。
-							*/
-							radius: Math.min(Math.max(region.latitudeDelta, region.longitudeDelta) * 50000, 50000),
-							limit: 20,
+							// 半径の決め方（上限 50km / 下限 200m）とその経緯は mapPins.ts の radiusForRegion
+							radius: radiusForRegion(region),
+							limit: SAVED_PIN_FETCH_LIMIT,
 						},
 					},
 				);
@@ -342,6 +432,8 @@ export default function SelectRestaurantScreen() {
 				// 画面ごと ErrorBoundary へ落ちていた（throw は try の外なので catch できない）
 				setSavedRestaurants(asApiList(response.data));
 				setActiveRestaurantId(null);
+				// #1629 取り直した範囲でクラスタも畳み直す（地図は動いていないので通常は同じ参照が返る）
+				updateClusterViewport(region);
 			} catch (error) {
 				showSnackbar(i18n.t("SelectRestaurant.fetchSavedRestaurantsError"));
 				logFrontendEvent({
@@ -353,7 +445,7 @@ export default function SelectRestaurantScreen() {
 				setIsLoadingSavedRestaurants(false);
 			}
 		},
-		[callBackend, lightImpact, logFrontendEvent, showSnackbar, safePresentSheet],
+		[callBackend, lightImpact, logFrontendEvent, showSnackbar, safePresentSheet, updateClusterViewport],
 	);
 
 	// #644 【設計】保存したお店のマーカー押下時の処理（ストア upsert → 遷移）
@@ -363,10 +455,23 @@ export default function SelectRestaurantScreen() {
 	**1 回目で選択、2 回目で確定**（保存済みピンと同じ作法）にする。
 	いきなり確定すると、地図を触っていて指が当たっただけで記録の店が決まってしまう。
 	*/
+	/*
+	#1629 **選択中の店舗は ref からも読む。**
+
+	マーカーの `onPress` を `activeRestaurantId`（state）に依存させると、1 件選ぶたびに
+	ハンドラの identity が変わり、**画面に出ている全マーカーへ新しい props が流れる**。
+	View Marker はネイティブでビットマップになるので、そのたびに全部が焼き直しの対象になる。
+	ハンドラは «押されたときに最新の選択を読む» 形にして、identity を固定する。
+	*/
+	const activeRestaurantIdRef = useRef<string | null>(null);
+	useEffect(() => {
+		activeRestaurantIdRef.current = activeRestaurantId;
+	}, [activeRestaurantId]);
+
 	const handleNearbyRestaurantMarkerPress = useCallback(
 		(item: QueryRestaurantsResponse[number]) => {
 			lightImpact();
-			if (activeRestaurantId === item.restaurant.id) {
+			if (activeRestaurantIdRef.current === item.restaurant.id) {
 				usePickedRestaurantStore.getState().setPicked({
 					restaurantId: item.restaurant.id,
 					name: item.restaurant.name,
@@ -377,18 +482,15 @@ export default function SelectRestaurantScreen() {
 			}
 			setActiveRestaurantId(item.restaurant.id);
 		},
-		[activeRestaurantId, lightImpact],
+		[lightImpact],
 	);
 
 	const handleSavedRestaurantMarkerPress = useCallback(
 		(restaurant: SavedRestaurant) => {
 			lightImpact();
 
-			const index = savedRestaurants.findIndex((r) => r.restaurant.id === restaurant.restaurant.id);
-			if (index === -1) return;
-
 			// すでにアクティブなら確定（pick モードは選択して戻る / 通常は詳細画面へ）
-			if (activeRestaurantId === restaurant.restaurant.id) {
+			if (activeRestaurantIdRef.current === restaurant.restaurant.id) {
 				if (isPickMode) {
 					usePickedRestaurantStore.getState().setPicked({
 						restaurantId: restaurant.restaurant.id,
@@ -415,7 +517,39 @@ export default function SelectRestaurantScreen() {
 			// アクティブ更新（スクロールはシート側で active ID を監視して同期）
 			setActiveRestaurantId(restaurant.restaurant.id);
 		},
-		[activeRestaurantId, isPickMode, lightImpact, savedRestaurants, locale],
+		[isPickMode, lightImpact, locale],
+	);
+
+	/**
+	 * 地図のピンを押したときの唯一の入口。**identity を固定する**（上の申し送り参照）。
+	 *
+	 * pick モードは «アプリ内のお店»、それ以外は «保存したお店» を出しているので、
+	 * どちらのピンかはモードで決まる。
+	 */
+	const handlePinPress = useCallback(
+		(pin: RestaurantPin) => {
+			if (isPickMode) {
+				handleNearbyRestaurantMarkerPress(pin as QueryRestaurantsResponse[number]);
+				return;
+			}
+			handleSavedRestaurantMarkerPress(pin as SavedRestaurant);
+		},
+		[handleNearbyRestaurantMarkerPress, handleSavedRestaurantMarkerPress, isPickMode],
+	);
+
+	/**
+	 * 畳んだ丸を押したら «もう一段ほどく»。中のピンの外接矩形へ寄せる
+	 * （my-dishes の Map と同じ作法。`regionForCluster`）。
+	 */
+	const handleClusterPress = useCallback(
+		(cluster: RestaurantPinCluster) => {
+			lightImpact();
+			const region = regionForCluster(cluster);
+			currentRegion.current = region;
+			updateClusterViewport(region);
+			mapRef.current?.animateToRegion(region, 400);
+		},
+		[lightImpact, updateClusterViewport],
 	);
 
 	// #644 【設計】保存したお店のカード押下時の処理（ボタン以外）（ストア upsert → 遷移）
@@ -584,59 +718,65 @@ export default function SelectRestaurantScreen() {
 	);
 
 	/*
+	#1629 **地図に出すものを «取得した全件» から «いま見える範囲の、畳んだあとの上限内» へ変える。**
+
+	直す前は、取得した配列をそのまま 1 件 1 マーカーで描いていた（下の 3 つが全部無かった）。
+
+	  1. 間引き … 表示域の外のピンもマーカーにしていた
+	  2. クラスタ … 重なって読めないピンがそのまま並んでいた
+	  3. 上限 … 描く数に天井が無かった（サーバ既定の 20 件に暗黙に依存）
+
+	`clusterMapPins` が 3 つをまとめて行う（features/map/clustering.ts）。畳む単位は
+	**指を離したときの表示域**（`clusterViewport`）で、pan で毎フレーム畳み直さない。
+
+	#1375（オーナー指示 8 巡目）**pick モードはアプリ内のお店（店名つき）を出す。**
+	それ以外（この画面を単体で開く経路）は従来どおり «保存したお店» を出す。
+	*/
+	const pins = useMemo<RestaurantPin[]>(
+		() => (isPickMode ? nearbyRestaurants : savedRestaurants),
+		[isPickMode, nearbyRestaurants, savedRestaurants],
+	);
+	const clusters = useMemo(
+		() => clusterMapPins(pins, clusterViewport, { maxRendered: MAX_PICKER_MARKERS }),
+		[pins, clusterViewport],
+	);
+	/*
+	引きでは «点»、寄りで «写真 + 店名»。ラベルは引くと重なって読めなくなるうえ、
+	ビットマップだけが増える。大手の地図アプリと同じ切り替え（基準は mapPins.ts）。
+	*/
+	const pinDetail = useMemo(() => pinDetailLevelForRegion(clusterViewport), [clusterViewport]);
+
+	/*
 	#1375（実機: マップの重さ）**マーカー配列を memo で固定する。**
 
 	素の `.map` だと、検索文字を 1 文字打つ・シートの開閉といった **マーカーと無関係な
 	state 更新のたびに**、全マーカーへ新しい `coordinate`（毎回新しいオブジェクト）と
 	新しい `onPress`（毎回新しい関数）が流れる。View Marker はネイティブでビットマップに
 	なるので、props が変わるたびに焼き直しの対象になる。
-	my-dishes の Map（`MyDishesMapView`）は同じ理由で既に memo している。
-	*/
-	/*
-	#1375（オーナー指示 8 巡目）**pick モードはアプリ内のお店（店名つき）を出す。**
-	それ以外（この画面を単体で開く経路）は従来どおり «保存したお店» を出す。
+
+	#1629 それでも `activeRestaurantId` が変わると配列は作り直される（依存に入っているため）。
+	**要になるのは «作り直された要素の props が前と同じ参照か» の方**である。
+	座標オブジェクトと onPress のクロージャは `RestaurantPinMarker` の内側で作るので、
+	選択が変わっても props が実際に変わるのは «選択が外れた 1 件と、選ばれた 1 件» だけ。
+	残りは `React.memo` が止める。
 	*/
 	const markers = useMemo(
 		() =>
-			isPickMode
-				? nearbyRestaurants.map((item) => (
-						<RestaurantLabelMarker
-							key={item.restaurant.id}
-							coordinate={{
-								latitude: item.restaurant.latitude,
-								longitude: item.restaurant.longitude,
-							}}
-							name={item.restaurant.name}
-							uri={item.restaurant.imageUrls?.sm}
-							isActive={activeRestaurantId === item.restaurant.id}
-							onPress={() => handleNearbyRestaurantMarkerPress(item)}
-						/>
-					))
-				: savedRestaurants.map((item: SavedRestaurant) => (
-				<AvatarBubbleMarker
-					key={item.restaurant.id}
-					coordinate={{
-						latitude: item.restaurant.latitude,
-						longitude: item.restaurant.longitude,
-					}}
-					onPress={() => handleSavedRestaurantMarkerPress(item)}
-					color={
-						// 地図タイルは常にライト配色のため、非アクティブのバブルは固定白（FixedColors 参照）
-						activeRestaurantId === item.restaurant.id ? colors.brand : FixedColors.mapMarkerSurface
-					}
-					isActive={activeRestaurantId === item.restaurant.id}
-					uri={item.restaurant.imageUrls?.sm}
-				/>
-				)),
-		[
-			activeRestaurantId,
-			colors.brand,
-			handleNearbyRestaurantMarkerPress,
-			handleSavedRestaurantMarkerPress,
-			isPickMode,
-			nearbyRestaurants,
-			savedRestaurants,
-		],
+			clusters.map((cluster) =>
+				cluster.pins.length === 1 ? (
+					<RestaurantPinMarker
+						key={cluster.id}
+						cluster={cluster}
+						appearance={isPickMode ? "label" : "avatar"}
+						detail={pinDetail}
+						isActive={activeRestaurantId === cluster.pins[0].restaurant.id}
+						onPress={handlePinPress}
+					/>
+				) : (
+					<RestaurantClusterMarker key={cluster.id} cluster={cluster} onPress={handleClusterPress} />
+				),
+			),
+		[activeRestaurantId, clusters, handleClusterPress, handlePinPress, isPickMode, pinDetail],
 	);
 
 	return (
@@ -732,17 +872,17 @@ export default function SelectRestaurantScreen() {
 
 			    ⚠️ pick モード以外（この画面を単体で開く経路）では従来どおり出す。 */}
 			{!isPickMode && (
-			<SavedRestaurantsSheet
-				ref={savedRestaurantsSheetRef}
-				visible={isSheetVisible}
-				showReviewButton={!isPickMode}
-				savedRestaurants={savedRestaurants}
-				isLoadingSavedRestaurants={isLoadingSavedRestaurants}
-				activeRestaurantId={activeRestaurantId}
-				onRestaurantCardPress={handleSavedRestaurantCardPress}
-				onRestaurantReviewPress={handleSavedRestaurantReviewPress}
-				onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
-			/>
+				<SavedRestaurantsSheet
+					ref={savedRestaurantsSheetRef}
+					visible={isSheetVisible}
+					showReviewButton={!isPickMode}
+					savedRestaurants={savedRestaurants}
+					isLoadingSavedRestaurants={isLoadingSavedRestaurants}
+					activeRestaurantId={activeRestaurantId}
+					onRestaurantCardPress={handleSavedRestaurantCardPress}
+					onRestaurantReviewPress={handleSavedRestaurantReviewPress}
+					onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
+				/>
 			)}
 		</View>
 	);
