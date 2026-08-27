@@ -67,3 +67,7 @@ supabase/.temp/
 supabase/.env*.pyc
 __pycache__/
 e2e-mobile/.detox-ci-logs/
+
+# Claude Code のサブエージェントが作る一時 worktree。エージェント終了時に消えるが、
+# 走っている間はリポジトリ内に見えるので追跡しない
+.claude/worktrees/
