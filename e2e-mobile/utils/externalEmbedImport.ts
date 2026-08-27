@@ -49,6 +49,18 @@ export const EXTERNAL_EMBED_IMPORT_URL = "https://www.instagram.com/reel/DZFdePP
  */
 export const EXTERNAL_EMBED_PLAYABLE_URL = "https://www.instagram.com/reel/CDg3owdFa6W/";
 
+/**
+ * 🍢 **オーナーが実際に踏んだリール**（#1641 / 焼鳥たぬき）
+ *
+ * オーナーが dev の共有リンク（`/s/s1_QjJ0MUxoWy_zzOS60AU9OQ`）で «再生されない» と
+ * 報告した投稿そのもの。web では 2 タップ要る（iframe には注入できない）ため、
+ * **ネイティブでは本当にタップ無しで動くのか**を、この投稿で示すために取り込む。
+ *
+ * ⚠️ 素材のせいではないことは確認済み。埋め込みの SSR HTML に `video_url` があり、
+ * これは «再生できる» を 9/9 で言い当てる指標である（`DZFdePPzzLI` には無い）。
+ */
+export const EXTERNAL_EMBED_OWNER_REPORTED_URL = "https://www.instagram.com/reel/Dcfhw8wFFm4/";
+
 type ResolveResponse = {
 	data?: {
 		candidates?: {
@@ -121,7 +133,11 @@ export async function ensureExternalEmbedImported(
 
 	await create(EXTERNAL_EMBED_IMPORT_URL);
 	// #1641 «実際に再生できる» ことを録画で示すには、映像が入っているリールが要る
-	if (options.alsoImportPlayable) await create(EXTERNAL_EMBED_PLAYABLE_URL);
+	if (options.alsoImportPlayable) {
+		await create(EXTERNAL_EMBED_PLAYABLE_URL);
+		// オーナーが «再生されない» と報告した投稿そのものも並べる（web は 2 タップ / ネイティブは無タップ）
+		await create(EXTERNAL_EMBED_OWNER_REPORTED_URL);
+	}
 
 	return { restaurantId };
 }
