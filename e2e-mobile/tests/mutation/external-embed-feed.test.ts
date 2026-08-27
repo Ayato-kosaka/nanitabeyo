@@ -112,7 +112,20 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			waitForReady: false,
 		});
 		await device.disableSynchronization();
-		await waitUntilVisible(restaurantFeed.container, 120_000);
+		/*
+		⚠️ **可視ではなく «在るか» で待つ。**
+
+		埋め込みセルが前面に来ると、全画面の WebView が `restaurant-feed-screen` を
+		**100% 覆う**。iOS の `toBeVisible()` は «その View 自身の画素が見えていること» を
+		要求するので、覆われている間は永久に真にならない（run 33070499541 で実測。
+		同じ run の `testFnFailure.png` にはフィードもリールも正しく写っている）。
+
+		«画面が出たこと» は、この直後の `waitUntilVisible(embedWebView)`（前面にいるので
+		可視判定が効く）で担保する。
+		*/
+		if (!(await existsNow(restaurantFeed.container, 120_000))) {
+			throw new Error("お店フィードの画面に着地できませんでした。");
+		}
 
 		// 埋め込みセルまでスワイプで探す（このお店の記録は少ないので通常は先頭付近にいる）
 		const embedWebView = by.id("external-embed-webview");
@@ -165,9 +178,17 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			);
 		}
 
-		// ⚠️ ここで «アプリが生きていること» を必ず 1 つ検証する。
-		// スワイプ後に assertion が無いと、プロセスが死んでも緑で終わる（独立レビュー指摘 9-b）
-		await waitUntilVisible(restaurantFeed.container);
+		/*
+		⚠️ ここで «アプリが生きていること» を必ず 1 つ検証する。
+		スワイプ後に assertion が無いと、プロセスが死んでも緑で終わる（独立レビュー指摘 9-b）。
+
+		⚠️ ただし `toBeVisible()` では検証できない（上の «可視ではなく在るかで待つ» と同じ理由。
+		全画面の埋め込みがフィードを覆っている）。`existsNow` はビューツリーを問い合わせるので、
+		**プロセスが死んでいれば `rethrowIfAppIsGone` が例外を投げる** = 目的は達せられる。
+		*/
+		if (!(await existsNow(restaurantFeed.container))) {
+			throw new Error("スワイプ後にお店フィードの画面が消えました（アプリが落ちた疑い）。");
+		}
 	});
 
 	// 同じ run の後続 spec を «同期の切れた» 状態へ持ち越さない
