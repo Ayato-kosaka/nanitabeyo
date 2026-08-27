@@ -28,7 +28,7 @@ class RowsOfTest(unittest.TestCase):
         rows = rows_of(doc, "2026-08-27T10:00:00Z")
 
         self.assertEqual([r["post_url"] for r in rows], ["u0", "u1", "u2", "u3", "u4"])
-        self.assertEqual([r["scroll_index"] for r in rows], [0, 0, 2, 2, 2])
+        self.assertEqual([r["scroll_index"] for r in rows], ["0", "0", "2", "2", "2"])
         self.assertTrue(all(r["search_keyword"] == "焼き鳥" for r in rows))
         self.assertTrue(all(r["collected_at"] == "2026-08-27T10:00:00Z" for r in rows))
 
@@ -43,7 +43,7 @@ class RowsOfTest(unittest.TestCase):
             "steps": [{"scroll": 0, "cumulative": 1}],
         }
         rows = rows_of(doc, "")
-        self.assertEqual([r["scroll_index"] for r in rows], [0, 0, 0])
+        self.assertEqual([r["scroll_index"] for r in rows], ["0", "0", "0"])
         self.assertEqual(len(rows), 3)
 
     def test_収集できなかった場合は0行(self) -> None:

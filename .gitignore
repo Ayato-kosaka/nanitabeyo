@@ -71,3 +71,6 @@ e2e-mobile/.detox-ci-logs/
 # ec2-chrome-operate: 実行のたびに生成するリモートスクリプト（成果物ではない）
 .claude/skills/ec2-chrome-operate/*.local.sh
 .claude/skills/ec2-chrome-operate/chunks/
+
+# #1636 収集した投稿 URL は回し直しても同じものが取れない実測データなので、*.csv の除外から外す
+!scripts/20260808T0000_restaurant/1636_post_url_harvest/out/*.csv

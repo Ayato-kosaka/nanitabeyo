@@ -24,6 +24,18 @@ SNS のホストへ出られない（egress proxy が 403 を返す）ので、�
    を **`run_in_background: true`** で起動する（第 2 引数を渡すと権限クラシファイアに落とされる）
 3. 標準出力に出た provider ごとの JSON を `harvest/<provider>.json` として保存する
 
+## 実測で分かった落とし穴（次に回す人が同じ穴に落ちないように）
+
+| 現象 | 原因 | 対処 |
+| --- | --- | --- |
+| TikTok の検索が毎回 "Something went wrong" | `/search/video?q=` は `robots.txt` でも `Disallow` されている経路 | **`/tag/<語>` を使う**（`robots.txt` に `Allow: /tag` と明記がある）。実測で安定して取れた |
+| Instagram でスクロールしても 1 件も増えない | **`window.scrollTo` が効かない**。`scrollTop` が 1 回動いたきり固まり、`scrollHeight` も伸びない | `computer` ツールの**実キー操作**（scroll / End キー）でスクロールする。実測で 24 件 → 177 件まで伸びた |
+| 収集結果の JSON が途中で切れる | SSM の標準出力は約 24,000 文字が上限 | ブラウザ側で `window.__h` に貯め、`slice(0,100)` ずつ取り出す。それでも切れたら `harvest/repair_truncated.py` で**落ちた件数を明記して**閉じ直す（黙って件数を減らさない） |
+
+**スクロールが効いたかは必ず数字で確認する。** `steps[].moved` と `scrollHeight` が動いていないのに
+`cumulative` が横ばいなのを「そのサイトは追加ロードしない」と読むと、実際には
+こちらのスクロールが効いていないだけ、ということが起きた（Instagram の 1 回目がこれ）。
+
 ## 時刻の測り方（ここを間違えると数字が無意味になる）
 
 所要時間は**ページ内で実行する JavaScript の `Date.now()`** で取る。
