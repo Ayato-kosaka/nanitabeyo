@@ -25,6 +25,30 @@ import * as dotenv from "dotenv";
 /** キャプションに住所が入っており、座標なしで店舗候補が出ることを実測済みのリール（#1375） */
 export const EXTERNAL_EMBED_IMPORT_URL = "https://www.instagram.com/reel/DZFdePPzzLI/";
 
+/**
+ * 🎬 **埋め込みの中で実際に映像が動くリール**（#1641）
+ *
+ * ## なぜ 2 本目が要るのか
+ *
+ * `EXTERNAL_EMBED_IMPORT_URL`（`DZFdePPzzLI`）は **権利ブロックされた投稿**で、
+ * 埋め込みページに `<video>` 要素が 1 つも作られない（#1375 のコメント 5418882999 で実測）。
+ * **どんな実装でも再生できない**ので、このリールだけで回している限り
+ * `external-embed-feed.test.ts` が緑でも「アプリ内で再生できた」の根拠にはならない。
+ *
+ * `CDg3owdFa6W` は公式 `@instagram` の Original audio のリールで、埋め込みに実体の
+ * `<video>`（実 MP4）が入っていることを実測済み。実 Chrome 152 / WebKit で
+ * `muted + play()` により再生が始まり `currentTime` が進むことも確認している（#1641）。
+ *
+ * ## 店舗・料理カテゴリはブロック側のリールから借りる
+ *
+ * このリールのキャプションには住所が無いため、`resolve` は店舗候補を返さない。
+ * `create` は `restaurantId` / `dishCategoryId` を明示で受け取るので、
+ * **住所解決は `EXTERNAL_EMBED_IMPORT_URL` で行い、その結果をこのリールにも使う。**
+ * 結果、同じお店フィードに «再生できる» と «再生できない» が並び、
+ * 1 本の録画で両方とスワイプ送りを示せる。
+ */
+export const EXTERNAL_EMBED_PLAYABLE_URL = "https://www.instagram.com/reel/CDg3owdFa6W/";
+
 type ResolveResponse = {
 	data?: {
 		candidates?: {
@@ -55,7 +79,10 @@ function backendBaseUrl(): string {
  *
  * @param accessToken 認証済みテストユーザーの access token（E2E_AUTH_ACCESS_TOKEN）
  */
-export async function ensureExternalEmbedImported(accessToken: string): Promise<{ restaurantId: string }> {
+export async function ensureExternalEmbedImported(
+	accessToken: string,
+	options: { alsoImportPlayable?: boolean } = {},
+): Promise<{ restaurantId: string }> {
 	const base = backendBaseUrl();
 	const headers = { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` };
 
@@ -80,15 +107,21 @@ export async function ensureExternalEmbedImported(accessToken: string): Promise<
 		);
 	}
 
-	const createResponse = await fetch(`${base}/v1/dish-media/imports`, {
-		method: "POST",
-		headers,
-		body: JSON.stringify({ url: EXTERNAL_EMBED_IMPORT_URL, restaurantId, dishCategoryId }),
-		signal: AbortSignal.timeout(90_000),
-	});
-	if (!createResponse.ok) {
-		throw new Error(`SNS 取り込みの create に失敗しました（status=${createResponse.status}）`);
-	}
+	const create = async (url: string) => {
+		const response = await fetch(`${base}/v1/dish-media/imports`, {
+			method: "POST",
+			headers,
+			body: JSON.stringify({ url, restaurantId, dishCategoryId }),
+			signal: AbortSignal.timeout(90_000),
+		});
+		if (!response.ok) {
+			throw new Error(`SNS 取り込みの create に失敗しました（url=${url} / status=${response.status}）`);
+		}
+	};
+
+	await create(EXTERNAL_EMBED_IMPORT_URL);
+	// #1641 «実際に再生できる» ことを録画で示すには、映像が入っているリールが要る
+	if (options.alsoImportPlayable) await create(EXTERNAL_EMBED_PLAYABLE_URL);
 
 	return { restaurantId };
 }

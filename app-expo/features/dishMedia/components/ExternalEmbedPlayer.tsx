@@ -8,15 +8,22 @@
 検証は Detox（e2e-mobile CI はブランチのソースからネイティブごとビルドする）と
 Playwright の録画で行う。OTA 側ブランチの実装は «再生ボタン → アプリ内ブラウザ» のみ。
 
-## UX
+## UX（#1641 で «既存の動画セルと同じ» へ作り替えた）
 
-- 既定は **表示専用**（`pointerEvents="none"`）。Android の WebView は縦ドラッグを
-  自分で消費する（`scrollEnabled` は iOS 専用プロップ）ため、渡すとフィード送りが死ぬ
-- 中央の再生ボタンで **操作モード**へ入り、埋め込み側の再生 UI を直接触れる。
-  操作モードは «閉じる» ボタンで抜けられる（抜けられないと、WebView が縦フリックを
-  食っている間そのセルから戻れなくなる。独立レビュー指摘）
-- WebView が居ないビルド（現行 1.14 に OTA だけ届いた場合）は
-  «再生ボタン → アプリ内ブラウザ» へ縮退する
+**WebView は常に表示専用**（`pointerEvents="none"`）。タッチを一切渡さないので、
+縦スワイプでのフィード送りもタップでの ActionSheet も、既存の `VideoPlayer` と
+完全に同じ経路で処理される（Android の WebView は縦ドラッグを自分で消費する。
+`scrollEnabled` は iOS 専用プロップなので渡しても効かない）。
+
+再生は**こちらから起こす**。埋め込みページは `<video autoplay>` ではないので放っておいても
+絶対に動かない（実測は下の «自動再生» の節）。`injectedJavaScript` で `play()` を呼ぶ。
+
+- 再生できている間は、こちらの UI を**何も重ねない**（既存の動画セルと同じ見え方）
+- 権利ブロックで `<video>` が存在しない投稿だけ «Instagram で見る» の帯を出す
+- WebView が居ないビルド（現行 1.14 に OTA だけ届いた場合）も同じ帯へ縮退する
+
+**«操作モード» と «× ボタン» は廃止した**（#1641）。WebView へタッチが届かなくなったので、
+«埋め込みが縦フリックを食ってセルから戻れない» という問題自体が消えた。
 
 ## 埋め込みからフルサイトへ «脱出» させない（実機クラッシュの真因だった）
 
@@ -59,7 +66,7 @@ import {
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
-import { Play, X } from "lucide-react-native";
+import { Play } from "lucide-react-native";
 
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -95,6 +102,131 @@ import { FixedColors } from "@/constants/Palette";
 // #1375（案 A）Instagram の埋め込みから «写真だけ» を切り出すための寸法計算
 import { computeEmbedCropLayout } from "../embedCrop";
 
+/*
+#1641【設計】**タップ無しで自動再生する注入スクリプト。**
+
+## なぜ «注入» が要るのか
+
+埋め込みページ（`https://www.instagram.com/p/{code}/embed/`）の実測（Chrome 152 / WebKit）:
+
+| | 値 |
+| --- | --- |
+| `<video>` | 権利ブロックされていない投稿には **1 個ある**（`src` に実 MP4） |
+| `video.autoplay` | **false** |
+| `paused` / `readyState` | **true / 0** — 明示的に読みに行くまでロードもしない |
+
+つまり **埋め込みページは自分からは絶対に再生しない**。`allow="autoplay"` を渡しても、
+`mediaPlaybackRequiresUserAction={false}` を付けても、ページが `play()` を呼ばないので何も起きない。
+**こちらから `play()` を撃つ**必要がある。WebView の中は同一オリジンなので注入がそれを行える
+（web の `<iframe>` は instagram.com がクロスオリジンなので、これができない ＝ web だけ自動再生できない）。
+
+## ⚠️ この文字列を描画のたびに作り直してはいけない
+
+iOS の `injectedJavaScript` は `WKUserScript`（DocumentEnd）として `userContentController` へ
+登録される（`RNCWebViewImpl.m` の `setInjectedJavaScript:` / `resetupScripts:`）。
+**差し替えても次のナビゲーションからしか効かない。** だからモジュールレベルの定数にする。
+
+## ⚠️ iOS は `onMessage` が無いと、このスクリプトが登録すらされない
+
+`RNCWebViewImpl.m` の `resetupScripts:` は `atEndScript`（= `injectedJavaScript`）を
+`if(_messagingEnabled)` の中でしか `addUserScript` しない。そして `WebView.ios.tsx` は
+`messagingEnabled={typeof onMessage === "function"}`。**`onMessage` を外すと
+Android だけ動いて iOS だけ無言で動かない**、という最悪の切り分けになる。
+
+## ⚠️ `<video>` はロード完了時点ではまだ無いことがある
+
+埋め込みは JS でも描き直される。`onLoadEnd` で 1 回撃つだけでは取りこぼすので、
+現れるまで再試行する（MutationObserver ＋ interval の併用。Observer だけだと
+«要素はそのままで src だけ差し替え» を拾えない）。
+
+## ⚠️ 例外を外へ漏らさない
+
+全体を try で包み、`play()` の Promise には必ず reject ハンドラを付ける
+（付けないと unhandled rejection になる）。
+*/
+const AUTOPLAY_SCRIPT = `(function () {
+  var W = window;
+  if (W.__nbEmbedAutoplay) { W.__nbEmbedAutoplay.kick(); return; }
+
+  // 切り取り（embedCrop.ts）は幾何学的な位置合わせなので、ページ自身がフォーカス移動や
+  // アンカーで縦にずれると崩れる。タッチは届かないが、向こうが勝手に動く経路は塞いでおく
+  try { document.documentElement.style.overflow = 'hidden'; } catch (e) {}
+
+  var DEADLINE_MS = 12000, TICK_MS = 250;
+  var timer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
+
+  function report(kind, detail) {
+    if (sent[kind]) return;
+    sent[kind] = true;
+    try {
+      W.ReactNativeWebView.postMessage(JSON.stringify({
+        src: 'nb-embed-autoplay', kind: kind, detail: detail == null ? null : String(detail)
+      }));
+    } catch (e) {}
+  }
+  function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+
+  function prepare(v) {
+    // 属性とプロパティの両方を立てる（Instagram 側の JS が属性を見て作り直すことがある）
+    v.loop = true; v.setAttribute('loop', '');
+    v.playsInline = true;
+    v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
+    if (v.__nbBound) return;
+    v.__nbBound = true;
+    v.addEventListener('playing', function () { stopTimer(); report('playing', v.muted ? 'muted' : 'audible'); }, false);
+    v.addEventListener('ended', function () { try { v.currentTime = 0; } catch (e) {} kick(); }, false);
+  }
+
+  function attempt() {
+    try {
+      var v = document.querySelector('video');
+      if (Date.now() > deadlineAt) {
+        stopTimer();
+        // <video> が最後まで現れない = 権利ブロックされた投稿（何をしても再生できない）
+        report(v ? 'timeout' : 'no_video', lastError);
+        return;
+      }
+      if (!v) return;
+      prepare(v);
+      if (!v.paused && v.currentTime > 0) { stopTimer(); return; }
+      if (inFlight) return;  // 前の play() が解決する前に撃つと AbortError を量産する
+
+      var p;
+      try { p = v.play(); } catch (e) { lastError = e && e.name; return; }
+      if (!p || typeof p.then !== 'function') return;
+      inFlight = true;
+      p.then(function () { inFlight = false; }, function (err) {
+        inFlight = false;
+        var name = (err && err.name) || 'UnknownError';
+        lastError = name;
+        if (name === 'NotSupportedError') {
+          // src が空 / デコーダが無い。何度撃っても同じなので即あきらめる
+          stopTimer();
+          report('not_supported', v.currentSrc || v.src || '(empty)');
+          return;
+        }
+        // NotAllowedError: 自動再生ポリシーで蹴られた。既存の動画セルは音ありだが、
+        // 鳴らないよりミュートで動かす方が «同じ感覚» に近い。落として次の tick で再試行
+        if (name === 'NotAllowedError') { v.muted = true; v.defaultMuted = true; v.setAttribute('muted', ''); }
+      });
+    } catch (e) {}
+  }
+
+  function kick() {
+    deadlineAt = Date.now() + DEADLINE_MS;
+    if (!timer) timer = setInterval(attempt, TICK_MS);
+    attempt();
+  }
+
+  try {
+    var mo = new MutationObserver(function () { kick(); });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+  } catch (e) {}
+
+  W.__nbEmbedAutoplay = { kick: kick };
+  kick();
+})(); true;`;
+
 export type ExternalEmbedPlayerProps = {
 	embed: Pick<DishMediaExternalEmbed, "provider" | "externalContentId" | "canonicalUrl" | "embedStatus">;
 	/**
@@ -127,7 +259,6 @@ export function ExternalEmbedPlayer({
 }: ExternalEmbedPlayerProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const [interactive, setInteractive] = useState(false);
 	// WebView のレンダラが system に殺されたとき、黒いセルのまま放置しないための印
 	const [renderProcessGone, setRenderProcessGone] = useState(false);
 	// jest やテスト環境では currentState が "unknown" になり得る。
@@ -153,11 +284,11 @@ export function ExternalEmbedPlayer({
 		});
 	}, [embed.provider, logFrontendEvent]);
 
-	// セルが前面から外れたら操作モードも畳む（次に来たとき表示専用から始める）
+	// セルが前面から外れたら «再生できたか» の判定もやり直す（次に来たとき最初から測る）
 	useEffect(() => {
 		if (!isActive) {
-			setInteractive(false);
 			setRenderProcessGone(false);
+			setPlayback("unknown");
 		}
 	}, [isActive]);
 
@@ -182,28 +313,41 @@ export function ExternalEmbedPlayer({
 		[embed.provider, logFrontendEvent, NativeWebView],
 	);
 
-	/*
-	#1375（オーナー実機指摘「リールが再生できない」）**1 タップで再生まで行く。**
-
-	それまでは «1 タップ目で操作モードへ入るだけ / 2 タップ目で Instagram の再生ボタンを押す»
-	の 2 段だった。人は 1 回押して何も起きなければそこで諦めるので、実質 «再生できない» と同じである。
-
-	WebView の中は同一プロセスで、`injectJavaScript` は **埋め込みページの文脈で動く**
-	（iframe と違って同一オリジン制約に当たらない）。操作モードへ入った直後に
-	`video.play()` を試み、`video` がまだ無ければ中央を 1 回クリックする。
-
-	⚠️ web（iframe）では注入できない。web は 2 タップのままである。
-	⚠️ 失敗しても何もしない。ここで例外を投げると WebView ごと落ちる
-	*/
+	/**
+	 * 埋め込みの中で実際に何が起きたか。**推測しない。**
+	 * ページ内のエージェントが「本当に `currentTime` が進んだ」と言ったときだけ `playing` になる。
+	 */
+	const [playback, setPlayback] = useState<"unknown" | "playing" | "unplayable">("unknown");
 	const webViewRef = useRef<{ injectJavaScript: (script: string) => void } | null>(null);
-	const requestPlay = useCallback(() => {
-		webViewRef.current?.injectJavaScript(`(function(){try{
-			var v=document.querySelector('video');
-			if(v){ v.muted=true; var p=v.play(); if(p&&p.catch){p.catch(function(){});} return; }
-			var el=document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
-			if(el){ el.click(); }
-		}catch(e){}})(); true;`);
-	}, []);
+
+	const handleMessage = useCallback(
+		(event: { nativeEvent: { data: string } }) => {
+			let parsed: { src?: string; kind?: string; detail?: string | null } = {};
+			try {
+				parsed = JSON.parse(event.nativeEvent.data);
+			} catch {
+				return; // 埋め込み側が勝手に postMessage してくる分は捨てる
+			}
+			if (parsed.src !== "nb-embed-autoplay") return;
+			if (parsed.kind === "playing") {
+				setPlayback("playing");
+				logFrontendEvent({
+					event_name: "external_embed_autoplay_started",
+					error_level: "log",
+					payload: { provider: embed.provider, audio: parsed.detail ?? null },
+				});
+				return;
+			}
+			// no_video（権利ブロック）/ not_supported（デコーダ無し）/ timeout
+			setPlayback("unplayable");
+			logFrontendEvent({
+				event_name: "external_embed_unplayable",
+				error_level: "warn",
+				payload: { provider: embed.provider, kind: parsed.kind ?? null, detail: parsed.detail ?? null },
+			});
+		},
+		[embed.provider, logFrontendEvent],
+	);
 
 	// WebView 不在ビルド用: 投稿そのものをアプリ内ブラウザで開く
 	const handleOpenExternally = useCallback(() => {
@@ -211,31 +355,14 @@ export function ExternalEmbedPlayer({
 		openInAppBrowser(embed.canonicalUrl, "fallback_play_button");
 	}, [embed.canonicalUrl, lightImpact, openInAppBrowser]);
 
-	// WebView 在りビルド用: 操作モードへ入る（以降のタップは埋め込み側の再生 UI が受ける）
-	const handleActivate = useCallback(() => {
-		lightImpact();
-		logFrontendEvent({
-			event_name: "external_embed_interactive",
-			error_level: "log",
-			payload: { provider: embed.provider },
-		});
-		setInteractive(true);
-		// 描画が落ち着いてから注入する（操作モードへ入った同じフレームでは video がまだ無い）
-		setTimeout(requestPlay, 300);
-	}, [embed.provider, lightImpact, logFrontendEvent, requestPlay]);
-
-	const handleExitInteractive = useCallback(() => {
-		lightImpact();
-		setInteractive(false);
-	}, [lightImpact]);
-
 	/**
 	 * トップフレームの遷移だけを判定する。
 	 *
 	 * - サブフレーム（広告 iframe 等）は素通し。iOS は `isTopFrame` を載せてくるが
 	 *   Android は常に true なので、`=== false` のときだけ «サブフレーム» と断定する
 	 * - 埋め込みページの形（許可リスト）なら inline 継続
-	 * - それ以外は **操作モードのときだけ**アプリ内ブラウザで開く。
+	 * - それ以外は **黙って止める**。#1641 で操作モードを廃止したので WebView へは
+	 *   タッチが一切届かず、トップフレームの遷移はページ側の勝手な動きしかありえない。
 	 *   眺めているだけのユーザーの前でブラウザが勝手に開かないようにする
 	 *   （ログイン必須の投稿が 302 で /accounts/login へ飛ぶケースが実在する）
 	 */
@@ -244,10 +371,9 @@ export function ExternalEmbedPlayer({
 			if (!isAllowedEmbedNavigation(request.url)) return false;
 			if (request.isTopFrame === false) return true;
 			if (isInlineEmbedUrl(request.url) || request.url === source?.embedUrl) return true;
-			if (interactive) openInAppBrowser(request.url, "escape_top_frame");
 			return false;
 		},
-		[interactive, openInAppBrowser, source?.embedUrl],
+		[source?.embedUrl],
 	);
 
 	/*
@@ -282,11 +408,23 @@ export function ExternalEmbedPlayer({
 	}
 
 	const inlineAvailable = source !== null && NativeWebView !== null && !renderProcessGone;
+	/*
+	#1641【設計】**再生できているセルには、こちらの UI を何も出さない。**
+
+	既存の動画セル（`VideoPlayer`）は自動再生するだけで、上に «▶ 再生» の帯を出していない。
+	同じ感覚にするため、埋め込みも自動再生が始まったら何も重ねない。
+
+	帯を出すのは次の 2 つだけ:
+	- WebView が居ないビルド（OTA だけ届いた 1.14 など）→ タップでアプリ内ブラウザ
+	- ページ内エージェントが «この投稿には `<video>` が無い» と報告した
+	  （= 権利ブロック。#1641 の実測どおり、何をしても再生できない）→ タップで Instagram
+	*/
+	const showFallbackCta = !inlineAvailable || playback === "unplayable";
 	const playButton = (
 		<TouchableOpacity
 			testID="external-embed-open-browser"
 			style={styles.playButton}
-			onPress={inlineAvailable ? handleActivate : handleOpenExternally}
+			onPress={handleOpenExternally}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("DishMediaContent.embed.play", {
 				provider: source?.providerLabel ?? embed.provider,
@@ -297,7 +435,7 @@ export function ExternalEmbedPlayer({
 			切り取り後は Instagram 自身の再生ボタンが写真の中央＝セルの中央に来る。そこへ
 			こちらの丸を重ねると同じ場所に再生ボタンが 2 つ見える（実機の動画で指摘された）。
 			丸は Instagram のものに任せ、こちらはセル全面の透明なタップ受けと、
-			下寄せの小さな帯だけにする。役割（1 タップで操作モードへ入る）は変わらない。
+			下寄せの小さな帯だけにする。役割は «この投稿は Instagram でしか見られない» の導線。
 
 			⚠️ 下端ぴったりに置くとフィードの絞り込みチップの裏へ隠れる（web で実測）。
 			*/}
@@ -316,7 +454,10 @@ export function ExternalEmbedPlayer({
 				<View
 					style={styles.cropFrame}
 					onLayout={handleLayout}
-					pointerEvents={interactive ? "auto" : "none"}
+					/* #1641 **常に表示専用**。タッチを一切渡さないので、縦スワイプでのフィード送りも
+					   タップでの ActionSheet も、既存の動画セルと完全に同じ経路で処理される
+					   （Android の RNCWebView は縦ドラッグを自分で消費するため、渡すと送りが死ぬ） */
+					pointerEvents="none"
 					testID="external-embed-webview">
 					{/* セルの寸法が確定するまで WebView を作らない。中途半端な幅で読み込ませると、
 					    Instagram がその幅でレイアウトしてしまい切り取り位置がずれたまま残る */}
@@ -345,6 +486,15 @@ export function ExternalEmbedPlayer({
 								]}
 								allowsInlineMediaPlayback
 								mediaPlaybackRequiresUserAction={false}
+								// 表示専用なので、ユーザーの意図なく PiP へ持って行かれる余地を潰す
+								allowsPictureInPictureMediaPlayback={false}
+								/* #1641 ページ読み込みごとに自動再生エージェントを仕込む。
+								   `<video>` が現れるまで再試行し、結果を postMessage で返す */
+								injectedJavaScript={AUTOPLAY_SCRIPT}
+								onMessage={handleMessage}
+								/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
+								   まだ無いケース）に、もう一度エージェントを起こす */
+								onLoadEnd={() => webViewRef.current?.injectJavaScript(AUTOPLAY_SCRIPT)}
 								// Android: target=_blank で «画面外の新しい WebView» を作らせない（ヘッダ参照）
 								setSupportMultipleWindows={false}
 								onOpenWindow={(event: { nativeEvent: { targetUrl: string } }) =>
@@ -359,7 +509,6 @@ export function ExternalEmbedPlayer({
 										payload: { provider: embed.provider, platform: "android" },
 									});
 									setRenderProcessGone(true);
-									setInteractive(false);
 								}}
 								onContentProcessDidTerminate={() => {
 									logFrontendEvent({
@@ -368,28 +517,13 @@ export function ExternalEmbedPlayer({
 										payload: { provider: embed.provider, platform: "ios" },
 									});
 									setRenderProcessGone(true);
-									setInteractive(false);
 								}}
 							/>
 						</View>
 					)}
 				</View>
 			)}
-			{interactive ? (
-				// 操作モードを抜ける口。これが無いと、WebView が縦フリックを食っている間
-				// そのセルから戻れなくなる（独立レビュー指摘）
-				<View style={styles.exitContainer} pointerEvents="box-none" testID="external-embed-interactive">
-					{blockParentTapGesture ? (
-						<GestureDetector gesture={blockParentTapGesture}>
-							<View collapsable={false}>
-								<ExitButton onPress={handleExitInteractive} />
-							</View>
-						</GestureDetector>
-					) : (
-						<ExitButton onPress={handleExitInteractive} />
-					)}
-				</View>
-			) : (
+			{showFallbackCta && (
 				<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">
 					{blockParentTapGesture ? (
 						<GestureDetector gesture={blockParentTapGesture}>
@@ -407,20 +541,6 @@ export function ExternalEmbedPlayer({
 				</View>
 			)}
 		</>
-	);
-}
-
-function ExitButton({ onPress }: { onPress: () => void }) {
-	return (
-		<TouchableOpacity
-			testID="external-embed-exit-interactive"
-			style={styles.exitButton}
-			onPress={onPress}
-			accessibilityRole="button"
-			accessibilityLabel={i18n.t("DishMediaContent.embed.exitInteractive")}>
-			{/* 写真の上に載る × なのでテーマ非追従の固定色 */}
-			<X size={18} color={FixedColors.onMedia} />
-		</TouchableOpacity>
 	);
 }
 
@@ -442,24 +562,6 @@ const styles = StyleSheet.create({
 	},
 	overlayContainer: {
 		...StyleSheet.absoluteFillObject,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	// 操作モード中は中央を埋め込みへ明け渡し、抜ける口だけ左上に浮かせる
-	exitContainer: {
-		...StyleSheet.absoluteFillObject,
-		alignItems: "flex-start",
-		justifyContent: "flex-start",
-		paddingTop: 12,
-		paddingLeft: 12,
-	},
-	exitButton: {
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		backgroundColor: "rgba(0,0,0,0.55)",
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.8)",
 		justifyContent: "center",
 		alignItems: "center",
 	},
