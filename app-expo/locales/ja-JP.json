@@ -443,7 +443,7 @@
 		},
 		"embed": {
 			"play": "{{provider}}で再生",
-			"exitInteractive": "埋め込みの操作を終了"
+			"openExternally": "{{provider}}で見る"
 		},
 		"ownPost": {
 			"menuTitle": "自分の投稿",

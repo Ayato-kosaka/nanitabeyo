@@ -458,7 +458,7 @@ export function ExternalEmbedPlayer({
 			style={styles.playButton}
 			onPress={handleOpenExternally}
 			accessibilityRole="button"
-			accessibilityLabel={i18n.t("DishMediaContent.embed.play", {
+			accessibilityLabel={i18n.t("DishMediaContent.embed.openExternally", {
 				provider: source?.providerLabel ?? embed.provider,
 			})}>
 			{/*
@@ -474,7 +474,12 @@ export function ExternalEmbedPlayer({
 			<View style={styles.playHint}>
 				<Play size={12} color={FixedColors.onMedia} fill={FixedColors.onMedia} />
 				<Text style={styles.playLabel}>
-					{i18n.t("DishMediaContent.embed.play", { provider: source?.providerLabel ?? embed.provider })}
+					{/* #1641 «再生» ではなく «見る»。この帯が出るのは、アプリ内では再生できない
+					    投稿（権利ブロック）と WebView 不在ビルドだけで、押すと Instagram が開く。
+					    «再生» のままだと文言が嘘になる */}
+					{i18n.t("DishMediaContent.embed.openExternally", {
+						provider: source?.providerLabel ?? embed.provider,
+					})}
 				</Text>
 			</View>
 		</TouchableOpacity>

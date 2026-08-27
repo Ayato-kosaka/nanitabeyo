@@ -443,7 +443,7 @@
 		},
 		"embed": {
 			"play": "{{provider}}에서 재생",
-			"exitInteractive": "임베드 조작 종료"
+			"openExternally": "{{provider}}에서 보기"
 		},
 		"ownPost": {
 			"menuTitle": "내 게시물",

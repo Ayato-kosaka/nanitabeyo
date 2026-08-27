@@ -443,7 +443,7 @@
 		},
 		"embed": {
 			"play": "Play on {{provider}}",
-			"exitInteractive": "Exit embed controls"
+			"openExternally": "View on {{provider}}"
 		},
 		"ownPost": {
 			"menuTitle": "Your post",

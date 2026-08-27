@@ -443,7 +443,7 @@
 		},
 		"embed": {
 			"play": "التشغيل على {{provider}}",
-			"exitInteractive": "إنهاء التحكم في المحتوى المضمّن"
+			"openExternally": "عرض على {{provider}}"
 		},
 		"ownPost": {
 			"menuTitle": "منشورك",

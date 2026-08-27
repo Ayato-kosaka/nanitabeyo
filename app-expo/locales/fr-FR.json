@@ -443,7 +443,7 @@
 		},
 		"embed": {
 			"play": "Lire sur {{provider}}",
-			"exitInteractive": "Quitter les commandes intégrées"
+			"openExternally": "Voir sur {{provider}}"
 		},
 		"ownPost": {
 			"menuTitle": "Votre publication",

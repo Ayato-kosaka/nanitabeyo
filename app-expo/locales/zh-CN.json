@@ -443,7 +443,7 @@
 		},
 		"embed": {
 			"play": "在{{provider}}上播放",
-			"exitInteractive": "退出嵌入内容操作"
+			"openExternally": "在{{provider}}上查看"
 		},
 		"ownPost": {
 			"menuTitle": "我的帖子",

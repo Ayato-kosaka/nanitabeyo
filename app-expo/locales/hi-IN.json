@@ -443,7 +443,7 @@
 		},
 		"embed": {
 			"play": "{{provider}} पर चलाएँ",
-			"exitInteractive": "एम्बेड नियंत्रण से बाहर निकलें"
+			"openExternally": "{{provider}} पर देखें"
 		},
 		"ownPost": {
 			"menuTitle": "आपकी पोस्ट",
