@@ -180,6 +180,19 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		// 対象ファイルに直書きされていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
 		surfacePlaceholder: "#E5E7EB",
 		surfaceSelectedTint: "#EEF2FF",
+		// #1629 共通コンポーネント（スケルトン / 動画 / 地図 / web バナー）のトークン化で追加。
+		// light はいずれも対象ファイルに直書きされていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		skeletonBase: "#E9ECEF",
+		skeletonBandGradient: [
+			"rgba(255,255,255,0)",
+			"rgba(255,255,255,0.25)",
+			"#FFFFFF",
+			"rgba(255,255,255,0.25)",
+			"rgba(255,255,255,0)",
+		],
+		promoBannerSurface: "#FBEEDD",
+		inverseSurface: "#1A1A1A",
+		onInverseSurface: "#FFFFFF",
 		textPrimaryDim: "#1F2937",
 		brandTrack: "#FBD9D0",
 		// #1629 OS 許可ダイアログの複製（#1486 §5）。iOS のシステム値をそのまま持つ

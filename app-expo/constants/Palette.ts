@@ -113,6 +113,18 @@ export const FixedColors = {
 	 * 白フチ越しでも読めるよう一段濃くしたもの（白との比 4.2:1）。
 	 */
 	mapMarkerLabelActive: "#B4400F",
+	/**
+	 * #1629 マーカービットマップ（`features/mapMarkers`）の «アクティブなふち» の青。
+	 * 上の `mapMarkerSurface` と対で 1 セットで、同じ理由（地図タイルが常にライト）で
+	 * テーマ非追従。この 2 値は生成した PNG のキャッシュキーにも入るため、
+	 * テーマで振るとキャッシュが総入れ替えになる。
+	 */
+	mapMarkerBorderActive: "#3477F8",
+	/**
+	 * #1629 マーカービットマップの、写真が届くまでの下地の灰。
+	 * これも地図タイルの上に焼き込まれるので固定（暗い灰にすると «穴» に見える）。
+	 */
+	mapMarkerImagePlaceholder: "#E0E0E0",
 	/** 地図上のブランド色（ピンの縁・「Google マップで開く」の文字）。地図が常にライトなので固定 */
 	brandOnMap: "#F05537",
 	/** 地図上のブランド淡地（フローティングボタンのグラデ）。地図が常にライトなので固定 */
@@ -161,6 +173,34 @@ export const FixedColors = {
 	テーマで振ると彩度の違う 7 色を 2 セット持つことになり、根拠の無い色が増えるだけで
 	絵としては良くならない。`notificationLike` 等と同じく «識別子としての色» 扱いにする。
 	*/
+	/*
+	#1629 メディア（写真・動画）の上に載る «副次的な» 文字・アイコン。
+
+	`onMedia`（純白）は本文用で、レビューの日時・いいね数・星・通報アイコンまで純白にすると
+	本文と主従が付かない。メディアの上なので地は常に暗く、ライトでも同じ淡いグレーでよい
+	（`onMedia` と同じ理由でテーマに追従させない）。
+	*/
+	onMediaMuted: "#CCCCCC",
+	/**
+	 * #1629 地図の読み込み前・読み込み失敗時に、地図と同じ寸法で置く «場所だけ確保した» 面
+	 * （`components/MapView.web.tsx`）。ここに出るのは Google のタイルで、タイルは
+	 * アプリのテーマに追従せず常にライト配色である。暗い面にすると、読み込み完了の瞬間に
+	 * 暗 → 明のちらつきが出るため、`mapMarkerSurface` と同じ理由で固定にする。
+	 */
+	mapPlaceholderSurface: "#E9E9E9",
+	/**
+	 * #1629 Android の通知チャンネルの LED 色（`components/PushTokenRegistration.tsx`）。
+	 * これはアプリが描く «画面の色» ではなく、OS へ渡す ARGB のパラメータである。
+	 * 端末のインジケータが光る色なので、アプリのテーマとは無関係に固定でなければならない。
+	 */
+	notificationLed: "#FF231F7C",
+	/**
+	 * #1629 半透明の «白い» 箱の上の文字（web の「アプリで開く」バナーの補助行）。
+	 * 箱の地は `rgba(255,255,255,0.92)` の固定で、下のページが透けることに意味がある
+	 * （テーマで暗くすると、その上の濃い文字と一緒に反転させる必要が出て絵が壊れる）。
+	 * 地が固定なので、その上の文字も振らない。
+	 */
+	onTranslucentWhite: "#333333",
 	confettiPieces: ["#F05537", "#FFB03A", "#FFE066", "#4ECDC4", "#8E7DFF", "#FF8FA3", "#3BC46A"],
 } as const;
 
@@ -184,6 +224,27 @@ export interface Palette {
 	surfacePlaceholder: string;
 	/** 選択された «候補チップ» の淡い藍地（#1629 友達投票の名前候補） */
 	surfaceSelectedTint: string;
+	/**
+	 * スケルトン（読み込み中のプレースホルダ）の地。#1629
+	 * ライトでは «地よりわずかに暗い» 灰、ダークでは «地よりわずかに明るい» 面になる。
+	 */
+	skeletonBase: string;
+	/**
+	 * スケルトンを流れる光帯のグラデーション（5 段。LinearGradient の colors にそのまま渡す）。#1629
+	 * 両端は透明で `skeletonBase` に溶け、中心が最も明るい。ダークでは «白く光る» と
+	 * そこだけ穴が開いたように見えるため、白の不透明度を大きく落としてある。
+	 */
+	skeletonBandGradient: readonly [string, string, string, string, string];
+	/** web の «アプリで開く» バナーの地（#1629。クリーム色の帯） */
+	promoBannerSurface: string;
+	/**
+	 * 面を反転させた塗り潰し（ライトでは黒に近い面、ダークでは白に近い面）。#1629
+	 * 「アプリを入手」のような «地の上でさらに目立たせる» ボタンに使う。
+	 * Material の inverseSurface と同じ役割で、上に載る字は `onInverseSurface`。
+	 */
+	inverseSurface: string;
+	/** 反転した面の上の文字（#1629。`inverseSurface` と 1 セット） */
+	onInverseSurface: string;
 
 	// ───────── 罫線・区切り ─────────
 	/** カード内の行区切り */
@@ -321,6 +382,17 @@ const light: Palette = {
 	appShellBackdrop: "#F3F4F6", // CenteredAppShell.web.tsx outer
 	surfacePlaceholder: "#E5E7EB", // #1629 友達投票の候補画像プレースホルダ / 投票プログレスの未通過部
 	surfaceSelectedTint: "#EEF2FF", // #1629 友達投票の «選択中の名前候補» の地
+	skeletonBase: "#E9ECEF", // #1629 SkeletonShimmer の baseColor 既定値の写し
+	skeletonBandGradient: [
+		"rgba(255,255,255,0)",
+		"rgba(255,255,255,0.25)",
+		"#FFFFFF",
+		"rgba(255,255,255,0.25)",
+		"rgba(255,255,255,0)",
+	], // #1629 SkeletonShimmer が組んでいた 5 段をそのまま写した（描画される色は完全に同一）
+	promoBannerSurface: "#FBEEDD", // #1629 OpenInAppBanner のバナーの地
+	inverseSurface: "#1A1A1A", // #1629 OpenInAppBanner の「アプリを入手」ボタンの地
+	onInverseSurface: "#FFFFFF", // 同ボタンの文字
 
 	divider: "#F3F4F6", // SettingsMenuItem の区切り線
 	border: "#C9C9C9", // ScreenHeader.tsx borderBottom / SelectableChip.tsx
@@ -394,6 +466,17 @@ const dark: Palette = {
 	appShellBackdrop: "#0E0E0E", // schemes.dark.surfaceContainerLowest（カラムより暗い外側）
 	surfacePlaceholder: "#2A2A2A", // schemes.dark.surfaceContainerHigh（暗面では «まだ何も無い» 面はここへ収束する）
 	surfaceSelectedTint: "#242737", // 藍を暗面へ混色（brandTint と同じ作法。選択の «色の手掛かり» を残す）
+	skeletonBase: "#2A2A2A", // schemes.dark.surfaceContainerHigh（地 #141313 からわずかに浮かせる）
+	skeletonBandGradient: [
+		"rgba(255,255,255,0)",
+		"rgba(255,255,255,0.03)",
+		"rgba(255,255,255,0.08)",
+		"rgba(255,255,255,0.03)",
+		"rgba(255,255,255,0)",
+	], // 暗面で白い帯をそのまま流すと «そこだけ白く光る»。#2A2A2A の上で約 #383838 に収まる不透明度まで落とす
+	promoBannerSurface: "#332B1D", // クリーム(#FBEEDD)の色相を保ったまま暗面へ混色（brandTint と同じ作法）
+	inverseSurface: "#E5E2E1", // schemes.dark.inverseSurface
+	onInverseSurface: "#313030", // schemes.dark.inverseOnSurface
 
 	divider: "#2A2A2A", // schemes.dark.surfaceContainerHigh
 	border: "#444748", // schemes.dark.outlineVariant

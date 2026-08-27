@@ -7,6 +7,8 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { getCacheKeyForImage } from "@/lib/image";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 /* -------------------------------------------------------------------------- */
 /*                                  型定義                                    */
@@ -82,6 +84,9 @@ function ImageCardImpl<T extends ImageCardItem>({
 	testID?: string;
 }) {
 	const { lightImpact } = useHaptics();
+	// #1629 カードの地は «画像が出るまでの面» なのでテーマに追従させる
+	//（ダークで白いタイルが並ぶのを止める）。影だけは固定の黒でよい
+	const styles = useThemedStyles(createStyles);
 	// #958 【修正】useWindowDimensions はブラウザウィンドウ実幅を返すため、
 	// CenteredAppShell が収める中央カラム幅とズレてカードがカラムの外へはみ出していた
 	const widthDimensions = useContentWidth();
@@ -189,15 +194,16 @@ export const ImageCard = memo(ImageCardImpl) as typeof ImageCardImpl;
 /* -------------------------------------------------------------------------- */
 /*                               スタイル定義                                 */
 /* -------------------------------------------------------------------------- */
-const styles = StyleSheet.create({
-	card: {
-		backgroundColor: "#F8F9FA",
-		overflow: "hidden",
-		position: "relative",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		card: {
+			backgroundColor: colors.surfaceMuted,
+			overflow: "hidden",
+			position: "relative",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.1,
+			shadowRadius: 4,
+			elevation: 3,
+		},
+	});
