@@ -253,6 +253,10 @@ export default function MyDishesFeedScreen() {
 										itemKey={isInitialScope ? itemKey : null}
 										dishMediaId={isInitialScope ? dishMediaId : null}
 										isActive={index === activeScopeIndex}
+										/* #1629 進行方向（下）の 1 ページだけ先読みさせる。
+										   オーナー実機報告「5 秒待って下っていくとローディングが 1〜2 秒」の対処。
+										   詳細と «なぜ 1 ページだけか» は MyDishesFeedPage の shouldPrefetch の JSDoc */
+										shouldPrefetch={index === activeScopeIndex + 1}
 									/>
 								</View>
 							);
