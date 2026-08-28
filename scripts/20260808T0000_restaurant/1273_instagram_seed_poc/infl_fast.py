@@ -14,7 +14,7 @@ def bd(ig,tok,h):
 def main():
     tok=os.environ["IG_TOKEN"]; ig=os.environ["IG_USER_ID"]
     hs=json.load(open(f"{OUT}/influencer_handles.json"))["handles"]
-    print(f"冷却 600s 開始 ({len(hs)} handles)",flush=True); time.sleep(600)
+    print(f"冷却 60s 開始 ({len(hs)} handles)",flush=True); time.sleep(60)
     rows=[]
     for i,h in enumerate(hs):
         back=90
