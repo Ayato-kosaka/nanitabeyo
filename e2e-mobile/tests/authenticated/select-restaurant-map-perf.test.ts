@@ -62,12 +62,22 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 	 * スピナーが一度も観測できないほど速い場合もある（それは «速い» ので失敗にしない）。
 	 * その場合も «押してから待機が解けるまで» を返す。
 	 */
+	const markerReport = async (): Promise<string> => {
+		const pin = await existsNow(by.id("select-restaurant-pin"));
+		const dot = await existsNow(by.id("select-restaurant-dot"));
+		const cluster = await existsNow(by.id("select-restaurant-cluster"));
+		return `pins=${pin} dot=${dot} cluster=${cluster}`;
+	};
+
 	const measureOnce = async (label: string): Promise<number> => {
 		const started = Date.now();
 		await tapWhenVisible(searchButton, DEFAULT_TIMEOUT);
 		await waitFor(element(searchSpinner)).not.toExist().withTimeout(DEFAULT_TIMEOUT);
 		const elapsed = Date.now() - started;
-		console.log(`[search-this-area] ${label}: ${elapsed} ms`);
+		// ⚠️ **毎回マーカーの有無を出す。** 最初に 1 回だけ見ても «その時点ではまだ
+		//    取得が終わっていない» ので false になり、空振りかどうかを判定できない
+		//    （run 33128561205 で実際にそうなり、ピン 0 個のまま «1 秒» と読める数字が出た）
+		console.log(`[search-this-area] ${label}: ${elapsed} ms / ${await markerReport()}`);
 		await device.takeScreenshot(`search-this-area-${label}`);
 		return elapsed;
 	};
@@ -80,26 +90,43 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		await device.takeScreenshot("search-this-area-00-map-opened");
 
 		/*
-		⚠️ **ピンが 1 つも無い run は空振りである。** dev のデータは変動するので、
-		«マーカーが実際に出ていたか» をログへ残す。pins=false dot=false cluster=false
-		なら、その run は描画コストを何も測っていない。
+		⚠️ **開いた直後の «引き» の状態も、それ自体が測る価値のある地点である。**
+
+		この画面は端末の言語が日本語だと現在地を見ず、必ず `REGION_JP`
+		（中心 36.2048 / 138.2529 = 長野の山中、デルタ 20 度）から始まる
+		（`select-restaurant.tsx` の init）。半径は 50km で頭打ちなので、
+		**日本語ユーザーの初回の 1 回は構造上ほぼ 0 件**になる。
+		ここを 1 回測っておくと «軽いのは単に何も無いからだ» と後から誤読されない。
 		*/
-		const hadPin = await existsNow(by.id("select-restaurant-pin"));
-		const hadDot = await existsNow(by.id("select-restaurant-dot"));
-		const hadCluster = await existsNow(by.id("select-restaurant-cluster"));
-		console.log(`[search-this-area] マーカーの有無: pins=${hadPin} dot=${hadDot} cluster=${hadCluster}`);
+		console.log(`[search-this-area] 00-map-opened のマーカー: ${await markerReport()}`);
+		const wide = await measureOnce("01-japan-wide");
 
-		// 1 回目。Cloud Run のコールドスタートを踏みうるので、これだけでは判断しない
-		const first = await measureOnce("01-first");
+		/*
+		本題はここから。**店が密にある場所へ寄せてから測る。**
 
-		// 地図を動かしてから 2 回目・3 回目。こちらが «普段の操作» に近い
+		`device.setLocation` でエミュレータの位置を東京駅にし、検索窓の右の
+		現在地ボタン（`handleCurrentLocation`）で 0.01 度（≒ 1km 四方）へ寄せる。
+		SQL 側の計測（`measure_restaurants_nearby.py`）も東京駅中心なので、
+		同じ地点で «SQL + マーカー描画» の合計を見ることになる。
+
+		⚠️ 位置情報が取れない環境では地図は動かない。その場合はマーカーが出ないので、
+		   上のログで空振りだと分かる（黙って «速い» と読めてしまわないようにする）。
+		*/
+		await device.setLocation(35.6812, 139.7671); // 東京駅
+		await tapWhenVisible(by.id("review-select-restaurant-current-location-button"), DEFAULT_TIMEOUT);
+		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
+		await device.takeScreenshot("search-this-area-02-moved-to-tokyo");
+		console.log(`[search-this-area] 東京駅へ寄せた直後のマーカー: ${await markerReport()}`);
+
+		const dense1 = await measureOnce("03-tokyo");
+
+		// 地図を動かしてからもう 1 回。こちらが «普段の操作» に近い
 		await element(map).swipe("left", "fast", 0.5, 0.5, 0.35);
-		const second = await measureOnce("02-after-pan");
+		const dense2 = await measureOnce("04-tokyo-after-pan");
 
-		await element(map).swipe("down", "fast", 0.4, 0.5, 0.35);
-		const third = await measureOnce("03-after-pan-again");
-
-		console.log(`[search-this-area] 実測: ${[first, second, third].map((n) => `${n} ms`).join(" / ")}`);
+		console.log(
+			`[search-this-area] 実測: 引き(0件想定) ${wide} ms / 東京駅 ${dense1} ms / 東京駅+パン ${dense2} ms`,
+		);
 
 		// 生きていること（＝ 落ちていないこと）だけを固定する。速度そのものは
 		// 環境依存なのでアサートしない。数字は上のログと動画で読む
