@@ -1,0 +1,42 @@
+{
+  "summary": {
+    "handles": 2,
+    "resolved": 2,
+    "resolve_pct": 100.0,
+    "median_media_count": 1667.5,
+    "median_followers": 79091.5,
+    "mean_food_rate": 0.98,
+    "sum_media_count": 3335,
+    "note": "sum_media_count は延べ投稿。飲食率を掛け、重複を割ると異なり店の概算"
+  },
+  "rows": [
+    {
+      "handle": "1000bero_net",
+      "ok": true,
+      "followers": 76205,
+      "media_count": 2170,
+      "sampled": 40,
+      "food_caps": 39,
+      "store_caps": 40,
+      "food_rate": 0.97,
+      "ex": [
+        "『ソロ酔い酒場』24話が公開‼\nと共に、今回でひとまず完結となります🙇‍♀️\n\n自分が一人飲みしていいなと思った酒場が漫",
+        "📕漫画 ソロ酔い酒場\n第23話『多摩川沿いのほとりでごほうび昼酒』が無料公開中。ぜひご覧ください📖\n\n23話の舞台は…\n"
+      ]
+    },
+    {
+      "handle": "428studio",
+      "ok": true,
+      "followers": 81978,
+      "media_count": 1165,
+      "sampled": 40,
+      "food_caps": 40,
+      "store_caps": 39,
+      "food_rate": 1.0,
+      "ex": [
+        "👈盛岡のタクシードライバー目線で盛岡近郊グルメを紹介しています‼\n\n——————————————\n店名：たん米　牛タンと",
+        "👈盛岡のタクシードライバー目線で盛岡近郊グルメを紹介しています‼\n\n——————————————\n店名：中華料理SAKU"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,263 @@
+{
+  "summary": {
+    "wat_ig_pages": 143,
+    "joined_with_wet": 143,
+    "pages_food_text": 55,
+    "pages_with_store_name": 70,
+    "food_pct_of_joined": 38.5,
+    "store_name_pct_of_food": 65.5
+  },
+  "examples": [
+    {
+      "url": "https://8150.co.jp/author/kubota_sawaka",
+      "accounts": [
+        "global__crest"
+      ],
+      "food": true,
+      "store_names": [
+        "GC相浦店",
+        "GC北大村店"
+      ],
+      "text_len": 1324
+    },
+    {
+      "url": "https://afflux.jp/article/weddingnews_1525/",
+      "accounts": [
+        "afflux_official"
+      ],
+      "food": true,
+      "store_names": [
+        "店舗展開のブライダルリング専門店",
+        "アフラックスの店",
+        "直営店",
+        "フランチャイズ店",
+        "全国76店"
+      ],
+      "text_len": 4268
+    },
+    {
+      "url": "https://akiyamahp.or.jp/nishi2/6879/",
+      "accounts": [
+        "akiyamahp"
+      ],
+      "food": true,
+      "store_names": [
+        "病棟の食堂",
+        "月のAカフェ",
+        "先日Aカフェ"
+      ],
+      "text_len": 2582
+    },
+    {
+      "url": "https://bambitious.jp/news/?newsyear=2024&newsmonth=05&pageID=2",
+      "accounts": [
+        "bambitiousnara",
+        "cafe_maru",
+        "kissakuroneko"
+      ],
+      "food": true,
+      "store_names": [
+        "グッズ取扱店",
+        "株式会社梅守本店",
+        "橿原中央店",
+        "株式会社柴田衣料店",
+        "なかい食堂"
+      ],
+      "text_len": 4401
+    },
+    {
+      "url": "https://booking.gora.golf.rakuten.co.jp/guide/disp/c_id/80101/",
+      "accounts": [
+        "rakutengora"
+      ],
+      "food": true,
+      "store_names": [
+        "ス内売店"
+      ],
+      "text_len": 4975
+    },
+    {
+      "url": "https://broccolipress.jp/?p=2140",
+      "accounts": [
+        "yazlondres"
+      ],
+      "food": true,
+      "store_names": [
+        "画伯の喫茶店",
+        "ぶじ文学フリマ出店",
+        "画伯の食堂"
+      ],
+      "text_len": 5336
+    },
+    {
+      "url": "https://chugaiigaku.jp/np/isbn/9784498428461/",
+      "accounts": [
+        "chugaiigaku"
+      ],
+      "food": true,
+      "store_names": [
+        "取り扱い書店"
+      ],
+      "text_len": 4712
+    },
+    {
+      "url": "https://dog.benesse.ne.jp/lovedog/content/?id=114739",
+      "accounts": [
+        "inunekome"
+      ],
+      "food": true,
+      "store_names": [
+        "ドッグカフェ",
+        "この電子書店"
+      ],
+      "text_len": 7371
+    },
+    {
+      "url": "https://dog.benesse.ne.jp/withdog/content/?id=32677",
+      "accounts": [
+        "inunekome"
+      ],
+      "food": true,
+      "store_names": [
+        "ドッグカフェ",
+        "この電子書店"
+      ],
+      "text_len": 7405
+    },
+    {
+      "url": "https://kids.rurubu.jp/article/2030/",
+      "accounts": [
+        "rurubu_kids"
+      ],
+      "food": true,
+      "store_names": [
+        "の出店"
+      ],
+      "text_len": 12182
+    },
+    {
+      "url": "https://kurashi-to-oshare.jp/goods/85280/",
+      "accounts": [
+        "itotoki.hiroshima",
+        "kurashi_to_oshare"
+      ],
+      "food": true,
+      "store_names": [
+        "一人分でも本格的な珈琲",
+        "自宅で珈琲",
+        "ムから自分で珈琲",
+        "自分で珈琲",
+        "そんなふうに珈琲"
+      ],
+      "text_len": 2379
+    },
+    {
+      "url": "https://livepocket.jp/e/ayapon_live04_hana/map",
+      "accounts": [
+        "livepocketticket"
+      ],
+      "food": true,
+      "store_names": [
+        "コラボカフェ"
+      ],
+      "text_len": 2070
+    },
+    {
+      "url": "https://machitto.jp/sakaisemboku/174768/result/",
+      "accounts": [
+        "machitto_sakaisemboku"
+      ],
+      "food": true,
+      "store_names": [
+        "堺深井店"
+      ],
+      "text_len": 3691
+    },
+    {
+      "url": "https://ps.carmate.co.jp/c/car/aromatic/a-scenes1/as1-hanging?page=2&sort=price_low",
+      "accounts": [
+        "carmate_official"
+      ],
+      "food": true,
+      "store_names": [
+        "公式オンラインストア本店"
+      ],
+      "text_len": 5981
+    },
+    {
+      "url": "https://ps.carmate.co.jp/p/search?keyword=C137&sort=price_low",
+      "accounts": [
+        "carmate_official"
+      ],
+      "food": true,
+      "store_names": [
+        "公式オンラインストア本店"
+      ],
+      "text_len": 3187
+    },
+    {
+      "url": "https://rynne.co.jp/condos/34944",
+      "accounts": [
+        "rynne_official"
+      ],
+      "food": true,
+      "store_names": [
+        "飲食店",
+        "唯一無二の和栗専門店",
+        "宿木カフェ",
+        "保護猫カフェ",
+        "日暮里駅前店"
+      ],
+      "text_len": 8356
+    },
+    {
+      "url": "https://rynne.co.jp/condos/4187",
+      "accounts": [
+        "rynne_official"
+      ],
+      "food": true,
+      "store_names": [
+        "近隣にはおしゃれなカフェ",
+        "飲食店",
+        "六本木本店",
+        "東京ミッドタウン店",
+        "クヒルズ店"
+      ],
+      "text_len": 9600
+    },
+    {
+      "url": "https://shifta.jp/colnago/news-archive/detail/610/?page=",
+      "accounts": [
+        "colnago_jpn",
+        "shifta_jp"
+      ],
+      "food": true,
+      "store_names": [
+        "販売店"
+      ],
+      "text_len": 5204
+    },
+    {
+      "url": "https://store.kemonosha.jp/?pid=190521105",
+      "accounts": [
+        "kemon0sha"
+      ],
+      "food": true,
+      "store_names": [
+        "取扱店"
+      ],
+      "text_len": 2332
+    },
+    {
+      "url": "https://store.world.co.jp/brand/index/item/BRC5826Z0001?areaid=spC58_index",
+      "accounts": [
+        "index.official_"
+      ],
+      "food": true,
+      "store_names": [
+        "受取り対象店"
+      ],
+      "text_len": 5717
+    }
+  ]
+}

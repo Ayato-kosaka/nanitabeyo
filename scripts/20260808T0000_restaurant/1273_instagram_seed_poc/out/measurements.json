@@ -590,5 +590,17 @@
       "decisive_next_measurement": "263 handle を business_discovery（要トークン）で叩き、実投稿数・異なり店名・重複率・飲食率を実測する。トークンがあれば約1〜2時間"
     },
     "media_crawl_route4_dead": "RETRIP/SARAH は WAF で無料クロール不可。macaro-ni/favy/gnavi は自社写真で IG permalink ほぼ0。まとめメディアは «handle 発見源» としてのみ有効"
+  },
+  "wet_join_route1_NEGATIVE": {
+    "idea": "オーナー案: WAT(instagramリンク)とWET(本文)を同一セグメントでJOINし、周辺テキストで店を当てて route① を増やす",
+    "measured": {
+      "wat_ig_account_pages_per_file": 143,
+      "wet_join_success": "100%（URL JOIN は動く）",
+      "food_text_pct": 38.5,
+      "store_name_pct_of_food": 65.5
+    },
+    "verdict": "**却下**。数字は高く見えるが目視すると偽陽性だらけ。抽出店名は『全国76店』『取り扱い書店』『病棟の食堂』、アカウントは病院(akiyamahp)・医学出版(chugaiigaku)・バスケ(bambitiousnara)・旅行(rurubu_kids)。instagramアカウントを貼る日本語ページは大半が非飲食で、正規表現では飲食店を分離できない",
+    "what_would_be_needed": "WET本文を loose regex ではなく Overture 110万店の実名ガゼッタと厳密照合すれば精度は上がるが、110万名×15TBのJOINにはインデックスが要り、無料の範囲では非現実的",
+    "note": "route① を安く増やす手段としては、store 自身のサイトをCCで読む(既存4.14=website店の18.3%)の方が精度が高い。WET join はそれを超えない"
   }
 }
