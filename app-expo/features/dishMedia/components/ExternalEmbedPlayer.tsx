@@ -709,7 +709,13 @@ export function ExternalEmbedPlayer({
 				</View>
 			)}
 			{playback === "playing" && (
-				<View style={styles.playingMarker} pointerEvents="none" testID="external-embed-playing" />
+				/* #1641 provider ごとに分けて出す。«どの provider が再生できたか» を
+				   Detox から 1 つずつ判定できるようにするため（YouTube だけ落ちる、が拾える） */
+				<View
+					style={styles.playingMarker}
+					pointerEvents="none"
+					testID={`external-embed-playing-${embed.provider}`}
+				/>
 			)}
 			{showFallbackCta && (
 				<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">

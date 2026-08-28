@@ -99,7 +99,10 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		if (!session) {
 			throw new Error("認証済みセッションが無いため external-embed の取り込みを準備できません。");
 		}
-		({ restaurantId } = await ensureExternalEmbedImported(session.accessToken, { alsoImportPlayable: true }));
+		({ restaurantId } = await ensureExternalEmbedImported(session.accessToken, {
+			alsoImportPlayable: true,
+			alsoImportOtherProviders: true,
+		}));
 	});
 
 	it("取り込んだリールがフィードで自動再生され、再生できない投稿だけが導線へ縮退する", async () => {
@@ -161,29 +164,56 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		判定は `external-embed-playing`（再生開始の報告を受けたときだけ出る印）で行う。
 		`external-embed-fallback` の有無は記録するだけで合否には使わない（読み込み中と区別できないため）。
 		*/
-		const cells: { fallback: boolean; playing: boolean }[] = [];
-		for (let i = 0; i < 6; i++) {
+		const PROVIDERS = ["instagram", "tiktok", "youtube"] as const;
+		/** provider ごとに «アプリ内で再生が始まった» を観測できたか */
+		const playedBy: Record<(typeof PROVIDERS)[number], boolean> = {
+			instagram: false,
+			tiktok: false,
+			youtube: false,
+		};
+		let embedCells = 0;
+
+		for (let i = 0; i < 10; i++) {
 			if (await existsNow(embedWebView)) {
-				cells.push({
-					fallback: await existsNow(by.id("external-embed-fallback")),
-					playing: await existsNow(by.id("external-embed-playing")),
-				});
+				embedCells += 1;
+				for (const provider of PROVIDERS) {
+					if (await existsNow(by.id(`external-embed-playing-${provider}`))) {
+						playedBy[provider] = true;
+					}
+				}
 			}
 			await swipeFeed();
 			// 次のセルの埋め込みが読み込まれ、自動再生の判定が終わるまで待つ
 			await new Promise((resolve) => setTimeout(resolve, 8_000));
+			await device.takeScreenshot(`feed-${String(i).padStart(2, "0")}`);
 		}
 
-		if (cells.length === 0) {
+		if (embedCells === 0) {
 			throw new Error("埋め込みセルを 1 つも観測できませんでした（取り込みかフィードの経路が壊れています）。");
 		}
-		const playing = cells.filter((c) => c.playing).length;
-		if (playing === 0) {
+
+		/*
+		#1641 **3 つの provider すべてがアプリ内で再生できること。**
+
+		オーナー報告:「YouTube shorts がアプリ内再生出来ない」「TikTok をアプリ内再生必須」。
+
+		| provider | 再生のさせ方 |
+		| --- | --- |
+		| instagram | 埋め込みを直接開き、`<video>` を注入して `play()` |
+		| tiktok | 同上（«1 タップ要る» という以前の記述は誤りだった） |
+		| youtube | 直接開くとエラー 153 になるので、包みの HTML の中に iframe として置く |
+
+		⚠️ 素材は «再生できることが分かっているもの» を使っている（`externalEmbedImport.ts`）。
+		   再生できない投稿を素材にすると、実装が正しくても永久に赤になる。
+		*/
+		const notPlayed = PROVIDERS.filter((provider) => !playedBy[provider]);
+		if (notPlayed.length > 0) {
 			throw new Error(
-				`観測した埋め込みセル ${cells.length} 件のうち、実際に再生が始まったものが 0 件でした` +
-					`（«Instagram で見る» へ縮退: ${cells.filter((c) => c.fallback).length} 件）。` +
-					" 自動再生の注入（injectedJavaScript）が効いていない可能性があります。" +
-					" 動画（Artifact の test.mp4）で実際の見え方を確認してください。",
+				`アプリ内で再生が始まらなかった provider: ${notPlayed.join(", ")}` +
+					`（観測した埋め込みセル ${embedCells} 件 / 再生できた: ${
+						PROVIDERS.filter((p) => playedBy[p]).join(", ") || "なし"
+					}）。` +
+					" 判定は external-embed-playing-{provider}（ページ内から «再生が始まった» と報告があったときだけ出る印）で行っている。",
 			);
 		}
 

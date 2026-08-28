@@ -61,6 +61,34 @@ export const EXTERNAL_EMBED_PLAYABLE_URL = "https://www.instagram.com/reel/CDg3o
  */
 export const EXTERNAL_EMBED_OWNER_REPORTED_URL = "https://www.instagram.com/reel/Dcfhw8wFFm4/";
 
+/**
+ * 🎵 **TikTok の投稿**（#1641 オーナー報告「TikTok をアプリ内再生必須」）
+ *
+ * 埋め込み（`https://www.tiktok.com/embed/v2/{id}`）へ自動再生スクリプトを注入すると
+ * 無音で再生が始まることを実 Chrome で確認済み（`currentTime` が 10 秒台まで進んだ）。
+ * コード内に残っていた「TikTok は 1 タップ要る」という記述は**誤りだった**。
+ *
+ * オーナーが共有した短縮 URL（`vt.tiktok.com/ZSVpxS1xe/`）が指す投稿そのもの。
+ */
+export const EXTERNAL_EMBED_TIKTOK_URL =
+	"https://www.tiktok.com/@moto_gurume/video/7588462458633735445";
+
+/**
+ * ▶️ **YouTube の動画**（#1641 オーナー報告「YouTube shorts がアプリ内再生出来ない」）
+ *
+ * ## なぜオーナーが踏んだ Short ではないのか
+ *
+ * オーナーの `8KJDwppL0qg` は **YouTube 側が埋め込みを許さない**（正しい iframe に
+ * 置いても `playerState` が -1 → 3 のまま進まず「このコンテンツはご利用いただけません」）。
+ * これを素材にすると、**こちらの実装が正しくても永久に赤**になる
+ * （#1375 で権利ブロックされたリールを素材にして «再生を検証できていなかった» のと同じ轍）。
+ *
+ * `dQw4w9WgXcQ` は **誰でも埋め込めることが広く知られている**動画なので、
+ * これが再生できなければ原因は必ずこちら側にある、と言い切れる。
+ * 料理の動画ではないが、ここで見たいのは «YouTube がアプリ内で再生できるか» の一点である。
+ */
+export const EXTERNAL_EMBED_YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+
 type ResolveResponse = {
 	data?: {
 		candidates?: {
@@ -93,7 +121,7 @@ function backendBaseUrl(): string {
  */
 export async function ensureExternalEmbedImported(
 	accessToken: string,
-	options: { alsoImportPlayable?: boolean } = {},
+	options: { alsoImportPlayable?: boolean; alsoImportOtherProviders?: boolean } = {},
 ): Promise<{ restaurantId: string }> {
 	const base = backendBaseUrl();
 	const headers = { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` };
@@ -137,6 +165,11 @@ export async function ensureExternalEmbedImported(
 		await create(EXTERNAL_EMBED_PLAYABLE_URL);
 		// オーナーが «再生されない» と報告した投稿そのものも並べる（web は 2 タップ / ネイティブは無タップ）
 		await create(EXTERNAL_EMBED_OWNER_REPORTED_URL);
+	}
+	// #1641 provider ごとに «アプリ内で再生できるか» を 1 本のフィードで示す
+	if (options.alsoImportOtherProviders) {
+		await create(EXTERNAL_EMBED_TIKTOK_URL);
+		await create(EXTERNAL_EMBED_YOUTUBE_URL);
 	}
 
 	return { restaurantId };
