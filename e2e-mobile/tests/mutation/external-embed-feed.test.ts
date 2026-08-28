@@ -1,6 +1,7 @@
 import { by, describeMutation, device, element, existsNow, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
 import { RestaurantFeedScreen } from "../../screens/RestaurantFeedScreen";
 import { ensureExternalEmbedImported } from "../../utils/externalEmbedImport";
+import { logMemory } from "../../utils/memoryProbe";
 import { localeDeepLink } from "../../utils/locale";
 import { readSessionFromEnv } from "../../utils/sessionEnv";
 
@@ -107,6 +108,8 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		({ restaurantId } = await ensureExternalEmbedImported(session.accessToken, {
 			alsoImportPlayable: true,
 			alsoImportOtherProviders: true,
+			// #1641 オーナー要望: 権利で再生できない側のレイアウトも実機のコマで残す
+			alsoImportUnplayable: true,
 		}));
 	});
 
@@ -235,8 +238,19 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			}
 		};
 
+		/*
+		#1641 **セルを送るたびにメモリを 1 行残す。**
+
+		埋め込みセルを 5 本並べたところ Android が `lowmemorykiller` でアプリを殺した
+		（run 33133043261）。クラッシュではなくプロセス消滅なので、**何がどれだけ食ったのかを
+		観測する手段が無かった**。直す前に «見えるようにする» のが先である。
+		戻っているのか積み上がるだけなのかが run のログで分かる。
+		*/
+		logMemory("cell-start");
+
 		for (let i = 0; i < 8; i++) {
 			if (await observeCurrentCell(CELL_DWELL_MS)) embedCells += 1;
+			logMemory(`cell-${String(i).padStart(2, "0")} reached=${PROVIDERS.filter((p) => reachedBy[p]).join("+") || "none"}`);
 			await device.takeScreenshot(`feed-${String(i).padStart(2, "0")}`);
 			// 3 つとも観測できたら、残りのセルを見る意味は無い（実行時間を返す）
 			if (allPlayed()) break;

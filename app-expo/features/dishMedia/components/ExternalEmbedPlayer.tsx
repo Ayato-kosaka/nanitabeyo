@@ -176,6 +176,8 @@ const AUTOPLAY_SCRIPT = `(function () {
   var NO_VIDEO_GRACE_MS = 2000;
   var completeSince = 0;
   var timer = null, observer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
+  // 自動再生ポリシーで «音あり» を蹴られたか。蹴られた後は二度と音を戻さない
+  var mutedByPolicy = false;
   var backdrop = null, fillTicks = 0, poster = null, hidden = [];
 
   function report(kind, detail) {
@@ -198,6 +200,46 @@ const AUTOPLAY_SCRIPT = `(function () {
     if (timer) { clearInterval(timer); timer = null; }
     if (observer) { try { observer.disconnect(); } catch (e) {} observer = null; }
     if (kind) report(kind, detail);
+  }
+
+  /*
+   * #1641 **音を鳴らす。provider が最初からミュートで置いていることがある。**
+   *
+   * 実測（実機 Android / run 33149302351 の構造化ログ）:
+   *
+   *     instagram … audio=audible  （向こうの <video> がミュートでない）
+   *     tiktok    … audio=muted    （向こうが muted で置いている）
+   *
+   * 旧版は «向こうが置いたまま» 再生していたので、**TikTok は永久に無音**だった。
+   * WebView は mediaPlaybackRequiresUserAction={false} で開いており、Instagram が
+   * 音付きで鳴っている以上、**端末側の制限ではない**。こちらから muted を外して撃つ。
+   *
+   * ⚠️ NotAllowedError で蹴られた後は二度と外さない。外すと再生そのものが止まり、
+   *    «無音でも動く» すら失う（無音で動く方が、鳴らないより既存の料理動画セルに近い）。
+   */
+  function tryUnmute(v) {
+    if (mutedByPolicy) return;
+    try {
+      if (!v.muted && !v.defaultMuted && v.volume > 0) return;
+      v.muted = false;
+      v.defaultMuted = false;
+      v.removeAttribute('muted');
+      if (!(v.volume > 0)) v.volume = 1;
+    } catch (e) {}
+  }
+
+  /*
+   * 再生開始の報告。**監視は即止め、音の有無だけ少し待ってから読む。**
+   *
+   * unmute の直後に v.muted を読むと、向こうの JS が書き戻す前の値を見て
+   * «音あり» と誤報しうる。報告は 1 kind につき 1 回なので、遅らせても二重にならない。
+   */
+  function settlePlaying(v) {
+    settle(null);
+    tryUnmute(v);
+    setTimeout(function () {
+      try { report('playing', v.muted ? 'muted' : 'audible'); } catch (e) { report('playing', null); }
+    }, 600);
   }
 
   /*
@@ -362,7 +404,7 @@ const AUTOPLAY_SCRIPT = `(function () {
     v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
     if (v.__nbBound) return;
     v.__nbBound = true;
-    v.addEventListener('playing', function () { fill(v); settle('playing', v.muted ? 'muted' : 'audible'); }, false);
+    v.addEventListener('playing', function () { fill(v); settlePlaying(v); }, false);
     /*
      * 再生開始で本体の仕事は畳むが、Instagram 側の JS が後から style を書き戻す可能性がある。
      * **上限つき**（15 回 = 約 15 秒）で全面化だけ貼り直す。無制限に回さないこと。
@@ -393,10 +435,12 @@ const AUTOPLAY_SCRIPT = `(function () {
         return;
       }
       prepare(v);
+      // 撃つ前に毎回ミュートを外す（向こうの JS が書き戻すため 1 回では足りない）
+      tryUnmute(v);
       if (!v.paused && v.currentTime > 0) {
         // 'playing' の購読より前に再生が始まっていた場合、イベントを取り逃す。
         // 見た目は正しい（帯を出さない）が «何割が再生できたか» の計測が欠けるので、ここでも報告する
-        settle('playing', v.muted ? 'muted' : 'audible');
+        settlePlaying(v);
         return;
       }
       if (inFlight) return;  // 前の play() が解決する前に撃つと AbortError を量産する
@@ -416,7 +460,7 @@ const AUTOPLAY_SCRIPT = `(function () {
         }
         // NotAllowedError: 自動再生ポリシーで蹴られた。既存の動画セルは音ありだが、
         // 鳴らないよりミュートで動かす方が «同じ感覚» に近い。落として次の tick で再試行
-        if (name === 'NotAllowedError') { v.muted = true; v.defaultMuted = true; v.setAttribute('muted', ''); }
+        if (name === 'NotAllowedError') { mutedByPolicy = true; v.muted = true; v.defaultMuted = true; v.setAttribute('muted', ''); }
       });
     } catch (e) {}
   }

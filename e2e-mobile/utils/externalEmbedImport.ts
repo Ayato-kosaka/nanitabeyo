@@ -95,6 +95,27 @@ export const EXTERNAL_EMBED_TIKTOK_URL =
  */
 export const EXTERNAL_EMBED_YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
+/**
+ * 🚫 **YouTube 側が埋め込みを許可していない動画**（#1641 / オーナーが実機で踏んだ Short）
+ *
+ * 正しい iframe に置いても `playerState` が -1 → 3 のまま進まず、YouTube 自身が
+ * 「このコンテンツはご利用いただけません」を出す。**こちらの実装では突破できない。**
+ *
+ * 合否には使わない。**«権利で再生できない投稿がどう見えるか» を実機のコマで残す**ために取り込む
+ * （オーナー要望: 3 PF の権利分岐ごとのレイアウトをエビデンスで見たい）。
+ */
+export const EXTERNAL_EMBED_YOUTUBE_BLOCKED_URL = "https://www.youtube.com/shorts/8KJDwppL0qg";
+
+/**
+ * 料理カテゴリの予備。**`resolve` の候補だけでは席が足りないときに使う。**
+ *
+ * お店フィードは «料理 1 件につき 1 本» しか返さないので、取り込む本数ぶんの
+ * 料理カテゴリが要る。`resolve` が返すのは 5 種類で、既に別の投稿が代表している
+ * カテゴリはそのぶん使えない。ここは **実際に別の投稿の resolve が返した ID** で、
+ * dev の `dish_categories` に存在することを確認済み（2026-08-28）。
+ */
+const EXTRA_DISH_CATEGORY_IDS = ["Q41415"];
+
 type FeedResponse = {
 	data?: {
 		// ⚠️ API は camelCase で返す（`dish` / `dish_media` の中だけ snake_case が混ざる）。実測で確認した形
@@ -109,7 +130,10 @@ type FeedResponse = {
 function externalContentIdOf(url: string): string | null {
 	const instagram = /instagram\.com\/(?:p|reel|reels|tv)\/([^/?#]+)/.exec(url);
 	if (instagram) return instagram[1];
-	const youtube = /[?&]v=([^&#]+)/.exec(url) ?? /youtu\.be\/([^/?#]+)/.exec(url);
+	const youtube =
+		/[?&]v=([^&#]+)/.exec(url) ??
+		/youtu\.be\/([^/?#]+)/.exec(url) ??
+		/youtube\.com\/shorts\/([^/?#]+)/.exec(url);
 	if (youtube) return youtube[1];
 	const tiktok = /tiktok\.com\/[^/]*\/?video\/(\d+)/.exec(url);
 	if (tiktok) return tiktok[1];
@@ -149,7 +173,12 @@ function backendBaseUrl(): string {
  */
 export async function ensureExternalEmbedImported(
 	accessToken: string,
-	options: { alsoImportPlayable?: boolean; alsoImportOtherProviders?: boolean } = {},
+	options: {
+		alsoImportPlayable?: boolean;
+		alsoImportOtherProviders?: boolean;
+		/** «権利で再生できない» 側のコマを残すために、埋め込み不可の動画も取り込む */
+		alsoImportUnplayable?: boolean;
+	} = {},
 ): Promise<{ restaurantId: string }> {
 	const base = backendBaseUrl();
 	const headers = { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` };
@@ -207,9 +236,11 @@ export async function ensureExternalEmbedImported(
 	*/
 	const pool = [
 		...new Set(
-			[dishCategoryId, ...(candidates?.dishCategories ?? []).map((c) => c?.dishCategoryId)].filter(
-				(id): id is string => typeof id === "string" && id.length > 0,
-			),
+			[
+				dishCategoryId,
+				...(candidates?.dishCategories ?? []).map((c) => c?.dishCategoryId),
+				...EXTRA_DISH_CATEGORY_IDS,
+			].filter((id): id is string => typeof id === "string" && id.length > 0),
 		),
 	];
 
@@ -241,6 +272,9 @@ export async function ensureExternalEmbedImported(
 	if (options.alsoImportOtherProviders) {
 		wanted.push({ url: EXTERNAL_EMBED_TIKTOK_URL, required: true });
 		wanted.push({ url: EXTERNAL_EMBED_YOUTUBE_URL, required: true });
+	}
+	if (options.alsoImportUnplayable) {
+		wanted.push({ url: EXTERNAL_EMBED_YOUTUBE_BLOCKED_URL, required: false });
 	}
 	wanted.push({ url: EXTERNAL_EMBED_IMPORT_URL, required: !options.alsoImportOtherProviders });
 

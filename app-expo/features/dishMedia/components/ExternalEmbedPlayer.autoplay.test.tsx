@@ -135,6 +135,29 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		expect(touchable.filter((node) => fillsWholeCell(node.props.style)).length).toBe(0);
 	});
 
+	/*
+	#1641 **TikTok が無音だったのは、向こうが muted で置いた <video> を
+	«そのまま» 再生していたからである。**
+
+	実機の構造化ログ（run 33149302351）:
+
+	    instagram … audio=audible   （向こうの <video> がミュートでない）
+	    tiktok    … audio=muted     （向こうが muted で置いている）
+
+	同じ WebView で Instagram が音付きで鳴っている以上、端末側の制限ではない。
+	撃つ前にこちらでミュートを外す。⚠️ ただし **NotAllowedError で蹴られた後は戻さない**
+	（戻すと再生そのものが止まり、«無音でも動く» すら失う）。
+	*/
+	it("再生前にミュートを外す。ポリシーで蹴られたときだけ無音へ落とす", () => {
+		renderActiveCell();
+		const script: string = webViewProps.injectedJavaScript;
+		expect(script).toContain("function tryUnmute(v)");
+		expect(script).toContain("v.muted = false;");
+		// 蹴られた後は二度と外さない
+		expect(script).toContain("if (mutedByPolicy) return;");
+		expect(script).toContain("mutedByPolicy = true;");
+	});
+
 	it("注入スクリプトにバッククォートが混ざっていない", () => {
 		/*
 		⚠️ `AUTOPLAY_SCRIPT` はテンプレートリテラルなので、**コメントに ` を書くと

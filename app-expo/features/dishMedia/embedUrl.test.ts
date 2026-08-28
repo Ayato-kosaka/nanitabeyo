@@ -80,6 +80,27 @@ describe("buildEmbedIframeHtml", () => {
 		expect(html).toContain("data.info.playerState === 1");
 	});
 
+	/*
+	#1641 **音は «出せないから無音» ではなく «こちらが無音にしていた»。**
+
+	旧版は `onReady` で必ず `mute` してから `playVideo` していたので、YouTube だけ
+	構造的に無音だった（実機ログ run 33149302351: `audio=muted`）。同じ WebView で
+	Instagram は音付きで鳴っているので、端末側の制限ではない。まず音ありで撃ち、
+	始まらなかったときだけ無音へ落とす。
+	*/
+	it("まず音ありで撃ち、始まらなければ無音で撃ち直す", () => {
+		expect(html).toContain("func: 'unMute'");
+		expect(html).toContain("if (started) return;");
+		expect(html).toContain("func: 'mute'");
+		// unMute が mute より先に出てくること（順序が逆だと音ありを試さずに終わる）
+		expect(html.indexOf("func: 'unMute'")).toBeLessThan(html.indexOf("func: 'mute'"));
+	});
+
+	it("音の有無は報告に載せる（muted 決め打ちにしない）", () => {
+		expect(html).toContain("'audible'");
+		expect(html).not.toContain("report('playing', 'muted')");
+	});
+
 	it("結論は 1 度だけ報告する（再生後に締め切りで上書きしない）", () => {
 		expect(html).toContain("if (settled) return;");
 	});

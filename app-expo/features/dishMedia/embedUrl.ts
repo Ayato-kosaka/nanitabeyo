@@ -161,6 +161,16 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
   var ORIGIN = 'https://www.youtube.com';
   var frame = document.getElementById('nb-embed');
   var settled = false;
+  /*
+   * #1641 **まず音ありで撃つ。** 旧版は onReady で必ず mute してから playVideo していたので、
+   * YouTube だけ構造的に無音だった（実機ログ: audio=muted）。Instagram は音付きで鳴っており、
+   * WebView は mediaPlaybackRequiresUserAction={false} なので、端末側の制限ではない。
+   * 音ありで始まらなかったときだけ、下の締め切りで無音へ落とす。
+   */
+  var UNMUTE_GRACE_MS = 1500;
+  var started = false;
+  var mutedFallback = false;
+  var lastMuted = null;
 
   // ⚠️ **結論は 1 度だけ。** 再生が始まったあとに締め切りが来ても報告し直さない
   //    （呼び出し側が «再生できない» へ戻り、動いている映像に導線の帯が乗ってしまう）
@@ -185,9 +195,18 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
     try { data = JSON.parse(event.data); } catch (e) { return; }
 
     if (data.event === 'onReady') {
-      // 自動再生が効かなかった場合の保険。無音なら撃ち直してよい
-      send({ event: 'command', func: 'mute', args: [] });
+      send({ event: 'command', func: 'unMute', args: [] });
       send({ event: 'command', func: 'playVideo', args: [] });
+      /*
+       * 音ありの自動再生はポリシーで蹴られることがある。**蹴られたら無音で撃ち直す。**
+       * 鳴らないより «無音でも動く» 方が、既存の料理動画セルの感覚に近い。
+       */
+      setTimeout(function () {
+        if (started) return;
+        mutedFallback = true;
+        send({ event: 'command', func: 'mute', args: [] });
+        send({ event: 'command', func: 'playVideo', args: [] });
+      }, UNMUTE_GRACE_MS);
       return;
     }
 
@@ -200,7 +219,19 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
      *      埋め込み不可の動画 … playerState: -1 → 3（未開始 → バッファのまま進まない）
      */
     if (data.event === 'infoDelivery' && data.info) {
-      if (data.info.playerState === 1) report('playing', 'muted');
+      // 音の状態は別便で届くことがあるので、届いたものを覚えておく
+      if (typeof data.info.muted === 'boolean') lastMuted = data.info.muted;
+      if (data.info.playerState === 1 && !started) {
+        started = true;
+        /*
+         * ⚠️ **この瞬間に読まない。** unMute の結果が infoDelivery で返るまでの間に
+         *    読むと «無音» と誤報する。報告は 1 度だけなので遅らせても二重にならない。
+         */
+        setTimeout(function () {
+          var muted = mutedFallback || lastMuted !== false;
+          report('playing', muted ? 'muted' : 'audible');
+        }, 800);
+      }
       if (typeof data.info.errorCode !== 'undefined') report('no_video', data.info.errorCode);
     }
     // 動画側が埋め込みを許可していない / 存在しない
