@@ -77,3 +77,4 @@ out/.ig_token
 !out/fsq_hf_api_counts.json
 !out/ig_handle_gate_at_scale.json
 !out/wikidata_ig_handles.json
+!out/fsq_gate_at_scale.json

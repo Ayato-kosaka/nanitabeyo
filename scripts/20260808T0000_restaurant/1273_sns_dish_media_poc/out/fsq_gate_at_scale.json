@@ -1,0 +1,44 @@
+{
+  "purpose": "#1653 Foursquare 本家の日本の飲食×instagram に #1269 のハンドル門を当てる",
+  "source": "out/fsq_jp_instagram.csv（Foursquare OS Places dt=2026-08-11, Apache-2.0）",
+  "n_rows_jp_with_ig": 153999,
+  "n_food": 71969,
+  "n_food_open": 63662,
+  "n_judged": 63662,
+  "gates": {
+    "pass_fwd": {
+      "passed": 23289,
+      "pass_rate_pct": 36.6,
+      "ci_pct": [
+        36.2,
+        37.0
+      ]
+    },
+    "pass_any": {
+      "passed": 36175,
+      "pass_rate_pct": 56.8,
+      "ci_pct": [
+        56.4,
+        57.2
+      ]
+    },
+    "pass_loose": {
+      "passed": 38754,
+      "pass_rate_pct": 60.9,
+      "ci_pct": [
+        60.5,
+        61.3
+      ]
+    },
+    "pass_fuzzy": {
+      "passed": 52637,
+      "pass_rate_pct": 82.7,
+      "ci_pct": [
+        82.4,
+        83.0
+      ]
+    }
+  },
+  "population": 1132482,
+  "caveat": "通過率であって precision ではない。precision は #1269 の 31 件の値を援用する"
+}
