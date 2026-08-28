@@ -593,6 +593,37 @@ export class DishMediaImportsService {
       );
     }
 
+    /*
+    #1641 **YouTube は Shorts だけを取り込む**（#1399 リーダー確定 §1）。
+
+    `/watch?v=` と `youtu.be/` は URL だけでは Shorts か判定できないので
+    `requiresShortsCheck` が立つ。**その確定処理がどこにも無く、横長の通常動画が
+    そのまま取り込めていた**（オーナー指摘 2026-08-28。セルでは上下に黒帯が出る）。
+
+    ⚠️ 判定できなかったときは**弾かずに通す**（同 §3 の条件 1）。判定材料は YouTube の
+       実装であって契約された仕様ではないので、安全側に倒すと向こうが挙動を変えた日に
+       取り込みが全部止まる。`requiresShortsCheck` を立てたまま返し、呼び出し側に委ねる。
+    */
+    if (content.provider === 'youtube' && content.requiresShortsCheck === true) {
+      const verdict = await this.oembed.confirmYouTubeShorts(
+        content.externalContentId,
+      );
+      if (verdict === 'not_shorts') {
+        this.logger.debug('SnsImportYouTubeNotShorts', 'resolve', {
+          externalContentId: content.externalContentId,
+        });
+        return this.emptyResponse(
+          'unsupported',
+          'youtube_not_shorts',
+          content,
+          expandedFromShortlink,
+          dto,
+        );
+      }
+      // Shorts だと確定したなら、呼び出し側へ «要確認» を持ち越さない
+      if (verdict === 'shorts') content = { ...content, requiresShortsCheck: false };
+    }
+
     const metadata = outcome.metadata;
     const texts = this.buildExtractedTexts(content, metadata);
 

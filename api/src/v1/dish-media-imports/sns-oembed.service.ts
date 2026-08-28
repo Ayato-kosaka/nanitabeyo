@@ -295,6 +295,63 @@ export class SnsOembedService {
    * （フル URL の取り込みは成功しており、店舗候補まで出ている）。
    * つまり 1 リクエストで «展開» と «キャプション取得» の両方が済む。
    */
+  /**
+   * #1641 **その動画 ID が Shorts かどうかを確定させる。**
+   *
+   * 取り込みの対象は Shorts だけ（#1399 リーダー確定 §1）だが、`/watch?v={id}` と
+   * `youtu.be/{id}` は **URL だけでは判定できない**ので `requiresShortsCheck` が立つ。
+   * その確定をここで行う。判定材料は YouTube の実装で、
+   *
+   *     GET https://www.youtube.com/shorts/{id}
+   *       200 …… Shorts
+   *       303 → /watch?v={id} …… 横長の通常動画（Shorts ではない）
+   *       404 …… 無い
+   *
+   * ⚠️ **これは YouTube の実装であって契約された仕様ではない。**
+   *    だから «判定できなかった» と «Shorts ではないと分かった» を混ぜない。
+   *    ネットワーク失敗・想定外のステータスは `unknown` を返し、呼び出し側は**弾かずに通す**
+   *    （リーダー確定 §3 の条件 1）。ここで安全側に倒して弾くと、YouTube が挙動を変えた日に
+   *    **取り込みが全部止まる**。
+   */
+  async confirmYouTubeShorts(
+    videoId: string,
+  ): Promise<'shorts' | 'not_shorts' | 'unknown'> {
+    // ID は呼び出し側で検証済みだが、URL を組む前にもう一度見る（組み立てに信用を持ち込まない）
+    if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return 'unknown';
+
+    try {
+      const chain = await this.safeFetch.resolveRedirectChain(
+        `https://www.youtube.com/shorts/${videoId}`,
+        {
+          apiName: API_NAMES.youtube,
+          functionName: 'confirmYouTubeShorts',
+          // 行き先は YouTube の中だけ。外へ出るリダイレクトには付いていかない
+          allowHop: (url) =>
+            url.hostname === 'www.youtube.com' || url.hostname === 'youtube.com',
+          /*
+           * ⚠️ **`/watch` まで取りに行かない。** 知りたいのは «流されたかどうか» だけで、
+           *    その先の中身は要らない。取りに行くと 1 リクエスト無駄にするうえ、
+           *    視聴ページ（1MB 超）を毎回引くことになる。
+           */
+          stopAt: (url) => url.pathname === '/watch',
+        },
+      );
+
+      const finalUrl = new URL(chain.finalUrl);
+      // /watch?v= へ流された = 横長の通常動画（Shorts ではない）
+      if (finalUrl.pathname === '/watch') return 'not_shorts';
+      if (/^\/shorts\//.test(finalUrl.pathname) && chain.finalStatus === 200) {
+        return 'shorts';
+      }
+      return 'unknown';
+    } catch (error) {
+      this.logger.warn('YouTubeShortsCheckFailed', 'confirmYouTubeShorts', {
+        kind: error instanceof SafeFetchError ? error.kind : 'unknown_error',
+      });
+      return 'unknown';
+    }
+  }
+
   async resolveTikTokShortlink(
     expandUrl: string,
   ): Promise<SnsUrlContent | null> {

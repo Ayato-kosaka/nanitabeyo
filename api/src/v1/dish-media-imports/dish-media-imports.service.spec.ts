@@ -1316,3 +1316,79 @@ describe('#1599 取り込みの競合', () => {
     await expect(run(tx)).resolves.toMatchObject({ saved: false });
   });
 });
+
+/*
+#1641 **YouTube は Shorts だけを取り込む**（#1399 リーダー確定 §1）。
+
+`/watch?v=` と `youtu.be/` は URL だけでは判定できないので `requiresShortsCheck` が立つ。
+**その確定処理がどこにも実装されておらず、横長の通常動画がそのまま取り込めていた**
+（オーナー指摘 2026-08-28。セルでは上下に黒帯が出る）。
+
+判定材料は YouTube の実装（`/shorts/{id}` が 200 か、`/watch` へ 303 か）であって、
+契約された仕様ではない。だから **«判定できなかった» と «Shorts ではないと分かった» を混ぜない**。
+*/
+describe('DishMediaImportsService — YouTube の Shorts 判定', () => {
+  const SHORTS_URL = 'https://www.youtube.com/shorts/SXHMnicI6Pg';
+  const WATCH_URL = 'https://www.youtube.com/watch?v=SXHMnicI6Pg';
+
+  const routeOembedOk = (transport: FakeSafeFetchTransport) =>
+    transport.route(YOUTUBE_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: '【月島】焼鶏ばんちょう', author_name: '78グルメ' }),
+    });
+
+  it('/watch?v= が横長の通常動画なら取り込ませない', async () => {
+    const { service, transport } = createHarness();
+    routeOembedOk(transport);
+    // YouTube は Shorts でない ID の /shorts/{id} を /watch?v={id} へ流す
+    transport.route(SHORTS_URL, {
+      status: 303,
+      headers: { location: WATCH_URL },
+    });
+
+    const result = await service.resolve({ url: WATCH_URL });
+
+    expect(result.status).toBe('unsupported');
+    expect(result.reason).toBe('youtube_not_shorts');
+  });
+
+  it('/watch?v= でも Shorts なら通し、«要確認» を持ち越さない', async () => {
+    const { service, transport } = createHarness();
+    routeOembedOk(transport);
+    transport.route(SHORTS_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+      body: '<html></html>',
+    });
+
+    const result = await service.resolve({ url: WATCH_URL });
+
+    expect(result.status).not.toBe('unsupported');
+    expect(result.source.requiresShortsCheck).toBe(false);
+  });
+
+  /*
+  ⚠️ ここが要。**判定できなかったときに弾かない。** 弾くと、YouTube が挙動を変えた日に
+     取り込みが全部止まる（リーダー確定 §3 の条件 1）。
+  */
+  it('判定できなかったときは弾かず、«要確認» を立てたまま通す', async () => {
+    const { service, transport } = createHarness();
+    routeOembedOk(transport);
+    transport.route(SHORTS_URL, { status: 500, body: 'oops' });
+
+    const result = await service.resolve({ url: WATCH_URL });
+
+    expect(result.status).not.toBe('unsupported');
+    expect(result.source.requiresShortsCheck).toBe(true);
+  });
+
+  it('/shorts/ 由来なら余計な確認をしない（リクエストを増やさない）', async () => {
+    const { service, transport } = createHarness();
+    routeOembedOk(transport);
+
+    await service.resolve({ url: SHORTS_URL });
+
+    expect(transport.requests.some((request) => request.url.startsWith(SHORTS_URL))).toBe(false);
+  });
+});

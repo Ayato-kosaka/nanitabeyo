@@ -192,7 +192,16 @@ export type ResolveDishMediaImportReason =
 	/** oEmbed が 400 / 404 / 410 を返した（削除・非公開） */
 	| "metadata_content_unavailable"
 	/** oEmbed は成功したが、候補生成に使えるテキストが 1 文字も無かった */
-	| "metadata_empty";
+	| "metadata_empty"
+	/**
+	 * YouTube だが **Shorts ではなかった**（横長の通常動画）。
+	 *
+	 * 取り込みの対象は Shorts だけ（#1399 リーダー確定 §1）。`/watch?v=` と `youtu.be/` は
+	 * URL だけでは判定できないので `HEAD /shorts/{id}` で確定させる。
+	 * ⚠️ **判定できなかったとき（ネットワーク失敗など）はこれを返さない。**
+	 * 弾かずに通し、`requiresShortsCheck` を立てたままにする（同 §3）。
+	 */
+	| "youtube_not_shorts";
 
 /** 店舗候補を探したか / 探さなかった理由 */
 export type ResolveDishMediaImportRestaurantSearchReason =
