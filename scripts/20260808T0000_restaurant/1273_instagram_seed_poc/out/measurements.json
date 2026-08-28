@@ -490,7 +490,13 @@
     "finding": "instagram.com/p/{code}/embed/captioned/ は 2026-08 現在もトークン無し・審査無しでキャプション全文を返す。resolve エンドポイント（api/src/v1/dish-media-imports/sns-oembed.service.ts）が本番でこれを使っている",
     "test": "WAT から取った日本由来の投稿 60 本を embed で取得: 60/60 = 100% 成功。キャプションに店名・料理・アカウント名が入る",
     "implication": "『裸の投稿 URL → 料理カテゴリ＋店舗』のエンリッチは無料で解けている。ボトルネックはエンリッチではなく『飲食の投稿 URL をどう発見するか』だけ",
-    "rate_limit_note": "#1284 では embed は短時間バーストで約7,500req/時/IP、持続レートは未確定。ここが唯一の技術的未知数"
+    "rate_limit_note": "#1284 では embed は短時間バーストで約7,500req/時/IP、持続レートは未確定。ここが唯一の技術的未知数",
+    "embed_rate_limit_resolved": {
+      "test": "実在コードを無遅延で 500 本連射（1 IP・262秒）",
+      "result": "500/500 = 100% が HTTP 200。約6,870/時。429/401/ログイン壁は 0。#1284 の『持続レート未検証』を解消",
+      "caveat": "1 IP・500本・262秒の測定。数時間〜複数IPの長期挙動は外挿。コードは一部再利用（IG 側キャッシュの可能性）だが、それでも 500 連続でブロック無しは強い証拠",
+      "implication": "無料で発見した 8〜17万店を embed（6,870/時）または business_discovery（200/時）で無料エンリッチできる。速度は日〜週で、複数IP/アカウントで並列化可能"
+    }
   },
   "bright_data": {
     "instagram_scraper_api": {
