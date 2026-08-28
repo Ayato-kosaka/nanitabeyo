@@ -1,0 +1,45 @@
+{
+  "summary": {
+    "crawl": "CC-MAIN-2026-34",
+    "files_sampled": 4,
+    "mean_posts_per_file": 641.0,
+    "mean_jp_posts_per_file": 31.5,
+    "total_wat_files": 100000,
+    "extrapolated_posts_full_crawl": 64100000,
+    "extrapolated_jp_posts_full_crawl": 3150000
+  },
+  "files": [
+    {
+      "file": "CC-MAIN-20260813111745-20260813141745-00048.warc.wat.gz",
+      "pages": 43123,
+      "distinct_posts": 737,
+      "distinct_posts_from_jp_domains": 14,
+      "uncompressed_mb": 694,
+      "seconds": 7
+    },
+    {
+      "file": "CC-MAIN-20260812200004-20260812230004-00214.warc.wat.gz",
+      "pages": 40941,
+      "distinct_posts": 573,
+      "distinct_posts_from_jp_domains": 26,
+      "uncompressed_mb": 629,
+      "seconds": 5
+    },
+    {
+      "file": "CC-MAIN-20260810190756-20260810220756-00200.warc.wat.gz",
+      "pages": 41414,
+      "distinct_posts": 612,
+      "distinct_posts_from_jp_domains": 41,
+      "uncompressed_mb": 663,
+      "seconds": 5
+    },
+    {
+      "file": "CC-MAIN-20260811223931-20260812013931-00031.warc.wat.gz",
+      "pages": 39107,
+      "distinct_posts": 642,
+      "distinct_posts_from_jp_domains": 45,
+      "uncompressed_mb": 613,
+      "seconds": 5
+    }
+  ]
+}

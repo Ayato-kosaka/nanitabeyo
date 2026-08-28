@@ -279,6 +279,11 @@
         "recall_any_pct": 56.67
       },
       "best": "{name} {locality} instagram"
+    },
+    "result_cap": {
+      "note": "Google/Bing は 1 クエリあたり概ね数百件で打ち切る。『焼き鳥』1 クエリから 100万件は取れない",
+      "implication": "量を出すには category × 市区町村へ分割するしかなく、費用は投稿数ではなくクエリ数で決まる。分割しても総額は約 $317 で変わらない",
+      "why_search_wins": "SERP の title が Google の抽出したキャプションそのもの。1 回 $0.0003 の検索で『投稿URL＋キャプション＋店名の手がかり』が同時に返る。WAT はここが取れない"
     }
   },
   "4_14_common_crawl": {
@@ -320,6 +325,18 @@
       "web.archive.org_http": 403,
       "timetravel": "000",
       "note": "Wayback CDX は未検証のまま残る。EC2（.claude/skills/ec2-chrome-operate）からなら試せる"
+    },
+    "wat_yield_measured": {
+      "note": "以前『15.1TB で非現実的』としたが、1 ファイルあたりの収率と処理時間を実測した",
+      "files_sampled": 4,
+      "mean_posts_per_file": 641.0,
+      "mean_jp_domain_posts_per_file": 31.5,
+      "total_wat_files": 100000,
+      "extrapolated_instagram_posts_per_crawl": 64100000,
+      "extrapolated_jp_domain_posts_per_crawl": 3150000,
+      "download_decompress": "約650MB(展開後)/6秒/ファイル。全10万ファイル逐次で6.4日、32並列で4.8時間。CC の egress は無料",
+      "content_check": "日本ドメイン由来の投稿を目視サンプルした結果、飲食は少数（鍼灸・企業ブログ・高校サイト等が多い）。WAT はリンクだけでキャプションを持たないので、飲食判定・店舗照合には別途エンリッチが要る",
+      "verdict": "**無料で投稿 URL の火力は出る（1 crawl で JP 315万本）。だが『裸の URL』で、飲食か・どの店かを無料で判定する手段が無いのがボトルネック**"
     }
   },
   "4_20_unknown_license_datasets": {
@@ -404,6 +421,34 @@
         "verdict": "全文検索が自分の投稿に限られ、instagram.com/p は 0 件"
       },
       "verdict": "既製のデータセットは存在しない。作るしかない"
+    },
+    "gdelt_gkg": {
+      "source": "BigQuery gdelt-bq.gdeltv2.gkg_partitioned（無料でクエリ可）",
+      "window": "30日",
+      "rows_scanned": 8754116,
+      "rows_with_instagram_embed": 225978,
+      "jp_domain_with_instagram_embed": 20,
+      "verdict": "グローバルには 30日で 22万件の IG 埋め込みがあるが、日本ドメインは 20件と極小。日本の飲食には効かない"
     }
+  },
+  "scraper_options": {
+    "self_built_google_scraper": "Serper/SerpApi の再発明。プロキシプール＋CAPTCHA 突破が要り、住宅IPプロキシは往々にして $0.30/1k を超える。Google ToS 違反。この環境でも google.com/search への直アクセスは分類器に遮断された。一度きりの 118万クエリには割に合わない",
+    "apify_instagram_hashtag_scraper": {
+      "price_per_result_usd": 0.0023,
+      "cheap_tier": 0.0007,
+      "free_tier": "$5/月クレジット ≒ 2,100〜7,000 件",
+      "note": "#焼き鳥 等のハッシュタグから投稿を直接取得（カテゴリ経路そのもの）。キャプション・位置も付く。ただし Instagram を直接叩くので IG 規約違反、かつ #1284 で確認済みのとおり直接アクセスは不安定",
+      "cost_1M_posts": [
+        700,
+        2300
+      ],
+      "cost_132M_posts": [
+        92400,
+        303600
+      ]
+    },
+    "bright_data": "Instagram データセットをレコード課金で販売。トライアルクレジットあり。IG 直接収集の規約リスクはベンダが負う建付けだが要契約確認",
+    "phantombuster": "自分の IG cookie が要り、IG 側のレート制限を受ける。グロースハック向けで数百万件のバルクには不向き",
+    "verdict": "カテゴリ経路をハッシュタグで直接やるなら Apify が最安 $0.0007/件。だが総量 132カテゴリ×100万件=1.32億件では $9万〜30万で、店単位検索の $317 より桁違いに高い。1M件程度なら Apify $700 ≒ Serper $317"
   }
 }
