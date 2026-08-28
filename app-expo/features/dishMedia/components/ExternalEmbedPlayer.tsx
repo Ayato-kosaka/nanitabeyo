@@ -176,7 +176,7 @@ const AUTOPLAY_SCRIPT = `(function () {
   var NO_VIDEO_GRACE_MS = 2000;
   var completeSince = 0;
   var timer = null, observer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
-  var backdrop = null, fillTicks = 0, poster = null;
+  var backdrop = null, fillTicks = 0, poster = null, hidden = [];
 
   function report(kind, detail) {
     if (sent[kind]) return;
@@ -223,6 +223,11 @@ const AUTOPLAY_SCRIPT = `(function () {
      * contain なら、リールの全体が入る最大の大きさで出る（余りはこちらの地色）。
      */
     st.setProperty('object-fit', 'contain', 'important');
+    /*
+     * ⚠️ **自分で地色を持つこと。** contain は縦横比が合わない分を «透明» のまま残すので、
+     *    後ろにある provider の要素が透けて見える（TikTok で灰色の帯が出た）。
+     */
+    st.setProperty('background', '${FixedColors.mediaBackground}', 'important');
     st.setProperty('z-index', String(z), 'important');
   }
 
@@ -231,12 +236,80 @@ const AUTOPLAY_SCRIPT = `(function () {
    *
    * 埋め込みページの body は白なので、敷かないと «アプリの黒 → 一瞬の白 → 映像» と
    * 明滅する。セルの見た目を既存の料理動画セルへ揃えるための下地でもある。
+   *
+   * ⚠️ **重ねる div ではなく、html / body の背景色にする。**
+   *    div を body へ足す方式は TikTok で映像を覆い隠した（下の isolate を参照）。
    */
   function ensureBackdrop() {
-    if (backdrop || !document.body) return;
-    backdrop = document.createElement('div');
-    backdrop.style.cssText = 'position:fixed;inset:0;background:#000;z-index:2147483645';
-    document.body.appendChild(backdrop);
+    if (backdrop || !document.documentElement) return;
+    backdrop = true;
+    try {
+      document.documentElement.style.setProperty('background', '${FixedColors.mediaBackground}', 'important');
+      if (document.body) document.body.style.setProperty('background', '${FixedColors.mediaBackground}', 'important');
+    } catch (e) {}
+  }
+
+  /*
+   * #1641【設計】**映像を «祖先ごと» 前面へ出す。z-index に頼らない。**
+   *
+   * ## なぜ z-index では駄目だったか
+   *
+   * 当初は «黒い div を body へ足し、<video> に最大の z-index を振る» 方式だった。
+   * Instagram では動いたが、**TikTok では画面が真っ黒のまま**になった
+   * （report は playing、currentTime も 13 秒台まで進んでいるのに絵が出ない）。
+   *
+   * 原因は CSS の重なり文脈である。祖先に transform / filter があると
+   *
+   *   - position: fixed の基準がその祖先になる
+   *   - z-index の比較もその部分木の中だけの話になる
+   *
+   * ので、body 直下へ足した黒い div のほうが前に出る。**provider の DOM 次第で
+   * 勝ったり負けたりする**ので、この方式自体が危うい。
+   *
+   * ## 代わりに «映像の道» だけを残す
+   *
+   * <video> から body までの道のりで、**兄弟を消し、祖先の変形と切り取りを解除する**。
+   * 重なりの勝負をしないので、向こうの DOM がどう組まれていても結果が変わらない。
+   */
+  function isolate(target) {
+    /*
+     * ⚠️ **前に隠したものを必ず戻してから隠し直す。**
+     *    1 コマ目の画像を隠していた状態から <video> へ切り替えるとき、戻さないと
+     *    «映像そのものを隠したまま» になりうる（両者は兄弟であることが多い）。
+     */
+    for (var h = 0; h < hidden.length; h++) {
+      try { hidden[h].style.removeProperty('visibility'); } catch (e) {}
+    }
+    hidden = [];
+
+    var el = target;
+    var guard = 0;
+    while (el && el.parentElement && guard++ < 30) {
+      var parent = el.parentElement;
+      for (var i = 0; i < parent.children.length; i++) {
+        var sibling = parent.children[i];
+        if (sibling !== el) {
+          /*
+           * display ではなく visibility を使う。display:none は要素をレイアウトから
+           * 外すので、向こうのスクリプトが寸法を測って作り直す経路を刺激しうる。
+           */
+          try {
+            sibling.style.setProperty('visibility', 'hidden', 'important');
+            hidden.push(sibling);
+          } catch (e) {}
+        }
+      }
+      try {
+        // これらが残っていると position:fixed の基準がここになる
+        parent.style.setProperty('transform', 'none', 'important');
+        parent.style.setProperty('filter', 'none', 'important');
+        parent.style.setProperty('perspective', 'none', 'important');
+        parent.style.setProperty('overflow', 'visible', 'important');
+        parent.style.setProperty('background', 'transparent', 'important');
+      } catch (e) {}
+      if (parent === document.body) break;
+      el = parent;
+    }
   }
 
   /*
@@ -269,11 +342,15 @@ const AUTOPLAY_SCRIPT = `(function () {
     }
     if (!best) return;
     poster = best;
+    // 映像がまだ無い間は、1 コマ目の画像を «前面へ出す» 対象にする
+    // （これをしないと Instagram のヘッダ帯が画像の上に残る）
+    isolate(poster);
     stretch(poster, 2147483646);
   }
 
   function fill(v) {
     ensureBackdrop();
+    isolate(v);
     stretch(v, 2147483647);
   }
 

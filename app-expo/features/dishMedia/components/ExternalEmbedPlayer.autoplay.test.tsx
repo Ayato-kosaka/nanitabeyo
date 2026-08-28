@@ -160,10 +160,21 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			);
 			const video = opts.video ? mk("video", { paused: true, currentTime: 0, play: () => Promise.resolve() }) : null;
 			const appended: unknown[] = [];
+			const styleRecorder = () => {
+				const own: Record<string, string> = {};
+				return Object.assign(own, {
+					setProperty: (k: string, v: string) => {
+						own[k] = v;
+					},
+					removeProperty: (k: string) => {
+						delete own[k];
+					},
+				});
+			};
 			const documentStub = {
 				readyState: opts.readyState ?? "loading",
-				documentElement: { style: {} },
-				body: { appendChild: (el: unknown) => appended.push(el) },
+				documentElement: { style: styleRecorder() },
+				body: { appendChild: (el: unknown) => appended.push(el), style: styleRecorder(), children: [] },
 				createElement: (tag: string) => mk(tag),
 				querySelector: (sel: string) => (sel === "video" ? video : null),
 				querySelectorAll: (sel: string) => (sel === "img" ? images : []),
@@ -208,7 +219,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 				clock += 500;
 				scheduled.forEach((fn) => fn());
 			}
-			return { styles, images, video, appended, post };
+			return { styles, images, video, appended, post, documentStub };
 		};
 
 		it("<video> が来る前でも、リールの 1 コマ目（一番大きい画像）をセル全面へ広げる", () => {
@@ -222,10 +233,20 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			expect(styles.get(images[0])).toBeUndefined();
 		});
 
-		it("地色は <video> を待たずに敷く（埋め込みページの白が一瞬見えないように）", () => {
-			const { appended } = run({ video: false, images: [] });
-			expect(appended).toHaveLength(1);
-			expect((appended[0] as { style: { cssText: string } }).style.cssText).toContain("background:#000");
+		/*
+		⚠️ **地色は «重ねた div» ではなく html / body の背景色で敷く。**
+
+		当初は黒い div を body へ足していたが、**TikTok で映像を覆い隠した**
+		（report は playing、currentTime も進んでいるのに画面は真っ黒）。
+		祖先に transform があると position:fixed の基準と z-index の比較がその部分木に閉じるため、
+		body 直下の div のほうが前に出てしまう。重なりの勝負は provider の DOM 次第で
+		勝ったり負けたりするので、そもそも勝負しない形にした。
+		*/
+		it("地色は html / body の背景色で敷く（div を重ねない）", () => {
+			const { documentStub, appended } = run({ video: false, images: [] });
+			expect(documentStub.documentElement.style.background).toBe("#000000");
+			// 重ねる要素は足さない
+			expect(appended).toHaveLength(0);
 		});
 
 		it("投稿された映像を切り取らない・引き延ばさない", () => {
