@@ -908,6 +908,21 @@ export function ExternalEmbedPlayer({
 					testID={`external-embed-playing-${embed.provider}`}
 				/>
 			)}
+			{/*
+			#1641 **再生できない iframe モード（YouTube）は、向こうのページごと覆う。**
+
+			実測（run 33170443855 / Android）: 埋め込みを許可していない動画のセルに、YouTube 自身の
+			ページ（「ログインして bot ではないことを確認してください」＋ログインリンク）が
+			**そのまま出ていた**。iframe の中は別オリジンなので、Instagram / TikTok のように
+			こちらのスクリプトで隠すことができない。**外から地色で覆うのが唯一の手段**である。
+
+			⚠️ `document` モード（Instagram / TikTok）は覆わない。あちらは 1 コマ目の写真を
+			   全面に出しており、料理の写真が見えている方が «再生できない» の見せ方として良い。
+			⚠️ `pointerEvents="none"`。覆いが縦スワイプを食うとフィードを送れなくなる。
+			*/}
+			{playback === "unplayable" && source?.mode === "iframe" && (
+				<View style={styles.unplayableCover} pointerEvents="none" testID="external-embed-cover" />
+			)}
 			{showFallbackCta && (
 				<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">
 					{/*
@@ -960,6 +975,11 @@ const styles = StyleSheet.create({
 		width: 1,
 		height: 1,
 		opacity: 0,
+	},
+	// #1641 別オリジンの iframe（YouTube）が出すエラー画面を隠すための地色
+	unplayableCover: {
+		...StyleSheet.absoluteFillObject,
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	overlayContainer: {
 		...StyleSheet.absoluteFillObject,

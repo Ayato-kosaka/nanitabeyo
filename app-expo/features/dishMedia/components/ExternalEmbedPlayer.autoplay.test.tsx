@@ -179,6 +179,19 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		expect(webViewProps.injectedJavaScript).toContain("if (sent.playing && kind !== 'playing') return;");
 	});
 
+	/*
+	#1641 **iframe モード（YouTube）だけは、再生できないとき向こうのページごと覆う。**
+
+	別オリジンなのでこちらのスクリプトで隠せない。実測（run 33170443855）では YouTube の
+	bot 確認ページがセルにそのまま出ていた。`document` モード（この spec の Instagram）は
+	1 コマ目の写真が出るので覆わない。
+	*/
+	it("document モードでは覆いを出さない（1 コマ目の写真を見せる）", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "no_video", detail: null });
+		expect(tree.root.findAllByProps({ testID: "external-embed-cover" }).length).toBe(0);
+	});
+
 	it("注入スクリプトにバッククォートが混ざっていない", () => {
 		/*
 		⚠️ `AUTOPLAY_SCRIPT` はテンプレートリテラルなので、**コメントに ` を書くと

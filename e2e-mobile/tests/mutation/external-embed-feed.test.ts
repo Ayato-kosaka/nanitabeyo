@@ -221,6 +221,7 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			const deadline = Date.now() + dwellMs;
 			let sawEmbed = false;
 			for (;;) {
+				let concluded = false;
 				if (await existsNow(embedWebView, MARKER_PROBE_MS)) {
 					sawEmbed = true;
 					for (const provider of PROVIDERS) {
@@ -232,8 +233,27 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 							playedBy[provider] = true;
 						}
 					}
+					/*
+					#1641 **いま前面にいるセルが結論を出したか**を見る。«再生が始まった» か
+					«導線へ縮退した» のどちらか。`playedBy` は run 全体で立ちっぱなしなので
+					**このセルの判定には使えない**（いま見えている印を毎回読む）。
+
+					結論が出る前に撮ると、権利分岐のエビデンスが
+					**まだ何も描かれていない真っ黒なコマ**になる
+					（run 33170443855 の feed-06 で実際に撮れた）。
+					*/
+					for (const provider of PROVIDERS) {
+						if (await existsNow(by.id(`external-embed-playing-${provider}`), MARKER_PROBE_MS)) {
+							concluded = true;
+							break;
+						}
+					}
+					if (!concluded) {
+						concluded = await existsNow(by.id("external-embed-fallback"), MARKER_PROBE_MS);
+					}
 				}
-				if (allPlayed() || Date.now() >= deadline) return sawEmbed;
+				// 全部揃っていても、**このセルの結論が出るまでは眺める**（撮るコマを意味のあるものにする）
+				if (concluded || Date.now() >= deadline) return sawEmbed;
 				await new Promise((resolve) => setTimeout(resolve, 500));
 			}
 		};

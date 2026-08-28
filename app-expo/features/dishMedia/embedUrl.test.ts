@@ -111,6 +111,14 @@ describe("buildEmbedIframeHtml", () => {
 		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl).not.toContain("mute=1");
 	});
 
+	/*
+	#1641 プレイヤーが起きてこないセルは、12 秒も第三者のエラー画面を見せ続けない。
+	実測（run 33170443855）: 埋め込み不可の動画は YouTube 自身の bot 確認ページが出たままだった。
+	*/
+	it("onReady が来なければ 6 秒で導線へ縮退させる", () => {
+		expect(html).toContain("if (!started) report('no_video', 'no_ready');");
+	});
+
 	it("結論は 1 度だけ報告する（再生後に締め切りで上書きしない）", () => {
 		expect(html).toContain("if (settled) return;");
 	});

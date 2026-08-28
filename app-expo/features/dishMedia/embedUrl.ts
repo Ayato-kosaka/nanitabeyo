@@ -264,6 +264,15 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
   // 状態通知の購読を開始する（この 1 通が無いと onStateChange は飛んでこない）
   var hello = setInterval(function () { send({ event: 'listening' }); }, 500);
   setTimeout(function () { clearInterval(hello); }, 8000);
+  /*
+   * #1641 **プレイヤーが起きてこないときは、12 秒も待たない。**
+   *
+   * 実測（run 33170443855 / Android）: 埋め込みを許可していない動画のセルは、YouTube 自身の
+   * ページ（「ログインして bot ではないことを確認してください」）が**そのまま出たまま**だった。
+   * onReady が来ない以上こちらは何も撃てないので、待つほど第三者のエラー画面を見せ続けることになる。
+   * 6 秒で見切って導線へ縮退させる（＝ こちらの帯と地色で覆う）。
+   */
+  setTimeout(function () { if (!started) report('no_video', 'no_ready'); }, 6000);
   setTimeout(function () { report('timeout', 'no_state_change'); }, 12000);
 })();
 </script>
