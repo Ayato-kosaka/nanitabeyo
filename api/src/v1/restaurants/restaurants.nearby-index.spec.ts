@@ -71,17 +71,17 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
   });
 
   it('2 つのメソッドとも「候補を絞る CTE」を持っている', () => {
-    // #1629 店舗検索は «距離順» と «既定（スポンサー枠 + 近傍枠）» で候補 CTE を
+    // #1629 店舗検索は «距離順» と «既定（投稿枠 + 近傍枠）» で候補 CTE を
     // 組み替えるので、店舗検索に 2 つ・保存済み一覧に 1 つで計 3 つになる
     const matches = source.match(/candidates AS \(/g) ?? [];
     expect(matches.length).toBe(3);
   });
 
   it('候補 CTE は LIMIT で件数を切っている', () => {
-    // 保存済み一覧は保存日時順で、店舗検索は KNN か入札額順で切る。
+    // 保存済み一覧は保存日時順で、店舗検索は KNN か投稿数順で切る。
     // どちらも «絞ってから集計する» ために LIMIT が候補側に居ること
     expect(source).toMatch(/ORDER BY\s+sr\.last_saved_at DESC\s+LIMIT /);
-    expect(source).toMatch(/ORDER BY total_cents DESC LIMIT /);
+    expect(source).toMatch(/ORDER BY pc\.post_count DESC, distance_m ASC LIMIT /);
   });
 
   it('重いレビュー集計（dish_reviews）は、候補 CTE より後ろにしか無い', () => {
@@ -97,14 +97,14 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
     }
   });
 
-  it('入札額順の経路では «半径内の全店を集計してから並べる» に戻っていない', () => {
+  it('既定の経路では «半径内の全店を集計してから並べる» に戻っていない', () => {
     /*
-      #1629 かつての既定経路は «nearby（半径内の全店。LIMIT 無し）→ 入札を集計 →
-      total_cents 順に limit 件» だった。半径が全国規模になると全国の店を集計することになる。
-      いまは入札テーブル駆動のスポンサー枠で、候補が最初から limit 件に収まる。
+      #1629 かつての既定経路は «nearby（半径内の全店。LIMIT 無し）→ 集計 →
+      並べて limit 件» だった。半径が全国規模になると全国の店（57 万件）を集計することになる。
+      いまは投稿テーブル（dish_media）駆動の投稿枠で、候補が最初から limit 件に収まる。
     */
-    expect(source).toMatch(/FROM restaurant_bids rb\s+JOIN restaurants r/);
-    expect(source).toMatch(/ORDER BY total_cents DESC LIMIT /);
+    expect(source).toMatch(/FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/);
+    expect(source).toMatch(/ORDER BY pc\.post_count DESC, distance_m ASC LIMIT /);
   });
 });
 
@@ -113,32 +113,36 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
 
 オーナー報告:「日本全体を映して『このエリアで再検索』を押すと必ず 0 件」。
 クライアント側の 50km clamp を外しただけだと «全国の店を集計する» ことになるので、
-サーバ側は候補の作り方を «スポンサー枠（入札テーブル駆動）+ 近傍枠（KNN）» に変えてある。
+サーバ側は候補の作り方を «投稿枠（dish_media 駆動）+ 近傍枠（KNN）» に変えてある。
 
 ⚠️ ここが赤くなったら «引くと 0 件» か «引くと全国集計» のどちらかへ戻っている。
 */
-describe('#1629 引きでも候補が必ず埋まる（スポンサー枠 + 近傍枠）', () => {
-  it('スポンサー枠は restaurant_bids を駆動表にしている（restaurants から駆動しない）', () => {
-    // 全店舗から «有効な入札を持つ店» を探すのではなく、有効な入札の側から辿る。
-    // 全国規模の半径でも、走る行数が店舗数ではなく入札数で決まるようにするため
-    expect(source).toMatch(/sponsored AS \(/);
-    expect(source).toMatch(
-      /FROM restaurant_bids rb\s+JOIN restaurants r ON r\.id = rb\.restaurant_id/,
-    );
+describe('#1629 引きでも候補が必ず埋まる（投稿枠 + 近傍枠）', () => {
+  it('投稿枠は dish_media を駆動表にしている（restaurants から駆動しない）', () => {
+    // 全店舗から «投稿を持つ店» を探すのではなく、生存している投稿の側から辿る。
+    // 全国規模の半径でも、走る行数が店舗数（57 万）ではなく投稿数で決まるようにするため
+    expect(source).toMatch(/posted AS \(/);
+    expect(source).toMatch(/FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/);
+    /*
+      ⚠️ **MATERIALIZED を外さないこと。** 外すと Postgres 12 以降は CTE を inline し、
+      «restaurants → dishes → dish_media» の nested loop へ戻る。dev 実測で
+      日本全体 225ms → 3,478ms（15 倍）まで落ちた形である（run 33172881100）。
+    */
+    expect(source).toContain('post_counts AS MATERIALIZED');
   });
 
-  it('スポンサーで埋まらない残りを KNN の近傍枠で埋める（= 0 件を返さない）', () => {
+  it('投稿枠で埋まらない残りを KNN の近傍枠で埋める（= 0 件を返さない）', () => {
     expect(source).toMatch(/nearest AS \(/);
     // 近傍枠も KNN + LIMIT。半径がいくら大きくても走る行数は limit 件で一定
     const nearest = source.slice(source.indexOf('nearest AS ('));
     expect(nearest).toMatch(/ORDER BY r\.location <-> \$\{originPoint\} LIMIT /);
-    // スポンサー枠と重複させない
-    expect(nearest).toMatch(/NOT EXISTS \(SELECT 1 FROM sponsored s WHERE s\.id = r\.id\)/);
+    // 投稿枠と重複させない
+    expect(nearest).toMatch(/NOT EXISTS \(SELECT 1 FROM posted p WHERE p\.id = r\.id\)/);
   });
 
-  it('並びは «スポンサー（入札額の降順）→ 中心から近い順»（入札額順の意味を変えない）', () => {
+  it('並びは «投稿が多い順 → 同数なら中心から近い順»', () => {
     expect(source).toMatch(
-      /ORDER BY c\.tier ASC, c\.total_cents DESC, ST_Distance\(r\.location, \$\{originPoint\}\) ASC/,
+      /ORDER BY c\.tier ASC, c\.post_count DESC, ST_Distance\(r\.location, \$\{originPoint\}\) ASC, r\.id ASC/,
     );
   });
 

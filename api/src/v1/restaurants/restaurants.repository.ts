@@ -283,8 +283,9 @@ export class RestaurantsRepository {
     const nameFilter = escapedNameQuery
       ? Prisma.sql`AND r.name ILIKE ${'%' + escapedNameQuery + '%'}`
       : Prisma.empty;
-    // 店名で絞ったときは入札額順ではなく距離順にする。
-    // 店舗選択 UI で「一蘭」と打った結果が入札額で並ぶのは不自然なため
+    // 店名で絞ったときは «投稿が多い順» ではなく距離順にする。
+    // 店舗選択 UI で「一蘭」と打った結果が投稿数で並ぶのは不自然なため
+    // （«いま見ている地図の中から目的の店を選ぶ» 画面なので、近い順が素直）。
     // 距離式は SELECT に出さない（返却行に余計な列を混ぜないため）。
     // GROUP BY r.id に対して r の列だけから成る式は関数従属なので ORDER BY に直接書ける
     const orderByDistance = Boolean(escapedNameQuery || dto.orderByDistance);
@@ -293,60 +294,89 @@ export class RestaurantsRepository {
     const originPoint = Prisma.sql`ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography`;
 
     /*
-      #1629 【設計】**候補は «スポンサー枠 + 近傍枠» の 2 本立てで、必ず limit 件に収める。**
+      #1629 【設計】**候補は «投稿枠 + 近傍枠» の 2 本立てで、必ず limit 件に収める。**
 
-      ## 何が問題だったか
+      ## 並びを «入札額順» から «投稿が多い順» へ変えた（オーナー指示）
+
+      オーナー指示は「入札順にしなくて良いです。一旦投稿が多い順とかが良いかな？」。
+      もともと既定の並びは «有効な入札の合計額（total_cents）の降順» だったが、
+      dev の `restaurant_bids` は実測 0 行で、有効な入札を持つ店も 0 件である。
+      つまりこの並びは実質「全店が同着 → 先頭 limit 件は不定」でしかなかった。
+
+      **«投稿» は `dish_media`（削除済みを除く）と定義する。** 理由は 2 つ:
+        - このリポジトリの語彙で «投稿» は dish_media を指し、`dish_reviews` は
+          «レビュー» と呼び分けられている（content_reports の分類がその正本）。
+          ユーザーが «たくさん投稿されている店» と感じるのは、フィードに並ぶ動画・写真の数である
+        - `dish_reviews` はテキストだけの記録（媒体なし）も含みうるので、
+          «お店の賑わい» の代理指標としては dish_media のほうが素直
+
+      ⚠️ 返している `review_count` は流用できない。あれは «候補を limit 件に絞ったあと» に
+         集計している値で、並べ替えの前には存在しない（存在させると下の「順序」が壊れる）。
+
+      ## 何が問題だったか（性能。ここは #1629 前半から変えていない）
 
       「日本全体を映して『このエリアで再検索』を押すと必ず 0 件」（オーナー報告）。
       真因はクライアント側の 50km clamp だが、**clamp を外すだけだとサーバが持たない**。
-      旧実装（#1629 前半）の既定経路は
+      «半径内の restaurants を全部（57 万件）集計してから並べて limit 件へ切る» 形は、
+      半径 5km の東京駅ですら 21,247 行の集計で 9.3 秒かかっていた。
 
-        nearby   = 半径内の restaurants を «全部»（LIMIT 無し）
-        candidates = その全部に restaurant_bids を LEFT JOIN して GROUP BY し、
-                     total_cents 降順で limit 件へ切る
+      ## どう変えたか（**絞る → 集計する** の順序は死守する）
 
-      という形で、半径が全国規模になると «全国の店 × 入札» を集計してから 20 行に切る
-      ことになる。半径 5km の東京駅ですら 21,247 行の集計だったので、全国では話にならない。
-
-      ## どう変えたか（食べログ等の «全国から優先順で N 件» と同じ構え）
-
-      1. **スポンサー枠**（`sponsored`）… 駆動表を restaurants ではなく
-         **restaurant_bids**（有効な入札だけ）にする。有効な入札を持つ店は
-         全店舗数に対して桁違いに少ないので、全国規模でも先に絞れる。
-         並びは従来どおり **入札額（total_cents）の降順**。
-      2. **近傍枠**（`nearest`）… スポンサーで埋まらない残りを、
-         **地図の中心から近い順**（KNN。`location <-> 点`）で埋める。
-         KNN は GIST 索引から «近い順に n 件» を直接取り出すので、
+      1. **投稿枠**（`posted`）… 駆動表を restaurants ではなく **dish_media** にする。
+         投稿を持つ店は全店舗数（57 万）に対して桁違いに少ないので、全国規模の半径でも
+         «投稿の行数» でしか行数が増えない。並びは **投稿数の降順 → 中心から近い順**。
+         かつてのスポンサー枠が `restaurant_bids` を駆動表にしていたのと同じ構えで、
+         駆動表を «入札» から «投稿» へ差し替えただけである。
+      2. **近傍枠**（`nearest`）… 投稿枠で埋まらない残りを **中心から近い順**（KNN。
+         `location <-> 点`）で埋める。KNN は GIST 索引から «近い順に n 件» を直接取り出すので、
          半径がいくら大きくても走る行数は limit 件ぶんで一定である。
-      3. 重いレビュー集計（dishes × dish_reviews）は、どちらの枝でも
-         候補が limit 件に確定したあとでしか走らない（従来どおり）。
+         投稿ゼロの店はここに入り、**投稿数 0 の同着なので «近い順»** になる（並びの定義と矛盾しない）。
+      3. 重いレビュー集計（dishes × dish_reviews）と入札集計（restaurant_bids）は、
+         どちらの枝でも候補が limit 件に確定したあとでしか走らない。
 
       これで «半径 = 見えている範囲» にしても «0 件» にも «全国集計» にもならない。
 
-      ⚠️ **入札額順（課金）の意味は変えていない。**
-         «有効な入札を持つ店が、入札額の降順で先頭に来る» は従来と同じである。
-         変わったのは **その後ろ**で、以前は «半径内の入札なし店が total_cents=0 で
-         同着（＝並び順は不定）» だったところが «中心から近い順» になった。
-         スポンサー枠を件数で間引いたり、入札額以外の要素で並べ替えたりはしていない。
-         （なお半径の上限を外したことで、以前は 50km で見えなかった «遠くのスポンサー» が
-         引きの表示で見えるようになる。広告の露出は減る方向には変わらない）
+      ## 入札（restaurant_bids / total_cents / max_end_date）は残す
 
-      ⚠️ 距離順の経路（店名検索 / 住所照合 = orderByDistance）は従来どおり
-         **KNN のみ**である。店名で絞った結果が入札額で並ぶのは不自然なため（#1395）。
+      **並び替えには一切使わないが、返却する meta からは消していない。**
+      `QueryRestaurantsResponse` / `GetRestaurantByIdResponse` など shared の契約と
+      app-expo の画面（入札状況の表示）が totalCents / maxEndDate を参照しており、
+      契約から消すと影響範囲が課金機能そのものへ広がる。並びから外す今回の指示に対して
+      «消す» は過剰なので、**候補が limit 件に決まったあとに集計して返すだけ**にした
+      （もとの距離順の枝がやっていたのと同じ形。集計対象は最大 limit 店ぶん）。
 
-      ⚠️ **索引の申し送り（未適用）。** スポンサー枠は `restaurant_bids` を
-         «status = paid かつ 期間内» で絞る。この 3 列の複合索引は無く、いまは
-         `idx_restaurant_bids_restaurant`（restaurant_id 単独）しかないため、
-         この CTE は restaurant_bids の Seq Scan になる。有効な入札の行数が
-         数万を超えたら次の索引が要る（migration はオーナー承認制なので、
-         ここでは作らずに申し送りだけ残す）:
-           CREATE INDEX idx_restaurant_bids_active
-             ON restaurant_bids (status, end_date, start_date)
-             INCLUDE (restaurant_id, amount_cents);
+      ⚠️ 距離順の経路（店名検索 / 住所照合 = orderByDistance）は従来どおり **KNN のみ**である。
+
+      ⚠️ **索引の申し送り（未適用。migration はオーナー承認制なのでここでは作らない）。**
+         投稿枠は «生存している dish_media → dishes → restaurants» を辿って店ごとに数える。
+         いま効くのは `idx_dish_media_alive_dish (dish_id) WHERE deleted_at IS NULL` と
+         `idx_dishes_restaurant (restaurant_id)` で、**dish_media の行数に比例**して重くなる。
+         投稿が数百万行に育ったら、次のどちらかが要る:
+           (a) restaurants に投稿数の非正規化列（例 `post_count`）を置いてトリガで更新し、
+               `(post_count DESC)` の btree で «上位 n 件» を直接取り出す
+           (b) 集計済みのマテリアライズドビュー（restaurant_id, post_count）を定期更新する
+         どちらも «投稿数で並べつつ走る行数を limit 件で一定にする» ための索引であり、
+         現在の実装（dish_media 駆動）はその前段の、追加スキーマ無しで済む版である。
     */
-    // 候補 CTE。距離順と既定（入札額順）で組み立てが変わる。
-    // どちらの枝も «tier / total_cents / max_end_date» を持つ形に揃え、
+    // 候補 CTE。距離順と既定（投稿が多い順）で組み立てが変わる。
+    // どちらの枝も «tier / post_count / total_cents / max_end_date» を持つ形に揃え、
     // 最終 SELECT 側を 1 本にしている。
+    // 有効な入札（並びには使わないが meta として返す）の集計条件。
+    // 候補が limit 件に確定したあとにしか使わない
+    const activeBidJoin = Prisma.sql`
+        LEFT JOIN restaurant_bids rb ON rb.restaurant_id = b.id
+          AND rb.start_date <= CURRENT_DATE
+          AND rb.end_date > CURRENT_DATE
+          AND rb.status = 'paid'`;
+    // #1629 投稿数（削除済みを除く dish_media）。候補 1 件ずつの相関副問い合わせで、
+    // 走るのは候補（最大 limit 件）ぶんだけ。idx_dishes_restaurant → idx_dish_media_alive_dish
+    const postCountOfCandidate = Prisma.sql`
+          (
+            SELECT COUNT(*)::int
+            FROM dishes d2
+            JOIN dish_media dm2 ON dm2.dish_id = d2.id AND dm2.deleted_at IS NULL
+            WHERE d2.restaurant_id = b.id
+          )`;
     const candidatesCte = orderByDistance
       ? Prisma.sql`
       nearby AS (
@@ -359,61 +389,106 @@ export class RestaurantsRepository {
           ${nameFilter}
         ORDER BY r.location <-> ${originPoint} LIMIT ${limit}
       ),
+      base AS (
+        SELECT n.id, 0 AS tier FROM nearby n
+      ),
       candidates AS (
-        -- 入札の集計は restaurant_bids だけを見る（レビュー集計と同じ GROUP BY に混ぜない）
+        -- 入札・投稿数の集計は candidates の中で完結させる（レビュー集計と同じ GROUP BY に混ぜない）
         SELECT
-          n.id,
-          0 AS tier,
+          b.id,
+          b.tier,
+          ${postCountOfCandidate} AS post_count,
           COALESCE(SUM(rb.amount_cents), 0)::double precision AS total_cents,
           MAX(rb.end_date) AS max_end_date
-        FROM nearby n
-        LEFT JOIN restaurant_bids rb ON rb.restaurant_id = n.id
-          AND rb.start_date <= CURRENT_DATE
-          AND rb.end_date > CURRENT_DATE
-          AND rb.status = 'paid'
-        GROUP BY n.id
+        FROM base b
+        ${activeBidJoin}
+        GROUP BY b.id, b.tier
       )`
       : Prisma.sql`
-      sponsored AS (
-        -- #1629 スポンサー枠。**駆動表は restaurant_bids**（有効な入札だけ）。
-        -- 全国規模の半径でも、ここを restaurants から駆動しない限り行数は増えない
+      post_counts AS MATERIALIZED (
+        /*
+          #1629 【設計】**投稿数の集計は «restaurants と混ぜずに» 1 回で終わらせる。**
+
+          最初の実装は dish_media / dishes / restaurants を 1 つの WHERE に混ぜ、
+          そこへ半径（ST_DWithin）まで入れていた。全国規模の半径では restaurants の
+          ほぼ全件が条件を満たすため、プランナは «restaurants → dishes → dish_media» の
+          順に nested loop を選び、**dish_media を店舗ごとに Seq Scan** した。
+
+          dev 実測（run 33172881100・EXPLAIN ANALYZE）:
+            Seq Scan on dish_media (rows=4896, loops=2357)  = 延べ 1,150 万行
+            日本全体 225 ms → **3,478 ms** / 50km 107 ms → **2,188 ms**
+          並びを変えただけで 15〜20 倍遅くなっていた。
+
+          そこで «店ごとの投稿数» だけを先に 1 回で作る。MATERIALIZED を付けるのは、
+          外して inline されると上と同じ nested loop へ戻るためである（Postgres 12 以降、
+          CTE は既定で inline されうる）。**この 2 語を消さないこと。**
+
+          ⚠️ ここは dish_media の全行を 1 回走る。いまは 4,896 行なので安いが、
+             投稿が数百万行に育ったら restaurants への非正規化列
+             （post_count + btree）か集計済みビューが要る。
+        */
+        SELECT d.restaurant_id AS id, COUNT(*)::int AS post_count
+        FROM dish_media dm
+        JOIN dishes d ON d.id = dm.dish_id
+        -- #1513 削除済みの投稿は数えない
+        WHERE dm.deleted_at IS NULL
+        GROUP BY d.restaurant_id
+      ),
+      posted AS (
+        -- #1629 投稿枠。集計済みの post_counts（店の数だけの小さな集合）へ
+        -- 半径と店名の条件を掛け、投稿の多い順に limit 件だけ残す
         SELECT
-          rb.restaurant_id AS id,
-          SUM(rb.amount_cents)::double precision AS total_cents,
-          MAX(rb.end_date) AS max_end_date
-        FROM restaurant_bids rb
-        JOIN restaurants r ON r.id = rb.restaurant_id
+          pc.id,
+          pc.post_count,
+          ST_Distance(r.location, ${originPoint}) AS distance_m
+        FROM post_counts pc
+        JOIN restaurants r ON r.id = pc.id
         WHERE
-          rb.status = 'paid'
-          AND rb.start_date <= CURRENT_DATE
-          AND rb.end_date > CURRENT_DATE
-          AND ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
+          ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
           ${nameFilter}
-        GROUP BY rb.restaurant_id
-        ORDER BY total_cents DESC LIMIT ${limit}
+        -- 同数なら中心から近い順。«どの limit 件を残すか» を最終 ORDER BY と一致させる
+        ORDER BY pc.post_count DESC, distance_m ASC LIMIT ${limit}
       ),
       nearest AS (
-        -- #1629 近傍枠。スポンサーで埋まらない残りを «中心から近い順» で埋める。
-        -- ここが «引くと 0 件» を構造的に消している（半径内に入札が 1 件も無くても必ず埋まる）
+        -- #1629 近傍枠。投稿枠で埋まらない残りを «中心から近い順» で埋める。
+        -- ここが «引くと 0 件» を構造的に消している（半径内に投稿が 1 件も無くても必ず埋まる）
         SELECT r.id
         FROM restaurants r
         WHERE
           ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
           ${nameFilter}
-          AND NOT EXISTS (SELECT 1 FROM sponsored s WHERE s.id = r.id)
+          AND NOT EXISTS (SELECT 1 FROM posted p WHERE p.id = r.id)
         ORDER BY r.location <-> ${originPoint} LIMIT ${limit}
       ),
-      candidates AS (
-        SELECT id, 0 AS tier, total_cents, max_end_date FROM sponsored
+      base AS (
+        SELECT id, 0 AS tier, post_count FROM posted
         UNION ALL
-        SELECT id, 1 AS tier, 0::double precision AS total_cents, NULL::date AS max_end_date FROM nearest
+        -- 投稿ゼロの店。post_count = 0 の同着なので、最終 ORDER BY で «近い順» に並ぶ
+        SELECT id, 1 AS tier, 0::int AS post_count FROM nearest
+      ),
+      candidates AS (
+        -- 入札は並びに使わないが meta としては返す。候補が limit 件に決まったあとに集計する
+        SELECT
+          b.id,
+          b.tier,
+          b.post_count,
+          COALESCE(SUM(rb.amount_cents), 0)::double precision AS total_cents,
+          MAX(rb.end_date) AS max_end_date
+        FROM base b
+        ${activeBidJoin}
+        GROUP BY b.id, b.tier, b.post_count
       )`;
     const orderBy = orderByDistance
       ? // #1629 距離順も geography で測る。WHERE の ST_DWithin と同じ土俵にしておかないと、
         // 「絞り込みには入っているのに並び順だけ別の距離」という食い違いが起きうる
         Prisma.sql`ORDER BY ST_Distance(r.location, ${originPoint}) ASC`
-      : // #1629 スポンサー（入札額の降順）→ 中心から近い順。tier がスポンサー枠かどうか
-        Prisma.sql`ORDER BY c.tier ASC, c.total_cents DESC, ST_Distance(r.location, ${originPoint}) ASC`;
+      : // #1629 **投稿が多い順 → 同数なら中心から近い順。**
+        // tier は «投稿がある店（0）/ 無い店（1）» で、post_count > 0 と post_count = 0 の
+        // 境目と一致するので、並びの意味は «投稿数の降順» のままである
+        // （tier を落とすと «投稿枠に入れなかった投稿ありの店» が 0 件扱いの店と
+        //  混ざるが、その 2 つを区別できないと «同数なら近い順» が崩れる）。
+        // 距離まで同着なら id で決める（同着で順序が不定にならないようにする）
+        Prisma.sql`ORDER BY c.tier ASC, c.post_count DESC, ST_Distance(r.location, ${originPoint}) ASC, r.id ASC`;
 
     const rawResult = await tx.$queryRaw<
       (Pick<
@@ -473,7 +548,7 @@ export class RestaurantsRepository {
       LEFT JOIN dish_reviews dr
         -- #1513 削除済みレビューを件数・平均に混ぜない
         ON dr.dish_id = d.id AND dr.deleted_at IS NULL
-      GROUP BY r.id, c.tier, c.total_cents, c.max_end_date
+      GROUP BY r.id, c.tier, c.post_count, c.total_cents, c.max_end_date
       ${orderBy}
       LIMIT ${limit};
     `);
