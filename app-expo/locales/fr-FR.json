@@ -950,6 +950,7 @@
 			"savedRestaurantList": "Liste des restaurants enregistrés",
 			"postPhotoVideo": "Publier une photo/vidéo",
 			"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
+			"fetchSavedRestaurantsTimeout": "Cela a pris trop de temps. Zoomez et réessayez.",
 			"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche."
 		},
 		"emptyState": {
@@ -967,6 +968,7 @@
 		"savedRestaurantList": "Liste des restaurants enregistrés",
 		"postPhotoVideo": "Publier une photo/vidéo",
 		"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
+		"fetchSavedRestaurantsTimeout": "Cela a pris trop de temps. Zoomez et réessayez.",
 		"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche.",
 		"nameSearch": {
 			"placeholder": "Rechercher par nom de restaurant",

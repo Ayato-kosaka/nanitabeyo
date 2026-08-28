@@ -950,6 +950,7 @@
 			"savedRestaurantList": "Restaurantes Guardados",
 			"postPhotoVideo": "Publicar Foto/Video",
 			"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
+			"fetchSavedRestaurantsTimeout": "Ha tardado demasiado. Acerca el mapa e inténtalo de nuevo.",
 			"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente."
 		},
 		"emptyState": {
@@ -967,6 +968,7 @@
 		"savedRestaurantList": "Restaurantes Guardados",
 		"postPhotoVideo": "Publicar Foto/Video",
 		"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
+		"fetchSavedRestaurantsTimeout": "Ha tardado demasiado. Acerca el mapa e inténtalo de nuevo.",
 		"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente.",
 		"nameSearch": {
 			"placeholder": "Buscar por nombre del restaurante",

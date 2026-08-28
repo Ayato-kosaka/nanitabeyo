@@ -950,6 +950,7 @@
 			"savedRestaurantList": "Saved Restaurants",
 			"postPhotoVideo": "Post Photo/Video",
 			"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+			"fetchSavedRestaurantsTimeout": "This took too long. Try zooming in and searching again.",
 			"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
 		},
 		"emptyState": {
@@ -967,6 +968,7 @@
 		"savedRestaurantList": "Saved Restaurants",
 		"postPhotoVideo": "Post Photo/Video",
 		"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+		"fetchSavedRestaurantsTimeout": "This took too long. Try zooming in and searching again.",
 		"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again.",
 		"nameSearch": {
 			"placeholder": "Search by restaurant name",

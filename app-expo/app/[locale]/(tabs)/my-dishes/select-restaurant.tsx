@@ -399,15 +399,30 @@ export default function SelectRestaurantScreen() {
 	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
 	const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
 	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
-	const isLoadingSavedRestaurantsRef = useRef(false);
-	useEffect(() => {
-		isLoadingSavedRestaurantsRef.current = isLoadingSavedRestaurants;
-	}, [isLoadingSavedRestaurants]);
+
+	/*
+	#1629 **飛んでいる «保存したお店» の検索を止める。**
+
+	旧実装は `isLoadingSavedRestaurantsRef.current` が立っていたら **新しい検索を捨てて
+	いた**。サーバが 8〜47 秒かかっていた（#1629 の真因。repository 側のコメント参照）ので、
+	この間「このエリアで再取得」を押しても **何も起きない**（ローディングも進まない）。
+	オーナーが実機で踏んだ «押しても遅い・反応しない» はこれも含む。
+
+	`fetchNearbyRestaurants` と同じ作法へ揃える。前の検索は AbortController で止め、
+	新しい検索を必ず 1 本投げる。中断は «失敗» ではないので、`code: "aborted"` は
+	スナックバーもエラーログも出さずに黙って捨てる。
+	*/
+	const savedAbortRef = useRef<AbortController | null>(null);
+	// 画面を離れるときに飛んでいる検索を片付ける（`fetchNearbyRestaurants` と同じ）
+	useEffect(() => () => savedAbortRef.current?.abort(), []);
 
 	// #644 【設計】保存したお店を現在地で検索
 	const searchSavedRestaurants = useCallback(
 		async (region: Region) => {
-			if (isLoadingSavedRestaurantsRef.current) return;
+			// 前の検索はもう要らない。応答を待たずに止める（サーバ側の集計も打ち切られる）
+			savedAbortRef.current?.abort();
+			const controller = new AbortController();
+			savedAbortRef.current = controller;
 
 			lightImpact();
 			setIsLoadingSavedRestaurants(true);
@@ -426,6 +441,7 @@ export default function SelectRestaurantScreen() {
 							radius: radiusForRegion(region),
 							limit: SAVED_PIN_FETCH_LIMIT,
 						},
+						signal: controller.signal,
 					},
 				);
 
@@ -436,13 +452,37 @@ export default function SelectRestaurantScreen() {
 				// #1629 取り直した範囲でクラスタも畳み直す（地図は動いていないので通常は同じ参照が返る）
 				updateClusterViewport(region);
 			} catch (error) {
-				showSnackbar(i18n.t("SelectRestaurant.fetchSavedRestaurantsError"));
+				// 自分で止めたものは «失敗» ではない。文言もログも出さない
+				if ((error as ApiError | undefined)?.code === "aborted") return;
+				/*
+					#1629 【設計】**30 秒のタイムアウトは «通信に失敗» とは別の文言を出す。**
+
+					オーナー報告「このエリアで再取得でピンが表示されない」の正体は、
+					サーバが 8〜47 秒かかってクライアントが 30 秒で中断していたことだった
+					（dev 実測: api_call_timeout → saved_restaurants_search_error / raw: AbortError）。
+					このとき出ていたのは «保存したお店の取得に失敗しました» だけで、
+					**ユーザーには «壊れた» としか見えない**。
+
+					タイムアウトのときに端末側で打てる手は «範囲を狭めてもう一度» しかないので、
+					それを名指しで出す。圏外・回線断（timedOut ではない network_error）は
+					従来どおりの文言のままにする（そちらで «範囲を狭めて» と言っても無意味）。
+
+					⚠️ 直前に取れていたピンは **消さない**。ここで setSavedRestaurants([]) すると、
+					   «拡大したら全部消えた» になって状況がさらに悪くなる。
+				*/
+				const timedOut = (error as ApiError | undefined)?.timedOut === true;
+				showSnackbar(
+					i18n.t(
+						timedOut ? "SelectRestaurant.fetchSavedRestaurantsTimeout" : "SelectRestaurant.fetchSavedRestaurantsError",
+					),
+				);
 				logFrontendEvent({
 					event_name: "saved_restaurants_search_error",
 					error_level: "error",
-					payload: { error },
+					payload: { error, timedOut },
 				});
 			} finally {
+				if (savedAbortRef.current === controller) savedAbortRef.current = null;
 				setIsLoadingSavedRestaurants(false);
 			}
 		},

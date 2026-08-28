@@ -65,14 +65,13 @@ export class RestaurantsRepository {
       },
     );
 
-    // 半径（m）→（km）
-    const radiusInKm = dto.radius / 1000;
-    // 緯度・経度のざっくりとしたバウンディングボックス用の度数（1度 ≒ 111km）
+    // 半径はそのまま m で使う（ST_DWithin の geography 版は m を取る）
+    const radiusInMeters = dto.radius;
 
     // 生 SQL で集計。Prisma のテンプレートタグにより ${} 内はバインドパラメータとして扱われる。
     // - reactions / dish_media / dishes を辿って「保存された dish_media の属するレストラン」を抽出
     // - 保存日時（reactions.created_at）の降順でソート
-    // - 距離フィルタは searchNearbyRestaurants と同じロジック（地球半径 6371km の球面三角法）
+    // - 距離フィルタは ST_DWithin（geography）+ GIST 索引。詳細は candidates のコメント
     const rawResult = await this.prisma.prisma.$queryRaw<
       (Pick<
         PrismaRestaurants,
@@ -98,15 +97,7 @@ export class RestaurantsRepository {
         last_saved_at: Date | null;
       })[]
     >`
-    WITH params AS (
-      -- クエリ全体で共通して使うパラメータを WITH 句でまとめる
-      SELECT
-        ${dto.lat}::double precision    AS lat,
-        ${dto.lng}::double precision    AS lng,
-        ${radiusInKm}::double precision AS radius_km,
-        ${userId}::uuid             AS user_id
-    ),
-    saved_restaurants AS (
+    WITH saved_restaurants AS (
       -- ユーザーが「保存」した dish_media 経由でレストランを特定する
       SELECT
         d.restaurant_id,
@@ -114,72 +105,108 @@ export class RestaurantsRepository {
         MAX(rct.created_at) AS last_saved_at
       FROM reactions rct
       JOIN dish_media dm
-        -- #1513 削除しても save の reaction は残る。ここで弾かないと
-        -- 実体の無い投稿だけを根拠に店舗が「保存済み」として出続ける
+        /*
+          #1629 【計測】この ::uuid は «遅い原因ではない» ことを確認したうえで残している。
+
+          reactions.target_id は TEXT なので join でキャストが要るが、**キャストしているのは
+          reactions 側（外側）**なので、dish_media は主キー索引でそのまま引ける。
+          400,000 店 / 60,000 投稿 / 60,154 リアクションの再現環境で EXPLAIN ANALYZE を
+          取ったところ、この CTE 全体（154 行）で **3 ms**（Bitmap Index Scan on
+          idx_reactions_profile_cursor → Index Scan using dish_media_pkey、loops=154）だった。
+
+          ⚠️ 向きを逆にして dm.id::text = rct.target_id と書き直さないこと。
+             そちらは dish_media 側の主キー索引が使えなくなり、本当に全走査になる。
+
+          #1513 削除しても save の reaction は残る。ここで弾かないと
+          実体の無い投稿だけを根拠に店舗が「保存済み」として出続ける
+        */
         ON rct.target_id::uuid = dm.id AND dm.deleted_at IS NULL
       JOIN dishes d
         ON d.id = dm.dish_id
-      JOIN params p
-        ON TRUE
       WHERE
-        rct.user_id     = p.user_id
+        rct.user_id     = ${userId}::uuid
         AND rct.action_type = 'save'
         AND rct.target_type = 'dish_media'
       GROUP BY d.restaurant_id
     ),
     candidates AS (
       /*
-        #1629 【設計】**集計より前に «返す行» を確定させる。**
+        #1629 【設計】**この経路の駆動表は «そのユーザーが保存した店» でなければならない。**
 
-        旧実装は restaurants × dishes × dish_reviews を LEFT JOIN したうえで
-        GROUP BY r.id して集計し、**そのあとで** ORDER BY / LIMIT していた。
-        半径 5km の東京駅で該当 21,247 行あると、返すのは 20 行なのに
-        21,247 店ぶんのレビュー集計を回すことになる（実測 9.3 秒）。
+        ## 直前まで何が起きていたか（dev の実測。オーナーが実機で踏んだ）
 
-        ここでは «WHERE と ORDER BY と LIMIT/OFFSET» だけを先に済ませ、
-        集計は残った limit 件に対してだけ行う。**絞る → 集計する** の順序が要。
+        getMeSavedRestaurants が p50 8,319 ms / p95 47,353 ms かかり、クライアントの
+        30 秒タイムアウトで中断していた。「ピンが出ない」の正体はこの中断である。
+        半径 5km でも 8 秒かかり、**半径が大きいほど比例して遅くなる**。
+        保存の総数は dev で 154 行しかないので、«保存の件数» では説明が付かない。
 
-        ⚠️ このメソッドの並び順は «保存日時の新しい順» であって距離順ではないので、
-        KNN 演算子（location <-> 点）で «近い n 件» に切ることはできない
-        （切ると «近い 20 件を保存日時で並べた先頭 20 件» になり、意味が変わる）。
-        そのぶんここは «候補集合を先に確定させる» だけに留めている。
-        もともとこの経路の駆動表は saved_restaurants（そのユーザーが保存した店だけ）
-        なので、距離で 21,247 行に広がるのは集計の側であり、候補の側ではない。
-      */
-      SELECT
-        r.id,
-        sr.last_saved_at
-      FROM saved_restaurants sr
-      JOIN restaurants r
-        ON r.id = sr.restaurant_id
-      JOIN params p
-        ON TRUE
-      WHERE
-      /*
-        #1629 【修正】ST_DWithin + 既存の GIST 索引（idx_restaurants_location）で絞る。
+        ## 真因（再現環境で EXPLAIN ANALYZE を取って確定させた）
 
-        旧実装は latitude / longitude のバウンディングボックス + acos だったが、
-        **この 2 列に btree が 1 本も無い**ため（全 migration を検査して確認）
-        restaurants の Seq Scan になっていた。日本全体の viewport から
-        「このエリアで再検索」を押すと半径が 1,000 km 級になり、全件走査 + 集計で
-        「保存したお店の取得に失敗しました」に落ちるほど遅くなる。
+        旧実装は lat / lng / radius / user_id を params という CTE にまとめ、
+        JOIN params p ON TRUE して ST_DWithin(..., p.radius_km * 1000) と書いていた。
+        **半径が CTE の向こう側にあるとプランナから値が見えない**ため、
+        GIST 索引の行数見積りが既定値へ落ちる。実測（restaurants 400,000 行）:
 
-        restaurants.location は GENERATED ALWAYS AS
-        (ST_SetSRID(ST_MakePoint(longitude, latitude),4326)::geography) STORED で、
-        元になる latitude / longitude は NOT NULL。つまり **NULL になり得ない**ので、
-        haversine 版から乗り換えても «location が NULL の店だけ消える» は起きない
-        （schema.prisma は生成列を表現できず nullable + DEFAULT に見えるが、DDL が正）。
+          Bitmap Index Scan on idx_restaurants_location
+            (cost=0.00..4.84 rows=40) (actual rows=59,527)   ← 1,000 倍以上の過小見積り
+
+        「restaurants を索引で引けば 40 行しか出ない」と誤認したプランナは、
+        **restaurants を駆動表にして半径内の全店を取り出し、154 行の保存済みを
+        Hash Join で突き合わせる**プランを選ぶ。走る行数は半径に比例する。
+
+          半径 5,480m … 54,997 行を走査 /  95 ms
+          半径 389,333m … 191,546 行 / 390 ms
+          半径 1,500,000m … 380,000 行 / 540 ms
+          （実 dev は行数も並列度も違うので、ここでの ms はあくまで «比» を見るためのもの）
+
+        ## なぜ «params CTE を消すだけ» では足りないのか
+
+        params を消して値を直接束縛すると、**その場では**正しいプラン（16 ms、半径に
+        依らず一定）になる。ただし Prisma が投げるのは prepared statement なので、
+        同じ文を繰り返し実行すると PostgreSQL は途中から **generic plan**（パラメータの
+        値を見ないプラン）へ切り替わる。再現環境で plan_cache_mode = force_generic_plan
+        にして測ると、params を消しただけの版は **396 ms の元の悪いプランへ戻った**。
+        dev のログで «同じ半径なのに 44 ms と 24,564 ms が混在する» のはこの切り替わりで
+        説明が付く。
+
+        ## どう直したか
+
+        **saved_restaurants（そのユーザーの保存＝ dev で 154 行）を外側に置き、
+        LATERAL で 1 行ずつ restaurants を主キーで引いて半径を判定する。**
+        LATERAL の内側は外側の行を参照するので、プランナは nested loop 以外を選べない。
+        走る行数は «保存した店の数» で決まり、**半径には一切依存しない**。
+        force_generic_plan でも 24 ms のままだった。
+
+        ⚠️ LIMIT 1 を消さないこと。これが無いと PostgreSQL は LATERAL 副問い合わせを
+           pull up して普通の join に均してしまい、上の悪いプランへ戻る余地が生まれる。
+           r.id = sr.restaurant_id は主キー一致なので、LIMIT 1 は意味を変えない。
+
+        ⚠️ 並び順は «保存日時の新しい順» であって距離順ではないので、KNN 演算子
+           （location <-> 点）で «近い n 件» に切ることはできない（意味が変わる）。
+
         ⚠️ この SQL はテンプレートリテラルの中である。**コメントにバッククォートを書かないこと**
            （文字列がそこで閉じる。#1375 で実際に踏んだ）。
 
         ⚠️ geography の ST_DWithin は既定で回転楕円体で測るので、真球の haversine とは
            境界付近で 0.3% 程度ずれる（より正確になる方向）。
+           restaurants.location は latitude / longitude（ともに NOT NULL）からの生成列なので
+           NULL になり得ず、haversine 版から乗り換えても «消える店» は出ない。
       */
-      ST_DWithin(
-        r.location,
-        ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326)::geography,
-        p.radius_km * 1000
-      )
+      SELECT
+        hit.id,
+        sr.last_saved_at
+      FROM saved_restaurants sr
+      JOIN LATERAL (
+        SELECT r.id
+        FROM restaurants r
+        WHERE r.id = sr.restaurant_id
+          AND ST_DWithin(
+                r.location,
+                ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography,
+                ${radiusInMeters}::double precision
+              )
+        LIMIT 1
+      ) hit ON TRUE
       -- 「保存」日時の新しい順にソート（外側の ORDER BY と同一。ここで確定させる）
       ORDER BY
         sr.last_saved_at DESC
@@ -198,30 +225,45 @@ export class RestaurantsRepository {
       r.address_components,
       r.plus_code,
       r.created_at,
-      -- #843 catalog 同期の metadata。GROUP BY は r.id（主キー）なので
-      -- 関数従属で r.* を選べる（GROUP BY への追記は要らない）
+      -- #843 catalog 同期の metadata
       r.source_seed_id,
       r.source_names,
       r.source_row_hash,
       r.synced_at,
       -- #843 その行を誰が作ったか。9_1 の同期はこの値が 'pipeline' の行だけを上書きする
       r.created_by_source,
-      COUNT(dr.id)::int                    AS review_count,
-      COALESCE(AVG(dr.rating), 0)::double precision AS average_rating,
+      agg.review_count,
+      agg.average_rating,
       c.last_saved_at
     FROM candidates c
     JOIN restaurants r
       ON r.id = c.id
-    -- レビュー集計用に dishes / dish_reviews を LEFT JOIN。
-    -- #1629 candidates で limit 件に絞ったあとなので、集計対象は最大 limit 店ぶん
-    LEFT JOIN dishes d
-      ON d.restaurant_id = r.id
-    LEFT JOIN dish_reviews dr
-      -- #1513 削除済みレビューを件数・平均に混ぜない
-      ON dr.dish_id = d.id AND dr.deleted_at IS NULL
-    GROUP BY
-      r.id,
-      c.last_saved_at
+    /*
+      #1629 【設計】**レビュー集計も «候補 1 件ずつの LATERAL» で回す。**
+
+      旧実装は LEFT JOIN dishes → LEFT JOIN dish_reviews → GROUP BY r.id だった。
+      候補は 20 件しか無いのに、再現環境ではプランナが dish_reviews（150,000 行）を
+      **Seq Scan して Hash Right Join** するプランを選び、それだけで 27 ms 使っていた。
+      dish_reviews が育つほどこの取り分は伸びる。
+
+      LATERAL の集計副問い合わせは pull up されないので、**必ず候補ごとの
+      idx_dishes_restaurant → idx_dish_reviews_alive_dish の nested loop になる**。
+      走る行数は候補（最大 limit 件）ぶんで固定される。
+
+      集計は 1 行を必ず返すので ON TRUE で件数は変わらない
+      （レビューが 0 件の店は review_count = 0 / average_rating = 0 になり、
+      LEFT JOIN + GROUP BY だった旧実装と同じ値になる。再現環境で全 20 行一致を確認済み）。
+    */
+    JOIN LATERAL (
+      SELECT
+        COUNT(dr.id)::int                             AS review_count,
+        COALESCE(AVG(dr.rating), 0)::double precision AS average_rating
+      FROM dishes d
+      JOIN dish_reviews dr
+        -- #1513 削除済みレビューを件数・平均に混ぜない
+        ON dr.dish_id = d.id AND dr.deleted_at IS NULL
+      WHERE d.restaurant_id = r.id
+    ) agg ON TRUE
     ORDER BY
       c.last_saved_at DESC;
   `;

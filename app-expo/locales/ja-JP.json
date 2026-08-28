@@ -950,6 +950,7 @@
 			"savedRestaurantList": "保存したお店リスト",
 			"postPhotoVideo": "写真・動画を投稿",
 			"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
+			"fetchSavedRestaurantsTimeout": "時間内に取得できませんでした。表示範囲を狭めて、もう一度お試しください",
 			"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。"
 		},
 		"emptyState": {
@@ -967,6 +968,7 @@
 		"savedRestaurantList": "保存したお店リスト",
 		"postPhotoVideo": "写真・動画を投稿",
 		"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
+		"fetchSavedRestaurantsTimeout": "時間内に取得できませんでした。表示範囲を狭めて、もう一度お試しください",
 		"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。",
 		"nameSearch": {
 			"placeholder": "店名で検索",
