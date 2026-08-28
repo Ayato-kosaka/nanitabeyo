@@ -1,0 +1,97 @@
+{
+  "measured_at": "2026-08-28",
+  "bigquery_run_id": "restaurant-2026-08-23",
+  "population": {
+    "restaurant_seed_catalog_rows": 1513803,
+    "overture_records": 1081471,
+    "ifas_records": 270894,
+    "osm_records": 190642,
+    "food_permit_records": 114292,
+    "existing_pg_records": 2108,
+    "note": "#1342 が使う『飲食店母集団』は 1,132,482 店。以下の % はこの母集団を分母にする"
+  },
+  "4_1_overture_socials": {
+    "stores_with_instagram_link": 18437,
+    "pct_of_overture_records": 1.705,
+    "distinct_instagram_handles": 11279,
+    "stores_with_facebook_link": 963579,
+    "stores_with_website": 545560
+  },
+  "4_2_foursquare_os_places": {
+    "s3_bucket_objects": [
+      "LICENSE.txt",
+      "NOTICE.txt"
+    ],
+    "s3_data_removed": true,
+    "huggingface_gated": true,
+    "huggingface_http_status": 401,
+    "huggingface_error_code": "GatedRepo",
+    "measurable_without_account": false
+  },
+  "4_3_official_site_crawl": {
+    "source": "#1345 / 1273_sns_dish_media_poc/out/instagram_handle_reach.json（600店の目視ラベル付き標本）",
+    "n_sample": 600,
+    "website_is_instagram": 7,
+    "extracted_from_site": 84,
+    "union": 91,
+    "union_pct": 15.17,
+    "distinct_handles": 96,
+    "store_specific_pct": 5.06
+  },
+  "4_4_openstreetmap": {
+    "osm_records": 190642,
+    "records_with_instagram_anywhere_in_tags": 2111,
+    "records_with_contact_instagram_key": 1574,
+    "contact_instagram_value_is_url": 766,
+    "contact_instagram_value_is_bare_handle": 808,
+    "contact_instagram_landed_in_social_urls": 1574,
+    "records_with_bare_instagram_key": 23,
+    "records_mentioning_instagram_in_other_tags": 515,
+    "distinct_handles": 2050,
+    "loader_gap_note": "落としているのは contact: の無い instagram キーの 23 件だけ"
+  },
+  "4_5_wikidata_p2003": {
+    "jp_items_with_p2003_any_type": 9954,
+    "jp_restaurant_items_total": 1026,
+    "jp_restaurant_items_with_p2003": 146,
+    "sparql_endpoint": "https://query.wikidata.org/sparql"
+  },
+  "4_8_meta_hashtag_search": {
+    "gate": "App Review + business verification",
+    "allowed_usage_is_closed_list": true,
+    "allowed_usage": [
+      "Discover content associated with its current campaign.",
+      "Provide customer support.",
+      "Identify entrants to its contests, competitions, or sweepstakes.",
+      "Understand public sentiment around brand.",
+      "Understand and manage their audience, develop their content strategy and obtain digital rights."
+    ],
+    "recent_media_window_hours": 24,
+    "unique_hashtags_per_7_days": 30
+  },
+  "4_11_web_search_api": {
+    "brave_free_credit_usd_per_month": 5,
+    "brave_price_usd_per_1000_requests": 5,
+    "brave_free_requests_per_month": 1000,
+    "brave_storage_requires_separate_plan": true,
+    "google_cse_free_queries_per_day": 100,
+    "google_cse_closed_to_new_customers": true,
+    "google_cse_migration_deadline": "2027-01-01",
+    "bing_search_api_retired": "2025-08-11"
+  },
+  "4_14_common_crawl": {
+    "crawl": "CC-MAIN-2026-34",
+    "cluster_idx_rows": 873102,
+    "instagram_com_cdx_records": 78,
+    "instagram_com_robots_txt_records": 77,
+    "instagram_post_urls_in_index": 0,
+    "wat_files": 100000,
+    "wat_file_bytes_sample": 151385264,
+    "wat_total_bytes_estimate": 15138526400000
+  },
+  "4_20_unknown_license_datasets": {
+    "huggingface_search_hits_for_instagram": 20,
+    "hits_with_explicit_reusable_license": 0,
+    "hits_scoped_to_japan_restaurants": 0
+  }
+}
