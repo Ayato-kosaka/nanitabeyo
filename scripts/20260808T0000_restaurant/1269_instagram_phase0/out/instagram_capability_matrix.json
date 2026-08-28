@@ -6,16 +6,18 @@
     "method": "ec2-chrome-operate（EC2 上の claude --chrome）で developers.facebook.com の一次資料を逐語確認。引用は out/docs/*.md",
     "route": "Instagram API with Facebook Login（business_discovery は Instagram Login 版には存在しない）",
     "caller_requirement": "呼び出し元は Facebook ページに連携済みの IG Business **または Creator** アカウント。原文: 'Perform this request on the Instagram Business or Creator IG User who is making the query.'",
-    "key_finding": "取得（business_discovery / Standard Access / 審査不要）と 表示（公開 /embed/ iframe / 審査不要）が両方とも審査なしで成立する。App Review + ビジネス認証が要るのは oEmbed API とハッシュタグ逆引き（IPCA）だけで、どちらもこの設計では使わなくてよい"
+    "key_finding": "取得（business_discovery / Standard Access / 審査不要）と 表示（公開 /embed/ iframe / 審査不要）が両方とも審査なしで成立する。App Review + ビジネス認証が要るのは oEmbed API とハッシュタグ逆引き（IPCA）だけで、どちらもこの設計では使わなくてよい",
+    "measured_with_token_at": "2026-08-28",
+    "rate_limit_observed": "44コールで x-app-usage の call_count が 14%。上限は概ね 300コール/時のオーダー（1回の観測からの推定）"
   },
   "rows": [
     {
       "account_type": "business",
-      "account_discovery_possible": "yes — business_discovery.username(<handle>) で他店を引ける",
+      "account_discovery_possible": "yes — 実測済み。31ハンドル中、実在する30件のうち29件が business_discovery で返った",
       "media_listing_possible": "yes — /media エッジに field expansion。Public フィールドは alt_text, caption, comments_count, id, media_type, media_url, owner, permalink, shortcode, thumbnail_url, timestamp, username, view_count 等",
       "hashtag_discovery_possible": "conditional — Instagram Public Content Access が必要（App Review + ビジネス認証）。7日30ハッシュタグ・直近24時間・1ページ50件",
-      "caption_available": "yes — IG Media の Fields 表に `caption` Public。ただし \"Excludes album children\"（カルーセルは親のみ）",
-      "permalink_available": "yes — `permalink` Public。`shortcode` も Public",
+      "caption_available": "yes — 実測済み。145メディア中137（94.5%）に caption が付いていた。カルーセルは親のみ",
+      "permalink_available": "yes — 実測済み。返った全メディアに permalink あり",
       "embed_available": "yes（審査不要）— 公開 URL https://www.instagram.com/p/<shortcode>/embed/ を iframe に入れる経路は App Review・トークン・ビジネス認証のいずれも不要。実機で第三者オリジンからの描画を確認済み。oEmbed **API** の審査要件はこの経路には掛からない",
       "required_permissions": [
         "instagram_basic",
@@ -24,24 +26,28 @@
         "(Page 権限が Business Manager 経由なら ads_management または ads_read も)"
       ],
       "production_review_required": "no — 自分が所有・管理するビジネスのためだけのアプリなら Standard Access / App Review 不要",
-      "media_display_route": "表示は oEmbed API ではなく公開 /embed/ iframe を使う。これで Phase 4 は審査ゼロで成立する"
+      "media_display_route": "表示は oEmbed API ではなく公開 /embed/ iframe を使う。これで Phase 4 は審査ゼロで成立する",
+      "profile_website_available": "yes — 実測済み。プロ29件中26件（89.7%）で website が返った",
+      "media_pagination": "after カーソルで 8ページ400件まで遡ってもカーソルが返り続けた（上限に未到達）。50件/ページで約9か月分"
     },
     {
       "account_type": "creator",
-      "account_discovery_possible": "yes — 原文が 'Business or Creator IG Users' と明記",
+      "account_discovery_possible": "yes — 実測済み。31ハンドル中、実在する30件のうち29件が business_discovery で返った",
       "media_listing_possible": "yes — /media エッジに field expansion。Public フィールドは alt_text, caption, comments_count, id, media_type, media_url, owner, permalink, shortcode, thumbnail_url, timestamp, username, view_count 等",
       "hashtag_discovery_possible": "conditional（business と同じ）",
-      "caption_available": "yes — IG Media の Fields 表に `caption` Public。ただし \"Excludes album children\"（カルーセルは親のみ）",
-      "permalink_available": "yes — `permalink` Public。`shortcode` も Public",
+      "caption_available": "yes — 実測済み。145メディア中137（94.5%）に caption が付いていた。カルーセルは親のみ",
+      "permalink_available": "yes — 実測済み。返った全メディアに permalink あり",
       "embed_available": "yes（審査不要）— 公開 URL https://www.instagram.com/p/<shortcode>/embed/ を iframe に入れる経路は App Review・トークン・ビジネス認証のいずれも不要。実機で第三者オリジンからの描画を確認済み。oEmbed **API** の審査要件はこの経路には掛からない",
       "required_permissions": [
         "business と同じ"
       ],
-      "production_review_required": "no（business と同じ）"
+      "production_review_required": "no（business と同じ）",
+      "profile_website_available": "yes — 実測済み。プロ29件中26件（89.7%）で website が返った",
+      "media_pagination": "after カーソルで 8ページ400件まで遡ってもカーソルが返り続けた（上限に未到達）。50件/ページで約9か月分"
     },
     {
       "account_type": "consumer（個人アカウント）",
-      "account_discovery_possible": "no — business_discovery は Business/Creator しか返さない",
+      "account_discovery_possible": "no — 実測で確認。個人アカウントは error 110/subcode 2207013 'Invalid user id' になる",
       "media_listing_possible": "no",
       "hashtag_discovery_possible": "no（投稿者が個人なら採用しない方針とも一致）",
       "caption_available": "no",
@@ -49,7 +55,7 @@
       "embed_available": "yes — 公開 /embed/ URL はアカウント種別に関係なく動く（埋め込みを無効化していない限り）。ただし permalink を API では取れないので、そもそも候補に上がらない",
       "required_permissions": [],
       "production_review_required": "n/a",
-      "coverage_loss": "★未確定。プロアカウント率の実測（下限 41.4%）の裏返しがそのまま coverage loss になる"
+      "coverage_loss": "実測では 31件中1件のみが個人アカウント。ただしこの標本は『店舗サイトからハンドルが取れた店』に偏っている"
     }
   ],
   "phase0_checklist": {
@@ -63,18 +69,16 @@
     "AI 分類時の取得可能・保存可能データ": "完了 — out/docs/04_embed_terms.md（AI/ML を名指しした条項は無いが、oEmbed 由来データは永続化・派生が strictly prohibited）"
   },
   "blocking_open_questions": [
-    "★プロアカウント率の確定値（＝到達率の上限、consumer の coverage loss）。business_discovery が何も返らないことをもって非プロと判定するのが唯一の確定手段で、トークンが要る",
-    "IG プロフィールの website を business_discovery で実際に引けるか。Public 表記はあるがサンプルが一次資料に無い。誤紐付け（tochinavi / vison_com 型）を機械的に弾けるかが懸かっている",
-    "公開 /embed/ を自社アプリで大量に使うことが Instagram の利用規約側で許されるか。技術的に動くことは実証したが、Developer Policies §6 \"Don't use the Instagram Platform to simply display User Content ... without our prior permission.\" が /embed/ 経路にも及ぶかは一次資料からは判定できなかった",
-    "embed にキャプション本文が含まれないため、キャプションを画面に出したい場合は自前保持が要る。business_discovery 由来のデータは Platform Terms 3.d（削除要求への追随義務）が掛かる"
+    "この標本（31件）は『店舗サイトから Instagram リンクが取れた店』に偏っている。プロアカウント率 96.7% を母集団全体へ広げてよいかは未検証",
+    "誤紐付けの判別手段が無い。Issue が挙げていた website 逆照合は却下されたため（out/website_reverse_match.json）、別主体を弾く別のシグナルが要る。これが Phase 1 の『restaurant 誤紐付け 0 件』の必須目標に直結する",
+    "公開 /embed/ を自社アプリで大量に使うことの規約上の可否はオーナー判断で採用と決定済みだが、Developer Policies §6 の解釈は一次資料からは確定できていない"
   ],
   "reach_estimate": {
-    "note": "すべて下限。プロアカウント率が下限値なので、実際の到達率はこれより高い",
+    "note": "プロアカウント率が実測で確定したため、下限ではなく実測ベースの見積もりになった",
     "handle_rate_pct": 16.17,
-    "handle_rate_source": "#1269 の 8/26 訂正後の値（店固有＋チェーンまで可とした場合）",
-    "professional_rate_floor_pct": 41.4,
-    "reach_floor_pct": 6.7,
-    "reach_ceiling_pct": 16.17,
-    "verdict": "プロアカウント率が仮に 100% でも上限は 16.17% で、採用判定の『restaurant×dish coverage >= 50% なら主力候補』には構造的に届かない。判定は『50%未満でも precision が高ければ Google 前段の追加 source として採用可』の側で行うべき"
+    "handle_rate_source": "#1269 の 8-26 訂正後の値（店固有＋チェーンまで可とした場合）",
+    "professional_rate_pct": 96.7,
+    "reach_pct": 15.6,
+    "verdict": "プロアカウント率はボトルネックではなかった（当初の懸念『3割なら実効5%』は外れ）。到達率はハンドル取得率でほぼ決まり、約15.6%。採用判定の『coverage >= 50% なら主力候補』には構造的に届かないので、『Google 前段の追加 source』側で評価する。ただし precision 側は誤紐付けの判別手段が無いままなので、Phase 1 の必須目標を満たせていない。"
   }
 }
