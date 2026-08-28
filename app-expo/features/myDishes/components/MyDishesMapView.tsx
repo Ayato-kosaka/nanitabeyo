@@ -453,6 +453,12 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 				    「このエリアで再検索」ボタンがそのまま «いまの範囲で引き直す» 導線になる。
 				    見えているものを文字で言い直すだけの帯は、地図を隠すぶんだけ損である。
 				    エリアが効いていることの表示と解除は、フィルタ画面（MyDishes.filters.area）に集約した */}
+				{/* #1629 【設計】«一部のみ表示» の帯は残す。上限（300）の «選び方» はサーバ側で
+				    最新順 → 格子ごとの round-robin（地理的な散らばりを保つ）へ変えたので、
+				    引きの絵から地域が丸ごと消えることは無くなったが、300 店舗を超えるユーザーでは
+				    依然として出ていないピンがある。それを黙って消すと «自分の記録が消えた» に見える
+				    （下の空状態の申し送りと同じ理屈）ため、帯で明示する。
+				    出ていない分は «このエリアで再検索»（エリア内で 300 枠を取り直す）で回収できる */}
 				{truncated && (
 					<View style={styles.truncatedBanner} testID="my-dishes-map-truncated">
 						<Text style={styles.truncatedText}>{i18n.t("MyDishes.map.truncated")}</Text>
