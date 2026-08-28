@@ -195,6 +195,37 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
     try { frame.contentWindow.postMessage(JSON.stringify(message), ORIGIN); } catch (e) {}
   }
 
+  /*
+   * #1641 **ユーザーのタップで音を出す口。**
+   *
+   * 自動では音を戻せなかった（onReady で unMute / URL の mute=1 を外す / 再生後も撃ち直す、の
+   * 3 通りとも実機で無音）。IFrame API が求めているのはユーザー操作なので、アプリ側の
+   * ボタンから叩けるようにしておく。**結果は必ず報告し直す**（効いたのかどうかを
+   * 思い込みではなく計測で判定するため）。
+   */
+  window.__nbEmbedUnmute = function () {
+    lastMuted = null;
+    mutedFallback = false;
+    send({ event: 'command', func: 'unMute', args: [] });
+    send({ event: 'command', func: 'setVolume', args: [100] });
+    send({ event: 'command', func: 'playVideo', args: [] });
+    var waited = 0;
+    var poll = setInterval(function () {
+      waited += 300;
+      send({ event: 'listening' });
+      if (lastMuted !== null || waited >= 3000) {
+        clearInterval(poll);
+        try {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            src: 'nb-embed-autoplay',
+            kind: 'unmute_result',
+            detail: lastMuted === false ? 'audible' : lastMuted === true ? 'muted' : 'unknown'
+          }));
+        } catch (e) {}
+      }
+    }, 300);
+  };
+
   window.addEventListener('message', function (event) {
     // 中身は第三者のページ。素性の分からない相手の言うことは読まない
     if (event.origin !== ORIGIN) return;

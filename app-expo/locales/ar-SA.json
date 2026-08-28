@@ -444,7 +444,8 @@
 		},
 		"embed": {
 			"play": "التشغيل على {{provider}}",
-			"openExternally": "عرض على {{provider}}"
+			"openExternally": "عرض على {{provider}}",
+			"unmute": "تشغيل الصوت"
 		},
 		"ownPost": {
 			"menuTitle": "منشورك",

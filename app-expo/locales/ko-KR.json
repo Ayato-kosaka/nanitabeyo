@@ -444,7 +444,8 @@
 		},
 		"embed": {
 			"play": "{{provider}}에서 재생",
-			"openExternally": "{{provider}}에서 보기"
+			"openExternally": "{{provider}}에서 보기",
+			"unmute": "소리 켜기"
 		},
 		"ownPost": {
 			"menuTitle": "내 게시물",

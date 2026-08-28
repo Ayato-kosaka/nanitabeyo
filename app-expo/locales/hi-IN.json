@@ -444,7 +444,8 @@
 		},
 		"embed": {
 			"play": "{{provider}} पर चलाएँ",
-			"openExternally": "{{provider}} पर देखें"
+			"openExternally": "{{provider}} पर देखें",
+			"unmute": "आवाज़ चालू करें"
 		},
 		"ownPost": {
 			"menuTitle": "आपकी पोस्ट",

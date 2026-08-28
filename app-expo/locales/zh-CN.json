@@ -444,7 +444,8 @@
 		},
 		"embed": {
 			"play": "在{{provider}}上播放",
-			"openExternally": "在{{provider}}上查看"
+			"openExternally": "在{{provider}}上查看",
+			"unmute": "开启声音"
 		},
 		"ownPost": {
 			"menuTitle": "我的帖子",

@@ -75,7 +75,7 @@ import {
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
 import { NavigationContext } from "@react-navigation/native";
-import { Play } from "lucide-react-native";
+import { Play, Volume2 } from "lucide-react-native";
 
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -640,7 +640,21 @@ export function ExternalEmbedPlayer({
 	スクリプトは再注入されうるし、そのとき送信済みの記録は失われる。
 	*/
 	const hasPlayedRef = useRef(false);
+	/*
+	#1641 **音が出ているか。** YouTube だけ自動では戻せなかったので、
+	«無音で再生中» のときだけタップで解除する口を出す（オーナー指示 2026-08-28）。
+	*/
+	const [audio, setAudio] = useState<string | null>(null);
 	const webViewRef = useRef<{ injectJavaScript: (script: string) => void } | null>(null);
+
+	/*
+	#1641 WebView の中の包みへ «音を出して» と頼む。`__nbEmbedUnmute` は
+	`buildEmbedIframeHtml` が置いている（結果は `unmute_result` で返ってくる）。
+	*/
+	const handleUnmute = useCallback(() => {
+		lightImpact();
+		webViewRef.current?.injectJavaScript("window.__nbEmbedUnmute && window.__nbEmbedUnmute(); true;");
+	}, [lightImpact]);
 
 	const handleMessage = useCallback(
 		(event: { nativeEvent: { data: string } }) => {
@@ -654,8 +668,22 @@ export function ExternalEmbedPlayer({
 			if (parsed.kind === "playing") {
 				hasPlayedRef.current = true;
 				setPlayback("playing");
+				setAudio(parsed.detail ?? null);
 				logFrontendEvent({
 					event_name: "external_embed_autoplay_started",
+					error_level: "log",
+					payload: { provider: embed.provider, audio: parsed.detail ?? null },
+				});
+				return;
+			}
+			/*
+			#1641 タップで音を出せたかどうかの答え。**効いたと思い込まず、報告で判定する。**
+			ここが `audible` にならないなら «タップでも音は出せない» が確定する。
+			*/
+			if (parsed.kind === "unmute_result") {
+				setAudio(parsed.detail ?? null);
+				logFrontendEvent({
+					event_name: "external_embed_unmute_tapped",
 					error_level: "log",
 					payload: { provider: embed.provider, audio: parsed.detail ?? null },
 				});
@@ -923,6 +951,33 @@ export function ExternalEmbedPlayer({
 			{playback === "unplayable" && source?.mode === "iframe" && (
 				<View style={styles.unplayableCover} pointerEvents="none" testID="external-embed-cover" />
 			)}
+			{/*
+			#1641 **無音で再生中のときだけ «音を出す» を出す（いまのところ YouTube だけ）。**
+
+			自動では戻せなかった（onReady で unMute / URL の mute=1 を外す / 再生後も撃ち直す、
+			の 3 通りとも実機で無音）。IFrame API が求めているのはユーザー操作なので、
+			**タップで撃ち直す口**を出す。オーナー指示 2026-08-28。
+
+			⚠️ アプリ側のタップは WebView の中では «ユーザー操作» にならない可能性がある。
+			   効いたかどうかは思い込まず、`unmute_result` の報告で判定する。
+			⚠️ 音が出た（audible）ら消す。出続けると «押しても何も起きないボタン» になる。
+			*/}
+			{playback === "playing" && audio !== null && audio !== "audible" && (
+				<View style={styles.overlayContainer} pointerEvents="box-none">
+					<View style={styles.unmuteTapTarget}>
+						<TouchableOpacity
+							testID="external-embed-unmute"
+							onPress={handleUnmute}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("DishMediaContent.embed.unmute")}>
+							<View style={styles.playHint}>
+								<Volume2 size={12} color={FixedColors.onMedia} />
+								<Text style={styles.playLabel}>{i18n.t("DishMediaContent.embed.unmute")}</Text>
+							</View>
+						</TouchableOpacity>
+					</View>
+				</View>
+			)}
 			{showFallbackCta && (
 				<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">
 					{/*
@@ -975,6 +1030,12 @@ const styles = StyleSheet.create({
 		width: 1,
 		height: 1,
 		opacity: 0,
+	},
+	// #1641 «音を出す» は帯より少し上。導線の帯と重ならない位置に置く
+	unmuteTapTarget: {
+		position: "absolute",
+		bottom: 172,
+		alignSelf: "center",
 	},
 	// #1641 別オリジンの iframe（YouTube）が出すエラー画面を隠すための地色
 	unplayableCover: {

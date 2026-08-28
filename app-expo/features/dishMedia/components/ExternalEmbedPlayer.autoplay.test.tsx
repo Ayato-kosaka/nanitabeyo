@@ -18,7 +18,7 @@ jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn(() => Promise.r
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
-jest.mock("lucide-react-native", () => ({ Play: () => null }));
+jest.mock("lucide-react-native", () => ({ Play: () => null, Volume2: () => null }));
 jest.mock("react-native-gesture-handler", () => ({
 	GestureDetector: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -190,6 +190,33 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		const tree = renderActiveCell();
 		post({ src: "nb-embed-autoplay", kind: "no_video", detail: null });
 		expect(tree.root.findAllByProps({ testID: "external-embed-cover" }).length).toBe(0);
+	});
+
+	/*
+	#1641 **無音で再生中のときだけ «音を出す» を出す。**（オーナー指示 2026-08-28）
+
+	自動では戻せなかったので、ユーザー操作で撃ち直す口を用意する。
+	⚠️ 音が出ている（audible）ときに出すと «押しても何も起きないボタン» になる。
+	*/
+	it("無音で再生中のときだけ «音を出す» を出す", () => {
+		const tree = renderActiveCell();
+		const count = () => tree.root.findAllByProps({ testID: "external-embed-unmute" }).length;
+
+		// まだ何も報告が無い間は出さない
+		expect(count()).toBe(0);
+
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: "muted" });
+		expect(count()).toBeGreaterThan(0);
+
+		// 音が出たら消える
+		post({ src: "nb-embed-autoplay", kind: "unmute_result", detail: "audible" });
+		expect(count()).toBe(0);
+	});
+
+	it("音ありで再生できているセルには «音を出す» を出さない", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: "audible" });
+		expect(tree.root.findAllByProps({ testID: "external-embed-unmute" }).length).toBe(0);
 	});
 
 	it("注入スクリプトにバッククォートが混ざっていない", () => {

@@ -444,7 +444,8 @@
 		},
 		"embed": {
 			"play": "{{provider}}で再生",
-			"openExternally": "{{provider}}で見る"
+			"openExternally": "{{provider}}で見る",
+			"unmute": "音を出す"
 		},
 		"ownPost": {
 			"menuTitle": "自分の投稿",

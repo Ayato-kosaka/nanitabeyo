@@ -119,6 +119,14 @@ describe("buildEmbedIframeHtml", () => {
 		expect(html).toContain("if (!started) report('no_video', 'no_ready');");
 	});
 
+	/*
+	#1641 タップで音を出す口。**結果を報告し直す**ので、効いたかどうかを計測で判定できる。
+	*/
+	it("タップから叩ける unMute の口を置き、結果を報告し直す", () => {
+		expect(html).toContain("window.__nbEmbedUnmute = function ()");
+		expect(html).toContain("kind: 'unmute_result'");
+	});
+
 	it("結論は 1 度だけ報告する（再生後に締め切りで上書きしない）", () => {
 		expect(html).toContain("if (settled) return;");
 	});

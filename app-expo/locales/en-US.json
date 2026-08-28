@@ -444,7 +444,8 @@
 		},
 		"embed": {
 			"play": "Play on {{provider}}",
-			"openExternally": "View on {{provider}}"
+			"openExternally": "View on {{provider}}",
+			"unmute": "Turn on sound"
 		},
 		"ownPost": {
 			"menuTitle": "Your post",

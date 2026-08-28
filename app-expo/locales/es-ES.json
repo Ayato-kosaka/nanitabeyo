@@ -444,7 +444,8 @@
 		},
 		"embed": {
 			"play": "Reproducir en {{provider}}",
-			"openExternally": "Ver en {{provider}}"
+			"openExternally": "Ver en {{provider}}",
+			"unmute": "Activar sonido"
 		},
 		"ownPost": {
 			"menuTitle": "Tu publicación",
