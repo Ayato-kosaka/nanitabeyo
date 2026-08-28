@@ -82,7 +82,9 @@ def print_preview(corrections, client, labels):
             diff = c.score - cur["score"]
             print(f"  current: {cur['score']} (source={cur['source']}, run_id={cur['run_id']})")
             print(f"  new:     {c.score}")
-            print(f"  diff:    {diff:+.1f}")
+            # 小数第1位で丸めると、連続 feature の 0.63→0.67 が «+0.0» に見えて
+            # «変わっていない» と誤読される（#1637）。実際の桁で出す
+            print(f"  diff:    {diff:+.4f}")
         print(f"  confidence: {c.confidence}")
         print(f"  reason:     {c.reason}")
     print("\n" + "=" * 80)

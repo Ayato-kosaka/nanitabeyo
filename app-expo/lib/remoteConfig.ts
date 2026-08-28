@@ -91,8 +91,9 @@ export const DEFAULT_REMOTE_CONFIG: RemoteConfigValues = Object.freeze({
 	dish_category_recommendation_penalty_weight_core_ingredient: "0.003",
 	dish_category_recommendation_penalty_weight_taste: "0.0005",
 	dish_category_recommendation_penalty_weight_cooking_method: "0.003",
-	// config.json には存在しないキー。schema 側で `.optional().default("true")` を持つので同値にする
+	// config.json には存在しないキー。schema 側で `.optional().default(...)` を持つので同値にする
 	v1_bulk_import_preflight_enabled: "true",
+	dish_category_recommendation_weight_season: "0.25",
 });
 
 /**

@@ -89,7 +89,10 @@ validation（すべて通らないと INSERT しない）:
 - `item_qid` が `Q\d+` 形式で、かつ `dish_category_catalog` に実在する
 - `(feature_type, feature_key)` が既存 `dish_category_features_catalog` に存在する組み合わせであること
   （新規 feature を manual 経由で生やしたい場合のみ `--allow-new-feature-key` で明示的に許可する）
-- `score` が `0 / 0.5 / 1` のいずれか
+- `score` が `0 / 0.5 / 1` のいずれか。ただし **`_common.py` の `CONTINUOUS_FEATURE_TYPES`
+  （market_salience / dine_out_orderability / timeSlot / scene / taste / season）だけは
+  `0.0〜1.0` の連続値を許す**。これらは実データが 0.42〜0.98 の連続値で運用されており、
+  離散前提の検証だけが実態と合っていなかった（#1637）。既定は従来どおり離散
 - `confidence` が `high / medium / low` のいずれか
 - `reason` が 120 文字以内
 - 同一 `(run_id, item_qid, feature_type, feature_key)` が `wikidata_food_llm_feature_scores` に未存在
