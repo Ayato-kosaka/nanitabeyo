@@ -167,8 +167,15 @@ def normalize(column: str, value: Any) -> Any:
     if column in JSON_COLUMNS:
         try:
             # dict/list の順序差で誤検知しないよう、正準化してから比べる。
+            parsed = json.loads(value) if isinstance(value, str) else value
+            # jsonb の SQL NULL と、JSON リテラルの null を同じものとして扱う。
+            # COPY ... FORMAT CSV は jsonb の JSON null を文字列 "null" として書くため、
+            # ここを潰さないと «backup="null" / current=None» が全行で差分に見える。
+            # 実際、2,462 行中 54 行がこの偽陽性で、本当に壊れた 7 行が埋もれていた。
+            if parsed is None:
+                return None
             return json.dumps(
-                json.loads(value) if isinstance(value, str) else value,
+                parsed,
                 sort_keys=True,
                 separators=(",", ":"),
                 ensure_ascii=False,
