@@ -620,5 +620,19 @@
     "route2_verdict": "却下。316ページ中 instagram /p/ 投稿リンクは1本のみ。«料理カテゴリの投稿を集めたまとめブログ» はクロール可能な形では存在しない（食メディアは自社写真＋アカウントfollowウィジェット）",
     "route1_verdict": "改善するが不十分。料理語を多く含むページの実体はカタログ・観光協会・ラジオ・農協・ギフトEC で、個別レストランではない。アカウントも組織の公式1つ。（例: taizotamakoshi 26種→osusumeoutigohan[家庭料理], toyamacity_tourism, ja_harima[農協], bayfm[ラジオ]）",
     "conclusion": "WAT/WET はどう絞っても飲食店単位の (店,アカウント) / (カテゴリ,投稿) を効率的に出せない。無料の発見は柱1(open data+店サイト)と柱2(インフルエンサー)に確定"
+  },
+  "influencer_route_MEASURED": {
+    "handles_tested": 413,
+    "resolved": 374,
+    "resolve_pct": 90.6,
+    "media_total_posts": 535996,
+    "media_median": 1046,
+    "media_mean": 1433,
+    "followers_median": 56943,
+    "accounts_with_500plus_posts": 286,
+    "food_rate_early": 0.98,
+    "gross_food_posts_estimate": 525000,
+    "interpretation": "413 handle（無料の公開リスト由来）のうち374が有効。延べ53.6万投稿を保有し、飲食率0.98。1投稿≒1店なので、重複を割った異なり店数が «柱2で無料追加できる店数»。重複率は測定中（深掘りパス）",
+    "distinct_stores_UNMEASURED": "延べ53.6万 × (1-重複率)。重複は地方特化handleほど低い（別々の地元店を撮る）"
   }
 }
