@@ -663,6 +663,30 @@ export class DishMediaImportsService {
     content: SnsUrlContent | null;
     reason: ResolveDishMediaImportReason;
   }> {
+    /*
+    #1641 **TikTok は公式 oEmbed で先に解決する。**
+
+    自分で `vt.tiktok.com` へアクセスして 301 を追う方式は、**Cloud Run からは
+    接続そのものが成立しない**（dev 実ログ: `kind: "network_error"` /
+    外部 API ログ `status_code=0`）。同じ URL は開発環境の curl では 301 を返すので、
+    TikTok 側がこのサーバの出口を弾いていると見られ、こちらからは直せない。
+
+    oEmbed は短縮 URL をそのまま受けて動画 ID とキャプションを返し、
+    その `www.tiktok.com` へは到達できている（フル URL の取り込みは成功している）。
+    詳細は `SnsOembedService.resolveTikTokShortlink` のコメント。
+
+    ⚠️ oEmbed が失敗したら**従来のリダイレクト追跡へ落ちる**。TikTok が oEmbed を
+    閉じたときに «短縮 URL が一切使えない» へ戻らないよう、経路は 2 本残す。
+    */
+    if (shortlink.provider === 'tiktok') {
+      const viaOembed = await this.oembed.resolveTikTokShortlink(
+        shortlink.expandUrl,
+      );
+      if (viaOembed !== null) {
+        return { content: viaOembed, reason: 'resolved' };
+      }
+    }
+
     const isSnsUrl = (url: URL) => parseSnsUrl(url.href) !== null;
     const isResolvedContent = (url: URL) =>
       parseSnsUrl(url.href)?.kind === 'content';
@@ -716,7 +740,7 @@ export class DishMediaImportsService {
     content: SnsUrlContent,
     metadata: SnsMetadata,
   ): ExtractedText[] {
-    if (metadata.title === null) return [];
+    const texts: ExtractedText[] = [];
 
     // TikTok / Instagram の `title` はキャプション本文（ハッシュタグ・店舗情報込み）、
     // YouTube の `title` は動画題名。由来が違うので field を分けておく
@@ -724,7 +748,20 @@ export class DishMediaImportsService {
     // Instagram は #1375（3 巡目）で埋め込み SSR からキャプションが取れるようになった
     const field: ExtractedText['field'] =
       content.provider === 'youtube' ? 'title' : 'caption';
-    return [{ field, text: metadata.title }];
+    if (metadata.title !== null) texts.push({ field, text: metadata.title });
+
+    /*
+    #1641 **YouTube は説明文も渡す。** オーナー報告「キャプションが取れてないので店が入らない」。
+
+    YouTube の題名には店舗情報が無く、店名・住所は**説明文**に書かれている（実測 `8KJDwppL0qg`）。
+    題名だけを渡していたため候補がゼロになり、毎回お店を手で選ぶ必要があった。
+    説明文はキャプション相当なので `caption` として渡す。
+    */
+    if (metadata.description) {
+      texts.push({ field: 'caption', text: metadata.description });
+    }
+
+    return texts;
   }
 
   /* ------------------------------------------------------------------ */

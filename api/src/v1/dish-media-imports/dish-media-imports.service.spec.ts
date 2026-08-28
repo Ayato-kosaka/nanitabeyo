@@ -280,10 +280,31 @@ describe('DishMediaImportsService — 短縮 URL の展開', () => {
     expect(result.status).toBe('unsupported');
     expect(result.reason).toBe('shortlink_expansion_failed');
     expect(result.candidates.dishCategories).toEqual([]);
-    // 危険なホストへは 1 度も接続していない（検証は接続前に行われる）
-    expect(
-      transport.requests.map((request) => new URL(request.url).hostname),
-    ).toEqual(['vm.tiktok.com']);
+
+    /*
+    **危険なホストへは 1 度も接続していない**（検証は接続前に行われる）。
+
+    ⚠️ ここで «リクエストが 1 本だけ» を要求してはいけない。#1641 で、短縮 URL は
+    まず公式 oEmbed（`https://www.tiktok.com/oembed?url=…`）で解決を試み、
+    失敗したときだけリダイレクト追跡へ落ちるようになった。
+
+    oEmbed は **固定エンドポイント**で、ユーザーの URL はクエリの値としてしか乗らない。
+    この経路に SSRF は原理的に成立しないので、名前解決の検証も行わない
+    （`SafeFetchService.fetchJson` の doc）。守るべきなのは
+    **リダイレクト先（＝ 攻撃者が選べる URL）へ接続しないこと**である。
+    */
+    const requestedPaths = transport.requests.map((request) => {
+      const url = new URL(request.url);
+      return `${url.hostname}${url.pathname}`;
+    });
+    // DNS が 127.0.0.1 を指したリダイレクト先は、一度も取りに行っていない
+    expect(requestedPaths).not.toContain('www.tiktok.com/t/ZMabcdef/');
+    // 追跡経路として叩いたのは短縮 URL 自身だけ
+    const shortlinkPath = (() => {
+      const url = new URL(TIKTOK_SHORTLINK);
+      return `${url.hostname}${url.pathname}`;
+    })();
+    expect(requestedPaths).toContain(shortlinkPath);
   });
 
   it('リダイレクト上限を超えたら «候補ゼロ＋理由» を返す', async () => {

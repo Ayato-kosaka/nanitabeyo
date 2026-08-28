@@ -41,6 +41,13 @@ export type SnsMetadata = {
   authorName: string | null;
   authorUrl: string | null;
   thumbnailUrl: string | null;
+  /**
+   * #1641 投稿の説明文。**いまは YouTube だけが持つ。**
+   *
+   * YouTube の `title` は動画の題名で、店舗情報は説明文の側に書かれている。
+   * Instagram / TikTok は `title` 自体がキャプション本文なので、こちらは null のままでよい。
+   */
+  description?: string | null;
 };
 
 export type SnsMetadataOutcome =
@@ -82,6 +89,15 @@ const INSTAGRAM_EMBED_BASE = 'https://www.instagram.com';
 /** SSR embed は約 260 KiB。既定の 256 KiB では**わずかに足りない**ので明示する */
 const INSTAGRAM_EMBED_MAX_BYTES = 1024 * 1024;
 
+/** YouTube の視聴ページ。**説明文（キャプション）は oEmbed では返らない**ので、ここから取る */
+const YOUTUBE_WATCH_BASE = 'https://www.youtube.com';
+
+/**
+ * 視聴ページ HTML の読み込み上限。説明文は先頭寄りにあるが、
+ * ページ全体は 1.5MB 前後あるので Instagram より大きく取る。
+ */
+const YOUTUBE_WATCH_MAX_BYTES = 3 * 1024 * 1024;
+
 /** `logger.externalApi` に出す名前 */
 const API_NAMES: Readonly<Record<SnsProvider, string>> = {
   youtube: 'YouTube oEmbed',
@@ -113,6 +129,10 @@ export class SnsOembedService {
   async fetchMetadata(content: SnsUrlContent): Promise<SnsMetadataOutcome> {
     if (content.provider === 'instagram') {
       return this.fetchInstagramEmbedMetadata(content);
+    }
+
+    if (content.provider === 'youtube') {
+      return this.fetchYouTubeMetadata(content);
     }
 
     const endpoint = OEMBED_ENDPOINTS[content.provider];
@@ -248,6 +268,178 @@ export class SnsOembedService {
   }
 
   /**
+   * #1641 TikTok の短縮 URL を **公式 oEmbed だけで**投稿へ解決する。
+   *
+   * ## なぜリダイレクト追跡ではいけないのか
+   *
+   * 設計当初は `vt.tiktok.com/{code}` へ自分でアクセスして 301 を追う方式だった
+   * （`expandShortlink`）。ところが **Cloud Run から `vt.tiktok.com` へは接続できない**。
+   * dev の実ログ:
+   *
+   *     SnsShortlinkExpansionFailed { provider: "tiktok", kind: "network_error" }
+   *     外部 API ログ: api_name="tiktok shortlink", status_code=0（応答なし）
+   *
+   * `network_error` はタイムアウトとは別で、**接続そのものが成立していない**。
+   * 同じ URL は開発環境の curl からは 301 を返すので、TikTok 側が
+   * このサーバの出口を弾いていると見られる。こちらから直せない。
+   *
+   * ## oEmbed は短縮 URL をそのまま受ける
+   *
+   * 実測: `https://www.tiktok.com/oembed?url=<短縮URL>` が 200 を返し、
+   *
+   * - `embed_product_id` … 動画 ID（＝ `externalContentId`）
+   * - `author_url` … `https://www.tiktok.com/@{username}`
+   * - `title` … **キャプション本文**（店舗情報込み）
+   *
+   * が得られる。**`www.tiktok.com` へは Cloud Run から到達できている**
+   * （フル URL の取り込みは成功しており、店舗候補まで出ている）。
+   * つまり 1 リクエストで «展開» と «キャプション取得» の両方が済む。
+   */
+  async resolveTikTokShortlink(
+    expandUrl: string,
+  ): Promise<SnsUrlContent | null> {
+    const endpoint = OEMBED_ENDPOINTS.tiktok;
+    if (endpoint === null) return null;
+
+    const requestUrl = new URL(endpoint);
+    requestUrl.searchParams.set('url', expandUrl);
+    requestUrl.searchParams.set('format', 'json');
+
+    let payload: Record<string, unknown>;
+    try {
+      payload = await this.safeFetch.fetchJson<Record<string, unknown>>(
+        requestUrl.href,
+        {
+          apiName: API_NAMES.tiktok,
+          functionName: 'resolveTikTokShortlink',
+        },
+      );
+    } catch (error) {
+      this.logger.warn('TikTokShortlinkOembedFailed', 'resolveTikTokShortlink', {
+        kind: error instanceof SafeFetchError ? error.kind : 'unknown_error',
+      });
+      return null;
+    }
+
+    const videoId = this.pickString(payload.embed_product_id);
+    const authorUrl = this.pickHttpsUrl(payload.author_url);
+    if (videoId === null || authorUrl === null) return null;
+
+    // 数字 ID 以外は組み立てない（provider のレスポンスも信用しない / 設計 §3-3）
+    if (!/^[0-9]{1,32}$/.test(videoId)) return null;
+
+    const username = authorUrl.split('/@')[1];
+    if (username === undefined || !/^[A-Za-z0-9._]{1,64}$/.test(username)) {
+      return null;
+    }
+
+    return {
+      kind: 'content',
+      provider: 'tiktok',
+      externalContentId: videoId,
+      canonicalUrl: `https://www.tiktok.com/@${username}/video/${videoId}`,
+    };
+  }
+
+  /**
+   * YouTube のメタデータを取る（#1641 オーナー報告「キャプションが取れてないので店が入らない」）。
+   *
+   * ## なぜ oEmbed だけでは足りないのか
+   *
+   * YouTube の oEmbed は **`description` を返さない**（このファイル冒頭の表のとおり）。
+   * 返るのは動画の題名だけである。ところが店舗情報は **説明文**に書かれている。
+   * 実測（`8KJDwppL0qg`）:
+   *
+   *     題名   : 【月島】1度食べたら戻れない！人生で1番飲める焼鳥！  ← 住所が無い
+   *     説明文 : 店名：焼鶏ばんちょう / 住所：東京都中央区月島1-22-1 …  ← ここに在る
+   *
+   * 題名だけを候補生成へ渡していたため、「読み取れる情報はありませんでした」になり
+   * **店舗が一件も出なかった**。
+   *
+   * ## だから視聴ページの HTML から説明文を取る
+   *
+   * Instagram の埋め込み SSR と同じ方式である（`fetchInstagramEmbedMetadata`）。
+   * 題名・投稿者・サムネイルは公式 oEmbed から、説明文だけを HTML から取り、
+   * **どちらが欠けても取り込みは続行させる**（候補ゼロで手入力へ縮退する既存の設計に乗る）。
+   *
+   * ⚠️ HTML は保存しない。説明文を組み立てたらすぐ捨てる（#1273 §14 と同じ規律）。
+   */
+  private async fetchYouTubeMetadata(
+    content: SnsUrlContent,
+  ): Promise<SnsMetadataOutcome> {
+    // OEMBED_ENDPOINTS の型は provider ごとに null を許すが、youtube は必ず持つ
+    const endpoint = OEMBED_ENDPOINTS.youtube;
+    if (endpoint === null) {
+      return {
+        status: 'unknown',
+        kind: 'provider_unsupported',
+        detail: { provider: 'youtube' },
+      };
+    }
+    const requestUrl = new URL(endpoint);
+    requestUrl.searchParams.set('url', content.canonicalUrl);
+    requestUrl.searchParams.set('format', 'json');
+
+    let base: SnsMetadata;
+    try {
+      const payload = await this.safeFetch.fetchJson<Record<string, unknown>>(
+        requestUrl.href,
+        { apiName: API_NAMES.youtube, functionName: 'fetchYouTubeMetadata' },
+      );
+      base = this.pickMetadata(payload);
+    } catch (error) {
+      // oEmbed が «消えた» と言うなら、説明文を取りに行く意味も無い
+      return this.classifyFailure(error, 'youtube');
+    }
+
+    const description = await this.fetchYouTubeDescription(
+      content.externalContentId,
+    );
+
+    return { status: 'ok', metadata: { ...base, description } };
+  }
+
+  /**
+   * 視聴ページから説明文を取り出す。**取れなければ null**（例外は投げない）。
+   *
+   * 説明文が取れないのは «こちらの都合» であって、取り込みを止める理由にはならない。
+   */
+  private async fetchYouTubeDescription(
+    videoId: string,
+  ): Promise<string | null> {
+    const watchUrl = `${YOUTUBE_WATCH_BASE}/watch?v=${encodeURIComponent(videoId)}`;
+
+    let html: string;
+    try {
+      html = await this.safeFetch.fetchText(watchUrl, {
+        apiName: API_NAMES.youtube,
+        functionName: 'fetchYouTubeDescription',
+        maxResponseBytes: YOUTUBE_WATCH_MAX_BYTES,
+      });
+    } catch (error) {
+      this.logger.warn(
+        'YouTubeDescriptionFetchFailed',
+        'fetchYouTubeDescription',
+        { kind: error instanceof SafeFetchError ? error.kind : 'unknown_error' },
+      );
+      return null;
+    }
+
+    const description = parseYouTubeDescription(html);
+    if (description === null) {
+      // 200 だが説明文が見つからない（bot 判定・ログイン壁・仕様変更）
+      this.logger.warn(
+        'YouTubeDescriptionNotFound',
+        'fetchYouTubeDescription',
+        { htmlLength: html.length },
+      );
+      return null;
+    }
+
+    return this.pickString(description);
+  }
+
+  /**
    * 失敗を «相手が消えた» と «こちらの都合» に振り分ける（設計 §3-7）。
    *
    * **この 2 つを混ぜてはいけない。** 混ぜると、TikTok が一時的に落ちただけで
@@ -359,4 +551,80 @@ export function parseInstagramEmbedHtml(
         ? decodeHtmlEntities(usernameMatch[1]).trim() || null
         : null,
   };
+}
+
+
+/**
+ * #1641 YouTube の視聴ページ HTML から**説明文**を取り出す。
+ *
+ * 説明文は `ytInitialData` の中の
+ * `expandableVideoDescriptionBodyRenderer.descriptionBodyText.runs[].text` に、
+ * **断片の配列**として入っている（ハッシュタグやリンクが別 run に割れる）。
+ * 実測（`8KJDwppL0qg`）でこの経路から店名・住所が取れることを確認している。
+ *
+ * ⚠️ **`runs` の配列の中だけを読むこと。** ページ全体から `"text":"…"` を拾うと、
+ *    プレイヤーのキーボードショートカット説明などの無関係な文言まで連結されてしまう
+ *    （実装中に実際に混入させた）。
+ *
+ * ⚠️ 見つからなければ `null` を返す。**推測で組み立てない。**
+ *    YouTube が JS シェルだけを返す（bot 判定・ログイン壁）ことがあるためで、
+ *    そのときは «説明文は取れなかった» として扱う。
+ */
+export function parseYouTubeDescription(html: string): string | null {
+  const marker =
+    '"expandableVideoDescriptionBodyRenderer":{"descriptionBodyText":{"runs":[';
+  const start = html.indexOf(marker);
+  if (start === -1) return null;
+
+  const from = start + marker.length;
+  const end = findRunsArrayEnd(html, from);
+  if (end === -1) return null;
+
+  const runs = html.slice(from, end);
+  const texts: string[] = [];
+  // JSON 文字列（`\"` のエスケープを含む）を 1 つずつ拾う
+  const pattern = /"text":"((?:[^"\\]|\\.)*)"/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(runs)) !== null) {
+    try {
+      texts.push(JSON.parse(`"${match[1]}"`) as string);
+    } catch {
+      // 壊れた断片は捨てる（推測で直さない）
+    }
+  }
+
+  const description = texts.join('').trim();
+  return description.length > 0 ? description : null;
+}
+
+/**
+ * `runs` 配列の閉じ `]` の位置を返す。見つからなければ -1。
+ *
+ * 文字列の中に現れる `[` `]` を数えないよう、**JSON の文字列リテラルを読み飛ばす**。
+ */
+function findRunsArrayEnd(html: string, from: number): number {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = from; i < html.length; i += 1) {
+    const ch = html[i];
+
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+
+    if (ch === '"') inString = true;
+    else if (ch === '[' || ch === '{') depth += 1;
+    else if (ch === '}') depth -= 1;
+    else if (ch === ']') {
+      if (depth === 0) return i;
+      depth -= 1;
+    }
+  }
+
+  return -1;
 }
