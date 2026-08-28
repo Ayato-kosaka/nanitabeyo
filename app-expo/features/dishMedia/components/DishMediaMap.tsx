@@ -26,6 +26,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+import { computePreloadIds } from "@/features/dishMedia/preloadWindow";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import { FixedColors } from "@/constants/Palette";
 
@@ -122,10 +123,26 @@ export default function DishMediaMap({
 	`DishMediaFeed` は同じ理由で既に窓化してあり（そちらのコメント参照）、
 	**この検索結果カルーセルだけが全件のまま残っていた。** 窓の外は表示時に通常経路で読まれる。
 	*/
-	const preloadIds = useMemo(() => {
-		const start = Math.max(0, currentIndex - 1);
-		return ids.slice(start, currentIndex + 3);
-	}, [ids, currentIndex]);
+	/*
+	#1629【30】⚠️ **お店提案（`search/result.tsx`）が使っているのはこの Map であって Feed ではない。**
+
+	オーナー実機報告（2026-08-27）:
+
+	> このお店提案は 5 件しか表示されないんで、今の状態だとチカチカするんですよね。
+	> 今までこのお店提案はそんな性能が悪かったことないんで、そういう先読みは
+	> あえて入れてないんですよ。むしろチカチカして見にくい。
+
+	これを受けて `DishMediaFeed` 側だけを直し「直った」と報告したが、**お店提案は
+	この `DishMediaMap` を描いている**（`search/result.tsx:203`。コメントの
+	「店舗5件のローディング画面」がその画面）。直した先が違ったので、実機では
+	何も変わっていなかった（2026-08-28 にオーナーから «まだチカチカする» と再指摘）。
+
+	`useDishMediaBackgroundImageResources` は集合から外れた画像を release するので、
+	窓が動くたびに «取得 → 破棄 → 取得» が繰り返される。件数が窓より少し多いだけの
+	画面（お店提案は 5 件）ではこれが毎回起きる。**判断のロジックは Feed と同じ
+	`computePreloadIds` に一本化する**（しきい値を 2 箇所に散らすと、また片方だけ直す）。
+	*/
+	const preloadIds = useMemo(() => computePreloadIds(ids, currentIndex), [ids, currentIndex]);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
 		ids: preloadIds,
 		idType,
