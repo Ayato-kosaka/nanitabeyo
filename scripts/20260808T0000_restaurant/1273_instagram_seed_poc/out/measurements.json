@@ -74,17 +74,30 @@
     "recent_media_window_hours": 24,
     "unique_hashtags_per_7_days": 30,
     "business_discovery": {
-      "required_permissions": [
+      "token_scopes": [
+        "pages_show_list",
+        "business_management",
         "instagram_basic",
         "instagram_manage_insights",
-        "pages_read_engagement"
+        "instagram_content_publish",
+        "pages_read_engagement",
+        "public_profile"
       ],
-      "app_review_required_for_other_accounts": true,
-      "token_test": "受領した IG_TOKEN は失効済み（OAuthException 190 / Session has expired on Friday, 28-Aug-26 04:00:00 PDT）",
-      "unmeasured": [
-        "business_discovery が他店を返すか",
-        "Business/Creator 以外の個人アカウント運用店で何割落ちるか"
-      ]
+      "app_review_needed_in_practice": false,
+      "note": "オーナー発行のトークンで、App Review 無しに第三者の飲食店アカウントへ通った。#1273/#1284 の «実機ブロック済み» は覆る",
+      "attempted": 148,
+      "resolved": 111,
+      "resolve_pct": 75.0,
+      "error_code_for_unresolved": "110/2207013 Invalid user id（Business/Creator でない個人アカウント、または消滅）",
+      "media_count_total_of_resolved": 47608,
+      "media_count_median": 276,
+      "with_next_page": 107,
+      "rate_limit": {
+        "observed_block_after_calls": 200,
+        "window": "1 時間",
+        "error": "(#4) Application request limit reached, is_transient=true",
+        "implication_500k_stores_hours": 2500
+      }
     }
   },
   "4_11_web_search_api": {
@@ -203,6 +216,47 @@
         2000
       ],
       "poc_fits_in_serper_free_tier": true
+    },
+    "cell_yield_108": {
+      "design": "#1273 §15 と同じ 18 カテゴリ × 6 地域タイプ。1 セル 3 ページ",
+      "credits_used": 324,
+      "mean_unique_posts_per_cell": 25.0,
+      "in_area_rate_pct": 58.6,
+      "mean_in_area_posts_per_cell": 16.5,
+      "cells_meeting_5plus_in_area": "108 / 108",
+      "by_tier_in_area_pct": {
+        "high": 66.4,
+        "mid": 61.1,
+        "tail": 48.4
+      },
+      "by_area_in_area_pct": {
+        "超高密度都市": 69.2,
+        "大都市中心部": 65.6,
+        "大都市郊外": 56.3,
+        "地方政令市": 58.6,
+        "地方中核市": 51.2,
+        "郊外": 51.2
+      },
+      "weakest_cell": "ネパール料理 x 五所川原 = 5/28",
+      "caveat": "地域一致はタイトルに地名が現れるかの近似。手検分では うなぎ×五所川原 6/10、ジンギスカン×高松 7/10、ラーメン×渋谷 8/10、ネパール料理×五所川原 1/10"
+    },
+    "account_discovery": {
+      "ground_truth_test": {
+        "n": 100,
+        "credits": 100,
+        "query_template": "{name} {locality} instagram",
+        "any_profile_returned": 97,
+        "recall_top1_pct": 79.0,
+        "recall_any_pct": 84.0,
+        "note": "FSQ が正解ハンドルを持つ店だけで測ったので、目視ラベル不要"
+      },
+      "unknown_store_test": {
+        "n": 130,
+        "with_candidate": 113,
+        "with_candidate_pct": 86.9,
+        "verified": "測定中（business_discovery のレート制限待ち）",
+        "population": "FSQ の日本の飲食（営業中）で instagram 列が空の店 199,757 店の標本"
+      }
     }
   },
   "4_14_common_crawl": {
@@ -214,7 +268,31 @@
     "wat_files": 100000,
     "wat_file_bytes_sample": 151385264,
     "wat_total_bytes_estimate": 15138526400000,
-    "environment_note": "web.archive.org へは egress proxy が通らない（000）。archive.org 本体は 200"
+    "environment_note": "web.archive.org へは egress proxy が通らない（000）。archive.org 本体は 200",
+    "breakthrough": {
+      "embed_harvest_from_media_sites": {
+        "domains": 14,
+        "pages_fetched": 222,
+        "distinct_post_ids": 11,
+        "posts_per_page": 0.05,
+        "verdict": "媒体サイトからの埋め込み収集は歩留まりが低い"
+      },
+      "store_official_sites": {
+        "hosts_checked": 60,
+        "hosts_in_cc": 40,
+        "in_cc_pct": 66.7,
+        "hosts_with_instagram_link": 11,
+        "instagram_pct_of_checked": 18.3,
+        "instagram_pct_of_in_cc": 27.5,
+        "verdict": "**4.3 の自前クロールを、相手サーバに触れず無料で代替できる。** 15.17% と同等以上",
+        "caveat": "n=60。1 件は embed.js の誤検出。ページ取得に失敗したホストがあるため過小評価側"
+      },
+      "fineweb2_ja": {
+        "docs_sampled": 20000,
+        "docs_with_instagram_post_url": 1,
+        "verdict": "抽出済みコーパスは href が落ちるので使えない。生 HTML でなければならない"
+      }
+    }
   },
   "4_20_unknown_license_datasets": {
     "kaggle": {
