@@ -115,8 +115,13 @@ describe("buildEmbedIframeHtml", () => {
 	#1641 プレイヤーが起きてこないセルは、12 秒も第三者のエラー画面を見せ続けない。
 	実測（run 33170443855）: 埋め込み不可の動画は YouTube 自身の bot 確認ページが出たままだった。
 	*/
-	it("onReady が来なければ 6 秒で導線へ縮退させる", () => {
-		expect(html).toContain("if (!started) report('no_video', 'no_ready');");
+	/*
+	⚠️ **短くしすぎない。** 6 秒にしたら、実機でまだ準備中の YouTube を 2 セル分
+	   «再生できない» へ落とした（run 33205231591）。エミュレータでは onReady まで
+	   6 秒を超えることがある。
+	*/
+	it("onReady が来なければ縮退させるが、10 秒は待つ", () => {
+		expect(html).toContain("if (!started) report('no_video', 'no_ready'); }, 10000);");
 	});
 
 	/*
@@ -135,6 +140,10 @@ describe("buildEmbedIframeHtml", () => {
 	⚠️ `buildEmbedIframeHtml` はテンプレートリテラルなので、**コメントにバッククォートを
 	   書くとそこで文字列が終わる**。実際にこのファイルで壊し、suite ごと読み込めなくなった
 	   （`ExternalEmbedPlayer` の注入スクリプトでも同じ事故を起こしている）。目視では気付けない。
+	*/
+	/*
+	⚠️ **注釈にバッククォートを書かない。** ここはテンプレートリテラルの内側で、書いた時点で
+	   文字列が終わる。この作業で 3 回壊している（ディレクトリ名・video タグ・no_video の表記）。
 	*/
 	it("組み立てた HTML にバッククォートが混ざっていない", () => {
 		expect(html).not.toContain("`");

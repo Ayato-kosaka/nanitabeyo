@@ -301,9 +301,12 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
    * 実測（run 33170443855 / Android）: 埋め込みを許可していない動画のセルは、YouTube 自身の
    * ページ（「ログインして bot ではないことを確認してください」）が**そのまま出たまま**だった。
    * onReady が来ない以上こちらは何も撃てないので、待つほど第三者のエラー画面を見せ続けることになる。
-   * 6 秒で見切って導線へ縮退させる（＝ こちらの帯と地色で覆う）。
+   * ⚠️ **短くしすぎない。** 6 秒にしたところ、実機で **まだ準備中の YouTube を 2 セル分
+   *    «再生できない» へ落とした**（run 33205231591: no_video / no_ready が 2 件出たあと、
+   *    別のセルでは同じ動画が普通に再生している）。エミュレータでは onReady まで
+   *    6 秒を超えることがある。10 秒にして、それでも来なければ縮退させる。
    */
-  setTimeout(function () { if (!started) report('no_video', 'no_ready'); }, 6000);
+  setTimeout(function () { if (!started) report('no_video', 'no_ready'); }, 10000);
   setTimeout(function () { report('timeout', 'no_state_change'); }, 12000);
 })();
 </script>
