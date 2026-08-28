@@ -107,3 +107,4 @@ describe("#1375 hook の本数が描画のたびに変わらない", () => {
 		expect(tree.root.findAllByProps({ testID: "external-embed-open-browser" }).length).toBeGreaterThan(0);
 	});
 });
+

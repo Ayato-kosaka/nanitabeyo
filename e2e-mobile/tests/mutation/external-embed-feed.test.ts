@@ -176,6 +176,18 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			tiktok: false,
 			youtube: false,
 		};
+		/*
+		#1641 **«そのセルへ着けたか» も別に記録する。**
+
+		run 33138096398 の失敗文は «instagram, tiktok が再生できなかった» としか言わず、
+		セルへ着けていないのか着いたが再生しないのかが分からなかった（実際は権利ブロックの
+		セルで送りが止まり、その先へ一度も着けていなかった）。両方を持てば失敗文で切り分く。
+		*/
+		const reachedBy: Record<(typeof PROVIDERS)[number], boolean> = {
+			instagram: false,
+			tiktok: false,
+			youtube: false,
+		};
 		let embedCells = 0;
 
 		/*
@@ -208,6 +220,9 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 				if (await existsNow(embedWebView, MARKER_PROBE_MS)) {
 					sawEmbed = true;
 					for (const provider of PROVIDERS) {
+						if (!reachedBy[provider] && (await existsNow(by.id(`external-embed-cell-${provider}`), MARKER_PROBE_MS))) {
+							reachedBy[provider] = true;
+						}
 						if (playedBy[provider]) continue;
 						if (await existsNow(by.id(`external-embed-playing-${provider}`), MARKER_PROBE_MS)) {
 							playedBy[provider] = true;
@@ -247,12 +262,21 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		*/
 		const notPlayed = PROVIDERS.filter((provider) => !playedBy[provider]);
 		if (notPlayed.length > 0) {
+			/*
+			**「着けなかった」と「着いたが再生しない」を分けて書く。** 前者はフィードの送りが
+			止まっている（＝ 再生の実装ではなく導線の問題）で、後者だけが再生の問題である。
+			*/
+			const neverReached = notPlayed.filter((provider) => !reachedBy[provider]);
+			const reachedButSilent = notPlayed.filter((provider) => reachedBy[provider]);
 			throw new Error(
-				`アプリ内で再生が始まらなかった provider: ${notPlayed.join(", ")}` +
+				`アプリ内で再生が始まらなかった provider: ${notPlayed.join(", ")}。` +
+					` 内訳 → セルへ一度も着けなかった: ${neverReached.join(", ") || "なし"}` +
+					` / 着いたが再生しなかった: ${reachedButSilent.join(", ") || "なし"}。` +
 					`（観測した埋め込みセル ${embedCells} 件 / 再生できた: ${
 						PROVIDERS.filter((p) => playedBy[p]).join(", ") || "なし"
 					}）。` +
-					" 判定は external-embed-playing-{provider}（ページ内から «再生が始まった» と報告があったときだけ出る印）で行っている。",
+					" 判定は external-embed-playing-{provider}（ページ内から «再生が始まった» と報告があったときだけ出る印）で行っている。" +
+					" «着けなかった» 側は、フィードの送りが途中で止まっている疑いが濃い（権利ブロックのセルで実際に起きた）。",
 			);
 		}
 

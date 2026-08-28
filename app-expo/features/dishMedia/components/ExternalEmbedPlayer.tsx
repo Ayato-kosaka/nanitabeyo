@@ -683,7 +683,6 @@ export function ExternalEmbedPlayer({
 	const playButton = (
 		<TouchableOpacity
 			testID="external-embed-open-browser"
-			style={styles.playHintTapTarget}
 			onPress={handleOpenExternally}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("DishMediaContent.embed.openExternally", {
@@ -809,6 +808,21 @@ export function ExternalEmbedPlayer({
 					/>
 				</View>
 			)}
+			{/*
+			#1641 **«このセルに着いた» 印。** 再生の印とは別に要る。
+
+			run 33138096398 では «instagram と tiktok が再生できなかった» としか分からず、
+			**そのセルへ一度も着けていなかったのか / 着いたが再生しなかったのか**を
+			コマを目視するまで切り分けられなかった（実際は権利ブロックのセルで送りが
+			止まっており、その先へ着けていなかった）。両方を印にすれば失敗文だけで分かる。
+			*/}
+			{inlineAvailable && (
+				<View
+					style={styles.playingMarker}
+					pointerEvents="none"
+					testID={`external-embed-cell-${embed.provider}`}
+				/>
+			)}
 			{playback === "playing" && (
 				/* #1641 provider ごとに分けて出す。«どの provider が再生できたか» を
 				   Detox から 1 つずつ判定できるようにするため（YouTube だけ落ちる、が拾える） */
@@ -820,19 +834,30 @@ export function ExternalEmbedPlayer({
 			)}
 			{showFallbackCta && (
 				<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">
-					{blockParentTapGesture ? (
-						<GestureDetector gesture={blockParentTapGesture}>
-							{/* collapsable=false: GestureDetector が実ビューを要求する。
-							    ⚠️ absoluteFill も必須。素の View（高さ 0）を挟むと、中の絶対配置が
-							    そこを基準にしてしまい «▶ の小さい帯が画面の中途半端な位置に浮く»
-							    （実機 Detox / run 32724564583 で実測。web でも同じ症状が出た） */}
-							<View style={StyleSheet.absoluteFill} collapsable={false}>
-								{playButton}
-							</View>
-						</GestureDetector>
-					) : (
-						playButton
-					)}
+					{/*
+					#1641 **位置決めはこの View だけが持つ。**
+
+					以前は「タップを受ける View」と「位置を決める View」が同じもので、それが
+					`StyleSheet.absoluteFill`（＝ セル全面）だった。`playHintTapTarget` を
+					帯の大きさへ縮めても、`GestureDetector` の中の全面 View が残っているかぎり
+					**縦スワイプはそこで止まる**（run 33138096398 / Android: 権利ブロックのセルに
+					着いたあと 7 回スワイプしても絵が変わらず、その先の TikTok / Instagram の
+					セルへ到達できなかった。コマの md5 が全部同じ）。
+
+					位置決めを外側へ出したので、中の «触れる View» は帯の大きさで済む。
+					素の View（高さ 0）で中の絶対配置が壊れる問題（run 32724564583）も、
+					絶対配置そのものをやめたので起きない。
+					*/}
+					<View style={styles.playHintTapTarget}>
+						{blockParentTapGesture ? (
+							<GestureDetector gesture={blockParentTapGesture}>
+								{/* collapsable=false: GestureDetector が実ビューを要求する */}
+								<View collapsable={false}>{playButton}</View>
+							</GestureDetector>
+						) : (
+							playButton
+						)}
+					</View>
 				</View>
 			)}
 		</>
