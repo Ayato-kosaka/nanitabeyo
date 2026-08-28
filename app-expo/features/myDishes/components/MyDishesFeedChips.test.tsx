@@ -8,7 +8,7 @@
 2. カテゴリ chip は **追加ではなく置換**（`categoryIds` を 1 件に差し替える）。
 3. ★N以上の chip は **`status` が `["eaten"]` のときだけ**出す（#1395 m-4: want 行は rating を
    持たないので、評価で絞ると「食べたい」が全消しになる）。
-4. **押しても棚が広がらない**。既に効いている chip は選択状態で描き、押しても `patch` しない。
+4. **押しても棚が広がらない**。#1629【42】既に効いている絞り込みの chip は、そもそも描かない。
 5. 戻る手段はスナックバーの「元に戻す」。押す直前の filter へまるごと戻る。
 6. **chip 専用の store を作らない**。書き先は共有の `useMyDishesFilterStore` 1 本だけ
    （= list / Map / Calendar の 3 ビューに同時に効く）。
@@ -110,14 +110,6 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 		const category = chips.find((chip) => chip.id === "category");
 
 		expect(category?.patch).toEqual({ categoryIds: [CATEGORY_ID] });
-		expect(category?.active).toBe(false);
-	});
-
-	it("そのカテゴリだけに絞られているときだけカテゴリ chip が選択状態になる", () => {
-		expect(buildMyDishesFeedChips(filterOf({ categoryIds: [CATEGORY_ID] }), makeEntry())[0].active).toBe(true);
-		expect(buildMyDishesFeedChips(filterOf({ categoryIds: [CATEGORY_ID, "curry"] }), makeEntry())[0].active).toBe(
-			false,
-		);
 	});
 
 	it("エントリが無いときは chip を 1 つも出さない（#1629【34】状態 chip も entry 由来になった）", () => {
@@ -155,16 +147,69 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 		const chips = buildMyDishesFeedChips(filterOf({ status: ["eaten"] }), makeEntry());
 		const minRating = chips.find((chip) => chip.id === "minRating");
 		expect(minRating?.patch).toEqual({ minRating: MY_DISHES_FEED_CHIP_MIN_RATING });
-		expect(minRating?.active).toBe(false);
+	});
+});
+
+/*
+#1629【42】オーナー指示「フィード画面で『カレーで絞る』とか押したら、そのチップは非表示にして欲しい」。
+
+修正前は «既に効いている chip を選択状態で描き、押しても no-op» にしていたので、下の 5 ケースは
+すべて «消えるはずの chip がまだ出ている» で落ちる。
+
+対象はこの Feed が出す 4 種すべて（category / statusEaten / statusWant / minRating）。
+エリア・期間・並び替えは chip を持たないので対象外である（根拠は実装側のコメント）。
+*/
+describe("#1629【42】既にその絞り込みが効いている chip は出さない", () => {
+	it("そのカテゴリ 1 件だけに絞られていれば «〈料理名〉で絞る» を出さない", () => {
+		const chips = buildMyDishesFeedChips(filterOf({ categoryIds: [CATEGORY_ID] }), makeEntry());
+
+		expect(chips.some((chip) => chip.id === "category")).toBe(false);
+		// 他の条件はまだ効いていないので残る
+		expect(chips.map((chip) => chip.id)).toEqual(["statusEaten", "statusWant"]);
 	});
 
-	it("既に ★N 以上で絞られていれば ★ chip は選択状態", () => {
+	it("別のカテゴリも一緒に絞られている間はカテゴリ chip を出す（押せば «置換» で棚が削れる）", () => {
+		const chips = buildMyDishesFeedChips(filterOf({ categoryIds: [CATEGORY_ID, "curry"] }), makeEntry());
+
+		expect(chips.some((chip) => chip.id === "category")).toBe(true);
+	});
+
+	it('status が ["eaten"] のときは «食べたで絞る» を出さない（«食べたいで絞る» は残る）', () => {
+		const chips = buildMyDishesFeedChips(filterOf({ status: ["eaten"] }), makeEntry());
+
+		expect(chips.some((chip) => chip.id === "statusEaten")).toBe(false);
+		expect(chips.some((chip) => chip.id === "statusWant")).toBe(true);
+	});
+
+	it('status が ["want"] のときは «食べたいで絞る» を出さない', () => {
+		const chips = buildMyDishesFeedChips(filterOf({ status: ["want"] }), makeEntry());
+
+		expect(chips.some((chip) => chip.id === "statusWant")).toBe(false);
+		expect(chips.some((chip) => chip.id === "statusEaten")).toBe(true);
+	});
+
+	it("既に ★N 以上で絞られていれば ★ chip を出さない", () => {
 		const chips = buildMyDishesFeedChips(
 			filterOf({ status: ["eaten"], minRating: MY_DISHES_FEED_CHIP_MIN_RATING }),
 			makeEntry(),
 		);
 
-		expect(chips.find((chip) => chip.id === "minRating")?.active).toBe(true);
+		expect(chips.some((chip) => chip.id === "minRating")).toBe(false);
+	});
+
+	it("出せる chip が全部«既に効いている»状態になれば、帯ごと消える", () => {
+		// «食べた» だけのエントリ（保存していない）なので «食べたいで絞る» はそもそも出ない（【34】）
+		const tree = render(makeEntry({ isSaved: false }));
+		act(() => {
+			useMyDishesFilterStore.getState().patch({
+				categoryIds: [CATEGORY_ID],
+				status: ["eaten"],
+				minRating: MY_DISHES_FEED_CHIP_MIN_RATING,
+			});
+		});
+
+		expect(chipNodes(tree)).toHaveLength(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-feed-chips")).toHaveLength(0);
 	});
 });
 
@@ -218,7 +263,7 @@ describe("MyDishesFeedChips（共有フィルタ store だけを書く）", () =
 		expect(useMyDishesFilterStore.getState().filter.area).toBeNull();
 	});
 
-	it("状態 chip を押すと status が 1 件に置き換わり、★ chip が現れる", () => {
+	it("状態 chip を押すと status が 1 件に置き換わり、押した chip が消えて ★ chip が現れる", () => {
 		const tree = render(makeEntry());
 
 		// [category, statusEaten, statusWant] の 2 番目
@@ -227,22 +272,12 @@ describe("MyDishesFeedChips（共有フィルタ store だけを書く）", () =
 		});
 
 		expect(useMyDishesFilterStore.getState().filter.status).toEqual(["eaten"]);
-		// 「食べた」だけになったので ★N以上 が出る（= 押した結果が次の絞り込みを増やす方向に働く）
-		expect(chipNodes(tree)).toHaveLength(4);
-	});
-
-	it("既に効いている chip を押しても store を書き換えない（棚を広げない）", () => {
-		useMyDishesFilterStore.getState().patch({ status: ["eaten"] });
-		const tree = render(makeEntry());
-		const before = useMyDishesFilterStore.getState().filter;
-
-		act(() => {
-			// [category, statusEaten(選択中), statusWant, minRating]
-			chipNodes(tree)[1].props.onPress();
-		});
-
-		expect(useMyDishesFilterStore.getState().filter).toBe(before);
-		expect(mockShowSnackbar).not.toHaveBeenCalled();
+		// #1629【42】押した «食べたで絞る» は消え、「食べた」だけになったので ★N以上 が出る
+		expect(chipNodes(tree).map((node) => node.props.accessibilityLabel)).toEqual([
+			'MyDishes.feed.chips.filterCategory:{"name":"味玉つけ麺"}',
+			"MyDishes.feed.chips.filterStatusWant",
+			`MyDishes.feed.chips.filterMinRating:{"count":${MY_DISHES_FEED_CHIP_MIN_RATING}}`,
+		]);
 	});
 
 	it("スナックバーの「元に戻す」で、押す直前のフィルタへ戻る", () => {
@@ -265,6 +300,11 @@ describe("MyDishesFeedChips（共有フィルタ store だけを書く）", () =
 
 	it("chip が 1 つも無いときは何も描かない（#1629【34】entry が無ければ chips は空）", () => {
 		const tree = render(null);
+		console.log(
+			"DBG",
+			JSON.stringify(chipNodes(tree).map((n) => n.props.accessibilityLabel)),
+			JSON.stringify(useMyDishesFilterStore.getState().filter),
+		);
 		expect(chipNodes(tree)).toHaveLength(0);
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-feed-chips")).toHaveLength(0);
 	});
