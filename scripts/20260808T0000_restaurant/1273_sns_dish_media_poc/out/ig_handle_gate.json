@@ -1,0 +1,690 @@
+{
+  "purpose": "#1269 IG ハンドル × 店名ローマ字 の門で誤紐付けを落とせるか",
+  "measured_at": "2026-08-28",
+  "source": "オーナーの Phase 0 実測 31 件（attribution_label 付き）",
+  "n": 31,
+  "n_positive": 19,
+  "n_negative": 12,
+  "baseline_precision_pct": 61.3,
+  "baseline_precision_ci_pct": [
+    43.8,
+    76.3
+  ],
+  "gate_fwd_only": {
+    "tp": 7,
+    "fp": 0,
+    "fn": 12,
+    "tn": 12,
+    "precision_pct": 100.0,
+    "precision_ci_pct": [
+      64.6,
+      100.0
+    ],
+    "recall_pct": 36.8,
+    "recall_ci_pct": [
+      19.1,
+      59.0
+    ]
+  },
+  "gate_either_direction": {
+    "tp": 11,
+    "fp": 0,
+    "fn": 8,
+    "tn": 12,
+    "precision_pct": 100.0,
+    "precision_ci_pct": [
+      74.1,
+      100.0
+    ],
+    "recall_pct": 57.9,
+    "recall_ci_pct": [
+      36.3,
+      76.9
+    ]
+  },
+  "gate_either_loose": {
+    "tp": 13,
+    "fp": 0,
+    "fn": 6,
+    "tn": 12,
+    "precision_pct": 100.0,
+    "precision_ci_pct": [
+      77.2,
+      100.0
+    ],
+    "recall_pct": 68.4,
+    "recall_ci_pct": [
+      46.0,
+      84.6
+    ]
+  },
+  "caveat": "n=31。ローマ字化は読みの推定を含むので固有名詞で偽陰性が出る。name/biography の門はトークン失効（error 190）で未測定",
+  "rows": [
+    {
+      "handle": "afternoontea_official",
+      "store": "アフタヌーンティー 伊勢丹浦和",
+      "label": "chain_or_brand",
+      "keys": [
+        "afutanuunteiiisetanurawa",
+        "afutanuunteii"
+      ],
+      "handle_parts": [
+        "afternoontea"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "chateraise.jp",
+      "store": "シャトレーゼ 小野店",
+      "label": "chain_or_brand",
+      "keys": [
+        "shatoreezeonomise",
+        "shatoreeze",
+        "shatoreezeono"
+      ],
+      "handle_parts": [
+        "chateraise"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "flo_prestige",
+      "store": "FLO PRESTIGE",
+      "label": "chain_or_brand",
+      "keys": [
+        "floprestige"
+      ],
+      "handle_parts": [
+        "prestige"
+      ],
+      "fwd": [
+        "floprestige"
+      ],
+      "bwd": [
+        "prestige"
+      ],
+      "pass_fwd": true,
+      "pass_any": true,
+      "loose_hit": [
+        "floprestige",
+        "prestige"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "fukushin_koushiki",
+      "store": "福しん 成増店",
+      "label": "chain_or_brand",
+      "keys": [
+        "fukushinnarimasumise",
+        "fukushin",
+        "fukushinnarimasu"
+      ],
+      "handle_parts": [
+        "fukushin",
+        "koushiki"
+      ],
+      "fwd": [
+        "fukushin"
+      ],
+      "bwd": [
+        "fukushin"
+      ],
+      "pass_fwd": true,
+      "pass_any": true,
+      "loose_hit": [
+        "hukusin"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "kashinoki_official",
+      "store": "錦果楼",
+      "label": "chain_or_brand",
+      "keys": [
+        "nishikikarou"
+      ],
+      "handle_parts": [
+        "kashinoki"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "kobeya_since1918",
+      "store": "神戸屋レストラン 浜田山店",
+      "label": "chain_or_brand",
+      "keys": [
+        "koubeyaresutoranhamadayamamise",
+        "koubeyaresutoran",
+        "koubeyaresutoranhamadayama"
+      ],
+      "handle_parts": [
+        "kobeya",
+        "since1918"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [
+        "kobeya"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "mukaiyama_caramel",
+      "store": "向山製作所大玉ベース店",
+      "label": "chain_or_brand",
+      "keys": [
+        "mukaiyamaseisakushoootamabeesumise",
+        "mukaiyamaseisakushoootamabeesu"
+      ],
+      "handle_parts": [
+        "mukaiyama",
+        "caramel"
+      ],
+      "fwd": [],
+      "bwd": [
+        "mukaiyama"
+      ],
+      "pass_fwd": false,
+      "pass_any": true,
+      "loose_hit": [
+        "mukaiyama"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "ryugetsu_sanpouroku",
+      "store": "柳月",
+      "label": "chain_or_brand",
+      "keys": [
+        "yanagigatsu"
+      ],
+      "handle_parts": [
+        "ryugetsu",
+        "sanpouroku"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "uogashimeicha",
+      "store": "うおがし銘茶銀座店",
+      "label": "chain_or_brand",
+      "keys": [
+        "uogashimeichaginzamise",
+        "uogashimeichaginza"
+      ],
+      "handle_parts": [
+        "uogashimeicha"
+      ],
+      "fwd": [],
+      "bwd": [
+        "uogashimeicha"
+      ],
+      "pass_fwd": false,
+      "pass_any": true,
+      "loose_hit": [
+        "uogasimeitya"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "yakiniku_king_official",
+      "store": "焼肉きんぐ 福岡新宮店",
+      "label": "chain_or_brand",
+      "keys": [
+        "yakinikukingufukuokashinguumise",
+        "yakinikukingu",
+        "yakinikukingufukuokashinguu"
+      ],
+      "handle_parts": [
+        "yakiniku",
+        "king"
+      ],
+      "fwd": [],
+      "bwd": [
+        "yakiniku",
+        "king"
+      ],
+      "pass_fwd": false,
+      "pass_any": true,
+      "loose_hit": [
+        "king",
+        "yakiniku"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "gathering_insta",
+      "store": "Vege-Plant Cafe Bar LEBRO",
+      "label": "other_entity",
+      "keys": [
+        "vegeplantcafebarlebro",
+        "vegeplant"
+      ],
+      "handle_parts": [
+        "gathering"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "islandeye_official",
+      "store": "なみうどん",
+      "label": "other_entity",
+      "keys": [
+        "namiudon"
+      ],
+      "handle_parts": [
+        "islandeye"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "izumoairport",
+      "store": "神在",
+      "label": "other_entity",
+      "keys": [
+        "kamiari"
+      ],
+      "handle_parts": [
+        "izumoairport"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "locoplacela",
+      "store": "そば長",
+      "label": "other_entity",
+      "keys": [
+        "sobachou"
+      ],
+      "handle_parts": [
+        "locoplacela"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "menyasyokudou",
+      "store": "月のトリコ 厚木店",
+      "label": "other_entity",
+      "keys": [
+        "gatsunotorikoatsugimise",
+        "gatsunotoriko",
+        "gatsunotorikoatsugi"
+      ],
+      "handle_parts": [
+        "menyasyokudou"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "myplstaff",
+      "store": "コレット",
+      "label": "other_entity",
+      "keys": [
+        "koretto"
+      ],
+      "handle_parts": [
+        "myplstaff"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "sapporo_kokusai",
+      "store": "スカーレル",
+      "label": "other_entity",
+      "keys": [
+        "sukaareru"
+      ],
+      "handle_parts": [
+        "sapporo",
+        "kokusai"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "spa.resort.hawaiians",
+      "store": "そば処与市",
+      "label": "other_entity",
+      "keys": [
+        "sobatokoroyoichi"
+      ],
+      "handle_parts": [
+        "resort",
+        "hawaiians"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "sunshineaoyama",
+      "store": "桂林",
+      "label": "other_entity",
+      "keys": [
+        "keirin"
+      ],
+      "handle_parts": [
+        "sunshineaoyama"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "tochinavi",
+      "store": "中華料理仁",
+      "label": "other_entity",
+      "keys": [
+        "chuukaryourihitoshi"
+      ],
+      "handle_parts": [
+        "tochinavi"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "tokyosquaregarden",
+      "store": "La Coccinelle",
+      "label": "other_entity",
+      "keys": [
+        "lacoccinelle"
+      ],
+      "handle_parts": [
+        "tokyosquaregarden"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "vison_com",
+      "store": "Izurun",
+      "label": "other_entity",
+      "keys": [
+        "izurun"
+      ],
+      "handle_parts": [
+        "vison"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "c_cafe_sasanoya",
+      "store": "C-cafeささ乃や",
+      "label": "store_own",
+      "keys": [
+        "ccafesasanoya"
+      ],
+      "handle_parts": [
+        "sasanoya"
+      ],
+      "fwd": [
+        "ccafesasanoya"
+      ],
+      "bwd": [
+        "sasanoya"
+      ],
+      "pass_fwd": true,
+      "pass_any": true,
+      "loose_hit": [
+        "ccafesasanoya",
+        "sasanoya"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "dondonsunada",
+      "store": "どんどん コスパ店",
+      "label": "store_own",
+      "keys": [
+        "dondonkosupamise",
+        "dondon",
+        "dondonkosupa"
+      ],
+      "handle_parts": [
+        "dondonsunada"
+      ],
+      "fwd": [
+        "dondon"
+      ],
+      "bwd": [],
+      "pass_fwd": true,
+      "pass_any": true,
+      "loose_hit": [
+        "dondon"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "kajicurry",
+      "store": "Kaji Curry",
+      "label": "store_own",
+      "keys": [
+        "kajicurry",
+        "kaji"
+      ],
+      "handle_parts": [
+        "kajicurry"
+      ],
+      "fwd": [
+        "kajicurry",
+        "kaji"
+      ],
+      "bwd": [
+        "kajicurry"
+      ],
+      "pass_fwd": true,
+      "pass_any": true,
+      "loose_hit": [
+        "kazi",
+        "kazicurry"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "kurudot_285181",
+      "store": "Cafe Kurudot",
+      "label": "store_own",
+      "keys": [
+        "cafekurudot"
+      ],
+      "handle_parts": [
+        "kurudot",
+        "285181"
+      ],
+      "fwd": [],
+      "bwd": [
+        "kurudot"
+      ],
+      "pass_fwd": false,
+      "pass_any": true,
+      "loose_hit": [
+        "kurudot"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "kuwapan2014",
+      "store": "桑ぱん",
+      "label": "store_own",
+      "keys": [
+        "kuwapan"
+      ],
+      "handle_parts": [
+        "kuwapan2014"
+      ],
+      "fwd": [
+        "kuwapan"
+      ],
+      "bwd": [],
+      "pass_fwd": true,
+      "pass_any": true,
+      "loose_hit": [
+        "kuwapan"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "momosawakasiho",
+      "store": "甘泉堂 ももさわ菓子舗",
+      "label": "store_own",
+      "keys": [
+        "kansendoumomosawakashiho",
+        "kansendou"
+      ],
+      "handle_parts": [
+        "momosawakasiho"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [
+        "momosawakasiho"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "pasteleriasanonofre",
+      "store": "サンオノフレ・スペイン菓子",
+      "label": "store_own",
+      "keys": [
+        "sanonofuresupeinkashi"
+      ],
+      "handle_parts": [
+        "pasteleriasanonofre"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    },
+    {
+      "handle": "sala.noge",
+      "store": "Sala noge",
+      "label": "store_own",
+      "keys": [
+        "salanoge",
+        "sala"
+      ],
+      "handle_parts": [
+        "sala",
+        "noge"
+      ],
+      "fwd": [
+        "salanoge",
+        "sala"
+      ],
+      "bwd": [
+        "sala",
+        "noge"
+      ],
+      "pass_fwd": true,
+      "pass_any": true,
+      "loose_hit": [
+        "noge",
+        "sala",
+        "salanoge"
+      ],
+      "pass_loose": true
+    },
+    {
+      "handle": "steakhouse__narushima",
+      "store": "ステーキハウス成しま 竜南店",
+      "label": "store_own",
+      "keys": [
+        "suteekihausunashimaryuuminamimise",
+        "suteekihausunashima",
+        "suteekihausunashimaryuuminami"
+      ],
+      "handle_parts": [
+        "steakhouse",
+        "narushima"
+      ],
+      "fwd": [],
+      "bwd": [],
+      "pass_fwd": false,
+      "pass_any": false,
+      "loose_hit": [],
+      "pass_loose": false
+    }
+  ]
+}
