@@ -141,7 +141,7 @@ INSERT INTO restaurants (
   id, google_place_id, name, name_language_code, latitude, longitude,
   image_url, image_path, address_components, plus_code,
   source_seed_id, source_names, source_row_hash, synced_at, created_by_source)
-SELECT COALESCE(s.existing_restaurant_id, gen_random_uuid()), s.google_place_id, s.name,
+SELECT gen_random_uuid(), s.google_place_id, s.name,
   s.name_language_code, s.latitude, s.longitude, s.image_url, s.image_path,
   s.address_components_json::jsonb,
   CASE WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb END,

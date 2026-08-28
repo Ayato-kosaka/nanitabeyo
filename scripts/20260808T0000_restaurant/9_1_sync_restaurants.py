@@ -51,7 +51,7 @@ def csv_value(value: Any) -> Any:
 def export_catalog(pipeline: BigQueryPipeline, run_id: str, path: Path) -> int:
     query = f"""
       SELECT
-        existing_restaurant_id, seed_id, google_place_id, match_method,
+        seed_id, google_place_id, match_method,
         name, name_language_code,
         latitude, longitude, image_url, image_path, address_components_json,
         plus_code_json, TO_JSON_STRING(source_names) AS source_names_json, row_hash
@@ -77,7 +77,6 @@ def export_catalog(pipeline: BigQueryPipeline, run_id: str, path: Path) -> int:
 def load_staging(connection: Any, path: Path) -> None:
     create_sql = """
       CREATE TEMP TABLE restaurant_sync_staging (
-        existing_restaurant_id UUID,
         seed_id UUID NOT NULL,
         google_place_id TEXT NOT NULL,
         match_method TEXT NOT NULL,
@@ -117,12 +116,11 @@ def calculate_stats(connection: Any) -> SyncStats:
                   AND r.source_row_hash IS NOT DISTINCT FROM s.row_hash
               ) AS skipped
             FROM restaurant_sync_staging s
+            -- #843 かつては `OR r.id = s.existing_restaurant_id` を付けていたが、
+            -- 両方成立する行を二重に数えるうえ、PG の UUID に依存していた。
+            -- google_place_id は UNIQUE なので、これだけで 1 行に定まる。
             LEFT JOIN restaurants r
               ON r.google_place_id = s.google_place_id
-              OR (
-                s.existing_restaurant_id IS NOT NULL
-                AND r.id = s.existing_restaurant_id
-              )
             """
         )
         inserted, updated, skipped = cursor.fetchone()
@@ -137,7 +135,9 @@ def validate_staging(connection: Any) -> None:
             """
             SELECT COUNT(*)
             FROM restaurant_sync_staging s
-            JOIN restaurants r ON r.id = s.existing_restaurant_id
+            -- #843 seed で引く。source_seed_id は UNIQUE（20260823T0000）なので
+            -- 高々1行に定まり、PG の UUID をカタログ側へ持ち込まずに済む。
+            JOIN restaurants r ON r.source_seed_id = s.seed_id
             WHERE r.google_place_id <> s.google_place_id
               AND s.match_method <> 'manual_override'
             """
@@ -147,9 +147,12 @@ def validate_staging(connection: Any) -> None:
             """
             SELECT COUNT(*)
             FROM restaurant_sync_staging s
+            -- 「この seed は既に PG のどの行か」を seed で引いてから、
+            -- その place_id を別の行が使っていないかを見る。
+            -- 初回同期では linked が 0 件なので、この検査は自然に無効になる。
+            JOIN restaurants linked ON linked.source_seed_id = s.seed_id
             JOIN restaurants occupied ON occupied.google_place_id = s.google_place_id
-            WHERE s.existing_restaurant_id IS NOT NULL
-              AND occupied.id <> s.existing_restaurant_id
+            WHERE occupied.id <> linked.id
             """
         )
         occupied_place_ids = cursor.fetchone()[0]
@@ -198,7 +201,7 @@ def apply_sync(connection: Any) -> None:
             UPDATE restaurants r
             SET google_place_id = s.google_place_id
             FROM restaurant_sync_staging s
-            WHERE s.existing_restaurant_id = r.id
+            WHERE r.source_seed_id = s.seed_id
               AND r.google_place_id <> s.google_place_id
               AND s.match_method = 'manual_override'
             """
@@ -217,8 +220,15 @@ def apply_sync(connection: Any) -> None:
             """
         )
 
-        # まず不足行だけ追加する。existing_restaurant_idがある場合は既存UUIDを維持し、
-        # open data新規行だけgen_random_uuid()で作る。
+        # まず不足行だけ追加する。
+        #
+        # #843 かつては `COALESCE(s.existing_restaurant_id, gen_random_uuid())` で
+        # 既存UUIDを維持していたが、**この分岐は結果を変えていなかった**。
+        # existing_restaurant_id が入っている行は PG に既に在るので
+        # ON CONFLICT (google_place_id) DO NOTHING で弾かれ、INSERT されない。
+        # 一方この列は «1_2 がどのスキーマを読んだか» に依存しており、
+        # dev の catalog を public へ流すと dev の UUID が public の主キーに
+        # なりえた。結果を変えない依存は外す。
         cursor.execute(
             """
             INSERT INTO restaurants (
@@ -228,7 +238,7 @@ def apply_sync(connection: Any) -> None:
               created_by_source
             )
             SELECT
-              COALESCE(s.existing_restaurant_id, gen_random_uuid()),
+              gen_random_uuid(),
               s.google_place_id, s.name, s.name_language_code, s.latitude, s.longitude,
               s.image_url, s.image_path, s.address_components_json::jsonb,
               CASE WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb END,

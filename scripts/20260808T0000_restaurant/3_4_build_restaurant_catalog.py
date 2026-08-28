@@ -83,10 +83,15 @@ def main() -> None:
           AND m.match_status IN ('existing_pg_matched', 'box_unique_strict', 'manual_matched')
           AND (@allow_osm_only_publish OR s.seed_origin != 'osm_only')
       )
+      -- #843 `existing_restaurant_id` は catalog へ出さない。
+      -- あれは «1_2 がどのスキーマを読んだか» に依存する PostgreSQL の UUID で、
+      -- catalog に載せると «dev で作った catalog を public へ流す» が成立してしまう
+      -- （9_1 が dev の UUID を public の主キーとして INSERT できた）。
+      -- catalog はスキーマに依存しない成果物にする。PG 側の同定は
+      -- google_place_id と seed_id で足りる（どちらもスキーマに依らない）。
       SELECT
         @run_id AS run_id,
         seed_id,
-        existing_restaurant_id,
         google_place_id,
         name,
         name_language_code,
