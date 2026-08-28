@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { radiusForRegion } from "@/features/restaurantPicker/mapPins";
 import { asApiList } from "@/lib/apiList";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Image } from "expo-image";
@@ -111,8 +112,13 @@ export function RestaurantNameSearch({
 						q,
 						lat: region.latitude,
 						lng: region.longitude,
-						// #644 の searchSavedRestaurants / map.tsx の searchNearbyRestaurants と同じ近似式
-						radius: Math.max(region.latitudeDelta, region.longitudeDelta) * 50000,
+						/*
+						  #1629 【修正】半径は «いま見えている範囲の外接円»（`radiusForRegion`）にする。
+						  独自の近似式（delta * 50000）を持っていたため、上限も下限も無いまま
+						  «画面より狭い円» を送っていた。店名検索の経路はサーバ側で距離順（KNN）に
+						  なるので、半径が大きくても走る行数は limit 件で一定である。
+						*/
+						radius: radiusForRegion(region),
 						limit: RESULT_LIMIT,
 					},
 				});

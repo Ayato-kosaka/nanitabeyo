@@ -266,8 +266,8 @@ export class RestaurantsRepository {
       radius: dto.radius,
     });
 
-    // Geographic fence query: find restaurants based on latitude/longitude and radius
-    const radiusInKm = dto.radius / 1000; // Convert to kilometers
+    // 半径はそのまま m で使う（ST_DWithin の geography 版は m を取る）
+    const radiusInMeters = dto.radius;
 
     // #1395 店名の部分一致（自前 restaurants テーブル。Google Places は呼ばない）。
     // ユーザー入力の % / _ / \ は LIKE のワイルドカードとして解釈されてしまうので、
@@ -289,37 +289,127 @@ export class RestaurantsRepository {
     const originPoint = Prisma.sql`ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography`;
 
     /*
-      #1629 【設計】**KNN（<->）で候補を先に絞ってから集計する。**
+      #1629 【設計】**候補は «スポンサー枠 + 近傍枠» の 2 本立てで、必ず limit 件に収める。**
 
-      旧実装は restaurants へ restaurant_bids / dishes / dish_reviews を LEFT JOIN し、
-      GROUP BY r.id で集計してから ORDER BY / LIMIT していた。半径 5km の東京駅では
-      ST_DWithin に該当する 21,247 行すべてを集計してから 20 行に切っており、
-      索引は効いているのに 9.3 秒かかっていた（GIST は «半径内か» は絞れるが
-      «距離順に並べる» ことはできないので、ORDER BY ST_Distance は全件の距離計算 + ソートになる）。
+      ## 何が問題だったか
 
-      PostGIS の KNN 演算子（location <-> 点）は ORDER BY ... LIMIT n の形で
-      GIST 索引から «近い順に n 件» を直接取り出せる。これを JOIN より前に置く。
+      「日本全体を映して『このエリアで再検索』を押すと必ず 0 件」（オーナー報告）。
+      真因はクライアント側の 50km clamp だが、**clamp を外すだけだとサーバが持たない**。
+      旧実装（#1629 前半）の既定経路は
 
-      ⚠️ 並び順が距離順のときだけ KNN で切れる。**入札額順（total_cents DESC）のときに
-         «近い n 件» へ切ると «近い 20 件を入札額で並べた先頭 20 件» になり、意味が変わる**
-         （遠くの高額入札店が消える = 広告の露出が変わる）。そのため入札額順のときは
-         KNN で切らず、候補段階では restaurant_bids だけを集計して total_cents 順に切る。
-         重いレビュー集計（dishes × dish_reviews）は、どちらの経路でも
-         limit 件に絞ったあとでしか走らない。
+        nearby   = 半径内の restaurants を «全部»（LIMIT 無し）
+        candidates = その全部に restaurant_bids を LEFT JOIN して GROUP BY し、
+                     total_cents 降順で limit 件へ切る
+
+      という形で、半径が全国規模になると «全国の店 × 入札» を集計してから 20 行に切る
+      ことになる。半径 5km の東京駅ですら 21,247 行の集計だったので、全国では話にならない。
+
+      ## どう変えたか（食べログ等の «全国から優先順で N 件» と同じ構え）
+
+      1. **スポンサー枠**（`sponsored`）… 駆動表を restaurants ではなく
+         **restaurant_bids**（有効な入札だけ）にする。有効な入札を持つ店は
+         全店舗数に対して桁違いに少ないので、全国規模でも先に絞れる。
+         並びは従来どおり **入札額（total_cents）の降順**。
+      2. **近傍枠**（`nearest`）… スポンサーで埋まらない残りを、
+         **地図の中心から近い順**（KNN。`location <-> 点`）で埋める。
+         KNN は GIST 索引から «近い順に n 件» を直接取り出すので、
+         半径がいくら大きくても走る行数は limit 件ぶんで一定である。
+      3. 重いレビュー集計（dishes × dish_reviews）は、どちらの枝でも
+         候補が limit 件に確定したあとでしか走らない（従来どおり）。
+
+      これで «半径 = 見えている範囲» にしても «0 件» にも «全国集計» にもならない。
+
+      ⚠️ **入札額順（課金）の意味は変えていない。**
+         «有効な入札を持つ店が、入札額の降順で先頭に来る» は従来と同じである。
+         変わったのは **その後ろ**で、以前は «半径内の入札なし店が total_cents=0 で
+         同着（＝並び順は不定）» だったところが «中心から近い順» になった。
+         スポンサー枠を件数で間引いたり、入札額以外の要素で並べ替えたりはしていない。
+         （なお半径の上限を外したことで、以前は 50km で見えなかった «遠くのスポンサー» が
+         引きの表示で見えるようになる。広告の露出は減る方向には変わらない）
+
+      ⚠️ 距離順の経路（店名検索 / 住所照合 = orderByDistance）は従来どおり
+         **KNN のみ**である。店名で絞った結果が入札額で並ぶのは不自然なため（#1395）。
+
+      ⚠️ **索引の申し送り（未適用）。** スポンサー枠は `restaurant_bids` を
+         «status = paid かつ 期間内» で絞る。この 3 列の複合索引は無く、いまは
+         `idx_restaurant_bids_restaurant`（restaurant_id 単独）しかないため、
+         この CTE は restaurant_bids の Seq Scan になる。有効な入札の行数が
+         数万を超えたら次の索引が要る（migration はオーナー承認制なので、
+         ここでは作らずに申し送りだけ残す）:
+           CREATE INDEX idx_restaurant_bids_active
+             ON restaurant_bids (status, end_date, start_date)
+             INCLUDE (restaurant_id, amount_cents);
     */
-    // 候補段階（nearby）: 距離順のときだけ KNN で limit 件へ切る
-    const knnOrderLimit = orderByDistance
-      ? Prisma.sql`ORDER BY r.location <-> ${originPoint} LIMIT ${limit}`
-      : Prisma.empty;
-    // 候補段階（candidates）: 入札額順のときはここで total_cents 順に limit 件へ切る
-    const bidOrderLimit = orderByDistance
-      ? Prisma.empty
-      : Prisma.sql`ORDER BY total_cents DESC LIMIT ${limit}`;
+    // 候補 CTE。距離順と既定（入札額順）で組み立てが変わる。
+    // どちらの枝も «tier / total_cents / max_end_date» を持つ形に揃え、
+    // 最終 SELECT 側を 1 本にしている。
+    const candidatesCte = orderByDistance
+      ? Prisma.sql`
+      nearby AS (
+        -- #1629 距離順のときは KNN（location <-> 点）で GIST 索引から «近い順に limit 件» を直接取る
+        SELECT r.id
+        FROM restaurants r
+        WHERE
+          -- #1629 ST_DWithin + 既存 GIST（詳細は searchNearbySavedRestaurants 側のコメント）
+          ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
+          ${nameFilter}
+        ORDER BY r.location <-> ${originPoint} LIMIT ${limit}
+      ),
+      candidates AS (
+        -- 入札の集計は restaurant_bids だけを見る（レビュー集計と同じ GROUP BY に混ぜない）
+        SELECT
+          n.id,
+          0 AS tier,
+          COALESCE(SUM(rb.amount_cents), 0)::double precision AS total_cents,
+          MAX(rb.end_date) AS max_end_date
+        FROM nearby n
+        LEFT JOIN restaurant_bids rb ON rb.restaurant_id = n.id
+          AND rb.start_date <= CURRENT_DATE
+          AND rb.end_date > CURRENT_DATE
+          AND rb.status = 'paid'
+        GROUP BY n.id
+      )`
+      : Prisma.sql`
+      sponsored AS (
+        -- #1629 スポンサー枠。**駆動表は restaurant_bids**（有効な入札だけ）。
+        -- 全国規模の半径でも、ここを restaurants から駆動しない限り行数は増えない
+        SELECT
+          rb.restaurant_id AS id,
+          SUM(rb.amount_cents)::double precision AS total_cents,
+          MAX(rb.end_date) AS max_end_date
+        FROM restaurant_bids rb
+        JOIN restaurants r ON r.id = rb.restaurant_id
+        WHERE
+          rb.status = 'paid'
+          AND rb.start_date <= CURRENT_DATE
+          AND rb.end_date > CURRENT_DATE
+          AND ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
+          ${nameFilter}
+        GROUP BY rb.restaurant_id
+        ORDER BY total_cents DESC LIMIT ${limit}
+      ),
+      nearest AS (
+        -- #1629 近傍枠。スポンサーで埋まらない残りを «中心から近い順» で埋める。
+        -- ここが «引くと 0 件» を構造的に消している（半径内に入札が 1 件も無くても必ず埋まる）
+        SELECT r.id
+        FROM restaurants r
+        WHERE
+          ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
+          ${nameFilter}
+          AND NOT EXISTS (SELECT 1 FROM sponsored s WHERE s.id = r.id)
+        ORDER BY r.location <-> ${originPoint} LIMIT ${limit}
+      ),
+      candidates AS (
+        SELECT id, 0 AS tier, total_cents, max_end_date FROM sponsored
+        UNION ALL
+        SELECT id, 1 AS tier, 0::double precision AS total_cents, NULL::date AS max_end_date FROM nearest
+      )`;
     const orderBy = orderByDistance
       ? // #1629 距離順も geography で測る。WHERE の ST_DWithin と同じ土俵にしておかないと、
         // 「絞り込みには入っているのに並び順だけ別の距離」という食い違いが起きうる
         Prisma.sql`ORDER BY ST_Distance(r.location, ${originPoint}) ASC`
-      : Prisma.sql`ORDER BY total_cents DESC`;
+      : // #1629 スポンサー（入札額の降順）→ 中心から近い順。tier がスポンサー枠かどうか
+        Prisma.sql`ORDER BY c.tier ASC, c.total_cents DESC, ST_Distance(r.location, ${originPoint}) ASC`;
 
     const rawResult = await tx.$queryRaw<
       (Pick<
@@ -346,38 +436,7 @@ export class RestaurantsRepository {
         max_end_date: string | null;
       })[]
     >(Prisma.sql`
-      WITH nearby AS (
-        -- #1629 JOIN より前に候補を絞る。距離順のときは KNN（location <-> 点）で
-        -- GIST 索引から «近い順に limit 件» を直接取り出す
-        SELECT r.id
-        FROM restaurants r
-        WHERE
-          -- #1629 ST_DWithin + 既存 GIST（詳細は searchNearbySavedRestaurants 側のコメント）
-          ST_DWithin(
-            r.location,
-            ${originPoint},
-            ${radiusInKm * 1000}
-          )
-          ${nameFilter}
-        ${knnOrderLimit}
-      ),
-      candidates AS (
-        -- 入札の集計は restaurant_bids だけを見る。ここで total_cents 順に切ることで、
-        -- 重いレビュー集計（dishes × dish_reviews）へ渡る行数を limit 件に抑える。
-        -- 旧実装は restaurant_bids と dish_reviews を同じ GROUP BY に混ぜていたため、
-        -- 片方の行数がもう片方の集計を水増ししていた（#1629 で分離）
-        SELECT
-          n.id,
-          COALESCE(SUM(rb.amount_cents), 0)::double precision AS total_cents,
-          MAX(rb.end_date) AS max_end_date
-        FROM nearby n
-        LEFT JOIN restaurant_bids rb ON rb.restaurant_id = n.id
-          AND rb.start_date <= CURRENT_DATE
-          AND rb.end_date > CURRENT_DATE
-          AND rb.status = 'paid'
-        GROUP BY n.id
-        ${bidOrderLimit}
-      )
+      WITH ${candidatesCte}
       SELECT
         r.id,
         r.google_place_id,
@@ -407,7 +466,7 @@ export class RestaurantsRepository {
       LEFT JOIN dish_reviews dr
         -- #1513 削除済みレビューを件数・平均に混ぜない
         ON dr.dish_id = d.id AND dr.deleted_at IS NULL
-      GROUP BY r.id, c.total_cents, c.max_end_date
+      GROUP BY r.id, c.tier, c.total_cents, c.max_end_date
       ${orderBy}
       LIMIT ${limit};
     `);
