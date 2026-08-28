@@ -6,6 +6,15 @@
  * （設計書 (2/2) §3-2 / #1395 §0(A): `dish_reviews` は約 964MB、平均 4.48 秒）。
  * 生の viewport は `MyDishesMapView` 内の `useRef` に置く。
  */
+import {
+	MAX_SEARCH_RADIUS_M,
+	METERS_PER_DEGREE_LATITUDE,
+	viewportRadiusMeters,
+	type ViewportLike,
+} from "@shared/utils/geo_search";
+
+// 既存の import 元（テスト等）を壊さないための再輸出。定義の正本は shared/utils/geo_search.ts
+export { METERS_PER_DEGREE_LATITUDE };
 
 /**
  * `react-native-maps` の `Region` と構造的に互換な最小の形。
@@ -14,21 +23,20 @@
  * `react-native-maps` のネイティブモジュール解決を要求してしまうため、
  * ここでは形だけを受け取る（`Region` はこの型に代入可能）。
  */
-export type MapRegionLike = {
-	latitude: number;
-	longitude: number;
-	latitudeDelta: number;
-	longitudeDelta: number;
-};
+export type MapRegionLike = ViewportLike;
 
 /** `QueryMyDishesDto` が受け付ける半径の下限（m）。これ未満は 400 になる */
 export const MIN_AREA_RADIUS_M = 10;
 
-/** `QueryMyDishesDto` が受け付ける半径の上限（m）。これ超過は 400 になる */
-export const MAX_AREA_RADIUS_M = 50_000;
-
-/** 緯度 1 度あたりの距離（m）。WGS84 の平均値 */
-export const METERS_PER_DEGREE_LATITUDE = 111_320;
+/**
+ * #1629 【設計】`QueryMyDishesDto` が受け付ける半径の上限（m）。これ超過は 400 になる。
+ *
+ * **かつては 50km だった。** そのため日本全体を映して「このエリアで再検索」を押しても
+ * «日本の中心から 50km» の円しか検索せず、東京の記録は全部その外へ落ちて必ず 0 件になった
+ * （オーナー報告）。地図で «見えている範囲を検索する» と言う以上、上限は
+ * «地図が映しうる最大» でなければならない。正本は shared/utils/geo_search.ts。
+ */
+export const MAX_AREA_RADIUS_M = MAX_SEARCH_RADIUS_M;
 
 /** #1396 `commitArea` へ渡すエリア（`MyDishesArea` の非 null 部分と同じ形） */
 export type AreaFromRegion = { lat: number; lng: number; radius: number };
@@ -64,11 +72,8 @@ export function regionToArea(region: MapRegionLike | null | undefined): AreaFrom
 	const lat = clamp(latitude, -90, 90);
 	const lng = clamp(longitude, -180, 180);
 
-	// delta は「viewport の縦・横の幅（度）」。負の delta を渡してくる実装があり得るので絶対値を取る。
-	const latSpanMeters = Math.abs(latitudeDelta) * METERS_PER_DEGREE_LATITUDE;
-	const lngSpanMeters = Math.abs(longitudeDelta) * METERS_PER_DEGREE_LATITUDE * Math.cos((lat * Math.PI) / 180);
-
-	const halfDiagonal = Math.sqrt(latSpanMeters ** 2 + lngSpanMeters ** 2) / 2;
+	// 半径 = viewport の外接円（対角線の半分）。計算の正本は shared/utils/geo_search.ts
+	const halfDiagonal = viewportRadiusMeters(region) ?? 0;
 	const radius = Math.round(clamp(halfDiagonal, MIN_AREA_RADIUS_M, MAX_AREA_RADIUS_M));
 
 	return { lat, lng, radius };
@@ -96,10 +101,8 @@ export function isRegionTooWide(region: MapRegionLike | null | undefined): boole
 		return true;
 	}
 
-	const lat = clamp(latitude, -90, 90);
-	const latSpanMeters = Math.abs(latitudeDelta) * METERS_PER_DEGREE_LATITUDE;
-	const lngSpanMeters = Math.abs(longitudeDelta) * METERS_PER_DEGREE_LATITUDE * Math.cos((lat * Math.PI) / 180);
-	const halfDiagonal = Math.sqrt(latSpanMeters ** 2 + lngSpanMeters ** 2) / 2;
+	const halfDiagonal = viewportRadiusMeters(region);
+	if (halfDiagonal === null) return true;
 
 	return halfDiagonal > MAX_AREA_RADIUS_M;
 }
