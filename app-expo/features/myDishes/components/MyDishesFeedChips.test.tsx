@@ -36,7 +36,17 @@ import { DEFAULT_MY_DISHES_FILTER, useMyDishesFilterStore } from "../stores/useM
 
 const CATEGORY_ID = "ramen";
 
-const makeEntry = (overrides?: { categoryId?: string | null; name?: string | null }): NormalizedDishMediaEntry =>
+/**
+ * #1629【34】既定は «食べた かつ 食べたい» にしてある。状態 chip は
+ * `dish_media.isEaten` / `isSaved` が立っているときだけ出るようになったので、
+ * 既存のケース（chip の並び・押下・スナックバー）はこの既定で従来どおりの並びになる。
+ */
+const makeEntry = (overrides?: {
+	categoryId?: string | null;
+	name?: string | null;
+	isEaten?: boolean | undefined;
+	isSaved?: boolean;
+}): NormalizedDishMediaEntry =>
 	({
 		restaurant: { id: "restaurant-1", name: "テスト食堂" },
 		dish: {
@@ -44,7 +54,13 @@ const makeEntry = (overrides?: { categoryId?: string | null; name?: string | nul
 			category_id: overrides?.categoryId === undefined ? CATEGORY_ID : overrides.categoryId,
 			name: overrides?.name === undefined ? "味玉つけ麺" : overrides.name,
 		},
-		dish_media: { id: "media-a", isSaved: false, isLiked: false, likeCount: 0 },
+		dish_media: {
+			id: "media-a",
+			isSaved: overrides?.isSaved ?? true,
+			isEaten: "isEaten" in (overrides ?? {}) ? overrides?.isEaten : true,
+			isLiked: false,
+			likeCount: 0,
+		},
 		dishReviewIds: [],
 	}) as unknown as NormalizedDishMediaEntry;
 
@@ -104,8 +120,11 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 		);
 	});
 
-	it("エントリが無い / カテゴリが無いときはカテゴリ chip を出さない（状態 chip は残る）", () => {
-		expect(buildMyDishesFeedChips(filterOf(), null).map((chip) => chip.id)).toEqual(["statusEaten", "statusWant"]);
+	it("エントリが無いときは chip を 1 つも出さない（#1629【34】状態 chip も entry 由来になった）", () => {
+		expect(buildMyDishesFeedChips(filterOf(), null)).toEqual([]);
+	});
+
+	it("カテゴリが無いときはカテゴリ chip だけを落とす（状態 chip は残る）", () => {
 		expect(buildMyDishesFeedChips(filterOf(), makeEntry({ categoryId: "" })).map((chip) => chip.id)).toEqual([
 			"statusEaten",
 			"statusWant",
@@ -146,6 +165,42 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 		);
 
 		expect(chips.find((chip) => chip.id === "minRating")?.active).toBe(true);
+	});
+});
+
+/*
+#1629【34】オーナー実機報告「食べたをしてないフィードで『食べたで絞る』と出る」。
+
+修正前は `statusEaten` / `statusWant` を entry を見ずに無条件で積んでいたので、
+下の 4 ケースはすべて «出てはいけない chip が出ている» で落ちる。
+*/
+describe("#1629【34】状態 chip は、いま見ているエントリがその状態のときだけ出す", () => {
+	it("まだ食べていない（isEaten: false）エントリでは «食べたで絞る» を出さない", () => {
+		const chips = buildMyDishesFeedChips(filterOf(), makeEntry({ isEaten: false }));
+
+		expect(chips.some((chip) => chip.id === "statusEaten")).toBe(false);
+		// 食べたい（isSaved）は立っているので、そちらは残る
+		expect(chips.map((chip) => chip.id)).toEqual(["category", "statusWant"]);
+	});
+
+	it("isEaten が undefined（`GET /v1/dish-media?ids=` 以外の経路）でも «食べたで絞る» を出さない", () => {
+		const chips = buildMyDishesFeedChips(filterOf(), makeEntry({ isEaten: undefined }));
+
+		expect(chips.some((chip) => chip.id === "statusEaten")).toBe(false);
+	});
+
+	it("保存していない（isSaved: false）エントリでは «食べたいで絞る» を出さない", () => {
+		const chips = buildMyDishesFeedChips(filterOf(), makeEntry({ isSaved: false }));
+
+		expect(chips.some((chip) => chip.id === "statusWant")).toBe(false);
+		expect(chips.map((chip) => chip.id)).toEqual(["category", "statusEaten"]);
+	});
+
+	it("食べたも食べたいも付いていないエントリでは、状態 chip が 1 つも描かれない", () => {
+		const tree = render(makeEntry({ isEaten: false, isSaved: false }));
+		const labels = chipNodes(tree).map((node) => node.props.accessibilityLabel);
+
+		expect(labels).toEqual(['MyDishes.feed.chips.filterCategory:{"name":"味玉つけ麺"}']);
 	});
 });
 
@@ -208,10 +263,9 @@ describe("MyDishesFeedChips（共有フィルタ store だけを書く）", () =
 		expect(useMyDishesFilterStore.getState().filter.status).toEqual(["eaten"]);
 	});
 
-	it("chip が 1 つも無いときは何も描かない", () => {
-		// entry が無くても状態 chip は残るので、chips が空になるのは「押せるものが無い」場合のみ。
-		// ここでは «描かれる» ことだけを確かめ、null 返しの分岐は buildMyDishesFeedChips 側で担保する
+	it("chip が 1 つも無いときは何も描かない（#1629【34】entry が無ければ chips は空）", () => {
 		const tree = render(null);
-		expect(chipNodes(tree)).toHaveLength(2);
+		expect(chipNodes(tree)).toHaveLength(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-feed-chips")).toHaveLength(0);
 	});
 });

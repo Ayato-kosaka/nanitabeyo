@@ -1074,7 +1074,11 @@
 			"activeCount": "絞り込み {{count}} 件が有効"
 		},
 		"empty": {
-			"description": "気になるお店の料理を保存したり、食べた記録をつけるとここに並びます。"
+			"description": "気になるお店の料理を保存したり、食べた記録をつけるとここに並びます。",
+			"noResultsInArea": "この範囲には記録がありません。",
+			"noResultsInAreaHint": "地図を動かして「このエリアで再検索」を押すか、絞り込みを外してください。",
+			"noResultsForFilter": "条件に合う記録がありません。",
+			"noResultsForFilterHint": "絞り込みを外すと、ほかの記録が表示されます。"
 		},
 		"list": {
 			"noPhoto": "写真なし"

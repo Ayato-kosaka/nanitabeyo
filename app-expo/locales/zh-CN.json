@@ -1074,7 +1074,11 @@
 			"activeCount": "已启用 {{count}} 个筛选条件"
 		},
 		"empty": {
-			"description": "你收藏或记录为已吃过的美食会显示在这里。"
+			"description": "你收藏或记录为已吃过的美食会显示在这里。",
+			"noResultsInArea": "此范围内没有记录。",
+			"noResultsInAreaHint": "移动地图后点按“搜索此区域”，或清除筛选条件。",
+			"noResultsForFilter": "没有符合筛选条件的记录。",
+			"noResultsForFilterHint": "清除筛选条件即可看到其他记录。"
 		},
 		"list": {
 			"noPhoto": "无照片"

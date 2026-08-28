@@ -693,6 +693,30 @@ export function ReviewForm({
 	// Animated height for InitialMediaPreview
 	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - 同意メッセージ - バッファ
 	const mediaHeight = useMemo(() => height - 370 - 60 - 36 - 120, []);
+
+	/*
+	#1629【33】**選んだ写真のプレビューには、必ず高さを与える。**
+
+	オーナー実機報告: 「食べたを記録で画像を選ぶとめちゃくちゃ小さく表示される」。
+
+	真因は «プレビューが親の高さにしか依存していないのに、記録フローだけ親に高さが無かった» こと。
+
+	- `InitialMediaPreview` は自分の寸法を一切持たない。`container` が `height: "100%"`、
+	  `mediaWrapper` が `height: "100%"` + `aspectRatio: 9/16`、画像そのものは
+	  `StyleSheet.absoluteFillObject` である。つまり **祖先が確定した高さを持っていることが前提**で、
+	  持っていなければ 100% は auto へ落ち、中身は絶対配置なので内在高さが 0 になる。
+	- ところがこの枠は `showsManualMediaChooser`（= 記録フロー: `mediaPickerMode === "manual"` かつ
+	  親から prefilledMedia が来ていない）のとき `{ marginTop: 16 }` だけで、**高さを与えていなかった**。
+	  しかも外は `ScrollView` なので `previewWrap` の `flex: 1` も伸びる先が無い。
+	  結果、選んだ写真は数 px に潰れる。店舗フィードからの記録（prefilledMedia あり）では
+	  `height: mediaHeight` の枝を通るので同じ症状が出ず、記録フローだけで起きていた。
+
+	枠の高さを外すのは «写真なしプレースホルダー»（`status === "none"`）のためである。
+	そちらは «自分で撮影 / ライブラリ / 既存メディアから選ぶ» が縦に積まれ、内容ぶんだけ
+	伸びる必要がある。だから **プレースホルダーを描くときだけ高さを外す**（それ以外は
+	従来どおり `mediaHeight` を与える）。寸法は `ReviewForm.test.tsx` が数値で固定している。
+	*/
+	const showsNoMediaPlaceholder = mediaState.status === "none";
 	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 	useEffect(() => {
 		const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -1148,7 +1172,13 @@ export function ReviewForm({
 					</View>
 				) : (
 					<>
-						<View style={showsManualMediaChooser ? { marginTop: 16 } : { height: mediaHeight, marginTop: 16 }}>
+						<View
+							testID="review-media-slot"
+							style={
+								showsManualMediaChooser && showsNoMediaPlaceholder
+									? { marginTop: 16 }
+									: { height: mediaHeight, marginTop: 16 }
+							}>
 							{mediaState.status === "loading" ? (
 								<View style={styles.loadingContainer}>
 									<LoadingIndicator size="large" />
