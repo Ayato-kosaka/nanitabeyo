@@ -21,10 +21,16 @@ import { readSessionFromEnv } from "../../utils/sessionEnv";
  *
  * 現在は同じお店フィードへ 2 本を取り込む。
  *
- * | リール | 埋め込みの中身 | このセルで期待すること |
+ * | 投稿 | 埋め込みの中身 | このセルで期待すること |
  * | --- | --- | --- |
- * | `CDg3owdFa6W`（Original audio） | 実体の `<video>` + 実 MP4 | **タップ無しで再生が始まる** = `external-embed-playing` が出る |
- * | `DZFdePPzzLI`（ライセンス楽曲） | `<video>` 無し | 再生されず «Instagram で見る» の帯（`external-embed-fallback`）が出る |
+ * | `CDg3owdFa6W`（Instagram / Original audio） | 実体の `<video>` + 実 MP4 | **タップ無しで再生が始まる** |
+ * | `Dcfhw8wFFm4`（Instagram / オーナー報告の投稿） | 同上 | 同上 |
+ * | `DZFdePPzzLI`（Instagram / ライセンス楽曲） | `<video>` 無し | 再生されず «Instagram で見る» の帯が出る |
+ * | TikTok の投稿 | 実体の `<video>` | **タップ無しで再生が始まる**（#1641） |
+ * | YouTube の動画 | iframe の中（別オリジン） | **タップ無しで再生が始まる**（#1641） |
+ *
+ * 合否は `external-embed-playing-{provider}` で **provider ごとに**見る。
+ * まとめて 1 つの印にすると「Instagram だけ再生できていて YouTube は死んでいる」を見逃す。
  *
  * ## ⚠️ «帯が出ないこと» を «再生できたこと» と読み替えてはいけない
  *
