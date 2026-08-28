@@ -3,7 +3,6 @@ import {
 	METERS_PER_DEGREE_LATITUDE,
 	MIN_AREA_RADIUS_M,
 	boundingRegionForCoordinates,
-	isRegionTooWide,
 	regionToArea,
 	type MapRegionLike,
 } from "./geo";
@@ -13,8 +12,8 @@ import {
  *
  * この関数は「このエリアで再検索」の押下時にだけ呼ばれ、結果が
  * `QueryMyDishesDto` の `lat` / `lng` / `radius` にそのまま乗る。
- * DTO は `radius` を `[10, 50000]`、`lat` を `[-90, 90]`、`lng` を `[-180, 180]` に
- * 制限しているため、範囲を外れた値を作らないことを固定する。
+ * DTO は `radius` を `[10, MAX_SEARCH_RADIUS_M]`、`lat` を `[-90, 90]`、`lng` を `[-180, 180]` に
+ * 制限しているため、範囲を外れた値を作らないことを固定する（上限は #1629 で 50km から広げた）。
  */
 describe("#1396 regionToArea", () => {
 	const tokyo: MapRegionLike = {
@@ -50,7 +49,7 @@ describe("#1396 regionToArea", () => {
 		expect(area?.radius).toBe(MIN_AREA_RADIUS_M);
 	});
 
-	it("地球全体を映した region でも上限 50000m を超えない", () => {
+	it("地球全体を映した region でも上限（MAX_AREA_RADIUS_M）を超えない", () => {
 		const area = regionToArea({ latitude: 0, longitude: 0, latitudeDelta: 180, longitudeDelta: 360 });
 		expect(area?.radius).toBe(MAX_AREA_RADIUS_M);
 	});
@@ -103,45 +102,55 @@ describe("#1396 regionToArea", () => {
 });
 
 /**
- * #1396 レビュー M-2: `regionToArea` が `MAX_AREA_RADIUS_M` で clamp するかどうかを
- * 事前に判定できないと、「このエリアで再検索」がボタンのラベルと大きくずれた範囲を確定してしまう
- * （既定の `REGION_JP` = 日本全体から半径 50km に丸められ、東京・大阪の記録が全部圏外になる）。
+ * #1629 **«引いた状態» で検索が成立することを固定する回帰テスト。**
+ *
+ * オーナー報告:「日本全体を映して『このエリアで再検索』を押すと必ず 0 件になる」。
+ * 原因は `regionToArea` が半径を 50km へ clamp していたことで、日本全体を映すと
+ * «日本の中心（長野の山中）から 50km» の円しか検索していなかった。東京の記録は
+ * 中心から約 200km 離れているので、構造的に 1 件も入らない。
+ *
+ * ⚠️ **このテストは修正前のコードで赤くなる**（radius = 50,000 < 約 200,000）。
+ *    半径の上限を戻したら、ここが «日本全体で 0 件» を再び教えてくれる。
  */
-describe("#1396 isRegionTooWide", () => {
-	it("日本全体が入るくらいの region（REGION_JP 相当）は too wide", () => {
-		expect(isRegionTooWide({ latitude: 36.2048, longitude: 138.2529, latitudeDelta: 20, longitudeDelta: 20 })).toBe(
-			true,
-		);
+describe("#1629 引き（日本全体）でも、見えている範囲がそのまま半径になる", () => {
+	/** `features/map/constants.ts` の `REGION_JP`（位置情報が取れないときの初期表示） */
+	const REGION_JP: MapRegionLike = {
+		latitude: 36.2048,
+		longitude: 138.2529,
+		latitudeDelta: 20,
+		longitudeDelta: 20,
+	};
+	const TOKYO = { latitude: 35.681236, longitude: 139.767125 };
+	const OSAKA = { latitude: 34.6937, longitude: 135.5023 };
+	const SAPPORO = { latitude: 43.0618, longitude: 141.3545 };
+	const FUKUOKA = { latitude: 33.5904, longitude: 130.4017 };
+
+	/** 2 点間の距離（m）。球面（半径 6,371km）で十分 */
+	const distanceMeters = (a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) => {
+		const toRad = (deg: number) => (deg * Math.PI) / 180;
+		const dLat = toRad(b.latitude - a.latitude);
+		const dLng = toRad(b.longitude - a.longitude);
+		const h =
+			Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLng / 2) ** 2;
+		return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
+	};
+
+	it("日本全体の viewport から確定する円に、東京・大阪が入る（＝ 0 件にならない）", () => {
+		const area = regionToArea(REGION_JP);
+		expect(area).not.toBeNull();
+		expect(area!.radius).toBeGreaterThan(distanceMeters(REGION_JP, TOKYO));
+		expect(area!.radius).toBeGreaterThan(distanceMeters(REGION_JP, OSAKA));
 	});
 
-	it("ズームインした region（半径が 50km を超えない）は too wide ではない", () => {
-		expect(
-			isRegionTooWide({ latitude: 35.681236, longitude: 139.767125, latitudeDelta: 0.02, longitudeDelta: 0.02 }),
-		).toBe(false);
+	it("札幌・福岡も入る（本土が収まるスケール）", () => {
+		const area = regionToArea(REGION_JP);
+		expect(area!.radius).toBeGreaterThan(distanceMeters(REGION_JP, SAPPORO));
+		expect(area!.radius).toBeGreaterThan(distanceMeters(REGION_JP, FUKUOKA));
 	});
 
-	it("regionToArea が clamp する境界と一致する", () => {
-		// 対角線の半分がちょうど MAX_AREA_RADIUS_M を超えない region
-		const justUnder: MapRegionLike = { latitude: 0, longitude: 0, latitudeDelta: 0.6, longitudeDelta: 0 };
-		const areaUnder = regionToArea(justUnder);
-		expect(areaUnder?.radius).toBeLessThan(MAX_AREA_RADIUS_M);
-		expect(isRegionTooWide(justUnder)).toBe(false);
-
-		// 対角線の半分が MAX_AREA_RADIUS_M を超え、regionToArea 側で丸められる region
-		const over: MapRegionLike = { latitude: 0, longitude: 0, latitudeDelta: 2, longitudeDelta: 0 };
-		const areaOver = regionToArea(over);
-		expect(areaOver?.radius).toBe(MAX_AREA_RADIUS_M);
-		expect(isRegionTooWide(over)).toBe(true);
-	});
-
-	it("NaN / Infinity を含む region は too wide 扱い（regionToArea が null を返すのと対）", () => {
-		expect(isRegionTooWide({ latitude: NaN, longitude: 0, latitudeDelta: 0.01, longitudeDelta: 0.01 })).toBe(true);
-		expect(isRegionTooWide({ latitude: 0, longitude: Infinity, latitudeDelta: 0.01, longitudeDelta: 0.01 })).toBe(true);
-	});
-
-	it("null / undefined は too wide 扱い（ボタンを無効化する安全側に倒す）", () => {
-		expect(isRegionTooWide(null)).toBe(true);
-		expect(isRegionTooWide(undefined)).toBe(true);
+	it("50km で頭打ちにしない（引いた分だけ広く探す）", () => {
+		const area = regionToArea(REGION_JP);
+		expect(area!.radius).toBeGreaterThan(50_000);
 	});
 });
 

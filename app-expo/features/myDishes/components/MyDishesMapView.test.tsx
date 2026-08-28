@@ -460,7 +460,17 @@ describe("#1375 「このエリアで再検索」はどのズームでも押せ�
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-zoom-hint").length).toBe(0);
 	});
 
-	it("押すと 50km へ clamp されたエリアが確定する", async () => {
+	/*
+	#1629 **オーナー報告「東京でエリア再検索したあと日本地図全体にして再検索すると 0 件になる」。**
+
+	原因は `regionToArea` が半径を 50km へ clamp していたことである。日本全体を映して
+	押すと «日本の中心（長野の山中）から 50km» の円が確定し、東京の記録（中心から約 200km）は
+	構造的に 1 件も入らなかった。
+
+	⚠️ **この 2 本は修正前のコードで赤くなる**（確定する radius が 50,000 だったため、
+	   下の «東京までの距離を含む» が 200km > 50km で失敗する）。
+	*/
+	it("日本全体を映して押すと、東京の記録が入る半径が確定する（0 件にならない）", async () => {
 		const tree = await render();
 
 		const button = tree.root.find((node) => node.props?.testID === "my-dishes-search-this-area");
@@ -470,9 +480,30 @@ describe("#1375 「このエリアで再検索」はどのズームでも押せ�
 
 		const area = useMyDishesFilterStore.getState().filter.area;
 		expect(area).not.toBeNull();
-		expect(area!.radius).toBeLessThanOrEqual(50_000);
+		// 初期表示は REGION_JP（日本全体）。中心から東京駅までは約 200km
+		expect(area!.radius).toBeGreaterThan(distanceMeters(area!, { lat: 35.681236, lng: 139.767125 }));
+	});
+
+	it("50km で頭打ちにしない（引いた分だけ広く探す）", async () => {
+		const tree = await render();
+
+		const button = tree.root.find((node) => node.props?.testID === "my-dishes-search-this-area");
+		await act(async () => {
+			button.props.onPress();
+		});
+
+		expect(useMyDishesFilterStore.getState().filter.area!.radius).toBeGreaterThan(50_000);
 	});
 });
+
+/** 2 点間の距離（m）。球面（半径 6,371km）で十分 */
+function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+	const toRad = (deg: number) => (deg * Math.PI) / 180;
+	const dLat = toRad(b.lat - a.lat);
+	const dLng = toRad(b.lng - a.lng);
+	const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+	return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
+}
 
 /**
  * #1375 実機確認: 「このエリアで絞り込み中」の帯は Map から廃止した。

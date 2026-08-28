@@ -16,6 +16,7 @@ import {
 	ValidateIf,
 } from "class-validator";
 import { IsParsableDateString } from "../is-parsable-date-string";
+import { MAX_SEARCH_RADIUS_M } from "../../../../utils/geo_search";
 
 /**
  * #1395 my-dishes（食べたい/食べた）の状態。
@@ -155,12 +156,20 @@ export class QueryMyDishesDto {
 	@Max(180)
 	lng?: number;
 
-	/** エリア（半径 m）。viewport は「中心座標 + 対角線の半分」へクライアントで変換する */
+	/**
+	 * エリア（半径 m）。viewport は「中心座標 + 対角線の半分」へクライアントで変換する。
+	 *
+	 * #1629 【設計】上限は **50,000（50km）から `MAX_SEARCH_RADIUS_M` へ広げた**。
+	 * 50km だと «日本全体を映して「このエリアで再検索」» が日本の中心から 50km の円になり、
+	 * 東京の記録が全部外へ落ちて必ず 0 件になっていた（オーナー報告）。
+	 * この経路の駆動表はそのユーザー自身の記録（`dish_reviews` / `reactions`）なので、
+	 * 半径を広げても走る行数はそのユーザーの記録数までしか増えない。
+	 */
 	@ValidateIf((o) => o.lat !== undefined || o.lng !== undefined || o.sort === "distance")
 	@Type(() => Number)
 	@IsNumber()
 	@Min(10)
-	@Max(50000)
+	@Max(MAX_SEARCH_RADIUS_M)
 	radius?: number;
 
 	/** 料理カテゴリ（multi）= `dishes.category_id`（Wikidata QID などの TEXT） */

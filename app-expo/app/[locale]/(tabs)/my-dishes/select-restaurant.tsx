@@ -76,6 +76,7 @@ type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
   デバウンスが無く、飛んでいるリクエストのキャンセルも無い（応答を捨てるだけなので、
   サーバ側の集計クエリは全部走り切る）。
 - radius: `max(latitudeDelta, longitudeDelta) * 50000` を 50km で頭打ち。下限は無し。
+  （#1629 後半で頭打ちは撤廃した。理由は `mapPins.ts` の `radiusForRegion` を参照）
 
 ## どう変えたか（大手の地図アプリの標準的な作りへ）
 
@@ -190,7 +191,7 @@ export default function SelectRestaurantScreen() {
 					requestPayload: {
 						lat: region.latitude,
 						lng: region.longitude,
-						// 半径の決め方（上限 50km / 下限 200m）は mapPins.ts に理由付きで置いてある
+						// 半径の決め方（見えている範囲の外接円 / 下限 200m）は mapPins.ts に理由付きで置いてある
 						radius: radiusForRegion(region),
 						/*
 							  #1629 【修正】`limit` を明示する。渡していなかったのでサーバ既定の 20 件が
@@ -421,7 +422,7 @@ export default function SelectRestaurantScreen() {
 						requestPayload: {
 							lat: region.latitude,
 							lng: region.longitude,
-							// 半径の決め方（上限 50km / 下限 200m）とその経緯は mapPins.ts の radiusForRegion
+							// 半径の決め方（見えている範囲の外接円 / 下限 200m）とその経緯は mapPins.ts の radiusForRegion
 							radius: radiusForRegion(region),
 							limit: SAVED_PIN_FETCH_LIMIT,
 						},

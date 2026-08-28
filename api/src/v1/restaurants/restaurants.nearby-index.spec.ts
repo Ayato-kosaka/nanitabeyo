@@ -71,8 +71,10 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
   });
 
   it('2 つのメソッドとも「候補を絞る CTE」を持っている', () => {
+    // #1629 店舗検索は «距離順» と «既定（スポンサー枠 + 近傍枠）» で候補 CTE を
+    // 組み替えるので、店舗検索に 2 つ・保存済み一覧に 1 つで計 3 つになる
     const matches = source.match(/candidates AS \(/g) ?? [];
-    expect(matches.length).toBe(2);
+    expect(matches.length).toBe(3);
   });
 
   it('候補 CTE は LIMIT で件数を切っている', () => {
@@ -95,10 +97,53 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
     }
   });
 
-  it('入札額順の経路では «近い n 件» に切っていない（意味が変わるため）', () => {
-    // KNN の LIMIT は orderByDistance が真のときだけ組み立てられる
+  it('入札額順の経路では «半径内の全店を集計してから並べる» に戻っていない', () => {
+    /*
+      #1629 かつての既定経路は «nearby（半径内の全店。LIMIT 無し）→ 入札を集計 →
+      total_cents 順に limit 件» だった。半径が全国規模になると全国の店を集計することになる。
+      いまは入札テーブル駆動のスポンサー枠で、候補が最初から limit 件に収まる。
+    */
+    expect(source).toMatch(/FROM restaurant_bids rb\s+JOIN restaurants r/);
+    expect(source).toMatch(/ORDER BY total_cents DESC LIMIT /);
+  });
+});
+
+/*
+#1629 **引き（ズームアウト）でも «0 件» にならない構造を守るラチェット。**
+
+オーナー報告:「日本全体を映して『このエリアで再検索』を押すと必ず 0 件」。
+クライアント側の 50km clamp を外しただけだと «全国の店を集計する» ことになるので、
+サーバ側は候補の作り方を «スポンサー枠（入札テーブル駆動）+ 近傍枠（KNN）» に変えてある。
+
+⚠️ ここが赤くなったら «引くと 0 件» か «引くと全国集計» のどちらかへ戻っている。
+*/
+describe('#1629 引きでも候補が必ず埋まる（スポンサー枠 + 近傍枠）', () => {
+  it('スポンサー枠は restaurant_bids を駆動表にしている（restaurants から駆動しない）', () => {
+    // 全店舗から «有効な入札を持つ店» を探すのではなく、有効な入札の側から辿る。
+    // 全国規模の半径でも、走る行数が店舗数ではなく入札数で決まるようにするため
+    expect(source).toMatch(/sponsored AS \(/);
     expect(source).toMatch(
-      /const knnOrderLimit = orderByDistance\s*\?\s*Prisma\.sql/,
+      /FROM restaurant_bids rb\s+JOIN restaurants r ON r\.id = rb\.restaurant_id/,
     );
+  });
+
+  it('スポンサーで埋まらない残りを KNN の近傍枠で埋める（= 0 件を返さない）', () => {
+    expect(source).toMatch(/nearest AS \(/);
+    // 近傍枠も KNN + LIMIT。半径がいくら大きくても走る行数は limit 件で一定
+    const nearest = source.slice(source.indexOf('nearest AS ('));
+    expect(nearest).toMatch(/ORDER BY r\.location <-> \$\{originPoint\} LIMIT /);
+    // スポンサー枠と重複させない
+    expect(nearest).toMatch(/NOT EXISTS \(SELECT 1 FROM sponsored s WHERE s\.id = r\.id\)/);
+  });
+
+  it('並びは «スポンサー（入札額の降順）→ 中心から近い順»（入札額順の意味を変えない）', () => {
+    expect(source).toMatch(
+      /ORDER BY c\.tier ASC, c\.total_cents DESC, ST_Distance\(r\.location, \$\{originPoint\}\) ASC/,
+    );
+  });
+
+  it('半径を «上限で頭打ち» にする細工がサーバ側に無い（見えている範囲をそのまま使う）', () => {
+    // Math.min(dto.radius, 50000) のような clamp を入れると «引くと 0 件» が戻る
+    expect(source).not.toMatch(/Math\.min\([^)]*radius/);
   });
 });
