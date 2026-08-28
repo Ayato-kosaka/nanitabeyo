@@ -69,6 +69,12 @@ DISPLAY_COLUMNS = (
 )
 JSON_COLUMNS = frozenset({"address_components", "plus_code"})
 FLOAT_COLUMNS = frozenset({"latitude", "longitude"})
+# restaurants 側で NOT NULL の列。COPY ... FORMAT CSV は NULL も空文字も同じ ""
+# として書くため、書き戻すときに «空文字 → NULL» と読み替えると NOT NULL 違反で
+# 落ちる（実際に image_url で落ちた）。この集合の列は空文字のまま戻す。
+NOT_NULL_COLUMNS = frozenset(
+    {"name", "name_language_code", "latitude", "longitude", "image_url", "address_components"}
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -227,7 +233,10 @@ def restore(connection: Any, backup: dict[str, dict[str, str]], damaged: list[di
         for entry in damaged:
             before = backup[entry["id"]]
             values = [
-                (before[column] if before[column] != "" else None)
+                # NOT NULL の列へ None を書くと落ちる。空文字は空文字のまま戻す。
+                before[column]
+                if (before[column] != "" or column in NOT_NULL_COLUMNS)
+                else None
                 for column in DISPLAY_COLUMNS
             ]
             cursor.execute(statement, [*values, entry["id"]])
