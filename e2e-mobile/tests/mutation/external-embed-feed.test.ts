@@ -24,7 +24,6 @@ import { readSessionFromEnv } from "../../utils/sessionEnv";
  * | 投稿 | 埋め込みの中身 | このセルで期待すること |
  * | --- | --- | --- |
  * | `CDg3owdFa6W`（Instagram / Original audio） | 実体の `<video>` + 実 MP4 | **タップ無しで再生が始まる** |
- * | `Dcfhw8wFFm4`（Instagram / オーナー報告の投稿） | 同上 | 同上 |
  * | `DZFdePPzzLI`（Instagram / ライセンス楽曲） | `<video>` 無し | 再生されず «Instagram で見る» の帯が出る |
  * | TikTok の投稿 | 実体の `<video>` | **タップ無しで再生が始まる**（#1641） |
  * | YouTube の動画 | iframe の中（別オリジン） | **タップ無しで再生が始まる**（#1641） |
@@ -179,7 +178,7 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		};
 		let embedCells = 0;
 
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < 8; i++) {
 			if (await existsNow(embedWebView)) {
 				embedCells += 1;
 				for (const provider of PROVIDERS) {
@@ -190,7 +189,7 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			}
 			await swipeFeed();
 			// 次のセルの埋め込みが読み込まれ、自動再生の判定が終わるまで待つ
-			await new Promise((resolve) => setTimeout(resolve, 8_000));
+			await new Promise((resolve) => setTimeout(resolve, 7_000));
 			await device.takeScreenshot(`feed-${String(i).padStart(2, "0")}`);
 		}
 

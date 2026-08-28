@@ -52,6 +52,12 @@ export const EXTERNAL_EMBED_PLAYABLE_URL = "https://www.instagram.com/reel/CDg3o
 /**
  * 🍢 **オーナーが実際に踏んだリール**（#1641 / 焼鳥たぬき）
  *
+ * ⚠️ **いまは spec から取り込んでいない。** 埋め込みセルを 5 本並べたところ、
+ *    Android エミュレータが `lowmemorykiller` でアプリを殺した（run 33133043261 で実測。
+ *    クラッシュではなくプロセス消滅で、失敗時のスクショはランチャーだった）。
+ *    中身は `EXTERNAL_EMBED_PLAYABLE_URL` と同じ «再生できる Instagram リール» なので、
+ *    provider ごとの判定には要らない。手で確かめたいときにだけ使う。
+ *
  * オーナーが dev の共有リンク（`/s/s1_QjJ0MUxoWy_zzOS60AU9OQ`）で «再生されない» と
  * 報告した投稿そのもの。web では 2 タップ要る（iframe には注入できない）ため、
  * **ネイティブでは本当にタップ無しで動くのか**を、この投稿で示すために取り込む。
@@ -163,8 +169,6 @@ export async function ensureExternalEmbedImported(
 	// #1641 «実際に再生できる» ことを録画で示すには、映像が入っているリールが要る
 	if (options.alsoImportPlayable) {
 		await create(EXTERNAL_EMBED_PLAYABLE_URL);
-		// オーナーが «再生されない» と報告した投稿そのものも並べる（web は 2 タップ / ネイティブは無タップ）
-		await create(EXTERNAL_EMBED_OWNER_REPORTED_URL);
 	}
 	// #1641 provider ごとに «アプリ内で再生できるか» を 1 本のフィードで示す
 	if (options.alsoImportOtherProviders) {
