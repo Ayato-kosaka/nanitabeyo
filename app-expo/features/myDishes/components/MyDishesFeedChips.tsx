@@ -33,7 +33,8 @@ import { resolveDishCategoryLabel } from "../dishCategoryLabel";
  * | chip | 押したときの `patch` |
  * | --- | --- |
  * | 〈料理名〉で絞る | `{ categoryIds: [entry.dish.category_id] }`（**追加ではなく置換**） |
- * | 食べたで絞る / 食べたいで絞る | `{ status: ["eaten"] }` / `{ status: ["want"] }` |
+ * | 食べたで絞る / 食べたいで絞る | `{ status: ["eaten"] }` / `{ status: ["want"] }`。
+ *   **#1629【34】いま見ているエントリが実際に `isEaten` / `isSaved` のときだけ出す** |
  * | ★4以上で絞る | `{ minRating: 4 }`。**`status` が `["eaten"]` のときだけ出す** |
  *
  * ## ⚠️ 「押しても棚が広がらない」を実装で担保する
@@ -76,7 +77,7 @@ export type MyDishesFeedChip = {
 /** chips の並びを決める純粋関数。UI を持たないのでそのまま単体テストできる */
 export const buildMyDishesFeedChips = (
 	filter: MyDishesFilter,
-	entry: Pick<NormalizedDishMediaEntry, "dish"> | null,
+	entry: Pick<NormalizedDishMediaEntry, "dish" | "dish_media"> | null,
 ): MyDishesFeedChip[] => {
 	const chips: MyDishesFeedChip[] = [];
 
@@ -110,18 +111,47 @@ export const buildMyDishesFeedChips = (
 		}
 	}
 
-	chips.push({
-		id: "statusEaten",
-		label: i18n.t("MyDishes.feed.chips.filterStatusEaten"),
-		active: filter.status.length === 1 && filter.status[0] === "eaten",
-		patch: { status: ["eaten"] },
-	});
-	chips.push({
-		id: "statusWant",
-		label: i18n.t("MyDishes.feed.chips.filterStatusWant"),
-		active: filter.status.length === 1 && filter.status[0] === "want",
-		patch: { status: ["want"] },
-	});
+	/*
+	#1629【34】**状態 chip は «いま見ているエントリが実際にその状態のとき» だけ出す。**
+
+	オーナー実機報告: 「食べたをしてないフィードで『食べたで絞る』と出る」。
+
+	それまで `statusEaten` / `statusWant` は entry を一切見ずに無条件で積んでいた。この Feed は
+	«食べたい» の記録も «食べた» の記録も同じ縦に並ぶ（`MyDishesFeedPage` の restaurant / date
+	スコープ）ので、**まだ食べていない（食べたいだけの）料理を見ている最中に「食べたで絞る」**が出る。
+	押せば棚からその料理自身が消えるので、chip の設計（このファイル冒頭「棚を削る方向にだけ働く」）
+	以前に «いま見ているものと関係が無い導線» になっていた。
+
+	正しい条件は、既にカテゴリ chip が満たしている «いま見ているエントリから作れるものだけ出す» である。
+	その状態を持っているのは `dish_media` の 2 つのフラグで、右レールの «食べたを記録» ボタンが
+	記録済みの色を出すのに使っているものと同じ（`features/dishMedia/components/ActionButtons.tsx`）:
+
+	| フラグ | 意味（`shared/api/v1/res/dish-media.response.ts`） |
+	| --- | --- |
+	| `isEaten` | その料理に自分の `dish_reviews` が 1 件でもあるか（= 食べた） |
+	| `isSaved` | その料理を保存しているか（= 食べたい） |
+
+	⚠️ `isEaten` は optional で、詰めているのは `GET /v1/dish-media?ids=` だけである。
+	   仕様どおり **`undefined` は `false` と同じに扱う**（この Feed は必ずその経路で読むので、
+	   実機では必ず入っている）。entry がまだ確定していない（`null`）間は、カテゴリ chip と
+	   同じく何も出さない。
+	*/
+	if (entry?.dish_media?.isEaten === true) {
+		chips.push({
+			id: "statusEaten",
+			label: i18n.t("MyDishes.feed.chips.filterStatusEaten"),
+			active: filter.status.length === 1 && filter.status[0] === "eaten",
+			patch: { status: ["eaten"] },
+		});
+	}
+	if (entry?.dish_media?.isSaved === true) {
+		chips.push({
+			id: "statusWant",
+			label: i18n.t("MyDishes.feed.chips.filterStatusWant"),
+			active: filter.status.length === 1 && filter.status[0] === "want",
+			patch: { status: ["want"] },
+		});
+	}
 
 	// ★N 以上は `status` が `["eaten"]` のときだけ出す（#1395 m-4: want 行は rating を持たないので、
 	// 評価で絞ると「食べたい」が全消しになる）。判定は store 側の唯一の実装を使う

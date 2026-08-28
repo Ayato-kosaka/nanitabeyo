@@ -1074,7 +1074,11 @@
 			"activeCount": "{{count}} filters active"
 		},
 		"empty": {
-			"description": "Dishes you save or record as eaten will show up here."
+			"description": "Dishes you save or record as eaten will show up here.",
+			"noResultsInArea": "No records in this area.",
+			"noResultsInAreaHint": "Move the map and tap “Search this area”, or clear the filters.",
+			"noResultsForFilter": "No records match these filters.",
+			"noResultsForFilterHint": "Clear the filters to see your other records."
 		},
 		"list": {
 			"noPhoto": "No photo"

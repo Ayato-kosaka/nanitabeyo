@@ -1074,7 +1074,11 @@
 			"activeCount": "필터 {{count}}개 적용 중"
 		},
 		"empty": {
-			"description": "저장하거나 먹었다고 기록한 음식이 여기에 표시됩니다."
+			"description": "저장하거나 먹었다고 기록한 음식이 여기에 표시됩니다.",
+			"noResultsInArea": "이 범위에는 기록이 없어요.",
+			"noResultsInAreaHint": "지도를 옮겨 ‘이 지역에서 다시 검색’을 누르거나 필터를 해제해 보세요.",
+			"noResultsForFilter": "조건에 맞는 기록이 없어요.",
+			"noResultsForFilterHint": "필터를 해제하면 다른 기록이 표시됩니다."
 		},
 		"list": {
 			"noPhoto": "사진 없음"
