@@ -85,6 +85,32 @@ FROM (
 """
 
 
+def fetch_shard(url: str, dest: pathlib.Path, tok: str, tries: int = 6) -> str:
+    """#1653 【バグ】1本目の実行は 96/100 シャードが取れずに終わった。原因は
+    **HuggingFace のレート制限（HTTP 429）**である。10本を続けて落とした時点で
+    429 になり、以降は1回の取り直しも同じ 429 で落ちて、全部 `failed` に流れた。
+    そのまま『日本の飲食 35 件』という**測定になっていない数字**が出ていた。
+
+    429 を見たら**待って取り直す**。待ち時間は 60 秒から倍にしていく。
+    """
+    wait = 60
+    for t in range(tries):
+        r = subprocess.run(["curl", "-sL", url, "-H", f"Authorization: Bearer {tok}",
+                            "-o", str(dest), "-w", "%{http_code}"],
+                           capture_output=True, timeout=1800)
+        code = r.stdout.decode().strip()
+        if code == "200" and ok_parquet(dest):
+            return code
+        dest.unlink(missing_ok=True)
+        if code == "429":
+            print(f"      429。{wait}秒待つ（{t+1}/{tries}）", file=sys.stderr, flush=True)
+            time.sleep(wait)
+            wait = min(wait * 2, 900)
+            continue
+        return code
+    return "429"
+
+
 def ok_parquet(p: pathlib.Path) -> bool:
     """末尾が PAR1 で終わっているかで、切れた取得を弾く。"""
     if not p.exists() or p.stat().st_size < 1_000_000:
@@ -109,10 +135,7 @@ def main() -> None:
     for i in order:
         url = f"{BASE}/places_{i:06d}.parquet"
         p = TMP / f"fsq_{i:03d}.parquet"
-        r = subprocess.run(["curl", "-sL", url, "-H", f"Authorization: Bearer {tok}",
-                            "-o", str(p), "-w", "%{http_code}"],
-                           capture_output=True, timeout=1800)
-        code = r.stdout.decode().strip()
+        code = fetch_shard(url, p, tok)
         # #1653 【バグ】最初は「1MB 以上なら OK」としていたので、**途中で切れた
         #   parquet が検査を通り**、duckdb が "No magic bytes found at end of file" で
         #   落ちて 10 本目で全体が止まった。**末尾の PAR1 を確かめる**のが正しい。
@@ -120,9 +143,7 @@ def main() -> None:
             print(f"  [{i:>3}] 取得失敗 http={code} → 1回だけ取り直す",
                   file=sys.stderr, flush=True)
             p.unlink(missing_ok=True)
-            r = subprocess.run(["curl", "-sL", url, "-H", f"Authorization: Bearer {tok}",
-                                "-o", str(p), "-w", "%{http_code}"],
-                               capture_output=True, timeout=1800)
+            code = fetch_shard(url, p, tok)
             if not ok_parquet(p):
                 print(f"  [{i:>3}] 取り直しも失敗。飛ばす", file=sys.stderr, flush=True)
                 p.unlink(missing_ok=True)
@@ -135,6 +156,7 @@ def main() -> None:
             jp_hits.append(i)
         p.unlink(missing_ok=True)
         done += 1
+        time.sleep(15)          # レート制限に当たらないよう間隔を空ける
         el = time.time() - t0
         print(f"  [{done:>3}/{N_SHARDS}] shard {i:>3} 日本 {tot['jp_all']:>7,} / 飲食 "
               f"{tot['jp_dining']:>7,} / 営業中 {tot['jp_dining_open']:>7,} / "
