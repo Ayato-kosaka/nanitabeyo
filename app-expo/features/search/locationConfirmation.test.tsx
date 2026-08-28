@@ -7,9 +7,9 @@
 //
 // ここで固定するのは
 //   1. 候補選択直後は「確認中」になること
-//   2. details が成功すれば「確定」になり、入力欄の値が候補の正式なフル地名(text)へ
-//      置き換わること(案A: 成功は文章ではなく値の置き換えで伝える)、最近使った場所へ
-//      同じ正式地名で保存されること
+//   2. details が成功すれば「確定」になること。#1673 で入力欄の値は選択時の mainText から
+//      **動かさない**ことに戻したので、確定の合図は ✓ アイコンだけであること、
+//      最近使った場所へも mainText で保存されること
 //   3. details が失敗すれば「失敗」になり、再試行(onRetryConfirmation)でやり直せること
 //   4. 確認中に別候補へ選び直したとき、先発の取得が後から返ってきても確定状態を上書きしないこと
 //
@@ -120,11 +120,15 @@ function createDeferred<T>() {
 	return { promise, resolve, reject };
 }
 
-// #1502 【案A】text(正式なフル地名)と mainText(短い表記)を別の値にしておくことで、
-// 「確定時に入力欄の値が mainText → text へ置き換わる」ことを区別して検証できる
+// #1673 【テスト】text は mainText と別の値にしておき、確定しても入力欄が text へ
+// 化けないことを区別して検証できるようにする。
+// ⚠️ text の並びは実 API に合わせること。Google Autocomplete は languageCode: ja では
+// **日本語の住所順**(secondaryText が先・mainText が後)で text を返す。
+// #1502 の検証はこれを逆順のモックで撮っていたため、本番でだけ主たる地名が末尾へ回る
+// 現象(「日本、東京都渋谷区 渋谷駅」)を最後まで観測できなかった。
 const predictionA = {
 	place_id: "place-a",
-	text: "地点A, 東京都",
+	text: "東京都 地点A",
 	mainText: "地点A",
 	secondaryText: "東京都",
 	types: ["establishment"],
@@ -132,7 +136,7 @@ const predictionA = {
 
 const predictionB = {
 	place_id: "place-b",
-	text: "地点B, 東京都",
+	text: "東京都 地点B",
 	mainText: "地点B",
 	secondaryText: "東京都",
 	types: ["establishment"],
@@ -175,7 +179,7 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 		expect(onSelectSuggestion).toBeDefined();
 	}
 
-	it("候補選択直後は「確認中」になり、details 成功後に「確定」へ遷移して入力値が正式地名に置き換わり、最近使った場所に保存される", async () => {
+	it("候補選択直後は「確認中」になり、details 成功後に「確定」へ遷移しても入力値は mainText のままで、最近使った場所に保存される", async () => {
 		const deferred = createDeferred<LocationDetailsResponse>();
 		mockGetLocationDetails.mockReturnValueOnce(deferred.promise);
 		renderScreen();
@@ -196,10 +200,11 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 		});
 
 		expect(latestConfirmationStatus).toBe("confirmed");
-		// #1502 【案A】成功文言の代わりに、入力欄の値が正式なフル地名(text)へ置き換わる
-		expect(latestLocationQuery).toBe("地点A, 東京都");
-		// 最近使った場所にも確定後の入力欄と同じ正式地名で保存される
-		expect(mockAddRecentLocation).toHaveBeenCalledWith(expect.objectContaining({ locationQuery: "地点A, 東京都" }));
+		// #1673 確定しても入力欄は選んだ候補の mainText のまま(text へ置き換えない)
+		expect(latestLocationQuery).toBe("地点A");
+		expect(latestLocationQuery).not.toBe(predictionA.text);
+		// 最近使った場所にも入力欄と同じ mainText で保存される(保存料理タブと同一の表記)
+		expect(mockAddRecentLocation).toHaveBeenCalledWith(expect.objectContaining({ locationQuery: "地点A" }));
 	});
 
 	it("details が失敗すると「失敗」になり、再試行(onRetryConfirmation)で同じ候補を取り直せる", async () => {
@@ -265,7 +270,9 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 			await Promise.resolve();
 		});
 		expect(latestConfirmationStatus).toBe("confirming");
-		// 遅れて届いた A の正式地名で入力値が書き換わっていない(まだ B の mainText のまま)
+		// 入力欄は選び直した B のまま(A の遅延結果で書き換わっていない)。
+		// ⚠️ #1673 以降、確定時に入力欄を書き換えないので、この行だけでは競合を検出できない。
+		// 競合を実際に捕まえるのは下の addRecentLocation の呼び出し回数・引数の検証である。
 		expect(latestLocationQuery).toBe("地点B");
 		expect(mockAddRecentLocation).not.toHaveBeenCalled();
 
@@ -276,10 +283,9 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 			await Promise.resolve();
 		});
 		expect(latestConfirmationStatus).toBe("confirmed");
-		// #1502 【案A】確定した B の正式地名(text)に置き換わっている(A の text ではない)
-		expect(latestLocationQuery).toBe("地点B, 東京都");
+		expect(latestLocationQuery).toBe("地点B");
 		// 最近使った場所に保存されるのは B の分だけ(A の遅延結果に上書きされていない)
 		expect(mockAddRecentLocation).toHaveBeenCalledTimes(1);
-		expect(mockAddRecentLocation).toHaveBeenCalledWith(expect.objectContaining({ locationQuery: "地点B, 東京都" }));
+		expect(mockAddRecentLocation).toHaveBeenCalledWith(expect.objectContaining({ locationQuery: "地点B" }));
 	});
 });

@@ -26,8 +26,8 @@ import { SearchScreen } from "../../screens/SearchScreen";
  *
  * ## 案A (オーナー採用・成功は文章で語らない)
  * - confirming: 入力欄右端に小さなスピナー(文言なし)
- * - confirmed: 入力欄右端に ✓ が一瞬(2000ms)だけ出て、入力欄の値が候補の正式なフル地名
- *   (autocomplete の text)へ置き換わる。「地点が確定しました」等の成功文言は存在しない
+ * - confirmed: 入力欄右端に ✓ が一瞬(2000ms)だけ出るだけ。「地点が確定しました」等の
+ *   成功文言は存在せず、#1673 以降は**入力欄の値も動かない**(選んだ候補の mainText のまま)
  * - error: 現行どおり赤の1行+再試行ボタン(エラーだけが言葉を持つ)
  *
  * ## ⚠️ web 側とのカバレッジ差(意図的)
@@ -97,5 +97,20 @@ describe("地点確認(confirming/confirmed)の状態表示(実 API)", () => {
 		});
 
 		await device.enableSynchronization();
+
+		// #1673 【回帰】確定しても入力欄は候補の mainText のまま(確定の合図は ✓ だけ)。
+		// #1502 は確定時に autocomplete の text へ置き換えていたが、実 API(languageCode: ja)の text は
+		// 日本語の住所順で返るため「日本、東京都渋谷区 渋谷駅」となり、主たる地名が末尾へ回っていた。
+		// ⚠️ この回帰は **実 API でしか出ない**(e2e-web / jest のモックは text を逆順に作っていたため
+		// 最後まで観測できなかった)。実 API を叩くこの spec が唯一の観測点なのでここに置く。
+		// ⚠️ 読み取りは**同期機構を戻してから**行う。値は ✓ が消えたあとも残るので急ぐ必要が無く、
+		// 既に CI で通っている readLocationInputText の使い方(location-suggestion-tap.test.ts)と
+		// 同じ条件に揃えるため。
+		const confirmedInputText = await search.readLocationInputText();
+		assert.notEqual(confirmedInputText, "", "確定後の場所入力欄が空です(選択が成立していない可能性)");
+		assert.ok(
+			!confirmedInputText.startsWith("日本"),
+			`確定後の入力欄が国名から始まっている(autocomplete の text へ置き換わっている疑い): ${confirmedInputText}`,
+		);
 	});
 });

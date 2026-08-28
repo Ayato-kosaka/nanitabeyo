@@ -17,9 +17,16 @@ import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/
  *
  * ## 案A (オーナー採用・成功は文章で語らない)
  * - confirming: 入力欄右端に小さなスピナー(文言なし)
- * - confirmed: 入力欄右端に ✓ が一瞬(2000ms)だけ出て、入力欄の値が候補の正式なフル地名
- *   (autocomplete の text)へ置き換わる。「地点が確定しました」等の成功文言は存在しない
+ * - confirmed: 入力欄右端に ✓ が一瞬(2000ms)だけ出るだけ。「地点が確定しました」等の
+ *   成功文言は存在せず、#1673 以降は**入力欄の値も動かない**(選んだ候補の mainText のまま)
  * - error: 現行どおり赤の1行+再試行ボタン(エラーだけが言葉を持つ)
+ *
+ * ## #1673 入力欄の値は mainText から動かさない
+ * #1502 は確定の合図として入力欄を autocomplete の text へ置き換えていたが、text は
+ * languageCode: ja だと**日本語の住所順**で返るため主たる地名が末尾へ回っていた
+ * (「日本、東京都渋谷区 渋谷駅」)。オーナー判断(2026-08-28)で置き換え自体を止めた。
+ * ⚠️ モックの text も実 API と同じ住所順にすること。#1502 の検証は text を
+ * `mainText, secondaryText` の逆順で作っていたため、この現象を観測できなかった。
  *
  * ## モック方針
  * 実 Google Places / details API の応答タイミングは制御できず、「確認中」を安定して
@@ -44,14 +51,14 @@ const RETRY_PLACE_ID = "e2e-1502-retry";
 const AUTOCOMPLETE_CANDIDATES: AutocompleteLocation[] = [
 	{
 		place_id: OK_PLACE_ID,
-		text: "確認テスト地点A, 東京都",
+		text: "東京都 確認テスト地点A",
 		mainText: "確認テスト地点A",
 		secondaryText: "東京都",
 		types: ["establishment"],
 	},
 	{
 		place_id: RETRY_PLACE_ID,
-		text: "確認テスト地点B, 東京都",
+		text: "東京都 確認テスト地点B",
 		mainText: "確認テスト地点B",
 		secondaryText: "東京都",
 		types: ["establishment"],
@@ -80,13 +87,15 @@ function createGate(): { promise: Promise<void>; release: () => void } {
 }
 
 test.describe("地点確認(confirming/confirmed/error)の状態表示 (#1502)", () => {
-	// ─ テストケース: 確認中(スピナー) → 確定(✓+値の置き換え) → ✓ が黙って消える ─
+	// ─ テストケース: 確認中(スピナー) → 確定(✓ だけ) → ✓ が黙って消える ─
 	// 手順:
 	//   1. autocomplete を固定候補にモックし、details(OK_PLACE_ID)を保留可能にモックする
 	//   2. 候補を選択した直後、確認中のスピナーが出ることを検証
-	//   3. details 応答を解放し、✓ が出て入力欄の値が正式なフル地名(text)へ置き換わることを検証
+	//   3. details 応答を解放し、✓ が出ること・入力欄の値は mainText のままであることを検証
 	//   4. 確認中/失敗の表示が同時に残っておらず、✓ も一瞬(2000ms)で消えることを検証
-	test("候補選択直後は確認中の表示が出て、details 成功後に ✓ と値の置き換えで確定が伝わる", async ({ appPage }) => {
+	test("候補選択直後は確認中の表示が出て、details 成功後は ✓ だけで確定が伝わり入力値は変わらない", async ({
+		appPage,
+	}) => {
 		const context = appPage.context();
 		const okGate = createGate();
 
@@ -127,9 +136,9 @@ test.describe("地点確認(confirming/confirmed/error)の状態表示 (#1502)",
 
 		okGate.release();
 
-		// 案A: 成功文言は無い。✓ が出て、入力欄の値が候補の正式なフル地名(text)へ置き換わる
+		// 案A: 成功文言は無い。✓ だけが出る。#1673 入力欄は選んだ候補の mainText のまま
 		await expect(searchPage.locationConfirmed).toBeVisible();
-		await expect(searchPage.locationInput).toHaveValue("確認テスト地点A, 東京都");
+		await expect(searchPage.locationInput).toHaveValue("確認テスト地点A");
 		await expect(searchPage.locationConfirming).toHaveCount(0);
 		await expect(searchPage.locationConfirmationError).toHaveCount(0);
 
@@ -209,9 +218,9 @@ test.describe("地点確認(confirming/confirmed/error)の状態表示 (#1502)",
 
 		retryGate.release();
 
-		// 再試行の成功も案Aどおり: ✓ + 入力値の正式地名への置き換えで伝わる
+		// 再試行の成功も案Aどおり: ✓ だけで伝わり、入力値は mainText のまま
 		await expect(searchPage.locationConfirmed).toBeVisible();
-		await expect(searchPage.locationInput).toHaveValue("確認テスト地点B, 東京都");
+		await expect(searchPage.locationInput).toHaveValue("確認テスト地点B");
 		await expect(searchPage.locationConfirming).toHaveCount(0);
 		await expect(searchPage.locationConfirmationError).toHaveCount(0);
 	});

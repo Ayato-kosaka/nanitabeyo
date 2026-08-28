@@ -293,18 +293,19 @@ export default function SearchScreen() {
 			const locationDetails = await getLocationDetails(prediction);
 			if (locationConfirmationRequestIdRef.current !== requestId) return;
 			setLocation(locationDetails);
-			// #1502 【案A】成功は文章で語らず、入力欄の値を「解決済みの正式な地名」へ置き換える
-			// こと自体で「掴んだ場所はここ」を伝える(例:「渋谷」→「渋谷区, 東京都」)。
-			// details API のレスポンスに人間可読の地名は無い(address は "country:JP, locality:…"
-			// の機械形式)ため、autocomplete が返す候補の完全表記(text = mainText + secondaryText)を
-			// 正式地名として使う。ユーザーがタップした候補そのものの表記なので齟齬は生まれない。
-			setLocationQuery(prediction.text);
+			// #1673 【仕様】確定しても入力欄の値は選んだ候補の mainText のまま変えない。
+			// #1502 は確定の合図として値を prediction.text(候補の完全表記)へ置き換えていたが、
+			// Google Autocomplete の text は languageCode: ja だと**日本語の住所順**で返るため
+			// (mainText「渋谷駅」/ secondaryText「日本、東京都渋谷区」→ text「日本、東京都渋谷区 渋谷駅」)、
+			// 主たる地名が末尾へ回り、入力欄の幅で切れると何を選んだのか読めなくなっていた。
+			// オーナー判断(2026-08-28): 入力欄の変化による確定の合図は不要。確定は ✓ アイコンだけで伝える。
+			// ⚠️ 「text = mainText + secondaryText」は成り立たない。表示に text を使い直さないこと。
 			setLocationConfirmationStatus("confirmed");
 			// #953 【仕様】details 取得に成功した地点だけを「最近使った場所」に保存する。
 			// viewport はスプレッドすると型上は Omit していても実行時には残ってしまうため、明示的に除く。
-			// #1502 保存する表示名も確定後の入力欄と同じ正式地名(text)に揃える
+			// #1673 保存する表示名も入力欄と同じ mainText に揃える(保存料理タブと同一の表記になる)
 			const { viewport: _viewport, ...locationWithoutViewport } = locationDetails;
-			addRecentLocation({ ...locationWithoutViewport, locationQuery: prediction.text });
+			addRecentLocation({ ...locationWithoutViewport, locationQuery: prediction.mainText });
 		} catch (error) {
 			if (locationConfirmationRequestIdRef.current !== requestId) return;
 			logFrontendEvent({
