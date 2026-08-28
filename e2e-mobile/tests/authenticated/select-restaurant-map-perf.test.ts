@@ -146,6 +146,9 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		*/
 		await device.setLocation(35.6812, 139.7671); // 東京駅
 		await tapWhenVisible(by.id("review-select-restaurant-current-location-button"), DEFAULT_TIMEOUT);
+		// `animateToRegion` は 1000ms かけて動く。その後の onRegionChangeComplete →
+		// デバウンス 400ms → 取得、まで落ち着かせてから測る
+		await new Promise((resolve) => setTimeout(resolve, 5000));
 		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
 		await device.takeScreenshot("search-this-area-02-moved-to-tokyo");
 		console.log(`[search-this-area] 東京駅へ寄せた直後のマーカー: ${await markerReport()}`);
