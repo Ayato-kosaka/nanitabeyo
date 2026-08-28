@@ -1,0 +1,101 @@
+{
+  "n_files": 4,
+  "distinct_posts": 17,
+  "distinct_hosts": 17,
+  "sampled": 17,
+  "food": 3,
+  "food_pct": 17.6,
+  "top_hosts_by_link_count": [
+    [
+      "favorinico.jp",
+      1
+    ],
+    [
+      "kura-cooking.jp",
+      1
+    ],
+    [
+      "program.bayfm.co.jp",
+      1
+    ],
+    [
+      "sumitaya.co.jp",
+      1
+    ],
+    [
+      "media138.jp",
+      1
+    ],
+    [
+      "shifit.co.jp",
+      1
+    ],
+    [
+      "tomohouse.jp",
+      1
+    ],
+    [
+      "saisyokukenbi.jp",
+      1
+    ],
+    [
+      "young-arita-8212.pecori.jp",
+      1
+    ],
+    [
+      "fukuyamanime.jp",
+      1
+    ],
+    [
+      "ja-shizuokashi.or.jp",
+      1
+    ],
+    [
+      "tra.a-bisu.jp",
+      1
+    ],
+    [
+      "kouwan-kensetsu.co.jp",
+      1
+    ],
+    [
+      "bosque-ltd.co.jp",
+      1
+    ],
+    [
+      "coco-tte.jp",
+      1
+    ]
+  ],
+  "hosts_with_food_posts": [
+    [
+      "coco-tte.jp",
+      1,
+      1
+    ],
+    [
+      "young-arita-8212.pecori.jp",
+      1,
+      1
+    ],
+    [
+      "okinawa-resortnavi.jp",
+      1,
+      1
+    ]
+  ],
+  "food_examples": [
+    {
+      "host": "coco-tte.jp",
+      "cap": "> cocotte_jp   NEKO LABの新デザイン「こねこクッキー缶」が登場♡愛らしい猫スイーツを楽しむ  🔎プロフィールはこちら→ @cocotte_jp   「NEKO LAB」から、人気"
+    },
+    {
+      "host": "young-arita-8212.pecori.jp",
+      "cap": "> uwanosora2023   ☺︎  雨の休日。  朝から雨がずっと降っていたので 1日中のんびりと骨休み。  下の階から掃除機の音。  ありがたい音です。  写真は、お客様が凄く綺麗に撮ってく"
+    },
+    {
+      "host": "okinawa-resortnavi.jp",
+      "cap": "> vietnam.marley   . おはようございます。  本日はランチ営業予定でしたが 想像以上に風が強いので、 安全のため、終日お休みさせて頂きます🙇‍♂️🙇‍♀️  ご理解の程、どうぞよろ"
+    }
+  ]
+}

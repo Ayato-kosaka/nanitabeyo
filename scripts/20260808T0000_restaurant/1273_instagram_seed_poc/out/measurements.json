@@ -343,6 +343,11 @@
       "manual_review": "60 本のキャプションを目視。9 件の loose 判定のうち実レストランは POTATO & CAFE 1 件のみ。残りはブライダル・雨具・美術展・ダイビング・イナバ物置",
       "true_food_pct_estimate": "1〜2%",
       "verdict": "WAT の日本由来 instagram は大半が非飲食（企業・趣味・イベント告知）。**発見源としては効率が悪い**（無料だが 100 本エンリッチして飲食 1〜2 本）。3.15M × 2% = 約6万本/crawl 程度で、しかも店舗照合が別途要る"
+    },
+    "wat_domain_stratification": {
+      "hypothesis": "オーナー案『WET/元ページで飲食を事前フィルタ』の軽量版。元ドメインで層別して飲食率が上がるか",
+      "result": "小標本（17投稿）だが、飲食IGリンクは1ドメイン1本ずつで、bayfm・JA静岡・アニメ・企業サイト等の無関係な.jpに散在。食メディアに集中しない",
+      "verdict": "**ドメイン/WET フィルタで WAT を効率化するのは難しい。** 飲食リンクがクラスタしないため、allowlist が作れない。WAT は無料の発見源としては不採用"
     }
   },
   "4_20_unknown_license_datasets": {
@@ -500,5 +505,19 @@
     },
     "storage": "公開データのみ・GDPR/CCPA準拠を掲げるが、法的責任は利用者側に残る（Indemnification §8）。買ったデータの自社DB化は可だが DPA 遵守義務あり",
     "verdict": "Apify と同水準（$1.5/1K・月5,000無料）。日本×飲食はハッシュタグ入力で収集する形"
+  },
+  "FREE_ceiling_synthesis": {
+    "architecture": "[飲食URLの発見] → resolve(embed・無料) → 料理カテゴリ＋店舗。エンリッチは無料で解決済み。残る変数は発見のみ",
+    "free_discovery_sources": {
+      "open_data_accounts": "4.1〜4.5 の union で約 40,000 アカウント（＝店。照合自明）",
+      "site_reading_via_common_crawl": "website 保有店 312,559 の約18% から IG アカウント → 約57,000 店（相手サーバ無負荷・無料）",
+      "site_crawl_live": "4.3 全体で 15.17% = 約172,000 店。ただし自前クロール（第三者サーバへアクセス）",
+      "wat": "非効率（飲食2%・クラスタせず）。不採用",
+      "gdelt_datasets": "日本の飲食ほぼゼロ。不採用"
+    },
+    "free_ceiling_no_crawl": "約80,000〜90,000 店（open data 40k + CC サイト読み 57k、一部重複）＝ 約7〜8%",
+    "free_ceiling_with_self_crawl": "約172,000 店 = 15.17%",
+    "beyond_ceiling": "自分のサイトを持たない/IGアカウントを持たない店は、検索でしか発見できず、そこが有料（Serper $317 等）",
+    "enrichment_all_free": "business_discovery（200コール/時・無料）＋ embed（無料100%）"
   }
 }
