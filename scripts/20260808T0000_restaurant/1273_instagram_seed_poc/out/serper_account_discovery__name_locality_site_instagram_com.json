@@ -1,0 +1,721 @@
+{
+  "summary": {
+    "template": "{name} {locality} site:instagram.com",
+    "n": 60,
+    "credits_used": 60,
+    "any_profile_returned": 45,
+    "hit_top1": 32,
+    "hit_any": 34,
+    "recall_top1_pct": 53.33,
+    "recall_any_pct": 56.67
+  },
+  "rows": [
+    {
+      "name": "ars",
+      "locality": "中央区",
+      "query": "ars 中央区 site:instagram.com",
+      "truth": "restaurant_ars_tokyo",
+      "found": [
+        "restaurant_ars_tokyo"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "元祖豚饅頭 老祥記",
+      "locality": "神戸市",
+      "query": "元祖豚饅頭 老祥記 神戸市 site:instagram.com",
+      "truth": "roushouki",
+      "found": [
+        "roushouki"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "キャットラウンジ nonnon ザ・モール仙台長町店",
+      "locality": "仙台市",
+      "query": "キャットラウンジ nonnon ザ・モール仙台長町店 仙台市 site:instagram.com",
+      "truth": "cat.non_non",
+      "found": [
+        "cat.non_non"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "丸亀製麺",
+      "locality": "野洲市",
+      "query": "丸亀製麺 野洲市 site:instagram.com",
+      "truth": "marugame_",
+      "found": [
+        "t.fuji0718"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "Patisserie Cafe こんま亭",
+      "locality": "いなべ市",
+      "query": "Patisserie Cafe こんま亭 いなべ市 site:instagram.com",
+      "truth": "patisseriecafe_konmatei",
+      "found": [
+        "patisseriecafe_konmatei"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "ワインバー マイアーレ",
+      "locality": "墨田区",
+      "query": "ワインバー マイアーレ 墨田区 site:instagram.com",
+      "truth": "maiale4441",
+      "found": [
+        "maiale4441"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "なっちょり",
+      "locality": "中野区",
+      "query": "なっちょり 中野区 site:instagram.com",
+      "truth": "nacchori_0330",
+      "found": [
+        "nacchori_0330"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "麺創房 無敵家",
+      "locality": "豊島区",
+      "query": "麺創房 無敵家 豊島区 site:instagram.com",
+      "truth": "mutekiya",
+      "found": [
+        "mutekiya"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "とんかつ檍のカレー屋 いっぺこっぺ横浜元町店",
+      "locality": "横浜市",
+      "query": "とんかつ檍のカレー屋 いっぺこっぺ横浜元町店 横浜市 site:instagram.com",
+      "truth": "ippekoppemotomachi",
+      "found": [
+        "ippekoppemotomachi",
+        "ippekoppe_yokohama_sugita",
+        "ippe_koppe"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "Starbucks",
+      "locality": "さいたま市",
+      "query": "Starbucks さいたま市 site:instagram.com",
+      "truth": "starbucks_j",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "GRANDIR 天王寺ミオ店",
+      "locality": "大阪市",
+      "query": "GRANDIR 天王寺ミオ店 大阪市 site:instagram.com",
+      "truth": "grandirkyoto",
+      "found": [
+        "grandirkyoto"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "ジョリーパスタ 上水前寺店",
+      "locality": "熊本市",
+      "query": "ジョリーパスタ 上水前寺店 熊本市 site:instagram.com",
+      "truth": "jollypasta_jp",
+      "found": [
+        "yuka1472580369",
+        "yuz_pan"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "カフェ マチルダ",
+      "locality": "川越市",
+      "query": "カフェ マチルダ 川越市 site:instagram.com",
+      "truth": "cafe_matilda_pancakes",
+      "found": [
+        "cafe_matilda_pancakes"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "リープリング",
+      "locality": "浜松市",
+      "query": "リープリング 浜松市 site:instagram.com",
+      "truth": "liebling729",
+      "found": [
+        "liebling729",
+        "liebling410"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "キッチンオリジン 新小岩店",
+      "locality": "葛飾区",
+      "query": "キッチンオリジン 新小岩店 葛飾区 site:instagram.com",
+      "truth": "kitchenoriginofficial",
+      "found": [
+        "moncostsaihanshop"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "Tully's Coffee",
+      "locality": "大阪市",
+      "query": "Tully's Coffee 大阪市 site:instagram.com",
+      "truth": "tullyscoffeejapan",
+      "found": [
+        "tullys.umeda.north",
+        "tullys_communityfoodhall.osaka",
+        "tullys_osc"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "鐵",
+      "locality": "堺市",
+      "query": "鐵 堺市 site:instagram.com",
+      "truth": "kurogane.mozu",
+      "found": [
+        "yakinikukurogane",
+        "kurogane.mozu",
+        "sakaishitetsu",
+        "sakaiblazers_official"
+      ],
+      "hit_top1": false,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "にくTATSU",
+      "locality": "中央区",
+      "query": "にくTATSU 中央区 site:instagram.com",
+      "truth": "oumiushi_nikutatsu_nihonbashi",
+      "found": [
+        "oumiushi_nikutatsu_ginza",
+        "oumiushi_nikutatsu_nihonbashi"
+      ],
+      "hit_top1": false,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "パティスリー プティ•パ",
+      "locality": "大和市",
+      "query": "パティスリー プティ•パ 大和市 site:instagram.com",
+      "truth": "makoto_0221",
+      "found": [
+        "patisserie_petit_pas.0714"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "まいにちパンや じじだだ",
+      "locality": "今治市",
+      "query": "まいにちパンや じじだだ 今治市 site:instagram.com",
+      "truth": "jijidada5",
+      "found": [
+        "jijidada5"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "神楽坂 茶寮 本店",
+      "locality": "新宿区",
+      "query": "神楽坂 茶寮 本店 新宿区 site:instagram.com",
+      "truth": "kagurazaka_saryo",
+      "found": [
+        "kagurazaka_saryo"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "Cafe Miyama",
+      "locality": "渋谷区",
+      "query": "Cafe Miyama 渋谷区 site:instagram.com",
+      "truth": "cafemiyama",
+      "found": [
+        "cafemiyama"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "博多餃子工房 たね屋",
+      "locality": "福岡市",
+      "query": "博多餃子工房 たね屋 福岡市 site:instagram.com",
+      "truth": "hakata.taneya",
+      "found": [
+        "hakata.taneya"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "ほっともっと",
+      "locality": "静岡市",
+      "query": "ほっともっと 静岡市 site:instagram.com",
+      "truth": "hottomotto_official",
+      "found": [
+        "hottomotto_official"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "ファーストキッチン・ウェンディーズ",
+      "locality": "新宿区",
+      "query": "ファーストキッチン・ウェンディーズ 新宿区 site:instagram.com",
+      "truth": "wendys_firstkitchen_official",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "ほっかほっか亭 十文字店",
+      "locality": "横手市",
+      "query": "ほっかほっか亭 十文字店 横手市 site:instagram.com",
+      "truth": "hokkahokka_tei",
+      "found": [
+        "hokka_jumonji"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "ココス",
+      "locality": "古河市",
+      "query": "ココス 古河市 site:instagram.com",
+      "truth": "cocos_j",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "寺子屋",
+      "locality": "新宿区",
+      "query": "寺子屋 新宿区 site:instagram.com",
+      "truth": "kudo.shoko",
+      "found": [
+        "terakoya_shinjuku"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "丸亀製麺",
+      "locality": "戸田市",
+      "query": "丸亀製麺 戸田市 site:instagram.com",
+      "truth": "marugame_",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "ふつうの居酒屋",
+      "locality": "福岡市",
+      "query": "ふつうの居酒屋 福岡市 site:instagram.com",
+      "truth": "futuu_yakuin",
+      "found": [
+        "futuu_yakuin"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "冨味屋",
+      "locality": "台東区",
+      "query": "冨味屋 台東区 site:instagram.com",
+      "truth": "fumiya.asakusa",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "牛角 大森店",
+      "locality": "大田区",
+      "query": "牛角 大森店 大田区 site:instagram.com",
+      "truth": "gyukaku_official",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "マクドナルド",
+      "locality": "世田谷区",
+      "query": "マクドナルド 世田谷区 site:instagram.com",
+      "truth": "mcdonaldsjapan",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "セアブラーメン 東中八",
+      "locality": "中央区",
+      "query": "セアブラーメン 東中八 中央区 site:instagram.com",
+      "truth": "azuma_chu_hachi",
+      "found": [
+        "azuma_chu_hachi"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "けやき亭",
+      "locality": "Toyama-shi",
+      "query": "けやき亭 Toyama-shi site:instagram.com",
+      "truth": "keyakitei",
+      "found": [
+        "keyakitei"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "Himmel",
+      "locality": "大田区",
+      "query": "Himmel 大田区 site:instagram.com",
+      "truth": "himmelbrot",
+      "found": [
+        "himmel_bar"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "炭火焼鳥ニワトリスター",
+      "locality": "大阪市旭区",
+      "query": "炭火焼鳥ニワトリスター 大阪市旭区 site:instagram.com",
+      "truth": "niwatori__star",
+      "found": [
+        "niwatori__star",
+        "keiya_dai",
+        "yakitori_torisen_kitashinchi"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "Starbucks Reserve Cafe",
+      "locality": "大阪市",
+      "query": "Starbucks Reserve Cafe 大阪市 site:instagram.com",
+      "truth": "starbucks_j",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "u-o no mori",
+      "locality": "三鷹市",
+      "query": "u-o no mori 三鷹市 site:instagram.com",
+      "truth": "uonomori_mitaka",
+      "found": [
+        "uonomori_mitaka"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "一風堂",
+      "locality": "川口市",
+      "query": "一風堂 川口市 site:instagram.com",
+      "truth": "ippudo_jp",
+      "found": [
+        "ippudo_jp",
+        "kippudo"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "ひつまぶし備長",
+      "locality": "墨田区",
+      "query": "ひつまぶし備長 墨田区 site:instagram.com",
+      "truth": "hitsumabushi_bincho",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "麺屋 TASUKU",
+      "locality": "倉吉市",
+      "query": "麺屋 TASUKU 倉吉市 site:instagram.com",
+      "truth": "menyatasuku2020",
+      "found": [
+        "menyatasuku2020"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "牛角",
+      "locality": "大田区",
+      "query": "牛角 大田区 site:instagram.com",
+      "truth": "gyukaku_official",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "ほっともっと",
+      "locality": "静岡市",
+      "query": "ほっともっと 静岡市 site:instagram.com",
+      "truth": "hottomotto_official",
+      "found": [
+        "hottomotto_official"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "フレッシュネスバーガー",
+      "locality": "世田谷区",
+      "query": "フレッシュネスバーガー 世田谷区 site:instagram.com",
+      "truth": "freshness_1992",
+      "found": [
+        "fbmusashikosugi"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "らーめん酒場八十一",
+      "locality": "福岡市",
+      "query": "らーめん酒場八十一 福岡市 site:instagram.com",
+      "truth": "ramensakabayasoichi",
+      "found": [
+        "ramensakabayasoichi",
+        "yasoichi_ijiri"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "濵かつ 福岡宗像店",
+      "locality": "宗像市",
+      "query": "濵かつ 福岡宗像店 宗像市 site:instagram.com",
+      "truth": "hamakatsu_official",
+      "found": [
+        "hamakatsu_official"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "Starbucks",
+      "locality": "柏市",
+      "query": "Starbucks 柏市 site:instagram.com",
+      "truth": "starbucks_j",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "焼肉バル ジュじゅJyu-",
+      "locality": "岡谷市",
+      "query": "焼肉バル ジュじゅJyu- 岡谷市 site:instagram.com",
+      "truth": "yakinikubaru_jyujyujyu",
+      "found": [
+        "yakinikubaru_jyujyujyu"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "らあめん花月嵐",
+      "locality": "松戸市",
+      "query": "らあめん花月嵐 松戸市 site:instagram.com",
+      "truth": "kagetsuarashi_official",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "デニーズ 会津花春店",
+      "locality": "会津若松市",
+      "query": "デニーズ 会津花春店 会津若松市 site:instagram.com",
+      "truth": "dennysjp_official",
+      "found": [
+        "ururusarara_"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "蕎麦屋樹庵",
+      "locality": "京都市",
+      "query": "蕎麦屋樹庵 京都市 site:instagram.com",
+      "truth": "sobaya_kian",
+      "found": [
+        "sobaya_kian"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "ココス",
+      "locality": "飯田市",
+      "query": "ココス 飯田市 site:instagram.com",
+      "truth": "cocos_j",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "TEA KUROBIN 小田急相模原店",
+      "locality": "相模原市",
+      "query": "TEA KUROBIN 小田急相模原店 相模原市 site:instagram.com",
+      "truth": "teakurobin_odasaga",
+      "found": [
+        "teakurobin_odasaga"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "ジョイフル 小野田中川店",
+      "locality": "山陽小野田市",
+      "query": "ジョイフル 小野田中川店 山陽小野田市 site:instagram.com",
+      "truth": "joyfull_info",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    },
+    {
+      "name": "永田カキ直販所",
+      "locality": "行橋市",
+      "query": "永田カキ直販所 行橋市 site:instagram.com",
+      "truth": "nagatakaki",
+      "found": [
+        "nagatakaki",
+        "minoshima_kaki"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "Picco (ピッコ)",
+      "locality": "茅野市",
+      "query": "Picco (ピッコ) 茅野市 site:instagram.com",
+      "truth": "gelateriapicco",
+      "found": [
+        "gelateriapicco",
+        "piccotraditional_ice_cream"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "犬カフェ Rio 新宿店",
+      "locality": "Shinjuku",
+      "query": "犬カフェ Rio 新宿店 Shinjuku site:instagram.com",
+      "truth": "puppycaferio",
+      "found": [
+        "rio.shinjuku",
+        "dogcafe_rio"
+      ],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": true
+    },
+    {
+      "name": "おまち堂 宇野港店",
+      "locality": "玉野市",
+      "query": "おまち堂 宇野港店 玉野市 site:instagram.com",
+      "truth": "omachido_honten",
+      "found": [
+        "omachido_honten"
+      ],
+      "hit_top1": true,
+      "hit_any": true,
+      "any_profile": true
+    },
+    {
+      "name": "ほっともっと",
+      "locality": "Kumagaya",
+      "query": "ほっともっと Kumagaya site:instagram.com",
+      "truth": "hottomotto_official",
+      "found": [],
+      "hit_top1": false,
+      "hit_any": false,
+      "any_profile": false
+    }
+  ]
+}

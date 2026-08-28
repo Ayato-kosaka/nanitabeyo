@@ -257,6 +257,28 @@
         "verified": "測定中（business_discovery のレート制限待ち）",
         "population": "FSQ の日本の飲食（営業中）で instagram 列が空の店 199,757 店の標本"
       }
+    },
+    "cell_depth": {
+      "pages_tested": 10,
+      "unique_posts": {
+        "ラーメン x 高松": 71,
+        "うなぎ x 五所川原": 64,
+        "寿司 x 渋谷": 86
+      },
+      "note": "10 ページ目でも新規が 6〜8 本出る。index はさらに深い"
+    },
+    "query_templates": {
+      "{name} {locality} instagram": {
+        "n": 100,
+        "recall_top1_pct": 79.0,
+        "recall_any_pct": 84.0
+      },
+      "{name} {locality} site:instagram.com": {
+        "n": 60,
+        "recall_top1_pct": 53.33,
+        "recall_any_pct": 56.67
+      },
+      "best": "{name} {locality} instagram"
     }
   },
   "4_14_common_crawl": {
@@ -292,6 +314,12 @@
         "docs_with_instagram_post_url": 1,
         "verdict": "抽出済みコーパスは href が落ちるので使えない。生 HTML でなければならない"
       }
+    },
+    "wayback_from_this_sandbox": {
+      "web.archive.org_https": "000（egress proxy が通さない）",
+      "web.archive.org_http": 403,
+      "timetravel": "000",
+      "note": "Wayback CDX は未検証のまま残る。EC2（.claude/skills/ec2-chrome-operate）からなら試せる"
     }
   },
   "4_20_unknown_license_datasets": {
@@ -330,6 +358,52 @@
       "code_hits_are_incidental": true,
       "post_url_lists": 0
     },
-    "verdict": "規約が不明だから却下なのではなく、そもそも存在しない"
+    "verdict": "規約が不明だから却下なのではなく、そもそも存在しない",
+    "wide_survey": {
+      "datacite": {
+        "unique": 312,
+        "instagram_in_title": 62,
+        "japan": 0,
+        "food": 5,
+        "note": "5件はいずれも研究コーパスで URL 一覧ではない"
+      },
+      "openml": {
+        "instagram_hits": 0
+      },
+      "osf": {
+        "reachable": true
+      },
+      "data_world": {
+        "reachable": true,
+        "instagram_mentions": 0
+      },
+      "academic_torrents": {
+        "reachable": true,
+        "instagram_mentions": 0
+      },
+      "aws_open_data": {
+        "http": 403
+      },
+      "nii_idr": {
+        "reachable": true,
+        "instagram_mentions": 0
+      },
+      "archive_team_twitter_stream": {
+        "items": 130,
+        "access_restricted_item": true,
+        "http": 401,
+        "verdict": "公開ダウンロード不可"
+      },
+      "hatena_bookmark": {
+        "entries_scanned": 1000,
+        "distinct_post_ids": 5,
+        "food_title_pct": 0.0,
+        "verdict": "はてなは技術・ニュース層で飲食が出てこない"
+      },
+      "mastodon_misskey": {
+        "verdict": "全文検索が自分の投稿に限られ、instagram.com/p は 0 件"
+      },
+      "verdict": "既製のデータセットは存在しない。作るしかない"
+    }
   }
 }
