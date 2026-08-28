@@ -1,0 +1,971 @@
+{
+  "purpose": "オーナーが定義し直した KPI「全国どこでも 132 料理が 5km 以内に 5 投稿」を測る",
+  "radius_km": 5.0,
+  "n_sampled_locations": 2000,
+  "n_rows": 1244008,
+  "n_ig_gated": 119862,
+  "ig_rate_used": 0.1494,
+  "restaurants_within_5km": {
+    "median": 2890,
+    "p10": 229,
+    "p90": 31983
+  },
+  "ig_restaurants_within_5km": {
+    "median": 266,
+    "p10": 17,
+    "p90": 3863
+  },
+  "dish_categories_within_5km_any_store": {
+    "median": 54,
+    "p10": 15,
+    "p90": 96
+  },
+  "dish_categories_within_5km_ig_store": {
+    "median": 23,
+    "p10": 3,
+    "p90": 67
+  },
+  "locations_meeting_132_categories": 0,
+  "locations_meeting_132_pct": 0.0,
+  "per_category_location_coverage_pct": [
+    {
+      "id": "Q30022",
+      "label_ja": "カフェ",
+      "salience": 0.56,
+      "locations": 1869,
+      "pct": 93.5
+    },
+    {
+      "id": "Q234646",
+      "label_ja": "ラーメン",
+      "salience": 0.98,
+      "locations": 1676,
+      "pct": 83.8
+    },
+    {
+      "id": "Q46383",
+      "label_ja": "寿司",
+      "salience": 0.98,
+      "locations": 1654,
+      "pct": 82.7
+    },
+    {
+      "id": "Q2431975",
+      "label_ja": "焼肉",
+      "salience": 0.97,
+      "locations": 1592,
+      "pct": 79.6
+    },
+    {
+      "id": "Q1193068",
+      "label_ja": "居酒屋",
+      "salience": 0.42,
+      "locations": 1567,
+      "pct": 78.3
+    },
+    {
+      "id": "Q753910",
+      "label_ja": "そば",
+      "salience": 0.96,
+      "locations": 1449,
+      "pct": 72.5
+    },
+    {
+      "id": "Q164606",
+      "label_ja": "カレー",
+      "salience": 0.84,
+      "locations": 1402,
+      "pct": 70.1
+    },
+    {
+      "id": "Q483163",
+      "label_ja": "焼き鳥",
+      "salience": 0.98,
+      "locations": 1387,
+      "pct": 69.3
+    },
+    {
+      "id": "Q471861",
+      "label_ja": "うどん",
+      "salience": 0.98,
+      "locations": 1303,
+      "pct": 65.1
+    },
+    {
+      "id": "Q177",
+      "label_ja": "ピザ",
+      "salience": 0.98,
+      "locations": 1280,
+      "pct": 64.0
+    },
+    {
+      "id": "Q107014807",
+      "label_ja": "餃子",
+      "salience": 0.9,
+      "locations": 1230,
+      "pct": 61.5
+    },
+    {
+      "id": "Q234138",
+      "label_ja": "和食",
+      "salience": 0.47,
+      "locations": 1216,
+      "pct": 60.8
+    },
+    {
+      "id": "Q10859394",
+      "label_ja": "ステーキ",
+      "salience": 0.85,
+      "locations": 1172,
+      "pct": 58.6
+    },
+    {
+      "id": "Q6663",
+      "label_ja": "ハンバーガー",
+      "salience": 0.78,
+      "locations": 1135,
+      "pct": 56.8
+    },
+    {
+      "id": "Q1142841",
+      "label_ja": "とんかつ",
+      "salience": 0.91,
+      "locations": 1082,
+      "pct": 54.1
+    },
+    {
+      "id": "Q701075",
+      "label_ja": "お好み焼き",
+      "salience": 0.83,
+      "locations": 1070,
+      "pct": 53.5
+    },
+    {
+      "id": "Q11559422",
+      "label_ja": "海鮮料理",
+      "salience": 0.47,
+      "locations": 1029,
+      "pct": 51.4
+    },
+    {
+      "id": "Q1061856",
+      "label_ja": "しゃぶしゃぶ",
+      "salience": 0.78,
+      "locations": 1002,
+      "pct": 50.1
+    },
+    {
+      "id": "Q13233",
+      "label_ja": "アイスクリーム",
+      "salience": 0.75,
+      "locations": 957,
+      "pct": 47.9
+    },
+    {
+      "id": "Q108798661",
+      "label_ja": "フライドチキン",
+      "salience": 0.68,
+      "locations": 940,
+      "pct": 47.0
+    },
+    {
+      "id": "Q178",
+      "label_ja": "パスタ",
+      "salience": 0.97,
+      "locations": 933,
+      "pct": 46.7
+    },
+    {
+      "id": "Q192786",
+      "label_ja": "イタリアン",
+      "salience": 0.42,
+      "locations": 923,
+      "pct": 46.2
+    },
+    {
+      "id": "Q1104399",
+      "label_ja": "唐揚げ",
+      "salience": 0.95,
+      "locations": 909,
+      "pct": 45.5
+    },
+    {
+      "id": "Q328709",
+      "label_ja": "天ぷら",
+      "salience": 0.97,
+      "locations": 886,
+      "pct": 44.3
+    },
+    {
+      "id": "Q10876842",
+      "label_ja": "中華料理",
+      "salience": 0.42,
+      "locations": 876,
+      "pct": 43.8
+    },
+    {
+      "id": "Q431640",
+      "label_ja": "鉄板焼き",
+      "salience": 0.78,
+      "locations": 874,
+      "pct": 43.7
+    },
+    {
+      "id": "Q1185709",
+      "label_ja": "串カツ",
+      "salience": 0.72,
+      "locations": 856,
+      "pct": 42.8
+    },
+    {
+      "id": "Q1422437",
+      "label_ja": "ウナギ",
+      "salience": 0.47,
+      "locations": 821,
+      "pct": 41.0
+    },
+    {
+      "id": "Q655040",
+      "label_ja": "おでん",
+      "salience": 0.81,
+      "locations": 766,
+      "pct": 38.3
+    },
+    {
+      "id": "Q3775525",
+      "label_ja": "もつ鍋",
+      "salience": 0.62,
+      "locations": 723,
+      "pct": 36.1
+    },
+    {
+      "id": "Q28099834",
+      "label_ja": "インドカレー",
+      "salience": 0.73,
+      "locations": 707,
+      "pct": 35.4
+    },
+    {
+      "id": "Q905527",
+      "label_ja": "たこ焼き",
+      "salience": 0.76,
+      "locations": 676,
+      "pct": 33.8
+    },
+    {
+      "id": "Q17605220",
+      "label_ja": "つけ麺",
+      "salience": 0.67,
+      "locations": 670,
+      "pct": 33.5
+    },
+    {
+      "id": "Q4892972",
+      "label_ja": "牛タン焼き",
+      "salience": 0.75,
+      "locations": 639,
+      "pct": 31.9
+    },
+    {
+      "id": "Q16983167",
+      "label_ja": "ハンバーグ",
+      "salience": 0.97,
+      "locations": 624,
+      "pct": 31.2
+    },
+    {
+      "id": "Q167692",
+      "label_ja": "もんじゃ焼き",
+      "salience": 0.72,
+      "locations": 609,
+      "pct": 30.4
+    },
+    {
+      "id": "Q647500",
+      "label_ja": "韓国料理",
+      "salience": 0.42,
+      "locations": 601,
+      "pct": 30.0
+    },
+    {
+      "id": "Q111836983",
+      "label_ja": "サンドイッチ",
+      "salience": 0.78,
+      "locations": 599,
+      "pct": 29.9
+    },
+    {
+      "id": "Q11280254",
+      "label_ja": "やきとん",
+      "salience": 0.68,
+      "locations": 557,
+      "pct": 27.9
+    },
+    {
+      "id": "Q3013426",
+      "label_ja": "担担麺",
+      "salience": 0.76,
+      "locations": 556,
+      "pct": 27.8
+    },
+    {
+      "id": "Q691365",
+      "label_ja": "四川料理",
+      "salience": 0.42,
+      "locations": 553,
+      "pct": 27.7
+    },
+    {
+      "id": "Q117231375",
+      "label_ja": "定食",
+      "salience": 0.56,
+      "locations": 531,
+      "pct": 26.6
+    },
+    {
+      "id": "Q420646",
+      "label_ja": "フォー",
+      "salience": 0.67,
+      "locations": 512,
+      "pct": 25.6
+    },
+    {
+      "id": "Q5907022",
+      "label_ja": "ホルモン焼き",
+      "salience": 0.47,
+      "locations": 512,
+      "pct": 25.6
+    },
+    {
+      "id": "Q6661",
+      "label_ja": "フレンチ",
+      "salience": 0.68,
+      "locations": 501,
+      "pct": 25.1
+    },
+    {
+      "id": "Q12200",
+      "label_ja": "クレープ",
+      "salience": 0.47,
+      "locations": 496,
+      "pct": 24.8
+    },
+    {
+      "id": "Q29960670",
+      "label_ja": "豚骨ラーメン",
+      "salience": 0.62,
+      "locations": 486,
+      "pct": 24.3
+    },
+    {
+      "id": "Q41927",
+      "label_ja": "沖縄料理",
+      "salience": 0.42,
+      "locations": 473,
+      "pct": 23.6
+    },
+    {
+      "id": "Q841984",
+      "label_ja": "タイ料理",
+      "salience": 0.42,
+      "locations": 469,
+      "pct": 23.4
+    },
+    {
+      "id": "Q96095589",
+      "label_ja": "油そば",
+      "salience": 0.69,
+      "locations": 434,
+      "pct": 21.7
+    },
+    {
+      "id": "Q175595",
+      "label_ja": "懐石料理",
+      "salience": 0.71,
+      "locations": 417,
+      "pct": 20.8
+    },
+    {
+      "id": "Q703286",
+      "label_ja": "ちゃんぽん",
+      "salience": 0.6,
+      "locations": 409,
+      "pct": 20.4
+    },
+    {
+      "id": "Q2718618",
+      "label_ja": "釜飯",
+      "salience": 0.73,
+      "locations": 408,
+      "pct": 20.4
+    },
+    {
+      "id": "Q846849",
+      "label_ja": "火鍋",
+      "salience": 0.69,
+      "locations": 397,
+      "pct": 19.9
+    },
+    {
+      "id": "Q13276",
+      "label_ja": "ケーキ",
+      "salience": 0.72,
+      "locations": 381,
+      "pct": 19.1
+    },
+    {
+      "id": "Q17229022",
+      "label_ja": "まぜそば",
+      "salience": 0.47,
+      "locations": 374,
+      "pct": 18.7
+    },
+    {
+      "id": "Q826059",
+      "label_ja": "ベトナム料理",
+      "salience": 0.47,
+      "locations": 369,
+      "pct": 18.4
+    },
+    {
+      "id": "Q862569",
+      "label_ja": "すき焼き",
+      "salience": 0.67,
+      "locations": 357,
+      "pct": 17.8
+    },
+    {
+      "id": "Q44541",
+      "label_ja": "パンケーキ",
+      "salience": 0.86,
+      "locations": 343,
+      "pct": 17.2
+    },
+    {
+      "id": "Q7491078",
+      "label_ja": "かき氷",
+      "salience": 0.47,
+      "locations": 343,
+      "pct": 17.2
+    },
+    {
+      "id": "Q28100912",
+      "label_ja": "牡蠣料理",
+      "salience": 0.71,
+      "locations": 335,
+      "pct": 16.8
+    },
+    {
+      "id": "Q1045248",
+      "label_ja": "天丼",
+      "salience": 0.78,
+      "locations": 324,
+      "pct": 16.2
+    },
+    {
+      "id": "Q1144102",
+      "label_ja": "焼きそば",
+      "salience": 0.84,
+      "locations": 320,
+      "pct": 16.0
+    },
+    {
+      "id": "Q427226",
+      "label_ja": "オムライス",
+      "salience": 0.87,
+      "locations": 308,
+      "pct": 15.4
+    },
+    {
+      "id": "Q215348",
+      "label_ja": "チーズケーキ",
+      "salience": 0.66,
+      "locations": 307,
+      "pct": 15.3
+    },
+    {
+      "id": "Q1394677",
+      "label_ja": "海鮮丼",
+      "salience": 0.83,
+      "locations": 300,
+      "pct": 15.0
+    },
+    {
+      "id": "Q13314",
+      "label_ja": "パフェ",
+      "salience": 0.75,
+      "locations": 297,
+      "pct": 14.8
+    },
+    {
+      "id": "Q1962004",
+      "label_ja": "鍋料理",
+      "salience": 0.69,
+      "locations": 295,
+      "pct": 14.8
+    },
+    {
+      "id": "Q11242256",
+      "label_ja": "味噌ラーメン",
+      "salience": 0.6,
+      "locations": 290,
+      "pct": 14.5
+    },
+    {
+      "id": "Q11323173",
+      "label_ja": "ドリア",
+      "salience": 0.81,
+      "locations": 272,
+      "pct": 13.6
+    },
+    {
+      "id": "Q1142483",
+      "label_ja": "タルト",
+      "salience": 0.47,
+      "locations": 243,
+      "pct": 12.2
+    },
+    {
+      "id": "Q1076874",
+      "label_ja": "チャーハン",
+      "salience": 0.8,
+      "locations": 230,
+      "pct": 11.5
+    },
+    {
+      "id": "Q109588571",
+      "label_ja": "アフタヌーン",
+      "salience": 0.74,
+      "locations": 226,
+      "pct": 11.3
+    },
+    {
+      "id": "Q1362405",
+      "label_ja": "ジェラート",
+      "salience": 0.63,
+      "locations": 209,
+      "pct": 10.4
+    },
+    {
+      "id": "Q6128",
+      "label_ja": "トースト",
+      "salience": 0.42,
+      "locations": 191,
+      "pct": 9.6
+    },
+    {
+      "id": "Q701057",
+      "label_ja": "素麺",
+      "salience": 0.69,
+      "locations": 183,
+      "pct": 9.2
+    },
+    {
+      "id": "Q99198023",
+      "label_ja": "チーズタッカルビ",
+      "salience": 0.64,
+      "locations": 181,
+      "pct": 9.0
+    },
+    {
+      "id": "Q702028",
+      "label_ja": "カツ丼",
+      "salience": 0.74,
+      "locations": 172,
+      "pct": 8.6
+    },
+    {
+      "id": "Q11428594",
+      "label_ja": "塩ラーメン",
+      "salience": 0.57,
+      "locations": 169,
+      "pct": 8.5
+    },
+    {
+      "id": "Q181055",
+      "label_ja": "ホットドッグ",
+      "salience": 0.66,
+      "locations": 160,
+      "pct": 8.0
+    },
+    {
+      "id": "Q622512",
+      "label_ja": "スペイン料理",
+      "salience": 0.42,
+      "locations": 153,
+      "pct": 7.6
+    },
+    {
+      "id": "Q375",
+      "label_ja": "ワッフル",
+      "salience": 0.68,
+      "locations": 146,
+      "pct": 7.3
+    },
+    {
+      "id": "Q1298577",
+      "label_ja": "麻婆豆腐",
+      "salience": 0.73,
+      "locations": 119,
+      "pct": 5.9
+    },
+    {
+      "id": "Q113945861",
+      "label_ja": "フルーツサンド",
+      "salience": 0.69,
+      "locations": 114,
+      "pct": 5.7
+    },
+    {
+      "id": "Q869080",
+      "label_ja": "生姜焼き",
+      "salience": 0.75,
+      "locations": 113,
+      "pct": 5.7
+    },
+    {
+      "id": "Q1397211",
+      "label_ja": "ソフトクリーム",
+      "salience": 0.72,
+      "locations": 111,
+      "pct": 5.5
+    },
+    {
+      "id": "Q1304390",
+      "label_ja": "親子丼",
+      "salience": 0.74,
+      "locations": 101,
+      "pct": 5.1
+    },
+    {
+      "id": "Q722595",
+      "label_ja": "キッシュ",
+      "salience": 0.67,
+      "locations": 100,
+      "pct": 5.0
+    },
+    {
+      "id": "Q112818476",
+      "label_ja": "カレーうどん",
+      "salience": 0.72,
+      "locations": 86,
+      "pct": 4.3
+    },
+    {
+      "id": "Q1412833",
+      "label_ja": "グラタン",
+      "salience": 0.73,
+      "locations": 64,
+      "pct": 3.2
+    },
+    {
+      "id": "Q1137701",
+      "label_ja": "タコライス",
+      "salience": 0.64,
+      "locations": 62,
+      "pct": 3.1
+    },
+    {
+      "id": "Q203176",
+      "label_ja": "牛丼",
+      "salience": 0.91,
+      "locations": 57,
+      "pct": 2.9
+    },
+    {
+      "id": "Q56236136",
+      "label_ja": "スンドゥブ",
+      "salience": 0.62,
+      "locations": 46,
+      "pct": 2.3
+    },
+    {
+      "id": "Q212121",
+      "label_ja": "パエリア",
+      "salience": 0.73,
+      "locations": 45,
+      "pct": 2.2
+    },
+    {
+      "id": "Q3888994",
+      "label_ja": "ナポリタン",
+      "salience": 0.8,
+      "locations": 44,
+      "pct": 2.2
+    },
+    {
+      "id": "Q4833218",
+      "label_ja": "アサイーボウル",
+      "salience": 0.67,
+      "locations": 37,
+      "pct": 1.8
+    },
+    {
+      "id": "Q11497126",
+      "label_ja": "手羽先唐揚げ",
+      "salience": 0.76,
+      "locations": 20,
+      "pct": 1.0
+    },
+    {
+      "id": "Q197973",
+      "label_ja": "フレンチトースト",
+      "salience": 0.87,
+      "locations": 17,
+      "pct": 0.9
+    },
+    {
+      "id": "Q208105",
+      "label_ja": "リゾット",
+      "salience": 0.77,
+      "locations": 16,
+      "pct": 0.8
+    },
+    {
+      "id": "Q648352",
+      "label_ja": "ビビンバ",
+      "salience": 0.75,
+      "locations": 15,
+      "pct": 0.8
+    },
+    {
+      "id": "Q3595555",
+      "label_ja": "キーマカレー",
+      "salience": 0.66,
+      "locations": 10,
+      "pct": 0.5
+    },
+    {
+      "id": "Q1132679",
+      "label_ja": "天津飯",
+      "salience": 0.7,
+      "locations": 8,
+      "pct": 0.4
+    },
+    {
+      "id": "Q11317904",
+      "label_ja": "チキン南蛮",
+      "salience": 0.63,
+      "locations": 6,
+      "pct": 0.3
+    },
+    {
+      "id": "Q840392",
+      "label_ja": "カルパッチョ",
+      "salience": 0.76,
+      "locations": 5,
+      "pct": 0.2
+    },
+    {
+      "id": "Q2706994",
+      "label_ja": "ショートケーキ",
+      "salience": 0.47,
+      "locations": 3,
+      "pct": 0.1
+    },
+    {
+      "id": "Q107840688",
+      "label_ja": "ビーフシチュー",
+      "salience": 0.67,
+      "locations": 1,
+      "pct": 0.1
+    },
+    {
+      "id": "Q108794306",
+      "label_ja": "酢豚",
+      "salience": 0.57,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q1104577",
+      "label_ja": "チンジャオロース",
+      "salience": 0.52,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q11335663",
+      "label_ja": "プリンアラモード",
+      "salience": 0.42,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q11554370",
+      "label_ja": "油淋鶏",
+      "salience": 0.7,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q11567629",
+      "label_ja": "焼き魚定食",
+      "salience": 0.77,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q11674333",
+      "label_ja": "鰹のタタキ",
+      "salience": 0.78,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q120495866",
+      "label_ja": "エビフライ",
+      "salience": 0.74,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q1205609",
+      "label_ja": "ハヤシライス",
+      "salience": 0.65,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q138075367",
+      "label_ja": "あじの開き",
+      "salience": 0.61,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q138075381",
+      "label_ja": "さば塩焼き",
+      "salience": 0.61,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q138075635",
+      "label_ja": "牛すじ煮込み",
+      "salience": 0.79,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q140431305",
+      "label_ja": "刺身定食",
+      "salience": 0.47,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q1419233",
+      "label_ja": "ペペロンチーノ",
+      "salience": 0.47,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q190715",
+      "label_ja": "刺身盛り合わせ",
+      "salience": 0.84,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q28100879",
+      "label_ja": "蟹料理",
+      "salience": 0.74,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q3238049",
+      "label_ja": "回鍋肉",
+      "salience": 0.73,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q4674758",
+      "label_ja": "アクアパッツア",
+      "salience": 0.42,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q485796",
+      "label_ja": "ピラフ",
+      "salience": 0.67,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q5183356",
+      "label_ja": "クリームシチュー",
+      "salience": 0.6,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q5331853",
+      "label_ja": "エビチリ",
+      "salience": 0.7,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q58263",
+      "label_ja": "エッグベネディクト",
+      "salience": 0.59,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q626723",
+      "label_ja": "韓国フライドチキン",
+      "salience": 0.63,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q667478",
+      "label_ja": "チーズバーガー",
+      "salience": 0.72,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q701756",
+      "label_ja": "キムチチゲ",
+      "salience": 0.69,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q716820",
+      "label_ja": "冷やし中華",
+      "salience": 0.73,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q876624",
+      "label_ja": "カルボナーラ",
+      "salience": 0.77,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q88962330",
+      "label_ja": "エビマヨ",
+      "salience": 0.53,
+      "locations": 0,
+      "pct": 0.0
+    },
+    {
+      "id": "Q9266",
+      "label_ja": "サラダボウル",
+      "salience": 0.8,
+      "locations": 0,
+      "pct": 0.0
+    }
+  ],
+  "caveat": "店名からのカテゴリ付与は実測 24.1% にしか当たらないので、これは下限である。その店が実際にその料理の写真を IG に上げているかは未測定。利用者の位置を店の位置で代理している"
+}

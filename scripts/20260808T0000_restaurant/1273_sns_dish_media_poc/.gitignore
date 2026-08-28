@@ -81,3 +81,6 @@ out/.ig_token
 !out/fsq_jp_instagram_counts.json
 !out/fsq_jp_ig_gated.csv.gz
 !out/NOTICE.txt
+out/.serper_token
+!out/geo_dish_coverage.json
+!out/ig_caption_dish_category.json
