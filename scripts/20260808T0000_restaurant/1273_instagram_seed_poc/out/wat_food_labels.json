@@ -1,0 +1,7 @@
+{
+  "n": 60,
+  "strict_food": 0,
+  "strict_food_pct": 0.0,
+  "note": "loose regex は 15% だったが、目視・厳格判定では実レストランは 1件。WAT の日本由来 instagram は大半が非飲食（企業・趣味・イベント告知）",
+  "examples": []
+}

@@ -337,6 +337,12 @@
       "download_decompress": "約650MB(展開後)/6秒/ファイル。全10万ファイル逐次で6.4日、32並列で4.8時間。CC の egress は無料",
       "content_check": "日本ドメイン由来の投稿を目視サンプルした結果、飲食は少数（鍼灸・企業ブログ・高校サイト等が多い）。WAT はリンクだけでキャプションを持たないので、飲食判定・店舗照合には別途エンリッチが要る",
       "verdict": "**無料で投稿 URL の火力は出る（1 crawl で JP 315万本）。だが『裸の URL』で、飲食か・どの店かを無料で判定する手段が無いのがボトルネック**"
+    },
+    "wat_food_rate_corrected": {
+      "loose_regex_pct": 15.0,
+      "manual_review": "60 本のキャプションを目視。9 件の loose 判定のうち実レストランは POTATO & CAFE 1 件のみ。残りはブライダル・雨具・美術展・ダイビング・イナバ物置",
+      "true_food_pct_estimate": "1〜2%",
+      "verdict": "WAT の日本由来 instagram は大半が非飲食（企業・趣味・イベント告知）。**発見源としては効率が悪い**（無料だが 100 本エンリッチして飲食 1〜2 本）。3.15M × 2% = 約6万本/crawl 程度で、しかも店舗照合が別途要る"
     }
   },
   "4_20_unknown_license_datasets": {
@@ -474,5 +480,25 @@
     "bright_data": "Instagram データセットをレコード課金で販売。トライアルクレジットあり。IG 直接収集の規約リスクはベンダが負う建付けだが要契約確認",
     "phantombuster": "自分の IG cookie が要り、IG 側のレート制限を受ける。グロースハック向けで数百万件のバルクには不向き",
     "verdict": "カテゴリ経路をハッシュタグで直接やるなら Apify が最安 $0.0007/件。だが総量 132カテゴリ×100万件=1.32億件では $9万〜30万で、店単位検索の $317 より桁違いに高い。1M件程度なら Apify $700 ≒ Serper $317"
+  },
+  "FREE_enrichment_breakthrough": {
+    "finding": "instagram.com/p/{code}/embed/captioned/ は 2026-08 現在もトークン無し・審査無しでキャプション全文を返す。resolve エンドポイント（api/src/v1/dish-media-imports/sns-oembed.service.ts）が本番でこれを使っている",
+    "test": "WAT から取った日本由来の投稿 60 本を embed で取得: 60/60 = 100% 成功。キャプションに店名・料理・アカウント名が入る",
+    "implication": "『裸の投稿 URL → 料理カテゴリ＋店舗』のエンリッチは無料で解けている。ボトルネックはエンリッチではなく『飲食の投稿 URL をどう発見するか』だけ",
+    "rate_limit_note": "#1284 では embed は短時間バーストで約7,500req/時/IP、持続レートは未確定。ここが唯一の技術的未知数"
+  },
+  "bright_data": {
+    "instagram_scraper_api": {
+      "price_per_1000": 1.5,
+      "free_per_month": 5000,
+      "input": "hashtag/profile/URL"
+    },
+    "instagram_posts_dataset": {
+      "price_per_100k_usd": 250,
+      "free_sample": 1000,
+      "records": "310M"
+    },
+    "storage": "公開データのみ・GDPR/CCPA準拠を掲げるが、法的責任は利用者側に残る（Indemnification §8）。買ったデータの自社DB化は可だが DPA 遵守義務あり",
+    "verdict": "Apify と同水準（$1.5/1K・月5,000無料）。日本×飲食はハッシュタグ入力で収集する形"
   }
 }
