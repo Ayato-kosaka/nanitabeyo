@@ -18,8 +18,12 @@ Overture の Instagram 13,882 件は **100% Foursquare 由来**で、しかも
 
 ## 測り方
 
-最新リリース `dt=2026-08-11` の places parquet **100 シャード**を、
-**1つずつ落として数えて消す**（全部置くと 11.3GB になるため）。
+最新リリース `dt=2026-08-11` の places parquet を、**1つずつ落として数えて消す**
+（全部置くと 11.3GB になるため）。
+
+**【発見】シャードは国ごとに固まっている。** shard 1 と 2 は米国 104万＋メキシコ 5万で
+**日本が 0 件**だった。したがって 100 本すべてを落とす必要は無い。
+**粗く探して、日本のいる範囲だけを精査する**（stage 1 → stage 2）。
 `httpfs` はこのコンテナで導入できない（`extensions.duckdb.org` が 403）ので、
 `curl` で落として duckdb のローカル parquet 読みで数える。
 
@@ -81,37 +85,67 @@ FROM (
 """
 
 
+def ok_parquet(p: pathlib.Path) -> bool:
+    """末尾が PAR1 で終わっているかで、切れた取得を弾く。"""
+    if not p.exists() or p.stat().st_size < 1_000_000:
+        return False
+    with p.open("rb") as f:
+        f.seek(-4, 2)
+        return f.read(4) == b"PAR1"
+
+
 def main() -> None:
     tok = (OUT_DIR / ".hf_token").read_text().strip()
+    failed: list[int] = []
     con = duckdb.connect()
     tot = {k: 0 for k in ("jp_all", "jp_dining", "jp_dining_open",
                           "jp_dining_open_ig", "jp_dining_ig")}
     done, t0 = 0, time.time()
     TMP.mkdir(parents=True, exist_ok=True)
-    for i in range(N_SHARDS):
+    # stage 1: 10本おきに粗く探す → stage 2: 日本がいた前後を精査する
+    probe = list(range(0, N_SHARDS, 10))
+    jp_hits: list[int] = []
+    order = probe + [i for i in range(N_SHARDS) if i not in probe]
+    for i in order:
         url = f"{BASE}/places_{i:06d}.parquet"
         p = TMP / f"fsq_{i:03d}.parquet"
         r = subprocess.run(["curl", "-sL", url, "-H", f"Authorization: Bearer {tok}",
                             "-o", str(p), "-w", "%{http_code}"],
                            capture_output=True, timeout=1800)
         code = r.stdout.decode().strip()
-        if code != "200" or not p.exists() or p.stat().st_size < 1_000_000:
-            print(f"  [{i:>3}] 取得失敗 http={code}", file=sys.stderr, flush=True)
+        # #1653 【バグ】最初は「1MB 以上なら OK」としていたので、**途中で切れた
+        #   parquet が検査を通り**、duckdb が "No magic bytes found at end of file" で
+        #   落ちて 10 本目で全体が止まった。**末尾の PAR1 を確かめる**のが正しい。
+        if not ok_parquet(p) or code != "200":
+            print(f"  [{i:>3}] 取得失敗 http={code} → 1回だけ取り直す",
+                  file=sys.stderr, flush=True)
             p.unlink(missing_ok=True)
-            continue
+            r = subprocess.run(["curl", "-sL", url, "-H", f"Authorization: Bearer {tok}",
+                                "-o", str(p), "-w", "%{http_code}"],
+                               capture_output=True, timeout=1800)
+            if not ok_parquet(p):
+                print(f"  [{i:>3}] 取り直しも失敗。飛ばす", file=sys.stderr, flush=True)
+                p.unlink(missing_ok=True)
+                failed.append(i)
+                continue
         row = con.execute(SQL.format(path=str(p))).fetchone()
         for k, v in zip(tot, row):
             tot[k] += v
+        if row[0]:
+            jp_hits.append(i)
         p.unlink(missing_ok=True)
         done += 1
         el = time.time() - t0
-        print(f"  [{i+1:>3}/{N_SHARDS}] 日本 {tot['jp_all']:>7,} / 飲食 "
+        print(f"  [{done:>3}/{N_SHARDS}] shard {i:>3} 日本 {tot['jp_all']:>7,} / 飲食 "
               f"{tot['jp_dining']:>7,} / 営業中 {tot['jp_dining_open']:>7,} / "
               f"IG {tot['jp_dining_open_ig']:>6,}  ({el/60:.1f}分)",
               file=sys.stderr, flush=True)
 
     print(f"\n=== Foursquare 本家（{RELEASE}）・{done}/{N_SHARDS} シャード ===",
           file=sys.stderr)
+    print(f"  日本が入っていたシャード: {jp_hits}", file=sys.stderr)
+    if failed:
+        print(f"  **取得に失敗して数えられなかったシャード: {failed}**", file=sys.stderr)
     for k, v in tot.items():
         print(f"  {k:20} {v:>9,}", file=sys.stderr)
     if tot["jp_dining_open"]:
