@@ -78,3 +78,6 @@ out/.ig_token
 !out/ig_handle_gate_at_scale.json
 !out/wikidata_ig_handles.json
 !out/fsq_gate_at_scale.json
+!out/fsq_jp_instagram_counts.json
+!out/fsq_jp_ig_gated.csv.gz
+!out/NOTICE.txt

@@ -1,0 +1,6 @@
+This work includes data from Foursquare Open Source Places
+(https://huggingface.co/datasets/foursquare/fsq-os-places), release dt=2026-08-11,
+licensed under the Apache License, Version 2.0.
+Copyright (c) Foursquare Labs, Inc.
+
+Derived file: out/fsq_jp_ig_gated.csv.gz

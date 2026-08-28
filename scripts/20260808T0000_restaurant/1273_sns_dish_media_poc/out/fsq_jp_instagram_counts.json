@@ -1,0 +1,16 @@
+{
+  "purpose": "#1653 Foursquare OS Places 本家の日本 × instagram 実数",
+  "release": "2026-08-11",
+  "shards_done": 100,
+  "shards_total": 100,
+  "complete": true,
+  "method": "列射影＋行グループ単位の country 事前判定で HTTP Range 読み",
+  "jp_all": 5017666,
+  "jp_open": 4530294,
+  "jp_ig": 153999,
+  "jp_open_ig": 139827,
+  "jp_food": 1590890,
+  "jp_food_ig": 71969,
+  "jp_food_open_ig": 63662,
+  "caveat": "instagram フィールドが入っている＝そのアカウントが本当にその店のもの、ではない。#1269 の誤紐付けの問題はそのまま残る"
+}
