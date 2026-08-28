@@ -1,0 +1,15 @@
+{
+  "release": "2026-08-11",
+  "shards_done": 4,
+  "shards_total": 100,
+  "jp_all": 100,
+  "jp_dining": 37,
+  "jp_dining_open": 35,
+  "jp_dining_open_ig": 0,
+  "jp_dining_ig": 0,
+  "overture_jp_food_from_fsq": 85913,
+  "overture_jp_food_total": 789612,
+  "overture_instagram": 13882,
+  "license": "Apache-2.0（NOTICE.txt 全文の保持による帰属表示が条件）",
+  "caveat": "Foursquare の POI が Overture の店と1対1で対応する保証は無い。『本家のほうが多い』＝『そのぶん純増』ではなく、名寄せが要る。instagram 列がその店のアカウントかも別問題。"
+}

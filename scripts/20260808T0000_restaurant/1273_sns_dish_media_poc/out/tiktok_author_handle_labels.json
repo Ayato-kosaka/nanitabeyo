@@ -1,0 +1,44 @@
+{
+  "purpose": "#1636 の 334 URL のうち TikTok 158件から投稿者ハンドルを取り出し、resolve の `author_name` 経路がオフラインで再現できるかを確かめた。",
+  "labeled_at": "2026-08-28",
+  "labeler": "Claude（ハンドルと当たった辞書語を突き合わせて判定）",
+  "n_posts": 158,
+  "n_distinct_authors": 143,
+  "posts_per_author": 1.10,
+  "raw_match_rate": 0.245,
+  "true_positive": [
+    {"handle": "toribura", "matched": "toribura", "why": "完全一致"},
+    {"handle": "yakitori_fujii", "matched": "yakitori fuji", "why": "ほぼ完全一致"}
+  ],
+  "plausible": [
+    {"handle": "ichinomiya_ohgiya", "matched": "ohgiya", "why": "扇屋。妥当だが確認していない"},
+    {"handle": "matsuriya.sanei", "matched": "matsuriya", "why": "同上"},
+    {"handle": "waraiya_shijo", "matched": "waraiya", "why": "同上"}
+  ],
+  "false_positive_examples": [
+    {"handle": "chiko12_gourmet_tiktok", "matched": "tiktok", "why": "**`tiktok` という名前の店が辞書にある**"},
+    {"handle": "ryuji_tiktok_", "matched": "tiktok"},
+    {"handle": "tiktok.sayaka", "matched": "tiktok"},
+    {"handle": "chicken_yamazaki", "matched": "chicken", "why": "一般語"},
+    {"handle": "hideka_cooking", "matched": "cookin"},
+    {"handle": "soro_japantravel", "matched": "japan"},
+    {"handle": "fukuikazushi", "matched": "zushi"},
+    {"handle": "yakitori.uchida", "matched": "kitori", "why": "**`kitori` が 6 ハンドルを食っている**。正しくは「焼鳥 内田」"},
+    {"handle": "yakitori_ootori", "matched": "kitori"},
+    {"handle": "yakitori_ryuho_", "matched": "kitori"},
+    {"handle": "yakitoritouji", "matched": "kitori"},
+    {"handle": "yakitoriyoshi", "matched": "kitori"}
+  ],
+  "counts": {"tp": 2, "plausible": 3, "fp": 30, "n": 35},
+  "precision_strict": 0.057,
+  "precision_incl_plausible": 0.143,
+  "effective_rate": 0.028,
+  "notes": [
+    "**生の一致率 24.5%（35/143）に対し、目視 precision は 5.7〜14.3%。実効は約 2.8%。** ほぼ全部が偽陽性である。",
+    "**ただしこれは経路の否定ではない。私が測ったのが間違った項目だった。** `resolve` が使うのは `metadata.authorName`（TikTok oEmbed が返す**日本語の表示名**）であって、URL に入っているローマ字ハンドルではない。ローマ字ハンドルを日本語の店名辞書に当てる作りになっていないので、当たらないのは当然である。",
+    "**重要な観察: 投稿者は店自身が多い。** `yakitori_fujii` `yakitori.uchida` `yakitori_ootori` `yakitori_ryuho_` `yakitoritouji` `yakitoriyoshi` `higakiyakitori` `kushibako.nagoya` `kusimonya` `toribura` `chicken_yamazaki` など、**ハンドルを読む限り実在の焼き鳥店が並んでいる**。グルメ系クリエイターばかりではない。",
+    "そうであれば、この経路は『キャプションから店を当てる』問題ではなく **#1269 と同じ構造**（投稿者＝店）に近い。**投稿者ハンドル → 店** の対応が付けば、その投稿者の投稿は全部その店のものになる。",
+    "**1投稿者あたり 1.10 投稿**（158投稿 / 143人）。1検索語で 143 の distinct 投稿者に届いている。"
+  ],
+  "caveat": "ハンドルの見た目で『店らしい』と言っているだけで、実在確認をしていない。確かめるには TikTok を取得する必要があり、私は robots.txt で名指しで拒否されているためできない。"
+}

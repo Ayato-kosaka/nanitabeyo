@@ -70,3 +70,5 @@ out/.ig_token
 out/_ig_source_ideas/
 out/.hf_token
 out/.ig_token
+!out/tiktok_author_handle_labels.json
+!out/foursquare_jp_instagram.json
