@@ -90,18 +90,6 @@ describe("地点確認(confirming/confirmed)の状態表示(実 API)", () => {
 			"確定後も確認中のスピナーが残っている(状態遷移が壊れている疑い)",
 		);
 
-		// #1673 【回帰】確定しても入力欄は候補の mainText のまま。
-		// #1502 はここで autocomplete の text へ置き換えていたが、実 API(languageCode: ja)の text は
-		// 日本語の住所順で返るため「日本、東京都渋谷区 渋谷駅」となり、主たる地名が末尾へ回っていた。
-		// ⚠️ この回帰は **実 API でしか出ない**(e2e-web / jest のモックは text を逆順に作っていたため
-		// 最後まで観測できなかった)。実 API を叩くこの spec が唯一の観測点なのでここに置く。
-		const confirmedInputText = await search.readLocationInputText();
-		assert.ok(confirmedInputText.length > 0, "確定後の入力欄が空になっている(値の読み取りに失敗した疑い)");
-		assert.ok(
-			!confirmedInputText.startsWith("日本"),
-			`確定後の入力欄が国名から始まっている(autocomplete の text へ置き換わっている疑い): ${confirmedInputText}`,
-		);
-
 		// ✓ は 2000ms で黙って消える(成功表示が居座らないことも案Aの仕様)
 		await waitUntil(async () => !(await existsNow(search.locationConfirmed, 500)), {
 			interval: 250,
@@ -109,5 +97,20 @@ describe("地点確認(confirming/confirmed)の状態表示(実 API)", () => {
 		});
 
 		await device.enableSynchronization();
+
+		// #1673 【回帰】確定しても入力欄は候補の mainText のまま(確定の合図は ✓ だけ)。
+		// #1502 は確定時に autocomplete の text へ置き換えていたが、実 API(languageCode: ja)の text は
+		// 日本語の住所順で返るため「日本、東京都渋谷区 渋谷駅」となり、主たる地名が末尾へ回っていた。
+		// ⚠️ この回帰は **実 API でしか出ない**(e2e-web / jest のモックは text を逆順に作っていたため
+		// 最後まで観測できなかった)。実 API を叩くこの spec が唯一の観測点なのでここに置く。
+		// ⚠️ 読み取りは**同期機構を戻してから**行う。値は ✓ が消えたあとも残るので急ぐ必要が無く、
+		// 既に CI で通っている readLocationInputText の使い方(location-suggestion-tap.test.ts)と
+		// 同じ条件に揃えるため。
+		const confirmedInputText = await search.readLocationInputText();
+		assert.notEqual(confirmedInputText, "", "確定後の場所入力欄が空です(選択が成立していない可能性)");
+		assert.ok(
+			!confirmedInputText.startsWith("日本"),
+			`確定後の入力欄が国名から始まっている(autocomplete の text へ置き換わっている疑い): ${confirmedInputText}`,
+		);
 	});
 });
