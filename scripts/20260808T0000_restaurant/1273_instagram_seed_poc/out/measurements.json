@@ -602,5 +602,10 @@
     "verdict": "**却下**。数字は高く見えるが目視すると偽陽性だらけ。抽出店名は『全国76店』『取り扱い書店』『病棟の食堂』、アカウントは病院(akiyamahp)・医学出版(chugaiigaku)・バスケ(bambitiousnara)・旅行(rurubu_kids)。instagramアカウントを貼る日本語ページは大半が非飲食で、正規表現では飲食店を分離できない",
     "what_would_be_needed": "WET本文を loose regex ではなく Overture 110万店の実名ガゼッタと厳密照合すれば精度は上がるが、110万名×15TBのJOINにはインデックスが要り、無料の範囲では非現実的",
     "note": "route① を安く増やす手段としては、store 自身のサイトをCCで読む(既存4.14=website店の18.3%)の方が精度が高い。WET join はそれを超えない"
+  },
+  "facebook_route_NEGATIVE": {
+    "idea": "#1342 で 88.82%(69.8万店)が FB リンクを持つ。FBページの About に IG があれば無料で大量のアカウントに届く",
+    "measured": "www/m/mbasic.facebook.com すべて 302 → /login/?next= へ。facebookexternalhit UA でも 302",
+    "verdict": "却下。Facebook は完全にログイン壁（#1356 と整合）。70万店の FB リンクを無料で IG アカウントに変換する道は無い。FB Graph API は App Review 必須"
   }
 }
