@@ -1,0 +1,108 @@
+import { by, describeAuthenticated, device, element, launchAppWithSession, waitFor } from "../../fixtures/e2e";
+import { DEFAULT_TIMEOUT, existsNow, tapWhenVisible } from "../../utils/waits";
+import { MyDishesScreen } from "../../screens/MyDishesScreen";
+import { TabBar } from "../../screens/TabBar";
+
+/*
+⚠️ `by` / `element` / `device` は **必ず `fixtures/e2e` から import すること。**
+Detox はこれらのグローバル型を宣言しているので tsc は素通しするが、実行時には
+定義されておらず `ReferenceError: by is not defined` で落ちる。
+*/
+
+/**
+ * ⏱ 「このエリアで再検索」に **実機で何秒かかるか**を測り、録画に残す。
+ *
+ * ## なぜ実機（Detox）なのか
+ *
+ * オーナー指摘（2026-08-27）:
+ *
+ * > このエリアで再検索はまだ重いですね。…自分で動画撮って、どのぐらい時間が
+ * > かかってるのか自分でテストして検証してください。ピンが出てる数もめっちゃ多い。
+ *
+ * この «重さ» は 2 つの合成である。
+ *
+ * 1. サーバ側 — 近傍検索の SQL（#1629 で KNN 化。dev 実測 5km が 13.6 秒 → 0.10 秒）
+ * 2. 端末側 — 返ってきた店を **1 件 1 マーカーで全部描いていた**こと
+ *
+ * 1 は `scripts/db-checks/measure_restaurants_nearby.py` が `EXPLAIN ANALYZE` で
+ * 測れるが、**ユーザーが待つのは 1 と 2 の合計**であり、それは実機でしか測れない。
+ * web の即席ハーネスは `window.google.maps` をスタブへ差し替えるので、
+ * マーカーの生成コストが丸ごと消え、**この論点については何も測れない**。
+ *
+ * ## 何を «所要時間» と呼んでいるか
+ *
+ * `PrimaryButton` は `testID` を渡すと `${testID}-loading` のスピナーを出す
+ * （`components/PrimaryButton.tsx:116`）。押した瞬間から **そのスピナーが消えるまで**を測る。
+ * これは «要求を出してから、画面が結果を反映し終えるまで» と一致する。
+ *
+ * ⚠️ Detox の `waitFor` はポーリングなので、測れる分解能はポーリング間隔ぶん粗い。
+ *    秒の桁を見るための計測であって、ミリ秒の精度は主張しない。
+ *
+ * ⚠️ **緑になっても «速い» の証明にはならない。** dev のデータ量・Cloud Run の
+ *    コールドスタート・エミュレータの性能に左右される。数字はログへ出すので、
+ *    判断は動画とログの数字で行うこと。
+ *
+ * DB へは書き込まない（見る・動かす・再検索するだけ）ので mutation ではない。
+ */
+describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」の所要時間 @authenticated", () => {
+	const tabBar = new TabBar();
+	const myDishes = new MyDishesScreen();
+
+	const searchButton = by.id("select-restaurant-search-this-area");
+	const searchSpinner = by.id("select-restaurant-search-this-area-loading");
+	const map = by.id("select-restaurant-map");
+
+	beforeEach(async () => {
+		await launchAppWithSession({ as: "authenticated" });
+	});
+
+	/**
+	 * 1 回押して、スピナーが消えるまでの実時間を返す。
+	 *
+	 * スピナーが一度も観測できないほど速い場合もある（それは «速い» ので失敗にしない）。
+	 * その場合も «押してから待機が解けるまで» を返す。
+	 */
+	const measureOnce = async (label: string): Promise<number> => {
+		const started = Date.now();
+		await tapWhenVisible(searchButton, DEFAULT_TIMEOUT);
+		await waitFor(element(searchSpinner)).not.toExist().withTimeout(DEFAULT_TIMEOUT);
+		const elapsed = Date.now() - started;
+		console.log(`[search-this-area] ${label}: ${elapsed} ms`);
+		await device.takeScreenshot(`search-this-area-${label}`);
+		return elapsed;
+	};
+
+	it("押してから結果が反映されるまでの時間を測る", async () => {
+		await tabBar.gotoMyDishes();
+		await myDishes.gotoRecordDish(DEFAULT_TIMEOUT);
+
+		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
+		await device.takeScreenshot("search-this-area-00-map-opened");
+
+		/*
+		⚠️ **ピンが 1 つも無い run は空振りである。** dev のデータは変動するので、
+		«マーカーが実際に出ていたか» をログへ残す。pins=false dot=false cluster=false
+		なら、その run は描画コストを何も測っていない。
+		*/
+		const hadPin = await existsNow(by.id("select-restaurant-pin"));
+		const hadDot = await existsNow(by.id("select-restaurant-dot"));
+		const hadCluster = await existsNow(by.id("select-restaurant-cluster"));
+		console.log(`[search-this-area] マーカーの有無: pins=${hadPin} dot=${hadDot} cluster=${hadCluster}`);
+
+		// 1 回目。Cloud Run のコールドスタートを踏みうるので、これだけでは判断しない
+		const first = await measureOnce("01-first");
+
+		// 地図を動かしてから 2 回目・3 回目。こちらが «普段の操作» に近い
+		await element(map).swipe("left", "fast", 0.5, 0.5, 0.35);
+		const second = await measureOnce("02-after-pan");
+
+		await element(map).swipe("down", "fast", 0.4, 0.5, 0.35);
+		const third = await measureOnce("03-after-pan-again");
+
+		console.log(`[search-this-area] 実測: ${[first, second, third].map((n) => `${n} ms`).join(" / ")}`);
+
+		// 生きていること（＝ 落ちていないこと）だけを固定する。速度そのものは
+		// 環境依存なのでアサートしない。数字は上のログと動画で読む
+		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
+	});
+});
