@@ -1,3 +1,4 @@
+import { execFileSync } from "child_process";
 import { by, describeAuthenticated, device, element, launchAppWithSession, waitFor } from "../../fixtures/e2e";
 import { DEFAULT_TIMEOUT, existsNow, tapWhenVisible } from "../../utils/waits";
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
@@ -52,8 +53,39 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 	const searchSpinner = by.id("select-restaurant-search-this-area-loading");
 	const map = by.id("select-restaurant-map");
 
+	/**
+	 * Android の実行時位置情報権限を、**この spec の中だけ**で付与する。
+	 *
+	 * Detox の `permissions` は iOS 専用で、Android には等価な起動オプションが無い
+	 * （`fixtures/e2e.ts` の `platformLaunchOptions` のコメント）。CI 側でも
+	 * `pm grant` はしていないので、Android では位置情報が常に拒否された状態になる。
+	 *
+	 * その結果 `handleCurrentLocation` は `getCurrentLocation()` の例外を握って
+	 * **何もせずに終わる**ため、地図は «日本全体» のまま動かない。run 33131796308 で
+	 * 実際にそうなり、東京駅へ寄せたつもりの計測が**ピン 0 個のまま**だった。
+	 *
+	 * ⚠️ **CI 全体（ワークフローや AVD）へ入れないこと。** 起動直後の権限ダイアログを
+	 *    前提にしているオンボーディングの spec の挙動が変わる。ここだけで付与する。
+	 */
+	const grantAndroidLocation = (): boolean => {
+		if (device.getPlatform() !== "android") return true; // iOS は launchApp で付与済み
+		try {
+			for (const perm of ["android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"]) {
+				execFileSync("adb", ["-s", device.id, "shell", "pm", "grant", "com.nanitabeyo", perm], {
+					stdio: "pipe",
+				});
+			}
+			return true;
+		} catch (error) {
+			// 付与できなくてもテストは続ける。**地図が動かないことがログから分かるようにする**
+			console.log(`[search-this-area] ⚠️ 位置情報権限を付与できなかった: ${String(error)}`);
+			return false;
+		}
+	};
+
 	beforeEach(async () => {
 		await launchAppWithSession({ as: "authenticated" });
+		console.log(`[search-this-area] 位置情報権限の付与: ${grantAndroidLocation()}`);
 	});
 
 	/**
