@@ -36,7 +36,7 @@
 | --- | --- | --- |
 | Instagram | ✅ 音あり | 埋め込みの `<video>` が最初からミュートでない |
 | TikTok | ✅ 音あり（**こちらでミュートを外す**） | 向こうが `muted` で置いてくる。外さないと永久に無音だった |
-| YouTube | ネイティブ ❌ 無音 / web ✅ 音あり | 下記 |
+| YouTube | ネイティブ ⚠️ 自動は無音・**タップで音あり** / web ✅ 音あり | 下記 |
 
 **«音が出ない» は provider の制限ではなかった。** 同じ WebView で Instagram だけ音が出ていたことが
 手がかりだった（実測: BigQuery `nanitabeyo_logs_dev.frontend_event_logs` /
@@ -46,10 +46,10 @@
 落とさないと再生そのものが止まり、«無音でも動く» すら失う。
 → [`ExternalEmbedPlayer.tsx` の `tryUnmute`](../../app-expo/features/dishMedia/components/ExternalEmbedPlayer.tsx)
 
-### YouTube だけ音を出せない（試したことと結果）
+### YouTube は «自動では» 音を出せない（試したことと結果）
 
-**IFrame Player は、ユーザー操作なしの `unMute` を受け付けない。** 3 通り試して、いずれも実機で
-`audio=muted` のままだった。**この制限は受け入れる。**
+**IFrame Player は、ユーザー操作なしの `unMute` を受け付けない。** 自動で撃つ 3 通りは、
+いずれも実機で `audio=muted` のままだった。**ユーザーのタップを挟めば通る。**
 
 | 試したこと | 結果 |
 | --- | --- |
@@ -61,9 +61,16 @@ Instagram / TikTok で音が出るのは、あちらが**同一オリジンの `
 `muted` プロパティを直接触れるからである。YouTube は別オリジンの iframe なので
 **公式 API 越しにしか頼めず、その API が断る**。
 
-残る手は «ユーザーのタップで `unMute` を撃つ» だけだが、WebView は表示専用
-（`pointerEvents="none"`）で、音のためだけに操作口を開けるかはプロダクト判断。
-必要ならオーナーへ提案する。
+**タップなら通る（実装済み・実機で確認）。** 無音で再生中のセルにだけ «音を出す» を出し、
+押すと包みの HTML の `__nbEmbedUnmute` が `unMute` / `setVolume` / `playVideo` を撃ち直す。
+
+    external_embed_autoplay_started  youtube  audio=muted
+    external_embed_unmute_tapped     youtube  audio=audible   ← 出た（run 33210343724 で 2/2）
+
+⚠️ **効いたかどうかは報告で判定する。** 押した結果を `unmute_result` として返し、
+   `external_embed_unmute_tapped` としてログへ落としている。音が出たらボタンは消える
+   （押しても何も起きないボタンを残さない）。
+⚠️ web 版にはこのボタンを付けていない（あちらは元から音が出ている）。
 
 ## 3. 権利分岐（同じ provider でも投稿によって変わる）
 
