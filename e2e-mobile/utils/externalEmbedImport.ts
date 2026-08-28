@@ -97,8 +97,11 @@ export const EXTERNAL_EMBED_YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w
 
 type FeedResponse = {
 	data?: {
-		// ⚠️ API は camelCase で返す（`dish_media` の中だけ snake_case が混ざる）。実測で確認した形
-		data?: { dish_media?: { externalEmbed?: { externalContentId?: string } | null } }[];
+		// ⚠️ API は camelCase で返す（`dish` / `dish_media` の中だけ snake_case が混ざる）。実測で確認した形
+		data?: {
+			dish?: { category_id?: string };
+			dish_media?: { externalEmbed?: { externalContentId?: string } | null };
+		}[];
 	};
 };
 
@@ -184,12 +187,6 @@ export async function ensureExternalEmbedImported(
 		}
 	};
 
-	const urls = [EXTERNAL_EMBED_IMPORT_URL];
-	// #1641 «実際に再生できる» ことを録画で示すには、映像が入っているリールが要る
-	if (options.alsoImportPlayable) urls.push(EXTERNAL_EMBED_PLAYABLE_URL);
-	// #1641 provider ごとに «アプリ内で再生できるか» を 1 本のフィードで示す
-	if (options.alsoImportOtherProviders) urls.push(EXTERNAL_EMBED_TIKTOK_URL, EXTERNAL_EMBED_YOUTUBE_URL);
-
 	/*
 	#1641 ⚠️ **料理カテゴリを取り込みごとに分ける。ここを揃えると、フィードには 1 本しか出ない。**
 
@@ -197,59 +194,94 @@ export async function ensureExternalEmbedImported(
 	**«各料理につき、いいね数が最大の 1 件» しか返さない**
 	（`dish-media.repository.ts` の `findDishMediaByRestaurant`:
 	`ROW_NUMBER() OVER (PARTITION BY dish_id ...) ... WHERE rn = 1`）。
-	取り込みは (restaurantId, dishCategoryId) で料理を決めるので、4 本を同じカテゴリで
-	入れると **4 本が同じ料理になり、フィードに出るのは 1 本だけ**になる。
+	取り込みは (restaurantId, dishCategoryId) で料理を決めるので、複数本を同じカテゴリで
+	入れると **全部が同じ料理になり、フィードに出るのは 1 本だけ**になる。
 
-	実測（run 33146739657 / dev の当該店舗）: 4 本を取り込んだのにフィードは
-	**2 件**（YouTube と、以前の Instagram）で `nextCursor` も null だった。
-	spec は «TikTok のセルへ一度も着けなかった» と報告するが、**そもそもフィードに無い**。
-	アプリの不具合と読み違えるので、素材の側で分ける。
+	実測（run 33146739657）: 4 本取り込んだのにフィードは 2 件、`nextCursor` も null。
+	spec は «TikTok のセルへ一度も着けなかった» と報告したが、**そもそもフィードに無かった**。
+
+	⚠️ **空いているカテゴリへ機械的に配ってもいけない**（run 33148355770 で踏んだ）。
+	   そのカテゴリを **別の投稿が既に代表している**と、こちらの取り込みは隠れたままになる。
+	   «既にその投稿が代表しているカテゴリ» を最優先で再利用し、無ければ空きを取る。
+	   こうすると 2 回目以降は同じ割り当てに落ち着き、行も増えない（create は冪等）。
 	*/
-	const categoryIds = [
+	const pool = [
 		...new Set(
 			[dishCategoryId, ...(candidates?.dishCategories ?? []).map((c) => c?.dishCategoryId)].filter(
 				(id): id is string => typeof id === "string" && id.length > 0,
 			),
 		),
 	];
-	if (categoryIds.length < urls.length) {
-		throw new Error(
-			`料理カテゴリの候補が ${categoryIds.length} 種類しかなく、${urls.length} 本を別々の料理へ入れられません。` +
-				" 同じ料理へ入れるとお店フィードに 1 本しか出ず、spec が «セルへ着けなかった» と誤報します。",
-		);
+
+	const readFeed = async (): Promise<Map<string, string>> => {
+		const response = await fetch(`${base}/v1/restaurants/${restaurantId}/dish-media?languageTag=ja-JP`, {
+			headers,
+			signal: AbortSignal.timeout(90_000),
+		});
+		if (!response.ok) {
+			throw new Error(`お店フィードの取得に失敗しました（status=${response.status}）`);
+		}
+		const feed = (await response.json()) as FeedResponse;
+		const byCategory = new Map<string, string>();
+		for (const entry of feed.data?.data ?? []) {
+			const categoryId = entry.dish?.category_id;
+			const contentId = entry.dish_media?.externalEmbed?.externalContentId;
+			if (categoryId && contentId) byCategory.set(categoryId, contentId);
+		}
+		return byCategory;
+	};
+
+	/*
+	取り込みたいもの。**必須のものを先に並べる。**
+	provider ごとの «アプリ内で再生できるか» が spec の合否なので、3 provider は必須。
+	権利ブロックのリールは «縮退の絵» を撮るためのおまけで、席が足りなければ諦める。
+	*/
+	const wanted: { url: string; required: boolean }[] = [];
+	if (options.alsoImportPlayable) wanted.push({ url: EXTERNAL_EMBED_PLAYABLE_URL, required: true });
+	if (options.alsoImportOtherProviders) {
+		wanted.push({ url: EXTERNAL_EMBED_TIKTOK_URL, required: true });
+		wanted.push({ url: EXTERNAL_EMBED_YOUTUBE_URL, required: true });
+	}
+	wanted.push({ url: EXTERNAL_EMBED_IMPORT_URL, required: !options.alsoImportOtherProviders });
+
+	const occupied = await readFeed();
+	const taken = new Set<string>();
+	const plan: { url: string; categoryId: string }[] = [];
+	for (const item of wanted) {
+		const contentId = externalContentIdOf(item.url);
+		const mine = pool.find((id) => !taken.has(id) && contentId !== null && occupied.get(id) === contentId);
+		const free = pool.find((id) => !taken.has(id) && !occupied.has(id));
+		const categoryId = mine ?? free;
+		if (!categoryId) {
+			if (item.required) {
+				throw new Error(
+					`${item.url} を入れる料理カテゴリが空いていません（候補 ${pool.length} 種類 / 使用中 ${occupied.size} 種類）。` +
+						" お店フィードは «各料理につき 1 件» しか返さないので、別の投稿が代表しているカテゴリへ入れても隠れてしまいます。",
+				);
+			}
+			continue;
+		}
+		taken.add(categoryId);
+		plan.push({ url: item.url, categoryId });
 	}
 
-	for (const [index, url] of urls.entries()) {
-		await create(url, categoryIds[index]);
+	for (const { url, categoryId } of plan) {
+		await create(url, categoryId);
 	}
 
 	/*
 	#1641 **取り込んだものが «お店フィードに出ている» ところまで確かめる。**
 
-	`create` が 200 を返すことと、フィードにセルが並ぶことは別である（上のとおり、
-	同じ料理へ入れると 1 本しか出ない）。ここを見ずに spec を回すと、素材が足りない状態を
-	**アプリが再生できない**と読み違える。実際に run 33146739657 で 1 往復無駄にした。
+	`create` が 200 を返すことと、フィードにセルが並ぶことは別である。ここを見ずに spec を
+	回すと、素材が足りない状態を **アプリが再生できない**と読み違える。実際に 2 往復無駄にした。
 	*/
-	const feedResponse = await fetch(
-		`${base}/v1/restaurants/${restaurantId}/dish-media?languageTag=ja-JP`,
-		{ headers, signal: AbortSignal.timeout(90_000) },
-	);
-	if (!feedResponse.ok) {
-		throw new Error(`お店フィードの取得に失敗しました（status=${feedResponse.status}）`);
-	}
-	const feed = (await feedResponse.json()) as FeedResponse;
-	const visible = new Set(
-		(feed.data?.data ?? [])
-			.map((entry) => entry.dish_media?.externalEmbed?.externalContentId)
-			.filter((id): id is string => typeof id === "string"),
-	);
-	const missing = urls.filter((url) => {
-		const id = externalContentIdOf(url);
-		return id !== null && !visible.has(id);
-	});
+	const visible = new Set((await readFeed()).values());
+	const missing = plan
+		.map(({ url }) => ({ url, contentId: externalContentIdOf(url) }))
+		.filter(({ contentId }) => contentId !== null && !visible.has(contentId));
 	if (missing.length > 0) {
 		throw new Error(
-			`取り込みは成功したのに、お店フィードに出ていない投稿があります: ${missing.join(", ")}。` +
+			`取り込みは成功したのに、お店フィードに出ていない投稿があります: ${missing.map((m) => m.url).join(", ")}。` +
 				` フィードに出ているのは ${[...visible].join(", ") || "なし"} です。` +
 				" お店フィードは «各料理につき 1 件» しか返さないので、料理が重なっていないか確認してください。",
 		);
