@@ -950,6 +950,7 @@
 			"savedRestaurantList": "المطاعم المحفوظة",
 			"postPhotoVideo": "نشر صورة/فيديو",
 			"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
+			"fetchSavedRestaurantsTimeout": "استغرق الأمر وقتًا طويلاً. قرّب الخريطة وحاول مرة أخرى.",
 			"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى."
 		},
 		"emptyState": {
@@ -967,6 +968,7 @@
 		"savedRestaurantList": "المطاعم المحفوظة",
 		"postPhotoVideo": "نشر صورة/فيديو",
 		"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
+		"fetchSavedRestaurantsTimeout": "استغرق الأمر وقتًا طويلاً. قرّب الخريطة وحاول مرة أخرى.",
 		"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى.",
 		"nameSearch": {
 			"placeholder": "البحث باسم المطعم",

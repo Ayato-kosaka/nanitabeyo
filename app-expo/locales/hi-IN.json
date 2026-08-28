@@ -950,6 +950,7 @@
 			"savedRestaurantList": "सहेजे गए रेस्तरां",
 			"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
 			"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
+			"fetchSavedRestaurantsTimeout": "इसमें बहुत समय लगा। मानचित्र को ज़ूम करके फिर से खोजें।",
 			"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।"
 		},
 		"emptyState": {
@@ -967,6 +968,7 @@
 		"savedRestaurantList": "सहेजे गए रेस्तरां",
 		"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
 		"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
+		"fetchSavedRestaurantsTimeout": "इसमें बहुत समय लगा। मानचित्र को ज़ूम करके फिर से खोजें।",
 		"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।",
 		"nameSearch": {
 			"placeholder": "रेस्टोरेंट के नाम से खोजें",

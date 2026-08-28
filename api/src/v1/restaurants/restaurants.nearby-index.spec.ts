@@ -85,15 +85,22 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
   });
 
   it('重いレビュー集計（dish_reviews）は、候補 CTE より後ろにしか無い', () => {
-    // dish_reviews を LEFT JOIN しているのは、候補を絞ったあとの最終 SELECT だけ。
-    // 候補 CTE の側へ移すと 21,247 行を集計する形へ戻る
+    /*
+      dish_reviews に触るのは «候補を絞ったあと» だけ。候補 CTE の側へ移すと
+      21,247 行を集計する形へ戻る。
+
+      #1629（保存したお店の性能修正）で、保存済み一覧の集計は
+      LEFT JOIN + GROUP BY から **候補 1 件ずつの LATERAL** へ変えた。
+      «どう書いてあるか» ではなく «候補 CTE より後ろにしか無いか» を見る形にしてある
+      （前者に縛ると、より速い書き方へ直したときに嘘の赤が出る）。
+    */
     const methods = source.split('async search').slice(1);
     const targets = methods.filter((m) => m.includes('candidates AS ('));
     expect(targets.length).toBe(2);
     for (const method of targets) {
-      expect(method.indexOf('LEFT JOIN dish_reviews dr')).toBeGreaterThan(
-        method.indexOf('candidates AS ('),
-      );
+      const reviewJoin = method.indexOf('dish_reviews dr');
+      expect(reviewJoin).toBeGreaterThan(-1);
+      expect(reviewJoin).toBeGreaterThan(method.indexOf('candidates AS ('));
     }
   });
 

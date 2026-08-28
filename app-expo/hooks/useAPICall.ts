@@ -42,6 +42,20 @@ export type ApiError = {
 	/** HTTP ステータス。ネットワークエラー等の場合は undefined or 0 */
 	status?: number;
 
+	/**
+	 * #1629 **30 秒（API_CALL_TIMEOUT_MS）待っても応答が来ずに中断した**とき true。
+	 *
+	 * `code` は "network_error" のままにしてある（分類コードを増やすと、既存の
+	 * すべての分岐に «知らない code» が流れ込む）。呼び出し側が «圏外・回線断» と
+	 * «サーバが遅い» を別の文言で出したいときだけ、この 1 つを見れば足りる。
+	 *
+	 * ⚠️ ユーザーから見ると両者はまったく違う。圏外なら «電波» を疑うべきだが、
+	 *    タイムアウトは端末側で打てる手が «範囲を狭めてもう一度» しか無い。
+	 *    ここを潰して «通信に失敗しました» にまとめると、地図が黙って空になる
+	 *    （オーナーが実機で踏んだ #1629 の症状そのもの）。
+	 */
+	timedOut?: boolean;
+
 	/** 人間向け or ログ用メッセージ */
 	message: string;
 
@@ -299,6 +313,8 @@ export const useAPICall = () => {
 					message: didTimeout
 						? `Network timeout (${API_CALL_TIMEOUT_MS}ms) while calling ${endpointName}`
 						: `Network error while calling ${endpointName}`,
+					// #1629 呼び出し側が «遅すぎた» と «繋がらなかった» を出し分けられるようにする
+					timedOut: didTimeout,
 					raw: networkError,
 				} satisfies ApiError;
 			}

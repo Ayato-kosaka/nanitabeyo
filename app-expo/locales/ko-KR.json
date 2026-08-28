@@ -950,6 +950,7 @@
 			"savedRestaurantList": "저장된 레스토랑",
 			"postPhotoVideo": "사진/동영상 게시",
 			"fetchSavedRestaurantsError": "저장된 레스토랑을 가져오지 못했습니다",
+			"fetchSavedRestaurantsTimeout": "시간이 너무 오래 걸렸습니다. 지도를 확대한 뒤 다시 시도해 주세요.",
 			"noSavedRestaurantsInArea": "이 지역에서 저장된 레스토랑을 찾을 수 없습니다. 지역을 확대하고 다시 검색하세요."
 		},
 		"emptyState": {
@@ -967,6 +968,7 @@
 		"savedRestaurantList": "저장된 레스토랑",
 		"postPhotoVideo": "사진/동영상 게시",
 		"fetchSavedRestaurantsError": "저장된 레스토랑을 가져오지 못했습니다",
+		"fetchSavedRestaurantsTimeout": "시간이 너무 오래 걸렸습니다. 지도를 확대한 뒤 다시 시도해 주세요.",
 		"noSavedRestaurantsInArea": "이 지역에서 저장된 레스토랑을 찾을 수 없습니다. 지역을 확대하고 다시 검색하세요.",
 		"nameSearch": {
 			"placeholder": "가게 이름으로 검색",

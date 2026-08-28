@@ -950,6 +950,7 @@
 			"savedRestaurantList": "已保存的餐厅",
 			"postPhotoVideo": "发布照片/视频",
 			"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
+			"fetchSavedRestaurantsTimeout": "耗时过长。请放大地图后重试。",
 			"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。"
 		},
 		"emptyState": {
@@ -967,6 +968,7 @@
 		"savedRestaurantList": "已保存的餐厅",
 		"postPhotoVideo": "发布照片/视频",
 		"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
+		"fetchSavedRestaurantsTimeout": "耗时过长。请放大地图后重试。",
 		"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。",
 		"nameSearch": {
 			"placeholder": "按店名搜索",
