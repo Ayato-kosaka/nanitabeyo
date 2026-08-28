@@ -28,12 +28,18 @@ import { Text } from "react-native";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+// #1509 全画面フィードの黒背景・白文字はメディアを引き立てる固定色（テーマ非追従）
+import { FixedColors } from "@/constants/Palette";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+// #1629【30】先読みの «窓» の判断はここに閉じている（テストから直接叩けるようにするため）
+import { computePreloadIds } from "@/features/dishMedia/preloadWindow";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
 const clampIndex = (index: number, length: number) => Math.min(Math.max(0, index), Math.max(0, length - 1));
 
 // --- Props -------------------------------------------------------------------
+
 interface DishMediaFeedProps {
 	// 初期表示インデックス（範囲外はクランプ）
 	initialIndex?: number;
@@ -45,6 +51,9 @@ interface DishMediaFeedProps {
 	entriesKey: string;
 	// ID の種類（dish_media / dish_reviews）
 	idType: IdType;
+	// #1375 横ページングにする（my-dishes の日付 Feed 用）。既定 false = 従来どおり縦。
+	// 既存の呼び出し元（検索結果・店舗・通知・投稿）は渡さないので挙動は変わらない
+	horizontal?: boolean;
 }
 
 // --- 本体 --------------------------------------------------------------------
@@ -54,6 +63,7 @@ export default function DishMediaFeed({
 	getTitle,
 	entriesKey,
 	idType,
+	horizontal = false,
 }: DishMediaFeedProps) {
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
@@ -69,27 +79,65 @@ export default function DishMediaFeed({
 	}, [liveIds, ids.length]);
 
 	// #802 【責務分離】Feed は ids とページング制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
-	const backgroundImagesSessionKey = useMemo(() => `${entriesKey}::${idType}::${ids.join(",")}`, [entriesKey, idType, ids]);
-	// TODO(#802): 現在は ids 全件を background image preload 対象にしている。
-	// Android では Google Place photo の大きい画像を複数同時に取得すると Glide 側で timeout することがある。
-	// 根本対応としては currentIndex 周辺の数件だけを preload する方式を検討する。
-	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
-		ids,
-		idType,
-		sessionKey: backgroundImagesSessionKey,
-	});
+	const backgroundImagesSessionKey = useMemo(
+		() => `${entriesKey}::${idType}::${ids.join(",")}`,
+		[entriesKey, idType, ids],
+	);
 
 	// 命令的スクロール用の List 参照
 	const listRef = useRef<FlatList<string>>(null);
 
 	// 実レイアウト高（SafeArea等込み）: onLayout で初回確定
 	const [pageHeight, setPageHeight] = useState(0);
+	// #1375 横ページング時のページ幅。縦のときは使わない
+	const [pageWidth, setPageWidth] = useState(0);
+	// ページ 1 枚ぶんのスクロール量。横なら幅、縦なら高さ
+	const pageLength = horizontal ? pageWidth : pageHeight;
 
 	// initialIndex を常に範囲内へ
 	const clampedInitialIndex = useMemo(() => clampIndex(initialIndex, ids.length), [initialIndex, ids.length]);
 
 	// 現在の表示インデックス（状態）＋最新値ミラー用Ref（Viewabilityコールバックで参照）
 	const [currentIndex, setCurrentIndex] = useState(clampIndex(initialIndex, ids.length));
+
+	// #802 / 独立レビュー指摘（High）: preload は **currentIndex の周辺だけ**に絞る。
+	// 以前は ids 全件（my-dishes 経由だと最大 42 件）を同時に `Image.loadAsync` しており、
+	// 開いた瞬間に全画面ビットマップ 42 枚の取得・デコードが一斉に走っていた
+	// （Android は Glide 側の timeout も踏む）。窓の外は表示時に通常経路で読まれる
+	/*
+	#1629 【調整 → 一部差し戻し】背景画像の先読み。
+
+	## 重さの正体と、クラッシュの正体は別物である
+
+	«1 個ずつ読み込む感じ» の正体は **次のカードの背景画像をスワイプ後に取りに行くこと**、
+	«先読みしすぎるとクラッシュ» の正体は **動画デコーダの同時本数**（`isNearActive` が ±1 で
+	別に握っている）。だから広げる先を分ける。`windowSize` は 5 のまま（前後 2 ページのマウント）。
+
+	## ⚠️ 件数が少ない画面では «窓» そのものが害になる（オーナー実機報告）
+
+	> このお店提案は 5 件しか表示されないんで、今の状態だとチカチカするんですよね。
+	> 今までこのお店提案はそんな性能が悪かったことないんで、そういう先読みは
+	> あえて入れてないんですよ。むしろチカチカして見にくい。
+
+	`useDishMediaBackgroundImageResources` は **集合から外れた画像を release する**。
+	窓を動かすと、外れた画像は破棄され、戻ってきたときに取り直しになる。
+	件数が窓より少し多いだけの画面（お店提案は 5 件）では、指を動かすたびに
+	**取得 → 破棄 → 取得** が繰り返され、これが «チカチカ» の正体である。
+	枚数を 4 から 2 へ減らしても、窓が動く限り churn は消えない。
+
+	そこで **全部が窓に収まる規模なら窓を作らない**。1 度きりで確定するので churn がゼロになる。
+	これは release/1.13 の «ids 全件を渡す» 挙動と、この規模では同一である。
+
+	⚠️ 大きい方（my-dishes 経由の 42 件）を «全件先読み» へ戻さないこと。#802 の時点で
+	   全画面ビットマップ 42 枚の取得・デコードが一斉に走り、Android では Glide の
+	   timeout まで踏んでいた。だから **しきい値で分ける**のであって、窓をやめるのではない。
+	*/
+	const preloadIds = useMemo(() => computePreloadIds(ids, currentIndex), [ids, currentIndex]);
+	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
+		ids: preloadIds,
+		idType,
+		sessionKey: backgroundImagesSessionKey,
+	});
 	const currentIndexRef = useRef(currentIndex);
 	useEffect(() => {
 		currentIndexRef.current = currentIndex;
@@ -123,14 +171,14 @@ export default function DishMediaFeed({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// --- getItemLayout（高さ=画面高を提供; 初期スクロール安定化の要） --------
+	// --- getItemLayout（ページ長=画面高 or 画面幅; 初期スクロール安定化の要） --------
 	const getItemLayout = useMemo(
 		() => (_: ArrayLike<string> | null | undefined, index: number) => ({
-			length: pageHeight ?? 0,
-			offset: (pageHeight ?? 0) * index,
+			length: pageLength ?? 0,
+			offset: (pageLength ?? 0) * index,
 			index,
 		}),
-		[pageHeight],
+		[pageLength],
 	);
 
 	// --- viewability 閾値（90%以上を“表示中”とみなす） -----------------------
@@ -169,20 +217,33 @@ export default function DishMediaFeed({
 	// --- renderItem（再レンダを抑制：pageHeight にのみ依存） -------------------
 	const renderItem = useCallback(
 		({ item, index }: ListRenderItemInfo<string>) => (
-			// 各ページは厳密に画面高に合わせる
-			<View style={{ height: Math.max(1, pageHeight) }}>
-				<DishMediaContent
-					id={item}
-					isActive={index === currentIndex}
-					getTitle={getTitle}
-					sessionId={sessionId.current}
-					entriesKey={entriesKey}
-					idType={idType}
-					backgroundImageState={getBackgroundImageState(item)}
-				/>
+			// 各ページは厳密に画面サイズに合わせる（横のときは幅も固定しないとページングが崩れる）
+			<View style={{ height: Math.max(1, pageHeight), ...(horizontal ? { width: Math.max(1, pageWidth) } : {}) }}>
+				{/* #1375（5 巡目・安定性）**セル単位の ErrorBoundary。**
+				    `DishMediaContent` は entry が引けないと throw する設計（同ファイル冒頭のコメント）だが、
+				    その境界は検索結果のカルーセル（`DishMediaMap.tsx:315`）にしか無く、
+				    このフィード（my-dishes / 店舗 / 通知 / 投稿 / プロフィール）から throw すると
+				    **アプリ全体の ErrorBoundary まで抜けて «全画面エラー → トップへ戻る»** になっていた。
+				    ユーザーからは «落ちた» と区別がつかない。1 セルの再試行に閉じ込める。
+				    ⚠️ throw を残すか消すかは別論点。まず境界を `DishMediaMap` と揃える */}
+				<ErrorBoundary>
+					<DishMediaContent
+						id={item}
+						isActive={index === currentIndex}
+						// #1375（5 巡目・性能 B-2）動画プレイヤーは «見えている ±1» だけ実体化する。
+						// windowSize={5} は前後 2 ページぶんをマウントするので、素直に描くと
+						// 同時に 5 本のデコーダが立つ。±1 は先読み（スワイプ直後の黒画面を出さない）
+						isNearActive={Math.abs(index - currentIndex) <= 1}
+						getTitle={getTitle}
+						sessionId={sessionId.current}
+						entriesKey={entriesKey}
+						idType={idType}
+						backgroundImageState={getBackgroundImageState(item)}
+					/>
+				</ErrorBoundary>
 			</View>
 		),
-		[pageHeight, currentIndex, getTitle, entriesKey, idType, getBackgroundImageState],
+		[pageHeight, pageWidth, horizontal, currentIndex, getTitle, entriesKey, idType, getBackgroundImageState],
 	);
 
 	return (
@@ -192,9 +253,11 @@ export default function DishMediaFeed({
 			onLayout={(e) => {
 				const h = Math.max(1, Math.floor(e.nativeEvent.layout.height));
 				if (h !== pageHeight) setPageHeight(h);
+				const w = Math.max(1, Math.floor(e.nativeEvent.layout.width));
+				if (w !== pageWidth) setPageWidth(w);
 			}}>
-			{/* pageHeight が確定するまでは描画を遅延（初期スクロール不発を防止） */}
-			{pageHeight > 0 ? (
+			{/* ページ寸法が確定するまでは描画を遅延（初期スクロール不発を防止） */}
+			{pageLength > 0 && pageHeight > 0 ? (
 				!!isLoading ? (
 					<View style={styles.centerContainer}>
 						<LoadingIndicator size="large" />
@@ -206,8 +269,9 @@ export default function DishMediaFeed({
 					</View>
 				) : ids.length > 0 ? (
 					<FlatList
-						// pageHeight が変わったときはリマウントさせたいため key を付ける
-						key={`${entriesKey}-${pageHeight}`}
+						// ページ寸法が変わったときはリマウントさせたいため key を付ける
+						key={`${entriesKey}-${pageLength}`}
+						horizontal={horizontal}
 						ref={listRef}
 						data={ids}
 						renderItem={renderItem}
@@ -248,25 +312,25 @@ const styles = StyleSheet.create({
 	// ルートは常に黒背景（SafeAreaや余白での色抜け防止）
 	root: {
 		flex: 1,
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	list: {
 		flex: 1,
-		backgroundColor: "#000", // メディアを引き立てる黒背景
+		backgroundColor: FixedColors.mediaBackground, // メディアを引き立てる黒背景
 	},
 	centerContainer: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	loadingText: {
 		marginTop: 16,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		fontSize: 16,
 	},
 	errorText: {
-		color: "#FF6B6B",
+		color: FixedColors.errorOnMedia,
 		fontSize: 16,
 		textAlign: "center",
 		paddingHorizontal: 20,

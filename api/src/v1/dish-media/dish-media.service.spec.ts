@@ -30,6 +30,7 @@ import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { ClsService } from 'nestjs-cls';
 import type { CreateDishMediaViewDto } from '@shared/v1/dto';
+import { env } from '../../core/config/env';
 
 const DISH_MEDIA_ID = 'dish-media-uuid';
 const IMPRESSION_ID = 'impression-uuid';
@@ -380,5 +381,162 @@ describe('DishMediaService テレメトリの FK 違反ハンドリング', () =
         service.addReaction(DISH_MEDIA_ID, 'like', USER_ID, false),
       ).rejects.toBe(error);
     });
+  });
+});
+
+/*
+#1560 【回帰】投稿とレビューを **同じトランザクション** で作る。
+
+分かれていた頃は `POST /v1/dish-media` → `POST /v1/dish-reviews` の 2 本立てで、
+1 本目が成功して 2 本目が落ちると dish_media だけが残った。
+`GET /v1/users/me/dishes` の候補集合は want（reactions）と eaten（dish_reviews）の
+2 系統しか無く **dish_media を起点にした系統が無い**ため、その行は一覧にもピンにも出ず、
+本人が到達する導線が消える。#1513 の「投稿を削除」でも消せない。
+
+ここで固定するのは 3 点:
+1. `review` を渡したら **同じ tx** でレビューまで作る
+2. `review` を渡さなければレビューを作らない（従来の 2 本立ては壊さない）
+3. 外部呼び出し（トランスコード起動・リサイズ enqueue）は **コミット後**に行う。
+   ロールバックされた行に対してジョブだけが走ると、実体の無い record_id を参照し続ける
+*/
+describe('DishMediaService #1560 投稿とレビューの 1 トランザクション化', () => {
+  const DISH_ID = '11111111-1111-4111-8111-111111111111';
+  const CREATOR_ID = '22222222-2222-4222-8222-222222222222';
+  const NEW_MEDIA = {
+    id: '33333333-3333-4333-8333-333333333333',
+    dish_id: DISH_ID,
+    user_id: CREATOR_ID,
+    media_path: 'users/u/x.jpg',
+    media_type: 'image',
+    thumbnail_path: 'users/u/x.jpg',
+    created_at: new Date('2026-08-20T00:00:00.000Z'),
+    media_processing_status: 'processing',
+    thumbnail_processing_status: 'processing',
+  };
+  const NEW_REVIEW = {
+    id: '44444444-4444-4444-8444-444444444444',
+    dish_id: DISH_ID,
+    user_id: CREATOR_ID,
+    comment: 'おいしかった',
+    original_language_code: 'ja-JP',
+    rating: 5,
+    price_cents: 1000,
+    currency_code: 'JPY',
+    created_dish_media_id: NEW_MEDIA.id,
+    created_at: new Date('2026-08-20T00:00:00.000Z'),
+  };
+
+  /**
+   * `isValidUserUploadedPath` は `${API_NODE_ENV}/user-uploads/${userId}/` 始まりだけを通す
+   * （storage.utils.ts）。ここを満たさないと本題の手前で 404 になる
+   */
+  const UPLOAD_PREFIX = `${env.API_NODE_ENV}/user-uploads/${CREATOR_ID}/`;
+  const baseDto = {
+    dishId: DISH_ID,
+    mediaPath: `${UPLOAD_PREFIX}x.jpg`,
+    thumbnailPath: `${UPLOAD_PREFIX}x.jpg`,
+    mediaType: 'image' as const,
+  };
+
+  /** 実行順を 1 本の列で観測する（«コミット後に enqueue» を順序で固定するため） */
+  let calls: string[];
+  let service: DishMediaService;
+  let repo: {
+    dishExists: jest.Mock;
+    createDishMedia: jest.Mock;
+    createDishReviewForMedia: jest.Mock;
+  };
+
+  beforeEach(async () => {
+    calls = [];
+    repo = {
+      dishExists: jest.fn().mockResolvedValue(true),
+      createDishMedia: jest.fn().mockImplementation(() => {
+        calls.push('createDishMedia');
+        return Promise.resolve(NEW_MEDIA);
+      }),
+      createDishReviewForMedia: jest.fn().mockImplementation(() => {
+        calls.push('createDishReviewForMedia');
+        return Promise.resolve(NEW_REVIEW);
+      }),
+    };
+    const cloudTasks = {
+      enqueueResizeImage: jest.fn().mockImplementation(() => {
+        calls.push('enqueueResizeImage');
+        return Promise.resolve(undefined);
+      }),
+    };
+    const prisma = {
+      withTransaction: jest.fn(async (exec: (tx: unknown) => unknown) => {
+        calls.push('tx:begin');
+        const out = await exec({ __tx: true });
+        calls.push('tx:commit');
+        return out;
+      }),
+    };
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        DishMediaService,
+        { provide: DishMediaRepository, useValue: repo },
+        { provide: DishMediaAssembler, useValue: {} },
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: AppLoggerService,
+          useValue: { debug: jest.fn(), warn: jest.fn(), error: jest.fn(), log: jest.fn() },
+        },
+        { provide: TranscoderService, useValue: {} },
+        { provide: CloudTasksService, useValue: cloudTasks },
+        { provide: ClsService, useValue: { get: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get<DishMediaService>(DishMediaService);
+  });
+
+  it('review を渡すと、メディアと同じトランザクションでレビューまで作る', async () => {
+    const result = await service.createDishMedia(
+      {
+        ...baseDto,
+        review: {
+          comment: 'おいしかった',
+          languageCode: 'ja-JP',
+          rating: 5,
+          priceCents: 1000,
+          currencyCode: 'JPY',
+        },
+      },
+      CREATOR_ID,
+    );
+
+    expect(repo.createDishReviewForMedia).toHaveBeenCalledTimes(1);
+    // 同じ tx オブジェクトを共有していること（別トランザクションだと孤児が復活する）
+    const txForMedia = repo.createDishMedia.mock.calls[0][0];
+    const txForReview = repo.createDishReviewForMedia.mock.calls[0][0];
+    expect(txForReview).toBe(txForMedia);
+
+    // dish_id / created_dish_media_id はサーバーが作ったメディアから取る
+    expect(repo.createDishReviewForMedia.mock.calls[0][2]).toBe(NEW_MEDIA);
+
+    expect(result.dishReview?.id).toBe(NEW_REVIEW.id);
+  });
+
+  it('外部呼び出し（リサイズの enqueue）はコミット後に行う', async () => {
+    await service.createDishMedia(
+      { ...baseDto, review: { comment: 'x', languageCode: 'ja-JP', rating: 5 } },
+      CREATOR_ID,
+    );
+
+    const commitAt = calls.indexOf('tx:commit');
+    const firstEnqueueAt = calls.indexOf('enqueueResizeImage');
+    expect(commitAt).toBeGreaterThanOrEqual(0);
+    expect(firstEnqueueAt).toBeGreaterThan(commitAt);
+    // レビュー作成はコミット前（= トランザクションの中）
+    expect(calls.indexOf('createDishReviewForMedia')).toBeLessThan(commitAt);
+  });
+
+  it('review を渡さなければレビューを作らない（従来の 2 本立てを壊さない）', async () => {
+    const result = await service.createDishMedia(baseDto, CREATOR_ID);
+
+    expect(repo.createDishReviewForMedia).not.toHaveBeenCalled();
+    expect(result.dishReview).toBeUndefined();
   });
 });

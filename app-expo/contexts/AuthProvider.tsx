@@ -23,7 +23,7 @@ import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { Href, useRouter } from "expo-router";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { useTopicsStore } from "@/stores/useTopicsStore";
+import { useDishCategoriesStore } from "@/stores/useDishCategoriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 import { requestLogoutRedirect } from "@/lib/logoutRedirect";
@@ -549,7 +549,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			if (hasUserChanged) {
 				// ✅ ユーザーが切り替わったときにストアをクリア
 				useDishMediaEntriesStore.getState().clearByKey();
-				useTopicsStore.getState().clearByKey();
+				useDishCategoriesStore.getState().clearByKey();
 				useProfileStore.getState().resetProfile();
 				useCdnCookieStore.getState().clearCookies();
 			}

@@ -11,37 +11,31 @@ import {
 /**
  * 👤 マイページの Screen Object（e2e-web の pages/ProfilePage.ts に対応）
  *
- * 対応画面: app-expo/app/[locale]/(tabs)/profile/index.tsx（実体は features/profile/ProfileTabsLayout）
+ * 対応画面: app-expo/app/[locale]/(tabs)/profile/index.tsx
  *
- * タブ構成はログイン状態で分岐する（#1031 【設計】§2）:
- * - 匿名ユーザー: 保存系タブのみ（save-post / save-topic / like）+ ログインボタン表示
- * - ログイン済み: 上記に加えて reviews（投稿）タブ ※ログイン済み前提のテストは別 PR 担当
+ * #1402 で画面の形が変わった:
+ * - **4 グリッドタブは廃止**。`review-tab-grid` / `save-post-tab-grid` と
+ *   サブタブ（`profile-subtab-*`）は存在しない。
+ * - 残る 2 つのグリッドは «独立した画面» になった（`profile-liked` / `profile-saved-dish-categories` の行から遷移）。
+ * - **独立した設定画面も無くなり**、その項目はこの画面の縦リストにある。
+ *   歯車ボタン（`profile-settings-button`）も一緒に消えた。設定項目の Locator は
+ *   `screens/SettingsScreen.ts` が持ち続ける（testID も据え置き）。
  *
- * ゲスト時は `features/profile/containers/ProfileTabsLayout.tsx` の `!isGuest ? <Tabs.Tab name="reviews">...`
- * により reviews タブの Tabs.Tab 自体がレンダリングされない。つまり `review-tab-grid` は
- * 「非表示」ではなく「存在しない」ため、可視性ではなく存在有無で検証する。
+ * ログイン状態による分岐は «ログインボタン / 編集ボタン» と «ログアウト行の有無» だけになった。
  */
 export class ProfileScreen {
 	/** 匿名ユーザーに表示されるログインボタン（既存 testID） */
 	readonly loginButton = by.id("profile-login-button");
 	/** ログイン済みユーザーに表示される「プロフィールを編集」ボタン（#1369 で testID を追加） */
 	readonly editButton = by.id("profile-edit-button");
-	/**
-	 * 設定画面への唯一の UI 導線（歯車ボタン）。
-	 * #1031 【設計確定】B2 に関連する実装メモ: e2e-web の ProfilePage.gotoSettings() は
-	 * このボタンに testID が無いため URL 直遷移（page.goto）で代替しているが、
-	 * ネイティブには URL 直遷移の代替経路が無いため実 UI 導線のタップを正とする。
-	 * testID（`profile-settings-button`）は PR #1033 で追加済み。
-	 */
-	readonly settingsButton = by.id("profile-settings-button");
-	/** 保存した投稿グリッド（既存 testID） */
-	readonly savedPostsGrid = by.id("save-post-tab-grid");
-	/** 保存したトピックグリッド（既存 testID） */
-	readonly savedTopicsGrid = by.id("save-topic-tab-grid");
-	/** いいねした投稿グリッド（既存 testID） */
+	/** 「いいねした投稿」の行（#1402。押すと /[locale]/profile/liked へ遷移する） */
+	readonly likedItem = by.id("profile-liked");
+	/** 「保存した料理カテゴリ」の行（#1402。押すと /[locale]/profile/saved-dish-categories へ遷移する） */
+	readonly savedDishCategoriesItem = by.id("profile-saved-dish-categories");
+	/** 保存した料理カテゴリのグリッド（既存 testID。#1402 で単独画面の中身になった） */
+	readonly savedDishCategoriesGrid = by.id("save-dish-category-tab-grid");
+	/** いいねした投稿のグリッド（既存 testID。#1402 で単独画面の中身になった） */
 	readonly likedGrid = by.id("like-tab-grid");
-	/** 自分のレビュー投稿グリッド（ログイン済みのみ表示。ゲスト時は Tabs.Tab ごと未マウント） */
-	readonly reviewsGrid = by.id("review-tab-grid");
 
 	/** 匿名ユーザー向けのゲスト表示（ログインボタン）が出ていることを検証する */
 	async expectGuestViewLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
@@ -49,17 +43,34 @@ export class ProfileScreen {
 	}
 
 	/**
-	 * 保存した投稿グリッドが描画されていることを検証する。
+	 * マイページが描画されていることを検証する（#1402）。
 	 *
-	 * #1027 【バグ】ここは `toBeVisible` ではなく **`toExist` で見る**。
-	 * グリッドの実体は `FlatList`（`ListEmptyComponent` 付き）で、保存が 0 件のテストユーザーでは
-	 * 中身が空になる。iOS の `toBeVisible` は「要素の面積の 75% 以上が見えていること」を要求するため、
-	 * 空リストのように面積を持たない要素は **描画されていても不可視と判定される**
+	 * 旧実装は「保存した投稿グリッドが出ていること」で «マイページに着いた» を見ていたが、
+	 * そのグリッドはタブごと廃止された。代わりに縦リストの先頭付近にある
+	 * 「いいねした投稿」の行を見る（ゲスト・ログイン済みのどちらでも必ず描かれる）。
+	 *
+	 * #1027 【バグ】ここは `toBeVisible` ではなく **`toExist` で見る**流儀を踏襲する。
+	 * iOS の `toBeVisible` は「要素の面積の 75% 以上が見えていること」を要求するため、
+	 * スクロール位置や端末サイズによっては «描画されていても不可視» と判定されうる
 	 * （run 30432596949 の iOS で save-post-tab-grid / review-tab-grid が実際にこれで落ちた）。
-	 * この検証の意図は「保存タブが選択されている」ことなので、存在で判定すれば十分。
 	 */
-	async expectSavedPostsGridVisible(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilExists(this.savedPostsGrid, timeout);
+	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilExists(this.likedItem, timeout);
+	}
+
+	/**
+	 * 設定項目のある画面へ進む。
+	 *
+	 * ⚠️ **もう «歯車 → 設定画面» は無い。** #1402 でその 1 階層を無くし、設定項目は
+	 * マイページ本体（`app/[locale]/(tabs)/profile/index.tsx`）の縦リストへ統合した。
+	 * `testID`（`settings-*`）は据え置きなので、**マイページを開いた時点で既に «設定画面» に居る**。
+	 *
+	 * それでもこのメソッドを残すのは、main 側で書かれた spec（#1510 通知設定 / #1511 退会）が
+	 * «マイページ → 設定» の 2 段で書かれているためである。ここを «何もしない» にしておけば
+	 * 両方の書き方がそのまま通り、合流のたびに spec を書き換えずに済む。
+	 */
+	async gotoSettings(): Promise<void> {
+		// 遷移は不要。マイページがそのまま設定画面である（上の JSDoc 参照）
 	}
 
 	/**
@@ -87,16 +98,25 @@ export class ProfileScreen {
 		await tapWhenVisible(this.editButton);
 	}
 
-	/** 歯車ボタンをタップして設定画面へ遷移する（#1031 確定: URL 直遷移ではなく実 UI 導線のタップ） */
-	async gotoSettings(): Promise<void> {
-		await tapWhenVisible(this.settingsButton);
+	/** 「いいねした投稿」の行をタップして一覧画面（/[locale]/profile/liked）へ遷移する（#1402） */
+	async openLiked(): Promise<void> {
+		await tapWhenVisible(this.likedItem);
+	}
+
+	/** 「保存した料理カテゴリ」の行をタップして一覧画面（/[locale]/profile/saved-dish-categories）へ遷移する（#1402） */
+	async openSavedDishCategories(): Promise<void> {
+		await tapWhenVisible(this.savedDishCategoriesItem);
 	}
 
 	/**
-	 * レビュー投稿グリッドが存在するかを **待たずに** 判定する。
-	 * ゲスト時は Tabs.Tab ごと未マウントなので、TabBar.hasNotificationsTab() と同じ考え方で使う。
+	 * 廃止された 4 グリッドタブの痕跡が残っていないかを **待たずに** 判定する（#1402）。
+	 * `review-tab-grid` / `save-post-tab-grid` はタブごと無くなったので、
+	 * どちらかが存在したらこの Issue の変更が巻き戻っている。
 	 */
-	async hasReviewsGrid(): Promise<boolean> {
-		return existsNow(this.reviewsGrid);
+	async hasLegacyGridTabs(): Promise<boolean> {
+		// ⚠️ `existsNow(a) || existsNow(b)` と書かないこと。existsNow は Promise を返すので
+		// 左辺が常に truthy になり、**何があっても true を返す**（＝検査にならない）
+		if (await existsNow(by.id("review-tab-grid"))) return true;
+		return existsNow(by.id("save-post-tab-grid"));
 	}
 }

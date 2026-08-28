@@ -198,7 +198,13 @@ export async function record({ name, mock, contextOptions, flow, langs, preset =
 		// チュートリアルのオーバーレイは目的の画面を隠すうえ、pointer events を
 		// 奪ってタップを弾く（実測: topics-tutorial-overlay が click を 56 回リトライさせた）。
 		// 画面ごとに既読キーが違うので、判明しているものは全部立てておく。
-		for (const k of ["search_tutorial_seen_v1", "topics_spotlight_tutorial_seen_v1"]) {
+		for (const k of [
+			"search_tutorial_seen_v1",
+			"topics_spotlight_tutorial_seen_v1",
+			// #1513 my-dishes にも別のチュートリアルがある。既読にしないと 4 ページの
+			// オーバーレイが一覧を覆い、ビュー切り替えのタップも弾く（実測でタイムアウトした）
+			"my_dishes_spotlight_tutorial_seen_v1",
+		]) {
 			try {
 				window.localStorage.setItem(k, "true");
 			} catch {}

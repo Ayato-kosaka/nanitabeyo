@@ -29,7 +29,8 @@
 			"unexpected": "حدث خطأ غير متوقع. يُرجى المحاولة مرة أخرى لاحقًا.",
 			"notFound": "غير موجود",
 			"authUnavailable": "فشل تسجيل الدخول. يُرجى التحقق من اتصال الشبكة ثم إعادة المحاولة.",
-			"authRateLimited": "هناك عدد كبير جدًا من الطلبات حاليًا. يُرجى الانتظار قليلًا ثم إعادة المحاولة."
+			"authRateLimited": "هناك عدد كبير جدًا من الطلبات حاليًا. يُرجى الانتظار قليلًا ثم إعادة المحاولة.",
+			"videoProcessingFailed": "فشل في معالجة الفيديو. جرّب فيديو آخر."
 		}
 	},
 	"DeepLinking": {
@@ -81,7 +82,22 @@
 		"submitFailed": "تعذر إرسال تصويتك",
 		"participantsList": "المشاركون: {{names}}",
 		"noParticipants": "لا يوجد مشاركون بعد",
-		"noVotes": "لا توجد أصوات بعد"
+		"noVotes": "لا توجد أصوات بعد",
+		"myVotes": {
+			"pageTitle": "تصويتاتي الجماعية",
+			"loadFailed": "تعذر تحميل تصويتاتك الجماعية",
+			"noCandidates": "لا توجد خيارات",
+			"candidateSeparator": "، ",
+			"candidateSummaryMore": "{{names}} و{{count}} أخرى",
+			"participantSummary": "صوّت {{count}}",
+			"decidedLabel": "الفائز: {{name}}",
+			"votedLabel": "لقد صوّتت",
+			"notVotedLabel": "لم تصوّت بعد",
+			"itemAccessibilityLabel": "تصويت جماعي بتاريخ {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "لم تبدأ أي تصويت جماعي بعد",
+			"emptyDescription": "ابحث عن طعام واختر بعض الخيارات، ثم اطلب من أصدقائك التصويت.",
+			"emptyAction": "إنشاء تصويت"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
@@ -159,9 +175,6 @@
 		},
 		"loading": "جارٍ البحث...",
 		"noLocationsFound": "لم يتم العثور على مواقع",
-		"locationConfirmation": {
-			"error": "فشل تأكيد الموقع"
-		},
 		"advancedToggle": {
 			"open": "خيارات إضافية",
 			"close": "إغلاق البحث المتقدم"
@@ -241,6 +254,9 @@
 		"recentLocations": {
 			"title": "المواقع الأخيرة",
 			"clear": "مسح المواقع الأخيرة"
+		},
+		"locationConfirmation": {
+			"error": "فشل تأكيد الموقع"
 		}
 	},
 	"Onboarding": {
@@ -290,7 +306,7 @@
 			"stepProgress": "الخطوة {{current}} من {{total}}"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "تصفية بهذا النمط"
 		},
@@ -311,7 +327,7 @@
 					"title": "تعمّق في البحث حسب مزاجك",
 					"body": "لم تقرر بعد؟ اختر نمطًا لتضييق الاقتراحات إلى أطباق مشابهة."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "نظّم الاقتراحات حسب ذوقك",
 					"save": "حفظ: ارجع إلى الطبق لاحقًا",
 					"block": "حظر: أوقف اقتراح الأطباق التي لا تناسب ذوقك مستقبلاً"
@@ -322,7 +338,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "إخفاء",
 			"description": "أخبرنا سبب الإخفاء (اختياري)",
 			"placeholder": "أدخل السبب...",
@@ -340,7 +356,7 @@
 		"retry": "العودة إلى البحث",
 		"chooseThis": "اختر هذا!",
 		"hiddenMessage": "تم إخفاء {{title}}",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "حظر هذا الطبق؟",
 			"description": "لن تظهر فئات الأطباق المحظورة بعد الآن في التوصيات.",
 			"note": "يمكنك إلغاء الحظر في أي وقت من الإعدادات.",
@@ -359,9 +375,9 @@
 		"headerTitle": "الأطباق الموصى بها لك",
 		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم",
 		"accessibility": {
-			"blockTopic": "إزالة {{title}} من التوصيات",
-			"saveTopic": "حفظ {{title}}",
-			"unsaveTopic": "إلغاء حفظ {{title}}",
+			"blockDishCategory": "إزالة {{title}} من التوصيات",
+			"saveDishCategory": "حفظ {{title}}",
+			"unsaveDishCategory": "إلغاء حفظ {{title}}",
 			"thumbnail": "صورة مصغرة لـ {{title}}، {{index}} من {{total}}"
 		}
 	},
@@ -391,7 +407,8 @@
 		"actions": {
 			"share": "مشاركة",
 			"seeMore": "عرض المزيد",
-			"openMap": "افتح الخريطة"
+			"openMap": "افتح الخريطة",
+			"review": "مراجعة"
 		},
 		"share": {
 			"title": "اطّلع على {{dishName}}"
@@ -407,7 +424,10 @@
 			"saveInactive": "حفظ {{name}}",
 			"share": "مشاركة {{name}}",
 			"openMap": "فتح خريطة {{name}}",
-			"reviewLike": "الإعجاب بمراجعة {{username}}"
+			"reviewLike": "الإعجاب بمراجعة {{username}}",
+			"recordEaten": "تسجيل {{name}} كأنك تناولته",
+			"recordEatenAgain": "سجّل {{name}} مرة أخرى (مسجَّل بالفعل)",
+			"ownPostMenu": "فتح قائمة منشور {{name}}"
 		},
 		"processing": "جارٍ معالجة الوسائط...",
 		"info": {
@@ -418,6 +438,36 @@
 			"mediaUnavailable": "هذا المحتوى غير متاح حالياً.",
 			"likeReactionFailed": "فشل تحديث الإعجاب. يرجى المحاولة مرة أخرى.",
 			"saveReactionFailed": "فشل تحديث الحفظ. يرجى المحاولة مرة أخرى."
+		},
+		"save": {
+			"savedMessage": "تم الحفظ في «أريد تجربته»"
+		},
+		"embed": {
+			"play": "التشغيل على {{provider}}"
+		},
+		"ownPost": {
+			"menuTitle": "منشورك",
+			"edit": "تعديل المراجعة",
+			"delete": "حذف المنشور",
+			"cancel": "إلغاء",
+			"mediaLocked": "لا يمكن تغيير الصور ومقاطع الفيديو. يمكنك تعديل التعليق والتقييم والسعر.",
+			"deleteConfirmTitle": "هل تريد حذف هذا المنشور؟",
+			"deleteConfirmMessage": "سيتم حذف المنشور (الصورة ومراجعتك). لا يمكن التراجع عن ذلك.",
+			"deleteConfirmButton": "حذف",
+			"deleted": "تم حذف المنشور",
+			"deleteFailed": "تعذّر حذف المنشور",
+			"editTitle": "تعديل المراجعة",
+			"editComment": "التعليق",
+			"editRating": "التقييم",
+			"editPrice": "السعر",
+			"save": "حفظ",
+			"saved": "تم تحديث المراجعة",
+			"saveFailed": "تعذّر تحديث المراجعة",
+			"conflict": "تم تحديث هذه المراجعة من مكان آخر. أعد فتحها قبل التعديل.",
+			"forbidden": "يمكنك تعديل أو حذف منشوراتك فقط"
+		},
+		"moreMenu": {
+			"title": "هذا المنشور"
 		}
 	},
 	"ImageCardGrid": {
@@ -438,8 +488,10 @@
 			"search": "البحث",
 			"review": "المراجعة",
 			"notifications": "الإشعارات",
-			"profile": "الملف الشخصي"
-		}
+			"profile": "الملف الشخصي",
+			"myDishes": "أطباقي"
+		},
+		"myDishes": "أطباقي"
 	},
 	"Profile": {
 		"tabGroups": {
@@ -452,9 +504,10 @@
 			"deposits": "الودائع",
 			"earnings": "الأرباح",
 			"saved-posts": "المنشورات",
-			"saved-topics": "الأطباق",
+			"saved-dish-categories": "الأطباق",
 			"wallet-deposit": "الودائع",
-			"wallet-earning": "الأرباح"
+			"wallet-earning": "الأرباح",
+			"saved-topics": "الأطباق"
 		},
 		"numberSuffix": {
 			"million": "م",
@@ -472,6 +525,7 @@
 			"noLikedDishMediaEntries": "لا توجد منشورات معجبة",
 			"noSavedItems": "لا توجد عناصر محفوظة",
 			"noSavedPosts": "عندما تجد منشورات مثيرة للاهتمام، استخدم \"حفظ\" لمراجعتها",
+			"noSavedDishCategories": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة",
 			"noSavedTopics": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة"
 		},
 		"reviews": {
@@ -525,7 +579,11 @@
 			"displayNameLength": "يجب ألا يتجاوز اسم العرض 30 حرفًا",
 			"bioLength": "يجب ألا تتجاوز النبذة 150 حرفًا"
 		},
-		"guestDisplayName": "ضيف"
+		"guestDisplayName": "ضيف",
+		"menu": {
+			"likedPosts": "المنشورات المعجب بها",
+			"savedDishCategories": "فئات الأطباق المحفوظة"
+		}
 	},
 	"NotFound": {
 		"title": "عذرًا!",
@@ -543,7 +601,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "اختر فئة الطبق",
-			"writeReviewForThisDish": "اكتب مراجعة لهذا الطبق"
+			"writeReviewForThisDish": "اكتب مراجعة لهذا الطبق",
+			"useTypedDishCategory": "استخدام «{{name}}»"
 		},
 		"inputs": {
 			"price": "السعر",
@@ -559,13 +618,17 @@
 			"enterReviewShort": "مراجعة قصيرة (مثال: مرق التونكوتسو كان غنيًا وشهيًا بشكل لا يصدق!)",
 			"enterBidAmount": "أدخل مبلغ العرض",
 			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)",
-			"searchRestaurantsForReview": "البحث بالاسم أو المنطقة"
+			"searchRestaurantsForReview": "البحث بالاسم أو المنطقة",
+			"searchAreaForReview": "البحث حسب المنطقة",
+			"searchDishCategory": "البحث باسم الطبق"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
 			"paymentProcessing": "معالجة الدفع...",
 			"restaurant": "مطعم",
-			"dishCategory": "فئة الطبق"
+			"dishCategory": "فئة الطبق",
+			"dishesAtThisRestaurant": "أطباق في هذا المطعم",
+			"noDishesAtThisRestaurant": "لا توجد أطباق مسجلة هنا بعد. اكتب اسم طبق."
 		},
 		"tabs": {
 			"reviews": "المراجعات"
@@ -595,7 +658,12 @@
 			"selectingMedia": "جاري اختيار الوسائط...",
 			"loadingMedia": "جارٍ تحميل الوسائط...",
 			"mediaSelectionFailed": "فشل تحديد الوسائط",
-			"mediaSelectionError": "حدث خطأ أثناء تحديد الوسائط. يرجى المحاولة مرة أخرى."
+			"mediaSelectionError": "حدث خطأ أثناء تحديد الوسائط. يرجى المحاولة مرة أخرى.",
+			"replaceWithMyPhoto": "استخدام صورتي الخاصة",
+			"openSettings": "فتح الإعدادات",
+			"pickFromLibrary": "اختيار من المكتبة",
+			"shootWithCamera": "التقاط صورة",
+			"pickFromExisting": "أو اختر من صور هذا المطعم"
 		},
 		"noResultsFound": "لم يتم العثور على نتائج",
 		"accessibility": {
@@ -661,6 +729,17 @@
 				"asian": "آسيوي",
 				"other": "آخر"
 			}
+		},
+		"review": {
+			"title": "نشر مراجعة"
+		},
+		"emptyState": {
+			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
+		},
+		"everybodyPostsTitle": "اختر طبقًا لمراجعته",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "تفاصيل المطعم"
 		}
 	},
 	"Feedback": {
@@ -728,7 +807,6 @@
 			}
 		},
 		"sendFeedback": "إرسال ملاحظات",
-		"leaveReview": "اترك تقييم",
 		"rateDialogTitle": "هل تستمتع بالتطبيق؟",
 		"rateDialogMessage": "إذا أعجبك، يرجى تقييمنا على المتجر. سنفتح صفحة التقييم.",
 		"rateDialogOk": "قيّم الآن",
@@ -740,6 +818,18 @@
 		"logout": "تسجيل الخروج",
 		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
 		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
+		"blockedDishCategories": {
+			"navigationLabel": "فئات الأطباق المحظورة",
+			"pageTitle": "فئات الأطباق المحظورة",
+			"title": "أطباق محظورة",
+			"empty": "لا توجد أطباق محظورة",
+			"loading": "جاري التحميل...",
+			"unblockButton": "إلغاء الحظر",
+			"unblockTitle": "إلغاء حظر فئة الطبق هذه؟",
+			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
+			"unblockConfirm": "إلغاء الحظر",
+			"unblocked": "تم إلغاء الحظر"
+		},
 		"notifications": {
 			"sectionTitle": "الإشعارات",
 			"osDisabledTitle": "الإشعارات موقوفة على هذا الجهاز",
@@ -757,8 +847,39 @@
 			"group_votes": {
 				"title": "تصويت المجموعة",
 				"description": "عند حدوث نشاط في تصويت مجموعة انضممت إليها"
-			}
+			},
+			"navigationLabel": "إعدادات الإشعارات"
 		},
+		"language": {
+			"navigationLabel": "اللغة",
+			"pageTitle": "اللغة",
+			"systemDefault": "اتباع إعدادات الجهاز",
+			"switching": "جارٍ تغيير اللغة…"
+		},
+		"hapticsEnabled": "التغذية الراجعة اللمسية",
+		"deviceSettings": {
+			"navigationLabel": "إعدادات الجهاز",
+			"title": "إعدادات الجهاز",
+			"description": "يتم حفظ هذه الإعدادات على هذا الجهاز فقط، ولا تنتقل إلى أجهزة أو حسابات أخرى."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "تصويتاتي الجماعية"
+		},
+		"support": "ادعم CraveCatch",
+		"about": {
+			"navigationLabel": "حول CraveCatch",
+			"title": "حول CraveCatch"
+		},
+		"deleteAccount": "حذف الحساب",
+		"deleteAccountInProgress": "جارٍ الحذف…",
+		"deleteAccountConfirmTitle": "هل تريد حذف حسابك؟",
+		"deleteAccountConfirmMessage": "لن يظهر ملفك الشخصي بعد الآن، وستختفي منشوراتك ومراجعاتك من القوائم والبحث. وسيتم حذف صورك ومقاطع الفيديو، بالإضافة إلى الإعجابات والعناصر المحفوظة وعمليات الحظر.\n\nلا يمكن التراجع عن هذا الإجراء.",
+		"deleteAccountConfirmButton": "متابعة",
+		"deleteAccountFinalTitle": "هل تريد الحذف فعلاً؟",
+		"deleteAccountFinalMessage": "لا يمكن استعادة حسابك وبياناتك، ولن تتمكن من تسجيل الدخول مرة أخرى بالحساب نفسه.",
+		"deleteAccountFinalButton": "حذف نهائي",
+		"deleteAccountSuccess": "تم حذف حسابك",
+		"deleteAccountError": "تعذّر حذف حسابك. يُرجى المحاولة لاحقًا.",
 		"blockedTopics": {
 			"navigationLabel": "فئات الأطباق المحظورة",
 			"pageTitle": "فئات الأطباق المحظورة",
@@ -770,6 +891,10 @@
 			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
 			"unblockConfirm": "إلغاء الحظر",
 			"unblocked": "تم إلغاء الحظر"
+		},
+		"account": {
+			"navigationLabel": "إدارة الحساب",
+			"title": "إدارة الحساب"
 		}
 	},
 	"Dialog": {
@@ -790,6 +915,7 @@
 			"submitting": "جارٍ التحديث...",
 			"submitSuccess": "تم تحديث {{count}} صورة بنجاح",
 			"submitError": "فشل تحديث الصور",
+			"submitUnavailable": "هذه الميزة غير متاحة بعد (لم يتم تنفيذ الجانب الخادم).",
 			"reset": "إعادة تعيين",
 			"selected": "محدد",
 			"dishCount": "{{count}} أطباق"
@@ -828,6 +954,299 @@
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "تفاصيل المطعم"
+		}
+	},
+	"SelectRestaurant": {
+		"title": "اختر مطعمًا للمراجعة",
+		"searchThisArea": "ابحث في هذه المنطقة",
+		"savedRestaurantList": "المطاعم المحفوظة",
+		"postPhotoVideo": "نشر صورة/فيديو",
+		"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
+		"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى.",
+		"nameSearch": {
+			"placeholder": "البحث باسم المطعم",
+			"searching": "جارٍ البحث…",
+			"noResults": "لم يتم العثور على مطاعم مطابقة. اضغط على مطعم في الخريطة لإضافته.",
+			"error": "فشل البحث. يرجى المحاولة مرة أخرى."
+		},
+		"accessibility": {
+			"clearNameSearch": "مسح بحث اسم المطعم"
+		},
+		"unsavedHint": "يمكنك أيضًا اختيار مطاعم لم تحفظها: اكتب اسم المطعم في البحث أعلاه، أو اضغط على أيقونة المطعم على الخريطة.",
+		"pickTitle": "اختيار مطعم",
+		"pickOnMap": "ابحث عن مطعم على الخريطة"
+	},
+	"MyDishes": {
+		"actions": {
+			"markAsEaten": "تسجيل كمأكول",
+			"markAsEatenA11y": "تسجيل هذا الطبق كمأكول"
+		},
+		"views": {
+			"map": "الخريطة",
+			"list": "القائمة",
+			"calendar": "التقويم"
+		},
+		"calendar": {
+			"monthLabel": "{{month}}/{{year}}",
+			"weekdays": {
+				"sun": "أحد",
+				"mon": "إثنين",
+				"tue": "ثلاثاء",
+				"wed": "أربعاء",
+				"thu": "خميس",
+				"fri": "جمعة",
+				"sat": "سبت"
+			},
+			"dayA11yLabel": "{{date}} ({{count}} سجلات)",
+			"reachedOldest": "لقد وصلت إلى أقدم سجل"
+		},
+		"map": {
+			"truncated": "يتم عرض بعض الدبابيس فقط. يرجى تضييق نطاق المنطقة.",
+			"sheetTitle": "{{count}} مطاعم قريبة",
+			"tileA11yLabel": "{{name}} (أريد أن آكل: {{want}}، أكلت: {{eaten}})",
+			"clusterA11yLabel": "{{count}} مطاعم في هذه المنطقة",
+			"currentLocation": "الانتقال إلى موقعي الحالي"
+		},
+		"guest": {
+			"description": "سجّل الدخول لتسجيل الأطباق التي تريد تجربتها والتي تناولتها",
+			"loginButton": "تسجيل الدخول"
+		},
+		"record": {
+			"cta": "تسجيل",
+			"noPhotoTitle": "إضافة صورة",
+			"noPhotoHint": "يمكنك التسجيل بدون صورة",
+			"publicReviewNotice": "سيظهر سجلك كمراجعة عامة في صفحة المطعم",
+			"postNotFoundNoPhoto": "لا يحتوي هذا السجل على صورة",
+			"skipPhoto": "تخطّي (بدون صورة)"
+		},
+		"filters": {
+			"title": "التصفية والترتيب",
+			"apply": "تطبيق",
+			"reset": "إعادة تعيين",
+			"status": {
+				"title": "الحالة",
+				"want": "أريد تجربته",
+				"eaten": "تناولته",
+				"description": "اختر السجلات المعروضة: «أريد تناوله» أو «تناولته»"
+			},
+			"rating": {
+				"title": "التقييم",
+				"min": "{{count}} نجوم فأكثر",
+				"description": "صفِّ سجلات «تناولته» حسب التقييم الذي منحته"
+			},
+			"sort": {
+				"title": "الترتيب",
+				"occurredAtDesc": "الأحدث أولاً",
+				"occurredAtAsc": "الأقدم أولاً",
+				"ratingDesc": "الأعلى تقييماً",
+				"distance": "الأقرب",
+				"distanceRequiresArea": "الترتيب حسب المسافة يحتاج إلى منطقة. استخدم \"ابحث في هذه المنطقة\" على الخريطة.",
+				"featureScoreDesc": "اختر الشروط",
+				"description": "اختر الترتيب. اضغط «اختيار الشروط» لفتح الوقت ومع من تذهب وغيرها"
+			},
+			"area": {
+				"title": "المنطقة",
+				"none": "كل المناطق",
+				"clear": "إزالة المنطقة",
+				"hint": "تُحدَّد المنطقة عبر \"ابحث في هذه المنطقة\" على الخريطة.",
+				"selected": "النطاق الذي اخترته على الخريطة (نصف القطر {{radius}})"
+			},
+			"axes": {
+				"none": "غير محدد",
+				"timeSlot": "الوقت",
+				"scene": "مع من",
+				"budget": "نطاق السعر",
+				"diningPace": "مدة الوجبة",
+				"foodStyle": "نوع الطعام",
+				"description": "اضغط على عنوان لفتح خياراته. خيار واحد لكل عنوان"
+			},
+			"period": {
+				"title": "الفترة",
+				"none": "غير محدد",
+				"clear": "إزالة الفترة"
+			},
+			"category": {
+				"title": "فئة الطبق",
+				"description": "صفِّ حسب فئات الأطباق الأكثر تكرارًا ضمن السجلات المعروضة",
+				"count": "{{label}} ({{count}})",
+				"showAll": "عرض المزيد ({{count}} أخرى)"
+			},
+			"activeCount": "{{count}} عوامل تصفية نشطة"
+		},
+		"empty": {
+			"description": "ستظهر هنا الأطباق التي تحفظها أو تسجّل أنك تناولتها."
+		},
+		"list": {
+			"noPhoto": "بدون صورة"
+		},
+		"sheet": {
+			"title": "سجلّاتك في {{restaurant}}",
+			"counts": "أريد تجربته {{want}} · تناولته {{eaten}}",
+			"openRestaurant": "فتح صفحة المطعم",
+			"expand": "عرض بملء الشاشة",
+			"seeAllInList": "عرض الكل في القائمة",
+			"noPhotoHint": "هذا السجل بلا صورة. اضغط لفتح صفحة المطعم."
+		},
+		"feed": {
+			"chips": {
+				"filterCategory": "التصفية حسب {{name}}",
+				"filterStatusEaten": "التصفية حسب «تناولته»",
+				"filterStatusWant": "التصفية حسب «أريد تجربته»",
+				"filterMinRating": "التصفية حسب {{count}} نجوم فأكثر",
+				"applied": "تم تحديث عوامل التصفية"
+			}
+		},
+		"searchThisArea": "ابحث في هذه المنطقة",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "ثلاث طرق لعرض قائمتك",
+					"body": "الخريطة والشبكة والتقويم تعرض نفس سجلات «أريد أن آكل / أكلت». الخريطة لـ«ماذا آكل هنا»، والتقويم لـ«ماذا أكلت ومتى»."
+				},
+				"openFeed": {
+					"title": "اضغط لعرضه بملء الشاشة",
+					"body": "اضغط على علامة أو بطاقة أو يوم لفتح ذلك السجل بملء الشاشة.",
+					"axis": "اسحب لأعلى وأسفل للتنقل بين المطاعم أو الأيام، ويمينًا ويسارًا لصورة أخرى من نفسه."
+				},
+				"add": {
+					"title": "أضف إلى قائمتك من هنا",
+					"sns": "الصق رابط Instagram أو TikTok أو YouTube، فنقرأ منه المطعم والطبق ونحفظه ضمن «أريد أن آكل».",
+					"eaten": "أكلته بالفعل؟ استخدم «تسجيل ما أكلت». يمكن إضافة الصورة لاحقًا أو تركها."
+				},
+				"filter": {
+					"title": "صفِّ القائمة عندما تكبر",
+					"body": "صفِّ حسب «أريد أن آكل / أكلت» والطبق والمنطقة ومع من والوقت. الغرض تقليل الخيارات لا زيادتها."
+				}
+			},
+			"replay": "إعادة مشاهدة الشرح"
+		},
+		"deleted": {
+			"label": "تم الحذف",
+			"a11yLabel": "تم حذف صورة هذا المنشور"
+		}
+	},
+	"SnsImport": {
+		"title": "الاستيراد من وسائل التواصل",
+		"confirm": {
+			"heading": "سيتم استيراد هذا المنشور"
+		},
+		"expandPending": {
+			"heading": "تمت مشاركة رابط مختصر",
+			"description": "فتح الروابط المختصرة لتحديد المنشور غير متاح بعد. يرجى مشاركة رابط صفحة المنشور."
+		},
+		"unsupported": {
+			"heading": "لا يمكن استيراد هذا الرابط",
+			"description": "الخدمات المدعومة هي TikTok و YouTube Shorts و Instagram."
+		},
+		"tabs": {
+			"sns": "من الشبكات",
+			"eaten": "تسجيل وجبة"
+		},
+		"input": {
+			"label": "الصق رابط الشبكات الاجتماعية",
+			"placeholder": "https://www.tiktok.com/... أو النص المشارك كما هو"
+		},
+		"actions": {
+			"resolve": "قراءة",
+			"save": "حفظ في أريد تناوله",
+			"saveRequirement": "اختر طبقًا ومطعمًا للحفظ.",
+			"resolveAgain": "إعادة القراءة",
+			"cancel": "إلغاء"
+		},
+		"sections": {
+			"dishCategory": "الطبق",
+			"restaurant": "المطعم",
+			"dishCategorySearchPlaceholder": "ابحث عن طبق (حرفان فأكثر)",
+			"selected": "المحدد: {{value}}",
+			"pickOnMap": "ابحث عن المطعم على الخريطة"
+		},
+		"save": {
+			"done": "تم الحفظ في أريد تناوله",
+			"failed": "تعذر الحفظ"
+		},
+		"intro": "الصق رابط منشور من Instagram أو TikTok أو YouTube Shorts، ثم اختر الطبق والمطعم لحفظه في «أريد تناوله». لا حاجة لتسجيل الدخول.",
+		"steps": {
+			"paste": "الصق الرابط",
+			"dish": "اختر فئة الطبق",
+			"restaurant": "اختر المطعم"
+		},
+		"pickRestaurant": {
+			"title": "اختيار مطعم على الخريطة",
+			"hint": "اضغط على أيقونة مطعم على الخريطة، أو ابحث في الأعلى. بعد الاختيار تعود إلى شاشة الاستيراد.",
+			"done": "تم اختيار «{{name}}»"
+		},
+		"result": {
+			"summary": "تمت القراءة",
+			"noInfo": "تعذّر قراءة معلومات من هذا المنشور. اختر المطعم وفئة الطبق أدناه للحفظ.",
+			"showFullCaption": "عرض المزيد",
+			"collapseCaption": "عرض أقل"
+		},
+		"eaten": {
+			"pickRestaurant": "اختر مطعمًا",
+			"pick": "اختيار",
+			"change": "تغيير",
+			"hint": "اختر المطعم أولاً، ثم اختر الطبق، وأضف صورة (اختيارية) ومراجعة قصيرة والسعر وتقييمك.",
+			"done": "تم تسجيله كمأكول"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "تخطي",
+			"next": "التالي",
+			"finish": "ابدأ",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "الخطوة {{current}} من {{total}}"
+		}
+	},
+	"Report": {
+		"action": "إبلاغ",
+		"title": "الإبلاغ عن هذا المنشور",
+		"reviewTitle": "الإبلاغ عن هذه المراجعة",
+		"description": "اختر سبب الإبلاغ. سيراجع الفريق المحتوى، ولن يتم إخطار صاحب المنشور.",
+		"reasons": {
+			"spam": "رسائل مزعجة أو إعلانات",
+			"sexual": "محتوى جنسي",
+			"violence": "عنف أو محتوى مزعج",
+			"harassment": "تحرش أو إساءة",
+			"illegal": "نشاط غير قانوني",
+			"misinformation": "معلومات غير صحيحة",
+			"rights": "انتهاك حقوق (مثل حقوق النشر)",
+			"privacy": "يتضمن بيانات شخصية",
+			"irrelevant": "لا علاقة له بالطعام",
+			"other": "سبب آخر"
+		},
+		"detailsLabel": "تفاصيل إضافية (اختياري)",
+		"detailsPlaceholder": "أضف ما يساعدنا في المراجعة (حتى 1000 حرف)",
+		"submit": "إرسال البلاغ",
+		"submitting": "جارٍ الإرسال...",
+		"accepted": {
+			"title": "شكرًا على الإبلاغ",
+			"description": "سنراجع المحتوى. لا نرسل إشعارات فردية بالنتيجة.",
+			"close": "إغلاق",
+			"history": "بلاغاتك"
+		},
+		"errors": {
+			"submitFailed": "تعذّر إرسال البلاغ. حاول مرة أخرى."
+		},
+		"accessibility": {
+			"open": "الإبلاغ عن منشور {{name}}",
+			"openReview": "الإبلاغ عن مراجعة {{name}}",
+			"reason": "السبب: {{reason}}",
+			"reasonSelected": "السبب: {{reason}} (محدد)",
+			"submit": "إرسال بلاغ عن منشور {{name}}",
+			"submitReview": "إرسال بلاغ عن مراجعة {{name}}"
+		},
+		"history": {
+			"navigationLabel": "بلاغاتك",
+			"pageTitle": "بلاغاتك",
+			"empty": "لا توجد بلاغات بعد",
+			"emptyDescription": "عند الإبلاغ عن منشور أو مراجعة، سيظهر هنا.",
+			"note": "لا نشارك حالة المراجعة أو نتيجتها.",
+			"error": "تعذر تحميل بلاغاتك",
+			"target": {
+				"dish_media": "منشور",
+				"dish_reviews": "مراجعة"
+			}
 		}
 	}
 }

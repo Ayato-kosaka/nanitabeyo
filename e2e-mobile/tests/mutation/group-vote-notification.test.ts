@@ -33,7 +33,7 @@ import { seedGroupVoteNotification, type SeededGroupVoteNotification } from "../
  *
  * ## ⚠️ dev DB への影響（不可逆・@mutation の理由が 2 つある）
  * 1. 種まきが投票セッション・参加者・投票・通知を 1 件ずつ追加する（削除導線は無い。
- *    tests/mutation/topics-group-vote-double-tap.test.ts と同じ性質）
+ *    tests/mutation/dish-categories-group-vote-double-tap.test.ts と同じ性質）
  * 2. 通知一覧は入場時に `markAllAsRead()` を呼び、既読状態を書き換える
  *    （tests/mutation/notifications-safe-area.test.ts と同じ理由）
  * 必ずテスト専用ユーザーで、`RUN_MUTATION=1` を明示したときだけ実行すること。

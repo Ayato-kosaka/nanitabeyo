@@ -16,6 +16,17 @@ import { act } from "react";
 import TestRenderer from "react-test-renderer";
 
 // lucide のアイコンは名前ごとに export されるため Proxy で一括スタブ化する（ReviewForm.test.tsx と同じ）
+/*
+#1629 «…» メニュー（DishMediaMoreMenu）は `useDialog` など独自の依存を持つ。
+このファイルの関心はレールの いいね / 保存 / 食べた なので、メニューは差し替える。
+メニュー自身の挙動は DishMediaMoreMenu.test.tsx が見る。
+*/
+jest.mock("@/features/dishMedia/components/DishMediaMoreMenu", () => ({
+	DishMediaMoreMenu: function MockDishMediaMoreMenu() {
+		return null;
+	},
+}));
+
 jest.mock(
 	"lucide-react-native",
 	() =>
@@ -44,6 +55,25 @@ jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockC
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
 
+// #1402/#1398 このブランチの ActionButtons は「食べたを記録」導線のためログイン状態を見る
+// （useAuth → lib/supabase を芋づるで読み込み、実 env が無い jest では落ちる）。
+// このテストが見たいのは楽観更新のロールバックだけなので、認証まわりは軽い stub にする
+jest.mock("@/contexts/AuthProvider", () => ({ useAuth: () => ({ user: { id: "user-1", is_anonymous: false } }) }));
+jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
+jest.mock("expo-router", () => {
+	const stub = {
+		push: () => {},
+		navigate: () => {},
+		replace: () => {},
+		back: () => {},
+		canGoBack: () => true,
+		canDismiss: () => false,
+		dismissAll: () => {},
+	};
+	return { router: stub, useRouter: () => stub };
+});
+jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
+
 const mockShowSnackbar = jest.fn();
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: mockShowSnackbar }) }));
 
@@ -55,7 +85,13 @@ jest.mock("../hooks/useDishMediaActions", () => ({
 
 // liked / saved タブの本体（GridList 等）はこのテストに不要。#460 のキー文字列だけ要る
 jest.mock("@/features/profile/tabs/LikeTab", () => ({ profileLikesEntriesKey: "profileLikes" }));
-jest.mock("@/features/profile/tabs/SavedPostsTab", () => ({ profileSavedPostsEntriesKey: "profileSavedPosts" }));
+jest.mock("@/features/profile/entriesKeys", () => ({ profileSavedPostsEntriesKey: "profileSavedPosts" }));
+
+// #1375（5 巡目）保存トグルで my-dishes のキャッシュを捨てること（= 一覧から即座に消えること）を固定する
+const mockBumpMyDishesRevision = jest.fn();
+jest.mock("@/features/myDishes/stores/useMyDishesRevisionStore", () => ({
+	bumpMyDishesRevision: () => mockBumpMyDishesRevision(),
+}));
 
 import { ActionButtons } from "./ActionButtons";
 import { useDishMediaEntriesStore, type NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
@@ -67,11 +103,7 @@ const DISH_MEDIA_ID = "dm-1";
 const LIKES_KEY = "profileLikes";
 const SAVED_KEY = "profileSavedPosts";
 
-function buildEntry(overrides: {
-	isLiked?: boolean;
-	isSaved?: boolean;
-	likeCount?: number;
-}): NormalizedDishMediaEntry {
+function buildEntry(overrides: { isLiked?: boolean; isSaved?: boolean; likeCount?: number }): NormalizedDishMediaEntry {
 	return {
 		dish_media: {
 			id: DISH_MEDIA_ID,
@@ -250,5 +282,30 @@ describe("#1501 いいね/保存の楽観更新ロールバック", () => {
 		});
 		expect(getEntry().dish_media.isLiked).toBe(true);
 		expect(getEntry().dish_media.likeCount).toBe(4);
+	});
+
+	it("保存の解除が成功したら my-dishes のキャッシュを捨てる（一覧から即座に消える）", async () => {
+		seedStore({ isSaved: true });
+		mockCallBackend.mockResolvedValueOnce(undefined);
+		const renderer = renderActionButtons();
+
+		await act(async () => {
+			findPressable(renderer, "dish-action-save").props.onPress();
+		});
+
+		expect(mockBumpMyDishesRevision).toHaveBeenCalled();
+	});
+
+	it("保存の API が失敗したときはキャッシュを捨てない（ロールバック後の表示と食い違わせない）", async () => {
+		seedStore({ isSaved: false });
+		mockBumpMyDishesRevision.mockClear();
+		mockCallBackend.mockRejectedValueOnce(new Error("boom"));
+		const renderer = renderActionButtons();
+
+		await act(async () => {
+			findPressable(renderer, "dish-action-save").props.onPress();
+		});
+
+		expect(mockBumpMyDishesRevision).not.toHaveBeenCalled();
 	});
 });

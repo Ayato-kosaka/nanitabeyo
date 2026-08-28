@@ -103,10 +103,10 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           dish_media: {
             id: 'media-1',
             media_type: 'video' as const,
-            media_path: 'user-uploads/user-1/video.mp4',
-            // #511 動画の CDN URL は completed のときだけ作られる。
-            // 署名 Cookie の検証が目的なので completed 前提の fixture にする
+            // getMediaUrl() は media_processing_status が 'completed' のときだけ
+            // 動画の CDN URL を作る。fixture に無く、このテストは通っていなかった
             media_processing_status: 'completed',
+            media_path: 'user-uploads/user-1/video.mp4',
             thumbnail_path: 'user-uploads/user-1/thumb.jpg',
             isSaved: false,
             isLiked: false,
@@ -183,10 +183,8 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           dish_media: {
             id: 'media-1',
             media_type: 'video' as const,
-            media_path: 'user-uploads/user-1/video1.mp4',
-            // #511 動画の CDN URL は completed のときだけ作られる。
-            // 署名 Cookie の検証が目的なので completed 前提の fixture にする
             media_processing_status: 'completed',
+            media_path: 'user-uploads/user-1/video1.mp4',
             thumbnail_path: 'user-uploads/user-1/thumb1.jpg',
             isSaved: false,
             isLiked: false,
@@ -200,10 +198,8 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           dish_media: {
             id: 'media-2',
             media_type: 'video' as const,
-            media_path: 'user-uploads/user-1/video2.mp4',
-            // #511 動画の CDN URL は completed のときだけ作られる。
-            // 署名 Cookie の検証が目的なので completed 前提の fixture にする
             media_processing_status: 'completed',
+            media_path: 'user-uploads/user-1/video2.mp4',
             thumbnail_path: 'user-uploads/user-1/thumb2.jpg',
             isSaved: false,
             isLiked: false,
@@ -231,6 +227,193 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
       // generateCdnSignedCookies should be called for each unique prefix
       expect(mockStorage.generateCdnSignedCookies).toHaveBeenCalled();
       expect(mockCookieQueue.enqueue).toHaveBeenCalled();
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
+  /*        #1395 external_embed とサムネイル URL の分岐                */
+  /* ------------------------------------------------------------------ */
+  describe('#1395 render_type とサムネイル URL', () => {
+    const baseEntry = (dishMedia: Record<string, unknown>) => [
+      {
+        restaurant: {} as any,
+        dish: { reviewCount: 0, averageRating: 0 } as any,
+        dish_media: {
+          id: 'media-1',
+          media_type: 'video' as const,
+          thumbnail_path: 'user-uploads/user-1/thumb.jpg',
+          thumbnail_processing_status: 'completed',
+          isSaved: false,
+          isLiked: false,
+          likeCount: 0,
+          ...dishMedia,
+        } as any,
+        dish_reviews: [],
+      },
+    ];
+
+    beforeEach(() => {
+      mockRestaurantsAssembler.enrichRestaurantsWithImageUrls.mockReturnValue(
+        {} as any,
+      );
+      mockStorage.generateCdnSignedURL.mockImplementation(
+        (url: string) => `${url}?Signature=abc`,
+      );
+    });
+
+    it('external_embed は自ストレージに実体が無いので mediaUrl を作らない', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'external_embed',
+          media_path: null,
+          media_processing_status: 'idle',
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.mediaUrl).toBeNull();
+      // 動画の Signed Cookie も発行されない（mediaUrl が null なので対象外になる）
+      expect(mockStorage.generateCdnSignedCookies).not.toHaveBeenCalled();
+    });
+
+    it('#1513 削除済み（deleted_at あり）は mediaUrl / thumbnailImageUrl を作らない', () => {
+      // 墓標を出す画面（いいね一覧 / 保存一覧 / 通知 / レビューのサムネイル）は
+      // includeDeleted で削除済みの行も受け取る。行は残すが中身は出さないのが
+      // 「削除された」の意味なので、署名 URL の発行はここで止める。
+      // GCS の実体は当面残す方針（#1513 設計 問2）なので、URL を作れば見えてしまう
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'stored',
+          media_path: 'user-uploads/user-1/media.mp4',
+          media_processing_status: 'completed',
+          deleted_at: new Date('2026-08-24T00:00:00Z'),
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.mediaUrl).toBeNull();
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBeNull();
+      // 動画の Signed Cookie も発行されない
+      expect(mockStorage.generateCdnSignedCookies).not.toHaveBeenCalled();
+    });
+
+    it('#1513 deleted_at を持たない入力（undefined）は削除済みとして扱わない', () => {
+      // ⚠️ これは実際に踏んだ退行の固定。`deleted_at !== null` で書くと undefined が
+      // «削除済み» になり、生きている投稿の URL まで消える（7 テストが落ちた）
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'stored',
+          media_path: 'user-uploads/user-1/media.mp4',
+          media_processing_status: 'completed',
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.mediaUrl).not.toBeNull();
+      expect(result.items[0].dish_media.thumbnailImageUrl).not.toBeNull();
+    });
+
+    it('stored なのに media_path が欠けていても落ちず mediaUrl は null', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'stored',
+          media_path: null,
+          media_processing_status: 'completed',
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.mediaUrl).toBeNull();
+    });
+
+    it('external_embed でもサムネイルは自ストレージ（thumbnail_path）から組む', () => {
+      // #1395 仕様追補: サムネイルは全 provider を自ストレージへ保存する統一キャッシュ方式。
+      // 外部 CDN の URL をそのまま返す経路は存在しない（thumbnail_external_url は撤回済み）。
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'external_embed',
+          media_path: null,
+          media_processing_status: 'idle',
+          thumbnail_processing_status: 'processing',
+        }) as any,
+      );
+
+      const url = result.items[0].dish_media.thumbnailImageUrl;
+      // 自 CDN の署名付き URL であること（provider の CDN へ素通しにしない）
+      expect(url).toContain('test-cdn.example.com');
+      expect(url).toContain('user-uploads/user-1/thumb.jpg');
+      expect(url).toContain('Signature=');
+      // 自ストレージにサムネイルがある行では従来どおり string が返る
+      expect(typeof url).toBe('string');
+    });
+
+    it('#1399 thumbnail_path が空でも落ちず、外部サムネイル URL へ落ちる', () => {
+      // SNS 取り込み（dish-media-imports）は自ストレージにサムネイルを持たないので
+      // thumbnail_path: '' で作られる。ここで buildResizedPath へ '' を渡すと
+      // 'Invalid originalPath' を throw し、**その行を含む一覧全体が 500 になる**
+      // （実際に my-dishes が全滅した）。guard の存在を固定する。
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'external_embed',
+          media_path: null,
+          media_processing_status: 'completed',
+          thumbnail_path: '',
+          thumbnail_processing_status: 'completed',
+          externalEmbed: {
+            id: 'embed-1',
+            dish_media_id: 'media-1',
+            provider: 'tiktok',
+            external_content_id: 'c-1',
+            canonical_url: 'https://www.tiktok.com/@a/video/1',
+            embed_status: 'available',
+            last_verified_at: null,
+            thumbnail_url: 'https://p16-sign.tiktokcdn.com/thumb.webp',
+          },
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBe(
+        'https://p16-sign.tiktokcdn.com/thumb.webp',
+      );
+    });
+
+    it('#1399 外部サムネイルも無い provider（Instagram 等）は null になる', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'external_embed',
+          media_path: null,
+          media_processing_status: 'completed',
+          thumbnail_path: '',
+          thumbnail_processing_status: 'completed',
+          externalEmbed: null,
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBeNull();
+    });
+
+    it('stored でも従来どおり thumbnail_path から組む', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'stored',
+          media_path: 'user-uploads/user-1/video.mp4',
+          media_processing_status: 'completed',
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.thumbnailImageUrl).toContain(
+        'test-cdn.example.com',
+      );
+      expect(result.items[0].dish_media.thumbnailImageUrl).toContain(
+        'Signature=',
+      );
+    });
+
+    it('render_type が未設定（マイグレーション適用前の行）は stored として扱う', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          media_path: 'user-uploads/user-1/video.mp4',
+          media_processing_status: 'completed',
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.mediaUrl).not.toBeNull();
     });
   });
 });

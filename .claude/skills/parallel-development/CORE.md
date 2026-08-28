@@ -408,6 +408,21 @@ commit ゼロだったが、**61 ファイル・9.4 MB の Artifact は upload �
 `evidence-collect.yml` の `source_sha` は **40〜64 桁のフル SHA でなければ入力検証で落ちる**
 （短縮 SHA を渡した run 32697489584 は 10 秒で failure）。`git rev-parse <short>` で伸ばしてから渡すこと。
 
+### `claude-worker.yml` の `base_ref` も同じ。短縮 SHA は «ブランチが無い» で落ちる
+
+`base_ref` は `actions/checkout` の `ref` にそのまま渡る。**checkout は ref を
+ブランチ名・タグ名として先に解決しようとするため、短縮 SHA は解決できない。**
+
+    ##[error]A branch or tag with the name 'f528bc69' could not be found
+
+run 32913852426（撮影 run）が 27 秒で failure になったのがこれ。紛らわしいのは、
+**この失敗が最後に «成果物を1文字も出力せずに終了しました» として現れる**こと。
+checkout が転けたあとも後続 step が走り、Claude 本体が一度も起動しないまま
+出力検査に到達する。エラーの見た目は «ワーカーが黙って死んだ» なので、
+ログを上まで遡らないと checkout の 1 行に辿り着けない。
+
+`base_ref` にも `git rev-parse HEAD` のフル SHA を渡すこと（ブランチ名なら短縮の問題は無い）。
+
 ## ワーカーは `.github/workflows/` を変更できない
 
 **Claude Worker（`access=write`）は `.github/workflows/` 配下のファイルを作成・更新できない。** `claude-worker.yml` がClaude GitHub Appへ要求している権限は `contents: write` / `pull_requests: write` / `issues: write` / `actions: read` の4つで、**`workflows: write` を含まないため、GitHubがサーバ側でpushを拒否する**。
@@ -793,6 +808,37 @@ dispatchしたrunが `pending` のまま動かないときは、ランナー不�
 つまり «ワーカーが落ちた» のではなく «ワーカーが手ぶらで帰ってきた» である。
 ここを取り違えると、直すべき場所（プロンプト・権限）ではなく、関係の無い場所
 （利用上限・再実行のタイミング）を疑い続けることになる。
+
+### ⚠️ 「1 分以内に落ちて Claude の出力が無い」は Claude の失敗ではない（2026-08-24 / 08-26 実測）
+
+`読み取りワーカーが成果物を1文字も出力せずに終了しました` というエラーで 40〜60 秒で
+落ちる run が続いたとき、**並列数が多すぎる / 利用枠だと決めつけて再 dispatch を繰り返した**。
+実際の原因は step 6 **「sharedパッケージをビルド」** の型エラーで、
+**Claude Code を実行する step まで到達していなかった**（step 12 は skipped）。
+2026-08-26 には同じ形で、step 2 **「リポジトリを取得」** が `base_ref` の短縮 SHA を
+解決できずに落ちた run が、同じ «1 文字も出力せず» のエラーを出した。
+
+**この誤報自体は直した。** 検証 step は `steps.claude.outcome` を見るようになったので、
+Claude が skip された run は
+
+> Claude Codeは実行されていません（前段のstepが失敗したためskipされました）。…
+> このjobで**最初に赤くなったstep**です
+
+と言う。このエラーが出たら Claude・権限・利用枠を疑わず、**ログの先頭から最初に
+赤くなった step を見る**。`base_ref` の解決ミスは validate job が dispatch 直後に
+弾く（runner を消費しない）。
+
+それでも `list_workflow_jobs` で step 一覧を取るのが最短である場合は多い。
+「Claude Codeを実行」が `skipped` かどうかが一目で分かる。
+
+このときの根本原因は `db-migrate.yml` の `regenerate_prisma` が `schema.prisma` だけを
+main へ自動 commit し、**`shared/supabase/database.types.ts` と `shared/converters/` の
+手追従（`shared/converters/README.md` の手順）が抜けていた**こと。
+DB を触る変更が main に入った直後にワーカーが軒並み落ち始めたら、まずこれを疑う。
+
+**同じ head_sha でも base_ref が違えば結果が違う。** 上の事故では、古い base の
+ブランチを見ていた run だけ成功していたため「並列数のせい」に見えていた。
+落ちた run と通った run の `base_ref` を並べると、branch 依存だとすぐ分かる。
 
 ### 診断は 3 つの数字で機械的にやる
 

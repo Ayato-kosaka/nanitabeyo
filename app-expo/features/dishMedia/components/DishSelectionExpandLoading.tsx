@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { FixedColors } from "@/constants/Palette";
 
 type DishSelectionExpandLoadingProps = {
 	/** #1484 選択された料理カードの画像URL。店舗提案の取得完了までこの画像を画面に残す。 */
@@ -12,7 +13,7 @@ type DishSelectionExpandLoadingProps = {
 
 // #1484 【仕様】「この料理にする！」押下後、独立したローディング画面の代わりに選択した料理画像を
 // フルスクリーン表示したまま店舗提案の取得を待つ。カードからここまで広がるアニメーション自体は
-// 遷移前の Topics 画面（TopicCardExpandTransition）が担当済みのため、ここでは広がり切った状態を
+// 遷移前の DishCategories 画面（DishCategoryCardExpandTransition）が担当済みのため、ここでは広がり切った状態を
 // そのまま静的に描画するだけでよい（ここで再度アニメーションさせると二重に動いて見える）。
 export const DishSelectionExpandLoading = ({ imageUrl }: DishSelectionExpandLoadingProps) => (
 	<View
@@ -41,7 +42,10 @@ export const DishSelectionExpandLoading = ({ imageUrl }: DishSelectionExpandLoad
 const styles = StyleSheet.create({
 	container: {
 		...StyleSheet.absoluteFillObject,
-		backgroundColor: "#000",
+		// #1629 全画面の料理写真の «余白» なので、テーマに依らず常に黒。
+		// メディアビューア（DishMediaFeed）と同じ地であり、ここをライトで白くすると
+		// 写真がフレームから浮いて見え、演出（写真がそのまま広がる）が崩れる。
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	image: {
 		width: "100%",

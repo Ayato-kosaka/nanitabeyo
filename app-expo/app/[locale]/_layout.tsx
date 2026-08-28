@@ -9,10 +9,12 @@ import { PaperProvider, Portal } from "react-native-paper";
 import { SplashHandler } from "@/components/SplashHandler";
 import { AppProvider } from "@/components/AppProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { installCrashReporting, setCrashReportingPathName } from "@/lib/crashReporting";
 import { CenteredAppShell } from "@/components/CenteredAppShell";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
+import { SnsShareIntake } from "@/components/SnsShareIntake";
 import { getPaperTheme } from "@/constants/PaperTheme";
 import { ThemeProvider, useAppTheme } from "@/contexts/ThemeProvider";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
@@ -78,10 +80,28 @@ function LocaleLayout() {
 	// #1509 【設計】ここは長く `const scheme = "light"` で固定されていた（= ダークモード未対応）。
 	// 設定画面の 3 択（システム追従 / ライト / ダーク）を解決した結果を使う。
 	// `getPaperTheme` は元から light / dark の両方を組み立てられるので、渡す値を変えるだけでよい。
-	const { scheme } = useAppTheme();
+	const { scheme, colors } = useAppTheme();
 	const theme = useMemo(() => getPaperTheme(scheme, locale), [scheme, locale]);
 
 	const { logFrontendEvent } = useLogger();
+
+	/*
+	#1375（実機: 「クラッシュはマップ画面だけじゃない」）**クラッシュを観測できるようにする。**
+
+	これを入れるまで、このアプリはクラッシュを 1 件も観測していなかった。
+	クラッシュレポート SDK も、JS のグローバルエラーハンドラも、未処理 Promise の口も無く、
+	`ErrorBoundary` が拾えるのは **レンダー中の例外だけ**だった。
+	つまり «他の画面では報告が無い» のではなく «見えていない» だけで、
+	オーナーが実機で踏んで言ってくるまで誰も知れない状態だった。
+
+	仕掛けは `lib/crashReporting.ts`（何が捕まって何が捕まらないかの表もそこにある）。
+	記録は既存の `frontend_event_logs` へ流れるので、日次の error-triage が自動で起票する。
+	*/
+	useEffect(() => installCrashReporting(), []);
+	const crashPathName = usePathname();
+	useEffect(() => {
+		setCrashReportingPathName(crashPathName);
+	}, [crashPathName]);
 
 	// #1027 【バグ】ルートナビゲータがマウントされる前に router.replace() を呼ぶと expo-router の
 	// assertIsReady が
@@ -175,6 +195,9 @@ function LocaleLayout() {
 									<AuthProvider>
 										<PushTokenRegistration />
 										<MetaAppEventsInitializer />
+										{/* #1400 共有された URL の取り込み入口（UI 無し）。
+										    PR1 では受け取り口が «共有なし» を返すので no-op */}
+										<SnsShareIntake />
 										<Portal.Host>
 											<SplashHandler>
 												<HealthCheckInitializer>
@@ -182,8 +205,27 @@ function LocaleLayout() {
 														{/* #940 【設計】render中の未捕捉例外で白画面になるのを防ぐ最終防波堤。
 														    再試行はアプリのルートへ戻すことで安全な状態に復帰させる */}
 														<ErrorBoundary onRetry={() => router.replace("/")}>
-															<Stack screenOptions={{ header: () => null }}>
+															{/*
+															#1629【27】**Stack へ `contentStyle` を必ず与える。**
+
+															expo-router の NavigationContainer は既定で react-navigation の
+															`DefaultTheme` を使う（`DarkTheme` を渡している箇所はリポジトリに無い）。
+															`DefaultTheme.colors.background` は `rgb(242,242,242)` の明るいグレーで、
+															画面が全面を塗り切らない瞬間 — 遷移アニメーションの最中、モーダルの背後、
+															画面のマウント直後 — に**ダークモードでもそこだけ明るく光る**。
+
+															⚠️ これは «色を直書きした» のではなく «色を書かなかった» ことで起きるので、
+															   `assert-no-hardcoded-colors.mjs` には原理的に検出できない。
+															*/}
+															<Stack screenOptions={{ header: () => null, contentStyle: { backgroundColor: colors.background } }}>
 																<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+																{/* #1375 実機確認（2 巡目）: ＋ からの取り込みは iOS ネイティブのシート
+																    （背後の画面が縮む pageSheet）で出す。下スワイプで閉じるのは
+																    ネイティブのジェスチャに任せる（自前 PanResponder は web の保険） */}
+																<Stack.Screen
+																	name="sns-import"
+																	options={{ presentation: "modal", header: () => null }}
+																/>
 																<Stack.Screen name="+not-found" />
 															</Stack>
 														</ErrorBoundary>

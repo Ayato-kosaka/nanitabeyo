@@ -13,8 +13,13 @@ name: PR Check
 #     6. app-expo の lint（#1366。既存 48 errors を解消したうえで新規に追加した）
 # - 4-2（実際の config.json との値の突き合わせ）は EAS の env が要るのでここでは SKIP される。
 #   SKIP した旨は必ずログへ出る。4-2 は引き続き nightly の e2e-web-test.yml が担当する。
-# - api は入れていない。pnpm --filter api test は api/.env（secrets）を要求し、
-#   かつ現状 red（env 起因 5 suite ＋ env と無関係な DI 失敗 3 件）のため（#1112 のコメント参照）。
+# - #1596 api の jest をゲートへ入れた。以前は「api/.env（secrets）を要求し、かつ現状 red」を
+#   理由に外していたが、**外していた期間にモックが本体から静かにズレ、3 suite / 26 件が
+#   «1 度も実行されないまま緑扱い» になっていた**（アカウント削除 #1511 と通知設定 #1510 の
+#   回帰テスト。どちらも «テストがあるから安全» を根拠に出荷したもの）。
+#   secrets 依存は api/test/setup-test-env.ts が「未設定のキーだけ」ダミーで埋めて外した
+#   （実 .env / CI secret があればそちらが勝つ）。赤の実体は本体変更への追随漏れだったので、
+#   直したうえでゲートへ載せている。
 # - step は「安い順・失敗原因が特定しやすい順」に並べてある（fail-fast）。
 # - branches / paths のフィルタは意図的に付けていない。統合ブランチ宛ての PR でも回す必要があり、
 #   かつ 4-1 の入力の片方は shared/remoteConfig/remoteConfig.schema.ts なので、
@@ -95,6 +100,13 @@ jobs:
       - name: legacyBlurModal の import 境界を検査
         run: pnpm --filter app-expo assert:legacy-blur-modal-boundary
 
+      # #1469 で新画面が色を直書きし、ダークモードで «ヘッダーだけ黒く本体は白い» 画面が
+      # 量産された事故の再発防止（#1509）。画面 .tsx の引用符内 hex / "white" / "black" を落とす。
+      # レガシーは理由付きの EXCLUSIONS で凍結し、直書きが消えたらリストから消させる（ラチェット）。
+      # 依存ゼロ・ファイル走査のみなので shared build より前の最速の位置に置く。
+      - name: 画面ファイルの色直書きを検査
+        run: pnpm --filter app-expo assert:no-hardcoded-colors
+
       # #1196 エラートリアージの純関数群。外部I/Oゼロ（node:crypto のみ）で shared/dist にも
       # 依存しないため、shared build より前・最速の位置に置ける。
       # このテストが守っているのは主に「正規化ルール表が RE2 と JS の共通部分集合に留まること」で、
@@ -118,6 +130,17 @@ jobs:
       - name: app-expo の lint
         run: pnpm --filter app-expo lint
 
+      # #1399 SNS の URL をルールベースで解釈する純関数（`shared/utils/snsUrl.ts`）。
+      # 外部I/Oゼロで shared/dist にも依存しないため、shared build より前に置ける。
+      #
+      # ここが守っているのは主に 2 つで、どちらも落ちると静かに壊れる種類のものである。
+      #   1. provider の判定をホスト名の完全一致で行うこと。`includes` / `endsWith` へ緩めると
+      #      `tiktok.com.evil.example` のような同形異字ドメインを取り込んでしまう
+      #   2. canonicalUrl からクエリとフラグメントを落とすこと。残すと `?igsh=` 等が付いた
+      #      同じ投稿が別行になり、自然キー `(provider, external_content_id, dish_id)` が割れる
+      - name: shared のユニットテスト
+        run: pnpm --filter shared test
+
       # app-expo/tsconfig.dev.json は @shared/* を ../shared/dist/* へ向けているため、
       # typecheck の前に shared を build しておかないと解決できない。
       - name: sharedパッケージをビルド
@@ -133,3 +156,53 @@ jobs:
       # これまでどの workflow からも実行されていなかった。
       - name: app-expo のユニットテスト
         run: pnpm --filter app-expo test
+
+      # #1596 api のユニットテスト。ここが外れていた間に、本体の変更へ追随し忘れた
+      # モックが 3 suite（26 件）を «実行されないまま» にしていた:
+      #   - users.service.delete-me.spec.ts … UsersService へ後から足された 3 つの依存を
+      #     provider へ入れ忘れ、Nest の組み立てごと失敗（アカウント削除の回帰テスト 6 件）
+      #   - notification-job.service.spec.ts … #1510 で足した isPushAllowedForKind が
+      #     モックに無く「is not a function」（14 件）
+      #   - notification-job.preferences.spec.ts … 本体が findUnique → findFirst へ変わり、
+      #     さらに #1557 の getUsersByIdsIncludingDeleted も未追随（6 件）
+      # いずれも型検査では捕まらない（モックは any 相当で通る）。テストを回す以外に
+      # 検出手段が無い種類のズレなので、ここへ載せる。
+      #
+      # 外部 I/O は無く、api/test/setup-test-env.ts が env を埋めるので secrets 不要。
+      # ローカル実測 約 90 秒。
+      - name: api のユニットテスト
+        run: pnpm --filter api test
+
+      # ─────────────────────────────────────────────────────────────
+      # 2026-08-25 追加。**どれも「実際に見逃した defect」があって足している。**
+      # 推測で網を広げたのではなく、この日 1 日で 4 件すり抜けたのが根拠。
+      # ─────────────────────────────────────────────────────────────
+
+      # e2e-web / e2e-mobile はこれまでどの PR ゲートからも型検査されていなかった。
+      # 実際に以下がマージ済みブランチ上で **緑のまま**放置されていた:
+      #   - e2e-web/pages/SettingsPage.ts … 自動マージが JSDoc を縫い合わせて構文エラー
+      #     （`goto()` のコメントが `notificationToggle()` のコメントを飲み込んだ）
+      #   - e2e-mobile … #1402 で消えた `ProfileScreen.gotoSettings()` の呼び出しが 2 ファイルに残存
+      # どちらも「壊れた e2e は次に走らせるまで気づけない」形で、走らせるのは nightly か手動 dispatch。
+      # tsc なら数秒で落とせる（ローカル実測: e2e-web 約 6 秒）。
+      - name: e2e-web の型検査
+        run: pnpm --filter e2e-web typecheck
+
+      - name: e2e-mobile の型検査
+        run: pnpm --filter e2e-mobile typecheck
+
+      # `.prisma` は型検査にもテストにも掛からないため、**衝突マーカーが commit されたまま
+      # PR Check が緑**になっていた（api/prisma/schema.prisma に `<<<<<<< HEAD` が残存）。
+      # prisma validate は schema の構文とリレーションを見るので、この形は確実に落ちる。
+      # ローカル実測 約 21 秒。DB へは接続しない（スキーマの静的検証のみ）。
+      - name: Prisma スキーマを検証
+        run: pnpm --filter api exec prisma validate
+
+      # 入れ子になった `test()` / `it()` は **1 度も実行されない**のに構文としては正しく、
+      # tsc も eslint も気づかない。実際に 2 件、«assert していないのに緑» で残っていた:
+      #   - e2e-web/tests/profile/settings.spec.ts … バージョン検証の中へ通知カード検証が入れ子
+      #   - e2e-mobile/tests/profile/settings.test.ts … ハプティクスの it が閉じずに通知の it を飲み込む
+      # どちらもベース取り込みの衝突解消で «偶然» 見つかったもので、
+      # 見つからなければそのまま出ていた。ローカル実測 1 秒未満。
+      - name: e2e の spec に入れ子の test が無いことを確認
+        run: pnpm assert:no-nested-e2e-tests

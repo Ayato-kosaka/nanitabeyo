@@ -7,7 +7,7 @@ import { SearchScreen } from "../../screens/SearchScreen";
  * 目的: 検索フォームの必須項目制御・選択操作・詳細条件の展開という、
  *       クライアント内で完結するロジックがネイティブでも成立することを保証する。
  *       （e2e-web の tests/search/search-form.spec.ts に対応）
- * 前提: 実 API を呼ばないシナリオのみを扱う。実 API を伴う検索実行は topics-flow.test.ts が担当する。
+ * 前提: 実 API を呼ばないシナリオのみを扱う。実 API を伴う検索実行は dish-categories-flow.test.ts が担当する。
  *
  * ## e2e-web から落とした検証（#1031 確定判断）
  * - **B1**: 時間帯・同行者の「選択されている」状態（Web は `toHaveCSS("border-color")` で検証）は

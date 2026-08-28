@@ -128,8 +128,19 @@ jest.mock("react-native-paper", () => ({
 	},
 }));
 
+// #1402 独立した設定画面は無くなり、リーガル 4 行はマイページ本体（profile/index.tsx）の縦リストにある。
+// 押した先を見たいだけなので、上部のプロフィール要約とその依存はスタブへ潰す
+jest.mock("@/features/profile/components/ProfileHeader", () => ({ ProfileHeader: () => null }));
+jest.mock("@/features/profile/hooks/useEnsureOwnProfileLoaded", () => ({ useEnsureOwnProfileLoaded: () => {} }));
+jest.mock("@/features/profile/stores/useProfileStore", () => ({
+	useProfileStore: (selector: (state: { profile: unknown }) => unknown) =>
+		selector({ profile: { id: "profile-1", username: "tester" } }),
+}));
+
 import { LoginForm } from "@/features/auth/components/LoginForm";
-import SettingsScreen from "../app/[locale]/(tabs)/profile/settings";
+import ProfileScreen from "../app/[locale]/(tabs)/profile/index";
+// #1583 リーガル 4 行は «なに食べよについて» ページへ移った
+import AboutScreen from "../app/[locale]/(tabs)/profile/about";
 import LegalDocumentScreen from "../app/[locale]/legal/[doc]";
 import { LEGAL_DOCUMENT_TYPES } from "@/lib/legalRoute";
 import { getLegalDocumentTitle } from "@/features/settings/components/LegalDocument";
@@ -173,7 +184,7 @@ beforeEach(() => {
 	mockLocalParams = {};
 });
 
-describe("#1368 設定画面のリーガル 4 行は /[locale]/legal/[doc] へ push する", () => {
+describe("#1368 リーガル 4 行は /[locale]/legal/[doc] へ push する（#1402 で設定画面へ、#1583 で «なに食べよについて» へ移動）", () => {
 	// 4 行はすべて同じハンドラを通るため、doc の取り違えは «行ごとに» 見ないと見つからない
 	it.each([
 		["settings-guidelines", "guidelines"],
@@ -181,7 +192,7 @@ describe("#1368 設定画面のリーガル 4 行は /[locale]/legal/[doc] へ p
 		["settings-privacy", "privacy"],
 		["settings-copyright", "copyright"],
 	])("%s は doc=%s で push する", async (testID, doc) => {
-		const tree = await render(<SettingsScreen />);
+		const tree = await render(<AboutScreen />);
 
 		await press(tree, testID);
 
@@ -194,10 +205,22 @@ describe("#1368 設定画面のリーガル 4 行は /[locale]/legal/[doc] へ p
 
 	// #1368 モーダルを «画面» へ移した本体。BlurModal の中身が残っていたら赤くする
 	it("legal-document-modal を描かない", async () => {
-		const tree = await render(<SettingsScreen />);
+		const tree = await render(<AboutScreen />);
 
 		expect(exists(tree, "legal-document-modal")).toBe(false);
 	});
+	/*
+	#1583 マイページ本体からは 4 行とも消えていること。
+	«移した» のではなく «about にも足した» になっていると、同じ導線が 2 箇所に増える。
+	*/
+	it.each(["settings-guidelines", "settings-terms", "settings-privacy", "settings-copyright"])(
+		"マイページ本体には %s が残っていない",
+		async (testID) => {
+			const tree = await render(<ProfileScreen />);
+
+			expect(exists(tree, testID)).toBe(false);
+		},
+	);
 });
 
 describe("#1368 ログインフォームの同意文言も同じルートへ push する", () => {
@@ -234,8 +257,9 @@ describe("#1368 リーガル導線を持つ 2 画面は portal を 1 つも持�
 	地図の店詳細がその形だった）。ただし今は push 元がどれもルートの中身なので、
 	そもそも portal を持ち込まないほうが正しい。
 	*/
-	it("設定画面は Portal を 1 つも描かない", async () => {
-		const tree = await render(<SettingsScreen />);
+	// #1583 リーガル導線が «なに食べよについて» へ移ったので、見る画面もそちらへ移した
+	it("«なに食べよについて» は Portal を 1 つも描かない", async () => {
+		const tree = await render(<AboutScreen />);
 		await press(tree, "settings-terms");
 
 		expect(mockPortal).not.toHaveBeenCalled();
@@ -281,7 +305,7 @@ describe("#1368 /[locale]/legal/[doc] の doc 検証", () => {
 	});
 
 	// 履歴が無い着地（検索結果 / 共有リンク / ディープリンクのコールドロード）だけの経路
-	it("履歴が無ければ設定画面へ replace する", async () => {
+	it("履歴が無ければマイページへ replace する（#1402 で設定画面が無くなった）", async () => {
 		mockCanGoBack = false;
 		mockLocalParams = { doc: "terms" };
 
@@ -290,7 +314,7 @@ describe("#1368 /[locale]/legal/[doc] の doc 検証", () => {
 
 		expect(mockBack).not.toHaveBeenCalled();
 		expect(mockReplace).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/profile/settings",
+			pathname: "/[locale]/(tabs)/profile",
 			params: { locale: "ja-JP" },
 		});
 	});

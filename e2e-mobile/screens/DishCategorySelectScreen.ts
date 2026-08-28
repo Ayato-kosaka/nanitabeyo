@@ -9,11 +9,11 @@ import {
 } from "../fixtures/e2e";
 
 /**
- * 🍜 料理カテゴリ選択画面（`/[locale]/review/restaurant/[restaurantId]/dish-category`）の Screen Object
+ * 🍜 料理カテゴリ選択画面（`/[locale]/restaurant/[restaurantId]/dish-category`）の Screen Object
  *（e2e-web の pages/RestaurantDetailPage.ts の料理カテゴリ部分に対応）
  *
  * 対応コンポーネント:
- * - `app-expo/app/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category.tsx`（ルート本体）
+ * - `app-expo/app/[locale]/restaurant/[restaurantId]/dish-category.tsx`（ルート本体）
  * - `app-expo/features/map/components/DishCategorySearchForm.tsx`（入力欄・候補の実体）
  *
  * ## #1386 モーダルからルートへ移した

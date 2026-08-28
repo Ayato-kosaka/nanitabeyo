@@ -33,27 +33,48 @@ describeAuthenticated("マイページ（ログイン済みユーザー）", () 
 		await launchAppWithSession({ as: "authenticated" });
 	});
 
-	// ─ テストケース: ゲスト表示ではなく自分の投稿タブが表示される ─
+	// ─ テストケース: ゲスト表示ではなく編集ボタンつきのマイページが表示される ─
+	//
+	// #1402 【変更】旧版は «レビュー投稿タブ（review-tab-grid）が出ること» を匿名との差分にしていたが、
+	// 4 グリッドタブは廃止された。ログイン済みかどうかの差は
+	// «ログインボタンではなく編集ボタンが出る» と «ログアウト行がある» の 2 つになった。
 	// 手順:
 	//   1. TabBar.gotoProfile() でマイページタブへ遷移する
-	//   2. ログインボタン（profile-login-button）が存在しないことを検証
-	//      （ProfileTabsLayout は isGuest のときだけこのボタンを描画する）
-	//   3. レビュー投稿タブ（review-tab-grid）が表示されることを検証
-	//      （ゲスト時は Tabs.Tab ごと未マウントになる = 匿名側 spec の裏返し）
-	it("ゲスト表示ではなく自分の投稿タブが表示される", async () => {
+	//   2. 縦リストの描画完了を待つ
+	//   3. ログインボタン（profile-login-button）が存在しないことを検証
+	//   4. 編集ボタン（profile-edit-button）が存在することを検証（匿名側 spec の裏返し）
+	it("ゲスト表示ではなく編集ボタンつきのマイページが表示される", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
 
 		await tabBar.gotoProfile();
 
-		// 先に reviews タブの表示を待つ。プロフィールの描画完了を待たずに存在有無を判定すると、
-		// 「まだ描画されていないだけ」を「ゲスト表示ではない」と誤って解釈しうるため
-		// #1027 `toBeVisible` ではなく存在で見る。グリッドの実体は FlatList で、
-		// 投稿が 0 件だと面積を持たず、iOS の 75% 可視判定を満たせないため（ProfileScreen 参照）
-		await waitUntilExists(profileScreen.reviewsGrid);
+		// 先に縦リストの描画を待つ。描画完了を待たずに存在有無を判定すると、
+		// 「まだ描画されていないだけ」を「ゲスト表示ではない」と誤って解釈しうるため。
+		// #1027 `toBeVisible` ではなく存在で見る（iOS は面積の 75% 可視を要求する。ProfileScreen 参照）
+		await profileScreen.expectLoaded();
+		await waitUntilExists(profileScreen.editButton);
 
 		const hasLoginButton = await profileScreen.hasLoginButton();
 		assert.equal(hasLoginButton, false, "ログイン済みでは profile-login-button が存在しないはず");
+	});
+
+	// ─ テストケース: 縦リストからいいね・保存の一覧へ遷移できる ─
+	// #1402 の本体。4 グリッドタブの代わりに縦リストの行から «独立した画面» を開く。
+	it("縦リストからいいね・保存の一覧へ遷移できる", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+
+		await tabBar.gotoProfile();
+		await profileScreen.expectLoaded();
+
+		await profileScreen.openLiked();
+		// #1027 グリッドは 0 件だと面積を持たないため存在で見る
+		await waitUntilExists(profileScreen.likedGrid);
+
+		await tabBar.gotoProfile();
+		await profileScreen.openSavedDishCategories();
+		await waitUntilExists(profileScreen.savedDishCategoriesGrid);
 	});
 
 	// ─ テストケース: ログイン済みのときだけ表示される「お知らせ」タブが表示される ─

@@ -91,10 +91,10 @@
 | 2   | 匿名サインインの失敗(429)                   | 空画面で黙るのではなくエラー UI と再試行ボタンが出る（Supabase 応答を `page.route` で差し替えるので実枠は消費しない） | `e2e-web/tests/auth/auth-failure.spec.ts`                                                                                                |
 | 3   | 429 クールダウン / 多重実行防止             | クールダウン中の SIGNED_OUT では匿名サインインを叩かない。ユーザー操作起点の再試行は必ず叩く                          | `app-expo/contexts/AuthProvider.test.tsx`                                                                                                |
 | 4   | SIGNED_OUT のデッドロック防止               | `onAuthStateChange` のコールバック内で `supabase.auth.*` を await しない。抜けた直後に 1 回だけ匿名サインインする     | `app-expo/contexts/AuthProvider.test.tsx`                                                                                                |
-| 5   | セッション復元（ログイン済み）              | 注入したセッションでログイン済みとして起動し、お知らせタブ・レビュータブなどログイン限定 UI が出る                    | `e2e-web/tests/authenticated/profile-authenticated.spec.ts` / `e2e-mobile/tests/authenticated/profile-authenticated.test.ts`             |
+| 5   | セッション復元（ログイン済み）              | 注入したセッションでログイン済みとして起動し、お知らせタブ・食べたい/食べたタブの記録 CTA などログイン限定 UI が出る                    | `e2e-web/tests/authenticated/profile-authenticated.spec.ts` / `e2e-mobile/tests/authenticated/profile-authenticated.test.ts`             |
 | 6   | 復元と OAuth の競合（#1135）                | 認証初期化の最中に別経路が載せたセッションを、古い読み取り結果で巻き戻さない                                          | `app-expo/contexts/AuthProvider.test.tsx`                                                                                                |
-| 7   | ゲスト向けのログイン導線                    | 匿名ユーザーにログイン CTA が出て、**ログイン画面（/auth/login）へ遷移する**（#1359。戻る導線まで）                   | `e2e-web/tests/profile/login-screen.spec.ts` ほか / `e2e-mobile/tests/profile/login-screen.test.ts`・`tests/review/review-guest.test.ts` |
-| 8   | ログアウト行の表示制御                      | 匿名ユーザーには設定画面にログアウトが出ない / ログイン済みには出る                                                   | `e2e-web/tests/profile/settings.spec.ts` / `e2e-mobile/tests/profile/settings.test.ts`                                                   |
+| 7   | ゲスト向けのログイン導線                    | 匿名ユーザーにログイン CTA が出て、**ログイン画面（/auth/login）へ遷移する**（#1359。戻る導線まで）                   | `e2e-web/tests/profile/login-screen.spec.ts` ほか / `e2e-mobile/tests/profile/login-screen.test.ts`・`tests/my-dishes/my-dishes-guest.test.ts`（#1396 でレビュータブから差し替え） |
+| 8   | ログアウト行の表示制御                      | 匿名ユーザーにはマイページにログアウトが出ない / ログイン済みには出る                                                   | `e2e-web/tests/profile/settings.spec.ts` / `e2e-mobile/tests/profile/settings.test.ts`                                                   |
 | 9   | **ログアウトの実行（web）**（#1131）        | ログアウトすると ①ホームへ遷移し ②匿名セッションが別ユーザーとして再確立され実 API が成功し ③UI 操作を受け付け続ける  | `e2e-web/tests/authenticated/logout.spec.ts`                                                                                             |
 | 10  | **ログアウトの実行（ネイティブ）**（#1131） | 同上をネイティブで検証する。web では通らない `Platform.OS !== "android"` 分岐と「本当のフリーズ」を押さえる（未実走） | `e2e-mobile/tests/authenticated/logout.test.ts`                                                                                          |
 | 11  | 認証結果 URL の選択ロジック                 | `?code=` / `#access_token` / エラー応答の判別。dev launcher の起動 URL を認証結果と誤認しない                         | `app-expo/lib/oauthResultUrl.test.ts`                                                                                                    |
@@ -227,7 +227,7 @@ Issue 本文も「実 Supabase のエラー応答形状に依存するため保�
 
 | 戻した修正                                                                  | 症状                                                | このテストは検知したか                                                                     |
 | --------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `68d44720`（SIGNED_OUT コールバック内で `supabase.auth.*` を await しない） | ①ホームへ戻らない                                   | ✅ **赤くなる**（設定画面に留まり、検索画面が出ない）                                      |
+| `68d44720`（SIGNED_OUT コールバック内で `supabase.auth.*` を await しない） | ①ホームへ戻らない                                   | ✅ **赤くなる**（マイページに留まり、検索画面が出ない）                                      |
 | 同上                                                                        | ②匿名セッションが再確立されず API が全滅する        | ✅ **赤くなる**（localStorage に匿名セッションが現れず、場所オートコンプリートも空のまま） |
 | 同上                                                                        | ③画面が固まる                                       | ❌ **緑のまま**（→ 下記）                                                                  |
 | `f8c6a437`（ログアウト後の行き先を `app/index.tsx` へ明示的に引き継ぐ）     | ①ホームへ戻らない（プロフィールタブへ戻ってしまう） | ✅ **赤くなる**                                                                            |
@@ -245,8 +245,8 @@ DOM 操作（タブ切り替え・トグル・入力）は壊れたビルドで�
 実走していません**。型検査（`pnpm --filter e2e-mobile typecheck`）のみ通しています。
 次に実走する人は、以下が観測できればクリアです。
 
-1. 設定画面でログアウト行が見えている（＝ 使い捨てセッションの注入が効いている）
-2. 確定後、**検索画面（`search-header-title`）が表示される**／設定画面の要素が消える
+1. マイページでログアウト行が見えている（＝ 使い捨てセッションの注入が効いている）
+2. 確定後、**検索画面（`search-header-title`）が表示される**／マイページの要素が消える
 3. レビュータブが**ゲスト表示**になる（`review-guest-login-button` が出る。
    ここが `review-post-button` なら **注入が再発動している** ＝ `injection: "once"` の回帰）
 4. 場所オートコンプリートに**サジェストが出る**（＝ 匿名セッションが再確立され、実 API に通っている）
@@ -279,7 +279,7 @@ Detox でログアウトを書くには、e2e-web には無い障害が 2 つあ
 
 **(3) 確認ダイアログの OK が押せない**
 `DialogProvider` の確認ボタンには testID が無く、Detox は `by.text("ログアウト")` が
-「設定画面の行」と「ダイアログのボタン」の 2 件に一致して操作できませんでした。
+「マイページのログアウト行」と「ダイアログのボタン」の 2 件に一致して操作できませんでした。
 → `DialogProvider` の OK / キャンセルへ既定 testID（`dialog-confirm-button` / `dialog-cancel-button`）を追加しました。
 
 ---

@@ -342,7 +342,7 @@ export async function collectCompletedCandidateImageIndexes(page: Page): Promise
 /**
  * いま投票カードに描かれている候補画像を読む（無ければ null）。
  *
- * `TopicVisualCard` は expo-image を使い、web では `<img>` を描く。
+ * `DishCategoryVisualCard` は expo-image を使い、web では `<img>` を描く。
  * ヘッダ等の小さなアイコンを拾わないよう **カード大の `<img>` に限る**。
  *
  * @param page 対象ページ

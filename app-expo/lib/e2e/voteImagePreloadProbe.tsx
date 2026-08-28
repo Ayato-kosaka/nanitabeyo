@@ -9,9 +9,9 @@ import { Env } from "@/constants/Env";
  *
  * ## なぜ必要か
  * 投票画面は候補カードを 1 枚ずつしか描かない。候補を送るたびに生の uri を
- * `TopicVisualCard` へ渡していたため、既に見えているはずの画像でも取得がその場から始まり、
+ * `DishCategoryVisualCard` へ渡していたため、既に見えているはずの画像でも取得がその場から始まり、
  * カード背景色（#EEE）のグレーが一瞬見えていた（#1213）。修正は
- * `useTopicImageResources` へ候補全件を渡して **画面マウント時に先読みする**というもの。
+ * `useDishCategoryImageResources` へ候補全件を渡して **画面マウント時に先読みする**というもの。
  *
  * web ではこれを Resource Timing で直接観測できる
  *（e2e-web/tests/dish-category-group-votes/vote-candidate-image-preload.spec.ts）。

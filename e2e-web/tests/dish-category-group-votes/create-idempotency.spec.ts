@@ -1,7 +1,7 @@
 import type { Route } from "@playwright/test";
 import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
-import { TopicsPage } from "../../pages/TopicsPage";
+import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 
 /**
  * 🔁 友達投票の作成が再送に対して冪等であること（#1507 / GRP-14）
@@ -14,7 +14,7 @@ import { TopicsPage } from "../../pages/TopicsPage";
  * ホストが別の投票を見ることになり、集計が合わない。共有リンクで完結する機能なので気付きにくい。
  *
  * #1205 の `isCreatingRef` 同期ガードが守れるのは「同一 JS タスク内の連打」だけで
- *（それは topics-group-vote-double-tap.spec.ts が担保している）、
+ *（それは dishCategories-group-vote-double-tap.spec.ts が担保している）、
  * - 通信のリトライ（アプリ側の再送・プロキシの再送）
  * - オフラインから復帰したときの再送
  * - 画面を離れて戻って ref が初期化されたあとの再操作
@@ -74,12 +74,12 @@ test.describe("友達投票の作成が再送に対して冪等（#1507）", () 
 	//      違う値だとサーバーは別の作成意図として扱い、セッションが 2 件できる
 	test("失敗後にもう一度押すと、同じ idempotencyKey で再送する", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
 		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
+		await dishCategoriesPage.expectLoaded();
 
 		const sentKeys: (string | undefined)[] = [];
 		await appPage.route(CREATE_URL_GLOB, async (route) => {
@@ -99,13 +99,13 @@ test.describe("友達投票の作成が再送に対して冪等（#1507）", () 
 			});
 		});
 
-		await expect(topicsPage.groupVoteButton).toBeVisible();
-		await topicsPage.groupVoteButton.click();
+		await expect(dishCategoriesPage.groupVoteButton).toBeVisible();
+		await dishCategoriesPage.groupVoteButton.click();
 		await expect.poll(() => sentKeys.length, { timeout: 30_000 }).toBe(1);
 
 		// 失敗しても画面に留まり、もう一度押せる（#1205 の finally / catch による解除）
-		await expect(topicsPage.groupVoteButton).toBeEnabled({ timeout: 30_000 });
-		await topicsPage.groupVoteButton.click();
+		await expect(dishCategoriesPage.groupVoteButton).toBeEnabled({ timeout: 30_000 });
+		await dishCategoriesPage.groupVoteButton.click();
 		await expect.poll(() => sentKeys.length, { timeout: 30_000 }).toBe(2);
 
 		expect(sentKeys[0], "冪等キーが送られていない（サーバー側の冪等化が一切効かない）").toMatch(UUID_V4);
@@ -123,7 +123,7 @@ test.describe("友達投票の作成が再送に対して冪等（#1507）", () 
 	// 実 API を叩くため **dev DB に投票セッションが 1 件積み上がる**（削除導線は無い）。
 	// 冪等化が壊れている場合は 2 件になり、それがこのテストの失敗そのものである。
 	// 作成リクエストの中身は検索結果の候補スナップショットで `[E2E]` のような目印を混ぜられない
-	// （topics-group-vote-double-tap.spec.ts と同じ制約）。追跡が要る場合は実行時刻と
+	// （dishCategories-group-vote-double-tap.spec.ts と同じ制約）。追跡が要る場合は実行時刻と
 	// ホストの匿名ユーザー id で辿ること。`RUN_MUTATION=1` を明示したときだけ実行される。
 	//
 	// 手順:
@@ -139,12 +139,12 @@ test.describe("友達投票の作成が再送に対して冪等（#1507）", () 
 		appPage,
 	}) => {
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
 		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
+		await dishCategoriesPage.expectLoaded();
 
 		const sentKeys: (string | undefined)[] = [];
 		const shareTokens: string[] = [];
@@ -169,13 +169,13 @@ test.describe("友達投票の作成が再送に対して冪等（#1507）", () 
 			await route.fulfill({ response });
 		});
 
-		await expect(topicsPage.groupVoteButton).toBeVisible();
-		await topicsPage.groupVoteButton.click();
+		await expect(dishCategoriesPage.groupVoteButton).toBeVisible();
+		await dishCategoriesPage.groupVoteButton.click();
 		await expect.poll(() => shareTokens.length, { timeout: 60_000 }).toBe(1);
 
 		// 応答が落ちたのでアプリはエラー扱い。ユーザーはもう一度押す
-		await expect(topicsPage.groupVoteButton).toBeEnabled({ timeout: 30_000 });
-		await topicsPage.groupVoteButton.click();
+		await expect(dishCategoriesPage.groupVoteButton).toBeEnabled({ timeout: 30_000 });
+		await dishCategoriesPage.groupVoteButton.click();
 		await expect.poll(() => shareTokens.length, { timeout: 60_000 }).toBe(2);
 
 		expect(sentKeys[1], "再送で冪等キーが変わっている").toBe(sentKeys[0]);

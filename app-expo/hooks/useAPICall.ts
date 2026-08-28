@@ -30,7 +30,14 @@ export type ApiError = {
 		 * サーバーに届いた上での 401 ではなく「今は呼べない」なので、呼び出し側は
 		 * **auth の解決後に 1 回だけ再試行する**という判断ができる（できなければならない）。
 		 */
-		| "unauthenticated";
+		| "unauthenticated"
+		/**
+		 * #1629 呼び出し側が `signal` で **自分から打ち切った**状態。
+		 *
+		 * 通信の失敗ではないので、スナックバーもエラーログも出してはいけない。
+		 * 地図の viewport が変わって前の検索が要らなくなった、のような «正常な取り消し» に使う。
+		 */
+		| "aborted";
 
 	/** HTTP ステータス。ネットワークエラー等の場合は undefined or 0 */
 	status?: number;
@@ -88,10 +95,20 @@ export const useAPICall = () => {
 				method = "POST",
 				requestPayload,
 				isMultipart = false,
+				signal,
 			}: {
 				method?: "GET" | "POST" | "PATCH" | "DELETE";
 				requestPayload: TRequest;
 				isMultipart?: boolean;
+				/**
+				 * #1629 呼び出し側からの中断。**飛んでいるリクエストを実際に止める**ための口。
+				 *
+				 * 地図のように «次の操作で前の結果が要らなくなる» 画面では、応答を捨てるだけでは
+				 * サーバ側の集計クエリが全部走り切る。ここへ `AbortController.signal` を渡すと、
+				 * 内部のタイムアウト用 controller と連動して fetch ごと中断し、
+				 * `code: "aborted"` の `ApiError` を投げる（リトライもしない）。
+				 */
+				signal?: AbortSignal;
 			},
 		): Promise<R> => {
 			// 🔐 認証トークンの有無をチェック
@@ -153,6 +170,16 @@ export const useAPICall = () => {
 				didTimeout = true;
 				abortController.abort();
 			}, API_CALL_TIMEOUT_MS);
+			// #1629 外からの中断。タイムアウトと同じ controller を叩き、リトライにも入らせない
+			let didAbort = false;
+			const handleExternalAbort = () => {
+				didAbort = true;
+				abortController.abort();
+			};
+			if (signal) {
+				if (signal.aborted) handleExternalAbort();
+				else signal.addEventListener("abort", handleExternalAbort);
+			}
 
 			try {
 				for (let attempt = 0; attempt < 2; attempt++) {
@@ -173,6 +200,8 @@ export const useAPICall = () => {
 						networkError = undefined;
 					} catch (error) {
 						networkError = error;
+						// #1629 呼び出し側が打ち切ったならリトライしない（再送は中断の意味を消す）
+						if (didAbort) break;
 						// タイムアウト後はリトライせず即座に打ち切る(既に応答期限を超過しているため)
 						if (didTimeout) {
 							logFrontendEvent({
@@ -241,6 +270,15 @@ export const useAPICall = () => {
 				}
 			} finally {
 				clearTimeout(timeoutId);
+				signal?.removeEventListener("abort", handleExternalAbort);
+			}
+
+			// #1629 中断は «失敗» ではない。ログもスナックバーも出さずに専用の code を投げる
+			if (didAbort) {
+				throw {
+					code: "aborted",
+					message: `Aborted by caller while calling ${endpointName}`,
+				} satisfies ApiError;
 			}
 
 			if (!response) {

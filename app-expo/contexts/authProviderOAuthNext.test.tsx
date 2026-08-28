@@ -72,7 +72,7 @@ jest.mock("expo-web-browser", () => ({ openAuthSessionAsync: jest.fn() }));
 jest.mock("@/stores/useDishMediaEntriesStore", () => ({
 	useDishMediaEntriesStore: { getState: () => ({ clearByKey: jest.fn() }) },
 }));
-jest.mock("@/stores/useTopicsStore", () => ({ useTopicsStore: { getState: () => ({ clearByKey: jest.fn() }) } }));
+jest.mock("@/stores/useDishCategoriesStore", () => ({ useDishCategoriesStore: { getState: () => ({ clearByKey: jest.fn() }) } }));
 jest.mock("@/features/profile/stores/useProfileStore", () => ({
 	useProfileStore: { getState: () => ({ resetProfile: jest.fn() }) },
 }));

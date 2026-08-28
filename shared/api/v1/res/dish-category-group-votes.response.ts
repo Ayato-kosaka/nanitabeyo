@@ -135,3 +135,53 @@ export type DeleteDishCategoryGroupVoteCandidateResponse = {
 export type RestoreDishCategoryGroupVoteCandidateResponse = {
 	restored: true;
 };
+
+/**
+ * 一覧の行に出す候補のプレビュー。
+ *
+ * #1505 【設計】サムネイル列と、勝者未確定時の要約文(「ラーメン・寿司ほか2件」)は
+ * **同じ候補の同じ並び**を指す。image_url と display_name を別々の配列で返すと
+ * 「i 番目同士が対応する」という暗黙の契約が生まれ、片方だけ欠けたときに崩れるので、
+ * 1 件を 1 オブジェクトにまとめて返す。
+ */
+export type MeDishCategoryGroupVoteCandidatePreview = {
+	displayName: string;
+	imageUrl: string;
+};
+
+/**
+ * GET /v1/users/me/dish-category-group-votes の1件分。
+ *
+ * #1505 【仕様】返すのは **自分が主催(作成)したセッションだけ**。
+ * 参加(投票)しただけのセッションは含まない(オーナー指示)。
+ * 全行が主催なので isHost は持たない。hasVoted は「主催者自身が投票済みか」を表す。
+ *
+ * #1505 【設計】行に «何を投票したのか» を出すため、料理そのもの(サムネイル・候補名)と
+ * 規模(参加人数)を一覧の時点で返す。詳細 API を行ごとに叩かせない
+ * (= 一覧を開くだけで N+1 リクエストが飛ぶ形にしない)ためのフィールドである。
+ */
+export type MeDishCategoryGroupVoteListItem = {
+	id: string;
+	shareToken: string;
+	hasVoted: boolean;
+	/** 未削除(deleted_at IS NULL)の候補数 */
+	candidateCount: number;
+	/**
+	 * display_order 昇順の先頭 3 件(未削除のみ)。候補が 3 件未満ならその数だけ返る。
+	 * 4 件目以降は candidateCount との差で「+N」として表現する。
+	 */
+	candidatePreviews: MeDishCategoryGroupVoteCandidatePreview[];
+	/** 投票した参加者の数 */
+	participantCount: number;
+	/**
+	 * 首位が確定していれば、その候補の display_name。未確定なら null。
+	 *
+	 * 【仕様】「確定」の条件は次の両方を満たすこと。順位の付け方(likeCount DESC,
+	 * dislikeCount ASC)は結果画面の rank と同じ規則を共有している。
+	 * - 首位候補の likeCount が 1 以上(誰も投票していない投票に勝者は無い)
+	 * - 同率首位が居ない(likeCount と dislikeCount が完全に一致する候補が 2 件以上無い)
+	 */
+	winnerName: string | null;
+	createdAt: string;
+	updatedAt: string;
+};

@@ -29,7 +29,7 @@ import { fetchDishCategoryIds } from "./savedDishCategory";
  *
  * ## ⚠️ dev DB への影響（不可逆）
  * この関数は dev DB へ **投票セッション 1 件 + 参加者 1 件 + 投票 1 件 + 通知 1 件**を追加する。
- * 削除導線は無い（tests/mutation/topics-group-vote-double-tap.test.ts と同じ性質）。
+ * 削除導線は無い（tests/mutation/dish-categories-group-vote-double-tap.test.ts と同じ性質）。
  * 呼び出し側は必ず `describeMutation` の下に置くこと。
  *
  * ## セキュリティ

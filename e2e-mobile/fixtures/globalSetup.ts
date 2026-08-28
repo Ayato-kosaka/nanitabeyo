@@ -202,7 +202,9 @@ async function withNetworkRetry<T extends { error: { status?: number } | null }>
 		if (!result.error || typeof result.error.status === "number") return result;
 
 		const waitMs = 2_000 * attempt;
-		console.warn(`⚠️ ${label} がネットワーク起因で失敗しました。${waitMs}ms 後に再試行します（${attempt}/${MAX_ATTEMPTS - 1}）`);
+		console.warn(
+			`⚠️ ${label} がネットワーク起因で失敗しました。${waitMs}ms 後に再試行します（${attempt}/${MAX_ATTEMPTS - 1}）`,
+		);
 		await new Promise((resolve) => setTimeout(resolve, waitMs));
 		result = await call();
 	}

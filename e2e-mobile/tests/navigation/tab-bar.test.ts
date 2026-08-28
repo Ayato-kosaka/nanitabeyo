@@ -24,7 +24,7 @@ describe("タブバー(匿名ユーザー)", () => {
 	// ─ テストケース: 匿名時に表示されるタブが正しい ─
 	// 手順:
 	//   1. launchAppWithSession({ as: "anon" }) で起動済み(beforeAll)
-	//   2. さがす/レビュー/マイページの 3 タブが表示されることを検証
+	//   2. さがす/食べたい・食べた/マイページの 3 タブが表示されることを検証
 	//   3. お知らせタブ(tab-notifications)が存在しないことを検証
 	//      (app-expo/app/[locale]/(tabs)/_layout.tsx で匿名時 href: null のため非マウント)
 	it("匿名時に表示されるタブが正しい", async () => {
@@ -35,15 +35,15 @@ describe("タブバー(匿名ユーザー)", () => {
 
 	// ─ テストケース: タブ遷移で各画面が表示される ─
 	// 手順:
-	//   1. レビュータブへ遷移 → ゲスト向けログイン導線が表示されることを検証
-	//      testID: review-guest-login-button (ja-JP: Review.guest.loginButton)
+	//   1. 食べたい/食べたタブへ遷移 → ゲスト向けログイン導線が表示されることを検証
+	//      testID: my-dishes-guest-login-button (ja-JP: MyDishes.guest.loginButton)
 	//   2. マイページタブへ遷移 → ゲスト向けログインボタンが表示されることを検証
 	//      testID: profile-login-button (ja-JP: auth.btn_login)
 	//   3. さがすタブへ戻る → 検索ヘッダが再表示されることを検証
 	//      testID: search-header-title (ja-JP: Search.headerTitle)
 	it("タブ遷移で各画面が表示される", async () => {
-		await tabBar.gotoReview();
-		await waitUntilVisible(by.id("review-guest-login-button"));
+		await tabBar.gotoMyDishes();
+		await waitUntilVisible(by.id("my-dishes-guest-login-button"));
 
 		await tabBar.gotoProfile();
 		await waitUntilVisible(by.id("profile-login-button"));

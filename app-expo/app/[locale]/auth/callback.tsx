@@ -42,6 +42,8 @@ import { describeOAuthUrl, pickOAuthResultUrl, type OAuthUrlCandidate } from "@/
 import { resolveNextPath } from "@/lib/authNext";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { ExternalPathString } from "expo-router";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 /**
  * router のパラメータを URL の形に載せるための器。
@@ -62,6 +64,7 @@ export default function AuthCallbackScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { confirm } = useDialog();
 	const { locale, ...rest } = useLocalSearchParams<{ locale: string; [k: string]: string }>();
+	const styles = useThemedStyles(createStyles);
 
 	// 同じ code を二度交換しないためのラッチ（effect が再実行されても処理は一度きり）
 	const hasHandledRef = useRef(false);
@@ -310,18 +313,21 @@ export default function AuthCallbackScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "#FFFFFF",
-		paddingHorizontal: 24,
-	},
-	text: {
-		marginTop: 16,
-		fontSize: 16,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			backgroundColor: c.surface,
+			paddingHorizontal: 24,
+		},
+		text: {
+			marginTop: 16,
+			fontSize: 16,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+	});

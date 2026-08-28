@@ -99,8 +99,15 @@ export function NotificationSettingsCard() {
 					testID="settings-notifications-error"
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Common.error")}>
+					{/*
+					  #1629 【修正】エビデンス撮影で **本文と «再試行» が重なって読めない**のを見つけた。
+					  `justifyContent: "space-between"` だけでは、本文が長い言語で «再試行» を押し潰す。
+					  本文へ `flex: 1`、ボタンへ «縮まない + 折り返さない» を与えて住み分ける。
+					*/}
 					<Text style={styles.errorText}>{i18n.t("Common.error")}</Text>
-					<Text style={styles.retryText}>{i18n.t("Common.retry")}</Text>
+					<Text style={styles.retryText} numberOfLines={1}>
+						{i18n.t("Common.retry")}
+					</Text>
 				</TouchableOpacity>
 			)}
 
@@ -177,10 +184,15 @@ const createStyles = (colors: Palette) =>
 		errorText: {
 			fontSize: 14,
 			color: colors.textSecondary,
+			// #1629 «再試行» を押し潰さないよう、余った幅は本文が持つ
+			flex: 1,
 		},
 		retryText: {
 			fontSize: 14,
 			fontWeight: "600",
 			color: colors.destructive,
+			// #1629 本文に押されて折り返さない・縮まない
+			flexShrink: 0,
+			marginLeft: 12,
 		},
 	});

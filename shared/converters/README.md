@@ -44,6 +44,12 @@
 `shared/converters/convert_<table>.ts` の**両方向の関数へ**列の増減を反映する。
 変換規則は上表のとおり。
 
+**この追従を忘れると main の `shared` ビルドが赤くなり、claude worker が step 6
+「sharedパッケージをビルド」で全滅する**（2026-08-24 に実測。Claude が起動する前に
+落ちるので「Claude が出力しなかった」ようにしか見えない）。api-deploy がしばらく
+走っていないと誰も気づかないまま数時間進むので、**migration を流したその日のうちに
+ここを通すこと**。
+
 そのうえで次を通すこと。`shared` の `tsc` が「Supabase 型と Prisma 型の食い違い」を
 そのまま検出するので、**ここが実質の検査になる**。
 

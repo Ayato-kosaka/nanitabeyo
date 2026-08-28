@@ -10,13 +10,14 @@ import i18n from "@/lib/i18n";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 /**
  * #951 【設計】ご意見・不具合(フィードバック)画面。
  *
  * 以前は設定画面内の useBlurModal で表示していたが、レビューで
  * 「#949 で統一した ScreenHeader の戻る導線に合わせたい・モーダル自体をやめたい」と
- * 指摘を受け、settings / blocked-topics と同じ「Stack に push される通常画面 +
+ * 指摘を受け、settings / blocked-dish-categories と同じ「Stack に push される通常画面 +
  * ScreenHeader で戻る」構成へ変更した。フォームの状態管理・送信は
  * FeedbackForm(既存)に委譲し、この画面は導線と完了時の遷移だけを担う。
  */
@@ -24,6 +25,9 @@ export default function FeedbackScreen() {
 	const { lightImpact } = useHaptics();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
+	// #1629 オーナー実機報告「ご意見・不具合を送る画面もダークモードに対応してない」。
+	// 画面の地がライト固定のグラデーション直書きだったので、テーマのトークンへ移した
+	const { colors } = useAppTheme();
 
 	const handleBack = useCallback(() => {
 		lightImpact();
@@ -42,7 +46,7 @@ export default function FeedbackScreen() {
 	}, [showSnackbar]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader title={i18n.t("Feedback.title")} onPressBack={handleBack} />
 				{/* モーダル時代は useBlurModal が担っていたキーボード回避を画面側で行う */}

@@ -1,4 +1,4 @@
-import { Topic } from "@/types/search";
+import { DishCategoryRecommendation } from "@/types/search";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
 
@@ -79,6 +79,8 @@ export const mockDishItems: (DishMediaEntry & {
 			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_1",
@@ -88,13 +90,14 @@ export const mockDishItems: (DishMediaEntry & {
 			thumbnail_path:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
 			media_type: "image",
-			// #1395 モックは自ストレージ保存済みの前提
-			render_type: "stored",
 			user_id: "user_default",
 			lock_no: 1,
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,
@@ -105,6 +108,7 @@ export const mockDishItems: (DishMediaEntry & {
 			thumbnailImageUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 		},
 		dish_reviews: [
 			{
@@ -121,6 +125,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramen_lover",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "ramen_lover",
 				isLiked: false,
@@ -140,6 +149,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "foodie123",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "foodie123",
 				isLiked: false,
@@ -159,6 +173,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "tokyo_gourmet",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "tokyo_gourmet",
 				isLiked: false,
@@ -199,6 +218,8 @@ export const mockDishItems: (DishMediaEntry & {
 			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_2",
@@ -208,14 +229,16 @@ export const mockDishItems: (DishMediaEntry & {
 			thumbnail_path:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
 			media_type: "image",
-			// #1395 モックは自ストレージ保存済みの前提
-			render_type: "stored",
 			user_id: "user_default",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 			lock_no: 1,
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,
@@ -241,6 +264,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "noodle_fan",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "noodle_fan",
 				isLiked: false,
@@ -260,6 +288,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramen_king",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "ramen_king",
 				isLiked: false,
@@ -279,6 +312,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "sio_master",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "sio_master",
 				isLiked: false,
@@ -319,6 +357,8 @@ export const mockDishItems: (DishMediaEntry & {
 			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_3",
@@ -328,14 +368,16 @@ export const mockDishItems: (DishMediaEntry & {
 			thumbnail_path:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
 			media_type: "image",
-			// #1395 モックは自ストレージ保存済みの前提
-			render_type: "stored",
 			user_id: "user_default",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 			lock_no: 1,
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,
@@ -361,6 +403,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "gyoza_freak",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "gyoza_freak",
 				isLiked: false,
@@ -380,6 +427,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramenholic",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "ramenholic",
 				isLiked: false,
@@ -399,6 +451,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "tokyo_ramen",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "tokyo_ramen",
 				isLiked: false,
@@ -439,6 +496,8 @@ export const mockDishItems: (DishMediaEntry & {
 			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_4",
@@ -448,14 +507,16 @@ export const mockDishItems: (DishMediaEntry & {
 			thumbnail_path:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
 			media_type: "image",
-			// #1395 モックは自ストレージ保存済みの前提
-			render_type: "stored",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 			user_id: "user_default",
 			lock_no: 1,
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,
@@ -481,6 +542,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "spicy_addict",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "spicy_addict",
 				isLiked: false,
@@ -500,6 +566,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramen_fever",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "ramen_fever",
 				isLiked: false,
@@ -519,6 +590,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "hotspice",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "hotspice",
 				isLiked: false,
@@ -559,6 +635,8 @@ export const mockDishItems: (DishMediaEntry & {
 			synced_at: null,
 			reviewCount: 3,
 			averageRating: 4,
+			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
+			categoryLabels: null,
 		},
 		dish_media: {
 			id: "media_feed_5",
@@ -568,14 +646,16 @@ export const mockDishItems: (DishMediaEntry & {
 			thumbnail_path:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
 			media_type: "image",
-			// #1395 モックは自ストレージ保存済みの前提
-			render_type: "stored",
 			video_duration_ms: null,
+			deleted_at: null, // #1513 モックは常に未削除
 			user_id: "user_default",
 			lock_no: 1,
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,
@@ -601,6 +681,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "tokyo_foodie",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "tokyo_foodie",
 				isLiked: false,
@@ -620,6 +705,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "ramen_addict",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "ramen_addict",
 				isLiked: false,
@@ -639,6 +729,11 @@ export const mockDishItems: (DishMediaEntry & {
 				user_id: null,
 				imported_user_name: "midnight_snacker",
 				imported_user_avatar: null,
+				// #1513 編集・論理削除で増えた列。モックは常に未編集・未削除
+				updated_at: "2025-08-08T17:19:02.676Z",
+				lock_no: 0,
+				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				eaten_at: null,
 				username: "midnight_snacker",
 				isLiked: false,
@@ -649,11 +744,11 @@ export const mockDishItems: (DishMediaEntry & {
 ];
 
 // #633 【設計】モックデータから dishItemsPromise を削除（重い処理はユーザー操作後に限定）
-export const mockTopicCards: Topic[] = [
+export const mockDishCategoryCards: DishCategoryRecommendation[] = [
 	{
 		categoryId: "card_1",
 		category: "味噌ラーメン",
-		topicTitle: "濃厚味噌ラーメン",
+		title: "濃厚味噌ラーメン",
 		reason: "コクのある味噌スープと香ばしい炒め野菜が夜の食欲をかき立てる。",
 		imageUrl:
 			"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
@@ -661,14 +756,14 @@ export const mockTopicCards: Topic[] = [
 	{
 		categoryId: "card_2",
 		category: "一人焼肉",
-		topicTitle: "ソロ焼肉で至福の夜",
+		title: "ソロ焼肉で至福の夜",
 		reason: "誰にも気兼ねせず、自分のペースで焼き上げる肉は格別のご褒美。",
 		imageUrl: "https://lh3.googleusercontent.com/p/AF1QipN7p6dRdFPv6mJZkpvoya8MZlJb23fME9KRF9Fg=w408-h271-k-no",
 	},
 	{
 		categoryId: "card_3",
 		category: "油そば",
-		topicTitle: "旨タレ絡む油そば",
+		title: "旨タレ絡む油そば",
 		reason: "濃いめの特製タレと麺の食感で一口ごとに満足感が増す。",
 		imageUrl:
 			"https://lh3.googleusercontent.com/gps-cs-s/AC9h4npr2MUHlL9tLu1_mMfU3vSvsUlffxoYTRZPwMz-OgG6yzByp7Id0OOrEe7aXaw_FCZ8yl8_YxdeYWcK8lLOAVgahObUJBr1wn94TJO958BI2Us4C537404w4kd__KGV2_EMtsUt=w408-h306-k-no",
@@ -676,14 +771,14 @@ export const mockTopicCards: Topic[] = [
 	{
 		categoryId: "card_4",
 		category: "唐揚げ定食",
-		topicTitle: "ジューシー唐揚げ定食",
+		title: "ジューシー唐揚げ定食",
 		reason: "カリッと揚がった唐揚げからあふれる肉汁が食欲を直撃。",
 		imageUrl: "https://lh3.googleusercontent.com/p/AF1QipMCK846QdzWMTFmIIib1hCRNvGjsmgQ08tdbjRp=w408-h326-k-no",
 	},
 	{
 		categoryId: "card_5",
 		category: "ハンバーグ",
-		topicTitle: "肉汁あふれるハンバーグ",
+		title: "肉汁あふれるハンバーグ",
 		reason: "ナイフを入れた瞬間に溢れる肉汁と香ばしさで贅沢な満足感を。",
 		imageUrl:
 			"https://lh3.googleusercontent.com/gps-cs-s/AC9h4npFJRl34iWIfASQQ-4YKpjHxuLb6ILDUPoEYdtici0y0lvH4WyEO9vZobZvqdtZB5OLp_lpNRVnR_0YCOCIdHfnHaMF2y2Wc0mOTCbwKntJ4v03vQAFsOeFnAMyqu-w65UwBiXP5g=w408-h306-k-no",
@@ -691,7 +786,7 @@ export const mockTopicCards: Topic[] = [
 	{
 		categoryId: "card_6",
 		category: "韓国料理",
-		topicTitle: "ピリ辛韓国料理",
+		title: "ピリ辛韓国料理",
 		reason: "甘辛ダレや香ばしい風味がクセになる。疲れた夜に元気をチャージ。",
 		imageUrl: "https://lh3.googleusercontent.com/p/AF1QipPW3SRWwsAxuNRdSd479pA-pNL67QaYY6mxpEAt=w408-h326-k-no",
 	},

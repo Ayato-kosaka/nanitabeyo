@@ -1,9 +1,14 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
- * ⚙️ 設定画面の Page Object
+ * ⚙️ 設定項目の Page Object
  *
- * 対応画面: app-expo/app/[locale]/(tabs)/profile/settings.tsx
+ * 対応画面: app-expo/app/[locale]/(tabs)/profile/index.tsx（マイページ本体）
+ *
+ * #1402 で **独立した設定画面（profile/settings.tsx）は無くなり**、その項目は
+ * マイページの縦リストへ統合された。«設定という画面» は消えたが «設定という項目群» は
+ * そのまま残っているので、この Page Object と `settings-*` の testID は据え置いてある。
+ * マイページ側の要素（ログイン/編集ボタン・いいね/保存の行）は `pages/ProfilePage.ts` が持つ。
  *
  * - 「レビューを書く」（ストア誘導）は Web では非表示（Platform.OS !== "web" 条件）
  * - 「ログアウト」はログイン済み（非匿名）ユーザーのみ表示
@@ -12,8 +17,6 @@ import { expect, type Locator, type Page } from "@playwright/test";
  */
 export class SettingsPage {
 	readonly page: Page;
-	/** 画面タイトル（ja-JP: Settings.title） */
-	readonly title: Locator;
 	/** ご意見・不具合（フィードバック）行 */
 	readonly feedbackItem: Locator;
 	/** コミュニティガイドライン行 */
@@ -25,7 +28,29 @@ export class SettingsPage {
 	/** 著作権行 */
 	readonly copyrightItem: Locator;
 	/** ブロック済みの料理トピック行 */
-	readonly blockedTopicsItem: Locator;
+	readonly blockedDishCategoriesItem: Locator;
+	/** 表示言語行（#1508。Card 2 の最終行） */
+	readonly languageItem: Locator;
+	/**
+	 * #1504 端末設定行（規約カードの直上）。
+	 * トグル本体はこの行から push される端末設定画面にあり、`pages/DeviceSettingsPage.ts` が持つ。
+	 */
+	readonly deviceSettingsItem: Locator;
+	/** #1583 マイページ → «なに食べよについて» の行 */
+	readonly aboutItem: Locator;
+	/**
+	 * #1583 «なに食べよについて» の戻るボタン。
+	 *
+	 * `ScreenHeader` は `${testID}-back` を出す（素の testID は出さない）。
+	 * ページを分けた以上、**戻ってこられることまで見ないと行き止まりを作れる**ので
+	 * ロケータを持たせてある（`DeviceSettingsPage.backButton` と同じ考え方）。
+	 */
+	readonly aboutBackButton: Locator;
+	/**
+	 * バージョン表示（#1495 SUP-03）。"{version}({短縮コミットID})" の 1 行、例: "1.14.0(abc1234)"。
+	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx
+	 */
+	readonly versionText: Locator;
 	/** ログアウト行（ログイン済みユーザーのみ表示） */
 	readonly logoutItem: Locator;
 	/**
@@ -52,6 +77,23 @@ export class SettingsPage {
 	readonly logoutConfirmButton: Locator;
 	/** 確認ダイアログの「キャンセル」ボタン */
 	readonly logoutCancelButton: Locator;
+	/** #1511 アカウント削除行（ログイン済みユーザーのみ表示） */
+	readonly deleteAccountItem: Locator;
+	/** #1511 1 枚目（影響の説明）ダイアログのタイトル（ja-JP: Settings.deleteAccountConfirmTitle） */
+	readonly deleteAccountConfirmTitle: Locator;
+	/** #1511 1 枚目の本文。**「取り消せない」と明記されていること**を見るための素材 */
+	readonly deleteAccountConfirmMessage: Locator;
+	/** #1511 2 枚目（取り消せないことへの同意）ダイアログのタイトル */
+	readonly deleteAccountFinalTitle: Locator;
+	/**
+	 * #1511 確認ダイアログの OK / キャンセル。
+	 *
+	 * `confirm()`（DialogProvider）が出すダイアログは既定 testID を持つ（#1131）。
+	 * ログアウト側がラベル一致で掴んでいるのは、当時 testID が無かった名残であり、
+	 * 新しく足すこちらは **多言語で壊れない testID** を使う。
+	 */
+	readonly dialogConfirmButton: Locator;
+	readonly dialogCancelButton: Locator;
 	/**
 	 * #1509 表示テーマの 3 択セレクタ（システム追従 / ライト / ダーク）のコンテナ。
 	 * `themeCardSurface` はこの直上の要素で、Card の面色（`Palette.surface`）を持つ。
@@ -68,13 +110,18 @@ export class SettingsPage {
 
 	constructor(page: Page) {
 		this.page = page;
-		this.title = page.getByText("設定", { exact: true });
 		this.feedbackItem = page.getByTestId("settings-feedback");
 		this.guidelinesItem = page.getByTestId("settings-guidelines");
 		this.termsItem = page.getByTestId("settings-terms");
 		this.privacyItem = page.getByTestId("settings-privacy");
 		this.copyrightItem = page.getByTestId("settings-copyright");
-		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
+		this.blockedDishCategoriesItem = page.getByTestId("settings-blocked-dish-categories");
+		this.languageItem = page.getByTestId("settings-language");
+		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
+		// #1583 マイページ → なに食べよについて の行
+		this.aboutItem = page.getByTestId("settings-about");
+		this.aboutBackButton = page.getByTestId("about-screen-back");
+		this.versionText = page.getByTestId("settings-version-section");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.notificationsCard = page.getByTestId("settings-notifications-card");
 		this.notificationsErrorRow = page.getByTestId("settings-notifications-error");
@@ -83,8 +130,26 @@ export class SettingsPage {
 		this.logoutConfirmTitle = page.getByText("ログアウトしますか？", { exact: true });
 		this.logoutConfirmButton = this.logoutConfirmDialog.getByRole("button", { name: "ログアウト" });
 		this.logoutCancelButton = this.logoutConfirmDialog.getByRole("button", { name: "キャンセル" });
+		this.deleteAccountItem = page.getByTestId("settings-delete-account");
+		this.deleteAccountConfirmTitle = page.getByText("アカウントを削除しますか？", { exact: true });
+		this.deleteAccountConfirmMessage = page.getByText("この操作は取り消せません。");
+		this.deleteAccountFinalTitle = page.getByText("本当に削除しますか？", { exact: true });
+		this.dialogConfirmButton = page.getByTestId("dialog-confirm-button");
+		this.dialogCancelButton = page.getByTestId("dialog-cancel-button");
 		this.themeSelector = page.getByTestId("settings-theme-selector");
 		this.themeCardSurface = this.themeSelector.locator("xpath=..");
+	}
+
+	/**
+	 * #1511 アカウント削除行を押して 1 枚目の確認ダイアログを開く（**確定しない**）。
+	 *
+	 * 削除は取り消せないので、確定まで行う操作は Page Object に置かない。
+	 * 「開くところまで」と「確定」を分けておくと、キャンセル経路のテストが
+	 * 誤って本物の削除を走らせる事故を構造的に防げる。
+	 */
+	async openDeleteAccountDialog(): Promise<void> {
+		await this.deleteAccountItem.click();
+		await expect(this.deleteAccountConfirmTitle).toBeVisible();
 	}
 
 	/** テーマ 3 択の 1 行（#1509） */
@@ -110,6 +175,58 @@ export class SettingsPage {
 	}
 
 	/**
+	 * 設定項目のある画面（＝マイページ）へ直接遷移する（locale プレフィックス必須）。
+	 * #1402 以前は `/[locale]/profile/settings` だった。
+	 */
+	async goto(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile`);
+	}
+
+	/**
+	 * 設定項目が表示されていることを検証する。
+	 *
+	 * #1402 以前は ScreenHeader のタイトル「設定」を見ていたが、その画面ごと無くなった。
+	 * 代わりに «必ず出る行» の testID を見る（ロケール依存が 1 つ減るという副次的な利点もある）。
+	 */
+	async expectLoaded(): Promise<void> {
+		await expect(this.feedbackItem).toBeVisible();
+	}
+
+	/*
+	#1583 設定項目は 3 画面に散っている。
+	  マイページ …… いいね / 保存 / ご意見 / ブロック済み / 通報履歴 / 言語 / 投票 /
+	                （端末設定へ）/（なに食べよについてへ）/ ログアウト
+	  端末設定 ……… ハプティクス / 表示テーマ
+	  なに食べよについて … 応援する / 規約 4 種 / バージョン
+	テーマとリーガルの行は **マイページには無い**ので、下の 2 つで先に移動すること。
+	*/
+
+	/** #1504 端末設定行をタップして端末設定画面（`/[locale]/profile/device-settings`）へ遷移する */
+	async openDeviceSettings(): Promise<void> {
+		await this.deviceSettingsItem.click();
+		// #1583 表示テーマがここへ移った
+		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1583 «なに食べよについて» 行をタップして `/[locale]/profile/about` へ遷移する */
+	async openAbout(): Promise<void> {
+		await this.aboutItem.click();
+		await expect(this.termsItem).toBeVisible();
+	}
+
+	/** #1583 端末設定ページへ直接遷移する（導線ではなく画面の中身を見たいとき） */
+	async gotoDeviceSettings(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/device-settings`);
+		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1583 «なに食べよについて» へ直接遷移する */
+	async gotoAbout(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/about`);
+		await expect(this.termsItem).toBeVisible();
+	}
+
+	/**
 	 * #1510 通知カテゴリの行（トグル）を返す。**押すのはこの行。**
 	 *
 	 * `SettingsToggleItem` は行全体をタップ対象にし、Switch 側は `pointerEvents="none"` で
@@ -130,16 +247,6 @@ export class SettingsPage {
 	 */
 	async isNotificationToggleOn(category: "likes" | "saves" | "group_votes"): Promise<boolean> {
 		return this.notificationToggle(category).locator('input[type="checkbox"]').isChecked();
-	}
-
-	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
-	async goto(locale = "ja-JP"): Promise<void> {
-		await this.page.goto(`/${locale}/profile/settings`);
-	}
-
-	/** 設定画面が表示されていることを検証する */
-	async expectLoaded(): Promise<void> {
-		await expect(this.title).toBeVisible();
 	}
 
 	/**

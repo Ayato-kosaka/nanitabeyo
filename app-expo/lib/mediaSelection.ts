@@ -70,12 +70,16 @@ function normalizeToSeconds(raw?: number | null): number | null {
 /**
  * Request media library permissions
  */
-async function requestPermissions(): Promise<boolean> {
+async function requestPermissions(source: "library" | "camera"): Promise<boolean> {
 	if (Platform.OS === "web") {
 		return true; // Web doesn't need permission
 	}
 
-	const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+	// #1375 4 巡目: カメラ起動（その場で撮って記録する導線）はカメラ権限を取る
+	const { status } =
+		source === "camera"
+			? await ImagePicker.requestCameraPermissionsAsync()
+			: await ImagePicker.requestMediaLibraryPermissionsAsync();
 	return status === "granted";
 }
 
@@ -179,6 +183,11 @@ export async function selectMedia(
 		shouldGenerateThumbnail?: boolean;
 		allowsEditing?: boolean;
 		aspect?: [number, number];
+		/**
+		 * #1375 4 巡目: `"camera"` はフォトライブラリではなく **カメラを起動してその場で撮る**。
+		 * web はカメラ起動をサポートしないのでライブラリへ縮退する。既定は `"library"`
+		 */
+		source?: "library" | "camera";
 	},
 ): Promise<MediaSelectionResult> {
 	try {
@@ -191,8 +200,11 @@ export async function selectMedia(
 			return { success: true, media: e2eMedia };
 		}
 
+		// web にはカメラ起動が無いのでライブラリへ縮退する
+		const source = options?.source === "camera" && Platform.OS !== "web" ? "camera" : "library";
+
 		// Request permissions
-		const hasPermission = await requestPermissions();
+		const hasPermission = await requestPermissions(source);
 		if (!hasPermission) {
 			return {
 				success: false,
@@ -200,8 +212,7 @@ export async function selectMedia(
 			};
 		}
 
-		// Launch picker
-		const result = await ImagePicker.launchImageLibraryAsync({
+		const pickerOptions: ImagePicker.ImagePickerOptions = {
 			mediaTypes,
 			allowsMultipleSelection: false,
 			quality: 1,
@@ -230,7 +241,13 @@ export async function selectMedia(
 			// （HEVC ではなく互換表現が返りうる）が、動画の MIME は video/mp4・video/quicktime とも
 			// EXTENSION_TABLE にあり、どちらでも壊れないため許容する。
 			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
-		});
+		};
+
+		// Launch picker（camera はその場で撮影。以降の検証・サムネ生成は共通）
+		const result =
+			source === "camera"
+				? await ImagePicker.launchCameraAsync(pickerOptions)
+				: await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
 		if (result.canceled) {
 			return { success: false, error: "cancelled" };

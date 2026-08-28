@@ -1,7 +1,7 @@
 import { test, expect } from "../../fixtures/test";
 import type { Locator, Page } from "@playwright/test";
 import { SearchPage } from "../../pages/SearchPage";
-import { TopicsPage } from "../../pages/TopicsPage";
+import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { ResultPage } from "../../pages/ResultPage";
 
 /**
@@ -103,14 +103,14 @@ async function likeCountText(likeButton: Locator): Promise<string> {
 /** 検索 → トピック提案 → 結果フィードまで進める（reactions.spec.ts と同一の導線） */
 async function openResultFeed(appPage: Page): Promise<ResultPage> {
 	const searchPage = new SearchPage(appPage);
-	const topicsPage = new TopicsPage(appPage);
+	const dishCategoriesPage = new DishCategoriesPage(appPage);
 	const resultPage = new ResultPage(appPage);
 
 	await searchPage.typeLocation("渋谷");
 	await searchPage.selectLocationSuggestion(0);
 	await searchPage.submitButton.click();
-	await topicsPage.expectLoaded();
-	await topicsPage.chooseFirstTopic();
+	await dishCategoriesPage.expectLoaded();
+	await dishCategoriesPage.chooseFirstDishCategory();
 	await resultPage.expectLoaded();
 
 	return resultPage;

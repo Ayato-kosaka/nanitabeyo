@@ -9,6 +9,8 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { OpenInAppBanner } from "@/components/deepLinking/OpenInAppBanner";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useSeo } from "@/contexts/SeoContext";
 import i18n from "@/lib/i18n";
 import { SeoOverride } from "@/contexts/SeoContext/SeoProvider";
@@ -38,10 +40,16 @@ const parseDishMediaIds = (ids: string | string[] | undefined): string[] => {
 };
 
 export default function PostsScreen() {
-	const { ids, entriesKey: entriesKeyParam } = useLocalSearchParams<{ ids?: string | string[]; entriesKey?: string | string[] }>();
+	const { ids, entriesKey: entriesKeyParam } = useLocalSearchParams<{
+		ids?: string | string[];
+		entriesKey?: string | string[];
+	}>();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
-	const entriesKey = typeof entriesKeyParam === "string" && entriesKeyParam.length > 0 ? entriesKeyParam : "PostsScreen";
+	const entriesKey =
+		typeof entriesKeyParam === "string" && entriesKeyParam.length > 0 ? entriesKeyParam : "PostsScreen";
 
 	const [seoData, setSeoData] = useState<SeoOverride["data"]>({});
 
@@ -77,7 +85,7 @@ export default function PostsScreen() {
 					setSeoData({
 						title: SITE_NAME_BY_PUBLIC_LOCALE[resolvePublicLocale(i18n.locale)] + " - " + res.items[0].restaurant.name,
 						...(res.items[0].dish_reviews.length > 0 ? { description: res.items[0].dish_reviews[0].comment } : {}),
-						image: res.items[0].dish_media.thumbnailImageUrl,
+						image: res.items[0].dish_media.thumbnailImageUrl ?? undefined,
 						imageAlt: res.items[0].restaurant.name,
 					});
 
@@ -98,7 +106,7 @@ export default function PostsScreen() {
 	// #1477 壊れた URL で着地した人には、内部エラー文ではなく «見つかりません» を出す。
 	if (!hasValidIds) {
 		return (
-			<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container} testID="posts-screen">
+			<LinearGradient colors={colors.backgroundGradient} style={styles.container} testID="posts-screen">
 				<View style={styles.notFoundContainer}>
 					<Text style={styles.notFoundText} testID="posts-not-found">
 						{i18n.t("Common.errors.notFound")}
@@ -109,7 +117,7 @@ export default function PostsScreen() {
 	}
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container} testID="posts-screen">
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container} testID="posts-screen">
 			{/* #688 【設計】Web Deep Linking バナー（アプリ未インストール時の導線） */}
 			<OpenInAppBanner path="posts" params={{ ids, entriesKey }} />
 			<DishMediaMap entriesKey={entriesKey} idType="dish_media" />
@@ -117,8 +125,9 @@ export default function PostsScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1 },
-	notFoundContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-	notFoundText: { fontSize: 16, color: "#6B7280", textAlign: "center" },
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: { flex: 1 },
+		notFoundContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+		notFoundText: { fontSize: 16, color: c.textSecondary, textAlign: "center" },
+	});

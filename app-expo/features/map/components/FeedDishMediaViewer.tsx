@@ -1,6 +1,6 @@
 /*
 このファイルの責務
-- 店詳細のレビュー一覧から開くフィード（`app/[locale]/(tabs)/review/restaurant/[restaurantId]/feed.tsx`
+- 店詳細のレビュー一覧から開くフィード（`app/[locale]/restaurant/[restaurantId]/feed.tsx`
   の中身）を描く。
 - 表示中の料理に対して「この料理にレビューを書く」導線を出す。
 
@@ -77,7 +77,7 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey, restaurantId }: 
 			payload: { restaurant_id: restaurantId, dish_media_id: prefilledMediaId },
 		});
 		router.push({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
 			params: { locale, restaurantId, dishMediaId: prefilledMediaId },
 		});
 	}, [lightImpact, logFrontendEvent, router, locale, restaurantId, prefilledMediaId]);

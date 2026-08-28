@@ -19,9 +19,9 @@ export const TUTORIAL_STORAGE_KEY = "search_tutorial_seen_v1";
 
 /**
  * 料理提案画面スポットライトチュートリアルの表示済みフラグ。
- * app-expo/features/topics/hooks/useTopicsTutorial.ts と必ず一致させる。
+ * app-expo/features/dishCategories/hooks/useDishCategoriesTutorial.ts と必ず一致させる。
  */
-export const TOPICS_TUTORIAL_STORAGE_KEY = "topics_spotlight_tutorial_seen_v1";
+export const DISH_CATEGORIES_TUTORIAL_STORAGE_KEY = "topics_spotlight_tutorial_seen_v1";
 
 /**
  * オンボーディングを「表示済み」としてシードする。
@@ -44,10 +44,10 @@ export async function seedTutorialAsSeen(context: BrowserContext): Promise<void>
  * 料理提案画面を操作する既存E2Eがスポットライトに遮られないよう、
  * 専用spec以外ではfixtureから既定で適用する。
  */
-export async function seedTopicsTutorialAsSeen(context: BrowserContext): Promise<void> {
+export async function seedDishCategoriesTutorialAsSeen(context: BrowserContext): Promise<void> {
 	await context.addInitScript((key) => {
 		window.localStorage.setItem(key, "true");
-	}, TOPICS_TUTORIAL_STORAGE_KEY);
+	}, DISH_CATEGORIES_TUTORIAL_STORAGE_KEY);
 }
 
 /**

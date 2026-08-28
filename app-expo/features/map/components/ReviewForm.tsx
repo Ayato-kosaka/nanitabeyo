@@ -9,11 +9,15 @@ import {
 	Pressable,
 	KeyboardAvoidingView,
 	Keyboard,
+	Linking,
 } from "react-native";
-import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus, Camera } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview } from "./InitialMediaPreview";
@@ -39,6 +43,8 @@ import type {
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
+import { ExistingDishMediaPicker } from "./ExistingDishMediaPicker";
+import { DishCategoryStep } from "./DishCategoryStep";
 import { Image } from "expo-image";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
@@ -60,8 +66,34 @@ interface ReviewFormProps {
 	onCancel: () => void;
 	/** Pre-filled media data (for no-media mode from Feed) */
 	prefilledMedia?: DishMediaEntry["dish_media"] & { dish: DishMediaEntry["dish"] };
-	// #644 【設計】レビュー投稿成功時のコールバック（呼び出し元で画面遷移を制御）
-	onSuccess?: (params: { dishMedia: DishMediaEntry["dish_media"]; dishReviewId: string }) => void;
+	/**
+	 * #1398 B1 【設計】写真なしでの記録を許可するか（既定 false）。
+	 *
+	 * true のときだけ `mediaState` が `{ status: "none" }` に到達しうる。到達経路は
+	 * 「マウント時に開いたピッカーをキャンセルした」だけで、そのとき画面は閉じずにフォームへ留まる
+	 *（B2）。渡さなければ挙動は**完全に従来どおり**であり、`review-from-media`
+	 *（prefilledMedia モード）は渡さないので 1 行も変わらない。
+	 */
+	allowNoMedia?: boolean;
+	/**
+	 * #1375 実機確認（5 巡目）: メディアの選び方。
+	 *
+	 * - `"auto"`（既定・従来）… マウント直後に OS のピッカーを開く。
+	 *   «写真を選んでからレビューを書く» 前提の画面（店舗フィードからの投稿）はこちら
+	 * - `"manual"` … 開かない。**画面の中の «自分で撮影して追加 / ライブラリから選ぶ / スキップ»**
+	 *   から人が選ぶ。オーナー指摘「③ は上部に自分で撮影して追加、小さくスキップ、
+	 *   下に既存の dish_media」の形にするため、記録フローはこちら。
+	 *   いきなり OS のピッカーが立ち上がると «何を選ばされているのか» が分からない
+	 */
+	mediaPickerMode?: "auto" | "manual";
+	/**
+	 * #644 【設計】レビュー投稿成功時のコールバック（呼び出し元で画面遷移を制御）
+	 *
+	 * #1398 B4 写真なしで記録したときは `dishMedia` が null になる。null のとき
+	 * `/post/[id]` へ遷移してはいけない（その画面はストアのエントリ前提で、写真なしは
+	 * R2 によりストアを通らないためスピナー固着になる）。
+	 */
+	onSuccess?: (params: { dishMedia: DishMediaEntry["dish_media"] | null; dishReviewId: string }) => void;
 }
 
 const { height } = Dimensions.get("window");
@@ -82,9 +114,14 @@ export function ReviewForm({
 	initialRating = 0,
 	onCancel,
 	prefilledMedia,
+	allowNoMedia = false,
+	mediaPickerMode = "auto",
 	onSuccess,
 }: ReviewFormProps) {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const { lightImpact, mediumImpact } = useHaptics();
+	const insets = useSafeAreaInsets();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { uploadFile: mediaUploadFile } = useFileUploader();
@@ -97,8 +134,20 @@ export function ReviewForm({
 	const profile = useProfileStore((state) => state.profile);
 
 	// Media selection state
+	/**
+	 * #1398 B1 【設計】`{ status: "none" }` = 写真なしで記録する状態。
+	 *
+	 * `allowNoMedia` が true のときだけ到達しうる（B2 のキャンセル分岐が唯一の入口）。
+	 * `success` と違って `media` を持たないので、この状態からの投稿では
+	 * アップロードも `POST /v1/dish-media` も走らず、ストア更新も行わない（B4 / R2）。
+	 * `none` からプレースホルダをタップすればピッカーを開き直せる（B3）ので、
+	 * 「写真なし → 写真あり」へはいつでも戻れる。
+	 */
 	const [mediaState, setMediaState] = useState<
-		{ status: "loading" } | { status: "error"; error: string } | { status: "success"; media: MediaData }
+		| { status: "loading" }
+		| { status: "error"; error: string; isPermissionError?: boolean }
+		| { status: "success"; media: MediaData }
+		| { status: "none" }
 	>({ status: "loading" });
 
 	/**
@@ -140,10 +189,59 @@ export function ReviewForm({
 	useEffect(() => {
 		logFrontendEventRef.current = logFrontendEvent;
 	}, [logFrontendEvent]);
-	const prefilledMediaRef = useRef(prefilledMedia);
+	/**
+	 * #1375 実機確認（2 巡目）: prefilledMedia モード（食べたを記録）でも **自分の写真に
+	 * 差し替えられる**ようにする。true になった時点で prefilled を捨てて通常の
+	 * メディア選択フローへ切り替わる（submit も «自分でアップロードする» 分岐を通る）。
+	 * 差し替え後にピッカーをキャンセルすると「写真なし」へ落ちる（B2 のキャンセル分岐）。
+	 * 元の投稿写真へ戻す UI は持たない — その場合は画面を開き直せばよい。
+	 */
+	const [useOwnMedia, setUseOwnMedia] = useState(false);
+	/**
+	 * #1375（5 巡目）「その下に既存のディッシュメディアから選べるように」。
+	 *
+	 * 選んだものは **親から渡された `prefilledMedia` と同じ扱い**にする（プレビューに出て、
+	 * 料理カテゴリーがそのメディアの料理に固定される = `review-from-media` と同じ仕組み）。
+	 * 親の prefilledMedia が在るとき（店舗フィードからの記録）はそちらが優先で、
+	 * この一覧はそもそも出さない
+	 */
+	const [pickedExistingMedia, setPickedExistingMedia] = useState<ReviewFormProps["prefilledMedia"]>(undefined);
+
+	/*
+	#1375（オーナー指示 7 巡目）**写真の選択を «1 画面» にする。**
+
+	これまでは «写真の選び方» と «コメント・料理・価格・星» が 1 画面に同居しており、
+	最初に目に入るものが多すぎた。お店 → 料理カテゴリー と同じ粒度で、
+	写真も 1 歩として独立させる。
+
+	`mediaState.status === "none"` は «写真なしで記録する» と «まだ決めていない» の
+	両方を表してしまうので、**決めたかどうかは別に持つ**。
+	決まったとみなすのは «撮った / 選んだ / 既存から選んだ / «写真なし» を押した» の 4 つ。
+	*/
+	const [hasDecidedMedia, setHasDecidedMedia] = useState(false);
+	const activePrefilledMedia = prefilledMedia ?? pickedExistingMedia;
+	/** «画面の中で写真を選ぶ» 見た目を出しているか（高さを固定しない条件。下のコメント参照） */
+	const showsManualMediaChooser = mediaPickerMode === "manual" && !activePrefilledMedia;
+	const effectivePrefilledMedia = useOwnMedia ? undefined : activePrefilledMedia;
+
+	const prefilledMediaRef = useRef(effectivePrefilledMedia);
 	useEffect(() => {
-		prefilledMediaRef.current = prefilledMedia;
-	}, [prefilledMedia]);
+		prefilledMediaRef.current = effectivePrefilledMedia;
+	}, [effectivePrefilledMedia]);
+	/**
+	 * #1398 B2 `runMediaSelection` は `useCallback([])` で identity を固定してあるため、
+	 * 新しい prop も他と同じくラッチ経由で読む（依存配列へ足すと #1127 の欠陥が戻る）。
+	 * 上の 3 本（onCancel / lightImpact / logFrontendEvent）と同じ作法で、
+	 * `mediaGenerationRef` / `isSelectingMediaRef` / `prefilledMediaRef` には手を入れていない。
+	 */
+	const mediaPickerModeRef = useRef(mediaPickerMode);
+	useEffect(() => {
+		mediaPickerModeRef.current = mediaPickerMode;
+	}, [mediaPickerMode]);
+	const allowNoMediaRef = useRef(allowNoMedia);
+	useEffect(() => {
+		allowNoMediaRef.current = allowNoMedia;
+	}, [allowNoMedia]);
 
 	/**
 	 * #1127 【修正】メディア選択の同時実行を防ぐ同期ガード。
@@ -167,6 +265,21 @@ export function ReviewForm({
 	const [dishCategoryId, setDishCategoryId] = useState<string | null>(prefilledMedia?.dish.category_id ?? null);
 	const [dishCategoryError, setDishCategoryError] = useState<string | null>(null);
 
+	/*
+	#1375（6 巡目・オーナー指示）**記録フローは «料理カテゴリー → 写真» の順にする。**
+
+	先に料理が決まっていれば «この店の、その料理の写真» を選ばせられる。
+	逆順（5 巡目まで）だと、どの料理か分からないまま写真を探すことになっていた。
+
+	この段階分けは記録フロー（`mediaPickerMode === "manual"`）だけに効かせる。
+	店舗フィードからの記録（`prefilledMedia` あり）は料理が既に決まっているし、
+	検索動線（auto）は従来どおり写真ありきで始まる。
+	*/
+	const needsDishCategoryFirst = mediaPickerMode === "manual" && !prefilledMedia && !dishCategoryId;
+	/** 料理カテゴリーが決まったあとの «写真を選ぶ» の 1 歩。決めるまでフォームは出さない */
+	const needsMediaChoiceFirst =
+		mediaPickerMode === "manual" && !prefilledMedia && !needsDishCategoryFirst && !hasDecidedMedia;
+
 	// Internal state - isolated from parent re-renders
 	const [isProcessing, setIsProcessing] = useState(false);
 	/**
@@ -179,7 +292,7 @@ export function ReviewForm({
 	 * **同じレビューが 2 件登録される**。
 	 *
 	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続呼び出しでもレースしない。
-	 * search/index.tsx の `isSearchingRef`、search/topics.tsx の `isSelectingTopicRef` と同じ方式。
+	 * search/index.tsx の `isSearchingRef`、search/dish-categories.tsx の `isSelectingDishCategoryRef` と同じ方式。
 	 */
 	const isSubmittingRef = useRef(false);
 	/**
@@ -240,6 +353,18 @@ export function ReviewForm({
 	*/
 
 	/**
+	 * #1375（5 巡目）既存メディアを選んだら、料理カテゴリーはそのメディアの料理になる
+	 * （`review-from-media` と同じ仕組み。マウント時の初期値と同じ経路を後から通す）。
+	 * ⚠️ 親から `prefilledMedia` を渡された画面ではこの effect は 1 度も走らない
+	 * （`pickedExistingMedia` が undefined のままなので）
+	 */
+	useEffect(() => {
+		if (!pickedExistingMedia) return;
+		setDishCategoryName(pickedExistingMedia.dish.name ?? "");
+		setDishCategoryId(pickedExistingMedia.dish.category_id ?? null);
+	}, [pickedExistingMedia]);
+
+	/**
 	 * #1386 料理カテゴリ選択画面（ルート）からの «戻り値»。
 	 *
 	 * expo-router に画面の戻り値の仕組みは無いため、1 件だけの受け渡し箱を経由する
@@ -256,109 +381,140 @@ export function ReviewForm({
 	 * @param origin 起動起点（`"mount"` = マウント時 effect / `"retry"` = 再試行ボタン）
 	 * @param generation 起動時点の実行世代（`mediaGenerationRef` の値）。宣言箇所のコメント参照
 	 */
-	const runMediaSelection = useCallback(async (origin: "mount" | "retry", generation: number) => {
-		/** #1127 この起動が属する世代がもう有効でない（= 張り替え済み / アンマウント済み）か */
-		const isStale = () => generation !== mediaGenerationRef.current;
+	const runMediaSelection = useCallback(
+		async (origin: "mount" | "retry", generation: number, source: "library" | "camera" = "library") => {
+			/** #1127 この起動が属する世代がもう有効でない（= 張り替え済み / アンマウント済み）か */
+			const isStale = () => generation !== mediaGenerationRef.current;
 
-		// #1127 native 側（Android の isPickerOpen）に弾かれる二重起動を JS 側で先に防ぐ。
-		// 宣言箇所のコメント参照。ここより後にピッカー起動処理を書くこと
-		if (isSelectingMediaRef.current) {
-			// #1127 弾いた起動こそが「二重起動が起きた」という一番知りたい事実なので、
-			// attempt を消費しない専用イベントとして残す（start/finished の対を崩さないため）
-			logFrontendEventRef.current({
-				event_name: "review_media_selection_skipped",
-				error_level: "warn",
-				// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
-				payload: { origin },
-			});
-			return;
-		}
-		isSelectingMediaRef.current = true;
-
-		const attempt = (mediaSelectionAttemptRef.current += 1);
-		logFrontendEventRef.current({
-			event_name: "review_media_selection_start",
-			// #1127 同一マウント内の 2 回目以降は本来起きない起動なので、後追いできるよう warn で残す
-			error_level: attempt > 1 ? "warn" : "log",
-			// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
-			payload: { attempt, origin },
-		});
-
-		/** #1127 診断ログの終端。結果を破棄したかどうかまで含めて 1 イベントで見えるようにする */
-		const logFinished = (outcome: { success: boolean; error?: string; discarded: boolean }) => {
-			logFrontendEventRef.current({
-				event_name: "review_media_selection_finished",
-				error_level: outcome.discarded || attempt > 1 ? "warn" : "log",
-				payload: { attempt, origin, ...outcome },
-			});
-		};
-
-		/**
-		 * #1127 結果を破棄する経路。旧実装はここで黙って return しており、
-		 * 破棄されたこと自体が観測できなかったのでログだけは必ず残す。
-		 *
-		 * 世代が古い＝「アンマウント済み」か「新しい effect が mediaState の所有権を持っている」の
-		 * どちらかなので、**ここから setMediaState してはいけない**（どちらの場合も上書きが誤り）。
-		 */
-		const discard = (outcome: { success: boolean; error?: string }) => {
-			logFinished({ ...outcome, discarded: true });
-		};
-
-		try {
-			const result = await selectMedia(["images", "videos"], { shouldGenerateThumbnail: true });
-
-			// Guard against setState on unmounted / superseded component
-			if (isStale()) {
-				discard({ success: result.success, error: result.error });
+			// #1127 native 側（Android の isPickerOpen）に弾かれる二重起動を JS 側で先に防ぐ。
+			// 宣言箇所のコメント参照。ここより後にピッカー起動処理を書くこと
+			if (isSelectingMediaRef.current) {
+				// #1127 弾いた起動こそが「二重起動が起きた」という一番知りたい事実なので、
+				// attempt を消費しない専用イベントとして残す（start/finished の対を崩さないため）
+				logFrontendEventRef.current({
+					event_name: "review_media_selection_skipped",
+					error_level: "warn",
+					// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
+					payload: { origin },
+				});
 				return;
 			}
+			isSelectingMediaRef.current = true;
 
-			if (!result.success || result.media === undefined) {
-				// Handle cancellation - close modal automatically
-				if (result.error === "cancelled") {
-					logFinished({ success: false, error: result.error, discarded: false });
-					onCancelRef.current();
+			const attempt = (mediaSelectionAttemptRef.current += 1);
+			logFrontendEventRef.current({
+				event_name: "review_media_selection_start",
+				// #1127 同一マウント内の 2 回目以降は本来起きない起動なので、後追いできるよう warn で残す
+				error_level: attempt > 1 ? "warn" : "log",
+				// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
+				payload: { attempt, origin },
+			});
+
+			/** #1127 診断ログの終端。結果を破棄したかどうかまで含めて 1 イベントで見えるようにする */
+			const logFinished = (outcome: { success: boolean; error?: string; discarded: boolean }) => {
+				logFrontendEventRef.current({
+					event_name: "review_media_selection_finished",
+					error_level: outcome.discarded || attempt > 1 ? "warn" : "log",
+					payload: { attempt, origin, ...outcome },
+				});
+			};
+
+			/**
+			 * #1127 結果を破棄する経路。旧実装はここで黙って return しており、
+			 * 破棄されたこと自体が観測できなかったのでログだけは必ず残す。
+			 *
+			 * 世代が古い＝「アンマウント済み」か「新しい effect が mediaState の所有権を持っている」の
+			 * どちらかなので、**ここから setMediaState してはいけない**（どちらの場合も上書きが誤り）。
+			 */
+			const discard = (outcome: { success: boolean; error?: string }) => {
+				logFinished({ ...outcome, discarded: true });
+			};
+
+			try {
+				// ⚠️ カメラ起動は **写真のみ**。動画撮影はマイクを掴むが、現行ビルドの Info.plist に
+				// NSMicrophoneUsageDescription が無く、iOS はその場でクラッシュする。
+				// 権限文言の追加はネイティブビルドが要る（= OTA で届かない）ので、
+				// ビルドを流す判断が出るまで動画はライブラリ選択のみとする（#1375 4 巡目）
+				const result = await selectMedia(source === "camera" ? ["images"] : ["images", "videos"], {
+					shouldGenerateThumbnail: true,
+					source,
+				});
+
+				// Guard against setState on unmounted / superseded component
+				if (isStale()) {
+					discard({ success: result.success, error: result.error });
 					return;
 				}
 
-				// Handle other errors
-				let errorMessage = i18n.t("Map.media.mediaSelectionError");
-				switch (result.error) {
-					case "permission_denied":
-						errorMessage = i18n.t("Map.media.permissionDenied");
-						break;
-					case "video_too_long":
-						errorMessage = i18n.t("Map.media.videoTooLong");
-						break;
-					case "thumbnail_failed":
-						errorMessage = i18n.t("Map.media.thumbnailFailed");
-						break;
-					// #1425 HEIC / HEIF はサーバがデコードできないため、選択時点で断る
-					case "unsupported_image_format":
-						errorMessage = i18n.t("Map.media.unsupportedImageFormat");
-						break;
+				if (!result.success || result.media === undefined) {
+					// Handle cancellation - close modal automatically
+					if (result.error === "cancelled") {
+						logFinished({ success: false, error: result.error, discarded: false });
+						/**
+						 * #1398 B2 【設計】写真なしを許可している画面では、キャンセルで画面を閉じない。
+						 *
+						 * `allowNoMedia` が true のとき、ピッカーのキャンセルは「写真なしで記録する」という
+						 * 意思表示とみなしてフォームに留まる（設計 §4-1）。退出手段は `ScreenHeader` の
+						 * 戻るボタンで従来どおり確保されている。
+						 * false（既定・`review-from-media` を含む）のときは**従来どおり** `onCancel()` で閉じる。
+						 * ここは `runMediaSelection` 内の唯一のキャンセル分岐なので、分岐はこの 1 箇所で閉じる。
+						 */
+						if (allowNoMediaRef.current) {
+							setMediaState({ status: "none" });
+							return;
+						}
+						onCancelRef.current();
+						return;
+					}
+
+					// Handle other errors
+					let errorMessage = i18n.t("Map.media.mediaSelectionError");
+					switch (result.error) {
+						case "permission_denied":
+							errorMessage = i18n.t("Map.media.permissionDenied");
+							break;
+						case "video_too_long":
+							errorMessage = i18n.t("Map.media.videoTooLong");
+							break;
+						case "thumbnail_failed":
+							errorMessage = i18n.t("Map.media.thumbnailFailed");
+							break;
+						// #1425 HEIC / HEIF はサーバがデコードできないため、選択時点で断る
+						case "unsupported_image_format":
+							errorMessage = i18n.t("Map.media.unsupportedImageFormat");
+							break;
+					}
+
+					setMediaState({
+						status: "error",
+						error: errorMessage,
+						// #1375 実機確認（3 巡目）: 権限拒否のときだけ「設定を開く」ボタンを出す。
+						// 「設定から許可してください」と文字で言うだけだと、設定アプリの中から
+						// このアプリを探させることになる（Linking.openSettings で 1 タップにする）
+						isPermissionError: result.error === "permission_denied",
+					});
+					logFinished({ success: false, error: result.error, discarded: false });
+					return;
 				}
 
-				setMediaState({ status: "error", error: errorMessage });
-				logFinished({ success: false, error: result.error, discarded: false });
-				return;
+				// Success - set media and show form
+				setMediaState({ status: "success", media: result.media });
+				setHasDecidedMedia(true);
+				lightImpactRef.current(); // Haptic feedback on success
+				logFinished({ success: true, discarded: false });
+			} catch (error) {
+				if (isStale()) {
+					discard({ success: false, error: "exception" });
+					return;
+				}
+				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
+				logFinished({ success: false, error: "exception", discarded: false });
+			} finally {
+				isSelectingMediaRef.current = false;
 			}
-
-			// Success - set media and show form
-			setMediaState({ status: "success", media: result.media });
-			lightImpactRef.current(); // Haptic feedback on success
-			logFinished({ success: true, discarded: false });
-		} catch (error) {
-			if (isStale()) {
-				discard({ success: false, error: "exception" });
-				return;
-			}
-			setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
-			logFinished({ success: false, error: "exception", discarded: false });
-		} finally {
-			isSelectingMediaRef.current = false;
-		}
-	}, []);
+		},
+		[],
+	);
 
 	/**
 	 * #1127 【修正】プレビュー専用モードの「中身」だけを取り出した依存キー。
@@ -375,12 +531,14 @@ export function ReviewForm({
 	 * **`handleSetMediaState` が実際に読むフィールド**（id / media_type / mediaUrl /
 	 * thumbnailImageUrl）を突き合わせる。ここに項目を足したら本キーにも足すこと。
 	 */
-	const prefilledMediaKey = prefilledMedia
+	const prefilledMediaKey = effectivePrefilledMedia
 		? JSON.stringify([
-				prefilledMedia.id,
-				prefilledMedia.media_type,
-				prefilledMedia.mediaUrl,
-				prefilledMedia.thumbnailImageUrl,
+				effectivePrefilledMedia.id,
+				effectivePrefilledMedia.media_type,
+				// #1629 外部埋め込みかどうかで分岐するので、キーにも含める
+				effectivePrefilledMedia.render_type,
+				effectivePrefilledMedia.mediaUrl,
+				effectivePrefilledMedia.thumbnailImageUrl,
 			])
 		: null;
 
@@ -396,6 +554,55 @@ export function ReviewForm({
 			// #1127 identity ではなく内容で張り替えるため、オブジェクト本体は ref 経由で読む
 			const media = prefilledMediaRef.current;
 			if (!media) return;
+
+			/*
+			#1629 【修正】**取り込んだ Instagram の投稿から «レビュー» を押すと
+			「メディアを読み込み中…」から永久に進まなかった。**
+
+			`render_type='external_embed'` の行は自ストレージに実体を持たないので
+			`mediaUrl` は **常に null** である。ところが下の #511 の早期 return は
+			「加工中だから、後でもう一度 effect が走れば値が来る」ことを前提にしており、
+			`mediaState` を `loading` のまま放置して抜けていた。外部埋め込みでは
+			その «後で» が永久に来ないため、スピナーが回り続ける。
+
+			早期 return してよいのは «後から値が来る» 場合だけである。ここで 2 つを分ける。
+			- 外部埋め込み … 自前のメディアは最初から無い。サムネイルがあればそれをプレビューに使い、
+			  無ければ «写真なし»（none）として画面を使える状態にする
+			- それ以外（stored） … 従来どおり早期 return（加工が終われば effect が張り替わる）
+
+			⚠️ ここを «mediaUrl が無ければ none» と一括りにしないこと。stored の加工中を
+			   none にすると、出来上がった動画を差し置いて «写真なし» で記録されてしまう。
+			*/
+			if (media.render_type === "external_embed") {
+				const externalThumbnail = media.thumbnailImageUrl ?? undefined;
+				if (!externalThumbnail) {
+					// サムネイルすら取れない provider。記録自体はできるので «写真なし» で進ませる
+					if (isStale()) return;
+					setMediaState({ status: "none" });
+					return;
+				}
+				setMediaState({ status: "loading" });
+				try {
+					await Image.prefetch(externalThumbnail);
+				} catch {
+					// 外部 CDN の署名切れ等。プレビューが出せないだけで記録は続けられる
+					if (isStale()) return;
+					setMediaState({ status: "none" });
+					return;
+				}
+				if (isStale()) return;
+				setMediaState({
+					status: "success",
+					media: {
+						type: "image",
+						uri: externalThumbnail,
+						mimeType: "image",
+						thumbnailUri: externalThumbnail,
+					},
+				});
+				return;
+			}
+
 			// #511 【設計】mediaUrl が null の場合（処理中）は早期 return
 			const mediaUrl = media.mediaUrl;
 			if (!mediaUrl) return;
@@ -404,7 +611,7 @@ export function ReviewForm({
 					setMediaState({ status: "loading" });
 					await Image.prefetch(mediaUrl);
 				}
-				const thumbnailUrl = media.thumbnailImageUrl;
+				const thumbnailUrl = media.thumbnailImageUrl ?? undefined;
 				thumbnailUrl && (await Image.prefetch(thumbnailUrl));
 				// #1127 prefetch 中に張り替え / アンマウントされていたら書き戻さない
 				if (isStale()) return;
@@ -428,6 +635,12 @@ export function ReviewForm({
 		// #400 【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
 		if (prefilledMediaKey !== null) {
 			handleSetMediaState();
+		} else if (mediaPickerModeRef.current === "manual") {
+			// #1375（5 巡目）manual では OS のピッカーを開かない。
+			// «写真なし» の状態から始めて、画面の中のボタンで人が選ぶ。
+			// ⚠️ `allowNoMedia` が false のままここへ来ると «写真なしでは投稿できないのに
+			// 写真なしで始まる» という詰みになるので、manual は allowNoMedia と対で使うこと
+			setMediaState({ status: "none" });
 		} else {
 			// 通常のメディア選択フロー
 			runMediaSelection("mount", generation);
@@ -443,7 +656,20 @@ export function ReviewForm({
 		// - runMediaSelection: useCallback([]) で参照が安定しているので実質不変
 		// prefilledMedia 本体 / onCancel / lightImpact / logFrontendEvent は ref 経由で読むため、
 		// 親の再レンダーだけでは effect が張り替わらない
+		// mediaPickerMode は ref 経由（親の再レンダーで effect を張り替えない。#1127 と同じ作法）
 	}, [prefilledMediaKey, runMediaSelection]);
+
+	/**
+	 * #1375（5 巡目）写真なしで記録する。
+	 *
+	 * `allowNoMedia` の画面でだけ出す。`{ status: "none" }` は «写真なしで記録する» 状態で、
+	 * ここから «写真あり» へはいつでも戻れる（placeholder は none のときに出ている）。
+	 */
+	const handleSkipPhoto = useCallback(() => {
+		setHasDecidedMedia(true);
+		lightImpact();
+		setMediaState({ status: "none" });
+	}, [lightImpact]);
 
 	// Retry media selection
 	const handleRetry = useCallback(() => {
@@ -456,6 +682,12 @@ export function ReviewForm({
 		// 再試行は「いま有効な世代」に属するので現在値をそのまま渡す。
 		// アンマウント時は cleanup が世代を進めるため、遅れて返ってきた結果は書き戻されない
 		runMediaSelection("retry", mediaGenerationRef.current);
+	}, [runMediaSelection]);
+
+	// #1375 4 巡目: 「その場で撮る」導線。ガードの作法は handleRetry と同一に保つ
+	const handleShootWithCamera = useCallback(() => {
+		if (!isSelectingMediaRef.current) setMediaState({ status: "loading" });
+		runMediaSelection("retry", mediaGenerationRef.current, "camera");
 	}, [runMediaSelection]);
 
 	// Animated height for InitialMediaPreview
@@ -499,7 +731,7 @@ export function ReviewForm({
 		setDishCategoryError(null);
 		useDishCategorySelectionStore.getState().clear();
 		router.push({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category",
+			pathname: "/[locale]/restaurant/[restaurantId]/dish-category",
 			params: { locale, restaurantId: restaurant.id },
 		});
 	}, [router, locale, restaurant.id]);
@@ -525,6 +757,25 @@ export function ReviewForm({
 		[createDishCategoryVariant],
 	);
 
+	/*
+	#1375（6 巡目）記録フローの 1 歩目（DishCategoryStep）から来る 2 つの確定口。
+	既存の «別画面へ push して戻り値を受け取る» 経路（下の useEffect）はそのまま残す
+	— 店舗フィードからの記録や、決めた後に押し直したときはそちらを使う。
+	*/
+	const handleSelectDishCategoryInline = useCallback((category: { dishCategoryId: string; label: string }) => {
+		setDishCategoryId(category.dishCategoryId);
+		setDishCategoryName(category.label);
+		setDishCategoryError(null);
+	}, []);
+
+	const handleCreateDishCategoryFromName = useCallback(
+		(name: string) => {
+			setDishCategoryError(null);
+			void applyTypedDishCategory(name);
+		},
+		[applyTypedDishCategory],
+	);
+
 	/**
 	 * #1386 料理カテゴリ選択画面の «戻り値» を受け取る。
 	 *
@@ -546,7 +797,9 @@ export function ReviewForm({
 	}, [dishCategoryResult, applyTypedDishCategory]);
 
 	const handleSubmit = useCallback(async () => {
-		if (!isValid || isProcessing || mediaState.status !== "success") return;
+		// #1398 B4 写真なし（status: "none"）も投稿できる。`isValid`（価格>0 / コメント / ★>0 /
+		// カテゴリ確定）は写真の有無に関係なくそのまま必須なので、ここは条件を足すだけに留める
+		if (!isValid || isProcessing || (mediaState.status !== "success" && mediaState.status !== "none")) return;
 
 		// #1090 多重投稿の判定は ref で行う（useState の isProcessing はレースが残る。
 		// 宣言箇所のコメント参照）。ここより後に投稿処理を書くこと
@@ -561,16 +814,44 @@ export function ReviewForm({
 
 		try {
 			// #400 【設計】メディアなしモード（prefilledMedia指定時）では、新規メディアアップロード処理をスキップする
-			let dish_media: DishMediaEntry["dish_media"];
-			let dish: DishMediaEntry["dish"];
-			if (!prefilledMedia) {
+			/**
+			 * #1398 B4 写真なし（`status: "none"`）のときは最後まで null のまま。
+			 * この 2 つが null であることが「ストアを触ってはいけない」の唯一の判定材料になる（R2）。
+			 */
+			let dish_media: DishMediaEntry["dish_media"] | null = null;
+			let dish: DishMediaEntry["dish"] | null = null;
+			/** レビューを書く対象の dish。写真ありは `dish_media.dish_id`、写真なしは get-or-create の結果 */
+			let dishId: string;
+			/**
+			 * #1560 新規写真投稿では `POST /v1/dish-media` が **同じトランザクションで**
+			 * 作ったレビューを返す。その場合 `POST /v1/dish-reviews` は投げない。
+			 * null のままなら従来どおり単独で投げる（写真なし / 他人のメディアへの追記）。
+			 */
+			let createdDishReviewFromMedia: CreateDishMediaResponse["dishReview"] | null = null;
+			if (mediaState.status === "none") {
+				/**
+				 * #1398 (c-2) 写真なしの記録。
+				 *
+				 * `POST /v1/dishes`（get-or-create）→ `POST /v1/dish-reviews` の **2 本だけ**。
+				 * アップロードと `POST /v1/dish-media` は丸ごと飛ばす。dish が無いとレビューが
+				 * 書けないので `v1/dishes` だけは写真ありと同じく必要である。
+				 */
+				const createDishResponse = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
+					method: "POST",
+					requestPayload: {
+						restaurantId: restaurant.id,
+						dishCategoryId: dishCategoryId,
+					},
+				});
+				dishId = createDishResponse.id;
+			} else if (!effectivePrefilledMedia) {
 				if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
 					logFrontendEvent({
 						event_name: "video_duration_missing",
 						error_level: "error",
 						payload: { media: mediaState.media },
 					});
-					throw new Error(i18n.t("errors.videoProcessingFailed"));
+					throw new Error(i18n.t("Common.errors.videoProcessingFailed"));
 				}
 
 				const createDishResponse = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
@@ -584,6 +865,10 @@ export function ReviewForm({
 					...createDishResponse,
 					reviewCount: 1,
 					averageRating: rating,
+					// #1375 投稿直後の楽観更新。作成 API はカテゴリの正式表記を返さないので null。
+					// 表示は dish.name へ落ちる（`dishCategoryLabel.ts`）ので壊れない。
+					// 次に一覧を引き直したときサーバの値で埋まる
+					categoryLabels: null,
 				};
 
 				// dish-media.media_path をアップロード
@@ -605,6 +890,19 @@ export function ReviewForm({
 				 * Video のアップロードが完了してからでないと、
 				 * transcoer API が失敗する可能性があるため、直列で実行する
 				 */
+				/*
+				#1560 【設計】レビューを **この 1 本に同梱する**。
+
+				以前は `POST /v1/dish-media` の直後に `POST /v1/dish-reviews` を投げていたが、
+				1 本目が成功して 2 本目が落ちる（通信断・5xx）と **写真だけが残った**。
+				`GET /v1/users/me/dishes` の候補集合は want（reactions）と eaten（dish_reviews）の
+				2 系統しか無く dish_media を起点にした系統が無いため、その行は一覧にもピンにも
+				出ず、本人が到達する導線が消える。#1513 の「投稿を削除」でも消せない（#1560）。
+
+				サーバーは media と review を同じトランザクションで書くので、部分成功が
+				原理的に起きなくなる。アップロードは依然この前に完了させること
+				（トランスコーダがアップロード済みオブジェクトを読むため）。
+				*/
 				const createDishMediaResponse = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>(
 					"v1/dish-media",
 					{
@@ -615,9 +913,17 @@ export function ReviewForm({
 							thumbnailPath,
 							mediaType: mediaState.media.type,
 							videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
+							review: {
+								comment: reviewText,
+								languageCode: locale,
+								priceCents: parsedPrice,
+								currencyCode: currencyCode ?? undefined,
+								rating,
+							},
 						},
 					},
 				);
+				createdDishReviewFromMedia = createDishMediaResponse.dishReview ?? null;
 				dish_media = {
 					...createDishMediaResponse,
 					isMine: true,
@@ -625,51 +931,79 @@ export function ReviewForm({
 					isLiked: false,
 					likeCount: 0,
 					mediaUrl: mediaState.media.uri,
-					thumbnailImageUrl: mediaState.media.type === "video" ? mediaState.media.thumbnailUri! : mediaState.media.uri,
+					thumbnailImageUrl: mediaState.media.type === "video"
+						? // #1375 サムネイル生成に失敗すると `!` で undefined がストアへ入り、投稿直後だけ真っ黒なセルになる
+							(mediaState.media.thumbnailUri ?? mediaState.media.uri)
+						: mediaState.media.uri,
 					// #511 ローカルの uri をセットして読み込むため、処理済み状態にする
 					media_processing_status: "completed",
 					thumbnail_processing_status: "completed",
 				};
+				dishId = dish_media.dish_id;
 			} else {
-				// prefilleMedia が指定されている場合は、それを利用
-				dish_media = prefilledMedia;
-				dish = prefilledMedia.dish;
+				// prefilledMedia が指定されている場合は、それを利用
+				dish_media = effectivePrefilledMedia;
+				dish = effectivePrefilledMedia.dish;
+				dishId = dish_media.dish_id;
 			}
 
-			const createdDishReview = await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
+			// #1560 メディアと同時に作れていれば 2 本目は投げない（部分成功の窓を作らない）
+			const createdDishReview =
+				createdDishReviewFromMedia ??
+				(await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
 				method: "POST",
 				requestPayload: {
-					dishId: dish_media.dish_id,
+					dishId,
 					comment: reviewText,
 					languageCode: locale,
 					priceCents: parsedPrice,
 					currencyCode: currencyCode ?? undefined,
 					rating,
-					createdDishMediaId: dish_media.id,
-				},
-			});
+					// #1398 B4 写真なしのときは `createdDishMediaId` を**送らない**。
+					// DTO 上すでに任意で、API は未指定なら `created_dish_media_id` に NULL を書く
+					...(dish_media ? { createdDishMediaId: dish_media.id } : {}),
+					},
+				}));
 
+			/**
+			 * #1398 R2 【重要】写真なし（`dish_media === null`）ではストアを 1 つも触らない。
+			 *
+			 * `useDishMediaEntriesStore` のエントリは `dish_media` が在ることを前提にしており、
+			 * 写真なしの記録で `upsertDishMediaEntries` / `updateMediaIdsByKey` を呼ぶと
+			 * **不正なエントリが入って全画面 Feed が壊れる**。`updateReviewIdsByKey` も、実体の無い
+			 * レビュー id を一覧へ積むだけなので同じ理由で呼ばない。
+			 * 写真なしの記録は `/post/[id]` へも遷移しない（呼び出し元が `dishMedia === null` で判断する）ので、
+			 * ストアに入っていないことによる不都合は無い。
+			 */
 			// #460 【設計】レビュー投稿後の即時反映：API から返却された DishReview をストアに反映
-			const { upsertDishMediaEntries, updateReviewIdsByKey, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
-			upsertDishMediaEntries([
-				{
-					restaurant,
-					dish,
-					dish_media,
-					dish_reviews: [
-						{
-							...createdDishReview,
-							// #467 【設計】プロフィールストアから display_name を取得（プロフィール画面を開かなくても利用可能）
-							username: profile?.display_name ?? "me",
-							isLiked: false,
-							likeCount: 0,
-						},
-					],
-				},
-			]);
-			updateReviewIdsByKey("reviews", (prev) => [String(createdDishReview.id), ...prev]);
-			if (!prefilledMedia)
-				updateMediaIdsByKey(mapReviewsKey(restaurant.id), (prev) => [String(dish_media.id), ...prev]);
+			if (dish_media && dish) {
+				// let のままコールバックへ渡すと絞り込みが効かないので const へ受け直す
+				const createdDishMedia = dish_media;
+				const { upsertDishMediaEntries, updateReviewIdsByKey, updateMediaIdsByKey } =
+					useDishMediaEntriesStore.getState();
+				upsertDishMediaEntries([
+					{
+						restaurant,
+						dish,
+						dish_media,
+						dish_reviews: [
+							{
+								...createdDishReview,
+								// #467 【設計】プロフィールストアから display_name を取得（プロフィール画面を開かなくても利用可能）
+								username: profile?.display_name ?? "me",
+								// #1513 いま自分が投稿したレビューなので必ず true。
+								// サーバーから引き直したときも同じ値になる（user_id が一致するため）
+								isMine: true,
+								isLiked: false,
+								likeCount: 0,
+							},
+						],
+					},
+				]);
+				updateReviewIdsByKey("reviews", (prev) => [String(createdDishReview.id), ...prev]);
+				if (!prefilledMedia)
+					updateMediaIdsByKey(mapReviewsKey(restaurant.id), (prev) => [String(createdDishMedia.id), ...prev]);
+			}
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",
@@ -737,9 +1071,22 @@ export function ReviewForm({
 		[router, locale],
 	);
 
+	/**
+	 * #1441 M-1 【レビュー対応】エラーカードの「閉じる」。
+	 *
+	 * `allowNoMedia` のときにここで `onCancel()`（= 画面を閉じる）へ倒すと、★・コメント・価格・
+	 * カテゴリを入力済みでも「写真を追加」の再選択が失敗しただけで入力が丸ごと消える
+	 *（フォーム自体は unmount される）。写真なしはそもそも許可されているモードなので、
+	 * `setMediaState({ status: "none" })` でフォームへ戻せば入力は生き残る。
+	 * `allowNoMedia` でないとき（既定・`review-from-media` を含む）は従来どおり `onCancel()`。
+	 */
 	const handleCancel = useCallback(() => {
+		if (allowNoMedia) {
+			setMediaState({ status: "none" });
+			return;
+		}
 		onCancel();
-	}, [onCancel]);
+	}, [allowNoMedia, onCancel]);
 
 	// Error state
 	if (mediaState.status === "error") {
@@ -752,9 +1099,21 @@ export function ReviewForm({
 						<TouchableOpacity style={styles.secondaryButton} onPress={handleCancel}>
 							<Text style={styles.secondaryButtonText}>{i18n.t("Common.close")}</Text>
 						</TouchableOpacity>
-						<TouchableOpacity style={styles.primaryButton} onPress={handleRetry}>
-							<Text style={styles.primaryButtonText}>{i18n.t("Common.retry")}</Text>
-						</TouchableOpacity>
+						{mediaState.isPermissionError ? (
+							// 権限拒否は「もう一度」しても同じ結果にしかならない。設定へ直行させる
+							<TouchableOpacity
+								testID="review-open-settings"
+								style={styles.primaryButton}
+								onPress={() => {
+									void Linking.openSettings();
+								}}>
+								<Text style={styles.primaryButtonText}>{i18n.t("Map.media.openSettings")}</Text>
+							</TouchableOpacity>
+						) : (
+							<TouchableOpacity style={styles.primaryButton} onPress={handleRetry}>
+								<Text style={styles.primaryButtonText}>{i18n.t("Common.retry")}</Text>
+							</TouchableOpacity>
+						)}
 					</View>
 				</Card>
 			</View>
@@ -768,159 +1127,305 @@ export function ReviewForm({
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
 				contentContainerStyle={styles.scrollContent}>
-				<View style={{ height: mediaHeight, marginTop: 16 }}>
-					{mediaState.status === "loading" ? (
-						<View style={styles.loadingContainer}>
-							<LoadingIndicator size="large" />
-							<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
+				{/* #1375 実機確認（5 巡目）: manual（記録フロー）では **高さを固定しない**。
+				    «写真を撮る / ライブラリ / このお店の写真から選ぶ / スキップ» を積むと
+				    `mediaHeight` に収まらず、上の見出しと下のスキップが切れた（撮って気づいた）。
+				    auto では従来どおり «プレビュー 1 枚» なので固定のままでよい */}
+				{/* 1 歩目: 料理カテゴリー。決まるまで写真も他の入力も出さない（DishCategoryStep のヘッダ参照） */}
+				{needsDishCategoryFirst ? (
+					<View style={styles.dishCategoryStepContainer}>
+						<DishCategoryStep
+							restaurantId={restaurant.id}
+							onSelectExisting={handleSelectDishCategoryInline}
+							onSubmitTyped={handleCreateDishCategoryFromName}
+							testID="review-dish-category-step"
+						/>
+						{dishCategoryError && (
+							<Text style={styles.errorText} accessibilityLiveRegion="polite">
+								{dishCategoryError}
+							</Text>
+						)}
+					</View>
+				) : (
+					<>
+						<View style={showsManualMediaChooser ? { marginTop: 16 } : { height: mediaHeight, marginTop: 16 }}>
+							{mediaState.status === "loading" ? (
+								<View style={styles.loadingContainer}>
+									<LoadingIndicator size="large" />
+									<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
+								</View>
+							) : mediaState.status === "none" ? (
+								/**
+								 * #1398 B3 【設計】写真なしのプレビュー枠。
+								 *
+								 * タップで `handleRetry`（= マウント時と同じ `runMediaSelection`）を起動して
+								 * ピッカーを開き直せる。つまり `none` は行き止まりではなく、いつでも `success` へ戻れる。
+								 * サブラベルは「写真なしが機能欠落ではなく仕様である」ことを示すために置く（設計 §4-1）。
+								 */
+								/**
+								 * #1375 4 巡目: 「ライブラリから選ぶのか、その場で撮るのか」の導線を明示する。
+								 * placeholder 全体タップ = ライブラリ（従来挙動・テスト互換）に加え、
+								 * カメラ起動のボタンを並べる。写真なしでも記録できる旨は従来どおり言う
+								 */
+								/**
+								 * #1375 実機確認（5 巡目）: 並びをオーナー指定の順にした。
+								 * **上に «自分で撮影して追加»（主）→ ライブラリ → 小さくスキップ**。
+								 * 4 巡目までは «写真を追加» の見出しの下に 2 択が並び、スキップに当たる
+								 * «写真なしでも記録できます» はただの説明文で押せなかった。
+								 * 「スキップ」は押せる必要がある（写真なしで記録する、が 1 タップで済むように）。
+								 *
+								 * ⚠️ placeholder 全体タップ = ライブラリ、は従来挙動なので変えない
+								 * （既存テストと実機の指の記憶の両方が乗っている）
+								 */
+								<Pressable
+									testID="review-add-photo-placeholder"
+									style={styles.noMediaPlaceholder}
+									onPress={handleRetry}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("MyDishes.record.noPhotoTitle")}>
+									<ImagePlus size={28} color={colors.textTertiary} style={styles.noMediaIcon} />
+									<Text style={styles.noMediaTitle} numberOfLines={1}>
+										{i18n.t("MyDishes.record.noPhotoTitle")}
+									</Text>
+									<View style={styles.mediaSourceColumn}>
+										<TouchableOpacity
+											testID="review-shoot-with-camera"
+											style={[styles.mediaSourceButton, styles.mediaSourceButtonPrimary]}
+											onPress={handleShootWithCamera}
+											accessibilityRole="button">
+											<Camera size={16} color={colors.ctaLabel} />
+											<Text style={[styles.mediaSourceLabel, styles.mediaSourceLabelPrimary]}>
+												{i18n.t("Map.media.shootWithCamera")}
+											</Text>
+										</TouchableOpacity>
+										<TouchableOpacity
+											testID="review-pick-from-library"
+											style={styles.mediaSourceButton}
+											onPress={handleRetry}
+											accessibilityRole="button">
+											<ImagePlus size={16} color={colors.textSecondaryStrong} />
+											<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.pickFromLibrary")}</Text>
+										</TouchableOpacity>
+									</View>
+									{/* #1375（5 巡目）「その下に既存のディッシュメディアから選べるように」。
+							    親から prefilledMedia が来ている画面（店舗フィードからの記録）では出さない
+							    — そちらは «そのメディアの記録» と決まっているため */}
+									{needsMediaChoiceFirst && (
+										/* #1375（6 巡目）先に決まった料理カテゴリーで絞る。
+								   «その料理の、この店の写真» だけが出る（決まっていなければ店全体） */
+										<ExistingDishMediaPicker
+											restaurantId={restaurant.id}
+											dishCategoryId={dishCategoryId}
+											onSelect={(media) => {
+												setPickedExistingMedia(media);
+												setHasDecidedMedia(true);
+											}}
+										/>
+									)}
+									{/* スキップ。**小さく**（主導線ではないが、押せる必要がある） */}
+									{/* #1375（オーナー指示 7 巡目）写真を «決めたあと» は畳む（入力の邪魔にしない）。
+									    ただし auto モード（ピッカーを開いてキャンセルした経路・#1398 B2）では
+									    «写真なしでも記録できる» ことを示す唯一の手段なので出し続ける */}
+									{allowNoMedia && !(mediaPickerMode === "manual" && hasDecidedMedia) && (
+										<TouchableOpacity
+											testID="review-skip-photo"
+											style={styles.skipPhotoButton}
+											onPress={handleSkipPhoto}
+											accessibilityRole="button"
+											accessibilityLabel={i18n.t("MyDishes.record.skipPhoto")}>
+											<Text style={styles.skipPhotoLabel}>{i18n.t("MyDishes.record.skipPhoto")}</Text>
+										</TouchableOpacity>
+									)}
+								</Pressable>
+							) : (
+								<View style={styles.previewWrap}>
+									<InitialMediaPreview media={mediaState.media} />
+									{/* #1375 実機確認（2 巡目）: 食べたを記録（prefilledMedia モード）でも
+							    自分で撮った写真に差し替えられる入口を出す */}
+									{effectivePrefilledMedia !== undefined && (
+										<TouchableOpacity
+											testID="review-replace-with-my-photo"
+											style={styles.replacePhotoButton}
+											onPress={() => {
+												lightImpact();
+												setUseOwnMedia(true);
+											}}
+											accessibilityRole="button"
+											accessibilityLabel={i18n.t("Map.media.replaceWithMyPhoto")}>
+											{/* メディアプレビューの上に載る半透明暗地のボタンなので、テーマに依らず白で固定する */}
+											<ImagePlus size={14} color={FixedColors.onMedia} />
+											<Text style={styles.replacePhotoLabel}>{i18n.t("Map.media.replaceWithMyPhoto")}</Text>
+										</TouchableOpacity>
+									)}
+								</View>
+							)}
 						</View>
-					) : (
-						<InitialMediaPreview media={mediaState.media} />
-					)}
-				</View>
-				<View style={styles.formContainer}>
-					{/* 
+						{/* #1375（オーナー指示 7 巡目）**写真を決めるまでフォームは出さない。**
+						    お店 → 料理カテゴリー → 写真 → 入力、と 1 歩ずつにする。
+						    最初から «写真の選び方 + コメント + 料理 + 価格 + 星» が同時に出ていると
+						    何をすればよいか読み取れない、というオーナー指摘への対処 */}
+						{!needsMediaChoiceFirst && (
+						<View style={styles.formContainer}>
+							{/* 
 					#644 【設計】レビュー入力フィールド仕様
 					- 既存メディアに対するテキストレビュー追加モード
 					- 短文 placeholder（豚骨スープが...）を使用
 					- 100文字制限を適用
 					- 文字数カウンタを表示
 				*/}
-					<View>
-						<TextInput
-							testID="review-comment-input"
-							style={[styles.textInput, styles.textArea]}
-							placeholderTextColor="#A0A0A0"
-							placeholder={i18n.t("Map.placeholders.enterReviewShort")}
-							value={reviewText}
-							onChangeText={setReviewText}
-							multiline
-							numberOfLines={4}
-							textAlignVertical="top"
-							maxLength={100}
-						/>
-						<Text style={styles.characterCount}>
-							{i18n.t("Review.characterCount", { current: reviewText.length, max: 100 })}
-						</Text>
-					</View>
+							<View>
+								<TextInput
+									testID="review-comment-input"
+									style={[styles.textInput, styles.textArea]}
+									placeholderTextColor={colors.textPlaceholder}
+									placeholder={i18n.t("Map.placeholders.enterReviewShort")}
+									value={reviewText}
+									onChangeText={setReviewText}
+									multiline
+									numberOfLines={4}
+									textAlignVertical="top"
+									maxLength={100}
+								/>
+								<Text style={styles.characterCount}>
+									{i18n.t("Restaurant.characterCount", { current: reviewText.length, max: 100 })}
+								</Text>
+							</View>
 
-					{/* 料理カテゴリ選択 Pressable 行 */}
-					<Pressable
-						testID="review-dish-category-row"
-						style={styles.dishCategorySelectRow}
-						onPress={handleOpenDishCategory}
-						disabled={!!prefilledMedia} // #400 【設計】prefilledMedia が指定されている場合は、料理カテゴリ選択を無効化
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
-						{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
-						<View style={styles.inputRowLabelWithIcon}>
-							<Utensils size={18} color="#6B7280" />
-							<Text style={styles.inputRowLabel}>
-								{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
-							</Text>
-						</View>
-						<View style={styles.dishCategorySelectContent}>
-							{dishCategoryName && (
-								<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
-									{dishCategoryName}
+							{/* 料理カテゴリ選択 Pressable 行 */}
+							<Pressable
+								testID="review-dish-category-row"
+								style={styles.dishCategorySelectRow}
+								onPress={handleOpenDishCategory}
+								// #400 prefilledMedia のときは料理カテゴリ選択を無効化（そのメディアの料理に固定される）。
+								// #1375（5 巡目）既存メディアを «選んだ» ときも同じ（activePrefilledMedia に入る）
+								disabled={!!activePrefilledMedia}
+								accessibilityRole="button"
+								accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
+								{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
+								<View style={styles.inputRowLabelWithIcon}>
+									<Utensils size={18} color={colors.textSecondary} />
+									<Text style={styles.inputRowLabel}>
+										{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
+									</Text>
+								</View>
+								<View style={styles.dishCategorySelectContent}>
+									{dishCategoryName && (
+										<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
+											{dishCategoryName}
+										</Text>
+									)}
+									{!prefilledMedia && <ChevronRight size={20} color={colors.textMuted} />}
+								</View>
+							</Pressable>
+							{dishCategoryError && (
+								<Text style={styles.errorText} accessibilityLiveRegion="polite">
+									{dishCategoryError}
 								</Text>
 							)}
-							{!prefilledMedia && <ChevronRight size={20} color="#666" />}
-						</View>
-					</Pressable>
-					{dishCategoryError && (
-						<Text style={styles.errorText} accessibilityLiveRegion="polite">
-							{dishCategoryError}
-						</Text>
-					)}
 
-					{/* 価格入力 行 */}
-					<View style={styles.priceInputRow}>
-						{/* #644 【UX】価格ラベルにアイコン追加 */}
-						<View style={styles.inputRowLabelWithIcon}>
-							<CircleDollarSign size={18} color="#6B7280" />
-							<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
-						</View>
-						{currencySymbol ? (
-							<View style={styles.priceInputContainer}>
-								<Text style={styles.currencySymbol}>{currencySymbol}</Text>
-								<TextInput
-									testID="review-price-input"
-									style={[styles.textInput, styles.priceInput]}
-									placeholder={"0"}
-									placeholderTextColor="#A0A0A0"
-									value={price}
-									onChangeText={setPrice}
-									keyboardType="numeric"
-								/>
+							{/* 価格入力 行 */}
+							<View style={styles.priceInputRow}>
+								{/* #644 【UX】価格ラベルにアイコン追加 */}
+								<View style={styles.inputRowLabelWithIcon}>
+									<CircleDollarSign size={18} color={colors.textSecondary} />
+									<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
+								</View>
+								{currencySymbol ? (
+									<View style={styles.priceInputContainer}>
+										<Text style={styles.currencySymbol}>{currencySymbol}</Text>
+										<TextInput
+											testID="review-price-input"
+											style={[styles.textInput, styles.priceInput]}
+											placeholder={"0"}
+											placeholderTextColor={colors.textPlaceholder}
+											value={price}
+											onChangeText={setPrice}
+											keyboardType="numeric"
+										/>
+									</View>
+								) : (
+									<TextInput
+										testID="review-price-input"
+										style={[styles.textInput, styles.priceInputSmall]}
+										placeholder={"0"}
+										placeholderTextColor={colors.textPlaceholder}
+										value={price}
+										onChangeText={setPrice}
+										keyboardType="numeric"
+									/>
+								)}
 							</View>
-						) : (
-							<TextInput
-								testID="review-price-input"
-								style={[styles.textInput, styles.priceInputSmall]}
-								placeholder={"0"}
-								placeholderTextColor="#A0A0A0"
-								value={price}
-								onChangeText={setPrice}
-								keyboardType="numeric"
-							/>
-						)}
-					</View>
 
-					{/* 評価入力 行 */}
-					<View style={styles.ratingInputRow}>
-						{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
-						<View style={styles.inputRowLabelWithIcon}>
-							<ThumbsUp size={18} color="#6B7280" />
-							<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
-						</View>
-						{/* 星評価コンポーネント */}
-						<View style={styles.ratingContainer}>
-							<View style={styles.ratingInput}>
-								{[1, 2, 3, 4, 5].map((star) => {
-									// #644 【UX】未選択時の星アイコン外枠を灰色に変更
-									const isActive = star <= rating;
-									return (
-										<TouchableOpacity key={star} testID={`review-star-${star}`} onPress={() => setRating(star)}>
-											<Star
-												size={36}
-												color={isActive ? "#FFD700" : "#D1D5DB"}
-												fill={isActive ? "#FFD700" : "transparent"}
-											/>
-										</TouchableOpacity>
-									);
-								})}
+							{/* 評価入力 行 */}
+							<View style={styles.ratingInputRow}>
+								{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
+								<View style={styles.inputRowLabelWithIcon}>
+									<ThumbsUp size={18} color={colors.textSecondary} />
+									<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
+								</View>
+								{/* 星評価コンポーネント */}
+								<View style={styles.ratingContainer}>
+									<View style={styles.ratingInput}>
+										{[1, 2, 3, 4, 5].map((star) => {
+											// #644 【UX】未選択時の星アイコン外枠を灰色に変更
+											const isActive = star <= rating;
+											return (
+												<TouchableOpacity key={star} testID={`review-star-${star}`} onPress={() => setRating(star)}>
+													<Star
+														size={36}
+														color={isActive ? FixedColors.ratingActive : colors.trackMuted}
+														fill={isActive ? FixedColors.ratingActive : "transparent"}
+													/>
+												</TouchableOpacity>
+											);
+										})}
+									</View>
+									<Text style={styles.ratingText} accessibilityLiveRegion="polite">
+										{rating}
+									</Text>
+								</View>
 							</View>
-							<Text style={styles.ratingText} accessibilityLiveRegion="polite">
-								{rating}
+
+							{/* 同意メッセージ */}
+							<Text style={styles.consentText}>
+								{i18n.t("Map.consent_review_prefix")}
+								<Text
+									testID="review-consent-guidelines-link"
+									style={styles.consentLink}
+									onPress={() => handleOpenLegalDocument("guidelines")}>
+									{i18n.t("Map.consent_review_guidelines")}
+								</Text>
+								{i18n.t("Map.consent_review_and")}
+								<Text
+									testID="review-consent-copyright-link"
+									style={styles.consentLink}
+									onPress={() => handleOpenLegalDocument("copyright")}>
+									{i18n.t("Map.consent_review_copyright")}
+								</Text>
+								{i18n.t("Map.consent_review_suffix")}
+							</Text>
+
+							{/*
+						#1398 R4 【設計】記録は「非公開の食事ログ」に見えやすいが、実際は公開レビューであり
+						店舗の平均評価にも載る（#1375 追補 決定1）。誤解を招く UI のまま出さないため、同意文言の
+						直下に 1 行足す。
+
+						#1441 N-2 【レビュー対応】以前は `allowNoMedia` のときだけ描画していたが、
+						リーダー判断の R4 は描画画面を限定していない。`review-from-media` 経路（prefilledMedia）
+						も同じく公開レビューになるので常時表示へ変更した。
+					*/}
+							<Text testID="review-public-notice" style={styles.publicNoticeText}>
+								{i18n.t("MyDishes.record.publicReviewNotice")}
 							</Text>
 						</View>
-					</View>
-
-					{/* 同意メッセージ */}
-					<Text style={styles.consentText}>
-						{i18n.t("Map.consent_review_prefix")}
-						<Text
-							testID="review-consent-guidelines-link"
-							style={styles.consentLink}
-							onPress={() => handleOpenLegalDocument("guidelines")}>
-							{i18n.t("Map.consent_review_guidelines")}
-						</Text>
-						{i18n.t("Map.consent_review_and")}
-						<Text
-							testID="review-consent-copyright-link"
-							style={styles.consentLink}
-							onPress={() => handleOpenLegalDocument("copyright")}>
-							{i18n.t("Map.consent_review_copyright")}
-						</Text>
-						{i18n.t("Map.consent_review_suffix")}
-					</Text>
-				</View>
+						)}
+					</>
+				)}
 			</ScrollView>
 
 			{/* 投稿ボタン */}
-			{!isKeyboardVisible && (
-				<View style={styles.buttonContainer}>
+			{!isKeyboardVisible && !needsMediaChoiceFirst && !needsDishCategoryFirst && (
+				<View style={[styles.buttonContainer, { paddingBottom: 12 + insets.bottom }]}>
 					<PrimaryButton
 						testID="review-submit-button"
 						label={i18n.t("Common.postReview")}
@@ -930,6 +1435,9 @@ export function ReviewForm({
 						// 表示と操作可否がズレない。進捗率は取得できないので不定形スピナーで十分とする
 						loading={isSubmitting}
 						disabled={isProcessing || !isValid}
+						// #1375（5 巡目・デザインレビュー #4）無効時は透過ではなく灰へ。
+						// 赤に透過を掛けると白文字が読めなくなる（参照実装の検索画面と同じ手）
+						colors={isProcessing || !isValid ? [colors.ctaBackgroundDisabled, colors.ctaBackgroundDisabled] : undefined}
 						shadowColor="transparent"
 						style={{ marginHorizontal: 16 }}
 					/>
@@ -939,222 +1447,349 @@ export function ReviewForm({
 	);
 }
 
-const styles = StyleSheet.create({
-	centeredContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingHorizontal: 24,
-		minHeight: 400,
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	loadingText: {
-		marginTop: 16,
-		fontSize: 16,
-		color: "#666",
-	},
-	errorCard: {
-		padding: 24,
-		width: "100%",
-	},
-	errorTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 12,
-		textAlign: "center",
-	},
-	errorMessage: {
-		fontSize: 16,
-		color: "#6B7280",
-		lineHeight: 24,
-		marginBottom: 24,
-		textAlign: "center",
-	},
-	errorButtons: {
-		flexDirection: "row",
-		gap: 12,
-	},
-	primaryButton: {
-		flex: 1,
-		backgroundColor: "#F05537",
-		paddingVertical: 14,
-		borderRadius: 12,
-		alignItems: "center",
-	},
-	primaryButtonText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#FFFFFF",
-	},
-	secondaryButton: {
-		flex: 1,
-		backgroundColor: "#F3F4F6",
-		paddingVertical: 14,
-		borderRadius: 12,
-		alignItems: "center",
-	},
-	secondaryButtonText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#6B7280",
-	},
-	inputLabel: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#000",
-		marginBottom: 8,
-	},
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	// #644 【UX】KeyboardAvoidingView でキーボード表示時の位置調整
-	keyboardAvoidingView: {
-		flex: 1,
-	},
-	scrollContent: {
-		paddingBottom: 64,
-	},
-	formContainer: {
-		paddingHorizontal: 16,
-		paddingTop: 16,
-		paddingBottom: 24,
-	},
-	textInput: {
-		borderRadius: 8,
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		fontSize: 16,
-		color: "#000",
-	},
-	textArea: {
-		height: 100,
-		textAlignVertical: "top",
-		borderWidth: 1,
-		borderColor: "#D1D5DB",
-		marginBottom: 8,
-	},
-	dishCategorySelectRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		height: 48,
-		marginTop: 16,
-	},
-	dishCategorySelectContent: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		marginRight: 12,
-		flexShrink: 1,
-	},
-	dishCategoryValueText: {
-		fontSize: 15,
-		color: "#000",
-		textAlign: "right",
-		maxWidth: 160,
-	},
-	priceInputRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		marginTop: 16,
-		height: 48,
-	},
-	priceInputContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderRadius: 8,
-		minWidth: 120,
-		marginRight: 12,
-	},
-	inputRowLabel: {
-		fontSize: 15,
-		color: "#000",
-		flex: 1,
-	},
-	// #644 【UX】ラベルにアイコンを追加するための横並びコンテナ
-	inputRowLabelWithIcon: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-		flex: 1,
-	},
-	ratingInputRow: {
-		flexDirection: "column",
-		marginTop: 16,
-		marginBottom: 24,
-	},
-	ratingContainer: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		borderBottomWidth: 1,
-		borderBottomColor: "#D1D5DB",
-		paddingBottom: 0,
-	},
-	ratingInput: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginVertical: 8,
-		gap: 16,
-	},
-	ratingText: {
-		fontSize: 32,
-		color: "#000",
-		textAlign: "right",
-		marginRight: 12,
-	},
-	currencySymbol: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#666",
-		minWidth: 24,
-		paddingLeft: 8,
-	},
-	priceInput: {
-		flex: 1,
-		paddingLeft: 4,
-		paddingRight: 12,
-		width: 80,
-		textAlign: "right",
-	},
-	priceInputSmall: {
-		minWidth: 120,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		textAlign: "right",
-	},
-	errorText: {
-		color: "#DC2626",
-		fontSize: 12,
-		paddingHorizontal: 4,
-	},
-	consentText: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "left",
-		lineHeight: 18,
-	},
-	consentLink: {
-		color: "#2563EB",
-		textDecorationLine: "underline",
-	},
-	characterCount: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "right",
-		marginTop: 4,
-	},
-	buttonContainer: {
-		paddingVertical: 12,
-		borderTopWidth: 1,
-		borderTopColor: "#C9C9C9",
-		backgroundColor: "#FFFFFF",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		centeredContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			paddingHorizontal: 24,
+			minHeight: 400,
+		},
+		loadingContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		loadingText: {
+			marginTop: 16,
+			fontSize: 16,
+			color: c.textMuted,
+		},
+		errorCard: {
+			padding: 24,
+			width: "100%",
+		},
+		errorTitle: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginBottom: 12,
+			textAlign: "center",
+		},
+		errorMessage: {
+			fontSize: 16,
+			color: c.textSecondary,
+			lineHeight: 24,
+			marginBottom: 24,
+			textAlign: "center",
+		},
+		errorButtons: {
+			flexDirection: "row",
+			gap: 12,
+		},
+		primaryButton: {
+			flex: 1,
+			backgroundColor: c.brand,
+			paddingVertical: 14,
+			borderRadius: 12,
+			alignItems: "center",
+		},
+		primaryButtonText: {
+			fontSize: 16,
+			fontWeight: "600",
+			// ブランド色（ライト / ダークで同値）で塗った地の上の文字なので固定でよい
+			color: FixedColors.onFilled,
+		},
+		secondaryButton: {
+			flex: 1,
+			backgroundColor: c.surfaceSubtle,
+			paddingVertical: 14,
+			borderRadius: 12,
+			alignItems: "center",
+		},
+		secondaryButtonText: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textSecondary,
+		},
+		inputLabel: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textStrong,
+			marginBottom: 8,
+		},
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		// #644 【UX】KeyboardAvoidingView でキーボード表示時の位置調整
+		keyboardAvoidingView: {
+			flex: 1,
+		},
+		scrollContent: {
+			paddingBottom: 64,
+		},
+		formContainer: {
+			paddingHorizontal: 16,
+			paddingTop: 16,
+			paddingBottom: 24,
+		},
+		textInput: {
+			borderRadius: 8,
+			paddingHorizontal: 12,
+			paddingVertical: 12,
+			fontSize: 16,
+			color: c.textStrong,
+		},
+		textArea: {
+			height: 100,
+			textAlignVertical: "top",
+			borderWidth: 1,
+			borderColor: c.trackMuted,
+			marginBottom: 8,
+		},
+		dishCategorySelectRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			height: 48,
+			marginTop: 16,
+		},
+		dishCategorySelectContent: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+			marginRight: 12,
+			flexShrink: 1,
+		},
+		dishCategoryValueText: {
+			fontSize: 15,
+			color: c.textStrong,
+			textAlign: "right",
+			maxWidth: 160,
+		},
+		priceInputRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			marginTop: 16,
+			height: 48,
+		},
+		// #1375（5 巡目・デザインレビュー #15）すぐ上のレビュー欄は枠があるのに、
+		// ここだけ枠が無く «押せる物» に見えなかった
+		priceInputContainer: {
+			borderWidth: 1,
+			borderColor: c.trackMuted,
+			flexDirection: "row",
+			alignItems: "center",
+			borderRadius: 8,
+			minWidth: 120,
+			marginRight: 12,
+		},
+		inputRowLabel: {
+			fontSize: 15,
+			color: c.textStrong,
+			flex: 1,
+		},
+		// #644 【UX】ラベルにアイコンを追加するための横並びコンテナ
+		inputRowLabelWithIcon: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			flex: 1,
+		},
+		ratingInputRow: {
+			flexDirection: "column",
+			marginTop: 16,
+			marginBottom: 24,
+		},
+		ratingContainer: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			alignItems: "center",
+			borderBottomWidth: 1,
+			borderBottomColor: c.trackMuted,
+			paddingBottom: 0,
+		},
+		ratingInput: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginVertical: 8,
+			gap: 16,
+		},
+		ratingText: {
+			fontSize: 32,
+			color: c.textStrong,
+			textAlign: "right",
+			marginRight: 12,
+		},
+		currencySymbol: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textMuted,
+			minWidth: 24,
+			paddingLeft: 8,
+		},
+		priceInput: {
+			flex: 1,
+			paddingLeft: 4,
+			paddingRight: 12,
+			width: 80,
+			textAlign: "right",
+		},
+		priceInputSmall: {
+			minWidth: 120,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			textAlign: "right",
+		},
+		errorText: {
+			color: c.danger,
+			fontSize: 12,
+			paddingHorizontal: 4,
+		},
+		consentText: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "left",
+			lineHeight: 18,
+		},
+		consentLink: {
+			// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめ、下線でリンクと示す
+			color: c.textPrimaryAlt,
+			textDecorationLine: "underline",
+		},
+		// #1398 R4 同意文言の直下に置く「公開レビューになる」告知
+		publicNoticeText: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "left",
+			lineHeight: 18,
+			marginTop: 8,
+		},
+		// #1398 B3 写真なし（status: "none"）のプレビュー枠
+		// #1441 N-1 【レビュー対応】window 高 667pt（iPhone SE 等）では枠の高さが 81px しか無く、
+		// 旧サイズ（アイコン 40 + gap 8 + 16px タイトル + gap 8 + 13px ヒント ≒ 91px）だとはみ出していた。
+		// アイコンと余白を縮め、`flexShrink` も添えて小型端末でも収まるようにする
+		previewWrap: {
+			flex: 1,
+		},
+		replacePhotoButton: {
+			position: "absolute",
+			right: 8,
+			bottom: 8,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+			paddingHorizontal: 10,
+			paddingVertical: 6,
+			borderRadius: 14,
+			backgroundColor: "rgba(17,24,39,0.7)",
+		},
+		replacePhotoLabel: {
+			fontSize: 11,
+			fontWeight: "700",
+			// メディアプレビューの上に載る半透明暗地のボタンなので、テーマに依らず白で固定する
+			color: FixedColors.onMedia,
+		},
+		noMediaPlaceholder: {
+			flex: 1,
+			flexShrink: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			gap: 4,
+			// 中身（見出し・ボタン・既存メディア・スキップ）が枠に接しないようにする。
+			// 以前は 0 で、manual のときスキップが破線の枠へ重なって見えた
+			paddingVertical: 14,
+			marginHorizontal: 16,
+			borderRadius: 12,
+			borderWidth: 1,
+			borderStyle: "dashed",
+			borderColor: c.trackMuted,
+			backgroundColor: c.surfaceFaint,
+		},
+		noMediaIcon: {
+			flexShrink: 1,
+		},
+		noMediaTitle: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textSecondaryStrong,
+			flexShrink: 1,
+		},
+		noMediaHint: {
+			fontSize: 12,
+			color: c.textSecondary,
+			flexShrink: 1,
+		},
+		// #1375 5 巡目: 縦に積む（上が «自分で撮影して追加» の主導線）。
+		// 4 巡目は横並びで «どちらが主か» が読めなかった
+		mediaSourceColumn: {
+			gap: 8,
+			marginTop: 12,
+			marginBottom: 4,
+			alignSelf: "stretch",
+			paddingHorizontal: 24,
+		},
+		mediaSourceButton: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 6,
+			paddingHorizontal: 14,
+			paddingVertical: 10,
+			borderRadius: 12,
+			backgroundColor: c.surfaceSubtle,
+		},
+		// «自分で撮影して追加» はこの領域の主導線。濃灰で埋める
+		// （赤は画面に 1 つの主 CTA = «投稿する» に譲る。docs/design-guidelines.md §1）
+		// #1509 ライトの «濃灰の地に白文字» はダークでは沈むので、反転する CTA トークンで受ける
+		// （ctaBackground/ctaLabel はダークで «明るい地に暗い文字» へ入れ替わる）
+		mediaSourceButtonPrimary: {
+			backgroundColor: c.ctaBackground,
+		},
+		mediaSourceLabelPrimary: {
+			color: c.ctaLabel,
+		},
+		// スキップは «小さく»（オーナー指定）。押せるが主導線ではない
+		skipPhotoButton: {
+			marginTop: 4,
+			paddingHorizontal: 10,
+			paddingVertical: 6,
+		},
+		skipPhotoLabel: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: c.textSecondary,
+			textDecorationLine: "underline",
+		},
+		mediaSourceLabel: {
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.textSecondaryStrong,
+		},
+		characterCount: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "right",
+			marginTop: 4,
+		},
+		// #1375（6 巡目）記録フローの 1 歩目（料理カテゴリー）の器。左右余白は下のフォームと揃える
+		dishCategoryStepContainer: {
+			marginTop: 16,
+			paddingHorizontal: 16,
+			gap: 8,
+		},
+		// #1375 実機確認: Android のジェスチャーナビゲーションでは画面下端に system inset があり、
+		// この投稿ボタンがその下に潜って押せなかった。呼び出し側の 2 画面（review.tsx /
+		// review-from-media）はどちらも SafeAreaView を持たないので、下端の確保はここで行う。
+		// `paddingBottom` は描画時に `insets.bottom` を足して上書きする
+		buttonContainer: {
+			paddingTop: 12,
+			paddingBottom: 12,
+			borderTopWidth: 1,
+			borderTopColor: c.border,
+			backgroundColor: c.surface,
+		},
+	});

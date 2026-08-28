@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import type { QueryDishCategoryVariantsResponse } from "@shared/api/v1/res";
 import { Card } from "@/components/Card";
@@ -19,7 +21,7 @@ interface DishCategorySearchFormProps {
 	/**
 	 * 見出し。`null` を渡すと描かない。
 	 *
-	 * #1386 ルート（`app/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category.tsx`）に
+	 * #1386 ルート（`app/[locale]/restaurant/[restaurantId]/dish-category.tsx`）に
 	 * 載せるときは `ScreenHeader` がタイトルを持つため `null` を渡す。
 	 * `features/profile/components/LocationSearchForm.tsx` と同じ形。
 	 */
@@ -48,6 +50,7 @@ export function DishCategorySearchForm({
 	title = i18n.t("Map.actions.selectDishCategory"),
 	testID,
 }: DishCategorySearchFormProps) {
+	const styles = useThemedStyles(createStyles);
 	// Internal state - isolated from parent re-renders
 	const [dishCategoryName, setDishCategoryName] = useState("");
 	/* 最新の値をアンマウント時に渡すために使用 */
@@ -100,19 +103,20 @@ export function DishCategorySearchForm({
 	);
 }
 
-const styles = StyleSheet.create({
-	// LocationSearchForm.tsx の modalTitle と同じ指定（見本に揃えるため）
-	modalTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 16,
-		textAlign: "center",
-		letterSpacing: -0.3,
-	},
-	autocompleteContainer: {
-		// 左右の余白は Card（margin 16 + paddingHorizontal 16）が持つため marginHorizontal は不要。
-		// 候補リストが出るまでモーダルの高さが跳ねないよう minHeight は維持する
-		minHeight: 300,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		// LocationSearchForm.tsx の modalTitle と同じ指定（見本に揃えるため）
+		modalTitle: {
+			fontSize: 18,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginBottom: 16,
+			textAlign: "center",
+			letterSpacing: -0.3,
+		},
+		autocompleteContainer: {
+			// 左右の余白は Card（margin 16 + paddingHorizontal 16）が持つため marginHorizontal は不要。
+			// 候補リストが出るまでモーダルの高さが跳ねないよう minHeight は維持する
+			minHeight: 300,
+		},
+	});

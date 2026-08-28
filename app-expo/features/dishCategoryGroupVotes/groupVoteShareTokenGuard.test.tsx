@@ -49,23 +49,23 @@ jest.mock("@/contexts/DialogProvider", () => {
 });
 jest.mock("@/stores/useDishMediaEntriesStore", () => ({
 	useDishMediaEntriesStore: Object.assign(() => ({}), {
-		getState: () => ({ setDishMediaEntries: jest.fn(), updateTopicIdsByKey: jest.fn() }),
+		getState: () => ({ setDishMediaEntries: jest.fn(), updateDishCategoryIdsByKey: jest.fn() }),
 	}),
 }));
-jest.mock("@/features/topics/hooks/useBlockTopic", () => {
+jest.mock("@/features/dishCategories/hooks/useBlockDishCategory", () => {
 	const value = { handleBlockCard: () => {} };
-	return { useBlockTopic: () => value };
+	return { useBlockDishCategory: () => value };
 });
-jest.mock("@/features/topics/hooks/useTopicCardSize", () => {
+jest.mock("@/features/dishCategories/hooks/useDishCategoryCardSize", () => {
 	const value = { cardWidth: 300, cardMaxHeight: 500 };
-	return { useTopicCardSize: () => value };
+	return { useDishCategoryCardSize: () => value };
 });
-jest.mock("@/features/topics/hooks/useTopicImageResources", () => {
+jest.mock("@/features/dishCategories/hooks/useDishCategoryImageResources", () => {
 	const state = { status: "loaded" as const };
 	const value = { getImageState: () => state, retryImage: () => {}, markImageError: () => {} };
-	return { useTopicImageResources: () => value };
+	return { useDishCategoryImageResources: () => value };
 });
-jest.mock("@/features/topics/hooks/useTopicsTutorial", () => {
+jest.mock("@/features/dishCategories/hooks/useDishCategoriesTutorial", () => {
 	const value = {
 		hasSeenTutorial: true,
 		isTutorialRequested: false,
@@ -75,16 +75,16 @@ jest.mock("@/features/topics/hooks/useTopicsTutorial", () => {
 		close: () => {},
 		markPresented: () => {},
 	};
-	return { useTopicsTutorial: () => value };
+	return { useDishCategoriesTutorial: () => value };
 });
-jest.mock("@/features/topics/components/TopicCard", () => ({
-	TopicCard: () => null,
-	TOPIC_CARD_CTA_OVERHANG: 0,
+jest.mock("@/features/dishCategories/components/DishCategoryCard", () => ({
+	DishCategoryCard: () => null,
+	DISH_CATEGORY_CARD_CTA_OVERHANG: 0,
 }));
-jest.mock("@/features/topics/components/TopicThumbnail", () => ({ TopicThumbnail: () => null }));
-jest.mock("@/features/topics/components/TopicsLoading", () => ({ TopicsLoading: () => null }));
-jest.mock("@/features/topics/components/TopicsError", () => ({ TopicsError: () => null }));
-jest.mock("@/features/topics/components/TopicsSpotlightTutorial", () => ({ TopicsSpotlightTutorial: () => null }));
+jest.mock("@/features/dishCategories/components/DishCategoryThumbnail", () => ({ DishCategoryThumbnail: () => null }));
+jest.mock("@/features/dishCategories/components/DishCategoriesLoading", () => ({ DishCategoriesLoading: () => null }));
+jest.mock("@/features/dishCategories/components/DishCategoriesError", () => ({ DishCategoriesError: () => null }));
+jest.mock("@/features/dishCategories/components/DishCategoriesSpotlightTutorial", () => ({ DishCategoriesSpotlightTutorial: () => null }));
 // ScreenHeader は rightContent（＝友達投票ボタンの置き場）を描かないとテスト対象へ到達できない
 jest.mock("@/components/ScreenHeader", () => ({
 	ScreenHeader: ({ rightContent }: { rightContent?: React.ReactNode }) => rightContent ?? null,
@@ -125,36 +125,36 @@ jest.mock("@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVot
 	}),
 }));
 
-// カルーセルが立ち上がるよう topic を 1 件返す。
+// カルーセルが立ち上がるよう dishCategory を 1 件返す。
 // ⚠️ **戻り値の参照を固定すること。** 毎回新しい配列 / 関数を返すと画面の useMemo・useEffect の
 // 依存が毎レンダー変わり、レンダーが収束せずテストがタイムアウトする（実際に踏んだ）。
-jest.mock("@/features/topics/hooks/useTopicSearch", () => {
-	const topics = [
-		{ categoryId: "c1", category: "cat", topicTitle: "topic", reason: "r", imageUrl: "", isHidden: false },
+jest.mock("@/features/dishCategories/hooks/useDishCategorySearch", () => {
+	const dishCategories = [
+		{ categoryId: "c1", category: "cat", title: "dishCategory", reason: "r", imageUrl: "", isHidden: false },
 	];
-	// 画面は searchTopics(...).then(...) と繋ぐので Promise を返させる
+	// 画面は searchDishCategories(...).then(...) と繋ぐので Promise を返させる
 	const resolved = () => Promise.resolve();
 	const noop = () => {};
 	const value = {
-		topics,
+		dishCategories,
 		isLoading: false,
 		error: null,
-		searchTopics: resolved,
-		refillTopics: resolved,
-		hideTopic: noop,
-		unhideTopic: noop,
+		searchDishCategories: resolved,
+		refillDishCategories: resolved,
+		hideDishCategory: noop,
+		unhideDishCategory: noop,
 		createDishItemsPromise: noop,
 	};
-	return { useTopicSearch: () => value };
+	return { useDishCategorySearch: () => value };
 });
 
-import TopicsScreen from "@/app/[locale]/(tabs)/search/topics";
+import DishCategoriesScreen from "@/app/[locale]/(tabs)/search/dish-categories";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /** 友達投票ボタンの onPress を取り出す */
 function getGroupVotePress(tree: TestRenderer.ReactTestRenderer): () => void {
-	const nodes = tree.root.findAllByProps({ testID: "topics-group-vote" });
+	const nodes = tree.root.findAllByProps({ testID: "dish-categories-group-vote" });
 	const pressable = nodes.find((node) => typeof node.props.onPress === "function");
 	expect(pressable).toBeDefined();
 	return pressable!.props.onPress as () => void;
@@ -181,7 +181,7 @@ describe("#1376 友達投票を開くときの shareToken ガード", () => {
 	function render(): TestRenderer.ReactTestRenderer {
 		let created: TestRenderer.ReactTestRenderer | undefined;
 		TestRenderer.act(() => {
-			created = TestRenderer.create(<TopicsScreen />);
+			created = TestRenderer.create(<DishCategoriesScreen />);
 		});
 		return created!;
 	}
@@ -222,7 +222,7 @@ describe("#1376 友達投票を開くときの shareToken ガード", () => {
 			error_level: "error",
 			payload: { source: "created" },
 		});
-		expect(mockShowSnackbar).toHaveBeenCalledWith("Topics.errors.fetchFailed");
+		expect(mockShowSnackbar).toHaveBeenCalledWith("DishCategories.errors.fetchFailed");
 	});
 
 	it("弾いたあともボタンは押し直せる（ref を解除している）", async () => {

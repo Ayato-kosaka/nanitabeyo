@@ -39,9 +39,9 @@ const DETAIL_URL_PATTERN = /\/v1\/restaurants\/(?!search)[^/?]+(\?.*)?$/;
 /** `GET /v1/restaurants/:id/dish-media` */
 const DISH_MEDIA_URL_PATTERN = /\/v1\/restaurants\/[^/?]+\/dish-media(\?.*)?$/;
 
-/** 店舗詳細の URL（`app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx`。`(tabs)` は URL に出ない） */
+/** 店舗詳細の URL（`app/[locale]/restaurant/[restaurantId].tsx`） */
 export function restaurantDetailPath(restaurantId: string = MOCK_RESTAURANT_ID, locale = "ja-JP"): string {
-	return `/${locale}/review/restaurant/${restaurantId}`;
+	return `/${locale}/restaurant/${restaurantId}`;
 }
 
 /** 店舗詳細配下の子ルート（`dish-category` / `feed`）の URL */

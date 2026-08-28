@@ -1,11 +1,11 @@
 import { DEFAULT_TIMEOUT, by, existsNow, tapWhenVisible, waitUntilVisible } from "../fixtures/e2e";
 
 /**
- * 🎞 店舗のレビューフィード（`/[locale]/review/restaurant/[restaurantId]/feed`）の Screen Object
+ * 🎞 店舗のレビューフィード（`/[locale]/restaurant/[restaurantId]/feed`）の Screen Object
  *（e2e-web の pages/RestaurantDetailPage.ts のフィード部分に対応）
  *
  * 対応コンポーネント:
- * - `app-expo/app/[locale]/(tabs)/review/restaurant/[restaurantId]/feed.tsx`（ルート本体）
+ * - `app-expo/app/[locale]/restaurant/[restaurantId]/feed.tsx`（ルート本体）
  * - `app-expo/features/map/components/FeedDishMediaViewer.tsx`（フィードと投稿 CTA の実体）
  *
  * ## #1386 モーダルからルートへ移した

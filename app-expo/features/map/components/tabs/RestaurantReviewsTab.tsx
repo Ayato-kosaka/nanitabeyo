@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
+import { FixedColors } from "@/constants/Palette";
 import { Text } from "react-native";
 import Stars from "@/components/Stars";
 import { useDishMediaEntriesStore, selectIdsByKey, selectEntryByMediaId } from "@/stores/useDishMediaEntriesStore";
@@ -50,7 +51,7 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 	// false のまま `isLoading` を false へ戻すので（stores/useDishMediaEntriesStore.ts の
 	// handleAsyncAction）、error を見ないと **失敗するたびに再取得して無限ループする**。
 	// #1388 のレビュー指摘: 同じ entriesKey・同じ fetcher を使う feed ルート
-	// （app/[locale]/(tabs)/review/restaurant/[restaurantId]/feed.tsx）にはこのガードが
+	// （app/[locale]/restaurant/[restaurantId]/feed.tsx）にはこのガードが
 	// 入っていたが、こちら側だけ抜けていた。«同じものが 2 つあって片方だけ直る» 形なので揃える
 	useEffect(() => {
 		if (restaurantId && !hasFetchedInitial && !isLoading && !error) {
@@ -82,7 +83,7 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 				<ImageCard
 					item={{
 						id: entry.dish_media.id,
-						imageUrl: entry.dish_media.thumbnailImageUrl,
+						imageUrl: entry.dish_media.thumbnailImageUrl ?? "",
 						title: entry.dish.name ?? undefined,
 					}}
 					onPress={() => handleItemPress(index, entry.dish_media.id)}>
@@ -141,7 +142,8 @@ const styles = StyleSheet.create({
 	reviewCardTitle: {
 		fontSize: 12,
 		fontWeight: "600",
-		color: "#FFF",
+		// 写真（ImageCard）の上に載る文字なのでテーマで振らない固定色
+		color: FixedColors.onMedia,
 		marginBottom: 4,
 	},
 	reviewCardRating: {
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
 	},
 	reviewCardRatingText: {
 		fontSize: 10,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		marginLeft: 4,
 	},
 });

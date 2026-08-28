@@ -3,7 +3,7 @@ import { strict as assert } from "node:assert";
 import { describeAuthenticated, device, launchAppWithSession, visibleNow, waitUntilVisible } from "../../fixtures/e2e";
 import { ResultScreen } from "../../screens/ResultScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
-import { TopicsScreen } from "../../screens/TopicsScreen";
+import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 import { disableNetwork, enableNetwork, isNetworkControlAvailable } from "../../utils/network";
 
 /**
@@ -48,7 +48,7 @@ import { disableNetwork, enableNetwork, isNetworkControlAvailable } from "../../
  */
 describeAuthenticated("いいね / 保存の失敗時ロールバック", () => {
 	const search = new SearchScreen();
-	const topics = new TopicsScreen();
+	const dishCategories = new DishCategoriesScreen();
 	const result = new ResultScreen();
 
 	/** ネットワーク制御が使えるか。使えない環境（iOS / adb 不在）では各テストを skip する */
@@ -67,8 +67,8 @@ describeAuthenticated("いいね / 保存の失敗時ロールバック", () => 
 		await search.selectLocationSuggestion(0);
 		await search.submit();
 
-		await topics.expectLoaded();
-		await topics.chooseFirstTopic();
+		await dishCategories.expectLoaded();
+		await dishCategories.chooseFirstDishCategory();
 		await result.expectLoaded();
 	});
 

@@ -41,7 +41,7 @@ export const isValidBcp47Tag = (tag: string): boolean => /^[a-zA-Z]{2,3}(-[a-zA-
  * ## ⚠️ クエリ文字列は «明示的に» 引き回す（#1272。この判定 3 度目の事故）
  * 呼び出し側が渡す `Linking.parse(url).path` は **クエリを落とす**。#1135 では OAuth の
  * `code` に限って「採用しない」ことで回避したが、**一般のクエリは落ちたまま**だった。
- * その結果 iOS では `?tab=saved-topics` 付きの直リンクが `/ja-JP/profile` に削られ、
+ * その結果 iOS では `?tab=saved-dish-categories` 付きの直リンクが `/ja-JP/profile` に削られ、
  * 先頭タブのまま着地していた（#1272。probe の実測 `local=- global=-` で確定。
  * Android は expo-router 側の初期 URL 解決が先に済むため顕在化しない）。
  * クエリは `extractQueryString(url)` で生 URL から切り出し、第 2 引数で渡すこと。
@@ -66,7 +66,7 @@ export const toInAppPath = (path: string | null | undefined, queryString?: strin
 	if (!isValidBcp47Tag(firstSegment)) return null;
 	// #1135 `/[locale]/auth/*` は «クエリ込み» でしか意味を持たない route なので、行き先として採用しない
 	if (secondSegment === "auth") return null;
-	// #1272 クエリは行き先の一部（例: /profile?tab=saved-topics のタブ指定）。削らずに運ぶ
+	// #1272 クエリは行き先の一部（例: /profile?tab=saved-dish-categories のタブ指定）。削らずに運ぶ
 	return queryString ? `/${normalized}?${queryString}` : `/${normalized}`;
 };
 

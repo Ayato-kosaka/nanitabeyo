@@ -5,6 +5,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { setAudioModeAsync } from "expo-audio";
 import { useCdnCookieStore, selectCookieHeader } from "@/stores/useCdnCookieStore";
 import { LoadingIndicator } from "./LoadingIndicator";
+import { FixedColors } from "@/constants/Palette";
 
 // Threshold for detecting video loop (when currentTime returns to near start)
 export const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
@@ -212,10 +213,17 @@ function VideoPlayer({
 }
 export default VideoPlayer;
 
+/*
+#1629 ここはテーマで振らない。動画の «外側» に見える余白と、その上に載る操作要素だからである。
+
+- 地は `mediaBackground`（固定の黒）。DishMediaFeed と同じ「メディアを引き立てる黒背景」で、
+  ライトで明るくすると縦動画の左右だけが白い額縁になり、動画そのものが読みにくくなる
+- 再生アイコンは `onMedia`（固定の白）。載る先が常に暗い動画なので、ライトで黒にすると消える
+*/
 const styles = StyleSheet.create({
 	container: {
 		position: "relative",
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	loadingOverlay: {
 		...StyleSheet.absoluteFillObject,
@@ -232,7 +240,7 @@ const styles = StyleSheet.create({
 	},
 	playIcon: {
 		fontSize: 72,
-		color: "#fff",
+		color: FixedColors.onMedia,
 		opacity: 0.65,
 		// A slight text shadow to make the icon readable on variable backgrounds
 		textShadowColor: "rgba(0,0,0,0.6)",

@@ -1,0 +1,462 @@
+import React, { memo, useCallback, useMemo } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { ImageOff } from "lucide-react-native";
+import { router } from "expo-router";
+import { GridList } from "@/components/collapsible-tabs/GridList";
+import { EmptyState } from "@/components/EmptyState";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+import { useContentWidth } from "@/hooks/useContentWidth";
+import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
+import { useLogger } from "@/hooks/useLogger";
+import { getCacheKeyForImage } from "@/lib/image";
+import i18n from "@/lib/i18n";
+import type { MyDishItem } from "@shared/api/v1/res";
+import { MyDishEatenButton, resolveMyDishTitle } from "./myDishCard";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
+import { MY_DISHES_EVENTS } from "../analytics";
+import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
+import { buildMarkAsEatenRoute } from "../markAsEaten";
+import { beginMarkAsEaten } from "../markAsEatenFunnel";
+import { resolveMyDishThumbnail } from "../thumbnail";
+import { resolveProviderIcon, resolveProviderLabel } from "@/features/dishMedia/providerIcon";
+import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
+import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
+
+/**
+ * #1396 my-dishes のリストビュー（設計書 (2/2) §7 の PR3）。
+ *
+ * - **料理画像主体のグリッド**。3 ビューのうち一番単純なので、共有フィルタ store の
+ *   挙動（フィルタ変更で取り直す / ビュー切替では取り直さない）をここで固定する。
+ * - `dishMedia === null`（写真なしの「食べた」記録）は**灰色プレースホルダーにしない**。
+ *   `resolveMyDishThumbnailUrl`（`categoryImageUrl` → `restaurant.image_url` の順）で実画像へ
+ *   フォールバックしつつ、「写真なし」であること自体は `MyDishes.list.noPhoto` バッジで示す
+ *   （#1398 PR5 / #1375 追補2 決定3）。3 つとも無いときだけ従来どおりの無地プレースホルダー。
+ * - #1513 `isOwnMediaDeleted`（自分の投稿が削除済み）の行は **フォールバックせず墓標**
+ *   （`DeletedMediaTombstone`）を出す。行そのものは消さない。
+ */
+
+const COLUMNS = 3;
+const GAP = 1;
+const PADDING_HORIZONTAL = 16;
+const ASPECT_RATIO = 9 / 16;
+
+type MyDishGridItem = { id: string; item: MyDishItem };
+
+const MyDishCard = memo(function MyDishCard({
+	item,
+	onPress,
+	onPressMarkAsEaten,
+}: {
+	item: MyDishItem;
+	onPress: (i: MyDishItem) => void;
+	onPressMarkAsEaten: (i: MyDishItem) => void;
+}) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
+	const { lightImpact } = useHaptics();
+	// #958 と同じ理由で useWindowDimensions ではなく CenteredAppShell の中央カラム幅を使う
+	const contentWidth = useContentWidth();
+	const width = useMemo(() => (contentWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS, [contentWidth]);
+	const height = width / ASPECT_RATIO;
+
+	// #1398 PR5 写真なし（dishMedia === null）でも categoryImageUrl → restaurant.image_url へ
+	// フォールバックする。3 つとも無いときだけ null（= 無地プレースホルダー）
+	//
+	// #1513 ただし «自分の投稿が削除済み»（isOwnMediaDeleted）はフォールバックしない。
+	// 跡地に別の絵を入れず墓標を出す（判断は resolveMyDishThumbnail に集約）
+	const thumbnail = resolveMyDishThumbnail(item);
+	const thumbnailUrl = thumbnail.kind === "photo" ? thumbnail.url : null;
+	const isNoPhoto = item.dishMedia === null;
+	/*
+	#1375（9 巡目・オーナー指摘）**取り込んだ投稿のサムネイルには provider のロゴを重ねる。**
+
+	一覧に «自分で撮った写真» と «SNS から取り込んだもの» が混ざるので、
+	タイルを見ただけでどちらか分かるようにする。
+
+	⚠️ 判定は `render_type === "external_embed"` を先に見ること。`externalEmbed` は
+	   «詰めているのは一部の経路だけ» という約束のフィールドで、`undefined` は
+	   «stored である» ことを意味しない（`shared/api/v1/res/dish-media.response.ts`）。
+	   ロゴの種類だけを `externalEmbed?.provider` から取り、取れなければ汎用リンクへ落とす。
+	*/
+	const isExternalEmbed = item.dishMedia?.render_type === "external_embed";
+	const providerLabel = resolveProviderLabel(item.dishMedia?.externalEmbed?.provider);
+	const ProviderIcon = resolveProviderIcon(item.dishMedia?.externalEmbed?.provider);
+	const source = useMemo(
+		() => (thumbnailUrl ? { uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) } : null),
+		[thumbnailUrl],
+	);
+
+	const handlePress = useCallback(() => {
+		lightImpact();
+		onPress(item);
+	}, [item, lightImpact, onPress]);
+
+	// #1375（オーナー実機指摘「リストで食べたのうどんがローマ字になってる」）
+	// カテゴリの正式表記を優先する（規則は `resolveMyDishTitle` に集約）
+	const dishName = resolveMyDishTitle(item) ?? undefined;
+	const rating = item.myReview?.rating ?? null;
+
+	return (
+		<Pressable
+			testID="my-dishes-list-item"
+			style={[styles.card, { width, height }]}
+			onPress={handlePress}
+			android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+			accessibilityRole="button"
+			accessibilityLabel={dishName ?? item.restaurant.name ?? i18n.t("ImageCardGrid.openItemDetails")}>
+			{thumbnail.kind === "deleted" ? (
+				// #1513 自分の投稿が削除済み。行は残したまま «削除されました» を出す（黙って消さない）
+				<DeletedMediaTombstone style={StyleSheet.absoluteFill} />
+			) : source ? (
+				<Image
+					source={source}
+					cachePolicy="memory-disk"
+					transition={100}
+					/*
+					#1375（9 巡目・オーナー指摘「読み込みが重い」）**セルの使い回しを画像へ伝える。**
+
+					FlatList はスクロールでセル（＝この `Image`）を使い回す。`recyclingKey` を
+					渡さないと、使い回された瞬間に **前の行の画像が残ったまま**新しい URL の
+					読み込みが始まり、「一瞬別の写真が出てから差し替わる」ちらつきになる。
+					人からは «読み込みが遅い» に見える。キーには行を一意に指す `item.key` を使う
+					*/
+					recyclingKey={item.key}
+					style={StyleSheet.absoluteFill}
+					contentFit="cover"
+					alt=""
+					accessibilityElementsHidden
+					importantForAccessibility="no"
+				/>
+			) : (
+				// #1398 PR5 【仕様】categoryImageUrl / restaurant.image_url も無い異常系だけがここに来る
+				// （dishMedia === null というだけではこの分岐に来ない。#1396 当時の「写真なし記録＝この
+				// プレースホルダー」という前提は変わったが、testID は e2e から未参照のため残している）
+				<View testID="my-dishes-list-item-placeholder" style={[StyleSheet.absoluteFill, styles.placeholder]}>
+					<ImageOff size={20} color={colors.textTertiary} />
+					<Text style={styles.placeholderText} numberOfLines={2}>
+						{dishName ?? i18n.t("MyDishes.list.noPhoto")}
+					</Text>
+				</View>
+			)}
+
+			<LinearGradient
+				colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]}
+				style={StyleSheet.absoluteFill}
+				pointerEvents="box-none">
+				<View style={styles.badgeRow}>
+					<View style={[styles.statusBadge, item.status === "want" ? styles.statusWant : styles.statusEaten]}>
+						{/* 白塗りの側は文字も赤でなければ読めない。色は statusColors から 1 組で取る */}
+						<Text style={[styles.statusBadgeText, { color: MY_DISH_STATUS_COLORS[item.status].on }]}>
+							{i18n.t(`MyDishes.filters.status.${item.status}`)}
+						</Text>
+					</View>
+					{/* #1398 PR5 実画像へフォールバックしても「写真なし」自体は分かるようにする */}
+					{source && isNoPhoto && (
+						<View style={styles.noPhotoBadge} testID="my-dishes-list-item-no-photo-badge">
+							{/* 写真の上に載る固定濃色バッジの中なので固定の白でよい */}
+							<ImageOff size={10} color={FixedColors.onFilled} />
+							<Text style={styles.noPhotoBadgeText}>{i18n.t("MyDishes.list.noPhoto")}</Text>
+						</View>
+					)}
+					{/* #1375（9 巡目）取り込み元のロゴ。バッジ行の右端へ寄せる（左は状態バッジの列） */}
+					{isExternalEmbed && (
+						<View
+							style={styles.providerBadge}
+							testID="my-dishes-list-item-provider-badge"
+							accessibilityElementsHidden
+							importantForAccessibility="no-hide-descendants">
+							{/* 写真の上に載る固定濃色バッジの中なので固定の白でよい */}
+							<ProviderIcon size={12} color={FixedColors.onFilled} />
+						</View>
+					)}
+				</View>
+				{/*
+				#1375（5 巡目・デザインレビュー #2 / #9）**3 列グリッドのタイルの密度を落とした。**
+
+				幅 119pt のタイルに 6 要素（状態バッジ / 写真なしバッジ / ★ / 料理名 / 店名 /
+				«食べたを記録»）が載っていて、どれも読めていなかった。落としたのは **★ と店名**の 2 つ。
+				どちらもタップ先の全画面 Feed が必ず出しているので、ここに無くても失われない。
+
+				«食べたを記録» は残す（1 タップの近道であり、消すと機能が減る）。ただし
+				`footer` の `alignItems` 既定 = stretch でタイル全幅の赤いピルになっており、
+				1 画面に 9〜12 本並んで **画面唯一の主アクセントであるべき FAB が負けていた**。
+				そこで `alignSelf: "flex-end"` で内容幅へ縮め、色を赤から «写真の上の半透明黒» へ
+				落としてある（`myDishCard.tsx` の `eatenButton`）。赤はこの画面では FAB と
+				状態バッジだけが使う。
+				*/}
+				<View style={styles.footer}>
+					<Text style={styles.footerText} numberOfLines={1}>
+						{dishName ?? item.restaurant.name ?? ""}
+					</Text>
+					{/* #1398 PR4: want 行だけ。押しても親（= 全画面 Feed への遷移）は走らない */}
+					<MyDishEatenButton item={item} onPress={onPressMarkAsEaten} />
+				</View>
+			</LinearGradient>
+		</Pressable>
+	);
+});
+
+/**
+ * @param enabled #1375（5 巡目・性能）取得を始めてよいか。
+ *   3 ビューは keep-alive なので、**見えていないビューまで取り直しに行かない**ようにする
+ *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
+ */
+export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {}) {
+	const styles = useThemedStyles(createStyles);
+	const { locale } = useLocale();
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery({ enabled });
+
+	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
+
+	/*
+	#1375（9 巡目・オーナー指摘「読み込みが重い」）**1 行の実寸を FlatList へ渡す。**
+
+	`GridList` は `getItemLayout` で «高さ 200px» という当てずっぽうの定数を返していた。
+	実際のタイルは下（`MyDishCard`）と同じ式で決まり、iPhone 実機では 210 前後になる。
+	FlatList は `getItemLayout` の値を実測より優先して信じるので、ずれていると
+	**`onEndReached` の発火位置がずれて、要らない次ページまで読みに行く**。
+	同じ式をここでも使い、実寸を渡す（式が 2 箇所になるので定数を共有する）。
+	*/
+	const contentWidth = useContentWidth();
+	const itemHeight = useMemo(
+		() => (contentWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS / ASPECT_RATIO,
+		[contentWidth],
+	);
+
+	// #1397 (PR4/5) Q2 確定: リスト項目のタップ先は **その項目の店舗スコープの Feed**。
+	// 代案（フィルタ済み一覧全体を縦スクロールする Feed）は ids を URL に積むか store 前提にするしか
+	// なく、**web のリロード・直リンクで壊れる**ので採らない（設計 (2/2) §9-3 / Q2）。
+	//
+	// ⚠️ **index ではなく `itemKey` を渡す**（R1）。一覧の並びは写真なしの行を含み、Feed の並びは
+	// 含まないので、index を渡すと写真なしが 1 件混ざった瞬間に別の料理が開く。
+	// 写真なしの行（`dishMedia === null`）は Feed に入れられないので従来どおり店舗詳細へ。
+	const handlePressItem = useCallback(
+		(item: MyDishItem) => {
+			const hasPhoto = item.dishMedia !== null;
+			logFrontendEvent({
+				event_name: MY_DISHES_EVENTS.listItemSelected,
+				error_level: "log",
+				payload: { itemKey: item.key, status: item.status, hasPhoto },
+			});
+			if (hasPhoto && item.dishMedia !== null) {
+				/*
+				#1629 【修正】**一覧からフィードへ入ると縦スクロールできなかった。**
+
+				全画面 Feed は «外側 = 縦（前後のスコープ）/ 内側 = 横（そのスコープの中の記録）» の
+				2 軸で、外側の並びは `useMyDishesFeedScopeStore` から取る。ところが
+				**この store へ並びを置いていたのは Map と Calendar だけで、一覧は置いていなかった。**
+
+				結果、一覧から入ると外側のページャが **1 ページ**へ縮退し（store が空のときの仕様）、
+				縦にいくら払っても何も起きない。さらに悪いことに、直前に Map を開いていると
+				**Map の viewport 由来の並びが残っていて**、一覧とは無関係な店舗が縦に並んでいた。
+
+				ここで «いま一覧に出ている並び» を置く。重複を潰すのは、同じ店の記録が複数行あると
+				ページャの keyExtractor（店舗 id）が衝突するため。写真の無い行は Feed に入れられない
+				ので除く（この関数の先頭の分岐と同じ条件）。
+				*/
+				useMyDishesFeedScopeStore
+					.getState()
+					.setRestaurantIds(
+						[...new Set(items.filter((row) => row.dishMedia !== null).map((row) => row.restaurant.id))],
+						"list",
+					);
+				router.push({
+					pathname: "/[locale]/(tabs)/my-dishes/feed",
+					params: {
+						locale,
+						restaurantId: item.restaurant.id,
+						itemKey: item.key,
+						dishMediaId: String(item.dishMedia.id),
+					},
+				});
+				return;
+			}
+			router.push({
+				pathname: "/[locale]/restaurant/[restaurantId]",
+				params: { locale, restaurantId: item.restaurant.id },
+			});
+		},
+		[items, locale, logFrontendEvent],
+	);
+
+	// #1398 (PR4/7) want カードの「食べたを記録」。カード全体のタップ（= 全画面 Feed）とは別経路。
+	// 押しても Feed が開かないことは `MyDishEatenButton` 側の stopPropagation が担保する
+	const handleMarkAsEaten = useCallback(
+		(item: MyDishItem) => {
+			const route = buildMarkAsEatenRoute(item, locale);
+			if (route === null) return;
+			lightImpact();
+			logFrontendEvent({
+				event_name: MY_DISHES_EVENTS.markAsEatenPressed,
+				error_level: "log",
+				payload: { itemKey: item.key, from: "list" },
+			});
+			// #1403 (PR2) 出口（記録の完了）は共有ルート `review-from-media` にあり、そこは
+			// my-dishes 以外からも入ってくる。ここで «my-dishes から押した» ことを預けておき、
+			// 完了時に取り出して `my_dishes_mark_as_eaten_completed` を出す（markAsEatenFunnel）
+			beginMarkAsEaten({
+				from: "list",
+				itemKey: item.key,
+				restaurantId: route.params.restaurantId,
+				dishMediaId: route.params.dishMediaId,
+				startedAt: Date.now(),
+			});
+			router.push(route);
+		},
+		[lightImpact, locale, logFrontendEvent],
+	);
+
+	const renderItem = useCallback(
+		({ item }: { item: MyDishGridItem }) => (
+			<MyDishCard item={item.item} onPress={handlePressItem} onPressMarkAsEaten={handleMarkAsEaten} />
+		),
+		[handleMarkAsEaten, handlePressItem],
+	);
+
+	const renderEmpty = useCallback(
+		() => (
+			<EmptyState
+				message={i18n.t("MyDishes.empty.description")}
+				error={error}
+				onRetry={refresh}
+				testID="my-dishes-empty"
+			/>
+		),
+		[error, refresh],
+	);
+
+	// #1396 【設計】終端（nextCursor === null）では onEndReached で何も投げない。
+	// 追加取得の同時実行を 1 本に絞るのは store 側（fetchMore）の責務（設計書 (2/2) §4-4）
+	const handleEndReached = useCallback(() => {
+		if (!hasNextPage) return;
+		loadMore();
+	}, [hasNextPage, loadMore]);
+
+	return (
+		<GridList
+			data={data}
+			renderItem={renderItem}
+			keyExtractor={(item) => item.id}
+			numColumns={COLUMNS}
+			contentContainerStyle={styles.gridContent}
+			columnWrapperStyle={styles.gridRow}
+			isLoading={isLoading}
+			isLoadingMore={isLoadingMore}
+			refreshing={isLoading}
+			onRefresh={refresh}
+			onEndReached={handleEndReached}
+			ListEmptyComponent={renderEmpty}
+			testID="my-dishes-list"
+			itemHeight={itemHeight}
+			// my-dishes は collapsible-tabs の外にいる単独ルートなので素の FlatList を使う（#1402 と同じ）
+			standalone
+		/>
+	);
+}
+
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		gridContent: {
+			paddingHorizontal: PADDING_HORIZONTAL,
+			paddingVertical: 8,
+		},
+		gridRow: {
+			gap: GAP,
+		},
+		card: {
+			marginBottom: GAP,
+			borderRadius: 8,
+			overflow: "hidden",
+			backgroundColor: c.surfaceSubtle,
+		},
+		placeholder: {
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 4,
+			paddingHorizontal: 6,
+			backgroundColor: c.surfaceSubtle,
+		},
+		placeholderText: {
+			fontSize: 10,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+		badgeRow: {
+			flexDirection: "row",
+			alignItems: "flex-start",
+			padding: 6,
+			gap: 4,
+		},
+		statusBadge: {
+			paddingHorizontal: 6,
+			paddingVertical: 2,
+			borderRadius: 10,
+		},
+		noPhotoBadge: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 2,
+			paddingHorizontal: 6,
+			paddingVertical: 2,
+			borderRadius: 10,
+			backgroundColor: "rgba(17,24,39,0.6)",
+		},
+		// #1375（9 巡目）取り込み元のロゴ。バッジ行の **右端**（`marginLeft: "auto"`）へ寄せ、
+		// 左の状態バッジ列とぶつからないようにする。丸にするのは «文字のバッジではない» ことを
+		// 形でも分けるため
+		providerBadge: {
+			marginLeft: "auto",
+			width: 20,
+			height: 20,
+			borderRadius: 10,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: "rgba(17,24,39,0.6)",
+		},
+		noPhotoBadgeText: {
+			fontSize: 9,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
+		},
+		// #1375（5 巡目）塗りの有無で区別する: 食べたい = 白塗り赤枠 / 食べた = 赤塗り
+		statusWant: {
+			backgroundColor: MY_DISH_STATUS_COLORS.want.fill,
+			borderWidth: 1,
+			borderColor: MY_DISH_STATUS_COLORS.want.border,
+		},
+		statusEaten: {
+			backgroundColor: MY_DISH_STATUS_COLORS.eaten.fill,
+			borderWidth: 1,
+			borderColor: MY_DISH_STATUS_COLORS.eaten.border,
+		},
+		statusBadgeText: {
+			fontSize: 10,
+			fontWeight: "700",
+		},
+		footer: {
+			position: "absolute",
+			left: 6,
+			right: 6,
+			bottom: 6,
+			gap: 2,
+		},
+		ratingText: {
+			fontSize: 11,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
+		},
+		footerText: {
+			fontSize: 11,
+			color: FixedColors.onMedia,
+		},
+		footerSubText: {
+			fontSize: 10,
+			color: "rgba(255,255,255,0.85)",
+		},
+	});

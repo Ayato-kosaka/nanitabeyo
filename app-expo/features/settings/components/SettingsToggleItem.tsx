@@ -1,8 +1,8 @@
 import React, { useCallback } from "react";
 import { View, Text, Switch, TouchableOpacity, StyleSheet, StyleProp, TextStyle } from "react-native";
 
-import type { Palette } from "@/constants/Palette";
-import { useThemedStyles } from "@/contexts/ThemeProvider";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface SettingsToggleItemProps {
 	label: string;
@@ -29,7 +29,7 @@ interface SettingsToggleItemProps {
 }
 
 /**
- * #1504 【設計】設定画面のトグル行。`app/[locale]/(tabs)/profile/settings.tsx` の
+ * #1504 【設計】設定画面のトグル行。かつての `profile/settings.tsx`（#1583 で削除）の
  * `SettingsMenuItem`(遷移用の行) と見た目・アクセシビリティ・区切り線の作法を揃えた、
  * オン/オフ設定用の再利用部品。SET-02(通知) / SET-05(ダークモード) / SET-06(言語切替) も
  * このコンポーネントを使う想定のため、`features/settings` 配下の独立コンポーネントとして置く。
@@ -52,6 +52,7 @@ export function SettingsToggleItem({
 	disabled,
 }: SettingsToggleItemProps) {
 	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const handlePress = useCallback(() => {
 		onValueChange(!value);
 	}, [onValueChange, value]);
@@ -78,10 +79,20 @@ export function SettingsToggleItem({
 					)}
 				</View>
 				<View pointerEvents="none">
+					{/*
+					#1629 【設計】色を渡さない `Switch` は OS 既定色で描かれ、アプリのテーマに
+					追従しない（ダークの面の上に OS ライトの淡いレールが残る）。
+					オン = ブランド色 / オフ = `trackMuted` のレールに、つまみは常に白の
+					1 組で渡す（つまみの白は iOS の既定と同じなので、ライトの見た目は変わらない）。
+					`ios_backgroundColor` はオフのときレールの下に見える色で、これも合わせる。
+					*/}
 					<Switch
 						value={value}
 						onValueChange={onValueChange}
 						disabled={disabled}
+						trackColor={{ false: colors.trackMuted, true: colors.brand }}
+						thumbColor={FixedColors.onFilled}
+						ios_backgroundColor={colors.trackMuted}
 						testID={testID ? `${testID}-switch` : undefined}
 					/>
 				</View>

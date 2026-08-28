@@ -1,7 +1,7 @@
 import { device, launchAppWithSession, localeDeepLink } from "../../fixtures/e2e";
 import { TabBar } from "../../screens/TabBar";
 import { ProfileScreen } from "../../screens/ProfileScreen";
-import { ReviewScreen } from "../../screens/ReviewScreen";
+import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { LoginScreen } from "../../screens/LoginScreen";
 
 /**
@@ -89,17 +89,17 @@ describe("ログイン画面", () => {
 	//    「コールドロードでは canGoBack() が false になる」も設計 §1 で **未確認**の前提ではあるが、
 	//    こちらが原因である可能性は上より低い。順番を間違えないこと。
 	// 手順:
-	//   1. nanitabeyo:///ja-JP/auth/login?next=%2Fja-JP%2Freview へ直接着地する
+	//   1. nanitabeyo:///ja-JP/auth/login?next=%2Fja-JP%2Fmy-dishes へ直接着地する
 	//   2. ログイン画面が表示されることを検証
 	//   3. ヘッダーの戻るボタンをタップする
-	//   4. next の行き先（レビュータブのゲスト表示）へ着地することを検証
+	//   4. next の行き先（食べたい/食べたタブのゲスト表示）へ着地することを検証
 	it("直接着地して戻ると、履歴が無いので next の画面へ倒れる", async () => {
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 		const loginScreen = new LoginScreen();
 
 		await launchAppWithSession({
 			as: "anon",
-			url: `${localeDeepLink("auth/login")}?next=${encodeURIComponent("/ja-JP/review")}`,
+			url: `${localeDeepLink("auth/login")}?next=${encodeURIComponent("/ja-JP/my-dishes")}`,
 			// タブバー（tab-search）はログイン画面の下に居ないため、既定の起動完了待ちは使えない
 			waitForReady: false,
 		});
@@ -107,23 +107,23 @@ describe("ログイン画面", () => {
 
 		await loginScreen.goBack();
 
-		await reviewScreen.expectGuestViewLoaded();
+		await myDishesScreen.expectGuestViewLoaded();
 	});
 
-	// ─ テストケース: レビュータブからの導線でも同じ画面へ着く ─
+	// ─ テストケース: 食べたい/食べたタブからの導線でも同じ画面へ着く ─
 	// #1359 4 箇所の導線が 1 つのルートへ集約されたこと（完了条件の「4 複製の解消」）を、
 	// マイページ以外の入口でも 1 本だけ固定しておく。
 	// 手順:
-	//   1. レビュータブのゲスト表示からログイン CTA をタップする
+	//   1. 食べたい/食べたタブのゲスト表示からログイン CTA をタップする
 	//   2. 同じログイン画面が開くことを検証
-	it("レビュータブのログイン CTA からも同じ画面へ着く", async () => {
+	it("食べたい/食べたタブのログイン CTA からも同じ画面へ着く", async () => {
 		const tabBar = new TabBar();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 		const loginScreen = new LoginScreen();
 
-		await tabBar.gotoReview();
-		await reviewScreen.expectGuestViewLoaded();
-		await reviewScreen.tapGuestLogin();
+		await tabBar.gotoMyDishes();
+		await myDishesScreen.expectGuestViewLoaded();
+		await myDishesScreen.tapGuestLogin();
 
 		await loginScreen.expectOpened();
 	});

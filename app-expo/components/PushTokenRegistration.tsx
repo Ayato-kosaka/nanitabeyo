@@ -14,14 +14,10 @@ import { useLogger } from "../hooks/useLogger";
 import type { CreateDeviceTokenResponse } from "@shared/api/v1/res";
 import { Env } from "@/constants/Env";
 import type { CreateDeviceTokenDto } from "@shared/api/v1/dto";
+import { readPushCache, type PushCache } from "./pushTokenCache";
+import { FixedColors } from "@/constants/Palette";
 
 const SECURE_STORE_KEY = "expo_push_token";
-type PushCache = {
-	token: string;
-	userId: string;
-	platform: string;
-	appVersion?: string | null;
-};
 
 /**
  * 📲 Push 通知トークン登録コンポーネント
@@ -126,7 +122,10 @@ export function PushTokenRegistration() {
 
 				// #通知機能 【設計】Secure Storage にキャッシュされたトークンを確認
 				const raw = await SecureStore.getItemAsync(SECURE_STORE_KEY);
-				const cached: PushCache | null = raw ? JSON.parse(raw) : null;
+				// #1599 壊れた値は «キャッシュ無し» に倒す（詳細は readPushCache）。
+				// ここで throw すると、下の setItemAsync（壊れた値の上書き）へ辿り着けず
+				// **Push 通知が二度と登録されない**まま再試行が回り続ける
+				const cached: PushCache | null = readPushCache(raw);
 
 				const current: PushCache = {
 					token: currentToken,
@@ -184,7 +183,9 @@ export function PushTokenRegistration() {
 				name: "default",
 				importance: Notifications.AndroidImportance.MAX,
 				vibrationPattern: [0, 250, 250, 250],
-				lightColor: "#FF231F7C",
+				// #1629 これはアプリが描く色ではなく、OS の通知 LED へ渡す ARGB のパラメータ。
+				// テーマに追従させる対象ではないので FixedColors に置いてある
+				lightColor: FixedColors.notificationLed,
 			});
 		}
 	}, []);

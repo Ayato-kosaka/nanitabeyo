@@ -6,8 +6,8 @@ import { restaurantDetailPath, restaurantSubPath } from "../utils/restaurantDeta
  * 🏪 店舗詳細とその配下 2 画面（#1386 でルート化）の Page Object
  *
  * 対応コンポーネント:
- * - `app-expo/app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx`（店舗詳細・アプリ唯一）
- * - `app-expo/features/review/components/SelectedRestaurantDetails.tsx`（中身）
+ * - `app-expo/app/[locale]/restaurant/[restaurantId].tsx`（店舗詳細・アプリ唯一）
+ * - `app-expo/features/restaurant/components/SelectedRestaurantDetails.tsx`（中身）
  * - `.../[restaurantId]/dish-category.tsx`（料理カテゴリ選択）
  * - `.../[restaurantId]/feed.tsx`（レビューのフィード）
  *
@@ -101,20 +101,20 @@ export class RestaurantDetailPage {
 	 * #1386 ルート化そのものを守るアサーション。オーバーレイへ戻すと URL が変わらず落ちる。
 	 */
 	async expectOpened(): Promise<void> {
-		await expect(this.page).toHaveURL(/\/review\/restaurant\/[^/]+(\?.*)?$/);
+		await expect(this.page).toHaveURL(/\/restaurant\/[^/]+(\?.*)?$/);
 		await expect(this.title).toBeVisible();
 	}
 
 	/** 料理カテゴリ選択画面が開いていることを検証する */
 	async expectDishCategoryOpened(): Promise<void> {
-		await expect(this.page).toHaveURL(/\/review\/restaurant\/[^/]+\/dish-category(\?.*)?$/);
+		await expect(this.page).toHaveURL(/\/restaurant\/[^/]+\/dish-category(\?.*)?$/);
 		await expect(this.dishCategoryTitle).toBeVisible();
 		await expect(this.dishCategoryInput).toBeVisible();
 	}
 
 	/** フィード画面が開いていることを検証する */
 	async expectFeedOpened(): Promise<void> {
-		await expect(this.page).toHaveURL(/\/review\/restaurant\/[^/]+\/feed(\?.*)?$/);
+		await expect(this.page).toHaveURL(/\/restaurant\/[^/]+\/feed(\?.*)?$/);
 		await expect(this.feed).toBeVisible();
 	}
 

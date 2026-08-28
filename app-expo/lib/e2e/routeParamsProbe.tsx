@@ -8,7 +8,7 @@ import { Env } from "@/constants/Env";
  * 届いているか** を Detox から読める形で露出するプローブ（#1272）。
  *
  * ## なぜ必要か
- * iOS では `?tab=saved-topics` 付きの直リンクで起動しても先頭タブのまま着地する（#1272）。
+ * iOS では `?tab=saved-dish-categories` 付きの直リンクで起動しても先頭タブのまま着地する（#1272）。
  * これまでに 3 つの仮説（jumpToTab の ref タイミング / tabRoutes の検証漏れ /
  * useGlobalSearchParams の併用）を **すべてコード修正で試して外した**。
  * 外れ続けた根本原因は「パラメータがどの段で消えているのか観測できていない」ことにある。
@@ -37,6 +37,19 @@ import { Env } from "@/constants/Env";
 export const E2E_ROUTE_PARAMS_PROBE_SENTINEL = "__E2E_ROUTE_PARAMS_PROBE_HOOK__";
 
 /** パラメータを載せる `<Text>` の testID（e2e-mobile/tests/probe/ の spec と対応させること） */
+/**
+ * ⚠️ #1402 現在、このプローブを **描画している画面は 1 つも無い**。
+ *
+ * 唯一の設置場所だったマイページ（features/profile/containers/ProfileTabsLayout.tsx）は
+ * 4 グリッドタブごと廃止され、それを読んでいた e2e-mobile の
+ * tests/profile/profile-tab-deep-link.test.ts も一緒に落とした（`?tab=` という仕組みが消えたため）。
+ *
+ * 実装を残しているのは «機構» が有効だからである。#1272 で分かったのは
+ * 「クエリが届いたか」と「画面が反応したか」は別の層の事実で、見た目だけを見ると
+ * どの層が壊れたのか分からなくなる、ということだった。ルートパラメータ由来の不具合を
+ * また踏んだときは、ここへ 1 行足して観測点を復活させること（metro の差し替えと
+ * scripts/assert-no-e2e-hook.mjs の検査はそのまま生きている）。
+ */
 export const E2E_ROUTE_PARAMS_PROBE_TEST_ID = "profile-route-params-probe";
 
 /**
@@ -53,7 +66,7 @@ export type E2ERouteParamsProbeEntries = Record<string, string | undefined>;
 /**
  * パラメータの実測値を持つ非表示の `<Text>` を返す。無効時は null（= 本番と完全に同じツリー）。
  *
- * 描画例: `local=- global=saved-topics requested=saved-topics auth=1 jump=gaveup`
+ * 描画例: `local=- global=saved-dish-categories requested=saved-dish-categories auth=1 jump=gaveup`
  * Detox は `getAttributes()` か `toHaveText` で読む。
  *
  * ⚠️ フックを使わない純関数にしてある（呼び出し側の描画分岐（早期 return 等）の

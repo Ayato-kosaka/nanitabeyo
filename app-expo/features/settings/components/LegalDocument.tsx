@@ -5,6 +5,8 @@ import i18n from "@/lib/i18n";
 import { legalDocuments } from "@/features/settings/assets/legal/legalDocuments";
 import { useLocale } from "@/hooks/useLocale";
 import type { LegalDocumentType } from "@/lib/legalRoute";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 type LegalLocale = "ja-JP" | "en-US";
 // #1368 許可値は `lib/legalRoute.ts` の 1 箇所が持つ（URL・sitemap・prerender と同じ情報源）。
@@ -56,6 +58,7 @@ interface LegalDocumentProps {
  */
 export function LegalDocument({ documentType }: LegalDocumentProps) {
 	const { locale } = useLocale();
+	const markdownStyles = useThemedStyles(createMarkdownStyles);
 
 	const markdownContent = useMemo(() => {
 		const localeData = locale in legalDocuments ? legalDocuments[locale as LegalLocale] : legalDocuments["en-US"];
@@ -90,30 +93,40 @@ const styles = StyleSheet.create({
 	},
 });
 
-const markdownStyles = {
+/**
+ * #1509 【設計】本文（Markdown）の配色。
+ *
+ * この画面は **WebView を持たない**（`react-native-markdown-display` が React Native の
+ * `<Text>` / `<View>` へ組み上げる）ので、注入する CSS は存在しない。色はここだけが持つ。
+ *
+ * `StyleSheet.create` を使っていないのは元からで、`Markdown` の `style` prop が
+ * 素のオブジェクトを取るため。テーマ追従のために、パレットを受け取るファクトリにして
+ * `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+ */
+const createMarkdownStyles = (c: Palette) => ({
 	body: {
 		fontSize: 16,
 		lineHeight: 26,
-		color: "#111827",
+		color: c.textPrimaryAlt,
 	},
 	heading1: {
 		fontSize: 24,
 		fontWeight: "700",
-		color: "#111827",
+		color: c.textPrimaryAlt,
 		marginTop: 24,
 		marginBottom: 12,
 	},
 	heading2: {
 		fontSize: 18,
 		fontWeight: "600",
-		color: "#111827",
+		color: c.textPrimaryAlt,
 		marginTop: 32,
 		marginBottom: 12,
 	},
 	heading3: {
 		fontSize: 18,
 		fontWeight: "600",
-		color: "#111827",
+		color: c.textPrimaryAlt,
 		marginTop: 16,
 		marginBottom: 8,
 	},
@@ -121,7 +134,7 @@ const markdownStyles = {
 		marginBottom: 16,
 	},
 	link: {
-		color: "#2563EB",
+		color: c.linkAlt,
 	},
 	bullet_list: {
 		marginTop: 4,
@@ -137,17 +150,17 @@ const markdownStyles = {
 		marginBottom: 6,
 	},
 	code_block: {
-		backgroundColor: "#F3F4F6",
+		backgroundColor: c.surfaceSubtle,
 		padding: 12,
 		borderRadius: 8,
 		marginBottom: 12,
 	},
 	blockquote: {
-		backgroundColor: "#F9FAFB",
+		backgroundColor: c.surfaceFaint,
 		borderLeftWidth: 3,
-		borderLeftColor: "#D1D5DB",
+		borderLeftColor: c.borderNeutral,
 		paddingLeft: 12,
 		paddingVertical: 8,
 		marginVertical: 12,
 	},
-};
+});

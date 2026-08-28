@@ -375,12 +375,20 @@ export class DishCategoryGroupVotesService {
             };
           }
 
-          const nextStatus = dto.dishMediaIds.length > 0 ? 'found' : 'empty';
+          // #1513 【設計】投票候補は「墓標を出さず黙って除外する」側の画面。
+          // 削除済みメディアは固定する前に落とす（一度固定すると上書きしないので、
+          // ここで混ぜると以後ずっと «もう無い写真» が候補に居座る）。
+          // 全部落ちたときは «検索済み 0 件» と同じ empty になる
+          const liveDishMediaIds = await this.repo.filterLiveDishMediaIds(
+            tx,
+            dto.dishMediaIds,
+          );
+          const nextStatus = liveDishMediaIds.length > 0 ? 'found' : 'empty';
           const cached = await this.repo.updateCandidateDishMediaIds(
             tx,
             sessionId,
             candidateId,
-            dto.dishMediaIds,
+            liveDishMediaIds,
             nextStatus,
           );
           if (cached.updated) {

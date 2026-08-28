@@ -14,8 +14,8 @@ export class TabBar {
 	readonly page: Page;
 	/** さがすタブ */
 	readonly searchTab: Locator;
-	/** レビュータブ */
-	readonly reviewTab: Locator;
+	/** 食べたい/食べたタブ（#1396 でレビュータブから差し替え） */
+	readonly myDishesTab: Locator;
 	/** マイページタブ */
 	readonly profileTab: Locator;
 	/** お知らせタブ（ログイン済みユーザーのみ表示） */
@@ -25,7 +25,7 @@ export class TabBar {
 	constructor(page: Page) {
 		this.page = page;
 		this.searchTab = page.getByTestId("tab-search");
-		this.reviewTab = page.getByTestId("tab-review");
+		this.myDishesTab = page.getByTestId("tab-my-dishes");
 		this.profileTab = page.getByTestId("tab-profile");
 		this.notificationsTab = page.getByTestId("tab-notifications");
 	}
@@ -35,9 +35,9 @@ export class TabBar {
 		await this.searchTab.click();
 	}
 
-	/** レビュータブへ遷移する */
-	async gotoReview(): Promise<void> {
-		await this.reviewTab.click();
+	/** 食べたい/食べたタブへ遷移する */
+	async gotoMyDishes(): Promise<void> {
+		await this.myDishesTab.click();
 	}
 
 	/** マイページタブへ遷移する */

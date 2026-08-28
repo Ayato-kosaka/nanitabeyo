@@ -18,10 +18,10 @@ import { findResourceStartTime } from "../../utils/preload-assets";
  *
  * ## 何を守るテストか
  * 投票画面は候補カードを **1 枚ずつ**しか描かない。候補を送るたびに生の uri を
- * `TopicVisualCard` へ渡していたため、既に見えているはずの画像でも取得がその場から始まり、
+ * `DishCategoryVisualCard` へ渡していたため、既に見えているはずの画像でも取得がその場から始まり、
  * カード背景色（#EEE）のグレーが一瞬見えていた（Issue #1213）。
  *
- * 修正は `useTopicImageResources` へ候補全件を渡して **画面マウント時に先読みする**というもの。
+ * 修正は `useDishCategoryImageResources` へ候補全件を渡して **画面マウント時に先読みする**というもの。
  * したがってこの spec が守る不変条件は 1 つに集約できる:
  *
  *   **ユーザーが送るより前に、その候補の画像取得が始まっている（happens-before）**
@@ -41,7 +41,7 @@ import { findResourceStartTime } from "../../utils/preload-assets";
  * 同じ理由で、競合窓を広げないと「先読みのおかげ」と「たまたま速かった」を区別できない。
  *
  * ## web と native の違い（重要）
- * `useTopicImageResources` は native では `Image.loadAsync` で ImageRef ごと先読みするが、
+ * `useDishCategoryImageResources` は native では `Image.loadAsync` で ImageRef ごと先読みするが、
  * web は「共有する URL を確定し、ブラウザキャッシュへ実体を載せる」形で先読みする。
  * どちらも「送る前に取得が始まっている」点は同じなので、この spec の観点はそのまま
  * e2e-mobile 側（tests/review/dish-category-group-vote-image-preload.test.ts）と対応する。

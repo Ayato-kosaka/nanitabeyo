@@ -20,8 +20,16 @@
 			},
 			"state": null,
 			"description": "アプリの起動直後に表示される既定タブ。場所・時間帯・シーンを指定して料理を検索する入口。",
-			"from": ["起動（/ → /[locale] へロケールリダイレクト）", "タブバー「さがす」", "料理提案画面から戻る"],
-			"to": ["料理提案（検索実行）", "レビュータブ", "マイページタブ"]
+			"from": [
+				"起動（/ → /[locale] へロケールリダイレクト）",
+				"タブバー「さがす」",
+				"料理提案画面から戻る"
+			],
+			"to": [
+				"料理提案（検索実行）",
+				"食べたい/食べたタブ",
+				"マイページタブ"
+			]
 		},
 		{
 			"id": "search-form-advanced-open",
@@ -40,8 +48,12 @@
 			},
 			"state": "詳細条件トグル（search-advanced-toggle）を開いた状態。距離スライダー・予算・食べたい系統などが表示される",
 			"description": "同一 URL 内の UI 状態。検索条件の詳細（距離・予算・味/主素材の系統など）を展開したところ。",
-			"from": ["検索フォーム"],
-			"to": ["料理提案（検索実行）"]
+			"from": [
+				"検索フォーム"
+			],
+			"to": [
+				"料理提案（検索実行）"
+			]
 		},
 		{
 			"id": "search-form-location-suggestions",
@@ -60,8 +72,12 @@
 			},
 			"state": "場所入力欄に文字を入れ、オートコンプリートの候補リストが開いた状態",
 			"description": "同一 URL 内の UI 状態。Google Places 由来の場所候補を選ぶと検索の必須項目「場所」が確定する。",
-			"from": ["検索フォーム"],
-			"to": ["検索フォーム（場所確定）"]
+			"from": [
+				"検索フォーム"
+			],
+			"to": [
+				"検索フォーム（場所確定）"
+			]
 		},
 		{
 			"id": "onboarding-step1",
@@ -200,8 +216,14 @@
 			},
 			"state": null,
 			"description": "検索条件から生成された料理トピックのカルーセル。カードをスワイプして選び、「この料理にする！」で結果フィードへ進む。",
-			"from": ["検索フォーム（検索実行）"],
-			"to": ["検索結果フィード（この料理にする！）", "検索フォーム（戻る）", "みんなで投票（共有）"]
+			"from": [
+				"検索フォーム（検索実行）"
+			],
+			"to": [
+				"検索結果フィード（この料理にする！）",
+				"検索フォーム（戻る）",
+				"みんなで投票（共有）"
+			]
 		},
 		{
 			"id": "search-topics-tutorial-swipe",
@@ -220,8 +242,13 @@
 			},
 			"state": "スポットライトチュートリアルのステップ 1（testID: topics-tutorial-step-swipeAndDecide）",
 			"description": "同一 URL 内の UI 状態。左右スワイプでの見比べと「この料理にする！」の案内。",
-			"from": ["料理提案（初回表示）", "料理提案のヘルプボタン（？）"],
-			"to": ["料理提案チュートリアル 次ステップ"]
+			"from": [
+				"料理提案（初回表示）",
+				"料理提案のヘルプボタン（？）"
+			],
+			"to": [
+				"料理提案チュートリアル 次ステップ"
+			]
 		},
 		{
 			"id": "search-topics-tutorial-deep-dive",
@@ -240,8 +267,13 @@
 			},
 			"state": "スポットライトチュートリアルのステップ 2（testID: topics-tutorial-step-deepDive）",
 			"description": "同一 URL 内の UI 状態。系統を選んで近い系統で再検索できることの案内。",
-			"from": ["料理提案（初回表示）", "料理提案のヘルプボタン（？）"],
-			"to": ["料理提案チュートリアル 次ステップ"]
+			"from": [
+				"料理提案（初回表示）",
+				"料理提案のヘルプボタン（？）"
+			],
+			"to": [
+				"料理提案チュートリアル 次ステップ"
+			]
 		},
 		{
 			"id": "search-topics-tutorial-topic-actions",
@@ -260,8 +292,13 @@
 			},
 			"state": "スポットライトチュートリアルのステップ 3（testID: topics-tutorial-step-topicActions）",
 			"description": "同一 URL 内の UI 状態。保存・ブロックの案内。",
-			"from": ["料理提案（初回表示）", "料理提案のヘルプボタン（？）"],
-			"to": ["料理提案チュートリアル 次ステップ"]
+			"from": [
+				"料理提案（初回表示）",
+				"料理提案のヘルプボタン（？）"
+			],
+			"to": [
+				"料理提案チュートリアル 次ステップ"
+			]
 		},
 		{
 			"id": "search-topics-tutorial-group-vote",
@@ -280,8 +317,13 @@
 			},
 			"state": "スポットライトチュートリアルのステップ 4（testID: topics-tutorial-step-groupVote）",
 			"description": "同一 URL 内の UI 状態。候補を共有してみんなで投票できることの案内。",
-			"from": ["料理提案（初回表示）", "料理提案のヘルプボタン（？）"],
-			"to": ["料理提案"]
+			"from": [
+				"料理提案（初回表示）",
+				"料理提案のヘルプボタン（？）"
+			],
+			"to": [
+				"料理提案"
+			]
 		},
 		{
 			"id": "search-result-feed",
@@ -300,8 +342,13 @@
 			},
 			"state": null,
 			"description": "選んだ料理トピックに対する店舗・料理メディアの縦フィード。いいね／保存／店舗地図への導線を持つ。",
-			"from": ["料理提案（この料理にする！）"],
-			"to": ["料理提案（閉じる＝戻る）", "店舗詳細・地図アプリ（外部）"]
+			"from": [
+				"料理提案（この料理にする！）"
+			],
+			"to": [
+				"料理提案（閉じる＝戻る）",
+				"店舗詳細・地図アプリ（外部）"
+			]
 		},
 		{
 			"id": "search-group-vote-result",
@@ -320,8 +367,13 @@
 			},
 			"state": "共有トークンが無効な場合は読み込み失敗＋再試行ボタンの状態になる",
 			"description": "料理候補をグループで投票した結果を共有リンクで見る画面。候補の削除や再投票の導線を持つ。",
-			"from": ["料理提案（みんなで投票の共有リンク）", "外部で共有された URL の直接オープン"],
-			"to": ["みんなで投票・投票画面"],
+			"from": [
+				"料理提案（みんなで投票の共有リンク）",
+				"外部で共有された URL の直接オープン"
+			],
+			"to": [
+				"みんなで投票・投票画面"
+			],
 			"note": "実データの shareToken が必要。E2E では無効トークンでのエラー状態のみ取得する（投票の新規作成は dev DB への書き込みになるため行わない）。"
 		},
 		{
@@ -341,15 +393,20 @@
 			},
 			"state": "共有トークンが無効な場合は読み込み失敗＋再試行ボタンの状態になる",
 			"description": "共有リンクを受け取った人が料理候補に投票する画面。Web で開かれた場合はアプリで開き直すバナーを出す。",
-			"from": ["みんなで投票・結果", "外部で共有された URL の直接オープン"],
-			"to": ["みんなで投票・結果"],
+			"from": [
+				"みんなで投票・結果",
+				"外部で共有された URL の直接オープン"
+			],
+			"to": [
+				"みんなで投票・結果"
+			],
 			"note": "実データの shareToken が必要。E2E では無効トークンでのエラー状態のみ取得する。"
 		},
 		{
-			"id": "review-guest",
-			"name": "レビュータブ（ゲスト）",
-			"route": "/[locale]/review",
-			"url": "/ja-JP/review",
+			"id": "my-dishes-guest",
+			"name": "食べたい/食べたタブ（ゲスト）",
+			"route": "/[locale]/my-dishes",
+			"url": "/ja-JP/my-dishes",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -360,14 +417,18 @@
 					"session": "anon"
 				}
 			},
-			"state": "匿名ユーザー向け。ログイン誘導のみでレビュー投稿の導線は出ない",
-			"description": "レビュー投稿タブの未ログイン時表示。ログインするとレビュー投稿の導線に切り替わる。",
-			"from": ["タブバー「レビュー」"],
-			"to": ["ログイン"]
+			"state": "匿名ユーザー向け。ログイン誘導のみで3ビュー（Map/リスト/Calendar）や記録の導線は出ない",
+			"description": "食べたい/食べたタブの未ログイン時表示。ログインすると3ビューの shell と記録 CTA に切り替わる。",
+			"from": [
+				"タブバー「食べたい/食べた」"
+			],
+			"to": [
+				"ログイン"
+			]
 		},
 		{
 			"id": "profile-guest",
-			"name": "マイページ（ゲスト・保存した投稿）",
+			"name": "マイページ（ゲスト）",
 			"route": "/[locale]/profile",
 			"url": "/ja-JP/profile",
 			"platforms": {
@@ -380,31 +441,46 @@
 					"session": "anon"
 				}
 			},
-			"state": "匿名ユーザー。タブは保存系（保存した投稿／保存したトピック／いいね）のみ",
-			"description": "プロフィールタブ。匿名時はゲスト表示＋ログインボタンで、投稿・ウォレット系タブは出ない。",
-			"from": ["タブバー「マイページ」", "URL 直リンク"],
-			"to": ["設定", "ログイン", "保存/いいねした投稿のフィード"]
+			"state": "匿名ユーザー。プロフィール要約＋縦リスト（いいね／保存した料理カテゴリ／旧設定画面の項目）",
+			"description": "プロフィールタブ。#1402 で 4 グリッドタブを廃止し、独立していた設定画面の項目もここへ統合した。匿名時はゲスト表示＋ログインボタンで、ログアウト行は出ない（Web では「レビューを書く」も非表示）。",
+			"from": [
+				"タブバー「マイページ」",
+				"URL 直リンク"
+			],
+			"to": [
+				"いいねした投稿",
+				"保存した料理カテゴリ",
+				"ログイン",
+				"ご意見・不具合",
+				"ブロック済みの料理カテゴリ",
+				"利用規約/プライバシーポリシー/ガイドライン/著作権（/legal/[doc]）"
+			]
 		},
 		{
-			"id": "profile-guest-saved-topics",
-			"name": "マイページ（保存したトピック）",
-			"route": "/[locale]/profile",
-			"url": "/ja-JP/profile",
+			"id": "profile-saved-topics",
+			"name": "保存した料理カテゴリ",
+			"route": "/[locale]/profile/saved-topics",
+			"url": "/ja-JP/profile/saved-topics",
 			"platforms": {
 				"web": {
 					"capture": "auto",
 					"session": "anon"
 				},
 				"mobile": {
-					"capture": "optional",
-					"session": "anon",
-					"note": "「保存」グループ内のサブタブに testID が無く、文言タップに依存するため取得できないことがある。"
+					"capture": "auto",
+					"session": "anon"
 				}
 			},
-			"state": "プロフィール内タブ「保存したトピック」を選択した状態",
-			"description": "同一 URL 内の UI 状態。保存した料理トピックの一覧。カードを押すと地点検索の画面へ進む。",
-			"from": ["マイページ"],
-			"to": ["保存料理カテゴリの地点検索"]
+			"state": null,
+			"description": "保存した料理カテゴリの一覧。#1402 でマイページ内のサブタブから «単独のルート» になった（グリッドの実装 SavedTopicsTab はそのまま流用）。カードを押すと地点検索の画面へ進む。",
+			"from": [
+				"マイページ（「保存した料理カテゴリ」の行）",
+				"URL 直リンク"
+			],
+			"to": [
+				"保存料理カテゴリの地点検索",
+				"マイページ（戻る）"
+			]
 		},
 		{
 			"id": "profile-saved-topic-location",
@@ -423,15 +499,20 @@
 			},
 			"state": null,
 			"description": "保存した料理カテゴリのカードから開く地点検索（#1369 でモーダルからルートへ）。ホーム（さがすタブ）と同じ LocationAutocomplete・同じ履歴（recent_locations_v1）を使う。地点を確定すると検索結果マップへ進む。",
-			"from": ["マイページ（保存したトピック）"],
-			"to": ["マイページ由来の検索結果マップ", "マイページ（戻る）"],
+			"from": [
+				"保存した料理カテゴリ"
+			],
+			"to": [
+				"マイページ由来の検索結果マップ",
+				"マイページ（戻る）"
+			],
 			"note": "本来の入口は保存済みカテゴリのカードで、検索には topicId / topicLabelEn のパラメータが要る。画面の見た目はパラメータの有無で変わらないため、カタログは直リンクで撮る。"
 		},
 		{
-			"id": "profile-guest-liked",
-			"name": "マイページ（いいね）",
-			"route": "/[locale]/profile",
-			"url": "/ja-JP/profile",
+			"id": "profile-liked",
+			"name": "いいねした投稿",
+			"route": "/[locale]/profile/liked",
+			"url": "/ja-JP/profile/liked",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -442,10 +523,16 @@
 					"session": "anon"
 				}
 			},
-			"state": "プロフィール内タブ「いいね」を選択した状態",
-			"description": "同一 URL 内の UI 状態。いいねした料理メディアの一覧。",
-			"from": ["マイページ"],
-			"to": ["料理メディアフィード"]
+			"state": null,
+			"description": "いいねした料理メディアの一覧。#1402 でマイページ内のタブから «単独のルート» になった（グリッドの実装 LikeTab はそのまま流用）。",
+			"from": [
+				"マイページ（「いいねした投稿」の行）",
+				"URL 直リンク"
+			],
+			"to": [
+				"料理メディアフィード（profile/food）",
+				"マイページ（戻る）"
+			]
 		},
 		{
 			"id": "auth-login",
@@ -466,34 +553,13 @@
 			"description": "ログインの唯一の実体（#1359）。Google / Apple の OAuth ボタンとリーガルリンクを持つ。かつては呼び出し 4 箇所それぞれで BlurModal として重ねていたが、1 つのルートへ統合した。`?next=` は履歴を持たない着地（コールドロード / web の OAuth 全画面リダイレクト）用の戻り先。",
 			"from": [
 				"マイページ（ゲスト）",
-				"レビュータブ（ゲスト）",
+				"食べたい/食べたタブ（ゲスト）",
 				"レビューのお店詳細（ゲスト）",
 				"地図のお店詳細（ゲスト）"
 			],
-			"to": ["外部 IdP（Google / Apple OAuth）", "利用規約・プライバシーポリシー（/legal/[doc]）"]
-		},
-		{
-			"id": "profile-settings",
-			"name": "設定",
-			"route": "/[locale]/profile/settings",
-			"url": "/ja-JP/profile/settings",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "anon"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "anon"
-				}
-			},
-			"state": "匿名ユーザー。ログアウト行は出ない（Web では「レビューを書く」も非表示）",
-			"description": "設定メニュー。フィードバック・ブロック済みトピック・各種リーガル文書への導線を持つ。#1368 でリーガル 4 行はモーダル起動から画面遷移（/[locale]/legal/[doc]）へ変わった。",
-			"from": ["マイページ（歯車アイコン）", "URL 直リンク"],
 			"to": [
-				"ご意見・不具合",
-				"ブロック済みの料理トピック",
-				"利用規約/プライバシーポリシー/ガイドライン/著作権（/legal/[doc]）"
+				"外部 IdP（Google / Apple OAuth）",
+				"利用規約・プライバシーポリシー（/legal/[doc]）"
 			]
 		},
 		{
@@ -513,8 +579,14 @@
 			},
 			"state": null,
 			"description": "Markdown の法務文書を表示する単独ページ（#1368）。`[doc]` は guidelines / terms / privacy / copyright の 4 値で、UI は 4 文書とも同一・中身だけが異なるため代表 2 本を撮っている。かつては設定とログインがそれぞれ BlurModal で重ねていたが、共有・ブックマーク・ストア審査・SEO のために URL で指せるルートへ移した（sitemap 掲載対象）。",
-			"from": ["設定", "URL 直リンク（ストア審査・問い合わせ・検索結果）"],
-			"to": ["設定（戻る）", "呼び出し元の画面（戻る）"]
+			"from": [
+				"設定",
+				"URL 直リンク（ストア審査・問い合わせ・検索結果）"
+			],
+			"to": [
+				"設定（戻る）",
+				"呼び出し元の画面（戻る）"
+			]
 		},
 		{
 			"id": "legal-privacy",
@@ -533,8 +605,15 @@
 			},
 			"state": null,
 			"description": "利用規約と同じルート（`/[locale]/legal/[doc]`）で `doc` だけが異なるページ。ログイン画面の同意文言からもここへ遷移する。",
-			"from": ["設定", "ログイン画面の同意文言のリンク", "URL 直リンク"],
-			"to": ["設定（戻る）", "ログイン（戻る）"]
+			"from": [
+				"設定",
+				"ログイン画面の同意文言のリンク",
+				"URL 直リンク"
+			],
+			"to": [
+				"設定（戻る）",
+				"ログイン（戻る）"
+			]
 		},
 		{
 			"id": "legal-not-found",
@@ -553,8 +632,12 @@
 			},
 			"state": "公開していない `doc`（例: /legal/tos）で着地した状態",
 			"description": "同一ルートのエラー状態。既定の文書へ倒すと `/legal/<任意の文字列>` が全部同じ文書の複製として 200 を返すため、not-found を出す（app-expo/lib/legalRoute.ts）。戻る導線はこの分岐の外にあり、行き止まりにはならない。",
-			"from": ["URL 直リンク（誤ったリンク・古いブックマーク）"],
-			"to": ["設定（戻る）"]
+			"from": [
+				"URL 直リンク（誤ったリンク・古いブックマーク）"
+			],
+			"to": [
+				"設定（戻る）"
+			]
 		},
 		{
 			"id": "profile-feedback",
@@ -573,8 +656,12 @@
 			},
 			"state": null,
 			"description": "フィードバック送信フォーム。送信すると GitHub issue が作られるため E2E では送信しない。",
-			"from": ["設定"],
-			"to": ["設定（戻る）"]
+			"from": [
+				"設定"
+			],
+			"to": [
+				"設定（戻る）"
+			]
 		},
 		{
 			"id": "profile-blocked-topics",
@@ -593,8 +680,12 @@
 			},
 			"state": "ブロックが 0 件のときは空状態（EmptyState）",
 			"description": "料理提案でブロックしたカテゴリの一覧。ここから解除できる。",
-			"from": ["設定"],
-			"to": ["設定（戻る）"]
+			"from": [
+				"設定"
+			],
+			"to": [
+				"設定（戻る）"
+			]
 		},
 		{
 			"id": "not-found",
@@ -614,8 +705,12 @@
 			},
 			"state": null,
 			"description": "存在しないパスに対する画面。ホームへ戻るリンクのみを持つ。",
-			"from": ["不正な URL の直接オープン"],
-			"to": ["起動（ホーム）"]
+			"from": [
+				"不正な URL の直接オープン"
+			],
+			"to": [
+				"起動（ホーム）"
+			]
 		},
 		{
 			"id": "auth-error-fallback",
@@ -635,8 +730,12 @@
 			},
 			"state": "匿名サインインが 429 等で失敗したときのエラー UI（再試行ボタン付き）",
 			"description": "起動時の匿名サインインに失敗した場合に表示される復帰用の画面（#1089）。E2E ではネットワークをスタブして再現する。",
-			"from": ["起動（匿名サインイン失敗時）"],
-			"to": ["検索フォーム（再試行が成功した場合）"]
+			"from": [
+				"起動（匿名サインイン失敗時）"
+			],
+			"to": [
+				"検索フォーム（再試行が成功した場合）"
+			]
 		},
 		{
 			"id": "search-form-en-US",
@@ -656,8 +755,13 @@
 			},
 			"state": "ロケール違いの同一画面。URL の先頭セグメントが表示言語を決める",
 			"description": "多言語対応の確認用。ja-JP 以外のロケールでも同じ画面構成で英語表記になる。",
-			"from": ["起動（デバイスロケールが en-US の場合）", "URL 直リンク"],
-			"to": ["料理提案（検索実行）"]
+			"from": [
+				"起動（デバイスロケールが en-US の場合）",
+				"URL 直リンク"
+			],
+			"to": [
+				"料理提案（検索実行）"
+			]
 		},
 		{
 			"id": "contribution-dish-category-image-optimizer",
@@ -676,7 +780,9 @@
 			},
 			"state": null,
 			"description": "運営用ツール。料理カテゴリ画像のトリミング候補を選んで最適化する（アプリ内導線なし）。",
-			"from": ["URL 直リンク（運営が共有）"],
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
 			"to": []
 		},
 		{
@@ -696,7 +802,9 @@
 			},
 			"state": null,
 			"description": "運営用ツール。変更前後の画像を並べて差し替え可否をレビューする（アプリ内導線なし）。",
-			"from": ["URL 直リンク（運営が共有）"],
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
 			"to": []
 		},
 		{
@@ -716,7 +824,9 @@
 			},
 			"state": "初回は使い方チュートリアルのページが表示される",
 			"description": "ユーザー協力で料理カテゴリの画像を集める画面（アプリ内導線なし）。",
-			"from": ["URL 直リンク（運営が共有）"],
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
 			"to": []
 		},
 		{
@@ -736,7 +846,9 @@
 			},
 			"state": "スワイプ（Tinder 風）UI。データが尽きると「全て確認しました」表示になる",
 			"description": "ユーザー協力で料理カテゴリの title / subTitle を改善する画面（アプリ内導線なし）。",
-			"from": ["URL 直リンク（運営が共有）"],
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
 			"to": []
 		},
 		{
@@ -756,7 +868,9 @@
 			},
 			"state": "10 枚のカルーセル＋回答モーダル",
 			"description": "料理画像に対するタイトル・タグラインの好みを集めるアンケート（アプリ内導線なし）。",
-			"from": ["URL 直リンク（運営が共有）"],
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
 			"to": []
 		},
 		{
@@ -776,7 +890,9 @@
 			},
 			"state": "条件プルダウン＋ランキング一覧。総括コメントの入力導線を持つ",
 			"description": "運営用ツール。条件別の料理ランキングをレビューしてコメントする（アプリ内導線なし）。",
-			"from": ["URL 直リンク（運営が共有）"],
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
 			"to": []
 		},
 		{
@@ -794,10 +910,19 @@
 					"session": "authenticated"
 				}
 			},
-			"state": "ログイン済み。保存系に加えて投稿（レビュー）・ウォレット系タブが増える",
-			"description": "ログイン済みのプロフィール。匿名時との差分はタブ構成とヘッダー（ログインボタンが「プロフィールを編集」に変わる）。",
-			"from": ["タブバー「マイページ」"],
-			"to": ["設定", "プロフィール編集", "自分のレビューのフィード", "ウォレット（入札・収益）"]
+			"state": "ログイン済み。匿名時との差分は「プロフィールを編集」ボタンと「ログアウト」行の有無",
+			"description": "ログイン済みのマイページ。#1402 で 4 グリッドタブと独立した設定画面が無くなり、匿名時との差分はヘッダーのボタン（ログイン→プロフィールを編集）と縦リスト末尾のログアウト行だけになった。",
+			"from": [
+				"タブバー「マイページ」"
+			],
+			"to": [
+				"プロフィール編集",
+				"いいねした投稿",
+				"保存した料理カテゴリ",
+				"ご意見・不具合",
+				"ブロック済みの料理カテゴリ",
+				"起動（ログアウト）"
+			]
 		},
 		{
 			"id": "profile-edit",
@@ -816,55 +941,19 @@
 			},
 			"state": null,
 			"description": "表示名・自己紹介・アバターを編集して保存する画面（#1369 でモーダルからルートへ）。保存に成功すると元の画面へ戻る。",
-			"from": ["マイページ（ログイン済み）"],
-			"to": ["マイページ（戻る / 保存後）"],
+			"from": [
+				"マイページ（ログイン済み）"
+			],
+			"to": [
+				"マイページ（戻る / 保存後）"
+			],
 			"note": "編集ボタンはログイン済みのときだけ描画される（匿名時は同じ位置にログインボタンが出る）。E2E は保存を実行しない（共有 dev DB のテストユーザーを書き換えるため）。"
-		},
-		{
-			"id": "profile-authenticated-reviews",
-			"name": "マイページ（投稿したレビュー）",
-			"route": "/[locale]/profile",
-			"url": "/ja-JP/profile",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "authenticated"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "authenticated"
-				}
-			},
-			"state": "プロフィール内タブ「レビュー」を選択した状態（ログイン済みのみ）",
-			"description": "同一 URL 内の UI 状態。自分が投稿したレビューのグリッド。",
-			"from": ["マイページ（ログイン済み）"],
-			"to": ["料理メディアフィード（profile/food）"]
-		},
-		{
-			"id": "profile-settings-authenticated",
-			"name": "設定（ログイン済み）",
-			"route": "/[locale]/profile/settings",
-			"url": "/ja-JP/profile/settings",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "authenticated"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "authenticated"
-				}
-			},
-			"state": "ログイン済み。匿名時との差分は「ログアウト」行の有無",
-			"description": "ログイン済みで開いた設定画面。",
-			"from": ["マイページ（ログイン済み）"],
-			"to": ["ご意見・不具合", "ブロック済みの料理トピック", "起動（ログアウト）"]
 		},
 		{
 			"id": "profile-food-feed",
 			"name": "料理メディアフィード（マイページ由来）",
 			"route": "/[locale]/profile/food",
-			"url": "/ja-JP/profile/food?tabName=reviews&startIndex=0",
+			"url": "/ja-JP/profile/food?tabName=profileLikes&startIndex=0",
 			"platforms": {
 				"web": {
 					"capture": "optional",
@@ -876,10 +965,14 @@
 				}
 			},
 			"state": null,
-			"description": "マイページのグリッドから開く縦フィード。tabName に応じて保存/いいね/レビューのどれを表示するかが決まる。",
-			"from": ["マイページの各グリッド"],
-			"to": ["マイページ（戻る）"],
-			"note": "グリッドに 1 件以上の実データが必要。テストユーザーのデータ次第で取得できないことがある。"
+			"description": "「いいねした投稿」のグリッドから開く縦フィード。#1402 で 4 グリッドタブが廃止され、このルートへ来る導線は «いいね» だけになった。",
+			"from": [
+				"いいねした投稿"
+			],
+			"to": [
+				"マイページ（戻る）"
+			],
+			"note": "いいねが 1 件以上必要。テストユーザーのデータ次第で取得できないことがある。"
 		},
 		{
 			"id": "notifications",
@@ -898,14 +991,18 @@
 			},
 			"state": "ログイン済みのみタブに出る（匿名は href: null で非表示）。通知 0 件なら空状態",
 			"description": "いいね・保存などの通知一覧。画面入場時に一括既読になる。",
-			"from": ["タブバー「お知らせ」（ログイン済みのみ）"],
-			"to": ["通知対象の料理メディアフィード（notifications/feed）"]
+			"from": [
+				"タブバー「お知らせ」（ログイン済みのみ）"
+			],
+			"to": [
+				"通知対象の料理メディアフィード（notifications/feed）"
+			]
 		},
 		{
-			"id": "review-authenticated",
-			"name": "レビュータブ（ログイン済み）",
-			"route": "/[locale]/review",
-			"url": "/ja-JP/review",
+			"id": "my-dishes-authenticated",
+			"name": "食べたい/食べたタブ（ログイン済み）",
+			"route": "/[locale]/my-dishes",
+			"url": "/ja-JP/my-dishes",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -916,16 +1013,20 @@
 					"session": "authenticated"
 				}
 			},
-			"state": "ログイン済み。ログイン誘導ではなく「お店のレビューを投稿しよう」CTA が出る",
-			"description": "レビュー投稿の入口。CTA から店舗選択画面へ進む。",
-			"from": ["タブバー「レビュー」"],
-			"to": ["店舗選択（レビュー投稿）"]
+			"state": "ログイン済み。ログイン誘導ではなく 3 ビュー（Map/リスト/Calendar）の shell と「記録する」CTA が出る",
+			"description": "食べたい/食べたタブの入口。3 ビューを切り替えられ、CTA から店舗選択画面へ進む。",
+			"from": [
+				"タブバー「食べたい/食べた」"
+			],
+			"to": [
+				"店舗選択（レビュー投稿）"
+			]
 		},
 		{
-			"id": "review-select-restaurant",
+			"id": "my-dishes-select-restaurant",
 			"name": "店舗選択（レビュー投稿）",
-			"route": "/[locale]/review/selectRestaurant",
-			"url": "/ja-JP/review/selectRestaurant",
+			"route": "/[locale]/my-dishes/select-restaurant",
+			"url": "/ja-JP/my-dishes/select-restaurant",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -938,14 +1039,19 @@
 			},
 			"state": "地図＋場所検索。保存済み店舗のシートを開ける",
 			"description": "レビューを書く店舗を地図から選ぶ画面。選択すると店舗詳細へ進む。",
-			"from": ["レビュータブ（ログイン済み）"],
-			"to": ["店舗詳細", "レビュータブ（戻る）"]
+			"from": [
+				"食べたい/食べたタブ（ログイン済み）"
+			],
+			"to": [
+				"店舗詳細",
+				"食べたい/食べたタブ（戻る）"
+			]
 		},
 		{
 			"id": "review-restaurant-detail",
 			"name": "店舗詳細",
-			"route": "/[locale]/review/restaurant/[restaurantId]",
-			"url": "/ja-JP/review/restaurant/<restaurantId>",
+			"route": "/[locale]/restaurant/[restaurantId]",
+			"url": "/ja-JP/restaurant/<restaurantId>",
 			"platforms": {
 				"web": {
 					"capture": "mutation",
@@ -958,15 +1064,23 @@
 			},
 			"state": null,
 			"description": "アプリ唯一の店舗詳細。「写真・動画を投稿」でレビュー投稿フォームへ、レビュー一覧のグリッド押下で «その料理へのレビュー投稿» へ進む。#1411 で入札の導線（ボタン / タブ / 現在の入札額 / bid ルート）を、#1419 で Google マップ導線を落とした。どちらも #1386 の統合で到達不能だった地図タブから持ち込まれたもので、地図タブ自体も #1419 で削除した。",
-			"from": ["店舗選択（レビュー投稿）", "検索結果フィードの店舗導線", "URL 直リンク・共有リンク"],
-			"to": ["レビュー投稿フォーム", "店舗のレビューフィード", "ログイン（ゲストが投稿を押したとき）"],
-			"note": "レストラン選択で POST /v1/restaurants が走る（同一 Place は upsert のため重複しない）。#1386 でルート化そのものの検証は e2e-web の tests/review/restaurant-routes.spec.ts / e2e-mobile の tests/review/restaurant-routes.test.ts が API モック・ディープリンクで持つ。"
+			"from": [
+				"店舗選択（レビュー投稿）",
+				"検索結果フィードの店舗導線",
+				"URL 直リンク・共有リンク"
+			],
+			"to": [
+				"レビュー投稿フォーム",
+				"店舗のレビューフィード",
+				"ログイン（ゲストが投稿を押したとき）"
+			],
+			"note": "レストラン選択で POST /v1/restaurants が走る（同一 Place は upsert のため重複しない）。#1386 でルート化そのものの検証は e2e-web の tests/my-dishes/restaurant-routes.spec.ts / e2e-mobile の tests/my-dishes/restaurant-routes.test.ts が API モック・ディープリンクで持つ。"
 		},
 		{
 			"id": "review-post-form",
 			"name": "レビュー投稿フォーム",
-			"route": "/[locale]/review/restaurant/[restaurantId]/review",
-			"url": "/ja-JP/review/restaurant/<restaurantId>/review",
+			"route": "/[locale]/restaurant/[restaurantId]/review",
+			"url": "/ja-JP/restaurant/<restaurantId>/review",
 			"platforms": {
 				"web": {
 					"capture": "mutation",
@@ -979,15 +1093,19 @@
 			},
 			"state": "マウント時に端末のメディア選択（ファイルピッカー）が起動する",
 			"description": "写真・動画とコメント・評価を入力してレビューを投稿するフォーム。",
-			"from": ["店舗詳細"],
-			"to": ["投稿完了後のレビュー詳細（review/post/[id]）"],
+			"from": [
+				"店舗詳細"
+			],
+			"to": [
+				"投稿完了後のレビュー詳細（post/[id]）"
+			],
 			"note": "メディア選択は web はファイル入力、native は E2E ビルドの固定画像スタブで通す。"
 		},
 		{
 			"id": "review-dish-category",
 			"name": "料理カテゴリ選択（レビュー投稿）",
-			"route": "/[locale]/review/restaurant/[restaurantId]/dish-category",
-			"url": "/ja-JP/review/restaurant/e2e-catalog-restaurant/dish-category",
+			"route": "/[locale]/restaurant/[restaurantId]/dish-category",
+			"url": "/ja-JP/restaurant/e2e-catalog-restaurant/dish-category",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -1000,15 +1118,19 @@
 			},
 			"state": null,
 			"description": "レビュー投稿フォームから開く料理カテゴリの検索・選択（#1386 でモーダル z1100 からルートへ）。候補に無い名前はそのまま新規カテゴリとして作られる。",
-			"from": ["レビュー投稿フォーム"],
-			"to": ["レビュー投稿フォーム（選択して戻る）"],
+			"from": [
+				"レビュー投稿フォーム"
+			],
+			"to": [
+				"レビュー投稿フォーム（選択して戻る）"
+			],
 			"note": "この画面も店舗データを読まないため、カタログはダミー id の直リンクで撮る。候補の取得は入力後に走るので、撮影時は空の入力欄が写る。"
 		},
 		{
 			"id": "review-restaurant-feed",
 			"name": "店舗のレビューフィード",
-			"route": "/[locale]/review/restaurant/[restaurantId]/feed",
-			"url": "/ja-JP/review/restaurant/<restaurantId>/feed?initialIndex=0",
+			"route": "/[locale]/restaurant/[restaurantId]/feed",
+			"url": "/ja-JP/restaurant/<restaurantId>/feed?initialIndex=0",
 			"platforms": {
 				"web": {
 					"capture": "manual",
@@ -1021,15 +1143,20 @@
 			},
 			"state": null,
 			"description": "店舗詳細のレビュー一覧（グリッド）から開く全画面フィード（#1386 でモーダル z1100 からルートへ）。ログイン済みなら「この料理にレビューを書く」から既存メディアへのレビュー投稿へ進む。",
-			"from": ["URL 直リンク（#1418 でアプリ内の導線からは外した）"],
-			"to": ["既存メディアからのレビュー投稿", "店舗詳細（×）"],
+			"from": [
+				"URL 直リンク（#1418 でアプリ内の導線からは外した）"
+			],
+			"to": [
+				"既存メディアからのレビュー投稿",
+				"店舗詳細（×）"
+			],
 			"note": "実在する restaurantId と、その店舗に紐づく料理メディアが必要なため自動取得の対象外（0 件だと «見るものが無い» 表示になる）。#1418 でアプリ内の導線からは外したため、いまは URL 直リンクでしか着地しない。"
 		},
 		{
 			"id": "review-from-media",
 			"name": "既存メディアからのレビュー投稿",
-			"route": "/[locale]/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
-			"url": "/ja-JP/review/restaurant/<restaurantId>/review-from-media/<dishMediaId>",
+			"route": "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			"url": "/ja-JP/restaurant/<restaurantId>/review-from-media/<dishMediaId>",
 			"platforms": {
 				"web": {
 					"capture": "manual",
@@ -1042,15 +1169,20 @@
 			},
 			"state": null,
 			"description": "既に登録されている料理メディアに対して自分のレビューを追加するフォーム。",
-			"from": ["店舗詳細（レビュー一覧のグリッド）", "店舗のレビューフィード（この料理にレビューを書く）"],
-			"to": ["投稿完了後のレビュー詳細（review/post/[id]）"],
+			"from": [
+				"店舗詳細（レビュー一覧のグリッド）",
+				"店舗のレビューフィード（この料理にレビューを書く）"
+			],
+			"to": [
+				"投稿完了後のレビュー詳細（post/[id]）"
+			],
 			"note": "#1386 で入口が «店舗詳細のグリッド直押し» から «フィードの CTA» へ変わった。実在する restaurantId と dishMediaId が必要なため自動取得の対象外。"
 		},
 		{
 			"id": "review-post-detail",
 			"name": "レビュー詳細（投稿直後）",
-			"route": "/[locale]/review/post/[id]",
-			"url": "/ja-JP/review/post/<id>",
+			"route": "/[locale]/post/[id]",
+			"url": "/ja-JP/post/<id>",
 			"platforms": {
 				"web": {
 					"capture": "mutation",
@@ -1063,8 +1195,13 @@
 			},
 			"state": null,
 			"description": "レビュー投稿の完了後に遷移する自分の投稿の詳細画面。",
-			"from": ["レビュー投稿フォーム", "既存メディアからのレビュー投稿"],
-			"to": ["レビュータブ（戻る）"],
+			"from": [
+				"レビュー投稿フォーム",
+				"既存メディアからのレビュー投稿"
+			],
+			"to": [
+				"食べたい/食べたタブ（戻る）"
+			],
 			"note": "レビュー投稿（不可逆）を伴う。コメントは [E2E] プレフィックス付きで投稿する。"
 		},
 		{
@@ -1084,8 +1221,12 @@
 			},
 			"state": null,
 			"description": "通知をタップして開く料理メディアの縦フィード。",
-			"from": ["お知らせ（通知一覧）"],
-			"to": ["お知らせ（戻る）"],
+			"from": [
+				"お知らせ（通知一覧）"
+			],
+			"to": [
+				"お知らせ（戻る）"
+			],
 			"note": "通知が 1 件以上ある状態が前提。テストユーザーの通知有無に依存するため自動取得の対象外。"
 		},
 		{
@@ -1106,8 +1247,12 @@
 			},
 			"state": "タブバーには出ない隠しルート（href: null）。SEO 用のメタ情報を上書きする",
 			"description": "共有リンクから特定の料理メディアを見せる画面。アプリで開き直すバナーを表示する。",
-			"from": ["共有リンクの直接オープン"],
-			"to": ["アプリ（ディープリンク）"],
+			"from": [
+				"共有リンクの直接オープン"
+			],
+			"to": [
+				"アプリ（ディープリンク）"
+			],
 			"note": "実在する dishMediaId が必要なため自動取得の対象外。"
 		},
 		{
@@ -1127,8 +1272,12 @@
 			},
 			"state": null,
 			"description": "マイページの保存トピックなどから開く、地図付きの料理メディア一覧。",
-			"from": ["保存料理カテゴリの地点検索"],
-			"to": ["マイページ（閉じる）"],
+			"from": [
+				"保存料理カテゴリの地点検索"
+			],
+			"to": [
+				"マイページ（閉じる）"
+			],
 			"note": "entriesKey に紐づくストア状態が必要（URL 直リンクでは復元されない）ため自動取得の対象外。"
 		},
 		{
@@ -1148,8 +1297,12 @@
 			},
 			"state": "処理中はスピナーのみ。ID 連携の衝突時は確認ダイアログを表示する",
 			"description": "Google / Apple の OAuth 後に戻ってくる画面。セッション確立後にマイページへ遷移する。",
-			"from": ["外部 IdP（Google / Apple）"],
-			"to": ["マイページ"],
+			"from": [
+				"外部 IdP（Google / Apple）"
+			],
+			"to": [
+				"マイページ"
+			],
 			"note": "外部 IdP を経由しないと本来の状態にならず、E2E では OAuth 自体を自動化しない方針のため自動取得の対象外。"
 		},
 		{
@@ -1170,8 +1323,13 @@
 			},
 			"state": "UI を持たない（即座に外部リダイレクトする）",
 			"description": "モバイルブラウザから App Store / Google Play へ、デスクトップからは Web トップへ送る中継ページ。",
-			"from": ["共有リンク・広告などの外部導線"],
-			"to": ["App Store / Google Play（外部）", "Web トップ"],
+			"from": [
+				"共有リンク・広告などの外部導線"
+			],
+			"to": [
+				"App Store / Google Play（外部）",
+				"Web トップ"
+			],
 			"note": "描画要素を持たず外部サイトへ遷移するため、スクリーンショットの対象にしない。"
 		}
 	],
@@ -1200,13 +1358,13 @@
 		},
 		{
 			"from": "tab-bar",
-			"to": "review-guest",
-			"label": "レビュー（ゲスト）"
+			"to": "my-dishes-guest",
+			"label": "食べたい/食べた（ゲスト）"
 		},
 		{
 			"from": "tab-bar",
-			"to": "review-authenticated",
-			"label": "レビュー（ログイン済み）"
+			"to": "my-dishes-authenticated",
+			"label": "食べたい/食べた（ログイン済み）"
 		},
 		{
 			"from": "tab-bar",
@@ -1329,7 +1487,7 @@
 			"label": "投票する"
 		},
 		{
-			"from": "review-guest",
+			"from": "my-dishes-guest",
 			"to": "auth-login",
 			"label": "ログイン"
 		},
@@ -1355,21 +1513,21 @@
 		},
 		{
 			"from": "profile-guest",
-			"to": "profile-guest-saved-topics",
-			"label": "保存＞料理"
+			"to": "profile-saved-topics",
+			"label": "保存した料理カテゴリ"
 		},
 		{
 			"from": "profile-guest",
-			"to": "profile-guest-liked",
-			"label": "いいね"
+			"to": "profile-liked",
+			"label": "いいねした投稿"
 		},
 		{
-			"from": "profile-guest",
-			"to": "profile-settings",
-			"label": "歯車"
+			"from": "profile-liked",
+			"to": "profile-food-feed",
+			"label": "グリッドを開く"
 		},
 		{
-			"from": "profile-guest-saved-topics",
+			"from": "profile-saved-topics",
 			"to": "profile-saved-topic-location",
 			"label": "保存トピックを開く"
 		},
@@ -1379,12 +1537,12 @@
 			"label": "地点を確定"
 		},
 		{
-			"from": "profile-settings",
+			"from": "profile-guest",
 			"to": "legal-terms",
 			"label": "利用規約"
 		},
 		{
-			"from": "profile-settings",
+			"from": "profile-guest",
 			"to": "legal-privacy",
 			"label": "プライバシーポリシー"
 		},
@@ -1394,19 +1552,14 @@
 			"label": "同意文言のプライバシーポリシー"
 		},
 		{
-			"from": "profile-settings",
+			"from": "profile-guest",
 			"to": "profile-feedback",
 			"label": "ご意見・不具合"
 		},
 		{
-			"from": "profile-settings",
+			"from": "profile-guest",
 			"to": "profile-blocked-topics",
 			"label": "ブロック済みトピック"
-		},
-		{
-			"from": "profile-authenticated",
-			"to": "profile-authenticated-reviews",
-			"label": "レビュータブ"
 		},
 		{
 			"from": "profile-authenticated",
@@ -1415,21 +1568,21 @@
 		},
 		{
 			"from": "profile-authenticated",
-			"to": "profile-settings-authenticated",
-			"label": "歯車"
+			"to": "profile-liked",
+			"label": "いいねした投稿"
 		},
 		{
-			"from": "profile-authenticated-reviews",
-			"to": "profile-food-feed",
-			"label": "グリッドを開く"
+			"from": "profile-authenticated",
+			"to": "profile-saved-topics",
+			"label": "保存した料理カテゴリ"
 		},
 		{
-			"from": "review-authenticated",
-			"to": "review-select-restaurant",
+			"from": "my-dishes-authenticated",
+			"to": "my-dishes-select-restaurant",
 			"label": "レビューを投稿する"
 		},
 		{
-			"from": "review-select-restaurant",
+			"from": "my-dishes-select-restaurant",
 			"to": "review-restaurant-detail",
 			"label": "店舗を選ぶ"
 		},

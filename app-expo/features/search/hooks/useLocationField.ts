@@ -77,7 +77,7 @@ export function useLocationField({ screen, onSelected }: Params) {
 	// サジェスト経由の登録は details が解決してから（＝呼び出し元が遷移したあと）でないとできず、
 	// その時点でこのフックを持つフォームは閉じている。ここに置くと**本番から呼ばれない関数**が
 	// テストだけ緑になり、実際に走る呼び出し元側の実装（viewport の除去など）は無防備になる。
-	// 登録は呼び出し元が行い、そこでテストする（`features/profile/tabs/SavedTopicsTab.test.tsx`）。
+	// 登録は呼び出し元が行い、そこでテストする（`features/profile/tabs/SavedDishCategoriesTab.test.tsx`）。
 
 	/** サジェスト選択。ここでは details を取りに行かず、取得の要否は呼び出し元に委ねる */
 	const handleSelectSuggestion = useCallback(

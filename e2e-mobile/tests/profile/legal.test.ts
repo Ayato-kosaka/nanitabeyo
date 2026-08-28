@@ -38,15 +38,15 @@ describe("法務ドキュメント画面", () => {
 	//   1. マイページ→歯車で設定画面へ遷移する
 	//   2. 利用規約行をタップし、法務ドキュメント画面が開くことを検証
 	//   3. Android はハードウェアバック / iOS はヘッダーの戻るボタンで離脱する
-	//   4. 設定画面へ戻ってくることを検証
-	it("設定から開き、戻る操作で設定へ帰る", async () => {
+	//   4. マイページへ戻ってくることを検証
+	it("マイページの設定項目から開き、戻る操作でマイページへ帰る", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
 		const settingsScreen = new SettingsScreen();
 		const legalScreen = new LegalScreen();
 
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
+		// #1402 独立した設定画面は無くなり、リーガル 4 行はマイページの縦リストにある
 		await settingsScreen.expectLoaded();
 
 		await settingsScreen.openLegalDocument("terms");
@@ -58,7 +58,8 @@ describe("法務ドキュメント画面", () => {
 			await legalScreen.goBack();
 		}
 
-		await settingsScreen.expectLoaded();
+		// #1583 規約は «なに食べよについて» から開くので、戻る先もそこ
+		await settingsScreen.expectAboutLoaded();
 	});
 
 	// ─ テストケース: 4 行それぞれが法務ドキュメント画面へ着く ─
@@ -67,7 +68,7 @@ describe("法務ドキュメント画面", () => {
 	// ここでは「どの行からでも画面に着けること」までを見る。doc の対応は
 	// app-expo の `__tests__/legalEntryPoints.test.tsx` が push 引数で固定している。
 	// 手順:
-	//   1. 設定画面を表示する
+	//   1. マイページを表示する
 	//   2. ガイドライン / 著作権の行をタップし、法務ドキュメント画面が開くことを検証
 	//   3. 戻って次の行を試す
 	it("ガイドライン・著作権の行からも同じ画面へ着く", async () => {
@@ -77,7 +78,7 @@ describe("法務ドキュメント画面", () => {
 		const legalScreen = new LegalScreen();
 
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
+		// #1402 独立した設定画面は無くなり、リーガル 4 行はマイページの縦リストにある
 		await settingsScreen.expectLoaded();
 
 		for (const doc of ["guidelines", "copyright"] as const) {
@@ -85,6 +86,12 @@ describe("法務ドキュメント画面", () => {
 			await legalScreen.expectOpened();
 
 			await legalScreen.goBack();
+			// #1583 戻る先は «なに食べよについて»。次の周回のためマイページまで戻す。
+			// ⚠️ ここで `legalScreen.goBack()` を呼んではいけない。あちらが押すのは
+			//    `legal-screen-back` で、**この画面には存在しない**（about は `about-screen-back`）。
+			//    実機に投げる前にこの取り違えを 1 度書いてしまったので、helper 経由に固定する。
+			await settingsScreen.expectAboutLoaded();
+			await settingsScreen.goBackFromAbout();
 			await settingsScreen.expectLoaded();
 		}
 	});
@@ -95,8 +102,9 @@ describe("法務ドキュメント画面", () => {
 	// 手順:
 	//   1. nanitabeyo:///ja-JP/legal/terms へ直接着地する
 	//   2. 法務ドキュメント画面が表示されることを検証
-	//   3. ヘッダーの戻るボタンで離脱し、履歴が無いので設定画面へ倒れることを検証
-	it("ディープリンクで直接着地でき、戻ると設定画面へ倒れる", async () => {
+	//   3. ヘッダーの戻るボタンで離脱し、履歴が無いのでマイページへ倒れることを検証
+	//      （#1402 以前は設定画面へ倒れていた。その画面が無くなったので行き先が変わった）
+	it("ディープリンクで直接着地でき、戻るとマイページへ倒れる", async () => {
 		const settingsScreen = new SettingsScreen();
 		const legalScreen = new LegalScreen();
 

@@ -65,7 +65,7 @@ const shibuya: RecentLocation = {
 	locationQuery: "渋谷駅",
 };
 
-const TEST_ID = "saved-topic-location-search";
+const TEST_ID = "saved-dish-category-location-search";
 
 describe("#1133 LocationSearchForm", () => {
 	let renderer: TestRenderer.ReactTestRenderer;
@@ -96,7 +96,7 @@ describe("#1133 LocationSearchForm", () => {
 	it("入力欄の右に現在地ボタンを出し、押すと現在地を確定して表示を『現在地』にする", async () => {
 		const onSubmit = await mount();
 
-		const button = renderer.root.findByProps({ testID: "saved-topic-current-location-button" });
+		const button = renderer.root.findByProps({ testID: "saved-dishCategory-current-location-button" });
 		expect(button.props.accessibilityLabel).toBe("Search.accessibility.useCurrentLocation");
 
 		await act(async () => {

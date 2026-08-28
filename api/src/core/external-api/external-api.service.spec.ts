@@ -3,6 +3,14 @@
 // Test for external API service error handling
 //
 
+// #1596 `getCorrectedSpelling` は **モジュール読み込み時に確定した** `env` を読む
+// （`env.GOOGLE_API_KEY`）。テストの中で `process.env` を消しても `env` は変わらないため、
+// 「資格情報が無いとき null を返す」経路はこの mock 無しでは到達できない。
+// 旧 spec は process.env を消して検査しており、実際には一度も «資格情報なし» を
+// 通っていなかった（env 起因で suite ごと落ちていたため誰も気づけなかった）。
+const mockEnv: Record<string, unknown> = {};
+jest.mock('../config/env', () => ({ env: mockEnv }));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExternalApiService } from './external-api.service';
 import { AppLoggerService } from '../logger/logger.service';
@@ -43,14 +51,13 @@ describe('ExternalApiService Error Handling', () => {
     const query = 'test query';
 
     beforeEach(() => {
-      // Mock environment variables
-      process.env.GOOGLE_API_KEY = 'test-api-key';
-      process.env.GOOGLE_SEARCH_ENGINE_ID = 'test-engine-id';
+      mockEnv.GOOGLE_API_KEY = 'test-api-key';
+      mockEnv.GOOGLE_SEARCH_ENGINE_ID = 'test-engine-id';
     });
 
     afterEach(() => {
-      delete process.env.GOOGLE_API_KEY;
-      delete process.env.GOOGLE_SEARCH_ENGINE_ID;
+      delete mockEnv.GOOGLE_API_KEY;
+      delete mockEnv.GOOGLE_SEARCH_ENGINE_ID;
     });
 
     it('should log 403 errors as warning instead of error', async () => {
@@ -61,7 +68,11 @@ describe('ExternalApiService Error Handling', () => {
         ok: false,
         status: 403,
         text: jest.fn().mockResolvedValue('Forbidden'),
-        json: jest.fn(),
+        // #1596 makeExternalApiCall は成功・失敗にかかわらず
+        // `response.clone().json().catch(() => null)` でログ用の本文を読む。
+        // `jest.fn()` のままだと undefined が返り `.catch` で TypeError になり、
+        // «403 は warn» を検査するはずのこのテストが別の理由で落ちていた。
+        json: jest.fn().mockResolvedValue(null),
         clone: jest.fn().mockReturnThis(),
       } as any);
 
@@ -87,7 +98,11 @@ describe('ExternalApiService Error Handling', () => {
         ok: false,
         status: 500,
         text: jest.fn().mockResolvedValue('Internal Server Error'),
-        json: jest.fn(),
+        // #1596 makeExternalApiCall は成功・失敗にかかわらず
+        // `response.clone().json().catch(() => null)` でログ用の本文を読む。
+        // `jest.fn()` のままだと undefined が返り `.catch` で TypeError になり、
+        // «403 は warn» を検査するはずのこのテストが別の理由で落ちていた。
+        json: jest.fn().mockResolvedValue(null),
         clone: jest.fn().mockReturnThis(),
       } as any);
 
@@ -154,8 +169,8 @@ describe('ExternalApiService Error Handling', () => {
     });
 
     it('should return null when no credentials are configured', async () => {
-      delete process.env.GOOGLE_API_KEY;
-      delete process.env.GOOGLE_SEARCH_ENGINE_ID;
+      delete mockEnv.GOOGLE_API_KEY;
+      delete mockEnv.GOOGLE_SEARCH_ENGINE_ID;
 
       const result = await service.getCorrectedSpelling(query);
 

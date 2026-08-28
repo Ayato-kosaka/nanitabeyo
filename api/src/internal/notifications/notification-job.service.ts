@@ -63,6 +63,40 @@ export class NotificationJobService {
       return;
     }
 
+    // 2-3. #1511 退会したユーザーが絡む通知は作らない（送らない）
+    //
+    // 退会者が actor 側なら通知の意味が無く、recipient 側なら宛先が居ない。
+    // どちらも **成功として skip** するのが正しい。
+    // ここを見ずに先へ進むと `buildNotificationMessage` が throw し、
+    // Cloud Tasks が恒久的に失敗するジョブを再試行し続けることになる
+    // （退会は「もう存在しない」であって、あとで直る類の失敗ではない）。
+    //
+    // ⚠️ #1557 «退会した» と «そもそも users 行が無い» を混同しないこと。
+    // 共有リンク経由の匿名投票者には users 行が無いが、**通知は作らなければならない**
+    // （表示名は receiver のロケールで「ゲスト」等に落ちる）。
+    // `getUserByIds` は削除済みを返さないため、この 2 つが区別できない。
+    // «行があって deleted_at が立っている» ときだけ弾く。
+    const knownUsers = await this.userService.getUsersByIdsIncludingDeleted([
+      actorId,
+      recipientId,
+    ]);
+    const deletedUserIds = new Set(
+      knownUsers.filter((u) => u.deleted_at != null).map((u) => u.id),
+    );
+    if (deletedUserIds.has(actorId) || deletedUserIds.has(recipientId)) {
+      this.logger.log(
+        'DeletedUserNotificationSkipped',
+        'processNotificationJob',
+        {
+          actorId,
+          recipientId,
+          actorDeleted: deletedUserIds.has(actorId),
+          recipientDeleted: deletedUserIds.has(recipientId),
+        },
+      );
+      return;
+    }
+
     // 3. トランザクション内で通知を upsert
     const { notificationId, isNew } = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
@@ -121,6 +155,33 @@ export class NotificationJobService {
     });
     if (!message) return;
 
+    // 6. #1599 【バグ】**再配送で同じ Push が 2 回届くのを止める。**
+    //
+    // Cloud Tasks は at-least-once 配送で、**ハンドラが成功したのに応答が届かなかった
+    // 場合も再実行される**。手順 3 の upsert は idempotency_key で冪等なので «通知行» は
+    // 二重にならないが、ここは無条件に走っていたため配信だけが二重になっていた。
+    // 行の冪等性と配信の冪等性は別の話である。
+    //
+    // 【設計】`isNew` で分岐してはいけない。同じ投稿への 2 人目以降のいいねは
+    // isNew: false の経路に入るので、**通知そのものが届かなくなる**。
+    // 区別すべきは «再配送» と «正当な追加イベント» であって «新規» と «既存» ではない。
+    //
+    // 「送ってから記録する」ではなく **「記録できたら送る」**。逆順にすると、
+    // 記録の前に落ちた場合にもう一度送ってしまう（＝直っていない）。
+    const claimed = await this.repo.claimPushDelivery(
+      notificationId,
+      recipientId,
+      actorId,
+    );
+    if (!claimed) {
+      this.logger.log(
+        'NotificationPushAlreadyDelivered',
+        'processNotificationJob',
+        { notificationId, recipientId, actorId },
+      );
+      return;
+    }
+
     await this.service.sendPushNotification(recipientId, message);
   }
 
@@ -131,27 +192,27 @@ export class NotificationJobService {
     targetTable: string,
     targetId: string,
   ): Promise<{ user_id: string | null } | null> {
+    // #1513 削除済みの投稿・レビューへの通知は作らない。「消したはずの投稿」への
+    // いいね通知が届くと、通知タブから本文を開けない行が積まれる
     if (targetTable === 'dish_media') {
-      const media = await this.prisma.prisma.dish_media.findUnique({
-        where: { id: targetId },
+      const media = await this.prisma.prisma.dish_media.findFirst({
+        where: { id: targetId, deleted_at: null },
         select: { user_id: true },
       });
       return media ?? null;
     } else if (targetTable === 'dish_reviews') {
-      const review = await this.prisma.prisma.dish_reviews.findUnique({
-        where: { id: targetId },
+      const review = await this.prisma.prisma.dish_reviews.findFirst({
+        where: { id: targetId, deleted_at: null },
         select: { user_id: true },
       });
       return review ?? null;
     } else if (targetTable === 'dish_category_group_vote_sessions') {
       // #1506 GRP-04: recipient は投票セッションのホスト。
       const session =
-        await this.prisma.prisma.dish_category_group_vote_sessions.findUnique(
-          {
-            where: { id: targetId },
-            select: { host_user_id: true },
-          },
-        );
+        await this.prisma.prisma.dish_category_group_vote_sessions.findUnique({
+          where: { id: targetId },
+          select: { host_user_id: true },
+        });
       return session ? { user_id: session.host_user_id } : null;
     }
 

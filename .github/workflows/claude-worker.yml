@@ -75,6 +75,10 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    outputs:
+      # 両ワーカーが checkout する ref。base_ref が指定されたときは
+      # 「GitHubが解決した40桁のcommit SHA」へ正規化してから渡す（下の step の説明を参照）。
+      checkout_ref: ${{ steps.resolve.outputs.checkout_ref }}
     steps:
       - name: 入力値を安全な範囲に制限
         shell: bash
@@ -126,6 +130,61 @@ jobs:
             fi
           fi
 
+      # ⚠️ base_ref は «checkout できる形» まで、runner を1つも使う前に確定させる。
+      #
+      # 2026-08-26、run 32913852426 は base_ref に短縮SHA `f528bc69` を渡された。
+      # この validate job は base_ref を1文字も検査していなかったので素通りし、
+      # 8秒後に checkout が
+      #   「A branch or tag with the name 'f528bc69' could not be found」
+      # で落ちた。actions/checkout が ref として解決できるのは
+      # «リモートに実在するブランチ名 / タグ名» か «ちょうど40桁のcommit SHA» だけで、
+      # 短縮SHAはどちらにも当たらないためである。
+      #
+      # ここで弾くだけでなく **解決して full SHA へ正規化する**。そうすれば短縮SHAは
+      # 「エラーにならず、意図どおり動く」ようになり、加えて validate と checkout の間に
+      # ブランチが動いても両ワーカーが同じcommitを見ることが保証される。
+      - name: checkoutするrefを解決する
+        id: resolve
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ inputs.base_ref }}
+          BASE_BRANCH: ${{ inputs.base_branch || github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$BASE_REF" ]]; then
+            # base_ref 未指定のときの挙動は従来どおり «ブランチ名のまま checkout» にする。
+            # ここを SHA へ正規化すると CLAUDE_BRANCH がブランチ名でなくなり、
+            # 既定経路の挙動を変えてしまうため、あえて解決しない。
+            if ! gh api "repos/${GITHUB_REPOSITORY}/branches/${BASE_BRANCH}" --jq '.name' >/dev/null 2>&1; then
+              echo "::error::base_branch '$BASE_BRANCH' がこのリポジトリに存在しません。checkoutは必ず失敗するので、ここで止めます。"
+              exit 1
+            fi
+            echo "checkout_ref=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+            echo "base_ref 未指定のため、base_branch '$BASE_BRANCH' をcheckoutします。"
+            exit 0
+          fi
+
+          # commits API はブランチ名・タグ名・full SHA・短縮SHA のいずれも解決し、
+          # full SHA を返す。解決できないものだけがここで落ちる。
+          if ! RESOLVED="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${BASE_REF}" --jq '.sha' 2>/dev/null)"; then
+            echo "::error::base_ref '$BASE_REF' をこのリポジトリのcommitとして解決できません（ブランチ名・タグ名・commit SHAのいずれでもない、または削除済みです）。"
+            exit 1
+          fi
+
+          if [[ ! "$RESOLVED" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::base_ref '$BASE_REF' の解決結果 '$RESOLVED' が40桁のcommit SHAではありません。"
+            exit 1
+          fi
+
+          echo "checkout_ref=$RESOLVED" >> "$GITHUB_OUTPUT"
+          if [[ "$BASE_REF" != "$RESOLVED" ]]; then
+            echo "base_ref '$BASE_REF' を full SHA '$RESOLVED' へ正規化しました。"
+          else
+            echo "base_ref '$RESOLVED' を確認しました。"
+          fi
+
   observe:
     name: 読み取りワーカー
     needs: validate
@@ -146,7 +205,7 @@ jobs:
       - name: リポジトリを取得
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ inputs.base_ref || inputs.base_branch || github.event.repository.default_branch }}
+          ref: ${{ needs.validate.outputs.checkout_ref }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -226,7 +285,7 @@ jobs:
         uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
         env:
           # workflow_dispatchのrefではなく、実際に調査するrefをGitHub MCPへ渡す。
-          CLAUDE_BRANCH: ${{ inputs.base_ref || inputs.base_branch || github.event.repository.default_branch }}
+          CLAUDE_BRANCH: ${{ needs.validate.outputs.checkout_ref }}
           # setup_playwright時、e2e-webのテストがログイン系specを自動実行できるようにする
           # (TEST_USER_*未設定時はテスト側のskip条件で自動的にスキップされる)。
           TEST_USER_EMAIL: ${{ inputs.setup_playwright && secrets.TEST_USER_EMAIL || '' }}
@@ -299,9 +358,32 @@ jobs:
       # 見ない（投稿の要否はプロンプト次第で、ここで一律に強制すると調査だけを頼んだrunまで赤くなる）。
       # 空でなければ中身は job ログの `claude-result-begin:` 〜 `claude-result-end:` から回収できる。
       - name: 成果物が出力されたことを検証
-        if: always()
+        if: ${{ !cancelled() }}
         shell: bash
+        env:
+          CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
         run: |
+          # ⚠️ 「Claudeが〜しなかった」と報告してよいのは、**Claudeが実際に走ったとき**だけ。
+          #
+          # 2026-08-26、run 32913852426 は step 2（checkout）が base_ref の短縮SHAで
+          # 落ち、Claudeの step は skipped だった。にもかかわらずこの step が
+          # 「成果物を1文字も出力せずに終了しました」と報告し、しかもそれが job の
+          # **最後のエラー**なので、リーダーには «Claudeが黙って終わった / 権限拒否» に見えた。
+          # 真因（checkoutの失敗）はログを先頭まで遡らないと分からない。
+          # 同じ罠は step 6（sharedのビルド）でも踏んでおり、そのときは «Claudeが出力せず
+          # 50秒で落ちる» と誤診したまま文書化だけして直していなかった（#1574）。
+          #
+          # 段取りの step が落ちた run は「段取りが落ちた」とだけ言う。Claudeの話をしない。
+          if [[ "$CLAUDE_OUTCOME" == "skipped" ]]; then
+            echo "::error::Claude Codeは実行されていません（前段のstepが失敗したためskipされました）。このjobの失敗原因はClaudeではなく、このjobで**最初に赤くなったstep**です（checkout / pnpm install / sharedのビルド / フォント導入 等）。ログを先頭から見てください。"
+            exit 1
+          fi
+
+          if [[ "$CLAUDE_OUTCOME" != "success" ]]; then
+            echo "::error::Claude Codeのstep自体が失敗しました（outcome=$CLAUDE_OUTCOME）。[subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}]"
+            exit 1
+          fi
+
           if [[ "${CLAUDE_RESULT_CHARS:-0}" -eq 0 ]]; then
             echo "::error::読み取りワーカーが成果物を1文字も出力せずに終了しました。observeの成果物は commit ではなく «最後に書かれたテキスト» なので、これは成功ではありません。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}] 拒否されたツール名はjobログの 'claude-denial:' 行を見ること。"
             exit 1
@@ -340,7 +422,7 @@ jobs:
       - name: リポジトリを取得
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ inputs.base_ref || inputs.base_branch || github.event.repository.default_branch }}
+          ref: ${{ needs.validate.outputs.checkout_ref }}
           fetch-depth: 0
           persist-credentials: true
 
@@ -521,13 +603,38 @@ jobs:
         # 何もcommit・pushしないまま終了した場合でもjobを明示的に失敗させる。
         # (SDKの実行自体は is_error:false で「成功」報告されることがあるため、
         # workflow runのconclusionだけでは成果物の有無を判断できない)
-        if: always()
+        if: ${{ !cancelled() }}
         shell: bash
         env:
           BRANCH_NAME: ${{ inputs.branch_name }}
           PRE_SHA: ${{ steps.pre_claude.outputs.sha }}
+          CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
         run: |
           set -euo pipefail
+
+          # ⚠️ 「Claudeが〜しなかった」と報告してよいのは、**Claudeが実際に走ったとき**だけ。
+          #
+          # このstepは `always()` で動いていたため、段取りのstep（checkout / pnpm install /
+          # sharedのビルド / フォント導入）が落ちてClaudeがskipされたrunでも走っていた。
+          # そのとき下の `git rev-parse HEAD` は «作業ツリーが無い» まま実行され、
+          # set -e で git の生のエラーを吐いて終わる。リーダーに届く最後のエラーが
+          # 「commitが無い」でも git の内部エラーでもなく、**真因を1文字も含まない**。
+          # observe側は同じ形で «成果物を1文字も出力せずに終了しました» と誤って報告し、
+          # 実際に run 32913852426（base_refに短縮SHA）でリーダーを誤診させた。
+          # 同じ罠は step 6（sharedのビルド）でも踏んでおり、そのときは «Claudeが出力せず
+          # 50秒で落ちる» と誤診したまま文書化だけして直していなかった（#1574）。
+          #
+          # 段取りのstepが落ちたrunは「段取りが落ちた」とだけ言う。Claudeの話をしない。
+          if [[ "$CLAUDE_OUTCOME" == "skipped" ]]; then
+            echo "::error::Claude Codeは実行されていません（前段のstepが失敗したためskipされました）。このjobの失敗原因はClaudeではなく、このjobで**最初に赤くなったstep**です（checkout / pnpm install / sharedのビルド / フォント導入 等）。ログを先頭から見てください。"
+            exit 1
+          fi
+
+          if [[ "$CLAUDE_OUTCOME" != "success" ]]; then
+            echo "::error::Claude Codeのstep自体が失敗しました（outcome=$CLAUDE_OUTCOME）。[subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}]"
+            exit 1
+          fi
+
           POST_SHA=$(git rev-parse HEAD)
           if [[ "$PRE_SHA" == "$POST_SHA" ]]; then
             # ⚠️ 原因の切り分けに要る値をこの1行へ必ず載せること。

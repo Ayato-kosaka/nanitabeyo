@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { getPalette, type ColorScheme, type Palette } from "@/constants/Palette";
@@ -114,6 +115,47 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 	const scheme = resolveScheme(preference, systemScheme as ColorScheme | null | undefined);
 
+	/*
+	#1629【27】**アプリ内の 3 択を «ネイティブ部品» にも効かせる。**
+
+	ここまでのテーマ対応は JS が描くものにしか効かない。RN の `Switch`・キーボード・
+	日付ピッカー・`ActionSheet`・`Alert`・テキスト選択ハンドルなどは **OS が描く**ので、
+	`OS = ライト / アプリ設定 = ダーク` の組み合わせだと **そこだけ白いまま**残る。
+	JS 側をいくら直しても消えない。
+
+	`Appearance.setColorScheme` はアプリ単位の外観を上書きする **JS の API** で、
+	RN 0.73 以降にある。ネイティブ差分は生まれないので **OTA で配れる**
+	（EAS Build は不要）。iOS 側の前提である Info.plist の
+	`UIUserInterfaceStyle` は、`app.config.ts` の `userInterfaceStyle: "automatic"` が
+	既に満たしている。
+
+	- 明示指定（light / dark）… その値で上書きする
+	- system … `null` を渡して上書きを外す。これを忘れると、一度 dark にした端末が
+	  «システム追従へ戻したのに暗いまま» になる
+
+	⚠️ `preference` ではなく `scheme` を見て分岐しないこと。system のときの `scheme` は
+	   OS の値そのものなので、それを上書きとして書き戻すと OS 側の変更に追従しなくなる。
+	*/
+	useEffect(() => {
+		// 設定を読み終わる前に触らない。既定値（system）で一瞬上書きが走ると、
+		// 保存済みの dark 端末が起動直後だけライトへ振れる
+		if (!isPreferenceLoaded) return;
+		/*
+		⚠️ **`typeof` の確認を外さないこと。web が丸ごと白紙になる。**
+
+		`Appearance.setColorScheme` は RN 0.73+ の API だが、**react-native-web には無い**。
+		無い環境で呼ぶと `TypeError: setColorScheme is not a function` が
+		ThemeProvider のレンダー直下で投げられ、**アプリ全体が描画されない**
+		（実測 2026-08-27: web ビルドで画面が真っ白、testID が 1 つも出ない）。
+
+		ネイティブしか見ていなかったので気づけなかった。jest の RN モックには
+		この関数が在るため**テストも緑のまま通っていた**。
+		そもそも web には «OS が描くトグルやキーボード» が無く、この上書きは要らない。
+		*/
+		if (typeof Appearance.setColorScheme !== "function") return;
+		Appearance.setColorScheme(preference === "system" ? null : preference);
+	}, [preference, isPreferenceLoaded]);
+
 	const value = useMemo<ThemeContextValue>(
 		() => ({
 			preference,
@@ -144,6 +186,21 @@ export function useAppTheme(): ThemeContextValue {
  * const createStyles = (c: Palette) => StyleSheet.create({ root: { backgroundColor: c.background } });
  * // コンポーネント内
  * const styles = useThemedStyles(createStyles);
+ * ```
+ *
+ * ## ⚠️ `styles` を閉じ込める `useCallback` / `useMemo` の依存配列に必ず入れる
+ *
+ * リストの `renderItem` を `useCallback` で固定する書き方は速度のために普通に使うが、
+ * その依存配列から `styles` が漏れると **行だけ古いテーマのまま残る**。
+ *
+ * web ではこれが «たまに» ではなく **必ず** 起きる。`hooks/useColorScheme.web.ts` は
+ * hydration 前にライトを返すので、初回レンダーはライトのスタイルで組まれ、そのあと
+ * ダークへ解決し直される。`renderItem` が作り直されないと、シートと地だけが暗くなり
+ * 行は白いまま、という絵になる（#1513 の通知一覧で実測）。
+ *
+ * ```ts
+ * const renderItem = useCallback(({ item }) => <Row style={styles.row} />, [styles, ...]);
+ * //                                                                       ^^^^^^ 必須
  * ```
  */
 export function useThemedStyles<T>(factory: (colors: Palette) => T): T {

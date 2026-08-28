@@ -61,7 +61,7 @@ const mock = (url) => {
 	return null;
 };
 
-const url = `${BASE}/ja-JP/search/topics?searchParams=${encodeURIComponent(JSON.stringify(SEARCH_PARAMS))}`;
+const url = `${BASE}/ja-JP/search/dish-categories?searchParams=${encodeURIComponent(JSON.stringify(SEARCH_PARAMS))}`;
 
 await record({
 	name: NAME,
@@ -121,7 +121,7 @@ await record({
 			}
 			await page.mouse.up();
 			await page.waitForTimeout(1800);
-			const stayed = page.url().includes("/search/topics");
+			const stayed = page.url().includes("/search/dish-categories");
 			notes.push(`スワイプ試行: topics 画面に留まった = ${stayed}`);
 			if (!stayed) notes.push("⚠️ スワイプがタップと解釈され画面遷移した。動画のこの部分は根拠に使えない。");
 			await shot("03-after-swipe-attempt");

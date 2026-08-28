@@ -56,6 +56,13 @@ jest.mock("@/hooks/useHaptics", () => {
 	return { useHaptics: () => ({ lightImpact: mockLightImpact, mediumImpact }) };
 });
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+// #1402 マイページ本体が旧設定画面の項目（ログアウト確認ダイアログ・スナックバー・画面トレース）を
+// 抱えるようになったため、押した先だけを見たいこのテストではまとめて潰す
+jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: () => {} }));
+jest.mock("@/contexts/DialogProvider", () => ({
+	useDialog: () => ({ showDialog: jest.fn(), confirm: jest.fn().mockResolvedValue(false) }),
+}));
+jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 
 jest.mock("react-native-safe-area-context", () => {
@@ -80,22 +87,7 @@ jest.mock("expo-linear-gradient", () => {
 });
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 
-// collapsible tabs は「ヘッダーを描く器」としてだけ必要。renderHeader を同期的に呼ぶ形へ潰す
-jest.mock("@/components/collapsible-tabs", () => {
-	const ReactActual = jest.requireActual("react");
-	const { View: RNView } = jest.requireActual("react-native");
-	return {
-		Tabs: {
-			Container: ({ renderHeader, children }: { renderHeader?: () => React.ReactNode; children?: React.ReactNode }) =>
-				ReactActual.createElement(RNView, null, renderHeader?.(), children),
-			Tab: ({ children }: { children?: React.ReactNode }) => ReactActual.createElement(RNView, null, children),
-			FlatList: () => null,
-			ScrollView: ({ children }: { children?: React.ReactNode }) => ReactActual.createElement(RNView, null, children),
-		},
-	};
-});
-
-// 編集ボタンは ProfileHeader が描く。見たいのは「ProfileTabsLayout が onEditProfile に何をさせたか」
+// 編集ボタンは ProfileHeader が描く。見たいのは「マイページ本体が onEditProfile に何をさせたか」
 // なので、ヘッダーはそのハンドラだけを露出する器へ潰す
 // （testID とボタンの結線は e2e が見ている）
 jest.mock("@/features/profile/components/ProfileHeader", () => {
@@ -106,11 +98,9 @@ jest.mock("@/features/profile/components/ProfileHeader", () => {
 			ReactActual.createElement(RNView, { testID: "profile-edit-button", onPress: onEditProfile }),
 	};
 });
-jest.mock("@/features/profile/components/ProfileTabsBar", () => ({ ProfileTabsBar: () => null }));
-jest.mock("@/features/profile/tabs/ReviewTab", () => ({ ReviewTab: () => null }));
-jest.mock("@/features/profile/tabs/LikeTab", () => ({ LikeTab: () => null }));
-jest.mock("@/features/profile/tabs/SavedPostsTab", () => ({ SavedPostsTab: () => null }));
-jest.mock("@/features/profile/tabs/SavedTopicsTab", () => ({ SavedTopicsTab: () => null }));
+// #1402 【設計】ProfileTabsBar / ReviewTab / SavedPostsTab は 4 グリッドタブごと廃止したので
+// main にあった jest.mock は落とす（モジュールが存在せず module not found になる）。
+// LikeTab / SavedDishCategoriesTab は単独ルートへ移り、マイページ本体はもう描かないのでモック不要。
 // #1387 「まだ読んでいない」と「読んだが取れなかった」を分けるため、決着状態も差し替え可能にする。
 // profile === null だけでは両者を区別できず、後者でスピナーが回り続けていた
 let mockIsProfileResolved = true;
@@ -141,13 +131,12 @@ jest.mock("@/features/profile/components/ProfileEditForm", () => {
 	};
 });
 
-import { ProfileTabsLayout } from "@/features/profile/containers/ProfileTabsLayout";
+import ProfileScreen from "../app/[locale]/(tabs)/profile/index";
 import ProfileEditScreen from "../app/[locale]/(tabs)/profile/edit";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-// ⚠️ 描画したツリーは必ず unmount すること。ProfileTabsLayout は ?tab= 指定があると
-// jumpToTab のリトライ（setInterval / #1272）を回し、その cleanup は unmount でしか走らない
+// ⚠️ 描画したツリーは必ず unmount すること（テスト終了後の setState と環境破棄の競合を避ける）
 const mountedTrees: TestRenderer.ReactTestRenderer[] = [];
 const render = async (element: React.ReactElement) => {
 	let tree!: TestRenderer.ReactTestRenderer;
@@ -186,7 +175,7 @@ beforeEach(() => {
 
 describe("#1369 マイページから編集画面への導線", () => {
 	it("「プロフィールを編集」は編集ルートへ locale 付きで push する", async () => {
-		const tree = await render(<ProfileTabsLayout />);
+		const tree = await render(<ProfileScreen />);
 
 		await press(tree, "profile-edit-button");
 
