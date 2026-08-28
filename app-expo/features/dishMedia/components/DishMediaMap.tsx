@@ -86,9 +86,17 @@ export default function DishMediaMap({
 	// 画面を開いた時点の並びを固定するための state
 	// liked/unlike 等のリアルタイム反映は行わない
 	const [ids, setIds] = useState<string[]>(() => liveIds);
+	// #1629【35】固定した並びから «削除されたもの» だけ落とす。
+	// 理由と «liveIds を判定に使わない» 理由は `DishMediaFeed.tsx` の同じ箇所に書いてある
+	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
 	useEffect(() => {
-		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
-	}, [liveIds, ids.length]);
+		if (ids.length === 0) {
+			if (liveIds.length > 0) setIds(liveIds);
+			return;
+		}
+		if (!ids.some((id) => deletedIds[id])) return;
+		setIds((prev) => prev.filter((id) => !deletedIds[id]));
+	}, [liveIds, ids, deletedIds]);
 	const restaurants = useMemo(() => {
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み

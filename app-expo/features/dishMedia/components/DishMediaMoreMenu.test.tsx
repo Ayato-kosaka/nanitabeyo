@@ -198,6 +198,24 @@ describe("#1629 他人の投稿でもメニューは出る", () => {
 		dishReviewIds: [],
 	} as unknown as NormalizedDishMediaEntry;
 
+	/*
+	#1629【36】**ストアも他人の投稿の形にしてから描く。**
+
+	以前はここでストアを差し替えておらず、直前の describe が積んだ «自分のレビュー» が
+	残ったままだった（`selectReviewsByMediaId` が見るのは prop ではなくストアの entry）。
+	prop は `isMine: false` なのにストアには «この dish_media と一緒に作られた自分のレビュー»
+	が居る、という**現実には存在しない組み合わせ**で、編集導線の判定を `isMine` から
+	`myReview` へ移した瞬間に矛盾が表に出た。他人の投稿には自分のレビューは無い。
+	*/
+	beforeEach(() => {
+		useDishMediaEntriesStore.setState({
+			entriesByMediaId: { [DISH_MEDIA_ID]: othersEntry },
+			reviewsByReviewId: {},
+			mediaIdsByKey: {},
+			reviewIdsByKey: {},
+		});
+	});
+
 	it("シェアと報告は出て、編集と削除は出ない", async () => {
 		let renderer: TestRenderer.ReactTestRenderer | undefined;
 		await act(async () => {
@@ -257,5 +275,188 @@ describe("#1629 自分の投稿には報告を出さない", () => {
 		expect(findHosts(renderer, "dish-action-share")).toHaveLength(1);
 		expect(findHosts(renderer, "own-post-delete-button")).toHaveLength(1);
 		expect(findHosts(renderer, "dish-action-report")).toHaveLength(0);
+	});
+});
+
+/*
+#1629【36】オーナー実機報告:
+
+> クチコミのみの投稿を編集・削除できないバグ（報告・削除のみでる）
+
+## 「クチコミのみの投稿」とは何か（データの形）
+
+写真を撮らずに «食べた» を記録すると、`dish_media` の行は 1 つも作られない。
+`ReviewForm` は `POST /v1/dishes` → `POST /v1/dish-reviews` の 2 本だけを叩き、
+`createdDishMediaId` を**送らない**ので `dish_reviews.created_dish_media_id` は NULL になる。
+
+その記録がフィードに現れるのは «同じ料理に付いた他人の写真» の上である。サーバーは
+1 つの `dish_media` に対してその料理の**全レビュー**を返す（`dish-media.repository.ts` の
+`reviewsByDishMediaId`）ので、他人の写真のセルに自分のクチコミが並ぶ。
+
+## 何が起きていたか
+
+このとき `dish_media.isMine` は **false**（写真は他人のもの）。旧実装は
+
+- 編集: `isMine && myReview`
+- 削除: `isMine`
+- 報告: `!isMine`
+
+で出し分けており、さらに `myReview` を `String(created_dish_media_id) === dishMediaId` で
+探していた（NULL は `"null"` になるので**絶対に一致しない**）。結果、自分が書いた
+クチコミなのに **報告しか出ない**。写真が自分のもので本文だけがクチコミのみの記録だった
+場合は、編集だけが落ちて **削除しか出ない**。オーナーの「報告・削除のみでる」はこの 2 通りである。
+
+## ここで固定すること
+
+1. クチコミのみの自分の記録では **編集と削除が出る**
+2. その削除が消すのは **クチコミ 1 件だけ**（他人の写真を消しに行かない）
+3. 自分のものが何も無い他人の投稿では、今までどおり **報告が出る**
+*/
+describe("#1629【36】クチコミのみ（写真なし）の自分の記録", () => {
+	const OTHERS_MEDIA_ID = "dm-others";
+	const MY_REVIEW_ID = "review-no-photo";
+
+	/** 他人の写真 + そこにぶら下がる自分のクチコミ（`created_dish_media_id` は NULL） */
+	const reviewOnlyEntry = {
+		dish_media: { id: OTHERS_MEDIA_ID, isMine: false },
+		restaurant: { id: "restaurant-1", name: "テスト店" },
+		dishReviewIds: [MY_REVIEW_ID],
+	} as unknown as NormalizedDishMediaEntry;
+
+	function seedReviewOnlyStore() {
+		useDishMediaEntriesStore.setState({
+			entriesByMediaId: { [OTHERS_MEDIA_ID]: reviewOnlyEntry },
+			reviewsByReviewId: {
+				[MY_REVIEW_ID]: {
+					id: MY_REVIEW_ID,
+					// ⚠️ ここが NULL であることがこのテストの主語である
+					created_dish_media_id: null,
+					isMine: true,
+					comment: "写真は撮らなかった",
+					rating: 5,
+					price_cents: null,
+					currency_code: "JPY",
+					lock_no: 3,
+				},
+			} as never,
+			mediaIdsByKey: {},
+			reviewIdsByKey: {},
+			deletedIds: {},
+		});
+	}
+
+	function renderReviewOnlyMenu() {
+		let renderer!: TestRenderer.ReactTestRenderer;
+		act(() => {
+			renderer = TestRenderer.create(
+				<DishMediaMoreMenu entry={reviewOnlyEntry} onShare={mockOnShare} onReport={mockOnReport} />,
+			);
+		});
+		activeRenderer = renderer;
+		act(() => {
+			findPressable(renderer, "dish-action-more").props.onPress();
+		});
+		return renderer;
+	}
+
+	beforeEach(() => {
+		mockCallBackend.mockReset();
+		mockConfirm.mockReset();
+		mockShowSnackbar.mockReset();
+		seedReviewOnlyStore();
+	});
+
+	afterEach(() => {
+		act(() => activeRenderer?.unmount());
+		activeRenderer = undefined;
+	});
+
+	it("編集と削除が出る（報告だけになっていない）", () => {
+		const renderer = renderReviewOnlyMenu();
+
+		expect(findHosts(renderer, "own-post-edit-button")).toHaveLength(1);
+		expect(findHosts(renderer, "own-post-delete-button")).toHaveLength(1);
+		// 写真は他人のものなので «投稿の通報» は残る（ここを消すと通報導線が無くなる）
+		expect(findHosts(renderer, "dish-action-report")).toHaveLength(1);
+	});
+
+	it("編集を押すと、そのクチコミの本文が編集フォームへ入る", () => {
+		const renderer = renderReviewOnlyMenu();
+		act(() => {
+			findPressable(renderer, "own-post-edit-button").props.onPress();
+		});
+
+		expect(renderer.root.findByProps({ testID: "edit-review-comment-input" }).props.value).toBe("写真は撮らなかった");
+	});
+
+	it("削除は DELETE /v1/dish-reviews/:id を 1 回だけ叩き、dish_media には触らない", async () => {
+		mockConfirm.mockResolvedValueOnce(true);
+		mockCallBackend.mockResolvedValueOnce({ id: MY_REVIEW_ID, deletedAt: "2026-08-28T00:00:00.000Z" });
+
+		const renderer = renderReviewOnlyMenu();
+		await act(async () => {
+			await findPressable(renderer, "own-post-delete-button").props.onPress();
+		});
+
+		expect(mockCallBackend).toHaveBeenCalledTimes(1);
+		expect(mockCallBackend.mock.calls[0][0]).toBe(`v1/dish-reviews/${MY_REVIEW_ID}`);
+		expect(mockCallBackend.mock.calls[0][1]).toMatchObject({ method: "DELETE" });
+		// 他人の写真を消しに行っていないこと
+		expect(mockCallBackend.mock.calls[0][0]).not.toContain("dish-media");
+		// ストアからもクチコミだけが消え、写真（entry）は残る
+		const state = useDishMediaEntriesStore.getState();
+		expect(state.reviewsByReviewId[MY_REVIEW_ID]).toBeUndefined();
+		expect(state.entriesByMediaId[OTHERS_MEDIA_ID]).toBeDefined();
+	});
+
+	it("自分のクチコミが無い他人の投稿では、報告だけが出る（編集・削除は出ない）", () => {
+		useDishMediaEntriesStore.setState({
+			entriesByMediaId: { [OTHERS_MEDIA_ID]: { ...reviewOnlyEntry, dishReviewIds: [] } },
+			reviewsByReviewId: {},
+		});
+		const renderer = renderReviewOnlyMenu();
+
+		expect(findHosts(renderer, "dish-action-report")).toHaveLength(1);
+		expect(findHosts(renderer, "own-post-edit-button")).toHaveLength(0);
+		expect(findHosts(renderer, "own-post-delete-button")).toHaveLength(0);
+	});
+});
+
+/*
+#1629【36】写真は自分のもので、本文がクチコミのみの記録（`created_dish_media_id` が NULL）の場合。
+旧実装ではここで **編集だけが落ちて «削除» しか出なかった**（オーナーの「削除のみでる」）。
+*/
+describe("#1629【36】自分の写真 + created_dish_media_id が NULL の自分のクチコミ", () => {
+	it("編集も削除も出て、削除は投稿ごと（DELETE /v1/dish-media/:id）", async () => {
+		useDishMediaEntriesStore.setState({
+			entriesByMediaId: { [DISH_MEDIA_ID]: entry },
+			reviewsByReviewId: {
+				[REVIEW_ID]: {
+					id: REVIEW_ID,
+					created_dish_media_id: null,
+					isMine: true,
+					comment: "うまい",
+					rating: 4,
+					price_cents: null,
+					currency_code: "JPY",
+					lock_no: 1,
+				},
+			} as never,
+		});
+		mockConfirm.mockResolvedValueOnce(true);
+		mockCallBackend.mockResolvedValueOnce({ deletedDishReviewIds: [REVIEW_ID] });
+
+		const renderer = renderDishMediaMoreMenu();
+		act(() => {
+			findPressable(renderer, "dish-action-more").props.onPress();
+		});
+
+		expect(findHosts(renderer, "own-post-edit-button")).toHaveLength(1);
+		expect(findHosts(renderer, "own-post-delete-button")).toHaveLength(1);
+
+		await act(async () => {
+			await findPressable(renderer, "own-post-delete-button").props.onPress();
+		});
+		expect(mockCallBackend.mock.calls[0][0]).toBe(`v1/dish-media/${DISH_MEDIA_ID}`);
 	});
 });
