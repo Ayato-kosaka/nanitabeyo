@@ -429,6 +429,30 @@
       "rows_with_instagram_embed": 225978,
       "jp_domain_with_instagram_embed": 20,
       "verdict": "グローバルには 30日で 22万件の IG 埋め込みがあるが、日本ドメインは 20件と極小。日本の飲食には効かない"
+    },
+    "deep_dig": {
+      "archive_org_instagram_dataset": {
+        "url": "https://archive.org/download/instagram-dataset",
+        "size": "51.5GB（instagram_media.csv.gz 4.3GB 等）、直 HTTP DL 可・access-restricted 無し",
+        "content": "shortcode(→/p/ 復元可)・caption・lat/lng・location_id・カテゴリ付き。70M media 規模",
+        "verification": "locationinfo を実地サンプル。**ロシア中心のクロール**。『Japanese Restaurant』カテゴリの店の実体はモスクワ（Токио-City / Nobu Moscow、電話 +7、.ru サイト）。日本を含む行は 11,687 中 17（0.15%）、飲食 13 のうち実際に日本の店は 1 件のみ",
+        "verdict": "**日本の飲食には使えない。** 日本の店の実数はほぼゼロ。エージェントの『本命』評価は率の過大評価だった"
+      },
+      "web_data_commons_restaurant": {
+        "url": "https://data.dws.informatik.uni-mannheim.de/structureddata/2023-12/quads/classspecific/Restaurant/",
+        "content": "Common Crawl から schema.org/Restaurant を抽出（4.86M エンティティ・無料）",
+        "verification": "part_0 実測: instagram.com 行 10,353 のうち /p/・/reel/ は 30 件のみ。大半は sameAs→アカウントのプロフィール URL。日本×instagram は part_0 で 267 行",
+        "verdict": "投稿 URL 源ではない。**4.1〜4.5 のアカウント経路をわずかに補完する程度**（日本の店→IG アカウントが全 18 パートで数千件規模）"
+      },
+      "reddit_dump_academic_torrents": {
+        "size": "3.12TB（2005-2024 一括）",
+        "verdict": "IG リンク密度を実測できず（Arctic Shift API が 3 回 timeout）。日本の food サブレは小さく、日本の飲食には効きにくい"
+      },
+      "instagram_influencer_dataset_kim": {
+        "size": "10.18M 投稿・メタ 37GB＋画像 189GB",
+        "gate": "Google Form 申請制で即 DL 不可",
+        "verdict": "ゲート付き。日本比率不明"
+      }
     }
   },
   "scraper_options": {
