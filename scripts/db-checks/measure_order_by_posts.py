@@ -140,6 +140,10 @@ def run_counts(cur):
 #
 # ⚠️ api/src/v1/restaurants/restaurants.repository.ts の SQL を «同じ形» で写している。
 #    repository を直したらこちらも直すこと。
+#
+# ⚠️ **写経なので «直したのに数字が変わらない» が起こる。** 実際に 2026-08-28、
+#    repository 側の実行計画を直したのにこちらを直し忘れ、再計測で同じ 3,478 ms が出て
+#    «直っていない» と読むところだった。数字が動かないときは、まずここが古くないかを疑う。
 # ---------------------------------------------------------------------------
 
 # before: 入札額順（#1629 前半。スポンサー枠 = restaurant_bids 駆動 + KNN の近傍枠）
@@ -182,17 +186,22 @@ LIMIT %s
 # after: 投稿が多い順（投稿枠 = dish_media 駆動 + KNN の近傍枠）。
 # 入札は «並びに使わない» が meta としては返すので、候補が limit 件に決まったあとに集計する。
 AFTER = f"""
-WITH posted AS (
-  SELECT d.restaurant_id AS id,
-         COUNT(*)::int AS post_count,
-         MIN(ST_Distance(r.location, {ORIGIN})) AS distance_m
+WITH post_counts AS MATERIALIZED (
+  -- #1629 «店ごとの投稿数» を 1 回だけ作る。ここへ restaurants / ST_DWithin を
+  -- 持ち込むと、プランナが restaurants → dishes → dish_media の nested loop を選び、
+  -- dish_media を店ごとに Seq Scan する（run 33172881100 で実測: 3,478 ms）
+  SELECT d.restaurant_id AS id, COUNT(*)::int AS post_count
   FROM dish_media dm
   JOIN dishes d ON d.id = dm.dish_id
-  JOIN restaurants r ON r.id = d.restaurant_id
   WHERE dm.deleted_at IS NULL
-    AND ST_DWithin(r.location, {ORIGIN}, %s)
   GROUP BY d.restaurant_id
-  ORDER BY post_count DESC, distance_m ASC LIMIT %s
+),
+posted AS (
+  SELECT pc.id, pc.post_count, ST_Distance(r.location, {ORIGIN}) AS distance_m
+  FROM post_counts pc
+  JOIN restaurants r ON r.id = pc.id
+  WHERE ST_DWithin(r.location, {ORIGIN}, %s)
+  ORDER BY pc.post_count DESC, distance_m ASC LIMIT %s
 ),
 nearest AS (
   SELECT r.id FROM restaurants r
