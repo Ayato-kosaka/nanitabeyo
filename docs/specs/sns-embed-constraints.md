@@ -36,7 +36,7 @@
 | --- | --- | --- |
 | Instagram | ✅ 音あり | 埋め込みの `<video>` が最初からミュートでない |
 | TikTok | ✅ 音あり（**こちらでミュートを外す**） | 向こうが `muted` で置いてくる。外さないと永久に無音だった |
-| YouTube | ✅ 音あり（**`unMute` を先に撃つ**） | 旧実装が `mute` → `playVideo` の順で撃っており、構造的に無音だった |
+| YouTube | ✅ 音あり（**URL の `mute=1` を外す**） | 埋め込み URL に `mute=1` を付けていた。**無音で始まったプレイヤーは後から `unMute` を撃っても戻らない**（実測 run 33167111834）。あわせて `unMute` → `playVideo` の順で撃つ |
 
 **«音が出ない» は provider の制限ではなかった。** 同じ WebView で Instagram だけ音が出ていたことが
 手がかりだった（実測: BigQuery `nanitabeyo_logs_dev.frontend_event_logs` /
@@ -67,8 +67,10 @@
 ネイティブが再生できるのは、WebView が埋め込みをトップレベル文書として開くため
 **同一オリジンになり、注入できる**からである。この非対称は埋め込みを使う限り解消しない。
 
-YouTube だけ web でも自動再生するのは、YouTube の埋め込みが `autoplay=1&mute=1` を
+YouTube だけ web でも自動再生するのは、YouTube の埋め込みが URL の `autoplay=1` を
 **自分で解釈する**からで、こちらが注入しているわけではない。
+⚠️ ブラウザの自動再生ポリシーは «無音でなければ蹴る» が既定なので、**web では無音で始まりうる**
+（ネイティブは `mediaPlaybackRequiresUserAction={false}` なのでこの制限を受けない）。
 
 <details>
 <summary>検討して採らなかった突破案</summary>
