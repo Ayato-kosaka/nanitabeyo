@@ -76,6 +76,20 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		expect(webViewProps.mediaPlaybackRequiresUserAction).toBe(false);
 	});
 
+	/*
+	#1641 `mode: "iframe"`（YouTube）では WebView へ HTML を直接渡すため、
+	**トップフレームの URL は `baseUrl`（自分たちのドメイン）になる**。
+	これを許可リストへ入れ忘れると、読み込もうとした瞬間に自分で自分を止める。
+	*/
+	it("包みのページ（baseUrl）自身の読み込みを止めない", () => {
+		renderActiveCell();
+		const shouldStart = webViewProps.onShouldStartLoadWithRequest;
+		// このセルは Instagram（mode: document）なので、包みの URL は通さない
+		expect(shouldStart({ url: "https://app.nanitabeyo.net/", isTopFrame: true })).toBe(false);
+		// サブフレーム（埋め込みの中の通信）は従来どおり素通し
+		expect(shouldStart({ url: "https://www.youtube.com/embed/abc", isTopFrame: false })).toBe(true);
+	});
+
 	it("注入スクリプトにバッククォートが混ざっていない", () => {
 		/*
 		⚠️ `AUTOPLAY_SCRIPT` はテンプレートリテラルなので、**コメントに ` を書くと

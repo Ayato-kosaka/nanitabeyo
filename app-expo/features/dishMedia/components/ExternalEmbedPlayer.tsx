@@ -543,9 +543,18 @@ export function ExternalEmbedPlayer({
 			if (!isAllowedEmbedNavigation(request.url)) return false;
 			if (request.isTopFrame === false) return true;
 			if (isInlineEmbedUrl(request.url) || request.url === source?.embedUrl) return true;
+			/*
+			#1641 **包みのページ自身を止めない。**
+
+			`mode: "iframe"` では WebView へ HTML を直接渡すので、**トップフレームの URL は
+			`baseUrl`（= 自分たちのドメイン）になる**。これを許可リストへ入れ忘れると、
+			読み込もうとした瞬間に自分で自分を止めることになる。
+			中の YouTube はサブフレームなので `isTopFrame === false` の側で通る。
+			*/
+			if (source?.mode === "iframe" && request.url.startsWith(EMBED_IFRAME_BASE_URL)) return true;
 			return false;
 		},
-		[source?.embedUrl],
+		[source?.embedUrl, source?.mode],
 	);
 
 	/*
