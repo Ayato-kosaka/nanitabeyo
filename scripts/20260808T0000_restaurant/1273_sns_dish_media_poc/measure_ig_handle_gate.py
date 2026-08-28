@@ -43,6 +43,7 @@ import json
 import math
 import re
 import time
+import difflib
 import unicodedata
 from pathlib import Path
 
@@ -119,12 +120,35 @@ def handle_parts(h: str) -> list[str]:
     return [p for p in parts if len(p) >= 4 and p not in STOP_ROMAJI]
 
 
+# ローマ字の曖昧一致のしきい値。**この 31 件を見て決めた値である。**
+#   負例 12 件の最大スコアは 0.400（sapporo_kokusai / スカーレル）だった。
+#   そこから 0.10 の余裕を取って 0.50 に置いた。0.40〜0.50 の帯には
+#   負例が 0 件・正例が 2 件あり、**この標本では分離している**。
+#   ただし負例 n=12 で決めたしきい値なので、**新しいラベルでの検証が要る**。
+FUZZ_TH = 0.50
+
+
+def fuzzy_score(store: str, handle: str) -> float:
+    """カタカナ外来語（スターバックス / starbucks）を拾うための曖昧一致。
+
+    ローマ字化では `sutaabakkusu` と `starbucks` が一致しない。日本語は子音の後に
+    母音を挿入し、`r` を落とすので、規則で復元できない。そこで文字列の
+    類似度で拾う。**緩める方向の変更なので、偽陽性が増えていないことを必ず見る。**
+    """
+    ks = [loose(k) for k in store_keys(store)]
+    hs = loose(SYM.sub("", handle.lower()))
+    hp = [loose(p) for p in handle_parts(handle)]
+    return max((difflib.SequenceMatcher(None, k, h).ratio()
+                for k in ks for h in [hs] + hp if k and h), default=0.0)
+
+
 def judge(store: str, handle: str) -> dict:
     ks = store_keys(store)
     hs = SYM.sub("", handle.lower())
     hp = handle_parts(handle)
     fwd = [k for k in ks if k in hs]                     # 店名ローマ字 ⊂ ハンドル
     bwd = [p for p in hp if any(p in k for k in ks)]     # ハンドル片 ⊂ 店名ローマ字
+    fz = fuzzy_score(store, handle)
     lk, lh = [loose(k) for k in ks], loose(hs)
     lp = [loose(p) for p in hp]
     lfwd = [k for k in lk if k in lh]
@@ -132,7 +156,9 @@ def judge(store: str, handle: str) -> dict:
     return {"keys": ks, "handle_parts": hp, "fwd": fwd, "bwd": bwd,
             "pass_fwd": bool(fwd), "pass_any": bool(fwd or bwd),
             "loose_hit": sorted(set(lfwd + lbwd)),
-            "pass_loose": bool(lfwd or lbwd)}
+            "pass_loose": bool(lfwd or lbwd),
+            "fuzzy": round(fz, 3),
+            "pass_fuzzy": bool(lfwd or lbwd) or fz >= FUZZ_TH}
 
 
 def main() -> None:
@@ -167,6 +193,10 @@ def main() -> None:
         "gate_fwd_only": gate("pass_fwd"),
         "gate_either_direction": gate("pass_any"),
         "gate_either_loose": gate("pass_loose"),
+        "gate_plus_fuzzy": gate("pass_fuzzy"),
+        "fuzzy_threshold": FUZZ_TH,
+        "fuzzy_max_score_among_negatives": round(
+            max((r["fuzzy"] for r in rows if r["label"] == "other_entity"), default=0.0), 3),
         "caveat": ("n=31。ローマ字化は読みの推定を含むので固有名詞で偽陰性が出る。"
                    "name/biography の門はトークン失効（error 190）で未測定"),
         "rows": rows,
@@ -176,7 +206,8 @@ def main() -> None:
     print(f"n={len(rows)}  正={len(pos)}  誤(other_entity)={len(neg)}")
     print(f"門なし precision {summary['baseline_precision_pct']}% "
           f"CI{summary['baseline_precision_ci_pct']}")
-    for k in ("gate_fwd_only", "gate_either_direction", "gate_either_loose"):
+    for k in ("gate_fwd_only", "gate_either_direction", "gate_either_loose",
+              "gate_plus_fuzzy"):
         g = summary[k]
         print(f"{k:22s} precision {g['precision_pct']}% CI{g['precision_ci_pct']}  "
               f"recall {g['recall_pct']}% CI{g['recall_ci_pct']}  "

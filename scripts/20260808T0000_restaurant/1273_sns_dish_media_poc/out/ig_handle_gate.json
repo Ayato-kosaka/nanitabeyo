@@ -58,6 +58,24 @@
       84.6
     ]
   },
+  "gate_plus_fuzzy": {
+    "tp": 16,
+    "fp": 0,
+    "fn": 3,
+    "tn": 12,
+    "precision_pct": 100.0,
+    "precision_ci_pct": [
+      80.6,
+      100.0
+    ],
+    "recall_pct": 84.2,
+    "recall_ci_pct": [
+      62.4,
+      94.5
+    ]
+  },
+  "fuzzy_threshold": 0.5,
+  "fuzzy_max_score_among_negatives": 0.4,
   "caveat": "n=31。ローマ字化は読みの推定を含むので固有名詞で偽陰性が出る。name/biography の門はトークン失効（error 190）で未測定",
   "rows": [
     {
@@ -76,7 +94,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.545,
+      "pass_fuzzy": true
     },
     {
       "handle": "chateraise.jp",
@@ -95,7 +115,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.538,
+      "pass_fuzzy": true
     },
     {
       "handle": "flo_prestige",
@@ -119,7 +141,9 @@
         "floprestige",
         "prestige"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 1.0,
+      "pass_fuzzy": true
     },
     {
       "handle": "fukushin_koushiki",
@@ -145,7 +169,9 @@
       "loose_hit": [
         "hukusin"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 1.0,
+      "pass_fuzzy": true
     },
     {
       "handle": "kashinoki_official",
@@ -162,7 +188,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.444,
+      "pass_fuzzy": false
     },
     {
       "handle": "kobeya_since1918",
@@ -184,7 +212,9 @@
       "loose_hit": [
         "kobeya"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 0.571,
+      "pass_fuzzy": true
     },
     {
       "handle": "mukaiyama_caramel",
@@ -207,7 +237,9 @@
       "loose_hit": [
         "mukaiyama"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 0.591,
+      "pass_fuzzy": true
     },
     {
       "handle": "ryugetsu_sanpouroku",
@@ -225,7 +257,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.471,
+      "pass_fuzzy": false
     },
     {
       "handle": "uogashimeicha",
@@ -247,7 +281,9 @@
       "loose_hit": [
         "uogasimeitya"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 0.828,
+      "pass_fuzzy": true
     },
     {
       "handle": "yakiniku_king_official",
@@ -273,7 +309,9 @@
         "king",
         "yakiniku"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 0.762,
+      "pass_fuzzy": true
     },
     {
       "handle": "gathering_insta",
@@ -291,7 +329,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.261,
+      "pass_fuzzy": false
     },
     {
       "handle": "islandeye_official",
@@ -308,7 +348,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.235,
+      "pass_fuzzy": false
     },
     {
       "handle": "izumoairport",
@@ -325,7 +367,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.316,
+      "pass_fuzzy": false
     },
     {
       "handle": "locoplacela",
@@ -342,7 +386,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.222,
+      "pass_fuzzy": false
     },
     {
       "handle": "menyasyokudou",
@@ -361,7 +407,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.25,
+      "pass_fuzzy": false
     },
     {
       "handle": "myplstaff",
@@ -378,7 +426,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.125,
+      "pass_fuzzy": false
     },
     {
       "handle": "sapporo_kokusai",
@@ -396,7 +446,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.4,
+      "pass_fuzzy": false
     },
     {
       "handle": "spa.resort.hawaiians",
@@ -414,7 +466,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.286,
+      "pass_fuzzy": false
     },
     {
       "handle": "sunshineaoyama",
@@ -431,7 +485,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.211,
+      "pass_fuzzy": false
     },
     {
       "handle": "tochinavi",
@@ -448,7 +504,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.25,
+      "pass_fuzzy": false
     },
     {
       "handle": "tokyosquaregarden",
@@ -465,7 +523,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.138,
+      "pass_fuzzy": false
     },
     {
       "handle": "vison_com",
@@ -482,7 +542,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.364,
+      "pass_fuzzy": false
     },
     {
       "handle": "c_cafe_sasanoya",
@@ -506,7 +568,9 @@
         "ccafesasanoya",
         "sasanoya"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 1.0,
+      "pass_fuzzy": true
     },
     {
       "handle": "dondonsunada",
@@ -529,7 +593,9 @@
       "loose_hit": [
         "dondon"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 0.75,
+      "pass_fuzzy": true
     },
     {
       "handle": "kajicurry",
@@ -555,7 +621,9 @@
         "kazi",
         "kazicurry"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 1.0,
+      "pass_fuzzy": true
     },
     {
       "handle": "kurudot_285181",
@@ -577,7 +645,9 @@
       "loose_hit": [
         "kurudot"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 0.778,
+      "pass_fuzzy": true
     },
     {
       "handle": "kuwapan2014",
@@ -598,7 +668,9 @@
       "loose_hit": [
         "kuwapan"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 0.778,
+      "pass_fuzzy": true
     },
     {
       "handle": "momosawakasiho",
@@ -618,7 +690,9 @@
       "loose_hit": [
         "momosawakasiho"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 0.778,
+      "pass_fuzzy": true
     },
     {
       "handle": "pasteleriasanonofre",
@@ -635,7 +709,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.41,
+      "pass_fuzzy": false
     },
     {
       "handle": "sala.noge",
@@ -664,7 +740,9 @@
         "sala",
         "salanoge"
       ],
-      "pass_loose": true
+      "pass_loose": true,
+      "fuzzy": 1.0,
+      "pass_fuzzy": true
     },
     {
       "handle": "steakhouse__narushima",
@@ -684,7 +762,9 @@
       "pass_fwd": false,
       "pass_any": false,
       "loose_hit": [],
-      "pass_loose": false
+      "pass_loose": false,
+      "fuzzy": 0.706,
+      "pass_fuzzy": true
     }
   ]
 }
