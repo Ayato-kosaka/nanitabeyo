@@ -67,18 +67,31 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 	 * ⚠️ **CI 全体（ワークフローや AVD）へ入れないこと。** 起動直後の権限ダイアログを
 	 *    前提にしているオンボーディングの spec の挙動が変わる。ここだけで付与する。
 	 */
+	const adb = (...args: string[]): string =>
+		execFileSync("adb", ["-s", device.id, ...args], { stdio: "pipe" }).toString().trim();
+
 	const grantAndroidLocation = (): boolean => {
 		if (device.getPlatform() !== "android") return true; // iOS は launchApp で付与済み
 		try {
 			for (const perm of ["android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"]) {
-				execFileSync("adb", ["-s", device.id, "shell", "pm", "grant", "com.nanitabeyo", perm], {
-					stdio: "pipe",
-				});
+				adb("shell", "pm", "grant", "com.nanitabeyo", perm);
 			}
+			/*
+			⚠️ **権限だけでは足りない。端末の «位置情報サービス» 自体が切れている。**
+
+			run 33132551584 は権限の付与に成功し `setLocation` も投げたのに地図が動かなかった。
+			`pm grant` はアプリへの許可であって、OS の位置情報スイッチとは別である。
+			エミュレータの既定は location_mode=0（オフ）なので、
+			`getLastKnownPositionAsync` は null、`getCurrentPositionAsync` は失敗し、
+			`handleCurrentLocation` の catch に落ちて **何もせず終わる**。
+			3 = 高精度（GPS + ネットワーク）。
+			*/
+			adb("shell", "settings", "put", "secure", "location_mode", "3");
+			console.log(`[search-this-area] location_mode = ${adb("shell", "settings", "get", "secure", "location_mode")}`);
 			return true;
 		} catch (error) {
 			// 付与できなくてもテストは続ける。**地図が動かないことがログから分かるようにする**
-			console.log(`[search-this-area] ⚠️ 位置情報権限を付与できなかった: ${String(error)}`);
+			console.log(`[search-this-area] ⚠️ 位置情報を有効にできなかった: ${String(error)}`);
 			return false;
 		}
 	};
