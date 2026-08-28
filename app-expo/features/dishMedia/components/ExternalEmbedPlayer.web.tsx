@@ -41,6 +41,20 @@ import { FixedColors } from "@/constants/Palette";
 
 export type { ExternalEmbedPlayerProps };
 
+/**
+ * iframe に共通で渡す属性。**切り取る側と全面側で食い違わせない**ため 1 か所にまとめる。
+ *
+ * ⚠️ `sandbox` に `allow-top-navigation` を入れないこと。埋め込み内の第三者スクリプトが
+ *    アプリごと別サイトへ飛ばせるようになる。
+ */
+const IFRAME_SHARED_PROPS = {
+	allow: "autoplay; encrypted-media; picture-in-picture",
+	allowFullScreen: true,
+	loading: "lazy" as const,
+	sandbox: "allow-scripts allow-same-origin allow-popups allow-presentation",
+	referrerPolicy: "strict-origin-when-cross-origin" as const,
+};
+
 export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: ExternalEmbedPlayerProps) {
 	const [interactive, setInteractive] = useState(false);
 	const handleActivate = useCallback(() => setInteractive(true), []);
@@ -54,7 +68,10 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 	}, []);
 	// 縦長のリールだと分かっているときだけ «枠ごとの拡大» を許す（正方形の投稿を切らないため）
 	const isReel = useMemo(() => isReelUrl(embed.canonicalUrl), [embed.canonicalUrl]);
-	const crop = useMemo(() => computeEmbedCropLayout(cell, { isReel }), [cell, isReel]);
+	const crop = useMemo(
+		() => computeEmbedCropLayout(cell, { isReel, provider: embed.provider }),
+		[cell, isReel, embed.provider],
+	);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
 	if (!isActive || source === null) return null;
@@ -107,7 +124,7 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 				    Instagram がその幅でレイアウトしてしまい切り取り位置がずれたまま残る */}
 				{/* メディア枠。**縦横比を保ったまま枠ごと拡大する**（引き延ばさない・切らない。
 				    はみ出すのは Instagram が付けた左右の余白だけ。理由は ../embedCrop.ts のヘッダ） */}
-				{crop !== null && (
+				{crop !== null ? (
 					<View
 						style={{
 							width: crop.frameWidth,
@@ -127,14 +144,35 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 								height: crop.frameHeight,
 								backgroundColor: FixedColors.mediaBackground,
 							},
-							allow: "autoplay; encrypted-media; picture-in-picture",
-							allowFullScreen: true,
-							loading: "lazy",
+							...IFRAME_SHARED_PROPS,
 							title: source.providerLabel,
-							sandbox: "allow-scripts allow-same-origin allow-popups allow-presentation",
-							referrerPolicy: "strict-origin-when-cross-origin",
 						})}
 					</View>
+				) : (
+					/*
+					#1641 **Instagram 以外はセル全面の iframe にする。**
+
+					切り取りの数値（ヘッダ 54px / メディア枠 4:5）は Instagram の埋め込みを
+					実測したもので、**他の provider では形が違う**。YouTube の埋め込みは全体が
+					16:9 のプレイヤーそのものなので、同じ数値を当てると上を削って拡大し、
+					**映像が切れる**。測っていないものを推測で切るより、余白が出る方がまし
+					（オーナー判断「クロップじゃない」の延長）。
+
+					cell の寸法が 0 の間も描いてよい（切り取り位置に依存しないため）。
+					*/
+					React.createElement("iframe", {
+						src: source.embedUrl,
+						style: {
+							border: 0,
+							position: "absolute",
+							inset: 0,
+							width: "100%",
+							height: "100%",
+							backgroundColor: FixedColors.mediaBackground,
+						},
+						...IFRAME_SHARED_PROPS,
+						title: source.providerLabel,
+					})
 				)}
 			</View>
 			{!interactive && (

@@ -1,6 +1,20 @@
 /*
 #1641（オーナー判断: 切り取らない）**外部埋め込みから «映像の部分だけ» を、切らずに取り出す。**
 
+## ⚠️ ここの数値は **Instagram の埋め込み専用**である
+
+ヘッダ 54px・メディア枠 4:5 は `https://www.instagram.com/p/{code}/embed/` を実測した値で、
+**TikTok / YouTube の埋め込みは形が違う**。同じ数値を当てると、
+
+| provider | 何が起きるか |
+| --- | --- |
+| youtube | 埋め込み全体が 16:9 のプレイヤーそのもの。上を 54px 削って 1.42 倍すると**映像が切れる** |
+| tiktok  | ヘッダ・キャプション欄の高さが違うので、削る量が合わない |
+
+**測っていない provider には «切らない» を返す**（`computeEmbedCropLayout` が null）。
+呼び出し側はセル全面の iframe として素直に描く。切る量を推測で決めるより、
+余白が出る方がまし（オーナー判断「クロップじゃない」の延長）。
+
 ## これは web 専用である
 
 ネイティブ（`ExternalEmbedPlayer.tsx`）は埋め込みページへスクリプトを注入して
@@ -87,6 +101,11 @@ export type EmbedCropOptions = {
 	 * 分からないときは false（＝ 拡大しない＝ 切らない）に倒すこと。
 	 */
 	isReel?: boolean;
+	/**
+	 * どの provider の埋め込みか。**Instagram 以外は null を返す**（上のヘッダの表）。
+	 * 省略時も null（＝ 切らない）に倒す。
+	 */
+	provider?: string;
 };
 
 /** `canonicalUrl` が «縦長のリール» を指しているか。判別できなければ false */
@@ -104,6 +123,8 @@ export function computeEmbedCropLayout(
 	options: EmbedCropOptions = {},
 ): EmbedCropLayout | null {
 	if (!(cell.width > 0) || !(cell.height > 0)) return null;
+	// 実測しているのは Instagram の埋め込みだけ。他は切らない（呼び出し側が全面で描く）
+	if (options.provider !== "instagram") return null;
 
 	const frameWidth = cell.width;
 	const frameHeight = frameWidth * EMBED_FRAME_HEIGHT_RATIO;

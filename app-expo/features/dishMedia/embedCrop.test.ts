@@ -39,7 +39,7 @@ const visibleMedia = (layout: NonNullable<ReturnType<typeof computeEmbedCropLayo
 
 describe("computeEmbedCropLayout", () => {
 	it.each(CELLS)("$name: 埋め込み本体はセル幅のまま（引き伸ばさない）", ({ width, height }) => {
-		const layout = computeEmbedCropLayout({ width, height });
+		const layout = computeEmbedCropLayout({ width, height }, { provider: "instagram" });
 		expect(layout).not.toBeNull();
 		expect(layout!.frameWidth).toBe(width);
 		expect(layout!.frameHeight).toBeCloseTo(width * EMBED_FRAME_HEIGHT_RATIO, 5);
@@ -50,7 +50,7 @@ describe("computeEmbedCropLayout", () => {
 	ここを 1（正方形）にしていたのが「web だけリールが正方形に切り取られたまま」の原因だった。
 	*/
 	it.each(CELLS)("$name: メディア枠は 4:5（正方形にして下 20% を捨てない）", ({ width, height }) => {
-		const layout = computeEmbedCropLayout({ width, height })!;
+		const layout = computeEmbedCropLayout({ width, height }, { provider: "instagram" })!;
 		expect(layout.mediaHeight).toBeCloseTo(width * EMBED_MEDIA_ASPECT, 5);
 		expect(EMBED_MEDIA_ASPECT).toBe(1.25);
 	});
@@ -60,19 +60,19 @@ describe("computeEmbedCropLayout", () => {
 	比率（旧 17/320）で計算すると幅 393 では 21px しかずらせず、ヘッダ帯が見えたまま残る。
 	*/
 	it.each(CELLS)("$name: ヘッダ帯は幅によらず 54px ぶん上へ逃がす", ({ width, height }) => {
-		const layout = computeEmbedCropLayout({ width, height })!;
+		const layout = computeEmbedCropLayout({ width, height }, { provider: "instagram" })!;
 		expect(layout.frameTop).toBe(-EMBED_HEADER_PX);
 	});
 
 	it("いいね欄は窓の外（下）へ出る＝ 1px も見えない", () => {
-		const layout = computeEmbedCropLayout({ width: 393, height: 759 })!;
+		const layout = computeEmbedCropLayout({ width: 393, height: 759 }, { provider: "instagram" })!;
 		expect(layout.frameHeight + layout.frameTop).toBeGreaterThan(layout.mediaHeight);
 	});
 
 	describe("拡大（リールを大きく出すが、切らない）", () => {
 		it("リールは «映像の幅がセル幅に一致する» ところまで枠ごと拡大する", () => {
 			const cell = { width: 393, height: 852 };
-			const layout = computeEmbedCropLayout(cell, { isReel: true })!;
+			const layout = computeEmbedCropLayout(cell, { provider: "instagram", isReel: true })!;
 			expect(layout.scale).toBeCloseTo(EMBED_REEL_ASPECT / EMBED_MEDIA_ASPECT, 5);
 
 			const seen = visibleMedia(layout, true);
@@ -82,13 +82,13 @@ describe("computeEmbedCropLayout", () => {
 		});
 
 		it("リールと分からない投稿は拡大しない（切れる側へ倒さない）", () => {
-			const layout = computeEmbedCropLayout({ width: 393, height: 852 })!;
+			const layout = computeEmbedCropLayout({ width: 393, height: 852 }, { provider: "instagram" })!;
 			expect(layout.scale).toBe(1);
 		});
 
 		it.each(CELLS)("$name: 拡大してもセルからはみ出さない（はみ出す＝ 切れる）", ({ width, height }) => {
 			for (const isReel of [true, false]) {
-				const layout = computeEmbedCropLayout({ width, height }, { isReel })!;
+				const layout = computeEmbedCropLayout({ width, height }, { provider: "instagram", isReel })!;
 				const seen = visibleMedia(layout, isReel);
 				// 1px の丸め誤差までは許す
 				expect(seen.width).toBeLessThanOrEqual(width + 1);
@@ -98,15 +98,15 @@ describe("computeEmbedCropLayout", () => {
 
 		it("低いセルでは拡大率を抑える（抑えないと上下が切れる）", () => {
 			// 高さがメディア枠より低いセル
-			const layout = computeEmbedCropLayout({ width: 400, height: 300 }, { isReel: true })!;
+			const layout = computeEmbedCropLayout({ width: 400, height: 300 }, { provider: "instagram", isReel: true })!;
 			expect(layout.scale).toBeLessThan(EMBED_REEL_ASPECT / EMBED_MEDIA_ASPECT);
 			expect(layout.mediaHeight * layout.scale).toBeCloseTo(300, 5);
 		});
 	});
 
 	it("寸法が確定していないときは null（中途半端な寸法で描かせない）", () => {
-		expect(computeEmbedCropLayout({ width: 0, height: 759 })).toBeNull();
-		expect(computeEmbedCropLayout({ width: 393, height: 0 })).toBeNull();
+		expect(computeEmbedCropLayout({ width: 0, height: 759 }, { provider: "instagram" })).toBeNull();
+		expect(computeEmbedCropLayout({ width: 393, height: 0 }, { provider: "instagram" })).toBeNull();
 		expect(computeEmbedCropLayout({ width: -1, height: -1 })).toBeNull();
 	});
 });
@@ -124,5 +124,25 @@ describe("isReelUrl", () => {
 	// 判別できないものは «拡大しない» 側（＝ 切らない側）へ倒す
 	it.each([null, undefined, "", "not a url", "/reel/相対パスは URL ではない"])("%s は false", (url) => {
 		expect(isReelUrl(url as string | null | undefined)).toBe(false);
+	});
+});
+
+/*
+#1641 **この計算は Instagram の埋め込みを実測した値である。**
+
+ヘッダ 54px・メディア枠 4:5 は `instagram.com/p/{code}/embed/` の形。YouTube の埋め込みは
+全体が 16:9 のプレイヤーそのもので、上を 54px 削って 1.42 倍すると**映像が切れる**。
+TikTok もヘッダ・キャプション欄の高さが違う。
+
+**測っていない provider は «切らない»**（null）に倒す。呼び出し側はセル全面の iframe として
+素直に描く。切る量を推測で決めるより余白が出る方がまし（オーナー判断「クロップじゃない」の延長）。
+*/
+describe("#1641 Instagram 以外は切らない", () => {
+	it.each(["tiktok", "youtube", "unknown"])("%s は null（＝ 全面で描かせる）", (provider) => {
+		expect(computeEmbedCropLayout({ width: 393, height: 852 }, { provider })).toBeNull();
+	});
+
+	it("provider を渡し忘れたときも切らない側へ倒す", () => {
+		expect(computeEmbedCropLayout({ width: 393, height: 852 })).toBeNull();
 	});
 });
