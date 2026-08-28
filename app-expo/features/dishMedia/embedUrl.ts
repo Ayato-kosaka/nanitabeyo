@@ -22,6 +22,27 @@ export type EmbeddablePlayerSource = {
 	embedUrl: string;
 	/** 「◯◯で再生」の表示名。固有名詞なので翻訳しない（sns-import.tsx と同じ判断） */
 	providerLabel: string;
+	/**
+	 * #1641 **埋め込みをどう読み込むか。**
+	 *
+	 * | | 意味 |
+	 * | --- | --- |
+	 * | `document` | 埋め込み URL を WebView へ直接読ませる（＝ トップレベル文書）。ページと同一オリジンになるので `<video>` を注入で操作できる |
+	 * | `iframe` | こちらの HTML の中に iframe として置く。**YouTube はこれでないと動かない**（下記） |
+	 *
+	 * ## なぜ YouTube だけ iframe が要るのか
+	 *
+	 * YouTube の埋め込みは **トップレベル文書として開かれることを拒否する**。実測（Chrome 152）:
+	 *
+	 * | 読み込み方 | 結果 |
+	 * | --- | --- |
+	 * | `https://www.youtube.com/embed/{id}` を直接開く | **エラー 153**。`dQw4w9WgXcQ`（誰でも埋め込める動画）でも同じ |
+	 * | 実 https オリジンのページに iframe で置く | **無音で自動再生する**（`paused=false` / `currentTime` が進む） |
+	 *
+	 * WebView は URL を直接渡すとトップレベル文書として開くので、
+	 * **これまで YouTube は必ずエラー 153 になっていた**（オーナー報告「アプリ内再生できない」）。
+	 */
+	mode: "document" | "iframe";
 };
 
 export function buildExternalEmbedPlayerSource(
@@ -35,16 +56,20 @@ export function buildExternalEmbedPlayerSource(
 			return {
 				embedUrl: `https://www.instagram.com/p/${encodedId}/embed/`,
 				providerLabel: "Instagram",
+				mode: "document",
 			};
 		case "tiktok":
 			return {
 				embedUrl: `https://www.tiktok.com/embed/v2/${encodedId}`,
 				providerLabel: "TikTok",
+				mode: "document",
 			};
 		case "youtube":
 			return {
-				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&mute=1`,
+				// enablejsapi=1: 親のページから再生状態を受け取るため（YouTube IFrame API）
+				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&mute=1&enablejsapi=1`,
 				providerLabel: "YouTube",
+				mode: "iframe",
 			};
 		default:
 			return null;
@@ -96,3 +121,106 @@ export function isInlineEmbedUrl(url: string): boolean {
 		return false;
 	}
 }
+
+/**
+ * #1641 `mode: "iframe"` の埋め込みを包む HTML を組む（いまは YouTube だけ）。
+ *
+ * ## なぜ包む必要があるのか
+ *
+ * YouTube の埋め込みは **トップレベル文書として開かれると必ずエラー 153 になる**
+ * （`EmbeddablePlayerSource.mode` の表を参照）。**実在の https オリジンを持つページの
+ * 中に iframe として置く**と、無音で自動再生する。WebView へはこの HTML を
+ * `baseUrl` 付きで読ませ、そのオリジンを親として使わせる。
+ *
+ * ## 再生状態は YouTube の公式 API で受け取る
+ *
+ * 中身は別オリジンなので、Instagram / TikTok のように `<video>` を直接触れない。
+ * 代わりに **YouTube IFrame API**（`enablejsapi=1`）へ `postMessage` で話しかけ、
+ * 返ってくる `onStateChange` / `onError` を、他の provider と**同じ形の報告**
+ * （`nb-embed-autoplay`）へ翻訳する。こうすることで、
+ * 「再生できているセルには何も重ねない / 再生できない投稿だけ導線へ縮退する」という
+ * 呼び出し側の分岐を provider ごとに書き分けずに済む。
+ *
+ * ⚠️ `postMessage` の宛先オリジンは `https://www.youtube.com` に固定する。
+ *    `*` にすると、埋め込みが差し替わったときに任意の相手へ送ってしまう。
+ * ⚠️ 受信側も `event.origin` を検査する。**中身は第三者のページである。**
+ */
+export function buildEmbedIframeHtml(embedUrl: string): string {
+	// 埋め込み URL は buildExternalEmbedPlayerSource が ID から組み立て直した値だけが来る
+	return `<!doctype html>
+<html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}
+  iframe{border:0;position:fixed;inset:0;width:100vw;height:100vh}
+</style></head>
+<body>
+<iframe id="nb-embed" src="${embedUrl}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+<script>
+(function () {
+  var ORIGIN = 'https://www.youtube.com';
+  var frame = document.getElementById('nb-embed');
+  var settled = false;
+
+  // ⚠️ **結論は 1 度だけ。** 再生が始まったあとに締め切りが来ても報告し直さない
+  //    （呼び出し側が «再生できない» へ戻り、動いている映像に導線の帯が乗ってしまう）
+  function report(kind, detail) {
+    if (settled) return;
+    settled = true;
+    try {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        src: 'nb-embed-autoplay', kind: kind, detail: detail == null ? null : String(detail)
+      }));
+    } catch (e) {}
+  }
+
+  function send(message) {
+    try { frame.contentWindow.postMessage(JSON.stringify(message), ORIGIN); } catch (e) {}
+  }
+
+  window.addEventListener('message', function (event) {
+    // 中身は第三者のページ。素性の分からない相手の言うことは読まない
+    if (event.origin !== ORIGIN) return;
+    var data;
+    try { data = JSON.parse(event.data); } catch (e) { return; }
+
+    if (data.event === 'onReady') {
+      // 自動再生が効かなかった場合の保険。無音なら撃ち直してよい
+      send({ event: 'command', func: 'mute', args: [] });
+      send({ event: 'command', func: 'playVideo', args: [] });
+      return;
+    }
+
+    /*
+     * ⚠️ **状態は onStateChange では飛んでこない。** 実測すると YouTube は
+     *    infoDelivery の中へ info.playerState を載せて送ってくる。
+     *
+     *    実測（Chrome 152）:
+     *      再生できる動画   … playerState: 1（PLAYING）
+     *      埋め込み不可の動画 … playerState: -1 → 3（未開始 → バッファのまま進まない）
+     */
+    if (data.event === 'infoDelivery' && data.info) {
+      if (data.info.playerState === 1) report('playing', 'muted');
+      if (typeof data.info.errorCode !== 'undefined') report('no_video', data.info.errorCode);
+    }
+    // 動画側が埋め込みを許可していない / 存在しない
+    if (data.event === 'onError') report('no_video', data.info);
+  }, false);
+
+  // 状態通知の購読を開始する（この 1 通が無いと onStateChange は飛んでこない）
+  var hello = setInterval(function () { send({ event: 'listening' }); }, 500);
+  setTimeout(function () { clearInterval(hello); }, 8000);
+  setTimeout(function () { report('timeout', 'no_state_change'); }, 12000);
+})();
+</script>
+</body></html>`;
+}
+
+/**
+ * `mode: "iframe"` の HTML を読ませるときの `baseUrl`。
+ *
+ * **実在の https オリジンでなければならない。** `http://127.0.0.1` や `about:blank` では
+ * YouTube が親オリジンを認めず「このコンテンツはご利用いただけません」になる（実測）。
+ * 自分たちのドメインを使う。
+ */
+export const EMBED_IFRAME_BASE_URL = "https://app.nanitabeyo.net";

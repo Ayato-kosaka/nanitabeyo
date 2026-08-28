@@ -81,7 +81,13 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { DishMediaExternalEmbed } from "@shared/api/v1/res";
-import { buildExternalEmbedPlayerSource, isAllowedEmbedNavigation, isInlineEmbedUrl } from "../embedUrl";
+import {
+	EMBED_IFRAME_BASE_URL,
+	buildEmbedIframeHtml,
+	buildExternalEmbedPlayerSource,
+	isAllowedEmbedNavigation,
+	isInlineEmbedUrl,
+} from "../embedUrl";
 
 type WebViewComponent = React.ComponentType<Record<string, unknown>>;
 type ProbeResult = { WebView: WebViewComponent | null; error: string | null };
@@ -637,19 +643,45 @@ export function ExternalEmbedPlayer({
 					testID="external-embed-webview">
 					<NativeWebView
 						ref={webViewRef}
-						source={{ uri: source.embedUrl }}
+						/*
+						#1641【設計】**読み込み方は provider によって違う。**
+
+						| mode | 読み込み方 | 再生のさせ方 |
+						| --- | --- | --- |
+						| `document`（Instagram / TikTok） | 埋め込み URL を直接読む | 同一オリジンなので `<video>` を注入して `play()` |
+						| `iframe`（YouTube） | こちらの HTML を `baseUrl` 付きで読み、中に iframe を置く | 別オリジンなので触れない。YouTube 公式の IFrame API と postMessage でやり取りする |
+
+						YouTube を直接読むと **必ずエラー 153** になる（`embedUrl.ts` の実測表）。
+						これがオーナー報告「YouTube shorts がアプリ内再生できない」の真因だった。
+						*/
+						source={
+							source.mode === "iframe"
+								? { html: buildEmbedIframeHtml(source.embedUrl), baseUrl: EMBED_IFRAME_BASE_URL }
+								: { uri: source.embedUrl }
+						}
 						style={styles.webView}
 						allowsInlineMediaPlayback
 						mediaPlaybackRequiresUserAction={false}
 						// 表示専用なので、ユーザーの意図なく PiP へ持って行かれる余地を潰す
 						allowsPictureInPictureMediaPlayback={false}
-						/* #1641 ページ読み込みごとに自動再生エージェントを仕込む。
-						   `<video>` が現れるまで再試行し、結果を postMessage で返す */
-						injectedJavaScript={AUTOPLAY_SCRIPT}
+						/*
+						#1641 ページ読み込みごとに自動再生エージェントを仕込む。
+						`<video>` が現れるまで再試行し、結果を postMessage で返す。
+
+						⚠️ **`iframe` モードへは注入しない。** 包みのページには `<video>` が無いので、
+						   エージェントは «映像が無い» と判断して黒い地色だけを敷き、
+						   **YouTube のプレイヤーを真っ黒に覆い隠す**（実測でそうなった）。
+						   あちらの再生報告は包みの HTML 側のスクリプトが行う。
+						*/
+						injectedJavaScript={source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT}
 						onMessage={handleMessage}
 						/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
 						   まだ無いケース）に、もう一度エージェントを起こす */
-						onLoadEnd={() => webViewRef.current?.injectJavaScript(AUTOPLAY_SCRIPT)}
+						onLoadEnd={
+							source.mode === "iframe"
+								? undefined
+								: () => webViewRef.current?.injectJavaScript(AUTOPLAY_SCRIPT)
+						}
 						// Android: target=_blank で «画面外の新しい WebView» を作らせない（ヘッダ参照）
 						setSupportMultipleWindows={false}
 						onOpenWindow={(event: { nativeEvent: { targetUrl: string } }) =>

@@ -1,10 +1,17 @@
-import { buildExternalEmbedPlayerSource, isAllowedEmbedNavigation, isInlineEmbedUrl } from "./embedUrl";
+import {
+	EMBED_IFRAME_BASE_URL,
+	buildEmbedIframeHtml,
+	buildExternalEmbedPlayerSource,
+	isAllowedEmbedNavigation,
+	isInlineEmbedUrl,
+} from "./embedUrl";
 
 describe("buildExternalEmbedPlayerSource", () => {
 	it("instagram はリールのコードでも /p/{code}/embed/ を組む（captioned は白カードが付くので使わない）", () => {
 		expect(buildExternalEmbedPlayerSource("instagram", "DZnIRziT70s")).toEqual({
 			embedUrl: "https://www.instagram.com/p/DZnIRziT70s/embed/",
 			providerLabel: "Instagram",
+			mode: "document",
 		});
 	});
 
@@ -13,8 +20,24 @@ describe("buildExternalEmbedPlayerSource", () => {
 			"https://www.tiktok.com/embed/v2/6718335390845095173",
 		);
 		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl).toBe(
-			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&mute=1",
+			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&mute=1&enablejsapi=1",
 		);
+	});
+
+	/*
+	#1641 オーナー報告「YouTube shorts がアプリ内再生できない」の真因。
+
+	YouTube の埋め込みは **トップレベル文書として開かれると必ずエラー 153** になる。
+	実測では、誰でも埋め込める `dQw4w9WgXcQ` ですら直接開くと 153 で、
+	実 https オリジンのページに iframe として置くと無音で自動再生した。
+
+	WebView は URL を渡すとトップレベル文書として開くので、
+	**YouTube だけは包みの HTML が要る**。ここが `document` へ戻ると、また再生できなくなる。
+	*/
+	it("youtube だけ iframe モード（直接開くとエラー 153 になる）", () => {
+		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.mode).toBe("iframe");
+		expect(buildExternalEmbedPlayerSource("instagram", "abc123")?.mode).toBe("document");
+		expect(buildExternalEmbedPlayerSource("tiktok", "123")?.mode).toBe("document");
 	});
 
 	it("id は URL エンコードする（パス注入をさせない）", () => {
@@ -26,6 +49,52 @@ describe("buildExternalEmbedPlayerSource", () => {
 	it("未知 provider と空 id は null（呼び出し側が外部で開くへ縮退）", () => {
 		expect(buildExternalEmbedPlayerSource("x", "abc")).toBeNull();
 		expect(buildExternalEmbedPlayerSource("instagram", "")).toBeNull();
+	});
+});
+
+describe("buildEmbedIframeHtml", () => {
+	const html = buildEmbedIframeHtml("https://www.youtube.com/embed/abc123?enablejsapi=1");
+
+	it("埋め込みを iframe として置く", () => {
+		expect(html).toContain('src="https://www.youtube.com/embed/abc123?enablejsapi=1"');
+		expect(html).toContain("allow=\"autoplay; encrypted-media; picture-in-picture\"");
+	});
+
+	/*
+	⚠️ **中身は第三者のページである。**
+	送る側は宛先オリジンを固定し、受ける側は `event.origin` を検査する。
+	`*` で送ると、埋め込みが差し替わったときに任意の相手へ送ってしまう。
+	*/
+	it("postMessage の相手を YouTube に限定する（送信先・受信元の両方）", () => {
+		expect(html).toContain("var ORIGIN = 'https://www.youtube.com'");
+		expect(html).toContain("event.origin !== ORIGIN");
+		expect(html).not.toContain("postMessage(JSON.stringify(message), '*')");
+	});
+
+	/*
+	⚠️ 状態は `onStateChange` では飛んでこない。実測すると `infoDelivery` の中の
+	   `info.playerState` に入る（再生できる動画は 1、埋め込み不可の動画は -1 → 3 のまま）。
+	*/
+	it("再生開始は infoDelivery の playerState で判定する", () => {
+		expect(html).toContain("data.event === 'infoDelivery'");
+		expect(html).toContain("data.info.playerState === 1");
+	});
+
+	it("結論は 1 度だけ報告する（再生後に締め切りで上書きしない）", () => {
+		expect(html).toContain("if (settled) return;");
+	});
+
+	/*
+	⚠️ `buildEmbedIframeHtml` はテンプレートリテラルなので、**コメントにバッククォートを
+	   書くとそこで文字列が終わる**。実際にこのファイルで壊し、suite ごと読み込めなくなった
+	   （`ExternalEmbedPlayer` の注入スクリプトでも同じ事故を起こしている）。目視では気付けない。
+	*/
+	it("組み立てた HTML にバッククォートが混ざっていない", () => {
+		expect(html).not.toContain("`");
+	});
+
+	it("baseUrl は実在の https オリジン（about:blank や 127.0.0.1 では YouTube が拒否する）", () => {
+		expect(EMBED_IFRAME_BASE_URL).toMatch(/^https:\/\//);
 	});
 });
 
