@@ -121,6 +121,26 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 		</TouchableOpacity>
 	);
 
+	/*
+	#1641【設計】**サーバが «再生できない» と判定済みなら iframe を作らない。**
+
+	ネイティブ側（`ExternalEmbedPlayer.tsx`）と同じ判断をここでも行う。web の iframe は
+	WebView ほど重くないが、**読み込んでも絶対に再生されないページを毎セル取りに行く**のは
+	同じ無駄で、権利ブロックされた投稿では Instagram のログイン誘導が出ることもある。
+
+	⚠️ `unknown` は弾かない（TikTok は常に `unknown`）。弾くのは確定したものだけ。
+	*/
+	if (embed.playbackStatus === "not_playable") {
+		return (
+			<View
+				style={styles.overlayContainer}
+				pointerEvents="box-none"
+				testID={`external-embed-known-not-playable-${embed.provider}`}>
+				{playButton}
+			</View>
+		);
+	}
+
 	return (
 		<>
 			<View

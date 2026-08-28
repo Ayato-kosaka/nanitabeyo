@@ -1305,7 +1305,9 @@ describe('#1599 取り込みの競合', () => {
       action_type: 'save',
     });
     // 生の create が残っていると、そこだけ P2002 で 500 になる
-    expect((tx as { reactions: Record<string, unknown> }).reactions.create).toBeUndefined();
+    expect(
+      (tx as { reactions: Record<string, unknown> }).reactions.create,
+    ).toBeUndefined();
   });
 
   it('競合して 1 行も増えなかったときは saved: true と偽らない', async () => {
@@ -1335,7 +1337,10 @@ describe('DishMediaImportsService — YouTube の Shorts 判定', () => {
     transport.route(YOUTUBE_OEMBED, {
       status: 200,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: '【月島】焼鶏ばんちょう', author_name: '78グルメ' }),
+      body: JSON.stringify({
+        title: '【月島】焼鶏ばんちょう',
+        author_name: '78グルメ',
+      }),
     });
 
   it('/watch?v= が横長の通常動画なら取り込ませない', async () => {
@@ -1389,6 +1394,393 @@ describe('DishMediaImportsService — YouTube の Shorts 判定', () => {
 
     await service.resolve({ url: SHORTS_URL });
 
-    expect(transport.requests.some((request) => request.url.startsWith(SHORTS_URL))).toBe(false);
+    expect(
+      transport.requests.some((request) => request.url.startsWith(SHORTS_URL)),
+    ).toBe(false);
+  });
+});
+
+/*
+#1641 **再生可否（playback_*）の判定と保存。**
+
+オーナー指摘 2026-08-28:「今は、埋め込み時に分岐しているんですね。それって処理重く
+なりますよね？そこを修正して欲しい。で、検索タブのお店提案では出さないで欲しい」。
+
+判定は**取り込みのときに 1 回だけ・追加のリクエストゼロ**で行い、DB へ書く。
+ここで見るのは «何を根拠にどう書くか» と、**書いてはいけないものを書かないこと**である。
+*/
+describe('DishMediaImportsService — 埋め込みの再生可否（#1641）', () => {
+  const RESTAURANT_ID = '11111111-1111-1111-1111-111111111111';
+  const INSTAGRAM_EMBED_URL =
+    'https://www.instagram.com/p/DAbcDefGhIj/embed/captioned/';
+  const INSTAGRAM_URL = 'https://www.instagram.com/reel/DAbcDefGhIj/';
+  const SHORTS_URL = 'https://www.youtube.com/shorts/SXHMnicI6Pg';
+
+  /** SSR の骨（`video_url` の有無だけを差し替える） */
+  const instagramSsr = (extra: string) =>
+    [
+      '<!DOCTYPE html><html><body>',
+      '<img class="EmbeddedMediaImage" src="https://scontent-lga3-3.cdninstagram.com/v/t51/744.jpg" />',
+      '<a class="UsernameText">umaguru.tokyo</a>',
+      '<div class="Caption">umaguru.tokyo<br />八王子<b>ラーメン</b>！</div>',
+      `<script>window.__additionalDataLoaded('extra',{"shortcode":"DAbcDefGhIj"${extra}});</script>`,
+      '</body></html>',
+    ].join('');
+
+  /** create を 1 回流して、`dish_media_external_embeddings.create` の data を返す */
+  async function importOnce(
+    service: DishMediaImportsService,
+    url: string,
+  ): Promise<Record<string, unknown>> {
+    const { tx, calls } = createSaveTx();
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+    await service.create(
+      { url, restaurantId: RESTAURANT_ID, dishCategoryId: 'Q2' },
+      'user-1',
+    );
+    return calls.embeddingCreate.mock.calls[0][0].data as Record<
+      string,
+      unknown
+    >;
+  }
+
+  it('Instagram: 埋め込み SSR に video_url が在れば playable（追加リクエストなし）', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: instagramSsr(
+        ',"video_url":"https://scontent.cdninstagram.com/v/t50/x.mp4"',
+      ),
+    });
+
+    const data = await importOnce(service, INSTAGRAM_URL);
+
+    expect(data.playback_status).toBe('playable');
+    // ⚠️ playable のときは理由を必ず NULL で書く（CHECK dmee_playback_reason_check）
+    expect(data.playback_reason).toBeNull();
+    expect(data.playback_checked_at).toBeInstanceOf(Date);
+    // キャプション取得で引いた 1 本だけ。判定のために外部へ増やしていない
+    expect(
+      transport.requests.filter((r) => r.url.startsWith(INSTAGRAM_EMBED_URL)),
+    ).toHaveLength(1);
+  });
+
+  it('Instagram: video_url が無ければ not_playable(no_video_in_embed)', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: instagramSsr(''),
+    });
+
+    const data = await importOnce(service, INSTAGRAM_URL);
+
+    expect(data.playback_status).toBe('not_playable');
+    expect(data.playback_reason).toBe('no_video_in_embed');
+  });
+
+  it('Instagram: "video_url":null を «在る» と数えない', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: instagramSsr(',"video_url":null'),
+    });
+
+    const data = await importOnce(service, INSTAGRAM_URL);
+
+    expect(data.playback_status).toBe('not_playable');
+  });
+
+  /*
+  ⚠️ ここが要。**SSR が返らなかったのは «判定できなかった» のであって «映像が無い» ではない。**
+     URL が /reel/ であることを根拠に not_playable を書くと、Instagram の UA 判定が
+     変わっただけで取り込み済みのリールが検索から一斉に消える。
+  */
+  it('Instagram: SSR が返らなければ playback_* を書かない（URL の形から推測しない）', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: '<!DOCTYPE html><html><body><div id="splash"></div></body></html>',
+    });
+
+    const data = await importOnce(service, INSTAGRAM_URL);
+
+    expect(data).not.toHaveProperty('playback_status');
+    expect(data).not.toHaveProperty('playback_reason');
+  });
+
+  it('YouTube: oEmbed が 200 なら playable', async () => {
+    const { service, transport } = createHarness();
+    transport.route(YOUTUBE_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: '【月島】焼鶏ばんちょう',
+        author_name: '78グルメ',
+      }),
+    });
+
+    const data = await importOnce(service, SHORTS_URL);
+
+    expect(data.playback_status).toBe('playable');
+    expect(data.playback_reason).toBeNull();
+  });
+
+  /*
+  ⚠️ **メタデータとしては失敗（unknown）だが、再生可否としては確定している。**
+     401 は «こちらの認証が足りない» ではなく «この動画は外部サイトで再生させない» である。
+     status === 'ok' の中でだけ書いていると、**一番書きたいこのケースだけ書けない**。
+  */
+  it('YouTube: oEmbed が 401 なら not_playable(embedding_disabled)', async () => {
+    const { service, transport } = createHarness();
+    transport.route(YOUTUBE_OEMBED, { status: 401, body: 'Unauthorized' });
+
+    const data = await importOnce(service, SHORTS_URL);
+
+    expect(data.playback_status).toBe('not_playable');
+    expect(data.playback_reason).toBe('embedding_disabled');
+  });
+
+  it('YouTube: oEmbed が 5xx なら «判定できなかった» として書かない', async () => {
+    const { service, transport } = createHarness();
+    transport.route(YOUTUBE_OEMBED, { status: 503, body: 'oops' });
+
+    const data = await importOnce(service, SHORTS_URL);
+
+    expect(data).not.toHaveProperty('playback_status');
+  });
+
+  it('TikTok: 判定材料が無いので書かない（oEmbed 200 を playable と言い切らない）', async () => {
+    const { service, transport } = createHarness();
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('味噌ラーメン #ramen'),
+    });
+
+    const data = await importOnce(
+      service,
+      'https://www.tiktok.com/@scout2015/video/6718335390845095173',
+    );
+
+    expect(data).not.toHaveProperty('playback_status');
+  });
+
+  /*
+  #1641 **再取り込みで not_playable → playable へ戻せること。**
+
+  status だけ書き換えて古い理由を残すと CHECK 制約に当たって取り込みが 500 になる。
+  «status を書くときは reason も書く» が守られているかを、更新経路でも見る。
+  */
+  it('再取り込み: 既存行にも playback_* を貼り替え、理由を NULL へ戻す', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: instagramSsr(
+        ',"video_url":"https://scontent.cdninstagram.com/v/t50/x.mp4"',
+      ),
+    });
+    const { tx } = createSaveTx({
+      existingEmbedding: { dish_media_id: 'media-existing' },
+    });
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+
+    await service.create(
+      {
+        url: INSTAGRAM_URL,
+        restaurantId: RESTAURANT_ID,
+        dishCategoryId: 'Q2',
+      },
+      'user-1',
+    );
+
+    const updateMany = tx.dish_media_external_embeddings.updateMany;
+    expect(updateMany).toHaveBeenCalledTimes(1);
+    expect(updateMany.mock.calls[0][0].data).toMatchObject({
+      playback_status: 'playable',
+      playback_reason: null,
+    });
+  });
+
+  /*
+  ⚠️ **メタデータが取れなかった再取り込みでも、再生可否だけは貼り替わること。**
+     YouTube の «埋め込み不可» は resolved.status === 'unknown' として現れる。
+     更新を status === 'ok' の中に閉じ込めると、ここが素通りする。
+  */
+  it('再取り込み: oEmbed 401 でも既存行へ not_playable を書く', async () => {
+    const { service, transport } = createHarness();
+    transport.route(YOUTUBE_OEMBED, { status: 401, body: 'Unauthorized' });
+    const { tx } = createSaveTx({
+      existingEmbedding: { dish_media_id: 'media-existing' },
+    });
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+
+    await service.create(
+      { url: SHORTS_URL, restaurantId: RESTAURANT_ID, dishCategoryId: 'Q2' },
+      'user-1',
+    );
+
+    const updateMany = tx.dish_media_external_embeddings.updateMany;
+    expect(updateMany.mock.calls[0][0].data).toMatchObject({
+      playback_status: 'not_playable',
+      playback_reason: 'embedding_disabled',
+    });
+    // 取れなかったサムネイル / 死活は触らない
+    expect(updateMany.mock.calls[0][0].data).not.toHaveProperty('embed_status');
+  });
+});
+
+/*
+#1641 **端末からの «再生できなかった» 報告と、サーバ側の再検証。**
+
+オーナー承認の設計 3 番:「端末が «再生できなかった» と報告したら、その 1 件だけ
+サーバが再検証して直す」。ここで守るのは **端末の判定を保存しないこと**である。
+*/
+describe('DishMediaImportsService — 端末報告からの再検証（#1641）', () => {
+  const DISH_MEDIA_ID = '22222222-2222-2222-2222-222222222222';
+  const INSTAGRAM_EMBED_URL =
+    'https://www.instagram.com/p/DAbcDefGhIj/embed/captioned/';
+  const CANONICAL = 'https://www.instagram.com/reel/DAbcDefGhIj/';
+
+  const ssr = (extra: string) =>
+    [
+      '<!DOCTYPE html><html><body>',
+      '<img class="EmbeddedMediaImage" src="https://scontent-lga3-3.cdninstagram.com/v/t51/744.jpg" />',
+      '<a class="UsernameText">umaguru.tokyo</a>',
+      '<div class="Caption">umaguru.tokyo<br />八王子ラーメン</div>',
+      `<script>window.__additionalDataLoaded('extra',{"shortcode":"x"${extra}});</script>`,
+      '</body></html>',
+    ].join('');
+
+  /** `withTransaction` を差し替えて、読みと書きの両方を捕まえる */
+  function stubPrisma(
+    service: DishMediaImportsService,
+    row: Record<string, unknown> | null,
+  ) {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const tx = {
+      dish_media_external_embeddings: {
+        findFirst: jest.fn().mockResolvedValue(row),
+        updateMany,
+      },
+    };
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+    return { updateMany };
+  }
+
+  const rowWith = (over: Record<string, unknown> = {}) => ({
+    canonical_url: CANONICAL,
+    playback_status: 'playable',
+    playback_reason: null,
+    playback_checked_at: null,
+    ...over,
+  });
+
+  it('サーバが確かめ直して not_playable なら、その 1 件だけ直す', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: ssr(''), // video_url が消えている = 権利ブロックが後から入った
+    });
+    const { updateMany } = stubPrisma(service, rowWith());
+
+    const result = await service.reportUnplayable(DISH_MEDIA_ID);
+
+    expect(result).toMatchObject({
+      playbackStatus: 'not_playable',
+      playbackReason: 'no_video_in_embed',
+      rechecked: true,
+    });
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { dish_media_id: DISH_MEDIA_ID },
+        data: expect.objectContaining({
+          playback_status: 'not_playable',
+          playback_reason: 'no_video_in_embed',
+        }),
+      }),
+    );
+  });
+
+  /*
+  ⚠️ ここが要。**端末の言い分をそのまま保存しない。** 端末が «再生できなかった» と
+     言っていても、サーバが確かめて再生できるなら `playable` のままにする。
+     鵜呑みにすると、電波の悪い 1 台のせいでその投稿が全員の検索から消える。
+  */
+  it('サーバが «再生できる» と確かめたら、端末の報告があっても落とさない', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: ssr(',"video_url":"https://scontent.cdninstagram.com/v/t50/x.mp4"'),
+    });
+    const { updateMany } = stubPrisma(
+      service,
+      rowWith({ playback_status: 'unknown' }),
+    );
+
+    const result = await service.reportUnplayable(DISH_MEDIA_ID);
+
+    expect(result.playbackStatus).toBe('playable');
+    expect(updateMany.mock.calls[0][0].data).toMatchObject({
+      playback_status: 'playable',
+      playback_reason: null,
+    });
+  });
+
+  /*
+  ⚠️ **判定できなかったときに not_playable へ寄せない。** provider が一時的に落ちた日に
+     取り込み済みの投稿がまとめて検索から消える。ただし間引きのために日時だけは進める。
+  */
+  it('確かめられなかったら status を書き換えず、日時だけ進める', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, { status: 503, body: 'oops' });
+    const { updateMany } = stubPrisma(service, rowWith());
+
+    const result = await service.reportUnplayable(DISH_MEDIA_ID);
+
+    expect(result.playbackStatus).toBe('playable');
+    expect(Object.keys(updateMany.mock.calls[0][0].data)).toEqual([
+      'playback_checked_at',
+    ]);
+  });
+
+  /*
+  この経路は**ユーザーの端末が引き金になって provider を叩く**。間引きが無いと、
+  電波の悪い 1 台がフィードを往復するだけで同じ投稿へ何十回も問い合わせが飛ぶ。
+  */
+  it('直近に確かめたばかりなら provider を叩き直さない', async () => {
+    const { service, transport } = createHarness();
+    stubPrisma(
+      service,
+      rowWith({ playback_checked_at: new Date(Date.now() - 60_000) }),
+    );
+
+    const result = await service.reportUnplayable(DISH_MEDIA_ID);
+
+    expect(result.rechecked).toBe(false);
+    expect(transport.requests).toHaveLength(0);
+  });
+
+  it('埋め込みの行が無い dish_media でも例外を投げない', async () => {
+    const { service } = createHarness();
+    stubPrisma(service, null);
+
+    await expect(
+      service.reportUnplayable(DISH_MEDIA_ID),
+    ).resolves.toMatchObject({ playbackStatus: 'unknown', rechecked: false });
   });
 });

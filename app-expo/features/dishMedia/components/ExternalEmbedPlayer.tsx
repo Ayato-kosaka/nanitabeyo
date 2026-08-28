@@ -63,15 +63,7 @@ run 32654704176 で、埋め込み中央の「Instagramで見る」を踏んだ�
 描かれた瞬間にフックが例外を投げてアプリごと落ちる**（Detox run 32658978146 で実測）。
 */
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import {
-	AppState,
-	type AppStateStatus,
-	StyleSheet,
-	Text,
-	TouchableOpacity,
-	UIManager,
-	View,
-} from "react-native";
+import { AppState, type AppStateStatus, StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
 import { NavigationContext } from "@react-navigation/native";
@@ -508,7 +500,23 @@ const AUTOPLAY_SCRIPT = `(function () {
 })(); true;`;
 
 export type ExternalEmbedPlayerProps = {
-	embed: Pick<DishMediaExternalEmbed, "provider" | "externalContentId" | "canonicalUrl" | "embedStatus">;
+	/*
+	#1641 `playbackStatus` を受け取る。**«再生できない» はサーバが取り込みのときに
+	判定済み**で、ここではそれを見るだけである（読み込んでから畳む、をやめた）。
+	*/
+	embed: Pick<
+		DishMediaExternalEmbed,
+		"provider" | "externalContentId" | "canonicalUrl" | "embedStatus" | "playbackStatus"
+	>;
+	/**
+	 * #1641 **ページ内エージェントが «この投稿は再生できない» と結論したときに 1 度だけ呼ぶ。**
+	 *
+	 * ⚠️ 呼び出し側はサーバへ «確かめ直して» と頼むだけにすること。端末が再生できない理由は
+	 *    投稿の側とは限らない（機内モード・WebView が殺された直後）。判定はサーバがやり直す。
+	 *
+	 * サーバが既に `not_playable` と知っている投稿では呼ばない（頼む意味が無い）。
+	 */
+	onUnplayable?: () => void;
 	/**
 	 * 前面のページだけ true。false の間は何も描かない（親のサムネイルが見えている）。
 	 * WebView をフィードの全セルに立てない（メモリと帯域のため）
@@ -564,6 +572,7 @@ function useIsScreenFocusedSafely(fallback: boolean): boolean {
 export function ExternalEmbedPlayer({
 	embed,
 	isActive,
+	onUnplayable,
 	blockParentTapGesture,
 	isScreenFocused,
 }: ExternalEmbedPlayerProps) {
@@ -640,6 +649,26 @@ export function ExternalEmbedPlayer({
 	スクリプトは再注入されうるし、そのとき送信済みの記録は失われる。
 	*/
 	const hasPlayedRef = useRef(false);
+	/*
+	#1641 **«再生できなかった» を 1 度だけサーバへ知らせる。**
+
+	定期的な死活監視は無い（このリポジトリに cron は 1 本も無い）。取り込んだ後で
+	権利ブロックが入った投稿は、**実際に踏んだ端末が知らせない限り誰も気づけない**。
+
+	⚠️ **判定を送らない・保存させない。** 送るのは «確かめ直して» という合図だけで、
+	   判定はサーバが取り込みのときと同じ経路でやり直す（`reportUnplayable`）。
+	   端末の言い分をそのまま保存すると、電波の悪い 1 台のせいで投稿が全員の検索から消える。
+	⚠️ サーバが既に `not_playable` と知っているなら送らない（頼む意味が無い）。
+	*/
+	const reportedRef = useRef(false);
+	// «再生できなかった» の報告（上の reportedRef のコメント参照）
+	useEffect(() => {
+		if (playback !== "unplayable") return;
+		if (embed.playbackStatus === "not_playable") return;
+		if (reportedRef.current) return;
+		reportedRef.current = true;
+		onUnplayable?.();
+	}, [playback, embed.playbackStatus, onUnplayable]);
 	/*
 	#1641 **音が出ているか。** YouTube だけ自動では戻せなかったので、
 	«無音で再生中» のときだけタップで解除する口を出す（オーナー指示 2026-08-28）。
@@ -756,7 +785,26 @@ export function ExternalEmbedPlayer({
 		);
 	}
 
-	const inlineAvailable = source !== null && NativeWebView !== null && !renderProcessGone;
+	/*
+	#1641【設計】**サーバが «再生できない» と判定済みなら、WebView を 1 つも作らない。**
+
+	オーナー指摘 2026-08-28:「今は、埋め込み時に分岐しているんですね。それって処理重く
+	なりますよね？そこを修正して欲しい」。
+
+	従来はどのセルもいったん WebView を立ててページを読み、ページ内のエージェントが
+	«この投稿には映像が無い» と報告してから畳んでいた。**再生できないと分かっている投稿でも
+	毎回 260KiB のページと Chromium のレンダラを 1 つ起こしていた**（Android では
+	これが積み上がって `lowmemorykiller` に殺された run が実際にある）。
+
+	判定は取り込みのときにサーバが済ませて `playbackStatus` に持っている。ここでは
+	それを見るだけで、**読み込みも計測もしない**。
+
+	⚠️ **`unknown` を `not_playable` と同じに扱わない。** TikTok は判定材料が無く常に
+	   `unknown` で、`playable` 以外を弾くと **TikTok が 1 本も再生されなくなる**。
+	   弾くのは «再生できないと確定した» ものだけである。
+	*/
+	const knownNotPlayable = embed.playbackStatus === "not_playable";
+	const inlineAvailable = source !== null && NativeWebView !== null && !renderProcessGone && !knownNotPlayable;
 	/*
 	#1641【設計】**再生できているセルには、こちらの UI を何も出さない。**
 
@@ -882,9 +930,7 @@ export function ExternalEmbedPlayer({
 						/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
 						   まだ無いケース）に、もう一度エージェントを起こす */
 						onLoadEnd={
-							source.mode === "iframe"
-								? undefined
-								: () => webViewRef.current?.injectJavaScript(AUTOPLAY_SCRIPT)
+							source.mode === "iframe" ? undefined : () => webViewRef.current?.injectJavaScript(AUTOPLAY_SCRIPT)
 						}
 						// Android: target=_blank で «画面外の新しい WebView» を作らせない（ヘッダ参照）
 						setSupportMultipleWindows={false}
@@ -920,21 +966,23 @@ export function ExternalEmbedPlayer({
 			コマを目視するまで切り分けられなかった（実際は権利ブロックのセルで送りが
 			止まっており、その先へ着けていなかった）。両方を印にすれば失敗文だけで分かる。
 			*/}
-			{inlineAvailable && (
+			{/* ⚠️ **`inlineAvailable` で括らない。** これは «再生できる構成か» ではなく
+			    «このセルに着いたか» の印である。再生できないセル（権利ブロック・
+			    埋め込み不可）で消えると、Detox から «着けなかった» と区別できなくなる。 */}
+			<View style={styles.playingMarker} pointerEvents="none" testID={`external-embed-cell-${embed.provider}`} />
+			{/* #1641 サーバの判定で WebView を作らずに済んだ印。Detox から
+			    «高速パスが効いたか» を直接見るために出す（見た目には何も足さない） */}
+			{knownNotPlayable && (
 				<View
 					style={styles.playingMarker}
 					pointerEvents="none"
-					testID={`external-embed-cell-${embed.provider}`}
+					testID={`external-embed-known-not-playable-${embed.provider}`}
 				/>
 			)}
 			{playback === "playing" && (
 				/* #1641 provider ごとに分けて出す。«どの provider が再生できたか» を
 				   Detox から 1 つずつ判定できるようにするため（YouTube だけ落ちる、が拾える） */
-				<View
-					style={styles.playingMarker}
-					pointerEvents="none"
-					testID={`external-embed-playing-${embed.provider}`}
-				/>
+				<View style={styles.playingMarker} pointerEvents="none" testID={`external-embed-playing-${embed.provider}`} />
 			)}
 			{/*
 			#1641 **再生できない iframe モード（YouTube）は、向こうのページごと覆う。**

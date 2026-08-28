@@ -271,6 +271,13 @@ export class DishMediaAssembler {
       embedStatus: row.embed_status as DishMediaExternalEmbed['embedStatus'],
       lastVerifiedAt: row.last_verified_at?.toISOString() ?? null,
       thumbnailUrl: row.thumbnail_url ?? null,
+      // #1641 再生可否。取り込みのときに判定済みで、クライアントはこれを見て
+      // WebView を作るかどうかを決める（«出してから畳む» をやめる）
+      playbackStatus:
+        row.playback_status as DishMediaExternalEmbed['playbackStatus'],
+      playbackReason:
+        (row.playback_reason as DishMediaExternalEmbed['playbackReason']) ??
+        null,
     };
   }
 

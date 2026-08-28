@@ -81,11 +81,31 @@ Instagram / TikTok で音が出るのは、あちらが**同一オリジンの `
 | **YouTube が再生を断る** | `playerState` が -1 → 3 のまま進まない / YouTube 自身の bot 確認ページが出る | 地色で覆い «YouTube で見る» の帯 | ⚠️ **投稿者の設定とは限らない**（下記） |
 | 削除・非公開 | `embedStatus = 'unavailable'` | 「この投稿は利用できません」 | — |
 
-**権利ブロックは取り込み時点で判る。** 埋め込みの SSR HTML に `video_url` があるかどうかが
-«再生できる» を 9/9 で言い当てた。追加リクエストはゼロ。
-⚠️ ただし **DB には記録していない。** `embed_status` は `unknown / available / unavailable` の
-3 値しか無く（`20260824T0200_create_dish_media_external_embeddings.sql`）、取り込みは常に
-`available` を書く。**権利ブロックは端末で再生してみるまで分からない**状態のままである。
+### 再生可否は取り込み時に判定して DB へ持つ（2026-08-28 / オーナー承認 [#1678](https://github.com/Ayato-kosaka/nanitabeyo/issues/1678)）
+
+`dish_media_external_embeddings` に `playback_status` / `playback_reason` / `playback_checked_at`
+を足した。**`embed_status`（投稿が生きているか）とは直交する** — 生きていても再生できない投稿がある。
+
+| provider | 判定材料（**追加リクエストはゼロ**） | 結果 |
+| --- | --- | --- |
+| Instagram | 埋め込み SSR HTML の `video_url`（キャプション取得で既に引いている） | 在れば `playable` / 無ければ `not_playable(no_video_in_embed)` |
+| YouTube | oEmbed の HTTP ステータス（既に引いている） | 200 → `playable` / **401 → `not_playable(embedding_disabled)`** |
+| TikTok | 無し | `unknown`（触らない） |
+
+これで効くこと:
+
+- **検索フィードの候補から外れる**（`dish-media.repository.ts` の `base_candidates`。
+  «1 dish につき代表 1 本» を選ぶ `ROW_NUMBER` より**前**で外す）
+- **アプリが WebView をマウントしない。** 従来はどのセルもいったんページを読み、
+  ページ内エージェントの報告を待って畳んでいた
+- 取り込んだ**後で**壊れた投稿は、実際に踏んだ端末が
+  `POST /v1/dish-media/imports/:id/playback-report` で知らせ、**サーバが判定し直す**
+  （端末の判定は保存しない。6 時間の間引きあり）
+- 既存行は [`scripts/db-backfill/backfill_embed_playback.py`](../../scripts/db-backfill/backfill_embed_playback.py) が 1 回きりで埋める
+
+⚠️ **`unknown` を `not_playable` に寄せない。** TikTok は常に `unknown` で、
+«playable 以外を弾く» と書いた瞬間に TikTok が 1 本も出なくなる。
+provider の仕様変更で判定できなくなった日に取り込み済みの投稿が一斉に消えるのも同じ理屈である。
 
 ### ⚠️ «YouTube が埋め込み不可» という判断は誤りだった（2026-08-28 訂正）
 

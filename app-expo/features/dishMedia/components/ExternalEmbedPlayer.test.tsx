@@ -25,6 +25,8 @@ const EMBED = {
 	externalContentId: "DZnIRziT70s",
 	canonicalUrl: "https://www.instagram.com/reel/DZnIRziT70s/",
 	embedStatus: "available" as const,
+	// #1641 既定は «判定していない» ＝ 従来どおり実際に読み込んで試す
+	playbackStatus: "unknown" as const,
 };
 
 describe("ExternalEmbedPlayer（ネイティブ・WebView 不在ビルド）", () => {
@@ -107,4 +109,3 @@ describe("#1375 hook の本数が描画のたびに変わらない", () => {
 		expect(tree.root.findAllByProps({ testID: "external-embed-open-browser" }).length).toBeGreaterThan(0);
 	});
 });
-

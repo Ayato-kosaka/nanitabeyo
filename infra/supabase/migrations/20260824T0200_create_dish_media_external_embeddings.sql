@@ -95,6 +95,23 @@ CREATE TABLE IF NOT EXISTS dish_media_external_embeddings (
   embed_status        text NOT NULL DEFAULT 'unknown',
   last_verified_at    timestamptz(6) NULL,
 
+  -- #1641 **埋め込みの «枠» の中で再生できるか。** embed_status とは直交する。
+  --
+  --   embed_status     … 投稿そのものが生きているか（削除・非公開）
+  --   playback_status  … 生きている投稿が、埋め込みで再生できるか
+  --
+  -- 混ぜてはいけない。権利ブロックされた投稿がその後削除されることは普通に起こるし、
+  -- 死活監視（#1273 §39）は «生きている» と分かったら embed_status へ 'available' を書くので、
+  -- 同居させると**権利ブロックの記録がその瞬間に消える**。
+  --
+  -- ⚠️ 'not_playable' でも投稿は生きている。サムネイル・キャプション・店舗照合・
+  --    provider のアプリへのリンク遷移はすべて有効である（'unavailable' とは扱いが違う）。
+  playback_status     text NOT NULL DEFAULT 'unknown',
+  -- 'not_playable' のときだけ理由が入る。トリアージ用であって分岐には使わない
+  playback_reason     text NULL,
+  -- 最後に playback_status を判定した日時。NULL は未判定
+  playback_checked_at timestamptz(6) NULL,
+
   -- #1399 provider 側のサムネイル URL。**自ストレージへ複製した実体ではない**。
   -- 権利調査の結論により、サムネイルは複製せず参照する:
   --   Instagram … 画像の persisting が利用規約で明示的に禁止
@@ -124,6 +141,18 @@ CREATE TABLE IF NOT EXISTS dish_media_external_embeddings (
     CHECK (provider IN ('instagram','tiktok','youtube','x')),
   CONSTRAINT dmee_embed_status_check
     CHECK (embed_status IN ('unknown','available','unavailable')),
+  CONSTRAINT dmee_playback_status_check
+    CHECK (playback_status IN ('unknown','playable','not_playable')),
+  -- 理由は «再生できない» ときにしか意味を持たない。
+  -- ⚠️ 'playable' / 'unknown' を書くときは、同じ UPDATE で playback_reason = NULL を必ず入れる。
+  --    入れないと «権利ブロックが解けた投稿の再取り込み» でここに引っ掛かり、
+  --    取り込み API がトランザクションごと落ちる（#1675 独立レビュー 重 3）。
+  CONSTRAINT dmee_playback_reason_check
+    CHECK (
+      playback_reason IS NULL
+      OR (playback_status = 'not_playable'
+          AND playback_reason IN ('copyright_blocked','embedding_disabled','no_video_in_embed'))
+    ),
   -- 同じ投稿 × 同じ料理の二重取り込みを弾く自然キー
   CONSTRAINT dmee_provider_content_dish_uq UNIQUE (provider, external_content_id, dish_id),
 
@@ -138,6 +167,12 @@ CREATE TABLE IF NOT EXISTS dish_media_external_embeddings (
 CREATE INDEX IF NOT EXISTS idx_dmee_status_verified
   ON dish_media_external_embeddings (embed_status, last_verified_at);
 
+-- #1641 検索・お店提案から «再生できない投稿» を外すための部分索引。
+-- 全体の少数しか該当しないので、部分索引にして小さく保つ
+CREATE INDEX IF NOT EXISTS idx_dmee_not_playable
+  ON dish_media_external_embeddings (dish_media_id)
+  WHERE playback_status = 'not_playable';
+
 -- コメント（テーブル）
 COMMENT ON TABLE dish_media_external_embeddings IS 'SNS の公式埋め込みで描画する dish_media の外部投稿情報。dish_media と 1:1（render_type=''external_embed'' の行のみが持つ）。oEmbed が返す HTML は保持しない。#1395 / #1273';
 
@@ -148,6 +183,9 @@ COMMENT ON COLUMN dish_media_external_embeddings.provider IS '埋め込み元 SN
 COMMENT ON COLUMN dish_media_external_embeddings.external_content_id IS 'provider 側の投稿ID（動画IDなど）。(provider, external_content_id, dish_id) で一意（#1399 で dish_id を追加）。同じ投稿を別の料理として分類する取り込みは通し、同じ料理への二重取り込みは弾く';
 COMMENT ON COLUMN dish_media_external_embeddings.canonical_url IS 'provider 上の正規URL。埋め込み描画とリンク遷移の SoT';
 COMMENT ON COLUMN dish_media_external_embeddings.embed_status IS '埋め込みの死活（unknown=未検証 / available=表示可 / unavailable=削除・非公開等で表示不可）';
+COMMENT ON COLUMN dish_media_external_embeddings.playback_status IS '#1641 埋め込みの枠の中で再生できるか（unknown=未判定 / playable=再生できる / not_playable=再生できない）。embed_status（投稿が生きているか）とは直交する。not_playable でも投稿は生きているので、サムネイル・キャプション・リンク遷移は有効';
+COMMENT ON COLUMN dish_media_external_embeddings.playback_reason IS '#1641 not_playable の理由（copyright_blocked=権利ブロック / embedding_disabled=投稿者が埋め込みを許可していない / no_video_in_embed=埋め込みに映像が無い）。トリアージ用で、分岐には使わない';
+COMMENT ON COLUMN dish_media_external_embeddings.playback_checked_at IS '#1641 最後に playback_status を判定した日時。NULL は未判定。端末からの «再生できなかった» 報告を受けた再検証の間引きにも使う';
 COMMENT ON COLUMN dish_media_external_embeddings.last_verified_at IS '最後に死活検証した日時。NULL は未検証。idx_dmee_status_verified で古い順に再検証する';
 COMMENT ON COLUMN dish_media_external_embeddings.thumbnail_url IS 'provider 側のサムネイル URL（参照であって複製ではない）。取得できなければ NULL。複製の可否は provider ごとに異なる（Instagram は禁止 / TikTok の署名 URL は約48hで失効 / YouTube の i.ytimg.com は無署名で安定）ため、ここでは URL のみを保持する。#1399';
 COMMENT ON COLUMN dish_media_external_embeddings.created_at IS 'レコード作成日時';
@@ -260,3 +298,31 @@ ALTER TABLE dish_media_external_embeddings
   ADD CONSTRAINT dmee_provider_check
   CHECK (provider IN ('instagram','tiktok','youtube','x')) NOT VALID;
 ALTER TABLE dish_media_external_embeddings VALIDATE CONSTRAINT dmee_provider_check;
+
+-- --- #1641 再生可否（playback_*） ---------------------------------
+-- embed_status とは直交する情報。既存行は 'unknown' から始まり、
+-- 取り込み時の判定と 1 回きりのバックフィルで埋まる
+ALTER TABLE dish_media_external_embeddings
+  ADD COLUMN IF NOT EXISTS playback_status     text NOT NULL DEFAULT 'unknown',
+  ADD COLUMN IF NOT EXISTS playback_reason     text NULL,
+  ADD COLUMN IF NOT EXISTS playback_checked_at timestamptz(6) NULL;
+
+ALTER TABLE dish_media_external_embeddings
+  DROP CONSTRAINT IF EXISTS dmee_playback_status_check;
+ALTER TABLE dish_media_external_embeddings
+  ADD CONSTRAINT dmee_playback_status_check
+  CHECK (playback_status IN ('unknown','playable','not_playable')) NOT VALID;
+ALTER TABLE dish_media_external_embeddings
+  VALIDATE CONSTRAINT dmee_playback_status_check;
+
+ALTER TABLE dish_media_external_embeddings
+  DROP CONSTRAINT IF EXISTS dmee_playback_reason_check;
+ALTER TABLE dish_media_external_embeddings
+  ADD CONSTRAINT dmee_playback_reason_check
+  CHECK (
+    playback_reason IS NULL
+    OR (playback_status = 'not_playable'
+        AND playback_reason IN ('copyright_blocked','embedding_disabled','no_video_in_embed'))
+  ) NOT VALID;
+ALTER TABLE dish_media_external_embeddings
+  VALIDATE CONSTRAINT dmee_playback_reason_check;

@@ -244,6 +244,28 @@ export class DishMediaRepository {
         -- 「実体未着」を見落とす（processing と failed は原因が違うだけで、どちらも
         -- 検索へ公開してはいけない点は同じ）。そのため completed 以外を一律に除外する。
         AND dm.media_processing_status = 'completed'
+        /* #1641 **埋め込みの枠の中で再生できないと分かっている投稿は、検索フィードへ出さない。**
+
+           オーナー指摘 2026-08-28:「検索タブのお店提案では出さないで欲しい」。
+           権利ブロックのリールや埋め込みを許可していない YouTube 動画は、開いても
+           サムネイルが止まっているだけで、そのセルは «スワイプさせるためだけの空振り» になる。
+
+           ⚠️ **playback_status <> 'not_playable' と書いてはいけない。**
+              取り込みメディア以外（自撮りの投稿）は dmee の行を持たないので、
+              等値比較にすると **NULL になって全部落ちる**。NOT EXISTS で «そう判定された
+              行が在るときだけ弾く» と書く。
+
+           ⚠️ **unknown は弾かない。** 判定できなかっただけの投稿を隠すと、
+              provider が仕様を変えた日に取り込み済みの投稿が一斉に検索から消える。
+
+           ⚠️ 置き場所は base_candidates（ROW_NUMBER より**前**）である。後段で外すと、
+              「1 dish につき 1 本」の枠を再生できない投稿が取ってしまい、
+              **その料理が丸ごとフィードから消える**。 */
+        AND NOT EXISTS (
+          SELECT 1 FROM dish_media_external_embeddings dmee
+          WHERE dmee.dish_media_id = dm.id
+            AND dmee.playback_status = 'not_playable'
+        )
     ),
     -- 距離計算
     geo AS (
@@ -607,7 +629,7 @@ export class DishMediaRepository {
       },
     );
 
-    let whereClause: Prisma.dish_reviewsWhereInput = {
+    const whereClause: Prisma.dish_reviewsWhereInput = {
       user_id: userId,
       // #1513 論理削除済みは自分のプロフィールからも見えない
       deleted_at: null,

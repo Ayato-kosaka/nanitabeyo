@@ -35,6 +35,35 @@ import type {
   SnsUrlContent,
 } from '../../../../shared/utils/snsUrl';
 
+/**
+ * #1641 **その投稿が «埋め込みの枠の中で再生できるか»。**
+ *
+ * `embed_status`（投稿が生きているか）とは直交する。生きていても再生できない投稿があり、
+ * それがオーナーの見た «サムネだけ出て動かないセル» である。
+ *
+ * ## 判定は取り込みのときに 1 回だけ、追加のリクエストゼロで行う
+ *
+ * | provider | 材料 | 判定 |
+ * | --- | --- | --- |
+ * | Instagram | 埋め込み SSR HTML（キャプション取得で**既に引いている**）の `video_url` | 在れば playable / 無ければ not_playable(no_video_in_embed) |
+ * | YouTube | oEmbed の HTTP ステータス（**既に引いている**） | 200 なら playable / **401 なら not_playable(embedding_disabled)** |
+ * | TikTok | 無し | unknown |
+ *
+ * ⚠️ **`unknown` を `not_playable` に寄せない。** 判定できなかっただけの投稿を隠すと、
+ *    provider が仕様を変えた日に**取り込み済みの投稿が検索から消える**。
+ *    表示側は `not_playable` のときだけ速い経路へ落とし、`unknown` は従来どおり試す。
+ */
+export type EmbedPlaybackVerdict =
+  | { status: 'playable' }
+  | {
+      status: 'not_playable';
+      reason: 'copyright_blocked' | 'embedding_disabled' | 'no_video_in_embed';
+    }
+  | { status: 'unknown' };
+
+/** 判定材料が無かった / 判定できなかった。**弾かない側の既定値** */
+export const PLAYBACK_UNKNOWN: EmbedPlaybackVerdict = { status: 'unknown' };
+
 /** oEmbed から取れたもののうち、**保存せず**候補生成と確認画面の表示にだけ使う値 */
 export type SnsMetadata = {
   title: string | null;
@@ -50,7 +79,17 @@ export type SnsMetadata = {
   description?: string | null;
 };
 
-export type SnsMetadataOutcome =
+export type SnsMetadataOutcome = {
+  /**
+   * #1641 再生可否の判定。**メタデータが取れたかどうかとは独立**である。
+   *
+   * YouTube の «埋め込み不可» は oEmbed が 401 を返す形で現れるので、
+   * メタデータとしては失敗（`unknown`）だが、再生可否としては
+   * **`not_playable` と確定している**。両者を 1 つの status に畳むと、
+   * この «取れなかったが分かった» が表現できない。
+   */
+  playback: EmbedPlaybackVerdict;
+} & (
   | { status: 'ok'; metadata: SnsMetadata }
   /** 相手が消えた（400 / 404 / 410）。取り込みを続行させない */
   | { status: 'unavailable'; detail: Record<string, unknown> }
@@ -59,7 +98,8 @@ export type SnsMetadataOutcome =
       status: 'unknown';
       kind: 'provider_unsupported' | 'fetch_failed';
       detail: Record<string, unknown>;
-    };
+    }
+);
 
 /**
  * provider ごとの固定エンドポイント。**ここに載っていない provider は叩かない。**
@@ -146,6 +186,7 @@ export class SnsOembedService {
         status: 'unknown',
         kind: 'provider_unsupported',
         detail: { provider: content.provider },
+        playback: PLAYBACK_UNKNOWN,
       };
     }
 
@@ -162,7 +203,18 @@ export class SnsOembedService {
         },
       );
 
-      return { status: 'ok', metadata: this.pickMetadata(payload) };
+      /*
+       * #1641 **TikTok は再生可否を判定しない（`unknown` のまま）。**
+       *
+       * oEmbed が 200 でも «埋め込みの中で再生できるか» は分からない。判定材料が
+       * 無いものを `playable` と言い切ると、後で «playable なのに再生できない» という
+       * 一番たちの悪い状態になる。`unknown` なら表示側は従来どおり実際に試す。
+       */
+      return {
+        status: 'ok',
+        metadata: this.pickMetadata(payload),
+        playback: PLAYBACK_UNKNOWN,
+      };
     } catch (error) {
       return this.classifyFailure(error, content.provider);
     }
@@ -244,15 +296,29 @@ export class SnsOembedService {
       this.logger.warn('InstagramEmbedNotSsr', 'fetchInstagramEmbedMetadata', {
         htmlLength: html.length,
       });
+      /*
+       * #1641 ⚠️ **ここで `/reel/` か `/p/` かを見て «動画のはず» と推測しない。**
+       *    SSR が返らなかったのは «判定できなかった» のであって «映像が無い» ではない。
+       *    URL の形から推測して `not_playable` を書くと、Instagram 側の UA 判定が
+       *    変わっただけで**取り込み済みのリールが検索から一斉に消える**。
+       */
       return {
         status: 'unknown',
         kind: 'fetch_failed',
         detail: { provider: 'instagram', reason: 'embed_not_ssr' },
+        playback: PLAYBACK_UNKNOWN,
       };
     }
 
     return {
       status: 'ok',
+      /*
+       * #1641 **追加のリクエストはゼロ。** いま読んだのと同じ HTML から判定する。
+       * `video_url` が在る = 埋め込みの中に本物の `<video>` が入る（実測 9/9 一致）。
+       */
+      playback: metadata.hasVideoUrl
+        ? { status: 'playable' }
+        : { status: 'not_playable', reason: 'no_video_in_embed' },
       metadata: {
         title: this.pickString(metadata.caption),
         authorName: this.pickString(metadata.username),
@@ -327,7 +393,8 @@ export class SnsOembedService {
           functionName: 'confirmYouTubeShorts',
           // 行き先は YouTube の中だけ。外へ出るリダイレクトには付いていかない
           allowHop: (url) =>
-            url.hostname === 'www.youtube.com' || url.hostname === 'youtube.com',
+            url.hostname === 'www.youtube.com' ||
+            url.hostname === 'youtube.com',
           /*
            * ⚠️ **`/watch` まで取りに行かない。** 知りたいのは «流されたかどうか» だけで、
            *    その先の中身は要らない。取りに行くと 1 リクエスト無駄にするうえ、
@@ -372,9 +439,13 @@ export class SnsOembedService {
         },
       );
     } catch (error) {
-      this.logger.warn('TikTokShortlinkOembedFailed', 'resolveTikTokShortlink', {
-        kind: error instanceof SafeFetchError ? error.kind : 'unknown_error',
-      });
+      this.logger.warn(
+        'TikTokShortlinkOembedFailed',
+        'resolveTikTokShortlink',
+        {
+          kind: error instanceof SafeFetchError ? error.kind : 'unknown_error',
+        },
+      );
       return null;
     }
 
@@ -431,6 +502,7 @@ export class SnsOembedService {
         status: 'unknown',
         kind: 'provider_unsupported',
         detail: { provider: 'youtube' },
+        playback: PLAYBACK_UNKNOWN,
       };
     }
     const requestUrl = new URL(endpoint);
@@ -446,14 +518,27 @@ export class SnsOembedService {
       base = this.pickMetadata(payload);
     } catch (error) {
       // oEmbed が «消えた» と言うなら、説明文を取りに行く意味も無い
-      return this.classifyFailure(error, 'youtube');
+      return this.classifyFailure(
+        error,
+        'youtube',
+        classifyYouTubeOembedPlayback(error),
+      );
     }
 
     const description = await this.fetchYouTubeDescription(
       content.externalContentId,
     );
 
-    return { status: 'ok', metadata: { ...base, description } };
+    /*
+     * #1641 oEmbed が 200 を返した = **その動画は埋め込みを許可している**。
+     * 逆に許可していない動画は 401 を返す（実測。下の
+     * `classifyYouTubeOembedPlayback` に根拠を書いた）。追加のリクエストは要らない。
+     */
+    return {
+      status: 'ok',
+      metadata: { ...base, description },
+      playback: { status: 'playable' },
+    };
   }
 
   /**
@@ -477,7 +562,9 @@ export class SnsOembedService {
       this.logger.warn(
         'YouTubeDescriptionFetchFailed',
         'fetchYouTubeDescription',
-        { kind: error instanceof SafeFetchError ? error.kind : 'unknown_error' },
+        {
+          kind: error instanceof SafeFetchError ? error.kind : 'unknown_error',
+        },
       );
       return null;
     }
@@ -491,14 +578,18 @@ export class SnsOembedService {
          実際に起きており（開発環境では取れて Cloud Run では取れなかった）、
          これが無いと HTML を手で覗くまで切り分けられない。
       */
-      this.logger.warn('YouTubeDescriptionNotFound', 'fetchYouTubeDescription', {
-        htmlLength: html.length,
-        markersPresent: YOUTUBE_DESCRIPTION_STRATEGIES.filter(
-          (strategy) => strategy.extract(html) !== null,
-        ).map((strategy) => strategy.name),
-        hasPlayerResponse: html.includes('ytInitialPlayerResponse'),
-        hasInitialData: html.includes('ytInitialData'),
-      });
+      this.logger.warn(
+        'YouTubeDescriptionNotFound',
+        'fetchYouTubeDescription',
+        {
+          htmlLength: html.length,
+          markersPresent: YOUTUBE_DESCRIPTION_STRATEGIES.filter(
+            (strategy) => strategy.extract(html) !== null,
+          ).map((strategy) => strategy.name),
+          hasPlayerResponse: html.includes('ytInitialPlayerResponse'),
+          hasInitialData: html.includes('ytInitialData'),
+        },
+      );
       return null;
     }
 
@@ -514,6 +605,12 @@ export class SnsOembedService {
   private classifyFailure(
     error: unknown,
     provider: SnsProvider,
+    /*
+     * #1641 **失敗しても «再生できないと分かった» ことはある。**
+     * YouTube の埋め込み不可は oEmbed 401 として現れるので、呼び出し側が
+     * その判定をここへ渡す。渡されなければ `unknown`（＝弾かない）。
+     */
+    playback: EmbedPlaybackVerdict = PLAYBACK_UNKNOWN,
   ): SnsMetadataOutcome {
     if (error instanceof SafeFetchError) {
       const status =
@@ -528,7 +625,11 @@ export class SnsOembedService {
           provider,
           status,
         });
-        return { status: 'unavailable', detail: { provider, status } };
+        return {
+          status: 'unavailable',
+          detail: { provider, status },
+          playback,
+        };
       }
 
       this.logger.warn('SnsOembedFailed', 'fetchMetadata', {
@@ -540,6 +641,7 @@ export class SnsOembedService {
         status: 'unknown',
         kind: 'fetch_failed',
         detail: { provider, kind: error.kind, status },
+        playback,
       };
     }
 
@@ -552,6 +654,7 @@ export class SnsOembedService {
       status: 'unknown',
       kind: 'fetch_failed',
       detail: { provider, kind: 'unknown_error' },
+      playback,
     };
   }
 }
@@ -561,6 +664,21 @@ export type InstagramEmbedFields = {
   caption: string | null;
   thumbnailUrl: string | null;
   username: string | null;
+  /**
+   * #1641 埋め込み SSR の中に `video_url` が在ったか（＝**埋め込みの枠の中で映像が再生できるか**）。
+   *
+   * ## なぜこれが «再生できるか» の答えになるのか
+   *
+   * 埋め込みページは `window.__additionalDataLoaded` に投稿の JSON を流し込んでおり、
+   * 映像を持つ投稿にだけ `video_url` が入る。**楽曲の権利でブロックされたリールでは
+   * この鍵ごと消え**、埋め込みは静止画のカードになる（オーナーが «サムネだけ出て
+   * 動かない» と報告したセルがこれ）。取り込み済みの投稿 9 件で
+   * «`video_url` の有無» と «実機の埋め込みで再生できたか» が 9/9 一致した。
+   *
+   * ⚠️ **URL が `/reel/` かどうかでは判定できない。** 権利ブロックされたリールの URL は
+   *    `/reel/` のままである。判定材料は HTML の中身だけ。
+   */
+  hasVideoUrl: boolean;
 };
 
 /** HTML エンティティのうち、embed SSR に実際に出るものだけを戻す */
@@ -616,9 +734,17 @@ export function parseInstagramEmbedHtml(
       usernameMatch !== null
         ? decodeHtmlEntities(usernameMatch[1]).trim() || null
         : null,
+    hasVideoUrl: INSTAGRAM_VIDEO_URL_MARKER.test(html),
   };
 }
 
+/**
+ * #1641 埋め込み SSR の中の `video_url`。
+ *
+ * JSON としてパースしない（260 KiB を毎回構文解析する必要が無い）。鍵の綴りと
+ * **値が https で始まること**まで見て、`"video_url": null` を «在る» と数えないようにする。
+ */
+const INSTAGRAM_VIDEO_URL_MARKER = /\\?"video_url\\?"\s*:\s*\\?"https/;
 
 /**
  * #1641 YouTube の視聴ページ HTML から**説明文**を取り出す。
@@ -766,4 +892,30 @@ function findRunsArrayEnd(html: string, from: number): number {
   }
 
   return -1;
+}
+
+/**
+ * #1641 YouTube の oEmbed が失敗したとき、それが **«埋め込みを許可していない»** かを見る。
+ *
+ * 実測（2026-08-28）:
+ *
+ * | 動画 | `GET /oembed?url=…` |
+ * | --- | --- |
+ * | 埋め込み可（`8KJDwppL0qg`） | **200** |
+ * | 埋め込み不可 | **401** |
+ * | 存在しない ID | 400 |
+ *
+ * つまり 401 は «こちらの認証が足りない» ではなく **«この動画は外部サイトで再生させない»**
+ * という投稿者側の設定である。だからメタデータとしては失敗でも、再生可否としては確定できる。
+ *
+ * ⚠️ **401 以外を not_playable に寄せない。** 5xx・タイムアウト・400（消えた）は
+ *    «判定できなかった» であって «再生できない» ではない。
+ */
+function classifyYouTubeOembedPlayback(error: unknown): EmbedPlaybackVerdict {
+  if (!(error instanceof SafeFetchError)) return PLAYBACK_UNKNOWN;
+  if (error.kind !== 'unexpected_status') return PLAYBACK_UNKNOWN;
+  const status =
+    typeof error.detail?.status === 'number' ? error.detail.status : null;
+  if (status !== 401) return PLAYBACK_UNKNOWN;
+  return { status: 'not_playable', reason: 'embedding_disabled' };
 }

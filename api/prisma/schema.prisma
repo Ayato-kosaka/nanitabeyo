@@ -294,11 +294,17 @@ model dish_media_external_embeddings {
   created_at          DateTime   @default(now()) @db.Timestamptz(6)
   updated_at          DateTime   @default(now()) @db.Timestamptz(6)
   thumbnail_url       String?
+  /// #1641 埋め込みの枠の中で再生できるか（unknown / playable / not_playable）。embed_status とは直交する
+  playback_status     String     @default("unknown")
+  /// not_playable のときだけ入る理由。playable / unknown を書くときは必ず null に戻すこと（CHECK 違反で取り込みが落ちる）
+  playback_reason     String?
+  playback_checked_at DateTime?  @db.Timestamptz(6)
   dish_media          dish_media @relation(fields: [dish_media_id, dish_id], references: [id, dish_id], onDelete: Cascade, onUpdate: NoAction, map: "dmee_dish_media_dish_fk")
 
   @@unique([dish_media_id, dish_id], map: "dmee_media_dish_uq")
   @@unique([provider, external_content_id, dish_id], map: "dmee_provider_content_dish_uq")
   @@index([embed_status, last_verified_at], map: "idx_dmee_status_verified")
+  @@index([dish_media_id], map: "idx_dmee_not_playable")
   @@schema("dev")
 }
 

@@ -1,0 +1,2 @@
+# #1641 dish_media_external_embeddings.playback_* の 1 回きりのバックフィル
+psycopg2-binary==2.9.9

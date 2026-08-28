@@ -38,6 +38,8 @@ const EMBED = {
 	externalContentId: "CDg3owdFa6W",
 	canonicalUrl: "https://www.instagram.com/reel/CDg3owdFa6W/",
 	embedStatus: "available" as const,
+	// #1641 既定は «判定していない» ＝ 従来どおり実際に読み込んで試す
+	playbackStatus: "unknown" as const,
 };
 
 // probe は render 時に走るので、最初の render より前に立てておけば足りる
@@ -64,6 +66,59 @@ const post = (payload: unknown) =>
 
 const fallbackCount = (tree: ReactTestRenderer) =>
 	tree.root.findAllByProps({ testID: "external-embed-fallback" }).length;
+
+/*
+#1641 **サーバが «再生できない» と判定済みのセルは、WebView を 1 つも作らない。**
+
+オーナー指摘 2026-08-28:「今は、埋め込み時に分岐しているんですね。それって処理重く
+なりますよね？」。従来はどのセルもいったんページを読み、ページ内のエージェントの報告を
+待ってから畳んでいた（＝再生できない投稿でも毎回 Chromium のレンダラを 1 つ起こしていた）。
+*/
+describe("#1641 サーバ判定による高速パス", () => {
+	const renderWith = (playbackStatus: "unknown" | "playable" | "not_playable"): ReactTestRenderer => {
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={{ ...EMBED, playbackStatus }} isActive />);
+		});
+		return tree;
+	};
+
+	it("not_playable なら WebView をマウントしない", () => {
+		const tree = renderWith("not_playable");
+		expect(tree.root.findAllByProps({ testID: "external-embed-webview" })).toHaveLength(0);
+		// 代わりに «Instagram で見る» の導線へ縮退している
+		expect(fallbackCount(tree)).toBeGreaterThan(0);
+		expect(tree.root.findAllByProps({ testID: "external-embed-known-not-playable-instagram" }).length).toBeGreaterThan(
+			0,
+		);
+	});
+
+	/*
+	⚠️ ここが要。**TikTok は判定材料が無く常に `unknown`** である。
+	   «playable 以外を弾く» と書いた瞬間に TikTok が 1 本も再生されなくなる。
+	*/
+	it("unknown なら従来どおり WebView を立てて実際に試す", () => {
+		const tree = renderWith("unknown");
+		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBeGreaterThan(0);
+	});
+
+	it("playable でも WebView は立てる（判定は «出さない» ためだけに使う）", () => {
+		const tree = renderWith("playable");
+		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBeGreaterThan(0);
+	});
+
+	/*
+	`external-embed-cell-{provider}` は «このセルに着いたか» の印である。再生できない
+	セルで消えると、Detox から «着けなかった» と区別できなくなる（run 33138096398 で
+	実際に切り分けられなかった）。
+	*/
+	it("«セルに着いた» 印は再生可否によらず出る", () => {
+		for (const status of ["unknown", "playable", "not_playable"] as const) {
+			const tree = renderWith(status);
+			expect(tree.root.findAllByProps({ testID: "external-embed-cell-instagram" }).length).toBeGreaterThan(0);
+		}
+	});
+});
 
 describe("#1641 WebView 入りビルドの自動再生", () => {
 	it("WebView は常に表示専用で、自動再生スクリプトと onMessage を積んでいる", () => {
@@ -335,7 +390,13 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		it("<video> が来る前でも、リールの 1 コマ目（一番大きい画像）をセル全面へ広げる", () => {
 			// 実測（Chrome 152）: 1 コマ目の <img> は t=500ms、<video> が動くのは t=1750ms。
 			// この差を埋めないとセルは 2 秒ちかく真っ黒になる
-			const { styles, images } = run({ video: false, images: [{ w: 150, h: 150 }, { w: 360, h: 639 }] });
+			const { styles, images } = run({
+				video: false,
+				images: [
+					{ w: 150, h: 150 },
+					{ w: 360, h: 639 },
+				],
+			});
 
 			const poster = styles.get(images[1]);
 			expect(poster).toMatchObject({ position: "fixed", height: "100vh", "object-fit": "contain" });
