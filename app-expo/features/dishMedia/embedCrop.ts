@@ -141,3 +141,84 @@ export function computeEmbedCropLayout(
 
 	return { frameWidth, frameHeight, frameTop: -EMBED_HEADER_PX, mediaHeight, scale };
 }
+
+/* -------------------------------------------------------------------------- */
+/*  TikTok                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/*
+#1641 **TikTok の埋め込みは Instagram と構造が違う。**（実測: #1676 / Chromium・モバイル UA）
+
+`https://www.tiktok.com/embed/v2/{id}` は、**iframe に何 px 渡してもカードが固定サイズ**で、
+幅を変えても中身は拡大縮小されず、水平方向に中央寄せされるだけだった。
+
+    幅 320 / 375 / 393 / 500 / 600 のいずれでも
+      カード全体      323 x 756.25
+      ヘッダ帯        y 82 – 175（高さ 93）
+      映像のボックス  211 x 280（y 175 から）
+      キャプション帯  y 575.22 から（高さ 180.03）
+    変わるのは x（中央寄せ）だけで、y / 幅 / 高さは 5 幅すべて完全一致
+
+つまり Instagram のように «iframe の幅に対する比率» で考える前提が成り立たない。
+**固定 px を基準に、カードごと拡大して映像を大きく出す。**
+
+⚠️ **実測はヘッドレスで自動再生されていない状態のもの**（`videoWidth` / `videoHeight` は 0）。
+   再生が始まったときに TikTok が寸法を変えるなら、この値はずれる。
+   数値を疑うときは #1676 の実測をやり直すこと。
+*/
+
+/** カード全体の幅（px 固定） */
+export const TIKTOK_CARD_WIDTH = 323;
+/** カード全体の高さ（px 固定） */
+export const TIKTOK_CARD_HEIGHT = 756.25;
+/** 映像のボックス（px 固定）。カードの中で中央寄せされる */
+export const TIKTOK_VIDEO_WIDTH = 211;
+export const TIKTOK_VIDEO_HEIGHT = 280;
+/** カード上端から映像のボックス上端までの距離（px 固定） */
+export const TIKTOK_VIDEO_TOP = 175;
+
+export type TikTokEmbedLayout = {
+	/** iframe に与える幅。**カードの実寸そのまま**（可変にしても中身は変わらない） */
+	frameWidth: number;
+	/** iframe に与える高さ */
+	frameHeight: number;
+	/** 拡大率 */
+	scale: number;
+	/** 拡大の中心をセル中央へ合わせるための平行移動（拡大前の px） */
+	offsetX: number;
+	offsetY: number;
+};
+
+/**
+ * TikTok の埋め込みを «映像だけ大きく» 出すための配置を求める。
+ *
+ * **映像のボックスの幅がセル幅に一致するところまでカードごと拡大する。**
+ * はみ出すのは TikTok が付けた背景（ぼかし）とヘッダ・キャプション帯だけで、
+ * **映像そのものは 1px も切らない**（Instagram のリールと同じ考え方）。
+ *
+ * ⚠️ セルが低いときは拡大率を抑える。抑えないと映像の上下が窓からはみ出して切れる。
+ */
+export function computeTikTokEmbedLayout(cell: {
+	width: number;
+	height: number;
+}): TikTokEmbedLayout | null {
+	if (!(cell.width > 0) || !(cell.height > 0)) return null;
+
+	// 映像のボックスが収まる最大の拡大率（幅・高さのどちらも切らない）
+	const scale = Math.min(cell.width / TIKTOK_VIDEO_WIDTH, cell.height / TIKTOK_VIDEO_HEIGHT);
+
+	/*
+	映像のボックスの中心を、セルの中心へ合わせる。
+	カードの中で映像は水平中央にあるので、横のずれは無い。縦だけずらす。
+	*/
+	const frameHeight = TIKTOK_CARD_HEIGHT;
+	const videoCenterY = TIKTOK_VIDEO_TOP + TIKTOK_VIDEO_HEIGHT / 2;
+
+	return {
+		frameWidth: TIKTOK_CARD_WIDTH,
+		frameHeight,
+		scale,
+		offsetX: 0,
+		offsetY: frameHeight / 2 - videoCenterY,
+	};
+}

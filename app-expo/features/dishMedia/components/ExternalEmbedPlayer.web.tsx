@@ -34,7 +34,7 @@ import { Play } from "lucide-react-native";
 
 import i18n from "@/lib/i18n";
 import { buildExternalEmbedPlayerSource } from "../embedUrl";
-import { computeEmbedCropLayout, isReelUrl } from "../embedCrop";
+import { computeEmbedCropLayout, computeTikTokEmbedLayout, isReelUrl } from "../embedCrop";
 import type { ExternalEmbedPlayerProps } from "./ExternalEmbedPlayer";
 // #1509 メディア埋め込みの黒背景・再生 UI はメディアを引き立てる固定色（テーマ非追従）
 import { FixedColors } from "@/constants/Palette";
@@ -71,6 +71,14 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 	const crop = useMemo(
 		() => computeEmbedCropLayout(cell, { isReel, provider: embed.provider }),
 		[cell, isReel, embed.provider],
+	);
+	/*
+	#1641 TikTok は **iframe の幅に中身が追随しない**（カードが固定 px）。
+	Instagram 用の «幅に対する比率» の計算が使えないので、専用の配置を持つ。根拠は `../embedCrop.ts`
+	*/
+	const tiktok = useMemo(
+		() => (embed.provider === "tiktok" ? computeTikTokEmbedLayout(cell) : null),
+		[cell, embed.provider],
 	);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
@@ -148,6 +156,37 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 							title: source.providerLabel,
 						})}
 					</View>
+				) : tiktok !== null ? (
+					/*
+					#1641 **TikTok は映像のボックスの幅がセル幅に一致するところまで、カードごと拡大する。**
+
+					はみ出すのは TikTok が付けた背景（ぼかし）とヘッダ・キャプション帯だけで、
+					**映像そのものは切らない**（Instagram のリールと同じ考え方）。
+					実測値の根拠は `../embedCrop.ts` のヘッダを参照。
+					*/
+					React.createElement("iframe", {
+						src: source.embedUrl,
+						style: {
+							border: 0,
+							position: "absolute",
+							left: "50%",
+							top: "50%",
+							width: tiktok.frameWidth,
+							height: tiktok.frameHeight,
+							/*
+							⚠️ **ずらす量に拡大率を掛ける。** CSS の transform は右から順に効くので、
+							   `translate` は **拡大後の画面座標**で効く。掛け忘れると、
+							   拡大するほど映像の中心がセルの中心から外れる。
+							*/
+							transform:
+								`translate(-50%, -50%)` +
+								` translate(${tiktok.offsetX * tiktok.scale}px, ${tiktok.offsetY * tiktok.scale}px)` +
+								` scale(${tiktok.scale})`,
+							backgroundColor: FixedColors.mediaBackground,
+						},
+						...IFRAME_SHARED_PROPS,
+						title: source.providerLabel,
+					})
 				) : (
 					/*
 					#1641 **Instagram 以外はセル全面の iframe にする。**

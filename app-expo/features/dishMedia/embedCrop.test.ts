@@ -16,6 +16,12 @@ import {
 	EMBED_MEDIA_ASPECT,
 	EMBED_REEL_ASPECT,
 	computeEmbedCropLayout,
+	computeTikTokEmbedLayout,
+	TIKTOK_CARD_HEIGHT,
+	TIKTOK_CARD_WIDTH,
+	TIKTOK_VIDEO_HEIGHT,
+	TIKTOK_VIDEO_TOP,
+	TIKTOK_VIDEO_WIDTH,
 	isReelUrl,
 } from "./embedCrop";
 
@@ -144,5 +150,50 @@ describe("#1641 Instagram 以外は切らない", () => {
 
 	it("provider を渡し忘れたときも切らない側へ倒す", () => {
 		expect(computeEmbedCropLayout({ width: 393, height: 852 })).toBeNull();
+	});
+});
+
+/*
+#1641 TikTok の埋め込みは **iframe の幅に中身が追随しない**（実測 #1676 / 5 幅で完全一致）。
+Instagram 用の «幅に対する比率» が使えないので、固定 px を基準に映像だけ大きく出す。
+*/
+describe("computeTikTokEmbedLayout", () => {
+	it("iframe にはカードの実寸をそのまま渡す（可変にしても中身は変わらない）", () => {
+		const layout = computeTikTokEmbedLayout({ width: 393, height: 759 })!;
+		expect(layout.frameWidth).toBe(TIKTOK_CARD_WIDTH);
+		expect(layout.frameHeight).toBe(TIKTOK_CARD_HEIGHT);
+	});
+
+	it("映像の幅がセル幅に一致するところまで拡大する（映像は切らない）", () => {
+		const cell = { width: 393, height: 759 };
+		const layout = computeTikTokEmbedLayout(cell)!;
+		expect(TIKTOK_VIDEO_WIDTH * layout.scale).toBeCloseTo(cell.width, 5);
+		// 高さ側も収まっている＝ 1px も切れていない
+		expect(TIKTOK_VIDEO_HEIGHT * layout.scale).toBeLessThanOrEqual(cell.height);
+	});
+
+	/*
+	⚠️ 抑えないと、低いセルで映像の上下が窓からはみ出して切れる。
+	   «切らないために入れた拡大» が、逆に切る原因になる。
+	*/
+	it("低いセルでは拡大率を抑える", () => {
+		const cell = { width: 400, height: 300 };
+		const layout = computeTikTokEmbedLayout(cell)!;
+		expect(TIKTOK_VIDEO_HEIGHT * layout.scale).toBeLessThanOrEqual(cell.height);
+		expect(TIKTOK_VIDEO_WIDTH * layout.scale).toBeLessThanOrEqual(cell.width);
+	});
+
+	it("映像の中心がセルの中心へ来るようにずらす", () => {
+		const layout = computeTikTokEmbedLayout({ width: 393, height: 759 })!;
+		// カードの中で映像は水平中央にあるので、横のずれは要らない
+		expect(layout.offsetX).toBe(0);
+		// 映像はカードの上寄りにあるので、下へずらして中心を合わせる
+		const videoCenterY = TIKTOK_VIDEO_TOP + TIKTOK_VIDEO_HEIGHT / 2;
+		expect(layout.offsetY).toBeCloseTo(TIKTOK_CARD_HEIGHT / 2 - videoCenterY, 5);
+		expect(layout.offsetY).toBeGreaterThan(0);
+	});
+
+	it("寸法が確定していないときは null", () => {
+		expect(computeTikTokEmbedLayout({ width: 0, height: 759 })).toBeNull();
 	});
 });
