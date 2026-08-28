@@ -1,4 +1,13 @@
-import { by, describeMutation, device, element, existsNow, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
+import {
+	by,
+	describeMutation,
+	device,
+	element,
+	existsNow,
+	launchAppWithSession,
+	tapWhenPresent,
+	waitUntilVisible,
+} from "../../fixtures/e2e";
 import { RestaurantFeedScreen } from "../../screens/RestaurantFeedScreen";
 import { ensureExternalEmbedImported } from "../../utils/externalEmbedImport";
 import { logMemory } from "../../utils/memoryProbe";
@@ -272,6 +281,18 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			if (await observeCurrentCell(CELL_DWELL_MS)) embedCells += 1;
 			logMemory(`cell-${String(i).padStart(2, "0")} reached=${PROVIDERS.filter((p) => reachedBy[p]).join("+") || "none"}`);
 			await device.takeScreenshot(`feed-${String(i).padStart(2, "0")}`);
+			/*
+			#1641 **«音を出す» が出ていたら押してみる。**（オーナー指示 2026-08-28）
+
+			自動では音を戻せなかったので、ユーザー操作なら通るのかを実機で測る。
+			合否には使わない（押しても駄目なら «タップでも出せない» が確定するだけ）。
+			結果は `external_embed_unmute_tapped` としてログへ落ちるので、BigQuery で読む。
+			*/
+			if (await existsNow(by.id("external-embed-unmute"), MARKER_PROBE_MS)) {
+				await tapWhenPresent(by.id("external-embed-unmute"));
+				await new Promise((resolve) => setTimeout(resolve, 4_000));
+				await device.takeScreenshot(`unmute-${String(i).padStart(2, "0")}`);
+			}
 			/*
 			#1641 **3 つ揃っても最後まで送る。** オーナー要望「3 PF の権利分岐ごとに
 			どんなレイアウトになるかエビデンスで確認したい」。途中で抜けると、
