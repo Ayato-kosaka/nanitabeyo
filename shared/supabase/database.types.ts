@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.12 (cd3cf9e)"
-  }
   dev: {
     Tables: {
       backend_event_logs: {
@@ -71,6 +66,54 @@ export type Database = {
           description?: string | null
           key?: string
           value?: string
+        }
+        Relationships: []
+      }
+      content_reports: {
+        Row: {
+          created_at: string
+          created_version: string
+          id: string
+          lock_no: number
+          reason_code: string
+          reason_text: string | null
+          reporter_user_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          status: string
+          target_id: string
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_version?: string
+          id?: string
+          lock_no?: number
+          reason_code: string
+          reason_text?: string | null
+          reporter_user_id: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          status?: string
+          target_id: string
+          target_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_version?: string
+          id?: string
+          lock_no?: number
+          reason_code?: string
+          reason_text?: string | null
+          reporter_user_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          status?: string
+          target_id?: string
+          target_type?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -513,6 +556,53 @@ export type Database = {
           },
         ]
       }
+      dish_media_external_embeddings: {
+        Row: {
+          canonical_url: string
+          created_at: string
+          dish_id: string
+          dish_media_id: string
+          embed_status: string
+          external_content_id: string
+          last_verified_at: string | null
+          provider: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          canonical_url: string
+          created_at?: string
+          dish_id: string
+          dish_media_id: string
+          embed_status?: string
+          external_content_id: string
+          last_verified_at?: string | null
+          provider: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canonical_url?: string
+          created_at?: string
+          dish_id?: string
+          dish_media_id?: string
+          embed_status?: string
+          external_content_id?: string
+          last_verified_at?: string | null
+          provider?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dmee_dish_media_dish_fk"
+            columns: ["dish_media_id", "dish_id"]
+            isOneToOne: true
+            referencedRelation: "dish_media"
+            referencedColumns: ["id", "dish_id"]
+          },
+        ]
+      }
       dish_media_impressions: {
         Row: {
           created_at: string
@@ -646,9 +736,9 @@ export type Database = {
           dish_id: string
           eaten_at: string | null
           id: string
-          lock_no: number
           imported_user_avatar: string | null
           imported_user_name: string | null
+          lock_no: number
           original_language_code: string
           price_cents: number | null
           rating: number
@@ -665,9 +755,9 @@ export type Database = {
           dish_id: string
           eaten_at?: string | null
           id?: string
-          lock_no?: number
           imported_user_avatar?: string | null
           imported_user_name?: string | null
+          lock_no?: number
           original_language_code: string
           price_cents?: number | null
           rating: number
@@ -684,9 +774,9 @@ export type Database = {
           dish_id?: string
           eaten_at?: string | null
           id?: string
-          lock_no?: number
           imported_user_avatar?: string | null
           imported_user_name?: string | null
+          lock_no?: number
           original_language_code?: string
           price_cents?: number | null
           rating?: number
@@ -857,18 +947,24 @@ export type Database = {
       notification_recipients: {
         Row: {
           created_at: string
+          last_pushed_actor_id: string | null
+          last_pushed_at: string | null
           notification_id: string
           recipient_id: string
           thread_updated_at: string
         }
         Insert: {
           created_at?: string
+          last_pushed_actor_id?: string | null
+          last_pushed_at?: string | null
           notification_id: string
           recipient_id: string
           thread_updated_at: string
         }
         Update: {
           created_at?: string
+          last_pushed_actor_id?: string | null
+          last_pushed_at?: string | null
           notification_id?: string
           recipient_id?: string
           thread_updated_at?: string
@@ -1204,6 +1300,7 @@ export type Database = {
         Row: {
           address_components: Json
           created_at: string
+          created_by_source: string
           google_place_id: string
           id: string
           image_path: string | null
@@ -1222,6 +1319,7 @@ export type Database = {
         Insert: {
           address_components: Json
           created_at?: string
+          created_by_source?: string
           google_place_id: string
           id?: string
           image_path?: string | null
@@ -1240,6 +1338,7 @@ export type Database = {
         Update: {
           address_components?: Json
           created_at?: string
+          created_by_source?: string
           google_place_id?: string
           id?: string
           image_path?: string | null
@@ -1305,6 +1404,60 @@ export type Database = {
         }
         Relationships: []
       }
+      share_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          preview_description: string
+          preview_image_path: string
+          preview_locale: string
+          preview_title: string
+          schema_version: number
+          status: string
+          target_id: string
+          target_params: Json
+          target_type: string
+          token_digest: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          preview_description: string
+          preview_image_path: string
+          preview_locale: string
+          preview_title: string
+          schema_version?: number
+          status?: string
+          target_id: string
+          target_params?: Json
+          target_type: string
+          token_digest: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          preview_description?: string
+          preview_image_path?: string
+          preview_locale?: string
+          preview_title?: string
+          schema_version?: number
+          status?: string
+          target_id?: string
+          target_params?: Json
+          target_type?: string
+          token_digest?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_device_tokens: {
         Row: {
           expo_push_token: string
@@ -1334,6 +1487,30 @@ export type Database = {
         }
         Update: {
           last_read_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_notification_preferences: {
+        Row: {
+          category: string
+          created_at: string
+          enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          enabled: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          enabled?: boolean
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1573,3 +1750,4 @@ export const Constants = {
     },
   },
 } as const
+
