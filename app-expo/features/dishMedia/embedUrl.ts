@@ -66,8 +66,15 @@ export function buildExternalEmbedPlayerSource(
 			};
 		case "youtube":
 			return {
-				// enablejsapi=1: 親のページから再生状態を受け取るため（YouTube IFrame API）
-				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&mute=1&enablejsapi=1`,
+				/*
+				enablejsapi=1: 親のページから再生状態を受け取るため（YouTube IFrame API）。
+
+				⚠️ **`mute=1` を付けないこと。** 付けるとプレイヤーが無音で始まり、あとから
+				   `unMute` を撃っても実機では無音のままだった（run 33167111834: `audio=muted`。
+				   同じ run で TikTok は `audible` になっている）。自動再生ポリシーで蹴られた場合は、
+				   包みの HTML が無音で撃ち直す。
+				*/
+				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&enablejsapi=1`,
 				providerLabel: "YouTube",
 				mode: "iframe",
 			};
@@ -227,10 +234,20 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
          * ⚠️ **この瞬間に読まない。** unMute の結果が infoDelivery で返るまでの間に
          *    読むと «無音» と誤報する。報告は 1 度だけなので遅らせても二重にならない。
          */
-        setTimeout(function () {
-          var muted = mutedFallback || lastMuted !== false;
-          report('playing', muted ? 'muted' : 'audible');
-        }, 800);
+        /*
+         * ⚠️ **分かってから報告する。** 無音で撃ち直した（mutedFallback）ならその時点で確定だが、
+         *    そうでない場合は YouTube 側から muted の状態が届くまで待つ。届く前に読むと、
+         *    実際は音が出ているのに «無音» と報告してしまい、計測が嘘になる。
+         *    3 秒待っても届かなければ、分からないまま（unknown）報告する。
+         */
+        var waited = 0;
+        var poll = setInterval(function () {
+          waited += 300;
+          send({ event: 'listening' });
+          if (mutedFallback) { clearInterval(poll); report('playing', 'muted'); return; }
+          if (lastMuted !== null) { clearInterval(poll); report('playing', lastMuted ? 'muted' : 'audible'); return; }
+          if (waited >= 3000) { clearInterval(poll); report('playing', 'unknown'); }
+        }, 300);
       }
       if (typeof data.info.errorCode !== 'undefined') report('no_video', data.info.errorCode);
     }

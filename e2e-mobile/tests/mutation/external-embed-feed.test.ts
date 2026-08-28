@@ -252,8 +252,13 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			if (await observeCurrentCell(CELL_DWELL_MS)) embedCells += 1;
 			logMemory(`cell-${String(i).padStart(2, "0")} reached=${PROVIDERS.filter((p) => reachedBy[p]).join("+") || "none"}`);
 			await device.takeScreenshot(`feed-${String(i).padStart(2, "0")}`);
-			// 3 つとも観測できたら、残りのセルを見る意味は無い（実行時間を返す）
-			if (allPlayed()) break;
+			/*
+			#1641 **3 つ揃っても最後まで送る。** オーナー要望「3 PF の権利分岐ごとに
+			どんなレイアウトになるかエビデンスで確認したい」。途中で抜けると、
+			**埋め込み不可の YouTube のセルまで辿り着かない**（実際に run 33167111834 で
+			撮り逃した）。`observeCurrentCell` は全部揃った時点で待たずに戻るので、
+			残りのセルは 1 周ぶん（約 1.5 秒）しか掛からない。
+			*/
 			await swipeFeed();
 		}
 

@@ -20,7 +20,7 @@ describe("buildExternalEmbedPlayerSource", () => {
 			"https://www.tiktok.com/embed/v2/6718335390845095173",
 		);
 		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl).toBe(
-			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&mute=1&enablejsapi=1",
+			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&enablejsapi=1",
 		);
 	});
 
@@ -98,7 +98,17 @@ describe("buildEmbedIframeHtml", () => {
 
 	it("音の有無は報告に載せる（muted 決め打ちにしない）", () => {
 		expect(html).toContain("'audible'");
-		expect(html).not.toContain("report('playing', 'muted')");
+		expect(html).toContain("lastMuted ? 'muted' : 'audible'");
+	});
+
+	/*
+	#1641 ⚠️ **URL に `mute=1` を付けないこと。**
+
+	付けるとプレイヤーが無音で始まり、あとから `unMute` を撃っても実機では無音のままだった
+	（run 33167111834: `audio=muted`。同じ run で TikTok は `audible` になっている）。
+	*/
+	it("YouTube の埋め込み URL に mute=1 を付けない", () => {
+		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl).not.toContain("mute=1");
 	});
 
 	it("結論は 1 度だけ報告する（再生後に締め切りで上書きしない）", () => {
