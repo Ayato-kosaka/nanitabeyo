@@ -588,10 +588,25 @@ export function ExternalEmbedPlayer({
 	  （= 権利ブロック。#1641 の実測どおり、何をしても再生できない）→ タップで Instagram
 	*/
 	const showFallbackCta = !inlineAvailable || playback === "unplayable";
+	/*
+	#1641【設計】**タップ受けはこの帯だけにする。セル全面に広げない。**
+
+	#1375 の頃はセル全面が «1 タップで操作モードへ入る» の受けだった。#1641 で操作モードを
+	廃止したので、全面で受ける理由はもう無い。むしろ実害が 2 つある。
+
+	1. **縦スワイプを食ってフィードを送れなくなる。** Detox（run 33135234690 / Android）で、
+	   権利ブロックされたセルに着いたあと **8 回スワイプしても同じセルから動かなかった**
+	   （コマの時計だけが進み、絵は同じ）。その先にある Instagram / TikTok のセルへ
+	   永久に到達できない
+	2. セルのどこを触っても外部ブラウザが開く。眺めているだけのつもりの指が当たっただけで
+	   アプリの外へ連れて行かれる
+
+	帯そのものは十分な大きさがあり、押したい人はそこを押す。
+	*/
 	const playButton = (
 		<TouchableOpacity
 			testID="external-embed-open-browser"
-			style={styles.playButton}
+			style={styles.playHintTapTarget}
 			onPress={handleOpenExternally}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("DishMediaContent.embed.openExternally", {
@@ -769,13 +784,16 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 	},
-	// #1375: セル全面が «1 タップで操作モードへ» の受け。中央には何も描かない
-	// （中央には Instagram 自身の再生ボタンが来るため。同じ場所に丸を 2 つ出さない）
-	playButton: {
-		...StyleSheet.absoluteFillObject,
-		justifyContent: "flex-end",
-		alignItems: "center",
-		paddingBottom: 124,
+	/*
+	#1641 タップ受けは帯そのものだけ。**セル全面に広げない**（理由は playButton の定義側）。
+
+	⚠️ 下端ぴったりに置くとフィードの絞り込みチップの裏へ隠れる（web で実測）ので、
+	   `overlayContainer` の中で下寄せしつつ余白を取る。
+	*/
+	playHintTapTarget: {
+		position: "absolute",
+		bottom: 124,
+		alignSelf: "center",
 	},
 	// «押せば動く» ことだけ伝える小さな帯。丸い再生ボタンの代わり
 	playHint: {

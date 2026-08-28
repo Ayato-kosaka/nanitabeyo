@@ -12,7 +12,7 @@
 */
 import React from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
-import { UIManager } from "react-native";
+import { StyleSheet, UIManager } from "react-native";
 
 jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn(() => Promise.resolve({ type: "dismiss" })) }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
@@ -88,6 +88,25 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		expect(shouldStart({ url: "https://app.nanitabeyo.net/", isTopFrame: true })).toBe(false);
 		// サブフレーム（埋め込みの中の通信）は従来どおり素通し
 		expect(shouldStart({ url: "https://www.youtube.com/embed/abc", isTopFrame: false })).toBe(true);
+	});
+
+	/*
+	#1641 **導線の帯がフィード送りを塞いではいけない。**
+
+	Detox（run 33135234690 / Android）で、権利ブロックされたセルに着いたあと
+	**8 回スワイプしても同じセルから動かなかった**（コマの時計だけが進み、絵は同じ）。
+	タップ受けがセル全面（`absoluteFillObject`）で、縦スワイプを食っていた。
+	*/
+	it("«Instagram で見る» のタップ受けをセル全面に広げない（フィードを送れなくなる）", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "no_video", detail: null });
+		const target = tree.root.findAllByProps({ testID: "external-embed-open-browser" })[0];
+		const style = StyleSheet.flatten(target.props.style) as Record<string, unknown>;
+		// 全面に広がっていないこと（left/right/top を持たない）
+		expect(style.left).toBeUndefined();
+		expect(style.right).toBeUndefined();
+		expect(style.top).toBeUndefined();
+		expect(style.bottom).toBe(124);
 	});
 
 	it("注入スクリプトにバッククォートが混ざっていない", () => {
