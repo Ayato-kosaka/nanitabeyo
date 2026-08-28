@@ -525,5 +525,44 @@
     "free_ceiling_with_self_crawl": "約172,000 店 = 15.17%",
     "beyond_ceiling": "自分のサイトを持たない/IGアカウントを持たない店は、検索でしか発見できず、そこが有料（Serper $317 等）",
     "enrichment_all_free": "business_discovery（200コール/時・無料）＋ embed（無料100%）"
+  },
+  "discovery_blind_spots_tested": {
+    "instagram_endpoints": {
+      "embed_captioned": "○ 動く（キャプション・6870/時・500連射ブロック0）",
+      "explore_locations_page": "✗ JSシェル（SSRなし・711KB）。投稿URLは出ない。ただし embed HTML には該当投稿の location link が1本含まれる（店舗照合の構造化シグナル）",
+      "web_profile_info_json": "✗ 401（#1284 は『脆い』だったが 2026-08 は認証必須に悪化）",
+      "post_json_a1": "✗ JSシェル/404。tokenレスの投稿JSONは死んでいる",
+      "sitemaps": "✗ 403（ig_seo_location/places/profile すべて）",
+      "business_discovery": "○ token 必要・200コール/時・第三者店に通る"
+    },
+    "wat_domain_stratified": {
+      "sampled": 17,
+      "food_pct": 17.6,
+      "finding": "飲食投稿は食メディアに集中せず、個人ブログに散在（1ホスト1投稿）。ドメイン allowlist で率を上げる余地は無い"
+    },
+    "verdict": "IG 側の無料エンドポイントで『アカウントの投稿一覧』を tokenレスで取る道は全滅。残る無料手段は open data アカウント＋CC店サイト（発見）→ business_discovery/embed（エンリッチ）"
+  },
+  "cost_model_refined": {
+    "note": "$317 は 1M クエリ（10ページ×105k セル）前提だったが過大。route① が 17万店を無料で埋めるので route② は残りだけでよい",
+    "route1_free_ceiling_stores": 172000,
+    "gap_to_500k": 328000,
+    "option_A_cell_3pages": {
+      "queries": 316000,
+      "usd": 95,
+      "basis": "132カテゴリ×800市区町村×3ページ。3ページで 108/108 セルが『5店以上』を満たした実測に基づく"
+    },
+    "option_B_one_query_per_gap_store": {
+      "queries": 328000,
+      "usd": 99
+    },
+    "option_C_apify_hashtag_500k_posts": {
+      "usd": 350,
+      "note": "$0.0007/件"
+    },
+    "cheapest_topup_to_500k_usd": [
+      95,
+      100
+    ],
+    "correction": "以前『$317〜$1178』と報告したが、route① 無料層の上に載せる増分は約 $95〜$100 に下がる"
   }
 }
