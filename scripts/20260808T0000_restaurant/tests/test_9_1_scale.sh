@@ -3,6 +3,17 @@
 # #843 本番規模（62万行）で 9_1 の所要時間と上書きガードを測る
 # =============================================================================
 #
+# ⚠️ **このテストの秒数で dev / 本番の所要時間を予測してはいけない。**
+#
+# ここで backfill を 17 秒と測ったが、**dev の実測は 10 分**だった（約 35 倍）。
+# GIN 索引を足しても 10.3 秒 → 17.1 秒にしかならず、差の大半は索引では説明できない。
+# 残りは Supabase 側の I/O・CPU とネットワーク往復であり、**ここでは再現できない**。
+#
+# したがってこのテストで言えるのは次の 2 つだけである。
+#   ・62 万行でも **壊れない**（アプリ製の行が守られる）
+#   ・処理どうしの **相対的な重さ**（provenance UPDATE がいちばん重い、など）
+# 「30 分の timeout に間に合うか」は、ここではなく **dev の実行ログ**で確かめること。
+#
 # 2026-08-24 の同期は `canceling statement due to statement timeout` で落ちた。
 # 対策として同期 session に 30 分の statement_timeout を入れたが、**それが
 # 足りているのかを誰も測っていなかった**。落ちた原因がサーバ既定の短い
@@ -60,6 +71,11 @@ CREATE TABLE restaurants (
   image_url TEXT NOT NULL, image_path TEXT, address_components JSONB NOT NULL, plus_code JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), source_seed_id UUID,
   source_names TEXT[] NOT NULL DEFAULT '{}', source_row_hash TEXT, synced_at TIMESTAMPTZ);
+
+-- 索引は本番に寄せる。created_by_source 自体に索引があるので更新が HOT にならず、
+-- **全索引にエントリが作られる**。GIN の更新は特に重いので、無いと軽く出過ぎる。
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX idx_restaurants_name_trgm ON restaurants USING gin (name gin_trgm_ops);
 CREATE TABLE restaurant_sync_staging (
   seed_id UUID, existing_restaurant_id UUID, google_place_id TEXT, name TEXT,
   name_language_code TEXT, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION,
