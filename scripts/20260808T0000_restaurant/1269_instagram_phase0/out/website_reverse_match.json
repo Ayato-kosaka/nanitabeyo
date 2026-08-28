@@ -1,0 +1,129 @@
+{
+  "purpose": "#1269 が誤紐付け対策として挙げていた「Instagram profile website → 店舗公式website の逆照合」が、実際に別主体を弾けるかを検証した",
+  "hypothesis_in_issue": "tochinavi も vison_com も、プロフィールの website が店のドメインと一致しないはず（＝一致しなければ別主体として弾ける）",
+  "verdict": "却下。逆照合は別主体を弾けない。",
+  "why": "ハンドルは『その店舗ページが載っているサイト』から抽出している。施設・ポータルの中の1ページから取れば、そこに載っている Instagram は施設・ポータルの公式アカウントであり、そのプロフィールの website は当然その同じドメインを指す。つまり照合は『このIGはこのサイトのものか』を確かめているだけで、『このIGはこの飲食店のものか』を確かめていない。循環しており、判別力を持たない。",
+  "n": 13,
+  "caveat": "source website が判明しているのは 31 件中 13 件（handle_recovery.json の detail に載っている回収分のみ）。統計としては小さいが、上記『なぜ効かないか』は件数ではなく構造の話である。",
+  "provenance": "store_website は claude/sns-dish-media-poc-fr2zxd の scripts/.../1273_sns_dish_media_poc/out/handle_recovery.json、ig_profile_website は business_discovery の実測値",
+  "by_attribution_label": {
+    "store_own": {
+      "n": 3,
+      "match": 3
+    },
+    "other_entity": {
+      "n": 7,
+      "match": 6
+    },
+    "chain_or_brand": {
+      "n": 3,
+      "match": 1
+    }
+  },
+  "rows": [
+    {
+      "handle": "c_cafe_sasanoya",
+      "attribution_label": "store_own",
+      "store": "C-cafeささ乃や",
+      "store_website_domain": "c-cafe.net",
+      "ig_profile_website_domain": "c-cafe.net",
+      "match": true
+    },
+    {
+      "handle": "izumoairport",
+      "attribution_label": "other_entity",
+      "store": "神在",
+      "store_website_domain": "izumo-airport.co.jp",
+      "ig_profile_website_domain": "izumo-airport.co.jp",
+      "match": true
+    },
+    {
+      "handle": "kashinoki_official",
+      "attribution_label": "chain_or_brand",
+      "store": "錦果楼",
+      "store_website_domain": "kasinoki.co.jp",
+      "ig_profile_website_domain": "kasinoki.co.jp",
+      "match": true
+    },
+    {
+      "handle": "kobeya_since1918",
+      "attribution_label": "chain_or_brand",
+      "store": "神戸屋レストラン 浜田山店",
+      "store_website_domain": "kobeyarestaurant.co.jp",
+      "ig_profile_website_domain": "line.me",
+      "match": false
+    },
+    {
+      "handle": "kurudot_285181",
+      "attribution_label": "store_own",
+      "store": "Cafe Kurudot",
+      "store_website_domain": "seihoukai-grp.com",
+      "ig_profile_website_domain": "seihoukai-grp.com",
+      "match": true
+    },
+    {
+      "handle": "locoplacela",
+      "attribution_label": "other_entity",
+      "store": "そば長",
+      "store_website_domain": "locoplace.jp",
+      "ig_profile_website_domain": "locoplace.jp",
+      "match": true
+    },
+    {
+      "handle": "mukaiyama_caramel",
+      "attribution_label": "chain_or_brand",
+      "store": "向山製作所大玉ベース店",
+      "store_website_domain": "mukaiyama-ss.co.jp",
+      "ig_profile_website_domain": "mukaiyama.shop",
+      "match": false
+    },
+    {
+      "handle": "myplstaff",
+      "attribution_label": "other_entity",
+      "store": "コレット",
+      "store_website_domain": "mypl.net",
+      "ig_profile_website_domain": "mypl.net",
+      "match": true
+    },
+    {
+      "handle": "sapporo_kokusai",
+      "attribution_label": "other_entity",
+      "store": "スカーレル",
+      "store_website_domain": "sapporo-kokusai.jp",
+      "ig_profile_website_domain": "sapporo-kokusai.jp",
+      "match": true
+    },
+    {
+      "handle": "spa.resort.hawaiians",
+      "attribution_label": "other_entity",
+      "store": "そば処与市",
+      "store_website_domain": "hawaiians.co.jp",
+      "ig_profile_website_domain": "hawaiians.co.jp",
+      "match": true
+    },
+    {
+      "handle": "steakhouse__narushima",
+      "attribution_label": "store_own",
+      "store": "ステーキハウス成しま 竜南店",
+      "store_website_domain": "steakhousenarushima.com",
+      "ig_profile_website_domain": "steakhousenarushima.com",
+      "match": true
+    },
+    {
+      "handle": "sunshineaoyama",
+      "attribution_label": "other_entity",
+      "store": "桂林",
+      "store_website_domain": "hotel-sunshineaoyama.co.jp",
+      "ig_profile_website_domain": "youtube.com",
+      "match": false
+    },
+    {
+      "handle": "tokyosquaregarden",
+      "attribution_label": "other_entity",
+      "store": "La Coccinelle",
+      "store_website_domain": "tokyo-sg.com",
+      "ig_profile_website_domain": "tokyo-sg.com",
+      "match": true
+    }
+  ]
+}

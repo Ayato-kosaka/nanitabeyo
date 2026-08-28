@@ -1,0 +1,670 @@
+{
+  "purpose": "#1269 Phase 0: business_discovery による Professional アカウント率の確定値",
+  "method": "business_discovery.username(<handle>) を叩き、データが返れば professional、error なら非 professional と判定した。画面目視と違い偽陰性が無い。",
+  "measured_at": "2026-08-28",
+  "n": 31,
+  "n_judged": 31,
+  "n_unmeasured": 0,
+  "professional": 29,
+  "professional_rate_pct": 93.5,
+  "by_attribution_label": {
+    "chain_or_brand": {
+      "n": 10,
+      "professional": 10,
+      "with_website": 9,
+      "judged": 10,
+      "professional_rate_pct": 100.0
+    },
+    "store_own": {
+      "n": 9,
+      "professional": 7,
+      "with_website": 6,
+      "judged": 9,
+      "professional_rate_pct": 77.8
+    },
+    "other_entity": {
+      "n": 12,
+      "professional": 12,
+      "with_website": 11,
+      "judged": 12,
+      "professional_rate_pct": 100.0
+    }
+  },
+  "website_present": 26,
+  "website_rate_pct_among_professional": 89.7,
+  "caption_available": {
+    "handles_with_media_returned": 29,
+    "handles_where_every_media_had_caption": 25,
+    "total_media_sampled": 145,
+    "total_media_with_caption": 137
+  },
+  "error_codes": [
+    [
+      110,
+      2207013
+    ]
+  ],
+  "rows": [
+    {
+      "handle": "afternoontea_official",
+      "professional": true,
+      "followers_count": 362181,
+      "media_count": 4859,
+      "website": "https://www.afternoon-tea.net/",
+      "biography_len": 134,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 4,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DckqyW2IChn/",
+      "first_caption_len": 1357,
+      "attribution_label": "chain_or_brand",
+      "store": "アフタヌーンティー 伊勢丹浦和"
+    },
+    {
+      "handle": "chateraise.jp",
+      "professional": true,
+      "followers_count": 286285,
+      "media_count": 1047,
+      "website": "http://www.chateraise.co.jp/",
+      "biography_len": 143,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 4,
+      "media_types": [
+        "IMAGE",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/reel/Dck6cDvmWw_/",
+      "first_caption_len": 189,
+      "attribution_label": "chain_or_brand",
+      "store": "シャトレーゼ 小野店"
+    },
+    {
+      "handle": "flo_prestige",
+      "professional": true,
+      "followers_count": 11462,
+      "media_count": 1089,
+      "website": "https://www.flojapon.co.jp/",
+      "biography_len": 146,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/reel/DckqmLiyO5O/",
+      "first_caption_len": 646,
+      "attribution_label": "chain_or_brand",
+      "store": "FLO PRESTIGE"
+    },
+    {
+      "handle": "fukushin_koushiki",
+      "professional": true,
+      "followers_count": 1519,
+      "media_count": 105,
+      "website": "https://lin.ee/vhuWMr1",
+      "biography_len": 129,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/CfVThPYPh6j/",
+      "first_caption_len": 593,
+      "attribution_label": "chain_or_brand",
+      "store": "福しん 成増店"
+    },
+    {
+      "handle": "kashinoki_official",
+      "professional": true,
+      "followers_count": 7858,
+      "media_count": 601,
+      "website": "https://www.kasinoki.co.jp/kasinoki/02e.htm",
+      "biography_len": 145,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/Db4QDkeEw1Q/",
+      "first_caption_len": 349,
+      "attribution_label": "chain_or_brand",
+      "store": "錦果楼"
+    },
+    {
+      "handle": "kobeya_since1918",
+      "professional": true,
+      "followers_count": 16596,
+      "media_count": 565,
+      "website": "https://liff.line.me/2006824685-ZQwY0ALB/customer/customercard.aspx?shop=instagram",
+      "biography_len": 131,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DcdRLDCGRDk/",
+      "first_caption_len": 904,
+      "attribution_label": "chain_or_brand",
+      "store": "神戸屋レストラン 浜田山店"
+    },
+    {
+      "handle": "mukaiyama_caramel",
+      "professional": true,
+      "followers_count": 4412,
+      "media_count": 99,
+      "website": "https://mukaiyama.shop/",
+      "biography_len": 33,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DcAD2-YzJIR/",
+      "first_caption_len": 455,
+      "attribution_label": "chain_or_brand",
+      "store": "向山製作所大玉ベース店"
+    },
+    {
+      "handle": "ryugetsu_sanpouroku",
+      "professional": true,
+      "followers_count": 29208,
+      "media_count": 1676,
+      "website": "http://www.ryugetsu.co.jp/",
+      "biography_len": 130,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DckQ1EkiVbp/",
+      "first_caption_len": 199,
+      "attribution_label": "chain_or_brand",
+      "store": "柳月"
+    },
+    {
+      "handle": "uogashimeicha",
+      "professional": true,
+      "followers_count": 5047,
+      "media_count": 564,
+      "website": null,
+      "biography_len": 137,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/Db7bDjJFJ1r/",
+      "first_caption_len": 527,
+      "attribution_label": "chain_or_brand",
+      "store": "うおがし銘茶銀座店"
+    },
+    {
+      "handle": "yakiniku_king_official",
+      "professional": true,
+      "followers_count": 168310,
+      "media_count": 1207,
+      "website": "https://www.yakiniku-king.jp/lp/link/",
+      "biography_len": 90,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 4,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/Dck5iY7EnAp/",
+      "first_caption_len": 239,
+      "attribution_label": "chain_or_brand",
+      "store": "焼肉きんぐ 福岡新宮店"
+    },
+    {
+      "handle": "gathering_insta",
+      "professional": true,
+      "followers_count": 5491,
+      "media_count": 718,
+      "website": "https://yuenfudousan.co.jp/",
+      "biography_len": 108,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DckteBEE9J-/",
+      "first_caption_len": 823,
+      "attribution_label": "other_entity",
+      "store": "Vege-Plant Cafe Bar LEBRO"
+    },
+    {
+      "handle": "islandeye_official",
+      "professional": true,
+      "followers_count": 7620,
+      "media_count": 466,
+      "website": null,
+      "biography_len": 105,
+      "media_returned": 5,
+      "media_with_caption": 1,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DcQkZFakiQ3/",
+      "first_caption_len": 34,
+      "attribution_label": "other_entity",
+      "store": "なみうどん"
+    },
+    {
+      "handle": "izumoairport",
+      "professional": true,
+      "followers_count": 4078,
+      "media_count": 215,
+      "website": "https://www.izumo-airport.co.jp/",
+      "biography_len": 114,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DcSo-YqDPn3/",
+      "first_caption_len": 445,
+      "attribution_label": "other_entity",
+      "store": "神在"
+    },
+    {
+      "handle": "locoplacela",
+      "professional": true,
+      "followers_count": 0,
+      "media_count": 47,
+      "website": "https://locoplace.jp",
+      "biography_len": 18,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/Db546lnkY6O/",
+      "first_caption_len": 690,
+      "attribution_label": "other_entity",
+      "store": "そば長"
+    },
+    {
+      "handle": "menyasyokudou",
+      "professional": true,
+      "followers_count": 5743,
+      "media_count": 195,
+      "website": "https://linktr.ee/SANTACALA",
+      "biography_len": 140,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DcNt1_RSOj_/",
+      "first_caption_len": 216,
+      "attribution_label": "other_entity",
+      "store": "月のトリコ 厚木店"
+    },
+    {
+      "handle": "myplstaff",
+      "professional": true,
+      "followers_count": 12737,
+      "media_count": 391,
+      "website": "https://oshu.mypl.net/",
+      "biography_len": 82,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DcktCUIkUya/",
+      "first_caption_len": 1231,
+      "attribution_label": "other_entity",
+      "store": "コレット"
+    },
+    {
+      "handle": "sapporo_kokusai",
+      "professional": true,
+      "followers_count": 22812,
+      "media_count": 1794,
+      "website": "https://www.sapporo-kokusai.jp",
+      "biography_len": 20,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/Dce4IZSGGkR/",
+      "first_caption_len": 191,
+      "attribution_label": "other_entity",
+      "store": "スカーレル"
+    },
+    {
+      "handle": "spa.resort.hawaiians",
+      "professional": true,
+      "followers_count": 52250,
+      "media_count": 809,
+      "website": "http://www.hawaiians.co.jp/",
+      "biography_len": 60,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 4,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/reel/Dbu_VECTjib/",
+      "first_caption_len": 213,
+      "attribution_label": "other_entity",
+      "store": "そば処与市"
+    },
+    {
+      "handle": "sunshineaoyama",
+      "professional": true,
+      "followers_count": 984,
+      "media_count": 763,
+      "website": "https://m.youtube.com/watch?v=9lLguK3y24I",
+      "biography_len": 114,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DbxUNWtkraJ/",
+      "first_caption_len": 226,
+      "attribution_label": "other_entity",
+      "store": "桂林"
+    },
+    {
+      "handle": "tochinavi",
+      "professional": true,
+      "followers_count": 25979,
+      "media_count": 3634,
+      "website": "https://www.tochinavi.net",
+      "biography_len": 75,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 1,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/reel/Dci4AN0RYIc/",
+      "first_caption_len": 325,
+      "attribution_label": "other_entity",
+      "store": "中華料理仁"
+    },
+    {
+      "handle": "tokyosquaregarden",
+      "professional": true,
+      "followers_count": 1889,
+      "media_count": 342,
+      "website": "http://tokyo-sg.com/",
+      "biography_len": 90,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DcgDg9Fj2iM/",
+      "first_caption_len": 188,
+      "attribution_label": "other_entity",
+      "store": "La Coccinelle"
+    },
+    {
+      "handle": "vison_com",
+      "professional": true,
+      "followers_count": 102823,
+      "media_count": 388,
+      "website": "https://vison.jp",
+      "biography_len": 100,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 1,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/reel/DcimmlUhcpI/",
+      "first_caption_len": 326,
+      "attribution_label": "other_entity",
+      "store": "Izurun"
+    },
+    {
+      "handle": "c_cafe_sasanoya",
+      "professional": true,
+      "followers_count": 815,
+      "media_count": 435,
+      "website": "https://www.c-cafe.net/",
+      "biography_len": 133,
+      "media_returned": 5,
+      "media_with_caption": 4,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/Db6neIEzOFS/",
+      "first_caption_len": 24,
+      "attribution_label": "store_own",
+      "store": "C-cafeささ乃や"
+    },
+    {
+      "handle": "dondonsunada",
+      "professional": true,
+      "followers_count": 10024,
+      "media_count": 468,
+      "website": "https://s-dondon.shop-pro.jp/",
+      "biography_len": 96,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 4,
+      "media_types": [
+        "IMAGE",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/reel/DcdOv_tTN-A/",
+      "first_caption_len": 339,
+      "attribution_label": "store_own",
+      "store": "どんどん コスパ店"
+    },
+    {
+      "handle": "kajicurry",
+      "professional": true,
+      "followers_count": 3877,
+      "media_count": 54,
+      "website": null,
+      "biography_len": 147,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DPXWZtED2sG/",
+      "first_caption_len": 1480,
+      "attribution_label": "store_own",
+      "store": "Kaji Curry"
+    },
+    {
+      "handle": "kurudot_285181",
+      "professional": true,
+      "followers_count": 372,
+      "media_count": 169,
+      "website": "https://www.seihoukai-grp.com/kurdot",
+      "biography_len": 144,
+      "media_returned": 5,
+      "media_with_caption": 3,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/Dchik2yP8U0/",
+      "first_caption_len": 27,
+      "attribution_label": "store_own",
+      "store": "Cafe Kurudot"
+    },
+    {
+      "handle": "kuwapan2014",
+      "professional": true,
+      "followers_count": 1114,
+      "media_count": 126,
+      "website": "https://kuwapan.jp/",
+      "biography_len": 148,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM",
+        "IMAGE"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DcZ4AaAMZcg/",
+      "first_caption_len": 277,
+      "attribution_label": "store_own",
+      "store": "桑ぱん"
+    },
+    {
+      "handle": "momosawakasiho",
+      "professional": false,
+      "error_code": 110,
+      "error_subcode": 2207013,
+      "error_message": "Invalid user id",
+      "attribution_label": "store_own",
+      "store": "甘泉堂 ももさわ菓子舗"
+    },
+    {
+      "handle": "pasteleriasanonofre",
+      "professional": false,
+      "error_code": 110,
+      "error_subcode": 2207013,
+      "error_message": "Invalid user id",
+      "attribution_label": "store_own",
+      "store": "サンオノフレ・スペイン菓子"
+    },
+    {
+      "handle": "sala.noge",
+      "professional": true,
+      "followers_count": 1130,
+      "media_count": 825,
+      "website": "https://www.facebook.com/sumika212/",
+      "biography_len": 150,
+      "media_returned": 5,
+      "media_with_caption": 5,
+      "media_with_permalink": 5,
+      "media_with_media_url": 5,
+      "media_types": [
+        "CAROUSEL_ALBUM"
+      ],
+      "sample_permalink": "https://www.instagram.com/p/DchndDND30V/",
+      "first_caption_len": 187,
+      "attribution_label": "store_own",
+      "store": "Sala noge"
+    },
+    {
+      "handle": "steakhouse__narushima",
+      "professional": true,
+      "followers_count": 2293,
+      "media_count": 822,
+      "website": "https://www.steakhousenarushima.com",
+      "biography_len": 149,
+      "media_returned": 5,
+      "media_with_caption": 4,
+      "media_with_permalink": 5,
+      "media_with_media_url": 2,
+      "media_types": [
+        "IMAGE",
+        "VIDEO"
+      ],
+      "sample_permalink": "https://www.instagram.com/reel/DN1oFha5g1o/",
+      "first_caption_len": 99,
+      "attribution_label": "store_own",
+      "store": "ステーキハウス成しま 竜南店"
+    }
+  ],
+  "error_code_caveat": "error 110 / subcode 2207013 'Invalid user id' は、相手が非プロアカウントの場合と アカウント自体が存在しない場合の両方で返る。API だけでは区別できない。",
+  "non_professional_detail": [
+    {
+      "handle": "pasteleriasanonofre",
+      "interpretation": "実在するが個人アカウント（目視で 964 フォロワーのプロフィールを確認済み）"
+    },
+    {
+      "handle": "momosawakasiho",
+      "interpretation": "アカウントが存在しない（目視でも not_found）。非プロではなく消滅"
+    }
+  ],
+  "professional_rate_pct_among_existing": 96.7,
+  "professional_rate_note": "31件中 momosawakasiho は消滅アカウントなので、実在する 30 件のうち 29 件がプロ = 96.7%。目視ベースの下限 41.4% は、デスクトップ Web がカテゴリ非表示のプロアカウントを『非プロ』と誤判定していたため大きく過小だった。",
+  "pagination": {
+    "handle": "afternoontea_official",
+    "media_count": 4859,
+    "pages_fetched": 8,
+    "per_page": 50,
+    "total_fetched": 400,
+    "oldest_reached": "2025-11-17",
+    "cursor_still_present": true,
+    "note": "8ページ 400件まで遡っても after カーソルは返り続けた。上限には当たっていない。50件/ページで約9か月分。"
+  },
+  "rate_limit": {
+    "observed_header": "{\"call_count\":14,\"total_cputime\":0,\"total_time\":25}",
+    "calls_in_boot": "約44（疎通1 + 31ハンドル + ページネーション9 ほか）",
+    "estimate": "call_count はこの1時間枠での消費率(%)。44コールで14%なので上限は概ね 300コール/時のオーダー。",
+    "implication": "1 restaurant あたり1コールなら、1時間で数百店。300店規模の POC は1〜2時間で回せる。",
+    "caveat": "一次資料は business_discovery の具体的な上限値を『プライバシー上非公開』としており、この数字は1回の観測からの推定。"
+  }
+}
