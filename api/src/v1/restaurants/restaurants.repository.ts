@@ -401,24 +401,49 @@ export class RestaurantsRepository {
         GROUP BY b.id, b.tier
       )`
       : Prisma.sql`
-      posted AS (
-        -- #1629 投稿枠。**駆動表は dish_media**（生存している投稿だけ）。
-        -- 全国規模の半径でも、ここを restaurants から駆動しない限り行数は店舗数で増えない。
-        -- #1513 削除済みの投稿は数えない
-        SELECT
-          d.restaurant_id AS id,
-          COUNT(*)::int AS post_count,
-          MIN(ST_Distance(r.location, ${originPoint})) AS distance_m
+      post_counts AS MATERIALIZED (
+        /*
+          #1629 【設計】**投稿数の集計は «restaurants と混ぜずに» 1 回で終わらせる。**
+
+          最初の実装は dish_media / dishes / restaurants を 1 つの WHERE に混ぜ、
+          そこへ半径（ST_DWithin）まで入れていた。全国規模の半径では restaurants の
+          ほぼ全件が条件を満たすため、プランナは «restaurants → dishes → dish_media» の
+          順に nested loop を選び、**dish_media を店舗ごとに Seq Scan** した。
+
+          dev 実測（run 33172881100・EXPLAIN ANALYZE）:
+            Seq Scan on dish_media (rows=4896, loops=2357)  = 延べ 1,150 万行
+            日本全体 225 ms → **3,478 ms** / 50km 107 ms → **2,188 ms**
+          並びを変えただけで 15〜20 倍遅くなっていた。
+
+          そこで «店ごとの投稿数» だけを先に 1 回で作る。MATERIALIZED を付けるのは、
+          外して inline されると上と同じ nested loop へ戻るためである（Postgres 12 以降、
+          CTE は既定で inline されうる）。**この 2 語を消さないこと。**
+
+          ⚠️ ここは dish_media の全行を 1 回走る。いまは 4,896 行なので安いが、
+             投稿が数百万行に育ったら restaurants への非正規化列
+             （post_count + btree）か集計済みビューが要る。
+        */
+        SELECT d.restaurant_id AS id, COUNT(*)::int AS post_count
         FROM dish_media dm
         JOIN dishes d ON d.id = dm.dish_id
-        JOIN restaurants r ON r.id = d.restaurant_id
-        WHERE
-          dm.deleted_at IS NULL
-          AND ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
-          ${nameFilter}
+        -- #1513 削除済みの投稿は数えない
+        WHERE dm.deleted_at IS NULL
         GROUP BY d.restaurant_id
+      ),
+      posted AS (
+        -- #1629 投稿枠。集計済みの post_counts（店の数だけの小さな集合）へ
+        -- 半径と店名の条件を掛け、投稿の多い順に limit 件だけ残す
+        SELECT
+          pc.id,
+          pc.post_count,
+          ST_Distance(r.location, ${originPoint}) AS distance_m
+        FROM post_counts pc
+        JOIN restaurants r ON r.id = pc.id
+        WHERE
+          ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
+          ${nameFilter}
         -- 同数なら中心から近い順。«どの limit 件を残すか» を最終 ORDER BY と一致させる
-        ORDER BY post_count DESC, distance_m ASC LIMIT ${limit}
+        ORDER BY pc.post_count DESC, distance_m ASC LIMIT ${limit}
       ),
       nearest AS (
         -- #1629 近傍枠。投稿枠で埋まらない残りを «中心から近い順» で埋める。

@@ -73,13 +73,34 @@ describe('#1629 店舗検索の既定の並びは «投稿が多い順»', () =>
     expect(sql).toContain('dm.deleted_at IS NULL');
   });
 
-  it('«絞る → 集計する» の順序を壊していない（投稿枠は dish_media 駆動 + LIMIT）', async () => {
+  it('«絞る → 集計する» の順序を壊していない（投稿数は 1 回だけ集計 + LIMIT）', async () => {
     const sql = await buildSql({ limit: 20 });
 
-    // 投稿枠は restaurants ではなく dish_media から駆動し、その場で limit 件へ切る
+    /*
+      #1629 ⚠️ **投稿数の集計に restaurants を混ぜないこと。**
+
+      最初の実装は dish_media / dishes / restaurants と半径（ST_DWithin）を 1 つの
+      WHERE に混ぜていた。全国規模の半径では restaurants のほぼ全件が条件を満たすため、
+      プランナが «restaurants → dishes → dish_media» の nested loop を選び、
+      **dish_media を店舗ごとに Seq Scan** した（dev 実測 run 33172881100:
+      loops=2357 で延べ 1,150 万行 / 日本全体 225ms → 3,478ms）。
+      並びを変えただけで 15〜20 倍遅くなっていた。
+
+      いまは «店ごとの投稿数» を post_counts で 1 回だけ作り、そこへ半径を掛ける。
+    */
+    const postCounts = sql
+      .slice(sql.indexOf('post_counts AS'), sql.indexOf('posted AS ('))
+      // 設計コメントに «restaurants» の語が出るので、SQL 本体だけを見る
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/--[^\n]*/g, '');
+    expect(postCounts).toContain('FROM dish_media dm');
+    // 集計側に restaurants / 半径を持ち込むと、また nested loop へ戻る
+    expect(postCounts).not.toContain('restaurants');
+    expect(postCounts).not.toContain('ST_DWithin');
+
     const posted = sql.slice(sql.indexOf('posted AS ('), sql.indexOf('nearest AS ('));
-    expect(posted).toContain('FROM dish_media dm');
-    expect(posted).toMatch(/ORDER BY post_count DESC, distance_m ASC LIMIT \?/);
+    expect(posted).toContain('FROM post_counts pc');
+    expect(posted).toMatch(/ORDER BY pc\.post_count DESC, distance_m ASC LIMIT \?/);
     // 重いレビュー集計は候補が確定したあとにしか出てこない
     expect(sql.indexOf('LEFT JOIN dish_reviews dr')).toBeGreaterThan(
       sql.indexOf('candidates AS ('),

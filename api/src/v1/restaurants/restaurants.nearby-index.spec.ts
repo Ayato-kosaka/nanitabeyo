@@ -81,7 +81,7 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
     // 保存済み一覧は保存日時順で、店舗検索は KNN か投稿数順で切る。
     // どちらも «絞ってから集計する» ために LIMIT が候補側に居ること
     expect(source).toMatch(/ORDER BY\s+sr\.last_saved_at DESC\s+LIMIT /);
-    expect(source).toMatch(/ORDER BY post_count DESC, distance_m ASC LIMIT /);
+    expect(source).toMatch(/ORDER BY pc\.post_count DESC, distance_m ASC LIMIT /);
   });
 
   it('重いレビュー集計（dish_reviews）は、候補 CTE より後ろにしか無い', () => {
@@ -104,7 +104,7 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
       いまは投稿テーブル（dish_media）駆動の投稿枠で、候補が最初から limit 件に収まる。
     */
     expect(source).toMatch(/FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/);
-    expect(source).toMatch(/ORDER BY post_count DESC, distance_m ASC LIMIT /);
+    expect(source).toMatch(/ORDER BY pc\.post_count DESC, distance_m ASC LIMIT /);
   });
 });
 
@@ -122,9 +122,13 @@ describe('#1629 引きでも候補が必ず埋まる（投稿枠 + 近傍枠）'
     // 全店舗から «投稿を持つ店» を探すのではなく、生存している投稿の側から辿る。
     // 全国規模の半径でも、走る行数が店舗数（57 万）ではなく投稿数で決まるようにするため
     expect(source).toMatch(/posted AS \(/);
-    expect(source).toMatch(
-      /FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id\s+JOIN restaurants r ON r\.id = d\.restaurant_id/,
-    );
+    expect(source).toMatch(/FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/);
+    /*
+      ⚠️ **MATERIALIZED を外さないこと。** 外すと Postgres 12 以降は CTE を inline し、
+      «restaurants → dishes → dish_media» の nested loop へ戻る。dev 実測で
+      日本全体 225ms → 3,478ms（15 倍）まで落ちた形である（run 33172881100）。
+    */
+    expect(source).toContain('post_counts AS MATERIALIZED');
   });
 
   it('投稿枠で埋まらない残りを KNN の近傍枠で埋める（= 0 件を返さない）', () => {
