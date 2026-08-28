@@ -1,84 +1,102 @@
-# Instagram 初期シード PoC — 4.1〜4.20 の実測（2026-08-28）
+# Instagram 初期シード PoC — 4.X ごとの実測（2026-08-28）
 
-**判断に使う数字は Issue に置く。ここにあるのは、やり直すときの手順と実測値である。**
+判定条件は **(a) 無料であること / (b) 50万店舗以上 × 132 料理カテゴリを充足すること**。
+生の測定値は [`out/`](out/) に置いてある。
 
-対象は「Instagram の投稿 URL を初期シードとして一定量確保できるか」。
-判定条件は **(a) 無料であること / (b) 50万店舗以上 × 132 料理カテゴリを充足すること** の 2 つ。
-
-生の測定値は [`out/measurements.json`](out/measurements.json)。
+**オーナー指示により 4.6 / 4.7 / 4.9 / 4.10 / 4.12 / 4.13 / 4.15〜4.19 は対象外。**
 
 ---
 
-## 0. 結論
+## 0. 一覧
 
-**(b) は入口で成立しない。(a) も、投稿一覧を取る唯一の公式経路が有料の本人確認を前提にするため成立しない。**
+分母は #1342 と同じ飲食店母集団 **1,132,482 店**（FSQ 側の分母だけは後述の 1,177,934 店）。
 
-| | 必要 | 実測（最良の経路） | 到達率 |
-| --- | ---: | ---: | ---: |
-| Instagram アカウントに辿り着ける店 | **500,000 店** | **171,798 店**（母集団 1,132,482 の 15.17%） | **34.4%** |
-| うちチェーン共通でない（店固有） | 500,000 店 | **57,304 店**（5.06%） | **11.5%** |
+| # | 手段 | (a) 無料 | (b) 充足 | 到達できる店 | 判定 |
+| --- | --- | --- | --- | ---: | --- |
+| 4.1 | Overture `socials` | ○ | ✗ | 18,437（1.71%） | 不足 |
+| 4.2 | Foursquare OS Places | △ 要アカウント | ✗ | **57,897（4.92%）** | **供給は最大。ただし店単位では不足** |
+| 4.3 | 店舗公式サイト | ○ | ✗ | 171,798（15.17%） | 不足 |
+| 4.4 | OpenStreetMap | ○ | ✗ | 2,111（0.19%） | 不足 |
+| 4.5 | Wikidata P2003 | ○ | ✗ | 146 | 不足 |
+| 4.8 | Meta Hashtag Search | ✗ | ✗ | — | 用途審査で却下 |
+| **4.11** | **Web 検索 API** | **△ PoC は無料 / 本番 $60〜$200** | **未確定（有望）** | **未測定** | **唯一 500,000 に届きうる** |
+| 4.14 | Common Crawl | ○（15.1TB/回） | ✗ | 投稿 URL **0 本** | 却下 |
+| 4.20 | ライセンス不明の公開データセット | ○ | ✗ | **該当 0 件** | 却下 |
 
-500,000 店に届くには経路存在率 **44.15%** が要る。実測は 15.17%。
-**4.1〜4.5 はすべてこの 15.17% の内側にある**（同じ「店 → Instagram アカウント」の入口を、
-別のデータソースから取っているだけ）ので、足し合わせても 44.15% にはならない。
+**4.1〜4.5 は「店 → Instagram アカウント」という同じ入口の別ソース**にすぎない。
+実測した異なりアカウント数の和は **約 40,000 本**（後述）で、500,000 店には桁が届かない。
 
-料理カテゴリ側（132）は制約になっていない。1 店あたり 2.69 カテゴリ・7.69 枚
-（#1342 の KPI②）が取れているので、**詰まっているのは店舗数の次元だけ**である。
+**500,000 店に届く可能性があるのは 4.11 だけである。**
 
 ---
 
-## 1. 経路別の実測
+## 4.1 Overture Maps Places の `socials`
 
-分母は #1342 と同じ**飲食店母集団 1,132,482 店**。
-（`restaurant_seed_catalog` は 1,513,803 行だが、そこから飲食店に絞った数が 1,132,482。）
-
-| 項目 | 無料か | 到達できる店 | 異なりアカウント数 | 判定 |
-| --- | --- | ---: | ---: | --- |
-| 4.1 Overture `socials` | ○ | 18,437（1.71%） | **11,279** | 不足 |
-| 4.2 Foursquare OS Places | △ 要アカウント | 測れず | 測れず | **測定不能** |
-| 4.3 店舗公式サイト | ○ | **171,798（15.17%）** | 約 96/600店 | **最良だが不足** |
-| 4.4 OpenStreetMap | ○ | 2,111（0.19%） | 2,050 | 不足 |
-| 4.5 Wikidata P2003 | ○ | 146 | 146 | 不足 |
-| 4.8 Meta Hashtag Search | ✗ 要 business verification | — | — | **用途審査で却下** |
-| 4.11 Web 検索 API | ✗ 保存権は別契約 | — | — | 却下 |
-| 4.14 Common Crawl | ○ ただし 15TB/回 | 投稿 URL **0 本** | — | 却下 |
-| 4.20 ライセンス不明データセット | — | 該当 0 件 | — | 却下 |
-
-**4.1 ∪ 4.4 の異なりアカウント数は 13,244 本**（BigQuery で実測）。
-4.5 を足しても約 13,390 本にしかならない。ここに 4.3（自前クロール）を足したものが
-15.17% の上限である。
-
-
-### 4.1 Overture Maps Places の `socials` — **測定済み・不足**
-
-BigQuery `restaurant_overture_raw`（`run_id=restaurant-2026-08-23`, 日本 1,081,471 レコード）:
+BigQuery `restaurant_overture_raw`（`run_id=restaurant-2026-08-23`、日本 1,081,471 レコード）。
 
 | | 件数 | 割合 |
 | --- | ---: | ---: |
 | `socials` に instagram.com を持つ店 | **18,437** | **1.71%** |
-| その **異なりハンドル数** | **11,279** | — |
+| その異なりハンドル数 | **11,279** | — |
 | 参考: facebook.com を持つ店 | 963,579 | 89.1% |
 | 参考: `website` を持つ店 | 545,560 | 50.4% |
 
 18,437 店が共有しているアカウントは 11,279 本しかない。差の 7,158 店は
-**チェーンのブランド共通アカウント**で、どの支店の料理かを決められない（#1273 §23）。
+チェーンのブランド共通アカウントで、どの支店の料理かを決められない（#1273 §23）。
 
-### 4.2 Foursquare OS Places の `instagram` — **無料では取得できなくなっている（仕様書の前提が古い）**
+**判定: 不足。** ただし後述 4.2 との和集合には効く。
 
-調査仕様は「Places Portal の Iceberg カタログから抽出する」としているが、実際に叩くと:
+---
 
-- S3 `s3://fsq-os-places-us-east-1/` に**データが無い**。残っているのは `LICENSE.txt` と `NOTICE.txt` の 2 本だけ
-- Hugging Face `foursquare/fsq-os-places` は **gated** になっている。
-  `HTTP 401` / `x-error-code: GatedRepo` / `Access to dataset ... is restricted`
-- Places Portal 側もアカウント登録とトークン発行が前提
+## 4.2 Foursquare OS Places の `instagram`
 
-ライセンス自体は Apache-2.0 のままなので**規約上は使える**が、
-**アカウント無しでは 1 バイトも取れない**。この PoC では測れなかった。
+### 仕様書の前提が古い — S3 は空、Hugging Face は gated
 
-### 4.3 店舗公式サイトの通常リンク・JSON-LD `sameAs` — **最良だが 15.17% で頭打ち**
+- S3 `s3://fsq-os-places-us-east-1/` に残っているのは `LICENSE.txt` と `NOTICE.txt` の **2 本だけ**
+- Hugging Face `foursquare/fsq-os-places` は **gated**。無記名だと
+  `HTTP 401` / `x-error-code: GatedRepo`
+- ライセンスは **Apache-2.0 のまま**なので規約上は使える。**アカウントが要るだけ**である
 
-#1345 が 600 店の標本で目視ラベル付きで測っており（`1273_sns_dish_media_poc/out/instagram_handle_reach.json`）、
-本 PoC はその数字を引き継ぐ。
+オーナーからトークンを受け取り、release `dt=2026-08-11` の 100 parquet を全走査した。
+
+### 実測（`out/fsq_instagram.json`）
+
+| | 件数 | 割合 |
+| --- | ---: | ---: |
+| 日本の place | 5,017,666 | — |
+| うち飲食（`Dining and Drinking` 配下） | 1,400,600 | — |
+| うち閉店していない | **1,177,934** | 100% |
+| **`instagram` 列を持つ店** | **57,897** | **4.92%** |
+| **その異なりハンドル数** | **35,451** | — |
+| 参考: `website` を持つ店 | 312,559 | 26.5% |
+
+**Overture の 3.1 倍**（11,279 → 35,451）。**これが単一ソースとしては最大の供給源である。**
+
+### Overture との重複
+
+FSQ のハンドルから 300 本を無作為抽出（seed 20260828）して Overture 側と突き合わせた結果、
+**72 / 300 = 24.0%** が Overture にも存在した。したがって
+
+```
+和集合 ≒ 35,451 + 11,279 − 0.24 × 35,451 ≒ 38,222 本
+```
+
+OSM 2,050・Wikidata 146 を足しても **約 40,000 本**である。
+
+**判定: 供給は最大だが不足。** 57,897 店は 500,000 店の **11.6%**。
+
+### 実務メモ
+
+100 ファイルを一括 glob で読むと Hugging Face が **429** を返す（実測で 84 本目で停止）。
+`fsq_instagram.py` は 1 ファイルずつ読み、失敗したら待って積み直す形にしてある。
+parquet は国ごとに固まっているので、日本のレコードは特定のファイルに集中する。
+
+---
+
+## 4.3 店舗公式サイトの通常リンク・JSON-LD `sameAs`
+
+#1345 が 600 店の標本で**目視ラベル付き**で測っている
+（`1273_sns_dish_media_poc/out/instagram_handle_reach.json`）。本 PoC はこれを引き継ぐ。
 
 | | 件数 | 割合 |
 | --- | ---: | ---: |
@@ -88,11 +106,16 @@ BigQuery `restaurant_overture_raw`（`run_id=restaurant-2026-08-23`, 日本 1,08
 | 取れた異なりハンドル | 96 | — |
 | うち店固有（チェーン共通を除く） | — | **5.06%** |
 
-**これが全経路の中で最大**であり、4.1 / 4.4 / 4.5 はこの内側に入る。
+母集団に当てると **171,798 店**。**アカウント経路としてはこれが最大**だが、
+500,000 店の **34.4%**、店固有まで絞ると **11.5%** にとどまる。
 
-### 4.4 OpenStreetMap の `contact:instagram` — **測定済み・不足**
+**判定: 不足。**
 
-BigQuery `restaurant_osm_raw`（日本 190,642 レコード）:
+---
+
+## 4.4 OpenStreetMap の `contact:instagram`
+
+BigQuery `restaurant_osm_raw`（日本 190,642 レコード）。
 
 | | 件数 |
 | --- | ---: |
@@ -100,19 +123,21 @@ BigQuery `restaurant_osm_raw`（日本 190,642 レコード）:
 | `contact:instagram` キーを持つレコード | 1,574 |
 | 　うち値が URL 形式 | 766 |
 | 　うち値が素のハンドル（`@foo` 等） | 808 |
-| `instagram` キー（`contact:` 無し）を持つレコード | 23 |
-| `website` 等 別のタグにだけ instagram が出るレコード | 515 |
-| **異なりハンドル数（上記すべてから抽出）** | **2,050** |
+| `instagram` キー（`contact:` 無し） | 23 |
+| `website` 等 別のタグにだけ instagram が出るもの | 515 |
+| **異なりハンドル数** | **2,050** |
 
-母集団 1,132,482 に対して **0.19%**。
+母集団に対して **0.19%**。ローダ（`1_5_load_osm.py`）は `contact:instagram` の 1,574 件を
+**取りこぼしていない**（全件が `social_urls` に入っている）。落としているのは
+`contact:` の無い `instagram` キーの **23 件だけ**で、直しても結論は動かない。
 
-ローダ（`1_5_load_osm.py`）は `contact:instagram` の 1,574 件を**取りこぼしていない**
-（全件が `social_urls` に入っている）。落としているのは `contact:` の無い `instagram` キーの
-**23 件だけ**で、直しても結論は動かない。
+**判定: 不足。**
 
-### 4.5 Wikidata P2003 — **測定済み・桁が足りない**
+---
 
-`query.wikidata.org` の SPARQL で実測:
+## 4.5 Wikidata P2003
+
+`query.wikidata.org` の SPARQL で実測。
 
 | クエリ | 件数 |
 | --- | ---: |
@@ -122,15 +147,20 @@ BigQuery `restaurant_osm_raw`（日本 190,642 レコード）:
 
 **店舗単位の網羅性が 1,026 件しかない。** 146 アカウントでは初期シードにならない。
 
-### 4.8 Meta Hashtag Search — **用途審査で落ちる（一次資料で確認）**
+**判定: 不足。**
 
-`developers.facebook.com/docs/features-reference/instagram-public-content-access/` を 2026-08-28 に再取得。
+---
+
+## 4.8 Meta Hashtag Search
+
+`developers.facebook.com/docs/features-reference/instagram-public-content-access/` を
+2026-08-28 に再取得した。
 
 > This permission or feature requires successful completion of the App Review process before your app can access live data.
 > **This permission or feature is only available with business verification.**
 
-**Allowed Usage は閉じた 5 項目**で、いずれも当該用途（第三者の飲食店の投稿を集めて自社アプリの
-初期シードにする）に当たらない:
+**Allowed Usage は閉じた 5 項目**で、いずれも当該用途（第三者の飲食店の投稿を集めて
+自社アプリの初期シードにする）に当たらない。
 
 1. Discover content associated with its current campaign.
 2. Provide customer support.
@@ -138,24 +168,107 @@ BigQuery `restaurant_osm_raw`（日本 190,642 レコード）:
 4. Understand public sentiment around brand.
 5. Understand and manage their audience, develop their content strategy and obtain digital rights.
 
-加えて量的にも足りない。Recent Media は**実行時点から 24 時間以内**の公開投稿しか返さず、
+量的にも足りない。Recent Media は**実行時点から 24 時間以内**の公開投稿しか返さず、
 **7 日間で 30 タグ**が上限である。132 カテゴリを全国で回す規模に構造的に届かない。
 
-### 4.11 保存権を明示した Web 検索 API — **無料枠では DB を作れない**
+**判定: 却下（用途審査）。**
 
-| | 実測（2026-08-28） |
-| --- | --- |
-| Brave Search API | $5/1,000 requests。**毎月 $5 のクレジット = 実質 1,000 requests/月**が無料枠 |
-| Brave の保存権 | 「結果を保存したいなら **storage rights を明示的に付与するプランの契約が要る**」。標準プランには無い |
-| Google Custom Search JSON API | 100 queries/日 無料。ただし **新規受付終了**。既存顧客も **2027-01-01** までに移行 |
-| Bing Search APIs | **2025-08-11 に終了済み** |
+### Business Discovery は未検証（トークン失効）
 
-無料枠 1,000 requests/月では、50万店舗の探索に **41年**かかる。
-保存権付きプランは見積ベースで、**無料条件と両立しない**。
+オーナーから受け取った `IG_TOKEN` は **受領時点で失効していた**
+（`OAuthException` code 190 / `Session has expired on Friday, 28-Aug-26 04:00:00 PDT`）。
+したがって以下は**まだ実測できていない**。
 
-### 4.14 Common Crawl — **Instagram 本体は 1 本も入っていない。外向きリンク経路は 15TB/回**
+- `business_discovery` が実際に他店のアカウントを返すか
+- 返るのは Business / Creator アカウントだけなので、**個人アカウント運用の店で何割落ちるか**
 
-最新 crawl `CC-MAIN-2026-34` の URL index を実測（`cc_instagram_index.py` と同じ手順）:
+`business_discovery` の要求権限は `instagram_basic` + `instagram_manage_insights` +
+`pages_read_engagement`（一次資料で確認済み）。他人のアカウントへ使うには App Review が要る。
+
+---
+
+## 4.11 保存権を明示した Web 検索 API — **唯一 500,000 に届きうる**
+
+### まず、検索エンジンに Instagram の投稿ページは入っている
+
+`instagram.com/robots.txt`（2026-08-28 取得）を読むと、**Googlebot と Bingbot は
+`/p/` `/reel/` を巡回できる**。禁じられているのは `/*/c/` `/*/comments/` `/*/liked_by/`
+と API 系のパスだけである。
+
+```
+User-agent: Googlebot
+Disallow: /*/c/
+Disallow: /*/comments/
+Disallow: /*/liked_by/
+Disallow: /accounts/login/*?next=
+...
+```
+
+一方、**リストに無いエージェント（＝我々）は `User-agent: *  Disallow: /`** で全面禁止である。
+自前クロールは不可、検索エンジン経由なら可、という構造になっている。
+
+なお robots.txt は末尾で **Instagram 自身のサイトマップ**を公開している
+（`ig_places_sitemap` / `ig_seo_profile_sitemap` / `ig_seo_location_sitemap` など）。
+店の一覧としては理想的だが、**`*` の `Disallow: /` が掛かるので我々は取得できない。**
+取得していない。
+
+### 実際に検索して歩留まりを測った
+
+`site:instagram.com/p <カテゴリ> <地域>` を 5 セル叩いた結果（各 10 件）:
+
+| セル | 投稿 URL | 対象地域の店名が読み取れたもの |
+| --- | ---: | ---: |
+| 焼き鳥 × 東京 | 10 / 10 | 約 6 |
+| ラーメン × 青森 | 10 / 10 | 約 6 |
+| ラーメン × 高松 | 10 / 10 | 約 5 |
+| 寿司 × 高松 | 10 / 10 | 約 6 |
+| **うなぎ × 高松** | 9 / 10 | **1** |
+
+**平均 約 4.8 店 / クエリ。** タイトルにキャプションが入るので、
+**店名がそのまま読める**（例: 焼鳥 鍈輝 / 焼き鳥 足るを知る / 小江戸鳥や / 麺道 一休 /
+横浜家系ラーメン 高松家 / 寿司濱野 / 寿し勝 / 鰻松）。
+
+**うなぎ × 高松だけが 1/10 に落ちる。** これは経路の失敗ではなく、
+そのセルに店自体が少ないという #1273 §32 の «restaurant shortage» である。
+**カテゴリ × 地域のセルごとに測り直す必要がある**（108 セルの本測定は未実施）。
+
+### 保存権 — ベンダによって条文が正反対だった
+
+| ベンダ | 無料枠 | 単価 | 結果の保存・DB 化 |
+| --- | --- | --- | --- |
+| **Brave Search API** | $5/月クレジット ＝ 約 1,000 req | $5 / 1,000 | **明確に禁止**。「store, cache, or create a database of Search Results, in whole or in part, other than transient storage required for operation of Customer Applications」。**プラン別の例外は規約本文に無い** |
+| **Serper** | **2,500 クエリ（カード不要）** | **$0.30〜/1,000** | **禁止条項が無い**。制限は «出典の詐称» と «付加価値の無いミラーリング» のみ |
+| SerpApi | 250 検索/月 | $5.90 / 1,000（$1,475/月 25万） | 保存に関する条項は無い。代わりに **US Legal Shield 最大 $2M** を提供 |
+| Google Custom Search JSON | 100 クエリ/日 | $5 / 1,000 | **新規受付終了**。既存顧客も 2027-01-01 までに移行 |
+| Bing Search APIs | — | — | **2025-08-11 終了済み** |
+| DataForSEO | — | 最低入金 $50 | 保存条項はページ上に記載なし |
+
+**Brave と Serper で条文が正反対である。** 仕様書は Brave を前提に「標準プランのまま
+検索結果 DB を作らない」としているが、**その判断は Brave 固有**であり、
+Serper には当てはまらない。
+
+### 規模と費用
+
+500,000 店 ÷ 4.8 店/クエリ ＝ **約 104,000 クエリ**（重複ゼロの理想値）。
+重複を 2 倍と見て **約 200,000 クエリ**。
+
+| | 費用 |
+| --- | ---: |
+| Serper（$0.30〜$1.00 / 1,000） | **$60 〜 $200** |
+| SerpApi（$5.90 / 1,000） | 約 $1,180 |
+| Brave（$5 / 1,000） | 約 $1,000（**ただし保存禁止**） |
+| 無料枠だけ（Serper 2,500 + SerpApi 250/月 + Brave 1,000/月） | **約 1〜6 年** |
+
+**(a) 無料は満たさない。ただし 108 セルの本 PoC（約 1,000〜2,000 クエリ）は
+Serper の無料枠 2,500 に収まるので、PoC 自体は無料でできる。**
+
+**判定: 唯一 500,000 に届きうる経路。本測定を推奨。**
+
+---
+
+## 4.14 Common Crawl の外部ページ外向きリンク
+
+最新 crawl `CC-MAIN-2026-34` の URL index を実測した（`cc_instagram_index.py`）。
 
 | | 件数 |
 | --- | ---: |
@@ -164,57 +277,56 @@ BigQuery `restaurant_osm_raw`（日本 190,642 レコード）:
 | うち robots.txt | **77** |
 | **投稿 URL（`/p/`・`/reel/`）** | **0** |
 
-Instagram は robots.txt でクロールを拒否しているので、**Common Crawl に投稿 URL は存在しない**。
-仕様書が言うとおり経路は「他サイトの外向きリンク（WAT）」しかないが、その規模は:
+Instagram は robots.txt で `*` を拒否しているので、**Common Crawl に投稿 URL は存在しない**。
+仕様書が言うとおり経路は「他サイトの外向きリンク（WAT）」だけだが、その規模は
 
-- WAT ファイル数 **100,000**、1 ファイル約 **151 MB** → **1 crawl あたり約 15.1 TB**
+- WAT ファイル **100,000 本** × 約 **151 MB** ＝ **1 crawl あたり約 15.1 TB**
 
-無料でダウンロードできるが、**この環境で 1 回走らせるだけで数十時間の I/O** になる。
 しかも仕様書自身が「既知の公式サイトドメインに限定せよ」と言っており、
-それは **4.3（自分で 62万サイトをクロールする）と同じことを遠回りにやる**ことになる。
+それは **4.3（自前で 62 万サイトをクロールする）と同じ作業を遠回りにやる**ことになる。
 
-### 4.20 ライセンス不明の公開データセット — **該当なし**
-
-Hugging Face の datasets 検索で `instagram` の上位 20 件を確認した。
-
-- **日本の飲食店に絞ったものは 0 件**
-- **再利用可能なライセンスが明示されているものは 0 件**（`license:unknown` か、ライセンスタグ自体が無い）
-
-規約状態が不明なものは使えない、という仕様書の判定のとおり。
+**判定: 却下。**
 
 ---
 
-## 2. 未測定（4.6 / 4.7 / 4.9 / 4.10 / 4.12 / 4.13 / 4.15〜4.19）
+## 4.20 ライセンス不明の公開データセット
 
-**依頼された調査仕様に本文が無かった 11 項目**。項目名が分からないため測定していない。
-本文をもらえれば同じ形式で測る。
+「明確な商用ライセンスと provenance があるものだけ再評価」という仕様書の判定基準に沿って、
+**ライセンスを機械可読で持っている先を全部当たった**（`dataset_survey.py` / `out/dataset_survey.json`、
+`out/kaggle_survey.json`）。
+
+| 先 | クエリ | 一意ヒット | Instagram 関連 | **日本の飲食店** | **投稿 URL の一覧** |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Kaggle（API は無認証で叩けた） | 12 | 145 | 64 | **0** | **0** |
+| Zenodo | 10 | 138 | 10（題名一致） | **0** | **0** |
+| Hugging Face | 10 | 50 | 50 | **0** | **0** |
+| GitHub（repo 検索 / code 検索） | 3 | 0 repo / 119 code | 119 は全部**巻き添え**（ツイート dump に URL が混ざっただけ） | **0** | **0** |
+
+- Kaggle の Instagram 系 64 件のライセンス分布は CC0 22 / Unknown 6 / Apache-2.0 5 / その他。
+  **日本に言及するものは 1 件も無い。** 飲食に言及する唯一の 1 件は
+  「New York Turk Restaurants Visited」（**2.3 KB**）
+- Zenodo で題名に Instagram を含む 10 件は、すべて**単一テーマの研究コーパス**
+  （ギリシャの政治家の投稿 / スペインの美術館 / greenfluencer / バレンシア洪水報道 等）
+- Hugging Face は日本語タグ **0 件**、飲食 0 件
+
+**判定: 却下。** 規約が不明だから却下なのではなく、**そもそも存在しない。**
 
 ---
 
-## 3. パイプライン側（`@account → Business Discovery → 投稿一覧`）
-
-アプリ側の受け口は**すでにある**。`POST /v1/dish-media/imports`（#1399）が
-`url` / `restaurantId` / `dishCategoryId` を受けて `dish_media` と
-`dish_media_external_embeddings` まで書く。URL はサーバで再解決されるので、
-機械的に流し込むこと自体は成立する。
-
-詰まるのは**その手前**である。
-
-- `business_discovery` は `instagram_basic` + `instagram_manage_insights` +
-  `pages_read_engagement` を要求し、他人のアカウントに対して使うには App Review が要る
-- `business_discovery` が返すのは **Business / Creator アカウントだけ**である。
-  個人アカウントで運用している店は、アカウントが分かっていても投稿一覧を取れない。
-  **この歩留まりは未測定**（アカウント種別を知るには API を通す必要があるため）
-
----
-
-## 4. やり直すときの手順
+## やり直すときの手順
 
 ```bash
-# 4.14: Common Crawl の URL index に Instagram がどれだけあるか
+# 4.2 Foursquare（HF_TOKEN が要る。トークンはコミットしない）
+HF_TOKEN=... python3 fsq_instagram.py 2026-08-11
+
+# 4.14 Common Crawl の URL index に Instagram がどれだけあるか
 python3 cc_instagram_index.py CC-MAIN-2026-34
+
+# 4.20 Kaggle / Zenodo / Hugging Face の棚卸し
+HF_TOKEN=... python3 dataset_survey.py
 ```
 
-4.1 / 4.4 / 4.5 は BigQuery と SPARQL の一発クエリで、`out/measurements.json` に
-クエリ結果をそのまま置いてある。4.2 は Hugging Face か Places Portal の
-**アカウントが要る**ので、この環境からは再現できない。
+4.1 / 4.4 / 4.5 は BigQuery と SPARQL の一発クエリで、結果は `out/measurements.json` にある。
+4.11 の本測定（108 セル）は Serper のキーが要る。**この環境からは `web.archive.org` へ出られない**
+（egress proxy が 000 を返す。`archive.org` 本体は 200）ので、Wayback CDX 経由の追試は
+`.claude/skills/ec2-chrome-operate` の EC2 からになる。

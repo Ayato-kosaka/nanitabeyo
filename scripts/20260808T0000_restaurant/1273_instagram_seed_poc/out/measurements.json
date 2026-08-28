@@ -18,15 +18,20 @@
     "stores_with_website": 545560
   },
   "4_2_foursquare_os_places": {
-    "s3_bucket_objects": [
-      "LICENSE.txt",
-      "NOTICE.txt"
-    ],
-    "s3_data_removed": true,
-    "huggingface_gated": true,
-    "huggingface_http_status": 401,
-    "huggingface_error_code": "GatedRepo",
-    "measurable_without_account": false
+    "access": "Hugging Face gated（トークンで解錠）。S3 バケットは LICENSE/NOTICE のみでデータ無し",
+    "release": "2026-08-11",
+    "jp_places": 5017666,
+    "jp_dining": 1400600,
+    "jp_dining_open": 1177934,
+    "jp_dining_open_with_instagram": 57897,
+    "jp_dining_open_instagram_pct": 4.915,
+    "jp_dining_open_distinct_instagram": 35451,
+    "jp_dining_open_with_website": 312559,
+    "jp_all_with_instagram": 153999,
+    "overlap_sample_n": 300,
+    "overlap_also_in_overture": 72,
+    "overlap_pct": 24.0,
+    "union_with_overture_estimate": 38222
   },
   "4_3_official_site_crawl": {
     "source": "#1345 / 1273_sns_dish_media_poc/out/instagram_handle_reach.json（600店の目視ラベル付き標本）",
@@ -67,17 +72,138 @@
       "Understand and manage their audience, develop their content strategy and obtain digital rights."
     ],
     "recent_media_window_hours": 24,
-    "unique_hashtags_per_7_days": 30
+    "unique_hashtags_per_7_days": 30,
+    "business_discovery": {
+      "required_permissions": [
+        "instagram_basic",
+        "instagram_manage_insights",
+        "pages_read_engagement"
+      ],
+      "app_review_required_for_other_accounts": true,
+      "token_test": "受領した IG_TOKEN は失効済み（OAuthException 190 / Session has expired on Friday, 28-Aug-26 04:00:00 PDT）",
+      "unmeasured": [
+        "business_discovery が他店を返すか",
+        "Business/Creator 以外の個人アカウント運用店で何割落ちるか"
+      ]
+    }
   },
   "4_11_web_search_api": {
-    "brave_free_credit_usd_per_month": 5,
-    "brave_price_usd_per_1000_requests": 5,
-    "brave_free_requests_per_month": 1000,
-    "brave_storage_requires_separate_plan": true,
-    "google_cse_free_queries_per_day": 100,
-    "google_cse_closed_to_new_customers": true,
-    "google_cse_migration_deadline": "2027-01-01",
-    "bing_search_api_retired": "2025-08-11"
+    "instagram_robots_txt": {
+      "googlebot_may_crawl_posts": true,
+      "bingbot_may_crawl_posts": true,
+      "disallowed_paths_for_googlebot": [
+        "/*/c/",
+        "/*/comments/",
+        "/*/liked_by/",
+        "/accounts/login/*?next=",
+        "/ajax/",
+        "/client_error/",
+        "/direct/",
+        "/logging/",
+        "/publicapi/",
+        "/qp/batch_fetch_web/",
+        "/query/"
+      ],
+      "wildcard_agent_rule": "User-agent: *  Disallow: /",
+      "sitemaps_published": [
+        "ig_places_sitemap.xml.gz",
+        "ig_seo_profile_sitemap.xml.gz",
+        "ig_seo_profile_sitemap_non_media_eligible.xml.gz",
+        "ig_seo_location_sitemap.xml.gz",
+        "dim_ig_logged_out_web_keyword_ent.xml.gz"
+      ],
+      "sitemaps_fetched": false,
+      "sitemaps_fetch_blocked_by": "User-agent: * Disallow: / （我々は許可エージェントに含まれない）"
+    },
+    "yield_probe": {
+      "engine": "Google index 経由の web 検索",
+      "n_cells": 5,
+      "cells": [
+        {
+          "cell": "焼き鳥 x 東京",
+          "post_urls": 10,
+          "in_area_named_stores": 6
+        },
+        {
+          "cell": "ラーメン x 青森",
+          "post_urls": 10,
+          "in_area_named_stores": 6
+        },
+        {
+          "cell": "ラーメン x 高松",
+          "post_urls": 10,
+          "in_area_named_stores": 5
+        },
+        {
+          "cell": "寿司 x 高松",
+          "post_urls": 10,
+          "in_area_named_stores": 6
+        },
+        {
+          "cell": "うなぎ x 高松",
+          "post_urls": 9,
+          "in_area_named_stores": 1
+        }
+      ],
+      "mean_in_area_named_stores_per_query": 4.8,
+      "note": "n=5 の予備測定。108 セルの本測定は未実施"
+    },
+    "vendors": {
+      "brave": {
+        "free_per_month": 1000,
+        "usd_per_1000": 5,
+        "storage": "禁止",
+        "quote": "store, cache, or create a database of Search Results, in whole or in part, other than transient storage required for operation of Customer Applications"
+      },
+      "serper": {
+        "free_trial_queries": 2500,
+        "usd_per_1000_from": 0.3,
+        "storage": "禁止条項なし",
+        "restrictions": [
+          "出典の詐称の禁止",
+          "付加価値の無いミラーリングの禁止"
+        ]
+      },
+      "serpapi": {
+        "free_per_month": 250,
+        "usd_per_1000": 5.9,
+        "storage": "条項なし",
+        "legal_shield_usd": 2000000
+      },
+      "google_cse": {
+        "free_per_day": 100,
+        "usd_per_1000": 5,
+        "closed_to_new_customers": true,
+        "migration_deadline": "2027-01-01"
+      },
+      "bing": {
+        "retired": "2025-08-11"
+      },
+      "dataforseo": {
+        "minimum_deposit_usd": 50,
+        "storage": "ページ上に記載なし"
+      }
+    },
+    "scale": {
+      "stores_target": 500000,
+      "queries_if_no_duplication": 104167,
+      "queries_with_2x_duplication": 200000,
+      "cost_usd_serper": [
+        60,
+        200
+      ],
+      "cost_usd_serpapi": 1180,
+      "cost_usd_brave": 1000,
+      "years_on_free_tiers_only": [
+        1,
+        6
+      ],
+      "poc_108_cells_queries": [
+        1000,
+        2000
+      ],
+      "poc_fits_in_serper_free_tier": true
+    }
   },
   "4_14_common_crawl": {
     "crawl": "CC-MAIN-2026-34",
@@ -87,11 +213,45 @@
     "instagram_post_urls_in_index": 0,
     "wat_files": 100000,
     "wat_file_bytes_sample": 151385264,
-    "wat_total_bytes_estimate": 15138526400000
+    "wat_total_bytes_estimate": 15138526400000,
+    "environment_note": "web.archive.org へは egress proxy が通らない（000）。archive.org 本体は 200"
   },
   "4_20_unknown_license_datasets": {
-    "huggingface_search_hits_for_instagram": 20,
-    "hits_with_explicit_reusable_license": 0,
-    "hits_scoped_to_japan_restaurants": 0
+    "kaggle": {
+      "api_reachable_without_auth": true,
+      "queries": 12,
+      "unique_datasets": 145,
+      "instagram_related": 64,
+      "mentioning_japan": 0,
+      "post_url_lists": 0,
+      "only_food_hit": {
+        "title": "New York Turk Restaurants Visited",
+        "license": "Apache 2.0",
+        "bytes": 2323
+      }
+    },
+    "zenodo": {
+      "queries": 10,
+      "unique_hits": 138,
+      "instagram_in_title": 10,
+      "japan_restaurant": 0,
+      "post_url_lists": 0,
+      "note": "10件はすべて単一テーマの研究コーパス"
+    },
+    "huggingface": {
+      "queries": 10,
+      "unique_hits": 50,
+      "with_license": 13,
+      "japanese_language_tag": 0,
+      "japan_restaurant": 0,
+      "post_url_lists": 0
+    },
+    "github": {
+      "repo_search_hits": 0,
+      "code_search_hits": 119,
+      "code_hits_are_incidental": true,
+      "post_url_lists": 0
+    },
+    "verdict": "規約が不明だから却下なのではなく、そもそも存在しない"
   }
 }
