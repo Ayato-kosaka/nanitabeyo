@@ -68,3 +68,5 @@ out/.ig_token
 !out/ig_api_capability_matrix.md
 !out/ig_handle_source_ideas.md
 out/_ig_source_ideas/
+out/.hf_token
+out/.ig_token
