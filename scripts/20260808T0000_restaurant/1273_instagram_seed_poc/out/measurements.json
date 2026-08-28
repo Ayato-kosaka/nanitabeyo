@@ -564,5 +564,31 @@
       100
     ],
     "correction": "以前『$317〜$1178』と報告したが、route① 無料層の上に載せる増分は約 $95〜$100 に下がる"
+  },
+  "influencer_route_breakthrough": {
+    "concept": "グルメインフルエンサー（特に地方特化アカウント）を無料の公開リストから発見し、business_discovery で各人の数百投稿を回収する。1投稿≒1店で店名がキャプションに入る。route① が届かない «公式サイトもIGも無い地方・小規模店» を、第三者の投稿として拾える",
+    "handle_discovery_measured": {
+      "sources_fetched": 6,
+      "distinct_handles": 263,
+      "regional_prefecture_handles": 146,
+      "regional_pct": 55.5,
+      "examples_regional": [
+        "akita_select",
+        "aomori.rinko",
+        "allniigata",
+        "ehime_select",
+        "dokoigu_yamagata",
+        "cocoa_nagano"
+      ],
+      "note": "6 ページで 263。エージェント調査では同種リスト記事が多数あり、30〜50記事で 500〜2000 handle 見込み",
+      "asset": "out/influencer_handles.json"
+    },
+    "why_lists_not_search": "検索結果は投稿主が多様（292投稿→263アカウント=0.90/post）で、検索から増幅は効かない。インフルエンサーは公開リストから直接seedするのが正しい",
+    "coverage_estimate_UNMEASURED": {
+      "posts_per_account": "300〜600（エージェント推定・訪問ペース1000〜1200店/年から）",
+      "free_added_unique_stores": "3万〜25万（推定・重複率次第で大きく振れる）",
+      "decisive_next_measurement": "263 handle を business_discovery（要トークン）で叩き、実投稿数・異なり店名・重複率・飲食率を実測する。トークンがあれば約1〜2時間"
+    },
+    "media_crawl_route4_dead": "RETRIP/SARAH は WAF で無料クロール不可。macaro-ni/favy/gnavi は自社写真で IG permalink ほぼ0。まとめメディアは «handle 発見源» としてのみ有効"
   }
 }
