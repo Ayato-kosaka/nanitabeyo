@@ -39,9 +39,11 @@ import { resolveDishCategoryLabel } from "../dishCategoryLabel";
  *
  * ## ⚠️ 「押しても棚が広がらない」を実装で担保する
  *
- * chip は**トグルにしない**。既に効いている絞り込みの chip は選択状態で描き、押しても何もしない
- * （`handlePress` の先頭で return する）。トグルにすると「押すと棚が広がる」経路ができてしまい、
+ * chip は**トグルにしない**。トグルにすると「押すと棚が広がる」経路ができてしまい、
  * リーダー判断（棚を削る方向にだけ働く）と食い違う。
+ *
+ * #1629【42】そのうえで、**既にその絞り込みが効いている chip は、そもそも出さない**。
+ * 詳細は `buildMyDishesFeedChips` 内の「#1629【42】」コメント。
  *
  * 代わりに**戻る手段はスナックバーの「元に戻す」で出す**。押す直前の `filter` をまるごと控えて
  * おき、`patch(previous)` で戻す（`patch` は部分更新なので、全キーを渡せば元の状態に復元できる）。
@@ -68,8 +70,6 @@ export type MyDishesFeedChipId = "category" | "statusEaten" | "statusWant" | "mi
 export type MyDishesFeedChip = {
 	id: MyDishesFeedChipId;
 	label: string;
-	/** 既にこの絞り込みが効いているか。true の chip は押しても何もしない（棚を広げない） */
-	active: boolean;
 	/** 押したときに `useMyDishesFilterStore.patch` へ渡す部分更新 */
 	patch: Partial<MyDishesFilter>;
 };
@@ -100,16 +100,49 @@ export const buildMyDishesFeedChips = (
 		絞り込み画面の候補ラベルも同じ関数を通している）。
 		*/
 		const name = resolveDishCategoryLabel(entry?.dish?.categoryLabels, entry?.dish?.name, i18n.locale);
-		if (name !== null) {
+		// 「置換」なので、ちょうどこのカテゴリ 1 件に絞られていれば、この chip は既に効いている
+		const alreadyApplied = filter.categoryIds.length === 1 && filter.categoryIds[0] === categoryId;
+		if (name !== null && !alreadyApplied) {
 			chips.push({
 				id: "category",
 				label: i18n.t("MyDishes.feed.chips.filterCategory", { name }),
-				// 「置換」なので、ちょうどこのカテゴリ 1 件のときだけ選択状態
-				active: filter.categoryIds.length === 1 && filter.categoryIds[0] === categoryId,
 				patch: { categoryIds: [categoryId] },
 			});
 		}
 	}
+
+	/*
+	#1629【42】【設計】**押した結果その絞り込みが効いている chip は、以後 1 つも出さない。**
+
+	オーナー指示: 「フィード画面で『カレーで絞る』とか押したら、そのチップは非表示にして欲しい」。
+
+	それまでは «効いている chip を選択状態で描き、押しても no-op» にしていた（トグルにすると
+	«押すと棚が広がる» 経路ができてリーダー判断と食い違うため）。しかし結果として、
+	«カレーで絞る» を押してカレーで絞られているのに «カレーで絞る» がそのまま残り、
+	**押しても何も起きない chip が場所を占める**状態になっていた。片方向という設計は正しいので、
+	no-op にする代わりに **chip 自体を作らない**。
+
+	この規則は «その絞り込みが既に効いているか» を判定できる chip **すべて**に等しく当てる。
+	この Feed が出す 4 種はいずれも該当するので、例外は無い:
+
+	| chip | 「既に効いている」の条件 | 判定できる根拠 |
+	| --- | --- | --- |
+	| category | `categoryIds` がちょうどこのカテゴリ 1 件 | patch が «置換» なので、押しても同じ値になる |
+	| statusEaten | `status === ["eaten"]` | 同上 |
+	| statusWant | `status === ["want"]` | 同上 |
+	| minRating | `minRating >= 4` | 押しても閾値は上がらない（patch は固定値 4） |
+
+	⚠️ **エリア（`filter.area`）は元から chip を持たない**ので、ここで消すものは無い。
+	エリアの確定は Map の「このエリアで再検索」だけが行う（`useMyDishesFilterStore` §3-2）。
+	Feed には «いま見ているエントリの周辺で絞る» に相当する chip が無く、追加もしない
+	（追加すると «棚を削る» と言えるかが緯度経度の広さ次第になる）。同じ理屈で、期間・並び替えも
+	chip を持たないので対象外である。将来 chip を足すときは、この表に «既に効いている» の
+	条件を書けることを先に確かめること。書けない chip は「押しても何も起きない」を再発させる。
+
+	⚠️ chip が全部消えると帯ごと消える（`chips.length === 0` で `null` を返す）。これは意図どおりで、
+	絞り込みを戻す手段は押した直後のスナックバー «元に戻す» と、フィルタ画面（`my-dishes/filters.tsx`）
+	の «リセット» が担当する。chip はあくまで «ここからさらに削る» ための入口である。
+	*/
 
 	/*
 	#1629【34】**状態 chip は «いま見ているエントリが実際にその状態のとき» だけ出す。**
@@ -136,30 +169,31 @@ export const buildMyDishesFeedChips = (
 	   実機では必ず入っている）。entry がまだ確定していない（`null`）間は、カテゴリ chip と
 	   同じく何も出さない。
 	*/
-	if (entry?.dish_media?.isEaten === true) {
+	// #1629【42】既にその状態だけに絞られていれば出さない（押しても何も起きないため）
+	const statusOnly = filter.status.length === 1 ? filter.status[0] : null;
+	if (entry?.dish_media?.isEaten === true && statusOnly !== "eaten") {
 		chips.push({
 			id: "statusEaten",
 			label: i18n.t("MyDishes.feed.chips.filterStatusEaten"),
-			active: filter.status.length === 1 && filter.status[0] === "eaten",
 			patch: { status: ["eaten"] },
 		});
 	}
-	if (entry?.dish_media?.isSaved === true) {
+	if (entry?.dish_media?.isSaved === true && statusOnly !== "want") {
 		chips.push({
 			id: "statusWant",
 			label: i18n.t("MyDishes.feed.chips.filterStatusWant"),
-			active: filter.status.length === 1 && filter.status[0] === "want",
 			patch: { status: ["want"] },
 		});
 	}
 
 	// ★N 以上は `status` が `["eaten"]` のときだけ出す（#1395 m-4: want 行は rating を持たないので、
 	// 評価で絞ると「食べたい」が全消しになる）。判定は store 側の唯一の実装を使う
-	if (isRatingFilterEnabled(filter)) {
+	// #1629【42】既に ★N 以上で絞られていれば出さない（patch は固定値なので閾値は上がらない）
+	const minRatingApplied = filter.minRating !== null && filter.minRating >= MY_DISHES_FEED_CHIP_MIN_RATING;
+	if (isRatingFilterEnabled(filter) && !minRatingApplied) {
 		chips.push({
 			id: "minRating",
 			label: i18n.t("MyDishes.feed.chips.filterMinRating", { count: MY_DISHES_FEED_CHIP_MIN_RATING }),
-			active: filter.minRating !== null && filter.minRating >= MY_DISHES_FEED_CHIP_MIN_RATING,
 			patch: { minRating: MY_DISHES_FEED_CHIP_MIN_RATING },
 		});
 	}
@@ -184,8 +218,8 @@ export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
 
 	const handlePress = useCallback(
 		(chip: MyDishesFeedChip) => {
-			// 既に効いている絞り込みは no-op。ここで解除に回すと chip が「棚を広げる」道具になる
-			if (chip.active) return;
+			// #1629【42】既に効いている絞り込みの chip は `buildMyDishesFeedChips` が作らないので、
+			// ここへ来る chip は必ず «まだ効いていない» もの。解除に回さない（棚を広げない）のは従来どおり
 			lightImpact();
 
 			// 「元に戻す」のために、押す直前の filter をまるごと控える。
@@ -232,14 +266,12 @@ export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
 						key={chip.id}
 						// #1396 §6-1 / #1397 §11-2: 動的な testID は作らない。E2E は nth() かラベルで指す
 						testID="my-dishes-feed-chip"
-						style={[styles.chip, chip.active && styles.chipActive]}
+						style={styles.chip}
 						onPress={() => handlePress(chip)}
 						accessibilityRole="button"
-						// 押しても何も起きない状態であることを支援技術へも伝える
-						accessibilityState={{ selected: chip.active, disabled: chip.active }}
 						accessibilityLabel={chip.label}
 						hitSlop={4}>
-						<Text style={[styles.chipText, chip.active && styles.chipTextActive]} numberOfLines={1}>
+						<Text style={styles.chipText} numberOfLines={1}>
 							{chip.label}
 						</Text>
 					</Pressable>
@@ -249,7 +281,7 @@ export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
 	);
 }
 
-const createStyles = (c: Palette) =>
+const createStyles = (_c: Palette) =>
 	StyleSheet.create({
 		container: {
 			// #1375（5 巡目・デザインレビュー #7）**右のアクション列**（いいね / 保存 /
@@ -272,19 +304,11 @@ const createStyles = (c: Palette) =>
 			borderWidth: 1,
 			borderColor: "rgba(255,255,255,0.35)",
 		},
-		chipActive: {
-			// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめる。
-			// 選択中は «白地に黒文字» で示す（写真の上なので地の白が一番強い）
-			backgroundColor: FixedColors.onMedia,
-			borderColor: FixedColors.onMedia,
-		},
+		// #1629【42】選択状態（`chipActive` / `chipTextActive`）は削除した。
+		// 効いている絞り込みの chip はそもそも描かれないので、選択中の見た目は存在しえない
 		chipText: {
 			fontSize: 13,
 			fontWeight: "600",
 			color: FixedColors.onMedia,
-		},
-		chipTextActive: {
-			// 地が白になったので文字は黒（白地に白文字を作らない）
-			color: c.textPrimaryAlt,
 		},
 	});

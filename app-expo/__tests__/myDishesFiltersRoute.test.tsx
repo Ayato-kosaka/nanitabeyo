@@ -19,13 +19,18 @@ import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
 
 const mockBack = jest.fn();
+/**
+ * #1629【43】どのビューから開かれたかは `?view=` で渡る。Calendar から開いた場合を
+ * 再現できるよう、ルートパラメータをテストから差し替えられるようにしておく。
+ */
+let mockSearchParams: Record<string, string> = { locale: "ja-JP" };
 jest.mock("expo-router", () => {
 	const stub = { push: () => {}, replace: () => {}, back: () => mockBack(), canGoBack: () => true };
 	return {
 		router: stub,
 		useRouter: () => stub,
-		useLocalSearchParams: () => ({ locale: "ja-JP" }),
-		useGlobalSearchParams: () => ({ locale: "ja-JP" }),
+		useLocalSearchParams: () => mockSearchParams,
+		useGlobalSearchParams: () => mockSearchParams,
 	};
 });
 
@@ -113,6 +118,7 @@ const accessibilityStateOf = (
 
 beforeEach(() => {
 	useMyDishesFilterStore.getState().reset();
+	mockSearchParams = { locale: "ja-JP" };
 	mockBack.mockClear();
 	mockPortal.mockClear();
 });
@@ -324,5 +330,33 @@ describe("#1375 下端の安全領域はタブバーに任せる（二重に取�
 		const safeArea = tree.root.find((node) => node.props?.testID === "my-dishes-filter-screen");
 		const edges: readonly string[] = safeArea.props.edges ?? [];
 		expect(edges).not.toContain("bottom");
+	});
+});
+
+/*
+#1629【43】オーナー指示「エリアで絞った時に、カレンダーの『絞り込み・並び替え』でエリアの絞り込みを
+非表示にする仕様を入れてもらったけど、あれ無くしたい」。
+
+修正前は Calendar から開いたときだけエリアの節を `view !== "calendar"` で丸ごと隠していたので、
+下の 2 ケースは «エリアの節が見つからない» で落ちる。
+*/
+describe("#1629【43】Calendar から開いてもエリアの絞り込みを出す", () => {
+	it("view=calendar でもエリアの節（現在値）が出る", async () => {
+		mockSearchParams = { locale: "ja-JP", view: "calendar" };
+		const tree = await render(<MyDishesFiltersScreen />);
+
+		expect(exists(tree, "my-dishes-filter-area-value")).toBe(true);
+	});
+
+	it("view=calendar でも、エリアが確定していれば «解除» から外せる", async () => {
+		mockSearchParams = { locale: "ja-JP", view: "calendar" };
+		useMyDishesFilterStore.getState().commitArea({ lat: 35.68, lng: 139.76, radius: 1200 });
+		const tree = await render(<MyDishesFiltersScreen />);
+
+		expect(exists(tree, "my-dishes-filter-area-clear")).toBe(true);
+		await press(tree, "my-dishes-filter-area-clear");
+		await press(tree, "my-dishes-filter-apply");
+
+		expect(useMyDishesFilterStore.getState().filter.area).toBeNull();
 	});
 });

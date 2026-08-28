@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ChevronDown, ChevronUp } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { type Palette } from "@/constants/Palette";
@@ -230,10 +230,27 @@ export default function MyDishesFiltersScreen() {
 	const patch = useMyDishesFilterStore((s) => s.patch);
 	const clearArea = useMyDishesFilterStore((s) => s.clearArea);
 
-	// #1375 実機確認: エリアの絞り込みは Calendar では出さない（日付の棚にエリアは要らない）。
-	// どのビューから開かれたかは呼び出し側が `view` で渡す
-	const { view } = useLocalSearchParams<{ view?: string }>();
-	const showArea = view !== "calendar";
+	/*
+	#1629【43】【設計】**エリアの絞り込みは、どのビューから開いても出す。**
+
+	オーナー指示: 「エリアで絞った時に、カレンダーの『絞り込み・並び替え』でエリアの絞り込みを
+	非表示にする仕様を入れてもらったけど、あれ無くしたい」。
+
+	もともとは #1375 の実機確認で «日付の棚にエリアは要らない» として、Calendar から開いたときだけ
+	エリアの節を隠していた（`view !== "calendar"`）。しかし **エリアの絞り込みは実際には Calendar にも
+	効いている**（`toMyDishesCalendarQueryParams` は `sort` / `featureKeys` しか落とさず、
+	`lat` / `lng` / `radius` はそのまま渡る）。隠していたのは表示だけで、効果は残っていたので、
+	Map でエリアを絞ったあと Calendar が減った理由を確かめる場所も、解除する場所も無かった。
+	隠す分岐を外すことで «効いているものは、その画面で見えて解除できる» に揃う。
+
+	⚠️ 副作用: Calendar の月グリッドはエリアで絞られる（マス目が空になる日が出る）一方、
+	日付タップで開く Feed は `toMyDishesDateQueryParams` が `lat` / `lng` / `radius` を落とすので
+	エリアを無視した «その日の全件» を出す。つまり «グリッドは空なのに開くと入っている» ズレが
+	残っている。これは今回の指示の範囲外なので触っていない（直すなら日付 Feed 側もエリアを
+	効かせるか、グリッド側で落とすかの二択で、どちらもオーナー判断が要る）。
+
+	`view` パラメータは呼び出し側（`my-dishes/index.tsx`）が引き続き渡すが、この画面では使わない。
+	*/
 
 	const [draft, setDraft] = useState<MyDishesFilter>(filter);
 
@@ -565,32 +582,30 @@ export default function MyDishesFiltersScreen() {
 						);
 					})}
 
-				{showArea && (
-					<View style={styles.section}>
-						<Text style={styles.sectionTitle}>{i18n.t("MyDishes.filters.area.title")}</Text>
-						<Text style={styles.valueText} testID="my-dishes-filter-area-value">
-							{/* #1375 実機確認（2 巡目）: 生の緯度経度は出さない。
-							    `35.6812, 139.7671 / 5000m` は «よくわからない数字» でしかなく、
-							    ユーザーがやったのは「マップでこの範囲を選んだ」ことだけである。
-							    その事実と半径だけを、読める単位（km / m）で言う */}
-							{draft.area
-								? (draft.area.label ??
-									i18n.t("MyDishes.filters.area.selected", { radius: formatAreaRadius(draft.area.radius) }))
-								: i18n.t("MyDishes.filters.area.none")}
-						</Text>
-						{/* エリアの確定は Map の「このエリアで再検索」だけが行う（§3-2）。ここでは解除だけできる */}
-						<Text style={styles.hint}>{i18n.t("MyDishes.filters.area.hint")}</Text>
-						{!!draft.area && (
-							<TouchableOpacity
-								testID="my-dishes-filter-area-clear"
-								onPress={handleClearArea}
-								accessibilityRole="button"
-								style={styles.linkButton}>
-								<Text style={styles.linkButtonLabel}>{i18n.t("MyDishes.filters.area.clear")}</Text>
-							</TouchableOpacity>
-						)}
-					</View>
-				)}
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>{i18n.t("MyDishes.filters.area.title")}</Text>
+					<Text style={styles.valueText} testID="my-dishes-filter-area-value">
+						{/* #1375 実機確認（2 巡目）: 生の緯度経度は出さない。
+						    `35.6812, 139.7671 / 5000m` は «よくわからない数字» でしかなく、
+						    ユーザーがやったのは「マップでこの範囲を選んだ」ことだけである。
+						    その事実と半径だけを、読める単位（km / m）で言う */}
+						{draft.area
+							? (draft.area.label ??
+								i18n.t("MyDishes.filters.area.selected", { radius: formatAreaRadius(draft.area.radius) }))
+							: i18n.t("MyDishes.filters.area.none")}
+					</Text>
+					{/* エリアの確定は Map の「このエリアで再検索」だけが行う（§3-2）。ここでは解除だけできる */}
+					<Text style={styles.hint}>{i18n.t("MyDishes.filters.area.hint")}</Text>
+					{!!draft.area && (
+						<TouchableOpacity
+							testID="my-dishes-filter-area-clear"
+							onPress={handleClearArea}
+							accessibilityRole="button"
+							style={styles.linkButton}>
+							<Text style={styles.linkButtonLabel}>{i18n.t("MyDishes.filters.area.clear")}</Text>
+						</TouchableOpacity>
+					)}
+				</View>
 
 				{/* #1375 実機確認: 期間の絞り込みはこの画面から廃止した。
 				    日付で見たいときは Calendar から Dish Feed へ入る導線が担当する */}
