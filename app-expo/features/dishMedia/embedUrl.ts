@@ -244,6 +244,12 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
         var poll = setInterval(function () {
           waited += 300;
           send({ event: 'listening' });
+          /*
+           * ⚠️ **再生が始まってからも unMute を撃ち直す。** 自動再生ポリシーは
+           *    «無音でない再生を «始める»» を蹴るもので、動き出した後なら通ることがある。
+           *    onReady の 1 回だけでは音が戻らなかった（run 33168644022: audio=muted）。
+           */
+          if (!mutedFallback) send({ event: 'command', func: 'unMute', args: [] });
           if (mutedFallback) { clearInterval(poll); report('playing', 'muted'); return; }
           if (lastMuted !== null) { clearInterval(poll); report('playing', lastMuted ? 'muted' : 'audible'); return; }
           if (waited >= 3000) { clearInterval(poll); report('playing', 'unknown'); }

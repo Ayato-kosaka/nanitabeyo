@@ -182,6 +182,24 @@ const AUTOPLAY_SCRIPT = `(function () {
 
   function report(kind, detail) {
     if (sent[kind]) return;
+    /*
+     * #1641 ⚠️ **一度 «再生できた» と言ったセルを、後から «再生できない» へ落とさない。**
+     *
+     * 実測（run 33168644022 / Android）: TikTok が
+     *
+     *     12:06:36  playing / audible
+     *     12:06:37  not_supported / (期限切れの CDN URL)
+     *
+     * と 0.8 秒差で 2 回報告していた。呼び出し側は後者で unplayable へ倒すので、
+     * **再生中の映像の上に «TikTok で見る» の帯が出る**。ユーザーから見れば «急に止まった»。
+     *
+     * 原因は loop の保険（ended で start() を撃ち直す）から入る再試行で、
+     * そのとき currentSrc が期限切れだと NotSupportedError になる。
+     * ⚠️ この注釈にバッククォートを書かないこと。ここはテンプレートリテラルの内側で、
+     *    書いた時点で文字列が終わる（実際にこの修正で 1 度壊した）。
+     * 映像は動き続けているので、**結論を覆す理由が無い**。
+     */
+    if (sent.playing && kind !== 'playing') return;
     sent[kind] = true;
     try {
       W.ReactNativeWebView.postMessage(JSON.stringify({
@@ -611,6 +629,17 @@ export function ExternalEmbedPlayer({
 	 * ページ内のエージェントが「本当に `currentTime` が進んだ」と言ったときだけ `playing` になる。
 	 */
 	const [playback, setPlayback] = useState<"unknown" | "playing" | "unplayable">("unknown");
+	/*
+	#1641 ⚠️ **一度 «再生できた» セルを、後から «再生できない» へ落とさない。**
+
+	実測（run 33168644022 / Android）: TikTok が playing の 0.8 秒後に not_supported を
+	報告していた（loop の保険から入る再試行が、期限切れの CDN URL に当たった）。
+	落とすと **再生中の映像の上に «TikTok で見る» の帯が出る**。ユーザーには «急に止まった» に見える。
+
+	注入スクリプト側でも同じ守りを入れてあるが、**受け取る側でも塞ぐ**。
+	スクリプトは再注入されうるし、そのとき送信済みの記録は失われる。
+	*/
+	const hasPlayedRef = useRef(false);
 	const webViewRef = useRef<{ injectJavaScript: (script: string) => void } | null>(null);
 
 	const handleMessage = useCallback(
@@ -623,6 +652,7 @@ export function ExternalEmbedPlayer({
 			}
 			if (parsed.src !== "nb-embed-autoplay") return;
 			if (parsed.kind === "playing") {
+				hasPlayedRef.current = true;
 				setPlayback("playing");
 				logFrontendEvent({
 					event_name: "external_embed_autoplay_started",
@@ -631,6 +661,8 @@ export function ExternalEmbedPlayer({
 				});
 				return;
 			}
+			// 再生が始まったセルは、後から何を言われても縮退させない（上の hasPlayedRef の説明）
+			if (hasPlayedRef.current) return;
 			// no_video（権利ブロック）/ not_supported（デコーダ無し）/ timeout
 			setPlayback("unplayable");
 			logFrontendEvent({

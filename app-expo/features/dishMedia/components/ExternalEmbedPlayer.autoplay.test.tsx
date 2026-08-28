@@ -158,6 +158,27 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		expect(script).toContain("mutedByPolicy = true;");
 	});
 
+	/*
+	#1641 **再生できたセルを、後から «再生できない» へ落とさない。**
+
+	実測（run 33168644022 / Android）: TikTok が `playing` の 0.8 秒後に `not_supported` を
+	報告していた（loop の保険から入る再試行で、期限切れの CDN URL に当たったため）。
+	呼び出し側は後者で縮退するので、**再生中の映像の上に «TikTok で見る» の帯が出る**。
+	*/
+	it("playing の後に来た失敗報告では縮退しない", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: "audible" });
+		expect(fallbackCount(tree)).toBe(0);
+
+		post({ src: "nb-embed-autoplay", kind: "not_supported", detail: "https://expired.example/video.mp4" });
+		expect(fallbackCount(tree)).toBe(0);
+	});
+
+	it("注入スクリプト側でも、playing の後の失敗は送らない", () => {
+		renderActiveCell();
+		expect(webViewProps.injectedJavaScript).toContain("if (sent.playing && kind !== 'playing') return;");
+	});
+
 	it("注入スクリプトにバッククォートが混ざっていない", () => {
 		/*
 		⚠️ `AUTOPLAY_SCRIPT` はテンプレートリテラルなので、**コメントに ` を書くと
