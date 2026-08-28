@@ -95,6 +95,25 @@ export const EXTERNAL_EMBED_TIKTOK_URL =
  */
 export const EXTERNAL_EMBED_YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
+type FeedResponse = {
+	data?: {
+		// ⚠️ API は camelCase で返す（`dish_media` の中だけ snake_case が混ざる）。実測で確認した形
+		data?: { dish_media?: { externalEmbed?: { externalContentId?: string } | null } }[];
+	};
+};
+
+/** 取り込み URL から «埋め込みの ID»（投稿を一意に指す部分）を取り出す。判別できなければ null */
+function externalContentIdOf(url: string): string | null {
+	const instagram = /instagram\.com\/(?:p|reel|reels|tv)\/([^/?#]+)/.exec(url);
+	if (instagram) return instagram[1];
+	const youtube = /[?&]v=([^&#]+)/.exec(url) ?? /youtu\.be\/([^/?#]+)/.exec(url);
+	if (youtube) return youtube[1];
+	const tiktok = /tiktok\.com\/[^/]*\/?video\/(\d+)/.exec(url);
+	if (tiktok) return tiktok[1];
+	// 短縮 URL（vt.tiktok.com/...）はサーバ側で展開されるので、ここでは判別しない
+	return null;
+}
+
 type ResolveResponse = {
 	data?: {
 		candidates?: {
@@ -153,11 +172,11 @@ export async function ensureExternalEmbedImported(
 		);
 	}
 
-	const create = async (url: string) => {
+	const create = async (url: string, categoryId: string) => {
 		const response = await fetch(`${base}/v1/dish-media/imports`, {
 			method: "POST",
 			headers,
-			body: JSON.stringify({ url, restaurantId, dishCategoryId }),
+			body: JSON.stringify({ url, restaurantId, dishCategoryId: categoryId }),
 			signal: AbortSignal.timeout(90_000),
 		});
 		if (!response.ok) {
@@ -165,15 +184,75 @@ export async function ensureExternalEmbedImported(
 		}
 	};
 
-	await create(EXTERNAL_EMBED_IMPORT_URL);
+	const urls = [EXTERNAL_EMBED_IMPORT_URL];
 	// #1641 «実際に再生できる» ことを録画で示すには、映像が入っているリールが要る
-	if (options.alsoImportPlayable) {
-		await create(EXTERNAL_EMBED_PLAYABLE_URL);
-	}
+	if (options.alsoImportPlayable) urls.push(EXTERNAL_EMBED_PLAYABLE_URL);
 	// #1641 provider ごとに «アプリ内で再生できるか» を 1 本のフィードで示す
-	if (options.alsoImportOtherProviders) {
-		await create(EXTERNAL_EMBED_TIKTOK_URL);
-		await create(EXTERNAL_EMBED_YOUTUBE_URL);
+	if (options.alsoImportOtherProviders) urls.push(EXTERNAL_EMBED_TIKTOK_URL, EXTERNAL_EMBED_YOUTUBE_URL);
+
+	/*
+	#1641 ⚠️ **料理カテゴリを取り込みごとに分ける。ここを揃えると、フィードには 1 本しか出ない。**
+
+	お店フィード（`GET /v1/restaurants/:id/dish-media`）は
+	**«各料理につき、いいね数が最大の 1 件» しか返さない**
+	（`dish-media.repository.ts` の `findDishMediaByRestaurant`:
+	`ROW_NUMBER() OVER (PARTITION BY dish_id ...) ... WHERE rn = 1`）。
+	取り込みは (restaurantId, dishCategoryId) で料理を決めるので、4 本を同じカテゴリで
+	入れると **4 本が同じ料理になり、フィードに出るのは 1 本だけ**になる。
+
+	実測（run 33146739657 / dev の当該店舗）: 4 本を取り込んだのにフィードは
+	**2 件**（YouTube と、以前の Instagram）で `nextCursor` も null だった。
+	spec は «TikTok のセルへ一度も着けなかった» と報告するが、**そもそもフィードに無い**。
+	アプリの不具合と読み違えるので、素材の側で分ける。
+	*/
+	const categoryIds = [
+		...new Set(
+			[dishCategoryId, ...(candidates?.dishCategories ?? []).map((c) => c?.dishCategoryId)].filter(
+				(id): id is string => typeof id === "string" && id.length > 0,
+			),
+		),
+	];
+	if (categoryIds.length < urls.length) {
+		throw new Error(
+			`料理カテゴリの候補が ${categoryIds.length} 種類しかなく、${urls.length} 本を別々の料理へ入れられません。` +
+				" 同じ料理へ入れるとお店フィードに 1 本しか出ず、spec が «セルへ着けなかった» と誤報します。",
+		);
+	}
+
+	for (const [index, url] of urls.entries()) {
+		await create(url, categoryIds[index]);
+	}
+
+	/*
+	#1641 **取り込んだものが «お店フィードに出ている» ところまで確かめる。**
+
+	`create` が 200 を返すことと、フィードにセルが並ぶことは別である（上のとおり、
+	同じ料理へ入れると 1 本しか出ない）。ここを見ずに spec を回すと、素材が足りない状態を
+	**アプリが再生できない**と読み違える。実際に run 33146739657 で 1 往復無駄にした。
+	*/
+	const feedResponse = await fetch(
+		`${base}/v1/restaurants/${restaurantId}/dish-media?languageTag=ja-JP`,
+		{ headers, signal: AbortSignal.timeout(90_000) },
+	);
+	if (!feedResponse.ok) {
+		throw new Error(`お店フィードの取得に失敗しました（status=${feedResponse.status}）`);
+	}
+	const feed = (await feedResponse.json()) as FeedResponse;
+	const visible = new Set(
+		(feed.data?.data ?? [])
+			.map((entry) => entry.dish_media?.externalEmbed?.externalContentId)
+			.filter((id): id is string => typeof id === "string"),
+	);
+	const missing = urls.filter((url) => {
+		const id = externalContentIdOf(url);
+		return id !== null && !visible.has(id);
+	});
+	if (missing.length > 0) {
+		throw new Error(
+			`取り込みは成功したのに、お店フィードに出ていない投稿があります: ${missing.join(", ")}。` +
+				` フィードに出ているのは ${[...visible].join(", ") || "なし"} です。` +
+				" お店フィードは «各料理につき 1 件» しか返さないので、料理が重なっていないか確認してください。",
+		);
 	}
 
 	return { restaurantId };
