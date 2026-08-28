@@ -91,6 +91,7 @@ export class RestaurantsRepository {
         | 'source_names'
         | 'source_row_hash'
         | 'synced_at'
+        | 'created_by_source'
       > & {
         review_count: number;
         average_rating: number;
@@ -203,6 +204,8 @@ export class RestaurantsRepository {
       r.source_names,
       r.source_row_hash,
       r.synced_at,
+      -- #843 その行を誰が作ったか。9_1 の同期はこの値が 'pipeline' の行だけを上書きする
+      r.created_by_source,
       COUNT(dr.id)::int                    AS review_count,
       COALESCE(AVG(dr.rating), 0)::double precision AS average_rating,
       c.last_saved_at
@@ -241,6 +244,7 @@ export class RestaurantsRepository {
         source_names: row.source_names,
         source_row_hash: row.source_row_hash,
         synced_at: row.synced_at,
+        created_by_source: row.created_by_source,
       },
       meta: {
         reviewCount: row.review_count,
@@ -429,6 +433,7 @@ export class RestaurantsRepository {
         | 'source_names'
         | 'source_row_hash'
         | 'synced_at'
+        | 'created_by_source'
       > & {
         review_count: number;
         average_rating: number;
@@ -454,6 +459,8 @@ export class RestaurantsRepository {
         r.source_names,
         r.source_row_hash,
         r.synced_at,
+        -- #843 その行を誰が作ったか。9_1 の同期はこの値が 'pipeline' の行だけを上書きする
+        r.created_by_source,
         c.total_cents,
         c.max_end_date,
         COUNT(dr.id)::int AS review_count,

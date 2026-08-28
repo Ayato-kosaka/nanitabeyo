@@ -65,6 +65,7 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
 			synced_at: null,
 		},
 		dish: {
@@ -204,6 +205,7 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
 			synced_at: null,
 		},
 		dish: {
@@ -343,6 +345,7 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
 			synced_at: null,
 		},
 		dish: {
@@ -482,6 +485,7 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
 			synced_at: null,
 		},
 		dish: {
@@ -621,6 +625,7 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
 			synced_at: null,
 		},
 		dish: {
