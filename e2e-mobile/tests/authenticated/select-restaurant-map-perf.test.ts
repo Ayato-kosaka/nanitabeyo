@@ -144,11 +144,24 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		⚠️ 位置情報が取れない環境では地図は動かない。その場合はマーカーが出ないので、
 		   上のログで空振りだと分かる（黙って «速い» と読めてしまわないようにする）。
 		*/
-		await device.setLocation(35.6812, 139.7671); // 東京駅
+		try {
+			await device.setLocation(35.6812, 139.7671); // 東京駅
+		} catch (error) {
+			console.log(`[search-this-area] ⚠️ setLocation に失敗: ${String(error)}`);
+		}
+		// エミュレータの測位が «直近の既知位置» として読めるようになるまで少し置く
+		await new Promise((resolve) => setTimeout(resolve, 3000));
 		await tapWhenVisible(by.id("review-select-restaurant-current-location-button"), DEFAULT_TIMEOUT);
-		// `animateToRegion` は 1000ms かけて動く。その後の onRegionChangeComplete →
-		// デバウンス 400ms → 取得、まで落ち着かせてから測る
-		await new Promise((resolve) => setTimeout(resolve, 5000));
+		/*
+		⚠️ **ここは長めに待つ。**
+
+		`getCurrentLocationPosition` は「既知位置 → 新規測位（最大 10 秒でタイムアウト）」の
+		順に試す（`hooks/useCurrentLocationPosition.ts`）。5 秒しか待たないと、
+		**測位がまだ返っていないうちにスクショを撮り、地図が動いていない絵**が残る
+		（run 33132181132 で実際にそうなった）。10 秒のタイムアウト +
+		animateToRegion 1 秒 + デバウンス 400ms を全部含める。
+		*/
+		await new Promise((resolve) => setTimeout(resolve, 16000));
 		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
 		await device.takeScreenshot("search-this-area-02-moved-to-tokyo");
 		console.log(`[search-this-area] 東京駅へ寄せた直後のマーカー: ${await markerReport()}`);
