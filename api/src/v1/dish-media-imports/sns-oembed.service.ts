@@ -427,12 +427,21 @@ export class SnsOembedService {
 
     const description = parseYouTubeDescription(html);
     if (description === null) {
-      // 200 だが説明文が見つからない（bot 判定・ログイン壁・仕様変更）
-      this.logger.warn(
-        'YouTubeDescriptionNotFound',
-        'fetchYouTubeDescription',
-        { htmlLength: html.length },
-      );
+      /*
+      200 だが説明文が見つからない（bot 判定・ログイン壁・仕様変更）。
+
+      ⚠️ **どの鍵が在ったかを必ず残す。** 「ページは取れているのに鍵だけ違う」が
+         実際に起きており（開発環境では取れて Cloud Run では取れなかった）、
+         これが無いと HTML を手で覗くまで切り分けられない。
+      */
+      this.logger.warn('YouTubeDescriptionNotFound', 'fetchYouTubeDescription', {
+        htmlLength: html.length,
+        markersPresent: YOUTUBE_DESCRIPTION_STRATEGIES.filter(
+          (strategy) => strategy.extract(html) !== null,
+        ).map((strategy) => strategy.name),
+        hasPlayerResponse: html.includes('ytInitialPlayerResponse'),
+        hasInitialData: html.includes('ytInitialData'),
+      });
       return null;
     }
 
@@ -557,44 +566,117 @@ export function parseInstagramEmbedHtml(
 /**
  * #1641 YouTube の視聴ページ HTML から**説明文**を取り出す。
  *
- * 説明文は `ytInitialData` の中の
- * `expandableVideoDescriptionBodyRenderer.descriptionBodyText.runs[].text` に、
- * **断片の配列**として入っている（ハッシュタグやリンクが別 run に割れる）。
- * 実測（`8KJDwppL0qg`）でこの経路から店名・住所が取れることを確認している。
+ * ## 置き場所が 1 つではない
  *
- * ⚠️ **`runs` の配列の中だけを読むこと。** ページ全体から `"text":"…"` を拾うと、
- *    プレイヤーのキーボードショートカット説明などの無関係な文言まで連結されてしまう
- *    （実装中に実際に混入させた）。
+ * YouTube が返す HTML は**環境によって別物**である。実測:
+ *
+ * | 取得元 | 説明文の在りか |
+ * | --- | --- |
+ * | 開発環境 | `expandableVideoDescriptionBodyRenderer.descriptionBodyText.runs[].text`（断片の配列） |
+ * | Cloud Run | 上の鍵が**存在しない**（実ログ `YouTubeDescriptionNotFound` / htmlLength 1.1MB） |
+ *
+ * ページは取れているのに鍵だけが違う、という形だった。1 つの鍵に賭けると、
+ * **こちらの環境では通るのに本番では取れない**という今回の状態になる。
+ * そこで**知られている置き場所を順に試す**。
  *
  * ⚠️ 見つからなければ `null` を返す。**推測で組み立てない。**
- *    YouTube が JS シェルだけを返す（bot 判定・ログイン壁）ことがあるためで、
- *    そのときは «説明文は取れなかった» として扱う。
+ *    JS シェルやログイン壁が返ることがあり、そのときは «取れなかった» として扱う
+ *    （呼び出し側は候補ゼロ → 手入力へ縮退する）。
  */
 export function parseYouTubeDescription(html: string): string | null {
-  const marker =
-    '"expandableVideoDescriptionBodyRenderer":{"descriptionBodyText":{"runs":[';
+  for (const strategy of YOUTUBE_DESCRIPTION_STRATEGIES) {
+    const description = strategy.extract(html);
+    if (description !== null && description.trim().length > 0) {
+      return description.trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * 説明文の置き場所。**上から順に試す。**
+ *
+ * `name` は «どれで取れたか / どれも無かったか» をログへ出すために使う。
+ * 置き場所が変わったとき、HTML を目視しなくても切り分けられるようにしておく。
+ */
+export const YOUTUBE_DESCRIPTION_STRATEGIES: {
+  name: string;
+  extract: (html: string) => string | null;
+}[] = [
+  {
+    // 断片の配列（ハッシュタグやリンクが別 run に割れる）
+    name: 'descriptionBodyText.runs',
+    extract: (html) => {
+      const marker =
+        '"expandableVideoDescriptionBodyRenderer":{"descriptionBodyText":{"runs":[';
+      const start = html.indexOf(marker);
+      if (start === -1) return null;
+
+      const from = start + marker.length;
+      const end = findRunsArrayEnd(html, from);
+      if (end === -1) return null;
+
+      /*
+      ⚠️ **`runs` の配列の中だけを読むこと。** ページ全体から `"text":"…"` を拾うと、
+         プレイヤーのキーボードショートカット説明などの無関係な文言まで連結される
+         （実装中に実際に混入させた）。
+      */
+      const texts: string[] = [];
+      const pattern = /"text":"((?:[^"\\]|\\.)*)"/g;
+      let match: RegExpExecArray | null;
+      while ((match = pattern.exec(html.slice(from, end))) !== null) {
+        try {
+          texts.push(JSON.parse(`"${match[1]}"`) as string);
+        } catch {
+          // 壊れた断片は捨てる（推測で直さない）
+        }
+      }
+      return texts.join('');
+    },
+  },
+  {
+    // `ytInitialPlayerResponse.videoDetails.shortDescription`。説明文が 1 本の文字列で入る
+    name: 'videoDetails.shortDescription',
+    extract: (html) => extractJsonString(html, '"shortDescription":"'),
+  },
+  {
+    // 端末やロケールによってはこちらへ入る
+    name: 'attributedDescription.content',
+    extract: (html) =>
+      extractJsonString(html, '"attributedDescription":{"content":"'),
+  },
+];
+
+/**
+ * `marker` の直後から始まる **JSON 文字列リテラル**を 1 つ読み出す。
+ *
+ * エスケープされた `\"` で終端を誤らないよう、素朴な `indexOf('"')` は使わない。
+ */
+function extractJsonString(html: string, marker: string): string | null {
   const start = html.indexOf(marker);
   if (start === -1) return null;
 
   const from = start + marker.length;
-  const end = findRunsArrayEnd(html, from);
-  if (end === -1) return null;
-
-  const runs = html.slice(from, end);
-  const texts: string[] = [];
-  // JSON 文字列（`\"` のエスケープを含む）を 1 つずつ拾う
-  const pattern = /"text":"((?:[^"\\]|\\.)*)"/g;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(runs)) !== null) {
-    try {
-      texts.push(JSON.parse(`"${match[1]}"`) as string);
-    } catch {
-      // 壊れた断片は捨てる（推測で直さない）
+  let escaped = false;
+  for (let i = from; i < html.length; i += 1) {
+    const ch = html[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      try {
+        return JSON.parse(`"${html.slice(from, i)}"`) as string;
+      } catch {
+        return null;
+      }
     }
   }
-
-  const description = texts.join('').trim();
-  return description.length > 0 ? description : null;
+  return null;
 }
 
 /**

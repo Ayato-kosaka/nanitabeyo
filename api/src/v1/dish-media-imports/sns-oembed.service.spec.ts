@@ -82,4 +82,44 @@ describe('parseYouTubeDescription', () => {
 	it('説明文が空文字なら null', () => {
 		expect(parseYouTubeDescription(buildHtml([{ text: '   ' }]))).toBeNull();
 	});
+
+	/*
+	#1641 **置き場所は 1 つではない。**
+
+	開発環境では `descriptionBodyText.runs` から取れたのに、Cloud Run が受け取る HTML には
+	その鍵が無かった（実ログ: `YouTubeDescriptionNotFound` / htmlLength 1.1MB）。
+	ページは取れているのに鍵だけが違う、という形である。
+	1 つの鍵に賭けると «こちらでは通るのに本番では取れない» に戻るので、順に試す。
+	*/
+	describe('置き場所が変わっても取れる', () => {
+		it('videoDetails.shortDescription から取れる', () => {
+			const html =
+				'<!doctype html><script>var ytInitialPlayerResponse = {"videoDetails":' +
+				'{"shortDescription":"店名：焼鶏ばんちょう\\n住所：東京都中央区月島1-22-1"}};</script>';
+
+			expect(parseYouTubeDescription(html)).toBe(
+				'店名：焼鶏ばんちょう\n住所：東京都中央区月島1-22-1',
+			);
+		});
+
+		it('attributedDescription.content から取れる', () => {
+			const html =
+				'<!doctype html><script>var x = {"attributedDescription":{"content":"住所：東京都中央区月島1-22-1"}};</script>';
+
+			expect(parseYouTubeDescription(html)).toBe('住所：東京都中央区月島1-22-1');
+		});
+
+		it('エスケープされた引用符で終端を誤らない', () => {
+			const html =
+				'<!doctype html><script>var y = {"shortDescription":"店名：\\"ばんちょう\\" 月島"};</script>';
+
+			expect(parseYouTubeDescription(html)).toBe('店名："ばんちょう" 月島');
+		});
+
+		it('どの置き場所にも無ければ null', () => {
+			expect(
+				parseYouTubeDescription('<!doctype html><script>var z = {"other":"x"};</script>'),
+			).toBeNull();
+		});
+	});
 });
