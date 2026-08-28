@@ -1074,7 +1074,11 @@
 			"activeCount": "{{count}} filtres actifs"
 		},
 		"empty": {
-			"description": "Les plats que vous enregistrez ou marquez comme goûtés apparaîtront ici."
+			"description": "Les plats que vous enregistrez ou marquez comme goûtés apparaîtront ici.",
+			"noResultsInArea": "Aucun enregistrement dans cette zone.",
+			"noResultsInAreaHint": "Déplacez la carte et appuyez sur « Rechercher dans cette zone », ou retirez les filtres.",
+			"noResultsForFilter": "Aucun enregistrement ne correspond à ces filtres.",
+			"noResultsForFilterHint": "Retirez les filtres pour voir vos autres enregistrements."
 		},
 		"list": {
 			"noPhoto": "Sans photo"

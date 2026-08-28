@@ -1074,7 +1074,11 @@
 			"activeCount": "{{count}} filtros activos"
 		},
 		"empty": {
-			"description": "Los platos que guardes o registres como comidos aparecerán aquí."
+			"description": "Los platos que guardes o registres como comidos aparecerán aquí.",
+			"noResultsInArea": "No hay registros en esta zona.",
+			"noResultsInAreaHint": "Mueve el mapa y pulsa «Buscar en esta zona» o quita los filtros.",
+			"noResultsForFilter": "Ningún registro coincide con estos filtros.",
+			"noResultsForFilterHint": "Quita los filtros para ver tus otros registros."
 		},
 		"list": {
 			"noPhoto": "Sin foto"

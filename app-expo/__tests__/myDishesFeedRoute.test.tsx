@@ -105,6 +105,9 @@ const makeEntry = (mediaId: string, isSaved = false, categoryId = "karaage", dis
 		id: mediaId,
 		isMine: false,
 		isSaved,
+		// #1629【34】状態 chip は entry のフラグで出し分ける。既定は «食べた記録がある» にして
+		// 従来の期待（«食べたで絞る» が出る）をそのまま保つ
+		isEaten: true,
 		isLiked: false,
 		likeCount: 0,
 		mediaUrl: null,
@@ -558,7 +561,8 @@ describe("#1397 (PR5/5) contextual filter chips（§10）", () => {
 		);
 
 	it("Feed の上に chips が出る。並び替えの chip は 1 つも無い（リーダー判断 Q3）", async () => {
-		respond([makeRow("review:a", "media-a")], [makeEntry("media-a")]);
+		// #1629【34】«食べた» も «食べたい» も付いているエントリなら状態 chip は 2 つとも出る
+		respond([makeRow("review:a", "media-a")], [makeEntry("media-a", true)]);
 
 		const tree = await render();
 
