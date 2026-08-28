@@ -178,19 +178,53 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		};
 		let embedCells = 0;
 
-		for (let i = 0; i < 8; i++) {
-			if (await existsNow(embedWebView)) {
-				embedCells += 1;
-				for (const provider of PROVIDERS) {
-					if (await existsNow(by.id(`external-embed-playing-${provider}`))) {
-						playedBy[provider] = true;
+		/*
+		⚠️ **1 回見て «再生できなかった» と判定してはいけない。**
+
+		旧版は「スワイプ → 7 秒待つ → 次の周回の先頭で 1 回だけ見る」だった。
+		run 33135234690（Android）ではこれが誤判定の原因になった。
+
+		    最初のセル（着地後 12 秒眺める）… YouTube → 緑
+		    以降のセル（7 秒しか無い）      … Instagram / TikTok → «再生できない»
+
+		同じ素材は run 33074457233 / 33078365067 で再生できている。**埋め込みの読み込みが
+		7 秒に間に合わなかっただけ**で、アプリの不具合ではない。読み込みの遅さで赤になる spec は、
+		本物の回帰と区別が付かないので価値が無い。
+
+		そこで **セルが前面にいる間、印が出るまで繰り返し見る**。印は一度出れば消えないので、
+		「出るまで見る」で偽陰性だけが消え、偽陽性は増えない。
+		*/
+		const CELL_DWELL_MS = 18_000;
+		/** 印の有無を見るときの上限。短くして 1 周を速く回す（既定の 2 秒だと 3 provider で 6 秒かかる） */
+		const MARKER_PROBE_MS = 500;
+
+		const allPlayed = () => PROVIDERS.every((provider) => playedBy[provider]);
+
+		/** いま前面にいるセルを、印が出るまで（最長 dwellMs）見続ける。埋め込みセルだったら true */
+		const observeCurrentCell = async (dwellMs: number): Promise<boolean> => {
+			const deadline = Date.now() + dwellMs;
+			let sawEmbed = false;
+			for (;;) {
+				if (await existsNow(embedWebView, MARKER_PROBE_MS)) {
+					sawEmbed = true;
+					for (const provider of PROVIDERS) {
+						if (playedBy[provider]) continue;
+						if (await existsNow(by.id(`external-embed-playing-${provider}`), MARKER_PROBE_MS)) {
+							playedBy[provider] = true;
+						}
 					}
 				}
+				if (allPlayed() || Date.now() >= deadline) return sawEmbed;
+				await new Promise((resolve) => setTimeout(resolve, 500));
 			}
-			await swipeFeed();
-			// 次のセルの埋め込みが読み込まれ、自動再生の判定が終わるまで待つ
-			await new Promise((resolve) => setTimeout(resolve, 7_000));
+		};
+
+		for (let i = 0; i < 8; i++) {
+			if (await observeCurrentCell(CELL_DWELL_MS)) embedCells += 1;
 			await device.takeScreenshot(`feed-${String(i).padStart(2, "0")}`);
+			// 3 つとも観測できたら、残りのセルを見る意味は無い（実行時間を返す）
+			if (allPlayed()) break;
+			await swipeFeed();
 		}
 
 		if (embedCells === 0) {
