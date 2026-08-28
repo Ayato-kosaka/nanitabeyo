@@ -36,7 +36,7 @@
 | --- | --- | --- |
 | Instagram | ✅ 音あり | 埋め込みの `<video>` が最初からミュートでない |
 | TikTok | ✅ 音あり（**こちらでミュートを外す**） | 向こうが `muted` で置いてくる。外さないと永久に無音だった |
-| YouTube | ✅ 音あり（**URL の `mute=1` を外す**） | 埋め込み URL に `mute=1` を付けていた。**無音で始まったプレイヤーは後から `unMute` を撃っても戻らない**（実測 run 33167111834）。あわせて `unMute` → `playVideo` の順で撃つ |
+| YouTube | ❌ **無音のまま。突破できなかった** | 下記 |
 
 **«音が出ない» は provider の制限ではなかった。** 同じ WebView で Instagram だけ音が出ていたことが
 手がかりだった（実測: BigQuery `nanitabeyo_logs_dev.frontend_event_logs` /
@@ -45,6 +45,25 @@
 ⚠️ **自動再生ポリシー（`NotAllowedError`）で蹴られたときだけ無音へ落とす。**
 落とさないと再生そのものが止まり、«無音でも動く» すら失う。
 → [`ExternalEmbedPlayer.tsx` の `tryUnmute`](../../app-expo/features/dishMedia/components/ExternalEmbedPlayer.tsx)
+
+### YouTube だけ音を出せない（試したことと結果）
+
+**IFrame Player は、ユーザー操作なしの `unMute` を受け付けない。** 3 通り試して、いずれも実機で
+`audio=muted` のままだった。**この制限は受け入れる。**
+
+| 試したこと | 結果 |
+| --- | --- |
+| `onReady` で `mute` → `playVideo` の順をやめ、`unMute` を先に撃つ | 無音（run 33167111834） |
+| 埋め込み URL から `mute=1` を外す | 無音（run 33168644022） |
+| 再生が始まってからも `unMute` を 0.3 秒おきに撃ち直す | 無音（run 33170443855） |
+
+Instagram / TikTok で音が出るのは、あちらが**同一オリジンの `<video>` 要素**で、
+`muted` プロパティを直接触れるからである。YouTube は別オリジンの iframe なので
+**公式 API 越しにしか頼めず、その API が断る**。
+
+残る手は «ユーザーのタップで `unMute` を撃つ» だけだが、WebView は表示専用
+（`pointerEvents="none"`）で、音のためだけに操作口を開けるかはプロダクト判断。
+必要ならオーナーへ提案する。
 
 ## 3. 権利分岐（同じ provider でも投稿によって変わる）
 
