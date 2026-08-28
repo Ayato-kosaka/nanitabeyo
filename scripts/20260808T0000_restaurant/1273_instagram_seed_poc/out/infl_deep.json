@@ -1,0 +1,401 @@
+{
+  "summary": {
+    "sampled_influencers": 38,
+    "mean_media_count": 1443,
+    "mean_food_cap_rate": 0.57,
+    "total_distinct_new_mentioned_accounts": 0,
+    "new_mentions_per_influencer": 0.0,
+    "note": "@メンションの多くは店/コラボ相手。business_discovery で店か判定すれば柱1へ還流できる新規アカウント"
+  },
+  "rows": [
+    {
+      "h": "tetsudo_o",
+      "ok": true,
+      "media_count": 9085,
+      "followers": 5398,
+      "sampled": 40,
+      "food_caps": 38,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "cafe_ri_",
+      "ok": true,
+      "media_count": 608,
+      "followers": 56942,
+      "sampled": 40,
+      "food_caps": 37,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "pito_820",
+      "ok": true,
+      "media_count": 988,
+      "followers": 154119,
+      "sampled": 40,
+      "food_caps": 2,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "osaka.neotravel",
+      "ok": true,
+      "media_count": 380,
+      "followers": 189044,
+      "sampled": 40,
+      "food_caps": 20,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "suppy_umasugi",
+      "ok": true,
+      "media_count": 968,
+      "followers": 30184,
+      "sampled": 40,
+      "food_caps": 19,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "ojinomama",
+      "ok": true,
+      "media_count": 482,
+      "followers": 24395,
+      "sampled": 40,
+      "food_caps": 7,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "sweet_yup_sweet",
+      "ok": true,
+      "media_count": 2059,
+      "followers": 166164,
+      "sampled": 40,
+      "food_caps": 10,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "yuya.kumamoto_gurume",
+      "ok": true,
+      "media_count": 500,
+      "followers": 51942,
+      "sampled": 40,
+      "food_caps": 22,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "harahettanda",
+      "ok": true,
+      "media_count": 1927,
+      "followers": 111124,
+      "sampled": 40,
+      "food_caps": 31,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "sendai_miyagi_tsumugi",
+      "ok": true,
+      "media_count": 839,
+      "followers": 62493,
+      "sampled": 40,
+      "food_caps": 40,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "aomori.rinko",
+      "ok": true,
+      "media_count": 114,
+      "followers": 31864,
+      "sampled": 40,
+      "food_caps": 14,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "ibaraki_odekake",
+      "ok": true,
+      "media_count": 389,
+      "followers": 41693,
+      "sampled": 40,
+      "food_caps": 3,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "ibaraki.cafe98",
+      "ok": true,
+      "media_count": 1018,
+      "followers": 71602,
+      "sampled": 40,
+      "food_caps": 17,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "okayamafood77",
+      "ok": true,
+      "media_count": 2654,
+      "followers": 33278,
+      "sampled": 40,
+      "food_caps": 32,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "miyagi_kosodate",
+      "ok": true,
+      "media_count": 1044,
+      "followers": 81358,
+      "sampled": 40,
+      "food_caps": 14,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "okinawagurumeakaunto",
+      "ok": true,
+      "media_count": 659,
+      "followers": 36091,
+      "sampled": 40,
+      "food_caps": 36,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "mie_select",
+      "ok": true,
+      "media_count": 528,
+      "followers": 53491,
+      "sampled": 40,
+      "food_caps": 28,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "shimane_gurume",
+      "ok": true,
+      "media_count": 266,
+      "followers": 18205,
+      "sampled": 40,
+      "food_caps": 36,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "yuki__yamanashi",
+      "ok": true,
+      "media_count": 444,
+      "followers": 22745,
+      "sampled": 40,
+      "food_caps": 34,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "okirip.shoko",
+      "ok": true,
+      "media_count": 1093,
+      "followers": 19659,
+      "sampled": 40,
+      "food_caps": 26,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "kagoshimagourmet",
+      "ok": true,
+      "media_count": 646,
+      "followers": 22338,
+      "sampled": 40,
+      "food_caps": 33,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "nagoya.gourmet.map",
+      "ok": true,
+      "media_count": 2895,
+      "followers": 81725,
+      "sampled": 40,
+      "food_caps": 38,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "pinos_kitchen",
+      "ok": true,
+      "media_count": 988,
+      "followers": 152436,
+      "sampled": 40,
+      "food_caps": 20,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "gurume_fukushima",
+      "ok": false
+    },
+    {
+      "h": "itsho_gourme",
+      "ok": false
+    },
+    {
+      "h": "su_a_sa_",
+      "ok": true,
+      "media_count": 4327,
+      "followers": 119701,
+      "sampled": 40,
+      "food_caps": 8,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "wolf.0313",
+      "ok": true,
+      "media_count": 1801,
+      "followers": 1608662,
+      "sampled": 40,
+      "food_caps": 25,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "sendai.mamagram",
+      "ok": true,
+      "media_count": 1732,
+      "followers": 72481,
+      "sampled": 40,
+      "food_caps": 10,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "gifutoco",
+      "ok": true,
+      "media_count": 500,
+      "followers": 69967,
+      "sampled": 40,
+      "food_caps": 27,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "kzy_gourmet",
+      "ok": true,
+      "media_count": 307,
+      "followers": 122141,
+      "sampled": 40,
+      "food_caps": 28,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "mi_yan0101",
+      "ok": true,
+      "media_count": 4526,
+      "followers": 121592,
+      "sampled": 40,
+      "food_caps": 9,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "tokyo_wagyu_report",
+      "ok": true,
+      "media_count": 1968,
+      "followers": 69470,
+      "sampled": 40,
+      "food_caps": 40,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "necozalenky_life",
+      "ok": true,
+      "media_count": 1819,
+      "followers": 92307,
+      "sampled": 40,
+      "food_caps": 1,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "morimori105",
+      "ok": true,
+      "media_count": 1202,
+      "followers": 27414,
+      "sampled": 40,
+      "food_caps": 33,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "emicom__",
+      "ok": true,
+      "media_count": 663,
+      "followers": 16699,
+      "sampled": 40,
+      "food_caps": 12,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "nachi_kanagawagram",
+      "ok": true,
+      "media_count": 1407,
+      "followers": 148856,
+      "sampled": 40,
+      "food_caps": 12,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "suzylily._",
+      "ok": true,
+      "media_count": 2209,
+      "followers": 128499,
+      "sampled": 40,
+      "food_caps": 36,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "yudasan_gourmet_ibaraki",
+      "ok": true,
+      "media_count": 370,
+      "followers": 47644,
+      "sampled": 40,
+      "food_caps": 24,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "harulife.ishikawa",
+      "ok": true,
+      "media_count": 717,
+      "followers": 59586,
+      "sampled": 40,
+      "food_caps": 17,
+      "mentions": 0,
+      "new_mentions": 0
+    },
+    {
+      "h": "wakayama.travel",
+      "ok": true,
+      "media_count": 710,
+      "followers": 85885,
+      "sampled": 40,
+      "food_caps": 25,
+      "mentions": 0,
+      "new_mentions": 0
+    }
+  ],
+  "new_mentions": []
+}
