@@ -13,7 +13,14 @@ const makeItem = (overrides: Record<string, unknown> = {}): MyDishItem =>
 		key: "review:1",
 		status: "eaten",
 		occurredAt: "2026-08-01T00:00:00.000Z",
-		restaurant: { id: "r1", name: "テスト食堂", image_url: "https://example.com/restaurant.jpg" },
+		// #1680 店の画像は imageUrls から取る。`image_url`（@deprecated）は **意図的に非空のまま**にして、
+		// «うっかり image_url へ戻したら落ちる» 形にしてある（下の «使わない» ケースを参照）
+		restaurant: {
+			id: "r1",
+			name: "テスト食堂",
+			image_url: "https://example.com/deprecated-should-not-be-used.jpg",
+			imageUrls: { sm: "https://example.com/restaurant-sm.jpg", md: "https://example.com/restaurant-md.jpg" },
+		},
 		dish: { id: "d1", name: "唐揚げ定食", categoryImageUrl: "https://example.com/category.jpg" },
 		dishMedia: null,
 		myReview: null,
@@ -31,17 +38,27 @@ describe("resolveMyDishImageUrl", () => {
 		expect(resolveMyDishImageUrl(makeItem(), "none")).toBeNull();
 	});
 
-	it('fallback "category"（Sheet）は categoryImageUrl → restaurant.image_url の順で実画像を返す', () => {
+	it('fallback "category"（Sheet）は categoryImageUrl → restaurant.imageUrls.sm の順で実画像を返す', () => {
 		expect(resolveMyDishImageUrl(makeItem(), "category")).toBe("https://example.com/category.jpg");
 
 		const noCategory = makeItem({ dish: { id: "d1", name: "唐揚げ定食", categoryImageUrl: "" } });
-		expect(resolveMyDishImageUrl(noCategory, "category")).toBe("https://example.com/restaurant.jpg");
+		expect(resolveMyDishImageUrl(noCategory, "category")).toBe("https://example.com/restaurant-sm.jpg");
+	});
+
+	// #1680 @deprecated な image_url へ戻ったら落ちる。fixture の image_url は非空なので、
+	// 実装が image_url を読んでいればこのテストは «画像が返って» 落ちる
+	it("@deprecated な restaurant.image_url は使わない（imageUrls が無ければ null）", () => {
+		const noImageUrls = makeItem({
+			dish: { id: "d1", name: "唐揚げ定食", categoryImageUrl: "" },
+			restaurant: { id: "r1", name: "テスト食堂", image_url: "https://example.com/deprecated.jpg" },
+		});
+		expect(resolveMyDishImageUrl(noImageUrls, "category")).toBeNull();
 	});
 
 	it("どれも無ければ null（`<Image>` へ空文字を渡さない）", () => {
 		const bare = makeItem({
 			dish: { id: "d1", name: null, categoryImageUrl: "" },
-			restaurant: { id: "r1", name: "テスト食堂", image_url: "" },
+			restaurant: { id: "r1", name: "テスト食堂", image_url: "", imageUrls: undefined },
 		});
 		expect(resolveMyDishImageUrl(bare, "category")).toBeNull();
 	});

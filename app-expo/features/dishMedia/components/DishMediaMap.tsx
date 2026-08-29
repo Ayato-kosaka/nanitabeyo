@@ -89,9 +89,15 @@ export default function DishMediaMap({
 	// #1629【35】固定した並びから «削除されたもの» だけ落とす。
 	// 理由と «liveIds を判定に使わない» 理由は `DishMediaFeed.tsx` の同じ箇所に書いてある
 	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
+	// #1629【40】背景画像のセッションを «並びの文字列» で作らない理由は
+	// `DishMediaFeed.tsx` の同じ箇所（`idsSession`）に書いてある。両画面で同じ規則にする
+	const [idsSession, setIdsSession] = useState(0);
 	useEffect(() => {
 		if (ids.length === 0) {
-			if (liveIds.length > 0) setIds(liveIds);
+			if (liveIds.length > 0) {
+				setIds(liveIds);
+				setIdsSession((session) => session + 1);
+			}
 			return;
 		}
 		if (!ids.some((id) => deletedIds[id])) return;
@@ -117,9 +123,10 @@ export default function DishMediaMap({
 	}, [ids, idType]);
 
 	// #802 【責務分離】Map は ids とレイアウト/Carousel 制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
+	// #1629【40】⚠️ ここへ `ids.join(",")` を戻さないこと（`DishMediaFeed.tsx` の設計コメント）
 	const backgroundImagesSessionKey = useMemo(
-		() => `${entriesKey}::${idType}::${ids.join(",")}`,
-		[entriesKey, idType, ids],
+		() => `${entriesKey}::${idType}::${idsSession}`,
+		[entriesKey, idType, idsSession],
 	);
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 

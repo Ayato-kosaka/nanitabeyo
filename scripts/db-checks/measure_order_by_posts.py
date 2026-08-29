@@ -1,63 +1,124 @@
 #!/usr/bin/env python3
-"""#1629 店舗検索の並びを «入札額順» から «投稿が多い順» へ変えたときの所要時間を測る読み取り専用スクリプト。
+"""#1629 GET /v1/restaurants/search を **実運用と同じ条件で** 測り、遅いプランなら赤にする。
 
 ## なぜ要るのか
 
-オーナー指示「入札順にしなくて良いです。一旦投稿が多い順とかが良いかな？」に沿って、
-`api/src/v1/restaurants/restaurants.repository.ts` の既定の並びを
-**«投稿（dish_media。削除済みを除く）が多い順 → 同数なら中心から近い順»** に変えた。
+「投稿が多い順」を入れた commit 3dfd061d のあと、dev の
+GET /v1/restaurants/search（東京駅・半径 20,000m・limit 20）が
+**7,625 / 16,222 / 25,954 ms** かかった（queue_ms は 1〜2 ms なので接続待ちではない）。
 
-危険なのは性能である。«半径内の restaurants を全部集計してから並べる» 形に戻すと、
-日本全体（半径 1,500km）では 57 万件の集計になり 9.7 秒級へ逆戻りする
-（`measure_wide_area_search.py` の実測）。**«絞る → 集計する» の順序を壊していないこと**を
-実行計画と所要時間で確かめるのがこのスクリプトの目的である。
+ところが同じ SQL を **literal 埋め込みで EXPLAIN ANALYZE すると 46〜270 ms で速い**。
+測り方が実運用と違っていたのである。Prisma が投げるのは prepared statement なので、
+PostgreSQL は同じ文を数回実行したあと **generic plan**（パラメータの値を見ないプラン）
+へ切り替える。半径がプランナから見えなくなると GIST 索引の見積りが既定値へ落ち、
+**restaurants を駆動表にして半径内の全店を読む**プランが選ばれる。
 
-確かめたいのは次の 3 点。
+⚠️ psycopg2 の execute(sql, params) はクライアント側で値を埋め込むので、
+   そのまま EXPLAIN しても prepared statement にならない。
+   **plan_cache_mode は効かない**（＝ generic plan を測ったことにならない）。
+   このスクリプトが PREPARE / EXECUTE を使うのはそのためである。
 
-1. 投稿（生存している `dish_media`）は何行あるか。**投稿枠の駆動表がこれ**なので、
-   ここが小さいうちは «全国から投稿が多い順で N 件» を安く作れる
-2. 投稿を持つ店は何件あるか（全店舗 57 万件に対してどれだけ小さいか）
-3. `--explain` で **before（入札額順）と after（投稿が多い順）** を
-   半径 50km と 1,500km の両方で EXPLAIN (ANALYZE, BUFFERS) して比べる
+## 何を測るのか
+
+1. 母数（restaurants / 投稿 / 投稿を持つ店 / 半径内の店舗数）
+2. `custom plan`（最初の数回）と `generic plan`（落ち着く先）の両方で
+   EXPLAIN (ANALYZE, BUFFERS) EXECUTE
+3. **判定**: **custom / generic の両方**で、**restaurants から読んだ延べ行数**を見る。
+   «半径内の全店を読む» プランへ倒れると、この数が半径に比例して跳ね上がる。
+
+   ⚠️ **片方だけ見てはいけない。** #1686 で generic plan を直したあと、
+      このスクリプトが generic しか判定していなかったため、
+      **custom plan が 11〜13 秒のまま «✅» と表示された**（dev run 33229509189）。
+      «空振りを ✅ と読む» のを構造的に潰すため、両方を判定対象にしてある。
+
+   再現環境（restaurants 570,000 行 / 投稿を持つ店 7,985 / limit 20。
+   max_parallel_workers_per_gather=4 / random_page_cost=1.1 ＝ dev と同じプランが出る設定）:
+
+   | | custom 延べ行数 / 所要 | generic 延べ行数 / 所要 |
+   | --- | ---: | ---: |
+   | #1686 時点 半径 20km    | 272,612 / 994 ms | 60 / 173 ms |
+   | #1686 時点 半径 1,500km | 574,385 / 1,733 ms | 8,045 / 173 ms |
+   | 修正後 半径 20km        | 60 / 158 ms | 60 / 167 ms |
+   | 修正後 半径 1,500km     | 8,045 / 167 ms | 8,045 / 172 ms |
+
+## 測る SQL は写経しない
+
+⚠️ 「repository を直したのに、このスクリプトの写経が古いままで同じ遅い数字が出て
+   «直っていない» と誤読しかけた」事故が起きている。
+
+そこで SQL は `scripts/db-checks/sql/*.sql` から読む。このファイルは
+`api/src/v1/restaurants/restaurants.order-by-posts-plan.spec.ts` が
+**repository の組み立て結果と一致することを機械検査している**ので、
+写経がずれることは起きない（ずれたら `pnpm --filter api exec jest` が赤くなる）。
 
 ## 読み取り専用である
 
-SELECT と、SELECT に対する EXPLAIN しか実行しない。接続も readonly で張る。
+SELECT と、SELECT に対する PREPARE / EXPLAIN しか実行しない。接続も readonly で張る。
 
 ## 使い方
 
     python scripts/db-checks/measure_order_by_posts.py --schema dev
-    python scripts/db-checks/measure_order_by_posts.py --schema dev --explain
+    python scripts/db-checks/measure_order_by_posts.py --schema dev --assert
+
+`--assert` を付けると、generic plan で restaurants を舐めるプランになっている場合に
+**終了コード 1** を返す（ラチェットとして使う）。
 
 環境変数:
     DATABASE_URL … PostgreSQL 接続文字列（必須）
 """
 
 import argparse
+import json
 import logging
 import os
+import re
 import sys
+from pathlib import Path
 
 import psycopg2
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-# 日本全体を映したときの地図の中心（app-expo の REGION_JP。長野県あたり）と viewport の半径。
-# measure_wide_area_search.py と同じ値を使う（比較できるようにするため）
-JP_LAT, JP_LNG = 36.2048, 138.2529
-JP_RADIUS_M = 1_500_000
-# 東京駅。寄り（半径 50km）の比較用
+SQL_DIR = Path(__file__).resolve().parent / "sql"
+
+# 東京駅。オーナーが実際に踏んだ検索地点
 TOKYO_LAT, TOKYO_LNG = 35.681236, 139.767125
+# 日本全体を映したときの地図の中心（app-expo の REGION_JP）と viewport の半径
+JP_LAT, JP_LNG = 36.2048, 138.2529
 LIMIT = 20
 
-ORIGIN = "ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography"
-
 # 測る条件。(ラベル, 中心 lat, 中心 lng, 半径 m)
+#   ⚠️ 20,000m / limit 20 はオーナーが実際に踏んだ値。必ず含めること
+# ⚠️ **中心も半径も «オーナーが実際に投げた値» を必ず含めること。**
+#
+# 2026-08-29、オーナーに「まだ直っていない」と 3 度目に言われて BigQuery の実ログを
+# 時系列で並べたところ、`SearchRestaurants` が **41〜42 秒**かかっており、
+# その後ろで `SearchNearbySavedRestaurants` が 42 秒待たされて一斉に流れ出していた
+# （= 遅いクエリ 1 本が DB 接続を握り、他を直列化させている）。
+#
+# それまでこのファイルは **東京駅と REGION_JP の 3 通りしか測っていなかった**。
+# オーナーが地図を動かした先（関東北部・中間半径）は 1 度も踏んでおらず、
+# EXPLAIN は緑のまま «直った» と 2 度報告してしまった。
+#
+# 中心を固定した半径スイープでは、この穴は永久に見つからない。
 CASES = (
-    ("日本全体（中心 REGION_JP / 半径 1,500km）", JP_LAT, JP_LNG, JP_RADIUS_M),
+    ("東京駅から 20km", TOKYO_LAT, TOKYO_LNG, 20_000),
     ("東京駅から 50km", TOKYO_LAT, TOKYO_LNG, 50_000),
+    ("日本全体（中心 REGION_JP / 半径 1,500km）", JP_LAT, JP_LNG, 1_500_000),
+    # 以下 3 つは実ログの座標そのまま（同時刻に saved 側が 42 秒待たされた地点）
+    ("⚠️実測: 36.474/139.304 半径 228km", 36.474490512258626, 139.30424323305488, 228_012),
+    ("⚠️実測: 36.020/139.637 半径 74km", 36.020342181469665, 139.63704250752926, 74_225),
+    ("⚠️実測: 37.352/137.337 半径 1,148km", 37.35204818493608, 137.33717987313867, 1_147_826),
 )
+
+# 判定のしきい値。«走る行数が limit 件で一定» が保てているなら、
+# restaurants から読む延べ行数は «投稿を持つ店の数 + limit の数倍» に収まる。
+# 半径内の全店を読むプランへ戻ると桁が変わるので、緩めに取っても検出できる
+ROWS_BUDGET_MULTIPLIER = 4
+
+# 同じ文を何回まわすか。1 回だと «初回のキャッシュ未命中» を «構造的に遅い» と読み違える
+REPEATS = 3
 
 
 def one(cur, sql, params=None):
@@ -73,23 +134,49 @@ def section(title):
     logger.info("=" * 72)
 
 
-def run_counts(cur):
-    section("1. 投稿の母数（投稿枠の駆動表が何行あるか）")
+def load_sql(name):
+    """repository が組み立てた SQL とバインド値の «名前の列» を読む。
 
-    total_restaurants = one(cur, "SELECT count(*) FROM restaurants")
-    logger.info("restaurants の総件数: %s", f"{total_restaurants:,}")
+    バインド位置は半角疑問符なので $1, $2 … へ直す。
+    ⚠️ SQL のコメントに半角疑問符が混ざっていると位置がずれる。
+       repository 側でそれを禁じ、jest が個数一致を検査している。
+    """
+    raw = (SQL_DIR / f"{name}.sql").read_text(encoding="utf-8").rstrip().rstrip(";")
+    names = json.loads((SQL_DIR / f"{name}.params.json").read_text(encoding="utf-8"))
+    counter = [0]
 
-    alive_media = one(
-        cur, "SELECT count(*) FROM dish_media WHERE deleted_at IS NULL"
-    )
-    deleted_media = one(
-        cur, "SELECT count(*) FROM dish_media WHERE deleted_at IS NOT NULL"
-    )
-    logger.info(
-        "dish_media（生存 / 削除済み）: %s / %s  ← 投稿枠が走る行数はここで決まる",
-        f"{alive_media:,}",
-        f"{deleted_media:,}",
-    )
+    def to_positional(_match):
+        counter[0] += 1
+        return f"${counter[0]}"
+
+    sql = re.sub(r"\?", to_positional, raw)
+    if counter[0] != len(names):
+        raise SystemExit(
+            f"❌ {name}: プレースホルダ {counter[0]} 個に対して名前が {len(names)} 個。"
+            " UPDATE_RESTAURANT_SQL_SNAPSHOT=1 で書き出し直すこと"
+        )
+    return sql, names
+
+
+def bind(names, lat, lng, radius, limit):
+    """バインド値を «名前の列» の順に並べる。
+
+    ⚠️ ここを手書きの配列にしないこと。SQL の形を変えるとバインドの順番も変わり、
+       radius と limit が入れ替わったまま «別のクエリを測って» 読み違えた実績がある。
+       名前の列は jest が repository から書き出しているので、ずれようがない。
+    """
+    values = {"lat": lat, "lng": lng, "radius": radius, "limit": limit}
+    return [values[n] for n in names]
+
+
+def run_counts(cur, schema):
+    section("1. 母数（«何行あるから遅い» のかを最初に潰す）")
+
+    total = one(cur, "SELECT count(*) FROM restaurants")
+    logger.info("restaurants の総件数: %s", f"{total:,}")
+
+    alive = one(cur, "SELECT count(*) FROM dish_media WHERE deleted_at IS NULL")
+    logger.info("dish_media（生存）: %s  ← post_counts CTE が 1 回走る行数", f"{alive:,}")
 
     with_posts = one(
         cur,
@@ -100,293 +187,206 @@ def run_counts(cur):
         """,
     )
     logger.info(
-        "投稿を持つ店の件数: %s（全店舗の %.4f%%）",
+        "投稿を持つ店: %s 件（全店舗の %.4f%%）  ← 投稿枠が走る行数の上限",
         f"{with_posts:,}",
-        100.0 * with_posts / total_restaurants if total_restaurants else 0.0,
+        100.0 * with_posts / total if total else 0.0,
     )
 
     logger.info("")
-    logger.info("投稿数の上位 10 店（新しい並びで先頭に来る店。目視確認用）:")
-    cur.execute(
-        """
-        SELECT r.name, count(*)::int AS post_count
-        FROM dish_media dm
-        JOIN dishes d ON d.id = dm.dish_id
-        JOIN restaurants r ON r.id = d.restaurant_id
-        WHERE dm.deleted_at IS NULL
-        GROUP BY r.id, r.name
-        ORDER BY post_count DESC, r.id ASC
-        LIMIT 10
-        """
-    )
-    for name, count in cur.fetchall():
-        logger.info("  %5d 投稿  %s", count, name)
-
-    logger.info("")
-    logger.info("投稿枠が使う索引（dish_media / dishes）:")
-    cur.execute(
-        """
-        SELECT indexname, indexdef FROM pg_indexes
-        WHERE tablename IN ('dish_media', 'dishes') AND schemaname = current_schema()
-        ORDER BY tablename, indexname
-        """
-    )
-    for name, definition in cur.fetchall():
-        logger.info("  %s: %s", name, definition)
-
-
-# ---------------------------------------------------------------------------
-# EXPLAIN 用のクエリ形
-#
-# ⚠️ api/src/v1/restaurants/restaurants.repository.ts の SQL を «同じ形» で写している。
-#    repository を直したらこちらも直すこと。
-#
-# ⚠️ **写経なので «直したのに数字が変わらない» が起こる。** 実際に 2026-08-28、
-#    repository 側の実行計画を直したのにこちらを直し忘れ、再計測で同じ 3,478 ms が出て
-#    «直っていない» と読むところだった。数字が動かないときは、まずここが古くないかを疑う。
-# ---------------------------------------------------------------------------
-
-# before: 入札額順（#1629 前半。スポンサー枠 = restaurant_bids 駆動 + KNN の近傍枠）
-BEFORE = f"""
-WITH sponsored AS (
-  SELECT rb.restaurant_id AS id,
-         SUM(rb.amount_cents)::double precision AS total_cents,
-         MAX(rb.end_date) AS max_end_date
-  FROM restaurant_bids rb
-  JOIN restaurants r ON r.id = rb.restaurant_id
-  WHERE rb.status = 'paid'
-    AND rb.start_date <= CURRENT_DATE AND rb.end_date > CURRENT_DATE
-    AND ST_DWithin(r.location, {ORIGIN}, %s)
-  GROUP BY rb.restaurant_id
-  ORDER BY total_cents DESC LIMIT %s
-),
-nearest AS (
-  SELECT r.id FROM restaurants r
-  WHERE ST_DWithin(r.location, {ORIGIN}, %s)
-    AND NOT EXISTS (SELECT 1 FROM sponsored s WHERE s.id = r.id)
-  ORDER BY r.location <-> {ORIGIN} LIMIT %s
-),
-candidates AS (
-  SELECT id, 0 AS tier, total_cents, max_end_date FROM sponsored
-  UNION ALL
-  SELECT id, 1 AS tier, 0::double precision, NULL::date FROM nearest
-)
-SELECT r.id, c.total_cents, c.max_end_date,
-       COUNT(dr.id)::int AS review_count,
-       COALESCE(AVG(dr.rating), 0)::double precision AS average_rating
-FROM candidates c
-JOIN restaurants r ON r.id = c.id
-LEFT JOIN dishes d ON d.restaurant_id = r.id
-LEFT JOIN dish_reviews dr ON dr.dish_id = d.id AND dr.deleted_at IS NULL
-GROUP BY r.id, c.tier, c.total_cents, c.max_end_date
-ORDER BY c.tier ASC, c.total_cents DESC, ST_Distance(r.location, {ORIGIN}) ASC
-LIMIT %s
-"""
-
-# after: 投稿が多い順（投稿枠 = dish_media 駆動 + KNN の近傍枠）。
-# 入札は «並びに使わない» が meta としては返すので、候補が limit 件に決まったあとに集計する。
-AFTER = f"""
-WITH post_counts AS MATERIALIZED (
-  -- #1629 «店ごとの投稿数» を 1 回だけ作る。ここへ restaurants / ST_DWithin を
-  -- 持ち込むと、プランナが restaurants → dishes → dish_media の nested loop を選び、
-  -- dish_media を店ごとに Seq Scan する（run 33172881100 で実測: 3,478 ms）
-  SELECT d.restaurant_id AS id, COUNT(*)::int AS post_count
-  FROM dish_media dm
-  JOIN dishes d ON d.id = dm.dish_id
-  WHERE dm.deleted_at IS NULL
-  GROUP BY d.restaurant_id
-),
-posted AS (
-  SELECT pc.id, pc.post_count, ST_Distance(r.location, {ORIGIN}) AS distance_m
-  FROM post_counts pc
-  JOIN restaurants r ON r.id = pc.id
-  WHERE ST_DWithin(r.location, {ORIGIN}, %s)
-  ORDER BY pc.post_count DESC, distance_m ASC LIMIT %s
-),
-nearest AS (
-  SELECT r.id FROM restaurants r
-  WHERE ST_DWithin(r.location, {ORIGIN}, %s)
-    AND NOT EXISTS (SELECT 1 FROM posted p WHERE p.id = r.id)
-  ORDER BY r.location <-> {ORIGIN} LIMIT %s
-),
-base AS (
-  SELECT id, 0 AS tier, post_count FROM posted
-  UNION ALL
-  SELECT id, 1 AS tier, 0::int AS post_count FROM nearest
-),
-candidates AS (
-  SELECT b.id, b.tier, b.post_count,
-         COALESCE(SUM(rb.amount_cents), 0)::double precision AS total_cents,
-         MAX(rb.end_date) AS max_end_date
-  FROM base b
-  LEFT JOIN restaurant_bids rb ON rb.restaurant_id = b.id
-    AND rb.start_date <= CURRENT_DATE AND rb.end_date > CURRENT_DATE AND rb.status = 'paid'
-  GROUP BY b.id, b.tier, b.post_count
-)
-SELECT r.id, c.post_count, c.total_cents, c.max_end_date,
-       COUNT(dr.id)::int AS review_count,
-       COALESCE(AVG(dr.rating), 0)::double precision AS average_rating
-FROM candidates c
-JOIN restaurants r ON r.id = c.id
-LEFT JOIN dishes d ON d.restaurant_id = r.id
-LEFT JOIN dish_reviews dr ON dr.dish_id = d.id AND dr.deleted_at IS NULL
-GROUP BY r.id, c.tier, c.post_count, c.total_cents, c.max_end_date
-ORDER BY c.tier ASC, c.post_count DESC, ST_Distance(r.location, {ORIGIN}) ASC, r.id ASC
-LIMIT %s
-"""
-
-# «壊れた版»（回帰の見張り。半径内の全店を集計してから投稿数で並べる）。
-# --explain-naive を付けたときだけ測る。**この形に戻すと全国で 9.7 秒級に戻る**
-NAIVE = f"""
-WITH nearby AS (
-  SELECT r.id FROM restaurants r
-  WHERE ST_DWithin(r.location, {ORIGIN}, %s)
-),
-candidates AS (
-  SELECT n.id,
-         (SELECT COUNT(*)::int FROM dishes d2
-            JOIN dish_media dm2 ON dm2.dish_id = d2.id AND dm2.deleted_at IS NULL
-           WHERE d2.restaurant_id = n.id) AS post_count
-  FROM nearby n
-  ORDER BY post_count DESC
-  LIMIT %s
-)
-SELECT r.id, c.post_count,
-       COUNT(dr.id)::int AS review_count
-FROM candidates c
-JOIN restaurants r ON r.id = c.id
-LEFT JOIN dishes d ON d.restaurant_id = r.id
-LEFT JOIN dish_reviews dr ON dr.dish_id = d.id AND dr.deleted_at IS NULL
-GROUP BY r.id, c.post_count
-ORDER BY c.post_count DESC
-LIMIT %s
-"""
-
-
-def explain(cur, sql, params):
-    cur.execute("EXPLAIN (ANALYZE, BUFFERS, TIMING) " + sql, params)
-    plan = [row[0] for row in cur.fetchall()]
-    exec_ms = None
-    for line in plan:
-        if line.strip().startswith("Execution Time:"):
-            exec_ms = float(line.split(":")[1].strip().split(" ")[0])
-    return plan, exec_ms
-
-
-def log_plan(title, plan, full):
-    logger.info("## %s", title)
-    for line in plan:
-        stripped = line.strip()
-        if full or "Scan" in stripped or stripped.startswith("Execution Time"):
-            logger.info("   %s", stripped)
-    logger.info("")
-
-
-def timed(cur, label, sql, params, full):
-    """タイムアウトしたら «実用にならない» として記録し、後続を続ける。"""
-    try:
-        plan, exec_ms = explain(cur, sql, params)
-        log_plan(label, plan, full)
-        return exec_ms
-    except psycopg2.errors.QueryCanceled:
-        cur.connection.rollback()
-        cur.execute(f'SET search_path TO "{SCHEMA[0]}", extensions')
-        cur.execute("SET LOCAL statement_timeout = '120s'")
-        logger.info("## %s", label)
-        logger.info("   ⏱ 120 秒でタイムアウト（= 実用にならない）")
-        logger.info("")
-        return None
-
-
-def run_explain(cur, naive, full):
-    section("2. 所要時間 before（入札額順） / after（投稿が多い順）")
-    logger.info(
-        "before = スポンサー枠（restaurant_bids 駆動）+ KNN 近傍枠 / "
-        "after = 投稿枠（dish_media 駆動）+ KNN 近傍枠"
-    )
-    if naive:
-        logger.info(
-            "naive = «半径内の全店の投稿数を集計してから並べる»（戻してはいけない形）"
+    for label, lat, lng, radius in CASES:
+        n = one(
+            cur,
+            "SELECT count(*) FROM restaurants r WHERE ST_DWithin(r.location, "
+            "ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, %s::double precision)",
+            (lng, lat, radius),
         )
+        logger.info("%-46s 半径内の全店 %10s 件", label, f"{n:,}")
     logger.info("")
+    logger.info("  ← 所要時間が右の «半径内の全店» に比例するなら、駆動表を間違えている")
+    return with_posts
 
-    # 長時間クエリで CI を止めないための保険。EXPLAIN ANALYZE は実際に実行するので要る
-    cur.execute("SET LOCAL statement_timeout = '120s'")
+
+def restaurants_rows_read(plan):
+    """実行計画から «restaurants を読んだ延べ行数» を拾う。
+
+    LATERAL の主キー探索は «loops 回まわって 0〜1 行» なので、
+    行数ではなく **loops × rows** で数える（半径に比例するかを見るのが目的）。
+    """
+    total = 0
+    detail = []
+    for line in plan:
+        s = line.strip()
+        if not re.search(r"\bon (restaurants|idx_restaurants_location)\b", s):
+            continue
+        m = re.search(r"actual time=[\d.]+\.\.[\d.]+ rows=(\d+) loops=(\d+)", s)
+        if not m:
+            continue
+        rows = int(m.group(1)) * int(m.group(2))
+        total += rows
+        detail.append((s[:110], rows))
+    return total, detail
+
+
+def explain(cur, sql, nparams, params, generic):
+    cur.execute("DEALLOCATE ALL")
+    cur.execute(f"PREPARE q AS {sql}")
+    cur.execute(
+        "SET LOCAL plan_cache_mode = %s",
+        ("force_generic_plan" if generic else "force_custom_plan",),
+    )
+    placeholders = ",".join(["%s"] * nparams)
+    cur.execute(f"EXPLAIN (ANALYZE, BUFFERS) EXECUTE q({placeholders})", params)
+    plan = [row[0] for row in cur.fetchall()]
+    return plan, timings(plan)
+
+
+def timings(plan):
+    """EXPLAIN の出力から «実行 / 計画 / JIT» の 3 つを取り出す。
+
+    ⚠️ 合計の ms だけを見ると «プランは正しいのに遅い» の内訳が分からない。
+       #1687 のあと custom plan の 20km だけ 4,112 ms 出ており、読む行数は
+       正しかった（= プランは正しい）。残りが JIT なのか初回のキャッシュ未命中
+       なのかを切り分けるために、この 3 つと «同じ文を繰り返したときの推移» を出す。
+    """
+    out = {"exec": None, "plan": None, "jit": None}
+    for line in plan:
+        t = line.strip()
+        if t.startswith("Execution Time"):
+            out["exec"] = float(t.split(":")[1].strip().split(" ")[0])
+        elif t.startswith("Planning Time"):
+            out["plan"] = float(t.split(":")[1].strip().split(" ")[0])
+        elif t.startswith("Timing:") and out["jit"] is None:
+            m = re.search(r"Total ([0-9.]+) ms", t)
+            if m:
+                out["jit"] = float(m.group(1))
+    return out
+
+
+def run_explain(cur, schema, with_posts, full_plan, do_assert):
+    section("2. custom plan と generic plan の両方で測る")
+    logger.info("custom  = 最初の数回。半径の «値» がプランナから見えている")
+    logger.info("generic = Prisma の prepared statement が落ち着く先。値が見えない")
+    logger.info("")
+    logger.info(
+        "判定: **custom / generic の両方**で、restaurants から読む延べ行数が "
+        "«投稿を持つ店 %s + limit %s» の %s 倍を超えたら赤",
+        f"{with_posts:,}",
+        LIMIT,
+        ROWS_BUDGET_MULTIPLIER,
+    )
+    budget = (with_posts + LIMIT) * ROWS_BUDGET_MULTIPLIER
+
+    sql, names = load_sql("search_nearby_restaurants.default")
+    nparams = len(names)
+    failures = []
 
     for label, lat, lng, radius in CASES:
-        before_ms = timed(
-            cur,
-            f"before / {label}",
-            BEFORE,
-            (lng, lat, radius, LIMIT, lng, lat, radius, lng, lat, LIMIT, lng, lat, LIMIT),
-            full,
-        )
-        after_ms = timed(
-            cur,
-            f"after / {label}",
-            AFTER,
-            (
-                lng, lat,               # posted の距離
-                lng, lat, radius,       # posted の ST_DWithin
-                LIMIT,
-                lng, lat, radius,       # nearest の ST_DWithin
-                lng, lat, LIMIT,        # nearest の KNN
-                lng, lat, LIMIT,        # 最終 ORDER BY の距離
-            ),
-            full,
-        )
-        if before_ms and after_ms:
-            logger.info(
-                "   ⏱ %s: before %.1f ms → after %.1f ms（%+.1f ms）",
-                label,
-                before_ms,
-                after_ms,
-                after_ms - before_ms,
-            )
-            logger.info("")
-        if naive:
-            naive_ms = timed(
-                cur, f"naive / {label}", NAIVE, (lng, lat, radius, LIMIT, LIMIT), full
-            )
-            if naive_ms and after_ms:
-                logger.info(
-                    "   ⏱ %s: naive %.1f ms に対して after %.1f ms（%.1f 倍速い）",
-                    label,
-                    naive_ms,
-                    after_ms,
-                    naive_ms / after_ms,
+        logger.info("")
+        logger.info("-" * 72)
+        logger.info("## %s", label)
+        logger.info("-" * 72)
+        params = bind(names, lat, lng, radius, LIMIT)
+        for generic in (False, True):
+            mode = "generic" if generic else "custom "
+            cur.execute("SET LOCAL statement_timeout = '120s'")
+            # ⚠️ 1 回だけ測ると «初回のキャッシュ未命中» と «構造的に遅い» が区別できない。
+            #    同じ文を REPEATS 回まわし、推移を出す（判定には最後の回を使う）。
+            runs = []
+            timed_out = False
+            for _ in range(REPEATS):
+                try:
+                    plan, t = explain(cur, sql, nparams, params, generic)
+                except psycopg2.errors.QueryCanceled:
+                    cur.connection.rollback()
+                    cur.execute(f'SET search_path TO "{schema}", extensions')
+                    logger.info("   %s: ⏱ 120 秒でタイムアウト（= 実用にならない）", mode)
+                    failures.append(f"{label} / {mode}: timeout")
+                    timed_out = True
+                    break
+                runs.append(t)
+            if timed_out:
+                continue
+            ms = runs[-1]["exec"]
+
+            rows, detail = restaurants_rows_read(plan)
+            # ⚠️ **custom / generic の両方を判定する。**
+            #    #1686 のあと «generic だけ» を見ていたせいで、custom plan が
+            #    11〜13 秒のまま «✅» と表示されて見落とした（dev run 33229509189）。
+            #    どちらか一方でも半径内を舐めていたら赤にする
+            verdict = " ✅" if rows <= budget else "  ❌ 半径内の全店を読んでいる"
+            if rows > budget:
+                failures.append(
+                    f"{label} / {mode.strip()} plan: restaurants を延べ {rows:,} 行 "
+                    f"読んでいる（上限 {budget:,} 行）"
                 )
-                logger.info("")
+            logger.info(
+                "   %s: %8.1f ms / restaurants から延べ %s 行%s",
+                mode,
+                ms if ms is not None else -1,
+                f"{rows:,}",
+                verdict,
+            )
+            for i, t in enumerate(runs, 1):
+                logger.info(
+                    "        %d 回目: 実行 %8.1f ms / 計画 %6.1f ms / JIT %s",
+                    i,
+                    t["exec"] if t["exec"] is not None else -1,
+                    t["plan"] if t["plan"] is not None else -1,
+                    f'{t["jit"]:.1f} ms' if t["jit"] is not None else "なし",
+                )
+            for text, n in detail:
+                logger.info("        %s  => %s 行", text, f"{n:,}")
+            if full_plan:
+                for line in plan:
+                    logger.info("        %s", line)
 
-
-# タイムアウト後に search_path を貼り直すために使う
-SCHEMA = ["dev"]
+    section("3. 判定")
+    if not failures:
+        logger.info(
+            "✅ custom / generic のどちらでも «走る行数は半径に依存しない» が保てている"
+        )
+        return 0
+    for f in failures:
+        logger.error("❌ %s", f)
+    logger.error("")
+    logger.error(
+        "半径がプランナから見えない書き方へ戻っている。"
+        "api/src/v1/restaurants/restaurants.repository.ts の posted CTE のコメントを読むこと。"
+    )
+    return 1 if do_assert else 0
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--schema", default="dev")
+    parser.add_argument("--full-plan", action="store_true", help="実行計画を全行出す")
     parser.add_argument(
-        "--explain",
+        "--assert",
+        dest="do_assert",
         action="store_true",
-        help="before / after を EXPLAIN (ANALYZE, BUFFERS) で比べる（重い）",
-    )
-    parser.add_argument(
-        "--explain-naive",
-        action="store_true",
-        help="«戻してはいけない形»（半径内の全店を集計してから並べる）も一緒に測る（さらに重い）",
-    )
-    parser.add_argument(
-        "--full-plan",
-        action="store_true",
-        help="実行計画を要約せず全行出す",
+        help="遅いプランなら終了コード 1 を返す（ラチェットとして使う）",
     )
     args = parser.parse_args()
-    SCHEMA[0] = args.schema
 
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         logger.error("❌ DATABASE_URL environment variable is required")
+        return 1
+
+    missing = [
+        n
+        for n in (
+            "search_nearby_restaurants.default.sql",
+            "search_nearby_restaurants.default.params.json",
+        )
+        if not (SQL_DIR / n).exists()
+    ]
+    if missing:
+        logger.error("❌ 計測対象の SQL がない: %s", ", ".join(missing))
+        logger.error(
+            "   UPDATE_RESTAURANT_SQL_SNAPSHOT=1 pnpm --filter api exec jest "
+            "restaurants.order-by-posts-plan  で書き出す"
+        )
         return 1
 
     with psycopg2.connect(database_url) as conn:
@@ -399,12 +399,10 @@ def main() -> int:
                 one(cur, "SELECT current_database()"),
                 args.schema,
             )
-
-            run_counts(cur)
-            if args.explain or args.explain_naive:
-                run_explain(cur, args.explain_naive, args.full_plan)
-
-    return 0
+            with_posts = run_counts(cur, args.schema)
+            return run_explain(
+                cur, args.schema, with_posts, args.full_plan, args.do_assert
+            )
 
 
 if __name__ == "__main__":

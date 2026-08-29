@@ -33,21 +33,34 @@ import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 export type MyDishImageFallback =
 	/** 何も出さない（呼び出し側がプレースホルダーを描く）。一覧ビューの既存挙動 */
 	| "none"
-	/** `dish.categoryImageUrl` → `restaurant.image_url` の順で実画像（#1375 追補2 決定3） */
+	/** `dish.categoryImageUrl` → `restaurant.imageUrls?.sm` の順で実画像（#1375 追補2 決定3） */
 	| "category";
 
 /**
  * カードに出す画像の URL を決める。
  *
  * `dishMedia?.thumbnailImageUrl` が最優先。無いときの落とし先は `fallback` で決まる。
- * `dish.categoryImageUrl` は契約上 NOT NULL だが、空文字が来ても `restaurant.image_url` へ
+ * `dish.categoryImageUrl` は契約上 NOT NULL だが、空文字が来ても次の候補へ
  * 落ちるように `||` で畳んでいる（`??` だと空文字がそのまま `<Image>` へ渡り、壊れた画像になる）。
+ *
+ * #1680 **店の画像は `imageUrls?.sm` から取る。`image_url` は使わない。**
+ * `image_url` は契約側で `@deprecated`（`shared/api/v1/res/restaurants.response.ts`）で、
+ * 他の店表示（お店を選ぶ / 保存済み店シート / 店名検索 / 店詳細）はすべて `imageUrls` へ
+ * 移行済みだった。ここだけが取りこぼしだった。
+ *
+ * `sm` を選ぶ理由: この画像を出すのは 3 列グリッドのセル（`MyDishesListView.tsx` の
+ * `COLUMNS = 3`）で、1 セルは画面幅の約 1/3 しかない。`md` は無駄に大きい。
+ *
+ * ⚠️ `imageUrls` は `image_path` を持つ行にだけ付く（`restaurants.assembler.ts` が
+ *    `if (restaurants.image_path)` で分岐）。**`image_url` はあるが `image_path` が無い行
+ *    （実測 102 行）では、この変更で画像が出なくなる。** myDishCard は未リリースなので
+ *    ユーザーに見えている表示は壊れない、というのがオーナー判断（#1680）。
  */
 export const resolveMyDishImageUrl = (item: MyDishItem, fallback: MyDishImageFallback): string | null => {
 	const thumbnail = item.dishMedia?.thumbnailImageUrl ?? null;
 	if (thumbnail) return thumbnail;
 	if (fallback === "none") return null;
-	return item.dish.categoryImageUrl || item.restaurant.image_url || null;
+	return item.dish.categoryImageUrl || item.restaurant.imageUrls?.sm || null;
 };
 
 /** `expo-image` の `source`。URL が無ければ null（呼び出し側でプレースホルダーへ分岐する） */

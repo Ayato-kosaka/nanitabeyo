@@ -42,6 +42,22 @@ describe("#1629【30】小さい一覧では窓を作らない", () => {
 		expect(computePreloadIds(list, 0)).toEqual(["id-0", "id-1", "id-2"]);
 	});
 
+	/*
+	#1629【40】削除で並びが 1 つ縮んだ直後、`currentIndex` は viewability が鳴るまで
+	古い値のままなので «存在しない位置» を指す。丸めずに slice すると窓が並びの外へ
+	滑り出し、極端な場合は空集合になる。空集合 = 描かれている全セルが `idle` =
+	全セルでスケルトンが回り続ける（【35】で «削除したセル» に起きたのと同じ機序）。
+	*/
+	it("並びの外を指していても «空の窓» を返さない", () => {
+		const list = ids(12);
+		// 末尾を削除した直後（currentIndex === ids.length）
+		expect(computePreloadIds(list, list.length)).toEqual(["id-10", "id-11"]);
+		// もっと外れていても必ず何かを返す
+		expect(computePreloadIds(list, 99)).not.toEqual([]);
+		// 負側も同じく丸める
+		expect(computePreloadIds(list, -5)).toEqual(["id-0", "id-1", "id-2"]);
+	});
+
 	it("大きい一覧では位置が変わると集合も変わる（窓が効いている証明）", () => {
 		const list = ids(20);
 		expect(computePreloadIds(list, 5)).not.toEqual(computePreloadIds(list, 10));
