@@ -282,7 +282,10 @@ exports.Prisma.Dish_media_external_embeddingsScalarFieldEnum = {
   last_verified_at: 'last_verified_at',
   created_at: 'created_at',
   updated_at: 'updated_at',
-  thumbnail_url: 'thumbnail_url'
+  thumbnail_url: 'thumbnail_url',
+  playback_status: 'playback_status',
+  playback_reason: 'playback_reason',
+  playback_checked_at: 'playback_checked_at'
 };
 
 exports.Prisma.Dish_media_impressionsScalarFieldEnum = {
@@ -475,6 +478,15 @@ exports.Prisma.Restaurant_bidsScalarFieldEnum = {
   lock_no: 'lock_no'
 };
 
+exports.Prisma.Restaurant_linksScalarFieldEnum = {
+  restaurant_id: 'restaurant_id',
+  kind: 'kind',
+  value: 'value',
+  source: 'source',
+  fetched_at: 'fetched_at',
+  created_at: 'created_at'
+};
+
 exports.Prisma.RestaurantsScalarFieldEnum = {
   id: 'id',
   google_place_id: 'google_place_id',
@@ -491,7 +503,9 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   source_names: 'source_names',
   source_row_hash: 'source_row_hash',
   synced_at: 'synced_at',
-  created_by_source: 'created_by_source'
+  created_by_source: 'created_by_source',
+  address: 'address',
+  country_code: 'country_code'
 };
 
 exports.Prisma.Role_permissionsScalarFieldEnum = {
@@ -654,6 +668,7 @@ exports.Prisma.ModelName = {
   prompt_variants: 'prompt_variants',
   reactions: 'reactions',
   restaurant_bids: 'restaurant_bids',
+  restaurant_links: 'restaurant_links',
   restaurants: 'restaurants',
   role_permissions: 'role_permissions',
   roles: 'roles',
