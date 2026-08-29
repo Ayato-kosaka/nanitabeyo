@@ -109,7 +109,7 @@ def main() -> None:
             cursor.execute(
                 """
                 WITH n AS (
-                  SELECT id, google_place_id, name, latitude, longitude,
+                  SELECT id, google_place_id, name, location,
                          regexp_replace(normalize(name, NFKC), '[\\s　]', '', 'g') AS nname
                   FROM restaurants
                 )
@@ -119,10 +119,10 @@ def main() -> None:
                     ON a.nname = b.nname
                    AND a.id < b.id
                    AND a.google_place_id <> b.google_place_id
-                   AND ST_DWithin(
-                         ST_SetSRID(ST_MakePoint(a.longitude, a.latitude), 4326)::geography,
-                         ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
-                         %s)
+                   -- PostGIS は extensions スキーマに居る。search_path は dev, public
+                   -- なので **修飾しないと "type geography does not exist" で落ちる**（実測）。
+                   -- 座標から作り直さず、生成列 `location`（geography）をそのまま使う。
+                   AND extensions.ST_DWithin(a.location, b.location, %s)
                 ) t
                 """,
                 (args.radius_m,),
@@ -137,21 +137,16 @@ def main() -> None:
                 cursor.execute(
                     """
                     WITH n AS (
-                      SELECT id, google_place_id, name, latitude, longitude,
+                      SELECT id, google_place_id, name, location,
                              regexp_replace(normalize(name, NFKC), '[\\s　]', '', 'g') AS nname
                       FROM restaurants
                     )
                     SELECT a.name, a.google_place_id, b.google_place_id,
-                           ST_Distance(
-                             ST_SetSRID(ST_MakePoint(a.longitude, a.latitude), 4326)::geography,
-                             ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography)
+                           extensions.ST_Distance(a.location, b.location)
                     FROM n a JOIN n b
                       ON a.nname = b.nname AND a.id < b.id
                      AND a.google_place_id <> b.google_place_id
-                     AND ST_DWithin(
-                           ST_SetSRID(ST_MakePoint(a.longitude, a.latitude), 4326)::geography,
-                           ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
-                           %s)
+                     AND extensions.ST_DWithin(a.location, b.location, %s)
                     LIMIT %s
                     """,
                     (args.radius_m, args.examples),
