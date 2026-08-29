@@ -202,6 +202,15 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			youtube: false,
 		};
 		let embedCells = 0;
+		/*
+		#1641 **サーバが «再生できない» と判定済みで、WebView を作らずに済んだ provider。**
+		合否には使わない（dev のデータ次第で 0 件になりうる）。**効果の観測**のために残す。
+		*/
+		const fastPathBy: Record<(typeof PROVIDERS)[number], boolean> = {
+			instagram: false,
+			tiktok: false,
+			youtube: false,
+		};
 
 		/*
 		⚠️ **1 回見て «再生できなかった» と判定してはいけない。**
@@ -231,11 +240,39 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 			let sawEmbed = false;
 			for (;;) {
 				let concluded = false;
-				if (await existsNow(embedWebView, MARKER_PROBE_MS)) {
+				/*
+				#1641 ⚠️ **WebView の有無で «埋め込みセルか» を判定しない。**
+
+				サーバが «再生できない» と判定済みのセルは、**WebView を 1 つも作らない**
+				（高速パス）。WebView だけを目印にすると、そのセルは «埋め込みですらなかった»
+				扱いになり、印を 1 つも読まないまま素通りする。
+				«このセルに着いた» 印（provider ごと）も目印に加える。
+				*/
+				let onEmbedCell = await existsNow(embedWebView, MARKER_PROBE_MS);
+				if (!onEmbedCell) {
+					for (const provider of PROVIDERS) {
+						if (await existsNow(by.id(`external-embed-cell-${provider}`), MARKER_PROBE_MS)) {
+							onEmbedCell = true;
+							break;
+						}
+					}
+				}
+				if (onEmbedCell) {
 					sawEmbed = true;
 					for (const provider of PROVIDERS) {
 						if (!reachedBy[provider] && (await existsNow(by.id(`external-embed-cell-${provider}`), MARKER_PROBE_MS))) {
 							reachedBy[provider] = true;
+						}
+						/*
+						#1641 **サーバの判定で WebView を作らずに済んだセル**を数える。
+						オーナー指示「埋め込み時に分岐しているのを直して」の効果は、
+						«読み込んでから畳んだ» のか «そもそも読み込まなかった» のかでしか見えない。
+						*/
+						if (
+							!fastPathBy[provider] &&
+							(await existsNow(by.id(`external-embed-known-not-playable-${provider}`), MARKER_PROBE_MS))
+						) {
+							fastPathBy[provider] = true;
 						}
 						if (playedBy[provider]) continue;
 						if (await existsNow(by.id(`external-embed-playing-${provider}`), MARKER_PROBE_MS)) {
@@ -259,6 +296,10 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 					}
 					if (!concluded) {
 						concluded = await existsNow(by.id("external-embed-fallback"), MARKER_PROBE_MS);
+					}
+					// 高速パスのセルは読み込む物が無いので、その場で結論が出ている
+					if (!concluded) {
+						concluded = PROVIDERS.some((provider) => fastPathBy[provider]);
 					}
 				}
 				// 全部揃っていても、**このセルの結論が出るまでは眺める**（撮るコマを意味のあるものにする）
@@ -306,6 +347,21 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		if (embedCells === 0) {
 			throw new Error("埋め込みセルを 1 つも観測できませんでした（取り込みかフィードの経路が壊れています）。");
 		}
+
+		/*
+		#1641 **高速パスが効いたセルを run のログへ残す。**
+
+		オーナー指示「埋め込み時に分岐しているのを直して」の効果は、
+		«読み込んでから畳んだ» のか «そもそも読み込まなかった» のかでしか見えない。
+		合否には使わない（dev のデータ次第で 0 件になりうる。判定済みの投稿が
+		1 本も無ければ 0 が正しい）。
+		*/
+		// eslint-disable-next-line no-console -- run のログへ残すことが目的
+		console.log(
+			`[playback] サーバ判定で WebView を作らずに済んだ provider: ${
+				PROVIDERS.filter((p) => fastPathBy[p]).join(", ") || "なし"
+			}`,
+		);
 
 		/*
 		#1641 **3 つの provider すべてがアプリ内で再生できること。**
