@@ -472,6 +472,33 @@ const AUTOPLAY_SCRIPT = `(function () {
     v.addEventListener('ended', function () { try { v.currentTime = 0; } catch (e) {} start(); }, false);
   }
 
+  /*
+   * #1641【観測】いま DOM がどこまで育ったか。**数だけ**を返す（ページの中身は載せない）。
+   *
+   * 実測（iOS シミュレータ / TikTok, run 33269838360）:
+   *
+   *     4000ms ready=loading nodes=12 script=6 iframe=0 video=0 img=0 body=no res=7
+   *
+   * TikTok の埋め込みは <head> に *.tiktokcdn-us.com からの同期スクリプトを 4 本持つ。
+   * それが返らない間はパースが <head> で止まり、<body> すら作られない。
+   */
+  function snapshot() {
+    try {
+      return 'ready=' + document.readyState
+        + ' nodes=' + document.querySelectorAll('*').length
+        + ' script=' + document.querySelectorAll('script').length
+        + ' iframe=' + document.querySelectorAll('iframe').length
+        + ' video=' + document.querySelectorAll('video').length
+        + ' img=' + document.querySelectorAll('img').length
+        + ' body=' + (document.body ? 'yes' : 'no')
+        // 資源が 1 つも来ていないのか、来ているのに parse が止まっているのかを分ける
+        + ' res=' + ((window.performance && performance.getEntriesByType)
+            ? performance.getEntriesByType('resource').length : -1);
+    } catch (e) {
+      return 'snapshot-error';
+    }
+  }
+
   function attempt() {
     try {
       /*
@@ -500,28 +527,22 @@ const AUTOPLAY_SCRIPT = `(function () {
         if (Date.now() - installedAt < LOADING_GRACE_MS) {
           deadlineAt = Date.now() + DEADLINE_MS;
         } else {
-          settle('timeout', 'still_loading');
+          // #1641 «諦めた瞬間» の DOM も載せる。4 秒時点と比べれば «伸びているのか止まっているのか» が分かる
+          settle('timeout', 'still_loading ' + snapshot());
           return;
         }
       } else if (!toldDom) {
         toldDom = true;
         report('dom', document.readyState);
       }
-      // #1641【観測】組み上がるまでの DOM の育ち方を、決めた時刻に 3 回だけ送る
+      /*
+       * #1641【観測】組み上がるまでの DOM の育ち方を、決めた時刻に 3 回だけ送る。
+       * ⚠️ **kind を時刻ごとに変える。** report() は kind ごとに 1 回しか送らないので、
+       *    同じ kind にすると 1 回目しか届かない（実際に 4 秒の 1 本しか取れなかった）。
+       */
       if (stallAt.length && Date.now() - installedAt > stallAt[0]) {
         var elapsed = stallAt.shift();
-        try {
-          report('stall', elapsed + 'ms ready=' + document.readyState
-            + ' nodes=' + document.querySelectorAll('*').length
-            + ' script=' + document.querySelectorAll('script').length
-            + ' iframe=' + document.querySelectorAll('iframe').length
-            + ' video=' + document.querySelectorAll('video').length
-            + ' img=' + document.querySelectorAll('img').length
-            + ' body=' + (document.body ? 'yes' : 'no')
-            // 資源が 1 つも来ていないのか、来ているのに parse が止まっているのかを分ける
-            + ' res=' + ((window.performance && performance.getEntriesByType)
-                ? performance.getEntriesByType('resource').length : -1));
-        } catch (e) {}
+        report('stall' + elapsed, snapshot());
       }
       if (Date.now() > deadlineAt) {
         settle(v ? 'timeout' : 'no_video', lastError);
@@ -825,7 +846,8 @@ export function ExternalEmbedPlayer({
 			#1641【観測】`boot` / `dom` は **結論ではない**。ここで落とさずに返さないと、
 			エージェントが起動しただけで «再生できない» へ倒れる。
 			*/
-			if (parsed.kind === "boot" || parsed.kind === "dom" || parsed.kind === "stall") {
+			// #1641 `stall` は時刻ごとに kind が違う（stall4000 / stall9000 …）ので前方一致で見る
+			if (parsed.kind === "boot" || parsed.kind === "dom" || parsed.kind?.startsWith("stall")) {
 				logFrontendEvent({
 					event_name: "external_embed_agent_boot",
 					error_level: "log",

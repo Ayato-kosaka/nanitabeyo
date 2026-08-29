@@ -375,7 +375,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		post({ src: "nb-embed-autoplay", kind: "boot", detail: "loading" });
 		post({ src: "nb-embed-autoplay", kind: "dom", detail: "interactive" });
 		// #1641 組み上がらないページの観測値。これも «結論» ではない
-		post({ src: "nb-embed-autoplay", kind: "stall", detail: "4000ms ready=loading nodes=12" });
+		post({ src: "nb-embed-autoplay", kind: "stall4000", detail: "ready=loading nodes=12 body=no" });
 		expect(fallbackCount(tree)).toBe(0);
 		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBeGreaterThan(0);
 	});
@@ -606,7 +606,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		const conclusions = (post: jest.Mock) =>
 			post.mock.calls
 				.map((call) => JSON.parse(call[0] as string) as { kind: string; detail: string | null })
-				.filter((message) => message.kind !== "boot" && message.kind !== "dom" && message.kind !== "stall");
+				.filter((message) => message.kind !== "boot" && message.kind !== "dom" && !message.kind.startsWith("stall"));
 
 		it("読み込みが終わっても <video> が無ければ、締め切りを待たず権利ブロックと判定する", () => {
 			// 実測: 権利ブロックされた投稿は <video> が最後まで作られない（1 コマ目の画像だけ在る）。
@@ -637,7 +637,15 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		it("読み込みが終わらないページは、猶予を過ぎたら時間切れとして畳む", () => {
 			// clock は 1 tick = 500ms。40 tick = 20 秒で猶予 15 秒を超える
 			const { post } = run({ video: false, images: [], readyState: "loading", ticks: 40 });
-			expect(conclusions(post)[0]).toMatchObject({ kind: "timeout", detail: "still_loading" });
+			const verdict = conclusions(post)[0];
+			expect(verdict.kind).toBe("timeout");
+			/*
+			#1641 **諦めた瞬間の DOM も一緒に送る。** 4 秒時点の観測と比べれば
+			«伸びているのに遅いだけ» なのか «そもそも動いていない» のかが分かる
+			（iOS の TikTok は 4 秒時点で body すら無かった）。
+			*/
+			expect(verdict.detail).toMatch(/^still_loading /);
+			expect(verdict.detail).toContain("body=");
 		});
 
 		it("<video> は 1 コマ目より前面へ出す（映像が出たらそちらが見える）", () => {
