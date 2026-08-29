@@ -309,6 +309,22 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	});
 
 	/*
+	#1641 ⚠️ **ただし «1 つも組み上がらなかった» ときは document モードでも畳む。**
+
+	中に写真も何も無いので、WebView は **ただの黒い板**になってサムネイルを隠す。
+	実機で実測した（run 33265424032 の iOS `feed-02`: TikTok のセルが真っ黒＋
+	「TikTok で見る」の帯だけ。ページは空のまま `still_loading` で時間切れ）。
+	*/
+	it("時間切れ（ページが組み上がらない）のときは document モードでも畳む", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "timeout", detail: "still_loading" });
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBeGreaterThan(0);
+		// 黒い板をどけて、アプリが持っているサムネイルを見せる
+		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBe(0);
+		expect(fallbackCount(tree)).toBeGreaterThan(0);
+	});
+
+	/*
 	#1641 **無音で再生中のときだけ «音を出す» を出す。**（オーナー指示 2026-08-28）
 
 	自動では戻せなかったので、ユーザー操作で撃ち直す口を用意する。

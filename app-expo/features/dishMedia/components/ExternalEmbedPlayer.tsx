@@ -731,6 +731,11 @@ export function ExternalEmbedPlayer({
 	 */
 	const [playback, setPlayback] = useState<"unknown" | "playing" | "unplayable">("unknown");
 	/*
+	#1641 «なぜ再生できなかったか»。**畳むかどうかの判断に使う**（下の `collapsedAfterFailure`）。
+	`timeout` は «ページが 1 つも組み上がらなかった» ＝ WebView に見せるものが何も無い、を意味する。
+	*/
+	const [unplayableKind, setUnplayableKind] = useState<string | null>(null);
+	/*
 	#1641 ⚠️ **一度 «再生できた» セルを、後から «再生できない» へ落とさない。**
 
 	実測（run 33168644022 / Android）: TikTok が playing の 0.8 秒後に not_supported を
@@ -832,6 +837,7 @@ export function ExternalEmbedPlayer({
 			if (hasPlayedRef.current) return;
 			// no_video（権利ブロック）/ not_supported（デコーダ無し）/ timeout
 			setPlayback("unplayable");
+			setUnplayableKind(parsed.kind ?? null);
 			logFrontendEvent({
 				event_name: "external_embed_unplayable",
 				error_level: "warn",
@@ -956,11 +962,19 @@ export function ExternalEmbedPlayer({
 	覆う代わりに畳めば、向こうのページは同じように消えたうえで、**アプリが持っている
 	サムネイル（＝料理の写真）が見える**。オーナー指摘 ④「サムネ画像を出す以外に選択肢はある？」。
 
-	⚠️ `document` モード（Instagram / TikTok）は畳まない。あちらは 1 コマ目の写真を
+	⚠️ `document` モード（Instagram / TikTok）は**原則畳まない**。あちらは 1 コマ目の写真を
 	   全面に出しており、それ自体が «その投稿の絵» として正しい。
+
+	**例外は `timeout`（ページが 1 つも組み上がらなかった）である。**
+	そのときは中に写真も何も無く、WebView は **ただの黒い板**になってサムネイルを隠す。
+	実機で実測した（[run 33265424032] の iOS `feed-02`: TikTok のセルが
+	真っ黒＋「TikTok で見る」の帯だけ。中身は空のまま `still_loading` で時間切れ）。
+	畳めばアプリが持っているサムネイル（＝料理の写真）が見える。
+
 	⚠️ セルを離れると `playback` は `unknown` へ戻るので、次に来たときは 1 度だけ再挑戦する。
 	*/
-	const collapsedAfterFailure = playback === "unplayable" && source?.mode === "iframe";
+	const collapsedAfterFailure =
+		playback === "unplayable" && (source?.mode === "iframe" || unplayableKind === "timeout");
 	const inlineAvailable =
 		source !== null && NativeWebView !== null && !renderProcessGone && !knownNotPlayable && !collapsedAfterFailure;
 	/*
