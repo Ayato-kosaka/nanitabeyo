@@ -1150,6 +1150,24 @@ export function ReviewForm({
 				style={styles.container}
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
+				/*
+				#1629 オーナー実機報告「レビューで価格入力時にキーボードで隠れる」。
+
+				真因は **キーボード回避が 1 つも効いていなかった**こと。外側の `KeyboardAvoidingView` は
+				`behavior` を渡していないため（下の `keyboardAvoidingView` のコメント参照）
+				**何もしない**。価格・コメントはフォームの下半分にあるので、そのままキーボードの下へ入る。
+
+				iOS はここで native の UIScrollView にキーボードぶんのインセットを入れさせる。
+				`KeyboardAvoidingView` で外枠を縮める手もあるが、そちらは **フォーカスした入力欄まで
+				運んでくれない**（縮むだけで、隠れている欄は隠れたまま）。
+				`automaticallyAdjustKeyboardInsets` は native 側がインセットと
+				«フォーカス中の入力欄までのスクロール» の両方をやる。
+
+				Android は OS が window を縮め（`softwareKeyboardLayoutMode` の既定 = resize）、
+				ScrollView が自分でフォーカス中の欄まで運ぶので、こちら側では何もしない
+				（`app/[locale]/add-record.tsx` が #1375 3 巡目で同じ判断をして実機で直っている）。
+				*/
+				automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
 				contentContainerStyle={styles.scrollContent}>
 				{/* #1375 実機確認（5 巡目）: manual（記録フロー）では **高さを固定しない**。
 				    «写真を撮る / ライブラリ / このお店の写真から選ぶ / スキップ» を積むと
@@ -1553,7 +1571,15 @@ const createStyles = (c: Palette) =>
 			flex: 1,
 			backgroundColor: c.surface,
 		},
-		// #644 【UX】KeyboardAvoidingView でキーボード表示時の位置調整
+		/*
+		#644 【UX】キーボード表示時の位置調整。
+
+		⚠️ #1629: この `KeyboardAvoidingView` は **`behavior` を渡していないので何もしない**
+		（RN の既定は undefined ＝ 無効）。回避そのものは ScrollView 側の
+		`automaticallyAdjustKeyboardInsets`（iOS）と OS の window リサイズ（Android）が担う。
+		ここへ `behavior` を足すと、その 2 つと二重に掛かって縮みすぎるので足さないこと。
+		残しているのは «投稿ボタンを ScrollView の外へ置く» ための器としてである。
+		*/
 		keyboardAvoidingView: {
 			flex: 1,
 		},
