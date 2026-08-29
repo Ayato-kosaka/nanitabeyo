@@ -36,20 +36,49 @@ dry-runし、同じrun_idを段階的に昇格させます。Cloud Schedulerは�
 
 ## データフロー
 
+**どこが正か**が一目で分かる形にしてある。手順の羅列は「手動実行順」にある。
+
 ```text
-既存PG / Overture / IFAS / OSM / 自治体の食品営業許可台帳
-  -> *_raw                              (1_1〜1_6)
-  -> restaurant_source_records          (2_1: 形式統一)
-  -> restaurant_seed_catalog            (2_2: 店舗候補へ統合)
-  -> Google Place ID match catalog      (3_1〜3_3)
-  -> restaurant_catalog                 (3_4)
-  -> PostgreSQL restaurants             (9_1)
+  ┌── BigQuery（オープンデータの側。ここが «店の事実» の正）────────────────┐
+  │                                                                        │
+  │  Overture / IFAS / OSM / 食品営業許可台帳 ──▶ *_raw           1_3〜1_6  │
+  │                                     │                                  │
+  │   PG の place_id・座標だけ ─────────┤                                  │
+  │   （1_2。表示値は運ばない）          ▼                                  │
+  │                          restaurant_source_records            2_1      │
+  │                                     ▼                                  │
+  │                          restaurant_seed_catalog              2_2      │
+  │                                     ▼                                  │
+  │              Google Place ID match（box_unique_strict）       3_1〜3_3  │
+  │                                     ▼                                  │
+  │                          restaurant_catalog                   3_4      │
+  │                          （name/座標/住所/国/電話/サイト/SNS）          │
+  │                                     │                                  │
+  │  IFAS の廃業レコード ──▶ restaurant_closure_signals            3_6      │
+  │                          （«根拠» であって判定ではない）                │
+  └─────────────────────────────────────┼──────────────────────────────────┘
+                                        │  9_1（品質ゲート 8_1 が緑のときだけ）
+  ┌─────────────────────────────────────▼──────────────────────────────────┐
+  │ PostgreSQL（アプリの側。ここが «ユーザーの入力» の正）                  │
+  │                                                                        │
+  │  restaurants                                                           │
+  │    created_by_source='pipeline' … 9_1 が毎回上書きしてよい行            │
+  │    created_by_source='user'     … **9_1 は表示値を絶対に触らない**      │
+  │                                    （アプリが POI 押下で作った行）      │
+  │  restaurant_links … 電話/サイト/SNS。open_data 由来だけを              │
+  │                     ON CONFLICT DO NOTHING で足す（ユーザー追加を消さない）│
+  └────────────────────────────────────────────────────────────────────────┘
 
 権利確認済みSNS URL
   -> dish_media_social_raw              (4_1)
   -> dish/dish_media/coverage catalog   (4_2)
   -> PostgreSQL dishes/dish_media       (9_2)
 ```
+
+**この図の要点は矢印ではなく、下の箱の中の 2 行**である。
+«誰が書いてよい行か» を行のとなりに刻んであるので、
+BigQuery 側のスナップショットが何時間古かろうとアプリの行は壊れない
+（古いスナップショットへの否定条件で判定していたのが 2026-08-24 の事故の真因）。
 
 ## 名寄せ方針
 
