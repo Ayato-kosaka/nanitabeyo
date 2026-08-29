@@ -3,6 +3,7 @@ import { View, StyleSheet, Animated, Easing, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { DimensionValue } from "react-native";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 /**
  * SkeletonShimmer（iOSっぽい見た目）
@@ -10,9 +11,14 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
  * #615【UX】画像ロード中の視認性を安定させるため、iOS風のスケルトン（グレー地＋白い光帯）を表示
  *
  * ✅ iOSっぽさのポイント
- * - ベース：やや青みのある薄グレー（iOSのプレースホルダーに近いトーン）
- * - 光帯：白〜半透明のグラデーション（端は透明で“光”に見せる）
+ * - ベース：地からわずかに浮いた面（`colors.skeletonBase`）
+ * - 光帯：両端が地に溶けるグラデーション（`colors.skeletonBandGradient`。端は透明で“光”に見せる）
  * - 動くのは「帯」だけ（面全体が動く/明滅しない）
+ *
+ * ⚠️ #1629 ここに色を直書きしないこと。ダークで «スケルトンだけ白く光る» のは
+ *    ダークモードの典型的な事故で、実際に料理提案のローディングで踏んでいる。
+ *    ライト / ダークの両方で「地よりわずかに明るい帯が流れる」に見える必要があり、
+ *    その 2 値は `constants/Palette.ts` が持つ。
  *
  * ✅ ベストプラクティス
  * - useNativeDriver: true（transformのみ）
@@ -37,10 +43,10 @@ interface SkeletonShimmerProps {
 	/** #615【UX】アニメーション速度（ms） */
 	durationMs?: number;
 
-	/** #615【デザイン】iOS風ベース色（固定背景） */
+	/** #615【デザイン】ベース色。#1629 未指定ならテーマの `skeletonBase` を使う */
 	baseColor?: string;
 
-	/** #615【デザイン】iOS風ハイライト色（光の中心） */
+	/** #615【デザイン】ハイライト色（光の中心）。#1629 未指定ならテーマの光帯をそのまま使う */
 	highlightColor?: string;
 
 	/**
@@ -65,14 +71,16 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
 	borderRadius = 0,
 	direction = "horizontal",
 	durationMs = 1100,
-	// #615【デザイン】iOSっぽい薄グレー（白背景でも沈みすぎない）
-	baseColor = "#E9ECEF",
-	// #615【デザイン】光帯は白（中心が白いほうが “iOS感” が出る）
-	highlightColor = "#FFFFFF",
+	baseColor,
+	highlightColor,
 	bandSizePx,
 	enabled = true,
 	style,
 }) => {
+	// #1629【デザイン】地と光帯はテーマから採る（ライトは薄グレー＋白い帯、ダークは
+	// わずかに明るい面＋ごく淡い帯）。呼び出し側が明示した色があればそちらを優先する
+	const { colors } = useAppTheme();
+	const resolvedBaseColor = baseColor ?? colors.skeletonBase;
 	// #615【設計】0→1 の進捗値を使い、translate に変換する
 	const progress = useRef(new Animated.Value(0)).current;
 
@@ -140,22 +148,18 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
 	/**
 	 * #615【デザイン】光帯グラデーション
 	 * - 端は透明（背景のベース色が見える）
-	 * - 中央は白（ハイライト）
-	 * - iOSっぽくするため「白の透明度」を段階にして柔らかくする
+	 * - 中央がいちばん明るい（ハイライト）
+	 * - 段階を踏ませて柔らかくする（値は `colors.skeletonBandGradient`）
 	 */
 	const gradientColors = useMemo(() => {
-		// NOTE: expo-linear-gradient は alpha 付き色指定OK
-		return [
-			"rgba(255,255,255,0.0)",
-			"rgba(255,255,255,0.25)",
-			highlightColor,
-			"rgba(255,255,255,0.25)",
-			"rgba(255,255,255,0.0)",
-		] as const;
-	}, [highlightColor]);
+		const band = colors.skeletonBandGradient;
+		if (!highlightColor) return band;
+		// 呼び出し側が中心色を指定したときだけ、中央の 1 段を差し替える
+		return [band[0], band[1], highlightColor, band[3], band[4]] as const;
+	}, [colors.skeletonBandGradient, highlightColor]);
 
 	return (
-		<View style={[styles.container, { width, height, borderRadius, backgroundColor: baseColor }, style]}>
+		<View style={[styles.container, { width, height, borderRadius, backgroundColor: resolvedBaseColor }, style]}>
 			{/* #615【UX】帯だけを absolute で重ねる（背景は固定でチラつかない） */}
 			<Animated.View pointerEvents="none" style={[styles.bandWrap, transformStyle]}>
 				<LinearGradient

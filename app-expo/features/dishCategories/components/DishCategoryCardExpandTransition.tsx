@@ -12,6 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { FixedColors } from "@/constants/Palette";
 
 export type CardRect = { x: number; y: number; width: number; height: number };
 
@@ -97,7 +98,9 @@ const styles = StyleSheet.create({
 		position: "absolute",
 		zIndex: 9999,
 		elevation: 24,
-		backgroundColor: "#000",
+		// #1629 広がっていく料理写真の下地。遷移先の DishSelectionExpandLoading と同じ «メディアの地» で、
+		// 画像の読み込みが間に合わなかった一瞬もここが覗く。テーマで振ると遷移の前後で地の色が変わってしまう
+		backgroundColor: FixedColors.mediaBackground,
 		overflow: "hidden",
 	},
 	bottomGradient: {

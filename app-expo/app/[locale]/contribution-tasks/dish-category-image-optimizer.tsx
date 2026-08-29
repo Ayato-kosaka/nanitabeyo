@@ -28,6 +28,8 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 import type {
 	PopularDishCategoriesWithMediaResponse,
@@ -48,6 +50,8 @@ type SelectedMap = Record<string, string>; // categoryId -> dishMediaId
 
 export default function DishCategoryImageOptimizerPage() {
 	const insets = useSafeAreaInsets();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
@@ -240,13 +244,14 @@ export default function DishCategoryImageOptimizerPage() {
 					{/* 選択チェックマーク */}
 					{isSelected && (
 						<View style={styles.checkBadge}>
-							<Check size={16} color="#FFF" />
+							{/* 緑（successFill）で塗り潰したバッジの上の白。地の色が振れないので文字も振らない */}
+							<Check size={16} color={FixedColors.onFilled} />
 						</View>
 					)}
 				</Pressable>
 			);
 		},
-		[cardWidth, cardHeight, selectedMap, handleCategoryPress],
+		[cardWidth, cardHeight, selectedMap, handleCategoryPress, styles],
 	);
 
 	/** #494 【設計】候補画像のレンダリング */
@@ -273,13 +278,14 @@ export default function DishCategoryImageOptimizerPage() {
 					/>
 					{isSelected && (
 						<View style={styles.candidateCheckBadge}>
-							<Check size={20} color="#FFF" />
+							{/* 同上。塗り潰したバッジの上の白 */}
+							<Check size={20} color={FixedColors.onFilled} />
 						</View>
 					)}
 				</Pressable>
 			);
 		},
-		[activeCategory, selectedMap, modalCardWidth, modalCardHeight, handleMediaSelect],
+		[activeCategory, selectedMap, modalCardWidth, modalCardHeight, handleMediaSelect, styles],
 	);
 
 	const keyExtractor = useCallback((item: PopularDishCategoryWithMedia) => item.dishCategory.id, []);
@@ -303,7 +309,7 @@ export default function DishCategoryImageOptimizerPage() {
 				</TouchableOpacity>
 
 				{showDescription && (
-					<Text style={{ fontSize: 12, lineHeight: 18, color: "#4B5563", marginTop: 4 }}>
+					<Text style={{ fontSize: 12, lineHeight: 18, color: colors.textSecondaryAlt, marginTop: 4 }}>
 						料理提案画面に表示される画像を、より高品質な写真へ差し替えるための管理ツールです。
 						{"\n\n"}
 						1. 下のグリッドから、画像を変更したい料理をタップします。
@@ -372,7 +378,7 @@ export default function DishCategoryImageOptimizerPage() {
 					<PrimaryButton
 						label={i18n.t("Tools.DishCategoryImageOptimizer.reset")}
 						onPress={handleReset}
-						colors={["#6B7280", "#4B5563"]}
+						colors={colors.buttonNeutralGradient}
 						style={{ marginTop: 8 }}
 					/>
 				</View>
@@ -405,149 +411,151 @@ export default function DishCategoryImageOptimizerPage() {
 /*                               スタイル定義                                  */
 /* -------------------------------------------------------------------------- */
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#F8F9FA",
-	},
-	header: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		backgroundColor: "#FFF",
-		borderBottomWidth: 1,
-		borderBottomColor: "#C9C9C9",
-	},
-	headerTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	loadingText: {
-		marginTop: 12,
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	gridContainer: {
-		paddingTop: 16,
-		paddingBottom: 120,
-		gap: 8,
-	},
-	categoryCard: {
-		backgroundColor: "#C9C9C9",
-		borderRadius: 8,
-		overflow: "hidden",
-		position: "relative",
-	},
-	categoryOverlay: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		padding: 8,
-		backgroundColor: "rgba(0,0,0,0.5)",
-	},
-	categoryLabel: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#FFF",
-	},
-	categoryCount: {
-		fontSize: 10,
-		color: "rgba(255,255,255,0.8)",
-		marginTop: 2,
-	},
-	checkBadge: {
-		position: "absolute",
-		top: 8,
-		right: 8,
-		width: 24,
-		height: 24,
-		borderRadius: 12,
-		backgroundColor: "#22C55E",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	emptyContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingVertical: 24,
-	},
-	emptyText: {
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	emptyImage: {
-		width: "100%",
-		height: "100%",
-		marginVertical: 8,
-	},
-	footer: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		padding: 16,
-		backgroundColor: "#FFF",
-		borderTopWidth: 1,
-		borderTopColor: "#C9C9C9",
-	},
-	modalContent: {
-		paddingHorizontal: 16,
-		paddingTop: 16,
-	},
-	modalTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 4,
-	},
-	modalSubtitle: {
-		fontSize: 14,
-		color: "#6B7280",
-		marginBottom: 16,
-	},
-	candidateGrid: {
-		paddingBottom: 32,
-	},
-	candidateGridInner: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 4,
-	},
-	candidateCard: {
-		backgroundColor: "#C9C9C9",
-		borderRadius: 4,
-		overflow: "hidden",
-		position: "relative",
-	},
-	candidateCardSelected: {
-		borderWidth: 3,
-		borderColor: "#22C55E",
-	},
-	candidateCheckBadge: {
-		position: "absolute",
-		top: 4,
-		right: 4,
-		width: 28,
-		height: 28,
-		borderRadius: 14,
-		backgroundColor: "#22C55E",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	noCandidatesContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	noCandidatesText: {
-		fontSize: 14,
-		color: "#6B7280",
-	},
-});
+// #1629 パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.background,
+		},
+		header: {
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			backgroundColor: c.surface,
+			borderBottomWidth: 1,
+			borderBottomColor: c.border,
+		},
+		headerTitle: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimary,
+		},
+		loadingContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		loadingText: {
+			marginTop: 12,
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		gridContainer: {
+			paddingTop: 16,
+			paddingBottom: 120,
+			gap: 8,
+		},
+		categoryCard: {
+			backgroundColor: c.surfacePlaceholderAlt,
+			borderRadius: 8,
+			overflow: "hidden",
+			position: "relative",
+		},
+		categoryOverlay: {
+			position: "absolute",
+			bottom: 0,
+			left: 0,
+			right: 0,
+			padding: 8,
+			backgroundColor: "rgba(0,0,0,0.5)",
+		},
+		categoryLabel: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: FixedColors.onMedia,
+		},
+		categoryCount: {
+			fontSize: 10,
+			color: "rgba(255,255,255,0.8)",
+			marginTop: 2,
+		},
+		checkBadge: {
+			position: "absolute",
+			top: 8,
+			right: 8,
+			width: 24,
+			height: 24,
+			borderRadius: 12,
+			backgroundColor: c.successFill,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		emptyContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			paddingVertical: 24,
+		},
+		emptyText: {
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		emptyImage: {
+			width: "100%",
+			height: "100%",
+			marginVertical: 8,
+		},
+		footer: {
+			position: "absolute",
+			bottom: 0,
+			left: 0,
+			right: 0,
+			padding: 16,
+			backgroundColor: c.surface,
+			borderTopWidth: 1,
+			borderTopColor: c.border,
+		},
+		modalContent: {
+			paddingHorizontal: 16,
+			paddingTop: 16,
+		},
+		modalTitle: {
+			fontSize: 18,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginBottom: 4,
+		},
+		modalSubtitle: {
+			fontSize: 14,
+			color: c.textSecondary,
+			marginBottom: 16,
+		},
+		candidateGrid: {
+			paddingBottom: 32,
+		},
+		candidateGridInner: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 4,
+		},
+		candidateCard: {
+			backgroundColor: c.surfacePlaceholderAlt,
+			borderRadius: 4,
+			overflow: "hidden",
+			position: "relative",
+		},
+		candidateCardSelected: {
+			borderWidth: 3,
+			borderColor: c.successStrong,
+		},
+		candidateCheckBadge: {
+			position: "absolute",
+			top: 4,
+			right: 4,
+			width: 28,
+			height: 28,
+			borderRadius: 14,
+			backgroundColor: c.successFill,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		noCandidatesContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		noCandidatesText: {
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+	});

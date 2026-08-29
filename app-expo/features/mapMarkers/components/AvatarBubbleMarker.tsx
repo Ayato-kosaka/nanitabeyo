@@ -7,6 +7,7 @@ import { useMarkerViewTracking } from "../hooks/useMarkerViewTracking";
 import { getCacheKeyForImage } from "@/lib/image";
 import { Image } from "expo-image";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
+import { FixedColors } from "@/constants/Palette";
 
 /**
  * AvatarBubbleMarker（View Marker版）
@@ -62,7 +63,13 @@ export function AvatarBubbleMarker({
 	uri,
 	// iOS/Webは吹き出し想定で48
 	size = 48,
-	color = "#FFFFFF",
+	/*
+	#1629 【設計】このバブルは Google Map のタイルに直接載る。タイルはアプリのテーマに
+	追従せず常にライト配色なので、地とふちの既定はテーマで振らず固定の白にする
+	（ダークで暗くすると、明るい地図の上でバブルが読めなくなる）。
+	呼び出し側もアクティブ時に `FixedColors.brandOnMap` 等の固定色を渡している。
+	*/
+	color = FixedColors.mapMarkerSurface,
 	isActive = false,
 	bubbleContent,
 	...props
@@ -188,7 +195,8 @@ const styles = StyleSheet.create({
 		borderRadius: 9999,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "#FFFFFF",
+		// #1629 上と同じ理由（地図タイルが常にライトなので、バブルの地は固定の白）
+		backgroundColor: FixedColors.mapMarkerSurface,
 		overflow: "hidden", // expo-imageの丸切り抜き維持
 	},
 	image: {

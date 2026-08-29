@@ -47,6 +47,8 @@ import TestRenderer from "react-test-renderer";
 import type { MyDishItem } from "@shared/api/v1/res";
 import { MyDishesListView } from "./MyDishesListView";
 import { DELETED_MEDIA_TOMBSTONE_TEST_ID } from "@/components/DeletedMediaTombstone";
+// #1629 一覧から Feed へ入るときの «縦ページャの並び» を検証する
+import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -59,6 +61,10 @@ const makeItem = (
 		isOwnMediaDeleted?: boolean;
 		/** #1375（9 巡目）取り込んだ投稿か。`render_type` と provider をまとめて差す */
 		externalEmbedProvider?: string;
+		/** #1629 縦ページャの並びを見るテスト用。既定は従来どおり restaurant-1 */
+		restaurantId?: string;
+		/** #1629 1 セル = 1 ページなので、行ごとに違う dish_media.id を差せるようにする */
+		dishMediaId?: string;
 	} = {},
 ): MyDishItem =>
 	({
@@ -67,13 +73,17 @@ const makeItem = (
 		occurredAt: "2026-08-10T12:00:00.000Z",
 		savedAt: null,
 		eatenAt: "2026-08-10T12:00:00.000Z",
-		restaurant: { id: "restaurant-1", name: "テスト食堂", image_url: overrides.restaurantImageUrl ?? null },
+		restaurant: {
+			id: overrides.restaurantId ?? "restaurant-1",
+			name: "テスト食堂",
+			image_url: overrides.restaurantImageUrl ?? null,
+		},
 		dish: { id: "dish-1", name: "ラーメン", categoryImageUrl: overrides.categoryImageUrl ?? null },
 		dishMedia:
 			overrides.thumbnailImageUrl === undefined || overrides.thumbnailImageUrl === null
 				? null
 				: {
-						id: "media-1",
+						id: overrides.dishMediaId ?? "media-1",
 						thumbnailImageUrl: overrides.thumbnailImageUrl,
 						render_type: overrides.externalEmbedProvider ? "external_embed" : "stored",
 						externalEmbed: overrides.externalEmbedProvider
@@ -284,9 +294,10 @@ describe("#1397 (PR4/5) Q2 リスト項目のタップ先は «その項目の�
 			nodes[nodes.length - 1].props.onPress();
 		});
 
+		// #1629 一覧からは «その 1 件» のスコープ（scope=list）で開く。店舗スコープではない
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale: "ja-JP", restaurantId: "restaurant-1", itemKey: "review:with-photo", dishMediaId: "media-1" },
+			params: { locale: "ja-JP", scope: "list", itemKey: "review:with-photo", dishMediaId: "media-1" },
 		});
 		expect(Object.keys(mockPush.mock.calls[0][0].params)).not.toContain("initialIndex");
 	});
@@ -402,5 +413,68 @@ describe("#1375 取り込んだ投稿には provider のロゴを重ねる", () 
 		mockUseMyDishesQuery.mockReturnValue(queryResult([makeItem("b", { thumbnailImageUrl: "https://img/1.jpg" })]));
 		const tree = await render();
 		expect(has(tree, "my-dishes-list-item-provider-badge")).toBe(false);
+	});
+});
+
+/*
+#1629 【回帰】**グリッドで見えているセルの数と、縦に送れる数が一致すること。**
+
+以前は «店舗 id を重複排除して» 縦の並びとして置いていたので、同じ店の記録が 3 セル並んでいても
+縦のページは 1 枚に潰れ、残り 2 件は横軸へ回っていた（オーナー指摘「お店でグルーピングしてるなら
+要らない。グリッドは上下だけ」）。
+
+⚠️ ここが赤くなったら、また «グリッドのセルと縦のページがずれる» に戻っている。
+   通しの «N 番目を開いて縦に払うと N+1 番目» は
+   `__tests__/myDishesGridFeedVertical.test.tsx` が見る。
+*/
+describe("#1629 一覧から Feed へ入るときの縦ページャの並び", () => {
+	const ROWS = [
+		makeItem("review:a", { thumbnailImageUrl: "https://example.com/a.jpg", restaurantId: "r-1", dishMediaId: "media-a" }),
+		// 同じ店の 2 件目。**潰さない**。グリッドに 2 セル出ているなら縦も 2 ページ
+		makeItem("review:b", { thumbnailImageUrl: "https://example.com/b.jpg", restaurantId: "r-1", dishMediaId: "media-b" }),
+		makeItem("review:c", { thumbnailImageUrl: "https://example.com/c.jpg", restaurantId: "r-2", dishMediaId: "media-c" }),
+		// 写真なしの行は Feed に入れられないので、並びからも外す
+		makeItem("review:d", { restaurantId: "r-3" }),
+	];
+
+	const pressNth = async (n: number) => {
+		useMyDishesFeedScopeStore.getState().clear();
+		mockUseMyDishesQuery.mockReturnValue({
+			items: ROWS,
+			isLoading: false,
+			isLoadingMore: false,
+			error: null,
+			hasNextPage: false,
+			loadMore: jest.fn(),
+			refresh: jest.fn(),
+		});
+		const tree = await render();
+		const nodes = tree.root.findAll(
+			(node) => node.props?.testID === "my-dishes-list-item" && typeof node.props?.onPress === "function",
+		);
+		await act(async () => {
+			nodes[n].props.onPress();
+		});
+	};
+
+	it("グリッドに出ている行を、重複を潰さず順番どおりに置く", async () => {
+		await pressNth(0);
+
+		expect(useMyDishesFeedScopeStore.getState().listItems).toEqual([
+			{ itemKey: "review:a", dishMediaId: "media-a" },
+			{ itemKey: "review:b", dishMediaId: "media-b" },
+			{ itemKey: "review:c", dishMediaId: "media-c" },
+		]);
+		// 店舗の並びは触らない（あれは Map の入口のもの）
+		expect(useMyDishesFeedScopeStore.getState().restaurantIds).toEqual([]);
+	});
+
+	it("同じ店の 2 件目を開いても、その行（media-b）で開く", async () => {
+		await pressNth(1);
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/my-dishes/feed",
+			params: { locale: "ja-JP", scope: "list", itemKey: "review:b", dishMediaId: "media-b" },
+		});
 	});
 });

@@ -892,10 +892,24 @@ function createSaveTx(options?: {
       .fn()
       .mockResolvedValue({ count: options?.alreadySaved ? 0 : 1 }),
     // #1599 同じ (provider, 投稿, 料理) の同時取り込みを直列化する advisory lock
-    advisoryLock: jest.fn().mockResolvedValue([{}]),
+    advisoryLock: jest.fn().mockResolvedValue(1),
   };
   const tx = {
-    $queryRaw: calls.advisoryLock,
+    $executeRaw: calls.advisoryLock,
+    /* #1629 **この $queryRaw は «素通りさせない» ためだけに置いてある。**
+
+       初版は `$queryRaw: calls.advisoryLock` としており、本物の Prisma なら
+       `pg_advisory_xact_lock`（戻り値 void）で必ず落ちるコードを、この fake が
+       黙って通していた。結果、**テストは全部緑なのに dev の取り込みは毎回 500**
+       という状態になった（実測: Failed to deserialize column of type 'void'）。
+
+       fake は本物と同じところで落ちなければ意味が無い。 */
+    $queryRaw: jest.fn(() => {
+      throw new Error(
+        "Failed to deserialize column of type 'void'. " +
+          'advisory lock は $executeRaw で実行すること（#1629）',
+      );
+    }),
     dishes: { upsert: calls.dishUpsert },
     dish_media: {
       create: calls.mediaCreate,

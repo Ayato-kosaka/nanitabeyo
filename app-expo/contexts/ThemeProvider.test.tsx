@@ -1,6 +1,6 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
-import { Text } from "react-native";
+import { Appearance, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import {
@@ -176,6 +176,32 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		surfaceSubtle: "#F3F4F6",
 		surfaceSelected: "#E5E5E5",
 		appShellBackdrop: "#F3F4F6",
+		// #1629 友達投票 / オンボーディングのトークン化で追加。light はいずれも
+		// 対象ファイルに直書きされていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		surfacePlaceholder: "#E5E7EB",
+		surfaceSelectedTint: "#EEF2FF",
+		// #1629 共通コンポーネント（スケルトン / 動画 / 地図 / web バナー）のトークン化で追加。
+		// light はいずれも対象ファイルに直書きされていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		skeletonBase: "#E9ECEF",
+		skeletonBandGradient: [
+			"rgba(255,255,255,0)",
+			"rgba(255,255,255,0.25)",
+			"#FFFFFF",
+			"rgba(255,255,255,0.25)",
+			"rgba(255,255,255,0)",
+		],
+		promoBannerSurface: "#FBEEDD",
+		inverseSurface: "#1A1A1A",
+		onInverseSurface: "#FFFFFF",
+		// #1629 言語切替の «切り替えています» の幕。light は language.tsx に直書きされていた値の写し
+		busyScrim: "rgba(255, 255, 255, 0.85)",
+		textPrimaryDim: "#1F2937",
+		brandTrack: "#FBD9D0",
+		// #1629 OS 許可ダイアログの複製（#1486 §5）。iOS のシステム値をそのまま持つ
+		alertSurface: "#F5F5F7",
+		alertMessage: "#48484A",
+		alertSeparator: "#C6C6C8",
+		alertAction: "#007AFF",
 		divider: "#F3F4F6",
 		border: "#C9C9C9",
 		borderContrast: "#000000",
@@ -201,15 +227,23 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		brandTintSoft: "#FFF7F5",
 		brandTintAlt: "#FDE7E1",
 		brandBorder: "#F6DCD5",
+		// #1509 SET-06（プロフィール / 認証 / ウォレット系のトークン化）で追加。
+		// いずれも対象ファイルに書かれていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		borderFaint: "#E5E5E5",
+		borderNeutral: "#D1D5DB",
+		surfaceChip: "#F5F5F5",
+		surfaceChipAlt: "#EDEFF1",
 		// #1502 地点確定 ✓ 用に追加。値は LocationAutocomplete に直書きされていた #16A34A の移設
 		success: "#16A34A",
 		danger: "#DC2626",
 		dangerStrong: "#EF4444",
 		dangerTint: "#FEE2E2",
+		// FeedbackForm / ProfileEditForm のエラーバナー・エラー時の入力欄の地（main のリテラルの写し）
+		dangerTintSoft: "#FEF2F2",
 		destructive: "#FF3E33",
 		// #1514 通報受付の CircleCheck。ReportContentSheet.tsx が直書きしていた
 		// リテラルの写しなので、ライトの見た目は 1px も変わらない。
-				// #1577 確認ダイアログの見出し・本文。どちらも DialogProvider.tsx が
+		// #1577 確認ダイアログの見出し・本文。どちらも DialogProvider.tsx が
 		// 直書きしていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
 		dialogTitle: "#1C1B1F",
 		dialogMessage: "#49454F",
@@ -220,6 +254,34 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		warningTint: "#FEF3C7",
 		warningText: "#92400E",
 		warningAction: "#B45309",
+		// #1629 社内タスク画面（contribution-tasks）のトークン化で追加。light はいずれも
+		// 対象ファイルに直書きされていたリテラルの写しなので、ライトの見た目は 1px も変わらない。
+		backgroundAlt: "#F5F5F5",
+		surfaceSunken: "#EEEEEE",
+		surfaceFaintAlt: "#F9F9F9",
+		surfaceDisabled: "#E0E0E0",
+		surfaceDisabledStrong: "#BDBDBD",
+		surfaceSelectedInfo: "#E3F2FD",
+		surfaceSunkenStrong: "#DDDDDD",
+		surfacePlaceholderAlt: "#C9C9C9",
+		borderSoft: "#DDDDDD",
+		borderPale: "#E0E0E0",
+		borderSubtle: "#CCCCCC",
+		textPrimarySoft: "#333333",
+		textPrimaryMuted: "#444444",
+		textSecondaryDim: "#555555",
+		successStrong: "#22C55E",
+		successFill: "#22C55E",
+		successAlt: "#4CAF50",
+		brandAlt: "#FF6B35",
+		accentCoral: "#FF6B6B",
+		dangerAlt: "#D32F2F",
+		dangerVivid: "#FF3B30",
+		dangerBright: "#F44336",
+		warningAccent: "#FF9800",
+		buttonNeutralGradient: ["#6B7280", "#4B5563"],
+		buttonDisabledGradient: ["#9CA3AF", "#6B7280"],
+		buttonSuccessGradient: ["#22C55E", "#16A34A"],
 		ctaBackground: "#000000",
 		ctaBackgroundDisabled: "#999999",
 		ctaLabel: "#FFFFFF",
@@ -248,5 +310,77 @@ describe("THEME_PREFERENCES", () => {
 	it("設定画面が並べる順は システム追従 → ライト → ダーク", () => {
 		const expected: ThemePreference[] = ["system", "light", "dark"];
 		expect([...(require("./ThemeProvider").THEME_PREFERENCES as ThemePreference[])]).toEqual(expected);
+	});
+});
+
+/*
+#1629【27】アプリ内の 3 択を «ネイティブ部品» にも効かせる。
+
+RN の Switch・キーボード・日付ピッカー・Alert などは **OS が描く**ので、
+JS 側をいくら直しても `OS = ライト / アプリ設定 = ダーク` でそこだけ白いまま残る。
+`Appearance.setColorScheme` はアプリ単位の外観を上書きする JS の API で、
+ネイティブ差分を生まないため OTA で配れる。
+
+ここで固定するのは «呼び方» である。**system のときに null を渡す**ことが要で、
+渡し忘れると「一度 dark にした端末がシステム追従へ戻しても暗いまま」になる。
+*/
+describe("#1629 ネイティブ部品への反映（Appearance.setColorScheme）", () => {
+	const setColorScheme = jest.spyOn(Appearance, "setColorScheme").mockImplementation(() => {});
+
+	beforeEach(() => setColorScheme.mockClear());
+
+	it("dark を選ぶと dark で上書きする", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue("dark");
+		await renderWithProvider();
+		expect(setColorScheme).toHaveBeenCalledWith("dark");
+	});
+
+	it("light を選ぶと light で上書きする", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue("light");
+		await renderWithProvider();
+		expect(setColorScheme).toHaveBeenCalledWith("light");
+	});
+
+	it("**system では null を渡して上書きを外す**（これを忘れると暗いまま戻らない）", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue("system");
+		await renderWithProvider();
+		expect(setColorScheme).toHaveBeenCalledWith(null);
+	});
+
+	it("設定を読み終わる前には触らない（起動直後にライトへ振れるのを防ぐ）", async () => {
+		// getItem を解決させないまま描画する
+		mockedAsyncStorage.getItem.mockReturnValue(new Promise(() => {}));
+		const { Probe } = captureTheme();
+		act(() => {
+			TestRenderer.create(
+				<ThemeProvider>
+					<Probe />
+				</ThemeProvider>,
+			);
+		});
+		expect(setColorScheme).not.toHaveBeenCalled();
+	});
+});
+
+/*
+#1629 **web では `Appearance.setColorScheme` が存在しない。**
+
+react-native-web にこの API は無く、無い環境で呼ぶと ThemeProvider のレンダー直下で
+TypeError が投げられ **アプリ全体が描画されない**（実測: web ビルドで画面が真っ白）。
+jest の RN モックには関数が在るため、これだけでは気づけなかった。
+**関数を消した状態で «落ちないこと» をここで固定する。**
+*/
+describe("#1629 setColorScheme が無い環境（react-native-web）でも落ちない", () => {
+	it("関数が無くても Provider は描画でき、テーマは解決される", async () => {
+		const original = Appearance.setColorScheme;
+		// @ts-expect-error web には存在しないことの再現
+		Appearance.setColorScheme = undefined;
+		try {
+			mockedAsyncStorage.getItem.mockResolvedValue("dark");
+			const { seen } = await renderWithProvider();
+			expect(seen.current?.scheme).toBe("dark");
+		} finally {
+			Appearance.setColorScheme = original;
+		}
 	});
 });

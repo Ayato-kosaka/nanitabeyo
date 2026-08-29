@@ -6,6 +6,8 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { useLocale } from "@/hooks/useLocale";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+import type { Palette } from "@/constants/Palette";
 
 interface BidFormProps {
 	/** Initial bid amount */
@@ -24,6 +26,10 @@ interface BidFormProps {
  */
 export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessing = false }: BidFormProps) {
 	// Internal state - isolated from parent re-renders
+	// #1629 このフォームは «入札シートの中身» で、地図タイルの上には載らない。
+	// だから面・文字・罫線はすべてテーマへ追従させる（固定色にする理由が無い）。
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const [bidAmount, setBidAmount] = useState(initialBidAmount);
 	// #1599 隣のラベル（Map.labels.endDate）は 8 ロケール全てに翻訳があるのに、
 	// 日付の書式だけ "ja-JP" 固定だった。この画面にロケール限定のガードは無いので、
@@ -48,6 +54,8 @@ export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessin
 				<TextInput
 					style={styles.textInput}
 					placeholder={i18n.t("Map.placeholders.enterBidAmount")}
+					// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+					placeholderTextColor={colors.textSecondary}
 					value={bidAmount}
 					onChangeText={setBidAmount}
 					keyboardType="numeric"
@@ -56,7 +64,7 @@ export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessin
 
 			<View style={styles.bidInfo}>
 				<View style={styles.bidInfoRow}>
-					<Calendar size={16} color="#666" />
+					<Calendar size={16} color={colors.textMuted} />
 					<Text style={styles.bidInfoText}>
 						{i18n.t("Map.labels.endDate")} {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(locale)}
 					</Text>
@@ -80,43 +88,44 @@ export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessin
 	);
 }
 
-const styles = StyleSheet.create({
-	inputLabel: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#000",
-		marginBottom: 8,
-	},
-	textInput: {
-		borderWidth: 1,
-		borderColor: "#E5E5E5",
-		borderRadius: 8,
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		fontSize: 16,
-		color: "#000",
-	},
-	bidInfo: {
-		marginHorizontal: 16,
-		marginBottom: 24,
-	},
-	bidInfoRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 8,
-	},
-	bidInfoText: {
-		fontSize: 14,
-		color: "#666",
-		marginLeft: 8,
-	},
-	processingContainer: {
-		alignItems: "center",
-		paddingVertical: 32,
-	},
-	processingText: {
-		fontSize: 16,
-		color: "#666",
-		marginTop: 16,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		inputLabel: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textStrong,
+			marginBottom: 8,
+		},
+		textInput: {
+			borderWidth: 1,
+			borderColor: c.borderFaint,
+			borderRadius: 8,
+			paddingHorizontal: 12,
+			paddingVertical: 12,
+			fontSize: 16,
+			color: c.textStrong,
+		},
+		bidInfo: {
+			marginHorizontal: 16,
+			marginBottom: 24,
+		},
+		bidInfoRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: 8,
+		},
+		bidInfoText: {
+			fontSize: 14,
+			color: c.textMuted,
+			marginLeft: 8,
+		},
+		processingContainer: {
+			alignItems: "center",
+			paddingVertical: 32,
+		},
+		processingText: {
+			fontSize: 16,
+			color: c.textMuted,
+			marginTop: 16,
+		},
+	});

@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "مشاركة",
 			"seeMore": "عرض المزيد",
-			"openMap": "افتح الخريطة"
+			"openMap": "افتح الخريطة",
+			"review": "مراجعة"
 		},
 		"share": {
 			"title": "اطّلع على {{dishName}}"
@@ -448,13 +449,18 @@
 			"menuTitle": "منشورك",
 			"edit": "تعديل المراجعة",
 			"delete": "حذف المنشور",
+			"deleteReview": "حذف المراجعة",
 			"cancel": "إلغاء",
 			"mediaLocked": "لا يمكن تغيير الصور ومقاطع الفيديو. يمكنك تعديل التعليق والتقييم والسعر.",
 			"deleteConfirmTitle": "هل تريد حذف هذا المنشور؟",
 			"deleteConfirmMessage": "سيتم حذف المنشور (الصورة ومراجعتك). لا يمكن التراجع عن ذلك.",
+			"deleteReviewConfirmTitle": "هل تريد حذف هذه المراجعة؟",
+			"deleteReviewConfirmMessage": "سيتم حذف المراجعة التي كتبتها فقط. الصورة تخص شخصًا آخر وستبقى. لا يمكن التراجع عن ذلك.",
 			"deleteConfirmButton": "حذف",
 			"deleted": "تم حذف المنشور",
+			"reviewDeleted": "تم حذف المراجعة",
 			"deleteFailed": "تعذّر حذف المنشور",
+			"reviewDeleteFailed": "تعذّر حذف المراجعة",
 			"editTitle": "تعديل المراجعة",
 			"editComment": "التعليق",
 			"editRating": "التقييم",
@@ -464,6 +470,9 @@
 			"saveFailed": "تعذّر تحديث المراجعة",
 			"conflict": "تم تحديث هذه المراجعة من مكان آخر. أعد فتحها قبل التعديل.",
 			"forbidden": "يمكنك تعديل أو حذف منشوراتك فقط"
+		},
+		"moreMenu": {
+			"title": "هذا المنشور"
 		}
 	},
 	"ImageCardGrid": {
@@ -843,7 +852,8 @@
 			"group_votes": {
 				"title": "تصويت المجموعة",
 				"description": "عند حدوث نشاط في تصويت مجموعة انضممت إليها"
-			}
+			},
+			"navigationLabel": "إعدادات الإشعارات"
 		},
 		"language": {
 			"navigationLabel": "اللغة",
@@ -886,6 +896,10 @@
 			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
 			"unblockConfirm": "إلغاء الحظر",
 			"unblocked": "تم إلغاء الحظر"
+		},
+		"account": {
+			"navigationLabel": "إدارة الحساب",
+			"title": "إدارة الحساب"
 		}
 	},
 	"Dialog": {
@@ -936,6 +950,7 @@
 			"savedRestaurantList": "المطاعم المحفوظة",
 			"postPhotoVideo": "نشر صورة/فيديو",
 			"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
+			"fetchSavedRestaurantsTimeout": "استغرق الأمر وقتًا طويلاً. قرّب الخريطة وحاول مرة أخرى.",
 			"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى."
 		},
 		"emptyState": {
@@ -953,6 +968,7 @@
 		"savedRestaurantList": "المطاعم المحفوظة",
 		"postPhotoVideo": "نشر صورة/فيديو",
 		"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
+		"fetchSavedRestaurantsTimeout": "استغرق الأمر وقتًا طويلاً. قرّب الخريطة وحاول مرة أخرى.",
 		"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى.",
 		"nameSearch": {
 			"placeholder": "البحث باسم المطعم",
@@ -1065,7 +1081,11 @@
 			"activeCount": "{{count}} عوامل تصفية نشطة"
 		},
 		"empty": {
-			"description": "ستظهر هنا الأطباق التي تحفظها أو تسجّل أنك تناولتها."
+			"description": "ستظهر هنا الأطباق التي تحفظها أو تسجّل أنك تناولتها.",
+			"noResultsInArea": "لا توجد سجلات في هذا النطاق.",
+			"noResultsInAreaHint": "حرّك الخريطة واضغط على «البحث في هذه المنطقة»، أو أزل عوامل التصفية.",
+			"noResultsForFilter": "لا توجد سجلات تطابق عوامل التصفية.",
+			"noResultsForFilterHint": "أزل عوامل التصفية لعرض سجلاتك الأخرى."
 		},
 		"list": {
 			"noPhoto": "بدون صورة"

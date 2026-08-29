@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "シェア",
 			"seeMore": "もっと見る",
-			"openMap": "地図を開く"
+			"openMap": "地図を開く",
+			"review": "レビュー"
 		},
 		"share": {
 			"title": "{{dishName}}をチェック"
@@ -448,13 +449,18 @@
 			"menuTitle": "自分の投稿",
 			"edit": "レビューを編集",
 			"delete": "投稿を削除",
+			"deleteReview": "クチコミを削除",
 			"cancel": "キャンセル",
 			"mediaLocked": "写真・動画は変更できません。編集できるのはコメント・評価・価格です。",
 			"deleteConfirmTitle": "投稿を削除しますか？",
 			"deleteConfirmMessage": "この投稿（写真とあなたのレビュー）を削除します。元に戻せません。",
+			"deleteReviewConfirmTitle": "クチコミを削除しますか？",
+			"deleteReviewConfirmMessage": "あなたが書いたクチコミだけを削除します。写真は他の人のものなので残ります。元に戻せません。",
 			"deleteConfirmButton": "削除する",
 			"deleted": "投稿を削除しました",
+			"reviewDeleted": "クチコミを削除しました",
 			"deleteFailed": "削除できませんでした",
+			"reviewDeleteFailed": "クチコミを削除できませんでした",
 			"editTitle": "レビューを編集",
 			"editComment": "コメント",
 			"editRating": "評価",
@@ -464,6 +470,9 @@
 			"saveFailed": "更新できませんでした",
 			"conflict": "他の端末で先に更新されました。開き直してから編集してください",
 			"forbidden": "自分の投稿ではないため操作できません"
+		},
+		"moreMenu": {
+			"title": "この投稿"
 		}
 	},
 	"ImageCardGrid": {
@@ -843,7 +852,8 @@
 			"group_votes": {
 				"title": "グループ投票",
 				"description": "参加しているグループ投票に動きがあったとき"
-			}
+			},
+			"navigationLabel": "通知設定"
 		},
 		"language": {
 			"navigationLabel": "言語",
@@ -886,6 +896,10 @@
 			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
+		},
+		"account": {
+			"navigationLabel": "アカウント管理",
+			"title": "アカウント管理"
 		}
 	},
 	"Dialog": {
@@ -936,6 +950,7 @@
 			"savedRestaurantList": "保存したお店リスト",
 			"postPhotoVideo": "写真・動画を投稿",
 			"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
+			"fetchSavedRestaurantsTimeout": "時間内に取得できませんでした。表示範囲を狭めて、もう一度お試しください",
 			"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。"
 		},
 		"emptyState": {
@@ -953,6 +968,7 @@
 		"savedRestaurantList": "保存したお店リスト",
 		"postPhotoVideo": "写真・動画を投稿",
 		"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
+		"fetchSavedRestaurantsTimeout": "時間内に取得できませんでした。表示範囲を狭めて、もう一度お試しください",
 		"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。",
 		"nameSearch": {
 			"placeholder": "店名で検索",
@@ -1065,7 +1081,11 @@
 			"activeCount": "絞り込み {{count}} 件が有効"
 		},
 		"empty": {
-			"description": "気になるお店の料理を保存したり、食べた記録をつけるとここに並びます。"
+			"description": "気になるお店の料理を保存したり、食べた記録をつけるとここに並びます。",
+			"noResultsInArea": "この範囲には記録がありません。",
+			"noResultsInAreaHint": "地図を動かして「このエリアで再検索」を押すか、絞り込みを外してください。",
+			"noResultsForFilter": "条件に合う記録がありません。",
+			"noResultsForFilterHint": "絞り込みを外すと、ほかの記録が表示されます。"
 		},
 		"list": {
 			"noPhoto": "写真なし"

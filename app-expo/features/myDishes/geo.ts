@@ -6,6 +6,15 @@
  * （設計書 (2/2) §3-2 / #1395 §0(A): `dish_reviews` は約 964MB、平均 4.48 秒）。
  * 生の viewport は `MyDishesMapView` 内の `useRef` に置く。
  */
+import {
+	MAX_SEARCH_RADIUS_M,
+	METERS_PER_DEGREE_LATITUDE,
+	viewportRadiusMeters,
+	type ViewportLike,
+} from "@shared/utils/geo_search";
+
+// 既存の import 元（テスト等）を壊さないための再輸出。定義の正本は shared/utils/geo_search.ts
+export { METERS_PER_DEGREE_LATITUDE };
 
 /**
  * `react-native-maps` の `Region` と構造的に互換な最小の形。
@@ -14,21 +23,20 @@
  * `react-native-maps` のネイティブモジュール解決を要求してしまうため、
  * ここでは形だけを受け取る（`Region` はこの型に代入可能）。
  */
-export type MapRegionLike = {
-	latitude: number;
-	longitude: number;
-	latitudeDelta: number;
-	longitudeDelta: number;
-};
+export type MapRegionLike = ViewportLike;
 
 /** `QueryMyDishesDto` が受け付ける半径の下限（m）。これ未満は 400 になる */
 export const MIN_AREA_RADIUS_M = 10;
 
-/** `QueryMyDishesDto` が受け付ける半径の上限（m）。これ超過は 400 になる */
-export const MAX_AREA_RADIUS_M = 50_000;
-
-/** 緯度 1 度あたりの距離（m）。WGS84 の平均値 */
-export const METERS_PER_DEGREE_LATITUDE = 111_320;
+/**
+ * #1629 【設計】`QueryMyDishesDto` が受け付ける半径の上限（m）。これ超過は 400 になる。
+ *
+ * **かつては 50km だった。** そのため日本全体を映して「このエリアで再検索」を押しても
+ * «日本の中心から 50km» の円しか検索せず、東京の記録は全部その外へ落ちて必ず 0 件になった
+ * （オーナー報告）。地図で «見えている範囲を検索する» と言う以上、上限は
+ * «地図が映しうる最大» でなければならない。正本は shared/utils/geo_search.ts。
+ */
+export const MAX_AREA_RADIUS_M = MAX_SEARCH_RADIUS_M;
 
 /** #1396 `commitArea` へ渡すエリア（`MyDishesArea` の非 null 部分と同じ形） */
 export type AreaFromRegion = { lat: number; lng: number; radius: number };
@@ -64,45 +72,25 @@ export function regionToArea(region: MapRegionLike | null | undefined): AreaFrom
 	const lat = clamp(latitude, -90, 90);
 	const lng = clamp(longitude, -180, 180);
 
-	// delta は「viewport の縦・横の幅（度）」。負の delta を渡してくる実装があり得るので絶対値を取る。
-	const latSpanMeters = Math.abs(latitudeDelta) * METERS_PER_DEGREE_LATITUDE;
-	const lngSpanMeters = Math.abs(longitudeDelta) * METERS_PER_DEGREE_LATITUDE * Math.cos((lat * Math.PI) / 180);
-
-	const halfDiagonal = Math.sqrt(latSpanMeters ** 2 + lngSpanMeters ** 2) / 2;
+	// 半径 = viewport の外接円（対角線の半分）。計算の正本は shared/utils/geo_search.ts
+	const halfDiagonal = viewportRadiusMeters(region) ?? 0;
 	const radius = Math.round(clamp(halfDiagonal, MIN_AREA_RADIUS_M, MAX_AREA_RADIUS_M));
 
 	return { lat, lng, radius };
 }
 
-/**
- * #1396 レビュー M-2: 「このエリアで再検索」を押したとき、`regionToArea` が `MAX_AREA_RADIUS_M`
- * で clamp してしまう（= 実際に確定する円が viewport よりはるかに広い）かどうかを事前に判定する。
- *
- * `regionToArea` 自体は clamp 後の値しか返さないため、呼び出し側（`MyDishesMapView`）は
- * 「ボタンのラベルと確定する範囲が大きくずれる」ケースを検知できなかった。ここで
- * 判定手段を切り出し、呼び出し側はズームレベルが粗すぎる間ボタンを無効化できるようにする。
- *
- * 非有限値の region は「確定に使えない」= too wide 扱いにする（`regionToArea` が null を返すのと対）。
- */
-export function isRegionTooWide(region: MapRegionLike | null | undefined): boolean {
-	if (!region) return true;
-	const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
-	if (
-		!isFiniteNumber(latitude) ||
-		!isFiniteNumber(longitude) ||
-		!isFiniteNumber(latitudeDelta) ||
-		!isFiniteNumber(longitudeDelta)
-	) {
-		return true;
-	}
+/*
+#1629 【設計】**`isRegionTooWide()` は削除した。**
 
-	const lat = clamp(latitude, -90, 90);
-	const latSpanMeters = Math.abs(latitudeDelta) * METERS_PER_DEGREE_LATITUDE;
-	const lngSpanMeters = Math.abs(longitudeDelta) * METERS_PER_DEGREE_LATITUDE * Math.cos((lat * Math.PI) / 180);
-	const halfDiagonal = Math.sqrt(latSpanMeters ** 2 + lngSpanMeters ** 2) / 2;
+これは «`regionToArea` が 50km で clamp してしまう（= 確定する円が viewport とかけ離れる）»
+のを呼び出し側が事前に知るための関数だった。上限が «地図が映しうる最大» になった今、
+実在する viewport で真になることはなく、判定としての意味が無い
+（本番コードからの参照も無かった。ボタンの無効化は #1375 の実機確認で既に廃止済み）。
 
-	return halfDiagonal > MAX_AREA_RADIUS_M;
-}
+«広すぎるから押させない / もっと寄せてくださいと案内する» を復活させたくなったら、
+まず «引いても意味のある結果が出るか» を疑うこと。オーナーの要望は
+「食べログのように全国から優先順で 20 件くらい出る」であって、案内文ではない。
+*/
 
 /** #1396 m-1: ピンの外接矩形を表す最小の座標の形 */
 export type CoordinateLike = { latitude: number; longitude: number };
@@ -122,7 +110,7 @@ export function boundingRegionForCoordinates(coordinates: CoordinateLike[]): Map
 	Math.min / Math.max ごと NaN に伝播し、**ネイティブの地図へ NaN の Region を渡す**。
 	Android ではそこで例外を伴わずに描画が止まりうる。
 	同じ `pins` を食う `clusterMyDishPins` は `Number.isFinite` で弾いているのに、
-	こちらだけ無防備だった（`regionToArea` / `isRegionTooWide` は弾いている）。
+	こちらだけ無防備だった（`regionToArea` は弾いている）。
 	*/
 	const finite = coordinates.filter((c) => Number.isFinite(c.latitude) && Number.isFinite(c.longitude));
 	if (finite.length === 0) return null;

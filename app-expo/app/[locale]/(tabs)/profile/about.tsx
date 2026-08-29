@@ -82,25 +82,48 @@ export default function AboutScreen() {
 		[lightImpact, logFrontendEvent, locale],
 	);
 
+	const handleSendFeedback = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "settings_send_feedback_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({ pathname: "/[locale]/(tabs)/profile/feedback", params: { locale } });
+	}, [lightImpact, logFrontendEvent, locale]);
+
 	return (
 		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader title={i18n.t("Settings.about.title")} onPressBack={handleBack} testID="about-screen" />
 				<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} testID="about-scroll">
-					{/* #317 / #611 【設計】ストア導線は web では非表示（ストアが存在しない）。
-					    #1583 ラベルを «レビューを書く» から «なに食べよ を応援する» へ変えた。
-					    押した先も表示条件も testID も同じ */}
-					{Platform.OS !== "web" && (
-						<Card style={styles.card}>
+					{/*
+					  #1629 【仕様】1 ブロック目は «なに食べよを応援する» → «ご意見・不具合» の順（オーナー指示）。
+					  «ご意見・不具合» はマイページ本体から移設した。どちらも «作り手へ届ける» 行為であり、
+					  «この アプリについて» の中に並んでいるのが自然、という判断。
+
+					  #317 / #611 【設計】ストア導線だけは web では出さない（web にストアが無い）。
+					  ⚠️ カードごと `Platform.OS !== "web"` で囲まないこと。囲うと web で
+					     «ご意見・不具合» まで丸ごと消える。**行単位**で出し分ける。
+					*/}
+					<Card style={styles.card}>
+						{Platform.OS !== "web" && (
 							<SettingsMenuItem
 								label={i18n.t("Settings.support")}
 								onPress={handleLeaveReview}
-								isLast
 								testID="settings-leave-review"
 								accessibilityRole="button"
 							/>
-						</Card>
-					)}
+						)}
+						{/* #951 【仕様】モーダル起動から画面遷移(router.push)に変わったため link（#950 の規約） */}
+						<SettingsMenuItem
+							label={i18n.t("Settings.sendFeedback")}
+							onPress={handleSendFeedback}
+							isLast
+							testID="settings-feedback"
+							accessibilityRole="link"
+						/>
+					</Card>
 
 					<Card style={styles.card}>
 						{/* #1368 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約) */}

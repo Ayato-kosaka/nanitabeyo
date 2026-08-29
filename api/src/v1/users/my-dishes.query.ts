@@ -755,6 +755,54 @@ export function buildMyDishesPageQuery(
 }
 
 /**
+ * #1629 【設計】map-pins の格子セルの大きさ（度）。
+ *
+ * ## なぜ格子か
+ *
+ * 上限（`MY_DISH_MAP_PINS_LIMIT`）で切るとき、以前は «最新 300 店舗» を選んでいた。
+ * 記録が 300 店舗を超えるユーザーが引きで（日本全体を）見ると、**最近行っていない
+ * 地方の記録が地図から丸ごと消える**。この画面の引きの絵が答えるべき問いは
+ * 「どこに行ったか」の分布であって「最近どこに行ったか」ではない。
+ *
+ * そこで店舗を粗い格子セルへ割り、**セルごとの round-robin**（各セルの 1 位を先に、
+ * 次に 2 位を…）で 300 件を選ぶ。セル内の順位は新しい順なので、
+ * - 記録が 300 店舗以下なら全件（従来と同じ）
+ * - 超えるなら «記録のある地域すべてに最低 1 本» を立ててから、残り枠を新しい順に配る
+ *
+ * ## セルの大きさ
+ *
+ * - エリア絞り込み無し: 0.5 度（≒ 55km）。引きの絵の分布を保つのが目的なので粗くてよい。
+ *   日本全体でも占有セルは高々数十〜百程度で、上限 300 の内側に収まる
+ * - エリア絞り込みあり（lat/lng/radius）: 表示直径を `CELLS_PER_AXIS` 分割した値。
+ *   寄った範囲の中でも同じ理屈（範囲内の分布を保つ）が効くようにする
+ *
+ * セル境界の 2 点が別セルへ割れる問題（features/map/clustering.ts が格子を捨てた理由）は
+ * ここでは問題にならない。目的が «見かけの畳み» ではなく «選抜の公平さ» なので、
+ * 境界で隣のセルに入っても「その地域の代表が立つ」ことは変わらない。
+ */
+export const MY_DISH_MAP_PINS_DEFAULT_CELL_DEG = 0.5;
+export const MY_DISH_MAP_PINS_CELLS_PER_AXIS = 12;
+export const MY_DISH_MAP_PINS_MIN_CELL_DEG = 0.002;
+
+/** 赤道上での 1 度あたりのメートル数。セルの粗い縮尺換算にしか使わない */
+const METERS_PER_DEGREE = 111_320;
+
+export function myDishMapPinsCellSizeDegrees(dto: {
+  lat?: number;
+  lng?: number;
+  radius?: number;
+}): number {
+  const hasArea =
+    dto.lat !== undefined && dto.lng !== undefined && dto.radius !== undefined;
+  if (!hasArea) return MY_DISH_MAP_PINS_DEFAULT_CELL_DEG;
+  const diameterDeg = ((dto.radius as number) * 2) / METERS_PER_DEGREE;
+  return Math.max(
+    diameterDeg / MY_DISH_MAP_PINS_CELLS_PER_AXIS,
+    MY_DISH_MAP_PINS_MIN_CELL_DEG,
+  );
+}
+
+/**
  * GET /v1/users/me/dishes/map-pins のクエリ。
  *
  * Map は「viewport 内のピンを全部」欲しいのでページングしない。
@@ -776,12 +824,18 @@ export function buildMyDishMapPinsQuery(
 
   const cteHead = built.ctes ? Prisma.sql`${built.ctes},` : Prisma.empty;
 
+  // #1629 【設計】上限で切るときの «選び方» は格子セルごとの round-robin（下の cell_rank）。
+  // 集約（pin_stats）は従来から候補全行を読む形（枝内 LIMIT なし）だったので、
+  // ここで選び方を変えても DB の読み量は増えない。増えるのは
+  // restaurants への座標引き（店舗数ぶんの索引参照）と window 関数 1 段だけである。
+  const cellDeg = myDishMapPinsCellSizeDegrees(dto);
+
   return Prisma.sql`
   WITH ${cteHead}
   candidates AS MATERIALIZED (
     SELECT * FROM (${built.candidates}) u
   ),
-  pins AS (
+  pin_stats AS (
     SELECT
       d.restaurant_id                                        AS restaurant_id,
       COUNT(*) FILTER (WHERE c.row_status = 'want')::int      AS want_count,
@@ -790,7 +844,22 @@ export function buildMyDishMapPinsQuery(
     FROM candidates c
     JOIN dishes d ON d.id = c.dish_id
     GROUP BY d.restaurant_id
-    ORDER BY MAX(c.occurred_at) DESC
+  ),
+  pins AS (
+    SELECT restaurant_id, want_count, eaten_count, latest_occurred_at
+    FROM (
+      SELECT
+        ps.*,
+        ROW_NUMBER() OVER (
+          PARTITION BY
+            FLOOR(r2.latitude  / ${cellDeg}::double precision),
+            FLOOR(r2.longitude / ${cellDeg}::double precision)
+          ORDER BY ps.latest_occurred_at DESC, ps.restaurant_id DESC
+        ) AS cell_rank
+      FROM pin_stats ps
+      JOIN restaurants r2 ON r2.id = ps.restaurant_id
+    ) ranked
+    ORDER BY cell_rank ASC, latest_occurred_at DESC, restaurant_id DESC
     LIMIT ${MY_DISH_MAP_PINS_LIMIT + 1}
   )
   SELECT

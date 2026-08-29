@@ -266,7 +266,18 @@ export class DishMediaImportsService {
            待つのはまったく同じ (provider, 投稿, 料理) を同時に取り込む相手だけで、
            tx 本体は短いので実質的な直列化コストは無い。 */
         const importLockKey = `dish_media_import:${provider}:${externalContentId}:${dish.id}`;
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${importLockKey})::bigint)`;
+        /* ⚠️ `$queryRaw` ではなく `$executeRaw` を使うこと。
+
+           `pg_advisory_xact_lock` の戻り値は `void` で、`$queryRaw` は結果セットの
+           各列を Prisma の型へ復元しようとするため、**必ず**次で落ちる（#1629 / dev 実測）:
+
+             PrismaClientKnownRequestError: Raw query failed. Code: `N/A`.
+             Message: `Failed to deserialize column of type 'void'.`
+
+           つまり «同時実行のとき» ではなく **取り込みが毎回 500 になる**。
+           `::text` などへキャストして逃げることはできない（void からのキャストは無い）。
+           `$executeRaw` は列を復元せず作用行数だけを返すので、void でも通る。 */
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${importLockKey})::bigint)`;
 
         /* 2. 同じ SNS 投稿が同じ料理へ既に取り込まれていないか */
         const existing = await tx.dish_media_external_embeddings.findFirst({

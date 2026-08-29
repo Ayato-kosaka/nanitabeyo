@@ -1,5 +1,7 @@
 import type { MyDishStatus } from "@shared/api/v1/dto";
 
+import { FixedColors } from "@/constants/Palette";
+
 /**
  * #1375 my-dishes 全体で «食べたい / 食べた» を表す記号色。
  *
@@ -48,11 +50,11 @@ export type MyDishStatusPaint = {
  *
  * ⚠️ 明るくしない（白文字が読めなくなる。上のコントラストの注記を参照）。
  */
-export const MY_DISH_STATUS_ORANGE = "#ED6C02";
+export const MY_DISH_STATUS_ORANGE = FixedColors.myDishStatusOrange;
 
 export const MY_DISH_STATUS_COLORS: Record<MyDishStatus, MyDishStatusPaint> = {
-	want: { fill: "#FFFFFF", border: MY_DISH_STATUS_ORANGE, on: MY_DISH_STATUS_ORANGE },
-	eaten: { fill: MY_DISH_STATUS_ORANGE, border: "#FFFFFF", on: "#FFFFFF" },
+	want: { fill: FixedColors.myDishStatusOn, border: MY_DISH_STATUS_ORANGE, on: MY_DISH_STATUS_ORANGE },
+	eaten: { fill: MY_DISH_STATUS_ORANGE, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
 };
 
 /** 件数の内訳。`countMyDishStatuses` の返り値 */

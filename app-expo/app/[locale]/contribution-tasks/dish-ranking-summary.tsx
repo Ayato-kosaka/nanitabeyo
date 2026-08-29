@@ -30,6 +30,8 @@ import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -95,6 +97,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function DishRankingSummaryScreen() {
 	const insets = useSafeAreaInsets();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
 
@@ -470,12 +474,12 @@ export default function DishRankingSummaryScreen() {
 						hitSlop={8}
 						accessibilityRole="button"
 						accessibilityLabel="この料理にコメントする">
-						<MessageCircle size={18} color="#f05537" />
+						<MessageCircle size={18} color={colors.brand} />
 					</Pressable>
 				</View>
 			);
 		},
-		[handleOpenDishModal],
+		[handleOpenDishModal, styles, colors],
 	);
 
 	/* ------------------------------------------------------------------ */
@@ -485,7 +489,7 @@ export default function DishRankingSummaryScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centerContainer}>
-				<ActivityIndicator size="large" color="#f05537" />
+				<ActivityIndicator size="large" color={colors.brand} />
 				<Text style={styles.loadingText}>データを読み込み中...</Text>
 			</View>
 		);
@@ -520,14 +524,14 @@ export default function DishRankingSummaryScreen() {
 
 				{/* 右側：ヘルプアイコン */}
 				<Pressable style={styles.helpButton} onPress={handleOpenHelp} hitSlop={8}>
-					<HelpCircle size={20} color="#333" />
+					<HelpCircle size={20} color={colors.textPrimarySoft} />
 				</Pressable>
 			</View>
 
 			{/* 条件プルダウン */}
 			<Pressable style={styles.conditionSelector} onPress={openConditionPickerModal}>
 				<Text style={styles.conditionLabel}>{selectedCondition.label}</Text>
-				<ChevronDown size={20} color="#333" />
+				<ChevronDown size={20} color={colors.textPrimarySoft} />
 			</Pressable>
 
 			{/* ランキング一覧 */}
@@ -570,7 +574,7 @@ export default function DishRankingSummaryScreen() {
 					<TextInput
 						style={styles.commentInput}
 						placeholder={PLACEHOLDER_SUMMARY}
-						placeholderTextColor="#999"
+						placeholderTextColor={colors.iconPlaceholder}
 						value={summaryDraft}
 						onChangeText={(text) =>
 							setSummaryCommentByCondition((prev) => ({
@@ -632,7 +636,7 @@ export default function DishRankingSummaryScreen() {
 					<TextInput
 						style={styles.commentInput}
 						placeholder={PLACEHOLDER_DISH}
-						placeholderTextColor="#999"
+						placeholderTextColor={colors.iconPlaceholder}
 						value={activeDish ? (dishDraftMap[activeDish.qid] ?? "") : ""}
 						onChangeText={(text) => {
 							if (!activeDish) return;
@@ -719,318 +723,324 @@ export default function DishRankingSummaryScreen() {
 // 右下固定ボタンの高さ（余白計算に使う）
 const FLOATING_BUTTON_HEIGHT = 44;
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#fff",
-	},
-	centerContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 20,
-	},
-	loadingText: {
-		marginTop: 16,
-		fontSize: 16,
-		color: "#666",
-	},
-	errorText: {
-		fontSize: 18,
-		fontWeight: "bold",
-		color: "#d32f2f",
-		marginBottom: 8,
-		textAlign: "center",
-	},
-	errorDetail: {
-		fontSize: 14,
-		color: "#666",
-		textAlign: "center",
-	},
+// #1629 パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		centerContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 20,
+		},
+		loadingText: {
+			marginTop: 16,
+			fontSize: 16,
+			color: c.textMuted,
+		},
+		errorText: {
+			fontSize: 18,
+			fontWeight: "bold",
+			color: c.dangerAlt,
+			marginBottom: 8,
+			textAlign: "center",
+		},
+		errorDetail: {
+			fontSize: 14,
+			color: c.textMuted,
+			textAlign: "center",
+		},
 
-	/* ---- Header ---- */
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: "#eee",
-	},
-	headerTitle: {
-		flex: 1,
-		fontSize: 18,
-		fontWeight: "bold",
-		color: "#333",
-	},
-	helpButton: {
-		padding: 8,
-	},
+		/* ---- Header ---- */
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			borderBottomWidth: 1,
+			borderBottomColor: c.dividerMuted,
+		},
+		headerTitle: {
+			flex: 1,
+			fontSize: 18,
+			fontWeight: "bold",
+			color: c.textPrimarySoft,
+		},
+		helpButton: {
+			padding: 8,
+		},
 
-	/* ---- Condition selector ---- */
-	conditionSelector: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		marginHorizontal: 16,
-		marginTop: 12,
-		backgroundColor: "#f5f5f5",
-		borderRadius: 8,
-		borderWidth: 1,
-		borderColor: "#ddd",
-	},
-	conditionLabel: {
-		fontSize: 16,
-		color: "#333",
-		fontWeight: "500",
-	},
+		/* ---- Condition selector ---- */
+		conditionSelector: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			marginHorizontal: 16,
+			marginTop: 12,
+			backgroundColor: c.surfaceChip,
+			borderRadius: 8,
+			borderWidth: 1,
+			borderColor: c.borderSoft,
+		},
+		conditionLabel: {
+			fontSize: 16,
+			color: c.textPrimarySoft,
+			fontWeight: "500",
+		},
 
-	/* ---- List ---- */
-	listContent: {
-		padding: 16,
-	},
-	rankItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 12,
-		marginBottom: 8,
-		backgroundColor: "#f9f9f9",
-		borderRadius: 8,
-		borderWidth: 1,
-		borderColor: "#eee",
-	},
-	rankNumber: {
-		width: 32,
-		height: 32,
-		borderRadius: 16,
-		backgroundColor: "#f05537",
-		justifyContent: "center",
-		alignItems: "center",
-		marginRight: 12,
-	},
-	rankNumberText: {
-		color: "#fff",
-		fontSize: 14,
-		fontWeight: "bold",
-	},
-	dishImage: {
-		width: 56,
-		height: 56,
-		borderRadius: 8,
-		backgroundColor: "#eee",
-		marginRight: 12,
-	},
-	dishImagePlaceholder: {
-		backgroundColor: "#ddd",
-	},
-	dishLabel: {
-		flex: 1,
-		fontSize: 15,
-		color: "#333",
-	},
-	dishReviewButton: {
-		padding: 8,
-		borderRadius: 999,
-		backgroundColor: "rgba(240,85,55,0.08)",
-		marginLeft: 8,
-	},
+		/* ---- List ---- */
+		listContent: {
+			padding: 16,
+		},
+		rankItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			padding: 12,
+			marginBottom: 8,
+			backgroundColor: c.surfaceFaintAlt,
+			borderRadius: 8,
+			borderWidth: 1,
+			borderColor: c.dividerMuted,
+		},
+		rankNumber: {
+			width: 32,
+			height: 32,
+			borderRadius: 16,
+			backgroundColor: c.brand,
+			justifyContent: "center",
+			alignItems: "center",
+			marginRight: 12,
+		},
+		rankNumberText: {
+			color: FixedColors.onFilled,
+			fontSize: 14,
+			fontWeight: "bold",
+		},
+		dishImage: {
+			width: 56,
+			height: 56,
+			borderRadius: 8,
+			backgroundColor: c.surfaceSunken,
+			marginRight: 12,
+		},
+		dishImagePlaceholder: {
+			backgroundColor: c.surfaceSunkenStrong,
+		},
+		dishLabel: {
+			flex: 1,
+			fontSize: 15,
+			color: c.textPrimarySoft,
+		},
+		dishReviewButton: {
+			padding: 8,
+			borderRadius: 999,
+			backgroundColor: "rgba(240,85,55,0.08)",
+			marginLeft: 8,
+		},
 
-	emptyContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 40,
-	},
-	emptyText: {
-		fontSize: 16,
-		color: "#999",
-	},
+		emptyContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 40,
+		},
+		emptyText: {
+			fontSize: 16,
+			color: c.iconPlaceholder,
+		},
 
-	/* ---- Floating summary button ---- */
-	floatingContainer: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		bottom: 0,
-		paddingHorizontal: 16,
-		// pointerEvents は上で box-none にして、ボタンだけ押せるようにする
-	},
-	floatingButton: {
-		alignSelf: "flex-end",
-		height: FLOATING_BUTTON_HEIGHT,
-		paddingHorizontal: 16,
-		borderRadius: 999,
-		backgroundColor: "#f05537",
-		justifyContent: "center",
-		alignItems: "center",
-		// 影（iOS/Android）
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.18,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	floatingButtonText: {
-		color: "#fff",
-		fontSize: 14,
-		fontWeight: "bold",
-	},
+		/* ---- Floating summary button ---- */
+		floatingContainer: {
+			position: "absolute",
+			left: 0,
+			right: 0,
+			bottom: 0,
+			paddingHorizontal: 16,
+			// pointerEvents は上で box-none にして、ボタンだけ押せるようにする
+		},
+		floatingButton: {
+			alignSelf: "flex-end",
+			height: FLOATING_BUTTON_HEIGHT,
+			paddingHorizontal: 16,
+			borderRadius: 999,
+			backgroundColor: c.brand,
+			justifyContent: "center",
+			alignItems: "center",
+			// 影（iOS/Android）
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.18,
+			shadowRadius: 4,
+			elevation: 4,
+		},
+		floatingButtonText: {
+			color: FixedColors.onFilled,
+			fontSize: 14,
+			fontWeight: "bold",
+		},
 
-	/* ---- Modals ---- */
-	modalContent: {
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 20,
-	},
-	modalInner: {
-		width: "100%",
-		maxWidth: 420,
-		backgroundColor: "#fff",
-		borderRadius: 16,
-		padding: 24,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.25,
-		shadowRadius: 4,
-		elevation: 5,
-	},
-	modalTitle: {
-		fontSize: 20,
-		fontWeight: "bold",
-		color: "#333",
-		marginBottom: 8,
-	},
-	modalDescription: {
-		fontSize: 14,
-		color: "#666",
-		marginBottom: 16,
-	},
+		/* ---- Modals ---- */
+		modalContent: {
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 20,
+		},
+		modalInner: {
+			width: "100%",
+			maxWidth: 420,
+			// #1629 LegacyBlurModal の «本体» の地。膜だけ暗くならないようここもテーマへ追従させる
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			padding: 24,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.25,
+			shadowRadius: 4,
+			elevation: 5,
+		},
+		modalTitle: {
+			fontSize: 20,
+			fontWeight: "bold",
+			color: c.textPrimarySoft,
+			marginBottom: 8,
+		},
+		modalDescription: {
+			fontSize: 14,
+			color: c.textMuted,
+			marginBottom: 16,
+		},
 
-	// 条件チップ（モーダル内）
-	conditionChip: {
-		alignSelf: "flex-start",
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 999,
-		backgroundColor: "#f5f5f5",
-		borderWidth: 1,
-		borderColor: "#eee",
-		marginBottom: 12,
-	},
-	conditionChipText: {
-		fontSize: 12,
-		color: "#555",
-		fontWeight: "600",
-	},
+		// 条件チップ（モーダル内）
+		conditionChip: {
+			alignSelf: "flex-start",
+			paddingHorizontal: 10,
+			paddingVertical: 6,
+			borderRadius: 999,
+			backgroundColor: c.surfaceChip,
+			borderWidth: 1,
+			borderColor: c.dividerMuted,
+			marginBottom: 12,
+		},
+		conditionChipText: {
+			fontSize: 12,
+			color: c.textSecondaryDim,
+			fontWeight: "600",
+		},
 
-	// 料理別モーダルのヘッダ（料理情報）
-	dishHeaderRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 12,
-		gap: 12,
-	},
-	dishHeaderImage: {
-		width: 52,
-		height: 52,
-		borderRadius: 10,
-		backgroundColor: "#eee",
-	},
-	dishHeaderTitle: {
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#333",
-		marginBottom: 2,
-	},
-	dishHeaderSub: {
-		fontSize: 12,
-		color: "#666",
-	},
+		// 料理別モーダルのヘッダ（料理情報）
+		dishHeaderRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: 12,
+			gap: 12,
+		},
+		dishHeaderImage: {
+			width: 52,
+			height: 52,
+			borderRadius: 10,
+			backgroundColor: c.surfaceSunken,
+		},
+		dishHeaderTitle: {
+			fontSize: 16,
+			fontWeight: "700",
+			color: c.textPrimarySoft,
+			marginBottom: 2,
+		},
+		dishHeaderSub: {
+			fontSize: 12,
+			color: c.textMuted,
+		},
 
-	commentInput: {
-		borderWidth: 1,
-		borderColor: "#ddd",
-		borderRadius: 8,
-		padding: 12,
-		fontSize: 14,
-		minHeight: 240,
-		backgroundColor: "#f9f9f9",
-		marginBottom: 16,
-	},
-	modalButtons: {
-		flexDirection: "row",
-		justifyContent: "flex-end",
-		gap: 12,
-	},
-	cancelButton: {
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 8,
-		backgroundColor: "#eee",
-	},
-	cancelButtonText: {
-		fontSize: 14,
-		fontWeight: "bold",
-		color: "#666",
-	},
-	submitButton: {
-		flex: 1,
-	},
+		commentInput: {
+			borderWidth: 1,
+			borderColor: c.borderSoft,
+			borderRadius: 8,
+			padding: 12,
+			fontSize: 14,
+			// #1629 未指定だと OS 既定の «黒» のままで、ダークでは地に埋もれて読めない
+			color: c.textStrong,
+			minHeight: 240,
+			backgroundColor: c.surfaceFaintAlt,
+			marginBottom: 16,
+		},
+		modalButtons: {
+			flexDirection: "row",
+			justifyContent: "flex-end",
+			gap: 12,
+		},
+		cancelButton: {
+			paddingHorizontal: 20,
+			paddingVertical: 10,
+			borderRadius: 8,
+			backgroundColor: c.surfaceSunken,
+		},
+		cancelButtonText: {
+			fontSize: 14,
+			fontWeight: "bold",
+			color: c.textMuted,
+		},
+		submitButton: {
+			flex: 1,
+		},
 
-	/* ---- Picker modal ---- */
-	pickerModalContent: {
-		alignItems: "center",
-		padding: 20,
-	},
-	pickerInner: {
-		width: "100%",
-		maxWidth: 400,
-		// LegacyBlurModal では % で高さ指定すると画面全体の % になるため、Dimensions API から計算して指定
-		maxHeight: SCREEN_HEIGHT * 0.7,
-		backgroundColor: "#fff",
-		borderRadius: 16,
-		padding: 24,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.25,
-		shadowRadius: 4,
-		elevation: 5,
-	},
-	pickerTitle: {
-		fontSize: 18,
-		fontWeight: "bold",
-		color: "#333",
-		marginBottom: 16,
-	},
-	pickerScroll: {
-		flex: 1,
-	},
-	pickerItem: {
-		paddingVertical: 16,
-		paddingHorizontal: 16,
-		borderRadius: 8,
-		marginBottom: 8,
-		backgroundColor: "#f5f5f5",
-	},
-	pickerItemSelected: {
-		backgroundColor: "#f05537",
-	},
-	pickerItemText: {
-		fontSize: 16,
-		color: "#333",
-	},
-	pickerItemTextSelected: {
-		color: "#fff",
-		fontWeight: "bold",
-	},
+		/* ---- Picker modal ---- */
+		pickerModalContent: {
+			alignItems: "center",
+			padding: 20,
+		},
+		pickerInner: {
+			width: "100%",
+			maxWidth: 400,
+			// LegacyBlurModal では % で高さ指定すると画面全体の % になるため、Dimensions API から計算して指定
+			maxHeight: SCREEN_HEIGHT * 0.7,
+			// #1629 LegacyBlurModal の «本体» の地。膜だけ暗くならないようここもテーマへ追従させる
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			padding: 24,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.25,
+			shadowRadius: 4,
+			elevation: 5,
+		},
+		pickerTitle: {
+			fontSize: 18,
+			fontWeight: "bold",
+			color: c.textPrimarySoft,
+			marginBottom: 16,
+		},
+		pickerScroll: {
+			flex: 1,
+		},
+		pickerItem: {
+			paddingVertical: 16,
+			paddingHorizontal: 16,
+			borderRadius: 8,
+			marginBottom: 8,
+			backgroundColor: c.surfaceChip,
+		},
+		pickerItemSelected: {
+			backgroundColor: c.brand,
+		},
+		pickerItemText: {
+			fontSize: 16,
+			color: c.textPrimarySoft,
+		},
+		pickerItemTextSelected: {
+			color: FixedColors.onFilled,
+			fontWeight: "bold",
+		},
 
-	/* ---- Help ---- */
-	helpText: {
-		fontSize: 14,
-		color: "#444",
-		lineHeight: 20,
-		marginBottom: 16,
-	},
-});
+		/* ---- Help ---- */
+		helpText: {
+			fontSize: 14,
+			color: c.textPrimaryMuted,
+			lineHeight: 20,
+			marginBottom: 16,
+		},
+	});

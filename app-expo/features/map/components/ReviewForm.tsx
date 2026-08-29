@@ -546,6 +546,8 @@ export function ReviewForm({
 		? JSON.stringify([
 				effectivePrefilledMedia.id,
 				effectivePrefilledMedia.media_type,
+				// #1629 外部埋め込みかどうかで分岐するので、キーにも含める
+				effectivePrefilledMedia.render_type,
 				effectivePrefilledMedia.mediaUrl,
 				effectivePrefilledMedia.thumbnailImageUrl,
 			])
@@ -563,6 +565,55 @@ export function ReviewForm({
 			// #1127 identity ではなく内容で張り替えるため、オブジェクト本体は ref 経由で読む
 			const media = prefilledMediaRef.current;
 			if (!media) return;
+
+			/*
+			#1629 【修正】**取り込んだ Instagram の投稿から «レビュー» を押すと
+			「メディアを読み込み中…」から永久に進まなかった。**
+
+			`render_type='external_embed'` の行は自ストレージに実体を持たないので
+			`mediaUrl` は **常に null** である。ところが下の #511 の早期 return は
+			「加工中だから、後でもう一度 effect が走れば値が来る」ことを前提にしており、
+			`mediaState` を `loading` のまま放置して抜けていた。外部埋め込みでは
+			その «後で» が永久に来ないため、スピナーが回り続ける。
+
+			早期 return してよいのは «後から値が来る» 場合だけである。ここで 2 つを分ける。
+			- 外部埋め込み … 自前のメディアは最初から無い。サムネイルがあればそれをプレビューに使い、
+			  無ければ «写真なし»（none）として画面を使える状態にする
+			- それ以外（stored） … 従来どおり早期 return（加工が終われば effect が張り替わる）
+
+			⚠️ ここを «mediaUrl が無ければ none» と一括りにしないこと。stored の加工中を
+			   none にすると、出来上がった動画を差し置いて «写真なし» で記録されてしまう。
+			*/
+			if (media.render_type === "external_embed") {
+				const externalThumbnail = media.thumbnailImageUrl ?? undefined;
+				if (!externalThumbnail) {
+					// サムネイルすら取れない provider。記録自体はできるので «写真なし» で進ませる
+					if (isStale()) return;
+					setMediaState({ status: "none" });
+					return;
+				}
+				setMediaState({ status: "loading" });
+				try {
+					await Image.prefetch(externalThumbnail);
+				} catch {
+					// 外部 CDN の署名切れ等。プレビューが出せないだけで記録は続けられる
+					if (isStale()) return;
+					setMediaState({ status: "none" });
+					return;
+				}
+				if (isStale()) return;
+				setMediaState({
+					status: "success",
+					media: {
+						type: "image",
+						uri: externalThumbnail,
+						mimeType: "image",
+						thumbnailUri: externalThumbnail,
+					},
+				});
+				return;
+			}
+
 			// #511 【設計】mediaUrl が null の場合（処理中）は早期 return
 			const mediaUrl = media.mediaUrl;
 			if (!mediaUrl) return;
@@ -653,6 +704,30 @@ export function ReviewForm({
 	// Animated height for InitialMediaPreview
 	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - 同意メッセージ - バッファ
 	const mediaHeight = useMemo(() => height - 370 - 60 - 36 - 120, []);
+
+	/*
+	#1629【33】**選んだ写真のプレビューには、必ず高さを与える。**
+
+	オーナー実機報告: 「食べたを記録で画像を選ぶとめちゃくちゃ小さく表示される」。
+
+	真因は «プレビューが親の高さにしか依存していないのに、記録フローだけ親に高さが無かった» こと。
+
+	- `InitialMediaPreview` は自分の寸法を一切持たない。`container` が `height: "100%"`、
+	  `mediaWrapper` が `height: "100%"` + `aspectRatio: 9/16`、画像そのものは
+	  `StyleSheet.absoluteFillObject` である。つまり **祖先が確定した高さを持っていることが前提**で、
+	  持っていなければ 100% は auto へ落ち、中身は絶対配置なので内在高さが 0 になる。
+	- ところがこの枠は `showsManualMediaChooser`（= 記録フロー: `mediaPickerMode === "manual"` かつ
+	  親から prefilledMedia が来ていない）のとき `{ marginTop: 16 }` だけで、**高さを与えていなかった**。
+	  しかも外は `ScrollView` なので `previewWrap` の `flex: 1` も伸びる先が無い。
+	  結果、選んだ写真は数 px に潰れる。店舗フィードからの記録（prefilledMedia あり）では
+	  `height: mediaHeight` の枝を通るので同じ症状が出ず、記録フローだけで起きていた。
+
+	枠の高さを外すのは «写真なしプレースホルダー»（`status === "none"`）のためである。
+	そちらは «自分で撮影 / ライブラリ / 既存メディアから選ぶ» が縦に積まれ、内容ぶんだけ
+	伸びる必要がある。だから **プレースホルダーを描くときだけ高さを外す**（それ以外は
+	従来どおり `mediaHeight` を与える）。寸法は `ReviewForm.test.tsx` が数値で固定している。
+	*/
+	const showsNoMediaPlaceholder = mediaState.status === "none";
 	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 	useEffect(() => {
 		const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -1108,7 +1183,13 @@ export function ReviewForm({
 					</View>
 				) : (
 					<>
-						<View style={showsManualMediaChooser ? { marginTop: 16 } : { height: mediaHeight, marginTop: 16 }}>
+						<View
+							testID="review-media-slot"
+							style={
+								showsManualMediaChooser && showsNoMediaPlaceholder
+									? { marginTop: 16 }
+									: { height: mediaHeight, marginTop: 16 }
+							}>
 							{mediaState.status === "loading" ? (
 								<View style={styles.loadingContainer}>
 									<LoadingIndicator size="large" />

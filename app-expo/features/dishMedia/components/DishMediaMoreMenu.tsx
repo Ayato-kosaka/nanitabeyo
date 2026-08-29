@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Ellipsis, Pencil, Trash2, X } from "lucide-react-native";
+import { Ellipsis, Flag, Pencil, Share, Trash2, X } from "lucide-react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
 import i18n from "@/lib/i18n";
@@ -25,9 +25,20 @@ import {
 import { shallow } from "zustand/shallow";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 import type { UpdateDishReviewDto } from "@shared/api/v1/dto";
-import type { DeleteDishMediaResponse, UpdateDishReviewResponse } from "@shared/api/v1/res";
+import type { DeleteDishMediaResponse, DeleteDishReviewResponse, UpdateDishReviewResponse } from "@shared/api/v1/res";
 
 /**
+ * フィード右レールの «…» メニュー。
+ *
+ * #1629 【仕様】オーナー指示で **«…» を右レールの一番下に置き、シェアと報告をこの中へ入れた**。
+ * それまで右レールは «いいね / 食べたい / レビュー / 地図 / シェア / 報告 / （自分の投稿なら）…»
+ * と 7 段あり、縦に長すぎた。人に渡す操作（シェア・報告）と自分の投稿の管理（編集・削除）を
+ * 1 つのメニューへ畳んで、レールに残すのは «その場で 1 タップで効く操作» だけにする。
+ *
+ * ⚠️ **このメニューは自分の投稿でなくても出る。** 中身が出し分けられるだけである。
+ *    以前の名前は `OwnPostActions` だったが、シェアと報告が入った時点で
+ *    «自分の投稿の» という名前は嘘になったので改名した。
+ *
  * #1513 自分の投稿に対する編集・削除の導線。
  *
  * ## ここに置いている理由
@@ -50,12 +61,18 @@ const MAX_STARS = 5;
 
 type Props = {
 	entry: NormalizedDishMediaEntry;
+	/** #1629 シェア。右レールから畳んだので、押した先の処理は呼び出し側（ActionButtons）が持つ */
+	onShare: () => void;
+	/** #1629 通報。同上 */
+	onReport: () => void;
 };
 
-export function OwnPostActions({ entry }: Props) {
+export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
 	const dishMediaId = String(entry.dish_media.id);
+	// #1629 編集・削除の行だけを出し分ける。«…» 自体は誰の投稿でも出す
+	const isMine = !!entry.dish_media.isMine;
 	const { locale } = useLocale();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
@@ -67,19 +84,54 @@ export function OwnPostActions({ entry }: Props) {
 	const reviews = useDishMediaEntriesStore(reviewsSelector, shallow);
 
 	/**
-	 * 編集対象は「この投稿と一緒に作られた自分のレビュー」。
+	 * 編集・削除の対象になる «この投稿の中の自分のレビュー»。
 	 *
 	 * 所有判定は `review.isMine`（サーバーが返す）を使い、クライアントで
 	 * `user_id === 自分の id` を組み立てない。導線を出す根拠と PATCH の認可の根拠を
 	 * 同じにしておかないと、「編集ボタンは出るのに 403」がありうる。
 	 *
-	 * `created_dish_media_id` でも絞るのは、同じ料理には別の投稿に紐づく自分のレビューも
-	 * ぶら下がるため。この投稿の本文以外を編集画面に出してはいけない。
+	 * 探す順番は 2 段。
+	 *
+	 * 1. `created_dish_media_id === この dish_media.id` … この投稿と一緒に作られた自分のレビュー
+	 * 2. `created_dish_media_id === null` … **クチコミのみの記録**（写真を撮らずに «食べた» を
+	 *    記録したもの。`ReviewForm` の `mediaState.status === "none"` 経路で、
+	 *    `POST /v1/dish-reviews` を `createdDishMediaId` 無しで叩いた行）
+	 *
+	 * #1629【36】オーナー実機報告「クチコミのみの投稿を編集・削除できない」の**片方の真因がここ**。
+	 * 以前は 1 だけを見ており、しかも `String(null)` が `"null"` になるので、
+	 * クチコミのみの記録は **絶対に一致しなかった**。サーバーはその dish に付いた自分のレビューを
+	 * どのメディアの `dish_reviews` にも載せて返す（`dish-media.repository.ts` の
+	 * `reviewsByDishMediaId` は «その料理の全レビュー»）ので、画面には自分のクチコミが
+	 * 出ているのに編集の導線だけが無い、という状態になっていた。
+	 *
+	 * ⚠️ **他の投稿に紐づく自分のレビュー（`created_dish_media_id` が別の id）は拾わない。**
+	 *    同じ料理には別の投稿の自分のレビューもぶら下がる。この投稿の本文以外を
+	 *    編集画面に出してはいけない。
 	 */
-	const myReview: DishReview | undefined = useMemo(
-		() => reviews.find((review) => review.isMine && String(review.created_dish_media_id) === dishMediaId),
-		[reviews, dishMediaId],
-	);
+	const myReview: DishReview | undefined = useMemo(() => {
+		const mine = reviews.filter((review) => review.isMine);
+		return (
+			mine.find((review) => String(review.created_dish_media_id) === dishMediaId) ??
+			// #1629【36】クチコミのみ（写真なし）の記録。`== null` で undefined も拾う
+			mine.find((review) => review.created_dish_media_id == null)
+		);
+	}, [reviews, dishMediaId]);
+
+	/*
+	#1629【36】【設計】**「削除」が何を消すかは «自分が持っているもの» で決まる。**
+
+	- 写真も自分のもの（`dish_media.isMine`）… 投稿ごと消す（`DELETE /v1/dish-media/:id`）。
+	  サーバーはこのとき一緒に作られた自分のレビューも巻き添えで消す（#1513 のオーナー確定仕様）
+	- 写真は他人のもので、自分のクチコミだけがある … **クチコミ 1 件だけ**を消す
+	  （`DELETE /v1/dish-reviews/:id`）。他人の写真を消す権限は無いので投稿ごとは消せない
+
+	この分岐が無かったため、クチコミのみの記録では削除の行がそもそも出ず（`isMine` が false）、
+	利用者からは «自分が書いたのに消せない» に見えていた。API（#1513 で実装済み）も
+	ストアの `removeDishReview`（同じく #1513）も**呼び出し元が 1 つも無いまま眠っていた**。
+	*/
+	const canDeletePost = isMine;
+	const canDeleteReview = !isMine && myReview !== undefined;
+	const canDelete = canDeletePost || canDeleteReview;
 
 	const [menuVisible, setMenuVisible] = useState(false);
 	const [editVisible, setEditVisible] = useState(false);
@@ -195,38 +247,78 @@ export function OwnPostActions({ entry }: Props) {
 	 * 削除。取り返しがつかないので必ず確認を挟む。
 	 * 成功したらストアからも取り除く（サーバーは論理削除だが、既に読み込み済みの
 	 * 画面は再取得しない限り持ち続けるため）。
+	 *
+	 * #1629【36】消す単位は `canDeletePost` / `canDeleteReview` で決まる（上の設計コメント）。
+	 * 文言も «投稿を削除» と «クチコミを削除» で分ける。同じ「削除する」でも消えるものが
+	 * 違うので、確認ダイアログで «写真も消えるのか» が読めないと押せない。
 	 */
 	const handleDelete = useCallback(async () => {
 		setMenuVisible(false);
 
-		const accepted = await confirm({
-			title: i18n.t("DishMediaContent.ownPost.deleteConfirmTitle"),
-			message: i18n.t("DishMediaContent.ownPost.deleteConfirmMessage"),
-			confirmLabel: i18n.t("DishMediaContent.ownPost.deleteConfirmButton"),
-			cancelLabel: i18n.t("DishMediaContent.ownPost.cancel"),
-		});
+		const accepted = await confirm(
+			canDeletePost
+				? {
+						title: i18n.t("DishMediaContent.ownPost.deleteConfirmTitle"),
+						message: i18n.t("DishMediaContent.ownPost.deleteConfirmMessage"),
+						confirmLabel: i18n.t("DishMediaContent.ownPost.deleteConfirmButton"),
+						cancelLabel: i18n.t("DishMediaContent.ownPost.cancel"),
+					}
+				: {
+						title: i18n.t("DishMediaContent.ownPost.deleteReviewConfirmTitle"),
+						message: i18n.t("DishMediaContent.ownPost.deleteReviewConfirmMessage"),
+						confirmLabel: i18n.t("DishMediaContent.ownPost.deleteConfirmButton"),
+						cancelLabel: i18n.t("DishMediaContent.ownPost.cancel"),
+					},
+		);
 		if (!accepted) return;
 
 		try {
-			const result = await callBackend<Record<string, never>, DeleteDishMediaResponse>(`v1/dish-media/${dishMediaId}`, {
-				method: "DELETE",
-				requestPayload: {},
-			});
-			useDishMediaEntriesStore.getState().removeDishMediaEntry(dishMediaId);
+			if (canDeletePost) {
+				const result = await callBackend<Record<string, never>, DeleteDishMediaResponse>(
+					`v1/dish-media/${dishMediaId}`,
+					{
+						method: "DELETE",
+						requestPayload: {},
+					},
+				);
+				useDishMediaEntriesStore.getState().removeDishMediaEntry(dishMediaId);
+				logFrontendEvent({
+					event_name: "own_post_deleted",
+					error_level: "log",
+					payload: { dishMediaId, deletedDishReviewCount: result.deletedDishReviewIds.length },
+				});
+			} else {
+				// #1629【36】他人の写真に付いた自分のクチコミ。消せるのはレビュー 1 件だけ
+				if (!myReview) return;
+				await callBackend<Record<string, never>, DeleteDishReviewResponse>(`v1/dish-reviews/${myReview.id}`, {
+					method: "DELETE",
+					requestPayload: {},
+				});
+				useDishMediaEntriesStore.getState().removeDishReview(String(myReview.id));
+				logFrontendEvent({
+					event_name: "own_review_deleted",
+					error_level: "log",
+					payload: { dishMediaId, reviewId: myReview.id },
+				});
+			}
 			// #1398 の版数（設計 (1/2) §3）。削除は «食べた» が 1 行消えるだけでなく、
 			// その dish の «食べたい» が復活しうる（want 枝の NOT EXISTS が外れる）ので、
-			// 一覧・Map のピン・Calendar の月・meta.oldestOccurredAt のどれにも波及する
+			// 一覧・Map のピン・Calendar の月・meta.oldestOccurredAt のどれにも波及する。
+			// クチコミのみの削除でも同じ（«食べた» の根拠は dish_reviews の行そのもの）
 			bumpMyDishesRevision();
-			logFrontendEvent({
-				event_name: "own_post_deleted",
-				error_level: "log",
-				payload: { dishMediaId, deletedDishReviewCount: result.deletedDishReviewIds.length },
-			});
-			showSnackbar(i18n.t("DishMediaContent.ownPost.deleted"));
+			showSnackbar(
+				i18n.t(canDeletePost ? "DishMediaContent.ownPost.deleted" : "DishMediaContent.ownPost.reviewDeleted"),
+			);
 		} catch (error) {
 			const status = (error as ApiError)?.status;
 			showSnackbar(
-				status === 403 ? i18n.t("DishMediaContent.ownPost.forbidden") : i18n.t("DishMediaContent.ownPost.deleteFailed"),
+				status === 403
+					? i18n.t("DishMediaContent.ownPost.forbidden")
+					: i18n.t(
+							canDeletePost
+								? "DishMediaContent.ownPost.deleteFailed"
+								: "DishMediaContent.ownPost.reviewDeleteFailed",
+						),
 			);
 			logFrontendEvent({
 				event_name: "own_post_delete_failed",
@@ -234,7 +326,7 @@ export function OwnPostActions({ entry }: Props) {
 				payload: { dishMediaId, status, error: toErrorLogMessage(error) },
 			});
 		}
-	}, [confirm, callBackend, dishMediaId, logFrontendEvent, showSnackbar]);
+	}, [confirm, callBackend, canDeletePost, dishMediaId, logFrontendEvent, myReview, showSnackbar]);
 
 	return (
 		<>
@@ -257,8 +349,59 @@ export function OwnPostActions({ entry }: Props) {
 				<Pressable style={styles.backdrop} onPress={() => setMenuVisible(false)}>
 					{/* シート本体のタップは閉じる操作に伝播させない */}
 					<Pressable testID="own-post-menu" style={styles.sheet} onPress={() => {}}>
-						<Text style={styles.sheetTitle}>{i18n.t("DishMediaContent.ownPost.menuTitle")}</Text>
+						{/*
+						  #1629 タイトルを «自分の投稿» から «この投稿» へ変えた。
+						  このメニューは **他人の投稿でも出る**（シェアと報告が入っているため）。
+						  «自分の投稿» のままだと、他人の投稿を開いたときに嘘になる。
+						*/}
+						<Text style={styles.sheetTitle}>{i18n.t("DishMediaContent.moreMenu.title")}</Text>
 
+						{/* #1629 誰の投稿でも出る 2 行。«人に渡す» 操作をここへ畳んだ */}
+						<TouchableOpacity
+							testID="dish-action-share"
+							style={styles.sheetRow}
+							onPress={() => {
+								setMenuVisible(false);
+								onShare();
+							}}
+							accessibilityRole="button">
+							<Share size={20} color={colors.textPrimaryAlt} />
+							<Text style={styles.sheetRowText}>{i18n.t("DishMediaContent.actions.share")}</Text>
+						</TouchableOpacity>
+
+						{/*
+						  #1514 (SAF-01) 通報。#1629 でレールからこのメニューへ移した。
+
+						  ⚠️ 通報の敷居を上げないため、**メニューの一番下へ埋めない**。
+						     シェアの直下（＝開いてすぐ見える位置）に置くこと。
+
+						  #1629 【仕様】**自分の投稿には出さない**（オーナー指摘）。
+						  自分の投稿を通報できても、消したいなら «投稿を削除» があるので意味が無く、
+						  運営のキューに «本人が自分を通報した» 行だけが積む。主要な SNS も
+						  自分の投稿には通報を出さない（出るのは編集・削除）。
+						*/}
+						{!isMine && (
+							<TouchableOpacity
+								testID="dish-action-report"
+								style={styles.sheetRow}
+								onPress={() => {
+									setMenuVisible(false);
+									onReport();
+								}}
+								accessibilityRole="button">
+								<Flag size={20} color={colors.textPrimaryAlt} />
+								<Text style={styles.sheetRowText}>{i18n.t("Report.action")}</Text>
+							</TouchableOpacity>
+						)}
+
+						{/*
+						  ここから下は «自分のものがある» ときだけ出る。
+
+						  #1629【36】判定を `isMine`（写真の持ち主）から **`myReview`（クチコミの持ち主）**へ
+						  変えた。編集で触るのは `PATCH /v1/dish-reviews/:id` であり、サーバーの認可も
+						  レビューの所有者しか見ていない。写真の所有と揃える理由が無いどころか、
+						  **クチコミのみの記録（写真は他人のもの）で自分の本文を直せない**原因になっていた。
+						*/}
 						{myReview && (
 							<TouchableOpacity
 								testID="own-post-edit-button"
@@ -270,22 +413,35 @@ export function OwnPostActions({ entry }: Props) {
 							</TouchableOpacity>
 						)}
 
-						<TouchableOpacity
-							testID="own-post-delete-button"
-							style={styles.sheetRow}
-							onPress={handleDelete}
-							accessibilityRole="button">
-							<Trash2 size={20} color={colors.danger} />
-							<Text style={[styles.sheetRowText, styles.destructiveText]}>
-								{i18n.t("DishMediaContent.ownPost.delete")}
-							</Text>
-						</TouchableOpacity>
+						{/*
+						  #1513 削除の行は **常に 1 つ**。«写真を削除» と «レビューを削除» の 2 択へは
+						  戻さない（利用者に «写真だけ消したら記録は残るのか» を判断させないため）。
+						  #1629【36】消える単位が違うので、文言だけを出し分ける。
+						*/}
+						{canDelete && (
+							<TouchableOpacity
+								testID="own-post-delete-button"
+								style={styles.sheetRow}
+								onPress={handleDelete}
+								accessibilityRole="button">
+								<Trash2 size={20} color={colors.danger} />
+								<Text style={[styles.sheetRowText, styles.destructiveText]}>
+									{i18n.t(
+										canDeletePost ? "DishMediaContent.ownPost.delete" : "DishMediaContent.ownPost.deleteReview",
+									)}
+								</Text>
+							</TouchableOpacity>
+						)}
 
 						{/* #1513 メディア差し替えの導線が「無い」ことを明示する。
-						    ここが無いと、写真を変えたい利用者は探し続けることになる */}
-						<Text testID={MEDIA_LOCKED_NOTE_TEST_ID} style={styles.lockedNote}>
-							{i18n.t("DishMediaContent.ownPost.mediaLocked")}
-						</Text>
+						    ここが無いと、写真を変えたい利用者は探し続けることになる。
+						    #1629【36】条件を «編集が出るとき» に揃えた（`isMine` だと、クチコミのみの
+						    記録で «編集はあるのに注記が無い» になる） */}
+						{myReview && (
+							<Text testID={MEDIA_LOCKED_NOTE_TEST_ID} style={styles.lockedNote}>
+								{i18n.t("DishMediaContent.ownPost.mediaLocked")}
+							</Text>
+						)}
 
 						<TouchableOpacity
 							testID="own-post-menu-cancel"

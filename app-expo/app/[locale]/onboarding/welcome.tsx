@@ -22,6 +22,8 @@ import { router } from "expo-router";
 import type { ExternalPathString } from "expo-router";
 
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { ConfettiBurst } from "@/features/onboarding/components/ConfettiBurst";
 import { OnboardingScreenOptions } from "@/features/onboarding/components/OnboardingScreenOptions";
 import { appRootPath } from "@/features/onboarding/navigation";
@@ -32,6 +34,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import i18n from "@/lib/i18n";
 
 export default function OnboardingWelcomeScreen() {
+	const styles = useThemedStyles(createStyles);
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
 	const reducedMotion = useReducedMotion();
@@ -108,53 +111,54 @@ export default function OnboardingWelcomeScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	safeArea: {
-		flex: 1,
-	},
-	// ロゴ・見出し・本文は中央よりやや上（見本の構成）。
-	// 紙吹雪の主戦場が画面上部なので、その中へ絵として収まる
-	content: {
-		flex: 1,
-		alignItems: "center",
-		paddingHorizontal: 32,
-	},
-	topSpacer: {
-		flex: 1,
-	},
-	bottomSpacer: {
-		flex: 1.6,
-	},
-	logo: {
-		width: 132,
-		height: 132,
-		borderRadius: 66,
-		// 見本: ロゴと見出しの間はたっぷり空く
-		marginBottom: 44,
-	},
-	title: {
-		fontSize: 27,
-		lineHeight: 38,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
-	},
-	body: {
-		marginTop: 18,
-		fontSize: 15,
-		lineHeight: 26,
-		color: "#4B5563",
-		textAlign: "center",
-	},
-	footer: {
-		paddingHorizontal: 24,
-		paddingBottom: 24,
-	},
-	ctaContent: {
-		paddingVertical: 15,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		// ロゴ・見出し・本文は中央よりやや上（見本の構成）。
+		// 紙吹雪の主戦場が画面上部なので、その中へ絵として収まる
+		content: {
+			flex: 1,
+			alignItems: "center",
+			paddingHorizontal: 32,
+		},
+		topSpacer: {
+			flex: 1,
+		},
+		bottomSpacer: {
+			flex: 1.6,
+		},
+		logo: {
+			width: 132,
+			height: 132,
+			borderRadius: 66,
+			// 見本: ロゴと見出しの間はたっぷり空く
+			marginBottom: 44,
+		},
+		title: {
+			fontSize: 27,
+			lineHeight: 38,
+			fontWeight: "700",
+			color: c.textPrimary,
+			textAlign: "center",
+		},
+		body: {
+			marginTop: 18,
+			fontSize: 15,
+			lineHeight: 26,
+			color: c.textSecondaryAlt,
+			textAlign: "center",
+		},
+		footer: {
+			paddingHorizontal: 24,
+			paddingBottom: 24,
+		},
+		ctaContent: {
+			paddingVertical: 15,
+		},
+	});

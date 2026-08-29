@@ -413,6 +413,16 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 						</>
 					) : (
 						// 空状態（ローディング完了後、データなし）
+						//
+						// #1629 【設計】ここへ Detox 用の testID を付けた View を一度足したが、**外した**。
+						// この画面の «結果が空かどうか» は Detox から観測できないことが実測で分かったためである
+						// （run 33236381539 / 33237093875。API が 3 件返している状態で、
+						// 地図のマーカー・シート本体・この空状態のいずれも false だった。
+						// マーカーは地図のキャンバスへ描かれ、シートは TrueSheet でネイティブ側に出る）。
+						// 使えない観測点のために **2 つの Text を 1 つの flex 子要素へまとめる**のは、
+						// 余白が変わりうるぶんだけ損なので元へ戻す。
+						// «結果が空でないこと» の担保は BigQuery の response_success 側にある
+						// （e2e-mobile/tests/authenticated/select-restaurant-map-perf.test.ts の表を参照）。
 						<>
 							<Text style={styles.emptyStateText}>{i18n.t("SelectRestaurant.noSavedRestaurantsInArea")}</Text>
 							<Text style={styles.emptyStateText}>{i18n.t("SelectRestaurant.unsavedHint")}</Text>

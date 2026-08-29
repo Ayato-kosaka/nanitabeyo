@@ -16,6 +16,17 @@ import { act } from "react";
 import TestRenderer from "react-test-renderer";
 
 // lucide のアイコンは名前ごとに export されるため Proxy で一括スタブ化する（ReviewForm.test.tsx と同じ）
+/*
+#1629 «…» メニュー（DishMediaMoreMenu）は `useDialog` など独自の依存を持つ。
+このファイルの関心はレールの いいね / 保存 / 食べた なので、メニューは差し替える。
+メニュー自身の挙動は DishMediaMoreMenu.test.tsx が見る。
+*/
+jest.mock("@/features/dishMedia/components/DishMediaMoreMenu", () => ({
+	DishMediaMoreMenu: function MockDishMediaMoreMenu() {
+		return null;
+	},
+}));
+
 jest.mock(
 	"lucide-react-native",
 	() =>

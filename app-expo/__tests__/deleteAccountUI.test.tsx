@@ -48,14 +48,18 @@ jest.mock("expo-linear-gradient", () => ({
 	},
 }));
 
+// #1629 ScreenHeader を持つ画面（profile/account）を描くので useSafeAreaInsets も要る
 jest.mock("react-native-safe-area-context", () => ({
 	SafeAreaView: function MockSafeAreaView({ children }: { children: React.ReactNode }) {
 		return children;
 	},
+	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+	useSafeAreaFrame: () => ({ x: 0, y: 0, width: 390, height: 800 }),
 }));
 
 jest.mock("expo-router", () => ({
 	useRouter: () => ({ push: jest.fn() }),
+	router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
 }));
 
 const mockCallBackend = jest.fn();
@@ -151,6 +155,14 @@ jest.mock("@/features/profile/components/ProfileHeader", () => ({
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 import ProfileScreen from "../app/[locale]/(tabs)/profile/index";
+/*
+#1629 【仕様】アカウント削除は «アカウント管理» ページ（profile/account）へ移した。
+マイページ本体には «アカウント管理» へ push する行だけが残る。
+
+⚠️ このファイルの本体テストは `AccountSettingsScreen` を描く。`ProfileScreen` を描いても
+   削除の行はもう無い（下の «入口» のテストがそれを固定している）。
+*/
+import AccountSettingsScreen from "../app/[locale]/(tabs)/profile/account";
 
 describe("deleteAccountUI", () => {
 	beforeEach(() => {
@@ -163,16 +175,23 @@ describe("deleteAccountUI", () => {
 		tree.root.findAll((node) => node.props?.testID === testID).length > 0;
 
 	// ここが赤くなったら «削除ボタンがアプリのどこにも無い» 状態に戻っている
-	it("#1511 ログイン済みならアカウント削除の行がマイページに存在する", async () => {
+	it("#1511 / #1629 ログイン済みならアカウント削除の行が «アカウント管理» ページに存在する", async () => {
 		let renderer: TestRenderer.ReactTestRenderer | undefined;
 		await act(async () => {
-			renderer = TestRenderer.create(<ProfileScreen />);
+			renderer = TestRenderer.create(<AccountSettingsScreen />);
 		});
 
 		expect(exists(renderer!, "settings-delete-account")).toBe(true);
 	});
 
-	it("#1511 匿名（ゲスト）にはアカウント削除の行を出さない", async () => {
+	/*
+	#1629 【仕様】ゲストの出し分けは **マイページ本体**が持つ。
+	«アカウント管理» の行自体を出さないことで、ログアウトも削除もゲストへ届かない。
+
+	⚠️ この主張を account.tsx 側へ移さないこと。あちらで出し分けると、ゲストが
+	   直リンクで着いたときに «行が 1 つも無い空のページ» が出る。入口ごと閉じる方が良い。
+	*/
+	it("#1511 / #1629 匿名（ゲスト）にはアカウント管理の入口を出さない", async () => {
 		mockUser = { id: "guest-1", is_anonymous: true };
 
 		let renderer: TestRenderer.ReactTestRenderer | undefined;
@@ -180,8 +199,24 @@ describe("deleteAccountUI", () => {
 			renderer = TestRenderer.create(<ProfileScreen />);
 		});
 
-		expect(exists(renderer!, "settings-delete-account")).toBe(false);
+		expect(exists(renderer!, "settings-account")).toBe(false);
 		expect(exists(renderer!, "settings-logout")).toBe(false);
+		expect(exists(renderer!, "settings-delete-account")).toBe(false);
+	});
+
+	// #1629 ログイン済みならマイページに «アカウント管理» の行がある（入口が消えていないこと）
+	it("#1629 ログイン済みならマイページに «アカウント管理» の入口がある", async () => {
+		mockUser = { id: "user-1", is_anonymous: false };
+
+		let renderer: TestRenderer.ReactTestRenderer | undefined;
+		await act(async () => {
+			renderer = TestRenderer.create(<ProfileScreen />);
+		});
+
+		expect(exists(renderer!, "settings-account")).toBe(true);
+		// 本体に «押すと戻れない» 行が残っていないこと
+		expect(exists(renderer!, "settings-logout")).toBe(false);
+		expect(exists(renderer!, "settings-delete-account")).toBe(false);
 	});
 
 	it("2段階の確認を両方通さないと DELETE v1/users/me が飛ばない (step1でキャンセル)", async () => {
@@ -189,7 +224,7 @@ describe("deleteAccountUI", () => {
 
 		let renderer: TestRenderer.ReactTestRenderer | undefined;
 		await act(async () => {
-			renderer = TestRenderer.create(<ProfileScreen />);
+			renderer = TestRenderer.create(<AccountSettingsScreen />);
 		});
 
 		const deleteButton = renderer!.root.findByProps({ testID: "settings-delete-account" });
@@ -207,7 +242,7 @@ describe("deleteAccountUI", () => {
 
 		let renderer: TestRenderer.ReactTestRenderer | undefined;
 		await act(async () => {
-			renderer = TestRenderer.create(<ProfileScreen />);
+			renderer = TestRenderer.create(<AccountSettingsScreen />);
 		});
 
 		const deleteButton = renderer!.root.findByProps({ testID: "settings-delete-account" });
@@ -226,7 +261,7 @@ describe("deleteAccountUI", () => {
 
 		let renderer: TestRenderer.ReactTestRenderer | undefined;
 		await act(async () => {
-			renderer = TestRenderer.create(<ProfileScreen />);
+			renderer = TestRenderer.create(<AccountSettingsScreen />);
 		});
 
 		const deleteButton = renderer!.root.findByProps({ testID: "settings-delete-account" });
@@ -255,7 +290,7 @@ describe("deleteAccountUI", () => {
 
 		let renderer: TestRenderer.ReactTestRenderer | undefined;
 		await act(async () => {
-			renderer = TestRenderer.create(<ProfileScreen />);
+			renderer = TestRenderer.create(<AccountSettingsScreen />);
 		});
 
 		const deleteButton = renderer!.root.findByProps({ testID: "settings-delete-account" });
@@ -285,7 +320,7 @@ describe("deleteAccountUI", () => {
 
 		let renderer: TestRenderer.ReactTestRenderer | undefined;
 		await act(async () => {
-			renderer = TestRenderer.create(<ProfileScreen />);
+			renderer = TestRenderer.create(<AccountSettingsScreen />);
 		});
 
 		const deleteButton = renderer!.root.findByProps({ testID: "settings-delete-account" });

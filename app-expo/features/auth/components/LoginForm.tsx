@@ -26,6 +26,8 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { router } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 import type { LegalDocumentType } from "@/lib/legalRoute";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface LoginFormProps {
 	/** E2E の可視判定に使う testID。呼び出し側で明示する（ルート: `login-screen`） */
@@ -59,6 +61,8 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 	const { locale } = useLocale();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
@@ -193,7 +197,7 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 						cachePolicy="memory-disk"
 					/>
 					{isLoading ? (
-						<ActivityIndicator size="small" color="#1A1A1A" testID="login-google-button-loading" />
+						<ActivityIndicator size="small" color={colors.textPrimary} testID="login-google-button-loading" />
 					) : (
 						<Text style={styles.oauthLabel}>{i18n.t("auth.continue_with_google")}</Text>
 					)}
@@ -214,7 +218,7 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 						cachePolicy="memory-disk"
 					/>
 					{isLoading ? (
-						<ActivityIndicator size="small" color="#1A1A1A" testID="login-apple-button-loading" />
+						<ActivityIndicator size="small" color={colors.textPrimary} testID="login-apple-button-loading" />
 					) : (
 						<Text style={styles.oauthLabel}>{i18n.t("auth.continue_with_apple")}</Text>
 					)}
@@ -249,86 +253,91 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		paddingHorizontal: 24,
-		paddingTop: 20,
-		paddingBottom: 32,
-	},
-	oauthContainer: {
-		gap: 16,
-		width: "100%",
-	},
-	// フラットなアウトラインのピル。影は付けない（デザインレビューで確定）
-	oauthButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		height: 60,
-		borderRadius: 30,
-		borderWidth: 1,
-		borderColor: "#D1D5DB",
-		backgroundColor: "#FFFFFF",
-		paddingHorizontal: 60,
-	},
-	oauthIcon: {
-		position: "absolute",
-		left: 24,
-		width: 28,
-		height: 28,
-	},
-	oauthLabel: {
-		fontSize: 17,
-		fontWeight: "700",
-		color: "#1A1A1A",
-	},
-	checkboxContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 20,
-		paddingHorizontal: 4,
-	},
-	checkbox: {
-		width: 24,
-		height: 24,
-		borderRadius: 6,
-		alignItems: "center",
-		justifyContent: "center",
-		marginRight: 12,
-		backgroundColor: "#FFFFFF",
-		// #1486 影は使わない（デザインレビューで確定）。枠線で輪郭を出す
-		borderWidth: 1.5,
-		borderColor: "#D1D5DB",
-	},
-	checkboxChecked: {
-		backgroundColor: "#F05537",
-		borderColor: "#F05537",
-	},
-	checkboxMark: {
-		color: "#FFFFFF",
-		fontSize: 14,
-		fontWeight: "700",
-	},
-	checkboxTextContainer: {
-		flex: 1,
-	},
-	checkboxText: {
-		fontSize: 16,
-		color: "#1A1A1A",
-		lineHeight: 22,
-	},
-	consentContainer: {
-		marginTop: 16,
-		paddingHorizontal: 4,
-	},
-	consentText: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "center",
-		lineHeight: 18,
-	},
-	consentLink: {
-		color: "#2563EB",
-		textDecorationLine: "underline",
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			paddingHorizontal: 24,
+			paddingTop: 20,
+			paddingBottom: 32,
+		},
+		oauthContainer: {
+			gap: 16,
+			width: "100%",
+		},
+		// フラットなアウトラインのピル。影は付けない（デザインレビューで確定）
+		oauthButton: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			height: 60,
+			borderRadius: 30,
+			borderWidth: 1,
+			borderColor: c.borderNeutral,
+			backgroundColor: c.surface,
+			paddingHorizontal: 60,
+		},
+		oauthIcon: {
+			position: "absolute",
+			left: 24,
+			width: 28,
+			height: 28,
+		},
+		oauthLabel: {
+			fontSize: 17,
+			fontWeight: "700",
+			color: c.textPrimary,
+		},
+		checkboxContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: 20,
+			paddingHorizontal: 4,
+		},
+		checkbox: {
+			width: 24,
+			height: 24,
+			borderRadius: 6,
+			alignItems: "center",
+			justifyContent: "center",
+			marginRight: 12,
+			backgroundColor: c.surface,
+			// #1486 影は使わない（デザインレビューで確定）。枠線で輪郭を出す
+			borderWidth: 1.5,
+			borderColor: c.borderNeutral,
+		},
+		checkboxChecked: {
+			backgroundColor: c.brand,
+			borderColor: c.brand,
+		},
+		checkboxMark: {
+			// ブランド色で塗り潰したチェックボックスの上のチェック。地の色がライト / ダークで
+			// 変わらない（brand は据え置き）ため、文字も振らない
+			color: FixedColors.onFilled,
+			fontSize: 14,
+			fontWeight: "700",
+		},
+		checkboxTextContainer: {
+			flex: 1,
+		},
+		checkboxText: {
+			fontSize: 16,
+			color: c.textPrimary,
+			lineHeight: 22,
+		},
+		consentContainer: {
+			marginTop: 16,
+			paddingHorizontal: 4,
+		},
+		consentText: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "center",
+			lineHeight: 18,
+		},
+		consentLink: {
+			color: c.linkAlt,
+			textDecorationLine: "underline",
+		},
+	});

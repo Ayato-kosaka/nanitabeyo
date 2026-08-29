@@ -407,7 +407,8 @@
 		"actions": {
 			"share": "Compartir",
 			"seeMore": "ver más",
-			"openMap": "Abrir mapa"
+			"openMap": "Abrir mapa",
+			"review": "Reseña"
 		},
 		"share": {
 			"title": "Mira {{dishName}}"
@@ -448,13 +449,18 @@
 			"menuTitle": "Tu publicación",
 			"edit": "Editar reseña",
 			"delete": "Eliminar publicación",
+			"deleteReview": "Eliminar reseña",
 			"cancel": "Cancelar",
 			"mediaLocked": "Las fotos y los vídeos no se pueden cambiar. Puedes editar el comentario, la valoración y el precio.",
 			"deleteConfirmTitle": "¿Eliminar esta publicación?",
 			"deleteConfirmMessage": "Se eliminará la publicación: la foto y tu reseña. No se puede deshacer.",
+			"deleteReviewConfirmTitle": "¿Eliminar esta reseña?",
+			"deleteReviewConfirmMessage": "Solo se eliminará la reseña que escribiste. La foto es de otra persona y se mantiene. No se puede deshacer.",
 			"deleteConfirmButton": "Eliminar",
 			"deleted": "Publicación eliminada",
+			"reviewDeleted": "Reseña eliminada",
 			"deleteFailed": "No se pudo eliminar la publicación",
+			"reviewDeleteFailed": "No se pudo eliminar la reseña",
 			"editTitle": "Editar reseña",
 			"editComment": "Comentario",
 			"editRating": "Valoración",
@@ -464,6 +470,9 @@
 			"saveFailed": "No se pudo actualizar la reseña",
 			"conflict": "Esta reseña se actualizó en otro dispositivo. Vuelve a abrirla antes de editarla.",
 			"forbidden": "Solo puedes editar o eliminar tus propias publicaciones"
+		},
+		"moreMenu": {
+			"title": "Esta publicación"
 		}
 	},
 	"ImageCardGrid": {
@@ -843,7 +852,8 @@
 			"group_votes": {
 				"title": "Votaciones de grupo",
 				"description": "Cuando hay actividad en una votación de grupo a la que te uniste"
-			}
+			},
+			"navigationLabel": "Notificaciones"
 		},
 		"language": {
 			"navigationLabel": "Idioma",
@@ -886,6 +896,10 @@
 			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
+		},
+		"account": {
+			"navigationLabel": "Cuenta",
+			"title": "Cuenta"
 		}
 	},
 	"Dialog": {
@@ -936,6 +950,7 @@
 			"savedRestaurantList": "Restaurantes Guardados",
 			"postPhotoVideo": "Publicar Foto/Video",
 			"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
+			"fetchSavedRestaurantsTimeout": "Ha tardado demasiado. Acerca el mapa e inténtalo de nuevo.",
 			"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente."
 		},
 		"emptyState": {
@@ -953,6 +968,7 @@
 		"savedRestaurantList": "Restaurantes Guardados",
 		"postPhotoVideo": "Publicar Foto/Video",
 		"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
+		"fetchSavedRestaurantsTimeout": "Ha tardado demasiado. Acerca el mapa e inténtalo de nuevo.",
 		"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente.",
 		"nameSearch": {
 			"placeholder": "Buscar por nombre del restaurante",
@@ -1065,7 +1081,11 @@
 			"activeCount": "{{count}} filtros activos"
 		},
 		"empty": {
-			"description": "Los platos que guardes o registres como comidos aparecerán aquí."
+			"description": "Los platos que guardes o registres como comidos aparecerán aquí.",
+			"noResultsInArea": "No hay registros en esta zona.",
+			"noResultsInAreaHint": "Mueve el mapa y pulsa «Buscar en esta zona» o quita los filtros.",
+			"noResultsForFilter": "Ningún registro coincide con estos filtros.",
+			"noResultsForFilterHint": "Quita los filtros para ver tus otros registros."
 		},
 		"list": {
 			"noPhoto": "Sin foto"

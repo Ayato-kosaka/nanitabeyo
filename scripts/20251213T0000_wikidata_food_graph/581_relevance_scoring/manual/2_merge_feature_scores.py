@@ -126,7 +126,7 @@ def preview_changes(client: bigquery.Client, run_id: str):
             diff = r.new_score - r.current_score
             print(f"  current: {r.current_score} (run_id={r.current_run_id})")
             print(f"  new:     {r.new_score} (source_run_id={r.source_run_id})")
-            print(f"  diff:    {diff:+.1f}")
+            print(f"  diff:    {diff:+.4f}")
     print("=" * 80 + "\n")
     return rows
 

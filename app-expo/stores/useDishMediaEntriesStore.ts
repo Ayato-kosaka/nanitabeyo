@@ -54,6 +54,28 @@ export type DishMediaEntriesStore = {
 	 */
 	reviewIdsByKey: Record<string, string[]>;
 
+	/*
+	#1629【35】【設計】**このセッションで削除された id の墓標。**
+
+	`DishMediaFeed` / `DishMediaMap` は «開いた時点の並び» を自分の state へ固定する
+	（`ids.length === 0 && liveIds.length > 0` のときだけ取り込む）。取り込んだあとは
+	`mediaIdsByKey` が縮んでも縮まないので、**削除した投稿のセルが並びに残り続ける**。
+	残ったセルは `entriesByMediaId` から実体が消えているため
+	`useDishMediaBackgroundImageResources` の descriptor から外れ、背景画像の状態は
+	`idle` のまま二度と動かない。`DishMediaContent` は idle を «まだ読み込み中» と見なして
+	`SkeletonShimmer` を出し続けるので、**削除するとローディングが終わらない**
+	（オーナー報告「投稿を削除するとローディングの無限ループになる」）。
+
+	«ストアに実体が無い id は落とす» では直せない。`clearByKey` も実体を消すので、
+	キーを捨てただけの場面まで «削除された» と誤判定してフィードが空になる。
+	そこで **削除したことだけ**を明示的に記録し、固定した並びの持ち主はこれを見て落とす。
+
+	dish_media.id と、それに巻き添えで消える dish_reviews.id の**両方**を入れる
+	（`DishMediaFeed` は `idType="dish_reviews"` でも使われるため）。
+	セッション中のユーザー自身の削除回数ぶんしか増えないので、掃除はしない。
+	*/
+	deletedIds: Record<string, true>;
+
 	/**
 	 * 画面用途キーごとのロード状態。
 	 */
@@ -298,6 +320,8 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	mediaIdsByKey: {},
 	reviewsByReviewId: {},
 	reviewIdsByKey: {},
+	// #1629【35】削除した id の墓標（型定義の JSDoc を参照）
+	deletedIds: {},
 	isLoadingByKey: {},
 	errorByKey: {},
 	hasFetchedInitialByKey: {},
@@ -428,6 +452,13 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 				reviewsByReviewId: nextReviewsByReviewId,
 				mediaIdsByKey: nextMediaIdsByKey,
 				reviewIdsByKey: nextReviewIdsByKey,
+				// #1629【35】並びを自分の state へ固定している画面（DishMediaFeed / DishMediaMap）が
+				// «消えたセル» を落とせるように墓標を残す。巻き添えのレビュー id も入れる
+				deletedIds: {
+					...state.deletedIds,
+					[dishMediaId]: true as const,
+					...Object.fromEntries([...removedReviewIds].map((id) => [id, true as const])),
+				},
 			};
 		}),
 
@@ -463,6 +494,8 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 				entriesByMediaId: nextEntriesByMediaId,
 				reviewsByReviewId: nextReviewsByReviewId,
 				reviewIdsByKey: nextReviewIdsByKey,
+				// #1629【35】レビュー単体の削除も同じく墓標を残す（`idType="dish_reviews"` のフィード用）
+				deletedIds: { ...state.deletedIds, [dishReviewId]: true as const },
 			};
 		}),
 

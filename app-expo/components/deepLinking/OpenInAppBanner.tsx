@@ -16,6 +16,8 @@ import {
 	isIOSUserAgent,
 	resolveOpenInAppHref,
 } from "@/lib/openInAppUrl";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 /**
  * Android の applicationId。`intent://…;package=…` に載せる。
@@ -59,6 +61,10 @@ const OpenInAppBannerWeb: React.FC<OpenInAppBannerProps> = ({
 	scheme = "nanitabeyo",
 }) => {
 	const { locale } = useLocale();
+	// #1629 バナー本体はアプリ内の «面» なのでテーマに追従させる。
+	// 半透明の箱（fallback / help）だけは固定色で、理由は下のスタイル定義に書いてある
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 
 	// SSR/Prerender 対策：window が無い環境では何もしない
 	const isBrowser = typeof window !== "undefined" && typeof document !== "undefined";
@@ -240,9 +246,10 @@ const OpenInAppBannerWeb: React.FC<OpenInAppBannerProps> = ({
 
 	if (!isMobile || !isBrowser) return null;
 
+	// #1629 <a> は RN の StyleSheet を通らないので、ここだけ CSSProperties でテーマ色を組む
 	const openLinkStyle: React.CSSProperties = {
 		textDecoration: "none",
-		backgroundColor: "#f05537",
+		backgroundColor: colors.brand,
 		padding: "9px 14px",
 		borderRadius: 8,
 		display: "flex",
@@ -252,7 +259,7 @@ const OpenInAppBannerWeb: React.FC<OpenInAppBannerProps> = ({
 
 	const schemeLinkStyle: React.CSSProperties = {
 		textDecoration: "none",
-		backgroundColor: "#f05537",
+		backgroundColor: colors.brand,
 		padding: "8px 10px",
 		borderRadius: 8,
 		display: "flex",
@@ -287,7 +294,7 @@ const OpenInAppBannerWeb: React.FC<OpenInAppBannerProps> = ({
 						onClick={onTapOpen}
 						role="button"
 						aria-label={i18n.t("DeepLinking.openInApp")}>
-						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{i18n.t("DeepLinking.openInApp")}</span>
+						<span style={{ color: FixedColors.onFilled, fontSize: 13, fontWeight: 800 }}>{i18n.t("DeepLinking.openInApp")}</span>
 					</a>
 
 					{/* ストア：自動ではなく“ボタン”で提供（ポリシー/ブロック回避・UX改善） */}
@@ -317,7 +324,7 @@ const OpenInAppBannerWeb: React.FC<OpenInAppBannerProps> = ({
 						}}
 						role="button"
 						aria-label={i18n.t("DeepLinking.tryScheme")}>
-						<span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>{i18n.t("DeepLinking.tryScheme")}</span>
+						<span style={{ color: FixedColors.onFilled, fontSize: 12, fontWeight: 800 }}>{i18n.t("DeepLinking.tryScheme")}</span>
 					</a>
 				</View>
 			)}
@@ -367,120 +374,129 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = (props) => {
 
 export const OpenInAppBanner = memo(OpenInAppBannerComponent);
 
-const styles = StyleSheet.create({
-	// 画面上部に重ねる（ページ内容を完全に隠さないよう余白は最小）
-	overlay: {
-		position: "absolute" as any,
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 1000,
-		paddingVertical: 8,
-		paddingHorizontal: 12,
-	},
-	banner: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		backgroundColor: "#fbeedd",
-		borderRadius: 10,
-		paddingVertical: 10,
-		paddingHorizontal: 12,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.12,
-		shadowRadius: 6,
-		elevation: 4,
-	},
-	bannerInfo: {
-		flexDirection: "row",
-		alignItems: "center",
-		flex: 1,
-		paddingRight: 10,
-	},
-	icon: {
-		width: 32,
-		height: 32,
-		borderRadius: 7,
-		marginRight: 10,
-	},
-	textBlock: {
-		flex: 1,
-		minWidth: 0,
-	},
-	bannerName: {
-		fontSize: 15,
-		fontWeight: "800",
-		color: "#1A1A1A",
-	},
-	actions: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	storeButton: {
-		backgroundColor: "#1A1A1A",
-		paddingVertical: 9,
-		paddingHorizontal: 12,
-		borderRadius: 8,
-	},
-	storeButtonText: {
-		color: "#FFFFFF",
-		fontSize: 13,
-		fontWeight: "800",
-	},
-	fallbackRow: {
-		marginTop: 8,
-		backgroundColor: "rgba(255,255,255,0.92)",
-		borderRadius: 10,
-		paddingVertical: 10,
-		paddingHorizontal: 12,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.08,
-		shadowRadius: 4,
-		elevation: 2,
-	},
-	fallbackText: {
-		flex: 1,
-		paddingRight: 10,
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#333",
-	},
-	helpBox: {
-		marginTop: 8,
-		backgroundColor: "rgba(26,26,26,0.96)",
-		borderRadius: 12,
-		paddingVertical: 12,
-		paddingHorizontal: 12,
-	},
-	helpTitle: {
-		color: "#fff",
-		fontSize: 13,
-		fontWeight: "900",
-	},
-	helpBody: {
-		marginTop: 6,
-		color: "#fff",
-		fontSize: 12,
-		fontWeight: "600",
-		lineHeight: 16,
-	},
-	helpClose: {
-		marginTop: 10,
-		alignSelf: "flex-end",
-		paddingVertical: 8,
-		paddingHorizontal: 10,
-		borderRadius: 8,
-		backgroundColor: "rgba(255,255,255,0.16)",
-	},
-	helpCloseText: {
-		color: "#fff",
-		fontSize: 12,
-		fontWeight: "800",
-	},
-});
+/*
+#1629 バナー本体（地・店名・「アプリを入手」）はテーマに追従させる。
+半透明の箱は追従させない:
+- fallbackRow は «下のページが透ける白い箱»。地を暗くすると、下に透けるページと
+  その上の濃い文字を一緒に反転させる必要が出て絵が壊れる。地が固定なので字も固定（onTranslucentWhite）
+- helpBox は «濃い色で塗り潰した吹き出し»。ライトでもダークでも同じだけ目立ってよいので固定、
+  上に載る字は onFilled（＝白）
+*/
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		// 画面上部に重ねる（ページ内容を完全に隠さないよう余白は最小）
+		overlay: {
+			position: "absolute" as any,
+			top: 0,
+			left: 0,
+			right: 0,
+			zIndex: 1000,
+			paddingVertical: 8,
+			paddingHorizontal: 12,
+		},
+		banner: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			backgroundColor: colors.promoBannerSurface,
+			borderRadius: 10,
+			paddingVertical: 10,
+			paddingHorizontal: 12,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.12,
+			shadowRadius: 6,
+			elevation: 4,
+		},
+		bannerInfo: {
+			flexDirection: "row",
+			alignItems: "center",
+			flex: 1,
+			paddingRight: 10,
+		},
+		icon: {
+			width: 32,
+			height: 32,
+			borderRadius: 7,
+			marginRight: 10,
+		},
+		textBlock: {
+			flex: 1,
+			minWidth: 0,
+		},
+		bannerName: {
+			fontSize: 15,
+			fontWeight: "800",
+			color: colors.textPrimary,
+		},
+		actions: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+		},
+		storeButton: {
+			backgroundColor: colors.inverseSurface,
+			paddingVertical: 9,
+			paddingHorizontal: 12,
+			borderRadius: 8,
+		},
+		storeButtonText: {
+			color: colors.onInverseSurface,
+			fontSize: 13,
+			fontWeight: "800",
+		},
+		fallbackRow: {
+			marginTop: 8,
+			backgroundColor: "rgba(255,255,255,0.92)",
+			borderRadius: 10,
+			paddingVertical: 10,
+			paddingHorizontal: 12,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 1 },
+			shadowOpacity: 0.08,
+			shadowRadius: 4,
+			elevation: 2,
+		},
+		fallbackText: {
+			flex: 1,
+			paddingRight: 10,
+			fontSize: 12,
+			fontWeight: "600",
+			color: FixedColors.onTranslucentWhite,
+		},
+		helpBox: {
+			marginTop: 8,
+			backgroundColor: "rgba(26,26,26,0.96)",
+			borderRadius: 12,
+			paddingVertical: 12,
+			paddingHorizontal: 12,
+		},
+		helpTitle: {
+			color: FixedColors.onFilled,
+			fontSize: 13,
+			fontWeight: "900",
+		},
+		helpBody: {
+			marginTop: 6,
+			color: FixedColors.onFilled,
+			fontSize: 12,
+			fontWeight: "600",
+			lineHeight: 16,
+		},
+		helpClose: {
+			marginTop: 10,
+			alignSelf: "flex-end",
+			paddingVertical: 8,
+			paddingHorizontal: 10,
+			borderRadius: 8,
+			backgroundColor: "rgba(255,255,255,0.16)",
+		},
+		helpCloseText: {
+			color: FixedColors.onFilled,
+			fontSize: 12,
+			fontWeight: "800",
+		},
+	});

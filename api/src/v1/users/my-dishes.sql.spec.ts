@@ -7,6 +7,9 @@ import {
   encodeMyDishCursor,
   hasMyDishesFilterBeyondStatus,
   MyDishCursor,
+  MY_DISH_MAP_PINS_DEFAULT_CELL_DEG,
+  MY_DISH_MAP_PINS_MIN_CELL_DEG,
+  myDishMapPinsCellSizeDegrees,
 } from './my-dishes.query';
 import { QueryMyDishesDto } from '@shared/v1/dto';
 
@@ -657,6 +660,47 @@ describe('buildMyDishMapPinsQuery が組み立てる SQL', () => {
     expect(sql).toContain('my_save_ids AS MATERIALIZED (');
   });
 
+  /* ---------------- #1629: 上限で切るときの «選び方» ---------------- */
+
+  it('#1629 上限で切るときは «最新 300 件» ではなく格子セルごとの round-robin で選ぶ（分布を保つ）', () => {
+    const query = buildMyDishMapPinsQuery(USER_ID, {});
+    expect(query).not.toBeNull();
+    const sql = normalize(query!.sql);
+
+    // 店舗を格子セルへ割り、セル内は新しい順に順位を付ける
+    expect(sql).toContain('PARTITION BY FLOOR(r2.latitude');
+    expect(sql).toContain('FLOOR(r2.longitude');
+    // 各セルの 1 位を先に採る（= 記録のある地域すべてに最低 1 本立ててから残り枠を配る）
+    expect(sql).toContain('ORDER BY cell_rank ASC, latest_occurred_at DESC');
+    // エリア絞り込みが無いときの既定セルは 0.5 度
+    expect(query!.values).toContain(0.5);
+  });
+
+  it('#1629 選び方を変えても «返す並び» は従来どおり新しい順（下部シートの並びを変えない）', () => {
+    const query = buildMyDishMapPinsQuery(USER_ID, {});
+    expect(query).not.toBeNull();
+    const sql = normalize(query!.sql);
+
+    expect(sql).toContain('ORDER BY p.latest_occurred_at DESC');
+    // 上限 + 1 件で truncated を判定する契約も変えない
+    expect(query!.values).toContain(301);
+  });
+
+  it('#1629 エリア絞り込み時は格子セルをエリアの縮尺に合わせる（radius 由来のセルが値に載る）', () => {
+    const query = buildMyDishMapPinsQuery(USER_ID, {
+      lat: 35.68,
+      lng: 139.76,
+      radius: 50_000,
+    });
+    expect(query).not.toBeNull();
+    // 直径 100km ≒ 0.8983 度を 12 分割 ≒ 0.0749 度
+    const expected = (100_000 / 111_320) / 12;
+    const cell = (query!.values as unknown[]).find(
+      (v) => typeof v === 'number' && Math.abs(v - expected) < 1e-9,
+    );
+    expect(cell).toBeDefined();
+  });
+
   it('#1513 ピンの代表メディアにも論理削除済みの行を採らない', () => {
     const query = buildMyDishMapPinsQuery(USER_ID, {});
     expect(query).not.toBeNull();
@@ -695,5 +739,41 @@ describe('buildMyDishMapPinsQuery が組み立てる SQL', () => {
       'LEFT JOIN dish_media_external_embeddings dmee ON dmee.dish_media_id = dm.id',
     );
     expect(sql).toContain('dmee.thumbnail_url AS media_external_thumbnail_url');
+  });
+});
+
+/**
+ * #1629 格子セルの大きさ。
+ *
+ * 上限で切るときの «選び方» が地理的な分布を保つかどうかは、
+ * セルが表示範囲に対して適切な粗さかどうかで決まる。
+ */
+describe('myDishMapPinsCellSizeDegrees', () => {
+  it('エリア絞り込みが無ければ既定の 0.5 度（引きの絵の分布を保てば十分な粗さ）', () => {
+    expect(myDishMapPinsCellSizeDegrees({})).toBe(
+      MY_DISH_MAP_PINS_DEFAULT_CELL_DEG,
+    );
+    // lat/lng/radius が揃わない限りエリアとは扱わない（buildMyDishesCandidates と同じ判定）
+    expect(myDishMapPinsCellSizeDegrees({ lat: 35.68 })).toBe(
+      MY_DISH_MAP_PINS_DEFAULT_CELL_DEG,
+    );
+  });
+
+  it('エリア絞り込みありなら表示直径を 12 分割した値（radius 50km → 約 0.075 度）', () => {
+    const cell = myDishMapPinsCellSizeDegrees({
+      lat: 35.68,
+      lng: 139.76,
+      radius: 50_000,
+    });
+    expect(cell).toBeCloseTo(100_000 / 111_320 / 12, 6);
+  });
+
+  it('極端に小さいエリアでもセルは下限（0.002 度）を割らない', () => {
+    const cell = myDishMapPinsCellSizeDegrees({
+      lat: 35.68,
+      lng: 139.76,
+      radius: 100,
+    });
+    expect(cell).toBe(MY_DISH_MAP_PINS_MIN_CELL_DEG);
   });
 });
