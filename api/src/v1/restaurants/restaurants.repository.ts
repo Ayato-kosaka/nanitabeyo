@@ -91,6 +91,8 @@ export class RestaurantsRepository {
         | 'source_row_hash'
         | 'synced_at'
         | 'created_by_source'
+        | 'address'
+        | 'country_code'
       > & {
         review_count: number;
         average_rating: number;
@@ -232,6 +234,8 @@ export class RestaurantsRepository {
       r.synced_at,
       -- #843 その行を誰が作ったか。9_1 の同期はこの値が 'pipeline' の行だけを上書きする
       r.created_by_source,
+      r.address,
+      r.country_code,
       agg.review_count,
       agg.average_rating,
       c.last_saved_at
@@ -287,6 +291,8 @@ export class RestaurantsRepository {
         source_row_hash: row.source_row_hash,
         synced_at: row.synced_at,
         created_by_source: row.created_by_source,
+        address: row.address,
+        country_code: row.country_code,
       },
       meta: {
         reviewCount: row.review_count,
@@ -766,6 +772,8 @@ export class RestaurantsRepository {
         | 'source_row_hash'
         | 'synced_at'
         | 'created_by_source'
+        | 'address'
+        | 'country_code'
       > & {
         review_count: number;
         average_rating: number;
@@ -793,6 +801,10 @@ export class RestaurantsRepository {
         r.synced_at,
         -- #843 その行を誰が作ったか。9_1 の同期はこの値が 'pipeline' の行だけを上書きする
         r.created_by_source,
+      r.address,
+      r.country_code,
+        r.address,
+        r.country_code,
         c.total_cents,
         c.max_end_date,
         agg.review_count,
