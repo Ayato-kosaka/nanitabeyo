@@ -47,8 +47,18 @@ WebKit（＝ WKWebView と同じエンジン）でローカル実測した数字
 **`<video>` は `loading` のうちに出ている。** つまり **DocumentEnd を待っていては間に合わない**。
 document-start から撃つと **4.7 秒で再生した**。
 
-⚠️ **ただし実機（iOS シミュレータ）はローカルの WebKit と挙動が違う。**
-document-start から走らせても、実機では TikTok だけが再生しなかった
+**Android では再生する。** [run 33268418817](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33268418817)
+の `feed-04` に TikTok が全面で再生されたコマがある（映像・TikTok ロゴ・`@moto_gurume`・字幕）。
+`boot` から再生まで **約 5 秒**。
+
+⚠️ この run の spec は赤かったが、**アプリではなく spec のレースだった**。
+記録の周回と «このセルは結論を出したか» の周回が別の時刻に印を読んでおり、
+その隙（1 周は数秒かかる）に再生が始まると «結論は出たが記録されていない» になる。
+`322e35a` で結論の周回でも記録するようにした。
+**コマと BigQuery の両方を見なければ «再生できない» と誤読していた。**
+
+⚠️ **実機（iOS シミュレータ）はローカルの WebKit と挙動が違う。**
+document-start から走らせても、iOS では TikTok だけが再生しなかった
 （[run 33265424032](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33265424032)）。
 BigQuery の `frontend_event_logs` に残った実測:
 
