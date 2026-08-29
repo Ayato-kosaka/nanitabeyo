@@ -74,6 +74,60 @@ const fallbackCount = (tree: ReactTestRenderer) =>
 なりますよね？」。従来はどのセルもいったんページを読み、ページ内のエージェントの報告を
 待ってから畳んでいた（＝再生できない投稿でも毎回 Chromium のレンダラを 1 つ起こしていた）。
 */
+/*
+#1641 **iframe モード（YouTube）は、再生できないと分かった時点で WebView ごと畳む。**
+
+別オリジンなので中を隠せない。以前は地色で覆っていたが、覆いは**料理の写真ごと隠す**
+（run 33225189456 の autoplay-08 が真っ黒なセル＋帯だった）。
+*/
+describe("#1641 再生できない YouTube セルは畳む", () => {
+	const YOUTUBE = {
+		provider: "youtube" as const,
+		externalContentId: "dQw4w9WgXcQ",
+		canonicalUrl: "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+		embedStatus: "available" as const,
+		playbackStatus: "playable" as const,
+	};
+
+	const renderYouTube = (): ReactTestRenderer => {
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={YOUTUBE} isActive />);
+		});
+		return tree;
+	};
+
+	it("読み込めている間は WebView を置いたまま", () => {
+		const tree = renderYouTube();
+		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBeGreaterThan(0);
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+	});
+
+	it("«再生できない» の報告が来たら WebView を畳み、導線だけ残す", () => {
+		const tree = renderYouTube();
+		post({ src: "nb-embed-autoplay", kind: "no_ready", detail: null });
+
+		// 向こうのページ（bot 確認画面）ごと消える
+		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBe(0);
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBeGreaterThan(0);
+		expect(fallbackCount(tree)).toBeGreaterThan(0);
+	});
+
+	/*
+	⚠️ **一度再生できたセルは畳まない。** loop の保険から入る再試行が期限切れの CDN URL に
+	   当たって «再生できない» を後出しする実績がある（run 33168644022）。畳むと
+	   **再生中の映像が消える**。
+	*/
+	it("一度 playing になったセルは、その後の失敗報告で畳まない", () => {
+		const tree = renderYouTube();
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: null });
+		post({ src: "nb-embed-autoplay", kind: "no_ready", detail: null });
+
+		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBeGreaterThan(0);
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+	});
+});
+
 describe("#1641 サーバ判定による高速パス", () => {
 	const renderWith = (playbackStatus: "unknown" | "playable" | "not_playable"): ReactTestRenderer => {
 		let tree!: ReactTestRenderer;
@@ -235,16 +289,23 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	});
 
 	/*
-	#1641 **iframe モード（YouTube）だけは、再生できないとき向こうのページごと覆う。**
+	#1641 **iframe モード（YouTube）だけは、再生できないと分かった時点で WebView ごと畳む。**
 
-	別オリジンなのでこちらのスクリプトで隠せない。実測（run 33170443855）では YouTube の
-	bot 確認ページがセルにそのまま出ていた。`document` モード（この spec の Instagram）は
-	1 コマ目の写真が出るので覆わない。
+	別オリジンなのでこちらのスクリプトで中を隠せず、そのまま置くと YouTube 自身の
+	bot 確認ページがセルに出る（run 33170443855 で実測）。以前は地色で «覆って» いたが、
+	覆いは**料理の写真ごと隠す** — 実機のコマ（run 33225189456 の autoplay-08）が
+	真っ黒なセル＋帯になっていた。畳めば向こうのページは同じように消えたうえで、
+	アプリが持っているサムネイルが見える。
+
+	`document` モード（この spec の Instagram）は畳まない。1 コマ目の写真が出ており、
+	それ自体が «その投稿の絵» として正しい。
 	*/
-	it("document モードでは覆いを出さない（1 コマ目の写真を見せる）", () => {
+	it("document モードでは畳まない（1 コマ目の写真を見せる）", () => {
 		const tree = renderActiveCell();
 		post({ src: "nb-embed-autoplay", kind: "no_video", detail: null });
-		expect(tree.root.findAllByProps({ testID: "external-embed-cover" }).length).toBe(0);
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		// WebView は置いたまま（1 コマ目の写真がそこに出ている）
+		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBeGreaterThan(0);
 	});
 
 	/*

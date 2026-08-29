@@ -804,7 +804,29 @@ export function ExternalEmbedPlayer({
 	   弾くのは «再生できないと確定した» ものだけである。
 	*/
 	const knownNotPlayable = embed.playbackStatus === "not_playable";
-	const inlineAvailable = source !== null && NativeWebView !== null && !renderProcessGone && !knownNotPlayable;
+	/*
+	#1641【設計】**この場で «再生できない» と分かったら、WebView を畳んでサムネイルを見せる。**
+
+	以前は地色で «覆って» いた。iframe（YouTube）の中は別オリジンなので、再生できないとき
+	そのまま置くと YouTube 自身のページ（「ログインして bot ではないことを確認してください」）が
+	出てしまい、こちらのスクリプトでは隠せないためである（run 33170443855 で実測）。
+
+	ところが覆いは **料理の写真ごと隠す**。実機のコマ（run 33225189456 の autoplay-08）では、
+	12 秒眺めた末に **真っ黒なセル＋「YouTube で見る」の帯**になっていた。
+	覆う代わりに畳めば、向こうのページは同じように消えたうえで、**アプリが持っている
+	サムネイル（＝料理の写真）が見える**。オーナー指摘 ④「サムネ画像を出す以外に選択肢はある？」。
+
+	⚠️ `document` モード（Instagram / TikTok）は畳まない。あちらは 1 コマ目の写真を
+	   全面に出しており、それ自体が «その投稿の絵» として正しい。
+	⚠️ セルを離れると `playback` は `unknown` へ戻るので、次に来たときは 1 度だけ再挑戦する。
+	*/
+	const collapsedAfterFailure = playback === "unplayable" && source?.mode === "iframe";
+	const inlineAvailable =
+		source !== null &&
+		NativeWebView !== null &&
+		!renderProcessGone &&
+		!knownNotPlayable &&
+		!collapsedAfterFailure;
 	/*
 	#1641【設計】**再生できているセルには、こちらの UI を何も出さない。**
 
@@ -984,20 +1006,12 @@ export function ExternalEmbedPlayer({
 				   Detox から 1 つずつ判定できるようにするため（YouTube だけ落ちる、が拾える） */
 				<View style={styles.playingMarker} pointerEvents="none" testID={`external-embed-playing-${embed.provider}`} />
 			)}
-			{/*
-			#1641 **再生できない iframe モード（YouTube）は、向こうのページごと覆う。**
-
-			実測（run 33170443855 / Android）: 埋め込みを許可していない動画のセルに、YouTube 自身の
-			ページ（「ログインして bot ではないことを確認してください」＋ログインリンク）が
-			**そのまま出ていた**。iframe の中は別オリジンなので、Instagram / TikTok のように
-			こちらのスクリプトで隠すことができない。**外から地色で覆うのが唯一の手段**である。
-
-			⚠️ `document` モード（Instagram / TikTok）は覆わない。あちらは 1 コマ目の写真を
-			   全面に出しており、料理の写真が見えている方が «再生できない» の見せ方として良い。
-			⚠️ `pointerEvents="none"`。覆いが縦スワイプを食うとフィードを送れなくなる。
-			*/}
-			{playback === "unplayable" && source?.mode === "iframe" && (
-				<View style={styles.unplayableCover} pointerEvents="none" testID="external-embed-cover" />
+			{/* #1641 **地色の «覆い» は廃止した。** 覆うと料理の写真ごと隠れる。
+			    代わりに WebView を畳む（上の `collapsedAfterFailure`）。畳めば向こうのページは
+			    同じように消えたうえで、アプリが持っているサムネイルが見える。
+			    畳んだことを Detox から見るための印だけ残す（見た目には何も足さない）。 */}
+			{collapsedAfterFailure && (
+				<View style={styles.playingMarker} pointerEvents="none" testID="external-embed-collapsed" />
 			)}
 			{/*
 			#1641 **無音で再生中のときだけ «音を出す» を出す（いまのところ YouTube だけ）。**
@@ -1084,11 +1098,6 @@ const styles = StyleSheet.create({
 		position: "absolute",
 		bottom: 172,
 		alignSelf: "center",
-	},
-	// #1641 別オリジンの iframe（YouTube）が出すエラー画面を隠すための地色
-	unplayableCover: {
-		...StyleSheet.absoluteFillObject,
-		backgroundColor: FixedColors.mediaBackground,
 	},
 	overlayContainer: {
 		...StyleSheet.absoluteFillObject,
