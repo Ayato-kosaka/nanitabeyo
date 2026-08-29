@@ -89,14 +89,20 @@ def main() -> None:
           COALESCE(NULLIF(s.phone, ''), sib.sibling_phone) AS phone,
           COALESCE(NULLIF(s.website, ''), sib.sibling_website) AS website,
           -- SNS は 1 本ではないので、重複を除いて合併する。
+          --
+          -- ⚠️ `IFNULL` を外してはいけない。**BigQuery の ARRAY_CONCAT は引数に
+          -- 1 つでも NULL があると NULL を返す**ので、LEFT JOIN が外れた行
+          -- （＝兄弟 seed が居ない大多数）で自分の配列ごと消える。
+          -- 実測: これを忘れて social 492,247 → 19,306 / source_names
+          -- 621,616 → 50,513 に化けた（同期前に catalog の実測で捕捉）。
           ARRAY(
             SELECT DISTINCT u FROM UNNEST(
-              ARRAY_CONCAT(s.social_urls, sib.sibling_social_urls)
+              ARRAY_CONCAT(s.social_urls, IFNULL(sib.sibling_social_urls, []))
             ) AS u WHERE u IS NOT NULL AND u != ''
           ) AS social_urls,
           ARRAY(
             SELECT DISTINCT u FROM UNNEST(
-              ARRAY_CONCAT(s.source_names, sib.sibling_source_names)
+              ARRAY_CONCAT(s.source_names, IFNULL(sib.sibling_source_names, []))
             ) AS u WHERE u IS NOT NULL AND u != ''
           ) AS source_names,
           m.match_method

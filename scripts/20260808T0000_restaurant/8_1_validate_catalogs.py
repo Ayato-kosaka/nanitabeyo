@@ -121,6 +121,29 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
         FROM `{dataset}.restaurant_catalog`
         WHERE run_id = @run_id
       ),
+      -- #843 «合併したら元より減った» を捕まえる。
+      --
+      -- 3_4 は同じ place_id へ当たった負けた seed の連絡先を合併する。この合併で
+      -- **自分の値まで消える**事故が実際に起きた（BigQuery の ARRAY_CONCAT は
+      -- 引数に NULL が 1 つでもあると NULL を返すので、LEFT JOIN が外れた行で
+      -- 配列が空になった。social 492,247 → 19,306 / source_names 621,616 → 50,513）。
+      --
+      -- 件数だけを見るゲートでは 621,616 行のまま通ってしまい、素通りした。
+      -- **自分の seed が持っていた値を、catalog が持っていないこと**を直接数える。
+      restaurant_merge_loss AS (
+        SELECT
+          COUNTIF(ARRAY_LENGTH(c.source_names) = 0) AS lost_name_rows,
+          COUNTIF(
+            (SELECT COUNT(1) FROM UNNEST(s.social_urls) u WHERE u IS NOT NULL AND u != '') > 0
+            AND ARRAY_LENGTH(c.social_urls) = 0
+          ) AS lost_social_rows,
+          COUNTIF(NULLIF(s.phone, '') IS NOT NULL AND c.phone IS NULL) AS lost_phone_rows,
+          COUNTIF(NULLIF(s.website, '') IS NOT NULL AND c.website IS NULL) AS lost_website_rows
+        FROM `{dataset}.restaurant_catalog` c
+        JOIN `{dataset}.restaurant_seed_catalog` s
+          ON s.run_id = @run_id AND s.seed_id = c.seed_id
+        WHERE c.run_id = @run_id
+      ),
       existing_missing AS (
         SELECT COUNT(*) AS missing_count
         FROM `{dataset}.restaurant_seed_catalog` seed
@@ -236,6 +259,11 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           row_count = distinct_place_count FROM restaurant_stats
         UNION ALL SELECT 'restaurant_required_fields_valid', 'ERROR',
           CAST(invalid_count AS FLOAT64), 0.0, invalid_count = 0 FROM restaurant_stats
+        UNION ALL SELECT 'restaurant_merge_no_data_loss', 'ERROR',
+          CAST(lost_name_rows + lost_social_rows + lost_phone_rows + lost_website_rows AS FLOAT64),
+          0.0,
+          lost_name_rows + lost_social_rows + lost_phone_rows + lost_website_rows = 0
+          FROM restaurant_merge_loss
         UNION ALL SELECT 'existing_pg_restaurants_preserved', 'ERROR',
           CAST(missing_count AS FLOAT64), 0.0, missing_count = 0 FROM existing_missing
         UNION ALL SELECT 'existing_pg_serving_values_preserved', 'ERROR',

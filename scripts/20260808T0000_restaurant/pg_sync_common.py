@@ -41,6 +41,7 @@ RESTAURANT_ERROR_CHECKS = frozenset(
         "restaurant_catalog_non_empty",
         "restaurant_google_place_id_unique",
         "restaurant_required_fields_valid",
+        "restaurant_merge_no_data_loss",
         "existing_pg_restaurants_preserved",
         "existing_pg_serving_values_preserved",
         "jp_gate_category_count",
