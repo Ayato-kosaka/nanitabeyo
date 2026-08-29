@@ -11,7 +11,7 @@ const MARKER = "# #1156 use-frameworks-module-fixes";
  * 公開ヘッダで晒している Pod は use_frameworks! 下で必ず modular header 制約に抵触する。
  * そういう Pod は framework ではなく素の静的ライブラリとしてビルドさせるのが確実。
  */
-const STATIC_LIBRARY_PODS = ["react-native-maps"];
+const STATIC_LIBRARY_PODS = ["react-native-maps", "RNFBApp", "RNFBPerf", "RNFBCrashlytics"];
 
 /**
  * #1156 【設計】use_frameworks! 環境で発生する modular header 由来のビルドエラーを回避する。
@@ -26,16 +26,26 @@ const STATIC_LIBRARY_PODS = ["react-native-maps"];
  *   React Native Core のヘッダ自体が module map を持たないので、React Native Core の
  *   型を公開ヘッダで使っている Pod はすべてこれを踏みうる。
  *
- *   ⚠️ #1641 `@react-native-firebase/crashlytics` も同じ形のエラーを出したが、
- *   **ここへ足しても直らなかった**（run 33267301639 / 33268418817 で 2 回とも同じ）。
+ *   #1641 `@react-native-firebase/crashlytics` を足したとき、同じ形のエラーが出た。
  *
  *     declaration of 'RCTBridgeModule' must be imported from module
  *     'RNFBApp.RNFBAppModule' before it is required
  *
- *   `Forcing static library build for RNFBCrashlytics` はログに出ているので差し替え自体は
- *   効いており、**この Pod は別の原因で落ちている**。同じ 25.1.0 の
- *   `@react-native-firebase/perf` は公開ヘッダの形が同じなのに踏まない。
- *   未解決のまま Crashlytics ごと外してある（#1641 のコメント参照）。
+ *   ⚠️ **落ちている Pod（RNFBCrashlytics）だけを差し替えても直らない**
+ *   （run 33267301639 / 33268418817 で 2 回とも同じ。`Forcing static library build for
+ *   RNFBCrashlytics` はログに出ているので差し替え自体は効いていた）。
+ *
+ *   犯人は **依存されている側の `RNFBApp`** である。framework module としてビルドされると、
+ *   `RNFBAppModule.h` が `#import <React/RCTBridgeModule.h>` しているせいで
+ *   **React の宣言が RNFBApp のモジュールへ吸い込まれる**。その後 `RNFBCrashlytics` が
+ *   同じヘッダを include すると、clang は «その宣言はモジュール RNFBApp.RNFBAppModule の
+ *   ものだから、先に import しろ» と言って止まる。
+ *
+ *   同じ 25.1.0 の `RNFBPerf` が踏まなかったのは、**RNFBApp のモジュールが出来る前に
+ *   コンパイルされていたから**にすぎない（＝ビルド順まかせで、いつ壊れてもおかしくない）。
+ *   そこで **RNFB の 3 つをまとめて** module 化から外し、この失敗の形自体を無くしてある。
+ *   3 つとも Swift を 1 行も含まない（podspec の source_files は .h と .m だけ）ので
+ *   static library にできる。⚠️ この行に閉じコメント記号を含む glob を書かないこと。
  *
  *   Expo SDK 54 (React Native 0.81) へ上げた際、`react-native-maps` が実際に踏んだ。
  *   EAS Build Develop の iOS が 2 回連続で XCODE_BUILD_ERROR になった。
