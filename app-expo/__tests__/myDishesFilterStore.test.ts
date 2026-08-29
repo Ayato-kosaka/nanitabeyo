@@ -25,6 +25,7 @@ import {
 	selectFilterQueryKey,
 	selectRestaurantQueryKey,
 	toMyDishesCalendarQueryParams,
+	toMyDishesDateQueryParams,
 	toMyDishesQueryParams,
 	toMyDishesRestaurantQueryParams,
 	useMyDishesFilterStore,
@@ -327,3 +328,53 @@ type ForbiddenViewportKeys = Extract<
 >;
 const _assertNoViewportInFilter: ForbiddenViewportKeys extends never ? true : never = true;
 void _assertNoViewportInFilter;
+
+/*
+#1629【提案 2】Calendar の日付タップから開く Feed 用の派生クエリ（`toMyDishesDateQueryParams`）。
+
+オーナー確定「フィルタの条件はマップ・グリッド・カレンダーで一緒、出力結果も同じにする」。
+
+以前はここでエリア（`lat` / `lng` / `radius`）を落としていた。その結果 **月グリッドのマス目は
+エリアで絞られているのに、そのマスを開いた Feed だけ全件**という食い違いが出ていた
+（マスが空なのに開くと記録が入っている）。落とすのは並び替え（`sort` / `featureKeys`）だけである。
+*/
+describe("#1629 日付フィード用派生クエリ（toMyDishesDateQueryParams）", () => {
+	const DATE = "2026-08-20";
+
+	// ★ ここが本命。エリアを «落とさない» ことがオーナー確定の要件そのもの
+	it("エリア（lat / lng / radius）を引き継ぐ", () => {
+		getState().commitArea({ lat: 35.68, lng: 139.76, radius: 1200 });
+
+		const params = toMyDishesDateQueryParams(getState().filter, DATE);
+		expect(params.lat).toBe(35.68);
+		expect(params.lng).toBe(139.76);
+		expect(params.radius).toBe(1200);
+	});
+
+	it("落とすのは sort / featureKeys だけ。他の絞り込みは base と同じものを引き継ぐ", () => {
+		getState().patch({
+			status: ["eaten"],
+			minRating: 4,
+			categoryIds: ["c1"],
+			sort: "-featureScore",
+			featureKeys: ["scene:date"],
+		});
+
+		const params = toMyDishesDateQueryParams(getState().filter, DATE) as Record<string, unknown>;
+		expect(params.sort).toBeUndefined();
+		expect(params.featureKeys).toBeUndefined();
+		expect(params.status).toEqual(["eaten"]);
+		expect(params.minRating).toBe(4);
+		expect(params.categoryIds).toEqual(["c1"]);
+	});
+
+	it("期間はその日 1 日へ差し替える（共有フィルタの from / to は上書きされる）", () => {
+		getState().patch({ from: "2026-01-01T00:00:00.000Z", to: "2026-12-31T00:00:00.000Z" });
+
+		const params = toMyDishesDateQueryParams(getState().filter, DATE);
+		// 境界は端末のローカル日付で切る（カレンダーのマス目がローカル日付で並んでいるため）
+		expect(new Date(params.from as string).getFullYear()).toBe(2026);
+		expect(new Date(params.from as string).getDate()).toBe(20);
+		expect(new Date(params.to as string).getDate()).toBe(20);
+	});
+});
