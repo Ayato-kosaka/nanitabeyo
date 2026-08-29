@@ -126,8 +126,30 @@ export function RestaurantNameSearch({
 				if (latestRequestIdRef.current !== requestId) return;
 				// #1375 API を信じない。**state へ入れる前に**配列へ落とす（#1561 と同型）
 				const rows = asApiList(response);
-				setResults(rows);
-				setStatus(rows.length > 0 ? "success" : "empty");
+				/*
+				#1629【オーナー実機報告】「お店を選ぶ画面でクラッシュした」。
+
+				`asApiList` が保証するのは «配列であること» までで、**1 行の中身は誰も見ていなかった**。
+				描画側は `result.restaurant.id` / `.name` を無条件に読むので、`restaurant` を持たない行が
+				1 つ混ざるだけで `Cannot read properties of undefined (reading 'name')` になり、
+				**検索欄どころか画面ごと**落ちる（web ハーネスで実際に再現し、例外まで確認した）。
+
+				行の形もここで確かめ、使えない行は捨てる。1 行が壊れていても残りは選べるほうがよい。
+				⚠️ 捨てたことは黙らせない。0 件と «壊れていて 0 件になった» は原因が別なので、
+				   件数をログへ残す（`asApiList` が «配列でなかった» を残すのと同じ考え方）。
+				*/
+				const usable = rows.filter(
+					(row): row is RestaurantSearchResult => !!row && typeof row === "object" && !!row.restaurant?.id,
+				);
+				if (usable.length !== rows.length) {
+					logFrontendEvent({
+						event_name: "restaurant_name_search_dropped_rows",
+						error_level: "warn",
+						payload: { q, received: rows.length, usable: usable.length },
+					});
+				}
+				setResults(usable);
+				setStatus(usable.length > 0 ? "success" : "empty");
 			} catch (error) {
 				if (latestRequestIdRef.current !== requestId) return;
 				setResults([]);

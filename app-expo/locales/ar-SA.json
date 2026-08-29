@@ -665,6 +665,7 @@
 			"mediaSelectionFailed": "فشل تحديد الوسائط",
 			"mediaSelectionError": "حدث خطأ أثناء تحديد الوسائط. يرجى المحاولة مرة أخرى.",
 			"replaceWithMyPhoto": "استخدام صورتي الخاصة",
+			"reselectPhoto": "تغيير الصورة",
 			"openSettings": "فتح الإعدادات",
 			"pickFromLibrary": "اختيار من المكتبة",
 			"shootWithCamera": "التقاط صورة",

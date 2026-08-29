@@ -28,6 +28,7 @@ import {
 	toMinorAmountInteger,
 } from "@/lib/googlePlaces";
 import { useLocale } from "@/hooks/useLocale";
+import { resolveDishCategoryLabel } from "@/features/myDishes/dishCategoryLabel";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -360,9 +361,18 @@ export function ReviewForm({
 	 */
 	useEffect(() => {
 		if (!pickedExistingMedia) return;
-		setDishCategoryName(pickedExistingMedia.dish.name ?? "");
+		/*
+		#1629【オーナー実機報告】「実際にそれを選ぶと料理カテゴリー選択が **空欄のまま**入っちゃう」。
+
+		表示名に `dish.name` を直に入れていたため、その店での呼び名が空の投稿を選ぶと
+		**カテゴリー欄が空のまま**進んでしまっていた（しかも下の行は選び直しを塞いでいたので直せない）。
+		表示名は `dishCategoryLabel.ts` の規則で解決する（他の画面と同じ）。
+		*/
+		setDishCategoryName(
+			resolveDishCategoryLabel(pickedExistingMedia.dish.categoryLabels, pickedExistingMedia.dish.name, locale) ?? "",
+		);
 		setDishCategoryId(pickedExistingMedia.dish.category_id ?? null);
-	}, [pickedExistingMedia]);
+	}, [locale, pickedExistingMedia]);
 
 	/**
 	 * #1386 料理カテゴリ選択画面（ルート）からの «戻り値»。
@@ -683,6 +693,32 @@ export function ReviewForm({
 		// アンマウント時は cleanup が世代を進めるため、遅れて返ってきた結果は書き戻されない
 		runMediaSelection("retry", mediaGenerationRef.current);
 	}, [runMediaSelection]);
+
+	/*
+	#1629【オーナー実機報告】**選んだ写真は選び直せる。**
+
+	> メディアを選んだら編集ができなくて困ってます。
+	> うどんの刻んだメディアがあるからこれを自分の写真に変えたら再編集ができないか、これ直してほしくて。
+
+	記録フロー（`mediaPickerMode === "manual"`）では «写真を決めた» 時点で選択肢が畳まれ、
+	**そこから先はどうやっても写真を変えられなかった**。«この店の写真から選ぶ» で選んだ投稿も、
+	«自分の写真に変える» で開いたピッカーも、一度決めたら戻れない。
+	戻る道が無いのに、その決定が料理カテゴリー欄まで固定していた（下の `disabled` の行）ので、
+	間違えたら画面を閉じてやり直すしかなかった。
+
+	1 歩目（写真の選び方）へ戻すだけで、既存の分岐がそのまま «最初から選び直し» として動く。
+
+	⚠️ 親から `prefilledMedia` を渡された画面（店舗フィードからの記録）には出さない。
+	   あちらは «その投稿に対する記録» と決まっていて、写真を差し替える意味が無い
+	   （差し替えたいときの入口は従来どおり «自分の写真に変える»）。
+	*/
+	const handleReselectMedia = useCallback(() => {
+		lightImpact();
+		setPickedExistingMedia(undefined);
+		setUseOwnMedia(false);
+		setHasDecidedMedia(false);
+		setMediaState({ status: "none" });
+	}, [lightImpact]);
 
 	// #1375 4 巡目: 「その場で撮る」導線。ガードの作法は handleRetry と同一に保つ
 	const handleShootWithCamera = useCallback(() => {
@@ -1190,6 +1226,49 @@ export function ReviewForm({
 					</View>
 				) : (
 					<>
+						{/*
+						#1629【オーナー指示】**料理カテゴリーは写真の «上» に置く。**
+
+						> 料理カテゴリーを決めた後にメディアを選ぶと思うんですけど…
+						> 料理カテゴリー選択は写真の上に持ってきちゃいましょう。
+
+						記録の順番は «お店 → 料理カテゴリー → 写真 → 残りの入力» なので、決めた順に上から
+						並んでいるのが読みやすい。以前はコメント欄の下（写真より **後**）に居たため、
+						«さっき決めたはずのものが、写真より下に出てくる» 形になっていた。
+						*/}
+						<View style={styles.dishCategoryRowAbovePhoto}>
+						{/* 料理カテゴリ選択 Pressable 行 */}
+						<Pressable
+							testID="review-dish-category-row"
+							style={styles.dishCategorySelectRow}
+							onPress={handleOpenDishCategory}
+							// #400 prefilledMedia のときは料理カテゴリ選択を無効化（そのメディアの料理に固定される）。
+							// #1375（5 巡目）既存メディアを «選んだ» ときも同じ（activePrefilledMedia に入る）
+							disabled={!!activePrefilledMedia}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
+							{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
+							<View style={styles.inputRowLabelWithIcon}>
+								<Utensils size={18} color={colors.textSecondary} />
+								<Text style={styles.inputRowLabel}>
+									{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
+								</Text>
+							</View>
+							<View style={styles.dishCategorySelectContent}>
+								{dishCategoryName && (
+									<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
+										{dishCategoryName}
+									</Text>
+								)}
+								{!prefilledMedia && <ChevronRight size={20} color={colors.textMuted} />}
+							</View>
+						</Pressable>
+						{dishCategoryError && (
+							<Text style={styles.errorText} accessibilityLiveRegion="polite">
+								{dishCategoryError}
+							</Text>
+						)}
+						</View>
 						<View
 							testID="review-media-slot"
 							style={
@@ -1288,6 +1367,18 @@ export function ReviewForm({
 							) : (
 								<View style={styles.previewWrap}>
 									<InitialMediaPreview media={mediaState.media} />
+									{/* #1629 選び直す（記録フローだけ。理由は handleReselectMedia の JSDoc） */}
+									{showsManualMediaChooser || pickedExistingMedia ? (
+										<TouchableOpacity
+											testID="review-reselect-media"
+											style={styles.reselectPhotoButton}
+											onPress={handleReselectMedia}
+											accessibilityRole="button"
+											accessibilityLabel={i18n.t("Map.media.reselectPhoto")}>
+											<ImagePlus size={14} color={FixedColors.onMedia} />
+											<Text style={styles.replacePhotoLabel}>{i18n.t("Map.media.reselectPhoto")}</Text>
+										</TouchableOpacity>
+									) : null}
 									{/* #1375 実機確認（2 巡目）: 食べたを記録（prefilledMedia モード）でも
 							    自分で撮った写真に差し替えられる入口を出す */}
 									{effectivePrefilledMedia !== undefined && (
@@ -1338,38 +1429,6 @@ export function ReviewForm({
 									{i18n.t("Restaurant.characterCount", { current: reviewText.length, max: 100 })}
 								</Text>
 							</View>
-
-							{/* 料理カテゴリ選択 Pressable 行 */}
-							<Pressable
-								testID="review-dish-category-row"
-								style={styles.dishCategorySelectRow}
-								onPress={handleOpenDishCategory}
-								// #400 prefilledMedia のときは料理カテゴリ選択を無効化（そのメディアの料理に固定される）。
-								// #1375（5 巡目）既存メディアを «選んだ» ときも同じ（activePrefilledMedia に入る）
-								disabled={!!activePrefilledMedia}
-								accessibilityRole="button"
-								accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
-								{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
-								<View style={styles.inputRowLabelWithIcon}>
-									<Utensils size={18} color={colors.textSecondary} />
-									<Text style={styles.inputRowLabel}>
-										{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
-									</Text>
-								</View>
-								<View style={styles.dishCategorySelectContent}>
-									{dishCategoryName && (
-										<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
-											{dishCategoryName}
-										</Text>
-									)}
-									{!prefilledMedia && <ChevronRight size={20} color={colors.textMuted} />}
-								</View>
-							</Pressable>
-							{dishCategoryError && (
-								<Text style={styles.errorText} accessibilityLiveRegion="polite">
-									{dishCategoryError}
-								</Text>
-							)}
 
 							{/* 価格入力 行 */}
 							<View style={styles.priceInputRow}>
@@ -1586,6 +1645,11 @@ const createStyles = (c: Palette) =>
 		scrollContent: {
 			paddingBottom: 64,
 		},
+		// #1629 写真の上へ移した料理カテゴリー行。左右の余白は formContainer と揃える
+		dishCategoryRowAbovePhoto: {
+			paddingHorizontal: 16,
+			paddingTop: 16,
+		},
 		formContainer: {
 			paddingHorizontal: 16,
 			paddingTop: 16,
@@ -1734,6 +1798,19 @@ const createStyles = (c: Palette) =>
 		replacePhotoButton: {
 			position: "absolute",
 			right: 8,
+			bottom: 8,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+			paddingHorizontal: 10,
+			paddingVertical: 6,
+			borderRadius: 14,
+			backgroundColor: "rgba(17,24,39,0.7)",
+		},
+		// #1629 «選び直す»。«自分の写真に変える»（右下）と重ならないよう **左下**へ置く
+		reselectPhotoButton: {
+			position: "absolute",
+			left: 8,
 			bottom: 8,
 			flexDirection: "row",
 			alignItems: "center",

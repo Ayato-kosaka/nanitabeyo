@@ -665,6 +665,7 @@
 			"mediaSelectionFailed": "मीडिया चयन विफल रहा",
 			"mediaSelectionError": "मीडिया का चयन करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
 			"replaceWithMyPhoto": "अपनी फ़ोटो इस्तेमाल करें",
+			"reselectPhoto": "फ़ोटो बदलें",
 			"openSettings": "सेटिंग्स खोलें",
 			"pickFromLibrary": "लाइब्रेरी से चुनें",
 			"shootWithCamera": "फ़ोटो लें",

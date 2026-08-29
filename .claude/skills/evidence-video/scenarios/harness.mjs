@@ -211,6 +211,22 @@ export async function record({ name, mock, contextOptions, flow, langs, preset =
 		}
 	});
 
+	/*
+	⚠️ **画面が落ちたことを黙って見逃さない。**
+
+	#1629 の記録フローを撮っていて «エラー画面のスクショが撮れているのに、シナリオは
+	«結果が出ない» としか言わない» という状態になった。原因（どの JS 例外で落ちたか）は
+	ブラウザのコンソールにしか無く、ここで拾っていなかったので毎回手で調べ直しになる。
+
+	拾った例外は撮影の最後に **必ず** `<name>-errors.md` へ書き出し、標準出力にも出す。
+	«動画は撮れたが中身は壊れていた» を、見た人が気づける形にするためである。
+	*/
+	const pageErrors = [];
+	page.on("pageerror", (error) => pageErrors.push(`pageerror: ${error.message}`));
+	page.on("console", (message) => {
+		if (message.type() === "error") pageErrors.push(`console.error: ${message.text()}`);
+	});
+
 	const shots = [];
 	const shot = async (label) => {
 		const p = `${OUT}/${name}-${label}.png`;
@@ -227,8 +243,15 @@ export async function record({ name, mock, contextOptions, flow, langs, preset =
 		if (video) await rename(await video.path(), `${OUT}/${name}.webm`);
 		await browser.close();
 	}
+	if (pageErrors.length > 0) {
+		// 同じ例外が何十回も出るので畳む（何が起きたかが読めればよい）
+		const unique = [...new Set(pageErrors)];
+		await writeFile(`${OUT}/${name}-errors.md`, unique.map((line) => `- ${line}`).join("\n") + "\n", "utf8");
+		console.log(`⚠️ ブラウザの例外を ${unique.length} 種類拾った -> ${OUT}/${name}-errors.md`);
+		for (const line of unique.slice(0, 5)) console.log(`   ${line}`);
+	}
 	console.log(`saved: ${OUT}/${name}.webm (+${shots.length} shots)`);
-	return { video: `${OUT}/${name}.webm`, shots };
+	return { video: `${OUT}/${name}.webm`, shots, pageErrors };
 }
 
 /** 画面に出ているチュートリアルを閉じる（複数ページある場合も想定） */

@@ -665,6 +665,7 @@
 			"mediaSelectionFailed": "Échec de la sélection des médias",
 			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer.",
 			"replaceWithMyPhoto": "Utiliser ma propre photo",
+			"reselectPhoto": "Changer de photo",
 			"openSettings": "Ouvrir les réglages",
 			"pickFromLibrary": "Choisir dans la galerie",
 			"shootWithCamera": "Prendre une photo",

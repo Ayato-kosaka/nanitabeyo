@@ -665,6 +665,7 @@
 			"mediaSelectionFailed": "媒体选择失败",
 			"mediaSelectionError": "选择媒体时发生错误。请重试。",
 			"replaceWithMyPhoto": "改用我自己的照片",
+			"reselectPhoto": "重新选择照片",
 			"openSettings": "打开设置",
 			"pickFromLibrary": "从相册选择",
 			"shootWithCamera": "拍照",

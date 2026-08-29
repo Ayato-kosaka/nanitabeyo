@@ -665,6 +665,7 @@
 			"mediaSelectionFailed": "미디어 선택 실패",
 			"mediaSelectionError": "미디어 선택 중 오류가 발생했습니다. 다시 시도해주세요.",
 			"replaceWithMyPhoto": "내 사진으로 바꾸기",
+			"reselectPhoto": "사진 다시 선택",
 			"openSettings": "설정 열기",
 			"pickFromLibrary": "라이브러리에서 선택",
 			"shootWithCamera": "사진 촬영",
