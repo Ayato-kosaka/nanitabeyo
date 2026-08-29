@@ -65,6 +65,11 @@ export interface DishMediaEntryEntity {
     averageRating: number;
     /** #1375 dish_categories.labels（言語コード → 表記）。取れなければ null */
     categoryLabels: Record<string, string> | null;
+    /**
+     * #1641 dish_categories.image_url。**サムネイルが 1 つも無いときの最後の受け皿。**
+     * レスポンスへそのまま出すものではなく、`thumbnailImageUrl` の解決にだけ使う。
+     */
+    categoryImageUrl: string | null;
   };
   dish_media: PrismaDishMedia & {
     isMine: boolean;
@@ -908,7 +913,12 @@ export class DishMediaRepository {
             // ローマ字が入る。カテゴリの正式表記（言語コード → 表記）を一緒に返し、
             // クライアントが «利用者の言語 → 英語 → 店での呼び名» の順で出せるようにする。
             // labels 列だけを select するので、この join で読む量は最小に留まる。
-            dish_categories: { select: { labels: true } },
+            //
+            // #1641 `image_url` も引く。SNS 取り込みの行は自ストレージにサムネイルを
+            // 持たないことがあり（取り込み当時に複製へ失敗した / provider の署名 URL が失効した）、
+            // **何も無いとセルが真っ黒になる**（run 33223480840 の feed-05 で実測）。
+            // 最後の受け皿として料理カテゴリの絵を返す。列 1 つぶんの追加である。
+            dish_categories: { select: { labels: true, image_url: true } },
             dish_reviews: {
               // #1513 削除済みレビューは本文欄に出さない
               // #1511 同じ料理に付いた «他人の» レビューのうち、退会者のものも落とす
@@ -1039,6 +1049,8 @@ export class DishMediaRepository {
                 string,
                 string
               > | null) ?? null,
+            categoryImageUrl:
+              dishMedia.dishes.dish_categories?.image_url ?? null,
           },
           dish_media: {
             ...(dishMedia as PrismaDishMedia),

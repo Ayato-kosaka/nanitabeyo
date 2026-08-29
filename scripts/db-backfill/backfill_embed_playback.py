@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """#1641 既に取り込まれた SNS 投稿の **再生可否**（`playback_*`）を 1 回きりで埋める。
 
+あわせて、**サムネイル URL が空の行にはそれも入れる**。高速パス（再生できないと
+分かっている投稿では WebView を作らない）を入れた結果、サムネイルが 1 つも無い行が
+**真っ黒なセル**になった（run 33223480840 の feed-05）。判定のために埋め込み SSR を
+どのみち引いているので、同じ HTML から拾って書けば追加のリクエストは要らない。
+
 ## なぜ要るのか
 
 `dish_media_external_embeddings` に `playback_status` を足したのは 2026-08-28 で、
@@ -74,6 +79,24 @@ MAX_BYTES = 1024 * 1024
 # `"video_url": null` を «在る» と数えないため、値が https で始まることまで見る
 VIDEO_URL_MARKER = re.compile(r'\\?"video_url\\?"\s*:\s*\\?"https')
 
+# 埋め込み SSR のサムネイル。API 側 parseInstagramEmbedHtml と同じ目印を使う
+IG_THUMBNAIL_MARKER = re.compile(
+    r'<img[^>]*class="[^"]*EmbeddedMediaImage[^"]*"[^>]*src="([^"]+)"'
+)
+
+
+def _decode_entities(text: str) -> str:
+    for old, new in (
+        ("&amp;", "&"),
+        ("&lt;", "<"),
+        ("&gt;", ">"),
+        ("&quot;", '"'),
+        ("&#39;", "'"),
+        ("&#x27;", "'"),
+    ):
+        text = text.replace(old, new)
+    return text
+
 ALLOWED_SCHEMAS = {"dev", "public"}
 
 
@@ -93,19 +116,25 @@ def http_status_and_body(url: str) -> tuple[int, str]:
 
 def verdict_for(
     provider: str, external_content_id: str, canonical_url: str
-) -> tuple[str, str | None]:
-    """`(playback_status, playback_reason)` を返す。判定できなければ `('unknown', None)`。"""
+) -> tuple[str, str | None, str | None]:
+    """`(playback_status, playback_reason, thumbnail_url)` を返す。
+
+    判定できなければ `('unknown', None, None)`。`thumbnail_url` は
+    **Instagram の SSR から拾えたときだけ**入る（他 provider は None）。
+    """
     if provider == "instagram":
         url = f"https://www.instagram.com/p/{external_content_id}/embed/captioned/"
         status, body = http_status_and_body(url)
         if status != 200:
-            return "unknown", None
+            return "unknown", None, None
         # SSR が返っていること自体を先に確かめる。JS シェルには目印がひとつも無い
         if "EmbeddedMediaImage" not in body and 'class="Caption"' not in body:
-            return "unknown", None
+            return "unknown", None, None
+        thumbnail = IG_THUMBNAIL_MARKER.search(body)
+        thumbnail_url = _decode_entities(thumbnail.group(1)) if thumbnail else None
         if VIDEO_URL_MARKER.search(body):
-            return "playable", None
-        return "not_playable", "no_video_in_embed"
+            return "playable", None, thumbnail_url
+        return "not_playable", "no_video_in_embed", thumbnail_url
 
     if provider == "youtube":
         # ⚠️ API 側と同じ «canonical_url をそのまま渡す» を守る。ここで URL を
@@ -115,13 +144,13 @@ def verdict_for(
         )
         status, _ = http_status_and_body(url)
         if status == 200:
-            return "playable", None
+            return "playable", None, None
         if status == 401:
-            return "not_playable", "embedding_disabled"
-        return "unknown", None
+            return "not_playable", "embedding_disabled", None
+        return "unknown", None, None
 
     # tiktok は判定材料が無い。«分からない» を «再生できない» に寄せない
-    return "unknown", None
+    return "unknown", None, None
 
 
 def main() -> int:
@@ -149,12 +178,16 @@ def main() -> int:
             cursor.execute(f'SET search_path TO "{args.schema}"')
             cursor.execute(
                 """
-                SELECT dish_media_id, provider, external_content_id, canonical_url
+                SELECT dish_media_id, provider, external_content_id, canonical_url,
+                       (thumbnail_url IS NULL) AS needs_thumbnail
                 FROM dish_media_external_embeddings
                 -- ⚠️ 条件は `playback_checked_at IS NULL` ではなく status で見る。
                 --    端末報告からの再検証（reportUnplayable）は «確かめたが分からなかった»
                 --    行の日時だけを進めるので、日時で絞ると**その行を二度と拾えなくなる**
-                WHERE playback_status = 'unknown'
+                --
+                -- #1641 サムネイル URL が空の行も拾う。判定が済んでいても、絵が無ければ
+                --       高速パスでセルが真っ黒になる（run 33223480840 の feed-05）
+                WHERE (playback_status = 'unknown' OR thumbnail_url IS NULL)
                   AND provider IN ('instagram', 'youtube')
                 ORDER BY created_at
                 LIMIT %s
@@ -165,37 +198,57 @@ def main() -> int:
 
         logger.info("対象 %d 件（schema=%s / apply=%s）", len(rows), args.schema, args.apply)
         counts: dict[str, int] = {}
-        for index, (dish_media_id, provider, external_content_id, canonical_url) in enumerate(
-            rows, start=1
-        ):
-            status, reason = verdict_for(provider, external_content_id, canonical_url)
+        for index, (
+            dish_media_id,
+            provider,
+            external_content_id,
+            canonical_url,
+            needs_thumbnail,
+        ) in enumerate(rows, start=1):
+            status, reason, thumbnail_url = verdict_for(
+                provider, external_content_id, canonical_url
+            )
             counts[f"{provider}:{status}"] = counts.get(f"{provider}:{status}", 0) + 1
+            fills_thumbnail = bool(needs_thumbnail and thumbnail_url)
             logger.info(
-                "[%d/%d] %s %s → %s%s",
+                "[%d/%d] %s %s → %s%s%s",
                 index,
                 len(rows),
                 provider,
                 external_content_id,
                 status,
                 f" ({reason})" if reason else "",
+                " +サムネイル" if fills_thumbnail else "",
             )
 
             # ⚠️ 判定できなかった行は触らない。checked_at も進めない
             #    （次に走らせたときにもう一度試せるようにするため）
-            if status != "unknown" and args.apply:
+            if args.apply and (status != "unknown" or fills_thumbnail):
+                sets: list[str] = []
+                values: list[object] = []
+                if status != "unknown":
+                    # ⚠️ status と reason は必ず同じ UPDATE で書く。reason だけ古い値が残ると
+                    #    CHECK 制約（dmee_playback_reason_check）に当たる
+                    sets += [
+                        "playback_status = %s",
+                        "playback_reason = %s",
+                        "playback_checked_at = now()",
+                    ]
+                    values += [status, reason]
+                if fills_thumbnail:
+                    # ⚠️ 空のときだけ入れる。既に在る値を新しい署名 URL で上書きしない
+                    #    （複製済みのサムネイルより短命な URL へ置き換える意味が無い）
+                    sets.append("thumbnail_url = %s")
+                    values.append(thumbnail_url)
                 with connection.cursor() as cursor:
                     cursor.execute(f'SET search_path TO "{args.schema}"')
-                    # ⚠️ status と reason は必ず同じ UPDATE で書く。
-                    #    reason だけ古い値が残ると CHECK 制約（dmee_playback_reason_check）に当たる
                     cursor.execute(
-                        """
+                        f"""
                         UPDATE dish_media_external_embeddings
-                        SET playback_status = %s,
-                            playback_reason = %s,
-                            playback_checked_at = now()
+                        SET {", ".join(sets)}
                         WHERE dish_media_id = %s
                         """,
-                        (status, reason, dish_media_id),
+                        (*values, dish_media_id),
                     )
                 connection.commit()
 
