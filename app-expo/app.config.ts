@@ -142,26 +142,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		// （android.googleServicesFile / ios.googleServicesFile を参照）。
 		"@react-native-firebase/app",
 		"@react-native-firebase/perf",
-		/*
-		#1641（オーナー指摘「そもそも Crashlytics じゃなくてよいの？」）
-		**ネイティブのクラッシュを原因つきで捕まえるための config plugin。**
-
-		これが無いとネイティブ側のシンボル情報（dSYM / mapping）が上がらず、
-		クラッシュしても «どこで落ちたか» が読めないレポートになる。
-
-		⚠️ 以前ここには `@sentry/react-native/expo` が居た。外した理由:
-		Sentry は **このリポジトリで他に 1 つも使っていない業者**で、DSN
-		（`EXPO_PUBLIC_SENTRY_DSN`）が未設定のため **1 件も届いていなかった**。
-		さらに config plugin が release ビルドでソースマップを送るため、
-		資格情報の無い CI では **ビルドごと落ちた**（run 32842669247）。
-		Firebase は既に入っており（app + perf、設定ファイルも配置済み）、
-		Crashlytics はその兄弟パッケージなので **業者も秘密情報も増えない**。
-		だから DSN のような条件を付けず、無条件に入れてよい。
-
-		⚠️ この行はネイティブ差分である。**OTA では配れない**ので、
-		このブランチ（ネイティブ変更を集めるブランチ）から出ない。
-		*/
-		"@react-native-firebase/crashlytics",
 		[
 			"expo-splash-screen",
 			{

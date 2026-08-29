@@ -17,14 +17,23 @@ const mockSetEnabled = jest.fn((..._args: unknown[]) => Promise.resolve());
 const mockSetAttributes = jest.fn((..._args: unknown[]) => Promise.resolve());
 let mockAvailable = true;
 
-jest.mock("@react-native-firebase/crashlytics", () => {
-	if (!mockAvailable) throw new Error("module not found");
-	return {
-		getCrashlytics: () => mockGetCrashlytics(),
-		setCrashlyticsCollectionEnabled: (...args: unknown[]) => mockSetEnabled(...args),
-		setAttributes: (...args: unknown[]) => mockSetAttributes(...args),
-	};
-});
+/*
+#1641 ⚠️ **`virtual: true` が要る。** いま `@react-native-firebase/crashlytics` は
+iOS がビルドできず外してある（`crashSdk.ts` の注記）。実体が無くてもこの層の «縮退» は
+固定しておきたいので、仮想モジュールとしてモックする。
+*/
+jest.mock(
+	"@react-native-firebase/crashlytics",
+	() => {
+		if (!mockAvailable) throw new Error("module not found");
+		return {
+			getCrashlytics: () => mockGetCrashlytics(),
+			setCrashlyticsCollectionEnabled: (...args: unknown[]) => mockSetEnabled(...args),
+			setAttributes: (...args: unknown[]) => mockSetAttributes(...args),
+		};
+	},
+	{ virtual: true },
+);
 
 beforeEach(() => {
 	mockAvailable = true;

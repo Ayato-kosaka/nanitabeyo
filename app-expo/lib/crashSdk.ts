@@ -28,6 +28,21 @@ OTA ブランチへ混ぜると、ネイティブ差分ゼロという前提が�
 `GoogleService-Info.plist` も配置済み）。Crashlytics はその兄弟パッケージなので、
 **業者も秘密情報も増えず、DSN のような «設定しないと動かない» 段も無い。**
 
+## ⚠️ いまは «入っていない» 状態である（#1641）
+
+`@react-native-firebase/crashlytics` は **iOS がビルドできず外してある**。
+
+    RNFBCrashlyticsModule.h:22: error: declaration of 'RCTBridgeModule' must be
+    imported from module 'RNFBApp.RNFBAppModule' before it is required
+
+`use_frameworks!` 下の modular header 由来のエラーで、#1156 で `react-native-maps` が
+踏んだのと同じ形。ところが**同じ対処（`build_type` を `static_library` へ差し替え）が効かない**
+（run 33267301639 / 33268418817 で 2 回とも同じ。差し替え自体はログに出ている）。
+同じ 25.1.0 の `perf` は公開ヘッダの形が同じなのに踏まない。
+
+このファイルは **モジュールが無ければ何もしない** ので、外れていても安全に no-op である。
+入れ直すときは Podfile 側の解決が先。
+
 ## 読み込み方（ここが要）
 
 `require` を try/catch で包み、**モジュールが無いビルドでは何もせず縮退**する。
