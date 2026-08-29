@@ -445,16 +445,40 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	// 未取得はエラーでも 0 件でもなく «読み込み中» である
 	const isFetchingRows = !hasFetchedRows && rowsError === null;
 	const isHydratingMedia = mediaIds.length > 0 && settledKey !== hydrationKey && mediaError === null;
-	const showLoading = feedIds.length === 0 && (isFetchingRows || isHydratingMedia);
+
+	/*
+	#1629【35/40】**«残っている件数» は削除済みを引いてから数える。**
+
+	オーナー実機で「削除したら次の投稿が無限ローディングになった」が 3 巡続いた。
+	実ログ（2026-08-29）で確定した筋道はこうである。
+
+	  1. グリッドから開いたフィードは `item` スコープ ＝ **1 ページに 1 レコード**しかない
+	     （実ログの `GET /v1/dish-media?ids=` が毎回 1 件なのが証拠）
+	  2. その 1 件を削除すると `deletedIds` に墓標が立つ。`DishMediaFeed` は墓標を除いた
+	     結果が空になるので **`null` を返す**（黒いまま）
+	  3. ところが親のここは **ストアの `feedIds`（墓標を含んだまま）** で数えていたので
+	     `feedIds.length > 0` ＝ «中身がある» と判断し、ローディングでも 0 件でもない
+	     «何も出ない» 状態で固定されていた
+	  4. さらに取得の effect は `mediaIds.length === 0` で早期 return するため、
+	     **二度と取り直しも起きない**
+
+	墓標を引いた `liveFeedCount` で数えれば、この状態は正しく «0 件» に落ちる。
+	⚠️ `feedIds` そのものは `DishMediaFeed` へ渡さない（あちらが自前で墓標を見る）。
+	   ここで変えるのは **数え方だけ** である。
+	*/
+	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
+	const liveFeedCount = useMemo(() => feedIds.filter((id) => !deletedIds[id]).length, [feedIds, deletedIds]);
+
+	const showLoading = liveFeedCount === 0 && (isFetchingRows || isHydratingMedia);
 	const hasError = rowsError !== null || mediaError !== null;
 	// 「行は読めたが写真ありが 1 件も無い」は再試行の口を出さない 0 件表示
-	const showEmpty = !showLoading && feedIds.length === 0 && !hasError;
+	const showEmpty = !showLoading && liveFeedCount === 0 && !hasError;
 	// m-1: 失敗はこちらだけ。「見つかりません」の 1 行で終わらせず再試行を出す
-	const showError = !showLoading && feedIds.length === 0 && hasError;
+	const showError = !showLoading && liveFeedCount === 0 && hasError;
 
 	return (
 		<View style={styles.container} testID={`my-dishes-feed-page-${feedScopeId(scope)}`}>
-			{entriesKey !== null && feedIds.length > 0 ? (
+			{entriesKey !== null && liveFeedCount > 0 ? (
 				<>
 					{/* ⚠️ `initialIndex` は «ids が確定してから» 渡す。DishMediaFeed は最初に届いた
 					    非空の ids で並びを固定するので、ここで描き始める時点の index が最終値になる。
