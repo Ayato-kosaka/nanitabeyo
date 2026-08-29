@@ -565,6 +565,9 @@ export type Database = {
           embed_status: string
           external_content_id: string
           last_verified_at: string | null
+          playback_checked_at: string | null
+          playback_reason: string | null
+          playback_status: string
           provider: string
           thumbnail_url: string | null
           updated_at: string
@@ -577,6 +580,9 @@ export type Database = {
           embed_status?: string
           external_content_id: string
           last_verified_at?: string | null
+          playback_checked_at?: string | null
+          playback_reason?: string | null
+          playback_status?: string
           provider: string
           thumbnail_url?: string | null
           updated_at?: string
@@ -589,6 +595,9 @@ export type Database = {
           embed_status?: string
           external_content_id?: string
           last_verified_at?: string | null
+          playback_checked_at?: string | null
+          playback_reason?: string | null
+          playback_status?: string
           provider?: string
           thumbnail_url?: string | null
           updated_at?: string
@@ -1296,9 +1305,46 @@ export type Database = {
           },
         ]
       }
+      restaurant_links: {
+        Row: {
+          created_at: string
+          fetched_at: string
+          kind: string
+          restaurant_id: string
+          source: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          fetched_at?: string
+          kind: string
+          restaurant_id: string
+          source: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          fetched_at?: string
+          kind?: string
+          restaurant_id?: string
+          source?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_links_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
+          address: string | null
           address_components: Json
+          country_code: string | null
           created_at: string
           created_by_source: string
           google_place_id: string
@@ -1317,7 +1363,9 @@ export type Database = {
           synced_at: string | null
         }
         Insert: {
+          address?: string | null
           address_components: Json
+          country_code?: string | null
           created_at?: string
           created_by_source?: string
           google_place_id: string
@@ -1336,7 +1384,9 @@ export type Database = {
           synced_at?: string | null
         }
         Update: {
+          address?: string | null
           address_components?: Json
+          country_code?: string | null
           created_at?: string
           created_by_source?: string
           google_place_id?: string
