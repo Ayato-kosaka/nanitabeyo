@@ -226,12 +226,35 @@ export default function SelectRestaurantScreen() {
 	 *
 	 * ⚠️ ここを «即時» に戻さないこと。`onRegionChangeComplete` は 1 回の操作で複数回飛ぶ。
 	 */
+	/*
+	#1629 【設計】**同じ表示域なら投げ直さない。**
+
+	オーナー実機で「この範囲で再検索」が 40 秒かかった件の真因は、この画面が
+	投げるリクエストの «数» だった。実ログでは 30 秒間に近傍検索が 7 本走っており、
+	SQL 自体は 28〜32 ms なのに app_ms が 41〜42 秒まで膨らんでいた。
+
+	⚠️ **`AbortController` はサーバのクエリを止めない。** Node/Nest は切断を検知して
+	   Prisma のクエリを中断しないので、ユーザーが諦めたリクエストも DB 接続を
+	   占有し続ける。「前のを abort したから大丈夫」は成り立たない。
+
+	`isSameClusterViewport` は «畳み方にも間引きにも影響しない変化» を吸収する判定で、
+	クラスタの再計算（上の `updateClusterViewport`）が既に使っている。取得側にも同じ
+	基準を当てれば、指が少し滑っただけの再取得が消える。
+
+	⚠️ 「この範囲で再検索」ボタン（`searchSavedRestaurants`）にはこの間引きを入れない。
+	   あれはユーザーが明示的に押したものなので、必ず投げ直す。
+	*/
+	const lastFetchedRegionRef = useRef<Region | null>(null);
+
 	const scheduleNearbyFetch = useCallback(
 		(region: Region) => {
 			if (!isPickMode) return;
 			if (nearbyDebounceRef.current) clearTimeout(nearbyDebounceRef.current);
 			nearbyDebounceRef.current = setTimeout(() => {
 				nearbyDebounceRef.current = null;
+				const last = lastFetchedRegionRef.current;
+				if (last && isSameClusterViewport(last, region)) return;
+				lastFetchedRegionRef.current = region;
 				void fetchNearbyRestaurants(region);
 			}, PICKER_FETCH_DEBOUNCE_MS);
 		},
