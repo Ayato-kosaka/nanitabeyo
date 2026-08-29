@@ -396,6 +396,11 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			readyState?: string;
 			/** setInterval を手で回す回数。0 なら初回の attempt() だけ */
 			ticks?: number;
+			/**
+			 * #1641 document-start を模す。`<body>` がこの tick まで存在しない状態から始める
+			 * （0 / 未指定なら最初から存在する）。
+			 */
+			bodyAtTick?: number;
 		}) => {
 			const styles = new Map<unknown, Record<string, string>>();
 			const mk = (tag: string, extra: Record<string, unknown> = {}) => {
@@ -434,10 +439,18 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 					},
 				});
 			};
-			const documentStub = {
+			const realBody = { appendChild: (el: unknown) => appended.push(el), style: styleRecorder(), children: [] };
+			const documentStub: {
+				readyState: string;
+				documentElement: { style: ReturnType<typeof styleRecorder> };
+				body: typeof realBody | null;
+				createElement: (tag: string) => Record<string, unknown>;
+				querySelector: (sel: string) => unknown;
+				querySelectorAll: (sel: string) => unknown[];
+			} = {
 				readyState: opts.readyState ?? "loading",
 				documentElement: { style: styleRecorder() },
-				body: { appendChild: (el: unknown) => appended.push(el), style: styleRecorder(), children: [] },
+				body: opts.bodyAtTick ? null : realBody,
 				createElement: (tag: string) => mk(tag),
 				querySelector: (sel: string) => (sel === "video" ? video : null),
 				querySelectorAll: (sel: string) => (sel === "img" ? images : []),
@@ -480,9 +493,10 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			);
 			for (let i = 0; i < (opts.ticks ?? 0); i++) {
 				clock += 500;
+				if (opts.bodyAtTick && i + 1 >= opts.bodyAtTick) documentStub.body = realBody;
 				scheduled.forEach((fn) => fn());
 			}
-			return { styles, images, video, appended, post, documentStub };
+			return { styles, images, video, appended, post, documentStub, realBody };
 		};
 
 		it("<video> が来る前でも、リールの 1 コマ目（一番大きい画像）をセル全面へ広げる", () => {
@@ -516,6 +530,22 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			expect(documentStub.documentElement.style.background).toBe("#000000");
 			// 重ねる要素は足さない
 			expect(appended).toHaveLength(0);
+		});
+
+		/*
+		#1641 ⚠️ **document-start では `<body>` がまだ無い。**
+
+		エージェントを document-start から走らせるようにしたので（iOS の TikTok）、
+		**初回の tick には `<body>` が存在しない**。ここで «地色は敷いた» と印を立てると
+		body は永久に白のままで、«アプリの黒 → 一瞬の白 → 映像» の明滅が戻る。
+		body が現れるまで毎 tick 試し直すこと。
+		*/
+		it("body が後から現れても、地色を敷き直す（document-start）", () => {
+			const { documentStub, realBody } = run({ video: false, images: [], bodyAtTick: 2, ticks: 3 });
+			// html は body より先に塗れている
+			expect(documentStub.documentElement.style.background).toBe("#000000");
+			// body が現れた tick で塗り直せている
+			expect(realBody.style.background).toBe("#000000");
 		});
 
 		it("投稿された映像を切り取らない・引き延ばさない", () => {

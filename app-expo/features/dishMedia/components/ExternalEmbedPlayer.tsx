@@ -315,10 +315,19 @@ const AUTOPLAY_SCRIPT = `(function () {
    */
   function ensureBackdrop() {
     if (backdrop || !document.documentElement) return;
-    backdrop = true;
     try {
       document.documentElement.style.setProperty('background', '${FixedColors.mediaBackground}', 'important');
-      if (document.body) document.body.style.setProperty('background', '${FixedColors.mediaBackground}', 'important');
+      /*
+       * ⚠️ **body を塗れて初めて «済み» にする。**
+       *
+       * #1641 document-start から走らせるようになったので、初回の tick では
+       * **<body> がまだ無い**。ここで先に済み印を立てると body は永久に白のままで、
+       * «アプリの黒 → 一瞬の白 → 映像» の明滅が戻る。
+       * documentElement への設定は何度やっても同じなので、出来るまで毎 tick 試す。
+       */
+      if (!document.body) return;
+      document.body.style.setProperty('background', '${FixedColors.mediaBackground}', 'important');
+      backdrop = true;
     } catch (e) {}
   }
 
@@ -886,11 +895,7 @@ export function ExternalEmbedPlayer({
 	*/
 	const collapsedAfterFailure = playback === "unplayable" && source?.mode === "iframe";
 	const inlineAvailable =
-		source !== null &&
-		NativeWebView !== null &&
-		!renderProcessGone &&
-		!knownNotPlayable &&
-		!collapsedAfterFailure;
+		source !== null && NativeWebView !== null && !renderProcessGone && !knownNotPlayable && !collapsedAfterFailure;
 	/*
 	#1641【設計】**再生できているセルには、こちらの UI を何も出さない。**
 
@@ -1032,9 +1037,7 @@ export function ExternalEmbedPlayer({
 						   2 回目以降は締め切りを延ばすだけになる。
 						⚠️ 読み込み中は `attempt()` が **安い経路だけ**を回す（`fillPoster` を止める）。
 						*/
-						injectedJavaScriptBeforeContentLoaded={
-							source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT
-						}
+						injectedJavaScriptBeforeContentLoaded={source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT}
 						onMessage={handleMessage}
 						/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
 						   まだ無いケース）に、もう一度エージェントを起こす */
