@@ -499,6 +499,55 @@ const AUTOPLAY_SCRIPT = `(function () {
   start();
 })(); true;`;
 
+/*
+#1641【観測】**エージェントがそもそも起動したのかを、document-start の時点で 1 回だけ知らせる。**
+
+## なぜ要るのか
+
+iOS で **TikTok のセルだけ、報告が 1 件も来ない**（run 33245098709 / 33246974699 で 2/2 再現。
+Instagram と YouTube は同じ run で報告が来ている）。
+
+`AUTOPLAY_SCRIPT` は 12 秒で必ず何かを報告する（no_video か timeout）設計で、
+セルには 18 秒留まっている。**それでも無言** ということは、**スクリプトが 1 度も走っていない**。
+iOS の injectedJavaScript は WKUserScript の DocumentEnd なので、
+そこへ到達しないページでは何も起きない（onLoadEnd の撃ち直しも来ない）。
+
+推測で直しにいかず、**«走ったか» と «DOM ができたか» を別々に観測できるようにする**。
+
+| 届くもの | 分かること |
+| --- | --- |
+| boot も dom も来ない | このページでは**こちらのスクリプトが 1 度も走っていない** |
+| boot だけ来る | 走ってはいるが **DOM が組み上がっていない**（読み込みが終わっていない） |
+| 両方来て結論が来ない | DOM はあるが **映像を見つけられない**（別の原因） |
+
+⚠️ **この文字列にバッククォートを書かないこと。** テンプレートリテラルの内側で、
+   書いた時点で文字列が終わる（このファイルで実際に何度か壊した）。
+⚠️ 受け取る側は boot / dom を **結論として扱わないこと**。扱うと «再生できない» へ倒れる。
+*/
+const BOOT_PROBE_SCRIPT = `(function () {
+  var W = window;
+  if (!W.ReactNativeWebView || W.__nbEmbedBooted) return;
+  W.__nbEmbedBooted = true;
+  function tell(kind, detail) {
+    try {
+      W.ReactNativeWebView.postMessage(JSON.stringify({
+        src: 'nb-embed-autoplay', kind: kind, detail: detail == null ? null : String(detail)
+      }));
+    } catch (e) {}
+  }
+  tell('boot', document.readyState);
+  function onReady() {
+    tell('dom', document.readyState);
+    /* DocumentEnd の注入が来ていれば、ここで撃ち直して «読み込み完了待ち» を外す */
+    try { if (W.__nbEmbedAutoplay && W.__nbEmbedAutoplay.kick) W.__nbEmbedAutoplay.kick(); } catch (e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', onReady, { once: true });
+  } else {
+    onReady();
+  }
+})(); true;`;
+
 export type ExternalEmbedPlayerProps = {
 	/*
 	#1641 `playbackStatus` を受け取る。**«再生できない» はサーバが取り込みのときに
@@ -715,6 +764,18 @@ export function ExternalEmbedPlayer({
 					event_name: "external_embed_unmute_tapped",
 					error_level: "log",
 					payload: { provider: embed.provider, audio: parsed.detail ?? null },
+				});
+				return;
+			}
+			/*
+			#1641【観測】`boot` / `dom` は **結論ではない**。ここで落とさずに返さないと、
+			エージェントが起動しただけで «再生できない» へ倒れる。
+			*/
+			if (parsed.kind === "boot" || parsed.kind === "dom") {
+				logFrontendEvent({
+					event_name: "external_embed_agent_boot",
+					error_level: "log",
+					payload: { provider: embed.provider, phase: parsed.kind, readyState: parsed.detail ?? null },
 				});
 				return;
 			}
@@ -948,6 +1009,11 @@ export function ExternalEmbedPlayer({
 						   あちらの再生報告は包みの HTML 側のスクリプトが行う。
 						*/
 						injectedJavaScript={source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT}
+						/* #1641【観測】document-start。**DocumentEnd へ到達しないページでも走る**ので、
+						   «スクリプトが 1 度も走っていない» のか «走ったが結論が出ない» のかを分けられる */
+						injectedJavaScriptBeforeContentLoaded={
+							source.mode === "iframe" ? undefined : BOOT_PROBE_SCRIPT
+						}
 						onMessage={handleMessage}
 						/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
 						   まだ無いケース）に、もう一度エージェントを起こす */

@@ -343,6 +343,28 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		*/
 		renderActiveCell();
 		expect(webViewProps.injectedJavaScript).not.toContain("`");
+		// #1641 document-start の観測スクリプトも同じテンプレートリテラルの罠を持つ
+		expect(webViewProps.injectedJavaScriptBeforeContentLoaded).not.toContain("`");
+	});
+
+	/*
+	#1641【観測】**エージェントが起動したことを «再生できない» と読み違えない。**
+
+	`boot` / `dom` は document-start の観測用で、結論ではない。`handleMessage` の
+	最後は «知らない kind はすべて unplayable» なので、ここを素通りさせると
+	**起動しただけで導線へ縮退する**（＝ 全セルが常に縮退する）。
+	*/
+	it("boot / dom の報告では縮退しない", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "boot", detail: "loading" });
+		post({ src: "nb-embed-autoplay", kind: "dom", detail: "interactive" });
+		expect(fallbackCount(tree)).toBe(0);
+		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBeGreaterThan(0);
+	});
+
+	it("document-start の観測スクリプトを document モードへ渡している", () => {
+		renderActiveCell();
+		expect(webViewProps.injectedJavaScriptBeforeContentLoaded).toContain("__nbEmbedBooted");
 	});
 
 	/*
