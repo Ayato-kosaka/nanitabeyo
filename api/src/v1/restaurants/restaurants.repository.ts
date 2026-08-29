@@ -332,7 +332,29 @@ export class RestaurantsRepository {
     // #1629 最終 SELECT に GROUP BY は無い（集計は LATERAL 側で閉じている）ので、
     // r の列から成る距離式はそのまま ORDER BY に書ける
     const orderByDistance = Boolean(escapedNameQuery || dto.orderByDistance);
-    const limit = dto.limit ?? 20;
+    /*
+      #1629 【設計】**LIMIT は «バインド値» ではなく «literal» で埋める。**
+
+      LIMIT がバインド値だと、generic plan（値が見えない）ではプランナが件数を
+      既定値で見積もる。近傍枠の KNN は «索引を何件ぶん舐めるか» が LIMIT で決まるので、
+      見積りが大きく振れ、そのままプラン全体のコストが跳ね上がる。
+      コストが jit_above_cost（既定 100,000）を超えると **毎回 JIT コンパイルが走り**、
+      再現環境では実行 123 ms に対して **JIT だけで 525 ms** 乗っていた。
+
+      literal にすると custom plan と generic plan が同じプラン・同じコストになり、
+      再現環境の generic は 651 ms → 166 ms になった。
+
+      ⚠️ literal にすると limit の値ごとに別の prepared statement になる。
+         この API の limit は実質 20（クライアントの既定）に固定されているので実害は無い。
+      ⚠️ SQL へ直接埋める値なので、**必ず整数へ丸めて範囲を締めてから** Prisma.raw に渡す。
+         DTO 側は @Min(1) / @Max(100) だが @IsInt が無く、内部呼び出し
+         （dish-media-imports）も同じ型を通るため、ここで最終的に潰しておく。
+    */
+    const requestedLimit = dto.limit ?? 20;
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(100, Math.max(1, Math.trunc(requestedLimit)))
+      : 20;
+    const limitSql = Prisma.raw(String(limit));
     // 検索地点。ST_DWithin / ST_Distance / KNN（<->）のすべてで同じ点を使う
     const originPoint = Prisma.sql`ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography`;
 
@@ -434,14 +456,55 @@ export class RestaurantsRepository {
     const candidatesCte = orderByDistance
       ? Prisma.sql`
       nearby AS (
-        -- #1629 距離順のときは KNN（location <-> 点）で GIST 索引から «近い順に limit 件» を直接取る
+        /*
+          #1629 【設計】**距離順の枝も «KNN と ST_DWithin を同じ WHERE に並べない»。
+          ただし «店名あり» と «店名なし» で正しい形が違うので、ここで分ける。**
+
+          この枝も、直前まで近傍枠（nearest）とまったく同じ形で同じ穴があった。
+          再現環境の実測（custom plan）:
+
+            半径 20km    … restaurants から延べ 272,592 行 / 197 ms
+            半径 1,500km … 延べ 566,380 行 / 653 ms
+
+          住所照合（orderByDistance）は半径 1km 固定なので実害は出ていなかったが、
+          **店名検索はクライアントの viewport 半径をそのまま受け取る**（#1629 で
+          50km clamp を外した）ので、日本全体を映して店名を打つと踏む経路である。
+
+          ## 店名あり … 駆動表は «店名» でなければならない
+
+          店名は trgm 索引（idx_restaurants_name_trgm）で十分に絞れる。
+          そこで **KNN 演算子を使わず ST_Distance で並べる**。KNN が無ければ
+          «GIST を舐めて並べ替える» 経路自体が存在しないので、プランナは
+          trgm で絞ってから小さな集合を並べ替えるしかない。
+          再現環境（半径 1,500km・希少な店名）で Bitmap Index Scan on
+          idx_restaurants_name_trgm → 8 ms。
+
+          ⚠️ ここで «KNN + LIMIT を内側に閉じる» 形（nearest と同じ形）にしてはいけない。
+             店名が希少だと «近い順に舐めて 20 件そろうまで» が全件走査になる。
+
+          ## 店名なし … 近傍枠（nearest）と同じ形
+
+          絞り込みが半径しか無いので、KNN を内側に閉じて半径を外側で掛ける。
+          同値である理由と注意点は nearest 側のコメントに書いてある。
+        */
+        ${
+          escapedNameQuery
+            ? Prisma.sql`
         SELECT r.id
         FROM restaurants r
         WHERE
-          -- #1629 ST_DWithin + 既存 GIST（詳細は searchNearbySavedRestaurants 側のコメント）
-          ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
-          ${nameFilter}
-        ORDER BY r.location <-> ${originPoint} LIMIT ${limit}
+          r.name ILIKE ${'%' + escapedNameQuery + '%'}
+          AND ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
+        ORDER BY ST_Distance(r.location, ${originPoint}) ASC LIMIT ${limitSql}`
+            : Prisma.sql`
+        SELECT k.id
+        FROM (
+          SELECT r.id, r.location
+          FROM restaurants r
+          ORDER BY r.location <-> ${originPoint} LIMIT ${limitSql}
+        ) k
+        WHERE ST_DWithin(k.location, ${originPoint}, ${radiusInMeters})`
+        }
       ),
       base AS (
         SELECT n.id, 0 AS tier FROM nearby n
@@ -556,24 +619,110 @@ export class RestaurantsRepository {
           LIMIT 1
         ) hit ON TRUE
         -- 同数なら中心から近い順。«どの limit 件を残すか» を最終 ORDER BY と一致させる
-        ORDER BY pc.post_count DESC, hit.distance_m ASC LIMIT ${limit}
+        ORDER BY pc.post_count DESC, hit.distance_m ASC LIMIT ${limitSql}
       ),
       nearest AS (
-        -- #1629 近傍枠。投稿枠で埋まらない残りを «中心から近い順» で埋める。
-        -- ここが «引くと 0 件» を構造的に消している（半径内に投稿が 1 件も無くても必ず埋まる）
-        SELECT r.id
-        FROM restaurants r
-        WHERE
-          ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
+        /*
+          #1629 【設計】**近傍枠は «KNN を内側に閉じ、半径は外側で掛ける»。
+          KNN と ST_DWithin を同じ WHERE に並べてはいけない。**
+
+          投稿枠で埋まらない残りを «中心から近い順» で埋める枠である。
+          ここが «引くと 0 件» を構造的に消している（半径内に投稿が 1 件も無くても埋まる）。
+
+          ## 何が起きていたか（#1686 のあと dev に残っていた回帰）
+
+          #1686 で generic plan は直ったが、**custom plan が 11〜13 秒のまま**だった
+          （dev 実測 run 33229509189。東京駅 20km で 11,498 ms / 日本全体で 12,893 ms、
+          いずれも restaurants から 15 万〜57 万行を読んでいた）。
+          50km だけ 35 ms と速く、**半径に対して単調ですらなかった**。
+
+          ## 真因（再現環境で dev と同じプランを出して確定させた）
+
+          旧実装は同じ WHERE に ST_DWithin と KNN（ORDER BY location <-> 点）を並べていた。
+          この形はひとつの GIST 索引に対して **2 通りの経路**を許す:
+
+            (a) KNN 索引スキャンを近い順に舐めて LIMIT 件で打ち切る（速い。行数は LIMIT で一定）
+            (b) ST_DWithin で Bitmap 索引スキャンし、**半径内を全部**取ってから並べ替える（遅い）
+
+          プランナは (b) を選びうる。理由は見積りにある。ST_DWithin をフィルタとして見たときの
+          行数見積りは PostGIS の既定へ落ちて **LIMIT より小さい**（dev では rows=18 < 20）。
+          «20 件そろえるには索引を最後まで舐めることになる» と誤認するので (a) が極端に高く
+          値付けされ、(b) が勝つ。半径の «値» が見えている custom plan でのみ起きるので、
+          **generic だけ速く custom だけ遅い**という倒錯した形になっていた。
+
+          再現環境（restaurants 570,000 行 / max_parallel_workers_per_gather=4 /
+          random_page_cost=1.1 ＝ dev と同じプランが出る設定）での実測:
+
+            旧 custom 20km   … Parallel Bitmap Heap Scan + Sort。延べ 272,612 行 / 1,028 ms
+            旧 custom 1,500km … 延べ 574,385 行 / 1,822 ms
+            新 custom 20km   … KNN 索引スキャン。延べ 60 行 / 12 ms
+
+          ## どう直したか
+
+          **内側の副問い合わせには KNN と LIMIT だけを置き、ST_DWithin を外側へ出す。**
+          内側に location の絞り込みが無いので (b) の経路は存在せず、
+          プランナは KNN 索引スキャン以外を選べない。LIMIT 20 を取り出すコストは
+          «索引を最後まで舐める» ではなく «20 件ぶん» に値付けされる（実測でコスト
+          605,506 → 17.78）。custom / generic のどちらでも同じ速いプランになる。
+
+          ## 半径の外を返さないこと・0 件にしないことは壊れていない
+
+          «距離順に並べて上位 n 件を取り、あとから半径で切る» のは、
+          «先に半径で切ってから距離順に上位 n 件を取る» と **完全に同値**である。
+          半径で落ちる行は残る行より必ず遠いので、順位が入れ替わることがない
+          （距離のしきい値は距離順に対して prefix-closed）。したがって:
+            - 半径の外の店が混ざることはない（外側で必ず切っている）
+            - 半径内に店があるのに 0 件になることもない
+          再現環境の半径 1km / 20km / 50km / 1,500km で、返る行が旧実装と完全一致することを確認済み。
+
+          ⚠️ 内側の LIMIT を消さないこと。PostgreSQL は LIMIT 付き副問い合わせへ
+             外側の条件を押し込まないので、この LIMIT が «ST_DWithin が内側へ戻る» のを
+             止めている。消すと (b) の経路が復活する。
+
+          ⚠️ ST_DWithin を内側に «念のため» 併記しないこと。それが (b) を生む条件そのものである。
+
+          ⚠️ geography の <-> は球、ST_DWithin は既定で回転楕円体で測るので、
+             両者は 0.3% 程度ずれる。**ちょうど半径の境目にある店が、ちょうど limit 番目に
+             来た**ときだけ 1 件多い / 少ないが起こりうる。旧実装も同じ 2 つを併用していたので
+             ずれの大きさは変わらない。
+        */
+        SELECT k.id
+        FROM (
+          SELECT r.id, r.location
+          FROM restaurants r
+          -- ⚠️ ここには **location の条件も、posted との突き合わせも置かない**。
+          --    どちらも «KNN 索引スキャン以外の経路» をプランナへ与えてしまう
+          --    （ST_DWithin は Bitmap 経路を、NOT EXISTS は Hash Anti Join + Seq Scan を生む。
+          --     後者は実測で restaurants 570,000 行の Seq Scan になった）。
+          --    この枝で nameFilter は常に空である（店名検索は orderByDistance へ回る）。
+          --    それでも書いてあるのは、将来この枝へ店名検索を回したときに
+          --    «絞り忘れで誤った結果を返す» ことがないようにするためである
           ${nameFilter}
-          AND NOT EXISTS (SELECT 1 FROM posted p WHERE p.id = r.id)
-        ORDER BY r.location <-> ${originPoint} LIMIT ${limit}
+          ORDER BY r.location <-> ${originPoint} LIMIT ${limitSql}
+        ) k
+        WHERE ST_DWithin(k.location, ${originPoint}, ${radiusInMeters})
       ),
       base AS (
         SELECT id, 0 AS tier, post_count FROM posted
         UNION ALL
-        -- 投稿ゼロの店。post_count = 0 の同着なので、最終 ORDER BY で «近い順» に並ぶ
-        SELECT id, 1 AS tier, 0::int AS post_count FROM nearest
+        /*
+          投稿ゼロの店。post_count = 0 の同着なので、最終 ORDER BY で «近い順» に並ぶ。
+
+          #1629 【設計】**投稿枠との重複除去はここで行う。近傍枠の中へ入れない。**
+          NOT EXISTS を KNN の副問い合わせの中に置くと、プランナが
+          Hash Anti Join + restaurants の Seq Scan（570,000 行）を選んでしまい、
+          KNN 索引スキャンが使われなくなる（再現環境で実測。1,432 ms）。
+          ここへ出せば突き合わせる相手は高々 limit 件どうしなので、ただの小さな集合演算になる。
+
+          ⚠️ 件数は減らない。近傍枠は «半径内で近い順に limit 件»、投稿枠は高々 limit 件で、
+             重なるのは高々 «投稿枠の件数 p» 件である。よって
+             重複除去後の近傍枠は (limit - p) 件以上残り、
+             投稿枠 p 件と合わせて必ず limit 件に届く（半径内の総数が limit 未満のときは
+             その総数。これは旧実装と同じ）。
+        */
+        SELECT n.id, 1 AS tier, 0::int AS post_count
+        FROM nearest n
+        WHERE NOT EXISTS (SELECT 1 FROM posted p WHERE p.id = n.id)
       ),
       candidates AS (
         -- 入札は並びに使わないが meta としては返す。候補が limit 件に決まったあとに集計する
@@ -677,7 +826,7 @@ export class RestaurantsRepository {
         WHERE d.restaurant_id = r.id
       ) agg ON TRUE
       ${orderBy}
-      LIMIT ${limit};
+      LIMIT ${limitSql};
     `);
 
     return rawResult.map((row) => ({

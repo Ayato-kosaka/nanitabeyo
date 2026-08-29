@@ -43,10 +43,10 @@ import { QueryRestaurantsDto } from '@shared/v1/dto';
 
 const SQL_DIR = join(__dirname, '../../../../scripts/db-checks/sql');
 
+type SearchDto = Partial<QueryRestaurantsDto> & { orderByDistance?: boolean };
+
 /** repository を実際に呼び、組み立てられた Prisma.Sql をそのまま受け取る */
-const build = async (
-  dto: Partial<QueryRestaurantsDto> & { orderByDistance?: boolean } = {},
-): Promise<Prisma.Sql> => {
+const build = async (dto: SearchDto = {}): Promise<Prisma.Sql> => {
   const queryRaw = jest.fn().mockResolvedValue([]);
   const repo = new RestaurantsRepository(
     {} as unknown as PrismaService,
@@ -89,63 +89,94 @@ const subqueryAt = (sql: string, from: number): string => {
 };
 
 /**
- * `restaurants` を半径（ST_DWithin）で引いている箇所を全部取り出し、
- * それぞれが «安全な引き方» になっているかを判定する。
+ * `restaurants` を引いている箇所（CTE / LATERAL / 副問い合わせ）を全部取り出し、
+ * それぞれが «走る行数が半径に依存しない» 引き方になっているかを判定する。
  *
- * 安全な引き方は 2 つだけ:
- *   (a) LATERAL の中で `r.id = <外側>.id` に絞り、`LIMIT` で pull up を止めている
- *       → プランナは nested loop 以外を選べず、走る行数は外側の行数で決まる
- *   (b) KNN（`location <-> 点`）+ `LIMIT` で «近い順に n 件» を直接取っている
- *       → GIST 索引から順に取り出して打ち切るので、走る行数は LIMIT で決まる
+ * 安全な引き方は 3 つだけ。
  *
- * どちらでもない＝ «普通の join の WHERE に ST_DWithin がある» 形は、
- * generic plan で restaurants が駆動表に選ばれうるので赤にする。
+ *   (a) **主キー相関の LATERAL** … `JOIN LATERAL (… WHERE r.id = <外側>.id … LIMIT …)`
+ *       プランナは nested loop 以外を選べず、走る行数は外側の行数で決まる
+ *   (b) **KNN 枠** … `ORDER BY r.location <-> 点 LIMIT n`。ただし
+ *       **同じ範囲に ST_DWithin を書いてはいけない**（下の ⚠️）
+ *   (c) **店名駆動** … `r.name ILIKE …` で trgm 索引から絞る。
+ *       こちらは逆に **KNN 演算子を書いてはいけない**（希少な店名だと索引を舐め切る）
+ *
+ * ⚠️ **ST_DWithin と KNN（<->）を同じ範囲に並べてはいけない。**
+ *    これが #1629 で 2 度踏んだ罠そのものである。ひとつの GIST 索引に対して
+ *    «近い順に舐めて打ち切る»（速い）と «半径内を全部取ってから並べ替える»（遅い）の
+ *    2 経路が生まれ、プランナは見積り次第でどちらへも倒れる。ST_DWithin をフィルタと
+ *    見たときの行数見積りは PostGIS の既定へ落ちて LIMIT より小さくなりがちで、
+ *    そうなると «20 件そろえるには索引を最後まで舐める» と誤認して遅い方が選ばれる。
+ *    半径の値が見えている **custom plan でだけ**起きるので、generic plan しか
+ *    見ていないと «直った» と誤読する（実際に誤読した）。
  */
-const dwithinScopes = (sql: string): { text: string; safe: boolean }[] => {
+const restaurantScopes = (
+  sql: string,
+): { text: string; safe: boolean; why: string }[] => {
   const body = stripComments(sql).replace(/\s+/g, ' ');
-  const scopes: { text: string; safe: boolean }[] = [];
-  // ST_DWithin を含む «一番内側の括弧» を、LATERAL / CTE 単位で切り出す
-  const marks = [...body.matchAll(/JOIN LATERAL|AS MATERIALIZED|\bAS\s*\(/gi)];
+  const out: { text: string; safe: boolean; why: string }[] = [];
+  const marks = [
+    ...body.matchAll(/JOIN LATERAL|AS MATERIALIZED|\bAS\s*\(|\bFROM\s*\(/gi),
+  ];
   for (const mark of marks) {
     const at = mark.index ?? 0;
     const inner = subqueryAt(body, at);
-    if (!/ST_DWithin/i.test(inner)) continue;
-    // さらに内側の LATERAL が持っているものは、そちらで別途評価される
-    const nested = inner.search(/JOIN LATERAL/i);
+    // restaurants を引いていない範囲は対象外
+    if (!/FROM restaurants r\b/i.test(inner)) continue;
+    // さらに内側の副問い合わせが持っているものは、そちらで別途評価される
+    const nested = inner.search(/JOIN LATERAL|\bFROM\s*\(/i);
     const own = nested >= 0 ? inner.slice(0, nested) : inner;
-    if (!/ST_DWithin/i.test(own)) continue;
+    if (!/FROM restaurants r\b/i.test(own)) continue;
 
+    const hasDWithin = /ST_DWithin\s*\(\s*r\.location/i.test(own);
+    const hasKnn = /r\.location\s*<->/i.test(own);
     const limited = /\bLIMIT\b/i.test(own);
-    // (a) LATERAL «そのもの» の中で、外側の行の id に絞っていること。
-    //     ⚠️ 普通の join の ON 句に r.id = pc.id と書いてあるのでは駄目である。
-    //        それはプランナが «どちらを駆動表にするか» を選べる形で、
-    //        generic plan では restaurants 側が選ばれる（これが今回の事故そのもの）
     const isLateralBody = /^JOIN LATERAL$/i.test(mark[0]);
     const correlatedById =
       isLateralBody && /\br\.id\s*=\s*\w+\.\w*id\b/i.test(own);
-    // (b) KNN で «近い順に n 件» を直接取っている
-    const knn = /r\.location\s*<->/i.test(own);
+    const nameDriven = /r\.name\s+ILIKE/i.test(own);
 
-    scopes.push({ text: own, safe: (correlatedById || knn) && limited });
+    let safe = false;
+    let why = '';
+    if (hasDWithin && hasKnn) {
+      why =
+        'ST_DWithin と KNN（<->）が同じ範囲にある。' +
+        'プランナが «半径内を全部取ってから並べ替える» 経路へ倒れうる';
+    } else if (correlatedById && limited) {
+      safe = true;
+      why = '主キー相関の LATERAL（走る行数は外側の行数で決まる）';
+    } else if (hasKnn && limited) {
+      safe = true;
+      why = 'KNN + LIMIT（走る行数は LIMIT で決まる）';
+    } else if (nameDriven && !hasKnn && limited) {
+      safe = true;
+      why = '店名駆動（trgm 索引で絞ってから並べ替える）';
+    } else {
+      why =
+        '半径だけで restaurants を引いていて、行数を止めるものが無い' +
+        '（LATERAL の主キー相関でも KNN + LIMIT でも店名駆動でもない）';
+    }
+    out.push({ text: own.trim().slice(0, 300), safe, why });
   }
-  return scopes;
+  return out;
 };
 
 describe('#1629 半径で restaurants を引く箇所は «行数が半径に依存しない» 形でなければならない', () => {
   it.each([
     ['既定（投稿が多い順）', {}],
-    ['距離順（店名検索 / 住所照合）', { orderByDistance: true }],
+    ['距離順（住所照合。店名なし）', { orderByDistance: true }],
+    ['店名検索', { q: 'ZQNAME' }],
   ])('%s', async (_label, dto) => {
-    const scopes = dwithinScopes((await build(dto)).sql);
+    const scopes = restaurantScopes((await build(dto)).sql);
 
-    // 前提: そもそも半径で絞っていること（この検査自体が空振りしていない証明）
+    // 前提: そもそも restaurants を引いていること（この検査が空振りしていない証明）
     expect(scopes.length).toBeGreaterThan(0);
 
     const unsafe = scopes
       .filter((s) => !s.safe)
-      .map((s) => s.text.slice(0, 400));
-    // ここが赤いときは «書き方の好み» の問題ではない。generic plan に切り替わった瞬間、
-    // 半径内の全店（dev で最大 57 万行）を読むプランへ落ちて 7〜26 秒かかる。
+      .map((s) => `${s.why} :: ${s.text}`);
+    // ここが赤いときは «書き方の好み» の問題ではない。プランが倒れた瞬間、
+    // 半径内の全店（dev で最大 57 万行）を読むようになって 10 秒級になる。
     expect(unsafe).toEqual([]);
   });
 
@@ -174,19 +205,57 @@ describe('#1629 半径で restaurants を引く箇所は «行数が半径に依
 
 describe('#1629 計測スクリプトが読む SQL は repository が組み立てたものと同一である', () => {
   it.each([
-    ['search_nearby_restaurants.default.sql', {}],
-    ['search_nearby_restaurants.distance.sql', { orderByDistance: true }],
-  ])('%s', async (file, dto) => {
+    ['search_nearby_restaurants.default', {} as SearchDto],
+    [
+      'search_nearby_restaurants.distance',
+      { orderByDistance: true } as SearchDto,
+    ],
+    ['search_nearby_restaurants.byname', { q: 'ZQNAME' } as SearchDto],
+  ])('%s', async (name, dto) => {
     const built = await build(dto);
-    const path = join(SQL_DIR, file);
+    const sqlPath = join(SQL_DIR, `${name}.sql`);
+    const paramsPath = join(SQL_DIR, `${name}.params.json`);
+
+    /*
+      #1629 **バインド値の «順番» も写経しない。**
+
+      SQL の形を変えるとバインド位置の順番も変わる。計測スクリプトが値を手書きの
+      配列で並べていると、SQL だけ更新して配列を直し忘れたときに «別のクエリを
+      測っている» ことに気付けない（実際に radius と limit が入れ替わり、
+      「近い順に 20,000 件取って半径 20m で絞る」を測って読み違えた）。
+
+      そこで «各バインド位置が何なのか» を名前の列として一緒に書き出す。
+      重複しない番兵値で組み立て直して、値から名前を引く。
+    */
+    const probes = { lat: -11.5, lng: -22.5, radius: -33.5, limit: -44 };
+    const probed = await build({
+      ...dto,
+      ...probes,
+      ...(dto.q === undefined ? {} : { q: 'ZQNAME' }),
+    });
+    const nameOf = new Map<unknown, string>([
+      ...Object.entries(probes).map(([k, v]) => [v, k] as [unknown, string]),
+      // 店名は ILIKE のワイルドカードに包まれて渡る
+      ['%ZQNAME%', 'q'],
+    ]);
+    const paramNames = probed.values.map((v) => {
+      const found = nameOf.get(v);
+      // 番兵に無い値が混ざったら «何を渡せばいいか分からない» ので落とす
+      expect(found).toBeDefined();
+      return found;
+    });
 
     if (process.env.UPDATE_RESTAURANT_SQL_SNAPSHOT) {
-      writeFileSync(path, `${built.sql.trim()}\n`);
+      writeFileSync(sqlPath, `${built.sql.trim()}\n`);
+      writeFileSync(paramsPath, `${JSON.stringify(paramNames, null, 2)}\n`);
     }
 
     // 写経ではなく «同じ 1 本» を読ませるための固定。ここが赤いなら
-    // 計測スクリプトは古い SQL を測っている（＝ 直した結果が数字に出ない）
-    expect(readFileSync(path, 'utf-8').trim()).toBe(built.sql.trim());
+    // 計測スクリプトは古い SQL / 古いバインド順を測っている
+    expect(readFileSync(sqlPath, 'utf-8').trim()).toBe(built.sql.trim());
+    expect(JSON.parse(readFileSync(paramsPath, 'utf-8'))).toEqual(paramNames);
+    // SQL のプレースホルダ個数とも一致すること
+    expect((built.sql.match(/\?/g) ?? []).length).toBe(paramNames.length);
   });
 
   it('半角疑問符はバインド位置だけに現れる（コメントに混ぜない）', async () => {

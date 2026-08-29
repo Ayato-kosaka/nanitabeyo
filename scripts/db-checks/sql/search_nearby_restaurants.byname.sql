@@ -32,13 +32,12 @@ WITH
           同値である理由と注意点は nearest 側のコメントに書いてある。
         */
         
-        SELECT k.id
-        FROM (
-          SELECT r.id, r.location
-          FROM restaurants r
-          ORDER BY r.location <-> ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography LIMIT 20
-        ) k
-        WHERE ST_DWithin(k.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)
+        SELECT r.id
+        FROM restaurants r
+        WHERE
+          r.name ILIKE ?
+          AND ST_DWithin(r.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)
+        ORDER BY ST_Distance(r.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) ASC LIMIT 20
       ),
       base AS (
         SELECT n.id, 0 AS tier FROM nearby n
