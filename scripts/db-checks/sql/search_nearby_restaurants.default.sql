@@ -242,6 +242,10 @@ WITH
         r.synced_at,
         -- #843 その行を誰が作ったか。9_1 の同期はこの値が 'pipeline' の行だけを上書きする
         r.created_by_source,
+      r.address,
+      r.country_code,
+        r.address,
+        r.country_code,
         c.total_cents,
         c.max_end_date,
         agg.review_count,
