@@ -335,15 +335,39 @@ export default function DishMediaContent({
 
 			{/* #530 【設計】処理中オーバーレイ（メディア共通） */}
 			{isProcessing && (
-				<View style={styles.processingOverlay}>
+				<View style={styles.processingOverlay} pointerEvents="none" testID="dish-media-processing-overlay">
 					<LoadingIndicator size="large" />
 					<Text style={styles.processingText}>{i18n.t("DishMediaContent.processing")}</Text>
 				</View>
 			)}
 
-			{/* #530 【設計】エラーオーバーレイ（メディア共通） */}
+			{/*
+			#1629【41】【設計】**«お知らせ» は操作を奪わない。**
+
+			オーナー実機報告:
+
+			> グリッド画面の「このメディアは現在ご利用いただけません。」が出てると、投稿削除出来ない
+
+			この帯は `StyleSheet.absoluteFillObject` + `zIndex: 5` で画面全面を覆う。
+			`pointerEvents` を指定しない View は既定 `"auto"` なので **タップを自分で受け取る**。
+			一方「…」メニュー（`ActionButtons` → `DishMediaMoreMenu`）を含む下部の操作列は
+			zIndex を持たないので、この帯の**下**に潜り、押しても帯に吸われていた。
+			利用できないメディアほど «消したい» のに、そのときだけ消せない状態だった。
+
+			直し方は «zIndex を下げる» ではない。帯は状態を伝えるためのもので、
+			**その位置に出ていること自体に意味がある**（メディアの上に重ねる）。
+			正しいのは 2 つ:
+
+			1. 帯は `pointerEvents="none"`。中に押せるものが 1 つも無いので、
+			   タップは下の操作へ素通りさせる（処理中の帯も同じ理由で同じ扱い）
+			2. 操作（ヘッダーとアクション列）は帯より **上**へ置く。
+			   素通りするだけだと «押せるが 60% の黒に隠れて見えない» ままになる
+
+			⚠️ 帯の中に押せるもの（再試行など）を足すときは、`pointerEvents="none"` を
+			   外すのではなく `"box-none"` にして、押せる要素にだけ当たるようにすること
+			*/}
 			{isFailed && (
-				<View style={styles.errorOverlay}>
+				<View style={styles.errorOverlay} pointerEvents="none" testID="dish-media-error-overlay">
 					<Text style={styles.errorText}>{i18n.t("DishMediaContent.errors.mediaUnavailable")}</Text>
 				</View>
 			)}
@@ -367,7 +391,8 @@ export default function DishMediaContent({
 			/>
 
 			{/* Action Buttons */}
-			<View pointerEvents="box-none" style={styles.bottomSection}>
+			{/* #1629【41】testID は «帯より上に居る» ことを回帰テストが確かめるための口 */}
+			<View pointerEvents="box-none" style={styles.bottomSection} testID="dish-media-bottom-section">
 				<View pointerEvents="box-none" style={styles.actionRow}>
 					<ActionButtons
 						id={id}
@@ -382,6 +407,12 @@ export default function DishMediaContent({
 	);
 }
 
+/**
+ * #1629【41】操作（ヘッダー・アクション列）の重ね順。
+ * «処理中» / «利用いただけません» のお知らせの帯（`zIndex: 5`）より必ず大きいこと。
+ */
+const OVERLAY_CONTROLS_Z_INDEX = 6;
+
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
@@ -395,6 +426,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "flex-start",
+		// #1629【41】ここは元から帯（zIndex 5）より上だった。下部の操作列だけが潜っていた
 		zIndex: 10,
 	},
 	headerLeft: {
@@ -463,6 +495,8 @@ const styles = StyleSheet.create({
 		letterSpacing: 0.2,
 	},
 	bottomSection: {
+		// #1629【41】「…」メニューを含む操作列。お知らせの帯（zIndex 5）より上に置く
+		zIndex: OVERLAY_CONTROLS_Z_INDEX,
 		position: "absolute",
 		bottom: 0,
 		left: 0,

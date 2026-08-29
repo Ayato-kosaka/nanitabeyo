@@ -81,7 +81,7 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
     // 保存済み一覧は保存日時順で、店舗検索は KNN か投稿数順で切る。
     // どちらも «絞ってから集計する» ために LIMIT が候補側に居ること
     expect(source).toMatch(/ORDER BY\s+sr\.last_saved_at DESC\s+LIMIT /);
-    expect(source).toMatch(/ORDER BY pc\.post_count DESC, distance_m ASC LIMIT /);
+    expect(source).toMatch(/ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT /);
   });
 
   it('重いレビュー集計（dish_reviews）は、候補 CTE より後ろにしか無い', () => {
@@ -111,7 +111,7 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
       いまは投稿テーブル（dish_media）駆動の投稿枠で、候補が最初から limit 件に収まる。
     */
     expect(source).toMatch(/FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/);
-    expect(source).toMatch(/ORDER BY pc\.post_count DESC, distance_m ASC LIMIT /);
+    expect(source).toMatch(/ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT /);
   });
 });
 
@@ -141,10 +141,25 @@ describe('#1629 引きでも候補が必ず埋まる（投稿枠 + 近傍枠）'
   it('投稿枠で埋まらない残りを KNN の近傍枠で埋める（= 0 件を返さない）', () => {
     expect(source).toMatch(/nearest AS \(/);
     // 近傍枠も KNN + LIMIT。半径がいくら大きくても走る行数は limit 件で一定
-    const nearest = source.slice(source.indexOf('nearest AS ('));
+    // ⚠️ base 以降まで含めないこと（重複除去は base にあるので、
+    //    切り出しが甘いと下の not.toMatch(/NOT EXISTS/) が空振りする）
+    const nearestAt = source.indexOf('nearest AS (');
+    const nearest = source.slice(
+      nearestAt,
+      // ⚠️ base は «nearest より後ろ» を探すこと。距離順の枝にも base AS ( があるので、
+      //    先頭から探すと空文字になって検査が丸ごと空振りする
+      source.indexOf('base AS (', nearestAt),
+    );
     expect(nearest).toMatch(/ORDER BY r\.location <-> \$\{originPoint\} LIMIT /);
-    // 投稿枠と重複させない
-    expect(nearest).toMatch(/NOT EXISTS \(SELECT 1 FROM posted p WHERE p\.id = r\.id\)/);
+    // 投稿枠と重複させない。
+    // #1629 ただし **重複除去は近傍枠の中ではなく base で行う**。
+    // KNN の副問い合わせの中に NOT EXISTS を置くと Hash Anti Join + restaurants の
+    // Seq Scan（57 万行）に落ちて KNN が使われなくなる（実測 1,432 ms）。
+    // 件数が減らないことの証明は repository の base のコメントにある
+    // 実際の構文だけを見る（設計コメントは NOT EXISTS という語に言及している）
+    expect(nearest).not.toMatch(/NOT EXISTS \(SELECT/);
+    const base = source.slice(source.indexOf('base AS ('));
+    expect(base).toMatch(/NOT EXISTS \(SELECT 1 FROM posted p WHERE p\.id = n\.id\)/);
   });
 
   it('並びは «投稿が多い順 → 同数なら中心から近い順»', () => {

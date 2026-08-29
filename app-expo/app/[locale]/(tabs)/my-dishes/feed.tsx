@@ -3,17 +3,26 @@
 - my-dishes の全画面 Feed を «画面» として提供する。スコープごとの中身は
   `features/myDishes/components/MyDishesFeedPage.tsx` が描く。
 
-## 軸の向きは 2 スコープで揃える（#1375 実機確認 5 巡目）
+## 軸の向きは入口で決まる（#1375 実機確認 5 巡目 / #1629）
 
 | scope | 外側（このファイルのページャ） | 内側（MyDishesFeedPage） |
 | --- | --- | --- |
-| `restaurant` | **縦** = 前後の店舗 | 横 = その店舗の記録（n/m のバーを出す） |
-| `date` | **縦** = 前後の «記録がある日» | 横 = その日の記録（n/m のバーを出す） |
+| `list`（一覧＝グリッド） | **縦** = グリッドに出ている順のセル | **無し**（1 ページ 1 件） |
+| `restaurant`（Map のピン） | **縦** = 前後の店舗 | 横 = その店舗の記録（n/m のバーを出す） |
+| `date`（Calendar の日付） | **縦** = 前後の «記録がある日» | 横 = その日の記録（n/m のバーを出す） |
 
 2 巡目で date だけを «縦=日 / 横=同じ日の投稿» にしたところ、5 巡目の実機確認で
 「Map から開いた方も同じにしてほしい（縦でレストランを切り替え、横で同じ店の中）」と
 指摘された。**同じ全画面フィードなのに入口によって指の向きが変わる**のが理由である。
 どちらも Instagram のストーリーズと同じ軸に揃えた。
+
+#1629 【設計】**ただし一覧（グリッド）からの入口には横が無い。** 横は «同じ店の別の記録» /
+«同じ日の別の記録» という **グルーピングがある入口にだけ意味がある**。グリッドは店舗でも日でも
+まとまっていないので、まとめる単位が無い（オーナー指摘「お店でグルーピングしてるなら要らない。
+グリッドは上下だけ。同じ店 / 同じ日とかはマップとかカレンダーの話」）。
+それ以前に、一覧を店舗で重複排除して縦に積んでいたため
+**グリッドに 3 セル並んでいる同じ店が縦 1 ページへ潰れ、見えているセル数と縦に送れる数が
+食い違っていた**。1 セル = 1 ページにすれば、12 番目を開いて縦に払えば 13 番目が出る。
 
 ## «前後» の決め方
 
@@ -21,6 +30,12 @@
   ページが挟まる（実機で指摘された）。並びは Calendar が遷移直前に
   `useMyDishesFeedScopeStore.dateKeys`（昇順）へ置く。置かれていないとき
   （web の直リンク・リロード）は 1 日だけへ縮退する
+- `list` … 一覧に出ている **行の並びそのまま**（重複排除しない）。並びは一覧が遷移直前に
+  `useMyDishesFeedScopeStore.listItems` へ置く。置かれていないとき（web の直リンク・リロード）は
+  URL の `itemKey` / `dishMediaId` だけで 1 ページへ縮退する。
+  ⚠️ **前後を絞らない**。一覧は «上から順に見ていく» 面なので、縦に払い続けたら一覧の最後まで
+  行けるのが期待される挙動である（オーナー実機報告「グリッドのフィードが無限に下スクロール
+  できない」）。ページ数が増えてもマウントは `windowSize={3}`、取得は `isActive` が絞る
 - `restaurant` … Map のピンの並びは viewport 依存で、URL にも `useMyDishesFilterStore` にも
   入れない（§3-2: viewport を store に入れると 964MB の `dish_reviews` へのクエリが
   pan/zoom のたびに飛ぶ。配列を URL に積むのも #1397 の «URL に ids を積まない» と同じ理由）。
@@ -45,7 +60,11 @@ import { X } from "lucide-react-native";
 import { FixedColors } from "@/constants/Palette";
 import { MY_DISHES_EVENTS } from "@/features/myDishes/analytics";
 import { MyDishesFeedPage, feedScopeId, type MyDishesFeedScope } from "@/features/myDishes/components/MyDishesFeedPage";
-import { sliceScopeWindow, useMyDishesFeedScopeStore } from "@/features/myDishes/stores/useMyDishesFeedScopeStore";
+import {
+	sliceScopeWindow,
+	useMyDishesFeedScopeStore,
+	type MyDishesFeedListItem,
+} from "@/features/myDishes/stores/useMyDishesFeedScopeStore";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -74,11 +93,13 @@ export default function MyDishesFeedScreen() {
 	const itemKey = firstParam(itemKeyParam);
 	const dishMediaId = firstParam(dishMediaIdParam);
 	// `scope` が無い旧 URL は `restaurantId` の有無で判断する
+	const scope = firstParam(scopeParam);
+	// #1629 一覧（グリッド）由来は `scope=list`。1 ページ = 一覧の 1 行
 	const scopeKind =
-		firstParam(scopeParam) === "date" || (firstParam(scopeParam) === null && date !== null) ? "date" : "restaurant";
-	// date = 縦ページャ / restaurant = 横ページャ（ファイル冒頭の表）
-	// #1375 実機確認（5 巡目）: 外側は **常に縦**。scope が restaurant なら前後の店舗、
-	// date なら前後の «記録がある日» を縦フリックで行き来する（入口で指の向きを変えない）
+		scope === "list" ? "list" : scope === "date" || (scope === null && date !== null) ? "date" : "restaurant";
+	// #1375 実機確認（5 巡目）/ #1629: 外側は **常に縦**。scope が list なら一覧のセル、
+	// restaurant なら前後の店舗、date なら前後の «記録がある日» を縦フリックで行き来する
+	// （入口で指の向きを変えない。ファイル冒頭の表）
 	const isVerticalPager = true;
 
 	const { locale } = useLocale();
@@ -95,12 +116,27 @@ export default function MyDishesFeedScreen() {
 	// ⚠️ 初回に読んだ並びで固定する。遷移元が裏で再検索して並びが変わっても、
 	// 開いている Feed のページが増減するとスクロール位置が飛ぶ
 	const [scopeRestaurantIds] = useState<string[]>(() => useMyDishesFeedScopeStore.getState().restaurantIds);
-	// #1629 並びの出どころ。list（一覧）由来なら前後を絞らない（下のコメント参照）
-	const [scopeSource] = useState(() => useMyDishesFeedScopeStore.getState().restaurantIdsSource);
 	const [scopeDateKeys] = useState<string[]>(() => useMyDishesFeedScopeStore.getState().dateKeys);
+	// #1629 一覧に出ていた行の並び（グリッドのセルの順）
+	const [scopeListItems] = useState<MyDishesFeedListItem[]>(() => useMyDishesFeedScopeStore.getState().listItems);
 
 	/** ページャに並べるスコープ */
 	const scopes = useMemo<MyDishesFeedScope[]>(() => {
+		if (scopeKind === "list") {
+			if (itemKey === null || dishMediaId === null) return [];
+			/*
+			#1629 【設計】**グリッドのセルを、出ている順にそのまま 1 ページずつ縦へ並べる。**
+
+			重複排除はしない（同じ店の記録が 3 件並んでいたら縦も 3 ページ）。
+			ページャの `keyExtractor` は `feedScopeId`（= `item:<itemKey>`）で、
+			`itemKey` は一覧の行を一意に指すので衝突しない。
+
+			一覧が並びを置いていない（web の直リンク・リロード）ときは、URL が持っている
+			1 件だけへ縮退する。
+			*/
+			const rows = scopeListItems.some((row) => row.itemKey === itemKey) ? scopeListItems : [{ itemKey, dishMediaId }];
+			return rows.map((row) => ({ kind: "item" as const, itemKey: row.itemKey, dishMediaId: row.dishMediaId }));
+		}
 		if (scopeKind === "date") {
 			if (date === null) return [];
 			// 記録がある日だけ。Calendar が並びを置いていなければ（直リンク）1 日へ縮退する
@@ -108,41 +144,27 @@ export default function MyDishesFeedScreen() {
 			return keys.map((key) => ({ kind: "date" as const, date: key }));
 		}
 		if (restaurantId === null) return [];
-		/*
-		#1629 【修正】オーナー実機報告「グリッドのフィードが無限に下スクロールできない」。
-
-		縦ページャの中身は遷移元が置いた並びだが、**Map 由来と一覧由来を同じに扱っていた**。
-		`sliceScopeWindow` は前後 1 件しか残さないので、一覧から入ると縦は **3 ページで終わる**。
-		Map は viewport 由来でピンが 200 件あることもあり «前後 1 件» に意味があるが、
-		一覧は «上から順に見ていく» 面なので、縦にフリックし続けたら一覧の最後まで行けるのが
-		期待される挙動である。
-
-		出どころで分ける。一覧由来は絞らない。
-		⚠️ ページ数が増えてもマウントされるのは `windowSize={3}` のぶんだけで、
-		   取得は `isActive` が止めている（ページを増やしても取得は増えない）。
-		*/
-		const ids =
-			scopeRestaurantIds.length === 0
-				? [restaurantId]
-				: scopeSource === "list"
-					? scopeRestaurantIds
-					: sliceScopeWindow(scopeRestaurantIds, restaurantId);
+		// Map（ピン）由来。viewport にピンが 200 件あることもあるので前後 1 件へ絞る
+		// （#1629 で一覧由来はこの経路を通らなくなった。ここは Map 専用）
+		const ids = scopeRestaurantIds.length === 0 ? [restaurantId] : sliceScopeWindow(scopeRestaurantIds, restaurantId);
 		return ids.map((id) => ({ kind: "restaurant" as const, restaurantId: id }));
-	}, [date, restaurantId, scopeDateKeys, scopeKind, scopeRestaurantIds, scopeSource]);
+	}, [date, dishMediaId, itemKey, restaurantId, scopeDateKeys, scopeKind, scopeListItems, scopeRestaurantIds]);
 
 	/** 開いた時点で前面に居るページ */
 	const initialScopeIndex = useMemo(() => {
 		if (scopes.length === 0) return 0;
 		const currentId =
-			scopeKind === "date" && date !== null
-				? feedScopeId({ kind: "date", date })
-				: restaurantId !== null
-					? feedScopeId({ kind: "restaurant", restaurantId })
-					: null;
+			scopeKind === "list" && itemKey !== null && dishMediaId !== null
+				? feedScopeId({ kind: "item", itemKey, dishMediaId })
+				: scopeKind === "date" && date !== null
+					? feedScopeId({ kind: "date", date })
+					: scopeKind === "restaurant" && restaurantId !== null
+						? feedScopeId({ kind: "restaurant", restaurantId })
+						: null;
 		if (currentId === null) return 0;
-		const index = scopes.findIndex((scope) => feedScopeId(scope) === currentId);
+		const index = scopes.findIndex((s) => feedScopeId(s) === currentId);
 		return index >= 0 ? index : 0;
-	}, [date, restaurantId, scopeKind, scopes]);
+	}, [date, dishMediaId, itemKey, restaurantId, scopeKind, scopes]);
 
 	const [activeScopeIndex, setActiveScopeIndex] = useState(initialScopeIndex);
 	// 「開いた位置の手がかり（itemKey / dishMediaId）」は最初に開いたページにだけ渡す。

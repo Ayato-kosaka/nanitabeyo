@@ -52,6 +52,18 @@ export const PRELOAD_ALL_MAX = 8;
  */
 export function computePreloadIds(ids: string[], currentIndex: number): string[] {
 	if (ids.length <= PRELOAD_ALL_MAX) return ids;
-	const start = Math.max(0, currentIndex - PRELOAD_BEHIND);
-	return ids.slice(start, currentIndex + PRELOAD_AHEAD + 1);
+	/*
+	#1629【40】**`currentIndex` は必ず並びの中へ丸める。**
+
+	投稿を削除すると並びが 1 つ縮む。表示位置（`currentIndex`）は viewability が
+	next の可視状態を報告するまで **古い値のまま**なので、末尾の投稿を消した直後は
+	`currentIndex === ids.length` という «存在しない位置» を指す瞬間がある。
+	丸めずに slice すると窓が並びの外へ滑り出し、**極端な場合は空集合**になる。
+	空集合 = descriptor がゼロ = 描かれている全セルが `idle` = 全セルで
+	スケルトンが回り続ける（`DishMediaContent.shouldShowSkeleton`）。
+	これは #1629【35】で «削除したセル» に起きていたのと同じ機序である。
+	*/
+	const index = Math.min(Math.max(0, currentIndex), ids.length - 1);
+	const start = Math.max(0, index - PRELOAD_BEHIND);
+	return ids.slice(start, index + PRELOAD_AHEAD + 1);
 }

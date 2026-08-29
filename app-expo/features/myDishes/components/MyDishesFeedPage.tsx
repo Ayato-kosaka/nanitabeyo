@@ -1,6 +1,8 @@
 /*
 このファイルの責務
-- my-dishes の全画面 Feed の **1 スコープぶん**を描く。スコープは «1 店舗» か «1 日» のどちらか。
+- my-dishes の全画面 Feed の **1 スコープぶん**を描く。スコープは «1 店舗» / «1 日» /
+  «一覧のセル 1 つ»（#1629）のいずれか。前 2 つは中に複数の記録があり横で送れるが、
+  一覧由来は 1 ページ = 1 件で、送れる先が縦にしか無い。
 - 中身は `app/[locale]/(tabs)/my-dishes/feed.tsx` にあったものをそのまま移したものである。
   ルートを横スクロール（前後のスコープ）にするため、1 ページを部品として切り出した。
 
@@ -57,12 +59,32 @@ import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
  */
 const MAX_FEED_IDS = MY_DISHES_PAGE_SIZE;
 
-/** このページが «何で切られているか»。店舗か日付のどちらか 1 つ */
-export type MyDishesFeedScope = { kind: "restaurant"; restaurantId: string } | { kind: "date"; date: string };
+/**
+ * このページが «何で切られているか»。
+ *
+ * - `restaurant` … 1 店舗（Map のピンから）。中身はその店舗の記録すべて
+ * - `date` … 1 日（Calendar の日付から）。中身はその日の記録すべて
+ * - `item` … #1629 **一覧（グリッド）のセル 1 つ**。中身は **その 1 件だけ**。
+ *   グリッドは店舗でも日でもグルーピングしていないので、まとめる単位が無い
+ *   （オーナー指摘「お店でグルーピングしてるなら要らない。グリッドは上下だけ」）
+ */
+export type MyDishesFeedScope =
+	| { kind: "restaurant"; restaurantId: string }
+	| { kind: "date"; date: string }
+	| { kind: "item"; itemKey: string; dishMediaId: string };
 
-/** スコープを `entriesKey` / 横スクロールの key に使える 1 本の文字列へ畳む */
+/**
+ * スコープを `entriesKey` / ページャの key に使える 1 本の文字列へ畳む。
+ *
+ * ⚠️ #1629 `item` は **`itemKey`** で畳むこと（`dishMediaId` ではない）。一覧の行を一意に
+ * 指すのは `itemKey` の方であり、ページャの `keyExtractor` の衝突を避ける根拠もそこにある。
+ */
 export const feedScopeId = (scope: MyDishesFeedScope): string =>
-	scope.kind === "restaurant" ? scope.restaurantId : `date:${scope.date}`;
+	scope.kind === "restaurant"
+		? scope.restaurantId
+		: scope.kind === "date"
+			? `date:${scope.date}`
+			: `item:${scope.itemKey}`;
 
 export type MyDishesFeedPageProps = {
 	scope: MyDishesFeedScope;
@@ -142,12 +164,24 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	const shouldFetch = isActive || prefetchArmed;
 	const restaurantId = scope.kind === "restaurant" ? scope.restaurantId : null;
 	const date = scope.kind === "date" ? scope.date : null;
+	/*
+	#1629 【設計】**`item` スコープは行の取得を 1 回も挟まない。**
+
+	`restaurant` / `date` は «そのスコープに何が属するか» を知らないので
+	`GET /v1/users/me/dishes` で行を引き直す必要がある。対して `item` は、一覧が既に
+	`dish_media.id` を握っていて、それを scope に載せて渡してくる。**引き直すものが無い**ので
+	`restaurantId` も `date` も null のまま（= 派生クエリは動かない）にし、
+	`GET /v1/dish-media?ids=<1 件>` だけでこのページを描く。
+	*/
+	const scopeMediaId = scope.kind === "item" ? scope.dishMediaId : null;
 	const dishMediaIdParam = dishMediaId;
 	// M-2: 1 店舗 43 件以上だと itemKey が指す行が取得済みの 1 ページ（42 件）に無いことがある。
 	// 呼び出し元は必ず item.dishMedia.id を持っているので、そちらを同一性の根拠にする
 	// （itemKey は残すが、位置は index ではなくこの id で決める）
+	// #1629 `item` スコープは «開くべき 1 件» を scope 自身が持つ（URL の手がかりより優先する）。
+	// 縦の隣のページには URL の `dishMediaId` は渡らないので、これが無いと隣が空になる
 	const dishMediaIdFromParams =
-		typeof dishMediaIdParam === "string" && dishMediaIdParam.length > 0 ? dishMediaIdParam : null;
+		scopeMediaId ?? (typeof dishMediaIdParam === "string" && dishMediaIdParam.length > 0 ? dishMediaIdParam : null);
 
 	const { callBackend } = useAPICall();
 
@@ -165,16 +199,23 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 		items,
 		queryKey: sheetQueryKey,
 		error: rowsError,
-		hasFetchedInitial: hasFetchedRows,
+		hasFetchedInitial: hasFetchedRowsRaw,
 		refresh: refreshRows,
 	} = scope.kind === "restaurant" ? restaurantQuery : dateQuery;
+	/*
+	#1629 `item` スコープには «行» が無い（上の scopeMediaId のコメント）。派生クエリへ null を
+	渡しているので `hasFetchedInitial` は永遠に false であり、そのまま使うと
+	**取得が始まっているのに «読み込み中» のまま**になる。
+
+	代わりに `shouldFetch` をそのまま «行は揃った» と読む。false（まだ前面でも先読み対象でもない）
+	のときに true にしてはいけない。すると `mediaIds` が空のまま «0 件 = 見つかりません» が
+	縦フリックの途中に挟まる（#1375 実機確認 3 巡目で踏んだ罠と同じ形）。
+	*/
+	const hasFetchedRows = scope.kind === "item" ? shouldFetch : hasFetchedRowsRaw;
 
 	// #1629 手順 2 も `shouldFetch` で開ける。ここを isActive のままにすると、
 	// 行だけ先に取れて `GET /v1/dish-media?ids=` は前面へ来てから、になり先読みが半分しか効かない
-	const entriesKey = useMemo(
-		() => (shouldFetch ? myDishesFeedKey(feedScopeId(scope)) : null),
-		[shouldFetch, scope],
-	);
+	const entriesKey = useMemo(() => (shouldFetch ? myDishesFeedKey(feedScopeId(scope)) : null), [shouldFetch, scope]);
 
 	// §9-2 手順 2: `dishMedia !== null` の行だけを ids にする。
 	// ⚠️ 文字列へ畳んでから配列に戻すことで «中身が同じなら同じ参照» にしている。
@@ -404,23 +445,53 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	// 未取得はエラーでも 0 件でもなく «読み込み中» である
 	const isFetchingRows = !hasFetchedRows && rowsError === null;
 	const isHydratingMedia = mediaIds.length > 0 && settledKey !== hydrationKey && mediaError === null;
-	const showLoading = feedIds.length === 0 && (isFetchingRows || isHydratingMedia);
+
+	/*
+	#1629【35/40】**«残っている件数» は削除済みを引いてから数える。**
+
+	オーナー実機で「削除したら次の投稿が無限ローディングになった」が 3 巡続いた。
+	実ログ（2026-08-29）で確定した筋道はこうである。
+
+	  1. グリッドから開いたフィードは `item` スコープ ＝ **1 ページに 1 レコード**しかない
+	     （実ログの `GET /v1/dish-media?ids=` が毎回 1 件なのが証拠）
+	  2. その 1 件を削除すると `deletedIds` に墓標が立つ。`DishMediaFeed` は墓標を除いた
+	     結果が空になるので **`null` を返す**（黒いまま）
+	  3. ところが親のここは **ストアの `feedIds`（墓標を含んだまま）** で数えていたので
+	     `feedIds.length > 0` ＝ «中身がある» と判断し、ローディングでも 0 件でもない
+	     «何も出ない» 状態で固定されていた
+	  4. さらに取得の effect は `mediaIds.length === 0` で早期 return するため、
+	     **二度と取り直しも起きない**
+
+	墓標を引いた `liveFeedCount` で数えれば、この状態は正しく «0 件» に落ちる。
+	⚠️ `feedIds` そのものは `DishMediaFeed` へ渡さない（あちらが自前で墓標を見る）。
+	   ここで変えるのは **数え方だけ** である。
+	*/
+	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
+	const liveFeedCount = useMemo(() => feedIds.filter((id) => !deletedIds[id]).length, [feedIds, deletedIds]);
+
+	const showLoading = liveFeedCount === 0 && (isFetchingRows || isHydratingMedia);
 	const hasError = rowsError !== null || mediaError !== null;
 	// 「行は読めたが写真ありが 1 件も無い」は再試行の口を出さない 0 件表示
-	const showEmpty = !showLoading && feedIds.length === 0 && !hasError;
+	const showEmpty = !showLoading && liveFeedCount === 0 && !hasError;
 	// m-1: 失敗はこちらだけ。「見つかりません」の 1 行で終わらせず再試行を出す
-	const showError = !showLoading && feedIds.length === 0 && hasError;
+	const showError = !showLoading && liveFeedCount === 0 && hasError;
 
 	return (
 		<View style={styles.container} testID={`my-dishes-feed-page-${feedScopeId(scope)}`}>
-			{entriesKey !== null && feedIds.length > 0 ? (
+			{entriesKey !== null && liveFeedCount > 0 ? (
 				<>
 					{/* ⚠️ `initialIndex` は «ids が確定してから» 渡す。DishMediaFeed は最初に届いた
 					    非空の ids で並びを固定するので、ここで描き始める時点の index が最終値になる。
 					    #1375 実機確認（5 巡目）: **どちらのスコープも横** = そのスコープの中の別の投稿。
 					    縦は外側のページャ（前後の «記録がある日» / 前後の店舗）が受け持つ。
 					    2 巡目では date だけ横にしていたが、入口によって指の向きが変わるのが
-					    分かりにくいという指摘を受けて揃えた */}
+					    分かりにくいという指摘を受けて揃えた。
+
+					    #1629 【設計】`item` スコープ（グリッド由来）でも `horizontal` は付けたままにする。
+					    ids が必ず 1 件なので **横に送れる先はもともと無く**、オーナー指摘の
+					    «グリッドは上下だけ» は満たされる。外すと縦の FlatList が縦のページャの中に
+					    入れ子になり、Android の nested scroll でページ送りのパンを内側が食う恐れがある。
+					    «横を消す» のは軸の指定ではなく **1 ページ 1 件にすること**で達成している */}
 					<DishMediaFeed
 						entriesKey={entriesKey}
 						idType="dish_media"
