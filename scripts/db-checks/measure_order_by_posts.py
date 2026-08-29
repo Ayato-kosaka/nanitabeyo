@@ -23,17 +23,23 @@ PostgreSQL は同じ文を数回実行したあと **generic plan**（パラメ�
 1. 母数（restaurants / 投稿 / 投稿を持つ店 / 半径内の店舗数）
 2. `custom plan`（最初の数回）と `generic plan`（落ち着く先）の両方で
    EXPLAIN (ANALYZE, BUFFERS) EXECUTE
-3. **判定**: generic plan で **restaurants から読んだ延べ行数**が limit の何倍かを見る。
-   «半径内の全店を読む» プランへ戻ると、この数が半径に比例して跳ね上がる
+3. **判定**: **custom / generic の両方**で、**restaurants から読んだ延べ行数**を見る。
+   «半径内の全店を読む» プランへ倒れると、この数が半径に比例して跳ね上がる。
 
-   再現環境（restaurants 570,000 行 / 投稿を持つ店 7,990 / limit 20）の実測:
+   ⚠️ **片方だけ見てはいけない。** #1686 で generic plan を直したあと、
+      このスクリプトが generic しか判定していなかったため、
+      **custom plan が 11〜13 秒のまま «✅» と表示された**（dev run 33229509189）。
+      «空振りを ✅ と読む» のを構造的に潰すため、両方を判定対象にしてある。
 
-   | | restaurants から読む延べ行数（generic） | 所要（generic, JIT off） |
+   再現環境（restaurants 570,000 行 / 投稿を持つ店 7,985 / limit 20。
+   max_parallel_workers_per_gather=4 / random_page_cost=1.1 ＝ dev と同じプランが出る設定）:
+
+   | | custom 延べ行数 / 所要 | generic 延べ行数 / 所要 |
    | --- | ---: | ---: |
-   | 修正前 半径 20km    | 117,935 | 445 ms |
-   | 修正前 半径 1,500km | **558,060** | 2,036 ms |
-   | 修正後 半径 20km    | 60 | 130 ms |
-   | 修正後 半径 1,500km | 8,050 | 125 ms |
+   | #1686 時点 半径 20km    | 272,612 / 994 ms | 60 / 173 ms |
+   | #1686 時点 半径 1,500km | 574,385 / 1,733 ms | 8,045 / 173 ms |
+   | 修正後 半径 20km        | 60 / 158 ms | 60 / 167 ms |
+   | 修正後 半径 1,500km     | 8,045 / 167 ms | 8,045 / 172 ms |
 
 ## 測る SQL は写経しない
 
@@ -110,35 +116,38 @@ def section(title):
 
 
 def load_sql(name):
-    """repository が組み立てた SQL（バインド位置は半角疑問符）を $1, $2 … へ直す。
+    """repository が組み立てた SQL とバインド値の «名前の列» を読む。
 
+    バインド位置は半角疑問符なので $1, $2 … へ直す。
     ⚠️ SQL のコメントに半角疑問符が混ざっていると位置がずれる。
        repository 側でそれを禁じ、jest が個数一致を検査している。
     """
-    raw = (SQL_DIR / name).read_text(encoding="utf-8").rstrip().rstrip(";")
+    raw = (SQL_DIR / f"{name}.sql").read_text(encoding="utf-8").rstrip().rstrip(";")
+    names = json.loads((SQL_DIR / f"{name}.params.json").read_text(encoding="utf-8"))
     counter = [0]
 
     def to_positional(_match):
         counter[0] += 1
         return f"${counter[0]}"
 
-    return re.sub(r"\?", to_positional, raw), counter[0]
+    sql = re.sub(r"\?", to_positional, raw)
+    if counter[0] != len(names):
+        raise SystemExit(
+            f"❌ {name}: プレースホルダ {counter[0]} 個に対して名前が {len(names)} 個。"
+            " UPDATE_RESTAURANT_SQL_SNAPSHOT=1 で書き出し直すこと"
+        )
+    return sql, names
 
 
-def default_params(lat, lng, radius, limit):
-    """search_nearby_restaurants.default.sql のバインド値（出現順）。
+def bind(names, lat, lng, radius, limit):
+    """バインド値を «名前の列» の順に並べる。
 
-    posted の距離 → posted の ST_DWithin → posted の LIMIT →
-    nearest の ST_DWithin → nearest の KNN と LIMIT → 最終 ORDER BY の距離と LIMIT
+    ⚠️ ここを手書きの配列にしないこと。SQL の形を変えるとバインドの順番も変わり、
+       radius と limit が入れ替わったまま «別のクエリを測って» 読み違えた実績がある。
+       名前の列は jest が repository から書き出しているので、ずれようがない。
     """
-    return [
-        lng, lat,               # posted / ST_Distance
-        lng, lat, radius,       # posted / ST_DWithin
-        limit,                  # posted / LIMIT
-        lng, lat, radius,       # nearest / ST_DWithin
-        lng, lat, limit,        # nearest / KNN + LIMIT
-        lng, lat, limit,        # 最終 ORDER BY + LIMIT
-    ]
+    values = {"lat": lat, "lng": lng, "radius": radius, "limit": limit}
+    return [values[n] for n in names]
 
 
 def run_counts(cur, schema):
@@ -222,7 +231,7 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
     logger.info("generic = Prisma の prepared statement が落ち着く先。値が見えない")
     logger.info("")
     logger.info(
-        "判定: generic plan で restaurants から読む延べ行数が "
+        "判定: **custom / generic の両方**で、restaurants から読む延べ行数が "
         "«投稿を持つ店 %s + limit %s» の %s 倍を超えたら赤",
         f"{with_posts:,}",
         LIMIT,
@@ -230,7 +239,8 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
     )
     budget = (with_posts + LIMIT) * ROWS_BUDGET_MULTIPLIER
 
-    sql, nparams = load_sql("search_nearby_restaurants.default.sql")
+    sql, names = load_sql("search_nearby_restaurants.default")
+    nparams = len(names)
     failures = []
 
     for label, lat, lng, radius in CASES:
@@ -238,7 +248,7 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
         logger.info("-" * 72)
         logger.info("## %s", label)
         logger.info("-" * 72)
-        params = default_params(lat, lng, radius, LIMIT)
+        params = bind(names, lat, lng, radius, LIMIT)
         for generic in (False, True):
             mode = "generic" if generic else "custom "
             cur.execute("SET LOCAL statement_timeout = '120s'")
@@ -252,14 +262,16 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
                 continue
 
             rows, detail = restaurants_rows_read(plan)
-            verdict = ""
-            if generic:
-                verdict = " ✅" if rows <= budget else "  ❌ 半径内の全店を読んでいる"
-                if rows > budget:
-                    failures.append(
-                        f"{label}: generic plan で restaurants を延べ {rows:,} 行 "
-                        f"読んでいる（上限 {budget:,} 行）"
-                    )
+            # ⚠️ **custom / generic の両方を判定する。**
+            #    #1686 のあと «generic だけ» を見ていたせいで、custom plan が
+            #    11〜13 秒のまま «✅» と表示されて見落とした（dev run 33229509189）。
+            #    どちらか一方でも半径内を舐めていたら赤にする
+            verdict = " ✅" if rows <= budget else "  ❌ 半径内の全店を読んでいる"
+            if rows > budget:
+                failures.append(
+                    f"{label} / {mode.strip()} plan: restaurants を延べ {rows:,} 行 "
+                    f"読んでいる（上限 {budget:,} 行）"
+                )
             logger.info(
                 "   %s: %8.1f ms / restaurants から延べ %s 行%s",
                 mode,
@@ -275,7 +287,9 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
 
     section("3. 判定")
     if not failures:
-        logger.info("✅ generic plan でも «走る行数は半径に依存しない» が保てている")
+        logger.info(
+            "✅ custom / generic のどちらでも «走る行数は半径に依存しない» が保てている"
+        )
         return 0
     for f in failures:
         logger.error("❌ %s", f)
@@ -306,7 +320,10 @@ def main() -> int:
 
     missing = [
         n
-        for n in ("search_nearby_restaurants.default.sql",)
+        for n in (
+            "search_nearby_restaurants.default.sql",
+            "search_nearby_restaurants.default.params.json",
+        )
         if not (SQL_DIR / n).exists()
     ]
     if missing:

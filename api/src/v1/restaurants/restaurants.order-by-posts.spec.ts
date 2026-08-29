@@ -101,7 +101,7 @@ describe('#1629 店舗検索の既定の並びは «投稿が多い順»', () =>
     const posted = sql.slice(sql.indexOf('posted AS ('), sql.indexOf('nearest AS ('));
     expect(posted).toContain('FROM post_counts pc');
     expect(posted).toMatch(
-      /ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT \?/,
+      /ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT \d+/,
     );
     // 重いレビュー集計は候補が確定したあとにしか出てこない。
     // #1629 集計は LATERAL（dish_reviews dr）へ移した。構造の理由は
@@ -111,7 +111,7 @@ describe('#1629 店舗検索の既定の並びは «投稿が多い順»', () =>
     );
     // 近傍枠は KNN + LIMIT（半径が全国規模でも走る行数は limit 件で一定）
     const nearest = sql.slice(sql.indexOf('nearest AS ('));
-    expect(nearest).toMatch(/ORDER BY r\.location <-> .* LIMIT \?/);
+    expect(nearest).toMatch(/ORDER BY r\.location <-> .* LIMIT \d+/);
   });
 
   it('入札（restaurant_bids）は候補が確定したあとに集計するだけで、候補の絞り込みには使わない', async () => {
