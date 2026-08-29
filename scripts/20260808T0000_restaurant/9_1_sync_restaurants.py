@@ -354,7 +354,17 @@ def apply_sync(connection: Any) -> None:
               source_names = ARRAY(
                 SELECT jsonb_array_elements_text(s.source_names_json::jsonb)
               ),
-              source_row_hash = s.row_hash,
+              -- #843 source_row_hash は **pipeline の行にだけ**刻む。
+              --
+              -- ここを無条件にすると、アプリが作った行にも catalog の row_hash が
+              -- 付く。その行が何かの拍子に created_by_source='pipeline' へ変わると、
+              -- 値 UPDATE の条件 `source_row_hash IS DISTINCT FROM s.row_hash` が
+              -- 最初から偽になり、**その行だけオープンデータの更新が永久に
+              -- 届かなくなる**。落ちず、壊れず、気付けない。
+              source_row_hash = CASE
+                WHEN r.created_by_source = 'pipeline' THEN s.row_hash
+                ELSE r.source_row_hash
+              END,
               synced_at = CURRENT_TIMESTAMP
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
