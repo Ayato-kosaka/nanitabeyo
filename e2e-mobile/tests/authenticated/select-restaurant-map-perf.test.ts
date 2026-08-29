@@ -192,38 +192,39 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		⚠️ 位置情報が取れない環境では地図は動かない。その場合はマーカーが出ないので、
 		   上のログで空振りだと分かる（黙って «速い» と読めてしまわないようにする）。
 		*/
-		try {
-			await device.setLocation(35.6812, 139.7671); // 東京駅
-		} catch (error) {
-			console.log(`[search-this-area] ⚠️ setLocation に失敗: ${String(error)}`);
-		}
-		// エミュレータの測位が «直近の既知位置» として読めるようになるまで少し置く
-		await new Promise((resolve) => setTimeout(resolve, 3000));
-		await tapWhenVisible(by.id("review-select-restaurant-current-location-button"), DEFAULT_TIMEOUT);
 		/*
-		⚠️ **ここは長めに待つ。**
+		⚠️ **`device.setLocation` + 現在地ボタンでの «東京駅へ寄せる» はやめた。**
 
-		`getCurrentLocationPosition` は「既知位置 → 新規測位（最大 10 秒でタイムアウト）」の
-		順に試す（`hooks/useCurrentLocationPosition.ts`）。5 秒しか待たないと、
-		**測位がまだ返っていないうちにスクショを撮り、地図が動いていない絵**が残る
-		（run 33132181132 で実際にそうなった）。10 秒のタイムアウト +
-		animateToRegion 1 秒 + デバウンス 400ms を全部含める。
+		run 33236381539 の実ログで、この spec が出した 8 本のリクエストが
+		**すべて `lat=36.2048&lng=138.2529&radius=1430410`**（＝ 日本全体のまま）だった。
+		つまり地図は 1 度も動いておらず、«東京駅の実測» と名付けた 2 本は
+		日本全体を測り直しているだけだった。エミュレータの測位はこれまでも
+		2 度こけている（run 33132551584 / 33135757290）ので、この経路には依存しない。
+
+		代わりに **地図そのものを操作して表示域を変える**。pinch も swipe も
+		`onRegionChangeComplete` を通るので、アプリから見れば普段の操作と同じである。
+
+		⚠️ **表示域が実際に変わったかは Detox からは読めない。** 確かめるときは
+		   BigQuery の `response_success` で `payload.url` の lat/lng/radius が
+		   回ごとに違うことを見ること（同じなら、また動いていない）。
 		*/
-		await new Promise((resolve) => setTimeout(resolve, 16000));
+		await element(map).pinch(2.0, "slow"); // 広げる = 寄る
+		// デバウンス 400ms + 取得の開始を待つ
+		await new Promise((resolve) => setTimeout(resolve, 2000));
 		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
-		await device.takeScreenshot("search-this-area-02-moved-to-tokyo");
-		console.log(`[search-this-area] 東京駅へ寄せた直後のマーカー: ${await markerReport()}`);
+		await device.takeScreenshot("search-this-area-02-zoomed-in");
+		console.log(`[search-this-area] 寄せた直後のマーカー: ${await markerReport()}`);
 
-		const dense1 = await measureOnce("03-tokyo");
+const dense1 = await measureOnce("03-zoomed-in");
 
 		// 地図を動かしてからもう 1 回。こちらが «普段の操作» に近い
 		await element(map).swipe("left", "fast", 0.5, 0.5, 0.35);
-		const dense2 = await measureOnce("04-tokyo-after-pan");
+		const dense2 = await measureOnce("04-zoomed-and-panned");
 
 		const rounds = [wide, dense1, dense2];
 		console.log(
-			`[search-this-area] 実測: 引き ${wide.elapsed} ms / 東京駅 ${dense1.elapsed} ms / ` +
-				`東京駅+パン ${dense2.elapsed} ms`,
+			`[search-this-area] 実測: 引き ${wide.elapsed} ms / 寄せた ${dense1.elapsed} ms / ` +
+				`寄せて動かした ${dense2.elapsed} ms`,
 		);
 
 		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
