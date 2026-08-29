@@ -107,6 +107,27 @@ Instagram / TikTok で音が出るのは、あちらが**同一オリジンの `
 «playable 以外を弾く» と書いた瞬間に TikTok が 1 本も出なくなる。
 provider の仕様変更で判定できなくなった日に取り込み済みの投稿が一斉に消えるのも同じ理屈である。
 
+### ⚠️ 再生をやめると «絵» も消える（2026-08-29 に踏んだ）
+
+高速パスを入れた実機のコマで、そのセルが**真っ黒**になった（run 33223480840 の `feed-05`）。
+それまで見えていた料理の写真は**アプリが持っていたものではなく、Instagram の埋め込みページが
+描いていた 1 コマ目**で、読み込みをやめた瞬間に消えていた。
+
+そこでサムネイルの解決順を «必ず何かが出る» 形にしてある（`dish-media.assembler.ts`）。
+
+| # | 出どころ | 失効するか |
+| --- | --- | --- |
+| 1 | `dish_media.thumbnail_path`（自ストレージへ複製したもの） | しない |
+| 2 | `dish_media_external_embeddings.thumbnail_url`（provider の CDN） | **する**（Instagram の署名 URL は 4〜5 日） |
+| 3 | 料理カテゴリの絵 | しない |
+
+3 を当てるのは **`render_type='external_embed'` の行だけ**である。自撮り投稿で
+サムネイルが無いのは «加工がまだ終わっていない» という別の状態で、そちらはスケルトンが正しい。
+
+2 しか持たない行（取り込み当時に複製へ失敗した古い行）は、
+[`scripts/db-backfill/backfill_embed_playback.py`](../../scripts/db-backfill/backfill_embed_playback.py) を
+流し直すたびに URL が入れ替わる。
+
 ### ⚠️ «YouTube が埋め込み不可» という判断は誤りだった（2026-08-28 訂正）
 
 オーナーの Short（`8KJDwppL0qg`）を «投稿者が埋め込みを許していない» と結論していたが、**誤り**。
