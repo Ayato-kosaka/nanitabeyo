@@ -401,6 +401,8 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			 * （0 / 未指定なら最初から存在する）。
 			 */
 			bodyAtTick?: number;
+			/** 各 tick の直前に、そのときの `<body>` と一緒に呼ばれる。向こうの JS が書き戻す状況を作るため */
+			beforeTick?: (body: { style: { setProperty: (k: string, v: string) => void } } | null) => void;
 		}) => {
 			const styles = new Map<unknown, Record<string, string>>();
 			const mk = (tag: string, extra: Record<string, unknown> = {}) => {
@@ -494,6 +496,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			for (let i = 0; i < (opts.ticks ?? 0); i++) {
 				clock += 500;
 				if (opts.bodyAtTick && i + 1 >= opts.bodyAtTick) documentStub.body = realBody;
+				opts.beforeTick?.(documentStub.body);
 				scheduled.forEach((fn) => fn());
 			}
 			return { styles, images, video, appended, post, documentStub, realBody };
@@ -533,18 +536,33 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		});
 
 		/*
-		#1641 ⚠️ **document-start では `<body>` がまだ無い。**
+		#1641 ⚠️ **地色は «一度塗ったら終わり» にしてはいけない。**
 
 		エージェントを document-start から走らせるようにしたので（iOS の TikTok）、
-		**初回の tick には `<body>` が存在しない**。ここで «地色は敷いた» と印を立てると
-		body は永久に白のままで、«アプリの黒 → 一瞬の白 → 映像» の明滅が戻る。
-		body が現れるまで毎 tick 試し直すこと。
+		初回の tick には `<body>` がまだ無い。WebKit での実測:
+
+		    0.6s  エージェント起動。まだ <body> が無い
+		    1.0s  <body> が現れる … 埋め込みページ自身の **白**
+		    3.5s  isolate() が祖先を透明にして、ようやく白が消える
+
+		済み印を立てる方式だと «アプリの黒 → 白 → 映像» の明滅が残る。**毎 tick 塗り直す。**
 		*/
-		it("body が後から現れても、地色を敷き直す（document-start）", () => {
+		it("body が後から現れても、向こうに塗り替えられても、地色を敷き直す", () => {
 			const { documentStub, realBody } = run({ video: false, images: [], bodyAtTick: 2, ticks: 3 });
 			// html は body より先に塗れている
 			expect(documentStub.documentElement.style.background).toBe("#000000");
-			// body が現れた tick で塗り直せている
+			// body が現れた tick で塗れている
+			expect(realBody.style.background).toBe("#000000");
+		});
+
+		it("埋め込みページ側に地色を白へ書き戻されても、次の tick で戻す", () => {
+			const { realBody } = run({
+				video: false,
+				images: [],
+				ticks: 3,
+				// 向こうの JS が毎 tick 白へ戻してくる状況
+				beforeTick: (body) => body?.style.setProperty("background", "#ffffff"),
+			});
 			expect(realBody.style.background).toBe("#000000");
 		});
 

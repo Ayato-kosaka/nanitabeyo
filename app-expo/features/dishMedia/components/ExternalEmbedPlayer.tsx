@@ -184,7 +184,7 @@ const AUTOPLAY_SCRIPT = `(function () {
   var timer = null, observer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
   // 自動再生ポリシーで «音あり» を蹴られたか。蹴られた後は二度と音を戻さない
   var mutedByPolicy = false;
-  var backdrop = null, fillTicks = 0, poster = null, hidden = [];
+  var fillTicks = 0, poster = null, hidden = [];
   // #1641 読み込み中の tick 数。安い経路と高い経路の間引きに使う
   var loadTicks = 0;
 
@@ -314,20 +314,25 @@ const AUTOPLAY_SCRIPT = `(function () {
    *    div を body へ足す方式は TikTok で映像を覆い隠した（下の isolate を参照）。
    */
   function ensureBackdrop() {
-    if (backdrop || !document.documentElement) return;
+    /*
+     * ⚠️ **«一度塗ったら終わり» にしてはいけない。** #1641 で実測（WebKit / TikTok）:
+     *
+     *     0.6s  エージェント起動。まだ <body> が無い
+     *     1.0s  <body> が現れる … 埋め込みページ自身の **白**
+     *     3.5s  isolate() が祖先を透明にして、ようやく白が消える
+     *
+     * 済み印を立てる方式だと、印を立てた後に向こうの JS が背景を書き戻したときに
+     * 直せず、**«アプリの黒 → 白 → 映像» の明滅**が残る（document-start から
+     * 走らせるようにして表面化した）。setProperty 2 回は 250ms ごとに回しても
+     * ただ同然なので、毎 tick 塗り直す。
+     *
+     * ⚠️ **重ねる div ではなく html / body の背景色にする。**
+     *    div を body へ足す方式は TikTok で映像を覆い隠した（下の isolate を参照）。
+     */
+    if (!document.documentElement) return;
     try {
       document.documentElement.style.setProperty('background', '${FixedColors.mediaBackground}', 'important');
-      /*
-       * ⚠️ **body を塗れて初めて «済み» にする。**
-       *
-       * #1641 document-start から走らせるようになったので、初回の tick では
-       * **<body> がまだ無い**。ここで先に済み印を立てると body は永久に白のままで、
-       * «アプリの黒 → 一瞬の白 → 映像» の明滅が戻る。
-       * documentElement への設定は何度やっても同じなので、出来るまで毎 tick 試す。
-       */
-      if (!document.body) return;
-      document.body.style.setProperty('background', '${FixedColors.mediaBackground}', 'important');
-      backdrop = true;
+      if (document.body) document.body.style.setProperty('background', '${FixedColors.mediaBackground}', 'important');
     } catch (e) {}
   }
 
