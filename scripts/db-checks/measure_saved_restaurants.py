@@ -71,16 +71,30 @@ import psycopg2
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-# 東京駅。#1629 のログに出ていた実際の検索地点に近い
-LAT, LNG = 35.681236, 139.767125
 LIMIT, OFFSET = 20, 0
 
-# オーナーが実際に踏んだ半径（BigQuery の実測ログから）
-RADII = [
-    ("5.5km（寄り。「拡大しても遅い」の値）", 5_480),
-    ("20km", 19_969),
-    ("389km", 389_333),
-    ("1,500km（日本全体）", 1_500_000),
+# 東京駅。従来の計測地点
+LAT, LNG = 35.681236, 139.767125
+
+# ⚠️ **中心も半径も «オーナーが実際に投げた値» で測ること。**
+#
+# 2026-08-29 に「まだ直っていない」と言われて BigQuery の実ログを引いたところ、
+# サーバ自身が **42,007 ms**（app_ms 42,004）かかっているリクエストが見つかった:
+#
+#   /v1/users/me/saved-restaurants?lat=36.474490&lng=139.304243&radius=228012  → 42,007 ms
+#   /v1/users/me/saved-restaurants?lat=36.020342&lng=139.637042&radius=74225   →  5,357 ms
+#   /v1/users/me/saved-restaurants?lat=36.2048&lng=138.2529&radius=1430410     →    160 ms
+#
+# **それまでの計測は 3 行目（REGION_JP の初期表示）しか踏んでいなかった**ので、
+# 「速い」と誤読していた。中心が変わると保存済みの店が半径内から消え、
+# プランが変わりうる。**中心を固定した半径スイープだけでは足りない。**
+POINTS = [
+    ("東京駅 5.5km", 35.681236, 139.767125, 5_480),
+    ("東京駅 20km", 35.681236, 139.767125, 19_969),
+    ("東京駅 389km", 35.681236, 139.767125, 389_333),
+    ("REGION_JP 1,430km（初期表示・従来ここだけ測っていた）", 36.2048, 138.2529, 1_430_410),
+    ("⚠️実測 42.0 秒: 36.474/139.304 半径 228km", 36.474490512258626, 139.30424323305488, 228_012),
+    ("⚠️実測 5.4 秒: 36.020/139.637 半径 74km", 36.020342181469665, 139.63704250752926, 74_225),
 ]
 
 # ---------------------------------------------------------------------------
@@ -224,7 +238,7 @@ def run_counts(cur, user_id):
     logger.info("  ← これが数百行なら、8 秒かかる理由は «保存の件数» ではない")
 
     logger.info("")
-    for label, radius in RADII:
+    for label, lat, lng, radius in POINTS:
         n = one(
             cur,
             """
@@ -242,16 +256,16 @@ def run_counts(cur, user_id):
                              ST_SetSRID(ST_MakePoint(%(lng)s, %(lat)s), 4326)::geography,
                              %(radius)s::double precision)
             """,
-            {"user_id": user_id, "lat": LAT, "lng": LNG, "radius": radius},
+            {"user_id": user_id, "lat": lat, "lng": lng, "radius": radius},
         )
         total_in_radius = one(
             cur,
             "SELECT count(*) FROM restaurants r WHERE ST_DWithin(r.location, "
             "ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, %s::double precision)",
-            (LNG, LAT, radius),
+            (lng, lat, radius),
         )
         logger.info(
-            "%-32s 保存した店 %5s 件 / 半径内の全店 %10s 件",
+            "%-52s 保存した店 %5s 件 / 半径内の全店 %10s 件",
             label,
             f"{n:,}",
             f"{total_in_radius:,}",
@@ -296,11 +310,11 @@ def run_explain(cur, user_id, schema):
         logger.info("-" * 72)
         logger.info("## %s", mode)
         logger.info("-" * 72)
-        for label, radius in RADII:
+        for label, lat, lng, radius in POINTS:
             params = {
                 "user_id": user_id,
-                "lat": LAT,
-                "lng": LNG,
+                "lat": lat,
+                "lng": lng,
                 "radius": radius,
                 "limit": LIMIT,
                 "offset": OFFSET,
