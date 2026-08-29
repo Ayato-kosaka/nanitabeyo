@@ -1,3 +1,4 @@
+import { strict as assert } from "node:assert";
 import { execFileSync } from "child_process";
 import { by, describeAuthenticated, device, element, launchAppWithSession, waitFor } from "../../fixtures/e2e";
 import { DEFAULT_TIMEOUT, existsNow, tapWhenVisible } from "../../utils/waits";
@@ -107,14 +108,21 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 	 * スピナーが一度も観測できないほど速い場合もある（それは «速い» ので失敗にしない）。
 	 * その場合も «押してから待機が解けるまで» を返す。
 	 */
+	/** 1 回の計測結果。**所要時間と «実際に描かれたか» は必ず組で持ち回る** */
+	type Measurement = { label: string; elapsed: number; hasMarker: boolean };
+
+	const readMarkers = async (): Promise<{ pin: boolean; dot: boolean; cluster: boolean }> => ({
+		pin: await existsNow(by.id("select-restaurant-pin")),
+		dot: await existsNow(by.id("select-restaurant-dot")),
+		cluster: await existsNow(by.id("select-restaurant-cluster")),
+	});
+
 	const markerReport = async (): Promise<string> => {
-		const pin = await existsNow(by.id("select-restaurant-pin"));
-		const dot = await existsNow(by.id("select-restaurant-dot"));
-		const cluster = await existsNow(by.id("select-restaurant-cluster"));
-		return `pins=${pin} dot=${dot} cluster=${cluster}`;
+		const m = await readMarkers();
+		return `pins=${m.pin} dot=${m.dot} cluster=${m.cluster}`;
 	};
 
-	const measureOnce = async (label: string): Promise<number> => {
+	const measureOnce = async (label: string): Promise<Measurement> => {
 		const started = Date.now();
 		await tapWhenVisible(searchButton, DEFAULT_TIMEOUT);
 		await waitFor(element(searchSpinner)).not.toExist().withTimeout(DEFAULT_TIMEOUT);
@@ -122,9 +130,10 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		// ⚠️ **毎回マーカーの有無を出す。** 最初に 1 回だけ見ても «その時点ではまだ
 		//    取得が終わっていない» ので false になり、空振りかどうかを判定できない
 		//    （run 33128561205 で実際にそうなり、ピン 0 個のまま «1 秒» と読める数字が出た）
-		console.log(`[search-this-area] ${label}: ${elapsed} ms / ${await markerReport()}`);
+		const m = await readMarkers();
+		console.log(`[search-this-area] ${label}: ${elapsed} ms / pins=${m.pin} dot=${m.dot} cluster=${m.cluster}`);
 		await device.takeScreenshot(`search-this-area-${label}`);
-		return elapsed;
+		return { label, elapsed, hasMarker: m.pin || m.dot || m.cluster };
 	};
 
 	it("押してから結果が反映されるまでの時間を測る", async () => {
@@ -139,9 +148,12 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 
 		この画面は端末の言語が日本語だと現在地を見ず、必ず `REGION_JP`
 		（中心 36.2048 / 138.2529 = 長野の山中、デルタ 20 度）から始まる
-		（`select-restaurant.tsx` の init）。半径は 50km で頭打ちなので、
-		**日本語ユーザーの初回の 1 回は構造上ほぼ 0 件**になる。
-		ここを 1 回測っておくと «軽いのは単に何も無いからだ» と後から誤読されない。
+		（`select-restaurant.tsx` の init）。
+
+		⚠️ **この «引き» は、もう 0 件想定ではない。** 以前は半径が 50km で頭打ちだったため
+		「日本語ユーザーの初回は構造上ほぼ 0 件」だったが、#1629 でその足切りを廃止した。
+		いまは日本全体の外接円（dev 実測 `radius=1,430,410`）で投げて保存済みの店が返る。
+		そのため **この 1 回を «空振りでないこと» の基準点として使える**（測位に依存しない）。
 		*/
 		console.log(`[search-this-area] 00-map-opened のマーカー: ${await markerReport()}`);
 		const wide = await measureOnce("01-japan-wide");
@@ -185,12 +197,45 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		await element(map).swipe("left", "fast", 0.5, 0.5, 0.35);
 		const dense2 = await measureOnce("04-tokyo-after-pan");
 
+		const rounds = [wide, dense1, dense2];
 		console.log(
-			`[search-this-area] 実測: 引き(0件想定) ${wide} ms / 東京駅 ${dense1} ms / 東京駅+パン ${dense2} ms`,
+			`[search-this-area] 実測: 引き ${wide.elapsed} ms / 東京駅 ${dense1.elapsed} ms / ` +
+				`東京駅+パン ${dense2.elapsed} ms`,
 		);
 
-		// 生きていること（＝ 落ちていないこと）だけを固定する。速度そのものは
-		// 環境依存なのでアサートしない。数字は上のログと動画で読む
 		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
+
+		/*
+		⚠️ **ここから下は 2026-08-29 に足した。それまでこの spec は «測るだけ» で、
+		    何もアサートしていなかった。** つまり 8〜47 秒へ戻っても緑のままで、
+		    オーナーの「これって自分でテスト出来ないの？」に対して
+		    «測るが落ちない» という答えになっていた。実際、ピン 0 個のまま 417 ms という
+		    無意味な数字を ✅ と読む事故も起きている（run 33128561205）。
+
+		    判定は必ず «空振りでないこと» → «速さ» の順に見る。逆順にすると、
+		    何も返っていないから速い、という状態を緑にしてしまう。
+		*/
+
+		// ① 空振りでないこと。引き（日本全体）は測位に依存しないので基準点に使える
+		assert.ok(
+			wide.hasMarker,
+			"日本全体の «この範囲で再検索» でマーカーが 1 つも描かれなかった。" +
+				`（所要 ${wide.elapsed} ms）この状態の «速さ» は根拠にならない。` +
+				"ログイン・保存済みの店・半径の足切り（#1629 で廃止したはず）を疑うこと",
+		);
+
+		// ② そのうえで所要時間。**«快適さ» ではなく «壊れている» の線引き**である。
+		//    直す前は dev 実測で p50 8,319 ms / p95 47,353 ms だった。エミュレータと
+		//    CI ランナーの遅さ、初回のプラン確定（dev 実測で最大 3.3 秒）を含めて余裕を取る。
+		//    ⚠️ 赤を消したいという理由でこの数字を緩めないこと。緩めるくらいなら赤で報告する
+		const BUDGET_MS = 8_000;
+		const tooSlow = rounds.filter((r) => r.elapsed > BUDGET_MS);
+		assert.ok(
+			tooSlow.length === 0,
+			`「この範囲で再検索」が上限 ${BUDGET_MS} ms を超えた: ` +
+				`${tooSlow.map((r) => `${r.label} ${r.elapsed} ms`).join(" / ")}。` +
+				"#1629 で直した «半径内の全店を舐める» 実行計画へ戻っていないか、" +
+				"scripts/db-checks/measure_saved_restaurants.py と measure_order_by_posts.py で確かめること",
+		);
 	});
 });
