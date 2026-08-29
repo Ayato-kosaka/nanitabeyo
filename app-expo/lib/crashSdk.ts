@@ -10,9 +10,23 @@ import { Env } from "@/constants/Env";
 `crashReporting.ts` は **OTA で配れる範囲**（JS の例外・未処理の Promise・
 «前回が落ちて終わった» の記録）を担当する。あちらは依存を 1 つも増やさない。
 
-こちらは `@sentry/react-native`（＝ネイティブ差分）に触るので、
+こちらは `@react-native-firebase/crashlytics`（＝ネイティブ差分）に触るので、
 **このブランチ（ネイティブ変更を集めるブランチ）にだけ存在する。**
 OTA ブランチへ混ぜると、ネイティブ差分ゼロという前提が崩れて EAS Build が要るようになる。
+
+## なぜ Sentry ではなく Crashlytics なのか（#1641 でオーナー判断）
+
+最初は `@sentry/react-native` を入れたが、**このリポジトリに Sentry は他に 1 つも無い**。
+入れると «新しい業者・新しい秘密情報・新しい料金» が増え、そのうえ
+
+- DSN（`EXPO_PUBLIC_SENTRY_DSN`）が未設定なので、**現状 1 件も届かない**
+- config plugin が release ビルドでソースマップを送るため、資格情報の無い CI では
+  ビルドごと落ちる（Detox の Android ビルドで実際に落とした。run 32842669247）
+
+という状態だった。一方 Firebase は **既に入っている**
+（`@react-native-firebase/app` + `/perf`、`google-services.json` /
+`GoogleService-Info.plist` も配置済み）。Crashlytics はその兄弟パッケージなので、
+**業者も秘密情報も増えず、DSN のような «設定しないと動かない» 段も無い。**
 
 ## 読み込み方（ここが要）
 
@@ -23,30 +37,30 @@ OTA ブランチへ混ぜると、ネイティブ差分ゼロという前提が�
 - この層を含まないビルド（＝現行の配信ビルド）でも `installCrashSdk()` は安全に no-op
 - OTA でこのファイルが降ってきても、ネイティブ側に SDK が無ければ落ちない
 
-## DSN が無ければ何もしない
-
-`EXPO_PUBLIC_SENTRY_DSN` が空なら初期化しない。**キーをコードに埋めない**ためと、
-未設定の環境（ローカル・E2E）で «送信できない» 例外を出さないため。
-
 ⚠️ **web では読み込まない。** web は既存の `frontend_event_logs` で足りており、
 ここでネイティブ SDK を引くとバンドルに無用な重さが乗る。
 */
 
-/** 初期化済みか。二重初期化は Sentry 側が警告を出すので自前でも止める */
+/** 初期化済みか。二重初期化は無害だが、属性の再送も無駄なので自前で止める */
 let initialized = false;
 
-type SentryLike = {
-	init: (options: Record<string, unknown>) => void;
-	captureException?: (error: unknown) => void;
+type CrashlyticsInstance = {
+	setCrashlyticsCollectionEnabled?: (enabled: boolean) => Promise<unknown>;
+};
+
+type CrashlyticsModule = {
+	getCrashlytics: () => CrashlyticsInstance;
+	setCrashlyticsCollectionEnabled: (instance: CrashlyticsInstance, enabled: boolean) => Promise<unknown>;
+	setAttributes: (instance: CrashlyticsInstance, attributes: Record<string, string>) => Promise<unknown>;
 };
 
 /** モジュールが無いビルドでは null を返す（縮退の唯一の入口） */
-export function loadSentry(): SentryLike | null {
+export function loadCrashlytics(): CrashlyticsModule | null {
 	if (Platform.OS === "web") return null;
 	try {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const mod = require("@sentry/react-native") as SentryLike | undefined;
-		return mod && typeof mod.init === "function" ? mod : null;
+		const mod = require("@react-native-firebase/crashlytics") as CrashlyticsModule | undefined;
+		return mod && typeof mod.getCrashlytics === "function" ? mod : null;
 	} catch {
 		return null;
 	}
@@ -59,24 +73,28 @@ export function loadSentry(): SentryLike | null {
  */
 export function installCrashSdk(): boolean {
 	if (initialized) return false;
-	const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
-	if (!dsn) return false;
-	const sentry = loadSentry();
-	if (!sentry) return false;
+	const mod = loadCrashlytics();
+	if (!mod) return false;
 
-	sentry.init({
-		dsn,
-		// #1375 どのビルドで落ちたかを追えるようにする。OTA で JS だけ差し替わるので、
-		// アプリのバージョンだけでは «どのコードか» が決まらない
-		release: Env.APP_VERSION,
-		dist: Env.COMMIT_ID,
-		environment: Env.NODE_ENV,
-		// ⚠️ 性能計測（tracesSampleRate）は **入れない**。ここで欲しいのはクラッシュだけで、
-		// トレースを入れると送信量と端末負荷が増える。必要になったら別途オーナーへ諮る
-		enableAutoPerformanceTracing: false,
-		// 個人が特定されうる既定の収集を切る（この用途では原因の特定に不要）
-		sendDefaultPii: false,
-	});
+	const crashlytics = mod.getCrashlytics();
+	/*
+	⚠️ **収集を明示的に有効にする。** `firebase.json` の
+	`crashlytics_auto_collection_enabled` に頼ると «設定ファイルを消した瞬間に
+	黙って何も届かなくなる» ので、コード側でも必ず立てる。
+	*/
+	void mod.setCrashlyticsCollectionEnabled(crashlytics, true)?.catch?.(() => {});
+	/*
+	#1375 どのビルドで落ちたかを追えるようにする。OTA で JS だけ差し替わるので、
+	**アプリのバージョンだけでは «どのコードか» が決まらない**（Sentry の dist に相当）。
+	*/
+	void mod
+		.setAttributes(crashlytics, {
+			app_version: Env.APP_VERSION ?? "",
+			commit_id: Env.COMMIT_ID ?? "",
+			environment: Env.NODE_ENV ?? "",
+		})
+		?.catch?.(() => {});
+
 	initialized = true;
 	return true;
 }
