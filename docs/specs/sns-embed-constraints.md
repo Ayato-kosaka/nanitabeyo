@@ -19,11 +19,46 @@
 
 ## 1. アプリ内で再生できるか
 
-| provider | ネイティブ（WebView） | web（iframe） | 突破の可否 |
-| --- | --- | --- | --- |
-| Instagram | ✅ 再生する | ⚠️ 1 タップ要る | web は**構造的に不可**（下記 4） |
-| TikTok | ✅ 再生する | ⚠️ 1 タップ要る | 同上 |
-| YouTube | ✅ 再生する（**包みが要る**） | ✅ 自動再生する | — |
+**ネイティブを 1 列にまとめない。** Android（Chromium WebView）と iOS（WKWebView）で
+**結果が違う provider が実在する**（下の TikTok）。Android だけ回していては気づけない。
+
+| provider | Android | iOS | web（iframe） | 突破の可否 |
+| --- | --- | --- | --- | --- |
+| Instagram | ✅ 再生する | ✅ 再生する | ⚠️ 1 タップ要る | web は**構造的に不可**（下記 4） |
+| TikTok | ✅ 再生する | ❌ **再生しない**（下記） | ⚠️ 1 タップ要る | iOS は未突破 |
+| YouTube | ✅ 再生する（**包みが要る**） | ✅ 再生する（同上） | ✅ 自動再生する | — |
+
+### ❌ TikTok は iOS で再生できない（2026-08-29 / 実測で原因まで確定）
+
+**TikTok の埋め込みページは iOS の WKWebView で `document.readyState` が `loading` のまま止まる。**
+
+```
+tiktok     boot  loading        ← エージェントは走る。dom が永久に来ない
+instagram  boot  loading
+instagram  dom   interactive    ← 1 秒後に来る
+```
+
+iOS の `injectedJavaScript` は WKUserScript の **DocumentEnd** なので、そこへ到達しない
+ページでは自動再生スクリプトが 1 度も走らない（`onLoadEnd` の撃ち直しも来ない）。
+**Android の Chromium WebView では同じページが到達する。** これがプラットフォーム差の正体である。
+
+試して駄目だったこと:
+
+| 試したこと | 結果 |
+| --- | --- |
+| 同じエージェントを document-start でも走らせる（`653867e`） | ❌ 走るようにはなったが、**ページが組み上がらないので `<video>` が現れない**。しかも読み込み中に DOM を舐める負荷が乗るので撤回した |
+
+まだ試していないこと（有望な順）:
+
+1. **YouTube と同じく «包みの HTML» の中に iframe として置く。** トップレベル文書を
+   こちらのページにすれば、TikTok はサブフレームになる。YouTube のエラー 153 を
+   これで抜けた実績がある。ただし同一オリジンでなくなるので `<video>` へは触れなくなり、
+   自動再生と音の扱いを作り直すことになる
+2. `/embed/v2/{id}` ではない別の埋め込み URL の形を試す
+
+**いまの見え方**: 15 秒で «時間切れ» として畳み、「TikTok で見る」の帯を出す
+（`LOAD_WATCHDOG_SCRIPT`）。黒いセルのまま放置はしない。
+⚠️ ただし `document` モードは WebView を畳まないので、**背景はまだ黒い**（未対応）。
 
 **YouTube だけ包みの HTML が要る。** 埋め込み URL を WebView へ直接渡すと
 トップレベル文書として開かれ、**必ずエラー 153** になる（誰でも埋め込める `dQw4w9WgXcQ` でも同じ）。
