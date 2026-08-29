@@ -203,30 +203,41 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		日本全体を測り直しているだけだった。エミュレータの測位はこれまでも
 		2 度こけている（run 33132551584 / 33135757290）ので、この経路には依存しない。
 
-		代わりに **地図そのものを操作して表示域を変える**。pinch も swipe も
+		代わりに **地図そのものを操作して表示域を変える**。swipe は
 		`onRegionChangeComplete` を通るので、アプリから見れば普段の操作と同じである。
 
 		⚠️ **表示域が実際に変わったかは Detox からは読めない。** 確かめるときは
 		   BigQuery の `response_success` で `payload.url` の lat/lng/radius が
 		   回ごとに違うことを見ること（同じなら、また動いていない）。
 		*/
-		await element(map).pinch(2.0, "slow"); // 広げる = 寄る
+		/*
+		⚠️ **`pinch` は使えない。** `element(...).pinch is not a function` で落ちた
+		（run 33237872641）。Detox は型定義でグローバルを宣言しているので tsc は素通しするが、
+		Android の実行時には生えていない。**このリポジトリで既に同じ形を踏んでいる**
+		（`by` / `element` を fixtures から import しないと ReferenceError になる件と同根）。
+		型が通ることは、実機で動くことを何も保証しない。
+
+		swipe だけで表示域を動かす。倍率は変わらないが **中心が変わる**ので、
+		アプリは別の lat/lng で投げ直す。地図の swipe は他の spec
+		（my-dishes の stress）で実機で動いている実績がある。
+		*/
+		await element(map).swipe("up", "slow", 0.35, 0.5, 0.35);
 		// デバウンス 400ms + 取得の開始を待つ
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
-		await device.takeScreenshot("search-this-area-02-zoomed-in");
-		console.log(`[search-this-area] 寄せた直後のマーカー: ${await markerReport()}`);
+		await device.takeScreenshot("search-this-area-02-panned");
+		console.log(`[search-this-area] 動かした直後のマーカー: ${await markerReport()}`);
 
-const dense1 = await measureOnce("03-zoomed-in");
+const dense1 = await measureOnce("03-panned");
 
 		// 地図を動かしてからもう 1 回。こちらが «普段の操作» に近い
 		await element(map).swipe("left", "fast", 0.5, 0.5, 0.35);
-		const dense2 = await measureOnce("04-zoomed-and-panned");
+		const dense2 = await measureOnce("04-panned-again");
 
 		const rounds = [wide, dense1, dense2];
 		console.log(
-			`[search-this-area] 実測: 引き ${wide.elapsed} ms / 寄せた ${dense1.elapsed} ms / ` +
-				`寄せて動かした ${dense2.elapsed} ms`,
+			`[search-this-area] 実測: 引き ${wide.elapsed} ms / 動かした ${dense1.elapsed} ms / ` +
+				`もう一度動かした ${dense2.elapsed} ms`,
 		);
 
 		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
