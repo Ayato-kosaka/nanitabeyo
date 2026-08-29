@@ -99,6 +99,19 @@ afterEach(() => {
 	useDishMediaEntriesStore.setState((state) => ({ ...state, mediaIdsByKey: {}, deletedIds: {} }));
 });
 
+/*
+⚠️ **このテストが守れない範囲**（【35/40 再修正】で判明）。
+
+削除で固まるもう 1 つの原因は «取得の決着（`settledKey`）が永久に立たず、ハイドレーション中の
+スピナーが残る» ことだった。取得の effect の依存に取得中フラグが入っていたため、
+`updateMediaIdsByKeyAsync` が同期的にそれを立てた瞬間にクリーンアップが走り、
+決着の `.then` が捨てられていた。
+
+**この筋は jest では再現しない。** `act` が途中のフラグ変化まで 1 バッチに畳んでしまい、
+中間状態でのクリーンアップが起きないためである（修正前のコードでも緑になることを実測した）。
+守っているのは `.claude/skills/evidence-video/scenarios/delete-last-item-1629.mjs`
+（実ブラウザで削除まで押し切り、残るのがスピナーでないことを見る）である。
+*/
 describe("#1629【35/40】1 件だけのページで、その 1 件を削除したとき", () => {
 	it("«残り 0 件» として扱い、何も出ないまま固まらない", async () => {
 		seedSingleEntry();
@@ -148,4 +161,5 @@ describe("#1629【35/40】1 件だけのページで、その 1 件を削除し�
 		*/
 		expect(hasTestId(tree!, "my-dishes-feed-empty")).toBe(true);
 	});
+
 });

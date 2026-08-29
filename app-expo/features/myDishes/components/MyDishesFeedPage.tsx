@@ -254,11 +254,13 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 		return target?.dishMedia ? String(target.dishMedia.id) : null;
 	}, [dishMediaIdFromParams, itemKey, items]);
 
-	const {
-		ids: feedIds,
-		isLoading: isLoadingMedia,
-		error: mediaError,
-	} = useDishMediaEntriesStore(selectIdsByKey(entriesKey ?? "", "dish_media"), shallow);
+	// ⚠️ `isLoading` はここで購読しない。取得中フラグは «二重送信の門番» としてのみ使うので、
+	// effect の中で `getState()` から読む（購読すると effect の依存が揺れて決着を取りこぼす。
+	// 下の #1629【35/40 再修正】のコメント）
+	const { ids: feedIds, error: mediaError } = useDishMediaEntriesStore(
+		selectIdsByKey(entriesKey ?? "", "dish_media"),
+		shallow,
+	);
 
 	/**
 	 * 「この `entriesKey` × この ids で 1 回引いた」ことの目印。
@@ -298,10 +300,33 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	// ⚠️ `!error` を必ず条件へ入れること。失敗すると `hasFetchedInitialByKey` は false のまま
 	// `isLoadingByKey` が false へ戻るので（stores/useDishMediaEntriesStore.ts の handleAsyncAction）、
 	// error を見ないと **失敗するたびに再取得して無限ループする**
+	/*
+	#1629【35/40 再修正】**`isLoadingMedia` / `mediaError` を依存に置かない。**
+
+	置いていたせいで «決着した目印（`settledKey`）が永久に立たない» 状態になっていた。順序はこう:
+
+	  1. `GET /v1/dish-media?ids=` が返る → `updateMediaIdsByKeyAsync` が
+	     **同期的に `isLoadingByKey[key] = true` を立てる**（`handleAsyncAction` の頭）
+	  2. `isLoadingMedia` が変わったので、この effect の依存が変わり **クリーンアップが走って
+	     `cancelled = true`** になる
+	  3. その直後に決着の `.then` が来るが、`cancelled` なので `setSettledKey` が呼ばれない
+	  4. 再実行された effect は `requestedKeyRef.current === hydrationKey` で即 return するため、
+	     **`settledKey` は二度と立たない**
+
+	結果 `isHydratingMedia` が恒久的に true になる。件数がある間は隠れているが、
+	**削除で 0 件になった瞬間に «永遠に回るスピナー» として表に出る**
+	（オーナー実機報告「投稿を削除したら次の投稿が無限ローディング」）。
+	web ハーネスで内部状態を出力して確認した: 削除の前から `settled=false` のままだった。
+
+	`isLoadingMedia` / `mediaError` は **再実行のきっかけではなく、二重送信を防ぐ門番**でしか
+	ないので、依存から外してその場でストアから読む。`cancelled` は本来の目的
+	（unmount / キー変更後にストアへ書かない）にだけ効くようになる。
+	*/
 	useEffect(() => {
 		if (entriesKey === null || hydrationKey === null || mediaIds.length === 0) return;
 		if (requestedKeyRef.current === hydrationKey) return;
-		if (isLoadingMedia || mediaError) return;
+		const entriesState = useDishMediaEntriesStore.getState();
+		if ((entriesState.isLoadingByKey[entriesKey] ?? false) || (entriesState.errorByKey[entriesKey] ?? null)) return;
 		requestedKeyRef.current = hydrationKey;
 
 		let cancelled = false;
@@ -357,7 +382,7 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 		return () => {
 			cancelled = true;
 		};
-	}, [callBackend, entriesKey, hydrationKey, isLoadingMedia, mediaError, mediaIds]);
+	}, [callBackend, entriesKey, hydrationKey, mediaIds]);
 
 	// §9-2 手順 5: **本当の unmount** で `clearByKey`。その前に Q4 の dirty 判定を済ませる。
 	//
