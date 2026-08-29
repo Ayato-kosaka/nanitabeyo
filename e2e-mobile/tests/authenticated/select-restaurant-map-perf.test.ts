@@ -109,7 +109,7 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 	 * その場合も «押してから待機が解けるまで» を返す。
 	 */
 	/** 1 回の計測結果。**所要時間と «実際に描かれたか» は必ず組で持ち回る** */
-	type Measurement = { label: string; elapsed: number; hasMarker: boolean };
+	type Measurement = { label: string; elapsed: number };
 
 	const readMarkers = async (): Promise<{ pin: boolean; dot: boolean; cluster: boolean }> => ({
 		pin: await existsNow(by.id("select-restaurant-pin")),
@@ -118,22 +118,29 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 	});
 
 	/**
-	 * 結果が «空でない» かを判定する。
+	 * 結果が «空でない» かの手がかりを集める。**判定には使えない**（後述）。
 	 *
-	 * ⚠️ **マーカーの有無では判定できない。** Android の react-native-maps は
-	 *    `Marker` を地図のキャンバスへ描くのでビュー階層に現れず、Detox からは
-	 *    常に «無い» に見える。run 33236381539 では **API が 3 件返しているのに**
-	 *    `pins=false dot=false cluster=false` になり、そのまま «空振り» と読めば
-	 *    アプリの不具合と誤診するところだった（実際には API も描画も正常）。
+	 * ⚠️⚠️ **この画面では «結果が空かどうか» を Detox から観測できない。**
+	 *      2026-08-29 に 3 通り試して全滅した:
 	 *
-	 * 代わりに下部シートの **空状態が出ていないこと**で見る。こちらは普通の View なので
-	 * Detox から観測できる。シート自体の存在も併せて確かめ、
-	 * 「シートごと描かれていないから空状態も無い」を «空でない» と読まないようにする。
+	 *      | 観測点 | 結果 | 理由 |
+	 *      | --- | --- | --- |
+	 *      | 地図のマーカー（pin / dot / cluster） | 常に false | Android の react-native-maps は `Marker` を地図のキャンバスへ描くのでビュー階層に現れない |
+	 *      | 下部シート本体（`saved-restaurants-sheet`） | 常に false | `TrueSheet` はネイティブのシートで、中身が同じ階層に出ない |
+	 *      | シートの空状態（`select-restaurant-saved-empty`） | 常に false | 同上 |
+	 *
+	 *      run 33236381539 / 33237093875 で実測。**いずれも «API は 3 件返している»
+	 *      状態での false** である（BigQuery の response_success で確認済み。13〜288 ms）。
+	 *      つまりこれらを «空振り» の判定に使うと、**正常なアプリを壊れていると誤診する**。
+	 *
+	 * そのため «空でないこと» の担保は **この spec の外**に置く（下のコメント参照）。
+	 * ここで集めた値はログに残すだけにして、後から «その時どう見えていたか» を追えるようにする。
 	 */
-	const resultIsNonEmpty = async (): Promise<{ sheet: boolean; empty: boolean; ok: boolean }> => {
+	const observability = async (): Promise<string> => {
+		const m = await readMarkers();
 		const sheet = await existsNow(by.id("saved-restaurants-sheet"));
 		const empty = await existsNow(by.id("select-restaurant-saved-empty"));
-		return { sheet, empty, ok: sheet && !empty };
+		return `pins=${m.pin} dot=${m.dot} cluster=${m.cluster} sheet=${sheet} empty=${empty}`;
 	};
 
 	const markerReport = async (): Promise<string> => {
@@ -149,14 +156,9 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		// ⚠️ **毎回マーカーの有無を出す。** 最初に 1 回だけ見ても «その時点ではまだ
 		//    取得が終わっていない» ので false になり、空振りかどうかを判定できない
 		//    （run 33128561205 で実際にそうなり、ピン 0 個のまま «1 秒» と読める数字が出た）
-		const m = await readMarkers();
-		const r = await resultIsNonEmpty();
-		console.log(
-			`[search-this-area] ${label}: ${elapsed} ms / pins=${m.pin} dot=${m.dot} cluster=${m.cluster}` +
-				` / sheet=${r.sheet} empty=${r.empty} → 空でない=${r.ok}`,
-		);
+		console.log(`[search-this-area] ${label}: ${elapsed} ms / ${await observability()}`);
 		await device.takeScreenshot(`search-this-area-${label}`);
-		return { label, elapsed, hasMarker: r.ok };
+		return { label, elapsed };
 	};
 
 	it("押してから結果が反映されるまでの時間を測る", async () => {
@@ -240,13 +242,24 @@ const dense1 = await measureOnce("03-zoomed-in");
 		    何も返っていないから速い、という状態を緑にしてしまう。
 		*/
 
-		// ① 空振りでないこと。引き（日本全体）は測位に依存しないので基準点に使える
-		assert.ok(
-			wide.hasMarker,
-			"日本全体の «この範囲で再検索» の結果が空だった（下部シートが空状態、またはシートが出ていない）。" +
-				`（所要 ${wide.elapsed} ms）この状態の «速さ» は根拠にならない。` +
-				"ログイン・保存済みの店・半径の足切り（#1629 で廃止したはず）を疑うこと",
-		);
+		/*
+		⚠️ **«結果が空でないこと» はここでは判定しない（できない）。**
+
+		上の `observability()` のコメントのとおり、この画面の «結果が出ているか» は
+		Detox から 1 つも観測できない。**それを無理に判定へ使うと、正常なアプリを
+		壊れていると誤診する**（run 33236381539 / 33237093875 で実際にそうなった。
+		API は 3 件返していたのに «空振り» と判定した）。
+
+		そこで担保を 2 つに割る。**片方だけを見て «直った» と言わないこと。**
+
+		| 何を担保するか | どこで見るか |
+		| --- | --- |
+		| ユーザーが待つ時間 | **この spec**（下の ②）。実機・実 API の実時間 |
+		| 結果が空でないこと・実行計画 | `scripts/db-checks/measure_saved_restaurants.py` と BigQuery の `response_success`（`payload.resPayload.data` の件数と `payload.url` の radius） |
+
+		⚠️ したがって **この spec が緑でも «ピンが出た» の証明にはならない。**
+		   ピンの有無を人へ報告するときは、必ず上の右列を併せて確認すること。
+		*/
 
 		// ② そのうえで所要時間。**«快適さ» ではなく «壊れている» の線引き**である。
 		//    直す前は dev 実測で p50 8,319 ms / p95 47,353 ms だった。エミュレータと
