@@ -79,11 +79,15 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
+def build_rows() -> list[tuple[str, str]]:
+    """(place_id, label) の一覧を BigQuery から組み立てる。
+
+    3_5_probe_place_id_liveness.py からも呼ぶ。db-script-run.yml は
+    1 job = 1 script なので、別 job で書いた /tmp のファイルは引き継げない。
+    """
+
     from google.cloud import bigquery
 
-    configure_logging()
-    args = parse_args()
     pipeline = BigQueryPipeline()
     ds = pipeline.dataset_ref
 
@@ -103,6 +107,15 @@ def main() -> None:
         )
     ]
     LOGGER.info("対照群: %d件（無作為抽出、閉店群を除外）", len(control))
+    return [(pid, "closed") for pid in closed] + [(pid, "control") for pid in control]
+
+
+def main() -> None:
+    configure_logging()
+    args = parse_args()
+    rows = build_rows()
+    closed = [pid for pid, label in rows if label == "closed"]
+    control = [pid for pid, label in rows if label == "control"]
 
     with open(args.output, "w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=["place_id", "label"])

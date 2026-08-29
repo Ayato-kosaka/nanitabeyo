@@ -80,7 +80,10 @@ def parse_args() -> argparse.Namespace:
         description="place_id の生死を IDs Only（課金ゼロ）で確かめます"
     )
     parser.add_argument(
-        "--input", required=True, help="place_id,label の CSV（label は closed / control）"
+        "--input",
+        help="place_id,label の CSV（label は closed / control）。"
+        "省略すると BigQuery から自分で組み立てる（db-script-run は 1 job 1 script なので、"
+        "別スクリプトで作った /tmp のファイルは引き継げない）",
     )
     parser.add_argument("--output", help="1件ごとの結果を書き出す CSV")
     parser.add_argument(
@@ -127,10 +130,21 @@ def main() -> None:
     if not api_key:
         raise SystemExit("PLACES_TEXT_SEARCH_API_KEY が未設定です")
 
-    rows = []
-    with open(args.input, encoding="utf-8") as stream:
-        for row in csv.DictReader(stream):
-            rows.append((row["place_id"].strip(), row.get("label", "control").strip()))
+    if args.input:
+        rows = []
+        with open(args.input, encoding="utf-8") as stream:
+            for row in csv.DictReader(stream):
+                rows.append((row["place_id"].strip(), row.get("label", "control").strip()))
+    else:
+        # 同じ job の中で組み立てる。閉店群と対照群は同数。
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "build_input", str(Path(__file__).with_name("3_5_build_liveness_probe_input.py"))
+        )
+        builder = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(builder)
+        rows = builder.build_rows()
     if args.limit:
         rows = rows[: args.limit]
     LOGGER.info("対象: %d件（fieldMask=%r / 課金ゼロSKU）", len(rows), FIELD_MASK)
