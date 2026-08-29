@@ -153,6 +153,25 @@ def main() -> None:
                 )
                 for name, ga, gb, dist in cursor.fetchall():
                     LOGGER.info("    %r  %s / %s  (%.1fm)", name, ga, gb, dist)
+                    # #843 «畳んでよいか» は、その行に何がぶら下がっているかで決まる。
+                    # dish_media / 課金済みの restaurant_bids が付いている行は消せない。
+                    # 件数だけ出して、判断の材料をその場に置く。
+                    for gid in (ga, gb):
+                        cursor.execute(
+                            """
+                            SELECT
+                              (SELECT COUNT(*) FROM dishes d WHERE d.restaurant_id = r.id),
+                              (SELECT COUNT(*) FROM restaurant_bids b WHERE b.restaurant_id = r.id),
+                              r.created_by_source
+                            FROM restaurants r WHERE r.google_place_id = %s
+                            """,
+                            (gid,),
+                        )
+                        dishes, bids, cbs = cursor.fetchone()
+                        LOGGER.info(
+                            "        %s: dishes=%d bids=%d created_by=%s",
+                            gid, dishes, bids, cbs,
+                        )
     finally:
         connection.rollback()
         connection.close()
