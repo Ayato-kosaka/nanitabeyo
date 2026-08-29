@@ -337,6 +337,9 @@ export PLACES_TEXT_SEARCH_API_KEY='...'
 
 .venv/bin/python 3_3_build_google_place_match_catalog.py
 .venv/bin/python 3_4_build_restaurant_catalog.py --service-cell-level 14
+
+# 閉店の «根拠» を集める。判定はしない。Google は叩かない（課金ゼロ）
+.venv/bin/python 3_6_build_closure_signals.py
 ```
 
 `3_2` は `--limit` がrequest数の上限です。同algorithmのattemptはresume時に除外します。
