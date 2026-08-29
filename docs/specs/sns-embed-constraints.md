@@ -25,71 +25,81 @@
 | provider | Android | iOS | web（iframe） | 突破の可否 |
 | --- | --- | --- | --- | --- |
 | Instagram | ✅ 再生する | ✅ 再生する | ⚠️ 1 タップ要る | web は**構造的に不可**（下記 4） |
-| TikTok | ✅ 再生する | ⏳ **実機検証中**（原因は特定済み。**document-start での注入**が要る。下記） | ⚠️ 1 タップ要る | — |
+| TikTok | ✅ 再生する | ⚠️ **CI では再生しない**（TikTok の CDN が応答せずページが組み上がらない。下記） | ⚠️ 1 タップ要る | アプリ側では不可 |
 | YouTube | ✅ 再生する（**包みが要る**） | ✅ 再生する（同上） | ✅ 自動再生する | — |
 
-### TikTok × iOS — 原因は «注入のタイミング» だった（2026-08-29 実測）
+### TikTok × iOS — CI のシミュレータでは **TikTok の CDN が応答しない**（2026-08-29 実測）
 
-**TikTok の埋め込みページは、iOS の WKWebView では組み上がるのが遅い。**
-iOS の `injectedJavaScript` は WKUserScript の **DocumentEnd** なので、そこへ届く前に
-«読み込み中» のまま長く留まるページでは、自動再生スクリプトが 1 度も走らない
-（`onLoadEnd` の撃ち直しも来ない）。**Android の Chromium WebView は同じページで先に到達する。**
-これがプラットフォーム差の正体である。
+**結論: アプリ側で直せる問題ではない。** 同じコードで Android は再生する。
 
-WebKit（＝ WKWebView と同じエンジン）でローカル実測した数字:
+#### 1. Android では再生する
 
-| 時刻 | 状態 |
-| --- | --- |
-| 3.6s | `<video>` が現れる（`readyState` はまだ `loading`） |
-| 10.3s | `interactive` ＝ **DocumentEnd の注入はここまで来ない** |
-| 14.3s | `complete` |
+[run 33268418817](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33268418817) の `feed-04` に
+TikTok が全面で再生されたコマがある（映像・TikTok ロゴ・`@moto_gurume`・字幕）。
+`boot` から再生まで **約 5 秒**。BigQuery にも `external_embed_autoplay_started audio=audible`。
 
-**`<video>` は `loading` のうちに出ている。** つまり **DocumentEnd を待っていては間に合わない**。
-document-start から撃つと **4.7 秒で再生した**。
-
-**Android では再生する。** [run 33268418817](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33268418817)
-の `feed-04` に TikTok が全面で再生されたコマがある（映像・TikTok ロゴ・`@moto_gurume`・字幕）。
-`boot` から再生まで **約 5 秒**。
-
-⚠️ この run の spec は赤かったが、**アプリではなく spec のレースだった**。
-記録の周回と «このセルは結論を出したか» の周回が別の時刻に印を読んでおり、
-その隙（1 周は数秒かかる）に再生が始まると «結論は出たが記録されていない» になる。
-`322e35a` で結論の周回でも記録するようにした。
+⚠️ この run の spec は赤かったが、**アプリではなく spec のレースだった**（`322e35a` で修正）。
 **コマと BigQuery の両方を見なければ «再生できない» と誤読していた。**
 
-⚠️ **実機（iOS シミュレータ）はローカルの WebKit と挙動が違う。**
-document-start から走らせても、iOS では TikTok だけが再生しなかった
-（[run 33265424032](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33265424032)）。
-BigQuery の `frontend_event_logs` に残った実測:
+#### 2. iOS（CI のシミュレータ）は、ページが 1 バイトも進まない
+
+エージェントを document-start から走らせても再生しない。**止まっている場所を数えた**
+（[run 33271594203](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33271594203)）。
+
+| 経過 | TikTok | Instagram（同じ端末・同じ run） |
+| --- | --- | --- |
+| 4s | `ready=loading nodes=12 script=6 video=0 img=0 **body=no** res=7` | `ready=complete nodes=168 script=49 body=yes res=53` |
+| 9s | **まったく同じ数値** | — |
+| 14s | **まったく同じ数値** | — |
+| 15s（時間切れ） | **まったく同じ数値** | — |
+
+**11 秒のあいだ 1 ノードも増えていない。** «遅い» のではなく **止まっている**。
+`<body>` すら作られていないので、`<video>` を探しても永久に見つからない。
+
+原因は `<head>` にある **同期スクリプト 4 本**（`*.tiktokcdn-us.com`）である。
+実際の埋め込み HTML を取得して確認した:
 
 ```
-17:53:44  external_embed_agent_boot   tiktok    phase=boot  readyState=loading
-17:54:01  external_embed_unplayable   tiktok    kind=timeout detail=still_loading   ← 17 秒後
-17:54:25  external_embed_agent_boot   instagram phase=boot  readyState=loading
-17:54:25  external_embed_agent_boot   instagram phase=dom   readyState=interactive  ← 同じ秒
-17:54:25  external_embed_autoplay_started instagram audio=audible
+slardar.web.pre.js / frontity-public-path.js / webmssdk.js / mssdk-init.js
 ```
 
-**`dom` が 1 度も来ない。** Instagram は同じ秒のうちに `interactive` へ達している。
-ローカルの WebKit では TikTok も 2 秒で `interactive` になり、**User-Agent を
-WKWebView / iOS Safari のものへ変えても再現しない**（3 通り実測）。
-つまり原因は «TikTok のページ» でも «UA» でもなく、**実機側の環境**にある。
+**«失敗» ではなく «応答が来ない» である。** WebKit で同じ 4 本を `abort` させると、
+パースは止まらず **4.7 秒で `complete` になり `<video>` も 2 つできる**（ローカル実測）。
+失敗なら先へ進むのに進んでいない ＝ 接続は張られたまま応答待ちで、パーサが `<head>` で待っている。
+これらの URL はこちらのネットワークからは **4 本とも 0.6 秒以内に 200** を返す。
 
-いま観測を足して切り分けている（`stall` 報告 = 止まっている間の DOM の育ち方 /
-`external_embed_nav_decision` = iOS がサブフレームごとに JS の返事を待つ回数）。
-**iOS の `onShouldStartLoadWithRequest` は返事が来るまで WebKit 側を待たせる**
-（`RNCWebViewImpl.m` の `decidePolicyForNavigationAction`。締め切りは無い）のに対し、
-Android は間に合わなければ fail-open で先へ進む。これがプラットフォーム差の候補である。
+#### 3. 潰した候補
 
-そこで `injectedJavaScriptBeforeContentLoaded` にも同じエージェントを渡している
-（`AUTOPLAY_SCRIPT` は先頭の `kick` ガードで二重起動を吸収するので、両方へ渡して安全）。
+| 候補 | 結果 |
+| --- | --- |
+| DocumentEnd 注入では間に合わない → document-start で撃つ | ✅ **必要だった**（下記）。ただしこれだけでは iOS は直らない |
+| iOS はサブフレームごとに JS の返事を待つので遅い（`RNCWebViewImpl.m` の `decidePolicyForNavigationAction` は締め切り無しで待つ） | ❌ **否定**。TikTok で聞きに来たのは **トップフレームの 1 回だけ**（`external_embed_nav_decision`） |
+| User-Agent を WKWebView / iOS Safari のものにする | ❌ ローカルでは 3 通りとも 2 秒で `interactive`。差は出ない |
+| `/embed/v3/{id}`（9.5 KB・同期スクリプト 3 本と軽い） | ❌ 4.7 秒で `complete` になるが **`<video>` が 1 つも作られない**（25 秒間ゼロ） |
+| `/embed/{id}`（v1） | ❌ `v2` と**同一の HTML** |
+| 猶予（15 秒）を伸ばす | ❌ 上の表のとおり **数値が 1 つも動かない**ので、待っても変わらない |
+
+まだ試していないのは «YouTube と同じく包みの HTML の中に iframe として置く» だが、
+**`<head>` の同期スクリプトは iframe の中でも同じように待たされる**ので、この症状には効かない見込み。
+
+#### 4. いまの見え方（実機のコマで確認済み）
+
+15 秒で «時間切れ» として **WebView を畳み**、アプリが持っているサムネイルを全面に出して
+「TikTok で見る」の帯を添える。[run 33271594203](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33271594203)
+の `feed-02` で確認した（以前は**真っ黒**だった。`df29fd8` で修正）。
+
+### document-start で注入する（TikTok に必要）
+
+iOS の `injectedJavaScript` は WKUserScript の **DocumentEnd**。WebKit でローカル実測すると、
+TikTok の `<video>` は `readyState` が `loading` の **3.6 秒**で現れ、`interactive` は 10.3 秒。
+つまり **DocumentEnd を待っていては間に合わない**。document-start から撃つと 4.7 秒で再生した。
 
 ⚠️ **一度これを «効果ゼロ・害あり» と判断して撤回した（`78836f2`）。根拠は 2 つとも誤りだった。**
 
 | 撤回時の根拠 | 実際 |
 | --- | --- |
 | 「document-start 注入のせいで Android が落ちる」 | ❌ 撤回後も同じ失敗が再現した。logcat は `lowmemorykiller` と 5 プロセスの signal 9 ＝ **エミュレータ全体の OOM** |
-| 「ページが組み上がらないので `<video>` が現れない」 | ❌ 上の実測のとおり `<video>` は 3.6 秒で現れる |
+| 「ページが組み上がらないので `<video>` が現れない」 | ❌ WebKit では 3.6 秒で現れる。iOS の CI で現れないのは上の CDN 応答待ちが理由 |
 
 **document-start から走らせるときの注意点（どちらも実測で踏んだ）:**
 
@@ -98,7 +108,7 @@ Android は間に合わなければ fail-open で先へ進む。これがプラ�
   «映像が出るまでの数秒が真っ黒» が戻る
 - **地色は毎 tick 塗り直す。** 初回の tick には `<body>` がまだ無い。«一度塗ったら終わり» に
   すると、後から現れた `<body>`（埋め込みページ自身の白）を塗れず、**白が挟まる**
-  （実測: 1.0s に `rgb(255,255,255)` / 3.5s に `isolate()` が消すまで残る）
+  （実測: 直す前は 300ms / 600ms のコマが白、直した後は 600ms 以降が映像）
 
 **YouTube だけ包みの HTML が要る。** 埋め込み URL を WebView へ直接渡すと
 トップレベル文書として開かれ、**必ずエラー 153** になる（誰でも埋め込める `dQw4w9WgXcQ` でも同じ）。
