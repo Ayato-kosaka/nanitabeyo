@@ -71,7 +71,9 @@ def main() -> int:
         logger.info("provider   content_id            playback      自前サムネ 外部URL 削除")
         blind = 0
         for provider, cid, status, stored, external, deleted in rows:
-            if not stored and status == "not_playable" and not deleted:
+            # ⚠️ «真っ黒» は **自前も外部も両方無い**ときにだけ起きる。片方でも在れば絵は出る
+            #    （assembler が thumbnail_path → thumbnail_url → 料理カテゴリの絵 の順で解決する）
+            if not stored and not external and not deleted:
                 blind += 1
             logger.info(
                 "%-10s %-21s %-13s %-9s %-6s %s",
@@ -84,7 +86,7 @@ def main() -> int:
             )
         logger.info("--- 合計 %d 行 ---", len(rows))
         logger.info(
-            "⚠️ 高速パスで真っ黒になりうる行（not_playable かつ自前サムネ無し・未削除）: %d",
+            "⚠️ 絵を 1 つも持たない行（自前サムネも外部 URL も無い・未削除）: %d",
             blind,
         )
         return 0
