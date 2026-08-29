@@ -44,8 +44,32 @@ WebKit（＝ WKWebView と同じエンジン）でローカル実測した数字
 | 10.3s | `interactive` ＝ **DocumentEnd の注入はここまで来ない** |
 | 14.3s | `complete` |
 
-**`<video>` は `loading` のうちに出ている。** つまり «ページが組み上がらないから再生できない» は
-誤りで、**DocumentEnd を待っていたのが原因**だった。document-start から撃つと **4.7 秒で再生した**。
+**`<video>` は `loading` のうちに出ている。** つまり **DocumentEnd を待っていては間に合わない**。
+document-start から撃つと **4.7 秒で再生した**。
+
+⚠️ **ただし実機（iOS シミュレータ）はローカルの WebKit と挙動が違う。**
+document-start から走らせても、実機では TikTok だけが再生しなかった
+（[run 33265424032](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33265424032)）。
+BigQuery の `frontend_event_logs` に残った実測:
+
+```
+17:53:44  external_embed_agent_boot   tiktok    phase=boot  readyState=loading
+17:54:01  external_embed_unplayable   tiktok    kind=timeout detail=still_loading   ← 17 秒後
+17:54:25  external_embed_agent_boot   instagram phase=boot  readyState=loading
+17:54:25  external_embed_agent_boot   instagram phase=dom   readyState=interactive  ← 同じ秒
+17:54:25  external_embed_autoplay_started instagram audio=audible
+```
+
+**`dom` が 1 度も来ない。** Instagram は同じ秒のうちに `interactive` へ達している。
+ローカルの WebKit では TikTok も 2 秒で `interactive` になり、**User-Agent を
+WKWebView / iOS Safari のものへ変えても再現しない**（3 通り実測）。
+つまり原因は «TikTok のページ» でも «UA» でもなく、**実機側の環境**にある。
+
+いま観測を足して切り分けている（`stall` 報告 = 止まっている間の DOM の育ち方 /
+`external_embed_nav_decision` = iOS がサブフレームごとに JS の返事を待つ回数）。
+**iOS の `onShouldStartLoadWithRequest` は返事が来るまで WebKit 側を待たせる**
+（`RNCWebViewImpl.m` の `decidePolicyForNavigationAction`。締め切りは無い）のに対し、
+Android は間に合わなければ fail-open で先へ進む。これがプラットフォーム差の候補である。
 
 そこで `injectedJavaScriptBeforeContentLoaded` にも同じエージェントを渡している
 （`AUTOPLAY_SCRIPT` は先頭の `kick` ガードで二重起動を吸収するので、両方へ渡して安全）。

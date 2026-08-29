@@ -187,6 +187,16 @@ const AUTOPLAY_SCRIPT = `(function () {
   var fillTicks = 0, poster = null, hidden = [];
   // #1641 読み込み中の tick 数。安い経路と高い経路の間引きに使う
   var loadTicks = 0;
+  /*
+   * #1641【観測】**組み上がらないページの «中身» を数えて送る。**
+   *
+   * iOS の実機で TikTok が readyState = 'loading' のまま 17 秒動かない（BigQuery 実測）。
+   * ローカルの WebKit では 2 秒で interactive になるので、**環境の差**である。
+   * «読めていないのか / 読めているのに readyState が上がらないのか» を分けないと
+   * 直す先が決まらないので、止まっている間の DOM の育ち方を送る。
+   * ⚠️ 送るのは**数だけ**。ページの中身（本文・URL のクエリ）は載せない。
+   */
+  var stallAt = [4000, 9000, 14000];
 
   /*
    * #1641【観測】**エージェントが走ったこと自体を 1 回知らせる。**
@@ -497,6 +507,22 @@ const AUTOPLAY_SCRIPT = `(function () {
         toldDom = true;
         report('dom', document.readyState);
       }
+      // #1641【観測】組み上がるまでの DOM の育ち方を、決めた時刻に 3 回だけ送る
+      if (stallAt.length && Date.now() - installedAt > stallAt[0]) {
+        var elapsed = stallAt.shift();
+        try {
+          report('stall', elapsed + 'ms ready=' + document.readyState
+            + ' nodes=' + document.querySelectorAll('*').length
+            + ' script=' + document.querySelectorAll('script').length
+            + ' iframe=' + document.querySelectorAll('iframe').length
+            + ' video=' + document.querySelectorAll('video').length
+            + ' img=' + document.querySelectorAll('img').length
+            + ' body=' + (document.body ? 'yes' : 'no')
+            // 資源が 1 つも来ていないのか、来ているのに parse が止まっているのかを分ける
+            + ' res=' + ((window.performance && performance.getEntriesByType)
+                ? performance.getEntriesByType('resource').length : -1));
+        } catch (e) {}
+      }
       if (Date.now() > deadlineAt) {
         settle(v ? 'timeout' : 'no_video', lastError);
         return;
@@ -716,6 +742,12 @@ export function ExternalEmbedPlayer({
 	*/
 	const hasPlayedRef = useRef(false);
 	/*
+	#1641【観測】WebView が «この URL を読んでよいか» を聞いてきた回数と、このセルが立った時刻。
+	iOS はサブフレームでもここへ聞きに来て、返事が来るまで待つ（下の `handleShouldStartLoad`）。
+	*/
+	const navDecisionsRef = useRef(0);
+	const mountedAtRef = useRef(Date.now());
+	/*
 	#1641 **«再生できなかった» を 1 度だけサーバへ知らせる。**
 
 	定期的な死活監視は無い（このリポジトリに cron は 1 本も無い）。取り込んだ後で
@@ -788,7 +820,7 @@ export function ExternalEmbedPlayer({
 			#1641【観測】`boot` / `dom` は **結論ではない**。ここで落とさずに返さないと、
 			エージェントが起動しただけで «再生できない» へ倒れる。
 			*/
-			if (parsed.kind === "boot" || parsed.kind === "dom") {
+			if (parsed.kind === "boot" || parsed.kind === "dom" || parsed.kind === "stall") {
 				logFrontendEvent({
 					event_name: "external_embed_agent_boot",
 					error_level: "log",
@@ -828,6 +860,36 @@ export function ExternalEmbedPlayer({
 	 */
 	const handleShouldStartLoad = useCallback(
 		(request: { url: string; isTopFrame?: boolean; navigationType?: string }) => {
+			/*
+			#1641【観測】**iOS がここで待つ回数と時刻を記録する。**
+
+			iOS の `onShouldStartLoadWithRequest` は **サブフレームでも必ず呼ばれ、
+			WebKit 側は JS の返事が来るまで待つ**（Android は返事が間に合わないと
+			fail-open で先へ進む。この差は本ファイル冒頭の注記のとおり）。
+			TikTok が iOS でだけ `readyState = 'loading'` のまま止まるので、
+			**待たせている回数**を «原因の候補» として数える。数と時刻だけを残す
+			（URL はホストと «トップフレームか» だけ。クエリは載せない）。
+			*/
+			if (navDecisionsRef.current < 12) {
+				navDecisionsRef.current += 1;
+				let host = "(parse-error)";
+				try {
+					host = new URL(request.url).hostname;
+				} catch {
+					host = request.url.slice(0, 24);
+				}
+				logFrontendEvent({
+					event_name: "external_embed_nav_decision",
+					error_level: "log",
+					payload: {
+						provider: embed.provider,
+						host,
+						isTopFrame: request.isTopFrame ?? null,
+						nth: navDecisionsRef.current,
+						sinceMountMs: Date.now() - mountedAtRef.current,
+					},
+				});
+			}
 			if (!isAllowedEmbedNavigation(request.url)) return false;
 			if (request.isTopFrame === false) return true;
 			if (isInlineEmbedUrl(request.url) || request.url === source?.embedUrl) return true;
@@ -842,7 +904,7 @@ export function ExternalEmbedPlayer({
 			if (source?.mode === "iframe" && request.url.startsWith(EMBED_IFRAME_BASE_URL)) return true;
 			return false;
 		},
-		[source?.embedUrl, source?.mode],
+		[embed.provider, logFrontendEvent, source?.embedUrl, source?.mode],
 	);
 
 	/*

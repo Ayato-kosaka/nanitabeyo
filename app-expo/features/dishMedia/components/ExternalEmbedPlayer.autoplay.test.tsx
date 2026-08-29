@@ -350,14 +350,16 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	/*
 	#1641【観測】**エージェントが起動したことを «再生できない» と読み違えない。**
 
-	`boot` / `dom` は document-start の観測用で、結論ではない。`handleMessage` の
+	`boot` / `dom` / `stall` は document-start の観測用で、結論ではない。`handleMessage` の
 	最後は «知らない kind はすべて unplayable» なので、ここを素通りさせると
 	**起動しただけで導線へ縮退する**（＝ 全セルが常に縮退する）。
 	*/
-	it("boot / dom の報告では縮退しない", () => {
+	it("boot / dom / stall の報告では縮退しない", () => {
 		const tree = renderActiveCell();
 		post({ src: "nb-embed-autoplay", kind: "boot", detail: "loading" });
 		post({ src: "nb-embed-autoplay", kind: "dom", detail: "interactive" });
+		// #1641 組み上がらないページの観測値。これも «結論» ではない
+		post({ src: "nb-embed-autoplay", kind: "stall", detail: "4000ms ready=loading nodes=12" });
 		expect(fallbackCount(tree)).toBe(0);
 		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBeGreaterThan(0);
 	});
@@ -582,13 +584,13 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		});
 
 		/*
-		#1641 `boot` / `dom` は観測用の報告で、結論ではない。ここでは**結論だけ**を見る。
-		（エージェントは起動時に必ず `boot` を送るようになった）
+		#1641 `boot` / `dom` / `stall` は観測用の報告で、結論ではない。ここでは**結論だけ**を見る。
+		（エージェントは起動時に必ず `boot` を送り、組み上がらない間は `stall` を送る）
 		*/
 		const conclusions = (post: jest.Mock) =>
 			post.mock.calls
 				.map((call) => JSON.parse(call[0] as string) as { kind: string; detail: string | null })
-				.filter((message) => message.kind !== "boot" && message.kind !== "dom");
+				.filter((message) => message.kind !== "boot" && message.kind !== "dom" && message.kind !== "stall");
 
 		it("読み込みが終わっても <video> が無ければ、締め切りを待たず権利ブロックと判定する", () => {
 			// 実測: 権利ブロックされた投稿は <video> が最後まで作られない（1 コマ目の画像だけ在る）。
