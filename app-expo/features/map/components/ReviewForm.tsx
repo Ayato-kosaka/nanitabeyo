@@ -229,6 +229,11 @@ export function ReviewForm({
 	«自分の写真に差し替える»。**両方 true になる組み合わせを作らないこと。**
 	*/
 	const isRecordFlowMedia = mediaPickerMode === "manual" && prefilledMedia === undefined;
+	/*
+	#1629【オーナー指示】料理カテゴリーを後から変えさせない範囲。記録フロー（`manual`）だけである。
+	理由と «塞ぎすぎるとどうなるか» は下の料理カテゴリー行のコメント。
+	*/
+	const isDishCategoryLocked = mediaPickerMode === "manual";
 	const effectivePrefilledMedia = useOwnMedia ? undefined : activePrefilledMedia;
 
 	const prefilledMediaRef = useRef(effectivePrefilledMedia);
@@ -1258,6 +1263,13 @@ export function ReviewForm({
 						（`add-record.tsx` が `key={restaurantId}` でフォームごと作り直すので、
 						料理カテゴリーも写真も残らない）。オーナーの «店は変えたらその他クリアで良い» はこれである。
 
+						⚠️ **塞いでよいのは記録フロー（`mediaPickerMode === "manual"`）だけ。**
+						   店舗詳細から開くレビュー画面（`/restaurant/[id]/review`）には 2 歩目の
+						   `DishCategoryStep` が無く、**この行が料理カテゴリーを選ぶ唯一の手段**である。
+						   そこまで塞ぐと投稿できない画面ができる（自己レビューで踏みかけた）。
+						   e2e-web の `review-no-photo.spec.ts` / `ui-catalog-mutation.spec.ts` が
+						   その経路をこの行から通っており、常時 disabled にすると赤くなる。
+
 						⚠️ `Pressable` のままにしてあるのは、`disabled` の意味を «押せない» に一本化するため。
 						   `View` へ変えると accessibility の役割まで変わる。
 						*/}
@@ -1265,8 +1277,10 @@ export function ReviewForm({
 							testID="review-dish-category-row"
 							style={styles.dishCategorySelectRow}
 							onPress={handleOpenDishCategory}
-							disabled
-							accessibilityRole="text"
+							// #400 prefilledMedia のときはそのメディアの料理に固定される
+							// #1629 記録フローは 2 歩目（DishCategoryStep）で決まっているので、ここでは変えさせない
+							disabled={!!activePrefilledMedia || isDishCategoryLocked}
+							accessibilityRole={!!activePrefilledMedia || isDishCategoryLocked ? "text" : "button"}
 							accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
 							{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
 							<View style={styles.inputRowLabelWithIcon}>
@@ -1281,7 +1295,8 @@ export function ReviewForm({
 										{dishCategoryName}
 									</Text>
 								)}
-								{/* #1629 押せなくなったので «押せる» の記号（>）は出さない */}
+								{/* #1629 押せないときは «押せる» の記号（>）を出さない */}
+								{!prefilledMedia && !isDishCategoryLocked && <ChevronRight size={20} color={colors.textMuted} />}
 							</View>
 						</Pressable>
 						{dishCategoryError && (
