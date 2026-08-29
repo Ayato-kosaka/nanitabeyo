@@ -127,7 +127,7 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 	 *      | --- | --- | --- |
 	 *      | 地図のマーカー（pin / dot / cluster） | 常に false | Android の react-native-maps は `Marker` を地図のキャンバスへ描くのでビュー階層に現れない |
 	 *      | 下部シート本体（`saved-restaurants-sheet`） | 常に false | `TrueSheet` はネイティブのシートで、中身が同じ階層に出ない |
-	 *      | シートの空状態（`select-restaurant-saved-empty`） | 常に false | 同上 |
+	 *      | シートの空状態（testID を付けて試した） | 常に false | 同上。**観測できないので testID ごと外した** |
 	 *
 	 *      run 33236381539 / 33237093875 で実測。**いずれも «API は 3 件返している»
 	 *      状態での false** である（BigQuery の response_success で確認済み。13〜288 ms）。
@@ -139,8 +139,9 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 	const observability = async (): Promise<string> => {
 		const m = await readMarkers();
 		const sheet = await existsNow(by.id("saved-restaurants-sheet"));
-		const empty = await existsNow(by.id("select-restaurant-saved-empty"));
-		return `pins=${m.pin} dot=${m.dot} cluster=${m.cluster} sheet=${sheet} empty=${empty}`;
+		// ⚠️ 空状態の testID は付けても観測できなかったので、アプリ側から外した
+		//    （SavedRestaurantsSheet.tsx のコメント参照）。ここでも見ない。
+		return `pins=${m.pin} dot=${m.dot} cluster=${m.cluster} sheet=${sheet}`;
 	};
 
 	const markerReport = async (): Promise<string> => {
