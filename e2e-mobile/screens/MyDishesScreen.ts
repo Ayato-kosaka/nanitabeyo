@@ -208,15 +208,27 @@ export class MyDishesScreen {
 	readonly dishCategoryStepInput = by.id("review-dish-category-step-input");
 	readonly dishCategoryStepSubmitTyped = by.id("review-dish-category-step-submit-typed");
 
+	/**
+	 * #1629 この欄は **オートコンプリート**になった（打つと料理カテゴリーのマスタも引く）。
+	 *
+	 * そのため «この名前で決める» は «候補が 1 件も無いとき» にしか出ない。候補が出ているのに
+	 * それを押そうとして落ちるのが、実機 run 33276471131 の失敗である。
+	 *
+	 * ⚠️ 先頭の候補は `-item-0` で指す。**カテゴリ id では指せない**（id を知らないため。
+	 *    Detox の `by.id` に前方一致は無い）。並び順の testID にしてあるのはそのためで、
+	 *    `DishCategoryStep` 側にも同じ申し送りを書いてある。
+	 */
+	readonly dishCategoryStepFirstItem = by.id("review-dish-category-step-item-0");
+
 	async chooseDishCategoryInRecordFlow(query: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.dishCategoryStep, timeout);
 		await element(this.dishCategoryStepInput).replaceText(query);
-		// 候補に無ければ «この名前で決める» が出る。出ない場合は候補が絞り込まれて残っている
+		// 候補が出ていれば先頭を選ぶ。1 件も無いときだけ «この名前で決める» が出る
 		try {
-			await waitUntilVisible(this.dishCategoryStepSubmitTyped, 5000);
-			await tapWhenVisible(this.dishCategoryStepSubmitTyped);
+			await waitUntilVisible(this.dishCategoryStepFirstItem, 8000);
+			await tapWhenVisible(this.dishCategoryStepFirstItem);
 		} catch {
-			await tapWhenVisible(by.id("review-dish-category-step").withDescendant(by.text(query)));
+			await tapWhenVisible(this.dishCategoryStepSubmitTyped, 8000);
 		}
 		// 決まると 2 歩目（写真を選ぶ）が出る。コメント欄はまだ出ない
 		await waitUntilVisible(this.addPhotoPlaceholder, timeout);

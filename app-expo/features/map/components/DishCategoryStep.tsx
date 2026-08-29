@@ -160,10 +160,19 @@ export function DishCategoryStep({ restaurantId, onSelectExisting, onSubmitTyped
 					{!trimmed && <Text style={styles.listHeading}>{i18n.t("Map.labels.dishesAtThisRestaurant")}</Text>}
 					{/* 縦に全部出す。件数の多い順は hook が並べている */}
 					<ScrollView style={styles.list} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-						{visible.map((category) => (
+						{/*
+						⚠️ testID は **並び順**（`-item-0`, `-item-1` …）にする。カテゴリ id を入れると
+						   Detox から «先頭の候補» を指せない（Detox の `by.id` は前方一致を持たず、
+						   id を知らないと要素を指定できない）。#1629 でこの欄をオートコンプリートに
+						   したところ、既存の Detox ヘルパーが «候補が出ると先頭を押せない» で落ちた。
+						   e2e-web は `[data-testid^="review-dish-category-step-item-"]` の前方一致で
+						   拾っているので、こちらの変更でも壊れない。
+						   カテゴリ id は `accessibilityLabel`（表示名）と onPress の引数で足りる。
+						*/}
+						{visible.map((category, index) => (
 							<TouchableOpacity
 								key={category.dishCategoryId}
-								testID={testID ? `${testID}-item-${category.dishCategoryId}` : undefined}
+								testID={testID ? `${testID}-item-${index}` : undefined}
 								style={styles.listItem}
 								onPress={() => onSelectExisting({ dishCategoryId: category.dishCategoryId, label: category.label })}
 								accessibilityRole="button"
