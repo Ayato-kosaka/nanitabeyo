@@ -41,11 +41,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from google.cloud import bigquery
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from pg_sync_common import connect_postgres  # noqa: E402
+from pg_sync_common import connect_postgres, fetch_sync_windows  # noqa: E402
 from pipeline_common import BigQueryPipeline, configure_logging  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
@@ -63,31 +61,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--allow-public", action="store_true")
     return parser.parse_args()
-
-
-def fetch_sync_windows(pipeline: BigQueryPipeline, schema: str) -> list[Any]:
-    """本番同期（dry-run でない成功実行）の実行窓を新しい順に返す。"""
-
-    rows = list(
-        pipeline.execute(
-            f"""
-            SELECT started_at, finished_at, inserted_count
-            FROM `{pipeline.dataset_ref}.restaurant_pg_sync_logs`
-            WHERE started_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 90 DAY)
-              AND pg_schema = @schema
-              AND target_table = 'restaurants'
-              AND NOT dry_run
-              AND status = 'succeeded'
-            ORDER BY started_at DESC
-            """,
-            [bigquery.ScalarQueryParameter("schema", "STRING", schema)],
-        )
-    )
-    if not rows:
-        raise RuntimeError(
-            f"直近90日に成功した {schema} の本番同期がありません。backfill 対象を特定できません"
-        )
-    return rows
 
 
 def main() -> None:

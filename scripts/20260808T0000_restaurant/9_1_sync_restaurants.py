@@ -18,6 +18,7 @@ from pg_sync_common import (
     assert_quality_gate_passed,
     backup_table_to_gcs,
     connect_postgres,
+    fetch_sync_windows,
     new_sync_id,
     write_sync_log,
 )
@@ -134,7 +135,7 @@ def calculate_stats(connection: Any) -> SyncStats:
     return SyncStats(inserted or 0, updated or 0, skipped or 0)
 
 
-def validate_staging(connection: Any) -> None:
+def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
     """既存restaurantの暗黙Place ID変更をpublish前に止める。"""
 
     with connection.cursor() as cursor:
@@ -171,23 +172,32 @@ def validate_staging(connection: Any) -> None:
         # 同期すると **オープンデータの更新が一件も反映されない**（壊れは
         # しないが黙って止まる）。落ちるより気付きにくいので、ここで数える。
         #
-        # 「staging に居る」かつ「PG に既に在る」かつ「pipeline でない」行が
-        # 大量にあれば、それは backfill 前である可能性が高い。
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM restaurant_sync_staging s
-            JOIN restaurants r ON r.google_place_id = s.google_place_id
-            WHERE r.created_by_source <> 'pipeline'
-              AND r.source_seed_id IS NOT NULL
-            """
-        )
-        unbackfilled = cursor.fetchone()[0]
+        # ⚠️ `source_seed_id IS NOT NULL` だけで判定してはいけない。
+        # 9_1 の provenance UPDATE は **アプリ製の行にも source_seed_id を刻む**
+        # ので、アプリが作った既存店（dev 実測 2,115 行）が恒久的に引っかかり、
+        # backfill 済みでも同期が二度と通らなくなる。実際にこれで落とした。
+        #
+        # 「パイプラインが INSERT した行」の定義は backfill（9_9）と同じ
+        # ——**同期の実行窓に作られた行**——でなければならない。判定を
+        # 二重に書かないよう、窓の取得は pg_sync_common に寄せてある。
+        unbackfilled = 0
+        for window in sync_windows:
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM restaurants r
+                WHERE r.created_by_source <> 'pipeline'
+                  AND r.source_seed_id IS NOT NULL
+                  AND r.created_at BETWEEN %s AND %s
+                """,
+                (window.started_at, window.finished_at),
+            )
+            unbackfilled += cursor.fetchone()[0]
 
     if unbackfilled:
         raise RuntimeError(
-            f"created_by_source が 'pipeline' でないのに source_seed_id を持つ行が{unbackfilled}件あります。"
-            "9_9_backfill_created_by_source.py を先に実行してください"
+            f"過去の同期が作った行のうち{unbackfilled}件が created_by_source='pipeline' に"
+            "なっていません。9_9_backfill_created_by_source.py を先に実行してください"
         )
     if invalid_changes:
         raise RuntimeError(
@@ -399,7 +409,10 @@ def main() -> None:
         if not args.dry_run and not args.skip_backup:
             backup_table_to_gcs(connection, args.schema, "restaurants", run_id=run_id)
         load_staging(connection, staging_path)
-        validate_staging(connection)
+        # 初回同期では窓が 0 件になる。それは backfill 漏れではないので通す。
+        validate_staging(
+            connection, fetch_sync_windows(pipeline, args.schema, allow_empty=True)
+        )
         stats = calculate_stats(connection)
         LOGGER.info(
             "restaurant sync plan: insert=%d update=%d skip=%d",

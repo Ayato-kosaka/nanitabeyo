@@ -145,11 +145,38 @@ SQL
 echo "✅ 4. pipeline 行はオープンデータの更新に追随する"
 
 # --- 5. backfill 忘れの検知は、忘れているときだけ発火する ---
-DETECT="SELECT COUNT(*) FROM restaurant_sync_staging s JOIN restaurants r ON r.google_place_id=s.google_place_id WHERE r.created_by_source <> 'pipeline' AND r.source_seed_id IS NOT NULL;"
-[ "$(q "$DETECT")" = "0" ] || fail "backfill 済みなのに検知が発火した（偽陽性）"
+#
+# 判定 SQL は 9_1 のソースから抜き出す。**写経しない。**
+# 2026-08-29 に、写経した旧判定（source_seed_id の有無だけ）が本物とずれたまま
+# 緑になり、dev の同期が 2,115 件で止まった。
+DETECT_SQL="$(python3 "$REPO_ROOT/scripts/20260808T0000_restaurant/tests/extract_backfill_detect_sql.py")"
+
+# 同期の実行窓。本番では restaurant_pg_sync_logs から引く（9_1 / 9_9 共通）。
+WIN_FROM="2026-08-24 00:00:00+00"
+WIN_TO="2026-08-24 23:59:59+00"
+detect() {
+  # %s を前から順に窓の両端で埋める（psycopg2 が渡すのと同じ形にする）
+  local sql
+  sql="$(printf '%s' "$DETECT_SQL" \
+    | sed "0,/%s/s//'$WIN_FROM'/" \
+    | sed "0,/%s/s//'$WIN_TO'/")"
+  q "$sql"
+}
+
+q "UPDATE restaurants SET created_at='2026-08-24 12:00:00+00' WHERE google_place_id='PLACE_BRAND_NEW';" >/dev/null
+[ "$(detect)" = "0" ] || fail "backfill 済みなのに検知が発火した（偽陽性）"
+
+# 5-b. **アプリが作った行は、source_seed_id を持っていても発火させない。**
+#      9_1 の provenance UPDATE はアプリ製の行にも seed を刻む。旧判定はこれを
+#      backfill 漏れと誤認し、dev の同期を恒久的に止めた（実測 2,115 件）。
+q "UPDATE restaurants SET source_seed_id=gen_random_uuid() WHERE google_place_id='PLACE_MADE_BY_APP';" >/dev/null
+[ "$(detect)" = "0" ] || fail "アプリ製の行（実行窓の外）を backfill 漏れと誤検知した"
+
+# 5-c. 実行窓の中で作られた行が 'user' のままなら、発火する
 q "UPDATE restaurants SET created_by_source='user' WHERE google_place_id='PLACE_BRAND_NEW';" >/dev/null
-[ "$(q "$DETECT")" != "0" ] || fail "backfill 忘れを検知できていない（素通りする検査）"
-echo "✅ 5. backfill 忘れの検知は、忘れているときだけ発火する"
+[ "$(detect)" != "0" ] || fail "backfill 忘れを検知できていない（素通りする検査）"
+q "UPDATE restaurants SET created_by_source='pipeline' WHERE google_place_id='PLACE_BRAND_NEW';" >/dev/null
+echo "✅ 5. backfill 忘れの検知は、忘れているときだけ発火する（アプリ製の行では発火しない）"
 
 # --- 6. CHECK 制約が想定外の値を弾く ---
 if psql -h /tmp -p "$PGPORT" -U postgres -q -c \
