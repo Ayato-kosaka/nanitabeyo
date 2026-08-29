@@ -117,6 +117,25 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		cluster: await existsNow(by.id("select-restaurant-cluster")),
 	});
 
+	/**
+	 * 結果が «空でない» かを判定する。
+	 *
+	 * ⚠️ **マーカーの有無では判定できない。** Android の react-native-maps は
+	 *    `Marker` を地図のキャンバスへ描くのでビュー階層に現れず、Detox からは
+	 *    常に «無い» に見える。run 33236381539 では **API が 3 件返しているのに**
+	 *    `pins=false dot=false cluster=false` になり、そのまま «空振り» と読めば
+	 *    アプリの不具合と誤診するところだった（実際には API も描画も正常）。
+	 *
+	 * 代わりに下部シートの **空状態が出ていないこと**で見る。こちらは普通の View なので
+	 * Detox から観測できる。シート自体の存在も併せて確かめ、
+	 * 「シートごと描かれていないから空状態も無い」を «空でない» と読まないようにする。
+	 */
+	const resultIsNonEmpty = async (): Promise<{ sheet: boolean; empty: boolean; ok: boolean }> => {
+		const sheet = await existsNow(by.id("saved-restaurants-sheet"));
+		const empty = await existsNow(by.id("select-restaurant-saved-empty"));
+		return { sheet, empty, ok: sheet && !empty };
+	};
+
 	const markerReport = async (): Promise<string> => {
 		const m = await readMarkers();
 		return `pins=${m.pin} dot=${m.dot} cluster=${m.cluster}`;
@@ -131,9 +150,13 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		//    取得が終わっていない» ので false になり、空振りかどうかを判定できない
 		//    （run 33128561205 で実際にそうなり、ピン 0 個のまま «1 秒» と読める数字が出た）
 		const m = await readMarkers();
-		console.log(`[search-this-area] ${label}: ${elapsed} ms / pins=${m.pin} dot=${m.dot} cluster=${m.cluster}`);
+		const r = await resultIsNonEmpty();
+		console.log(
+			`[search-this-area] ${label}: ${elapsed} ms / pins=${m.pin} dot=${m.dot} cluster=${m.cluster}` +
+				` / sheet=${r.sheet} empty=${r.empty} → 空でない=${r.ok}`,
+		);
 		await device.takeScreenshot(`search-this-area-${label}`);
-		return { label, elapsed, hasMarker: m.pin || m.dot || m.cluster };
+		return { label, elapsed, hasMarker: r.ok };
 	};
 
 	it("押してから結果が反映されるまでの時間を測る", async () => {
@@ -219,7 +242,7 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		// ① 空振りでないこと。引き（日本全体）は測位に依存しないので基準点に使える
 		assert.ok(
 			wide.hasMarker,
-			"日本全体の «この範囲で再検索» でマーカーが 1 つも描かれなかった。" +
+			"日本全体の «この範囲で再検索» の結果が空だった（下部シートが空状態、またはシートが出ていない）。" +
 				`（所要 ${wide.elapsed} ms）この状態の «速さ» は根拠にならない。` +
 				"ログイン・保存済みの店・半径の足切り（#1629 で廃止したはず）を疑うこと",
 		);
