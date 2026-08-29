@@ -303,6 +303,20 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 					*/
 					for (const provider of PROVIDERS) {
 						if (await existsNow(by.id(`external-embed-playing-${provider}`), MARKER_PROBE_MS)) {
+							/*
+							#1641 ⚠️ **ここでも `playedBy` を立てる。立てないと «再生したのに落ちる» が起きる。**
+
+							上の記録の周回と、この結論の周回は **別の時刻に印を読んでいる**。
+							1 周は provider 3 つ × 数種類の `existsNow`（各 500ms）で数秒かかるので、
+							**その隙に再生が始まると** «結論は出た（＝このセルを離れる）が、
+							再生したことは記録されていない» という状態になる。
+
+							実際に踏んだ: run 33268418817（Android）。`feed-04` のコマには
+							TikTok が全面で再生されて写っており、BigQuery にも
+							`external_embed_autoplay_started provider=tiktok audio=audible` が
+							届いているのに、spec は «着いたが再生しなかった: tiktok» で赤くなった。
+							*/
+							playedBy[provider] = true;
 							concluded = true;
 							break;
 						}
@@ -310,9 +324,19 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 					if (!concluded) {
 						concluded = await existsNow(by.id("external-embed-fallback"), MARKER_PROBE_MS);
 					}
-					// 高速パスのセルは読み込む物が無いので、その場で結論が出ている
+					/*
+					高速パスのセルは読み込む物が無いので、その場で結論が出ている。
+					⚠️ **`fastPathBy` は run 全体で立ちっぱなしなので、そのまま使ってはいけない。**
+					一度でも高速パスのセルを見たら、**以降のすべてのセルが即 «結論済み»** になり、
+					読み込みに数秒かかるセル（TikTok）を眺めずに素通りする。**いま見えている印**で判定する。
+					*/
 					if (!concluded) {
-						concluded = PROVIDERS.some((provider) => fastPathBy[provider]);
+						for (const provider of PROVIDERS) {
+							if (await existsNow(by.id(`external-embed-known-not-playable-${provider}`), MARKER_PROBE_MS)) {
+								concluded = true;
+								break;
+							}
+						}
 					}
 				}
 				// 全部揃っていても、**このセルの結論が出るまでは眺める**（撮るコマを意味のあるものにする）
@@ -333,7 +357,9 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 
 		for (let i = 0; i < 8; i++) {
 			if (await observeCurrentCell(CELL_DWELL_MS)) embedCells += 1;
-			logMemory(`cell-${String(i).padStart(2, "0")} reached=${PROVIDERS.filter((p) => reachedBy[p]).join("+") || "none"}`);
+			logMemory(
+				`cell-${String(i).padStart(2, "0")} reached=${PROVIDERS.filter((p) => reachedBy[p]).join("+") || "none"}`,
+			);
 			await device.takeScreenshot(`feed-${String(i).padStart(2, "0")}`);
 			/*
 			#1641 **«音を出す» が出ていたら押してみる。**（オーナー指示 2026-08-28）
