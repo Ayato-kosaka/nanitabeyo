@@ -329,7 +329,8 @@ export class RestaurantsRepository {
     // 店舗選択 UI で「一蘭」と打った結果が投稿数で並ぶのは不自然なため
     // （«いま見ている地図の中から目的の店を選ぶ» 画面なので、近い順が素直）。
     // 距離式は SELECT に出さない（返却行に余計な列を混ぜないため）。
-    // GROUP BY r.id に対して r の列だけから成る式は関数従属なので ORDER BY に直接書ける
+    // #1629 最終 SELECT に GROUP BY は無い（集計は LATERAL 側で閉じている）ので、
+    // r の列から成る距離式はそのまま ORDER BY に書ける
     const orderByDistance = Boolean(escapedNameQuery || dto.orderByDistance);
     const limit = dto.limit ?? 20;
     // 検索地点。ST_DWithin / ST_Distance / KNN（<->）のすべてで同じ点を使う
@@ -403,13 +404,24 @@ export class RestaurantsRepository {
     // 候補 CTE。距離順と既定（投稿が多い順）で組み立てが変わる。
     // どちらの枝も «tier / post_count / total_cents / max_end_date» を持つ形に揃え、
     // 最終 SELECT 側を 1 本にしている。
-    // 有効な入札（並びには使わないが meta として返す）の集計条件。
-    // 候補が limit 件に確定したあとにしか使わない
+    // 有効な入札（並びには使わないが meta として返す）の集計。
+    // 候補が limit 件に確定したあとにしか使わない。
+    // #1629 LEFT JOIN + GROUP BY ではなく LATERAL の集計にしてある。集計副問い合わせは
+    // pull up されないので、**必ず候補 1 件ずつの idx_restaurant_bids_restaurant 探索**になり、
+    // restaurant_bids が育っても走る行数は «候補の入札» ぶんで固定される。
+    // 集計は GROUP BY 無しなので必ず 1 行返る（ON TRUE で件数は変わらない。
+    // 入札ゼロの店は total_cents = 0 / max_end_date = NULL で、旧実装と同じ値になる）
     const activeBidJoin = Prisma.sql`
-        LEFT JOIN restaurant_bids rb ON rb.restaurant_id = b.id
-          AND rb.start_date <= CURRENT_DATE
-          AND rb.end_date > CURRENT_DATE
-          AND rb.status = 'paid'`;
+        JOIN LATERAL (
+          SELECT
+            COALESCE(SUM(rb.amount_cents), 0)::double precision AS total_cents,
+            MAX(rb.end_date) AS max_end_date
+          FROM restaurant_bids rb
+          WHERE rb.restaurant_id = b.id
+            AND rb.start_date <= CURRENT_DATE
+            AND rb.end_date > CURRENT_DATE
+            AND rb.status = 'paid'
+        ) bid ON TRUE`;
     // #1629 投稿数（削除済みを除く dish_media）。候補 1 件ずつの相関副問い合わせで、
     // 走るのは候補（最大 limit 件）ぶんだけ。idx_dishes_restaurant → idx_dish_media_alive_dish
     const postCountOfCandidate = Prisma.sql`
@@ -440,11 +452,10 @@ export class RestaurantsRepository {
           b.id,
           b.tier,
           ${postCountOfCandidate} AS post_count,
-          COALESCE(SUM(rb.amount_cents), 0)::double precision AS total_cents,
-          MAX(rb.end_date) AS max_end_date
+          bid.total_cents,
+          bid.max_end_date
         FROM base b
         ${activeBidJoin}
-        GROUP BY b.id, b.tier
       )`
       : Prisma.sql`
       post_counts AS MATERIALIZED (
@@ -477,19 +488,75 @@ export class RestaurantsRepository {
         GROUP BY d.restaurant_id
       ),
       posted AS (
-        -- #1629 投稿枠。集計済みの post_counts（店の数だけの小さな集合）へ
-        -- 半径と店名の条件を掛け、投稿の多い順に limit 件だけ残す
+        /*
+          #1629 【設計】**投稿枠の駆動表は «投稿を持つ店（post_counts）» でなければならない。
+          restaurants 側を先に半径で絞らせてはいけない。**
+
+          ## 何が起きていたか（オーナーが実機で踏んだ回帰）
+
+          «投稿が多い順» を入れた commit 3dfd061d のあと、dev の
+          GET /v1/restaurants/search（東京駅・半径 20,000m・limit 20）が
+          **7,625 / 16,222 / 25,954 ms** かかった（queue_ms は 1〜2 ms なので接続待ちではない）。
+          ところが同じ SQL を literal 埋め込みで EXPLAIN ANALYZE すると 46〜270 ms で速い。
+          **測り方が実運用と違っていた**のが «速く見えていた» 理由である。
+
+          ## 真因（force_generic_plan で再現させて確定させた）
+
+          この CTE は「post_counts と restaurants を普通に join し、restaurants 側へ
+          ST_DWithin を掛ける」形だった。半径がバインドパラメータなので、
+          **generic plan ではプランナに半径の値が見えない**。GIST 索引の行数見積りは
+          既定値（rows=57）へ落ち、「restaurants を索引で引けば数十行」と誤認する。
+          その結果 **restaurants を build 側にした Hash Join**（= 半径内の全店を読む）を選ぶ。
+
+          再現環境（restaurants 570,000 行 / 投稿を持つ店 7,990 / limit 20）の実測:
+
+            旧: 半径 20km   … restaurants から延べ 117,935 行  / generic 425 ms
+                半径 1,500km … 延べ **558,060 行**（ほぼ全店） / generic 1,897 ms
+            新: 半径 20km   … 延べ 60 行                      / generic 116 ms
+                半径 1,500km … 延べ 8,050 行（= 投稿を持つ店） / generic 124 ms
+
+          走る行数が半径に比例するのが旧、半径に依存しないのが新である。dev の
+          restaurants は 1 行が address_components（JSONB）ぶん太いので、
+          この «半径内の全店を読む» が remote storage 上では秒単位になる。
+          同じ半径で 7.6 秒と 26 秒が混在するのは、custom plan と generic plan が
+          切り替わる（＋ページがキャッシュに載っているか）ためである。
+
+          ## どう直したか
+
+          **post_counts（投稿を持つ店だけの小さな集合）を外側に置き、
+          LATERAL で 1 行ずつ restaurants を主キーで引いて半径を判定する。**
+          searchNearbySavedRestaurants（#1682）と同じ構えである。
+          LATERAL の内側は外側の行を参照するので、プランナは nested loop 以外を選べない。
+
+          ⚠️ この SQL のコメントに **半角の疑問符**を書かないこと。Prisma.Sql#sql は
+             バインド位置を半角疑問符で表現するため、コメントの中に混ざると
+             ダンプした SQL からプレースホルダを数える側が位置をずらす
+             （scripts/db-checks/measure_order_by_posts.py が実際にずれた）。
+             restaurants.order-by-posts-plan.spec.ts が個数一致を機械検査している。
+
+          ⚠️ LIMIT 1 を消さないこと。これが無いと副問い合わせが pull up されて
+             普通の join に均され、上の悪いプランへ戻る余地が生まれる。
+             r.id = pc.id は主キー一致なので、LIMIT 1 は意味を変えない。
+
+          ⚠️ 並び（投稿が多い順 → 同数なら中心から近い順）も、返る行も、
+             書き換えの前後で完全に同一であることを再現環境で確認済み
+             （半径 20km / 1,500km の両方で 20 行が完全一致）。
+        */
         SELECT
           pc.id,
           pc.post_count,
-          ST_Distance(r.location, ${originPoint}) AS distance_m
+          hit.distance_m
         FROM post_counts pc
-        JOIN restaurants r ON r.id = pc.id
-        WHERE
-          ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
-          ${nameFilter}
+        JOIN LATERAL (
+          SELECT ST_Distance(r.location, ${originPoint}) AS distance_m
+          FROM restaurants r
+          WHERE r.id = pc.id
+            AND ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
+            ${nameFilter}
+          LIMIT 1
+        ) hit ON TRUE
         -- 同数なら中心から近い順。«どの limit 件を残すか» を最終 ORDER BY と一致させる
-        ORDER BY pc.post_count DESC, distance_m ASC LIMIT ${limit}
+        ORDER BY pc.post_count DESC, hit.distance_m ASC LIMIT ${limit}
       ),
       nearest AS (
         -- #1629 近傍枠。投稿枠で埋まらない残りを «中心から近い順» で埋める。
@@ -514,11 +581,10 @@ export class RestaurantsRepository {
           b.id,
           b.tier,
           b.post_count,
-          COALESCE(SUM(rb.amount_cents), 0)::double precision AS total_cents,
-          MAX(rb.end_date) AS max_end_date
+          bid.total_cents,
+          bid.max_end_date
         FROM base b
         ${activeBidJoin}
-        GROUP BY b.id, b.tier, b.post_count
       )`;
     const orderBy = orderByDistance
       ? // #1629 距離順も geography で測る。WHERE の ST_DWithin と同じ土俵にしておかないと、
@@ -571,7 +637,7 @@ export class RestaurantsRepository {
         r.address_components,
         r.plus_code,
         r.created_at,
-        -- #843 catalog 同期の metadata（GROUP BY r.id への関数従属で選べる）
+        -- #843 catalog 同期の metadata
         r.source_seed_id,
         r.source_names,
         r.source_row_hash,
@@ -580,17 +646,36 @@ export class RestaurantsRepository {
         r.created_by_source,
         c.total_cents,
         c.max_end_date,
-        COUNT(dr.id)::int AS review_count,
-        COALESCE(AVG(dr.rating), 0)::double precision AS average_rating
+        agg.review_count,
+        agg.average_rating
       FROM candidates c
       JOIN restaurants r
         ON r.id = c.id
-      LEFT JOIN dishes d
-        ON d.restaurant_id = r.id
-      LEFT JOIN dish_reviews dr
-        -- #1513 削除済みレビューを件数・平均に混ぜない
-        ON dr.dish_id = d.id AND dr.deleted_at IS NULL
-      GROUP BY r.id, c.tier, c.post_count, c.total_cents, c.max_end_date
+      /*
+        #1629 【設計】**レビュー集計も «候補 1 件ずつの LATERAL» で回す。**
+
+        旧実装は LEFT JOIN dishes → LEFT JOIN dish_reviews → GROUP BY r.id だった。
+        候補は limit 件しか無いのに、プランナが dish_reviews を Seq Scan して
+        Hash Right Join するプランを選びうる（searchNearbySavedRestaurants で
+        実際に踏み、それだけで 27 ms 使っていた。#1682）。dish_reviews が育つほど伸びる。
+
+        LATERAL の集計副問い合わせは pull up されないので、**必ず候補ごとの
+        idx_dishes_restaurant → idx_dish_reviews_alive_dish の nested loop になる**。
+
+        集計は GROUP BY 無しなので必ず 1 行返る（ON TRUE で件数は変わらない。
+        レビュー 0 件の店は review_count = 0 / average_rating = 0 になり、
+        LEFT JOIN + GROUP BY だった旧実装と同じ値になる）。
+      */
+      JOIN LATERAL (
+        SELECT
+          COUNT(dr.id)::int                             AS review_count,
+          COALESCE(AVG(dr.rating), 0)::double precision AS average_rating
+        FROM dishes d
+        JOIN dish_reviews dr
+          -- #1513 削除済みレビューを件数・平均に混ぜない
+          ON dr.dish_id = d.id AND dr.deleted_at IS NULL
+        WHERE d.restaurant_id = r.id
+      ) agg ON TRUE
       ${orderBy}
       LIMIT ${limit};
     `);

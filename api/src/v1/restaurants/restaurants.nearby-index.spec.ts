@@ -81,7 +81,7 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
     // 保存済み一覧は保存日時順で、店舗検索は KNN か投稿数順で切る。
     // どちらも «絞ってから集計する» ために LIMIT が候補側に居ること
     expect(source).toMatch(/ORDER BY\s+sr\.last_saved_at DESC\s+LIMIT /);
-    expect(source).toMatch(/ORDER BY pc\.post_count DESC, distance_m ASC LIMIT /);
+    expect(source).toMatch(/ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT /);
   });
 
   it('重いレビュー集計（dish_reviews）は、候補 CTE より後ろにしか無い', () => {
@@ -111,7 +111,7 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
       いまは投稿テーブル（dish_media）駆動の投稿枠で、候補が最初から limit 件に収まる。
     */
     expect(source).toMatch(/FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/);
-    expect(source).toMatch(/ORDER BY pc\.post_count DESC, distance_m ASC LIMIT /);
+    expect(source).toMatch(/ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT /);
   });
 });
 
