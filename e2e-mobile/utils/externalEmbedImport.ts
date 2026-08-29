@@ -96,15 +96,23 @@ export const EXTERNAL_EMBED_TIKTOK_URL =
 export const EXTERNAL_EMBED_YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
 /**
- * 🚫 **YouTube 側が埋め込みを許可していない動画**（#1641 / オーナーが実機で踏んだ Short）
+ * ⚠️ **オーナーが実機で «再生できない» と踏んだ Short**（#1641）。
  *
- * 正しい iframe に置いても `playerState` が -1 → 3 のまま進まず、YouTube 自身が
- * 「このコンテンツはご利用いただけません」を出す。**こちらの実装では突破できない。**
+ * ⚠️ **«埋め込み不可» ではない。** 一時そう結論していたが**誤りだった**（2026-08-28 訂正）。
  *
- * 合否には使わない。**«権利で再生できない投稿がどう見えるか» を実機のコマで残す**ために取り込む
+ *     GET https://www.youtube.com/oembed?url=...8KJDwppL0qg&format=json → **200**
+ *
+ * 埋め込みを許可していない動画は oEmbed が **401** を返す。200 が返る ＝ 埋め込み可能で、
+ * web のプレビューでは実際に再生できている（オーナー実測）。
+ *
+ * CI のエミュレータで再生できなかったのは**環境側の疑いが濃い**（データセンター IP ＋
+ * WebView の UA は YouTube の bot 判定に当たりやすく、実際に「ログインして bot では
+ * ないことを確認してください」が出ていた）。実機で同じことが起きるかは未確認。
+ *
+ * 合否には使わない。**その状態のセルがどう見えるかを実機のコマで残す**ために取り込む
  * （オーナー要望: 3 PF の権利分岐ごとのレイアウトをエビデンスで見たい）。
  */
-export const EXTERNAL_EMBED_YOUTUBE_BLOCKED_URL = "https://www.youtube.com/shorts/8KJDwppL0qg";
+export const EXTERNAL_EMBED_YOUTUBE_BOT_CHECKED_URL = "https://www.youtube.com/shorts/8KJDwppL0qg";
 
 /**
  * 料理カテゴリの予備。**`resolve` の候補だけでは席が足りないときに使う。**
@@ -274,7 +282,7 @@ export async function ensureExternalEmbedImported(
 		wanted.push({ url: EXTERNAL_EMBED_YOUTUBE_URL, required: true });
 	}
 	if (options.alsoImportUnplayable) {
-		wanted.push({ url: EXTERNAL_EMBED_YOUTUBE_BLOCKED_URL, required: false });
+		wanted.push({ url: EXTERNAL_EMBED_YOUTUBE_BOT_CHECKED_URL, required: false });
 	}
 	wanted.push({ url: EXTERNAL_EMBED_IMPORT_URL, required: !options.alsoImportOtherProviders });
 
