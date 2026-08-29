@@ -54,6 +54,10 @@ TikTok が全面で再生されたコマがある（映像・TikTok ロゴ・`@m
 | 15s（時間切れ） | **まったく同じ数値** | — |
 
 **11 秒のあいだ 1 ノードも増えていない。** «遅い» のではなく **止まっている**。
+
+⚠️ **別の run でも数値まで完全に同一だった**（[run 33280185049](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33280185049)。
+4s / 9s / 14s / 時間切れの 4 点とも `nodes=12 script=6 body=no res=7`）。
+偶発ではなく **決定論的**である。同じ run の Instagram は `boot` → `dom(interactive)` → 再生まで約 5 秒。
 `<body>` すら作られていないので、`<video>` を探しても永久に見つからない。
 
 原因は `<head>` にある **同期スクリプト 4 本**（`*.tiktokcdn-us.com`）である。
