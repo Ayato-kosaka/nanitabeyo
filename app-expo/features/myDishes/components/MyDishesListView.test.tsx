@@ -63,6 +63,8 @@ const makeItem = (
 		externalEmbedProvider?: string;
 		/** #1629 縦ページャの並びを見るテスト用。既定は従来どおり restaurant-1 */
 		restaurantId?: string;
+		/** #1629 1 セル = 1 ページなので、行ごとに違う dish_media.id を差せるようにする */
+		dishMediaId?: string;
 	} = {},
 ): MyDishItem =>
 	({
@@ -81,7 +83,7 @@ const makeItem = (
 			overrides.thumbnailImageUrl === undefined || overrides.thumbnailImageUrl === null
 				? null
 				: {
-						id: "media-1",
+						id: overrides.dishMediaId ?? "media-1",
 						thumbnailImageUrl: overrides.thumbnailImageUrl,
 						render_type: overrides.externalEmbedProvider ? "external_embed" : "stored",
 						externalEmbed: overrides.externalEmbedProvider
@@ -292,9 +294,10 @@ describe("#1397 (PR4/5) Q2 リスト項目のタップ先は «その項目の�
 			nodes[nodes.length - 1].props.onPress();
 		});
 
+		// #1629 一覧からは «その 1 件» のスコープ（scope=list）で開く。店舗スコープではない
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale: "ja-JP", restaurantId: "restaurant-1", itemKey: "review:with-photo", dishMediaId: "media-1" },
+			params: { locale: "ja-JP", scope: "list", itemKey: "review:with-photo", dishMediaId: "media-1" },
 		});
 		expect(Object.keys(mockPush.mock.calls[0][0].params)).not.toContain("initialIndex");
 	});
@@ -414,26 +417,30 @@ describe("#1375 取り込んだ投稿には provider のロゴを重ねる", () 
 });
 
 /*
-#1629 【回帰】一覧からフィードへ入ると縦スクロールできなかった。
+#1629 【回帰】**グリッドで見えているセルの数と、縦に送れる数が一致すること。**
 
-全画面 Feed の «外側 = 縦（前後のスコープ）» の並びは `useMyDishesFeedScopeStore` から取るが、
-そこへ並びを置いていたのは **Map と Calendar だけ**で、一覧は置いていなかった。
-store が空のとき Feed は 1 ページへ縮退するので、縦に払っても何も起きない。
+以前は «店舗 id を重複排除して» 縦の並びとして置いていたので、同じ店の記録が 3 セル並んでいても
+縦のページは 1 枚に潰れ、残り 2 件は横軸へ回っていた（オーナー指摘「お店でグルーピングしてるなら
+要らない。グリッドは上下だけ」）。
 
-⚠️ ここが赤くなったら、また «一覧から入ると縦に動かない» に戻っている。
+⚠️ ここが赤くなったら、また «グリッドのセルと縦のページがずれる» に戻っている。
+   通しの «N 番目を開いて縦に払うと N+1 番目» は
+   `__tests__/myDishesGridFeedVertical.test.tsx` が見る。
 */
 describe("#1629 一覧から Feed へ入るときの縦ページャの並び", () => {
-	it("いま一覧に出ている店舗の並びを、重複を潰して store へ置く", async () => {
+	const ROWS = [
+		makeItem("review:a", { thumbnailImageUrl: "https://example.com/a.jpg", restaurantId: "r-1", dishMediaId: "media-a" }),
+		// 同じ店の 2 件目。**潰さない**。グリッドに 2 セル出ているなら縦も 2 ページ
+		makeItem("review:b", { thumbnailImageUrl: "https://example.com/b.jpg", restaurantId: "r-1", dishMediaId: "media-b" }),
+		makeItem("review:c", { thumbnailImageUrl: "https://example.com/c.jpg", restaurantId: "r-2", dishMediaId: "media-c" }),
+		// 写真なしの行は Feed に入れられないので、並びからも外す
+		makeItem("review:d", { restaurantId: "r-3" }),
+	];
+
+	const pressNth = async (n: number) => {
 		useMyDishesFeedScopeStore.getState().clear();
 		mockUseMyDishesQuery.mockReturnValue({
-			items: [
-				makeItem("review:a", { thumbnailImageUrl: "https://example.com/a.jpg", restaurantId: "r-1" }),
-				// 同じ店の 2 件目。ページャの key は店舗 id なので、重複を残すと衝突する
-				makeItem("review:b", { thumbnailImageUrl: "https://example.com/b.jpg", restaurantId: "r-1" }),
-				makeItem("review:c", { thumbnailImageUrl: "https://example.com/c.jpg", restaurantId: "r-2" }),
-				// 写真なしの行は Feed に入れられないので、並びからも外す
-				makeItem("review:d", { restaurantId: "r-3" }),
-			],
+			items: ROWS,
 			isLoading: false,
 			isLoadingMore: false,
 			error: null,
@@ -442,41 +449,32 @@ describe("#1629 一覧から Feed へ入るときの縦ページャの並び", (
 			refresh: jest.fn(),
 		});
 		const tree = await render();
-
 		const nodes = tree.root.findAll(
 			(node) => node.props?.testID === "my-dishes-list-item" && typeof node.props?.onPress === "function",
 		);
 		await act(async () => {
-			nodes[0].props.onPress();
+			nodes[n].props.onPress();
 		});
+	};
 
-		expect(useMyDishesFeedScopeStore.getState().restaurantIds).toEqual(["r-1", "r-2"]);
+	it("グリッドに出ている行を、重複を潰さず順番どおりに置く", async () => {
+		await pressNth(0);
+
+		expect(useMyDishesFeedScopeStore.getState().listItems).toEqual([
+			{ itemKey: "review:a", dishMediaId: "media-a" },
+			{ itemKey: "review:b", dishMediaId: "media-b" },
+			{ itemKey: "review:c", dishMediaId: "media-c" },
+		]);
+		// 店舗の並びは触らない（あれは Map の入口のもの）
+		expect(useMyDishesFeedScopeStore.getState().restaurantIds).toEqual([]);
 	});
 
-	/*
-	#1629 出どころを «list» として置く。Feed 側はこれを見て **前後を絞らない**。
-	Map 由来（前後 1 件）と同じ扱いにすると、一覧から入った縦フリックが 3 ページで終わる
-	（オーナー実機報告「グリッドのフィードが無限に下スクロールできない」）。
-	*/
-	it("並びの出どころを «list» として置く（Feed 側が前後を絞らない根拠）", async () => {
-		useMyDishesFeedScopeStore.getState().clear();
-		mockUseMyDishesQuery.mockReturnValue({
-			items: [makeItem("review:a", { thumbnailImageUrl: "https://example.com/a.jpg", restaurantId: "r-1" })],
-			isLoading: false,
-			isLoadingMore: false,
-			error: null,
-			hasNextPage: false,
-			loadMore: jest.fn(),
-			refresh: jest.fn(),
-		});
-		const tree = await render();
-		const nodes = tree.root.findAll(
-			(node) => node.props?.testID === "my-dishes-list-item" && typeof node.props?.onPress === "function",
-		);
-		await act(async () => {
-			nodes[0].props.onPress();
-		});
+	it("同じ店の 2 件目を開いても、その行（media-b）で開く", async () => {
+		await pressNth(1);
 
-		expect(useMyDishesFeedScopeStore.getState().restaurantIdsSource).toBe("list");
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/my-dishes/feed",
+			params: { locale: "ja-JP", scope: "list", itemKey: "review:b", dishMediaId: "media-b" },
+		});
 	});
 });
