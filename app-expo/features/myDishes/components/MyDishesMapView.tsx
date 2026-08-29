@@ -309,9 +309,12 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 				error_level: "log",
 				payload: { restaurantId: pin.restaurant.id },
 			});
-			// 横スクロールで «前後の店舗» へ行けるよう、いま出ているピンの並びを置いてから push する。
+			// 縦フリックで «前後の店舗» へ行けるよう、いま出ているピンの並びを置いてから push する。
+			// （#1629 一覧はこの並びを使わない。あちらは listItems へ «行» を置く）
 			// 並びは viewport 依存なので filter store にも URL にも入れない（§3-2 / #1397）
-			useMyDishesFeedScopeStore.getState().setRestaurantIds(pinsRef.current.map((p) => p.restaurant.id), "map");
+			useMyDishesFeedScopeStore
+				.getState()
+				.setRestaurantIds(pinsRef.current.map((p) => p.restaurant.id));
 			router.push({
 				pathname: "/[locale]/(tabs)/my-dishes/feed",
 				params: { locale, scope: "restaurant", restaurantId: pin.restaurant.id },

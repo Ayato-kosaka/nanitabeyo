@@ -229,7 +229,8 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 		[contentWidth],
 	);
 
-	// #1397 (PR4/5) Q2 確定: リスト項目のタップ先は **その項目の店舗スコープの Feed**。
+	// #1397 (PR4/5) Q2 確定: リスト項目のタップ先は **全画面 Feed**（#1629 で «その項目 1 件» の
+	// スコープへ変えた。以前は «その項目の店舗スコープ»）。
 	// 代案（フィルタ済み一覧全体を縦スクロールする Feed）は ids を URL に積むか store 前提にするしか
 	// なく、**web のリロード・直リンクで壊れる**ので採らない（設計 (2/2) §9-3 / Q2）。
 	//
@@ -246,31 +247,33 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 			});
 			if (hasPhoto && item.dishMedia !== null) {
 				/*
-				#1629 【修正】**一覧からフィードへ入ると縦スクロールできなかった。**
+				#1629 【設計】**グリッドから開くフィードは «上下だけ»。1 セル = 1 ページ。**
 
-				全画面 Feed は «外側 = 縦（前後のスコープ）/ 内側 = 横（そのスコープの中の記録）» の
-				2 軸で、外側の並びは `useMyDishesFeedScopeStore` から取る。ところが
-				**この store へ並びを置いていたのは Map と Calendar だけで、一覧は置いていなかった。**
+				オーナー指摘「グリッドは上下だけ。同じ店 / 同じ日とかはマップとかカレンダーの話」。
+				横（= そのスコープの中の別の記録）に意味があるのは **グルーピングがある入口**
+				（Map = 同じ店 / Calendar = 同じ日）だけで、グリッドは何でもまとまっていない。
 
-				結果、一覧から入ると外側のページャが **1 ページ**へ縮退し（store が空のときの仕様）、
-				縦にいくら払っても何も起きない。さらに悪いことに、直前に Map を開いていると
-				**Map の viewport 由来の並びが残っていて**、一覧とは無関係な店舗が縦に並んでいた。
+				以前はここで «店舗 id を重複排除して» 縦の並びとして置いていた。その結果
+				**グリッドに 3 セル並んでいる同じ店が縦 1 ページへ潰れ、残り 2 件が横軸へ回っていた**。
+				グリッドで見えているセルの数と縦に送れる数が食い違う（12 番目を開いて縦に払っても
+				13 番目が出ない）。
 
-				ここで «いま一覧に出ている並び» を置く。重複を潰すのは、同じ店の記録が複数行あると
-				ページャの keyExtractor（店舗 id）が衝突するため。写真の無い行は Feed に入れられない
-				ので除く（この関数の先頭の分岐と同じ条件）。
+				だから重複排除をやめ、**一覧に出ている行をその順のまま**置く。ページャの key は
+				`itemKey`（行を一意に指す）なので、同じ店が何行あっても衝突しない。
+				写真の無い行は Feed に入れられないので除く（この関数の先頭の分岐と同じ条件）。
 				*/
 				useMyDishesFeedScopeStore
 					.getState()
-					.setRestaurantIds(
-						[...new Set(items.filter((row) => row.dishMedia !== null).map((row) => row.restaurant.id))],
-						"list",
+					.setListItems(
+						items.flatMap((row) =>
+							row.dishMedia === null ? [] : [{ itemKey: row.key, dishMediaId: String(row.dishMedia.id) }],
+						),
 					);
 				router.push({
 					pathname: "/[locale]/(tabs)/my-dishes/feed",
 					params: {
 						locale,
-						restaurantId: item.restaurant.id,
+						scope: "list",
 						itemKey: item.key,
 						dishMediaId: String(item.dishMedia.id),
 					},

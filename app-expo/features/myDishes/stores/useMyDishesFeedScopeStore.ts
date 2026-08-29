@@ -1,6 +1,13 @@
 /*
 このファイルの責務
-- 全画面 Feed の «横スクロールで行き来できるスコープの並び» を、遷移直前に置くための小さな store。
+- 全画面 Feed の «縦フリックで行き来できるページの並び» を、遷移直前に置くための小さな store。
+  入口ごとに «1 ページが何か» が違う（#1629）。
+
+| 入口 | 縦の 1 ページ | 置く場所 |
+| --- | --- | --- |
+| 一覧（グリッド） | **グリッドのセル 1 つ** | `listItems` |
+| Map（ピン） | 店舗 1 つ | `restaurantIds` |
+| Calendar（日付） | 記録がある日 1 つ | `dateKeys` |
 
 ## なぜ store なのか（URL でも filter store でもない）
 
@@ -30,35 +37,44 @@ store が空のとき（web の直リンク・リロード）は Feed 側が 1 �
 import { createWithEqualityFn } from "zustand/traditional";
 
 /**
- * #1629 並びの出どころ。**前後を何件まで見せるかがこれで変わる。**
+ * #1629 【設計】**一覧（グリッド）の 1 行 = フィードの 1 ページ。**
  *
- * - `map` … viewport 由来。ピンが 200 件あるエリアでは 200 ページになりうるので前後 1 件へ絞る
- * - `list` … 一覧に出ている並び。**絞らない**。一覧は «上から順に見ていく» 面なので、
- *   縦にフリックし続けたら一覧の最後まで行けるのが期待される挙動である（オーナー指摘）
+ * グリッドの縦送りは «店舗» でも «日» でもなく、**グリッドに出ている順のセルそのもの**である
+ * （オーナー指摘「お店でグルーピングしてるなら要らない。グリッドは上下だけ」）。
+ * だから店舗 id ではなく «行» をそのまま並べる。重複排除はしない。同じ店の記録が
+ * 3 件並んでいるなら、縦のページも 3 枚である。
+ *
+ * `dishMediaId` を一緒に持つのは、フィード側が **行の取得を 1 回も挟まずに**
+ * `GET /v1/dish-media?ids=` だけでそのページを描けるようにするため。
+ * `itemKey` は一覧の行を一意に指すので、ページャの key にそのまま使える
+ * （店舗 id を key にすると、同じ店が 2 行あるだけで衝突する）。
  */
-export type MyDishesFeedScopeSource = "map" | "list";
+export type MyDishesFeedListItem = { itemKey: string; dishMediaId: string };
 
 export type MyDishesFeedScopeStore = {
-	/** 順序付きの店舗 id。空なら «並びは分からない»（Feed は 1 ページへ縮退する） */
+	/** 順序付きの店舗 id（Map のピンの並び）。空なら «並びは分からない»（Feed は 1 ページへ縮退する） */
 	restaurantIds: string[];
-	/** #1629 `restaurantIds` を置いたのが誰か。前後を絞るかどうかの判断に使う */
-	restaurantIdsSource: MyDishesFeedScopeSource | null;
 	/** 記録がある日付（YYYY-MM-DD）の昇順。空なら «並びは分からない»（Feed は 1 日へ縮退する） */
 	dateKeys: string[];
-	/** 遷移直前に置く。呼ぶのは Map / 一覧のように «並びを知っている» 側だけ */
-	setRestaurantIds: (restaurantIds: string[], source: MyDishesFeedScopeSource) => void;
+	/** #1629 一覧に出ている行の並び。空なら «並びは分からない»（Feed は 1 ページへ縮退する） */
+	listItems: MyDishesFeedListItem[];
+	/** 遷移直前に置く。呼ぶのは Map のように «店舗の並びを知っている» 側だけ */
+	setRestaurantIds: (restaurantIds: string[]) => void;
 	/** 遷移直前に置く。呼ぶのは Calendar のように «記録がある日を知っている» 側だけ */
 	setDateKeys: (dateKeys: string[]) => void;
+	/** #1629 遷移直前に置く。呼ぶのは一覧（グリッド）だけ */
+	setListItems: (listItems: MyDishesFeedListItem[]) => void;
 	clear: () => void;
 };
 
 export const useMyDishesFeedScopeStore = createWithEqualityFn<MyDishesFeedScopeStore>()((set) => ({
 	restaurantIds: [],
-	restaurantIdsSource: null,
 	dateKeys: [],
-	setRestaurantIds: (restaurantIds, source) => set({ restaurantIds, restaurantIdsSource: source }),
+	listItems: [],
+	setRestaurantIds: (restaurantIds) => set({ restaurantIds }),
 	setDateKeys: (dateKeys) => set({ dateKeys }),
-	clear: () => set({ restaurantIds: [], restaurantIdsSource: null, dateKeys: [] }),
+	setListItems: (listItems) => set({ listItems }),
+	clear: () => set({ restaurantIds: [], dateKeys: [], listItems: [] }),
 }));
 
 /**
