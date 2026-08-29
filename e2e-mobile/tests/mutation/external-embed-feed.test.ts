@@ -78,14 +78,27 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 	 * `View does not pass visibility percent threshold (100)` で落ちる
 	 * （run 33064372163 の iOS で実測。Android は同じ手順で通る）。
 	 *
-	 * そこで **WebView の上からスワイプする**。WebView は `pointerEvents="none"` なので
+	 * そこで **セルを覆っている当のものの上からスワイプする**。覆いは指を通す
+	 * （WebView は `pointerEvents="none"`、導線の覆いは `box-none`）ので、
 	 * 指の動きはそのまま下の FlatList へ抜ける。
 	 * これは回避策であると同時に、**受け入れ条件 5「埋め込みの上から縦スワイプで次のセルへ行ける」
 	 * そのものの検証**になっている。
+	 *
+	 * ⚠️ #1641 **WebView «だけ» を目印にしない。** サーバが `not_playable` と判定済みのセルと、
+	 *    再生できないと分かって畳んだ YouTube のセルには **WebView が無い**。
+	 *    そこでコンテナへ落ちると、こんどは導線の覆いに隠されて同じ 100% 判定で落ちる
+	 *    （run 33243857871 の iOS で実測。Android は同じ手順で通ってしまうので気づけない）。
+	 *    **いま前面に在る覆いを順に探す。**
 	 */
 	const swipeFeed = async () => {
-		const embedWebView = by.id("external-embed-webview");
-		const target = (await existsNow(embedWebView)) ? embedWebView : restaurantFeed.container;
+		const candidates = [by.id("external-embed-webview"), by.id("external-embed-fallback")];
+		let target = restaurantFeed.container;
+		for (const candidate of candidates) {
+			if (await existsNow(candidate)) {
+				target = candidate;
+				break;
+			}
+		}
 		await element(target).swipe("up", "fast", 0.6, 0.5, 0.5);
 	};
 
