@@ -280,7 +280,11 @@ export class DishMediaImportsService {
     const outcome = await this.oembed.fetchMetadata(parsed);
     const playback = outcome.playback;
 
-    this.logger.debug('EmbedPlaybackRechecked', 'reportUnplayable', {
+    /* ⚠️ **debug ではなく log（info）で残す。** ここは端末の報告を受けて **DB を書き換える**
+       転換点で、後から «いつ・何が・何へ変わったか» を追えないと、
+       «勝手に消えた投稿» を説明できなくなる。debug は dev のログ基盤に残らない
+       （実測: BigQuery の backend_event_logs に 1 行も出なかった）。 */
+    this.logger.log('EmbedPlaybackRechecked', 'reportUnplayable', {
       dishMediaId,
       provider: parsed.provider,
       before: row.playback_status,

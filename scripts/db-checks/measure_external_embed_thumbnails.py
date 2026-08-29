@@ -58,6 +58,7 @@ def main() -> int:
                   e.provider,
                   e.external_content_id,
                   e.playback_status,
+                  e.playback_checked_at,
                   (m.thumbnail_path IS NOT NULL AND m.thumbnail_path <> '') AS has_stored_thumbnail,
                   (e.thumbnail_url IS NOT NULL) AS has_external_thumbnail,
                   m.deleted_at IS NOT NULL AS deleted
@@ -68,18 +69,21 @@ def main() -> int:
             )
             rows = cursor.fetchall()
 
-        logger.info("provider   content_id            playback      自前サムネ 外部URL 削除")
+        logger.info(
+            "provider   content_id            playback      判定した時刻          自前サムネ 外部URL 削除"
+        )
         blind = 0
-        for provider, cid, status, stored, external, deleted in rows:
+        for provider, cid, status, checked_at, stored, external, deleted in rows:
             # ⚠️ «真っ黒» は **自前も外部も両方無い**ときにだけ起きる。片方でも在れば絵は出る
             #    （assembler が thumbnail_path → thumbnail_url → 料理カテゴリの絵 の順で解決する）
             if not stored and not external and not deleted:
                 blind += 1
             logger.info(
-                "%-10s %-21s %-13s %-9s %-6s %s",
+                "%-10s %-21s %-13s %-21s %-9s %-6s %s",
                 provider,
                 cid,
                 status,
+                checked_at.strftime("%Y-%m-%d %H:%M:%SZ") if checked_at else "未判定",
                 "あり" if stored else "**なし**",
                 "あり" if external else "なし",
                 "済" if deleted else "-",
