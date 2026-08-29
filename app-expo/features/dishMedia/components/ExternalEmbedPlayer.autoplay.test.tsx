@@ -362,9 +362,18 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBeGreaterThan(0);
 	});
 
-	it("document-start の観測スクリプトを document モードへ渡している", () => {
+	/*
+	#1641 ⚠️ **document-start にも同じエージェントを渡す。**
+
+	iOS の injectedJavaScript は WKUserScript の DocumentEnd で、そこへ到達しないページでは
+	1 度も走らない。TikTok の埋め込みがまさにそれだった（readyState が 'loading' のまま
+	18 秒。run 33245098709 / 33246974699 で 2/2 再現し、run 33249617397 の boot 報告で確定）。
+	*/
+	it("document-start にも同じエージェントを渡している", () => {
 		renderActiveCell();
-		expect(webViewProps.injectedJavaScriptBeforeContentLoaded).toContain("__nbEmbedBooted");
+		expect(webViewProps.injectedJavaScriptBeforeContentLoaded).toContain("__nbEmbedAutoplay");
+		// 二重起動は先頭の kick ガードで吸収される（締め切りを延ばすだけになる）
+		expect(webViewProps.injectedJavaScriptBeforeContentLoaded).toContain("kick");
 	});
 
 	/*
@@ -518,17 +527,45 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			expect(["cover", "fill", "none", "scale-down"]).not.toContain(fit);
 		});
 
+		/*
+		#1641 `boot` / `dom` は観測用の報告で、結論ではない。ここでは**結論だけ**を見る。
+		（エージェントは起動時に必ず `boot` を送るようになった）
+		*/
+		const conclusions = (post: jest.Mock) =>
+			post.mock.calls
+				.map((call) => JSON.parse(call[0] as string) as { kind: string; detail: string | null })
+				.filter((message) => message.kind !== "boot" && message.kind !== "dom");
+
 		it("読み込みが終わっても <video> が無ければ、締め切りを待たず権利ブロックと判定する", () => {
 			// 実測: 権利ブロックされた投稿は <video> が最後まで作られない（1 コマ目の画像だけ在る）。
 			// 12 秒待たせても結論は変わらないので、«Instagram で見る» を早く出す
 			const { post } = run({ video: false, images: [{ w: 360, h: 638 }], readyState: "complete", ticks: 12 });
-			expect(post).toHaveBeenCalled();
-			expect(JSON.parse(post.mock.calls[0][0])).toMatchObject({ kind: "no_video", detail: "load_complete" });
+			expect(conclusions(post)[0]).toMatchObject({ kind: "no_video", detail: "load_complete" });
 		});
 
+		/*
+		⚠️ #1641 **読み込みが終わっていない間は締め切りを数えない。**
+		   数えると «読み込みが遅いだけ» を «映像が無い（権利ブロック）» と取り違える。
+		   iOS の TikTok は readyState が 'loading' のまま 18 秒動かなかった（実測）。
+		*/
 		it("読み込み中はまだ権利ブロックと決めつけない", () => {
 			const { post } = run({ video: false, images: [], readyState: "loading", ticks: 12 });
-			expect(post).not.toHaveBeenCalled();
+			expect(conclusions(post)).toHaveLength(0);
+			// 起動したこと自体は知らせる（«一度も走っていない» と区別するため）
+			expect(post.mock.calls.map((c) => JSON.parse(c[0] as string).kind)).toContain("boot");
+		});
+
+		/*
+		#1641 **ただし無制限には待たない。**
+
+		iOS の TikTok は readyState が 'loading' のまま 18 秒動かなかった。締め切りを
+		数えないだけだと、そのセルは**黒いまま放置**される。猶予（15 秒）を過ぎたら
+		«時間切れ» として畳み、サムネイル＋導線を見せる。
+		*/
+		it("読み込みが終わらないページは、猶予を過ぎたら時間切れとして畳む", () => {
+			// clock は 1 tick = 500ms。40 tick = 20 秒で猶予 15 秒を超える
+			const { post } = run({ video: false, images: [], readyState: "loading", ticks: 40 });
+			expect(conclusions(post)[0]).toMatchObject({ kind: "timeout", detail: "still_loading" });
 		});
 
 		it("<video> は 1 コマ目より前面へ出す（映像が出たらそちらが見える）", () => {

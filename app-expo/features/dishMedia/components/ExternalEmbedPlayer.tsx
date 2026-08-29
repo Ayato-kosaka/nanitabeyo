@@ -159,6 +159,20 @@ const AUTOPLAY_SCRIPT = `(function () {
 
   var DEADLINE_MS = 12000, TICK_MS = 250;
   /*
+   * #1641 **ページが組み上がるまでの猶予。**
+   *
+   * 実測（run 33249617397 / iOS）: TikTok の埋め込みだけ document.readyState が
+   * 'loading' のまま 18 秒経っても変わらない。Instagram は boot から 1 秒で
+   * 'interactive' になる。つまり «読み込みが終わらない» ページが実在する。
+   *
+   * この間は締め切りを数えない（数えると «映像が無い» と誤って結論する）。
+   * ただし無制限には待たない。ここを過ぎたら «時間切れ» として導線へ縮退させ、
+   * **黒いセルのまま放置しない**。
+   */
+  var LOADING_GRACE_MS = 15000;
+  var installedAt = Date.now();
+  var toldDom = false;
+  /*
    * #1641 ページの読み込みが終わってなお <video> が無ければ、**権利ブロックされた投稿**である。
    * 12 秒の締め切りを待たずにここで見切る（待たせても結論は変わらない）。
    *
@@ -172,6 +186,11 @@ const AUTOPLAY_SCRIPT = `(function () {
   var mutedByPolicy = false;
   var backdrop = null, fillTicks = 0, poster = null, hidden = [];
 
+  /*
+   * #1641【観測】**エージェントが走ったこと自体を 1 回知らせる。**
+   * これが無いと «走ったが結論が出ない» と «一度も走っていない» を区別できず、
+   * iOS の TikTok（無言）の原因に辿り着けなかった。
+   */
   function report(kind, detail) {
     if (sent[kind]) return;
     /*
@@ -432,6 +451,22 @@ const AUTOPLAY_SCRIPT = `(function () {
       ensureBackdrop();
       fillPoster();
       var v = document.querySelector('video');
+      /*
+       * #1641 **ページが組み上がっていない間は締め切りを数えない。**
+       * 数えると «読み込みが遅いだけ» を «映像が無い（権利ブロック）» と取り違える。
+       * 猶予を過ぎたら «時間切れ» として畳み、黒いセルのまま放置しない。
+       */
+      if (document.readyState === 'loading') {
+        if (Date.now() - installedAt < LOADING_GRACE_MS) {
+          deadlineAt = Date.now() + DEADLINE_MS;
+        } else {
+          settle('timeout', 'still_loading');
+          return;
+        }
+      } else if (!toldDom) {
+        toldDom = true;
+        report('dom', document.readyState);
+      }
       if (Date.now() > deadlineAt) {
         settle(v ? 'timeout' : 'no_video', lastError);
         return;
@@ -496,56 +531,8 @@ const AUTOPLAY_SCRIPT = `(function () {
   }
 
   W.__nbEmbedAutoplay = { kick: start };
+  report('boot', document.readyState);
   start();
-})(); true;`;
-
-/*
-#1641【観測】**エージェントがそもそも起動したのかを、document-start の時点で 1 回だけ知らせる。**
-
-## なぜ要るのか
-
-iOS で **TikTok のセルだけ、報告が 1 件も来ない**（run 33245098709 / 33246974699 で 2/2 再現。
-Instagram と YouTube は同じ run で報告が来ている）。
-
-`AUTOPLAY_SCRIPT` は 12 秒で必ず何かを報告する（no_video か timeout）設計で、
-セルには 18 秒留まっている。**それでも無言** ということは、**スクリプトが 1 度も走っていない**。
-iOS の injectedJavaScript は WKUserScript の DocumentEnd なので、
-そこへ到達しないページでは何も起きない（onLoadEnd の撃ち直しも来ない）。
-
-推測で直しにいかず、**«走ったか» と «DOM ができたか» を別々に観測できるようにする**。
-
-| 届くもの | 分かること |
-| --- | --- |
-| boot も dom も来ない | このページでは**こちらのスクリプトが 1 度も走っていない** |
-| boot だけ来る | 走ってはいるが **DOM が組み上がっていない**（読み込みが終わっていない） |
-| 両方来て結論が来ない | DOM はあるが **映像を見つけられない**（別の原因） |
-
-⚠️ **この文字列にバッククォートを書かないこと。** テンプレートリテラルの内側で、
-   書いた時点で文字列が終わる（このファイルで実際に何度か壊した）。
-⚠️ 受け取る側は boot / dom を **結論として扱わないこと**。扱うと «再生できない» へ倒れる。
-*/
-const BOOT_PROBE_SCRIPT = `(function () {
-  var W = window;
-  if (!W.ReactNativeWebView || W.__nbEmbedBooted) return;
-  W.__nbEmbedBooted = true;
-  function tell(kind, detail) {
-    try {
-      W.ReactNativeWebView.postMessage(JSON.stringify({
-        src: 'nb-embed-autoplay', kind: kind, detail: detail == null ? null : String(detail)
-      }));
-    } catch (e) {}
-  }
-  tell('boot', document.readyState);
-  function onReady() {
-    tell('dom', document.readyState);
-    /* DocumentEnd の注入が来ていれば、ここで撃ち直して «読み込み完了待ち» を外す */
-    try { if (W.__nbEmbedAutoplay && W.__nbEmbedAutoplay.kick) W.__nbEmbedAutoplay.kick(); } catch (e) {}
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', onReady, { once: true });
-  } else {
-    onReady();
-  }
 })(); true;`;
 
 export type ExternalEmbedPlayerProps = {
@@ -1009,10 +996,21 @@ export function ExternalEmbedPlayer({
 						   あちらの再生報告は包みの HTML 側のスクリプトが行う。
 						*/
 						injectedJavaScript={source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT}
-						/* #1641【観測】document-start。**DocumentEnd へ到達しないページでも走る**ので、
-						   «スクリプトが 1 度も走っていない» のか «走ったが結論が出ない» のかを分けられる */
+						/*
+						#1641 **同じエージェントを document-start でも走らせる。**
+
+						iOS の injectedJavaScript は WKUserScript の DocumentEnd で、
+						**そこへ到達しないページでは 1 度も走らない**。TikTok の埋め込みが
+						まさにそれで、readyState が 'loading' のまま止まり、18 秒眺めても
+						報告が 1 件も来なかった（run 33245098709 / 33246974699 で 2/2 再現。
+						run 33249617397 の boot 報告で «走っていない» ことを確定させた）。
+
+						⚠️ 二重に走っても安全である。スクリプトの先頭に
+						   `if (W.__nbEmbedAutoplay) { kick(); return; }` があるので、
+						   2 回目以降は **締め切りを延ばすだけ**になる。
+						*/
 						injectedJavaScriptBeforeContentLoaded={
-							source.mode === "iframe" ? undefined : BOOT_PROBE_SCRIPT
+							source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT
 						}
 						onMessage={handleMessage}
 						/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
