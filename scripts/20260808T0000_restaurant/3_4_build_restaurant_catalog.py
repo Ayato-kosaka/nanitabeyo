@@ -65,6 +65,20 @@ def main() -> None:
             '[]'
           ) AS address_components_json,
           COALESCE(existing.plus_code_json, s.plus_code_json) AS plus_code_json,
+          -- #1681 表示用の1行住所。**オープンデータ由来だけを使う。**
+          -- existing（＝PG に入っている Google 由来の住所）は carry-forward しない。
+          -- Google の住所は ToS 3.2.3 で保持できないので、そちらへ寄せてはいけない。
+          NULLIF(s.canonical_address, '') AS address,
+          -- #1681 ISO-3166-1 alpha-2。
+          -- open data は日本の矩形で絞って取り込んでいるので、矩形内なら JP と断言できる
+          -- （実測: パイプライン製 569,661 行のうち矩形外は 0 行）。
+          -- 矩形外は既存PG由来の海外店（2_1 の require_japan=False で通した分）で、
+          -- 国を断定する材料がここには無いので NULL にする。PG 側で別途埋める。
+          CASE
+            WHEN s.latitude BETWEEN 20.0 AND 46.5
+             AND s.longitude BETWEEN 122.0 AND 154.0
+            THEN 'JP'
+          END AS country_code,
           s.phone,
           s.website,
           s.social_urls,
@@ -102,15 +116,22 @@ def main() -> None:
         image_path,
         address_components_json,
         plus_code_json,
+        address,
+        country_code,
         phone,
         website,
         social_urls,
         source_names,
         match_method,
+        -- #1681 address / country_code / 連絡先も含める。含めないと、これらだけが
+        -- 変わったときに row_hash が動かず、9_1 の更新条件をすり抜けて反映されない。
         TO_HEX(SHA256(CONCAT(
           google_place_id, '|', name, '|', CAST(latitude AS STRING), '|',
           CAST(longitude AS STRING), '|', image_url, '|',
-          address_components_json, '|', COALESCE(plus_code_json, '')
+          address_components_json, '|', COALESCE(plus_code_json, ''), '|',
+          COALESCE(address, ''), '|', COALESCE(country_code, ''), '|',
+          COALESCE(phone, ''), '|', COALESCE(website, ''), '|',
+          ARRAY_TO_STRING(social_urls, ',')
         ))) AS row_hash,
         CURRENT_TIMESTAMP() AS built_at
       FROM publish_values

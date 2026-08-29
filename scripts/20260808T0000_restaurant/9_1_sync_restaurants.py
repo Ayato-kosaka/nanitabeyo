@@ -54,7 +54,9 @@ def export_catalog(pipeline: BigQueryPipeline, run_id: str, path: Path) -> int:
         seed_id, google_place_id, match_method,
         name, name_language_code,
         latitude, longitude, image_url, image_path, address_components_json,
-        plus_code_json, TO_JSON_STRING(source_names) AS source_names_json, row_hash
+        plus_code_json, address, country_code,
+        phone, website, TO_JSON_STRING(social_urls) AS social_urls_json,
+        TO_JSON_STRING(source_names) AS source_names_json, row_hash
       FROM `{pipeline.dataset_ref}.restaurant_catalog`
       WHERE run_id = @run_id
       ORDER BY google_place_id
@@ -88,6 +90,11 @@ def load_staging(connection: Any, path: Path) -> None:
         image_path TEXT,
         address_components_json TEXT NOT NULL,
         plus_code_json TEXT,
+        address TEXT,
+        country_code TEXT,
+        phone TEXT,
+        website TEXT,
+        social_urls_json TEXT NOT NULL,
         source_names_json TEXT NOT NULL,
         row_hash TEXT NOT NULL
       ) ON COMMIT DROP
@@ -234,6 +241,7 @@ def apply_sync(connection: Any) -> None:
             INSERT INTO restaurants (
               id, google_place_id, name, name_language_code, latitude, longitude,
               image_url, image_path, address_components, plus_code,
+              address, country_code,
               source_seed_id, source_names, source_row_hash, synced_at,
               created_by_source
             )
@@ -242,6 +250,7 @@ def apply_sync(connection: Any) -> None:
               s.google_place_id, s.name, s.name_language_code, s.latitude, s.longitude,
               s.image_url, s.image_path, s.address_components_json::jsonb,
               CASE WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb END,
+              s.address, s.country_code,
               s.seed_id,
               ARRAY(SELECT jsonb_array_elements_text(s.source_names_json::jsonb)),
               s.row_hash,
@@ -284,11 +293,54 @@ def apply_sync(connection: Any) -> None:
               address_components = s.address_components_json::jsonb,
               plus_code = CASE
                 WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb
-              END
+              END,
+              address = s.address,
+              country_code = s.country_code
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
               AND r.created_by_source = 'pipeline'
               AND r.source_row_hash IS DISTINCT FROM s.row_hash
+            """
+        )
+
+        # #1681 電話・公式サイト・SNS を restaurant_links へ入れる。
+        #
+        # BigQuery はこれらを計算済みなのに PG に受け口が無く、9_1 が捨てていた
+        # （保有率 電話 89.2% / SNS 79.2% / サイト 44.9%）。website は営業時間の
+        # 取得（#1666）の入口なので、無いとそちらへ着手できない。
+        #
+        # **消してから入れ直す形にはしない。** ユーザーやオーナーが後から足した
+        # リンク（source が user / owner / official_site）まで消えるためである。
+        # オープンデータ由来の行だけを対象に upsert する。
+        cursor.execute(
+            """
+            INSERT INTO restaurant_links (restaurant_id, kind, value, source, fetched_at)
+            SELECT r.id, v.kind, v.value, 'open_data', CURRENT_TIMESTAMP
+            FROM restaurant_sync_staging s
+            JOIN restaurants r ON r.google_place_id = s.google_place_id
+            CROSS JOIN LATERAL (
+              -- 電話・サイトは 1 本ずつ、SNS は配列。1 つの SELECT に畳んで
+              -- 空文字と NULL を同じ「無い」として落とす。
+              SELECT 'phone'::text AS kind, s.phone AS value
+              WHERE NULLIF(btrim(COALESCE(s.phone, '')), '') IS NOT NULL
+              UNION ALL
+              SELECT 'website', s.website
+              WHERE NULLIF(btrim(COALESCE(s.website, '')), '') IS NOT NULL
+              UNION ALL
+              SELECT
+                CASE
+                  WHEN u.value ILIKE '%%instagram.com%%' THEN 'instagram'
+                  WHEN u.value ILIKE '%%tiktok.com%%'    THEN 'tiktok'
+                  WHEN u.value ILIKE '%%facebook.com%%'  THEN 'facebook'
+                  WHEN u.value ILIKE '%%twitter.com%%'
+                    OR u.value ILIKE '%%//x.com/%%'      THEN 'x'
+                  ELSE 'other'
+                END,
+                u.value
+              FROM jsonb_array_elements_text(s.social_urls_json::jsonb) AS u(value)
+              WHERE NULLIF(btrim(u.value), '') IS NOT NULL
+            ) AS v
+            ON CONFLICT (restaurant_id, kind, value) DO NOTHING
             """
         )
 
