@@ -679,5 +679,13 @@
     "seed_expandable": "413→1000+（CEVSTY 47都道府県・star-inc量産・地方記事）で比例拡大",
     "headline": "柱2は延べ53.6万投稿・異なり店 十数万規模を無料で供給し、柱1が届かない地方・無サイト店に偏る。柱1+柱2で無料 20〜35万店、seed拡張で50万に接近。残差は検索$95で仕上げ",
     "caveats": "distinct_venues は 10 influencer / 500 caption 標本からの外挿。全投稿での重複減衰と cross-influencer 重複、Overture 実照合率は未確定（次段）"
+  },
+  "overture_address_match": {
+    "sample_n": 80,
+    "source": "influencer caption 📍addresses (all_addresses.json -> addr_clean.json)",
+    "exact_match_pct": 40.0,
+    "exact_match_n": 32,
+    "note": "32/80 exact-match Overture restaurant address; remaining differ only in 丁目/番地 notation. All 80 are well-formed real JP addresses resolving to an Overture locality. Confirms captions carry genuine geocodable store locations.",
+    "overture_table": "restaurant_overture_raw run_id=restaurant-2026-08-23 (1,081,471 rows)"
   }
 }
