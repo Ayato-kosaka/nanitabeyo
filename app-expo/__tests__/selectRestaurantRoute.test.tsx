@@ -117,6 +117,9 @@ jest.mock("@/components/MapView", () => {
 					children,
 				),
 		),
+		// #1629 畳んだ «数字の丸» と引きの «点» は素の Marker で描かれる
+		Marker: ({ children, onPress, testID }: { children?: React.ReactNode; onPress?: () => void; testID?: string }) =>
+			ReactActual.createElement(RNView, { testID, onPress }, children),
 	};
 });
 jest.mock("react-native-maps", () => ({ __esModule: true, default: () => null }));
@@ -186,6 +189,7 @@ jest.mock("@/components/ScreenHeader", () => ({ ScreenHeader: () => null }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 
 import SelectRestaurantScreen from "../app/[locale]/(tabs)/my-dishes/select-restaurant";
+import { PICKER_FETCH_DEBOUNCE_MS } from "@/features/restaurantPicker/mapPins";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -300,12 +304,19 @@ describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
 目的に対して地図に手がかりが無かった。pick モードでは **アプリ内のお店データ**を
 **店名の文字つき**で出す。
 
-⚠️ **上限（`MAX_NEARBY_RESTAURANT_PINS` = 40）を緩めないこと。** マーカーは 1 個ごとに
-ネイティブでビットマップになるので、無制限に置くと低メモリ端末で落ちる
-（#1375 で my-dishes のマップが実際に落ちた）。
+#1629 **上限は «取得件数を切る» ではなく «畳んでから描く数を切る» へ変えた。**
+旧実装は取得した 120 件を `slice(0, 40)` して 40 個のマーカーを置いていた
+（表示域の外も含めて全部）。いまは間引き → 畳み → 上限（`MAX_PICKER_MARKERS`）で、
+重なるピンは «数字の丸» 1 個になる。数そのものの回帰は
+`__tests__/selectRestaurantMap.test.tsx` が実数で固定している。
 */
 describe("#1375 «お店を探す»（pick モード）のピン", () => {
-	/** 指を離した（＝表示域が確定した）ことにする */
+	/**
+	 * 指を離した（＝表示域が確定した）ことにする。
+	 *
+	 * ⚠️ #1629 で取得は **デバウンス**されるようになった。表示域を渡すだけでは飛ばないので、
+	 * ここで待ち時間ぶん進める（この待ちを消すと «取得しない» ように見えて赤くなる）。
+	 */
 	const settleRegion = async (tree: TestRenderer.ReactTestRenderer) => {
 		const map = tree.root.find((node) => node.props?.testID === "map-view");
 		await act(async () => {
@@ -316,9 +327,26 @@ describe("#1375 «お店を探す»（pick モード）のピン", () => {
 				longitudeDelta: 0.05,
 			});
 		});
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, PICKER_FETCH_DEBOUNCE_MS + 50));
+		});
 	};
 
+	/** 互いに畳まれない距離（表示域 0.05 度に対しクラスタ半径は 0.004 度）で並べる */
 	const nearby = (n: number) =>
+		Array.from({ length: n }, (_, i) => ({
+			restaurant: {
+				id: `n-${i}`,
+				name: `お店${i}`,
+				latitude: 35.68 + i * 0.006,
+				longitude: 139.76,
+				imageUrls: { sm: null },
+			},
+			meta: { reviewCount: 0, averageRating: 0, totalCents: 0, maxEndDate: null },
+		}));
+
+	/** 全部が同じ座標（＝ 重なって見える）ピン */
+	const stacked = (n: number) =>
 		Array.from({ length: n }, (_, i) => ({
 			restaurant: { id: `n-${i}`, name: `お店${i}`, latitude: 35.68, longitude: 139.76, imageUrls: { sm: null } },
 			meta: { reviewCount: 0, averageRating: 0, totalCents: 0, maxEndDate: null },
@@ -337,16 +365,20 @@ describe("#1375 «お店を探す»（pick モード）のピン", () => {
 		expect(labelMarkerNames).toEqual(expect.arrayContaining(["お店0", "お店1", "お店2"]));
 	});
 
-	it("上限 40 件で切る（マーカーの置きすぎで落とさない）", async () => {
+	it("重なるピンは «数字の丸» 1 個へ畳む（120 件をそのまま置かない）", async () => {
 		mockRouteParams.current = { mode: "pick" };
 		mockCallBackend.mockImplementation((path: string) =>
-			Promise.resolve(path === "v1/restaurants/search" ? nearby(120) : { data: [SAVED] }),
+			Promise.resolve(path === "v1/restaurants/search" ? stacked(120) : { data: [SAVED] }),
 		);
 
 		const tree = await render(<SelectRestaurantScreen />);
 		await settleRegion(tree);
 
-		expect(new Set(labelMarkerNames).size).toBe(40);
+		expect(labelMarkerNames).toHaveLength(0);
+		// 実体（host 要素）だけ数える。composite を含めると 1 個の丸が複数回一致する
+		expect(
+			tree.root.findAll((node) => typeof node.type === "string" && node.props?.testID === "select-restaurant-cluster"),
+		).toHaveLength(1);
 	});
 
 	it("«形が違う» 応答でも落ちない（空で描く）", async () => {

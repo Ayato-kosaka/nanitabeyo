@@ -148,7 +148,15 @@ SNS は **URL 単位で OGP をキャッシュする**ため、同じ URL が閲
   `public/` 直下と `public/.well-known/` の両方に AASA を置いてあるのは、iOS のバージョンで探しに行く場所が違うため
 - Android の指紋は**リリース署名鍵のもの**。Play App Signing を使っている場合、
   ローカルビルドの debug 鍵とは一致しないので、実機検証は必ずリリース版で行う
+- **`autoVerify: true` の intent filter へ他社のドメインを足さない。** App Links の検証は
+  `https://<host>/.well-known/assetlinks.json` を Google が取りに行って成立するため、
+  自分で配信できないドメインを書くと Play Console の Deep links が
+  «Domain ownership not verified» を出し続ける（#1660: `*.supabase.co` が入っていた）。
+  Android 11 以下は検証がアプリ単位なので、1 つ落ちると `app.nanitabeyo.net` まで巻き添えになる。
+  固定は `app-expo/__tests__/appConfigAppLinks.test.ts`
 - カスタムスキームは `nanitabeyo:`。Universal Link が効かない経路のフォールバックとして残している
+- Supabase の OAuth はカスタムスキーム（`AuthSession.makeRedirectUri({ scheme: "nanitabeyo" })` +
+  `WebBrowser.openAuthSessionAsync`）で戻るので、**Supabase のドメインを App Links に足す必要は無い**
 - **アプリ側の受け口が別途必要。** `app/index.tsx` の `toInAppPath()` がロケール以外の先頭セグメントを捨てるため、
   新しいトップレベルパスを足すときはここに許可を追加する（`/s/` の項を参照）
 

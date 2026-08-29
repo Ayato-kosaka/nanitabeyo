@@ -451,13 +451,18 @@
 			"menuTitle": "Votre publication",
 			"edit": "Modifier l'avis",
 			"delete": "Supprimer la publication",
+			"deleteReview": "Supprimer l'avis",
 			"cancel": "Annuler",
 			"mediaLocked": "Les photos et vidéos ne peuvent pas être remplacées. Vous pouvez modifier le commentaire, la note et le prix.",
 			"deleteConfirmTitle": "Supprimer cette publication ?",
 			"deleteConfirmMessage": "La publication sera supprimée : la photo et votre avis. Cette action est irréversible.",
+			"deleteReviewConfirmTitle": "Supprimer cet avis ?",
+			"deleteReviewConfirmMessage": "Seul l'avis que vous avez écrit sera supprimé. La photo appartient à une autre personne et sera conservée. Cette action est irréversible.",
 			"deleteConfirmButton": "Supprimer",
 			"deleted": "Publication supprimée",
+			"reviewDeleted": "Avis supprimé",
 			"deleteFailed": "Impossible de supprimer la publication",
+			"reviewDeleteFailed": "Impossible de supprimer l'avis",
 			"editTitle": "Modifier l'avis",
 			"editComment": "Commentaire",
 			"editRating": "Note",
@@ -947,6 +952,7 @@
 			"savedRestaurantList": "Liste des restaurants enregistrés",
 			"postPhotoVideo": "Publier une photo/vidéo",
 			"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
+			"fetchSavedRestaurantsTimeout": "Cela a pris trop de temps. Zoomez et réessayez.",
 			"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche."
 		},
 		"emptyState": {
@@ -964,6 +970,7 @@
 		"savedRestaurantList": "Liste des restaurants enregistrés",
 		"postPhotoVideo": "Publier une photo/vidéo",
 		"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
+		"fetchSavedRestaurantsTimeout": "Cela a pris trop de temps. Zoomez et réessayez.",
 		"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche.",
 		"nameSearch": {
 			"placeholder": "Rechercher par nom de restaurant",
@@ -1076,7 +1083,11 @@
 			"activeCount": "{{count}} filtres actifs"
 		},
 		"empty": {
-			"description": "Les plats que vous enregistrez ou marquez comme goûtés apparaîtront ici."
+			"description": "Les plats que vous enregistrez ou marquez comme goûtés apparaîtront ici.",
+			"noResultsInArea": "Aucun enregistrement dans cette zone.",
+			"noResultsInAreaHint": "Déplacez la carte et appuyez sur « Rechercher dans cette zone », ou retirez les filtres.",
+			"noResultsForFilter": "Aucun enregistrement ne correspond à ces filtres.",
+			"noResultsForFilterHint": "Retirez les filtres pour voir vos autres enregistrements."
 		},
 		"list": {
 			"noPhoto": "Sans photo"

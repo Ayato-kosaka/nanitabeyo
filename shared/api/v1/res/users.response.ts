@@ -193,7 +193,15 @@ export type MyDishPin = {
 	isOwnMediaDeleted: boolean;
 };
 
-/** #1395 Map ピンの上限。超えた分は返さず `truncated: true` で明示する（黙って切らない） */
+/**
+ * #1395 Map ピンの上限。超えた分は返さず `truncated: true` で明示する（黙って切らない）。
+ *
+ * #1629 【設計】300 は «転送とクライアント処理の予算» であって描画の上限ではない
+ * （描画はクライアント側の MAX_RENDERED_CLUSTERS = 60 で別に頭打ち）。
+ * 実測: 300 件の JSON ≒ 450KB（1 本 ≒ 1.5KB）、クラスタリング ≒ 1ms。
+ * 超えたときの «どの 300 件か» は最新順ではなく、格子セルごとの round-robin で
+ * 地理的な散らばりを保って選ぶ（api/src/v1/users/my-dishes.query.ts）。
+ */
 export const MY_DISH_MAP_PINS_LIMIT = 300;
 
 /** GET /v1/users/me/dishes/map-pins のレスポンス型 */

@@ -451,13 +451,18 @@
 			"menuTitle": "내 게시물",
 			"edit": "리뷰 편집",
 			"delete": "게시물 삭제",
+			"deleteReview": "리뷰 삭제",
 			"cancel": "취소",
 			"mediaLocked": "사진과 동영상은 변경할 수 없습니다. 코멘트, 평점, 가격만 수정할 수 있습니다.",
 			"deleteConfirmTitle": "게시물을 삭제할까요?",
 			"deleteConfirmMessage": "이 게시물(사진과 내 리뷰)을 삭제합니다. 되돌릴 수 없습니다.",
+			"deleteReviewConfirmTitle": "리뷰를 삭제할까요?",
+			"deleteReviewConfirmMessage": "내가 쓴 리뷰만 삭제합니다. 사진은 다른 사람의 것이라 그대로 남습니다. 되돌릴 수 없습니다.",
 			"deleteConfirmButton": "삭제",
 			"deleted": "게시물을 삭제했습니다",
+			"reviewDeleted": "리뷰를 삭제했습니다",
 			"deleteFailed": "삭제하지 못했습니다",
+			"reviewDeleteFailed": "리뷰를 삭제하지 못했습니다",
 			"editTitle": "리뷰 편집",
 			"editComment": "코멘트",
 			"editRating": "평점",
@@ -947,6 +952,7 @@
 			"savedRestaurantList": "저장된 레스토랑",
 			"postPhotoVideo": "사진/동영상 게시",
 			"fetchSavedRestaurantsError": "저장된 레스토랑을 가져오지 못했습니다",
+			"fetchSavedRestaurantsTimeout": "시간이 너무 오래 걸렸습니다. 지도를 확대한 뒤 다시 시도해 주세요.",
 			"noSavedRestaurantsInArea": "이 지역에서 저장된 레스토랑을 찾을 수 없습니다. 지역을 확대하고 다시 검색하세요."
 		},
 		"emptyState": {
@@ -964,6 +970,7 @@
 		"savedRestaurantList": "저장된 레스토랑",
 		"postPhotoVideo": "사진/동영상 게시",
 		"fetchSavedRestaurantsError": "저장된 레스토랑을 가져오지 못했습니다",
+		"fetchSavedRestaurantsTimeout": "시간이 너무 오래 걸렸습니다. 지도를 확대한 뒤 다시 시도해 주세요.",
 		"noSavedRestaurantsInArea": "이 지역에서 저장된 레스토랑을 찾을 수 없습니다. 지역을 확대하고 다시 검색하세요.",
 		"nameSearch": {
 			"placeholder": "가게 이름으로 검색",
@@ -1076,7 +1083,11 @@
 			"activeCount": "필터 {{count}}개 적용 중"
 		},
 		"empty": {
-			"description": "저장하거나 먹었다고 기록한 음식이 여기에 표시됩니다."
+			"description": "저장하거나 먹었다고 기록한 음식이 여기에 표시됩니다.",
+			"noResultsInArea": "이 범위에는 기록이 없어요.",
+			"noResultsInAreaHint": "지도를 옮겨 ‘이 지역에서 다시 검색’을 누르거나 필터를 해제해 보세요.",
+			"noResultsForFilter": "조건에 맞는 기록이 없어요.",
+			"noResultsForFilterHint": "필터를 해제하면 다른 기록이 표시됩니다."
 		},
 		"list": {
 			"noPhoto": "사진 없음"

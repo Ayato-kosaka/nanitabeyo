@@ -71,6 +71,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		},
 		googleServicesFile: "./google-services.json",
 		intentFilters: [
+			// #1660 【設計】`autoVerify: true` の filter に載せてよい https ホストは
+			// **assetlinks.json を自分で置けるドメインだけ**（= app.nanitabeyo.net）。
+			// 以前ここに `*.supabase.co` が入っており、Play Console の Deep links が
+			// 「Domain ownership not verified」を出し続けていた（supabase.co は他社のドメインなので
+			// /.well-known/assetlinks.json を置けない = 検証が永久に通らない）。
+			// ネイティブの OAuth は https ではなくカスタムスキーム `nanitabeyo://` で戻る
+			// （contexts/AuthProvider.tsx の makeRedirectUri + openAuthSessionAsync）ので、
+			// 外部ドメインをここへ足す理由は無い。
 			{
 				action: "VIEW",
 				autoVerify: true,
@@ -79,10 +87,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 						scheme: "https",
 						host: "app.nanitabeyo.net",
 						pathPrefix: "/",
-					},
-					{
-						scheme: "https",
-						host: "*.supabase.co",
 					},
 					{
 						scheme: "nanitabeyo",

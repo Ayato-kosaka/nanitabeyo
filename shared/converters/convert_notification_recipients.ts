@@ -17,6 +17,10 @@ export function convertSupabaseToPrisma_NotificationRecipients(supabase: Supabas
     recipient_id: supabase.recipient_id,
     thread_updated_at: new Date(supabase.thread_updated_at),
     created_at: new Date(supabase.created_at),
+    // #1599 どの actor まで Push 済みか。Cloud Tasks の at-least-once による
+    // 二重 Push を防ぐための列で、NULL 許容。
+    last_pushed_actor_id: supabase.last_pushed_actor_id,
+    last_pushed_at: supabase.last_pushed_at !== null ? new Date(supabase.last_pushed_at) : null,
   };
 }
 
@@ -31,5 +35,7 @@ export function convertPrismaToSupabase_NotificationRecipients(prisma: PrismaNot
     recipient_id: prisma.recipient_id,
     thread_updated_at: prisma.thread_updated_at?.toISOString() ?? null,
     created_at: prisma.created_at?.toISOString() ?? null,
+    last_pushed_actor_id: prisma.last_pushed_actor_id,
+    last_pushed_at: prisma.last_pushed_at?.toISOString() ?? null,
   };
 }

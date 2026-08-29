@@ -31,33 +31,14 @@ import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks
 // #1509 全画面フィードの黒背景・白文字はメディアを引き立てる固定色（テーマ非追従）
 import { FixedColors } from "@/constants/Palette";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+// #1629【30】先読みの «窓» の判断はここに閉じている（テストから直接叩けるようにするため）
+import { computePreloadIds } from "@/features/dishMedia/preloadWindow";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
 const clampIndex = (index: number, length: number) => Math.min(Math.max(0, index), Math.max(0, length - 1));
 
 // --- Props -------------------------------------------------------------------
-/** #1629 背景画像を先読みする «戻る側» の枚数。もう見たページなので 1 枚で足りる */
-const PRELOAD_BEHIND = 1;
-/*
-#1629【18 → 差し戻し】背景画像を先読みする «進む側» の枚数。
-
-⚠️ **2 から増やさないこと。** 一度 4 にしたが、オーナー実機報告で差し戻した。
-
-> このお店提案は 5 件しか表示されないんで、今の状態だとチカチカするんですよね。
-> 今までこのお店提案はそんな性能が悪かったことないんで、そういう先読みは
-> あえて入れてないんですよ。むしろチカチカして見にくい。
-
-`DishMediaFeed` は my-dishes だけでなく **お店提案（search/result）でも使う**。
-あちらは全部で 5 件しか無いので、4 枚先読みすると **開いた直後にほぼ全件の取得が
-一斉に走り**、画面がチカチカする。母数の大きい my-dishes を見て決めた値が、
-母数の小さい画面を壊していた。
-
-そもそも 18（フィードが 1 件ずつ重い）の真因はここではなかった。
-待たされていたのは «縦 = 別スコープのデータ取得» で、
-直したのは `MyDishesFeedPage` の `shouldPrefetch` である（別物だった）。
-*/
-const PRELOAD_AHEAD = 2;
 
 interface DishMediaFeedProps {
 	// 初期表示インデックス（範囲外はクランプ）
@@ -93,9 +74,29 @@ export default function DishMediaFeed({
 	// 画面を開いた時点の並びを固定するための state
 	// liked/unlike 等のリアルタイム反映は行わない
 	const [ids, setIds] = useState<string[]>([]);
+	/*
+	#1629【35】【設計】**固定した並びから «削除されたもの» だけは落とす。**
+
+	オーナー報告「投稿を削除するとローディングの無限ループになる」の真因がここだった。
+	並びを固定したあとは `liveIds` が縮んでもこの state は縮まないので、削除したセルが
+	FlatList に残る。残ったセルは `entriesByMediaId` から実体が消えているため
+	`useDishMediaBackgroundImageResources` の descriptor から外れ、背景画像の状態が
+	`idle` のまま二度と動かない。`DishMediaContent` は idle を «読み込み中» と見なして
+	`SkeletonShimmer` を出し続けるので、**削除した投稿の上でスケルトンが回り続ける**。
+
+	⚠️ 判定に `liveIds` を使わないこと。`clearByKey`（画面を離れるときの掃除）でも
+	   `liveIds` は空になるので、それを «削除» と読むと関係のない場面でフィードが空になる。
+	   見るのは削除操作だけが立てる墓標（`useDishMediaEntriesStore.deletedIds`）である。
+	*/
+	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
 	useEffect(() => {
-		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
-	}, [liveIds, ids.length]);
+		if (ids.length === 0) {
+			if (liveIds.length > 0) setIds(liveIds);
+			return;
+		}
+		if (!ids.some((id) => deletedIds[id])) return;
+		setIds((prev) => prev.filter((id) => !deletedIds[id]));
+	}, [liveIds, ids, deletedIds]);
 
 	// #802 【責務分離】Feed は ids とページング制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
 	const backgroundImagesSessionKey = useMemo(
@@ -124,29 +125,34 @@ export default function DishMediaFeed({
 	// 開いた瞬間に全画面ビットマップ 42 枚の取得・デコードが一斉に走っていた
 	// （Android は Glide 側の timeout も踏む）。窓の外は表示時に通常経路で読まれる
 	/*
-	#1629 【調整】オーナー指示「1 個 1 個読み込みで重いので、もうちょっとだけ先読みしたい。
-	先読みしすぎるとクラッシュにつながると思うので按配してほしい」。
+	#1629 【調整 → 一部差し戻し】背景画像の先読み。
 
-	## どこを広げ、どこを広げないのか
+	## 重さの正体と、クラッシュの正体は別物である
 
-	重さの正体は **次のカードの背景画像が、スワイプしてから取りに行かれること**である。
-	一方で «クラッシュにつながる» のは画像ではなく **動画デコーダ**の同時本数で、
-	そちらは `isNearActive`（±1）が別に握っている。したがって
+	«1 個ずつ読み込む感じ» の正体は **次のカードの背景画像をスワイプ後に取りに行くこと**、
+	«先読みしすぎるとクラッシュ» の正体は **動画デコーダの同時本数**（`isNearActive` が ±1 で
+	別に握っている）。だから広げる先を分ける。`windowSize` は 5 のまま（前後 2 ページのマウント）。
 
-	- **背景画像の先読みは 前 1 / 後 2 = 4 枚**。#1629 で一度 後 4 まで広げたが、
-	  5 件しか無いお店提案でチカチカしたためオーナー指示で戻した（PRELOAD_AHEAD のコメント）
-	- **`windowSize` は 5 のまま**（= 前後 2 ページぶんのマウント）… ここを広げると
-	  マウントされるセルが増えて素の memory が増える
-	- **`isNearActive` は ±1 のまま**（同時に立つ動画デコーダは最大 3 本）
+	## ⚠️ 件数が少ない画面では «窓» そのものが害になる（オーナー実機報告）
 
-	⚠️ ここを «全件先読み» へ戻さないこと。#802 の時点で ids 全件（my-dishes 経由だと 42 件）を
-	   同時に `Image.loadAsync` しており、開いた瞬間に全画面ビットマップ 42 枚の取得・デコードが
-	   一斉に走って Android では Glide の timeout まで踏んでいた。
+	> このお店提案は 5 件しか表示されないんで、今の状態だとチカチカするんですよね。
+	> 今までこのお店提案はそんな性能が悪かったことないんで、そういう先読みは
+	> あえて入れてないんですよ。むしろチカチカして見にくい。
+
+	`useDishMediaBackgroundImageResources` は **集合から外れた画像を release する**。
+	窓を動かすと、外れた画像は破棄され、戻ってきたときに取り直しになる。
+	件数が窓より少し多いだけの画面（お店提案は 5 件）では、指を動かすたびに
+	**取得 → 破棄 → 取得** が繰り返され、これが «チカチカ» の正体である。
+	枚数を 4 から 2 へ減らしても、窓が動く限り churn は消えない。
+
+	そこで **全部が窓に収まる規模なら窓を作らない**。1 度きりで確定するので churn がゼロになる。
+	これは release/1.13 の «ids 全件を渡す» 挙動と、この規模では同一である。
+
+	⚠️ 大きい方（my-dishes 経由の 42 件）を «全件先読み» へ戻さないこと。#802 の時点で
+	   全画面ビットマップ 42 枚の取得・デコードが一斉に走り、Android では Glide の
+	   timeout まで踏んでいた。だから **しきい値で分ける**のであって、窓をやめるのではない。
 	*/
-	const preloadIds = useMemo(() => {
-		const start = Math.max(0, currentIndex - PRELOAD_BEHIND);
-		return ids.slice(start, currentIndex + PRELOAD_AHEAD + 1);
-	}, [ids, currentIndex]);
+	const preloadIds = useMemo(() => computePreloadIds(ids, currentIndex), [ids, currentIndex]);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
 		ids: preloadIds,
 		idType,
@@ -263,6 +269,8 @@ export default function DishMediaFeed({
 	return (
 		<View
 			style={styles.root}
+			// #1629【35】回帰テストが onLayout を発火させて FlatList を描くための口
+			testID="dish-media-feed-root"
 			// ここで SafeArea 等込みの実レイアウト高を取得し pageHeight に反映
 			onLayout={(e) => {
 				const h = Math.max(1, Math.floor(e.nativeEvent.layout.height));

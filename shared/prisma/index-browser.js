@@ -329,10 +329,10 @@ exports.Prisma.Dish_reviewsScalarFieldEnum = {
   imported_user_name: 'imported_user_name',
   imported_user_avatar: 'imported_user_avatar',
   created_at: 'created_at',
-  updated_at: 'updated_at',
-  lock_no: 'lock_no',
+  eaten_at: 'eaten_at',
   deleted_at: 'deleted_at',
-  eaten_at: 'eaten_at'
+  updated_at: 'updated_at',
+  lock_no: 'lock_no'
 };
 
 exports.Prisma.DishesScalarFieldEnum = {
@@ -380,7 +380,9 @@ exports.Prisma.Notification_recipientsScalarFieldEnum = {
   notification_id: 'notification_id',
   recipient_id: 'recipient_id',
   thread_updated_at: 'thread_updated_at',
-  created_at: 'created_at'
+  created_at: 'created_at',
+  last_pushed_actor_id: 'last_pushed_actor_id',
+  last_pushed_at: 'last_pushed_at'
 };
 
 exports.Prisma.NotificationsScalarFieldEnum = {
@@ -491,7 +493,8 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   source_seed_id: 'source_seed_id',
   source_names: 'source_names',
   source_row_hash: 'source_row_hash',
-  synced_at: 'synced_at'
+  synced_at: 'synced_at',
+  created_by_source: 'created_by_source'
 };
 
 exports.Prisma.Role_permissionsScalarFieldEnum = {

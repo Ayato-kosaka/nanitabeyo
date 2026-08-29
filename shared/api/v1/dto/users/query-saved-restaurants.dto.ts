@@ -1,5 +1,6 @@
 import { IsNumber, IsOptional, IsPositive, Max, Min } from "class-validator";
 import { Type } from "class-transformer";
+import { MAX_SEARCH_RADIUS_M } from "../../../../utils/geo_search";
 
 /** GET /v1/users/me/saved-restaurants のクエリパラメータ */
 export class QuerySavedRestaurantsDto {
@@ -15,9 +16,14 @@ export class QuerySavedRestaurantsDto {
 	@Max(180)
 	lng!: number;
 
+	/**
+	 * 検索半径（m）。#1629 で 50km の頭打ちを外した（詳細は QueryRestaurantsDto.radius）。
+	 * この経路の駆動表はそのユーザーが保存した店なので、半径を広げても行数は増えない。
+	 */
 	@Type(() => Number)
 	@IsNumber()
 	@IsPositive()
+	@Max(MAX_SEARCH_RADIUS_M)
 	radius!: number;
 
 	/**

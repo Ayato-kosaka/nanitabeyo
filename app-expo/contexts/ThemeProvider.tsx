@@ -141,19 +141,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 		// 保存済みの dark 端末が起動直後だけライトへ振れる
 		if (!isPreferenceLoaded) return;
 		/*
-		⚠️ **react-native-web は `setColorScheme` を実装していない。**
+		⚠️ **`typeof` の確認を外さないこと。web が丸ごと白紙になる。**
 
-		これは RN 0.73 で入った «ネイティブ部品の外観を上書きする» API で、web には
-		対応する概念が無い。無条件に呼ぶと
+		`Appearance.setColorScheme` は RN 0.73+ の API だが、**react-native-web には無い**。
+		無い環境で呼ぶと `TypeError: setColorScheme is not a function` が
+		ThemeProvider のレンダー直下で投げられ、**アプリ全体が描画されない**
+		（実測 2026-08-27: web ビルドで画面が真っ白、testID が 1 つも出ない）。
 
-		    TypeError: n.default.setColorScheme is not a function
-
-		が `ThemeProvider` の中（＝ アプリ全体の親）で投げられ、**web アプリが
-		真っ白のまま何も描かれなくなる**（preview デプロイで実測。ページの本文が空になり、
-		起動・直リンクの smoke が全滅した）。
-
-		web ではブラウザ自身の配色設定に従うのが正しく、ここで上書きするものは何も無いので、
-		実装が無い環境では黙って何もしない。
+		ネイティブしか見ていなかったので気づけなかった。jest の RN モックには
+		この関数が在るため**テストも緑のまま通っていた**。
+		そもそも web には «OS が描くトグルやキーボード» が無く、この上書きは要らない。
 		*/
 		if (typeof Appearance.setColorScheme !== "function") return;
 		Appearance.setColorScheme(preference === "system" ? null : preference);

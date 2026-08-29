@@ -20,7 +20,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { toErrorLogMessage } from "@/lib/errorMessage";
-import { replaceLocaleInPath } from "@/lib/localeSwitch";
+import { localeSwitchLandingPath } from "@/lib/localeSwitch";
 import { resolvePublicLocale, type PublicLocale } from "@/constants/seoLocales";
 import { LANGUAGE_DISPLAY_NAMES, SELECTABLE_LANGUAGE_LOCALES } from "@/constants/languageDisplayNames";
 import {
@@ -119,7 +119,20 @@ export default function LanguageScreen() {
 				payload: { from: locale, to: resolvedLocale, preference: next },
 			});
 
-			router.replace(replaceLocaleInPath(pathname, resolvedLocale) as ExternalPathString);
+			/*
+			#1629【28】**タブの根へ着地する。いまのパスへ replace してはいけない。**
+
+			`router.replace("/en-US/profile/language")` にすると、新しいロケールの Stack が
+			«その 1 画面だけ» で組まれ、戻るがタブの初期タブ（検索）へ抜ける。
+			しかも profile の Stack は `language` のまま残るので、もう一度プロフィールを
+			開くと言語画面が出て、そこから戻るとまた検索へ行く ＝ **プロフィールへ
+			二度と戻れない**（オーナー実機報告。web ビルドで再現・録画済み）。
+
+			⚠️ `unstable_settings.initialRouteName` では直らない。あれは URL から state を
+			   組み立てるときに効くもので、`replace` には効かない。
+			   一度それで «直した» と報告して直っていなかった。
+			*/
+			router.replace(localeSwitchLandingPath(pathname, resolvedLocale) as ExternalPathString);
 		},
 		[
 			isSwitching,

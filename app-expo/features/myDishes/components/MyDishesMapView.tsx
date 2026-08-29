@@ -30,7 +30,7 @@ import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
 import { MY_DISHES_EVENTS, buildMapAreaPayload } from "../analytics";
 import { regionToArea } from "../geo";
-import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
+import { selectActiveFilterCount, useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { MyDishesMapSheet } from "./MyDishesMapSheet";
@@ -74,6 +74,9 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const commitArea = useMyDishesFilterStore((s) => s.commitArea);
+	// #1629【32】空状態の出し分けに使う。エリアが効いているか / 何か絞り込みが効いているか（下の showEmpty 参照）
+	const hasAreaFilter = useMyDishesFilterStore((s) => s.filter.area !== null);
+	const activeFilterCount = useMyDishesFilterStore(selectActiveFilterCount);
 	const { pins, isLoading, error, hasFetchedInitial, truncated, refresh } = useMyDishesMapPinsQuery({ enabled });
 
 	const initialRegion = useMemo<Region>(() => (isJapanese ? REGION_JP : INITIAL_REGION), [isJapanese]);
@@ -373,6 +376,38 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	// 再試行の口（refresh）へ UI から到達できるようにする。一覧ビュー（GridList の
 	// ListEmptyComponent）と同じく hasFetchedInitial の成否に関わらず error を優先する。
 	const showEmpty = !isLoading && (error !== null || (hasFetchedInitial && pins.length === 0));
+
+	/*
+	#1629【32】**«まだ 1 件も記録が無い» と «この範囲（条件）に無いだけ» を別の状態として扱う。**
+
+	オーナー実機報告: 「東京でエリア再検索して、日本地図全体にして再検索すると
+	『気になるお店の料理を保存したり…』と出る」。
+
+	真因は «0 件» を 1 種類しか持っていなかったことである。Map のピンは
+	`commitArea` が確定したエリア（`filter.area`）で絞った結果なので、`pins.length === 0` は
+	«記録が 1 件も無い» ではなく «その絞り込みの結果が 0 件» でしかない。しかもこの操作では
+	必ず 0 件になる: `regionToArea` は半径を `MAX_AREA_RADIUS_M`（50km）へ clamp するため
+	（geo.ts）、日本全体を映して押しても «日本の中心から 50km» という細い円になり、
+	東京の記録は全部その外側に落ちる。
+
+	`MyDishes.empty.description` は «まだ 1 件も記録が無い人» 向けのオンボーディング文言
+	（「保存したり、食べた記録をつけるとここに並びます」）なので、記録があるのにこれを出すと
+	«自分の記録が消えた» と読めてしまう。
+
+	絞り込みが 1 つも効いていないときだけオンボーディングを出し、効いているときは
+	«この範囲／この条件には無い» と、次にどうすればよいか（範囲を動かす / 絞り込みを外す）を出す。
+	判定に使うのは «棚を削っているもの» の数（`countActiveMyDishesFilters`）で、並び替えは数えない。
+	*/
+	const emptyMessage = hasAreaFilter
+		? i18n.t("MyDishes.empty.noResultsInArea")
+		: activeFilterCount > 0
+			? i18n.t("MyDishes.empty.noResultsForFilter")
+			: i18n.t("MyDishes.empty.description");
+	const emptyDescription = hasAreaFilter
+		? i18n.t("MyDishes.empty.noResultsInAreaHint")
+		: activeFilterCount > 0
+			? i18n.t("MyDishes.empty.noResultsForFilterHint")
+			: undefined;
 	// #1396 n-1: 初回失敗後の再取得（hasFetchedInitial === false）でもボタンのスピナーを出す
 	const showButtonLoading = isLoading && (hasFetchedInitial || error !== null);
 
@@ -418,6 +453,12 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 				    「このエリアで再検索」ボタンがそのまま «いまの範囲で引き直す» 導線になる。
 				    見えているものを文字で言い直すだけの帯は、地図を隠すぶんだけ損である。
 				    エリアが効いていることの表示と解除は、フィルタ画面（MyDishes.filters.area）に集約した */}
+				{/* #1629 【設計】«一部のみ表示» の帯は残す。上限（300）の «選び方» はサーバ側で
+				    最新順 → 格子ごとの round-robin（地理的な散らばりを保つ）へ変えたので、
+				    引きの絵から地域が丸ごと消えることは無くなったが、300 店舗を超えるユーザーでは
+				    依然として出ていないピンがある。それを黙って消すと «自分の記録が消えた» に見える
+				    （下の空状態の申し送りと同じ理屈）ため、帯で明示する。
+				    出ていない分は «このエリアで再検索»（エリア内で 300 枠を取り直す）で回収できる */}
 				{truncated && (
 					<View style={styles.truncatedBanner} testID="my-dishes-map-truncated">
 						<Text style={styles.truncatedText}>{i18n.t("MyDishes.map.truncated")}</Text>
@@ -428,7 +469,8 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 			{showEmpty && (
 				<View style={styles.emptyOverlay} pointerEvents={error ? "auto" : "none"} testID="my-dishes-map-empty-overlay">
 					<EmptyState
-						message={i18n.t("MyDishes.empty.description")}
+						message={emptyMessage}
+						description={emptyDescription}
 						error={error}
 						onRetry={refresh}
 						testID="my-dishes-map-empty"

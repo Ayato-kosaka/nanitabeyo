@@ -451,13 +451,18 @@
 			"menuTitle": "我的帖子",
 			"edit": "编辑评价",
 			"delete": "删除帖子",
+			"deleteReview": "删除评价",
 			"cancel": "取消",
 			"mediaLocked": "照片和视频无法更换。可编辑的是评论、评分和价格。",
 			"deleteConfirmTitle": "要删除这条帖子吗？",
 			"deleteConfirmMessage": "将删除这条帖子（照片和你的评价），且无法恢复。",
+			"deleteReviewConfirmTitle": "要删除这条评价吗？",
+			"deleteReviewConfirmMessage": "只会删除你写的评价。照片是别人的，会保留。删除后无法恢复。",
 			"deleteConfirmButton": "删除",
 			"deleted": "已删除帖子",
+			"reviewDeleted": "已删除评价",
 			"deleteFailed": "删除失败",
+			"reviewDeleteFailed": "删除评价失败",
 			"editTitle": "编辑评价",
 			"editComment": "评论",
 			"editRating": "评分",
@@ -947,6 +952,7 @@
 			"savedRestaurantList": "已保存的餐厅",
 			"postPhotoVideo": "发布照片/视频",
 			"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
+			"fetchSavedRestaurantsTimeout": "耗时过长。请放大地图后重试。",
 			"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。"
 		},
 		"emptyState": {
@@ -964,6 +970,7 @@
 		"savedRestaurantList": "已保存的餐厅",
 		"postPhotoVideo": "发布照片/视频",
 		"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
+		"fetchSavedRestaurantsTimeout": "耗时过长。请放大地图后重试。",
 		"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。",
 		"nameSearch": {
 			"placeholder": "按店名搜索",
@@ -1076,7 +1083,11 @@
 			"activeCount": "已启用 {{count}} 个筛选条件"
 		},
 		"empty": {
-			"description": "你收藏或记录为已吃过的美食会显示在这里。"
+			"description": "你收藏或记录为已吃过的美食会显示在这里。",
+			"noResultsInArea": "此范围内没有记录。",
+			"noResultsInAreaHint": "移动地图后点按“搜索此区域”，或清除筛选条件。",
+			"noResultsForFilter": "没有符合筛选条件的记录。",
+			"noResultsForFilterHint": "清除筛选条件即可看到其他记录。"
 		},
 		"list": {
 			"noPhoto": "无照片"

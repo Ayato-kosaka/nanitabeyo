@@ -21,7 +21,11 @@ import {
   DishCategoryCandidateWithScores,
   DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
-import { shuffle } from 'src/core/utils/backend-utils';
+import {
+  buildSeasonFallbackKeys,
+  getCurrentMonthKey,
+  shuffle,
+} from 'src/core/utils/backend-utils';
 
 // #533 【定数】候補取得上限数
 const CANDIDATE_LIMIT = 200;
@@ -82,6 +86,7 @@ export class DishCategoriesService {
         addressTokens: normalized.addressTokens,
         regionTokens: normalized.regionTokens,
         regionFallbackKeys: normalized.regionFallbackKeys,
+        seasonFallbackKeys: normalized.seasonFallbackKeys,
         budgetIntentKeys: normalized.budgetIntentKeys,
         timeSlotKey: normalized.timeSlotKey,
         sceneKey: normalized.sceneKey,
@@ -267,6 +272,22 @@ export class DishCategoriesService {
     // #533 【仕様】regionFallbackKeys生成（狭い地域→広い地域→global）
     const regionFallbackKeys = [...regionTokens].reverse().concat('global');
 
+    // #737 【仕様】seasonFallbackKeys生成
+    //
+    // 季節はユーザーが選ぶ条件ではなく「いつ検索したか」で決まる文脈なので、
+    // クライアントからは受け取らず**サーバ側で現在月から導出する**。
+    // こうするとクライアント改修も OTA も要らず、旧バージョンの端末にも即日効く。
+    //
+    // 地域は既存の regionFallbackKeys をそのまま流用し、各キーへ `:month:MM` を付ける。
+    //   ["region:locality:大阪市:month:08", …, "region:country:JP:month:08", "global:month:08"]
+    // regionFallbackKeys の末尾は必ず 'global' なので、**JP のデータが無い地点でも
+    // 最後に 'global:month:MM' へ落ちる**（#737 オーナー指示。global のデータ投入は今回のスコープ外だが、
+    // 後から入れるだけで海外にも効くようにキーだけ通しておく）。
+    const seasonFallbackKeys = buildSeasonFallbackKeys(
+      regionFallbackKeys,
+      getCurrentMonthKey(),
+    );
+
     // #533 【仕様】空文字をnullに正規化
     const timeSlotKey = dto.timeSlot || null;
     const sceneKey = dto.scene || null;
@@ -303,6 +324,7 @@ export class DishCategoriesService {
       addressTokens,
       regionTokens,
       regionFallbackKeys,
+      seasonFallbackKeys,
       budgetIntentKeys,
       timeSlotKey,
       sceneKey,
