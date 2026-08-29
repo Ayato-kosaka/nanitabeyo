@@ -11,7 +11,7 @@ const MARKER = "# #1156 use-frameworks-module-fixes";
  * 公開ヘッダで晒している Pod は use_frameworks! 下で必ず modular header 制約に抵触する。
  * そういう Pod は framework ではなく素の静的ライブラリとしてビルドさせるのが確実。
  */
-const STATIC_LIBRARY_PODS = ["react-native-maps"];
+const STATIC_LIBRARY_PODS = ["react-native-maps", "RNFBCrashlytics"];
 
 /**
  * #1156 【設計】use_frameworks! 環境で発生する modular header 由来のビルドエラーを回避する。
@@ -25,6 +25,16 @@ const STATIC_LIBRARY_PODS = ["react-native-maps"];
  *   Clang が警告し、React Native の Pods は -Werror 相当のためビルドエラーになる。
  *   React Native Core のヘッダ自体が module map を持たないので、React Native Core の
  *   型を公開ヘッダで使っている Pod はすべてこれを踏みうる。
+ *
+ *   #1641 `@react-native-firebase/crashlytics` を足したとき、**同じ形のエラー**を踏んだ
+ *   （Detox の iOS ビルドが落ちた。run 33267301639）。
+ *
+ *     declaration of 'RCTBridgeModule' must be imported from module
+ *     'RNFBApp.RNFBAppModule' before it is required
+ *
+ *   ⚠️ **同じ 25.1.0 の `@react-native-firebase/perf` は踏まない。** 公開ヘッダの形は
+ *   両者とも同じ（`#import <React/RCTBridgeModule.h>` ＋ `<RCTBridgeModule>` の採用）なので、
+ *   «この形の Pod は必ず踏む» ではなく **踏んだものを個別に足す**運用にしてある。
  *
  *   Expo SDK 54 (React Native 0.81) へ上げた際、`react-native-maps` が実際に踏んだ。
  *   EAS Build Develop の iOS が 2 回連続で XCODE_BUILD_ERROR になった。
