@@ -129,7 +129,14 @@ type FeedResponse = {
 		// ⚠️ API は camelCase で返す（`dish` / `dish_media` の中だけ snake_case が混ざる）。実測で確認した形
 		data?: {
 			dish?: { category_id?: string };
-			dish_media?: { externalEmbed?: { externalContentId?: string } | null };
+			dish_media?: {
+				externalEmbed?: {
+					externalContentId?: string;
+					/** #1641 サーバが取り込み時に判定した再生可否（unknown / playable / not_playable） */
+					playbackStatus?: string;
+					playbackReason?: string | null;
+				} | null;
+			};
 		}[];
 	};
 };
@@ -264,8 +271,23 @@ export async function ensureExternalEmbedImported(
 		const byCategory = new Map<string, string>();
 		for (const entry of feed.data?.data ?? []) {
 			const categoryId = entry.dish?.category_id;
-			const contentId = entry.dish_media?.externalEmbed?.externalContentId;
+			const embed = entry.dish_media?.externalEmbed;
+			const contentId = embed?.externalContentId;
 			if (categoryId && contentId) byCategory.set(categoryId, contentId);
+			/*
+			#1641 **サーバがこの投稿をどう判定したかを run のログへ残す。**
+
+			アプリの高速パス（not_playable なら WebView を作らない）が効くかどうかは、
+			**API がこの値を返しているか**で決まる。実機のコマだけを見ていると
+			«たまたま再生されなかった» と区別が付かない。
+			*/
+			if (contentId) {
+				// eslint-disable-next-line no-console -- run のログへ残すことが目的
+				console.log(
+					`[playback] ${contentId} → ${embed?.playbackStatus ?? "(APIが返していない)"}` +
+						(embed?.playbackReason ? ` (${embed.playbackReason})` : ""),
+				);
+			}
 		}
 		return byCategory;
 	};
