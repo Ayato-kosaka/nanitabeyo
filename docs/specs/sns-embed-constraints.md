@@ -25,40 +25,46 @@
 | provider | Android | iOS | web（iframe） | 突破の可否 |
 | --- | --- | --- | --- | --- |
 | Instagram | ✅ 再生する | ✅ 再生する | ⚠️ 1 タップ要る | web は**構造的に不可**（下記 4） |
-| TikTok | ✅ 再生する | ❌ **再生しない**（下記） | ⚠️ 1 タップ要る | iOS は未突破 |
+| TikTok | ✅ 再生する | ⏳ **実機検証中**（原因は特定済み。**document-start での注入**が要る。下記） | ⚠️ 1 タップ要る | — |
 | YouTube | ✅ 再生する（**包みが要る**） | ✅ 再生する（同上） | ✅ 自動再生する | — |
 
-### ❌ TikTok は iOS で再生できない（2026-08-29 / 実測で原因まで確定）
+### TikTok × iOS — 原因は «注入のタイミング» だった（2026-08-29 実測）
 
-**TikTok の埋め込みページは iOS の WKWebView で `document.readyState` が `loading` のまま止まる。**
+**TikTok の埋め込みページは、iOS の WKWebView では組み上がるのが遅い。**
+iOS の `injectedJavaScript` は WKUserScript の **DocumentEnd** なので、そこへ届く前に
+«読み込み中» のまま長く留まるページでは、自動再生スクリプトが 1 度も走らない
+（`onLoadEnd` の撃ち直しも来ない）。**Android の Chromium WebView は同じページで先に到達する。**
+これがプラットフォーム差の正体である。
 
-```
-tiktok     boot  loading        ← エージェントは走る。dom が永久に来ない
-instagram  boot  loading
-instagram  dom   interactive    ← 1 秒後に来る
-```
+WebKit（＝ WKWebView と同じエンジン）でローカル実測した数字:
 
-iOS の `injectedJavaScript` は WKUserScript の **DocumentEnd** なので、そこへ到達しない
-ページでは自動再生スクリプトが 1 度も走らない（`onLoadEnd` の撃ち直しも来ない）。
-**Android の Chromium WebView では同じページが到達する。** これがプラットフォーム差の正体である。
-
-試して駄目だったこと:
-
-| 試したこと | 結果 |
+| 時刻 | 状態 |
 | --- | --- |
-| 同じエージェントを document-start でも走らせる（`653867e`） | ❌ 走るようにはなったが、**ページが組み上がらないので `<video>` が現れない**。しかも読み込み中に DOM を舐める負荷が乗るので撤回した |
+| 3.6s | `<video>` が現れる（`readyState` はまだ `loading`） |
+| 10.3s | `interactive` ＝ **DocumentEnd の注入はここまで来ない** |
+| 14.3s | `complete` |
 
-まだ試していないこと（有望な順）:
+**`<video>` は `loading` のうちに出ている。** つまり «ページが組み上がらないから再生できない» は
+誤りで、**DocumentEnd を待っていたのが原因**だった。document-start から撃つと **4.7 秒で再生した**。
 
-1. **YouTube と同じく «包みの HTML» の中に iframe として置く。** トップレベル文書を
-   こちらのページにすれば、TikTok はサブフレームになる。YouTube のエラー 153 を
-   これで抜けた実績がある。ただし同一オリジンでなくなるので `<video>` へは触れなくなり、
-   自動再生と音の扱いを作り直すことになる
-2. `/embed/v2/{id}` ではない別の埋め込み URL の形を試す
+そこで `injectedJavaScriptBeforeContentLoaded` にも同じエージェントを渡している
+（`AUTOPLAY_SCRIPT` は先頭の `kick` ガードで二重起動を吸収するので、両方へ渡して安全）。
 
-**いまの見え方**: 15 秒で «時間切れ» として畳み、「TikTok で見る」の帯を出す
-（`LOAD_WATCHDOG_SCRIPT`）。黒いセルのまま放置はしない。
-⚠️ ただし `document` モードは WebView を畳まないので、**背景はまだ黒い**（未対応）。
+⚠️ **一度これを «効果ゼロ・害あり» と判断して撤回した（`78836f2`）。根拠は 2 つとも誤りだった。**
+
+| 撤回時の根拠 | 実際 |
+| --- | --- |
+| 「document-start 注入のせいで Android が落ちる」 | ❌ 撤回後も同じ失敗が再現した。logcat は `lowmemorykiller` と 5 プロセスの signal 9 ＝ **エミュレータ全体の OOM** |
+| 「ページが組み上がらないので `<video>` が現れない」 | ❌ 上の実測のとおり `<video>` は 3.6 秒で現れる |
+
+**document-start から走らせるときの注意点（どちらも実測で踏んだ）:**
+
+- **読み込み中は `fillPoster()`（全 `<img>` を舐める）を間引く。** 4 tick に 1 回にしてある。
+  ⚠️ 止めてはいけない。1 コマ目を全面へ出すのがこの関数の仕事で、止めると
+  «映像が出るまでの数秒が真っ黒» が戻る
+- **地色は毎 tick 塗り直す。** 初回の tick には `<body>` がまだ無い。«一度塗ったら終わり» に
+  すると、後から現れた `<body>`（埋め込みページ自身の白）を塗れず、**白が挟まる**
+  （実測: 1.0s に `rgb(255,255,255)` / 3.5s に `isolate()` が消すまで残る）
 
 **YouTube だけ包みの HTML が要る。** 埋め込み URL を WebView へ直接渡すと
 トップレベル文書として開かれ、**必ずエラー 153** になる（誰でも埋め込める `dQw4w9WgXcQ` でも同じ）。
