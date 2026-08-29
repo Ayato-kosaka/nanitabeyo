@@ -79,10 +79,26 @@ def main() -> None:
              AND s.longitude BETWEEN 122.0 AND 154.0
             THEN 'JP'
           END AS country_code,
-          s.phone,
-          s.website,
-          s.social_urls,
-          s.source_names,
+          -- #843 独立レビュー②: 同じ place_id へ当たった «負けた seed» の連絡先を拾う。
+          --
+          -- 3_3 は同じ place_id に複数の seed が当たったとき 1 つだけ残し、
+          -- 残りを duplicate_merged / conflict_duplicate_place_id にする。
+          -- 実測で 673 グループ・770 seed が捨てられており、既存 PG 行の 31.9% が該当する。
+          -- 店の同定としては正しい（1 店 1 行）が、**連絡先まで一緒に捨てる理由は無い**。
+          -- 勝った seed の値を優先し、無ければ負けた seed の値で埋める。
+          COALESCE(NULLIF(s.phone, ''), sib.sibling_phone) AS phone,
+          COALESCE(NULLIF(s.website, ''), sib.sibling_website) AS website,
+          -- SNS は 1 本ではないので、重複を除いて合併する。
+          ARRAY(
+            SELECT DISTINCT u FROM UNNEST(
+              ARRAY_CONCAT(s.social_urls, sib.sibling_social_urls)
+            ) AS u WHERE u IS NOT NULL AND u != ''
+          ) AS social_urls,
+          ARRAY(
+            SELECT DISTINCT u FROM UNNEST(
+              ARRAY_CONCAT(s.source_names, sib.sibling_source_names)
+            ) AS u WHERE u IS NOT NULL AND u != ''
+          ) AS source_names,
           m.match_method
         FROM `{pipeline.dataset_ref}.restaurant_seed_catalog` s
         INNER JOIN `{pipeline.dataset_ref}.restaurant_google_place_match_catalog` m
@@ -91,6 +107,29 @@ def main() -> None:
           ON existing.run_id = @run_id
          AND existing.source = 'existing_pg'
          AND existing.source_record_id = s.existing_restaurant_id
+        -- 同じ place_id へ当たった «自分以外» の seed から連絡先を集める。
+        LEFT JOIN (
+          SELECT
+            m2.google_place_id,
+            m2.seed_id AS winner_seed_id,
+            MIN(NULLIF(s2.phone, '')) AS sibling_phone,
+            MIN(NULLIF(s2.website, '')) AS sibling_website,
+            ARRAY_AGG(DISTINCT u IGNORE NULLS) AS sibling_social_urls,
+            ARRAY_AGG(DISTINCT n IGNORE NULLS) AS sibling_source_names
+          FROM `{pipeline.dataset_ref}.restaurant_google_place_match_catalog` m2
+          JOIN `{pipeline.dataset_ref}.restaurant_google_place_match_catalog` m3
+            ON m3.run_id = m2.run_id
+           AND m3.google_place_id = m2.google_place_id
+           AND m3.seed_id != m2.seed_id
+          JOIN `{pipeline.dataset_ref}.restaurant_seed_catalog` s2
+            ON s2.run_id = m3.run_id AND s2.seed_id = m3.seed_id
+          LEFT JOIN UNNEST(s2.social_urls) AS u
+          LEFT JOIN UNNEST(s2.source_names) AS n
+          WHERE m2.run_id = @run_id AND m2.google_place_id IS NOT NULL
+          GROUP BY m2.google_place_id, m2.seed_id
+        ) sib
+          ON sib.google_place_id = m.google_place_id
+         AND sib.winner_seed_id = s.seed_id
         WHERE s.run_id = @run_id
           AND m.run_id = @run_id
           AND m.google_place_id IS NOT NULL
