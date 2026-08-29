@@ -641,6 +641,43 @@
       "at_mention_snowball": "0件。インフルエンサーは店を @メンションせず、キャプション本文の「」内に店名を書く（通知/離脱を避けるため）",
       "caption_structure": "📍地名「店名」＋料理説明 の構造（例: 📍浅草橋「台東STAND」イタリアン立ち飲み / 📍青梅市「清流ガーデン 澤乃井園」）。まれに（ handle ）で店アカウントも併記",
       "implication": "スノーボールは @メンション では効かないが、キャプションから «店名＋地域» が明示的に取れるので (1)異なり店数の測定、(2)Overtureガゼッタとの照合、(3)店舗づけ が容易。0.57 は 酒場/立ち飲み/バー を134カテゴリが拾えず過小の可能性"
+    },
+    "distinct_store_extraction": {
+      "sample": "10 influencers / 500 captions（直近50投稿×10）",
+      "food_signal_pct": 87,
+      "captions_with_bracket_storename_pct": 56,
+      "captions_with_full_address": "624件抽出（うち番地つき完全住所で 281 異なり）",
+      "distinct_full_addresses": 281,
+      "address_posting_influencers": 8,
+      "distinct_addr_per_influencer_50posts_median": 40.5,
+      "within_influencer_repeat": "9%（重複が非常に低い＝別々の店を撮る）",
+      "matching_signal": "キャプションに «店名（「」）＋完全住所（県市区町村番地）» が入るため Overture 住所照合が容易。@メンションは使わない",
+      "example_addresses": [
+        "滋賀県長浜市朝日町1-2",
+        "岩手県花巻市石鳥谷町好地7-80-20-1",
+        "石川県金沢市東山2丁目6-2",
+        "愛媛県新居浜市高木町4-10",
+        "香川県三豊市豊中町笠田笠岡2075-1"
+      ]
     }
+  },
+  "COVERAGE_ESTIMATE": {
+    "pillar1_store_accounts_stores": "90,000〜170,000（open data + CC店サイト、実測レンジ）",
+    "pillar2_influencers_now": {
+      "handles": 413,
+      "resolved": 374,
+      "gross_posts": 535996,
+      "food_rate": 0.87,
+      "distinct_venues_per_influencer_full_feed_estimate": 847,
+      "gross_distinct_estimate_374": 316875,
+      "after_cross_overlap_30to50pct": [
+        158438,
+        221813
+      ],
+      "note": "1人 40.5店/50投稿 × 中央値1046投稿 ≒ 847店/人(粗・重複減衰前)。地方特化ほど相互重複が低い"
+    },
+    "seed_expandable": "413→1000+（CEVSTY 47都道府県・star-inc量産・地方記事）で比例拡大",
+    "headline": "柱2は延べ53.6万投稿・異なり店 十数万規模を無料で供給し、柱1が届かない地方・無サイト店に偏る。柱1+柱2で無料 20〜35万店、seed拡張で50万に接近。残差は検索$95で仕上げ",
+    "caveats": "distinct_venues は 10 influencer / 500 caption 標本からの外挿。全投稿での重複減衰と cross-influencer 重複、Overture 実照合率は未確定（次段）"
   }
 }
