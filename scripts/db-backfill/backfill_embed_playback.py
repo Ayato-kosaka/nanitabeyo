@@ -36,6 +36,13 @@
 ⚠️ **UA を変えない。** Instagram の埋め込みはブラウザ UA に対しては JS シェル
    （SSR 無し）を返す。API 側と同じ既定 UA を使う。
 
+## 何度でも流してよい
+
+`playback_status` がまだ `unknown` の行と、**自ストレージにサムネイルの複製が無い行**を拾う。
+後者を残しているのは、そういう行にとって provider の署名 URL が**唯一の絵で、
+しかも 4〜5 日で失効する**ためである。定期的に流し直せば絵が生き続ける
+（複製が在る行は失効しないので触らない）。
+
 ## 安全装置
 
 - `--schema public` は `--i-know-this-is-production` を併記しないと動かない
@@ -178,18 +185,26 @@ def main() -> int:
             cursor.execute(f'SET search_path TO "{args.schema}"')
             cursor.execute(
                 """
-                SELECT dish_media_id, provider, external_content_id, canonical_url,
-                       (thumbnail_url IS NULL) AS needs_thumbnail
-                FROM dish_media_external_embeddings
+                SELECT e.dish_media_id, e.provider, e.external_content_id, e.canonical_url,
+                       (m.thumbnail_path IS NULL OR m.thumbnail_path = '') AS needs_thumbnail
+                FROM dish_media_external_embeddings e
+                JOIN dish_media m ON m.id = e.dish_media_id
                 -- ⚠️ 条件は `playback_checked_at IS NULL` ではなく status で見る。
                 --    端末報告からの再検証（reportUnplayable）は «確かめたが分からなかった»
                 --    行の日時だけを進めるので、日時で絞ると**その行を二度と拾えなくなる**
                 --
-                -- #1641 サムネイル URL が空の行も拾う。判定が済んでいても、絵が無ければ
-                --       高速パスでセルが真っ黒になる（run 33223480840 の feed-05）
-                WHERE (playback_status = 'unknown' OR thumbnail_url IS NULL)
-                  AND provider IN ('instagram', 'youtube')
-                ORDER BY created_at
+                -- #1641 **自ストレージにサムネイルを持たない行**も拾う。判定が済んでいても
+                --       絵が無ければ高速パスでセルが真っ黒になる（run 33223480840 の feed-05）。
+                --
+                -- ⚠️ 条件を `thumbnail_url IS NULL` にしない。自前の複製が無い行にとって
+                --    provider の署名 URL は**唯一の絵で、しかも 4〜5 日で失効する**。
+                --    «NULL のときだけ» にすると、一度入れた URL が死んだ後もう拾えない。
+                --    自前の複製が在る行は触らない（そちらは失効しないので上書きの意味が無い）。
+                WHERE (e.playback_status = 'unknown'
+                       OR m.thumbnail_path IS NULL OR m.thumbnail_path = '')
+                  AND e.provider IN ('instagram', 'youtube')
+                  AND m.deleted_at IS NULL
+                ORDER BY e.created_at
                 LIMIT %s
                 """,
                 (args.limit,),
@@ -236,8 +251,8 @@ def main() -> int:
                     ]
                     values += [status, reason]
                 if fills_thumbnail:
-                    # ⚠️ 空のときだけ入れる。既に在る値を新しい署名 URL で上書きしない
-                    #    （複製済みのサムネイルより短命な URL へ置き換える意味が無い）
+                    # 自ストレージに複製が無い行にだけ入れる（上の WHERE と同じ理由）。
+                    # 複製が在る行はそちらが表示の一次ソースなので触らない
                     sets.append("thumbnail_url = %s")
                     values.append(thumbnail_url)
                 with connection.cursor() as cursor:
