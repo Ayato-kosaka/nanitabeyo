@@ -413,10 +413,16 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 						</>
 					) : (
 						// 空状態（ローディング完了後、データなし）
-						<>
+						//
+						// #1629 testID は Detox が «この範囲に保存した店が 1 件も無い» を観測するための口。
+						// 地図のマーカーは Android では地図のキャンバスへ描かれてビュー階層に現れないため、
+						// マーカーの有無では «空振りかどうか» を判定できない（実機 run 33236381539 で実測。
+						// API は 3 件返しているのに pins/dot/cluster がすべて false だった）。
+						// «結果が空でないこと» はこの空状態が **出ていないこと** で見る。
+						<View testID="select-restaurant-saved-empty">
 							<Text style={styles.emptyStateText}>{i18n.t("SelectRestaurant.noSavedRestaurantsInArea")}</Text>
 							<Text style={styles.emptyStateText}>{i18n.t("SelectRestaurant.unsavedHint")}</Text>
-						</>
+						</View>
 					)}
 				</SheetGestureRoot>
 			</TrueSheet>

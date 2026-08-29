@@ -101,6 +101,9 @@ CASES = (
 # 半径内の全店を読むプランへ戻ると桁が変わるので、緩めに取っても検出できる
 ROWS_BUDGET_MULTIPLIER = 4
 
+# 同じ文を何回まわすか。1 回だと «初回のキャッシュ未命中» を «構造的に遅い» と読み違える
+REPEATS = 3
+
 
 def one(cur, sql, params=None):
     cur.execute(sql, params or ())
@@ -218,11 +221,29 @@ def explain(cur, sql, nparams, params, generic):
     placeholders = ",".join(["%s"] * nparams)
     cur.execute(f"EXPLAIN (ANALYZE, BUFFERS) EXECUTE q({placeholders})", params)
     plan = [row[0] for row in cur.fetchall()]
-    exec_ms = None
+    return plan, timings(plan)
+
+
+def timings(plan):
+    """EXPLAIN の出力から «実行 / 計画 / JIT» の 3 つを取り出す。
+
+    ⚠️ 合計の ms だけを見ると «プランは正しいのに遅い» の内訳が分からない。
+       #1687 のあと custom plan の 20km だけ 4,112 ms 出ており、読む行数は
+       正しかった（= プランは正しい）。残りが JIT なのか初回のキャッシュ未命中
+       なのかを切り分けるために、この 3 つと «同じ文を繰り返したときの推移» を出す。
+    """
+    out = {"exec": None, "plan": None, "jit": None}
     for line in plan:
-        if line.strip().startswith("Execution Time"):
-            exec_ms = float(line.split(":")[1].strip().split(" ")[0])
-    return plan, exec_ms
+        t = line.strip()
+        if t.startswith("Execution Time"):
+            out["exec"] = float(t.split(":")[1].strip().split(" ")[0])
+        elif t.startswith("Planning Time"):
+            out["plan"] = float(t.split(":")[1].strip().split(" ")[0])
+        elif t.startswith("Timing:") and out["jit"] is None:
+            m = re.search(r"Total ([0-9.]+) ms", t)
+            if m:
+                out["jit"] = float(m.group(1))
+    return out
 
 
 def run_explain(cur, schema, with_posts, full_plan, do_assert):
@@ -252,14 +273,24 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
         for generic in (False, True):
             mode = "generic" if generic else "custom "
             cur.execute("SET LOCAL statement_timeout = '120s'")
-            try:
-                plan, ms = explain(cur, sql, nparams, params, generic)
-            except psycopg2.errors.QueryCanceled:
-                cur.connection.rollback()
-                cur.execute(f'SET search_path TO "{schema}", extensions')
-                logger.info("   %s: ⏱ 120 秒でタイムアウト（= 実用にならない）", mode)
-                failures.append(f"{label} / {mode}: timeout")
+            # ⚠️ 1 回だけ測ると «初回のキャッシュ未命中» と «構造的に遅い» が区別できない。
+            #    同じ文を REPEATS 回まわし、推移を出す（判定には最後の回を使う）。
+            runs = []
+            timed_out = False
+            for _ in range(REPEATS):
+                try:
+                    plan, t = explain(cur, sql, nparams, params, generic)
+                except psycopg2.errors.QueryCanceled:
+                    cur.connection.rollback()
+                    cur.execute(f'SET search_path TO "{schema}", extensions')
+                    logger.info("   %s: ⏱ 120 秒でタイムアウト（= 実用にならない）", mode)
+                    failures.append(f"{label} / {mode}: timeout")
+                    timed_out = True
+                    break
+                runs.append(t)
+            if timed_out:
                 continue
+            ms = runs[-1]["exec"]
 
             rows, detail = restaurants_rows_read(plan)
             # ⚠️ **custom / generic の両方を判定する。**
@@ -279,6 +310,14 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
                 f"{rows:,}",
                 verdict,
             )
+            for i, t in enumerate(runs, 1):
+                logger.info(
+                    "        %d 回目: 実行 %8.1f ms / 計画 %6.1f ms / JIT %s",
+                    i,
+                    t["exec"] if t["exec"] is not None else -1,
+                    t["plan"] if t["plan"] is not None else -1,
+                    f'{t["jit"]:.1f} ms' if t["jit"] is not None else "なし",
+                )
             for text, n in detail:
                 logger.info("        %s  => %s 行", text, f"{n:,}")
             if full_plan:
