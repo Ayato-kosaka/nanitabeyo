@@ -273,6 +273,16 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	 */
 	const requestedKeyRef = useRef<string | null>(null);
 	const [settledKey, setSettledKey] = useState<string | null>(null);
+	/*
+	#1629【35/40 再修正】再試行の合図。
+
+	取得の effect の依存から `mediaError` を外した（下のコメント）ため、**«エラーが消えた»
+	だけでは effect が動かなくなる**。再試行ボタンはキーもメディア ids も変えずに
+	«もう 1 回だけ取り直す» ものなので、依存に載る値を 1 つ用意して明示的に回す。
+	これを忘れると «失敗 → 再試行を押しても何も起きない» になる（外す前は
+	`mediaError` の null 復帰が偶然その役をしていた）。
+	*/
+	const [retryNonce, setRetryNonce] = useState(0);
 	const hydrationKey = useMemo(
 		() => (entriesKey === null ? null : `${entriesKey}::${mediaIdsSignature}`),
 		[entriesKey, mediaIdsSignature],
@@ -382,7 +392,7 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 		return () => {
 			cancelled = true;
 		};
-	}, [callBackend, entriesKey, hydrationKey, mediaIds]);
+	}, [callBackend, entriesKey, hydrationKey, mediaIds, retryNonce]);
 
 	// §9-2 手順 5: **本当の unmount** で `clearByKey`。その前に Q4 の dirty 判定を済ませる。
 	//
@@ -459,6 +469,7 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 			useDishMediaEntriesStore.getState().clearByKey(entriesKey);
 			requestedKeyRef.current = null;
 			setSettledKey(null);
+			setRetryNonce((n) => n + 1);
 		}
 	}, [entriesKey, refreshRows, rowsError]);
 
