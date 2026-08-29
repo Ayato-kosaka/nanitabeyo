@@ -982,7 +982,8 @@
 		},
 		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
 		"pickTitle": "选择店铺",
-		"pickOnMap": "在地图上查找店铺"
+		"pickOnMap": "在地图上查找店铺",
+		"pickConfirm": "选择这家店"
 	},
 	"MyDishes": {
 		"actions": {

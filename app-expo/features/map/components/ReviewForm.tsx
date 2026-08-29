@@ -223,6 +223,12 @@ export function ReviewForm({
 	const activePrefilledMedia = prefilledMedia ?? pickedExistingMedia;
 	/** «画面の中で写真を選ぶ» 見た目を出しているか（高さを固定しない条件。下のコメント参照） */
 	const showsManualMediaChooser = mediaPickerMode === "manual" && !activePrefilledMedia;
+	/*
+	#1629 写真の «作り直し» の入口は 1 つだけにする（下のプレビューのコメント参照）。
+	記録フロー（`manual`）は «選び直す»、それ以外（親が写真を決めている画面）は
+	«自分の写真に差し替える»。**両方 true になる組み合わせを作らないこと。**
+	*/
+	const isRecordFlowMedia = mediaPickerMode === "manual" && prefilledMedia === undefined;
 	const effectivePrefilledMedia = useOwnMedia ? undefined : activePrefilledMedia;
 
 	const prefilledMediaRef = useRef(effectivePrefilledMedia);
@@ -1238,14 +1244,29 @@ export function ReviewForm({
 						*/}
 						<View style={styles.dishCategoryRowAbovePhoto}>
 						{/* 料理カテゴリ選択 Pressable 行 */}
+						{/*
+						#1629【オーナー指示】**料理カテゴリーは、ここでは変えられない。**
+
+						> 料理カテゴリは変えれなくして欲しい。店は変えたらその他クリアで良い。
+
+						料理カテゴリーは «お店 → 料理 → 写真» の 2 歩目で決まる。ところがこの行から
+						後で変えられたため、**先に決まった料理を前提に選んだ写真**（«この店の写真から選ぶ» は
+						その料理で絞り込んでいる）と食い違わせることができた。うどんの写真を選んだあとに
+						寿司へ変えれば、うどんの写真が寿司の記録として投稿できてしまう。
+
+						選び直す道が塞がるわけではない。**お店を選び直せば全部やり直しになる**
+						（`add-record.tsx` が `key={restaurantId}` でフォームごと作り直すので、
+						料理カテゴリーも写真も残らない）。オーナーの «店は変えたらその他クリアで良い» はこれである。
+
+						⚠️ `Pressable` のままにしてあるのは、`disabled` の意味を «押せない» に一本化するため。
+						   `View` へ変えると accessibility の役割まで変わる。
+						*/}
 						<Pressable
 							testID="review-dish-category-row"
 							style={styles.dishCategorySelectRow}
 							onPress={handleOpenDishCategory}
-							// #400 prefilledMedia のときは料理カテゴリ選択を無効化（そのメディアの料理に固定される）。
-							// #1375（5 巡目）既存メディアを «選んだ» ときも同じ（activePrefilledMedia に入る）
-							disabled={!!activePrefilledMedia}
-							accessibilityRole="button"
+							disabled
+							accessibilityRole="text"
 							accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
 							{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
 							<View style={styles.inputRowLabelWithIcon}>
@@ -1260,7 +1281,7 @@ export function ReviewForm({
 										{dishCategoryName}
 									</Text>
 								)}
-								{!prefilledMedia && <ChevronRight size={20} color={colors.textMuted} />}
+								{/* #1629 押せなくなったので «押せる» の記号（>）は出さない */}
 							</View>
 						</Pressable>
 						{dishCategoryError && (
@@ -1367,11 +1388,27 @@ export function ReviewForm({
 							) : (
 								<View style={styles.previewWrap}>
 									<InitialMediaPreview media={mediaState.media} />
-									{/* #1629 選び直す（記録フローだけ。理由は handleReselectMedia の JSDoc） */}
-									{showsManualMediaChooser || pickedExistingMedia ? (
+									{/*
+									#1629【オーナー指示】**«選び直す» と «自分の写真に差し替える» を同時に出さない。**
+
+									> 写真を撮り直すと自分の写真に差し替えるが同時に出るパターンってある？
+									> なければどちらも右下寄せで
+
+									実際には出ていた（記録フローで «この店の写真から選ぶ» を使った場合）。しかも
+									«選び直す» の行き先には «ライブラリから選ぶ» が含まれるので、2 つは機能が重なる。
+									そこで **入口で 1 つに決める**:
+
+									| 画面 | 出るボタン |
+									| --- | --- |
+									| 記録フロー（自分で写真を決める） | «写真を選び直す»（選び方の 1 歩目へ戻る） |
+									| 店舗フィードからの記録（写真は親が決めている） | «自分の写真に差し替える» |
+
+									排他になったので、どちらも同じ位置（右下）に置ける。
+									*/}
+									{isRecordFlowMedia ? (
 										<TouchableOpacity
 											testID="review-reselect-media"
-											style={styles.reselectPhotoButton}
+											style={styles.replacePhotoButton}
 											onPress={handleReselectMedia}
 											accessibilityRole="button"
 											accessibilityLabel={i18n.t("Map.media.reselectPhoto")}>
@@ -1381,7 +1418,7 @@ export function ReviewForm({
 									) : null}
 									{/* #1375 実機確認（2 巡目）: 食べたを記録（prefilledMedia モード）でも
 							    自分で撮った写真に差し替えられる入口を出す */}
-									{effectivePrefilledMedia !== undefined && (
+									{!isRecordFlowMedia && effectivePrefilledMedia !== undefined && (
 										<TouchableOpacity
 											testID="review-replace-with-my-photo"
 											style={styles.replacePhotoButton}
@@ -1798,19 +1835,6 @@ const createStyles = (c: Palette) =>
 		replacePhotoButton: {
 			position: "absolute",
 			right: 8,
-			bottom: 8,
-			flexDirection: "row",
-			alignItems: "center",
-			gap: 4,
-			paddingHorizontal: 10,
-			paddingVertical: 6,
-			borderRadius: 14,
-			backgroundColor: "rgba(17,24,39,0.7)",
-		},
-		// #1629 «選び直す»。«自分の写真に変える»（右下）と重ならないよう **左下**へ置く
-		reselectPhotoButton: {
-			position: "absolute",
-			left: 8,
 			bottom: 8,
 			flexDirection: "row",
 			alignItems: "center",

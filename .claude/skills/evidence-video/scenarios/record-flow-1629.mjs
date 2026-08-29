@@ -233,12 +233,42 @@ await record({
 		await page.waitForTimeout(3000);
 		await shot("08-media-picked");
 
+		// #1629【オーナー指示】料理カテゴリー行は押せない（写真と食い違わせないため）
+		const categoryRow = page.getByTestId("review-dish-category-row").first();
+		const rowDisabled = await categoryRow.evaluate((el) => {
+			const target = el.closest("[aria-disabled]") ?? el;
+			return target.getAttribute("aria-disabled") === "true" || target.hasAttribute("disabled");
+		}).catch(() => null);
+		notes.push(
+			rowDisabled === true
+				? "10. ✅ 料理カテゴリー行は押せない（後から変えられない）"
+				: `10. ❌ 料理カテゴリー行がまだ押せる（aria-disabled=${String(rowDisabled)}）`,
+		);
+
 		const reselect = page.getByTestId("review-reselect-media");
 		notes.push(
 			(await reselect.count()) > 0
 				? "8. ✅ 写真を決めたあとに «写真を選び直す» が出る"
 				: "8. ❌ 写真を決めたら選び直す口が無い（オーナー報告の «編集できない»）",
 		);
+
+		// #1629【オーナー指示】«選び直す» と «自分の写真に差し替える» は同時に出さない
+		const replaceCount = await page.getByTestId("review-replace-with-my-photo").count();
+		const reselectCount = await reselect.count();
+		notes.push(
+			reselectCount + replaceCount === 1
+				? `11. ✅ 写真の作り直しの入口は 1 つだけ（選び直す=${reselectCount} / 差し替える=${replaceCount}）`
+				: `11. ❌ 入口が ${reselectCount + replaceCount} 個ある（選び直す=${reselectCount} / 差し替える=${replaceCount}）`,
+		);
+		if (reselectCount > 0) {
+			const box = await reselect.first().boundingBox();
+			const preview = await page.getByTestId("review-media-slot").first().boundingBox();
+			notes.push(
+				box && preview && box.x + box.width > preview.x + preview.width / 2
+					? "12. ✅ ボタンは右下寄せ"
+					: "12. ❌ ボタンが右下に寄っていない",
+			);
+		}
 
 		if ((await reselect.count()) > 0) {
 			await reselect.first().click();

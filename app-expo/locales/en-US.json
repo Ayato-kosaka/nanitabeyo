@@ -982,7 +982,8 @@
 		},
 		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
 		"pickTitle": "Pick a shop",
-		"pickOnMap": "Find on map"
+		"pickOnMap": "Find on map",
+		"pickConfirm": "Choose this place"
 	},
 	"MyDishes": {
 		"actions": {

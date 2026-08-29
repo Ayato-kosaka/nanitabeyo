@@ -43,6 +43,8 @@ const callOrder: string[] = [];
 const mockPush = jest.fn((_href: unknown) => {
 	callOrder.push("push");
 });
+// #1629 «1 回目では確定しない / カードのボタンで確定する» を見るために露出する
+const mockBack = jest.fn();
 const mockUpsert = jest.fn((_entry: unknown) => {
 	callOrder.push("upsert");
 });
@@ -54,7 +56,8 @@ jest.mock("expo-router", () => {
 	const stub = {
 		push: (href: unknown) => mockPush(href),
 		replace: () => {},
-		back: () => {},
+		// #1629 «1 回目では確定しない / カードのボタンで確定する» を見るために露出する
+		back: () => mockBack(),
 		canGoBack: () => true,
 	};
 	return {
@@ -227,6 +230,7 @@ const press = async (tree: TestRenderer.ReactTestRenderer, testID: string, arg?:
 
 beforeEach(() => {
 	callOrder.length = 0;
+	mockBack.mockClear();
 	labelMarkerNames.length = 0;
 	mockRouteParams.current = {};
 	mockCallBackend.mockReset();
@@ -391,6 +395,53 @@ describe("#1375 «お店を探す»（pick モード）のピン", () => {
 		await settleRegion(tree);
 
 		expect(labelMarkerNames).toHaveLength(0);
+	});
+
+	/*
+	#1629【オーナー実機報告 → 指示】「店ピンを二度押さないと反映されない」。
+
+	**2 回押す作法そのものは残す**（#1375 8 巡目のオーナー指示。地図を触っていて指が当たった
+	だけで記録するお店が決まるのを防ぐため）。壊れていたのは «1 回目に何が起きたか分からない»
+	ことで、1 回目に起きるのはピンの色が変わることだけだった。
+
+	1 回目のタップで «選んだ店の名前 + このお店にする» を出し、押す対象を言葉で見せる。
+	*/
+	it("1 回目のタップで «このお店にする» が出る。まだ確定はしない", async () => {
+		mockRouteParams.current = { mode: "pick" };
+		mockCallBackend.mockImplementation((path: string) =>
+			// ⚠️ ピンは 1 本にする。`press` は testID が 1 つであることを前提にしている
+			Promise.resolve(path === "v1/restaurants/search" ? nearby(1) : { data: [SAVED] }),
+		);
+
+		const tree = await render(<SelectRestaurantScreen />);
+		await settleRegion(tree);
+
+		// 前提: ピンが立っている（0 本のまま «出ない» を ✅ と読まない）
+		expect(labelMarkerNames.length).toBeGreaterThan(0);
+		// 何も選んでいない間はカードを出さない
+		expect(tree.root.findAll((node) => node.props?.testID === "select-restaurant-pick-confirm")).toHaveLength(0);
+
+		await press(tree, "nearby-marker");
+
+		expect(
+			tree.root.findAll((node) => node.props?.testID === "select-restaurant-pick-confirm").length,
+		).toBeGreaterThan(0);
+		// **まだ確定していない**（画面を離れない）
+		expect(mockBack).not.toHaveBeenCalled();
+	});
+
+	it("カードの «このお店にする» で確定して前の画面へ戻る", async () => {
+		mockRouteParams.current = { mode: "pick" };
+		mockCallBackend.mockImplementation((path: string) =>
+			Promise.resolve(path === "v1/restaurants/search" ? nearby(1) : { data: [SAVED] }),
+		);
+
+		const tree = await render(<SelectRestaurantScreen />);
+		await settleRegion(tree);
+		await press(tree, "nearby-marker");
+		await press(tree, "select-restaurant-pick-confirm-button");
+
+		expect(mockBack).toHaveBeenCalled();
 	});
 
 	it("pick モードでないときは、この検索を投げない（従来どおり保存したお店を出す）", async () => {

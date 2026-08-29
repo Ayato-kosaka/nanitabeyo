@@ -982,7 +982,8 @@
 		},
 		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa.",
 		"pickTitle": "Elegir local",
-		"pickOnMap": "Buscar en el mapa"
+		"pickOnMap": "Buscar en el mapa",
+		"pickConfirm": "Elegir este lugar"
 	},
 	"MyDishes": {
 		"actions": {

@@ -982,7 +982,8 @@
 		},
 		"unsavedHint": "保存していないお店も選べます。上の検索にお店の名前を入れるか、地図のお店アイコンをタップしてください。",
 		"pickTitle": "お店を選ぶ",
-		"pickOnMap": "地図からお店を探す"
+		"pickOnMap": "地図からお店を探す",
+		"pickConfirm": "このお店にする"
 	},
 	"MyDishes": {
 		"actions": {
