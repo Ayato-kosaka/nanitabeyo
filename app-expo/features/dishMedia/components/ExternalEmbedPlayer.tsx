@@ -185,6 +185,8 @@ const AUTOPLAY_SCRIPT = `(function () {
   // 自動再生ポリシーで «音あり» を蹴られたか。蹴られた後は二度と音を戻さない
   var mutedByPolicy = false;
   var backdrop = null, fillTicks = 0, poster = null, hidden = [];
+  // #1641 読み込み中の tick 数。安い経路と高い経路の間引きに使う
+  var loadTicks = 0;
 
   /*
    * #1641【観測】**エージェントが走ったこと自体を 1 回知らせる。**
@@ -448,8 +450,22 @@ const AUTOPLAY_SCRIPT = `(function () {
 
   function attempt() {
     try {
+      /*
+       * #1641 **読み込み中は «安い経路» だけ回す。**
+       *
+       * document-start から回すので、ページの読み込みと自分の仕事が重なる。
+       * fillPoster() は毎 tick すべての img を舐めるので、読み込み中は **1 秒に 1 回**へ間引く。
+       *
+       * ⚠️ **止めてしまってはいけない。** 1 コマ目を全面へ出すのがこの関数の仕事で、
+       *    止めると «映像が出るまでの数秒が真っ黒» が戻る（一度そう書いて回帰テストで捕まえた）。
+       *
+       * **映像を探して撃つ経路は間引かない。** そこが本題である
+       * — 実測（WebKit / TikTok）: 映像は readyState が loading の
+       * **3.6 秒**で現れ、DocumentEnd（10.3 秒）を待つと間に合わない。
+       */
+      var loading = document.readyState === 'loading';
       ensureBackdrop();
-      fillPoster();
+      if (!loading || (loadTicks++ % 4) === 0) fillPoster();
       var v = document.querySelector('video');
       /*
        * #1641 **ページが組み上がっていない間は締め切りを数えない。**
@@ -533,61 +549,6 @@ const AUTOPLAY_SCRIPT = `(function () {
   W.__nbEmbedAutoplay = { kick: start };
   report('boot', document.readyState);
   start();
-})(); true;`;
-
-/*
-#1641【観測 + 縮退】**document-start で走る «軽い見張り»。**
-
-## なぜ要るのか
-
-iOS の `injectedJavaScript` は WKUserScript の **DocumentEnd** で、そこへ到達しない
-ページでは `AUTOPLAY_SCRIPT` が 1 度も走らない。**TikTok の埋め込みが実際にそれ**で、
-`document.readyState` が 'loading' のまま 18 秒動かない（run 33249617397 / 33251568206 で実測。
-Instagram は boot の 1 秒後に 'interactive' になる）。
-
-その結果、セルは **黒いまま・報告もゼロ**で放置されていた。
-
-## ここでやること（と、やらないこと）
-
-- ✅ `boot` を 1 回送る … «走ったか» と «一度も走っていないか» を区別する
-- ✅ `dom` を 1 回送る … 組み上がったかを知らせ、エージェントが居れば撃ち直す
-- ✅ 組み上がらないまま猶予を過ぎたら `timeout` を送る … **黒いセルのまま放置しない**
-- ❌ **DOM を舐めない。監視も張らない。** ここで `AUTOPLAY_SCRIPT` を走らせたら
-     Android でアプリが落ちた（`653867e` を戻した理由）。タイマーは 1 本だけにする
-
-⚠️ **この文字列にバッククォートを書かないこと。** テンプレートリテラルの内側で、
-   書いた時点で文字列が終わる。
-*/
-const LOAD_WATCHDOG_SCRIPT = `(function () {
-  var W = window;
-  if (!W.ReactNativeWebView || W.__nbEmbedWatchdog) return;
-  W.__nbEmbedWatchdog = true;
-  var settled = false;
-  function tell(kind, detail) {
-    try {
-      W.ReactNativeWebView.postMessage(JSON.stringify({
-        src: 'nb-embed-autoplay', kind: kind, detail: detail == null ? null : String(detail)
-      }));
-    } catch (e) {}
-  }
-  tell('boot', document.readyState);
-  function onReady() {
-    if (settled) return;
-    settled = true;
-    tell('dom', document.readyState);
-    try { if (W.__nbEmbedAutoplay && W.__nbEmbedAutoplay.kick) W.__nbEmbedAutoplay.kick(); } catch (e) {}
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', onReady, { once: true });
-  } else {
-    onReady();
-  }
-  /* 組み上がらないページを黒いまま放置しない。タイマーは 1 本だけ */
-  setTimeout(function () {
-    if (settled) return;
-    settled = true;
-    tell('timeout', 'still_loading');
-  }, 15000);
 })(); true;`;
 
 export type ExternalEmbedPlayerProps = {
@@ -1052,18 +1013,27 @@ export function ExternalEmbedPlayer({
 						*/
 						injectedJavaScript={source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT}
 						/*
-						#1641 document-start では **軽い見張りだけ**を走らせる。
+						#1641 **エージェントを document-start から走らせる。**
 
-						⚠️ **ここへ `AUTOPLAY_SCRIPT` を渡してはいけない。** 1 度やって戻した
-						   （`653867e`）。エージェントは 250ms ごとに DOM を舐めるので、
-						   読み込み中から回すと **Android でアプリが落ちる**
-						   （run 33251568206 / 33252898919 で 2/2 再現。Detox がアプリへ
-						   接続できなくなる）。しかも **iOS の TikTok は直らなかった**
-						   （ページ自体が組み上がらないので `<video>` が現れない）。
-						   効果ゼロ・害ありだったので、見張りだけを残してある。
+						iOS の `injectedJavaScript` は WKUserScript の DocumentEnd で、
+						そこまで待つと **TikTok に間に合わない**。WebKit（＝ WKWebView と
+						同じエンジン）でローカル実測した数字:
+
+						| 時刻 | 状態 |
+						| --- | --- |
+						| 3.6s | `<video>` が現れる（readyState はまだ 'loading'） |
+						| 10.3s | 'interactive' ＝ **DocumentEnd の注入はここまで来ない** |
+						| 14.3s | 'complete' |
+
+						document-start から撃つと **4.7 秒で再生した**（同実測）。
+
+						⚠️ 二重に走っても安全である。スクリプト先頭の
+						   `if (W.__nbEmbedAutoplay) { kick(); return; }` が吸収し、
+						   2 回目以降は締め切りを延ばすだけになる。
+						⚠️ 読み込み中は `attempt()` が **安い経路だけ**を回す（`fillPoster` を止める）。
 						*/
 						injectedJavaScriptBeforeContentLoaded={
-							source.mode === "iframe" ? undefined : LOAD_WATCHDOG_SCRIPT
+							source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT
 						}
 						onMessage={handleMessage}
 						/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
