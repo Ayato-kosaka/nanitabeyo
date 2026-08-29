@@ -207,6 +207,38 @@ export function RestaurantNameSearch({
 		};
 	}, []);
 
+	/*
+	#1629【オーナー実機報告】**店が決まったら、打っていた文字と検索結果は畳む。**
+
+	> 「該当するお店が見つかりません」→ 地図の店舗をタップ → お店を選択 → **そのエラーが消えない**。
+	> 入力した文字が残る。バツボタンを押すと選択した店が出てくる。
+
+	原因は «確定名を出す条件» が `query.length === 0` だったこと。**この欄の外**（地図の POI タップ、
+	候補チップ）で店が決まる経路では `query` に触る者が居ないので、
+
+	  1. 打った文字が入力欄に残り続ける（確定名は出ない）
+	  2. `status` も `empty` のままなので «見つかりません» の案内が下に残る
+	  3. X を押すと `query` が空になり、そこで初めて確定名が出る（= オーナーが見た «バツで店が出る»）
+
+	選び終わったら打ちかけの検索は用済みなので、**確定名が入った時点で畳む**。
+	`handleResultPress`（この欄の中で選んだ経路）が既にやっているのと同じ後始末を、
+	外から決まった経路にも効かせる。
+
+	⚠️ 依存は `selectedName` だけにすること。`query` を依存に入れると、選択後に打ち直そうとした
+	そばから消される（選び直しは X ＝ `onClearSelection` が受け持つ）。
+	*/
+	useEffect(() => {
+		if (!selectedName) return;
+		if (debounceRef.current) {
+			clearTimeout(debounceRef.current);
+			debounceRef.current = null;
+		}
+		latestRequestIdRef.current += 1;
+		setQuery("");
+		setResults([]);
+		setStatus("idle");
+	}, [selectedName]);
+
 	// 選び終えていて、かつ自分で打ち直していない間だけ «確定名» を出す。
 	// 打ち始めたら（query が入ったら）検索の入力欄として振る舞う
 	const showsSelectedName = !!selectedName && query.length === 0;

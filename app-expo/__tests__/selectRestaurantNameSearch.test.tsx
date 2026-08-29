@@ -96,16 +96,25 @@ import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
 // 店名検索は画面から切り離したので、コンポーネント単体を最小の器で描く。
 // `regionRef` は画面が持っていた「いま見ている地図の中心」で、検索の lat/lng に使われる
 const mockOnSelectRestaurant = jest.fn();
-function NameSearchHarness() {
+function NameSearchHarness({ selectedName = null }: { selectedName?: string | null }) {
 	const regionRef = React.useRef({ latitude: 35.68, longitude: 139.76, latitudeDelta: 0.01, longitudeDelta: 0.01 });
 	return (
 		<RestaurantNameSearch
 			regionRef={regionRef}
 			onSelectRestaurant={(result: QueryRestaurantsResponse[number]) => mockOnSelectRestaurant(result)}
+			selectedName={selectedName}
+			onClearSelection={() => {}}
 			testID="select-restaurant-name-search"
 		/>
 	);
 }
+
+/** 画面に出ている文字を全部つないで返す（«見つかりません» が残っているかを見るため） */
+const visibleText = (tree: TestRenderer.ReactTestRenderer): string =>
+	tree.root
+		.findAll((node) => typeof node.type === "string" && typeof node.props?.children === "string", { deep: true })
+		.map((node) => String(node.props.children))
+		.join(" ");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -225,5 +234,46 @@ describe("#1398 (PR6) 店名検索コンポーネント（RestaurantNameSearch�
 		// 入力欄自身の flex: 1（横方向に伸びる）は正しいので、器側だけを見る。
 		// 器に flex が 1 つでも付いていたら、それが潰れの原因になる
 		expect(flexValues).not.toContain(1);
+	});
+});
+
+/*
+#1629【オーナー実機報告】**この欄の外で店が決まったときの後始末。**
+
+> 「該当するお店が見つかりません」→ 地図の店舗をタップ → お店を選択 → そのエラーが消えない。
+> 入力した文字が残る。バツボタンを押すと選択した店が出てくる。
+
+確定名を出す条件が `query.length === 0` だったため、地図の POI タップや候補チップのように
+**この欄の外**で決まる経路では打った文字も検索結果も残りっぱなしになっていた。
+*/
+describe("#1629 外で店が決まったら、打っていた文字と検索結果を畳む", () => {
+	it("0 件表示のまま店が決まっても «見つかりません» が残らず、確定名が入力欄に出る", async () => {
+		// 0 件を返させて «見つかりません» を出す
+		mockCallBackend.mockImplementation((path: string) =>
+			Promise.resolve(path === "v1/restaurants/search" ? [] : { data: [] }),
+		);
+
+		const tree = await render(<NameSearchHarness />);
+		const input = findByTestId(tree, "select-restaurant-name-search-input");
+
+		await act(async () => {
+			input.props.onChangeText("焼き鳥番長");
+			jest.advanceTimersByTime(300);
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+
+		// 前提: この時点では «見つかりません» が出ていて、打った文字が欄に残っている
+		expect(visibleText(tree)).toContain("SelectRestaurant.nameSearch.noResults");
+		expect(findByTestId(tree, "select-restaurant-name-search-input").props.value).toBe("焼き鳥番長");
+
+		// 地図の POI から店が決まった（＝ selectedName が外から入る）
+		await act(async () => {
+			tree.update(<NameSearchHarness selectedName="焼き鳥番長 渋谷店" />);
+			await Promise.resolve();
+		});
+
+		expect(visibleText(tree)).not.toContain("SelectRestaurant.nameSearch.noResults");
+		expect(findByTestId(tree, "select-restaurant-name-search-input").props.value).toBe("焼き鳥番長 渋谷店");
 	});
 });

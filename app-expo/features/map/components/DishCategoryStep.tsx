@@ -14,9 +14,12 @@
 
 ## この部品がやること
 
-- そのお店で既に記録がある料理カテゴリーを **縦に全部**並べて選ばせる
+- 未入力のあいだは、そのお店で既に記録がある料理カテゴリーを **縦に全部**並べて選ばせる
   （`useRestaurantDishCategories`。API は増やさず、店舗フィードの既存 1 本から数える）
-- 一覧に無ければ **自由入力**で決める（打った名前は呼び出し側が新規カテゴリとして作る）
+- 打ち始めたら **料理カテゴリーのマスタも引く**（`GET /v1/dish-category-variants`）。
+  #1629 のオーナー実機報告「オートコンプリートじゃない / 背脂ラーメンと打っても出ない」への対処で、
+  その店にまだ記録が無い料理も候補に出る（詳細は下の `visible` のコメント）
+- どちらにも無ければ **自由入力**で決める（打った名前は呼び出し側が新規カテゴリとして作る）
 
 「縦グリッド」と言われているが 1 列の縦並びにしている。カテゴリー名は
 「味玉ラーメン」のように長さがまちまちで、2 列にすると片方だけ 2 行になって
@@ -27,7 +30,7 @@
 新しい店（まだ誰も記録していない）では候補が 0 件になる。そのときは見出しも出さず、
 入力欄と «この名前で決める» だけを出す。空の一覧の枠だけが残ると «壊れている» に見える。
 */
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Search, Utensils } from "lucide-react-native";
 
@@ -35,6 +38,10 @@ import i18n from "@/lib/i18n";
 import { type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useRestaurantDishCategories } from "@/features/map/hooks/useRestaurantDishCategories";
+import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
+
+/** 入力が止まってからマスタを引くまでの猶予（`RestaurantNameSearch` と揃える） */
+const SEARCH_DEBOUNCE_MS = 300;
 
 export type DishCategoryStepProps = {
 	restaurantId: string;
@@ -51,22 +58,68 @@ export function DishCategoryStep({ restaurantId, onSelectExisting, onSubmitTyped
 	const { categories, isLoading } = useRestaurantDishCategories(restaurantId);
 	const [query, setQuery] = useState("");
 
+	/*
+	#1629【オーナー実機報告】**ここをオートコンプリートにする。**
+
+	> 料理カテゴリーを選択するボックスがオートコンプリートじゃなくて «寿司で決める» とか
+	> 出てくるのって、そういう仕様仕組みなんでしたっけ。オートコンプリートの方が使いやすい。
+	> このお店検索のボックスが何を入力しても出ないのがちょっと気になりますね。
+	> 背脂ラーメンってカタカナで打っても出ない。
+
+	原因は、この欄が **その店に «既に記録がある» 料理しか見ていなかった**こと
+	（`useRestaurantDishCategories`）。その店の初めての料理を記録するときは候補が 0 件なので、
+	何を打っても «◯◯ で決める» しか出ない ＝ オートコンプリートに見えない。
+
+	料理カテゴリーのマスタを引く API は既にある（`GET /v1/dish-category-variants?q=&lang=`。
+	SNS 取り込み画面 `add-record.tsx` の ③ が同じものを使っている）。打ち始めたらそちらも引き、
+	**その店の候補 → マスタの候補** の順で並べる（同じ id は 1 回だけ）。
+
+	«◯◯ で決める»（自由入力 → 新規カテゴリ作成）は残す。**候補が 1 件も無いときだけ**出す。
+	マスタに無い料理を記録する唯一の道なので、消すと行き止まりになる。
+	*/
+	const { suggestions, searchDishCategories } = useDishCategorySearch();
 	const trimmed = query.trim();
-	// 打っている間は、その店の候補を名前で絞る（打ち終えて一致が無ければ自由入力で決める）
-	const visible = trimmed
-		? categories.filter((category) => category.label.toLowerCase().includes(trimmed.toLowerCase()))
-		: categories;
+
+	// ⚠️ 1 文字打つたびに叩かない。確定は «入力が止まってから»（RestaurantNameSearch と同じ 300ms）
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	useEffect(() => {
+		if (debounceRef.current) clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(() => {
+			debounceRef.current = null;
+			void searchDishCategories(trimmed);
+		}, SEARCH_DEBOUNCE_MS);
+		return () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+		};
+	}, [searchDishCategories, trimmed]);
+
+	/** その店の候補（名前で絞り込み）→ マスタの候補。同じ id は 1 回だけ出す */
+	const visible = useMemo(() => {
+		if (!trimmed) return categories;
+		const lowered = trimmed.toLowerCase();
+		const mine = categories.filter((category) => category.label.toLowerCase().includes(lowered));
+		const seen = new Set(mine.map((category) => category.dishCategoryId));
+		const fromMaster = suggestions
+			.filter((suggestion) => suggestion.dishCategoryId && suggestion.label && !seen.has(suggestion.dishCategoryId))
+			.map((suggestion) => ({
+				dishCategoryId: suggestion.dishCategoryId,
+				label: suggestion.label,
+				// マスタ由来はその店での件数を持たない。件数の «0» を出すと «0 件ある» に読めるので出さない
+				count: null as number | null,
+			}));
+		return [...mine, ...fromMaster];
+	}, [categories, suggestions, trimmed]);
 
 	const handleSubmit = useCallback(() => {
 		if (!trimmed) return;
 		// 打った名前が候補と完全一致するなら、新規作成ではなくその候補を選ぶ
-		const exact = categories.find((category) => category.label.toLowerCase() === trimmed.toLowerCase());
+		const exact = visible.find((category) => category.label.toLowerCase() === trimmed.toLowerCase());
 		if (exact) {
 			onSelectExisting({ dishCategoryId: exact.dishCategoryId, label: exact.label });
 			return;
 		}
 		onSubmitTyped(trimmed);
-	}, [categories, onSelectExisting, onSubmitTyped, trimmed]);
+	}, [onSelectExisting, onSubmitTyped, trimmed, visible]);
 
 	return (
 		<View style={styles.container} testID={testID}>
@@ -118,7 +171,7 @@ export function DishCategoryStep({ restaurantId, onSelectExisting, onSubmitTyped
 								<Text style={styles.listItemLabel} numberOfLines={1} ellipsizeMode="tail">
 									{category.label}
 								</Text>
-								<Text style={styles.listItemCount}>{category.count}</Text>
+								{category.count !== null && <Text style={styles.listItemCount}>{category.count}</Text>}
 							</TouchableOpacity>
 						))}
 					</ScrollView>
