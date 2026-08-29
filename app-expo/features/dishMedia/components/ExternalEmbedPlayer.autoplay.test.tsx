@@ -363,17 +363,35 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	});
 
 	/*
-	#1641 ⚠️ **document-start にも同じエージェントを渡す。**
+	#1641 ⚠️ **document-start へ `AUTOPLAY_SCRIPT` を渡してはいけない。**
 
-	iOS の injectedJavaScript は WKUserScript の DocumentEnd で、そこへ到達しないページでは
-	1 度も走らない。TikTok の埋め込みがまさにそれだった（readyState が 'loading' のまま
-	18 秒。run 33245098709 / 33246974699 で 2/2 再現し、run 33249617397 の boot 報告で確定）。
+	1 度やって戻した（`653867e`）。エージェントは 250ms ごとに DOM を舐めるので、
+	読み込み中から回すと **Android でアプリが落ちる**（run 33251568206 / 33252898919 で
+	2/2 再現）。しかも **iOS の TikTok は直らなかった**（ページ自体が組み上がらないので
+	`<video>` が現れない）。効果ゼロ・害ありだった。
+
+	document-start に置いてよいのは **タイマー 1 本の軽い見張り**だけである。
 	*/
-	it("document-start にも同じエージェントを渡している", () => {
+	it("document-start には軽い見張りだけを渡す（エージェントを渡さない）", () => {
 		renderActiveCell();
-		expect(webViewProps.injectedJavaScriptBeforeContentLoaded).toContain("__nbEmbedAutoplay");
-		// 二重起動は先頭の kick ガードで吸収される（締め切りを延ばすだけになる）
-		expect(webViewProps.injectedJavaScriptBeforeContentLoaded).toContain("kick");
+		const watchdog = webViewProps.injectedJavaScriptBeforeContentLoaded as string;
+		expect(watchdog).toContain("__nbEmbedWatchdog");
+		// エージェント本体の目印が混ざっていないこと（= 読み込み中に DOM を舐めない）
+		expect(watchdog).not.toContain("MutationObserver");
+		expect(watchdog).not.toContain("setInterval");
+		expect(watchdog).not.toContain("querySelectorAll");
+	});
+
+	/*
+	#1641 組み上がらないページを **黒いまま放置しない**。
+	iOS の TikTok は readyState が 'loading' のまま 18 秒動かない（実測）。
+	*/
+	it("見張りは、組み上がらないときに時間切れを知らせる", () => {
+		renderActiveCell();
+		const watchdog = webViewProps.injectedJavaScriptBeforeContentLoaded as string;
+		expect(watchdog).toContain("still_loading");
+		// タイマーは 1 本だけ（ここが増えると読み込み中の負荷が戻る）
+		expect(watchdog.match(/setTimeout/g) ?? []).toHaveLength(1);
 	});
 
 	/*

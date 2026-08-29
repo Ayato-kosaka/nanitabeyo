@@ -535,6 +535,61 @@ const AUTOPLAY_SCRIPT = `(function () {
   start();
 })(); true;`;
 
+/*
+#1641【観測 + 縮退】**document-start で走る «軽い見張り»。**
+
+## なぜ要るのか
+
+iOS の `injectedJavaScript` は WKUserScript の **DocumentEnd** で、そこへ到達しない
+ページでは `AUTOPLAY_SCRIPT` が 1 度も走らない。**TikTok の埋め込みが実際にそれ**で、
+`document.readyState` が 'loading' のまま 18 秒動かない（run 33249617397 / 33251568206 で実測。
+Instagram は boot の 1 秒後に 'interactive' になる）。
+
+その結果、セルは **黒いまま・報告もゼロ**で放置されていた。
+
+## ここでやること（と、やらないこと）
+
+- ✅ `boot` を 1 回送る … «走ったか» と «一度も走っていないか» を区別する
+- ✅ `dom` を 1 回送る … 組み上がったかを知らせ、エージェントが居れば撃ち直す
+- ✅ 組み上がらないまま猶予を過ぎたら `timeout` を送る … **黒いセルのまま放置しない**
+- ❌ **DOM を舐めない。監視も張らない。** ここで `AUTOPLAY_SCRIPT` を走らせたら
+     Android でアプリが落ちた（`653867e` を戻した理由）。タイマーは 1 本だけにする
+
+⚠️ **この文字列にバッククォートを書かないこと。** テンプレートリテラルの内側で、
+   書いた時点で文字列が終わる。
+*/
+const LOAD_WATCHDOG_SCRIPT = `(function () {
+  var W = window;
+  if (!W.ReactNativeWebView || W.__nbEmbedWatchdog) return;
+  W.__nbEmbedWatchdog = true;
+  var settled = false;
+  function tell(kind, detail) {
+    try {
+      W.ReactNativeWebView.postMessage(JSON.stringify({
+        src: 'nb-embed-autoplay', kind: kind, detail: detail == null ? null : String(detail)
+      }));
+    } catch (e) {}
+  }
+  tell('boot', document.readyState);
+  function onReady() {
+    if (settled) return;
+    settled = true;
+    tell('dom', document.readyState);
+    try { if (W.__nbEmbedAutoplay && W.__nbEmbedAutoplay.kick) W.__nbEmbedAutoplay.kick(); } catch (e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', onReady, { once: true });
+  } else {
+    onReady();
+  }
+  /* 組み上がらないページを黒いまま放置しない。タイマーは 1 本だけ */
+  setTimeout(function () {
+    if (settled) return;
+    settled = true;
+    tell('timeout', 'still_loading');
+  }, 15000);
+})(); true;`;
+
 export type ExternalEmbedPlayerProps = {
 	/*
 	#1641 `playbackStatus` を受け取る。**«再生できない» はサーバが取り込みのときに
@@ -997,20 +1052,18 @@ export function ExternalEmbedPlayer({
 						*/
 						injectedJavaScript={source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT}
 						/*
-						#1641 **同じエージェントを document-start でも走らせる。**
+						#1641 document-start では **軽い見張りだけ**を走らせる。
 
-						iOS の injectedJavaScript は WKUserScript の DocumentEnd で、
-						**そこへ到達しないページでは 1 度も走らない**。TikTok の埋め込みが
-						まさにそれで、readyState が 'loading' のまま止まり、18 秒眺めても
-						報告が 1 件も来なかった（run 33245098709 / 33246974699 で 2/2 再現。
-						run 33249617397 の boot 報告で «走っていない» ことを確定させた）。
-
-						⚠️ 二重に走っても安全である。スクリプトの先頭に
-						   `if (W.__nbEmbedAutoplay) { kick(); return; }` があるので、
-						   2 回目以降は **締め切りを延ばすだけ**になる。
+						⚠️ **ここへ `AUTOPLAY_SCRIPT` を渡してはいけない。** 1 度やって戻した
+						   （`653867e`）。エージェントは 250ms ごとに DOM を舐めるので、
+						   読み込み中から回すと **Android でアプリが落ちる**
+						   （run 33251568206 / 33252898919 で 2/2 再現。Detox がアプリへ
+						   接続できなくなる）。しかも **iOS の TikTok は直らなかった**
+						   （ページ自体が組み上がらないので `<video>` が現れない）。
+						   効果ゼロ・害ありだったので、見張りだけを残してある。
 						*/
 						injectedJavaScriptBeforeContentLoaded={
-							source.mode === "iframe" ? undefined : AUTOPLAY_SCRIPT
+							source.mode === "iframe" ? undefined : LOAD_WATCHDOG_SCRIPT
 						}
 						onMessage={handleMessage}
 						/* 埋め込みが JS で描き直したとき（初回の onLoadEnd で video が
