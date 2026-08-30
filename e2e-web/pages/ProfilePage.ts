@@ -57,7 +57,9 @@ export class ProfilePage {
 		this.likedGrid = page.getByTestId("like-tab-grid");
 		this.locationSearchInput = page.getByTestId("saved-dish-category-location-search-input");
 		this.locationSearchRecentList = page.getByTestId("saved-dish-category-location-search-recent-locations");
-		this.locationSearchRecentClearButton = page.getByTestId("saved-dish-category-location-search-recent-locations-clear");
+		this.locationSearchRecentClearButton = page.getByTestId(
+			"saved-dish-category-location-search-recent-locations-clear",
+		);
 		this.locationSearchCurrentLocationButton = page.getByTestId("saved-dishCategory-current-location-button");
 		this.locationSearchSuggestions = page.getByTestId("saved-dish-category-location-search-suggestions");
 		this.editButton = page.getByTestId("profile-edit-button");

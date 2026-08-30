@@ -86,7 +86,6 @@ async function openFilledReviewForm(appPage: Page, comment: string): Promise<Loc
 
 	await appPage.getByTestId("review-comment-input").fill(comment.slice(0, 100));
 
-
 	await appPage.getByTestId("review-price-input").fill("500");
 	await appPage.getByTestId("review-star-5").click();
 

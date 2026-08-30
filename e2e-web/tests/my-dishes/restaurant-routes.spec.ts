@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { RestaurantDetailPage } from "../../pages/RestaurantDetailPage";
 import { LoginPage } from "../../pages/LoginPage";
 import {
@@ -36,6 +37,8 @@ import {
  * どのテストにも守られていない（旧 `__tests__/mapRestaurantRoute.test.tsx` は地図側だけを見ていた）。
  */
 test.describe("店舗詳細のルート（#1386）", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: 店舗詳細へ直リンクで到達できる ─
 	// 手順:
 	//   1. 店舗取得 API をモックして /ja-JP/restaurant/<id> へ直接遷移する

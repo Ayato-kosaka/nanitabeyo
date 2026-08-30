@@ -32,9 +32,7 @@ export const SHARE_CRAWLER_USER_AGENTS = [
 /** ブラウザの localStorage から Supabase の access_token を取り出す */
 async function readAccessToken(page: Page): Promise<string> {
 	const token = await page.evaluate(() => {
-		const key = Object.keys(window.localStorage).find(
-			(k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
-		);
+		const key = Object.keys(window.localStorage).find((k) => k.startsWith("sb-") && k.endsWith("-auth-token"));
 		if (!key) return null;
 		const raw = window.localStorage.getItem(key);
 		if (!raw) return null;
@@ -139,9 +137,7 @@ export async function createShareLinkViaApi(
 		data: { target: { type: "dish_media", params: { ids: [dishMediaId] } }, locale: "ja-JP" },
 	});
 	if (!createResponse.ok()) {
-		throw new Error(
-			`共有リンクの作成に失敗しました: ${createResponse.status()} ${await createResponse.text()}`,
-		);
+		throw new Error(`共有リンクの作成に失敗しました: ${createResponse.status()} ${await createResponse.text()}`);
 	}
 	const created = (await createResponse.json()) as { data: { token: string; url: string } };
 	return { token: created.data.token, url: created.data.url, dishMediaId };

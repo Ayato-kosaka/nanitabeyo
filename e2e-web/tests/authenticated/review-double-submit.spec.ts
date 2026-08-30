@@ -91,7 +91,6 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 			.getByTestId("review-comment-input")
 			.fill(`[E2E] 連打耐性テスト ${new Date().toISOString()}`.slice(0, 100));
 
-
 		await appPage.getByTestId("review-price-input").fill("500");
 		await appPage.getByTestId("review-star-5").click();
 

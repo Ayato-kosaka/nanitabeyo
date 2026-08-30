@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { test, expect } from "../../fixtures/test";
 import { MyDishesPage } from "../../pages/MyDishesPage";
 import { loadTestUserCredentials } from "../../utils/testUserSession";
@@ -226,6 +227,8 @@ function lastRequest(recorded: RecordedRequest[], path: string): URLSearchParams
 }
 
 test.describe("#1375 Map のピン → 全画面 Feed / 下部の常設シート（web / ログイン済み）", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: ピン → Sheet → Feed の Map 経路 ─
 	// 手順:
 	//   1. 3 本の API を決定論的な値へ差し替える
@@ -285,6 +288,8 @@ test.describe("#1375 Map のピン → 全画面 Feed / 下部の常設シート
 });
 
 test.describe("#1397 (PR5/5) contextual filter chips", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: chip で絞ると 3 ビューすべてに反映される ─
 	// 手順:
 	//   1. 3 本の API を差し替える（`categoryIds` が付いたら 1 件だけ返す mock）

@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { mockSubmitVote, mockVoteDetail, voteScreenPath } from "../../utils/dishCategoryGroupVote";
 import {
 	MOCK_VOTE_ACTOR_NAME,
@@ -51,6 +52,8 @@ test.skip(
 );
 
 test.describe("友達投票の完了通知（ホスト側）", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース 1: 投票の完了が通知の起点（送信 API）まで到達する ─
 	// 手順:
 	//   1. 投票セッション detail と投票送信 API をモックして投票画面を開く

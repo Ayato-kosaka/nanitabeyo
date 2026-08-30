@@ -38,7 +38,10 @@ async function chooseDishCategoryOrSkipOnQuota(
 		await resultPage.expectLoaded();
 	} catch (error) {
 		if (serverErrors.length > 0) {
-			test.skip(true, `Places SearchText クォータ枯渇（bulk-import が ${serverErrors[0]}）。45/日・引き上げない方針のため skip`);
+			test.skip(
+				true,
+				`Places SearchText クォータ枯渇（bulk-import が ${serverErrors[0]}）。45/日・引き上げない方針のため skip`,
+			);
 		}
 		throw error;
 	} finally {
