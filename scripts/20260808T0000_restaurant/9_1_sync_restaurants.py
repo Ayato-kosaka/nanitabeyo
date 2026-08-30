@@ -392,6 +392,18 @@ def apply_sync(connection: Any) -> None:
 
         # provenanceは既存行にも付ける。これによりPG表示値を維持しつつ、どのseedが
         # 根拠になったかと最終同期時刻を追跡できる。
+        #
+        # #1706 **中身が変わる行だけを書く。**
+        #
+        # 以前はここを無条件（place_id が一致する全行）で流していた。skip 判定の
+        # 行は provenance も変わらないのに毎回書き直しており、62 万行を丸ごと
+        # 更新していた。`source_seed_id` は UNIQUE 索引が付いているのでこの更新は
+        # **非 HOT** になり、name の GIN trigram を含む全索引を毎回作り直す。
+        # 2026-08-30 の dev 同期はこの 1 文で 30 分の statement timeout に当たった
+        # （実測: insert 0 / update 2,637 / **skip 619,329**）。
+        #
+        # synced_at だけは «今回の catalog に居た» の印なので全行に付ける必要がある。
+        # そちらは索引の無い列だけを触る別の文へ分け、HOT update にする（下）。
         cursor.execute(
             """
             UPDATE restaurants r
@@ -412,6 +424,34 @@ def apply_sync(connection: Any) -> None:
                 ELSE r.source_row_hash
               END,
               synced_at = CURRENT_TIMESTAMP
+            FROM restaurant_sync_staging s
+            WHERE r.google_place_id = s.google_place_id
+              AND (
+                r.source_seed_id IS DISTINCT FROM s.seed_id
+                OR r.source_names IS DISTINCT FROM ARRAY(
+                  SELECT jsonb_array_elements_text(s.source_names_json::jsonb)
+                )
+                OR (
+                  r.created_by_source = 'pipeline'
+                  AND r.source_row_hash IS DISTINCT FROM s.row_hash
+                )
+              )
+            """
+        )
+
+        # #1706 «今回の catalog に居た» の印だけを全行へ付ける。
+        #
+        # **索引の付いた列を 1 つも触らない**ので、PostgreSQL は HOT update に
+        # できる（索引を作り直さない）。上の provenance UPDATE から synced_at を
+        # 分離したのはこのためで、62 万行でも現実的な時間で終わる。
+        #
+        # この印は 9_9_audit_sync_drift が «最新 catalog に居なかった行»
+        # （＝閉店・脱落・place_id 統合で溜まるゴミ）を数えるのに使う。
+        # 変わった行だけに付けると、変わらなかった行が «居なかった» に見えてしまう。
+        cursor.execute(
+            """
+            UPDATE restaurants r
+            SET synced_at = CURRENT_TIMESTAMP
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
             """
