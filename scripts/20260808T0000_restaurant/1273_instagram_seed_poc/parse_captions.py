@@ -80,10 +80,28 @@ def main():
     cats = json.load(open(os.path.join(OUT, 'dish_categories_jp.json')))['categories_ja']
     cats_sorted = sorted(cats, key=len, reverse=True)
 
+    # 表記ゆれの回収（分類の磨き上げ）。カテゴリ正式名(カタカナ)に一致しないが
+    # 同義の別表記で出現するものを拾う。exact 一致を先に試し、外れたときだけ使う
+    # （「もつ鍋」等の専用カテゴリを「鍋料理」より優先するため）。
+    VARIANTS = {
+        'ウナギ': ['うなぎ', '鰻'], '牛丼': ['牛丼'], '親子丼': ['親子丼'], '天丼': ['天丼'],
+        '冷やし中華': ['冷し中華'], '担担麺': ['担々麺', '担担麺', 'タンタンメン'],
+        '酢豚': ['酢豚'], '回鍋肉': ['ホイコーロー', '回鍋肉'], '鍋料理': ['鍋料理', '火鍋', '寄せ鍋', '水炊き'],
+        'カレーうどん': ['カレーうどん'], '生姜焼き': ['生姜焼き', 'しょうが焼き'],
+        'もんじゃ焼き': ['もんじゃ'], 'やきとん': ['やきとん', '焼きとん'], 'ホルモン焼き': ['ホルモン焼き', 'ホルモン'],
+        '牡蠣料理': ['牡蠣', '生牡蠣'], '蟹料理': ['蟹料理', 'かに料理', '蟹しゃぶ'], '釜飯': ['釜飯', 'かまめし'],
+        '牛すじ煮込み': ['牛すじ煮込み', '牛スジ煮込み'], '手羽先唐揚げ': ['手羽先'],
+    }
+    var_pairs = sorted(((v, cat) for cat, vs in VARIANTS.items() for v in vs),
+                       key=lambda x: -len(x[0]))
+
     def find_cat(cap):
         for c in cats_sorted:
             if c in cap:
                 return c
+        for v, cat in var_pairs:
+            if v in cap:
+                return cat
         return None
 
     rows, seen = [], set()
