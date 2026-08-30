@@ -58,6 +58,19 @@ jest.mock("@/features/profile/stores/useProfileStore", () => ({
 jest.mock("@/stores/useCdnCookieStore", () => ({
 	useCdnCookieStore: { getState: () => ({ clearCookies: jest.fn() }) },
 }));
+/*
+#1629 my-dishes のキャッシュを «ユーザーが変わったら捨てる» ことを検証するため、
+呼ばれたかどうかを読めるモックにする（他のストアは呼び出しを見ていないので使い捨てで足りる）。
+`mock` 始まりの変数名だけが jest.mock の工場から参照できる（jest の制約）。
+*/
+const mockBumpMyDishes = jest.fn();
+const mockClearMyDishesFeedScope = jest.fn();
+jest.mock("@/features/myDishes/stores/useMyDishesRevisionStore", () => ({
+	useMyDishesRevisionStore: { getState: () => ({ bump: mockBumpMyDishes }) },
+}));
+jest.mock("@/features/myDishes/stores/useMyDishesFeedScopeStore", () => ({
+	useMyDishesFeedScopeStore: { getState: () => ({ clear: mockClearMyDishesFeedScope }) },
+}));
 
 /** 上の jest.mock で差し替えた supabase.auth（すべて jest.fn） */
 const auth = supabase.auth as unknown as {
@@ -464,5 +477,52 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		});
 
 		expect(auth.signInAnonymously).toHaveBeenCalledTimes(1);
+	});
+
+	/*
+	#1629 オーナー実機報告 2 件の共通の真因を固定する。
+
+	  1. ログアウトしても前のユーザーの記録がグリッドに残る
+	  2. ログインした直後に «候補がありません» が出る
+
+	dev の実ログ（2026-08-30）はこの順に並んでいた。
+
+	    logout_success → userChanged(匿名) → my_dishes_fetch_completed {count: 0}
+	    → userChanged(本人)
+
+	匿名として 0 件を取り切ると `hasFetchedInitial` が true になり、その «空のスライス» が
+	本人へ切り替わっても残る。だから «残る» と «空» は同じ 1 つの原因である。
+
+	⚠️ この期待を消すと、**画面には «前の人のデータ» か «空» のどちらかが必ず出る**。
+	   件数の表示側で隠すのではなく、キャッシュごと捨てること。
+	*/
+	it("ユーザーが変わったら my-dishes のキャッシュを捨てる（前ユーザーの記録も «空» も残さない）", async () => {
+		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("anon-1") }, error: null });
+
+		await mountProvider();
+		mockBumpMyDishes.mockClear();
+		mockClearMyDishesFeedScope.mockClear();
+
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("user-1"));
+		});
+
+		expect(mockBumpMyDishes).toHaveBeenCalledTimes(1);
+		expect(mockClearMyDishesFeedScope).toHaveBeenCalledTimes(1);
+	});
+
+	it("同じユーザーのままなら my-dishes のキャッシュは捨てない（毎回取り直すのは無駄）", async () => {
+		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
+
+		await mountProvider();
+		mockBumpMyDishes.mockClear();
+		mockClearMyDishesFeedScope.mockClear();
+
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("user-1"));
+		});
+
+		expect(mockBumpMyDishes).not.toHaveBeenCalled();
+		expect(mockClearMyDishesFeedScope).not.toHaveBeenCalled();
 	});
 });
