@@ -25,7 +25,17 @@ import { test, expect } from "../../fixtures/test";
 
 // 共有の匿名 storageState を使うと「復元できるセッションがある」状態になり匿名サインインが走らないため、
 // boot.spec.ts と同様に意図的にフレッシュな状態へ戻す
-test.use({ storageState: { cookies: [], origins: [] } });
+test.use({
+	storageState: { cookies: [], origins: [] },
+	/*
+	#1629 この spec は **自分で 429 を返させている**。ブラウザはそれを
+	`Failed to load resource: ... 429 (Too Many Requests)` として console へ出すので、
+	REL-08 の «console error があれば落とす» に必ず引っかかる。
+	«その spec の前提そのものがエラーを生む» 場合の許容なので、`KNOWN_CONSOLE_NOISE`
+	（全 spec に効く）ではなくこちらへ書く（fixtures/test.ts の使い分けのとおり）。
+	*/
+	allowedConsoleErrors: ["429 (Too Many Requests)"],
+});
 
 test.describe("匿名サインイン失敗時", () => {
 	// ─ テストケース: 匿名サインインが 429 でもエラー UI と再試行ボタンが出る ─

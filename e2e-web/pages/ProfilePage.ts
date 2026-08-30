@@ -165,9 +165,12 @@ export class ProfilePage {
 	 * マイページが表示されていることを検証する。
 	 *
 	 * #1402 で «設定という画面» が無くなり、設定項目はこの画面の縦リストへ移った。
-	 * ロケール依存の文言ではなく、必ず出る行（ご意見・不具合）の testID を待つ。
+	 * ロケール依存の文言ではなく、必ず出る行の testID を待つ。
+	 *
+	 * ⚠️ #1629 目印は «ご意見・不具合» から «なに食べよについて» へ変えた。
+	 * 前者は `profile/about` へ移設されており、ここには無い（`SettingsPage.expectLoaded` と同じ）。
 	 */
 	async expectLoaded(): Promise<void> {
-		await expect(this.page.getByTestId("settings-feedback")).toBeVisible();
+		await expect(this.page.getByTestId("settings-about")).toBeVisible();
 	}
 }

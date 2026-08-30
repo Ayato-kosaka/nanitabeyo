@@ -80,6 +80,23 @@ const KNOWN_CONSOLE_NOISE: RegExp[] = [
 	// ヘッドレスブラウザには実位置情報が無いため navigator.geolocation が失敗するが、
 	// アプリ側にフォールバック処理があり体験上は問題にならない(useLocationSearch 参照)。
 	/GeolocationPositionError/,
+
+	/*
+	#1629 `.invalid` ドメインの読み込み失敗。
+
+	`.invalid` は RFC 2606 が «決して解決してはならない» と定めた予約 TLD で、
+	**製品コードがこのホストを引くことは構造上ありえない**。出てくるのは、画像の実体を
+	用意せずに «URL があるときの描画» を見たいテストのスタブ（`example.invalid/xxx.jpg` 等）
+	だけである。したがってこれを全 spec で無視しても、検知したい不具合は 1 つも隠れない。
+
+	⚠️ 逆に、無視しないと **画像 URL を含むスタブを置いた spec が軒並み落ちる**。
+	実際にこれで main が 1 週間赤く、失敗 81 件のうち最多の一群がこれだった。
+	個別 spec の `allowedConsoleErrors` へ同じ 1 行を 10 ファイルへ配るより、
+	«ありえないホスト» という性質でまとめて切るほうが陳腐化しない。
+
+	URL は本文に含まれないので、`page.on("console")` 側で付けた `[<url>]` を見る。
+	*/
+	/\[https?:\/\/[^\]]*\.invalid[:/][^\]]*\]/,
 ];
 
 export const test = base.extend<AppOptions & AppFixtures>({
@@ -108,11 +125,28 @@ export const test = base.extend<AppOptions & AppFixtures>({
 				KNOWN_CONSOLE_NOISE.some((pattern) => pattern.test(text)) ||
 				allowedConsoleErrors.some((allowed) => text.includes(allowed));
 
-			// console.error と未捕捉例外 (pageerror) の両方を収集する
+			/*
+			#1629 ⚠️ **メッセージ本文だけを記録しないこと。**
+
+			リソースの読み込み失敗はブラウザが
+			`Failed to load resource: net::ERR_NAME_NOT_RESOLVED` としか書かない。
+			**どの URL が失敗したのかが本文に入っていない**ため、
+			この 1 行だけを添付しても «何を直せばいいのか» が誰にも分からない。
+			実際に main が 1 週間赤いあいだ、この形の失敗が最多（116 件）を占めていながら、
+			ログからは原因の特定が不可能だった。
+
+			`ConsoleMessage.location()` には失敗したリソースの URL が入るので、
+			本文に無いときだけ URL を添えて記録する。
+			*/
 			page.on("console", (message) => {
-				if (message.type() === "error" && !isIgnored(message.text())) {
-					errors.push(message.text());
-				}
+				if (message.type() !== "error") return;
+				const text = message.text();
+				const url = message.location()?.url;
+				// 判定は «URL を足した後» のテキストへ掛ける。許容リストは部分一致なので
+				// 足しても既存の指定は当たり続け、URL でしか区別できないノイズも書けるようになる
+				const enriched = url && !text.includes(url) ? `${text} [${url}]` : text;
+				if (isIgnored(enriched)) return;
+				errors.push(enriched);
 			});
 			page.on("pageerror", (error) => {
 				if (!isIgnored(error.message)) {

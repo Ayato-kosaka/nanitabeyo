@@ -80,12 +80,14 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 
 	// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
 	// カタログ ID «profile-settings-authenticated» は無くなった（profile-authenticated が兼ねる）。
-	// ログアウト行の «有無» がログイン済み／匿名の唯一の差なので、それだけをここで確かめる
-	test("マイページ（ログイン済み）にログアウト行がある", async ({ appPage }) => {
+	// ログアウト行の «有無» がログイン済み／匿名の唯一の差なので、それだけをここで確かめる。
+	// #1629 その行は «アカウント管理»（/[locale]/profile/account）へ移った
+	test("アカウント管理（ログイン済み）にログアウト行がある", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		await settingsPage.openAccount();
 		await expect(settingsPage.logoutItem).toBeVisible();
 	});
 
