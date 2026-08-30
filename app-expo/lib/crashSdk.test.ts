@@ -8,8 +8,7 @@
 動かない» 段が無くなったので、«未設定なら何もしない» のテストは
 «モジュールが無ければ何もしない» に置き換わっている。
 */
-import { Platform } from "react-native";
-import { installCrashSdk, loadCrashlytics, resetCrashSdkForTest } from "./crashSdk";
+import { installCrashSdk, resetCrashSdkForTest } from "./crashSdk";
 
 // `mock` 始まりの変数名だけが jest.mock の工場から参照できる（jest の制約）
 const mockInstance = { __tag: "crashlytics" };
@@ -42,23 +41,27 @@ beforeEach(() => {
 	resetCrashSdkForTest();
 });
 
-// TODO(#1641) 一時的な診断。CI でだけ落ちる原因を特定したら必ず消す。
-it("DIAG", () => {
-	let req: string;
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const m = require("@react-native-firebase/crashlytics") as Record<string, unknown> | undefined;
-		req = `ok keys=[${Object.keys(m ?? {}).join("|")}] typeofGet=${typeof m?.getCrashlytics}`;
-	} catch (e) {
-		req = `throw ${String(e)}`;
-	}
-	throw new Error(
-		`DIAG platform=${Platform.OS} require=${req} load=${loadCrashlytics() === null ? "null" : "mod"} install=${installCrashSdk()}`,
-	);
-});
-
 it("収集を明示的に有効にし、どのビルドかを一緒に送る", () => {
-	expect(installCrashSdk()).toBe(true);
+	// TODO(#1641) 一時診断。**呼び出し順は元のまま**（installCrashSdk が最初）で、
+	// 失敗したときだけ状態を吐く。top-level import は 1 つも足していない（それ自体が
+	// 結果を変えた疑いがあるため）。原因が分かったら消すこと。
+	const installed = installCrashSdk();
+	if (!installed) {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const rn = require("react-native") as { Platform?: { OS?: string } };
+		let req: string;
+		try {
+			// eslint-disable-next-line @typescript-eslint/no-require-imports
+			const m = require("@react-native-firebase/crashlytics") as Record<string, unknown> | undefined;
+			req = `ok typeofGet=${typeof m?.getCrashlytics}`;
+		} catch (e) {
+			req = `throw ${String(e)}`;
+		}
+		// afterReset=true なら «initialized が既に true だった»、false なら «mod が null»
+		resetCrashSdkForTest();
+		throw new Error(`DIAG platform=${rn.Platform?.OS} require=${req} afterReset=${installCrashSdk()}`);
+	}
+	expect(installed).toBe(true);
 	// firebase.json の設定を消しても黙って止まらないよう、コード側でも立てる
 	expect(mockSetEnabled).toHaveBeenCalledWith(mockInstance, true);
 	const attributes = mockSetAttributes.mock.calls[0][1] as unknown as Record<string, string>;
