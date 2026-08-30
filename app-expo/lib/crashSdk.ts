@@ -55,13 +55,32 @@ type CrashlyticsModule = {
 };
 
 /** モジュールが無いビルドでは null を返す（縮退の唯一の入口） */
+// TODO(#1641) 一時診断。CI でだけ null になる分岐を特定したら消すこと。
+let diagReason = "not-called";
+export function __diagLoadReason(): string {
+	return diagReason;
+}
+
 export function loadCrashlytics(): CrashlyticsModule | null {
-	if (Platform.OS === "web") return null;
+	if (Platform.OS === "web") {
+		diagReason = `web (OS=${String(Platform.OS)})`;
+		return null;
+	}
 	try {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const mod = require("@react-native-firebase/crashlytics") as CrashlyticsModule | undefined;
-		return mod && typeof mod.getCrashlytics === "function" ? mod : null;
-	} catch {
+		if (!mod) {
+			diagReason = "mod-falsy";
+			return null;
+		}
+		if (typeof mod.getCrashlytics !== "function") {
+			diagReason = `no-getCrashlytics typeof=${typeof mod.getCrashlytics} keys=[${Object.keys(mod).join("|")}]`;
+			return null;
+		}
+		diagReason = "ok";
+		return mod;
+	} catch (e) {
+		diagReason = `throw ${String(e)}`;
 		return null;
 	}
 }

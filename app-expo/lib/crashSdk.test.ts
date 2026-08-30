@@ -8,7 +8,7 @@
 動かない» 段が無くなったので、«未設定なら何もしない» のテストは
 «モジュールが無ければ何もしない» に置き換わっている。
 */
-import { installCrashSdk, resetCrashSdkForTest } from "./crashSdk";
+import { __diagLoadReason, installCrashSdk, resetCrashSdkForTest } from "./crashSdk";
 
 // `mock` 始まりの変数名だけが jest.mock の工場から参照できる（jest の制約）
 const mockInstance = { __tag: "crashlytics" };
@@ -59,7 +59,9 @@ it("収集を明示的に有効にし、どのビルドかを一緒に送る", (
 		}
 		// afterReset=true なら «initialized が既に true だった»、false なら «mod が null»
 		resetCrashSdkForTest();
-		throw new Error(`DIAG platform=${rn.Platform?.OS} require=${req} afterReset=${installCrashSdk()}`);
+		throw new Error(
+			`DIAG platform=${rn.Platform?.OS} require=${req} afterReset=${installCrashSdk()} reason=${__diagLoadReason()}`,
+		);
 	}
 	expect(installed).toBe(true);
 	// firebase.json の設定を消しても黙って止まらないよう、コード側でも立てる
