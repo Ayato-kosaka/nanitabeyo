@@ -184,7 +184,7 @@ await record({
 		);
 
 		// ── ③ 打ったらマスタも引く（その店に記録が無い料理も出る） ──
-		const catInput = page.getByTestId("review-dish-category-step-input").first();
+		const catInput = page.getByTestId("review-dish-category-step-search-input").first();
 		if (!(await catInput.count())) {
 			notes.push("⚠️ 料理カテゴリーの入力欄が出ていない。以降は撮れていない");
 			writeNote(NAME, notes);
