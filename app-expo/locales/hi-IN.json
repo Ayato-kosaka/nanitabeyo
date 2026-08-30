@@ -1035,7 +1035,8 @@
 				"price": "कीमत",
 				"rating": "रेटिंग",
 				"dishCategory": "व्यंजन श्रेणी",
-				"separator": ", "
+				"separator": ", ",
+				"currency": "इस जगह की मुद्रा उपलब्ध नहीं है"
 			}
 		},
 		"filters": {

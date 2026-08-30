@@ -29,7 +29,7 @@ import {
 	toMinorAmountInteger,
 } from "@/lib/googlePlaces";
 import { useLocale } from "@/hooks/useLocale";
-import { resolveDishCategoryLabel } from "@/features/myDishes/dishCategoryLabel";
+import { resolveDishCategoryLabel, toLanguageCode } from "@/features/myDishes/dishCategoryLabel";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -371,11 +371,13 @@ export function ReviewForm({
 	«料理カテゴリーが空欄 → 投稿できない» に当たったが、当人からは «壊れている» としか見えなかった。
 	足りないものを名指しする。順番は画面の並び（レビュー → 料金 → おすすめ度）に合わせる。
 
-	⚠️ `currencyCode` はここへ入れない。**ユーザーが埋められる項目ではない**（店から決まる）ので、
-	   名指ししても行動に繋がらない。
+	⚠️ `currencyCode` が決まらない店では **ヒントが 1 つも出ない**まま押せなくなる（自己レビューで検出）。
+	   ユーザーが埋められる項目ではないので «入力してください» とは言えないが、黙って灰色のままにも
+	   しない。専用の 1 文（`MyDishes.record.missing.currency`）を出して «自分のせいではない» と分かる形にする。
 	*/
 	const missingLabels = useMemo(() => {
 		const missing: string[] = [];
+		if (!currencyCode) missing.push(i18n.t("MyDishes.record.missing.currency"));
 		if (!dishCategoryId) missing.push(i18n.t("MyDishes.record.missing.dishCategory"));
 		if (!reviewText.trim()) missing.push(i18n.t("MyDishes.record.missing.comment"));
 		if (!(Number.isFinite(parsedPrice) && (parsedPrice ?? 0) > 0)) missing.push(i18n.t("MyDishes.record.missing.price"));
@@ -983,10 +985,15 @@ export function ReviewForm({
 					...createDishResponse,
 					reviewCount: 1,
 					averageRating: rating,
-					// #1375 投稿直後の楽観更新。作成 API はカテゴリの正式表記を返さないので null。
-					// 表示は dish.name へ落ちる（`dishCategoryLabel.ts`）ので壊れない。
-					// 次に一覧を引き直したときサーバの値で埋まる
-					categoryLabels: null,
+					/*
+					#1375 投稿直後の楽観更新。作成 API はカテゴリの正式表記を返さない。
+
+					⚠️ #1629 で `dishes.name` へのフォールバックを **やめた**ので、null のままだと
+					   投稿直後の 1 件だけ **料理カテゴリー名が空**で一覧に並ぶ（引き直すまで直らない）。
+					   いま画面に出している表記（`dishCategoryName`）をそのまま入れておく。
+					   次にサーバから引き直したとき、正規の `labels` で上書きされる。
+					*/
+					categoryLabels: dishCategoryName ? { [toLanguageCode(locale)]: dishCategoryName } : null,
 				};
 
 				// dish-media.media_path をアップロード

@@ -15,7 +15,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { MyDishItem } from "@shared/api/v1/res";
-import { MyDishEatenButton, resolveMyDishTitle } from "./myDishCard";
+import { MyDishEatenButton } from "./myDishCard";
+import { resolveDishCategoryLabel } from "../dishCategoryLabel";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import { MY_DISHES_EVENTS } from "../analytics";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
@@ -58,6 +59,8 @@ const MyDishCard = memo(function MyDishCard({
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
+	// #1629 表示名は `dish_categories.labels` から locale で引く（`dishes.name` は使わない）
+	const { locale } = useLocale();
 	// #958 と同じ理由で useWindowDimensions ではなく CenteredAppShell の中央カラム幅を使う
 	const contentWidth = useContentWidth();
 	const width = useMemo(() => (contentWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS, [contentWidth]);
@@ -112,8 +115,14 @@ const MyDishCard = memo(function MyDishCard({
 	}, [item, lightImpact, onPress]);
 
 	// #1375（オーナー実機指摘「リストで食べたのうどんがローマ字になってる」）
-	// カテゴリの正式表記を優先する（規則は `resolveMyDishTitle` に集約）
-	const dishName = resolveMyDishTitle(item) ?? undefined;
+	// カテゴリの正式表記だけを使う（規則は `dishCategoryLabel.ts` に集約）
+	/*
+	⚠️ #1629 3 行の並び（星 / 店名 / 料理名）では **`resolveMyDishTitle` を使わない**。
+	   あれは «料理名が無ければ店名» へ落とすので、そのまま置くと店名が 2 行続けて出る
+	   （自己レビューで検出）。ここは «カテゴリの表記そのもの» だけを使い、無ければ行ごと出さない。
+	   タップ先の全画面 Feed は店名を必ず出すので、失われる情報は無い。
+	*/
+	const dishName = resolveDishCategoryLabel(item.dish.categoryLabels, locale) ?? undefined;
 	const rating = item.myReview?.rating ?? null;
 
 	return (

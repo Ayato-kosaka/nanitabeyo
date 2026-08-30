@@ -238,17 +238,22 @@ export async function record({ name, mock, contextOptions, flow, langs, preset =
 	try {
 		await flow(page, shot);
 	} finally {
-		const video = page.video();
-		await context.close(); // close で動画が確定する
-		if (video) await rename(await video.path(), `${OUT}/${name}.webm`);
-		await browser.close();
-	}
+		/*
+		⚠️ **例外の書き出しは finally の中で行う。** 外に置くと、flow が投げたときに素通りする
+		   — つまり «画面が落ちた» という、この仕組みが一番要る場面でだけ何も残らない
+		   （自己レビューで検出）。
+		*/
 	if (pageErrors.length > 0) {
 		// 同じ例外が何十回も出るので畳む（何が起きたかが読めればよい）
 		const unique = [...new Set(pageErrors)];
 		await writeFile(`${OUT}/${name}-errors.md`, unique.map((line) => `- ${line}`).join("\n") + "\n", "utf8");
 		console.log(`⚠️ ブラウザの例外を ${unique.length} 種類拾った -> ${OUT}/${name}-errors.md`);
 		for (const line of unique.slice(0, 5)) console.log(`   ${line}`);
+	}
+		const video = page.video();
+		await context.close(); // close で動画が確定する
+		if (video) await rename(await video.path(), `${OUT}/${name}.webm`);
+		await browser.close();
 	}
 	console.log(`saved: ${OUT}/${name}.webm (+${shots.length} shots)`);
 	return { video: `${OUT}/${name}.webm`, shots, pageErrors };

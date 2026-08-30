@@ -38,7 +38,7 @@
 入力欄と «この名前で決める» だけを出す。空の一覧の枠だけが残ると «壊れている» に見える。
 */
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Utensils } from "lucide-react-native";
 
 import i18n from "@/lib/i18n";
@@ -138,37 +138,6 @@ const createStyles = (c: Palette) =>
 			fontSize: 14,
 			fontWeight: "700",
 			color: c.textPrimary,
-		},
-		inputContainer: {
-			flexDirection: "row",
-			alignItems: "center",
-			borderRadius: 16,
-			backgroundColor: c.surface,
-			borderWidth: 1,
-			borderColor: c.border,
-		},
-		searchIcon: {
-			marginLeft: 16,
-		},
-		input: {
-			flex: 1,
-			paddingHorizontal: 12,
-			paddingVertical: 16,
-			fontSize: 16,
-			color: c.textPrimary,
-		},
-		typedButton: {
-			paddingHorizontal: 16,
-			paddingVertical: 14,
-			borderRadius: 16,
-			borderWidth: 1,
-			borderColor: c.brandBorder,
-			backgroundColor: c.brandTint,
-		},
-		typedButtonLabel: {
-			fontSize: 15,
-			fontWeight: "700",
-			color: c.brand,
 		},
 		listHeading: {
 			fontSize: 12,

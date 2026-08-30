@@ -1035,7 +1035,8 @@
 				"price": "price",
 				"rating": "rating",
 				"dishCategory": "dish category",
-				"separator": ", "
+				"separator": ", ",
+				"currency": "this place's currency is unavailable"
 			}
 		},
 		"filters": {

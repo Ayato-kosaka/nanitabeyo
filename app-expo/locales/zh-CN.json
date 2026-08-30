@@ -1035,7 +1035,8 @@
 				"price": "价格",
 				"rating": "推荐度",
 				"dishCategory": "料理分类",
-				"separator": "、"
+				"separator": "、",
+				"currency": "无法获取该店铺的货币"
 			}
 		},
 		"filters": {

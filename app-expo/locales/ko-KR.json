@@ -1035,7 +1035,8 @@
 				"price": "가격",
 				"rating": "추천도",
 				"dishCategory": "요리 카테고리",
-				"separator": ", "
+				"separator": ", ",
+				"currency": "이 가게의 통화를 가져오지 못했습니다"
 			}
 		},
 		"filters": {

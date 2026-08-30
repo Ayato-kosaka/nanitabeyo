@@ -1035,7 +1035,8 @@
 				"price": "السعر",
 				"rating": "التقييم",
 				"dishCategory": "فئة الطبق",
-				"separator": "، "
+				"separator": "، ",
+				"currency": "عملة هذا المكان غير متوفرة"
 			}
 		},
 		"filters": {

@@ -1035,7 +1035,8 @@
 				"price": "prix",
 				"rating": "note",
 				"dishCategory": "catégorie du plat",
-				"separator": ", "
+				"separator": ", ",
+				"currency": "la devise de ce lieu est indisponible"
 			}
 		},
 		"filters": {

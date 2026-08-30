@@ -1035,7 +1035,8 @@
 				"price": "precio",
 				"rating": "valoración",
 				"dishCategory": "categoría del plato",
-				"separator": ", "
+				"separator": ", ",
+				"currency": "la moneda de este lugar no está disponible"
 			}
 		},
 		"filters": {

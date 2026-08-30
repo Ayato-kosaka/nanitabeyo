@@ -1035,7 +1035,8 @@
 				"price": "料金",
 				"rating": "オススメ度",
 				"dishCategory": "料理カテゴリー",
-				"separator": "、"
+				"separator": "、",
+				"currency": "この店の通貨が取得できていません"
 			}
 		},
 		"filters": {

@@ -56,8 +56,6 @@ import { useLocale } from "@/hooks/useLocale";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
 import { usePickedRestaurantStore } from "@/features/restaurantPicker/stores/usePickedRestaurantStore";
-// #1629 確認カードを «畳んだシートの上» へ置くために、シートの小さい方の高さを借りる
-import { SMALL_DETENT_HEIGHT } from "@/features/restaurantPicker/components/savedRestaurantsSheetDetents";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -965,13 +963,15 @@ export default function SelectRestaurantScreen() {
 			> 「このお店にする」ボタンは下部にして欲しい。
 
 			最初は検索窓の下（上部）に出していたが、地図で店を探しているときの指は下にある。
-			保存したお店のシート（`SavedRestaurantsSheet`）に被らないよう、畳んだシートの高さ
-			（`SMALL_DETENT_HEIGHT`）ぶん持ち上げる。
+			⚠️ **シートのぶん持ち上げない。** `SavedRestaurantsSheet` は `!isPickMode` のときしか
+			   描かれないので、pick モードのこのカードと同時に画面へ出ることはない
+			   （自己レビューで «176pt 浮かせても被る相手が居ない» と分かった）。
+			   安全域のぶんだけ上げて、指の届くところへ置く。
 			⚠️ `pointerEvents="box-none"` にしないと、カードの左右の余白が地図のタップを食う。
 			*/}
 			{isPickMode && selectedPin && (
 				<View
-					style={[styles.pickConfirmLayer, { bottom: SMALL_DETENT_HEIGHT + insets.bottom + 12 }]}
+					style={[styles.pickConfirmLayer, { bottom: insets.bottom + 16 }]}
 					pointerEvents="box-none">
 					<View style={styles.pickConfirmCard} testID="select-restaurant-pick-confirm">
 						<Text style={styles.pickConfirmName} numberOfLines={1} ellipsizeMode="tail">
