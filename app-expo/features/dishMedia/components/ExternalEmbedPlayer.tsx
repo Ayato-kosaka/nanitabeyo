@@ -852,13 +852,17 @@ export function ExternalEmbedPlayer({
 	様子が違う» という再現しにくい形になる。
 	*/
 	useEffect(() => {
-		if (!isActive) {
-			setRenderProcessGone(false);
-			setPlayback("unknown");
-			setUnplayableKind(null);
-			setWebViewReadyToShow(false);
-			reloadsRef.current = 0;
+		if (isActive) {
+			// #1641【観測】何回目の訪問か / いつ前面に来たか（下の autoplay_started で使う）
+			visitRef.current += 1;
+			activatedAtRef.current = Date.now();
+			return;
 		}
+		setRenderProcessGone(false);
+		setPlayback("unknown");
+		setUnplayableKind(null);
+		setWebViewReadyToShow(false);
+		reloadsRef.current = 0;
 	}, [isActive]);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
@@ -909,6 +913,19 @@ export function ExternalEmbedPlayer({
 	*/
 	const navDecisionsRef = useRef(0);
 	const mountedAtRef = useRef(Date.now());
+	/*
+	#1641【観測】**«何回目にこのセルへ来たか» と «前面に来てから何ミリ秒で鳴ったか»。**
+
+	オーナー報告「フィードを上下すると TikTok / YouTube が起動しないときがある」は、
+	往復周回を Detox へ足しても再現しなかった（run 33320252429 は緑）。合否条件
+	（18 秒以内に結論が出たか）がオーナーの体感と合っていないためで、症状は
+	«永久に起動しない» ではなく «**戻ったときの起動が遅すぎる**» 疑いが濃い。
+
+	⚠️ **推測のまま直さない。** «初回は速いが再訪は遅い» のか «どちらも同じ» のかは、
+	測らなければ分からない。前面に来た回数と、そこから鳴るまでの時間を毎回記録する。
+	*/
+	const visitRef = useRef(0);
+	const activatedAtRef = useRef(Date.now());
 	/*
 	#1641 **«再生できなかった» を 1 度だけサーバへ知らせる。**
 
@@ -1041,7 +1058,13 @@ export function ExternalEmbedPlayer({
 				logFrontendEvent({
 					event_name: "external_embed_autoplay_started",
 					error_level: "log",
-					payload: { provider: embed.provider, audio: parsed.detail ?? null },
+					payload: {
+						provider: embed.provider,
+						audio: parsed.detail ?? null,
+						// #1641【観測】初回と再訪で «鳴るまでの時間» が変わるかを見る
+						visit: visitRef.current,
+						sinceActiveMs: Date.now() - activatedAtRef.current,
+					},
 				});
 				return;
 			}
@@ -1092,7 +1115,14 @@ export function ExternalEmbedPlayer({
 			logFrontendEvent({
 				event_name: "external_embed_unplayable",
 				error_level: "warn",
-				payload: { provider: embed.provider, kind: parsed.kind ?? null, detail: parsed.detail ?? null },
+				payload: {
+					provider: embed.provider,
+					kind: parsed.kind ?? null,
+					detail: parsed.detail ?? null,
+					// #1641【観測】再訪でだけ縮退しているのかを見る
+					visit: visitRef.current,
+					sinceActiveMs: Date.now() - activatedAtRef.current,
+				},
 			});
 		},
 		[embed.provider, logFrontendEvent, retryLoad],

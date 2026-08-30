@@ -12,7 +12,7 @@ canonicalUrl は投稿ページ（instagram.com/reel/... 等）で、iframe / We
 | --- | --- | --- |
 | instagram | `https://www.instagram.com/p/{code}/embed/` | 公式 blockquote 埋め込みが最終的に描く iframe と同じ。reel のコードも `/p/{code}/` で解決される（サーバ側 sns-oembed.service.ts が resolve で実測済みの同じ経路）。`/embed/captioned/` はヘッダ＋キャプションの白カードが付き全画面フィードで浮くため、映像本体だけの `/embed/` を使う（独立レビュー指摘） |
 | tiktok | `https://www.tiktok.com/embed/v2/{videoId}` | 公式 embed v2。動画 ID だけで動く。**自動再生はしない**（autoplay パラメータが無く、provider 側もユーザー操作を要求する）ので、着地後に 1 タップ要る。独立レビュー指摘で «TikTok も無音自動再生» という記述を実測に合わせて訂正した |
-| youtube | `https://www.youtube.com/embed/{videoId}?playsinline=1&autoplay=1&enablejsapi=1&loop=1&playlist={videoId}` | 公式 iframe embed。playsinline はモバイルでフルスクリーンに奪われないため。`loop=1` は **`playlist` に同じ ID を渡さないと効かない**（下の実装コメント） |
+| youtube | `https://www.youtube.com/embed/{videoId}?playsinline=1&autoplay=1&enablejsapi=1` | 公式 iframe embed。playsinline はモバイルでフルスクリーンに奪われないため。**ループは URL ではなく包みの JS が撃つ**（`playlist` を渡すとプレイヤーがプレイリスト用に変わる。下の実装コメント） |
 
 判定できない provider は null（呼び出し側は «外部で開く» へ縮退する）。
 */
@@ -75,15 +75,23 @@ export function buildExternalEmbedPlayerSource(
 				   包みの HTML が無音で撃ち直す。
 				*/
 				/*
-				#1641 ⚠️ **`loop=1` だけでは 1 回で止まる。`playlist` に同じ動画 ID が要る。**
+				#1641 ⚠️ **`loop=1&playlist=` を戻さないこと。ループは包みの JS が撃つ。**
 
-				オーナー報告（実機 2026-08-30）「インスタ以外ループしない」の YouTube 側の真因。
-				YouTube の iframe 埋め込みは **`loop=1` を単独で無視する**（公式仕様。ループの実体は
-				«プレイリストを繰り返す» 機能なので、単一動画では自分自身だけのプレイリストを
-				渡す必要がある）。Instagram / TikTok は同一オリジンなので `<video>.loop` を
-				こちらで立てられるが、YouTube は別オリジンで触れないため URL でしか頼めない。
+				一度 `loop=1&playlist={id}` を入れたが、**オーナーの実機で不具合になった**
+				（2026-08-30、スクリーンショット）。`playlist` を渡すと YouTube は
+				**プレイリストのプレイヤー**として振る舞い、
+
+				- 映像の上に **⏮ ▶ ⏭（前後ボタン）が出る**。単一動画の埋め込みには無いもので、
+				  «再生されていない何か» が乗っているようにしか見えない
+				- その状態で **0:00 のまま止まっている**コマが撮れている
+
+				という形になった。ループのためにプレイヤーの種類ごと変えてしまうのは代償が大きい。
+
+				**こちらは `enablejsapi=1` で IFrame API を握っている**（`buildEmbedIframeHtml`）。
+				終わったことは `infoDelivery` の `playerState === 0`（ENDED）で分かるので、
+				そこで `seekTo(0)` + `playVideo` を撃てばよい。URL は単一動画のまま変えない。
 				*/
-				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&enablejsapi=1&loop=1&playlist=${encodedId}`,
+				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&enablejsapi=1`,
 				providerLabel: "YouTube",
 				mode: "iframe",
 			};
@@ -294,6 +302,22 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
           if (lastMuted !== null) { clearInterval(poll); report('playing', lastMuted ? 'muted' : 'audible'); return; }
           if (waited >= 3000) { clearInterval(poll); report('playing', 'unknown'); }
         }, 300);
+      }
+      /*
+       * #1641 **ループはここで撃つ。**（オーナー指摘「インスタ以外ループしない」）
+       *
+       * URL の loop=1&playlist={id} は使わない。あれを渡すと YouTube が
+       * **プレイリストのプレイヤー**になり、前後ボタンが映像の上に出てしまう（実機で確認）。
+       * IFrame API を握っているので、終わったら頭へ戻して撃ち直せばよい。
+       *
+       * ⚠️ このコメントにバッククォートを書かないこと。ここはテンプレートリテラルの
+       *    内側で、書いた時点で文字列が終わる（この修正で 1 度壊した）。
+       * ⚠️ playerState 0 は ENDED。report() は 1 度きりなのでここでは呼ばない
+       *    （再生できたセルを後から «再生できない» へ落とさないため）。
+       */
+      if (data.info.playerState === 0) {
+        send({ event: 'command', func: 'seekTo', args: [0, true] });
+        send({ event: 'command', func: 'playVideo', args: [] });
       }
       if (typeof data.info.errorCode !== 'undefined') report('no_video', data.info.errorCode);
     }
