@@ -225,6 +225,12 @@ APIは検索時にこの子tableを参照するため、deploy順は **migration
 - `args`: 例 `--snapshot-date 2026-08-25 --execute --qps 40`
 - `requirements_path`: `scripts/20260808T0000_restaurant/requirements.txt`
 
+> ⚠️ **`requirements_path` を必ず明示すること。**
+> workflow の既定値は **別プロジェクト**（`scripts/20251213T0000_wikidata_food_graph/`）を
+> 指している。省略しても bigquery / psycopg2 は入るので 3_4・8_1・9_1 は動いてしまうが、
+> **2_1 / 2_2 は `s2sphere` が無くて落ちる**（2026-08-30 に実際に落とした）。
+> 常に `scripts/20260808T0000_restaurant/requirements.txt` を渡す。
+>
 > ⚠️ **1 本ずつ流し、終わってから次を投げること。**
 > この workflow は `concurrency: db-script-run` で直列化しているが、
 > `cancel-in-progress: false` でも **待機できるのは 1 本だけ**である。
