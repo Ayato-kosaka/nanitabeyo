@@ -22,6 +22,7 @@ import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview } from "./InitialMediaPreview";
 import {
+	buildCurrencyChoices,
 	getCurrencyCodeFromRestaurant,
 	parseAmountString,
 	resolveCurrencySymbol,
@@ -325,13 +326,22 @@ export function ReviewForm({
 	const { locale } = useLocale();
 	const router = useRouter();
 
-	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
+	// #843 店から通貨が引けるとは限らない。オープンデータ由来で作った店舗は
+	// address_components が空なので null になる。以前はここが null のまま
+	// toMinorAmountInteger へ渡り、既定 2 桁で「1000円」が 100000 として
+	// 送信されていた（JPY は 0 桁）。通貨が決まらないときはユーザーに選ばせる。
+	const restaurantCurrencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
+	const currencyChoices = useMemo(() => buildCurrencyChoices(locale), [locale]);
+	const [manualCurrencyCode, setManualCurrencyCode] = useState<string | null>(null);
+	const currencyCode = restaurantCurrencyCode ?? manualCurrencyCode;
+	const needsCurrencyChoice = !restaurantCurrencyCode;
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 	// price は、小数点を含めた文字列として管理しているため、対象通貨での minorUnit(桁数) に基づいて整数変換を行う
-	const parsedPrice = useMemo(
-		() => parseAmountString(price) && toMinorAmountInteger(parseAmountString(price), currencyCode),
-		[price, currencyCode],
-	);
+	const parsedPrice = useMemo(() => {
+		if (!currencyCode) return null;
+		const amount = parseAmountString(price);
+		return amount ? toMinorAmountInteger(amount, currencyCode) : null;
+	}, [price, currencyCode]);
 
 	/*
 	#1629【オーナー実機報告】**表示名を投稿の可否条件にしない。**
@@ -340,8 +350,17 @@ export function ReviewForm({
 	表示名が空でも id さえあれば記録は成立するのに、名前を必須にしていたため
 	**表示名が解決できない投稿では永久にボタンが押せない**状態が作れた（上の effect のコメント）。
 	表示名の解決は直したが、条件そのものも id 側へ寄せておく。**二重の防御**である。
+
+	⚠️ `currencyCode` の判定と `parsedPrice ?? 0` は main 側（#843）の変更。**残すこと。**
+	   通貨が決まらない店で «金額 0 の記録» が通ってしまうのを防いでいる。
 	*/
-	const isValid = Number.isFinite(parsedPrice) && parsedPrice > 0 && reviewText.trim() && rating > 0 && !!dishCategoryId;
+	const isValid =
+		!!currencyCode &&
+		Number.isFinite(parsedPrice) &&
+		(parsedPrice ?? 0) > 0 &&
+		reviewText.trim() &&
+		rating > 0 &&
+		!!dishCategoryId;
 
 	/*
 	#1629【オーナー指示】**押せない理由を画面に出す。**
@@ -351,12 +370,15 @@ export function ReviewForm({
 	無効なボタンが灰色で置いてあるだけだと «何が足りないのか» が読めない。#1629 では
 	«料理カテゴリーが空欄 → 投稿できない» に当たったが、当人からは «壊れている» としか見えなかった。
 	足りないものを名指しする。順番は画面の並び（レビュー → 料金 → おすすめ度）に合わせる。
+
+	⚠️ `currencyCode` はここへ入れない。**ユーザーが埋められる項目ではない**（店から決まる）ので、
+	   名指ししても行動に繋がらない。
 	*/
 	const missingLabels = useMemo(() => {
 		const missing: string[] = [];
 		if (!dishCategoryId) missing.push(i18n.t("MyDishes.record.missing.dishCategory"));
 		if (!reviewText.trim()) missing.push(i18n.t("MyDishes.record.missing.comment"));
-		if (!(Number.isFinite(parsedPrice) && parsedPrice > 0)) missing.push(i18n.t("MyDishes.record.missing.price"));
+		if (!(Number.isFinite(parsedPrice) && (parsedPrice ?? 0) > 0)) missing.push(i18n.t("MyDishes.record.missing.price"));
 		if (!(rating > 0)) missing.push(i18n.t("MyDishes.record.missing.rating"));
 		return missing;
 	}, [dishCategoryId, parsedPrice, rating, reviewText]);
@@ -1014,7 +1036,7 @@ export function ReviewForm({
 							review: {
 								comment: reviewText,
 								languageCode: locale,
-								priceCents: parsedPrice,
+								priceCents: parsedPrice ?? undefined, // isValid で非 null の正数を担保（#843）
 								currencyCode: currencyCode ?? undefined,
 								rating,
 							},
@@ -1054,7 +1076,7 @@ export function ReviewForm({
 					dishId,
 					comment: reviewText,
 					languageCode: locale,
-					priceCents: parsedPrice,
+					priceCents: parsedPrice ?? undefined, // isValid で非 null の正数を担保（#843）
 					currencyCode: currencyCode ?? undefined,
 					rating,
 					// #1398 B4 写真なしのときは `createdDishMediaId` を**送らない**。
@@ -1542,6 +1564,30 @@ export function ReviewForm({
 								)}
 							</View>
 
+							{/* #843 店から通貨が引けないときだけ出す選択列。
+							    既定値を黙って使うと金額が桁違いで記録されるため、選ぶまで投稿できない。 */}
+							{needsCurrencyChoice && (
+								<View style={styles.currencyChoiceRow} testID="review-currency-choice">
+									{currencyChoices.map((code) => {
+										const selected = manualCurrencyCode === code;
+										return (
+											<Pressable
+												key={code}
+												testID={`review-currency-choice-${code}`}
+												onPress={() => setManualCurrencyCode(code)}
+												style={[styles.currencyChoiceChip, selected && styles.currencyChoiceChipSelected]}
+											>
+												<Text
+													style={[styles.currencyChoiceText, selected && styles.currencyChoiceTextSelected]}
+												>
+													{resolveCurrencySymbol(code, locale) ?? code} {code}
+												</Text>
+											</Pressable>
+										);
+									})}
+								</View>
+							)}
+
 							{/* 評価入力 行 */}
 							<View style={styles.ratingInputRow}>
 								{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
@@ -1774,6 +1820,32 @@ const createStyles = (c: Palette) =>
 			color: c.textStrong,
 			textAlign: "right",
 			maxWidth: 160,
+		},
+		currencyChoiceRow: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 8,
+			marginTop: 8,
+		},
+		currencyChoiceChip: {
+			paddingHorizontal: 12,
+			paddingVertical: 6,
+			borderRadius: 16,
+			borderWidth: 1,
+			borderColor: c.trackMuted,
+			backgroundColor: c.surface,
+		},
+		currencyChoiceChipSelected: {
+			borderColor: c.ctaBackground,
+			backgroundColor: c.ctaBackground,
+		},
+		currencyChoiceText: {
+			fontSize: 13,
+			color: c.textSecondary,
+		},
+		currencyChoiceTextSelected: {
+			color: c.ctaLabel,
+			fontWeight: "600",
 		},
 		priceInputRow: {
 			flexDirection: "row",

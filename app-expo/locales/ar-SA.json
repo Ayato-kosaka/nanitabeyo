@@ -443,7 +443,9 @@
 			"savedMessage": "تم الحفظ في «أريد تجربته»"
 		},
 		"embed": {
-			"play": "التشغيل على {{provider}}"
+			"play": "التشغيل على {{provider}}",
+			"openExternally": "عرض على {{provider}}",
+			"unmute": "تشغيل الصوت"
 		},
 		"ownPost": {
 			"menuTitle": "منشورك",

@@ -234,10 +234,13 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
   /*        #1395 external_embed とサムネイル URL の分岐                */
   /* ------------------------------------------------------------------ */
   describe('#1395 render_type とサムネイル URL', () => {
-    const baseEntry = (dishMedia: Record<string, unknown>) => [
+    const baseEntry = (
+      dishMedia: Record<string, unknown>,
+      dish: Record<string, unknown> = {},
+    ) => [
       {
         restaurant: {} as any,
-        dish: { reviewCount: 0, averageRating: 0 } as any,
+        dish: { reviewCount: 0, averageRating: 0, ...dish } as any,
         dish_media: {
           id: 'media-1',
           media_type: 'video' as const,
@@ -373,7 +376,7 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
       );
     });
 
-    it('#1399 外部サムネイルも無い provider（Instagram 等）は null になる', () => {
+    it('#1399 外部サムネイルも無く、埋め込みの行も無ければ null になる', () => {
       const result = assembler.toDishMediaEntry(
         baseEntry({
           render_type: 'external_embed',
@@ -383,6 +386,66 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           thumbnail_processing_status: 'completed',
           externalEmbed: null,
         }) as any,
+      );
+
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBeNull();
+    });
+
+    /*
+    #1641 **サムネイルが 1 つも無い取り込み行を «真っ黒» にしない。**
+
+    高速パス（サーバが not_playable と判定済みなら WebView を作らない）を入れた結果、
+    それまで Instagram の埋め込みページが描いていた 1 コマ目ごと絵が消え、
+    **セルが真っ黒になった**（run 33223480840 の feed-05 で実測）。
+    dev の実測では 19 行中 2 行がこの状態だった。
+    */
+    it('#1641 自前サムネも provider の URL も無い取り込み行は、料理カテゴリの絵へ落ちる', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry(
+          {
+            render_type: 'external_embed',
+            media_path: null,
+            media_processing_status: 'completed',
+            thumbnail_path: '',
+            thumbnail_processing_status: 'completed',
+            externalEmbed: {
+              id: 'embed-1',
+              dish_media_id: 'media-1',
+              provider: 'instagram',
+              external_content_id: 'Dap33wsTO4p',
+              canonical_url: 'https://www.instagram.com/reel/Dap33wsTO4p/',
+              embed_status: 'available',
+              last_verified_at: null,
+              thumbnail_url: null,
+            },
+          },
+          { categoryImageUrl: 'https://cdn/ramen.jpg' },
+        ) as any,
+      );
+
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBe(
+        'https://cdn/ramen.jpg',
+      );
+    });
+
+    /*
+    ⚠️ **自撮り投稿には当てない。** そちらでサムネイルが無いのは «加工がまだ終わっていない»
+       という別の状態で、スケルトンを出すのが正しい。カテゴリの絵を当てると
+       «出来上がったのに違う絵が出ている» ように見える。
+    */
+    it('#1641 stored の行にはカテゴリの絵を当てない', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry(
+          {
+            render_type: 'stored',
+            media_path: null,
+            media_processing_status: 'processing',
+            thumbnail_path: '',
+            thumbnail_processing_status: 'processing',
+            externalEmbed: null,
+          },
+          { categoryImageUrl: 'https://cdn/ramen.jpg' },
+        ) as any,
       );
 
       expect(result.items[0].dish_media.thumbnailImageUrl).toBeNull();

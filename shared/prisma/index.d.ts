@@ -21173,7 +21173,13 @@ export namespace Prisma {
       created_at: Date
       updated_at: Date
       thumbnail_url: string | null
+      /**
+       * #1641 埋め込みの枠の中で再生できるか（unknown / playable / not_playable）。embed_status とは直交する
+       */
       playback_status: string
+      /**
+       * not_playable のときだけ入る理由。playable / unknown を書くときは必ず null に戻すこと（CHECK 違反で取り込みが落ちる）
+       */
       playback_reason: string | null
       playback_checked_at: Date | null
     }, ExtArgs["result"]["dish_media_external_embeddings"]>

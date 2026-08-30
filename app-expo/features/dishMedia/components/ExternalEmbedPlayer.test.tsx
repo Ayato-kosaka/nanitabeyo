@@ -13,7 +13,7 @@ jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.
 const mockLogFrontendEvent = jest.fn();
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
-jest.mock("lucide-react-native", () => ({ Play: () => null }));
+jest.mock("lucide-react-native", () => ({ Play: () => null, X: () => null, Volume2: () => null }));
 jest.mock("react-native-gesture-handler", () => ({
 	GestureDetector: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -25,6 +25,8 @@ const EMBED = {
 	externalContentId: "DZnIRziT70s",
 	canonicalUrl: "https://www.instagram.com/reel/DZnIRziT70s/",
 	embedStatus: "available" as const,
+	// #1641 既定は «判定していない» ＝ 従来どおり実際に読み込んで試す
+	playbackStatus: "unknown" as const,
 };
 
 describe("ExternalEmbedPlayer（ネイティブ・WebView 不在ビルド）", () => {
@@ -75,5 +77,35 @@ describe("ExternalEmbedPlayer（ネイティブ・WebView 不在ビルド）", (
 		});
 		expect(tree.root.findAllByProps({ testID: "external-embed-open-browser" }).length).toBe(0);
 		expect(tree.root.findAllByProps({ testID: "external-embed-unavailable" }).length).toBeGreaterThan(0);
+	});
+});
+
+/*
+#1375（案 A）**フィードを送っただけでクラッシュする経路の回帰テスト。**
+
+切り取り（案 A）で足した `useState` / `useCallback` / `useMemo` を、`isActive` 等を見る
+early return より **後ろ**に置いていた。こうすると
+
+    isActive=true  … hook を N + 3 本呼ぶ
+    isActive=false … early return で N 本しか呼ばない
+
+となり、同じセルが前面から外れた瞬間に React が
+`Rendered fewer hooks than expected` を投げる。フィードは送るたびに isActive が
+入れ替わるので、**取り込んだ投稿を通り過ぎるだけで落ちる**。
+
+このテストは «同じインスタンスを active → inactive → active と切り替える» ことで
+それを踏む。hook を early return より前に戻した現在は通る。
+*/
+describe("#1375 hook の本数が描画のたびに変わらない", () => {
+	it("同じセルを active → inactive → active と切り替えても落ちない", () => {
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive />);
+		});
+		expect(() => {
+			act(() => tree.update(<ExternalEmbedPlayer embed={EMBED} isActive={false} />));
+			act(() => tree.update(<ExternalEmbedPlayer embed={EMBED} isActive />));
+		}).not.toThrow();
+		expect(tree.root.findAllByProps({ testID: "external-embed-open-browser" }).length).toBeGreaterThan(0);
 	});
 });

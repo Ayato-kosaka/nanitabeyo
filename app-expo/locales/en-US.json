@@ -443,7 +443,9 @@
 			"savedMessage": "Saved to Want to Eat"
 		},
 		"embed": {
-			"play": "Play on {{provider}}"
+			"play": "Play on {{provider}}",
+			"openExternally": "View on {{provider}}",
+			"unmute": "Turn on sound"
 		},
 		"ownPost": {
 			"menuTitle": "Your post",

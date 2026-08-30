@@ -177,6 +177,20 @@ export function installCrashReporting(): () => void {
 	if (installed) return () => {};
 	installed = true;
 
+	/*
+	0) ネイティブのクラッシュレポート（`lib/crashSdk.ts`）。
+	   **モジュールが無いビルドでは何もしない**ので、OTA 経路でも安全に通る。
+	   これが効いているビルドでは «落ちた瞬間» のスタックトレースが取れるため、
+	   下の «前回が落ちて終わった» の記録は補助になる（両方あってよい）。
+	*/
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const { installCrashSdk } = require("@/lib/crashSdk") as { installCrashSdk: () => boolean };
+		installCrashSdk();
+	} catch {
+		// このファイル自体が無いビルド（OTA ブランチ）では読み込めない。何もしない
+	}
+
 	// 1) 前回が落ちていたら、まずそれを記録する
 	void reportPreviousSessionCrash().then(() => writeLiveSession());
 
