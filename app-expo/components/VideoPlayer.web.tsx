@@ -3,6 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { VideoPlayerProps } from "./VideoPlayer";
 import Hls from "hls.js";
 import { LoadingIndicator } from "./LoadingIndicator";
+import { FixedColors } from "@/constants/Palette";
 
 // Thresholds for loop detection logic:
 // LOOP_HEAD_S: If the current playback time is within 1 second of the start (head) of the video,
@@ -263,10 +264,15 @@ function VideoPlayer({
 }
 export default VideoPlayer;
 
+/*
+#1629 native 実装（VideoPlayer.tsx）と同じ理由で、地はテーマに追従させない。
+動画の余白は常に黒であること自体が仕様（`mediaBackground`）で、
+ライトで明るくすると縦動画の左右だけが白い額縁になる。
+*/
 const styles = StyleSheet.create({
 	container: {
 		position: "relative",
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	loadingOverlay: {
 		...StyleSheet.absoluteFillObject,

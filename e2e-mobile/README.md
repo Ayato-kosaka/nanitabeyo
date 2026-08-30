@@ -107,7 +107,7 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 | **タップは `tapWhenVisible()` を使う**。`element(...).tap()` を直接呼ばない                 | iOS は同期機構を切っているため、描画完了前にタップが飛んで "No elements found" になる(run 30432596949 の `profile-settings-button`)。Android は同期機構が吸収するので**片方でしか出ない**                                                        |
 | **`FlatList` の testID は `toExist` で見る**。`toBeVisible` を使わない                      | `toBeVisible` は「面積の 75% 以上が可視」を要求する。データ 0 件のリストは面積を持たず、**描画されていても不可視と判定される**(iOS の `save-post-tab-grid` / `review-tab-grid`)                                                                  |
 | **「包むだけの View」を観測点にしない**。実体のあるボタン等を見る                           | `search-tutorial-overlay` は Android で常に 2 view に一致し(TrueSheet の二重マウント)、iOS では表示中でも `toBeVisible` が成立しなかった                                                                                                         |
-| **複数一致しうる要素は index を明示する**。ただし `atIndex(0)` = 見えているものとは限らない | カルーセルは前後のカードも同時にマウントするため、添字 0 が画面外のカードになりうる(`topics-choose-button`)。可視な添字を走査して選ぶこと                                                                                                        |
+| **複数一致しうる要素は index を明示する**。ただし `atIndex(0)` = 見えているものとは限らない | カルーセルは前後のカードも同時にマウントするため、添字 0 が画面外のカードになりうる(`dish-categories-choose-button`)。可視な添字を走査して選ぶこと                                                                                                        |
 | **スクロールは `whileElement(...).scroll()`**。要素を掴んだ `swipe` に頼らない              | `swipe` は掴んだ要素の高さの範囲内でしか指を動かせず、小さなタイルを起点にすると何回スワイプしても画面下部へ届かない                                                                                                                             |
 | **文字入力の後は端末のキーボードが邪魔をしうる**                                            | Android は IME をまとめて無効化(`scripts/setup-android-locale.sh`)、iOS はハードウェアキーボード接続扱いにしてソフトウェアキーボードを出さない(`scripts/setup-ios-simulator.sh`)。入力は一貫して `replaceText` なのでキーボードは 1 つも要らない |
 | **入れ子の `<Text>` に付けた testID はネイティブでは消える**                                | React Native は入れ子 Text を親の TextView へ畳み込むため、対応するネイティブ View が存在しない(`login-privacy-link`)。web では span として実在するので e2e-web 側では使える                                                                     |
@@ -117,7 +117,7 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 | 層     | ディレクトリ                                                                                | 内容                                                          | 実行タイミング                                        |
 | ------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
 | Tier 1 | `tests/smoke/`                                                                              | 起動・タブ導線の最小確認                                      | 夜間 CI + 手動実行。将来の PR ゲート候補              |
-| Tier 2 | `tests/navigation/` `tests/search/` `tests/review/` `tests/profile/` `tests/authenticated/` | 機能テスト全般(実 API 読み取り)                               | 夜間 CI                                               |
+| Tier 2 | `tests/navigation/` `tests/search/` `tests/my-dishes/` `tests/dish-category-group-votes/` `tests/profile/` `tests/authenticated/` | 機能テスト全般(実 API 読み取り)                               | 夜間 CI                                               |
 | Tier 3 | `tests/mutation/`                                                                           | dev DB への書き込み(いいね/保存・レビュー投稿)                | **既定では実行されない**。`RUN_MUTATION=1` で明示実行 |
 | 番外   | `tests/probe/`                                                                              | 不具合の存在を数値で示すプローブ(`@probe`)。**現在は空**      | **既定では実行されない**。`RUN_PROBE=1` で明示実行    |
 | 番外   | `tests/catalog/`                                                                            | UI カタログ(全画面のスクリーンショット収集。**検証ではない**) | **既定では実行されない**。`RUN_CATALOG=1` で明示実行  |
@@ -206,7 +206,7 @@ CI のスクリプト(`test:ci:*`)だけ `detox test --retries 1` を付けて�
 - **なぜ必要か**: 実 API 依存の spec(トピック提案フロー等)は、AI が選ぶ料理・店舗によっては
   dev 環境側のデータ不備(画像未処理等)で結果フィード取得が 500 になることが実測されている。
   アプリ側の既知の不安定要素で、このテストの実装不備ではない。e2e-web も同じ理由で
-  `topics-flow` / `reactions` に `retries: 2` を設定している
+  `dish-categories-flow` / `reactions` に `retries: 2` を設定している
 - **なぜ spec 単位ではなく全体なのか**: e2e-web(Playwright)は spec 単位でリトライ数を設定できるが、
   **Detox のリトライは失敗した spec ファイルを丸ごと再実行する粒度**しか無い。
   `jest.retryTimes()` で spec 単位にすると `beforeAll` が再実行されないため、
@@ -366,7 +366,7 @@ Supabase の匿名サインインは **30 回/時/IP**、しかも **カスタ�
 adb shell setprop persist.sys.locale ja-JP && adb shell setprop ctl.restart zygote
 ```
 
-ロケール依存の画面へ入る場合は、システムロケールに頼らず `localeDeepLink("search/topics")`(= `nanitabeyo:///ja-JP/search/topics`)で
+ロケール依存の画面へ入る場合は、システムロケールに頼らず `localeDeepLink("search/dish-categories")`(= `nanitabeyo:///ja-JP/search/dish-categories`)で
 **locale セグメントを直接指定**する方が決定論的。
 
 ## ディレクトリ構成

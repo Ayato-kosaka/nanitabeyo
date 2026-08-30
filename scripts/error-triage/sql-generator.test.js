@@ -425,10 +425,17 @@ describe("除外ルール: constants.js が唯一の正", () => {
 		}
 	});
 
-	test("E5 は denied だけを除外する（unsupported はオーナー判断で残す）", () => {
-		expect(generated).toContain("n.feKind = 'denied'");
+	test("E5 は denied / timeout / unavailable を除外する（unsupported はオーナー判断で残す）", () => {
+		expect(generated).toContain("n.feKind IN ('denied', 'timeout', 'unavailable')");
 		expect(code).not.toContain("'unsupported'");
 		expect(code).not.toContain("'permission_denied'");
+	});
+
+	test("E5 は current_location_* の event に閉じている", () => {
+		// ⚠️ kind の値だけで判定すると、位置情報と無関係な機能が将来 `kind: 'timeout'` を
+		// 積んだときに、その不具合が理由も告げずに除外される（＝ 見えない失敗）。
+		// event 名で閉じることで、取りこぼしても «Issue が立つ» 側へ倒す。
+		expect(generated).toContain("STARTS_WITH(IFNULL(n.eventName, ''), 'current_location_')");
 	});
 
 	test("除外行は WHERE で消さず理由付きで残している", () => {

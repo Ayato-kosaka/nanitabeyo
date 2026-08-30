@@ -57,9 +57,9 @@ export const DEFAULT_REMOTE_CONFIG: RemoteConfigValues = Object.freeze({
 	 * ログ送信のレート制限（#1089 / #1101 の 429）を踏みやすくなる。少ない側が安全側。
 	 */
 	v1_min_frontend_log_level: "log",
-	/** `features/topics/hooks/useTopicSearch.ts` — 検索結果に出す料理カテゴリ数 */
+	/** `features/dishCategories/hooks/useDishCategorySearch.ts` — 検索結果に出す料理カテゴリ数 */
 	v1_search_result_dish_categories_number: "6",
-	/** `lib/dishMediaSearch.ts` / `useTopicSearch.ts` — 検索結果に出すレストラン数 */
+	/** `lib/dishMediaSearch.ts` / `useDishCategorySearch.ts` — 検索結果に出すレストラン数 */
 	v1_search_result_restaurants_number: "5",
 	/** `features/dishMedia/components/DishReviewsSection.tsx` — コメントを省略する文字数 */
 	v1_dish_comment_review_show_number: "140",
@@ -91,8 +91,9 @@ export const DEFAULT_REMOTE_CONFIG: RemoteConfigValues = Object.freeze({
 	dish_category_recommendation_penalty_weight_core_ingredient: "0.003",
 	dish_category_recommendation_penalty_weight_taste: "0.0005",
 	dish_category_recommendation_penalty_weight_cooking_method: "0.003",
-	// config.json には存在しないキー。schema 側で `.optional().default("true")` を持つので同値にする
+	// config.json には存在しないキー。schema 側で `.optional().default(...)` を持つので同値にする
 	v1_bulk_import_preflight_enabled: "true",
+	dish_category_recommendation_weight_season: "0.25",
 });
 
 /**

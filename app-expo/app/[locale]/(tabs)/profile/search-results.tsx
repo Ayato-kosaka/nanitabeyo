@@ -9,6 +9,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoading";
 import { DishMediaEntriesStore, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 const idType = "dish_media" as const;
 export default function ProfileSearchResultScreen() {
@@ -20,6 +22,8 @@ export default function ProfileSearchResultScreen() {
 	const { isLoading } = useDishMediaEntriesStore(selector, shallow);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 
 	useEffect(() => {
 		// Log screen view with search parameters
@@ -44,7 +48,7 @@ export default function ProfileSearchResultScreen() {
 	};
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			{/* Header with Back Button */}
 			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
 				{/* #1133 この画面には testID を持つ要素が 1 つも無く、E2E から「ここへ着いた」ことを
@@ -54,7 +58,7 @@ export default function ProfileSearchResultScreen() {
 					style={styles.closeButton}
 					onPress={handleCloseWithHaptic}
 					testID="profile-search-result-close-button">
-					<X size={24} color="#000" />
+					<X size={24} color={colors.textStrong} />
 				</TouchableOpacity>
 			</View>
 
@@ -72,27 +76,31 @@ export default function ProfileSearchResultScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	closeButtonContainer: {
-		position: "absolute",
-		right: 0,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		padding: 16,
-		zIndex: 10,
-	},
-	closeButton: {
-		padding: 8,
-		borderRadius: 24,
-		backgroundColor: "#FFFFFF",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.3,
-		shadowRadius: 12,
-		elevation: 6,
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		closeButtonContainer: {
+			position: "absolute",
+			right: 0,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			padding: 16,
+			zIndex: 10,
+		},
+		closeButton: {
+			padding: 8,
+			borderRadius: 24,
+			backgroundColor: c.surface,
+			// 影はテーマに依らず黒。暗面では実質見えないだけで、値としては黒のままでよい
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.3,
+			shadowRadius: 12,
+			elevation: 6,
+		},
+	});

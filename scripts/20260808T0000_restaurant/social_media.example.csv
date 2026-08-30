@@ -1,0 +1,2 @@
+provider,external_content_id,canonical_url,embed_html,thumbnail_url,media_type,published_at,google_place_id,restaurant_match_method,restaurant_match_confidence,category_id,category_match_method,category_confidence,availability_status,rights_basis,terms_version,raw_payload_json
+instagram,EXAMPLE_POST_ID,https://www.instagram.com/p/EXAMPLE_POST_ID/,"<blockquote class=""instagram-media""></blockquote>",,image,2026-08-01T12:00:00+09:00,EXAMPLE_GOOGLE_PLACE_ID,double_query_agree,0.99,Q177,manual,1.0,available,official_oembed,2026-08-12,

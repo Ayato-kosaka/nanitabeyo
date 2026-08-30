@@ -9,7 +9,9 @@ import { getResolvedLocale } from "@/lib/i18n";
 import { consumeLogoutRedirect } from "@/lib/logoutRedirect";
 import { carriesOAuthResult } from "@/lib/oauthResultUrl";
 // #721 ディープリンクの行き先判定は純関数へ切り出した（分岐をテストで固定するため）
-import { toInAppPath } from "@/lib/deepLinkTarget";
+// #1272 クエリは Linking.parse().path が落とすため、生 URL から別途切り出して行き先へ運ぶ
+import { extractQueryString, toInAppPath } from "@/lib/deepLinkTarget";
+import { loadLanguagePreference, type LanguagePreference } from "@/features/settings/languagePreferenceStore";
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
@@ -59,6 +61,26 @@ export default function App() {
 	//
 	// `null` は「まだ初期 URL を調べていない」を表し、判定が付くまでリダイレクトを保留する
 	const [initialPath, setInitialPath] = useState<string | null | undefined>(undefined);
+	// #1272 【バグ】`Linking.parse().path` はクエリを落とす。`?tab=saved-dish-categories` のような
+	// 行き先パラメータを保持するため、クエリ文字列は生 URL から別途切り出して持ち回る
+	//（iOS はこの画面のリダイレクトが expo-router の初期 URL 解決に勝つため、ここで落とすと
+	//  端末に届いたクエリが**アプリのどこにも到達しない**。probe の実測 `local=- global=-` で確定）
+	const [initialQuery, setInitialQuery] = useState<string | null>(null);
+
+	// #1508 【設計】端末言語より、ユーザーが設定画面で保存した言語を優先する。
+	// `undefined` は「まだ AsyncStorage から読んでいない」を表し、判定が付くまでリダイレクトを保留する
+	// （initialPath と同じ「未確定は保留」の作法）
+	const [languagePreference, setLanguagePreference] = useState<LanguagePreference | undefined>(undefined);
+
+	useEffect(() => {
+		let cancelled = false;
+		loadLanguagePreference().then((preference) => {
+			if (!cancelled) setLanguagePreference(preference);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	useEffect(() => {
 		// #1124 【バグ】2 回目以降のマウントでは初期 URL を採用しない。
@@ -98,6 +120,8 @@ export default function App() {
 					setInitialPath(null);
 					return;
 				}
+				// #1272 パスとクエリを別々に保持する（parse().path がクエリを落とすため）
+				setInitialQuery(extractQueryString(url));
 				setInitialPath(url ? (Linking.parse(url).path ?? null) : null);
 			})
 			.catch(() => {
@@ -112,11 +136,18 @@ export default function App() {
 	useEffect(() => {
 		if (!isNavigationReady) return;
 		if (initialPath === undefined) return;
+		if (languagePreference === undefined) return;
 
-		const resolvedLocale = getResolvedLocale(Localization.getLocales?.()[0]?.languageTag);
+		// #1508 【設計】保存済みの言語設定があればそれを、無ければ（"system"）従来どおり
+		// 端末のロケールを使う。deepLinkTarget が既にロケールを持つ URL（共有リンク等）を
+		// 上書きしないのは変更前と同じ
+		const deviceLocale = getResolvedLocale(Localization.getLocales?.()[0]?.languageTag);
+		const resolvedLocale = languagePreference === "system" ? deviceLocale : languagePreference;
 		// 初期 URL の先頭セグメントがロケールなら、そのパスをそのまま行き先にする。
 		// アプリ内のルートとして解釈できない URL（OAuth コールバック等）は巻き込まない
-		const deepLinkTarget = toInAppPath(initialPath);
+		// #1272 クエリ（?tab= 等）も行き先の一部として運ぶ。落とすとタブ指定つきの
+		// ディープリンクが iOS で先頭タブに化ける（純関数側の doc コメント参照）
+		const deepLinkTarget = toInAppPath(initialPath, initialQuery);
 		const target = logoutRedirectLocale ? `/${logoutRedirectLocale}` : (deepLinkTarget ?? `/${resolvedLocale}`);
 
 		if (Env.NODE_ENV === "development") {
@@ -127,7 +158,7 @@ export default function App() {
 			router.replace(target as ExternalPathString);
 		}, 0);
 		return () => clearTimeout(timer);
-	}, [isNavigationReady, initialPath, logoutRedirectLocale]);
+	}, [isNavigationReady, initialPath, logoutRedirectLocale, languagePreference]);
 
 	return null;
 }

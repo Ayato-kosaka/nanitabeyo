@@ -20,11 +20,13 @@ import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, Circle, CheckCircle2, ArrowRight } from "lucide-react-native";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
 import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
@@ -1568,6 +1570,8 @@ const AFTER_CATEGORY_MAP = new Map<string, Pick<DishCategoryItem, "id" | "image_
 
 export default function DishCategoryImageReviewPage() {
 	const insets = useSafeAreaInsets();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 	const { showSnackbar } = useSnackbar();
 	const { lightImpact } = useHaptics();
@@ -1592,10 +1596,10 @@ export default function DishCategoryImageReviewPage() {
 	const [hideDiffImages, setHideDiffImages] = useState(false);
 
 	const {
-		BlurModal,
+		LegacyBlurModal,
 		open: openModal,
 		close: closeModal,
-	} = useBlurModal({
+	} = useLegacyBlurModal({
 		intensity: 80,
 		closeOnBackdropPress: false,
 	});
@@ -1798,7 +1802,8 @@ export default function DishCategoryImageReviewPage() {
 								/>
 								{isBeforeSelected && (
 									<View style={styles.checkBadge}>
-										<Check size={16} color="#FFF" />
+										{/* 緑（successFill）で塗り潰したバッジの上の白。地の色が振れないので文字も振らない */}
+										<Check size={16} color={FixedColors.onFilled} />
 									</View>
 								)}
 							</View>
@@ -1806,7 +1811,7 @@ export default function DishCategoryImageReviewPage() {
 
 						{/* 画像間の矢印 */}
 						<View style={styles.arrowContainer}>
-							<ArrowRight size={20} color="#6B7280" />
+							<ArrowRight size={20} color={colors.textSecondary} />
 						</View>
 
 						{/* 変更後 */}
@@ -1823,7 +1828,8 @@ export default function DishCategoryImageReviewPage() {
 								/>
 								{isAfterSelected && (
 									<View style={styles.checkBadge}>
-										<Check size={16} color="#FFF" />
+										{/* 緑（successFill）で塗り潰したバッジの上の白。地の色が振れないので文字も振らない */}
+										<Check size={16} color={FixedColors.onFilled} />
 									</View>
 								)}
 							</View>
@@ -1832,7 +1838,7 @@ export default function DishCategoryImageReviewPage() {
 				</View>
 			);
 		},
-		[selectionMap, imageWidth, imageHeight, handleBeforeSelect, handleAfterSelect],
+		[selectionMap, imageWidth, imageHeight, handleBeforeSelect, handleAfterSelect, styles, colors],
 	);
 
 	// #516 【設計】モーダル内の変更前/変更後画像を取得
@@ -1892,21 +1898,21 @@ export default function DishCategoryImageReviewPage() {
 					<PrimaryButton
 						label="リセット"
 						onPress={handleReset}
-						colors={["#6B7280", "#4B5563"]}
+						colors={colors.buttonNeutralGradient}
 						style={styles.resetButton}
 					/>
 					<PrimaryButton
 						label={`送信（${selectedCount}/${totalCount}）`}
 						onPress={handleSubmit}
 						disabled={!canSubmit}
-						colors={canSubmit ? ["#22C55E", "#16A34A"] : ["#9CA3AF", "#6B7280"]}
+						colors={canSubmit ? colors.buttonSuccessGradient : colors.buttonDisabledGradient}
 						style={styles.submitButton}
 					/>
 				</View>
 			</View>
 
 			{/* 理由入力モーダル */}
-			<BlurModal contentContainerStyle={styles.modalContent}>
+			<LegacyBlurModal contentContainerStyle={styles.modalContent}>
 				{activeCategory && (
 					<ScrollView
 						style={{ maxHeight: screenHeight - 150 }}
@@ -1917,7 +1923,11 @@ export default function DishCategoryImageReviewPage() {
 
 						{/* 差分画像を表示しないチェックボックス */}
 						<TouchableOpacity style={styles.checkboxRow} onPress={() => setHideDiffImages(!hideDiffImages)}>
-							{hideDiffImages ? <CheckCircle2 size={20} color="#22C55E" /> : <Circle size={20} color="#6B7280" />}
+							{hideDiffImages ? (
+								<CheckCircle2 size={20} color={colors.successStrong} />
+							) : (
+								<Circle size={20} color={colors.textSecondary} />
+							)}
 							<Text style={styles.checkboxLabel}>差分画像を表示しない（次回以降も）</Text>
 						</TouchableOpacity>
 
@@ -1955,7 +1965,7 @@ export default function DishCategoryImageReviewPage() {
 							value={modalReason}
 							onChangeText={setModalReason}
 							placeholder="例: 変更後の料理が違う料理になっている"
-							placeholderTextColor="#9CA3AF"
+							placeholderTextColor={colors.textTertiary}
 							multiline
 							numberOfLines={3}
 							textAlignVertical="top"
@@ -1969,9 +1979,9 @@ export default function DishCategoryImageReviewPage() {
 								style={styles.reasonOptionRow}
 								onPress={() => handleReasonOptionSelect(index)}>
 								{selectedReasonIndex === index ? (
-									<CheckCircle2 size={18} color="#22C55E" />
+									<CheckCircle2 size={18} color={colors.successStrong} />
 								) : (
-									<Circle size={18} color="#6B7280" />
+									<Circle size={18} color={colors.textSecondary} />
 								)}
 								<Text style={styles.reasonOptionText}>{option}</Text>
 							</TouchableOpacity>
@@ -1982,20 +1992,20 @@ export default function DishCategoryImageReviewPage() {
 							<PrimaryButton
 								label="キャンセル"
 								onPress={handleModalCancel}
-								colors={["#6B7280", "#4B5563"]}
+								colors={colors.buttonNeutralGradient}
 								style={styles.modalButton}
 							/>
 							<PrimaryButton
 								label="保存"
 								onPress={handleModalSave}
 								disabled={modalReason.trim().length === 0}
-								colors={modalReason.trim().length > 0 ? ["#22C55E", "#16A34A"] : ["#9CA3AF", "#6B7280"]}
+								colors={modalReason.trim().length > 0 ? colors.buttonSuccessGradient : colors.buttonDisabledGradient}
 								style={styles.modalButton}
 							/>
 						</View>
 					</ScrollView>
 				)}
-			</BlurModal>
+			</LegacyBlurModal>
 		</View>
 	);
 }
@@ -2004,220 +2014,222 @@ export default function DishCategoryImageReviewPage() {
 /*                               スタイル定義                                  */
 /* -------------------------------------------------------------------------- */
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#F8F9FA",
-	},
-	header: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		backgroundColor: "#FFF",
-		borderBottomWidth: 1,
-		borderBottomColor: "#C9C9C9",
-	},
-	headerTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-	},
-	headerSubtitle: {
-		fontSize: 12,
-		color: "#6B7280",
-		marginTop: 4,
-	},
-	descriptionSection: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		backgroundColor: "#FFF",
-		borderBottomWidth: 1,
-		borderBottomColor: "#C9C9C9",
-	},
-	descriptionToggle: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingVertical: 6,
-	},
-	descriptionToggleText: {
-		fontSize: 14,
-		fontWeight: "600",
-		flex: 1,
-		color: "#1A1A1A",
-	},
-	descriptionToggleIcon: {
-		fontSize: 16,
-		color: "#6B7280",
-	},
-	descriptionText: {
-		fontSize: 12,
-		lineHeight: 18,
-		color: "#4B5563",
-		marginTop: 8,
-	},
-	scrollView: {
-		flex: 1,
-	},
-	scrollViewContent: {
-		paddingHorizontal: 16,
-		paddingTop: 16,
-	},
-	categoryCard: {
-		backgroundColor: "#FFF",
-		borderRadius: 12,
-		padding: 12,
-		marginBottom: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
-	},
-	categoryName: {
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 12,
-	},
-	imageRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		gap: 12,
-		alignItems: "center",
-	},
-	arrowContainer: {
-		width: 24,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	imageCard: {
-		borderRadius: 8,
-		overflow: "hidden",
-		borderWidth: 2,
-		borderColor: "#C9C9C9",
-	},
-	imageCardSelected: {
-		borderColor: "#22C55E",
-		borderWidth: 3,
-	},
-	imageLabel: {
-		// 削除: ラベルは使用しない
-		display: "none",
-	},
-	imageContainer: {
-		position: "relative",
-	},
-	checkBadge: {
-		position: "absolute",
-		top: 8,
-		right: 8,
-		width: 24,
-		height: 24,
-		borderRadius: 12,
-		backgroundColor: "#22C55E",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	footer: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		padding: 16,
-		backgroundColor: "#FFF",
-		borderTopWidth: 1,
-		borderTopColor: "#C9C9C9",
-	},
-	footerStatus: {
-		fontSize: 14,
-		color: "#4B5563",
-		marginBottom: 12,
-		textAlign: "center",
-	},
-	footerButtons: {
-		flexDirection: "row",
-		gap: 12,
-	},
-	resetButton: {
-		flex: 1,
-	},
-	submitButton: {
-		flex: 2,
-	},
-	modalContent: {
-		paddingHorizontal: 16,
-		paddingTop: 16,
-	},
-	modalTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 4,
-	},
-	modalSubtitle: {
-		fontSize: 14,
-		color: "#6B7280",
-		marginBottom: 16,
-	},
-	checkboxRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		paddingVertical: 8,
-		marginBottom: 12,
-	},
-	checkboxLabel: {
-		fontSize: 14,
-		color: "#4B5563",
-	},
-	modalImageSection: {
-		marginBottom: 16,
-	},
-	modalImageLabel: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		marginBottom: 8,
-	},
-	modalImageContainer: {
-		borderRadius: 8,
-		overflow: "hidden",
-		backgroundColor: "#C9C9C9",
-	},
-	modalSectionLabel: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		marginBottom: 8,
-		marginTop: 8,
-	},
-	reasonInput: {
-		borderWidth: 1,
-		borderColor: "#D1D5DB",
-		borderRadius: 8,
-		padding: 12,
-		fontSize: 14,
-		color: "#1A1A1A",
-		backgroundColor: "#FFF",
-		minHeight: 80,
-	},
-	reasonOptionRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		paddingVertical: 10,
-	},
-	reasonOptionText: {
-		fontSize: 14,
-		color: "#4B5563",
-		flex: 1,
-	},
-	modalButtonRow: {
-		flexDirection: "row",
-		gap: 12,
-		marginTop: 20,
-		marginBottom: 32,
-	},
-	modalButton: {
-		flex: 1,
-	},
-});
+// #1629 パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.background,
+		},
+		header: {
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			backgroundColor: c.surface,
+			borderBottomWidth: 1,
+			borderBottomColor: c.border,
+		},
+		headerTitle: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimary,
+		},
+		headerSubtitle: {
+			fontSize: 12,
+			color: c.textSecondary,
+			marginTop: 4,
+		},
+		descriptionSection: {
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			backgroundColor: c.surface,
+			borderBottomWidth: 1,
+			borderBottomColor: c.border,
+		},
+		descriptionToggle: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingVertical: 6,
+		},
+		descriptionToggleText: {
+			fontSize: 14,
+			fontWeight: "600",
+			flex: 1,
+			color: c.textPrimary,
+		},
+		descriptionToggleIcon: {
+			fontSize: 16,
+			color: c.textSecondary,
+		},
+		descriptionText: {
+			fontSize: 12,
+			lineHeight: 18,
+			color: c.textSecondaryAlt,
+			marginTop: 8,
+		},
+		scrollView: {
+			flex: 1,
+		},
+		scrollViewContent: {
+			paddingHorizontal: 16,
+			paddingTop: 16,
+		},
+		categoryCard: {
+			backgroundColor: c.surface,
+			borderRadius: 12,
+			padding: 12,
+			marginBottom: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.1,
+			shadowRadius: 4,
+			elevation: 3,
+		},
+		categoryName: {
+			fontSize: 16,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginBottom: 12,
+		},
+		imageRow: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			gap: 12,
+			alignItems: "center",
+		},
+		arrowContainer: {
+			width: 24,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		imageCard: {
+			borderRadius: 8,
+			overflow: "hidden",
+			borderWidth: 2,
+			borderColor: c.border,
+		},
+		imageCardSelected: {
+			borderColor: c.successStrong,
+			borderWidth: 3,
+		},
+		imageLabel: {
+			// 削除: ラベルは使用しない
+			display: "none",
+		},
+		imageContainer: {
+			position: "relative",
+		},
+		checkBadge: {
+			position: "absolute",
+			top: 8,
+			right: 8,
+			width: 24,
+			height: 24,
+			borderRadius: 12,
+			backgroundColor: c.successFill,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		footer: {
+			position: "absolute",
+			bottom: 0,
+			left: 0,
+			right: 0,
+			padding: 16,
+			backgroundColor: c.surface,
+			borderTopWidth: 1,
+			borderTopColor: c.border,
+		},
+		footerStatus: {
+			fontSize: 14,
+			color: c.textSecondaryAlt,
+			marginBottom: 12,
+			textAlign: "center",
+		},
+		footerButtons: {
+			flexDirection: "row",
+			gap: 12,
+		},
+		resetButton: {
+			flex: 1,
+		},
+		submitButton: {
+			flex: 2,
+		},
+		modalContent: {
+			paddingHorizontal: 16,
+			paddingTop: 16,
+		},
+		modalTitle: {
+			fontSize: 18,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginBottom: 4,
+		},
+		modalSubtitle: {
+			fontSize: 14,
+			color: c.textSecondary,
+			marginBottom: 16,
+		},
+		checkboxRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+			paddingVertical: 8,
+			marginBottom: 12,
+		},
+		checkboxLabel: {
+			fontSize: 14,
+			color: c.textSecondaryAlt,
+		},
+		modalImageSection: {
+			marginBottom: 16,
+		},
+		modalImageLabel: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textPrimary,
+			marginBottom: 8,
+		},
+		modalImageContainer: {
+			borderRadius: 8,
+			overflow: "hidden",
+			backgroundColor: c.surfacePlaceholderAlt,
+		},
+		modalSectionLabel: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textPrimary,
+			marginBottom: 8,
+			marginTop: 8,
+		},
+		reasonInput: {
+			borderWidth: 1,
+			borderColor: c.borderNeutral,
+			borderRadius: 8,
+			padding: 12,
+			fontSize: 14,
+			color: c.textPrimary,
+			backgroundColor: c.surface,
+			minHeight: 80,
+		},
+		reasonOptionRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+			paddingVertical: 10,
+		},
+		reasonOptionText: {
+			fontSize: 14,
+			color: c.textSecondaryAlt,
+			flex: 1,
+		},
+		modalButtonRow: {
+			flexDirection: "row",
+			gap: 12,
+			marginTop: 20,
+			marginBottom: 32,
+		},
+		modalButton: {
+			flex: 1,
+		},
+	});

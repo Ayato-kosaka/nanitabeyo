@@ -195,6 +195,12 @@ export class ExternalApiService {
 
     const endpoint = `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}`;
 
+    // #1596 失敗時のログレベルを分けるために、HTTP ステータスを catch まで持ち越す。
+    // 403 は「クォータ超過・鍵の権限不足」で、こちらの運用で起こりうる想定内の失敗。
+    // それ以外（5xx・ネットワーク断）は Google 側の障害かこちらのバグであり、
+    // **error として拾えないと気付けない**。
+    let responseStatus: number | null = null;
+
     try {
       const response = await this.makeExternalApiCall({
         api_name: 'Google Custom Search API',
@@ -203,6 +209,7 @@ export class ExternalApiService {
         function_name: 'getCorrectedSpelling',
         request_payload: {},
       });
+      responseStatus = response.status;
 
       if (!response.ok) {
         throw new Error(
@@ -226,14 +233,24 @@ export class ExternalApiService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.warn(
-        'GoogleCustomSearchAPICallError',
-        'getCorrectedSpelling',
-        {
-          error_message: errorMessage,
-          query,
-        },
-      );
+
+      // #1596 403 だけ warn、それ以外は error。
+      //
+      // ここは **元々 spec がそう書いてあったのに実装が追いついていなかった**箇所。
+      // `external-api.service.spec.ts` の «should log 403 errors as warning instead of
+      // error» / «should log non-403 errors as error level» は、api の jest が
+      // env 起因で suite ごと落ちていたため一度も実行されておらず、
+      // 実装は全部 warn のままだった。結果、Google Custom Search の 5xx・ネットワーク断が
+      // error レベルに乗らず、error-triage の起票対象から外れていた。
+      const logFailure =
+        responseStatus === 403
+          ? this.logger.warn.bind(this.logger)
+          : this.logger.error.bind(this.logger);
+
+      logFailure('GoogleCustomSearchAPICallError', 'getCorrectedSpelling', {
+        error_message: errorMessage,
+        query,
+      });
       return null;
     }
   }
@@ -374,7 +391,13 @@ export class ExternalApiService {
         return { buffer, contentType, byteLength: buffer.length };
       }
     } catch (error) {
-      this.logger.error('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
+      // #1320 【設計】唯一の呼び出し元 locations.service.ts の tryGetPhotoMedia は
+      // 写真候補を順に試すフォールバックを持っており、ここでの失敗は設計上回復可能。
+      // 回復しきれなかった最終的な失敗は呼び出し元側（dishes.service.ts の
+      // bulk-import の per-place catch）で error として記録されるため、ここを
+      // error にすると、フォールバックが成功しているケースまで人間の対応が
+      // 必要な事象として自動起票されてしまう。
+      this.logger.warn('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         photoRef,
         widthPx,

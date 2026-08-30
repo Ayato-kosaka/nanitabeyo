@@ -43,6 +43,9 @@ import { CookieQueueModule } from 'src/core/cookie-queue/cookie-queue.module';
   exports: [
     DishMediaService, // 他ドメインが “いいね数集計” 等で再利用できる
     DishMediaRepository,
+    // #1395 my-dishes の Map ピンが getThumbnailImageUrl() を再利用する
+    // （サムネイル URL の組み立てを 2 箇所に持たないため）
+    DishMediaAssembler,
   ],
 })
 export class DishMediaModule {}

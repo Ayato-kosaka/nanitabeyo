@@ -1,6 +1,6 @@
 import { test as base, expect, type Page } from "@playwright/test";
 import { waitForAnonymousSession } from "../utils/auth";
-import { seedTopicsTutorialAsSeen, seedTutorialAsSeen } from "../utils/storage";
+import { seedDishCategoriesTutorialAsSeen, seedTutorialAsSeen } from "../utils/storage";
 
 /**
  * 🧩 カスタムフィクスチャ
@@ -13,25 +13,49 @@ import { seedTopicsTutorialAsSeen, seedTutorialAsSeen } from "../utils/storage";
 /** テスト側から挙動を切り替えられるオプション */
 type AppOptions = {
 	/**
-	 * 検索チュートリアルの「表示済み」フラグを事前シードするか。
-	 * ja-JP では初回訪問時にチュートリアルが自動表示されて操作を妨げるため既定 true。
-	 * チュートリアル自体をテストする spec だけ `test.use({ seedTutorialSeen: false })` で無効化する。
+	 * オンボーディング（#1486）の「表示済み」フラグを事前シードするか。
+	 * ja-JP では初回訪問時にオンボーディング画面へ自動遷移して操作を妨げるため既定 true。
+	 * オンボーディング自体をテストする spec だけ `test.use({ seedTutorialSeen: false })` で無効化する。
+	 *
+	 * ⚠️ 名前に `Tutorial` が残っているのは、**ストレージキーを旧チュートリアルから
+	 * 変えていない**ため（#1486 §3。変えると既読の既存ユーザー全員へ再表示される）。
 	 */
 	seedTutorialSeen: boolean;
 	/**
 	 * 料理提案画面のスポットライトチュートリアルを表示済みにするか。
 	 * 既存の検索フローを遮らないよう既定true、専用specのみfalseにする。
 	 */
-	seedTopicsTutorialSeen: boolean;
+	seedDishCategoriesTutorialSeen: boolean;
+	/**
+	 * この spec では «出て当然» の console error / pageerror。**部分一致**したものは収集しない。
+	 *
+	 * `KNOWN_CONSOLE_NOISE` との違いは **適用範囲** である。あちらは «どの spec でも無害» な
+	 * ノイズ用で、ここは «その spec の前提そのものがエラーを生む» 場合に使う。
+	 * hydration 失敗（React error #418）のような検知したい種類のエラーを
+	 * `KNOWN_CONSOLE_NOISE` へ入れると **全 spec で見えなくなる**ので、必ずこちらを使い、
+	 * `test.use()` の直近に «なぜ出て当然なのか» を書くこと。
+	 *
+	 * ⚠️ **正規表現の配列にしないこと。** Playwright はフィクスチャ値が
+	 * `Array.isArray(value) && typeof value[1] === "object"` を満たすと «[値, オプション]» の
+	 * タプルとみなす（playwright/lib の `isFixtureTuple`）。`RegExp` は object なので
+	 * `test.use({ allowedConsoleErrors: [/a/, /b/] })` は 2 要素目をオプション扱いで剥がされ、
+	 * 値が配列でなくなって実行時に `allowedConsoleErrors.some is not a function` で落ちる
+	 *（run 32718781438 で実測）。文字列なら `typeof value[1] === "string"` なのでこの罠を踏まない。
+	 */
+	allowedConsoleErrors: string[];
 };
 
 /** テストへ提供するフィクスチャ */
 type AppFixtures = {
 	/**
 	 * 収集された console error / pageerror のメッセージ一覧。
-	 * 現状はソフト運用（自動で fail しない）。テスト内で明示的にアサートしたい場合に参照する。
-	 * 全テストでハード化する場合は、auto フィクスチャ末尾の attach 後に
-	 * `expect(consoleErrors).toEqual([])` を追加すればよい。
+	 * auto フィクスチャの teardown で `toEqual([])` を検証しており、収集された時点で
+	 * spec 側が何も書かなくてもテストは失敗する（REL-08）。テスト内で明示的に参照して
+	 * メッセージをカスタマイズしたい場合や、途中経過を見たい場合のために公開している。
+	 *
+	 * ⚠️ `page` に依存しない spec（`@playwright/test` を直接 import するもの。
+	 * 例: `tests/smoke/vote-share-ogp.spec.ts`）はこのフィクスチャ自体を経由しないため、
+	 * console error は収集されない。理由はそちらのファイル冒頭のコメントを参照。
 	 */
 	consoleErrors: string[];
 
@@ -61,33 +85,37 @@ const KNOWN_CONSOLE_NOISE: RegExp[] = [
 export const test = base.extend<AppOptions & AppFixtures>({
 	// ── オプション ──────────────────────────────────────────────
 	seedTutorialSeen: [true, { option: true }],
-	seedTopicsTutorialSeen: [true, { option: true }],
+	seedDishCategoriesTutorialSeen: [true, { option: true }],
+	allowedConsoleErrors: [[], { option: true }],
 
-	// ── context: チュートリアルシードを適用 ─────────────────────
+	// ── context: オンボーディング / スポットライトのシードを適用 ──
 	// addInitScript はページ生成前に仕込む必要があるため context を拡張する
-	context: async ({ context, seedTopicsTutorialSeen, seedTutorialSeen }, use) => {
+	context: async ({ context, seedDishCategoriesTutorialSeen, seedTutorialSeen }, use) => {
 		if (seedTutorialSeen) {
 			await seedTutorialAsSeen(context);
 		}
-		if (seedTopicsTutorialSeen) {
-			await seedTopicsTutorialAsSeen(context);
+		if (seedDishCategoriesTutorialSeen) {
+			await seedDishCategoriesTutorialAsSeen(context);
 		}
 		await use(context);
 	},
 
 	// ── consoleErrors: 自動収集（auto） ─────────────────────────
 	consoleErrors: [
-		async ({ page }, use, testInfo) => {
+		async ({ page, allowedConsoleErrors }, use, testInfo) => {
 			const errors: string[] = [];
+			const isIgnored = (text: string) =>
+				KNOWN_CONSOLE_NOISE.some((pattern) => pattern.test(text)) ||
+				allowedConsoleErrors.some((allowed) => text.includes(allowed));
 
 			// console.error と未捕捉例外 (pageerror) の両方を収集する
 			page.on("console", (message) => {
-				if (message.type() === "error" && !KNOWN_CONSOLE_NOISE.some((pattern) => pattern.test(message.text()))) {
+				if (message.type() === "error" && !isIgnored(message.text())) {
 					errors.push(message.text());
 				}
 			});
 			page.on("pageerror", (error) => {
-				if (!KNOWN_CONSOLE_NOISE.some((pattern) => pattern.test(error.message))) {
+				if (!isIgnored(error.message)) {
 					errors.push(`[pageerror] ${error.message}`);
 				}
 			});
@@ -101,6 +129,15 @@ export const test = base.extend<AppOptions & AppFixtures>({
 					contentType: "text/plain",
 				});
 			}
+
+			// REL-08: spec が明示的にアサートしていなくても、収集された console error /
+			// pageerror があれば既定で失敗させる。個別の spec で `expect(consoleErrors).toEqual([])`
+			// を書く必要はもう無い（書いても二重にはなるが害は無い）。
+			expect(
+				errors,
+				"想定外の console error / pageerror が検出された（詳細は添付の console-errors.txt を参照。" +
+					"既知のノイズなら KNOWN_CONSOLE_NOISE へ理由付きで追加すること）",
+			).toEqual([]);
 		},
 		{ auto: true },
 	],

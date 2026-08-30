@@ -1,11 +1,4 @@
-import {
-	DEFAULT_TIMEOUT,
-	by,
-	element,
-	existsNow,
-	tapWhenVisible,
-	waitUntilVisible,
-} from "../fixtures/e2e";
+import { DEFAULT_TIMEOUT, by, element, existsNow, tapWhenVisible, waitUntilVisible } from "../fixtures/e2e";
 
 /**
  * 🧭 ボトムタブバーの Screen Object（e2e-web の pages/TabBar.ts に対応）
@@ -15,7 +8,7 @@ import {
  * ## タブ可視性の注意点（アサーション時に必ず考慮すること）
  * - お知らせ (`tab-notifications`): 匿名ユーザーには非表示（`href: null`）。
  *   `describeAuthenticated` 配下でのみ表示をアサートできる
- * - マップ (`tab-map`) / posts: 常に非表示（内部遷移専用の隠しルート）
+ * - posts: 常に非表示（内部遷移専用の隠しルート）
  *
  * ## Detox と Playwright の違い
  * Detox の `element()` はグローバル API で、Page Object のように `page` を保持する必要が無い。
@@ -25,23 +18,22 @@ import {
 export class TabBar {
 	/** さがすタブ */
 	readonly searchTab = by.id("tab-search");
-	/** レビュータブ */
-	readonly reviewTab = by.id("tab-review");
+	/** 食べたい/食べたタブ（#1396 でレビュータブから差し替え） */
+	readonly myDishesTab = by.id("tab-my-dishes");
 	/** マイページタブ */
 	readonly profileTab = by.id("tab-profile");
 	/** お知らせタブ（ログイン済みユーザーのみ表示） */
 	readonly notificationsTab = by.id("tab-notifications");
 	/** マップタブ（常に非表示 — 存在しないことのアサート用） */
-	readonly mapTab = by.id("tab-map");
 
 	/** さがすタブへ遷移する */
 	async gotoSearch(): Promise<void> {
 		await tapWhenVisible(this.searchTab);
 	}
 
-	/** レビュータブへ遷移する */
-	async gotoReview(): Promise<void> {
-		await tapWhenVisible(this.reviewTab);
+	/** 食べたい/食べたタブへ遷移する */
+	async gotoMyDishes(): Promise<void> {
+		await tapWhenVisible(this.myDishesTab);
 	}
 
 	/** マイページタブへ遷移する */
@@ -60,7 +52,7 @@ export class TabBar {
 	 */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.searchTab, timeout);
-		await waitUntilVisible(this.reviewTab, timeout);
+		await waitUntilVisible(this.myDishesTab, timeout);
 		await waitUntilVisible(this.profileTab, timeout);
 	}
 

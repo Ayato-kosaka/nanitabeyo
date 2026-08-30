@@ -139,6 +139,21 @@ export class NotificationsRepository {
   }
 
   /**
+   * #1506 GRP-04: 投票通知の enrichment 用に、対象セッションの shareToken をまとめて引く。
+   * @param sessionIds dish_category_group_vote_sessions.id の配列
+   */
+  async findGroupVoteSessionsByIds(
+    sessionIds: string[],
+  ): Promise<{ id: string; share_token: string }[]> {
+    if (sessionIds.length === 0) return [];
+
+    return this.prisma.prisma.dish_category_group_vote_sessions.findMany({
+      where: { id: { in: sessionIds } },
+      select: { id: true, share_token: true },
+    });
+  }
+
+  /**
    * デバイストークンを登録/更新
    * @param userId ユーザーID
    * @param expoPushToken Expo Push Token
@@ -305,5 +320,145 @@ export class NotificationsRepository {
     });
 
     return { notificationId: createdNotification.id, isNew: true };
+  }
+
+  /**
+   * #1599 **この受取人へ «この actor 分の Push» を送る権利を 1 回だけ取る。**
+   *
+   * Cloud Tasks は at-least-once 配送で、**ハンドラが成功したのに応答が届かなかった
+   * 場合も再実行される**。`upsertNotification` は `idempotency_key` で冪等なので
+   * «通知行» は二重にならないが、その後の `sendPushNotification` は無条件に走るため、
+   * **同じ Push がユーザーへ 2 回届く**。行の冪等性と配信の冪等性は別の話である。
+   *
+   * ## なぜ「新規作成のときだけ送る」では駄目なのか
+   * `upsertNotification` の戻り値 `isNew` で分岐すると、**同じ投稿への 2 人目以降の
+   * いいね通知が丸ごと消える**。`idempotency_key` は
+   * (action_type, target_table, target_id) 単位で共有され、2 人目は
+   * «既存通知の actor_ids を更新» する経路（isNew: false）に入るためである。
+   * 区別すべきは «再配送» と «正当な追加イベント» であって、«新規» と «既存» ではない。
+   *
+   * ## なぜ既存の列では判別できないのか
+   * - `actor_ids` … 先頭 3 件までの MRU リスト。同じ actor の再配送では中身が変わらず、
+   *   上限 3 に張り付くと 4 人目以降は件数も変わらない
+   * - `thread_updated_at` … 再配送でも毎回 `now()` で更新されるので時刻比較も使えない
+   *
+   * したがって «誰の分まで送ったか» を持つ列（`last_pushed_actor_id`）を足した
+   * （`20260826T0400_add_notification_recipients_last_pushed.sql`）。
+   *
+   * ## 「送ってから記録する」ではなく「記録できたら送る」
+   * 1 文の条件付き UPDATE なので、再配送が同時に 2 本届いても片方しか通らない。
+   * 逆順（送ってから記録）にすると、記録の前に落ちた場合にもう一度送ってしまう。
+   *
+   * ⚠️ Prisma の `updateMany` では書けない。`last_pushed_actor_id` は NULL 許容で、
+   * **まだ一度も送っていない行（NULL）も «この actor とは違う» として拾う**必要がある。
+   * SQL の `<>` は NULL を落とす（`NULL <> x` は NULL = 偽扱い）ので、
+   * それだと **1 回目の Push が誰にも届かない**。`IS DISTINCT FROM` でなければならない。
+   * PostgreSQL 16 で ①NULL→A=1 ②Aの再配送=0 ③B=1 ④Bの再配送=0、および
+   * `<>` では NULL 行が 0 件・`IS DISTINCT FROM` では 1 件になることを実測して確認した。
+   *
+   * ## 残る穴（承知のうえ）
+   * 持っているのは «最後の 1 件» なので、**A → B → A の再配送**という順に届くと
+   * A の分がもう一度送られる（最後が B になっているため）。守りたいのは
+   * «同じタスクの直後の再配送» であり、その間に別の actor のジョブが完了する必要がある
+   * この順序は稀である。ここを塞ぐには actor ごとに 1 行持つ（＝別テーブル）ことになり、
+   * 得られるものに対して重い。migration のヘッダにも同じ判断を書いてある。
+   *
+   * @returns true = 自分が取れた（送ってよい）/ false = 既にこの actor 分は送信済み
+   */
+  async claimPushDelivery(
+    notificationId: string,
+    recipientId: string,
+    actorId: string,
+  ): Promise<boolean> {
+    // withTransaction を通すのは search_path（DB_SCHEMA）を確実に効かせるため。
+    // 素の $executeRaw は接続既定のスキーマ解決に依存する
+    const updated = await this.prisma.withTransaction(
+      (tx) =>
+        tx.$executeRaw`
+        UPDATE notification_recipients
+           SET last_pushed_actor_id = ${actorId}::uuid,
+               last_pushed_at       = now()
+         WHERE notification_id = ${notificationId}::uuid
+           AND recipient_id    = ${recipientId}::uuid
+           AND last_pushed_actor_id IS DISTINCT FROM ${actorId}::uuid
+      `,
+    );
+
+    if (updated === 0) {
+      this.logger.log('PushDeliveryAlreadyClaimed', 'claimPushDelivery', {
+        notificationId,
+        recipientId,
+        actorId,
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        #1510 SET-02 通知カテゴリ別の受信設定                        */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * ユーザーの受信設定を全件取得（#1510）
+   *
+   * **行が無いカテゴリは返らない。** 「未設定 = 既定値」の解決は Service 側で行う。
+   * ここで既定値を埋めてしまうと「保存済みか未設定か」の情報が失われ、
+   * 将来 既定値を変えたときに保存済みの値と区別できなくなる。
+   */
+  async findNotificationPreferences(
+    userId: string,
+  ): Promise<{ category: string; enabled: boolean }[]> {
+    return this.prisma.prisma.user_notification_preferences.findMany({
+      where: { user_id: userId },
+      select: { category: true, enabled: true },
+    });
+  }
+
+  /**
+   * 単一カテゴリの受信設定を取得（#1510）
+   *
+   * @returns 保存済みなら `enabled` の値、**未設定なら `null`**（既定値の解決は呼び出し側）
+   */
+  async findNotificationPreference(
+    userId: string,
+    category: string,
+  ): Promise<boolean | null> {
+    const row =
+      await this.prisma.prisma.user_notification_preferences.findUnique({
+        where: {
+          user_id_category: { user_id: userId, category },
+        },
+        select: { enabled: true },
+      });
+
+    return row?.enabled ?? null;
+  }
+
+  /**
+   * 受信設定を upsert（#1510）
+   *
+   * 既定値と同じ値でも行を作る。「明示的にその値を選んだ」ことを残しておくと、
+   * 将来カテゴリの既定値を変更したときに、選択済みのユーザーを巻き込まずに済む。
+   */
+  async upsertNotificationPreference(
+    userId: string,
+    category: string,
+    enabled: boolean,
+  ): Promise<void> {
+    await this.prisma.prisma.user_notification_preferences.upsert({
+      where: {
+        user_id_category: { user_id: userId, category },
+      },
+      create: { user_id: userId, category, enabled },
+      update: { enabled, updated_at: new Date() },
+    });
+
+    this.logger.debug(
+      'NotificationPreferenceUpserted',
+      'upsertNotificationPreference',
+      { userId, category, enabled },
+    );
   }
 }

@@ -1,6 +1,6 @@
 import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
-import { TopicsPage } from "../../pages/TopicsPage";
+import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { GoogleMapsFallbackDialog } from "../../pages/GoogleMapsFallbackDialog";
 import { stubEmptyDishMediaResults, stubGoogleMaps } from "../../utils/network";
 
@@ -8,7 +8,7 @@ import { stubEmptyDishMediaResults, stubGoogleMaps } from "../../utils/network";
  * 🗺 Google マップ fallback は別タブで開く（#1121 の回帰テスト）
  *
  * ## 背景 (#1121)
- * `/ja-JP/search/topics` で検索結果が 0 件だったときに出る Google マップ fallback ダイアログの
+ * `/ja-JP/search/dish-categories` で検索結果が 0 件だったときに出る Google マップ fallback ダイアログの
  * 「Google マップで開く」を Web で押すと、`Linking.openURL()` が **同一タブ**を遷移させていた。
  * SPA から離脱するため、ブラウザバックで戻ってくると復元に失敗して壊れる、というのが報告された不具合。
  * PR #1151 で `app-expo/lib/openExternalUrl.ts` を導入し、Web では
@@ -30,7 +30,7 @@ import { stubEmptyDishMediaResults, stubGoogleMaps } from "../../utils/network";
  * （トピック提案までは実 API のまま。dev DB への書き込みも発生しないので `@mutation` は不要）。
  */
 test.describe("Google マップ fallback (#1121)", () => {
-	// トピック生成は実 API（AI）で実測 30 秒近くかかるため、topics-flow.spec.ts と同様に延長する
+	// トピック生成は実 API（AI）で実測 30 秒近くかかるため、dish-categories-flow.spec.ts と同様に延長する
 	test.setTimeout(90_000);
 
 	/** Google マップの検索 URL（app-expo/lib/googleMaps.ts の buildGoogleMapsSearchUrl 準拠） */
@@ -56,13 +56,13 @@ test.describe("Google マップ fallback (#1121)", () => {
 		context.on("page", (opened) => openedPages.push(opened));
 
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
 		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
-		await topicsPage.chooseFirstTopic();
+		await dishCategoriesPage.expectLoaded();
+		await dishCategoriesPage.chooseFirstDishCategory();
 
 		// 0 件確定で fallback ダイアログが出る。#828 の実装は同時に result 画面を閉じるため、
 		// このときの背後の画面はトピック画面に戻っている
@@ -70,7 +70,7 @@ test.describe("Google マップ fallback (#1121)", () => {
 		await fallbackDialog.expectVisible();
 
 		// 押下**前**の URL を控える。expo-router の静的書き出しではタブグループ内のネスト遷移で
-		// URL バーが表示内容と一致しないことがある（TopicsPage のコメント参照）ため、
+		// URL バーが表示内容と一致しないことがある（DishCategoriesPage のコメント参照）ため、
 		// 期待値を決め打ちせず「押す前後で変わらないこと」で判定する
 		const urlBeforeClick = appPage.url();
 
@@ -85,7 +85,7 @@ test.describe("Google マップ fallback (#1121)", () => {
 		// ここが #1121 の主症状。修正前は元タブが www.google.com/... へ遷移し、戻ると壊れていた
 		expect(appPage.url()).toBe(urlBeforeClick);
 		// 元タブがアプリを表示したまま生きていること（別タブ起動なので離脱していない）
-		await expect(topicsPage.headerTitle.last()).toBeVisible();
+		await expect(dishCategoriesPage.headerTitle.last()).toBeVisible();
 
 		expect(openedPages).toHaveLength(1);
 

@@ -3,7 +3,7 @@
  *
  * ## テスト 3 層構造（e2e-web と同一の考え方）
  * - Tier 1 `@smoke`   : tests/smoke/                              起動・タブ導線の最小確認
- * - Tier 2 (無タグ)   : tests/navigation|search|review|profile|authenticated/
+ * - Tier 2 (無タグ)   : tests/navigation|search|my-dishes|dish-category-group-votes|profile|authenticated/
  * - Tier 3 `@mutation`: tests/mutation/                           dev DB へ書き込む。**既定では読み込まれない**
  * - 番外  `@probe`    : tests/probe/                              「修正が入るまで落ちるのが正しい」spec 置き場。
  *                                                                **既定では読み込まれない / 現在は空**
@@ -44,6 +44,23 @@ if (!isMutationEnabled) testPathIgnorePatterns.push("<rootDir>/tests/mutation/")
 if (!isProbeEnabled) testPathIgnorePatterns.push("<rootDir>/tests/probe/");
 if (!isCatalogEnabled) testPathIgnorePatterns.push("<rootDir>/tests/catalog/");
 
+// 🔬 spec の絞り込み（workflow_dispatch の test_filter → DETOX_RECORD 系と同じく env で届く）。
+//
+// ⚠️ jest の位置引数や --testPathPattern で渡してはいけない。それらは jest 内部で
+// **すべて 1 つの OR リストへ合流する**ため、tier スクリプトが持つ
+// `--testPathPattern 'tests/smoke/'` と併用すると「(smoke) OR (filter)」になり、
+// 絞ったつもりで全 smoke が実行されていた（run 32605810775 で実測: iOS のテストが 14.9 分）。
+// testPathIgnorePatterns は選択とは独立に AND で効くため、
+// 「filter のどの語も含まないパスを除外する」否定先読みで (tier) AND (filter) を表現する。
+const testFilter = (process.env.DETOX_TEST_FILTER || "").trim();
+if (testFilter) {
+	const words = testFilter
+		.split(/[|\s]+/)
+		.filter(Boolean)
+		.map((word) => word.replace(/[.*+?^${}()[\]\\]/g, "\\$&"));
+	if (words.length > 0) testPathIgnorePatterns.push(`^(?!.*(?:${words.join("|")}))`);
+}
+
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
 	rootDir: ".",
@@ -73,5 +90,12 @@ module.exports = {
 	verbose: true,
 	transform: {
 		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "<rootDir>/tsconfig.json" }],
+	},
+
+	// #1503 直リンクスモークが app-expo の公開ルート一覧（lib/seo/publicRoutes.ts）を import する。
+	// tsconfig の paths は **型解決にしか効かない**ので、実行時の解決はここで対応させる。
+	// 参照先は react / expo / detox に依存しない純粋な TS に限ること（ts-jest がそのまま変換する）。
+	moduleNameMapper: {
+		"^@app-expo/(.*)$": "<rootDir>/../app-expo/$1",
 	},
 };

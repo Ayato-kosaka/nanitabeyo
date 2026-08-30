@@ -27,18 +27,21 @@ nanitabeyo/
 ├── app-expo/        # モバイル / Web アプリ (Expo + React Native + expo-router)
 ├── api/             # バックエンド API (NestJS + Prisma)
 ├── shared/          # 共有モジュール (型, Zod スキーマ, Prisma schema, 変換ロジック等)
-├── e2e/             # End-to-End テスト (Detox)
+├── e2e-web/         # Web の E2E テスト (Playwright)
+├── e2e-mobile/      # モバイルの E2E テスト (Detox)
+├── catalog/         # 画面カタログの生成スクリプトと定義
 ├── infra/           # IaC / インフラ構成 (GCP, Supabase, Firebase, Transcoder 等)
-├── scripts/         # DB マイグレーション・シード等のスクリプト
-├── docs/            # 詳細設計・仕様ドキュメント
-├── issues/          # 課題管理用のメモ・テンプレート
+├── scripts/         # DB マイグレーション・一回きりのバッチ作業
+├── docs/            # 仕様サマリー・ランブック・意思決定記録 (docs/README.md 参照)
 ├── test-data/       # テスト用フィクスチャ
 ├── pnpm-workspace.yaml
 ├── turbo.json
 └── package.json
 ```
 
-`pnpm-workspace.yaml` で `app-expo` / `api` / `shared` / `e2e` の 4 つを workspace パッケージとして登録しており、Turborepo がタスクのオーケストレーションを行います。
+`pnpm-workspace.yaml` で `app-expo` / `api` / `shared` / `e2e-web` / `e2e-mobile` / `scripts/error-triage` の 6 つを workspace パッケージとして登録しており、Turborepo がタスクのオーケストレーションを行います。
+
+変更を出すときの規約（コマンド、CI が回す検査、コメント、i18n、PR ルール）は [CONTRIBUTING.md](CONTRIBUTING.md) にまとめてあります。
 
 ---
 
@@ -52,7 +55,7 @@ nanitabeyo/
 
 ### app-expo (フロントエンド)
 
-- **Expo SDK 53** / **React Native 0.79** / **React 19**
+- **Expo SDK 54** / **React Native 0.81** / **React 19**
 - **expo-router** によるファイルベースルーティング
 - **React Navigation** (bottom-tabs / material-top-tabs / native)
 - **Zustand** — 状態管理
@@ -91,14 +94,14 @@ nanitabeyo/
 
 ## 前提環境
 
-| ツール       | バージョン     | 備考                                                     |
-| ------------ | -------------- | -------------------------------------------------------- |
-| **Node.js**  | 22.x           | `Dockerfile` で `node:22-alpine` を使用                  |
-| **pnpm**     | 10.8.0         | Corepack で固定 (`package.json` の `packageManager`)     |
-| **Git**      | 最新           |                                                          |
-| **Xcode**    | 最新 (iOS のみ)| iOS シミュレータで動かす場合                             |
-| **Android Studio** | 最新     | Android エミュレータで動かす場合                         |
-| **Expo Go / Dev Client** | — | 実機で動かす場合 (`expo start --dev-client --tunnel`)   |
+| ツール                   | バージョン      | 備考                                                  |
+| ------------------------ | --------------- | ----------------------------------------------------- |
+| **Node.js**              | 22.x            | `Dockerfile` で `node:22-alpine` を使用               |
+| **pnpm**                 | 10.8.0          | Corepack で固定 (`package.json` の `packageManager`)  |
+| **Git**                  | 最新            |                                                       |
+| **Xcode**                | 最新 (iOS のみ) | iOS シミュレータで動かす場合                          |
+| **Android Studio**       | 最新            | Android エミュレータで動かす場合                      |
+| **Expo Go / Dev Client** | —               | 実機で動かす場合 (`expo start --dev-client --tunnel`) |
 
 > 💡 `pnpm` は npm や yarn で直接インストールせず、**必ず Corepack 経由**で有効化してください。プロジェクトの `packageManager` フィールドに記載されたバージョンに自動で揃います。
 
@@ -119,8 +122,8 @@ cd nanitabeyo
 # Corepack を有効化 (Node.js に同梱されている pnpm/yarn のシム機構)
 sudo corepack enable
 
-# package.json の packageManager フィールドに従って pnpm をアクティベート
-corepack prepare pnpm@latest --activate
+# package.json の packageManager フィールド (pnpm@10.8.0) に従ってアクティベート
+corepack prepare --activate
 ```
 
 > macOS / Linux で `sudo` が不要な環境ではそのまま `corepack enable` で OK です。Windows (PowerShell) の場合は管理者権限で `corepack enable` を実行してください。
@@ -138,7 +141,7 @@ node -v   # → v22.x
 pnpm install
 ```
 
-ルートで一度実行すれば、`app-expo` / `api` / `shared` / `e2e` すべての依存が一括で解決されます。`.npmrc` で `legacy-peer-deps=true` が設定されているため、React Native 周りの peer dependency 不整合は自動的に解決されます。
+ルートで一度実行すれば、全 workspace パッケージの依存が一括で解決されます。`.npmrc` で `legacy-peer-deps=true` が設定されているため、React Native 周りの peer dependency 不整合は自動的に解決されます。
 
 ### 4. 環境変数を準備
 
@@ -152,10 +155,10 @@ pnpm install
 
 ```bash
 # ルートディレクトリで
-pnpm run dev -F app-expo
+pnpm --filter app-expo dev
 ```
 
-これは内部的に `app-expo` ワークスペースの `expo start --dev-client --tunnel` を実行します。起動後、ターミナルに表示される QR コードを：
+これは内部的に `app-expo` ワークスペースの `expo start --dev-client --tunnel` を実行します。tunnel を使わない場合は `pnpm --filter app-expo start`。起動後、ターミナルに表示される QR コードを：
 
 - **iOS**: Camera アプリでスキャン → Expo Dev Client で開く
 - **Android**: Expo Dev Client アプリでスキャン
@@ -192,43 +195,49 @@ Turborepo によって、対象のワークスペースで `dev` スクリプト
 
 ### ルートのスクリプト
 
-| コマンド                  | 説明                                                                  |
-| ------------------------- | --------------------------------------------------------------------- |
-| `pnpm dev`                | 全パッケージで `dev` を並列実行                                       |
-| `pnpm dev -F app-expo`    | app-expo のみ起動                                                     |
-| `pnpm dev -F api`         | api のみ起動                                                          |
-| `pnpm build`              | 全パッケージをビルド (Turborepo が依存順に実行)                       |
-| `pnpm lint`               | 全パッケージで lint                                                   |
-| `pnpm typecheck`          | 全パッケージで型チェック                                              |
-| `pnpm format`             | Prettier でリポジトリ全体をフォーマット                               |
-| `pnpm db:migration`       | DB マイグレーションを適用 (`scripts/apply-migration.sh`)              |
-| `pnpm db:pull`            | DB から Prisma スキーマを引き戻す (`scripts/db-pull.sh`)              |
-| `pnpm db:reset`           | DB スキーマをリセット (`scripts/reset-schema.sh`)                     |
-| `pnpm deploy:api`         | api を本番デプロイ (Cloud Run)                                        |
-| `pnpm deploy:storage`     | Firebase Storage のルールをデプロイ                                   |
+| コマンド                  | 説明                                                     |
+| ------------------------- | -------------------------------------------------------- |
+| `pnpm dev`                | 全パッケージで `dev` を並列実行                          |
+| `pnpm dev -F app-expo`    | app-expo のみ起動                                        |
+| `pnpm dev -F api`         | api のみ起動                                             |
+| `pnpm build`              | 全パッケージをビルド (Turborepo が依存順に実行)          |
+| `pnpm lint`               | 全パッケージで lint                                      |
+| `pnpm typecheck`          | 全パッケージで型チェック                                 |
+| `pnpm format`             | Prettier でリポジトリ全体をフォーマット                  |
+| `pnpm db:migration`       | DB マイグレーションを適用 (`scripts/apply-migration.sh`) |
+| `pnpm db:pull`            | DB から Prisma スキーマを引き戻す (`scripts/db-pull.sh`) |
+| `pnpm db:reset`           | DB スキーマをリセット (`scripts/reset-schema.sh`)        |
+| `pnpm deploy:api`         | api を本番デプロイ (Cloud Run)                           |
+| `pnpm deploy:storage`     | Firebase Storage のルールをデプロイ                      |
+| `pnpm test:e2e`           | Web の E2E (Playwright)                                  |
+| `pnpm test:e2e:mobile`    | モバイルの E2E (Detox)                                   |
+| `pnpm catalog:doc`        | 画面カタログ `docs/ui-catalog.md` を生成                 |
+| `pnpm catalog:doc:mobile` | 画面カタログ `docs/ui-catalog-mobile.md` を生成          |
 
 ### app-expo の主なスクリプト (`pnpm --filter app-expo run …`)
 
-| スクリプト         | 説明                                          |
-| ------------------ | --------------------------------------------- |
-| `dev`              | `expo start --dev-client --tunnel`            |
-| `start`            | `expo start`                                  |
-| `ios` / `android`  | 各シミュレータ / エミュレータで起動           |
-| `web`              | Web ターゲットで起動                          |
-| `build:web`        | Web 用に export                               |
-| `lint`             | `expo lint`                                   |
-| `typecheck`        | `tsc -p tsconfig.dev.json --noEmit`           |
-| `test`             | `jest --watchAll`                             |
+| スクリプト         | 説明                                                                |
+| ------------------ | ------------------------------------------------------------------- |
+| `dev`              | `expo start --dev-client --tunnel`                                  |
+| `start`            | `expo start`                                                        |
+| `ios` / `android`  | 各シミュレータ / エミュレータで起動                                 |
+| `web`              | Web ターゲットで起動                                                |
+| `build:web`        | Web 用に export                                                     |
+| `lint`             | `expo lint`                                                         |
+| `typecheck`        | `tsc -p tsconfig.dev.json --noEmit`                                 |
+| `test`             | `jest`（監視は `test:watch`）                                       |
+| `assert:*`         | Remote Config 既定値 / e2e hook / BlurModal 境界の検査（CI で実行） |
+| `generate:sitemap` | Web 用サイトマップ生成                                              |
 
 ### api の主なスクリプト (`pnpm --filter api run …`)
 
-| スクリプト             | 説明                                      |
-| ---------------------- | ----------------------------------------- |
-| `dev`                  | NestJS watch + Prisma スキーマ同期        |
-| `build`                | `nest build` + Prisma スキーマコピー      |
-| `start:prod`           | `node dist/main`                          |
-| `test` / `test:e2e`    | Jest テスト                               |
-| `lint` / `typecheck`   | ESLint / `tsc --noEmit`                   |
+| スクリプト           | 説明                                 |
+| -------------------- | ------------------------------------ |
+| `dev`                | NestJS watch + Prisma スキーマ同期   |
+| `build`              | `nest build` + Prisma スキーマコピー |
+| `start:prod`         | `node dist/main`                     |
+| `test` / `test:e2e`  | Jest テスト                          |
+| `lint` / `typecheck` | ESLint / `tsc --noEmit`              |
 
 ---
 
@@ -239,7 +248,7 @@ Turborepo によって、対象のワークスペースで `dev` スクリプト
 - **`api/.env`** — DB 接続文字列 (`DATABASE_URL`)、Supabase、Google Cloud 認証情報、CDN 署名鍵など。`prisma.config.ts` がこのファイルを読み込みます。
 - **`app-expo/.env`** — Expo public 環境変数 (`EXPO_PUBLIC_*`)。Supabase URL/anon key、API base URL など。
 
-詳細な変数名・取得方法は各ディレクトリの README / 設計ドキュメント (`docs/`) を参照してください。
+API の必須環境変数は `api/src/core/config/env.ts` の zod スキーマが唯一の正です（1 つでも欠けると起動しません）。
 
 ---
 
@@ -301,7 +310,9 @@ GCP / Supabase / Firebase / Cloud Run / Cloud Tasks / GCS / BigQuery / Transcode
 
 ### `docs/`
 
-機能ごとの詳細設計書 (CDN Signed Cookie、HLS、画像リサイズ、メンテナンスシステム、行動ログ等) を Markdown で管理しています。実装の背景や設計判断を追う際の最初の参照先です。
+横断的な仕様サマリー (`specs/`)、運用ランブック (`runbooks/`)、意思決定記録 (`decisions/`) を置いています。
+**設計判断は md ではなく該当コードの `【設計】` コメントに書く**方針です。何をどこへ書くかの規約は
+[docs/README.md](docs/README.md) を参照してください。
 
 ---
 

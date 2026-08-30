@@ -2,7 +2,7 @@
 
 ## ルーティング構成
 
-- `/app/[locale]/(tabs)/search/_layout.tsx` で検索タブ配下のスタックを定義し、`index`（検索条件入力）、`topics`（候補カード）、`result`（結果詳細）の 3 画面を管理する。
+- `/app/[locale]/(tabs)/search/_layout.tsx` で検索タブ配下のスタックを定義し、`index`（検索条件入力）、`dish-categories`（候補カード）、`result`（結果詳細）の 3 画面を管理する（`topics` は #1553 で残した旧ルートで、`dish-categories` へリダイレクトするだけ）。
 - `result` 画面は `transparentModal` として表示され、タブ上にモーダル的に重ねる挙動をとる。
 
 ## 検索条件入力画面（index.tsx）
@@ -24,24 +24,24 @@
   - フッターに検索ボタンを配置し、位置未選択時は無効化する。
 - 検索実行
   - 必須の位置情報が欠けている場合はスナックバーを表示して終了。
-  - 条件を `SearchParams` として組み立て、`topics` 画面に JSON 文字列化したパラメーターを渡して遷移する。
+  - 条件を `SearchParams` として組み立て、`dish-categories` 画面に JSON 文字列化したパラメーターを渡して遷移する。
 
-## トピック選択画面（topics.tsx）
+## 料理カテゴリ選択画面（dish-categories.tsx）
 
-- 画面遷移時に受け取った `searchParams` を JSON パースし、`useTopicSearch` の `searchTopics` で候補取得をトリガーする。パース失敗や検索失敗時はスナックバー表示の後、前画面へ戻す。
-- 取得結果（`topics`）から `isHidden` が立っていない項目のみをカルーセル表示する。
+- 画面遷移時に受け取った `searchParams` を JSON パースし、`useDishCategorySearch` の `searchDishCategories` で候補取得をトリガーする。パース失敗や検索失敗時はスナックバー表示の後、前画面へ戻す。
+- 取得結果（`dishCategories`）から `isHidden` が立っていない項目のみをカルーセル表示する。
   - 表示には `react-native-reanimated-carousel` を使用し、ページ送りごとに `useHaptics.selectionChanged` を発火。
-  - `TopicCard` からの「非表示」アクションは `useHideTopic` が提供するモーダル (`HideTopicBlurModal`) とフォーム (`HideTopicForm`) を介して実行し、成功時はスナックバーで通知する。
-- 「このトピックを選ぶ」ボタン押下時の処理
-  - 選択トピックの `dishItemsPromise` を `useDishMediaEntriesStore.setDishePromises` に登録し、`result` 画面に遷移する。併せてロケーション情報を必要に応じて JSON 文字列で引き継ぐ。
+  - `DishCategoryCard` からのブロック（非表示）アクションは `useBlockDishCategory` が確認ダイアログを出して実行し、成功時はスナックバーで通知する。
+- カード選択（「この料理にする！」）押下時の処理
+  - 選択した料理カテゴリの `dishItemsPromise` を `useDishMediaEntriesStore.setDishePromises` に登録し、`result` 画面に遷移する。併せてロケーション情報を必要に応じて JSON 文字列で引き継ぐ。
 - 画面表示・戻る・エラーなど主要イベントを `useLogger` で計測する。
 
 ## 結果表示画面（result.tsx）
 
-- クエリから受け取った `topicId` と、必要なら位置情報を JSON パースして `initialLocation` として解釈する。
-- `useSearchResult(topicId)` で以下の振る舞いを一元管理する。
+- クエリから受け取った `dishCategoryId` と、必要なら位置情報を JSON パースして `initialLocation` として解釈する。
+- `useSearchResult(dishCategoryId)` で以下の振る舞いを一元管理する。
   - カード位置（`currentIndex`）と完了モーダル表示フラグ（`showCompletionModal`）。
-  - `useDishMediaEntriesStore` に保存済みの `dishPromisesMap[topicId]` を取り出し、`DishMediaMap` に `itemsPromise` として渡す。
+  - `useDishMediaEntriesStore` に保存済みの `dishPromisesMap[dishCategoryId]` を取り出し、`DishMediaMap` に `itemsPromise` として渡す。
   - インデックス変更・画面クローズ・カード一覧へ戻る操作のログ送信。
 - 画面表示時に `screen_view` を記録し、戻るボタン (`X`) タップで軽いハプティクス後に前画面へ戻る。
 - メインコンテンツはマップベースの `DishMediaMap` を使用し、`handleIndexChange` で選択状態を同期する設計。
@@ -64,6 +64,6 @@
 
 ## データ連携の流れ
 
-1. `index` で検索条件を構築し、`topics` へ JSON で引き渡す。
-2. `topics` が候補を検索し、ユーザー選択後に該当トピックの料理データ取得 Promise を `useDishMediaEntriesStore` に保存して `result` に遷移する。
+1. `index` で検索条件を構築し、`dish-categories` へ JSON で引き渡す。
+2. `dish-categories` が候補を検索し、ユーザー選択後に該当料理カテゴリの料理データ取得 Promise を `useDishMediaEntriesStore` に保存して `result` に遷移する。
 3. `result` ではストアに保存された Promise を使って `DishMediaMap` を描画し、インタラクションの状態遷移を `useSearchResult` が管理する。

@@ -57,6 +57,7 @@ pnpm test:ui                        # UI モード(開発時のデバッグに�
 pnpm report                         # 直近の HTML レポートを開く
 pnpm test:catalog                   # UI カタログのスクリーンショット収集(後述)
 pnpm catalog:doc                    # 画面一覧ドキュメントを生成(後述)
+pnpm test:harness                   # ハーネス自己検証(後述)。ビルド不要・数秒で終わる
 ```
 
 - デプロイ済み環境に対して実行する場合: `PLAYWRIGHT_BASE_URL=https://... pnpm test`(ローカルサーバとビルドが不要になる)
@@ -71,6 +72,33 @@ pnpm catalog:doc                    # 画面一覧ドキュメントを生成(�
 | Tier 3 | `@mutation` | dev DB への書き込み(いいね/保存・レビュー投稿)           | **既定では実行されない**。`RUN_MUTATION=1` で明示実行のみ |
 
 将来 PR ゲートを追加する場合は `test:smoke`(約5分)をそのまま使える構成。
+
+## console error / pageerror の既定ゲート(REL-08 / #1500)
+
+`fixtures/test.ts` の auto フィクスチャ `consoleErrors` は、収集した console error /
+pageerror が 1 件でもあれば **spec が何もアサートしていなくても** teardown でテストを失敗させる。
+つまり「画面は出ているがコンソールが真っ赤」という状態は、専用の spec を書かなくても検知される。
+
+- 既知の無害なノイズは `fixtures/test.ts` の `KNOWN_CONSOLE_NOISE` に**理由コメント付きで**追加する。
+  ここに一致するメッセージは収集されない
+- 失敗したときは、レポートに添付される `console-errors.txt` に全文が入っている
+- `page` を使わない spec(`@playwright/test` を直 import している `tests/config/` など)は
+  このフィクスチャを経由しないため対象外
+
+### ゲート自体のテスト(`tests/harness/`)
+
+ゲートは「全 spec の既定の失敗条件」なので、**壊れても個々の spec は緑のまま**になり、
+気付かないうちに無効化されうる。これを防ぐため、ゲート自身を検証する spec を置いている。
+
+| ファイル                                           | 内容                                                                                                            |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `tests/harness/console-error-gate.spec.ts`         | 収集される/されないの境界(未知の error・pageerror・既知ノイズ・warn/log)                                        |
+| `tests/harness/console-error-gate-failure.spec.ts` | `test.fail()` で「ゲートが実際にテストを落とすこと」を固定。壊れると "Expected to fail, but passed." で赤くなる |
+
+- 実行対象はダミーページ(`utils/consoleHarness.ts` の `page.setContent()`)だけで、
+  アプリのビルド・API・認証に一切依存しない。専用プロジェクト `harness` で数秒で回る
+- `HARNESS_GATE_RAW=1 pnpm test:harness` を付けると `test.fail()` が無効になり、
+  ゲートが出す実際の失敗メッセージごと赤くなる(文言の確認・エビデンス撮影用)
 
 ## CI(GitHub Actions)
 
@@ -223,6 +251,7 @@ e2e-web/
     ├── config/            # 設定整合性チェック(firebase.json rewrite × dist。ブラウザ不要・デプロイ前ゲート)
     ├── catalog/           # UI カタログ用のスクリーンショット収集(@catalog。既定の test からは除外)
     │                      #   画面定義と一覧生成はリポジトリルートの ../catalog/ にある
+    ├── harness/           # E2E ハーネス自身の自己検証(console error ゲート。ビルド・API 不要)
     ├── smoke/             # Tier 1: @smoke(boot.spec.ts のみフレッシュな匿名状態で実行)
     ├── navigation/ search/ review/ profile/ seo/   # Tier 2
     └── authenticated/     # ログイン済みプロジェクト専用(Tier 2 + @mutation)
@@ -250,6 +279,6 @@ e2e-web/
 ## 補足
 
 - 認証フローの「どこが自動テストで守られていて、どこが守られていないか」の一覧は
-  [`docs/auth-e2e-coverage.md`](../docs/auth-e2e-coverage.md) にまとめてある。認証まわりのテストを増減させたら合わせて更新すること
+  [`docs/specs/auth-e2e-coverage.md`](../docs/specs/auth-e2e-coverage.md) にまとめてある。認証まわりのテストを増減させたら合わせて更新すること
 - `turbo run test` を使う場合は `--filter=!e2e-web` で除外すること(E2E は実ブラウザ + 共有 dev 環境依存でキャッシュに不適なため、turbo タスクには組み込んでいない)
 - `pnpm typecheck`(ルート)で e2e-web の型チェックも turbo 経由で実行される

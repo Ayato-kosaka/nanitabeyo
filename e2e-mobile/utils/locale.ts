@@ -47,7 +47,7 @@ export function iosLanguageAndLocale(): Detox.LanguageAndLocale {
  * #1031 【設計】expo-router は `/[locale]/...` 構成なので、ロケール依存の遷移は
  * 「システムロケールに任せる」より「locale セグメントを直接指定して開く」方が決定論的になる。
  *
- * @param pathname 例: "search", "search/topics"（先頭のスラッシュは省略可）
+ * @param pathname 例: "search", "search/dish-categories"（先頭のスラッシュは省略可）
  * @returns 例: "nanitabeyo:///ja-JP/search"
  */
 export function localeDeepLink(pathname = ""): string {

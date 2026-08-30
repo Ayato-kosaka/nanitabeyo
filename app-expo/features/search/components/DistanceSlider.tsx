@@ -18,6 +18,8 @@ import {
 } from "@/features/search/travelTimeEstimates";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 // #935 【設計】距離スライダーの再実装。旧実装は以下の不具合を抱えていた:
 //   1. `gestureState.moveX - 50` というマジックナンバーで画面絶対座標→トラック相対座標を
@@ -57,6 +59,8 @@ interface DistanceSliderProps {
 }
 
 function TravelEstimateChip({ estimate, secondary = false }: { estimate: TravelTimeEstimate; secondary?: boolean }) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const Icon = TRAVEL_MODE_ICONS[estimate.mode];
 	const modeLabel = i18n.t(TRAVEL_MODE_LABEL_KEYS[estimate.mode]);
 	const minutesLabel = i18n.t("Search.DistanceSlider.approxMinutes", {
@@ -68,7 +72,7 @@ function TravelEstimateChip({ estimate, secondary = false }: { estimate: TravelT
 			style={[styles.estimateChip, secondary && styles.secondaryEstimateChip]}
 			accessibilityLabel={`${modeLabel} ${minutesLabel}`}
 			testID={`search-distance-estimate-${estimate.mode}`}>
-			<Icon size={16} color={secondary ? "#6B7280" : "#F05537"} />
+			<Icon size={16} color={secondary ? colors.textSecondary : colors.brand} />
 			<Text style={styles.estimateLabel}>{modeLabel}</Text>
 			<Text style={[styles.estimateMinutes, secondary && styles.secondaryEstimateMinutes]}>{minutesLabel}</Text>
 		</View>
@@ -76,6 +80,9 @@ function TravelEstimateChip({ estimate, secondary = false }: { estimate: TravelT
 }
 
 export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
+	// #1509 検索フォーム直下の部品。基盤と同じ PR でテーマ対応する
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { selectionChanged } = useHaptics();
 	const [trackWidth, setTrackWidth] = useState(0);
 	const [showAllEstimates, setShowAllEstimates] = useState(false);
@@ -306,7 +313,11 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 						<Text style={styles.moreButtonText}>
 							{showAllEstimates ? i18n.t("Search.DistanceSlider.showLess") : i18n.t("Search.DistanceSlider.showMore")}
 						</Text>
-						{showAllEstimates ? <ChevronUp size={14} color="#F05537" /> : <ChevronDown size={14} color="#F05537" />}
+						{showAllEstimates ? (
+							<ChevronUp size={14} color={colors.brand} />
+						) : (
+							<ChevronDown size={14} color={colors.brand} />
+						)}
 					</TouchableOpacity>
 				)}
 			</View>
@@ -322,117 +333,120 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 	);
 }
 
-const styles = StyleSheet.create({
-	sliderContainer: {
-		width: "100%",
-	},
-	sliderHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		gap: 12,
-		marginBottom: 14,
-	},
-	sliderHint: {
-		flex: 1,
-		fontSize: 12,
-		lineHeight: 18,
-		color: "#6B7280",
-	},
-	distanceBadge: {
-		backgroundColor: "#FDEBE7",
-		paddingHorizontal: 12,
-		paddingVertical: 5,
-		borderRadius: 14,
-	},
-	distanceValue: {
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#F05537",
-	},
-	sliderTrack: {
-		height: 6,
-		backgroundColor: "#D1D5DB",
-		borderRadius: 3,
-		position: "relative",
-		marginHorizontal: THUMB_SIZE / 2,
-		marginBottom: 18,
-	},
-	sliderProgress: {
-		position: "absolute",
-		left: 0,
-		top: 0,
-		height: 6,
-		backgroundColor: "#F05537",
-		borderRadius: 3,
-	},
-	sliderTick: {
-		position: "absolute",
-		width: TICK_SIZE,
-		height: TICK_SIZE,
-		borderRadius: TICK_SIZE / 2,
-		backgroundColor: "#D1D5DB",
-	},
-	activeSliderTick: {
-		backgroundColor: "#F05537",
-	},
-	sliderThumb: {
-		position: "absolute",
-		width: THUMB_SIZE,
-		height: THUMB_SIZE,
-		backgroundColor: "#FFFFFF",
-		borderRadius: THUMB_SIZE / 2,
-		top: -11,
-		borderWidth: 3,
-		borderColor: "#F05537",
-		shadowColor: "#000000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.12,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	estimateRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		flexWrap: "wrap",
-		gap: 8,
-	},
-	estimateChip: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 5,
-		backgroundColor: "#FFF7F5",
-		paddingHorizontal: 10,
-		paddingVertical: 7,
-		borderRadius: 16,
-	},
-	secondaryEstimateChip: {
-		backgroundColor: "#F3F4F6",
-	},
-	estimateLabel: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#111827",
-	},
-	estimateMinutes: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: "#F05537",
-	},
-	secondaryEstimateMinutes: {
-		color: "#4B5563",
-	},
-	moreButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 2,
-		minHeight: 44,
-		paddingHorizontal: 4,
-		paddingVertical: 7,
-	},
-	moreButtonText: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#F05537",
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（`contexts/ThemeProvider.tsx` の useThemedStyles）。
+// 値はすべて main のリテラルをそのまま `constants/Palette.ts` の light へ写したもので、ライトの見た目は変わらない。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		sliderContainer: {
+			width: "100%",
+		},
+		sliderHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			gap: 12,
+			marginBottom: 14,
+		},
+		sliderHint: {
+			flex: 1,
+			fontSize: 12,
+			lineHeight: 18,
+			color: c.textSecondary,
+		},
+		distanceBadge: {
+			backgroundColor: c.brandTint,
+			paddingHorizontal: 12,
+			paddingVertical: 5,
+			borderRadius: 14,
+		},
+		distanceValue: {
+			fontSize: 16,
+			fontWeight: "700",
+			color: c.brand,
+		},
+		sliderTrack: {
+			height: 6,
+			backgroundColor: c.trackMuted,
+			borderRadius: 3,
+			position: "relative",
+			marginHorizontal: THUMB_SIZE / 2,
+			marginBottom: 18,
+		},
+		sliderProgress: {
+			position: "absolute",
+			left: 0,
+			top: 0,
+			height: 6,
+			backgroundColor: c.brand,
+			borderRadius: 3,
+		},
+		sliderTick: {
+			position: "absolute",
+			width: TICK_SIZE,
+			height: TICK_SIZE,
+			borderRadius: TICK_SIZE / 2,
+			backgroundColor: c.trackMuted,
+		},
+		activeSliderTick: {
+			backgroundColor: c.brand,
+		},
+		sliderThumb: {
+			position: "absolute",
+			width: THUMB_SIZE,
+			height: THUMB_SIZE,
+			backgroundColor: c.surface,
+			borderRadius: THUMB_SIZE / 2,
+			top: -11,
+			borderWidth: 3,
+			borderColor: c.brand,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.12,
+			shadowRadius: 4,
+			elevation: 4,
+		},
+		estimateRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			flexWrap: "wrap",
+			gap: 8,
+		},
+		estimateChip: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 5,
+			backgroundColor: c.brandTintSoft,
+			paddingHorizontal: 10,
+			paddingVertical: 7,
+			borderRadius: 16,
+		},
+		secondaryEstimateChip: {
+			backgroundColor: c.surfaceSubtle,
+		},
+		estimateLabel: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: c.textPrimaryAlt,
+		},
+		estimateMinutes: {
+			fontSize: 12,
+			fontWeight: "700",
+			color: c.brand,
+		},
+		secondaryEstimateMinutes: {
+			color: c.textSecondaryAlt,
+		},
+		moreButton: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 2,
+			minHeight: 44,
+			paddingHorizontal: 4,
+			paddingVertical: 7,
+		},
+		moreButtonText: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: c.brand,
+		},
+	});

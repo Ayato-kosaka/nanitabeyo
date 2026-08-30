@@ -1,6 +1,6 @@
 import { element, expect, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
 import { SearchScreen } from "../../screens/SearchScreen";
-import { TopicsScreen } from "../../screens/TopicsScreen";
+import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 
 /**
  * 👆👆 検索ボタンの連打耐性テスト（Tier 2 / #1084・親 #1082）
@@ -24,7 +24,7 @@ import { TopicsScreen } from "../../screens/TopicsScreen";
  */
 describe("検索ボタンの連打耐性", () => {
 	const search = new SearchScreen();
-	const topics = new TopicsScreen();
+	const dishCategories = new DishCategoriesScreen();
 
 	// #1027 テストごとに起動し直して独立性を担保する（前のテストが残したキーボード・スクロール位置が
 	// iOS の可視判定を壊すため）。#1030 3-1 セッション注入起動は匿名クォータを消費しない
@@ -57,17 +57,17 @@ describe("検索ボタンの連打耐性", () => {
 	//   3. トピック画面が表示されることを検証
 	//   4. **1 回だけ**戻り、検索画面に着くことを検証（二重 push ならトピック画面に留まる）
 	// 補足: 設計（#1084 §8 未確定 2）では iOS の「1 回戻る」手段が未確定だったが、
-	//       トピック画面のヘッダー戻るボタン（`screen-header-back`）は `router.back()` を
-	//       1 回呼ぶだけの実装（topics.tsx の handleBack）で、両プラットフォームで同じ導線として使える。
+	//       トピック画面のヘッダー戻るボタン（#1404 で `dish-categories-header-back`）は `router.back()` を
+	//       1 回呼ぶだけの実装（dishCategories.tsx の handleBack）で、両プラットフォームで同じ導線として使える。
 	//       Android 専用の `device.pressBack()` を使う必要は無く、Android 限定にも縮退させていない
 	it("必須項目を満たした状態で検索ボタンを 2 連打しても検索は 1 回だけ実行される", async () => {
 		await search.typeLocation("渋谷");
 		await search.selectLocationSuggestion(0);
 
 		await search.submitRapid(2);
-		await topics.expectLoaded();
+		await dishCategories.expectLoaded();
 
-		await topics.goBack();
+		await dishCategories.goBack();
 		await search.expectLoaded();
 	});
 });

@@ -7,6 +7,8 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { getCacheKeyForImage } from "@/lib/image";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 /* -------------------------------------------------------------------------- */
 /*                                  型定義                                    */
@@ -52,7 +54,14 @@ export interface ImageCardGridProps<T extends ImageCardItem = ImageCardItem> {
 /*                              Card 内部実装                                 */
 /* -------------------------------------------------------------------------- */
 
-function _ImageCard<T extends ImageCardItem>({
+/*
+  #1366 【設計】名前を `_` で始めてはいけない。react-hooks/rules-of-hooks は「大文字で始まる関数」を
+  コンポーネントと見なすため、`_ImageCard` はコンポーネントとして認識されず、中のフック呼び出しが
+  «コンポーネントでもフックでもない関数からの呼び出し» として一律 error になる（＝ルールがこの
+  ファイルのフック順序を一切検査できない状態だった）。memo でラップした公開名と衝突させずに
+  大文字始まりにするため `Impl` 接尾辞にしている。
+*/
+function ImageCardImpl<T extends ImageCardItem>({
 	item,
 	columns = 3,
 	gap = 1,
@@ -75,6 +84,9 @@ function _ImageCard<T extends ImageCardItem>({
 	testID?: string;
 }) {
 	const { lightImpact } = useHaptics();
+	// #1629 カードの地は «画像が出るまでの面» なのでテーマに追従させる
+	//（ダークで白いタイルが並ぶのを止める）。影だけは固定の黒でよい
+	const styles = useThemedStyles(createStyles);
 	// #958 【修正】useWindowDimensions はブラウザウィンドウ実幅を返すため、
 	// CenteredAppShell が収める中央カラム幅とズレてカードがカラムの外へはみ出していた
 	const widthDimensions = useContentWidth();
@@ -135,7 +147,7 @@ function _ImageCard<T extends ImageCardItem>({
 /*                               Grid 本体                                    */
 /* -------------------------------------------------------------------------- */
 
-function _ImageCardGrid<T extends ImageCardItem>({
+function ImageCardGridImpl<T extends ImageCardItem>({
 	data,
 	columns = 3,
 	gap = 1,
@@ -150,9 +162,9 @@ function _ImageCardGrid<T extends ImageCardItem>({
 }: ImageCardGridProps<T>) {
 	const renderItem = useCallback(
 		(info: ListRenderItemInfo<T>) => (
-			<_ImageCard item={info.item} aspectRatio={aspectRatio} gap={gap} onPress={onPress} cardStyle={cardStyle}>
+			<ImageCardImpl item={info.item} aspectRatio={aspectRatio} gap={gap} onPress={onPress} cardStyle={cardStyle}>
 				{renderOverlay?.(info.item)}
-			</_ImageCard>
+			</ImageCardImpl>
 		),
 		[aspectRatio, gap, onPress, renderOverlay, cardStyle],
 	);
@@ -176,21 +188,22 @@ function _ImageCardGrid<T extends ImageCardItem>({
 	);
 }
 
-export const ImageCardGrid = memo(_ImageCardGrid) as typeof _ImageCardGrid;
-export const ImageCard = memo(_ImageCard) as typeof _ImageCard;
+export const ImageCardGrid = memo(ImageCardGridImpl) as typeof ImageCardGridImpl;
+export const ImageCard = memo(ImageCardImpl) as typeof ImageCardImpl;
 
 /* -------------------------------------------------------------------------- */
 /*                               スタイル定義                                 */
 /* -------------------------------------------------------------------------- */
-const styles = StyleSheet.create({
-	card: {
-		backgroundColor: "#F8F9FA",
-		overflow: "hidden",
-		position: "relative",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		card: {
+			backgroundColor: colors.surfaceMuted,
+			overflow: "hidden",
+			position: "relative",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.1,
+			shadowRadius: 4,
+			elevation: 3,
+		},
+	});

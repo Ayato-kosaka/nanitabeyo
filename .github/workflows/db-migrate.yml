@@ -1,7 +1,8 @@
 name: DB Migrate
 
 # ==============================================================================
-# dev / public スキーマへの migration 適用。dev 適用時のみ schema.prisma / Prisma Client を再生成。
+# dev / public スキーマへの migration 適用。dev 適用時のみ schema.prisma / Prisma Client /
+# shared/supabase/database.types.ts を再生成し、shared がビルドできることを検算してから commit する。
 #
 # ## ⚠️ public への適用は本番 DB の変更です
 #
@@ -27,6 +28,14 @@ name: DB Migrate
 # ## なぜ Actions でやるのか
 # migration は「誰かのローカルから流す」と、いつ・どのファイルまで当たったのかが
 # 記録に残りません。dispatch のログが残る形にしておくと、後から追えます。
+#
+# ## 実適用（dry_run=false）は main ブランチからのみ
+# 2026-08 に、機能ブランチ（#1469）から dev へ migration を先行適用した結果、
+# 「dev の schema と噛み合うコードがそのブランチにしか無く、api-development を
+# main からデプロイできない」状態が発生しました。以後、DB 変更は
+# «migration だけの小 PR を先に main へマージ → main からこの workflow で適用»
+# という migration-first 運用に固定します（infra/supabase/migrations/README.md）。
+# ブランチからは dry_run のみ許可します（適用対象と検査の事前確認用）。
 # ==============================================================================
 
 on:
@@ -88,6 +97,16 @@ jobs:
         run: |
           if [ -z "${DATABASE_URL}" ]; then
             echo "::error::secrets.POSTGRES_DATABASE_URL が未設定です。migration 対象 DB の接続文字列を登録してください。"
+            exit 1
+          fi
+
+      - name: 実適用は main ブランチからのみ許可
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::error::実適用（dry_run=false）は main ブランチからのみ実行できます（現在: ${GITHUB_REF_NAME}）。"
+            echo "::error::migration を適用したい場合は、migration ファイルだけの小 PR を先に main へマージしてください（infra/supabase/migrations/README.md）。"
             exit 1
           fi
 
@@ -218,33 +237,110 @@ jobs:
       - name: schema.prisma と Prisma Client を再生成
         if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
         shell: bash
-        # scripts/db-pull.sh を呼ばないのは、あれが api/.env の存在と Supabase CLI の
-        # ログインを前提にしており（supabase gen types / converters 生成）、
-        # CI では途中で必ず落ちるため。ここでは DATABASE_URL だけで完結する
-        # 「introspect → generate」に絞る。Supabase 型と converters の再生成が要る
-        # 変更のときは、ローカルで `pnpm db:pull` を実行すること
+        # scripts/db-pull.sh を呼ばないのは、あれが app-expo/.env を読むため。
+        # ここでは DATABASE_URL だけで完結する「introspect → generate」に絞る。
         run: |
           set -euo pipefail
           sed "s/__SCHEMA__/${DB_SCHEMA}/g" api/prisma/schema.template.prisma > api/prisma/schema.prisma
           pnpm -C api exec prisma db pull --schema prisma/schema.prisma --config ../prisma.config.ts
           pnpm -C api exec prisma generate --schema prisma/schema.prisma --config ../prisma.config.ts
 
-      - name: 差分があればこのブランチへ commit する（dev のみ）
+      # ── #1575 Supabase 型も同じ commit で進める ────────────────────────────
+      # この workflow は「DB を進める唯一の actor」であり、必要な資格情報を全部持っている。
+      # 片側（schema.prisma）だけを進めて push していたことが、2026-08-23 と 08-24 の
+      # 2 回の «main が赤いまま放置» の原因だった（#1575）。両側を同じ commit で進める。
+      #
+      # `supabase gen types` はログインも SUPABASE_ACCESS_TOKEN も要らない。--db-url に
+      # 接続文字列を渡せばよく、それは既に secrets.POSTGRES_DATABASE_URL がある。
+      # CLI が postgres-meta コンテナを起動するので Docker が要るが、
+      # GitHub-hosted ubuntu runner には入っている。
+      #
+      # 出力を直接リダイレクトしないこと。途中で落ちたときに database.types.ts が
+      # 空・破損のまま残り、次の検算が「列が消えた」形で誤爆する。
+      - name: Supabase 型（database.types.ts）を再生成
         if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
+        shell: bash
+        env:
+          SUPABASE_CLI_VERSION: "2.115.0"
+        run: |
+          set -euo pipefail
+          npx --yes "supabase@${SUPABASE_CLI_VERSION}" gen types typescript \
+            --db-url "${DATABASE_URL}" --schema "${DB_SCHEMA}" > /tmp/database.types.ts
+          if ! grep -q "^export type Database = {" /tmp/database.types.ts; then
+            echo "::error::supabase gen types の出力が想定の形ではありません。生成を中止します。"
+            head -20 /tmp/database.types.ts
+            exit 1
+          fi
+          mv /tmp/database.types.ts shared/supabase/database.types.ts
+          echo "✅ shared/supabase/database.types.ts を再生成しました"
+
+      # ── 検算: push する前に、自分が main を壊していないことを確かめる ────────
+      # converters は「対象型の全プロパティを持つリテラル」を返す形なので、tsc が
+      # 「Supabase 型の列集合 ≡ Prisma 型の列集合」を強制する。つまり shared のビルドが
+      # そのまま両者の一致検査になっている（#1575 §1-1）。
+      # 失敗＝ converters の手追従が要る、ということ。
+      - name: shared がビルドできることを検算する
+        id: verify_shared
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm -F shared build 2>&1 | tee /tmp/shared-build.log
+
+      - name: 差分があればこのブランチへ commit する（dev のみ・検算が通ったときだけ）
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma && steps.verify_shared.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
           # scripts/.env が残っていたら絶対に commit しない（接続文字列が入っている）
           rm -f scripts/.env api/.env
-          if git diff --quiet -- api/prisma/schema.prisma shared/prisma; then
-            echo "schema.prisma / Prisma Client に差分はありません。"
+          if git diff --quiet -- api/prisma/schema.prisma shared/prisma shared/supabase/database.types.ts; then
+            echo "schema.prisma / Prisma Client / database.types.ts に差分はありません。"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add api/prisma/schema.prisma shared/prisma
+          git add api/prisma/schema.prisma shared/prisma shared/supabase/database.types.ts
           git commit -m "chore(db): ${DB_SCHEMA} スキーマの introspect 結果を反映する (${{ inputs.from_file }})"
           git push origin HEAD:"${GITHUB_REF_NAME}"
+
+      # ── 検算が落ちたとき: main へは push せず、退避ブランチへ逃がして run を失敗させる ──
+      # main を緑のまま保つことを最優先する。DB だけが先行する状態になるが、
+      # README 規則 3（additive のみ）の範囲なので既存コードは動き続ける。
+      # 次に dispatch したとき再 introspect されるので、取りこぼしはない。
+      - name: 検算が落ちたので退避ブランチへ逃がす
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma && steps.verify_shared.outcome == 'failure' }}
+        shell: bash
+        env:
+          # dispatch 入力を shell へ直接展開しない（コマンド注入を避ける）
+          FROM_FILE: ${{ inputs.from_file }}
+        run: |
+          set -euo pipefail
+          rm -f scripts/.env api/.env
+          ESCAPE_BRANCH="chore/db-introspect-$(basename "${FROM_FILE}" .sql)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/prisma/schema.prisma shared/prisma shared/supabase/database.types.ts
+          git commit -m "chore(db): ${DB_SCHEMA} の introspect 結果（converters の追従が未了） (${FROM_FILE})"
+          git push --force origin "HEAD:refs/heads/${ESCAPE_BRANCH}"
+
+          {
+            echo "## ⚠️ introspect 結果を main へ入れませんでした"
+            echo
+            echo "\`pnpm -F shared build\` が落ちたため、\`main\` は緑のまま保ちました。"
+            echo "**\`shared/converters/\` の手追従が要ります**（\`shared/converters/README.md\`）。"
+            echo
+            echo "生成物は \`${ESCAPE_BRANCH}\` へ退避してあります。"
+            echo "このブランチから PR を作り、converters を追従させてマージしてください。"
+            echo
+            echo '```'
+            cat /tmp/shared-build.log
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          echo "::error::shared のビルドが通らないため main へ push しませんでした。退避先: ${ESCAPE_BRANCH}（converters の追従が要ります）"
+          exit 1
 
       - name: 適用後のテーブル一覧（先頭 40 件）
         if: ${{ !inputs.dry_run }}

@@ -98,291 +98,483 @@
 		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/search" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/ja-JP/map</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/map" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/map" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/map" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/map" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/map" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/map" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/map" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/map" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/map" />
+		<loc>https://app.nanitabeyo.net/ja-JP/my-dishes</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/my-dishes" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/en-US/map</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/map" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/map" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/map" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/map" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/map" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/map" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/map" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/map" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/map" />
+		<loc>https://app.nanitabeyo.net/en-US/my-dishes</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/my-dishes" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/fr-FR/map</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/map" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/map" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/map" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/map" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/map" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/map" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/map" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/map" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/map" />
+		<loc>https://app.nanitabeyo.net/fr-FR/my-dishes</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/my-dishes" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/zh-CN/map</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/map" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/map" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/map" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/map" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/map" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/map" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/map" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/map" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/map" />
+		<loc>https://app.nanitabeyo.net/zh-CN/my-dishes</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/my-dishes" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/ar-SA/map</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/map" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/map" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/map" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/map" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/map" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/map" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/map" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/map" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/map" />
+		<loc>https://app.nanitabeyo.net/ar-SA/my-dishes</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/my-dishes" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/ko-KR/map</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/map" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/map" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/map" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/map" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/map" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/map" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/map" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/map" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/map" />
+		<loc>https://app.nanitabeyo.net/ko-KR/my-dishes</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/my-dishes" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/es-ES/map</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/map" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/map" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/map" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/map" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/map" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/map" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/map" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/map" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/map" />
+		<loc>https://app.nanitabeyo.net/es-ES/my-dishes</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/my-dishes" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/hi-IN/map</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/map" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/map" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/map" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/map" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/map" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/map" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/map" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/map" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/map" />
+		<loc>https://app.nanitabeyo.net/hi-IN/my-dishes</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/my-dishes" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/my-dishes" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/ja-JP/review</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review" />
+		<loc>https://app.nanitabeyo.net/ja-JP/legal/guidelines</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/en-US/review</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review" />
+		<loc>https://app.nanitabeyo.net/en-US/legal/guidelines</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/fr-FR/review</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review" />
+		<loc>https://app.nanitabeyo.net/fr-FR/legal/guidelines</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/zh-CN/review</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review" />
+		<loc>https://app.nanitabeyo.net/zh-CN/legal/guidelines</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/ar-SA/review</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review" />
+		<loc>https://app.nanitabeyo.net/ar-SA/legal/guidelines</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/ko-KR/review</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review" />
+		<loc>https://app.nanitabeyo.net/ko-KR/legal/guidelines</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/es-ES/review</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review" />
+		<loc>https://app.nanitabeyo.net/es-ES/legal/guidelines</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/hi-IN/review</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review" />
+		<loc>https://app.nanitabeyo.net/hi-IN/legal/guidelines</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/guidelines" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/guidelines" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/ja-JP/review/selectRestaurant</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
+		<loc>https://app.nanitabeyo.net/ja-JP/legal/terms</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/terms" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/en-US/review/selectRestaurant</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
+		<loc>https://app.nanitabeyo.net/en-US/legal/terms</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/terms" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/fr-FR/review/selectRestaurant</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
+		<loc>https://app.nanitabeyo.net/fr-FR/legal/terms</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/terms" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/zh-CN/review/selectRestaurant</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
+		<loc>https://app.nanitabeyo.net/zh-CN/legal/terms</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/terms" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/ar-SA/review/selectRestaurant</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
+		<loc>https://app.nanitabeyo.net/ar-SA/legal/terms</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/terms" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/ko-KR/review/selectRestaurant</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
+		<loc>https://app.nanitabeyo.net/ko-KR/legal/terms</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/terms" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/es-ES/review/selectRestaurant</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
+		<loc>https://app.nanitabeyo.net/es-ES/legal/terms</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/terms" />
 	</url>
 	<url>
-		<loc>https://app.nanitabeyo.net/hi-IN/review/selectRestaurant</loc>
-		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/review/selectRestaurant" />
-		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/review/selectRestaurant" />
+		<loc>https://app.nanitabeyo.net/hi-IN/legal/terms</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/terms" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/terms" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/ja-JP/legal/privacy</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/en-US/legal/privacy</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/fr-FR/legal/privacy</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/zh-CN/legal/privacy</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/ar-SA/legal/privacy</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/ko-KR/legal/privacy</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/es-ES/legal/privacy</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/hi-IN/legal/privacy</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/privacy" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/privacy" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/ja-JP/legal/copyright</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/en-US/legal/copyright</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/fr-FR/legal/copyright</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/zh-CN/legal/copyright</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/ar-SA/legal/copyright</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/ko-KR/legal/copyright</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/es-ES/legal/copyright</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+	</url>
+	<url>
+		<loc>https://app.nanitabeyo.net/hi-IN/legal/copyright</loc>
+		<xhtml:link rel="alternate" hreflang="ja-JP" href="https://app.nanitabeyo.net/ja-JP/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="en-US" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="fr-FR" href="https://app.nanitabeyo.net/fr-FR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="zh-CN" href="https://app.nanitabeyo.net/zh-CN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ar-SA" href="https://app.nanitabeyo.net/ar-SA/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="ko-KR" href="https://app.nanitabeyo.net/ko-KR/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="es-ES" href="https://app.nanitabeyo.net/es-ES/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="hi-IN" href="https://app.nanitabeyo.net/hi-IN/legal/copyright" />
+		<xhtml:link rel="alternate" hreflang="x-default" href="https://app.nanitabeyo.net/en-US/legal/copyright" />
 	</url>
 </urlset>

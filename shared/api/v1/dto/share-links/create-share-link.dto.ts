@@ -11,7 +11,11 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { PUBLIC_LOCALES, type PublicLocale } from "../../constants/publicLocales";
-import { SHARE_LINK_MAX_DISH_MEDIA_IDS, SHARE_LINK_TARGET_TYPES, type ShareLinkTargetType } from "../../constants/shareLinks";
+import {
+	SHARE_LINK_MAX_DISH_MEDIA_IDS,
+	SHARE_LINK_TARGET_TYPES,
+	type ShareLinkTargetType,
+} from "../../constants/shareLinks";
 
 /**
  * 📮 `POST /v1/share-links` のリクエスト（#721）。

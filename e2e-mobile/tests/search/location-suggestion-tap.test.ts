@@ -10,7 +10,7 @@ import {
 	waitUntilVisible,
 } from "../../fixtures/e2e";
 import { SearchScreen } from "../../screens/SearchScreen";
-import { TopicsScreen } from "../../screens/TopicsScreen";
+import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 
 /**
  * 📍 場所オートコンプリートの「候補タップで地点が選択される」回帰テスト（実 API / Tier 2）
@@ -29,8 +29,10 @@ import { TopicsScreen } from "../../screens/TopicsScreen";
  * 修正はこの副作用を親から外し、キーボードを閉じる責務を **候補を押された子側**
  *（`LocationAutocomplete` / `DishCategoryAutocomplete` の `handleSuggestionPress`）へ移したもの。
  *
- * ⚠️ アプリ側の単体テスト（app-expo の `useBlurModal.test.tsx` / `LocationAutocomplete.test.tsx`）は
- * 「親がレスポンダを奪わない」「子が `Keyboard.dismiss()` を呼ぶ」という**実装の形**を固定している。
+ * ⚠️ アプリ側の単体テスト（app-expo の `LocationAutocomplete.test.tsx`）は
+ * 「子が `Keyboard.dismiss()` を呼ぶ」という**実装の形**を固定している。
+ *（対になっていた `useBlurModal.test.tsx` の「親がレスポンダを奪わない」ぶんは、
+ * #1350 P6 で BlurModal ごと撤去された。親そのものが居なくなったので固定対象も消えている）
  * ここで守るのはその 1 段上、**「ユーザーが候補を押したら地点が本当に確定する」**という結果である。
  * 実装の形が変わっても（例えば別の方法でキーボードを閉じるようになっても）、
  * 結果が壊れたときにだけ赤くなるのがこの spec の役割。
@@ -51,9 +53,9 @@ import { TopicsScreen } from "../../screens/TopicsScreen";
  * 検索まで進まずに素早く名指しで報告するため）。
  *
  * ## トピック生成（AI）の完了は待たない
- * 観測点は `topics-header-title` の表示までに留め、`TopicsScreen.expectLoaded()`（カードの描画待ち＝
+ * 観測点は `dish-categories-header-title` の表示までに留め、`DishCategoriesScreen.expectLoaded()`（カードの描画待ち＝
  * AI 生成の完了待ちで実測数十秒）は呼ばない。この spec が見たいのは「地点が確定して遷移したか」であって
- * トピック生成の成否ではなく、そこは `topics-flow.test.ts` が担当している。
+ * トピック生成の成否ではなく、そこは `dish-categories-flow.test.ts` が担当している。
  *
  * ## e2e-web との対応
  * e2e-web は `tests/search/location-autocomplete.spec.ts` の
@@ -64,7 +66,7 @@ import { TopicsScreen } from "../../screens/TopicsScreen";
  */
 describe("場所オートコンプリートの候補タップ（実 API / #528）", () => {
 	const search = new SearchScreen();
-	const topics = new TopicsScreen();
+	const dishCategories = new DishCategoriesScreen();
 
 	// #1027 【バグ】beforeAll だと前のテストが残した状態（開いたキーボード・スクロール位置・遷移先の画面）を
 	// 次のテストが引き継ぐ。とくにこの spec は 1 本目で画面遷移するため、テストごとに起動し直して
@@ -115,7 +117,7 @@ describe("場所オートコンプリートの候補タップ（実 API / #528�
 
 		// トピック生成（AI）の完了は待たない。遷移したことだけをヘッダで確認する。
 		// 地点が確定していなければここへ到達できず、25 秒待って落ちる
-		await topics.expectHeaderVisible();
+		await dishCategories.expectHeaderVisible();
 		// 遷移を確認したうえで、バリデーション通知が出ていないことも押さえる。
 		// 「遷移はしたがスナックバーも出ている」という中途半端な壊れ方を見逃さないため。
 		// ⚠️ Detox の `not.toBeVisible()` ではなく `visibleNow` で見る。スナックバーは非表示のとき
@@ -136,18 +138,23 @@ describe("場所オートコンプリートの候補タップ（実 API / #528�
 	//   - Detox にキーボードの可視状態を読む API が無く、iOS でも「閉じたこと」を直接は言えない
 	// そのため観測できるのは **「キーボード都合の操作を挟んでも、候補のタップが潰れない」** という結果になる。
 	//
-	// ## 「背景タップでキーボードを閉じる」経路を検証していない理由
-	// #528 の修正対象である `useBlurModal` の背景タップ（`handleBackdropPress`）は、
+	// ## 「背景タップでキーボードを閉じる」経路を検証していない理由（#1369 で前提が変わった）
+	// #528 の修正対象だった `useBlurModal` の背景タップ（`handleBackdropPress`）は、
 	// 地点オートコンプリートを **BlurModal の中に置いている画面**でしか触れない。
-	// 現在それに該当するのはマイページの「保存した料理カテゴリ」→ 地点検索モーダル
-	//（`features/profile/tabs/SavedTopicsTab.tsx` ＋ `LocationSearchForm`）だけで、到達には
-	//   - ログイン済みセッション（`describeAuthenticated`）
-	//   - **テストユーザーに保存済みカテゴリが 1 件以上あること**（現在シードされておらず、
-	//     用意するには共有 dev DB への書き込み ＝ Tier 3 @mutation の領分になる）
-	//   - グリッド項目ごとの testID（`save/SaveTopicTab.tsx` には現在グリッド全体の testID しか無い）
-	// が必要になる。データのシードが入ったら、この spec の隣に @mutation として移植すること。
-	// 検索タブ側は `keyboardShouldPersistTaps="always"`（search/index.tsx の ScrollView）なので、
-	// 背景タップでは候補もキーボードも閉じない ＝ 同じ検証をここへ寄せることはできない。
+	// 該当していたのはマイページの「保存した料理カテゴリ」→ 地点検索モーダルだけだったが、
+	// **#1369 でその画面はルート（`/[locale]/profile/saved-dish-category-location`）になり、
+	// BlurModal ごと無くなった**。つまりアプリ内に「背景タップで閉じるオーバーレイの中の
+	// オートコンプリート」はもう 1 つも存在せず、検証する経路自体が消えている。
+	//
+	// 消えたのは «背景タップ» という閉じ方だけで、#528 の本体（候補を押したら地点が本当に
+	// 確定するか）は元の当事者の画面で守る。`tests/profile/saved-dish-category-location-search.test.ts` の
+	// 「候補をタップすると地点が確定し、検索結果画面へ進む」がそれで、当時ここに書いていた
+	// 「保存カテゴリがシードされていない / グリッド項目に testID が無い」という障害は
+	// `utils/savedDishCategory.ts` と `save-dish-category-tab-item-<n>` の追加で解消済み。
+	// この spec（検索タブ）は、器に依らない «キーボード都合の操作を挟んでもタップが潰れない»
+	// 側を引き続き守る。検索タブ側は `keyboardShouldPersistTaps="always"`
+	//（search/index.tsx の ScrollView）なので、背景タップでは候補もキーボードも閉じない
+	// ＝ 同じ検証をここへ寄せることはできない。
 	it("キーボードを閉じる操作を挟んでも候補のタップが潰れない", async () => {
 		await search.clearLocationIfPresent();
 

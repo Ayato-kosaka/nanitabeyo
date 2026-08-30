@@ -2,10 +2,12 @@
  * #856 【責務】
  * 投票完了時の名前・コメント入力 UI をまとめる。
  *
- * BlurModal の開閉は親画面で管理し、このコンポーネントは内容表示だけに絞る。
- * これにより、最後の候補への投票直後に確実にモーダルを表示できる。
+ * 表示するかどうかは親画面（#1358 以降は投票完了状態の state）が管理し、このコンポーネントは
+ * 内容表示だけに絞る。これにより、最後の候補への投票直後に確実に完了入力を表示できる。
  */
 import { useEffect, useMemo, useState } from "react";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
@@ -23,6 +25,9 @@ type Props = {
 };
 
 export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmitting, onSubmit }: Props) {
+	// #1629 プレースホルダーの色をテーマへ追従させるために読む
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { user, isAuthResolved } = useAuth();
 	const { isProfileResolved } = useEnsureOwnProfileLoaded();
 	const profile = useProfileStore((state) => state.profile);
@@ -44,7 +49,7 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 	//   `isGuestUser(null)` は「ゲスト」へ倒れる仕様（lib/authGuest.ts）なので、
 	//   ここを待たないと必ずゲスト向け UI を先に描いてしまう。
 	// - ログイン済みで `isProfileResolved === false` … display_name の取得が終わっていない。
-	//   このモーダルは BlurModal が open した瞬間に初めてマウントされる = プロフィール取得も
+	//   この UI は投票完了状態になった瞬間に初めてマウントされる = プロフィール取得も
 	//   そこから始まるため、`profile === null` の窓を毎回必ず通る。
 	//
 	// ゲスト確定なら profile を参照しないので、プロフィール取得を待たずに描いてよい。
@@ -110,6 +115,8 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 				}}
 				onFocus={handleNameInputFocus}
 				placeholder={i18n.t("DishCategoryGroupVotes.displayNamePlaceholder")}
+				// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+				placeholderTextColor={colors.textSecondary}
 				maxLength={8}
 			/>
 			{suggestions.length > 0 && (!isManualName || displayName.trim().length === 0) ? (
@@ -143,10 +150,15 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 				value={comment}
 				onChangeText={setComment}
 				placeholder={i18n.t("DishCategoryGroupVotes.commentPlaceholder")}
+				// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+				placeholderTextColor={colors.textSecondary}
 				multiline
 			/>
 			<View style={styles.actionRow}>
 				<PrimaryButton
+					// #1506 GRP-04 【テスト】投票の送信は「ホストへ通知が飛ぶ」起点なので、
+					// E2E から確実に押せるよう観測点を付ける（ラベル文言はロケール依存で引けない）
+					testID="dish-category-group-vote-submit"
 					label={i18n.t("DishCategoryGroupVotes.submitVote")}
 					loading={isSubmitting}
 					disabled={!canSubmit}
@@ -158,92 +170,93 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 	);
 }
 
-const styles = StyleSheet.create({
-	modal: {
-		width: "100%",
-		maxWidth: 420,
-		borderRadius: 8,
-		backgroundColor: "#FFFFFF",
-		padding: 18,
-	},
-	title: {
-		fontSize: 20,
-		fontWeight: "800",
-		color: "#111827",
-	},
-	suggestions: {
-		marginTop: 14,
-		gap: 8,
-	},
-	// #1120 ログイン判定の確定待ち。確定後のフォームとおおよそ同じ高さにして、
-	// 差し替わったときにモーダルが大きく伸縮しないようにする
-	identityLoading: {
-		minHeight: 220,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	suggestionLabel: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: "#6B7280",
-	},
-	suggestionRow: {
-		flexDirection: "row",
-		gap: 8,
-	},
-	suggestionButton: {
-		width: 44,
-		height: 44,
-		borderRadius: 22,
-		alignItems: "center",
-		justifyContent: "center",
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		backgroundColor: "#F9FAFB",
-	},
-	suggestionButtonActive: {
-		borderColor: "#111827",
-		backgroundColor: "#EEF2FF",
-	},
-	suggestionText: {
-		fontSize: 24,
-	},
-	input: {
-		marginTop: 14,
-		minHeight: 44,
-		borderRadius: 8,
-		borderWidth: 1,
-		borderColor: "#D1D5DB",
-		paddingHorizontal: 12,
-		fontSize: 16,
-		color: "#111827",
-		backgroundColor: "#FFFFFF",
-	},
-	commentInput: {
-		minHeight: 86,
-		paddingTop: 10,
-		textAlignVertical: "top",
-	},
-	actionRow: {
-		marginTop: 16,
-		flexDirection: "row",
-		gap: 10,
-	},
-	cancelButton: {
-		flex: 1,
-		height: 44,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-		borderWidth: 1,
-		borderColor: "#D1D5DB",
-	},
-	cancelButtonText: {
-		fontSize: 15,
-		fontWeight: "700",
-		color: "#374151",
-	},
-	submitButton: {
-		flex: 1,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		modal: {
+			width: "100%",
+			maxWidth: 420,
+			borderRadius: 8,
+			backgroundColor: c.surface,
+			padding: 18,
+		},
+		title: {
+			fontSize: 20,
+			fontWeight: "800",
+			color: c.textPrimaryAlt,
+		},
+		suggestions: {
+			marginTop: 14,
+			gap: 8,
+		},
+		// #1120 ログイン判定の確定待ち。確定後のフォームとおおよそ同じ高さにして、
+		// 差し替わったときにモーダルが大きく伸縮しないようにする
+		identityLoading: {
+			minHeight: 220,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		suggestionLabel: {
+			fontSize: 12,
+			fontWeight: "700",
+			color: c.textSecondary,
+		},
+		suggestionRow: {
+			flexDirection: "row",
+			gap: 8,
+		},
+		suggestionButton: {
+			width: 44,
+			height: 44,
+			borderRadius: 22,
+			alignItems: "center",
+			justifyContent: "center",
+			borderWidth: 1,
+			borderColor: c.borderMuted,
+			backgroundColor: c.surfaceFaint,
+		},
+		suggestionButtonActive: {
+			borderColor: c.textPrimaryAlt,
+			backgroundColor: c.surfaceSelectedTint,
+		},
+		suggestionText: {
+			fontSize: 24,
+		},
+		input: {
+			marginTop: 14,
+			minHeight: 44,
+			borderRadius: 8,
+			borderWidth: 1,
+			borderColor: c.borderNeutral,
+			paddingHorizontal: 12,
+			fontSize: 16,
+			color: c.textPrimaryAlt,
+			backgroundColor: c.surface,
+		},
+		commentInput: {
+			minHeight: 86,
+			paddingTop: 10,
+			textAlignVertical: "top",
+		},
+		actionRow: {
+			marginTop: 16,
+			flexDirection: "row",
+			gap: 10,
+		},
+		cancelButton: {
+			flex: 1,
+			height: 44,
+			borderRadius: 8,
+			alignItems: "center",
+			justifyContent: "center",
+			borderWidth: 1,
+			borderColor: c.borderNeutral,
+		},
+		cancelButtonText: {
+			fontSize: 15,
+			fontWeight: "700",
+			color: c.textSecondaryStrong,
+		},
+		submitButton: {
+			flex: 1,
+		},
+	});

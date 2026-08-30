@@ -6,6 +6,7 @@
 	"scripts": {
 		"test": "playwright test",
 		"test:smoke": "playwright test --grep @smoke",
+		"test:harness": "HARNESS_ONLY=1 playwright test --project=harness",
 		"test:mutation": "RUN_MUTATION=1 playwright test --grep @mutation",
 		"test:all": "RUN_MUTATION=1 playwright test",
 		"test:catalog": "RUN_CATALOG=1 playwright test --project=ui-catalog --project=ui-catalog-authenticated",

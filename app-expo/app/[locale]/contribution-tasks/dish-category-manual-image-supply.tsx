@@ -22,12 +22,14 @@ import { HelpCircle, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react-n
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import { selectMedia } from "@/lib/mediaSelection";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { Env } from "@/constants/Env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -39,6 +41,8 @@ import { toErrorLogMessage } from "@/lib/errorMessage";
 /* -------------------------------------------------------------------------- */
 
 // #703 【設計】CDN JSON から取得する候補アイテムの型
+// #1553 【互換性】`topicTitle` は公開済み CDN JSON と contribution-tasks API のフィールド名
+// （DB 列 topic_title 由来）。データ契約なのでアプリ内リネームの対象外（変えるならデータ側と同時）
 type CandidateItem = {
 	category_id: string; // dish_category_id (Wikidata QID)
 	category: string; // 表示名
@@ -113,6 +117,8 @@ const normalizeTaskVersion = (value: string | undefined): string => {
 
 export default function DishCategoryManualImageSupplyScreen() {
 	const insets = useSafeAreaInsets();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { width } = useWindowDimensions();
 	const router = useRouter();
 	const {
@@ -130,7 +136,10 @@ export default function DishCategoryManualImageSupplyScreen() {
 	const { showSnackbar } = useSnackbar();
 
 	const taskVersion = useMemo(() => normalizeTaskVersion(firstSearchParam(taskVersionParam)), [taskVersionParam]);
-	const taskKey = useMemo(() => firstSearchParam(taskKeyParam) ?? `${TASK_KEY_PREFIX}_${taskVersion}`, [taskKeyParam, taskVersion]);
+	const taskKey = useMemo(
+		() => firstSearchParam(taskKeyParam) ?? `${TASK_KEY_PREFIX}_${taskVersion}`,
+		[taskKeyParam, taskVersion],
+	);
 	const cdnJsonPath = useMemo(
 		() => firstSearchParam(cdnJsonPathParam) ?? `${CDN_JSON_PATH_PREFIX}_${taskVersion}.latest.json`,
 		[cdnJsonPathParam, taskVersion],
@@ -162,14 +171,14 @@ export default function DishCategoryManualImageSupplyScreen() {
 	// #703 【状態】詳細モーダルで選択中のアイテム
 	const [selectedItem, setSelectedItem] = useState<CandidateItem | null>(null);
 
-	/* ---- BlurModal（チュートリアル用） ---- */
-	const tutorialModal = useBlurModal({
+	/* ---- LegacyBlurModal（チュートリアル用） ---- */
+	const tutorialModal = useLegacyBlurModal({
 		intensity: 80,
 		closeOnBackdropPress: false,
 	});
 
-	/* ---- BlurModal（詳細モーダル用） ---- */
-	const detailModal = useBlurModal({
+	/* ---- LegacyBlurModal（詳細モーダル用） ---- */
+	const detailModal = useLegacyBlurModal({
 		intensity: 70,
 		closeOnBackdropPress: false,
 	});
@@ -404,44 +413,71 @@ export default function DishCategoryManualImageSupplyScreen() {
 		let failCount = 0;
 
 		try {
-		for (const item of readyItems) {
-			const state = itemStates[item.category_id];
-			if (!state?.uploaded) continue;
+			for (const item of readyItems) {
+				const state = itemStates[item.category_id];
+				if (!state?.uploaded) continue;
 
-			try {
-				await callBackend<any, any>("v1/contribution-tasks", {
-					method: "POST",
-					requestPayload: {
-						type: TYPE,
-						taskKey,
-						targetType: TARGET_TYPE,
-						targetId: item.category_id,
-						payload: {
-							category: item.category,
-							topicTitle: item.topicTitle,
-							reason: item.reason,
-							sourceImageUrl: item.imageUrl,
-							cdn: { path: cdnJsonPath },
+				try {
+					await callBackend<any, any>("v1/contribution-tasks", {
+						method: "POST",
+						requestPayload: {
+							type: TYPE,
+							taskKey,
+							targetType: TARGET_TYPE,
+							targetId: item.category_id,
+							payload: {
+								category: item.category,
+								topicTitle: item.topicTitle,
+								reason: item.reason,
+								sourceImageUrl: item.imageUrl,
+								cdn: { path: cdnJsonPath },
+							},
+							result: {
+								originalPath: state.uploaded.originalPath,
+							},
 						},
-						result: {
-							originalPath: state.uploaded.originalPath,
-						},
-					},
-				});
-				successCount++;
-			} catch (err) {
-				console.error("Failed to submit item", item.category_id, err);
-				failCount++;
+					});
+					successCount++;
+				} catch (err) {
+					// #1599 【バグ】ここで失敗しても uploadState は "success" のまま据え置かれていた。
+					// uploadState は «画像をストレージへ上げられたか» であって «送信できたか» ではない。
+					// 据え置くと、サンクス画面の remainingItems（uploadState !== "success"）から漏れ、
+					// 「もう協力できる料理は無い」と判定されて router.back() される。
+					// ユーザーの投稿は誰にも気づかれないまま消える。
+					//
+					// 送信に失敗した item は "error" へ戻し、«まだ残っている» ものとして扱う。
+					// state.uploaded（アップロード済みのパス）は捨てないので、上げ直しにはならない。
+					setItemStates((prev) => ({
+						...prev,
+						[item.category_id]: { ...prev[item.category_id], uploadState: "error" },
+					}));
+					logFrontendEvent({
+						event_name: "dish_manual_image_supply_submit_item_failed",
+						error_level: "warn",
+						payload: { categoryId: item.category_id, error: toErrorLogMessage(err) },
+					});
+					failCount++;
+				}
 			}
-		}
 
-		logFrontendEvent({
-			event_name: "dish_manual_image_supply_submit_result",
-			error_level: "log",
-			payload: { successCount, failCount },
-		});
+			logFrontendEvent({
+				event_name: "dish_manual_image_supply_submit_result",
+				// #1599 全滅は障害。log のままだと error-triage に乗らず、誰も気づけない
+				error_level: failCount > 0 ? "warn" : "log",
+				payload: { successCount, failCount },
+			});
 
-		setShowThanks(true);
+			// #1599 【バグ】以前は successCount / failCount を一切見ずに無条件で
+			// サンクス画面を出していた。全件失敗しても「ありがとうございました」が出るので、
+			// ユーザーは貢献できたと思い込む。1 件も通っていないならサンクスは出さない。
+			if (successCount === 0) {
+				showSnackbar("送信に失敗しました。通信環境を確認して、もう一度お試しください。");
+			} else {
+				if (failCount > 0) {
+					showSnackbar(`${successCount} 件を送信しました。${failCount} 件は失敗したので、もう一度お試しください。`);
+				}
+				setShowThanks(true);
+			}
 		} finally {
 			// #1205 ⚠️ この try..finally は今回追加した。元は最後に setIsSubmitting(false) を
 			// 直接書いており、**ループの途中で例外が抜けると解除されず送信不能のまま固まる**
@@ -449,7 +485,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 			isSubmittingRef.current = false;
 			setIsSubmitting(false);
 		}
-	}, [items, itemStates, callBackend, logFrontendEvent, cdnJsonPath, taskKey]);
+	}, [items, itemStates, callBackend, logFrontendEvent, cdnJsonPath, taskKey, showSnackbar]);
 
 	/* -------------------------------------------------------------------------- */
 	/*                              サンクス画面                                  */
@@ -573,7 +609,9 @@ export default function DishCategoryManualImageSupplyScreen() {
 			{ key: "page2", component: <TutorialPage2 /> },
 			{ key: "page3", component: <TutorialPage3 /> },
 		],
-		[],
+		// #1629 ここで要素を作り置きするので、テーマが変わったら作り直さないと
+		// チュートリアルのページだけ旧テーマのまま残る（ThemeProvider.tsx の JSDoc 参照）。
+		[styles],
 	);
 
 	// #703 【処理】チュートリアルページスクロール時のページ番号更新
@@ -591,7 +629,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 	if (isLoadingCandidates) {
 		return (
 			<View style={[styles.container, styles.centered]}>
-				<ActivityIndicator size="large" color="#FF6B6B" />
+				<ActivityIndicator size="large" color={colors.accentCoral} />
 				<Text style={styles.loadingText}>読み込み中...</Text>
 			</View>
 		);
@@ -638,7 +676,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 					</Text>
 				</View>
 				<Pressable onPress={handleHelpPress} hitSlop={10} style={styles.helpButton}>
-					<HelpCircle size={32} color="#666" />
+					<HelpCircle size={32} color={colors.textMuted} />
 				</Pressable>
 			</View>
 
@@ -674,19 +712,19 @@ export default function DishCategoryManualImageSupplyScreen() {
 								<View style={styles.badge}>
 									{uploadState === "uploading" && (
 										<View style={styles.badgeContent}>
-											<Loader2 size={14} color="#FFF" />
+											<Loader2 size={14} color={FixedColors.onMedia} />
 											<Text style={styles.badgeText}>準備中…</Text>
 										</View>
 									)}
 									{uploadState === "success" && (
 										<View style={styles.badgeContent}>
-											<CheckCircle2 size={14} color="#FFF" />
+											<CheckCircle2 size={14} color={FixedColors.onMedia} />
 											<Text style={styles.badgeText}>OK！</Text>
 										</View>
 									)}
 									{uploadState === "error" && (
 										<View style={styles.badgeContent}>
-											<AlertTriangle size={14} color="#FFF" />
+											<AlertTriangle size={14} color={FixedColors.onMedia} />
 											<Text style={styles.badgeText}>もう一度！</Text>
 										</View>
 									)}
@@ -710,7 +748,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 			</View>
 
 			{/* チュートリアルモーダル */}
-			<tutorialModal.BlurModal showCloseButton={true}>
+			<tutorialModal.LegacyBlurModal showCloseButton={true}>
 				<View style={styles.tutorialModal}>
 					{/* #703 【表示】ページ化されたチュートリアル（横スワイプ） */}
 					<FlatList
@@ -752,11 +790,11 @@ export default function DishCategoryManualImageSupplyScreen() {
 						style={styles.tutorialButton}
 					/>
 				</View>
-			</tutorialModal.BlurModal>
+			</tutorialModal.LegacyBlurModal>
 
 			{/* 詳細モーダル */}
 			{selectedItem && (
-				<detailModal.BlurModal showCloseButton={true}>
+				<detailModal.LegacyBlurModal showCloseButton={true}>
 					<View style={styles.detailModal}>
 						{/* 画像 */}
 						<View style={styles.detailImageContainer}>
@@ -769,7 +807,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 							/>
 							{/* オーバーレイ */}
 							<View style={styles.detailOverlay}>
-								<Text style={styles.detailTopicTitle}>{selectedItem.topicTitle}</Text>
+								<Text style={styles.detailTitle}>{selectedItem.topicTitle}</Text>
 								<Text style={styles.detailReason} numberOfLines={3}>
 									{selectedItem.reason}
 								</Text>
@@ -782,7 +820,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 								<PrimaryButton
 									label="元に戻す"
 									onPress={() => handleResetImage(selectedItem)}
-									colors={["#FFF", "#FFF"]}
+									colors={[colors.surface, colors.surface]}
 									labelStyle={styles.detailResetButtonText}
 									style={styles.detailMainButton}
 								/>
@@ -800,7 +838,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 							<PrimaryButton
 								label="閉じる"
 								onPress={() => detailModal.close()}
-								colors={["#FFF", "#FFF"]}
+								colors={[colors.surface, colors.surface]}
 								labelStyle={styles.detailResetButtonText}
 								style={styles.detailMainButton}
 							/>
@@ -814,7 +852,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 							)}
 						</View>
 					</View>
-				</detailModal.BlurModal>
+				</detailModal.LegacyBlurModal>
 			)}
 		</View>
 	);
@@ -824,315 +862,319 @@ export default function DishCategoryManualImageSupplyScreen() {
 /*                              スタイル定義                                  */
 /* -------------------------------------------------------------------------- */
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFF",
-	},
-	centered: {
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 20,
-	},
-	loadingText: {
-		marginTop: 16,
-		fontSize: 16,
-		color: "#666",
-	},
-	errorText: {
-		fontSize: 16,
-		color: "#FF3B30",
-		textAlign: "center",
-		marginBottom: 16,
-	},
-	retryButton: {
-		paddingHorizontal: 24,
-		paddingVertical: 12,
-	},
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: "#EEE",
-	},
-	headerTextContainer: {
-		flex: 1,
-	},
-	headerTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#333",
-		marginBottom: 4,
-	},
-	headerSubtitle: {
-		fontSize: 13,
-		color: "#666",
-		lineHeight: 18,
-	},
-	helpButton: {
-		marginLeft: 8,
-	},
-	scrollView: {
-		flex: 1,
-	},
-	gridContainer: {
-		padding: 16,
-		flexDirection: "row",
-		flexWrap: "wrap",
-	},
-	card: {
-		borderRadius: 12,
-		overflow: "hidden",
-		backgroundColor: "#F5F5F5",
-		position: "relative",
-		marginBottom: 8,
-	},
-	cardImage: {
-		width: "100%",
-		height: "100%",
-	},
-	cardOverlay: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		backgroundColor: "rgba(0,0,0,0.6)",
-		padding: 8,
-	},
-	cardCategory: {
-		color: "#FFF",
-		fontSize: 12,
-		fontWeight: "600",
-	},
-	badge: {
-		position: "absolute",
-		top: 8,
-		right: 8,
-		backgroundColor: "rgba(0,0,0,0.7)",
-		borderRadius: 12,
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-	},
-	badgeContent: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	badgeText: {
-		color: "#FFF",
-		fontSize: 10,
-		fontWeight: "600",
-		marginLeft: 4,
-	},
-	footer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		padding: 16,
-		borderTopWidth: 1,
-		borderTopColor: "#EEE",
-	},
-	footerText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#333",
-	},
-	submitButton: {
-		paddingHorizontal: 20,
-		paddingVertical: 12,
-	},
-	tutorialModal: {
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		padding: 24,
-		marginHorizontal: 20,
-		width: SCREEN_WIDTH,
-		alignSelf: "center",
-		overflow: "hidden",
-	},
-	tutorialPageWrapper: {
-		width: PAGE_WIDTH,
-	},
-	tutorialPageContainer: {
-		flex: 1,
-	},
-	tutorialPageContent: {
-		padding: 24,
-		paddingBottom: 16,
-	},
-	tutorialPageTitle: {
-		fontSize: 22,
-		fontWeight: "700",
-		color: "#333",
-		marginBottom: 16,
-		textAlign: "center",
-	},
-	tutorialStepsContainer: {
-		marginBottom: 20,
-	},
-	tutorialStep: {
-		fontSize: 15,
-		color: "#666",
-		lineHeight: 24,
-		marginBottom: 8,
-	},
-	tutorialImageGrid: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		justifyContent: "space-between",
-		marginTop: 8,
-		marginHorizontal: 16,
-	},
-	tutorialImageWrapper: {
-		width: "40%",
-		aspectRatio: 3 / 4,
-		borderRadius: 8,
-		overflow: "hidden",
-		backgroundColor: "#F5F5F5",
-		marginBottom: 8,
-	},
-	tutorialImage: {
-		width: "100%",
-		height: "100%",
-	},
-	promptSection: {
-		marginTop: 12,
-	},
-	promptTitle: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#666",
-		marginBottom: 8,
-	},
-	promptBox: {
-		backgroundColor: "#F5F5F5",
-		borderRadius: 8,
-		padding: 12,
-		borderWidth: 1,
-		borderColor: "#E0E0E0",
-	},
-	promptText: {
-		fontSize: 13,
-		color: "#333",
-		lineHeight: 18,
-	},
-	pageIndicatorContainer: {
-		flexDirection: "row",
-		justifyContent: "center",
-		alignItems: "center",
-		paddingVertical: 12,
-		gap: 8,
-	},
-	pageIndicatorDot: {
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: "#DDD",
-	},
-	pageIndicatorDotActive: {
-		backgroundColor: "#FF6B6B",
-		width: 24,
-	},
-	tutorialButton: {
-		marginHorizontal: 24,
-		marginBottom: 24,
-		paddingVertical: 14,
-	},
-	detailModal: {
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		marginHorizontal: 20,
-		width: PAGE_WIDTH,
-		padding: 16,
-		alignSelf: "center",
-		alignItems: "center",
-		overflow: "hidden",
-	},
-	detailImageContainer: {
-		width: "70%",
-		aspectRatio: 9 / 16,
-		position: "relative",
-	},
-	detailImage: {
-		width: "100%",
-		height: "100%",
-	},
-	detailOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		backgroundColor: "rgba(0, 0, 0, 0.1)", // TopicCard と同じ
-		padding: 12, // TopicCard と同じ
-		justifyContent: "flex-end", // TopicCard と同じ（上下分離できる）
-		zIndex: 3, // TopicCard と同じ（念のため）
-	},
-	detailTopicTitle: {
-		fontSize: 24,
-		fontWeight: "700",
-		color: "#FFFFFF",
-		marginBottom: 4,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 2 },
-		textShadowRadius: 4,
-		lineHeight: 40,
-		letterSpacing: -0.5,
-	},
-	detailReason: {
-		fontSize: 18,
-		color: "#FFFFFF",
-		lineHeight: 18,
-		marginBottom: 16,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 3,
-		fontWeight: "500",
-	},
-	detailButtons: {
-		width: "100%",
-		padding: 16,
-	},
-	detailMainButton: {
-		paddingVertical: 6,
-		marginBottom: 12,
-	},
-	detailResetButton: {
-		paddingVertical: 10,
-		alignItems: "center",
-		marginBottom: 12,
-	},
-	detailResetButtonText: {
-		color: "#666",
-		fontSize: 14,
-	},
-	detailStatusText: {
-		color: "#666",
-		fontSize: 13,
-		textAlign: "center",
-	},
-	detailStatusError: {
-		color: "#FF3B30",
-		fontSize: 13,
-		textAlign: "center",
-	},
-	thanksTitle: {
-		fontSize: 24,
-		fontWeight: "700",
-		color: "#333",
-		marginBottom: 16,
-		textAlign: "center",
-	},
-	thanksMessage: {
-		fontSize: 15,
-		color: "#666",
-		lineHeight: 22,
-		textAlign: "center",
-		marginBottom: 32,
-		paddingHorizontal: 20,
-	},
-	thanksButton: {
-		paddingHorizontal: 24,
-		paddingVertical: 14,
-	},
-});
+// #1629 パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		centered: {
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 20,
+		},
+		loadingText: {
+			marginTop: 16,
+			fontSize: 16,
+			color: c.textMuted,
+		},
+		errorText: {
+			fontSize: 16,
+			color: c.dangerVivid,
+			textAlign: "center",
+			marginBottom: 16,
+		},
+		retryButton: {
+			paddingHorizontal: 24,
+			paddingVertical: 12,
+		},
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			padding: 16,
+			borderBottomWidth: 1,
+			borderBottomColor: c.dividerMuted,
+		},
+		headerTextContainer: {
+			flex: 1,
+		},
+		headerTitle: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimarySoft,
+			marginBottom: 4,
+		},
+		headerSubtitle: {
+			fontSize: 13,
+			color: c.textMuted,
+			lineHeight: 18,
+		},
+		helpButton: {
+			marginLeft: 8,
+		},
+		scrollView: {
+			flex: 1,
+		},
+		gridContainer: {
+			padding: 16,
+			flexDirection: "row",
+			flexWrap: "wrap",
+		},
+		card: {
+			borderRadius: 12,
+			overflow: "hidden",
+			backgroundColor: c.surfaceChip,
+			position: "relative",
+			marginBottom: 8,
+		},
+		cardImage: {
+			width: "100%",
+			height: "100%",
+		},
+		cardOverlay: {
+			position: "absolute",
+			bottom: 0,
+			left: 0,
+			right: 0,
+			backgroundColor: "rgba(0,0,0,0.6)",
+			padding: 8,
+		},
+		cardCategory: {
+			color: FixedColors.onMedia,
+			fontSize: 12,
+			fontWeight: "600",
+		},
+		badge: {
+			position: "absolute",
+			top: 8,
+			right: 8,
+			backgroundColor: "rgba(0,0,0,0.7)",
+			borderRadius: 12,
+			paddingHorizontal: 8,
+			paddingVertical: 4,
+		},
+		badgeContent: {
+			flexDirection: "row",
+			alignItems: "center",
+		},
+		badgeText: {
+			color: FixedColors.onMedia,
+			fontSize: 10,
+			fontWeight: "600",
+			marginLeft: 4,
+		},
+		footer: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			padding: 16,
+			borderTopWidth: 1,
+			borderTopColor: c.dividerMuted,
+		},
+		footerText: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textPrimarySoft,
+		},
+		submitButton: {
+			paddingHorizontal: 20,
+			paddingVertical: 12,
+		},
+		tutorialModal: {
+			// #1629 LegacyBlurModal の «本体» の地。膜（オーバーレイ）だけ暗くならないようここもテーマへ追従させる
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			padding: 24,
+			marginHorizontal: 20,
+			width: SCREEN_WIDTH,
+			alignSelf: "center",
+			overflow: "hidden",
+		},
+		tutorialPageWrapper: {
+			width: PAGE_WIDTH,
+		},
+		tutorialPageContainer: {
+			flex: 1,
+		},
+		tutorialPageContent: {
+			padding: 24,
+			paddingBottom: 16,
+		},
+		tutorialPageTitle: {
+			fontSize: 22,
+			fontWeight: "700",
+			color: c.textPrimarySoft,
+			marginBottom: 16,
+			textAlign: "center",
+		},
+		tutorialStepsContainer: {
+			marginBottom: 20,
+		},
+		tutorialStep: {
+			fontSize: 15,
+			color: c.textMuted,
+			lineHeight: 24,
+			marginBottom: 8,
+		},
+		tutorialImageGrid: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			justifyContent: "space-between",
+			marginTop: 8,
+			marginHorizontal: 16,
+		},
+		tutorialImageWrapper: {
+			width: "40%",
+			aspectRatio: 3 / 4,
+			borderRadius: 8,
+			overflow: "hidden",
+			backgroundColor: c.surfaceChip,
+			marginBottom: 8,
+		},
+		tutorialImage: {
+			width: "100%",
+			height: "100%",
+		},
+		promptSection: {
+			marginTop: 12,
+		},
+		promptTitle: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textMuted,
+			marginBottom: 8,
+		},
+		promptBox: {
+			backgroundColor: c.surfaceChip,
+			borderRadius: 8,
+			padding: 12,
+			borderWidth: 1,
+			borderColor: c.borderPale,
+		},
+		promptText: {
+			fontSize: 13,
+			color: c.textPrimarySoft,
+			lineHeight: 18,
+		},
+		pageIndicatorContainer: {
+			flexDirection: "row",
+			justifyContent: "center",
+			alignItems: "center",
+			paddingVertical: 12,
+			gap: 8,
+		},
+		pageIndicatorDot: {
+			width: 8,
+			height: 8,
+			borderRadius: 4,
+			backgroundColor: c.surfaceSunkenStrong,
+		},
+		pageIndicatorDotActive: {
+			backgroundColor: c.accentCoral,
+			width: 24,
+		},
+		tutorialButton: {
+			marginHorizontal: 24,
+			marginBottom: 24,
+			paddingVertical: 14,
+		},
+		detailModal: {
+			// #1629 同上。モーダル本体の地
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			marginHorizontal: 20,
+			width: PAGE_WIDTH,
+			padding: 16,
+			alignSelf: "center",
+			alignItems: "center",
+			overflow: "hidden",
+		},
+		detailImageContainer: {
+			width: "70%",
+			aspectRatio: 9 / 16,
+			position: "relative",
+		},
+		detailImage: {
+			width: "100%",
+			height: "100%",
+		},
+		detailOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			bottom: 0,
+			backgroundColor: "rgba(0, 0, 0, 0.1)", // DishCategoryCard と同じ
+			padding: 12, // DishCategoryCard と同じ
+			justifyContent: "flex-end", // DishCategoryCard と同じ（上下分離できる）
+			zIndex: 3, // DishCategoryCard と同じ（念のため）
+		},
+		detailTitle: {
+			fontSize: 24,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
+			marginBottom: 4,
+			textShadowColor: "rgba(0, 0, 0, 0.8)",
+			textShadowOffset: { width: 0, height: 2 },
+			textShadowRadius: 4,
+			lineHeight: 40,
+			letterSpacing: -0.5,
+		},
+		detailReason: {
+			fontSize: 18,
+			color: FixedColors.onMedia,
+			lineHeight: 18,
+			marginBottom: 16,
+			textShadowColor: "rgba(0, 0, 0, 0.8)",
+			textShadowOffset: { width: 0, height: 1 },
+			textShadowRadius: 3,
+			fontWeight: "500",
+		},
+		detailButtons: {
+			width: "100%",
+			padding: 16,
+		},
+		detailMainButton: {
+			paddingVertical: 6,
+			marginBottom: 12,
+		},
+		detailResetButton: {
+			paddingVertical: 10,
+			alignItems: "center",
+			marginBottom: 12,
+		},
+		detailResetButtonText: {
+			color: c.textMuted,
+			fontSize: 14,
+		},
+		detailStatusText: {
+			color: c.textMuted,
+			fontSize: 13,
+			textAlign: "center",
+		},
+		detailStatusError: {
+			color: c.dangerVivid,
+			fontSize: 13,
+			textAlign: "center",
+		},
+		thanksTitle: {
+			fontSize: 24,
+			fontWeight: "700",
+			color: c.textPrimarySoft,
+			marginBottom: 16,
+			textAlign: "center",
+		},
+		thanksMessage: {
+			fontSize: 15,
+			color: c.textMuted,
+			lineHeight: 22,
+			textAlign: "center",
+			marginBottom: 32,
+			paddingHorizontal: 20,
+		},
+		thanksButton: {
+			paddingHorizontal: 24,
+			paddingVertical: 14,
+		},
+	});

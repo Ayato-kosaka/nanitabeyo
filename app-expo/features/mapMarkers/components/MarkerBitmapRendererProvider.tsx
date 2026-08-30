@@ -7,6 +7,7 @@ import { captureRef } from "react-native-view-shot";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Crypto from "expo-crypto";
 import { BubblePinBitmap } from "./BubblePinBitmap";
+import { FixedColors } from "@/constants/Palette";
 
 /**
  * #235 MarkerBitmapRenderer
@@ -51,9 +52,15 @@ const RETRY_DELAY_MS = 500;
 const WAIT_REF_MS = 500; // ref が付くまで（描画の確知道）
 const WAIT_IMAGE_MS = 2500; // 画像ロードを待つ（Android の「枠だけ」根治）
 
-// 既定色（正規化済み）
-export const ACTIVE_COLOR_HEX = "#3477F8";
-export const INACTIVE_COLOR_HEX = "#FFFFFF";
+/*
+#1629 【設計】マーカーのふち色（正規化済み）。ここはテーマで振らない。
+焼いた PNG は Google Map のタイルの上に載り、タイルはアプリのテーマに追従せず
+常にライト配色だからである（暗い色にすると明るい地図の上で見えなくなる）。
+加えてこの 2 値は **生成済みビットマップのキャッシュキーの一部**であり、
+テーマで変わるとキャッシュが総入れ替えになる。
+*/
+export const ACTIVE_COLOR_HEX = FixedColors.mapMarkerBorderActive;
+export const INACTIVE_COLOR_HEX = FixedColors.mapMarkerSurface;
 
 // ----------------------------
 // 型

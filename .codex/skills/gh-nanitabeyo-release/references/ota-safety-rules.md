@@ -177,6 +177,69 @@ version復元が必要な場合:
 - 最終ツリーに対してinstall、typecheck、関連test、bundle解決、production dependencyとlockfileの比較を行う。
 - neutralization対象、検証結果、最終SHAをPRへ記録する。
 
+#### 優先手段: ネイティブ差分を持ち込んだmerge commitのrevert
+
+このリポジトリでは、ネイティブ差分が **`main`のfirst-parent線上の1つのmerge commit**に集約されていることが多い。その場合、ファイル単位で除外リストを組むより、**そのmerge commitを`git revert -m 1`する**方が確実で、監査も再現もしやすい。
+
+```bash
+git checkout -B ota/<target>-release-<source> origin/release/<target>
+git merge --no-ff <承認済みsource SHA>
+git revert -m 1 <ネイティブ差分を持ち込んだmerge commitのSHA>
+```
+
+対象commitの特定は、first-parent側の前後でネイティブ入力が変わった点を探す。
+
+```bash
+# 例: expo のversionが変わったmergeを探す
+for c in $(git log --format=%H --merges --first-parent <base>..origin/main); do
+  a=$(git show "$c:app-expo/package.json"    | grep -E '"expo":')
+  b=$(git show "$c^1:app-expo/package.json"  | grep -E '"expo":')
+  [ "$a" != "$b" ] && echo "$c $(git log -1 --format=%s "$c")"
+done
+```
+
+**⚠️ merge commitにはネイティブ以外の変更も混ざる。** revertはそれも一緒に落とす。実測例では、SDK upgradeのmergeに含まれていた`testID`の2行が消え、後続で追加されたテスト7件が「ボタンが見つかりません」で失敗した。プロダクションコードの回帰ではなかったが、**revertが落とした非ネイティブ変更を必ず列挙し、戻すもの／落とすものを承認前に決める**。
+
+```bash
+git show <merge SHA> --stat -m --first-parent
+```
+
+**version復元は不要な場合がある。** version bump commitがrevert対象のmergeに含まれていれば、revertだけでトップレベルversionが対象releaseの値へ戻る。復元操作を機械的に足さず、revert後に実際の値とruntimeVersionを確認する。
+
+revert後に残ったネイティブ入力の差分（`app-expo/package.json`、`app.config.*`、`pnpm-lock.yaml`、`plugins/**`、`assets`）を対象releaseと突き合わせ、**dependenciesに差が無いこと**まで確認する。scriptsやコメントだけの差、対象バイナリが読まないbuild時assetは無害として記録する。
+
+### カスケード方式（複数の旧releaseへ展開する場合）
+
+各releaseを独立にneutralizeしない。**新しい順に1本ずつ、直前のneutralize済みブランチをマージする。**
+
+```text
+release/1.13 → release/1.12（ここでnative neutralization）
+             → release/1.11（1.12の結果をmerge）
+             → release/1.10（1.11の結果をmerge）
+             → release/1.9 （1.10の結果をmerge）
+             → release/1.8 （1.9の結果をmerge）
+```
+
+各段でPRを作り、`--no-ff`のmerge commitで統合する。古いreleaseほど、さらに前のreleaseで既に除外済みのネイティブ機能（過去のneutralization commit）がブランチ側に残っているため、modify/delete conflictが出る。**その競合はdelete側（＝過去に除外した判断）を維持する**のが既定で、sourceがそのファイルを実質的に変更している場合だけ再判断する。
+
+各段のマージ後に、version、runtimeVersion、ネイティブ入力差分を**毎回**取り直す。1本前がsafeでも次がsafeとは限らない。次を毎段の確認項目にする。
+
+- app versionとruntimeVersionが対象releaseの値のままか
+- `app-expo/package.json`の**dependenciesに差が無い**か（scriptsだけの差は無害として記録する）
+- 過去のneutralizationで除外したファイルが復活していないか（例: `app-expo/hooks/useScreenTrace*`、`app-expo/lib/e2e/`）
+- `app.config.*`に、対象バイナリへ入っていないconfig plugin（例: `@react-native-firebase/*`）が戻っていないか
+
+#### テストが「除外した機能」を掴んでいることがある
+
+新しいreleaseから流れてきたテストが、neutralizationで除外したmoduleを`jest.mock`していて、suiteごと`Could not locate module`で落ちる。
+
+**まずproductionコードが同じmoduleを参照していないかをgrepで確定させる。**
+
+- productionが参照している → **bundleが壊れる**。neutralizationの範囲が誤っているので、除外セットから見直す。
+- 参照が`jest.mock`の行だけ → bundleは安全。**mock行だけを外し、テスト本体は残す**。除外した機能とは無関係な回帰テスト（レイアウトや並び順など）まで消さない。
+
+どちらの結論でも、判断の根拠にしたgrep結果をPRへ書く。
+
 ### 最小バックポート
 
 - 一貫して動作する最小修正を選ぶ。
@@ -213,3 +276,25 @@ workflowが共有の`EXPO_PUBLIC_COMMIT_ID`を更新するため逐次実行す�
 - それ以前のreleaseにはさらにネイティブ機能差があった。
 
 これは過去の根拠であり、恒久的なallowlistではない。ブランチとproduction buildは変化するため、現在の不変SHAと実際の配布済みbuildから毎回再判定する。
+
+### v1.12リリース時（2026-08-01）の実績
+
+カスケード方式の実例。`release/1.11`で1回だけneutralizeし、以降は結果を順に流している。
+
+| 対象 | PR | neutralization |
+|---|---|---|
+| `release/1.11` | #1144 | `26487998 chore(ota): make 1.12 changes compatible with runtime 1.11`。Firebase Performance（`useScreenTrace`）、`GoogleService-Info.plist`、`withDetoxProtobufFix.js`、E2E hook一式と`metro.config.js`を除外し、versionを復元 |
+| `release/1.10` | #1145 | `release/1.11`の結果をmerge |
+| `release/1.9` | #1146 | `release/1.10`の結果をmerge |
+| `release/1.8` | #1147 | `release/1.9`の結果をmerge |
+
+この結果、`release/1.8`〜`release/1.11`のツリーは互いに同一（versionを除く）になっている。次回のOTAでも、この4本は同じ性質を持つ前提で監査を始めてよいが、確認は省略しない。
+
+### v1.13リリース時の監査結果（2026-08-11、`release/1.12`を対象に実測）
+
+`origin/release/1.12`へ`88cb7af5`（release/1.13統合ツリー）をmergeし、`git revert -m 1 aa5bdb0c`（PR #1171 = #1156 のExpo SDK 53→54 / RN 0.81マージ）を実行した。
+
+- 競合は4件のみ。`.github/workflows/{app-expo-check,pr-check}.yml`のmodify/delete（OTA bundleに載らないCIファイルなのでHEAD側を採用）と、`SavedRestaurantsSheet.tsx` / `TutorialBottomSheet.tsx`のcontent（SDK 54追従の当該箇所そのものなのでrevert側を採用）。
+- app versionは`1.12.0`へ自動的に戻った（version bumpがrevert対象に含まれていたため）。
+- revert後に残ったネイティブ入力差分は、`app.config.ts`のコメント4行、`app-expo/package.json`の`scripts`のみ（**dependenciesの差分なし**）、`pnpm-lock.yaml`の新workspace devDependency 6行、`adaptive-icon.png`（build時asset）だけだった。
+- `typecheck` exit 0。`test`は55 suites pass / 1 suite fail。失敗は上記「非ネイティブ変更の巻き添え」（`testID`の2行）であり、プロダクションコードの回帰ではない。

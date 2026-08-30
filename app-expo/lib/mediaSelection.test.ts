@@ -82,4 +82,49 @@ describe("selectMedia", () => {
 		expect(result.success).toBe(true);
 		expect(result.media?.mimeType).toBe("image/jpeg");
 	});
+
+	// ─ #1425: 上の `Compatible` は **iOS 限定**で、Android / web では無視される ─
+	//
+	// Samsung / Pixel の「高効率」設定は HEIC で保存するため、Android のピッカーは
+	// HEIC をそのまま返しうる。サーバの libvips は HEVC 特許の都合で HEIF デコーダを
+	// 含まないので、通してしまうと «アップロードは 200 → 投稿後に静かに failed» になる。
+	// 本番で実際に 1 件（`image-heic/..._media.bin`）が起きた。
+	describe("#1425 HEIC / HEIF は選択時点で断る", () => {
+		function mockAsset(asset: Record<string, unknown>) {
+			mockedPicker.launchImageLibraryAsync.mockResolvedValue({
+				canceled: false,
+				assets: [{ width: 100, height: 100, type: "image", ...asset }],
+			} as never);
+		}
+
+		it.each([
+			["mimeType が image/heic", { uri: "file:///tmp/photo.heic", mimeType: "image/heic" }],
+			["mimeType が image/heif", { uri: "file:///tmp/photo.heif", mimeType: "image/heif" }],
+			// Android は mimeType を返さないことがあるため拡張子でも見る
+			["mimeType が無く拡張子が .heic", { uri: "file:///tmp/photo.HEIC" }],
+			["fileName の拡張子が .heif", { uri: "content://media/1", fileName: "IMG_0001.heif" }],
+			// 署名付き URL のようにクエリが付く場合も拡張子を拾えること
+			["拡張子の後ろにクエリが付く", { uri: "https://example.com/a.heic?token=1" }],
+		])("%s なら unsupported_image_format を返す", async (_label, asset) => {
+			mockAsset(asset);
+
+			const result = await selectMedia(["images"]);
+
+			expect(result.success).toBe(false);
+			expect(result.error).toBe("unsupported_image_format");
+		});
+
+		it.each([
+			["JPEG", { uri: "file:///tmp/photo.jpg", mimeType: "image/jpeg" }],
+			["PNG", { uri: "file:///tmp/photo.png", mimeType: "image/png" }],
+			// 紛らわしい名前を巻き込まないこと（heic を含むが別形式）
+			["ファイル名に heic を含む JPEG", { uri: "file:///tmp/my-heic-photo.jpg", mimeType: "image/jpeg" }],
+		])("%s は従来どおり通す", async (_label, asset) => {
+			mockAsset(asset);
+
+			const result = await selectMedia(["images"]);
+
+			expect(result.success).toBe(true);
+		});
+	});
 });

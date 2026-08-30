@@ -9,7 +9,7 @@ import { ensureFreshSession } from "./freshSession";
  * 🍽 「テストユーザーが料理カテゴリを 1 件以上保存している」という前提を **テスト自身が作る**（#1133）
  *
  * ## なぜ要るのか（CI で実際に赤くなった）
- * `tests/profile/saved-topic-location-search.test.ts` の入口は
+ * `tests/profile/saved-dish-category-location-search.test.ts` の入口は
  * **保存した料理カテゴリのカードだけ**で、0 件だとモーダルを開けない。
  * 当初は「TEST_USER_* に 1 件保存しておくこと」を fail-loud のメッセージで人へ依頼していたが、
  * これは **環境に前提を置いたテスト**で、次の 2 つの意味で壊れる:

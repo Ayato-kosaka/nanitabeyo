@@ -33,7 +33,11 @@ jobs:
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # #1375 20 のままだと EAS CLI のインストールが必ず失敗する。
+          # `eas-cli latest` は Node >= 22 を要求する（実測: @oclif/plugin-autocomplete が
+          # 「The engine "node" is incompatible … Expected ">=22.0.0". Got "20.20.2"」で落ちる）。
+          # eas-update.yml / eas-build-preview-prod.yml は先に直したが、**この 3 本が残っていた**。
+          node-version: "22"
           cache: "pnpm"
 
       - name: 📦 Install dependencies
@@ -93,6 +97,9 @@ jobs:
       # preview チャンネルの URL には hash が入り、既定 7 日で失効する。作り直すと
       # hash が変わるので、WEB_BASE_URL も API の CORS_ORIGIN も固定できなかった。
       # 専用サイトの live チャンネルなら https://nanitabeyo-dev.web.app で不変になる。
+      # なお CORS_ORIGIN 側だけは `https://nanitabeyo-dev--preview-*.web.app` の
+      # ワイルドカード指定に対応済み（api/src/core/config/cors-origin.ts）。
+      # WEB_BASE_URL は依然として 1 つの固定 URL しか持てないため、上の判断は変わらない。
       #
       # ## ⚠️ preview を development と同じ扱いにしないこと
       # target は 3 つある。`production 以外はすべて else` にすると、**preview を流した
@@ -105,6 +112,7 @@ jobs:
         env:
           DEPLOY_TARGET: ${{ github.event.inputs.target }}
           WEB_BASE_URL: ${{ vars.WEB_BASE_URL }}
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           case "$DEPLOY_TARGET" in
@@ -121,7 +129,21 @@ jobs:
             preview)
               # 使い捨ての確認用。live は踏まないので development の配信に影響しない。
               # URL は毎回変わるため、デプロイ後に出力から拾う（url はここでは決めない）
-              echo "channel=preview" >> "$GITHUB_OUTPUT"
+              #
+              # #1485 のレビューで発覚: チャンネルIDが固定文字列 "preview" だと、
+              # 複数ブランチが同時に preview を流したとき **同じURL・同じチャンネル**を
+              # 取り合い、後から流した方が先の内容を無条件に上書きしてしまう
+              # （実際に別ブランチの確認用デプロイに上書きされ、無関係な画面が出た）。
+              # ブランチ名から一意なチャンネルIDを作り、ブランチごとに専用URLへ分離する。
+              slug=$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/-+/-/g; s/^-+//; s/-+$//')
+              channel="pr-${slug}"
+              # Firebase のチャンネルIDは 63 文字以内。切り詰めで末尾がハイフンになる場合を除去する
+              channel=$(echo "${channel:0:63}" | sed -E 's/-+$//')
+              # ブランチ名が記号のみ等でslugが空になる場合の保険（コミットSHAで一意性を確保）
+              if [ -z "$slug" ]; then
+                channel="pr-${GITHUB_SHA:0:12}"
+              fi
+              echo "channel=$channel" >> "$GITHUB_OUTPUT"
               echo "only=nanitabeyo-dev" >> "$GITHUB_OUTPUT"
               ;;
             *)

@@ -7,7 +7,7 @@ import { ResultPage } from "../../pages/ResultPage";
  * 🗳 友達投票の結果画面 →「店を見る」導線 (#1122 の回帰テスト)
  *
  * ## 背景 (#1122 / 修正 PR #1158)
- * 候補の詳細モーダル（`useBlurModal` = react-native-paper の `Portal` 配下）を開いたまま
+ * 候補の詳細モーダル（当時は `useBlurModal` = react-native-paper の `Portal` 配下）を開いたまま
  * `router.push` で DishMediaMap（`/[locale]/search/result`）へ遷移すると、`Portal` は
  * `Portal.Host` 直下（= Stack より上のレイヤー）に描かれるため、遷移先の画面の上に
  * バックドロップ（`StyleSheet.absoluteFill` の `Pressable`）が残り続け、**遷移先を一切
@@ -16,6 +16,19 @@ import { ResultPage } from "../../pages/ResultPage";
  *
  * PR #1158 は「モーダルのクローズ完了を待ってから遷移する」順序へ直した。
  * この spec はその順序を **ブラウザ上の実挙動**（＝遷移先が実際にクリックできること）で固定する。
+ *
+ * ## #1358 でのレイヤー構造の変更（この spec の前提が変わった点）
+ * 詳細モーダルは `Portal` をやめ、結果画面の子として描くインラインレイヤー
+ * （`app-expo/features/dishCategoryGroupVotes/components/DishCategoryGroupVoteInlineOverlay.tsx`）へ移した。
+ * `Portal.Host` は画面スタックの外側にあり、そこへレイヤーを積むこと自体が #1122 の根本原因だったので、
+ * 画面の内側へ戻したことで遷移先がレイヤーごと上から覆う ＝ 構造として再発しない。
+ *
+ * それでも本 spec は残す（弱めない）。理由:
+ * - 「閉じてから遷移する」順序は #1358 後も仕様として維持している（web は遷移しても前画面の DOM が
+ *   残るため、開いたまま遷移してよいことにすると同じ経路が復活しうる）。
+ * - 観測点は移行前後で不変。詳細本体は testID `dish-category-group-vote-candidate-detail`、
+ *   閉じる導線は右上 X の accessibilityLabel（`Common.close`）。**e2e-mobile の Screen Object も
+ *   同じ観測点を使っているので、どちらかを変えるときは必ず両方を直すこと。**
  *
  * ## この spec が API をモックする理由
  * 結果画面には有効な shareToken が要る。dev DB に固定の共有セッションを播く仕組みは無く、
@@ -290,7 +303,7 @@ async function openVoteResult(page: Page): Promise<void> {
 const candidateCard = (page: Page, id: string) => page.getByTestId(`dish-category-group-vote-candidate-${id}`);
 const detailModal = (page: Page) => page.getByTestId("dish-category-group-vote-candidate-detail");
 const detailViewRestaurants = (page: Page) => page.getByTestId("dish-category-group-vote-detail-dish-media");
-/** BlurModal 右上の X（accessibilityLabel は ja-JP の Common.close = 「閉じる」） */
+/** 詳細レイヤー右上の X（accessibilityLabel は ja-JP の Common.close = 「閉じる」）。#1358 後も同じ */
 const modalCloseButton = (page: Page) => page.getByRole("button", { name: "閉じる" });
 
 test.describe("友達投票の結果画面から店舗画面への遷移 (#1122)", () => {
@@ -298,7 +311,7 @@ test.describe("友達投票の結果画面から店舗画面への遷移 (#1122)
 	// 手順:
 	//   1. 検索済み候補のカードを押して詳細モーダルを開く
 	//   2. モーダル内の「店を見る」を押す
-	//   3. 詳細モーダルが DOM から消えている(= Portal がアンマウント済み)ことを検証
+	//   3. 詳細モーダルが DOM から消えている(= 詳細レイヤーがアンマウント済み)ことを検証
 	//   4. 結果画面(DishMediaMap)へ遷移していることを検証
 	//   5. 結果画面の閉じるボタンを**実際にクリック**して、操作できることを検証
 	//      → 修正前はモーダルのバックドロップが上に残るため、Playwright の

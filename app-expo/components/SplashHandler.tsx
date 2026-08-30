@@ -186,7 +186,7 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	// ⚠️ children は `user === null`（PR4b）かつ Remote Config が既定値／保存値（PR3）の状態で
 	//    マウントされる。その前提に耐えられるようにする作業は先行 PR で済ませてある:
 	//    - PR4a … `useAPICall` の `code: "unauthenticated"`、`HealthCheckInitializer` /
-	//             `useAutoCurrentLocation` の auth 解決後 1 回だけの再試行、`LoginbackModal` の null ガード
+	//             `useAutoCurrentLocation` の auth 解決後 1 回だけの再試行、ログイン UI（現 `LoginForm`）の null ガード
 	//    - PR2  … `getRemoteConfig()` が null を返さない（`parseInt(undefined) = NaN` を塞いだ）
 	return <>{children}</>;
 };

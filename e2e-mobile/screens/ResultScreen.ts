@@ -37,11 +37,34 @@ export class ResultScreen {
 	readonly likeButton = by.id("dish-action-like");
 	/** 保存ボタン（⚠️ 同上） */
 	readonly saveButton = by.id("dish-action-save");
+	/** #1629 «…» メニューを開くボタン。シェアと報告はこの中にある */
+	readonly moreButton = by.id("dish-action-more");
+	/** 通報ボタン（#1514 SAF-01。**«…» メニューの中**。#1629 でレールから移動した） */
+	readonly reportButton = by.id("dish-action-report");
+	/** 通報シート本体（Modal） */
+	readonly reportSheet = by.id("report-sheet");
+	/** 通報シートの送信ボタン */
+	readonly reportSubmitButton = by.id("report-submit");
+	/** 通報の受付完了パネル */
+	readonly reportAccepted = by.id("report-accepted");
+	/** 受付完了パネルの閉じるボタン */
+	readonly reportAcceptedCloseButton = by.id("report-accepted-close");
+	/** 通報の送信失敗時に出るメッセージ（migration 未適用のときはここが出る） */
+	readonly reportError = by.id("report-error");
 	/**
 	 * #1156 検索結果 0 件のときに出る Google Maps 退避ダイアログの「閉じる」。
 	 * DialogProvider の既定 2 ボタンに付く安定 testID で、i18n のラベルに依存しない。
 	 */
 	readonly googleMapsFallbackCancelButton = by.id("dialog-action-cancel");
+	/**
+	 * #1501 いいね / 保存の API が失敗したときに出るグローバルスナックバー
+	 * （SnackbarProvider の `global-snackbar`。SearchScreen も同じ testID を観測点にしている）。
+	 *
+	 * ⚠️ 既定で 4 秒後に自動で消える。Detox の同期機構を有効にしたまま待つと
+	 * 「タイマーが終わるまで idle にならない」→「消えてから評価される」になるため、
+	 * 観測する側は `device.disableSynchronization()` してから待つこと。
+	 */
+	readonly snackbar = by.id("global-snackbar");
 
 	/**
 	 * 結果フィードの読み込み待ちタイムアウト (ms)。
@@ -177,6 +200,86 @@ export class ResultScreen {
 	/** 保存ボタンの accessibilityLabel を読み取る（likeLabel と同じ仕組み） */
 	async saveLabel(index = 0): Promise<string> {
 		return readLabel(this.saveButton, index);
+	}
+
+	/* ------------------------------------------------------------------ */
+	/*                    通報（#1514 / SAF-01）                           */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * 表示中の料理メディアの「報告」をタップして通報シートを開く。
+	 * ⚠️ ここから先は dev DB へ書き込むため @mutation（Tier 3）でのみ使うこと。
+	 *
+	 * @param index フィード内の何枚目のカードか（既定 0 = 表示中のカード）
+	 */
+	async openReportSheet(index = 0): Promise<void> {
+		// #1629 通報はレール直置きから «…» メニューの中へ移った。先にメニューを開く
+		await tapWhenVisible(this.moreButton, DEFAULT_TIMEOUT, index);
+		await tapWhenVisible(this.reportButton, DEFAULT_TIMEOUT, 0);
+		await waitFor(element(this.reportSheet)).toBeVisible().withTimeout(DEFAULT_TIMEOUT);
+	}
+
+	/**
+	 * 通報理由を選ぶ。
+	 *
+	 * testID は `report-reason-<コード>` で、コードは
+	 * shared/api/v1/constants/contentReports.ts の CONTENT_REPORT_REASON_CODES と同じ集合。
+	 */
+	async chooseReportReason(code: string): Promise<void> {
+		await tapWhenVisible(by.id(`report-reason-${code}`));
+	}
+
+	/**
+	 * 通報理由の accessibilityLabel を読み取る。
+	 *
+	 * #1031 と同じ回避策: 選択状態は `aria-selected` と色でしか表現されておらず、
+	 * Detox には `accessibilityState` を検証する API が無い。app-expo 側が
+	 * 状態別のラベル（`Report.accessibility.reason` / `reasonSelected`）を付けているため、
+	 * `getAttributes()` でラベルを読めば «選ばれたか» を観測できる。
+	 */
+	async reportReasonLabel(code: string): Promise<string> {
+		return readLabel(by.id(`report-reason-${code}`), 0);
+	}
+
+	/** 通報を送信する */
+	async submitReport(): Promise<void> {
+		await tapWhenVisible(this.reportSubmitButton);
+	}
+
+	/**
+	 * 送信後の結末を待って返す。
+	 *
+	 * `content_reports` の migration が dev へ未適用のあいだは送信が必ず失敗し、
+	 * 受付完了ではなく `report-error` が出る。どちらになったか区別できないと
+	 * 「90 秒待って落ちる」だけになり、原因が読めない。
+	 *
+	 * @returns "accepted" = 受付完了 / "error" = 送信失敗（migration 未適用など）
+	 */
+	async waitForReportOutcome(timeout: number = DEFAULT_TIMEOUT): Promise<"accepted" | "error"> {
+		let outcome: "accepted" | "error" | null = null;
+
+		await waitUntil(
+			async () => {
+				if (await visibleNow(this.reportAccepted, 1_000)) {
+					outcome = "accepted";
+					return true;
+				}
+				if (await visibleNow(this.reportError, 1_000)) {
+					outcome = "error";
+					return true;
+				}
+				return false;
+			},
+			{ timeout, description: "通報の受付完了、または送信失敗メッセージ" },
+		);
+
+		return outcome as unknown as "accepted" | "error";
+	}
+
+	/** 受付完了パネルを閉じる */
+	async closeReportAccepted(): Promise<void> {
+		await tapWhenVisible(this.reportAcceptedCloseButton);
+		await waitUntilNotVisible(this.reportSheet);
 	}
 
 	/**

@@ -61,6 +61,26 @@ expo の `city` をそのまま入れていた）。**サーバ側に形式検�
 
 一度サーバ側に検証モジュール（`api/src/core/utils/address-format.ts`）を新設して差し戻された。
 
+### 検証結果（2026-08-15、BigQuery 実測）
+
+`app-expo/lib/addressFormat.ts` の修正が効いているかを、`address` の形と `created_commit_id` の
+両方から確認した。**修正は 100% 効いており、残っているのは旧ビルドの残存だけ**だった。
+
+| 送られた address | Claude フォールバック |
+|---|---|
+| `country:JP` で始まる（正規形式） | **0 件** / 613 リクエスト・275 ユーザー |
+| 壊れた形式（`大阪市` など） | **673 件 / 673 件（全件）** / 123 ユーザー |
+| `country:XX`（海外） | 4 件 / 2 ユーザー（**仕様どおり**） |
+
+`dish_category_recommendations_empty_retry` をビルド別に割ると、`addressFormat.ts` を**含む**ビルド
+（`92f77562` / `19a4422d`、いずれも 08-13）は **0 件**、**含まない**ビルド（`c217a35e` 08-01 ほか）が
+338 件すべてを出していた。含む/含まないは
+`git ls-tree -r --name-only <sha> -- app-expo/lib/addressFormat.ts` で確定できる（→ FORENSICS.md §6）。
+
+したがって Claude 系の Issue は **`err/skip`（旧ビルド残存）** で畳んでよい。
+ただし**海外ユーザーの `country:XX` は最新ビルドでも必ず出る**ので、
+「呼ぶ前にクライアントで止める」ガードを別途入れている（#1196 / `handleSearch` の 2 段ガード）。
+
 ## 2. エラーが出ている ≠ ユーザーが詰んでいる
 
 Google Places Text Search の 429（日次クォータ枯渇）→ backend 500 → frontend `api_call_error`
@@ -177,7 +197,7 @@ impression が落ちれば、それを参照する view も落ちる。**この2
 | E2 | `unauthenticated_race` | frontend | メッセージに `Supabase access_token is missing` を含む |
 | E3 | `client_network` | frontend | `api_call_error` かつ `status = 0`（端末の回線起因） |
 | E4 | `transient_status` | frontend | `EXCLUDED_HTTP_STATUSES` |
-| E5 | `user_denied_permission` | frontend | `payload.kind = 'denied'` **のみ** |
+| E5 | `device_location_failed` | frontend | `current_location_*` の event かつ `payload.kind ∈ (denied, timeout, unavailable)` |
 | E6 | `expected_client_error` | backend | `EXCLUDED_HTTP_STATUSES`（400 / 409 / 422 は**残す**） |
 | E7 | `external_transient` | external | `status_code ∈ (0,408,429,502,503,504)` |
 
@@ -188,15 +208,46 @@ impression が落ちれば、それを参照する view も落ちる。**この2
   トークン未確立時に `{ code: 'unauthenticated', message: 'User is not authenticated: Supabase access_token is missing (endpoint: …)' }`
   を throw する。これを error レベルで拾っているのは `app-expo/components/HealthCheckInitializer.tsx`。
   **認証確立前のレースであって障害ではない**（`#1089` `#1092`）。
-- **E5 — 位置情報の拒否は 78件/41人/日あるが起票されない。** 除外されるのは `kind = 'denied'` だけで、
-  `timeout` / `unavailable` / `unsupported` は**意図的に残している**（端末側の障害・Web 非対応は見たい）。
-  `kind` の値集合は `app-expo/hooks/locationPermissionError.ts` の `LocationPermissionErrorKind`。
-  なお error レベルで `kind` を積んでいるのは `app-expo/hooks/useLocationSearch.ts` の
-  `current_location_fetch_failed` と `app-expo/app/[locale]/(tabs)/search/index.tsx` の
-  `current_location_failed` の2箇所（sql-generator.js のコメントが指す行番号は古い）。
+- **E5 — 端末が現在地を返せない事象は起票されない。** `current_location_*` の event かつ
+  `kind ∈ (denied, timeout, unavailable)` を除外する。`unsupported`（Web で Geolocation 非対応）だけは
+  オーナー判断で**意図的に残している**。`kind` の値集合は
+  `app-expo/hooks/locationPermissionError.ts` の `LocationPermissionErrorKind`（4値）。
+  error レベルで `kind` を積むのは `app-expo/hooks/useLocationSearch.ts` の `current_location_fetch_failed` と
+  `app-expo/app/[locale]/(tabs)/search/index.tsx` / `features/search/hooks/useLocationField.ts` の
+  `current_location_failed`。
   **`kind` が無いログは E5 をすり抜ける** → FORENSICS.md「旧ビルドが残っている」。
 
+  **訂正（2026-08-22 / #1492）**: 以前ここには「除外されるのは `denied` だけ。timeout / unavailable は
+  端末側の障害なので意図的に残している」と書いていた。**その運用は破綻した。** 残したことで
+  Issue が 10 件立ち、`err/skip` を付けても文言違いで立ち続けた（→ TRIAGE.md
+  「`err/skip` で止まらないエラーがある」）。除外を 3 値へ広げ、代わりに **event 名で範囲を閉じた**。
+  実測（本番 08-08〜08-23 / error 行）: 新ルールでの除外 1,122 件、
+  旧ルールで除外されていて新ルールで残るもの **0 件**、`kind` を持つ非位置情報 event **0 件**。
+  識別子も `user_denied_permission` → `device_location_failed` へ改名（timeout を畳む以上、
+  「権限拒否」の名前では run サマリの内訳が実態と食い違うため）。
+
 E7 の正規表現の段は現状効かない（`external_api_logs` に `error_message` が無い）。→ FORENSICS.md 落とし穴。
+
+### ⚠️ 除外ルールが見るのは «トップレベルの» `payload.status` だけ
+
+frontend の除外（E3 / E4）は `JSON_VALUE(payload, '$.status')` を読む。したがって
+**ステータスを入れ子にして記録している event は、除外対象のステータスでも起票される。**
+
+実例（#1476 / 2026-08-20、同一ミリ秒に 2 本）:
+
+| event | payload | E4（403 を除外） |
+|---|---|---|
+| `api_call_error` | `{"status":403,...}` | **効く**（起票されない） |
+| `tools_categories_error` | `{"error":{"status":403,...}}` | **効かない**（起票される） |
+
+**「このステータスは除外されるから起票されないはず」は、payload がその形のときだけ成り立つ。**
+除外されていないのを見て「ルールが壊れた」と考える前に、まず payload の形を見ること。
+
+同じ理由で **E3 は event 名でも閉じている**（`api_call_error` かつ `status = 0`）。
+`authInitError` は `status: 0`（supabase-js が fetch 失敗をラップした値＝端末の回線断）を
+トップレベルに持つが、event 名が違うため E3 をすり抜ける（#1475）。
+広げれば回線起因をまとめて畳めるが、**除外を広げる変更は見えない失敗を増やす**ので、
+実測してから判断すること（2026-08-23 時点では見送り）。
 
 ---
 

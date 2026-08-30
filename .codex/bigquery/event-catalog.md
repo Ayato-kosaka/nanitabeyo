@@ -1,5 +1,10 @@
 # Event Catalog
 
+> **Before running any of these queries:** the `*_event_logs` views cannot prune partitions,
+> so a time-ranged query against them costs 18.4 GB/day instead of ~77 MB.
+> Rewrite time-ranged queries onto `run_googleapis_com_stdout` filtered on `timestamp`.
+> See [safety-policy.md](./safety-policy.md).
+
 This file is a starting point for log investigations. It combines source-code
 confirmed event names with queries that can refresh the production view of what
 actually appears in BigQuery.
@@ -105,6 +110,7 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `topic_image_manual_retry`
 - `saved_topic_selected`
 - `saved_topic_location_selected`
+- `saved_topic_location_screen_back_pressed`
 
 ### Dish Media Flow
 
@@ -248,14 +254,21 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `oauth_signin_error`
 - `profile_shared`
 - `profile_edit_started`
+- `profile_edit_screen_back_pressed`
+- `profile_edit_load_retry_pressed`
 - `profile_edit_saved`
 - `profile_update_failed`
 - `profile_avatar_upload_failed`
 - `profile_tab_changed`
+- `profile_liked_pressed`
+- `profile_saved_topics_pressed`
+- `profile_liked_screen_back_pressed`
+- `profile_saved_topics_screen_back_pressed`
 - `user_profile_created`
 - `user_profile_creation_error`
 - `load_own_profile_error`
-- `login_modal_opened`
+- `login_screen_opened`
+- `login_screen_back_pressed`
 - `settings_screen_opened`
 - `settings_blocked_topics_pressed`
 - `settings_leave_review_pressed`

@@ -96,7 +96,7 @@ describe("app/index.tsx のディープリンク採用（#1124）", () => {
 
 	it("ログアウト由来では、初回マウントでも起動時 URL を無視して元のロケールのホームへ送る", async () => {
 		mockConsumeLogoutRedirect.mockReturnValue("ja-JP");
-		mockGetInitialURL.mockResolvedValue("nanitabeyo:///ja-JP/profile/settings");
+		mockGetInitialURL.mockResolvedValue("nanitabeyo:///ja-JP/profile/device-settings");
 
 		await renderIndex();
 
@@ -163,11 +163,16 @@ describe("app/index.tsx のディープリンク採用（#1124）", () => {
 		expect(mockReplace).toHaveBeenCalledWith("/ja-JP");
 	});
 
-	it("ロケール配下の通常画面は、クエリ付きの Web URL でも従来どおり採用する（#1135 の非回帰）", async () => {
+	// #1272 【重要】旧仕様はここで "/ja-JP/profile"（クエリ落ち）を期待していた。
+	// その挙動こそがバグで、iOS では ?tab= がアプリのどこにも届かなくなっていた
+	//（Linking.parse().path がクエリを落とし、この画面のリダイレクトが expo-router の
+	//  初期 URL 解決に勝つため。probe の実測 `local=- global=-` で確定）。
+	// クエリは行き先の一部として運ぶのが正しい
+	it("ロケール配下の通常画面は、クエリごと行き先として採用する（#1272）", async () => {
 		mockGetInitialURL.mockResolvedValue("https://nanitabeyo.example/ja-JP/profile?tab=reviews");
 
 		await renderIndex();
 
-		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/profile");
+		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/profile?tab=reviews");
 	});
 });

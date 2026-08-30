@@ -1,0 +1,176 @@
+name: DB/BigQuery Script Run
+
+# ==============================================================================
+# #1383: scripts/ 配下のPythonスクリプトを、BigQuery / PostgreSQL の資格情報付きで
+# workflow_dispatch から汎用的に実行する。
+#
+# ## 経緯・設計方針
+# 当初 dining_pace の manual correction 専用workflow（insert/merge/sync-devの3step）
+# として作ったが、「対象スクリプトが増えるたびに専用workflowを増やす」のは
+# スケールしない。db-migrate.yml / pg-table-export.yml / pg-table-import.yml と同じ
+# PostgreSQL 資格情報（secrets.POSTGRES_DATABASE_URL）を使い、
+# 「どのスクリプトを・どの引数で・dry-runかどうか」を dispatch 時に指定できる
+# 汎用ランナーに一般化した（BigQuery 認証は #1458 で専用SA・WIF方式に変更済み。
+# 下記「BigQuery 認証」節を参照）。
+#
+# manual/1_insert_feature_scores.py / manual/2_merge_feature_scores.py /
+# 9_2_sync_dish_category_features.py はいずれもこのworkflowから実行できる
+# （使い方は各READMEおよび manual/README.md の「GitHub Actions」節を参照）。
+#
+# ## なぜ Actions でやるのか（db-migrate.yml と同じ理由）
+# 資格情報をローカル/対話セッションに置かず、「いつ・誰が・どのスクリプトを
+# どの引数で実行したか」を dispatch のログとして残す。
+#
+# ## BigQuery 認証（#1458）
+# 4本のworkflowで共用されている静的キー secrets.GCP_SA_KEY には
+# bigquery.jobUser が無く、BigQueryへのクエリ実行はできない（付与もしない。
+# 共有キーの影響範囲を広げないため）。代わりに、error-triage.yml と同じ
+# WIF（google-github-actions/auth, workload_identity_provider + service_account）
+# 方式で、このworkflow専用のSA feature-correction-writer@food-scroll.iam.gserviceaccount.com
+# を借用する。このSAは roles/bigquery.jobUser（プロジェクト food-scroll）と、
+# wikidata_food_graph データセットのみへの roles/bigquery.dataEditor（データセット単位）
+# だけを持つ。PostgreSQL `public` への書き込み権限はこのSAには無い（対象はBigQueryのみ）。
+#
+# ## このworkflowが扱わないもの
+# - PostgreSQL `public`（本番）への書き込みを行うスクリプトの実行は、このworkflow
+#   では止めない（script_path/argsは呼び出し側の責任）。ただし secrets は development
+#   Environment からのみ払い出されるため、production Environment に承認ルールがある
+#   場合はそちらで別途ゲートすること（db-migrate.yml の public 分岐を参照）。
+# - script_path は workflow_dispatch を叩ける権限（このリポジトリへの書き込み権限）を
+#   持つ人だけが指定できる。PRからの自動実行はしない（trigger は workflow_dispatch のみ）。
+# ==============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_path:
+        description: "リポジトリルートからの実行対象スクリプトパス（例: scripts/20251213T0000_wikidata_food_graph/581_relevance_scoring/manual/2_merge_feature_scores.py）"
+        required: true
+        type: string
+      args:
+        description: "スクリプトへ渡すCLI引数（例: --run-id 20260820_manual_dining_pace_izakaya_skewers --dry-run）"
+        required: false
+        default: ""
+        type: string
+      input_file_path:
+        description: "事前にファイルを書き出したい場合の書き出し先パス（例: /tmp/corrections.jsonl）。空なら書き出さない"
+        required: false
+        default: ""
+        type: string
+      input_file_content:
+        description: "input_file_path へ書き出す内容（例: manual/1_insert_feature_scores.py --input-jsonl 用のJSONL本文）"
+        required: false
+        default: ""
+        type: string
+      requirements_path:
+        description: "pip install -r 対象。スクリプトが属するディレクトリ配下のrequirements.txtを指定する"
+        required: false
+        default: "scripts/20251213T0000_wikidata_food_graph/requirements.txt"
+        type: string
+
+concurrency:
+  group: db-script-run
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # WIF（OIDC）に必須
+
+jobs:
+  run:
+    name: "python3 ${{ inputs.script_path }}"
+    runs-on: ubuntu-latest
+    environment: development
+    env:
+      DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+      # #843 店提案パイプライン（scripts/20260808T0000_restaurant/3_2）が使う
+      # Google Places Text Search (IDs Only) 専用キー。APIサーバーの
+      # GOOGLE_MAPS_API_KEY とは別に発行し、キー側もText Search APIのみに制限する。
+      # 未登録なら空になるだけで、他のスクリプトの実行には影響しない。
+      PLACES_TEXT_SEARCH_API_KEY: ${{ secrets.PLACES_TEXT_SEARCH_API_KEY }}
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: 入力チェック
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ inputs.script_path }}" in
+            scripts/*.py) ;;
+            *)
+              echo "::error::script_path は scripts/ 配下の .py のみ許可します: ${{ inputs.script_path }}"
+              exit 1
+              ;;
+          esac
+          if [[ "${{ inputs.script_path }}" == *".."* ]]; then
+            echo "::error::script_path に '..' は使用できません。"
+            exit 1
+          fi
+          if [ ! -f "${{ inputs.script_path }}" ]; then
+            echo "::error::script_path が見つかりません: ${{ inputs.script_path }}"
+            exit 1
+          fi
+
+      - name: Python をセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存関係をインストール
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.requirements_path }}" ] && [ -f "${{ inputs.requirements_path }}" ]; then
+            pip install -r "${{ inputs.requirements_path }}"
+          else
+            echo "::warning::requirements_path が空か存在しないため、依存関係のインストールをスキップしました。"
+          fi
+
+      # 専用の書き込みSA（feature-correction-writer@food-scroll.iam.gserviceaccount.com、
+      # #1458）を借用する。roles/bigquery.jobUser（プロジェクト）と wikidata_food_graph
+      # データセットのみへの roles/bigquery.dataEditor だけを持つ。他の3本のworkflowと
+      # 共用されている GCP_SA_KEY は使わない。
+      # token_format は指定しない（デフォルトで認証情報ファイルが作成され、後続ステップの
+      # GOOGLE_APPLICATION_CREDENTIALS に自動でセットされる。python の google-cloud
+      # クライアントはこれをそのままADCとして拾う）。
+      - name: Google Cloud へ認証（WIF）
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_FEATURE_CORRECTION_SERVICE_ACCOUNT }}
+
+      - name: input_file_content を書き出す
+        if: ${{ inputs.input_file_path != '' }}
+        shell: bash
+        run: |
+          mkdir -p "$(dirname "${{ inputs.input_file_path }}")"
+          cat > "${{ inputs.input_file_path }}" <<'INPUT_FILE_EOF'
+          ${{ inputs.input_file_content }}
+          INPUT_FILE_EOF
+
+      - name: スクリプトを実行
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "▶ python3 ${{ inputs.script_path }} ${{ inputs.args }}"
+          # args はスペース区切りのCLI引数として渡す想定（シェル展開を許容する）。
+          # eval を使うのは、--reason "複数単語の日本語" のようなクォート付き引数を
+          # そのまま渡したいため（このworkflowはworkflow_dispatchのみが起点で、
+          # PRからの自動実行はできないため、実行者は既にこのリポジトリへの書き込み権限を持つ）。
+          eval "python3 '${{ inputs.script_path }}' ${{ inputs.args }}" | tee /tmp/step-output.txt
+
+      - name: Job Summary へ出力
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## DB/BigQuery Script Run"
+            echo ""
+            echo "- script_path: \`${{ inputs.script_path }}\`"
+            echo "- args: \`${{ inputs.args }}\`"
+            echo ""
+            echo '```'
+            cat /tmp/step-output.txt 2>/dev/null || echo "(no output captured)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

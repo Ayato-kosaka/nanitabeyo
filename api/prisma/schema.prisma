@@ -38,6 +38,30 @@ model config {
   @@schema("dev")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model content_reports {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  target_type      String
+  target_id        String    @db.Uuid
+  reporter_user_id String    @db.Uuid
+  reason_code      String
+  reason_text      String?
+  status           String    @default("pending")
+  resolved_at      DateTime? @db.Timestamptz(6)
+  resolution_note  String?
+  created_version  String    @default("unknown")
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  lock_no          Int       @default(0)
+
+  @@unique([reporter_user_id, target_type, target_id], map: "uq_content_reports_reporter_target")
+  @@index([status, created_at], map: "idx_content_reports_status_created")
+  @@index([target_type, target_id], map: "idx_content_reports_target")
+  @@schema("dev")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model contribution_tasks {
@@ -161,9 +185,11 @@ model dish_category_group_vote_sessions {
   search_context                        Json                                    @default("{}")
   created_at                            DateTime                                @default(now()) @db.Timestamptz(6)
   updated_at                            DateTime                                @default(now()) @db.Timestamptz(6)
+  idempotency_key                       String?
   dish_category_group_vote_candidates   dish_category_group_vote_candidates[]
   dish_category_group_vote_participants dish_category_group_vote_participants[]
 
+  @@unique([host_user_id, idempotency_key], map: "dcgvs_host_user_id_idempotency_key_uq")
   @@index([share_token], map: "idx_dcgvs_share_token")
   @@schema("dev")
 }
@@ -203,26 +229,30 @@ model dish_category_variants {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_media {
-  id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  dish_id                     String                       @db.Uuid
-  user_id                     String?                      @db.Uuid
-  media_path                  String
-  media_type                  String
-  thumbnail_path              String
-  created_at                  DateTime                     @default(now()) @db.Timestamptz(6)
-  updated_at                  DateTime                     @default(now()) @db.Timestamptz(6)
-  lock_no                     Int                          @default(0)
-  video_duration_ms           Int?
-  media_processing_status     String
-  thumbnail_processing_status String
-  dishes                      dishes                       @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                       users?                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  dish_media_analysis_results dish_media_analysis_results?
-  dish_media_impressions      dish_media_impressions[]
-  dish_media_likes            dish_media_likes[]
-  dish_media_views            dish_media_views[]
-  payouts                     payouts[]
+  id                             String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_id                        String                          @db.Uuid
+  user_id                        String?                         @db.Uuid
+  media_path                     String?
+  media_type                     String
+  thumbnail_path                 String
+  created_at                     DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime                        @default(now()) @db.Timestamptz(6)
+  lock_no                        Int                             @default(0)
+  video_duration_ms              Int?
+  media_processing_status        String
+  thumbnail_processing_status    String
+  render_type                    String                          @default("stored")
+  deleted_at                     DateTime?                       @db.Timestamptz(6)
+  dishes                         dishes                          @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                          users?                          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dish_media_analysis_results    dish_media_analysis_results?
+  dish_media_external_embeddings dish_media_external_embeddings?
+  dish_media_impressions         dish_media_impressions[]
+  dish_media_likes               dish_media_likes[]
+  dish_media_views               dish_media_views[]
+  payouts                        payouts[]
 
+  @@unique([id, dish_id], map: "uq_dish_media_id_dish_id")
   @@index([dish_id], map: "idx_dish_media_dish")
   @@schema("dev")
 }
@@ -246,6 +276,34 @@ model dish_media_analysis_results {
 
   @@index([impr_total(sort: Desc)], map: "idx_dma_results_impr_total")
   @@index([updated_at(sort: Desc)], map: "idx_dma_results_updated_at")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_media_external_embeddings {
+  dish_media_id       String     @id @db.Uuid
+  dish_id             String     @db.Uuid
+  provider            String
+  external_content_id String
+  canonical_url       String
+  embed_status        String     @default("unknown")
+  last_verified_at    DateTime?  @db.Timestamptz(6)
+  created_at          DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime   @default(now()) @db.Timestamptz(6)
+  thumbnail_url       String?
+  /// #1641 埋め込みの枠の中で再生できるか（unknown / playable / not_playable）。embed_status とは直交する
+  playback_status     String     @default("unknown")
+  /// not_playable のときだけ入る理由。playable / unknown を書くときは必ず null に戻すこと（CHECK 違反で取り込みが落ちる）
+  playback_reason     String?
+  playback_checked_at DateTime?  @db.Timestamptz(6)
+  dish_media          dish_media @relation(fields: [dish_media_id, dish_id], references: [id, dish_id], onDelete: Cascade, onUpdate: NoAction, map: "dmee_dish_media_dish_fk")
+
+  @@unique([dish_media_id, dish_id], map: "dmee_media_dish_uq")
+  @@unique([provider, external_content_id, dish_id], map: "dmee_provider_content_dish_uq")
+  @@index([embed_status, last_verified_at], map: "idx_dmee_status_verified")
+  @@index([dish_media_id], map: "idx_dmee_not_playable")
   @@schema("dev")
 }
 
@@ -307,6 +365,7 @@ model dish_media_views {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model dish_reviews {
   id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   dish_id                String                   @db.Uuid
@@ -317,18 +376,25 @@ model dish_reviews {
   rating                 Int                      @db.SmallInt
   price_cents            Int?
   currency_code          String?                  @db.Char(3)
-  created_dish_media_id  String                   @db.Uuid
+  created_dish_media_id  String?                  @db.Uuid
   imported_user_name     String?
   imported_user_avatar   String?
   created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  eaten_at               DateTime?                @db.Date
+  deleted_at             DateTime?                @db.Timestamptz(6)
+  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  lock_no                Int                      @default(0)
   dishes                 dishes                   @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users                  users?                   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([created_at], map: "idx_dish_reviews_created_at")
   @@index([dish_id], map: "idx_dish_reviews_dish")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_dish_reviews_user_created_at")
+  @@index([user_id, dish_id], map: "idx_dish_reviews_user_dish")
   @@schema("dev")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dishes {
@@ -339,6 +405,8 @@ model dishes {
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
   updated_at      DateTime        @default(now()) @db.Timestamptz(6)
   lock_no         Int             @default(0)
+  data_origin     String          @default("user_or_google")
+  synced_at       DateTime?       @db.Timestamptz(6)
   dish_media      dish_media[]
   dish_reviews    dish_reviews[]
   dish_categories dish_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -395,11 +463,13 @@ model frontend_event_logs {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model notification_recipients {
-  notification_id   String        @db.Uuid
-  recipient_id      String        @db.Uuid
-  thread_updated_at DateTime      @db.Timestamptz(6)
-  created_at        DateTime      @default(now()) @db.Timestamptz(6)
-  notifications     notifications @relation(fields: [notification_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  notification_id      String        @db.Uuid
+  recipient_id         String        @db.Uuid
+  thread_updated_at    DateTime      @db.Timestamptz(6)
+  created_at           DateTime      @default(now()) @db.Timestamptz(6)
+  last_pushed_actor_id String?       @db.Uuid
+  last_pushed_at       DateTime?     @db.Timestamptz(6)
+  notifications        notifications @relation(fields: [notification_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([notification_id, recipient_id])
   @@index([recipient_id, created_at(sort: Desc), notification_id(sort: Desc)], map: "idx_nr_recipient_created")
@@ -559,6 +629,25 @@ model restaurant_bids {
   @@schema("dev")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model restaurant_links {
+  restaurant_id String      @db.Uuid
+  kind          String
+  value         String
+  source        String
+  fetched_at    DateTime    @default(now()) @db.Timestamptz(6)
+  created_at    DateTime    @default(now()) @db.Timestamptz(6)
+  restaurants   restaurants @relation(fields: [restaurant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([restaurant_id, kind, value])
+  @@index([kind], map: "idx_restaurant_links_kind")
+  @@index([restaurant_id, kind], map: "idx_restaurant_links_restaurant_kind")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model restaurants {
@@ -574,9 +663,20 @@ model restaurants {
   created_at         DateTime                  @default(now()) @db.Timestamptz(6)
   location           Unsupported("geography")? @default(dbgenerated("(st_setsrid(st_makepoint(longitude, latitude), 4326))::geography"))
   image_path         String?
+  source_seed_id     String?                   @db.Uuid
+  source_names       String[]                  @default([])
+  source_row_hash    String?
+  synced_at          DateTime?                 @db.Timestamptz(6)
+  created_by_source  String                    @default("user")
+  address            String?
+  country_code       String?
   dishes             dishes[]
   restaurant_bids    restaurant_bids[]
+  restaurant_links   restaurant_links[]
 
+  @@index([created_by_source], map: "idx_restaurants_created_by_source")
+  @@index([location], map: "idx_restaurants_location", type: Gist)
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_restaurants_name_trgm", type: Gin)
   @@schema("dev")
 }
 
@@ -607,6 +707,7 @@ model roles {
   @@schema("dev")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model share_links {
@@ -625,7 +726,6 @@ model share_links {
   expires_at          DateTime? @db.Timestamptz(6)
   created_at          DateTime  @default(now()) @db.Timestamptz(6)
   updated_at          DateTime  @default(now()) @db.Timestamptz(6)
-  users               users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([created_by, created_at(sort: Desc)], map: "idx_share_links_created_by_created_at")
   @@index([target_type, target_id], map: "idx_share_links_target")
@@ -649,6 +749,19 @@ model user_notification_cursors {
   user_id      String   @id @db.Uuid
   last_read_at DateTime @db.Timestamptz(6)
 
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_notification_preferences {
+  user_id    String   @db.Uuid
+  category   String
+  enabled    Boolean
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([user_id, category])
   @@schema("dev")
 }
 
@@ -679,11 +792,11 @@ model users {
   username         String             @unique(map: "uq_users_username") @db.Citext
   preferred_locale String
   avatar_path      String?
+  deleted_at       DateTime?          @db.Timestamptz(6)
   dish_media       dish_media[]
   dish_media_likes dish_media_likes[]
   dish_reviews     dish_reviews[]
   restaurant_bids  restaurant_bids[]
-  share_links      share_links[]
 
   @@schema("dev")
 }

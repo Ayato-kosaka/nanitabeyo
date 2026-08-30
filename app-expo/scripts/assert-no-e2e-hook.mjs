@@ -27,6 +27,11 @@ const SENTINELS = [
 	{ value: "__E2E_MEDIA_SELECTION_HOOK__", label: "メディア選択差し替えフック（lib/e2e/selectMediaStub.ts）" },
 	{ value: "__E2E_TUTORIAL_SEED_HOOK__", label: "チュートリアル視聴済みシードフック（lib/e2e/tutorialSeed.ts）" },
 	{ value: "__E2E_PRELOAD_PROBE_HOOK__", label: "先読み画像ロード枚数プローブ（lib/e2e/preloadProbe.tsx）" },
+	{ value: "__E2E_ROUTE_PARAMS_PROBE_HOOK__", label: "ルートパラメータプローブ（lib/e2e/routeParamsProbe.tsx）" },
+	{
+		value: "__E2E_VOTE_IMAGE_PRELOAD_PROBE_HOOK__",
+		label: "友達投票の候補画像プリロードプローブ（lib/e2e/voteImagePreloadProbe.tsx）",
+	},
 ];
 
 // #1030 【設計】(レビュー m-6) `import.meta.dirname` は Node >= 20.11 依存。

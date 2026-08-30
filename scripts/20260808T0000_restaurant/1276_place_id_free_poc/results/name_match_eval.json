@@ -1,0 +1,310 @@
+{
+  "positives": 4381,
+  "negatives": 60000,
+  "rows": [
+    {
+      "matcher": "現行",
+      "threshold": 0.1,
+      "recall": 0.98105,
+      "false_positive_rate": 0.21725,
+      "true_positives": 4298,
+      "false_positives": 13035
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.15,
+      "recall": 0.97946,
+      "false_positive_rate": 0.14542,
+      "true_positives": 4291,
+      "false_positives": 8725
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.2,
+      "recall": 0.9774,
+      "false_positive_rate": 0.10102,
+      "true_positives": 4282,
+      "false_positives": 6061
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.25,
+      "recall": 0.97603,
+      "false_positive_rate": 0.06782,
+      "true_positives": 4276,
+      "false_positives": 4069
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.3,
+      "recall": 0.97375,
+      "false_positive_rate": 0.04223,
+      "true_positives": 4266,
+      "false_positives": 2534
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.35,
+      "recall": 0.97215,
+      "false_positive_rate": 0.02555,
+      "true_positives": 4259,
+      "false_positives": 1533
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.4,
+      "recall": 0.97078,
+      "false_positive_rate": 0.01523,
+      "true_positives": 4253,
+      "false_positives": 914
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.45,
+      "recall": 0.96941,
+      "false_positive_rate": 0.008,
+      "true_positives": 4247,
+      "false_positives": 480
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.5,
+      "recall": 0.96873,
+      "false_positive_rate": 0.00497,
+      "true_positives": 4244,
+      "false_positives": 298
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.55,
+      "recall": 0.95891,
+      "false_positive_rate": 0.0022,
+      "true_positives": 4201,
+      "false_positives": 132
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.6,
+      "recall": 0.95344,
+      "false_positive_rate": 0.00148,
+      "true_positives": 4177,
+      "false_positives": 89
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.65,
+      "recall": 0.68934,
+      "false_positive_rate": 0.00062,
+      "true_positives": 3020,
+      "false_positives": 37
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.7,
+      "recall": 0.66286,
+      "false_positive_rate": 0.00037,
+      "true_positives": 2904,
+      "false_positives": 22
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.75,
+      "recall": 0.643,
+      "false_positive_rate": 0.00018,
+      "true_positives": 2817,
+      "false_positives": 11
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.8,
+      "recall": 0.62178,
+      "false_positive_rate": 0.00015,
+      "true_positives": 2724,
+      "false_positives": 9
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.85,
+      "recall": 0.60671,
+      "false_positive_rate": 0.00012,
+      "true_positives": 2658,
+      "false_positives": 7
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.9,
+      "recall": 0.59804,
+      "false_positive_rate": 8e-05,
+      "true_positives": 2620,
+      "false_positives": 5
+    },
+    {
+      "matcher": "現行",
+      "threshold": 0.95,
+      "recall": 0.59553,
+      "false_positive_rate": 7e-05,
+      "true_positives": 2609,
+      "false_positives": 4
+    },
+    {
+      "matcher": "現行",
+      "threshold": 1.0,
+      "recall": 0.59553,
+      "false_positive_rate": 7e-05,
+      "true_positives": 2609,
+      "false_positives": 4
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.1,
+      "recall": 0.98151,
+      "false_positive_rate": 0.2495,
+      "true_positives": 4300,
+      "false_positives": 14970
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.15,
+      "recall": 0.97991,
+      "false_positive_rate": 0.19008,
+      "true_positives": 4293,
+      "false_positives": 11405
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.2,
+      "recall": 0.97946,
+      "false_positive_rate": 0.15803,
+      "true_positives": 4291,
+      "false_positives": 9482
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.25,
+      "recall": 0.97854,
+      "false_positive_rate": 0.12623,
+      "true_positives": 4287,
+      "false_positives": 7574
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.3,
+      "recall": 0.97603,
+      "false_positive_rate": 0.07577,
+      "true_positives": 4276,
+      "false_positives": 4546
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.35,
+      "recall": 0.97489,
+      "false_positive_rate": 0.06237,
+      "true_positives": 4271,
+      "false_positives": 3742
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.4,
+      "recall": 0.97398,
+      "false_positive_rate": 0.05537,
+      "true_positives": 4267,
+      "false_positives": 3322
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.45,
+      "recall": 0.97124,
+      "false_positive_rate": 0.0173,
+      "true_positives": 4255,
+      "false_positives": 1038
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.5,
+      "recall": 0.9701,
+      "false_positive_rate": 0.01345,
+      "true_positives": 4250,
+      "false_positives": 807
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.55,
+      "recall": 0.96485,
+      "false_positive_rate": 0.01047,
+      "true_positives": 4227,
+      "false_positives": 628
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.6,
+      "recall": 0.96165,
+      "false_positive_rate": 0.0047,
+      "true_positives": 4213,
+      "false_positives": 282
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.65,
+      "recall": 0.95732,
+      "false_positive_rate": 0.00303,
+      "true_positives": 4194,
+      "false_positives": 182
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.7,
+      "recall": 0.95503,
+      "false_positive_rate": 0.00277,
+      "true_positives": 4184,
+      "false_positives": 166
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.75,
+      "recall": 0.95344,
+      "false_positive_rate": 0.0027,
+      "true_positives": 4177,
+      "false_positives": 162
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.8,
+      "recall": 0.95275,
+      "false_positive_rate": 0.0027,
+      "true_positives": 4174,
+      "false_positives": 162
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.85,
+      "recall": 0.95184,
+      "false_positive_rate": 0.0027,
+      "true_positives": 4170,
+      "false_positives": 162
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.9,
+      "recall": 0.94476,
+      "false_positive_rate": 0.00137,
+      "true_positives": 4139,
+      "false_positives": 82
+    },
+    {
+      "matcher": "改良",
+      "threshold": 0.95,
+      "recall": 0.89249,
+      "false_positive_rate": 0.00048,
+      "true_positives": 3910,
+      "false_positives": 29
+    },
+    {
+      "matcher": "改良",
+      "threshold": 1.0,
+      "recall": 0.59963,
+      "false_positive_rate": 0.0001,
+      "true_positives": 2627,
+      "false_positives": 6
+    }
+  ]
+}

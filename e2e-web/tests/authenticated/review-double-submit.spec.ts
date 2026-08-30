@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import { test, expect } from "../../fixtures/test";
 import { TabBar } from "../../pages/TabBar";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 import { countRequests } from "../../utils/network";
 import { clickRapid } from "../../utils/rapid-click";
 
@@ -16,7 +16,7 @@ import { clickRapid } from "../../utils/rapid-click";
  * `isProcessing === false` を読んで通過しうるため、`v1/dishes` の POST と
  * メディアアップロードが二重に走り、同じレビューが 2 件登録される。
  * #1090 で `isSubmittingRef`(useRef)による同期ガードを追加した
- * (`search/index.tsx` の `isSearchingRef` / `search/topics.tsx` の `isSelectingTopicRef` と同じ方式)。
+ * (`search/index.tsx` の `isSearchingRef` / `search/dish-categories.tsx` の `isSelectingDishCategoryRef` と同じ方式)。
  *
  * ## 観測点(#1084 設計 §3-1 / #1086 の教訓)
  * **POST のリクエスト件数**を数える。「履歴段数の増分」は二重 push を検知できないことが
@@ -57,7 +57,7 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 
 	// ─ テストケース: 投稿ボタンを連打してもレビューは 1 件しか登録されない ─
 	// 手順:
-	//   1. ログイン済みで起動し、レビュータブ → 投稿 CTA → 店名検索 → レストラン詳細へ
+	//   1. ログイン済みで起動し、食べたい/食べたタブ → 記録 CTA → 店名検索 → レストラン詳細へ
 	//   2. 「写真・動画を投稿」でレビューフォームへ入り、filechooser にテスト画像を渡す
 	//   3. コメント・料理カテゴリ・価格・評価を埋めて `isValid` を成立させる
 	//   4. 投稿ボタンを **5 連打**する(同一 JS タスク内の合成 pointer 連打)
@@ -66,18 +66,24 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 	//   7. POST `v1/dish-reviews` がちょうど 1 回であることを検証(= レビューが 1 件だけ)
 	test("投稿ボタンを連打してもレビューは 1 件しか登録されない", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
-		const reviewPage = new ReviewPage(appPage);
+		const myDishesPage = new MyDishesPage(appPage);
 
-		await tabBar.gotoReview();
-		await reviewPage.postReviewButton.click();
+		await tabBar.gotoMyDishes();
+		await myDishesPage.openEatenRecordFlow();
+		await myDishesPage.openEatenRestaurantPicker();
+		// #1375（3 巡目）pick モードで選ぶと統合フォームへ戻り、ReviewForm が自動でメディア選択を開く
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 		await appPage.getByTestId("location-autocomplete-suggestion-0").click();
-		await expect(appPage.getByTestId("restaurant-detail-post-photo-button")).toBeVisible({ timeout: 20_000 });
 
-		// レビューフォーム画面(review.tsx)へ遷移すると同時に写真選択(filechooser)が自動的に走る
+		// #1375（6 巡目）記録フローは «お店 → 料理カテゴリー → 写真» の順。
+		// カテゴリーが決まるまで写真もコメント欄も出ない
+		await myDishesPage.chooseDishCategoryInRecordFlow("コーヒー");
+		await myDishesPage.chooseMediaInRecordFlow();
+
+		// 写真は自分で «ライブラリから選ぶ» を押して開く（記録フローは自動で開かない）
 		const fileChooserPromise = appPage.waitForEvent("filechooser");
-		await appPage.getByTestId("restaurant-detail-post-photo-button").click();
+		await appPage.getByTestId("review-pick-from-library").click();
 		const fileChooser = await fileChooserPromise;
 		await fileChooser.setFiles(TEST_IMAGE_PATH);
 
@@ -85,11 +91,6 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 			.getByTestId("review-comment-input")
 			.fill(`[E2E] 連打耐性テスト ${new Date().toISOString()}`.slice(0, 100));
 
-		// 料理カテゴリを選択する
-		await appPage.getByTestId("review-dish-category-row").click();
-		await appPage.getByTestId("dish-category-search-input").fill("コーヒー");
-		await appPage.getByTestId("dish-category-search-suggestions").waitFor({ state: "visible" });
-		await appPage.getByTestId("dish-category-search-suggestion-0").click();
 
 		await appPage.getByTestId("review-price-input").fill("500");
 		await appPage.getByTestId("review-star-5").click();

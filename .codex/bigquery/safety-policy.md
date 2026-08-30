@@ -1,5 +1,28 @@
 # BigQuery Safety Policy
 
+## Cost Rule That Overrides Everything Else
+
+**Do not put a time range on the `*_event_logs` views.** In those views `created_at` is a computed
+column (it includes `TO_JSON_STRING(jsonPayload)`), so BigQuery cannot prune partitions and a single
+day costs **18.4 GB**. Query the raw table `run_googleapis_com_stdout` and filter on `timestamp`
+instead — the same day across all three log types costs about **77 MB**.
+
+| Approach                                             | Per day     |
+| ---------------------------------------------------- | ----------- |
+| `frontend_event_logs` view, filtered on `created_at` | **18.4 GB** |
+| `run_googleapis_com_stdout`, filtered on `timestamp` | **~77 MB**  |
+
+```sql
+FROM `food-scroll.nanitabeyo_logs_prod.run_googleapis_com_stdout`
+WHERE timestamp >= TIMESTAMP '...' AND timestamp < TIMESTAMP '...'
+  AND jsonPayload.log_type IN ('frontend_event_logs', 'backend_event_logs', 'external_api_logs')
+```
+
+`scripts/error-triage/sql/error-triage.sql` is the worked example. The views remain usable only for
+small bounded lookups (a known `request_id` / `user_id`, or a `limit`ed peek) where no time range is
+involved. Every time-ranged query in `query-patterns.md` and `event-catalog.md` must be rewritten
+onto the raw table before it is run — going through the view breaks the 1 GB rule below on day one.
+
 ## Core Rules
 
 - BigQuery is billable. Estimate query size with `--dry_run` before broad scans.

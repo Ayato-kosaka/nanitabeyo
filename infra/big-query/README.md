@@ -8,21 +8,27 @@ BigQuery は以下の目的で使用されています：
 
 1. **ログ基盤**: Cloud Logging からのログを収集・分析
 2. **Wikidata 食品グラフ**: 料理・飲み物のマスタデータ構造管理
+3. **店提案事前データ**: open data店舗とSNS料理媒体の名寄せ・PostgreSQL公開
 
 ## ディレクトリ構成
 
 ```
 infra/big-query/
-├── migration/                              # BigQuery テーブル定義 SQL
+├── migration/                              # BigQuery テーブル定義 SQL（実体は ls で確認すること）
 │   ├── 20251203T0000_backfill_legacy_log_tables_and_views.sql
-│   └── 20251213T0000_create_wikidata_food_tables.sql
+│   ├── 20251213T0000_create_wikidata_food_tables.sql
+│   ├── 20251215T0000_create_wikidata_food_llm_labels.sql
+│   ├── 20251216T0000_create_macro_genre_tables.sql
+│   ├── 20260210T0000_add_food_nodes_raw_staging.sql
+│   ├── 20260715T0000_create_dish_category_label_alias_overrides.sql
+│   └── 20260812T0000_create_restaurant_recommendation_tables.sql
 ├── 20251201T0000_setup_logging_and_bigquery_sink.sh
 ├── 20251203T0000_backfill_supabase_logs_to_bigquery.sh
 ├── 20251213T0000_setup_wikidata_food_graph_dataset.sh  # Wikidata 食品グラフ用データセット作成
+├── 20260812T0000_setup_restaurant_recommendation_dataset.sh # 店提案事前データ用
 ├── setup_logging_bigquery_dataset.sh
 ├── setup_logging_sink.sh
-├── IMPLEMENTATION_SUMMARY.md               # ログバックフィル実装サマリー
-├── README_BACKFILL.md                      # バックフィル詳細ガイド
+├── backfill-runbook.md                      # バックフィル詳細ガイド
 └── README.md                               # このファイル
 ```
 
@@ -58,7 +64,7 @@ Supabase からのログデータをバックフィルする場合：
 ./20251203T0000_backfill_supabase_logs_to_bigquery.sh prod
 ```
 
-詳細は [README_BACKFILL.md](./README_BACKFILL.md) を参照してください。
+詳細は [backfill-runbook.md](./backfill-runbook.md) を参照してください。
 
 ## 2. Wikidata 食品グラフテーブル
 
@@ -218,7 +224,30 @@ scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/
 
 詳細は [scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/README.md](../../scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/README.md) を参照してください。
 
+## 3. 店提案事前データ
+
+店舗原票はWikidataではないため、`food-scroll.restaurant_recommendation` Datasetへ分離します。
+Overture / IFAS / OSM / 既存PostgreSQLを共通形式へ変換してから実店舗seedへ名寄せし、
+Google Place IDと品質ゲートが確定した行だけをPostgreSQLへ同期します。dev/prodやraw/catalogは
+Datasetで分割せず、手動パイプライン内のtable名とrun_idで区別します。
+
+セットアップと実行順は
+[`scripts/20260808T0000_restaurant/README.md`](../../scripts/20260808T0000_restaurant/README.md)
+を参照してください。
+
 ## Dataset 構成
+
+### 店提案事前データ
+
+- **Project**: `food-scroll`
+- **Dataset**: `restaurant_recommendation`
+- **Location**: `asia-northeast1`
+- **dev/prod分離**: しない（同じ採用catalogをPostgreSQLのdev/publicへ段階同期）
+
+`wikidata_food_graph`とはデータ責務が異なるためDatasetを分離します。セットアップは
+`20260812T0000_setup_restaurant_recommendation_dataset.sh`、table定義は
+`migration/20260812T0000_create_restaurant_recommendation_tables.sql`です。実行順と名寄せ規則は
+[店提案パイプラインREADME](../../scripts/20260808T0000_restaurant/README.md)を参照してください。
 
 ### dev 環境
 
@@ -245,5 +274,4 @@ scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/
 
 ### 関連ドキュメント
 
-- [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md): ログバックフィル実装サマリー
-- [README_BACKFILL.md](./README_BACKFILL.md): バックフィル詳細ガイド
+- [backfill-runbook.md](./backfill-runbook.md): バックフィル詳細ガイド

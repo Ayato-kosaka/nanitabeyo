@@ -26,7 +26,9 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+import { computePreloadIds } from "@/features/dishMedia/preloadWindow";
 import { useContentWidth } from "@/hooks/useContentWidth";
+import { FixedColors } from "@/constants/Palette";
 
 // #958 【修正】カルーセルの幅は window 実幅ではなく中央カラム幅に追従させる必要があるため、
 // コンポーネント内の useContentWidth() を使う(下の contentWidth)。height はカルーセルの
@@ -44,7 +46,8 @@ const HANDLE_HEIGHT = 44;
 // #605 【設計】スナップ判定の閾値（0.5 = 中間点）
 const SNAP_THRESHOLD = 0.5;
 // #605 【設計】ハンドルの色（半透明白）
-const HANDLE_COLOR = "#FFFFFFFF";
+// #1509 元表記は 8 桁 HEX "#FFFFFFFF"（alpha FF = 不透明）。FixedColors.onMedia（6 桁 #FFFFFF）と描画は完全に同一
+const HANDLE_COLOR = FixedColors.onMedia;
 // #638 【設計】フローティングボタンのマージン（右端からの距離）
 const FLOATING_BUTTON_MARGIN = 8;
 
@@ -83,9 +86,23 @@ export default function DishMediaMap({
 	// 画面を開いた時点の並びを固定するための state
 	// liked/unlike 等のリアルタイム反映は行わない
 	const [ids, setIds] = useState<string[]>(() => liveIds);
+	// #1629【35】固定した並びから «削除されたもの» だけ落とす。
+	// 理由と «liveIds を判定に使わない» 理由は `DishMediaFeed.tsx` の同じ箇所に書いてある
+	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
+	// #1629【40】背景画像のセッションを «並びの文字列» で作らない理由は
+	// `DishMediaFeed.tsx` の同じ箇所（`idsSession`）に書いてある。両画面で同じ規則にする
+	const [idsSession, setIdsSession] = useState(0);
 	useEffect(() => {
-		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
-	}, [liveIds, ids.length]);
+		if (ids.length === 0) {
+			if (liveIds.length > 0) {
+				setIds(liveIds);
+				setIdsSession((session) => session + 1);
+			}
+			return;
+		}
+		if (!ids.some((id) => deletedIds[id])) return;
+		setIds((prev) => prev.filter((id) => !deletedIds[id]));
+	}, [liveIds, ids, deletedIds]);
 	const restaurants = useMemo(() => {
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
@@ -106,17 +123,47 @@ export default function DishMediaMap({
 	}, [ids, idType]);
 
 	// #802 【責務分離】Map は ids とレイアウト/Carousel 制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
+	// #1629【40】⚠️ ここへ `ids.join(",")` を戻さないこと（`DishMediaFeed.tsx` の設計コメント）
 	const backgroundImagesSessionKey = useMemo(
-		() => `${entriesKey}::${idType}::${ids.join(",")}`,
-		[entriesKey, idType, ids],
+		() => `${entriesKey}::${idType}::${idsSession}`,
+		[entriesKey, idType, idsSession],
 	);
+	const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+	/*
+	#1375（全画面のクラッシュ棚卸し）**preload は «見えている周辺» だけ。**
+
+	以前は ids 全件を同時に `Image.loadAsync` していた。全画面サイズのビットマップを
+	一斉にデコードするので、開いた瞬間にメモリが跳ね、Android の低メモリ端末で落ちる。
+	`DishMediaFeed` は同じ理由で既に窓化してあり（そちらのコメント参照）、
+	**この検索結果カルーセルだけが全件のまま残っていた。** 窓の外は表示時に通常経路で読まれる。
+	*/
+	/*
+	#1629【30】⚠️ **お店提案（`search/result.tsx`）が使っているのはこの Map であって Feed ではない。**
+
+	オーナー実機報告（2026-08-27）:
+
+	> このお店提案は 5 件しか表示されないんで、今の状態だとチカチカするんですよね。
+	> 今までこのお店提案はそんな性能が悪かったことないんで、そういう先読みは
+	> あえて入れてないんですよ。むしろチカチカして見にくい。
+
+	これを受けて `DishMediaFeed` 側だけを直し「直った」と報告したが、**お店提案は
+	この `DishMediaMap` を描いている**（`search/result.tsx:203`。コメントの
+	「店舗5件のローディング画面」がその画面）。直した先が違ったので、実機では
+	何も変わっていなかった（2026-08-28 にオーナーから «まだチカチカする» と再指摘）。
+
+	`useDishMediaBackgroundImageResources` は集合から外れた画像を release するので、
+	窓が動くたびに «取得 → 破棄 → 取得» が繰り返される。件数が窓より少し多いだけの
+	画面（お店提案は 5 件）ではこれが毎回起きる。**判断のロジックは Feed と同じ
+	`computePreloadIds` に一本化する**（しきい値を 2 箇所に散らすと、また片方だけ直す）。
+	*/
+	const preloadIds = useMemo(() => computePreloadIds(ids, currentIndex), [ids, currentIndex]);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
-		ids,
+		ids: preloadIds,
 		idType,
 		sessionKey: backgroundImagesSessionKey,
 	});
 
-	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
@@ -317,6 +364,11 @@ export default function DishMediaMap({
 						id={item}
 						carouselRef={carouselRef}
 						isActive={index === currentIndex}
+						// #1375（全画面のクラッシュ棚卸し）動画プレイヤーは «見えている ±1» だけ実体化する。
+						// 既定は true なので、指定しないとカルーセルがマウントしたセルぶん
+						// デコーダが同時に立つ（`DishMediaContent` の isNearActive の申し送り参照）。
+						// `DishMediaFeed` は同じ理由で既に絞ってあり、ここだけ既定のままだった
+						isNearActive={Math.abs(index - currentIndex) <= 1}
 						getTitle={getTitle}
 						sessionId={sessionId.current}
 						entriesKey={entriesKey}
@@ -324,6 +376,10 @@ export default function DishMediaMap({
 						onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
 						displayIndex={index}
 						backgroundImageState={getBackgroundImageState(item)}
+						// #1375 実機確認（3 巡目）: 検索動線のフィードに「食べたを記録」は出さない。
+						// 探している段階で記録する人は居ない（オーナー判断）。記録の入口は
+						// my-dishes（保存後の棚）と店舗フィード側にある
+						showRecordEaten={false}
 					/>
 				</ErrorBoundary>
 			</View>
@@ -377,7 +433,10 @@ export default function DishMediaMap({
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
-							color={index === currentIndex ? "#F05537" : "#FFF"}
+							color={
+								// 地図タイルは常にライト配色のため、ピンはテーマで振らない（FixedColors 参照）
+								index === currentIndex ? FixedColors.brandOnMap : FixedColors.mapMarkerSurface
+							}
 							isActive={index === currentIndex}
 						/>
 					))}
@@ -391,8 +450,9 @@ export default function DishMediaMap({
 					<PrimaryButton
 						label={i18n.t("Map.buttons.openInGoogle")}
 						onPress={handleOpenInGoogleMaps}
-						labelStyle={{ color: "#F05537" }}
-						colors={["#FDEBE7", "#FDEBE7"]}
+						// 地図の上に浮くボタン。地図タイルが常にライト配色のため、テーマで振らない（FixedColors 参照）
+						labelStyle={{ color: FixedColors.brandOnMap }}
+						colors={[FixedColors.brandTintOnMap, FixedColors.brandTintOnMap]}
 						shadowColor="transparent"
 						borderRadius={8}
 					/>
@@ -431,7 +491,7 @@ export default function DishMediaMap({
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	mapContainer: {
 		position: "absolute",
@@ -470,7 +530,7 @@ const styles = StyleSheet.create({
 		height: 5,
 		borderRadius: 2.5,
 		backgroundColor: HANDLE_COLOR,
-		shadowColor: "#000",
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.55,
 		shadowRadius: 3,
@@ -494,7 +554,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		borderRadius: 24,
 		overflow: "hidden",
-		shadowColor: "#000",
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
 		shadowRadius: 32,
@@ -504,11 +564,11 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	loadingText: {
 		marginTop: 16,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		fontSize: 16,
 	},
 	// #940 【修正】mapContainer(zIndex:1)より前面に絶対配置し、地図の下敷きにならないようにする
@@ -525,7 +585,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 	},
 	errorText: {
-		color: "#FF6B6B",
+		color: FixedColors.errorOnMedia,
 		fontSize: 16,
 		textAlign: "center",
 		paddingHorizontal: 20,

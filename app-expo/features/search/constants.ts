@@ -1,6 +1,6 @@
 // Constants and option data for the search feature
 import i18n from "@/lib/i18n";
-import type { TutorialPageConst } from "./components/TutorialBottomSheet";
+import { ONBOARDING_IMAGES } from "@/features/onboarding/constants";
 
 export const timeSlots = [
 	{ id: "morning", label: "Search.timeSlots.morning", icon: "🌅", image: require("./assets/timeSlots/morning.webp") },
@@ -143,42 +143,19 @@ export const MOOD_ICON_SIZES = {
 	heavy: 40,
 } as const;
 
-export const TUTORIAL_PAGES = [
-	{
-		image: require("@/assets/images/tutorial/search-page1.webp"),
-		titleKey: "Search.tutorial.page1.title",
-		bodyLineKeys: ["Search.tutorial.page1.body1", "Search.tutorial.page1.body2"],
-		primaryCtaLabelKey: "Search.tutorial.page1.cta",
-	},
-	{
-		image: require("@/assets/images/tutorial/search-page2.webp"),
-		titleKey: "Search.tutorial.page2.title",
-		bodyLineKeys: ["Search.tutorial.page2.body1", "Search.tutorial.page2.body2"],
-		primaryCtaLabelKey: "Search.tutorial.page2.cta",
-	},
-	{
-		image: require("@/assets/images/tutorial/search-page3.webp"),
-		titleKey: "Search.tutorial.page3.title",
-		bodyLineKeys: ["Search.tutorial.page3.body1", "Search.tutorial.page3.body2"],
-		primaryCtaLabelKey: "Search.tutorial.page3.cta",
-	},
-	{
-		image: require("@/assets/images/tutorial/search-page4.webp"),
-		titleKey: "Search.tutorial.page4.title",
-		bodyLineKeys: ["Search.tutorial.page4.body1", "Search.tutorial.page4.body2"],
-		primaryCtaLabelKey: "Search.tutorial.page4.primaryCta",
-		secondaryCtaLabelKey: "Search.tutorial.page4.secondaryCta",
-	},
-] as const satisfies readonly TutorialPageConst[];
-
 // 先読みする画像の配列
+//
+// #1486 §2【要件】オンボーディングの 6 枚は「表示前にプリロード + デコード」する。
+// 先読みの実体は検索画面末尾のオフスクリーンブロック（app/[locale]/(tabs)/search/index.tsx）で、
+// 検索画面はオンボーディングが開く «前» に必ずマウントされるため（初回導線は検索画面から push する）、
+// ここへ載せておけばページ送りでロード待ちが起きない。
+//
+// ⚠️ 増減させたら e2e-web/utils/preload-assets.ts の `PRELOAD_ASSET_PATTERNS` も更新すること。
 export const PRELOAD_IMAGES = [
-	// 検索チュートリアル画像
-	...TUTORIAL_PAGES.map((page) => page.image),
-	// アプリアイコン画像
+	// オンボーディング画像（共感 3 枚 + 解決 3 枚）
+	...ONBOARDING_IMAGES,
+	// アプリアイコン画像（オンボーディングの権限説明・Welcome でも使う）
 	require("@/assets/images/icon.webp"),
-	// レビュー機能のヒーロー画像
-	require("@/features/review/assets/review-hero.webp"),
 	// Apple アイコン画像
 	require("@/assets/images/logo_apple_icon.png"),
 	// Google アイコン画像

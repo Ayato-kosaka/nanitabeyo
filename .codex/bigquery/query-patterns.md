@@ -1,5 +1,10 @@
 # BigQuery Query Patterns
 
+> **Before running any of these queries:** the `*_event_logs` views cannot prune partitions,
+> so a time-ranged query against them costs 18.4 GB/day instead of ~77 MB.
+> Rewrite time-ranged queries onto `run_googleapis_com_stdout` filtered on `timestamp`.
+> See [safety-policy.md](./safety-policy.md).
+
 Before running these against production, read:
 
 - `.codex/bigquery/access.md`

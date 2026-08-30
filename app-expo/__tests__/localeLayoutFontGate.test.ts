@@ -19,7 +19,15 @@ import * as ts from "typescript";
 const LAYOUT_RELATIVE_PATH = path.join("app", "[locale]", "_layout.tsx");
 const LAYOUT_PATH = path.join(__dirname, "..", LAYOUT_RELATIVE_PATH);
 const FONT_HOOK_NAME = "useLocaleFonts";
-const COMPONENT_NAME = "RootLayout";
+/**
+ * 検査対象は「実際にツリーを描画するコンポーネント」。
+ *
+ * #1509 でテーマ（ダークモード）の解決を入れるにあたり、`ThemeProvider` の中でしか
+ * `useAppTheme()` を呼べないため `RootLayout` は Provider を張るだけの薄い殻になり、
+ * 中身は `LocaleLayout` へ切り出された。`useLocaleFonts` とフォントゲートが居るのは
+ * こちら側なので、検査対象も合わせて移してある（#1092 の不変条件そのものは変えていない）。
+ */
+const COMPONENT_NAME = "LocaleLayout";
 
 const source = ts.createSourceFile(
 	LAYOUT_PATH,

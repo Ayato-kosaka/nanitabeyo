@@ -4,7 +4,7 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAwareForm } from "@/features/blurModal/components/KeyboardAwareForm";
+import { KeyboardAwareForm } from "@/components/KeyboardAwareForm";
 import { AvatarImageCard } from "./AvatarImageCard";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -14,6 +14,8 @@ import type { UpdateUserProfileDto } from "@shared/api/v1/dto";
 import type { GetUserProfileResponse, UpdateUserProfileResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useProfileStore } from "../stores/useProfileStore";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 // #481 【仕様】APIと揃えた文字数制限
 const DISPLAY_NAME_MAX_LENGTH = 30;
@@ -21,17 +23,22 @@ const BIO_MAX_LENGTH = 150;
 
 const FIELD = ["display_name", "avatar", "bio"] as const;
 interface ProfileEditFormProps {
-	/** Called when user cancels (usually to close modal) */
-	onCancel: () => void;
-	/** Called to close the modal */
-	close: () => void;
+	/**
+	 * 保存が成功したときに呼ばれる。
+	 *
+	 * #1369 モーダル時代の `close` / `onCancel` を置き換えたもの。呼び出し元は
+	 * `app/[locale]/(tabs)/profile/edit.tsx` の 1 箇所で、「閉じる」ではなく
+	 * 「保存できたので画面を離れる」という意味になった。キャンセルの導線は
+	 * 画面側の ScreenHeader（戻る）が持つため、このフォームは受け取らない。
+	 */
+	onSaved: () => void;
 }
 
 /**
  * Profile edit form component that manages its own internal state to prevent
  * Japanese IME composition issues. Only communicates final values back to parent.
  */
-export function ProfileEditForm({ close }: ProfileEditFormProps) {
+export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 	const { mediumImpact } = useHaptics();
 	// #467 【設計】プロフィール更新はストア経由で行う
 	const updateProfile = useProfileStore((state) => state.updateProfile);
@@ -40,6 +47,8 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 	const { uploadFile } = useFileUploader();
 	const { showSnackbar } = useSnackbar();
 	const insets = useSafeAreaInsets();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 
 	const profile = useProfileStore((s) => s.profile);
 
@@ -171,7 +180,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 						}
 					: null,
 			);
-			close();
+			onSaved();
 			logFrontendEvent({
 				event_name: "profile_edit_saved",
 				error_level: "log",
@@ -202,7 +211,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 		callBackend,
 		display_name,
 		bio,
-		close,
+		onSaved,
 		showSnackbar,
 		profile,
 	]);
@@ -232,7 +241,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 							onFocus={onFocusFactory("display_name")}
 							multiline={false}
 							placeholder={i18n.t("Profile.placeholders.enterDisplayName")}
-							placeholderTextColor="#666"
+							placeholderTextColor={colors.textMuted}
 							textAlignVertical="center"
 							returnKeyType="next"
 							maxLength={DISPLAY_NAME_MAX_LENGTH}
@@ -254,7 +263,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 							multiline
 							numberOfLines={4}
 							placeholder={i18n.t("Profile.placeholders.enterBio")}
-							placeholderTextColor="#666"
+							placeholderTextColor={colors.textMuted}
 							textAlignVertical="top"
 							returnKeyType="default"
 							maxLength={BIO_MAX_LENGTH}
@@ -271,44 +280,48 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 	);
 }
 
-const styles = StyleSheet.create({
-	label: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		marginBottom: 8,
-	},
-	input: {
-		backgroundColor: "#F8F9FA",
-		borderRadius: 12,
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		fontSize: 15,
-		color: "#1A1A1A",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 2,
-		elevation: 1,
-		minHeight: 48,
-	},
-	bioInput: { minHeight: 80 },
-	// #481 【設計】FeedbackForm パターンに合わせたエラー/カウンター表示スタイル
-	inputError: {
-		borderWidth: 1,
-		borderColor: "#DC2626",
-		backgroundColor: "#FEF2F2",
-	},
-	characterCount: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "right",
-		marginTop: 4,
-	},
-	errorText: {
-		fontSize: 14,
-		color: "#DC2626",
-		fontWeight: "500",
-		marginTop: 4,
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		label: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textPrimary,
+			marginBottom: 8,
+		},
+		input: {
+			backgroundColor: c.surfaceMuted,
+			borderRadius: 12,
+			paddingHorizontal: 12,
+			paddingVertical: 12,
+			fontSize: 15,
+			color: c.textPrimary,
+			// 影はテーマに依らず黒。暗面では実質見えないだけで、値としては黒のままでよい
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 1 },
+			shadowOpacity: 0.05,
+			shadowRadius: 2,
+			elevation: 1,
+			minHeight: 48,
+		},
+		bioInput: { minHeight: 80 },
+		// #481 【設計】FeedbackForm パターンに合わせたエラー/カウンター表示スタイル
+		inputError: {
+			borderWidth: 1,
+			borderColor: c.danger,
+			backgroundColor: c.dangerTintSoft,
+		},
+		characterCount: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "right",
+			marginTop: 4,
+		},
+		errorText: {
+			fontSize: 14,
+			color: c.danger,
+			fontWeight: "500",
+			marginTop: 4,
+		},
+	});

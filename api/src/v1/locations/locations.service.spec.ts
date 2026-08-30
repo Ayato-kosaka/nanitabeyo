@@ -401,7 +401,15 @@ describe('LocationsService', () => {
       sessionToken: 'test-session-token',
     };
 
-    /** Autocomplete (New) の suggestion 形式でモック候補を作る */
+    /**
+     * Autocomplete (New) の suggestion 形式でモック候補を作る。
+     *
+     * ⚠️ #1673 `text` は **secondaryText が先・mainText が後**である。
+     * Google Autocomplete は languageCode: ja では日本語の住所順で text を返す
+     * (mainText「渋谷駅」/ secondaryText「日本、東京都渋谷区」→ text「日本、東京都渋谷区 渋谷駅」)。
+     * ここを逆順(`mainText、secondaryText`)で作っていたため、#1502 が text を画面表示に
+     * 使ったときの「主たる地名が末尾へ回る」現象を、どの検証でも観測できなかった。
+     */
     const buildSuggestion = (
       placeId: string,
       mainText: string,
@@ -410,7 +418,7 @@ describe('LocationsService', () => {
     ) => ({
       placePrediction: {
         placeId,
-        text: { text: `${mainText}、${secondaryText}` },
+        text: { text: `${secondaryText} ${mainText}` },
         structuredFormat: {
           mainText: { text: mainText },
           secondaryText: { text: secondaryText },

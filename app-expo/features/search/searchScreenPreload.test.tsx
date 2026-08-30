@@ -65,6 +65,9 @@ jest.mock("@/hooks/useLocationSearch", () => ({
 	}),
 }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+// #1196 検索画面は海外未対応の案内(ダイアログ)のため useDialog を使う。Provider 無しで
+// レンダリングすると useDialog が throw して suite ごと落ちるため、他の context と同様スタブ化する
+jest.mock("@/contexts/DialogProvider", () => ({ useDialog: () => ({ showDialog: jest.fn(), confirm: jest.fn() }) }));
 // #1087 【修正】このモックが無いと suite ごとロードに失敗する。
 // useAutoCurrentLocation → AuthProvider → lib/supabase → constants/Env と芋づるに読み込まれ、
 // Env が `Constants.expoConfig.extra.eas.projectId` を触るが、jest-expo は app.config.ts を
@@ -76,13 +79,13 @@ jest.mock("@/features/search/hooks/useAutoCurrentLocation", () => ({
 jest.mock("@/features/search/hooks/useRecentLocations", () => ({
 	useRecentLocations: () => ({ recentLocations: [], addRecentLocation: jest.fn(), clearRecentLocations: jest.fn() }),
 }));
-jest.mock("@/features/search/hooks/useSearchTutorial", () => ({
-	// 自動チュートリアル表示側の分岐にしておく(現在地取得の非同期 state 更新を持ち込まない)
-	useSearchTutorial: () => ({ hasSeenTutorial: false, isLoading: false, markTutorialAsSeen: jest.fn() }),
+// #1486 既読済みにしておく。未読だとオンボーディングへ router.push が走り、
+// これらのテストが見たい «検索画面そのもの» の検証にノイズが乗る
+jest.mock("@/features/onboarding/hooks/useOnboardingSeen", () => ({
+	useOnboardingSeen: () => true,
 }));
 jest.mock("@/components/LocationAutocomplete", () => ({ LocationAutocomplete: () => null }));
 jest.mock("@/components/PrimaryButton", () => ({ PrimaryButton: () => null }));
-jest.mock("@/features/search/components/TutorialBottomSheet", () => ({ TutorialBottomSheet: () => null }));
 jest.mock("@/features/search/components/DistanceSlider", () => ({ DistanceSlider: () => null }));
 jest.mock("@/features/search/components/PriceLevelsMultiSelect", () => ({ PriceLevelsMultiSelect: () => null }));
 jest.mock("@/features/search/components/SelectableGridItem", () => ({ SelectableGridItem: () => null }));

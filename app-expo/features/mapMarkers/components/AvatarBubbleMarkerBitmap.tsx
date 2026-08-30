@@ -11,6 +11,7 @@ import {
 	INACTIVE_COLOR_HEX,
 } from "./MarkerBitmapRendererProvider";
 import { BubblePinBitmap } from "./BubblePinBitmap";
+import { FixedColors } from "@/constants/Palette";
 
 /**
  * #235 AvatarBubbleMarkerBitmap
@@ -48,7 +49,11 @@ type Props = RNMarkerProps & {
 // ※必ず存在するローカルアセットを使うこと
 const PLACEHOLDER_IMAGE = require("../assets/marker-placeholder.png");
 
-export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ...props }: Props) {
+/*
+#1629 【設計】既定色をテーマで振らない理由は `BubblePinBitmap` と同じ。
+生成物（PNG）が地図タイルの上に置かれ、タイルは常にライト配色だからである。
+*/
+export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = FixedColors.mapMarkerSurface, ...props }: Props) {
 	const store = useMarkerBitmapRenderer();
 
 	// ----------------------------

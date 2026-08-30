@@ -7,13 +7,31 @@
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"types": ["node"],
+		// #1375 `@shared/api/v1/res` から型を引くと、その先で DTO（class-validator の
+		// デコレータを持つクラス）まで型検査の対象になる。api / shared と同じ設定を
+		// 入れておかないと «Unable to resolve signature of property decorator» で落ちる。
+		// Playwright 実行時の変換には影響しない（この tsconfig は型検査専用）
+		"experimentalDecorators": true,
 		"noEmit": true,
+		// #1590 【設計】`@shared/*` は dist ではなく **ソース**を直接引く（下の paths）。
+		// shared の DTO は class-validator のデコレータを使っており、これが無いと
+		// `TS1240 Unable to resolve signature of property decorator` で型検査が落ちる。
+		// shared/tsconfig.json・api/tsconfig.json と同じ値へそろえてある。
+		// （型検査専用の config で emit しないため、実行時の挙動には影響しない）
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
 		"baseUrl": ".",
 		// #1120 API モックのレスポンスを手書きの型ではなく shared の公開型で組み立てるため。
 		// 型が変わったらモックが型エラーで落ちる = 実 API とモックの乖離に気づける
 		// （app-expo/tsconfig.json と同じ別名にそろえている）
 		"paths": {
-			"@shared/*": ["../shared/*"]
+			"@shared/*": ["../shared/*"],
+			// #1503 直リンクスモークが回す公開ルートの一覧を app-expo と共有するため。
+			// spec 側に URL を手書きすると、ルートが増えたときに必ず置いていかれる
+			//（実際 REL-01 では 4 ルート中 2 本しか spec が無かった）。
+			// 参照先は react / expo に依存しない純粋なモジュールに限ること
+			//（Playwright は TS をそのまま変換するだけで、RN のバンドラは通らない）。
+			"@app-expo/*": ["../app-expo/*"]
 		}
 	},
 	"include": ["playwright.config.ts", "tests/**/*.ts", "fixtures/**/*.ts", "pages/**/*.ts", "utils/**/*.ts"]

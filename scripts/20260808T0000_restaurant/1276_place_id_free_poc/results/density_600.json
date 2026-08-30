@@ -1,0 +1,22 @@
+{
+  "points": 600,
+  "usable_points": 584,
+  "truncated_points": 16,
+  "google_places": 3938,
+  "open_data_rows": 6040,
+  "database_rows": 396,
+  "open_data_per_google": 1.5338,
+  "database_per_google": 0.1006,
+  "google_ids_present_in_database": 388,
+  "google_ids_seen": 4258,
+  "database_hit_rate": 0.0911,
+  "radius_histogram": {
+    "30": 102,
+    "60": 94,
+    "120": 356,
+    "15": 48
+  },
+  "requests": 1042,
+  "http_errors": 0,
+  "sku": "Nearby Search (IDs Only) のみ = $0.00"
+}

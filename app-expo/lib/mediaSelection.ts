@@ -19,7 +19,13 @@ export interface MediaData {
 interface MediaSelectionResult {
 	success: boolean;
 	media?: MediaData;
-	error?: "cancelled" | "permission_denied" | "video_too_long" | "thumbnail_failed" | "unknown";
+	error?:
+		| "cancelled"
+		| "permission_denied"
+		| "video_too_long"
+		| "thumbnail_failed"
+		| "unsupported_image_format"
+		| "unknown";
 	errorMessage?: string;
 }
 
@@ -29,6 +35,25 @@ function isVideoAsset(asset: ImagePicker.ImagePickerAsset): boolean {
 	if (mt.startsWith("video/")) return true;
 	const ext = asset.fileName?.split(".").pop()?.toLowerCase();
 	return ext === "mp4" || ext === "mov" || ext === "m4v";
+}
+
+/**
+ * #1425 サーバがデコードできない画像形式か。現状は HEIC / HEIF のみ。
+ *
+ * `mimeType` は端末・プラットフォームによって欠けることがあるため、
+ * ファイル名と URI の拡張子もあわせて見る（Android は mimeType を返さない場合がある）。
+ *
+ * ⚠️ ここを「EXTENSION_TABLE に無いものは全部弾く」へ広げないこと。
+ * 現状たまたま通っている形式まで巻き込んで、直っていたものを壊す。
+ * 実測で失敗が確認されている HEIC / HEIF だけを対象にする。
+ */
+function isUnsupportedImageAsset(asset: { mimeType?: string | null; fileName?: string | null; uri?: string }): boolean {
+	const mimeType = asset.mimeType?.toLowerCase() ?? "";
+	if (mimeType === "image/heic" || mimeType === "image/heif") return true;
+
+	// クエリ文字列やフラグメントを落としてから拡張子を見る
+	const name = (asset.fileName ?? asset.uri ?? "").toLowerCase().split(/[?#]/)[0] ?? "";
+	return name.endsWith(".heic") || name.endsWith(".heif");
 }
 
 // ミリ秒/秒 混在に耐える正規化
@@ -45,12 +70,16 @@ function normalizeToSeconds(raw?: number | null): number | null {
 /**
  * Request media library permissions
  */
-async function requestPermissions(): Promise<boolean> {
+async function requestPermissions(source: "library" | "camera"): Promise<boolean> {
 	if (Platform.OS === "web") {
 		return true; // Web doesn't need permission
 	}
 
-	const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+	// #1375 4 巡目: カメラ起動（その場で撮って記録する導線）はカメラ権限を取る
+	const { status } =
+		source === "camera"
+			? await ImagePicker.requestCameraPermissionsAsync()
+			: await ImagePicker.requestMediaLibraryPermissionsAsync();
 	return status === "granted";
 }
 
@@ -154,6 +183,11 @@ export async function selectMedia(
 		shouldGenerateThumbnail?: boolean;
 		allowsEditing?: boolean;
 		aspect?: [number, number];
+		/**
+		 * #1375 4 巡目: `"camera"` はフォトライブラリではなく **カメラを起動してその場で撮る**。
+		 * web はカメラ起動をサポートしないのでライブラリへ縮退する。既定は `"library"`
+		 */
+		source?: "library" | "camera";
 	},
 ): Promise<MediaSelectionResult> {
 	try {
@@ -166,8 +200,11 @@ export async function selectMedia(
 			return { success: true, media: e2eMedia };
 		}
 
+		// web にはカメラ起動が無いのでライブラリへ縮退する
+		const source = options?.source === "camera" && Platform.OS !== "web" ? "camera" : "library";
+
 		// Request permissions
-		const hasPermission = await requestPermissions();
+		const hasPermission = await requestPermissions(source);
 		if (!hasPermission) {
 			return {
 				success: false,
@@ -175,8 +212,7 @@ export async function selectMedia(
 			};
 		}
 
-		// Launch picker
-		const result = await ImagePicker.launchImageLibraryAsync({
+		const pickerOptions: ImagePicker.ImagePickerOptions = {
 			mediaTypes,
 			allowsMultipleSelection: false,
 			quality: 1,
@@ -205,7 +241,13 @@ export async function selectMedia(
 			// （HEVC ではなく互換表現が返りうる）が、動画の MIME は video/mp4・video/quicktime とも
 			// EXTENSION_TABLE にあり、どちらでも壊れないため許容する。
 			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
-		});
+		};
+
+		// Launch picker（camera はその場で撮影。以降の検証・サムネ生成は共通）
+		const result =
+			source === "camera"
+				? await ImagePicker.launchCameraAsync(pickerOptions)
+				: await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
 		if (result.canceled) {
 			return { success: false, error: "cancelled" };
@@ -214,6 +256,19 @@ export async function selectMedia(
 		const asset = result.assets[0];
 		if (!asset) {
 			return { success: false, error: "unknown" };
+		}
+
+		// #1425 【バグ】サーバが HEIC をデコードできないので、選ばせた時点で断る。
+		//
+		// #1156 の `preferredAssetRepresentationMode: Compatible` は **iOS 限定**で、
+		// Android と web では無視される。Samsung / Pixel の「高効率」設定は HEIC で保存するため、
+		// Android のフォトピッカーは HEIC をそのまま返しうる。
+		//
+		// ここで断らないと «アップロードは 200 で成功 → 投稿後に静かに failed» になり、
+		// フィードには「このメディアは現在ご利用いただけません」とだけ出る。
+		// サーバ側（#1425）は恒久失敗として畳むだけで、画像が見えるようにはならない。
+		if (!isVideoAsset(asset) && isUnsupportedImageAsset(asset)) {
+			return { success: false, error: "unsupported_image_format" };
 		}
 
 		const isVideo = isVideoAsset(asset);

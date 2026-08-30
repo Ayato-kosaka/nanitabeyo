@@ -13,11 +13,11 @@ const SCREEN_TRACE_PREFIX = "screen_";
  * タブ切り替えでは React Navigation の画面はアンマウントされず、`(tabs)/_layout.tsx` にも
  * unmountOnBlur 相当の設定がないため、マウント基準だと一度開いた各タブのトレースが
  * タブナビゲータ破棄まで並行して走り続け、収集値が画面滞在時間ではなくセッション長に近くなる。
- * Stack で別画面に覆われた場合（search の index が topics の背後に残るケース）も同様にblurで停止する。
+ * Stack で別画面に覆われた場合（search の index が dishCategories の背後に残るケース）も同様にblurで停止する。
  *
  * Web版は useScreenTrace.web.ts のno-op実装に差し替わる（#957のWeb RUMで計測基盤は完結済みのため）。
  *
- * @param screenName トレース名に使う画面識別子（例: "Topics"）
+ * @param screenName トレース名に使う画面識別子（例: "DishCategories"）
  */
 export function useScreenTrace(screenName: string): void {
 	useFocusEffect(

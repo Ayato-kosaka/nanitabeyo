@@ -1,24 +1,28 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
+import { FixedColors } from "@/constants/Palette";
 import { Text } from "react-native";
 import Stars from "@/components/Stars";
-import { useAPICall } from "@/hooks/useAPICall";
-import type { QueryRestaurantDishMediaDto } from "@shared/api/v1/dto";
-import type { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
 import { useDishMediaEntriesStore, selectIdsByKey, selectEntryByMediaId } from "@/stores/useDishMediaEntriesStore";
-import { useHaptics } from "@/hooks/useHaptics";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { FeedDishMediaViewer } from "../FeedDishMediaViewer";
+import { useRestaurantDishMediaFetcher } from "../../hooks/useRestaurantDishMediaFetcher";
 import { shallow } from "zustand/shallow";
 import { mapReviewsKey } from "../../constants";
 
 interface RestaurantReviewsTabProps {
 	/** レストランID（Google Place ID） */
 	restaurantId: string;
-	/** レビューアイテムをタップした時のハンドラ: index, dishMediaId を渡す */
-	onItemPress?: (index: number, dishMediaId: string) => void;
+	/**
+	 * レビューアイテムをタップした時のハンドラ: index, dishMediaId を渡す。
+	 *
+	 * #1386 【設計】必須にしてある。以前は «未指定なら自分で `DishMediaModal`（BlurModal・既定 z1100）を
+	 * 重ねてフィードを出す» という第 2 の挙動を持っていて、同じタブが呼び出し元によって
+	 * 「push する / オーバーレイを重ねる」のどちらにもなっていた。重なり順は呼び出し側の
+	 * 手動 zIndex 任せで、親（店詳細シート）と同値のまま下へ潜りうる状態だった（#1350 §D）。
+	 * 押した先を決めるのは «画面» の責務なので、ここでは受け取るだけにする。
+	 */
+	onItemPress: (index: number, dishMediaId: string) => void;
 }
 
 /**
@@ -28,44 +32,32 @@ interface RestaurantReviewsTabProps {
  * 3列のグリッドレイアウトで表示する。
  */
 export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantReviewsTabProps) {
-	const { callBackend } = useAPICall();
-	const { lightImpact } = useHaptics();
-	const { BlurModal: DishMediaModal, open: openDishMediaModal } = useBlurModal();
-	const [selectedDishMediaIndex, setSelectedDishMediaIndex] = useState<number>(0);
-
 	// #454 【設計】画面用途キー "mapReviews" でストアからデータ取得
 	const entriesKey = useMemo(() => mapReviewsKey(restaurantId), [restaurantId]);
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
-	const { ids, isLoading, hasFetchedInitial } = useDishMediaEntriesStore(
+	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey, "dish_media"),
 		shallow,
 	);
 
 	// #454 【設計】データ取得用の fetcher 関数
-	const fetcher = useCallback(
-		async ({ cursor }: { cursor?: string | null }) => {
-			const response = await callBackend<QueryRestaurantDishMediaDto, QueryRestaurantDishMediaResponse>(
-				`v1/restaurants/${restaurantId}/dish-media`,
-				{
-					method: "GET",
-					requestPayload: cursor ? { cursor } : {},
-				},
-			);
-			return {
-				data: response.data || [],
-				nextCursor: response.nextCursor,
-			};
-		},
-		[callBackend, restaurantId],
-	);
+	// #1386 フィードのルートと共有するため hooks/useRestaurantDishMediaFetcher.ts へ移した
+	const fetcher = useRestaurantDishMediaFetcher(restaurantId);
 
 	// コンポーネントのマウント時、またはレストランIDが変更された時にデータを初期読み込み
+	//
+	// ⚠️ `!error` を必ず条件へ入れること。取得が失敗したときストアは `hasFetchedInitial` を
+	// false のまま `isLoading` を false へ戻すので（stores/useDishMediaEntriesStore.ts の
+	// handleAsyncAction）、error を見ないと **失敗するたびに再取得して無限ループする**。
+	// #1388 のレビュー指摘: 同じ entriesKey・同じ fetcher を使う feed ルート
+	// （app/[locale]/restaurant/[restaurantId]/feed.tsx）にはこのガードが
+	// 入っていたが、こちら側だけ抜けていた。«同じものが 2 つあって片方だけ直る» 形なので揃える
 	useEffect(() => {
-		if (restaurantId && !hasFetchedInitial && !isLoading) {
+		if (restaurantId && !hasFetchedInitial && !isLoading && !error) {
 			fetchInitialByKey(entriesKey, {}, fetcher);
 		}
-	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
+	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading, error]);
 
 	// クリーンアップ用（entriesKey が変わる/アンマウント時だけ）
 	useEffect(() => {
@@ -76,15 +68,9 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 
 	const handleItemPress = useCallback(
 		(index: number, dishMediaId: string) => {
-			if (onItemPress) {
-				onItemPress(index, dishMediaId);
-			} else {
-				lightImpact();
-				setSelectedDishMediaIndex(index);
-				openDishMediaModal();
-			}
+			onItemPress(index, dishMediaId);
 		},
-		[lightImpact, openDishMediaModal, onItemPress],
+		[onItemPress],
 	);
 
 	// グリッドアイテムのレンダリング関数
@@ -97,7 +83,7 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 				<ImageCard
 					item={{
 						id: entry.dish_media.id,
-						imageUrl: entry.dish_media.thumbnailImageUrl,
+						imageUrl: entry.dish_media.thumbnailImageUrl ?? "",
 						title: entry.dish.name ?? undefined,
 					}}
 					onPress={() => handleItemPress(index, entry.dish_media.id)}>
@@ -123,21 +109,16 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 	}, [entriesKey, fetchInitialByKey, fetcher]);
 
 	return (
-		<>
-			<GridList
-				data={ids.map((id) => ({ id }))}
-				renderItem={renderReviewItem}
-				numColumns={3}
-				contentContainerStyle={styles.reviewsContent}
-				columnWrapperStyle={styles.reviewsRow}
-				onEndReached={handleLoadMore}
-				onRefresh={handleRefresh}
-				refreshing={isLoading}
-			/>
-			<DishMediaModal paddingVertical={0}>
-				<FeedDishMediaViewer initialIndex={selectedDishMediaIndex} entriesKey={entriesKey} />
-			</DishMediaModal>
-		</>
+		<GridList
+			data={ids.map((id) => ({ id }))}
+			renderItem={renderReviewItem}
+			numColumns={3}
+			contentContainerStyle={styles.reviewsContent}
+			columnWrapperStyle={styles.reviewsRow}
+			onEndReached={handleLoadMore}
+			onRefresh={handleRefresh}
+			refreshing={isLoading}
+		/>
 	);
 }
 
@@ -161,7 +142,8 @@ const styles = StyleSheet.create({
 	reviewCardTitle: {
 		fontSize: 12,
 		fontWeight: "600",
-		color: "#FFF",
+		// 写真（ImageCard）の上に載る文字なのでテーマで振らない固定色
+		color: FixedColors.onMedia,
 		marginBottom: 4,
 	},
 	reviewCardRating: {
@@ -170,7 +152,7 @@ const styles = StyleSheet.create({
 	},
 	reviewCardRatingText: {
 		fontSize: 10,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		marginLeft: 4,
 	},
 });

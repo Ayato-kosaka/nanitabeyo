@@ -4,7 +4,7 @@
 // この画面は `react-native` の `SafeAreaView` を使っていた。これは **iOS 専用**の実装で、
 // Android では inset を一切足さない素の View と同じ振る舞いになる（RN 公式ドキュメント記載の制約）。
 // そのため Android だけヘッダーがステータスバーへ食い込んでいた。
-// 見本として指定されたブロック済み料理一覧（profile/blocked-topics.tsx）や、
+// 見本として指定されたブロック済み料理一覧（profile/blocked-dish-categories.tsx）や、
 // 同じくタブ直下の検索・プロフィール画面は `react-native-safe-area-context` を使っており、
 // こちらは Android でも inset を適用する。
 //
@@ -135,12 +135,47 @@ describe("#1130 お知らせ一覧の SafeArea", () => {
 	});
 
 	it("見本のブロック済み料理一覧と同じ SafeArea の出所を使っている", () => {
-		const blockedTopicsSource = fs.readFileSync(
-			path.join(__dirname, "..", "app", "[locale]", "(tabs)", "profile", "blocked-topics.tsx"),
+		const blockedDishCategoriesSource = fs.readFileSync(
+			path.join(__dirname, "..", "app", "[locale]", "(tabs)", "profile", "blocked-dish-categories.tsx"),
 			"utf8",
 		);
 
 		// 見本側が react-native-safe-area-context をやめたらこのテストの前提が崩れるので、そこも固定する
-		expect(blockedTopicsSource).toContain('import { SafeAreaView } from "react-native-safe-area-context"');
+		expect(blockedDishCategoriesSource).toContain('import { SafeAreaView } from "react-native-safe-area-context"');
+	});
+});
+
+/**
+ * #1503 お知らせ一覧のヘッダー testID。
+ *
+ * 【バグ】ログイン済みの分岐にしか `notifications-header-title` が無く、**ゲスト（匿名）向けの
+ * 空画面には付いていなかった**。E2E は web も native も匿名セッションで走るため、
+ * 実際に評価されるのは常にゲスト側の分岐であり、直リンクスモーク
+ *（e2e-web tests/smoke/deep-link.spec.ts）は «画面は出ているのに印が無い» で赤くなっていた
+ *（run 32716114752 / main でも同様に再現）。
+ *
+ * 画面が «描画された印» はどちらの分岐でも同じでなければならない、という不変条件をここで固定する。
+ */
+describe("お知らせ一覧のヘッダー testID", () => {
+	afterEach(() => {
+		mockCurrentUser = mockLoggedInUser;
+	});
+
+	// ⚠️ host 要素（type が文字列のもの）だけを数えること。`findAll` は合成コンポーネントの
+	//    <Text> と、その中身の host 要素の **両方** を返すため、絞らないと必ず 2 件になる
+	const findHeaderTitles = (root: ReactTestInstance): ReactTestInstance[] =>
+		root.findAll((node) => typeof node.type === "string" && node.props?.testID === "notifications-header-title");
+
+	it.each([
+		["ログイン済み", mockLoggedInUser],
+		["ゲスト（匿名）", null],
+	])("%s の画面に notifications-header-title がちょうど 1 つある", (_label, user) => {
+		mockCurrentUser = user;
+		const renderer = render();
+
+		// ⚠️ 「1 つ」まで見るのは、Detox の SafeArea 実測（e2e-mobile の
+		//    notifications-safe-area.test.ts）が «1 件だけ一致する» ことを前提に
+		//    ヘッダーの y 座標を読んでいるため
+		expect(findHeaderTitles(renderer.root)).toHaveLength(1);
 	});
 });
