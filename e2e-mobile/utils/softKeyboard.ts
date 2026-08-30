@@ -43,6 +43,14 @@ function adbQuiet(args: string[]): string {
 		return execFileSync("adb", ["-s", device.id, ...args], {
 			encoding: "utf8",
 			stdio: ["ignore", "pipe", "ignore"],
+			/*
+			#1629 ⚠️ **maxBuffer を既定（1 MB）のままにしないこと。**
+			`dumpsys input_method` の全文は 1 MB を超えることがあり、超えると execFileSync が
+			例外を投げる → ここで握り潰されて空文字が返る → «観測できなかった» が
+			«キーボードが出ている» と区別できなくなる。実際に 1 度これで素通しした。
+			端末側で grep して小さくするのが本筋だが、保険として広げておく。
+			*/
+			maxBuffer: 16 * 1024 * 1024,
 		}).trim();
 	} catch {
 		return "";
@@ -77,9 +85,14 @@ export function enableAndroidSoftKeyboard(): void {
  */
 export function isAndroidSoftKeyboardShown(): boolean | null {
 	if (device.getPlatform() !== "android") return null;
-	const dump = adbQuiet(["shell", "dumpsys", "input_method"]);
-	if (!dump) return null;
-	return /mInputShown=true/.test(dump);
+	/*
+	#1629 **端末側で grep して 1 行だけ持ってくる。**
+	`dumpsys input_method` の全文は大きく、ホスト側で受けると maxBuffer に当たって
+	«観測できなかった» に化ける。欲しいのは `mInputShown=` の 1 行だけである。
+	*/
+	const line = adbQuiet(["shell", "dumpsys input_method | grep -m 1 mInputShown"]);
+	if (!line) return null;
+	return /mInputShown=true/.test(line);
 }
 
 /**
@@ -91,7 +104,20 @@ export function isAndroidSoftKeyboardShown(): boolean | null {
  * @param onMissing 出ていなかったときに投げるエラーメッセージを組み立てる関数
  */
 export function expectSoftKeyboardShown(onMissing: () => string): void {
+	// iOS は観測手段が無いので素通しする（この関数を «iOS でも守っている» と読まないこと）
+	if (device.getPlatform() !== "android") return;
+
 	const shown = isAndroidSoftKeyboardShown();
-	// iOS（null）は観測手段が無いので素通しする。Android で false のときだけ落とす
-	if (shown === false) throw new Error(onMissing());
+	/*
+	⚠️ #1629 **«読めなかった» を «出ている» 扱いにしないこと。**
+	ここを `null` で素通しにしていたため、`dumpsys` の取得に失敗した回が
+	そのまま緑になった。読めないなら «守れていない» のだから落とすのが正しい。
+	*/
+	if (shown === null) {
+		throw new Error(
+			"ソフトウェアキーボードの状態を読めなかった（adb / dumpsys input_method）。" +
+				"出ているかどうか分からないまま «隠れていない» を確認しても意味が無いので落とす。",
+		);
+	}
+	if (!shown) throw new Error(onMissing());
 }
