@@ -8,7 +8,8 @@
 動かない» 段が無くなったので、«未設定なら何もしない» のテストは
 «モジュールが無ければ何もしない» に置き換わっている。
 */
-import { installCrashSdk, resetCrashSdkForTest } from "./crashSdk";
+import { Platform } from "react-native";
+import { installCrashSdk, loadCrashlytics, resetCrashSdkForTest } from "./crashSdk";
 
 // `mock` 始まりの変数名だけが jest.mock の工場から参照できる（jest の制約）
 const mockInstance = { __tag: "crashlytics" };
@@ -39,6 +40,21 @@ beforeEach(() => {
 	mockSetEnabled.mockClear();
 	mockSetAttributes.mockClear();
 	resetCrashSdkForTest();
+});
+
+// TODO(#1641) 一時的な診断。CI でだけ落ちる原因を特定したら必ず消す。
+it("DIAG", () => {
+	let req: string;
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const m = require("@react-native-firebase/crashlytics") as Record<string, unknown> | undefined;
+		req = `ok keys=[${Object.keys(m ?? {}).join("|")}] typeofGet=${typeof m?.getCrashlytics}`;
+	} catch (e) {
+		req = `throw ${String(e)}`;
+	}
+	throw new Error(
+		`DIAG platform=${Platform.OS} require=${req} load=${loadCrashlytics() === null ? "null" : "mod"} install=${installCrashSdk()}`,
+	);
 });
 
 it("収集を明示的に有効にし、どのビルドかを一緒に送る", () => {
