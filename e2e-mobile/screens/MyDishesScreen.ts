@@ -148,6 +148,24 @@ export class MyDishesScreen {
 	}
 
 	/**
+	 * ＋（記録 CTA）を押して «追加» のシート（`add-record`。SNS 取り込み / 食べたを記録）を開く。
+	 *
+	 * #1629 `gotoRecordDish()` がここから «食べた» タブまで一気に進むため、
+	 * **シートを開いただけの状態**を見たいテスト（SNS 取り込み側）から使えるよう切り出した。
+	 */
+	async openRecordSheet(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.recordButton, timeout);
+		await tapWhenVisible(this.recordButton);
+		await waitUntilVisible(this.snsImportEatenTab, timeout);
+	}
+
+	/** «追加» のシートの上部タブ «食べた» へ切り替える（シートが開いている前提） */
+	async openEatenTab(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.snsImportEatenTab, timeout);
+		await tapWhenVisible(this.snsImportEatenTab);
+	}
+
+	/**
 	 * 記録 CTA から「お店選択」画面へ進む。
 	 *
 	 * #1375 実機確認: ＋ の押下先は **SNS URL 取り込み画面**になったので、
@@ -156,10 +174,8 @@ export class MyDishesScreen {
 	 * ここに 1 本だけ置く。
 	 */
 	async gotoRecordDish(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.recordButton, timeout);
-		await tapWhenVisible(this.recordButton);
-		await waitUntilVisible(this.snsImportEatenTab, timeout);
-		await tapWhenVisible(this.snsImportEatenTab);
+		await this.openRecordSheet(timeout);
+		await this.openEatenTab(timeout);
 		// #1375（3 巡目）「食べた」タブは統合フォームになった。お店はフォーム先頭の
 		// 「お店を選ぶ」から pick モードの地図（select-restaurant）で選ぶ
 		await waitUntilVisible(this.eatenPickRestaurantButton, timeout);

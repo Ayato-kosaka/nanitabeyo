@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 
 import { describeAuthenticated, element, by, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
+import { enableAndroidSoftKeyboard, expectSoftKeyboardShown } from "../../utils/softKeyboard";
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { SelectRestaurantScreen } from "../../screens/SelectRestaurantScreen";
 import { TabBar } from "../../screens/TabBar";
@@ -26,6 +27,21 @@ import { TabBar } from "../../screens/TabBar";
  * キーボードの下に入った入力欄はこれを満たさないので、タップしてキーボードを出したあとに
  * `toBeVisible()` を要求すれば «隠れていないこと» をそのまま assert できる。
  *
+ * ## ⚠️ このテストは一度 «絶対に落ちないテスト» だった（#1629 5 巡目）
+ *
+ * CI のエミュレータは `scripts/setup-android-locale.sh` が **IME を全部 disable** し、
+ * `show_ime_with_hard_keyboard` を 0 にしている（#1027。日本語 IME の初回セットアップ画面が
+ * 画面下半分を覆っていたため）。その状態では **タップしてもキーボードが 1 度も出ない**。
+ * つまり «キーボードを出したあと見えている» を、キーボードが出ない画面で確認していた。
+ * テストは緑のまま、オーナーの実機では隠れ続けていた。
+ *
+ * そのため、いまは
+ *
+ *   1. `enableAndroidSoftKeyboard()` でキーボードが出られる状態にし、
+ *   2. `expectSoftKeyboardShown()` で **本当に出たことを `dumpsys input_method` で確かめる**
+ *
+ * の 2 段を必ず通す。2 が無いと同じ嘘に戻る。**この 2 行を消さないこと。**
+ *
  * ## dev DB への影響
  * **無し。** 投稿しない（フォームを埋めるところまでで終わる）。
  */
@@ -36,6 +52,8 @@ describeAuthenticated("価格入力がキーボードに隠れない", () => {
 
 	beforeEach(async () => {
 		await launchAppWithSession({ as: "authenticated" });
+		// キーボードが «出られる» 状態にする。出たかどうかは各テストの中で確かめる
+		enableAndroidSoftKeyboard();
 	});
 
 	// ─ テストケース ─
@@ -62,6 +80,13 @@ describeAuthenticated("価格入力がキーボードに隠れない", () => {
 
 		// キーボードのアニメーションぶんだけ待ってから見る（出きる前に見ると常に緑になる）
 		await new Promise((resolve) => setTimeout(resolve, 1500));
+
+		// ⚠️ ここが要。キーボードが出ていないなら «隠れていない» を確認する意味が無い
+		expectSoftKeyboardShown(
+			() =>
+				"ソフトウェアキーボードが出ていない。この状態で «隠れていない» を確認しても意味が無いので落とす。" +
+				"（エミュレータの IME が無効のままの可能性。utils/softKeyboard.ts を参照）",
+		);
 
 		try {
 			await waitUntilVisible(by.id("review-price-input"), 5000);
