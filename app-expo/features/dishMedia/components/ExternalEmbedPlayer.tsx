@@ -63,7 +63,16 @@ run 32654704176 で、埋め込み中央の「Instagramで見る」を踏んだ�
 描かれた瞬間にフックが例外を投げてアプリごと落ちる**（Detox run 32658978146 で実測）。
 */
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { AppState, type AppStateStatus, StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
+import {
+	ActivityIndicator,
+	AppState,
+	type AppStateStatus,
+	StyleSheet,
+	Text,
+	TouchableOpacity,
+	UIManager,
+	View,
+} from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
 import { NavigationContext } from "@react-navigation/native";
@@ -179,7 +188,19 @@ const AUTOPLAY_SCRIPT = `(function () {
    * 実測（Chrome 152）: 再生できる投稿は <video> が **t=750ms** に現れる。読み込み完了から
    * さらに 2 秒待つので、遅い回線で «まだ描かれていないだけ» を取り違える余地はまず無い。
    */
-  var NO_VIDEO_GRACE_MS = 2000;
+  /*
+   * #1641 ⚠️ **«読み込み完了なのに映像が無い» を急いで結論しない。**
+   *
+   * 実機の iOS で TikTok が 5 回中 2 回だけ no_video になった（BigQuery 実測）。
+   * 同じ投稿が直前・直後に再生できているので **誤判定**である。
+   * 原因は待ち時間が短すぎたこと: TikTok の <video> は **ページの JS が後から作る**ので、
+   * 'complete' の 2 秒後にはまだ無いことがある（再生できた回は 4 秒時点で video=2）。
+   *
+   * ⚠️ 短くし直さないこと。«本当に映像が無い投稿» は取り込みのときにサーバが判定して
+   * not_playable を持っており、そのセルは **WebView を 1 つも作らない**（高速パス）。
+   * つまりここへ来る時点で «映像がある見込み» のほうが高い。急ぐ理由はもう無い。
+   */
+  var NO_VIDEO_GRACE_MS = 6000;
   var completeSince = 0;
   var timer = null, observer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
   // 自動再生ポリシーで «音あり» を蹴られたか。蹴られた後は二度と音を戻さない
@@ -439,6 +460,13 @@ const AUTOPLAY_SCRIPT = `(function () {
     }
     if (!best) return;
     poster = best;
+    /*
+     * #1641【観測 + 表示】**«画面に出せるものが載った» を 1 回だけ知らせる。**
+     *
+     * 呼び出し側はこれを合図に WebView を見せる。それまでは透明にしておき、
+     * アプリが持っているサムネイルを見せる（オーナー報告「ロード完了から 3 秒黒い」）。
+     */
+    report('poster', null);
     // 映像がまだ無い間は、1 コマ目の画像を «前面へ出す» 対象にする
     // （これをしないと Instagram のヘッダ帯が画像の上に残る）
     isolate(poster);
@@ -552,7 +580,7 @@ const AUTOPLAY_SCRIPT = `(function () {
         // 読み込みが終わっているのに <video> が無い = 権利ブロック。締め切りを待たない
         if (document.readyState === 'complete') {
           if (!completeSince) completeSince = Date.now();
-          else if (Date.now() - completeSince > NO_VIDEO_GRACE_MS) settle('no_video', 'load_complete');
+          else if (Date.now() - completeSince > NO_VIDEO_GRACE_MS) settle('no_video', 'load_complete ' + snapshot());
         }
         return;
       }
@@ -798,6 +826,25 @@ export function ExternalEmbedPlayer({
 	«無音で再生中» のときだけタップで解除する口を出す（オーナー指示 2026-08-28）。
 	*/
 	const [audio, setAudio] = useState<string | null>(null);
+	/*
+	#1641【設計】**WebView は «見せられる状態» になるまで透明にしておく。**
+
+	オーナー報告 2026-08-30:「どの PF もロード完了してから、動画流れるまで 3 秒くらい黒い画面になる」。
+
+	原因は **こちらが黒く塗っていたこと**だった。アプリは既に料理のサムネイルを WebView の下へ
+	敷いている（`DishMediaContent` の背景 Image）のに、その上に載せた WebView の html/body を
+	地色（黒）で塗るので、**下のサムネイルが隠れる**。埋め込みページ側に出せる絵が無い間
+	（TikTok は `img=0` ＝ 画像を 1 つも持たない）、そこは本当に何も無い。
+
+	そこで «向こうに絵が載った» まで WebView を透明にし、下のサムネイルを見せる。
+	載った合図は 2 つ:
+
+	- `poster` … ページ内エージェントが 1 コマ目の画像を全面へ広げた
+	- `playing` … 映像が動き出した（`poster` が来ない provider でもここで必ず見える）
+
+	⚠️ **アンマウントではなく透明**にすること。読み込みを進めるために描画は続ける必要がある。
+	*/
+	const [webViewReadyToShow, setWebViewReadyToShow] = useState(false);
 	const webViewRef = useRef<{ injectJavaScript: (script: string) => void } | null>(null);
 
 	/*
@@ -821,6 +868,7 @@ export function ExternalEmbedPlayer({
 			if (parsed.kind === "playing") {
 				hasPlayedRef.current = true;
 				setPlayback("playing");
+				setWebViewReadyToShow(true);
 				setAudio(parsed.detail ?? null);
 				logFrontendEvent({
 					event_name: "external_embed_autoplay_started",
@@ -847,6 +895,11 @@ export function ExternalEmbedPlayer({
 			エージェントが起動しただけで «再生できない» へ倒れる。
 			*/
 			// #1641 `stall` は時刻ごとに kind が違う（stall4000 / stall9000 …）ので前方一致で見る
+			// #1641 «向こうに絵が載った»。WebView を見せてよい合図（結論ではない）
+			if (parsed.kind === "poster") {
+				setWebViewReadyToShow(true);
+				return;
+			}
 			if (parsed.kind === "boot" || parsed.kind === "dom" || parsed.kind?.startsWith("stall")) {
 				logFrontendEvent({
 					event_name: "external_embed_agent_boot",
@@ -1081,7 +1134,12 @@ export function ExternalEmbedPlayer({
 				⚠️ web（`.web.tsx`）は iframe の中へ注入できないので、**embedCrop.ts の切り取りを使い続ける**。
 				*/
 				<View
-					style={styles.cell}
+					/*
+					#1641 **向こうに絵が載るまで透明にしておく**（上の `webViewReadyToShow` を参照）。
+					下にはアプリのサムネイルが敷いてあるので、黒ではなく料理の写真が見える。
+					⚠️ 透明にするだけで、**アンマウントはしない**。読み込みを進めるため描画は続ける。
+					*/
+					style={[styles.cell, { opacity: webViewReadyToShow ? 1 : 0 }]}
 					/* #1641 **常に表示専用**。タッチを一切渡さないので、縦スワイプでのフィード送りも
 					   タップでの ActionSheet も、既存の動画セルと完全に同じ経路で処理される
 					   （Android の RNCWebView は縦ドラッグを自分で消費するため、渡すと送りが死ぬ） */
@@ -1199,6 +1257,22 @@ export function ExternalEmbedPlayer({
 				   Detox から 1 つずつ判定できるようにするため（YouTube だけ落ちる、が拾える） */
 				<View style={styles.playingMarker} pointerEvents="none" testID={`external-embed-playing-${embed.provider}`} />
 			)}
+			{/*
+			#1641 **読み込み中はローディングを出す。**（オーナー指示 2026-08-30
+			「せめてローディング出して欲しい」）
+
+			下にはアプリのサムネイルが見えている状態なので、ここは «あと少し待てば動く» を
+			伝えるだけでよい。控えめな白のインジケータ 1 つに留める
+			（デザイン規約 §1: 赤は主 CTA と FAB だけ。ここは CTA ではない）。
+
+			⚠️ 出す条件は «WebView をまだ見せていない» かつ «結論が出ていない»。
+			   縮退したセルには導線の帯が出るので、そちらと二重に出さない。
+			*/}
+			{inlineAvailable && !webViewReadyToShow && playback === "unknown" && (
+				<View style={styles.loadingOverlay} pointerEvents="none" testID="external-embed-loading">
+					<ActivityIndicator size="small" color={FixedColors.onMedia} />
+				</View>
+			)}
 			{/* #1641 **地色の «覆い» は廃止した。** 覆うと料理の写真ごと隠れる。
 			    代わりに WebView を畳む（上の `collapsedAfterFailure`）。畳めば向こうのページは
 			    同じように消えたうえで、アプリが持っているサムネイルが見える。
@@ -1280,6 +1354,12 @@ const styles = StyleSheet.create({
 		backgroundColor: FixedColors.mediaBackground,
 	},
 	// #1641 «再生できた» の機械可読な印。見た目には出さない
+	// #1641 読み込み中のインジケータ。セルの中央へ 1 つだけ置く
+	loadingOverlay: {
+		...StyleSheet.absoluteFillObject,
+		alignItems: "center",
+		justifyContent: "center",
+	},
 	playingMarker: {
 		position: "absolute",
 		width: 1,

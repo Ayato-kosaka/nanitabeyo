@@ -370,6 +370,40 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	最後は «知らない kind はすべて unplayable» なので、ここを素通りさせると
 	**起動しただけで導線へ縮退する**（＝ 全セルが常に縮退する）。
 	*/
+	/*
+	#1641 ⚠️ **ロード中に黒い画面を出さない。**（オーナー報告 2026-08-30
+	「どの PF もロード完了してから、動画流れるまで 3 秒くらい黒い画面になる」）
+
+	真因は **こちらが黒く塗っていたこと**。アプリは料理のサムネイルを WebView の下へ敷いて
+	いるのに、上に載せた WebView の html/body を地色（黒）で塗るので下が隠れる。
+	埋め込みページ側に出せる絵が無い間（TikTok は img を 1 つも持たない）そこは本当に何も無い。
+
+	そこで «向こうに絵が載った»（`poster` / `playing`）まで WebView を透明にし、
+	その間はローディングを出す。
+	*/
+	it("絵が載るまでは WebView を透明にし、ローディングを出す", () => {
+		const tree = renderActiveCell();
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(0);
+		expect(tree.root.findAllByProps({ testID: "external-embed-loading" }).length).toBeGreaterThan(0);
+	});
+
+	it("1 コマ目が載ったら WebView を見せ、ローディングを消す", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "poster", detail: null });
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(1);
+		expect(tree.root.findAllByProps({ testID: "external-embed-loading" }).length).toBe(0);
+	});
+
+	/* poster を送らない provider（YouTube の包み）でも、再生が始まれば必ず見せる */
+	it("poster が来なくても、再生が始まれば WebView を見せる", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: "audible" });
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(1);
+	});
+
 	it("boot / dom / stall の報告では縮退しない", () => {
 		const tree = renderActiveCell();
 		post({ src: "nb-embed-autoplay", kind: "boot", detail: "loading" });
@@ -606,13 +640,40 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		const conclusions = (post: jest.Mock) =>
 			post.mock.calls
 				.map((call) => JSON.parse(call[0] as string) as { kind: string; detail: string | null })
-				.filter((message) => message.kind !== "boot" && message.kind !== "dom" && !message.kind.startsWith("stall"));
+				.filter(
+					(message) =>
+						message.kind !== "boot" &&
+						message.kind !== "dom" &&
+						message.kind !== "poster" &&
+						!message.kind.startsWith("stall"),
+				);
 
-		it("読み込みが終わっても <video> が無ければ、締め切りを待たず権利ブロックと判定する", () => {
+		it("読み込みが終わっても <video> が無いままなら、締め切りを待たず権利ブロックと判定する", () => {
 			// 実測: 権利ブロックされた投稿は <video> が最後まで作られない（1 コマ目の画像だけ在る）。
 			// 12 秒待たせても結論は変わらないので、«Instagram で見る» を早く出す
-			const { post } = run({ video: false, images: [{ w: 360, h: 638 }], readyState: "complete", ticks: 12 });
-			expect(conclusions(post)[0]).toMatchObject({ kind: "no_video", detail: "load_complete" });
+			// clock は 1 tick = 500ms。猶予 6 秒を超えるまで回す
+			const { post } = run({ video: false, images: [{ w: 360, h: 638 }], readyState: "complete", ticks: 16 });
+			const verdict = conclusions(post)[0];
+			expect(verdict.kind).toBe("no_video");
+			// 諦めた瞬間の DOM も載せる（次に誤判定したとき中身が分かるように）
+			expect(verdict.detail).toMatch(/^load_complete /);
+		});
+
+		/*
+		#1641 ⚠️ **«読み込み完了なのに映像が無い» を急いで結論しない。**
+
+		実機の iOS で TikTok が 5 回中 2 回だけ no_video になった（BigQuery 実測）。
+		同じ投稿が直前・直後に再生できているので**誤判定**である。真因は待ち時間が短すぎたこと:
+		TikTok の <video> は **ページの JS が後から作る**ので、'complete' の 2 秒後にはまだ無い
+		ことがある（再生できた回は 4 秒時点で video=2 だった）。
+
+		⚠️ 短くし直すとこの誤判定が戻る。«本当に映像が無い投稿» は取り込みのときにサーバが
+		   判定済みで、そのセルは WebView を 1 つも作らない（高速パス）。急ぐ理由はもう無い。
+		*/
+		it("読み込み完了から数秒のうちは、まだ権利ブロックと決めつけない", () => {
+			// 6 tick = 3 秒。旧実装（猶予 2 秒）はここで no_video を出していた
+			const { post } = run({ video: false, images: [{ w: 360, h: 638 }], readyState: "complete", ticks: 6 });
+			expect(conclusions(post)).toHaveLength(0);
 		});
 
 		/*
