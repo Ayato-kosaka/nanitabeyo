@@ -3,7 +3,8 @@
 // External API service for Wikidata, Google Custom Search, and Claude API
 //
 
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ErrorCode } from '@shared/v1/res';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 import { CreateExternalApiInput } from '../logger/logger.types';
@@ -284,6 +285,28 @@ export class ExternalApiService {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => '');
+        /*
+        #1629 【修正】**1 日あたりの上限に達したときを «壊れた» と混ぜない。**
+
+        Google Places の Text Search は `SearchTextRequestPerDayPerProject` を持ち、
+        使い切ると 429 / RESOURCE_EXHAUSTED を返す（dev の実測: 上限 45 req/day）。
+        それをそのまま `Error` で投げると `ApiExceptionFilter` の «未処理例外» に落ちて
+        500 INTERNAL_ERROR になり、呼び出し元（`POST /v1/dishes/bulk-import`）が失敗して
+        **検索結果が黙って 0 件になる**。オーナー実機の「焼肉うしごろ表参道が検索で出ない」は
+        これだった（dev ログ 2026-08-30。`dish-media/search` が 0 件 → bulk-import が 500）。
+
+        «相手が壊れている»（EXTERNAL_SERVICE_ERROR）ではなく «上限に達した» と言えるように
+        専用のコードで 503 を返す。クライアントは «時間を置けば直る» と読めるようになる。
+        */
+        if (response.status === HttpStatus.TOO_MANY_REQUESTS) {
+          throw new HttpException(
+            {
+              code: ErrorCode.EXTERNAL_QUOTA_EXCEEDED,
+              message: `Google Places Text Search API quota exceeded: ${errorText}`,
+            },
+            HttpStatus.SERVICE_UNAVAILABLE,
+          );
+        }
         throw new Error(
           `Google Places Text Search API request failed: ${response.status} ${errorText}`,
         );
