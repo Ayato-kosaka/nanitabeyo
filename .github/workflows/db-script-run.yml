@@ -95,6 +95,11 @@ jobs:
       # 未登録なら空になるだけで、他のスクリプトの実行には影響しない。
       IG_TOKEN: ${{ secrets.IG_TOKEN }}
       SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+      # #1273 5_1_apply_resolve.py が resolve API を叩くための自己署名 JWT に使う。
+      # 匿名サインイン(GoTrue)はバッチ用途ではアンチパターン（使い捨てユーザー堆積・匿名レート制限）
+      # のため使わず、この dev の JWT 秘密鍵で短命 HS256 トークンを自己署名して Bearer で渡す。
+      # resolve は署名・exp・sub だけ検証し iss/aud は見ないので API 無改造で通る。
+      SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
 
     steps:
       - name: リポジトリを取得
