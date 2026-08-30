@@ -156,34 +156,79 @@ class ResolveClient:
             return json.loads(resp.read().decode("utf-8"))
 
 
+def _unwrap(resp: dict[str, Any]) -> dict[str, Any]:
+    """ResponseWrapInterceptor の {data, success} 包みを剥がす。
+
+    api/src/core/interceptors/response-wrap.interceptor.ts が全レスポンスを
+    ``{data: <payload>, success: true}`` に包む。resolve の実体はその ``data`` の中。
+    包まれていない生 payload も一応そのまま通す（テスト用）。
+    """
+    if isinstance(resp, dict) and "status" not in resp and isinstance(resp.get("data"), dict):
+        return resp["data"]
+    return resp
+
+
+def _rank1(cands: list[dict] | None) -> dict | None:
+    for c in cands or []:
+        if c.get("rank") == 1:
+            return c
+    return (cands or [None])[0]
+
+
 def classify(resp: dict[str, Any]) -> ResolveOutcome:
-    """resolve レスポンス → sns_post_resolved の 1 行分に落とす（#1273 設計 §4 の status 表）。"""
+    """resolve レスポンス → sns_post_resolved の 1 行分に落とす（#1273 設計 §4 の status 表）。
+
+    «何割埋まる» の天井を測るため、prefill（resolve の自動確定＝高信頼）だけでなく
+    candidates の rank1 も採用する。auto かどうかは confidence と resolve_reason 内の
+    ``pf`` フラグで後から切り分けられるようにする（prefill は閾値超えのみ）。
+
+    店の google_place_id は candidates.restaurants[].googlePlaceId から取る
+    （dev の resolve には prefill.googlePlaceId が無いため）。店舗照合は pg dev の
+    restaurants を引くので、matched は «その店が pg dev に居る» ことを意味する。
+    """
+    resp = _unwrap(resp)
+    top_reason = resp.get("reason")
     status = resp.get("status")
     if status == "unsupported":
-        return ResolveOutcome(STATUS_SKIPPED_UNSUPPORTED, None, None, None, None, resp.get("reason"))
+        return ResolveOutcome(STATUS_SKIPPED_UNSUPPORTED, None, None, None, None, top_reason)
     if status == "unavailable":
-        return ResolveOutcome(STATUS_SKIPPED_UNAVAILABLE, None, None, None, None, resp.get("reason"))
+        return ResolveOutcome(STATUS_SKIPPED_UNAVAILABLE, None, None, None, None, top_reason)
 
     prefill = resp.get("prefill") or {}
     candidates = resp.get("candidates") or {}
-    category_id = prefill.get("dishCategoryId")
-    place_id = prefill.get("googlePlaceId")  # resolve PR #1704 で追加。無ければ restaurantId から引く
-    if place_id is None and prefill.get("restaurantId") is not None:
-        for c in candidates.get("restaurants") or []:
-            if c.get("restaurantId") == prefill.get("restaurantId"):
-                place_id = c.get("googlePlaceId") or None
-                break
+    rsearch = resp.get("restaurantSearch") or {}
+    cat_cands = candidates.get("dishCategories") or []
+    rst_cands = candidates.get("restaurants") or []
 
-    def _conf(kind: str) -> float | None:
-        for c in candidates.get(kind) or []:
-            if c.get("rank") == 1:
-                return c.get("confidence")
-        return None
+    # --- 料理カテゴリ: prefill 優先、無ければ rank1 候補 ---
+    cat1 = _rank1(cat_cands)
+    category_id = prefill.get("dishCategoryId") or (cat1.get("dishCategoryId") if cat1 else None)
+    category_conf = cat1.get("confidence") if cat1 else None
+
+    # --- 店舗: prefill.restaurantId→candidate 逆引き、無ければ rank1 候補の place_id ---
+    place_id = None
+    rst_pick = None
+    pref_rid = prefill.get("restaurantId")
+    if pref_rid is not None:
+        for c in rst_cands:
+            if c.get("restaurantId") == pref_rid:
+                rst_pick = c
+                break
+    if rst_pick is None:
+        rst_pick = _rank1(rst_cands)
+    if rst_pick:
+        place_id = rst_pick.get("googlePlaceId") or None
+    restaurant_conf = rst_pick.get("confidence") if rst_pick else None
+
+    # --- 診断を resolve_reason 1 列に詰める（スキーマ非改変で天井分析を可能にする）---
+    pf = ("c" if prefill.get("dishCategoryId") else "") + ("r" if pref_rid else "")
+    diag = (
+        f"{top_reason or '-'}|rs={rsearch.get('reason') or '-'}"
+        f"|cat={len(cat_cands)}|rst={len(rst_cands)}|pf={pf or '-'}"
+    )
 
     if category_id is None:
-        return ResolveOutcome(STATUS_SKIPPED_NO_CATEGORY, None, None, None, None, resp.get("reason"))
+        return ResolveOutcome(STATUS_SKIPPED_NO_CATEGORY, None, None, None, category_conf, diag)
     if not place_id:
-        return ResolveOutcome(STATUS_SKIPPED_NO_STORE, None, category_id, None, _conf("dishCategories"), resp.get("reason"))
-    return ResolveOutcome(
-        STATUS_MATCHED, place_id, category_id, _conf("restaurants"), _conf("dishCategories"), resp.get("reason")
-    )
+        return ResolveOutcome(STATUS_SKIPPED_NO_STORE, None, category_id, None, category_conf, diag)
+    return ResolveOutcome(STATUS_MATCHED, place_id, category_id, restaurant_conf, category_conf, diag)
