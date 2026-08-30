@@ -441,6 +441,35 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		}
 	});
 
+	/*
+	#1641 ⚠️ **document モード（Instagram / TikTok）の締め切りを短くしないこと。**
+
+	同じ形の不具合を YouTube 側で既に踏んで直している。どちらも **CI の高速回線**での実測:
+
+	| 側 | 締め切り | 実測 | 結果 |
+	| --- | --- | --- | --- |
+	| YouTube | 10 秒 | 11048ms | **掛かって no_video へ縮退した** |
+	| TikTok | 12 秒 | 6089ms | 通ったが **予算の半分を使っている** |
+
+	オーナーの端末は 4G なので掛かる余地は十分にある。掛かると «TikTok で見る» の帯へ
+	落ちるので、ユーザーからは «起動しない» に見える。
+
+	待つ代償はこの値を決めた当時より下がっている（待っている間はアプリ側のサムネイルが
+	見える）。ここを 12 秒台へ戻すと、遅い回線で «起動しない» が増える。
+	*/
+	it("document モードの締め切りは 20 秒以上（12 秒では遅い回線に足りない）", () => {
+		renderActiveCell();
+		const script: string = webViewProps.injectedJavaScript;
+
+		const deadline = script.match(/var DEADLINE_MS = (\d+)/);
+		expect(deadline).not.toBeNull();
+		expect(Number(deadline![1])).toBeGreaterThanOrEqual(20000);
+
+		const loadingGrace = script.match(/var LOADING_GRACE_MS = (\d+)/);
+		expect(loadingGrace).not.toBeNull();
+		expect(Number(loadingGrace![1])).toBeGreaterThanOrEqual(20000);
+	});
+
 	it("時間切れ（ページが組み上がらない）のときは document モードでも畳む", () => {
 		const tree = renderActiveCell();
 		post({ src: "nb-embed-autoplay", kind: "timeout", detail: "still_loading" });
