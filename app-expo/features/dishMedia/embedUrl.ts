@@ -339,8 +339,29 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
    *    別のセルでは同じ動画が普通に再生している）。エミュレータでは onReady まで
    *    6 秒を超えることがある。10 秒にして、それでも来なければ縮退させる。
    */
-  setTimeout(function () { if (!started) report('no_video', 'no_ready'); }, 10000);
-  setTimeout(function () { report('timeout', 'no_state_change'); }, 12000);
+  /*
+   * #1641 **10 秒では足りなかった。20 秒へ延ばす。**
+   *
+   * 実測（Detox Android / run 33335797659、計装 sinceActiveMs）:
+   *
+   *   youtube visit=1  11048ms → no_video (no_ready) ← 締め切りに掛かって縮退した
+   *   youtube visit=1   3883ms → 再生
+   *   youtube visit=1   1760ms → 再生
+   *   youtube visit=2   2047ms → 再生
+   *
+   * **エミュレータの高速回線ですら 11 秒かかる回がある。** オーナーの端末は 4G なので、
+   * ここに掛かる頻度はもっと高い。掛かると «YouTube で見る» の帯へ落ちるので、
+   * ユーザーからは «起動しない» に見える（オーナー報告そのもの）。
+   *
+   * ⚠️ **待つ代償は、この値を決めた当時より下がっている。** 当時は待つ間ずっと黒かったが、
+   *    いまは «向こうに絵が載る» まで WebView を透明にしてあるので、待っている間は
+   *    アプリ側の料理サムネイルが見えている。黒い板を見せ続けるわけではない。
+   *
+   * ⚠️ それでも無制限にはしない。本当に埋め込めない動画（YouTube 自身のエラー画面が
+   *    出たまま onReady が来ない）を永久に抱えることになる。
+   */
+  setTimeout(function () { if (!started) report('no_video', 'no_ready'); }, 20000);
+  setTimeout(function () { report('timeout', 'no_state_change'); }, 22000);
 })();
 </script>
 </body></html>`;
