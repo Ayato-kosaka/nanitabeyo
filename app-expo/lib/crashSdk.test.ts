@@ -17,26 +17,17 @@ const mockSetEnabled = jest.fn((..._args: unknown[]) => Promise.resolve());
 const mockSetAttributes = jest.fn((..._args: unknown[]) => Promise.resolve());
 
 /*
-#1641 ⚠️ **工場の中で throw して «モジュールが無い» を作らないこと。**
+#1641 ⚠️ **このファイルは «モジュールが在る» 側だけを見る。**
 
-`jest.mock` の工場は **最初の require のときに 1 度だけ走り、結果（例外も）が
-キャッシュされる**。フラグで throw を切り替えると、«無い» を試した後のテストが
-まとめて道連れになる。ローカルでは通り **CI でだけ落ちた**（run 33309359988）。
-`jest.isolateModules` + `jest.doMock` も、モックが外側のレジストリへ残るので同じ穴にはまる。
-
-そこで **getter で «形» を切り替える**。工場は 1 回しか走らないが、getter は毎回評価される
-ので、レジストリを触らずに «使えるモジュールが無い» を作れる。
-`loadCrashlytics()` は `typeof mod.getCrashlytics === 'function'` を見ているので、
-require が throw する場合（本番で実際に起きる形）と**同じ null 返し**へ落ちる。
+«無い» 側は `crashSdk.absent.test.ts` に分けてある。`jest.mock` の工場は最初の require で
+1 度だけ走り結果がキャッシュされるので、**1 つのファイルで «在る / 無い» を切り替えられない**
+（フラグ + throw も、getter で形を変える手も CI で落ちた。run 33309359988）。
+テストファイルが変わればモジュールレジストリも分かれる、というのが唯一効く分け方である。
 */
-let mockAvailable = true;
-
 jest.mock(
 	"@react-native-firebase/crashlytics",
 	() => ({
-		get getCrashlytics() {
-			return mockAvailable ? () => mockGetCrashlytics() : undefined;
-		},
+		getCrashlytics: () => mockGetCrashlytics(),
 		setCrashlyticsCollectionEnabled: (...args: unknown[]) => mockSetEnabled(...args),
 		setAttributes: (...args: unknown[]) => mockSetAttributes(...args),
 	}),
@@ -44,17 +35,10 @@ jest.mock(
 );
 
 beforeEach(() => {
-	mockAvailable = true;
 	mockGetCrashlytics.mockClear();
 	mockSetEnabled.mockClear();
 	mockSetAttributes.mockClear();
 	resetCrashSdkForTest();
-});
-
-it("使えるモジュールが無いビルドでは何もしない（縮退の唯一の入口）", () => {
-	mockAvailable = false;
-	expect(installCrashSdk()).toBe(false);
-	expect(mockSetEnabled).not.toHaveBeenCalled();
 });
 
 it("収集を明示的に有効にし、どのビルドかを一緒に送る", () => {
