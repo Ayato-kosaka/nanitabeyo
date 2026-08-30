@@ -315,6 +315,51 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	実機で実測した（run 33265424032 の iOS `feed-02`: TikTok のセルが真っ黒＋
 	「TikTok で見る」の帯だけ。ページは空のまま `still_loading` で時間切れ）。
 	*/
+	/*
+	#1641 オーナー報告（実機 2026-08-30）「TikTok だけ、やっぱりたまに動画ロードに失敗する」。
+
+	空の文書（1 バイトも来なかった）は **«この投稿は再生できない» ではない**。
+	同じ投稿が直前・直後に再生できているので、畳まずに読み直す。
+
+	⚠️ ここで畳んだりサーバへ報告したりすると、通信が転んだだけの投稿が
+	   not_playable に落ち、**検索フィードから永久に外れる**。
+	*/
+	it("空の文書ではすぐ畳まず、サーバへ «再生できない» とも報告しない", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		post({ src: "nb-embed-autoplay", kind: "blank", detail: "load_complete script=0" });
+
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		expect(fallbackCount(tree)).toBe(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+	});
+
+	/*
+	#1641 ただし **無制限に読み直さない**。向こうが返さない状態が続くなら、
+	畳んでサムネイルを見せ «◯◯ で見る» を出す（ユーザーに次の手を渡す）。
+	それでも «その投稿が再生できない» とは報告しない。
+	*/
+	it("読み直しの上限を超えたら畳む。それでもサーバへは報告しない", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		// 上限（2 回）を超える 3 回目で畳む
+		for (let i = 0; i < 3; i++) {
+			post({ src: "nb-embed-autoplay", kind: "blank", detail: "load_complete script=0" });
+		}
+
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBeGreaterThan(0);
+		expect(fallbackCount(tree)).toBeGreaterThan(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+	});
+
 	it("時間切れ（ページが組み上がらない）のときは document モードでも畳む", () => {
 		const tree = renderActiveCell();
 		post({ src: "nb-embed-autoplay", kind: "timeout", detail: "still_loading" });
@@ -455,6 +500,11 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			bodyAtTick?: number;
 			/** 各 tick の直前に、そのときの `<body>` と一緒に呼ばれる。向こうの JS が書き戻す状況を作るため */
 			beforeTick?: (body: { style: { setProperty: (k: string, v: string) => void } } | null) => void;
+			/**
+			 * #1641 ページが持つ `<video>` の数。**TikTok の埋め込みは 2 つ持つ**（実測
+			 * `video=2`）ので、1 つしか無い前提のままだとループの保険が試せない。
+			 */
+			videoCount?: number;
 		}) => {
 			const styles = new Map<unknown, Record<string, string>>();
 			const mk = (tag: string, extra: Record<string, unknown> = {}) => {
@@ -480,7 +530,12 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			const images = (opts.images ?? []).map((i) =>
 				mk("img", { complete: true, naturalWidth: i.w, naturalHeight: i.h }),
 			);
-			const video = opts.video ? mk("video", { paused: true, currentTime: 0, play: () => Promise.resolve() }) : null;
+			const videos = opts.video
+				? Array.from({ length: opts.videoCount ?? 1 }, () =>
+						mk("video", { paused: true, currentTime: 0, play: () => Promise.resolve() }),
+					)
+				: [];
+			const video = videos[0] ?? null;
 			const appended: unknown[] = [];
 			const styleRecorder = () => {
 				const own: Record<string, string> = {};
@@ -507,7 +562,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 				body: opts.bodyAtTick ? null : realBody,
 				createElement: (tag: string) => mk(tag),
 				querySelector: (sel: string) => (sel === "video" ? video : null),
-				querySelectorAll: (sel: string) => (sel === "img" ? images : []),
+				querySelectorAll: (sel: string) => (sel === "img" ? images : sel === "video" ? videos : []),
 			};
 			const post = jest.fn();
 			const windowStub: Record<string, unknown> = { ReactNativeWebView: { postMessage: post } };
@@ -551,7 +606,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 				opts.beforeTick?.(documentStub.body);
 				scheduled.forEach((fn) => fn());
 			}
-			return { styles, images, video, appended, post, documentStub, realBody };
+			return { styles, images, video, videos, appended, post, documentStub, realBody };
 		};
 
 		it("<video> が来る前でも、リールの 1 コマ目（一番大きい画像）をセル全面へ広げる", () => {
@@ -647,6 +702,45 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 						message.kind !== "poster" &&
 						!message.kind.startsWith("stall"),
 				);
+
+		/*
+		#1641 オーナー報告（実機 2026-08-30）「インスタ以外ループしない」の TikTok 側。
+
+		実測（端末 / tiktok の stall4000）: `nodes=223 script=21 video=2`。
+		**TikTok の埋め込みは `<video>` を 2 つ持つ。** それまでは
+		`document.querySelector('video')`（＝ 1 つ目）にしか loop と ended を
+		仕掛けていなかったので、向こうが 2 つ目を鳴らしていると保険が 1 つも効かない。
+		*/
+		it("ページの <video> が複数あっても、全部にループを仕掛ける（TikTok は 2 つ持つ）", () => {
+			const { videos } = run({ video: true, images: [], videoCount: 2, ticks: 2 });
+			expect(videos).toHaveLength(2);
+			for (const v of videos) {
+				expect(v.loop).toBe(true);
+				expect(v.setAttribute).toHaveBeenCalledWith("loop", "");
+				// 向こうの JS に loop を潰されたときの保険。畳んだ後でも起こし直す
+				const bound = (v.addEventListener as jest.Mock).mock.calls.map((c) => c[0]);
+				expect(bound).toContain("ended");
+			}
+		});
+
+		/*
+		#1641 オーナー報告（実機 2026-08-30）「TikTok だけたまにロードに失敗する」。
+
+		失敗した回は毎回まったく同じ形だった:
+
+		    失敗 ready=complete nodes=5   script=0  video=0 img=0 res=0
+		    成功 ready=interactive nodes=223 script=21 video=2 img=0 res=9
+
+		**1 バイトも取れていない空の文書**であって «この投稿は再生できない» ではない。
+		ここを `no_video`（＝ 権利ブロック）と同じ扱いにすると、通信が転んだだけの投稿を
+		サーバへ «再生できない» と報告してしまう。
+		*/
+		it("空の文書（1 バイトも来なかった）は権利ブロックと呼ばず、読み直せる形で返す", () => {
+			const { post } = run({ video: false, images: [], readyState: "complete", ticks: 16 });
+			const verdict = conclusions(post)[0];
+			expect(verdict.kind).toBe("blank");
+			expect(verdict.detail).toMatch(/script=0/);
+		});
 
 		it("読み込みが終わっても <video> が無いままなら、締め切りを待たず権利ブロックと判定する", () => {
 			// 実測: 権利ブロックされた投稿は <video> が最後まで作られない（1 コマ目の画像だけ在る）。
