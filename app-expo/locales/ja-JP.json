@@ -1026,7 +1026,15 @@
 			"noPhotoHint": "写真なしでも記録できます",
 			"publicReviewNotice": "記録は公開レビューとして店舗ページに表示されます",
 			"postNotFoundNoPhoto": "この記録には写真がありません",
-			"skipPhoto": "スキップ（写真なし）"
+			"skipPhoto": "スキップ（写真なし）",
+			"missingHint": "{{items}} を入力すると投稿できます。",
+			"missing": {
+				"comment": "一言レビュー",
+				"price": "料金",
+				"rating": "オススメ度",
+				"dishCategory": "料理カテゴリー",
+				"separator": "、"
+			}
 		},
 		"filters": {
 			"title": "絞り込み・並び替え",
@@ -1164,7 +1172,9 @@
 			"save": "食べたいに保存",
 			"saveRequirement": "料理と店舗を選ぶと保存できます。",
 			"resolveAgain": "もう一度読み取る",
-			"cancel": "キャンセル"
+			"cancel": "キャンセル",
+			"saveRequirementRestaurant": "お店を選ぶと保存できます。",
+			"saveRequirementDish": "料理カテゴリーを選ぶと保存できます。"
 		},
 		"sections": {
 			"dishCategory": "料理",

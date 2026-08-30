@@ -80,7 +80,7 @@ export function useRestaurantDishCategories(restaurantId: string | undefined) {
 				落とさないこと」と書いてある）。名前が 1 つも無い行は «押せる候補» にできないので
 				候補から外す。検索欄から自由入力で決める道が別にあるので、行き止まりにはならない。
 				*/
-				const label = resolveDishCategoryLabel(entry.dish.categoryLabels, entry.dish.name, locale);
+				const label = resolveDishCategoryLabel(entry.dish.categoryLabels, locale);
 				if (!label) continue;
 				counts.set(dishCategoryId, { dishCategoryId, label, name: entry.dish.name ?? null, count: 1 });
 			}

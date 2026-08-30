@@ -1026,7 +1026,15 @@
 			"noPhotoHint": "También puedes registrarlo sin foto",
 			"publicReviewNotice": "Tu registro aparecerá como reseña pública en la página del restaurante",
 			"postNotFoundNoPhoto": "Este registro no tiene foto",
-			"skipPhoto": "Omitir (sin foto)"
+			"skipPhoto": "Omitir (sin foto)",
+			"missingHint": "Añade {{items}} para publicar.",
+			"missing": {
+				"comment": "una reseña breve",
+				"price": "precio",
+				"rating": "valoración",
+				"dishCategory": "categoría del plato",
+				"separator": ", "
+			}
 		},
 		"filters": {
 			"title": "Filtrar y ordenar",
@@ -1164,7 +1172,9 @@
 			"save": "Guardar en Quiero comer",
 			"saveRequirement": "Elige un plato y un restaurante para guardar.",
 			"resolveAgain": "Volver a leer",
-			"cancel": "Cancelar"
+			"cancel": "Cancelar",
+			"saveRequirementRestaurant": "Elige un lugar para guardar.",
+			"saveRequirementDish": "Elige una categoría de plato para guardar."
 		},
 		"sections": {
 			"dishCategory": "Plato",

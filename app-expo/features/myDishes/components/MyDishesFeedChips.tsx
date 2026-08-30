@@ -99,7 +99,7 @@ export const buildMyDishesFeedChips = (
 		カテゴリの正式表記を優先する（規則は `features/myDishes/dishCategoryLabel.ts` に 1 本化。
 		絞り込み画面の候補ラベルも同じ関数を通している）。
 		*/
-		const name = resolveDishCategoryLabel(entry?.dish?.categoryLabels, entry?.dish?.name, i18n.locale);
+		const name = resolveDishCategoryLabel(entry?.dish?.categoryLabels, i18n.locale);
 		// 「置換」なので、ちょうどこのカテゴリ 1 件に絞られていれば、この chip は既に効いている
 		const alreadyApplied = filter.categoryIds.length === 1 && filter.categoryIds[0] === categoryId;
 		if (name !== null && !alreadyApplied) {

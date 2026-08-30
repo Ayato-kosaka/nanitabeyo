@@ -1026,7 +1026,15 @@
 			"noPhotoHint": "يمكنك التسجيل بدون صورة",
 			"publicReviewNotice": "سيظهر سجلك كمراجعة عامة في صفحة المطعم",
 			"postNotFoundNoPhoto": "لا يحتوي هذا السجل على صورة",
-			"skipPhoto": "تخطّي (بدون صورة)"
+			"skipPhoto": "تخطّي (بدون صورة)",
+			"missingHint": "أضف {{items}} للنشر.",
+			"missing": {
+				"comment": "مراجعة قصيرة",
+				"price": "السعر",
+				"rating": "التقييم",
+				"dishCategory": "فئة الطبق",
+				"separator": "، "
+			}
 		},
 		"filters": {
 			"title": "التصفية والترتيب",
@@ -1164,7 +1172,9 @@
 			"save": "حفظ في أريد تناوله",
 			"saveRequirement": "اختر طبقًا ومطعمًا للحفظ.",
 			"resolveAgain": "إعادة القراءة",
-			"cancel": "إلغاء"
+			"cancel": "إلغاء",
+			"saveRequirementRestaurant": "اختر مكانًا للحفظ.",
+			"saveRequirementDish": "اختر فئة الطبق للحفظ."
 		},
 		"sections": {
 			"dishCategory": "الطبق",

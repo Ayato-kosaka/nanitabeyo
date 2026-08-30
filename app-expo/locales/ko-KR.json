@@ -1026,7 +1026,15 @@
 			"noPhotoHint": "사진 없이도 기록할 수 있습니다",
 			"publicReviewNotice": "기록은 공개 리뷰로 음식점 페이지에 표시됩니다",
 			"postNotFoundNoPhoto": "이 기록에는 사진이 없습니다",
-			"skipPhoto": "건너뛰기 (사진 없음)"
+			"skipPhoto": "건너뛰기 (사진 없음)",
+			"missingHint": "{{items}}을(를) 입력하면 게시할 수 있습니다.",
+			"missing": {
+				"comment": "한줄 리뷰",
+				"price": "가격",
+				"rating": "추천도",
+				"dishCategory": "요리 카테고리",
+				"separator": ", "
+			}
 		},
 		"filters": {
 			"title": "필터 및 정렬",
@@ -1164,7 +1172,9 @@
 			"save": "먹고 싶다에 저장",
 			"saveRequirement": "음식과 가게를 선택하면 저장할 수 있습니다.",
 			"resolveAgain": "다시 읽기",
-			"cancel": "취소"
+			"cancel": "취소",
+			"saveRequirementRestaurant": "가게를 선택하면 저장할 수 있습니다.",
+			"saveRequirementDish": "요리 카테고리를 선택하면 저장할 수 있습니다."
 		},
 		"sections": {
 			"dishCategory": "음식",

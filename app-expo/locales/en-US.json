@@ -1026,7 +1026,15 @@
 			"noPhotoHint": "You can record without a photo",
 			"publicReviewNotice": "Your record appears as a public review on the restaurant page",
 			"postNotFoundNoPhoto": "This record has no photo",
-			"skipPhoto": "Skip (no photo)"
+			"skipPhoto": "Skip (no photo)",
+			"missingHint": "Add {{items}} to post.",
+			"missing": {
+				"comment": "a short review",
+				"price": "price",
+				"rating": "rating",
+				"dishCategory": "dish category",
+				"separator": ", "
+			}
 		},
 		"filters": {
 			"title": "Filter & sort",
@@ -1164,7 +1172,9 @@
 			"save": "Save to Want to eat",
 			"saveRequirement": "Pick a dish and a restaurant to save.",
 			"resolveAgain": "Read again",
-			"cancel": "Cancel"
+			"cancel": "Cancel",
+			"saveRequirementRestaurant": "Choose a place to save.",
+			"saveRequirementDish": "Choose a dish category to save."
 		},
 		"sections": {
 			"dishCategory": "Dish",

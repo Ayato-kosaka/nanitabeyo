@@ -133,7 +133,7 @@ export function ExistingDishMediaPicker({
 	（`MyDishesFeedChips` / `categoryFacets` / 料理カテゴリーの候補一覧と同じ規則）。
 	*/
 	const labelOf = (entry: DishMediaEntry): string =>
-		resolveDishCategoryLabel(entry.dish.categoryLabels, entry.dish.name, locale) ?? "";
+		resolveDishCategoryLabel(entry.dish.categoryLabels, locale) ?? "";
 
 	if (visibleEntries.length === 0) return null;
 

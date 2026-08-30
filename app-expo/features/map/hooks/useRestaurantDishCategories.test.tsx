@@ -21,8 +21,20 @@ import { useRestaurantDishCategories } from "./useRestaurantDishCategories";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const entry = (categoryId: string | null, name: string, categoryLabels: Record<string, string> | null = null) => ({
-	dish: { category_id: categoryId, name, categoryLabels },
+/*
+#1629（オーナー確定）候補の表示名は `dish_categories.labels` から locale で引く。
+`dishes.name`（その店での呼び名）は表示に使わないので、labels を動かして書く。
+*/
+const entry = (categoryId: string | null, ja: string | null) => ({
+	dish: {
+		category_id: categoryId,
+		name: "その店での呼び名（表示には使わない）",
+		categoryLabels: ja === null ? null : { ja },
+	},
+});
+/** labels に日本語が無い行（英語だけ / 何も無い）を作る */
+const entryWithLabels = (categoryId: string, categoryLabels: Record<string, string> | null) => ({
+	dish: { category_id: categoryId, name: "udon", categoryLabels },
 });
 
 function Probe({ restaurantId }: { restaurantId: string }) {
@@ -101,13 +113,16 @@ describe("#1629 表示名の解決", () => {
 	});
 
 	it("labels があれば、その店での呼び名より labels[言語] を優先する", async () => {
-		mockCallBackend.mockResolvedValue({ data: [entry("cat-a", "udon", { ja: "うどん", en: "Udon" })] });
+		mockCallBackend.mockResolvedValue({ data: [entryWithLabels("cat-a", { ja: "うどん", en: "Udon" })] });
 		const tree = await renderProbe();
 		expect(resultOf(tree)).toBe("うどん:1");
 	});
 
-	it("labels に自分の言語が無ければ en、それも無ければ店での呼び名へ落ちる", async () => {
-		mockCallBackend.mockResolvedValue({ data: [entry("cat-a", "udon", { en: "Udon" }), entry("cat-b", "餃子")] });
+	// ★ #1629: 呼び名（udon）へは落ちない。en があれば en、無ければ候補から外れる
+	it("labels に自分の言語が無ければ en。en も無ければ候補にしない（呼び名へ落ちない）", async () => {
+		mockCallBackend.mockResolvedValue({
+			data: [entryWithLabels("cat-a", { en: "Udon" }), entry("cat-b", "餃子"), entryWithLabels("cat-c", {})],
+		});
 		const tree = await renderProbe();
 		expect(resultOf(tree)).toBe("Udon:1,餃子:1");
 	});

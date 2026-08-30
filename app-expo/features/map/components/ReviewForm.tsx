@@ -344,6 +344,24 @@ export function ReviewForm({
 	const isValid = Number.isFinite(parsedPrice) && parsedPrice > 0 && reviewText.trim() && rating > 0 && !!dishCategoryId;
 
 	/*
+	#1629【オーナー指示】**押せない理由を画面に出す。**
+
+	> 投稿ボタンが押せない理由（例: 「お店を選んでください」）を画面に出す →いれたい。
+
+	無効なボタンが灰色で置いてあるだけだと «何が足りないのか» が読めない。#1629 では
+	«料理カテゴリーが空欄 → 投稿できない» に当たったが、当人からは «壊れている» としか見えなかった。
+	足りないものを名指しする。順番は画面の並び（レビュー → 料金 → おすすめ度）に合わせる。
+	*/
+	const missingLabels = useMemo(() => {
+		const missing: string[] = [];
+		if (!dishCategoryId) missing.push(i18n.t("MyDishes.record.missing.dishCategory"));
+		if (!reviewText.trim()) missing.push(i18n.t("MyDishes.record.missing.comment"));
+		if (!(Number.isFinite(parsedPrice) && parsedPrice > 0)) missing.push(i18n.t("MyDishes.record.missing.price"));
+		if (!(rating > 0)) missing.push(i18n.t("MyDishes.record.missing.rating"));
+		return missing;
+	}, [dishCategoryId, parsedPrice, rating, reviewText]);
+
+	/*
 	  #1386 【設計】このフォームはもうオーバーレイを 1 つも持たない。
 
 	  以前は 2 つの BlurModal を自分の中に抱えていた。
@@ -390,7 +408,7 @@ export function ReviewForm({
 	useEffect(() => {
 		const media = activePrefilledMedia;
 		if (!media) return;
-		setDishCategoryName(resolveDishCategoryLabel(media.dish.categoryLabels, media.dish.name, locale) ?? "");
+		setDishCategoryName(resolveDishCategoryLabel(media.dish.categoryLabels, locale) ?? "");
 		setDishCategoryId(media.dish.category_id ?? null);
 	}, [activePrefilledMedia, locale]);
 
@@ -1594,6 +1612,13 @@ export function ReviewForm({
 			{/* 投稿ボタン */}
 			{!isKeyboardVisible && !needsMediaChoiceFirst && !needsDishCategoryFirst && (
 				<View style={[styles.buttonContainer, { paddingBottom: 12 + insets.bottom }]}>
+					{!isValid && !isSubmitting && missingLabels.length > 0 && (
+						<Text style={styles.submitHint} testID="review-submit-hint">
+							{i18n.t("MyDishes.record.missingHint", {
+								items: missingLabels.join(i18n.t("MyDishes.record.missing.separator")),
+							})}
+						</Text>
+					)}
 					<PrimaryButton
 						testID="review-submit-button"
 						label={i18n.t("Common.postReview")}
@@ -1868,7 +1893,15 @@ const createStyles = (c: Palette) =>
 			borderRadius: 14,
 			backgroundColor: "rgba(17,24,39,0.7)",
 		},
-		replacePhotoLabel: {
+		// #1629 押せない理由。ボタンのすぐ上に小さく置く（読ませたいのはボタンの方なので控えめに）
+		submitHint: {
+			marginHorizontal: 16,
+			marginBottom: 6,
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+				replacePhotoLabel: {
 			fontSize: 11,
 			fontWeight: "700",
 			// メディアプレビューの上に載る半透明暗地のボタンなので、テーマに依らず白で固定する

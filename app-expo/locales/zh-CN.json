@@ -1026,7 +1026,15 @@
 			"noPhotoHint": "没有照片也可以记录",
 			"publicReviewNotice": "该记录将作为公开评价显示在餐厅页面上",
 			"postNotFoundNoPhoto": "该记录没有照片",
-			"skipPhoto": "跳过（不加照片）"
+			"skipPhoto": "跳过（不加照片）",
+			"missingHint": "填写 {{items}} 后即可发布。",
+			"missing": {
+				"comment": "简短点评",
+				"price": "价格",
+				"rating": "推荐度",
+				"dishCategory": "料理分类",
+				"separator": "、"
+			}
 		},
 		"filters": {
 			"title": "筛选与排序",
@@ -1164,7 +1172,9 @@
 			"save": "保存到想吃",
 			"saveRequirement": "选择菜品和店铺后即可保存。",
 			"resolveAgain": "重新读取",
-			"cancel": "取消"
+			"cancel": "取消",
+			"saveRequirementRestaurant": "选择店铺后即可保存。",
+			"saveRequirementDish": "选择料理分类后即可保存。"
 		},
 		"sections": {
 			"dishCategory": "菜品",

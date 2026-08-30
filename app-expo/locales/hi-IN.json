@@ -1026,7 +1026,15 @@
 			"noPhotoHint": "आप बिना फ़ोटो के भी रिकॉर्ड कर सकते हैं",
 			"publicReviewNotice": "आपका रिकॉर्ड सार्वजनिक समीक्षा के रूप में रेस्टोरेंट पेज पर दिखेगा",
 			"postNotFoundNoPhoto": "इस रिकॉर्ड में कोई फ़ोटो नहीं है",
-			"skipPhoto": "छोड़ें (बिना फ़ोटो)"
+			"skipPhoto": "छोड़ें (बिना फ़ोटो)",
+			"missingHint": "पोस्ट करने के लिए {{items}} भरें।",
+			"missing": {
+				"comment": "छोटी समीक्षा",
+				"price": "कीमत",
+				"rating": "रेटिंग",
+				"dishCategory": "व्यंजन श्रेणी",
+				"separator": ", "
+			}
 		},
 		"filters": {
 			"title": "फ़िल्टर और क्रम",
@@ -1164,7 +1172,9 @@
 			"save": "खाना है में सहेजें",
 			"saveRequirement": "सहेजने के लिए व्यंजन और रेस्तराँ चुनें।",
 			"resolveAgain": "फिर से पढ़ें",
-			"cancel": "रद्द करें"
+			"cancel": "रद्द करें",
+			"saveRequirementRestaurant": "सहेजने के लिए जगह चुनें।",
+			"saveRequirementDish": "सहेजने के लिए व्यंजन श्रेणी चुनें।"
 		},
 		"sections": {
 			"dishCategory": "व्यंजन",

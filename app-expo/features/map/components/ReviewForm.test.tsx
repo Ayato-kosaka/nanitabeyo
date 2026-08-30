@@ -925,3 +925,61 @@ describe("#1629 取り込んだ投稿から «食べた» を記録するとき"
 		expect(findTextNodes(tree.root, "ラーメン").length).toBeGreaterThan(0);
 	});
 });
+
+/*
+#1629【オーナー指示】投稿ボタンが押せない理由を画面に出す。
+
+無効なボタンが灰色で置いてあるだけだと «何が足りないのか» が読めない。
+足りないものを名指しし、**埋まったら消える**ことを固定する。
+*/
+describe("#1629 投稿できないときは «何が足りないか» を出す", () => {
+	/*
+	⚠️ 写真が決まっていない状態（既定の auto）では、このファイルのモックだと
+	   メディア選択が失敗してエラーカードへ倒れ、フォーム本体が描かれない。
+	   «足りないもの» の 1 行はフォーム本体の下に出るので、写真が決まっている形で見る。
+	*/
+	const makeMedia = () =>
+		({
+			id: "dish-media-hint",
+			media_type: "image",
+			render_type: "external_embed",
+			mediaUrl: null,
+			thumbnailImageUrl: "https://cdn.example.test/thumb.jpg",
+			dish: { name: "", category_id: "Q234646", categoryLabels: { ja: "ラーメン" } },
+		}) as never;
+
+	/** そのまま投稿できる状態まで埋める（写真は prefilledMedia で決まっている） */
+	const fillAll = async (tree: TestRenderer.ReactTestRenderer) => {
+		await act(async () => {
+			tree.root.find((n) => n.props?.testID === "review-comment-input").props.onChangeText("うまかった");
+		});
+		await act(async () => {
+			tree.root.findAll((n) => n.props?.testID === "review-price-input")[0].props.onChangeText("800");
+		});
+		await act(async () => {
+			tree.root.find((n) => n.props?.testID === "review-star-5").props.onPress();
+		});
+	};
+
+	it("足りないあいだは出て、埋まったら消える", async () => {
+		let tree!: TestRenderer.ReactTestRenderer;
+		await act(async () => {
+			tree = TestRenderer.create(<ReviewForm restaurant={restaurant} onCancel={noop} prefilledMedia={makeMedia()} />);
+		});
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		// ⚠️ このファイルは `PrimaryButton` を null にモックしているので、**ボタン本体は数えられない**。
+		//    見るのはボタンの上に出る «足りないもの» の 1 行だけにする。
+		//    また `i18n.t` のモックは補間値を返さないので、**行の有無**で判定する
+		const hintCount = () =>
+			tree.root.findAll((node) => node.props?.testID === "review-submit-hint", { deep: true }).length;
+
+		expect(hintCount()).toBeGreaterThan(0);
+
+		await fillAll(tree);
+
+		expect(hintCount()).toBe(0);
+	});
+});

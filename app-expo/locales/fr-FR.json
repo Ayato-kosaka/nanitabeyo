@@ -1026,7 +1026,15 @@
 			"noPhotoHint": "Vous pouvez enregistrer sans photo",
 			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant",
 			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo",
-			"skipPhoto": "Passer (sans photo)"
+			"skipPhoto": "Passer (sans photo)",
+			"missingHint": "Ajoutez {{items}} pour publier.",
+			"missing": {
+				"comment": "un court avis",
+				"price": "prix",
+				"rating": "note",
+				"dishCategory": "catégorie du plat",
+				"separator": ", "
+			}
 		},
 		"filters": {
 			"title": "Filtrer et trier",
@@ -1164,7 +1172,9 @@
 			"save": "Enregistrer dans Envies",
 			"saveRequirement": "Choisissez un plat et un restaurant pour enregistrer.",
 			"resolveAgain": "Relire",
-			"cancel": "Annuler"
+			"cancel": "Annuler",
+			"saveRequirementRestaurant": "Choisissez un lieu pour enregistrer.",
+			"saveRequirementDish": "Choisissez une catégorie de plat pour enregistrer."
 		},
 		"sections": {
 			"dishCategory": "Plat",

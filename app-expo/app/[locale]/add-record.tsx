@@ -876,8 +876,26 @@ export default function SnsImportScreen() {
 						    「料理と店舗を選ぶと保存できます」だけが居座っても、選ぶ場所が画面に無い */}
 						{isUrlLocked && (
 							<View style={styles.footer}>
+								{/*
+								#1629【オーナー実機報告 → 指示】**押せない理由を出す。**
+
+								> 自分で検索しても値が入らなくてボタンが押せなかった。二回目やったら出来た。
+								> 投稿ボタンが押せない理由を画面に出す →いれたい。
+
+								それまでは «料理と店舗を選ぶと保存できます» の 1 文だけで、**どちらが足りないのか**が
+								分からなかった。実ログ（2026-08-30 / 麦と麺助）でも、料理カテゴリーは決まっていて
+								**お店がまだ**という状態で «押せない» に当たっている。足りない方を名指しする。
+								*/}
 								{!canSave && !isSaving && (
-									<Text style={styles.footerHint}>{i18n.t("SnsImport.actions.saveRequirement")}</Text>
+									<Text style={styles.footerHint}>
+										{i18n.t(
+											restaurantId === null && dishCategoryId === null
+												? "SnsImport.actions.saveRequirement"
+												: restaurantId === null
+													? "SnsImport.actions.saveRequirementRestaurant"
+													: "SnsImport.actions.saveRequirementDish",
+										)}
+									</Text>
 								)}
 								<PrimaryButton
 									testID="sns-import-save-button"

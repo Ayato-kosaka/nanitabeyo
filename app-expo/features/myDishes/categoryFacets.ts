@@ -36,33 +36,29 @@ export const buildCategoryFacets = (
 	*/
 	locale = "ja-JP",
 ): MyDishCategoryFacet[] => {
-	const byCategory = new Map<string, { count: number; labelCounts: Map<string, number> }>();
+	/*
+	#1629 表示名は **カテゴリごとに 1 つ**（`dish_categories.labels` 由来）になった。
+	以前は行ごとの `dishes.name` を数えて «最頻の呼び名» をラベルにしていたが、
+	`dishes.name` は表示に使わなくなったので、その多数決はもう意味を持たない
+	（同じカテゴリなら必ず同じ文字列が返る）。最初に引けた表記をそのまま使う。
+	*/
+	const byCategory = new Map<string, { count: number; label: string | null }>();
 	for (const item of items) {
 		const categoryId = item.dish?.category_id;
 		if (!categoryId) continue;
 		let entry = byCategory.get(categoryId);
 		if (!entry) {
-			entry = { count: 0, labelCounts: new Map() };
+			entry = { count: 0, label: resolveDishCategoryLabel(item.dish?.categoryLabels, locale) };
 			byCategory.set(categoryId, entry);
 		}
 		entry.count += 1;
-		const name = resolveDishCategoryLabel(item.dish?.categoryLabels, item.dish?.name, locale);
-		if (name) entry.labelCounts.set(name, (entry.labelCounts.get(name) ?? 0) + 1);
 	}
 
 	const facets: MyDishCategoryFacet[] = [];
 	for (const [categoryId, entry] of byCategory) {
-		let label: string | null = null;
-		let best = 0;
-		for (const [name, count] of entry.labelCounts) {
-			if (count > best) {
-				best = count;
-				label = name;
-			}
-		}
-		// 名前が引けないカテゴリは出さない（QID を見せない）
-		if (label === null) continue;
-		facets.push({ categoryId, label, count: entry.count });
+		// 表記が引けないカテゴリは出さない（QID を見せない）
+		if (entry.label === null) continue;
+		facets.push({ categoryId, label: entry.label, count: entry.count });
 	}
 
 	// 件数の多い順。同数はラベルの辞書順で安定させる（毎回並びが揺れるとテストtoo/UI が落ち着かない）
