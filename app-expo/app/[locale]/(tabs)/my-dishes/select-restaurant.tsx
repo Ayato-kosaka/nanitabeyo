@@ -207,9 +207,32 @@ export default function SelectRestaurantScreen() {
 				});
 				// 追い越しを捨てる（指を離すたびに投げるので、古い応答が後から届きうる）
 				if (requestId !== nearbyRequestRef.current) return;
-				setNearbyRestaurants(asApiList(response));
+				const list = asApiList(response);
+				setNearbyRestaurants(list);
+				/*
+				#1629 【追加】**ピンの元になる件数を残す。**
+
+				オーナー実機報告「お店を選ぶのマップピンが Android で映らない」を追ったとき、
+				この経路には «成功したときのログ» が 1 つも無く、
+				  - 0 件が返ってきた
+				  - そもそも応答が返ってこなかった
+				  - 返ったが描画されなかった
+				の 3 つを実ログから区別できなかった。件数と半径を残せば次からは切り分けられる。
+				*/
+				logFrontendEvent({
+					event_name: "nearby_restaurants_search_completed",
+					error_level: "log",
+					payload: {
+						count: list.length,
+						radius: radiusForRegion(region),
+						lat: region.latitude,
+						lng: region.longitude,
+					},
+				});
 			} catch (error) {
 				// 自分で止めたものは «失敗» ではない。ログにも出さない
+				// （クライアントの 30 秒タイムアウトはここには来ない。`useAPICall` は
+				//   `code: "network_error"` + `timedOut: true` を投げるので下の warn に落ちる）
 				if ((error as ApiError | undefined)?.code === "aborted") return;
 				// 地図の手がかりが出ないだけなので、画面は止めない（スナックバーも出さない）
 				logFrontendEvent({
