@@ -1,0 +1,4174 @@
+[
+ {
+  "id": "bc549387-aa18-4cce-91d6-21ac1ac2e631",
+  "name": "Copain",
+  "website": "http://www1.s3.starcat.ne.jp/marfhy",
+  "host": "www1.s3.starcat.ne.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 37435,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "030f6344-f5cb-4795-9856-cdd2d4f07e2d",
+  "name": "Bridges",
+  "website": "http://www.spg.com/foursquare",
+  "host": "www.spg.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 403: Forbidden | root:HTTPError: HTTP Error 403: Forbidden",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "8109b3d0-d915-46b4-ad43-9bd032660937",
+  "name": "居食亭豊",
+  "website": "http://m-yutaka.takeo-city.net/",
+  "host": "m-yutaka.takeo-city.net",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "ae35dd1d-bedf-4dbf-b18f-47977be9ad36",
+  "name": "黄鶴楼",
+  "website": "http://koukakurou.jp",
+  "host": "koukakurou.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 4575,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "43fdbbbd-aa79-4e3b-836e-52dd3350a485",
+  "name": "そば うどん処 かわしま",
+  "website": "http://sobakawasima.moo.jp",
+  "host": "sobakawasima.moo.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "8096aa83-994c-4cda-ad0d-cc4ad6b651ce",
+  "name": "CABANA",
+  "website": "https://ja-jp.facebook.com/pages/Cabana-カバニャ/455616271238091",
+  "host": "ja-jp.facebook.com",
+  "aggregator_host": true,
+  "status": "robots_blocked",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "1e144b20-3eb1-40c9-8f49-e5cea4c5d182",
+  "name": "ビスターレビスターレ 釧路店",
+  "website": "http://bistaraibistarai.co.jp",
+  "host": "bistaraibistarai.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 40237,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "1120accb-e52b-494c-ae28-766a70112d7b",
+  "name": "立ち呑み家",
+  "website": "http://tabelog.com/osaka/A2701/A270305/27089024/",
+  "host": "tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 206845,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "e08a6f48-2082-4296-bcfb-8c064cc652a8",
+  "name": "らーめん翔太",
+  "website": "http://syo-ta.na-function.com/",
+  "host": "syo-ta.na-function.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 26619,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2d0b798b-c728-426f-8c09-e73fffe04317",
+  "name": "肉酒場 ブラチョーラ 神田店",
+  "website": "http://hi-light-intel.jp/",
+  "host": "hi-light-intel.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 43248,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "5ed29c83-143f-4039-939f-c96725d99a82",
+  "name": "京こまち 新横浜店",
+  "website": "http://sss0609.co.jp/kyo-shin/",
+  "host": "sss0609.co.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 403: Forbidden | root:HTTPError: HTTP Error 403: Forbidden",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "8d788a71-7845-423f-9fc5-42dd35bf8384",
+  "name": "菓子処 米納津屋 弥彦神社駐車場前店",
+  "website": "http://www.yonouduya.co.jp/top.html",
+  "host": "www.yonouduya.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 18261,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "74f7486a-9687-42b2-a5fa-a38ac2cc0de8",
+  "name": "Ali's Tandoor Kitchen",
+  "website": "https://www.google.com/search?q=%E3%82%A2%E3%83%AA%E3%83%BC%E3%81%95%E3%82%93%E3%81%AE%E3%82%BF%E3%83%B3%E3%83%89%E3%83%BC%E3%83%AB%E2%80%A2%E3%82%AD%E3%83%83%E3%83%81%E3%83%B3",
+  "host": "www.google.com",
+  "aggregator_host": true,
+  "status": "robots_blocked",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "b4bf3b8d-557d-4ebc-a7de-80f0cd5ea307",
+  "name": "焼肉明月",
+  "website": "https://hitosara.com/0006101152/",
+  "host": "hitosara.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 119702,
+  "old_handles": [
+   "hitosara_official"
+  ],
+  "new_handles": {
+   "hitosara_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "28e7b880-afb7-4cb9-91d5-e98b2c819c55",
+  "name": "Flocorir L'arbre",
+  "website": "https://www.instagram.com/flocorirlarbre/",
+  "host": "www.instagram.com",
+  "status": "website_is_ig",
+  "website_is_ig": true,
+  "old_handles": [
+   "flocorirlarbre"
+  ],
+  "new_handles": {
+   "flocorirlarbre": [
+    "website_is_ig"
+   ]
+  },
+  "aggregator_host": false
+ },
+ {
+  "id": "9c370051-c2be-4484-b0d4-0bc86cb44eef",
+  "name": "バニラムード",
+  "website": "http://vanillamood-roppongi.com",
+  "host": "vanillamood-roppongi.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "6bf75a74-043e-4efb-8160-39e9579d12ac",
+  "name": "クレヨン・工房",
+  "website": "http://blog.livedoor.jp/kasa0774/",
+  "host": "blog.livedoor.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 533761,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "b8493448-e764-4344-92a8-06ef155b5036",
+  "name": "Gyukatsu Motomura",
+  "website": "https://www.gyukatsu-motomura.com/shop/ueno",
+  "host": "www.gyukatsu-motomura.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 32950,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "276f0995-cd24-4f81-9e9f-b1e9b964fd02",
+  "name": "Salone del Cafe Hattori",
+  "website": "http://www.hattori-coffee.co.jp",
+  "host": "www.hattori-coffee.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 40492,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "0b1107b2-85d4-48d1-928e-3e5b42cc0e32",
+  "name": "Cafe le kokofuku",
+  "website": "http://katsushika.mypl.net/shop/00000343128/",
+  "host": "katsushika.mypl.net",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 182422,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "ce259b4e-d9e7-4222-91ff-016d11ea25c6",
+  "name": "国産牛焼肉食べ放題 あぶりや三条店",
+  "website": "https://aburiya.1dining.co.jp/store/?id=781",
+  "host": "aburiya.1dining.co.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 33305,
+  "old_handles": [
+   "aburiya_o"
+  ],
+  "new_handles": {
+   "aburiya_o": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "39ae5420-064d-4403-8098-d8a89e1afb12",
+  "name": "チャーガ健康園（フィールドロック株式会社 ）",
+  "website": "https://shop-chaga.com/",
+  "host": "shop-chaga.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 25088,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "fe0af468-b2d1-4311-981d-bfc1cc4516c8",
+  "name": "バーゼル京王八王子店",
+  "website": "http://www.basel.co.jp/brasserie.html",
+  "host": "www.basel.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 139124,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "41477505-35cc-40f8-8026-75d8a1d77ea9",
+  "name": "サンクゼール・ファクトリー・アウトレット三田店",
+  "website": "http://www.stcousair.co.jp",
+  "host": "www.stcousair.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 310699,
+  "old_handles": [
+   "st.cousair"
+  ],
+  "new_handles": {
+   "st.cousair": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "06ed147e-1f8f-4821-8dda-74c78324492a",
+  "name": "Canadian Cafe",
+  "website": "https://sites.google.com/site/canadahouse2go2/home",
+  "host": "sites.google.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 1237856,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f0b22146-a51c-4ea2-9f2c-ccd9f4816c7f",
+  "name": "柳月",
+  "website": "https://www.ryugetsu.co.jp",
+  "host": "www.ryugetsu.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 45382,
+  "old_handles": [
+   "ryugetsu_sanpouroku"
+  ],
+  "new_handles": {
+   "ryugetsu_sanpouroku": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "5b77678c-6859-497c-8dab-92e1e2e49b44",
+  "name": "Wine Stand Elmo",
+  "website": "https://www.google.co.jp/amp/s/s.tabelog.com/tokyo/A1318/A131813/13237894/top_amp/",
+  "host": "www.google.co.jp",
+  "aggregator_host": true,
+  "status": "robots_blocked",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "9581734a-1fca-41b0-a6e9-20af0ddeadc3",
+  "name": "春日亭",
+  "website": "http://www.kasugatei.com",
+  "host": "www.kasugatei.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 14953,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "341f0330-d6e5-4e0f-b373-a52a25e3ba97",
+  "name": "ほそだのすきやきしゃぶしゃぶハウス",
+  "website": "http://www.hotpepper.jp/strJ000873346/",
+  "host": "www.hotpepper.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 92488,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "64d0d49f-2afa-4622-a2a2-563126c6b028",
+  "name": "うおべぇ",
+  "website": "https://sakanatoosakeuobee.wixsite.com/mysite-2",
+  "host": "sakanatoosakeuobee.wixsite.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 729965,
+  "old_handles": [
+   "sakanatoodenuobee",
+   "wix"
+  ],
+  "new_handles": {
+   "sakanatoodenuobee": [
+    "ig_url"
+   ],
+   "wix": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "51ca9589-7061-4ccc-84c2-0ff625c2f968",
+  "name": "이디야커피",
+  "website": "http://www.ediya.com",
+  "host": "www.ediya.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 58278,
+  "old_handles": [
+   "ediya.coffee"
+  ],
+  "new_handles": {
+   "ediya.coffee": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "e843351d-b638-48a5-81cb-debe9874bf8a",
+  "name": "和食処仁科",
+  "website": "http://hinahime1016.hatenablog.com/",
+  "host": "hinahime1016.hatenablog.com",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 404: Not Found",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "3bba43a3-9077-4a03-8916-a10d073f0484",
+  "name": "サーティワンアイスクリーム",
+  "website": "http://www.31ice.co.jp/",
+  "host": "www.31ice.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 74871,
+  "old_handles": [
+   "31icecream_japan"
+  ],
+  "new_handles": {
+   "31icecream_japan": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "63ee17ba-0d9b-4ab1-9245-06b7315597b0",
+  "name": "ほっともっと",
+  "website": "https://www.hottomotto.com/stores/?id=64464",
+  "host": "www.hottomotto.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 31641,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "a838f61c-89a1-4f67-b249-de9471889660",
+  "name": "ムガルカフェ",
+  "website": "http://www.thepicta.com/user/mughalcafe/2009114731",
+  "host": "www.thepicta.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 558,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "972fcc3b-3632-4524-8515-be05533dfbeb",
+  "name": "上等カレー 岡山本町店",
+  "website": "http://www.tokumasa.net",
+  "host": "www.tokumasa.net",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 244866,
+  "old_handles": [
+   "shakariki432_pnh"
+  ],
+  "new_handles": {
+   "shakariki432_pnh": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "8cb31596-0d33-4c0b-9e33-e7230df30d34",
+  "name": "ブルスタ・オラムー 新発寒店",
+  "website": "https://www.blusta.com",
+  "host": "www.blusta.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 52955,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "775718d5-a33a-42af-94c6-8b27250a2b88",
+  "name": "本家 しゃもじ屋鳴海",
+  "website": "http://www.shamojiya.jp",
+  "host": "www.shamojiya.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "1137fe7b-769d-4104-bc2c-3701d0daa5e1",
+  "name": "大山",
+  "website": "https://tabelog.com/hokkaido/A0105/A010501/1047997/",
+  "host": "tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 169819,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "43f8891d-3902-4b68-805b-6abfe3009134",
+  "name": "黒田藩健軍店",
+  "website": "http://www.showafoods.jp/kurodahan.html",
+  "host": "www.showafoods.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 29822,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f9864fa7-71f4-418e-b98f-5af62107f673",
+  "name": "沖縄居酒屋 ２階のはりく",
+  "website": "https://nikainohariku.business.site",
+  "host": "nikainohariku.business.site",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 404: Not Found | root:HTTPError: HTTP Error 404: Not Found",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "7a0437ad-98ae-41eb-a726-0274e798ece1",
+  "name": "SQUARE Café",
+  "website": "http://www.squarecafe-tokyopizza.com",
+  "host": "www.squarecafe-tokyopizza.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 9538,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "24ece552-2513-40f0-9e2d-7572da1a483a",
+  "name": "桜蓮",
+  "website": "http://www.shinbashi-renn.com",
+  "host": "www.shinbashi-renn.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 16099,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "dc12d2af-ad80-48f0-aefe-0c2ec9dff49c",
+  "name": "てつ鍋 カツを 天満橋店",
+  "website": "https://www.tetsunabekatsuwo.com/",
+  "host": "www.tetsunabekatsuwo.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 404: Not Found",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "58440bb8-4bd2-4b55-89b0-fc6f8c5d6f09",
+  "name": "魚米酒・たけとら",
+  "website": "http://tabelog.com/tokyo/A1308/A130802/13127395/",
+  "host": "tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 229921,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "23fd2db1-79e6-409a-b73c-bf27882e4e23",
+  "name": "すし仙",
+  "website": "http://lineat.jp/sushisen",
+  "host": "lineat.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 503: Service Unavailable | root:HTTPError: HTTP Error 503: Service Unavailable",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "e6fc672b-42ab-489a-843a-85edf03f2687",
+  "name": "地底旅行",
+  "website": "http://www.titeiryokou.com/beerrestranbeer.html",
+  "host": "www.titeiryokou.com",
+  "aggregator_host": false,
+  "status": "robots_blocked",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "560af8eb-25c3-40a6-a06f-c894381c6ecd",
+  "name": "天宝代々木八幡",
+  "website": "http://www.localplace.jp/t100055325/",
+  "host": "www.localplace.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1016)> | root:URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1016)>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "74ebda68-71a2-4f94-b1b9-7f27b100ee47",
+  "name": "すき家",
+  "website": "http://www.sukiya.jp/",
+  "host": "www.sukiya.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 92360,
+  "old_handles": [
+   "sukiya_jp"
+  ],
+  "new_handles": {
+   "sukiya_jp": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "9e83034d-edc9-4fa4-b285-3440298b44ef",
+  "name": "飲食店（寿司和食）",
+  "website": "https://ameblo.jp/umide1ban/?frm_id=v.mypage-ameblo--myblog--blog",
+  "host": "ameblo.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 336464,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f2bfe7a8-192f-4ff6-a73b-93b7b6a1f3db",
+  "name": "Touta inc.",
+  "website": "https://touta.org/",
+  "host": "touta.org",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 961268,
+  "old_handles": [
+   "touta_senegal"
+  ],
+  "new_handles": {
+   "touta_senegal": [
+    "ig_url",
+    "jsonld_sameas"
+   ]
+  }
+ },
+ {
+  "id": "a6c3c24b-76fe-453a-930b-fae1bb57a509",
+  "name": "マックスバリュ",
+  "website": "https://www.aeon-hokkaido.jp/mv/shop/yamahana/",
+  "host": "www.aeon-hokkaido.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 43598,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "6d3224ef-f925-451b-9707-151d9355ed91",
+  "name": "べい",
+  "website": "http://osietesite.com/gourmet/hukuoka/sakaba-hukuoka/hakatabei",
+  "host": "osietesite.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 574,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "40102fb7-daa8-46b8-b0ec-7db8902bcd5f",
+  "name": "H Cafe Izumi",
+  "website": "http://h-cafe.hondacars-sendaikita.co.jp/",
+  "host": "h-cafe.hondacars-sendaikita.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 29688,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "037e8f4e-36e4-4ef5-9b21-2b4067042715",
+  "name": "PUB Mother 狭山店",
+  "website": "http://pub-mother.com/",
+  "host": "pub-mother.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 9811,
+  "old_handles": [
+   "pubmother_kawagoe_official",
+   "pubmother_sayama_official"
+  ],
+  "new_handles": {
+   "pubmother_sayama_official": [
+    "ig_url"
+   ],
+   "pubmother_kawagoe_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "d8dd5c00-4cd0-43e3-b5af-2636347bd0f1",
+  "name": "船福本社営業部",
+  "website": "http://www.2729.jp",
+  "host": "www.2729.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 58384,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "61267624-bd37-491c-a744-3cd74b62262c",
+  "name": "Ju-Ju奥山",
+  "website": "http://tokin-group.jp",
+  "host": "tokin-group.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 33931,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "7b497561-100d-4624-aaec-edb24966e1bd",
+  "name": "まねきねこ福生店",
+  "website": "http://www.karaokemanekineko.jp/",
+  "host": "www.karaokemanekineko.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 113788,
+  "old_handles": [
+   "karaoke_manekineko_pr"
+  ],
+  "new_handles": {
+   "karaoke_manekineko_pr": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "2068999d-25da-43b5-a80e-11bedb3753a9",
+  "name": "エゾリス君の宿（café＆宿）カンタベリー",
+  "website": "https://www.ezorisuyado.com/",
+  "host": "www.ezorisuyado.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 11704,
+  "old_handles": [
+   "ezorisuyado"
+  ],
+  "new_handles": {
+   "ezorisuyado": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "8461e27b-2c3a-4be1-a9a7-40d512bbaff2",
+  "name": "Artisee",
+  "website": "http://www.cafeartisee.com",
+  "host": "www.cafeartisee.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 317494,
+  "old_handles": [
+   "cafeartisee"
+  ],
+  "new_handles": {
+   "cafeartisee": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "5eb0b2ee-4f75-48c5-8cec-cbf91a56a02b",
+  "name": "Budouya TSK",
+  "website": "http://www.budouya-tsk.com/",
+  "host": "www.budouya-tsk.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "a1744868-c051-4863-8e32-39bfbbf85a92",
+  "name": "まめ魚豊田店",
+  "website": "http://www.jproject.jp",
+  "host": "www.jproject.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 78859,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "4ae24790-0e5e-49c6-a612-c4154f2d2426",
+  "name": "じゃんじゃか伊予",
+  "website": "http://www.fujifamilyfoods.jp/store-list/yakiniku/jyan-jyaka/page-510#1",
+  "host": "www.fujifamilyfoods.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 37382,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "20e8377a-3dfd-44b9-873c-7e5910508167",
+  "name": "カプリチョーザ アトレ大森店",
+  "website": "http://capricciosa.com",
+  "host": "capricciosa.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 17838,
+  "old_handles": [
+   "capricciosa_official"
+  ],
+  "new_handles": {
+   "capricciosa_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "f256b11f-7938-4262-acc6-4beec097459d",
+  "name": "蝦夷寿司",
+  "website": "http://www.asobube.com/database.cgi?dbnum=32&dbkonum=0",
+  "host": "www.asobube.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 133,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "898696bb-a2c9-4a81-a2f1-dfb779c16f49",
+  "name": "なべしま",
+  "website": "http://www.nabeshima-jp.com",
+  "host": "www.nabeshima-jp.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 37695,
+  "old_handles": [
+   "yakiniku_nabeshima"
+  ],
+  "new_handles": {
+   "yakiniku_nabeshima": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "74c45af7-72ad-4e6d-ba35-0a3d94d95d67",
+  "name": "麺屋リーブル",
+  "website": "https://lef-libre.com",
+  "host": "lef-libre.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 33877,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "5ee5cdc4-dd5e-44b8-bfcc-288a71118ac0",
+  "name": "수원수산시장 주식회사",
+  "website": "http://www.suwonsusan.com/",
+  "host": "www.suwonsusan.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 1210445,
+  "old_handles": [
+   "suwonfishmarket"
+  ],
+  "new_handles": {
+   "suwonfishmarket": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "a9b1a88a-fc29-491f-bdb0-706ee2be2c44",
+  "name": "나스",
+  "website": "http://blog.naver.com/nasu2014",
+  "host": "blog.naver.com",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 403: Forbidden | root:HTTPError: HTTP Error 403: Forbidden",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "1ff9074b-09df-4312-b107-b83141be1740",
+  "name": "Tori no Ana Ikebukuro",
+  "website": "http://torinoana.com",
+  "host": "torinoana.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 503: Service Unavailable | root:HTTPError: HTTP Error 503: Service Unavailable",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "08970bcc-a15f-42ac-9ceb-80592f96df93",
+  "name": "チャビーズキッチン(Ｃhubb’s kitchen)",
+  "website": "https://ameblo.jp/chubbynodaidokoro",
+  "host": "ameblo.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 113653,
+  "old_handles": [
+   "en_us"
+  ],
+  "new_handles": {
+   "chubbydayo": [
+    "at_text"
+   ]
+  }
+ },
+ {
+  "id": "63a284f5-b4d4-4beb-84f4-43225fa623c0",
+  "name": "맥도날드 수원아주대점",
+  "website": "http://www.mcdonalds.co.kr",
+  "host": "www.mcdonalds.co.kr",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 13514,
+  "old_handles": [
+   "mcdonalds_kr"
+  ],
+  "new_handles": {
+   "mcdonalds_kr": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "eb634e95-4fd3-44f6-b8b6-7ce93221f22d",
+  "name": "クリムモア",
+  "website": "http://crim.co.jp/more/",
+  "host": "crim.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 331076,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "144d8753-f9d5-4571-beb8-339ca5ea46c3",
+  "name": "Bistro plein",
+  "website": "http://replein.com/bistro-plein-omtoesando.html",
+  "host": "replein.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 57277,
+  "old_handles": [
+   "plein.restaurants"
+  ],
+  "new_handles": {
+   "plein.restaurants": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "04d52a6a-a02c-41b0-886d-b7426464934b",
+  "name": "ジャスミンタイ (Jasmine Thai)",
+  "website": "http://www.jasmine-thai.co.jp",
+  "host": "www.jasmine-thai.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 75296,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "56865c33-dff6-4008-a0d5-42cd2ee3fdf5",
+  "name": "Project Bleue プロジェクト ブルー",
+  "website": "http://facebook.com/ProjectBleue",
+  "host": "facebook.com",
+  "aggregator_host": true,
+  "status": "robots_blocked",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "bc393dfc-5a50-407c-88fe-8f1ca780df65",
+  "name": "いぬのじかん",
+  "website": "http://ootukainuyashiki.blog121.fc2.com",
+  "host": "ootukainuyashiki.blog121.fc2.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 62242,
+  "old_handles": [],
+  "new_handles": {
+   "kiraku_to_inunojikan": [
+    "at_text"
+   ]
+  }
+ },
+ {
+  "id": "e4ca3717-7f5c-47f8-8841-00b6fb85357e",
+  "name": "エフェクト",
+  "website": "http://www.effect-japan.com",
+  "host": "www.effect-japan.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 22526,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "0adce359-32cf-4960-b0d1-83900f1966b2",
+  "name": "クロワッサン専門店 くれせんと",
+  "website": "https://www.crescent1839.jp",
+  "host": "www.crescent1839.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.crescent1839.jp'. (_ssl.c:1016)> | root:URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.crescent1839.jp'. (_ssl.c:1016)>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2e24a306-d968-4f45-bde4-89beab3655f6",
+  "name": "市場ずし 難波店",
+  "website": "http://ichibazushi.com/",
+  "host": "ichibazushi.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 10326,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "8bb11612-fb3d-4905-a80f-206fc3d9a74f",
+  "name": "サンレモ",
+  "website": "http://sanremo.main.jp",
+  "host": "sanremo.main.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "364c39e6-274a-410f-b13c-2744c486abcf",
+  "name": "Samurai Grill",
+  "website": "http://samurai-grill.com/",
+  "host": "samurai-grill.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -5] No address associated with hostname>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "e5608ded-1d5d-4416-a08f-a90b360a12d0",
+  "name": "北京楼菜館",
+  "website": "http://pekinrousaikan.com/",
+  "host": "pekinrousaikan.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 8625,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "9d062367-2526-4096-b32d-2cf30b31f045",
+  "name": "ラーメン本丸小牧店",
+  "website": "http://www.honmarutei.jp",
+  "host": "www.honmarutei.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 4713,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "50485b00-1867-4c12-b726-a3a3d346c91c",
+  "name": "えびす焼魚食堂",
+  "website": "https://sakanashokudo.com/shokudo",
+  "host": "sakanashokudo.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 37435,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "42282d43-4adf-4818-9a75-daa2ace9246f",
+  "name": "マルナカ南国店酒コーナー",
+  "website": "https://www.marunaka.net/",
+  "host": "www.marunaka.net",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno 104] Connection reset by peer>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "156b341e-b6aa-4323-9294-6ed3b394293f",
+  "name": "助屋",
+  "website": "https://sukeya-yano.jimdofree.com/",
+  "host": "sukeya-yano.jimdofree.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 34022,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f52290ad-5923-4d14-9e71-f8b4d5852325",
+  "name": "Tully's Coffee",
+  "website": "https://www.tullys.co.jp",
+  "host": "www.tullys.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 63602,
+  "old_handles": [
+   "tullyscoffeejapan"
+  ],
+  "new_handles": {
+   "tullyscoffeejapan": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "8f3fccd7-835f-4e59-bd72-eee4a4c082da",
+  "name": "Mama 5108 Cafe",
+  "website": "https://tabelog.com/tokyo/A1323/A132302/13180377/",
+  "host": "tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 208274,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "aca81b73-f60c-4163-a2a0-fea8bac6023a",
+  "name": "かっぱ寿司各務原蘇原店",
+  "website": "http://www.kappa-create.co.jp/index.html",
+  "host": "www.kappa-create.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 20480,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "8c06eaa5-e6dc-4951-b8b3-03f64bfb3652",
+  "name": "橙カフェ",
+  "website": "https://glass-studio-daidai.net/blog/cafe",
+  "host": "glass-studio-daidai.net",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 46394,
+  "old_handles": [
+   "glassdaidai"
+  ],
+  "new_handles": {
+   "glassdaidai": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "54decdbd-9f99-4445-90ad-755af8326d99",
+  "name": "ベーカリー兎座 Lepus",
+  "website": "http://bakery-lepus.hatenablog.com",
+  "host": "bakery-lepus.hatenablog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 91261,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "9671a775-26a3-4c2c-9c48-45553b3b5a0b",
+  "name": "すき家",
+  "website": "http://www.sukiya.jp/",
+  "host": "www.sukiya.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 92360,
+  "old_handles": [
+   "sukiya_jp"
+  ],
+  "new_handles": {
+   "sukiya_jp": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "ce39b5c3-e8f0-443c-9d02-20efafa78184",
+  "name": "ほっともっと",
+  "website": "https://www.hottomotto.com/stores/?id=63375",
+  "host": "www.hottomotto.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 31243,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "b01ae553-16ee-4057-a1d7-4383989abe36",
+  "name": "ウェルシップやいづ",
+  "website": "http://www.city.yaizu.lg.jp/welship/map.html",
+  "host": "www.city.yaizu.lg.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 11555,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "0a1a59fd-01b4-4733-b4d5-2d5992cf97f7",
+  "name": "二代目河童",
+  "website": "https://nidaime-kappa.com",
+  "host": "nidaime-kappa.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 35397,
+  "old_handles": [
+   "akama_kappa"
+  ],
+  "new_handles": {
+   "akama_kappa": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "9b601de3-833f-4b72-8d30-cb9b544246b2",
+  "name": "커피플라워",
+  "website": "http://coffeeflower.kr",
+  "host": "coffeeflower.kr",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 80819,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2b42962d-d2cd-4171-b530-87677067a9b3",
+  "name": "ジョリーパスタ 甲府和戸通り店",
+  "website": "https://maps.jolly-pasta.co.jp/jp/detail/3563.html",
+  "host": "maps.jolly-pasta.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 27232,
+  "old_handles": [
+   "jollypasta_jp"
+  ],
+  "new_handles": {
+   "jollypasta_jp": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "08024f66-d402-48ce-bd9d-093816dd0640",
+  "name": "Fuumi ふうみ",
+  "website": "http://fuumifuumi.web.fc2.com/",
+  "host": "fuumifuumi.web.fc2.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 7493,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "fb6e8420-dfcd-484a-af50-61681936f235",
+  "name": "ベリカフェつばさ游",
+  "website": "http://blog.goo.ne.jp/seikatukoubou_1953",
+  "host": "blog.goo.ne.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "44125937-bd77-4f84-be47-543aee3ad9c6",
+  "name": "ご飯ととろろ とろ麦浅草Ekimise店",
+  "website": "http://foods-japan.co.jp",
+  "host": "foods-japan.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 32348,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "09b9b169-dd86-423c-b065-cd530c3f31b7",
+  "name": "米乃家イオン小牧店",
+  "website": "http://yonenoya.jp",
+  "host": "yonenoya.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 34412,
+  "old_handles": [
+   "yonenoya"
+  ],
+  "new_handles": {
+   "yonenoya": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "7bd5b6a1-ad70-40b6-ae11-dfd12dcf965d",
+  "name": "커피랑 도서관 양재역점",
+  "website": "http://www.namuya.co.kr/",
+  "host": "www.namuya.co.kr",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 28746,
+  "old_handles": [
+   "noodletree_official"
+  ],
+  "new_handles": {
+   "noodletree_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "872ec86d-c1f0-4b4d-a034-c38cebcaf6b2",
+  "name": "串揚げとワイン はち",
+  "website": "http://r.gnavi.co.jp/cyrcx5p20000/",
+  "host": "r.gnavi.co.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 168206,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "b58d8be2-ce18-4434-80a8-6e7d7eef25bc",
+  "name": "なつま屋本店",
+  "website": "http://www.natsumaya.net/index.html",
+  "host": "www.natsumaya.net",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 12026,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "e2cf48c1-6a82-43f4-9619-616f3fdf5598",
+  "name": "本家かまどや ドラッグユタカ綾部前店",
+  "website": "http://www.honkekamadoya.co.jp",
+  "host": "www.honkekamadoya.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 117273,
+  "old_handles": [
+   "honke_kamadoya"
+  ],
+  "new_handles": {
+   "honke_kamadoya": [
+    "at_text",
+    "ig_url",
+    "jsonld_sameas"
+   ]
+  }
+ },
+ {
+  "id": "c1a2f617-2608-4c85-b4be-d72d719d683c",
+  "name": "フレッシュネスバーガー",
+  "website": "https://www.freshnessburger.co.jp",
+  "host": "www.freshnessburger.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 33090,
+  "old_handles": [
+   "freshness_1992"
+  ],
+  "new_handles": {
+   "freshness_1992": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "654b9822-349d-4c64-8917-8f1e6096de63",
+  "name": "ベルカナ Berkana",
+  "website": "http://www.berkana0406.com",
+  "host": "www.berkana0406.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 500: Internal Server Error | root:HTTPError: HTTP Error 500: Internal Server Error",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "6c5f729f-6fef-4a78-9844-fd99510eea8c",
+  "name": "會津酒本田",
+  "website": "https://www.aizusakehonda.jp",
+  "host": "www.aizusakehonda.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 74509,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2903a79d-68f1-4f42-8a96-1117cbd25a6d",
+  "name": "大戸屋ごはん処青森新町通店",
+  "website": "http://www.ootoya.com",
+  "host": "www.ootoya.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 57520,
+  "old_handles": [
+   "ootoya.jp"
+  ],
+  "new_handles": {}
+ },
+ {
+  "id": "fcf97fcd-b02a-4af3-b241-63b247e2e9a8",
+  "name": "Britta",
+  "website": "http://www.britta.sakura.ne.jp/",
+  "host": "www.britta.sakura.ne.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 72208,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f1a0736f-4d0a-48ad-8a6d-09cd1e2f185c",
+  "name": "マクドナルド",
+  "website": "https://www.mcdonalds.co.jp",
+  "host": "www.mcdonalds.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 150541,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "ebc62e72-5a97-48ae-8bf9-51ea214d5c3b",
+  "name": "サンシャイン朝倉",
+  "website": "http://sunshinechain.com/",
+  "host": "sunshinechain.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 62709,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "0dcbd82d-6f45-4bb5-b2c1-08373708436e",
+  "name": "GIRAFFE",
+  "website": "http://loco.yahoo.co.jp/place/e49802b08bdde45a84ce53fbf7096cc82b824b0e/",
+  "host": "loco.yahoo.co.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 404: Not Found | root:HTTPError: HTTP Error 404: Not Found",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "c177657d-0b21-4167-b2c1-284e8dc0b339",
+  "name": "エスエーエルギャラリープラス",
+  "website": "https://kiwa1021.wixsite.com/sal-gallery",
+  "host": "kiwa1021.wixsite.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 320163,
+  "old_handles": [
+   "s.a.l_gallery"
+  ],
+  "new_handles": {
+   "s.a.l_gallery": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "fd9de8cc-9fae-4702-80eb-45b9b6c8c3a2",
+  "name": "手打そば処谷屋",
+  "website": "http://r.tabelog.com/aichi/A2301/A230109/23001639/",
+  "host": "r.tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 208241,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "4a716ed6-30ed-45f7-916e-fb6ebc3b55f1",
+  "name": "しろやまデリ・マルシェ",
+  "website": "https://shiroyamastore.com/companyaaa/delimaruten/",
+  "host": "shiroyamastore.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 51733,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "5813e5ab-3a2e-45e1-b6b3-a5c77475ad5d",
+  "name": "居酒家あきば",
+  "website": "http://izakaya-akiba.tumblr.com/",
+  "host": "izakaya-akiba.tumblr.com",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 429: Too Many Requests",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "55f169b3-7959-4211-bbfa-42f7c0c368ed",
+  "name": "Bar Rooster",
+  "website": "http://ameblo.jp/bar-rooster/",
+  "host": "ameblo.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 74826,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "5b93541f-850b-4656-bff2-5169795ea301",
+  "name": "ケンタッキーフライドチキン",
+  "website": "http://www.kfc.co.jp/",
+  "host": "www.kfc.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 22156,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "79c242d7-9fd3-4566-a5fb-6ea48115d68a",
+  "name": "博多一幸舎中洲店",
+  "website": "http://ikkousha.com",
+  "host": "ikkousha.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 42711,
+  "old_handles": [
+   "ikkousha_hakata"
+  ],
+  "new_handles": {
+   "ikkousha_hakata": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "e471cb34-08f3-49c8-a080-3006b5519203",
+  "name": "神戸の洋菓子 チロル",
+  "website": "http://tabelog.com/hyogo/A2801/A280108/28019378/",
+  "host": "tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 202280,
+  "old_handles": [
+   "kobe_chirolu1977"
+  ],
+  "new_handles": {
+   "kobe_chirolu1977": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "cad5bba1-714e-4513-9872-3281158fe47e",
+  "name": "ナカオファクトリーワークス＆コーヒースタンド",
+  "website": "http://www.nakao-alumi.jp/",
+  "host": "www.nakao-alumi.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 12351,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "8737a197-bd88-47d1-9981-9d15ae0ca42d",
+  "name": "新富良野プリンスホテル パン工房",
+  "website": "http://www.princehotels.co.jp/newfurano/restaurant/pain_kobo",
+  "host": "www.princehotels.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 113853,
+  "old_handles": [
+   "seibuprincejp"
+  ],
+  "new_handles": {
+   "seibuprincejp": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "bb7f6599-cbe7-4777-b213-45a6e23b459f",
+  "name": "朝日エアポートサービス 総務部",
+  "website": "http://www.aas.co.jp",
+  "host": "www.aas.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 26810,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "366c4e77-0eaa-4023-941b-310fc631c699",
+  "name": "ヤクルト大阪東部",
+  "website": "https://osakatobu-yakult.jp/smarts/index/1/",
+  "host": "osakatobu-yakult.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 145728,
+  "old_handles": [
+   "osakatobu_yakult_offcial"
+  ],
+  "new_handles": {
+   "osakatobu_yakult_offcial": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "42f19cce-fb89-4fea-82f2-10ccadeb45ee",
+  "name": "南国",
+  "website": "http://www.yamashiro-spa.or.jp/sight/food/post_7.html",
+  "host": "www.yamashiro-spa.or.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 67602,
+  "old_handles": [
+   "yamashiro_spa"
+  ],
+  "new_handles": {
+   "yamashiro_spa": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "c16c0d8f-fa2e-4fc5-9fb3-90a564bc3c5d",
+  "name": "ビーフシチューの店 ロマン亭",
+  "website": "http://www.hanakomichi.jp/beaf",
+  "host": "www.hanakomichi.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 17461,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "c986531b-a7eb-4103-a95e-90aa24427f34",
+  "name": "リストランテ ジャルディーノ",
+  "website": "http://www.giardino138.com/access.html",
+  "host": "www.giardino138.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "51b5469d-5f2d-4634-a5aa-81e6569927f9",
+  "name": "元町港船客待合所",
+  "website": "http://www.tokaikisen.co.jp",
+  "host": "www.tokaikisen.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 118522,
+  "old_handles": [
+   "tokaikisen"
+  ],
+  "new_handles": {
+   "tokaikisen": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "f1b193de-c054-41bb-bbdf-c963936b372f",
+  "name": "Coffeexbeer For Rest",
+  "website": "https://www.instagram.com/coffee_beer_forrest",
+  "host": "www.instagram.com",
+  "status": "website_is_ig",
+  "website_is_ig": true,
+  "old_handles": [
+   "coffee_beer_forrest"
+  ],
+  "new_handles": {
+   "coffee_beer_forrest": [
+    "website_is_ig"
+   ]
+  },
+  "aggregator_host": false
+ },
+ {
+  "id": "ab75ddcc-08f9-4fa9-b170-c0cfc91fb450",
+  "name": "東京炭とん",
+  "website": "http://r.tabelog.com/tokyo/A1311/A131101/13081751/",
+  "host": "r.tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 202767,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "865a408a-6cc1-47f9-b84c-070682c07181",
+  "name": "うまい処",
+  "website": "http://www.city.kakegawa.shizuoka.jp/kankou/spot/annaiomiyage/michinoeki.html",
+  "host": "www.city.kakegawa.shizuoka.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 47145,
+  "old_handles": [
+   "kakegawa_tourism_official"
+  ],
+  "new_handles": {
+   "kakegawa_tourism_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "dd459fd9-05d6-486d-8acb-6eb913d40950",
+  "name": "Rustic House",
+  "website": "http://rustichouse.jp",
+  "host": "rustichouse.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 106576,
+  "old_handles": [
+   "shop_rustichouse"
+  ],
+  "new_handles": {
+   "shop_rustichouse": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "cb2208f5-4f4f-4863-8dd9-da77f80c3f08",
+  "name": "播鳥西中島店",
+  "website": "http://www.banchou.co.jp",
+  "host": "www.banchou.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 62413,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "ef652e87-0481-4433-a250-e3779ac6cecc",
+  "name": "屋台おでん「よっしー」",
+  "website": "http://ramendb.supleks.jp/s/15898.html",
+  "host": "ramendb.supleks.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 403: Forbidden | root:HTTPError: HTTP Error 403: Forbidden",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "551f7a92-a5df-4097-b51e-54878187b34e",
+  "name": "미스타포차",
+  "website": "http://cityfood.co.kr/h9/mrkimpocha",
+  "host": "cityfood.co.kr",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 2786,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "13bfff43-ef7a-4b91-a86b-069449891356",
+  "name": "宇奈とと南森町店",
+  "website": "http://www.unatoto.com/shop/minamimori-machi",
+  "host": "www.unatoto.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 39327,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f0621cc8-ad7a-440b-a941-9bd324429adc",
+  "name": "अमीन",
+  "website": "https://linktr.ee/AminParker?subscribe",
+  "host": "linktr.ee",
+  "aggregator_host": true,
+  "status": "robots_blocked",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "91d6095f-a8ad-45bc-ba76-ef61c8d7f162",
+  "name": "ほるもん道場会津清水通店",
+  "website": "http://www.gurutto-aizu.com/detail/index_72.html",
+  "host": "www.gurutto-aizu.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 279892,
+  "old_handles": [
+   "guruttoaizu"
+  ],
+  "new_handles": {
+   "guruttoaizu": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "6908e943-bc6c-441d-9ce1-69966f1c3875",
+  "name": "泰苑",
+  "website": "http://r.tabelog.com/aomori/A0201/A020101/2000065/",
+  "host": "r.tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 203733,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "11df4d8d-26ec-4555-8e34-5f7bebf0dffe",
+  "name": "元淳",
+  "website": "http://r.gnavi.co.jp/g702400/",
+  "host": "r.gnavi.co.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 127166,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "a2d5d028-213d-49ee-8899-ebc9aab3b4c0",
+  "name": "茶馬古道",
+  "website": "http://www.kumagayakan.net/shop/1208_1.html",
+  "host": "www.kumagayakan.net",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 24454,
+  "old_handles": [
+   "kumagayakan"
+  ],
+  "new_handles": {
+   "kumagayakan": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "294d8b2d-072e-47d0-986d-bea29168319f",
+  "name": "다동커피집",
+  "website": "http://cafe.daum.net/myungdongcoffee",
+  "host": "cafe.daum.net",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 1609,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "73030220-526a-4af3-958c-51477233801f",
+  "name": "LoiterMarket：ロイターマーケット",
+  "website": "http://loiter-market.com/",
+  "host": "loiter-market.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 137189,
+  "old_handles": [
+   "loitermarket_kreis"
+  ],
+  "new_handles": {
+   "loitermarket_kreis": [
+    "at_text",
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "94421dd0-195d-464f-90d1-dbbe1e76d03e",
+  "name": "へぎそば 宍倉",
+  "website": "http://hegisobasisikura.com",
+  "host": "hegisobasisikura.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 14318,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "3d28e8e7-4b54-426d-870d-27fea894757d",
+  "name": "数寄屋橋えどわん",
+  "website": "https://www.jgroup.jp/business/jproject/shop/192",
+  "host": "www.jgroup.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 78859,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "0114b38c-21be-4919-8f5c-eb6b56af88f9",
+  "name": "ラボアキチ(九条湯)",
+  "website": "https://www.instagram.com/akichilab66/",
+  "host": "www.instagram.com",
+  "status": "website_is_ig",
+  "website_is_ig": true,
+  "old_handles": [
+   "akichilab66"
+  ],
+  "new_handles": {
+   "akichilab66": [
+    "website_is_ig"
+   ]
+  },
+  "aggregator_host": false
+ },
+ {
+  "id": "ecf99230-38ac-4a1d-bed3-69ec0c8f9b2b",
+  "name": "からあげ縁戸越銀座店",
+  "website": "http://karaageyukari.jp/index.html",
+  "host": "karaageyukari.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 52754,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "0d505a05-8c32-4b5f-a587-8a8fe3391b95",
+  "name": "マクドナルド",
+  "website": "http://www.mcdonalds.co.jp/",
+  "host": "www.mcdonalds.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 150541,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "6c98341a-a6b1-4b46-9601-044ab2190574",
+  "name": "モスバーガー",
+  "website": "https://www.mos.jp/shop/detail/?shop_cd=05316",
+  "host": "www.mos.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 4144,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "c021ff44-c6e8-4e24-b724-575540285369",
+  "name": "アソーラカフェ",
+  "website": "https://kodomomiraiyuiku.jp/20210513224542/",
+  "host": "kodomomiraiyuiku.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 43218,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "407858da-ef2f-4a2a-9fe1-c58ecf5aeffc",
+  "name": "鳥貴族深江橋店",
+  "website": "https://www.torikizoku.co.jp/",
+  "host": "www.torikizoku.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 65619,
+  "old_handles": [
+   "torikizoku.official"
+  ],
+  "new_handles": {
+   "torikizoku.official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "328e81f8-8f96-49f9-a13e-bf09ce621ce9",
+  "name": "ココス 沼田下久屋町店",
+  "website": "https://maps.cocos-jpn.co.jp/jp/detail/3052.html",
+  "host": "maps.cocos-jpn.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 31387,
+  "old_handles": [
+   "cocos_j"
+  ],
+  "new_handles": {
+   "cocos_j": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "0896da57-eb44-445c-9368-cc0218008111",
+  "name": "厚田村",
+  "website": "http://atsutamura.blog103.fc2.com",
+  "host": "atsutamura.blog103.fc2.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 17662,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "76414982-734d-4dcc-8f41-2401e00e4217",
+  "name": "つけ麺 いちもり",
+  "website": "http://www.tsukemenichimori.com",
+  "host": "www.tsukemenichimori.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 21390,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "da2ba478-2791-4c3b-abbe-d5131bc07e62",
+  "name": "サンマルク 埼玉浦和芝原店",
+  "website": "https://www.saint-marc-hd.com/saintmarc",
+  "host": "www.saint-marc-hd.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 45114,
+  "old_handles": [
+   "saint_marc_official"
+  ],
+  "new_handles": {
+   "saint_marc_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "9701153b-f116-49b7-8062-4928fd7356e1",
+  "name": "シャルマ",
+  "website": "http://sharma-shop.com",
+  "host": "sharma-shop.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 30784,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "aa7b9ea2-55ad-45d0-8dd9-b9095f0ae83e",
+  "name": "Starbucks",
+  "website": "https://store.starbucks.co.jp/detail-1681/",
+  "host": "store.starbucks.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 56742,
+  "old_handles": [
+   "starbucks_j"
+  ],
+  "new_handles": {
+   "starbucks_j": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "c82e311e-0545-4be8-a06a-1a753f31aa48",
+  "name": "ディヴァーション",
+  "website": "http://www.bar-diversion.com",
+  "host": "www.bar-diversion.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 7738,
+  "old_handles": [
+   "bar_diversion"
+  ],
+  "new_handles": {
+   "bar_diversion": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "c2489988-a571-4f0c-9842-fb1e245203b8",
+  "name": "Ninepc",
+  "website": "http://ninepc.modoo.at/",
+  "host": "ninepc.modoo.at",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 11624,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "fcc901e2-c591-4272-9793-0f2dc160ed2c",
+  "name": "十銭屋",
+  "website": "http://www.jussenya.com/",
+  "host": "www.jussenya.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "9996156b-43c5-4c3c-b7ba-f7b3deae7fe1",
+  "name": "堺の昆布処 こぶ政",
+  "website": "http://www.kobumasa.co.jp",
+  "host": "www.kobumasa.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 92073,
+  "old_handles": [
+   "kobumasa_kobu"
+  ],
+  "new_handles": {
+   "kobumasa_kobu": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "993abb94-48a5-40a5-8c8a-18f7b34ec237",
+  "name": "UB COFFEE",
+  "website": "https://charlie-ub.com",
+  "host": "charlie-ub.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 20775,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "d730afd8-1635-4e52-8306-a201f0a4027d",
+  "name": "파리바게뜨",
+  "website": "https://www.paris.co.kr/store-detail/?id=2439",
+  "host": "www.paris.co.kr",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 56283,
+  "old_handles": [
+   "parisbaguette_kr"
+  ],
+  "new_handles": {
+   "parisbaguette_kr": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "953a6da3-36ad-446c-8777-08f05e0387f1",
+  "name": "マックスバリュエクスプレス 伊豆高原店",
+  "website": "http://www.mv-tokai.com/shop/shopdetail_8.html",
+  "host": "www.mv-tokai.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2d1b48f1-f8ae-442b-abcb-6f9aecb76da6",
+  "name": "和蔵",
+  "website": "https://www.hotpepper.jp/strJ001049991/?vos=cphppsocface20110701001",
+  "host": "www.hotpepper.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 135686,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "eef54b7a-5f25-4d27-b965-6ed36e3e9c88",
+  "name": "千房服部店",
+  "website": "http://chibo.com",
+  "host": "chibo.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 81879,
+  "old_handles": [
+   "chibo_co_ltd"
+  ],
+  "new_handles": {
+   "chibo_co_ltd": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "fb73be0b-c911-4229-a1c4-35758c6ad237",
+  "name": "Oniwa Cafe",
+  "website": "http://www.chatnoir-company.com/chatnoir/html/brands/brands_veloce.html",
+  "host": "www.chatnoir-company.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 503: Service Unavailable | root:HTTPError: HTTP Error 503: Service Unavailable",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "c97a153b-f9a5-4733-a3dc-adcade8d55ec",
+  "name": "Patisserie KuRi Nimise Honten",
+  "website": "https://www.p-kuri.jp/",
+  "host": "www.p-kuri.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 125197,
+  "old_handles": [
+   "patisserie_kuri"
+  ],
+  "new_handles": {
+   "patisserie_kuri": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "bf49bb3c-cd7a-47ce-ad75-49fe037ff4f8",
+  "name": "山志づ",
+  "website": "http://gourmet.yahoo.co.jp/0005157952/P015576",
+  "host": "gourmet.yahoo.co.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 404: Not Found | root:HTTPError: HTTP Error 404: Not Found",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "be91ba78-887e-4e33-a714-ad6798c581e2",
+  "name": "三心五観",
+  "website": "http://www.3shin5kan.com",
+  "host": "www.3shin5kan.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 133412,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "4c96346a-79ce-4d09-8167-b2a061d9bb06",
+  "name": "笑楽舎",
+  "website": "http://blogs.yahoo.co.jp/ootuka0902",
+  "host": "blogs.yahoo.co.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "9756f866-747c-48ea-987e-5cf8da2623fa",
+  "name": "Tottori Wagyu FUJIYA",
+  "website": "http://fujiya-fs.com",
+  "host": "fujiya-fs.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -3] Temporary failure in name resolution> | root:URLError: <urlopen error [Errno -3] Temporary failure in name resolution>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "ef1b09a2-7ad8-4a43-8217-45a201834e1e",
+  "name": "はつがい商店",
+  "website": "https://tabelog.com/saitama/A1103/A110304/11045486/",
+  "host": "tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 220056,
+  "old_handles": [
+   "hatsugaishoten2017"
+  ],
+  "new_handles": {
+   "hatsugaishoten2017": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "59a22b19-fc33-42e1-a86f-02d23fafd827",
+  "name": "ブランジェリー セルビエ",
+  "website": "http://www.its-mo.com/c/栄餅店/DIDX_DKE,3373553",
+  "host": "www.its-mo.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 0,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "0453c342-aedc-4df8-bd00-fdba94aa945a",
+  "name": "やきとり一平洞爺湖店",
+  "website": "http://muroran-yakitori.com/original5.html",
+  "host": "muroran-yakitori.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 403: Forbidden | root:HTTPError: HTTP Error 403: Forbidden",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "5f4d73ec-f812-44c6-b67d-f4c51eefb572",
+  "name": "渋谷NAVY／adLOVEle ～あどらぶる〜",
+  "website": "https://navy-adlovele.com",
+  "host": "navy-adlovele.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 15687,
+  "old_handles": [
+   "_adlovele_"
+  ],
+  "new_handles": {
+   "_adlovele_": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "33134c58-6394-45e1-a5c8-6d17fbe0ba4d",
+  "name": "白木恒助商店",
+  "website": "https://www.daruma-masamune.co.jp",
+  "host": "www.daruma-masamune.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 42118,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "913bbf2b-30b9-48f2-a006-839b2ab64fe3",
+  "name": "牛角三島南店",
+  "website": "https://www.gyukaku.ne.jp",
+  "host": "www.gyukaku.ne.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 63060,
+  "old_handles": [
+   "gyukaku_official"
+  ],
+  "new_handles": {
+   "gyukaku_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "a0c0b976-0a02-45d0-b5cb-66bdfa1af504",
+  "name": "鮨酒井",
+  "website": "http://www.sushi-sakai.jp",
+  "host": "www.sushi-sakai.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "9994a4ff-67a9-48fe-8d8a-5540c71a94a2",
+  "name": "かき小屋○座 綱島",
+  "website": "http://www.oizumifoods.co.jp/search/2473",
+  "host": "www.oizumifoods.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 120832,
+  "old_handles": [
+   "kintoun1205"
+  ],
+  "new_handles": {
+   "kintoun1205": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "4343c966-5442-4dd2-9c35-6b8b6f706b02",
+  "name": "たちばな",
+  "website": "http://www.nara-tachibana.com",
+  "host": "www.nara-tachibana.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 13954,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "7b835221-0fef-4456-be44-f65971a002ee",
+  "name": "寿し安",
+  "website": "http://r.gnavi.co.jp/5378231/",
+  "host": "r.gnavi.co.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 59925,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "733f4179-c26c-4dd8-8e79-aeb6d5d43231",
+  "name": "備長扇屋 尾張旭印場店",
+  "website": "http://movia.jpn.com/pc/shops.2.html",
+  "host": "movia.jpn.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 4402,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "badd98d8-216c-4ad0-81cf-3ff615c9ad29",
+  "name": "和馳走ダイニング 神風 新潟駅前",
+  "website": "http://www.hotpepper.jp/strJ003389359",
+  "host": "www.hotpepper.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 92488,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "1df8e04f-540c-48c5-aec3-8de7e4ae29bd",
+  "name": "にくのたまご 大橋店",
+  "website": "https://www3.hp-ez.com/hp/nikutama/",
+  "host": "www3.hp-ez.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 32635,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "db2ce54a-3e40-4a27-81ee-eab56e353826",
+  "name": "桂花ラーメン平成さくら通り店",
+  "website": "http://keika-raumen.co.jp",
+  "host": "keika-raumen.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 44425,
+  "old_handles": [
+   "keikaraumen"
+  ],
+  "new_handles": {
+   "keikaraumen": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "5a1c37e9-0a72-4661-bc22-1ec4a55f5b78",
+  "name": "マキシム･ド･パリ ケーキショップ",
+  "website": "http://www.maxim-s.co.jp",
+  "host": "www.maxim-s.co.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "528a648c-0f56-4da1-b548-c6ccce659aff",
+  "name": "Happy Sugar",
+  "website": "http://happy-sugar.com/",
+  "host": "happy-sugar.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 721,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2796bff8-9662-4260-a575-98c26cdb0cb3",
+  "name": "いち源",
+  "website": "http://www.ichigen-yokohama.com",
+  "host": "www.ichigen-yokohama.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -3] Temporary failure in name resolution> | root:URLError: <urlopen error [Errno -3] Temporary failure in name resolution>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "c26e6c3f-7a0a-4c82-bda2-d8d046d510c9",
+  "name": "鮨芳",
+  "website": "https://tabelog.com/tokyo/A1302/A130204/13051288/",
+  "host": "tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 214965,
+  "old_handles": [
+   "sushiyoshi.suitengumae"
+  ],
+  "new_handles": {
+   "sushiyoshi.suitengumae": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "31998d31-306b-422b-abbb-53d4ccb9d8ab",
+  "name": "古木家",
+  "website": "https://furukiya.jp",
+  "host": "furukiya.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error Tunnel connection failed: 502 Bad Gateway> | root:URLError: <urlopen error Tunnel connection failed: 502 Bad Gateway>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f896be3e-ab5c-4e5f-aef0-3340eb9c7ba5",
+  "name": "ブランケネーゼ株式会社",
+  "website": "http://www.blankenese.co.jp/",
+  "host": "www.blankenese.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 5532,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "efe8bc08-6d68-4c12-a59c-d728548153bb",
+  "name": "種子島魚匠一条",
+  "website": "http://www10.ocn.ne.jp/~hattin/index.html",
+  "host": "www10.ocn.ne.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "ca4b5677-7230-4100-8d32-97b35f662f73",
+  "name": "La Table d'Aki",
+  "website": "https://yoyaku.tabelog.com/yoyaku/net_booking_form/index?rcd=24012786",
+  "host": "yoyaku.tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 8028,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "8936fca8-1c78-454f-9d47-48139aa639bd",
+  "name": "京橋ドンピエールエクスプレスカレー",
+  "website": "http://dompierre.jp/express/",
+  "host": "dompierre.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 503: Service Unavailable | root:HTTPError: HTTP Error 503: Service Unavailable",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "1f5654c9-f19e-4c74-9d85-b1a728d36db0",
+  "name": "더피자보이즈 광진 군자",
+  "website": "http://www.instagram.com/thepizzaboyz_gunja",
+  "host": "www.instagram.com",
+  "status": "website_is_ig",
+  "website_is_ig": true,
+  "old_handles": [
+   "thepizzaboyz_gunja"
+  ],
+  "new_handles": {
+   "thepizzaboyz_gunja": [
+    "website_is_ig"
+   ]
+  },
+  "aggregator_host": false
+ },
+ {
+  "id": "aa335819-5a7f-4dfe-904e-913342226936",
+  "name": "포메인 수내점",
+  "website": "http://phomein.com",
+  "host": "phomein.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 410,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "77273df5-4f7c-4b28-8d36-ed4780a5a52d",
+  "name": "炭火焼肉 牛いち 松原店",
+  "website": "https://gyuichi-matsubara.com/",
+  "host": "gyuichi-matsubara.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 46893,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "fd359954-08b0-45b1-9be8-f52f81839c86",
+  "name": "KFC",
+  "website": "https://www.kfckorea.com",
+  "host": "www.kfckorea.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 24356,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "a50ccf35-d23a-4ef6-8f71-f01fbb35f98d",
+  "name": "モスバーガー",
+  "website": "https://www.mos.jp/shop/detail/?shop_cd=05461",
+  "host": "www.mos.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 4144,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "24c49f08-6836-47fe-97fd-ba4615566743",
+  "name": "ボータン",
+  "website": "http://beautemps.strikingly.com/",
+  "host": "beautemps.strikingly.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 176506,
+  "old_handles": [
+   "beautemps_kamakura"
+  ],
+  "new_handles": {
+   "beautemps_kamakura": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "364b7877-6ce3-48e3-a9c5-8c18009a9da2",
+  "name": "はちはちや",
+  "website": "http://88ya.net/index.html",
+  "host": "88ya.net",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 378,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "ecbcaa9f-7e2b-4705-9a9b-a1faf3deecc5",
+  "name": "焼肉のバーンズ 飯野店",
+  "website": "http://www.appleivy.co.jp",
+  "host": "www.appleivy.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 265993,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "d19d39fb-7656-4438-8403-5e49b1f869b3",
+  "name": "鵠沼風味堂",
+  "website": "http://fumido.blogspot.jp/",
+  "host": "fumido.blogspot.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 48891,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "1a933367-ae1e-4156-94a1-9a1d12fe2938",
+  "name": "レストラン　アプリコット",
+  "website": "http://kindai-a.co.jp/",
+  "host": "kindai-a.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 191513,
+  "old_handles": [
+   "kindai_assist"
+  ],
+  "new_handles": {
+   "kindai_assist": [
+    "at_text",
+    "ig_url",
+    "jsonld_sameas"
+   ],
+   "type": [
+    "at_text"
+   ]
+  }
+ },
+ {
+  "id": "c91ec0dc-a145-4b2d-b274-832e8a75b13c",
+  "name": "吉野家",
+  "website": "https://stores.yoshinoya.com/ysn_044812",
+  "host": "stores.yoshinoya.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 1195381,
+  "old_handles": [
+   "yoshinoya_co_jp"
+  ],
+  "new_handles": {
+   "yoshinoya_co_jp": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "bd615756-296b-4180-86d1-7308493ce95e",
+  "name": "おかし本舗",
+  "website": "http://www.okashi-honpo.jp/index.html",
+  "host": "www.okashi-honpo.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 12402,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "b9c50a54-1cfb-45f2-ae3b-80a737f2f4c5",
+  "name": "天国岩槻店",
+  "website": "http://hitosara.com/0005012919/",
+  "host": "hitosara.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 110304,
+  "old_handles": [
+   "hitosara_official"
+  ],
+  "new_handles": {
+   "hitosara_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "bdd670b1-decf-40de-a3ce-667a1e1bc147",
+  "name": "Токио",
+  "website": "http://www.tokyo-bar.ru",
+  "host": "www.tokyo-bar.ru",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 130223,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "fcdd9ad3-b7a5-4812-8ee9-f64f2841c20f",
+  "name": "ほっともっと",
+  "website": "https://shop.hottomotto.com/store/64562",
+  "host": "shop.hottomotto.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 31268,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "51bb0a0b-be6f-4612-b4c0-5715c416a439",
+  "name": "소우게츠",
+  "website": "https://www.instagram.com/moon_seungzoo/",
+  "host": "www.instagram.com",
+  "status": "website_is_ig",
+  "website_is_ig": true,
+  "old_handles": [
+   "moon_seungzoo"
+  ],
+  "new_handles": {
+   "moon_seungzoo": [
+    "website_is_ig"
+   ]
+  },
+  "aggregator_host": false
+ },
+ {
+  "id": "a55c997a-af5d-4dde-8cf8-7151744446b0",
+  "name": "清里テラス",
+  "website": "http://sunmeadows.co.jp/tips/kiyosato_terrace/",
+  "host": "sunmeadows.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 73152,
+  "old_handles": [
+   "sunmeadows3302"
+  ],
+  "new_handles": {
+   "sunmeadows3302": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "e1854ad8-45e5-49f9-b10d-5b4869518848",
+  "name": "Restaurant Mosoro",
+  "website": "http://www.matsue-i.tokyuhotels.co.jp/ja/restaurant/shop_01/data/index.html",
+  "host": "www.matsue-i.tokyuhotels.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 239390,
+  "old_handles": [
+   "tokyuhotels"
+  ],
+  "new_handles": {
+   "tokyuhotels": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "f610aeb1-6496-499a-9b5b-adfd9845fc7c",
+  "name": "봉성면사무소",
+  "website": "http://city.bonghwa.go.kr/open-content/ko/bongseong-myeon",
+  "host": "city.bonghwa.go.kr",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "7a57ffe6-89dc-489d-b1a0-92afdcfa3369",
+  "name": "次郎さん",
+  "website": "http://www.amatias.com/eat/2012.04.16.asp",
+  "host": "www.amatias.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 9786,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "5fa1bc17-0cc9-4fe7-9024-58f957c2a55c",
+  "name": "鉄板焼・しゃぶしゃぶ 迎賓館",
+  "website": "https://www.ten-yu.com/geihinkan.html",
+  "host": "www.ten-yu.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 88658,
+  "old_handles": [
+   "hakonetenyu"
+  ],
+  "new_handles": {
+   "hakonetenyu": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "5329cbee-ad8a-4193-bf50-85cee2273623",
+  "name": "カフェハイビスカス",
+  "website": "http://www.seibu-la.co.jp/odawarafg/guide",
+  "host": "www.seibu-la.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 16181,
+  "old_handles": [
+   "odawaraflowergarden"
+  ],
+  "new_handles": {
+   "odawaraflowergarden": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "4da603b5-9fc2-464c-8109-ffb44609e0e5",
+  "name": "フルーツバーAOKI",
+  "website": "http://k-karin.jp",
+  "host": "k-karin.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 19663,
+  "old_handles": [
+   "kajyu.karin"
+  ],
+  "new_handles": {
+   "kajyu.karin": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "99a9d0d7-f68e-4768-9eab-80b3522c7fe1",
+  "name": "ぼたん酒店-料理屋botan",
+  "website": "https://s.tabelog.com/hokkaido/A0101/A010103/1064269/",
+  "host": "s.tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 209783,
+  "old_handles": [
+   "ryouriya_botan_sapporo"
+  ],
+  "new_handles": {
+   "ryouriya_botan_sapporo": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "840fbf7d-f79a-4596-8ecd-3e69f8cdc4ea",
+  "name": "だんごや萌音",
+  "website": "https://www.mochi-ikegami.jp/",
+  "host": "www.mochi-ikegami.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 76456,
+  "old_handles": [
+   "dangoyamone"
+  ],
+  "new_handles": {
+   "dangoyamone": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "02c978f8-7998-40fe-996a-19bcbc59d856",
+  "name": "ピッピー",
+  "website": "https://pigarden.exblog.jp/16461062/",
+  "host": "pigarden.exblog.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 403: Forbidden | root:HTTPError: HTTP Error 403: Forbidden",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "78a264a0-27ca-4350-af35-a9b159986a39",
+  "name": "杜都旬菜 合羽橋 ほていや",
+  "website": "https://hitosara.com/0006139682/",
+  "host": "hitosara.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 185969,
+  "old_handles": [
+   "hitosara_official",
+   "v1"
+  ],
+  "new_handles": {
+   "hitosara_official": [
+    "ig_url",
+    "jsonld_sameas"
+   ]
+  }
+ },
+ {
+  "id": "138364a0-8057-4b91-96b2-ae98e0903950",
+  "name": "Burger King",
+  "website": "http://www.burgerking.co.kr",
+  "host": "www.burgerking.co.kr",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 5696,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "44e80f1f-897f-48e9-9586-abe77d46017a",
+  "name": "新白河魂心家",
+  "website": "https://www.konshinya.com",
+  "host": "www.konshinya.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1016)> | root:URLError: <urlopen error [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1016)>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "30c60ef9-720f-4cd9-873f-c18d314a0706",
+  "name": "RF1",
+  "website": "http://www.rf-one.com",
+  "host": "www.rf-one.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 46655,
+  "old_handles": [
+   "rf1.sozai"
+  ],
+  "new_handles": {
+   "rf1.sozai": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "3909de9f-102e-455d-868a-cb785d603d34",
+  "name": "元祖大阪お好み焼き 桃太郎",
+  "website": "https://tabelog.com/osaka/A2701/A270201/27015859/",
+  "host": "tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 231375,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "eac8ca86-42f2-4656-a5d0-24feaca15187",
+  "name": "동성식당",
+  "website": "http://www.dongsung6874.kti114.net",
+  "host": "www.dongsung6874.kti114.net",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 1296,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "cd5e808d-ed93-4bbc-8976-06102e3fa5a2",
+  "name": "焼鳥酒場本田商店津田沼店",
+  "website": "http://hondashoten-tsudanuma.com",
+  "host": "hondashoten-tsudanuma.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "8f4cc933-1ba1-40f2-a92e-05902d830b2b",
+  "name": "鶏と牛のお店火澄屋",
+  "website": "http://kasumiya-br.com/",
+  "host": "kasumiya-br.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "a8cc2d7b-aeb9-4bfe-a0c8-821e9726e3df",
+  "name": "おおみわ",
+  "website": "http://gourmet.yahoo.co.jp/0002404496/WV-KOBEX-8HBAP001",
+  "host": "gourmet.yahoo.co.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 404: Not Found | root:HTTPError: HTTP Error 404: Not Found",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2904eaf1-2882-46b3-9b28-f92defd799a3",
+  "name": "ALFRED TEA ROOM",
+  "website": "http://alfredtea.jp",
+  "host": "alfredtea.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 91822,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f54f1187-efb9-4c29-aae4-1ac44eb9370d",
+  "name": "Cafe and Curry Buttah",
+  "website": "https://www.buttah.net/",
+  "host": "www.buttah.net",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 1792,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "4ca3702f-d49b-4364-8697-81da62f1b782",
+  "name": "good spoon Cheese Sweets & Cheese Brunch",
+  "website": "http://calm-design.jp",
+  "host": "calm-design.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 52888,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f84f4092-5513-4ae6-8cf9-919a27c48d09",
+  "name": "TanosCafe",
+  "website": "http://search.dartslive.jp/shop/ec130560c9d857960d9b047a20a7ba1e",
+  "host": "search.dartslive.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -5] No address associated with hostname> | root:URLError: <urlopen error [Errno -5] No address associated with hostname>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "b5825453-cbee-4a54-b559-3f524948ee7b",
+  "name": "ガスト 姫路飾磨店",
+  "website": "http://www.skylark.co.jp/gusto/",
+  "host": "www.skylark.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 42925,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2fccabdb-f516-4b5e-8d91-a5d0e4a7262c",
+  "name": "長八金沢片町店",
+  "website": "http://cho-hachi.jp",
+  "host": "cho-hachi.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 403: Forbidden | root:HTTPError: HTTP Error 403: Forbidden",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "d02bee61-64dc-490c-a7b1-f3a99047be37",
+  "name": "鎌倉山倶楽部",
+  "website": "http://www.kamakurayama-club.jp",
+  "host": "www.kamakurayama-club.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "083f50f2-e301-4316-8c37-271ad46dd497",
+  "name": "マクドナルド",
+  "website": "http://www.mcdonalds.co.jp/",
+  "host": "www.mcdonalds.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 150541,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "cf9db0fa-a69c-41cc-801b-9b3bc0632069",
+  "name": "口福堂 イオンモール姫路リバーシティ店",
+  "website": "https://www.kakiyasuhonten.co.jp/cate/brand/?c=001006001",
+  "host": "www.kakiyasuhonten.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 51253,
+  "old_handles": [
+   "kakiyasu_dining"
+  ],
+  "new_handles": {
+   "kakiyasu_dining": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "f5554aa7-5b08-46d7-970b-be49e803175c",
+  "name": "レークハウス朱鞠内",
+  "website": "http://syumari.com/Syumarinai/lakehouse/lakehouse.html",
+  "host": "syumari.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 113880,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f78ae7f5-388c-43df-ae89-686f325ecad8",
+  "name": "할리스",
+  "website": "https://www.hollys.co.kr/store/korea/korStoreDetail.do?pageNo=5&branchId=1038&sido=&gugun=&store=&internet=&smoking=&terrace=&location=&fname=&summerIt=&allday=",
+  "host": "www.hollys.co.kr",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 39730,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "89a99bd0-d5e4-46de-90ce-c7b86722aaab",
+  "name": "ドイツビアハウス ハンブルク",
+  "website": "https://akr9481892395.owst.jp",
+  "host": "akr9481892395.owst.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 101061,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "c7ff874d-11c4-4010-810f-3cfa1a579bc5",
+  "name": "파리바게뜨",
+  "website": "https://www.paris.co.kr/store-detail/?id=2252",
+  "host": "www.paris.co.kr",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 56286,
+  "old_handles": [
+   "parisbaguette_kr"
+  ],
+  "new_handles": {
+   "parisbaguette_kr": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "ddf780cd-7763-4861-ab43-876306191407",
+  "name": "肉バル Kizaki",
+  "website": "https://kizaki-hamburg.com/",
+  "host": "kizaki-hamburg.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 35559,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "57fa47b1-f69a-4173-9002-86e620f6358c",
+  "name": "辰美寿し",
+  "website": "http://oshu.mypl.net/shop/00000345680",
+  "host": "oshu.mypl.net",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 110430,
+  "old_handles": [
+   "myplstaff"
+  ],
+  "new_handles": {
+   "myplstaff": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "19c2aa9e-8b9b-44d3-8e3f-1b65be99fbd3",
+  "name": "サンリブもりつね",
+  "website": "https://www.sunlive.co.jp",
+  "host": "www.sunlive.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 35518,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "85b5cc0c-3a35-428a-a690-2ff1eb5f56b0",
+  "name": "五味八珍東新田店",
+  "website": "http://www.gomihattin.co.jp/shop/higashishinden.html",
+  "host": "www.gomihattin.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 376646,
+  "old_handles": [
+   "gomihattin538"
+  ],
+  "new_handles": {
+   "gomihattin538": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "0baa4b43-adb4-4611-82ec-9d223780e3ae",
+  "name": "かつや",
+  "website": "https://shop.arclandservice.co.jp/ae-shop/spot/detail?code=703",
+  "host": "shop.arclandservice.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 577268,
+  "old_handles": [
+   "alshd_official"
+  ],
+  "new_handles": {
+   "alshd_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "5c0e1b8e-c0c8-41dc-9014-45a05ef0d554",
+  "name": "ばぁばのキッチン",
+  "website": "https://suzuronpo.com/?page_id=2",
+  "host": "suzuronpo.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 63114,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "889bfc4e-0356-43be-8bcf-52f250d79864",
+  "name": "ワンカルビ 泉大津南店",
+  "website": "https://one-karubi.1dining.co.jp/store/?id=831",
+  "host": "one-karubi.1dining.co.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 35375,
+  "old_handles": [
+   "wankarubi_o"
+  ],
+  "new_handles": {
+   "wankarubi_o": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "ad3ef215-5313-4ebc-af46-4fff065071f7",
+  "name": "コミュニティバー ガールズパーティー",
+  "website": "http://s.ameblo.jp/kurashiki-girlsparty/",
+  "host": "s.ameblo.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 417337,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "b1f26f55-3581-47c6-831c-7aa9895d0fc9",
+  "name": "金鳥",
+  "website": "http://www.toritoritei.co.jp",
+  "host": "www.toritoritei.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 117058,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "5f84ab01-f55e-42fd-8e69-9257595dd524",
+  "name": "バーガーキング",
+  "website": "https://www.burgerking.co.jp/",
+  "host": "www.burgerking.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 3973,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "a94c305b-0f36-42d2-b3aa-9552147771dd",
+  "name": "拉麺アイオイ",
+  "website": "https://twitter.com/ramenaioi",
+  "host": "twitter.com",
+  "aggregator_host": true,
+  "status": "robots_blocked",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f630488d-58be-4791-9551-b49bc38bb694",
+  "name": "デイリーポート新鮮館中田店",
+  "website": "http://www.malnet.co.jp",
+  "host": "www.malnet.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 36486,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "0c7bc467-9f63-486d-9f06-d04f4d7b0046",
+  "name": "ひょこっと高松駅チカ店",
+  "website": "http://hyokotto.com/",
+  "host": "hyokotto.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "207a7a56-fc6f-4093-890c-303d5d47742d",
+  "name": "めいんすとりーと",
+  "website": "http://main-streets.com/",
+  "host": "main-streets.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 358274,
+  "old_handles": [
+   "mainstreetstv"
+  ],
+  "new_handles": {
+   "mainstreetstv": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "e08634f0-e76e-4397-aca1-031e87fa67fe",
+  "name": "けんたくん八王子西店",
+  "website": "http://kentakun80424.on.omisenomikata.jp",
+  "host": "kentakun80424.on.omisenomikata.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 0,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "72d96a5e-6f8e-4792-b806-1f82471c28bd",
+  "name": "美津橋",
+  "website": "https://tabelog.com/kanagawa/A1406/A140602/14022516/",
+  "host": "tabelog.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 180378,
+  "old_handles": [
+   "mitsuhashi_cheesecake_shonan"
+  ],
+  "new_handles": {
+   "mitsuhashi_cheesecake_shonan": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "227d3f0b-8867-4b38-bf15-79c25063b285",
+  "name": "グラマシーニューヨーク横浜高島屋店",
+  "website": "https://www.gramercy-newyork.com/",
+  "host": "www.gramercy-newyork.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 69905,
+  "old_handles": [
+   "gramercynewyork.official"
+  ],
+  "new_handles": {
+   "gramercynewyork.official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "c56b2ea2-0c2f-4366-a18d-d7a28db5bf78",
+  "name": "キッチンハウス",
+  "website": "http://kitchenhouse.shiga-saku.net",
+  "host": "kitchenhouse.shiga-saku.net",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 1037,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "c0889b7c-4aa6-455d-aa88-de1fca646d67",
+  "name": "On Tap Edo Tokyo Beer",
+  "website": "https://edo-tokyo-beer.com/",
+  "host": "edo-tokyo-beer.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 11746,
+  "old_handles": [
+   "ontap_edotokyobeer"
+  ],
+  "new_handles": {
+   "ontap_edotokyobeer": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "952c2221-c421-432e-a278-3c4197b8bc9b",
+  "name": "おかしカンパニー",
+  "website": "http://yama-6.com/",
+  "host": "yama-6.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 165684,
+  "old_handles": [
+   "okashicompany"
+  ],
+  "new_handles": {
+   "okashicompany": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "a88bed95-da78-4758-9446-298cba86d063",
+  "name": "そばの神田東一屋",
+  "website": "https://www.sobanokanda.com/",
+  "host": "www.sobanokanda.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 199605,
+  "old_handles": [
+   "sobanokanda"
+  ],
+  "new_handles": {
+   "sobanokanda": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "6e2ffc03-cd95-4517-8df0-7e521b4145a7",
+  "name": "生活クラブ生協　南林間デポー",
+  "website": "http://kanagawa.seikatsuclub.coop/depot/minamirinkan.html",
+  "host": "kanagawa.seikatsuclub.coop",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 503: Service Unavailable | root:HTTPError: HTTP Error 503: Service Unavailable",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "5697ab80-6b2b-4c38-bf09-925619016670",
+  "name": "カレー食堂心",
+  "website": "http://www.cocoro-soupcurry.com",
+  "host": "www.cocoro-soupcurry.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 45562,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "e174c303-1047-431b-9e8f-e7f3a72489e8",
+  "name": "100本のスプーン",
+  "website": "https://100spoons.com",
+  "host": "100spoons.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 52835,
+  "old_handles": [
+   "100spoons_official"
+  ],
+  "new_handles": {
+   "100spoons_official": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "8b4f76f6-58a7-4c3a-84c5-3d581b2df825",
+  "name": "粉なカフェ",
+  "website": "http://conacafe.dip.jp",
+  "host": "conacafe.dip.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -3] Temporary failure in name resolution> | root:URLError: <urlopen error [Errno -3] Temporary failure in name resolution>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "6c1c8405-ba68-47e9-81aa-b2dffb09de36",
+  "name": "Yuniverso",
+  "website": "https://yuniverso.com",
+  "host": "yuniverso.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 117051,
+  "old_handles": [],
+  "new_handles": {
+   "yuniverso.chocolate": [
+    "ig_url",
+    "jsonld_sameas"
+   ]
+  }
+ },
+ {
+  "id": "6e92612c-3be8-4afa-b058-ee707976e40b",
+  "name": "富澤商店 宇都宮パセオ店",
+  "website": "http://shop.tomizawa.co.jp/smartphone/page96.html",
+  "host": "shop.tomizawa.co.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "57403ead-5f9c-4b98-bda2-2d98ff59baf9",
+  "name": "명품축산물도매센터",
+  "website": "https://linktr.ee/flzlsp",
+  "host": "linktr.ee",
+  "aggregator_host": true,
+  "status": "robots_blocked",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "791b9c69-9ae5-4bec-8a05-8bdfcfd1b379",
+  "name": "HARBS LUMINE Yurakucho",
+  "website": "http://www.harbs.co.jp/harbs/",
+  "host": "www.harbs.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 35851,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "23817829-7ef0-423d-8c35-29ada93d216b",
+  "name": "ななやん",
+  "website": "http://www.nanakoshi.com/",
+  "host": "www.nanakoshi.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 7055,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "dcfaa4ea-453e-44ed-b115-72d9e22fb701",
+  "name": "蕎屋きよ福",
+  "website": "http://higashi-sapporo.mypl.net/shop/00000316991",
+  "host": "higashi-sapporo.mypl.net",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 161660,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "eb607fc3-abda-424c-8cb3-1fa922d068ce",
+  "name": "세민수산",
+  "website": "https://story.kakao.com/#seminsusan",
+  "host": "story.kakao.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 7043,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "cd27cd77-b398-49cc-90b7-a7369c7afc75",
+  "name": "サーティワンアイスクリーム イオンモール津田沼店",
+  "website": "https://store.31ice.co.jp/31ice/spot/detail?code=0000000178",
+  "host": "store.31ice.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 533526,
+  "old_handles": [
+   "31icecream_japan"
+  ],
+  "new_handles": {
+   "31icecream_japan": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "73d20c36-5bad-4773-b44a-259e34514e79",
+  "name": "お気楽酒場 ビール堂",
+  "website": "http://www7b.biglobe.ne.jp/~beer-do/index.htm",
+  "host": "www7b.biglobe.ne.jp",
+  "aggregator_host": true,
+  "status": "fetch_failed",
+  "error": "HTTPError: HTTP Error 404: Not Found | root:HTTPError: HTTP Error 403: Forbidden",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "48cc2ea8-e68e-49ca-8db5-14517e51e569",
+  "name": "すき家 金沢寺地店",
+  "website": "https://maps.sukiya.jp/jp/detail/948.html",
+  "host": "maps.sukiya.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 22115,
+  "old_handles": [
+   "sukiya_jp"
+  ],
+  "new_handles": {
+   "sukiya_jp": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "5dfa5bc6-ad3d-4ca1-b107-42a447466627",
+  "name": "マザーズアイ",
+  "website": "http://www.mothers-eye.com",
+  "host": "www.mothers-eye.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "5b127140-f807-4544-9dda-c1c0d4506496",
+  "name": "ふた川",
+  "website": "http://www.futa-gawa.jp/index.html",
+  "host": "www.futa-gawa.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "51753c27-72ad-4172-ac96-0c346334cf6c",
+  "name": "Cafe AmazoN",
+  "website": "https://www.amazon-cafe.jp",
+  "host": "www.amazon-cafe.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 30074,
+  "old_handles": [
+   "cafe_amazon_japan"
+  ],
+  "new_handles": {
+   "cafe_amazon_japan": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "a75bf464-0f74-4aa2-9d59-baacb108829c",
+  "name": "千離宮",
+  "website": "http://www.3omrasa.com/sennorikyu",
+  "host": "www.3omrasa.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f94229ef-f6d8-4984-9379-469f47a183ef",
+  "name": "Futcha",
+  "website": "https://futcha.jp/",
+  "host": "futcha.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 15623,
+  "old_handles": [
+   "futcha.jp"
+  ],
+  "new_handles": {}
+ },
+ {
+  "id": "80a849b6-710b-469f-852e-785b5bd08973",
+  "name": "チーズと生はちみつ BeNe",
+  "website": "https://www.facebook.com/profile.php?id=100090073414932",
+  "host": "www.facebook.com",
+  "aggregator_host": true,
+  "status": "robots_blocked",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "e5b67615-0887-4fdd-b96e-fb8dfcbc0de0",
+  "name": "地酒屋",
+  "website": "https://jizakeya-kurashiki.com",
+  "host": "jizakeya-kurashiki.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 84802,
+  "old_handles": [
+   "try_group.igusa"
+  ],
+  "new_handles": {
+   "try_group.igusa": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "4541ffce-8e90-4b4c-9812-6c1ca6bbf875",
+  "name": "キムラヤのパン 表町一丁目店",
+  "website": "https://www.okayama-kimuraya.co.jp/cgi-bin/store/index.cgi?c=zoom&pk=12",
+  "host": "www.okayama-kimuraya.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 65984,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "cf23a7b0-39e8-4ad4-8c80-e0d575d4357d",
+  "name": "とやま方舟",
+  "website": "https://hakobune-ceory.com/storeinfo/ginza_toyama/",
+  "host": "hakobune-ceory.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 69281,
+  "old_handles": [
+   "hakobune_toyama",
+   "sake_hakobune"
+  ],
+  "new_handles": {
+   "hakobune_toyama": [
+    "ig_url"
+   ],
+   "sake_hakobune": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "7feb5691-c724-4110-889e-cdc9202a4cec",
+  "name": "ジョナサン 鎌倉手広店",
+  "website": "http://www.skylark.co.jp/jonathan/",
+  "host": "www.skylark.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 33258,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f840fb73-51bf-4b96-aa46-5c9837084265",
+  "name": "북한횟집",
+  "website": "http://bhfish.co.kr",
+  "host": "bhfish.co.kr",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 113,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "d69968a6-ea69-4b65-990f-2c68bfae55bb",
+  "name": "なか卯生駒俵口店",
+  "website": "https://maps.nakau.co.jp/jp/detail/2558.html",
+  "host": "maps.nakau.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 48456,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "524a55a7-c6ca-4d17-afe2-922cfa9e2fd4",
+  "name": "ジョリーパスタ 鎌ケ谷店",
+  "website": "http://www.jolly-pasta.co.jp/jp",
+  "host": "www.jolly-pasta.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 13933,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "93b480eb-b065-4e53-9962-362d09de25a1",
+  "name": "もるげん珈琲",
+  "website": "https://www.hotpepper.jp/strJ001144016/",
+  "host": "www.hotpepper.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 92488,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "cf5ff43d-a81c-4d1b-a3f3-467e88a2f280",
+  "name": "渋川問屋",
+  "website": "https://yoyaku.toreta.in/shibukawadonya",
+  "host": "yoyaku.toreta.in",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 12718,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "9d19c82d-6153-4360-bfb6-488a2cc30f69",
+  "name": "阪急そば若菜十三店",
+  "website": "https://wakana-s.com/shoplist/若菜そば　阪急十三店",
+  "host": "wakana-s.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 40250,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "18213738-8185-4375-8c20-fb93f5b42846",
+  "name": "むぎわらぼうし",
+  "website": "https://mu-gi.jp/page0003.html",
+  "host": "mu-gi.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error Tunnel connection failed: 502 Bad Gateway> | root:URLError: <urlopen error Tunnel connection failed: 502 Bad Gateway>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "bfc982ed-e2d0-4b8c-b3a7-d0ca0b64f240",
+  "name": "くずは 牛萬",
+  "website": "http://gyuman-kenya.com/index.html",
+  "host": "gyuman-kenya.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 10712,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "609c4294-e049-4856-8d16-c71458efeaf2",
+  "name": "山口食品",
+  "website": "http://www.yamaguchi-horumon.com/",
+  "host": "www.yamaguchi-horumon.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 6336,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "45b31e92-1ba7-446f-ab18-eb6be95ea846",
+  "name": "パーラー酒匂",
+  "website": "https://instagram.com/parlorsakou?igshid=YmMyMTA2M2Y%3D",
+  "host": "instagram.com",
+  "status": "website_is_ig",
+  "website_is_ig": true,
+  "old_handles": [
+   "parlorsakou"
+  ],
+  "new_handles": {
+   "parlorsakou": [
+    "website_is_ig"
+   ]
+  },
+  "aggregator_host": false
+ },
+ {
+  "id": "0a432085-cd96-4f46-be5d-a986b4361828",
+  "name": "大久保商店",
+  "website": "https://www.nikuno-okubo.jp",
+  "host": "www.nikuno-okubo.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 40291,
+  "old_handles": [
+   "nikuno_okubo829"
+  ],
+  "new_handles": {
+   "nikuno_okubo829": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "e90b505d-1dbf-481b-a021-0a6aaf644834",
+  "name": "炭火焼肉瑠嗣亜",
+  "website": "https://www.hotpepper.jp/strJ003341169/yoyaku/?vos=othpporgzzzzx00000001",
+  "host": "www.hotpepper.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 74117,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "4a8849c0-2406-4d06-a7a6-8c442a484007",
+  "name": "あげ玉本舗/協和食品工業株式会社",
+  "website": "http://www.kyowashokuhin.jp/",
+  "host": "www.kyowashokuhin.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 36521,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "e04f6869-4d8a-4bd3-bab9-5ba66ff558c8",
+  "name": "coffee addict",
+  "website": "https://www.coffeeaddict.info",
+  "host": "www.coffeeaddict.info",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error Tunnel connection failed: 502 Bad Gateway> | root:URLError: <urlopen error Tunnel connection failed: 502 Bad Gateway>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "103f5764-8acf-45f1-a3d0-1ad9923dc8d2",
+  "name": "リポッソ",
+  "website": "http://riposo2002.blog53.fc2.com",
+  "host": "riposo2002.blog53.fc2.com",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 38135,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2d55b16c-ee41-4f0d-a834-6cdeeb4404aa",
+  "name": "Main Dining Cabana",
+  "website": "https://www.marcus-fukuoka.com/restaurant/cabana.html",
+  "host": "www.marcus-fukuoka.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 114,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "4f1a2e63-abba-43ec-8eeb-55f74a63a903",
+  "name": "まるひろ酒店",
+  "website": "http://www.maruhiro-sake.jp/smp/",
+  "host": "www.maruhiro-sake.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "1604a6ba-b1dc-4916-9957-2f9d3dc0698c",
+  "name": "アンダンテ エ カンタービレ",
+  "website": "http://www.curry-andante.com/",
+  "host": "www.curry-andante.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 150530,
+  "old_handles": [
+   "kaoruko1216"
+  ],
+  "new_handles": {
+   "kaoruko1216": [
+    "at_text",
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "ae9aba3d-915e-43bc-a691-bf8bdbaacadf",
+  "name": "旬菜酒場ほおずき",
+  "website": "https://www.shunsaisakaba-hohzuki.com",
+  "host": "www.shunsaisakaba-hohzuki.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error Tunnel connection failed: 502 Bad Gateway> | root:URLError: <urlopen error Tunnel connection failed: 502 Bad Gateway>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "dff3f291-1a57-4e03-961f-72c371839931",
+  "name": "봉자막창 대구 경대점",
+  "website": "https://www.instagram.com/bongja_gyeongdae/",
+  "host": "www.instagram.com",
+  "status": "website_is_ig",
+  "website_is_ig": true,
+  "old_handles": [
+   "bongja_gyeongdae"
+  ],
+  "new_handles": {
+   "bongja_gyeongdae": [
+    "website_is_ig"
+   ]
+  },
+  "aggregator_host": false
+ },
+ {
+  "id": "b13d335f-e837-4ed7-b185-78ad0ad9f6d1",
+  "name": "LA북창동순두부",
+  "website": "http://dubuhouse.com",
+  "host": "dubuhouse.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 38639,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "2adc7e72-bbcc-428c-b7aa-057aeef49250",
+  "name": "サモアール馬車道店",
+  "website": "http://www.samovar.co.jp",
+  "host": "www.samovar.co.jp",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "dc091a92-cbaa-447b-bd82-7b36e6288850",
+  "name": "ハロー！やながせ",
+  "website": "http://helloyanagase.com/",
+  "host": "helloyanagase.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "435f32be-c858-405e-8033-8289ca6a9942",
+  "name": "スパイス・ラー麺卍力秋葉原店",
+  "website": "http://www.manriki.net",
+  "host": "www.manriki.net",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 167253,
+  "old_handles": [
+   "mpo303"
+  ],
+  "new_handles": {
+   "mpo303": [
+    "ig_url",
+    "jsonld_sameas"
+   ]
+  }
+ },
+ {
+  "id": "651badc9-bd15-465b-b67f-a627b641b033",
+  "name": "魚活鮮とあぶり焼 海へ APIA店",
+  "website": "https://www.umi-he.com",
+  "host": "www.umi-he.com",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 26777,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "f82751c4-103e-43fe-a41e-2718166e5359",
+  "name": "串焼・きでん",
+  "website": "http://www.hotpepper.jp/strJ000589418/?vos=cphppsocface20110701001",
+  "host": "www.hotpepper.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 90155,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "e92e48a2-475e-44cf-a154-7c4bb7ed5c08",
+  "name": "ラーメン魁力屋弘明寺店",
+  "website": "https://www.kairikiya.co.jp",
+  "host": "www.kairikiya.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 311389,
+  "old_handles": [
+   "ramen.kairikiya"
+  ],
+  "new_handles": {
+   "ramen.kairikiya": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "e3dfcd87-287c-4919-9725-fd00a0166b0e",
+  "name": "ダイイチ",
+  "website": "http://www.kyohwa.co.jp",
+  "host": "www.kyohwa.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 49809,
+  "old_handles": [
+   "daiichi_group"
+  ],
+  "new_handles": {
+   "daiichi_group": [
+    "ig_url"
+   ]
+  }
+ },
+ {
+  "id": "eeb47aef-afd9-46e7-897d-5cffdacfc9aa",
+  "name": "Kamakura Garage",
+  "website": "http://www.kailand-beer.com/index.html",
+  "host": "www.kailand-beer.com",
+  "aggregator_host": false,
+  "status": "fetch_failed",
+  "error": "URLError: <urlopen error [Errno -2] Name or service not known> | root:URLError: <urlopen error [Errno -2] Name or service not known>",
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "06182d09-9b37-45e2-ab3c-3d9cd74c033f",
+  "name": "Starbucks",
+  "website": "https://www.starbucks.co.jp",
+  "host": "www.starbucks.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 183713,
+  "old_handles": [
+   "starbucks_j"
+  ],
+  "new_handles": {
+   "starbucks_j": [
+    "ig_url",
+    "jsonld_sameas"
+   ]
+  }
+ },
+ {
+  "id": "61f6c2b5-1a6e-4867-8181-41230e9cf671",
+  "name": "Cafe Vacation",
+  "website": "https://www.hotpepper.jp/strJ000015308/?vos=cphppsocface20110701001",
+  "host": "www.hotpepper.jp",
+  "aggregator_host": true,
+  "status": "ok",
+  "bytes": 92488,
+  "old_handles": [],
+  "new_handles": {}
+ },
+ {
+  "id": "9bdb7c21-5555-4af5-a81b-ad512112c82d",
+  "name": "笑笑東川口北口駅前店",
+  "website": "https://www.monteroza.co.jp/shop.html?shop=855255",
+  "host": "www.monteroza.co.jp",
+  "aggregator_host": false,
+  "status": "ok",
+  "bytes": 97,
+  "old_handles": [],
+  "new_handles": {}
+ }
+]

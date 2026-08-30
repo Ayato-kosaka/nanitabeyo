@@ -68,3 +68,68 @@ route① は «店自身の IG» なので、公式サイトも IG も持たな�
 
 **決定的な未測定点**（トークンがあれば 1〜2 時間）: 263 handle を business_discovery で叩き、
 実投稿数・異なり店名・重複率・飲食率を測る。ここで «無料で追加何店» が確定する。
+
+---
+
+## 5. 追記（2026-08-30）— 柱1 最適化: 抽出 recall は天井、伸び代は precision と到達性
+
+`pillar1_site_extract.py` で «店公式サイト本文 → 店固有 IG» を作り直し、Overture の website 保有店から
+決定的抽出した 322 店（`out/pillar1_sample_stores.json`）へ **live fetch（proxy 直・robots 尊重・IG 非取得）**
+して同一 HTML で before→after を測った（`out/pillar1_measure.json`）。
+
+### 同一 HTML の A/B — parsing 改善は recall を上げない
+- before（既存 byte-regex `instagram.com/handle`）: union **31.68%**
+- after（`<a>`/`<link>`/`<meta>`/JSON-LD `sameAs`/フッター/`@handle` テキストの多経路）: union **31.68%**（変化なし）
+- 異なり handle 99 → 99。**純新規は `@handle` テキストのみで 322 店中 1 店（+0.31pt）**。
+- **真因**: 店の公式サイトでは IG リンクは href/meta/JSON-LD/フッターの**どこに出ても生 HTML に
+  `instagram.com/<handle>` の literal を必ず含む**ため、素の byte-regex で既に回収済み。
+  「取りこぼしている別経路」は実在せず、**抽出 recall は既に天井**だった。
+
+### 伸び代 1 — precision（店固有への絞り込み）
+既存 `cc_store_sites.py` は店固有フィルタを持たず union をそのまま出す（チェーン公式・集約メディアの
+一般アカウントが混入）。改善版は **platform blocklist + コーパス内チェーン重複除去 + 集約メディア上は
+店名裏取り必須** で union → 店固有へ絞る。
+- union 102 店 → **店固有 77 店（緩い）/ 37 店（厳格＝domain・店名裏取り必須）**。
+- 除外 25 店 = チェーン共通 12（`hitosara_official` `sukiya_jp` `31icecream_japan` `starbucks_j` …）＋ 集約メディア裏取り無し 14。
+- 自前ドメイン店では union 85 → 店固有 76（**89%**）と綺麗。集約メディア店は union 17 → 店固有 1（generic ばかり）。
+- ⚠️ 標本 322 では «標本内に 1 回だけ出るブランドチェーン»（`capricciosa_official` `tullyscoffeejapan` `jollypasta_jp` 等）を
+  店固有に誤カウントする。本番規模では **handle → 複数 google_place_id のグローバル重複除去**で除かれ、
+  真の独立店率は #1345 手動 **5.06%** 側へ寄る。
+
+### 伸び代 2 — 到達性（parsing では取れない）
+322 店中 **到達 252 / 未到達 70（21.74%）**（fetch_failed 61＝死にドメイン・403、robots_blocked 9）。
+website 保有店の 27.6%（89/322）は «website» 自体が集約メディア（tabelog/gnavi/hotpepper/ameblo/…）で
+店の自前サイトではない。**Common Crawl のキャッシュ HTML（`cc_store_sites.py` の本来の用途）は
+死にドメイン・ブロック済みの一部を live fetch の代替で拾える** → live と union すれば到達性が上がる。
+
+### 全国見込みの更新（× website 保有 545,560 店）
+| 率 | 定義 | 全国見込み |
+| --- | --- | ---: |
+| union 31.68% | サイトから IG が 1 本でも取れる | 172,833 |
+| store_specific 23.91%（緩い） | 上限。ブランドチェーン誤カウント込み | 130,443 |
+| **store_specific 11.49%（厳格）** | domain/店名裏取り必須。**推奨の上限側** | **62,685** |
+| 参考 5.06%（#1345 手動） | チェーン厳格除外の手動基準 | 27,605 |
+
+**計画は 2.8万〜6.3万店の帯で持つ**のが妥当。本番のグローバルチェーン除去が自動率を下側へ引くため、
+«柱1 で無料到達できる店固有 IG» は下限 2.8万に近い側で見積もるのが安全。柱2/3 の重要性は下がらない。
+
+### 本番接続の設計（`4_1_discover_sns_accounts.py` が食える形）
+既存 `--source open_data_socials` は `restaurant_catalog.social_urls` の `instagram.com/` を
+`sns_source_account`（`account_type=store_branch`, `discovery_seed_place_id=google_place_id`）へ入れる。
+柱1 の crawl 結果はこれに **新 source `official_site_crawl` として同スキーマで合流**させる。
+
+- **入力**: `restaurant_catalog` の website 非集約・IG 未保有の行（google_place_id, website）。
+- **crawl→抽出**: `pillar1_site_extract.extract_new()` で handle を取り、下の分類を通す。
+- **グローバルチェーン除去（本番の肝）**: handle→distinct google_place_id 数を全件集計し、
+  **≥2 place_id に付く handle は `account_type=brand` として除外**（store_branch にしない）。
+  標本内では検出できないブランドチェーンをここで確実に落とす。
+- **出力行（`sns_source_account` と同じ JSON）**:
+  ```json
+  {"account_id":"<handle>","provider":"instagram","handle":"<handle>",
+   "account_type":"store_branch","discovery_method":"official_site_crawl",
+   "discovery_seed_place_id":"<google_place_id>","followers":null,"media_count":null,
+   "discovered_at":"<utc>","run_id":"<run_id>"}
+  ```
+- **流し方**: `4_1_discover_sns_accounts.py` に `--source official_site_crawl`（crawl 出力テーブル/JSONL を読む）を
+  1 本足し、`_rows_from_open_data` と同型で yield。以降は既存どおり 4_2 収集 → resolve で店舗づけ。
+  IG は叩かず handle 発見までが柱1、投稿収集は既存経路に委ねる。

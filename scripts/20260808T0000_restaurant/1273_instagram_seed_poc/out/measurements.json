@@ -766,5 +766,66 @@
     "residual_missing": 34,
     "residual_cause": "残る未カバーは (a)複数料理同居で単一ラベルが別カテゴリを選ぶ衝突, (b)住所が同時に取れない, (c)真に稀(あじの開き/さば塩焼き/四川料理)。本番の resolve は多ラベル+信頼度なので (a)(b) は解消し、真の穴はさらに小さい。",
     "correction": "先の gap_analysis「38未カバー」は分類要因で過大。真の被覆はこれより良い。"
+  },
+  "4_3_pillar1_optimization": {
+    "measured_at": "2026-08-30",
+    "purpose": "店公式サイト本文からの店固有IG抽出を最適化。同一HTMLでの before(既存byte-regex)→after(多経路+店固有分類) と全国見込み更新。",
+    "sample": "restaurant_overture_raw snapshot=2026-08-23 の website 保有店から FARM_FINGERPRINT 決定的抽出 322 店（out/pillar1_sample_stores.json）。live fetch(proxy直, robots尊重, IG非取得)。",
+    "reachability": {
+      "n": 322,
+      "reachable": 252,
+      "fetch_failed": 61,
+      "robots_blocked": 9,
+      "unreachable_pct": 21.74,
+      "aggregator_website_hosts": 89
+    },
+    "ab_same_html": {
+      "before_old_byteregex": {
+        "union_pct": 31.68,
+        "store_specific_pct": 24.22
+      },
+      "after_new_multisource": {
+        "union_pct": 31.68,
+        "store_specific_pct": 23.91,
+        "store_specific_strict_pct": 11.49
+      },
+      "recall_lift": "0pt。union 31.68%→31.68%、異なりhandle 99→99。多経路(JSON-LD sameAs/meta/link/footer)は全て生HTMLに instagram.com/ の literal を含むため byte-regex で既に回収済み。純新規は @handle テキストのみで 322店中 1店(+0.31pt)。",
+      "conclusion": "抽出recallは既に天井。柱1の伸び代は parsing ではなく (a)到達性 (b)店固有への絞り込み(precision)。"
+    },
+    "precision_layer": {
+      "note": "既存 cc_store_sites.py は店固有フィルタを持たず union をそのまま出す。改善版は platform blocklist + コーパス内チェーン重複除去 + 集約メディア上は店名裏取り必須、で union→store固有へ絞る。",
+      "union": 102,
+      "store_specific_lenient": 77,
+      "store_specific_strict": 37,
+      "own_site": {
+        "fetched": 188,
+        "union": 85,
+        "store_specific": 76
+      },
+      "aggregator_site": {
+        "union": 17,
+        "store_specific": 1
+      },
+      "dropped_from_union": "102→77。除外25店=チェーン共通12(hitosara_official/sukiya_jp/31icecream_japan/starbucks_j/parisbaguette_kr等)+集約メディア裏取り無し14。",
+      "caveat": "標本322では «標本内に1回だけ出るブランドチェーン»(capricciosa_official/tullyscoffeejapan/jollypasta_jp等)を店固有に誤カウントする。本番規模では handle→複数google_place_id のグローバル重複除去で除かれ、真の独立店率は #1345 手動 5.06% 側へ寄る。"
+    },
+    "nationwide_projection": {
+      "base_stores_with_website": 545560,
+      "union_31_68pct": 172833,
+      "store_specific_lenient_23_91pct": 130443,
+      "store_specific_strict_11_49pct": 62685,
+      "reference_1345_manual_5_06pct": 27605,
+      "recommended_planning_number": "約6.3万店（strict 11.49%）を上限寄り、下限は #1345手動基準 2.8万店。本番のグローバルチェーン除去でこの帯の下側に収束する見込み。"
+    },
+    "before_baseline_1345": {
+      "source": "#1345 / 1273_sns_dish_media_poc/out/instagram_handle_reach.json（600店の目視ラベル付き標本）",
+      "n_sample": 600,
+      "website_is_instagram": 7,
+      "extracted_from_site": 84,
+      "union": 91,
+      "union_pct": 15.17,
+      "distinct_handles": 96,
+      "store_specific_pct": 5.06
+    }
   }
 }
