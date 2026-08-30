@@ -217,6 +217,31 @@ async function mockMyDishes(page: Page): Promise<RecordedRequest[]> {
 		},
 	);
 
+	/*
+	#1629 ── 表示ログ（インプレッション）──────────────────────────────
+	Feed は表示されたメディアごとに `POST /v1/dish-media/<id>/impression` を投げる。
+	ここのメディア id は spec が組んだ架空の値（`media-ramen` 等）なので、実 API は
+	**400 を返す**。ブラウザはそれを console error として出し、REL-08 が spec を落とす
+	（実測: `... status of 400 () [https://api-development.../v1/dish-media/media-ramen/impression]`）。
+	記録の成否はこの spec の関心ではないので、204 で受け取って握る。
+	*/
+	await page.route(
+		(url: URL) => /\/v1\/dish-media\/[^/]+\/impression$/.test(url.pathname),
+		async (route: Route) => {
+			const origin = (await route.request().headerValue("origin")) ?? "*";
+			await route.fulfill({
+				status: 204,
+				headers: {
+					"access-control-allow-origin": origin,
+					"access-control-allow-credentials": "true",
+					"access-control-allow-headers": "authorization,content-type,x-client-info,apikey",
+					"access-control-allow-methods": "GET,POST,OPTIONS",
+				},
+				body: "",
+			});
+		},
+	);
+
 	return recorded;
 }
 
