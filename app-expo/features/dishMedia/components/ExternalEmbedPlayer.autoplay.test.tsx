@@ -16,7 +16,9 @@ import { StyleSheet, UIManager, View } from "react-native";
 
 jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn(() => Promise.resolve({ type: "dismiss" })) }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
-jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+// `mock` 始まりの名前だけが jest.mock の工場から参照できる（jest の制約）
+const mockLogFrontendEvent = jest.fn();
+jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("lucide-react-native", () => ({ Play: () => null, Volume2: () => null }));
 jest.mock("react-native-gesture-handler", () => ({
@@ -400,6 +402,43 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		post({ src: "nb-embed-autoplay", kind: "blank", detail: "load_complete script=0" });
 		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
 		expect(onUnplayable).not.toHaveBeenCalled();
+	});
+
+	/*
+	#1641 オーナー報告「フィードを上下すると TikTok / YouTube が起動しないときがある」。
+
+	⚠️ **この症状は、いまの計装では 1 行も残らない。** 再生（autoplay_started）も
+	縮退（unplayable）も起きていないのが症状そのもので、«沈黙» はログに出ないからである。
+	«前面に居るのに、まだ何も起きていない» を 1 回だけ記録して、初めて数えられる量にする。
+
+	ここが落ちたら «起動しない» を観測する手段がまた無くなる（＝オーナーが踏むまで
+	誰も気づけない状態に戻る）。
+	*/
+	it("前面に居るのに何も起きないまま時間が過ぎたら、そのことを記録する", () => {
+		jest.useFakeTimers();
+		try {
+			renderActiveCell();
+			mockLogFrontendEvent.mockClear();
+
+			// まだ «読み込み中» の範囲では警告にしない（正常な数秒を埋もれさせないため）
+			act(() => {
+				jest.advanceTimersByTime(5_000);
+			});
+			expect(mockLogFrontendEvent).not.toHaveBeenCalledWith(
+				expect.objectContaining({ event_name: "external_embed_slow_start" }),
+			);
+
+			act(() => {
+				jest.advanceTimersByTime(5_000);
+			});
+			const call = mockLogFrontendEvent.mock.calls
+				.map((c) => c[0])
+				.find((p) => p.event_name === "external_embed_slow_start");
+			expect(call).toBeDefined();
+			expect(call.payload).toEqual(expect.objectContaining({ provider: "instagram", visit: 1, mode: "document" }));
+		} finally {
+			jest.useRealTimers();
+		}
 	});
 
 	it("時間切れ（ページが組み上がらない）のときは document モードでも畳む", () => {
