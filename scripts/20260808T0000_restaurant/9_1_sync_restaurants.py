@@ -7,6 +7,7 @@ import argparse
 import csv
 import logging
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -210,10 +211,26 @@ def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
 
 
 def apply_sync(connection: Any) -> None:
+    """同期の DML を流す。
+
+    #1706 **文ごとに所要時間を出す。** 62 万行規模では複数の文が
+    statement_timeout（30 分）の境界付近に並ぶ。2026-08-30 に 2 回続けて
+    timeout し、1 回目は provenance UPDATE、それを直すと次は INSERT だった。
+    «どれが遅いか» をログから読めないと、推測で 30〜60 分を溶かすことになる。
+    """
+
+    def run(label: str, sql: str) -> None:
+        started = time.monotonic()
+        cursor.execute(sql)
+        LOGGER.info(
+            "  %-28s %6.1f秒 / %d行", label, time.monotonic() - started, cursor.rowcount
+        )
+
     with connection.cursor() as cursor:
         # 既存PGのPlace ID変更は人手overrideを明示した場合だけ許す。restaurant UUIDを
         # 維持するため、削除→再作成ではなく既存行のID列だけを更新する。
-        cursor.execute(
+        run(
+            "manual_override の付替",
             """
             UPDATE restaurants r
             SET google_place_id = s.google_place_id
@@ -221,11 +238,12 @@ def apply_sync(connection: Any) -> None:
             WHERE r.source_seed_id = s.seed_id
               AND r.google_place_id <> s.google_place_id
               AND s.match_method = 'manual_override'
-            """
+            """,
         )
 
         # seedが別restaurantへ付け替わった場合、旧行は削除せずprovenanceだけ外す。
-        cursor.execute(
+        run(
+            "seed 付替の provenance 解除",
             """
             UPDATE restaurants r
             SET source_seed_id = NULL,
@@ -234,7 +252,7 @@ def apply_sync(connection: Any) -> None:
             FROM restaurant_sync_staging s
             WHERE r.source_seed_id = s.seed_id
               AND r.google_place_id <> s.google_place_id
-            """
+            """,
         )
 
         # まず不足行だけ追加する。
@@ -246,7 +264,8 @@ def apply_sync(connection: Any) -> None:
         # 一方この列は «1_2 がどのスキーマを読んだか» に依存しており、
         # dev の catalog を public へ流すと dev の UUID が public の主キーに
         # なりえた。結果を変えない依存は外す。
-        cursor.execute(
+        run(
+            "新規 INSERT",
             """
             INSERT INTO restaurants (
               id, google_place_id, name, name_language_code, latitude, longitude,
@@ -271,8 +290,17 @@ def apply_sync(connection: Any) -> None:
               -- アプリ製の行が 'user' のまま残るのが、この設計の要点である。
               'pipeline'
             FROM restaurant_sync_staging s
+            -- #1706 **既に在る行は最初から候補にしない。**
+            --
+            -- ON CONFLICT だけに任せると、62 万行すべてについて
+            -- gen_random_uuid() / jsonb キャスト / 配列生成をやってから捨てる。
+            -- 実測では insert=0 なのにこの 1 文で 30 分の statement timeout に
+            -- 当たった。ON CONFLICT は同時実行に対する保険として残す。
+            WHERE NOT EXISTS (
+              SELECT 1 FROM restaurants r WHERE r.google_place_id = s.google_place_id
+            )
             ON CONFLICT (google_place_id) DO NOTHING
-            """
+            """,
         )
 
         # パイプラインが作った行だけ、再実行時にcanonical値を更新する。
@@ -290,7 +318,8 @@ def apply_sync(connection: Any) -> None:
         # `source_seed_id IS NULL` は条件に使えない。この直後の provenance
         # UPDATE が **アプリ製の行にも source_seed_id を付ける**ため、2回目の
         # 実行で条件が反転してしまう。
-        cursor.execute(
+        run(
+            "表示値 UPDATE",
             """
             UPDATE restaurants r
             SET
@@ -310,7 +339,7 @@ def apply_sync(connection: Any) -> None:
             WHERE r.google_place_id = s.google_place_id
               AND r.created_by_source = 'pipeline'
               AND r.source_row_hash IS DISTINCT FROM s.row_hash
-            """
+            """,
         )
 
         # #1681 電話・公式サイト・SNS を restaurant_links へ入れる。
@@ -329,13 +358,21 @@ def apply_sync(connection: Any) -> None:
         # **オープンデータ由来の行だけ**を、今回の catalog に無いものに限って消す。
         # ユーザー・オーナー・公式サイト由来（source <> 'open_data'）は触らない。
         # 対象も staging に居る店に限る（catalog に載らなかった店の履歴は消さない）。
-        cursor.execute(
+        run(
+            "古い open_data リンク削除",
             """
             DELETE FROM restaurant_links l
             USING restaurants r, restaurant_sync_staging s
             WHERE l.restaurant_id = r.id
               AND r.google_place_id = s.google_place_id
               AND l.source = 'open_data'
+              -- #1706 **リンクは row_hash が動いたときしか変わらない。**
+              -- row_hash は phone / website / social_urls を含むので、
+              -- 一致している店のリンクを調べ直す必要はない。62 万店ぶんの
+              -- 突き合わせを毎回やると statement timeout に当たる。
+              -- アプリ製の行は source_row_hash が NULL のままなので常に対象
+              -- （2,468 行しかないので支障はない）。
+              AND r.source_row_hash IS DISTINCT FROM s.row_hash
               AND NOT EXISTS (
                 SELECT 1
                 FROM (
@@ -355,15 +392,19 @@ def apply_sync(connection: Any) -> None:
                 ) AS cur
                 WHERE cur.kind = l.kind AND cur.value = l.value
               )
-            """
+            """,
         )
 
-        cursor.execute(
+        run(
+            "リンク投入",
             """
             INSERT INTO restaurant_links (restaurant_id, kind, value, source, fetched_at)
             SELECT r.id, v.kind, v.value, 'open_data', CURRENT_TIMESTAMP
             FROM restaurant_sync_staging s
-            JOIN restaurants r ON r.google_place_id = s.google_place_id
+            JOIN restaurants r
+              ON r.google_place_id = s.google_place_id
+             -- #1706 DELETE と同じ理由。row_hash が動いた店だけを見る。
+             AND r.source_row_hash IS DISTINCT FROM s.row_hash
             CROSS JOIN LATERAL (
               -- 電話・サイトは 1 本ずつ、SNS は配列。1 つの SELECT に畳んで
               -- 空文字と NULL を同じ「無い」として落とす。
@@ -387,7 +428,7 @@ def apply_sync(connection: Any) -> None:
               WHERE NULLIF(btrim(u.value), '') IS NOT NULL
             ) AS v
             ON CONFLICT (restaurant_id, kind, value) DO NOTHING
-            """
+            """,
         )
 
         # provenanceは既存行にも付ける。これによりPG表示値を維持しつつ、どのseedが
@@ -404,7 +445,8 @@ def apply_sync(connection: Any) -> None:
         #
         # synced_at だけは «今回の catalog に居た» の印なので全行に付ける必要がある。
         # そちらは索引の無い列だけを触る別の文へ分け、HOT update にする（下）。
-        cursor.execute(
+        run(
+            "provenance UPDATE",
             """
             UPDATE restaurants r
             SET
@@ -436,7 +478,7 @@ def apply_sync(connection: Any) -> None:
                   AND r.source_row_hash IS DISTINCT FROM s.row_hash
                 )
               )
-            """
+            """,
         )
 
         # #1706 «今回の catalog に居た» の印だけを全行へ付ける。
@@ -448,13 +490,14 @@ def apply_sync(connection: Any) -> None:
         # この印は 9_9_audit_sync_drift が «最新 catalog に居なかった行»
         # （＝閉店・脱落・place_id 統合で溜まるゴミ）を数えるのに使う。
         # 変わった行だけに付けると、変わらなかった行が «居なかった» に見えてしまう。
-        cursor.execute(
+        run(
+            "synced_at",
             """
             UPDATE restaurants r
             SET synced_at = CURRENT_TIMESTAMP
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
-            """
+            """,
         )
 
 

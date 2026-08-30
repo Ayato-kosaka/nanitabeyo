@@ -39,26 +39,32 @@ CREATE SCHEMA IF NOT EXISTS dev;
 SET search_path = dev;
 CREATE TABLE restaurants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  google_place_id TEXT UNIQUE NOT NULL);
+  google_place_id TEXT UNIQUE NOT NULL,
+  source_row_hash TEXT);
 CREATE TABLE restaurant_links (
   restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
   kind TEXT NOT NULL, value TEXT NOT NULL, source TEXT NOT NULL,
   fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (restaurant_id, kind, value));
 CREATE TABLE restaurant_sync_staging (
-  google_place_id TEXT, phone TEXT, website TEXT, social_urls_json TEXT);
+  google_place_id TEXT, phone TEXT, website TEXT, social_urls_json TEXT, row_hash TEXT);
 
-INSERT INTO restaurants (google_place_id) VALUES
-  ('PLACE_IN_STAGING'), ('PLACE_NOT_IN_STAGING');
+INSERT INTO restaurants (google_place_id, source_row_hash) VALUES
+  ('PLACE_IN_STAGING', 'hash-OLD'),      -- hash が動く = リンクを見直す
+  ('PLACE_NOT_IN_STAGING', 'hash-X'),
+  ('PLACE_UNCHANGED', 'hash-SAME');      -- hash が同じ = 触らない
 
 -- 今回の catalog: 電話が新しい番号へ変わり、Instagram は据え置き
 INSERT INTO restaurant_sync_staging VALUES
   ('PLACE_IN_STAGING', '03-1111-1111', 'https://new.example.com',
-   '["https://instagram.com/keep"]');
+   '["https://instagram.com/keep"]', 'hash-NEW'),
+  -- hash が変わっていない店。catalog には電話があるが、**触ってはいけない**
+  ('PLACE_UNCHANGED', '03-7777-7777', NULL, '[]', 'hash-SAME');
 SQL
 
 RID_IN=$(q "SELECT id FROM restaurants WHERE google_place_id='PLACE_IN_STAGING';")
 RID_OUT=$(q "SELECT id FROM restaurants WHERE google_place_id='PLACE_NOT_IN_STAGING';")
+RID_UNCHANGED=$(q "SELECT id FROM restaurants WHERE google_place_id='PLACE_UNCHANGED';")
 
 run_sql "
 INSERT INTO restaurant_links (restaurant_id, kind, value, source) VALUES
@@ -66,7 +72,8 @@ INSERT INTO restaurant_links (restaurant_id, kind, value, source) VALUES
   ('$RID_IN','instagram','https://instagram.com/keep','open_data'), -- 今も在る（残る）
   ('$RID_IN','website','https://user-added.example.com','user'),    -- ユーザー追加（残る）
   ('$RID_IN','phone','03-0000-0000','owner'),              -- オーナー追加（残る）
-  ('$RID_OUT','phone','03-8888-8888','open_data');         -- staging に居ない店（残る）
+  ('$RID_OUT','phone','03-8888-8888','open_data'),         -- staging に居ない店（残る）
+  ('$RID_UNCHANGED','phone','03-6666-6666','open_data');   -- hash 同じ（触らない）
 "
 
 DELETE_SQL="$(python3 "$TESTS_DIR/extract_links_sql.py" --which delete)"
@@ -108,5 +115,13 @@ apply_once
   || fail "2 回目で件数が変わった（冪等でない）"
 echo "✅ 5. 冪等（2 回流しても $BEFORE 件のまま）"
 
+# --- 6. ★ row_hash が変わっていない店のリンクは調べ直さない ---
+#      catalog には別の電話があるが、hash が同じなら触らない（62万店の再走査を避ける）
+[ "$(q "SELECT COUNT(*) FROM restaurant_links WHERE restaurant_id='$RID_UNCHANGED' AND value='03-6666-6666';")" = "1" ] \
+  || fail "hash が同じ店の既存リンクを消した"
+[ "$(q "SELECT COUNT(*) FROM restaurant_links WHERE restaurant_id='$RID_UNCHANGED' AND value='03-7777-7777';")" = "0" ] \
+  || fail "hash が同じ店へリンクを入れた（走査を絞れていない）"
+echo "✅ 6. row_hash が同じ店は調べ直さない"
+
 echo
-echo "すべて通過（5/5）"
+echo "すべて通過（6/6）"
