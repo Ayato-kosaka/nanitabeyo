@@ -238,6 +238,18 @@ export class MyDishesScreen {
 
 	async chooseDishCategoryInRecordFlow(query: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.dishCategoryStep, timeout);
+		/*
+		⚠️ #1629 **打つ前に必ずタップして «フォーカスさせる»。**
+
+		`DishCategoryAutocomplete` は候補リストを `showSuggestions = 文字数 >= 2 && isFocused`
+		で出す。Detox の `replaceText` は文字を入れるだけでフォーカスを伴わないため、
+		いきなり打つと **候補が 1 度も描画されない**。API は 6 件返しているのに
+		`-search-suggestion-0` が現れず 8 秒待って落ちる、という形になる
+		（実測: run 33321841744。BigQuery 側には `dish_category_search_success {resultCount: 6}` が残っていた）。
+
+		人も «タップしてから打つ» ので、この順にするのが実際の操作にも忠実である。
+		*/
+		await tapWhenVisible(this.dishCategoryStepInput, timeout);
 		await element(this.dishCategoryStepInput).replaceText(query);
 		// 打ったらマスタの候補が出る。出なければ «この店の料理» の先頭を押す
 		try {
