@@ -189,9 +189,32 @@ const MyDishCard = memo(function MyDishCard({
 				状態バッジだけが使う。
 				*/}
 				<View style={styles.footer}>
-					<Text style={styles.footerText} numberOfLines={1}>
-						{dishName ?? item.restaurant.name ?? ""}
-					</Text>
+					{/*
+					#1629【オーナー指示】**タイルの下は «自分の星評価 → 店名 → 料理名» の順**にする。
+
+					5 巡目のデザインレビューで «密度を落とす» ために ★ と店名を落としていたが、
+					一覧を眺めるときに «どの店の何を、自分は何点にしたか» が要る、というのが
+					オーナーの判断である。3 行に戻すぶん、下の行ほど小さく・薄くして序列を付ける
+					（同じ大きさで 3 行積むと、どれも読まれない元の状態へ戻る）。
+
+					★ は **自分が付けた点数**（`myReview.rating`）。付けていない «食べたい» の行では
+					出さない（0 個の星を並べると «0 点を付けた» に見える）。
+					*/}
+					{rating !== null && rating > 0 && (
+						<Text style={styles.ratingText} numberOfLines={1} testID="my-dishes-list-item-rating">
+							{"★".repeat(Math.round(rating))}
+						</Text>
+					)}
+					{item.restaurant.name ? (
+						<Text style={styles.footerText} numberOfLines={1} testID="my-dishes-list-item-restaurant">
+							{item.restaurant.name}
+						</Text>
+					) : null}
+					{dishName ? (
+						<Text style={styles.footerSubText} numberOfLines={1} testID="my-dishes-list-item-dish">
+							{dishName}
+						</Text>
+					) : null}
 					{/* #1398 PR4: want 行だけ。押しても親（= 全画面 Feed への遷移）は走らない */}
 					<MyDishEatenButton item={item} onPress={onPressMarkAsEaten} />
 				</View>

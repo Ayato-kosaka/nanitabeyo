@@ -18,6 +18,7 @@ import {
 } from "@shared/api/v1/res";
 import type { CreateRestaurantDto, QueryRestaurantsDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
 import { asApiList } from "@/lib/apiList";
 import { useLogger } from "@/hooks/useLogger";
@@ -55,6 +56,8 @@ import { useLocale } from "@/hooks/useLocale";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
 import { usePickedRestaurantStore } from "@/features/restaurantPicker/stores/usePickedRestaurantStore";
+// #1629 確認カードを «畳んだシートの上» へ置くために、シートの小さい方の高さを借りる
+import { SMALL_DETENT_HEIGHT } from "@/features/restaurantPicker/components/savedRestaurantsSheetDetents";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -103,6 +106,8 @@ export default function SelectRestaurantScreen() {
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
+	// #1629 確認カードを画面下へ置くので、ホームバー等の安全域ぶん持ち上げる
+	const insets = useSafeAreaInsets();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
@@ -952,8 +957,22 @@ export default function SelectRestaurantScreen() {
 						nativeLoadingColor={colors.textPrimaryAlt}
 					/>
 				</View>
-				{/* #1629 1 回目のタップで出す確認カード（上の `selectedPin` のコメント） */}
-				{isPickMode && selectedPin && (
+			</View>
+
+			{/*
+			#1629【オーナー指示】確認カードは **画面の下**へ置く。
+
+			> 「このお店にする」ボタンは下部にして欲しい。
+
+			最初は検索窓の下（上部）に出していたが、地図で店を探しているときの指は下にある。
+			保存したお店のシート（`SavedRestaurantsSheet`）に被らないよう、畳んだシートの高さ
+			（`SMALL_DETENT_HEIGHT`）ぶん持ち上げる。
+			⚠️ `pointerEvents="box-none"` にしないと、カードの左右の余白が地図のタップを食う。
+			*/}
+			{isPickMode && selectedPin && (
+				<View
+					style={[styles.pickConfirmLayer, { bottom: SMALL_DETENT_HEIGHT + insets.bottom + 12 }]}
+					pointerEvents="box-none">
 					<View style={styles.pickConfirmCard} testID="select-restaurant-pick-confirm">
 						<Text style={styles.pickConfirmName} numberOfLines={1} ellipsizeMode="tail">
 							{selectedPin.restaurant.name}
@@ -967,8 +986,8 @@ export default function SelectRestaurantScreen() {
 							<Text style={styles.pickConfirmLabel}>{i18n.t("SelectRestaurant.pickConfirm")}</Text>
 						</TouchableOpacity>
 					</View>
-				)}
-			</View>
+				</View>
+			)}
 
 			{/* Saved Restaurants BottomSheet
 
@@ -1024,9 +1043,14 @@ const createStyles = (c: Palette) =>
 			marginTop: 8,
 			alignItems: "center",
 		},
+		// #1629 確認カードを浮かせる層。地図の上・シートの上に置く
+		pickConfirmLayer: {
+			position: "absolute",
+			left: 0,
+			right: 0,
+		},
 		// #1629 1 回目のタップで出る確認カード。検索まわりと同じ幅・角丸に揃える
 		pickConfirmCard: {
-			marginTop: 8,
 			marginHorizontal: 16,
 			flexDirection: "row",
 			alignItems: "center",

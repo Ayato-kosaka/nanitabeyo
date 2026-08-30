@@ -903,6 +903,9 @@ export class DishMediaImportsService {
         source: this.buildSource(content, expandedFromShortlink),
         metadata: {
           title: metadata.title,
+          // #1629 説明文も返す。内部の候補抽出には使っていたのに返しておらず、
+          // 確認画面では «キャプションが取れていない» ように見えていた（型側のコメント参照）
+          description: metadata.description ?? null,
           authorName: metadata.authorName,
           authorUrl: metadata.authorUrl,
           thumbnailUrl: metadata.thumbnailUrl,
@@ -1376,6 +1379,7 @@ export class DishMediaImportsService {
       source: this.buildSource(content, expandedFromShortlink),
       metadata: {
         title: null,
+        description: null,
         authorName: null,
         authorUrl: null,
         thumbnailUrl: null,

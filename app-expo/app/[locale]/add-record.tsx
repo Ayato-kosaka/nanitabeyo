@@ -151,6 +151,16 @@ export default function SnsImportScreen() {
 	const [resolved, setResolved] = useState<ResolveDishMediaImportResponse | null>(null);
 	// #1375 4 巡目: キャプションは畳んで出し、「もっと見る」で全文を見られるようにする
 	const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
+	/*
+	#1629 «題名 + 本文» を 1 つのキャプションとして扱う（描画側のコメントに理由）。
+	Instagram / TikTok は `description` が null なので、これまでと同じ 1 本の文字列になる。
+	*/
+	const captionText = useMemo(() => {
+		const parts = [resolved?.metadata.title, resolved?.metadata.description].filter(
+			(part): part is string => typeof part === "string" && part.trim().length > 0,
+		);
+		return parts.join("\n\n");
+	}, [resolved?.metadata.description, resolved?.metadata.title]);
 	const [isResolving, setIsResolving] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	// 連打の同期ガード（表示用の isSaving とは役割を分ける）
@@ -685,17 +695,31 @@ export default function SnsImportScreen() {
 														</View>
 													);
 												})()}
-											{!!resolved.metadata.title && (
+											{/*
+											#1629【オーナー報告】「YouTube Shorts / TikTok でキャプションが取れてない気がする。
+											Instagram と同じ仕様にしたい」。
+
+											実ログ（2026-08-30）で確かめた結果:
+											- TikTok … `title` 自体がキャプション本文。**取れているし出ていた**（短い投稿だと
+											  «もっと見る» が出ないので、Instagram と違って見えていただけ）
+											- YouTube … `title` は **動画の題名**で、本文は説明文の側。サーバは説明文から
+											  住所を拾って店舗候補まで作っていたのに、**レスポンスに含めていなかった**ので
+											  画面には題名しか出ず «キャプションが無い» ように見えていた
+
+											そこで «題名 + 本文» を 1 つのキャプションとして扱う。Instagram / TikTok は
+											本文（`description`）が null なので、これまでと同じ見え方のままになる。
+											*/}
+											{!!captionText && (
 												<>
 													<Text
 														style={styles.metaTitle}
 														testID="sns-import-caption"
 														numberOfLines={isCaptionExpanded ? undefined : 3}>
-														{resolved.metadata.title}
+														{captionText}
 													</Text>
 													{/* キャプション全文（店舗情報・メニューが書かれていることが多い）を
 											    その場で読めるようにする。閾値以下なら 3 行に収まるので出さない */}
-													{shouldOfferCaptionToggle(resolved.metadata.title) && (
+													{shouldOfferCaptionToggle(captionText) && (
 														<TouchableOpacity
 															testID="sns-import-caption-toggle"
 															onPress={() => {
