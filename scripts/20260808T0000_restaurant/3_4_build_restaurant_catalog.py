@@ -53,18 +53,26 @@ def main() -> None:
           s.seed_id,
           s.existing_restaurant_id,
           m.google_place_id,
-          COALESCE(existing.name, s.canonical_name) AS name,
-          COALESCE(NULLIF(existing.name_language_code, ''), 'ja') AS name_language_code,
-          COALESCE(existing.latitude, s.latitude) AS latitude,
-          COALESCE(existing.longitude, s.longitude) AS longitude,
-          COALESCE(existing.image_url, s.image_url, '') AS image_url,
-          COALESCE(existing.image_path, s.image_path) AS image_path,
-          COALESCE(
-            NULLIF(existing.address_components_json, ''),
-            NULLIF(s.address_components_json, ''),
-            '[]'
-          ) AS address_components_json,
-          COALESCE(existing.plus_code_json, s.plus_code_json) AS plus_code_json,
+          -- #1706 **既存 PG の値を carry-forward しない。**
+          --
+          -- 以前は COALESCE(existing.*, s.*) で «PG に在る値» を優先していた。
+          -- 狙いは «既存行の表示値を上書きしない» ことだったが、その役目は
+          -- 9_1 の `created_by_source = 'pipeline'` ガードが持っている（#1643）。
+          -- 二重防御になっていただけでなく、**catalog の中身が «1_2 がどの
+          -- スキーマを読んだか» に依存**するという副作用があった。dev で作った
+          -- catalog には dev の値（Google 由来の address_components / plus_code /
+          -- dev の GCS を指す image_path）が焼き込まれ、実測 2,108 行が
+          -- そのまま public へ入りうる状態だった。
+          --
+          -- catalog はオープンデータだけから組む。PG の行を守るのは PG 側の仕事。
+          s.canonical_name AS name,
+          'ja' AS name_language_code,
+          s.latitude,
+          s.longitude,
+          COALESCE(s.image_url, '') AS image_url,
+          s.image_path,
+          COALESCE(NULLIF(s.address_components_json, ''), '[]') AS address_components_json,
+          s.plus_code_json,
           -- #1681 表示用の1行住所。**オープンデータ由来だけを使う。**
           -- existing（＝PG に入っている Google 由来の住所）は carry-forward しない。
           -- Google の住所は ToS 3.2.3 で保持できないので、そちらへ寄せてはいけない。
@@ -109,10 +117,6 @@ def main() -> None:
         FROM `{pipeline.dataset_ref}.restaurant_seed_catalog` s
         INNER JOIN `{pipeline.dataset_ref}.restaurant_google_place_match_catalog` m
           USING (seed_id)
-        LEFT JOIN `{pipeline.dataset_ref}.restaurant_source_records` existing
-          ON existing.run_id = @run_id
-         AND existing.source = 'existing_pg'
-         AND existing.source_record_id = s.existing_restaurant_id
         -- 同じ place_id へ当たった «自分以外» の seed から連絡先を集める。
         LEFT JOIN (
           SELECT

@@ -176,29 +176,26 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           AND seed.existing_restaurant_id IS NOT NULL
           AND catalog.seed_id IS NULL
       ),
-      existing_value_mismatches AS (
-        SELECT COUNT(*) AS mismatch_count
-        FROM `{dataset}.restaurant_seed_catalog` seed
-        INNER JOIN `{dataset}.restaurant_source_records` existing
-          ON existing.run_id = @run_id
-         AND existing.source = 'existing_pg'
-         AND existing.source_record_id = seed.existing_restaurant_id
-        INNER JOIN `{dataset}.restaurant_catalog` catalog
-          ON catalog.run_id = @run_id
-         AND catalog.seed_id = seed.seed_id
-        WHERE seed.run_id = @run_id
-          AND (
-            catalog.name IS DISTINCT FROM existing.name
-            OR catalog.name_language_code
-              IS DISTINCT FROM COALESCE(NULLIF(existing.name_language_code, ''), 'ja')
-            OR catalog.latitude IS DISTINCT FROM existing.latitude
-            OR catalog.longitude IS DISTINCT FROM existing.longitude
-            OR catalog.image_url IS DISTINCT FROM existing.image_url
-            OR catalog.image_path IS DISTINCT FROM existing.image_path
-            OR catalog.address_components_json
-              IS DISTINCT FROM existing.address_components_json
-            OR catalog.plus_code_json IS DISTINCT FROM existing.plus_code_json
-          )
+      -- #1706 **catalog に Google 由来の値が混ざっていないこと。**
+      --
+      -- ここは以前 existing_pg_serving_values_preserved という検査で、
+      -- «catalog の値が既存 PG の値と一致すること»（＝ carry-forward が効いて
+      -- いること）を見ていた。その carry-forward をやめたので、検査も差し替える。
+      --
+      -- 既存行を上書きしない役目は 9_1 の created_by_source ガードへ移っており、
+      -- 実物の PostgreSQL で固定してある（tests/test_9_1_overwrite_guard.sh）。
+      -- ここで守るべきなのは «catalog はオープンデータだけから組む» の方である。
+      --
+      -- address_components / plus_code はオープンデータには存在しない。値が
+      -- 入っていたら、それは PG 経由で Google 由来のデータが再び流れ込んだ印で、
+      -- ToS 3.2.3 の保持禁止に触れる。
+      google_derived_in_catalog AS (
+        SELECT COUNTIF(
+          COALESCE(address_components_json, '[]') != '[]'
+          OR plus_code_json IS NOT NULL
+        ) AS leaked_count
+        FROM `{dataset}.restaurant_catalog`
+        WHERE run_id = @run_id
       ),
       target_categories AS (
         SELECT DISTINCT item_qid
@@ -291,9 +288,9 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           FROM restaurant_merge_loss
         UNION ALL SELECT 'existing_pg_restaurants_preserved', 'ERROR',
           CAST(missing_count AS FLOAT64), 0.0, missing_count = 0 FROM existing_missing
-        UNION ALL SELECT 'existing_pg_serving_values_preserved', 'ERROR',
-          CAST(mismatch_count AS FLOAT64), 0.0, mismatch_count = 0
-          FROM existing_value_mismatches
+        UNION ALL SELECT 'restaurant_catalog_free_of_google_values', 'ERROR',
+          CAST(leaked_count AS FLOAT64), 0.0, leaked_count = 0
+          FROM google_derived_in_catalog
         UNION ALL SELECT 'jp_gate_category_count', 'ERROR', CAST(row_count AS FLOAT64),
           CAST(@expected_category_count AS FLOAT64), row_count = @expected_category_count
           FROM category_stats

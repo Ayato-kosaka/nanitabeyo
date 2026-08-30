@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
 """既存 PostgreSQL restaurants を BigQuery raw へsnapshotする。
 
-既存DBは「既にユーザーが検索した店舗」という需要実績である。オープンデータに
-存在しないからといって消さず、2_2で carry-forward できるよう最初に取り込む。
+## 何のために取り込むのか（2 つだけ）
+
+1. **Google Text Search の課金を避ける** — 既に place_id を知っている店を
+   もう一度検索しない（3_1 → 3_2）
+2. **どの seed が同じ店かを判定する** — 名前と座標が要る（2_2 の名寄せ）
+
+**表示値（画像・住所・plus_code）は運ばない。** 運ぶと catalog の中身が
+«1_2 がどのスキーマを読んだか» に依存し、dev で作った catalog を public へ
+流すと dev の値が本番へ入る（実測 2,108 行 / #1706）。既存行を上書きから守る
+役目は 9_1 の created_by_source ガードが持っているので、値の carry-forward は
+不要である。
 """
 
 from __future__ import annotations
@@ -49,31 +58,39 @@ def iter_restaurants(connection: Any, schema: str, run_id: str, snapshot_date: d
               id::text,
               google_place_id,
               name,
-              name_language_code,
               latitude,
-              longitude,
-              image_url,
-              image_path,
-              address_components::text,
-              plus_code::text,
-              created_at
+              longitude
             FROM {schema}.restaurants
             ORDER BY id
             """
         )
         for row in cursor:
+            # #843 **表示値は運ばない。** 運ぶのは «この店の place_id はもう知っている»
+            # という事実と、それをオープンデータの seed へ結び付けるための最小限だけ。
+            #
+            #   ・source_record_id / google_place_id … 3_1 が Text Search を省くため
+            #   ・name / latitude / longitude        … 2_2 がどの seed と同じ店かを判定するため
+            #
+            # 以前は image_url / image_path / address_components / plus_code /
+            # name_language_code も運び、3_4 が COALESCE で catalog へ焼き込んでいた。
+            # そのせいで **catalog の中身が «1_2 がどのスキーマを読んだか» に依存**し、
+            # dev で作った catalog には dev の値（Google 由来の住所を含む）が入っていた。
+            # 実測 2,108 行（#1706）。上書きから既存行を守る役目は 9_1 の
+            # created_by_source ガードが持っているので、carry-forward はもう要らない。
+            #
+            # BigQuery 側の列は NULLABLE のままにしてある（DDL 変更なしで戻せる）。
             payload = {
                 "source_record_id": row[0],
                 "google_place_id": row[1],
                 "name": row[2],
-                "name_language_code": row[3],
-                "latitude": row[4],
-                "longitude": row[5],
-                "image_url": row[6],
-                "image_path": row[7],
-                "address_components_json": row[8],
-                "plus_code_json": row[9],
-                "created_at": row[10],
+                "name_language_code": None,
+                "latitude": row[3],
+                "longitude": row[4],
+                "image_url": None,
+                "image_path": None,
+                "address_components_json": None,
+                "plus_code_json": None,
+                "created_at": None,
             }
             yield {
                 "run_id": run_id,
