@@ -623,11 +623,28 @@ export function getCurrencyCodeFromAddressComponents(
 
 /**
  * レストランデータから通貨コードを決定
- * @param restaurant レストランデータ (address_components を含む)
+ *
+ * #1681 **`country_code` を先に見る。**
+ *
+ * パイプラインが作った店（dev 実測 619,497 行）は `address_components` が空である。
+ * Google 由来の住所は ToS 3.2.3 で保持できないので、そこは意図的に空にしてある。
+ * `address_components` だけを見ていると、これらの店では通貨が決まらず、
+ * **金額を入れるたびにユーザーへ通貨を選ばせる**ことになる（実機で確認）。
+ *
+ * `country_code` は同期で入っており（矩形内なら 'JP'）、API も返している。
+ * JSONB を掘るのは、列がまだ無いアプリ製の行のための後方互換に留める。
+ *
+ * @param restaurant レストランデータ
  * @returns ISO-4217 通貨コード または null
  */
-export function getCurrencyCodeFromRestaurant(restaurant: { address_components?: any }): string | null {
-	return getCurrencyCodeFromAddressComponents(restaurant.address_components);
+export function getCurrencyCodeFromRestaurant(restaurant: {
+	country_code?: string | null;
+	address_components?: any;
+}): string | null {
+	return (
+		getCurrencyCodeFromCountry(restaurant.country_code ?? null) ??
+		getCurrencyCodeFromAddressComponents(restaurant.address_components)
+	);
 }
 
 /**

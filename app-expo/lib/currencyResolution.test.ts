@@ -14,6 +14,7 @@
 import {
 	buildCurrencyChoices,
 	getCurrencyCodeFromAddressComponents,
+	getCurrencyCodeFromRestaurant,
 	getMinorUnitDigits,
 	resolveCurrencyCodeFromLocale,
 	toMinorAmountInteger,
@@ -86,5 +87,36 @@ describe("getMinorUnitDigits の既定値", () => {
 
 	it("JPY は 0 桁", () => {
 		expect(getMinorUnitDigits("JPY")).toBe(0);
+	});
+});
+
+describe("#1681 パイプライン製の店でも通貨が決まる（country_code を先に見る）", () => {
+	// 実機の症状: 「麦と麺助」で «食べた» を選ぶと通貨選択が出た。
+	// 原因は address_components だけを見ていたこと。パイプライン製の店は
+	// Google 由来の住所を持たない方針なので、ここは恒久的に空である。
+	it("address_components が空でも country_code から JPY が決まる", () => {
+		expect(getCurrencyCodeFromRestaurant({ country_code: "JP", address_components: [] })).toBe("JPY");
+	});
+
+	it("country_code が無い古い行は、従来どおり address_components から決まる", () => {
+		expect(
+			getCurrencyCodeFromRestaurant({
+				address_components: [{ types: ["country"], shortText: "US", longText: "United States" }],
+			}),
+		).toBe("USD");
+	});
+
+	it("country_code は address_components より優先される", () => {
+		// 移行期に両方入っている行があり得る。列の方が «同期で保った現在の値» なので優先する。
+		expect(
+			getCurrencyCodeFromRestaurant({
+				country_code: "JP",
+				address_components: [{ types: ["country"], shortText: "US", longText: "United States" }],
+			}),
+		).toBe("JPY");
+	});
+
+	it("どちらも無ければ null（＝ユーザーに選ばせる）", () => {
+		expect(getCurrencyCodeFromRestaurant({ country_code: null, address_components: [] })).toBeNull();
 	});
 });
