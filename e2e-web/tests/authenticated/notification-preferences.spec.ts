@@ -38,8 +38,8 @@ test.describe("設定 > 通知カテゴリ別オン/オフ", () => {
 		await stubNotificationPreferences(context, { initial: { likes: false } });
 
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1629 通知カードは `profile/notifications` の専用ページへ移った
+		await settingsPage.gotoNotificationSettings();
 
 		await expect(settingsPage.notificationsCard).toBeVisible();
 		await expect(settingsPage.notificationToggle("likes")).toBeVisible();
@@ -65,8 +65,8 @@ test.describe("設定 > 通知カテゴリ別オン/オフ", () => {
 		const stub = await stubNotificationPreferences(context);
 
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1629 通知カードは `profile/notifications` の専用ページへ移った
+		await settingsPage.gotoNotificationSettings();
 		await expect(settingsPage.notificationToggle("likes")).toBeVisible();
 
 		await settingsPage.notificationToggle("likes").click();
@@ -90,8 +90,8 @@ test.describe("設定 > 通知カテゴリ別オン/オフ", () => {
 		const stub = await stubNotificationPreferences(context, { initial: { likes: false } });
 
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1629 通知カードは `profile/notifications` の専用ページへ移った
+		await settingsPage.gotoNotificationSettings();
 		await expect(settingsPage.notificationToggle("likes")).toBeVisible();
 		expect(await settingsPage.isNotificationToggleOn("likes")).toBe(false);
 
@@ -116,8 +116,8 @@ test.describe("設定 > 通知カテゴリ別オン/オフ", () => {
 		const stub = await stubNotificationPreferences(context, { failUpdates: true });
 
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1629 通知カードは `profile/notifications` の専用ページへ移った
+		await settingsPage.gotoNotificationSettings();
 		await expect(settingsPage.notificationToggle("saves")).toBeVisible();
 
 		await settingsPage.notificationToggle("saves").click();
@@ -143,8 +143,8 @@ test.describe("設定 > 通知カテゴリ別オン/オフ", () => {
 		await stubNotificationPreferences(context, { failLoad: true });
 
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1629 通知カードは `profile/notifications` の専用ページへ移った
+		await settingsPage.gotoNotificationSettings();
 
 		await expect(settingsPage.notificationsErrorRow).toBeVisible();
 		await expect(settingsPage.notificationToggle("likes")).toHaveCount(0);
@@ -163,8 +163,8 @@ test.describe("設定 > 通知カテゴリ別オン/オフ", () => {
 		await stubNotificationPreferences(context);
 
 		const settingsPage = new SettingsPage(appPage);
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1629 通知カードは `profile/notifications` の専用ページへ移った
+		await settingsPage.gotoNotificationSettings();
 		await expect(settingsPage.notificationToggle("likes")).toBeVisible();
 
 		await expect(settingsPage.notificationsOsDeniedNotice).toHaveCount(0);

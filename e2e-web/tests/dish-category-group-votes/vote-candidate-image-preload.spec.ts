@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import {
 	PRELOAD_CANDIDATE_COUNT,
 	PRELOAD_CANDIDATE_INDEXES,
@@ -51,6 +52,8 @@ import { findResourceStartTime } from "../../utils/preload-assets";
  * 詳細は utils/dishCategoryGroupVote.ts の冒頭を参照。
  */
 test.describe("友達投票の候補画像の先読み", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: 1 枚も送らないうちに候補画像が全件取得されている ─
 	// 手順:
 	//   1. Resource Timing のバッファを拡張し、複数候補の detail と遅延画像をモックする

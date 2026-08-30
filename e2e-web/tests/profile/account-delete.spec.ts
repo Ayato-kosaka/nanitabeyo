@@ -31,5 +31,8 @@ test.describe("アカウント削除の導線(匿名ユーザー)", () => {
 
 		await expect(settingsPage.deleteAccountItem).toHaveCount(0);
 		await expect(settingsPage.logoutItem).toHaveCount(0);
+		// #1629 2 つとも «アカウント管理» の先へ移ったので、入口の行ごと出ないことを見る。
+		// 入口だけ残っていると «開くと空のページ» という別の行き止まりになる
+		await expect(settingsPage.accountItem).toHaveCount(0);
 	});
 });

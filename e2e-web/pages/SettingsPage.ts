@@ -39,6 +39,27 @@ export class SettingsPage {
 	/** #1583 マイページ → «なに食べよについて» の行 */
 	readonly aboutItem: Locator;
 	/**
+	 * #1629 端末設定 → «表示テーマ» の行。
+	 *
+	 * 3 択ラジオは端末設定の直置きをやめて `profile/theme` へ移った（オーナー指示）。
+	 * **この行は端末設定ページにあり、マイページには無い。**
+	 */
+	readonly themeItem: Locator;
+	/** #1629 表示テーマページの戻るボタン（`ScreenHeader` の `${testID}-back` 規約） */
+	readonly themeBackButton: Locator;
+	/**
+	 * #1629 マイページ → «アカウント管理» の行（ログイン済みのみ）。
+	 * ログアウトとアカウント削除は «押すと戻れない» 行なので、閲覧系と同じ縦リストから外して
+	 * この行の先（`profile/account`）へ移した。
+	 */
+	readonly accountItem: Locator;
+	/** #1629 アカウント管理ページの戻るボタン */
+	readonly accountBackButton: Locator;
+	/** #1629 マイページ → «通知設定» の行（ログイン済みのみ） */
+	readonly notificationsItem: Locator;
+	/** #1629 通知設定ページの戻るボタン */
+	readonly notificationsBackButton: Locator;
+	/**
 	 * #1583 «なに食べよについて» の戻るボタン。
 	 *
 	 * `ScreenHeader` は `${testID}-back` を出す（素の testID は出さない）。
@@ -121,6 +142,12 @@ export class SettingsPage {
 		// #1583 マイページ → なに食べよについて の行
 		this.aboutItem = page.getByTestId("settings-about");
 		this.aboutBackButton = page.getByTestId("about-screen-back");
+		this.themeItem = page.getByTestId("settings-theme");
+		this.themeBackButton = page.getByTestId("theme-settings-screen-back");
+		this.accountItem = page.getByTestId("settings-account");
+		this.accountBackButton = page.getByTestId("account-settings-screen-back");
+		this.notificationsItem = page.getByTestId("settings-notifications");
+		this.notificationsBackButton = page.getByTestId("notification-settings-screen-back");
 		this.versionText = page.getByTestId("settings-version-section");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.notificationsCard = page.getByTestId("settings-notifications-card");
@@ -187,25 +214,73 @@ export class SettingsPage {
 	 *
 	 * #1402 以前は ScreenHeader のタイトル「設定」を見ていたが、その画面ごと無くなった。
 	 * 代わりに «必ず出る行» の testID を見る（ロケール依存が 1 つ減るという副次的な利点もある）。
+	 *
+	 * ⚠️ #1629 **«ご意見・不具合» を目印にしないこと。** あの行は `profile/about` へ移った。
+	 * ここは «匿名でもログイン済みでも必ず出て、他画面へ移る予定が無い行» でなければならない。
+	 * `settings-about` は «なに食べよについて» への入口そのものなので、この条件を満たす。
 	 */
 	async expectLoaded(): Promise<void> {
-		await expect(this.feedbackItem).toBeVisible();
+		await expect(this.aboutItem).toBeVisible();
 	}
 
 	/*
-	#1583 設定項目は 3 画面に散っている。
-	  マイページ …… いいね / 保存 / ご意見 / ブロック済み / 通報履歴 / 言語 / 投票 /
-	                （端末設定へ）/（なに食べよについてへ）/ ログアウト
-	  端末設定 ……… ハプティクス / 表示テーマ
-	  なに食べよについて … 応援する / 規約 4 種 / バージョン
-	テーマとリーガルの行は **マイページには無い**ので、下の 2 つで先に移動すること。
+	#1629 設定項目は 6 画面に散っている（#1583 の 3 画面からさらに割れた。オーナー指示）。
+
+	  マイページ ………………… いいね / 保存 / 投票履歴 / ブロック済み /
+	                          （なに食べよについてへ）/（端末設定へ）/
+	                          （通知設定へ ※ログイン時）/ 通報履歴 /（アカウント管理へ ※ログイン時）
+	  なに食べよについて ……… 応援する（native のみ）/ **ご意見・不具合** / 規約 4 種 / バージョン
+	  端末設定 ………………… 言語 / ハプティクス /（表示テーマへ）
+	  表示テーマ ……………… 3 択ラジオ
+	  通知設定 ………………… カテゴリ別トグル
+	  アカウント管理 ………… ログアウト / アカウント削除
+
+	マイページに **無い** 行を掴む前に、必ず対応する open... / goto... で移動すること。
+	特に «ご意見・不具合»・«表示テーマ»・«ログアウト»・«通知» の 4 つは移設された回数が多く、
+	古い場所を見たまま放置されたテストが実際に main を 1 週間赤くした。
 	*/
 
 	/** #1504 端末設定行をタップして端末設定画面（`/[locale]/profile/device-settings`）へ遷移する */
 	async openDeviceSettings(): Promise<void> {
 		await this.deviceSettingsItem.click();
-		// #1583 表示テーマがここへ移った
+		// #1629 表示テーマは «行» になって profile/theme へ移ったので、3 択そのものはここに無い。
+		// この画面に必ず残る «言語» の行で着地を見る
+		await expect(this.languageItem).toBeVisible();
+	}
+
+	/** #1629 端末設定 → «表示テーマ» 行をタップして `/[locale]/profile/theme` へ遷移する */
+	async openTheme(): Promise<void> {
+		await this.themeItem.click();
 		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1629 表示テーマページへ直接遷移する（導線ではなく中身を見たいとき） */
+	async gotoTheme(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/theme`);
+		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1629 マイページ → «アカウント管理» 行をタップして `/[locale]/profile/account` へ遷移する */
+	async openAccount(): Promise<void> {
+		await this.accountItem.click();
+		await expect(this.logoutItem).toBeVisible();
+	}
+
+	/** #1629 アカウント管理ページへ直接遷移する */
+	async gotoAccount(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/account`);
+		await expect(this.logoutItem).toBeVisible();
+	}
+
+	/** #1629 マイページ → «通知設定» 行をタップして `/[locale]/profile/notifications` へ遷移する */
+	async openNotificationSettings(): Promise<void> {
+		await this.notificationsItem.click();
+		await expect(this.page).toHaveURL(/\/profile\/notifications/);
+	}
+
+	/** #1629 通知設定ページへ直接遷移する */
+	async gotoNotificationSettings(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/notifications`);
 	}
 
 	/** #1583 «なに食べよについて» 行をタップして `/[locale]/profile/about` へ遷移する */
@@ -217,7 +292,7 @@ export class SettingsPage {
 	/** #1583 端末設定ページへ直接遷移する（導線ではなく画面の中身を見たいとき） */
 	async gotoDeviceSettings(locale = "ja-JP"): Promise<void> {
 		await this.page.goto(`/${locale}/profile/device-settings`);
-		await expect(this.themeSelector).toBeVisible();
+		await expect(this.languageItem).toBeVisible();
 	}
 
 	/** #1583 «なに食べよについて» へ直接遷移する */

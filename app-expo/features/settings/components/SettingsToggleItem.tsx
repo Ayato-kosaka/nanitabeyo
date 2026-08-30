@@ -68,7 +68,16 @@ export function SettingsToggleItem({
 				accessibilityLabel={label}
 				// #1510 補足文は支援技術にも読ませる。行のラベルとは別の情報なので hint に載せる
 				accessibilityHint={description}
-				accessibilityState={{ checked: value, disabled: !!disabled }}>
+				accessibilityState={{ checked: value, disabled: !!disabled }}
+				/*
+				#1629 【修正】react-native-web は `accessibilityState.checked` を DOM の
+				`aria-checked` へ変換しない（`SelectableChip` / `ThemeSelector` と同じ既知の非対応）。
+				その結果 web では **`role="switch"` なのに `aria-checked` を持たない行**になり、
+				スクリーンリーダーから «オンかオフか» が読めない。axe も
+				`aria-required-attr`（critical）として検出する。
+				repo の他の箇所と同じく、両対応の `aria-checked` を直接指定して埋める。
+				*/
+				aria-checked={value}>
 				<View style={styles.labelColumn}>
 					<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
 					{!!description && (

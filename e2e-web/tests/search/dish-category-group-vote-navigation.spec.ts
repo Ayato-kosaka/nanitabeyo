@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { test, expect } from "../../fixtures/test";
 import { waitForAnonymousSession } from "../../utils/auth";
 import { ResultPage } from "../../pages/ResultPage";
@@ -307,6 +308,8 @@ const detailViewRestaurants = (page: Page) => page.getByTestId("dish-category-gr
 const modalCloseButton = (page: Page) => page.getByRole("button", { name: "閉じる" });
 
 test.describe("友達投票の結果画面から店舗画面への遷移 (#1122)", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: モーダルが閉じてから遷移し、遷移先をすぐ操作できる ─
 	// 手順:
 	//   1. 検索済み候補のカードを押して詳細モーダルを開く

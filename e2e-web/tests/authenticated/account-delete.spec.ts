@@ -42,8 +42,11 @@ test.describe("アカウント削除の確認(ログイン済み)", () => {
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
 
-		// ログアウト行の表示 ＝ AuthProvider が「ログイン済み(非匿名)」で決着した合図。
-		// これを待たずに削除行を探すと、未解決状態の「まだ出ていない」と区別が付かない
+		// #1629 ログアウトと削除は «アカウント管理» ページへ移った。
+		// その入口の行が出ること自体が、AuthProvider が「ログイン済み(非匿名)」で決着した合図でもある
+		//（匿名にはこの行が出ない）。これを待たずに探すと «まだ出ていない» と区別が付かない
+		await expect(settingsPage.accountItem).toBeVisible();
+		await settingsPage.openAccount();
 		await expect(settingsPage.logoutItem).toBeVisible();
 		await expect(settingsPage.deleteAccountItem).toBeVisible();
 
@@ -71,9 +74,9 @@ test.describe("アカウント削除の確認(ログイン済み)", () => {
 		await settingsPage.dialogCancelButton.click();
 		await expect(settingsPage.deleteAccountFinalTitle).toHaveCount(0);
 
-		// 設定画面に留まり、削除行もログアウト行も «押せるまま» であること
+		// アカウント管理ページに留まり、削除行もログアウト行も «押せるまま» であること
 		// = セッションが生きている（削除も サインアウトも走っていない）ことの確認
-		await settingsPage.expectLoaded();
+		await expect(appPage).toHaveURL(/\/profile\/account/);
 		await expect(settingsPage.deleteAccountItem).toBeVisible();
 		await expect(settingsPage.logoutItem).toBeVisible();
 	});

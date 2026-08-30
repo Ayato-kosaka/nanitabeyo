@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { SnsImportPage } from "../../pages/SnsImportPage";
 
 /**
@@ -60,6 +61,8 @@ const TIKTOK_SHORTLINK_URL = "https://vm.tiktok.com/ZSAbCd123/";
 const UNSUPPORTED_URL = "https://x.com/nanitabeyo/status/1234567890";
 
 test.describe("SNS 取り込み画面(#1400 / #1375)", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: 共有された URL が貼り付け欄の初期値に入る ─
 	// 手順:
 	//   1. YouTube Shorts / TikTok / Instagram の投稿 URL でそれぞれ画面を直接開く

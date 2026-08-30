@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { GUEST_SUGGESTION_TEST_ID, mockVoteDetail, voteScreenPath } from "../../utils/dishCategoryGroupVote";
 
 /**
@@ -20,6 +21,8 @@ import { GUEST_SUGGESTION_TEST_ID, mockVoteDetail, voteScreenPath } from "../../
  * 無し（detail はモック、投票の送信までは進めない）。詳細は utils/dishCategoryGroupVote.ts を参照。
  */
 test.describe("友達投票の完了モーダル（ゲストユーザー）", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: ゲストには絵文字候補が表示される ─
 	// 手順:
 	//   1. 投票セッション detail をモックして投票画面を開く

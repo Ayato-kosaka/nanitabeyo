@@ -117,6 +117,10 @@ async function openResultFeed(appPage: Page): Promise<ResultPage> {
 }
 
 test.describe("いいね / 保存の失敗時ロールバック", () => {
+	// #1629 この spec は `route.abort("failed")` で **わざと通信を失敗させて** ロールバックを見る。
+	// ブラウザはそれを net::ERR_FAILED として console へ出すので、前提が生むノイズとして許容する
+	test.use({ allowedConsoleErrors: ["net::ERR_FAILED"] });
+
 	// 検索 → トピック提案 → 結果フィード遷移は AI 生成待ちで時間がかかるため、
 	// reactions.spec.ts と同じ理由で既定の 30 秒テストタイムアウトを延長する
 	test.setTimeout(90_000);
