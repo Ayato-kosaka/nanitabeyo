@@ -120,6 +120,7 @@ test.describe("レビュー投稿 @mutation", () => {
 			.getByTestId("review-comment-input")
 			.fill(`[E2E] 自動テスト投稿 ${new Date().toISOString()}`.slice(0, 100));
 
+
 		await appPage.getByTestId("review-price-input").fill("500");
 		await appPage.getByTestId("review-star-5").click();
 

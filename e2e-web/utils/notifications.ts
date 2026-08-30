@@ -112,10 +112,7 @@ export function buildLikeNotification(): NotificationItem {
 			{
 				id: "00000000-0000-4000-8000-0000000015e0",
 				display_name: "いいねした人",
-				avatarUrls: {
-					sm: "https://example.invalid/e2e-1506-like.jpg",
-					md: "https://example.invalid/e2e-1506-like.jpg",
-				},
+				avatarUrls: { sm: "https://example.invalid/e2e-1506-like.jpg", md: "https://example.invalid/e2e-1506-like.jpg" },
 			} as NotificationItem["actors"][number],
 		],
 		// dishMediaEntries を敢えて付けない = この行は押しても遷移しない。
