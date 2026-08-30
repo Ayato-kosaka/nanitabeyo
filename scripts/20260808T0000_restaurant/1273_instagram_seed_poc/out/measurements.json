@@ -698,7 +698,7 @@
     "coverage_cells": 530,
     "categories_covered": "98/134",
     "distinct_cities": 185,
-    "note": "BigQuery sns_seed に4テーブル作成済み。sns_coverage にカテゴリ別ロールアップ93行を投入。post_raw全量ロードはローカルBQ資格情報が無く、ループ(fired)turnはMCP不可のため対話turn保留。店=正規化住所、カテゴリ=132日本語名キーワード一致の近似（resolve未通し）。",
+    "note": "BigQuery food-scroll.sns_seed に4テーブルを作成済み（対話turnで実施）。ただし fired ループturnでは MCP(BigQuery/GitHub) が利用不可のため、sns_coverage 等へのデータ投入と Issue #1273 記録は対話turn保留。coverage行(93)はSQL(out/cov_cat_insert.sql)を用意済みだが未投入。店=正規化住所、カテゴリ=132日本語名キーワード一致の近似（resolve未通し）。",
     "geographic_spread": "富山/石川/新潟/沖縄/愛媛/香川/福島など地方に分散。東京集中ではない（インフルエンサー経路の地方到達を実証）",
     "top_categories": {
       "カフェ": 163,
@@ -707,6 +707,12 @@
       "ハンバーグ": 24,
       "焼肉": 22
     },
-    "blocker": "IG_TOKEN/SERPER/HF は scratchpad/.env にあったが、scratchpadは揮発しセッション跨ぎで消失。374人全フィードの実測（外挿→確定）にはトークン再供給が必要。"
+    "blocker": "IG_TOKEN/SERPER/HF は scratchpad/.env にあったが、scratchpadは揮発しセッション跨ぎで消失。374人全フィードの実測（外挿→確定）にはトークン再供給が必要。",
+    "bq_state": {
+      "schema_created": true,
+      "tables_created": 4,
+      "coverage_rows_loaded": 0,
+      "reason_not_loaded": "fired loop turn は MCP 不可。対話turnで cov_cat_insert.sql を投入する"
+    }
   }
 }
