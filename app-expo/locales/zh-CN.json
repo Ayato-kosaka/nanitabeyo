@@ -1147,6 +1147,13 @@
 		"deleted": {
 			"label": "已删除",
 			"a11yLabel": "这条帖子的照片已被删除"
+		},
+		"ownReview": {
+			"title": "我的评论",
+			"noPhoto": "无照片",
+			"noComment": "未填写评论",
+			"noReview": "此记录还没有评论",
+			"openRestaurant": "查看餐厅详情"
 		}
 	},
 	"SnsImport": {

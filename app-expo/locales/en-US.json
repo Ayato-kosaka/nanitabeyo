@@ -1147,6 +1147,13 @@
 		"deleted": {
 			"label": "Deleted",
 			"a11yLabel": "The photo for this post was deleted"
+		},
+		"ownReview": {
+			"title": "Your review",
+			"noPhoto": "No photo",
+			"noComment": "No comment was written",
+			"noReview": "There is no review for this record yet",
+			"openRestaurant": "View restaurant details"
 		}
 	},
 	"SnsImport": {

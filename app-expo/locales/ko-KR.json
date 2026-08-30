@@ -1147,6 +1147,13 @@
 		"deleted": {
 			"label": "삭제되었습니다",
 			"a11yLabel": "이 게시물의 사진은 삭제되었습니다"
+		},
+		"ownReview": {
+			"title": "내 리뷰",
+			"noPhoto": "사진 없음",
+			"noComment": "작성된 코멘트가 없습니다",
+			"noReview": "이 기록에는 아직 리뷰가 없습니다",
+			"openRestaurant": "가게 상세 보기"
 		}
 	},
 	"SnsImport": {
