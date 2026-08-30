@@ -41,6 +41,10 @@ class RateLimited(Exception):
     pass
 
 
+class AccountNotDiscoverable(Exception):
+    """handle が存在しない / ビジネス・クリエイターでない等、そのアカウントを飛ばすべき状態。"""
+
+
 def _get(url: str, timeout: float = 30.0) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": "nanitabeyo-sns-seed/1.0"})
     try:
@@ -52,9 +56,14 @@ def _get(url: str, timeout: float = 30.0) -> dict:
             err = json.loads(body).get("error", {})
         except Exception:
             err = {}
+        code = err.get("code")
         # code 4 = application rate limit, 17 = user rate limit, 613 = custom rate limit
-        if err.get("code") in (4, 17, 613) or e.code == 429:
+        if code in (4, 17, 613) or e.code == 429:
             raise RateLimited(err.get("message") or body[:200])
+        # code 110 = Invalid user id（存在しない handle 等）。business_discovery が引けない
+        # アカウントは «そのアカウントを飛ばす» べき状態で、バッチ全体を止めない。
+        if code == 110 or err.get("error_user_title") == "Cannot find User":
+            raise AccountNotDiscoverable(err.get("error_user_msg") or err.get("message") or "not discoverable")
         raise RuntimeError(f"IG API {e.code}: {body[:300]}")
 
 
@@ -88,6 +97,9 @@ def discover_media(ig: str, token: str, handle: str, per_account_limit: int, pag
             time.sleep(backoff)
             backoff = min(backoff * 2, 900)
             continue
+        except AccountNotDiscoverable as e:
+            LOGGER.info("  @%s: skip（%s）", handle, str(e)[:80])
+            return
         bd = d.get("business_discovery")
         if not bd:  # username が business/creator でない、非公開、存在しない 等
             return
