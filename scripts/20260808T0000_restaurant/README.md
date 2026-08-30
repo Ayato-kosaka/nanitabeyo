@@ -225,6 +225,18 @@ APIは検索時にこの子tableを参照するため、deploy順は **migration
 - `args`: 例 `--snapshot-date 2026-08-25 --execute --qps 40`
 - `requirements_path`: `scripts/20260808T0000_restaurant/requirements.txt`
 
+> ⚠️ **1 本ずつ流し、終わってから次を投げること。**
+> この workflow は `concurrency: db-script-run` で直列化しているが、
+> `cancel-in-progress: false` でも **待機できるのは 1 本だけ**である。
+> 実行中に 2 本を続けて投げると、**先に待っていた方が黙って cancel される**
+> （GitHub の仕様: pending は concurrency group ごとに 1 本しか保持されない）。
+>
+> cancel された run は **job が 0 本のまま completed / cancelled になる**ので、
+> 一覧の見た目では «流れなかった» ことに気付きにくい。2026-08-30 に
+> `9_9_backfill_country_code.py --apply` がこれで無音のまま実行されず、
+> 「適用済み」と誤認しかけた。**DB を変える script は、必ず単独で流して
+> job のログを見るまで «適用済み» と言わない。**
+
 **1_3〜1_6 の外部データは `1_0_fetch_and_load.py` 経由で流します。** job を
 またいでファイルが残らないため、取得（Overture parquet / OSM PBF / IFAS CSV /
 許可台帳）とロードを同じ job で行う入口です。取得元は PoC で固定したもの
