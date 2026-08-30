@@ -157,7 +157,20 @@ def main() -> None:
         "account_run_id": account_run_id, "account_type": args.account_type,
         "max_accounts": args.max_accounts, "limit_per_account": args.limit_per_account,
     }, repo_root=HERE.parents[1]) as result:
-        pipeline.delete_run_rows(TABLE_POST_RAW, run_id)
+        # 収集は 413 アカウントを（レート制限のため）複数バッチに分けて回す。run_id 単位の
+        # DELETE だと先行バッチを消してしまうので、**このバッチが担当するアカウント分だけ**を
+        # 消してから入れ直す（バッチ冪等・他バッチ非破壊）。
+        from google.cloud import bigquery
+        handles = [acc["handle"] for acc in accounts]
+        if handles:
+            pipeline.execute(
+                f"DELETE FROM `{pipeline.table(TABLE_POST_RAW)}` "
+                f"WHERE run_id = @rid AND account_id IN UNNEST(@handles)",
+                [
+                    bigquery.ScalarQueryParameter("rid", "STRING", run_id),
+                    bigquery.ArrayQueryParameter("handles", "STRING", handles),
+                ],
+            )
         rows = []
         seen = set()
         for acc in accounts:
