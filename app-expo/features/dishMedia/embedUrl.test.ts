@@ -20,23 +20,33 @@ describe("buildExternalEmbedPlayerSource", () => {
 			"https://www.tiktok.com/embed/v2/6718335390845095173",
 		);
 		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl).toBe(
-			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&enablejsapi=1&loop=1&playlist=abc123",
+			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&enablejsapi=1",
 		);
 	});
 
 	/*
-	#1641 オーナー報告（実機 2026-08-30）「インスタ以外ループしない」の YouTube 側。
+	#1641 ⚠️ **YouTube のループを URL（`loop=1&playlist=`）へ戻さないこと。**
 
-	YouTube は **`loop=1` を単独では無視する**。ループの実体は «プレイリストを繰り返す»
-	機能なので、単一動画では **自分自身だけのプレイリスト**を渡さないと 1 回で止まる。
-	Instagram / TikTok は同一オリジンなので `<video>.loop` をこちらで立てられるが、
-	YouTube は別オリジンで触れないため、URL でしか頼めない。
+	一度そう実装したが、**オーナーの実機で不具合になった**（2026-08-30、スクリーンショット）。
+	`playlist` を渡すと YouTube は **プレイリストのプレイヤー**として振る舞い、映像の上に
+	**前後ボタン（⏮ ▶ ⏭）が出る**。単一動画の埋め込みには無いもので、しかもそのコマは
+	0:00 のまま止まっていた。ループのためにプレイヤーの種類ごと変える代償が大きすぎる。
+
+	こちらは `enablejsapi=1` で IFrame API を握っているので、**終わったことを検知して
+	撃ち直す**（`buildEmbedIframeHtml` の playerState 0 = ENDED）。
 	*/
-	it("youtube のループは playlist に同じ ID が要る（loop=1 だけでは 1 回で止まる）", () => {
+	it("youtube のループは URL ではなく包みの JS が撃つ（playlist を渡さない）", () => {
 		const url = buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl ?? "";
-		expect(url).toContain("loop=1");
-		// ここが落ちたら «ループしない» に戻っている
-		expect(url).toContain("playlist=abc123");
+		// ここが落ちたら、プレイヤーがプレイリスト用に変わって前後ボタンが出る
+		expect(url).not.toContain("playlist=");
+		expect(url).not.toContain("loop=1");
+		// API を握っていること自体がループの前提（外すとループの手段が無くなる）
+		expect(url).toContain("enablejsapi=1");
+
+		const html = buildEmbedIframeHtml(url);
+		// ENDED（playerState 0）で頭へ戻して撃ち直す
+		expect(html).toContain("data.info.playerState === 0");
+		expect(html).toContain("seekTo");
 	});
 
 	/*
@@ -72,7 +82,7 @@ describe("buildEmbedIframeHtml", () => {
 
 	it("埋め込みを iframe として置く", () => {
 		expect(html).toContain('src="https://www.youtube.com/embed/abc123?enablejsapi=1"');
-		expect(html).toContain("allow=\"autoplay; encrypted-media; picture-in-picture\"");
+		expect(html).toContain('allow="autoplay; encrypted-media; picture-in-picture"');
 	});
 
 	/*

@@ -835,12 +835,34 @@ export function ExternalEmbedPlayer({
 		});
 	}, [embed.provider, logFrontendEvent]);
 
-	// セルが前面から外れたら «再生できたか» の判定もやり直す（次に来たとき最初から測る）
+	/*
+	セルが前面から外れたら «再生できたか» の判定もやり直す（次に来たとき最初から測る）。
+
+	#1641 ⚠️ **«次に来たとき最初から» に含めるものを取りこぼさない。**
+	前面から外れると WebView はアンマウントされ（下の `return null`）、次に来たときは
+	**まっさらな WebView が読み込みをやり直す**。なのに一部の状態を持ち越していた:
+
+	| 持ち越していたもの | 起きること |
+	| --- | --- |
+	| `reloadsRef` | 前回の滞在で読み直しを使い切ったセルは、**次に来たとき 1 回も読み直せない** |
+	| `webViewReadyToShow` | 中身が空の WebView をいきなり不透明で載せ、**下のサムネイルを隠す**（＝「黒い画面」が戻る） |
+	| `unplayableKind` | 前回の失敗理由で畳むかどうかを決めてしまう |
+
+	フィードを上下すると同じセルへ何度も戻るので、ここが揃っていないと «2 回目以降だけ
+	様子が違う» という再現しにくい形になる。
+	*/
 	useEffect(() => {
-		if (!isActive) {
-			setRenderProcessGone(false);
-			setPlayback("unknown");
+		if (isActive) {
+			// #1641【観測】何回目の訪問か / いつ前面に来たか（下の autoplay_started で使う）
+			visitRef.current += 1;
+			activatedAtRef.current = Date.now();
+			return;
 		}
+		setRenderProcessGone(false);
+		setPlayback("unknown");
+		setUnplayableKind(null);
+		setWebViewReadyToShow(false);
+		reloadsRef.current = 0;
 	}, [isActive]);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
@@ -891,6 +913,19 @@ export function ExternalEmbedPlayer({
 	*/
 	const navDecisionsRef = useRef(0);
 	const mountedAtRef = useRef(Date.now());
+	/*
+	#1641【観測】**«何回目にこのセルへ来たか» と «前面に来てから何ミリ秒で鳴ったか»。**
+
+	オーナー報告「フィードを上下すると TikTok / YouTube が起動しないときがある」は、
+	往復周回を Detox へ足しても再現しなかった（run 33320252429 は緑）。合否条件
+	（18 秒以内に結論が出たか）がオーナーの体感と合っていないためで、症状は
+	«永久に起動しない» ではなく «**戻ったときの起動が遅すぎる**» 疑いが濃い。
+
+	⚠️ **推測のまま直さない。** «初回は速いが再訪は遅い» のか «どちらも同じ» のかは、
+	測らなければ分からない。前面に来た回数と、そこから鳴るまでの時間を毎回記録する。
+	*/
+	const visitRef = useRef(0);
+	const activatedAtRef = useRef(Date.now());
 	/*
 	#1641 **«再生できなかった» を 1 度だけサーバへ知らせる。**
 
@@ -1023,7 +1058,13 @@ export function ExternalEmbedPlayer({
 				logFrontendEvent({
 					event_name: "external_embed_autoplay_started",
 					error_level: "log",
-					payload: { provider: embed.provider, audio: parsed.detail ?? null },
+					payload: {
+						provider: embed.provider,
+						audio: parsed.detail ?? null,
+						// #1641【観測】初回と再訪で «鳴るまでの時間» が変わるかを見る
+						visit: visitRef.current,
+						sinceActiveMs: Date.now() - activatedAtRef.current,
+					},
 				});
 				return;
 			}
@@ -1074,7 +1115,14 @@ export function ExternalEmbedPlayer({
 			logFrontendEvent({
 				event_name: "external_embed_unplayable",
 				error_level: "warn",
-				payload: { provider: embed.provider, kind: parsed.kind ?? null, detail: parsed.detail ?? null },
+				payload: {
+					provider: embed.provider,
+					kind: parsed.kind ?? null,
+					detail: parsed.detail ?? null,
+					// #1641【観測】再訪でだけ縮退しているのかを見る
+					visit: visitRef.current,
+					sinceActiveMs: Date.now() - activatedAtRef.current,
+				},
 			});
 		},
 		[embed.provider, logFrontendEvent, retryLoad],

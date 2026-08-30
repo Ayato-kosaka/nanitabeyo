@@ -360,6 +360,48 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		expect(onUnplayable).not.toHaveBeenCalled();
 	});
 
+	/*
+	#1641 オーナー実機報告（2026-08-30）「フィードを上下すると起動しないときがある」の一部。
+
+	前面から外れると WebView はアンマウントされ、次に来たときは **まっさらな WebView が
+	読み込みをやり直す**。なのに読み直しの残数（`reloadsRef`）や «絵が載ったか»
+	（`webViewReadyToShow`）を持ち越していたため、**同じセルへ戻ると 2 回目以降だけ
+	様子が違う**という再現しにくい形になっていた。
+
+	フィードは上下に何度も往復するので、ここは «毎回まっさら» でなければならない。
+	*/
+	it("前面から外れて戻ったら、読み直しの残数も «絵が載ったか» もまっさらに戻る", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		// 1 回目の滞在で読み直しを使い切り、畳むところまで行く
+		for (let i = 0; i < 3; i++) {
+			post({ src: "nb-embed-autoplay", kind: "blank", detail: "load_complete script=0" });
+		}
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBeGreaterThan(0);
+
+		// セルが前面から外れる → 戻る
+		act(() => {
+			tree.update(<ExternalEmbedPlayer embed={EMBED} isActive={false} onUnplayable={onUnplayable} />);
+		});
+		act(() => {
+			tree.update(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		// 畳んだ跡が残っていない（前回の失敗理由で畳み続けない）
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		// 中身が空の WebView をいきなり不透明で載せない（＝下のサムネイルを隠さない）
+		expect(tree.root.findAllByProps({ testID: "external-embed-loading" }).length).toBeGreaterThan(0);
+
+		// 読み直しの残数も戻っている：1 回 blank が来ただけでは畳まない
+		post({ src: "nb-embed-autoplay", kind: "blank", detail: "load_complete script=0" });
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+	});
+
 	it("時間切れ（ページが組み上がらない）のときは document モードでも畳む", () => {
 		const tree = renderActiveCell();
 		post({ src: "nb-embed-autoplay", kind: "timeout", detail: "still_loading" });
