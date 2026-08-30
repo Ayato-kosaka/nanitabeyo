@@ -479,10 +479,54 @@ const AUTOPLAY_SCRIPT = `(function () {
     stretch(v, 2147483647);
   }
 
+  /*
+   * #1641 **ループは «ページ内の全部の video» へ仕掛ける。**
+   *
+   * オーナー報告（実機 2026-08-30）「インスタ以外ループしない」の TikTok 側。
+   * 実測（端末の stall4000 スナップショット / tiktok）:
+   *
+   *     ready=interactive nodes=223 script=21 iframe=0 video=2 img=0 body=yes res=9
+   *
+   * **TikTok の埋め込みは video を 2 つ持つ。** ところがこれまでは
+   * document.querySelector('video')（＝ 1 つ目）にしか loop と ended を仕掛けて
+   * いなかったので、向こうが 2 つ目を鳴らしていると **ループの保険が 1 つも効かない**。
+   * Instagram は video が 1 つなので、そこだけ «ループする» ように見えていた。
+   *
+   * ⚠️ **stretch/fill はここでやらないこと。** 全面化まで 2 つへ掛けると、
+   *    全画面の video が 2 枚重なる。«どれを見せるか» は今までどおり 1 つ目だけに任せ、
+   *    ここは «終わったら頭から鳴らし直す» だけを担当する。
+   */
+  function onEndedRestart(e) {
+    var el = (e && e.target) || null;
+    if (el) {
+      try {
+        el.currentTime = 0;
+        var p = el.play();
+        if (p && typeof p.catch === 'function') p.catch(function () {});
+      } catch (err) {}
+    }
+    start();
+  }
+
+  function keepLooping() {
+    try {
+      var list = document.querySelectorAll('video');
+      for (var i = 0; i < list.length; i++) {
+        var el = list[i];
+        // 向こうの JS が属性を見て作り直すことがあるので、毎回立て直す
+        try { el.loop = true; el.setAttribute('loop', ''); } catch (e) {}
+        if (!el.__nbLoopBound) {
+          el.__nbLoopBound = true;
+          el.addEventListener('ended', onEndedRestart, false);
+        }
+      }
+    } catch (e) {}
+  }
+
   function prepare(v) {
     fill(v);
     // 属性とプロパティの両方を立てる（Instagram 側の JS が属性を見て作り直すことがある）
-    v.loop = true; v.setAttribute('loop', '');
+    keepLooping();
     v.playsInline = true;
     v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
     if (v.__nbBound) return;
@@ -494,10 +538,11 @@ const AUTOPLAY_SCRIPT = `(function () {
      */
     var refill = setInterval(function () {
       try { fill(v); } catch (e) {}
+      // 全面化と同じ理由で loop も書き戻されうる。ここで貼り直す（新しく現れた video も拾う）
+      keepLooping();
       if (++fillTicks >= 15) clearInterval(refill);
     }, 1000);
-    // loop を向こうの JS に潰された場合の保険。ここだけは畳んだ後でも起こし直す
-    v.addEventListener('ended', function () { try { v.currentTime = 0; } catch (e) {} start(); }, false);
+    // ended の保険は keepLooping() が «全部の video» へ張る（畳んだ後でも起こし直す）
   }
 
   /*
@@ -524,6 +569,25 @@ const AUTOPLAY_SCRIPT = `(function () {
             ? performance.getEntriesByType('resource').length : -1);
     } catch (e) {
       return 'snapshot-error';
+    }
+  }
+
+  /*
+   * #1641 «空の文書» か。読み込みが 1 バイトも実らなかったときの形を判定する。
+   *
+   * ⚠️ **3 つ揃ったときだけ true。** 権利ブロックのページを «失敗» と誤判定すると、
+   *    再生できない投稿を永久に読み直し続けることになる。
+   */
+  function isBlankDocument() {
+    try {
+      // 中身が 1 つでもあるなら «来なかった» ではない（権利ブロックのページは絵か文字を持つ）
+      if (document.querySelectorAll('script').length > 0) return false;
+      if (document.querySelectorAll('img').length > 0) return false;
+      if (window.performance && performance.getEntriesByType
+          && performance.getEntriesByType('resource').length > 0) return false;
+      return document.querySelectorAll('*').length <= 8;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -580,7 +644,24 @@ const AUTOPLAY_SCRIPT = `(function () {
         // 読み込みが終わっているのに <video> が無い = 権利ブロック。締め切りを待たない
         if (document.readyState === 'complete') {
           if (!completeSince) completeSince = Date.now();
-          else if (Date.now() - completeSince > NO_VIDEO_GRACE_MS) settle('no_video', 'load_complete ' + snapshot());
+          else if (Date.now() - completeSince > NO_VIDEO_GRACE_MS) {
+            /*
+             * #1641 ⚠️ **«中身が来なかった» を «権利ブロック» と呼ばない。**
+             *
+             * オーナー報告（実機 2026-08-30）「TikTok だけたまにロードに失敗する」の真因。
+             * 失敗した回の実測は毎回まったく同じ形で、成功した回とは似ても似つかない:
+             *
+             *     失敗 ready=complete nodes=5   script=0  video=0 img=0 body=yes res=0
+             *     成功 ready=interactive nodes=223 script=21 video=2 img=0 body=yes res=9
+             *
+             * script も img も resource も 0 ＝ **1 バイトも取れていない空の文書**である。
+             * 権利ブロックされたページは «中身のある文書» なので、この形にはならない
+             * （bogus な ID で TikTok を叩いても 239KB / script 16 本が返ることを実測した）。
+             * つまりこれは «この投稿は再生できない» ではなく **読み込みそのものの失敗**で、
+             * 呼び出し側は畳まずに読み直すべきものである。
+             */
+            settle(isBlankDocument() ? 'blank' : 'no_video', 'load_complete ' + snapshot());
+          }
         }
         return;
       }
@@ -639,6 +720,15 @@ const AUTOPLAY_SCRIPT = `(function () {
   report('boot', document.readyState);
   start();
 })(); true;`;
+
+/**
+ * #1641 読み込みが実らなかったときに読み直す上限。
+ *
+ * ⚠️ **無制限にしないこと。** 向こうが恒久的に返さない状態（障害・遮断）だと
+ *    永久に読み直し続け、通信量とバッテリーを食う。上限に達したら畳んで
+ *    «◯◯ で見る» を出し、ユーザーに次の手を渡す。
+ */
+const MAX_EMBED_RELOADS = 2;
 
 export type ExternalEmbedPlayerProps = {
 	/*
@@ -817,10 +907,17 @@ export function ExternalEmbedPlayer({
 	useEffect(() => {
 		if (playback !== "unplayable") return;
 		if (embed.playbackStatus === "not_playable") return;
+		/*
+		#1641 ⚠️ **読み込みが実らなかっただけの投稿をサーバへ報告しない。**
+		端末が中身を受け取れなかったことは «その投稿が再生できない» の根拠にならない
+		（同じ投稿が直前・直後に再生できている。実測は `reloadsRef` の注記）。
+		報告するとサーバが not_playable を書き、**検索フィードから永久に外れる**。
+		*/
+		if (unplayableKind === "load_failed") return;
 		if (reportedRef.current) return;
 		reportedRef.current = true;
 		onUnplayable?.();
-	}, [playback, embed.playbackStatus, onUnplayable]);
+	}, [playback, embed.playbackStatus, onUnplayable, unplayableKind]);
 	/*
 	#1641 **音が出ているか。** YouTube だけ自動では戻せなかったので、
 	«無音で再生中» のときだけタップで解除する口を出す（オーナー指示 2026-08-28）。
@@ -845,7 +942,60 @@ export function ExternalEmbedPlayer({
 	⚠️ **アンマウントではなく透明**にすること。読み込みを進めるために描画は続ける必要がある。
 	*/
 	const [webViewReadyToShow, setWebViewReadyToShow] = useState(false);
-	const webViewRef = useRef<{ injectJavaScript: (script: string) => void } | null>(null);
+	const webViewRef = useRef<{ injectJavaScript: (script: string) => void; reload: () => void } | null>(null);
+	/*
+	#1641【設計】**読み込みの失敗は «再生できない投稿» ではない。読み直す。**
+
+	オーナー報告（実機 2026-08-30）「TikTok だけ、やっぱりたまに動画ロードに失敗する」。
+	BigQuery の実測（新ビルド `9b64633` の 5 回）:
+
+	| 時刻 | 結果 |
+	| --- | --- |
+	| 12:43:09 | ✅ 再生 |
+	| 12:43:31 | ❌ `no_video` / `nodes=5 script=0 res=0`（空の文書） |
+	| 12:43:55 | ❌ 同上（**まったく同じ数字**） |
+	| 12:44:32 | ✅ 再生 |
+	| 12:44:42 | ❌ 同上 |
+
+	同じ投稿が直前・直後に再生できているので «その投稿が再生できない» のではない。
+	1 バイトも取れていないだけである。にもかかわらずこれまでは
+
+	- `onError` / `onHttpError` を **1 つも持っていなかった**（＝ 読み込みの失敗が観測できない）
+	- 空の文書を `no_video`（＝ 権利ブロック）と同じ扱いにして畳み、**サーバへ
+	  «再生できない» と報告していた**（`onUnplayable`）
+
+	ため、たまたま通信が転んだだけの投稿が «再生できない投稿» に化ける道があった。
+	ここでは畳まずに**上限つきで読み直す**。上限に達したときだけ従来どおり畳む。
+	*/
+	const reloadsRef = useRef(0);
+
+	/**
+	 * 読み込みの失敗から立て直す。**上限に達したときだけ «再生できない» へ倒す。**
+	 *
+	 * ⚠️ ここで `onUnplayable` を呼ばないこと。サーバへ «この投稿は再生できない» と
+	 *    報告する経路であり、通信が転んだだけの投稿を not_playable に落としてしまう。
+	 */
+	const retryLoad = useCallback(
+		(reason: string) => {
+			if (hasPlayedRef.current) return; // 一度再生できたセルは触らない
+			const attempt = reloadsRef.current + 1;
+			logFrontendEvent({
+				event_name: "external_embed_load_retry",
+				error_level: "warn",
+				payload: { provider: embed.provider, reason, attempt, willRetry: attempt <= MAX_EMBED_RELOADS },
+			});
+			if (attempt > MAX_EMBED_RELOADS) {
+				// ここまで来たら «向こうが返してくれない» が続いている。畳んで «◯◯ で見る» を出す
+				setPlayback("unplayable");
+				setUnplayableKind("load_failed");
+				return;
+			}
+			reloadsRef.current = attempt;
+			setWebViewReadyToShow(false);
+			webViewRef.current?.reload();
+		},
+		[embed.provider, logFrontendEvent],
+	);
 
 	/*
 	#1641 WebView の中の包みへ «音を出して» と頼む。`__nbEmbedUnmute` は
@@ -910,6 +1060,14 @@ export function ExternalEmbedPlayer({
 			}
 			// 再生が始まったセルは、後から何を言われても縮退させない（上の hasPlayedRef の説明）
 			if (hasPlayedRef.current) return;
+			/*
+			#1641 **空の文書 = 読み込みの失敗。** «再生できない投稿» ではないので畳まず読み直す
+			（判定の根拠と実測は `reloadsRef` の注記）。
+			*/
+			if (parsed.kind === "blank") {
+				retryLoad("blank_document");
+				return;
+			}
 			// no_video（権利ブロック）/ not_supported（デコーダ無し）/ timeout
 			setPlayback("unplayable");
 			setUnplayableKind(parsed.kind ?? null);
@@ -919,7 +1077,7 @@ export function ExternalEmbedPlayer({
 				payload: { provider: embed.provider, kind: parsed.kind ?? null, detail: parsed.detail ?? null },
 			});
 		},
-		[embed.provider, logFrontendEvent],
+		[embed.provider, logFrontendEvent, retryLoad],
 	);
 
 	// WebView 不在ビルド用: 投稿そのものをアプリ内ブラウザで開く
@@ -1048,8 +1206,13 @@ export function ExternalEmbedPlayer({
 
 	⚠️ セルを離れると `playback` は `unknown` へ戻るので、次に来たときは 1 度だけ再挑戦する。
 	*/
+	/*
+	#1641 `load_failed` も畳む。空の文書のまま WebView を残すと «黒い板» が
+	サムネイルを隠したままになる（時間切れとまったく同じ理由）。
+	*/
 	const collapsedAfterFailure =
-		playback === "unplayable" && (source?.mode === "iframe" || unplayableKind === "timeout");
+		playback === "unplayable" &&
+		(source?.mode === "iframe" || unplayableKind === "timeout" || unplayableKind === "load_failed");
 	const inlineAvailable =
 		source !== null && NativeWebView !== null && !renderProcessGone && !knownNotPlayable && !collapsedAfterFailure;
 	/*
@@ -1211,6 +1374,35 @@ export function ExternalEmbedPlayer({
 							openInAppBrowser(event.nativeEvent.targetUrl, "open_window")
 						}
 						onShouldStartLoadWithRequest={handleShouldStartLoad}
+						/*
+						#1641 ⚠️ **ここが無かった。**
+
+						`onError` / `onHttpError` を 1 つも持っていなかったため、**読み込みの失敗が
+						どこにも記録されず**、空の文書に取り残されたエージェントが «映像が無い»
+						＝ 権利ブロックと報告するのを、そのまま信じていた（`reloadsRef` の実測表）。
+						失敗を «見えるように» したうえで、畳まずに読み直す。
+						*/
+						onError={(event: { nativeEvent: { description?: string; code?: number } }) => {
+							logFrontendEvent({
+								event_name: "external_embed_load_error",
+								error_level: "warn",
+								payload: {
+									provider: embed.provider,
+									code: event.nativeEvent.code ?? null,
+									description: event.nativeEvent.description ?? null,
+								},
+							});
+							retryLoad("load_error");
+						}}
+						onHttpError={(event: { nativeEvent: { statusCode?: number; url?: string } }) => {
+							const status = event.nativeEvent.statusCode ?? null;
+							logFrontendEvent({
+								event_name: "external_embed_load_error",
+								error_level: "warn",
+								payload: { provider: embed.provider, statusCode: status, kind: "http" },
+							});
+							retryLoad("http_" + String(status));
+						}}
 						// レンダラが殺されたら黒いセルで放置せず、«Instagram で見る» へ戻す
 						onRenderProcessGone={() => {
 							logFrontendEvent({

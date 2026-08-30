@@ -20,8 +20,23 @@ describe("buildExternalEmbedPlayerSource", () => {
 			"https://www.tiktok.com/embed/v2/6718335390845095173",
 		);
 		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl).toBe(
-			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&enablejsapi=1",
+			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&enablejsapi=1&loop=1&playlist=abc123",
 		);
+	});
+
+	/*
+	#1641 オーナー報告（実機 2026-08-30）「インスタ以外ループしない」の YouTube 側。
+
+	YouTube は **`loop=1` を単独では無視する**。ループの実体は «プレイリストを繰り返す»
+	機能なので、単一動画では **自分自身だけのプレイリスト**を渡さないと 1 回で止まる。
+	Instagram / TikTok は同一オリジンなので `<video>.loop` をこちらで立てられるが、
+	YouTube は別オリジンで触れないため、URL でしか頼めない。
+	*/
+	it("youtube のループは playlist に同じ ID が要る（loop=1 だけでは 1 回で止まる）", () => {
+		const url = buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl ?? "";
+		expect(url).toContain("loop=1");
+		// ここが落ちたら «ループしない» に戻っている
+		expect(url).toContain("playlist=abc123");
 	});
 
 	/*

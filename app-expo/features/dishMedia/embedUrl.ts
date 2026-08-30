@@ -12,7 +12,7 @@ canonicalUrl は投稿ページ（instagram.com/reel/... 等）で、iframe / We
 | --- | --- | --- |
 | instagram | `https://www.instagram.com/p/{code}/embed/` | 公式 blockquote 埋め込みが最終的に描く iframe と同じ。reel のコードも `/p/{code}/` で解決される（サーバ側 sns-oembed.service.ts が resolve で実測済みの同じ経路）。`/embed/captioned/` はヘッダ＋キャプションの白カードが付き全画面フィードで浮くため、映像本体だけの `/embed/` を使う（独立レビュー指摘） |
 | tiktok | `https://www.tiktok.com/embed/v2/{videoId}` | 公式 embed v2。動画 ID だけで動く。**自動再生はしない**（autoplay パラメータが無く、provider 側もユーザー操作を要求する）ので、着地後に 1 タップ要る。独立レビュー指摘で «TikTok も無音自動再生» という記述を実測に合わせて訂正した |
-| youtube | `https://www.youtube.com/embed/{videoId}?playsinline=1&autoplay=1&mute=1` | 公式 iframe embed。playsinline はモバイルでフルスクリーンに奪われないため。autoplay+mute は既存 dish_media の «着地したら動く» に寄せるため（ブラウザは無音でないと自動再生を許可しない） |
+| youtube | `https://www.youtube.com/embed/{videoId}?playsinline=1&autoplay=1&enablejsapi=1&loop=1&playlist={videoId}` | 公式 iframe embed。playsinline はモバイルでフルスクリーンに奪われないため。`loop=1` は **`playlist` に同じ ID を渡さないと効かない**（下の実装コメント） |
 
 判定できない provider は null（呼び出し側は «外部で開く» へ縮退する）。
 */
@@ -74,7 +74,16 @@ export function buildExternalEmbedPlayerSource(
 				   同じ run で TikTok は `audible` になっている）。自動再生ポリシーで蹴られた場合は、
 				   包みの HTML が無音で撃ち直す。
 				*/
-				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&enablejsapi=1`,
+				/*
+				#1641 ⚠️ **`loop=1` だけでは 1 回で止まる。`playlist` に同じ動画 ID が要る。**
+
+				オーナー報告（実機 2026-08-30）「インスタ以外ループしない」の YouTube 側の真因。
+				YouTube の iframe 埋め込みは **`loop=1` を単独で無視する**（公式仕様。ループの実体は
+				«プレイリストを繰り返す» 機能なので、単一動画では自分自身だけのプレイリストを
+				渡す必要がある）。Instagram / TikTok は同一オリジンなので `<video>.loop` を
+				こちらで立てられるが、YouTube は別オリジンで触れないため URL でしか頼めない。
+				*/
+				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&enablejsapi=1&loop=1&playlist=${encodedId}`,
 				providerLabel: "YouTube",
 				mode: "iframe",
 			};
