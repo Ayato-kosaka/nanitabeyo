@@ -888,13 +888,11 @@ export function ReviewForm({
 		setDishCategoryError(null);
 	}, []);
 
-	const handleCreateDishCategoryFromName = useCallback(
-		(name: string) => {
-			setDishCategoryError(null);
-			void applyTypedDishCategory(name);
-		},
-		[applyTypedDishCategory],
-	);
+	/*
+	#1629 «この名前で決める» は `DishCategoryStep` から外した（押せるのに必ず失敗するため。
+	理由はあちらのヘッダ）。自由入力から新規カテゴリを作る経路は、料理カテゴリー選択画面から
+	戻ってくる下の effect（`applyTypedDishCategory`）だけになった。
+	*/
 
 	/**
 	 * #1386 料理カテゴリ選択画面の «戻り値» を受け取る。
@@ -1275,7 +1273,6 @@ export function ReviewForm({
 						<DishCategoryStep
 							restaurantId={restaurant.id}
 							onSelectExisting={handleSelectDishCategoryInline}
-							onSubmitTyped={handleCreateDishCategoryFromName}
 							testID="review-dish-category-step"
 						/>
 						{dishCategoryError && (

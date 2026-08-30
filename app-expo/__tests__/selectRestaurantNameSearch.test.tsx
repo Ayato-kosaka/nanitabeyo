@@ -277,3 +277,28 @@ describe("#1629 外で店が決まったら、打っていた文字と検索結�
 		expect(findByTestId(tree, "select-restaurant-name-search-input").props.value).toBe("焼き鳥番長 渋谷店");
 	});
 });
+
+/*
+#1629【オーナー実機報告】「«メルク» と入力しても «メルクのパン» が出ない」。
+
+半径を «いま見えている範囲» にしていたため、地図を開いていない記録フローでは
+既定 viewport ≒ 1km になり、そこに無い店は何を打っても出なかった（実ログの `radius: 1079`）。
+店名を打つ人は «その名前の店» を探しているので、半径は全国。並びは距離順のまま。
+*/
+describe("#1629 店名検索の半径は «見えている範囲» ではなく «全国»", () => {
+	it("viewport が狭くても、全国ぶんの半径で問い合わせる", async () => {
+		const tree = await render(<NameSearchHarness />);
+		const input = findByTestId(tree, "select-restaurant-name-search-input");
+
+		await act(async () => {
+			input.props.onChangeText("メルク");
+			jest.advanceTimersByTime(300);
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+
+		const payload = nameSearchCalls()[0][1].requestPayload as { radius: number };
+		// ハーネスの viewport は 0.01 度（≒ 1km 級）。それに引きずられていないこと
+		expect(payload.radius).toBeGreaterThanOrEqual(1_000_000);
+	});
+});

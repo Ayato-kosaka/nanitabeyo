@@ -16,10 +16,17 @@
 
 - 未入力のあいだは、そのお店で既に記録がある料理カテゴリーを **縦に全部**並べて選ばせる
   （`useRestaurantDishCategories`。API は増やさず、店舗フィードの既存 1 本から数える）
-- 打ち始めたら **料理カテゴリーのマスタも引く**（`GET /v1/dish-category-variants`）。
-  #1629 のオーナー実機報告「オートコンプリートじゃない / 背脂ラーメンと打っても出ない」への対処で、
-  その店にまだ記録が無い料理も候補に出る（詳細は下の `visible` のコメント）
-- どちらにも無ければ **自由入力**で決める（打った名前は呼び出し側が新規カテゴリとして作る）
+- 打ち始めたら **プロジェクト標準のオートコンプリート**（`components/DishCategoryAutocomplete`）へ渡す。
+  デバウンス・ローディング・アクセシビリティ・web のフォーカス問題の回避が入っており、
+  SNS 取り込み画面や検索画面と **同じ見た目・同じ挙動**になる（#1629 オーナー指示）
+
+## «この名前で決める» は置かない（#1629 オーナー指示）
+
+> 食べたを記録の「入力文字列」で決めるボタンは不要じゃない？これ何のためにある？
+> 押しても料理カテゴリが見つかりませんって出ますよ？普通にローディング＋オートコンプリートでよいかと。
+
+自由入力は `POST /v1/dish-category-variants` を叩き、Wikidata に当たらない名前では **404 になる**。
+つまり «押せるのに必ず失敗する» ボタンだった。候補から選ぶ道だけを残す。
 
 「縦グリッド」と言われているが 1 列の縦並びにしている。カテゴリー名は
 「味玉ラーメン」のように長さがまちまちで、2 列にすると片方だけ 2 行になって
@@ -30,125 +37,30 @@
 新しい店（まだ誰も記録していない）では候補が 0 件になる。そのときは見出しも出さず、
 入力欄と «この名前で決める» だけを出す。空の一覧の枠だけが残ると «壊れている» に見える。
 */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Search, Utensils } from "lucide-react-native";
+import { Utensils } from "lucide-react-native";
 
 import i18n from "@/lib/i18n";
 import { type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useRestaurantDishCategories } from "@/features/map/hooks/useRestaurantDishCategories";
-import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
-
-/** 入力が止まってからマスタを引くまでの猶予（`RestaurantNameSearch` と揃える） */
-const SEARCH_DEBOUNCE_MS = 300;
+import { DishCategoryAutocomplete } from "@/components/DishCategoryAutocomplete";
 
 export type DishCategoryStepProps = {
 	restaurantId: string;
 	/** 一覧から選んだとき。呼び出し側は id と名前の両方を確定できる */
 	onSelectExisting: (category: { dishCategoryId: string; label: string }) => void;
-	/** 一覧に無い名前を打って決めたとき。呼び出し側が新規カテゴリを作る */
-	onSubmitTyped: (name: string) => void;
 	testID?: string;
 };
 
-export function DishCategoryStep({ restaurantId, onSelectExisting, onSubmitTyped, testID }: DishCategoryStepProps) {
+export function DishCategoryStep({ restaurantId, onSelectExisting, testID }: DishCategoryStepProps) {
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
 	const { categories, isLoading } = useRestaurantDishCategories(restaurantId);
 	const [query, setQuery] = useState("");
 
-	/*
-	#1629【オーナー実機報告】**ここをオートコンプリートにする。**
-
-	> 料理カテゴリーを選択するボックスがオートコンプリートじゃなくて «寿司で決める» とか
-	> 出てくるのって、そういう仕様仕組みなんでしたっけ。オートコンプリートの方が使いやすい。
-	> このお店検索のボックスが何を入力しても出ないのがちょっと気になりますね。
-	> 背脂ラーメンってカタカナで打っても出ない。
-
-	原因は、この欄が **その店に «既に記録がある» 料理しか見ていなかった**こと
-	（`useRestaurantDishCategories`）。その店の初めての料理を記録するときは候補が 0 件なので、
-	何を打っても «◯◯ で決める» しか出ない ＝ オートコンプリートに見えない。
-
-	料理カテゴリーのマスタを引く API は既にある（`GET /v1/dish-category-variants?q=&lang=`。
-	SNS 取り込み画面 `add-record.tsx` の ③ が同じものを使っている）。打ち始めたらそちらも引き、
-	**その店の候補 → マスタの候補** の順で並べる（同じ id は 1 回だけ）。
-
-	«◯◯ で決める»（自由入力 → 新規カテゴリ作成）は **打った名前と完全一致する候補が無いあいだ、常に**出す。
-	オーナー実機報告「自分で検索しても値が入らなくてボタンが押せなかった」の対処である。
-	«候補が 1 件も無いときだけ» にしていたため、**関係のない候補が 1 件でも出た瞬間に
-	決める手段が消えていた**（候補は出ているが欲しいものではない、が一番起きる）。
-	*/
-	const { suggestions, searchDishCategories } = useDishCategorySearch();
 	const trimmed = query.trim();
-
-	/*
-	⚠️ 1 文字打つたびに叩かない。確定は «入力が止まってから»（RestaurantNameSearch と同じ 300ms）。
-
-	⚠️ **依存に `searchDishCategories` を置かないこと。** あれは `useAPICall` の `callBackend` に
-	依存した `useCallback` で、`callBackend` 自身も認証まわりの関数に依存している。identity が
-	変わるたびにこの effect がやり直され、**再描画のたびにタイマーが張り直されて
-	«いつまでも 300ms が経たない» ＝ 検索が一度も飛ばない**状態になりうる。
-	オーナー実機報告「何を打っても出ない / 二回目やったら出来た」の説明として辻褄が合う
-	（画面が静かなときだけタイマーが満了する）。関数は ref 経由で読み、依存は入力文字だけにする。
-	*/
-	const searchRef = useRef(searchDishCategories);
-	searchRef.current = searchDishCategories;
-	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	useEffect(() => {
-		if (debounceRef.current) clearTimeout(debounceRef.current);
-		debounceRef.current = setTimeout(() => {
-			debounceRef.current = null;
-			void searchRef.current(trimmed);
-		}, SEARCH_DEBOUNCE_MS);
-		return () => {
-			if (debounceRef.current) clearTimeout(debounceRef.current);
-		};
-	}, [trimmed]);
-
-	/** その店の候補（名前で絞り込み）→ マスタの候補。同じ id は 1 回だけ出す */
-	const visible = useMemo(() => {
-		if (!trimmed) return categories;
-		const lowered = trimmed.toLowerCase();
-		/*
-		⚠️ 表示名だけで絞らない。表示名は `labels[言語] → labels["en"] → 店での呼び名` の順で
-		解決するので、**画面に «Ramen» と出ている行を «ラーメン» で探しても当たらない**ことがある
-		（labels に ja が無く en だけある場合）。店での呼び名（`name`）にも当てる。
-		*/
-		const mine = categories.filter(
-			(category) =>
-				category.label.toLowerCase().includes(lowered) ||
-				(category.name ?? "").toLowerCase().includes(lowered),
-		);
-		const seen = new Set(mine.map((category) => category.dishCategoryId));
-		const fromMaster = suggestions
-			.filter((suggestion) => suggestion.dishCategoryId && suggestion.label && !seen.has(suggestion.dishCategoryId))
-			.map((suggestion) => ({
-				dishCategoryId: suggestion.dishCategoryId,
-				label: suggestion.label,
-				name: suggestion.label,
-				// マスタ由来はその店での件数を持たない。件数の «0» を出すと «0 件ある» に読めるので出さない
-				count: null as number | null,
-			}));
-		return [...mine, ...fromMaster];
-	}, [categories, suggestions, trimmed]);
-
-	/** 打った名前とぴったり同じ候補があるか。無いあいだは «◯◯ で決める» を出し続ける */
-	const hasExactMatch = useMemo(
-		() => visible.some((category) => category.label.toLowerCase() === trimmed.toLowerCase()),
-		[trimmed, visible],
-	);
-
-	const handleSubmit = useCallback(() => {
-		if (!trimmed) return;
-		// 打った名前が候補と完全一致するなら、新規作成ではなくその候補を選ぶ
-		const exact = visible.find((category) => category.label.toLowerCase() === trimmed.toLowerCase());
-		if (exact) {
-			onSelectExisting({ dishCategoryId: exact.dishCategoryId, label: exact.label });
-			return;
-		}
-		onSubmitTyped(trimmed);
-	}, [onSelectExisting, onSubmitTyped, trimmed, visible]);
 
 	return (
 		<View style={styles.container} testID={testID}>
@@ -157,50 +69,38 @@ export function DishCategoryStep({ restaurantId, onSelectExisting, onSubmitTyped
 				<Text style={styles.heading}>{i18n.t("Map.actions.selectDishCategory")}</Text>
 			</View>
 
-			<View style={styles.inputContainer}>
-				<Search size={18} color={colors.textSecondary} style={styles.searchIcon} />
-				<TextInput
-					testID={testID ? `${testID}-input` : undefined}
-					style={styles.input}
-					value={query}
-					onChangeText={setQuery}
-					placeholder={i18n.t("Map.placeholders.searchDishCategory")}
-					placeholderTextColor={colors.textPlaceholder}
-					returnKeyType="done"
-					onSubmitEditing={handleSubmit}
-				/>
-			</View>
+			{/*
+			#1629【オーナー指示】**プロジェクト標準のオートコンプリートを使う。**
+			デバウンス・ローディング・候補なしの文言・web のフォーカス問題の回避が入っている。
+			自前で組み直すと、この画面だけ挙動が違う状態へ戻る。
+			*/}
+			<DishCategoryAutocomplete
+				value={query}
+				onChangeText={setQuery}
+				onSelectSuggestion={(suggestion) =>
+					onSelectExisting({ dishCategoryId: suggestion.dishCategoryId, label: suggestion.label })
+				}
+				onClear={() => setQuery("")}
+				placeholder={i18n.t("Map.placeholders.searchDishCategory")}
+				testID={testID ? `${testID}-search` : undefined}
+			/>
 
-			{/* 打った名前が候補に無いときの逃げ道。«入力できること» を画面の中で見せる */}
-			{trimmed.length > 0 && !hasExactMatch && (
-				<TouchableOpacity
-					testID={testID ? `${testID}-submit-typed` : undefined}
-					style={styles.typedButton}
-					onPress={handleSubmit}
-					accessibilityRole="button">
-					<Text style={styles.typedButtonLabel} numberOfLines={1}>
-						{i18n.t("Map.actions.useTypedDishCategory", { name: trimmed })}
-					</Text>
-				</TouchableOpacity>
-			)}
-
-			{visible.length > 0 && (
+			{/*
+			打っていないあいだだけ «この店の料理» を出す。打ち始めたら上のオートコンプリートが
+			マスタ全体から探すので、ここに古い候補が残っていると «どちらを見ればよいか» が分からない。
+			*/}
+			{!trimmed && categories.length > 0 && (
 				<>
-					{!trimmed && <Text style={styles.listHeading}>{i18n.t("Map.labels.dishesAtThisRestaurant")}</Text>}
+					<Text style={styles.listHeading}>{i18n.t("Map.labels.dishesAtThisRestaurant")}</Text>
 					{/* 縦に全部出す。件数の多い順は hook が並べている */}
 					<ScrollView style={styles.list} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-						{/*
-						⚠️ testID は **並び順**（`-item-0`, `-item-1` …）にする。カテゴリ id を入れると
-						   Detox から «先頭の候補» を指せない（Detox の `by.id` は前方一致を持たず、
-						   id を知らないと要素を指定できない）。#1629 でこの欄をオートコンプリートに
-						   したところ、既存の Detox ヘルパーが «候補が出ると先頭を押せない» で落ちた。
-						   e2e-web は `[data-testid^="review-dish-category-step-item-"]` の前方一致で
-						   拾っているので、こちらの変更でも壊れない。
-						   カテゴリ id は `accessibilityLabel`（表示名）と onPress の引数で足りる。
-						*/}
-						{visible.map((category, index) => (
+						{categories.map((category, index) => (
 							<TouchableOpacity
 								key={category.dishCategoryId}
+								/*
+								⚠️ testID は **並び順**にする。カテゴリ id を入れると Detox から «先頭の候補» を
+								   指せない（`by.id` に前方一致が無い）。e2e-web は前方一致で拾っている
+								*/
 								testID={testID ? `${testID}-item-${index}` : undefined}
 								style={styles.listItem}
 								onPress={() => onSelectExisting({ dishCategoryId: category.dishCategoryId, label: category.label })}
@@ -209,7 +109,7 @@ export function DishCategoryStep({ restaurantId, onSelectExisting, onSubmitTyped
 								<Text style={styles.listItemLabel} numberOfLines={1} ellipsizeMode="tail">
 									{category.label}
 								</Text>
-								{category.count !== null && <Text style={styles.listItemCount}>{category.count}</Text>}
+								<Text style={styles.listItemCount}>{category.count}</Text>
 							</TouchableOpacity>
 						))}
 					</ScrollView>

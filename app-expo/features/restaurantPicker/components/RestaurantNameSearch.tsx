@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { radiusForRegion } from "@/features/restaurantPicker/mapPins";
 import { asApiList } from "@/lib/apiList";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Image } from "expo-image";
@@ -23,6 +22,12 @@ type RestaurantSearchResult = QueryRestaurantsResponse[number];
 type SearchStatus = "idle" | "debouncing" | "searching" | "success" | "empty" | "error";
 
 const DEBOUNCE_DELAY_MS = 300;
+/**
+ * #1629 店名検索の半径。**画面に見えている範囲ではなく «全国»**（理由は `runSearch` のコメント）。
+ * 日本全体が入る 1,500km。`MAX_SEARCH_RADIUS_M`（地球の半周）まで広げないのは、
+ * 地球の裏側の同名店が混ざっても選択肢として意味が無いからである。
+ */
+const NAME_SEARCH_RADIUS_M = 1_500_000;
 const RESULT_LIMIT = 20;
 
 export type RestaurantNameSearchProps = {
@@ -113,12 +118,22 @@ export function RestaurantNameSearch({
 						lat: region.latitude,
 						lng: region.longitude,
 						/*
-						  #1629 【修正】半径は «いま見えている範囲の外接円»（`radiusForRegion`）にする。
-						  独自の近似式（delta * 50000）を持っていたため、上限も下限も無いまま
-						  «画面より狭い円» を送っていた。店名検索の経路はサーバ側で距離順（KNN）に
-						  なるので、半径が大きくても走る行数は limit 件で一定である。
+						  #1629【オーナー実機報告】「«メルク» と入力しても «メルクのパン» が出ない」。
+
+						  半径を «いま見えている範囲»（`radiusForRegion`）にしていた。記録フローの
+						  この欄は地図を開いていないので **既定の viewport のまま ≒ 半径 1km** で、
+						  そこに無い店は何を打っても出ない（実ログでも `radius: 1079` が飛んでいた）。
+
+						  **店名を打つ人は «いま見えている範囲» を探していない。**「その名前の店」を
+						  探している。だから店名検索のときは半径を «全国» まで広げ、並びは
+						  従来どおり距離順（近い順）にして、近い店が上に来るようにする。
+
+						  ⚠️ 重くならない。店名ありの枝は **trgm 索引（`idx_restaurants_name_trgm`）が
+						     駆動表**で、半径は絞り込みにしか使われない。リポジトリ側の実測で
+						     «半径 1,500km・希少な店名で 8 ms»（`restaurants.repository.ts` の設計コメント）。
+						     半径を viewport に戻すと、この不具合がそのまま戻る。
 						*/
-						radius: radiusForRegion(region),
+						radius: NAME_SEARCH_RADIUS_M,
 						limit: RESULT_LIMIT,
 					},
 				});

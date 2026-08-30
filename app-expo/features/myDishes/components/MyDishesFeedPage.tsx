@@ -555,8 +555,24 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 					)}
 					{/* #1397 (PR5/5) contextual filter chips。**`DishMediaFeed` の外側**に重ねるので、
 					    店舗フィード・通知フィード・投稿フィードの振る舞いは一切変わらない（§10-1） */}
-					{/* #1375 実機確認（3 巡目）: chips は **下部**へ。上部は日付インジケータと閉じるが居る */}
-					<View style={{ ...styles.chipsContainer, bottom: 12 }} pointerEvents="box-none">
+					{/*
+					#1629【オーナー実機報告】**chips を上部へ戻す。**
+
+					> フィードの「ラーメンで絞る」などがクチコミ上に重なって自分の書いたレビューが見えない
+
+					#1375 3 巡目では «上部は日付インジケータと閉じるが居る» という理由で下部へ置いた。
+					しかし下部は **クチコミ（`DishReviewsSection`）の場所**である。あちらは
+					`position: absolute / bottom: 0 / maxHeight: 200` で下端 200pt までを使うので、
+					`bottom: 12` に置いた chips は必ずその上に重なる。**読ませたい本文の方が優先**なので、
+					chips は上のインジケータの下へ移す（そこはメディアが見えているだけの余白）。
+
+					⚠️ 下へ戻すなら、`DishReviewsSection` の下端を chips のぶん持ち上げる必要がある。
+					   位置だけ動かすと、また本文の上に重なる。
+					*/
+					}
+					<View
+						style={{ ...styles.chipsContainer, top: Platform.OS === "ios" ? 48 + 28 : 8 + 28 }}
+						pointerEvents="box-none">
 						<MyDishesFeedChips entry={currentEntry} />
 					</View>
 				</>

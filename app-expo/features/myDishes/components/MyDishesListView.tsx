@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -85,9 +85,25 @@ const MyDishCard = memo(function MyDishCard({
 	const isExternalEmbed = item.dishMedia?.render_type === "external_embed";
 	const providerLabel = resolveProviderLabel(item.dishMedia?.externalEmbed?.provider);
 	const ProviderIcon = resolveProviderIcon(item.dishMedia?.externalEmbed?.provider);
+	/*
+	#1629【オーナー実機報告】「レビュー投稿後、新規 «食べた» のサムネが白紙で、バグってるように見える」。
+
+	投稿直後は **サムネイルの生成（リサイズ）がまだ終わっていない**ことがある。URL は返ってくるが
+	実体が無いので画像取得が失敗し、`expo-image` は **何も描かない**（＝白紙）。
+	行そのものは正しく増えているのに «壊れた» ように見えるのはこれである。
+
+	失敗したら «カテゴリの画像 → プレースホルダー» の順に落とす。カテゴリの画像は
+	`dish_categories.image_url` 由来で、ラーメン等には実際に入っている（実ログで確認）。
+
+	⚠️ 行が変わったら失敗の記憶は捨てる（`item.key` を見る）。捨てないと、セルの使い回しで
+	   **別の行が最初からプレースホルダー**になる。
+	*/
+	const [failedUrl, setFailedUrl] = useState<string | null>(null);
+	const categoryImageUrl = item.dish.categoryImageUrl || null;
+	const effectiveUrl = thumbnailUrl && thumbnailUrl !== failedUrl ? thumbnailUrl : categoryImageUrl;
 	const source = useMemo(
-		() => (thumbnailUrl ? { uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) } : null),
-		[thumbnailUrl],
+		() => (effectiveUrl ? { uri: effectiveUrl, cacheKey: getCacheKeyForImage(effectiveUrl) } : null),
+		[effectiveUrl],
 	);
 
 	const handlePress = useCallback(() => {
@@ -125,6 +141,8 @@ const MyDishCard = memo(function MyDishCard({
 					人からは «読み込みが遅い» に見える。キーには行を一意に指す `item.key` を使う
 					*/
 					recyclingKey={item.key}
+					// #1629 サムネイルの生成待ちで 404 になることがある。落ちたらカテゴリの画像へ替える
+					onError={() => setFailedUrl(thumbnailUrl)}
 					style={StyleSheet.absoluteFill}
 					contentFit="cover"
 					alt=""
@@ -233,7 +251,22 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery({ enabled });
+	const { items, isLoading, isLoadingMore, error, hasFetchedInitial, hasNextPage, loadMore, refresh } =
+		useMyDishesQuery({ enabled });
+
+	/*
+	#1629【オーナー実機報告】「食べたい/食べた タブでログインすると初期に «候補がなく空です» が出てくる」。
+
+	一覧の «読み込み中» の判定が `isLoading` だけだった。`isLoading` は **取得が始まってから**
+	true になるので、画面が出てから最初の 1 本が飛ぶまでの数フレームは
+	«読み込み中でもない / 行も 0 件» になり、そこで 0 件表示が一瞬描かれていた。
+	ログイン直後は認証の解決を待つぶんこの隙間が長く、はっきり «空です» と読めてしまう。
+
+	**まだ 1 度も取り切っていないあいだは «読み込み中» として扱う**（`hasFetchedInitial`）。
+	⚠️ 失敗したときは `hasFetchedInitial` が false のままなので、`error` を除外しないと
+	   スピナーで固着する（`EmptyState` が再試行を出す側へ渡す必要がある）。
+	*/
+	const showsInitialLoading = (isLoading || !hasFetchedInitial) && error === null;
 
 	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
 
@@ -372,7 +405,7 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 			numColumns={COLUMNS}
 			contentContainerStyle={styles.gridContent}
 			columnWrapperStyle={styles.gridRow}
-			isLoading={isLoading}
+			isLoading={showsInitialLoading}
 			isLoadingMore={isLoadingMore}
 			refreshing={isLoading}
 			onRefresh={refresh}
