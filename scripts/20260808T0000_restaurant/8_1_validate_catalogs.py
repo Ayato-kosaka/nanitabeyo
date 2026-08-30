@@ -112,14 +112,59 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
         SELECT
           COUNT(*) AS row_count,
           COUNT(DISTINCT google_place_id) AS distinct_place_count,
+          -- #843 座標の «成立» と «日本かどうか» を分ける。
+          --
+          -- 2_1 は既存 PG の海外店（実測 338 行）を require_japan=False で通す。
+          -- ここで日本の矩形を必須にしていると、**その 338 行が catalog に載った
+          -- 瞬間にこの ERROR check が落ち、9_1 が二度と流れなくなる**。
+          -- 矩形の検査は下の restaurant_overseas_only_from_existing_pg が持つ。
           COUNTIF(
             google_place_id = '' OR name = '' OR image_url IS NULL
             OR SAFE.PARSE_JSON(address_components_json) IS NULL
-            OR latitude NOT BETWEEN 20.0 AND 46.5
-            OR longitude NOT BETWEEN 122.0 AND 154.0
+            OR latitude NOT BETWEEN -90.0 AND 90.0
+            OR longitude NOT BETWEEN -180.0 AND 180.0
           ) AS invalid_count
         FROM `{dataset}.restaurant_catalog`
         WHERE run_id = @run_id
+      ),
+      -- #843 «日本の外に居てよいのは、既に PG に在った店だけ» を守る。
+      --
+      -- オープンデータは日本の矩形で絞って取り込んでいるので、open data 由来の
+      -- 行が矩形の外に出ることは無い。出たなら座標か取り込み範囲が壊れている。
+      -- 一方、既存 PG 由来（seed に existing_restaurant_id がある）の海外店は
+      -- 正当なので通す。矩形を «全行必須» にせず、この形で残す。
+      overseas_not_existing AS (
+        SELECT COUNT(*) AS invalid_count
+        FROM `{dataset}.restaurant_catalog` c
+        JOIN `{dataset}.restaurant_seed_catalog` s
+          ON s.run_id = @run_id AND s.seed_id = c.seed_id
+        WHERE c.run_id = @run_id
+          AND s.existing_restaurant_id IS NULL
+          AND (c.latitude NOT BETWEEN 20.0 AND 46.5
+               OR c.longitude NOT BETWEEN 122.0 AND 154.0)
+      ),
+      -- #843 «合併したら元より減った» を捕まえる。
+      --
+      -- 3_4 は同じ place_id へ当たった負けた seed の連絡先を合併する。この合併で
+      -- **自分の値まで消える**事故が実際に起きた（BigQuery の ARRAY_CONCAT は
+      -- 引数に NULL が 1 つでもあると NULL を返すので、LEFT JOIN が外れた行で
+      -- 配列が空になった。social 492,247 → 19,306 / source_names 621,616 → 50,513）。
+      --
+      -- 件数だけを見るゲートでは 621,616 行のまま通ってしまい、素通りした。
+      -- **自分の seed が持っていた値を、catalog が持っていないこと**を直接数える。
+      restaurant_merge_loss AS (
+        SELECT
+          COUNTIF(ARRAY_LENGTH(c.source_names) = 0) AS lost_name_rows,
+          COUNTIF(
+            (SELECT COUNT(1) FROM UNNEST(s.social_urls) u WHERE u IS NOT NULL AND u != '') > 0
+            AND ARRAY_LENGTH(c.social_urls) = 0
+          ) AS lost_social_rows,
+          COUNTIF(NULLIF(s.phone, '') IS NOT NULL AND c.phone IS NULL) AS lost_phone_rows,
+          COUNTIF(NULLIF(s.website, '') IS NOT NULL AND c.website IS NULL) AS lost_website_rows
+        FROM `{dataset}.restaurant_catalog` c
+        JOIN `{dataset}.restaurant_seed_catalog` s
+          ON s.run_id = @run_id AND s.seed_id = c.seed_id
+        WHERE c.run_id = @run_id
       ),
       existing_missing AS (
         SELECT COUNT(*) AS missing_count
@@ -236,6 +281,14 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           row_count = distinct_place_count FROM restaurant_stats
         UNION ALL SELECT 'restaurant_required_fields_valid', 'ERROR',
           CAST(invalid_count AS FLOAT64), 0.0, invalid_count = 0 FROM restaurant_stats
+        UNION ALL SELECT 'restaurant_overseas_only_from_existing_pg', 'ERROR',
+          CAST(invalid_count AS FLOAT64), 0.0, invalid_count = 0
+          FROM overseas_not_existing
+        UNION ALL SELECT 'restaurant_merge_no_data_loss', 'ERROR',
+          CAST(lost_name_rows + lost_social_rows + lost_phone_rows + lost_website_rows AS FLOAT64),
+          0.0,
+          lost_name_rows + lost_social_rows + lost_phone_rows + lost_website_rows = 0
+          FROM restaurant_merge_loss
         UNION ALL SELECT 'existing_pg_restaurants_preserved', 'ERROR',
           CAST(missing_count AS FLOAT64), 0.0, missing_count = 0 FROM existing_missing
         UNION ALL SELECT 'existing_pg_serving_values_preserved', 'ERROR',

@@ -70,11 +70,19 @@ export class LocationsService {
     countryCode: string | null;
     subterritoryCode: string | null;
   } {
-    const countryComponent = addressComponents.find((component) =>
-      component.types?.includes('country'),
+    // #843 呼び出し元の一つ（dishes.service.createOrGetDish）は DB の
+    // restaurants.address_components を `as` キャストだけで渡してくる。この列は
+    // jsonb NOT NULL だが、jsonb の NOT NULL は JSON リテラルの null も `{}` も
+    // 防がないため、配列である保証がない。配列でない値が来ると
+    // `addressComponents.find is not a function` で POST /v1/dishes が 500 になる。
+    // Google API 由来の呼び出し元は手前で存在チェックしているが、DB 由来の経路には
+    // それが無い。フロント側（app-expo/lib/googlePlaces.ts）には同じガードがある。
+    const components = Array.isArray(addressComponents) ? addressComponents : [];
+    const countryComponent = components.find((component) =>
+      component?.types?.includes('country'),
     );
-    const adminLevel1Component = addressComponents.find((component) =>
-      component.types?.includes('administrative_area_level_1'),
+    const adminLevel1Component = components.find((component) =>
+      component?.types?.includes('administrative_area_level_1'),
     );
 
     // #677 【設計】shortText または longText のいずれか存在すればOKとする（Google API 仕様で shortText 欠損パターンがあるため）

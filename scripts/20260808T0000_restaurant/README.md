@@ -36,20 +36,49 @@ dry-runし、同じrun_idを段階的に昇格させます。Cloud Schedulerは�
 
 ## データフロー
 
+**どこが正か**が一目で分かる形にしてある。手順の羅列は「手動実行順」にある。
+
 ```text
-既存PG / Overture / IFAS / OSM / 自治体の食品営業許可台帳
-  -> *_raw                              (1_1〜1_6)
-  -> restaurant_source_records          (2_1: 形式統一)
-  -> restaurant_seed_catalog            (2_2: 店舗候補へ統合)
-  -> Google Place ID match catalog      (3_1〜3_3)
-  -> restaurant_catalog                 (3_4)
-  -> PostgreSQL restaurants             (9_1)
+  ┌── BigQuery（オープンデータの側。ここが «店の事実» の正）────────────────┐
+  │                                                                        │
+  │  Overture / IFAS / OSM / 食品営業許可台帳 ──▶ *_raw           1_3〜1_6  │
+  │                                     │                                  │
+  │   PG の place_id・座標だけ ─────────┤                                  │
+  │   （1_2。表示値は運ばない）          ▼                                  │
+  │                          restaurant_source_records            2_1      │
+  │                                     ▼                                  │
+  │                          restaurant_seed_catalog              2_2      │
+  │                                     ▼                                  │
+  │              Google Place ID match（box_unique_strict）       3_1〜3_3  │
+  │                                     ▼                                  │
+  │                          restaurant_catalog                   3_4      │
+  │                          （name/座標/住所/国/電話/サイト/SNS）          │
+  │                                     │                                  │
+  │  IFAS の廃業レコード ──▶ restaurant_closure_signals            3_6      │
+  │                          （«根拠» であって判定ではない）                │
+  └─────────────────────────────────────┼──────────────────────────────────┘
+                                        │  9_1（品質ゲート 8_1 が緑のときだけ）
+  ┌─────────────────────────────────────▼──────────────────────────────────┐
+  │ PostgreSQL（アプリの側。ここが «ユーザーの入力» の正）                  │
+  │                                                                        │
+  │  restaurants                                                           │
+  │    created_by_source='pipeline' … 9_1 が毎回上書きしてよい行            │
+  │    created_by_source='user'     … **9_1 は表示値を絶対に触らない**      │
+  │                                    （アプリが POI 押下で作った行）      │
+  │  restaurant_links … 電話/サイト/SNS。open_data 由来だけを              │
+  │                     ON CONFLICT DO NOTHING で足す（ユーザー追加を消さない）│
+  └────────────────────────────────────────────────────────────────────────┘
 
 権利確認済みSNS URL
   -> dish_media_social_raw              (4_1)
   -> dish/dish_media/coverage catalog   (4_2)
   -> PostgreSQL dishes/dish_media       (9_2)
 ```
+
+**この図の要点は矢印ではなく、下の箱の中の 2 行**である。
+«誰が書いてよい行か» を行のとなりに刻んであるので、
+BigQuery 側のスナップショットが何時間古かろうとアプリの行は壊れない
+（古いスナップショットへの否定条件で判定していたのが 2026-08-24 の事故の真因）。
 
 ## 名寄せ方針
 
@@ -308,6 +337,9 @@ export PLACES_TEXT_SEARCH_API_KEY='...'
 
 .venv/bin/python 3_3_build_google_place_match_catalog.py
 .venv/bin/python 3_4_build_restaurant_catalog.py --service-cell-level 14
+
+# 閉店の «根拠» を集める。判定はしない。Google は叩かない（課金ゼロ）
+.venv/bin/python 3_6_build_closure_signals.py
 ```
 
 `3_2` は `--limit` がrequest数の上限です。同algorithmのattemptはresume時に除外します。
@@ -365,6 +397,26 @@ dry-runも実際のDMLとconstraint検査をtransaction内で行い、最後にr
 本実行前に対象tableをGCSへstreaming backupします。backup失敗時は同期を中止します。
 BigQueryに無いPostgreSQL行は削除しません。`--skip-backup` は復旧手段を別途確保した緊急時だけ
 使用します。
+
+#### 上書きガードの検証（#843）
+
+9_1 の「表示値を上書きする UPDATE」は、**アプリが作った行を絶対に触らない**ことが要件です
+（2026-08-24 に 7 行が壊れた事故があり、その再発防止）。この性質は SQL を読んでも
+「たまたま条件に当たっていないだけ」と区別できないので、実物の PostgreSQL で確かめます。
+
+```bash
+bash tests/test_9_1_overwrite_guard.sh   # 上書きガード本体（6項目）
+bash tests/test_9_9_backfill.sh          # backfill の行選択（5項目）
+```
+
+その場にクラスタを立てて壊し、終わったら消すので、外部の DB は要りません
+（`initdb` / `pg_ctl` / `psql` が要ります。既定は PostgreSQL 16）。
+
+どちらのテストも **「直っていない状態で落ちること」を先に確かめる**構成にしています。
+`test_9_1_overwrite_guard.sh` は旧ガードで事故を再現してから新ガードを試し、
+`test_9_9_backfill.sh` は `source_seed_id` だけで絞ると余計な行を掴むことを示します。
+新しい条件を足すときは、**その条件が無いと落ちるケース**も一緒に足してください。
+そうしないと、条件を消しても緑のままになります。
 
 ## 保留機能の受け口
 

@@ -22,6 +22,7 @@ import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview } from "./InitialMediaPreview";
 import {
+	buildCurrencyChoices,
 	getCurrencyCodeFromRestaurant,
 	parseAmountString,
 	resolveCurrencySymbol,
@@ -313,17 +314,27 @@ export function ReviewForm({
 	const { locale } = useLocale();
 	const router = useRouter();
 
-	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
+	// #843 店から通貨が引けるとは限らない。オープンデータ由来で作った店舗は
+	// address_components が空なので null になる。以前はここが null のまま
+	// toMinorAmountInteger へ渡り、既定 2 桁で「1000円」が 100000 として
+	// 送信されていた（JPY は 0 桁）。通貨が決まらないときはユーザーに選ばせる。
+	const restaurantCurrencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
+	const currencyChoices = useMemo(() => buildCurrencyChoices(locale), [locale]);
+	const [manualCurrencyCode, setManualCurrencyCode] = useState<string | null>(null);
+	const currencyCode = restaurantCurrencyCode ?? manualCurrencyCode;
+	const needsCurrencyChoice = !restaurantCurrencyCode;
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 	// price は、小数点を含めた文字列として管理しているため、対象通貨での minorUnit(桁数) に基づいて整数変換を行う
-	const parsedPrice = useMemo(
-		() => parseAmountString(price) && toMinorAmountInteger(parseAmountString(price), currencyCode),
-		[price, currencyCode],
-	);
+	const parsedPrice = useMemo(() => {
+		if (!currencyCode) return null;
+		const amount = parseAmountString(price);
+		return amount ? toMinorAmountInteger(amount, currencyCode) : null;
+	}, [price, currencyCode]);
 
 	const isValid =
+		!!currencyCode &&
 		Number.isFinite(parsedPrice) &&
-		parsedPrice > 0 &&
+		(parsedPrice ?? 0) > 0 &&
 		reviewText.trim() &&
 		rating > 0 &&
 		dishCategoryName.trim() &&
@@ -940,7 +951,7 @@ export function ReviewForm({
 							review: {
 								comment: reviewText,
 								languageCode: locale,
-								priceCents: parsedPrice,
+								priceCents: parsedPrice ?? undefined, // isValid で非 null の正数を担保（#843）
 								currencyCode: currencyCode ?? undefined,
 								rating,
 							},
@@ -980,7 +991,7 @@ export function ReviewForm({
 					dishId,
 					comment: reviewText,
 					languageCode: locale,
-					priceCents: parsedPrice,
+					priceCents: parsedPrice ?? undefined, // isValid で非 null の正数を担保（#843）
 					currencyCode: currencyCode ?? undefined,
 					rating,
 					// #1398 B4 写真なしのときは `createdDishMediaId` を**送らない**。
@@ -1386,6 +1397,30 @@ export function ReviewForm({
 								)}
 							</View>
 
+							{/* #843 店から通貨が引けないときだけ出す選択列。
+							    既定値を黙って使うと金額が桁違いで記録されるため、選ぶまで投稿できない。 */}
+							{needsCurrencyChoice && (
+								<View style={styles.currencyChoiceRow} testID="review-currency-choice">
+									{currencyChoices.map((code) => {
+										const selected = manualCurrencyCode === code;
+										return (
+											<Pressable
+												key={code}
+												testID={`review-currency-choice-${code}`}
+												onPress={() => setManualCurrencyCode(code)}
+												style={[styles.currencyChoiceChip, selected && styles.currencyChoiceChipSelected]}
+											>
+												<Text
+													style={[styles.currencyChoiceText, selected && styles.currencyChoiceTextSelected]}
+												>
+													{resolveCurrencySymbol(code, locale) ?? code} {code}
+												</Text>
+											</Pressable>
+										);
+									})}
+								</View>
+							)}
+
 							{/* 評価入力 行 */}
 							<View style={styles.ratingInputRow}>
 								{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
@@ -1598,6 +1633,32 @@ const createStyles = (c: Palette) =>
 			color: c.textStrong,
 			textAlign: "right",
 			maxWidth: 160,
+		},
+		currencyChoiceRow: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 8,
+			marginTop: 8,
+		},
+		currencyChoiceChip: {
+			paddingHorizontal: 12,
+			paddingVertical: 6,
+			borderRadius: 16,
+			borderWidth: 1,
+			borderColor: c.trackMuted,
+			backgroundColor: c.surface,
+		},
+		currencyChoiceChipSelected: {
+			borderColor: c.ctaBackground,
+			backgroundColor: c.ctaBackground,
+		},
+		currencyChoiceText: {
+			fontSize: 13,
+			color: c.textSecondary,
+		},
+		currencyChoiceTextSelected: {
+			color: c.ctaLabel,
+			fontWeight: "600",
 		},
 		priceInputRow: {
 			flexDirection: "row",
