@@ -30,6 +30,12 @@ import type { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
 export type RestaurantDishCategory = {
 	dishCategoryId: string;
 	label: string;
+	/**
+	 * #1629 その店でのその料理の呼び名（`dishes.name`）。**表示には使わない**（表示は `label`）。
+	 * 検索の絞り込みで «画面に出ている文字» と «店での呼び名» の両方に当てるために持つ
+	 * （`labels` に日本語が無い料理は画面が «Ramen» になり、«ラーメン» で探しても当たらないため）。
+	 */
+	name: string | null;
 	/** その店でこのカテゴリの記録が何件あるか（多い順に並べるため） */
 	count: number;
 };
@@ -76,7 +82,7 @@ export function useRestaurantDishCategories(restaurantId: string | undefined) {
 				*/
 				const label = resolveDishCategoryLabel(entry.dish.categoryLabels, entry.dish.name, locale);
 				if (!label) continue;
-				counts.set(dishCategoryId, { dishCategoryId, label, count: 1 });
+				counts.set(dishCategoryId, { dishCategoryId, label, name: entry.dish.name ?? null, count: 1 });
 			}
 			// 多い順 → 同数はラベル順（取得のたびに並びが変わらないように）
 			setCategories([...counts.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)));

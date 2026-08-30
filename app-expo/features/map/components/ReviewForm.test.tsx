@@ -879,3 +879,49 @@ describe("#1629 取り込んだ SNS 投稿からレビューを書く", () => {
 		expect(findTextNodes(embedTree.root, "Map.media.loadingMedia")).toHaveLength(0);
 	});
 });
+
+/*
+#1629【オーナー実機報告】「食べたを押すと、料理カテゴリにラーメンが表示されなくてレビューが書けない」。
+
+dev の実ログ（2026-08-30 10:14 / 麦と麺助）で確定した筋道:
+
+  1. SNS から取り込んだ投稿は `dishes.name` が空のことがある（キャプションから拾えなかった）
+  2. `review-from-media` はその投稿を `prefilledMedia` として渡す
+  3. 表示名の初期値が `prefilledMedia.dish.name` の直読みだったので **料理カテゴリー欄が空欄**
+  4. 投稿の可否条件が «表示名が空でないこと» を含んでいたので **ボタンが押せない**
+  5. その行は写真が決まっていると押せない ＝ **自分で埋める手段が無い**（行き止まり）
+
+実ログのその投稿は `categoryLabels` に日本語を持っていた（Q234646 = ラーメン）ので、
+表示名の規則（`labels[言語] → labels["en"] → name`）どおり解決すれば «ラーメン» が出る。
+*/
+describe("#1629 取り込んだ投稿から «食べた» を記録するとき", () => {
+	/** `dishes.name` が空で、カテゴリの多言語表記だけを持つ投稿（実ログと同じ形） */
+	const makeImportedMedia = () =>
+		({
+			id: "dish-media-imported",
+			media_type: "image",
+			render_type: "external_embed",
+			mediaUrl: null,
+			thumbnailImageUrl: "https://cdn.example.test/thumb.jpg",
+			dish: {
+				name: "",
+				category_id: "Q234646",
+				categoryLabels: { ja: "ラーメン", en: "Ramen" },
+			},
+		}) as never;
+
+	// ★ ここが本命。空欄のまま «レビューが書けない» を二度と作らない
+	it("店での呼び名が空でも、料理カテゴリーに «ラーメン» が出る", async () => {
+		let tree!: TestRenderer.ReactTestRenderer;
+		await act(async () => {
+			tree = TestRenderer.create(
+				<ReviewForm restaurant={restaurant} onCancel={noop} prefilledMedia={makeImportedMedia()} />,
+			);
+		});
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		expect(findTextNodes(tree.root, "ラーメン").length).toBeGreaterThan(0);
+	});
+});

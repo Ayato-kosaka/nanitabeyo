@@ -333,13 +333,15 @@ export function ReviewForm({
 		[price, currencyCode],
 	);
 
-	const isValid =
-		Number.isFinite(parsedPrice) &&
-		parsedPrice > 0 &&
-		reviewText.trim() &&
-		rating > 0 &&
-		dishCategoryName.trim() &&
-		!!dishCategoryId;
+	/*
+	#1629【オーナー実機報告】**表示名を投稿の可否条件にしない。**
+
+	`dishCategoryName` は «画面に出す文字» であって、記録に必要なのは `dishCategoryId` である。
+	表示名が空でも id さえあれば記録は成立するのに、名前を必須にしていたため
+	**表示名が解決できない投稿では永久にボタンが押せない**状態が作れた（上の effect のコメント）。
+	表示名の解決は直したが、条件そのものも id 側へ寄せておく。**二重の防御**である。
+	*/
+	const isValid = Number.isFinite(parsedPrice) && parsedPrice > 0 && reviewText.trim() && rating > 0 && !!dishCategoryId;
 
 	/*
 	  #1386 【設計】このフォームはもうオーバーレイを 1 つも持たない。
@@ -364,26 +366,33 @@ export function ReviewForm({
 	  「呼び出し元が portal を持たない」ことは `__tests__/reviewFormRoutes.test.tsx` が固定している。
 	*/
 
-	/**
-	 * #1375（5 巡目）既存メディアを選んだら、料理カテゴリーはそのメディアの料理になる
-	 * （`review-from-media` と同じ仕組み。マウント時の初期値と同じ経路を後から通す）。
-	 * ⚠️ 親から `prefilledMedia` を渡された画面ではこの effect は 1 度も走らない
-	 * （`pickedExistingMedia` が undefined のままなので）
-	 */
-	useEffect(() => {
-		if (!pickedExistingMedia) return;
-		/*
-		#1629【オーナー実機報告】「実際にそれを選ぶと料理カテゴリー選択が **空欄のまま**入っちゃう」。
+	/*
+	#1375（5 巡目）写真が決まっているなら、料理カテゴリーはその写真の料理になる。
 
-		表示名に `dish.name` を直に入れていたため、その店での呼び名が空の投稿を選ぶと
-		**カテゴリー欄が空のまま**進んでしまっていた（しかも下の行は選び直しを塞いでいたので直せない）。
-		表示名は `dishCategoryLabel.ts` の規則で解決する（他の画面と同じ）。
-		*/
-		setDishCategoryName(
-			resolveDishCategoryLabel(pickedExistingMedia.dish.categoryLabels, pickedExistingMedia.dish.name, locale) ?? "",
-		);
-		setDishCategoryId(pickedExistingMedia.dish.category_id ?? null);
-	}, [locale, pickedExistingMedia]);
+	#1629【オーナー実機報告】「食べたを押すと、料理カテゴリにラーメンが表示されなくてレビューが書けない」。
+
+	## 何が起きていたか（dev の実ログ 2026-08-30 10:14 で確定）
+
+	SNS から取り込んだ投稿（麦と麺助 / ラーメン）を «食べた» で開くと、この画面は
+	`prefilledMedia` 付きで開く。ところが表示名の初期値が **`prefilledMedia.dish.name` の直読み**
+	だった。取り込み由来の `dishes.name` は空のことがあり、その場合
+
+	  1. 料理カテゴリー欄が **空欄**のまま出る（「ラーメンが表示されない」）
+	  2. `isValid` が `dishCategoryName.trim()` を要求するので **投稿ボタンが押せない**
+	  3. しかもこの行は `activePrefilledMedia` があると押せない ＝ **自分で埋める手段が無い**
+
+	つまり «行き止まり» だった。実ログのその投稿は `categoryLabels` に ja を含む多言語表記を
+	持っていた（`Q234646` = ラーメン）ので、規則どおり解決すれば «ラーメン» が出る。
+
+	`pickedExistingMedia`（この画面の中で選んだ写真）だけでなく **親から渡された
+	`prefilledMedia` にも効かせる**。両者は `activePrefilledMedia` に畳んである。
+	*/
+	useEffect(() => {
+		const media = activePrefilledMedia;
+		if (!media) return;
+		setDishCategoryName(resolveDishCategoryLabel(media.dish.categoryLabels, media.dish.name, locale) ?? "");
+		setDishCategoryId(media.dish.category_id ?? null);
+	}, [activePrefilledMedia, locale]);
 
 	/**
 	 * #1386 料理カテゴリ選択画面（ルート）からの «戻り値»。

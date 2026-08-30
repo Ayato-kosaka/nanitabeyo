@@ -74,41 +74,70 @@ export function DishCategoryStep({ restaurantId, onSelectExisting, onSubmitTyped
 	SNS 取り込み画面 `add-record.tsx` の ③ が同じものを使っている）。打ち始めたらそちらも引き、
 	**その店の候補 → マスタの候補** の順で並べる（同じ id は 1 回だけ）。
 
-	«◯◯ で決める»（自由入力 → 新規カテゴリ作成）は残す。**候補が 1 件も無いときだけ**出す。
-	マスタに無い料理を記録する唯一の道なので、消すと行き止まりになる。
+	«◯◯ で決める»（自由入力 → 新規カテゴリ作成）は **打った名前と完全一致する候補が無いあいだ、常に**出す。
+	オーナー実機報告「自分で検索しても値が入らなくてボタンが押せなかった」の対処である。
+	«候補が 1 件も無いときだけ» にしていたため、**関係のない候補が 1 件でも出た瞬間に
+	決める手段が消えていた**（候補は出ているが欲しいものではない、が一番起きる）。
 	*/
 	const { suggestions, searchDishCategories } = useDishCategorySearch();
 	const trimmed = query.trim();
 
-	// ⚠️ 1 文字打つたびに叩かない。確定は «入力が止まってから»（RestaurantNameSearch と同じ 300ms）
+	/*
+	⚠️ 1 文字打つたびに叩かない。確定は «入力が止まってから»（RestaurantNameSearch と同じ 300ms）。
+
+	⚠️ **依存に `searchDishCategories` を置かないこと。** あれは `useAPICall` の `callBackend` に
+	依存した `useCallback` で、`callBackend` 自身も認証まわりの関数に依存している。identity が
+	変わるたびにこの effect がやり直され、**再描画のたびにタイマーが張り直されて
+	«いつまでも 300ms が経たない» ＝ 検索が一度も飛ばない**状態になりうる。
+	オーナー実機報告「何を打っても出ない / 二回目やったら出来た」の説明として辻褄が合う
+	（画面が静かなときだけタイマーが満了する）。関数は ref 経由で読み、依存は入力文字だけにする。
+	*/
+	const searchRef = useRef(searchDishCategories);
+	searchRef.current = searchDishCategories;
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	useEffect(() => {
 		if (debounceRef.current) clearTimeout(debounceRef.current);
 		debounceRef.current = setTimeout(() => {
 			debounceRef.current = null;
-			void searchDishCategories(trimmed);
+			void searchRef.current(trimmed);
 		}, SEARCH_DEBOUNCE_MS);
 		return () => {
 			if (debounceRef.current) clearTimeout(debounceRef.current);
 		};
-	}, [searchDishCategories, trimmed]);
+	}, [trimmed]);
 
 	/** その店の候補（名前で絞り込み）→ マスタの候補。同じ id は 1 回だけ出す */
 	const visible = useMemo(() => {
 		if (!trimmed) return categories;
 		const lowered = trimmed.toLowerCase();
-		const mine = categories.filter((category) => category.label.toLowerCase().includes(lowered));
+		/*
+		⚠️ 表示名だけで絞らない。表示名は `labels[言語] → labels["en"] → 店での呼び名` の順で
+		解決するので、**画面に «Ramen» と出ている行を «ラーメン» で探しても当たらない**ことがある
+		（labels に ja が無く en だけある場合）。店での呼び名（`name`）にも当てる。
+		*/
+		const mine = categories.filter(
+			(category) =>
+				category.label.toLowerCase().includes(lowered) ||
+				(category.name ?? "").toLowerCase().includes(lowered),
+		);
 		const seen = new Set(mine.map((category) => category.dishCategoryId));
 		const fromMaster = suggestions
 			.filter((suggestion) => suggestion.dishCategoryId && suggestion.label && !seen.has(suggestion.dishCategoryId))
 			.map((suggestion) => ({
 				dishCategoryId: suggestion.dishCategoryId,
 				label: suggestion.label,
+				name: suggestion.label,
 				// マスタ由来はその店での件数を持たない。件数の «0» を出すと «0 件ある» に読めるので出さない
 				count: null as number | null,
 			}));
 		return [...mine, ...fromMaster];
 	}, [categories, suggestions, trimmed]);
+
+	/** 打った名前とぴったり同じ候補があるか。無いあいだは «◯◯ で決める» を出し続ける */
+	const hasExactMatch = useMemo(
+		() => visible.some((category) => category.label.toLowerCase() === trimmed.toLowerCase()),
+		[trimmed, visible],
+	);
 
 	const handleSubmit = useCallback(() => {
 		if (!trimmed) return;
@@ -143,7 +172,7 @@ export function DishCategoryStep({ restaurantId, onSelectExisting, onSubmitTyped
 			</View>
 
 			{/* 打った名前が候補に無いときの逃げ道。«入力できること» を画面の中で見せる */}
-			{trimmed.length > 0 && visible.length === 0 && (
+			{trimmed.length > 0 && !hasExactMatch && (
 				<TouchableOpacity
 					testID={testID ? `${testID}-submit-typed` : undefined}
 					style={styles.typedButton}
