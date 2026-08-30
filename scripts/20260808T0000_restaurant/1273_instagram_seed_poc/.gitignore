@@ -4,3 +4,5 @@ out/fsq_run.log
 out/fsq_jp_no_instagram_sample.csv
 out/fsq_jp_with_website_sample.csv
 out/*_run.log
+out/bqload/
+out/parsed_local.json
