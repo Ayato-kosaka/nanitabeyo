@@ -97,19 +97,20 @@ test.describe("表示言語の切り替え(#1508)", () => {
 		await languagePage.expectLoaded(PAGE_TITLE["ja-JP"]);
 		await expect(languagePage.option("system")).toHaveText(SYSTEM_DEFAULT_LABEL["ja-JP"]);
 
+		// #1629【28】切り替えの着地はタブの根なので、次の切り替えには開き直しが要る
 		// 1 回目: 日本語 → 英語
-		await languagePage.select("en-US", "en-US");
+		await languagePage.selectAndReopen("en-US", "en-US");
 		await languagePage.expectLoaded(PAGE_TITLE["en-US"]);
 		await expect(languagePage.option("system")).toHaveText(SYSTEM_DEFAULT_LABEL["en-US"]);
 
 		// 2 回目: 英語 → 韓国語（英語 UI からでも選択肢のラベルはネイティブ名のまま）
 		await expect(languagePage.option("ko-KR")).toHaveText("한국어");
-		await languagePage.select("ko-KR", "ko-KR");
+		await languagePage.selectAndReopen("ko-KR", "ko-KR");
 		await languagePage.expectLoaded(PAGE_TITLE["ko-KR"]);
 		await expect(languagePage.option("system")).toHaveText(SYSTEM_DEFAULT_LABEL["ko-KR"]);
 
 		// 3 回目: 韓国語 → 端末の設定に従う（= ブラウザの ja-JP へ戻る）
-		await languagePage.select("system", "ja-JP");
+		await languagePage.selectAndReopen("system", "ja-JP");
 		await languagePage.expectLoaded(PAGE_TITLE["ja-JP"]);
 		await expect(languagePage.option("system")).toHaveText(SYSTEM_DEFAULT_LABEL["ja-JP"]);
 	});
