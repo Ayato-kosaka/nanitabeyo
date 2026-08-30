@@ -835,11 +835,29 @@ export function ExternalEmbedPlayer({
 		});
 	}, [embed.provider, logFrontendEvent]);
 
-	// セルが前面から外れたら «再生できたか» の判定もやり直す（次に来たとき最初から測る）
+	/*
+	セルが前面から外れたら «再生できたか» の判定もやり直す（次に来たとき最初から測る）。
+
+	#1641 ⚠️ **«次に来たとき最初から» に含めるものを取りこぼさない。**
+	前面から外れると WebView はアンマウントされ（下の `return null`）、次に来たときは
+	**まっさらな WebView が読み込みをやり直す**。なのに一部の状態を持ち越していた:
+
+	| 持ち越していたもの | 起きること |
+	| --- | --- |
+	| `reloadsRef` | 前回の滞在で読み直しを使い切ったセルは、**次に来たとき 1 回も読み直せない** |
+	| `webViewReadyToShow` | 中身が空の WebView をいきなり不透明で載せ、**下のサムネイルを隠す**（＝「黒い画面」が戻る） |
+	| `unplayableKind` | 前回の失敗理由で畳むかどうかを決めてしまう |
+
+	フィードを上下すると同じセルへ何度も戻るので、ここが揃っていないと «2 回目以降だけ
+	様子が違う» という再現しにくい形になる。
+	*/
 	useEffect(() => {
 		if (!isActive) {
 			setRenderProcessGone(false);
 			setPlayback("unknown");
+			setUnplayableKind(null);
+			setWebViewReadyToShow(false);
+			reloadsRef.current = 0;
 		}
 	}, [isActive]);
 

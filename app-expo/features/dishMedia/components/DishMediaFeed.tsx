@@ -240,8 +240,32 @@ export default function DishMediaFeed({
 		[pageLength],
 	);
 
-	// --- viewability 閾値（90%以上を“表示中”とみなす） -----------------------
-	const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 90 }), []);
+	/*
+	--- viewability 閾値（90%以上を“表示中”とみなす） -----------------------
+
+	#1641 ⚠️ **`minimumViewTime` を外さないこと。**
+
+	オーナー報告（実機 2026-08-30）2 件の真因がこれだった:
+
+	  - 「先読みで、下のフィードの音が聞こえてしまったりする」
+	  - 「フィードを上下すると TikTok / YouTube が起動しないときがある」
+
+	`pagingEnabled` + `decelerationRate="fast"` で勢いよく送ると、**通り過ぎるだけのセルも
+	一瞬 90% 可視になり** viewability が鳴る。そのたびに `currentIndex` が動くので、
+
+	  1. 着地していないセルの `ExternalEmbedPlayer` が `isActive` でマウントし、
+	     WebView が読み込みを始めて **鳴り出す**（＝「下のフィードの音」）
+	  2. 1 回のフリックで WebView が何枚も生まれては捨てられ、着地したセルの読み込みが
+	     そのぶん遅れる・競合する（＝「起動しないときがある」）
+
+	`minimumViewTime` は **«その位置に留まったか» を待つための RN 公式の口**である。
+	通過しただけのセルはここで落ちるので、上の 2 つが同時に消える。
+
+	⚠️ 大きくしすぎないこと。ここは «再生が始まるまでの時間» に直に効く（オーナー指摘
+	「ロード完了から動画が出るまで黒い」の一部でもある）。埋め込みの読み込みは数秒かかるので
+	200ms は体感に出ないが、500ms を超えると «送ったのに始まらない» に変わる。
+	*/
+	const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 90, minimumViewTime: 200 }), []);
 
 	// --- onViewableItemsChanged（公式推奨：useRef直渡し） ----------------------
 	// 責務: 表示中インデックスの同定・副作用（ハプティクス/ログ/通知）
