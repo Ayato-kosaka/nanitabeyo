@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """既存 PostgreSQL restaurants を BigQuery raw へsnapshotする。
 
+## 何を取り込むのか
+
+**パイプラインが作った行（created_by_source = 'pipeline'）は読まない。**
+9_1 が入れた行を読み戻すと、自分の出力を入力に戻す循環になる。読むのは
+アプリ・オーナー・手動で作られた行だけである。
+
 ## 何のために取り込むのか（2 つだけ）
 
 1. **Google Text Search の課金を避ける** — 既に place_id を知っている店を
@@ -61,6 +67,20 @@ def iter_restaurants(connection: Any, schema: str, run_id: str, snapshot_date: d
               latitude,
               longitude
             FROM {schema}.restaurants
+            -- #1706 **パイプラインが作った行は読まない。**
+            --
+            -- 9_1 が入れた行を 1_2 が読み戻すと、パイプラインが自分の出力を
+            -- 入力に戻す循環になる（dev 実測で 2,446 行 → 621,965 行に膨張する）。
+            -- 既存 PG を読む目的は «アプリ／オーナーが作った店を落とさない» ことなので、
+            -- 自分が作った行を食べ直す意味は無い。
+            --
+            -- 'user' だけでなく 'owner' / 'manual' も読む。«パイプライン製でない»
+            -- が条件であって «ユーザー製» が条件ではない。
+            --
+            -- ⚠️ public へ向けるときは、先に created_by_source の migration
+            -- （20260827T0000）を public へ適用しておくこと。列が無ければここで落ちる。
+            -- 落ちるだけでデータは変わらないので、安全側の失敗である。
+            WHERE created_by_source <> 'pipeline'
             ORDER BY id
             """
         )
