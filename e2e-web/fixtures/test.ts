@@ -157,9 +157,22 @@ export const test = base.extend<AppOptions & AppFixtures>({
 				if (isIgnored(enriched)) return;
 				errors.push(enriched);
 			});
+			/*
+			#1629 ⚠️ **`message` だけを記録しないこと。**
+
+			ページが Error ではない値を throw すると、Playwright の `error.message` は
+			`"Object"` にしかならない（実測: main の失敗ログに `[pageerror] Object` が 17 件）。
+			それだけでは «どこで何が投げられたのか» が一切分からないので、
+			スタックの先頭 1 行（発生源のファイルと位置）を添える。
+			*/
 			page.on("pageerror", (error) => {
-				if (!isIgnored(error.message)) {
-					errors.push(`[pageerror] ${error.message}`);
+				const where = error.stack
+					?.split("\n")
+					.map((line) => line.trim())
+					.find((line) => line.startsWith("at "));
+				const text = where ? `[pageerror] ${error.message} (${where})` : `[pageerror] ${error.message}`;
+				if (!isIgnored(text)) {
+					errors.push(text);
 				}
 			});
 
