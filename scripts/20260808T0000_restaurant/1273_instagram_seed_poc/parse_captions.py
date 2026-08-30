@@ -22,21 +22,48 @@ PREF = ('北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|�
 pref_rx = re.compile('(' + PREF + ')')
 city_rx = re.compile('(' + PREF + ')(.+?[市区町村])')
 
+# 都道府県が省略され市区町村から始まる住所を拾うフォールバック。
+# 「名古屋市東区葵3丁目…」のように市区町村トークンの直後が番地(数字/丁目/条)であるものだけ採る。
+# ノイズ対策: 市区町村名は2文字以上 / 「市内・区内」除外 / 住所内に数字必須（下の検証で担保）。
+citylead_rx = re.compile(r'([一-龥ァ-ヶ]{2,4}[市区町村](?![内])(?:[一-龥ァ-ヶ]{1,4}区)?[一-龥ァ-ヶ0-9０-９][0-9０-９一-龥ァ-ヶ\-−ー丁目番地条]{1,28})')
+# 主要市の都道府県マップ（region を埋められる分だけ。無ければ region=None のまま city で集計する）
+CITY_PREF = {
+    '札幌市': '北海道', '仙台市': '宮城県', 'さいたま市': '埼玉県', '千葉市': '千葉県',
+    '横浜市': '神奈川県', '川崎市': '神奈川県', '相模原市': '神奈川県', '名古屋市': '愛知県',
+    '新潟市': '新潟県', '静岡市': '静岡県', '浜松市': '静岡県', '京都市': '京都府',
+    '大阪市': '大阪府', '堺市': '大阪府', '神戸市': '兵庫県', '岡山市': '岡山県',
+    '広島市': '広島県', '北九州市': '福岡県', '福岡市': '福岡県', '熊本市': '熊本県',
+}
+
 
 def norm(s):
     return re.sub(r'[ 　]', '', re.sub(r'[-−ー―–—‐]', '-', unicodedata.normalize('NFKC', s)))
 
 
+def _city_token(s):
+    cm = re.search(r'([一-龥ァ-ヶ]{1,5}?[市区町村])', s)
+    return cm.group(1) if cm else None
+
+
 def find_addr(cap):
     m = pref_rx.search(cap)
-    if not m:
-        return None, None, None
-    tail = re.split(r'[「【『\n]', cap[m.start():])[0].strip()
-    core = norm(tail)
-    if not (6 <= len(core) <= 40):
-        core = norm(cap[m.start():m.start() + 30])
-    cm = city_rx.search(cap)
-    return core, m.group(1), (cm.group(2) if cm else None)
+    if m:
+        tail = re.split(r'[「【『\n]', cap[m.start():])[0].strip()
+        core = norm(tail)
+        if not (6 <= len(core) <= 40):
+            core = norm(cap[m.start():m.start() + 30])
+        cm = city_rx.search(cap)
+        return core, m.group(1), (cm.group(2) if cm else None)
+    # フォールバック: 市区町村始まりの住所（都道府県が省略されている）
+    cm = citylead_rx.search(cap)
+    if cm:
+        core = norm(re.split(r'[「【『\n]', cm.group(1))[0].strip())
+        # 番地の数字が無いもの（施設名・「市内」等）はノイズとして落とす
+        if 6 <= len(core) <= 40 and re.search(r'[0-9]', core):
+            city = _city_token(cm.group(1))
+            region = CITY_PREF.get(city)  # 主要市なら region を補完、他は None
+            return core, region, city
+    return None, None, None
 
 
 def find_store(cap):

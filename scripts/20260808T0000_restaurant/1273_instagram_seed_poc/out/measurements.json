@@ -714,5 +714,24 @@
       "coverage_rows_loaded": 0,
       "reason_not_loaded": "fired loop turn は MCP 不可。対話turnで cov_cat_insert.sql を投入する"
     }
+  },
+  "phaseA_parser_v2": {
+    "date": "2026-08-30",
+    "change": "find_addr に「市区町村始まり住所」フォールバックを追加（都道府県省略の投稿を回収）＋ノイズ除去（市区町村2文字以上/市内区内除外/番地数字必須/主要市→region補完）",
+    "before": {
+      "with_addr_pct": 60,
+      "distinct_stores": 957,
+      "cells": 530,
+      "cities": 185
+    },
+    "after": {
+      "with_addr_pct": 70,
+      "distinct_stores": 1102,
+      "cells": 613,
+      "cities": 204,
+      "categories": "98/134"
+    },
+    "gain": "同じ1800投稿から異なり店 +15%（957→1102）。抽出率60→70%。resolve/parse磨き上げの実測例",
+    "note": "これは近似parseの改善。本番は resolve API(単一頭脳) が同等の正規化・一意化を担う。今回の知見(市区町村始まり・番地数字必須)を resolve 改善の入力にする。"
   }
 }
