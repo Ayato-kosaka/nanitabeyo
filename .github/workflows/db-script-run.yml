@@ -88,6 +88,13 @@ jobs:
       # GOOGLE_MAPS_API_KEY とは別に発行し、キー側もText Search APIのみに制限する。
       # 未登録なら空になるだけで、他のスクリプトの実行には影響しない。
       PLACES_TEXT_SEARCH_API_KEY: ${{ secrets.PLACES_TEXT_SEARCH_API_KEY }}
+      # #1273 SNS seed パイプライン（scripts/20260808T0000_restaurant/ の 4_x 収集系）が使う。
+      # IG_TOKEN = Instagram Graph API（business_discovery / 公開埋め込み取得）。
+      # SERPER_API_KEY = 穴埋めのカテゴリ検索（無料枠のみ）。
+      # scratchpad は揮発するため、必ず GitHub Actions secrets に置いてここから読む。
+      # 未登録なら空になるだけで、他のスクリプトの実行には影響しない。
+      IG_TOKEN: ${{ secrets.IG_TOKEN }}
+      SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
 
     steps:
       - name: リポジトリを取得
