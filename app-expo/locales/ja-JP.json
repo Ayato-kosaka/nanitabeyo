@@ -667,6 +667,7 @@
 			"mediaSelectionFailed": "メディアの選択に失敗しました",
 			"mediaSelectionError": "メディアの選択中にエラーが発生しました。もう一度お試しください。",
 			"replaceWithMyPhoto": "自分の写真に差し替える",
+			"reselectPhoto": "写真を選び直す",
 			"openSettings": "設定を開く",
 			"pickFromLibrary": "ライブラリから選ぶ",
 			"shootWithCamera": "写真を撮る",
@@ -983,7 +984,8 @@
 		},
 		"unsavedHint": "保存していないお店も選べます。上の検索にお店の名前を入れるか、地図のお店アイコンをタップしてください。",
 		"pickTitle": "お店を選ぶ",
-		"pickOnMap": "地図からお店を探す"
+		"pickOnMap": "地図からお店を探す",
+		"pickConfirm": "このお店にする"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1026,7 +1028,16 @@
 			"noPhotoHint": "写真なしでも記録できます",
 			"publicReviewNotice": "記録は公開レビューとして店舗ページに表示されます",
 			"postNotFoundNoPhoto": "この記録には写真がありません",
-			"skipPhoto": "スキップ（写真なし）"
+			"skipPhoto": "スキップ（写真なし）",
+			"missingHint": "{{items}} を入力すると投稿できます。",
+			"missing": {
+				"comment": "一言レビュー",
+				"price": "料金",
+				"rating": "オススメ度",
+				"dishCategory": "料理カテゴリー",
+				"separator": "、",
+				"currency": "この店の通貨が取得できていません"
+			}
 		},
 		"filters": {
 			"title": "絞り込み・並び替え",
@@ -1164,7 +1175,9 @@
 			"save": "食べたいに保存",
 			"saveRequirement": "料理と店舗を選ぶと保存できます。",
 			"resolveAgain": "もう一度読み取る",
-			"cancel": "キャンセル"
+			"cancel": "キャンセル",
+			"saveRequirementRestaurant": "お店を選ぶと保存できます。",
+			"saveRequirementDish": "料理カテゴリーを選ぶと保存できます。"
 		},
 		"sections": {
 			"dishCategory": "料理",

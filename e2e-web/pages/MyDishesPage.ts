@@ -176,24 +176,27 @@ export class MyDishesPage {
 	 * オーナー指示で「お店 → **料理** → 写真 → …」の順になった。カテゴリーが決まるまで
 	 * 写真の選択肢もコメント欄も出ないので、店を選んだ直後は必ずここを通る。
 	 *
-	 * その店に既存の料理があれば一覧から選び、無ければ打った名前で新規に作る。
-	 * どちらに転んでも動くよう «一覧に出たら押す / 出なければ作る» の両対応にしてある。
+	 * #1629 この欄は **プロジェクト標準のオートコンプリート**（`DishCategoryAutocomplete`）になり、
+	 * «この名前で決める» は無くなった（押せるのに必ず失敗するボタンだったため）。選ぶ道は 2 つ:
+	 *
+	 * 1. 打って出たマスタの候補（`-search-suggestion-0`）
+	 * 2. 未入力のときに出る «この店の料理»（`-item-0`）
 	 */
 	async chooseDishCategoryInRecordFlow(name: string): Promise<void> {
 		const step = this.page.getByTestId("review-dish-category-step");
 		await step.waitFor({ state: "visible" });
-		await this.page.getByTestId("review-dish-category-step-input").fill(name);
+		const input = this.page.getByTestId("review-dish-category-step-search-input");
+		await input.fill(name);
 
-		const typedButton = this.page.getByTestId("review-dish-category-step-submit-typed");
+		const suggestion = this.page.locator('[data-testid^="review-dish-category-step-search-suggestion-"]').first();
 		const firstItem = this.page.locator('[data-testid^="review-dish-category-step-item-"]').first();
-		// 打った名前が候補に無ければ «この名前で決める» が出る。あれば候補が絞られて残る
-		await Promise.race([
-			typedButton.waitFor({ state: "visible", timeout: 15_000 }),
-			firstItem.waitFor({ state: "visible", timeout: 15_000 }),
-		]);
-		if (await typedButton.isVisible()) {
-			await typedButton.click();
-		} else {
+		try {
+			await suggestion.waitFor({ state: "visible", timeout: 15_000 });
+			await suggestion.click();
+		} catch {
+			// マスタに当たらない名前だったときは «この店の料理» の先頭へ落とす
+			await input.fill("");
+			await firstItem.waitFor({ state: "visible", timeout: 15_000 });
 			await firstItem.click();
 		}
 		// 決まると写真の入口が出る（= 2 歩目へ進んだ）。コメント欄はまだ出ない

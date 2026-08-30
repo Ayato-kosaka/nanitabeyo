@@ -17,7 +17,9 @@ export class DishCategoryVariantsRepository {
   ) {}
 
   /**
-   * 料理カテゴリ表記揺れを検索
+   * 料理カテゴリ表記揺れを検索（**前方一致**。索引が効く速い方）。
+   *
+   * これで 0 件だったときだけ `findDishCategoryVariantsLoosely` へ落ちる。
    */
   async findDishCategoryVariants(tx: Prisma.TransactionClient, q: string) {
     const qNorm = q.trim().toLowerCase();
@@ -52,6 +54,81 @@ export class DishCategoryVariantsRepository {
     this.logger.debug('DishCategoryVariantsFound', 'findDishCategoryVariants', {
       count: result.length,
     });
+    return result;
+  }
+
+  /**
+   * #1629 前方一致で 0 件だったときの **緩い**検索。
+   *
+   * ## なぜ要るか（オーナー実機報告）
+   *
+   * > このお店検索のボックスが何を入力しても出ないのがちょっと気になりますね。
+   * > 背脂ラーメンってカタカナで打っても出ないし。
+   *
+   * 既存の検索は `surface_form LIKE (q || '%')` の**前方一致だけ**だった。実ログ（dev /
+   * 2026-08-29）でも `{"query":"すし","resultCount":0}` に対して `{"query":"寿司",
+   * "resultCount":5}` で、**打ち方を変えると出たり出なかったりする**状態だった。
+   * 「背脂ラーメン」のように **既存の表記を後ろに含む複合語**は、前方一致では永遠に出ない。
+   *
+   * ## 何を足したか
+   *
+   * | 順位 | 条件 | 例（q = 背脂ラーメン） |
+   * | --- | --- | --- |
+   * | 1 | 表記が q を含む | 「背脂ラーメン」があればそれ |
+   * | 2 | **q が表記を含む** | 「ラーメン」が出る（これが今回の本命） |
+   *
+   * ⚠️ 2 の «q が表記を含む» は 1 文字の表記（「肉」等）が何にでも当たるので、
+   *    **2 文字以上**に限る。誤爆すると候補が意味の無い並びになる。
+   *
+   * ## 速さについて
+   *
+   * どちらも索引が効かない（前方一致でないため）走査になる。だから **前方一致が 0 件の
+   * ときしか呼ばない**。`dish_category_variants` は数千行規模の小さな辞書
+   * （`findAllVariantsForMatching` の申し送り参照）で、0 件のときは今どのみち
+   * «候補なし» を返しているので、ここでの 1 回の走査は割に合う。
+   */
+  async findDishCategoryVariantsLoosely(
+    tx: Prisma.TransactionClient,
+    q: string,
+  ) {
+    const qNorm = q.trim().toLowerCase();
+    this.logger.debug(
+      'FindDishCategoryVariantsLoosely',
+      'findDishCategoryVariantsLoosely',
+      { qNorm },
+    );
+
+    const result = await tx.$queryRaw<PrismaDishCategories[]>`
+    WITH candidates AS (
+      SELECT
+        dc.id AS "dishCategoryId",
+        MIN(CASE WHEN dcv.surface_form LIKE ('%' || ${qNorm} || '%') THEN 0 ELSE 1 END) AS match_rank,
+        MIN(ABS(char_length(dcv.surface_form) - char_length(${qNorm}))) AS len_diff
+      FROM dish_category_variants dcv
+      JOIN dish_categories dc
+        ON dc.id = dcv.dish_category_id
+      WHERE dcv.surface_form LIKE ('%' || ${qNorm} || '%')
+         OR (char_length(dcv.surface_form) >= 2
+             AND ${qNorm} LIKE ('%' || dcv.surface_form || '%'))
+      GROUP BY dc.id
+    )
+    SELECT
+      dc.*
+    FROM candidates c
+    JOIN dish_categories dc
+      ON dc.id = c."dishCategoryId"
+    ORDER BY
+      c.match_rank ASC,
+      c.len_diff ASC,
+      c."dishCategoryId" ASC
+    LIMIT 20;
+  `;
+
+    this.logger.debug(
+      'DishCategoryVariantsFoundLoosely',
+      'findDishCategoryVariantsLoosely',
+      { count: result.length },
+    );
     return result;
   }
 

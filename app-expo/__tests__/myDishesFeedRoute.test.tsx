@@ -23,6 +23,8 @@ jest.mock("@/lib/i18n", () => ({
 	__esModule: true,
 	default: {
 		t: (key: string, params?: Record<string, unknown>) => (params ? `${key}:${JSON.stringify(params)}` : key),
+		// #1629 カテゴリの表示名は `labels[言語]` から引くのでロケールが要る（実機では必ず入っている）
+		locale: "ja-JP",
 	},
 }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
@@ -99,8 +101,11 @@ const makeRow = (key: string, mediaId: string | null): MyDishItem =>
 
 const makeEntry = (mediaId: string, isSaved = false, categoryId = "karaage", dishName = "唐揚げ定食") => ({
 	restaurant: { id: RESTAURANT_ID, name: "テスト食堂" },
-	// #1397 (PR5/5) chips はここの `category_id` で絞り、`name` をラベルにする
-	dish: { id: "dish-1", category_id: categoryId, name: dishName },
+	/*
+	#1397 (PR5/5) chips はここの `category_id` で絞る。
+	#1629 ラベルは `dishes.name` ではなく **`dish_categories.labels`** から locale で引く。
+	*/
+	dish: { id: "dish-1", category_id: categoryId, name: "店での呼び名", categoryLabels: { ja: dishName } },
 	dish_media: {
 		id: mediaId,
 		isMine: false,

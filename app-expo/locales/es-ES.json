@@ -667,6 +667,7 @@
 			"mediaSelectionFailed": "Error al seleccionar medios",
 			"mediaSelectionError": "Ocurrió un error al seleccionar medios. Por favor intenta de nuevo.",
 			"replaceWithMyPhoto": "Usar mi propia foto",
+			"reselectPhoto": "Cambiar foto",
 			"openSettings": "Abrir ajustes",
 			"pickFromLibrary": "Elegir de la galería",
 			"shootWithCamera": "Tomar una foto",
@@ -983,7 +984,8 @@
 		},
 		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa.",
 		"pickTitle": "Elegir local",
-		"pickOnMap": "Buscar en el mapa"
+		"pickOnMap": "Buscar en el mapa",
+		"pickConfirm": "Elegir este lugar"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1026,7 +1028,16 @@
 			"noPhotoHint": "También puedes registrarlo sin foto",
 			"publicReviewNotice": "Tu registro aparecerá como reseña pública en la página del restaurante",
 			"postNotFoundNoPhoto": "Este registro no tiene foto",
-			"skipPhoto": "Omitir (sin foto)"
+			"skipPhoto": "Omitir (sin foto)",
+			"missingHint": "Añade {{items}} para publicar.",
+			"missing": {
+				"comment": "una reseña breve",
+				"price": "precio",
+				"rating": "valoración",
+				"dishCategory": "categoría del plato",
+				"separator": ", ",
+				"currency": "la moneda de este lugar no está disponible"
+			}
 		},
 		"filters": {
 			"title": "Filtrar y ordenar",
@@ -1164,7 +1175,9 @@
 			"save": "Guardar en Quiero comer",
 			"saveRequirement": "Elige un plato y un restaurante para guardar.",
 			"resolveAgain": "Volver a leer",
-			"cancel": "Cancelar"
+			"cancel": "Cancelar",
+			"saveRequirementRestaurant": "Elige un lugar para guardar.",
+			"saveRequirementDish": "Elige una categoría de plato para guardar."
 		},
 		"sections": {
 			"dishCategory": "Plato",

@@ -18,6 +18,12 @@ jest.mock("@/lib/i18n", () => ({
 	// ラベルの検証を «キー + 補間値» で行えるようにする（実文言はロケール依存なので見ない）
 	default: {
 		t: (key: string, params?: Record<string, unknown>) => (params ? `${key}:${JSON.stringify(params)}` : key),
+		/*
+		#1629 カテゴリの表示名は `labels[言語]` から引くので、**ロケールが要る**。
+		以前は `dishes.name` へ落ちていたので mock に locale が無くても通っていた。
+		実機では必ず入っている値なので、mock も実機に合わせる。
+		*/
+		locale: "ja-JP",
 	},
 }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
@@ -43,7 +49,11 @@ const CATEGORY_ID = "ramen";
  */
 const makeEntry = (overrides?: {
 	categoryId?: string | null;
-	name?: string | null;
+	/*
+	#1629（オーナー確定）カテゴリ chip の表示名は `dish_categories.labels` から locale で引く。
+	`dishes.name`（その店での呼び名）は表示に使わないので、fixture もこちらを動かす。
+	*/
+	categoryLabels?: Record<string, string> | null;
 	isEaten?: boolean | undefined;
 	isSaved?: boolean;
 }): NormalizedDishMediaEntry =>
@@ -52,7 +62,9 @@ const makeEntry = (overrides?: {
 		dish: {
 			id: "dish-1",
 			category_id: overrides?.categoryId === undefined ? CATEGORY_ID : overrides.categoryId,
-			name: overrides?.name === undefined ? "味玉つけ麺" : overrides.name,
+			name: "その店での呼び名（表示には使わない）",
+			categoryLabels:
+				overrides?.categoryLabels === undefined ? { ja: "味玉つけ麺" } : overrides.categoryLabels,
 		},
 		dish_media: {
 			id: "media-a",
@@ -123,10 +135,10 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 		]);
 	});
 
-	it("料理名が無いときはカテゴリ chip を出さない（QID をラベルに出さない）", () => {
+	it("カテゴリの表記が無いときはカテゴリ chip を出さない（QID をラベルに出さない）", () => {
 		// #1375 実機確認（3 巡目）: 名前が無い dish（SNS 取り込み等）で ID へ落とすと
-		// 「「Q234646」で絞る」のような意味不明の chip が出る。名前があるときだけ出す
-		const chips = buildMyDishesFeedChips(filterOf(), makeEntry({ name: null }));
+		// 「「Q234646」で絞る」のような意味不明の chip が出る。表記があるときだけ出す
+		const chips = buildMyDishesFeedChips(filterOf(), makeEntry({ categoryLabels: null }));
 
 		expect(chips.some((chip) => chip.id === "category")).toBe(false);
 		expect(chips[0].id).toBe("statusEaten");

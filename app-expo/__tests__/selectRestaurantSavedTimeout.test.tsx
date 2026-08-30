@@ -85,6 +85,10 @@ jest.mock("@/components/MapView", () => {
 			ReactActual.createElement(RNView, { testID, onPress }, children),
 	};
 });
+// #1629 確認カードを画面下へ置くのに安全域を読む。Provider を立てずに済むよう固定値を返す
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 jest.mock("react-native-maps", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/features/restaurantPicker/components/RestaurantLabelMarker", () => ({
 	RestaurantLabelMarker: () => null,

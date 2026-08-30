@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { radiusForRegion } from "@/features/restaurantPicker/mapPins";
 import { asApiList } from "@/lib/apiList";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Image } from "expo-image";
@@ -23,6 +22,12 @@ type RestaurantSearchResult = QueryRestaurantsResponse[number];
 type SearchStatus = "idle" | "debouncing" | "searching" | "success" | "empty" | "error";
 
 const DEBOUNCE_DELAY_MS = 300;
+/**
+ * #1629 店名検索の半径。**画面に見えている範囲ではなく «全国»**（理由は `runSearch` のコメント）。
+ * 日本全体が入る 1,500km。`MAX_SEARCH_RADIUS_M`（地球の半周）まで広げないのは、
+ * 地球の裏側の同名店が混ざっても選択肢として意味が無いからである。
+ */
+const NAME_SEARCH_RADIUS_M = 1_500_000;
 const RESULT_LIMIT = 20;
 
 export type RestaurantNameSearchProps = {
@@ -113,12 +118,22 @@ export function RestaurantNameSearch({
 						lat: region.latitude,
 						lng: region.longitude,
 						/*
-						  #1629 【修正】半径は «いま見えている範囲の外接円»（`radiusForRegion`）にする。
-						  独自の近似式（delta * 50000）を持っていたため、上限も下限も無いまま
-						  «画面より狭い円» を送っていた。店名検索の経路はサーバ側で距離順（KNN）に
-						  なるので、半径が大きくても走る行数は limit 件で一定である。
+						  #1629【オーナー実機報告】「«メルク» と入力しても «メルクのパン» が出ない」。
+
+						  半径を «いま見えている範囲»（`radiusForRegion`）にしていた。記録フローの
+						  この欄は地図を開いていないので **既定の viewport のまま ≒ 半径 1km** で、
+						  そこに無い店は何を打っても出ない（実ログでも `radius: 1079` が飛んでいた）。
+
+						  **店名を打つ人は «いま見えている範囲» を探していない。**「その名前の店」を
+						  探している。だから店名検索のときは半径を «全国» まで広げ、並びは
+						  従来どおり距離順（近い順）にして、近い店が上に来るようにする。
+
+						  ⚠️ 重くならない。店名ありの枝は **trgm 索引（`idx_restaurants_name_trgm`）が
+						     駆動表**で、半径は絞り込みにしか使われない。リポジトリ側の実測で
+						     «半径 1,500km・希少な店名で 8 ms»（`restaurants.repository.ts` の設計コメント）。
+						     半径を viewport に戻すと、この不具合がそのまま戻る。
 						*/
-						radius: radiusForRegion(region),
+						radius: NAME_SEARCH_RADIUS_M,
 						limit: RESULT_LIMIT,
 					},
 				});
@@ -126,8 +141,30 @@ export function RestaurantNameSearch({
 				if (latestRequestIdRef.current !== requestId) return;
 				// #1375 API を信じない。**state へ入れる前に**配列へ落とす（#1561 と同型）
 				const rows = asApiList(response);
-				setResults(rows);
-				setStatus(rows.length > 0 ? "success" : "empty");
+				/*
+				#1629【オーナー実機報告】「お店を選ぶ画面でクラッシュした」。
+
+				`asApiList` が保証するのは «配列であること» までで、**1 行の中身は誰も見ていなかった**。
+				描画側は `result.restaurant.id` / `.name` を無条件に読むので、`restaurant` を持たない行が
+				1 つ混ざるだけで `Cannot read properties of undefined (reading 'name')` になり、
+				**検索欄どころか画面ごと**落ちる（web ハーネスで実際に再現し、例外まで確認した）。
+
+				行の形もここで確かめ、使えない行は捨てる。1 行が壊れていても残りは選べるほうがよい。
+				⚠️ 捨てたことは黙らせない。0 件と «壊れていて 0 件になった» は原因が別なので、
+				   件数をログへ残す（`asApiList` が «配列でなかった» を残すのと同じ考え方）。
+				*/
+				const usable = rows.filter(
+					(row): row is RestaurantSearchResult => !!row && typeof row === "object" && !!row.restaurant?.id,
+				);
+				if (usable.length !== rows.length) {
+					logFrontendEvent({
+						event_name: "restaurant_name_search_dropped_rows",
+						error_level: "warn",
+						payload: { q, received: rows.length, usable: usable.length },
+					});
+				}
+				setResults(usable);
+				setStatus(usable.length > 0 ? "success" : "empty");
 			} catch (error) {
 				if (latestRequestIdRef.current !== requestId) return;
 				setResults([]);
@@ -206,6 +243,38 @@ export function RestaurantNameSearch({
 			}
 		};
 	}, []);
+
+	/*
+	#1629【オーナー実機報告】**店が決まったら、打っていた文字と検索結果は畳む。**
+
+	> 「該当するお店が見つかりません」→ 地図の店舗をタップ → お店を選択 → **そのエラーが消えない**。
+	> 入力した文字が残る。バツボタンを押すと選択した店が出てくる。
+
+	原因は «確定名を出す条件» が `query.length === 0` だったこと。**この欄の外**（地図の POI タップ、
+	候補チップ）で店が決まる経路では `query` に触る者が居ないので、
+
+	  1. 打った文字が入力欄に残り続ける（確定名は出ない）
+	  2. `status` も `empty` のままなので «見つかりません» の案内が下に残る
+	  3. X を押すと `query` が空になり、そこで初めて確定名が出る（= オーナーが見た «バツで店が出る»）
+
+	選び終わったら打ちかけの検索は用済みなので、**確定名が入った時点で畳む**。
+	`handleResultPress`（この欄の中で選んだ経路）が既にやっているのと同じ後始末を、
+	外から決まった経路にも効かせる。
+
+	⚠️ 依存は `selectedName` だけにすること。`query` を依存に入れると、選択後に打ち直そうとした
+	そばから消される（選び直しは X ＝ `onClearSelection` が受け持つ）。
+	*/
+	useEffect(() => {
+		if (!selectedName) return;
+		if (debounceRef.current) {
+			clearTimeout(debounceRef.current);
+			debounceRef.current = null;
+		}
+		latestRequestIdRef.current += 1;
+		setQuery("");
+		setResults([]);
+		setStatus("idle");
+	}, [selectedName]);
 
 	// 選び終えていて、かつ自分で打ち直していない間だけ «確定名» を出す。
 	// 打ち始めたら（query が入ったら）検索の入力欄として振る舞う

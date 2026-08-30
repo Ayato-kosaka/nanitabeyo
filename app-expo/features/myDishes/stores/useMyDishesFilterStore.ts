@@ -257,17 +257,21 @@ export const selectCalendarQueryKey = (s: MyDishesFilterStore): string =>
 /**
  * #1375 実機確認: Calendar の日付タップから開く全画面 Feed 用の派生クエリ。
  *
- * Calendar は «日付の棚» なので、その日 1 日ぶんだけを見る。落とすものは 2 種類ある。
- *
- * - `sort` / `featureKeys` … Calendar 用派生クエリ（`toMyDishesCalendarQueryParams`）と同じ理由。
- *   1 日ぶんの中で «評価順» や «条件に合う順» に並べ替える意味が薄く、キーが増えるだけである
- * - `lat` / `lng` / `radius`（エリア） … 日付の棚にエリアの絞り込みは含めない（ユーザー確定）。
- *   Map で絞ったエリアが Calendar 由来の Feed にまで効くと「なぜ減ったのか」が読めない
+ * Calendar は «日付の棚» なので、その日 1 日ぶんだけを見る。落とすのは `sort` / `featureKeys` だけ
+ * （Calendar 用派生クエリ `toMyDishesCalendarQueryParams` と同じ理由。1 日ぶんの中で «評価順» や
+ * «条件に合う順» に並べ替える意味が薄く、キーが増えるだけである）。
  *
  * 代わりに `from` / `to` をその日の境界へ固定する。境界は **端末のローカル日付**で切る
  * （Calendar のマス目がローカル日付で並んでいるので、ここだけ UTC で切ると 1 日ずれる）。
+ *
+ * #1629【設計】**エリア（`lat` / `lng` / `radius`）は落とさない。**
+ * 以前は «日付の棚にエリアの絞り込みは含めない» として落としていたが、その結果
+ * **月グリッドのマス目（エリアで絞られている）と、そのマスを開いた Feed（エリア無視の全件）で
+ * 件数が食い違う**という実害が出ていた（マスが空なのに開くと記録が入っている）。
+ * オーナー確定: 「フィルタの条件はマップ・グリッド・カレンダーで一緒、出力結果も同じにする」。
+ * 絞り込みは全ビューで同一条件・同一結果に揃える。
  */
-export type MyDishesDateQueryParams = Omit<MyDishesQueryParams, "sort" | "featureKeys" | "lat" | "lng" | "radius">;
+export type MyDishesDateQueryParams = Omit<MyDishesQueryParams, "sort" | "featureKeys">;
 
 /** `YYYY-MM-DD` をローカル時刻の [00:00:00.000, 23:59:59.999] へ広げる */
 export const toLocalDayRange = (date: string): { from: string; to: string } | null => {
@@ -284,9 +288,6 @@ export const toMyDishesDateQueryParams = (filter: MyDishesFilter, date: string):
 	const params = { ...toMyDishesQueryParams(filter) };
 	delete params.sort;
 	delete params.featureKeys;
-	delete params.lat;
-	delete params.lng;
-	delete params.radius;
 
 	const range = toLocalDayRange(date);
 	if (range) {

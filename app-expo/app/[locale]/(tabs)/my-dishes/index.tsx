@@ -261,14 +261,12 @@ export default function MyDishesScreen() {
 									: i18n.t("MyDishes.filters.title")
 							}>
 							<SlidersHorizontal size={18} color={colors.textPrimaryAlt} />
-							{/* #1375（オーナー指示）いま何個絞り込みが効いているかを数字で出す。
-							    アイコンだけだと «絞り込んだまま» に気づけず、
-							    «記録が消えた» と誤解する（0 のときは出さない） */}
-							{activeFilterCount > 0 && (
-								<View style={styles.filterBadge} testID="my-dishes-filter-badge">
-									<Text style={styles.filterBadgeLabel}>{activeFilterCount}</Text>
-								</View>
-							)}
+							{/* #1375（オーナー指示）絞り込みが効いていることを右上の印で出す。
+							    アイコンだけだと «絞り込んだまま» に気づけず、«記録が消えた» と誤解する。
+							    #1629（オーナー指示）**件数は出さない。** 知りたいのは «効いているか» であって
+							    «何個か» ではなく、数字はそのぶん読ませる情報が増えるだけである
+							    （数えられる場所は絞り込み画面そのもの）。0 のときは出さない */}
+							{activeFilterCount > 0 && <View style={styles.filterBadge} testID="my-dishes-filter-badge" />}
 						</TouchableOpacity>
 					</View>
 					<View style={styles.viewSwitchSpacer} />
@@ -458,28 +456,21 @@ const createStyles = (c: Palette) =>
 			justifyContent: "center",
 			marginBottom: 11,
 		},
-		// #1375（オーナー指示）絞り込みの件数バッジ。右上に重ねる
+		// #1375（オーナー指示）絞り込みが効いていることを示す印。右上に重ねる。
+		// #1629（オーナー指示）件数は出さないので、数字が入る幅を持たない **点** にした
 		filterBadge: {
 			position: "absolute",
-			top: -4,
-			right: -4,
-			minWidth: 18,
-			height: 18,
-			paddingHorizontal: 5,
-			borderRadius: 9,
-			alignItems: "center",
-			justifyContent: "center",
+			top: -2,
+			right: -2,
+			width: 10,
+			height: 10,
+			borderRadius: 5,
 			// #1375（オーナー指示 8 巡目）赤（= CTA の色）ではなくオレンジ。
 			// 状態のバッジ（食べたい / 食べた）と同じ記号色に揃える
 			backgroundColor: MY_DISH_STATUS_ORANGE,
 			// 地の色と接して読めなくならないよう縁を付ける（他のバッジ類と同じ考え方）
 			borderWidth: 1.5,
 			borderColor: c.surface,
-		},
-		filterBadgeLabel: {
-			fontSize: 10,
-			fontWeight: "700",
-			color: FixedColors.onMedia,
 		},
 		body: {
 			flex: 1,

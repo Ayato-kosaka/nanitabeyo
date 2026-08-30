@@ -205,18 +205,31 @@ export class MyDishesScreen {
 	 * その店に既存の料理があれば一覧の先頭を、無ければ打った名前で新規に作る。
 	 */
 	readonly dishCategoryStep = by.id("review-dish-category-step");
-	readonly dishCategoryStepInput = by.id("review-dish-category-step-input");
-	readonly dishCategoryStepSubmitTyped = by.id("review-dish-category-step-submit-typed");
+	readonly dishCategoryStepInput = by.id("review-dish-category-step-search-input");
+
+	/**
+	 * #1629 この欄は **プロジェクト標準のオートコンプリート**（`DishCategoryAutocomplete`）になった。
+	 *
+	 * «この名前で決める» は無くなった（押せるのに必ず失敗するボタンだったため）。選ぶ道は 2 つ:
+	 *
+	 * 1. 打って出たマスタの候補（`-search-suggestion-0`）
+	 * 2. 未入力のときに出る «この店の料理»（`-item-0`）
+	 *
+	 * ⚠️ どちらも **並び順**の testID で指す。カテゴリ id では指せない（`by.id` に前方一致が無い）。
+	 */
+	readonly dishCategoryStepSuggestion = by.id("review-dish-category-step-search-suggestion-0");
+	readonly dishCategoryStepFirstItem = by.id("review-dish-category-step-item-0");
 
 	async chooseDishCategoryInRecordFlow(query: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.dishCategoryStep, timeout);
 		await element(this.dishCategoryStepInput).replaceText(query);
-		// 候補に無ければ «この名前で決める» が出る。出ない場合は候補が絞り込まれて残っている
+		// 打ったらマスタの候補が出る。出なければ «この店の料理» の先頭を押す
 		try {
-			await waitUntilVisible(this.dishCategoryStepSubmitTyped, 5000);
-			await tapWhenVisible(this.dishCategoryStepSubmitTyped);
+			await waitUntilVisible(this.dishCategoryStepSuggestion, 8000);
+			await tapWhenVisible(this.dishCategoryStepSuggestion);
 		} catch {
-			await tapWhenVisible(by.id("review-dish-category-step").withDescendant(by.text(query)));
+			await element(this.dishCategoryStepInput).replaceText("");
+			await tapWhenVisible(this.dishCategoryStepFirstItem, 8000);
 		}
 		// 決まると 2 歩目（写真を選ぶ）が出る。コメント欄はまだ出ない
 		await waitUntilVisible(this.addPhotoPlaceholder, timeout);

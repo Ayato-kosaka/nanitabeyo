@@ -667,6 +667,7 @@
 			"mediaSelectionFailed": "Échec de la sélection des médias",
 			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer.",
 			"replaceWithMyPhoto": "Utiliser ma propre photo",
+			"reselectPhoto": "Changer de photo",
 			"openSettings": "Ouvrir les réglages",
 			"pickFromLibrary": "Choisir dans la galerie",
 			"shootWithCamera": "Prendre une photo",
@@ -983,7 +984,8 @@
 		},
 		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
 		"pickTitle": "Choisir un établissement",
-		"pickOnMap": "Chercher sur la carte"
+		"pickOnMap": "Chercher sur la carte",
+		"pickConfirm": "Choisir ce lieu"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1026,7 +1028,16 @@
 			"noPhotoHint": "Vous pouvez enregistrer sans photo",
 			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant",
 			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo",
-			"skipPhoto": "Passer (sans photo)"
+			"skipPhoto": "Passer (sans photo)",
+			"missingHint": "Ajoutez {{items}} pour publier.",
+			"missing": {
+				"comment": "un court avis",
+				"price": "prix",
+				"rating": "note",
+				"dishCategory": "catégorie du plat",
+				"separator": ", ",
+				"currency": "la devise de ce lieu est indisponible"
+			}
 		},
 		"filters": {
 			"title": "Filtrer et trier",
@@ -1164,7 +1175,9 @@
 			"save": "Enregistrer dans Envies",
 			"saveRequirement": "Choisissez un plat et un restaurant pour enregistrer.",
 			"resolveAgain": "Relire",
-			"cancel": "Annuler"
+			"cancel": "Annuler",
+			"saveRequirementRestaurant": "Choisissez un lieu pour enregistrer.",
+			"saveRequirementDish": "Choisissez une catégorie de plat pour enregistrer."
 		},
 		"sections": {
 			"dishCategory": "Plat",

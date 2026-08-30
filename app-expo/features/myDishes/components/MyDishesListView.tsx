@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,7 +15,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { MyDishItem } from "@shared/api/v1/res";
-import { MyDishEatenButton, resolveMyDishTitle } from "./myDishCard";
+import { MyDishEatenButton } from "./myDishCard";
+import { resolveDishCategoryLabel } from "../dishCategoryLabel";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import { MY_DISHES_EVENTS } from "../analytics";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
@@ -58,6 +59,8 @@ const MyDishCard = memo(function MyDishCard({
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
+	// #1629 表示名は `dish_categories.labels` から locale で引く（`dishes.name` は使わない）
+	const { locale } = useLocale();
 	// #958 と同じ理由で useWindowDimensions ではなく CenteredAppShell の中央カラム幅を使う
 	const contentWidth = useContentWidth();
 	const width = useMemo(() => (contentWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS, [contentWidth]);
@@ -85,9 +88,25 @@ const MyDishCard = memo(function MyDishCard({
 	const isExternalEmbed = item.dishMedia?.render_type === "external_embed";
 	const providerLabel = resolveProviderLabel(item.dishMedia?.externalEmbed?.provider);
 	const ProviderIcon = resolveProviderIcon(item.dishMedia?.externalEmbed?.provider);
+	/*
+	#1629【オーナー実機報告】「レビュー投稿後、新規 «食べた» のサムネが白紙で、バグってるように見える」。
+
+	投稿直後は **サムネイルの生成（リサイズ）がまだ終わっていない**ことがある。URL は返ってくるが
+	実体が無いので画像取得が失敗し、`expo-image` は **何も描かない**（＝白紙）。
+	行そのものは正しく増えているのに «壊れた» ように見えるのはこれである。
+
+	失敗したら «カテゴリの画像 → プレースホルダー» の順に落とす。カテゴリの画像は
+	`dish_categories.image_url` 由来で、ラーメン等には実際に入っている（実ログで確認）。
+
+	⚠️ 行が変わったら失敗の記憶は捨てる（`item.key` を見る）。捨てないと、セルの使い回しで
+	   **別の行が最初からプレースホルダー**になる。
+	*/
+	const [failedUrl, setFailedUrl] = useState<string | null>(null);
+	const categoryImageUrl = item.dish.categoryImageUrl || null;
+	const effectiveUrl = thumbnailUrl && thumbnailUrl !== failedUrl ? thumbnailUrl : categoryImageUrl;
 	const source = useMemo(
-		() => (thumbnailUrl ? { uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) } : null),
-		[thumbnailUrl],
+		() => (effectiveUrl ? { uri: effectiveUrl, cacheKey: getCacheKeyForImage(effectiveUrl) } : null),
+		[effectiveUrl],
 	);
 
 	const handlePress = useCallback(() => {
@@ -96,8 +115,14 @@ const MyDishCard = memo(function MyDishCard({
 	}, [item, lightImpact, onPress]);
 
 	// #1375（オーナー実機指摘「リストで食べたのうどんがローマ字になってる」）
-	// カテゴリの正式表記を優先する（規則は `resolveMyDishTitle` に集約）
-	const dishName = resolveMyDishTitle(item) ?? undefined;
+	// カテゴリの正式表記だけを使う（規則は `dishCategoryLabel.ts` に集約）
+	/*
+	⚠️ #1629 3 行の並び（星 / 店名 / 料理名）では **`resolveMyDishTitle` を使わない**。
+	   あれは «料理名が無ければ店名» へ落とすので、そのまま置くと店名が 2 行続けて出る
+	   （自己レビューで検出）。ここは «カテゴリの表記そのもの» だけを使い、無ければ行ごと出さない。
+	   タップ先の全画面 Feed は店名を必ず出すので、失われる情報は無い。
+	*/
+	const dishName = resolveDishCategoryLabel(item.dish.categoryLabels, locale) ?? undefined;
 	const rating = item.myReview?.rating ?? null;
 
 	return (
@@ -125,6 +150,8 @@ const MyDishCard = memo(function MyDishCard({
 					人からは «読み込みが遅い» に見える。キーには行を一意に指す `item.key` を使う
 					*/
 					recyclingKey={item.key}
+					// #1629 サムネイルの生成待ちで 404 になることがある。落ちたらカテゴリの画像へ替える
+					onError={() => setFailedUrl(thumbnailUrl)}
 					style={StyleSheet.absoluteFill}
 					contentFit="cover"
 					alt=""
@@ -189,9 +216,32 @@ const MyDishCard = memo(function MyDishCard({
 				状態バッジだけが使う。
 				*/}
 				<View style={styles.footer}>
-					<Text style={styles.footerText} numberOfLines={1}>
-						{dishName ?? item.restaurant.name ?? ""}
-					</Text>
+					{/*
+					#1629【オーナー指示】**タイルの下は «自分の星評価 → 店名 → 料理名» の順**にする。
+
+					5 巡目のデザインレビューで «密度を落とす» ために ★ と店名を落としていたが、
+					一覧を眺めるときに «どの店の何を、自分は何点にしたか» が要る、というのが
+					オーナーの判断である。3 行に戻すぶん、下の行ほど小さく・薄くして序列を付ける
+					（同じ大きさで 3 行積むと、どれも読まれない元の状態へ戻る）。
+
+					★ は **自分が付けた点数**（`myReview.rating`）。付けていない «食べたい» の行では
+					出さない（0 個の星を並べると «0 点を付けた» に見える）。
+					*/}
+					{rating !== null && rating > 0 && (
+						<Text style={styles.ratingText} numberOfLines={1} testID="my-dishes-list-item-rating">
+							{"★".repeat(Math.round(rating))}
+						</Text>
+					)}
+					{item.restaurant.name ? (
+						<Text style={styles.footerText} numberOfLines={1} testID="my-dishes-list-item-restaurant">
+							{item.restaurant.name}
+						</Text>
+					) : null}
+					{dishName ? (
+						<Text style={styles.footerSubText} numberOfLines={1} testID="my-dishes-list-item-dish">
+							{dishName}
+						</Text>
+					) : null}
 					{/* #1398 PR4: want 行だけ。押しても親（= 全画面 Feed への遷移）は走らない */}
 					<MyDishEatenButton item={item} onPress={onPressMarkAsEaten} />
 				</View>
@@ -210,7 +260,22 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery({ enabled });
+	const { items, isLoading, isLoadingMore, error, hasFetchedInitial, hasNextPage, loadMore, refresh } =
+		useMyDishesQuery({ enabled });
+
+	/*
+	#1629【オーナー実機報告】「食べたい/食べた タブでログインすると初期に «候補がなく空です» が出てくる」。
+
+	一覧の «読み込み中» の判定が `isLoading` だけだった。`isLoading` は **取得が始まってから**
+	true になるので、画面が出てから最初の 1 本が飛ぶまでの数フレームは
+	«読み込み中でもない / 行も 0 件» になり、そこで 0 件表示が一瞬描かれていた。
+	ログイン直後は認証の解決を待つぶんこの隙間が長く、はっきり «空です» と読めてしまう。
+
+	**まだ 1 度も取り切っていないあいだは «読み込み中» として扱う**（`hasFetchedInitial`）。
+	⚠️ 失敗したときは `hasFetchedInitial` が false のままなので、`error` を除外しないと
+	   スピナーで固着する（`EmptyState` が再試行を出す側へ渡す必要がある）。
+	*/
+	const showsInitialLoading = (isLoading || !hasFetchedInitial) && error === null;
 
 	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
 
@@ -349,7 +414,7 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 			numColumns={COLUMNS}
 			contentContainerStyle={styles.gridContent}
 			columnWrapperStyle={styles.gridRow}
-			isLoading={isLoading}
+			isLoading={showsInitialLoading}
 			isLoadingMore={isLoadingMore}
 			refreshing={isLoading}
 			onRefresh={refresh}

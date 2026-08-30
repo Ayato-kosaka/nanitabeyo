@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { type Palette } from "@/constants/Palette";
+import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
-import { View, StyleSheet, TouchableOpacity, InteractionManager } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, InteractionManager } from "react-native";
 import { Navigation, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
@@ -18,6 +18,7 @@ import {
 } from "@shared/api/v1/res";
 import type { CreateRestaurantDto, QueryRestaurantsDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
 import { asApiList } from "@/lib/apiList";
 import { useLogger } from "@/hooks/useLogger";
@@ -103,6 +104,8 @@ export default function SelectRestaurantScreen() {
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
+	// #1629 確認カードを画面下へ置くので、ホームバー等の安全域ぶん持ち上げる
+	const insets = useSafeAreaInsets();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
@@ -804,6 +807,29 @@ export default function SelectRestaurantScreen() {
 		() => clusterMapPins(pins, clusterViewport, { maxRendered: MAX_PICKER_MARKERS }),
 		[pins, clusterViewport],
 	);
+
+	/*
+	#1629【オーナー実機報告 → 指示】「店ピンを二度押さないと反映されない」。
+
+	## なぜ 2 回なのか（この仕様は残す）
+
+	#1375 8 巡目のオーナー指示で **1 回目は選択・2 回目で確定**にした。地図を触っていて
+	指が当たっただけで «記録するお店» が決まってしまうのを防ぐためである。
+
+	## ではなぜ «反映されない» と見えたのか
+
+	1 回目に起きることが **ピンの色が変わるだけ**だったからである。地図上の小さな印の色が
+	変わっても «選ばれた» と読めないし、下のシートが畳まれていれば行が選ばれたことも見えない。
+	つまり «1 回目が無反応に見える» のであって、2 回押す作法そのものが問題ではない。
+
+	そこで **1 回目で «選んだ店の名前と「このお店にする」» を画面に出す**。
+	押す対象が言葉で出るので、指が当たっただけの誤爆は «出ただけ» で終わり、
+	決めたい人は 1 タップで確定できる。オーナーの «推奨で» はこれ。
+	*/
+	const selectedPin = useMemo(
+		() => (activeRestaurantId === null ? null : pins.find((pin) => pin.restaurant.id === activeRestaurantId) ?? null),
+		[activeRestaurantId, pins],
+	);
 	/*
 	引きでは «点»、寄りで «写真 + 店名»。ラベルは引くと重なって読めなくなるうえ、
 	ビットマップだけが増える。大手の地図アプリと同じ切り替え（基準は mapPins.ts）。
@@ -931,6 +957,38 @@ export default function SelectRestaurantScreen() {
 				</View>
 			</View>
 
+			{/*
+			#1629【オーナー指示】確認カードは **画面の下**へ置く。
+
+			> 「このお店にする」ボタンは下部にして欲しい。
+
+			最初は検索窓の下（上部）に出していたが、地図で店を探しているときの指は下にある。
+			⚠️ **シートのぶん持ち上げない。** `SavedRestaurantsSheet` は `!isPickMode` のときしか
+			   描かれないので、pick モードのこのカードと同時に画面へ出ることはない
+			   （自己レビューで «176pt 浮かせても被る相手が居ない» と分かった）。
+			   安全域のぶんだけ上げて、指の届くところへ置く。
+			⚠️ `pointerEvents="box-none"` にしないと、カードの左右の余白が地図のタップを食う。
+			*/}
+			{isPickMode && selectedPin && (
+				<View
+					style={[styles.pickConfirmLayer, { bottom: insets.bottom + 16 }]}
+					pointerEvents="box-none">
+					<View style={styles.pickConfirmCard} testID="select-restaurant-pick-confirm">
+						<Text style={styles.pickConfirmName} numberOfLines={1} ellipsizeMode="tail">
+							{selectedPin.restaurant.name}
+						</Text>
+						<TouchableOpacity
+							testID="select-restaurant-pick-confirm-button"
+							style={styles.pickConfirmButton}
+							onPress={() => handlePinPress(selectedPin as RestaurantPin)}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("SelectRestaurant.pickConfirm")}>
+							<Text style={styles.pickConfirmLabel}>{i18n.t("SelectRestaurant.pickConfirm")}</Text>
+						</TouchableOpacity>
+					</View>
+				</View>
+			)}
+
 			{/* Saved Restaurants BottomSheet
 
 			    #1375（オーナー指示）**「お店を選ぶ」ときは出さない。**
@@ -984,6 +1042,48 @@ const createStyles = (c: Palette) =>
 		searchButtonContainer: {
 			marginTop: 8,
 			alignItems: "center",
+		},
+		// #1629 確認カードを浮かせる層。地図の上・シートの上に置く
+		pickConfirmLayer: {
+			position: "absolute",
+			left: 0,
+			right: 0,
+		},
+		// #1629 1 回目のタップで出る確認カード。検索まわりと同じ幅・角丸に揃える
+		pickConfirmCard: {
+			marginHorizontal: 16,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingLeft: 16,
+			paddingRight: 8,
+			paddingVertical: 8,
+			borderRadius: 16,
+			backgroundColor: c.surface,
+			// 地図の上に浮くので、地の色と混ざらないよう影を付ける（検索窓と同じ考え方）。
+			// 影の色はテーマに依らず固定（LocationAutocomplete / RestaurantNameSearch と同じトークン）
+			shadowColor: FixedColors.shadow,
+			shadowOpacity: 0.12,
+			shadowRadius: 8,
+			shadowOffset: { width: 0, height: 2 },
+			elevation: 3,
+		},
+		pickConfirmName: {
+			flex: 1,
+			fontSize: 15,
+			fontWeight: "700",
+			color: c.textPrimary,
+		},
+		pickConfirmButton: {
+			paddingHorizontal: 14,
+			paddingVertical: 8,
+			borderRadius: 12,
+			backgroundColor: c.ctaBackground,
+		},
+		pickConfirmLabel: {
+			fontSize: 14,
+			fontWeight: "700",
+			color: c.ctaLabel,
 		},
 		loadingOverlay: {
 			position: "absolute",

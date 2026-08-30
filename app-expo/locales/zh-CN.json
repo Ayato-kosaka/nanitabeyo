@@ -667,6 +667,7 @@
 			"mediaSelectionFailed": "媒体选择失败",
 			"mediaSelectionError": "选择媒体时发生错误。请重试。",
 			"replaceWithMyPhoto": "改用我自己的照片",
+			"reselectPhoto": "重新选择照片",
 			"openSettings": "打开设置",
 			"pickFromLibrary": "从相册选择",
 			"shootWithCamera": "拍照",
@@ -983,7 +984,8 @@
 		},
 		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
 		"pickTitle": "选择店铺",
-		"pickOnMap": "在地图上查找店铺"
+		"pickOnMap": "在地图上查找店铺",
+		"pickConfirm": "选择这家店"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1026,7 +1028,16 @@
 			"noPhotoHint": "没有照片也可以记录",
 			"publicReviewNotice": "该记录将作为公开评价显示在餐厅页面上",
 			"postNotFoundNoPhoto": "该记录没有照片",
-			"skipPhoto": "跳过（不加照片）"
+			"skipPhoto": "跳过（不加照片）",
+			"missingHint": "填写 {{items}} 后即可发布。",
+			"missing": {
+				"comment": "简短点评",
+				"price": "价格",
+				"rating": "推荐度",
+				"dishCategory": "料理分类",
+				"separator": "、",
+				"currency": "无法获取该店铺的货币"
+			}
 		},
 		"filters": {
 			"title": "筛选与排序",
@@ -1164,7 +1175,9 @@
 			"save": "保存到想吃",
 			"saveRequirement": "选择菜品和店铺后即可保存。",
 			"resolveAgain": "重新读取",
-			"cancel": "取消"
+			"cancel": "取消",
+			"saveRequirementRestaurant": "选择店铺后即可保存。",
+			"saveRequirementDish": "选择料理分类后即可保存。"
 		},
 		"sections": {
 			"dishCategory": "菜品",
