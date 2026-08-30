@@ -41,7 +41,7 @@ STATUS_SKIPPED_UNSUPPORTED = "skipped_unsupported"
 # --- dev API ベース URL ---------------------------------------------------------
 # 公開値（非機微）なので secret ではなく定数で持つ（オーナー方針 #1273）。
 # ⚠️ dev の実 URL をここへ記入する。env BACKEND_BASE_URL があればそちらを優先する。
-_BACKEND_BASE_URL_DEFAULT = "https://__FILL_DEV_API_BASE_URL__"
+_BACKEND_BASE_URL_DEFAULT = "https://api-development.nanitabeyo.net"
 
 
 def backend_base_url() -> str:
