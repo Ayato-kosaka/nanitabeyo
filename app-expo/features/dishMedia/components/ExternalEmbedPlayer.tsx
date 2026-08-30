@@ -587,9 +587,51 @@ const AUTOPLAY_SCRIPT = `(function () {
         + ' body=' + (document.body ? 'yes' : 'no')
         // 資源が 1 つも来ていないのか、来ているのに parse が止まっているのかを分ける
         + ' res=' + ((window.performance && performance.getEntriesByType)
-            ? performance.getEntriesByType('resource').length : -1);
+            ? performance.getEntriesByType('resource').length : -1)
+        + navFacts();
     } catch (e) {
       return 'snapshot-error';
+    }
+  }
+
+  /*
+   * #1641【観測】**«空の文書» が «どの空» なのかを分ける。**
+   *
+   * オーナー端末の実測（2026-08-30 12:40-12:44 UTC / commit 9b646339）で、TikTok が
+   * 4 回とも次の形で落ちていた。
+   *
+   *     ready=complete nodes=5 script=0 iframe=0 video=0 img=0 body=yes res=0
+   *
+   * ここまでは «中身ゼロのページが返った» としか分からず、**直す先が決まらない**。
+   * サーバ側の可能性は潰してある: 同じ embed URL を 12 連打しても毎回 240KB /
+   * script 16 本が返り、レート制限で空が返る事実は再現しなかった。
+   * つまり空は **端末側**で起きている。次の 4 つが分ければ、原因は一意に決まる。
+   *
+   * | 送る値 | 何が分かるか |
+   * | --- | --- |
+   * | st（HTTP ステータス） | 向こうが空を返した（200 で 0 バイト）のか、蹴った（4xx/5xx）のか |
+   * | bytes（転送バイト数） | 応答そのものが空だったのか、届いたのに描かれていないのか |
+   * | nav=none | 遷移が **1 度も起きていない**（＝ about:blank のまま）のか |
+   * | chars（body の文字数） | body があるだけなのか、中身を持っているのか |
+   *
+   * ⚠️ 送るのは **数と真偽だけ**。ページの本文・URL・クエリは 1 文字も載せない。
+   * ⚠️ この注釈にバッククォートを書かないこと。ここはテンプレートリテラルの内側で、
+   *    書いた時点で文字列が終わる（この修正でも 1 度壊した）。
+   */
+  function navFacts() {
+    try {
+      if (!(window.performance && performance.getEntriesByType)) return '';
+      var nav = performance.getEntriesByType('navigation')[0];
+      if (!nav) return ' nav=none';
+      var out = ' st=' + (nav.responseStatus == null ? -1 : nav.responseStatus)
+        + ' bytes=' + (nav.transferSize == null ? -1 : nav.transferSize)
+        + ' enc=' + (nav.encodedBodySize == null ? -1 : nav.encodedBodySize);
+      try {
+        out += ' chars=' + (document.body ? document.body.innerHTML.length : -1);
+      } catch (e) {}
+      return out;
+    } catch (e) {
+      return ' nav=error';
     }
   }
 
@@ -1073,13 +1115,26 @@ export function ExternalEmbedPlayer({
 	 *    報告する経路であり、通信が転んだだけの投稿を not_playable に落としてしまう。
 	 */
 	const retryLoad = useCallback(
-		(reason: string) => {
+		(reason: string, detail?: string | null) => {
 			if (hasPlayedRef.current) return; // 一度再生できたセルは触らない
 			const attempt = reloadsRef.current + 1;
 			logFrontendEvent({
 				event_name: "external_embed_load_retry",
 				error_level: "warn",
-				payload: { provider: embed.provider, reason, attempt, willRetry: attempt <= MAX_EMBED_RELOADS },
+				payload: {
+					provider: embed.provider,
+					reason,
+					attempt,
+					willRetry: attempt <= MAX_EMBED_RELOADS,
+					/*
+					#1641【観測】**«空の文書» の中身を、読み直す前に残す。**
+					これを落とすと «空だった» までしか残らず、
+					«向こうが空を返した / そもそも遷移していない» を分けられない（navFacts の注記）。
+					*/
+					detail: detail ?? null,
+					visit: visitRef.current,
+					sinceActiveMs: Date.now() - activatedAtRef.current,
+				},
 			});
 			if (attempt > MAX_EMBED_RELOADS) {
 				// ここまで来たら «向こうが返してくれない» が続いている。畳んで «◯◯ で見る» を出す
@@ -1168,7 +1223,7 @@ export function ExternalEmbedPlayer({
 			（判定の根拠と実測は `reloadsRef` の注記）。
 			*/
 			if (parsed.kind === "blank") {
-				retryLoad("blank_document");
+				retryLoad("blank_document", parsed.detail ?? null);
 				return;
 			}
 			// no_video（権利ブロック）/ not_supported（デコーダ無し）/ timeout
