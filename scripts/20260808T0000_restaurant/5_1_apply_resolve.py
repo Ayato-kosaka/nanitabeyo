@@ -38,6 +38,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--resolve-version", default="dev", help="この resolve デプロイの識別（再処理管理用）")
     p.add_argument("--limit", type=int, default=500, help="このバッチで処理する未処理投稿数の上限")
     p.add_argument("--sleep-ms", type=int, default=150, help="resolve 呼び出しの間隔（dev API 負荷対策）")
+    p.add_argument("--debug-dump", type=int, default=0, help="先頭 N 件の resolve 生レスポンスをログに出す（診断用）")
     return p.parse_args()
 
 
@@ -79,12 +80,18 @@ def main() -> None:
     }, repo_root=None) as result:
         rows = []
         n_ok = n_err = 0
+        dumped = 0
         for post in posts:
             lat = post["discovery_area_lat"]
             lng = post["discovery_area_lng"]
             radius = DEFAULT_AREA_RADIUS_M if (lat is not None and lng is not None) else None
             try:
                 resp = client.resolve_raw(post["canonical_url"], lat=lat, lng=lng, radius=radius)
+                if dumped < args.debug_dump:
+                    import json as _json
+                    LOGGER.info("[debug] url=%s\n%s", post["canonical_url"],
+                                _json.dumps(resp, ensure_ascii=False)[:1500])
+                    dumped += 1
                 outcome = classify(resp)
                 n_ok += 1
             except (urllib.error.URLError, TimeoutError, ValueError) as e:
