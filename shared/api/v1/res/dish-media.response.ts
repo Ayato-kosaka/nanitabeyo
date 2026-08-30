@@ -291,6 +291,12 @@ export type ResolveDishMediaImportResponse = {
 	prefill: {
 		dishCategoryId: string | null;
 		restaurantId: string | null;
+		/**
+		 * #1273 一意に確定した店の `google_place_id`（`restaurantId` が決まったときのみ非 null）。
+		 * BigQuery seed パイプラインが dev/public で異なる `restaurantId`(pg UUID) を持たず、
+		 * 環境非依存キーで店を指すために使う。対話フローでは不要なら無視してよい。
+		 */
+		googlePlaceId: string | null;
 	};
 	restaurantSearch: {
 		performed: boolean;

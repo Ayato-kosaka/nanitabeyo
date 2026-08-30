@@ -634,6 +634,7 @@ export class DishMediaImportsService {
       prefill: {
         dishCategoryId: dishCategoryOutcome.prefillDishCategoryId,
         restaurantId: restaurantOutcome.prefillRestaurantId,
+        googlePlaceId: restaurantOutcome.prefillGooglePlaceId,
       },
       restaurantSearch: {
         performed: restaurantOutcome.performed,
@@ -822,6 +823,9 @@ export class DishMediaImportsService {
   ): Promise<{
     candidates: ResolveDishMediaImportRestaurantCandidate[];
     prefillRestaurantId: string | null;
+    // #1273 一意に確定した店の google_place_id。BigQuery seed パイプラインが
+    // dev/public で異なる restaurantId(pg UUID) を避け、環境非依存キーで店を指すために使う。
+    prefillGooglePlaceId: string | null;
     performed: boolean;
     reason: ResolveDishMediaImportRestaurantSearchReason;
     scannedCount: number;
@@ -829,6 +833,7 @@ export class DishMediaImportsService {
     const empty = (reason: ResolveDishMediaImportRestaurantSearchReason) => ({
       candidates: [],
       prefillRestaurantId: null,
+      prefillGooglePlaceId: null,
       performed: false,
       reason,
       scannedCount: 0,
@@ -957,6 +962,10 @@ export class DishMediaImportsService {
         };
       }),
       prefillRestaurantId: matched.prefillRestaurantId,
+      prefillGooglePlaceId:
+        matched.prefillRestaurantId === null
+          ? null
+          : (byId.get(matched.prefillRestaurantId)?.google_place_id ?? null),
       performed: true,
       reason: 'searched',
       scannedCount: searchCandidates.length,
@@ -1060,7 +1069,7 @@ export class DishMediaImportsService {
         extractedTexts: [],
       },
       candidates: { dishCategories: [], restaurants: [] },
-      prefill: { dishCategoryId: null, restaurantId: null },
+      prefill: { dishCategoryId: null, restaurantId: null, googlePlaceId: null },
       restaurantSearch: {
         performed: false,
         // 照合するテキストが無いので、エリアが渡されていても引かない（DB を無駄に叩かない）

@@ -559,6 +559,7 @@ describe('DishMediaImportsService — 料理カテゴリ候補', () => {
     expect(result.status).toBe('ok');
     expect(result.candidates.dishCategories).toEqual([]);
     expect(result.prefill.dishCategoryId).toBeNull();
+    expect(result.prefill.googlePlaceId).toBeNull();
   });
 
   it('title が空なら metadata_empty', async () => {
@@ -651,6 +652,16 @@ describe('DishMediaImportsService — 店舗候補', () => {
         (candidate) => candidate.restaurantId === 'r2',
       ),
     ).toBe(false);
+    // #1273 prefill は google_place_id も返す（BigQuery seed が pg UUID を持たず環境非依存キーで店を指す）。
+    // 一意確定していればその店の place_id と一致、していなければ null という不変条件を検証する。
+    if (result.prefill.restaurantId !== null) {
+      const picked = result.candidates.restaurants.find(
+        (candidate) => candidate.restaurantId === result.prefill.restaurantId,
+      );
+      expect(result.prefill.googlePlaceId).toBe(picked?.googlePlaceId ?? null);
+    } else {
+      expect(result.prefill.googlePlaceId).toBeNull();
+    }
   });
 
   it('一部だけ渡されたら area_incomplete として区別する', async () => {
