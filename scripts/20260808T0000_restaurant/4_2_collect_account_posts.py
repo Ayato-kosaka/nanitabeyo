@@ -24,7 +24,7 @@ import urllib.request
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT
+from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url
 
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
@@ -178,11 +178,13 @@ def main() -> None:
             route = _ROUTE_BY_ACCOUNT_TYPE.get(acc["account_type"], "influencer")
             n = 0
             for media_id, permalink in discover_media(ig, token, handle, args.limit_per_account):
-                if media_id in seen:
+                # 投稿の一意キーは shortcode（検索ルート4_3と揃え、跨ルート重複解決を防ぐ）
+                pid = ig_shortcode_from_url(permalink) or media_id
+                if pid in seen:
                     continue
-                seen.add(media_id)
+                seen.add(pid)
                 rows.append({
-                    "post_id": media_id, "provider": PROVIDER_INSTAGRAM,
+                    "post_id": pid, "provider": PROVIDER_INSTAGRAM,
                     "canonical_url": permalink, "account_id": handle,
                     "discovery_route": route, "discovery_method": "ig_business_discovery",
                     "discovery_query": None,

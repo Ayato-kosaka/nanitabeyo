@@ -16,6 +16,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -30,6 +31,15 @@ TABLE_COVERAGE = "sns_coverage"
 TABLE_DISH_MEDIA_CATALOG = "sns_dish_media_catalog"
 
 PROVIDER_INSTAGRAM = "instagram"
+
+# Instagram の投稿を跨ルートで一意に指すキーは shortcode（permalink 内）。
+# business_discovery(4_2) と 検索(4_3) で同じ投稿を同じ post_id に正規化し、重複解決を防ぐ。
+_IG_SHORTCODE_RE = re.compile(r"instagram\.com/(?:[A-Za-z0-9_.]+/)?(?:p|reel|tv)/([A-Za-z0-9_-]+)", re.IGNORECASE)
+
+
+def ig_shortcode_from_url(url: str) -> str | None:
+    m = _IG_SHORTCODE_RE.search(url or "")
+    return m.group(1) if m else None
 
 # --- sns_post_resolved.status の値域 ---
 STATUS_MATCHED = "matched"
