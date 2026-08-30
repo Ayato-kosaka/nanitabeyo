@@ -341,6 +341,33 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	});
 
 	/*
+	#1641 ⚠️ **«空だった» で終わる記録を作らない。**
+
+	オーナー端末の実測（2026-08-30 / commit 9b646339）で TikTok が 4 回落ちたとき、
+	残っていたのは «中身ゼロのページが返った» までで、**直す先が決まらなかった**。
+	同じ embed URL を 12 連打してもサーバは毎回 240KB を返すので、空は端末側で起きている。
+	読み直す前に採った中身（HTTP ステータス / 転送バイト数 / 遷移の有無）を落とすと、
+	次に同じことが起きてもまた «空だった» しか残らない。
+
+	⚠️ この検証を外さないこと。外した状態で 1 度、オーナーに 3 回同じ報告をさせている。
+	*/
+	it("空の文書で読み直すときは、採った中身を記録に残す", () => {
+		act(() => {
+			create(<ExternalEmbedPlayer embed={EMBED} isActive />);
+		});
+
+		const detail = "load_complete ready=complete nodes=5 script=0 res=0 st=200 bytes=0 enc=0 chars=0";
+		post({ src: "nb-embed-autoplay", kind: "blank", detail });
+
+		const retry = mockLogFrontendEvent.mock.calls
+			.map((call) => call[0])
+			.find((event) => event.event_name === "external_embed_load_retry");
+		expect(retry).toBeDefined();
+		expect(retry.payload.reason).toBe("blank_document");
+		expect(retry.payload.detail).toBe(detail);
+	});
+
+	/*
 	#1641 ただし **無制限に読み直さない**。向こうが返さない状態が続くなら、
 	畳んでサムネイルを見せ «◯◯ で見る» を出す（ユーザーに次の手を渡す）。
 	それでも «その投稿が再生できない» とは報告しない。
