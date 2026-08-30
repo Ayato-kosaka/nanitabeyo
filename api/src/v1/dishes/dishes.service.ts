@@ -511,6 +511,14 @@ export class DishesService {
           source_names: [],
           source_row_hash: null,
           synced_at: null,
+          // #843 この経路はアプリ（ユーザー操作）が作る行なので 'user'。
+          // 既存行があるときは、その行の作成主体を保つ（作成者は不変の履歴）。
+          created_by_source:
+            existingGoogleImportEntry?.restaurant.created_by_source ?? 'user',
+          // #1681 住所と国コードはオープンデータ由来で埋める列なので、この経路では
+          // 作らない（Google の住所は ToS 3.2.3 で保持できない）。既存値は保つ。
+          address: existingGoogleImportEntry?.restaurant.address ?? null,
+          country_code: existingGoogleImportEntry?.restaurant.country_code ?? null,
         };
 
         const dish: SupabaseDishes = {

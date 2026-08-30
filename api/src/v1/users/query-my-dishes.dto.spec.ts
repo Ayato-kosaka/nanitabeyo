@@ -74,9 +74,26 @@ describe('QueryMyDishesDto', () => {
     expect(
       propertiesWithErrors({ lat: '91', lng: '139.76', radius: '1000' }),
     ).toEqual(['lat']);
+    // #1629 上限は «地図が映しうる最大»（MAX_SEARCH_RADIUS_M = 20,000km）。
+    // ここを超える値は «壊れた値» として弾く
     expect(
-      propertiesWithErrors({ lat: '35.68', lng: '139.76', radius: '999999' }),
+      propertiesWithErrors({ lat: '35.68', lng: '139.76', radius: '99999999' }),
     ).toEqual(['radius']);
+  });
+
+  /*
+    #1629 **オーナー報告「日本全体を映して再検索すると必ず 0 件」の DTO 側の再発防止。**
+
+    半径の上限が 50,000（50km）だったころ、クライアントは 50km へ clamp して送るしかなく、
+    «日本の中心から 50km» しか検索していなかった。日本全体の viewport（REGION_JP）の
+    外接円は約 1,430km なので、この値が 400 にならないことを固定する。
+
+    ⚠️ **このテストは修正前のコードで赤くなる**（@Max(50000) で radius がエラーになる）。
+  */
+  it('日本全体の viewport ぶんの半径（約 1,430km）を受け付ける', () => {
+    expect(
+      validate({ lat: '36.2048', lng: '138.2529', radius: '1430410' }).errors,
+    ).toEqual([]);
   });
 
   /* ---- 評価 ---- */

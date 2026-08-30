@@ -2,38 +2,44 @@ import { DishCategoryRecommendation } from "@/types/search";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
 
+/**
+ * ⚠️ #1673 `text` は **secondaryText が先・mainText が後**にすること。
+ * Google Autocomplete は languageCode: ja では日本語の住所順で text を返す
+ * (mainText「渋谷駅」/ secondaryText「東京都渋谷区」→ text「日本、東京都渋谷区 渋谷駅」)。
+ * 逆順のモックを置くと、text を表示に使ったときの崩れをどの検証でも観測できなくなる。
+ */
 export const mockPlacePredictions: AutocompleteLocation[] = [
 	{
 		place_id: "place_1",
-		text: "渋谷駅, 東京都渋谷区",
+		text: "日本、東京都渋谷区 渋谷駅",
 		mainText: "渋谷駅",
 		secondaryText: "東京都渋谷区",
 		types: ["train_station", "transit_station", "establishment", "point_of_interest"],
 	},
 	{
 		place_id: "place_2",
-		text: "新宿駅, 東京都新宿区",
+		text: "日本、東京都新宿区 新宿駅",
 		mainText: "新宿駅",
 		secondaryText: "東京都新宿区",
 		types: ["train_station", "transit_station", "establishment", "point_of_interest"],
 	},
 	{
 		place_id: "place_3",
-		text: "銀座, 東京都中央区",
+		text: "日本、東京都中央区 銀座",
 		mainText: "銀座",
 		secondaryText: "東京都中央区",
 		types: ["sublocality_level_1", "sublocality", "political"],
 	},
 	{
 		place_id: "place_4",
-		text: "原宿駅, 東京都渋谷区",
+		text: "日本、東京都渋谷区 原宿駅",
 		mainText: "原宿駅",
 		secondaryText: "東京都渋谷区",
 		types: ["train_station", "transit_station", "establishment", "point_of_interest"],
 	},
 	{
 		place_id: "place_5",
-		text: "六本木, 東京都港区",
+		text: "日本、東京都港区 六本木",
 		mainText: "六本木",
 		secondaryText: "東京都港区",
 		types: ["sublocality_level_1", "sublocality", "political"],
@@ -65,6 +71,9 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
+			address: null,
+			country_code: null,
 			synced_at: null,
 		},
 		dish: {
@@ -204,6 +213,9 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
+			address: null,
+			country_code: null,
 			synced_at: null,
 		},
 		dish: {
@@ -343,6 +355,9 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
+			address: null,
+			country_code: null,
 			synced_at: null,
 		},
 		dish: {
@@ -482,6 +497,9 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
+			address: null,
+			country_code: null,
 			synced_at: null,
 		},
 		dish: {
@@ -621,6 +639,9 @@ export const mockDishItems: (DishMediaEntry & {
 			source_seed_id: null,
 			source_names: [],
 			source_row_hash: null,
+			created_by_source: "user",
+			address: null,
+			country_code: null,
 			synced_at: null,
 		},
 		dish: {

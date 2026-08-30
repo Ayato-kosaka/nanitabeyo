@@ -449,13 +449,18 @@
 			"menuTitle": "Your post",
 			"edit": "Edit review",
 			"delete": "Delete post",
+			"deleteReview": "Delete review",
 			"cancel": "Cancel",
 			"mediaLocked": "Photos and videos can't be changed. You can edit the comment, rating and price.",
 			"deleteConfirmTitle": "Delete this post?",
 			"deleteConfirmMessage": "This will delete the post — the photo and your review. This can't be undone.",
+			"deleteReviewConfirmTitle": "Delete this review?",
+			"deleteReviewConfirmMessage": "This deletes only the review you wrote. The photo belongs to someone else and stays. This can't be undone.",
 			"deleteConfirmButton": "Delete",
 			"deleted": "Post deleted",
+			"reviewDeleted": "Review deleted",
 			"deleteFailed": "Couldn't delete the post",
+			"reviewDeleteFailed": "Couldn't delete the review",
 			"editTitle": "Edit review",
 			"editComment": "Comment",
 			"editRating": "Rating",
@@ -945,6 +950,7 @@
 			"savedRestaurantList": "Saved Restaurants",
 			"postPhotoVideo": "Post Photo/Video",
 			"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+			"fetchSavedRestaurantsTimeout": "This took too long. Try zooming in and searching again.",
 			"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
 		},
 		"emptyState": {
@@ -962,6 +968,7 @@
 		"savedRestaurantList": "Saved Restaurants",
 		"postPhotoVideo": "Post Photo/Video",
 		"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+		"fetchSavedRestaurantsTimeout": "This took too long. Try zooming in and searching again.",
 		"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again.",
 		"nameSearch": {
 			"placeholder": "Search by restaurant name",
@@ -1074,7 +1081,11 @@
 			"activeCount": "{{count}} filters active"
 		},
 		"empty": {
-			"description": "Dishes you save or record as eaten will show up here."
+			"description": "Dishes you save or record as eaten will show up here.",
+			"noResultsInArea": "No records in this area.",
+			"noResultsInAreaHint": "Move the map and tap “Search this area”, or clear the filters.",
+			"noResultsForFilter": "No records match these filters.",
+			"noResultsForFilterHint": "Clear the filters to see your other records."
 		},
 		"list": {
 			"noPhoto": "No photo"

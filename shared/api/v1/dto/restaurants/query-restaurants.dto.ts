@@ -1,5 +1,6 @@
 import { IsNumber, IsOptional, IsString, Max, MaxLength, Min, IsPositive } from "class-validator";
 import { Transform, Type } from "class-transformer";
+import { MAX_SEARCH_RADIUS_M } from "../../../../utils/geo_search";
 
 /** GET /v1/restaurants/search のクエリ */
 export class QueryRestaurantsDto {
@@ -15,8 +16,18 @@ export class QueryRestaurantsDto {
 	@Max(180)
 	lng!: number;
 
+	/**
+	 * 検索半径（m）。クライアントは «いま見えている viewport の外接円» を渡す。
+	 *
+	 * #1629 【設計】**上限で «引きすぎ» を止めない。** 上限は壊れた値を弾くためだけに置く
+	 * （`MAX_SEARCH_RADIUS_M` = 地球の半周）。日本全体が映っていれば半径は 1,400km 級になるが、
+	 * repository は «スポンサー枠 + KNN の近傍枠» で候補を先に limit 件へ絞るので、
+	 * 半径が大きくても走る行数は増えない（restaurants.repository.ts の設計コメント）。
+	 */
 	@Type(() => Number)
 	@IsNumber()
+	@Min(1)
+	@Max(MAX_SEARCH_RADIUS_M)
 	radius!: number;
 
 	/**

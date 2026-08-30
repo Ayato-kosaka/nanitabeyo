@@ -449,13 +449,18 @@
 			"menuTitle": "आपकी पोस्ट",
 			"edit": "समीक्षा संपादित करें",
 			"delete": "पोस्ट हटाएँ",
+			"deleteReview": "समीक्षा हटाएँ",
 			"cancel": "रद्द करें",
 			"mediaLocked": "फ़ोटो और वीडियो बदले नहीं जा सकते। आप टिप्पणी, रेटिंग और कीमत संपादित कर सकते हैं।",
 			"deleteConfirmTitle": "इस पोस्ट को हटाएँ?",
 			"deleteConfirmMessage": "यह पोस्ट (फ़ोटो और आपकी समीक्षा) हटा दी जाएगी। इसे वापस नहीं लाया जा सकता।",
+			"deleteReviewConfirmTitle": "इस समीक्षा को हटाएँ?",
+			"deleteReviewConfirmMessage": "केवल आपकी लिखी समीक्षा हटाई जाएगी। फ़ोटो किसी और की है और बनी रहेगी। इसे वापस नहीं लाया जा सकता।",
 			"deleteConfirmButton": "हटाएँ",
 			"deleted": "पोस्ट हटा दी गई",
+			"reviewDeleted": "समीक्षा हटा दी गई",
 			"deleteFailed": "पोस्ट नहीं हटाई जा सकी",
+			"reviewDeleteFailed": "समीक्षा नहीं हटाई जा सकी",
 			"editTitle": "समीक्षा संपादित करें",
 			"editComment": "टिप्पणी",
 			"editRating": "रेटिंग",
@@ -945,6 +950,7 @@
 			"savedRestaurantList": "सहेजे गए रेस्तरां",
 			"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
 			"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
+			"fetchSavedRestaurantsTimeout": "इसमें बहुत समय लगा। मानचित्र को ज़ूम करके फिर से खोजें।",
 			"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।"
 		},
 		"emptyState": {
@@ -962,6 +968,7 @@
 		"savedRestaurantList": "सहेजे गए रेस्तरां",
 		"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
 		"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
+		"fetchSavedRestaurantsTimeout": "इसमें बहुत समय लगा। मानचित्र को ज़ूम करके फिर से खोजें।",
 		"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।",
 		"nameSearch": {
 			"placeholder": "रेस्टोरेंट के नाम से खोजें",
@@ -1074,7 +1081,11 @@
 			"activeCount": "{{count}} फ़िल्टर सक्रिय"
 		},
 		"empty": {
-			"description": "जिन व्यंजनों को आप सहेजेंगे या खाया हुआ दर्ज करेंगे, वे यहाँ दिखेंगे।"
+			"description": "जिन व्यंजनों को आप सहेजेंगे या खाया हुआ दर्ज करेंगे, वे यहाँ दिखेंगे।",
+			"noResultsInArea": "इस क्षेत्र में कोई रिकॉर्ड नहीं है।",
+			"noResultsInAreaHint": "मानचित्र को हिलाकर “इस क्षेत्र में खोजें” दबाएँ, या फ़िल्टर हटाएँ।",
+			"noResultsForFilter": "इन फ़िल्टर से मेल खाता कोई रिकॉर्ड नहीं है।",
+			"noResultsForFilterHint": "फ़िल्टर हटाने पर आपके अन्य रिकॉर्ड दिखेंगे।"
 		},
 		"list": {
 			"noPhoto": "फ़ोटो नहीं"

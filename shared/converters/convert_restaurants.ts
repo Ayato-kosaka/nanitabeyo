@@ -22,6 +22,13 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
 
     image_url: supabase.image_url,
     image_path: supabase.image_path,
+    // #843 その行を誰が作ったか（user / owner / pipeline / manual）。
+    // 9_1 の同期はこの値が 'pipeline' の行だけを上書きする。
+    created_by_source: supabase.created_by_source,
+    // #1681 表示用の1行住所と ISO-3166-1 alpha-2。どちらもオープンデータ由来で、
+    // 係争地域など国が引けない店があるため NULL 許容。
+    address: supabase.address,
+    country_code: supabase.country_code,
     address_components: supabase.address_components,
     plus_code: supabase.plus_code,
     created_at: new Date(supabase.created_at),
@@ -49,6 +56,9 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     location: null,
     image_url: prisma.image_url,
     image_path: prisma.image_path,
+    created_by_source: prisma.created_by_source,
+    address: prisma.address,
+    country_code: prisma.country_code,
     address_components: prisma.address_components,
     plus_code: prisma.plus_code,
     created_at: prisma.created_at?.toISOString() ?? null,

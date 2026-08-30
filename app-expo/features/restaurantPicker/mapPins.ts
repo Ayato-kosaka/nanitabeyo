@@ -1,4 +1,5 @@
 import type { RestaurantsEntity } from "@shared/api/v1/res";
+import { MAX_SEARCH_RADIUS_M, viewportRadiusMeters } from "@shared/utils/geo_search";
 
 /**
  * #1629 «食べたを記録 → お店を選ぶ» の地図（`select-restaurant.tsx`）が
@@ -83,24 +84,40 @@ export function pinDetailLevelForRegion(
 /**
  * 表示域から検索半径（m）を決める。
  *
- * #1629 【修正】の経緯: 日本全体が映っている状態（位置情報を拒否したときの初期表示）で
- * 「このエリアで再検索」を押すと latitudeDelta が 20 度前後になり、**半径 1,000 km** を
- * 投げていた。サーバ側の DTO は radius に上限を持たない（`@IsPositive` のみ）ので素通りし、
- * 全国の店舗を集計しようとして「保存したお店の取得に失敗しました」に落ちる。
- * 50 km は my-dishes の絞り込み（`QueryMyDishesDto.radius` の `@Max`）と同じ上限。
- * ⚠️ ここを外すなら、サーバ側にも上限を入れてからにすること。
+ * #1629 【設計】**上限は «地図が映しうる最大» にする（50km で切らない）。**
  *
- * 係数 50000 は «delta 1 度 ≒ 111km» の半分（＝ 表示域の縦半分）にほぼ等しい。
- * つまり «画面に映っている範囲の内接円» を投げていることになる。
+ * 以前は 50km で頭打ちにしていた。理由は «日本全体の viewport から半径 1,000km が飛ぶと
+ * 全国の店舗を集計しようとして落ちる» ことだったが、それは **半径の問題ではなく
+ * クエリの形の問題**だった（半径内の全店に入札とレビューを集計してから並べていた）。
+ * サーバ側は «スポンサー枠（入札テーブル駆動）+ KNN の近傍枠» で候補を先に limit 件へ
+ * 絞る形になったので（`restaurants.repository.ts`）、半径がいくら大きくても
+ * 走る行数は limit 件ぶんに収まる。
  *
- * #1629 【追加】**下限も置く。** 拡大しきると delta が 0.001 度を切り、半径 50m の
+ * 一方で 50km の頭打ちは «引くと必ず 0 件» という実害だけを残していた。日本全体を
+ * 映して再検索すると «日本の中心（長野の山中）から 50km» しか探さないためである。
+ * 上限は shared/utils/geo_search.ts の `MAX_SEARCH_RADIUS_M`（地球の半周）に置き、
+ * **見えている範囲をそのまま検索する**。
+ *
+ * 半径は viewport の **外接円**（対角線の半分。`viewportRadiusMeters`）にする。
+ * 内接円だと画面の四隅が検索範囲から外れ、«地図には映っているのに出てこない» が起きる。
+ *
+ * #1629 【追加】**下限は置く。** 拡大しきると delta が 0.001 度を切り、半径 50m の
  * 検索になって «画面には店があるのに 1 件も返らない» が起きる。200m を下限にする。
  */
 export const MIN_SEARCH_RADIUS_M = 200;
-export const MAX_SEARCH_RADIUS_M = 50000;
+export { MAX_SEARCH_RADIUS_M };
 
-export function radiusForRegion(region: { latitudeDelta: number; longitudeDelta: number }): number {
-	const delta = Math.max(region.latitudeDelta, region.longitudeDelta);
-	const raw = (Number.isFinite(delta) ? delta : 0) * 50000;
-	return Math.min(Math.max(raw, MIN_SEARCH_RADIUS_M), MAX_SEARCH_RADIUS_M);
+export function radiusForRegion(region: {
+	latitude?: number;
+	latitudeDelta: number;
+	longitudeDelta: number;
+}): number {
+	const raw =
+		viewportRadiusMeters({
+			latitude: region.latitude ?? 0,
+			longitude: 0,
+			latitudeDelta: region.latitudeDelta,
+			longitudeDelta: region.longitudeDelta,
+		}) ?? 0;
+	return Math.round(Math.min(Math.max(raw, MIN_SEARCH_RADIUS_M), MAX_SEARCH_RADIUS_M));
 }

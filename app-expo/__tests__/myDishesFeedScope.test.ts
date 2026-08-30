@@ -1,5 +1,5 @@
 /*
-#1375 実機確認: 全画面 Feed の «横 = 前後のスコープ» を支える並びの決め方を固定する。
+#1375 実機確認 / #1629: 全画面 Feed の «縦 = ページ送り» を支える並びの決め方を固定する。
 
 ## 何を守っているか
 
@@ -43,7 +43,7 @@ describe("useMyDishesFeedScopeStore", () => {
 	});
 
 	it("置いた並びをそのまま返し、clear で空へ戻る", () => {
-		useMyDishesFeedScopeStore.getState().setRestaurantIds(["a", "b"], "map");
+		useMyDishesFeedScopeStore.getState().setRestaurantIds(["a", "b"]);
 		expect(useMyDishesFeedScopeStore.getState().restaurantIds).toEqual(["a", "b"]);
 
 		useMyDishesFeedScopeStore.getState().clear();
@@ -51,19 +51,20 @@ describe("useMyDishesFeedScopeStore", () => {
 	});
 
 	/*
-	#1629 並びの «出どころ» も一緒に持つ。前後を絞るかどうかがこれで変わる。
-	- map … viewport 由来。200 ピンのエリアで 200 ページを作らないよう前後 1 件へ絞る
-	- list … 一覧の並び。絞らない（縦に送り続けたら一覧の最後まで行ける）
+	#1629 一覧（グリッド）の並びは **行そのまま**（店舗 id ではない）。
+	重複排除しないので、同じ店の記録が 3 件並んでいたら縦のページも 3 枚になる。
 	*/
-	it("並びの出どころを一緒に持ち、clear で消える", () => {
-		useMyDishesFeedScopeStore.getState().setRestaurantIds(["a", "b"], "list");
-		expect(useMyDishesFeedScopeStore.getState().restaurantIdsSource).toBe("list");
-
-		useMyDishesFeedScopeStore.getState().setRestaurantIds(["c"], "map");
-		expect(useMyDishesFeedScopeStore.getState().restaurantIdsSource).toBe("map");
+	it("一覧の行の並びを、重複を潰さずそのまま持ち、clear で空へ戻る", () => {
+		const rows = [
+			{ itemKey: "review:a", dishMediaId: "media-a" },
+			// 同じ店の 2 件目でも別のページ。key は itemKey なので衝突しない
+			{ itemKey: "review:b", dishMediaId: "media-b" },
+		];
+		useMyDishesFeedScopeStore.getState().setListItems(rows);
+		expect(useMyDishesFeedScopeStore.getState().listItems).toEqual(rows);
 
 		useMyDishesFeedScopeStore.getState().clear();
-		expect(useMyDishesFeedScopeStore.getState().restaurantIdsSource).toBeNull();
+		expect(useMyDishesFeedScopeStore.getState().listItems).toEqual([]);
 	});
 
 	// ⚠️ 永続化してはいけない。再起動後に前回の viewport 由来の並びが横スクロールへ出るのは事故

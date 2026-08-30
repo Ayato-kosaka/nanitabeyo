@@ -242,7 +242,6 @@ model dish_media {
   media_processing_status        String
   thumbnail_processing_status    String
   render_type                    String                          @default("stored")
-  /// #1513 論理削除日時。NULL は未削除。読み取り経路は必ず deleted_at IS NULL で絞る
   deleted_at                     DateTime?                       @db.Timestamptz(6)
   dishes                         dishes                          @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users                          users?                          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -294,6 +293,9 @@ model dish_media_external_embeddings {
   created_at          DateTime   @default(now()) @db.Timestamptz(6)
   updated_at          DateTime   @default(now()) @db.Timestamptz(6)
   thumbnail_url       String?
+  playback_status     String     @default("unknown")
+  playback_reason     String?
+  playback_checked_at DateTime?  @db.Timestamptz(6)
   dish_media          dish_media @relation(fields: [dish_media_id, dish_id], references: [id, dish_id], onDelete: Cascade, onUpdate: NoAction, map: "dmee_dish_media_dish_fk")
 
   @@unique([dish_media_id, dish_id], map: "dmee_media_dish_uq")
@@ -375,13 +377,10 @@ model dish_reviews {
   imported_user_name     String?
   imported_user_avatar   String?
   created_at             DateTime                 @default(now()) @db.Timestamptz(6)
-  /// #1513 最終更新日時。アプリ側で明示的に更新する（更新トリガは置かない）
-  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
-  /// #1513 楽観ロック番号。更新は WHERE id = ? AND lock_no = ? で行い、不一致は 409
-  lock_no                Int                      @default(0)
-  /// #1513 論理削除日時。NULL は未削除。読み取り経路は必ず deleted_at IS NULL で絞る
-  deleted_at             DateTime?                @db.Timestamptz(6)
   eaten_at               DateTime?                @db.Date
+  deleted_at             DateTime?                @db.Timestamptz(6)
+  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  lock_no                Int                      @default(0)
   dishes                 dishes                   @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users                  users?                   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -461,11 +460,13 @@ model frontend_event_logs {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model notification_recipients {
-  notification_id   String        @db.Uuid
-  recipient_id      String        @db.Uuid
-  thread_updated_at DateTime      @db.Timestamptz(6)
-  created_at        DateTime      @default(now()) @db.Timestamptz(6)
-  notifications     notifications @relation(fields: [notification_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  notification_id      String        @db.Uuid
+  recipient_id         String        @db.Uuid
+  thread_updated_at    DateTime      @db.Timestamptz(6)
+  created_at           DateTime      @default(now()) @db.Timestamptz(6)
+  last_pushed_actor_id String?       @db.Uuid
+  last_pushed_at       DateTime?     @db.Timestamptz(6)
+  notifications        notifications @relation(fields: [notification_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([notification_id, recipient_id])
   @@index([recipient_id, created_at(sort: Desc), notification_id(sort: Desc)], map: "idx_nr_recipient_created")
@@ -625,6 +626,25 @@ model restaurant_bids {
   @@schema("dev")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model restaurant_links {
+  restaurant_id String      @db.Uuid
+  kind          String
+  value         String
+  source        String
+  fetched_at    DateTime    @default(now()) @db.Timestamptz(6)
+  created_at    DateTime    @default(now()) @db.Timestamptz(6)
+  restaurants   restaurants @relation(fields: [restaurant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([restaurant_id, kind, value])
+  @@index([kind], map: "idx_restaurant_links_kind")
+  @@index([restaurant_id, kind], map: "idx_restaurant_links_restaurant_kind")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model restaurants {
@@ -644,9 +664,15 @@ model restaurants {
   source_names       String[]                  @default([])
   source_row_hash    String?
   synced_at          DateTime?                 @db.Timestamptz(6)
+  created_by_source  String                    @default("user")
+  address            String?
+  country_code       String?
   dishes             dishes[]
   restaurant_bids    restaurant_bids[]
+  restaurant_links   restaurant_links[]
 
+  @@index([created_by_source], map: "idx_restaurants_created_by_source")
+  @@index([location], map: "idx_restaurants_location", type: Gist)
   @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_restaurants_name_trgm", type: Gin)
   @@schema("dev")
 }

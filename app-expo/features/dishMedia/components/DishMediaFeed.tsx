@@ -74,14 +74,57 @@ export default function DishMediaFeed({
 	// 画面を開いた時点の並びを固定するための state
 	// liked/unlike 等のリアルタイム反映は行わない
 	const [ids, setIds] = useState<string[]>([]);
+	/*
+	#1629【35】【設計】**固定した並びから «削除されたもの» だけは落とす。**
+
+	オーナー報告「投稿を削除するとローディングの無限ループになる」の真因がここだった。
+	並びを固定したあとは `liveIds` が縮んでもこの state は縮まないので、削除したセルが
+	FlatList に残る。残ったセルは `entriesByMediaId` から実体が消えているため
+	`useDishMediaBackgroundImageResources` の descriptor から外れ、背景画像の状態が
+	`idle` のまま二度と動かない。`DishMediaContent` は idle を «読み込み中» と見なして
+	`SkeletonShimmer` を出し続けるので、**削除した投稿の上でスケルトンが回り続ける**。
+
+	⚠️ 判定に `liveIds` を使わないこと。`clearByKey`（画面を離れるときの掃除）でも
+	   `liveIds` は空になるので、それを «削除» と読むと関係のない場面でフィードが空になる。
+	   見るのは削除操作だけが立てる墓標（`useDishMediaEntriesStore.deletedIds`）である。
+	*/
+	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
+	/*
+	#1629【40】【設計】**背景画像の «セッション» は、並びの文字列ではなく «この画面を開いた 1 回»。**
+
+	オーナー実機報告（2026-08-28 / OTA `553f8763`）:
+
+	> 削除したら **次の投稿** が無限ローディングになった
+
+	【35】で «削除したセル» は並びから落としたのに、今度は隣が読み込み中のままになった。
+	原因は `backgroundImagesSessionKey` に `ids.join(",")` を混ぜていたことである。
+	1 件消えるだけでセッションキーが変わり、`useDishMediaBackgroundImageResources` が
+	**読み終わっている画像を 1 枚残らず release して取り直す**（`resetImageStates`）。
+	取り直しの間、残ったセルは `idle` → `loading` に落ちるので、**次の投稿が
+	スケルトンに戻る**。取り直しはネイティブ側の解放と同時に走るため、実機では
+	戻ってこないことがある（＝ローディングが終わらない）。
+
+	並びが 1 件縮んだだけなら、それは同じセッションの続きである。**種を播き直した
+	ときだけ** 世代を進める（下の `setIdsSession`）。
+	*/
+	const [idsSession, setIdsSession] = useState(0);
 	useEffect(() => {
-		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
-	}, [liveIds, ids.length]);
+		if (ids.length === 0) {
+			if (liveIds.length > 0) {
+				setIds(liveIds);
+				setIdsSession((session) => session + 1);
+			}
+			return;
+		}
+		if (!ids.some((id) => deletedIds[id])) return;
+		setIds((prev) => prev.filter((id) => !deletedIds[id]));
+	}, [liveIds, ids, deletedIds]);
 
 	// #802 【責務分離】Feed は ids とページング制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
+	// #1629【40】⚠️ ここへ `ids.join(",")` を戻さないこと（上の `idsSession` の設計コメント）
 	const backgroundImagesSessionKey = useMemo(
-		() => `${entriesKey}::${idType}::${ids.join(",")}`,
-		[entriesKey, idType, ids],
+		() => `${entriesKey}::${idType}::${idsSession}`,
+		[entriesKey, idType, idsSession],
 	);
 
 	// 命令的スクロール用の List 参照
@@ -138,6 +181,22 @@ export default function DishMediaFeed({
 		idType,
 		sessionKey: backgroundImagesSessionKey,
 	});
+	/*
+	#1629【40】**並びが縮んだら表示位置を並びの中へ戻す。**
+
+	末尾の投稿を削除すると `ids.length` が 1 減り、`currentIndex` は viewability が
+	鳴るまで «存在しない位置» を指す。その間はどのセルも `index === currentIndex` に
+	ならないので **動画が 1 本も再生されない**（`isActive` が全部 false）。
+	先読みの窓も存在しない位置を中心に計算される（`computePreloadIds` 側でも丸めている）。
+	*/
+	useEffect(() => {
+		if (ids.length === 0) return;
+		const last = ids.length - 1;
+		if (currentIndex <= last) return;
+		setCurrentIndex(last);
+		onIndexChange?.(last);
+	}, [ids.length, currentIndex, onIndexChange]);
+
 	const currentIndexRef = useRef(currentIndex);
 	useEffect(() => {
 		currentIndexRef.current = currentIndex;
@@ -249,6 +308,8 @@ export default function DishMediaFeed({
 	return (
 		<View
 			style={styles.root}
+			// #1629【35】回帰テストが onLayout を発火させて FlatList を描くための口
+			testID="dish-media-feed-root"
 			// ここで SafeArea 等込みの実レイアウト高を取得し pageHeight に反映
 			onLayout={(e) => {
 				const h = Math.max(1, Math.floor(e.nativeEvent.layout.height));

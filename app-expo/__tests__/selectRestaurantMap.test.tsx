@@ -333,6 +333,75 @@ describe("#1629 viewport 変更のデバウンスとキャンセル", () => {
 	});
 });
 
+/*
+#1629 **«引いた状態» で検索が成立することを固定する回帰テスト。**
+
+オーナー報告:「日本全体を映して『このエリアで再検索』を押しても必ず 0 件」。
+この画面は位置情報を拒否すると `REGION_JP`（日本全体）から始まるので、
+開いた直後がまさにその状態だった。原因は `radiusForRegion` が半径を 50km へ
+頭打ちにしていたことで、«長野の山中から 50km» しか探していなかった。
+
+⚠️ **この 2 本は修正前のコードで赤くなる**（radius が 50,000 で頭打ちになるため、
+   «東京駅までの距離（約 200km）を含む» が満たせない）。
+*/
+describe("#1629 引き（日本全体）でも、見えている範囲をそのまま検索する", () => {
+	/** `features/map/constants.ts` の `REGION_JP` と同じ（日本全体） */
+	const JAPAN_REGION: RegionLike = {
+		latitude: 36.2048,
+		longitude: 138.2529,
+		latitudeDelta: 20,
+		longitudeDelta: 20,
+	};
+
+	/** 2 点間の距離（m）。球面（半径 6,371km）で十分 */
+	const distanceMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+		const toRad = (deg: number) => (deg * Math.PI) / 180;
+		const dLat = toRad(b.lat - a.lat);
+		const dLng = toRad(b.lng - a.lng);
+		const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+		return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
+	};
+
+	it("日本全体を映したときの検索半径に、東京駅が入る（50km で頭打ちにしない）", async () => {
+		await render();
+		await moveMapTo(JAPAN_REGION);
+
+		const payload = nearbyCalls().at(-1)?.[1] as { requestPayload: { lat: number; lng: number; radius: number } };
+		expect(payload.requestPayload.radius).toBeGreaterThan(50_000);
+		expect(payload.requestPayload.radius).toBeGreaterThan(
+			distanceMeters(
+				{ lat: payload.requestPayload.lat, lng: payload.requestPayload.lng },
+				{ lat: 35.681236, lng: 139.767125 },
+			),
+		);
+	});
+
+	it("引いた状態で返ってきた全国の店が、地図にちゃんと出る（0 件にならない）", async () => {
+		// 全国に散らばった 5 件（東京・大阪・福岡・札幌・仙台）
+		const nationwide = [
+			{ id: "tokyo", latitude: 35.681236, longitude: 139.767125 },
+			{ id: "osaka", latitude: 34.6937, longitude: 135.5023 },
+			{ id: "fukuoka", latitude: 33.5904, longitude: 130.4017 },
+			{ id: "sapporo", latitude: 43.0618, longitude: 141.3545 },
+			{ id: "sendai", latitude: 38.2682, longitude: 140.8694 },
+		].map(({ id, latitude, longitude }) => ({
+			restaurant: {
+				id,
+				name: id,
+				latitude,
+				longitude,
+				imageUrls: { sm: `https://example.com/${id}.jpg`, md: `https://example.com/${id}-md.jpg` },
+			},
+			meta: { reviewCount: 0, averageRating: 0, totalCents: 0, maxEndDate: null },
+		}));
+		respondWithNearby(nationwide);
+		await render();
+		await moveMapTo(JAPAN_REGION);
+
+		expect(mockRendered.length).toBeGreaterThan(0);
+	});
+});
+
 describe("#1629 1 件選んでも、他のマーカーの props は作り直さない", () => {
 	it("マーカーを押したとき、描き直されるのは選択が動いたマーカーだけ", async () => {
 		respondWithNearby(spreadRestaurants(8));

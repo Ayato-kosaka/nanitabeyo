@@ -17,7 +17,7 @@
 //
 // プレビュー専用モード（prefilledMedia）側の回帰は、下の 2 つ目の describe で別に固定している。
 import React, { act, useState } from "react";
-import { Text } from "react-native";
+import { Dimensions, StyleSheet, Text } from "react-native";
 import TestRenderer, { type ReactTestInstance } from "react-test-renderer";
 
 import type { MediaData } from "@/lib/mediaSelection";
@@ -733,6 +733,49 @@ describe("#1375 ReviewForm のメディア選択モード", () => {
 		mount({ mediaPickerMode: "manual" });
 		chooseDishCategory();
 		expect(tree.root.findAll((n) => n.props?.testID === "review-skip-photo")).toHaveLength(0);
+	});
+
+	/*
+	#1629【33】オーナー実機報告「食べたを記録で画像を選ぶとめちゃくちゃ小さく表示される」。
+
+	`InitialMediaPreview` は自分の寸法を 1 つも持たない（`height: "100%"` + `aspectRatio` +
+	絶対配置の画像）。したがって **枠が確定した高さを持っていること**が表示条件そのものである。
+	記録フロー（manual）だけ枠が `{ marginTop: 16 }` で高さ無しだったため、写真が潰れていた。
+
+	スナップショットではなく **寸法を数値で表明する**（潰れているかどうかは «高さがあるか» でしか分からない）。
+	*/
+	const mediaSlotStyle = (): { height?: number; marginTop?: number } => {
+		const slot = tree.root.findAll((n) => n.props?.testID === "review-media-slot");
+		if (slot.length === 0) throw new Error("メディア枠（review-media-slot）が出ていません");
+		return StyleSheet.flatten(slot[0].props.style) as { height?: number; marginTop?: number };
+	};
+
+	/** ReviewForm と同じ式（画面高 - フォーム - ボタン - 同意文 - バッファ） */
+	const EXPECTED_MEDIA_HEIGHT = Dimensions.get("window").height - 370 - 60 - 36 - 120;
+
+	it("記録フローで写真を選ぶと、プレビュー枠に確定した高さが入る", async () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		chooseDishCategory();
+
+		const resolveSelection = deferSelectMedia();
+		act(() => pressableWithTestID("review-pick-from-library").props.onPress());
+		await resolveSelection({ success: true, media: stubMedia });
+
+		// 選んだ写真がプレビューまで届いている（届いていないと寸法の話にならない）
+		expect(tree.root.findByProps({ testID: "initial-media-preview" }).props.children).toBe(stubMedia.uri);
+
+		// 修正前はここが undefined（高さ無し）で、プレビューが数 px に潰れていた
+		expect(mediaSlotStyle().height).toBe(EXPECTED_MEDIA_HEIGHT);
+		expect(mediaSlotStyle().height).toBeGreaterThan(0);
+	});
+
+	it("写真なしプレースホルダーのときだけ枠の高さを外す（中身ぶんに伸ばすため）", () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		chooseDishCategory();
+
+		expect(tree.root.findAllByProps({ testID: "review-add-photo-placeholder" }).length).toBeGreaterThan(0);
+		expect(mediaSlotStyle().height).toBeUndefined();
+		expect(mediaSlotStyle().marginTop).toBe(16);
 	});
 });
 

@@ -161,6 +161,14 @@ const toRestaurant = (row: RestaurantColumns): PrismaRestaurants => ({
   source_names: [],
   source_row_hash: null,
   synced_at: null,
+  // #843 ここは SELECT していないので **実際の値ではない**。上の理由で列を増やさず、
+  // 型を満たすためだけに DB 既定値と同じ 'user' を置いている。
+  // `RestaurantsEntity` へ畳まれる際に落ちるのでクライアントへは出ない。
+  // **この値を見て分岐するコードを書かないこと。**
+  created_by_source: 'user',
+  // #1681 同じ理由で SELECT していない。`RestaurantsEntity` へ畳まれる際に落ちる。
+  address: null,
+  country_code: null,
   id: row.r_id,
   google_place_id: row.r_google_place_id,
   name: row.r_name,

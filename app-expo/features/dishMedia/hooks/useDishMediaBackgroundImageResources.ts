@@ -101,6 +101,9 @@ export const useDishMediaBackgroundImageResources = ({
 	const imageStatesRef = useRef<DishMediaBackgroundImageStates>({});
 	const imageLoadGenerationRef = useRef(0);
 	const [imageStates, setImageStates] = useState<DishMediaBackgroundImageStates>({});
+	// #1629【40】id → key の対応表。設計は下の useEffect のコメントを参照
+	const keyByIdRef = useRef<Record<string, string>>({});
+	const [keyById, setKeyById] = useState<Record<string, string>>({});
 
 	/*
 	#1375（全画面のクラッシュ棚卸し）**捨てる前に `release()` する。**
@@ -133,6 +136,9 @@ export const useDishMediaBackgroundImageResources = ({
 		const previousStates = imageStatesRef.current;
 		imageStatesRef.current = {};
 		setImageStates({});
+		// #1629【40】id → key の対応表もセッションと寿命を揃える（下の keyById の設計コメント）
+		keyByIdRef.current = {};
+		setKeyById({});
 		releaseStatesDeferred(previousStates);
 	}, [releaseStatesDeferred]);
 
@@ -159,11 +165,6 @@ export const useDishMediaBackgroundImageResources = ({
 			[idType, ids],
 		),
 		areDishMediaBackgroundImageDescriptorsEqual,
-	);
-
-	const keyById = useMemo(
-		() => Object.fromEntries(descriptors.map((descriptor) => [descriptor.id, descriptor.key])),
-		[descriptors],
 	);
 
 	// #802 【設計】表示の真実は Image.loadAsync で取得した ImageRef の ready/error に置く。
@@ -245,6 +246,39 @@ export const useDishMediaBackgroundImageResources = ({
 	useEffect(() => {
 		resetImageStates();
 	}, [sessionKey, resetImageStates]);
+
+	/*
+	#1629【40】【設計】**id → key の対応表は «窓から外れても捨てない»。**
+
+	`descriptors` は先読みの «窓»（`computePreloadIds`）だけを写したものである。
+	以前はこの対応表を descriptors から毎回作り直していたので、**窓から外れた id は
+	`keyById` から消え、`getBackgroundImageState` が `idle` を返していた**。
+	`DishMediaContent` は `idle` を «まだ読み込み中» と見なして `SkeletonShimmer` を
+	出すので、**一度読み終わって表示できていたセルが、指を動かした拍子に
+	スケルトンへ戻る**。オーナーの «チカチカする»（#1629【30】）も、投稿を削除した
+	直後に隣のセルがローディングに見えるのも、根はここである。
+
+	画像の実体（`imageStates`）は key で持っており窓の外でも保持しているので、
+	**対応表さえ残せば、窓の外でも読み終わった絵をそのまま出せる**。
+	新しいメモリを掴むわけではない（文字列 2 本が増えるだけ）。
+
+	⚠️ 捨ててよいのは «セッションが変わったとき» だけ。`resetImageStates` が
+	   `imageStates` と一緒に捨てる。ここで捨てる条件を増やさないこと。
+	*/
+	useEffect(() => {
+		let changed = false;
+		const next = { ...keyByIdRef.current };
+		for (const descriptor of descriptors) {
+			if (next[descriptor.id] === descriptor.key) continue;
+			next[descriptor.id] = descriptor.key;
+			changed = true;
+		}
+		if (!changed) return;
+		keyByIdRef.current = next;
+		setKeyById(next);
+		// ⚠️ `sessionKey` を依存に入れること。`resetImageStates`（この下ではなく上の effect）が
+		// 対応表を空にしたあと、descriptors の参照が変わらないと二度と埋め直されない
+	}, [descriptors, sessionKey]);
 
 	// 画面を離れるときも解放する。これが無いと «最後に見ていたぶん» が残り続ける
 	useEffect(
