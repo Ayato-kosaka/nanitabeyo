@@ -322,6 +322,42 @@ def apply_sync(connection: Any) -> None:
         # **消してから入れ直す形にはしない。** ユーザーやオーナーが後から足した
         # リンク（source が user / owner / official_site）まで消えるためである。
         # オープンデータ由来の行だけを対象に upsert する。
+        # #1700 レビュー: 出所側で値が変わった/消えたときに、**古い値が残り続ける**。
+        # ON CONFLICT DO NOTHING は足すだけなので、電話が変わった店は
+        # 新旧 2 本を持つことになり、どちらが現在の値か区別できない。
+        #
+        # **オープンデータ由来の行だけ**を、今回の catalog に無いものに限って消す。
+        # ユーザー・オーナー・公式サイト由来（source <> 'open_data'）は触らない。
+        # 対象も staging に居る店に限る（catalog に載らなかった店の履歴は消さない）。
+        cursor.execute(
+            """
+            DELETE FROM restaurant_links l
+            USING restaurants r, restaurant_sync_staging s
+            WHERE l.restaurant_id = r.id
+              AND r.google_place_id = s.google_place_id
+              AND l.source = 'open_data'
+              AND NOT EXISTS (
+                SELECT 1
+                FROM (
+                  SELECT 'phone'::text AS kind, s.phone AS value
+                  UNION ALL SELECT 'website', s.website
+                  UNION ALL SELECT
+                    CASE
+                      WHEN u.value ILIKE '%%instagram.com%%' THEN 'instagram'
+                      WHEN u.value ILIKE '%%tiktok.com%%'    THEN 'tiktok'
+                      WHEN u.value ILIKE '%%facebook.com%%'  THEN 'facebook'
+                      WHEN u.value ILIKE '%%twitter.com%%'
+                        OR u.value ILIKE '%%//x.com/%%'      THEN 'x'
+                      ELSE 'other'
+                    END,
+                    u.value
+                  FROM jsonb_array_elements_text(s.social_urls_json::jsonb) AS u(value)
+                ) AS cur
+                WHERE cur.kind = l.kind AND cur.value = l.value
+              )
+            """
+        )
+
         cursor.execute(
             """
             INSERT INTO restaurant_links (restaurant_id, kind, value, source, fetched_at)

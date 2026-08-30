@@ -100,6 +100,15 @@ def main() -> None:
         WHERE snapshot_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 120 DAY)
           AND (is_active = FALSE OR closed_on IS NOT NULL)
           AND latitude IS NOT NULL AND longitude IS NOT NULL
+        -- ⚠️ **1 レコードにつき最新のスナップショット 1 本だけを採る。**
+        -- restaurant_ifas_raw は snapshot_date で積み上がる。窓の中に 2 本入ると
+        -- 同じ廃業レコードが 2 行になり、下の matched_store_count / matched_record_count が
+        -- 揃って 2 になって、**1:1 の検査が全件を捨てる**。件数がゼロになるだけで
+        -- エラーにはならないので、黙って機能が止まる。
+        -- 現在は窓内に 1 本（2026-08-23）しか無く顕在化していないが、次の取り込みで必ず起きる。
+        QUALIFY ROW_NUMBER() OVER (
+          PARTITION BY source_record_id ORDER BY snapshot_date DESC
+        ) = 1
       ),
       matched AS (
         SELECT

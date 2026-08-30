@@ -83,7 +83,7 @@ def main() -> None:
           --
           -- 3_3 は同じ place_id に複数の seed が当たったとき 1 つだけ残し、
           -- 残りを duplicate_merged / conflict_duplicate_place_id にする。
-          -- 実測で 673 グループ・770 seed が捨てられており、既存 PG 行の 31.9% が該当する。
+          -- 畳んでよいと判断できた seed（duplicate_merged）は実測 52,900 件ある。
           -- 店の同定としては正しい（1 店 1 行）が、**連絡先まで一緒に捨てる理由は無い**。
           -- 勝った seed の値を優先し、無ければ負けた seed の値で埋める。
           COALESCE(NULLIF(s.phone, ''), sib.sibling_phone) AS phone,
@@ -127,6 +127,13 @@ def main() -> None:
             ON m3.run_id = m2.run_id
            AND m3.google_place_id = m2.google_place_id
            AND m3.seed_id != m2.seed_id
+           -- ⚠️ **`duplicate_merged` だけを合併元にする。**
+           -- 3_3 は同じ place_id へ複数 seed が当たったとき、畳んでよいと判断した
+           -- ものを `duplicate_merged`、判断できなかったものを
+           -- `conflict_duplicate_place_id` にする。後者は «別の店かもしれない» という
+           -- 意味なので、そこから連絡先を引くと**他店の電話番号を載せる**。
+           -- 実測: duplicate_merged 52,900 seed / conflict 770 seed（PR #1700 レビュー）
+           AND m3.match_status = 'duplicate_merged'
           JOIN `{pipeline.dataset_ref}.restaurant_seed_catalog` s2
             ON s2.run_id = m3.run_id AND s2.seed_id = m3.seed_id
           LEFT JOIN UNNEST(s2.social_urls) AS u

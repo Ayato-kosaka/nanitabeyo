@@ -81,6 +81,34 @@ def main() -> None:
     try:
         total = 0
         with connection.cursor() as cursor:
+            # #1700 レビュー: **実行窓は «誰が INSERT したか» の代用にならない。**
+            #
+            # 同期の実行中にユーザーが店を作り、その place_id が staging にも
+            # 居た場合、pipeline の INSERT は ON CONFLICT で弾かれ、直後の
+            # provenance UPDATE がそのユーザー製の行へ source_seed_id を刻む。
+            # すると窓・seed・'user' の 3 条件を全部満たしてしまい、この script が
+            # **ユーザーの行を pipeline へ書き換える**。以後その行は同期に
+            # 上書きされる。件数の一致検査も «弾かれた INSERT» と «巻き込んだ
+            # ユーザー行» が相殺するため、必ずしも検知できない。
+            #
+            # この script が要るのは «created_by_source 列が無かった時代に
+            # 投入された行» を 1 度だけ直すときだけである。9_1 は INSERT 時に
+            # 'pipeline' を刻むので、**一度でも新しい 9_1 が流れた環境では不要**。
+            # よって「既に pipeline の行が在る」を実行禁止の条件にする。
+            # これで上のレースは構造的に起こらない（レースは «新しい 9_1 の後に
+            # この script を流す» ときにしか成立しないため）。
+            cursor.execute(
+                "SELECT COUNT(*) FROM restaurants WHERE created_by_source = 'pipeline'"
+            )
+            already = cursor.fetchone()[0]
+            if already:
+                raise RuntimeError(
+                    f"既に created_by_source='pipeline' の行が{already}件あります。"
+                    "この script は列が無かった時代の行を1度だけ直すためのもので、"
+                    "新しい 9_1 が流れた後に実行すると、同期中に作られたユーザーの行を"
+                    "pipeline へ誤って書き換えます。実行しません"
+                )
+
             for window in windows:
                 cursor.execute(
                     """

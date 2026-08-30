@@ -112,14 +112,36 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
         SELECT
           COUNT(*) AS row_count,
           COUNT(DISTINCT google_place_id) AS distinct_place_count,
+          -- #843 座標の «成立» と «日本かどうか» を分ける。
+          --
+          -- 2_1 は既存 PG の海外店（実測 338 行）を require_japan=False で通す。
+          -- ここで日本の矩形を必須にしていると、**その 338 行が catalog に載った
+          -- 瞬間にこの ERROR check が落ち、9_1 が二度と流れなくなる**。
+          -- 矩形の検査は下の restaurant_overseas_only_from_existing_pg が持つ。
           COUNTIF(
             google_place_id = '' OR name = '' OR image_url IS NULL
             OR SAFE.PARSE_JSON(address_components_json) IS NULL
-            OR latitude NOT BETWEEN 20.0 AND 46.5
-            OR longitude NOT BETWEEN 122.0 AND 154.0
+            OR latitude NOT BETWEEN -90.0 AND 90.0
+            OR longitude NOT BETWEEN -180.0 AND 180.0
           ) AS invalid_count
         FROM `{dataset}.restaurant_catalog`
         WHERE run_id = @run_id
+      ),
+      -- #843 «日本の外に居てよいのは、既に PG に在った店だけ» を守る。
+      --
+      -- オープンデータは日本の矩形で絞って取り込んでいるので、open data 由来の
+      -- 行が矩形の外に出ることは無い。出たなら座標か取り込み範囲が壊れている。
+      -- 一方、既存 PG 由来（seed に existing_restaurant_id がある）の海外店は
+      -- 正当なので通す。矩形を «全行必須» にせず、この形で残す。
+      overseas_not_existing AS (
+        SELECT COUNT(*) AS invalid_count
+        FROM `{dataset}.restaurant_catalog` c
+        JOIN `{dataset}.restaurant_seed_catalog` s
+          ON s.run_id = @run_id AND s.seed_id = c.seed_id
+        WHERE c.run_id = @run_id
+          AND s.existing_restaurant_id IS NULL
+          AND (c.latitude NOT BETWEEN 20.0 AND 46.5
+               OR c.longitude NOT BETWEEN 122.0 AND 154.0)
       ),
       -- #843 «合併したら元より減った» を捕まえる。
       --
@@ -259,6 +281,9 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           row_count = distinct_place_count FROM restaurant_stats
         UNION ALL SELECT 'restaurant_required_fields_valid', 'ERROR',
           CAST(invalid_count AS FLOAT64), 0.0, invalid_count = 0 FROM restaurant_stats
+        UNION ALL SELECT 'restaurant_overseas_only_from_existing_pg', 'ERROR',
+          CAST(invalid_count AS FLOAT64), 0.0, invalid_count = 0
+          FROM overseas_not_existing
         UNION ALL SELECT 'restaurant_merge_no_data_loss', 'ERROR',
           CAST(lost_name_rows + lost_social_rows + lost_phone_rows + lost_website_rows AS FLOAT64),
           0.0,
