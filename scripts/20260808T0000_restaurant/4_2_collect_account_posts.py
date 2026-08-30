@@ -183,8 +183,21 @@ def main() -> None:
                     bigquery.ArrayQueryParameter("handles", "STRING", handles),
                 ],
             )
-        rows = []
-        seen = set()
+        # 収集は数時間かかりレート制限で待つため、**アカウント FLUSH_EVERY 件ごとに逐次ロード**する。
+        # 末尾一括ロードだと job が 6h timeout した瞬間に収集済みが全ロストするため（実リスク）。
+        # WRITE_APPEND なので複数回呼んでも積み増しになる。seen は run 全体で共有し重複を防ぐ。
+        FLUSH_EVERY = 20
+        rows: list[dict] = []
+        seen: set[str] = set()
+        total = 0
+        processed = 0
+
+        def _flush() -> None:
+            nonlocal rows, total
+            if rows:
+                total += pipeline.load_json_rows(TABLE_POST_RAW, rows)
+                rows = []
+
         for acc in accounts:
             handle = acc["handle"]
             route = _ROUTE_BY_ACCOUNT_TYPE.get(acc["account_type"], "influencer")
@@ -207,7 +220,13 @@ def main() -> None:
                 })
                 n += 1
             LOGGER.info("  @%s: %d posts", handle, n)
-        count = pipeline.load_json_rows(TABLE_POST_RAW, rows) if rows else 0
+            processed += 1
+            if processed % FLUSH_EVERY == 0:
+                _flush()
+                LOGGER.info("  … %d/%d アカウント処理・%d 投稿ロード済み（逐次）", processed, len(accounts), total)
+
+        _flush()
+        count = total
         result["row_count"] = count
         LOGGER.info("sns_post_raw に %d 投稿を投入しました（%d アカウント）", count, len(accounts))
 
