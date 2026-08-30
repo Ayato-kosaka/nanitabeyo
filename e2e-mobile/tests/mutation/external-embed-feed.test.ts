@@ -103,6 +103,27 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 	};
 
 	/*
+	#1641 **戻る向き。** オーナー報告（実機 2026-08-30）:
+
+	> やっぱりフィードを、上下にするとうまく行かない。YouTube と TikTok。
+
+	この spec は片道にしか送っていなかったので、**一度見たセルへ戻る**という
+	いちばん普通の操作を一度も試していなかった。戻ると WebView は作り直しになるため、
+	往復でしか出ない不具合（状態の持ち越し・読み込みの競合）を素通りしていた。
+	*/
+	const swipeFeedBack = async () => {
+		const candidates = [by.id("external-embed-webview"), by.id("external-embed-fallback")];
+		let target = restaurantFeed.container;
+		for (const candidate of candidates) {
+			if (await existsNow(candidate)) {
+				target = candidate;
+				break;
+			}
+		}
+		await element(target).swipe("down", "fast", 0.6, 0.5, 0.5);
+	};
+
+	/*
 	⚠️ **この spec の間だけ Detox の同期機構を切る。**
 
 	Detox（iOS）は «アプリが暇になる» のを待ってから assertion を実行する。ところが
@@ -385,6 +406,74 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 
 		if (embedCells === 0) {
 			throw new Error("埋め込みセルを 1 つも観測できませんでした（取り込みかフィードの経路が壊れています）。");
+		}
+
+		/*
+		#1641 **往復する。** オーナー報告（実機 2026-08-30）:
+
+		> やっぱりフィードを、上下にするとうまく行かない。YouTube と TikTok。
+
+		上の周回は片道にしか送らないので、**一度見たセルへ戻る**という普通の操作を
+		一度も試していなかった。セルが前面から外れると WebView はアンマウントされ、
+		戻ると作り直しになる。往復でしか出ない不具合（状態の持ち越し・読み込みの競合・
+		プレイヤーが一時停止のまま止まる）は、ここを通らない限り永久に検出できない。
+
+		⚠️ **合否は «結論が出たか» で見る。** 再生できないこと自体は不具合ではない
+		（権利ブロックの投稿がある）。**結論が出ないまま止まっている**セルだけを落とす。
+		オーナーのスクリーンショットはまさにそれで、YouTube のプレイヤーが
+		0:00 で止まったまま操作ボタンだけが出ていた。
+		*/
+		const revisitStuck: string[] = [];
+
+		/** いま前面にいるセルが «結論» を出すまで見る。出なければ label を stuck へ記録する */
+		const observeRevisit = async (label: string) => {
+			const deadline = Date.now() + CELL_DWELL_MS;
+			for (;;) {
+				let providerHere: string | null = null;
+				for (const provider of PROVIDERS) {
+					if (await existsNow(by.id(`external-embed-cell-${provider}`), MARKER_PROBE_MS)) {
+						providerHere = provider;
+						break;
+					}
+				}
+				if (providerHere) {
+					let concluded = await existsNow(by.id(`external-embed-playing-${providerHere}`), MARKER_PROBE_MS);
+					if (!concluded) concluded = await existsNow(by.id("external-embed-fallback"), MARKER_PROBE_MS);
+					if (!concluded) {
+						concluded = await existsNow(by.id(`external-embed-known-not-playable-${providerHere}`), MARKER_PROBE_MS);
+					}
+					if (concluded) return;
+				}
+				if (Date.now() >= deadline) {
+					// 埋め込みセルに居るのに結論が出ないまま時間切れ = オーナーが見ている症状
+					if (providerHere) revisitStuck.push(`${label}(${providerHere})`);
+					return;
+				}
+				await new Promise((resolve) => setTimeout(resolve, 500));
+			}
+		};
+
+		logMemory("revisit-start");
+		for (let i = 0; i < 4; i++) {
+			await swipeFeedBack();
+			await observeRevisit(`back-${i}`);
+			await device.takeScreenshot(`revisit-back-${String(i).padStart(2, "0")}`);
+			logMemory(`revisit-back-${String(i).padStart(2, "0")}`);
+		}
+		for (let i = 0; i < 4; i++) {
+			await swipeFeed();
+			await observeRevisit(`fwd-${i}`);
+			await device.takeScreenshot(`revisit-fwd-${String(i).padStart(2, "0")}`);
+			logMemory(`revisit-fwd-${String(i).padStart(2, "0")}`);
+		}
+
+		if (revisitStuck.length > 0) {
+			throw new Error(
+				`フィードを上下に往復したあと、**結論が出ないまま止まった**セルがありました: ${revisitStuck.join(", ")}。` +
+					` 再生も «◯◯ で見る» への縮退もせず、${CELL_DWELL_MS / 1000} 秒そのままだったということです。` +
+					` オーナー報告「フィードを上下にするとうまく行かない。YouTube と TikTok」と同じ症状です。` +
+					` 撮ったコマは revisit-back-* / revisit-fwd-* を参照。`,
+			);
 		}
 
 		/*
