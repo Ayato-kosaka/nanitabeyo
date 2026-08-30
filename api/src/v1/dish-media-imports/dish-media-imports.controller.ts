@@ -10,6 +10,8 @@
 import {
   Body,
   Controller,
+  Param,
+  ParseUUIDPipe,
   Post,
   UseGuards,
   UsePipes,
@@ -18,6 +20,7 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -28,6 +31,7 @@ import {
 } from '@shared/v1/dto';
 import {
   CreateDishMediaImportResponse,
+  ReportExternalEmbedPlaybackResponse,
   ResolveDishMediaImportResponse,
 } from '@shared/v1/res';
 
@@ -103,5 +107,41 @@ export class DishMediaImportsController {
     @CurrentUser() user: RequestUser,
   ): Promise<CreateDishMediaImportResponse> {
     return this.service.create(dto, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*   POST /v1/dish-media/imports/:dishMediaId/playback-report          */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1641 端末が «このセルは再生できなかった» と報告する。
+   *
+   * ⚠️ **端末の判定を保存する経路ではない。** ここで受け取るのは «確かめ直すきっかけ» で、
+   *    判定はサーバが取り込みのときと同じ経路でやり直す。そうしないと、通信が不安定な
+   *    ユーザーが 1 人いるだけでその投稿が全員の検索から消える。
+   *
+   * ⚠️ **本文を取らない。** 端末に «理由» を送らせると、それを保存したくなる。
+   *    送らせなければ、その誘惑ごと構造的に消える。
+   */
+  @Post(':dishMediaId/playback-report')
+  @UseGuards(AuthAnonGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '埋め込みが再生できなかった報告を受けて、サーバが再検証する',
+    description: [
+      '端末の判定は保存しない。サーバが provider へ問い合わせ直した結果だけを保存して返す。',
+      '直近に確認済みの場合は問い合わせ直さず、`rechecked: false` と現状を返す。',
+      '埋め込みの行が無い dish_media でも 200 で返る（画面の裏で自動的に飛ぶ呼び出しのため）。',
+    ].join(' '),
+  })
+  @ApiParam({
+    name: 'dishMediaId',
+    required: true,
+    description: 'dish_media.id',
+  })
+  @ApiResponse({ status: 201, description: '再検証後の状態' })
+  async reportPlayback(
+    @Param('dishMediaId', ParseUUIDPipe) dishMediaId: string,
+  ): Promise<ReportExternalEmbedPlaybackResponse> {
+    return this.service.reportUnplayable(dishMediaId);
   }
 }

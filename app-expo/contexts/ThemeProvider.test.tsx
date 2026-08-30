@@ -347,6 +347,27 @@ describe("#1629 ネイティブ部品への反映（Appearance.setColorScheme）
 		expect(setColorScheme).toHaveBeenCalledWith(null);
 	});
 
+	/*
+	⚠️ **react-native-web は `setColorScheme` を実装していない。**
+
+	無条件に呼ぶと `TypeError: setColorScheme is not a function` が
+	ThemeProvider（＝ アプリ全体の親）で投げられ、**web が真っ白になって何も描かれない**。
+	preview デプロイで実測し、起動・直リンクの smoke が全滅した。
+	*/
+	it("setColorScheme が無い環境（react-native-web）でも落ちず、テーマは効く", async () => {
+		const original = Appearance.setColorScheme;
+		// web の Appearance には存在しないことを再現する
+		delete (Appearance as { setColorScheme?: unknown }).setColorScheme;
+		try {
+			mockedAsyncStorage.getItem.mockResolvedValue("dark");
+			const { seen } = await renderWithProvider();
+			// 落ちないだけでなく、JS 側のテーマはちゃんと dark になっていること
+			expect(seen.current?.scheme).toBe("dark");
+		} finally {
+			Appearance.setColorScheme = original;
+		}
+	});
+
 	it("設定を読み終わる前には触らない（起動直後にライトへ振れるのを防ぐ）", async () => {
 		// getItem を解決させないまま描画する
 		mockedAsyncStorage.getItem.mockReturnValue(new Promise(() => {}));

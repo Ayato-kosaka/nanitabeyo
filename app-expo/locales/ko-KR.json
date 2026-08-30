@@ -443,7 +443,9 @@
 			"savedMessage": "먹고 싶어요에 저장했습니다"
 		},
 		"embed": {
-			"play": "{{provider}}에서 재생"
+			"play": "{{provider}}에서 재생",
+			"openExternally": "{{provider}}에서 보기",
+			"unmute": "소리 켜기"
 		},
 		"ownPost": {
 			"menuTitle": "내 게시물",

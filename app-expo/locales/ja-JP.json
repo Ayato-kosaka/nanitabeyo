@@ -443,7 +443,9 @@
 			"savedMessage": "食べたいに保存しました"
 		},
 		"embed": {
-			"play": "{{provider}}で再生"
+			"play": "{{provider}}で再生",
+			"openExternally": "{{provider}}で見る",
+			"unmute": "音を出す"
 		},
 		"ownPost": {
 			"menuTitle": "自分の投稿",

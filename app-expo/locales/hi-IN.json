@@ -443,7 +443,9 @@
 			"savedMessage": "\"खाना है\" में सेव किया गया"
 		},
 		"embed": {
-			"play": "{{provider}} पर चलाएँ"
+			"play": "{{provider}} पर चलाएँ",
+			"openExternally": "{{provider}} पर देखें",
+			"unmute": "आवाज़ चालू करें"
 		},
 		"ownPost": {
 			"menuTitle": "आपकी पोस्ट",

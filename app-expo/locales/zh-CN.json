@@ -443,7 +443,9 @@
 			"savedMessage": "已保存到想吃"
 		},
 		"embed": {
-			"play": "在{{provider}}上播放"
+			"play": "在{{provider}}上播放",
+			"openExternally": "在{{provider}}上查看",
+			"unmute": "开启声音"
 		},
 		"ownPost": {
 			"menuTitle": "我的帖子",
