@@ -730,6 +730,22 @@ const AUTOPLAY_SCRIPT = `(function () {
  */
 const MAX_EMBED_RELOADS = 2;
 
+/**
+ * #1641【観測】**前面に来てから «何も起きていない» と見なすまでの時間。**
+ *
+ * オーナー報告「フィードを上下すると TikTok / YouTube が起動しないときがある」は、
+ * いまの計装では **1 行も残らない**。再生（autoplay_started）も縮退（unplayable）も
+ * 起きていないのが症状そのものだからで、«沈黙» はログに出ない。
+ *
+ * そこで «前面に居るのに、この時間を過ぎてもまだ何も起きていない» を 1 回だけ記録する。
+ * これでオーナーの «起動しない» が、初めて数えられる量になる。
+ *
+ * ⚠️ 短くしすぎないこと。埋め込みの読み込みは実測で数秒かかる（TikTok は 4 秒時点で
+ *    まだ video が無いことがある）。ここを 3 秒などにすると «正常に読み込み中» を
+ *    大量に警告として記録し、本物が埋もれる。
+ */
+const SLOW_START_MS = 8_000;
+
 export type ExternalEmbedPlayerProps = {
 	/*
 	#1641 `playbackStatus` を受け取る。**«再生できない» はサーバが取り込みのときに
@@ -866,6 +882,7 @@ export function ExternalEmbedPlayer({
 	}, [isActive]);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
+
 	const NativeWebView = probeRef.current.WebView;
 
 	const openInAppBrowser = useCallback(
@@ -957,6 +974,30 @@ export function ExternalEmbedPlayer({
 	#1641 **音が出ているか。** YouTube だけ自動では戻せなかったので、
 	«無音で再生中» のときだけタップで解除する口を出す（オーナー指示 2026-08-28）。
 	*/
+	/*
+	#1641【観測】**«前面に居るのに、まだ何も起きていない» を記録する。**
+
+	`playback` が "unknown" のままということは、再生も縮退もしていないということ。
+	オーナーが «起動しない» と言っているのはこの状態で、**いまはログに何も残らない**。
+	結論が出れば `playback` が変わって effect が張り直され、タイマーは片付く。
+	*/
+	useEffect(() => {
+		if (!isActive || playback !== "unknown") return;
+		const timer = setTimeout(() => {
+			logFrontendEvent({
+				event_name: "external_embed_slow_start",
+				error_level: "warn",
+				payload: {
+					provider: embed.provider,
+					mode: source?.mode ?? null,
+					visit: visitRef.current,
+					elapsedMs: Date.now() - activatedAtRef.current,
+				},
+			});
+		}, SLOW_START_MS);
+		return () => clearTimeout(timer);
+	}, [isActive, playback, embed.provider, source?.mode, logFrontendEvent]);
+
 	const [audio, setAudio] = useState<string | null>(null);
 	/*
 	#1641【設計】**WebView は «見せられる状態» になるまで透明にしておく。**
