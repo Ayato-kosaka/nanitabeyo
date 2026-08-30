@@ -15,23 +15,31 @@ const mockInstance = { __tag: "crashlytics" };
 const mockGetCrashlytics = jest.fn(() => mockInstance);
 const mockSetEnabled = jest.fn((..._args: unknown[]) => Promise.resolve());
 const mockSetAttributes = jest.fn((..._args: unknown[]) => Promise.resolve());
-let mockAvailable = true;
 
 /*
-#1641 ⚠️ **`virtual: true` が要る。** いま `@react-native-firebase/crashlytics` は
-iOS がビルドできず外してある（`crashSdk.ts` の注記）。実体が無くてもこの層の «縮退» は
-固定しておきたいので、仮想モジュールとしてモックする。
+#1641 ⚠️ **工場の中で throw して «モジュールが無い» を作らないこと。**
+
+`jest.mock` の工場は **最初の require のときに 1 度だけ走り、結果（例外も）が
+キャッシュされる**。フラグで throw を切り替えると、«無い» を試した後のテストが
+まとめて道連れになる。ローカルでは通り **CI でだけ落ちた**（run 33309359988）。
+`jest.isolateModules` + `jest.doMock` も、モックが外側のレジストリへ残るので同じ穴にはまる。
+
+そこで **getter で «形» を切り替える**。工場は 1 回しか走らないが、getter は毎回評価される
+ので、レジストリを触らずに «使えるモジュールが無い» を作れる。
+`loadCrashlytics()` は `typeof mod.getCrashlytics === 'function'` を見ているので、
+require が throw する場合（本番で実際に起きる形）と**同じ null 返し**へ落ちる。
 */
+let mockAvailable = true;
+
 jest.mock(
 	"@react-native-firebase/crashlytics",
-	() => {
-		if (!mockAvailable) throw new Error("module not found");
-		return {
-			getCrashlytics: () => mockGetCrashlytics(),
-			setCrashlyticsCollectionEnabled: (...args: unknown[]) => mockSetEnabled(...args),
-			setAttributes: (...args: unknown[]) => mockSetAttributes(...args),
-		};
-	},
+	() => ({
+		get getCrashlytics() {
+			return mockAvailable ? () => mockGetCrashlytics() : undefined;
+		},
+		setCrashlyticsCollectionEnabled: (...args: unknown[]) => mockSetEnabled(...args),
+		setAttributes: (...args: unknown[]) => mockSetAttributes(...args),
+	}),
 	{ virtual: true },
 );
 
@@ -43,7 +51,7 @@ beforeEach(() => {
 	resetCrashSdkForTest();
 });
 
-it("モジュールが無いビルドでは何もしない（縮退の唯一の入口）", () => {
+it("使えるモジュールが無いビルドでは何もしない（縮退の唯一の入口）", () => {
 	mockAvailable = false;
 	expect(installCrashSdk()).toBe(false);
 	expect(mockSetEnabled).not.toHaveBeenCalled();
