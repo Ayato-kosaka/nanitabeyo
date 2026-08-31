@@ -126,22 +126,49 @@ export default function DishMediaMap({
 		if (!ids.some((id) => deletedIds[id])) return;
 		setIds((prev) => prev.filter((id) => !deletedIds[id]));
 	}, [liveIds, ids, deletedIds]);
+	/*
+	#1743 【設計】**ピンの絵は «そのカードのサムネイル» から取る。店の写真は落とし先。**
+
+	オーナー実機報告（2026-08-31・お店提案）:
+
+	> お店提案でマップに出てくるピンの画像が、サムネの画像が反映されていない
+
+	`restaurant.imageUrls` は **`restaurants.image_path` を持つ行にだけ付く**
+	（`api/src/v1/restaurants/restaurants.assembler.ts` が `if (restaurants.image_path)` で分岐）。
+	写真が無い Google Place・#843 のカタログ同期由来の行・`image_url` しか持たない行
+	（#1680 の実測で 102 行）は `imageUrls` が `undefined` になり、
+	`AvatarBubbleMarker` は **中身が空の白い丸**を描く。
+
+	一方カルーセルのカードは `dish_media.thumbnailImageUrl` を描いており、こちらは
+	外部埋め込みでも料理カテゴリの絵まで受け皿が用意されている（`dish-media.assembler.ts`）。
+	**ピンとカードは 1 対 1 に対応しているのだから、ピンにも同じ絵を出すのが正しい。**
+	my-dishes の Map は既に同じ規則（`representativeThumbnailUrl` → 店の写真）で描いている
+	（`MyDishesMapView.tsx`）。ここだけが店の写真しか見ていなかった。
+	*/
 	const restaurants = useMemo(() => {
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		return ids
-			.map((id) =>
-				idType === "dish_media"
-					? selectEntryByMediaId(id)(state)?.restaurant
-					: selectEntryByReviewId(id)(state)?.restaurant,
-			)
-			.filter((restaurant): restaurant is NonNullable<typeof restaurant> => restaurant !== undefined)
-			.map((restaurant) => ({
-				id: restaurant.id,
-				name: restaurant.name,
-				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
-				imageUrls: restaurant.imageUrls,
-				google_place_id: restaurant.google_place_id,
+			.map((id) => (idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state)))
+			.filter((entry): entry is NonNullable<typeof entry> => !!entry?.restaurant)
+			.map((entry) => ({
+				/*
+				#1743 ピンの key は **カード（entry）ごと**に採る。
+
+				以前は `google_place_id` を key にしていた。検索結果は 1 店 1 件
+				（`unique_per_restaurant`）なので衝突しないが、この Map は投稿詳細
+				（`posts.tsx`）とプロフィールの検索結果（`profile/search-results.tsx`）でも
+				使われ、そちらは **同じ店の投稿が複数並びうる**。key が重複すると React は
+				片方を捨て、カードの枚数とピンの数がずれる（`index` で対応付けている
+				ハイライトとタップ先も 1 つずつずれる）。
+				*/
+				key: entry.dish_media.id,
+				id: entry.restaurant.id,
+				name: entry.restaurant.name,
+				coordinate: { latitude: entry.restaurant.latitude, longitude: entry.restaurant.longitude },
+				// 空文字は `<Image>` へ渡すと «壊れた画像» になるので `||` で次の候補へ畳む
+				pinImageUrl: entry.dish_media.thumbnailImageUrl || entry.restaurant.imageUrls?.sm || undefined,
+				google_place_id: entry.restaurant.google_place_id,
 			}));
 	}, [ids, idType]);
 
@@ -455,10 +482,10 @@ export default function DishMediaMap({
 				<MapView ref={mapRef} style={styles.map} initialRegion={region}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
-							key={`marker-${restaurant.google_place_id}`}
+							key={`marker-${restaurant.key}`}
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
-							uri={restaurant.imageUrls?.sm}
+							uri={restaurant.pinImageUrl}
 							color={
 								// 地図タイルは常にライト配色のため、ピンはテーマで振らない（FixedColors 参照）
 								index === currentIndex ? FixedColors.brandOnMap : FixedColors.mapMarkerSurface
