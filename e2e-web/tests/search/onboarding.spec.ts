@@ -171,8 +171,7 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 
 		await page.goto("/");
 		await onboardingPage.advanceToLastStep();
-		await onboardingPage.pressNext();
-		await onboardingPage.pressNext();
+		await onboardingPage.leaveLastStep();
 		await page.getByTestId("login-screen-skip").click();
 
 		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
@@ -197,8 +196,7 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 
 		await page.goto("/");
 		await onboardingPage.advanceToLastStep();
-		await onboardingPage.pressNext();
-		await onboardingPage.pressNext();
+		await onboardingPage.leaveLastStep();
 		await page.getByTestId("login-screen-skip").click();
 		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
 
@@ -296,7 +294,7 @@ test.describe("ヘルプボタンからの再表示", () => {
 		await searchPage.openOnboarding();
 		await onboardingPage.advanceToLastStep();
 
-		await onboardingPage.pressNext();
+		await onboardingPage.leaveLastStep();
 
 		await searchPage.expectLoaded();
 		await expect(onboardingPage.screen).toHaveCount(0);
@@ -326,7 +324,7 @@ test.describe("位置情報のダイアログが本当に出ているとき", ()
 
 		await page.goto("/");
 		await onboardingPage.advanceToLastStep();
-		await onboardingPage.pressNext();
+		await onboardingPage.leaveLastStep();
 		await page.getByTestId("login-screen-skip").click();
 
 		await expect(onboardingPage.locationScreen).toBeVisible();
@@ -377,7 +375,7 @@ test.describe("位置情報が回答済みのとき", () => {
 
 		await page.goto("/");
 		await onboardingPage.advanceToLastStep();
-		await onboardingPage.pressNext();
+		await onboardingPage.leaveLastStep();
 		await page.getByTestId("login-screen-skip").click();
 
 		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
