@@ -18,7 +18,7 @@
 */
 import React, { act } from "react";
 import TestRenderer, { type ReactTestRenderer } from "react-test-renderer";
-import { StyleSheet, View } from "react-native";
+import { Keyboard, Platform, StyleSheet, View } from "react-native";
 
 /** 実機のジェスチャーバー相当。テストごとに書き換える（jest.mock の factory から見えるよう `mock` 接頭辞） */
 let mockBottomInset = 0;
@@ -129,6 +129,41 @@ describe("useSheetBottomPadding", () => {
 	it("inset が 0 の環境（web / ジェスチャーバーの無い端末）では水増ししない", () => {
 		mockBottomInset = 0;
 		expect(probePadding(28)).toBe(28);
+	});
+
+	/*
+	キーボードが出ている間、避ける相手（ナビゲーションバー / ホームインジケータ）は
+	キーボードの裏に隠れている。そこへ inset を足すと «最後の入力欄とキーボードの間の空白» になる。
+	*/
+	it("キーボードが出ている間は inset を足さない", () => {
+		// `Keyboard.addListener` は実体を差し替えず、発火させるためのハンドルだけ捕まえる
+		// （`DishCategoryGroupVoteInlineOverlay.test.tsx` と同じ手）
+		const handlers: Record<string, () => void> = {};
+		jest.spyOn(Keyboard, "addListener").mockImplementation(((event: string, handler: () => void) => {
+			handlers[event] = handler;
+			return { remove: jest.fn() };
+		}) as unknown as typeof Keyboard.addListener);
+
+		mockBottomInset = INSET;
+		let observedPadding: number | undefined;
+		function Probe() {
+			observedPadding = useSheetBottomPadding(28);
+			return <View />;
+		}
+		const renderer = renderInAct(<Probe />);
+		expect(observedPadding).toBe(28 + INSET);
+
+		// hook は iOS だけ will 系を使う。jest-expo の既定 Platform.OS に合わせて名前を引く
+		const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+		const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+		act(() => handlers[showEvent]());
+		expect(observedPadding).toBe(28);
+
+		act(() => handlers[hideEvent]());
+		expect(observedPadding).toBe(28 + INSET);
+
+		act(() => renderer.unmount());
 	});
 });
 
