@@ -51,6 +51,29 @@ const HANDLE_COLOR = FixedColors.onMedia;
 // #638 【設計】フローティングボタンのマージン（右端からの距離）
 const FLOATING_BUTTON_MARGIN = 8;
 
+/*
+#1729 【設計】**件数が 2 以下のときは loop しない。**
+
+オーナー実機報告（2026-08-31・お店提案で検索結果が 1 件のとき）:
+
+> 検索結果が一件しかないときカルーセルを同じ dish media でぐるぐるさせる必要はない。
+> 動画にしたことで音がおかしくなるバグの温床。
+
+`react-native-reanimated-carousel` は `loop` かつ `autoFillData`（既定 true）のとき、
+**data を複製して 3 枚（1 件）/ 4 枚（2 件）に水増しする**
+（`utils/computed-with-auto-fill-data.ts` の `computedFillDataWithAutoFillData`）。
+さらに `renderItem` へ渡る `index` は水増し前へ畳み戻される
+（同ファイル `computedRealIndexWithAutoFillData` = `index % rawDataLength`）。
+
+つまり **1 件のときは 3 枚のセルが全部 `index === 0` で描かれる**。このセルの
+`isActive` は `index === currentIndex` なので、同じ dish media の
+`VideoPlayer` / `ExternalEmbedPlayer` が **同時に 3 つ再生状態になり、音が重なる**。
+2 件でも同じ形で 2 つ重なる（`index % 2` が 2 セルずつ当たる）。
+
+複製が起きない件数（3 件以上）でだけ loop する。1〜2 件はそのまま端で止まる。
+*/
+const MIN_LOOPABLE_COUNT = 3;
+
 interface DishMediaMapProps {
 	initialIndex?: number;
 	onIndexChange?: (index: number) => void;
@@ -354,6 +377,9 @@ export default function DishMediaMap({
 		[showActionSheetWithOptions, openInGoogleMaps, shareRestaurant],
 	);
 
+	// #1729 件数が 2 以下だとライブラリがセルを複製し、同じ media が同時再生される（MIN_LOOPABLE_COUNT 参照）
+	const canLoop = ids.length >= MIN_LOOPABLE_COUNT;
+
 	const renderCarouselItem = useCallback(
 		({ item, index }: { item: string; index: number }) => (
 			<View style={styles.carouselItem}>
@@ -474,7 +500,8 @@ export default function DishMediaMap({
 					renderItem={renderCarouselItem}
 					onSnapToItem={handleIndexChange}
 					defaultIndex={initialIndex}
-					loop
+					// #1729 データを複製されない件数でだけ loop する（この定数の宣言箇所に理由）
+					loop={canLoop}
 					layout={{
 						type: "parallax",
 						scale: PARALLAX_SCALE,
