@@ -48,8 +48,8 @@ map 側の店詳細は本番から到達不能で、入札の導線は事実上�
 */
 
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
-import { Camera } from "lucide-react-native";
+import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
+import { MapPin } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -63,8 +63,9 @@ import { useLogger } from "@/hooks/useLogger";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
-import { useAuth } from "@/contexts/AuthProvider";
-import { isGuestUser } from "@/lib/authGuest";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { getGoogleMapsLink } from "@/lib/googlePlaces";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 import { RestaurantEntry } from "@/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { useRouter } from "expo-router";
@@ -89,8 +90,7 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 				画面全体が «レビューを書け» と読める（唯一のボタンも «写真・動画を投稿»）。
 				セクションの見出しなので «みんなの投稿» に戻す。
 
-				⚠️ 押下先が `review-from-media`（= レビューを書く画面）であることは #1418 の
-				   決定なのでここでは変えない。見出しだけを実態へ合わせる。
+				その後オーナー確定で、押下先も «その投稿を見る»（feed）へ変えた（下の設計コメント）。
 				*/
 				const label = i18n.t("Restaurant.everybodyPostsTitle");
 				return (
@@ -119,74 +119,84 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 	const router = useRouter();
 	const { locale } = useLocale();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
-	const { user } = useAuth();
+	const { showSnackbar } = useSnackbar();
 	const { restaurant, meta } = restaurantEntry;
 
-	// #644 【設計】写真・動画を投稿するボタン押下時の処理（メディア選択ありモード）
-	const handleReviewButtonPress = useCallback(async () => {
+	/*
+	#1629【オーナー確定】**「写真・動画を投稿」は、この画面から外した。**
+
+	投稿は «食べたを記録» のフロー（my-dishes → 記録 → お店を選ぶ）に 1 本化されている。
+	店舗詳細にも同じことを始めるボタンを置いていたため、**画面に出ているものが
+	店の情報 0 件・レビューを書く導線 2 件**になり、店舗詳細を開いた人に
+	「レビューするフローに飛ばされた」と読まれていた（オーナー実機報告）。
+
+	代わりに «Google マップで開く» を戻す。#1411 が入札の撤去と一緒に消したが、
+	これは店の情報（場所・営業時間・電話）へ辿り着く導線であって入札とは無関係で、
+	撤去する理由が申し送りに書かれていなかった。
+	*/
+	const handleOpenGoogleMaps = useCallback(async () => {
 		lightImpact();
 		logFrontendEvent({
-			event_name: "review_post_photo_video_button_press",
+			event_name: "restaurant_google_maps_clicked",
 			error_level: "log",
-			payload: {
-				restaurant_id: restaurant.id,
-			},
+			payload: { restaurant_id: restaurant.id, google_place_id: restaurant.google_place_id },
 		});
 
-		// #477【設計】匿名ユーザーの場合はログイン導線へ、非匿名ユーザーの場合は ReviewForm を表示
-		// #1092 PR4b 【修正】`user?.is_anonymous !== false` から共通判定（lib/authGuest.ts）へ寄せた。
-		// 旧式は is_anonymous が undefined のときもゲストへ倒れ、レビュータブの CTA は投稿導線なのに
-		// ここではログイン導線が出る、という画面間の食い違いになる
-		if (isGuestUser(user)) {
-			// #1359 【設計】`next` は «戻り先» ではなく «行き先» として使う。
-			// このボタンは非ゲストなら投稿フォームへ進む導線なので、ゲストの `next` も同じ先へ向ければ
-			// ログイン後にそのまま投稿へ進める。店は restaurantId として URL に載るため、
-			// 履歴を持たない着地（コールドロード / web の OAuth 全画面リダイレクト）でも成立する。
-			// #1386 旧 map 実装は `next` を «地図タブ» にしていたが（#1419 でタブごと削除）、
-			// 店が URL に載った以上、投稿フォームまで戻せるこちらの方が忠実に復帰できる
-			router.push({
-				pathname: "/[locale]/auth/login",
-				params: {
-					locale,
-					next: `/${locale}/restaurant/${restaurant.id}/review`,
+		try {
+			const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
+			// #1121 Web の別タブ起動は openExternalUrl へ寄せた。
+			// canOpen（Linking.canOpenURL）はネイティブのハンドラ有無の判定なので Web では見ない
+			if (Platform.OS !== "web" && !canOpen) {
+				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
+				return;
+			}
+			await openExternalUrl(mapUrl);
+		} catch (error) {
+			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
+			logFrontendEvent({
+				event_name: "restaurant_google_maps_open_failed",
+				error_level: "error",
+				payload: {
+					restaurant_id: restaurant.id,
+					google_place_id: restaurant.google_place_id,
+					error: error instanceof Error ? error.message : "Unknown error",
 				},
 			});
-		} else {
-			// ReviewForm に遷移すると同時にメディア選択が行われる
-			router.push({
-				pathname: "/[locale]/restaurant/[restaurantId]/review",
-				params: { locale, restaurantId: restaurant.id },
-			});
 		}
-	}, [lightImpact, logFrontendEvent, router, locale, restaurant, user]);
+	}, [lightImpact, logFrontendEvent, restaurant, showSnackbar]);
 
 	/*
-	#1418 【バグ】レビュー一覧の押下は `review-from-media` へ **直行**すること。
+	#1629【オーナー確定】**一覧を押したら «その投稿を見る»（フィード）へ行く。**
 
-	#1386 で map 側（`DishMediaModal` を重ねる）へ寄せて `feed` を挟んだが、それは
-	«押下 1 回» を «押下 2 回» にする劣化だった。しかも feed の「この料理にレビューを書く」は
-	`!isGuestUser(user)` で出ないので、**ゲストは «他人の投稿に文字だけのレビューを書く» へ
-	到達する手段を完全に失っていた**（旧レビュー側の直行にゲスト判定は無い）。
+	#1418 はここを `review-from-media`（= その料理のレビューを書く画面）への直行にしていた。
+	当時この画面は «レビュー投稿導線» だったのでそれで筋が通っていたが、いまは
+	«店舗詳細» である。店の投稿一覧を押した人が求めているのは «その投稿を見ること» で、
+	いきなり自分がレビューを書く画面が出るのは（オーナー実機報告のとおり）驚きでしかない。
 
-	map 側は `href: null` で到達不能だったので、寄せる先として «正しい» 実装ではない。
-	feed ルート自体は残すが、アプリ内の導線からは外す（#1414 の B-3）。
+	行き先の `feed` ルートは #1386 が作ったまま残っており（アプリ内から開く導線だけが
+	#1418 で外れていた）、レビュータブと **同じストアキー**（`mapReviewsKey`）を使うので
+	取得は 1 回も増えない。開始位置は index で渡す。
+
+	⚠️ レビューを書く導線が消えるわけではない。フィードの中に «この料理にレビューを書く» が
+	   ある（`ActionButtons`）。#1418 が心配していた «ゲストが文字だけのレビューへ到達できない»
+	   点だけは、あちらが `!isGuestUser(user)` で出し分けているため残る。
+	   ゲストのレビュー投稿は #1359 のログイン導線の話であって、この画面の分岐で解くものではない。
 	*/
 	const handleDishMediaPress = useCallback(
-		(_index: number, dishMediaId: string) => {
+		(index: number, dishMediaId: string) => {
 			lightImpact();
 			logFrontendEvent({
-				event_name: "review_from_media_navigate",
+				event_name: "restaurant_detail_feed_navigate",
 				error_level: "log",
 				payload: {
 					restaurant_id: restaurant.id,
 					dish_media_id: dishMediaId,
+					index,
 				},
 			});
 			router.push({
-				// #1375 移設先。main の `/[locale]/(tabs)/review/restaurant/...` はこちらでは
-				// `/[locale]/restaurant/...` へ出ている（レビュータブ廃止に伴う移設）
-				pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
-				params: { locale, restaurantId: restaurant.id, dishMediaId },
+				pathname: "/[locale]/restaurant/[restaurantId]/feed",
+				params: { locale, restaurantId: restaurant.id, initialIndex: String(index) },
 			});
 		},
 		[lightImpact, logFrontendEvent, router, locale, restaurant.id],
@@ -217,15 +227,14 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 								<Text style={styles.ratingText}>{meta.averageRating}</Text>
 								<Text style={styles.reviewCount}>({meta.reviewCount})</Text>
 							</View>
-							{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿」
-							    ⚠️ testID は e2e（review-post / review-double-submit / ui-catalog-mutation）が見ている。
-							    #1419 意匠と位置は #1386 以前のレビュー側へ戻した（カード内・淡色アウトライン）。
-							    #1386 は入札ボタンと横並びにするためカード下のアクション行へ出していた */}
+							{/* #1629【オーナー確定】「写真・動画を投稿」を外し、«Google マップで開く» を戻した。
+							    投稿は «食べたを記録» のフローに 1 本化されている（上の設計コメント）。
+							    ⚠️ testID は e2e（restaurantDetailRoutes / RestaurantDetailPage 等）が見ている */}
 							<PrimaryButton
-								testID="restaurant-detail-post-photo-button"
-								onPress={handleReviewButtonPress}
-								label={i18n.t("SelectRestaurant.postPhotoVideo")}
-								icon={<Camera size={20} color={colors.brand} />}
+								testID="restaurant-detail-google-maps-button"
+								onPress={handleOpenGoogleMaps}
+								label={i18n.t("Restaurant.detail.openInGoogleMaps")}
+								icon={<MapPin size={20} color={colors.brand} />}
 								labelStyle={{ color: colors.brand }}
 								colors={[colors.brandTint, colors.brandTint]}
 								shadowColor="transparent"
@@ -236,7 +245,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				</Card>
 			</View>
 		),
-		[handleHeaderLayout, restaurant, meta, handleReviewButtonPress, colors, styles],
+		[handleHeaderLayout, restaurant, meta, handleOpenGoogleMaps, colors, styles],
 	);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
@@ -249,8 +258,8 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				renderTabBar={renderTabBar}
 				headerContainerStyle={{ shadowColor: "transparent", backgroundColor: "transparent" }}>
 				{/*
-					レビュータブ: RestaurantReviewsTab を使用。
-					グリッド押下で «その料理へのレビュー投稿»（review-from-media ルート）へ直行する（#1418）
+					投稿タブ: RestaurantReviewsTab を使用。
+					グリッド押下で «その投稿を見る»（feed ルート）へ入る（#1629）
 				*/}
 				<Tabs.Tab name="reviews">
 					<RestaurantReviewsTab restaurantId={restaurant.id} onItemPress={handleDishMediaPress} />

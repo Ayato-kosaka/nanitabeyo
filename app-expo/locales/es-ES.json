@@ -747,7 +747,8 @@
 		"everybodyPostsTitle": "Publicaciones de todos",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "Detalles del restaurante"
+			"title": "Detalles del restaurante",
+			"openInGoogleMaps": "Abrir en Google Maps"
 		}
 	},
 	"Feedback": {

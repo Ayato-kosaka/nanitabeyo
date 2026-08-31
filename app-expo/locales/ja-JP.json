@@ -747,7 +747,8 @@
 		"everybodyPostsTitle": "みんなの投稿",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "レストラン詳細"
+			"title": "レストラン詳細",
+			"openInGoogleMaps": "Google マップで開く"
 		}
 	},
 	"Feedback": {

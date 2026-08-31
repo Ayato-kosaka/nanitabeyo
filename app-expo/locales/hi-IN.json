@@ -747,7 +747,8 @@
 		"everybodyPostsTitle": "सबकी पोस्ट",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "रेस्टोरेंट विवरण"
+			"title": "रेस्टोरेंट विवरण",
+			"openInGoogleMaps": "Google मैप्स में खोलें"
 		}
 	},
 	"Feedback": {

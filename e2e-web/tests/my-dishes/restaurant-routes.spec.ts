@@ -1,7 +1,6 @@
 import { test, expect } from "../../fixtures/test";
 import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { RestaurantDetailPage } from "../../pages/RestaurantDetailPage";
-import { LoginPage } from "../../pages/LoginPage";
 import {
 	MOCK_RESTAURANT_ID,
 	MOCK_RESTAURANT_NAME,
@@ -43,51 +42,56 @@ test.describe("店舗詳細のルート（#1386）", () => {
 	// 手順:
 	//   1. 店舗取得 API をモックして /ja-JP/restaurant/<id> へ直接遷移する
 	//      （#1375 でレビュータブごと `(tabs)/review/restaurant/**` から移設した）
-	//   2. URL が店舗詳細のままで、タイトルと投稿導線が出ることを検証
-	//   3. 地図タブから持ち込んだ 2 つ（入札 / Google マップ）が **出ない** ことを検証
-	test("直リンクで開き、投稿導線だけが出る（入札と Google マップは出ない）", async ({ appPage }) => {
+	//   2. URL が店舗詳細のままで、タイトルと «Google マップで開く» が出ることを検証
+	//   3. 入札が出ないこと、投稿導線が出ないことを検証
+	test("直リンクで開き、Google マップの導線が出る（入札と投稿導線は出ない）", async ({ appPage }) => {
 		const detailPage = new RestaurantDetailPage(appPage);
 		await mockRestaurantDetail(appPage);
 
 		await detailPage.goto();
 		await detailPage.expectOpened();
 
-		await expect(detailPage.postPhotoButton).toBeVisible();
 		await expect(appPage.getByText(MOCK_RESTAURANT_NAME)).toBeVisible();
 
 		/*
-		#1386 の統合で、到達不能だった地図タブ（`href: null`）から «機能を落とさない» つもりで
-		2 つ持ち込んだ。どちらも移設ではなく «公開» であり、#1419 で地図タブごと削除した。
+		#1629【オーナー確定】**Google マップは «出す»、写真・動画の投稿は «出さない» へ入れ替わった。**
 
-		- 入札: 決済が未実装（#1411）。`344fb47b` でリリース前に意図的に隠されていたもの
-		- Google マップ: 害は無いが «誰も出すと決めていない機能» だった（#1414 表 B-2）
+		#1411 / #1414 B-2 は Google マップを «誰も出すと決めていない機能» として落としたが、
+		オーナーの確定で «出してよい» になった。店の場所・営業時間・電話へ辿り着く唯一の導線で、
+		これが無いと店舗詳細に «店の情報» が 1 つも無い状態だった。
 
-		⚠️ ここが赤くなったら、どちらかが復活している。
+		投稿は «食べたを記録» のフローへ 1 本化した。店舗詳細にも同じことを始めるボタンがあり、
+		画面に出ているものが «店の情報 0 件 / レビューを書く導線 2 件» になっていたため
+		（オーナー実機報告「お店の詳細押すとレビューするフローになる」）。
+
+		⚠️ 入札は引き続き出してはいけない。決済が未実装（#1411）。
 		*/
+		await expect(detailPage.googleMapsButton).toBeVisible();
 		await expect(detailPage.placeBidButton).toHaveCount(0);
-		await expect(detailPage.googleMapsButton).toHaveCount(0);
+		await expect(detailPage.postPhotoButton).toHaveCount(0);
 	});
 
 	// ─ テストケース: ブラウザバックでも店舗詳細へ戻る ─
 	// #1386 【設計】戻る責務を Navigator へ渡したこと自体の検証。モーダル時代は
 	// ブラウザバックがモーダルを閉じずにタブごと戻していた（URL が変わらないため）。
-	// #1411 で入札の導線を落としたので、店舗詳細から «アプリ内 push» で出る唯一の経路である
-	// ゲストの投稿導線（→ ログイン）で見る。ここで欲しいのは「push した先からブラウザバックで
-	// 戻れる」ことなので、行き先が入札である必要は無い。
+	//
+	// #1629 経路を «投稿グリッド → feed» に変えた。店舗詳細から «アプリ内 push» で出る経路が
+	// これ 1 本だけになったため（写真・動画の投稿ボタンを外し、Google マップは
+	// 外部アプリを開くので push しない）。ここで欲しいのは «push した先からブラウザバックで
+	// 戻れる» ことなので、行き先が何であるかは本題ではない。
 	// 手順:
-	//   1. 店舗詳細からログイン画面へ push する
+	//   1. 店舗詳細の投稿グリッドを押して feed へ push する
 	//   2. ブラウザバックする
 	//   3. 店舗詳細へ戻ることを検証
 	test("ブラウザバックで push 先から店舗詳細へ戻る", async ({ appPage }) => {
 		const detailPage = new RestaurantDetailPage(appPage);
-		const loginPage = new LoginPage(appPage);
-		await mockRestaurantDetail(appPage);
+		await mockRestaurantDetail(appPage, { withDishMedia: true });
 
 		await detailPage.goto();
 		await detailPage.expectOpened();
 
-		await detailPage.postPhotoButton.click();
-		await loginPage.expectOpened();
+		await detailPage.firstReviewTile.click();
+		await expect(appPage).toHaveURL(/\/restaurant\/[^/]+\/feed/);
 
 		await appPage.goBack();
 		await detailPage.expectOpened();
@@ -157,26 +161,24 @@ test.describe("店舗詳細のルート（#1386）", () => {
 		await expect(detailPage.title).toBeVisible();
 	});
 
-	// ─ テストケース: ゲストの投稿導線はログイン画面へ、next は投稿フォーム ─
-	// #1386 統合前、地図側の店舗詳細は `next` を «地図タブ» にしていた（選択中の店が URL に
-	// 無かったため）。統合後は店が URL に載るので、投稿フォームまで戻せる `next` になる。
-	// 手順:
-	//   1. 匿名セッションで店舗詳細を開く
-	//   2. 「写真・動画を投稿」を押す
-	//   3. ログイン画面へ遷移し、next に投稿フォームのパスが載ることを検証
-	test("ゲストの投稿導線はログイン画面へ行き、next は投稿フォームを指す", async ({ appPage }) => {
+	/*
+	#1629【オーナー確定】**«ゲストの投稿導線 → ログイン» は、この画面から無くなった。**
+
+	«写真・動画を投稿» を外したため（投稿は «食べたを記録» のフローへ 1 本化）。
+	そのログイン導線の `next` は `__tests__/loginEntryPoints.test.tsx` が
+	記録フロー側（`my-dishes-record-button`）で守っている。
+
+	代わりにここでは «ゲストが店舗詳細で何もログインを求められない» ことを見る。
+	店の場所を見るだけの操作でログインを要求しないこと自体が守るべき性質である。
+	*/
+	test("ゲストでも店舗詳細はログインを求めない", async ({ appPage }) => {
 		const detailPage = new RestaurantDetailPage(appPage);
-		const loginPage = new LoginPage(appPage);
 		await mockRestaurantDetail(appPage);
 
 		await detailPage.goto();
 		await detailPage.expectOpened();
 
-		await detailPage.postPhotoButton.click();
-		await loginPage.expectOpened();
-
-		// `next` はエンコードされて URL に載るので、生の文字列比較ではなく searchParams で読む
-		const next = new URL(appPage.url()).searchParams.get("next");
-		expect(next).toBe(`/ja-JP/restaurant/${MOCK_RESTAURANT_ID}/review`);
+		await expect(detailPage.googleMapsButton).toBeVisible();
+		await expect(appPage).not.toHaveURL(/\/auth\/login/);
 	});
 });

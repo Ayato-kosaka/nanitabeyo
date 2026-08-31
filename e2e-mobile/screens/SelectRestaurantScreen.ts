@@ -19,13 +19,6 @@ export class SelectRestaurantScreen {
 	readonly currentLocationButton = by.id("review-select-restaurant-current-location-button");
 
 	/**
-	 * 選択したお店の詳細画面にある「写真・動画を投稿」ボタン（`SelectedRestaurantDetails.tsx:137`）。
-	 * ログイン済みなら MyDishesScreen（フォーム）へ、匿名ならログインモーダルへ遷移する
-	 * （`handleReviewButtonPress`、`SelectedRestaurantDetails.tsx:68-88`）。
-	 */
-	readonly postPhotoButton = by.id("restaurant-detail-post-photo-button");
-
-	/**
 	 * 店名・エリア検索の入力欄。
 	 *
 	 * この画面の `LocationAutocomplete` は `testID` を渡していないため、コンポーネント既定の
@@ -66,9 +59,11 @@ export class SelectRestaurantScreen {
 		await tapWhenVisible(this.suggestion(index));
 	}
 
-	/** 選択したお店の詳細で「写真・動画を投稿」をタップしてレビューフォームへ進む */
-	async gotoReviewForm(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.postPhotoButton, timeout);
-		await tapWhenVisible(this.postPhotoButton);
-	}
+	/*
+	#1629【オーナー確定】`gotoReviewForm()` は消した。
+
+	店舗詳細の «写真・動画を投稿» ボタンごと無くなったため（投稿は «食べたを記録» の
+	フローへ 1 本化）。**このメソッドはどの spec からも呼ばれていなかった**ので、
+	置き換え先も要らない。記録フローを通る導線は `MyDishesScreen.gotoRecordDish()` が持つ。
+	*/
 }

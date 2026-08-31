@@ -47,25 +47,33 @@ test.describe("写真なしの食べた記録（#1398）", () => {
 	test.setTimeout(90_000);
 
 	/**
-	 * 店舗詳細 →「写真・動画を投稿」→ ピッカーが自動で開く → キャンセル、までを行う。
+	 * レビューフォームへ入り、自動で開くピッカーをキャンセルするまでを行う。
 	 *
-	 * ⚠️ `waitForEvent("filechooser")` は **クリックより前に** 仕掛けること。
+	 * #1629 以前は店舗詳細の «写真・動画を投稿» を押して入っていたが、そのボタンは
+	 * オーナー確定でこの画面から外れた（投稿は «食べたを記録» のフローへ 1 本化）。
+	 * このテストの本題は «写真なしでも記録できること» であって入口ではないので、
+	 * ルートへ直接着地する。
+	 *
+	 * ⚠️ **店舗詳細を先に開いてから review へ goto すること。** 下のテストが
+	 *    «戻るボタンで店舗詳細へ帰れる» ことを見るので、履歴が要る。
+	 *
+	 * ⚠️ `waitForEvent("filechooser")` は **遷移より前に** 仕掛けること。
 	 * 着地と同時にピッカーが開く実装なので、後から待つと取りこぼす
 	 *（`tests/authenticated/review-post.spec.ts` と同じ理由）。
 	 */
 	async function openReviewFormAndCancelPicker(page: Page, restaurantId: string) {
 		const detailPage = new RestaurantDetailPage(page);
 		await page.goto(`/ja-JP/restaurant/${restaurantId}`);
-		await expect(detailPage.postPhotoButton).toBeVisible({ timeout: 30_000 });
+		await expect(detailPage.googleMapsButton).toBeVisible({ timeout: 30_000 });
 
 		const fileChooserPromise = page.waitForEvent("filechooser");
-		await detailPage.postPhotoButton.click();
+		await page.goto(`/ja-JP/restaurant/${restaurantId}/review`);
 		await cancelMediaPicker(page, await fileChooserPromise);
 	}
 
 	// ─ テストケース: キャンセルしてもフォームに留まり、戻るボタンで退出できる（Q2 の条件）─
 	// 手順:
-	//   1. 実在する店舗の詳細を開き「写真・動画を投稿」でレビューフォームへ入る
+	//   1. 実在する店舗の詳細を開いてからレビューフォームへ入る
 	//   2. 自動で開く写真ピッカーをキャンセルする
 	//   3. URL が `/restaurant/[id]/review` のままで、写真なしプレースホルダと入力欄が出ることを検証
 	//      （＝ 画面が閉じない）
@@ -95,7 +103,8 @@ test.describe("写真なしの食べた記録（#1398）", () => {
 
 		// 押下前にいた店舗詳細へ帰れる（= 行き止まりになっていない）
 		await expect(appPage).toHaveURL(/\/restaurant\/[^/]+(\?.*)?$/);
-		await expect(appPage.getByTestId("restaurant-detail-post-photo-button")).toBeVisible();
+		// #1629 «写真・動画を投稿» は外したので、店舗詳細に居る目印は «Google マップで開く»
+		await expect(appPage.getByTestId("restaurant-detail-google-maps-button")).toBeVisible();
 		await captureEvidence(appPage, testInfo, "1398-pr7-no-photo-back-exit");
 	});
 

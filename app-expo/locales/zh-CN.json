@@ -747,7 +747,8 @@
 		"everybodyPostsTitle": "大家的投稿",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "餐厅详情"
+			"title": "餐厅详情",
+			"openInGoogleMaps": "在 Google 地图中打开"
 		}
 	},
 	"Feedback": {

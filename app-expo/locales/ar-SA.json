@@ -747,7 +747,8 @@
 		"everybodyPostsTitle": "منشورات الجميع",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "تفاصيل المطعم"
+			"title": "تفاصيل المطعم",
+			"openInGoogleMaps": "الفتح في خرائط Google"
 		}
 	},
 	"Feedback": {

@@ -81,6 +81,9 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 
 			return (
 				<ImageCard
+					// #1629 押下先が feed へ変わったので e2e から掴めるようにする。
+					// 位置つきで開くこと（initialIndex）を確かめるため、タイルは複数出ても同じ id でよい
+					testID="restaurant-review-tile"
 					item={{
 						id: entry.dish_media.id,
 						imageUrl: entry.dish_media.thumbnailImageUrl ?? "",
