@@ -36,12 +36,23 @@ import type {
  *    枠を使う本数は最小限にすること（Places の枠はテスト専用ではない）。
  */
 
-/** 候補として返す地名。`mainText` は画面にそのまま出るのでアサーションから参照できる */
-export const MOCK_LOCATION_SUGGESTIONS = [
-	{ place_id: "e2e-place-shibuya", mainText: "渋谷", secondaryText: "東京都" },
-	{ place_id: "e2e-place-shinjuku", mainText: "新宿", secondaryText: "東京都" },
-	{ place_id: "e2e-place-ginza", mainText: "銀座", secondaryText: "東京都" },
-] as const;
+/**
+ * 候補は **打った文字から作る**。固定の 3 件を返してはいけない。
+ *
+ * #1629 最初は固定 3 件で書いたが、`recent-locations` の 2 本が落ちた（run 33392524114）。
+ * あの spec は «別々の地点を 6 件選ぶ» ことで «最近使った場所» の上限と並び替えを見るので、
+ * どの語を打っても同じ `place_id` が返ると **履歴が 1 件から増えない**。
+ *
+ * 打った語ごとに違う `place_id` を返せば、実物と同じように «別の地点» として扱われる。
+ */
+function suggestionsFor(query: string) {
+	const key = encodeURIComponent(query).replace(/%/g, "");
+	return [0, 1, 2].map((i) => ({
+		place_id: `e2e-place-${key}-${i}`,
+		mainText: i === 0 ? query : `${query}${i}`,
+		secondaryText: "東京都",
+	}));
+}
 
 /** 候補を選んだときに返る座標（東京駅）。地図の中心の検証から参照できる */
 export const MOCK_LOCATION_COORD = { latitude: 35.681236, longitude: 139.767125 };
@@ -55,8 +66,8 @@ const AUTOCOMPLETE_URL = /\/v1\/locations\/autocomplete(\?.*)?$/;
 const DETAILS_URL = /\/v1\/locations\/details(\?.*)?$/;
 const REVERSE_GEOCODING_URL = /\/v1\/locations\/reverse-geocoding(\?.*)?$/;
 
-function buildSuggestions(): AutocompleteLocationsResponse {
-	return MOCK_LOCATION_SUGGESTIONS.map((s) => ({
+function buildSuggestions(query: string): AutocompleteLocationsResponse {
+	return suggestionsFor(query).map((s) => ({
 		place_id: s.place_id,
 		text: `${s.mainText} ${s.secondaryText}`,
 		mainText: s.mainText,
@@ -67,10 +78,19 @@ function buildSuggestions(): AutocompleteLocationsResponse {
 	}));
 }
 
-function buildDetails(): LocationDetailsResponse {
+function buildDetails(placeId: string): LocationDetailsResponse {
+	// place_id から決まる小さなずらし幅（同じ id なら毎回同じ座標）
+	const nudge = ([...placeId].reduce((a, c) => a + c.charCodeAt(0), 0) % 20) / 1000;
+	const location = {
+		latitude: MOCK_LOCATION_COORD.latitude + nudge,
+		longitude: MOCK_LOCATION_COORD.longitude + nudge,
+	};
 	return {
-		location: MOCK_LOCATION_COORD,
-		viewport: VIEWPORT,
+		location,
+		viewport: {
+			low: { latitude: location.latitude - 0.01, longitude: location.longitude - 0.01 },
+			high: { latitude: location.latitude + 0.01, longitude: location.longitude + 0.01 },
+		},
 		address: "country:JP, locality:Tokyo",
 		localLanguageCode: "ja",
 	};
@@ -101,7 +121,18 @@ export async function mockLocationSearch(page: Page): Promise<void> {
 		body: JSON.stringify({ success: true, data }),
 	});
 
-	await page.route(AUTOCOMPLETE_URL, (route) => route.fulfill(fulfill(buildSuggestions())));
-	await page.route(DETAILS_URL, (route) => route.fulfill(fulfill(buildDetails())));
+	await page.route(AUTOCOMPLETE_URL, (route) => {
+		// 打った語は `q` で来る（`hooks/useLocationSearch.ts`）
+		const query = new URL(route.request().url()).searchParams.get("q") ?? "";
+		return route.fulfill(fulfill(buildSuggestions(query)));
+	});
+	/*
+	選んだ候補ごとに **座標を少しずらす**。同じ座標を返すと «別の地点を選んだ» ことに
+	ならず、履歴の並び替えや地図の移動が観測できない。`place_id` から決めるので毎回同じ値になる。
+	*/
+	await page.route(DETAILS_URL, (route) => {
+		const placeId = new URL(route.request().url()).searchParams.get("placeId") ?? "";
+		return route.fulfill(fulfill(buildDetails(placeId)));
+	});
 	await page.route(REVERSE_GEOCODING_URL, (route) => route.fulfill(fulfill(buildReverseGeocoding())));
 }
