@@ -1580,6 +1580,14 @@ export function ExternalEmbedPlayer({
 					// この行を出した本人（= 後から鳴り出した側）
 					reporter: embed.externalContentId,
 				},
+				/*
+				⚠️ **この 1 行だけは、溜めずにすぐ送る。**
+				同時再生が起きているとき、Detox は数秒後に spec を落としてアプリごと止める。
+				既定のバッチ（件数 / 一定間隔）を待つと、**いちばん欲しい行が毎回そこで消える**。
+				実際に run 33408324285 と 33411032551 の 2 回とも、Detox は赤なのに
+				この種の行が 1 件も BigQuery へ届かなかった。
+				*/
+				flushNow: true,
 			});
 		}
 
