@@ -15,10 +15,20 @@ import { DEFAULT_TIMEOUT, by, element, expect, tapWhenVisible, waitUntilVisible 
  * 通してしまう（LoginScreen.ts が `login-screen-title` を見るのと同じ理由）。
  * e2e-web は `toHaveURL(/\/profile\/edit/)`（pages/ProfilePage.openEdit）が同じ役目を負う。
  *
- * ## 保存は実行しない
+ * ## 保存は «押さない» が «見えていること» は見る（#1750）
  * 保存は `POST v1/users/me` で **共有 dev DB のテストユーザーを書き換える**（表示名・自己紹介・
- * アバター）。この画面で守りたいのは「編集 UI へ到達でき、離脱できる」ことなので、
- * 入力と保存には触れない（e2e-web 側も同じ分担）。
+ * アバター）ので、押さない。
+ *
+ * ⚠️ ただし **保存ボタンが画面の中に居ることは実端末で見ること。**
+ * 「押さない」を「見ない」と読んだ結果、`KeyboardAwareForm` が器の高さを
+ * `height: frame.height - 100` と当てずっぽうで決めていたせいで、**保存ボタンが
+ * タブバーの裏へ押し出されて押せなくなっていた**のを誰も検出できなかった。
+ * オーナー実機ログ（dev 2026-08-31 17:06 UTC）では画像を選んだあと
+ * `profile_edit_screen_back_pressed` だけが記録され、保存は 1 度も起きていない。
+ *
+ * これは **ネイティブでしか出ない不具合**である（react-native-web はレイアウトの規則が違う）。
+ * ユニットテストで固定できるのは «高さを数えていないこと» までで、
+ * «実際に画面の中に居ること» はここでしか確かめられない。
  */
 export class ProfileEditScreen {
 	/** 画面タイトル（ScreenHeader が `${testID}-title` として付ける） */
@@ -32,6 +42,23 @@ export class ProfileEditScreen {
 	async expectOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.title, timeout);
 		await expect(element(this.backButton)).toBeVisible();
+	}
+
+	/**
+	 * #1750 保存ボタン。押さないが «画面の中に居るか» を見る。
+	 *
+	 * Detox の `toBeVisible()` は既定で «画面上に 75% 以上見えているか» を見るので、
+	 * タブバーの裏や画面外へ押し出された状態はここで赤くなる。
+	 */
+	readonly saveButton = by.id("profile-edit-save-button");
+
+	/**
+	 * #1750 保存ボタンが画面の中に見えていることを検証する。
+	 *
+	 * ⚠️ タップしないこと（共有 dev DB のテストユーザーを書き換えてしまう）。
+	 */
+	async expectSaveButtonVisible(): Promise<void> {
+		await expect(element(this.saveButton)).toBeVisible();
 	}
 
 	/** ヘッダーの戻るボタンをタップして離脱する */
