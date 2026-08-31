@@ -60,9 +60,7 @@ export function MyDishOwnReviewSheet({
 					importantForAccessibility="no-hide-descendants"
 				/>
 
-				<View
-					style={[styles.sheet, { paddingBottom: sheetPaddingBottom }]}
-					testID="my-dish-own-review-sheet">
+				<View style={[styles.sheet, { paddingBottom: sheetPaddingBottom }]} testID="my-dish-own-review-sheet">
 					{item ? (
 						<MyDishOwnReviewContent item={item} variant="sheet" onClose={onClose} onOpenRestaurant={onOpenRestaurant} />
 					) : null}
