@@ -16,6 +16,7 @@
 		"lint": "turbo run lint",
 		"assert:doc-hygiene": "node ./scripts/assert-doc-hygiene.mjs",
 		"assert:no-nested-e2e-tests": "node ./scripts/assert-no-nested-e2e-tests.mjs",
+		"assert:catalog-screen-ids": "node ./scripts/assert-catalog-screen-ids.mjs",
 		"format": "prettier --write .",
 		"typecheck": "turbo run typecheck",
 		"test:e2e": "pnpm --filter e2e-web test",
