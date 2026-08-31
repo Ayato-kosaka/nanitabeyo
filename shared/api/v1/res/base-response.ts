@@ -43,4 +43,16 @@ export enum ErrorCode {
 	EXTERNAL_QUOTA_EXCEEDED = "EXTERNAL_QUOTA_EXCEEDED",
 	/** 指定された場所はレストランや飲食店ではない */
 	PLACE_NOT_FOOD_AND_DRINK = "PLACE_NOT_FOOD_AND_DRINK",
+	/**
+	 * 計画メンテナンス中（#1642）。`MaintenanceGuard` が Remote Config の
+	 * `is_maintenance === "true"` を読んだときだけ返す 503 である。
+	 *
+	 * ⚠️ **HTTP 503 と «メンテナンス» を同一視してはならない。** 503 は
+	 * `EXTERNAL_QUOTA_EXCEEDED`（外部 API の日次上限）・アカウント削除の失敗・
+	 * Cloud Run の一時的な過負荷でも返る。クライアントが «メンテナンス中です» と
+	 * 名乗ってよいのは、このコードが乗っているときだけ。
+	 */
+	SERVICE_MAINTENANCE = "SERVICE_MAINTENANCE",
+	/** 強制アップデート対象の古いアプリ版（`MaintenanceGuard` の 426） */
+	UNSUPPORTED_VERSION = "UNSUPPORTED_VERSION",
 }
