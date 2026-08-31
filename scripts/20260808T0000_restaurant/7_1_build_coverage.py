@@ -64,15 +64,23 @@ def main() -> None:
 
     from google.cloud import bigquery
     # matched な投稿 × 収集ルート × 店住所。post 単位で route を持ち、店住所は catalog から引く。
+    # ⚠️ 再解決(非破壊追記)で 1 post に複数 resolve_version 行が並ぶため、**post ごとの最新 version**
+    # だけを見る（QUALIFY）。これで «改善後の最新結果» が集計に反映され、古い版は二重計上しない。
     sql = f"""
+      WITH latest AS (
+        SELECT provider, post_id, status, google_place_id, dish_category_id
+        FROM `{pipeline.table(TABLE_POST_RESOLVED)}`
+        WHERE run_id = @resolved_rid
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY provider, post_id ORDER BY resolved_at DESC) = 1
+      )
       SELECT v.google_place_id, v.dish_category_id, r.discovery_route AS source_route,
              c.address
-      FROM `{pipeline.table(TABLE_POST_RESOLVED)}` v
+      FROM latest v
       JOIN `{pipeline.table(TABLE_POST_RAW)}` r
         ON r.run_id = @raw_rid AND r.provider = v.provider AND r.post_id = v.post_id
       LEFT JOIN `{pipeline.table('restaurant_catalog')}` c
         ON c.run_id = @crid AND c.google_place_id = v.google_place_id
-      WHERE v.run_id = @resolved_rid AND v.status = 'matched'
+      WHERE v.status = 'matched'
     """
     params = [
         bigquery.ScalarQueryParameter("resolved_rid", "STRING", resolved_run_id),

@@ -43,34 +43,61 @@ def parse_args() -> argparse.Namespace:
     # 各シャードは互いに素な post_id 集合を担当するので二重 resolve/二重挿入が起きない。
     p.add_argument("--shards", type=int, default=1, help="並列シャード総数（既定1=分割なし）")
     p.add_argument("--shard", type=int, default=0, help="このバッチが担当するシャード番号 [0, shards)")
+    # 再解決を «非破壊» のパイプライン一級操作にする（delete 不要）。resolve 改善後は
+    # --resolve-version を上げて回すと、同 version で未処理の投稿だけを追記解決する。
+    # 集計側は post ごとの «最新 resolve_version» を見る（7_1 / 測定クエリ）。
+    p.add_argument("--reresolve-prev-status", default=None,
+                   help="この «直近 version の status» の投稿だけ再解決する（例 skipped_no_store）。省略時は全未処理")
     return p.parse_args()
 
 
-def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_id: str, limit: int,
-                      shards: int = 1, shard: int = 0):
-    """未 resolve（この run で resolved に無い）投稿を取り出す。shards>1 のときは post_id で水平分割。"""
+def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_id: str,
+                      resolve_version: str, limit: int, shards: int = 1, shard: int = 0,
+                      reresolve_prev_status: str | None = None):
+    """未 resolve（この run × **この resolve_version** で未処理）の投稿を取り出す。
+
+    version を anti-join に含めるので、--resolve-version を上げると全投稿が «その version では未処理»
+    となり再解決＝追記（既存 version の行は消さない＝非破壊）。shards>1 は post_id で水平分割。
+    reresolve_prev_status を渡すと «直近 version の status がそれ» の投稿だけに絞る（狙い撃ち再解決）。
+    """
     from google.cloud import bigquery
     shard_filter = ""
     if shards > 1:
         # FARM_FINGERPRINT は決定的なので、同じ post_id は常に同じシャードに落ちる（並列非重複）。
         shard_filter = "AND MOD(ABS(FARM_FINGERPRINT(r.post_id)), @shards) = @shard"
+    prev_filter = ""
+    if reresolve_prev_status:
+        # 直近 version（resolved_at 最新）の status が指定値の post_id に限定する。
+        prev_filter = f"""
+      AND r.post_id IN (
+        SELECT post_id FROM (
+          SELECT post_id, status,
+                 ROW_NUMBER() OVER (PARTITION BY provider, post_id ORDER BY resolved_at DESC) rn
+          FROM `{pipeline.table(TABLE_POST_RESOLVED)}`
+          WHERE run_id = @resolve_rid
+        ) WHERE rn = 1 AND status = @prev_status
+      )"""
     sql = f"""
       SELECT r.post_id, r.canonical_url, r.discovery_route,
              r.discovery_area_lat, r.discovery_area_lng
       FROM `{pipeline.table(TABLE_POST_RAW)}` r
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
-      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter}
+           AND v.resolve_version = @resolve_version
+      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter}
       QUALIFY ROW_NUMBER() OVER (PARTITION BY r.post_id ORDER BY r.fetched_at DESC) = 1
       LIMIT {int(limit)}
     """
     params = [
         bigquery.ScalarQueryParameter("raw_rid", "STRING", raw_run_id),
         bigquery.ScalarQueryParameter("resolve_rid", "STRING", resolve_run_id),
+        bigquery.ScalarQueryParameter("resolve_version", "STRING", resolve_version),
     ]
     if shards > 1:
         params.append(bigquery.ScalarQueryParameter("shards", "INT64", shards))
         params.append(bigquery.ScalarQueryParameter("shard", "INT64", shard))
+    if reresolve_prev_status:
+        params.append(bigquery.ScalarQueryParameter("prev_status", "STRING", reresolve_prev_status))
     return list(pipeline.execute(sql, params))
 
 
@@ -84,9 +111,11 @@ def main() -> None:
     now_iso = utc_now().isoformat()
     sleep_s = max(args.sleep_ms, 0) / 1000.0
 
-    posts = _fetch_unresolved(pipeline, raw_run_id, run_id, args.limit, args.shards, args.shard)
-    LOGGER.info("未 resolve %d 投稿を処理します（resolve_version=%s, shard=%d/%d）",
-                len(posts), args.resolve_version, args.shard, args.shards)
+    posts = _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
+                              args.shards, args.shard, args.reresolve_prev_status)
+    LOGGER.info("未 resolve %d 投稿を処理します（resolve_version=%s, shard=%d/%d, 狙い撃ち=%s）",
+                len(posts), args.resolve_version, args.shard, args.shards,
+                args.reresolve_prev_status or "全未処理")
 
     with pipeline.step(run_id, "5_1_apply_resolve", parameters={
         "raw_run_id": raw_run_id, "resolve_version": args.resolve_version, "limit": args.limit,
