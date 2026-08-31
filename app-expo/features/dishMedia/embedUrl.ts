@@ -223,8 +223,32 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
    * #1641 勝手に止まったときに撃ち直す回数の上限。向こうが止め続けるなら撃ち方の
    * 問題ではないので、記録だけ残して諦める（無限に撃つと «押しても直らない» が隠れる）。
    */
-  var MAX_RESUMES = 3;
+  /*
+   * #1641 ⚠️ **止まったら «何度でも» 撃ち直す。上限を作らないこと。**
+   *
+   * 実測（run 33374468268 / commit e3cd50c2 / Android）— 同じ 1 つの YouTube セル:
+   *
+   *     08:59:29.019  -99>1 t=0     再生開始
+   *     08:59:29.268  1>2   t=0.2   0.2 秒で向こうが止めた
+   *     08:59:29.531  3>1   t=0.5   撃ち直して復帰（ここまでは効いている）
+   *     08:59:39.435  1>0   t=10.3  本当に終わった → 頭へ戻して再生（ループは正しい）
+   *     08:59:43.704  paused resume 2 at 4s
+   *     08:59:44.002  paused resume 3 at 4s   ← 上限に達した
+   *     （以後どれだけ止まっても撃ち直さない ＝ **止まったまま**）
+   *
+   * 撃ち直し自体は効いている。上限 3 回を使い切ったあとに止まると、そこで
+   * 止まりっぱなしになる。オーナー報告「流れない / 止まる」はこれである。
+   *
+   * ⚠️ **前面に居る間、止まっている理由は無い。** 画面外なら親がセルごと外すので、
+   *    «こちらが active な間は必ず再生中» が正しい状態である。だから上限を持たない。
+   * ⚠️ ただし撃ちすぎない。向こうの状態通知は連続で飛んでくるので、
+   *    最短間隔を置かないと playVideo を撃ち続けてしまう。
+   * ⚠️ 記録の方だけ上限を持つ（ログが溢れると他が読めなくなる）。
+   */
+  var RESUME_MIN_GAP_MS = 700;
+  var MAX_RESUME_NOTES = 6;
   var resumes = 0;
+  var lastResumeAt = 0;
   /*
    * #1641 ENDED（0）を信じる最低再生位置（秒）。頭から動いていないのに «終わった» が
    * 飛んでくることが実測であったため（上の playerState 0 の注記）。
@@ -411,9 +435,12 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
        * ⚠️ report() は使えない（1 種類 1 回きりで、再生済みセルの結論を覆さない作りのため）。
        *    観測用の別便として送り、受け側は記録するだけで状態を変えない。
        */
-      if (data.info.playerState === 2 && started && resumes < MAX_RESUMES) {
+      if (data.info.playerState === 2 && started && Date.now() - lastResumeAt > RESUME_MIN_GAP_MS) {
+        lastResumeAt = Date.now();
         resumes += 1;
-        note('paused', 'resume ' + resumes + ' at ' + Math.round(data.info.currentTime || 0) + 's');
+        if (resumes <= MAX_RESUME_NOTES) {
+          note('paused', 'resume ' + resumes + ' at ' + Math.round(data.info.currentTime || 0) + 's');
+        }
         send({ event: 'command', func: 'playVideo', args: [] });
       }
       if (typeof data.info.errorCode !== 'undefined') report('no_video', data.info.errorCode);

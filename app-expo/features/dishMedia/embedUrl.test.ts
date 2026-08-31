@@ -68,6 +68,33 @@ describe("buildExternalEmbedPlayerSource", () => {
 		expect(html).toContain("'playVideo'");
 	});
 
+	/*
+	#1641 ⚠️ **止まったら «何度でも» 撃ち直すこと。上限を作らない。**
+
+	実測（run 33374468268 / commit e3cd50c2 / Android）— 同じ 1 つの YouTube セル:
+
+	    08:59:29.268  1>2 t=0.2   0.2 秒で向こうが止めた
+	    08:59:29.531  3>1 t=0.5   撃ち直して復帰（撃ち直し自体は効いている）
+	    08:59:39.435  1>0 t=10.3  本当に終わった → 頭へ戻して再生（ループは正しい）
+	    08:59:43.704  paused resume 2 at 4s
+	    08:59:44.002  paused resume 3 at 4s   ← 上限に達した
+	    （以後どれだけ止まっても撃ち直さない ＝ 止まったまま）
+
+	前面に居る間、止まっている理由は無い（画面外なら親がセルごと外す）。
+	上限を作ると、使い切ったあとに止まりっぱなしになる。
+	⚠️ 代わりに最短間隔（RESUME_MIN_GAP_MS）で撃ちすぎを防ぐ。記録の方だけ上限を持つ。
+	*/
+	it("止まったら何度でも撃ち直す（回数ではなく間隔で抑える）", () => {
+		const html = buildEmbedIframeHtml("https://www.youtube.com/embed/abc123?enablejsapi=1");
+
+		// 撃ち直しの条件が «回数» になっていないこと
+		expect(html).not.toContain("resumes < MAX_RESUMES");
+		expect(html).toContain("RESUME_MIN_GAP_MS");
+		expect(html).toContain("lastResumeAt");
+		// 記録の方だけ上限を持つ
+		expect(html).toContain("MAX_RESUME_NOTES");
+	});
+
 	it("YouTube は向こうの UI を出さない（controls / 全画面 / 注釈 / 関連動画）", () => {
 		const url = buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl ?? "";
 
