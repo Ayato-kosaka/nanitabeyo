@@ -528,12 +528,33 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 					    «グリッドは上下だけ» は満たされる。外すと縦の FlatList が縦のページャの中に
 					    入れ子になり、Android の nested scroll でページ送りのパンを内側が食う恐れがある。
 					    «横を消す» のは軸の指定ではなく **1 ページ 1 件にすること**で達成している */}
+					{/*
+					#1641【オーナー実機報告 2026-08-31】⚠️ **`isScreenActive` を外さないこと。**
+
+					報告は 3 件とも «押したカードの次の音が鳴る» だった。
+
+					    ホンデポチャ（3番目）を押す → 4番目（Instagram）の音が鳴る
+					    麦と麺助（4番目 / Instagram）を押す → 5番目（YouTube）の音が鳴る
+					    YouTube から上へスクロール → YouTube の音が鳴り続ける
+
+					真因はこのページの **描画の門（上の `entriesKey !== null && liveFeedCount > 0`）が
+					`isActive` を見ていない**ことだった。#1629【18】の先読みは
+					`shouldPrefetch={index === activeScopeIndex + 1}` で **隣のページの取得を開ける**。
+					取得が通ると `entriesKey` が非 null になり、門を抜けて `DishMediaFeed` が描かれる。
+					グリッド由来のページは **ids が必ず 1 件**なので、その中では常に
+					`index(0) === currentIndex(0)` ＝ **マウントした瞬間に前面扱いで鳴り出す**。
+
+					⚠️ 門そのものを `isActive` で閉じると **先読みの意味が無くなる**（描画まで遅れる）。
+					   ここは «描くが鳴らさない» が正解なので、前面かどうかだけを下へ伝える。
+					⚠️ `screenFocused`（ルート単位）では分けられない。同じルートの中の別ページだから。
+					*/}
 					<DishMediaFeed
 						entriesKey={entriesKey}
 						idType="dish_media"
 						initialIndex={initialIndex}
 						onIndexChange={setViewedIndex}
 						horizontal
+						isScreenActive={isActive}
 					/>
 					{/* #1375 実機確認（2 巡目）: «何個目を見ているか» をストーリーズと同じ
 					    セグメントバーで出す。件数が多いとバーが細くなりすぎるので数字も添える。
