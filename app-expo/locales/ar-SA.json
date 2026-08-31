@@ -744,10 +744,11 @@
 		"emptyState": {
 			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
 		},
-		"everybodyPostsTitle": "اختر طبقًا لمراجعته",
+		"everybodyPostsTitle": "منشورات الجميع",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "تفاصيل المطعم"
+			"title": "تفاصيل المطعم",
+			"openInGoogleMaps": "الفتح في خرائط Google"
 		}
 	},
 	"Feedback": {
@@ -1153,7 +1154,11 @@
 			"noPhoto": "بدون صورة",
 			"noComment": "لم يُكتب أي تعليق",
 			"noReview": "لا توجد مراجعة لهذا السجل بعد",
-			"openRestaurant": "عرض تفاصيل المطعم"
+			"openRestaurant": "عرض تفاصيل المطعم",
+			"edit": "تعديل المراجعة",
+			"delete": "حذف المراجعة",
+			"deleteConfirmTitle": "هل تريد حذف هذه المراجعة؟",
+			"deleteConfirmMessage": "سيتم حذف مراجعة هذا السجل، وسيختفي السجل أيضًا من قائمتك. لا يمكن التراجع عن هذا الإجراء."
 		}
 	},
 	"SnsImport": {

@@ -71,9 +71,40 @@ function buildRestaurantDetail(): GetRestaurantByIdResponse {
 	};
 }
 
-/** 料理メディアは 0 件。グリッドは空になるが、ルーティングの検証には影響しない */
-function buildDishMedia(): QueryRestaurantDishMediaResponse {
-	return { data: [], nextCursor: null };
+/** グリッドに 1 件だけ出すときの dish_media id。押下先（feed）のアサーションから参照する */
+export const MOCK_DISH_MEDIA_ID = "e2e-1386-dish-media";
+
+/**
+ * 料理メディア。既定は 0 件（グリッドは空。ルーティングの検証には影響しない）。
+ *
+ * #1629 `withItem` で 1 件返せるようにした。店舗詳細から «アプリ内 push» で出る経路が
+ * **投稿グリッド → feed の 1 本だけ**になったため（写真・動画の投稿ボタンを外し、
+ * Google マップは外部アプリを開くので push しない）。ブラウザバックの検証に要る。
+ *
+ * ⚠️ 型は shared の DishMediaEntry 由来で、画面が読まないカラムまで必須になっている。
+ *    店舗詳細（`buildRestaurantDetail`）と同じく «画面が読む分だけ» 埋めてキャストで通す。
+ *    グリッドが読むのは `dish_media.id` と `dish_media.thumbnailImageUrl` だけである
+ *    （`features/map/components/tabs/RestaurantReviewsTab.tsx`）。
+ */
+function buildDishMedia(withItem: boolean): QueryRestaurantDishMediaResponse {
+	if (!withItem) return { data: [], nextCursor: null };
+	return {
+		data: [
+			{
+				dish_media: {
+					id: MOCK_DISH_MEDIA_ID,
+					// 空文字なら expo-image は何も描かないが、タイル（押せる器）は出る
+					thumbnailImageUrl: "",
+					mediaUrl: "",
+					render_type: "stored",
+				},
+				dish: { id: "e2e-1386-dish", name: "E2E ラーメン" },
+				restaurant: { id: MOCK_RESTAURANT_ID, name: MOCK_RESTAURANT_NAME },
+				reviews: [],
+			} as unknown as QueryRestaurantDishMediaResponse["data"][number],
+		],
+		nextCursor: null,
+	};
 }
 
 /**
@@ -81,7 +112,7 @@ function buildDishMedia(): QueryRestaurantDishMediaResponse {
  *
  * `page.goto()` より前に呼ぶこと（route の登録前に飛んだリクエストは素通しになる）。
  */
-export async function mockRestaurantDetail(page: Page): Promise<void> {
+export async function mockRestaurantDetail(page: Page, options: { withDishMedia?: boolean } = {}): Promise<void> {
 	// ⚠️ Playwright は «後から登録した route を先に» 見る。dish-media の方を後に登録して、
 	// 詳細用パターン（末尾セグメント無し）と取り違えないようにする
 	await page.route(DETAIL_URL_PATTERN, async (route) => {
@@ -95,7 +126,7 @@ export async function mockRestaurantDetail(page: Page): Promise<void> {
 		await route.fulfill({
 			status: 200,
 			contentType: "application/json",
-			body: JSON.stringify({ success: true, data: buildDishMedia() }),
+			body: JSON.stringify({ success: true, data: buildDishMedia(options.withDishMedia === true) }),
 		});
 	});
 }

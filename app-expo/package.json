@@ -20,7 +20,8 @@
 		"typecheck": "tsc -p tsconfig.dev.json --noEmit",
 		"test": "jest",
 		"test:watch": "jest --watchAll",
-		"reset": "node ./scripts/reset-project.js"
+		"reset": "node ./scripts/reset-project.js",
+		"assert:keyboard-avoidance": "node ./scripts/assert-keyboard-avoidance.mjs"
 	},
 	"dependencies": {
 		"@expo/metro-runtime": "~6.1.2",

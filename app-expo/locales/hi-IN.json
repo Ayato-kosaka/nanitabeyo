@@ -744,10 +744,11 @@
 		"emptyState": {
 			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
 		},
-		"everybodyPostsTitle": "समीक्षा करने के लिए व्यंजन चुनें",
+		"everybodyPostsTitle": "सबकी पोस्ट",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "रेस्टोरेंट विवरण"
+			"title": "रेस्टोरेंट विवरण",
+			"openInGoogleMaps": "Google मैप्स में खोलें"
 		}
 	},
 	"Feedback": {
@@ -1153,7 +1154,11 @@
 			"noPhoto": "कोई फ़ोटो नहीं",
 			"noComment": "कोई टिप्पणी नहीं लिखी गई",
 			"noReview": "इस रिकॉर्ड की अभी कोई समीक्षा नहीं है",
-			"openRestaurant": "रेस्तरां का विवरण देखें"
+			"openRestaurant": "रेस्तरां का विवरण देखें",
+			"edit": "समीक्षा संपादित करें",
+			"delete": "समीक्षा हटाएं",
+			"deleteConfirmTitle": "क्या यह समीक्षा हटानी है?",
+			"deleteConfirmMessage": "इस रिकॉर्ड की समीक्षा हटा दी जाएगी। रिकॉर्ड भी आपकी सूची से हट जाएगा। इसे वापस नहीं लाया जा सकता।"
 		}
 	},
 	"SnsImport": {

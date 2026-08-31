@@ -744,10 +744,11 @@
 		"emptyState": {
 			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
 		},
-		"everybodyPostsTitle": "レビューする料理を選択",
+		"everybodyPostsTitle": "みんなの投稿",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "レストラン詳細"
+			"title": "レストラン詳細",
+			"openInGoogleMaps": "Google マップで開く"
 		}
 	},
 	"Feedback": {
@@ -1153,7 +1154,11 @@
 			"noPhoto": "写真なし",
 			"noComment": "コメントは書かれていません",
 			"noReview": "この記録にはまだクチコミがありません",
-			"openRestaurant": "お店の詳細を見る"
+			"openRestaurant": "お店の詳細を見る",
+			"edit": "クチコミを編集",
+			"delete": "クチコミを削除",
+			"deleteConfirmTitle": "クチコミを削除しますか？",
+			"deleteConfirmMessage": "この «食べた» 記録のクチコミを削除します。記録そのものも一覧から消えます。元に戻せません。"
 		}
 	},
 	"SnsImport": {

@@ -22,9 +22,10 @@
  * 星・コメント・金額・食べた日はすべてそこから読めるので、開くときに何も取りに行かない。
  * 「押したのに読み込み中が出る」を作らないためにも、ここは取得しないこと。
  */
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { ImageOff, X } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ImageOff, Pencil, Trash2, X } from "lucide-react-native";
 
 import Stars from "@/components/Stars";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
@@ -32,8 +33,16 @@ import type { Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import { useLocale } from "@/hooks/useLocale";
+import { useAPICall, type ApiError } from "@/hooks/useAPICall";
+import { useDialog } from "@/contexts/DialogProvider";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useLogger } from "@/hooks/useLogger";
+import { toErrorLogMessage } from "@/lib/errorMessage";
+import { EditDishReviewModal, type EditableDishReview } from "@/features/dishMedia/components/EditDishReviewModal";
+import { bumpMyDishesRevision } from "../stores/useMyDishesRevisionStore";
 import { resolveDishCategoryLabel } from "../dishCategoryLabel";
-import type { MyDishItem } from "@shared/api/v1/res";
+import type { DeleteDishReviewResponse, MyDishItem } from "@shared/api/v1/res";
+import type { UpdateDishReviewResponse } from "@shared/api/v1/res";
 
 /**
  * 金額を «その通貨の正しい桁» で組む。
@@ -59,6 +68,9 @@ export function formatReviewPrice(
 	}
 }
 
+/** シート下端の余白。実際にはこれに safe area（ジェスチャーバー）を足す */
+const SHEET_PADDING_BOTTOM = 28;
+
 export function MyDishOwnReviewSheet({
 	item,
 	onClose,
@@ -73,8 +85,41 @@ export function MyDishOwnReviewSheet({
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
 	const { locale } = useLocale();
+	// #1629【オーナー実機報告】「下が見切れてる」。ジェスチャーバー / ホームインジケータの
+	// 下に «お店の詳細を見る» が潜っていた。Modal は safe area の外まで描けるので自分で足す
+	const insets = useSafeAreaInsets();
+	const { callBackend } = useAPICall();
+	const { confirm } = useDialog();
+	const { showSnackbar } = useSnackbar();
+	const { logFrontendEvent } = useLogger();
 
-	const review = item?.myReview ?? null;
+	/*
+	#1629【オーナー実機報告】「編集&削除できない」。
+
+	編集・削除の導線はフィード右レールの «…»（`DishMediaMoreMenu`）にしか無く、
+	**写真の無い «食べた» 記録はフィードに出ない**ので、そこへ辿り着く手段が
+	そもそも存在しなかった。このシートが唯一の «その記録を開く場所» なので、ここに置く。
+
+	⚠️ 消せるのは **クチコミ 1 件だけ**（`DELETE /v1/dish-reviews/:id`）。
+	   写真は «無い» か «既に削除済み»（`isOwnMediaDeleted`）のどちらかなので、
+	   `DELETE /v1/dish-media/:id` を呼ぶ相手がいない。
+	*/
+	const [editingReview, setEditingReview] = useState<EditableDishReview | null>(null);
+	const [isDeleting, setIsDeleting] = useState(false);
+	/**
+	 * 編集の結果はここに退避する。一覧（`items`）は親が持っており、
+	 * `bumpMyDishesRevision()` で取り直されるまで古いままなので、
+	 * **保存直後のシートには保存した内容が出ている**ようにする。
+	 */
+	const [savedOverride, setSavedOverride] = useState<UpdateDishReviewResponse | null>(null);
+
+	const review = useMemo(() => {
+		const base = item?.myReview ?? null;
+		if (base === null) return null;
+		return savedOverride !== null && String(savedOverride.id) === String(base.id)
+			? { ...base, ...savedOverride }
+			: base;
+	}, [item?.myReview, savedOverride]);
 
 	const dishName = useMemo(
 		() => (item ? (resolveDishCategoryLabel(item.dish.categoryLabels, locale) ?? null) : null),
@@ -95,8 +140,72 @@ export function MyDishOwnReviewSheet({
 		if (item) onOpenRestaurant(item);
 	}, [item, onOpenRestaurant]);
 
+	const handleOpenEdit = useCallback(() => {
+		if (review === null) return;
+		setEditingReview({
+			id: String(review.id),
+			comment: review.comment,
+			rating: review.rating,
+			price_cents: review.price_cents,
+			currency_code: review.currency_code,
+			lock_no: review.lock_no,
+		});
+	}, [review]);
+
+	/**
+	 * 削除。取り返しがつかないので確認を挟む。
+	 *
+	 * ⚠️ 文言は `DishMediaContent.ownPost.deleteReviewConfirmMessage`（「写真は他の人のものなので
+	 *    残ります」）を使い回さないこと。ここには残る写真が無く、**記録ごと一覧から消える**。
+	 */
+	const handleDelete = useCallback(async () => {
+		if (review === null || item === null || isDeleting) return;
+
+		const accepted = await confirm({
+			title: i18n.t("MyDishes.ownReview.deleteConfirmTitle"),
+			message: i18n.t("MyDishes.ownReview.deleteConfirmMessage"),
+			confirmLabel: i18n.t("DishMediaContent.ownPost.deleteConfirmButton"),
+			cancelLabel: i18n.t("DishMediaContent.ownPost.cancel"),
+		});
+		if (!accepted) return;
+
+		setIsDeleting(true);
+		try {
+			await callBackend<Record<string, never>, DeleteDishReviewResponse>(`v1/dish-reviews/${review.id}`, {
+				method: "DELETE",
+				requestPayload: {},
+			});
+			logFrontendEvent({
+				event_name: "own_review_deleted",
+				error_level: "log",
+				payload: { reviewId: String(review.id), itemKey: item.key, from: "my-dishes-own-review-sheet" },
+			});
+			// #1398 の版数。«食べた» の行が消えるだけでなく、その dish の «食べたい» が
+			// 復活しうる（want 枝の NOT EXISTS が外れる）ので一覧・Map・Calendar 全部に波及する
+			bumpMyDishesRevision();
+			// 一覧の取り直しは `bumpMyDishesRevision()` が起こす（`useMyDishesQuery` が版を見ている）
+			onClose();
+			showSnackbar(i18n.t("DishMediaContent.ownPost.reviewDeleted"));
+		} catch (error) {
+			const status = (error as ApiError)?.status;
+			showSnackbar(
+				status === 403
+					? i18n.t("DishMediaContent.ownPost.forbidden")
+					: i18n.t("DishMediaContent.ownPost.reviewDeleteFailed"),
+			);
+			logFrontendEvent({
+				event_name: "own_review_delete_failed",
+				error_level: "warn",
+				payload: { reviewId: String(review.id), status, error: toErrorLogMessage(error) },
+			});
+		} finally {
+			setIsDeleting(false);
+		}
+	}, [review, item, isDeleting, confirm, callBackend, logFrontendEvent, onClose, showSnackbar]);
+
 	return (
-		<Modal visible={item !== null} transparent animationType="slide" onRequestClose={onClose} accessibilityViewIsModal>
+		<>
+			<Modal visible={item !== null} transparent animationType="slide" onRequestClose={onClose} accessibilityViewIsModal>
 			<View style={styles.backdrop}>
 				<Pressable
 					style={styles.backdropTouchable}
@@ -105,7 +214,9 @@ export function MyDishOwnReviewSheet({
 					importantForAccessibility="no-hide-descendants"
 				/>
 
-				<View style={styles.sheet} testID="my-dish-own-review-sheet">
+				<View
+					style={[styles.sheet, { paddingBottom: SHEET_PADDING_BOTTOM + insets.bottom }]}
+					testID="my-dish-own-review-sheet">
 					<View style={styles.header}>
 						<Text style={styles.title} numberOfLines={1}>
 							{item?.restaurant.name ?? ""}
@@ -165,6 +276,38 @@ export function MyDishOwnReviewSheet({
 						)}
 					</ScrollView>
 
+					{/*
+					#1629【オーナー実機報告】「編集&削除できない」。写真の無い記録はフィードに出ないので、
+					フィード右レールの «…» にある編集・削除へ到達できなかった。ここが唯一の出口である。
+					*/}
+					{review ? (
+						<View style={styles.actionRow}>
+							<TouchableOpacity
+								style={styles.actionButton}
+								onPress={handleOpenEdit}
+								accessibilityRole="button"
+								testID="my-dish-own-review-edit">
+								<Pencil size={18} color={colors.textPrimaryAlt} />
+								<Text style={styles.actionButtonText}>{i18n.t("MyDishes.ownReview.edit")}</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								style={styles.actionButton}
+								onPress={handleDelete}
+								disabled={isDeleting}
+								accessibilityRole="button"
+								testID="my-dish-own-review-delete">
+								<Trash2 size={18} color={colors.danger} />
+								<Text style={[styles.actionButtonText, styles.destructiveText]}>
+									{i18n.t("MyDishes.ownReview.delete")}
+								</Text>
+							</TouchableOpacity>
+						</View>
+					) : null}
+
+					{/*
+					#1629 «お店の詳細を見る» は主導線ではない（オーナーが読みたいのは自分のクチコミ）。
+					編集・削除の下に、控えめな文字リンクとして置く。
+					*/}
 					<TouchableOpacity
 						style={styles.restaurantButton}
 						onPress={handleOpenRestaurant}
@@ -174,7 +317,22 @@ export function MyDishOwnReviewSheet({
 					</TouchableOpacity>
 				</View>
 			</View>
-		</Modal>
+			</Modal>
+
+			{/*
+			#1629 編集フォームはフィードの «…» と同じ実装を使う（`EditDishReviewModal`）。
+
+			⚠️ **シートの `<Modal>` の «中» へ入れないこと。** Modal はネイティブでは別ウィンドウで、
+			   入れ子にすると Android で下の窓が閉じるまで上が出ない / 閉じたときに両方消える、といった
+			   挙動差が出る。兄弟として並べ、可視状態だけで出し分ける。
+			*/}
+			<EditDishReviewModal
+				review={editingReview}
+				onClose={() => setEditingReview(null)}
+				onSaved={setSavedOverride}
+				logPayload={{ itemKey: item?.key ?? null, from: "my-dishes-own-review-sheet" }}
+			/>
+		</>
 	);
 }
 
@@ -194,7 +352,7 @@ const createStyles = (colors: Palette) =>
 			borderTopRightRadius: 20,
 			paddingHorizontal: 20,
 			paddingTop: 16,
-			paddingBottom: 28,
+			// paddingBottom は safe area を足すため呼び出し側で組む（SHEET_PADDING_BOTTOM）
 			maxHeight: "85%",
 		},
 		header: {
@@ -264,17 +422,38 @@ const createStyles = (colors: Palette) =>
 			lineHeight: 22,
 			color: colors.textPrimaryAlt,
 		},
-		restaurantButton: {
+		actionRow: {
+			flexDirection: "row",
+			gap: 10,
 			marginTop: 16,
+		},
+		actionButton: {
+			flex: 1,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 8,
 			paddingVertical: 13,
 			borderRadius: 12,
 			borderWidth: 1,
 			borderColor: colors.borderMuted,
-			alignItems: "center",
 		},
-		restaurantButtonText: {
+		actionButtonText: {
 			fontSize: 15,
 			fontWeight: "600",
 			color: colors.textPrimaryAlt,
+		},
+		destructiveText: {
+			color: colors.danger,
+		},
+		restaurantButton: {
+			marginTop: 10,
+			paddingVertical: 12,
+			alignItems: "center",
+		},
+		restaurantButtonText: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: colors.textSecondary,
 		},
 	});

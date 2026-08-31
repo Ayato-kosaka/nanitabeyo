@@ -964,9 +964,19 @@ export default function DishCategoriesScreen() {
 									renderItem={renderCard}
 									onSnapToItem={handleSnapToItem}
 									loop
+									/*
+									#1629【オーナー確定】**中央のカードは左右の余白なしで出す（#1212 の指定どおり）。**
+
+									`parallax` は **アクティブなカードにも `scale` を掛ける**ので、
+									`scale: 0.9` だと中央のカードが中央カラム幅の 0.9 倍になる
+									（実測 504px / 期待 560px）。#1212 の «左右の余白が無い» は満たせない。
+
+									`scale: 1` にして中央のカードを等倍にする。`offset` は隣のカードを
+									どれだけ覗かせるかで、中央の幅には効かないのでそのまま残す。
+									*/
 									layout={{
 										type: "parallax",
-										scale: 0.9,
+										scale: 1,
 										offset: 100,
 									}}
 									style={{ width: cardWidth, height: cardHeight + DISH_CATEGORY_CARD_CTA_OVERHANG }}

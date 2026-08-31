@@ -744,10 +744,11 @@
 		"emptyState": {
 			"noReviews": "아직 리뷰가 없습니다.\n이 레스토랑의 첫 리뷰를 작성해보세요."
 		},
-		"everybodyPostsTitle": "리뷰할 요리 선택",
+		"everybodyPostsTitle": "모두의 게시물",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "레스토랑 상세"
+			"title": "레스토랑 상세",
+			"openInGoogleMaps": "Google 지도에서 열기"
 		}
 	},
 	"Feedback": {
@@ -1153,7 +1154,11 @@
 			"noPhoto": "사진 없음",
 			"noComment": "작성된 코멘트가 없습니다",
 			"noReview": "이 기록에는 아직 리뷰가 없습니다",
-			"openRestaurant": "가게 상세 보기"
+			"openRestaurant": "가게 상세 보기",
+			"edit": "리뷰 수정",
+			"delete": "리뷰 삭제",
+			"deleteConfirmTitle": "이 리뷰를 삭제할까요?",
+			"deleteConfirmMessage": "이 기록의 리뷰를 삭제합니다. 기록도 목록에서 사라집니다. 되돌릴 수 없습니다."
 		}
 	},
 	"SnsImport": {

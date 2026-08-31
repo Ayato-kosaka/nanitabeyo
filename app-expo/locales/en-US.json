@@ -744,10 +744,11 @@
 		"emptyState": {
 			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
 		},
-		"everybodyPostsTitle": "Choose a dish to review",
+		"everybodyPostsTitle": "Everyone’s posts",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "Restaurant Details"
+			"title": "Restaurant Details",
+			"openInGoogleMaps": "Open in Google Maps"
 		}
 	},
 	"Feedback": {
@@ -1153,7 +1154,11 @@
 			"noPhoto": "No photo",
 			"noComment": "No comment was written",
 			"noReview": "There is no review for this record yet",
-			"openRestaurant": "View restaurant details"
+			"openRestaurant": "View restaurant details",
+			"edit": "Edit review",
+			"delete": "Delete review",
+			"deleteConfirmTitle": "Delete this review?",
+			"deleteConfirmMessage": "This deletes the review for this record. The record itself will also disappear from your list. This cannot be undone."
 		}
 	},
 	"SnsImport": {

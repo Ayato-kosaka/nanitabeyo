@@ -14,6 +14,16 @@ jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJ
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/hooks/useContentWidth", () => ({ useContentWidth: () => 390 }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
+// #1629 シートが編集・削除を持ったので、API / ダイアログ / スナックバーまで芋づるで読まれる。
+// このテストが見たいのは一覧の見た目と遷移先だけなので、口だけ塞ぐ
+const mockCallBackend = jest.fn();
+const mockConfirm = jest.fn();
+jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
+jest.mock("@/contexts/DialogProvider", () => ({ useDialog: () => ({ confirm: mockConfirm }) }));
+jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 0, bottom: 34, left: 0, right: 0 }),
+}));
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => mockPush(...args) } }));
@@ -111,6 +121,8 @@ const render = async (): Promise<TestRenderer.ReactTestRenderer> => {
 
 beforeEach(() => {
 	mockPush.mockClear();
+	mockCallBackend.mockReset();
+	mockConfirm.mockReset();
 });
 
 afterEach(async () => {
@@ -511,6 +523,7 @@ describe("#1629 写真の無い記録から自分のクチコミを読む", () =
 		price_cents: 3200,
 		currency_code: "JPY",
 		created_at: "2026-08-10T12:00:00.000Z",
+		lock_no: 3,
 	};
 
 	const setItems = (items: MyDishItem[]) =>
@@ -594,5 +607,94 @@ describe("#1629 写真の無い記録から自分のクチコミを読む", () =
 		expect(mockPush).toHaveBeenCalledWith(
 			expect.objectContaining({ params: expect.objectContaining({ restaurantId: "restaurant-3" }) }),
 		);
+	});
+
+	/*
+	#1629【オーナー実機報告】「編集&削除できない」。
+
+	編集・削除はフィード右レールの «…»（`DishMediaMoreMenu`）にしか無く、写真の無い記録は
+	フィードに出ないので **到達する手段がゼロ**だった。このシートが唯一の «その記録を開く場所»
+	なので、ここから両方できることを固定する。
+	*/
+	describe("編集と削除", () => {
+		it("「編集」から開くフォームには、いま保存されている内容が入っている", async () => {
+			setItems([makeItem("review:1", { myReview: REVIEW })]);
+			const tree = await render();
+			await pressFirstCard(tree);
+
+			await act(async () => {
+				pressableWithTestId(tree, "my-dish-own-review-edit").props.onPress();
+			});
+
+			expect(hostsWithTestId(tree, "edit-review-modal")).toHaveLength(1);
+			const input = tree.root.findAll(
+				(n) => n.props?.testID === "edit-review-comment-input" && typeof n.type === "string",
+			)[0];
+			expect(input.props.value).toBe("肉が厚くて満足");
+			// 3200 は最小単位。JPY は 0 桁なので「3200」のまま出す（100 で割らない）
+			const price = tree.root.findAll(
+				(n) => n.props?.testID === "edit-review-price-input" && typeof n.type === "string",
+			)[0];
+			expect(price.props.value).toBe("3200");
+		});
+
+		it("保存は lockNo を必ず送る（競合検知を無効化しない）", async () => {
+			setItems([makeItem("review:1", { myReview: REVIEW })]);
+			mockCallBackend.mockResolvedValue({ ...REVIEW, comment: "書き直した", lock_no: 4 });
+			const tree = await render();
+			await pressFirstCard(tree);
+			await act(async () => {
+				pressableWithTestId(tree, "my-dish-own-review-edit").props.onPress();
+			});
+			await act(async () => {
+				pressableWithTestId(tree, "edit-review-submit-button").props.onPress();
+			});
+
+			expect(mockCallBackend).toHaveBeenCalledWith(
+				"v1/dish-reviews/review-1",
+				expect.objectContaining({
+					method: "PATCH",
+					requestPayload: expect.objectContaining({ lockNo: 3, priceCents: 3200, currencyCode: "JPY" }),
+				}),
+			);
+		});
+
+		it("削除は確認を挟み、承諾されたときだけレビュー 1 件を消す", async () => {
+			setItems([makeItem("review:1", { myReview: REVIEW })]);
+			mockConfirm.mockResolvedValue(false);
+			const tree = await render();
+			await pressFirstCard(tree);
+
+			await act(async () => {
+				pressableWithTestId(tree, "my-dish-own-review-delete").props.onPress();
+			});
+			expect(mockConfirm).toHaveBeenCalled();
+			expect(mockCallBackend).not.toHaveBeenCalled();
+
+			mockConfirm.mockResolvedValue(true);
+			await act(async () => {
+				pressableWithTestId(tree, "my-dish-own-review-delete").props.onPress();
+			});
+			// 写真は «無い» か «既に削除済み» なので、消せるのはクチコミ 1 件だけ
+			expect(mockCallBackend).toHaveBeenCalledWith(
+				"v1/dish-reviews/review-1",
+				expect.objectContaining({ method: "DELETE" }),
+			);
+			expect(mockCallBackend).not.toHaveBeenCalledWith(
+				expect.stringContaining("dish-media"),
+				expect.anything(),
+			);
+			// 消したらシートは閉じる（消えたものを開いたままにしない）
+			expect(hostsWithTestId(tree, "my-dish-own-review-sheet")).toHaveLength(0);
+		});
+
+		it("編集と削除の導線がシートに出る（フィードに出ない記録の唯一の出口）", async () => {
+			setItems([makeItem("review:1", { myReview: REVIEW })]);
+			const tree = await render();
+			await pressFirstCard(tree);
+			expect(hostsWithTestId(tree, "my-dish-own-review-edit")).toHaveLength(1);
+
+			expect(hostsWithTestId(tree, "my-dish-own-review-delete")).toHaveLength(1);
+		});
 	});
 });

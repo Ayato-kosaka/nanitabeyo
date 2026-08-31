@@ -120,6 +120,11 @@ jest.mock("@/features/map/components/tabs/RestaurantReviewsTab", () => ({ Restau
 jest.mock("@/features/map/components/tabs/RestaurantBidsTab", () => ({ RestaurantBidsTab: () => null }));
 jest.mock("@/features/map/components/ReviewForm", () => ({ ReviewForm: () => null }));
 jest.mock("@/features/map/components/BidForm", () => ({ BidForm: () => null }));
+// #1629 店詳細のボタンは «Google マップで開く» になった。外へ出る処理は口だけ塞ぐ
+jest.mock("@/lib/googlePlaces", () => ({
+	getGoogleMapsLink: jest.fn(async () => ({ mapUrl: "https://maps.google.com/?q=test", canOpen: true })),
+}));
+jest.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: jest.fn(async () => {}) }));
 
 /**
  * `<Portal>` のスタブ。
@@ -259,30 +264,33 @@ describe("#1359 ログイン導線の push 先と next（#1386 で 4 箇所 → 
 		});
 	});
 
-	it("店詳細: next は «戻り先» ではなく投稿フォームという «行き先»", async () => {
+	/*
+	#1629【オーナー確定】**店詳細からログイン導線は無くなった。**
+
+	この画面にあった «写真・動画を投稿»（ゲストならログインへ送る）を外し、
+	«Google マップで開く» に差し替えたため。投稿はすべて «食べたを記録» のフローを通り、
+	そちらのログイン導線（`my-dishes-record-button`）が上のテストで守られている。
+
+	ここで守るのは逆向きの性質になる: **ゲストでも、店詳細では何もログインを求められない。**
+	店の場所を見るだけの操作でログインを要求するのは、この画面では過剰である。
+	*/
+	it("店詳細: ゲストでもログイン画面へ送らない（Google マップは誰でも開ける）", async () => {
 		const tree = await render(<ReviewRestaurantDetails restaurantEntry={reviewRestaurantEntry} />);
 
-		await press(tree, "restaurant-detail-post-photo-button");
+		await press(tree, "restaurant-detail-google-maps-button");
 
-		expect(mockPush).toHaveBeenCalledTimes(1);
-		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/auth/login",
-			params: { locale: "ja-JP", next: `/ja-JP/restaurant/${RESTAURANT_ID}/review` },
-		});
+		const pushedToLogin = mockPush.mock.calls.filter(
+			([href]) => (href as { pathname?: string })?.pathname === "/[locale]/auth/login",
+		);
+		expect(pushedToLogin).toHaveLength(0);
 	});
 
-	// #1386 地図から来た場合もこの店詳細を通るので、地図専用の `next`（旧: /ja-JP/map）は無くなった。
-	// 店が URL に載っている以上、投稿フォームまで戻せるこちらの方が忠実に復帰できる
-
-	// 3 箇所とも isGuestUser ゲートの内側にあること。ログイン済みで押しても login へは飛ばさない
+	// ログイン済みで押しても login へは飛ばさない（isGuestUser ゲートの内側にあること）
 	it("ログイン済みならどの導線もログイン画面へは push しない", async () => {
 		mockUser = MEMBER;
 
 		const myDishesTree = await render(<MyDishesScreen />);
 		await press(myDishesTree, "my-dishes-record-button");
-
-		const detailTree = await render(<ReviewRestaurantDetails restaurantEntry={reviewRestaurantEntry} />);
-		await press(detailTree, "restaurant-detail-post-photo-button");
 
 		const pushedToLogin = mockPush.mock.calls.filter(
 			([href]) => (href as { pathname?: string })?.pathname === "/[locale]/auth/login",
@@ -303,7 +311,7 @@ describe("#1386 ログイン導線を持つ画面は portal を 1 つも持た�
 	*/
 	it("店詳細は Portal を 1 つも描かない", async () => {
 		const tree = await render(<ReviewRestaurantDetails restaurantEntry={reviewRestaurantEntry} />);
-		await press(tree, "restaurant-detail-post-photo-button");
+		await press(tree, "restaurant-detail-google-maps-button");
 
 		expect(mockPortal).not.toHaveBeenCalled();
 	});
