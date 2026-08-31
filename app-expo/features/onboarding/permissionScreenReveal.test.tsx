@@ -12,6 +12,7 @@ Android では許可ダイアログが別 Activity で、アプリは `onPause` 
 «要求が返る前の時点で説明が画面に載っているか» という観測可能な形に落としている。
 */
 import React from "react";
+import { Text } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
 import { OnboardingPermissionScreen } from "./components/OnboardingPermissionScreen";
@@ -36,7 +37,7 @@ const dialogPreview = {
 /** 画面上に描かれているテキストを集める */
 const renderedTexts = (renderer: TestRenderer.ReactTestRenderer): string[] =>
 	renderer.root
-		.findAllByType(require("react-native").Text)
+		.findAllByType(Text)
 		.flatMap((node) => (Array.isArray(node.props.children) ? node.props.children : [node.props.children]))
 		.filter((child): child is string => typeof child === "string");
 
