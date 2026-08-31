@@ -200,10 +200,10 @@
 			"to": ["検索フォーム"]
 		},
 		{
-			"id": "search-topics",
+			"id": "search-dishCategories",
 			"name": "料理提案（トピックカード）",
-			"route": "/[locale]/search/topics",
-			"url": "/ja-JP/search/topics",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -226,10 +226,10 @@
 			]
 		},
 		{
-			"id": "search-topics-tutorial-swipe",
+			"id": "search-dish-categories-tutorial-swipe",
 			"name": "料理提案チュートリアル 1/4（気になる料理を選ぼう）",
-			"route": "/[locale]/search/topics",
-			"url": "/ja-JP/search/topics",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -251,10 +251,10 @@
 			]
 		},
 		{
-			"id": "search-topics-tutorial-deep-dive",
+			"id": "search-dish-categories-tutorial-deep-dive",
 			"name": "料理提案チュートリアル 2/4（気分に合わせて深堀再検索）",
-			"route": "/[locale]/search/topics",
-			"url": "/ja-JP/search/topics",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -276,10 +276,10 @@
 			]
 		},
 		{
-			"id": "search-topics-tutorial-topic-actions",
+			"id": "search-dish-categories-tutorial-dishCategory-actions",
 			"name": "料理提案チュートリアル 3/4（好みに合わせて整理）",
-			"route": "/[locale]/search/topics",
-			"url": "/ja-JP/search/topics",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -301,10 +301,10 @@
 			]
 		},
 		{
-			"id": "search-topics-tutorial-group-vote",
+			"id": "search-dish-categories-tutorial-group-vote",
 			"name": "料理提案チュートリアル 4/4（友達と決める）",
-			"route": "/[locale]/search/topics",
-			"url": "/ja-JP/search/topics",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -484,10 +484,10 @@
 			]
 		},
 		{
-			"id": "profile-saved-topics",
+			"id": "profile-saved-dish-categories",
 			"name": "保存した料理カテゴリ",
-			"route": "/[locale]/profile/saved-topics",
-			"url": "/ja-JP/profile/saved-topics",
+			"route": "/[locale]/profile/saved-dish-categories",
+			"url": "/ja-JP/profile/saved-dish-categories",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -510,10 +510,10 @@
 			]
 		},
 		{
-			"id": "profile-saved-topic-location",
+			"id": "profile-saved-dish-category-location",
 			"name": "保存料理カテゴリの地点検索",
-			"route": "/[locale]/profile/saved-topic-location",
-			"url": "/ja-JP/profile/saved-topic-location",
+			"route": "/[locale]/profile/saved-dish-category-location",
+			"url": "/ja-JP/profile/saved-dish-category-location",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -691,10 +691,10 @@
 			]
 		},
 		{
-			"id": "profile-blocked-topics",
+			"id": "profile-blocked-dish-categories",
 			"name": "ブロック済みの料理トピック",
-			"route": "/[locale]/profile/blocked-topics",
-			"url": "/ja-JP/profile/blocked-topics",
+			"route": "/[locale]/profile/blocked-dish-categories",
+			"url": "/ja-JP/profile/blocked-dish-categories",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -1420,7 +1420,7 @@
 		},
 		{
 			"from": "search-form",
-			"to": "search-topics",
+			"to": "search-dishCategories",
 			"label": "検索実行"
 		},
 		{
@@ -1469,38 +1469,38 @@
 			"label": "はじめる"
 		},
 		{
-			"from": "search-topics",
-			"to": "search-topics-tutorial-swipe",
+			"from": "search-dishCategories",
+			"to": "search-dish-categories-tutorial-swipe",
 			"label": "初回 / ？"
 		},
 		{
-			"from": "search-topics-tutorial-swipe",
-			"to": "search-topics-tutorial-deep-dive",
+			"from": "search-dish-categories-tutorial-swipe",
+			"to": "search-dish-categories-tutorial-deep-dive",
 			"label": "次へ"
 		},
 		{
-			"from": "search-topics-tutorial-deep-dive",
-			"to": "search-topics-tutorial-topic-actions",
+			"from": "search-dish-categories-tutorial-deep-dive",
+			"to": "search-dish-categories-tutorial-dishCategory-actions",
 			"label": "次へ"
 		},
 		{
-			"from": "search-topics-tutorial-topic-actions",
-			"to": "search-topics-tutorial-group-vote",
+			"from": "search-dish-categories-tutorial-dishCategory-actions",
+			"to": "search-dish-categories-tutorial-group-vote",
 			"label": "次へ"
 		},
 		{
-			"from": "search-topics-tutorial-group-vote",
-			"to": "search-topics",
+			"from": "search-dish-categories-tutorial-group-vote",
+			"to": "search-dishCategories",
 			"label": "使ってみる"
 		},
 		{
-			"from": "search-topics",
+			"from": "search-dishCategories",
 			"to": "search-result-feed",
 			"label": "この料理にする！"
 		},
 		{
 			"from": "search-result-feed",
-			"to": "search-topics",
+			"to": "search-dishCategories",
 			"label": "閉じる"
 		},
 		{
@@ -1514,7 +1514,7 @@
 			"label": "キャンセル"
 		},
 		{
-			"from": "search-topics",
+			"from": "search-dishCategories",
 			"to": "search-group-vote-result",
 			"label": "みんなで投票を共有"
 		},
@@ -1550,7 +1550,7 @@
 		},
 		{
 			"from": "profile-guest",
-			"to": "profile-saved-topics",
+			"to": "profile-saved-dish-categories",
 			"label": "保存した料理カテゴリ"
 		},
 		{
@@ -1564,12 +1564,12 @@
 			"label": "グリッドを開く"
 		},
 		{
-			"from": "profile-saved-topics",
-			"to": "profile-saved-topic-location",
+			"from": "profile-saved-dish-categories",
+			"to": "profile-saved-dish-category-location",
 			"label": "保存トピックを開く"
 		},
 		{
-			"from": "profile-saved-topic-location",
+			"from": "profile-saved-dish-category-location",
 			"to": "profile-search-results",
 			"label": "地点を確定"
 		},
@@ -1595,7 +1595,7 @@
 		},
 		{
 			"from": "profile-guest",
-			"to": "profile-blocked-topics",
+			"to": "profile-blocked-dish-categories",
 			"label": "ブロック済みトピック"
 		},
 		{
@@ -1610,7 +1610,7 @@
 		},
 		{
 			"from": "profile-authenticated",
-			"to": "profile-saved-topics",
+			"to": "profile-saved-dish-categories",
 			"label": "保存した料理カテゴリ"
 		},
 		{
