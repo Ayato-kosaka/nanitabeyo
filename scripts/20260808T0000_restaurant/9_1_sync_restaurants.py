@@ -18,6 +18,7 @@ from pg_sync_common import (
     SyncStats,
     assert_quality_gate_passed,
     backup_table_to_gcs,
+    log_db_load,
     connect_postgres,
     fetch_sync_windows,
     new_sync_id,
@@ -29,6 +30,16 @@ LOGGER = logging.getLogger(__name__)
 
 # これを超えた文は plan をログへ出す（#1706）
 SLOW_STATEMENT_SECONDS = 60.0
+
+# #1706 **共有 DB を掴んでよい上限。** 超えたら自分から降りる。
+#
+# この DB は本番と共有している。2026-08-31 に、このバッチが 1 時間級の
+# 全表走査を日中に 5 回繰り返して本番障害を起こした。**遅いまま粘るのは
+# 自分の都合であって、他のサービスには関係がない。**
+#
+# ここを超えるなら、伸ばすのではなく «62 万行を 1 トランザクションで処理する»
+# 設計の方を見直すこと（#1706 の残作業）。
+SYNC_TIME_BUDGET_SECONDS = 20 * 60
 
 
 def parse_args() -> argparse.Namespace:
@@ -260,7 +271,20 @@ def apply_sync(connection: Any) -> None:
     «どれが遅いか» をログから読めないと、推測で 30〜60 分を溶かすことになる。
     """
 
+    budget_started = time.monotonic()
+
     def run(label: str, sql: str) -> None:
+        # #1706 **次の文へ進む前に、予算を使い切っていないか見る。**
+        # 共有 DB なので «あと少しだから» で粘らない。
+        spent = time.monotonic() - budget_started
+        if spent >= SYNC_TIME_BUDGET_SECONDS:
+            raise RuntimeError(
+                f"同期が {spent / 60:.1f} 分を超えました（上限 "
+                f"{SYNC_TIME_BUDGET_SECONDS / 60:.0f} 分）。この DB は本番と共有して"
+                "いるので、ここで降ります。上限を伸ばすのではなく、処理の分割を"
+                "検討してください（#1706）"
+            )
+
         # #1706 **遅いときに «なぜ» を残す。** 同じ文が実行によって 8 秒にも
         # 408 秒にもなった（どちらも 0 行）。行数では説明が付かず、plan の
         # 違いだった。EXPLAIN は実行しないので安く、これが無いと次も推測になる。
@@ -297,8 +321,15 @@ def apply_sync(connection: Any) -> None:
         # SET LOCAL なので **このトランザクションの中だけ**に効く。
         cursor.execute("SET LOCAL random_page_cost = 4")
         cursor.execute("SET LOCAL enable_nestloop = off")
-        # hash join がディスクへ溢れないだけの作業領域を与える。
-        cursor.execute("SET LOCAL work_mem = '256MB'")
+        # ⚠️ **work_mem は上げない。**
+        #
+        # 一度 `SET LOCAL work_mem = '256MB'` を入れたが、撤回した。work_mem は
+        # **同時に動くノードごとに**確保されるので、1 文で何倍にもなる。この DB は
+        # **本番と共有**しており、2026-08-31 にこのバッチが本番障害を起こした。
+        # hash join は plan（上の 2 行）で誘導できる。溢れたらディスクを使えばよく、
+        # それは遅いだけで **他のサービスを巻き込まない**。
+        #
+        # 共有資源では «自分が速いこと» より «他人を止めないこと» を優先する。
         # 既存PGのPlace ID変更は人手overrideを明示した場合だけ許す。restaurant UUIDを
         # 維持するため、削除→再作成ではなく既存行のID列だけを更新する。
         run(
@@ -685,9 +716,13 @@ def main() -> None:
             stats.updated,
             stats.skipped,
         )
+        # #1706 **重い処理の前後で、共有 DB の負荷を測って残す。**
+        # この DB は本番と共有しており、測ることを怠って障害を起こした。
+        log_db_load(connection, "同期前")
         # dry-runも同じDMLをtransaction内で実行し、constraint/JSON cast/競合を
         # 本番前に検出する。違いはcommitせずrollbackすることだけにする。
         apply_sync(connection)
+        log_db_load(connection, "同期後")
         if args.dry_run:
             connection.rollback()
         else:

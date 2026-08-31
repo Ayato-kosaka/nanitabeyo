@@ -168,6 +168,51 @@ def reapply_session_settings(connection: PgConnection, schema: str) -> None:
         )
 
 
+def log_db_load(connection: PgConnection, label: str) -> None:
+    """DB 全体の負荷をログへ出す。#1706
+
+    2026-08-31 に、dev への同期が **本番と共有の DB** を圧迫して障害を起こした。
+    スキーマは分かれていても CPU・IO・接続枠は同じ 1 台である。
+
+    このとき私は、**自分がその 1 台をどれだけ使っているかを一度も測らなかった**。
+    タイムアウトの原因追及だけを見て、周りへの影響を見ていなかった。
+    測っていない以上「他は大丈夫」とは言えない（CLAUDE.md「見えないものは
+    «無い» ではない」）。
+
+    重い処理の前後で必ず呼ぶ。**止めはしない。見えるようにするだけ。**
+    """
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                  COUNT(*)                                             AS total,
+                  COUNT(*) FILTER (WHERE state = 'active')             AS active,
+                  COUNT(*) FILTER (WHERE wait_event_type = 'Lock')     AS waiting_on_lock,
+                  COALESCE(
+                    date_trunc('second', MAX(now() - query_start))
+                      FILTER (WHERE state = 'active'), INTERVAL '0'
+                  )                                                    AS longest_query
+                FROM pg_stat_activity
+                WHERE datname = current_database() AND pid <> pg_backend_pid()
+                """
+            )
+            total, active, waiting, longest = cursor.fetchone()
+        LOGGER.info(
+            "DB負荷[%s] 接続=%s / 実行中=%s / ロック待ち=%s / 最長=%s",
+            label, total, active, waiting, longest,
+        )
+        if waiting:
+            LOGGER.warning(
+                "DB負荷[%s] **%s 本がロック待ちです。** 他のサービスを止めている"
+                "可能性があります",
+                label, waiting,
+            )
+    except Exception as error:  # 計測の失敗で本処理を止めない
+        LOGGER.warning("DB負荷[%s] を測れませんでした: %s", label, error)
+
+
 def assert_quality_gate_passed(
     pipeline: BigQueryPipeline,
     run_id: str,
