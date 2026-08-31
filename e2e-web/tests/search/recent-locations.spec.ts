@@ -20,7 +20,15 @@ import { SearchPage } from "../../pages/SearchPage";
  * 前提: 実 API(v1/locations/autocomplete, v1/locations/details)を叩く。CORS 前提は
  * location-autocomplete.spec.ts と同じ(e2e-web/README.md 参照)。
  */
-test.describe("最近使った場所(実 API)", () => {
+test.describe("最近使った場所", () => {
+	/*
+	#1629【オーナー確定】**Places の日次上限は上げない。** この spec は «場所検索の結果を使って
+	画面が進むこと» を見るもので、Places の応答そのものが主題ではないので固定値へ差し替える
+	（`utils/locationSearch.ts`）。実物を叩く検証は `tests/search/location-autocomplete.spec.ts`
+	の 1 本だけに残してある。
+	*/
+	test.use({ mockLocationSearch: true });
+
 	// ─ テストケース: 2番目に選んだ地点を選び直すと先頭へ移動し、件数は変わらない ─
 	// 手順:
 	//   1. 「渋谷」で検索し、先頭の候補(1件目)を選ぶ
