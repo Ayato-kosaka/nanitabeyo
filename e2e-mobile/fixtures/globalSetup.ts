@@ -226,12 +226,31 @@ async function withNetworkRetry<T extends { error: { status?: number } | null }>
 	let result = await call();
 
 	for (let attempt = 1; attempt < MAX_ATTEMPTS; attempt += 1) {
-		// 成功、または HTTP ステータスが返っている（= サーバまで届いている）なら再試行しない
-		if (!result.error || typeof result.error.status === "number") return result;
+		/*
+		成功したら終わり。
+
+		#1641 【バグ】以前はここが「HTTP ステータスが返っていたら再試行しない」だった。
+		«サーバまで届いているなら再試行しても同じ» という理屈だが、**5xx を巻き込んでいた**。
+
+		2026-08-31 に run 33416769655 / 33420202252 / 33425723292 の 3 本が続けてここで落ちた。
+		正体は `status=504 / AuthRetryableFetchError`（Supabase 認証のゲートウェイタイムアウト）で、
+		Supabase 自身が **Retryable** と名付けている種類の失敗である。それを 1 度も再試行せずに
+		即 fail していたため、**CI が 45 分ぶん、1 回の一時的な 504 で潰れた**。
+
+		再試行して意味があるのは «向こうが一時的に応答できなかった» ときだけなので、
+		- ステータスが無い（ネットワークで届いていない）
+		- 5xx（届いたが向こうが一時的に落ちている）
+		の 2 つに絞る。4xx は待っても変わらないので即座に諦める
+		（429 のレート制限は窓が 1 時間、422 は設定の問題。どちらも再試行は無駄）。
+		*/
+		if (!result.error) return result;
+		const status = result.error.status;
+		const isRetryable = typeof status !== "number" || status >= 500;
+		if (!isRetryable) return result;
 
 		const waitMs = 2_000 * attempt;
 		console.warn(
-			`⚠️ ${label} がネットワーク起因で失敗しました。${waitMs}ms 後に再試行します（${attempt}/${MAX_ATTEMPTS - 1}）`,
+			`⚠️ ${label} が一時的な失敗（status=${status ?? "-"}）でした。${waitMs}ms 後に再試行します（${attempt}/${MAX_ATTEMPTS - 1}）`,
 		);
 		await new Promise((resolve) => setTimeout(resolve, waitMs));
 		result = await call();
