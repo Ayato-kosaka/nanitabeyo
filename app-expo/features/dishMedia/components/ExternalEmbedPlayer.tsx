@@ -1002,12 +1002,38 @@ export function ExternalEmbedPlayer({
 			activatedAtRef.current = Date.now();
 			return;
 		}
+		/*
+		#1641【観測】**再生中のセルを畳んだことを残す。**
+
+		オーナー実機報告（2026-08-31）「２秒くらい流れて止まって、下の tiktok が流れる」の
+		切り分けに要る。原因は 2 つあり得て、**打ち手がまったく違う**。
+
+		| どちら | 何が起きている | 直す先 |
+		| --- | --- | --- |
+		| 向こうが止めた | playerState 2 が飛んでくる | 包みの側で撃ち直す |
+		| こちらが畳んだ | isActive が false になり、セルごと外れる | 誰を active と見なすかの判定 |
+
+		いまは後者が 1 行も残らないので分けられない。«前面に居るつもりのセルが
+		何ミリ秒で外されたか» を残せば、送りの判定がずれていることが数字で分かる。
+		*/
+		if (hasPlayedRef.current) {
+			logFrontendEvent({
+				event_name: "external_embed_deactivated_while_playing",
+				error_level: "warn",
+				payload: {
+					provider: embed.provider,
+					visit: visitRef.current,
+					sinceActiveMs: Date.now() - activatedAtRef.current,
+				},
+			});
+		}
+		hasPlayedRef.current = false;
 		setRenderProcessGone(false);
 		setPlayback("unknown");
 		setUnplayableKind(null);
 		setWebViewReadyToShow(false);
 		reloadsRef.current = 0;
-	}, [isActive]);
+	}, [isActive, embed.provider, logFrontendEvent]);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
 
@@ -1271,6 +1297,31 @@ export function ExternalEmbedPlayer({
 			// #1641 «向こうに絵が載った»。WebView を見せてよい合図（結論ではない）
 			if (parsed.kind === "poster") {
 				setWebViewReadyToShow(true);
+				return;
+			}
+			/*
+			#1641【観測】**«勝手に止まった» を記録する。状態は動かさない。**
+
+			オーナー実機報告（2026-08-31）「２秒くらい流れて止まって、下の tiktok が流れる」。
+			これまで playerState 2（PAUSED）を 1 行も残していなかったので、
+			«YouTube 自身が止まった» のか «こちらがセルを畳んだ» のかを分けられなかった。
+
+			⚠️ **ここで playback を触らないこと。** 止まっただけのセルを «再生できない» へ
+			   倒すと、動いている映像の上に導線の帯が乗る。包みの側が撃ち直している。
+			⚠️ hasPlayedRef のガードより **前**に置くこと。再生済みセルで起きる現象なので、
+			   後ろに置くと 1 行も残らない（それが今回そもそも観測できなかった理由である）。
+			*/
+			if (parsed.kind === "paused") {
+				logFrontendEvent({
+					event_name: "external_embed_paused",
+					error_level: "warn",
+					payload: {
+						provider: embed.provider,
+						detail: parsed.detail ?? null,
+						visit: visitRef.current,
+						sinceActiveMs: Date.now() - activatedAtRef.current,
+					},
+				});
 				return;
 			}
 			if (parsed.kind === "boot" || parsed.kind === "dom" || parsed.kind?.startsWith("stall")) {
