@@ -1339,9 +1339,28 @@ export function ExternalEmbedPlayer({
 			エージェントが起動しただけで «再生できない» へ倒れる。
 			*/
 			// #1641 `stall` は時刻ごとに kind が違う（stall4000 / stall9000 …）ので前方一致で見る
-			// #1641 «向こうに絵が載った»。WebView を見せてよい合図（結論ではない）
+			/*
+			#1641 «向こうに絵が載った»。WebView を見せてよい合図（結論ではない）。
+
+			⚠️ **iframe（YouTube）だけは、ここで見せてはいけない。**
+
+			オーナー実機報告（2026-08-31）:
+			  「YouTube shorts に邪魔な部品が多くてどれも押せない」
+			  「はじめの 2 秒 部品でて、そこからでなくなりますね」
+
+			`controls=0` 等で消せるのは **再生中の UI** だけで、**再生が始まる前**の画面には
+			タイトル・チャンネル名・Shorts バッジ・▶ が出る。`poster` はまさにその瞬間に届くので、
+			ここで不透明にすると «最初の 2 秒だけ部品が出る» になる。
+
+			iframe は `playing` まで待つ。その間はアプリのサムネイルが見えているので黒くならない。
+			`playing` が来ないまま時間切れになった場合は、従来どおり縮退して導線の帯を出す
+			（＝ 見え方は今より悪くならない）。
+
+			document（Instagram / TikTok）は、注入した CSS が向こうの UI を先に隠しているので
+			早く見せてよい。ここで待たせると、鳴るまでの数秒がサムネイルのままになって遅く見える。
+			*/
 			if (parsed.kind === "poster") {
-				setWebViewReadyToShow(true);
+				if (source?.mode !== "iframe") setWebViewReadyToShow(true);
 				return;
 			}
 			/*
