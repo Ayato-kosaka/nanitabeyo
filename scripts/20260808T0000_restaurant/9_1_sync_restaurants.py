@@ -27,6 +27,9 @@ from pipeline_common import BigQueryPipeline, configure_logging, require_run_id,
 
 LOGGER = logging.getLogger(__name__)
 
+# これを超えた文は plan をログへ出す（#1706）
+SLOW_STATEMENT_SECONDS = 60.0
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -258,13 +261,44 @@ def apply_sync(connection: Any) -> None:
     """
 
     def run(label: str, sql: str) -> None:
+        # #1706 **遅いときに «なぜ» を残す。** 同じ文が実行によって 8 秒にも
+        # 408 秒にもなった（どちらも 0 行）。行数では説明が付かず、plan の
+        # 違いだった。EXPLAIN は実行しないので安く、これが無いと次も推測になる。
         started = time.monotonic()
         cursor.execute(sql)
-        LOGGER.info(
-            "  %-28s %6.1f秒 / %d行", label, time.monotonic() - started, cursor.rowcount
-        )
+        elapsed = time.monotonic() - started
+        LOGGER.info("  %-28s %6.1f秒 / %d行", label, elapsed, cursor.rowcount)
+        if elapsed >= SLOW_STATEMENT_SECONDS:
+            try:
+                cursor.execute("EXPLAIN " + sql)
+                plan = " / ".join(line[0].strip() for line in cursor.fetchall()[:6])
+                LOGGER.warning("    ↑ 遅い。plan: %s", plan)
+            except Exception as error:  # EXPLAIN の失敗で同期を止めない
+                LOGGER.warning("    ↑ 遅いが EXPLAIN を取れなかった: %s", error)
 
     with connection.cursor() as cursor:
+        # #1706 **この同期は «両方の表をほぼ全部触る» 形なので、hash join を選ばせる。**
+        #
+        # 実測（dev、同じ文・同じ 0 行）:
+        #
+        #   新規 INSERT      8.3秒 → 408.4秒
+        #   リンク削除       15.9秒 → 499.7秒
+        #
+        # 行数では説明が付かない。違いは plan である。VACUUM ANALYZE で統計が
+        # 更新されたあと、planner が «索引で 1 行ずつ引く» 側（nested loop）を
+        # 選ぶようになった。62 万行ぶんの索引探索は、この DB の速度では
+        # 1 文あたり数百秒かかる。
+        #
+        # バッチとして正しいのは «両方を舐めて突き合わせる»（hash join）方である。
+        # random_page_cost の既定はマネージド PostgreSQL では SSD 向けに
+        # 小さく設定されていることが多く、対話クエリには合っているが、
+        # 62 万行を 1 文で処理するバッチには合わない。
+        #
+        # SET LOCAL なので **このトランザクションの中だけ**に効く。
+        cursor.execute("SET LOCAL random_page_cost = 4")
+        cursor.execute("SET LOCAL enable_nestloop = off")
+        # hash join がディスクへ溢れないだけの作業領域を与える。
+        cursor.execute("SET LOCAL work_mem = '256MB'")
         # 既存PGのPlace ID変更は人手overrideを明示した場合だけ許す。restaurant UUIDを
         # 維持するため、削除→再作成ではなく既存行のID列だけを更新する。
         run(
