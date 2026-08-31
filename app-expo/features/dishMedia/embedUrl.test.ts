@@ -41,6 +41,33 @@ describe("buildExternalEmbedPlayerSource", () => {
 	⚠️ controls=0 は再生できなくする設定ではない。再生は IFrame API（enablejsapi=1）
 	   から撃っており、そちらは何も変わらない。
 	*/
+	/*
+	#1641 ⚠️ **0（ENDED）を «本当に終わった» ときだけ信じること。**
+
+	実測（run 33370446694 / commit dc3732b9 / Android）:
+
+	    08:04:14.098  youtube autoplay_started audible   sinceActiveMs=2194
+	    08:04:14.183  youtube paused (currentTime 0s)    sinceActiveMs=2278
+
+	再生が始まった **85 ミリ秒後**に «0 秒で止まった» が飛んでいる。11 秒の動画が 2 秒で
+	終わるはずがないので、これは終了ではない。にもかかわらず旧版はここで seekTo(0) を
+	撃っており、**自分で頭へ巻き戻して止めていた**。オーナー報告
+	「２秒くらい流れて止まって、下の tiktok が流れる」はこれである。
+
+	ループの保険として入れたものが、ループの前に発火していた。
+	started かつ 再生位置が頭から離れているときだけ終了と見なす。
+	*/
+	it("ENDED は «再生済み» かつ «頭から動いている» ときだけ信じる", () => {
+		const html = buildEmbedIframeHtml("https://www.youtube.com/embed/abc123?enablejsapi=1");
+
+		// 終了判定に started と再生位置の両方が要ること
+		expect(html).toContain("data.info.playerState === 0 && started");
+		expect(html).toContain("ENDED_MIN_SECONDS");
+		// 終了と決まったときは、これまでどおり頭へ戻して撃ち直す
+		expect(html).toContain("'seekTo'");
+		expect(html).toContain("'playVideo'");
+	});
+
 	it("YouTube は向こうの UI を出さない（controls / 全画面 / 注釈 / 関連動画）", () => {
 		const url = buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl ?? "";
 
