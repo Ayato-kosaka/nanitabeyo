@@ -608,7 +608,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "料理カテゴリを選択",
-			"writeReviewForThisDish": "この料理にレビューを書く",
 			"useTypedDishCategory": "「{{name}}」で決める"
 		},
 		"inputs": {

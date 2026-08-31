@@ -607,7 +607,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "选择菜品类别",
-			"writeReviewForThisDish": "为这道菜写评论",
 			"useTypedDishCategory": "使用“{{name}}”"
 		},
 		"inputs": {
