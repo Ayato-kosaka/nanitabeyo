@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { isOnboardingPath } from "@/features/onboarding/navigation";
 import { loadOnboardingSeen } from "@/features/onboarding/onboardingSeenStore";
+import { wasDeniedInOnboarding } from "@/features/onboarding/permissionOutcomes";
 import i18n from "@/lib/i18n";
 import { useLogger } from "../hooks/useLogger";
 import type { CreateDeviceTokenResponse } from "@shared/api/v1/res";
@@ -103,6 +104,21 @@ export function PushTokenRegistration() {
 				const { status: existingStatus } = await Notifications.getPermissionsAsync();
 				let finalStatus = existingStatus;
 				if (existingStatus !== "granted") {
+					// #1736 【バグ】オンボーディングの通知許可画面で «許可しない» と答えた直後、
+					// ここが要求をやり直して **説明の無い OS ダイアログをもう一度**出していた
+					// （この effect はオンボーディングを抜けた瞬間に張り直される。
+					//  Android 13+ の POST_NOTIFICATIONS は canAskAgain が残っていれば再表示される）。
+					// この起動でオンボーディングが尋ねて断られていたら、要求はしない
+					if (wasDeniedInOnboarding("notifications")) {
+						logFrontendEvent({
+							event_name: "push_permission_skipped_after_onboarding_denied",
+							error_level: "log",
+							payload: { status: existingStatus },
+						});
+						// 番人は外さない。既存の «拒否された» 経路と同じく、この起動では再試行しない
+						return;
+					}
+
 					const { status } = await Notifications.requestPermissionsAsync();
 					finalStatus = status;
 				}

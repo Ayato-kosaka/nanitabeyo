@@ -11,7 +11,7 @@ import type { ExternalPathString } from "expo-router";
 
 import { OnboardingPermissionScreen } from "@/features/onboarding/components/OnboardingPermissionScreen";
 import { OnboardingScreenOptions } from "@/features/onboarding/components/OnboardingScreenOptions";
-import { rememberOnboardingLocationOutcome } from "@/features/onboarding/locationPermissionOutcome";
+import { rememberOnboardingPermissionOutcome } from "@/features/onboarding/permissionOutcomes";
 import { resolveAfterLocationPath } from "@/features/onboarding/navigation";
 import {
 	getLocationPermissionState,
@@ -42,8 +42,8 @@ export default function OnboardingLocationScreen() {
 
 			// #1736 断られたことを覚えておく。検索画面の現在地の自動取得が、この直後に
 			// 説明の無い許可ダイアログを続けて出さないようにするため
-			//（features/onboarding/locationPermissionOutcome.ts）
-			rememberOnboardingLocationOutcome(outcome);
+			//（features/onboarding/permissionOutcomes.ts）
+			rememberOnboardingPermissionOutcome("location", outcome);
 
 			logFrontendEvent({
 				event_name: "onboarding_location_permission_settled",

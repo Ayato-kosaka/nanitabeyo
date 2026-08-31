@@ -49,7 +49,7 @@ import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_SEARCH_RADIUS } from "@/features/dishCategories/constants";
 import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
-import { getOnboardingLocationOutcome } from "@/features/onboarding/locationPermissionOutcome";
+import { wasDeniedInOnboarding } from "@/features/onboarding/permissionOutcomes";
 import { onboardingIndexPath } from "@/features/onboarding/navigation";
 import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
 import { getSavedSearchConditions, saveSearchConditions } from "@/features/search/stores/useSearchConditionsStore";
@@ -611,8 +611,7 @@ export default function SearchScreen() {
 		// #1736 オンボーディングで «許可しない» と答えた直後に、説明の無い OS ダイアログを
 		// 続けて出さない（Android は canAskAgain が残っている限りもう一度出す）。
 		// ユーザー操作起点の «現在地» ボタンは従来どおり要求する
-		const onboardingOutcome = getOnboardingLocationOutcome();
-		if (onboardingOutcome !== null && onboardingOutcome !== "granted") {
+		if (wasDeniedInOnboarding("location")) {
 			didRequestAutoLocationRef.current = true;
 			return;
 		}

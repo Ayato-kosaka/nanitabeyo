@@ -16,9 +16,9 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 
 import {
-	__resetOnboardingLocationOutcomeForTest,
-	rememberOnboardingLocationOutcome,
-} from "@/features/onboarding/locationPermissionOutcome";
+	__resetOnboardingPermissionOutcomesForTest,
+	rememberOnboardingPermissionOutcome,
+} from "@/features/onboarding/permissionOutcomes";
 
 // jest.mock のファクトリから参照するため、変数名は `mock` 始まりにする（jest の巻き上げ規則）
 const mockRequestAutoCurrentLocation = jest.fn();
@@ -85,12 +85,12 @@ const renderSearchScreen = () => {
 
 describe("オンボーディング直後の現在地の自動取得", () => {
 	beforeEach(() => {
-		__resetOnboardingLocationOutcomeForTest();
+		__resetOnboardingPermissionOutcomesForTest();
 		mockRequestAutoCurrentLocation.mockClear();
 	});
 
 	it("オンボーディングで許可されていれば、これまでどおり自動で取得する", () => {
-		rememberOnboardingLocationOutcome("granted");
+		rememberOnboardingPermissionOutcome("location", "granted");
 		const tree = renderSearchScreen();
 		expect(mockRequestAutoCurrentLocation).toHaveBeenCalledTimes(1);
 		tree.unmount();
@@ -103,7 +103,7 @@ describe("オンボーディング直後の現在地の自動取得", () => {
 	});
 
 	it.each(["denied", "unavailable"] as const)("オンボーディングの答えが %s なら、続けて許可を要求しない", (outcome) => {
-		rememberOnboardingLocationOutcome(outcome);
+		rememberOnboardingPermissionOutcome("location", outcome);
 		const tree = renderSearchScreen();
 		expect(mockRequestAutoCurrentLocation).not.toHaveBeenCalled();
 		tree.unmount();
