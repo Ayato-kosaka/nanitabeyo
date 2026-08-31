@@ -171,3 +171,9 @@
   - **柱1 測定は2軸で出す**: (a) resolve-matched（今すぐ使える＝店が既に pg dev）／(b) 既知店×カテゴリ解決（status=matched または skipped_no_store。pg同期すれば使える柱1の潜在産出）。(b) が pg母数同期の投資根拠。
 - **crawl は harvest 律速を追い越さない**: IG business_discovery 200/時が柱1のスループット律速。3,432 handle 既にキュー＝十数時間分。**wave3 crawl は harvest が追いつくまで出さない**（先行crawlは遊休backlog）。4_2 に shard/offset を足すのは (b) 測定で柱1価値を確認後に判断。
 - **次**: 4_2(800)完了→5_1(version dev-2026-08-31-store)→柱1を(a)(b)で測定→意味あれば pg母数同期を選択肢提示（DB変更・承認要）。
+
+## 進捗更新 2026-08-31 18:12Z（柱1 harvestの構造的スループット制約を確定）
+- 4_2 harvest 順調に前進（17:19時点168acct→18:12時点 **385acct/11,313投稿**。停滞は逐次flush粒度の見え方だった）。~800は~19:30見込み。
+- ★**柱1 harvest は IG business_discovery 200/時に構造的に律速。並列化しても速くならない**: 投稿一覧の取得は business_discovery しか手段が無く（embed 6,870/時は «既知postのcaption取得» 用で handle の投稿列挙には使えない）、レート制限は **app token 単位**。4_2 を --shards で6並列にしても同一 IG_TOKEN の同一バケットを share するので合算 200/時のまま backoff が増えるだけ。→ **4_2 sharding は無意味・実装しない**。2,532 handle の全収集は ~12.6h（200/時）。
+- 帰結: **crawl は harvest を追い越さない**（wave3以降は backlog 消化まで保留、再確認）。柱1の near-term 測定は 800 sample で行う。全量 harvest は時間をかけて消化（毎tickで完了分を 5_1 に流す運用）。
+- カテゴリrecall磨き(loop B)は、offline matcher 複製(fragile)ではなく **5_1 後の実 store-caption の cat=0 実ミス**で行う（evidence-first）。
