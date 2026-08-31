@@ -411,6 +411,28 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	});
 
 	/*
+	#1641 ⚠️ **パーサを止めている script のホストを送る経路を消さないこと。**
+
+	iOS の TikTok が組み上がらない形は CI で毎回まったく同じ数字になる。
+
+	    still_loading ready=loading nodes=12 script=6 body=no chars=-1 enc=38814 res=7
+
+	38.8KB は届いていて head に script が 6 本あるのに body が 1 つも無い。
+	どの script で止まっているかが分からないと直す先が決まらない。
+	止まっている script は resource timing に載らないので、DOM の script[src] との
+	差分で一意に決まる。⚠️ 送るのはホスト名だけ（パス・クエリ・本文は載せない）。
+	*/
+	it("組み上がらないときは、読み込みが終わっていない script のホストを送る", () => {
+		renderActiveCell();
+		const script: string = webViewProps.injectedJavaScript;
+
+		expect(script).toContain("' pending=' +");
+		expect(script).toContain("script[src]");
+		// ⚠️ ホスト名だけ。URL をそのまま送る形になっていないこと
+		expect(script).toContain(".host");
+	});
+
+	/*
 	#1641 ⚠️ **«空だった» で終わる記録を作らない。**
 
 	オーナー端末の実測（2026-08-30 / commit 9b646339）で TikTok が 4 回落ちたとき、

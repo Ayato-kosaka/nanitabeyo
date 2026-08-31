@@ -588,9 +588,50 @@ const AUTOPLAY_SCRIPT = `(function () {
         // 資源が 1 つも来ていないのか、来ているのに parse が止まっているのかを分ける
         + ' res=' + ((window.performance && performance.getEntriesByType)
             ? performance.getEntriesByType('resource').length : -1)
-        + navFacts();
+        + navFacts()
+        + pendingScriptHosts();
     } catch (e) {
       return 'snapshot-error';
+    }
+  }
+
+  /*
+   * #1641【観測】**パーサを止めているのは «どこの» script か。**
+   *
+   * iOS の TikTok が組み上がらない形は、CI で **毎回まったく同じ数字**になる。
+   *
+   *     still_loading ready=loading nodes=12 script=6 body=no chars=-1 enc=38814 res=7
+   *
+   * 38.8KB は届いていて、head に script が 6 本ある。なのに body が 1 つも無い。
+   * つまり «向こうが返してくれない» ではなく **head の同期 script でパーサが止まっている**。
+   * ⚠️ ただしここまでは **まだ推測**である。どの script かが分からないと直す先が決まらない。
+   *
+   * 止まっている script は «DOM には居るが、読み込みが終わっていない» ので、
+   * resource timing に載らない。**DOM の script[src] のうち resource timing に無いもの**が
+   * それである。差分を取れば一意に決まる。
+   *
+   * ⚠️ 送るのは **ホスト名だけ**。パスもクエリも本文も 1 文字も載せない
+   *    （この関数群の他の値と同じ方針）。
+   * ⚠️ この注釈にバッククォートを書かないこと。ここはテンプレートリテラルの内側で、
+   *    書いた時点で文字列が終わる。
+   */
+  function pendingScriptHosts() {
+    try {
+      if (!(window.performance && performance.getEntriesByType)) return '';
+      var loaded = {};
+      var entries = performance.getEntriesByType('resource');
+      for (var i = 0; i < entries.length; i++) loaded[entries[i].name] = 1;
+      var hosts = [], seen = {}, nodes = document.querySelectorAll('script[src]');
+      for (var j = 0; j < nodes.length; j++) {
+        var url = nodes[j].src;
+        if (!url || loaded[url]) continue;
+        var host = 'parse-error';
+        try { host = new URL(url, location.href).host; } catch (e) {}
+        if (host && !seen[host]) { seen[host] = 1; hosts.push(host); }
+      }
+      return ' pending=' + (hosts.length ? hosts.join(',') : 'none');
+    } catch (e) {
+      return ' pending=error';
     }
   }
 
