@@ -133,3 +133,19 @@ website 保有店の 27.6%（89/322）は «website» 自体が集約メディ�
 - **流し方**: `4_1_discover_sns_accounts.py` に `--source official_site_crawl`（crawl 出力テーブル/JSONL を読む）を
   1 本足し、`_rows_from_open_data` と同型で yield。以降は既存どおり 4_2 収集 → resolve で店舗づけ。
   IG は叩かず handle 発見までが柱1、投稿収集は既存経路に委ねる。
+
+### 実装済み（本番投入できる形）
+上の設計は実装済み。エビデンスは `test_pillar1_official_site_crawl.py`（fetch 済み 322 店標本での純関数検証）。
+
+- **`4_4_crawl_official_site_igs.py`**: restaurant_catalog(website 保有店) を crawl → 店固有フィルタ →
+  中間テーブル `sns_store_site_ig` へロード。到達不能/robots/handle 無しも handle=NULL 行で残す。
+  `--limit`/`--offset` でバッチ分割（google_place_id 昇順で互いに素）・そのバッチの place_id だけ
+  DELETE して冪等。`--dry-run` は書き込まず summary のみ。抽出/robots/fetch は
+  `pillar1_site_extract.py` の純関数をそのまま呼ぶ（写経しない）。
+- **`4_1 --source official_site_crawl`**: `sns_store_site_ig` を全件読み、handle→distinct place_id を数えて
+  **≥2 店に付く handle（チェーン）を除外**し、1 店固有 handle を `account_type=store_branch` /
+  `discovery_method='official_site_crawl'` / `discovery_seed_place_id=google_place_id` で
+  `sns_source_account` へ合流。グローバルチェーン除去は全件が見えるここでのみ行う（4_4 はバッチ分割で全件を見られない）。
+- **中間テーブル**は migration `20260830T0000_create_sns_seed_tables.sql` に `sns_store_site_ig` として追加（4_0 で作成）。
+- **標本 322 での実測**（ユニット）: 店固有 handle を持つ 86 店・異なり handle 84・裏取りあり 46。
+  89 の (place_id, handle) → チェーン 9 handle を除外 → **store_branch 80 行**が 4_1 に載る。到達性: fetch_failed 61・robots 9・no_handle 166。

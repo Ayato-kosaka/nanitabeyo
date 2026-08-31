@@ -171,6 +171,35 @@ def domain_token(host):
     return max(labels, key=len) if labels else ""
 
 
+def store_specific_handles(rec):
+    """1 店の fetch 結果（process_store の出力）→ «店固有候補» handle。
+
+    本番 4_4 と POC 測定の両方がこの 1 つの純関数を通す（判定の写経を作らない）。
+    ここで落とすのは **1 店だけ見れば決まるもの** に限る:
+      - PLATFORM_HANDLES（集約メディア・配達・大手公式）の blocklist
+      - «website» が集約メディアの店では、店名/domain 裏取りの無い handle
+    ⚠️ «複数 google_place_id に同じ handle が付く» グローバルチェーン除去は、
+       1 店だけでは判定できないため **ここには入れない**（バッチ分割で全件が
+       見えないため）。それは全件を読む 4_1 --source official_site_crawl 側で行う。
+
+    返り値: {handle: {"tags": [source tag...], "corroborated": bool}}
+    """
+    host = rec.get("host", "") or ""
+    name = rec.get("name", "") or ""
+    agg = bool(rec.get("aggregator_host", False))
+    out = {}
+    for h, tags in (rec.get("new_handles") or {}).items():
+        if h in PLATFORM_HANDLES:
+            continue
+        corr = corroborated(h, host, name, allow_domain=not agg)
+        if agg and not corr:
+            # 集約メディア上の handle は «その店» の裏取り（店名一致）が無ければ店固有としない
+            continue
+        out[h] = {"tags": sorted(tags) if isinstance(tags, (list, set, tuple)) else [tags],
+                  "corroborated": corr}
+    return out
+
+
 def corroborated(handle, host, name, allow_domain=True):
     """handle がその店に紐づく «裏取り» があるか（domain トークン一致 / 店名英字一致）。
 

@@ -32,6 +32,7 @@
 -- =============================================================================
 
 DROP TABLE IF EXISTS `${DATASET}.sns_source_account`;
+DROP TABLE IF EXISTS `${DATASET}.sns_store_site_ig`;
 DROP TABLE IF EXISTS `${DATASET}.sns_post_raw`;
 DROP TABLE IF EXISTS `${DATASET}.sns_post_parsed`;      -- 旧設計（parse ステップ）を廃止
 DROP TABLE IF EXISTS `${DATASET}.sns_post_resolved`;
@@ -56,6 +57,32 @@ CREATE TABLE `${DATASET}.sns_source_account` (
 PARTITION BY DATE(discovered_at)
 CLUSTER BY provider, account_type
 OPTIONS (description = '収集元アカウント。pg UUID を持たない。店は google_place_id で指す。#1273');
+
+-- -----------------------------------------------------------------------------
+-- ①' 柱1 中間テーブル（店公式サイト crawl → 店固有 IG handle 候補）
+-- -----------------------------------------------------------------------------
+-- 4_4_crawl_official_site_igs.py が restaurant_catalog の website 保有店を crawl して書く。
+-- 到達不能/robots/handle 無しの店も handle=NULL の行として残す（reachability の観測）。
+-- ⚠️ ここは «1 店だけで決まる» 店固有フィルタ（blocklist・集約メディア裏取り）まで。
+--    «複数 place_id に同じ handle が付く» グローバルチェーン除去は、全件を読む
+--    4_1 --source official_site_crawl 側で account_type を決めるときに行う（バッチ分割で
+--    4_4 側からは全件が見えないため）。
+CREATE TABLE `${DATASET}.sns_store_site_ig` (
+  google_place_id     STRING NOT NULL,  -- crawl 対象店（restaurant_catalog.google_place_id）
+  website             STRING,           -- crawl した website（監査用）
+  host                STRING,           -- website のホスト
+  is_aggregator_host  BOOL,             -- website 自体が集約メディア/ブログ/SNS だったか
+  status              STRING NOT NULL,  -- ok / website_is_ig / fetch_failed / robots_blocked / no_handle / no_website
+  handle              STRING,           -- 店固有候補 handle。status が handle を伴わないとき NULL
+  source_tags         ARRAY<STRING>,    -- ig_url / jsonld_sameas / at_text / website_is_ig
+  corroborated        BOOL,             -- domain/店名の裏取りがあるか（店固有の確度）
+  error               STRING,           -- fetch_failed のときのエラー詳細
+  crawled_at          TIMESTAMP NOT NULL,
+  run_id              STRING NOT NULL
+)
+PARTITION BY DATE(crawled_at)
+CLUSTER BY run_id, google_place_id
+OPTIONS (description = '柱1: 店公式サイト crawl の IG handle 候補と到達性。4_1 --source official_site_crawl が読む。#1273');
 
 -- -----------------------------------------------------------------------------
 -- ② 投稿URLプール（収集の唯一の出力。caption を持たない）

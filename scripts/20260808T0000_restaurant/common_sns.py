@@ -25,6 +25,7 @@ from typing import Any
 
 # --- BigQuery テーブル名（dataset は pipeline_common の BQ_DATASET = restaurant_recommendation）---
 TABLE_SOURCE_ACCOUNT = "sns_source_account"
+TABLE_STORE_SITE_IG = "sns_store_site_ig"
 TABLE_POST_RAW = "sns_post_raw"
 TABLE_POST_RESOLVED = "sns_post_resolved"
 TABLE_COVERAGE = "sns_coverage"
