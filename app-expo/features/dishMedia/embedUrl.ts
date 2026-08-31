@@ -247,6 +247,19 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
    */
   var RESUME_MIN_GAP_MS = 700;
   var MAX_RESUME_NOTES = 6;
+  /*
+   * ⚠️ **上限は «止まったまま» を作らない大きさにする。ただし無制限にはしない。**
+   *
+   * 上限 3 回では足りなかった（実測: 4 秒地点で 2 回使い切り、以後止まりっぱなし）。
+   * かといって無制限だと、向こうが再生を拒み続ける状況で playVideo を
+   * 永久に撃ち続けることになる。**止まらない仕掛けは、止まらないまま気付けない。**
+   *
+   * 10 秒の動画を 5 分見続けても «終了 → 撃ち直し» は 30 回程度なので、
+   * 30 回あればユーザーが体感する範囲では «止まったまま» にならない。
+   * ここに達したということは «撃ち直しでは直らない» ということなので、
+   * 記録を残して諦める（次はその記録から別の原因を探す）。
+   */
+  var MAX_RESUMES = 30;
   var resumes = 0;
   var lastResumeAt = 0;
   /*
@@ -435,7 +448,8 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
        * ⚠️ report() は使えない（1 種類 1 回きりで、再生済みセルの結論を覆さない作りのため）。
        *    観測用の別便として送り、受け側は記録するだけで状態を変えない。
        */
-      if (data.info.playerState === 2 && started && Date.now() - lastResumeAt > RESUME_MIN_GAP_MS) {
+      if (data.info.playerState === 2 && started && resumes < MAX_RESUMES
+          && Date.now() - lastResumeAt > RESUME_MIN_GAP_MS) {
         lastResumeAt = Date.now();
         resumes += 1;
         if (resumes <= MAX_RESUME_NOTES) {
