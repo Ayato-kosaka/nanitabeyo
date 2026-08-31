@@ -341,6 +341,32 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	});
 
 	/*
+	#1641 ⚠️ **«空の文書» を分けられる値を落とさないこと。**
+
+	どの値が実際に使えるかは Playwright で実測した（同じ TikTok embed URL を開いて計測）。
+	期待だけで並べると «全部 -1» の役に立たない記録が残る。
+
+	| 送る値 | Chromium（≒ Android WebView） | WebKit（≒ iOS WKWebView） |
+	| --- | --- | --- |
+	| enc | 183048 / 空なら 0 ✅ | 38778 / 空なら無し ✅ |
+	| chars | 44715 / 空なら 0 ✅ | 42118 / 空なら 0 ✅ |
+	| blankUrl | ✅ | ✅ |
+	| bytes | 常に 0（cross-origin で伏せられる） | 39078 |
+	| st | 常に 0（同上） | undefined |
+
+	⚠️ この 3 つ（enc / chars / blankUrl）を消すと、次に空が返っても
+	   «空だった» までしか残らない。st と bytes は engine の片方で潰れるので当てにしない。
+	*/
+	it("空の文書を分けられる値（enc / chars / blankUrl）を送っている", () => {
+		renderActiveCell();
+		const script: string = webViewProps.injectedJavaScript;
+
+		expect(script).toContain("' enc=' +");
+		expect(script).toContain("' chars=' +");
+		expect(script).toContain("' blankUrl=' +");
+	});
+
+	/*
 	#1641 ⚠️ **«空だった» で終わる記録を作らない。**
 
 	オーナー端末の実測（2026-08-30 / commit 9b646339）で TikTok が 4 回落ちたとき、

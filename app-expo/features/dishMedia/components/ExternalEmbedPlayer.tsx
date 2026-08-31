@@ -607,12 +607,21 @@ const AUTOPLAY_SCRIPT = `(function () {
    * script 16 本が返り、レート制限で空が返る事実は再現しなかった。
    * つまり空は **端末側**で起きている。次の 4 つが分ければ、原因は一意に決まる。
    *
-   * | 送る値 | 何が分かるか |
-   * | --- | --- |
-   * | st（HTTP ステータス） | 向こうが空を返した（200 で 0 バイト）のか、蹴った（4xx/5xx）のか |
-   * | bytes（転送バイト数） | 応答そのものが空だったのか、届いたのに描かれていないのか |
-   * | nav=none | 遷移が **1 度も起きていない**（＝ about:blank のまま）のか |
-   * | chars（body の文字数） | body があるだけなのか、中身を持っているのか |
+   * **どの値が実際に使えるかは実測した**（Playwright / 同じ TikTok embed URL を開いて計測）。
+   * 期待だけで並べると «全部 -1» の役に立たない記録が残るので、当てにする値を絞る。
+   *
+   * | 送る値 | Chromium（≒ Android WebView） | WebKit（≒ iOS WKWebView） |
+   * | --- | --- | --- |
+   * | enc（本文バイト数） | **183048 / 空なら 0** ✅ | **38778 / 空なら無し** ✅ |
+   * | chars（body の文字数） | **44715 / 空なら 0** ✅ | **42118 / 空なら 0** ✅ |
+   * | blankUrl（about:blank か） | ✅ | ✅ |
+   * | bytes（転送バイト数） | 常に 0（cross-origin で伏せられる） | 39078 |
+   * | st（HTTP ステータス） | 常に 0（同上） | **undefined** |
+   * | nav=none（遷移が無い） | 出ない（about:blank でも entry がある） | ✅ |
+   *
+   * ⚠️ **st と bytes を判断の主語にしないこと。** どちらも片方の engine で潰れる。
+   *    «向こうが空を返した / そもそも読んでいない» を分けるのは **enc と chars と blankUrl**
+   *    である。st / bytes は engine の差を確かめるための添え物として残している。
    *
    * ⚠️ 送るのは **数と真偽だけ**。ページの本文・URL・クエリは 1 文字も載せない。
    * ⚠️ この注釈にバッククォートを書かないこと。ここはテンプレートリテラルの内側で、
@@ -621,15 +630,21 @@ const AUTOPLAY_SCRIPT = `(function () {
   function navFacts() {
     try {
       if (!(window.performance && performance.getEntriesByType)) return '';
-      var nav = performance.getEntriesByType('navigation')[0];
-      if (!nav) return ' nav=none';
-      var out = ' st=' + (nav.responseStatus == null ? -1 : nav.responseStatus)
-        + ' bytes=' + (nav.transferSize == null ? -1 : nav.transferSize)
-        + ' enc=' + (nav.encodedBodySize == null ? -1 : nav.encodedBodySize);
+      var out = '';
+      // about:blank のままか。Chromium は about:blank でも navigation entry を持つので、
+      // «遷移していない» を分けられるのはこちらだけである（上の表）
+      try {
+        out += ' blankUrl=' + (document.URL === 'about:blank' ? 1 : 0);
+      } catch (e) {}
       try {
         out += ' chars=' + (document.body ? document.body.innerHTML.length : -1);
       } catch (e) {}
-      return out;
+      var nav = performance.getEntriesByType('navigation')[0];
+      if (!nav) return out + ' nav=none';
+      return out
+        + ' enc=' + (nav.encodedBodySize == null ? -1 : nav.encodedBodySize)
+        + ' bytes=' + (nav.transferSize == null ? -1 : nav.transferSize)
+        + ' st=' + (nav.responseStatus == null ? -1 : nav.responseStatus);
     } catch (e) {
       return ' nav=error';
     }
