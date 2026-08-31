@@ -1,0 +1,4642 @@
+[
+  {
+    "portal": "bodik",
+    "organisation": "三重県",
+    "dataset": "食品営業許可施設",
+    "resource": "食品営業許可施設",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/796b84b4-c197-44bd-b852-664a8a423676/resource/fc9fba2d-e6f7-4139-ba20-3e572ba99572/download/202607.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "長崎県",
+    "dataset": "食品営業許可一覧",
+    "resource": "県内食品営業許可一覧",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/22c74cf1-6e13-449a-a139-ee9fdc16130a/resource/000ad70b-7c0e-4193-84bc-c4470fc6a15a/download/syokuhin202606.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（全件：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/b8d40e46-9b97-48cd-86a3-3183d78c629a/download/440001_food_business_all.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R6.10月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/63570b0d-3d1b-432e-8586-bb0c70009ca3/download/440001_food_business_new_202410.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R6.11月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/fdc014cb-dff2-463c-a9db-8dab1e1ddc67/download/440001_food_business_new_202411.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R6.12月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/7b635d76-038e-48ef-8886-af270ab70666/download/440001_food_business_new_202412.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.1月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/6469d989-641f-4a86-b55c-dcafe44cab3f/download/440001_food_business_new_202501.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.2月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/2f4aa8b9-6951-4afc-9e1d-ff65a6af04d6/download/440001_food_business_new_202502.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.3月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/c76d9fb1-6493-480d-a727-a1420f1781ad/download/440001_food_business_new_202503.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.4月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/2008ecee-c939-4614-8101-01d6e3edbc60/download/440001_food_business_new_202504.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.5月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/402666cf-391c-482d-a7d3-0d1604a92853/download/440001_food_business_new_202505.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.6月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/5e14846b-b6cd-4a6c-8a05-edb32aa5f1b9/download/440001_food_business_new_202506.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.7月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/9bd2da0e-38dc-4325-9582-d55b35a3a85e/download/440001_food_business_new_202507.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.8月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/576e2a47-3406-43df-b451-a54867674e9c/download/440001_food_business_new_202508.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.9月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/658a9b35-eb62-446e-94f1-a1a9d5995a17/download/440001_food_business_new_202509.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.10月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/9b0f74df-2065-4b34-a3aa-a58e01f16f2c/download/440001_food_business_new_202510.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.11月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/1e305b92-e336-4e48-b110-c20a002a6ba5/download/440001_food_business_new_202511.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R7.12月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/3071c993-11ac-4ece-966e-3918b3440ed8/download/440001_food_business_new_202512.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R8.1月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/55a7e4e1-2b05-42a5-bf99-838a296ebe4f/download/440001_food_business_new_202601.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R8.2月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/15adeea5-6d1a-42e0-adb0-b3798292bfb9/download/440001_food_business_new_202602.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R8.3月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/642a9fa4-fbd3-41e7-9c9a-799451fd3b99/download/440001_food_business_new_202603.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R8.4月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/d6a98193-ab83-4ea6-8216-246c3f97a69e/download/440001_food_business_new_202604.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R8.5月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/ffa6f127-cfcb-48a1-b9ba-90e3cdd66ba6/download/440001_food_business_new_202605.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "大分県",
+    "dataset": "食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（R8.6月分新規：CSV）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1b0a322a-6355-4b47-8fe7-478ec1b7d5e9/resource/111dc4ad-c554-43c3-9a86-e007bd26d679/download/440001_food_business_new_202606.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "東大阪市",
+    "dataset": "食品等営業許可一覧",
+    "resource": "食品等営業許可一覧（新規許可）（令和8年2月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/b5eeed4c-cec0-4eef-8513-b4882d6a18ec/resource/4f71cc13-9639-438d-995b-f4b457f5bb89/download/272272_food_business_new_20260201_20260228.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "東大阪市",
+    "dataset": "食品等営業許可一覧",
+    "resource": "食品等営業許可一覧（新規許可）（令和8年3月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/b5eeed4c-cec0-4eef-8513-b4882d6a18ec/resource/23d35f20-0589-42a0-87e8-a2cb59266326/download/272272_food_business_new_20260301_20260331.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "東大阪市",
+    "dataset": "食品等営業許可一覧",
+    "resource": "食品等営業許可一覧（全許可）（令和8年4月1日現在）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/b5eeed4c-cec0-4eef-8513-b4882d6a18ec/resource/a0416f70-bda0-46fe-a684-b22a95135c32/download/272272_food_business_all_20260401.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "東大阪市",
+    "dataset": "食品等営業許可一覧",
+    "resource": "食品等営業許可一覧（新規許可）（令和8年4月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/b5eeed4c-cec0-4eef-8513-b4882d6a18ec/resource/981be3b9-1f13-457f-b62e-7a6fb5be92cd/download/272272_food_business_new_20260401_20260430.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "東大阪市",
+    "dataset": "食品等営業許可一覧",
+    "resource": "食品等営業許可一覧（新規許可）（令和8年5月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/b5eeed4c-cec0-4eef-8513-b4882d6a18ec/resource/881ae94f-bfc7-48f8-8e9e-a3d26dfe94fd/download/272272_food_business_new_20260501_20260531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "東大阪市",
+    "dataset": "食品等営業許可一覧",
+    "resource": "食品等営業許可一覧（新規許可）（令和8年6月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/b5eeed4c-cec0-4eef-8513-b4882d6a18ec/resource/efb9b81f-e7d8-4999-8613-daebc0e397c2/download/272272_food_business_new_20260601_20260630.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成27年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/ef0a2fed-f4d1-46ec-8931-a37719cf7460/download/h27.4_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成27年5月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/b7884df2-7718-425f-8264-79140126c36b/download/h27.5_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成27年6月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/a48bf7e0-256f-46a6-8ce8-21ca4858a9b1/download/h27.6_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成27年7月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/9b9df079-bc73-4871-9cf4-37125c726576/download/h27.7_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成27年8月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/9582ef04-10fe-4caa-a141-434cacd0fe83/download/h27.8_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成27年9月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/9a0c3a4b-d101-458e-a7c3-f15a04c1fdcf/download/h27.9_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成27年10月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/cf35e46e-cee3-4d32-a4f0-031860870ba8/download/h27.10_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成27年11月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/b39d33be-6aff-4e80-b312-244b7ce3acc8/download/h27.11_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成27年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/a44b79a9-a267-4b72-b37a-f64ba729a438/download/h27.12_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年1月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/c8af5b7c-ab2b-4ee8-8369-dde1085331de/download/h28.1_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年2月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/0ee3da82-7257-4c8c-9563-c645cd9930b4/download/h28.2_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年3月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/10bf38a4-d9dd-435d-8568-aed1330c71d1/download/h28.3_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/7759309e-17a2-43cd-81ab-091985f66a86/download/h28.4_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年5月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/f7279ae9-2e81-442f-a753-f9ef097d4dcd/download/h28.5_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年6月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/5bf0fdfc-bf57-41a4-ba3e-84fdc6d83173/download/h28.6_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年7月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/8785f36f-4a1a-4d26-821d-c3aebc1f5326/download/h28.7_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年8月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/895c82ca-2835-4ed5-aab6-565590b10708/download/h28.8_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年9月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/911b866c-10e1-4722-8c34-d686526aa7cf/download/h28.9_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年10月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/b655ef39-8141-4f53-aa1d-f41b915416d8/download/h28.10_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年11月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/e1b8abcc-ff79-4cbb-b2d3-f1b99cef60d0/download/h28.11_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成28年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/b475f236-a399-4110-bbba-9763531056c5/download/h28.12_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年1月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/6d099ee3-43e5-4211-80e2-66ddfd6050d8/download/h29.1_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年2月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/dbe84639-5cb0-4505-adae-2d525091563b/download/h29.2_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年3月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/2fe2ef56-3f15-4bb6-ab54-6f337c8c5140/download/h29.3_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/251dc309-34f1-4876-9491-0cb5cb7d9caf/download/h29.4_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年5月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/c5ac832f-c202-4482-84b2-200548d26f10/download/h29.5_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年6月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/7160ad97-d7a3-4708-9c5d-56d18a4eb308/download/h29.6_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年7月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/da463a74-80bf-455a-9964-ce41a125918d/download/h29.7_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年8月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/211152ca-e7a4-462c-bbd9-07afca3e82bc/download/h29.8_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年9月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/7214c04b-f331-4b20-bc0a-3275a6b5740a/download/h29.9_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年10月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/04f0cf74-bed2-4c33-b972-256781116f4b/download/h29.10_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年11月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/86f2d2a8-363d-404f-97f4-1aa10a970f86/download/h29.11_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成29年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/eadd2acf-3692-4676-8ac3-057fe39f3cf3/download/h29.12_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年1月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/c32c61a6-911f-4a91-aa98-1d19e2702686/download/h30.1_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年2月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/29519e91-bd7c-41e0-b5e3-b369d247094f/download/h30.2_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年3月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/1c7987a0-4ac3-4aae-b611-53aa86375088/download/h30.3_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年4月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/dfc2b741-3264-431d-a38a-7a413ece540a/download/h30.4_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年5月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/a15a47cc-38ab-4781-922b-bbb98c9b99b8/download/h30.5_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/0a441301-35c5-49e4-9e6b-f786a46402b2/download/h30.6_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年7月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/958bc210-6739-41ff-a0e5-322ca2d0d33d/download/h30.7_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年8月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/df860e33-c261-414c-ac2e-818bd3cc7666/download/h30.8_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年9月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/2688bb36-77c4-4041-be85-a9b3e8791a51/download/h30.9_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年10月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/e184a60f-b68a-4e15-829a-54395da0fd49/download/h30.10_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年11月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/42a4ee5a-f426-4c5d-be24-ffcef51119c9/download/h30.11_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成30年12月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/53de90a1-e229-4410-a556-2dd06e9adcfb/download/h30.12_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成31年1月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/da119f6b-73d0-4b12-9553-1d000aebfc83/download/h31.1_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成31年2月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/9fe7d4dd-1a16-43b3-875d-e3e4414edf59/download/h31.2_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成31年3月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/b51408aa-e074-481a-bf85-f6adf7ab6be9/download/h31.3_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "平成31年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/b56e97f4-4242-4fec-b48f-77a0a870c3bc/download/h31.4_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和元年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/369b06bc-868d-41b2-811f-c4470d6e4786/download/r01.6_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和元年7月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/4b0e63ab-4d08-47fe-96e7-a0df03b2248e/download/r01.7_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和元年8月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/c54b1f26-c77a-4f55-8032-faed526c023a/download/r01.8_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和元年9月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/6555e042-94bd-4656-a357-5e178d9f2e2e/download/r01.9_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和元年10月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/7d969c30-f2c3-4afb-8e2a-2589e69998f3/download/r01.10_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和元年11月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/bd0ef4fd-8b68-4ead-bbae-f7e80946529e/download/r01.11_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和元年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/196cf279-ce18-432e-927e-e53beeee2741/download/r01.12_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年1月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/9648a9e6-6454-4d76-9519-1a5cfb3a7ebe/download/r02.01_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年2月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/7b789eb9-0e85-4ae7-b50b-05f3dfbd71d2/download/r02.2_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年3月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/992469a3-6b10-40a5-9174-229baf7a7b91/download/r02.3_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/510750d2-b59b-42d5-b489-1e7da64841fb/download/r02.04_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年5月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/ccdad164-3f2c-4533-8d9e-d0e5978e780a/download/r02.05_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年6月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/1fbec68d-900a-4aeb-b627-06a748f9989f/download/r02.06_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年7月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/56e8af58-3307-408b-944b-ee6613df45f1/download/r02.7_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年8月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/1aa3d6d3-f8f8-471a-93b4-ac94df0f1496/download/r02.8_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年9月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/acd55a6f-b830-4eff-96b6-411f31adf88b/download/r02.9keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年10月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/20317a19-1655-423e-8b3d-8b291f332637/download/r02.10_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年11月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/f02e3c58-5c09-4902-bb8f-3abc46aaade5/download/r02.11_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和2年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/d7793418-3bd4-4948-a527-233d0b39a044/download/r02.12_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和3年1月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/9d3da6ca-6a6a-4b8d-a9c6-02554a64fc37/download/r03.1_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和3年2月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/2c2b50bb-00d5-4819-a76d-d0363827d3ba/download/r03.2_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和3年3月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/f63ad321-52ec-47af-868a-b08fc022ea7e/download/r03.3_keizoku.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和3年4月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/73560a46-3fde-4289-bceb-6edc56e569fd/download/r03.4_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（継続）食品営業許可施設",
+    "resource": "令和3年5月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/cbd20a26-da5f-4c15-a472-37cb43345c86/resource/11bfda91-c0df-451a-ab16-9589c0013c74/download/r03.5_keizoku.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成27年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/97d0dca2-6356-4edc-99f8-fa400591d060/download/h27.4_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成27年5月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/b096f816-5fa8-4122-9c55-d0b5e22ccc8b/download/h27.5_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成27年6月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/e60fe35a-5eef-4faa-b9f2-8098c03a80c8/download/h27.6_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成27年7月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/34838937-b031-4c8f-b4ef-9b88ce8eea2b/download/h27.7_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成27年8月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/9037e35c-2762-4099-9c8a-f75438171a87/download/h27.8_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成27年9月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/32f97fd4-5e79-419a-8c91-50316d07fdf4/download/h27.9_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成27年10月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/56060cf9-928a-4ea7-842f-fff38c88ada8/download/h27.10_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成27年11月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/4b599be1-da4f-4a2d-8399-772ab61d9c8d/download/h27.11_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成27年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/4d6023f6-a9ac-42fc-86e1-b3173175c63a/download/h27.12_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年1月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/94874e19-26ba-4060-a9b3-03afd2120972/download/h28.1_shinki2.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年2月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/e8f4b357-cddd-4971-b0c6-0ecf50180b85/download/h28.2_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年3月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/117bfcc0-a7b9-4d28-a50f-9a1ff536c8d9/download/h28.3_shinki2.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/4cb59bb3-d50d-4e35-aed2-51ddea53df1e/download/h28.4_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年5月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/76af6728-5371-40ce-bfcd-764524dffde5/download/h28.5_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年6月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/f4714b02-84c3-4f7a-a5fe-19c57fe87d1e/download/h28.6_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年7月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/cde32763-c3cd-42d6-bd62-0e11058cfb59/download/h28.7_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年8月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/93c21295-d5c8-4da1-be8d-83313aa689e0/download/h28.8_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年9月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/922cbbeb-c87a-4579-8f41-213988284415/download/h28.9_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年10月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/e8f44446-8350-4a1f-84fb-f8de2b879c67/download/h28.10_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年11月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/4245242f-a64d-4c71-aee5-76a322f8fe17/download/h28.11_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成28年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/37ea1524-49ad-4f45-bcd1-96f857d81ccd/download/h28.12_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年1月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/67d631b4-a9b6-4e08-8342-751b88cae923/download/h29.1_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年2月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/64acd48f-a0f7-4401-8ff9-074316a52ef3/download/h29.2_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年3月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/7686c3a4-948c-40c0-8c41-229e696f2e36/download/h29.3_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/9a0bae72-8322-4f63-b09e-d88b211534e1/download/h29.4-2_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年5月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/416c79cf-8951-4e5f-a918-22d9e7a579a1/download/h29.5_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年6月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/7c608b18-4c70-46e1-8e61-16a82e0d62f2/download/h29.6_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年7月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/074ae2b6-3502-45bf-9c32-ee40e754a2c3/download/h29.7_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年8月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/8fef2713-3f0b-4972-9377-5ca558cfec6c/download/h29.8_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年9月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/ce9d4351-c3d2-483a-8b8d-ced6b1024214/download/h29.9_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年10月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/c54f12ab-1115-4b53-aa39-cba7b33fedc7/download/h29.10_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年11月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/2bcfdcaa-dc80-42cf-bd13-c40ecc56ddd4/download/h29.11_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成29年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/f983c11b-5639-4c1a-a6f0-d28ab933573a/download/h29.12_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年1月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/73fc7c25-3a6e-4a7d-87b9-5bf151947835/download/h30.1_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年2月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/bbe0788d-3887-4da8-81e4-09843517c34d/download/h30.2_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年3月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/131bcd5c-f7c4-40b7-b6b0-29ec6b9a5249/download/h30.3_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年4月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/916ce90c-d6d2-479f-8401-261010e68eed/download/h30.4_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年5月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/e91d3a8d-2b1f-488b-9a81-39b42c860161/download/h30.5_shinki_1.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/d8b39ca9-5a1e-4b54-9e15-45f40507f174/download/h30.6_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年7月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/5b425db5-381c-4cdd-9b43-1324f5cc9a95/download/h30.7_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年8月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/7ecf9fc6-9ced-485f-a608-d68b7988e567/download/h30.8_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年9月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/a6b7d54f-ce67-4a65-bc8b-426d6ea99964/download/h30.9_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年10月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/4593e025-2439-490d-a67e-0efdf590e44c/download/h30.10_shiki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年11月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/f867aa7f-63f8-4c80-ad4f-40a591a90644/download/h30.11_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成30年12月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/3301031f-58fa-4113-a369-8ce79dd1a425/download/h30.12_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成31年1月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/e39ffeca-4b4c-40f0-8ab4-e17728d4351c/download/h31.1_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成31年2月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/7ead51a8-0a90-43ab-ac22-9a9fb5ba683e/download/h31.2_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成31年3月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/08da2dc0-0c4d-40d1-969e-2c16a0a0f24c/download/h31.3_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "平成31年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/c873da9d-c76f-426b-9b12-40af2a93ba11/download/h31.4_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和元年5月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/da3d6ea1-a3c0-4c10-b691-3f634ab6b38a/download/r01.5_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和元年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/de2cf86a-6f10-4d93-815a-5692ea3e1405/download/r01.6_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和元年7月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/d2f26cf3-66f7-408e-8b03-ada4715e9b44/download/r01.7_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和元年8月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/6dd1d676-38bc-4b8e-b137-f58db0d68848/download/r01.8_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和元年9月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/45eb3723-d6ab-4ff0-bd6b-52e17dc9e012/download/r01.9_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和元年10月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/efb22ed4-d569-44dd-9bf3-4e3177a6ac22/download/r01.10_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和元年11月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/6e7c8a7a-d96b-41ef-aec8-e98fc785ecc2/download/r01.11_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和元年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/a6afda52-9784-4474-a6c8-6c3bdaab5ede/download/r01.12_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年1月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/bc3ea1c9-c655-4bad-a3bc-c37036fe7ae2/download/r02.1_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年2月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/61ba635c-5768-4b9d-a938-024e2ec449c6/download/r02.2_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年3月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/b61af511-da4b-4b17-9121-dccb8183d3ca/download/r02.3_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年4月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/ac60e75e-dfc2-4da6-b523-bfaa3d907834/download/r02.4_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年5月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/6b7ae23a-6a77-4b29-8398-b23f52c43a0b/download/r02.5_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年6月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/eb917d13-71d5-40f0-bf25-5adf4d899e9b/download/r02.6_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年7月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/1f9c5380-a4b3-4848-9019-66a32964e392/download/r02.7_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年8月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/d67bd8f8-e5f0-4704-af1f-a940ddba48c9/download/r02.8_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年9月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/2a77f170-17bd-48bd-944a-8d4c68b991b4/download/r02.9_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年10月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/0d424a0e-002f-49ee-b329-252a4fe78a22/download/r02.10_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年11月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/a07ab543-271d-4497-adea-5721638e2d1a/download/r02.11_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和2年12月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/40ca6b7e-f7b5-4c7e-93ff-f7048395cc22/download/r02.12_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年1月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/ea8f2484-3563-4e28-9dd7-792c08f5e86f/download/r03.1_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年2月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/b576c4fa-1ab0-4236-8933-1b8ba3d63f1c/download/r03.2_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年3月分",
+    "format": "XLS",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/15ba09c2-3afb-4493-ba51-b5fa7bfac729/download/r03.3_shinki.xls"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年4月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/0cd86f5c-950d-46a3-acfa-f8e07b25136d/download/r03.4_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年5月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/7de08871-0bcd-47f8-b885-c2843bc2e3d8/download/r03.5_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/6ffec2cc-77b8-4226-bd36-6486e8b3dfb8/download/r03.6_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年7月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/741eb8e5-f4e7-4c9b-af1c-8086497a6c19/download/r03.7_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年8月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/d742302d-9da4-424d-8d1e-35e355a987da/download/r03.8_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年9月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/07d08641-356a-44a6-b51d-e373cf7cb07e/download/r03.9_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年10月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/8ae539b3-8515-48df-a4f7-dd6ceac26304/download/r03.10_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年11月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/250064ca-057a-44a2-9c10-977fae355424/download/r03.11_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和3年12月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/c73e3378-fdf6-43ff-9012-b8de511c83b6/download/r03.12_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年1月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/c6b903ee-429f-42ba-bb20-322fc96274a9/download/r04.1_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年2月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/50af22b8-f94b-460b-965f-136f3244cc4d/download/r04.2_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年3月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/7deaf086-40b6-43d6-a242-df40d674931c/download/r04.3_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年4月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/9d712417-014c-4cb3-90f4-b5855ca1cf96/download/r4.4_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年5月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/97847ec2-55d2-4ce2-b42b-252c77eafadb/download/r4.5_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/3f8f315b-e3e3-475b-8166-ddc66ac29c36/download/r4.6_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年7月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/233e5f2b-8d5c-4a87-aeb5-461333064660/download/r4.7_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年8月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/07f7d92e-90bd-4ed0-9f14-39fa5551a3a8/download/r4.8_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年9月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/fb78b385-8038-44b9-ae0b-56c7b39f267e/download/r4.9_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年10月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/04a41e8e-738c-4384-8b64-6d6bcec75bae/download/r4.10_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年11月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/2c422a52-713e-4a94-b011-6d799fe1b6c6/download/r4.11_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和4年12月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/935db3a2-4a29-4032-9db3-dcfe551261e9/download/r4.12_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年1月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/fe604144-aaf2-4687-a7a9-3639b065a9e3/download/r5.1_shinki_67843_marked.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年2月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/93707ad5-5da3-4cd5-8563-17698c87b68a/download/r5.2_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年3月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/52b847d3-cfe1-4152-97e6-7a2b2f2106a3/download/r5.3_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年4月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/955bccc1-4f87-4a52-b7f5-71874284fade/download/r5.4_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年5月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/bf94ed02-5a2f-4df2-81e0-849c8fa02e15/download/r5.5_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/7dc6054b-7756-4d15-9872-e8daf147ff7d/download/r5.6_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年7月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/c53810ed-7566-4290-9b30-efdc0fe63514/download/r5.7_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年8月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/f20bfed2-d2ba-4969-ad24-3759efe22c53/download/r5.8_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年9月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/7acb92b5-4e9c-468b-a087-99f3997fea38/download/r5.9_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年10月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/5825419c-c67f-4016-9b53-47f01a2058cb/download/r5.10_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年11月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/eb09ccda-dbbf-4ca9-90d8-f0ce60aaf69d/download/r5.11_shinki2.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和5年12月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/fb386c19-86d3-403f-9448-1e89c3f12230/download/r5.12_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年1月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/a0859a6d-1aae-4a9e-908d-e36eccaa9354/download/r6.1_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年2月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/5b4c2153-de1c-480c-869b-de2fb4dd0f36/download/r6.2_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年3月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/5884ae43-902a-48ba-b958-228c46ac8a20/download/r6.3_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年4月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/d7fc634e-a05a-46f1-a384-f883cd4d12d2/download/r6.4_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年5月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/90c6ae11-acbd-4172-8ca6-721fd6b6ac24/download/r6.5_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/7f5054bb-6984-4359-abd8-90afe953122b/download/r6.6_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年7月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/c58b440c-37f2-4ffe-bd86-713f8e4688e1/download/r6.7_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年8月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/ed6bba88-c561-4616-8c9c-38b02eb0df82/download/r6.8_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年9月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/8c2feb57-d7a1-4dbd-b305-9885a3a29675/download/r6.9_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年10月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/338a75bc-d626-4760-871c-4af355e0bd5c/download/r6.10_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年11月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/31800324-13a2-4b2c-86c6-2abe409ba399/download/r6.11_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和6年12月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/6c03012f-fced-4854-ac96-4347e76f15d1/download/r6.12_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年1月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/d6fda200-4912-4ea0-b54d-ea861e09c2e0/download/r7.1_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年2月",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/1a6dfb33-4e06-4b8b-802b-535e2550f870/download/r7.2_shinki_syusei.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年3月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/e92e1016-bd1c-489b-a1cd-f35cff3421bc/download/r7.3_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年3月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/2d9cd150-7609-40e6-a0e3-142b1e15bf93/download/r7.3_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年4月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/b2066b05-31bd-46dc-853d-6c4277af16f9/download/r7.4_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年5月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/a1602dce-7bfe-4d39-921d-fe832228322a/download/r7.5_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/944d1e36-c796-443e-9ffd-a2be95382fcc/download/r7.6_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年7月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/5c898303-23d1-419b-8239-1facf2d22b02/download/r7.7_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年8月",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/027e1de6-2f76-4ce2-8294-a9df0b8b4ce7/download/r7.8_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年9月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/d26cdf85-e26a-49e9-8d1b-9a43b481a531/download/r7.9_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年10月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/c673e4b7-8b9d-40b1-a11b-52919890685f/download/r7.10_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年11月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/972c8d62-844e-40f8-b97a-1f4e500953af/download/r7.11_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年12月",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/16fbd70f-b32b-4aea-9e1b-72dfab0f6b1e/download/r7.12_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和7年12月",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/b031dcdf-609a-4005-ac1b-04940277104d/download/r7.12_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和8年1月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/e583698d-7184-4f27-9e4c-f0ee30cfc4ce/download/r8.1_shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和8年２月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/69fcd248-29af-4cdb-8cd1-b4971486361b/download/r8.2_shinkixlsx.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和8年3月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/6b2ab18c-85d9-4ad0-84a3-fec01b8044db/download/r8.3_shinkixlsx.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和8年4月.xlsx",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/9acfbb48-5223-47e9-a16f-6f3d1bd0caca/download/r8.4_shinkixlsx.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和8年5月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/2eb7eae7-2914-4b39-b42f-b70b8fb65516/download/r8.5_shinkixlsx.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "那覇市",
+    "dataset": "（新規）食品営業許可施設",
+    "resource": "令和8年6月分",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/ec1506dd-6de8-4acc-8b2c-69a81b7af55c/resource/1ea397aa-3915-4b1c-bdad-f7c0936b894e/download/r8.6.shinki.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "横須賀市",
+    "dataset": "【横須賀市】食品営業許可施設公開情報 （食品営業許可を取得している全施設）",
+    "resource": "営業許可を取得している全施設　2026年7月末現在",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/3a1aaf46-e6ca-41fa-8977-3388f3b7e3ba/resource/e1347734-917c-448d-99b1-32cfb3dc43ad/download/syoku07.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "食品等営業許可・届出一覧（令和5年12月末）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/6e598555-a1de-458b-a1c1-595aa6e4cbb4/download/383864_food_business_all_2023.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年1月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/76cddfb2-cbb7-4fa4-bc6c-f1635296dc39/download/383864_food_business_new_20230101_20230131.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年3月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/a029c578-69cf-4688-8af4-04968dffd8b0/download/383864_food_business_new_20230301_20230331.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年4月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/efde0f6c-ee30-46f4-aacc-90d5036a1222/download/383864_food_business_new_20230401_20230430.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年5月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/8ec4da3d-c92d-4e0a-a0f3-2f29fa4c125a/download/383864_food_business_new_20230501_20230531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年6月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/0a86eca0-eebb-465a-a239-50c8b4e3ad9a/download/383864_food_business_new_20230601_20230630.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年7月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/58873973-e467-43a2-aef2-c4ff23777f57/download/383864_food_business_new_20230701_20230731.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年9月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/b044ce8d-94ec-458e-be0d-a237d4685bc8/download/383864_food_business_new_20230901_20230930.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年10月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/1ed64f59-54df-4de9-a1f9-e5649bac8a8e/download/383864_food_business_new_20231001_20231031.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年11月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/98702f17-fa6f-4e7e-be39-632fb636fe23/download/383864_food_business_new_20231101_20231130.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和5年12月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/0c1fea86-7328-4deb-8e94-402e206c7bcb/download/383864_food_business_new_20231201_20231231.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和6年2月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/7ed78295-214c-46fc-b38d-3f976a8b8867/download/383864_food_business_new_20240201_20240229.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和6年3月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/d50548ec-b892-4f4d-a01e-6a1872f36a3f/download/383864_food_business_new_20240301_20240331.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和6年5月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/6a434760-7c40-4f4f-97ce-ae3c75300d6f/download/383864_food_business_new_20240501_20240531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和6年6月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/2b280420-14de-4416-8427-81a864d81fd4/download/383864_food_business_new_20240601_20240630.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和6年7月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/433abd46-0bb5-4695-ad7c-51e995b75632/download/383864_food_business_new_20240701_20240731.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和6年8月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/905299a3-036c-4115-97a2-0e051b7e00e4/download/383864_food_business_new_20240801_20240831.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和6年9月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/3ff9919e-bf3d-46ba-af9e-715f140cdd67/download/383864_food_business_new_20240901_20240930.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和6年11月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/c01bfd2b-dd81-4952-90b4-11d6a18c203e/download/383864_food_business_new_20241101_20241130.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和6年12月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/a3f803be-48d3-474e-8733-d6d134e93ff0/download/383864_food_business_new_20241201_20241231.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "食品等営業許可・届出一覧（令和6年12月末）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/2d4788da-dddf-42a3-acf5-00d78fca1e37/download/383864_food_business_all_2024.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久万高原町",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "新規食品営業許可施設（令和7年1月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/88d27dcd-c645-4e36-84c8-e74b481f0cee/resource/1c796ef1-4518-47a9-850b-751be052af54/download/383864_food_business_new_20250101_20250131.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "前橋市",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "食品等営業許可・届出施設一覧",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/be0e8464-4b96-41f6-901d-1aa4bf11bcc0/resource/6808f251-ce78-4c09-a5d8-24a871a5d7e9/download/syokuhin20260630.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "岡崎市",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "232025_food_business_all.csv",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/aabced9d-d86e-422d-8ad0-2781d0f30671/resource/a893c7d6-5c10-4fb4-b9fa-cb48edd81565/download/232025_food_business_all.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "静岡市",
+    "dataset": "食品衛生関係営業許可台帳",
+    "resource": "営業許可施設一覧（R3.5.31までに許可を取得した施設）R7.5.26時点",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/86a8d652-beb2-41b7-8da6-f9245e04217d/resource/76e0c6d1-2332-4ca9-afd5-1ef442733eff/download/r7.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2024年4月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/4959aea6-4e44-4e72-95ea-114beba779e7/download/1_suisyou_syokuhin-20.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2024年5月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/5fb065f6-542e-4dcd-88a2-ac2520389690/download/1_suisyou_syokuhin-21.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2024年6月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/0a51dbc6-1fbc-4764-9e80-1d8c91f7851f/download/1_suisyou_syokuhin-22.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2024年7月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/f9b346ad-85ee-4fab-b8da-d1b7e124e2ec/download/1_suisyou_syokuhin-23.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2024年8月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/4a8ffedf-7100-419c-b4aa-d16b7bf419f3/download/1_suisyou_syokuhin-24.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2024年9月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/80dfb30b-151c-4408-9f1b-c8d469e0b21f/download/1_suisyou_syokuhin-25.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2024年10月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/8f222718-fa59-4f1f-8004-eba94ef5938c/download/1_suisyou_syokuhin-26.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2024年11月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/c4367ead-34be-42f5-90b4-7921fab9a1b7/download/1_suisyou_syokuhin-27.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2024年12月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/8d29e770-4a51-4283-9cec-f7a2e9a22922/download/1_suisyou_syokuhin-28.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年1月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/fa6f03b2-43f1-40ca-a1c4-7bc425955fa7/download/1_suisyou_syokuhin-29.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年2月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/ac70445b-7316-49fa-8a56-00bf5bebcd48/download/1_suisyou_syokuhin-30.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年3月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/aee32ccf-01f7-439a-9789-20c329167ba0/download/1_suisyou_syokuhin-31.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年4月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/cff3c357-3a12-465d-a66e-5119da0ae5d9/download/1_suisyou_syokuhin-32.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年5月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/84c234e2-852a-4e77-ac1c-c7f61b320107/download/1_suisyou_syokuhin-33.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年6月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/cabf79b8-9414-4edb-82a3-5f488bb9ab43/download/1_suisyou_syokuhin-34.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年7月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/3e0dab03-708d-4eed-80f7-0e2e2d5d19b1/download/1_suisyou_syokuhin-35.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年8月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/df532f18-02f4-4b8f-b27c-aaf617f61bfc/download/1_suisyou_syokuhin-36.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年9月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/f2fe0e60-280f-4b07-9388-2b0d62c6e5af/download/1_suisyou_syokuhin-37.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年10月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/0fe3789a-ee93-4aa0-8b30-07aa7e940993/download/1_suisyou_syokuhin-38.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年11月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/03eaf240-b169-4c4e-b146-9e4a36d6555d/download/1_suisyou_syokuhin-39.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年12 月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/7b8d708a-efb2-471c-bf1e-14d808388226/download/1_suisyou_syokuhin-40.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2025年12月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/bfc0173d-c44d-4361-bfa4-8db343f6aaa7/download/1_suisyou_syokuhin-40.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2026年1月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/ae1484c2-b3bd-4260-a937-9c95985c444d/download/1_suisyou_syokuhin-41.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2026年2月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/b6e1fc61-e881-44e3-afb0-b321cd6e5f41/download/1_suisyou_syokuhin-42.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2026年3月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/4b4d5668-98ba-4171-9529-f24f0c9f21b4/download/1_suisyou_syokuhin-43.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2026年4月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/c1b1ffe4-e639-42df-82b5-08b5725ec343/download/1_suisyou_syokuhin-45.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2026年5月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/faf9561d-3f10-40f1-be53-6c7fb63f4db4/download/1_suisyou_syokuhin-46.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2026年6月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/0fee4b65-daa0-40ef-9a06-ded3af96e0fb/download/1_suisyou_syokuhin-47.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "沖縄県",
+    "dataset": "新規食品営業許可・届出一覧（月別）",
+    "resource": "新規食品営業許可・届出施設一覧（2026年7月）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5cb9163d-0a59-4a20-a583-91b113be7895/resource/cb01eb77-b955-4c1d-a07b-2c7079fe9a98/download/1_suisyou_syokuhin-48.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "横須賀市",
+    "dataset": "【横須賀市】食品営業許可施設公開情報（食品営業許可を取得した施設（直近３か月））",
+    "resource": "営業許可を取得した施設　2026年7月",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/d24028ac-0795-48e0-8855-485ab2769a96/resource/b6d315e4-5128-4aa1-b5a3-02ead38a0ec4/download/syokuhin07.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "横須賀市",
+    "dataset": "【横須賀市】食品営業許可施設公開情報（食品営業許可を取得した施設（直近３か月））",
+    "resource": "営業許可を取得した施設　2026年6月",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/d24028ac-0795-48e0-8855-485ab2769a96/resource/6ad4aed4-321a-42c8-aefd-8895509ab52c/download/syokuhin06.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "横須賀市",
+    "dataset": "【横須賀市】食品営業許可施設公開情報（食品営業許可を取得した施設（直近３か月））",
+    "resource": "営業許可を取得した施設　2026年5月",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/d24028ac-0795-48e0-8855-485ab2769a96/resource/43d39310-291c-4e30-ab77-cd66e17ab1a3/download/syokuhin05.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和2年6月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/10a8eab0-c024-424f-8527-0f85a36cca83/download/26.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和2年7月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/e419f103-5a5b-475a-b0e5-d621a8918080/download/27.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和2年8月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/9b1c99f9-7eb5-40fa-935d-f2422640711d/download/28.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和2年9月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/aafd7b77-10f2-4b77-8853-3fca64734407/download/29.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和2年10月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/3313bb98-784e-4315-ba21-d41dda744f0b/download/210.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和2年11月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/9e29c009-ec0e-4679-a3fd-54e92b0d2278/download/211.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和2年12月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/582dc8b5-e09e-47f7-b72b-37778b0b03a2/download/212.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年1月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/d8e4b413-d64e-4b12-8887-ac4d891d0e30/download/31.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年2月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/777e2483-bd17-4412-bf9e-5f7ff94e148e/download/32.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年3月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/13dfe084-6e4b-4094-b3ba-8d98f098c265/download/33.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年4月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/7db3133a-0573-42f2-b2de-76c3b0a04c8a/download/34.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年5月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/a9b3efe2-3368-40b6-989c-8a75503035c0/download/35.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年6月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/55f7b610-4431-4530-85ed-d1b526ae9d20/download/36.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年5月分まで集約データ)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/671d243c-27d3-4f60-9389-165c8fb1efc0/download/35.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年7月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/9b68ae1a-f7ad-406b-9f2b-c48c5fd1b00f/download/37.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年8月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/64c7fa69-e0cc-4371-a6d6-45e06c0d2cbe/download/38.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年9月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/7378a75e-8093-4520-8b5d-e072eea3d15f/download/39.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年10月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/c3a69ac4-e44b-4ec0-93e5-a39b7c67f272/download/310.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年11月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/83facc1d-5459-4d71-9eff-581f9095c497/download/311.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和3年12月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/dc92c843-97cf-4d95-8035-b700e56f8f7d/download/312.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年1月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/b38ca295-7c75-4fae-b0d5-626f25d60eff/download/41.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年2月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/f43979de-1440-48c4-9178-7a02ae351939/download/42.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年3月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/99e7a103-54c9-4066-b730-dcfde3446c56/download/43.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年4月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/6e71b233-186e-45b4-b45c-4fe5c5f3dc60/download/44.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年4月分まで集約データ)佐世保市内食品営業許可施設（改正前許可施設）一覧.csv",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/13d05709-8942-4ada-ac12-a157e2b213db/download/44.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年4月分まで集約データ)佐世保市内食品営業許可施設（改正後許可施設）一覧.csv",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/1d697051-1adf-4949-ba74-f705926274e5/download/44.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年5月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/19298b4c-5aba-4d88-ac6a-607aebf3dca0/download/45.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年6月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/445aa83e-5709-4b6f-ae77-3a0079c7e34b/download/46.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年7月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/11f68ec8-6bf5-4082-8add-ad32262cc4b9/download/47.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年8月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/d1db3a70-2297-479b-87fa-b8966f5da655/download/48.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年9月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/c7b20df7-60d4-487f-909c-c1666b109676/download/49.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年10月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/b16e7d10-4241-4645-b13c-7671254fee8b/download/410.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年11月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/d1904cdd-b765-47aa-8753-b0e59253ff32/download/411.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和4年12月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/9fac6d17-a222-49f2-ac4d-3c584388e029/download/412.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年1月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/436a9187-5756-42c5-9ee5-162b628b0557/download/51.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年2月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/5071e5e3-2fae-426d-b04a-b3411cca3fcb/download/52.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年3月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/83c84f8d-e33e-4582-bd84-b197492b6aac/download/53.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年4月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/9e747d8f-4789-43d9-8f9f-8272dc3e9091/download/54.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年4月分まで集約データ)佐世保市内食品営業許可施設（改正後許可施設）一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/2a3ab902-43ae-46b1-a316-ff6cff7973db/download/54.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年4月分まで集約データ)佐世保市内食品営業許可施設（改正前許可施設）一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/ccde40f1-2b4e-481b-afa1-ef27f1164136/download/54.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年5月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/49e6ddcd-e00d-4502-b4e3-3047cc710561/download/55.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年6月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/70fccfff-424d-4932-8ed3-5d9fbc5543dc/download/56.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年7月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/8fcf209b-3826-409c-a644-1a3b07bf364d/download/57.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年8月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/401b010b-8de0-4f3f-b33b-3c5167cca65e/download/58.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年9月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/3f79f02c-b813-4c95-89cb-21f08fc35991/download/59.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年10月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/16d95044-f35c-4c64-be81-dc06c68aa688/download/510.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年11月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/8768b00e-4840-411e-9104-f411efc352b1/download/511.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和5年12月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/48aed1fb-3339-4d97-9fe7-961b4b5e66cb/download/512.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年1月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/e9937d2d-be9b-4099-8324-4b21c49295ce/download/61.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年2月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/1046fbdd-788d-4aaa-bad0-8bc27ee606bd/download/62.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年3月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/c803207b-9b7d-4957-a30f-262ee2f2b42e/download/63.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和６年４月)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/e91e20f8-8469-4c4d-a16c-8ad12b883d0e/download/64.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年4月分まで集約データ)佐世保市内食品営業許可施設（改正前許可施設）一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/a5410360-f01b-461e-ab71-a340e82c92ac/download/64_before.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年4月分まで集約データ)佐世保市内食品営業許可施設（改正後許可施設）一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/e512c54e-44c6-47f1-834e-5f46b0e566a6/download/64_after.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年5月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/120875ba-f197-4ae5-bad8-5a17a5a3370c/download/65.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年6月分)食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/e35e6800-2f93-4557-893c-89851c40e30b/download/66.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年7月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/4cdce4cf-7c28-4315-b60d-8a7fa3b7e0e3/download/67.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年8月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/49ef78ad-f245-4b85-be4d-011916a2e5cf/download/dataset_syokuhineigyoukyokar6.8.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年9月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/0addbb37-dcea-4dad-8971-bbb5fb96548f/download/dataset_syokuhineigyoukyokar6.9.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年10月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/9fe130d7-8dc2-4c54-b719-e2cfe2a82011/download/dataset_syokuhineigyoukyokar6.10.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年11月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/36776e79-b97d-4d33-b6b5-edd11c3bedd2/download/dataset_syokuhineigyoukyokar6.11.csv.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和6年12月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/46a29e26-b696-41d7-81f9-f967495b18cd/download/dataset_syokuhineigyoukyokar6.12.csv.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和7年1月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/7a7875ec-e36e-4845-9d8d-cdb11db16128/download/dataset_syokuhineigyoukyokar7.1.csv.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和7年2月分)佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/f7481505-ef06-4aa7-9e71-ec1c8abf8ac8/download/dataset_syokuhineigyoukyokar7.2.csv.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和7年3月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/ddbf4ec2-9eb3-469e-9c7e-2307f39579a6/download/dataset_syokuhineigyoukyokar7.3.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年4月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/6d966ff1-5114-494a-a56a-33c711947e0c/download/dataset_syokuhineigyoukyokar7.4.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年4月末時点）法改正前食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/0b92c2a8-2bfb-469a-b8d6-e5458a809cc9/download/dataset_kaiseimaer7.4.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年4月末時点）法改正後食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/56f98f30-2c92-4b01-a3cf-f8a62d002126/download/dataset_kaiseigor7.4.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年5月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/09e754ae-e61e-4a73-bb69-9222b5f24801/download/dataset_syokuhineigyoukyokar7.5.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年6月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/c9438a81-47f0-443e-8edf-a1ac76da7b07/download/dataset_syokuhineigyoukyokar7.6.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年7月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/3b1c2a2f-457f-4845-a151-36f5c2310c90/download/dataset_syokuhineigyoukyokar7.7.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年8月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/3b64c99b-27ed-4adf-b440-8b20a5fccc75/download/dataset_syokuhineigyoukyokar7.8.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年9月分）佐世保市内食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/1536804e-73df-445f-8e81-2e941c80764e/download/dataset_syokuhineigyoukyokar7.9.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年10月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/bfddd645-7b12-48fa-9f1c-22f422a1788c/download/dataset_syokuhineigyoukyokar7.10.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年11月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/d09ce4fd-7590-45b6-bf2c-0584a953a8f4/download/dataset_syokuhineigyoukyokar7.11.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和7年12月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/c44a9686-aa25-4023-a673-90829f11e7b9/download/dataset_syokuhineigyoukyokar7.12.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和8年1月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/d9443a7b-b4ad-4c98-861f-e96317f6ce2f/download/dataset_syokuhineigyoukyokar8.1.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和8年2月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/a252bc5d-0df6-46e6-a61d-2dc4378a8906/download/dataset_syokuhineigyoukyokar8.2.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和8年3月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/acfbc412-cbcf-4d09-85a2-8e556863f158/download/dataset_syokuhineigyoukyokar8.3.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和8年4月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/d60eb798-9787-4bb9-a5e9-dfbc1104aedd/download/dataset_syokuhineigyoukyokar8.4.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和8年4月末時点)法改正前食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/f7fa490e-026d-4330-8c34-10e7c367c13d/download/dataset_kaiseimaer8.4.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "(令和8年4月末時点)法改正後食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/865974bb-4104-4fec-a462-37186e5ea328/download/dataset_kaiseigor8.4.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和8年5月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/e8d1a60b-78d7-4e26-97e2-d83e47c42859/download/dataset_syokuhineigyoukyokar8.5.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "佐世保市",
+    "dataset": "［佐世保市］食品営業許可施設一覧",
+    "resource": "（令和8年6月分）佐世保市食品営業許可施設一覧",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/571df2fc-f781-4a2c-b9d7-09e1637b15fe/resource/737128d0-bd6e-45ab-81f1-e30cc627f93b/download/dataset_syokuhineigyoukyokar8.6.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業許可施設一覧",
+    "resource": "令和７年12月新規食品営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1bca2ed4-7d8f-4330-b8e6-a05d27ace017/resource/069de6f8-d2fc-4904-a44d-26b829aad249/download/460001_food_business_new_202501201_20251231.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（令和７年12月末時点）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1bca2ed4-7d8f-4330-b8e6-a05d27ace017/resource/e7c9bcaf-bf78-45f6-a4f6-61a157a00d37/download/460001_food_business_all_2025_1231.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業許可施設一覧",
+    "resource": "令和８年１月新規食品営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1bca2ed4-7d8f-4330-b8e6-a05d27ace017/resource/f8336c51-249f-4afb-9001-544f5800626c/download/460001_food_business_new_20260101_20260131.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業許可施設一覧",
+    "resource": "令和８年２月新規食品営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1bca2ed4-7d8f-4330-b8e6-a05d27ace017/resource/03d2bd69-7cd2-4381-a923-9ae13b0edfbc/download/460001_food_business_new_20260201_20260228.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業許可施設一覧",
+    "resource": "令和８年３月新規食品営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1bca2ed4-7d8f-4330-b8e6-a05d27ace017/resource/85e15707-25a5-4713-abf1-1ef8804173f7/download/460001_food_business_new_20260301_20260331.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業許可施設一覧",
+    "resource": "令和８年４月新規食品営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1bca2ed4-7d8f-4330-b8e6-a05d27ace017/resource/adfdeb92-7176-4043-b619-62f90d539702/download/460001_food_business_new_20260401_20260430.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業許可施設一覧",
+    "resource": "令和８年５月新規食品営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1bca2ed4-7d8f-4330-b8e6-a05d27ace017/resource/8cdd6ed6-a71e-449d-bda1-ac94784055cc/download/460001_food_business_new_20260501_20260531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業許可施設一覧",
+    "resource": "令和８年６月新規食品営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/1bca2ed4-7d8f-4330-b8e6-a05d27ace017/resource/7f196e5f-7870-4487-a555-df7cf4948fc4/download/460001_food_business_new_20260601_20260630.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和7年7月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/ba5d460f-921d-407e-9a0d-1c346b4f8f3a/download/r7.7_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和7年8月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/f5011225-fb72-436a-9b9b-aab4d2528bf9/download/r7.8_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和7年9月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/58ede064-8b55-473e-9f21-2613f08c02f7/download/r7.9_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和7年10月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/eba5d139-694e-4f2b-8f8d-a1056468676e/download/r7.10_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和7年11月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/9327973e-0c2c-4c40-a59d-bf6031540d13/download/r7.11_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和7年12月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/bf778044-0a9c-4925-9656-8d45d416ae44/download/r7.12_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和8年1月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/2644233f-018a-4238-abb1-dd83f4e848ac/download/r8.1_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和8年2月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/2c1f729f-daa3-4bd0-87b5-d7c4edcfbf94/download/r8.2_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和8年3月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/9e8ff9cd-1129-4295-89e7-125939a07838/download/r8.3_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和8年4月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/9a66e602-acb7-4295-b32b-2ed073188e41/download/r8.4_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和8年5月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/2fbf6468-0215-4f07-8f0b-e78b0c066d84/download/r8.5_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和8年6月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/1675ae6f-e83a-45dc-8ffc-c395950fb4bc/download/r8.6_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "名古屋市",
+    "dataset": "【名古屋市】食品営業許可施設一覧",
+    "resource": "令和8年7月新規営業許可施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/979f325a-1b27-45d0-8eb5-dd4aeb85b1f5/resource/afb17878-61ed-4bd9-9239-594d5e51d608/download/r8.7_shinki.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "熊本県",
+    "dataset": "食品営業許可施設、届出施設データ",
+    "resource": "220_改正前の食品衛生法に基づく許可施設（R4.11.30）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/5a58e9d4-f3cc-4b21-9ec8-4896f7b42774/resource/5e336ec2-158d-4c09-8e69-4a638e70a108/download/243_230224__r4.11.30.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "熊本県",
+    "dataset": "食品営業許可施設、届出施設データ",
+    "resource": "220_改正後の食品衛生法に基づく許可施設（R4.11.30）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/5a58e9d4-f3cc-4b21-9ec8-4896f7b42774/resource/98ab19e9-fa85-4ac2-be81-a8f10e830abb/download/243_230224__r4.11.30.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "熊本県",
+    "dataset": "食品営業許可施設、届出施設データ",
+    "resource": "220_改正前の食品衛生法に基づく許可施設（R4.11.30）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5a58e9d4-f3cc-4b21-9ec8-4896f7b42774/resource/fe69c10f-a509-458d-b8e7-b424b5db45bb/download/243_230224__r4.11.30.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "熊本県",
+    "dataset": "食品営業許可施設、届出施設データ",
+    "resource": "220_改正後の食品衛生法に基づく許可施設（R4.11.30）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5a58e9d4-f3cc-4b21-9ec8-4896f7b42774/resource/a4c2b78c-9aeb-45fd-beb7-7d3a4b28b2ea/download/243_230224__r4.11.30.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "熊本県",
+    "dataset": "食品営業許可施設、届出施設データ",
+    "resource": "220_（新法）食品衛生法に基づく許可施設（R6.9.30）.xlsx",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/5a58e9d4-f3cc-4b21-9ec8-4896f7b42774/resource/ec27a2c2-2d5a-4131-b149-588c2b2ee612/download/243_241031__r6.9.30.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "熊本県",
+    "dataset": "食品営業許可施設、届出施設データ",
+    "resource": "244_食品衛生法に基づく届出施設（R4.11.30）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/f30094d9-7848-45a7-839e-83394a13c656/resource/06c62138-b4bd-4fc0-9d37-c4e13f75d0bc/download/273_221228__r4.11.30.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "熊本県",
+    "dataset": "食品営業許可施設、届出施設データ",
+    "resource": "244_食品衛生法に基づく届出施設（R4.11.30）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f30094d9-7848-45a7-839e-83394a13c656/resource/2e4b0ca1-7cba-4e1e-9d58-590d43462b4f/download/273_221228__r4.11.30.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "熊本県",
+    "dataset": "食品営業許可施設、届出施設データ",
+    "resource": "244_食品衛生法に基づく届出施設（R6.9.30）.xlsx",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/f30094d9-7848-45a7-839e-83394a13c656/resource/108af038-f996-4ec2-afb0-f652b5060b33/download/273_241031__r6.9.30.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "全許可施設一覧（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/9159ea71-88c5-487a-b3c3-0172c8f5515f/download/272035_food_business_all.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "全許可施設一覧（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/74c6e0d8-9fde-4503-8090-bada26639ae3/download/272035_food_business_all.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": " 新規許可一覧（令和7年4月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/8a2aa201-2a89-4205-a6c3-8c350bd7241a/download/272035_food_business_new_20250401_20250430.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年4月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/2ced4e06-5d55-4e0a-a4db-7f29b4a9b736/download/272035_food_business_new_20250401_20250430.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": " 廃業届出一覧（令和7年4月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/6ae95666-1af3-40f6-b79d-63f3430bab87/download/272035_food_business_closed_20250401_20250430.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": " 廃業届出一覧（令和7年4月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/c9c18095-3c68-4b14-adc5-18d851340cdb/download/272035_food_business_closed_20250401_20250430.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年5月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/2e6d62cc-f81e-402f-89ef-a4c27e90cebb/download/272035_food_business_new_20250501_20250531.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年5月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/75129173-fc9c-436c-893d-cf877f74fabe/download/272035_food_business_new_20250501_20250531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": " 廃業届出一覧（令和7年5月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/56ccaa10-0dff-4131-a67a-400d71a1907e/download/272035_food_business_closed_20250501_20250531.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": " 廃業届出一覧（令和7年5月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/3000c238-2def-4546-b8be-8718919c5efc/download/272035_food_business_closed_20250501_20250531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年6月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/3c2967d3-7c86-4ee6-8911-4e00ead0f669/download/272035_food_business_new_20250601_20250630.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年6月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/60ad5cb3-e9e8-48a6-8fa1-9a205053e834/download/272035_food_business_new_20250601_20250630.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年6月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/9d7408c3-eebf-489c-b8af-13e71ff77856/download/272035_food_business_closed_20250601_20250630.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年6月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/e69c66a2-5575-4f08-a4b6-fbe1755aee20/download/272035_food_business_closed_20250601_20250630.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年7月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/7f51572f-43b0-474a-b367-5b814e0587bc/download/272035_food_business_new_20250701_20250731.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年7月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/307cbfec-8dbd-4245-abcd-1563fdf0200f/download/272035_food_business_new_20250701_20250731.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年7月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/26f843bf-16c7-4f4c-ab6c-709af34ae17e/download/272035_food_business_closed_20250701_20250731.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年7月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/507b18ef-a309-49ab-bce7-7c34410d8296/download/272035_food_business_closed_20250701_20250731.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年8月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/47d2cbb2-91fb-4d0d-95b1-ce723e328613/download/272035_food_business_new_20250801_20250831.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年8月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/c44a5886-a9f7-4c9d-9766-46910f8806e2/download/272035_food_business_new_20250801_20250831.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年8月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/ec137e6b-0c27-4c40-9979-241c085c0a73/download/272035_food_business_closed_20250801_20250831.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年8月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/eac75134-0d51-4102-b3ff-2de1097e957c/download/272035_food_business_closed_20250801_20250831.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年9月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/1c9bea72-d164-432c-94cf-2598dbf8f48e/download/272035_food_business_new_20250901_20250930.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年9月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/ddad3aef-2ee1-4889-b2ce-6c7e729f275e/download/272035_food_business_new_20250901_20250930.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年9月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/eb361aa4-2e16-42ef-bef0-9b68d2e00f1c/download/272035_food_business_closed_20250901_20250930.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年9月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/18d2da11-6074-444c-a2e5-9863bfc2ad0e/download/272035_food_business_closed_20250901_20250930.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年10月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/79bf43ef-4722-480f-b61f-cc1dc27d68a4/download/272035_food_business_new_20251001_20251031.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年10月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/17c30a34-364e-438a-90a4-ab5cbd5aa78a/download/272035_food_business_new_20251001_20251031.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年10月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/58f71db3-07e7-4c46-ab74-d07de567002e/download/272035_food_business_closed_20251001_20251031.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年10月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/8283b0bf-0715-4f52-beb4-a1d7c4899af1/download/272035_food_business_closed_20251001_20251031.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年11月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/7e72f138-22c9-4cd3-8ea5-76b2bd611515/download/272035_food_business_new_20251101_20251130.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年11月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/97bccb76-019a-4c94-ad78-026d19226eac/download/272035_food_business_new_20251101_20251130.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年11月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/be59d340-4984-4f55-a21b-a02c7a804576/download/272035_food_business_closed_20251101_20251130.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年11月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/300812c8-c49b-408a-b3b1-25697930fb2f/download/272035_food_business_closed_20251101_20251130.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年12月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/fe75afdd-4cee-4fb3-bbb1-730f0e13816b/download/272035_food_business_new_20251201_20251231.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和7年12月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/fcbf1039-5541-42f6-bbb8-e4bfff3d5131/download/272035_food_business_new_20251201_20251231.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年12月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/ec8244db-35c6-4ca1-81f8-ca640aa4c1b7/download/272035_food_business_closed_20251201_20251231.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和7年12月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/64f66880-61b2-4a6d-b848-742bd47c95eb/download/272035_food_business_closed_20251201_20251231.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年1月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/fa88d968-bbb2-4118-ab7b-13ffb3081a85/download/272035_food_business_new_20260101_20260131.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年1月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/d6f9b5d8-a190-4dda-8b27-54811289eed7/download/272035_food_business_new_20260101_20260131.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年1月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/f52c7333-f01a-4b1c-8611-06ab4809deb2/download/272035_food_business_closed_20260101_20260131.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年1月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/b53255cd-dea8-4f5f-98fa-447668296ce9/download/272035_food_business_closed_20260101_20260131.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年2月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/6e53f142-a7d8-4b91-b6d8-1406f75d0597/download/272035_food_business_new_20260201_20260228.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年2月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/a271e103-995d-450c-83dd-e63b6490ca38/download/272035_food_business_new_20260201_20260228.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年2月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/cb83f81b-4ab4-4d73-a5e5-0056183da3fd/download/272035_food_business_closed_20260201_20260228.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年2月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/fbad0f12-d2b3-48fc-b956-ee5d1fededfb/download/272035_food_business_closed_20260201_20260228.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年3月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/1fe27a39-fad8-4b32-8859-52b8ee206c2b/download/272035_food_business_new_20260301_20260331.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年3月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/be95d44d-cf7b-4549-a5be-a92eb08b860a/download/272035_food_business_new_20260301_20260331.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年3月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/8e155f14-b7ee-4701-bde2-8635d89b4ce1/download/272035_food_business_closed_20260301_20260331.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年3月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/8dc63504-b93d-4602-90d4-ead8dcefc585/download/272035_food_business_closed_20260301_20260331.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年4月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/2ccacb28-1b6b-4383-9bca-706ac8b3519b/download/272035_food_business_new_20260401_20260430.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年4月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/2fe5fd7a-8902-4e75-b48c-d6469a55ed35/download/272035_food_business_new_20260401_20260430.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年4月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/c34a4dc4-b10a-474b-b223-35bbd17c743c/download/272035_food_business_closed_20260401_20260430.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年4月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/d3d81645-2207-493a-824b-997f7e4a2ce3/download/272035_food_business_closed_20260401_20260430.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年5月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/4cd5f6c0-7617-484c-aca1-9f8b5a12264d/download/272035_food_business_new_20260501_20260531.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "新規許可一覧（令和8年5月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/02e098c4-7f15-45ac-b5b8-640beb85bdb5/download/272035_food_business_new_20260501_20260531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年5月）（xlsx）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/32276984-be96-49be-8b5f-a764413c0aec/download/272035_food_business_closed_20260501_20260531.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊中市",
+    "dataset": "食品等営業許可一覧（豊中市）",
+    "resource": "廃業届出一覧（令和8年5月）（csv）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/2d6870cc-3db8-4069-841e-2a6deeb173b4/resource/b41a1578-de22-46b6-a9c4-6e5e81f6b180/download/272035_food_business_closed_20260501_20260531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "和歌山市",
+    "dataset": "044_食品等営業許可一覧_和歌山市",
+    "resource": "食品等営業許可一覧（令和８年７月１日現在）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/29856ff4-da41-45ab-b44f-c6ff0e7993de/resource/a2294f0b-431f-4329-995f-bf54494e340f/download/302015_food_business_20260701.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "和水町",
+    "dataset": "和水町_食品等営業許可・届出一覧",
+    "resource": "data_food business licence.csv",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/ec8a7389-ec6d-4630-b7dd-942d41138715/resource/2a0e0687-165a-4b4a-8344-dd8005bf3da9/download/data_food-business-licence.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和3年5月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/c1769ec0-e049-4256-a8c0-c0afd319843d/download/40203615000000100051.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和3年4月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/e19980d3-bcb1-4c7a-ba88-f997dc0a1669/download/40203615000000100050.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和3年3月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/9d55c706-1741-468b-8ad9-5dd8f5d82de3/download/40203615000000100049.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和3年2月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/b30263ce-d90d-4942-a238-1f4ceb2c926f/download/40203615000000100048.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和3年1月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/e1d96071-6cb3-4e3f-b1f0-26e7489c1581/download/40203615000000100047.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年12月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/216a578c-b562-4fcd-af1c-356dd27f703a/download/40203615000000100046.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年11月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/40dd772b-edc6-4475-abe2-e477efb6d2b7/download/40203615000000100045.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年10月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/524adc9d-0294-435c-a021-9bf9cb5c008d/download/40203615000000100044.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年9月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/52b9523f-6fed-4edc-8150-2cc92e50d727/download/40203615000000100043.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年8月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/fa62ad2b-c568-40b7-983d-0cded1b0e62a/download/40203615000000100042.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年7月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/578b70c3-ab03-40cc-a2a1-e01c02feddd8/download/40203615000000100041.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年6月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/f0aff64d-43d5-45fd-9197-6218398f20c2/download/40203615000000100040.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年5月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/9e992df6-93bd-4e87-a0a0-2ffda51ba4be/download/40203615000000100039.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年4月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/0d1c519e-8b9c-43f7-ab29-1f02e0427730/download/40203615000000100038.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年3月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/b68705f4-36e8-4ba2-8fff-268b54f2ee4a/download/40203615000000100037.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年2月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/a9fcaaaa-050f-4ef8-bb07-364e780dccd8/download/40203615000000100036.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和2年1月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/bfa15f33-0571-431f-a7c9-c89b629ba30a/download/40203615000000100035.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和元年12月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/ee4896ff-88df-47ce-a8be-76641c808213/download/40203615000000100034.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和元年11月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/fbd012cf-39fe-47ea-a8ef-57374038b152/download/40203615000000100033.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和元年10月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/e015fb65-a066-46ed-a8dc-bb8fb36c52ba/download/40203615000000100032.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和元年9月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/982042ae-cab4-4977-b731-99717e2b6575/download/40203615000000100031.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和元年8月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/5efd6ed9-0c04-4df1-a67e-2a642317ea42/download/40203615000000100030.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和元年7月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/9b823c13-f3e3-4a41-ad1c-db8363bc97cb/download/40203615000000100029.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和元年6月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/02513e5d-7984-4c5c-8449-ffbb43c45b1f/download/40203615000000100028.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（令和元年5月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/52473783-ab53-40e3-bdb4-9d1c1714e545/download/40203615000000100027.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成31年4月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/2ec47520-648b-491c-b7d9-c276f2e8d28c/download/40203615000000100026.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成31年3月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/2505224e-01ea-4a3a-a618-1341c8af7b44/download/40203615000000100025.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成31年2月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/96daeec6-2dc7-4c5f-b3aa-4c36a1588677/download/40203615000000100024.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成31年1月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/b57f020f-eccb-4a1d-923e-63f64d139967/download/40203615000000100023.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年12月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/bd3cdba7-35d6-4cbc-a1a0-6e712777c499/download/40203615000000100022.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年11月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/71dddba8-cb98-46dc-857f-188e7f6897a7/download/40203615000000100021.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年10月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/407c8787-c4e4-4e4b-909a-36b20afab583/download/40203615000000100020.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年9月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/a588908c-58d2-40cd-88ac-05483e6274c4/download/40203615000000100019.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年8月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/97b2c6c4-6e6c-4f18-bcea-faff9303ec7a/download/40203615000000100018.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年7月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/fb37f6b3-5a61-440d-bec4-c393181c459e/download/40203615000000100017.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年6月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/2b24bc20-635f-4920-97f9-5f4a03cde573/download/40203615000000100016.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年5月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/6cfc03cf-b92d-4e3d-bd73-353edad5a4c7/download/40203615000000100015.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年4月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/0173f654-1909-477f-9316-fcd8a43d10f0/download/40203615000000100014.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年3月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/412910c1-ac00-43f5-850e-c85673f98898/download/40203615000000100013.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年2月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/c32fcd7e-f2b9-4d8b-aa90-c936faa1cc09/download/40203615000000100012.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成30年1月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/ae4a1ca7-9d2c-4a99-b052-b77b003ad800/download/40203615000000100011.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年12月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/94c8b0e9-1cbb-45dd-a5fd-3ec9e4520615/download/40203615000000100010.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年11月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/eebfbe13-c572-4da9-a657-eead21c06b79/download/40203615000000100009.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年10月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/7455be61-7f4c-4c52-a55f-f8d8c7ff2da7/download/40203615000000100008.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年9月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/08a80132-f9ff-40a8-89ee-0aeafccea90a/download/40203615000000100007.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年8月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/a4fe23c7-cf8a-49e5-8691-163c0003a3d1/download/40203615000000100006.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年7月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/9f0f4b00-fdc1-44a1-bbd4-4ae351dabef7/download/40203615000000100005.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年6月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/b2f3805c-e185-4788-92ec-03a51cb5a0cd/download/40203615000000100004.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年5月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/5ad022e4-669a-4aa6-b9c0-02da5fd32323/download/40203615000000100003.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年4月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/b9bcd359-0734-4c43-a192-895d243a1bd4/download/40203615000000100002.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "久留米市",
+    "dataset": "久留米市新規食品営業許可施設一覧",
+    "resource": "久留米市新規食品営業許可施設一覧（平成29年3月分）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f85dc2fb-b148-4ed8-a00e-51a51e953793/resource/da0dbcde-b3ae-4178-af60-8c5c730f993c/download/40203615000000100001.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "四日市市",
+    "dataset": "【三重県四日市市】食品営業許可施設一覧",
+    "resource": "食品営業許可施設一覧（2026-07-31）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/e5809d89-173d-40ea-9ee7-5bc4a61678a6/resource/8e6c5dd9-272b-4dfd-8eac-c748bcf59de9/download/242021_food_business_all_20260731.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "長崎市",
+    "dataset": "食品等営業許可・届出一覧（全許可・届出一覧）（長崎市）",
+    "resource": "食品等営業許可・届出一覧（全許可・届出一覧）（長崎市）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/4d70b9d1-9885-4045-9f59-9d1b99e02910/resource/1125a70b-ac9d-49f6-ba87-1011d0db4f1a/download/422011_food_business_all.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "長崎市",
+    "dataset": "食品等営業許可・届出一覧（新規許可・届出一覧）（長崎市）",
+    "resource": "2025年1月_食品等営業許可・届出一覧（新規許可・届出一覧）（長崎市）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/794f38d6-2847-4ebb-ba14-a8897629e3f4/resource/852e01e8-669d-4ed5-9afe-b260d6b55dba/download/422011_food_business_new_20250101_20250131.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "四日市市",
+    "dataset": "食品営業届出施設一覧",
+    "resource": "食品営業届出施設一覧（2026-07-31）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f6ff9f86-e225-4f53-982c-156f6d5be2c4/resource/45445ef5-afad-4267-9b23-73e6143e0166/download/242021_eigyoutodokede_20260731.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島市",
+    "dataset": "食品営業許可全施設一覧（2021年6月1日食品衛生法改正以前）",
+    "resource": "飲食店営業等の営業許可を取得している施設データ",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f7485a92-6386-43f5-b65f-a6f32bbf0645/resource/6a78b822-6083-45b0-9d34-23ed6ebf0eee/download/3-32_syokuhineigyoukyokasisetsu.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "豊田市",
+    "dataset": "オープンデータ　食品営業許可施設一覧（2026年7月31日現在）",
+    "resource": "食品営業許可施設一覧（2026年7月31日現在）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/385d18b1-7493-4a82-8b0d-b00d2996da69/resource/91fe2bf3-0a1a-4daa-acf4-5737ca31ab83/download/20260805_1016.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "堺市",
+    "dataset": "堺市 食品営業許可施設一覧（令和8年4月1日現在）",
+    "resource": "r80401all.csv",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/f861e58c-ee2b-4a8c-8bc7-db9f70431b4b/resource/1714357c-0ded-41aa-bdc4-2f3b527067c7/download/r8.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "堺市",
+    "dataset": "堺市 食品営業許可施設一覧（令和7年4月1日現在）",
+    "resource": "r70401all.csv",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/e123583c-19c7-4555-91d6-200e95652179/resource/5a0a3e9c-4282-42a0-b123-24a6e9dce855/download/r70401all.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "堺市",
+    "dataset": "堺市 食品営業許可施設一覧（令和6年4月1日現在）",
+    "resource": "r60401all.csv",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/df9096b2-f615-4939-a90d-e5b76a29fc7e/resource/6e8cf78d-3ca0-4f69-a6ee-4bfd24f9cd3e/download/r60401all.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業届出施設一覧",
+    "resource": "令和７年12月新規食品営業届出施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/3e55f86d-5686-42e0-acca-62a6d8e1b7c5/resource/fe81a1c0-64c2-4945-91ef-d7cf89588f3a/download/eigyou_todoke_new_20251201_20251231.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業届出施設一覧",
+    "resource": "食品営業届出施設一覧（令和７年12月末時点）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/3e55f86d-5686-42e0-acca-62a6d8e1b7c5/resource/6ae7a973-ea89-42a8-9d8e-83889ed693cf/download/eigyou_todoke_all_20251231.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業届出施設一覧",
+    "resource": "令和８年１月新規食品営業届出施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/3e55f86d-5686-42e0-acca-62a6d8e1b7c5/resource/17cf8138-b9be-4775-8bce-1ecab747807d/download/eigyou_todoke_new_20260101_20260131.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業届出施設一覧",
+    "resource": "令和８年２月新規食品営業届出施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/3e55f86d-5686-42e0-acca-62a6d8e1b7c5/resource/76460326-24c4-45e5-b7c3-4c72d3ca6ed5/download/eigyou_todoke_new_20260201_20260228.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業届出施設一覧",
+    "resource": "令和８年３月新規食品営業届出施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/3e55f86d-5686-42e0-acca-62a6d8e1b7c5/resource/7a795cc5-317b-460c-af4c-432da482e3d1/download/eigyou_todoke_new_20260301_20260331.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業届出施設一覧",
+    "resource": "令和８年４月新規食品営業届出施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/3e55f86d-5686-42e0-acca-62a6d8e1b7c5/resource/2cb2b298-00e2-4298-af6b-cbb128983af4/download/eigyou_todoke_new_20260401_20260430.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業届出施設一覧",
+    "resource": "令和８年５月新規食品営業届出施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/3e55f86d-5686-42e0-acca-62a6d8e1b7c5/resource/f3e5ebde-f7ee-4b1b-88f9-234f7884b7e2/download/eigyou_todoke_new_20260501_20260531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "鹿児島県",
+    "dataset": "鹿児島県食品営業届出施設一覧",
+    "resource": "令和８年６月新規食品営業届出施設",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/3e55f86d-5686-42e0-acca-62a6d8e1b7c5/resource/4d33eea7-4acd-4cf6-9538-7b47b8550667/download/eigyou_todoke_new_20260601_20260630.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "福岡市",
+    "dataset": "福岡市　飲食店営業等営業許可施設一覧",
+    "resource": "福岡市内飲食店営業等営業許可施設一覧（令和8年6月30日現在）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/5925a9fb-3326-4499-9acd-7b18c03d5e32/resource/70d22acf-2353-4bc1-b45d-f12d45da5216/download/r8.6.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2026((令和8)年3月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/afce5cb5-8582-4295-8a98-494db2e25466/download/401005_shokuhineiseihotokyokashisetsuichiran_20260331.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2025((令和7)年3月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/f42bd0ef-f387-4c9b-ba0d-ac0dbf34164b/download/401005_shokuhineiseihotokyokashisetsuichiran_20250331.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2024((令和6)年3月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/4d08d9a1-72be-48a8-837e-338ad92e57da/download/401005_shokuhineiseihotokyokashisetsuichiran_20240331.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2023((令和5)年3月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/68b3b2f2-8d5f-4769-a03a-b4d281a9469e/download/401005_shokuhineiseihotokyokashisetsuichiran_20230331.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2021(令和3)年5月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/dab2c5a1-393e-4bd2-9bab-7350296a05da/download/401005_shokuhineiseihotokyokashisetsuichiran_20210531.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2021(令和3)年4月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/33cabe30-1365-4742-9c4d-f8cf7163e4a0/download/401005_shokuhineiseihotokyokashisetsuichiran_20210430.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2021(令和3)年3月末時点）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/b95aacfb-1023-48a5-9aa7-68e78dd57233/download/401005_shokuhineiseihotokyokashisetsuichiran_20210331.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2021(令和3)年3月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/4b9f1bb9-b08e-485d-87a2-03512e7616d4/download/401005_shokuhineiseihotokyokashisetsuichiran_20210331.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2021(令和3)年2月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/cc9db4b5-114c-4631-8bf1-456fbbc8281c/download/401005_shokuhineiseihotokyokashisetsuichiran_20210228.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2021(令和3)年1月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/09afbec0-483f-4280-928d-eefffe03bad2/download/401005_shokuhineiseihotokyokashisetsuichiran_20210131.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年12月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/d0b7da3d-b151-40e9-9a2f-7c0052681ba7/download/401005_shokuhineiseihotokyokashisetsuichiran_20201231.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年11月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/33c7b1f6-1393-484e-ac45-8cdb7396a027/download/401005_shokuhineiseihotokyokashisetsuichiran_20201130.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年10月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/a5d0dfd0-ba84-407f-8983-c1ae316a3c9a/download/401005_shokuhineiseihotokyokashisetsuichiran_20201031.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年9月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/ea1ead5a-bf9e-48d2-8910-b4270c77a13f/download/401005_shokuhineiseihotokyokashisetsuichiran_20200930.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年8月中）",
+    "format": "CSV",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/5542727c-8349-4bee-be57-2c0dc0b2782f/download/401005_shokuhineiseihotokyokashisetsuichiran_20200831.csv"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年7月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/8b953545-f665-469a-8826-52015ff2495e/download/401005_shokuhineiseihotokyokashisetsuichiran_20200731.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年6月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/165bc1a3-6975-43b7-a313-a1fdbf4a336c/download/401005_shokuhineiseihotokyokashisetsuichiran_20200630.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年5月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/6248c84b-d6ce-4c53-aab7-c0575794b786/download/401005_shokuhineiseihotokyokashisetsuichiran_20200531.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年4月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/c776e276-52ec-4024-aff0-011aca272aac/download/401005_shokuhineiseihotokyokashisetsuichiran_20200430.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年3月末時点）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/5296f20c-a0e7-46ef-aa07-8515d081a027/download/401005_shokuhineiseihotokyokashisetsuichiran_20200331.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年3月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/38cf901e-39ab-4a22-83b1-e95359810310/download/401005_shokuhineiseihotokyokashisetsuichiran_20200331.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年2月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/75fa5c05-f7ae-4801-8c15-719d1b936604/download/401005_shokuhineiseihotokyokashisetsuichiran_20200229.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2020(令和2)年1月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/56a820f1-4750-448e-b22e-0e9778f6583a/download/401005_shokuhineiseihotokyokashisetsuichiran_20200131.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(令和元)年12月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/a55e7fb2-e8f3-46dd-ae70-ae4342dcc374/download/401005_shokuhineiseihotokyokashisetsuichiran_20191231.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(令和元)年11月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/d649a436-08c7-423d-8b5a-aaf9e5cf1dd3/download/401005_shokuhineiseihotokyokashisetsuichiran_20191130.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(令和元)年10月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/7780b640-480f-47b8-889e-a5e4c76b500c/download/401005_shokuhineiseihotokyokashisetsuichiran_20191031.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(令和元)年9月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/a7d22f7f-e9d9-47d9-93f6-5dc47b5d80e9/download/401005_shokuhineiseihotokyokashisetsuichiran_20190930.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(令和元)年8月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/df8557f2-40d8-4169-9568-3f2c81f8984b/download/401005_shokuhineiseihotokyokashisetsuichiran_20190831.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(令和元)年7月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/076276ca-7fbd-4f49-8943-8678a7863dad/download/401005_shokuhineiseihotokyokashisetsuichiran_20190731.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(令和元)年6月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/753aa12e-cea4-4948-a58e-15d7e737d811/download/401005_shokuhineiseihotokyokashisetsuichiran_20190630.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(令和元)年5月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/ec291245-0a64-42d3-8ed3-97fcb22cc37f/download/401005_shokuhineiseihotokyokashisetsuichiran_20190531.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(平成31)年4月中）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/395ad2e8-bea2-445c-bc79-59e9b4b8292d/download/401005_shokuhineiseihotokyokashisetsuichiran_20190430.xlsx"
+  },
+  {
+    "portal": "bodik",
+    "organisation": "北九州市",
+    "dataset": "北九州市　食品衛生法等許可施設一覧",
+    "resource": "食品衛生法等許可施設一覧（2019(平成31)年3月末時点）",
+    "format": "XLSX",
+    "url": "https://data.bodik.jp/dataset/822fb681-346a-444e-b482-33c67b50cac3/resource/e2acb269-d32a-47a0-80df-f2e16a0776f5/download/401005_shokuhineiseihotokyokashisetsuichiran_20190331.xlsx"
+  },
+  {
+    "portal": "tokyo",
+    "organisation": "港区",
+    "dataset": "食品営業許可一覧",
+    "resource": "食品営業許可一覧",
+    "format": "CSV",
+    "url": "https://opendata.city.minato.tokyo.jp/dataset/54d8c582-00e2-4730-a23f-4a5befec9ae5/resource/c9d0299e-8e05-4317-877f-83055709e41f/download/food_business_all.csv"
+  },
+  {
+    "portal": "tokyo",
+    "organisation": "中央区",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "食品等営業許可・届出一覧",
+    "format": "CSV",
+    "url": "https://www.city.chuo.lg.jp/documents/984/syokuhineigyoukyoka.csv"
+  },
+  {
+    "portal": "tokyo",
+    "organisation": "中野区",
+    "dataset": "食品等営業許可届出一覧",
+    "resource": "食品等営業許可届出一覧",
+    "format": "CSV",
+    "url": "https://www2.wagmap.jp/nakanodatamap/nakanodatamap/opendatafile/map_40/CSV/opendata_550150.csv"
+  },
+  {
+    "portal": "tokyo",
+    "organisation": "江東区",
+    "dataset": "食品等営業許可・届出一覧",
+    "resource": "食品等営業許可・届出一覧",
+    "format": "CSV",
+    "url": "https://www.opendata.metro.tokyo.lg.jp/koto/131083_015_food_business_all.csv"
+  },
+  {
+    "portal": "tokyo",
+    "organisation": "東村山市",
+    "dataset": "東村山市食品等営業許可・届出一覧",
+    "resource": "食品等営業許可・届出一覧",
+    "format": "CSV",
+    "url": "https://www.opendata.metro.tokyo.lg.jp/higashimurayama/20240619_food_business_all.csv"
+  },
+  {
+    "portal": "tokyo",
+    "organisation": "新宿区",
+    "dataset": "新宿区の食品等営業許可・届け出一覧",
+    "resource": "食品等営業許可・届け出一覧（自治体標準データセット）",
+    "format": "CSV",
+    "url": "https://www.city.shinjuku.lg.jp/content/000399975.csv"
+  },
+  {
+    "portal": "tokyo",
+    "organisation": "台東区",
+    "dataset": "食品衛生営業施設一覧（業種順・許可日順）",
+    "resource": "食品衛生営業施設一覧（業種順・許可日順）",
+    "format": "CSV",
+    "url": "https://www.city.taito.lg.jp/kenkohukusi/kenkokikikanrieisei/food/syokuhin-sisetu/index.html"
+  }
+]

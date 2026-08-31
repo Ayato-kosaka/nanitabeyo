@@ -2,7 +2,7 @@ import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { TabBar } from "../../pages/TabBar";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 import { readStoredSessionUser, supabaseStorageKey } from "../../utils/auth";
 import { loadTestUserCredentials, signInTestUser } from "../../utils/testUserSession";
 
@@ -69,7 +69,7 @@ test.describe("ログアウト(ログイン済み)", () => {
 		const settingsPage = new SettingsPage(page);
 		const searchPage = new SearchPage(page);
 		const tabBar = new TabBar(page);
-		const reviewPage = new ReviewPage(page);
+		const myDishesPage = new MyDishesPage(page);
 
 		// このテスト専用のセッションを注入する（page.addInitScript は以降の遷移すべてで評価される）
 		const session = await signInTestUser(credentials);
@@ -84,13 +84,14 @@ test.describe("ログアウト(ログイン済み)", () => {
 		// #1124 の「ホームへ戻らない」症状のうち 1 つは、app/index.tsx が
 		// «起動時 URL»（= Linking.getInitialURL()。web ではモジュール読み込み時の
 		// window.location.href に束縛される）をディープリンクとして採り直し、
-		// ログアウト後にまた設定画面へ送り返す、というものだった。
+		// ログアウト後にまたマイページ（旧・設定画面）へ送り返す、というものだった。
 		// "/" から開始すると index.tsx が起動時に一度マウントされて `hasConsumedInitialUrl` を
 		// 消費してしまい、この経路が再現しなくなる。深い URL の直開き（実ユーザーの
 		// ブックマーク・共有リンク・リロード）から始めることで、ログアウト時の
 		// index.tsx マウントが «初回» になる条件を再現する。
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1629 ログアウト行は «アカウント管理»（/[locale]/profile/account）へ移った。
+		// 直開きで始めるという上の条件は、この深い URL でもそのまま満たされる
+		await settingsPage.gotoAccount();
 		// ログアウト行の表示 ＝ AuthProvider が「ログイン済み(非匿名)」で決着した合図
 		await expect(settingsPage.logoutItem).toBeVisible();
 
@@ -116,7 +117,10 @@ test.describe("ログアウト(ログイン済み)", () => {
 		// 検索画面で、タブバーも「さがす」が選択された正しい状態なので、
 		// 「どの画面が出ているか」で判定し、URL は「設定画面に留まっていないこと」だけを見る。
 		await searchPage.expectLoaded();
-		await expect(page).not.toHaveURL(/\/profile\/settings/);
+		// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
+		// 「留まっていないこと」を見る URL も /profile/settings → /profile になった。
+		// #1629 ログアウトの起点は /profile/account なので、そこに留まっていないことも見る
+		await expect(page).not.toHaveURL(/\/profile(\/account)?(\?|$)/);
 		await expect(settingsPage.logoutItem).toHaveCount(0);
 
 		// ── [症状3] 画面が固まらない ────────────────────────────────
@@ -155,8 +159,8 @@ test.describe("ログアウト(ログイン済み)", () => {
 		}
 
 		// ── [症状3] タブ導線も生きている ───────────────────────────────
-		// 併せて「ゲスト扱いに戻っている」ことも確認する（レビュータブは匿名だとログイン CTA 表示）。
-		await tabBar.gotoReview();
-		await reviewPage.expectGuestViewLoaded();
+		// 併せて「ゲスト扱いに戻っている」ことも確認する（食べたい/食べたタブは匿名だとログイン CTA 表示）。
+		await tabBar.gotoMyDishes();
+		await myDishesPage.expectGuestViewLoaded();
 	});
 });

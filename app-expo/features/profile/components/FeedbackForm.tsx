@@ -9,6 +9,8 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import type { CreateFeedbackDto } from "@shared/api/v1/dto";
 import { Keyboard } from "react-native";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface FeedbackFormProps {
 	/** Initial feedback type */
@@ -40,6 +42,11 @@ export function FeedbackForm({
 	onSubmit,
 	onCancel,
 }: FeedbackFormProps) {
+	// #1629 オーナー実機報告「ご意見・不具合を送る画面もダークモードに対応してない」。
+	// ラベル・入力欄・エラー表示がライト固定の直書きだったためテーマのトークンへ移した
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
+
 	// Internal state - isolated from parent re-renders
 	const [feedbackType, setFeedbackType] = useState<"request" | "bug">(initialType);
 	const [feedbackTitle, setFeedbackTitle] = useState(initialTitle);
@@ -207,7 +214,7 @@ export function FeedbackForm({
 						onChangeText={handleTitleChange}
 						onBlur={() => setTitleTouched(true)}
 						placeholder={i18n.t("Feedback.placeholders.title")}
-						placeholderTextColor="#666"
+						placeholderTextColor={colors.textMuted}
 						maxLength={80}
 						editable={!isSubmitting}
 						// #951 【仕様】placeholder は入力後に消えるため、ラベルをアクセシブル名として明示する
@@ -233,7 +240,7 @@ export function FeedbackForm({
 						onChangeText={handleMessageChange}
 						onBlur={() => setMessageTouched(true)}
 						placeholder={i18n.t("Feedback.placeholders.message")}
-						placeholderTextColor="#666"
+						placeholderTextColor={colors.textMuted}
 						multiline
 						numberOfLines={6}
 						maxLength={2000}
@@ -261,76 +268,79 @@ export function FeedbackForm({
 	);
 }
 
-const styles = StyleSheet.create({
-	feedbackLabel: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		marginBottom: 8,
-	},
-	radioGroup: {
-		flexDirection: "row",
-		gap: 24,
-	},
-	radioOption: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	radioCircle: {
-		width: 20,
-		height: 20,
-		borderRadius: 10,
-		borderWidth: 2,
-		borderColor: "#D1D5DB",
-	},
-	radioSelected: {
-		backgroundColor: "#F05537",
-		borderColor: "#F05537",
-	},
-	radioLabel: {
-		fontSize: 16,
-		color: "#374151",
-	},
-	feedbackInput: {
-		backgroundColor: "#F8F9FA",
-		borderRadius: 12,
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		fontSize: 15,
-		color: "#1A1A1A",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 2,
-		elevation: 1,
-	},
-	feedbackTextArea: {
-		minHeight: 120,
-		textAlignVertical: "top",
-	},
-	characterCount: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "right",
-		marginTop: 4,
-	},
-	errorContainer: {
-		backgroundColor: "#FEF2F2",
-		borderRadius: 8,
-		padding: 12,
-		borderLeftWidth: 4,
-		borderLeftColor: "#DC2626",
-	},
-	errorText: {
-		fontSize: 14,
-		color: "#DC2626",
-		fontWeight: "500",
-		marginTop: 4,
-	},
-	feedbackInputError: {
-		borderWidth: 1,
-		borderColor: "#DC2626",
-		backgroundColor: "#FEF2F2",
-	},
-});
+// #1629 ここで «赤の使用量» は変えていない。エラーの地・罫線・文字はそのまま赤の役割で、
+// ライト / ダークそれぞれの値へ追従させただけである
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		feedbackLabel: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: colors.textPrimary,
+			marginBottom: 8,
+		},
+		radioGroup: {
+			flexDirection: "row",
+			gap: 24,
+		},
+		radioOption: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+		},
+		radioCircle: {
+			width: 20,
+			height: 20,
+			borderRadius: 10,
+			borderWidth: 2,
+			borderColor: colors.trackMuted,
+		},
+		radioSelected: {
+			backgroundColor: colors.brand,
+			borderColor: colors.brand,
+		},
+		radioLabel: {
+			fontSize: 16,
+			color: colors.textSecondaryStrong,
+		},
+		feedbackInput: {
+			backgroundColor: colors.surfaceMuted,
+			borderRadius: 12,
+			paddingHorizontal: 12,
+			paddingVertical: 12,
+			fontSize: 15,
+			color: colors.textPrimary,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 1 },
+			shadowOpacity: 0.05,
+			shadowRadius: 2,
+			elevation: 1,
+		},
+		feedbackTextArea: {
+			minHeight: 120,
+			textAlignVertical: "top",
+		},
+		characterCount: {
+			fontSize: 12,
+			color: colors.textSecondary,
+			textAlign: "right",
+			marginTop: 4,
+		},
+		errorContainer: {
+			backgroundColor: colors.dangerTintSoft,
+			borderRadius: 8,
+			padding: 12,
+			borderLeftWidth: 4,
+			borderLeftColor: colors.danger,
+		},
+		errorText: {
+			fontSize: 14,
+			color: colors.danger,
+			fontWeight: "500",
+			marginTop: 4,
+		},
+		feedbackInputError: {
+			borderWidth: 1,
+			borderColor: colors.danger,
+			backgroundColor: colors.dangerTintSoft,
+		},
+	});

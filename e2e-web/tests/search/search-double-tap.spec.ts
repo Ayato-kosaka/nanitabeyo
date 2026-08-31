@@ -1,6 +1,6 @@
 import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
-import { TopicsPage } from "../../pages/TopicsPage";
+import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { countRequests } from "../../utils/network";
 
 /**
@@ -24,7 +24,7 @@ import { countRequests } from "../../utils/network";
  * P2 は 0 回。dev DB へ書き込まないため `@mutation` は付けない(Tier 2)。
  */
 test.describe("検索ボタンの連打耐性", () => {
-	// AI によるトピック生成に実測 30 秒近くかかるため、topics-flow.spec.ts と同じ理由で 90 秒へ延長する
+	// AI によるトピック生成に実測 30 秒近くかかるため、dish-categories-flow.spec.ts と同じ理由で 90 秒へ延長する
 	test.setTimeout(90_000);
 
 	// ─ テストケース: 場所未確定のまま連打しても API を呼ばず遷移しない ─
@@ -47,7 +47,7 @@ test.describe("検索ボタンの連打耐性", () => {
 		await searchPage.submitRapid(5);
 
 		await expect(searchPage.snackbar).toBeVisible();
-		await expect(appPage).not.toHaveURL(/\/search\/topics/);
+		await expect(appPage).not.toHaveURL(/\/search\/dishCategories/);
 		await searchPage.expectLoaded();
 		expect(recommendations.count(), "未充足のまま連打してレコメンド API が呼ばれている").toBe(0);
 
@@ -75,7 +75,7 @@ test.describe("検索ボタンの連打耐性", () => {
 	//   - 二重 push の観測点が **画面の枚数**であること(履歴段数では検知できない。下記参照)
 	test("必須項目を満たした状態で検索ボタンを連打しても検索は 1 回だけ実行される", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
@@ -87,9 +87,9 @@ test.describe("検索ボタンの連打耐性", () => {
 
 		// カードの描画(= レコメンド API の完了)まで待ってから枚数を数える。
 		// 二重 push はこの時点までに必ず DOM へ載っているため、1 枚目だけを見て取りこぼすことはない
-		await topicsPage.expectRenderedAllowingDuplicates();
+		await dishCategoriesPage.expectRenderedAllowingDuplicates();
 
-		await expect(topicsPage.stackedScreens(), "連打でトピック画面が二重に積まれている").toHaveCount(1);
+		await expect(dishCategoriesPage.stackedScreens(), "連打でトピック画面が二重に積まれている").toHaveCount(1);
 		expect(recommendations.count(), "連打でレコメンド API が二重に呼ばれている").toBe(1);
 
 		// ⚠️ 履歴段数は **二重 push を検知できない**(#1086 で実測。トピック画面が 5 枚積まっても増分は 1)。

@@ -29,10 +29,23 @@ on:
           - catalog
           - catalog-with-review-flow
       test_filter:
-        description: "実行する spec を絞る jest の --testPathPattern（例: logout|saved-topic）。修正 1 件の検証ループを全 suite 実行（iOS で 90 分超）から数分へ縮めるための入力。空なら全件。⚠️ マージ前の最終確認は必ず空（全件）で回すこと"
+        description: "実行する spec をパス部分一致で絞る（例: logout|saved-topic。| か空白区切りで OR）。scope の範囲内で AND で効く（jest.config.js が DETOX_TEST_FILTER から除外パターンを組む）。修正 1 件の検証ループやエビデンス撮影を数分へ縮めるための入力。空なら全件。⚠️ マージ前の最終確認は必ず空（全件）で回すこと"
         type: string
         required: false
         default: ""
+      record_videos:
+        description: "エビデンス用に全テストの実機動画（test.mp4）を録画して Artifact へ残す（DETOX_RECORD_VIDEOS=all 相当）。Android / iOS 両対応。test_filter と併用すると狙ったフローだけ短時間で撮れる"
+        type: boolean
+        required: false
+        default: false
+      android_api_level:
+        description: "Android エミュレータの API レベル。既定 34（Android 14）。#1629 の «キーボードで入力欄が隠れる» は Android 15（API 35）で edge-to-edge が強制され adjustResize が窓を縮めなくなることが疑われており、その再現用に 35 を選べるようにしてある。AVD キャッシュはこの値ごとに分かれる"
+        type: choice
+        required: false
+        default: "34"
+        options:
+          - "34"
+          - "35"
   schedule:
     # #1029 【設計】毎日 JST 4:00（UTC 19:00）。e2e-web(JST 3:00 / timeout 30分) と時間帯を分け、
     # テストユーザーと Supabase の匿名サインイン枠を取り合わないようにする
@@ -43,8 +56,19 @@ permissions:
   contents: read
 
 # 同時実行しても壊れはしないが無駄なので、実行中があれば新しい方を待たせる
+# #1629 【設計】**グループにブランチを含める。**
+#
+# 以前は `e2e-mobile-test` という «リポジトリで 1 本» のグループだった。この workflow は
+# Android と iOS のビルドを含むので nightly は 3 時間走ることがあり、その間に投げた手動実行は
+# **3 時間ただ待つ**。しかもエラーは出ず、ジョブが 1 つも起動しないまま pending に見えるだけで、
+# 待っている理由がどこにも表示されない（実際に «詰まっている» と 2 回誤読した）。
+#
+# 同時実行で壊れるものは無い（runner ごとにエミュレータが立つ）。このグループは
+# **CI 時間の節約が目的**であって排他が目的ではない、と元のコメントも書いている。
+# ブランチ単位にすれば «同じブランチへ連投したときだけ待つ» という本来の意図は保たれ、
+# nightly（main）と検証用の手動実行（作業ブランチ）は並走できる。
 concurrency:
-  group: e2e-mobile-test
+  group: e2e-mobile-test-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -146,8 +170,35 @@ jobs:
           COMMIT_ID: ${{ github.sha }}
         run: printf '\nEXPO_PUBLIC_COMMIT_ID=%s\n' "$COMMIT_ID" >> .env
 
+      # 🔑 アプリバイナリ(APK)のキャッシュキーを算出する（iOS ジョブの同名ステップと同一思想）。
+      # Gradle ビルドは毎 run 約 11 分かかる（run 32607545105 で実測）が、release APK は
+      # アプリ側の入力が同じなら同一。エビデンス動画の再撮影やテストコードだけの修正で
+      # 11 分を払わないためにバイナリ単位でキャッシュする。
+      # COMMIT_ID を除く理由・stale COMMIT_ID の代償は iOS 側のコメントを参照
+      - name: 🔑 Compute app binary cache key
+        id: appkey
+        shell: bash
+        run: |
+          grep -v '^EXPO_PUBLIC_COMMIT_ID=' app-expo/.env > app-expo/.env.cachekey
+          echo "app_tree=$(git rev-parse HEAD:app-expo)" >> "$GITHUB_OUTPUT"
+          echo "shared_tree=$(git rev-parse HEAD:shared)" >> "$GITHUB_OUTPUT"
+
+      # ⚠️ restore-keys は付けない（iOS 側と同じ理由: 前方一致で stale バイナリを掴まない）
+      - name: 📥 Cache Detox app binary (Android)
+        id: appcache
+        uses: actions/cache@v4
+        with:
+          path: app-expo/android/app/build/outputs/apk
+          key: android-detox-apk-${{ runner.os }}-${{ steps.appkey.outputs.app_tree }}-${{ steps.appkey.outputs.shared_tree }}-${{ hashFiles('pnpm-lock.yaml', 'app-expo/.env.cachekey') }}
+
+      - name: ♻️ Report app binary cache hit
+        if: steps.appcache.outputs.cache-hit == 'true'
+        run: |
+          echo "::warning::APK キャッシュがヒットしたため Gradle ビルドをスキップします。バイナリ内の EXPO_PUBLIC_COMMIT_ID はビルド元コミットのままです（E2E は COMMIT_ID を検証しない）"
+
       # Gradle (AGP 8.x) は JDK 17 を要求する
       - name: ☕ Setup JDK 17
+        if: steps.appcache.outputs.cache-hit != 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -155,11 +206,13 @@ jobs:
 
       # Gradle の依存・ビルドキャッシュを共有し、2 回目以降のビルドを高速化する
       - name: 🐘 Setup Gradle
+        if: steps.appcache.outputs.cache-hit != 'true'
         uses: gradle/actions/setup-gradle@v4
 
       # CNG: android/ ディレクトリを生成する。E2E_DETOX=1 で @config-plugins/detox が
       # androidTest 設定（DetoxTest.java・build.gradle・Network Security Config）を注入する
       - name: 🧬 Expo prebuild (Android)
+        if: steps.appcache.outputs.cache-hit != 'true'
         working-directory: app-expo
         env:
           E2E_DETOX: "1"
@@ -167,6 +220,7 @@ jobs:
 
       # release APK + androidTest APK をビルドする（エミュレータ用に x86_64 のみ。.detoxrc.js 参照）
       - name: 🏗️ Detox build (Android release)
+        if: steps.appcache.outputs.cache-hit != 'true'
         # #1030 【設計】A' 案のセッション注入フックは **バンドル時** に metro.config.js の resolver で
         # 有効/無効が決まる。ここで立てないと noop 実装が焼き込まれ、launchArgs が黙って無視される
         # （= 認証済みテストが匿名のまま走り、テストは緑なのに検証内容だけが嘘になる）
@@ -191,6 +245,7 @@ jobs:
       # #1076 焼き込みは失敗しても例外もログも出ない (@expo/env が黙って捨てる) ため、
       # 成果物を直接検査して落とす。assert-no-e2e-hook と同じ sentinel ゲートの考え方。
       - name: 🔍 Assert commit id is baked into the APK
+        if: steps.appcache.outputs.cache-hit != 'true'
         env:
           COMMIT_ID: ${{ github.sha }}
         run: |
@@ -212,7 +267,7 @@ jobs:
             ~/.android/avd/*
             ~/.android/adb*
           # ロケール(ja-JP)をブートプロパティで焼くため、変更時はキーを更新して AVD を作り直す
-          key: avd-34-google_apis-x86_64-ja-v2
+          key: avd-${{ inputs.android_api_level || '34' }}-google_apis-x86_64-ja-v2
 
       # キャッシュがない場合のみ AVD を作成し、起動済みスナップショットを生成する
       # （google_apis: アプリが Google Play services（Maps/AdMob）へ依存するため）
@@ -220,7 +275,7 @@ jobs:
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ inputs.android_api_level || '34' }}
           target: google_apis
           arch: x86_64
           avd-name: e2e_avd
@@ -238,7 +293,7 @@ jobs:
         continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ inputs.android_api_level || '34' }}
           target: google_apis
           arch: x86_64
           avd-name: e2e_avd
@@ -262,6 +317,11 @@ jobs:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           DETOX_TEST_FILTER: ${{ inputs.test_filter }}
+          # record_videos 入力が true のとき Detox の env→CLI マッピングで --record-videos all
+          # に相当する指定になる（schedule 実行では inputs が空 = 'none' で従来どおり）。
+          # ⚠️ 値は none|failing|all 以外を渡さないこと。不正値でも Detox はエラーにせず
+          # .detoxrc.js の video 設定を黙って上書きして動画が出なくなる（run 32605810775 で実測）
+          DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && 'all' || 'none' }}
 
       # 📋 UI カタログ（scope=catalog*）: 画面定義と突き合わせて一覧を生成する
       - name: 📋 Generate UI catalog document (Android)
@@ -422,8 +482,48 @@ jobs:
       - name: 🧱 Build Detox framework cache
         run: pnpm --filter e2e-mobile exec detox build-framework-cache
 
+      # 🔑 アプリバイナリのキャッシュキーを算出する。
+      #
+      # xcodebuild は毎 run 約 25 分かかるが、Release シミュレータビルドの成果物（.app）は
+      # **アプリ側の入力が同じなら同一**である。iOS の Detox デバッグは「テストコードだけを
+      # 直して回す」反復が大半で（#1084 の緑化で実測: 8 回の iOS run 中 6 回はテストコードのみの
+      # 変更）、そのたびに 25 分を払うのは純粋な無駄。1 サイクルを 45 分 → 約 20 分へ縮める。
+      #
+      # キーの構成（= バイナリに焼き込まれる入力の全て）:
+      # - HEAD:app-expo / HEAD:shared の git tree hash … JS バンドルとネイティブ設定の実体。
+      #   prebuild が生成する ios/ は app.json 等（tracked）から導出されるため tree hash で覆える
+      # - pnpm-lock.yaml … 依存の版
+      # - ios/Podfile.lock … pod install 直後にしか存在しないため、このステップは pod install の後に置く
+      # - .env（EXPO_PUBLIC_COMMIT_ID の行を除く）… EXPO_PUBLIC_* はバンドルへ焼き込まれる。
+      #   COMMIT_ID を除くのは、含めるとキーが毎コミット変わりキャッシュが一度も当たらないため。
+      #   その代償として **キャッシュヒット時のバイナリ内 COMMIT_ID はビルド元コミットのまま**になる
+      #   （下の cache ステップで警告を出す。E2E のテスト自体は COMMIT_ID を検証しない）
+      - name: 🔑 Compute app binary cache key
+        id: appkey
+        shell: bash
+        run: |
+          grep -v '^EXPO_PUBLIC_COMMIT_ID=' app-expo/.env > app-expo/.env.cachekey
+          echo "app_tree=$(git rev-parse HEAD:app-expo)" >> "$GITHUB_OUTPUT"
+          echo "shared_tree=$(git rev-parse HEAD:shared)" >> "$GITHUB_OUTPUT"
+
+      # ⚠️ restore-keys は付けない（前方一致で別アプリの stale バイナリを掴むと、
+      # 「直したはずのバグで落ち続ける」という最悪のデバッグ体験になる。完全一致のみ）
+      - name: 📥 Cache Detox app binary (iOS)
+        id: appcache
+        uses: actions/cache@v4
+        with:
+          path: app-expo/ios/build/Build/Products/Release-iphonesimulator
+          key: ios-detox-app-${{ runner.os }}-${{ steps.appkey.outputs.app_tree }}-${{ steps.appkey.outputs.shared_tree }}-${{ hashFiles('pnpm-lock.yaml', 'app-expo/ios/Podfile.lock', 'app-expo/.env.cachekey') }}
+
+      - name: ♻️ Report app binary cache hit
+        if: steps.appcache.outputs.cache-hit == 'true'
+        run: |
+          echo "::notice::アプリバイナリをキャッシュから復元したため xcodebuild（約25分）をスキップします。"
+          echo "::warning::バイナリ内の EXPO_PUBLIC_COMMIT_ID はこのバイナリをビルドしたコミットのものです（アプリ側ソースは同一）。"
+
       # シミュレータ用 Release ビルド（署名不要）。ビルド失敗とテスト失敗を切り分けるため独立ステップにする
       - name: 🏗️ Detox build (iOS release)
+        if: steps.appcache.outputs.cache-hit != 'true'
         # #1030 【設計】Android と同じ理由でバンドル時にセッション注入フックを有効化する
         env:
           EXPO_PUBLIC_E2E_AUTH_HOOK: "1"
@@ -449,6 +549,11 @@ jobs:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           DETOX_TEST_FILTER: ${{ inputs.test_filter }}
+          # record_videos 入力が true のとき Detox の env→CLI マッピングで --record-videos all
+          # に相当する指定になる（schedule 実行では inputs が空 = 'none' で従来どおり）。
+          # ⚠️ 値は none|failing|all 以外を渡さないこと。不正値でも Detox はエラーにせず
+          # .detoxrc.js の video 設定を黙って上書きして動画が出なくなる（run 32605810775 で実測）
+          DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && 'all' || 'none' }}
 
       # 📋 UI カタログ（scope=catalog*）: 画面定義と突き合わせて一覧を生成する
       - name: 📋 Generate UI catalog document (iOS)

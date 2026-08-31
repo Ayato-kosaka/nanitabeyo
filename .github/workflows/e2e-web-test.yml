@@ -24,6 +24,11 @@ on:
         required: false
         default: false
         type: boolean
+      test_filter:
+        description: "実行する spec をファイル名の部分一致で絞る（例: onboarding。空なら全件）。落ちている数本だけを 25 分ではなく数分で回して «実際のエラー文» を見るための入力。⚠️ マージ前の最終確認は必ず空（全件）で回すこと"
+        required: false
+        default: ""
+        type: string
   schedule:
     # 毎日 JST 3:00(UTC 18:00)に実行
     - cron: "0 18 * * *"
@@ -120,8 +125,29 @@ jobs:
       # 定期実行では inputs が空になるため、workflow_dispatch 以外では常に実行する
       - name: 🧪 Run Playwright tests (Tier 1 + 2)
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_e2e_tests }}
-        run: pnpm --filter e2e-web test
+        # Playwright は位置引数を «ファイル名にかかる正規表現» として解釈する。
+        # 空なら引数が 1 つも増えない（＝全件）。schedule 実行には inputs が無いので必ず全件になる。
+        #
+        # ⚠️ **`--` を挟まないこと。** pnpm はこれを消費せず、そのまま playwright へ渡す。
+        #    実測: `pnpm --filter e2e-web test -- onboarding` → playwright の argv は
+        #    `["--", "onboarding"]` になり、`playwright test --list -- onboarding` は
+        #    **Total: 0 tests in 0 files** を返す。さらに入力が空のときは argv が `["--"]` に
+        #    なるので、**nightly（inputs が空）が 1 件も実行しない**状態になっていた。
+        #
+        # ⚠️ **`${{ inputs.test_filter }}` を run: の中へ直接展開しないこと。**
+        #    1. 展開された文字列は **シェルのコマンド行の一部** になるため、`|` や `;` や `$(...)`
+        #       がそのまま解釈される。`saved-dish-category-location|dish-category-card-full-bleed`
+        #       を渡したら `|` がパイプになり、2 秒で落ちた（run 33357561252 で実測）
+        #    2. それは同時に **任意コマンドを実行できる穴**でもある。dispatch できる人なら
+        #       `; curl ...` を混ぜられる
+        #    env: 経由なら中身は «データ» として渡り、メタ文字は解釈されない。
+        #    e2e-mobile の DETOX_TEST_FILTER が最初からこの形になっている。
+        #
+        # クォートしないのは «空なら引数 0 個» にするため（`"$TEST_FILTER"` だと空文字列が
+        # 1 引数として渡り、playwright が «どのファイルにも一致しない» と解釈して 0 件になる）。
+        run: pnpm --filter e2e-web test $TEST_FILTER
         env:
+          TEST_FILTER: ${{ inputs.test_filter }}
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 

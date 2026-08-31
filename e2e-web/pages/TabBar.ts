@@ -8,28 +8,26 @@ import type { Locator, Page } from "@playwright/test";
  * ## タブ可視性の注意点（アサーション時に必ず考慮すること）
  * - お知らせ (tab-notifications): 匿名ユーザーには非表示（href: null）。
  *   ログイン済みプロジェクトでのみ表示をアサートできる
- * - マップ (tab-map) / posts: 常に非表示（内部遷移専用の隠しルート）
+ * - posts: 常に非表示（内部遷移専用の隠しルート）
  */
 export class TabBar {
 	readonly page: Page;
 	/** さがすタブ */
 	readonly searchTab: Locator;
-	/** レビュータブ */
-	readonly reviewTab: Locator;
+	/** 食べたい/食べたタブ（#1396 でレビュータブから差し替え） */
+	readonly myDishesTab: Locator;
 	/** マイページタブ */
 	readonly profileTab: Locator;
 	/** お知らせタブ（ログイン済みユーザーのみ表示） */
 	readonly notificationsTab: Locator;
 	/** マップタブ（常に非表示 — 存在しないことのアサート用） */
-	readonly mapTab: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
 		this.searchTab = page.getByTestId("tab-search");
-		this.reviewTab = page.getByTestId("tab-review");
+		this.myDishesTab = page.getByTestId("tab-my-dishes");
 		this.profileTab = page.getByTestId("tab-profile");
 		this.notificationsTab = page.getByTestId("tab-notifications");
-		this.mapTab = page.getByTestId("tab-map");
 	}
 
 	/** さがすタブへ遷移する */
@@ -37,9 +35,9 @@ export class TabBar {
 		await this.searchTab.click();
 	}
 
-	/** レビュータブへ遷移する */
-	async gotoReview(): Promise<void> {
-		await this.reviewTab.click();
+	/** 食べたい/食べたタブへ遷移する */
+	async gotoMyDishes(): Promise<void> {
+		await this.myDishesTab.click();
 	}
 
 	/** マイページタブへ遷移する */

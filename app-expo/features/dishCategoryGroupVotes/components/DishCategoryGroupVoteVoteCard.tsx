@@ -8,21 +8,31 @@ import { useEffect, useRef } from "react";
 import { Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ThumbsDown, ThumbsUp } from "lucide-react-native";
 import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
-import { height as SCREEN_HEIGHT } from "@/features/topics/constants";
-import { useTopicCardSize } from "@/features/topics/hooks/useTopicCardSize";
-import { TopicVisualCard } from "@/features/topics/components/TopicVisualCard";
+import { height as SCREEN_HEIGHT } from "@/features/dishCategories/constants";
+import { useDishCategoryCardSize } from "@/features/dishCategories/hooks/useDishCategoryCardSize";
+import { DishCategoryVisualCard } from "@/features/dishCategories/components/DishCategoryVisualCard";
+import { type DishCategoryImageResourceState } from "@/features/dishCategories/hooks/useDishCategoryImageResources";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 type Props = {
 	candidate: DishCategoryGroupVoteCandidate;
 	onVote: (reaction: DishCategoryGroupVoteReaction) => void;
+	// #1213 【設計】画面側(useDishCategoryImageResources)で先読みした結果をここへ渡す。
+	// 渡さないと DishCategoryVisualCard は生の uri をその場で読み込むため、候補が切り替わるたびに
+	// ネットワーク取得が発生し、カード背景色(#EEE)が一瞬見えてしまう。
+	imageState?: DishCategoryImageResourceState;
 };
 
-export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
+export function DishCategoryGroupVoteVoteCard({ candidate, onVote, imageState }: Props) {
+	// #1629 アイコンは style ではなく prop で色を受けるので、パレットを直接読む
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const translateX = useRef(new Animated.Value(0)).current;
 	const onVoteRef = useRef(onVote);
-	const { cardWidth, cardMaxHeight } = useTopicCardSize();
+	const { cardWidth, cardMaxHeight } = useDishCategoryCardSize();
 	const cardHeight = Math.max(360, Math.min(cardMaxHeight, SCREEN_HEIGHT - 280));
 
 	useEffect(() => {
@@ -67,12 +77,13 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 	return (
 		<View style={styles.container}>
 			<Animated.View style={[styles.cardMotion, getCardMotionStyle(translateX)]} {...panResponder.panHandlers}>
-				<TopicVisualCard
+				<DishCategoryVisualCard
 					title={candidate.displayName}
 					tagline={candidate.tagline}
 					imageSource={{ uri: candidate.imageUrl }}
 					cardWidth={cardWidth}
 					cardHeight={cardHeight}
+					imageState={imageState}
 					recyclingKey={candidate.id}
 				/>
 			</Animated.View>
@@ -86,7 +97,7 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 					testID="dish-category-group-vote-dislike-button"
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("DishCategoryGroupVotes.dislikeButtonLabel", { title: candidate.displayName })}>
-					<ThumbsDown size={24} color="#F05537" strokeWidth={2.4} />
+					<ThumbsDown size={24} color={colors.brand} strokeWidth={2.4} />
 					<Text style={styles.buttonLabel}>{i18n.t("DishCategoryGroupVotes.dislike")}</Text>
 				</TouchableOpacity>
 				<TouchableOpacity
@@ -96,7 +107,8 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 					testID="dish-category-group-vote-like-button"
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("DishCategoryGroupVotes.likeButtonLabel", { title: candidate.displayName })}>
-					<ThumbsUp size={24} color="#FFFFFF" strokeWidth={2.4} />
+					{/* ブランド色で塗ったボタンの上のアイコン。地（c.brand）がライト / ダークで変わらないため振らない */}
+					<ThumbsUp size={24} color={FixedColors.onFilled} strokeWidth={2.4} />
 					<Text style={[styles.buttonLabel, styles.likeButtonLabel]}>{i18n.t("DishCategoryGroupVotes.like")}</Text>
 				</TouchableOpacity>
 			</View>
@@ -118,47 +130,49 @@ function getCardMotionStyle(translateX: Animated.Value) {
 	};
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		gap: 20,
-		paddingHorizontal: 16,
-		paddingBottom: 22,
-	},
-	cardMotion: {
-		alignItems: "center",
-	},
-	buttonRow: {
-		flexDirection: "row",
-		gap: 16,
-	},
-	dislikeButton: {
-		width: 116,
-		height: 58,
-		borderRadius: 29,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#FFFFFF",
-		borderWidth: 1,
-		borderColor: "#F05537",
-	},
-	likeButton: {
-		width: 116,
-		height: 58,
-		borderRadius: 29,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#F05537",
-	},
-	buttonLabel: {
-		marginTop: 3,
-		fontSize: 12,
-		fontWeight: "800",
-		color: "#6B7280",
-	},
-	likeButtonLabel: {
-		color: "#FFFFFF",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			gap: 20,
+			paddingHorizontal: 16,
+			paddingBottom: 22,
+		},
+		cardMotion: {
+			alignItems: "center",
+		},
+		buttonRow: {
+			flexDirection: "row",
+			gap: 16,
+		},
+		dislikeButton: {
+			width: 116,
+			height: 58,
+			borderRadius: 29,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.surface,
+			borderWidth: 1,
+			borderColor: c.brand,
+		},
+		likeButton: {
+			width: 116,
+			height: 58,
+			borderRadius: 29,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.brand,
+		},
+		buttonLabel: {
+			marginTop: 3,
+			fontSize: 12,
+			fontWeight: "800",
+			color: c.textSecondary,
+		},
+		likeButtonLabel: {
+			// ブランド色で塗ったボタンの上の文字。地（c.brand）がライト / ダークで変わらないため振らない
+			color: FixedColors.onFilled,
+		},
+	});

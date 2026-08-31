@@ -1,10 +1,10 @@
-import { toInAppPath } from "./deepLinkTarget";
+import { extractQueryString, toInAppPath } from "./deepLinkTarget";
 
 /**
- * 🔗 ディープリンクの行き先判定（#1027 / #1135 / #721）。
+ * 🔗 ディープリンクの行き先判定（#1027 / #1135 / #721 / #1272）。
  *
- * この判定は二度事故っている（#1027 でディープリンクの行き先を奪い、#1135 で OAuth の
- * `code` を落とした）ので、分岐をすべてここで固定する。
+ * この判定は三度事故っている（#1027 でディープリンクの行き先を奪い、#1135 で OAuth の
+ * `code` を落とし、#1272 で ?tab= 等の一般クエリを落とした）ので、分岐をすべてここで固定する。
  */
 describe("toInAppPath", () => {
 	describe("#721 共有リンク /s/:token", () => {
@@ -39,7 +39,7 @@ describe("toInAppPath", () => {
 	describe("#1027 ロケール配下だけを採用する", () => {
 		it.each([
 			["ja-JP/profile", "/ja-JP/profile"],
-			["en-US/search/topics", "/en-US/search/topics"],
+			["en-US/search/dish-categories", "/en-US/search/dish-categories"],
 			["ja/posts", "/ja/posts"],
 		])("%s → 採用する", (path, expected) => {
 			expect(toInAppPath(path)).toBe(expected);
@@ -72,5 +72,56 @@ describe("toInAppPath", () => {
 		it("auth 以外の 2 段目は採用する", () => {
 			expect(toInAppPath("ja-JP/authors")).toBe("/ja-JP/authors");
 		});
+	});
+
+	describe("#1272 クエリ文字列を行き先まで運ぶ", () => {
+		// ⚠️ これが本題。呼び出し側が渡す `Linking.parse().path` はクエリを落とすため、
+		// クエリを別引数で渡さないと `?tab=saved-dish-categories` が iOS でアプリのどこにも届かない
+		//（probe の実測 `local=- global=-` で確定。Android は expo-router 側の解決が先に
+		//  済むため顕在化しない = 「片方の OS だけ壊れる」形になる）
+		it("ロケール配下の行き先にはクエリを付けて返す", () => {
+			expect(toInAppPath("ja-JP/profile", "tab=saved-dish-categories")).toBe("/ja-JP/profile?tab=saved-dish-categories");
+		});
+
+		it("複数パラメータ・エンコード済みの値もそのまま運ぶ（再シリアライズしない）", () => {
+			expect(toInAppPath("ja-JP/profile", "tab=saved-dish-categories&tabRequest=1712%2F34")).toBe(
+				"/ja-JP/profile?tab=saved-dish-categories&tabRequest=1712%2F34",
+			);
+		});
+
+		it("クエリが無ければ従来どおりパスだけを返す", () => {
+			expect(toInAppPath("ja-JP/profile")).toBe("/ja-JP/profile");
+			expect(toInAppPath("ja-JP/profile", null)).toBe("/ja-JP/profile");
+		});
+
+		it("共有リンクはクエリを落とす（行き先の決定に必要なのは token だけ）", () => {
+			expect(toInAppPath("s/s1_0123456789abcdefghijkl", "utm_source=x")).toBe("/s/s1_0123456789abcdefghijkl");
+		});
+
+		it("採用しないパスはクエリがあっても採用しない", () => {
+			expect(toInAppPath("profile/settings", "tab=saved-dish-categories")).toBeNull();
+			expect(toInAppPath("ja-JP/auth/callback", "code=abc")).toBeNull();
+		});
+	});
+});
+
+describe("extractQueryString（#1272）", () => {
+	it.each([
+		["クエリ付きディープリンク", "nanitabeyo:///ja-JP/profile?tab=saved-dish-categories", "tab=saved-dish-categories"],
+		["複数パラメータ", "nanitabeyo:///ja-JP/profile?tab=a&tabRequest=2", "tab=a&tabRequest=2"],
+		["https の Universal Link", "https://example.com/ja-JP/profile?tab=a", "tab=a"],
+		["フラグメントは含めない", "nanitabeyo:///ja-JP/profile?tab=a#section", "tab=a"],
+	])("%s → %s", (_label, url, expected) => {
+		expect(extractQueryString(url)).toBe(expected);
+	});
+
+	it.each([
+		["クエリ無し", "nanitabeyo:///ja-JP/profile"],
+		["? だけで空", "nanitabeyo:///ja-JP/profile?"],
+		["フラグメントのみ", "nanitabeyo:///ja-JP/profile#x"],
+		["null", null],
+		["undefined", undefined],
+	])("%s → null", (_label, url) => {
+		expect(extractQueryString(url as string | null | undefined)).toBeNull();
 	});
 });

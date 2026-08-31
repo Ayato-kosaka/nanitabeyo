@@ -15,19 +15,25 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoading";
+import { DishSelectionExpandLoading } from "@/features/dishMedia/components/DishSelectionExpandLoading";
 import { useDishMediaActions } from "@/features/dishMedia/hooks/useDishMediaActions";
 import i18n from "@/lib/i18n";
 import { useLocale } from "@/hooks/useLocale";
 import { useGoogleMapsFallback } from "@/features/search/hooks/useGoogleMapsFallback";
+import { FixedColors } from "@/constants/Palette";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 const idType = "dish_media" as const;
 
 export default function ResultScreen() {
-	// #633 【設計】topicId ではなく entriesKey を使用（Topics/SavedTopics 共通化）
-	const { entriesKey, location, category } = useLocalSearchParams<{
+	// #633 【設計】dishCategoryId ではなく entriesKey を使用（DishCategories/SavedDishCategories 共通化）
+	const { entriesKey, location, category, dishImageUrl } = useLocalSearchParams<{
 		entriesKey: string;
 		location?: string;
 		category?: string;
+		// #1484 【設計】DishCategories 画面の「この料理にする！」経由の場合のみ渡される。選択した料理画像を
+		// 店舗提案の取得完了まで表示し続けるためのローディング演出に使う（無ければ従来のローディングにfallback）。
+		dishImageUrl?: string;
 	}>();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -35,6 +41,8 @@ export default function ResultScreen() {
 	const { locale } = useLocale();
 	const { showGoogleMapsFallbackDialog } = useGoogleMapsFallback({ source: "search_result_screen" });
 	const shownGoogleMapsFallbackKeyRef = useRef<string | null>(null);
+	// #1629 画面の地がライト固定のグラデーション直書きだったのでテーマのトークンへ移した
+	const { colors } = useAppTheme();
 
 	// #633 【防御】entriesKey が undefined の場合は戻る（クラッシュ防止）
 	useEffect(() => {
@@ -50,7 +58,8 @@ export default function ResultScreen() {
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey || "", idType)(state),
-		[entriesKey, idType],
+		// `idType` はモジュール定数（26 行目）なので依存に含めない
+		[entriesKey],
 	);
 	const { ids, isLoading } = useDishMediaEntriesStore(selector, shallow);
 	const initialLocation = useMemo(() => {
@@ -166,7 +175,7 @@ export default function ResultScreen() {
 	}, [entriesKey, currentIndex, lightImpact, logFrontendEvent, shareRestaurant]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			{/* Header with Back Button */}
 			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
 				<TouchableOpacity
@@ -175,7 +184,10 @@ export default function ResultScreen() {
 					onPress={handleCloseWithHaptic}
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Common.close")}>
-					<X size={24} color="#000" />
+					{/* この 2 つのボタンは全画面の Google Map タイルの上に直接載る。地図はアプリのテーマに
+					    追従せず常にライト配色なので、ボタンの地と字も地図用の固定色にする（ダークで暗くすると
+					    明るい地図の上で沈んで押せる場所が分からなくなる） */}
+					<X size={24} color={FixedColors.mapMarkerLabel} />
 				</TouchableOpacity>
 				{/* #659 【UI】一括シェアボタン - 閉じるボタンの直下に配置 */}
 				<TouchableOpacity
@@ -183,7 +195,7 @@ export default function ResultScreen() {
 					onPress={handleBulkShare}
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Search.result.accessibility.bulkShare")}>
-					<Share2 size={24} color="#000" />
+					<Share2 size={24} color={FixedColors.mapMarkerLabel} />
 				</TouchableOpacity>
 			</View>
 
@@ -198,11 +210,18 @@ export default function ResultScreen() {
 
 			{/* #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示 */}
 			{/* #633 【防御】entriesKey が undefined の場合も loading を表示（戻る処理中） */}
-			{(isLoading || !entriesKey) && (
-				<View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents="auto">
-					<RestaurantLoading />
-				</View>
-			)}
+			{/* #1484 【仕様】DishCategories画面の「この料理にする！」経由（dishImageUrlあり）は、独立ローディング画面の
+			    代わりに選択した料理画像を拡大表示したまま待たせる。それ以外の経路は従来のRestaurantLoadingを維持する。 */}
+			{(isLoading || !entriesKey) &&
+				(dishImageUrl ? (
+					<View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents="auto">
+						<DishSelectionExpandLoading imageUrl={dishImageUrl} />
+					</View>
+				) : (
+					<View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents="auto">
+						<RestaurantLoading />
+					</View>
+				))}
 		</LinearGradient>
 	);
 }
@@ -220,11 +239,12 @@ const styles = StyleSheet.create({
 		padding: 16,
 		zIndex: 10,
 	},
+	// 地の白は「常にライト配色の地図タイルの上に載るボタン」ゆえの固定色（上の JSX のコメント参照）
 	closeButton: {
 		padding: 8,
 		borderRadius: 24,
-		backgroundColor: "#FFFFFF",
-		shadowColor: "#000",
+		backgroundColor: FixedColors.mapMarkerSurface,
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
 		shadowRadius: 12,
@@ -234,8 +254,8 @@ const styles = StyleSheet.create({
 	shareButton: {
 		padding: 8,
 		borderRadius: 24,
-		backgroundColor: "#FFFFFF",
-		shadowColor: "#000",
+		backgroundColor: FixedColors.mapMarkerSurface,
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
 		shadowRadius: 12,

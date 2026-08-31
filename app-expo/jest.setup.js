@@ -30,3 +30,66 @@ jest.mock("expo-constants", () => {
 	// スプレッドでは引き継がれないため、落とすと babel の interop が既定 export を解決できなくなる
 	return { ...actual, __esModule: true, default: { ...actual.default, expoConfig } };
 });
+
+// #1397 `@lodev09/react-native-true-sheet` はネイティブビュー（Fabric の codegen 生成物）を
+// 持つため、jest-expo の環境ではそのままレンダーできない。パッケージは
+// `@lodev09/react-native-true-sheet/mock` を同梱しているが、pnpm + jest の subpath exports
+// 解決に依存させたくないので、同等の最小実装をここへ置く。
+//
+// ⚠️ このモックは **present / dismiss の状態を持たない**（children を常に描く）。
+//    「開いているときだけ中身がある」ことをテストで見たい側は、コンポーネント自身が
+//    描き分けていること（例: MyDishesRestaurantSheet は `pin === null` で中身を描かない）
+//    を前提にすること。ここへ present 状態を足すと、モックが本物より賢くなって嘘をつく。
+jest.mock("@lodev09/react-native-true-sheet", () => {
+	const React = require("react");
+	const { View } = require("react-native");
+
+	const renderSlot = (slot) => {
+		if (!slot) return null;
+		return React.isValidElement(slot) ? slot : React.createElement(slot);
+	};
+
+	class TrueSheet extends React.Component {
+		present = jest.fn(() => Promise.resolve());
+		dismiss = jest.fn(() => Promise.resolve());
+		dismissStack = jest.fn(() => Promise.resolve());
+		resize = jest.fn(() => Promise.resolve());
+		render() {
+			const { children, style, header, footer, testID } = this.props;
+			return React.createElement(
+				View,
+				{ style, testID },
+				renderSlot(header),
+				children,
+				renderSlot(footer),
+			);
+		}
+	}
+
+	return {
+		__esModule: true,
+		TrueSheet,
+		TrueSheetProvider: ({ children }) => children,
+		TrueSheetPeek: ({ children, ...rest }) => React.createElement(View, rest, children),
+		useTrueSheet: () => ({
+			present: jest.fn(() => Promise.resolve()),
+			dismiss: jest.fn(() => Promise.resolve()),
+			dismissAll: jest.fn(() => Promise.resolve()),
+			dismissStack: jest.fn(() => Promise.resolve()),
+			resize: jest.fn(() => Promise.resolve()),
+		}),
+	};
+});
+
+/*
+#1629 **safe area は全テストで既定のモックを敷く。**
+
+`useSafeAreaInsets()` は `<SafeAreaProvider>` が無いと «No safe area value available» で
+throw する。本番はアプリの根に必ず居るので問題ないが、テストは対象コンポーネントだけを
+素で描くので、**下端の余白を足しただけで無関係なテストが 9 本落ちた**（実際に起きた）。
+
+ライブラリ同梱のモック（inset は 0）を敷いておけば、safe area を «使ったかどうか» に
+テストが左右されなくなる。個別に上書きしたいテストは、これまでどおり
+`jest.mock("react-native-safe-area-context", ...)` を書けば勝つ。
+*/
+jest.mock("react-native-safe-area-context", () => require("react-native-safe-area-context/jest/mock").default);

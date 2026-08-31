@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from "react";
 import { View, StyleSheet, ViewStyle, DimensionValue } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 /**
  * SkeletonShimmer（web 専用実装）
@@ -21,6 +22,10 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
  *
  * 型定義は SkeletonShimmer.tsx と同一だが、Metro の `.web.tsx` プラットフォーム解決の都合上
  * 同一ファイル名を相互 import すると自己参照になり得るため、あえて重複定義している。
+ *
+ * ⚠️ #1629 色は native 実装とまったく同じテーマトークン（`skeletonBase` /
+ * `skeletonBandGradient`）から採る。片方だけ直書きに戻すと、web とネイティブで
+ * ダークの見え方が食い違い、録画での確認が当てにならなくなる。
  */
 
 export type ShimmerDirection = "horizontal" | "vertical";
@@ -69,12 +74,15 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
 	borderRadius = 0,
 	direction = "horizontal",
 	durationMs = 1100,
-	baseColor = "#E9ECEF",
-	highlightColor = "#FFFFFF",
+	baseColor,
+	highlightColor,
 	bandSizePx,
 	enabled = true,
 	style,
 }) => {
+	// #1629【デザイン】地と光帯はテーマから採る（native 実装と同じトークン）
+	const { colors } = useAppTheme();
+	const resolvedBaseColor = baseColor ?? colors.skeletonBase;
 	// #959【アクセシビリティ】OS/ブラウザの「モーションを減らす」設定時は装飾アニメを止めて静的表示にする
 	const reducedMotion = useReducedMotion();
 	const shouldAnimate = enabled && !reducedMotion;
@@ -96,14 +104,11 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
 	}, [direction, bandThickness]);
 
 	const gradientColors = useMemo(() => {
-		return [
-			"rgba(255,255,255,0.0)",
-			"rgba(255,255,255,0.25)",
-			highlightColor,
-			"rgba(255,255,255,0.25)",
-			"rgba(255,255,255,0.0)",
-		] as const;
-	}, [highlightColor]);
+		const band = colors.skeletonBandGradient;
+		if (!highlightColor) return band;
+		// 呼び出し側が中心色を指定したときだけ、中央の 1 段を差し替える
+		return [band[0], band[1], highlightColor, band[3], band[4]] as const;
+	}, [colors.skeletonBandGradient, highlightColor]);
 
 	// #959【設計】animationName 等は React Native の ViewStyle 型に存在しないため
 	// unknown 経由でキャストする(#935 の onKeyDown と同じ、web 専用プロパティを渡す既存パターン)
@@ -117,7 +122,7 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
 		: undefined;
 
 	return (
-		<View style={[styles.container, { width, height, borderRadius, backgroundColor: baseColor }, style]}>
+		<View style={[styles.container, { width, height, borderRadius, backgroundColor: resolvedBaseColor }, style]}>
 			<View pointerEvents="none" style={[styles.bandWrap, animationStyle]}>
 				<LinearGradient
 					colors={gradientColors}

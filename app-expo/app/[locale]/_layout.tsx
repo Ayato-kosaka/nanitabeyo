@@ -9,11 +9,15 @@ import { PaperProvider, Portal } from "react-native-paper";
 import { SplashHandler } from "@/components/SplashHandler";
 import { AppProvider } from "@/components/AppProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { installCrashReporting, setCrashReportingPathName } from "@/lib/crashReporting";
 import { CenteredAppShell } from "@/components/CenteredAppShell";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
+import { OtaUpdateApplier } from "@/components/OtaUpdateApplier";
+import { SnsShareIntake } from "@/components/SnsShareIntake";
 import { getPaperTheme } from "@/constants/PaperTheme";
+import { ThemeProvider, useAppTheme } from "@/contexts/ThemeProvider";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -46,12 +50,59 @@ const isValidBcp47Tag = (tag: string): boolean => {
  * @returns 言語判定とバリデーションを行ったレイアウト付きスタック構造
  */
 export default function RootLayout() {
+	// #1509 【設計】テーマの解決（設定値 + OS スキーム）は Provider の中でしか読めないため、
+	// 中身を LocaleLayout へ切り出して ThemeProvider で包む。ここが全画面のテーマの起点になる。
+	return (
+		<ThemeProvider>
+			<LocaleLayout />
+		</ThemeProvider>
+	);
+}
+
+function LocaleLayout() {
 	useFrameworkReady();
 	const router = useRouter();
 	const { locale, isJapanese } = useLocale();
-	const scheme = "light"; // light モード 固定（ダークモード対応時に useColorScheme() とする）
-	const theme = getPaperTheme(scheme, locale);
+
+
+	// #1503 【バグ】i18n の locale 同期は **描画中**に行う（以前は下の useEffect で行っていた）。
+	// effect は `expo export` の静的レンダリング（prerender）では走らないため、サーバが焼く HTML
+	// だけが既定ロケール（en-US）の文言になり、クライアントの初回描画（URL 由来の ja-JP）と
+	// 食い違っていた。その結果が
+	//   「Hydration failed because the server rendered HTML didn't match the client.」
+	//   = 本番の minified React では **error #418** で、ツリーが丸ごと作り直される。
+	// dev ビルド（`expo export --dev`）+ 直リンクで実測し、差分がタブバーのラベル
+	//   サーバ: "Search" / クライアント: "さがす"
+	// であることまで確認している。
+	// locale は URL のセグメント由来でサーバ・クライアントとも同じ値になるため、描画中に
+	// 代入しても «その回の描画» の結果は決定的。同じ値なら代入もしない。
+	const resolvedLocale = getResolvedLocale(locale);
+	if (i18n.locale !== resolvedLocale) i18n.locale = resolvedLocale;
+	// #1509 【設計】ここは長く `const scheme = "light"` で固定されていた（= ダークモード未対応）。
+	// 設定画面の 3 択（システム追従 / ライト / ダーク）を解決した結果を使う。
+	// `getPaperTheme` は元から light / dark の両方を組み立てられるので、渡す値を変えるだけでよい。
+	const { scheme, colors } = useAppTheme();
+	const theme = useMemo(() => getPaperTheme(scheme, locale), [scheme, locale]);
+
 	const { logFrontendEvent } = useLogger();
+
+	/*
+	#1375（実機: 「クラッシュはマップ画面だけじゃない」）**クラッシュを観測できるようにする。**
+
+	これを入れるまで、このアプリはクラッシュを 1 件も観測していなかった。
+	クラッシュレポート SDK も、JS のグローバルエラーハンドラも、未処理 Promise の口も無く、
+	`ErrorBoundary` が拾えるのは **レンダー中の例外だけ**だった。
+	つまり «他の画面では報告が無い» のではなく «見えていない» だけで、
+	オーナーが実機で踏んで言ってくるまで誰も知れない状態だった。
+
+	仕掛けは `lib/crashReporting.ts`（何が捕まって何が捕まらないかの表もそこにある）。
+	記録は既存の `frontend_event_logs` へ流れるので、日次の error-triage が自動で起票する。
+	*/
+	useEffect(() => installCrashReporting(), []);
+	const crashPathName = usePathname();
+	useEffect(() => {
+		setCrashReportingPathName(crashPathName);
+	}, [crashPathName]);
 
 	// #1027 【バグ】ルートナビゲータがマウントされる前に router.replace() を呼ぶと expo-router の
 	// assertIsReady が
@@ -124,7 +175,8 @@ export default function RootLayout() {
 		}
 
 		// #717 【設計】i18n の locale を必ず同期
-		i18n.locale = getResolvedLocale(locale);
+		// #1503 実際の代入はこのコンポーネントの描画中（上部）へ移した。prerender では effect が
+		// 走らず、サーバ HTML だけ英語のまま焼かれて hydration が壊れるため。
 	}, [locale, router, logFrontendEvent, scheme, isNavigationReady]);
 
 	return (
@@ -144,6 +196,12 @@ export default function RootLayout() {
 									<AuthProvider>
 										<PushTokenRegistration />
 										<MetaAppEventsInitializer />
+										{/* #1641 OTA を «次の起動» まで待たせない（UI 無し）。
+										    既定のままだと利用者が触る JS は常に 1 つ前になる */}
+										<OtaUpdateApplier />
+										{/* #1400 共有された URL の取り込み入口（UI 無し）。
+										    PR1 では受け取り口が «共有なし» を返すので no-op */}
+										<SnsShareIntake />
 										<Portal.Host>
 											<SplashHandler>
 												<HealthCheckInitializer>
@@ -151,8 +209,27 @@ export default function RootLayout() {
 														{/* #940 【設計】render中の未捕捉例外で白画面になるのを防ぐ最終防波堤。
 														    再試行はアプリのルートへ戻すことで安全な状態に復帰させる */}
 														<ErrorBoundary onRetry={() => router.replace("/")}>
-															<Stack screenOptions={{ header: () => null }}>
+															{/*
+															#1629【27】**Stack へ `contentStyle` を必ず与える。**
+
+															expo-router の NavigationContainer は既定で react-navigation の
+															`DefaultTheme` を使う（`DarkTheme` を渡している箇所はリポジトリに無い）。
+															`DefaultTheme.colors.background` は `rgb(242,242,242)` の明るいグレーで、
+															画面が全面を塗り切らない瞬間 — 遷移アニメーションの最中、モーダルの背後、
+															画面のマウント直後 — に**ダークモードでもそこだけ明るく光る**。
+
+															⚠️ これは «色を直書きした» のではなく «色を書かなかった» ことで起きるので、
+															   `assert-no-hardcoded-colors.mjs` には原理的に検出できない。
+															*/}
+															<Stack screenOptions={{ header: () => null, contentStyle: { backgroundColor: colors.background } }}>
 																<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+																{/* #1375 実機確認（2 巡目）: ＋ からの取り込みは iOS ネイティブのシート
+																    （背後の画面が縮む pageSheet）で出す。下スワイプで閉じるのは
+																    ネイティブのジェスチャに任せる（自前 PanResponder は web の保険） */}
+																<Stack.Screen
+																	name="sns-import"
+																	options={{ presentation: "modal", header: () => null }}
+																/>
 																<Stack.Screen name="+not-found" />
 															</Stack>
 														</ErrorBoundary>

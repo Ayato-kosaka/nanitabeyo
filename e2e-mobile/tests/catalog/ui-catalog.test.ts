@@ -11,15 +11,17 @@ import {
 	visibleNow,
 	waitUntilVisible,
 } from "../../fixtures/e2e";
-import { LoginModal } from "../../screens/LoginModal";
+import { LegalScreen } from "../../screens/LegalScreen";
+import { LoginScreen } from "../../screens/LoginScreen";
+import { OnboardingScreen } from "../../screens/OnboardingScreen";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 import { ResultScreen } from "../../screens/ResultScreen";
-import { ReviewScreen } from "../../screens/ReviewScreen";
+import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { SelectRestaurantScreen } from "../../screens/SelectRestaurantScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
 import { TabBar } from "../../screens/TabBar";
-import { TopicsScreen } from "../../screens/TopicsScreen";
+import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 import { captureScreen, captureScreenIfReachable, getScreen, settle, tolerate } from "../../utils/catalog";
 
 /**
@@ -41,21 +43,15 @@ import { captureScreen, captureScreenIfReachable, getScreen, settle, tolerate } 
  * ここでは「その画面へどう到達するか」だけを書く。
  */
 
-/**
- * TrueSheet（チュートリアル）の中身は Android で必ず 2 つの View に一致するため、
- * シート内の要素を触るときは常に index を指定する（fixtures/e2e.ts の TUTORIAL_INDEX と同じ理由）。
- */
-const TUTORIAL_INDEX = 0;
-
 /** カタログ定義の URL からロケール付きディープリンクを組み立てる（URL の二重管理を防ぐ） */
 function deepLinkOf(id: string): string {
-	// 定義側は "/ja-JP/profile/settings" 形式なので、先頭のロケールセグメントを外して渡す
+	// 定義側は "/ja-JP/profile/saved-dish-categories" 形式なので、先頭のロケールセグメントを外して渡す
 	const pathname = getScreen(id).url.replace(/^\/[a-zA-Z-]+\//, "");
 	return localeDeepLink(pathname);
 }
 
 describe("UI カタログ（匿名） @catalog", () => {
-	it("さがすタブ（フォーム・詳細条件・チュートリアル 4 ページ）", async () => {
+	it("さがすタブ（フォーム・詳細条件）", async () => {
 		const searchScreen = new SearchScreen();
 
 		await launchAppWithSession({ as: "anon" });
@@ -67,37 +63,68 @@ describe("UI カタログ（匿名） @catalog", () => {
 			// iOS では距離スライダーが画面外に居ることがある。展開できていれば撮る価値はあるので待ちは緩める
 			await tolerate(() => waitUntilVisible(searchScreen.distanceSlider));
 		});
+	});
 
-		// チュートリアルは「未視聴」で起動すると初回フォーカスで自動表示される（e2e-web の
-		// ヘルプボタン経由と違い、こちらが native の素直な導線。tests/search/search-tutorial.test.ts と同じ）。
-		// ⚠️ シート内の要素は Detox の toBeVisible（面積 75% 以上）が成立しないことがあるため、
-		//    待ちは expectTutorialOperable、タップは存在ベースの tapWhenPresent を使う（run 31409643139 で実測）
+	// ─ オンボーディング（#1486） ─
+	//
+	// 「未読」で起動すると初回フォーカスで自動的に開く（e2e-web のヘルプボタン経由と違い、
+	// こちらが native の素直な導線。tests/search/onboarding.test.ts と同じ）。
+	//
+	// ⚠️ 課題フェーズ → 解決フェーズは **矢印を押したときだけ** 切り替わる（自動では出ない）。
+	// カタログとしては «その画面が何を伝えるか» が写っていてほしいので、
+	// 課題だけの状態ではなく解決フェーズを出してから撮る（= 1 ページにつき「次へ」2 押下）。
+	it("オンボーディング（3 ステップ・権限・Welcome）", async () => {
+		const onboardingScreen = new OnboardingScreen();
+		const loginScreen = new LoginScreen();
+
 		const opened = await captureScreenIfReachable(
-			"search-tutorial-page1",
+			"onboarding-step1",
 			async () => {
-				await launchAppWithSession({ as: "anon", tutorialSeen: false });
-				await searchScreen.expectTutorialOperable();
+				await launchAppWithSession({ as: "anon", tutorialSeen: false, waitForReady: false });
+				await onboardingScreen.expectShown();
+				await onboardingScreen.revealSolution(1);
 			},
-			{ settleMs: 1_500 },
+			{ settleMs: 500 },
 		);
 
 		if (!opened) return;
 
-		for (const page of [2, 3, 4]) {
+		for (const step of [2, 3] as const) {
 			await captureScreenIfReachable(
-				`search-tutorial-page${page}`,
+				`onboarding-step${step}`,
 				async () => {
-					// 最終ページではプライマリ CTA の testID が finish へ入れ替わる
-					await tapWhenPresent(searchScreen.tutorialNextButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
+					// 直前のページは解決フェーズで止まっているので、1 押下で次のページへ送られる
+					await onboardingScreen.pressNext();
+					await onboardingScreen.revealSolution(step);
 				},
-				{ settleMs: 1_500 },
+				{ settleMs: 500 },
 			);
 		}
+
+		// 位置情報・通知の説明画面は «答えが出るまで» しか出ていない。E2E ビルドは起動時に
+		// 権限を付与済みなので OS のダイアログは出ず、最低表示時間を過ぎると自動で次へ進む。
+		// 撮り逃してもジョブを赤くしないよう captureScreenIfReachable で «撮れたら撮る» にしている
+		await captureScreenIfReachable("onboarding-location", async () => {
+			// 3 枚目も解決フェーズで止まっているので、1 押下でログイン画面へ抜ける
+			await onboardingScreen.pressNext();
+			await loginScreen.expectOpened();
+			await loginScreen.skip();
+			await waitUntilVisible(onboardingScreen.locationScreen, DEFAULT_TIMEOUT);
+		});
+
+		await captureScreenIfReachable(
+			"onboarding-welcome",
+			async () => {
+				await onboardingScreen.waitForWelcome();
+			},
+			// クラッカーが飛び散り切ってから撮る
+			{ settleMs: 1_500 },
+		);
 	});
 
 	it("検索フロー（場所サジェスト・料理提案・チュートリアル 4 ステップ・結果フィード）", async () => {
 		const searchScreen = new SearchScreen();
-		const topicsScreen = new TopicsScreen();
+		const dishCategoriesScreen = new DishCategoriesScreen();
 		const resultScreen = new ResultScreen();
 
 		await launchAppWithSession({ as: "anon" });
@@ -108,30 +135,30 @@ describe("UI カタログ（匿名） @catalog", () => {
 			await waitUntilVisible(searchScreen.locationSuggestions);
 		});
 
-		const reachedTopics = await captureScreenIfReachable(
-			"search-topics",
+		const reachedDishCategories = await captureScreenIfReachable(
+			"search-dishCategories",
 			async () => {
 				await searchScreen.selectLocationSuggestion(0);
 				await searchScreen.submit();
-				await topicsScreen.expectLoaded();
+				await dishCategoriesScreen.expectLoaded();
 			},
 			{ settleMs: 3_000 },
 		);
 
-		if (!reachedTopics) return;
+		if (!reachedDishCategories) return;
 
 		const tutorialSteps = [
-			["search-topics-tutorial-swipe", "swipeAndDecide"],
-			["search-topics-tutorial-deep-dive", "deepDive"],
-			["search-topics-tutorial-topic-actions", "topicActions"],
-			["search-topics-tutorial-group-vote", "groupVote"],
+			["search-dish-categories-tutorial-swipe", "swipeAndDecide"],
+			["search-dish-categories-tutorial-deep-dive", "deepDive"],
+			["search-dish-categories-tutorial-dishCategory-actions", "dishCategoryActions"],
+			["search-dish-categories-tutorial-group-vote", "groupVote"],
 		] as const;
 
 		const startedTutorial = await captureScreenIfReachable(
 			tutorialSteps[0][0],
 			async () => {
-				await tapWhenVisible(topicsScreen.tutorialHelpButton);
-				await waitUntilVisible(by.id(`topics-tutorial-step-${tutorialSteps[0][1]}`));
+				await tapWhenVisible(dishCategoriesScreen.tutorialHelpButton);
+				await waitUntilVisible(by.id(`dish-categories-tutorial-step-${tutorialSteps[0][1]}`));
 			},
 			{ settleMs: 1_500 },
 		);
@@ -141,96 +168,129 @@ describe("UI カタログ（匿名） @catalog", () => {
 				await captureScreenIfReachable(
 					id,
 					async () => {
-						await tapWhenVisible(topicsScreen.tutorialNextButton);
-						await waitUntilVisible(by.id(`topics-tutorial-step-${step}`));
+						await tapWhenVisible(dishCategoriesScreen.tutorialNextButton);
+						await waitUntilVisible(by.id(`dish-categories-tutorial-step-${step}`));
 					},
 					{ settleMs: 1_200 },
 				);
 			}
 			// スポットライトを閉じてからカードを選ぶ
-			if (await visibleNow(topicsScreen.tutorialFinishButton, 2_000)) {
-				await tapWhenVisible(topicsScreen.tutorialFinishButton);
+			if (await visibleNow(dishCategoriesScreen.tutorialFinishButton, 2_000)) {
+				await tapWhenVisible(dishCategoriesScreen.tutorialFinishButton);
 			}
 		}
 
-		await captureScreenIfReachable(
+		const reachedResult = await captureScreenIfReachable(
 			"search-result-feed",
 			async () => {
-				await topicsScreen.chooseFirstTopic();
+				await dishCategoriesScreen.chooseFirstDishCategory();
 				await resultScreen.expectLoaded();
 			},
 			// 地図タイルと店舗カード（メディア読み込みを伴う）が埋まるまで待つ
 			{ settleMs: 8_000 },
 		);
+
+		if (!reachedResult) return;
+
+		/*
+		#1742 カード押下で開く ActionSheet。**Android のナビゲーションバーの上に
+		「キャンセル」が完全に見えていること**を目で確かめるための 1 枚。
+		ライブラリ（@expo/react-native-action-sheet）は safe area を見ないので、
+		ここが潜っていないことはネイティブのスクリーンショットでしか確かめられない。
+		*/
+		await captureScreenIfReachable(
+			"search-result-action-sheet",
+			async () => {
+				await tapWhenVisible(resultScreen.activeCard);
+				await waitUntilVisible(resultScreen.actionSheetTitle);
+			},
+			{ settleMs: 1_500 },
+		);
 	});
 
-	it("レビュータブ・マイページ（ゲスト）", async () => {
+	it("食べたい/食べたタブ・マイページ（ゲスト）", async () => {
 		const tabBar = new TabBar();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 		const profileScreen = new ProfileScreen();
-		const loginModal = new LoginModal();
+		const loginScreen = new LoginScreen();
 
 		await launchAppWithSession({ as: "anon" });
-		await tabBar.gotoReview();
-		await reviewScreen.expectGuestViewLoaded();
-		await captureScreen("review-guest");
+		await tabBar.gotoMyDishes();
+		await myDishesScreen.expectGuestViewLoaded();
+		await captureScreen("my-dishes-guest");
 
-		await captureScreenIfReachable("review-guest-login-modal", async () => {
-			await reviewScreen.tapGuestLogin();
-			await loginModal.expectOpened();
-		});
-
+		// #1359 食べたい/食べたタブのログイン CTA もマイページと同じ /auth/login へ遷移するため、
+		// カタログの ID は auth-login 1 つに統合した。撮影は下のマイページの導線で 1 回だけ行う
 		await launchAppWithSession({ as: "anon" });
 		await tabBar.gotoProfile();
 		await profileScreen.expectGuestViewLoaded();
 		await captureScreen("profile-guest", { settleMs: 2_000 });
 
+		// #1402 4 グリッドタブが廃止され、いいね／保存は «独立した画面» になった。
+		// タブグループ・サブタブ（文言タップ）ではなく縦リストの行 1 回で開ける
 		await captureScreenIfReachable(
-			"profile-guest-liked",
+			"profile-liked",
 			async () => {
-				await tapWhenVisible(by.id("profile-tab-group-liked"));
-				// いいねが 0 件だとグリッドではなく空状態が描画される。タブを切り替えられていれば撮る
+				await profileScreen.openLiked();
+				// いいねが 0 件だとグリッドではなく空状態が描画される。遷移できていれば撮る
 				await tolerate(() => waitUntilVisible(profileScreen.likedGrid));
 			},
 			{ settleMs: 2_000 },
 		);
 
 		await captureScreenIfReachable(
-			"profile-guest-saved-topics",
+			"profile-saved-dish-categories",
 			async () => {
-				await tapWhenVisible(by.id("profile-tab-group-saved"));
-				// 「保存」グループ内のサブタブ（ja-JP: Profile.tabs.saved-topics = "料理"）には testID が無い
-				await tapWhenVisible(by.text("料理"));
+				await launchAppWithSession({ as: "anon" });
+				await tabBar.gotoProfile();
+				await profileScreen.openSavedDishCategories();
 				// 保存が 0 件だとグリッドではなく空状態が描画される
-				await tolerate(() => waitUntilVisible(profileScreen.savedTopicsGrid));
+				await tolerate(() => waitUntilVisible(profileScreen.savedDishCategoriesGrid));
 			},
 			{ settleMs: 2_000 },
 		);
 
-		await captureScreenIfReachable("profile-guest-login-modal", async () => {
-			await profileScreen.openLoginModal();
-			await loginModal.expectOpened();
+		await captureScreenIfReachable("auth-login", async () => {
+			await launchAppWithSession({ as: "anon" });
+			await tabBar.gotoProfile();
+			await profileScreen.openLogin();
+			await loginScreen.expectOpened();
 		});
 	});
 
-	it("設定とその配下", async () => {
+	// #1368 リーガル文書はモーダルではなく `/[locale]/legal/<doc>` ルートになったため、
+	// カタログの ID も URL 準拠（legal-terms / legal-privacy / legal-not-found）へ張り替えてある。
+	// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
+	// カタログ ID «profile-settings» は無くなった（profile-guest が兼ねる）
+	it("設定項目とその配下", async () => {
 		const settingsScreen = new SettingsScreen();
+		const legalScreen = new LegalScreen();
 
-		await launchAppWithSession({ as: "anon", url: deepLinkOf("profile-settings") });
+		await launchAppWithSession({ as: "anon", url: deepLinkOf("profile-guest") });
 		await settingsScreen.expectLoaded();
-		await captureScreen("profile-settings");
 
-		await captureScreenIfReachable("profile-settings-terms-modal", async () => {
-			await tapWhenVisible(settingsScreen.termsItem);
-			await waitUntilVisible(settingsScreen.legalDocumentModal);
+		// 実導線（マイページの行）から遷移する。ディープリンクでも同じ画面に着くが、
+		// 「マイページから開ける」ことまでカタログの撮影経路に含めておく
+		await captureScreenIfReachable("legal-terms", async () => {
+			await settingsScreen.openLegalDocument("terms");
+			await legalScreen.expectOpened();
 		});
 
-		await captureScreenIfReachable("profile-settings-privacy-modal", async () => {
-			// モーダルを閉じる導線に testID が無いため、画面を開き直して別の文書を開く
-			await launchAppWithSession({ as: "anon", url: deepLinkOf("profile-settings") });
+		await captureScreenIfReachable("legal-privacy", async () => {
+			// #1368 モーダル時代は閉じる導線に testID が無く起動し直していたが、
+			// ルート化でヘッダーの戻るボタン（#1404 で legal-screen-back）から帰れるようになった。
+			// #1402 で設定はマイページ本体へ統合されたので、帰り先はマイページ（SettingsScreen の
+			// 対応画面が profile/index.tsx になっている）
+			await legalScreen.goBack();
 			await settingsScreen.expectLoaded();
-			await settingsScreen.openPrivacyPolicy();
-			await settingsScreen.expectLegalDocumentOpened();
+			await settingsScreen.openLegalDocument("privacy");
+			await legalScreen.expectOpened();
+		});
+
+		// 公開していない doc の落とし所（既定の文書へ倒さない）も 1 枚残す
+		await captureScreenIfReachable("legal-not-found", async () => {
+			await launchAppWithSession({ as: "anon", url: deepLinkOf("legal-not-found"), waitForReady: false });
+			await legalScreen.expectNotFound();
 		});
 	});
 
@@ -239,8 +299,15 @@ describe("UI カタログ（匿名） @catalog", () => {
 		// 起動完了待ちを切り、描画が落ち着くのを時間で待ってから撮る
 		const directLinkScreens = [
 			{ id: "profile-feedback", waitForReady: true, settleMs: 1_500 },
-			{ id: "profile-blocked-topics", waitForReady: true, settleMs: 2_500 },
-			{ id: "map", waitForReady: true, settleMs: 5_000 },
+			// #1369 保存料理カテゴリの地点検索。本来の入口はカードのタップだが、匿名では保存が 0 件で
+			// 入口が無い。見た目は dishCategoryId / dishCategoryLabelEn の有無で変わらないので直リンクで撮る
+			{ id: "profile-saved-dish-category-location", waitForReady: true, settleMs: 1_500 },
+			{ id: "profile-blocked-dish-categories", waitForReady: true, settleMs: 2_500 },
+			// #1386 店舗詳細の子ルート（旧: モーダル z1100）。店舗データを読まないので
+			// ダミー id の直リンクで撮れる（catalog/screens.json の note 参照）。
+			// タブバーは下に居ないため起動完了待ちは切る。フィードは実データが要るため manual。
+			// #1411 で入札ルートを消したのでここは 1 枚になった
+			{ id: "review-dish-category", waitForReady: false, settleMs: 2_000 },
 			{ id: "contribution-dish-category-image-optimizer", waitForReady: false, settleMs: 6_000 },
 			{ id: "contribution-dish-category-image-review", waitForReady: false, settleMs: 6_000 },
 			{ id: "contribution-dish-category-manual-image-supply", waitForReady: false, settleMs: 6_000 },
@@ -287,7 +354,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 });
 
 describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => {
-	it("マイページ・設定・お知らせ", async () => {
+	it("マイページ・いいね一覧・お知らせ", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
 		const settingsScreen = new SettingsScreen();
@@ -296,37 +363,47 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 		await tabBar.gotoProfile();
 		await captureScreen("profile-authenticated", { settleMs: 4_000 });
 
-		const reachedReviews = await captureScreenIfReachable(
-			"profile-authenticated-reviews",
+		// #1402 4 グリッドタブが廃止され、レビュータブ（profile-authenticated-reviews）は無くなった。
+		// profile/food への導線は «いいねした投稿» だけになったので、フィードもそこから撮る
+		const reachedLiked = await captureScreenIfReachable(
+			"profile-liked",
 			async () => {
-				await tapWhenVisible(by.id("profile-tab-group-reviews"));
-				await waitUntilVisible(profileScreen.reviewsGrid);
+				await profileScreen.openLiked();
+				await waitUntilVisible(profileScreen.likedGrid);
 			},
 			{ settleMs: 4_000 },
 		);
 
-		if (reachedReviews) {
+		if (reachedLiked) {
 			await captureScreenIfReachable(
 				"profile-food-feed",
 				async () => {
 					// グリッドのセルに testID が無いため、フィード固有のアクションボタンで到達を判定する
-					await element(by.id("review-tab-grid")).tap();
+					await element(by.id("like-tab-grid")).tap();
 					await waitUntilVisible(by.id("dish-action-like"), DEFAULT_TIMEOUT);
 				},
 				{ settleMs: 5_000 },
 			);
 		}
 
+		// #1369 プロフィール編集はモーダルからルートへ移ったため、1 画面として撮る。
+		// 編集ボタンはログイン済みのときだけ描画されるので、この（ログイン済み）側に置く
 		await captureScreenIfReachable(
-			"profile-settings-authenticated",
+			"profile-edit",
 			async () => {
-				await launchAppWithSession({ as: "authenticated", url: deepLinkOf("profile-settings-authenticated") });
-				await settingsScreen.expectLoaded();
-				// ログアウト行は画面下端にあり、Detox の可視判定（面積 75%）が成立しないことがある
-				await tolerate(() => waitUntilVisible(settingsScreen.logoutItem));
+				await launchAppWithSession({ as: "authenticated" });
+				await tabBar.gotoProfile();
+				await profileScreen.openEdit();
+				await waitUntilVisible(by.id("profile-edit-screen-title"));
 			},
-			{ settleMs: 1_500 },
+			// アバター画像の読み込みを待つ（スケルトンのまま撮らない）
+			{ settleMs: 2_000 },
 		);
+
+		// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
+		// カタログ ID «profile-settings-authenticated» は無くなった（profile-authenticated が兼ねる）。
+		// ログアウト行まで写した 1 枚が要る場合は profile-authenticated を撮り直す前に
+		// scrollToLogout() を挟むこと（行は縦リストの最下段にある）
 
 		await captureScreenIfReachable(
 			"notifications",
@@ -339,20 +416,20 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 		);
 	});
 
-	it("レビュー投稿導線（レビュータブ・店舗選択）", async () => {
+	it("レビュー投稿導線（食べたい/食べたタブ・店舗選択）", async () => {
 		const tabBar = new TabBar();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 		const selectRestaurantScreen = new SelectRestaurantScreen();
 
 		await launchAppWithSession({ as: "authenticated" });
-		await tabBar.gotoReview();
-		await waitUntilVisible(reviewScreen.postButton);
-		await captureScreen("review-authenticated");
+		await tabBar.gotoMyDishes();
+		await waitUntilVisible(myDishesScreen.recordButton);
+		await captureScreen("my-dishes-authenticated");
 
 		await captureScreenIfReachable(
-			"review-select-restaurant",
+			"my-dishes-select-restaurant",
 			async () => {
-				await reviewScreen.gotoPostReview();
+				await myDishesScreen.gotoRecordDish();
 				await selectRestaurantScreen.expectLoaded();
 			},
 			// 地図タイル・マーカーの描画待ち
@@ -369,32 +446,22 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mutation", () => {
 	it("店舗詳細 → 投稿フォーム → レビュー詳細", async () => {
 		const tabBar = new TabBar();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 		const selectRestaurantScreen = new SelectRestaurantScreen();
 
 		await launchAppWithSession({ as: "authenticated" });
-		await tabBar.gotoReview();
-		await reviewScreen.gotoPostReview();
+		await tabBar.gotoMyDishes();
+		await myDishesScreen.gotoRecordDish();
 		await selectRestaurantScreen.expectLoaded();
 
-		const reachedDetail = await captureScreenIfReachable(
-			"review-restaurant-detail",
-			async () => {
-				await selectRestaurantScreen.searchRestaurant("スターバックス");
-				await selectRestaurantScreen.selectSuggestion(0);
-				await waitUntilVisible(selectRestaurantScreen.postPhotoButton, 30_000);
-			},
-			{ settleMs: 3_000 },
-		);
-
-		if (!reachedDetail) return;
-
+		// #1375（3 巡目）pick モードでは選んだ時点で統合フォームへ戻る（詳細画面は経由しない）。
 		// メディア選択は E2E ビルドの固定画像スタブ（EXPO_PUBLIC_E2E_MEDIA_HOOK）で通る
 		const reachedForm = await captureScreenIfReachable(
 			"review-post-form",
 			async () => {
-				await selectRestaurantScreen.gotoReviewForm();
-				await waitUntilVisible(reviewScreen.commentInput, 30_000);
+				await selectRestaurantScreen.searchRestaurant("スターバックス");
+				await selectRestaurantScreen.selectSuggestion(0);
+				await waitUntilVisible(myDishesScreen.commentInput, 30_000);
 			},
 			{ settleMs: 2_000 },
 		);
@@ -406,11 +473,11 @@ describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mut
 			async () => {
 				// ⚠️ typeText は IME 経由のキーイベントに変換できず日本語で落ちる（Android で実測）。
 				// Detox 公式の回避策どおり replaceText で直接流し込む
-				await element(reviewScreen.commentInput).replaceText("[E2E] UI カタログ収集");
+				await element(myDishesScreen.commentInput).replaceText("[E2E] UI カタログ収集");
 				// 星は画面外に居ることがある（iOS で実測）。付けられなくても投稿自体は成立する
-				await tolerate(() => reviewScreen.rate(5));
-				await tapWhenVisible(reviewScreen.submitButton);
-				// 投稿が成功すると /review/post/[id] へ遷移し、いいね等のアクションが並ぶ
+				await tolerate(() => myDishesScreen.rate(5));
+				await tapWhenVisible(myDishesScreen.submitButton);
+				// 投稿が成功すると /post/[id] へ遷移し、いいね等のアクションが並ぶ
 				await waitUntilVisible(by.id("dish-action-like"), 60_000);
 			},
 			{ settleMs: 4_000 },

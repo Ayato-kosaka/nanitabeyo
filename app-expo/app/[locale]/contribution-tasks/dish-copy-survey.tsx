@@ -1,9 +1,11 @@
 // app-expo/app/[locale]/contribution-tasks/dish-copy-survey.tsx
 //
-// #559 料理コピー調査アンケート（10枚カルーセル＋BlurModal）実装
+// #559 料理コピー調査アンケート（10枚カルーセル＋LegacyBlurModal）実装
 // 運営用ツール - 各料理画像にタイトル+タグラインを選択してもらう
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+import { FixedColors, type Palette } from "@/constants/Palette";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import {
 	View,
@@ -22,7 +24,7 @@ import { HelpCircle, CheckCircle2, Circle } from "lucide-react-native";
 import { Carousel } from "react-native-reanimated-carousel";
 import { generateUUID } from "@/lib/uuid";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -151,16 +153,19 @@ const COMPLETION_MESSAGE = `ご協力ありがとうございました！
 /* -------------------------------------------------------------------------- */
 
 export default function DishCopySurveyPage() {
+	// #1629 プレースホルダー等、スタイル外へ直接渡す色をテーマへ追従させるために読む
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
 	const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 	const { showSnackbar } = useSnackbar();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const {
-		BlurModal: AnswerBlurModal,
+		LegacyBlurModal: AnswerBlurModal,
 		open: answerOpen,
 		close: answerClose,
-	} = useBlurModal({
+	} = useLegacyBlurModal({
 		intensity: 80,
 		closeOnBackdropPress: false,
 	});
@@ -272,12 +277,12 @@ export default function DishCopySurveyPage() {
 					<View style={styles.badgeContainer}>
 						{isAnswered ? (
 							<View style={styles.badge}>
-								<CheckCircle2 size={20} color="#4CAF50" />
+								<CheckCircle2 size={20} color={colors.successAlt} />
 								<Text style={styles.badgeTextAnswered}>回答済み</Text>
 							</View>
 						) : (
 							<View style={[styles.badge, styles.badgeUnanswered]}>
-								<Circle size={20} color="#FF9800" />
+								<Circle size={20} color={colors.warningAccent} />
 								<Text style={styles.badgeTextUnanswered}>未</Text>
 							</View>
 						)}
@@ -301,7 +306,7 @@ export default function DishCopySurveyPage() {
 				</Pressable>
 			);
 		},
-		[answers, carouselWidth, carouselHeight, openAnswerModal],
+		[answers, carouselWidth, carouselHeight, openAnswerModal, styles, colors],
 	);
 
 	/* ------------------------------------------------------------------ */
@@ -391,7 +396,7 @@ export default function DishCopySurveyPage() {
 							</Text>
 						</View>
 						<TouchableOpacity onPress={() => setShowHelp(true)} style={styles.helpButton}>
-							<HelpCircle size={28} color="#F05537" />
+							<HelpCircle size={28} color={colors.brand} />
 						</TouchableOpacity>
 					</View>
 
@@ -486,6 +491,9 @@ type AnswerModalProps = {
 };
 
 function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps) {
+	// #1629 プレースホルダー等、スタイル外へ直接渡す色をテーマへ追従させるために読む
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { height: windowHeight } = useWindowDimensions();
 
 	// モーダル計測用
@@ -651,7 +659,11 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 							style={[styles.candidateCard, isSelected && styles.candidateCardSelected]}
 							onPress={() => handleModeChange("candidate", candidate.type)}>
 							<View style={styles.candidateHeader}>
-								{isSelected ? <CheckCircle2 size={24} color="#F05537" /> : <Circle size={24} color="#999" />}
+								{isSelected ? (
+									<CheckCircle2 size={24} color={colors.brand} />
+								) : (
+									<Circle size={24} color={colors.iconPlaceholder} />
+								)}
 								<Text style={styles.candidateTitle}>{candidate.title}</Text>
 							</View>
 							<Text style={styles.candidateTagline}>{candidate.tagline}</Text>
@@ -665,9 +677,9 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 					onPress={() => handleModeChange("custom")}>
 					<View style={styles.candidateHeader}>
 						{state.selectedMode === "custom" ? (
-							<CheckCircle2 size={24} color="#F05537" />
+							<CheckCircle2 size={24} color={colors.brand} />
 						) : (
-							<Circle size={24} color="#999" />
+							<Circle size={24} color={colors.iconPlaceholder} />
 						)}
 						<Text style={styles.candidateLabel}>自分で書く</Text>
 					</View>
@@ -676,6 +688,8 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 							<TextInput
 								style={styles.textInput}
 								placeholder="タイトル（必須）"
+								// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+								placeholderTextColor={colors.textSecondary}
 								value={state.customTitle}
 								onChangeText={(text) => setState((prev) => ({ ...prev, customTitle: text }))}
 								multiline
@@ -683,6 +697,8 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 							<TextInput
 								style={styles.textInput}
 								placeholder="タグライン（必須）"
+								// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+								placeholderTextColor={colors.textSecondary}
 								value={state.customTagline}
 								onChangeText={(text) => setState((prev) => ({ ...prev, customTagline: text }))}
 								multiline
@@ -702,7 +718,11 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 							key={level}
 							style={[styles.radioItem, isSelected && styles.radioItemSelected]}
 							onPress={() => setState((prev) => ({ ...prev, appetite: level }))}>
-							{isSelected ? <CheckCircle2 size={20} color="#F05537" /> : <Circle size={20} color="#999" />}
+							{isSelected ? (
+								<CheckCircle2 size={20} color={colors.brand} />
+							) : (
+								<Circle size={20} color={colors.iconPlaceholder} />
+							)}
 							<Text style={styles.radioLabel}>{APPETITE_LABELS[level]}</Text>
 						</Pressable>
 					);
@@ -724,7 +744,11 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 									reasons: isChecked ? prev.reasons.filter((r) => r !== key) : [...prev.reasons, key],
 								}));
 							}}>
-							{isChecked ? <CheckCircle2 size={20} color="#F05537" /> : <Circle size={20} color="#999" />}
+							{isChecked ? (
+								<CheckCircle2 size={20} color={colors.brand} />
+							) : (
+								<Circle size={20} color={colors.iconPlaceholder} />
+							)}
 							<Text style={styles.checkLabel}>{REASON_LABELS[key]}</Text>
 						</Pressable>
 					);
@@ -732,6 +756,8 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 				<TextInput
 					style={styles.textArea}
 					placeholder="その他の理由（任意）"
+					// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+					placeholderTextColor={colors.textSecondary}
 					value={state.reasonFree}
 					onChangeText={(text) => setState((prev) => ({ ...prev, reasonFree: text }))}
 					multiline
@@ -754,7 +780,11 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 									rejectedReason: isSelected ? null : key,
 								}))
 							}>
-							{isSelected ? <CheckCircle2 size={20} color="#F05537" /> : <Circle size={20} color="#999" />}
+							{isSelected ? (
+								<CheckCircle2 size={20} color={colors.brand} />
+							) : (
+								<Circle size={20} color={colors.iconPlaceholder} />
+							)}
 							<Text style={styles.radioLabel}>{REJECTED_LABELS[key]}</Text>
 						</Pressable>
 					);
@@ -762,6 +792,8 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 				<TextInput
 					style={styles.textArea}
 					placeholder="その他の理由（任意）"
+					// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+					placeholderTextColor={colors.textSecondary}
 					value={state.rejectedFree}
 					onChangeText={(text) => setState((prev) => ({ ...prev, rejectedFree: text }))}
 					multiline
@@ -784,343 +816,346 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 /*                                  スタイル                                   */
 /* -------------------------------------------------------------------------- */
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#F5F5F5",
-	},
-	centerContent: {
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	loadingText: {
-		marginTop: 16,
-		fontSize: 16,
-		color: "#666",
-	},
-	errorText: {
-		fontSize: 18,
-		fontWeight: "bold",
-		color: "#F44336",
-		textAlign: "center",
-		marginBottom: 8,
-	},
-	errorDetail: {
-		fontSize: 14,
-		color: "#999",
-		textAlign: "center",
-		paddingHorizontal: 24,
-	},
-	header: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		paddingHorizontal: 24,
-		paddingVertical: 16,
-	},
-	headerLeft: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-	},
-	headerTitle: {
-		fontSize: 20,
-		fontWeight: "bold",
-		color: "#333",
-	},
-	progressText: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: "#F05537",
-	},
-	helpButton: {
-		padding: 4,
-	},
-	dotsContainer: {
-		flexDirection: "row",
-		justifyContent: "center",
-		alignItems: "center",
-		gap: 8,
-		paddingVertical: 12,
-	},
-	dot: {
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: "#DDD",
-		borderWidth: 1,
-		borderColor: "#CCC",
-	},
-	dotAnswered: {
-		backgroundColor: "#4CAF50",
-		borderColor: "#4CAF50",
-	},
-	dotCurrent: {
-		width: 12,
-		height: 12,
-		borderRadius: 6,
-		borderWidth: 2,
-	},
-	carouselContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingVertical: 16,
-	},
-	card: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		backgroundColor: "rgba(0, 0, 0, 0.2)",
-		borderRadius: 16,
-		overflow: "hidden",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.1,
-		shadowRadius: 8,
-		elevation: 4,
-	},
-	cardImage: {
-		flex: 1,
-	},
-	badgeContainer: {
-		position: "absolute",
-		top: 12,
-		right: 12,
-	},
-	badge: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 4,
-		backgroundColor: "rgba(255,255,255,0.95)",
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 16,
-	},
-	badgeUnanswered: {
-		backgroundColor: "rgba(255,152,0,0.95)",
-	},
-	badgeTextAnswered: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#4CAF50",
-	},
-	badgeTextUnanswered: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#FFF",
-	},
-	cardFooter: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		padding: 16,
-	},
-	cardTitle: {
-		fontSize: 32,
-		fontWeight: "700",
-		color: "#FFFFFF",
-		marginBottom: 16,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 2 },
-		textShadowRadius: 4,
-		lineHeight: 40,
-		letterSpacing: -0.5,
-	},
-	cardTagline: {
-		fontSize: 18,
-		color: "#FFFFFF",
-		lineHeight: 28,
-		marginBottom: 16,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 3,
-		fontWeight: "500",
-	},
-	cardPrompt: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#FFF",
-		textAlign: "center",
-	},
-	submitContainer: {
-		paddingHorizontal: 24,
-		paddingVertical: 16,
-		backgroundColor: "#FFF",
-		borderTopWidth: 1,
-		borderTopColor: "#E0E0E0",
-	},
-	submitButton: {
-		width: "100%",
-	},
-	submitHint: {
-		marginTop: 8,
-		fontSize: 12,
-		color: "#999",
-		textAlign: "center",
-	},
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.5)",
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 24,
-	},
-	modalContent: {
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		padding: 24,
-		width: "100%",
-		maxWidth: 400,
-	},
-	modalTitle: {
-		fontSize: 20,
-		fontWeight: "bold",
-		color: "#333",
-		marginBottom: 16,
-		textAlign: "center",
-	},
-	modalText: {
-		fontSize: 16,
-		color: "#666",
-		lineHeight: 24,
-		marginBottom: 24,
-	},
-	modalScrollContent: {
-		padding: 24,
-	},
-	modalSectionTitle: {
-		fontSize: 22,
-		fontWeight: "bold",
-		color: "#333",
-		marginBottom: 16,
-		textAlign: "center",
-	},
-	section: {
-		marginBottom: 24,
-	},
-	sectionTitle: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#333",
-		marginBottom: 12,
-	},
-	candidateCard: {
-		backgroundColor: "#F9F9F9",
-		borderRadius: 12,
-		padding: 16,
-		marginBottom: 12,
-		borderWidth: 2,
-		borderColor: "transparent",
-	},
-	candidateCardSelected: {
-		backgroundColor: "#E3F2FD",
-		borderColor: "#F05537",
-	},
-	candidateHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		marginBottom: 8,
-	},
-	candidateLabel: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#666",
-	},
-	candidateTitle: {
-		fontSize: 16,
-		fontWeight: "bold",
-		color: "#333",
-		marginBottom: 4,
-	},
-	candidateTagline: {
-		fontSize: 14,
-		color: "#666",
-	},
-	customInputs: {
-		marginTop: 12,
-		gap: 12,
-	},
-	textInput: {
-		backgroundColor: "#FFF",
-		borderRadius: 8,
-		padding: 12,
-		fontSize: 14,
-		color: "#333",
-		borderWidth: 1,
-		borderColor: "#DDD",
-		minHeight: 44,
-	},
-	radioItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		padding: 12,
-		backgroundColor: "#F9F9F9",
-		borderRadius: 8,
-		marginBottom: 8,
-		borderWidth: 2,
-		borderColor: "transparent",
-	},
-	radioItemSelected: {
-		backgroundColor: "#E3F2FD",
-		borderColor: "#F05537",
-	},
-	radioLabel: {
-		fontSize: 14,
-		color: "#333",
-		flex: 1,
-	},
-	checkItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		padding: 12,
-		backgroundColor: "#F9F9F9",
-		borderRadius: 8,
-		marginBottom: 8,
-		borderWidth: 2,
-		borderColor: "transparent",
-	},
-	checkItemSelected: {
-		backgroundColor: "#E3F2FD",
-		borderColor: "#F05537",
-	},
-	checkLabel: {
-		fontSize: 14,
-		color: "#333",
-		flex: 1,
-	},
-	textArea: {
-		backgroundColor: "#FFF",
-		borderRadius: 8,
-		padding: 12,
-		fontSize: 14,
-		color: "#333",
-		borderWidth: 1,
-		borderColor: "#DDD",
-		minHeight: 80,
-		textAlignVertical: "top",
-		marginTop: 8,
-	},
-	buttonContainer: {
-		gap: 12,
-		marginTop: 24,
-		marginBottom: 400,
-	},
-	decideButton: {
-		width: "100%",
-	},
-	cancelButton: {
-		padding: 12,
-		alignItems: "center",
-	},
-	cancelButtonText: {
-		fontSize: 16,
-		color: "#999",
-	},
-});
+// #1629 パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.backgroundAlt,
+		},
+		centerContent: {
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		loadingText: {
+			marginTop: 16,
+			fontSize: 16,
+			color: c.textMuted,
+		},
+		errorText: {
+			fontSize: 18,
+			fontWeight: "bold",
+			color: c.dangerBright,
+			textAlign: "center",
+			marginBottom: 8,
+		},
+		errorDetail: {
+			fontSize: 14,
+			color: c.iconPlaceholder,
+			textAlign: "center",
+			paddingHorizontal: 24,
+		},
+		header: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			alignItems: "center",
+			paddingHorizontal: 24,
+			paddingVertical: 16,
+		},
+		headerLeft: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+		},
+		headerTitle: {
+			fontSize: 20,
+			fontWeight: "bold",
+			color: c.textPrimarySoft,
+		},
+		progressText: {
+			fontSize: 18,
+			fontWeight: "600",
+			color: c.brand,
+		},
+		helpButton: {
+			padding: 4,
+		},
+		dotsContainer: {
+			flexDirection: "row",
+			justifyContent: "center",
+			alignItems: "center",
+			gap: 8,
+			paddingVertical: 12,
+		},
+		dot: {
+			width: 8,
+			height: 8,
+			borderRadius: 4,
+			backgroundColor: c.surfaceSunkenStrong,
+			borderWidth: 1,
+			borderColor: c.borderSubtle,
+		},
+		dotAnswered: {
+			backgroundColor: c.successAlt,
+			borderColor: c.successAlt,
+		},
+		dotCurrent: {
+			width: 12,
+			height: 12,
+			borderRadius: 6,
+			borderWidth: 2,
+		},
+		carouselContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			paddingVertical: 16,
+		},
+		card: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			bottom: 0,
+			backgroundColor: "rgba(0, 0, 0, 0.2)",
+			borderRadius: 16,
+			overflow: "hidden",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 4 },
+			shadowOpacity: 0.1,
+			shadowRadius: 8,
+			elevation: 4,
+		},
+		cardImage: {
+			flex: 1,
+		},
+		badgeContainer: {
+			position: "absolute",
+			top: 12,
+			right: 12,
+		},
+		badge: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+			backgroundColor: "rgba(255,255,255,0.95)",
+			paddingHorizontal: 10,
+			paddingVertical: 6,
+			borderRadius: 16,
+		},
+		badgeUnanswered: {
+			backgroundColor: "rgba(255,152,0,0.95)",
+		},
+		badgeTextAnswered: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: c.successAlt,
+		},
+		badgeTextUnanswered: {
+			fontSize: 12,
+			fontWeight: "600",
+			// 橙で塗り潰したバッジの上の白。地が振れないので文字も振らない
+			color: FixedColors.onFilled,
+		},
+		cardFooter: {
+			position: "absolute",
+			bottom: 0,
+			left: 0,
+			right: 0,
+			padding: 16,
+		},
+		cardTitle: {
+			fontSize: 32,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
+			marginBottom: 16,
+			textShadowColor: "rgba(0, 0, 0, 0.8)",
+			textShadowOffset: { width: 0, height: 2 },
+			textShadowRadius: 4,
+			lineHeight: 40,
+			letterSpacing: -0.5,
+		},
+		cardTagline: {
+			fontSize: 18,
+			color: FixedColors.onMedia,
+			lineHeight: 28,
+			marginBottom: 16,
+			textShadowColor: "rgba(0, 0, 0, 0.8)",
+			textShadowOffset: { width: 0, height: 1 },
+			textShadowRadius: 3,
+			fontWeight: "500",
+		},
+		cardPrompt: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: FixedColors.onMedia,
+			textAlign: "center",
+		},
+		submitContainer: {
+			paddingHorizontal: 24,
+			paddingVertical: 16,
+			backgroundColor: c.surface,
+			borderTopWidth: 1,
+			borderTopColor: c.borderPale,
+		},
+		submitButton: {
+			width: "100%",
+		},
+		submitHint: {
+			marginTop: 8,
+			fontSize: 12,
+			color: c.iconPlaceholder,
+			textAlign: "center",
+		},
+		modalOverlay: {
+			flex: 1,
+			backgroundColor: "rgba(0,0,0,0.5)",
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 24,
+		},
+		modalContent: {
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			padding: 24,
+			width: "100%",
+			maxWidth: 400,
+		},
+		modalTitle: {
+			fontSize: 20,
+			fontWeight: "bold",
+			color: c.textPrimarySoft,
+			marginBottom: 16,
+			textAlign: "center",
+		},
+		modalText: {
+			fontSize: 16,
+			color: c.textMuted,
+			lineHeight: 24,
+			marginBottom: 24,
+		},
+		modalScrollContent: {
+			padding: 24,
+		},
+		modalSectionTitle: {
+			fontSize: 22,
+			fontWeight: "bold",
+			color: c.textPrimarySoft,
+			marginBottom: 16,
+			textAlign: "center",
+		},
+		section: {
+			marginBottom: 24,
+		},
+		sectionTitle: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textPrimarySoft,
+			marginBottom: 12,
+		},
+		candidateCard: {
+			backgroundColor: c.surfaceFaintAlt,
+			borderRadius: 12,
+			padding: 16,
+			marginBottom: 12,
+			borderWidth: 2,
+			borderColor: "transparent",
+		},
+		candidateCardSelected: {
+			backgroundColor: c.surfaceSelectedInfo,
+			borderColor: c.brand,
+		},
+		candidateHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+			marginBottom: 8,
+		},
+		candidateLabel: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textMuted,
+		},
+		candidateTitle: {
+			fontSize: 16,
+			fontWeight: "bold",
+			color: c.textPrimarySoft,
+			marginBottom: 4,
+		},
+		candidateTagline: {
+			fontSize: 14,
+			color: c.textMuted,
+		},
+		customInputs: {
+			marginTop: 12,
+			gap: 12,
+		},
+		textInput: {
+			backgroundColor: c.surface,
+			borderRadius: 8,
+			padding: 12,
+			fontSize: 14,
+			color: c.textPrimarySoft,
+			borderWidth: 1,
+			borderColor: c.borderSoft,
+			minHeight: 44,
+		},
+		radioItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			padding: 12,
+			backgroundColor: c.surfaceFaintAlt,
+			borderRadius: 8,
+			marginBottom: 8,
+			borderWidth: 2,
+			borderColor: "transparent",
+		},
+		radioItemSelected: {
+			backgroundColor: c.surfaceSelectedInfo,
+			borderColor: c.brand,
+		},
+		radioLabel: {
+			fontSize: 14,
+			color: c.textPrimarySoft,
+			flex: 1,
+		},
+		checkItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			padding: 12,
+			backgroundColor: c.surfaceFaintAlt,
+			borderRadius: 8,
+			marginBottom: 8,
+			borderWidth: 2,
+			borderColor: "transparent",
+		},
+		checkItemSelected: {
+			backgroundColor: c.surfaceSelectedInfo,
+			borderColor: c.brand,
+		},
+		checkLabel: {
+			fontSize: 14,
+			color: c.textPrimarySoft,
+			flex: 1,
+		},
+		textArea: {
+			backgroundColor: c.surface,
+			borderRadius: 8,
+			padding: 12,
+			fontSize: 14,
+			color: c.textPrimarySoft,
+			borderWidth: 1,
+			borderColor: c.borderSoft,
+			minHeight: 80,
+			textAlignVertical: "top",
+			marginTop: 8,
+		},
+		buttonContainer: {
+			gap: 12,
+			marginTop: 24,
+			marginBottom: 400,
+		},
+		decideButton: {
+			width: "100%",
+		},
+		cancelButton: {
+			padding: 12,
+			alignItems: "center",
+		},
+		cancelButtonText: {
+			fontSize: 16,
+			color: c.iconPlaceholder,
+		},
+	});

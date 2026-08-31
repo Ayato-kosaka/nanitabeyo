@@ -44,19 +44,43 @@ export class DishesRepository {
   }
 
   /**
+   * #514 既存 restaurant が今どの原本 path を指しているかだけを引く。
+   *
+   * handler が「古い path が壊れているか」を判定するためだけに使う。
+   * 行が無ければ `null`（その場合は upsert の create 側で新しい path が入る）。
+   */
+  async findRestaurantImagePathByGooglePlaceId(
+    google_place_id: string,
+  ): Promise<{ image_path: string | null } | null> {
+    return this.prisma.prisma.restaurants.findUnique({
+      where: { google_place_id },
+      select: { image_path: true },
+    });
+  }
+
+  /**
    * レストランを作成または取得（Google Place データから）
    */
   async createOrGetRestaurant(
     tx: Prisma.TransactionClient,
     restaurant: Prisma.restaurantsCreateInput,
     google_place_id: string,
+    options: { updateImagePath?: boolean } = {},
   ) {
     this.logger.debug('createOrGetRestaurant', 'DishesRepository', restaurant);
     const { id: _omitId, ...createData } = restaurant;
 
     return await tx.restaurants.upsert({
       where: { google_place_id },
-      update: {},
+      // #514 既存 restaurant が「もう GCS に無い古い path」を握ったままだと、
+      // resize は 404 を繰り返し、画像は永久に表示されない。壊れていると
+      // 判定できたときだけ、存在確認済みの新しい path へ貼り替える。
+      // 判定は呼び出し元（非同期 handler）の責務で、`updateImagePath` に集約する。
+      // 同期の先行 upsert は従来どおり no-op のままにする。
+      update:
+        options.updateImagePath && createData.image_path
+          ? { image_path: createData.image_path }
+          : {},
       create: createData,
     });
   }
@@ -76,12 +100,26 @@ export class DishesRepository {
       lock_no?: number;
     },
   ) {
-    const existing = await tx.dishes.findFirst({
-      where: {
-        restaurant_id: dish.restaurant_id,
-        category_id: dish.category_id,
-      },
-    });
+    // #1599 【バグ】ここは `findFirst` → 無ければ `create` という
+    // TOCTOU（time-of-check to time-of-use）だった。dishes には
+    // `@@unique([restaurant_id, category_id])`（dishes_restaurant_category_unique）が
+    // 張ってあるため、同じ (restaurant_id, category_id) のリクエストが同時に来ると
+    // 両方の findFirst が空振りし、後発の create が P2002 で落ちて 500 になる。
+    //
+    // ⚠️ **catch して読み直す方式は Postgres では成立しない。** ここは `tx`
+    //    （$transaction 内）で動いており、P2002 が出た時点でトランザクション全体が
+    //    aborted 状態になるので、同じ tx 内での後続クエリはすべて失敗する。
+    //    **そもそも例外を出さない**必要がある。
+    //
+    // そこで `createMany({ skipDuplicates: true })`（= INSERT ... ON CONFLICT DO NOTHING）
+    // を使う。競合しても例外にならず、トランザクションも生きたままになる。
+    // 既に dish_reviews で採っているのと同じ手（createDishReviews 参照）。
+    const where = {
+      restaurant_id: dish.restaurant_id,
+      category_id: dish.category_id,
+    };
+
+    const existing = await tx.dishes.findFirst({ where });
 
     if (existing) {
       return existing;
@@ -89,9 +127,26 @@ export class DishesRepository {
 
     const { id: _omitId, ...createData } = dish;
 
-    return tx.dishes.create({
-      data: createData,
+    await tx.dishes.createMany({
+      data: [createData],
+      skipDuplicates: true,
     });
+
+    // ON CONFLICT DO NOTHING は「自分が入れた」「他が入れた」を区別しないので、
+    // どちらの場合も読み直して確定した行を返す。
+    //
+    // 【設計】READ COMMITTED（Postgres の既定 = Prisma $transaction の既定）を前提にしている。
+    // 文ごとに新しいスナップショットを取るため、DO NOTHING が競合相手の commit を待った後の
+    // この findFirst は、その行を必ず見られる。REPEATABLE READ 以上へ上げるとここが破れる。
+    const persisted = await tx.dishes.findFirst({ where });
+
+    if (!persisted) {
+      throw new Error(
+        `createOrGetDishForCategory: dish が見つからない (restaurant_id=${dish.restaurant_id}, category_id=${dish.category_id})`,
+      );
+    }
+
+    return persisted;
   }
 
   /**
@@ -224,9 +279,17 @@ export class DishesRepository {
               // ID の再利用（重複防止）と Photo Media 課金の抑止は別の関心事であり、
               // ここで status を絞ると前者が壊れる。
               //
-              // failed の place で Photo Media を毎回課金してしまう件は、
-              // tryGetPhotoMedia が reuse 判定より前にある構造の問題なので、
-              // 別途 handler 側の download skip 判定とあわせて対応する。
+              // #1053 【解決済み】ここに「failed の place で Photo Media を毎回課金して
+              // しまう件は別途対応する」と書いてあったが、**その対応は #1053 で入った**。
+              // `dishes.service.ts` の `canSkipPhotoMedia` が、再利用する media_path の
+              // 実体が GCS にあることを確かめたうえで Photo Media の呼び出しごと飛ばし、
+              // handler へは photoUri 無しで enqueue して download も skip させる。
+              //
+              // したがって「resize に失敗して failed に張り付いた place を bulk-import
+              // するたびに課金される」経路は塞がっている。写真バイナリ自体が無い
+              // （media_path が無い / 実体が消えている）place で取り直すのは、
+              // 課金の漏れではなく必要な取得である。
+              //
               // 再利用が起きたことは ExistingGoogleImportDishMediaReused ログの
               // mediaProcessingStatus で数えられる。
               OR: [

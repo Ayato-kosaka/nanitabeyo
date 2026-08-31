@@ -20,6 +20,9 @@ export function convertSupabaseToPrisma_Dishes(supabase: SupabaseDishes): Prisma
     created_at: new Date(supabase.created_at),
     updated_at: new Date(supabase.updated_at),
     lock_no: supabase.lock_no,
+    // #843 BigQuery catalog 由来かの識別（migration 20260823T0000）。既定は 'user_or_google'
+    data_origin: supabase.data_origin,
+    synced_at: supabase.synced_at !== null ? new Date(supabase.synced_at) : null,
   };
 }
 
@@ -37,5 +40,7 @@ export function convertPrismaToSupabase_Dishes(prisma: PrismaDishes): SupabaseDi
     created_at: prisma.created_at?.toISOString() ?? null,
     updated_at: prisma.updated_at?.toISOString() ?? null,
     lock_no: prisma.lock_no,
+    data_origin: prisma.data_origin,
+    synced_at: prisma.synced_at?.toISOString() ?? null,
   };
 }

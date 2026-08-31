@@ -30,6 +30,7 @@ import {
 } from '@shared/v1/res';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { DishCategoryGroupVotesRepository } from './dish-category-group-votes.repository';
 import { DishCategoryGroupVotesAssembler } from './dish-category-group-votes.assembler';
 
@@ -40,6 +41,7 @@ export class DishCategoryGroupVotesService {
     private readonly assembler: DishCategoryGroupVotesAssembler,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
+    private readonly cloudTasks: CloudTasksService,
   ) {}
 
   private validateCreateCandidates(dto: CreateDishCategoryGroupVoteDto): void {
@@ -67,9 +69,42 @@ export class DishCategoryGroupVotesService {
       candidateCount: dto.candidates.length,
       radius: dto.searchContext.radius,
       localLanguageCode: dto.searchContext.localLanguageCode,
+      hasIdempotencyKey: Boolean(dto.idempotencyKey),
     });
 
     this.validateCreateCandidates(dto);
+
+    // #1507 【設計】作成の冪等化。
+    //
+    // フロントの useRef 同期ガード（#1205）は「同一 JS タスク内の連打」しか守れず、
+    // 通信のリトライ・オフライン復帰後の再送・再マウントでは二重に POST が届く。
+    // 二重に作られると **別々の shareToken を持つ投票セッションが 2 件**でき、
+    // 片方のリンクを配った参加者とホストが別の投票を見ることになる。
+    //
+    // 経路は notifications.repository.ts の三段構え（find → create → P2002 で再 find）と同じ。
+    // ① 事前チェックで大半の再送を例外を通さずに返し、
+    // ③ で「事前チェックをすり抜けた並行リクエスト」を DB の unique 制約で受け止める。
+    // 正しさは ③ だけで成立し、① は fast path。
+    if (dto.idempotencyKey) {
+      const replayed = await this.repo.findSessionByIdempotencyKey(
+        this.prisma.prisma,
+        hostUserId,
+        dto.idempotencyKey,
+      );
+      if (replayed) {
+        // 再送でもステータスは 201・レスポンス形も同じにする。
+        // 「何回送っても結果が同じ」が冪等なので、クライアントに分岐を持たせない。
+        this.logger.debug('DishCategoryGroupVotes.create', 'idempotentReplay', {
+          hostUserId,
+          sessionId: replayed.id,
+          via: 'lookup',
+        });
+        return {
+          id: replayed.id,
+          shareToken: replayed.share_token,
+        };
+      }
+    }
 
     try {
       // session と candidates は共有URL公開後に分離して見えてはいけない。
@@ -94,11 +129,48 @@ export class DishCategoryGroupVotesService {
         shareToken: result.shareToken,
       };
     } catch (error) {
+      // #1507 並行して届いた同一キーの 2 発目。
+      //
+      // PostgreSQL の unique index により、後着の INSERT は先着のトランザクションが
+      // commit / abort するまでブロックされる。ここへ来たということは先着が commit 済み
+      // （= session と candidates が揃っている）なので、その行を読んで返せばよい。
+      //
+      // ⚠️ 元のトランザクションは abort しているため、必ずトランザクション外の
+      //    this.prisma.prisma で読み直すこと。
+      if (
+        dto.idempotencyKey &&
+        this.repo.isUniqueViolationOn(error, 'idempotency_key')
+      ) {
+        const replayed = await this.repo.findSessionByIdempotencyKey(
+          this.prisma.prisma,
+          hostUserId,
+          dto.idempotencyKey,
+        );
+        if (replayed) {
+          this.logger.warn(
+            'DishCategoryGroupVotes.idempotentReplay',
+            'create',
+            {
+              hostUserId,
+              sessionId: replayed.id,
+              via: 'uniqueViolation',
+            },
+          );
+          return {
+            id: replayed.id,
+            shareToken: replayed.share_token,
+          };
+        }
+        // セッションに削除経路が無い以上ここへは到達しないが、握り潰さずに落とす
+        // （notifications.repository.ts の retry が見つからなければ throw と同じ防御）。
+      }
+
       this.logger.error('DishCategoryGroupVotes.createFailed', 'create', {
         hostUserId,
         candidateCount: dto.candidates.length,
         error,
       });
+      // share_token の偶発衝突は従来どおり 409。冪等キー衝突は上で処理済みなのでここには来ない。
       if (this.repo.isUniqueViolation(error)) {
         throw new ConflictException(
           'Failed to create dish category group vote',
@@ -206,6 +278,33 @@ export class DishCategoryGroupVotesService {
         voteCount: dto.votes.length,
       });
 
+      // #1506 【設計】GRP-04 投票完了通知。「全員投票し終えた」を判定するカラムが
+      // モデルに無いため、参加者が1人投票を終えるたびにホストへ通知する。
+      // idempotencyKey は session 単位にし、複数参加者の投票を同一スレッドへ
+      // 集約する（dish_media の like と同じ設計）。ホスト自身の投票は
+      // NotificationJobService 側の自己通知 skip に任せる。
+      const idempotencyKey = `dish_category_group_vote_sessions:vote:${sessionId}`;
+      this.cloudTasks
+        .enqueueNotification({
+          actionType: 'vote',
+          targetTable: 'dish_category_group_vote_sessions',
+          targetId: sessionId,
+          actorId: userId,
+          idempotencyKey,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'DishCategoryGroupVotes.enqueueNotificationFailed',
+            'submitVote',
+            {
+              sessionId,
+              userId,
+              participantId: participant.id,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          );
+        });
+
       return {
         participantId: participant.id,
         stored: true,
@@ -276,12 +375,20 @@ export class DishCategoryGroupVotesService {
             };
           }
 
-          const nextStatus = dto.dishMediaIds.length > 0 ? 'found' : 'empty';
+          // #1513 【設計】投票候補は「墓標を出さず黙って除外する」側の画面。
+          // 削除済みメディアは固定する前に落とす（一度固定すると上書きしないので、
+          // ここで混ぜると以後ずっと «もう無い写真» が候補に居座る）。
+          // 全部落ちたときは «検索済み 0 件» と同じ empty になる
+          const liveDishMediaIds = await this.repo.filterLiveDishMediaIds(
+            tx,
+            dto.dishMediaIds,
+          );
+          const nextStatus = liveDishMediaIds.length > 0 ? 'found' : 'empty';
           const cached = await this.repo.updateCandidateDishMediaIds(
             tx,
             sessionId,
             candidateId,
-            dto.dishMediaIds,
+            liveDishMediaIds,
             nextStatus,
           );
           if (cached.updated) {

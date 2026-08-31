@@ -1,25 +1,37 @@
 # BigQuery Access
 
-## Environment
+## How to reach BigQuery
+
+Two routes. **Check for the MCP tools first** — where a session has them, there is nothing to install
+and nothing to authenticate:
+
+- `mcp__Google_Cloud_BigQuery__execute_sql_readonly` — read-only queries (use this by default)
+- `mcp__Google_Cloud_BigQuery__list_dataset_ids` / `list_table_ids` / `get_table_info` — shape discovery
+
+Fall back to the `bq` CLI only when the MCP tools are absent. The CLI is **not** installed in every
+environment, and the paths below are specific to the Codex sandbox — verify them before relying on
+them rather than assuming they exist:
 
 ```bash
 export PATH=/home/ubuntu/.local/google-cloud-sdk/bin:$PATH
 export GOOGLE_APPLICATION_CREDENTIALS=~/.config/service-account-key/food-scroll-2bc35f43cfea.json
-export BQ_DATASET=food-scroll.nanitabeyo_logs_dev
-```
-
-Datasets:
-
-- `food-scroll.nanitabeyo_logs_dev` — development APIの検証・ログ調査で使用する既定dataset
-- `food-scroll.nanitabeyo_logs_prod` — production調査を明示的に依頼された場合だけ使用する
-
-APIの開発・レビュー・検証では、必ず `food-scroll.nanitabeyo_logs_dev` を使用する。`nanitabeyo_logs_prod`へ切り替えない。
-
-Primary command shape:
-
-```bash
 bq query --use_legacy_sql=false --format=prettyjson 'select 1'
 ```
+
+## Datasets
+
+- `food-scroll.nanitabeyo_logs_dev` — the default for verifying and reviewing the development API
+- `food-scroll.nanitabeyo_logs_prod` — production. Read-only, and only for questions that are
+  actually about production
+
+**Which one to use follows the question, not a blanket rule.** Verifying a change you just made to
+the development API → `_dev`. Investigating a real user-facing incident or an auto-filed
+`error-triage` issue → `_prod`, because the data only exists there. Never switch to `_prod` merely
+because a query returned no rows in `_dev`.
+
+The queries in `query-patterns.md` and `event-catalog.md` are written against `_prod` because they
+came from incident investigations. Swap the dataset to `_dev` when the question is about the
+development API.
 
 ## Codex Execution
 

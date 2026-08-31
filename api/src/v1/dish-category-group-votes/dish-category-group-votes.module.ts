@@ -13,12 +13,14 @@ import { DishCategoryGroupVotesAssembler } from './dish-category-group-votes.ass
 import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module';
+import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
 
 @Module({
   imports: [
     PrismaModule,
     LoggerModule,
     AuthModule,
+    CloudTasksModule, // Cloud Tasks サービス
   ],
   controllers: [DishCategoryGroupVotesController],
   providers: [

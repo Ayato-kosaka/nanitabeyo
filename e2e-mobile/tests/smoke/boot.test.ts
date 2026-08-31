@@ -24,7 +24,7 @@ import {
  *   この例外で匿名クォータを 1 消費することは #1030 3-1 の見積に織り込み済み）
  *
  * 注意: tabBarButtonTestID は app-expo/app/[locale]/(tabs)/_layout.tsx で定義されている。
- * tab-notifications は匿名ユーザーには非表示、tab-map は常に非表示（内部遷移専用）のため、
+ * tab-notifications は匿名ユーザーには非表示のため、
  * ここでは匿名ユーザーでも必ず表示される 3 タブのみを検証する。
  */
 describe("起動 @smoke", () => {
@@ -37,13 +37,13 @@ describe("起動 @smoke", () => {
 	// ─ テストケース: 起動するとタブバー付きの検索画面が表示される ─
 	// 手順:
 	//   1. アプリを起動する（スプラッシュ → expo-router のロケールリダイレクトを待つ）
-	//   2. さがす/レビュー/マイページの各タブが表示されることを検証
+	//   2. さがす/食べたい・食べた/マイページの各タブが表示されることを検証
 	it("起動するとタブバー付きの検索画面が表示される", async () => {
 		// #1027 【パフォーマンス】初回起動は JS バンドル読込 + 匿名サインインの通信を含むため長めに待つ
 		// （ja-JP 初回起動で開く検索チュートリアルは起動引数のシードで抑止済み。fixtures/e2e.ts の tutorialSeen）
 		await waitForAppReady(LAUNCH_TIMEOUT);
 		// タブバーは同時に描画されるため、以降は通常のタイムアウトで足りる
-		await waitUntilVisible(by.id("tab-review"), DEFAULT_TIMEOUT);
+		await waitUntilVisible(by.id("tab-my-dishes"), DEFAULT_TIMEOUT);
 		await waitUntilVisible(by.id("tab-profile"), DEFAULT_TIMEOUT);
 
 		// #1027 【設計】起動成功のエビデンスとしてスクリーンショットを残す（CI の Artifact から回収する）。

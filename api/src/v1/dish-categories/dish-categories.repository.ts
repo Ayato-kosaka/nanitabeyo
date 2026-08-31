@@ -15,6 +15,11 @@ import {
   DishCategoryCandidateWithScores,
   DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
+import {
+  buildCursorFilter,
+  buildCursorOrderBy,
+  formatCompositeCursor,
+} from '../../core/pagination/composite-cursor';
 
 @Injectable()
 export class DishCategoriesRepository {
@@ -120,13 +125,12 @@ export class DishCategoriesRepository {
       target_type: 'dish_categories',
       action_type: 'save',
     };
-    if (cursor) {
-      whereClause.created_at = { lt: new Date(cursor) };
-    }
+    // #1599 `(created_at, id)` の複合カーソル。時刻単独だと同時刻の行がページ境界で飛ぶ
+    Object.assign(whereClause, buildCursorFilter(cursor));
 
     const savedEntries = await this.prisma.prisma.reactions.findMany({
       where: whereClause,
-      orderBy: { created_at: 'desc' },
+      orderBy: buildCursorOrderBy(),
       take: limit + 1,
     });
 
@@ -135,7 +139,10 @@ export class DishCategoriesRepository {
     const entries = hasMore ? savedEntries.slice(0, limit) : savedEntries;
     const nextCursor =
       hasMore && entries.length > 0
-        ? entries[entries.length - 1].created_at.toISOString()
+        ? formatCompositeCursor(
+            entries[entries.length - 1].created_at,
+            entries[entries.length - 1].id,
+          )
         : null;
 
     const categoryIds = entries.map((e) => e.target_id);
@@ -160,6 +167,7 @@ export class DishCategoriesRepository {
     addressTokens: DishCategoryCandidateNormalizedInput['addressTokens'];
     regionTokens: DishCategoryCandidateNormalizedInput['regionTokens'];
     regionFallbackKeys: DishCategoryCandidateNormalizedInput['regionFallbackKeys'];
+    seasonFallbackKeys: DishCategoryCandidateNormalizedInput['seasonFallbackKeys'];
     budgetIntentKeys: DishCategoryCandidateNormalizedInput['budgetIntentKeys'];
     timeSlotKey: DishCategoryCandidateNormalizedInput['timeSlotKey'];
     sceneKey: DishCategoryCandidateNormalizedInput['sceneKey'];
@@ -181,6 +189,7 @@ export class DishCategoriesRepository {
       wCoreIngredient,
       wMarketSalience,
       wDineOutOrderability,
+      wSeason,
       scoreJitterRatio,
     ] = await this.remoteConfigService
       .getRemoteConfigValues([
@@ -193,6 +202,7 @@ export class DishCategoriesRepository {
         'dish_category_recommendation_weight_core_ingredient',
         'dish_category_recommendation_weight_market_salience',
         'dish_category_recommendation_weight_dine_out_orderability',
+        'dish_category_recommendation_weight_season',
         'dish_category_recommendation_score_jitter_ratio',
       ])
       .then((values) =>
@@ -225,6 +235,7 @@ export class DishCategoriesRepository {
           wCoreIngredient,
           wMarketSalience,
           wDineOutOrderability,
+          wSeason,
           scoreJitterRatio,
         },
       },
@@ -240,6 +251,7 @@ export class DishCategoriesRepository {
           ${params.addressTokens}::text[] AS address_tokens,
           ${params.regionTokens}::text[] AS region_tokens,
           ${params.regionFallbackKeys}::text[] AS region_fallback_keys,
+          ${params.seasonFallbackKeys}::text[] AS season_fallback_keys,
           ${params.budgetIntentKeys}::text[] AS budget_intent_keys,
           ${params.timeSlotKey}::text AS time_slot_key,
           ${params.sceneKey}::text AS scene_key,
@@ -260,6 +272,8 @@ export class DishCategoriesRepository {
           ${wCoreIngredient}::numeric AS w_core_ingredient,
           ${wMarketSalience}::numeric AS w_market_salience,
           ${wDineOutOrderability}::numeric AS w_dine_out_orderability,
+          -- #737 【設計】season の重み。0〜1 に丸める（>1 だと係数が負になりうるため）
+          ${Math.min(Math.max(wSeason, 0), 1)}::numeric AS w_season,
           ${Math.min(Math.max(scoreJitterRatio, 0), 1)}::numeric AS score_jitter_ratio
       ),
       -- #533 【設計】gate whitelist: region_tokens + 'region:scope:global' でフィルタ
@@ -383,6 +397,9 @@ export class DishCategoriesRepository {
           COALESCE(bc.t_score, 0) AS taste_score,
           COALESCE(r.market_salience_score, 0) AS market_salience_score,
           COALESCE(r.dine_out_orderability_score, 0) AS dine_out_orderability_score,
+          -- #737 【設計】season は「行が無い＝平常」なので、他の feature と違い COALESCE の既定値が 1。
+          -- 0 にすると season 未投入の全カテゴリが沈んでしまう（他の COALESCE を真似ないこと）。
+          COALESCE(se.season_score, 1) AS season_score,
           -- weight_sum: 指定された条件のweightのみ加算
           (
             CASE WHEN COALESCE(array_length(p.budget_intent_keys, 1), 0) > 0 THEN w.w_budget_intent ELSE 0 END +
@@ -449,6 +466,27 @@ export class DishCategoriesRepository {
             MAX(score) FILTER (WHERE feature_type = 'dine_out_orderability') AS dine_out_orderability_score
           FROM ranked
         ) r ON true
+        -- #737 【設計】season を地域フォールバック付きで探索する
+        --
+        -- season_fallback_keys は service 側の normalizeInput が組み立てた
+        --   ["region:locality:大阪市:month:08", …, "region:country:JP:month:08", "global:month:08"]
+        -- で、狭い地域 → 広い地域 → global の順に並んでいる。**最初に当たった 1 件だけ**採用する
+        -- （市区町村向けの季節性を将来入れても、国レベルの値を上書きできるようにするため）。
+        --
+        -- 【重要】現時点で投入予定のデータは region:country:JP のみだが、
+        -- JP 以外の国から来た場合に何も当たらないと補正が効かないので、
+        -- 末尾の 'global:month:MM' を**データが無くても SQL には常に含めておく**
+        -- （#737 オーナー指示。global のデータ投入自体は今回のスコープ外）。
+        LEFT JOIN LATERAL (
+          SELECT dcf.score AS season_score
+          FROM UNNEST(p.season_fallback_keys) WITH ORDINALITY AS fb(key, ord)
+          JOIN dish_category_features dcf
+            ON dcf.dish_category_id = bc.category_id
+           AND dcf.feature_type = 'season'
+           AND dcf.feature_key = fb.key
+          ORDER BY fb.ord
+          LIMIT 1
+        ) se ON true
       ),
       final_scored AS (
         SELECT 
@@ -464,11 +502,18 @@ export class DishCategoriesRepository {
           sc.rel_score,
           sc.market_salience_score,
           sc.dine_out_orderability_score,
+          sc.season_score,
           -- #533 【設計】final_score計算式
           -- rel_score を主スコアとして、market/orderabilityを補正係数にする
           -- 補正係数はに 1 以下なので、market/orderability は rel_score を押し上げるというより、低いものを少し沈める働きになります。
+          --
+          -- #737 【設計】season も同じ形の補正係数として掛ける。season_score は平常月 = 1 なので
+          -- 係数はちょうど 1.0 になり、**季節性の無いカテゴリと season 未投入の状態では完全に無影響**。
+          -- 押し上げ（夏にかき氷を上げる）はここではやらない（係数は常に 1 以下）。
+          -- 夏物の押し上げはスレート側の「旬枠」で行う方針（Phase 2）。
           sc.rel_score * (1 - w.w_market_salience + w.w_market_salience * sc.market_salience_score)
             * (1 - w.w_dine_out_orderability + w.w_dine_out_orderability * sc.dine_out_orderability_score)
+            * (1 - w.w_season + w.w_season * sc.season_score)
           AS final_score,
           w.score_jitter_ratio AS score_jitter_ratio
         FROM scored_candidates sc
@@ -504,6 +549,7 @@ export class DishCategoriesRepository {
         rel_score,
         market_salience_score,
         dine_out_orderability_score,
+        season_score,
         final_score,
         rnd_value,
         random_unit,
@@ -692,22 +738,21 @@ export class DishCategoriesRepository {
       return new Map();
     }
 
-    const features =
-      await this.prisma.prisma.dish_category_features.findMany({
-        where: {
-          dish_category_id: { in: categoryIds },
-          feature_type: {
-            in: ['budget_intent', 'dining_pace', 'taste', 'core_ingredient'],
-          },
-          score: { gt: scoreThreshold },
+    const features = await this.prisma.prisma.dish_category_features.findMany({
+      where: {
+        dish_category_id: { in: categoryIds },
+        feature_type: {
+          in: ['budget_intent', 'dining_pace', 'taste', 'core_ingredient'],
         },
-        select: {
-          dish_category_id: true,
-          feature_type: true,
-          feature_key: true,
-          score: true,
-        },
-      });
+        score: { gt: scoreThreshold },
+      },
+      select: {
+        dish_category_id: true,
+        feature_type: true,
+        feature_key: true,
+        score: true,
+      },
+    });
 
     const featurePriority = new Map<string, number>([
       ['budget_intent', 0],

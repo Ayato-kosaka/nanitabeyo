@@ -20,7 +20,15 @@ import { SearchPage } from "../../pages/SearchPage";
  * 前提: 実 API(v1/locations/autocomplete, v1/locations/details)を叩く。CORS 前提は
  * location-autocomplete.spec.ts と同じ(e2e-web/README.md 参照)。
  */
-test.describe("最近使った場所(実 API)", () => {
+test.describe("最近使った場所", () => {
+	/*
+	#1629【オーナー確定】**Places の日次上限は上げない。** この spec は «場所検索の結果を使って
+	画面が進むこと» を見るもので、Places の応答そのものが主題ではないので固定値へ差し替える
+	（`utils/locationSearch.ts`）。実物を叩く検証は `tests/search/location-autocomplete.spec.ts`
+	の 1 本だけに残してある。
+	*/
+	test.use({ mockLocationSearch: true });
+
 	// ─ テストケース: 2番目に選んだ地点を選び直すと先頭へ移動し、件数は変わらない ─
 	// 手順:
 	//   1. 「渋谷」で検索し、先頭の候補(1件目)を選ぶ
@@ -29,7 +37,7 @@ test.describe("最近使った場所(実 API)", () => {
 	//   3. パネルを開いて並び順と件数(2件)を確認する
 	//   4. 2番目(=1件目、リストの末尾)を選び直す
 	//   5. 再度パネルを開き、1件目が先頭へ移動し件数が2件のまま(重複登録なし)であることを検証
-	//   6. 検索画面へ明示的に goto(「reload ではなく goto」の理由は search-tutorial.spec.ts と同じ:
+	//   6. 検索画面へ明示的に goto(「reload ではなく goto」の理由は onboarding.spec.ts と同じ:
 	//      expo-router の静的書き出しでは page.reload() だとブラウザの URL バーとズレた別ルートの
 	//      静的 HTML が読み込まれることがあるため)し、並び順が永続化(AsyncStorage)されていることを検証
 	test("2番目に選んだ地点を選び直すと先頭へ移動し、件数は変わらない。並び順はリロード後も保持される", async ({
@@ -76,6 +84,20 @@ test.describe("最近使った場所(実 API)", () => {
 		await expect(searchPage.recentLocation(1)).toHaveText(second);
 	});
 
+});
+
+/*
+#1629 **この 1 本だけ場所検索を差し替えない（実物を叩く）。**
+
+他の 5 本はモックで緑になったが、これだけは «別々の地点を 6 回選ぶ» という
+長い連続操作で、モックの «即座に返る» 応答だと 6 回目の入力が入らずに落ちた
+（run 33397890498。失敗時のスクリーンショットでは入力欄が 5 回目の «池袋駅» のまま
+  6 回目の文字が入っていない）。
+
+原因を特定できていないので **モックを無理に通さない**。Places の枠は 1 本ぶんだけ使う。
+枠の消費を減らす目的は他の 5 本で足りている。
+*/
+test.describe("最近使った場所（上限。実 API）", () => {
 	// ─ テストケース: 6件目を登録すると最古の1件が押し出され、上限5件が維持される ─
 	// 手順:
 	//   1. 異なる6地点を順に検索・選択する(いずれも先頭候補を選ぶ)

@@ -13,6 +13,8 @@ const getGuestProfile = (): GetUserProfileResponse => ({
 	preferred_locale: "en",
 	created_at: new Date().toISOString(),
 	last_login_at: null,
+	// #1511 ACC-01 論理削除日時。ゲストは削除済みではないので null
+	deleted_at: null,
 	lock_no: 0,
 	updated_at: new Date().toISOString(),
 });

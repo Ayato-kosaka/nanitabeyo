@@ -38,10 +38,19 @@ export const isValidBcp47Tag = (tag: string): boolean => /^[a-zA-Z]{2,3}(-[a-zA-
  * ここで「ロケール判定を 1 文字まで緩める」方向へ倒してはいけない。
  * `/a/...` のような別のルートまで巻き込み、#1027 の再発につながる。
  *
+ * ## ⚠️ クエリ文字列は «明示的に» 引き回す（#1272。この判定 3 度目の事故）
+ * 呼び出し側が渡す `Linking.parse(url).path` は **クエリを落とす**。#1135 では OAuth の
+ * `code` に限って「採用しない」ことで回避したが、**一般のクエリは落ちたまま**だった。
+ * その結果 iOS では `?tab=saved-dish-categories` 付きの直リンクが `/ja-JP/profile` に削られ、
+ * 先頭タブのまま着地していた（#1272。probe の実測 `local=- global=-` で確定。
+ * Android は expo-router 側の初期 URL 解決が先に済むため顕在化しない）。
+ * クエリは `extractQueryString(url)` で生 URL から切り出し、第 2 引数で渡すこと。
+ *
  * @param path `Linking.parse(url).path`（先頭スラッシュ無し / 無ければ null）
- * @returns 採用できる場合は "/ja-JP/profile" 形式 / それ以外は null
+ * @param queryString `extractQueryString(url)` の戻り値（`?` を含まない生のクエリ / 無ければ null）
+ * @returns 採用できる場合は "/ja-JP/profile?tab=..." 形式 / それ以外は null
  */
-export const toInAppPath = (path: string | null | undefined): string | null => {
+export const toInAppPath = (path: string | null | undefined, queryString?: string | null): string | null => {
 	const normalized = path?.replace(/^\/+/, "") ?? "";
 	if (!normalized) return null;
 	const [firstSegment, secondSegment] = normalized.split("/");
@@ -57,5 +66,26 @@ export const toInAppPath = (path: string | null | undefined): string | null => {
 	if (!isValidBcp47Tag(firstSegment)) return null;
 	// #1135 `/[locale]/auth/*` は «クエリ込み» でしか意味を持たない route なので、行き先として採用しない
 	if (secondSegment === "auth") return null;
-	return `/${normalized}`;
+	// #1272 クエリは行き先の一部（例: /profile?tab=saved-dish-categories のタブ指定）。削らずに運ぶ
+	return queryString ? `/${normalized}?${queryString}` : `/${normalized}`;
+};
+
+/**
+ * 生 URL からクエリ文字列（`?` と `#` の間）を切り出す。
+ *
+ * ## なぜ `Linking.parse(url).queryParams` を再シリアライズしないのか
+ * parse → 再結合はエンコードの往復（`%2F` の復号、配列パラメータの畳み方 等）で
+ * 元の表現と揺れうる。行き先へそのまま運ぶだけなら **生の部分文字列**が最も忠実で、
+ * 挙動もこの純関数のテストで固定できる。
+ *
+ * @param url `Linking.getInitialURL()` の戻り値
+ * @returns `?` を含まないクエリ文字列 / クエリが無い・空なら null
+ */
+export const extractQueryString = (url: string | null | undefined): string | null => {
+	if (!url) return null;
+	const withoutFragment = url.split("#", 1)[0] ?? "";
+	const queryIndex = withoutFragment.indexOf("?");
+	if (queryIndex < 0) return null;
+	const query = withoutFragment.slice(queryIndex + 1);
+	return query.length > 0 ? query : null;
 };

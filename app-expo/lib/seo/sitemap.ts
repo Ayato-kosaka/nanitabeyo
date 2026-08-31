@@ -1,4 +1,5 @@
 import { PUBLIC_LOCALES } from "@/constants/seoLocales";
+import { INDEXABLE_ROUTES } from "@/lib/seo/publicRoutes";
 
 /**
  * 🗺️ sitemap.xml の生成ロジック（#281）。
@@ -30,6 +31,8 @@ import { PUBLIC_LOCALES } from "@/constants/seoLocales";
  * 足すときはここのコメントと合わせて更新すること。
  *
  * - `auth/callback` … OAuth のコールバック。人間が入口として踏む URL ではない
+ * - `auth/login` … アプリ内のログイン導線から `?next=` 付きで push される画面（#1359）。
+ *   `auth/callback` と同じく、人間が検索結果から入口として踏む URL ではない
  * - `contribution-tasks/*` … 内部作業用の画面
  * - `profile/*` / `notifications/*` … ログイン後の個人ページ（未ログインでは中身が無い）
  * - `posts` … `?ids=` のクエリ前提のページで、クエリ無しでは表示する対象が決まらない（#721）。
@@ -39,8 +42,27 @@ import { PUBLIC_LOCALES } from "@/constants/seoLocales";
  *    `search` のため）。`/` からのリダイレクト先が `/{locale}` であり、サイトの入口として
  *    落とせないので両方載せている。canonical はどちらも自分自身を指すので、
  *    どちらを正とするかは検索エンジン側の判断に委ねる。
+ *
+ * #1368 `legal/*`（ガイドライン / 利用規約 / プライバシーポリシー / 著作権）は **載せる**。
+ * `auth/login` を外したのと逆の判断で、理由は「人間が入口として踏むか」の一点。
+ * 法務ページはストア審査・問い合わせ・外部サイトからのリンク先として直接踏まれ、
+ * 検索でも「<アプリ名> プライバシーポリシー」で探される。クエリにもログイン状態にも依存せず、
+ * 8 ロケール分の実体が prerender される（`app/[locale]/legal/[doc].tsx` の generateStaticParams）。
+ * 一覧を手で書かず `LEGAL_SITEMAP_ROUTES` から展開しているのは、文書を増やしたときに
+ * ルートだけ増えて sitemap が置いていかれるのを防ぐため（このファイル冒頭の方針と同じ）。
+ *
+ * #1368 【既知の状態】**文書の実体は ja-JP と en-US の 2 ロケールだけ**で、他の 6 ロケールは
+ * 英語へフォールバックする（features/settings/components/LegalDocument.tsx の `locale in
+ * legalDocuments ? ... : legalDocuments["en-US"]`）。つまりここで展開している 32 URL のうち
+ * 24 本は en-US と同一本文を返しつつ、hreflang では「ko-KR 版だ」と宣言することになる。
+ * 翻訳が入るまでの既知の不一致として記録しておく（Search Console では
+ * "Duplicate without user-selected canonical" として出る見込み）。
+ * 翻訳を入れるか、実体のあるロケールへ展開を絞るかは、翻訳の予定が決まってから判断する。
  */
-export const SITEMAP_ROUTES = ["search", "map", "review", "review/selectRestaurant"] as const;
+// #1503 実体は `lib/seo/publicRoutes.ts` へ移した。直リンクスモーク（e2e）と sitemap が
+// 別々の一覧を持つと、ルートを足したときに片方だけ増える（#281 で生成器が 2 本になったのと同型の事故）。
+// ここは «sitemap から見た名前» を保つための再 export で、選定の理由は上のコメントのまま。
+export const SITEMAP_ROUTES: readonly string[] = INDEXABLE_ROUTES;
 
 /**
  * #721 【重要】ロケールのトップ（`""` = `/en-US` など）は**意図的に外している**。

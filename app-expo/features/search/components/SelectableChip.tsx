@@ -1,6 +1,8 @@
 import React from "react";
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 import { Check } from "lucide-react-native";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface SelectableChipProps {
 	/** 表示ラベル(i18n 済み文字列) */
@@ -24,6 +26,7 @@ interface SelectableChipProps {
 // (#930 の PrimaryButton disabled と同種の既知の非対応)。native/web 両対応の aria-checked を
 // 直接指定することで、RN(iOS/Android) と RNW(Web) の両方で同じ挙動にする。
 export function SelectableChip({ label, icon, selected, onPress, role, testID }: SelectableChipProps) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<TouchableOpacity
 			testID={testID}
@@ -39,56 +42,60 @@ export function SelectableChip({ label, icon, selected, onPress, role, testID }:
 			    右上の絶対配置バッジに変更して幅を不変にする */}
 			{selected && (
 				<View style={styles.checkBadge}>
-					<Check size={10} color="#FFFFFF" strokeWidth={3} />
+					{/* #1509 バッジは «黒地・白縁・白チェック» で 1 セット。テーマ非追従にして暗面でも同じ形で読める */}
+					<Check size={10} color={FixedColors.checkMark} strokeWidth={3} />
 				</View>
 			)}
 		</TouchableOpacity>
 	);
 }
 
-const styles = StyleSheet.create({
-	chip: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "#F8F9FA",
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 24,
-		borderWidth: 2,
-		borderColor: "#C9C9C9",
-		marginBottom: 6,
-		// #934 【設計】右上バッジをチップの角に少しはみ出して重ねるため
-		position: "relative",
-		overflow: "visible",
-	},
-	selectedChip: {
-		backgroundColor: "#E5E5E5",
-		borderColor: "#000000",
-	},
-	// #934 【設計】SelectableGridItem の checkBadge と同じ見た目(黒地・白縁・白チェック)
-	checkBadge: {
-		position: "absolute",
-		top: -6,
-		right: -6,
-		width: 16,
-		height: 16,
-		borderRadius: 8,
-		backgroundColor: "#000000",
-		alignItems: "center",
-		justifyContent: "center",
-		borderWidth: 1.5,
-		borderColor: "#FFFFFF",
-	},
-	emoji: {
-		fontSize: 14,
-		marginRight: 4,
-	},
-	text: {
-		fontSize: 13,
-		color: "#000000",
-		fontWeight: "600",
-	},
-	selectedText: {
-		fontWeight: "800",
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（`contexts/ThemeProvider.tsx` の useThemedStyles）。
+// 値はすべて main のリテラルをそのまま `constants/Palette.ts` の light へ写したもので、ライトの見た目は変わらない。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		chip: {
+			flexDirection: "row",
+			alignItems: "center",
+			backgroundColor: c.surfaceMuted,
+			paddingHorizontal: 12,
+			paddingVertical: 6,
+			borderRadius: 24,
+			borderWidth: 2,
+			borderColor: c.border,
+			marginBottom: 6,
+			// #934 【設計】右上バッジをチップの角に少しはみ出して重ねるため
+			position: "relative",
+			overflow: "visible",
+		},
+		selectedChip: {
+			backgroundColor: c.surfaceSelected,
+			borderColor: c.borderContrast,
+		},
+		// #934 【設計】SelectableGridItem の checkBadge と同じ見た目(黒地・白縁・白チェック)
+		checkBadge: {
+			position: "absolute",
+			top: -6,
+			right: -6,
+			width: 16,
+			height: 16,
+			borderRadius: 8,
+			backgroundColor: FixedColors.badgeBackground,
+			alignItems: "center",
+			justifyContent: "center",
+			borderWidth: 1.5,
+			borderColor: FixedColors.badgeBorder,
+		},
+		emoji: {
+			fontSize: 14,
+			marginRight: 4,
+		},
+		text: {
+			fontSize: 13,
+			color: c.textStrong,
+			fontWeight: "600",
+		},
+		selectedText: {
+			fontWeight: "800",
+		},
+	});

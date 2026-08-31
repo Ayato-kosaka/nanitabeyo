@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback, useMemo } from "react";
 import { supabase, consumeAuthRetryAfterHeader } from "@/lib/supabase";
+import { readOAuthResultQuery } from "@/lib/oauthResultUrl";
 // #1030 【設計】E2E(Detox) 専用のセッション注入フック。
 // 通常ビルドでは metro.config.js が noop 実装（lib/e2e/injectTestSession.noop.ts）へ解決し直すため、
 // 本番バンドルにはこの実装コードも react-native-launch-arguments も一切含まれない。
@@ -22,9 +23,11 @@ import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { Href, useRouter } from "expo-router";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { useTopicsStore } from "@/stores/useTopicsStore";
+import { useDishCategoriesStore } from "@/stores/useDishCategoriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
+import { useMyDishesRevisionStore } from "@/features/myDishes/stores/useMyDishesRevisionStore";
+import { useMyDishesFeedScopeStore } from "@/features/myDishes/stores/useMyDishesFeedScopeStore";
 import { requestLogoutRedirect } from "@/lib/logoutRedirect";
 
 /**
@@ -94,15 +97,17 @@ type AuthContextType = {
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: (options?: SignOut) => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
+	/** #1370 `options.next` はログイン後の行き先。`lib/authNext.ts` の `resolveNextPath` を通した内部パスのみ渡すこと */
 	signInWithOAuth: (
 		provider: Provider,
-		options?: { queryParams?: { [key: string]: string } },
+		options?: { queryParams?: { [key: string]: string }; next?: string },
 	) => Promise<OAuthLaunchOutcome>;
 	signInWithOtp: (phone: string) => Promise<void>;
 	verifyOtp: (phone: string, token: string) => Promise<void>;
+	/** #1370 `options.next` はログイン後の行き先。`lib/authNext.ts` の `resolveNextPath` を通した内部パスのみ渡すこと */
 	linkIdentity: (
 		provider: Provider,
-		options?: { queryParams?: { [key: string]: string } },
+		options?: { queryParams?: { [key: string]: string }; next?: string },
 	) => Promise<OAuthLaunchOutcome>;
 	handleOAuthResultUrl: (url?: string | null) => Promise<OAuthCallbackResult>;
 };
@@ -114,6 +119,50 @@ type AuthContextType = {
  * 「操作しても何も起きない」時間が伸びるだけなので、`API_CALL_TIMEOUT_MS`(30s) より十分短くする。
  */
 const AUTH_RESOLVE_WAIT_MS = 8_000;
+
+/**
+ * #1370 【設計】OAuth の `redirectTo` に載せる callback のパス（クエリ込み）を組む。
+ *
+ * `next`（ログイン後の行き先）を **URL に載せる** のは、web の OAuth が全画面リダイレクトで
+ * ページごと作り直され、履歴にも JS の state にも「どこから来たか」が残らないためである。
+ * native は同一セッションなので履歴で戻れるが、経路ごとに引き継ぎ方を変えると callback 側の
+ * 読み取りが 2 通りになるので、web / native で同じ形に揃える。
+ *
+ * 🔒 ここでは検証しない。渡してよいのは呼び出し側で `lib/authNext.ts` の `resolveNextPath` を
+ * 通した «先頭 / の内部パス» だけであり、受け取る `app/[locale]/auth/callback.tsx` でも同じ検証を
+ * 通してから遷移する（URL は外から書き換えられるため、最終的な砦は受け取り側にある）。
+ * この関数は運ぶだけで、Supabase 呼び出しの意味は変えない。
+ *
+ * #1374 【バグ】ここで «クエリを文字列に組み立てない» こと。
+ *
+ * 以前は `?intent=signin&next=${encodeURIComponent(next)}` まで含めた 1 本の文字列を作り、
+ * それを `makeRedirectUri({ path })` に渡していた。`makeRedirectUri` は中で
+ * `Linking.createURL(path, …)` を呼び、`createURL` は **path 部分だけに `encodeURI()` を掛ける**
+ *（expo-linking の build/createURL.js:113）。そのため `%2F` が `%252F` へ二重エンコードされる。
+ *
+ * 二重になると、デコード回数が経路によって食い違う。
+ *   経路A: WebBrowser.openAuthSessionAsync 成功 → Linking.parse → searchParams + decodeURIComponent の 2 回
+ *          → たまたま元に戻り、動く
+ *   経路B: OS のディープリンクで callback へ直接着地（アプリがコールドスタートし
+ *          Linking.getInitialURL() から拾う経路）→ expo-router は searchParams の 1 回だけ
+ *          → `"%2Fja-JP%2F…"` のままで先頭が `/` にならず、resolveNextPath が null を返して
+ *            next が黙って捨てられる
+ *
+ * `createURL` は `queryParams` を **`encodeURI` の後に** `URLSearchParams` で 1 回だけ
+ * エンコードして連結する（同ファイル :113-114）。だからクエリは «構造のまま» 渡す。
+ *
+ * @param params `{ intent: "signin" }` のような、この経路を識別する既存のクエリ
+ */
+const buildAuthCallbackPath = (locale: string): string => `${locale}/auth/callback`;
+
+const buildAuthCallbackQueryParams = (
+	params: Record<string, string>,
+	next?: string,
+): Record<string, string> => (next ? { ...params, next } : { ...params });
+
+/** web の redirectTo。`encodeURI` を通らないので、ここは自分で 1 回だけエンコードする */
+const buildWebAuthCallbackUrl = (locale: string, params: Record<string, string>): string =>
+	`${window.location.origin}/${buildAuthCallbackPath(locale)}?${new URLSearchParams(params).toString()}`;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -397,9 +446,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				setAuthError(null);
 			} catch (err: any) {
 				const status = getAuthErrorStatus(err);
+				// #1475 【設計】status 0 = **HTTP 応答に到達していない**（端末の回線断）。
+				// supabase-js が fetch 失敗を AuthRetryableFetchError でラップするときの値で、
+				// 運用側にできることは無い。再試行ボタンとフォアグラウンド復帰の 2 経路で回復する。
+				//
+				// 実測（本番 2026-08-20T09:29:25Z / 1 ユーザー）: 直前に位置情報の
+				// backend 失敗 → expo フォールバック失敗 が warn で並んでおり、回線が一瞬切れていた。
+				// **2 秒後には検索の API が成功しており**、認証エラー画面は出ていない。設計どおり回復した例。
+				//
+				// ⚠️ status 0 だけに限ること。undefined まで含めると、初期化中に起きた
+				// こちら側の実装バグ（status を持たない TypeError 等）まで warn へ落ちて見えなくなる。
+				const isClientNetworkFailure = status === 0;
 				logFrontendEvent({
 					event_name: "authInitError",
-					error_level: "error",
+					error_level: isClientNetworkFailure ? "warn" : "error",
 					payload: { message: err.message, status },
 				});
 				// #1089 認証が確立できていないときは logQueue がアクセストークンを用意できず、
@@ -491,9 +551,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			if (hasUserChanged) {
 				// ✅ ユーザーが切り替わったときにストアをクリア
 				useDishMediaEntriesStore.getState().clearByKey();
-				useTopicsStore.getState().clearByKey();
+				useDishCategoriesStore.getState().clearByKey();
 				useProfileStore.getState().resetProfile();
 				useCdnCookieStore.getState().clearCookies();
+				/*
+				#1629 【修正】**my-dishes（食べたい/食べた）のキャッシュもここで捨てる。**
+				ここに無かったせいで、オーナー実機で 2 つの症状が同時に出ていた。
+
+				1. ログアウトしても前のユーザーの記録がグリッドに残る
+				2. ログインした直後に «候補がありません» が出る
+
+				2 は 1 の裏返しである。実ログ（dev 2026-08-30）でこの順に並んでいた。
+
+				    logout_success → userChanged(匿名) → my_dishes_fetch_completed {count: 0}
+				    → userChanged(本人) → …
+
+				匿名ユーザーとして 0 件を取り切った時点で `hasFetchedInitial` が true になり、
+				その «空のスライス» が本人へ切り替わっても残るため、新しい取得が返るまで
+                «空» が表示され続ける。件数を隠すのではなく **キャッシュごと捨てる**のが正しい。
+
+				`bump()` は `useMyDishesStore.clearQuery()` でスライスを捨ててから版を進めるので、
+				マウント中のフックは `hasFetchedInitial === false` を見て自然に取り直す
+				（新しい取得経路を足さない。理由は useMyDishesRevisionStore.ts の冒頭）。
+
+				`useMyDishesFeedScopeStore` は全画面 Feed が指す **id の列**を持つ。前のユーザーの
+				id を残すと «他人の記録を開こうとして失敗する» ことになるので一緒に捨てる。
+
+				⚠️ `useMyDishesFilterStore`（エリア・期間などユーザーが選んだ絞り込み）は捨てない。
+				   匿名から本人へ «昇格» する経路が主なので、選んだ絞り込みまで消すと
+				   «画面を開き直したら条件が飛んでいた» という別の不満になる。
+				*/
+				useMyDishesRevisionStore.getState().bump();
+				useMyDishesFeedScopeStore.getState().clear();
 			}
 
 			if (event === "INITIAL_SESSION") {
@@ -628,12 +717,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * OAuthプロバイダーでログインする。
 	 * 新規ユーザー作成 または 既存ユーザー へのログインを行う。
 	 * @param provider - 'google' などのOAuthプロバイダー名
+	 * @param options.next - ログイン後の行き先。`resolveNextPath` を通した内部パスのみ（#1370）
 	 */
 	const signInWithOAuth = async (
 		provider: Provider,
-		options?: { queryParams?: { [key: string]: string } },
+		options?: { queryParams?: { [key: string]: string }; next?: string },
 	): Promise<OAuthLaunchOutcome> => {
-		const { queryParams = {} } = options || {};
+		const { queryParams = {}, next } = options || {};
 
 		// Google のときはデフォルトで毎回アカウント選択を出す
 		const defaultQueryParamsForProvider: Record<Provider, { [k: string]: string }> = {
@@ -646,10 +736,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			...queryParams, // 呼び出し側で上書きしたければこちらが優先
 		};
 
+		const callbackQueryParams = buildAuthCallbackQueryParams({ intent: "signin" }, next);
 		const redirectTo =
 			Platform.OS === "web"
-				? `${window.location.origin}/${locale}/auth/callback?intent=signin`
-				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback?intent=signin` });
+				? buildWebAuthCallbackUrl(locale, callbackQueryParams)
+				: AuthSession.makeRedirectUri({
+						scheme: "nanitabeyo",
+						path: buildAuthCallbackPath(locale),
+						queryParams: callbackQueryParams,
+					});
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
 			options: {
@@ -694,12 +789,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * 成功時は 同一 auth.users.id を維持して昇格可能。
 	 * ただし、既に他のユーザーにリンク済みの OAuth であれば失敗する。
 	 * @param provider - 'google' などのOAuthプロバイダー名
+	 * @param options.next - ログイン後の行き先。`resolveNextPath` を通した内部パスのみ（#1370）
 	 */
 	const linkIdentity = async (
 		provider: Provider,
-		options?: { queryParams?: { [key: string]: string } },
+		options?: { queryParams?: { [key: string]: string }; next?: string },
 	): Promise<OAuthLaunchOutcome> => {
-		const { queryParams = {} } = options || {};
+		const { queryParams = {}, next } = options || {};
 
 		// Google のときはデフォルトで毎回アカウント選択を出す
 		const defaultQueryParamsForProvider: Record<Provider, { [k: string]: string }> = {
@@ -712,13 +808,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			...queryParams, // 呼び出し側で上書きしたければこちらが優先
 		};
 
+		// linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?intent=link` を付与
+		const callbackQueryParams = buildAuthCallbackQueryParams({ intent: "link", provider }, next);
 		const redirectTo =
 			Platform.OS === "web"
-				? // linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?intent=link` を付与
-					`${window.location.origin}/${locale}/auth/callback?intent=link&provider=${provider}`
+				? buildWebAuthCallbackUrl(locale, callbackQueryParams)
 				: AuthSession.makeRedirectUri({
 						scheme: "nanitabeyo",
-						path: `${locale}/auth/callback?intent=link&provider=${provider}`,
+						path: buildAuthCallbackPath(locale),
+						queryParams: callbackQueryParams,
 					});
 		const { data, error } = await supabase.auth.linkIdentity({
 			provider,
@@ -751,7 +849,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 		const parsed = Linking.parse(result.url);
 		const parsedLocale = (parsed.hostname ?? "ja-JP") as string;
-		const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
+		// #1374 クエリは «デコード 1 回» で読む（lib/oauthResultUrl.ts の JSDoc 参照）。
+		// Linking.parse の queryParams は 2 回デコードなので、redirectTo を 1 回エンコードへ直した
+		// 今は過剰になる。読めなかったときだけ従来の経路へ倒す
+		const qp =
+			readOAuthResultQuery(result.url) ??
+			Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)]));
 		const href: Href = {
 			pathname: "/[locale]/auth/callback",
 			params: { locale: parsedLocale, ...qp },
@@ -769,12 +872,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		if (!url) return { status: "no_result" };
 
 		const parsed = Linking.parse(url);
-		const code = parsed.queryParams?.code as string | undefined;
-		const intent = parsed.queryParams?.intent as string | undefined;
-		const provider = parsed.queryParams?.provider as Provider | undefined;
-		const error = parsed.queryParams?.error as string | undefined;
-		const error_code = parsed.queryParams?.error_code as string | undefined;
-		const error_description = parsed.queryParams?.error_description as string | undefined;
+		// #1374 同上。ここが 2 回デコードのままだと、next に裸の `%` が入っただけで
+		// URIError が起き、Linking.parse の catch がそれを飲んで **code まで消える**
+		const queryParams =
+			readOAuthResultQuery(url) ??
+			(parsed.queryParams as Record<string, string | undefined> | undefined) ??
+			{};
+		const code = queryParams.code as string | undefined;
+		const intent = queryParams.intent as string | undefined;
+		const provider = queryParams.provider as Provider | undefined;
+		const error = queryParams.error as string | undefined;
+		const error_code = queryParams.error_code as string | undefined;
+		const error_description = queryParams.error_description as string | undefined;
 
 		// エラーがある場合は、そのまま例外として throw する
 		// callback.tsx 側で処理するため、ここでは自動フォールバックしない

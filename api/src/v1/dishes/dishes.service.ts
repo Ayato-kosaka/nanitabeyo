@@ -505,6 +505,20 @@ export class DishesService {
           created_at:
             existingGoogleImportEntry?.restaurant.created_at ??
             new Date().toISOString(),
+          // #843 store catalog（BigQuery）同期由来の metadata。この経路は Google Places
+          // からの取り込みなので同期していない（migration 20260823T0000 の既定値と同じ）
+          source_seed_id: null,
+          source_names: [],
+          source_row_hash: null,
+          synced_at: null,
+          // #843 この経路はアプリ（ユーザー操作）が作る行なので 'user'。
+          // 既存行があるときは、その行の作成主体を保つ（作成者は不変の履歴）。
+          created_by_source:
+            existingGoogleImportEntry?.restaurant.created_by_source ?? 'user',
+          // #1681 住所と国コードはオープンデータ由来で埋める列なので、この経路では
+          // 作らない（Google の住所は ToS 3.2.3 で保持できない）。既存値は保つ。
+          address: existingGoogleImportEntry?.restaurant.address ?? null,
+          country_code: existingGoogleImportEntry?.restaurant.country_code ?? null,
         };
 
         const dish: SupabaseDishes = {
@@ -519,6 +533,9 @@ export class DishesService {
             existingGoogleImportEntry?.dish.updated_at ??
             new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish.lock_no ?? 0,
+          // #843 catalog 同期ではない行の既定値（DB 側の DEFAULT と同じ）
+          data_origin: 'user_or_google',
+          synced_at: null,
         };
 
         const dishMedia: SupabaseDishMedia = {
@@ -530,6 +547,9 @@ export class DishesService {
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
           media_path: mediaPath,
+          // #1395 この経路は Google の写真を自ストレージへ保存するので常に 'stored'。
+          // 'external_embed' は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+          render_type: 'stored',
           media_type:
             existingGoogleImportEntry?.dish_media.media_type ?? 'image',
           thumbnail_path:
@@ -542,6 +562,7 @@ export class DishesService {
             new Date().toISOString(),
           updated_at: new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish_media.lock_no ?? 0,
+          deleted_at: null, // #1513 Google import は常に未削除で作る
         };
 
         if (existingGoogleImportEntry) {
@@ -590,6 +611,12 @@ export class DishesService {
           imported_user_name: review.authorAttribution?.displayName || null,
           imported_user_avatar: review.authorAttribution?.photoUri || null,
           created_at: new Date().toISOString(),
+          // #1513 Google import は常に未削除・未編集で作る
+          updated_at: new Date().toISOString(),
+          lock_no: 0,
+          deleted_at: null,
+          // #1551 食べた日はユーザーが入力する列。Google の口コミには無いので NULL
+          eaten_at: null,
         }));
 
         // #829 【設計】未完了 Google import の再処理では既存 review ID を渡し、handler 側の skipDuplicates と合わせて retry を no-op 化する。
@@ -633,8 +660,10 @@ export class DishesService {
         // dish_media_impressions.dish_media_id の FK 違反（P2003）で 500 になる（#1223/#1222）。
         // レスポンスが返す ID は必ず DB に存在する、という契約を同期側の責務として守る。
         //
-        // 【設計】非同期ハンドラと二重に upsert されるが no-op に収束する。根拠:
-        //   - restaurants: `upsert({ where: { google_place_id }, update: {} })`
+        // 【設計】非同期ハンドラと二重に upsert されても安全に収束する。根拠:
+        //   - restaurants: 同期側は `update: {}`。handler 側だけ、既存 path の
+        //                  原本が GCS から消えているときに限り `image_path` を
+        //                  確認済みの新しい path へ貼り替える（#514）
         //   - dishes:      `findFirst(restaurant_id, category_id)` して無ければ create
         //   - dish_media:  `upsert({ where: { id }, update: {} })` かつ id は
         //                  (placeId, categoryId) から決定論的（#829）なので両者が同じ ID を出す
@@ -643,8 +672,10 @@ export class DishesService {
         //
         // 【設計】enqueue が先なので、ハンドラが同期 upsert より先に完走して
         // status を 'completed' にする競合が理屈上あり得る。それでも巻き戻らない。
-        // 上記 3 メソッドはいずれも「既にあれば何もしない」（update は空 / findFirst 先勝ち）で、
-        // status を書き戻す update 句を持たないため。ここを update 付きに変えてはいけない。
+        // dishes / dish_media は「既にあれば何もしない」。restaurants の handler 更新も
+        // processing status を持たない image_path だけなので、dish_media の completed を
+        // processing に巻き戻す update 句は無い。ここへ status を含む update を
+        // 足してはいけない。
         //
         // 【設計】status は 'processing' のまま入れる。handler の冪等性境界は
         // `isDishMediaCompleted(dish_media.id)` なので、ここで completed にすると
@@ -715,6 +746,18 @@ export class DishesService {
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
                   dishReviews.length
                 : 0,
+            /*
+              #1375 この経路（一括取り込みの応答）はカテゴリ表を引いていない。
+
+              ⚠️ #1629 で `dishes.name` へのフォールバックを **やめた**ので、ここを null のままに
+                 すると受け取った側の料理カテゴリー欄が **空欄**になる（«食べた» を開くと
+                 表記が出ず、投稿の可否まで巻き添えになりうる）。
+                 カテゴリ表は引かずとも、**この取り込みで使ったカテゴリ名は手元にある**ので、
+                 それを «その言語の表記» として返す。カテゴリ表を引く join は増やさない。
+            */
+            categoryLabels: dto.categoryName
+              ? { [dto.languageCode ?? 'ja']: dto.categoryName }
+              : null,
           },
           dish_media: {
             ...dishMedia,
@@ -733,6 +776,7 @@ export class DishesService {
             // 作られるため dish_id が 'unknown' のまま。レスポンスは実 ID に揃える。
             dish_id: dish.id,
             username: r.imported_user_name || 'Anonymous', // ユーザー名がない場合は 'Anonymous' とする
+            isMine: false, // #1513 インポートなので自分のものではない（編集・削除の導線は出さない）
             isLiked: false, // 初期状態ではいいねされていない
             likeCount: 0, // 初期状態ではいいね数は 0
           })),

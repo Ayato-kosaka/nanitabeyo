@@ -1,7 +1,7 @@
 export const privacyEnUS = `
 # Privacy Policy
 
-Last Updated: November 2025
+Last Updated: August 2026
 
 This Privacy Policy ("Policy") describes how the operator of "CraveCatch / なに食べよ" (the "Service") collects and handles personal information and data. By using the Service, you agree to this Policy.
 
@@ -80,8 +80,16 @@ We will respond within reasonable capacity.
 
 ## 7. Account Deletion
 
-The Service does not provide an account deletion function.  
-Users may stop using the Service by logging out.
+The Service provides an account deletion function in the Settings screen.  
+When you delete your account, personally identifiable information such as your display name, bio, and profile image is anonymized immediately, and the authentication account used to sign in is deleted. Your posts and reviews stop being shown anywhere in the Service, including lists and search, and the uploaded image and video files themselves are deleted.  
+**Deletion cannot be undone.** You will not be able to sign in again with the same account.
+
+The following are retained after deletion:
+
+- Records related to bids and payouts (retained to comply with accounting and payment-related legal obligations)
+- Operational logs such as access and event logs, and behavioral logs about impressions and views (retained to investigate abuse and to improve the Service; after deletion these are handled as information that cannot identify an individual)
+
+Logging out alone does not delete your account.
 
 ---
 

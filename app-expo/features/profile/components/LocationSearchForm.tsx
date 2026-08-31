@@ -5,6 +5,8 @@ import { Card } from "@/components/Card";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import i18n from "@/lib/i18n";
 import { useLocationField, type SelectedLocation } from "@/features/search/hooks/useLocationField";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface LocationSearchFormProps {
 	/** Initial location text value */
@@ -17,14 +19,21 @@ interface LocationSearchFormProps {
 	onSubmit: (selected: SelectedLocation) => void;
 	/**
 	 * Called when user cancels.
-	 * ⚠️ 現状この JSX にキャンセル操作の要素が無く、呼ばれることはない（`BlurModal` 側の
-	 * 背景タップで閉じる）。導入時からの未参照 props で、削除の可否は判断待ちのため optional に留める。
+	 * ⚠️ 現状この JSX にキャンセル操作の要素が無く、呼ばれることはない。#1369 でモーダルを
+	 * やめた後は、キャンセル（＝離脱）の導線も画面側の ScreenHeader が持つ。
+	 * 導入時からの未参照 props で、削除の可否は判断待ちのため optional に留める。
 	 */
 	onCancel?: () => void;
 	/** Placeholder text for the location input */
 	placeholder?: string;
-	/** Modal title */
-	title?: string;
+	/**
+	 * フォーム上部の見出し。
+	 *
+	 * #1369 `null` を渡すと描画しない。ルート化した保存料理カテゴリの地点検索
+	 * （app/[locale]/(tabs)/profile/saved-dish-category-location.tsx）は同じ文言を ScreenHeader が
+	 * 持つため、二重に出さないための逃げ道。既定（未指定）は従来どおり見出しを描く。
+	 */
+	title?: string | null;
 	/** Test ID for the autocomplete input */
 	testID?: string;
 }
@@ -44,6 +53,8 @@ export function LocationSearchForm({
 	title = i18n.t("Search.locationModal.title"),
 	testID,
 }: LocationSearchFormProps) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const {
 		locationQuery,
 		setLocationQuery,
@@ -67,7 +78,7 @@ export function LocationSearchForm({
 
 	return (
 		<Card>
-			<Text style={styles.modalTitle}>{title}</Text>
+			{title ? <Text style={styles.modalTitle}>{title}</Text> : null}
 			<View style={styles.locationSection}>
 				<LocationAutocomplete
 					ref={inputRef}
@@ -88,8 +99,8 @@ export function LocationSearchForm({
 							hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("Search.accessibility.useCurrentLocation")}
-							testID="saved-topic-current-location-button">
-							<Navigation size={20} color="#000000" />
+							testID="saved-dishCategory-current-location-button">
+							<Navigation size={20} color={colors.textStrong} />
 						</TouchableOpacity>
 					}
 					autofocus={true}
@@ -100,24 +111,27 @@ export function LocationSearchForm({
 	);
 }
 
-const styles = StyleSheet.create({
-	modalTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 16,
-		textAlign: "center",
-		letterSpacing: -0.3,
-	},
-	locationSection: {
-		flexDirection: "row",
-		alignItems: "flex-start",
-		gap: 12,
-	},
-	// #1133 ホーム(`search/index.tsx` の currentLocationButton)と同一の見た目にする
-	currentLocationButton: {
-		padding: 16,
-		borderLeftWidth: 0.5,
-		borderLeftColor: "#C9C9C9",
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		modalTitle: {
+			fontSize: 18,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginBottom: 16,
+			textAlign: "center",
+			letterSpacing: -0.3,
+		},
+		locationSection: {
+			flexDirection: "row",
+			alignItems: "flex-start",
+			gap: 12,
+		},
+		// #1133 ホーム(`search/index.tsx` の currentLocationButton)と同一の見た目にする
+		currentLocationButton: {
+			padding: 16,
+			borderLeftWidth: 0.5,
+			borderLeftColor: c.border,
+		},
+	});

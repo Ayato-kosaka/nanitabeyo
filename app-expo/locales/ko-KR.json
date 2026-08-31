@@ -29,7 +29,8 @@
 			"unexpected": "예기치 않은 오류가 발생했습니다. 나중에 다시 시도해 주세요.",
 			"notFound": "찾을 수 없음",
 			"authUnavailable": "인증에 실패했습니다. 네트워크 연결을 확인한 후 다시 시도해 주세요.",
-			"authRateLimited": "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
+			"authRateLimited": "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+			"videoProcessingFailed": "동영상 처리에 실패했습니다. 다른 동영상을 시도해 주세요."
 		}
 	},
 	"DeepLinking": {
@@ -81,7 +82,22 @@
 		"submitFailed": "투표를 제출하지 못했습니다",
 		"participantsList": "참가자: {{names}}",
 		"noParticipants": "아직 참가자가 없습니다",
-		"noVotes": "아직 투표가 없습니다"
+		"noVotes": "아직 투표가 없습니다",
+		"myVotes": {
+			"pageTitle": "그룹 투표 내역",
+			"loadFailed": "그룹 투표를 불러올 수 없습니다",
+			"noCandidates": "후보 없음",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} 외 {{count}}개",
+			"participantSummary": "{{count}}명이 투표",
+			"decidedLabel": "결정: {{name}}",
+			"votedLabel": "투표 완료",
+			"notVotedLabel": "미투표",
+			"itemAccessibilityLabel": "{{date}}의 그룹 투표. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "아직 주최한 그룹 투표가 없습니다",
+			"emptyDescription": "음식을 검색해 후보를 고르면 친구들에게 투표를 요청할 수 있어요.",
+			"emptyAction": "투표 만들기"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",
@@ -118,12 +134,18 @@
 			"noLocationSelected": "위치를 선택해 주세요",
 			"noTimeSlotSelected": "시간대를 선택해 주세요",
 			"noSceneSelected": "장면을 선택해 주세요",
+			"malformedAddress": "검색 장소를 다시 선택해 주세요",
 			"searchFailed": "검색에 실패했습니다"
 		},
 		"googleMapsFallback": {
 			"message": "조건에 맞는 음식점을 Google 지도에서 확인할 수 있습니다.",
 			"confirm": "Google 지도 열기",
 			"cancel": "닫기"
+		},
+		"unsupportedRegion": {
+			"title": "일본 국내만 지원합니다",
+			"message": "현재 이 앱은 일본 국내만 지원합니다. 일본 국내의 장소를 선택해 주세요.",
+			"confirm": "확인"
 		},
 		"sections": {
 			"location": "어디에서 찾을까요?",
@@ -148,7 +170,7 @@
 			"locationInputHint": "레스토랑을 검색할 위치를 입력하세요",
 			"clearLocation": "위치 지우기",
 			"useCurrentLocation": "현재 위치 사용",
-			"showTutorial": "사용법 보기",
+			"showTutorial": "사용 방법 보기",
 			"selectLocation": "이 위치 선택"
 		},
 		"loading": "검색 중...",
@@ -229,39 +251,62 @@
 				"bulkShare": "모두 공유"
 			}
 		},
-		"tutorial": {
-			"page1": {
-				"title": "먹고 싶은 음식을 발견하세요",
-				"body1": "\"오늘 뭐 먹지?\"의 고민을 한 번에 해결합니다.",
-				"body2": "위치와 시간에 맞춰 요리와 레스토랑을 함께 제안합니다.",
-				"cta": "다음"
-			},
-			"page2": {
-				"title": "사진을 보고 먹고 싶은 것을 발견하세요",
-				"body1": "현재 조건에 맞는 요리 6개를 제안합니다.",
-				"body2": "사진을 보면서 직관적으로 먹고 싶은 것을 선택할 수 있습니다.",
-				"cta": "다음"
-			},
-			"page3": {
-				"title": "사진과 리뷰로 \"여기 가자\"가 결정됩니다",
-				"body1": "선택한 요리에 맞는 레스토랑 5곳을 제안합니다.",
-				"body2": "사진과 리뷰, 지도를 보면서 마음에 드는 곳을 빠르게 선택할 수 있습니다.",
-				"cta": "다음"
-			},
-			"page4": {
-				"title": "시작하기",
-				"body1": "근처의 맛있는 레스토랑을 제안하기 위해 현재 위치를 사용합니다.",
-				"body2": "언제든지 설정에서 변경할 수 있습니다.",
-				"primaryCta": "현재 위치 사용",
-				"secondaryCta": "나중에"
-			}
-		},
 		"recentLocations": {
 			"title": "최근 사용한 장소",
 			"clear": "최근 사용한 장소 지우기"
+		},
+		"locationConfirmation": {
+			"error": "위치 확인에 실패했습니다"
 		}
 	},
-	"Topics": {
+	"Onboarding": {
+		"step1": {
+			"problem": "애초에 뭘 먹고 싶은지\n정해지지 않아요",
+			"solution": "추천해 주는 요리 중에서 고르기만 하면 돼요"
+		},
+		"step2": {
+			"problem": "가게 후보가 너무 많아서\n정하기 지쳐요",
+			"solution": "엄선한 가게에서 고르니까 정하기 쉬워요!"
+		},
+		"step3": {
+			"problem": "친구 의견도 듣고 싶어요",
+			"solution": "친구들과 다수결로 요리를 정할 수 있어요!"
+		},
+		"back": "이전",
+		"next": "다음",
+		"skip": "건너뛰기",
+		"location": {
+			"title": "가까운 맛집을 바로 찾아보세요 📍",
+			"body": "위치 정보를 사용하면 지금 있는 곳 근처의 추천 맛집을 제안해 드릴 수 있어요.",
+			"dialog": {
+				"title": "'CraveCatch'에서 사용자의 위치를 사용하도록 허용하겠습니까?",
+				"message": "현재 위치 주변의 추천 맛집을 제안하기 위해 위치 정보를 사용합니다.",
+				"allowOnce": "한 번 허용",
+				"allowWhileUsing": "앱을 사용하는 동안 허용",
+				"deny": "허용 안 함"
+			}
+		},
+		"notifications": {
+			"title": "먹고 싶은 순간을 놓치지 않도록 🔔",
+			"body": "회원님께 맞는 추천과 CraveCatch의 소식을 보내 드릴게요.",
+			"dialog": {
+				"title": "'CraveCatch'에서 알림을 보내고자 합니다.",
+				"message": "알림에는 텍스트, 사운드 및 아이콘 배지가 포함될 수 있습니다.",
+				"deny": "허용 안 함",
+				"allow": "허용"
+			}
+		},
+		"welcome": {
+			"title": "CraveCatch에 오신 것을 환영해요!",
+			"body1": "이제 가게 고르느라 너무 고민하지 않아도 돼요.",
+			"body2": "오늘의 '먹고 싶다'를 찾으러 가요.",
+			"cta": "시작하기"
+		},
+		"accessibility": {
+			"stepProgress": "{{total}}단계 중 {{current}}단계"
+		}
+	},
+	"DishCategories": {
 		"deepDive": {
 			"title": "이 계열로 좁히기"
 		},
@@ -282,7 +327,7 @@
 					"title": "기분에 맞춰 더 깊이 검색",
 					"body": "아직 고민된다면 원하는 계열을 골라 비슷한 요리로 범위를 좁혀보세요."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "취향에 맞게 정리하기",
 					"save": "저장: 마음에 드는 요리를 나중에 다시 볼 수 있어요",
 					"block": "차단: 취향에 맞지 않는 요리는 앞으로 추천되지 않아요"
@@ -293,7 +338,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "숨기기",
 			"description": "숨기는 이유를 알려주세요 (선택사항)",
 			"placeholder": "이유를 입력하세요...",
@@ -311,7 +356,7 @@
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "이 요리를 차단할까요?",
 			"description": "차단된 요리 카테고리는 추천에 더 이상 표시되지 않습니다.",
 			"note": "설정에서 언제든지 차단을 해제할 수 있어요.",
@@ -330,9 +375,9 @@
 		"headerTitle": "당신을 위한 추천 요리",
 		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요",
 		"accessibility": {
-			"blockTopic": "추천에서 {{title}} 제외",
-			"saveTopic": "{{title}} 저장",
-			"unsaveTopic": "{{title}} 저장 해제",
+			"blockDishCategory": "추천에서 {{title}} 제외",
+			"saveDishCategory": "{{title}} 저장",
+			"unsaveDishCategory": "{{title}} 저장 해제",
 			"thumbnail": "{{title}} 썸네일, {{total}}개 중 {{index}}번째"
 		}
 	},
@@ -348,6 +393,9 @@
 			},
 			"dish_reviews": {
 				"like": "님이 회원님의 리뷰를 좋아합니다"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "님이 회원님의 그룹에 투표했습니다"
 			}
 		}
 	},
@@ -356,14 +404,11 @@
 			"million": "M",
 			"thousand": "K"
 		},
-		"menuOptions": {
-			"viewCreatorProfile": "작성자 프로필로 이동",
-			"reservation": "예약"
-		},
 		"actions": {
 			"share": "공유하기",
 			"seeMore": "더 보기",
-			"openMap": "지도 열기"
+			"openMap": "지도 열기",
+			"review": "리뷰"
 		},
 		"share": {
 			"title": "{{dishName}} 확인해 보세요"
@@ -379,7 +424,10 @@
 			"saveInactive": "{{name}} 저장",
 			"share": "{{name}} 공유",
 			"openMap": "{{name}} 지도 열기",
-			"reviewLike": "{{username}}님의 리뷰에 좋아요"
+			"reviewLike": "{{username}}님의 리뷰에 좋아요",
+			"recordEaten": "{{name}} 먹었어요로 기록",
+			"recordEatenAgain": "{{name}}에서 먹었다를 다시 기록 (기록됨)",
+			"ownPostMenu": "{{name}} 게시물 메뉴 열기"
 		},
 		"processing": "미디어 처리 중...",
 		"info": {
@@ -387,7 +435,46 @@
 		},
 		"errors": {
 			"mapOpenFailed": "지도 앱을 열 수 없습니다",
-			"mediaUnavailable": "이 미디어는 현재 이용하실 수 없습니다."
+			"mediaUnavailable": "이 미디어는 현재 이용하실 수 없습니다.",
+			"likeReactionFailed": "좋아요 업데이트에 실패했습니다. 다시 시도해 주세요.",
+			"saveReactionFailed": "저장 업데이트에 실패했습니다. 다시 시도해 주세요."
+		},
+		"save": {
+			"savedMessage": "먹고 싶어요에 저장했습니다"
+		},
+		"embed": {
+			"play": "{{provider}}에서 재생",
+			"openExternally": "{{provider}}에서 보기",
+			"unmute": "소리 켜기"
+		},
+		"ownPost": {
+			"menuTitle": "내 게시물",
+			"edit": "리뷰 편집",
+			"delete": "게시물 삭제",
+			"deleteReview": "리뷰 삭제",
+			"cancel": "취소",
+			"mediaLocked": "사진과 동영상은 변경할 수 없습니다. 코멘트, 평점, 가격만 수정할 수 있습니다.",
+			"deleteConfirmTitle": "게시물을 삭제할까요?",
+			"deleteConfirmMessage": "이 게시물(사진과 내 리뷰)을 삭제합니다. 되돌릴 수 없습니다.",
+			"deleteReviewConfirmTitle": "리뷰를 삭제할까요?",
+			"deleteReviewConfirmMessage": "내가 쓴 리뷰만 삭제합니다. 사진은 다른 사람의 것이라 그대로 남습니다. 되돌릴 수 없습니다.",
+			"deleteConfirmButton": "삭제",
+			"deleted": "게시물을 삭제했습니다",
+			"reviewDeleted": "리뷰를 삭제했습니다",
+			"deleteFailed": "삭제하지 못했습니다",
+			"reviewDeleteFailed": "리뷰를 삭제하지 못했습니다",
+			"editTitle": "리뷰 편집",
+			"editComment": "코멘트",
+			"editRating": "평점",
+			"editPrice": "가격",
+			"save": "저장",
+			"saved": "리뷰를 수정했습니다",
+			"saveFailed": "수정하지 못했습니다",
+			"conflict": "다른 기기에서 먼저 수정되었습니다. 다시 열고 편집해 주세요.",
+			"forbidden": "내 게시물만 편집하거나 삭제할 수 있습니다"
+		},
+		"moreMenu": {
+			"title": "이 게시물"
 		}
 	},
 	"ImageCardGrid": {
@@ -401,17 +488,17 @@
 	"Tabs": {
 		"home": "홈",
 		"search": "검색",
-		"map": "지도",
 		"review": "리뷰",
 		"notifications": "알림",
 		"profile": "프로필",
 		"labels": {
 			"search": "검색",
-			"map": "지도",
 			"review": "리뷰",
 			"notifications": "알림",
-			"profile": "프로필"
-		}
+			"profile": "프로필",
+			"myDishes": "내 음식"
+		},
+		"myDishes": "내 음식"
 	},
 	"Profile": {
 		"tabGroups": {
@@ -424,9 +511,10 @@
 			"deposits": "예치금",
 			"earnings": "수익",
 			"saved-posts": "게시물",
-			"saved-topics": "요리",
+			"saved-dish-categories": "요리",
 			"wallet-deposit": "예치금",
-			"wallet-earning": "수익"
+			"wallet-earning": "수익",
+			"saved-topics": "요리"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -444,6 +532,7 @@
 			"noLikedDishMediaEntries": "좋아요한 게시물이 없습니다",
 			"noSavedItems": "저장된 항목이 없습니다",
 			"noSavedPosts": "흥미로운 게시물을 찾으면 \"저장\"으로 다시 볼 수 있습니다",
+			"noSavedDishCategories": "흥미로운 요리를 찾으면 \"저장\"으로 주변 음식점을 탐색할 수 있습니다",
 			"noSavedTopics": "흥미로운 요리를 찾으면 \"저장\"으로 주변 음식점을 탐색할 수 있습니다"
 		},
 		"reviews": {
@@ -497,7 +586,11 @@
 			"displayNameLength": "표시 이름은 30자 이하여야 합니다",
 			"bioLength": "자기소개는 150자 이하여야 합니다"
 		},
-		"guestDisplayName": "게스트"
+		"guestDisplayName": "게스트",
+		"menu": {
+			"likedPosts": "좋아요한 게시물",
+			"savedDishCategories": "저장한 요리 카테고리"
+		}
 	},
 	"NotFound": {
 		"title": "이런!",
@@ -509,14 +602,13 @@
 		"buttons": {
 			"postReview": "리뷰 게시",
 			"postPhotoVideoReview": "사진/동영상 게시",
-			"placeBid": "입찰하기",
 			"bid": "입찰",
 			"searchNearby": "이 지역에서 검색",
 			"openInGoogle": "Google에서 열기"
 		},
 		"actions": {
 			"selectDishCategory": "요리 카테고리 선택",
-			"writeReviewForThisDish": "이 요리에 대한 리뷰 작성"
+			"useTypedDishCategory": "“{{name}}”(으)로 결정"
 		},
 		"inputs": {
 			"price": "가격",
@@ -532,18 +624,20 @@
 			"enterReviewShort": "한줄 리뷰 (예: 돼지뼈 국물이 정말 진하고 완전 맛있었어요!)",
 			"enterBidAmount": "입찰 금액 입력",
 			"enterDishCategory": "요리 카테고리 입력 (예: 비빔밥, 불고기)",
-			"searchRestaurantsForReview": "이름이나 지역으로 검색"
+			"searchRestaurantsForReview": "이름이나 지역으로 검색",
+			"searchAreaForReview": "지역으로 검색",
+			"searchDishCategory": "요리 이름으로 검색"
 		},
 		"labels": {
 			"endDate": "종료일:",
 			"paymentProcessing": "결제 처리 중...",
-			"currentBidAmount": "현재 입찰 금액",
 			"restaurant": "레스토랑",
-			"dishCategory": "요리 카테고리"
+			"dishCategory": "요리 카테고리",
+			"dishesAtThisRestaurant": "이 가게의 요리",
+			"noDishesAtThisRestaurant": "이 가게에는 아직 기록이 없습니다. 요리 이름을 입력하세요."
 		},
 		"tabs": {
-			"reviews": "리뷰",
-			"bids": "입찰"
+			"reviews": "리뷰"
 		},
 		"emptyState": {
 			"noBidsForStatus": "선택한 상태의 입찰이 없습니다"
@@ -563,13 +657,20 @@
 			"videoTooLong": "2분 이내의 동영상을 선택해주세요.",
 			"permissionDenied": "미디어에 액세스할 수 없습니다. 설정에서 권한을 허용해주세요.",
 			"thumbnailFailed": "썸네일 생성에 실패했습니다. 다른 파일을 시도해주세요.",
+			"unsupportedImageFormat": "이 이미지 형식(HEIC)은 사용할 수 없습니다. 다른 사진을 선택하거나 카메라 설정을 \"높은 호환성\"으로 변경해주세요.",
 			"selectedImage": "선택한 이미지",
 			"selectedVideoThumbnail": "선택한 동영상의 썸네일",
 			"playVideo": "동영상 재생",
 			"selectingMedia": "미디어 선택 중...",
 			"loadingMedia": "미디어 로드 중...",
 			"mediaSelectionFailed": "미디어 선택 실패",
-			"mediaSelectionError": "미디어 선택 중 오류가 발생했습니다. 다시 시도해주세요."
+			"mediaSelectionError": "미디어 선택 중 오류가 발생했습니다. 다시 시도해주세요.",
+			"replaceWithMyPhoto": "내 사진으로 바꾸기",
+			"reselectPhoto": "사진 다시 선택",
+			"openSettings": "설정 열기",
+			"pickFromLibrary": "라이브러리에서 선택",
+			"shootWithCamera": "사진 촬영",
+			"pickFromExisting": "이 가게의 사진에서 고르기"
 		},
 		"noResultsFound": "결과를 찾을 수 없습니다",
 		"accessibility": {
@@ -635,6 +736,18 @@
 				"asian": "아시아 요리",
 				"other": "기타"
 			}
+		},
+		"review": {
+			"title": "리뷰 게시"
+		},
+		"emptyState": {
+			"noReviews": "아직 리뷰가 없습니다.\n이 레스토랑의 첫 리뷰를 작성해보세요."
+		},
+		"everybodyPostsTitle": "모두의 게시물",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "레스토랑 상세",
+			"openInGoogleMaps": "Google 지도에서 열기"
 		}
 	},
 	"Feedback": {
@@ -665,26 +778,14 @@
 		}
 	},
 	"auth": {
-		"login_title": "로그인",
 		"create_title": "계정 생성",
-		"field_phone": "전화번호",
 		"field_name": "이름",
-		"hint_sms": "로그인을 위해 SMS로 일회용 코드를 보내드립니다.",
 		"btn_login": "로그인",
 		"btn_create": "계정 생성",
 		"divider_or": "또는 다음으로 로그인",
 		"agree_tos": "서비스 약관에 동의합니다",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
-		"otp_title": "코드 입력",
-		"otp_resending": "인증 코드를 다시 전송 중...",
-		"otp_send_again": "코드 재전송",
-		"otp_enter_all_digits": "6자리 모두 입력해 주세요",
 		"login_success": "성공적으로 로그인되었습니다!",
 		"error_required": "필수 입력 항목입니다",
-		"error_invalid_phone": "유효하지 않은 전화번호입니다",
 		"tos_link_text": "서비스 약관",
 		"existing_account_checkbox": "이미 계정이 있으신가요?",
 		"conflict_dialog_title": "기존 계정을 찾았습니다",
@@ -696,12 +797,24 @@
 		"consent_login_terms": "이용약관",
 		"consent_login_and": " 및 ",
 		"consent_login_privacy": "개인정보 보호정책",
-		"consent_login_suffix": "에 동의하는 것으로 간주됩니다."
+		"consent_login_suffix": "에 동의하는 것으로 간주됩니다.",
+		"skip": "건너뛰기",
+		"signup_title": "계정을 만들어 보세요",
+		"signup_subtitle": "리뷰를 올리고 마음에 드는 가게를 저장할 수 있어요",
+		"continue_with_google": "Google로 계속하기",
+		"continue_with_apple": "Apple로 계속하기"
 	},
 	"Settings": {
 		"title": "설정",
+		"theme": {
+			"sectionTitle": "화면 테마",
+			"options": {
+				"system": "시스템 설정 따르기",
+				"light": "라이트",
+				"dark": "다크"
+			}
+		},
 		"sendFeedback": "피드백 보내기",
-		"leaveReview": "리뷰 남기기",
 		"rateDialogTitle": "앱이 마음에 드시나요?",
 		"rateDialogMessage": "마음에 드신다면 스토어에서 평가 부탁드립니다. 리뷰 페이지를 열겠습니다.",
 		"rateDialogOk": "지금 평가하기",
@@ -713,6 +826,68 @@
 		"logout": "로그아웃",
 		"logoutConfirmTitle": "로그아웃하시겠어요?",
 		"logoutConfirmMessage": "다시 로그인해야 게시물과 리뷰를 관리할 수 있습니다.",
+		"blockedDishCategories": {
+			"navigationLabel": "차단된 요리 카테고리",
+			"pageTitle": "차단된 요리 카테고리",
+			"title": "차단된 요리",
+			"empty": "차단된 요리가 없습니다",
+			"loading": "로딩 중...",
+			"unblockButton": "차단 해제",
+			"unblockTitle": "이 요리 카테고리를 차단 해제하시겠습니까?",
+			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
+			"unblockConfirm": "차단 해제",
+			"unblocked": "차단 해제됨"
+		},
+		"notifications": {
+			"sectionTitle": "알림",
+			"osDisabledTitle": "이 기기의 알림이 꺼져 있습니다",
+			"osDisabledDescription": "여기서 선택한 설정은 저장되지만, 이 기기로는 알림이 오지 않습니다.",
+			"openOsSettings": "기기 설정 열기",
+			"updateFailed": "설정을 저장하지 못했습니다",
+			"likes": {
+				"title": "좋아요",
+				"description": "내 게시물이나 리뷰에 좋아요가 눌렸을 때"
+			},
+			"saves": {
+				"title": "저장",
+				"description": "내 게시물이 저장되었을 때"
+			},
+			"group_votes": {
+				"title": "그룹 투표",
+				"description": "참여 중인 그룹 투표에 변화가 있을 때"
+			},
+			"navigationLabel": "알림 설정"
+		},
+		"language": {
+			"navigationLabel": "언어",
+			"pageTitle": "언어",
+			"systemDefault": "기기 설정을 따름",
+			"switching": "언어를 전환하는 중…"
+		},
+		"hapticsEnabled": "햅틱 피드백",
+		"deviceSettings": {
+			"navigationLabel": "기기 설정",
+			"title": "기기 설정",
+			"description": "이 기기에만 저장되는 설정입니다. 다른 기기나 계정으로는 이어지지 않습니다."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "그룹 투표 내역"
+		},
+		"support": "CraveCatch 응원하기",
+		"about": {
+			"navigationLabel": "CraveCatch 정보",
+			"title": "CraveCatch 정보"
+		},
+		"deleteAccount": "계정 삭제",
+		"deleteAccountInProgress": "삭제 중…",
+		"deleteAccountConfirmTitle": "계정을 삭제할까요?",
+		"deleteAccountConfirmMessage": "프로필이 더 이상 표시되지 않으며, 게시물과 리뷰는 목록과 검색에서 사라집니다. 사진과 동영상은 삭제되고 좋아요·저장·차단 기록도 함께 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.",
+		"deleteAccountConfirmButton": "계속",
+		"deleteAccountFinalTitle": "정말 삭제할까요?",
+		"deleteAccountFinalMessage": "계정과 데이터는 복구할 수 없습니다. 같은 계정으로 다시 로그인할 수도 없습니다.",
+		"deleteAccountFinalButton": "완전히 삭제",
+		"deleteAccountSuccess": "계정을 삭제했습니다",
+		"deleteAccountError": "계정을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
 		"blockedTopics": {
 			"navigationLabel": "차단된 요리 카테고리",
 			"pageTitle": "차단된 요리 카테고리",
@@ -724,6 +899,10 @@
 			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
 			"unblockConfirm": "차단 해제",
 			"unblocked": "차단 해제됨"
+		},
+		"account": {
+			"navigationLabel": "계정 관리",
+			"title": "계정 관리"
 		}
 	},
 	"Dialog": {
@@ -744,6 +923,7 @@
 			"submitting": "업데이트 중...",
 			"submitSuccess": "{{count}}개 이미지가 성공적으로 업데이트되었습니다",
 			"submitError": "이미지 업데이트 실패",
+			"submitUnavailable": "이 기능은 아직 사용할 수 없습니다(서버 측이 구현되지 않았습니다).",
 			"reset": "초기화",
 			"selected": "선택됨",
 			"dishCount": "{{count}}개 요리"
@@ -773,6 +953,7 @@
 			"savedRestaurantList": "저장된 레스토랑",
 			"postPhotoVideo": "사진/동영상 게시",
 			"fetchSavedRestaurantsError": "저장된 레스토랑을 가져오지 못했습니다",
+			"fetchSavedRestaurantsTimeout": "시간이 너무 오래 걸렸습니다. 지도를 확대한 뒤 다시 시도해 주세요.",
 			"noSavedRestaurantsInArea": "이 지역에서 저장된 레스토랑을 찾을 수 없습니다. 지역을 확대하고 다시 검색하세요."
 		},
 		"emptyState": {
@@ -782,6 +963,327 @@
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "레스토랑 상세"
+		}
+	},
+	"SelectRestaurant": {
+		"title": "리뷰할 가게 선택",
+		"searchThisArea": "이 지역에서 검색",
+		"savedRestaurantList": "저장된 레스토랑",
+		"postPhotoVideo": "사진/동영상 게시",
+		"fetchSavedRestaurantsError": "저장된 레스토랑을 가져오지 못했습니다",
+		"fetchSavedRestaurantsTimeout": "시간이 너무 오래 걸렸습니다. 지도를 확대한 뒤 다시 시도해 주세요.",
+		"noSavedRestaurantsInArea": "이 지역에서 저장된 레스토랑을 찾을 수 없습니다. 지역을 확대하고 다시 검색하세요.",
+		"nameSearch": {
+			"placeholder": "가게 이름으로 검색",
+			"searching": "검색 중…",
+			"noResults": "일치하는 가게를 찾을 수 없습니다. 지도에서 가게를 탭하여 등록하세요.",
+			"error": "검색에 실패했습니다. 다시 시도해 주세요."
+		},
+		"accessibility": {
+			"clearNameSearch": "가게 이름 검색 지우기"
+		},
+		"unsavedHint": "저장하지 않은 가게도 고를 수 있습니다. 위 검색창에 가게 이름을 넣거나 지도의 가게 아이콘을 누르세요.",
+		"pickTitle": "가게 고르기",
+		"pickOnMap": "지도에서 가게 찾기",
+		"pickConfirm": "이 가게로 결정"
+	},
+	"MyDishes": {
+		"actions": {
+			"markAsEaten": "먹었어요 기록",
+			"markAsEatenA11y": "이 음식을 먹었다고 기록하기"
+		},
+		"views": {
+			"map": "지도",
+			"list": "리스트",
+			"calendar": "캘린더"
+		},
+		"calendar": {
+			"monthLabel": "{{year}}년 {{month}}월",
+			"weekdays": {
+				"sun": "일",
+				"mon": "월",
+				"tue": "화",
+				"wed": "수",
+				"thu": "목",
+				"fri": "금",
+				"sat": "토"
+			},
+			"dayA11yLabel": "{{date}} ({{count}}건)",
+			"reachedOldest": "가장 오래된 기록입니다"
+		},
+		"map": {
+			"truncated": "핀이 많아 일부만 표시하고 있어요. 지역을 좁혀보세요.",
+			"sheetTitle": "이 부근의 레스토랑 {{count}}곳",
+			"tileA11yLabel": "{{name}} (먹고 싶다 {{want}}건, 먹었다 {{eaten}}건)",
+			"clusterA11yLabel": "이 부근 레스토랑 {{count}}곳",
+			"currentLocation": "현재 위치로 이동"
+		},
+		"guest": {
+			"description": "로그인하여 먹고 싶은/먹은 음식을 기록해보세요",
+			"loginButton": "로그인"
+		},
+		"record": {
+			"cta": "기록하기",
+			"noPhotoTitle": "사진 추가",
+			"noPhotoHint": "사진 없이도 기록할 수 있습니다",
+			"publicReviewNotice": "기록은 공개 리뷰로 음식점 페이지에 표시됩니다",
+			"postNotFoundNoPhoto": "이 기록에는 사진이 없습니다",
+			"skipPhoto": "건너뛰기 (사진 없음)",
+			"missingHint": "{{items}}을(를) 입력하면 게시할 수 있습니다.",
+			"missing": {
+				"comment": "한줄 리뷰",
+				"price": "가격",
+				"rating": "추천도",
+				"dishCategory": "요리 카테고리",
+				"separator": ", ",
+				"currency": "이 가게의 통화를 가져오지 못했습니다"
+			}
+		},
+		"filters": {
+			"title": "필터 및 정렬",
+			"apply": "적용",
+			"reset": "초기화",
+			"status": {
+				"title": "상태",
+				"want": "먹고 싶어요",
+				"eaten": "먹었어요",
+				"description": "「먹고 싶다」와 「먹었다」 중 무엇을 표시할지 고릅니다"
+			},
+			"rating": {
+				"title": "평점",
+				"min": "★{{count}} 이상",
+				"description": "「먹었다」 기록을 직접 매긴 평가로 좁힙니다"
+			},
+			"sort": {
+				"title": "정렬",
+				"occurredAtDesc": "최신순",
+				"occurredAtAsc": "오래된순",
+				"ratingDesc": "평점 높은순",
+				"distance": "가까운순",
+				"distanceRequiresArea": "가까운순으로 보려면 지역이 필요합니다. 지도에서 \"이 지역에서 재검색\"을 눌러 주세요.",
+				"featureScoreDesc": "조건 선택",
+				"description": "정렬을 고릅니다. 「조건 고르기」를 누르면 시간대·누구와 가는지 등이 열립니다"
+			},
+			"area": {
+				"title": "지역",
+				"none": "지정 안 함(전체)",
+				"clear": "지역 해제",
+				"hint": "지역은 지도의 \"이 지역에서 재검색\"으로 확정됩니다.",
+				"selected": "지도에서 고른 범위 (반경 {{radius}})"
+			},
+			"axes": {
+				"none": "지정 없음",
+				"timeSlot": "시간대",
+				"scene": "누구와 함께",
+				"budget": "가격대",
+				"diningPace": "식사 시간",
+				"foodStyle": "어떤 종류",
+				"description": "제목을 누르면 선택지가 열립니다. 제목마다 하나씩 고를 수 있습니다"
+			},
+			"period": {
+				"title": "기간",
+				"none": "지정 없음",
+				"clear": "기간 해제"
+			},
+			"category": {
+				"title": "요리 카테고리",
+				"description": "지금 표시된 기록 중에서 많은 요리 카테고리로 좁힙니다",
+				"count": "{{label}}（{{count}}）",
+				"showAll": "더 보기 (외 {{count}}개)"
+			},
+			"activeCount": "필터 {{count}}개 적용 중"
+		},
+		"empty": {
+			"description": "저장하거나 먹었다고 기록한 음식이 여기에 표시됩니다.",
+			"noResultsInArea": "이 범위에는 기록이 없어요.",
+			"noResultsInAreaHint": "지도를 옮겨 ‘이 지역에서 다시 검색’을 누르거나 필터를 해제해 보세요.",
+			"noResultsForFilter": "조건에 맞는 기록이 없어요.",
+			"noResultsForFilterHint": "필터를 해제하면 다른 기록이 표시됩니다."
+		},
+		"list": {
+			"noPhoto": "사진 없음"
+		},
+		"sheet": {
+			"title": "{{restaurant}}의 기록",
+			"counts": "먹고 싶어요 {{want}} · 먹었어요 {{eaten}}",
+			"openRestaurant": "가게 페이지 열기",
+			"expand": "전체 화면으로 보기",
+			"seeAllInList": "목록에서 보기",
+			"noPhotoHint": "사진이 없는 기록입니다. 탭하면 가게 페이지가 열립니다."
+		},
+		"feed": {
+			"chips": {
+				"filterCategory": "{{name}}(으)로 좁히기",
+				"filterStatusEaten": "먹었어요로 좁히기",
+				"filterStatusWant": "먹고 싶어요로 좁히기",
+				"filterMinRating": "★{{count}} 이상으로 좁히기",
+				"applied": "필터를 업데이트했습니다"
+			}
+		},
+		"searchThisArea": "이 지역에서 재검색",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "세 가지 방식으로 볼 수 있어요",
+					"body": "지도·목록·캘린더에서 같은 «먹고 싶다 / 먹었다»를 볼 수 있습니다. 지도는 «지금 이 근처에서 뭘 먹지», 캘린더는 «언제 뭘 먹었지»를 볼 때."
+				},
+				"openFeed": {
+					"title": "누르면 전체 화면으로 열려요",
+					"body": "핀·카드·날짜를 누르면 그 기록이 전체 화면으로 열립니다.",
+					"axis": "위아래로 가게나 날짜를 넘기고, 좌우로 같은 가게·같은 날의 다른 한 장으로."
+				},
+				"add": {
+					"title": "여기서 추가합니다",
+					"sns": "Instagram·TikTok·YouTube 링크를 붙여 넣으면 가게와 요리를 읽어 «먹고 싶다»로 저장합니다.",
+					"eaten": "먹은 것은 «먹었다 기록»에서. 사진은 나중에도, 없어도 기록할 수 있습니다."
+				},
+				"filter": {
+					"title": "늘어나면 여기서 좁힙니다",
+					"body": "«먹고 싶다 / 먹었다»·요리·지역·누구와·시간대로 좁힐 수 있습니다. 선택지를 늘리기 위해서가 아니라 고민을 줄이기 위한 도구입니다."
+				}
+			},
+			"replay": "튜토리얼 다시 보기"
+		},
+		"deleted": {
+			"label": "삭제되었습니다",
+			"a11yLabel": "이 게시물의 사진은 삭제되었습니다"
+		},
+		"ownReview": {
+			"title": "내 리뷰",
+			"noPhoto": "사진 없음",
+			"noComment": "작성된 코멘트가 없습니다",
+			"noReview": "이 기록에는 아직 리뷰가 없습니다",
+			"openRestaurant": "가게 상세 보기",
+			"edit": "리뷰 수정",
+			"delete": "리뷰 삭제",
+			"deleteConfirmTitle": "이 리뷰를 삭제할까요?",
+			"deleteConfirmMessage": "이 기록의 리뷰를 삭제합니다. 기록도 목록에서 사라집니다. 되돌릴 수 없습니다."
+		}
+	},
+	"SnsImport": {
+		"title": "SNS에서 가져오기",
+		"confirm": {
+			"heading": "이 게시물을 가져옵니다"
+		},
+		"expandPending": {
+			"heading": "단축 URL이 공유되었습니다",
+			"description": "단축 URL을 열어 게시물을 확인하는 기능은 아직 준비 중입니다. 게시물 페이지의 URL을 공유해 주세요."
+		},
+		"unsupported": {
+			"heading": "이 URL은 가져올 수 없습니다",
+			"description": "지원하는 서비스는 TikTok / YouTube Shorts / Instagram 입니다."
+		},
+		"tabs": {
+			"sns": "SNS에서",
+			"eaten": "먹은 기록"
+		},
+		"input": {
+			"label": "SNS URL 붙여넣기",
+			"placeholder": "https://www.tiktok.com/... 또는 공유된 문장 그대로"
+		},
+		"actions": {
+			"resolve": "읽어오기",
+			"save": "먹고 싶다에 저장",
+			"saveRequirement": "음식과 가게를 선택하면 저장할 수 있습니다.",
+			"resolveAgain": "다시 읽기",
+			"cancel": "취소",
+			"saveRequirementRestaurant": "가게를 선택하면 저장할 수 있습니다.",
+			"saveRequirementDish": "요리 카테고리를 선택하면 저장할 수 있습니다."
+		},
+		"sections": {
+			"dishCategory": "음식",
+			"restaurant": "가게",
+			"dishCategorySearchPlaceholder": "음식 이름으로 검색(2자 이상)",
+			"selected": "선택: {{value}}",
+			"pickOnMap": "지도에서 가게 찾기"
+		},
+		"save": {
+			"done": "먹고 싶다에 저장했습니다",
+			"failed": "저장하지 못했습니다"
+		},
+		"intro": "Instagram·TikTok·YouTube Shorts 게시물 URL을 붙여넣고 요리와 가게를 고르면 「먹고 싶다」에 저장됩니다. 로그인은 필요 없습니다.",
+		"steps": {
+			"paste": "URL 붙여넣기",
+			"dish": "요리 카테고리 고르기",
+			"restaurant": "가게 고르기"
+		},
+		"pickRestaurant": {
+			"title": "지도에서 가게 고르기",
+			"hint": "지도의 가게 아이콘을 누르거나 위에서 검색하세요. 고르면 가져오기 화면으로 돌아갑니다.",
+			"done": "「{{name}}」을(를) 선택했습니다"
+		},
+		"result": {
+			"summary": "읽어왔습니다",
+			"noInfo": "이 게시물에서 읽을 수 있는 정보가 없었습니다. 아래에서 가게와 요리 카테고리를 고르면 저장할 수 있습니다.",
+			"showFullCaption": "더 보기",
+			"collapseCaption": "접기"
+		},
+		"eaten": {
+			"pickRestaurant": "가게 고르기",
+			"pick": "고르기",
+			"change": "변경",
+			"hint": "먼저 가게를 선택하세요. 그다음 요리를 고르고 사진(선택)·한 줄 리뷰·가격·추천도를 입력할 수 있습니다.",
+			"done": "먹었다를 기록했습니다"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "건너뛰기",
+			"next": "다음",
+			"finish": "시작하기",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "총 {{total}}단계 중 {{current}}단계"
+		}
+	},
+	"Report": {
+		"action": "신고",
+		"title": "이 게시물 신고하기",
+		"reviewTitle": "이 리뷰 신고하기",
+		"description": "신고 사유를 선택해 주세요. 운영팀이 확인하며, 작성자에게는 알리지 않습니다.",
+		"reasons": {
+			"spam": "스팸 또는 광고",
+			"sexual": "성적인 콘텐츠",
+			"violence": "폭력적이거나 불쾌한 콘텐츠",
+			"harassment": "괴롭힘 또는 비방",
+			"illegal": "불법 행위",
+			"misinformation": "잘못된 정보",
+			"rights": "저작권 등 권리 침해",
+			"privacy": "개인정보가 노출됨",
+			"irrelevant": "음식과 관련 없음",
+			"other": "기타"
+		},
+		"detailsLabel": "자세한 내용(선택)",
+		"detailsPlaceholder": "추가로 알려주실 내용이 있으면 입력해 주세요(1,000자까지)",
+		"submit": "신고하기",
+		"submitting": "전송 중...",
+		"accepted": {
+			"title": "신고해 주셔서 감사합니다",
+			"description": "내용을 검토합니다. 결과를 개별적으로 알려드리지는 않습니다.",
+			"close": "닫기",
+			"history": "내 신고 내역"
+		},
+		"errors": {
+			"submitFailed": "신고를 보내지 못했습니다. 다시 시도해 주세요."
+		},
+		"accessibility": {
+			"open": "{{name}} 게시물 신고",
+			"openReview": "{{name}} 리뷰 신고",
+			"reason": "사유: {{reason}}",
+			"reasonSelected": "사유: {{reason}}(선택됨)",
+			"submit": "{{name}} 게시물 신고 보내기",
+			"submitReview": "{{name}} 리뷰 신고 보내기"
+		},
+		"history": {
+			"navigationLabel": "내 신고 내역",
+			"pageTitle": "내 신고 내역",
+			"empty": "아직 신고가 없습니다",
+			"emptyDescription": "게시물이나 리뷰를 신고하면 여기에 표시됩니다.",
+			"note": "검토 상태나 결과는 안내하지 않습니다.",
+			"error": "신고 내역을 불러오지 못했습니다",
+			"target": {
+				"dish_media": "게시물",
+				"dish_reviews": "리뷰"
+			}
 		}
 	}
 }

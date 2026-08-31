@@ -1,4 +1,5 @@
 import { IsOptional, IsString, IsInt, Min, Max, IsISO8601 } from "class-validator";
+import { IsParsableDateString } from "../is-parsable-date-string";
 import { Transform } from "class-transformer";
 
 /**
@@ -29,12 +30,16 @@ export class ListContributionTasksQueryDto {
 
 	/** 作成日時の開始（ISO8601形式、created_at >= from） */
 	@IsOptional()
-	@IsISO8601()
+	// #1599 contribution-tasks.service.ts が new Date(query.from) して Prisma の
+	// where へ載せるので、Invalid Date を通すと 500 になる。詳細は IsParsableDateString。
+	@IsISO8601({ strict: true })
+	@IsParsableDateString()
 	from?: string;
 
 	/** 作成日時の終了（ISO8601形式、created_at < to） */
 	@IsOptional()
-	@IsISO8601()
+	@IsISO8601({ strict: true })
+	@IsParsableDateString()
 	to?: string;
 
 	/** キーセットページングのカーソル（形式: {createdAt}|{id}） */

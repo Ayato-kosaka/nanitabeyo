@@ -86,7 +86,7 @@ const APP_READY_TEST_ID = "tab-search";
 type LaunchOptions = {
 	/**
 	 * 起動時に開くディープリンク。省略時はアプリの通常起動。
-	 * ロケール依存の画面へ直接飛ぶ場合は `localeDeepLink("search/topics")` を使うこと（#1031 B4）。
+	 * ロケール依存の画面へ直接飛ぶ場合は `localeDeepLink("search/dish-categories")` を使うこと（#1031 B4）。
 	 */
 	url?: string;
 	/**
@@ -253,35 +253,29 @@ export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise
 }
 
 /**
- * 初回起動チュートリアル（`app-expo` の search/index.tsx）の testID。
+ * オンボーディング（`app-expo` の app/[locale]/onboarding/）の testID。
  *
- * #1027 【バグ】このチュートリアルは **ja-JP のとき初回起動で自動的に開く**全画面級のシートで、
- * 開いている間はタブバーを含む背後の UI が Detox から操作できない（run 30394200940 の iOS で
+ * #1027 【バグ】この案内は **ja-JP のとき初回起動で自動的に開く**全画面で、
+ * 開いている間は背後のタブバーが Detox から操作できない（run 30394200940 の iOS で
  * 全 spec が beforeAll ごと失敗した原因）。Android で顕在化していなかったのは、
- * 端末ロケールが en-US のままでチュートリアル自体が出ていなかったからにすぎない。
+ * 端末ロケールが en-US のままで案内自体が出ていなかったからにすぎない。
  *
- * screens/SearchScreen.ts にも同じ定義があるが、**起動処理はどの画面にも依存してはいけない**
+ * screens/OnboardingScreen.ts にも同じ定義があるが、**起動処理はどの画面にも依存してはいけない**
  * （fixtures が screens に依存すると循環参照になる）ため、ここでは matcher を直接持つ。
+ *
+ * ⚠️ #1486 で実体が TrueSheet の BottomSheet から **通常のルート** へ変わったため、
+ * 「Android では中身が必ず 2 つの View に一致する」問題は無くなった（`atIndex` は不要）。
  */
-const TUTORIAL_INDEX = 0;
-
-const SEARCH_TUTORIAL = {
-	/**
-	 * ⚠️ #1027 `search-tutorial-overlay` は観測点に使わない。
-	 * iOS では表示中でも `toBeVisible` が成立しない（面積を持つ実体が無い）ため、
-	 * 「出ている / 出ていない」の判定は実体のあるボタン（つぎへ / はじめよう）で行う。
-	 *
-	 * ⚠️ そして **TrueSheet の中身は Android で必ず 2 つの View に一致する**（run 30445542854 で実測。
-	 * overlay だけでなくボタンも同様で、2 件は id も座標も同一の重複エントリ）。
-	 * そのためシート内の要素を扱うヘルパには必ず `TUTORIAL_INDEX` を渡すこと。
-	 */
-	nextButton: by.id("search-tutorial-next"),
-	finishButton: by.id("search-tutorial-finish"),
-	laterButton: by.id("search-tutorial-later"),
+const ONBOARDING = {
+	nextButton: by.id("onboarding-next"),
+	skipButton: by.id("onboarding-skip"),
+	loginSkipButton: by.id("login-screen-skip"),
+	welcomeScreen: by.id("onboarding-welcome"),
+	startButton: by.id("onboarding-welcome-start"),
 };
 
 /**
- * 起動引数へ載せるチュートリアルのシード値を組み立てる（#1027）。
+ * 起動引数へ載せるオンボーディング既読フラグのシード値を組み立てる（#1027）。
  *
  * `"device"` のときだけキー自体を渡さない。アプリ側フックは「未指定 = 固定なし」と解釈し、
  * AsyncStorage の実データを読む（= 永続化そのものを検証する spec 向け）。
@@ -295,41 +289,41 @@ function tutorialLaunchArgs(tutorialSeen: boolean | "device"): Record<string, st
 }
 
 /**
- * 初回起動チュートリアルが開いていれば最後まで送って閉じる（ベストエフォート）。
+ * オンボーディングが開いていれば最後まで通して閉じる（ベストエフォート）。
  *
- * 完了は最終ページのセカンダリ CTA「あとで」で行う。プライマリ CTA「はじめよう」は
- * 現在地取得（OS の位置情報アクセス）を伴うため使わない。どちらも `markTutorialAsSeen()` を通り、
- * AsyncStorage の視聴済みフラグが立つ。
+ * 「スキップ」→ ログイン画面の「スキップ」→ 許可フローを通過 → Welcome の「はじめる」まで
+ * 通し切る。**途中で抜けないのは意図的**で、完了フラグが立つのは Welcome の「はじめる」だけだから
+ *（#1486 §7）。3 ステップだけ抜けて放置すると、次の起動でまた最初から出てしまう。
  *
- * ⚠️ **通常の spec はこれを呼ぶ必要が無い**（#1027）。起動引数のシードでチュートリアル自体が開かないため。
+ * ⚠️ **通常の spec はこれを呼ぶ必要が無い**（#1027）。起動引数のシードでオンボーディング自体が開かない。
  * 残しているのは「シードを外して起動した spec が、検証後に後片付けとして閉じたい」場合のため。
  *
  * @param probeTimeout 「出ているか」の判定に費やす上限 (ms)
  * @returns 閉じた場合 true / そもそも出ていなかった場合 false
  */
-export async function dismissSearchTutorialIfPresent(probeTimeout = 3_000): Promise<boolean> {
-	const shown =
-		(await visibleNow(SEARCH_TUTORIAL.nextButton, probeTimeout, TUTORIAL_INDEX)) ||
-		(await visibleNow(SEARCH_TUTORIAL.finishButton, 1_000, TUTORIAL_INDEX));
-	if (!shown) return false;
-
-	// ページ送りは FlatList のスクロールアニメーションを伴う。プライマリ CTA の testID が
-	// 「つぎへ」→「はじめよう」へ切り替わるのを毎回待ち合わせることでアニメーション完了を待つ
-	for (let page = 0; page < 10; page += 1) {
-		if (await existsNow(SEARCH_TUTORIAL.finishButton, 1_000, TUTORIAL_INDEX)) break;
-		if (!(await existsNow(SEARCH_TUTORIAL.nextButton, 1_000, TUTORIAL_INDEX))) break;
-		await tapWhenVisible(SEARCH_TUTORIAL.nextButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
-	}
+export async function dismissOnboardingIfPresent(probeTimeout = 3_000): Promise<boolean> {
+	if (!(await visibleNow(ONBOARDING.nextButton, probeTimeout))) return false;
 
 	// ベストエフォートに徹する。ここで例外を投げると呼び出し側のリトライを潰してしまううえ、
-	// 「チュートリアルを閉じられなかった」ではなく本来の検証内容で失敗させたいため
-	if (!(await visibleNow(SEARCH_TUTORIAL.laterButton, 3_000, TUTORIAL_INDEX))) return false;
+	// 「オンボーディングを閉じられなかった」ではなく本来の検証内容で失敗させたいため
+	try {
+		await tapWhenVisible(ONBOARDING.skipButton, DEFAULT_TIMEOUT);
 
-	await tapWhenVisible(SEARCH_TUTORIAL.laterButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
-	// #1027 閉じ待ちは overlay ではなく「あとで」ボタンで行う。overlay は 2 つの View に一致するため、
-	// `not.toExist()` の判定が「消えた」なのか「複数一致で判定不能」なのか区別できなくなる
-	await waitUntilNotVisible(SEARCH_TUTORIAL.laterButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
-	return true;
+		// ログイン画面の「スキップ」。オンボーディング経由のときだけ描画される（#1486 §4）
+		if (await visibleNow(ONBOARDING.loginSkipButton, DEFAULT_TIMEOUT)) {
+			await tapWhenVisible(ONBOARDING.loginSkipButton, DEFAULT_TIMEOUT);
+		}
+
+		// 位置情報・通知の説明画面は «答えが出るまで» しか出ていない。E2E ビルドは起動時に
+		// 権限を付与済み（platformLaunchOptions()）なので OS のダイアログは出ず、
+		// 最低表示時間を過ぎると自動で次へ進む。着地点の Welcome だけを待つ
+		await waitUntilVisible(ONBOARDING.welcomeScreen, 60_000);
+		await tapWhenVisible(ONBOARDING.startButton, DEFAULT_TIMEOUT);
+		await waitUntilNotVisible(ONBOARDING.startButton, DEFAULT_TIMEOUT);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -352,11 +346,11 @@ export async function waitForAppReady(timeout: number = LAUNCH_TIMEOUT): Promise
 	try {
 		await waitUntilVisible(by.id(APP_READY_TEST_ID), timeout);
 	} catch (error) {
-		if (await visibleNow(SEARCH_TUTORIAL.nextButton, 1_000, TUTORIAL_INDEX)) {
+		if (await visibleNow(ONBOARDING.nextButton, 1_000)) {
 			throw new Error(
 				[
-					"起動完了（タブバーの表示）を待てず、代わりに検索チュートリアルが表示されています。",
-					"  チュートリアルは起動引数 e2eTutorialSeen でシードして抑止する設計です（#1027）。",
+					"起動完了（タブバーの表示）を待てず、代わりにオンボーディングが表示されています。",
+					"  オンボーディングは起動引数 e2eTutorialSeen でシードして抑止する設計です（#1027）。",
 					"  ビルド時に EXPO_PUBLIC_E2E_TUTORIAL_HOOK=1 が設定されていたか確認してください",
 					"  （このフックは **バンドル時** に metro の resolver で有効/無効が決まります）。",
 					`  元の失敗: ${error instanceof Error ? error.message : String(error)}`,

@@ -5,7 +5,7 @@ import { useProfile } from "./useProfile";
 /**
  * #1233 プロフィール作成の check-then-insert 競合のテスト。
  *
- * `createUserProfile` はサインイン直後に 3 箇所（auth/callback.tsx / OtpModal.tsx /
+ * `createUserProfile` はサインイン直後に複数箇所（auth/callback.tsx /
  * useEnsureOwnProfileLoaded.ts）から並走して呼ばれる。「SELECT で無いことを確認 → INSERT」の
  * 間に別の呼び出しが割り込むと後発が users_pkey で落ち、**その回のアバター反映が
  * catch へ落ちて丸ごとスキップ**されていた（レコード自体は先着が作っているので気付きにくい）。
@@ -96,6 +96,13 @@ describe("#1233 createUserProfile は並走した同時作成を正常系とし�
 	describe("先着の INSERT と衝突したとき", () => {
 		beforeEach(() => {
 			mockInsert.mockResolvedValue({ error: uniqueViolation });
+			// #1599 users_pkey で 23505 が返るのは、先着の行が **commit 済み**のときだけ
+			// （未 commit なら INSERT は待たされる）。PostgREST は 1 リクエスト 1
+			// トランザクションなので、衝突した後の再確認では必ずその行が見える。
+			// 先読みの SELECT は «まだ無い»、衝突後の再確認は «ある» が実際の並びになる。
+			mockSingle
+				.mockResolvedValueOnce({ data: null, error: { code: "PGRST116" } })
+				.mockResolvedValue({ data: USER_ID, error: null });
 		});
 
 		it("throw もエラーログもせずに完了する", async () => {
@@ -195,5 +202,107 @@ describe("#1233 createUserProfile は並走した同時作成を正常系とし�
 			expect(mockInsert).not.toHaveBeenCalled();
 			expect(mockUploadFile).not.toHaveBeenCalled();
 		});
+	});
+});
+
+/**
+ * #1599 23505 は users_pkey とは限らない。
+ *
+ * `users` には UNIQUE が 2 本ある（`users_pkey` = id / `uq_users_username` = username）。
+ * PostgREST はどちらでも `code: "23505"` を返すので、コードだけで #1233 の正常系
+ * （別の呼び出しが一足先に自分の行を作った）と決めつけると、
+ * **別ユーザーと username がぶつかっただけ**のときにも INSERT を諦めてしまう。
+ *
+ * その人は users 行が無いまま先へ進み、useEnsureOwnProfileLoaded の再取得が 404 →
+ * 「プロフィールを読み込めません」に落ちる。サインアップ直後の画面で起きる。
+ *
+ * 2 つは「自分の行ができているか」で見分けられることを、ここで固定する。
+ */
+const usernameViolation = {
+	code: "23505",
+	message: 'duplicate key value violates unique constraint "uq_users_username"',
+};
+
+describe("#1599 createUserProfile は id 衝突と username 衝突を見分ける", () => {
+	beforeEach(() => {
+		(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+		jest.clearAllMocks();
+		mockGetSession.mockReturnValue({ user: { id: USER_ID } });
+		mockSingle.mockResolvedValue({ data: null, error: { code: "PGRST116" } });
+		mockInsert.mockResolvedValue({ error: null });
+		mockUploadFile.mockResolvedValue(UPLOADED_AVATAR_PATH);
+		mockCallBackend.mockResolvedValue(undefined);
+	});
+
+	it("username 衝突（行がまだ無い）なら、名前を採り直して入れ直す", async () => {
+		// 1 回目の INSERT は username でぶつかる。行はまだ無い（PGRST116 のまま）。
+		mockInsert.mockResolvedValueOnce({ error: usernameViolation }).mockResolvedValueOnce({ error: null });
+
+		const createUserProfile = renderCreateUserProfile();
+		await act(async () => {
+			await createUserProfile({});
+		});
+
+		expect(mockInsert).toHaveBeenCalledTimes(2);
+		const first = mockInsert.mock.calls[0][0] as { username: string; id: string };
+		const second = mockInsert.mock.calls[1][0] as { username: string; id: string };
+		// 採り直した名前は別物でなければ、入れ直しても同じところでぶつかる
+		expect(second.username).not.toBe(first.username);
+		expect(second.id).toBe(USER_ID);
+
+		// 諦めていない = 「先着が作った」という誤った警告を出さない
+		expect(loggedEvents("user_profile_create_conflict")).toHaveLength(0);
+		expect(loggedEvents("user_profile_creation_error")).toHaveLength(0);
+		expect(loggedEvents("user_profile_username_conflict")).toHaveLength(1);
+		// 入れ直して作れているので created は出る
+		expect(loggedEvents("user_profile_created")).toHaveLength(1);
+	});
+
+	it("id 衝突（行ができている）なら #1233 どおり諦めて先へ進む", async () => {
+		mockInsert.mockResolvedValueOnce({ error: uniqueViolation });
+		// 先読みの SELECT は 0 行、衝突後の再確認では自分の行が見える
+		mockSingle
+			.mockResolvedValueOnce({ data: null, error: { code: "PGRST116" } })
+			.mockResolvedValueOnce({ data: USER_ID, error: null });
+
+		const createUserProfile = renderCreateUserProfile();
+		await act(async () => {
+			await createUserProfile({});
+		});
+
+		// 採り直して入れ直さない（先着が作っているので何度やっても同じ）
+		expect(mockInsert).toHaveBeenCalledTimes(1);
+		expect(loggedEvents("user_profile_create_conflict")).toHaveLength(1);
+		expect(loggedEvents("user_profile_username_conflict")).toHaveLength(0);
+		// 「作った」は 1 人 1 行に対して 2 件出さない
+		expect(loggedEvents("user_profile_created")).toHaveLength(0);
+		expect(loggedEvents("user_profile_creation_error")).toHaveLength(0);
+	});
+
+	it("採り直しても通らないときは握り潰さず error として残す", async () => {
+		mockInsert.mockResolvedValue({ error: usernameViolation });
+
+		const createUserProfile = renderCreateUserProfile();
+		await act(async () => {
+			await createUserProfile({});
+		});
+
+		// 無限に粘らない
+		expect(mockInsert).toHaveBeenCalledTimes(3);
+		expect(loggedEvents("user_profile_creation_error")).toHaveLength(1);
+		// 作れていないのに created を出さない
+		expect(loggedEvents("user_profile_created")).toHaveLength(0);
+	});
+
+	it("衝突以外の INSERT エラーは採り直さず、そのまま error にする", async () => {
+		mockInsert.mockResolvedValue({ error: rlsViolation });
+
+		const createUserProfile = renderCreateUserProfile();
+		await act(async () => {
+			await createUserProfile({});
+		});
+
+		expect(mockInsert).toHaveBeenCalledTimes(1);
+		expect(loggedEvents("user_profile_creation_error")).toHaveLength(1);
 	});
 });

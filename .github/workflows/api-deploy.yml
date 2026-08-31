@@ -30,6 +30,9 @@ jobs:
       REGION: ${{ vars.CLOUD_RUN_REGION }} # 例）asia-northeast1
       SERVICE_NAME: api-${{ github.event.inputs.target }}
       IMAGE: ${{ vars.ARTIFACT_REPO_URI }}/api:${{ github.sha }}
+      # #1323 スモークを通す前の候補リビジョンに付ける traffic tag。
+      # 昇格時に剥がす（残すと古いリビジョンがピン留めされ GC されない）。
+      CANDIDATE_TAG: candidate
 
     steps:
       - uses: actions/checkout@v4
@@ -58,8 +61,42 @@ jobs:
           echo 'DATABASE_URL=${{ secrets.PRISMA_DATABASE_URL }}'            >> ./api/.env
           echo "DB_SCHEMA=$DB_SCHEMA" >> ./api/.env
 
-      - name: Prisma db:pull
-        run: pnpm db:pull
+      # ==========================================================================
+      # 【設計】デプロイ時に生きた DB を introspect（db:pull）しない。
+      #
+      # かつてここで `pnpm db:pull` していたが、それは「ビルドの Prisma 型 =
+      # その瞬間の DB の姿」を意味する。2026-08 に、機能ブランチ（#1469）が dev へ
+      # migration を先行適用した結果、dev を introspect した型と噛み合うコードが
+      # そのブランチにしか無くなり、**main から api-development をデプロイできない**
+      # 事故が起きた。
+      #
+      # 以後、ビルドはブランチ自己完結にする: コミット済み api/prisma/schema.prisma
+      # （db-migrate.yml の regenerate_prisma が migration 適用時に introspect して
+      # commit している）のスキーマ名だけを適用先へ差し替え、`prisma generate` で
+      # Client を作り直す。DB へは一切接続しない。DB がコードより先に進んでいても、
+      # migration が後方互換（additive）である限りこのビルドは正しく動く
+      # （運用規則: infra/supabase/migrations/README.md）。
+      # ==========================================================================
+      - name: Prisma Client を生成（コミット済み schema から・DB 非接続）
+        run: |
+          set -euo pipefail
+          # prisma.config.ts が env("DATABASE_URL") を要求する（validate / generate は
+          # 接続しないが、config の評価に必要）。旧 db-pull.sh と同じく api/.env から export する
+          set -a; source ./api/.env; set +a
+          # コミット済み schema.prisma は dev スキーマ名で introspect されている。
+          # 適用先スキーマ名へ機械置換する（対象は schemas 配列と @@schema の 2 パターンのみ）。
+          sed -i \
+            -e "s/= \[\"dev\"\]/= [\"${DB_SCHEMA}\"]/" \
+            -e "s/@@schema(\"dev\")/@@schema(\"${DB_SCHEMA}\")/g" \
+            api/prisma/schema.prisma
+          # 置換漏れがあると別スキーマへ向いたまま本番へ出るので、ここで検算する
+          if [ "${DB_SCHEMA}" != "dev" ] && grep -q '"dev"' api/prisma/schema.prisma; then
+            echo "::error::schema.prisma に \"dev\" が残っています。置換パターンを見直してください。"
+            grep -n '"dev"' api/prisma/schema.prisma
+            exit 1
+          fi
+          pnpm -C api exec prisma validate --schema prisma/schema.prisma --config ../prisma.config.ts
+          pnpm -C api exec prisma generate --schema prisma/schema.prisma --config ../prisma.config.ts
 
       # ---------- Google Cloud へ OIDC でログイン ----------
       - name: Auth to Google Cloud (WIF)
@@ -81,18 +118,165 @@ jobs:
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --default-buckets-behavior=REGIONAL_USER_OWNED_BUCKET
       # -------------------------------------------
-      # ---------- Cloud Run へデプロイ & トラフィック切替 ----------
+      # ---------- Cloud Run へデプロイ（トラフィックは切り替えない） ----------
+      # #1323 【設計】トラフィック切替の *前* にスモークを挟むため、ここでは
+      # `--no-traffic --tag` でリビジョンを作るだけにする。旧リビジョンが本番を
+      # 捌き続けるので、スモークが落ちても利用者影響はゼロで済む。
+      # `revision_traffic` は使わない。切替は検証を通した後に自分で行う。
       - id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.IMAGE }}
-          revision_traffic: "LATEST=100" # 成功後ただちに全トラフィック移行
+          no_traffic: true
+          tag: ${{ env.CANDIDATE_TAG }}
           env_vars: |
             API_COMMIT_ID=${{ github.sha }}
             API_NODE_ENV=${{ github.event.inputs.target }}
 
-      - name: Show Service URL
+      # 候補リビジョンの URL と名前を引く。
+      # action の `outputs.url` は **service の URL**（= 切替前なので旧リビジョンを指す）
+      # であって tag 付き URL ではない。検証対象を取り違えないよう traffic から引き直す。
+      - id: candidate
+        name: 🔍 Resolve candidate revision
         run: |
-          echo "✅ Deployed: ${{ steps.deploy.outputs.url }}"
+          set -euo pipefail
+
+          traffic=$(gcloud run services describe "${SERVICE_NAME}" \
+                      --region "${REGION}" --format=json)
+
+          url=$(echo "$traffic" | jq -r --arg t "${CANDIDATE_TAG}" \
+                  '.status.traffic[]? | select(.tag == $t) | .url' | head -1)
+          revision=$(echo "$traffic" | jq -r --arg t "${CANDIDATE_TAG}" \
+                  '.status.traffic[]? | select(.tag == $t) | .revisionName' | head -1)
+          # 昇格後に案内する恒常 URL。tag 付き URL は tag を剥がすと死ぬので使えない。
+          service_url=$(echo "$traffic" | jq -r '.status.url')
+
+          if [ -z "$url" ] || [ "$url" = "null" ] ||
+             [ -z "$revision" ] || [ "$revision" = "null" ]; then
+            echo "❌ tag '${CANDIDATE_TAG}' の付いたリビジョンが見つからない"
+            echo "$traffic" | jq '.status.traffic'
+            exit 1
+          fi
+
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          echo "revision=${revision}" >> "$GITHUB_OUTPUT"
+          echo "service_url=${service_url}" >> "$GITHUB_OUTPUT"
+          echo "🔍 candidate: ${revision} → ${url}"
+
+      # ---------- 候補リビジョンへのスモークテスト（切替のゲート） ----------
+      # 【設計】これは「ゲート」である。ここが落ちると次の昇格ステップへ進まず、
+      # 本番のトラフィックは旧リビジョンに留まる。壊れたリビジョンが本番を
+      # 捌くことは無い。落ちた候補は tag が付いたまま残るので、そのまま URL を
+      # 叩いて原因を追える（次回デプロイで tag は新しい候補へ移る）。
+      #
+      # 【設計】叩けるのは認証不要な 3 本だけ。/v1/** は AuthAnonGuard が
+      # 付くのでトークン無しでは検証できない。それでも「コンテナが起動して
+      # Nest のルーティングとグローバル Interceptor まで通る」ことは確認できる。
+      - name: 🔥 Smoke test
+        env:
+          BASE_URL: ${{ steps.candidate.outputs.url }}
+        run: |
+          set -euo pipefail
+
+          # コールドスタートで初回が落ちることがあるためリトライする。
+          # 第 3 引数に allow-maintenance を渡したパスだけ、メンテ中の 503 を許容する。
+          probe() {
+            local path="$1" jq_expr="${2:-}" maintenance="${3:-}" code
+            for i in $(seq 1 5); do
+              code=$(curl -sS -o /tmp/smoke.json -w '%{http_code}' \
+                       --max-time 20 "${BASE_URL}${path}" || echo 000)
+
+              if [ "$code" = "200" ]; then
+                if [ -z "$jq_expr" ] || jq -e "$jq_expr" /tmp/smoke.json >/dev/null; then
+                  echo "✅ ${path} → 200"
+                  return 0
+                fi
+                echo "❌ ${path} → 200 だが本文が期待と違う"
+                cat /tmp/smoke.json
+                return 1
+              fi
+
+              # MaintenanceGuard による 503 は「サーバは応答している」と見なす。
+              # メンテナンス中のデプロイでスモークが誤検知しないようにするため。
+              if [ "$maintenance" = "allow-maintenance" ] && [ "$code" = "503" ] &&
+                 grep -q SERVICE_MAINTENANCE /tmp/smoke.json; then
+                echo "⚠️ ${path} → 503（メンテナンスモード）"
+                return 0
+              fi
+
+              echo "… ${path} → ${code}（retry ${i}/5）"
+              sleep 5
+            done
+
+            echo "❌ ${path} → ${code}"
+            cat /tmp/smoke.json || true
+            return 1
+          }
+
+          # レスポンスは ResponseWrapInterceptor で BaseResponse に包まれるので
+          # 判定は .status ではなく .data.status を見る。
+          #
+          # /livez だけメンテナンスを許容しない。この path は MaintenanceGuard の
+          # allowedPaths にあり、メンテ中でも 200 のはずだからである。ここで 503 を
+          # 見逃すと、allowedPaths から /livez が外れた事故に気付けなくなる。
+          probe /livez  '.data.status == "ok"'
+          probe /health '.data.status == "ok"' allow-maintenance
+          probe /       ''                     allow-maintenance
+      # -------------------------------------------
+
+      # ---------- 検証を通した候補を 100% へ昇格 ----------
+      # 【設計】昇格と tag 剥がしはステップを分ける。1 つに束ねると、tag 剥がしが
+      # 落ちただけで「昇格していない」と読める失敗になり、障害対応で本番の状態を
+      # 逆に伝えてしまう。ステップが別なら outcome も別に判定できる。
+      - id: promote
+        name: 🚦 Promote candidate
+        env:
+          REVISION: ${{ steps.candidate.outputs.revision }}
+        run: |
+          set -euo pipefail
+
+          # --to-latest ではなく、実際にスモークを通したリビジョンを名指しする。
+          # concurrency でデプロイは直列化されているが、"最新" と "検証したもの" は
+          # 概念として別なので、ここで取り違える余地を残さない。
+          gcloud run services update-traffic "${SERVICE_NAME}" \
+            --region "${REGION}" --to-revisions "${REVISION}=100"
+
+          # deploy の outputs.url は使わない。action.yml の説明は "The URL of the
+          # Cloud Run service" だが、`tag` を渡すと **tag 付き URL** が返ることを
+          # 2026-08-14 の本番デプロイ（run 31804486694）で実測した。次の
+          # ステップで tag を剥がすため、それを案内すると死んだ URL を渡すことになる。
+          echo "✅ Deployed: ${{ steps.candidate.outputs.service_url }}（revision: ${REVISION}）"
+
+      # 【設計】tag 剥がしの失敗で job を落とさない（continue-on-error）。
+      # この時点で昇格は済んでおり、本番は新リビジョンが正常に捌いている。
+      # 残った tag が指すのも「今動いているリビジョン」なので実害は小さく、
+      # 次のデプロイで tag は新しい候補へ移る。ここで job を赤くすると
+      # 「デプロイ失敗」と読めてしまい、実態と食い違う。
+      - id: cleanup_tag
+        name: 🧹 Remove candidate tag
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          # tag を残し続けるとそのリビジョンがピン留めされ、古い世代が GC されない。
+          gcloud run services update-traffic "${SERVICE_NAME}" \
+            --region "${REGION}" --remove-tags "${CANDIDATE_TAG}"
+
+      - name: ⚠️ Warn on leftover tag
+        if: steps.cleanup_tag.outcome == 'failure'
+        run: |
+          echo "::warning::昇格は成功したが tag '${CANDIDATE_TAG}' を剥がせなかった。\
+          本番は revision ${{ steps.candidate.outputs.revision }} が捌いている。\
+          tag は次のデプロイで新しい候補へ移るが、気になる場合は手動で剥がすこと。"
+
+      # スモークが落ちたとき（= 昇格していないとき）だけ、調査先を出す。
+      # 条件に promote の outcome を入れているのは、昇格後の失敗でこの
+      # メッセージが出ると本番の状態を誤って伝えることになるため。
+      - name: 🧭 Candidate left for investigation
+        if: failure() && steps.promote.outcome != 'success' && steps.candidate.outputs.url != ''
+        run: |
+          echo "⚠️ 昇格していない。本番は旧リビジョンのまま。"
+          echo "   candidate revision: ${{ steps.candidate.outputs.revision }}"
+          echo "   candidate url     : ${{ steps.candidate.outputs.url }}"
+      # -------------------------------------------

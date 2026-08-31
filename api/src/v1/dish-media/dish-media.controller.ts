@@ -42,6 +42,7 @@ import {
   SearchDishMediaResponse,
   CreateDishMediaResponse,
   CreateDishMediaViewResponse,
+  DeleteDishMediaResponse,
   QueryDishMediaByIdsResponse,
 } from '@shared/v1/res';
 
@@ -131,6 +132,33 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
   ): Promise<CreateDishMediaResponse> {
     return this.dishMediaService.createDishMedia(dto, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              DELETE /v1/dish-media/:id (投稿の削除) #1513           */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1513 自分の投稿を論理削除する。dish_media と、その投稿と一緒に作られた
+   * レビューがまとめて消える。
+   *
+   * `:id/reaction` より **後ろ** に置かない。Nest はセグメント数が違う経路を
+   * 取り違えないので順序は挙動に影響しないが、読む側が「reaction 削除の一種」と
+   * 誤読しないよう本体の削除をここに置いている。
+   */
+  @Delete(':id')
+  @UseGuards(AuthUserGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '投稿(dish_media)の削除（論理削除）' })
+  @ApiParam({ name: 'id', required: true, description: 'dish_media.id' })
+  @ApiResponse({ status: 200, description: '削除成功' })
+  @ApiResponse({ status: 403, description: '自分の投稿ではない' })
+  @ApiResponse({ status: 404, description: '存在しない' })
+  async deleteDishMedia(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ): Promise<DeleteDishMediaResponse> {
+    return this.dishMediaService.deleteDishMedia(id, user.id);
   }
 
   /* ------------------------------------------------------------------ */

@@ -3,7 +3,6 @@ import { strict as assert } from "node:assert";
 import {
 	DEFAULT_TIMEOUT,
 	by,
-	dismissSearchTutorialIfPresent,
 	element,
 	existsNow,
 	multiTapWhenPresent,
@@ -11,8 +10,6 @@ import {
 	tapWhenVisible,
 	visibleNow,
 	waitFor,
-	waitUntil,
-	waitUntilNotVisible,
 	waitUntilVisible,
 } from "../fixtures/e2e";
 
@@ -42,7 +39,7 @@ import {
  *   `search-distance-slider` は PanResponder ベースの自作スライダーで、現在値は `aria-valuenow`
  *   （= web 専用属性）にしか出ておらず、**値を反映する testID が app-expo に無い**ため
  *   Detox からは操作後の値を検証できない。値検証用の testID が追加されたら移植すること
- * - **先読み画像の即時表示**（#1083 / e2e-web の tests/search/tutorial-preload.spec.ts）は
+ * - **先読み画像の即時表示**（#1083 / e2e-web の tests/search/onboarding-preload.spec.ts）は
  *   **#1087 でプローブ方式に切り替えて観測できるようにした**。
  *   かつては「`expo-image` のキャッシュ状態を Detox から読む API が無く、<Image> に testID を足しても
  *   言えるのは要素の存在だけ（= 先読みブロックを消しても緑になる感度ゼロ）」という理由で移植を見送っていたが、
@@ -56,19 +53,21 @@ import {
  *   拒否ケースを表現できない。fixtures 側に権限を切り替える起動オプションが入ったら移植すること
  */
 /**
- * 先読み対象の枚数（#1087）。
+ * 先読み対象の枚数（#1087 / #1486）。
  *
  * ⚠️ `app-expo/features/search/constants.ts` の `PRELOAD_IMAGES` と必ず対応させること
- * （チュートリアル 4 枚 + アプリアイコン + レビューのヒーロー画像 + Apple / Google のロゴ = 8 枚）。
+ * （オンボーディング 6 枚 + アプリアイコン + Apple / Google のロゴ = 9 枚）。
+ * #1403 (PR1) レビューのヒーロー画像はレビュータブと一緒に削除され `PRELOAD_IMAGES` から
+ * 消えている（main 側の #1486 と統合ブランチのマージで 10 → 9）。
  * e2e-web の `utils/preload-assets.ts` の `PRELOAD_ASSET_KEYS` と同じ位置づけ。
  */
-export const PRELOAD_IMAGE_COUNT = 8;
+export const PRELOAD_IMAGE_COUNT = 9;
 
 /**
  * 先読み完了を待つ上限 (ms)。
  *
- * #1087 の修正後、Android エミュレータでの実測は **1873ms**（8 枚すべて `onLoad` まで）。
- * 8 枚はバンドル同梱のローカルアセットで、実 API もネットワークも介さないため、
+ * #1087 の修正後、Android エミュレータでの実測は **1873ms**（当時の 8 枚すべて `onLoad` まで）。
+ * 先読み対象はバンドル同梱のローカルアセットで、実 API もネットワークも介さないため、
  * 実測とランナーの当たり外れを吸収できれば足りる。実測の約 5 倍を上限にしている:
  * - 短すぎると、エミュレータが冷えている初回実行（ディスク I/O が効く）でフレークする
  * - 長すぎると、再発時に赤くなるまで無駄に待たされる（当初の 20 秒はこちらの理由で縮めた）
@@ -89,7 +88,7 @@ const PRELOAD_PROBE_PRESENCE_TIMEOUT = 3_000;
 export class SearchScreen {
 	/** 画面ヘッダのタイトル（i18n: Search.headerTitle） */
 	readonly headerTitle = by.id("search-header-title");
-	/** ヘッダーの「？」ボタン（チュートリアル再表示。ja-JP のときのみ表示される） */
+	/** ヘッダーの「？」ボタン（オンボーディング再表示。ja-JP のときのみ表示される） */
 	readonly helpButton = by.id("search-help-button");
 
 	/** 場所オートコンプリートの入力欄 */
@@ -98,6 +97,18 @@ export class SearchScreen {
 	readonly locationClearButton = by.id("search-location-autocomplete-clear");
 	/** 場所サジェストのリスト */
 	readonly locationSuggestions = by.id("search-location-autocomplete-suggestions");
+	/** #1502 地点確認中(details 取得中)の表示。e2e-web の locationConfirming に対応 */
+	readonly locationConfirming = by.id("search-location-autocomplete-confirmation-confirming");
+	/** #1502 地点確定済みの表示 */
+	readonly locationConfirmed = by.id("search-location-autocomplete-confirmation-confirmed");
+	/**
+	 * #1502 地点確認失敗の表示。
+	 * ⚠️ 現時点では spec から未使用。details API を失敗させる手段が無いため(下記 selectLocationSuggestion
+	 * のコメント参照)。testID 自体は実装済みなので、モック手段が入り次第 location-confirmation.test.ts へ追加すること
+	 */
+	readonly locationConfirmationError = by.id("search-location-autocomplete-confirmation-error");
+	/** #1502 地点確認失敗時の再試行ボタン。上記と同じ理由で現時点では spec 未使用 */
+	readonly locationConfirmationRetry = by.id("search-location-autocomplete-confirmation-retry");
 	/** 「最近使った場所」のリスト（#953。e2e-web の recentLocationsList に対応）。
 	 *  未入力でフォーカスしたときだけ描画される */
 	readonly recentLocationsList = by.id("search-location-autocomplete-recent-locations");
@@ -132,30 +143,6 @@ export class SearchScreen {
 	readonly preloadProbe = by.id("search-preload-probe");
 	/** プローブの内訳（`loaded=<n> error=<n> total=<n>`）。失敗時の切り分け専用 */
 	readonly preloadProbeDetail = by.id("search-preload-probe-detail");
-
-	/**
-	 * 検索チュートリアル（BottomSheet）のコンテンツ全体。
-	 *
-	 * ⚠️ #1027 この testID は扱いが難しく、**アサーションの観測点には使わないこと**。
-	 * - Android では **常に 2 つの View に一致する**（TrueSheet がシートの内容をツリーへ二重に載せる）。
-	 *   index を指定せずに待つと Detox は "matches 2 views in the hierarchy" で失敗する
-	 * - iOS では表示中でも `toBeVisible` が 2 分待って成立しなかった（面積を持つ実体が無いため）
-	 *
-	 * 「チュートリアルが出ている / 出ていない」の判定には、実体のあるボタン
-	 * （`tutorialNextButton` = 1 ページ目の「つぎへ」）を使う。
-	 */
-	readonly tutorialOverlay = by.id("search-tutorial-overlay");
-	/**
-	 * ⚠️ #1027 **TrueSheet の中身は Android で必ず 2 つの View に一致する**（run 30445542854 で実測。
-	 * 2 件は id も座標も同一の重複エントリ）。シート内の要素を扱うヘルパには必ずこの添字を渡すこと。
-	 */
-	private static readonly TUTORIAL_INDEX = 0;
-	/** チュートリアルの「つぎへ」（最終ページ以外で描画される） */
-	readonly tutorialNextButton = by.id("search-tutorial-next");
-	/** チュートリアルの「はじめよう」（最終ページのプライマリ CTA。押すと現在地取得が走る） */
-	readonly tutorialFinishButton = by.id("search-tutorial-finish");
-	/** チュートリアルの「あとで」（最終ページのセカンダリ CTA。現在地取得を伴わずに完了する） */
-	readonly tutorialLaterButton = by.id("search-tutorial-later");
 
 	/**
 	 * 検索フォーム全体を包む縦スクロール領域（#1027 で app-expo 側に testID を追加）。
@@ -200,10 +187,10 @@ export class SearchScreen {
 	/**
 	 * 検索画面が表示されていることを検証する。
 	 *
-	 * #1027 チュートリアルの後始末はここでは行わない。起動引数 `e2eTutorialSeen` のシードで
+	 * #1027 オンボーディングの後始末はここでは行わない。起動引数 `e2eTutorialSeen` のシードで
 	 * **そもそも開かない**設計に変えたため（fixtures/e2e.ts の `tutorialSeen` オプション）。
 	 * 以前はここで「出ていたら閉じる」をしていたが、呼ばれるたびに数秒の probe が入るうえ、
-	 * シートが遅れて被さる競合を消し切れなかった。
+	 * 遅れて被さる競合を消し切れなかった。
 	 *
 	 * @param timeout タイムアウト (ms)
 	 */
@@ -218,7 +205,7 @@ export class SearchScreen {
 	 * アプリ側のプローブ（app-expo/lib/e2e/preloadProbe.tsx）が、先読みブロックの各 `<Image>` の
 	 * `onLoad` / `onError` を数えて `loaded=<n>/<total>` を描画している。ここではその文字列を待つだけ。
 	 * 「何 ms で表示されたか」ではなく **「何枚ロードできたか」という状態**を見るので、
-	 * ランナーの速度ではフレークしない（e2e-web の tutorial-preload.spec.ts と同じ観測原則）。
+	 * ランナーの速度ではフレークしない（e2e-web の onboarding-preload.spec.ts と同じ観測原則）。
 	 *
 	 * ## 感度
 	 * 先読みブロックが 0×0 に戻ると expo-image の native 実装はロード要求を発行しない
@@ -363,7 +350,6 @@ export class SearchScreen {
 	}
 
 	/**
-<<<<<<< HEAD
 	 * 場所入力欄をタップしてフォーカスを与える（#528）。
 	 *
 	 * `typeLocation()` から入力操作だけを切り離したもの。`LocationAutocomplete` は
@@ -531,168 +517,20 @@ export class SearchScreen {
 	}
 
 	/**
-	 * チュートリアルの「つぎへ」を **待機を挟まずに** 連打する（#1084 P3）。
-	 *
-	 * シート内の要素なので TUTORIAL_INDEX を必ず渡す
-	 * （Android では TrueSheet の中身が常に 2 つの View に一致する）。
-	 *
-	 * @param times 連打回数
-	 */
-	async tutorialNextRapid(times = 3): Promise<void> {
-		await multiTapWhenPresent(this.tutorialNextButton, times, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
-	}
-
-	/**
-	 * チュートリアルが自動表示されていることを検証する。
-	 * ja-JP かつ未視聴（AsyncStorage の `search_tutorial_seen_v1` が未設定）のときだけ成立する。
-	 */
-	/**
-	 * ヘルプボタン（?）からチュートリアルを **明示的に** 開く。
-	 *
-	 * ## なぜ「起動引数のシード + 自動表示」に頼らない経路が要るのか
-	 * 自動表示は `isFocused && !isLoading && hasSeenTutorial === false` が揃った **マウント 1 回きり**で、
-	 * しかも `hasSeenTutorial` は起動引数のシード → AsyncStorage の順で決まる。
-	 * つまり «開くための前提» が多く、spec の途中で 2 度目を開こうとすると条件が揃わないことがある。
-	 * 実際 iOS で `tutorialSeen: false` を渡して起動し直しても開かず、2 分待って落ちた
-	 *（run 31677355367。失敗時スクリーンショットは «チュートリアルの無い検索画面» で、
-	 *  シートが出ていないことまでは確定。なぜシードが効かなかったかは未特定）。
-	 *
-	 * ヘルプボタンの `onPress` は `setShowTutorial(true)` を直接呼ぶだけで、
-	 * 視聴済みフラグにも once ガードにも依存しない。**実ユーザーの導線**でもあるため、
-	 * 「開いた状態を作る」ことが目的の検証はこちらを使う方が素直で安定する。
-	 *
-	 * ⚠️ 「初回起動で自動表示される」こと自体の検証は **1 本目のテストの責務**。
-	 * こちらへ寄せ替えて自動表示の検証まで失わないこと。
-	 */
-	async openTutorialFromHelp(): Promise<void> {
-		await tapWhenVisible(this.helpButton);
-		await this.expectTutorialShown();
-	}
-
-	async expectTutorialShown(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		// #1027 観測点は overlay ではなく **1 ページ目の「つぎへ」ボタン**にする。
-		// overlay は「シートの内容を包むだけの View」で面積や重なりの扱いがプラットフォームで揺れ、
-		// iOS では 2 分待っても toBeVisible が成立しなかった（run 30432596949）。
-		// ボタンなら「チュートリアルが出ていて操作できる」という検証したい事実と 1:1 で対応する
-		await waitUntilVisible(this.tutorialNextButton, timeout, SearchScreen.TUTORIAL_INDEX);
-	}
-
-	/**
-	 * チュートリアルが **操作できる状態にある**ことを検証する（#1084 P3）。
-	 *
-	 * プライマリ CTA は単一のボタンで、testID だけが `currentPage` から導出される
-	 * （`isLastPage ? "search-tutorial-finish" : "search-tutorial-next"`）。連打しても
-	 * 「つぎへ」「はじめよう」のちょうど一方が見えていることを不変条件として使う。
-	 *
-	 * ⚠️ #1086 これは **「currentPage がページ範囲を外れたこと」の検知にはならない**。
-	 * 範囲外でも `isLastPage` は false になって「つぎへ」が描画され続け、`currentConfig` も
-	 * `?? tutorialPages[0]` でフォールバックするため件数は 1 のまま通る（そもそも
-	 * `handleNextPage` が `Math.min` でクランプしており範囲外になり得ない）。
-	 * ここで検知できるのは **「シートが閉じた」「CTA ごと消えた/二重になった」** という壊れ方だけ。
-	 *
-	 * ⚠️ #1027 「存在しない」ではなく「見えている」で判定する（TrueSheet はシートの内容を
-	 * ツリーへ残すことがあり、存在での判定はプラットフォーム差に巻き込まれる）。
-	 *
-	 * #1086 「どちらかが見えるまで待つ → 排他を確認する」の順にしている。先に「つぎへ」だけを
-	 * 固定時間待つ書き方だと、連打で最終ページへ到達しているケースで毎回その待ち時間を捨てることになる。
-	 *
-	 * #1156 【バグ】以前は「どちらかが見えた瞬間」の 2 回の読み取りを**そのまま**排他判定に使っていた。
-	 * `nextShown` と `finishShown` は別々の Detox 問い合わせ（各 1 秒）なので、その **間に**
-	 * FlatList のページ送りアニメーションが着地して `currentPage` が進むと、
-	 * 「つぎへ（読み取り時点）」と「はじめよう（読み取り時点）」が両方 true になり、
-	 * アプリが壊れていなくても落ちる（run 31094008189 の iOS がこれ）。
-	 * SDK 54 でアニメーションの着地タイミングが変わり顕在化した。
-	 *
-	 * そこで **排他そのものを待機条件**にする。一過性の二重観測は待ち直して吸収し、
-	 * 「CTA ごと消えた」「本当に二重になっている」場合だけタイムアウトで落ちる。
-	 * 検知できる壊れ方は従来と変わらない。
-	 */
-	async expectTutorialOperable(): Promise<void> {
-		await waitUntil(
-			async () => {
-				const nextShown = await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX);
-				const finishShown = await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX);
-				return nextShown !== finishShown;
-			},
-			{
-				description:
-					"連打後にチュートリアルのプライマリ CTA（つぎへ / はじめよう）がちょうど一方だけ見えていること" +
-					"（両方見えない = CTA ごと消えた / 両方見える = 二重になっている）",
-			},
-		);
-	}
-
-	/**
-	 * チュートリアルが表示されていないことを検証する。
+	 * オンボーディングが表示されていないことを検証する（#1486）。
 	 *
 	 * #1031 【設計】m6: e2e-web は `page.evaluate` で localStorage のフラグを直接読んでいるが、
-	 * Detox からアプリの AsyncStorage は読めない。**「再訪問しても表示されない」という
+	 * Detox からアプリの AsyncStorage は読めない。**「再起動しても表示されない」という
 	 * ユーザー観測可能な事実**で代替する。
+	 *
+	 * 観測点をヘッダータイトルと «オンボーディングの「次へ」» の 2 つにしているのは、
+	 * 「検索画面に居る」ことと「オンボーディングに覆われていない」ことが別の事実だから。
+	 * 検索画面はオンボーディングの背後にマウントされたまま残るので、片方だけでは足りない。
 	 */
-	async expectTutorialAbsent(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+	async expectOnboardingAbsent(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.headerTitle, timeout);
-		// #1027 「存在しない」ではなく「見えていない」で判定する。
-		// TrueSheet はシートを閉じていても内容をツリーに残すことがあり（Android では overlay が
-		// 常に 2 つの View に一致する）、存在での判定はプラットフォーム差に巻き込まれる。
-		// ユーザーから観測できる事実（チュートリアルが見えていない）を直接検証する
-		const shown = await visibleNow(this.tutorialNextButton, 3_000, SearchScreen.TUTORIAL_INDEX);
-		assert.equal(shown, false, "再起動後にチュートリアルが再表示されている（視聴済みフラグが永続化されていない）");
-	}
-
-	/**
-	 * チュートリアルを最後まで進めて完了させる。
-	 *
-	 * 最終ページのプライマリ CTA「はじめよう」は現在地取得（OS の位置情報アクセス）を伴うため、
-	 * e2e-web と同じくセカンダリ CTA「あとで」で完了させる。どちらも `markTutorialAsSeen()` を通る。
-	 *
-	 * ⚠️ #1086 開始条件を「つぎへ が見えること」にしてはいけない。プライマリ CTA は単一ボタンで
-	 * testID が `isLastPage ? "search-tutorial-finish" : "search-tutorial-next"` と切り替わるため、
-	 * **最終ページでは `search-tutorial-next` がツリーに存在しない**。連打テスト（P3）のように
-	 * 既に最終ページへ到達している状態でこれを呼ぶと、アプリは正しいのに 25 秒の
-	 * タイムアウトで落ちる（＝ プレス回数に依存する偽の赤）。
-	 * e2e-web の P3 が `if ((await tutorialNextButton.count()) === 0) break;` で扱っているのと同じ理屈で、
-	 * 開始条件は **「つぎへ / はじめよう のどちらかが見えること」** に緩める。
-	 *
-	 * @param maxPages ページ送りの上限（無限ループ防止。現在のページ数は 4）
-	 */
-	async completeTutorial(maxPages = 10): Promise<void> {
-		await waitUntil(
-			async () =>
-				(await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX)) ||
-				(await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX)),
-			{ description: "チュートリアルのプライマリ CTA（つぎへ / はじめよう）が表示されること" },
-		);
-
-		// #1031 【設計】§4-1: ページ送りは FlatList のスクロールアニメーションを伴う。
-		// プライマリ CTA の testID が「つぎへ」→「はじめよう」に切り替わることを毎回待ち合わせることで、
-		// アニメーション完了を明示的に待つ（Detox の idle 同期だけに頼らない）
-		for (let page = 0; page < maxPages; page += 1) {
-			if (await existsNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX)) break;
-			if (!(await existsNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX))) break;
-
-			await tapWhenVisible(this.tutorialNextButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
-		}
-
-		await waitUntilVisible(this.tutorialFinishButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
-		await tapWhenVisible(this.tutorialLaterButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
-		// #1027 閉じ待ちは「見えなくなること」で行う。TrueSheet の中身はツリーから消えるとは限らず、
-		// 存在での判定はプラットフォーム差に巻き込まれる
-		await waitUntilNotVisible(this.tutorialLaterButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
-	}
-
-	/**
-	 * チュートリアルが出ていれば閉じる（ベストエフォート）。
-	 *
-	 * #1027 【設計】§4-3: e2e-web は fixtures が localStorage へ視聴済みフラグをシードして抑止している。
-	 * ネイティブも起動引数 `e2eTutorialSeen` によるシード方式へ揃えたため、
-	 * **通常の spec からこれを呼ぶ必要は無い**（`launchAppWithSession` の既定が「視聴済み」）。
-	 * シードを外して起動した spec の後片付け用に残している。
-	 *
-	 * @returns 閉じた場合 true / そもそも出ていなかった場合 false
-	 */
-	async dismissTutorialIfPresent(): Promise<boolean> {
-		// 実体は fixtures/e2e.ts。screens 側と二重管理にならないよう委譲するだけにする
-		return dismissSearchTutorialIfPresent(3_000);
+		const shown = await visibleNow(by.id("onboarding-next"), 3_000);
+		assert.equal(shown, false, "再起動後にオンボーディングが再表示されている（既読フラグが永続化されていない）");
 	}
 
 	/**
@@ -710,10 +548,7 @@ export class SearchScreen {
 		// iOS ではそこがタブバー・検索 FAB・ホームインジケータに覆われているため
 		// "View is not scrollable at the given start point"（= その点は見えていない）で失敗する
 		// （run 30460621899 の iOS で実測）。中央（0.5, 0.5）から始めれば何にも覆われない
-		await waitFor(element(target))
-			.toBeVisible()
-			.whileElement(this.scrollView)
-			.scroll(pixels, "down", 0.5, 0.5);
+		await waitFor(element(target)).toBeVisible().whileElement(this.scrollView).scroll(pixels, "down", 0.5, 0.5);
 	}
 }
 

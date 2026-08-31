@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Platform } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { useAuth } from "@/contexts/AuthProvider";
 import { getRemoteConfigSource, initRemoteConfig } from "@/lib/remoteConfig";
@@ -82,6 +83,21 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 						source: getRemoteConfigSource(),
 						// 取得に失敗した場合のみ、原因の手掛かりとしてメッセージだけ残す
 						error_message: initError instanceof Error ? initError.message : undefined,
+						/*
+						#1629 【追加】**OS とそのバージョンを残す。**
+
+						実機報告（「Android でキーボードに隠れる」等）を追うとき、
+						**どの OS バージョンの話なのかがログのどこにも無かった**。
+						Android は 15（API 35）から edge-to-edge が強制され、
+						`adjustResize` に頼った作りの挙動が変わるため、
+						«API 34 のエミュレータでは再現しないが実機では起きる» が普通に起こる
+						（実際、CI の Detox は API 34 で緑のまま、実機の報告が続いた）。
+
+						`Platform.Version` は Android では API レベルの数値、iOS では OS の
+						バージョン文字列になる。起動時 1 回だけなのでログ量も増えない。
+						*/
+						platform: Platform.OS,
+						os_version: String(Platform.Version),
 					},
 				});
 			}
@@ -186,7 +202,7 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	// ⚠️ children は `user === null`（PR4b）かつ Remote Config が既定値／保存値（PR3）の状態で
 	//    マウントされる。その前提に耐えられるようにする作業は先行 PR で済ませてある:
 	//    - PR4a … `useAPICall` の `code: "unauthenticated"`、`HealthCheckInitializer` /
-	//             `useAutoCurrentLocation` の auth 解決後 1 回だけの再試行、`LoginbackModal` の null ガード
+	//             `useAutoCurrentLocation` の auth 解決後 1 回だけの再試行、ログイン UI（現 `LoginForm`）の null ガード
 	//    - PR2  … `getRemoteConfig()` が null を返さない（`parseInt(undefined) = NaN` を塞いだ）
 	return <>{children}</>;
 };

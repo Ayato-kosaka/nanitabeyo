@@ -1,4 +1,4 @@
-import { buildAddressFromGeocodedAddress, isCanonicalAddress } from "./addressFormat";
+import { buildAddressFromGeocodedAddress, getAddressCountryCode, isCanonicalAddress } from "./addressFormat";
 
 /**
  * #1196 `address` は表示用の文字列ではなく、料理カテゴリ推薦 API が地域ゲートの照合に使う
@@ -52,6 +52,49 @@ describe("#1196 isCanonicalAddress", () => {
 		["alpha-2 でない国名", "country:Japan"],
 	])("非正規形式は false: %s", (_label, address) => {
 		expect(isCanonicalAddress(address)).toBe(false);
+	});
+});
+
+/**
+ * #1196 検索画面の海外ガード（`country:JP` 以外では推薦 API を呼ばずにダイアログで案内する）は、
+ * この関数の戻り値だけを根拠に判断する。ここが緩むと海外の地点で API を呼んでしまい、
+ * 候補が痩せて Claude フォールバックへ落ちる（課金だけ発生して結果は返せない）。
+ * 逆に厳しすぎると日本の正常な地点で検索が止まるため、境界を明示的に固定する。
+ */
+describe("#1196 getAddressCountryCode", () => {
+	it.each([
+		["国コードのみ", "country:JP", "JP"],
+		["日本の正規形式", "country:JP, administrative_area_level_1:大阪府, locality:大阪市", "JP"],
+		["海外の正規形式", "country:US, administrative_area_level_1:CA, locality:San Francisco", "US"],
+		["前後に空白", "  country:JP ,  locality:Osaka  ", "JP"],
+		["country が先頭でない", "administrative_area_level_1:CA, country:US", "US"],
+	])("正規形式からは国コードを返す: %s", (_label, address, expected) => {
+		expect(getAddressCountryCode(address)).toBe(expected);
+	});
+
+	it.each([
+		["#1196 本番で観測された壊れた形式", "大阪市"],
+		["空文字", ""],
+		["null", null],
+		["undefined", undefined],
+		["値の無い country トークン", "country:"],
+		["expo フォールバックの表示用文字列", "現在地 (34.6937, 135.5023)"],
+		["country が無く地域トークンだけ", "administrative_area_level_1:大阪府, locality:大阪市"],
+		["country で始まるだけの別キー", "countryside:JP"],
+		// #1196 Postgres の照合は大小文字区別ありなので `region:country:jp` はゲートに当たらない。
+		// 「JP なのに小文字」を JP として通すと、海外ガードは素通しなのにサーバでは 0 件、という
+		// 最も気づきにくい壊れ方（#1196 と同じ Claude フォールバック常時発火）になる。
+		["小文字の国コード", "country:jp, administrative_area_level_1:Osaka"],
+		["先頭だけ大文字の国コード", "country:Jp"],
+		["alpha-2 でない国名", "country:Japan"],
+	])("正規形式でなければ null: %s", (_label, address) => {
+		expect(getAddressCountryCode(address)).toBeNull();
+	});
+
+	it("isCanonicalAddress は「国コードを取り出せること」と等価である", () => {
+		for (const address of ["country:JP", "country:US, locality:NY", "大阪市", "country:jp", "", null, undefined]) {
+			expect(isCanonicalAddress(address)).toBe(getAddressCountryCode(address) !== null);
+		}
 	});
 });
 

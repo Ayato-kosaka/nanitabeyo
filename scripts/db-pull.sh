@@ -66,12 +66,22 @@ fi
 
 echo "📦 Extracted Supabase Project ID: $PROJECT_ID"
 echo "🧬 Generating Supabase types..."
-npx supabase gen types typescript --project-id "$PROJECT_ID" --schema "$DB_SCHEMA" > shared/supabase/database.types.ts
+# CLI のバージョンは db-migrate.yml と揃えること。ずれると生成物の差分になる（#1575）
+npx --yes "supabase@${SUPABASE_CLI_VERSION:-2.115.0}" gen types typescript \
+  --project-id "$PROJECT_ID" --schema "$DB_SCHEMA" > /tmp/database.types.ts
+
+if ! grep -q "^export type Database = {" /tmp/database.types.ts; then
+  echo "❌ supabase gen types の出力が想定の形ではありません。database.types.ts は更新しません"
+  exit 1
+fi
+mv /tmp/database.types.ts shared/supabase/database.types.ts
 
 echo "✅ Supabase types generated at shared/supabase/database.types.ts"
 
-echo "🛠️ Running converter generation for shared..."
-pnpm --filter shared run generate:converters
-echo "✅ Converters generated"
+# converters は手書きである（shared/converters/README.md）。
+# 2026-08-21 に廃止したスプレッドシート生成器をここで呼んでいたため、
+# このスクリプトを実行すると手書きの converters が上書きされていた（#1575 §1-6）。
+echo "ℹ️  shared/converters/ は手書きです。列の増減があれば手で追従させ、"
+echo "    pnpm -F shared build が通ることを確認してください。"
 
 echo "✅ All done!"

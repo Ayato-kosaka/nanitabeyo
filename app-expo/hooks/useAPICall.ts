@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { Platform } from "react-native";
-import type { BaseResponse } from "@shared/api/v1/res";
+import { ErrorCode, type BaseResponse } from "@shared/api/v1/res";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -30,10 +30,31 @@ export type ApiError = {
 		 * サーバーに届いた上での 401 ではなく「今は呼べない」なので、呼び出し側は
 		 * **auth の解決後に 1 回だけ再試行する**という判断ができる（できなければならない）。
 		 */
-		| "unauthenticated";
+		| "unauthenticated"
+		/**
+		 * #1629 呼び出し側が `signal` で **自分から打ち切った**状態。
+		 *
+		 * 通信の失敗ではないので、スナックバーもエラーログも出してはいけない。
+		 * 地図の viewport が変わって前の検索が要らなくなった、のような «正常な取り消し» に使う。
+		 */
+		| "aborted";
 
 	/** HTTP ステータス。ネットワークエラー等の場合は undefined or 0 */
 	status?: number;
+
+	/**
+	 * #1629 **30 秒（API_CALL_TIMEOUT_MS）待っても応答が来ずに中断した**とき true。
+	 *
+	 * `code` は "network_error" のままにしてある（分類コードを増やすと、既存の
+	 * すべての分岐に «知らない code» が流れ込む）。呼び出し側が «圏外・回線断» と
+	 * «サーバが遅い» を別の文言で出したいときだけ、この 1 つを見れば足りる。
+	 *
+	 * ⚠️ ユーザーから見ると両者はまったく違う。圏外なら «電波» を疑うべきだが、
+	 *    タイムアウトは端末側で打てる手が «範囲を狭めてもう一度» しか無い。
+	 *    ここを潰して «通信に失敗しました» にまとめると、地図が黙って空になる
+	 *    （オーナーが実機で踏んだ #1629 の症状そのもの）。
+	 */
+	timedOut?: boolean;
 
 	/** 人間向け or ログ用メッセージ */
 	message: string;
@@ -88,10 +109,20 @@ export const useAPICall = () => {
 				method = "POST",
 				requestPayload,
 				isMultipart = false,
+				signal,
 			}: {
 				method?: "GET" | "POST" | "PATCH" | "DELETE";
 				requestPayload: TRequest;
 				isMultipart?: boolean;
+				/**
+				 * #1629 呼び出し側からの中断。**飛んでいるリクエストを実際に止める**ための口。
+				 *
+				 * 地図のように «次の操作で前の結果が要らなくなる» 画面では、応答を捨てるだけでは
+				 * サーバ側の集計クエリが全部走り切る。ここへ `AbortController.signal` を渡すと、
+				 * 内部のタイムアウト用 controller と連動して fetch ごと中断し、
+				 * `code: "aborted"` の `ApiError` を投げる（リトライもしない）。
+				 */
+				signal?: AbortSignal;
 			},
 		): Promise<R> => {
 			// 🔐 認証トークンの有無をチェック
@@ -153,6 +184,16 @@ export const useAPICall = () => {
 				didTimeout = true;
 				abortController.abort();
 			}, API_CALL_TIMEOUT_MS);
+			// #1629 外からの中断。タイムアウトと同じ controller を叩き、リトライにも入らせない
+			let didAbort = false;
+			const handleExternalAbort = () => {
+				didAbort = true;
+				abortController.abort();
+			};
+			if (signal) {
+				if (signal.aborted) handleExternalAbort();
+				else signal.addEventListener("abort", handleExternalAbort);
+			}
 
 			try {
 				for (let attempt = 0; attempt < 2; attempt++) {
@@ -173,6 +214,8 @@ export const useAPICall = () => {
 						networkError = undefined;
 					} catch (error) {
 						networkError = error;
+						// #1629 呼び出し側が打ち切ったならリトライしない（再送は中断の意味を消す）
+						if (didAbort) break;
 						// タイムアウト後はリトライせず即座に打ち切る(既に応答期限を超過しているため)
 						if (didTimeout) {
 							logFrontendEvent({
@@ -241,6 +284,15 @@ export const useAPICall = () => {
 				}
 			} finally {
 				clearTimeout(timeoutId);
+				signal?.removeEventListener("abort", handleExternalAbort);
+			}
+
+			// #1629 中断は «失敗» ではない。ログもスナックバーも出さずに専用の code を投げる
+			if (didAbort) {
+				throw {
+					code: "aborted",
+					message: `Aborted by caller while calling ${endpointName}`,
+				} satisfies ApiError;
 			}
 
 			if (!response) {
@@ -261,6 +313,8 @@ export const useAPICall = () => {
 					message: didTimeout
 						? `Network timeout (${API_CALL_TIMEOUT_MS}ms) while calling ${endpointName}`
 						: `Network error while calling ${endpointName}`,
+					// #1629 呼び出し側が «遅すぎた» と «繋がらなかった» を出し分けられるようにする
+					timedOut: didTimeout,
 					raw: networkError,
 				} satisfies ApiError;
 			}
@@ -303,7 +357,25 @@ export const useAPICall = () => {
 				});
 
 				// 特定ステータスコードによる分岐
-				if (response.status === 503) {
+				/*
+				#1642 【バグ】ここは **HTTP 503 を丸ごとメンテナンス扱い**にしていた。
+
+				503 を返すのは `MaintenanceGuard` だけではない。
+				  - `DELETE /v1/users/me` — Supabase Auth のアカウント削除失敗（再送で完了できる）
+				  - Cloud Run / LB の一時的な過負荷（そもそも errorPayload が我々のものではない）
+				実際にオーナーの実機で「ただいまメンテナンス中です。」が出た（2026-08-31）。
+				真因は Google Places の日次上限を 503 で返していたことで、そちらは
+				`external-api.service.ts` を 429 へ戻して直した（#1642）。ただし
+				**503 = メンテナンス という読み替え自体が誤り**なので、ここも直す。
+				メンテナンスと名乗ると «全機能が止まっている・こちらが意図的に止めた» と読めるので、
+				実際には検索の一部が失敗しただけの障害を誤って重大に見せてしまう。
+
+				【修正】メンテナンスを名乗ってよいのは、Remote Config の `is_maintenance` を読んだ
+				`MaintenanceGuard` が付ける `SERVICE_MAINTENANCE` が乗っているときだけにする。
+				それ以外の 503 は下の汎用 HTTP エラー経路へ落とし、呼び出し側の
+				「取得できなかった」表示（0 件・スナックバー等）に委ねる。
+				*/
+				if (response.status === 503 && backendErrorCode === ErrorCode.SERVICE_MAINTENANCE) {
 					// メンテナンスモード (HTTP 503 Service Unavailable)
 					showDialog(i18n.t("Error.maintenanceMessage"), {
 						okLabel: i18n.t("Common.ok"),

@@ -9,23 +9,38 @@ import type { BrowserContext } from "@playwright/test";
  */
 
 /**
- * 検索チュートリアルの表示済みフラグのキー。
- * app-expo/features/search/hooks/useSearchTutorial.ts の TUTORIAL_STORAGE_KEY と一致させること。
+ * オンボーディングの表示済みフラグのキー。
+ * app-expo/features/onboarding/onboardingSeenStore.ts の `ONBOARDING_STORAGE_KEY` と一致させること。
+ *
+ * #1486 §3 でオンボーディングは刷新されたが、**キーは旧チュートリアルのまま**にしてある
+ *（変えると既読の既存ユーザー全員へ再表示されるため）。名前に `TUTORIAL` が残るのはその名残。
  */
 export const TUTORIAL_STORAGE_KEY = "search_tutorial_seen_v1";
 
 /**
  * 料理提案画面スポットライトチュートリアルの表示済みフラグ。
- * app-expo/features/topics/hooks/useTopicsTutorial.ts と必ず一致させる。
+ * app-expo/features/dishCategories/hooks/useDishCategoriesTutorial.ts と必ず一致させる。
  */
-export const TOPICS_TUTORIAL_STORAGE_KEY = "topics_spotlight_tutorial_seen_v1";
+export const DISH_CATEGORIES_TUTORIAL_STORAGE_KEY = "topics_spotlight_tutorial_seen_v1";
 
 /**
- * 検索チュートリアルを「表示済み」としてシードする。
+ * 「食べたい/食べた」画面スポットライトチュートリアルの表示済みフラグ。
+ * app-expo/features/myDishes/components/MyDishesSpotlightTutorial.tsx の
+ * `MY_DISHES_TUTORIAL_STORAGE_KEY` と必ず一致させる。
  *
- * ja-JP ロケールでは検索タブ初回フォーカス時にチュートリアル BottomSheet が自動表示され、
+ * ⚠️ #1629 これをシードしないと、**このタブに来た全てのテストがオーバーレイに遮られる**。
+ * オーバーレイは画面全体を覆うので、症状は «その画面が壊れている» ではなく
+ * «タブバーのボタンが押せない»（他の要素がクリックを横取りする）として出る。
+ * 実際に `tests/navigation/tab-bar.spec.ts` がこれで 30 秒待って落ちていた。
+ */
+export const MY_DISHES_TUTORIAL_STORAGE_KEY = "my_dishes_spotlight_tutorial_seen_v1";
+
+/**
+ * オンボーディングを「表示済み」としてシードする。
+ *
+ * ja-JP ロケールでは検索タブ初回フォーカス時にオンボーディング画面へ自動遷移し、
  * 他のテストの操作を妨げるため、既定では全テストでこのシードを行う
- * （チュートリアル自体のテストのみ意図的にシードを外す）。
+ * （オンボーディング自体のテストのみ意図的にシードを外す）。
  *
  * @param context ブラウザコンテキスト（ページ生成前に呼ぶこと）
  */
@@ -41,10 +56,22 @@ export async function seedTutorialAsSeen(context: BrowserContext): Promise<void>
  * 料理提案画面を操作する既存E2Eがスポットライトに遮られないよう、
  * 専用spec以外ではfixtureから既定で適用する。
  */
-export async function seedTopicsTutorialAsSeen(context: BrowserContext): Promise<void> {
+export async function seedDishCategoriesTutorialAsSeen(context: BrowserContext): Promise<void> {
 	await context.addInitScript((key) => {
 		window.localStorage.setItem(key, "true");
-	}, TOPICS_TUTORIAL_STORAGE_KEY);
+	}, DISH_CATEGORIES_TUTORIAL_STORAGE_KEY);
+}
+
+/**
+ * 「食べたい/食べた」チュートリアルを「表示済み」としてシードする。
+ *
+ * このタブを通る（あるいはタブバーを操作する）テストがスポットライトに遮られないよう、
+ * 専用 spec 以外では fixture から既定で適用する。
+ */
+export async function seedMyDishesTutorialAsSeen(context: BrowserContext): Promise<void> {
+	await context.addInitScript((key) => {
+		window.localStorage.setItem(key, "true");
+	}, MY_DISHES_TUTORIAL_STORAGE_KEY);
 }
 
 /**
@@ -130,5 +157,33 @@ export async function seedRecentLocations(context: BrowserContext, locations: Se
 			window.localStorage.setItem(key as string, value as string);
 		},
 		[RECENT_LOCATIONS_STORAGE_KEY, JSON.stringify(locations)] as const,
+	);
+}
+
+/**
+ * 表示テーマ（システム追従 / ライト / ダーク）の保存キー。
+ * app-expo/contexts/ThemeProvider.ts の `THEME_PREFERENCE_STORAGE_KEY` と一致させること（#1509）。
+ */
+export const THEME_PREFERENCE_STORAGE_KEY = "theme_preference_v1";
+
+/** 設定画面の 3 択と同じ型（app-expo/contexts/ThemeProvider.tsx の ThemePreference） */
+export type SeededThemePreference = "system" | "light" | "dark";
+
+/**
+ * 表示テーマの設定を事前シードする（#1509）。
+ *
+ * 「再起動しても保持される」を検証するときは **シードではなく実際に UI で切り替えてから
+ * reload する**こと（シードだと保存経路を検証したことにならない）。
+ * このシードは「ダーク状態で開いた画面を検査したい」ように、切替操作そのものが
+ * 主題ではないテストのために使う。
+ *
+ * @param context ブラウザコンテキスト（ページ生成前に呼ぶこと）
+ */
+export async function seedThemePreference(context: BrowserContext, preference: SeededThemePreference): Promise<void> {
+	await context.addInitScript(
+		([key, value]) => {
+			window.localStorage.setItem(key as string, value as string);
+		},
+		[THEME_PREFERENCE_STORAGE_KEY, preference] as const,
 	);
 }

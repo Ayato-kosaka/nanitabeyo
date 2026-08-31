@@ -30,43 +30,29 @@ readonly WORK_DIR="${REPO_ROOT}/e2e-mobile/.detox-ci-logs"
 rm -rf "${WORK_DIR}"
 mkdir -p "${WORK_DIR}"
 
-# 🔬 spec の絞り込み（workflow_dispatch の test_filter）。
-# 修正 1 件の検証のために全 suite（iOS で 90 分超）を回すのは無駄なので、
-# 対象 spec 名を jest へ渡せるようにする。空なら従来どおり全件。
+# 🔬 spec の絞り込み（workflow_dispatch の test_filter → DETOX_TEST_FILTER）。
+# 修正 1 件の検証やエビデンス撮影のために全 suite（iOS で 90 分超）を回すのは無駄なので、
+# 対象 spec 名で絞れるようにする。空なら従来どおり全件。
 #
-# ⚠️ `--testPathPattern 'a|b'` の形にしないこと。detox は受け取った引数を
-# **シェル文字列として** jest コマンドに組み立て直すため、`|` が裸のパイプとして
-# 解釈され `logout` 等がコマンドとして実行された（run 31624910689 で実測:
-# `/bin/sh: line 0: logout: not login shell`）。
-# jest は位置引数を複数の testPathPattern（OR）として解釈するので、
-# `|` や空白で区切った単語を **1 語ずつ位置引数で**渡す。
-#
-# ⚠️ pnpm は最初の `--` を自分で消費するため、detox へ `--`（jest への区切り）を
-# 届けるには二重に書く（pnpm run script -- -- word1 word2）
-EXTRA_ARGS=()
+# ⚠️ ここで jest へ引数（位置引数や --testPathPattern）として渡してはいけない。
+# かつては位置引数で渡していたが、jest は位置引数と --testPathPattern を
+# **1 つの OR リストへ合流させる**ため、tier スクリプトの `--testPathPattern 'tests/smoke/'`
+# と併用すると「(tier) OR (filter)」になり絞れていなかった（run 32605810775 で実測）。
+# 現在は jest.config.js が DETOX_TEST_FILTER（env はシェル再組み立てを経ないので
+# `|` も安全）を読んで除外パターンで AND を組む。ここでは早期の入力検証だけを行う
 if [[ -n "${DETOX_TEST_FILTER:-}" ]]; then
-  IFS='| ' read -r -a FILTER_WORDS <<< "${DETOX_TEST_FILTER}"
-  SAFE_WORDS=()
-  for word in "${FILTER_WORDS[@]}"; do
-    [[ -z "${word}" ]] && continue
-    # detox がシェル経由で再組み立てするため、シェルに安全な文字だけを許す
-    if [[ ! "${word}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
-      echo "::error::test_filter に使えない文字が含まれています: ${word}（英数字と . _ / - のみ、区切りは | か空白）"
-      exit 1
-    fi
-    SAFE_WORDS+=("${word}")
-  done
-  if [[ ${#SAFE_WORDS[@]} -gt 0 ]]; then
-    EXTRA_ARGS=(-- -- "${SAFE_WORDS[@]}")
-    echo "▶ spec を絞り込みます: ${SAFE_WORDS[*]}"
+  if [[ ! "${DETOX_TEST_FILTER}" =~ ^[A-Za-z0-9._/|[:space:]-]+$ ]]; then
+    echo "::error::test_filter に使えない文字が含まれています: ${DETOX_TEST_FILTER}（英数字と . _ / - のみ、区切りは | か空白）"
+    exit 1
   fi
+  echo "▶ spec を絞り込みます (jest.config.js が AND で適用): ${DETOX_TEST_FILTER}"
 fi
 
 echo "▶ pnpm --filter e2e-mobile run ${SCRIPT_NAME}"
 
 # tee でジョブログと収集用ファイルの両方へ出す。冒頭の `set -o pipefail` により
 # tee ではなく pnpm 側の終了コードが $? に残る（`set -e` は付けない。後始末を必ず走らせるため）
-pnpm --filter e2e-mobile run "${SCRIPT_NAME}" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} 2>&1 | tee "${WORK_DIR}/detox-run.log"
+pnpm --filter e2e-mobile run "${SCRIPT_NAME}" 2>&1 | tee "${WORK_DIR}/detox-run.log"
 readonly EXIT_CODE=$?
 
 # ⚠️ 収集物のコピーは **後始末より先に**行う。後続がハングしても実行ログだけは必ず Artifact に残す
@@ -85,6 +71,19 @@ if [ "${EXIT_CODE}" -ne 0 ] && [[ "${SCRIPT_NAME}" == *android* ]] && command -v
 	if adb devices | grep -qE '^\S+[[:space:]]+device$'; then
 		echo "▶ クラッシュログ（logcat の crash バッファ）を回収します"
 		adb logcat -b crash -d > "${ARTIFACTS_DIR}/logcat-crash.log" 2>&1 || true
+
+		# #1375 【重要】**crash バッファだけでは «落ちた理由» が分からないことがある。**
+		# run 32860661371（Android・案 A の埋め込み）で、アプリがランチャーへ戻る＝確実に
+		# 落ちているのに `logcat -b crash` が **0 バイト**だった。crash バッファへ入るのは
+		# Java の未捕捉例外と tombstone を伴うネイティブ abort だけで、
+		#
+		#   - lowmemorykiller / ActivityManager によるプロセス kill（`am_kill`）
+		#   - WebView のレンダラプロセス消滅（`RenderProcessGone` / `DEAD_OBJECT`）
+		#   - GPU の描画面確保失敗
+		#
+		# はいずれも **main バッファにしか出ない**。原因を «見えるように» するため
+		# main バッファも一緒に残す。全文だと数十 MB になり得るので末尾だけにする。
+		adb logcat -b main -d 2>/dev/null | tail -n 5000 > "${ARTIFACTS_DIR}/logcat-main-tail.log" || true
 	else
 		echo "▶ 接続中の Android 端末が無いため、クラッシュログの回収をスキップします"
 	fi

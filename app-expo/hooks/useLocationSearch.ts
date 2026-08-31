@@ -325,9 +325,23 @@ export const useLocationSearch = () => {
 					return fallbackResult;
 				}
 			} catch (error) {
+				// #1196 【設計】ここは log-and-throw なので `warn` に落とす。
+				//
+				// この関数は例外を投げ直すだけで、失敗をどう扱うかは呼び出し元が決める。
+				// 実際、呼び出し元（`app/[locale]/(tabs)/search/index.tsx` と
+				// `features/search/hooks/useLocationField.ts`）は catch して
+				// `current_location_failed` を **error** で記録し、スナックバー＋手入力への誘導
+				// （#932）で回復させている。つまり同じ 1 回の失敗が 2 本の error ログになり、
+				// トリアージには **同じ事象が別 fingerprint の Issue 2 件**として並んでいた
+				// （open 10 件のうち 5 件がこの家族だった。2026-08-19 実測）。
+				//
+				// ログレベルの基準は「深刻さ」ではなく「人間の対応が要るか」で、
+				// **回復可能かを知っているのは呼び出し元だけ**。低レイヤのここが `error` を
+				// 宣言してはいけない（→ `.claude/skills/error-triage/TRIAGE.md`）。
+				// ここを `error` に戻すと二重起票も戻る。
 				logFrontendEvent({
 					event_name: "current_location_fetch_failed",
-					error_level: "error",
+					error_level: "warn",
 					payload: {
 						error: toErrorLogString(error),
 						kind: error instanceof LocationPermissionError ? error.kind : "unavailable",

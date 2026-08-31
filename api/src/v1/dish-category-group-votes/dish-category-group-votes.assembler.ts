@@ -10,6 +10,11 @@ import {
   DishCategoryGroupVoteSearchContext,
 } from '@shared/v1/res';
 import { DishCategoryGroupVoteDetailRecord } from './dish-category-group-votes.repository';
+import {
+  compareByVoteRank,
+  hasSameVoteScore,
+  RankableCandidate,
+} from './dish-category-group-votes.ranking';
 
 @Injectable()
 export class DishCategoryGroupVotesAssembler {
@@ -137,40 +142,22 @@ export class DishCategoryGroupVotesAssembler {
   /**
    * rank は likeCount DESC、dislikeCount ASC の競技順位で決める。
    * displayOrder は同順位内の表示順安定化だけに使い、同率判定には含めない。
+   *
+   * #1505 順位規則そのものは `dish-category-group-votes.ranking.ts` に置いた。
+   * 一覧の winnerName（repository.findMeSessions）が同じ規則を使うため、
+   * 「結果画面の 1 位」と「一覧に太字で出る候補」が食い違わない。
    */
-  private buildRanks(
-    items: {
-      candidateId: string;
-      likeCount: number;
-      dislikeCount: number;
-      displayOrder: number;
-    }[],
-  ): Map<string, number> {
-    const sortedItems = [...items].sort((a, b) => {
-      if (a.likeCount !== b.likeCount) return b.likeCount - a.likeCount;
-      if (a.dislikeCount !== b.dislikeCount) {
-        return a.dislikeCount - b.dislikeCount;
-      }
-      return a.displayOrder - b.displayOrder;
-    });
+  private buildRanks(items: RankableCandidate[]): Map<string, number> {
+    const sortedItems = [...items].sort(compareByVoteRank);
 
-    let previousScore: { likeCount: number; dislikeCount: number } | null =
-      null;
+    let previousItem: RankableCandidate | null = null;
     let currentRank = 0;
 
     return new Map(
       sortedItems.map((item, index): [string, number] => {
-        const isSameScore =
-          previousScore !== null &&
-          previousScore.likeCount === item.likeCount &&
-          previousScore.dislikeCount === item.dislikeCount;
-
-        if (!isSameScore) {
+        if (previousItem === null || !hasSameVoteScore(previousItem, item)) {
           currentRank = index + 1;
-          previousScore = {
-            likeCount: item.likeCount,
-            dislikeCount: item.dislikeCount,
-          };
+          previousItem = item;
         }
 
         return [item.candidateId, currentRank];

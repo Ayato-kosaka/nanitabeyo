@@ -1,6 +1,8 @@
 {
 	"ios": {
-		"CFBundleDisplayName": "なに食べよ"
+		"CFBundleDisplayName": "なに食べよ",
+		"NSLocationWhenInUseUsageDescription": "現在地周辺のおすすめのお店を提案するために、位置情報を使用します。",
+		"NSLocationAlwaysAndWhenInUseUsageDescription": "現在地周辺のおすすめのお店を提案するために、位置情報を使用します。"
 	},
 	"android": {
 		"app_name": "なに食べよ"

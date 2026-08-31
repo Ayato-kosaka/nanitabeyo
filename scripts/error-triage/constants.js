@@ -77,11 +77,33 @@ const GROUP_LIMIT = 500;
 const LOCALE_BREAKDOWN_LIMIT = 50;
 
 /**
- * BigQuery ジョブのスキャン上限（バイト）。200MB。
+ * BigQuery ジョブのスキャン上限（バイト）。1GB。
  * 実際に `--maximum_bytes_billed` へ載せるのは PR2 の bq.js だが、
  * 「Workflow の env / inputs から渡せない定数」であることをここで固定しておく（#1199 §5）。
+ *
+ * #1196 【実測】当初は 200MB だったが、**2026-08-19 の run がこの上限で落ちて**引き上げた
+ * （見積り 249,701,781 バイト > 200,000,000 バイト → クエリを投げずに abort）。
+ * 原因は障害ではなく利用者の増加で、25h 窓のログ量が 08-18 に約 3 倍へ跳ねた
+ * （ユーザー 394 → 1,478 人/日。error 率は 4.17% → 4.48% でほぼ横ばい）。
+ *
+ * ⚠️ **クエリ側の節約余地はほぼ無い。** 同じ窓を dry-run で実測すると:
+ *
+ *   | 読む列 | 見積り |
+ *   |---|---|
+ *   | 現行の全列 | 382 MB |
+ *   | `jsonPayload.payload` を除く 12 列 | 59 MB |
+ *
+ * つまり **85% が `payload` の 1 列**で、これは messagePattern の正規化＝fingerprint の
+ * 素材なので落とせない。そして Sink テーブルは `timestamp` の DAY パーティションのみで
+ * **クラスタリングが無い**ため、`error_level = 'error'`（全行の約 4%）で絞っても
+ * スキャンバイトは減らない。列を削る以外に効く手が無く、残り 12 列はすべて出力契約で使っている。
+ *
+ * したがってここは「使う量に合わせて上限を上げる」以外に手が無い。1GB は現行 240MB/日に対して
+ * 約 4 倍の余裕で、月 30GB ＝ BigQuery 無料枠 1TB の 3%（従量でも月 $0.2 未満）に収まる。
+ * さらに増えて再び落ちたら、**上限を上げる前に「利用者が増えたのか、障害でログが暴れているのか」を
+ * 必ず error 率で切り分けること。** 後者なら上げてはいけない。
  */
-const MAX_BYTES_BILLED = 200000000;
+const MAX_BYTES_BILLED = 1000000000;
 
 /**
  * 1 run あたりの新規起票上限。
@@ -197,7 +219,10 @@ const EXCLUSION_REASONS = Object.freeze([
 	"unauthenticated_race", // E2 Supabase access_token is missing
 	"client_network", // E3 frontend api_call_error かつ status=0
 	"transient_status", // E4 frontend の EXCLUDED_HTTP_STATUSES
-	"user_denied_permission", // E5 位置情報の権限拒否（S2: kind は denied/timeout/unavailable/unsupported の4値）
+	// E5 端末が現在地を返せない（kind = denied/timeout/unavailable）。
+	//    「権限拒否」だけではないので user_denied_permission から改名した。除外の対象は
+	//    current_location_* の event に閉じてある（sql-generator.js の E5 を参照）。
+	"device_location_failed",
 	"expected_client_error", // E6 backend の EXCLUDED_HTTP_STATUSES
 	"external_transient", // E7 外部API側の一時障害
 ]);

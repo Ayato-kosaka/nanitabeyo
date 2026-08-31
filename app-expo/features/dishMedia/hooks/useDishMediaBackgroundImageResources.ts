@@ -92,17 +92,55 @@ export const areDishMediaBackgroundImageDescriptorsEqual = (
  * 背景画像 preload に必要な最小 descriptor のみを購読する。
  * restaurant/reviews/likes 等の更新では反応せず、bgUri 変更時だけ preload を走らせる。
  */
-export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }: UseDishMediaBackgroundImageResourcesParams) => {
+export const useDishMediaBackgroundImageResources = ({
+	ids,
+	idType,
+	sessionKey,
+}: UseDishMediaBackgroundImageResourcesParams) => {
 	const { logFrontendEvent } = useLogger();
 	const imageStatesRef = useRef<DishMediaBackgroundImageStates>({});
 	const imageLoadGenerationRef = useRef(0);
 	const [imageStates, setImageStates] = useState<DishMediaBackgroundImageStates>({});
+	// #1629【40】id → key の対応表。設計は下の useEffect のコメントを参照
+	const keyByIdRef = useRef<Record<string, string>>({});
+	const [keyById, setKeyById] = useState<Record<string, string>>({});
+
+	/*
+	#1375（全画面のクラッシュ棚卸し）**捨てる前に `release()` する。**
+
+	以前はここで `imageStatesRef.current = {}` と参照を捨てるだけだった。
+	`Image.loadAsync` が返す `ImageRef` は **ネイティブ側にデコード済みのビットマップを
+	確保している**ので、JS の参照を捨てても GC が回るまで解放されない。
+	この画面は全画面サイズの画像を扱うため、フィードを開閉して回ると
+	Android の低メモリ端末で OOM に至る（＝ JS では捕まらないネイティブのクラッシュ）。
+
+	同じ役割の `features/dishCategories/hooks/useDishCategoryImageResources.ts` は
+	`releaseIfImageRef` を持っており解放している。**こちらだけ抜けていた。**
+
+	⚠️ 解放は **次のティックで**行う。いま描かれている `<Image>` が同じ ImageRef を
+	参照している最中に解放すると、その 1 フレームだけ画像が消える。
+	（dishCategories 側の `releaseStatesDeferred` と同じ理由・同じ作法）
+	*/
+	const releaseStatesDeferred = useCallback((states: DishMediaBackgroundImageStates) => {
+		setTimeout(() => {
+			for (const state of Object.values(states)) {
+				if (state.status !== "ready") continue;
+				const image = state.image as Partial<{ release: () => void }>;
+				if (typeof image?.release === "function") image.release();
+			}
+		}, 0);
+	}, []);
 
 	const resetImageStates = useCallback(() => {
 		imageLoadGenerationRef.current += 1;
+		const previousStates = imageStatesRef.current;
 		imageStatesRef.current = {};
 		setImageStates({});
-	}, []);
+		// #1629【40】id → key の対応表もセッションと寿命を揃える（下の keyById の設計コメント）
+		keyByIdRef.current = {};
+		setKeyById({});
+		releaseStatesDeferred(previousStates);
+	}, [releaseStatesDeferred]);
 
 	// #802 【設計】processing 中の polling で thumbnailImageUrl -> mediaUrl に切り替わることがある。
 	// bgUri を含む descriptor 単位で購読することで、新しい画像リソースだけを preload 対象にする。
@@ -114,7 +152,7 @@ export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }
 						const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
 						if (!entry) return null;
 
-						const uri = getDishMediaBackgroundImageUri(entry);
+						const uri = getDishMediaBackgroundImageUri(entry) ?? undefined;
 						return {
 							id,
 							key: getDishMediaBackgroundImageKey(entry),
@@ -128,8 +166,6 @@ export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }
 		),
 		areDishMediaBackgroundImageDescriptorsEqual,
 	);
-
-	const keyById = useMemo(() => Object.fromEntries(descriptors.map((descriptor) => [descriptor.id, descriptor.key])), [descriptors]);
 
 	// #802 【設計】表示の真実は Image.loadAsync で取得した ImageRef の ready/error に置く。
 	// 表示側 Image の mount/cache hit/re-render による load イベント欠落は状態決定に使わない。
@@ -172,7 +208,13 @@ export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }
 
 			try {
 				const image = await loadImageResourceWithRetry(uri);
-				if (imageLoadGenerationRef.current !== imageLoadGeneration) return;
+				if (imageLoadGenerationRef.current !== imageLoadGeneration) {
+					// 旧セッションの ImageRef はどの表示にも渡らないので、その場で解放する
+					// （topics 側 `useTopicImageResources.ts` と同じ扱い）
+					const stale = image as Partial<{ release: () => void }>;
+					if (typeof stale?.release === "function") stale.release();
+					return;
+				}
 				imageStatesRef.current = {
 					...imageStatesRef.current,
 					[key]: { status: "ready", image },
@@ -204,6 +246,49 @@ export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }
 	useEffect(() => {
 		resetImageStates();
 	}, [sessionKey, resetImageStates]);
+
+	/*
+	#1629【40】【設計】**id → key の対応表は «窓から外れても捨てない»。**
+
+	`descriptors` は先読みの «窓»（`computePreloadIds`）だけを写したものである。
+	以前はこの対応表を descriptors から毎回作り直していたので、**窓から外れた id は
+	`keyById` から消え、`getBackgroundImageState` が `idle` を返していた**。
+	`DishMediaContent` は `idle` を «まだ読み込み中» と見なして `SkeletonShimmer` を
+	出すので、**一度読み終わって表示できていたセルが、指を動かした拍子に
+	スケルトンへ戻る**。オーナーの «チカチカする»（#1629【30】）も、投稿を削除した
+	直後に隣のセルがローディングに見えるのも、根はここである。
+
+	画像の実体（`imageStates`）は key で持っており窓の外でも保持しているので、
+	**対応表さえ残せば、窓の外でも読み終わった絵をそのまま出せる**。
+	新しいメモリを掴むわけではない（文字列 2 本が増えるだけ）。
+
+	⚠️ 捨ててよいのは «セッションが変わったとき» だけ。`resetImageStates` が
+	   `imageStates` と一緒に捨てる。ここで捨てる条件を増やさないこと。
+	*/
+	useEffect(() => {
+		let changed = false;
+		const next = { ...keyByIdRef.current };
+		for (const descriptor of descriptors) {
+			if (next[descriptor.id] === descriptor.key) continue;
+			next[descriptor.id] = descriptor.key;
+			changed = true;
+		}
+		if (!changed) return;
+		keyByIdRef.current = next;
+		setKeyById(next);
+		// ⚠️ `sessionKey` を依存に入れること。`resetImageStates`（この下ではなく上の effect）が
+		// 対応表を空にしたあと、descriptors の参照が変わらないと二度と埋め直されない
+	}, [descriptors, sessionKey]);
+
+	// 画面を離れるときも解放する。これが無いと «最後に見ていたぶん» が残り続ける
+	useEffect(
+		() => () => {
+			imageLoadGenerationRef.current += 1;
+			releaseStatesDeferred(imageStatesRef.current);
+			imageStatesRef.current = {};
+		},
+		[releaseStatesDeferred],
+	);
 
 	// #802 【設計】descriptor の key が変わったものだけ Image.loadAsync を走らせる。
 	useEffect(() => {

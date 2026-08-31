@@ -44,9 +44,7 @@ test.describe("現在地取得", () => {
 
 			await appPage.getByTestId("search-current-location-button").click();
 
-			await expect(
-				appPage.getByText("位置情報の利用が許可されていません。地名を直接入力してください。"),
-			).toBeVisible();
+			await expect(appPage.getByText("位置情報の利用が許可されていません。地名を直接入力してください。")).toBeVisible();
 			await expect(searchPage.locationInput).toBeFocused();
 		});
 	});

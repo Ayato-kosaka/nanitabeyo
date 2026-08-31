@@ -14,15 +14,17 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useHaptics } from "@/hooks/useHaptics";
 import { LoadingIndicator } from "./LoadingIndicator";
+import { FixedColors } from "@/constants/Palette";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 export interface PrimaryButtonProps {
 	/** 表示テキスト */
 	label: string;
 	/** 押下時のコールバック */
 	onPress: (event: GestureResponderEvent) => void;
-	/** 左側に表示するアイコン要素 (例: <ThumbsUp size={20} color="#FFF" />) */
+	/** 左側に表示するアイコン要素 (例: <ThumbsUp size={20} color={FixedColors.onFilled} />) */
 	icon?: ReactElement;
-	/** グラデーション用カラー配列。デフォルトは青系 */
+	/** グラデーション用カラー配列。未指定ならブランド色の単色（#1629 テーマの `brand`） */
 	colors?: readonly [ColorValue, ColorValue, ...ColorValue[]];
 	/** 影の色 */
 	shadowColor?: ColorValue;
@@ -59,7 +61,7 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 	label,
 	onPress,
 	icon,
-	colors = ["#f05537", "#f05537"],
+	colors: colorsProp,
 	shadowColor = "transparent",
 	borderRadius = 8,
 	loading = false,
@@ -74,6 +76,10 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 }) => {
 	const isDisabled = disabled || loading;
 	const { lightImpact } = useHaptics();
+	// #1629【デザイン】既定のグラデーションはブランド色（ライト / ダークとも同値なので
+	// 見た目は変わらない）。無効時の色差し替えは呼び出し側が colors で行う（下の disabled 参照）
+	const { colors: themeColors } = useAppTheme();
+	const colors = colorsProp ?? ([themeColors.brand, themeColors.brand] as const);
 
 	const handlePress = useCallback(
 		(e: GestureResponderEvent) => {
@@ -114,7 +120,8 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 
 		if (loadingIndicatorType === "native") {
 			const flattenedLabelStyle = StyleSheet.flatten(labelStyle) as TextStyle | undefined;
-			const defaultNativeColor = flattenedLabelStyle?.color ?? "#FFFFFF";
+			// #1629 塗り潰した面の上のインジケータなので、label と同じ固定の白へ倒す
+			const defaultNativeColor = flattenedLabelStyle?.color ?? FixedColors.onFilled;
 			return (
 				<ActivityIndicator size={"small"} color={nativeLoadingColor ?? defaultNativeColor} testID={loadingTestID} />
 			);
@@ -162,13 +169,27 @@ const styles = StyleSheet.create({
 	pressed: {
 		opacity: 0.8,
 	},
+	/*
+	#1375（5 巡目・デザインレビュー #4）**opacity で無効を表さない。**
+
+	ブランドの赤 + 白文字に 0.4 を掛けると赤が淡いサーモンまで飛び、
+	コントラスト比が約 1.7:1 まで落ちて **文字がほぼ読めない**（「食べたいに保存」
+	「レビューを投稿する」で実測）。参照実装の検索画面は disabled にせず
+	**色だけ差し替えて**いる（`colors.ctaBackgroundDisabled` の灰、約 2.9:1）。
+
+	ここは «押せない» を色で示しつつ文字は読めるままにするため、
+	透過を弱く（0.4 → 0.75）し、呼び出し側は無効時に
+	`colors={[colors.ctaBackgroundDisabled, colors.ctaBackgroundDisabled]}` を渡す。
+	*/
 	disabled: {
-		opacity: 0.4,
+		opacity: 0.75,
 	},
 	label: {
 		fontSize: 16,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		// #1629 このボタンは常に «濃い色で塗り潰した面» なので、文字はテーマで振らず固定の白
+		//（ライトで黒にすると、ブランド色の赤の上で読めなくなる）
+		color: FixedColors.onFilled,
 		letterSpacing: 0.5,
 	},
 });

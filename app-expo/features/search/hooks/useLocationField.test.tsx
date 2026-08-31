@@ -15,7 +15,7 @@ import { useLocationField, type SelectedLocation } from "./useLocationField";
  *
  * ⚠️ 「最近使った場所」への登録（viewport を落として保存する）はこのフックの責務ではない。
  * details が解決する頃にはフォームが閉じており、登録は呼び出し元が行うため、
- * その検証は `features/profile/tabs/SavedTopicsTab.test.tsx` にある。
+ * その検証は `features/profile/tabs/SavedDishCategoriesTab.test.tsx` にある。
  */
 
 const mockGetCurrentLocation = jest.fn<Promise<Omit<LocationDetailsResponse, "viewport">>, []>();

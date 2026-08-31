@@ -6,6 +6,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LocationsController } from './locations.controller';
 import { LocationsService } from './locations.service';
+// #1596 コントローラに付いている AuthAnonGuard が ClsService と AppLoggerService を要求する。
+// 後者を provider に入れていなかったため、この suite は組み立てに失敗して全件落ちていた
+// （env 起因の失敗に隠れて誰も見ていなかった）。
+import { AppLoggerService } from '../../core/logger/logger.service';
 
 describe('LocationsController', () => {
   let controller: LocationsController;
@@ -20,6 +24,16 @@ describe('LocationsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LocationsController],
       providers: [
+        {
+          provide: AppLoggerService,
+          useValue: {
+            debug: jest.fn(),
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            externalApi: jest.fn(),
+          },
+        },
         {
           provide: LocationsService,
           useValue: mockLocationsService,

@@ -55,6 +55,33 @@ export class PermanentImageError extends Error {
 const PERMANENT_DOWNLOAD_STATUSES = new Set([404, 410]);
 
 /**
+ * #1425 【バグ】libvips が「そのフォーマットのデコーダを積んでいない」と言っているかを判定する。
+ *
+ * 本番で観測した実物（HEIC のアップロード）:
+ *
+ *   source: bad seek to 565836
+ *   ...
+ *   heif: Error while loading plugin: Support for this compression format has not been built in (11.6003)
+ *
+ * 先頭の `source: bad seek to` は**症状で、原因ではない**。真因は末尾の一行で、
+ * sharp の同梱 libvips が HEVC 特許の都合で HEIF デコーダを含まないこと。
+ *
+ * ⚠️ **`heif:` だけでマッチさせないこと。** ここは «ジョブをキューから消す側» の判定なので、
+ * 広く取ると本来リトライで救えるものまで恒久失敗にしてしまう。将来 HEIF 対応を積んだあとに出る
+ * 別種の heif エラー（メモリ・I/O 起因など）を巻き込まないよう、
+ * 「デコーダが組み込まれていない」という文言まで含めて**狭く**判定する。
+ */
+function isUnsupportedImageFormatError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return error.message
+    .toLowerCase()
+    .includes('support for this compression format has not been built in');
+}
+
+/**
  * JPEGデコードエラーが再エンコードで救済可能かを判定
  * @param error エラーオブジェクト
  * @returns 再エンコードを試す対象ならtrue
@@ -243,6 +270,30 @@ export class ResizeImageService {
       // #423 【設計】まずは通常通りsharpでリサイズを試行
       return await this.performResize(buffer, width, option);
     } catch (error) {
+      // #1425 【バグ】デコーダが無い形式（HEIC 等）はリトライしても結果が変わらない。
+      //
+      // 原本は GCS 上の不変ファイルなので、何度読み直しても同じバイナリ・同じ結果になる。
+      // ここで恒久失敗と宣言しないと Cloud Tasks が上限まで再試行し、1 枚の画像で
+      // Cloud Run の起動と error ログを 8 回ずつ（media_path と thumbnail_path で計 16 件）
+      // 無駄に積む。本番で実際にそうなっていた。
+      //
+      // ⚠️ **JPEG の再エンコード分岐より前に置くこと。** 後ろに置くと Jimp（HEIC を読めない）を
+      // 一度通すことになり、無駄な再エンコード試行とログが 1 段増えるだけになる。
+      if (isUnsupportedImageFormatError(error)) {
+        this.logger.error('ResizeImageUnsupportedFormat', 'resizeImage', {
+          size: width,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        throw new PermanentImageError(
+          'Unsupported image format (decoder not built in)',
+          'UNSUPPORTED_IMAGE_FORMAT',
+          {
+            originalError: error instanceof Error ? error.message : 'Unknown',
+          },
+        );
+      }
+
       // #423 【バグ】JPEGデコードエラーの場合、Jimpで再エンコードして再試行
       if (isRecoverableJpegDecodeError(error)) {
         this.logger.warn('ResizeImageDecodeError', 'resizeImage', {
@@ -351,6 +402,29 @@ export class ResizeImageService {
 
   /**
    * #511 【設計】dish_media テーブルの processing_status を更新
+   *
+   * #1599 【バグ】**既にそのステータスなら 1 行も書かない。**
+   *
+   * Cloud Tasks は at-least-once 配送で、ハンドラが成功しても応答が届かなければ
+   * 再実行される。`resizeAndStoreImage` は再実行されると
+   * 「リサイズ済みが既にある」経路（`alreadyExisted`）へ入り、そこから
+   * **同じ status で**ここへ来る。以前は無条件 UPDATE だったので、再配送のたびに
+   *
+   *   - `lock_no` が 1 つ進む
+   *   - `updated_at` が «何も変わっていないのに» 現在時刻へ動く
+   *   - 行の新しいバージョンが書かれる（WAL・VACUUM 対象が増える）
+   *
+   * が起きていた。`updated_at` は «最後に中身が変わった時刻» として読める必要があり、
+   * 再配送の回数で動く値になっていると、後からログと突き合わせられない。
+   *
+   * 判定は `WHERE <statusColumn> <> :status` で **DB 側に 1 文で持たせる**。
+   * 「読んでから比べて書く」にすると、その隙間に別のタスクが書き込める。
+   *
+   * ⚠️ `update` ではなく `updateMany` なのは、条件に一致しないことを
+   * «例外» ではなく «0 行» で受け取るためである（`update` は P2025 を投げる）。
+   * そのぶん «行が無い» と «既にそのステータス» が区別できなくなるので、
+   * 0 行のときは両方を疑えるログを残す。
+   *
    * @param recordId dish_media レコードの ID
    * @param column 対象カラム（media_path / thumbnail_path）
    * @param status 更新後のステータス
@@ -366,14 +440,28 @@ export class ResizeImageService {
         : 'thumbnail_processing_status';
 
     try {
-      await this.prisma.prisma.dish_media.update({
-        where: { id: recordId },
+      const { count } = await this.prisma.prisma.dish_media.updateMany({
+        where: { id: recordId, NOT: { [statusColumn]: status } },
         data: {
           [statusColumn]: status,
           updated_at: new Date(),
           lock_no: { increment: 1 },
         },
       });
+
+      if (count === 0) {
+        this.logger.log(
+          'DishMediaProcessingStatusUnchanged',
+          'updateDishMediaProcessingStatus',
+          {
+            recordId,
+            statusColumn,
+            status,
+            reason: 'already_in_status_or_record_missing',
+          },
+        );
+        return;
+      }
 
       this.logger.log(
         'DishMediaProcessingStatusUpdated',

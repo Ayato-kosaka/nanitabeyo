@@ -26,7 +26,10 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+import { computePreloadIds } from "@/features/dishMedia/preloadWindow";
 import { useContentWidth } from "@/hooks/useContentWidth";
+import { useSheetBottomPadding } from "@/hooks/useSheetBottomPadding";
+import { FixedColors } from "@/constants/Palette";
 
 // #958 【修正】カルーセルの幅は window 実幅ではなく中央カラム幅に追従させる必要があるため、
 // コンポーネント内の useContentWidth() を使う(下の contentWidth)。height はカルーセルの
@@ -44,9 +47,33 @@ const HANDLE_HEIGHT = 44;
 // #605 【設計】スナップ判定の閾値（0.5 = 中間点）
 const SNAP_THRESHOLD = 0.5;
 // #605 【設計】ハンドルの色（半透明白）
-const HANDLE_COLOR = "#FFFFFFFF";
+// #1509 元表記は 8 桁 HEX "#FFFFFFFF"（alpha FF = 不透明）。FixedColors.onMedia（6 桁 #FFFFFF）と描画は完全に同一
+const HANDLE_COLOR = FixedColors.onMedia;
 // #638 【設計】フローティングボタンのマージン（右端からの距離）
 const FLOATING_BUTTON_MARGIN = 8;
+
+/*
+#1729 【設計】**件数が 2 以下のときは loop しない。**
+
+オーナー実機報告（2026-08-31・お店提案で検索結果が 1 件のとき）:
+
+> 検索結果が一件しかないときカルーセルを同じ dish media でぐるぐるさせる必要はない。
+> 動画にしたことで音がおかしくなるバグの温床。
+
+`react-native-reanimated-carousel` は `loop` かつ `autoFillData`（既定 true）のとき、
+**data を複製して 3 枚（1 件）/ 4 枚（2 件）に水増しする**
+（`utils/computed-with-auto-fill-data.ts` の `computedFillDataWithAutoFillData`）。
+さらに `renderItem` へ渡る `index` は水増し前へ畳み戻される
+（同ファイル `computedRealIndexWithAutoFillData` = `index % rawDataLength`）。
+
+つまり **1 件のときは 3 枚のセルが全部 `index === 0` で描かれる**。このセルの
+`isActive` は `index === currentIndex` なので、同じ dish media の
+`VideoPlayer` / `ExternalEmbedPlayer` が **同時に 3 つ再生状態になり、音が重なる**。
+2 件でも同じ形で 2 つ重なる（`index % 2` が 2 セルずつ当たる）。
+
+複製が起きない件数（3 件以上）でだけ loop する。1〜2 件はそのまま端で止まる。
+*/
+const MIN_LOOPABLE_COUNT = 3;
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -83,40 +110,111 @@ export default function DishMediaMap({
 	// 画面を開いた時点の並びを固定するための state
 	// liked/unlike 等のリアルタイム反映は行わない
 	const [ids, setIds] = useState<string[]>(() => liveIds);
+	// #1629【35】固定した並びから «削除されたもの» だけ落とす。
+	// 理由と «liveIds を判定に使わない» 理由は `DishMediaFeed.tsx` の同じ箇所に書いてある
+	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
+	// #1629【40】背景画像のセッションを «並びの文字列» で作らない理由は
+	// `DishMediaFeed.tsx` の同じ箇所（`idsSession`）に書いてある。両画面で同じ規則にする
+	const [idsSession, setIdsSession] = useState(0);
 	useEffect(() => {
-		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
-	}, [liveIds, ids.length]);
+		if (ids.length === 0) {
+			if (liveIds.length > 0) {
+				setIds(liveIds);
+				setIdsSession((session) => session + 1);
+			}
+			return;
+		}
+		if (!ids.some((id) => deletedIds[id])) return;
+		setIds((prev) => prev.filter((id) => !deletedIds[id]));
+	}, [liveIds, ids, deletedIds]);
+	/*
+	#1743 【設計】**ピンの絵は «そのカードのサムネイル» から取る。店の写真は落とし先。**
+
+	オーナー実機報告（2026-08-31・お店提案）:
+
+	> お店提案でマップに出てくるピンの画像が、サムネの画像が反映されていない
+
+	`restaurant.imageUrls` は **`restaurants.image_path` を持つ行にだけ付く**
+	（`api/src/v1/restaurants/restaurants.assembler.ts` が `if (restaurants.image_path)` で分岐）。
+	写真が無い Google Place・#843 のカタログ同期由来の行・`image_url` しか持たない行
+	（#1680 の実測で 102 行）は `imageUrls` が `undefined` になり、
+	`AvatarBubbleMarker` は **中身が空の白い丸**を描く。
+
+	一方カルーセルのカードは `dish_media.thumbnailImageUrl` を描いており、こちらは
+	外部埋め込みでも料理カテゴリの絵まで受け皿が用意されている（`dish-media.assembler.ts`）。
+	**ピンとカードは 1 対 1 に対応しているのだから、ピンにも同じ絵を出すのが正しい。**
+	my-dishes の Map は既に同じ規則（`representativeThumbnailUrl` → 店の写真）で描いている
+	（`MyDishesMapView.tsx`）。ここだけが店の写真しか見ていなかった。
+	*/
 	const restaurants = useMemo(() => {
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		return ids
-			.map((id) =>
-				idType === "dish_media"
-					? selectEntryByMediaId(id)(state)?.restaurant
-					: selectEntryByReviewId(id)(state)?.restaurant,
-			)
-			.filter((restaurant): restaurant is NonNullable<typeof restaurant> => restaurant !== undefined)
-			.map((restaurant) => ({
-				id: restaurant.id,
-				name: restaurant.name,
-				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
-				imageUrls: restaurant.imageUrls,
-				google_place_id: restaurant.google_place_id,
+			.map((id) => (idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state)))
+			.filter((entry): entry is NonNullable<typeof entry> => !!entry?.restaurant)
+			.map((entry) => ({
+				/*
+				#1743 ピンの key は **カード（entry）ごと**に採る。
+
+				以前は `google_place_id` を key にしていた。検索結果は 1 店 1 件
+				（`unique_per_restaurant`）なので衝突しないが、この Map は投稿詳細
+				（`posts.tsx`）とプロフィールの検索結果（`profile/search-results.tsx`）でも
+				使われ、そちらは **同じ店の投稿が複数並びうる**。key が重複すると React は
+				片方を捨て、カードの枚数とピンの数がずれる（`index` で対応付けている
+				ハイライトとタップ先も 1 つずつずれる）。
+				*/
+				key: entry.dish_media.id,
+				id: entry.restaurant.id,
+				name: entry.restaurant.name,
+				coordinate: { latitude: entry.restaurant.latitude, longitude: entry.restaurant.longitude },
+				// 空文字は `<Image>` へ渡すと «壊れた画像» になるので `||` で次の候補へ畳む
+				pinImageUrl: entry.dish_media.thumbnailImageUrl || entry.restaurant.imageUrls?.sm || undefined,
+				google_place_id: entry.restaurant.google_place_id,
 			}));
 	}, [ids, idType]);
 
 	// #802 【責務分離】Map は ids とレイアウト/Carousel 制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
+	// #1629【40】⚠️ ここへ `ids.join(",")` を戻さないこと（`DishMediaFeed.tsx` の設計コメント）
 	const backgroundImagesSessionKey = useMemo(
-		() => `${entriesKey}::${idType}::${ids.join(",")}`,
-		[entriesKey, idType, ids],
+		() => `${entriesKey}::${idType}::${idsSession}`,
+		[entriesKey, idType, idsSession],
 	);
+	const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+	/*
+	#1375（全画面のクラッシュ棚卸し）**preload は «見えている周辺» だけ。**
+
+	以前は ids 全件を同時に `Image.loadAsync` していた。全画面サイズのビットマップを
+	一斉にデコードするので、開いた瞬間にメモリが跳ね、Android の低メモリ端末で落ちる。
+	`DishMediaFeed` は同じ理由で既に窓化してあり（そちらのコメント参照）、
+	**この検索結果カルーセルだけが全件のまま残っていた。** 窓の外は表示時に通常経路で読まれる。
+	*/
+	/*
+	#1629【30】⚠️ **お店提案（`search/result.tsx`）が使っているのはこの Map であって Feed ではない。**
+
+	オーナー実機報告（2026-08-27）:
+
+	> このお店提案は 5 件しか表示されないんで、今の状態だとチカチカするんですよね。
+	> 今までこのお店提案はそんな性能が悪かったことないんで、そういう先読みは
+	> あえて入れてないんですよ。むしろチカチカして見にくい。
+
+	これを受けて `DishMediaFeed` 側だけを直し「直った」と報告したが、**お店提案は
+	この `DishMediaMap` を描いている**（`search/result.tsx:203`。コメントの
+	「店舗5件のローディング画面」がその画面）。直した先が違ったので、実機では
+	何も変わっていなかった（2026-08-28 にオーナーから «まだチカチカする» と再指摘）。
+
+	`useDishMediaBackgroundImageResources` は集合から外れた画像を release するので、
+	窓が動くたびに «取得 → 破棄 → 取得» が繰り返される。件数が窓より少し多いだけの
+	画面（お店提案は 5 件）ではこれが毎回起きる。**判断のロジックは Feed と同じ
+	`computePreloadIds` に一本化する**（しきい値を 2 箇所に散らすと、また片方だけ直す）。
+	*/
+	const preloadIds = useMemo(() => computePreloadIds(ids, currentIndex), [ids, currentIndex]);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
-		ids,
+		ids: preloadIds,
 		idType,
 		sessionKey: backgroundImagesSessionKey,
 	});
 
-	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
@@ -259,6 +357,18 @@ export default function DishMediaMap({
 
 	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
 	const { showActionSheetWithOptions } = useActionSheet();
+	/*
+	#1742 【設計】Android の ActionSheet は `@expo/react-native-action-sheet` の JS 実装
+	（`CustomActionSheet`）で、`position: "absolute"` の `bottom: 0` に貼るだけで safe area を見ない。
+	edge-to-edge の Android では最下行（キャンセル）がナビゲーションバーへ潜るため、
+	**外から `containerStyle` で下余白を足す以外に手が無い**（ライブラリに inset の設定は無い）。
+
+	`containerStyle` はシートの白い器（ActionGroup の groupContainer）へ当たるので、
+	背景はナビバーの裏まで伸びたまま、行だけがバーの上へ持ち上がる。
+	iOS はネイティブの `ActionSheetIOS` を使う経路で `containerStyle` を見ないが、
+	そちらは OS 側が safe area を持つので何もしなくてよい（web は inset が 0）。
+	*/
+	const actionSheetPaddingBottom = useSheetBottomPadding();
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
 		source: "DishMediaMap",
 	});
@@ -279,6 +389,7 @@ export default function DishMediaMap({
 					title: i18n.t("ActionSheet.title"),
 					options,
 					cancelButtonIndex,
+					containerStyle: { paddingBottom: actionSheetPaddingBottom },
 				},
 				async (selectedIndex?: number) => {
 					if (selectedIndex === undefined || selectedIndex === cancelButtonIndex) return;
@@ -304,8 +415,11 @@ export default function DishMediaMap({
 				},
 			);
 		},
-		[showActionSheetWithOptions, openInGoogleMaps, shareRestaurant],
+		[showActionSheetWithOptions, actionSheetPaddingBottom, openInGoogleMaps, shareRestaurant],
 	);
+
+	// #1729 件数が 2 以下だとライブラリがセルを複製し、同じ media が同時再生される（MIN_LOOPABLE_COUNT 参照）
+	const canLoop = ids.length >= MIN_LOOPABLE_COUNT;
 
 	const renderCarouselItem = useCallback(
 		({ item, index }: { item: string; index: number }) => (
@@ -317,6 +431,11 @@ export default function DishMediaMap({
 						id={item}
 						carouselRef={carouselRef}
 						isActive={index === currentIndex}
+						// #1375（全画面のクラッシュ棚卸し）動画プレイヤーは «見えている ±1» だけ実体化する。
+						// 既定は true なので、指定しないとカルーセルがマウントしたセルぶん
+						// デコーダが同時に立つ（`DishMediaContent` の isNearActive の申し送り参照）。
+						// `DishMediaFeed` は同じ理由で既に絞ってあり、ここだけ既定のままだった
+						isNearActive={Math.abs(index - currentIndex) <= 1}
 						getTitle={getTitle}
 						sessionId={sessionId.current}
 						entriesKey={entriesKey}
@@ -324,6 +443,10 @@ export default function DishMediaMap({
 						onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
 						displayIndex={index}
 						backgroundImageState={getBackgroundImageState(item)}
+						// #1375 実機確認（3 巡目）: 検索動線のフィードに「食べたを記録」は出さない。
+						// 探している段階で記録する人は居ない（オーナー判断）。記録の入口は
+						// my-dishes（保存後の棚）と店舗フィード側にある
+						showRecordEaten={false}
 					/>
 				</ErrorBoundary>
 			</View>
@@ -373,11 +496,14 @@ export default function DishMediaMap({
 				<MapView ref={mapRef} style={styles.map} initialRegion={region}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
-							key={`marker-${restaurant.google_place_id}`}
+							key={`marker-${restaurant.key}`}
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
-							uri={restaurant.imageUrls?.sm}
-							color={index === currentIndex ? "#F05537" : "#FFF"}
+							uri={restaurant.pinImageUrl}
+							color={
+								// 地図タイルは常にライト配色のため、ピンはテーマで振らない（FixedColors 参照）
+								index === currentIndex ? FixedColors.brandOnMap : FixedColors.mapMarkerSurface
+							}
 							isActive={index === currentIndex}
 						/>
 					))}
@@ -391,8 +517,9 @@ export default function DishMediaMap({
 					<PrimaryButton
 						label={i18n.t("Map.buttons.openInGoogle")}
 						onPress={handleOpenInGoogleMaps}
-						labelStyle={{ color: "#F05537" }}
-						colors={["#FDEBE7", "#FDEBE7"]}
+						// 地図の上に浮くボタン。地図タイルが常にライト配色のため、テーマで振らない（FixedColors 参照）
+						labelStyle={{ color: FixedColors.brandOnMap }}
+						colors={[FixedColors.brandTintOnMap, FixedColors.brandTintOnMap]}
 						shadowColor="transparent"
 						borderRadius={8}
 					/>
@@ -414,7 +541,8 @@ export default function DishMediaMap({
 					renderItem={renderCarouselItem}
 					onSnapToItem={handleIndexChange}
 					defaultIndex={initialIndex}
-					loop
+					// #1729 データを複製されない件数でだけ loop する（この定数の宣言箇所に理由）
+					loop={canLoop}
 					layout={{
 						type: "parallax",
 						scale: PARALLAX_SCALE,
@@ -431,7 +559,7 @@ export default function DishMediaMap({
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	mapContainer: {
 		position: "absolute",
@@ -470,7 +598,7 @@ const styles = StyleSheet.create({
 		height: 5,
 		borderRadius: 2.5,
 		backgroundColor: HANDLE_COLOR,
-		shadowColor: "#000",
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.55,
 		shadowRadius: 3,
@@ -494,7 +622,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		borderRadius: 24,
 		overflow: "hidden",
-		shadowColor: "#000",
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
 		shadowRadius: 32,
@@ -504,11 +632,11 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	loadingText: {
 		marginTop: 16,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		fontSize: 16,
 	},
 	// #940 【修正】mapContainer(zIndex:1)より前面に絶対配置し、地図の下敷きにならないようにする
@@ -525,7 +653,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 	},
 	errorText: {
-		color: "#FF6B6B",
+		color: FixedColors.errorOnMedia,
 		fontSize: 16,
 		textAlign: "center",
 		paddingHorizontal: 20,

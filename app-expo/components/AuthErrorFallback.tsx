@@ -2,6 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 // #1089 【設計】匿名サインインが失敗すると user が null のまま固定され、SplashHandler が
 // 何も描画しない（web は薄グレーの空画面、native はスプラッシュ固着）状態になっていた。
@@ -18,6 +20,8 @@ export interface AuthErrorFallbackProps {
 }
 
 export const AuthErrorFallback = ({ isRateLimited, isRetrying, onRetry }: AuthErrorFallbackProps) => {
+	const styles = useThemedStyles(createStyles);
+
 	return (
 		<View style={styles.container} testID="auth-error-fallback">
 			<View style={styles.card}>
@@ -36,32 +40,36 @@ export const AuthErrorFallback = ({ isRateLimited, isRetrying, onRetry }: AuthEr
 	);
 };
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 16,
-		backgroundColor: "#FFFFFF",
-	},
-	card: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-		padding: 32,
-		alignItems: "center",
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.08,
-		shadowRadius: 16,
-		elevation: 4,
-	},
-	text: {
-		fontSize: 16,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-	button: {
-		marginTop: 16,
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 16,
+			backgroundColor: c.surface,
+		},
+		card: {
+			backgroundColor: c.surface,
+			borderRadius: 20,
+			padding: 32,
+			alignItems: "center",
+			justifyContent: "center",
+			// 影はテーマに依らず黒。暗面では実質見えないだけで、値としては黒のままでよい
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.08,
+			shadowRadius: 16,
+			elevation: 4,
+		},
+		text: {
+			fontSize: 16,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+		button: {
+			marginTop: 16,
+		},
+	});

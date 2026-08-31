@@ -40,7 +40,15 @@ export class DishCategoryVariantsService {
 
     const dishCategories = await this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
-        return await this.repo.findDishCategoryVariants(tx, dto.q);
+        // まず索引が効く前方一致。**これで足りるのが普通の入力**である
+        const exactish = await this.repo.findDishCategoryVariants(tx, dto.q);
+        if (exactish.length > 0) return exactish;
+        /*
+          #1629 前方一致で 0 件のときだけ緩い検索へ落ちる（理由と速さの見積りは
+          `findDishCategoryVariantsLoosely` の JSDoc）。ここを無条件に緩い方へ
+          変えないこと。普通の入力まで索引の効かない走査になる。
+        */
+        return await this.repo.findDishCategoryVariantsLoosely(tx, dto.q);
       },
     );
 

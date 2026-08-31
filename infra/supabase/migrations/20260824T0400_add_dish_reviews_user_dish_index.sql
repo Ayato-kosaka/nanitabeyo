@@ -1,0 +1,51 @@
+-- NOTE: 旧 20260819T0400_add_dish_reviews_user_dish_index.sql からのリネーム（#1469 ブランチが dev へ旧名で先行適用済み。SQL 本体は同一で、全体が冪等なので再適用は無害）。
+-- リネーム理由: main の 20260823T0000 より後ろに並べ、「ファイル名順 = 適用順」を守るため。
+-- ==============================================================================
+-- 20260819T0400_add_dish_reviews_user_dish_index.sql
+-- #1395（親 #1375）
+-- ==============================================================================
+-- 【目的】
+--   GET /v1/users/me/dishes の「食べたい」枝が使う
+--     NOT EXISTS (SELECT 1 FROM dish_reviews dr WHERE dr.user_id = $me AND dr.dish_id = ...)
+--   を 1 行あたり index 1 回の probe で済ませるため、
+--   dish_reviews (user_id, dish_id) の複合インデックスを追加する。
+--
+-- 【なぜ必要か（#1395 レビュー B-2 の宿題）】
+--   my-dishes は「状態を永続化せず導出する」設計であり、
+--   want 行は「その dish に自分の dish_reviews が 1 件も無い」ことを条件に出す。
+--   この NOT EXISTS は want 枝のスキャン中に**1 行ずつ**評価されるため、
+--   索引の有無がそのままレスポンス時間に出る。
+--
+--   既存の関連インデックス:
+--     - idx_dish_reviews_user_created_at (user_id, created_at DESC)  ← 20260718T0000
+--         user_id では絞れるが dish_id で絞れない。
+--         レビュー 3,000 件のユーザーでは、want 候補 1 行ごとに
+--         そのユーザーの全レビューを走査することになる。
+--     - idx_dish_reviews_dish (dish_id)
+--         dish_id で絞れるが user_id で絞れない。人気の料理では
+--         他人のレビューを大量に読んでから user_id で捨てることになる。
+--   どちらも「(user_id, dish_id) の存在確認」には向いていない。
+--
+-- 【なぜ既存索引の作り直しではなく追加なのか】
+--   idx_dish_reviews_user_created_at は一覧の並び順（created_at DESC）に必要で、
+--   (user_id, dish_id) では代替できない。両方要る。
+--
+-- 【コスト】
+--   dish_reviews は約 964MB（DB 使用容量の約 60%）。
+--   (uuid, uuid) の複合索引 1 本ぶんのディスクと、INSERT 時の索引更新コストが増える。
+--   dish_reviews は追記主体で更新がほぼ無いため、書き込み側の劣化は小さいと判断した。
+--
+-- 【CREATE INDEX CONCURRENTLY について】
+--   20260819T0300 と同じ理由でトランザクション外・単独ファイルにしてある。
+--
+-- 【⚠️ 適用後に必ず確認すること】
+--     SELECT indisvalid FROM pg_index WHERE indexrelid = 'idx_dish_reviews_user_dish'::regclass;
+--   false なら DROP INDEX CONCURRENTLY してから本ファイルを再実行する
+--   （IF NOT EXISTS は INVALID index を「在る」と判断して黙ってスキップするため）。
+--
+-- 【ロールバック】
+--   DROP INDEX CONCURRENTLY IF EXISTS idx_dish_reviews_user_dish;
+-- ==============================================================================
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_dish_reviews_user_dish
+  ON dish_reviews (user_id, dish_id);

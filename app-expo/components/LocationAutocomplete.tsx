@@ -5,9 +5,11 @@ import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import { type AutocompleteLocation } from "@shared/api/v1/res";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
-import { MapPin, Utensils, X, History, Trash2 } from "lucide-react-native";
+import { MapPin, Utensils, X, History, Trash2, Check, AlertCircle } from "lucide-react-native";
 import type { LocationDetailsResponse } from "@shared/api/v1/res";
 import { LoadingIndicator } from "./LoadingIndicator";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 // #932 【設計】現在地取得の失敗時、呼び出し元(検索画面)から「手入力を促すフォーカス移動」を
 // 行うための最小限の命令的ハンドル
@@ -48,6 +50,19 @@ interface LocationAutocompleteProps {
 	onSelectRecentLocation?: (location: RecentLocation) => void;
 	/** #953 「最近使った場所」を全件クリアするハンドラ。未指定なら消去ボタンを出さない */
 	onClearRecentLocations?: () => void;
+	/**
+	 * #1502 【設計】候補選択後、details API(緯度経度の取得)が完了するまでの状態。
+	 * 検索候補一覧の状態(searchLocations由来)とは別の非同期処理なので独立して持つ。
+	 * 未指定/nullなら何も表示しない(現在地・最近使った場所からの選択は details を待たず
+	 * 確定するため、呼び出し元がこの状態を経由させるかどうかを選べるようにしてある)。
+	 *
+	 * 【案A・#1502】成功は文章で語らない。confirming は入力欄右端の小さなスピナー、
+	 * confirmed は右端に ✓ を一瞬出すだけ(値の正式地名への置き換えは呼び出し元が行う)。
+	 * error だけが言葉(赤の1行+再試行)を持つ。
+	 */
+	confirmationStatus?: "confirming" | "confirmed" | "error" | null;
+	/** #1502 confirmationStatus が "error" のときの再試行ハンドラ */
+	onRetryConfirmation?: () => void;
 }
 
 // ===== Tunables (ベストプラクティス的にマジックナンバーを定数化) =====
@@ -56,6 +71,15 @@ const DEBOUNCE_DELAY_MS = 300;
 const BLUR_SUGGESTION_HIDE_DELAY_MS = 150;
 const BLUR_AFTER_SELECT_DELAY_MS = 100;
 const AUTOFOCUS_DELAY_MS = 100;
+/**
+ * #1502 【設計】確定 ✓ を入力欄右端に出しておく時間。
+ * Android の Toast.LENGTH_SHORT(2000ms)に合わせた。✓ は文章を読ませる表示ではないので
+ * LENGTH_LONG(3500ms)は長すぎ、1秒未満だと「入力欄の値が正式地名に置き換わった理由」を
+ * 掴む前に消えてしまう。加えて Detox の同期機構は 1.5 秒以下のタイマーを idle 待ちの
+ * 対象にするため、1.5 秒以下にすると E2E の可視待ちがタイマー完了(=✓が消えた後)まで
+ * 進まず「✓ を観測できない」ことになる。2000ms はその閾値も超えている。
+ */
+const CONFIRMED_BADGE_DURATION_MS = 2000;
 
 /**
  * #991 【修正】web でサジェストパネル内の mousedown の既定動作(TextInput からのフォーカス移動)を
@@ -89,9 +113,14 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 			recentLocations = [],
 			onSelectRecentLocation,
 			onClearRecentLocations,
+			confirmationStatus = null,
+			onRetryConfirmation,
 		},
 		ref,
 	) {
+		// #1509 地点入力は検索フォームの主役なので、基盤と同じ PR でテーマ対応する
+		const { colors } = useAppTheme();
+		const styles = useThemedStyles(createStyles);
 		const [showSuggestions, setShowSuggestions] = useState(false);
 		const [isFocused, setIsFocused] = useState(false);
 		// #931 【設計】デバウンス待機中(=まだAPIを呼んでいない)かどうかはHookの外側(このコンポーネント)でしか
@@ -107,6 +136,20 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 
 		const { suggestions, status, searchLocations, clearSuggestions } = useLocationSearch();
 		const { lightImpact } = useHaptics();
+
+		// #1502 【設計・案A】確定 ✓ は「一瞬」だけ出す。confirmationStatus 自体は呼び出し元が
+		// confirmed のまま保持し続ける(次の操作まで有効な状態)ため、表示の寿命だけを
+		// ここでローカルに持つ。confirmed 以外へ遷移したら即座に消す。
+		const [showConfirmedBadge, setShowConfirmedBadge] = useState(false);
+		useEffect(() => {
+			if (confirmationStatus !== "confirmed") {
+				setShowConfirmedBadge(false);
+				return;
+			}
+			setShowConfirmedBadge(true);
+			const timer = setTimeout(() => setShowConfirmedBadge(false), CONFIRMED_BADGE_DURATION_MS);
+			return () => clearTimeout(timer);
+		}, [confirmationStatus]);
 
 		// #932 【設計】現在地取得の失敗時に呼び出し元から手入力へ誘導できるよう focus() を公開する
 		useImperativeHandle(ref, () => ({
@@ -316,7 +359,7 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 						onFocus={handleFocus}
 						onBlur={handleBlur}
 						placeholder={placeholder}
-						placeholderTextColor="#6B7280"
+						placeholderTextColor={colors.textSecondary}
 						autoComplete="off"
 						autoCorrect={false}
 						autoCapitalize="words"
@@ -326,6 +369,21 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 						accessibilityHint={i18n.t("Search.accessibility.locationInputHint")}
 						testID={`${testID}-input`}
 					/>
+					{/* #1502 【案A】地点確認の進行・成功は入力欄の右端で黙って伝える。
+					    確認中: 小さなスピナー(文言なし)。確定: ✓ を一瞬(CONFIRMED_BADGE_DURATION_MS)だけ
+					    表示し、あとは値の正式地名への置き換え自体に語らせる。
+					    flexDirection:"row" は RTL(ar)で自動反転するため、方向依存の margin を
+					    持たせなければ「右端」は行末(RTLでは左端)に正しく追従する */}
+					{confirmationStatus === "confirming" && (
+						<View style={styles.inputStatusIcon} testID={`${testID}-confirmation-confirming`}>
+							<LoadingIndicator size="small" />
+						</View>
+					)}
+					{showConfirmedBadge && (
+						<View style={styles.inputStatusIcon} testID={`${testID}-confirmation-confirmed`}>
+							<Check size={16} color={colors.success} />
+						</View>
+					)}
 					{/* Clear button */}
 					{value.length > 0 && (
 						<TouchableOpacity
@@ -335,11 +393,37 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("Search.accessibility.clearLocation")}
 							testID={`${testID}-clear`}>
-							<X size={16} color="#6B7280" />
+							<X size={16} color={colors.textSecondary} />
 						</TouchableOpacity>
 					)}
 					{renderInputRight}
 				</View>
+
+				{/* #1502 【設計・案A】地点確認でエラーだけが言葉を持つ(現行どおり赤の1行+再試行)。
+				    確認中/確定は入力欄右端のアイコンで表現しており、ここには何も出さない。
+				    選択直後は handleSuggestionPress が showSuggestions を false にする(#528)ため、
+				    候補一覧・最近使った場所パネルとは同時に表示されない */}
+				{confirmationStatus === "error" && (
+					<View
+						style={styles.confirmationErrorContainer}
+						{...preventFocusStealOnWeb}
+						testID={`${testID}-confirmation-error`}>
+						<View style={styles.confirmationContainer}>
+							<AlertCircle size={16} color={colors.danger} />
+							<Text style={[styles.confirmationText, styles.confirmationTextError]}>
+								{i18n.t("Search.locationConfirmation.error")}
+							</Text>
+						</View>
+						<TouchableOpacity
+							style={styles.retryButton}
+							onPress={onRetryConfirmation}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("Common.retry")}
+							testID={`${testID}-confirmation-retry`}>
+							<Text style={styles.retryButtonText}>{i18n.t("Common.retry")}</Text>
+						</TouchableOpacity>
+					</View>
+				)}
 
 				{/* #953 最近使った場所 */}
 				{showRecentLocations && (
@@ -353,7 +437,7 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 									accessibilityRole="button"
 									accessibilityLabel={i18n.t("Search.recentLocations.clear")}
 									testID={`${testID}-recent-locations-clear`}>
-									<Trash2 size={16} color="#9CA3AF" />
+									<Trash2 size={16} color={colors.textTertiary} />
 								</TouchableOpacity>
 							)}
 						</View>
@@ -371,7 +455,7 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 									accessibilityLabel={recent.locationQuery}
 									accessibilityHint={i18n.t("Search.accessibility.selectLocation")}
 									testID={`${testID}-recent-location-${index}`}>
-									<History size={16} color="#6B7280" />
+									<History size={16} color={colors.textSecondary} />
 									<View style={styles.suggestionText}>
 										<Text style={styles.suggestionMainText} numberOfLines={1}>
 											{recent.locationQuery}
@@ -409,9 +493,9 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 									accessibilityHint={i18n.t("Search.accessibility.selectLocation")}
 									testID={`${testID}-suggestion-${index}`}>
 									{isFoodAndDrinkPlaceForUser(suggestion) ? (
-										<Utensils size={16} color="#6B7280" />
+										<Utensils size={16} color={colors.textSecondary} />
 									) : (
-										<MapPin size={16} color="#6B7280" />
+										<MapPin size={16} color={colors.textSecondary} />
 									)}
 									<View style={styles.suggestionText}>
 										<Text style={styles.suggestionMainText}>{suggestion.mainText}</Text>
@@ -453,124 +537,160 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 	},
 );
 
-const styles = StyleSheet.create({
-	container: { flex: 1 },
-	locationInputContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderRadius: 16,
-		backgroundColor: "#FFFFFF",
-		borderWidth: 1,
-		borderColor: "#C9C9C9",
-	},
-	input: {
-		flex: 1,
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		fontSize: 16,
-		color: "#1A1A1A",
-	},
-	inputFocused: {},
-	clearButton: {
-		padding: 12,
-		marginRight: 4,
-	},
-	loadingContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 20,
-		marginTop: 12,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	loadingText: {
-		marginLeft: 8,
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	suggestionsContainer: {
-		marginTop: 12,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	suggestionsList: {},
-	recentLocationsHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 20,
-		paddingTop: 14,
-		paddingBottom: 4,
-	},
-	recentLocationsTitle: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#9CA3AF",
-	},
-	suggestionItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		borderBottomWidth: 0.5,
-		borderBottomColor: "#F3F4F6",
-	},
-	lastSuggestionItem: {
-		borderBottomWidth: 0,
-	},
-	suggestionText: {
-		marginLeft: 16,
-		flex: 1,
-	},
-	suggestionMainText: {
-		fontSize: 16,
-		color: "#1A1A1A",
-		fontWeight: "600",
-	},
-	suggestionSecondaryText: {
-		fontSize: 14,
-		color: "#6B7280",
-		marginTop: 4,
-	},
-	noResultsContainer: {
-		minHeight: 60,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
-		marginTop: 12,
-		paddingVertical: 20,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	noResultsText: {
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	retryButton: {
-		marginTop: 12,
-		backgroundColor: "#F05537",
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
-	},
-	retryButtonText: {
-		color: "#FFFFFF",
-		fontWeight: "600",
-		fontSize: 14,
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（`contexts/ThemeProvider.tsx` の useThemedStyles）。
+// 値はすべて main のリテラルをそのまま `constants/Palette.ts` の light へ写したもので、ライトの見た目は変わらない。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: { flex: 1 },
+		locationInputContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			borderRadius: 16,
+			backgroundColor: c.surface,
+			borderWidth: 1,
+			borderColor: c.border,
+		},
+		input: {
+			flex: 1,
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+			fontSize: 16,
+			color: c.textPrimary,
+		},
+		inputFocused: {},
+		// #1502 【案A】入力欄右端の状態アイコン(スピナー/✓)の置き場。方向依存の margin を
+		// 使わないことで RTL(ar) でも行末に正しく寄る
+		inputStatusIcon: {
+			paddingHorizontal: 4,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		// #1502 confirmation* は error(赤の1行+再試行)専用。確認中/確定は inputStatusIcon 側
+		confirmationContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			marginTop: 8,
+			paddingHorizontal: 4,
+		},
+		confirmationText: {
+			fontSize: 13,
+			color: c.textSecondary,
+		},
+		confirmationTextError: {
+			color: c.danger,
+			fontWeight: "600",
+		},
+		confirmationErrorContainer: {
+			marginTop: 8,
+			paddingHorizontal: 4,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		clearButton: {
+			padding: 12,
+			marginRight: 4,
+		},
+		loadingContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			paddingVertical: 20,
+			marginTop: 12,
+			// #1509 `#FFF` は `surface` の `#FFFFFF` と同一色（表記だけを揃えており見た目は変わらない）
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		loadingText: {
+			marginLeft: 8,
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		suggestionsContainer: {
+			marginTop: 12,
+			// #1509 `#FFF` は `surface` の `#FFFFFF` と同一色（表記だけを揃えており見た目は変わらない）
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		suggestionsList: {},
+		recentLocationsHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 20,
+			paddingTop: 14,
+			paddingBottom: 4,
+		},
+		recentLocationsTitle: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: c.textTertiary,
+		},
+		suggestionItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+			borderBottomWidth: 0.5,
+			borderBottomColor: c.divider,
+		},
+		lastSuggestionItem: {
+			borderBottomWidth: 0,
+		},
+		suggestionText: {
+			marginLeft: 16,
+			flex: 1,
+		},
+		suggestionMainText: {
+			fontSize: 16,
+			color: c.textPrimary,
+			fontWeight: "600",
+		},
+		suggestionSecondaryText: {
+			fontSize: 14,
+			color: c.textSecondary,
+			marginTop: 4,
+		},
+		noResultsContainer: {
+			minHeight: 60,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.surface,
+			borderRadius: 12,
+			marginTop: 12,
+			paddingVertical: 20,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		noResultsText: {
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		retryButton: {
+			marginTop: 12,
+			backgroundColor: c.brand,
+			paddingHorizontal: 20,
+			paddingVertical: 10,
+			borderRadius: 20,
+		},
+		retryButtonText: {
+			// #1509 ブランド色の上に載る文字はテーマ非追従
+			color: FixedColors.onFilled,
+			fontWeight: "600",
+			fontSize: 14,
+		},
+	});

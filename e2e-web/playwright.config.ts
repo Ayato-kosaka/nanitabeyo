@@ -31,6 +31,15 @@ const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 4173);
  */
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 
+/**
+ * ハーネス自己検証（`harness` プロジェクト = tests/harness/）だけを回すモード。
+ *
+ * このプロジェクトのテストは `page.setContent()` のダミーページしか触らないため、
+ * `app-expo/dist` も静的サーバも不要。ビルド前の環境でも回せるよう webServer を止める
+ * （dist が無いと serve-dist.mjs が起動に失敗し、実行そのものが始まらない）。
+ */
+const HARNESS_ONLY = !!process.env.HARNESS_ONLY;
+
 /** 認証済みユーザーの storageState 保存先（setup プロジェクトが生成、gitignore 済み） */
 export const STORAGE_STATE_PATH = path.resolve(__dirname, ".auth/user.json");
 
@@ -147,8 +156,25 @@ export default defineConfig({
 		{
 			name: "desktop-chrome",
 			use: { ...devices["Desktop Chrome"], storageState: ANON_STORAGE_STATE_PATH },
-			testIgnore: [/tests\/setup\//, /tests\/authenticated\//, /tests\/config\//, /tests\/catalog\//],
+			testIgnore: [
+				/tests\/setup\//,
+				/tests\/authenticated\//,
+				/tests\/config\//,
+				/tests\/catalog\//,
+				/tests\/harness\//,
+			],
 			dependencies: ["anon-setup"],
+		},
+
+		// ── E2E ハーネス自身の自己検証（アプリ・API・認証に依存しない） ─────
+		// console error / pageerror を既定の失敗条件にするゲート（REL-08 / #1500）が
+		// 壊れていないことを、意図的にエラーを出すダミーページで検証する専用プロジェクト。
+		// アプリのビルド成果物も匿名セッションも要らないので、依存も storageState も持たせない
+		// （= dist が無い環境でも `pnpm test:harness` 単独で回せる）
+		{
+			name: "harness",
+			use: { ...devices["Desktop Chrome"] },
+			testMatch: /tests\/harness\//,
 		},
 
 		// ── デスクトップ（ログイン済みユーザー） ─────────────────────────
@@ -196,15 +222,17 @@ export default defineConfig({
 		},
 	],
 
-	// PLAYWRIGHT_BASE_URL 指定時（デプロイ済み環境へのテスト時）はローカルサーバを起動しない
-	webServer: process.env.PLAYWRIGHT_BASE_URL
-		? undefined
-		: {
-				// Firebase Hosting の配信挙動（[locale] rewrite + SPA fallback）を模した静的サーバ。
-				// 既にポートが使用中の場合は再利用する（ローカルで serve:dist を手動起動している場合など）
-				command: "node ./scripts/serve-dist.mjs",
-				port: PORT,
-				reuseExistingServer: !process.env.CI,
-				timeout: 30_000,
-			},
+	// PLAYWRIGHT_BASE_URL 指定時（デプロイ済み環境へのテスト時）と
+	// HARNESS_ONLY 指定時（ハーネス自己検証のみ）はローカルサーバを起動しない
+	webServer:
+		process.env.PLAYWRIGHT_BASE_URL || HARNESS_ONLY
+			? undefined
+			: {
+					// Firebase Hosting の配信挙動（[locale] rewrite + SPA fallback）を模した静的サーバ。
+					// 既にポートが使用中の場合は再利用する（ローカルで serve:dist を手動起動している場合など）
+					command: "node ./scripts/serve-dist.mjs",
+					port: PORT,
+					reuseExistingServer: !process.env.CI,
+					timeout: 30_000,
+				},
 });
