@@ -77,6 +77,7 @@ import {
 	clampConfidence,
 	classifySurfaceScript,
 	confidenceMargin,
+	extractBracketedNames,
 	extractHashtags,
 	extractMentions,
 	isWordBoundaryMatch,
@@ -369,7 +370,7 @@ type TextToken = {
 type PreparedText = {
 	normalized: NormalizedText;
 	keys: MatchKeys;
-	/** 完全一致・曖昧一致に使う短いトークン（フィールド全体 / ハッシュタグ / `@mention`） */
+	/** 完全一致・曖昧一致に使う短いトークン（フィールド全体 / ハッシュタグ / `@mention` / 【店名】） */
 	tokens: TextToken[];
 };
 
@@ -404,6 +405,19 @@ function prepareTexts(normalizedTexts: NormalizedText[]): PreparedText[] {
 				field: normalized.field,
 				start: mention.start,
 				end: mention.end,
+			});
+		}
+		// #1273 `【店名】` の隅付き括弧は、グルメ紹介キャプションでの店名の目印。
+		// トークンにすることで、店名が丸ごと括弧内に書かれた投稿が完全一致（1.00）で
+		// 当たり、無人取り込みの prefill（0.90 必須）に届くようになる。
+		for (const bracket of extractBracketedNames(normalized.text)) {
+			tokens.push({
+				value: bracket.name,
+				keys: buildMatchKeys(bracket.name),
+				fieldIndex: normalized.index,
+				field: normalized.field,
+				start: bracket.start,
+				end: bracket.end,
 			});
 		}
 
@@ -476,7 +490,7 @@ function collectForCandidate(
 			const nameKey = keyOf(nameKeys, keyKind);
 			if (nameKey.length === 0) continue;
 
-			// (1) トークン（フィールド全体 / ハッシュタグ / @mention）との完全一致
+			// (1) トークン（フィールド全体 / ハッシュタグ / @mention / 【店名】）との完全一致
 			for (const token of text.tokens) {
 				if (keyOf(token.keys, keyKind) !== nameKey) continue;
 				evidence.push({
