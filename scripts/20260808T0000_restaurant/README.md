@@ -436,6 +436,146 @@ bash tests/test_9_9_backfill.sh          # backfill の行選択（5項目）
 新しい条件を足すときは、**その条件が無いと落ちるケース**も一緒に足してください。
 そうしないと、条件を消しても緑のままになります。
 
+## 本番（`public`）へ流す手順 <!-- runbook -->
+
+`dev` で通したものを `public` へ持っていくための手順書。**上から順に実行し、
+各段の «確認» を満たしてから次へ進む。** 途中で止めても `public` は壊れない
+（9_1 は 1 トランザクションで、失敗すれば丸ごと巻き戻る）。
+
+> 🚫 **絶対にやらないこと**
+> - `3_2_search_google_place_ids.py` を再実行しない。**Google に課金が発生する
+>   唯一のステップ**である。3_3 は 90 日以内の attempts を読むので、再実行は要らない
+> - `9_9_backfill_created_by_source.py` を `public` で実行しない。`public` は
+>   **一度も同期していない**ので «過去の同期が作った行» が存在しない。
+>   実行窓が空なので、このスクリプトは正しく落ちる
+> - `db-migrate.yml` を `target_schema: public` で勝手に dispatch しない。
+>   オーナーが `public` と言ったときだけ
+
+### なぜ 1_2 からやり直すのか
+
+**BQ のカタログは «どちらの PG スキーマに対して作ったか» を持っている。**
+`1_2` は対象スキーマの `restaurants` を `restaurant_existing_pg_raw` へ取り込み、
+`3_1` がその行の `google_place_id` をそのまま carry-forward する。だから
+
+- `dev` 向けに作ったカタログは、`dev` の行 id に紐づいた seed を含む
+- `public` へ流すなら、`public` の行を材料に seed を組み直す必要がある
+
+`1_2` は run_id × snapshot_date のパーティションを置き換えるので、**同じ run_id を
+使い回してよい**（`public` 用に取り直すと `dev` の分は消える。`dev` へ戻すときは
+`1_2 --schema dev` から同じ順で流し直す）。open data の生データ（1_3〜1_6）は
+run_id で引くので、**run_id を変えると全部取り直しになる。変えないこと。**
+
+### 0. 前提（ここが揃っていないと先へ進まない）
+
+| # | 条件 | 確認方法 |
+| --- | --- | --- |
+| 0-1 | PR が main へマージ済み | — |
+| 0-2 | migration 3 本が `public` に当たっている | 下記 |
+| 0-3 | `dev` で 8_1 が 14/14 PASS、9_1 が成功している | 直近の run のログ |
+
+0-2 の 3 本（いずれも `ADD COLUMN IF NOT EXISTS` / `CREATE TABLE IF NOT EXISTS` で冪等）:
+
+| ファイル | 何を足すか |
+| --- | --- |
+| `20260823T0000_add_restaurant_recommendation_sync_metadata.sql` | `restaurants` に `source_seed_id` / `source_names` / `source_row_hash` / `synced_at` |
+| `20260827T0000_add_restaurants_created_by_source.sql` | `restaurants.created_by_source`（既定 `'user'`） |
+| `20260828T0000_add_restaurants_address_country_and_links.sql` | `restaurants.address` / `country_code` と `restaurant_links` テーブル |
+
+`db-migrate.yml` を `target_schema: public` / `dry_run` で流して差分を確認してから、
+**オーナーの指示で** 本適用する。既存行はすべて `created_by_source='user'` になる
+（＝**同期はそれらの表示値を一切書き換えない**）。これが `public` の既存データを守る仕組みである。
+
+### 1. `public` の既存行を BQ へ取り込む
+
+```text
+script_path: scripts/20260808T0000_restaurant/1_2_import_existing_pg_restaurants.py
+args:        --run-id restaurant-2026-08-23 --schema public --snapshot-date 2026-08-23
+```
+
+確認: ログの `row_count` が `public.restaurants` の行数と一致すること。
+
+### 2. seed を組み直す（約 100 分。Google は叩かない）
+
+**1 本ずつ、前が終わってから次を dispatch する**（同時に投げると待機側が黙って cancel される）。
+
+```text
+2_1_build_restaurant_source_records.py  --run-id restaurant-2026-08-23 --snapshot-date 2026-08-23   ≈40分
+2_2_build_restaurant_seed_catalog.py    --run-id restaurant-2026-08-23                              ≈55分
+3_1_seed_existing_google_place_ids.py   --run-id restaurant-2026-08-23                              <1分
+3_3_build_google_place_match_catalog.py --run-id restaurant-2026-08-23                              <1分
+3_4_build_restaurant_catalog.py         --run-id restaurant-2026-08-23                              <1分
+```
+
+確認: 3_3 のログで `existing_pg_matched` の件数が 1 の `row_count` とおおむね一致すること
+（`public` の既存行が Text Search 抜きで place_id を持ち込めている、の意）。
+
+### 3. 品質ゲート
+
+```text
+8_1_validate_catalogs.py --run-id restaurant-2026-08-23 --skip-dish-media-checks
+```
+
+確認: **14 件すべて PASS。** 1 件でも ERROR なら `public` へは進まない。
+特に `restaurant_catalog_free_of_google_values = 0`（Google 由来の値がカタログに
+混ざっていない）は、規約上ここで止めるべき検査である。
+
+### 4. `public` の既存行の `country_code` を埋める（同期の前）
+
+通貨表示は `country_code` を先に見る。同期はアプリ製の行の表示値を触らないので、
+**この列はその行自身の `address_components` から埋める**。
+
+```text
+9_9_backfill_country_code.py --schema public --allow-public              （まず dry run）
+9_9_backfill_country_code.py --schema public --allow-public --apply
+```
+
+確認: `--apply` 前後で「埋まった件数」がログの想定と一致すること。NULL の行にしか書かない。
+
+### 5. 同期の dry run
+
+```text
+9_1_sync_restaurants.py --run-id restaurant-2026-08-23 --schema public --dry-run --allow-public
+```
+
+dry run も実 DML と制約検査をトランザクション内で行い、最後に rollback する。
+
+確認: 3 つ全部を見る。
+
+- `insert` の件数が想定（≒ カタログ件数 − `public` の既存一致分）に収まっている
+- 検証エラー（Place ID の暗黙変更 / place_id の取り合い / backfill 漏れ）が 0 件
+- **文ごとの所要時間**が出るので、30 分（statement timeout）に近い文が無いこと
+
+### 6. 本適用
+
+```text
+9_1_sync_restaurants.py --run-id restaurant-2026-08-23 --schema public --allow-public
+```
+
+実行前に `public.restaurants` を GCS へ backup する（失敗したら同期しない）。
+BigQuery に無い PostgreSQL の行は**削除しない**。
+
+### 7. 事後確認
+
+```text
+9_9_verify_sync_result.py     --schema public --allow-public
+9_9_audit_column_coverage.py  --schema public --allow-public
+```
+
+確認: `created_by_source='user'` の行の name / image_url / image_path が
+同期前と変わっていないこと（＝既存データが欠けても書き換わってもいない）。
+
+### 巻き戻し
+
+| いつ | どうなるか | 戻し方 |
+| --- | --- | --- |
+| 2〜3 で失敗 | `public` は無傷（BQ しか触っていない） | 直して流し直す |
+| 5 の dry run で失敗 | `public` は無傷（rollback される） | 直して流し直す |
+| 6 の途中で失敗 | `public` は無傷（1 トランザクション） | 直して流し直す |
+| 6 が成功した後で問題が見つかった | 行が入っている | 手順 6 の直前に取った GCS backup から `restaurants` を戻す |
+
+**migration 自体の巻き戻しは要らない。** 足した列はすべて NULLABLE か既定値付きで、
+既存のコードは列があっても無くても動く。列を消すより、同期した行を消す方が安全である。
+
 ## 保留機能の受け口
 
 - `restaurant_reviews_raw`: rating原値/正規化値、本文、言語、公開状態、権利根拠を保持
