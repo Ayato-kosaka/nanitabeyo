@@ -126,3 +126,13 @@
     4. その後 4_2(店アカ収集)→5_1(resolve) を回して 柱1 の matched を測る。
 - [~] **resolve店舗照合の磨き上げ** agent 稼働中（56pt分解＋住所/店名照合改善）。
 - [ ] resolve全量→確定測定（自己チェック継続）。
+
+## 進捗更新 2026-08-31 10:20Z（3ワーカー統合完了）
+- [x] **resolve店舗照合の磨き上げ** 統合済（commit patch）: (a)市区町村始まり住所抽出 53→64%・カテゴリ陽性58→71%、(c)【店名】括弧の完全一致prefill 発火19→100%(誤爆0)。**strictly additive/契約・DB不変/テスト緑**。
+  - ⚠️ **本番反映に2回目のdevデプロイが必要**。今稼働中の resolve(18,560) は **辞書修正のみ**の状態(store-matchingは未反映)なので、その確定測定=辞書修正ベースライン。
+- **次の段取り（測定後）**:
+  1. 現resolve完了→**辞書修正ベースラインの確定測定**（地域×料理カバレッジ）をオーナー報告。
+  2. store-matching改善を **api-deploy(target=development)** で dev反映（2回目）。
+  3. skipped_no_store の行を消して**再resolve**（store-matchingリフト測定）。または全消し→全再resolve。
+  4. 柱1 dispatch（PLAN前掲の手順）→ store IG を sns_source_account へ→ 4_2/5_1 で柱1 matched測定。
+  5. 柱2は741で harvest 全量を回すか、深掘り（50→N投稿/人）をカバレッジ穴に応じて。
