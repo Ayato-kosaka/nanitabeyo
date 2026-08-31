@@ -136,3 +136,12 @@
   3. skipped_no_store の行を消して**再resolve**（store-matchingリフト測定）。または全消し→全再resolve。
   4. 柱1 dispatch（PLAN前掲の手順）→ store IG を sns_source_account へ→ 4_2/5_1 で柱1 matched測定。
   5. 柱2は741で harvest 全量を回すか、深掘り（50→N投稿/人）をカバレッジ穴に応じて。
+
+## 進捗更新 2026-08-31 12:45Z（store-matching 本番リフト確定・非破壊）
+- [x] **resolve 版管理（非破壊再解決）をパイプラインに組込み**: delete廃止。`5_1`は版を上げると追記、`--reresolve-prev-status`で狙い撃ち、`7_1`は最新版集計。→ 以後 resolve改善は «版を上げて回すだけ»。
+- [x] **store-matching 改善を dev反映(2回目)→ skipped_no_store 10,366件を非破壊再解決（version dev-2026-08-31-store）**:
+  - **matched 14.0%→17.2% / 異なり店 2,221→2,705（+484）**（最新版集計）。全47都道府県。
+  - newly_matched 596（skipped_no_storeの5.75%に店が付いた）。
+  - **残り94%は pg dev に店が無い＝pg母数が店側の主律速**（resolveでは直せない）。ベースライン18,560(version dev-2026-08-30)は無傷。
+- **現在の確定ファネル（run_id=sns-2026-08-30, 最新版）**: 収集18,560 → matched **3,194（17.2%）** / 異なり店 **2,705** / 全47都道府県 / セル充足（132-JP絞りは未算出、7_1で地域×料理更新中）。
+- **次（自律）**: [~]柱1(公式サイト→店IG)本番投入（12:54Z自己チェックで起動）／[ ]柱3検索(cell_queries.tsv Serper)／[ ]柱2 741 harvest増。pg母数同期はDB変更=承認要、効果を見てから選択肢提示。
