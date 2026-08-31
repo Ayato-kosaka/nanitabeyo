@@ -1268,6 +1268,14 @@ export function ExternalEmbedPlayer({
 					error_level: "log",
 					payload: {
 						provider: embed.provider,
+						/*
+						#1641【観測】**どの投稿が鳴っているのかを一意にする。**
+
+						«画面外のページが鳴っている» を突き止めたとき、provider 名と sinceActiveMs から
+						推定するしかなかった（同じ provider が 2 つ並ぶと区別が付かない）。
+						投稿の ID を載せておけば «同時に 2 つ鳴っている» が一目で分かる。
+						*/
+						contentId: embed.externalContentId,
 						audio: parsed.detail ?? null,
 						// #1641【観測】初回と再訪で «鳴るまでの時間» が変わるかを見る
 						visit: visitRef.current,
