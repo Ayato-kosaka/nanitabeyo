@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
-import { View, Text, StyleSheet, TouchableOpacity, InteractionManager } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, InteractionManager, Platform } from "react-native";
 import { Navigation, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
@@ -496,7 +496,8 @@ export default function SelectRestaurantScreen() {
 
 				// #1561 API が 200 で «data の無い本文» を返すと、次のレンダーの .map で
 				// 画面ごと ErrorBoundary へ落ちていた（throw は try の外なので catch できない）
-				setSavedRestaurants(asApiList(response.data));
+				const list = asApiList(response.data);
+				setSavedRestaurants(list);
 				setActiveRestaurantId(null);
 				// #1629 取り直した範囲でクラスタも畳み直す（地図は動いていないので通常は同じ参照が返る）
 				updateClusterViewport(region);
@@ -850,7 +851,7 @@ export default function SelectRestaurantScreen() {
 	決めたい人は 1 タップで確定できる。オーナーの «推奨で» はこれ。
 	*/
 	const selectedPin = useMemo(
-		() => (activeRestaurantId === null ? null : pins.find((pin) => pin.restaurant.id === activeRestaurantId) ?? null),
+		() => (activeRestaurantId === null ? null : (pins.find((pin) => pin.restaurant.id === activeRestaurantId) ?? null)),
 		[activeRestaurantId, pins],
 	);
 	/*
@@ -858,6 +859,39 @@ export default function SelectRestaurantScreen() {
 	ビットマップだけが増える。大手の地図アプリと同じ切り替え（基準は mapPins.ts）。
 	*/
 	const pinDetail = useMemo(() => pinDetailLevelForRegion(clusterViewport), [clusterViewport]);
+
+	/*
+	#1629【オーナー実機報告】「食べたを記録のお店を選ぶのマップピンが Android で映らない」。
+
+	**推測で描画を直す前に、«何本描こうとしているのか» をログへ出す。**
+	いまは «0 本なのか / 描いているのに見えないのか» を分ける材料がどこにも無い。
+
+	コードを読んで分かっている前提（原因の断定ではない）:
+	- 日本語ユーザーはこの画面を **必ず日本全体（REGION_JP / delta 20）** で開く
+	  （初期化 useEffect の isJapanese 分岐。理由のコメントはファイル作成時から無い）
+	- `pinDetailLevelForRegion` は引きでは «点» を返すので、その縮尺のピンは点になる
+	- Android のバブルは 37px 上限・尻尾なし、iOS は 48px + 尻尾
+	  （`AvatarBubbleMarker` のコメント。Android の Marker children がクリップされるため）
+
+	pins / clusters / detail / delta が実データで揃えば、
+	«全国表示で点になっているだけ» なのか «本当に描けていない» のかを判定できる。
+	*/
+	useEffect(() => {
+		logFrontendEvent({
+			event_name: "restaurant_picker_markers_rendered",
+			error_level: "log",
+			payload: {
+				pins: pins.length,
+				clusters: clusters.length,
+				detail: pinDetail,
+				isPickMode,
+				latitudeDelta: clusterViewport.latitudeDelta,
+				longitudeDelta: clusterViewport.longitudeDelta,
+				platform: Platform.OS,
+				osVersion: String(Platform.Version),
+			},
+		});
+	}, [pins.length, clusters.length, pinDetail, isPickMode, clusterViewport, logFrontendEvent]);
 
 	/*
 	#1375（実機: マップの重さ）**マーカー配列を memo で固定する。**
@@ -993,9 +1027,7 @@ export default function SelectRestaurantScreen() {
 			⚠️ `pointerEvents="box-none"` にしないと、カードの左右の余白が地図のタップを食う。
 			*/}
 			{isPickMode && selectedPin && (
-				<View
-					style={[styles.pickConfirmLayer, { bottom: insets.bottom + 16 }]}
-					pointerEvents="box-none">
+				<View style={[styles.pickConfirmLayer, { bottom: insets.bottom + 16 }]} pointerEvents="box-none">
 					<View style={styles.pickConfirmCard} testID="select-restaurant-pick-confirm">
 						<Text style={styles.pickConfirmName} numberOfLines={1} ellipsizeMode="tail">
 							{selectedPin.restaurant.name}

@@ -24,6 +24,11 @@ on:
         required: false
         default: false
         type: boolean
+      test_filter:
+        description: "実行する spec をファイル名の部分一致で絞る（例: onboarding。空なら全件）。落ちている数本だけを 25 分ではなく数分で回して «実際のエラー文» を見るための入力。⚠️ マージ前の最終確認は必ず空（全件）で回すこと"
+        required: false
+        default: ""
+        type: string
   schedule:
     # 毎日 JST 3:00(UTC 18:00)に実行
     - cron: "0 18 * * *"
@@ -120,7 +125,15 @@ jobs:
       # 定期実行では inputs が空になるため、workflow_dispatch 以外では常に実行する
       - name: 🧪 Run Playwright tests (Tier 1 + 2)
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_e2e_tests }}
-        run: pnpm --filter e2e-web test
+        # Playwright は位置引数を «ファイル名にかかる正規表現» として解釈する。
+        # 空なら引数が 1 つも増えない（＝全件）。schedule 実行には inputs が無いので必ず全件になる。
+        #
+        # ⚠️ **`--` を挟まないこと。** pnpm はこれを消費せず、そのまま playwright へ渡す。
+        #    実測: `pnpm --filter e2e-web test -- onboarding` → playwright の argv は
+        #    `["--", "onboarding"]` になり、`playwright test --list -- onboarding` は
+        #    **Total: 0 tests in 0 files** を返す。さらに入力が空のときは argv が `["--"]` に
+        #    なるので、**nightly（inputs が空）が 1 件も実行しない**状態になっていた。
+        run: pnpm --filter e2e-web test ${{ inputs.test_filter }}
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}

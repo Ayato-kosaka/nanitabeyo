@@ -1,0 +1,280 @@
+/**
+ * 📝 写真の無い «食べた» 記録から、自分の書いたクチコミを読むシート（#1629）
+ *
+ * ## なぜ要るのか
+ * オーナー実機報告:
+ * 「梅欄ヤエチカ店が『削除されました』『写真なし』と表示されます。押した時にレストラン詳細へ
+ *   行くのは仕様と違うはず。**写真なしで良いから自分の書いたクチコミが見たい**」
+ *
+ * 一覧のセルを押したときの遷移先（`MyDishesListView.handlePressItem`）は、写真がある行だけ
+ * 全画面 Feed へ入り、**写真が無い行は店舗詳細へ落ちていた**。店舗詳細は «その店の情報» を
+ * 見せる画面で、自分が書いた文章はどこにも出ない。記録を開いたのに記録が読めない状態だった。
+ *
+ * ## なぜ Feed ではなくシートなのか
+ * my-dishes の全画面 Feed は **`dishMediaId` を主キーにしたページャ**である
+ * （`useMyDishesFeedScopeStore` の `listItems` が `dishMediaId` を必須で持つ）。
+ * 写真の無い記録には `dishMediaId` がそもそも存在しないので、Feed へ 1 ページとして
+ * 差し込むには «メディアを主キーにする» という土台ごと変えることになる。
+ * 読みたいのは自分の 1 件だけなので、その 1 件を出すシートで足りる。
+ *
+ * ## 追加の API 呼び出しをしない
+ * 一覧の行（`MyDishItem`）は既に `myReview`（`dish_reviews` の 1 行そのもの）を持っている。
+ * 星・コメント・金額・食べた日はすべてそこから読めるので、開くときに何も取りに行かない。
+ * 「押したのに読み込み中が出る」を作らないためにも、ここは取得しないこと。
+ */
+import React, { useCallback, useMemo } from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ImageOff, X } from "lucide-react-native";
+
+import Stars from "@/components/Stars";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
+import type { Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+import i18n from "@/lib/i18n";
+import { useLocale } from "@/hooks/useLocale";
+import { resolveDishCategoryLabel } from "../dishCategoryLabel";
+import type { MyDishItem } from "@shared/api/v1/res";
+
+/**
+ * 金額を «その通貨の正しい桁» で組む。
+ *
+ * ⚠️ `price_cents` は最小単位の整数であり、**桁数は通貨ごとに違う**（JPY は 0 桁、USD は 2 桁）。
+ * 一律に 100 で割ると円の 1000 円が 10 円になる。`Intl.NumberFormat` は通貨コードから
+ * 桁数も記号も決めてくれるので、自前の対応表を持たない。
+ * 通貨が分からない記録では金額そのものを出さない（単位の無い数字は誤読を招く）。
+ */
+export function formatReviewPrice(
+	priceCents: number | null,
+	currencyCode: string | null,
+	locale: string,
+): string | null {
+	if (priceCents === null || !currencyCode) return null;
+	try {
+		const formatter = new Intl.NumberFormat(locale, { style: "currency", currency: currencyCode });
+		const digits = formatter.resolvedOptions().maximumFractionDigits ?? 0;
+		return formatter.format(priceCents / Math.pow(10, digits));
+	} catch {
+		// 端末の Intl が知らない通貨コードのとき。数字だけを出すより出さないほうが安全
+		return null;
+	}
+}
+
+export function MyDishOwnReviewSheet({
+	item,
+	onClose,
+	onOpenRestaurant,
+}: {
+	/** 表示する行。null のときシートは開かない */
+	item: MyDishItem | null;
+	onClose: () => void;
+	/** 「お店の詳細を見る」。#1629 以前の遷移先を «選べる出口» として残すためのもの */
+	onOpenRestaurant: (item: MyDishItem) => void;
+}) {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
+	const { locale } = useLocale();
+
+	const review = item?.myReview ?? null;
+
+	const dishName = useMemo(
+		() => (item ? (resolveDishCategoryLabel(item.dish.categoryLabels, locale) ?? null) : null),
+		[item, locale],
+	);
+	const price = useMemo(
+		() => (review ? formatReviewPrice(review.price_cents, review.currency_code, locale) : null),
+		[review, locale],
+	);
+	const eatenOn = useMemo(() => {
+		const raw = item?.eatenAt ?? review?.created_at ?? null;
+		if (!raw) return null;
+		const date = new Date(raw);
+		return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString(locale);
+	}, [item?.eatenAt, review?.created_at, locale]);
+
+	const handleOpenRestaurant = useCallback(() => {
+		if (item) onOpenRestaurant(item);
+	}, [item, onOpenRestaurant]);
+
+	return (
+		<Modal visible={item !== null} transparent animationType="slide" onRequestClose={onClose} accessibilityViewIsModal>
+			<View style={styles.backdrop}>
+				<Pressable
+					style={styles.backdropTouchable}
+					onPress={onClose}
+					accessibilityElementsHidden
+					importantForAccessibility="no-hide-descendants"
+				/>
+
+				<View style={styles.sheet} testID="my-dish-own-review-sheet">
+					<View style={styles.header}>
+						<Text style={styles.title} numberOfLines={1}>
+							{item?.restaurant.name ?? ""}
+						</Text>
+						<TouchableOpacity
+							onPress={onClose}
+							hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("Common.close")}
+							testID="my-dish-own-review-close">
+							<X size={20} color={colors.textSecondary} />
+						</TouchableOpacity>
+					</View>
+
+					{dishName ? <Text style={styles.dishName}>{dishName}</Text> : null}
+
+					{/*
+					写真が «無い» のか «消された» のかを混ぜない。
+					削除は #1513 が決めた墓標をそのまま出す（別の絵へ差し替えない）。
+					*/}
+					<View style={styles.mediaNotice} testID="my-dish-own-review-media-notice">
+						{item?.isOwnMediaDeleted ? (
+							<DeletedMediaTombstone style={styles.tombstone} />
+						) : (
+							<>
+								<ImageOff size={16} color={colors.textTertiary} />
+								<Text style={styles.mediaNoticeText}>{i18n.t("MyDishes.ownReview.noPhoto")}</Text>
+							</>
+						)}
+					</View>
+
+					<ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
+						{review ? (
+							<>
+								{/*
+								自己レビューで足した。これが «自分が書いたもの» だと言わないと、
+								店の紹介文と読み分けられない（オーナーの要望は «自分の書いたクチコミが見たい»）。
+								*/}
+								<Text style={styles.sectionLabel}>{i18n.t("MyDishes.ownReview.title")}</Text>
+								<View style={styles.metaRow}>
+									<Stars rating={review.rating} size={14} />
+									{price ? (
+										<Text style={styles.price} testID="my-dish-own-review-price">
+											{price}
+										</Text>
+									) : null}
+								</View>
+								{eatenOn ? <Text style={styles.eatenOn}>{eatenOn}</Text> : null}
+								<Text style={styles.comment} testID="my-dish-own-review-comment">
+									{review.comment.trim().length > 0 ? review.comment : i18n.t("MyDishes.ownReview.noComment")}
+								</Text>
+							</>
+						) : (
+							// «食べたい» 行はレビューを持たない。そこからこのシートは開かないが、
+							// 型の上では null を取りうるので黙って空にせず理由を出す
+							<Text style={styles.comment}>{i18n.t("MyDishes.ownReview.noReview")}</Text>
+						)}
+					</ScrollView>
+
+					<TouchableOpacity
+						style={styles.restaurantButton}
+						onPress={handleOpenRestaurant}
+						accessibilityRole="button"
+						testID="my-dish-own-review-open-restaurant">
+						<Text style={styles.restaurantButtonText}>{i18n.t("MyDishes.ownReview.openRestaurant")}</Text>
+					</TouchableOpacity>
+				</View>
+			</View>
+		</Modal>
+	);
+}
+
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		backdrop: {
+			flex: 1,
+			justifyContent: "flex-end",
+			backgroundColor: "rgba(0, 0, 0, 0.45)",
+		},
+		backdropTouchable: {
+			...StyleSheet.absoluteFillObject,
+		},
+		sheet: {
+			backgroundColor: colors.surface,
+			borderTopLeftRadius: 20,
+			borderTopRightRadius: 20,
+			paddingHorizontal: 20,
+			paddingTop: 16,
+			paddingBottom: 28,
+			maxHeight: "85%",
+		},
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+		},
+		title: {
+			flex: 1,
+			fontSize: 17,
+			fontWeight: "700",
+			color: colors.textPrimaryAlt,
+		},
+		dishName: {
+			marginTop: 2,
+			fontSize: 13,
+			color: colors.textSecondary,
+		},
+		mediaNotice: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			marginTop: 12,
+			minHeight: 44,
+			paddingHorizontal: 12,
+			borderRadius: 12,
+			backgroundColor: colors.surfaceMuted,
+			overflow: "hidden",
+		},
+		tombstone: {
+			...StyleSheet.absoluteFillObject,
+		},
+		mediaNoticeText: {
+			fontSize: 13,
+			color: colors.textTertiary,
+		},
+		body: {
+			marginTop: 14,
+		},
+		bodyContent: {
+			paddingBottom: 8,
+		},
+		sectionLabel: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: colors.textTertiary,
+			marginBottom: 6,
+		},
+		metaRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 10,
+		},
+		price: {
+			fontSize: 13,
+			fontWeight: "600",
+			color: colors.textSecondary,
+		},
+		eatenOn: {
+			marginTop: 4,
+			fontSize: 12,
+			color: colors.textTertiary,
+		},
+		comment: {
+			marginTop: 10,
+			fontSize: 15,
+			lineHeight: 22,
+			color: colors.textPrimaryAlt,
+		},
+		restaurantButton: {
+			marginTop: 16,
+			paddingVertical: 13,
+			borderRadius: 12,
+			borderWidth: 1,
+			borderColor: colors.borderMuted,
+			alignItems: "center",
+		},
+		restaurantButtonText: {
+			fontSize: 15,
+			fontWeight: "600",
+			color: colors.textPrimaryAlt,
+		},
+	});

@@ -1147,6 +1147,13 @@
 		"deleted": {
 			"label": "تم الحذف",
 			"a11yLabel": "تم حذف صورة هذا المنشور"
+		},
+		"ownReview": {
+			"title": "مراجعتك",
+			"noPhoto": "بدون صورة",
+			"noComment": "لم يُكتب أي تعليق",
+			"noReview": "لا توجد مراجعة لهذا السجل بعد",
+			"openRestaurant": "عرض تفاصيل المطعم"
 		}
 	},
 	"SnsImport": {

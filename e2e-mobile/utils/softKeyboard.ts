@@ -37,6 +37,15 @@ const LATIN_IME_CANDIDATES = [
 	"com.android.inputmethod.latin/.LatinIME",
 ];
 
+/**
+ * #1629 直前の {@link enableAndroidSoftKeyboard} が何を見て何を選んだか。
+ *
+ * 失敗メッセージへ **実測値** を載せるために持つ。以前のメッセージは
+ * 「エミュレータの IME が無効のままの可能性」と **推測**を書いており、
+ * API 35 で落ちたときに次の一手を決められなかった。
+ */
+let lastEnableAttempt: { available: string[]; target: string | null; enabled: string[] } | null = null;
+
 /** 現在の Detox デバイスに対して adb を実行する。失敗しても例外を投げない */
 function adbQuiet(args: string[]): string {
 	try {
@@ -71,10 +80,25 @@ export function enableAndroidSoftKeyboard(): void {
 
 	const available = adbQuiet(["shell", "ime", "list", "-a", "-s"]).split(/\s+/).filter(Boolean);
 	const target = LATIN_IME_CANDIDATES.find((id) => available.includes(id)) ?? available[0];
-	if (!target) return;
+	if (!target) {
+		lastEnableAttempt = { available, target: null, enabled: [] };
+		return;
+	}
 
 	adbQuiet(["shell", "ime", "enable", target]);
 	adbQuiet(["shell", "ime", "set", target]);
+
+	/*
+	#1629 **何をしたのかを覚えておく。** 出なかったときの原因が «候補が 1 つも無い» のか
+	«有効化はできたが出ない» のかで、次にやることが正反対になる。
+	失敗してから adb を叩き直すことはできない（その頃には端末が落ちている）ので、
+	ここで取った実測値を持ち回る。
+	*/
+	lastEnableAttempt = {
+		available,
+		target,
+		enabled: adbQuiet(["shell", "ime", "list", "-s"]).split(/\s+/).filter(Boolean),
+	};
 }
 
 /**
@@ -119,5 +143,18 @@ export function expectSoftKeyboardShown(onMissing: () => string): void {
 				"出ているかどうか分からないまま «隠れていない» を確認しても意味が無いので落とす。",
 		);
 	}
-	if (!shown) throw new Error(onMissing());
+	if (!shown) {
+		/*
+		#1629 **推測ではなく実測を載せる。** API 35 のイメージで «出なかった» とだけ言われても、
+		候補が無いのか / 選べたのに出ないのかが分からず、次の一手を決められない。
+		（実測: run 33348085300 / API 35 でここに到達した）
+		*/
+		const a = lastEnableAttempt;
+		const detail = a
+			? ` [IME: 選んだ=${a.target ?? "(候補なし)"} / 利用可能=${a.available.length}件${
+					a.available.length ? `(${a.available.join(",")})` : ""
+				} / 有効=${a.enabled.length}件${a.enabled.length ? `(${a.enabled.join(",")})` : ""}]`
+			: " [IME: enableAndroidSoftKeyboard() が呼ばれていない]";
+		throw new Error(onMissing() + detail);
+	}
 }

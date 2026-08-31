@@ -102,6 +102,36 @@ const KNOWN_CONSOLE_NOISE: RegExp[] = [
 	URL は本文に含まれないので、`page.on("console")` 側で付けた `[<url>]` を見る。
 	*/
 	/\[https?:\/\/[^\]]*\.invalid[:/][^\]]*\]/,
+
+	/*
+	#1629 ベクター地図が使えずラスターへ落ちたときの通知。
+
+	Google Maps JS は WebGL でベクター地図を描こうとし、失敗するとラスターへ
+	自動で切り替えたうえで **console.error として** その旨を出す。CI のヘッドレス
+	Chromium には GPU が無いので、地図を出す spec では必ず出る。
+	地図そのものは（ラスターで）正しく描かれるため、体験にも検証にも影響しない。
+	環境の性質であって、アプリ側で消せるものではない。
+	*/
+	/Attempted to load a Vector Map, but failed\. Falling back to Raster/,
+
+	/*
+	#1629 dev の CDN が返す固定の `Access-Control-Allow-Origin` と、
+	e2e-web の配信ポートが噛み合わないことによる CORS ブロック。
+
+	`infra/url-map/urlmap-cdn.nanitabeyo.net.yaml` の `/development/` は
+	`Access-Control-Allow-Origin: http://localhost:8083` を **固定値で** 付けている
+	（`responseHeadersToAdd` はリクエストの Origin を反射できない）。
+	e2e-web の静的サーバは `http://localhost:4173` なので、CORS モードで CDN の
+	画像を引く経路が必ずブロックされる。**ポートを 8083 へ合わせても解決しない**
+	（今度は API 側の `CORS_ORIGIN` が 4173 / 8081 しか許可していないので API が全滅する）。
+
+	つまりこれは «dev の配信設定が、実際に使われているどのポートとも一致していない»
+	という infra 側の食い違いであり、テストコードでは直せない。
+	ホストとパスを `development` に限って狭く無視する。production の配信
+	（`https://app.nanitabeyo.net`）は正しい値が入っており、この行に一致しない。
+	*/
+	/^Access to fetch at 'https:\/\/cdn\.nanitabeyo\.net\/development\//,
+	/Failed to load resource: net::ERR_FAILED \[https:\/\/cdn\.nanitabeyo\.net\/development\//,
 ];
 
 export const test = base.extend<AppOptions & AppFixtures>({

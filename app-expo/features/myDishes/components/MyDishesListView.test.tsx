@@ -65,6 +65,8 @@ const makeItem = (
 		restaurantId?: string;
 		/** #1629 1 セル = 1 ページなので、行ごとに違う dish_media.id を差せるようにする */
 		dishMediaId?: string;
+		/** #1629 写真なしの行から «自分のクチコミ» を開けることを見るテスト用 */
+		myReview?: Record<string, unknown> | null;
 	} = {},
 ): MyDishItem =>
 	({
@@ -86,11 +88,9 @@ const makeItem = (
 						id: overrides.dishMediaId ?? "media-1",
 						thumbnailImageUrl: overrides.thumbnailImageUrl,
 						render_type: overrides.externalEmbedProvider ? "external_embed" : "stored",
-						externalEmbed: overrides.externalEmbedProvider
-							? { provider: overrides.externalEmbedProvider }
-							: undefined,
+						externalEmbed: overrides.externalEmbedProvider ? { provider: overrides.externalEmbedProvider } : undefined,
 					},
-		myReview: null,
+		myReview: overrides.myReview ?? null,
 		isOwnMediaDeleted: overrides.isOwnMediaDeleted ?? false,
 	}) as unknown as MyDishItem;
 
@@ -231,7 +231,9 @@ describe("#1513 isOwnMediaDeleted の行は墓標になる（黙って消さな�
 
 		// 跡地に別の絵を入れない
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-image")).toHaveLength(0);
-		expect(tree.root.findAll((node) => node.props?.testID === DELETED_MEDIA_TOMBSTONE_TEST_ID).length).toBeGreaterThan(0);
+		expect(tree.root.findAll((node) => node.props?.testID === DELETED_MEDIA_TOMBSTONE_TEST_ID).length).toBeGreaterThan(
+			0,
+		);
 		// 文言（i18n はキーをそのまま返すモック）
 		expect(
 			tree.root.findAll((node) => typeof node.type === "string" && node.children.includes("MyDishes.deleted.label"))
@@ -429,10 +431,22 @@ describe("#1375 取り込んだ投稿には provider のロゴを重ねる", () 
 */
 describe("#1629 一覧から Feed へ入るときの縦ページャの並び", () => {
 	const ROWS = [
-		makeItem("review:a", { thumbnailImageUrl: "https://example.com/a.jpg", restaurantId: "r-1", dishMediaId: "media-a" }),
+		makeItem("review:a", {
+			thumbnailImageUrl: "https://example.com/a.jpg",
+			restaurantId: "r-1",
+			dishMediaId: "media-a",
+		}),
 		// 同じ店の 2 件目。**潰さない**。グリッドに 2 セル出ているなら縦も 2 ページ
-		makeItem("review:b", { thumbnailImageUrl: "https://example.com/b.jpg", restaurantId: "r-1", dishMediaId: "media-b" }),
-		makeItem("review:c", { thumbnailImageUrl: "https://example.com/c.jpg", restaurantId: "r-2", dishMediaId: "media-c" }),
+		makeItem("review:b", {
+			thumbnailImageUrl: "https://example.com/b.jpg",
+			restaurantId: "r-1",
+			dishMediaId: "media-b",
+		}),
+		makeItem("review:c", {
+			thumbnailImageUrl: "https://example.com/c.jpg",
+			restaurantId: "r-2",
+			dishMediaId: "media-c",
+		}),
 		// 写真なしの行は Feed に入れられないので、並びからも外す
 		makeItem("review:d", { restaurantId: "r-3" }),
 	];
@@ -476,5 +490,109 @@ describe("#1629 一覧から Feed へ入るときの縦ページャの並び", (
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
 			params: { locale: "ja-JP", scope: "list", itemKey: "review:b", dishMediaId: "media-b" },
 		});
+	});
+});
+
+/*
+#1629【オーナー実機報告】「梅欄ヤエチカ店が『削除されました』『写真なし』と表示されますが、
+ 押した時にレストラン詳細に行くのは仕様と違うはず。**写真なしで良いから自分の書いたクチコミ見たい**」
+
+修正前は `dishMedia === null` の行がすべて店舗詳細へ push されていた。店舗詳細には自分の
+書いた文章がどこにも出ないので、記録を開いても記録が読めなかった。
+
+⚠️ アサーションを «シートが出たこと» だけに置かない。**店舗詳細へ push «しない» こと**を
+   同時に見ないと、両方起きる実装（シートを出しつつ裏で遷移する）でも緑になる。
+*/
+describe("#1629 写真の無い記録から自分のクチコミを読む", () => {
+	const REVIEW = {
+		id: "review-1",
+		rating: 4,
+		comment: "肉が厚くて満足",
+		price_cents: 3200,
+		currency_code: "JPY",
+		created_at: "2026-08-10T12:00:00.000Z",
+	};
+
+	const setItems = (items: MyDishItem[]) =>
+		mockUseMyDishesQuery.mockReturnValue({
+			items,
+			isLoading: false,
+			isLoadingMore: false,
+			error: null,
+			hasNextPage: false,
+			loadMore: jest.fn(),
+			refresh: jest.fn(),
+		});
+
+	/*
+	⚠️ `findAll` は «合成要素» と «ホスト要素» の両方を拾うので、testID 1 つにつき 2 件返る。
+	   数を見るアサーションではホスト要素（`type` が文字列）だけに絞ること。
+	*/
+	const hostsWithTestId = (tree: TestRenderer.ReactTestRenderer, testID: string) =>
+		tree.root.findAll((n) => n.props?.testID === testID && typeof n.type === "string");
+
+	/*
+	押すための要素はホスト側ではなく «onPress を持っているほう» を取る。
+	TouchableOpacity のホスト View は onResponder* しか持たないので、
+	ホストに絞ると押せない（実際にこれで 1 本落ちた）。
+	*/
+	const pressableWithTestId = (tree: TestRenderer.ReactTestRenderer, testID: string) =>
+		tree.root.findAll((n) => n.props?.testID === testID && typeof n.props?.onPress === "function")[0];
+
+	const pressFirstCard = async (tree: TestRenderer.ReactTestRenderer) => {
+		const card = tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item")[0];
+		await act(async () => {
+			card.props.onPress();
+		});
+	};
+
+	it("写真が無くても自分のレビューがあれば、店舗詳細へ飛ばさずクチコミを出す", async () => {
+		setItems([makeItem("review:1", { myReview: REVIEW })]);
+		const tree = await render();
+		await pressFirstCard(tree);
+
+		expect(hostsWithTestId(tree, "my-dish-own-review-sheet")).toHaveLength(1);
+		const comment = hostsWithTestId(tree, "my-dish-own-review-comment")[0];
+		expect(comment.props.children).toBe("肉が厚くて満足");
+		// 修正前はここが呼ばれていた
+		expect(mockPush).not.toHaveBeenCalled();
+	});
+
+	it("削除済みの投稿でも同じくクチコミを読める（墓標は出したまま）", async () => {
+		setItems([makeItem("review:1", { myReview: REVIEW, isOwnMediaDeleted: true })]);
+		const tree = await render();
+		await pressFirstCard(tree);
+
+		expect(hostsWithTestId(tree, "my-dish-own-review-sheet")).toHaveLength(1);
+		expect(mockPush).not.toHaveBeenCalled();
+	});
+
+	it("シートの「お店の詳細を見る」を押したときだけ店舗詳細へ行く", async () => {
+		setItems([makeItem("review:1", { myReview: REVIEW, restaurantId: "restaurant-9" })]);
+		const tree = await render();
+		await pressFirstCard(tree);
+
+		const button = pressableWithTestId(tree, "my-dish-own-review-open-restaurant");
+		await act(async () => {
+			button.props.onPress();
+		});
+
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pathname: "/[locale]/restaurant/[restaurantId]",
+				params: expect.objectContaining({ restaurantId: "restaurant-9" }),
+			}),
+		);
+	});
+
+	it("レビューが無い行（食べたい等）は従来どおり店舗詳細へ行く", async () => {
+		setItems([makeItem("dish:1", { myReview: null, restaurantId: "restaurant-3" })]);
+		const tree = await render();
+		await pressFirstCard(tree);
+
+		expect(hostsWithTestId(tree, "my-dish-own-review-sheet")).toHaveLength(0);
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({ params: expect.objectContaining({ restaurantId: "restaurant-3" }) }),
+		);
 	});
 });

@@ -1147,6 +1147,13 @@
 		"deleted": {
 			"label": "Eliminada",
 			"a11yLabel": "La foto de esta publicación se eliminó"
+		},
+		"ownReview": {
+			"title": "Tu reseña",
+			"noPhoto": "Sin foto",
+			"noComment": "No se escribió ningún comentario",
+			"noReview": "Todavía no hay reseña para este registro",
+			"openRestaurant": "Ver detalles del restaurante"
 		}
 	},
 	"SnsImport": {

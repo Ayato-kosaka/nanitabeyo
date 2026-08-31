@@ -1147,6 +1147,13 @@
 		"deleted": {
 			"label": "削除されました",
 			"a11yLabel": "この投稿の写真は削除されました"
+		},
+		"ownReview": {
+			"title": "自分のクチコミ",
+			"noPhoto": "写真なし",
+			"noComment": "コメントは書かれていません",
+			"noReview": "この記録にはまだクチコミがありません",
+			"openRestaurant": "お店の詳細を見る"
 		}
 	},
 	"SnsImport": {

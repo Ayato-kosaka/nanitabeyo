@@ -26,6 +26,7 @@ import { resolveMyDishThumbnail } from "../thumbnail";
 import { resolveProviderIcon, resolveProviderLabel } from "@/features/dishMedia/providerIcon";
 import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
 import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
+import { MyDishOwnReviewSheet } from "./MyDishOwnReviewSheet";
 
 /**
  * #1396 my-dishes のリストビュー（設計書 (2/2) §7 の PR3）。
@@ -277,6 +278,15 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 	*/
 	const showsInitialLoading = (isLoading || !hasFetchedInitial) && error === null;
 
+	/*
+	#1629【オーナー実機報告】「押した時にレストラン詳細に行くのは仕様と違うはず。
+	 写真なしで良いから自分の書いたクチコミ見たい」。
+
+	写真の無い行で開くシート。行そのものを持たせる（id ではなく）ので追加の取得が要らない。
+	*/
+	const [ownReviewItem, setOwnReviewItem] = useState<MyDishItem | null>(null);
+	const closeOwnReview = useCallback(() => setOwnReviewItem(null), []);
+
 	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
 
 	/*
@@ -302,6 +312,18 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 	// ⚠️ **index ではなく `itemKey` を渡す**（R1）。一覧の並びは写真なしの行を含み、Feed の並びは
 	// 含まないので、index を渡すと写真なしが 1 件混ざった瞬間に別の料理が開く。
 	// 写真なしの行（`dishMedia === null`）は Feed に入れられないので従来どおり店舗詳細へ。
+	/** 店舗詳細へ送る。写真もレビューも無い行の落とし先と、シートの「お店の詳細を見る」で共有する */
+	const openRestaurant = useCallback(
+		(item: MyDishItem) => {
+			setOwnReviewItem(null);
+			router.push({
+				pathname: "/[locale]/restaurant/[restaurantId]",
+				params: { locale, restaurantId: item.restaurant.id },
+			});
+		},
+		[locale],
+	);
+
 	const handlePressItem = useCallback(
 		(item: MyDishItem) => {
 			const hasPhoto = item.dishMedia !== null;
@@ -345,12 +367,22 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 				});
 				return;
 			}
-			router.push({
-				pathname: "/[locale]/restaurant/[restaurantId]",
-				params: { locale, restaurantId: item.restaurant.id },
-			});
+			/*
+			#1629 写真が無い行。**以前はここで店舗詳細へ push していた**が、店舗詳細は
+			«その店の情報» の画面で、自分が書いた文章はどこにも出ない。記録を開いたのに
+			記録が読めない状態だった（オーナー実機報告）。
+
+			自分のレビューがあるならシートで読ませる。無いとき（= «食べたい» の行や、
+			何らかの理由でレビューが取れていない行）だけ従来どおり店舗詳細へ落とす。
+			店舗詳細への導線はシートの中にボタンとして残してあるので、失われる出口は無い。
+			*/
+			if (item.myReview !== null) {
+				setOwnReviewItem(item);
+				return;
+			}
+			openRestaurant(item);
 		},
-		[items, locale, logFrontendEvent],
+		[items, locale, logFrontendEvent, openRestaurant],
 	);
 
 	// #1398 (PR4/7) want カードの「食べたを記録」。カード全体のタップ（= 全画面 Feed）とは別経路。
@@ -407,24 +439,27 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 	}, [hasNextPage, loadMore]);
 
 	return (
-		<GridList
-			data={data}
-			renderItem={renderItem}
-			keyExtractor={(item) => item.id}
-			numColumns={COLUMNS}
-			contentContainerStyle={styles.gridContent}
-			columnWrapperStyle={styles.gridRow}
-			isLoading={showsInitialLoading}
-			isLoadingMore={isLoadingMore}
-			refreshing={isLoading}
-			onRefresh={refresh}
-			onEndReached={handleEndReached}
-			ListEmptyComponent={renderEmpty}
-			testID="my-dishes-list"
-			itemHeight={itemHeight}
-			// my-dishes は collapsible-tabs の外にいる単独ルートなので素の FlatList を使う（#1402 と同じ）
-			standalone
-		/>
+		<>
+			<GridList
+				data={data}
+				renderItem={renderItem}
+				keyExtractor={(item) => item.id}
+				numColumns={COLUMNS}
+				contentContainerStyle={styles.gridContent}
+				columnWrapperStyle={styles.gridRow}
+				isLoading={showsInitialLoading}
+				isLoadingMore={isLoadingMore}
+				refreshing={isLoading}
+				onRefresh={refresh}
+				onEndReached={handleEndReached}
+				ListEmptyComponent={renderEmpty}
+				testID="my-dishes-list"
+				itemHeight={itemHeight}
+				// my-dishes は collapsible-tabs の外にいる単独ルートなので素の FlatList を使う（#1402 と同じ）
+				standalone
+			/>
+			<MyDishOwnReviewSheet item={ownReviewItem} onClose={closeOwnReview} onOpenRestaurant={openRestaurant} />
+		</>
 	);
 }
 
