@@ -914,7 +914,20 @@ export default function SelectRestaurantScreen() {
 					<RestaurantPinMarker
 						key={cluster.id}
 						cluster={cluster}
-						appearance={isPickMode ? "label" : "avatar"}
+						/*
+						#1629【オーナー確定】**«食べたい / 食べた» のマップと同じ構成にする。**
+
+						オーナー実機報告「お店を選ぶのマップピンが Android で映らない」。
+						あちら（`MyDishesMapView`）は `AvatarBubbleMarker`（丸だけ）で **実機で出ている**。
+						こちらだけが «丸 + 店名 2 行» の別構成（`RestaurantLabelMarker`）で、
+						そこだけが映らないという報告だった。オーナー指示で構成を揃える。
+
+						⚠️ **ピンから店名が消える**（丸の写真だけになる）。#1375 8 巡目は
+						   «押すまでどの店か分からない» を理由に店名を載せたが、
+						   **そもそも映らないより出るほうが先**という判断。店名は押したときと
+						   下部の «保存したお店» シートで読める。
+						*/
+						appearance="avatar"
 						detail={pinDetail}
 						isActive={activeRestaurantId === cluster.pins[0].restaurant.id}
 						onPress={handlePinPress}
@@ -923,7 +936,7 @@ export default function SelectRestaurantScreen() {
 					<RestaurantClusterMarker key={cluster.id} cluster={cluster} onPress={handleClusterPress} />
 				),
 			),
-		[activeRestaurantId, clusters, handleClusterPress, handlePinPress, isPickMode, pinDetail],
+		[activeRestaurantId, clusters, handleClusterPress, handlePinPress, pinDetail],
 	);
 
 	return (

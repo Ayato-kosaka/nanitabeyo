@@ -90,9 +90,6 @@ jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock("react-native-maps", () => ({ __esModule: true, default: () => null }));
-jest.mock("@/features/restaurantPicker/components/RestaurantLabelMarker", () => ({
-	RestaurantLabelMarker: () => null,
-}));
 jest.mock("@/features/mapMarkers", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
