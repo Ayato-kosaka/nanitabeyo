@@ -607,21 +607,30 @@ const AUTOPLAY_SCRIPT = `(function () {
    * script 16 本が返り、レート制限で空が返る事実は再現しなかった。
    * つまり空は **端末側**で起きている。次の 4 つが分ければ、原因は一意に決まる。
    *
-   * **どの値が実際に使えるかは実測した**（Playwright / 同じ TikTok embed URL を開いて計測）。
+   * **どの値が実際に使えるかは実測した**（run 33348354215 / 実機の Detox / 同じ素材）。
    * 期待だけで並べると «全部 -1» の役に立たない記録が残るので、当てにする値を絞る。
    *
-   * | 送る値 | Chromium（≒ Android WebView） | WebKit（≒ iOS WKWebView） |
+   * | 送る値 | Android WebView | iOS WKWebView |
    * | --- | --- | --- |
-   * | enc（本文バイト数） | **183048 / 空なら 0** ✅ | **38778 / 空なら無し** ✅ |
-   * | chars（body の文字数） | **44715 / 空なら 0** ✅ | **42118 / 空なら 0** ✅ |
+   * | enc（本文バイト数） | **63458** ✅ | **55513 / 停まった TikTok でも 38900** ✅ |
+   * | chars（body の文字数） | **244532** ✅ | **245694 / body 未生成なら -1** ✅ |
    * | blankUrl（about:blank か） | ✅ | ✅ |
-   * | bytes（転送バイト数） | 常に 0（cross-origin で伏せられる） | 39078 |
-   * | st（HTTP ステータス） | 常に 0（同上） | **undefined** |
-   * | nav=none（遷移が無い） | 出ない（about:blank でも entry がある） | ✅ |
+   * | bytes（転送バイト数） | 63758 | 55813 |
+   * | st（HTTP ステータス） | **200** ✅ | **-1（undefined）** |
    *
-   * ⚠️ **st と bytes を判断の主語にしないこと。** どちらも片方の engine で潰れる。
-   *    «向こうが空を返した / そもそも読んでいない» を分けるのは **enc と chars と blankUrl**
-   *    である。st / bytes は engine の差を確かめるための添え物として残している。
+   * ⚠️ **st を判断の主語にしないこと。** iOS では取れない（WebKit に responseStatus が無い）。
+   *    両方の engine で «向こうが空を返した / そもそも読んでいない» を分けられるのは
+   *    **enc と chars と blankUrl** である。
+   *
+   * ⚠️ Playwright の Chromium は st も bytes も 0 を返すが、**実機の Android WebView は
+   *    200 を返す**。cross-origin の扱いが違うので、**ここの判断を Playwright で決めない**。
+   *
+   * この 3 つで実際に何が分かったか（run 33348354215 / iOS の TikTok）:
+   *
+   *     timeout still_loading ready=loading body=no chars=-1 enc=38900
+   *
+   * **38.9KB は届いている。届いたのに parse が終わっていない**（body すら無い）。
+   * «向こうが返してくれない» ではなく «こちらで組み上がっていない» と確定した。
    *
    * ⚠️ 送るのは **数と真偽だけ**。ページの本文・URL・クエリは 1 文字も載せない。
    * ⚠️ この注釈にバッククォートを書かないこと。ここはテンプレートリテラルの内側で、
