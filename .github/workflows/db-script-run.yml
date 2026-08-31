@@ -67,9 +67,18 @@ on:
         required: false
         default: "scripts/20251213T0000_wikidata_food_graph/requirements.txt"
         type: string
+      concurrency_group_suffix:
+        description: "並走を許可するための concurrency グループ接尾辞（例: restaurant-pipeline）。書き先のテーブル/データセットが他の実行と重ならないと判断できるときだけ指定する。空なら従来どおり全 dispatch を直列化"
+        required: false
+        default: ""
+        type: string
 
+# 既定（suffix 空）は従来どおり db-script-run 全体で直列化する。
+# 互いに書き先が重ならないスクリプトを並走させたいときだけ、呼び出し側が
+# concurrency_group_suffix で別グループへ分ける。同じ suffix 同士は直列のまま。
+# 並走してよいかの判断は script_path/args と同じく呼び出し側の責任（冒頭の設計方針を参照）。
 concurrency:
-  group: db-script-run
+  group: db-script-run${{ inputs.concurrency_group_suffix != '' && format('-{0}', inputs.concurrency_group_suffix) || '' }}
   cancel-in-progress: false
 
 permissions:
