@@ -47,6 +47,14 @@ const TOKYO_STATION = { latitude: 35.6812, longitude: 139.7671 };
 
 test.describe("保存料理カテゴリからの地点検索(#1133)", () => {
 	/*
+	#1629【オーナー確定】**Places の日次上限は上げない。** この spec は «場所検索の結果を使って
+	画面が進むこと» を見るもので、Places の応答そのものが主題ではないので固定値へ差し替える
+	（`utils/locationSearch.ts`）。実物を叩く検証は `tests/search/location-autocomplete.spec.ts`
+	の 1 本だけに残してある。
+	*/
+	test.use({ mockLocationSearch: true });
+
+	/*
 	#1629 このスタブの画像 URL は **Wikimedia 上に実体が無い**（実測 404）。
 
 	`wikimediaThumbFromOriginal` が URL を組み立てられる «形» であることがこの spec の要件で、
