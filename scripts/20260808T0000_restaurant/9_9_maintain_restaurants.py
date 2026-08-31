@@ -126,44 +126,45 @@ def main() -> None:
     args = parse_args()
     connection = connect_postgres(args.schema, allow_public=args.allow_public)
     try:
+        # #1706 このスクリプトは «読む» と «VACUUM» しかしない。VACUUM は
+        # トランザクション内で実行できないので、**最初から autocommit で通す**。
+        #
+        # 途中で autocommit を切り替えると psycopg2 が
+        # `set_session cannot be used inside a transaction` で落ちる。
+        # また rollback を挟むと SET が巻き戻り、search_path と
+        # statement_timeout が意図しない値へ戻る。どちらも実際に踏んだので、
+        # **トランザクションを開いたり閉じたりする流れ自体を作らない**。
+        connection.rollback()
+        connection.autocommit = True
+        # autocommit 下の SET はセッションに残る（巻き戻す相手が居ない）。
+        reapply_session_settings(connection, args.schema)
+
         with connection.cursor() as cursor:
             LOGGER.info("=== VACUUM 前 ===")
             report(cursor, args.schema)
             measure_scan(cursor, args.schema)
-        connection.rollback()
-        # #1706 rollback は SET を巻き戻す。戻り先は環境で違う（Supabase の
-        # statement_timeout は 2min）。続きの走査は 2 分では終わらないので張り直す。
-        reapply_session_settings(connection, args.schema)
 
         if not args.vacuum:
             LOGGER.info("測定のみで終了しました（VACUUM するには --vacuum）")
             return
 
-        # VACUUM はトランザクション内で実行できない。
-        connection.autocommit = True
         for table in TABLES:
             # ⚠️ **表名は必ずスキーマで修飾する。search_path に頼らない。**
             #
-            # PostgreSQL の `SET`（LOCAL 無し）は **トランザクションの一部**で、
-            # ROLLBACK で巻き戻る。connect_postgres が接続時に張った
-            # `SET search_path TO dev, public` は、上の rollback() で消えていた。
-            # その状態で `VACUUM restaurants` を流したところ、既定の
-            # search_path が効いて **public.restaurants** に当たった
-            # （2026-08-31 に実際に起きた。VACUUM なのでデータは変わらないが、
-            # 意図した対象ではなかった）。
+            # 2026-08-31 に `VACUUM (ANALYZE) restaurants` を修飾なしで流し、
+            # rollback で search_path が消えていたために **public.restaurants**
+            # に当たった。VACUUM なのでデータは変わらないが、対象は違っていた。
+            # 修飾しておけば、search_path が何であっても対象は動かない。
             target = f"{schema_ident(schema=args.schema)}.{table}"
             started = time.monotonic()
             with connection.cursor() as cursor:
                 cursor.execute(f"VACUUM (ANALYZE) {target}")
             LOGGER.info("VACUUM (ANALYZE) %s: %.1f秒", target, time.monotonic() - started)
-        connection.autocommit = False
-        reapply_session_settings(connection, args.schema)
 
         with connection.cursor() as cursor:
             LOGGER.info("=== VACUUM 後 ===")
             report(cursor, args.schema)
             measure_scan(cursor, args.schema)
-        connection.rollback()
     finally:
         connection.close()
 
