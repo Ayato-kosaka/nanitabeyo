@@ -82,3 +82,14 @@
 3. 柱1: 公式サイト抽出をスケール、store IG を 4_1 へ接続。
 4. 柱3: Serper 無料枠で 料理×市区町村 の穴埋め（4_3、既存）。
 5. resolve の店舗照合(matchRestaurantNames)側の recall も同様に磨く。
+
+## RESUME 2026-08-31 07:30Z（毎時ループの次アクション）
+
+- **harvest 完了**: `sns_post_raw` run_id=`sns-2026-08-30` に **18,560投稿 / 374アカウント**（柱2フル）。
+- **resolve辞書修正を dev へデプロイ済み**（api-deploy run 325, 00:25Z success。dev resolve は新辞書）。
+- 旧辞書の resolved 1085件は削除済み。**新辞書で全18,560を再resolve中**（5_1 を `--limit 2500` でバッチ、resolve_version=`dev-2026-08-31-newdict`）。
+- **毎時ティックの次アクション**: 
+  1. `sns_post_resolved`(run_id=`sns-2026-08-30`) の件数を見る。18,560未満なら 5_1 を `--limit 2500` で**もう1バッチ** dispatch（既resolveはLEFT JOINでskip、冪等）。
+  2. 18,560に到達したら**測定**: status内訳・matched率・異なり店/カテゴリ・地域×料理カバレッジ（47×132セル充足）。旧12%→新辞書での改善を出す。
+  3. 測定が出たらオーナーへ §1 6項目で報告（これは «意味のある変化»）。
+  4. 並行して柱1本番接続（`4_1 --source official_site_crawl`）・柱3（`out/cell_queries.tsv`をSerper無料枠で）・インフルエンサー拡張の次周も進める。
