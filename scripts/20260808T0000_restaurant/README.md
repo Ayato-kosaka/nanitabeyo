@@ -439,7 +439,18 @@ bash tests/test_pg_connect_survives_rollback.sh  # rollback で dev→public に
 `SET search_path TO dev, public` は **呼び出し側の `rollback()` で消えていました**。
 そのあとに修飾なしの表名で SQL を流すと、**dev のつもりで public を触ります**。
 2026-08-31 に実際に起き、`VACUUM (ANALYZE) restaurants` が public に当たりました。
-いまは接続時オプションで渡しているので、ROLLBACK はその値へ戻ります。
+
+対策は 2 段にしてあります。
+
+1. **接続時オプションで渡す**（保険）。startup packet の値はセッション既定になるので、
+   ROLLBACK はそこへ戻る
+2. **`reapply_session_settings(connection, schema)` を呼ぶ**（本体）。
+   **途中で rollback して SQL を続けるスクリプトは必ずこれを呼ぶ**
+
+2 段にしているのは、**rollback の «戻り先» が環境で違う**からです。
+Supabase はロールに `statement_timeout = 2min` を設定しており、これが接続時
+オプションに勝ちます（同日に実測。長い文が 2 分で切られた）。
+**どちらが勝つかに設計を依存させない。** 張り直して、効いたことを確かめます。
 
 `test_9_1_backfill_guard.py` は、**検知が誤って発火しないこと**だけを見ています。
 この判定は 2 回続けて偽陽性で同期を止めました（08-30 は «seed が付いているか» で

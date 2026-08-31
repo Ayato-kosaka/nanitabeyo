@@ -37,7 +37,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from pg_sync_common import connect_postgres  # noqa: E402
+from pg_sync_common import connect_postgres, reapply_session_settings  # noqa: E402
 from pipeline_common import configure_logging  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
@@ -131,6 +131,9 @@ def main() -> None:
             report(cursor, args.schema)
             measure_scan(cursor, args.schema)
         connection.rollback()
+        # #1706 rollback は SET を巻き戻す。戻り先は環境で違う（Supabase の
+        # statement_timeout は 2min）。続きの走査は 2 分では終わらないので張り直す。
+        reapply_session_settings(connection, args.schema)
 
         if not args.vacuum:
             LOGGER.info("測定のみで終了しました（VACUUM するには --vacuum）")
@@ -154,6 +157,7 @@ def main() -> None:
                 cursor.execute(f"VACUUM (ANALYZE) {target}")
             LOGGER.info("VACUUM (ANALYZE) %s: %.1f秒", target, time.monotonic() - started)
         connection.autocommit = False
+        reapply_session_settings(connection, args.schema)
 
         with connection.cursor() as cursor:
             LOGGER.info("=== VACUUM 後 ===")

@@ -85,6 +85,12 @@ def connect_postgres(schema: str, *, allow_public: bool) -> PgConnection:
     #
     # 接続時オプション（libpq の startup packet）で渡した値は
     # **そのセッションの既定値**になるので、ROLLBACK はここへ戻る。
+    #
+    # ただし statement_timeout は、これだけでは足りない。Supabase 側で
+    # ロールに短い既定（実測 2min）が設定されており、そちらが startup packet に
+    # 勝つ。**SET で上書きしないと 2 分で切られる**（2026-08-31 に実測）。
+    # SET はトランザクションの一部なので rollback で 2min へ戻る。途中で
+    # rollback して作業を続けるスクリプトは reapply_statement_timeout を呼ぶこと。
     options = " ".join(
         (
             f"-c search_path={schema},public",
@@ -110,6 +116,7 @@ def connect_postgres(schema: str, *, allow_public: bool) -> PgConnection:
     with connection.cursor() as cursor:
         # オプションが本当に効いたことを確かめる。効いていないまま進むと
         # «dev のつもりで public» になるので、ここで落とす。
+        cursor.execute(f"SET statement_timeout = '{STATEMENT_TIMEOUT_MS}ms'")
         cursor.execute("SELECT current_schema(), current_setting('statement_timeout')")
         current_schema, timeout = cursor.fetchone()
         if current_schema != schema:
@@ -127,6 +134,38 @@ def connect_postgres(schema: str, *, allow_public: bool) -> PgConnection:
             (f"restaurant_recommendation_sync:{schema}",),
         )
     return connection
+
+
+def reapply_session_settings(connection: PgConnection, schema: str) -> None:
+    """rollback のあとに search_path と statement_timeout を張り直す。#1706
+
+    **途中で rollback してから SQL を続けるスクリプトは、必ずここを呼ぶ。**
+
+    `SET`（LOCAL 無し）はトランザクションの一部なので ROLLBACK で巻き戻る。
+    戻り先（セッション既定）が何になるかは環境で違う。
+
+      ・接続時オプションが効く環境 … 意図した値に戻る
+      ・ロール既定が勝つ環境        … ロールの値に戻る
+        （Supabase の statement_timeout は **2min**。2026-08-31 に実測）
+
+    **どちらが勝つかに設計を依存させない。** 張り直して、効いたことを確かめる。
+    確かめないと «dev のつもりで public を触る» が黙って起きる。
+    """
+
+    if schema not in ALLOWED_SCHEMAS:
+        raise ValueError("PostgreSQL schemaはdev/publicだけです")
+    with connection.cursor() as cursor:
+        cursor.execute(
+            sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema))
+        )
+        cursor.execute(f"SET statement_timeout = '{STATEMENT_TIMEOUT_MS}ms'")
+        cursor.execute("SELECT current_schema()")
+        current = cursor.fetchone()[0]
+    if current != schema:
+        raise RuntimeError(
+            f"search_path を張り直せませんでした（current_schema={current!r} / "
+            f"期待={schema!r}）。このまま流すと別スキーマを触ります"
+        )
 
 
 def assert_quality_gate_passed(
