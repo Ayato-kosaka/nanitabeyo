@@ -341,6 +341,37 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	});
 
 	/*
+	#1641 ⚠️ **観測用の便を «結論» の側へ落とさないこと。**
+
+	実測（run 33372367946 / commit c303e82f）: 状態遷移を送るために足した kind 'state' が
+	«それ以外は unplayable» の枝まで落ちて
+
+	    external_embed_unplayable {"provider":"youtube","kind":"state","detail":"-99>1 t=0.1"}
+
+	として記録され、**再生できている YouTube のセルを畳んでいた**。
+	観測を足したつもりが、観測対象を壊していた。
+
+	包みの側が送る «観測» の便をここに並べて、**どれも畳まない**ことを固定する。
+	⚠️ 新しい観測の kind を足したら、この配列にも足すこと。
+	*/
+	it.each(["poster", "boot", "dom", "stall4000", "stall9000", "state", "paused"])(
+		"観測の便（%s）では畳まないし、サーバへも報告しない",
+		(kind) => {
+			const onUnplayable = jest.fn();
+			let tree!: ReactTestRenderer;
+			act(() => {
+				tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+			});
+
+			post({ src: "nb-embed-autoplay", kind, detail: "observation" });
+
+			expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+			expect(fallbackCount(tree)).toBe(0);
+			expect(onUnplayable).not.toHaveBeenCalled();
+		},
+	);
+
+	/*
 	#1641 ⚠️ **«勝手に止まった» を記録し、かつ状態を動かさないこと。**
 
 	オーナー実機報告（2026-08-31）「２秒くらい流れて止まって、下の tiktok が流れる」。

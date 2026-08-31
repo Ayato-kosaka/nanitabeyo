@@ -1311,6 +1311,34 @@ export function ExternalEmbedPlayer({
 			⚠️ hasPlayedRef のガードより **前**に置くこと。再生済みセルで起きる現象なので、
 			   後ろに置くと 1 行も残らない（それが今回そもそも観測できなかった理由である）。
 			*/
+			/*
+			#1641 ⚠️ **観測用の便を «結論» の側へ落とさないこと。**
+
+			実測（run 33372367946 / commit c303e82f）: 状態遷移を送るために足した
+			kind 'state' が、下の «それ以外は unplayable» の枝まで落ちて
+
+			    external_embed_unplayable {"provider":"youtube","kind":"state","detail":"-99>1 t=0.1"}
+
+			として記録され、**再生できている YouTube のセルを畳んでいた**。
+			観測を足したつもりが、観測対象を壊していた。
+
+			⚠️ 新しい kind を包みの側へ足すときは、**必ずここに «観測» として先に書く**。
+			   最後の枝は «知らない kind は再生できない» と解釈する作りなので、
+			   書き忘れるとそのまま縮退する。
+			*/
+			if (parsed.kind === "state") {
+				logFrontendEvent({
+					event_name: "external_embed_state",
+					error_level: "log",
+					payload: {
+						provider: embed.provider,
+						detail: parsed.detail ?? null,
+						visit: visitRef.current,
+						sinceActiveMs: Date.now() - activatedAtRef.current,
+					},
+				});
+				return;
+			}
 			if (parsed.kind === "paused") {
 				logFrontendEvent({
 					event_name: "external_embed_paused",
