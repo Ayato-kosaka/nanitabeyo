@@ -123,7 +123,8 @@ export default function MyDishesFeedScreen() {
 	/** ページャに並べるスコープ */
 	const scopes = useMemo<MyDishesFeedScope[]>(() => {
 		if (scopeKind === "list") {
-			if (itemKey === null || dishMediaId === null) return [];
+			// #1761 `dishMediaId` は無くてよい（写真の無い記録もページになる）。行を指すのは `itemKey`
+			if (itemKey === null) return [];
 			/*
 			#1629 【設計】**グリッドのセルを、出ている順にそのまま 1 ページずつ縦へ並べる。**
 
@@ -134,8 +135,16 @@ export default function MyDishesFeedScreen() {
 			一覧が並びを置いていない（web の直リンク・リロード）ときは、URL が持っている
 			1 件だけへ縮退する。
 			*/
-			const rows = scopeListItems.some((row) => row.itemKey === itemKey) ? scopeListItems : [{ itemKey, dishMediaId }];
-			return rows.map((row) => ({ kind: "item" as const, itemKey: row.itemKey, dishMediaId: row.dishMediaId }));
+			const rows = scopeListItems.some((row) => row.itemKey === itemKey)
+				? scopeListItems
+				: [{ itemKey, dishMediaId, restaurantId: restaurantId ?? "" }];
+			return rows.map((row) => ({
+				kind: "item" as const,
+				itemKey: row.itemKey,
+				dishMediaId: row.dishMediaId,
+				// #1761 直リンクで行を引き直すときの手がかり。空文字は «分からない»（引き直さない）
+				restaurantId: row.restaurantId.length > 0 ? row.restaurantId : null,
+			}));
 		}
 		if (scopeKind === "date") {
 			if (date === null) return [];
@@ -154,8 +163,8 @@ export default function MyDishesFeedScreen() {
 	const initialScopeIndex = useMemo(() => {
 		if (scopes.length === 0) return 0;
 		const currentId =
-			scopeKind === "list" && itemKey !== null && dishMediaId !== null
-				? feedScopeId({ kind: "item", itemKey, dishMediaId })
+			scopeKind === "list" && itemKey !== null
+				? feedScopeId({ kind: "item", itemKey, dishMediaId, restaurantId })
 				: scopeKind === "date" && date !== null
 					? feedScopeId({ kind: "date", date })
 					: scopeKind === "restaurant" && restaurantId !== null

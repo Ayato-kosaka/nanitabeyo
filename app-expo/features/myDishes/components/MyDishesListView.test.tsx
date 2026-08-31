@@ -311,14 +311,52 @@ describe("#1397 (PR4/5) Q2 リスト項目のタップ先は «その項目の�
 		// #1629 一覧からは «その 1 件» のスコープ（scope=list）で開く。店舗スコープではない
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale: "ja-JP", scope: "list", itemKey: "review:with-photo", dishMediaId: "media-1" },
+			params: {
+				locale: "ja-JP",
+				scope: "list",
+				itemKey: "review:with-photo",
+				// #1761 直リンクで行を引き直すための手がかり。写真ありの行でも一緒に渡す
+				restaurantId: "restaurant-1",
+				dishMediaId: "media-1",
+			},
 		});
 		expect(Object.keys(mockPush.mock.calls[0][0].params)).not.toContain("initialIndex");
 	});
 
-	it("写真なしの項目は従来どおり店舗詳細へ push する（Feed に入れられない）", async () => {
+	/*
+	#1761 **写真の無い行もフィードへ送る。**
+
+	#1629 ではここでボトムシートを開いていた（それ以前は店舗詳細へ飛ばしていて、記録を開いても
+	記録が読めなかった）。Calendar / Map が #1752 でフィードへ寄ったので、グリッドだけ器を
+	変える理由が無くなった。クチコミが読めるページはフィードが持つ（`MyDishOwnReviewPage`）。
+	*/
+	it("写真なしでもクチコミがあれば Feed へ push する（dishMediaId は付かない）", async () => {
 		mockUseMyDishesQuery.mockReturnValue({
-			items: [makeItem("review:no-photo", { categoryImageUrl: "https://example.com/category.jpg" })],
+			items: [makeItem("review:no-photo", { myReview: { id: "review-1", rating: 4, comment: "うますぎた！" } })],
+			isLoading: false,
+			isLoadingMore: false,
+			error: null,
+			hasNextPage: false,
+			loadMore: jest.fn(),
+			refresh: jest.fn(),
+		});
+		const tree = await render();
+
+		await pressFirstItem(tree);
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/my-dishes/feed",
+			params: { locale: "ja-JP", scope: "list", itemKey: "review:no-photo", restaurantId: "restaurant-1" },
+		});
+		// 修正前（#1629）はここが店舗詳細だった。戻していないことを見る
+		expect(mockPush).not.toHaveBeenCalledWith(
+			expect.objectContaining({ pathname: "/[locale]/restaurant/[restaurantId]" }),
+		);
+	});
+
+	it("写真もクチコミも無い行（«食べたい»）だけ店舗詳細へ push する", async () => {
+		mockUseMyDishesQuery.mockReturnValue({
+			items: [makeItem("dish:want", { categoryImageUrl: "https://example.com/category.jpg" })],
 			isLoading: false,
 			isLoadingMore: false,
 			error: null,
@@ -464,8 +502,10 @@ describe("#1629 一覧から Feed へ入るときの縦ページャの並び", (
 			restaurantId: "r-2",
 			dishMediaId: "media-c",
 		}),
-		// 写真なしの行は Feed に入れられないので、並びからも外す
-		makeItem("review:d", { restaurantId: "r-3" }),
+		// #1761 写真なしでもクチコミがあれば 1 ページ（dishMediaId は null）
+		makeItem("review:d", { restaurantId: "r-3", myReview: { id: "review-d" } }),
+		// クチコミも無い行（«食べたい»）はページにしない。開いても読むものが無い
+		makeItem("dish:e", { restaurantId: "r-4" }),
 	];
 
 	const pressNth = async (n: number) => {
@@ -492,9 +532,10 @@ describe("#1629 一覧から Feed へ入るときの縦ページャの並び", (
 		await pressNth(0);
 
 		expect(useMyDishesFeedScopeStore.getState().listItems).toEqual([
-			{ itemKey: "review:a", dishMediaId: "media-a" },
-			{ itemKey: "review:b", dishMediaId: "media-b" },
-			{ itemKey: "review:c", dishMediaId: "media-c" },
+			{ itemKey: "review:a", dishMediaId: "media-a", restaurantId: "r-1" },
+			{ itemKey: "review:b", dishMediaId: "media-b", restaurantId: "r-1" },
+			{ itemKey: "review:c", dishMediaId: "media-c", restaurantId: "r-2" },
+			{ itemKey: "review:d", dishMediaId: null, restaurantId: "r-3" },
 		]);
 		// 店舗の並びは触らない（あれは Map の入口のもの）
 		expect(useMyDishesFeedScopeStore.getState().restaurantIds).toEqual([]);
@@ -505,201 +546,13 @@ describe("#1629 一覧から Feed へ入るときの縦ページャの並び", (
 
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale: "ja-JP", scope: "list", itemKey: "review:b", dishMediaId: "media-b" },
-		});
-	});
-});
-
-/*
-#1629【オーナー実機報告】「梅欄ヤエチカ店が『削除されました』『写真なし』と表示されますが、
- 押した時にレストラン詳細に行くのは仕様と違うはず。**写真なしで良いから自分の書いたクチコミ見たい**」
-
-修正前は `dishMedia === null` の行がすべて店舗詳細へ push されていた。店舗詳細には自分の
-書いた文章がどこにも出ないので、記録を開いても記録が読めなかった。
-
-⚠️ アサーションを «シートが出たこと» だけに置かない。**店舗詳細へ push «しない» こと**を
-   同時に見ないと、両方起きる実装（シートを出しつつ裏で遷移する）でも緑になる。
-*/
-describe("#1629 写真の無い記録から自分のクチコミを読む", () => {
-	const REVIEW = {
-		id: "review-1",
-		rating: 4,
-		comment: "肉が厚くて満足",
-		price_cents: 3200,
-		currency_code: "JPY",
-		created_at: "2026-08-10T12:00:00.000Z",
-		lock_no: 3,
-	};
-
-	const setItems = (items: MyDishItem[]) =>
-		mockUseMyDishesQuery.mockReturnValue({
-			items,
-			isLoading: false,
-			isLoadingMore: false,
-			error: null,
-			hasNextPage: false,
-			loadMore: jest.fn(),
-			refresh: jest.fn(),
-		});
-
-	/*
-	⚠️ `findAll` は «合成要素» と «ホスト要素» の両方を拾うので、testID 1 つにつき 2 件返る。
-	   数を見るアサーションではホスト要素（`type` が文字列）だけに絞ること。
-	*/
-	const hostsWithTestId = (tree: TestRenderer.ReactTestRenderer, testID: string) =>
-		tree.root.findAll((n) => n.props?.testID === testID && typeof n.type === "string");
-
-	/*
-	押すための要素はホスト側ではなく «onPress を持っているほう» を取る。
-	TouchableOpacity のホスト View は onResponder* しか持たないので、
-	ホストに絞ると押せない（実際にこれで 1 本落ちた）。
-	*/
-	const pressableWithTestId = (tree: TestRenderer.ReactTestRenderer, testID: string) =>
-		tree.root.findAll((n) => n.props?.testID === testID && typeof n.props?.onPress === "function")[0];
-
-	const pressFirstCard = async (tree: TestRenderer.ReactTestRenderer) => {
-		const card = tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item")[0];
-		await act(async () => {
-			card.props.onPress();
-		});
-	};
-
-	it("写真が無くても自分のレビューがあれば、店舗詳細へ飛ばさずクチコミを出す", async () => {
-		setItems([makeItem("review:1", { myReview: REVIEW })]);
-		const tree = await render();
-		await pressFirstCard(tree);
-
-		expect(hostsWithTestId(tree, "my-dish-own-review-sheet")).toHaveLength(1);
-		const comment = hostsWithTestId(tree, "my-dish-own-review-comment")[0];
-		expect(comment.props.children).toBe("肉が厚くて満足");
-		// 修正前はここが呼ばれていた
-		expect(mockPush).not.toHaveBeenCalled();
-	});
-
-	it("削除済みの投稿でも同じくクチコミを読める（墓標は出したまま）", async () => {
-		setItems([makeItem("review:1", { myReview: REVIEW, isOwnMediaDeleted: true })]);
-		const tree = await render();
-		await pressFirstCard(tree);
-
-		expect(hostsWithTestId(tree, "my-dish-own-review-sheet")).toHaveLength(1);
-		expect(mockPush).not.toHaveBeenCalled();
-	});
-
-	it("シートの「お店の詳細を見る」を押したときだけ店舗詳細へ行く", async () => {
-		setItems([makeItem("review:1", { myReview: REVIEW, restaurantId: "restaurant-9" })]);
-		const tree = await render();
-		await pressFirstCard(tree);
-
-		const button = pressableWithTestId(tree, "my-dish-own-review-open-restaurant");
-		await act(async () => {
-			button.props.onPress();
-		});
-
-		expect(mockPush).toHaveBeenCalledWith(
-			expect.objectContaining({
-				pathname: "/[locale]/restaurant/[restaurantId]",
-				params: expect.objectContaining({ restaurantId: "restaurant-9" }),
-			}),
-		);
-	});
-
-	it("レビューが無い行（食べたい等）は従来どおり店舗詳細へ行く", async () => {
-		setItems([makeItem("dish:1", { myReview: null, restaurantId: "restaurant-3" })]);
-		const tree = await render();
-		await pressFirstCard(tree);
-
-		expect(hostsWithTestId(tree, "my-dish-own-review-sheet")).toHaveLength(0);
-		expect(mockPush).toHaveBeenCalledWith(
-			expect.objectContaining({ params: expect.objectContaining({ restaurantId: "restaurant-3" }) }),
-		);
-	});
-
-	/*
-	#1629【オーナー実機報告】「編集&削除できない」。
-
-	編集・削除はフィード右レールの «…»（`DishMediaMoreMenu`）にしか無く、写真の無い記録は
-	フィードに出ないので **到達する手段がゼロ**だった。このシートが唯一の «その記録を開く場所»
-	なので、ここから両方できることを固定する。
-	*/
-	describe("編集と削除", () => {
-		it("「編集」から開くフォームには、いま保存されている内容が入っている", async () => {
-			setItems([makeItem("review:1", { myReview: REVIEW })]);
-			const tree = await render();
-			await pressFirstCard(tree);
-
-			await act(async () => {
-				pressableWithTestId(tree, "my-dish-own-review-edit").props.onPress();
-			});
-
-			expect(hostsWithTestId(tree, "edit-review-modal")).toHaveLength(1);
-			const input = tree.root.findAll(
-				(n) => n.props?.testID === "edit-review-comment-input" && typeof n.type === "string",
-			)[0];
-			expect(input.props.value).toBe("肉が厚くて満足");
-			// 3200 は最小単位。JPY は 0 桁なので「3200」のまま出す（100 で割らない）
-			const price = tree.root.findAll(
-				(n) => n.props?.testID === "edit-review-price-input" && typeof n.type === "string",
-			)[0];
-			expect(price.props.value).toBe("3200");
-		});
-
-		it("保存は lockNo を必ず送る（競合検知を無効化しない）", async () => {
-			setItems([makeItem("review:1", { myReview: REVIEW })]);
-			mockCallBackend.mockResolvedValue({ ...REVIEW, comment: "書き直した", lock_no: 4 });
-			const tree = await render();
-			await pressFirstCard(tree);
-			await act(async () => {
-				pressableWithTestId(tree, "my-dish-own-review-edit").props.onPress();
-			});
-			await act(async () => {
-				pressableWithTestId(tree, "edit-review-submit-button").props.onPress();
-			});
-
-			expect(mockCallBackend).toHaveBeenCalledWith(
-				"v1/dish-reviews/review-1",
-				expect.objectContaining({
-					method: "PATCH",
-					requestPayload: expect.objectContaining({ lockNo: 3, priceCents: 3200, currencyCode: "JPY" }),
-				}),
-			);
-		});
-
-		it("削除は確認を挟み、承諾されたときだけレビュー 1 件を消す", async () => {
-			setItems([makeItem("review:1", { myReview: REVIEW })]);
-			mockConfirm.mockResolvedValue(false);
-			const tree = await render();
-			await pressFirstCard(tree);
-
-			await act(async () => {
-				pressableWithTestId(tree, "my-dish-own-review-delete").props.onPress();
-			});
-			expect(mockConfirm).toHaveBeenCalled();
-			expect(mockCallBackend).not.toHaveBeenCalled();
-
-			mockConfirm.mockResolvedValue(true);
-			await act(async () => {
-				pressableWithTestId(tree, "my-dish-own-review-delete").props.onPress();
-			});
-			// 写真は «無い» か «既に削除済み» なので、消せるのはクチコミ 1 件だけ
-			expect(mockCallBackend).toHaveBeenCalledWith(
-				"v1/dish-reviews/review-1",
-				expect.objectContaining({ method: "DELETE" }),
-			);
-			expect(mockCallBackend).not.toHaveBeenCalledWith(
-				expect.stringContaining("dish-media"),
-				expect.anything(),
-			);
-			// 消したらシートは閉じる（消えたものを開いたままにしない）
-			expect(hostsWithTestId(tree, "my-dish-own-review-sheet")).toHaveLength(0);
-		});
-
-		it("編集と削除の導線がシートに出る（フィードに出ない記録の唯一の出口）", async () => {
-			setItems([makeItem("review:1", { myReview: REVIEW })]);
-			const tree = await render();
-			await pressFirstCard(tree);
-			expect(hostsWithTestId(tree, "my-dish-own-review-edit")).toHaveLength(1);
-
-			expect(hostsWithTestId(tree, "my-dish-own-review-delete")).toHaveLength(1);
+			params: {
+				locale: "ja-JP",
+				scope: "list",
+				itemKey: "review:b",
+				restaurantId: "r-1",
+				dishMediaId: "media-b",
+			},
 		});
 	});
 });

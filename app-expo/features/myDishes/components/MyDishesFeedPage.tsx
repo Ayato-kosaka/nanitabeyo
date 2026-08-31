@@ -63,7 +63,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import i18n from "@/lib/i18n";
 import { selectEntryByMediaId, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
-import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
+import type { MyDishItem, QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 
 /**
  * R5: クライアント側で `ids` を切る本数。`QueryDishMediaByIdsDto` は `ArrayNotEmpty` しか持たず
@@ -72,6 +72,9 @@ import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
  */
 const MAX_FEED_IDS = MY_DISHES_PAGE_SIZE;
 
+/** 参照を固定して、行が無いときの再レンダーを止める */
+const EMPTY_ITEMS: MyDishItem[] = [];
+
 /**
  * このページが «何で切られているか»。
  *
@@ -79,12 +82,14 @@ const MAX_FEED_IDS = MY_DISHES_PAGE_SIZE;
  * - `date` … 1 日（Calendar の日付から）。中身はその日の記録すべて
  * - `item` … #1629 **一覧（グリッド）のセル 1 つ**。中身は **その 1 件だけ**。
  *   グリッドは店舗でも日でもグルーピングしていないので、まとめる単位が無い
- *   （オーナー指摘「お店でグルーピングしてるなら要らない。グリッドは上下だけ」）
+ *   （オーナー指摘「お店でグルーピングしてるなら要らない。グリッドは上下だけ」）。
+ *   #1761 `dishMediaId` は null を取る（写真の無い記録もこのスコープで開く）。
+ *   `restaurantId` は直リンク・リロードで行を引き直すときだけ使う手がかり
  */
 export type MyDishesFeedScope =
 	| { kind: "restaurant"; restaurantId: string }
 	| { kind: "date"; date: string }
-	| { kind: "item"; itemKey: string; dishMediaId: string };
+	| { kind: "item"; itemKey: string; dishMediaId: string | null; restaurantId: string | null };
 
 /**
  * スコープを `entriesKey` / ページャの key に使える 1 本の文字列へ畳む。
@@ -187,6 +192,7 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	`GET /v1/dish-media?ids=<1 件>` だけでこのページを描く。
 	*/
 	const scopeMediaId = scope.kind === "item" ? scope.dishMediaId : null;
+	const scopeItemKey = scope.kind === "item" ? scope.itemKey : null;
 	const dishMediaIdParam = dishMediaId;
 	// M-2: 1 店舗 43 件以上だと itemKey が指す行が取得済みの 1 ページ（42 件）に無いことがある。
 	// 呼び出し元は必ず item.dishMedia.id を持っているので、そちらを同一性の根拠にする
@@ -206,15 +212,45 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	// を別スライスとして引くので、store は増えていない（§8-1 の作法をそのまま踏襲）。
 	// ⚠️ `shouldFetch` が false の間は `null` を渡して取得させない（見えていないページを先に取らない）。
 	//    #1629 で «進行方向の隣 1 ページだけ» は先読みを許すようにした（shouldPrefetch の JSDoc）
-	const restaurantQuery = useMyDishesRestaurantQuery(shouldFetch ? restaurantId : null);
+	/*
+	#1761 【設計】**`item` スコープの行は、まずストアから拾う。**
+
+	グリッドから開いた直後は、その行が `useMyDishesStore.itemByKey` にまだ居る（一覧が取った
+	ものがそのまま残っている）。写真の無い記録はクチコミ本文（`myReview`）が要るが、
+	ここで拾えるなら **取得は 1 本も増えない**（シートが «押したのに読み込み中» を出さなかったのと同じ）。
+
+	拾えないのは web の直リンク・リロードだけである。そのときだけ «その店舗の記録» を
+	引き直して `itemKey` で選ぶ。行 1 件を key で引く API は無いのでこの形にしている
+	（`restaurantId` はスコープが持っている。`feed.tsx` が URL / 一覧から詰める）。
+	*/
+	const rowFromStore = useMyDishesStore((state) => (scopeItemKey === null ? undefined : state.itemByKey[scopeItemKey]));
+	/** 直リンクで «写真の無いページ» を開いたときだけ立つ。写真があるなら行は要らない */
+	const needsRowFallback = scope.kind === "item" && scope.dishMediaId === null && rowFromStore === undefined;
+	const restaurantQuery = useMyDishesRestaurantQuery(
+		shouldFetch ? (scope.kind === "restaurant" ? restaurantId : needsRowFallback ? scope.restaurantId : null) : null,
+	);
 	const dateQuery = useMyDishesDateQuery(shouldFetch ? date : null);
 	const {
-		items,
+		items: queryItems,
 		queryKey: sheetQueryKey,
 		error: rowsError,
 		hasFetchedInitial: hasFetchedRowsRaw,
 		refresh: refreshRows,
-	} = scope.kind === "restaurant" ? restaurantQuery : dateQuery;
+	} = scope.kind === "restaurant" || needsRowFallback ? restaurantQuery : dateQuery;
+
+	/**
+	 * このページが並べる «記録»。
+	 *
+	 * - `restaurant` / `date` … 派生クエリが返した行そのもの
+	 * - `item`（#1761）… **その 1 行だけ**。ストアに居ればそれ、直リンクなら引き直した中から
+	 *   `itemKey` で選ぶ。写真がある行はそもそも行が要らない（`dishMediaId` だけで描ける）ので、
+	 *   拾えなくても空のままでよい
+	 */
+	const items = useMemo<MyDishItem[]>(() => {
+		if (scope.kind !== "item") return queryItems;
+		const row = rowFromStore ?? queryItems.find((item) => item.key === scope.itemKey) ?? null;
+		return row === null ? EMPTY_ITEMS : [row];
+	}, [queryItems, rowFromStore, scope]);
 	/*
 	#1629 `item` スコープには «行» が無い（上の scopeMediaId のコメント）。派生クエリへ null を
 	渡しているので `hasFetchedInitial` は永遠に false であり、そのまま使うと
@@ -224,7 +260,11 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	のときに true にしてはいけない。すると `mediaIds` が空のまま «0 件 = 見つかりません» が
 	縦フリックの途中に挟まる（#1375 実機確認 3 巡目で踏んだ罠と同じ形）。
 	*/
-	const hasFetchedRows = scope.kind === "item" ? shouldFetch : hasFetchedRowsRaw;
+	/*
+	#1761 直リンクで写真の無いページを開いたときだけ、`item` スコープも «行の取得» を待つ。
+	待たずに «揃った» と読むと、クチコミが届く前に 0 件（見つかりません）が一瞬出る。
+	*/
+	const hasFetchedRows = scope.kind === "item" ? (needsRowFallback ? hasFetchedRowsRaw : shouldFetch) : hasFetchedRowsRaw;
 
 	// #1629 手順 2 も `shouldFetch` で開ける。ここを isActive のままにすると、
 	// 行だけ先に取れて `GET /v1/dish-media?ids=` は前面へ来てから、になり先読みが半分しか効かない

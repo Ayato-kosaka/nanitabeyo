@@ -48,7 +48,6 @@ import { useSheetBottomPadding } from "./useSheetBottomPadding";
 import { ReportContentSheet } from "@/features/dishMedia/components/ReportContentSheet";
 import { EditDishReviewModal } from "@/features/dishMedia/components/EditDishReviewModal";
 import { DishMediaMoreMenu } from "@/features/dishMedia/components/DishMediaMoreMenu";
-import { MyDishOwnReviewSheet } from "@/features/myDishes/components/MyDishOwnReviewSheet";
 import { useDishMediaEntriesStore, type NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
 
 // React 19 では初期描画がスケジューラのタスクへ回されるため act() で包む必要がある
@@ -233,16 +232,9 @@ describe("#1742 下端に貼り付くシートは safe area を自分で足す",
 		expect(contribution).toBe(INSET);
 	});
 
-	it("自分の記録のクチコミシート（#1629 で直したものが hook 経由でも保たれている）", () => {
-		const item = {
-			dish_media: { id: "dm-1", media_type: "image", mediaUrl: null },
-			restaurant: { id: "r-1", name: "店" },
-			dish: { id: "d-1", name: "料理" },
-			ownReview: REVIEW,
-		} as never;
-		const contribution = measureInsetContribution("my-dish-own-review-sheet", () =>
-			renderInAct(<MyDishOwnReviewSheet item={item} onClose={jest.fn()} onOpenRestaurant={jest.fn()} />),
-		);
-		expect(contribution).toBe(INSET);
-	});
+	/*
+	#1761 «自分の記録のクチコミシート»（MyDishOwnReviewSheet）の分はここから外した。
+	グリッドの写真なしセルもフィードのページで開くようになり、シートそのものを削除したため。
+	下端の余白を組むのはフィードのページ側（MyDishOwnReviewPage）で、あちらは Modal ではない。
+	*/
 });

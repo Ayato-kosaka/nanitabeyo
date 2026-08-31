@@ -1,5 +1,5 @@
 /**
- * 📝 全画面フィードの «写真が無い記録» のページ（#1752）
+ * 📝 全画面フィードの «写真が無い記録» のページ（#1752 / #1761）
  *
  * ## なぜ «ページ» が要るのか
  * オーナー実機報告（2026-08-31）: 投稿（dish_media）を消した記録のクチコミが、
@@ -7,9 +7,9 @@
  * **どこからも読めなかった**。フィードのページ列が «メディアの列» で組まれていて、
  * メディアを持たない記録が黙って落ちていたためである（真因は `MyDishesFeedPage`）。
  *
- * ページ列を «記録の列» に変え、メディアを持たない記録はこのページを描く。中身
- * （墓標・星・金額・本文・編集・削除）はグリッドのシートと同一部品
- * （`MyDishOwnReviewContent`）で、器だけが違う。
+ * ページ列を «記録の列» に変え、メディアを持たない記録はこのページを描く。
+ * #1761 で **グリッド（一覧）もここへ寄せた**（それまでグリッドだけボトムシートだった）。
+ * my-dishes の記録は、どの入口から開いてもフィードの 1 ページである。
  *
  * ## 上端だけは黒のまま残す
  *
@@ -82,12 +82,7 @@ export function MyDishOwnReviewPage({ item }: { item: MyDishItem }) {
 			{/* 白い «×» と «n / m» が乗る帯。ここだけメディアと同じ黒のまま残す */}
 			<View style={styles.topBand} pointerEvents="none" />
 			<View style={[styles.content, { paddingBottom: 20 + insets.bottom }]}>
-				<MyDishOwnReviewContent
-					item={item}
-					variant="page"
-					onClose={handleClose}
-					onOpenRestaurant={handleOpenRestaurant}
-				/>
+				<MyDishOwnReviewContent item={item} onClose={handleClose} onOpenRestaurant={handleOpenRestaurant} />
 			</View>
 		</View>
 	);
