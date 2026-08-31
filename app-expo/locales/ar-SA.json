@@ -608,7 +608,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "اختر فئة الطبق",
-			"writeReviewForThisDish": "اكتب مراجعة لهذا الطبق",
 			"useTypedDishCategory": "استخدام «{{name}}»"
 		},
 		"inputs": {

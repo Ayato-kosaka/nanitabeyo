@@ -295,8 +295,15 @@ export class ExternalApiService {
         **検索結果が黙って 0 件になる**。オーナー実機の「焼肉うしごろ表参道が検索で出ない」は
         これだった（dev ログ 2026-08-30。`dish-media/search` が 0 件 → bulk-import が 500）。
 
-        «相手が壊れている»（EXTERNAL_SERVICE_ERROR）ではなく «上限に達した» と言えるように
-        専用のコードで 503 を返す。クライアントは «時間を置けば直る» と読めるようになる。
+        #1642 【修正】この «上限» を **503 で返していたのを 429 へ戻す**。
+        503 は `MaintenanceGuard`（Remote Config の `is_maintenance`）が使っている番号で、
+        クライアントは 503 を受けると «ただいまメンテナンス中です。» を出す。その結果、
+        メンテナンスでも何でもない «Places の日次上限» でメンテ告知が実機に出た
+        （2026-08-31 のオーナー実機。dev ログ `EXTERNAL_QUOTA_EXCEEDED` 5 件）。
+
+        上流が 429 と言っているものを別の番号へ翻訳する理由が無い。そのまま 429 を返す。
+        «相手が壊れている»（EXTERNAL_SERVICE_ERROR）ではないことは `ErrorCode` 側で
+        言えているので、«時間を置けば直る» はクライアントから引き続き読める。
         */
         if (response.status === HttpStatus.TOO_MANY_REQUESTS) {
           throw new HttpException(
@@ -304,7 +311,7 @@ export class ExternalApiService {
               code: ErrorCode.EXTERNAL_QUOTA_EXCEEDED,
               message: `Google Places Text Search API quota exceeded: ${errorText}`,
             },
-            HttpStatus.SERVICE_UNAVAILABLE,
+            HttpStatus.TOO_MANY_REQUESTS,
           );
         }
         throw new Error(

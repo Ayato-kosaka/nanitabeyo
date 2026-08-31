@@ -608,7 +608,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "요리 카테고리 선택",
-			"writeReviewForThisDish": "이 요리에 대한 리뷰 작성",
 			"useTypedDishCategory": "“{{name}}”(으)로 결정"
 		},
 		"inputs": {

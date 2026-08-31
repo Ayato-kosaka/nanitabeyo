@@ -1,6 +1,7 @@
 import { test as base, expect, type Page } from "@playwright/test";
 import { waitForAnonymousSession } from "../utils/auth";
 import { seedDishCategoriesTutorialAsSeen, seedMyDishesTutorialAsSeen, seedTutorialAsSeen } from "../utils/storage";
+import { mockLocationSearch as installLocationSearchMock } from "../utils/locationSearch";
 
 /**
  * 🧩 カスタムフィクスチャ
@@ -48,6 +49,22 @@ type AppOptions = {
 	 *（run 32718781438 で実測）。文字列なら `typeof value[1] === "string"` なのでこの罠を踏まない。
 	 */
 	allowedConsoleErrors: string[];
+	/**
+	 * 場所検索の 3 本（`/v1/locations/autocomplete` / `details` / `reverse-geocoding`）を
+	 * 固定レスポンスへ差し替えるか。
+	 *
+	 * #1629【オーナー確定】「Places の日次上限は **上げない**。上げないままテストできるように」。
+	 * この 3 本はバックエンドの中で Google Places を呼ぶので、**e2e が 1 回走るたびに日次枠を
+	 * 削る**。枠切れで «検索が 500 になる» 失敗が過去に何度も出ており、#1629 では Detox の
+	 * 検証が 1 回これで潰れた。
+	 *
+	 * ⚠️ **既定は false（実物を叩く）。** 差し替えると候補が «地名» に固定されるため、
+	 *    候補から **飲食店を作る** 経路（`createAndOpenRestaurant`）を通る spec は成立しない。
+	 *    そういう spec（@mutation 系のレビュー投稿など）は実物のまま残すこと。
+	 *
+	 * 中身と «失うもの» の説明は `utils/locationSearch.ts` にある。
+	 */
+	mockLocationSearch: boolean;
 };
 
 /** テストへ提供するフィクスチャ */
@@ -140,6 +157,7 @@ export const test = base.extend<AppOptions & AppFixtures>({
 	seedDishCategoriesTutorialSeen: [true, { option: true }],
 	seedMyDishesTutorialSeen: [true, { option: true }],
 	allowedConsoleErrors: [[], { option: true }],
+	mockLocationSearch: [false, { option: true }],
 
 	// ── context: オンボーディング / スポットライトのシードを適用 ──
 	// addInitScript はページ生成前に仕込む必要があるため context を拡張する
@@ -154,6 +172,15 @@ export const test = base.extend<AppOptions & AppFixtures>({
 			await seedMyDishesTutorialAsSeen(context);
 		}
 		await use(context);
+	},
+
+	// ── page: 場所検索を差し替える（Places の日次枠を使わないため） ──
+	// #1629 route の登録は最初の goto より前でなければならない。page フィクスチャで包む
+	page: async ({ page, mockLocationSearch: shouldMock }, use) => {
+		if (shouldMock) {
+			await installLocationSearchMock(page);
+		}
+		await use(page);
 	},
 
 	// ── consoleErrors: 自動収集（auto） ─────────────────────────

@@ -289,19 +289,20 @@ describe("#1386 レビュー投稿フォームの法務ドキュメント導線�
 	});
 });
 
-describe("#1386 フィードから既存メディアのレビュー投稿へ", () => {
-	it("「この料理にレビューを書く」は review-from-media ルートへ push する", async () => {
-		const tree = await render(
-			<FeedDishMediaViewer initialIndex={0} entriesKey="mapReviews::restaurant-42" restaurantId={RESTAURANT_ID} />,
-		);
+describe("#1629 フィードに «レビューを書く» ボタンを出さない", () => {
+	/*
+	【オーナー確定】「店舗詳細からフィードに入ったとき、レビューを書くボタンはいらない。
+	 食べたボタンがあるので、そこが導線になっている」。
 
-		await press(tree, "restaurant-feed-write-review-button");
+	右レールの «食べた»（`ActionButtons`）が記録の導線で、同じことを始めるボタンが
+	画面に 2 つある状態だった。#1386 で置いた `restaurant-feed-write-review-button` を外す。
 
-		expect(mockPush).toHaveBeenCalledTimes(1);
-		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
-			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, dishMediaId: DISH_MEDIA_ID },
-		});
+	⚠️ ここが赤くなったらボタンが復活している。
+	*/
+	it("«この料理にレビューを書く» を描かない", async () => {
+		const tree = await render(<FeedDishMediaViewer initialIndex={0} entriesKey="mapReviews::restaurant-42" />);
+
+		expect(exists(tree, "restaurant-feed-write-review-button")).toBe(false);
 	});
 });
 
@@ -319,10 +320,7 @@ describe("#1386 投稿フローは portal を 1 つも持たない", () => {
 	});
 
 	it("フィードは Portal を 1 つも描かない", async () => {
-		const tree = await render(
-			<FeedDishMediaViewer initialIndex={0} entriesKey="mapReviews::restaurant-42" restaurantId={RESTAURANT_ID} />,
-		);
-		await press(tree, "restaurant-feed-write-review-button");
+		await render(<FeedDishMediaViewer initialIndex={0} entriesKey="mapReviews::restaurant-42" />);
 
 		expect(mockPortal).not.toHaveBeenCalled();
 	});

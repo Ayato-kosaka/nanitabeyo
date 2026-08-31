@@ -160,3 +160,104 @@ describe("#1194 認証初期化の決着を待ってから諦める", () => {
 		expect(mockWaitForAuthResolved).not.toHaveBeenCalled();
 	});
 });
+
+/**
+ * #1642 HTTP 503 と «メンテナンス» を同一視しないこと。
+ *
+ * ## 実機で踏んだ症状
+ * 2026-08-31、料理レコメンド画面で「ただいまメンテナンス中です。」が出た。メンテナンスでは
+ * なく、`POST /v1/dishes/bulk-import` が Google Places の日次クォータ枯渇で 503
+ * (`EXTERNAL_QUOTA_EXCEEDED`) を返しただけだった（dev ログ 5 件 / 同一ユーザー）。
+ * 503 は他にもアカウント削除の失敗や Cloud Run の過負荷で返る。
+ *
+ * メンテナンスを名乗ってよいのは Remote Config の `is_maintenance` を読んだ
+ * `MaintenanceGuard` の `SERVICE_MAINTENANCE` だけである。
+ */
+describe("#1642 メンテナンス告知は SERVICE_MAINTENANCE のときだけ", () => {
+	/** 指定の JSON ボディと status を返す `fetchWithAuth` の戻り値を組み立てる */
+	const jsonResponse = (status: number, body: unknown) => ({
+		response: {
+			ok: status >= 200 && status < 300,
+			status,
+			headers: { get: () => null },
+			json: async () => body,
+		},
+		endpoint: "https://api.example.test/v1/dishes/bulk-import",
+	});
+
+	const { fetchWithAuth } = jest.requireMock("@/lib/fetchWithAuth") as { fetchWithAuth: jest.Mock };
+	const { showDialog } = (jest.requireMock("@/contexts/DialogProvider") as { useDialog: () => { showDialog: jest.Mock } }).useDialog();
+
+	beforeEach(() => {
+		(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+		mockSession = { access_token: "token-1" };
+		mockWaitForAuthResolved = jest.fn(async () => true);
+		showDialog.mockClear();
+		fetchWithAuth.mockReset();
+	});
+
+	afterAll(() => {
+		fetchWithAuth.mockReset();
+	});
+
+	// 👇 これが今回のバグ本体。ここが maintenance_mode に戻ると実機へメンテ告知が出る
+	it("外部 API のクォータ枯渇 (503 / EXTERNAL_QUOTA_EXCEEDED) ではメンテ告知を出さない", async () => {
+		fetchWithAuth.mockResolvedValue(
+			jsonResponse(503, {
+				data: null,
+				success: false,
+				errorCode: "EXTERNAL_QUOTA_EXCEEDED",
+				message: "Google Places Text Search API quota exceeded",
+			}),
+		);
+		const callBackend = renderCallBackend();
+
+		const error: ApiError = await callBackend("v1/dishes/bulk-import", {
+			method: "POST",
+			requestPayload: {},
+		}).then(() => null as never, (e) => e);
+
+		expect(showDialog).not.toHaveBeenCalled();
+		expect(error?.code).toBe("http_error");
+		expect(error?.status).toBe(503);
+		// 呼び出し側が «一時的な外部要因» だと判別できるよう、原因コードは残す
+		expect(error?.errorCode).toBe("EXTERNAL_QUOTA_EXCEEDED");
+	});
+
+	// errorCode を持たない 503（Cloud Run / LB の過負荷など）も同じ扱いにする
+	it("errorCode の無い 503 でもメンテ告知を出さない", async () => {
+		fetchWithAuth.mockResolvedValue(jsonResponse(503, { success: false, message: "upstream unavailable" }));
+		const callBackend = renderCallBackend();
+
+		const error: ApiError = await callBackend("v1/dishes/bulk-import", {
+			method: "POST",
+			requestPayload: {},
+		}).then(() => null as never, (e) => e);
+
+		expect(showDialog).not.toHaveBeenCalled();
+		expect(error?.code).toBe("http_error");
+	});
+
+	// ⚠️ 本物のメンテナンスを黙らせないこと。ここが落ちると計画メンテを告知できなくなる
+	it("Remote Config 由来の 503 (SERVICE_MAINTENANCE) ではメンテ告知を出す", async () => {
+		fetchWithAuth.mockResolvedValue(
+			jsonResponse(503, {
+				data: null,
+				success: false,
+				errorCode: "SERVICE_MAINTENANCE",
+				message: "Service is currently under maintenance",
+			}),
+		);
+		const callBackend = renderCallBackend();
+
+		const error: ApiError = await callBackend("v1/dishes/bulk-import", {
+			method: "POST",
+			requestPayload: {},
+		}).then(() => null as never, (e) => e);
+
+		expect(showDialog).toHaveBeenCalledTimes(1);
+		expect(showDialog.mock.calls[0][0]).toBe("Error.maintenanceMessage");
+		// HealthCheckInitializer がこの code でメンテを検知している
+		expect(error?.code).toBe("maintenance_mode");
+	});
+});

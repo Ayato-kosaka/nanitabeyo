@@ -608,7 +608,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "Sélectionner la catégorie du plat",
-			"writeReviewForThisDish": "Écrire un avis sur ce plat",
 			"useTypedDishCategory": "Utiliser « {{name}} »"
 		},
 		"inputs": {

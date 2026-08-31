@@ -37,7 +37,30 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const SCAN_DIRS = ["app", "features", "components"];
 
 /** テキスト入力を描画していると見なす印 */
-const INPUT_MARKERS = [/<TextInput\b/, /<RNTextInput\b/, /<PaperTextInput\b/];
+const INPUT_MARKERS = [
+	/<TextInput\b/,
+	/<RNTextInput\b/,
+	/<PaperTextInput\b/,
+	/*
+	#1629 【バグ】**入力欄を «部品越しに» 置いている画面を見落としていた。**
+
+	`LocationAutocomplete` などの部品は「単独では画面にならない。置く側が検査対象だから免除」
+	という理由で EXEMPTIONS に入れていた。ところが **置く側は `<TextInput` を 1 つも書かない**
+	ので、この検査の対象にすら入っていなかった。**免除の理由が循環していた。**
+
+	その結果「入力欄を持つ画面は全て回避を持っています ✅」と報告し続けながら、
+	実際には «さがす» の «どのあたりで探す？» / お店を選ぶの検索窓 /
+	保存カテゴリの地点検索 / 料理カテゴリ選択 の 4 画面が **無防備のまま**だった。
+
+	⚠️ 入力欄を内包する部品をここへ足すこと。足し忘れると同じ嘘をつく。
+	*/
+	/<LocationAutocomplete\b/,
+	/<DishCategoryAutocomplete\b/,
+	/<RestaurantNameSearch\b/,
+	/<FeedbackForm\b/,
+	/<SavedDishCategoryLocationSearch\b/,
+	/<DishCategorySearchForm\b/,
+];
 
 /** キーボード回避を «Android でも» 持っていると見なす印 */
 const AVOIDANCE_MARKERS = [
@@ -48,6 +71,13 @@ const AVOIDANCE_MARKERS = [
 	// 共有ヘルパ
 	/<KeyboardAwareForm\b/,
 	/KeyboardAwareScrollView/,
+	/*
+	#1629 キーボードの高さを直接もらって自分で余白を空ける方式（`hooks/useKeyboardInset.ts`）。
+	`KeyboardAvoidingView` は «自分の枠を測って引き算する» 前提で、Android 15 以降の
+	edge-to-edge ではその前提が崩れる。オーナー実機で 2 度«直っていない»と言われた実績があるので、
+	新しく直す画面はこちらを使うこと。
+	*/
+	/useKeyboardInset\(\)/,
 ];
 
 /**
@@ -62,11 +92,12 @@ const EXEMPTIONS = new Map([
 	],
 	[
 		"components/LocationAutocomplete.tsx",
-		"同上。置く側は search/index.tsx / select-restaurant.tsx / saved-dish-category-location.tsx。",
+		"入力欄だけを描く部品。置く側（search/index.tsx / select-restaurant.tsx / " +
+			"saved-dish-category-location.tsx）が INPUT_MARKERS でこの部品ごと検査対象になった（#1629）。",
 	],
 	[
 		"features/restaurantPicker/components/RestaurantNameSearch.tsx",
-		"同上。置く側は add-record.tsx / select-restaurant.tsx。",
+		"同上。置く側は add-record.tsx / select-restaurant.tsx で、どちらも検査対象。",
 	],
 	[
 		"features/profile/components/FeedbackForm.tsx",
@@ -101,6 +132,31 @@ const EXEMPTIONS = new Map([
 	],
 	["app/[locale]/contribution-tasks/dish-copy-survey.tsx", "社内の貢献タスク画面。未対応（上のコメント参照）。"],
 	["app/[locale]/contribution-tasks/dish-ranking-summary.tsx", "社内の貢献タスク画面。未対応（上のコメント参照）。"],
+	/*
+	#1629 ⚠️ **ここから下の 6 つも «直っていない» 免除である。**
+
+	いずれも «ヘッダーの直下に検索窓、その下に候補リスト» という形の画面・部品で、
+	**入力欄そのものはキーボードより上にあるので隠れない**。覆われるのは候補リストの下の方で、
+	オーナー報告（「入力した文字が見えない」）とは別の症状である。
+
+	候補リストへ回避を入れるには、リストの高さをキーボードぶん詰める作りへ直す必要があり、
+	画面ごとに構造が違う（FlatList / 独自パネル / 親が高さを固定）。まとめて機械的に包むと壊す。
+
+    **同じ穴は空いている。** «入力欄が隠れる» 側を先に直し、これらは «見えている宿題» として残す。
+	触るときは 1 画面ずつ実機で確認すること。
+	*/
+	[
+		"app/[locale]/(tabs)/my-dishes/select-restaurant.tsx",
+		"検索窓はヘッダー直下（キーボードより上）。候補リストの下端は未対応（上のコメント参照）。",
+	],
+	[
+		"app/[locale]/(tabs)/profile/saved-dish-category-location.tsx",
+		"同上。中身は LocationSearchForm。",
+	],
+	["app/[locale]/restaurant/[restaurantId]/dish-category.tsx", "同上。中身は DishCategorySearchForm。"],
+	["features/map/components/DishCategorySearchForm.tsx", "同上（上の 2 画面の中身）。"],
+	["features/map/components/DishCategoryStep.tsx", "同上。記録フローの 1 歩目で、検索窓は最上部。"],
+	["features/profile/components/LocationSearchForm.tsx", "同上。"],
 	[
 		"features/map/components/BidForm.tsx",
 		"入札 UI。どの画面からも描画されていない（#1411 で導線を落としたまま残っている）。" +
