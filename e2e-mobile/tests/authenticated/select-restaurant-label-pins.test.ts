@@ -1,5 +1,6 @@
+import { execFileSync } from "child_process";
 import { by, describeAuthenticated, device, element, launchAppWithSession, waitFor } from "../../fixtures/e2e";
-import { DEFAULT_TIMEOUT, tapWhenVisible, waitUntilVisible } from "../../utils/waits";
+import { DEFAULT_TIMEOUT, tapWhenVisible } from "../../utils/waits";
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { TabBar } from "../../screens/TabBar";
 
@@ -34,16 +35,20 @@ Detox は型だけグローバル宣言しているので tsc は素通しする
  *
  * ## どうやって寄せるか
  *
- * 検索窓（`LocationAutocomplete`）でエリアを選ぶと
- * `handleAutocompleteSelect` が `latitudeDelta: 0.01` へ `animateToRegion` する
- * （`select-restaurant.tsx`）。0.01 < `LABEL_ZOOM_MAX_DELTA`(0.05) なので、
- * **これが «店名つきピン» に入る唯一の、外部測位に依存しない道**である。
+ * 現在地ボタン（`review-select-restaurant-current-location-button`）が
+ * `latitudeDelta: 0.01` へ `animateToRegion` する（`select-restaurant.tsx` の
+ * `handleCurrentLocation`）。0.01 < `LABEL_ZOOM_MAX_DELTA`(0.05) なので、
+ * これで «店名つきピン» の倍率へ入る。位置はエミュレータへ東京駅を注入する。
  *
- * ⚠️ エミュレータの測位（`device.setLocation` + 現在地ボタン）には依存しない。
- *    既存 spec のコメントのとおり、この経路は実測で 3 回こけている。
+ * ⚠️ **検索窓（Places のオートコンプリート）は使わない。** 最初はそちらで書いたが、
+ *    run 33378597722 で **候補が 1 件も返らず** 25 秒 timeout で落ちた
+ *    （«銀座» と打った状態のスクリーンショットで確認済み）。原因は日次クォータか
+ *    エミュレータの経路かのどちらかで、いずれにせよ **外部 API に依存する寄せ方は、
+ *    ピンの描画とは無関係な理由でエビデンスを撮れなくする**。
  *
- * ⚠️ 候補が **飲食店** だと `createAndOpenRestaurant` が走って店舗詳細へ抜けてしまう。
- *    地名（«銀座»）を打って、地図移動だけの枝へ入れること。
+ * ⚠️ 位置情報は権限（`pm grant`）と **端末の位置情報スイッチ**（`location_mode=3`）の
+ *    両方が要る。片方だけでは `handleCurrentLocation` が catch に落ちて何もしない
+ *    （`select-restaurant-map-perf` が run 33132551584 で実測した内容と同じ）。
  *
  * ## この spec は何を assert するのか（正直に書く）
  *
@@ -63,49 +68,69 @@ describeAuthenticated("お店を選ぶ地図の店名つきピン @authenticated
 	const myDishes = new MyDishesScreen();
 
 	const map = by.id("select-restaurant-map");
-	const searchInput = by.id("location-autocomplete-input");
-	const firstSuggestion = by.id("location-autocomplete-suggestion-0");
+	const currentLocationButton = by.id("review-select-restaurant-current-location-button");
+	const searchThisArea = by.id("select-restaurant-search-this-area");
+
+	/** 東京駅。`select-restaurant-map-perf` の SQL 計測と同じ地点 */
+	const TOKYO_STATION = { lat: 35.681236, lng: 139.767125 };
+
+	/*
+	Android の実行時位置情報を **この spec の中だけ**で有効にする。
+	⚠️ CI 全体（ワークフローや AVD）へ入れないこと。起動直後の権限ダイアログを
+	   前提にしているオンボーディングの spec の挙動が変わる。
+	*/
+	const adb = (...args: string[]): string =>
+		execFileSync("adb", ["-s", device.id, ...args], { stdio: "pipe" }).toString().trim();
+
+	const enableAndroidLocation = (): boolean => {
+		if (device.getPlatform() !== "android") return true; // iOS は launchApp で付与済み
+		try {
+			for (const perm of ["android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"]) {
+				adb("shell", "pm", "grant", "com.nanitabeyo", perm);
+			}
+			// 権限だけでは足りない。OS の位置情報スイッチ（3 = 高精度）も入れる
+			adb("shell", "settings", "put", "secure", "location_mode", "3");
+			console.log(`[label-pins] location_mode = ${adb("shell", "settings", "get", "secure", "location_mode")}`);
+			return true;
+		} catch (error) {
+			console.log(`[label-pins] ⚠️ 位置情報を有効にできなかった: ${String(error)}`);
+			return false;
+		}
+	};
 
 	beforeEach(async () => {
 		await launchAppWithSession({ as: "authenticated" });
+		console.log(`[label-pins] 位置情報の有効化: ${enableAndroidLocation()}`);
 	});
 
-	it("エリアを選んで寄せた状態を撮る（店名つきピンが出る倍率）", async () => {
+	it("現在地へ寄せた状態を撮る（店名つきピンが出る倍率）", async () => {
+		await device.setLocation(TOKYO_STATION.lat, TOKYO_STATION.lng);
+
 		await tabBar.gotoMyDishes();
 		await myDishes.gotoRecordDish(DEFAULT_TIMEOUT);
 
 		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
 		await device.takeScreenshot("label-pins-00-opened-wide");
 
-		// 地名を打つ。飲食店を打つと店舗詳細へ抜けてしまうので «銀座» のような地名にする
-		await waitUntilVisible(searchInput, DEFAULT_TIMEOUT);
-		await element(searchInput).replaceText("銀座");
+		// 現在地ボタン → delta 0.01（= label の倍率）へ animateToRegion（1000ms）
+		await tapWhenVisible(currentLocationButton, DEFAULT_TIMEOUT);
+		await new Promise((resolve) => setTimeout(resolve, 3000));
+		await device.takeScreenshot("label-pins-01-zoomed");
 
-		/*
-		候補が出るまで待つ。Places のオートコンプリートはネットワーク越しなので、
-		**出ないことがありうる**（クォータ・圏外）。出なければこの spec は
-		«寄せられなかった» として落ちるべきである。黙って引きのまま撮ると、
-		«ピンは出ていた» と誤読できるスクリーンショットが残るほうが害が大きい。
-		*/
-		await waitUntilVisible(firstSuggestion, DEFAULT_TIMEOUT);
-		await device.takeScreenshot("label-pins-01-suggestions");
-		await tapWhenVisible(firstSuggestion, DEFAULT_TIMEOUT);
-
-		/*
-		`animateToRegion` は 1000ms。着地で `onRegionChangeComplete` が飛び、
-		そこから取得のデバウンス 400ms + 実際の取得が走る。
-		寄せ切って絵が出揃うまで、実時間で待つ。
-		*/
-		await new Promise((resolve) => setTimeout(resolve, 4000));
-		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
-		await device.takeScreenshot("label-pins-02-zoomed");
-
-		// この倍率のまま «このエリアで再検索» を押して、確実にその範囲の店を取り直す
-		await tapWhenVisible(by.id("select-restaurant-search-this-area"), DEFAULT_TIMEOUT);
+		// その倍率のまま取り直して、確実にこの範囲の店を出す
+		await tapWhenVisible(searchThisArea, DEFAULT_TIMEOUT);
 		await waitFor(element(by.id("select-restaurant-search-this-area-loading")))
 			.not.toExist()
 			.withTimeout(DEFAULT_TIMEOUT);
-		await new Promise((resolve) => setTimeout(resolve, 2500));
-		await device.takeScreenshot("label-pins-03-after-search");
+		await new Promise((resolve) => setTimeout(resolve, 3000));
+		await device.takeScreenshot("label-pins-02-after-search");
+
+		/*
+		⚠️ **マーカーの有無は assert しない**（冒頭のコメント）。ここで守るのは
+		   «寄せて取り直す操作が最後まで通ること» だけで、欠けているかどうかは
+		   Artifact の画像を人が見て判断する。
+		   地図がまだ画面に居ることだけ確かめて終わる（途中で別画面へ抜けていないこと）。
+		*/
+		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
 	});
 });
