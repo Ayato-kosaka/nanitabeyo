@@ -201,7 +201,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 		await captureScreenIfReachable(
 			"search-result-action-sheet",
 			async () => {
-				await element(resultScreen.card).atIndex(0).tap();
+				await tapWhenVisible(resultScreen.activeCard);
 				await waitUntilVisible(resultScreen.actionSheetTitle);
 			},
 			{ settleMs: 1_500 },

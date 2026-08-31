@@ -38,10 +38,12 @@ export class ResultScreen {
 	/** 保存ボタン（⚠️ 同上） */
 	readonly saveButton = by.id("dish-action-save");
 	/**
-	 * #1742 カード本体。押すと «このお店、気になる？» の ActionSheet が開く。
-	 * ⚠️ フィードにはカードが複数積まれるので atIndex(0) で絞ること。
+	 * #1742 いま真ん中に見えているカード。押すと «このお店、気になる？» の ActionSheet が開く。
+	 *
+	 * ⚠️ カルーセルは前後のセルも描くので、**active でないカード（testID は `dish-media-card`）を
+	 * 掴まないこと**。画面内に 75% 見えておらず Detox が押せない。
 	 */
-	readonly card = by.id("dish-media-card");
+	readonly activeCard = by.id("dish-media-card-active");
 	/**
 	 * #1742 カード押下で開く ActionSheet の見出し（`ActionSheet.title`）。
 	 *
