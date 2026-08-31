@@ -17,12 +17,18 @@
 // ピッカーはアプリ外プロセスで動き Detox から操作できないためで、**実ピッカーの
 // 表現モードは E2E では原理的に踏めない**。したがってこの不変条件はここで固定する。
 import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
-import { selectMedia } from "@/lib/mediaSelection";
+import { recoverPendingMedia, selectMedia } from "@/lib/mediaSelection";
 
 jest.mock("expo-image-picker", () => ({
 	launchImageLibraryAsync: jest.fn(),
+	launchCameraAsync: jest.fn(),
+	// #1750 Android で MainActivity が殺されたときに選択結果を取り戻す口
+	getPendingResultAsync: jest.fn(),
 	requestMediaLibraryPermissionsAsync: jest.fn(),
+	requestCameraPermissionsAsync: jest.fn(),
 	VideoExportPreset: { Passthrough: "Passthrough" },
 	UIImagePickerPreferredAssetRepresentationMode: {
 		Automatic: "automatic",
@@ -126,5 +132,117 @@ describe("selectMedia", () => {
 
 			expect(result.success).toBe(true);
 		});
+	});
+});
+
+/*
+#1750 【設計】Android で «画像を選んだのに、何も起きない» を塞ぐ 2 つの仕掛け。
+
+オーナー実機（Android 16）の「プロフィール画像を投稿してもアップされない」の真因側。
+本番 / dev のログでは、選択から保存までのあいだに `CreateSignedUrl(user-avatar)` が
+1 件も出ていないセッションがあった ＝ **アップロードが始まってすらいなかった**。
+*/
+describe("#1750 端末が mimeType を空文字で返す場合", () => {
+	function mockAsset(asset: Record<string, unknown>) {
+		mockedPicker.launchImageLibraryAsync.mockResolvedValue({
+			canceled: false,
+			assets: [{ width: 100, height: 100, type: "image", ...asset }],
+		} as never);
+	}
+
+	beforeEach(() => {
+		mockedPicker.requestMediaLibraryPermissionsAsync.mockResolvedValue({ status: "granted" } as never);
+	});
+
+	// 本番ログ（prod, 2026-08）に `{"mimeType":"","baseFileName":"user-avatar"}` が実在する。
+	// `??` は空文字を拾わないので、旧実装はこれをそのまま流していた。結果として原本が
+	// `..._user-avatar.bin` で保存され、GCS のパスに `//` が入り、
+	// 呼び出し側の `if (!mimeType) throw` があると保存ごと落ちる。
+	it("空文字なら拡張子から埋める", async () => {
+		mockAsset({ uri: "file:///tmp/IMG_0001.jpg", fileName: "IMG_0001.jpg", mimeType: "" });
+
+		const result = await selectMedia(["images"]);
+
+		expect(result.success).toBe(true);
+		expect(result.media?.mimeType).toBe("image/jpeg");
+	});
+
+	it("拡張子からも判別できないときだけ octet-stream へ落とす", async () => {
+		mockAsset({ uri: "file:///tmp/noext", fileName: "noext", mimeType: "" });
+
+		const result = await selectMedia(["images"]);
+
+		expect(result.media?.mimeType).toBe("application/octet-stream");
+	});
+});
+
+/*
+Android はピッカーを開いている間にアプリの MainActivity を殺すことがある。
+このとき `launchImageLibraryAsync` の Promise は **解決も棄却もしない**ので、
+呼び出し元から見ると「ユーザーは選んだのに、コールバックが一度も来ない」になる。
+expo-image-picker はこのために `getPendingResultAsync()` を用意している。
+
+⚠️ 保留結果は «どの画面のためのものか» を持たない。印（pendingOwner）が効かなくなると、
+   料理写真として選んだものがプロフィール画像に入る。
+*/
+describe("#1750 recoverPendingMedia（Android の保留結果）", () => {
+	const originalPlatformOS = Platform.OS;
+
+	beforeAll(() => {
+		// 保留結果の仕組みは Android 限定。jest-expo の既定プラットフォームに依らず android で走らせる
+		(Platform as { OS: string }).OS = "android";
+	});
+	afterAll(() => {
+		(Platform as { OS: string }).OS = originalPlatformOS;
+	});
+
+	const PICKED = {
+		canceled: false,
+		assets: [
+			{ uri: "file:///tmp/a.jpg", fileName: "a.jpg", width: 1, height: 1, type: "image", mimeType: "image/jpeg" },
+		],
+	};
+
+	/** 「印を置いた直後に殺された」状態を作る（launch の Promise は永久に解決しない） */
+	const launchThenKilled = async (owner: string) => {
+		mockedPicker.launchImageLibraryAsync.mockReturnValue(new Promise(() => {}) as never);
+		void selectMedia(["images"], { pendingOwner: owner });
+		await new Promise((resolve) => setImmediate(resolve));
+	};
+
+	beforeEach(async () => {
+		await AsyncStorage.clear();
+		mockedPicker.requestMediaLibraryPermissionsAsync.mockResolvedValue({ status: "granted" } as never);
+		mockedPicker.getPendingResultAsync.mockResolvedValue(null as never);
+	});
+
+	it("同じ持ち主なら、失われた選択を取り戻せる", async () => {
+		await launchThenKilled("profile-avatar");
+		mockedPicker.getPendingResultAsync.mockResolvedValue(PICKED as never);
+
+		const recovered = await recoverPendingMedia({ owner: "profile-avatar" });
+
+		expect(recovered?.success).toBe(true);
+		expect(recovered?.media?.uri).toBe("file:///tmp/a.jpg");
+	});
+
+	it("別の画面が開いた保留結果は拾わない（料理写真がアバターに入らない）", async () => {
+		await launchThenKilled("dish-media");
+		mockedPicker.getPendingResultAsync.mockResolvedValue(PICKED as never);
+
+		expect(await recoverPendingMedia({ owner: "profile-avatar" })).toBeNull();
+		expect(mockedPicker.getPendingResultAsync).not.toHaveBeenCalled();
+	});
+
+	it("印が無ければ何もしない", async () => {
+		expect(await recoverPendingMedia({ owner: "profile-avatar" })).toBeNull();
+		expect(mockedPicker.getPendingResultAsync).not.toHaveBeenCalled();
+	});
+
+	it("殺されずに戻れたら印は残らない（あとで開いた画面が古い結果を拾わない）", async () => {
+		mockedPicker.launchImageLibraryAsync.mockResolvedValue(PICKED as never);
+		await selectMedia(["images"], { pendingOwner: "profile-avatar" });
+
+		expect(await recoverPendingMedia({ owner: "profile-avatar" })).toBeNull();
 	});
 });
