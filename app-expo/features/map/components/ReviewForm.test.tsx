@@ -46,7 +46,9 @@ jest.mock(
 			},
 		),
 );
-jest.mock("@/lib/mediaSelection", () => ({ selectMedia: jest.fn() }));
+// #1750 `recoverPendingMedia`（Android の保留結果の復帰）も本体の surface に入った。
+// ここへ足さないと undefined を呼ぶことになり、選択そのものが起きない
+jest.mock("@/lib/mediaSelection", () => ({ selectMedia: jest.fn(), recoverPendingMedia: jest.fn(async () => null) }));
 // #1375（5 巡目）既存メディア一覧は自分で API を叩くので、ここでは «置かれているか» だけを見る器にする
 /*
 #1375（6 巡目）記録フローは «料理カテゴリー → 写真» の順になった。

@@ -3,7 +3,6 @@ import { Text, TextInput, StyleSheet } from "react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareForm } from "@/components/KeyboardAwareForm";
 import { AvatarImageCard } from "./AvatarImageCard";
 import type { MediaData } from "@/lib/mediaSelection";
@@ -60,7 +59,6 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 	const { callBackend } = useAPICall();
 	const { uploadFile } = useFileUploader();
 	const { showSnackbar } = useSnackbar();
-	const insets = useSafeAreaInsets();
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
 
@@ -294,13 +292,14 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 	return (
 		<KeyboardAwareForm
 			fields={FIELD}
-			keyboardVerticalOffset={insets.top}
 			bottomNode={
 				<PrimaryButton
 					style={{ marginHorizontal: 16 }}
 					disabled={isLoading}
 					onPress={handleSave}
 					label={i18n.t("Common.save")}
+					// #1750 実機・e2e から «保存ボタンが画面の中に居るか» を名指しで確かめるための印
+					testID="profile-edit-save-button"
 				/>
 			}>
 			{({ recordY, onFocusFactory }) => (

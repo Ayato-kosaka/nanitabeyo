@@ -24,6 +24,7 @@ dev / 本番のログを追うと、原因は 1 つではなく 3 層あった�
 ⚠️ 1 が赤くなったら «保存しただけでアバターが消える» に戻っている。
 */
 import React, { act } from "react";
+import { StyleSheet } from "react-native";
 import TestRenderer from "react-test-renderer";
 
 const mockLogFrontendEvent = jest.fn();
@@ -53,6 +54,8 @@ jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 	useSafeAreaFrame: () => ({ x: 0, y: 0, width: 390, height: 844 }),
 }));
+let mockKeyboardInset = 0;
+jest.mock("@/hooks/useKeyboardInset", () => ({ useKeyboardInset: () => mockKeyboardInset }));
 
 import { ProfileEditForm } from "@/features/profile/components/ProfileEditForm";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
@@ -101,7 +104,22 @@ const renderForm = async () => {
 
 const savedDto = () => mockCallBackend.mock.calls.at(-1)?.[1]?.requestPayload;
 
+/** 保存ボタンを載せている器（KeyboardAwareForm の一番外側の View）の style を平らにして返す */
+const formContainerStyle = (tree: TestRenderer.ReactTestRenderer): Record<string, unknown> => {
+	const button = tree.root.findAll((n) => n.props?.label === "Common.save")[0];
+	if (!button) throw new Error("save button not found");
+	// 保存ボタンから根へ辿り、最初に現れる «スタイルを持つ View» が器
+	let node: TestRenderer.ReactTestInstance | null = button.parent;
+	while (node && !(String(node.type) === "View" && node.props?.style)) {
+		node = node.parent;
+	}
+	if (!node) throw new Error("form container not found");
+	const flat = StyleSheet.flatten(node.props.style) ?? {};
+	return flat as Record<string, unknown>;
+};
+
 beforeEach(() => {
+	mockKeyboardInset = 0;
 	useProfileStore.setState({ profile: PROFILE });
 	mockCallBackend.mockResolvedValue({ ...PROFILE });
 	mockUploadFile.mockResolvedValue("development/user-uploads/user-1/image-jpeg/1_user-avatar.jpg");
@@ -175,5 +193,55 @@ describe("プロフィール編集のアバター保存", () => {
 
 		const saved = mockLogFrontendEvent.mock.calls.map((c) => c[0]).find((e) => e.event_name === "profile_edit_saved");
 		expect(saved?.payload).toMatchObject({ avatarAction: "unchanged", hasAvatar: false });
+	});
+});
+
+/*
+#1750 【バグ】**保存ボタンが画面の外にあって押せなかった。** これが «画像が上がらない» の正体。
+
+`KeyboardAwareForm` は器の高さを `height: frame.height - 100` と «窓の高さから当てずっぽうの
+100px を引く» で決めていた。`useSafeAreaFrame()` が返すのは窓全体の高さなので、この器が実際に
+置かれる領域（窓 − ステータスバー − ScreenHeader − タブバー − ナビゲーションバー）より必ず高い。
+はみ出した分は下へ流れ、器の一番下の保存ボタンがタブバーの裏か画面の外へ行く。
+
+実機ログ（dev 2026-08-31 17:06-17:07 UTC / OTA 適用後の commit 6d9b89d8）:
+
+    profile_edit_started
+    profile_avatar_selected {uriScheme:"file", mimeType:"image/jpeg"}  ← 画像は選べている
+    profile_edit_screen_back_pressed                                    ← 保存せず戻っている
+
+これが 2 回続き、`profile_edit_saved` は 1 件も無い。表示名だけの保存が通っていたのは、
+キーボードを開くと KeyboardAvoidingView が器を縮めてボタンが画面内へ上がってきたためで、
+画像を選ぶだけならキーボードを開かないので押せないままだった。
+*/
+describe("#1750 保存ボタンが画面の中に居ること", () => {
+	it("器の高さを数えない（親に合わせる）", async () => {
+		const tree = await renderForm();
+		const style = formContainerStyle(tree);
+
+		// ⚠️ ここに数値の height が入ると、器が置かれた領域より高くなりうる。
+		//    はみ出した分だけ保存ボタンが下へ押し出されて押せなくなる
+		expect(style.height).toBeUndefined();
+		expect(style.maxHeight).toBeUndefined();
+		expect(style.flex).toBe(1);
+	});
+
+	it("キーボードが出ている間は、その高さぶん器を縮める（ボタンが隠れない）", async () => {
+		mockKeyboardInset = 320;
+		const tree = await renderForm();
+
+		expect(formContainerStyle(tree).paddingBottom).toBe(320);
+	});
+
+	it("キーボードが出ていなければ余白を足さない", async () => {
+		const tree = await renderForm();
+
+		expect(formContainerStyle(tree).paddingBottom).toBeUndefined();
+	});
+
+	it("保存ボタンは testID で名指しできる（実機・e2e から «居るか» を確かめるため）", async () => {
+		const tree = await renderForm();
+
+		expect(tree.root.findAll((n) => n.props?.testID === "profile-edit-save-button").length).toBeGreaterThan(0);
 	});
 });
