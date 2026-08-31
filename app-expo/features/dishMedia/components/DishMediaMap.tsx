@@ -28,6 +28,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
 import { computePreloadIds } from "@/features/dishMedia/preloadWindow";
 import { useContentWidth } from "@/hooks/useContentWidth";
+import { useSheetBottomPadding } from "@/hooks/useSheetBottomPadding";
 import { FixedColors } from "@/constants/Palette";
 
 // #958 【修正】カルーセルの幅は window 実幅ではなく中央カラム幅に追従させる必要があるため、
@@ -356,6 +357,18 @@ export default function DishMediaMap({
 
 	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
 	const { showActionSheetWithOptions } = useActionSheet();
+	/*
+	#1742 【設計】Android の ActionSheet は `@expo/react-native-action-sheet` の JS 実装
+	（`CustomActionSheet`）で、`position: "absolute"` の `bottom: 0` に貼るだけで safe area を見ない。
+	edge-to-edge の Android では最下行（キャンセル）がナビゲーションバーへ潜るため、
+	**外から `containerStyle` で下余白を足す以外に手が無い**（ライブラリに inset の設定は無い）。
+
+	`containerStyle` はシートの白い器（ActionGroup の groupContainer）へ当たるので、
+	背景はナビバーの裏まで伸びたまま、行だけがバーの上へ持ち上がる。
+	iOS はネイティブの `ActionSheetIOS` を使う経路で `containerStyle` を見ないが、
+	そちらは OS 側が safe area を持つので何もしなくてよい（web は inset が 0）。
+	*/
+	const actionSheetPaddingBottom = useSheetBottomPadding();
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
 		source: "DishMediaMap",
 	});
@@ -376,6 +389,7 @@ export default function DishMediaMap({
 					title: i18n.t("ActionSheet.title"),
 					options,
 					cancelButtonIndex,
+					containerStyle: { paddingBottom: actionSheetPaddingBottom },
 				},
 				async (selectedIndex?: number) => {
 					if (selectedIndex === undefined || selectedIndex === cancelButtonIndex) return;
@@ -401,7 +415,7 @@ export default function DishMediaMap({
 				},
 			);
 		},
-		[showActionSheetWithOptions, openInGoogleMaps, shareRestaurant],
+		[showActionSheetWithOptions, actionSheetPaddingBottom, openInGoogleMaps, shareRestaurant],
 	);
 
 	// #1729 件数が 2 以下だとライブラリがセルを複製し、同じ media が同時再生される（MIN_LOOPABLE_COUNT 参照）

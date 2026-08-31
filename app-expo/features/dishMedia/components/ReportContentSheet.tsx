@@ -49,6 +49,7 @@ import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useSheetBottomPadding } from "@/hooks/useSheetBottomPadding";
 import { useLocale } from "@/hooks/useLocale";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { CreateContentReportDto } from "@shared/api/v1/dto";
@@ -98,12 +99,18 @@ interface ReportContentSheetProps {
 /** シートの状態。`accepted` まで来たら理由の選択には戻さない */
 type Phase = "form" | "submitting" | "accepted";
 
+/** シート下端のデザイン上の余白。実際の余白はこれに safe area の inset を足したもの */
+const SHEET_PADDING_BOTTOM = 28;
+
 export function ReportContentSheet({ visible, targetType, targetId, targetLabel, onClose }: ReportContentSheetProps) {
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
+	// #1742 Modal はネイティブでは別ウィンドウで、画面側の safe area が届かない。
+	// 足さないと送信ボタンが Android のナビゲーションバーへ潜る（hooks/useSheetBottomPadding.ts）
+	const sheetPaddingBottom = useSheetBottomPadding(SHEET_PADDING_BOTTOM);
 
 	const [phase, setPhase] = useState<Phase>("form");
 	const [reasonCode, setReasonCode] = useState<ContentReportReasonCode | null>(null);
@@ -203,7 +210,7 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 					importantForAccessibility="no-hide-descendants"
 				/>
 
-				<View style={styles.sheet} testID="report-sheet">
+				<View style={[styles.sheet, { paddingBottom: sheetPaddingBottom }]} testID="report-sheet">
 					{phase === "accepted" ? (
 						<AcceptedView onClose={handleClose} />
 					) : (
@@ -345,7 +352,7 @@ const createStyles = (colors: Palette) =>
 			borderTopRightRadius: 20,
 			paddingHorizontal: 20,
 			paddingTop: 16,
-			paddingBottom: 28,
+			// paddingBottom は safe area を足すため呼び出し側で組む（SHEET_PADDING_BOTTOM）
 			maxHeight: "85%",
 		},
 		header: {
