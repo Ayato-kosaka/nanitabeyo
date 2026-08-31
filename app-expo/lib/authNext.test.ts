@@ -1,4 +1,4 @@
-import { resolveNextPath, resolvePostLoginTarget } from "./authNext";
+import { resolveNextPath, resolvePostLoginTarget, shouldAutoLeaveLoginScreen } from "./authNext";
 
 /**
  * 🔒🧭 ログイン画面の行き先判定（#1359）。
@@ -78,7 +78,9 @@ describe("resolveNextPath", () => {
 		});
 
 		it("クエリ・フラグメントは行き先の一部として保持する", () => {
-			expect(resolveNextPath("/en-US/profile?tab=saved-dish-categories", "ja-JP")).toBe("/ja-JP/profile?tab=saved-dish-categories");
+			expect(resolveNextPath("/en-US/profile?tab=saved-dish-categories", "ja-JP")).toBe(
+				"/ja-JP/profile?tab=saved-dish-categories",
+			);
 			expect(resolveNextPath("/en-US#section", "ja-JP")).toBe("/ja-JP#section");
 		});
 
@@ -163,5 +165,47 @@ describe("resolvePostLoginTarget", () => {
 			type: "replace",
 			href: "/en-US/profile",
 		});
+	});
+});
+
+describe("shouldAutoLeaveLoginScreen", () => {
+	/**
+	 * #1736 【バグ】ログイン成功後、権限フローの画面が 2 枚生えて OS の許可ダイアログも 2 回出た。
+	 *
+	 * ネイティブの OAuth は「ログイン画面 → auth/callback → next」と replace で進むが、
+	 * replace された画面は遷移アニメーションの間マウントされたままなので、その隙間に
+	 * セッション確立が届くと **ログイン画面の自動離脱**が callback と二重に next へ replace する。
+	 * dev の実測でも、ログイン経由のセッションだけ
+	 * `onboarding_location_permission_settled` が 2 回記録されていた。
+	 */
+	it("ログイン画面に居てログイン済みなら離脱する", () => {
+		expect(shouldAutoLeaveLoginScreen({ isAuthResolved: true, isGuest: false, pathname: "/ja-JP/auth/login" })).toBe(
+			true,
+		);
+	});
+
+	it("ロケールが無いパスでもログイン画面として扱う", () => {
+		expect(shouldAutoLeaveLoginScreen({ isAuthResolved: true, isGuest: false, pathname: "/auth/login" })).toBe(true);
+	});
+
+	it("callback へ遷移した後は離脱しない（二重 replace の防止）", () => {
+		expect(shouldAutoLeaveLoginScreen({ isAuthResolved: true, isGuest: false, pathname: "/ja-JP/auth/callback" })).toBe(
+			false,
+		);
+	});
+
+	it("すでに行き先（権限フロー）へ着いた後も離脱しない", () => {
+		expect(
+			shouldAutoLeaveLoginScreen({ isAuthResolved: true, isGuest: false, pathname: "/ja-JP/onboarding/location" }),
+		).toBe(false);
+	});
+
+	it("認証が未確定・ゲストのままなら離脱しない", () => {
+		expect(shouldAutoLeaveLoginScreen({ isAuthResolved: false, isGuest: false, pathname: "/ja-JP/auth/login" })).toBe(
+			false,
+		);
+		expect(shouldAutoLeaveLoginScreen({ isAuthResolved: true, isGuest: true, pathname: "/ja-JP/auth/login" })).toBe(
+			false,
+		);
 	});
 });
