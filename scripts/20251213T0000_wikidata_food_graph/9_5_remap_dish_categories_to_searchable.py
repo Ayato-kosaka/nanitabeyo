@@ -292,6 +292,18 @@ def write_report(affected: List[Dict], output_dir: str, dry_run: bool) -> str:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(affected, f, ensure_ascii=False, indent=2)
     logger.info(f"Report written: {path}")
+
+    # ⚠️ GitHub Actions から流すとこのファイルは run の終了で消える。
+    #    ロールバックに要る «どの dish を どの QID から動かしたか» は
+    #    標準出力にも出しておく（Job Summary に残るのはこちらだけ）。
+    if affected:
+        logger.info("ロールバック用の一覧（dish_id, 元の category_id, 付け替え先, 統合先）:")
+        for a in affected:
+            logger.info(
+                f"  {a['dish_id']}\t{a['from_qid']}\t{a['to_qid']}\t"
+                f"{a['merge_into'] or '-'}"
+            )
+
     return path
 
 
