@@ -26,7 +26,6 @@ import { resolveMyDishThumbnail } from "../thumbnail";
 import { resolveProviderIcon, resolveProviderLabel } from "@/features/dishMedia/providerIcon";
 import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
 import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
-import { MyDishOwnReviewSheet } from "./MyDishOwnReviewSheet";
 
 /**
  * #1396 my-dishes のリストビュー（設計書 (2/2) §7 の PR3）。
@@ -292,15 +291,6 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 	*/
 	const showsInitialLoading = (isLoading || !hasFetchedInitial) && error === null;
 
-	/*
-	#1629【オーナー実機報告】「押した時にレストラン詳細に行くのは仕様と違うはず。
-	 写真なしで良いから自分の書いたクチコミ見たい」。
-
-	写真の無い行で開くシート。行そのものを持たせる（id ではなく）ので追加の取得が要らない。
-	*/
-	const [ownReviewItem, setOwnReviewItem] = useState<MyDishItem | null>(null);
-	const closeOwnReview = useCallback(() => setOwnReviewItem(null), []);
-
 	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
 
 	/*
@@ -326,10 +316,9 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 	// ⚠️ **index ではなく `itemKey` を渡す**（R1）。一覧の並びは写真なしの行を含み、Feed の並びは
 	// 含まないので、index を渡すと写真なしが 1 件混ざった瞬間に別の料理が開く。
 	// 写真なしの行（`dishMedia === null`）は Feed に入れられないので従来どおり店舗詳細へ。
-	/** 店舗詳細へ送る。写真もレビューも無い行の落とし先と、シートの「お店の詳細を見る」で共有する */
+	/** 店舗詳細へ送る。写真もクチコミも無い行（«食べたい» の行）の落とし先 */
 	const openRestaurant = useCallback(
 		(item: MyDishItem) => {
-			setOwnReviewItem(null);
 			router.push({
 				pathname: "/[locale]/restaurant/[restaurantId]",
 				params: { locale, restaurantId: item.restaurant.id },
@@ -346,55 +335,57 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 				error_level: "log",
 				payload: { itemKey: item.key, status: item.status, hasPhoto },
 			});
-			if (hasPhoto && item.dishMedia !== null) {
-				/*
-				#1629 【設計】**グリッドから開くフィードは «上下だけ»。1 セル = 1 ページ。**
-
-				オーナー指摘「グリッドは上下だけ。同じ店 / 同じ日とかはマップとかカレンダーの話」。
-				横（= そのスコープの中の別の記録）に意味があるのは **グルーピングがある入口**
-				（Map = 同じ店 / Calendar = 同じ日）だけで、グリッドは何でもまとまっていない。
-
-				以前はここで «店舗 id を重複排除して» 縦の並びとして置いていた。その結果
-				**グリッドに 3 セル並んでいる同じ店が縦 1 ページへ潰れ、残り 2 件が横軸へ回っていた**。
-				グリッドで見えているセルの数と縦に送れる数が食い違う（12 番目を開いて縦に払っても
-				13 番目が出ない）。
-
-				だから重複排除をやめ、**一覧に出ている行をその順のまま**置く。ページャの key は
-				`itemKey`（行を一意に指す）なので、同じ店が何行あっても衝突しない。
-				写真の無い行は Feed に入れられないので除く（この関数の先頭の分岐と同じ条件）。
-				*/
-				useMyDishesFeedScopeStore
-					.getState()
-					.setListItems(
-						items.flatMap((row) =>
-							row.dishMedia === null ? [] : [{ itemKey: row.key, dishMediaId: String(row.dishMedia.id) }],
-						),
-					);
-				router.push({
-					pathname: "/[locale]/(tabs)/my-dishes/feed",
-					params: {
-						locale,
-						scope: "list",
-						itemKey: item.key,
-						dishMediaId: String(item.dishMedia.id),
-					},
-				});
+			/*
+			#1761 写真もクチコミも無い行（«食べたい» の行）だけ、従来どおり店舗詳細へ落とす。
+			フィードに置いても白紙のページになるだけで、読むものが無い。
+			*/
+			if (!hasPhoto && item.myReview === null) {
+				openRestaurant(item);
 				return;
 			}
 			/*
-			#1629 写真が無い行。**以前はここで店舗詳細へ push していた**が、店舗詳細は
-			«その店の情報» の画面で、自分が書いた文章はどこにも出ない。記録を開いたのに
-			記録が読めない状態だった（オーナー実機報告）。
+			#1629 【設計】**グリッドから開くフィードは «上下だけ»。1 セル = 1 ページ。**
 
-			自分のレビューがあるならシートで読ませる。無いとき（= «食べたい» の行や、
-			何らかの理由でレビューが取れていない行）だけ従来どおり店舗詳細へ落とす。
-			店舗詳細への導線はシートの中にボタンとして残してあるので、失われる出口は無い。
+			オーナー指摘「グリッドは上下だけ。同じ店 / 同じ日とかはマップとかカレンダーの話」。
+			横（= そのスコープの中の別の記録）に意味があるのは **グルーピングがある入口**
+			（Map = 同じ店 / Calendar = 同じ日）だけで、グリッドは何でもまとまっていない。
+
+			以前はここで «店舗 id を重複排除して» 縦の並びとして置いていた。その結果
+			**グリッドに 3 セル並んでいる同じ店が縦 1 ページへ潰れ、残り 2 件が横軸へ回っていた**。
+			グリッドで見えているセルの数と縦に送れる数が食い違う（12 番目を開いて縦に払っても
+			13 番目が出ない）。
+
+			だから重複排除をやめ、**一覧に出ている行をその順のまま**置く。ページャの key は
+			`itemKey`（行を一意に指す）なので、同じ店が何行あっても衝突しない。
+
+			#1761 **写真の無い行も置く**（`dishMediaId: null`）。以前はここで除いてボトムシートへ
+			逃がしていたが、Calendar / Map が #1752 でフィードへ寄ったので、グリッドだけ器を
+			変える理由が無くなった。除くのは «クチコミも無い行» だけ（上の分岐で店舗詳細へ行く）。
 			*/
-			if (item.myReview !== null) {
-				setOwnReviewItem(item);
-				return;
-			}
-			openRestaurant(item);
+			useMyDishesFeedScopeStore.getState().setListItems(
+				items.flatMap((row) =>
+					row.dishMedia === null && row.myReview === null
+						? []
+						: [
+								{
+									itemKey: row.key,
+									dishMediaId: row.dishMedia === null ? null : String(row.dishMedia.id),
+									// #1761 直リンク・リロードで «写真の無いページ» の行を引き直すための手がかり
+									restaurantId: row.restaurant.id,
+								},
+							],
+				),
+			);
+			router.push({
+				pathname: "/[locale]/(tabs)/my-dishes/feed",
+				params: {
+					locale,
+					scope: "list",
+					itemKey: item.key,
+					restaurantId: item.restaurant.id,
+					...(item.dishMedia === null ? {} : { dishMediaId: String(item.dishMedia.id) }),
+				},
+			});
 		},
 		[items, locale, logFrontendEvent, openRestaurant],
 	);
@@ -472,7 +463,6 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 				// my-dishes は collapsible-tabs の外にいる単独ルートなので素の FlatList を使う（#1402 と同じ）
 				standalone
 			/>
-			<MyDishOwnReviewSheet item={ownReviewItem} onClose={closeOwnReview} onOpenRestaurant={openRestaurant} />
 		</>
 	);
 }

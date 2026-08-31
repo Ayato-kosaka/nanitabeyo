@@ -1,19 +1,13 @@
 /**
  * 📝 «写真の無い / 写真を消した» 自分の記録の中身（墓標＋星＋金額＋本文＋編集/削除）。
  *
- * ## なぜ部品として切り出しているのか（#1752）
- * 同じ中身を **2 つの器**から出すからである。
+ * ## なぜ部品として切り出しているのか（#1752 / #1761）
+ * 最初は «グリッドはボトムシート / Calendar・Map は全画面» と器が 2 つあり、中身だけを
+ * 共有するために切り出した。#1761 で **器はフィードのページ 1 つ**になった
+ * （`MyDishOwnReviewPage.tsx`）が、中身と器を分けたままにしてある。
  *
- * | 器 | 入口 | 器を持つファイル |
- * | --- | --- | --- |
- * | ボトムシート | グリッド（一覧）のセル | `MyDishOwnReviewSheet.tsx` |
- * | 全画面のページ | Calendar の日付 / Map のピンから開くフィードの 1 ページ | `MyDishOwnReviewPage.tsx` |
- *
- * オーナー実機報告（2026-08-31）: カレンダーの 8/20（削除済みの記録しか無い日）が
- * 「見つかりません」になり、Map の «食べた 3 件» もフィードでは 2 件しか送れず、
- * **書いたクチコミがどこからも読めない**状態だった。器は入口ごとに違ってよいが、
- * 中身（読む・編集する・消す）は 1 つでなければならない。写経して 2 つ持つと、
- * 片方だけ直った状態が必ず生まれる（CLAUDE.md「本番のロジックを写経しない」）。
+ * - 器（画面のどこに、どう出すか）と中身（読む・編集する・消す）は変わる理由が違う
+ * - 中身はテストから単体で描ける（器はルータとフィードを要求する）
  *
  * ## 追加の API 呼び出しをしない
  * 行（`MyDishItem`）は既に `myReview`（`dish_reviews` の 1 行そのもの）を持っている。
@@ -21,7 +15,7 @@
  */
 import React, { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { ImageOff, Pencil, Trash2, X } from "lucide-react-native";
+import { ImageOff, Pencil, Trash2 } from "lucide-react-native";
 
 import Stars from "@/components/Stars";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
@@ -63,24 +57,13 @@ export function formatReviewPrice(
 	}
 }
 
-/**
- * どの器に入っているか。
- *
- * - `sheet` … 下から出るシート。閉じる «×» は自分で持つ
- * - `page` … 全画面フィードの 1 ページ。閉じる «×» は**フィードのルートが 1 つだけ持つ**ので
- *   ここには置かない（置くと画面に × が 2 つ出る）
- */
-export type MyDishOwnReviewVariant = "sheet" | "page";
-
 export function MyDishOwnReviewContent({
 	item,
-	variant,
 	onClose,
 	onOpenRestaurant,
 }: {
 	item: MyDishItem;
-	variant: MyDishOwnReviewVariant;
-	/** 器を閉じる。削除が成功したときにも呼ぶ（記録そのものが消えるため） */
+	/** 器を閉じる。削除が成功したときに呼ぶ（記録そのものが消えるため） */
 	onClose: () => void;
 	/** 「お店の詳細を見る」。#1629 以前の遷移先を «選べる出口» として残すためのもの */
 	onOpenRestaurant: (item: MyDishItem) => void;
@@ -176,7 +159,7 @@ export function MyDishOwnReviewContent({
 			logFrontendEvent({
 				event_name: "own_review_deleted",
 				error_level: "log",
-				payload: { reviewId: String(review.id), itemKey: item.key, from: `my-dishes-own-review-${variant}` },
+				payload: { reviewId: String(review.id), itemKey: item.key, from: "my-dishes-own-review-page" },
 			});
 			// #1398 の版数。«食べた» の行が消えるだけでなく、その dish の «食べたい» が
 			// 復活しうる（want 枝の NOT EXISTS が外れる）ので一覧・Map・Calendar 全部に波及する
@@ -199,24 +182,15 @@ export function MyDishOwnReviewContent({
 		} finally {
 			setIsDeleting(false);
 		}
-	}, [review, item.key, variant, isDeleting, confirm, callBackend, logFrontendEvent, onClose, showSnackbar]);
+	}, [review, item.key, isDeleting, confirm, callBackend, logFrontendEvent, onClose, showSnackbar]);
 
 	return (
 		<>
+			{/* 閉じる «×» はここに置かない。フィードのルートが 1 つだけ持つ（2 つ出さない） */}
 			<View style={styles.header}>
 				<Text style={styles.title} numberOfLines={1}>
 					{item.restaurant.name ?? ""}
 				</Text>
-				{variant === "sheet" ? (
-					<TouchableOpacity
-						onPress={onClose}
-						hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("Common.close")}
-						testID="my-dish-own-review-close">
-						<X size={20} color={colors.textSecondary} />
-					</TouchableOpacity>
-				) : null}
 			</View>
 
 			{dishName ? <Text style={styles.dishName}>{dishName}</Text> : null}
@@ -225,9 +199,7 @@ export function MyDishOwnReviewContent({
 			写真が «無い» のか «消された» のかを混ぜない。
 			削除は #1513 が決めた墓標をそのまま出す（別の絵へ差し替えない）。
 			*/}
-			<View
-				style={[styles.mediaNotice, variant === "page" && styles.mediaNoticePage]}
-				testID="my-dish-own-review-media-notice">
+			<View style={styles.mediaNotice} testID="my-dish-own-review-media-notice">
 				{item.isOwnMediaDeleted ? (
 					<DeletedMediaTombstone style={styles.tombstone} />
 				) : (
@@ -305,13 +277,13 @@ export function MyDishOwnReviewContent({
 
 			⚠️ **シートの `<Modal>` の «中» へ入れないこと。** Modal はネイティブでは別ウィンドウで、
 			   入れ子にすると Android で下の窓が閉じるまで上が出ない / 閉じたときに両方消える、といった
-			   挙動差が出る。器（`MyDishOwnReviewSheet`）は Modal の **兄弟**としてこの中身を並べる。
+			   挙動差が出る。器がシートだった頃（#1629）は Modal の **兄弟**として並べていた。
 			*/}
 			<EditDishReviewModal
 				review={editingReview}
 				onClose={() => setEditingReview(null)}
 				onSaved={setSavedOverride}
-				logPayload={{ itemKey: item.key, from: `my-dishes-own-review-${variant}` }}
+				logPayload={{ itemKey: item.key, from: "my-dishes-own-review-page" }}
 			/>
 		</>
 	);
@@ -341,20 +313,15 @@ const createStyles = (colors: Palette) =>
 			justifyContent: "center",
 			gap: 6,
 			marginTop: 12,
-			minHeight: 44,
+			// «跡地» に高さを与える。細い枠だと «上に線が 1 本あるだけ» に見えて、
+			// そこに写真があったことが伝わらない（墓標を出す意味が消える）
+			minHeight: 160,
 			paddingHorizontal: 12,
 			borderRadius: 12,
 			backgroundColor: colors.surfaceMuted,
 			overflow: "hidden",
 		},
-		/*
-		全画面のページでは «跡地» に高さを与える。シートは下から出る帯なので 44pt の細い枠で
-		足りるが、全画面で 44pt だけだと «上に細い線が 1 本あるだけ» に見えて、
-		そこに写真があったことが伝わらない（墓標を出す意味が消える）。
-		*/
-		mediaNoticePage: {
-			minHeight: 160,
-		},
+
 		tombstone: {
 			...StyleSheet.absoluteFillObject,
 		},

@@ -132,7 +132,7 @@ describe("#1629【35/40】1 件だけのページで、その 1 件を削除し�
 		await act(async () => {
 			tree = TestRenderer.create(
 				<MyDishesFeedPage
-					scope={{ kind: "item", itemKey: ITEM_KEY, dishMediaId: MEDIA_ID }}
+					scope={{ kind: "item", itemKey: ITEM_KEY, dishMediaId: MEDIA_ID, restaurantId: "restaurant-1" }}
 					itemKey={ITEM_KEY}
 					dishMediaId={MEDIA_ID}
 					isActive
@@ -189,7 +189,7 @@ describe("#1629【35/40】1 件だけのページで、その 1 件を削除し�
 		await act(async () => {
 			tree = TestRenderer.create(
 				<MyDishesFeedPage
-					scope={{ kind: "item", itemKey: ITEM_KEY, dishMediaId: MEDIA_ID }}
+					scope={{ kind: "item", itemKey: ITEM_KEY, dishMediaId: MEDIA_ID, restaurantId: "restaurant-1" }}
 					itemKey={ITEM_KEY}
 					dishMediaId={MEDIA_ID}
 					isActive

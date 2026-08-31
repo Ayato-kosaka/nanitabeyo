@@ -67,14 +67,31 @@ jest.mock("@/components/collapsible-tabs/GridList", () => {
 	};
 });
 
-// `DishMediaFeed` は 1 行も変えない。受け取った props を覗けるスタブに差し替える
+/*
+`DishMediaFeed`（動画プレイヤーを抱えるので jest では通せない）を、受け取った props を
+覗けるスタブに差し替える。
+
+#1761 ⚠️ **合成ページ（`customPages`）は本物と同じように描くこと。** 描かずに props だけ
+覗くスタブにすると、«写真の無い記録のページが出る» を見たつもりで何も見ていないことになる
+（本物が並びに混ぜる責務は `MyDishesFeedPage.reviewOnly.test.tsx` が本物の Feed で見ている）。
+*/
 jest.mock("@/features/dishMedia/components/DishMediaFeed", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
 	return {
 		__esModule: true,
-		default: (props: { entriesKey: string; horizontal?: boolean }) =>
-			ReactActual.createElement(RNView, { testID: "dish-media-feed", ...props }),
+		default: (props: {
+			entriesKey: string;
+			horizontal?: boolean;
+			customPages?: { ids: string[]; render: (id: string) => unknown };
+		}) =>
+			ReactActual.createElement(
+				RNView,
+				{ testID: "dish-media-feed", ...props },
+				(props.customPages?.ids ?? []).map((id: string) =>
+					ReactActual.createElement(RNView, { key: id }, props.customPages?.render(id)),
+				),
+			),
 	};
 });
 
@@ -94,6 +111,7 @@ import MyDishesFeedScreen from "../app/[locale]/(tabs)/my-dishes/feed";
 import { MyDishesListView } from "../features/myDishes/components/MyDishesListView";
 import { myDishesFeedKey } from "../features/myDishes/constants";
 import { useMyDishesFeedScopeStore } from "../features/myDishes/stores/useMyDishesFeedScopeStore";
+import { useMyDishesStore } from "../features/myDishes/stores/useMyDishesStore";
 import { useDishMediaEntriesStore } from "../stores/useDishMediaEntriesStore";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -104,16 +122,20 @@ const PAGE_HEIGHT = 780;
  * グリッドの並び（この順で縦に送れなければならない）。
  * **1 番目と 2 番目は同じ店**。ここが今のバグの本体で、以前は縦 1 ページへ潰れていた。
  */
-const GRID: { key: string; restaurantId: string; mediaId: string | null }[] = [
+const GRID: { key: string; restaurantId: string; mediaId: string | null; hasReview?: boolean }[] = [
 	{ key: "review:a", restaurantId: "r-1", mediaId: "media-a" },
 	{ key: "review:b", restaurantId: "r-1", mediaId: "media-b" },
 	{ key: "review:c", restaurantId: "r-2", mediaId: "media-c" },
 	{ key: "review:d", restaurantId: "r-1", mediaId: "media-d" },
-	// 写真なしの行は Feed に入れられないので、縦の並びからも外れる
-	{ key: "review:no-photo", restaurantId: "r-3", mediaId: null },
+	// #1761 写真を消した記録。クチコミがあるので **縦の並びに入る**（以前はシートで開いていた）
+	{ key: "review:deleted", restaurantId: "r-3", mediaId: null, hasReview: true },
+	// クチコミも無い行（«食べたい»）はページにしない。開いても読むものが無い
+	{ key: "dish:want", restaurantId: "r-4", mediaId: null },
 ];
 
-/** 写真がある行だけ（= 縦のページになる行）を、グリッドの順のまま */
+/** 縦のページになる行（写真がある / クチコミがある）を、グリッドの順のまま */
+const PAGE_ROWS = GRID.filter((row) => row.mediaId !== null || row.hasReview === true);
+/** 写真がある行だけ。`GET /v1/dish-media?ids=` が飛ぶのはこちらだけである */
 const PHOTO_ROWS = GRID.filter((row) => row.mediaId !== null);
 
 const makeRow = (row: (typeof GRID)[number]): MyDishItem =>
@@ -129,8 +151,18 @@ const makeRow = (row: (typeof GRID)[number]): MyDishItem =>
 			row.mediaId === null
 				? null
 				: { id: row.mediaId, thumbnailImageUrl: "https://example.com/m.jpg", render_type: "stored" },
-		myReview: null,
-		isOwnMediaDeleted: false,
+		myReview: row.hasReview
+			? {
+					id: `rv-${row.key}`,
+					rating: 4,
+					comment: "うますぎた！",
+					price_cents: 500,
+					currency_code: "JPY",
+					created_at: "2026-08-10T12:00:00.000Z",
+					lock_no: 1,
+				}
+			: null,
+		isOwnMediaDeleted: row.hasReview === true && row.mediaId === null,
 	}) as unknown as MyDishItem;
 
 const makeEntry = (mediaId: string) => ({
@@ -173,6 +205,16 @@ const openGridCell = async (index: number): Promise<Record<string, string>> => {
 	await act(async () => {
 		cells[index].props.onPress();
 	});
+	/*
+	#1761 一覧の取得フックはこのテストではモックなので、**本物なら埋まっているはずの行**を
+	自分で置く（`useMyDishesQuery` は取った行を `useMyDishesStore.itemByKey` へ入れる）。
+	写真の無いページはクチコミ本文が要り、フィードはまずここから拾う。置かないと
+	«実装が正しくても行が無いから描けない» という、実機と違う理由で赤くなる。
+	*/
+	useMyDishesStore.setState((state) => ({
+		...state,
+		itemByKey: { ...state.itemByKey, ...Object.fromEntries(GRID.map((row) => [row.key, makeRow(row)])) },
+	}));
 	// 一覧はここで用済み。並びは store に置かれている（＝画面を離れても残る）
 	await act(async () => {
 		list.unmount();
@@ -250,10 +292,11 @@ describe("#1629 グリッドから開くフィードは «縦だけ»", () => {
 
 		const pager = pagerOf(tree);
 		expect(pager.props.data.map((scope: { itemKey: string }) => scope.itemKey)).toEqual(
-			PHOTO_ROWS.map((row) => row.key),
+			PAGE_ROWS.map((row) => row.key),
 		);
 		// r-1 が 3 行あっても 3 ページ。以前はここが 2（= 重複排除後の店舗数）だった
-		expect(pager.props.data).toHaveLength(4);
+		// #1761 写真を消した記録が 1 ページ増えて 5 枚
+		expect(pager.props.data).toHaveLength(5);
 		// 外側は縦（FlatList の horizontal 未指定 = 縦）
 		expect(pager.props.horizontal).toBe(false);
 	});
@@ -291,12 +334,38 @@ describe("#1629 グリッドから開くフィードは «縦だけ»", () => {
 		expect(pagePropsAt(tree, index).isActive).toBe(false);
 	});
 
-	it("写真なしの行は縦の並びに入らない（Feed に入れられない）", async () => {
+	/*
+	#1761【オーナー指示】「グリッドの方もボトムシートやめて写真なしフィードに」。
+
+	ここが赤くなったら、グリッドの «削除されました» のセルからクチコミへ辿り着けなくなっている
+	（#1629 のオーナー実機報告「写真なしで良いから自分の書いたクチコミが見たい」の再発）。
+	*/
+	it("写真を消した記録もページになり、開くとクチコミが全画面で出る", async () => {
+		const index = PAGE_ROWS.findIndex((row) => row.key === "review:deleted");
+		const tree = await openFeed(await openGridCell(index));
+
+		expect(pagePropsAt(tree, index)).toMatchObject({
+			isActive: true,
+			// 写真が無いので dishMediaId は null。行を指すのは itemKey だけ
+			scope: { kind: "item", itemKey: "review:deleted", dishMediaId: null },
+		});
+		expect(
+			tree.root.findAll((node) => node.props?.testID === "my-dish-own-review-page" && typeof node.type === "string"),
+		).toHaveLength(1);
+		expect(
+			tree.root.findAll(
+				(node) => node.props?.testID === "my-dish-own-review-comment" && typeof node.type === "string",
+			)[0].props.children,
+		).toBe("うますぎた！");
+		// ⚠️ 行はストアから拾う。ここで «行の取得» が飛んだら、シートの «押したのに読み込み中が
+		//    出ない» という取り柄を落としたことになる（#1629 の設計）
+		expect(mockCallBackend.mock.calls.every(([path]: [string]) => path === "v1/dish-media")).toBe(true);
+	});
+
+	it("クチコミも無い行（«食べたい»）は縦の並びに入らない", async () => {
 		const tree = await openFeed(await openGridCell(0));
 
-		expect(pagerOf(tree).props.data.map((scope: { itemKey: string }) => scope.itemKey)).not.toContain(
-			"review:no-photo",
-		);
+		expect(pagerOf(tree).props.data.map((scope: { itemKey: string }) => scope.itemKey)).not.toContain("dish:want");
 	});
 
 	it("1 ページの中身は 1 件だけ（＝横に送れる先が無い）", async () => {
@@ -326,6 +395,9 @@ describe("#1629 グリッドから開くフィードは «縦だけ»", () => {
 
 		const tree = await openFeed(params);
 
-		expect(pagerOf(tree).props.data).toEqual([{ kind: "item", itemKey: "review:c", dishMediaId: "media-c" }]);
+		expect(pagerOf(tree).props.data).toEqual([
+			// #1761 直リンクで «写真の無いページ» の行を引き直すため、restaurantId も一緒に運ぶ
+			{ kind: "item", itemKey: "review:c", dishMediaId: "media-c", restaurantId: "r-2" },
+		]);
 	});
 });
