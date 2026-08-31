@@ -58,7 +58,7 @@ describe("buildExternalEmbedPlayerSource", () => {
 	started かつ 再生位置が頭から離れているときだけ終了と見なす。
 	*/
 	it("ENDED は «再生済み» かつ «頭から動いている» ときだけ信じる", () => {
-		const html = buildEmbedIframeHtml("https://www.youtube.com/embed/abc123", "https://www.youtube.com");
+		const html = buildEmbedIframeHtml("https://www.youtube.com/embed/abc123?enablejsapi=1");
 
 		// 終了判定に started と再生位置の両方が要ること
 		expect(html).toContain("data.info.playerState === 0 && started");
