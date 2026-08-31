@@ -87,8 +87,11 @@ describe("buildExternalEmbedPlayerSource", () => {
 	it("止まったら何度でも撃ち直す（回数ではなく間隔で抑える）", () => {
 		const html = buildEmbedIframeHtml("https://www.youtube.com/embed/abc123?enablejsapi=1");
 
-		// 撃ち直しの条件が «回数» になっていないこと
-		expect(html).not.toContain("resumes < MAX_RESUMES");
+		/*
+		⚠️ 上限そのものは残す（無制限だと、向こうが再生を拒み続ける状況で
+		   playVideo を永久に撃ち続ける）。**«止まったまま» を作らない大きさ**であればよい。
+		*/
+		expect(html).toContain("MAX_RESUMES = 30");
 		expect(html).toContain("RESUME_MIN_GAP_MS");
 		expect(html).toContain("lastResumeAt");
 		// 記録の方だけ上限を持つ
