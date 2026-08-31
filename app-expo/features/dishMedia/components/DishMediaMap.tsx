@@ -149,11 +149,20 @@ export default function DishMediaMap({
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		return ids
-			.map((id) =>
-				idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state),
-			)
+			.map((id) => (idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state)))
 			.filter((entry): entry is NonNullable<typeof entry> => !!entry?.restaurant)
 			.map((entry) => ({
+				/*
+				#1743 ピンの key は **カード（entry）ごと**に採る。
+
+				以前は `google_place_id` を key にしていた。検索結果は 1 店 1 件
+				（`unique_per_restaurant`）なので衝突しないが、この Map は投稿詳細
+				（`posts.tsx`）とプロフィールの検索結果（`profile/search-results.tsx`）でも
+				使われ、そちらは **同じ店の投稿が複数並びうる**。key が重複すると React は
+				片方を捨て、カードの枚数とピンの数がずれる（`index` で対応付けている
+				ハイライトとタップ先も 1 つずつずれる）。
+				*/
+				key: entry.dish_media.id,
 				id: entry.restaurant.id,
 				name: entry.restaurant.name,
 				coordinate: { latitude: entry.restaurant.latitude, longitude: entry.restaurant.longitude },
@@ -473,7 +482,7 @@ export default function DishMediaMap({
 				<MapView ref={mapRef} style={styles.map} initialRegion={region}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
-							key={`marker-${restaurant.google_place_id}`}
+							key={`marker-${restaurant.key}`}
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.pinImageUrl}

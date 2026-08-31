@@ -68,10 +68,7 @@ const ENTRIES_KEY = "search-result";
 
 const entry = (
 	id: string,
-	{
-		thumbnailImageUrl,
-		restaurantImageUrl,
-	}: { thumbnailImageUrl: string | null; restaurantImageUrl?: string },
+	{ thumbnailImageUrl, restaurantImageUrl }: { thumbnailImageUrl: string | null; restaurantImageUrl?: string },
 ): NormalizedDishMediaEntry =>
 	({
 		dish_media: { id, media_type: "video", mediaUrl: null, thumbnailImageUrl },
@@ -143,5 +140,27 @@ describe("DishMediaMap のピンに渡る絵 (#1743)", () => {
 	it("どちらも無ければ undefined（空文字を <Image> へ渡さない）", () => {
 		render({ "media-1": entry("media-1", { thumbnailImageUrl: "" }) });
 		expect(markerProps.map((props) => props.uri)).toEqual([undefined]);
+	});
+
+	/*
+	#1743 この Map は投稿詳細（`posts.tsx`）とプロフィールの検索結果でも使われ、
+	そちらは **同じ店の投稿が複数並びうる**。key を店で採るとカードとピンの数がずれる。
+	*/
+	it("同じ店の投稿が 2 件あっても、ピンは 2 本ともそれぞれのサムネイルで描かれる", () => {
+		const shared = (id: string, thumbnailImageUrl: string) => {
+			const base = entry(id, { thumbnailImageUrl });
+			// 同じ店（同じ google_place_id / restaurant.id）に紐づく 2 件を作る
+			(base.restaurant as { id: string; google_place_id: string }).id = "restaurant-shared";
+			(base.restaurant as { id: string; google_place_id: string }).google_place_id = "place-shared";
+			return base;
+		};
+		render({
+			"media-1": shared("media-1", "https://example.test/thumb-1.jpg"),
+			"media-2": shared("media-2", "https://example.test/thumb-2.jpg"),
+		});
+		expect(markerProps.map((props) => props.uri)).toEqual([
+			"https://example.test/thumb-1.jpg",
+			"https://example.test/thumb-2.jpg",
+		]);
 	});
 });
