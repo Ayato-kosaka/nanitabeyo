@@ -430,6 +430,7 @@ bash tests/test_9_1_display_update.sh        # 表示値を «変わる行» に
 bash tests/test_9_1_provenance_update.sh     # provenance / seed / synced_at の分離（6項目）
 bash tests/test_9_1_restaurant_links.sh      # リンクの追加・削除（6項目）
 bash tests/test_9_1_address_fill.sh          # アプリ製の行の住所の穴埋め（5項目）
+bash tests/test_9_1_work_table.sh            # 作業表が対象を取りこぼさない（7項目）
 bash tests/test_pg_connect_survives_rollback.sh  # rollback で dev→public に化けない（5項目）
 ```
 
@@ -580,6 +581,30 @@ args:        --run-id restaurant-2026-08-23 --schema public --snapshot-date 2026
 ```
 
 確認: `--apply` 前後で「埋まった件数」がログの想定と一致すること。NULL の行にしか書かない。
+
+### 4-b. この同期が共有 DB にかける負荷（本番で何が起きるか）
+
+**この DB は本番と共有している。** スキーマは分かれていても CPU・IO・接続枠は
+同じ 1 台であり、2026-08-31 にこのバッチが本番障害を起こした。
+
+`public` への**初回**同期は、dev の定常同期とは負荷の形が違う。
+
+| | dev の定常同期 | **public の初回同期** |
+| --- | --- | --- |
+| 書く行 | 数千行 | **約 62 万行の INSERT** |
+| リンク | ほぼ 0 | **約 136 万行の INSERT** |
+| 走査 | 全表 2 回（作業表の作成） | 全表 2 回 |
+| 支配的なコスト | 探す | **書く**（索引の構築を含む） |
+
+初回は «書く» が支配的で、**軽くする方法は無い**（62 万店を入れるのだから
+62 万行書く）。したがって次を守る。
+
+- **低トラフィック帯に流す**
+- **オーナーの承認を都度取る**（→ CLAUDE.md「共有 DB に負荷をかける作業の規則」）
+- 20 分の予算（`SYNC_TIME_BUDGET_SECONDS`）を超えたら自分から降りる。
+  初回でこれに掛かるなら、**上限を伸ばさず分割を実装する**
+
+2 回目以降は作業表が効いて数千行になるので、この重さは初回だけである。
 
 ### 5. 同期の dry run
 

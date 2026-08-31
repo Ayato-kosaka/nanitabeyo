@@ -44,7 +44,7 @@ CREATE TABLE restaurants (
   source_row_hash TEXT,
   synced_at TIMESTAMPTZ,
   created_by_source TEXT NOT NULL DEFAULT 'user');
-CREATE TABLE restaurant_sync_staging (
+CREATE TABLE restaurant_sync_work (
   google_place_id TEXT, seed_id UUID, source_names_json TEXT, row_hash TEXT);
 
 INSERT INTO restaurants (google_place_id, source_seed_id, source_names, source_row_hash, synced_at, created_by_source) VALUES
@@ -57,7 +57,7 @@ INSERT INTO restaurants (google_place_id, source_seed_id, source_names, source_r
   -- アプリ製・hash 違い → **hash は書かれないが synced_at は付く**
   ('P_USER','44444444-4444-4444-4444-444444444444','{"のれん"}',NULL,'2020-01-01','user');
 
-INSERT INTO restaurant_sync_staging VALUES
+INSERT INTO restaurant_sync_work VALUES
   ('P_SAME','11111111-1111-1111-1111-111111111111','["のれん"]','hash-1'),
   ('P_HASH','22222222-2222-2222-2222-222222222222','["のれん"]','hash-NEW'),
   ('P_NAMES','33333333-3333-3333-3333-333333333333','["あたらしい"]','hash-3-NEW'),

@@ -92,7 +92,7 @@ def export_catalog(pipeline: BigQueryPipeline, run_id: str, path: Path) -> int:
     return count
 
 
-def load_staging(connection: Any, path: Path) -> None:
+def load_staging(connection: Any, path: Path) -> int:
     create_sql = """
       CREATE TEMP TABLE restaurant_sync_staging (
         seed_id UUID NOT NULL,
@@ -140,32 +140,38 @@ def load_staging(connection: Any, path: Path) -> None:
         )
         cursor.execute("CREATE INDEX ON restaurant_sync_staging (seed_id)")
         cursor.execute("ANALYZE restaurant_sync_staging")
+        cursor.execute("SELECT COUNT(*) FROM restaurant_sync_staging")
+        return cursor.fetchone()[0]
 
 
-def calculate_stats(connection: Any) -> SyncStats:
+def calculate_stats(connection: Any, staging_rows: int) -> SyncStats:
+    """同期の «入れる / 直す / 素通り» を数える。
+
+    #1706 **作業表から数える。** かつてはここでも staging と restaurants を
+    突き合わせていたが、それは 62 万行 × 62 万行の走査をもう 1 回増やすだけで
+    ある。作業表は «やることがある行» をすべて含んでいるので、素通りの数は
+    引き算で出る。この DB は本番と共有しており、走査 1 回にも理由が要る。
+    """
+
     with connection.cursor() as cursor:
         cursor.execute(
             """
             SELECT
-              COUNT(*) FILTER (WHERE r.id IS NULL) AS inserted,
+              COUNT(*) FILTER (WHERE pg_id IS NULL) AS inserted,
               COUNT(*) FILTER (
-                WHERE r.id IS NOT NULL
-                  AND r.source_row_hash IS DISTINCT FROM s.row_hash
-              ) AS updated,
-              COUNT(*) FILTER (
-                WHERE r.id IS NOT NULL
-                  AND r.source_row_hash IS NOT DISTINCT FROM s.row_hash
-              ) AS skipped
-            FROM restaurant_sync_staging s
-            -- #843 かつては `OR r.id = s.existing_restaurant_id` を付けていたが、
-            -- 両方成立する行を二重に数えるうえ、PG の UUID に依存していた。
-            -- google_place_id は UNIQUE なので、これだけで 1 行に定まる。
-            LEFT JOIN restaurants r
-              ON r.google_place_id = s.google_place_id
+                WHERE pg_id IS NOT NULL
+                  AND pg_row_hash IS DISTINCT FROM row_hash
+              ) AS updated
+            FROM restaurant_sync_work
             """
         )
-        inserted, updated, skipped = cursor.fetchone()
-    return SyncStats(inserted or 0, updated or 0, skipped or 0)
+        inserted, updated = cursor.fetchone()
+        cursor.execute("SELECT COUNT(*) FROM restaurant_sync_work")
+        work_rows = cursor.fetchone()[0]
+    inserted = inserted or 0
+    updated = updated or 0
+    # 作業表に入らなかった行は «やることが無い» 行である。
+    return SyncStats(inserted, updated, max(staging_rows - work_rows, 0))
 
 
 def detect_backfill_missing(
@@ -262,6 +268,94 @@ def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
         )
 
 
+def build_work_tables(connection: Any) -> tuple[int, int]:
+    """全表を舐めるのを **2 回だけ**にするための作業表を作る。#1706
+
+    ## なぜ要るか
+
+    2026-08-31 に、この同期が **本番と共有の DB** を圧迫して障害を起こした。
+    原因は書く量ではなく **探す量**である。DML が 10 文あり、その 1 文ずつが
+    62 万行の staging と 62 万行の restaurants を突き合わせていた。実測では
+    «0 行しか書かない文» が 1 文あたり数百秒かかっていた。
+
+    やるべきことは «全部を 10 回見る» ではなく «全部を 1 回見て、やることが
+    ある行だけを取り出す» である。取り出したあとは、どの文も数千行しか触らない。
+
+    ## 2 本ある理由
+
+    突き合わせの鍵が 2 通りあるため。
+
+      ・`restaurant_sync_work`  … google_place_id で対応する行（大多数の処理）
+      ・`restaurant_sync_moved` … seed は同じだが place_id が変わった行
+                                  （place_id の付け替え。実測 0 行）
+
+    戻り値は (work の行数, moved の行数)。
+    """
+
+    with connection.cursor() as cursor:
+        # 62 万 × 62 万を鍵一致で突き合わせるので hash join が正しい。
+        # planner は統計次第で «索引で 1 行ずつ引く» を選び、そちらは実測で
+        # 50 倍遅かった（8.3秒 → 408.4秒 / どちらも 0 行）。
+        # **この 2 文の間だけ**誘導する。作業表ができたあとは行数が小さいので、
+        # 索引で引く方が正しくなる。だから元へ戻す。
+        cursor.execute("SET LOCAL enable_nestloop = off")
+
+        started = time.monotonic()
+        cursor.execute(
+            """
+            CREATE TEMP TABLE restaurant_sync_work ON COMMIT DROP AS
+            SELECT
+              s.*,
+              r.id                AS pg_id,
+              r.created_by_source AS pg_created_by_source,
+              r.source_seed_id    AS pg_seed_id,
+              r.source_row_hash   AS pg_row_hash,
+              r.address           AS pg_address
+            FROM restaurant_sync_staging s
+            LEFT JOIN restaurants r ON r.google_place_id = s.google_place_id
+            -- 「この行に対してやることがあるか」を、ここで一度だけ判定する。
+            -- 以降の文はこの表だけを見るので、全表走査はもう起きない。
+            WHERE r.id IS NULL                                     -- 新規
+               OR r.source_seed_id  IS DISTINCT FROM s.seed_id     -- seed が動いた
+               OR r.source_row_hash IS DISTINCT FROM s.row_hash    -- 出所側が変わった
+               OR (                                                -- 住所の穴埋め
+                    r.created_by_source <> 'pipeline'
+                    AND r.address IS NULL
+                    AND NULLIF(btrim(s.address), '') IS NOT NULL
+                  )
+            """
+        )
+        work_rows = cursor.rowcount
+        LOGGER.info(
+            "  %-28s %6.1f秒 / %d行", "作業表の作成", time.monotonic() - started, work_rows
+        )
+
+        started = time.monotonic()
+        cursor.execute(
+            """
+            CREATE TEMP TABLE restaurant_sync_moved ON COMMIT DROP AS
+            SELECT s.*, r.id AS pg_id, r.google_place_id AS pg_google_place_id
+            FROM restaurant_sync_staging s
+            -- #843 seed で引く。source_seed_id は UNIQUE（20260823T0000）なので
+            -- 高々1行に定まる。
+            JOIN restaurants r ON r.source_seed_id = s.seed_id
+            WHERE r.google_place_id <> s.google_place_id
+            """
+        )
+        moved_rows = cursor.rowcount
+        LOGGER.info(
+            "  %-28s %6.1f秒 / %d行",
+            "付替対象の抽出", time.monotonic() - started, moved_rows,
+        )
+
+        cursor.execute("SET LOCAL enable_nestloop = on")
+        cursor.execute("CREATE INDEX ON restaurant_sync_work (pg_id)")
+        cursor.execute("CREATE INDEX ON restaurant_sync_work (google_place_id)")
+        cursor.execute("ANALYZE restaurant_sync_work")
+        cursor.execute("ANALYZE restaurant_sync_moved")
+    return work_rows, moved_rows
+
+
 def apply_sync(connection: Any) -> None:
     """同期の DML を流す。
 
@@ -301,35 +395,17 @@ def apply_sync(connection: Any) -> None:
                 LOGGER.warning("    ↑ 遅いが EXPLAIN を取れなかった: %s", error)
 
     with connection.cursor() as cursor:
-        # #1706 **この同期は «両方の表をほぼ全部触る» 形なので、hash join を選ばせる。**
+        # #1706 **plan は build_work_tables の中だけで誘導する。**
         #
-        # 実測（dev、同じ文・同じ 0 行）:
+        # 以前はここで `enable_nestloop = off` を同期全体にかけていた。作業表を
+        # 作るようになった今、以降の文が触るのは数千行なので «索引で 1 行ずつ引く»
+        # 方が正しい。全体にかけると逆に遅くする。
         #
-        #   新規 INSERT      8.3秒 → 408.4秒
-        #   リンク削除       15.9秒 → 499.7秒
-        #
-        # 行数では説明が付かない。違いは plan である。VACUUM ANALYZE で統計が
-        # 更新されたあと、planner が «索引で 1 行ずつ引く» 側（nested loop）を
-        # 選ぶようになった。62 万行ぶんの索引探索は、この DB の速度では
-        # 1 文あたり数百秒かかる。
-        #
-        # バッチとして正しいのは «両方を舐めて突き合わせる»（hash join）方である。
-        # random_page_cost の既定はマネージド PostgreSQL では SSD 向けに
-        # 小さく設定されていることが多く、対話クエリには合っているが、
-        # 62 万行を 1 文で処理するバッチには合わない。
-        #
-        # SET LOCAL なので **このトランザクションの中だけ**に効く。
-        cursor.execute("SET LOCAL random_page_cost = 4")
-        cursor.execute("SET LOCAL enable_nestloop = off")
-        # ⚠️ **work_mem は上げない。**
-        #
-        # 一度 `SET LOCAL work_mem = '256MB'` を入れたが、撤回した。work_mem は
-        # **同時に動くノードごとに**確保されるので、1 文で何倍にもなる。この DB は
-        # **本番と共有**しており、2026-08-31 にこのバッチが本番障害を起こした。
-        # hash join は plan（上の 2 行）で誘導できる。溢れたらディスクを使えばよく、
-        # それは遅いだけで **他のサービスを巻き込まない**。
-        #
-        # 共有資源では «自分が速いこと» より «他人を止めないこと» を優先する。
+        # `work_mem` は上げない。同時に動くノードごとに確保されるので 1 文で
+        # 何倍にもなる。この DB は **本番と共有**しており、2026-08-31 に
+        # このバッチが本番障害を起こした。共有資源では «自分が速いこと» より
+        # «他人を止めないこと» を優先する。
+
         # 既存PGのPlace ID変更は人手overrideを明示した場合だけ許す。restaurant UUIDを
         # 維持するため、削除→再作成ではなく既存行のID列だけを更新する。
         run(
@@ -337,9 +413,8 @@ def apply_sync(connection: Any) -> None:
             """
             UPDATE restaurants r
             SET google_place_id = s.google_place_id
-            FROM restaurant_sync_staging s
-            WHERE r.source_seed_id = s.seed_id
-              AND r.google_place_id <> s.google_place_id
+            FROM restaurant_sync_moved s
+            WHERE r.id = s.pg_id
               AND s.match_method = 'manual_override'
             """,
         )
@@ -352,9 +427,8 @@ def apply_sync(connection: Any) -> None:
             SET source_seed_id = NULL,
                 source_row_hash = NULL,
                 synced_at = CURRENT_TIMESTAMP
-            FROM restaurant_sync_staging s
-            WHERE r.source_seed_id = s.seed_id
-              AND r.google_place_id <> s.google_place_id
+            FROM restaurant_sync_moved s
+            WHERE r.id = s.pg_id
             """,
         )
 
@@ -392,7 +466,7 @@ def apply_sync(connection: Any) -> None:
               -- 書き換わらない。スナップショットに載っていたかどうかに関係なく
               -- アプリ製の行が 'user' のまま残るのが、この設計の要点である。
               'pipeline'
-            FROM restaurant_sync_staging s
+            FROM restaurant_sync_work s
             -- #1706 **既に在る行は最初から候補にしない。**
             --
             -- ON CONFLICT だけに任せると、62 万行すべてについて
@@ -438,7 +512,7 @@ def apply_sync(connection: Any) -> None:
               END,
               address = s.address,
               country_code = s.country_code
-            FROM restaurant_sync_staging s
+            FROM restaurant_sync_work s
             WHERE r.google_place_id = s.google_place_id
               AND r.created_by_source = 'pipeline'
               AND r.source_row_hash IS DISTINCT FROM s.row_hash
@@ -496,7 +570,7 @@ def apply_sync(connection: Any) -> None:
             """
             UPDATE restaurants r
             SET address = s.address
-            FROM restaurant_sync_staging s
+            FROM restaurant_sync_work s
             WHERE r.google_place_id = s.google_place_id
               AND r.created_by_source <> 'pipeline'
               AND r.address IS NULL
@@ -515,7 +589,7 @@ def apply_sync(connection: Any) -> None:
             "古い open_data リンク削除",
             """
             DELETE FROM restaurant_links l
-            USING restaurants r, restaurant_sync_staging s
+            USING restaurants r, restaurant_sync_work s
             WHERE l.restaurant_id = r.id
               AND r.google_place_id = s.google_place_id
               AND l.source = 'open_data'
@@ -553,7 +627,7 @@ def apply_sync(connection: Any) -> None:
             """
             INSERT INTO restaurant_links (restaurant_id, kind, value, source, fetched_at)
             SELECT r.id, v.kind, v.value, 'open_data', CURRENT_TIMESTAMP
-            FROM restaurant_sync_staging s
+            FROM restaurant_sync_work s
             JOIN restaurants r
               ON r.google_place_id = s.google_place_id
              -- #1706 DELETE と同じ理由。row_hash が動いた店だけを見る。
@@ -615,7 +689,7 @@ def apply_sync(connection: Any) -> None:
             """
             UPDATE restaurants r
             SET source_seed_id = s.seed_id
-            FROM restaurant_sync_staging s
+            FROM restaurant_sync_work s
             WHERE r.google_place_id = s.google_place_id
               AND r.source_seed_id IS DISTINCT FROM s.seed_id
             """,
@@ -645,7 +719,7 @@ def apply_sync(connection: Any) -> None:
                 WHEN r.created_by_source = 'pipeline' THEN s.row_hash
                 ELSE r.source_row_hash
               END
-            FROM restaurant_sync_staging s
+            FROM restaurant_sync_work s
             WHERE r.google_place_id = s.google_place_id
               -- #1706 **配列を組み立てて比べない。**
               -- source_names は row_hash に含めた（3_4）ので、hash の比較だけで
@@ -658,21 +732,24 @@ def apply_sync(connection: Any) -> None:
             """,
         )
 
-        # #1706 «今回の catalog に居た» の印だけを全行へ付ける。
+        # #1706 **synced_at の意味を «最後に同期が書いた時刻» に変えた。**
         #
-        # **索引の付いた列を 1 つも触らない**ので、PostgreSQL は HOT update に
-        # できる（索引を作り直さない）。上の provenance UPDATE から synced_at を
-        # 分離したのはこのためで、62 万行でも現実的な時間で終わる。
+        # 以前は «今回の catalog に居た» の印として、一致した **全 62 万行**へ
+        # 毎回押していた。索引の付いた列を触らないので HOT update ではあるが、
+        # それでも 62 万行の書き込みで、実測 1,467 秒かかっていた。
+        # この DB は **本番と共有**しており、2026-08-31 にこのバッチが
+        # 本番障害を起こした。**変わっていない行を毎回書き直す余裕は無い。**
         #
-        # この印は 9_9_audit_sync_drift が «最新 catalog に居なかった行»
-        # （＝閉店・脱落・place_id 統合で溜まるゴミ）を数えるのに使う。
-        # 変わった行だけに付けると、変わらなかった行が «居なかった» に見えてしまう。
+        # «catalog に居なかった行» の検出は、PG へ印を押して回るのではなく
+        # **BigQuery の catalog と突き合わせて調べる**方式へ移した
+        # （9_9_audit_sync_drift）。読むだけで済み、同期の外で好きなときに
+        # 実行できる。詳細はそちらの docstring にある。
         run(
             "synced_at",
             """
             UPDATE restaurants r
             SET synced_at = CURRENT_TIMESTAMP
-            FROM restaurant_sync_staging s
+            FROM restaurant_sync_work s
             WHERE r.google_place_id = s.google_place_id
             """,
         )
@@ -704,12 +781,15 @@ def main() -> None:
         connection = connect_postgres(args.schema, allow_public=args.allow_public)
         if not args.dry_run and not args.skip_backup:
             backup_table_to_gcs(connection, args.schema, "restaurants", run_id=run_id)
-        load_staging(connection, staging_path)
+        staging_rows = load_staging(connection, staging_path)
         # 初回同期では窓が 0 件になる。それは backfill 漏れではないので通す。
         validate_staging(
             connection, fetch_sync_windows(pipeline, args.schema, allow_empty=True)
         )
-        stats = calculate_stats(connection)
+        # #1706 **全表を舐めるのはここまで。** 以降の文は作業表しか見ない。
+        log_db_load(connection, "作業表の作成前")
+        build_work_tables(connection)
+        stats = calculate_stats(connection, staging_rows)
         LOGGER.info(
             "restaurant sync plan: insert=%d update=%d skip=%d",
             stats.inserted,

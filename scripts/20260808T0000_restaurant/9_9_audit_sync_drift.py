@@ -8,9 +8,16 @@
 `restaurant_bids` が参照している行を、月次バッチの誤検知で消してはいけない）。
 問題は「残っているものを数える手段が無い」ことだった。
 
-`synced_at` は staging に居た行だけ更新されるので、**最新同期の開始時刻より
-古い synced_at** が「今回の catalog に居なかった」の印になる。既に持っている
-情報で数えられるのに、どこからも参照していなかった。
+#1706 **BigQuery の catalog と突き合わせて調べる。**
+
+かつては «今回の catalog に居た» の印を PG の全 62 万行へ毎回押し、その
+`synced_at` が古い行を «居なかった» とみなしていた。しかし印を押すために
+**変わっていない 62 万行を毎回書き直す**必要があり、実測 1,467 秒かかっていた。
+この DB は本番と共有しており、2026-08-31 にこのバッチが本番障害を起こしている。
+
+いまは «正» である catalog の place_id を BigQuery から取ってきて、PG 側に
+あって catalog に無いものを数える。**読むだけ**で済み、同期の外で好きなときに
+実行できる。同期の中で毎回やる必要のない仕事だった。
 
 ## ① 同じ実店舗が別の place_id で 2 行になっている疑い
 
@@ -34,10 +41,16 @@ import logging
 import sys
 from pathlib import Path
 
+from google.cloud import bigquery
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pg_sync_common import connect_postgres  # noqa: E402
-from pipeline_common import configure_logging  # noqa: E402
+from pipeline_common import (  # noqa: E402
+    BigQueryPipeline,
+    configure_logging,
+    require_run_id,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,9 +58,34 @@ LOGGER = logging.getLogger(__name__)
 DUPLICATE_RADIUS_M = 30.0
 
 
+def catalog_place_id_batches(pipeline, run_id: str, size: int = 20_000):
+    """catalog の google_place_id を小分けにして返す。
+
+    #1706 62 万件を一度にメモリへ載せない。PG へも小分けで入れる。
+    """
+
+    rows = pipeline.execute(
+        f"""
+        SELECT google_place_id
+        FROM `{pipeline.dataset_ref}.restaurant_catalog`
+        WHERE run_id = @run_id AND google_place_id IS NOT NULL
+        """,
+        [bigquery.ScalarQueryParameter("run_id", "STRING", run_id)],
+    )
+    batch: list[str] = []
+    for row in rows:
+        batch.append(row.google_place_id)
+        if len(batch) >= size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="同期のズレを数えます（読み取り専用）")
     parser.add_argument("--schema", choices=["dev", "public"], required=True)
+    parser.add_argument("--run-id", help="突き合わせる catalog の run_id")
     parser.add_argument("--radius-m", type=float, default=DUPLICATE_RADIUS_M)
     parser.add_argument("--examples", type=int, default=10)
     parser.add_argument("--allow-public", action="store_true")
@@ -58,50 +96,69 @@ def main() -> None:
     configure_logging()
     args = parse_args()
 
+    pipeline = BigQueryPipeline()
+    run_id = require_run_id(args.run_id)
+
     connection = connect_postgres(args.schema, allow_public=args.allow_public)
     try:
         with connection.cursor() as cursor:
             # --- ③ catalog に居なかった行 ---
-            cursor.execute("SELECT MAX(synced_at) FROM restaurants")
-            latest = cursor.fetchone()[0]
-            if latest is None:
-                LOGGER.info("まだ一度も同期していません")
-            else:
-                LOGGER.info("最新の同期時刻: %s", latest)
-                # 同じ同期の中でも synced_at は行ごとに少しずれるので、
-                # 「最新から1時間以上前」を今回居なかった行とみなす。
+            #
+            # #1706 catalog（＝正）の place_id を BigQuery から持ってきて、
+            # PG 側にあって catalog に無いものを数える。PG へ印を押して回る
+            # 必要は無い。**1 行も書き換えない。**
+            cursor.execute(
+                """
+                CREATE TEMP TABLE catalog_place_ids (
+                  google_place_id TEXT PRIMARY KEY
+                ) ON COMMIT DROP
+                """
+            )
+            loaded = 0
+            for batch in catalog_place_id_batches(pipeline, run_id):
+                cursor.executemany(
+                    "INSERT INTO catalog_place_ids VALUES (%s) ON CONFLICT DO NOTHING",
+                    [(pid,) for pid in batch],
+                )
+                loaded += len(batch)
+            cursor.execute("ANALYZE catalog_place_ids")
+            LOGGER.info("catalog の place_id: %d件（run_id=%s）", loaded, run_id)
+
+            cursor.execute(
+                """
+                SELECT
+                  COUNT(*) FILTER (WHERE r.source_seed_id IS NULL)     AS never_synced,
+                  COUNT(*) FILTER (
+                    WHERE r.source_seed_id IS NOT NULL AND c.google_place_id IS NULL
+                  )                                                    AS missing
+                FROM restaurants r
+                LEFT JOIN catalog_place_ids c
+                  ON c.google_place_id = r.google_place_id
+                """
+            )
+            never, missing = cursor.fetchone()
+            LOGGER.info(
+                "一度も同期されていない行: %d件（アプリ製で seed が付かなかった行）", never
+            )
+            LOGGER.info(
+                "最新 catalog に居なかった行: %d件 ← 閉店・脱落・place_id 統合で溜まる分",
+                missing,
+            )
+            if missing:
                 cursor.execute(
                     """
-                    SELECT
-                      COUNT(*) FILTER (WHERE synced_at IS NULL) AS never_synced,
-                      COUNT(*) FILTER (
-                        WHERE synced_at IS NOT NULL
-                          AND synced_at < %s - INTERVAL '1 hour'
-                      ) AS missing_from_latest_catalog
-                    FROM restaurants
+                    SELECT r.google_place_id, r.name, r.synced_at, r.created_by_source
+                    FROM restaurants r
+                    LEFT JOIN catalog_place_ids c
+                      ON c.google_place_id = r.google_place_id
+                    WHERE r.source_seed_id IS NOT NULL AND c.google_place_id IS NULL
+                    ORDER BY r.synced_at NULLS FIRST
+                    LIMIT %s
                     """,
-                    (latest,),
+                    (args.examples,),
                 )
-                never, missing = cursor.fetchone()
-                LOGGER.info("一度も同期されていない行: %d件（アプリ製で seed が付かなかった行）", never)
-                LOGGER.info(
-                    "最新 catalog に居なかった行: %d件 ← 閉店・脱落・place_id 統合で溜まる分",
-                    missing,
-                )
-                if missing:
-                    cursor.execute(
-                        """
-                        SELECT google_place_id, name, synced_at, created_by_source
-                        FROM restaurants
-                        WHERE synced_at IS NOT NULL
-                          AND synced_at < %s - INTERVAL '1 hour'
-                        ORDER BY synced_at
-                        LIMIT %s
-                        """,
-                        (latest, args.examples),
-                    )
-                    for gid, name, sat, cbs in cursor.fetchall():
-                        LOGGER.info("    %s %r (%s, %s)", gid, name, sat, cbs)
+                for gid, name, sat, cbs in cursor.fetchall():
+                    LOGGER.info("    %s %r (%s, %s)", gid, name, sat, cbs)
 
             LOGGER.info("")
             # --- ① 同一店が別 place_id で 2 行 ---

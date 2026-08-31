@@ -46,7 +46,7 @@ CREATE TABLE restaurant_links (
   kind TEXT NOT NULL, value TEXT NOT NULL, source TEXT NOT NULL,
   fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (restaurant_id, kind, value));
-CREATE TABLE restaurant_sync_staging (
+CREATE TABLE restaurant_sync_work (
   google_place_id TEXT, phone TEXT, website TEXT, social_urls_json TEXT, row_hash TEXT);
 
 INSERT INTO restaurants (google_place_id, source_row_hash) VALUES
@@ -55,7 +55,7 @@ INSERT INTO restaurants (google_place_id, source_row_hash) VALUES
   ('PLACE_UNCHANGED', 'hash-SAME');      -- hash が同じ = 触らない
 
 -- 今回の catalog: 電話が新しい番号へ変わり、Instagram は据え置き
-INSERT INTO restaurant_sync_staging VALUES
+INSERT INTO restaurant_sync_work VALUES
   ('PLACE_IN_STAGING', '03-1111-1111', 'https://new.example.com',
    '["https://instagram.com/keep"]', 'hash-NEW'),
   -- hash が変わっていない店。catalog には電話があるが、**触ってはいけない**

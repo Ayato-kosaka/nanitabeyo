@@ -47,7 +47,7 @@ CREATE TABLE restaurants (
   address_components JSONB NOT NULL, plus_code JSONB,
   address TEXT, country_code TEXT,
   source_row_hash TEXT, created_by_source TEXT NOT NULL DEFAULT 'user');
-CREATE TABLE restaurant_sync_staging (
+CREATE TABLE restaurant_sync_work (
   seed_id UUID, google_place_id TEXT, match_method TEXT,
   name TEXT, name_language_code TEXT,
   latitude DOUBLE PRECISION, longitude DOUBLE PRECISION,
@@ -71,7 +71,7 @@ INSERT INTO restaurants
   ('P_APP',     'ユーザーの店','ja',1.0,2.0,'https://app/u.jpg','gs://app/u.jpg',
                 '[{"types":["country"],"shortText":"JP"}]','{"globalCode":"X"}','ユーザー住所','JP',NULL,'user');
 
-INSERT INTO restaurant_sync_staging VALUES
+INSERT INTO restaurant_sync_work VALUES
   ('11111111-1111-1111-1111-111111111111','P_HASH_ONLY','box',
    'のれん','ja',35.0,139.0,'','','[]',NULL,'東京都1-1','JP',NULL,NULL,'[]','[]','hash-NEW'),
   ('22222222-2222-2222-2222-222222222222','P_RENAMED','box',

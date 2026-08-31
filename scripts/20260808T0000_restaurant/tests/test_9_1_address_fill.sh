@@ -40,7 +40,7 @@ CREATE TABLE restaurants (
   google_place_id TEXT UNIQUE NOT NULL,
   address TEXT,
   created_by_source TEXT NOT NULL);
-CREATE TABLE restaurant_sync_staging (google_place_id TEXT, address TEXT);
+CREATE TABLE restaurant_sync_work (google_place_id TEXT, address TEXT);
 
 INSERT INTO restaurants (google_place_id, address, created_by_source) VALUES
   ('P_APP_EMPTY',   NULL,              'user'),      -- 埋まるべき
@@ -49,7 +49,7 @@ INSERT INTO restaurants (google_place_id, address, created_by_source) VALUES
   ('P_PIPELINE',    NULL,              'pipeline'),  -- 値UPDATE の担当。ここでは触らない
   ('P_NO_CATALOG',  NULL,              'user');      -- catalog に住所が無い
 
-INSERT INTO restaurant_sync_staging VALUES
+INSERT INTO restaurant_sync_work VALUES
   ('P_APP_EMPTY',   '東京都渋谷区1-1-1'),
   ('P_OWNER_EMPTY', '大阪府大阪市2-2-2'),
   ('P_APP_HAS',     'オープンデータの住所'),
