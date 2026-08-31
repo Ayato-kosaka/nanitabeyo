@@ -91,7 +91,31 @@ export function buildExternalEmbedPlayerSource(
 				終わったことは `infoDelivery` の `playerState === 0`（ENDED）で分かるので、
 				そこで `seekTo(0)` + `playVideo` を撃てばよい。URL は単一動画のまま変えない。
 				*/
-				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&enablejsapi=1`,
+				/*
+				#1641 ⚠️ **`controls=0` を外さないこと。** オーナー実機報告（2026-08-31 / スクリーンショット）:
+				「YouTube shorts に邪魔な部品が多くてどれも押せない」。
+
+				既定（controls=1）だと YouTube 自身の UI がセル全面に載る。実際に映っていたもの:
+				▶ ボタン / 再生位置バー / `0:00 / 0:11` / Shorts バッジ / 共有ボタン /
+				チャンネル名とアイコン / タイトル。これらがアプリ側の «食べたい» «食べた»
+				«地図を開く» と重なり、**どれが押せるのか分からない画面**になっていた。
+
+				既存の料理動画セル（VideoPlayer）は再生バーもボタンも出さない。埋め込みも
+				同じ見え方にする、というのが #1641 の受け入れ条件である。
+
+				| パラメータ | 消えるもの |
+				| --- | --- |
+				| controls=0 | ▶ ボタン・再生位置バー・時間表示 |
+				| fs=0 | 全画面ボタン |
+				| iv_load_policy=3 | 動画上の注釈 |
+				| rel=0 | 再生終了後の関連動画 |
+				| disablekb=1 | キーボード操作 |
+				| modestbranding=1 | YouTube ロゴ |
+
+				⚠️ **`controls=0` は再生できなくする設定ではない。** 再生は IFrame API
+				（`enablejsapi=1`）から撃っており、そちらは何も変わらない。
+				*/
+				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&enablejsapi=1&controls=0&fs=0&iv_load_policy=3&rel=0&disablekb=1&modestbranding=1`,
 				providerLabel: "YouTube",
 				mode: "iframe",
 			};
@@ -195,12 +219,30 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
   var started = false;
   var mutedFallback = false;
   var lastMuted = null;
+  /*
+   * #1641 勝手に止まったときに撃ち直す回数の上限。向こうが止め続けるなら撃ち方の
+   * 問題ではないので、記録だけ残して諦める（無限に撃つと «押しても直らない» が隠れる）。
+   */
+  var MAX_RESUMES = 3;
+  var resumes = 0;
 
   // ⚠️ **結論は 1 度だけ。** 再生が始まったあとに締め切りが来ても報告し直さない
   //    （呼び出し側が «再生できない» へ戻り、動いている映像に導線の帯が乗ってしまう）
   function report(kind, detail) {
     if (settled) return;
     settled = true;
+    try {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        src: 'nb-embed-autoplay', kind: kind, detail: detail == null ? null : String(detail)
+      }));
+    } catch (e) {}
+  }
+
+  /*
+   * #1641 **観測用の別便。** report() と違って 1 度きりではなく、結論も動かさない。
+   * 受け側（ExternalEmbedPlayer）は記録するだけで playback を変えない。
+   */
+  function note(kind, detail) {
     try {
       window.ReactNativeWebView.postMessage(JSON.stringify({
         src: 'nb-embed-autoplay', kind: kind, detail: detail == null ? null : String(detail)
@@ -317,6 +359,24 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
        */
       if (data.info.playerState === 0) {
         send({ event: 'command', func: 'seekTo', args: [0, true] });
+        send({ event: 'command', func: 'playVideo', args: [] });
+      }
+      /*
+       * #1641【観測 + 復帰】**勝手に止まったら撃ち直し、止まったこと自体を残す。**
+       *
+       * オーナー実機報告（2026-08-31）「２秒くらい流れて止まって、下の tiktok が流れる」。
+       * playerState 2 は PAUSED だが、**いまの実装はこれを 1 行も記録していない**。
+       * そのため «YouTube 自身が止まった» のか «こちらがセルを畳んだ» のかを分けられない。
+       *
+       * ⚠️ 前面に居る間は止まっている理由が無い（画面外なら親がセルごと外す）。
+       *    なので撃ち直す。ただし無限には撃たない — 向こうが止め続けるなら、
+       *    それは撃ち方の問題ではないので、記録だけ残して諦める。
+       * ⚠️ report() は使えない（1 種類 1 回きりで、再生済みセルの結論を覆さない作りのため）。
+       *    観測用の別便として送り、受け側は記録するだけで状態を変えない。
+       */
+      if (data.info.playerState === 2 && started && resumes < MAX_RESUMES) {
+        resumes += 1;
+        note('paused', 'resume ' + resumes + ' at ' + Math.round(data.info.currentTime || 0) + 's');
         send({ event: 'command', func: 'playVideo', args: [] });
       }
       if (typeof data.info.errorCode !== 'undefined') report('no_video', data.info.errorCode);

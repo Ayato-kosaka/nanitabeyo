@@ -20,8 +20,37 @@ describe("buildExternalEmbedPlayerSource", () => {
 			"https://www.tiktok.com/embed/v2/6718335390845095173",
 		);
 		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl).toBe(
-			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&enablejsapi=1",
+			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&enablejsapi=1&controls=0&fs=0&iv_load_policy=3&rel=0&disablekb=1&modestbranding=1",
 		);
+	});
+
+	/*
+	#1641 ⚠️ **`controls=0` を外さないこと。**
+
+	オーナー実機報告（2026-08-31 / スクリーンショット）:
+	「YouTube shorts に邪魔な部品が多くてどれも押せない」。
+
+	既定（controls=1）だと YouTube 自身の UI がセル全面に載る。実際に映っていたもの:
+	▶ ボタン / 再生位置バー / 0:00 / 0:11 / Shorts バッジ / 共有ボタン /
+	チャンネル名とアイコン / タイトル。これらがアプリ側の «食べたい» «食べた»
+	«地図を開く» と重なり、**どれが押せるのか分からない画面**になっていた。
+
+	既存の料理動画セル（VideoPlayer）は再生バーもボタンも出さない。埋め込みも
+	同じ見え方にするのが #1641 の受け入れ条件である。
+
+	⚠️ controls=0 は再生できなくする設定ではない。再生は IFrame API（enablejsapi=1）
+	   から撃っており、そちらは何も変わらない。
+	*/
+	it("YouTube は向こうの UI を出さない（controls / 全画面 / 注釈 / 関連動画）", () => {
+		const url = buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl ?? "";
+
+		expect(url).toContain("controls=0");
+		expect(url).toContain("fs=0");
+		expect(url).toContain("iv_load_policy=3");
+		expect(url).toContain("rel=0");
+		// 再生そのものは IFrame API から撃つので、この 2 つは残っていること
+		expect(url).toContain("enablejsapi=1");
+		expect(url).toContain("autoplay=1");
 	});
 
 	/*

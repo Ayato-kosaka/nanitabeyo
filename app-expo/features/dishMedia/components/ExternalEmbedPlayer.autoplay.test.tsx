@@ -341,6 +341,39 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	});
 
 	/*
+	#1641 ⚠️ **«勝手に止まった» を記録し、かつ状態を動かさないこと。**
+
+	オーナー実機報告（2026-08-31）「２秒くらい流れて止まって、下の tiktok が流れる」。
+	これまで playerState 2（PAUSED）を 1 行も残していなかったので、
+	«YouTube 自身が止まった» のか «こちらがセルを畳んだ» のかを分けられなかった。
+
+	⚠️ ここで畳むと、動いている映像の上に導線の帯が乗る。記録だけして状態は触らない。
+	⚠️ この検証は «再生済みのセル» で行うこと。実際に起きるのはその状況で、
+	   hasPlayedRef のガードより後ろに置くと 1 行も残らない（それが観測できなかった理由）。
+	*/
+	it("再生中に止まったら記録する。ただし畳まない", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: "audible" });
+		post({ src: "nb-embed-autoplay", kind: "paused", detail: "resume 1 at 2s" });
+
+		const paused = mockLogFrontendEvent.mock.calls
+			.map((call) => call[0])
+			.find((event) => event.event_name === "external_embed_paused");
+		expect(paused).toBeDefined();
+		expect(paused.payload.detail).toBe("resume 1 at 2s");
+
+		// 状態は «再生中» のまま。帯も出さないしサーバへも報告しない
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		expect(fallbackCount(tree)).toBe(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+	});
+
+	/*
 	#1641 ⚠️ **«まだ準備できていない» をサーバへ報告しない。**
 
 	実測（run 33345690986 / commit 381e35ac / 同じ 1 つの YouTube セル）:
