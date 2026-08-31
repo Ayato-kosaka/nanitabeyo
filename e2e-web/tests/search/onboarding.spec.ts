@@ -359,7 +359,20 @@ test.describe("位置情報が回答済みのとき", () => {
 					flagged.__locationScreenAppeared = true;
 				}
 			});
-			observer.observe(document.documentElement, { childList: true, subtree: true });
+			/*
+			#1629 ⚠️ **`document.documentElement` を渡さないこと。**
+
+			`addInitScript` は **文書が組み立てられる前**に走るので、この時点では
+			`document.documentElement` は `null` である。`observe(null)` は
+			`Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'`
+			を投げ、それが未捕捉の pageerror になって REL-08 がこのテストを落としていた
+			（実測: run 33348033343。落ちていたのはアプリではなくこの仕掛けの方）。
+
+			`document` 自体は文書が空でも必ず存在する Node で、`subtree: true` なら
+			後から生える `documentElement` 以下も全部拾える。Playwright 自身の
+			preload スクリプトも同じ理由で `observe(document, …)` を使っている。
+			*/
+			observer.observe(document, { childList: true, subtree: true });
 		});
 
 		await page.goto("/");
