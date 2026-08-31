@@ -206,3 +206,13 @@ jobs:
       # 見つからなければそのまま出ていた。ローカル実測 1 秒未満。
       - name: e2e の spec に入れ子の test が無いことを確認
         run: pnpm assert:no-nested-e2e-tests
+
+      # #1749 UI カタログの spec が使う画面 ID が catalog/screens.json に在ることを確認する。
+      # `captureScreenIfReachable()` は «撮れたら撮る» だが、未定義 ID のときだけは
+      # `getScreen()` が try の外で throw し、**その it 以降の撮影が丸ごと失われる**。
+      # 画面 ID を «トピック → 料理カテゴリ» へ改名したとき spec だけ直して screens.json が
+      # 取り残され、お店提案の `search-result-feed` が一度も撮れていなかった（web / mobile 両方）。
+      # 気づいたのは #1743 でその画面を撮ろうとしたときで、それまで誰にも見えていなかった。
+      # ローカル実測 1 秒未満。
+      - name: UI カタログの画面 ID が catalog/screens.json と一致することを確認
+        run: pnpm assert:catalog-screen-ids
