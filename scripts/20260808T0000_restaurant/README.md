@@ -426,6 +426,10 @@ BigQueryに無いPostgreSQL行は削除しません。`--skip-backup` は復旧�
 bash tests/test_9_1_overwrite_guard.sh       # 上書きガード本体（6項目）
 bash tests/test_9_9_backfill.sh              # backfill の行選択（5項目）
 python3 tests/test_9_1_backfill_guard.py     # backfill 漏れ «検知» の契約（7項目）
+bash tests/test_9_1_display_update.sh        # 表示値を «変わる行» にしか書かない（5項目）
+bash tests/test_9_1_provenance_update.sh     # provenance / seed / synced_at の分離（6項目）
+bash tests/test_9_1_restaurant_links.sh      # リンクの追加・削除（6項目）
+bash tests/test_9_1_address_fill.sh          # アプリ製の行の住所の穴埋め（5項目）
 ```
 
 `test_9_1_backfill_guard.py` は、**検知が誤って発火しないこと**だけを見ています。

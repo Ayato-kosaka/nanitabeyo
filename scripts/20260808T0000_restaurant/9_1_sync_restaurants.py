@@ -370,6 +370,31 @@ def apply_sync(connection: Any) -> None:
             WHERE r.google_place_id = s.google_place_id
               AND r.created_by_source = 'pipeline'
               AND r.source_row_hash IS DISTINCT FROM s.row_hash
+              -- #1706 **値が本当に変わる行だけを書く。**
+              --
+              -- row_hash が動いただけでは表示値が変わったことにならない。
+              -- 実際に 2026-08-31 に row_hash の定義へ source_names を足したところ、
+              -- **表示値は 1 文字も変わらないのに 619,497 行を書き直し**、
+              -- この 1 文だけで 1,520 秒かかった。この表の name には trigram、
+              -- location（lat/lng からの生成列）には GIST が乗っているので、
+              -- 同じ値で上書きしても索引は毎回作り直される。
+              --
+              -- hash はあくまで «調べる価値があるか» の粗いふるいで、
+              -- «書くべきか» の判定はここで列ごとに行う。
+              AND (
+                r.name IS DISTINCT FROM s.name
+                OR r.name_language_code IS DISTINCT FROM s.name_language_code
+                OR r.latitude IS DISTINCT FROM s.latitude
+                OR r.longitude IS DISTINCT FROM s.longitude
+                OR r.image_url IS DISTINCT FROM s.image_url
+                OR r.image_path IS DISTINCT FROM s.image_path
+                OR r.address_components IS DISTINCT FROM s.address_components_json::jsonb
+                OR r.plus_code IS DISTINCT FROM (
+                  CASE WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb END
+                )
+                OR r.address IS DISTINCT FROM s.address
+                OR r.country_code IS DISTINCT FROM s.country_code
+              )
             """,
         )
 
@@ -501,12 +526,39 @@ def apply_sync(connection: Any) -> None:
         #
         # synced_at だけは «今回の catalog に居た» の印なので全行に付ける必要がある。
         # そちらは索引の無い列だけを触る別の文へ分け、HOT update にする（下）。
+        # #1706 **索引の付いた列と、付いていない列を別の文に分ける。**
+        #
+        # `source_seed_id` には UNIQUE 索引がある（20260823T0000）。この列を
+        # 含めて UPDATE すると PostgreSQL は HOT update にできず、**その行の
+        # 全索引**（name の trigram、location の GIST を含む）を作り直す。
+        # 一方 seed の付け替えは実際にはほとんど起きない（実測 0 行）。
+        #
+        # 2026-08-31 に row_hash の定義を変えたところ、この 1 文が 62 万行を
+        # 掴んで 30 分の statement timeout に当たった。seed が変わらない行まで
+        # 索引を作り直していたためである。
+        #
+        # 変わる列だけを、変わる行にだけ書く。
+        run(
+            "seed 付替（索引あり）",
+            """
+            UPDATE restaurants r
+            SET source_seed_id = s.seed_id
+            FROM restaurant_sync_staging s
+            WHERE r.google_place_id = s.google_place_id
+              AND r.source_seed_id IS DISTINCT FROM s.seed_id
+            """,
+        )
+
+        # provenanceは既存行にも付ける。これによりPG表示値を維持しつつ、どのseedが
+        # 根拠になったかを追跡できる。
+        #
+        # ここで触る `source_names` / `source_row_hash` には索引が無いので、
+        # 62 万行を書いても HOT update で済む。
         run(
             "provenance UPDATE",
             """
             UPDATE restaurants r
             SET
-              source_seed_id = s.seed_id,
               source_names = ARRAY(
                 SELECT jsonb_array_elements_text(s.source_names_json::jsonb)
               ),
@@ -520,21 +572,17 @@ def apply_sync(connection: Any) -> None:
               source_row_hash = CASE
                 WHEN r.created_by_source = 'pipeline' THEN s.row_hash
                 ELSE r.source_row_hash
-              END,
-              synced_at = CURRENT_TIMESTAMP
+              END
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
               -- #1706 **配列を組み立てて比べない。**
               -- source_names は row_hash に含めた（3_4）ので、hash の比較だけで
               -- «provenance が変わったか» が分かる。62 万行ぶんの jsonb 展開が
-              -- 消える（実測 1,538 秒 → 索引と併せて大幅短縮）。
+              -- 消える。
               --
               -- アプリ製の行は source_row_hash を NULL のままにしているので
               -- 常に真になるが、2,472 行しかないので支障はない。
-              AND (
-                r.source_seed_id IS DISTINCT FROM s.seed_id
-                OR r.source_row_hash IS DISTINCT FROM s.row_hash
-              )
+              AND r.source_row_hash IS DISTINCT FROM s.row_hash
             """,
         )
 

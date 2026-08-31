@@ -65,8 +65,10 @@ INSERT INTO restaurant_sync_staging VALUES
 SQL
 
 PROV="$(python3 "$TESTS_DIR/extract_provenance_sql.py" --which provenance)"
+SEED="$(python3 "$TESTS_DIR/extract_provenance_sql.py" --which seed_update)"
 SYNCED="$(python3 "$TESTS_DIR/extract_provenance_sql.py" --which synced_at)"
 
+run_sql "$SEED"
 run_sql "$PROV"
 
 # --- 1. 変わらない行の provenance は書かれない（＝ 62 万行の空更新をしない）---
@@ -101,12 +103,25 @@ STALE=$(q "SELECT COUNT(*) FROM restaurants WHERE synced_at = '2020-01-01';")
 [ "$STALE" = "0" ] || fail "synced_at が付いていない行が $STALE 件ある（監査が誤検知する）"
 echo "✅ 4. synced_at は staging に居た全行へ付く"
 
+# --- 4-b. ★ 索引の付いた source_seed_id は «変わる行» にしか書かない（#1706）---
+#
+# provenance と同じ文で書いていたときは、seed が動いていない 62 万行まで
+# 非 HOT update になり、name の trigram と location の GIST を毎回作り直して
+# 30 分の statement timeout に当たった（2026-08-31）。
+# seed の付け替えは実際にはほぼ起きないので、別の文に分けて «動く行» だけ書く。
+SEED_ROWS=$(psql -h /tmp -p "$PGPORT" -U postgres -tAq -c "SET search_path=dev; WITH u AS ($SEED RETURNING 1) SELECT COUNT(*) FROM u;")
+[ "$SEED_ROWS" = "0" ] || fail "seed が動いていないのに $SEED_ROWS 行を書いた（索引を作り直してしまう）"
+q "UPDATE restaurants SET source_seed_id=NULL WHERE google_place_id='P_HASH';" >/dev/null
+SEED_ROWS=$(psql -h /tmp -p "$PGPORT" -U postgres -tAq -c "SET search_path=dev; WITH u AS ($SEED RETURNING 1) SELECT COUNT(*) FROM u;")
+[ "$SEED_ROWS" = "1" ] || fail "seed が動いた行を書いていない（$SEED_ROWS 行）"
+echo "✅ 4-b. source_seed_id は付け替わる行にだけ書く"
+
 # --- 5. 冪等（2 回目は provenance が 0 行）---
 BEFORE=$(q "SELECT md5(string_agg(google_place_id||coalesce(source_row_hash,'')||array_to_string(source_names,','), '|' ORDER BY google_place_id)) FROM restaurants;")
-run_sql "$PROV"; run_sql "$SYNCED"
+run_sql "$SEED"; run_sql "$PROV"; run_sql "$SYNCED"
 [ "$(q "SELECT md5(string_agg(google_place_id||coalesce(source_row_hash,'')||array_to_string(source_names,','), '|' ORDER BY google_place_id)) FROM restaurants;")" = "$BEFORE" ] \
   || fail "2 回目で内容が変わった（冪等でない）"
 echo "✅ 5. 冪等"
 
 echo
-echo "すべて通過（5/5）"
+echo "すべて通過（6/6）"
