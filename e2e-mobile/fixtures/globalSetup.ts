@@ -118,7 +118,35 @@ async function establishAnonymousSession(supabaseUrl: string, supabaseAnonKey: s
 				].join("\n"),
 			);
 		}
-		throw new Error(`匿名セッションの確立に失敗しました: ${error?.message ?? "session is null"}`);
+		/*
+		#1641 **失敗の «正体» を必ず書き出す。**
+
+		2026-08-31 に run 33416769655 / 33420202252 が 2 本続けてここで落ちたが、出力は
+
+		    匿名セッションの確立に失敗しました: {}
+
+		だけだった。`status` も `code` も出ないので **レート制限なのか、匿名サインインが
+		無効化されたのか、認証基盤の障害なのかを切り分けられず**、CI が丸ごと止まったまま
+		«たぶん枠切れ» と推測するしかなかった（上の 429 の分岐は通っていないので、
+		少なくとも既知のレート制限ではない）。
+
+		⚠️ `error.message` だけを出す形へ戻さないこと。空ボディの応答では何も分からない。
+		*/
+		const detail = [
+			`message=${error?.message ?? "session is null"}`,
+			`status=${(error as { status?: number } | null)?.status ?? "-"}`,
+			`name=${error?.name ?? "-"}`,
+			`code=${(error as { code?: string } | null)?.code ?? "-"}`,
+		].join(" / ");
+		throw new Error(
+			[
+				`匿名セッションの確立に失敗しました: ${detail}`,
+				"切り分け:",
+				"  - status=429 … レート制限（30 回/時/IP）。1 時間待つ",
+				"  - status=422 … 匿名サインインが無効化されている可能性（Supabase の Auth 設定）",
+				"  - status=5xx / status=- … 認証基盤の障害か経路の問題。時間をおいて再実行する",
+			].join("\n"),
+		);
 	}
 
 	writeSessionToEnv("anon", {
