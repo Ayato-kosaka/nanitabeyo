@@ -74,13 +74,16 @@ on:
         type: string
 
 concurrency:
-  # ⚠️ 2026-08-31 障害: concurrency_group_suffix で resolve(5_1) シャードを 6 本並列化したところ、
-  # 各シャードが dev resolve API 経由で共有 Supabase を同時に叩き、dev だけでなく **本番** の
-  # レイテンシまで悪化させた（dev/prod は同一 Supabase インスタンス）。単一グループの直列化は
-  # «BigQuery の書込競合» だけでなく «共有 DB への同時負荷» を止める安全弁でもあった。
-  # よって suffix による分割は撤回し、常に単一グループで直列化する（suffix 入力は無視＝後方互換の no-op）。
-  # 並列で速くしたいバッチがあっても、共有 DB を叩く経路（resolve 等）は直列に保つこと。
-  group: db-script-run
+  # 既定（空）は db-script-run 単一グループで直列化（DB書込競合の保護）。suffix 指定時は別グループで並走。
+  # 判断は呼び出し側の責任（#1760）。
+  #
+  # ⚠️ 2026-08-31 障害の教訓（切り分け済み）: 本番/dev のレイテンシ悪化の真因は、単発で
+  # «restaurant_catalog 62万行 × 62万行» を回す店舗同期ジョブ（#843/#1706）が共有 Supabase を
+  # 数十秒占有したことだった（推薦 p50 が 38.5s へ）。並列機構そのものは無罪。ただし «個々で
+  # 共有 DB を重く叩くジョブ» は suffix で並走させないこと。resolve(5_1) は dev pg を引くので
+  # **off-peak・控えめ並列（多くて 2〜3 shard）・非破壊版** で回す。BigQuery だけのバッチ
+  # （crawl 4_4 等）は自由に並走してよい。
+  group: db-script-run${{ github.event.inputs.concurrency_group_suffix }}
   cancel-in-progress: false
 
 permissions:
