@@ -73,6 +73,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pgdata", default="/tmp/pgdata_1706_bench")
     parser.add_argument("--keep", action="store_true", help="終了後もクラスタを残す")
     parser.add_argument(
+        "--moved-ratio",
+        type=float,
+        default=0.0,
+        help="表示値（座標）が実際に変わっている行の割合。既定 0.0＝hash だけ動く",
+    )
+    parser.add_argument(
         "--changed-ratio",
         type=float,
         default=1.0,
@@ -169,7 +175,9 @@ def seed_id(i: int) -> str:
     return f"{i:08x}-0000-4000-8000-{i:012d}"
 
 
-def generate_catalog_csv(path: Path, rows: int, changed_ratio: float) -> None:
+def generate_catalog_csv(
+    path: Path, rows: int, changed_ratio: float, moved_ratio: float
+) -> None:
     """9_1 が BigQuery から書き出すのと同じ列順の CSV を作る。
 
     列順は 9_1 の `export_catalog` / staging の DDL と揃える必要がある。
@@ -181,8 +189,16 @@ def generate_catalog_csv(path: Path, rows: int, changed_ratio: float) -> None:
         for i in range(rows):
             changed = rnd.random() < changed_ratio
             row_hash = f"hash-{i}-{'v2' if changed else 'v1'}"
-            lat = 24.0 + rnd.random() * 21.0
-            lng = 123.0 + rnd.random() * 23.0
+            # #1706 **座標と店名は、既存行と «同じ» にする。**
+            #
+            # ここを乱数にすると «全ての表示値が変わった» ことになり、表示値
+            # UPDATE が 62 万行を書く最悪ケースだけを測ることになる。実際の
+            # dev で起きているのは «row_hash の定義を変えたので hash だけ動いた»
+            # であり、そのとき表示値 UPDATE は列ごとの比較で 6 行しか書かない。
+            # 両方を測れるよう、既定は «同じ» にして --moved-ratio で動かす。
+            moved = rnd.random() < moved_ratio
+            lat = 24.0 + (i % 210000) / 10000.0 + (0.001 if moved else 0.0)
+            lng = 123.0 + (i % 230000) / 10000.0
             out.write(
                 ",".join(
                     [
@@ -299,10 +315,11 @@ def main() -> None:
         with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as fh:
             csv_path = Path(fh.name)
         started = time.monotonic()
-        generate_catalog_csv(csv_path, args.rows, args.changed_ratio)
+        generate_catalog_csv(csv_path, args.rows, args.changed_ratio, args.moved_ratio)
         LOGGER.info(
-            "catalog CSV を生成: %s 行 / %.1f秒（変更率 %.1f%%）",
-            f"{args.rows:,}", time.monotonic() - started, args.changed_ratio * 100,
+            "catalog CSV を生成: %s 行 / %.1f秒（hash 変更 %.1f%% / 表示値変更 %.1f%%）",
+            f"{args.rows:,}", time.monotonic() - started,
+            args.changed_ratio * 100, args.moved_ratio * 100,
         )
 
         LOGGER.info("=" * 60)
