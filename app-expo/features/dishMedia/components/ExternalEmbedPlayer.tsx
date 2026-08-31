@@ -1291,6 +1291,35 @@ export function ExternalEmbedPlayer({
 				retryLoad("blank_document", parsed.detail ?? null);
 				return;
 			}
+			/*
+			#1641 **組み上がらないまま時間切れ ＝ 読み込みの失敗。** 畳まずに読み直す。
+
+			原因を名指しできた（run 33355…/ iOS / commit fa0dc74f）。止まったセルは
+			**毎回まったく同じ 1 つのホスト**を待ったまま動かない。
+
+			    stall4000  ready=loading nodes=12 script=6 body=no res=7
+			               pending=lf16-tiktok-common.tiktokcdn-us.com
+			    stall9000  （同じ）
+			    stall14000 （同じ）
+			    timeout    （同じ）sinceActiveMs=22129
+
+			38.7KB は届いていて head に script が 6 本ある。そのうち 1 本が
+			この CDN から返ってこないので、**パーサがそこで止まって body すら作られない**。
+			健全なセルは pending=none（Instagram）か、先へ進んだうえで同じホストを
+			非同期に待っているだけ（同 run 05:25:05 の TikTok は
+			ready=interactive nodes=218 video=2 で、その 0.2 秒後に再生できている）。
+
+			⚠️ これは «その投稿に映像が無い» ではない。**同じ投稿が同じ run の中で
+			   後から再生できている**（05:22:04 失敗 → 05:25:05 再生）。
+			   向こうの CDN の 1 本が転んだだけなので、読み直せば別のエッジに当たる目がある。
+
+			⚠️ サーバへ «確かめ直して» も送らない（load_failed と同じ扱い）。
+			   通信が転んだ投稿を not_playable に落とすと、検索フィードから永久に外れる。
+			*/
+			if (parsed.kind === "timeout" && parsed.detail?.startsWith("still_loading")) {
+				retryLoad("still_loading", parsed.detail ?? null);
+				return;
+			}
 			// no_video（権利ブロック）/ not_supported（デコーダ無し）/ timeout
 			setPlayback("unplayable");
 			/*
