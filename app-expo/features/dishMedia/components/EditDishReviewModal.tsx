@@ -34,6 +34,7 @@ import i18n from "@/lib/i18n";
 import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useLogger } from "@/hooks/useLogger";
+import { useSheetBottomPadding } from "@/hooks/useSheetBottomPadding";
 import { useAPICall, type ApiError } from "@/hooks/useAPICall";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLocale } from "@/hooks/useLocale";
@@ -76,6 +77,9 @@ type Props = {
 	logPayload?: Record<string, unknown>;
 };
 
+/** シート下端のデザイン上の余白。実際の余白はこれに safe area の inset を足したもの */
+const SHEET_PADDING_BOTTOM = 32;
+
 export function EditDishReviewModal({ review, onClose, onSaved, logPayload }: Props) {
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
@@ -83,6 +87,9 @@ export function EditDishReviewModal({ review, onClose, onSaved, logPayload }: Pr
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
+	// #1742 Modal はネイティブでは別ウィンドウで、画面側の safe area が届かない。
+	// 足さないと保存ボタンが Android のナビゲーションバーへ潜る（hooks/useSheetBottomPadding.ts）
+	const sheetPaddingBottom = useSheetBottomPadding(SHEET_PADDING_BOTTOM);
 
 	const [comment, setComment] = useState("");
 	const [rating, setRating] = useState(MAX_STARS);
@@ -178,7 +185,7 @@ export function EditDishReviewModal({ review, onClose, onSaved, logPayload }: Pr
 				窓を縮めなくなるため、OS 任せの逃げ道も無い。ここに自前で持つ。
 				*/}
 			<KeyboardAvoidingView style={styles.backdrop} behavior={Platform.select({ ios: "padding", android: "height" })}>
-				<View testID="edit-review-modal" style={styles.editSheet}>
+				<View testID="edit-review-modal" style={[styles.editSheet, { paddingBottom: sheetPaddingBottom }]}>
 					<View style={styles.editHeader}>
 						<Text style={styles.editTitle}>{i18n.t("DishMediaContent.ownPost.editTitle")}</Text>
 						<TouchableOpacity
@@ -274,7 +281,7 @@ const createStyles = (colors: Palette) =>
 			borderTopRightRadius: 16,
 			paddingHorizontal: 20,
 			paddingTop: 16,
-			paddingBottom: 32,
+			// paddingBottom は safe area を足すため呼び出し側で組む（SHEET_PADDING_BOTTOM）
 			maxHeight: "85%",
 		},
 		editHeader: {

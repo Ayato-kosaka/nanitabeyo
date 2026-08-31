@@ -37,6 +37,19 @@ export class ResultScreen {
 	readonly likeButton = by.id("dish-action-like");
 	/** 保存ボタン（⚠️ 同上） */
 	readonly saveButton = by.id("dish-action-save");
+	/**
+	 * #1742 カード本体。押すと «このお店、気になる？» の ActionSheet が開く。
+	 * ⚠️ フィードにはカードが複数積まれるので atIndex(0) で絞ること。
+	 */
+	readonly card = by.id("dish-media-card");
+	/**
+	 * #1742 カード押下で開く ActionSheet の見出し（`ActionSheet.title`）。
+	 *
+	 * ⚠️ このシートは `@expo/react-native-action-sheet` がライブラリ側で描くので testID を挿せない。
+	 * 観測点は文言しか無い。CI はシステムロケールを ja-JP に固定している
+	 * （e2e-mobile/scripts/setup-android-locale.sh）。文言を変えるときはここも直すこと。
+	 */
+	readonly actionSheetTitle = by.text("このお店、気になる？");
 	/** #1629 «…» メニューを開くボタン。シェアと報告はこの中にある */
 	readonly moreButton = by.id("dish-action-more");
 	/** 通報ボタン（#1514 SAF-01。**«…» メニューの中**。#1629 でレールから移動した） */

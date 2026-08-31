@@ -180,7 +180,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 			}
 		}
 
-		await captureScreenIfReachable(
+		const reachedResult = await captureScreenIfReachable(
 			"search-result-feed",
 			async () => {
 				await dishCategoriesScreen.chooseFirstDishCategory();
@@ -188,6 +188,23 @@ describe("UI カタログ（匿名） @catalog", () => {
 			},
 			// 地図タイルと店舗カード（メディア読み込みを伴う）が埋まるまで待つ
 			{ settleMs: 8_000 },
+		);
+
+		if (!reachedResult) return;
+
+		/*
+		#1742 カード押下で開く ActionSheet。**Android のナビゲーションバーの上に
+		「キャンセル」が完全に見えていること**を目で確かめるための 1 枚。
+		ライブラリ（@expo/react-native-action-sheet）は safe area を見ないので、
+		ここが潜っていないことはネイティブのスクリーンショットでしか確かめられない。
+		*/
+		await captureScreenIfReachable(
+			"search-result-action-sheet",
+			async () => {
+				await element(resultScreen.card).atIndex(0).tap();
+				await waitUntilVisible(resultScreen.actionSheetTitle);
+			},
+			{ settleMs: 1_500 },
 		);
 	});
 

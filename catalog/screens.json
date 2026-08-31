@@ -347,7 +347,34 @@
 			],
 			"to": [
 				"料理提案（閉じる＝戻る）",
-				"店舗詳細・地図アプリ（外部）"
+				"店舗詳細・地図アプリ（外部）",
+				"検索結果フィード（お店の ActionSheet）"
+			]
+		},
+		{
+			"id": "search-result-action-sheet",
+			"name": "検索結果フィード（お店の ActionSheet）",
+			"route": "/[locale]/search/result",
+			"url": "/ja-JP/search/result",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon",
+					"note": "web ではカード押下の ActionSheet を出していない（ネイティブのみの UI）"
+				},
+				"mobile": {
+					"capture": "optional",
+					"session": "anon"
+				}
+			},
+			"state": "カードを押して «このお店、気になる？» の ActionSheet を開いた状態",
+			"description": "カード押下で開く、Google マップで開く／友人に共有する／キャンセルの選択肢。#1742 の «最下行がナビゲーションバーへ潜る» を Android 実機で確かめるための面でもある。",
+			"from": [
+				"検索結果フィード（カードを押す）"
+			],
+			"to": [
+				"検索結果フィード（キャンセル）",
+				"地図アプリ・共有シート（外部）"
 			]
 		},
 		{
@@ -1475,6 +1502,16 @@
 			"from": "search-result-feed",
 			"to": "search-topics",
 			"label": "閉じる"
+		},
+		{
+			"from": "search-result-feed",
+			"to": "search-result-action-sheet",
+			"label": "カードを押す"
+		},
+		{
+			"from": "search-result-action-sheet",
+			"to": "search-result-feed",
+			"label": "キャンセル"
 		},
 		{
 			"from": "search-topics",

@@ -277,7 +277,9 @@ export default function DishMediaContent({
 	}, [onCardPress, dishMediaEntry, pressed, buttonsGesture, embedButtonGesture]);
 
 	return (
-		<View style={styles.container}>
+		// #1742 testID はカード押下（= ActionSheet を開く導線）を e2e から叩くための口。
+		// ここを押したときのシートが Android でナビゲーションバーへ潜っていた
+		<View style={styles.container} testID="dish-media-card">
 			<GestureDetector gesture={tapGesture}>
 				<Animated.View style={[StyleSheet.absoluteFill, pressStyle]}>
 					{/* #802 【設計】表示側 Image の load/display イベントには依存しない。 */}
