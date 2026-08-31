@@ -74,6 +74,29 @@ def connect_postgres(schema: str, *, allow_public: bool) -> PgConnection:
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL が必要です")
+    # #1706 **search_path と statement_timeout は接続時のオプションで渡す。**
+    #
+    # `SET`（LOCAL 無し）は **トランザクションの一部**であり、ROLLBACK で
+    # 巻き戻る。以前はここで `SET search_path TO dev, public` を流していたので、
+    # 呼び出し側が rollback() したあとに SQL を流すと **search_path が既定に
+    # 戻り、dev のつもりで public を触る**。2026-08-31 に
+    # 9_9_maintain_restaurants.py で実際に起きた（VACUUM が public に当たった）。
+    # statement_timeout も同様に消え、サーバ既定の短い値へ戻っていた。
+    #
+    # 接続時オプション（libpq の startup packet）で渡した値は
+    # **そのセッションの既定値**になるので、ROLLBACK はここへ戻る。
+    options = " ".join(
+        (
+            f"-c search_path={schema},public",
+            # サーバ側の既定 statement_timeout は「APIが投げる対話クエリ」を想定した
+            # 短い値である。この同期は57万行を1文でINSERTするバッチなので、その既定に
+            # 当たって落ちる（実測: dry-run が apply_sync の途中で
+            # "canceling statement due to statement timeout"）。
+            # 0（無制限）にはしない。lock待ちで無限に居座ると、advisory lockを掴んだまま
+            # 次の実行も止めてしまうため、十分大きい有限値で頭打ちにする。
+            f"-c statement_timeout={STATEMENT_TIMEOUT_MS}",
+        )
+    )
     connection = psycopg2.connect(
         database_url,
         connect_timeout=15,
@@ -81,19 +104,22 @@ def connect_postgres(schema: str, *, allow_public: bool) -> PgConnection:
         keepalives_idle=30,
         keepalives_interval=10,
         keepalives_count=5,
+        options=options,
     )
     connection.autocommit = False
     with connection.cursor() as cursor:
-        cursor.execute(
-            sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema))
+        # オプションが本当に効いたことを確かめる。効いていないまま進むと
+        # «dev のつもりで public» になるので、ここで落とす。
+        cursor.execute("SELECT current_schema(), current_setting('statement_timeout')")
+        current_schema, timeout = cursor.fetchone()
+        if current_schema != schema:
+            raise RuntimeError(
+                f"search_path が効いていません（current_schema={current_schema!r} / "
+                f"期待={schema!r}）。このまま流すと別スキーマを触ります"
+            )
+        LOGGER.info(
+            "PostgreSQL 接続: schema=%s / statement_timeout=%s", current_schema, timeout
         )
-        # サーバ側の既定 statement_timeout は「APIが投げる対話クエリ」を想定した
-        # 短い値である。この同期は57万行を1文でINSERTするバッチなので、その既定に
-        # 当たって落ちる（実測: dry-run が apply_sync の途中で
-        # "canceling statement due to statement timeout"）。
-        # 0（無制限）にはしない。lock待ちで無限に居座ると、advisory lockを掴んだまま
-        # 次の実行も止めてしまうため、十分大きい有限値で頭打ちにする。
-        cursor.execute(f"SET statement_timeout = '{STATEMENT_TIMEOUT_MS}ms'")
         # 手動実行でも二つのterminalから同じschemaへ同時publishされ得る。
         # transaction advisory lockで9_1/9_2を直列化し、staging判定後の競合を防ぐ。
         cursor.execute(

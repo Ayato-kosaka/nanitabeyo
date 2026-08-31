@@ -430,7 +430,16 @@ bash tests/test_9_1_display_update.sh        # 表示値を «変わる行» に
 bash tests/test_9_1_provenance_update.sh     # provenance / seed / synced_at の分離（6項目）
 bash tests/test_9_1_restaurant_links.sh      # リンクの追加・削除（6項目）
 bash tests/test_9_1_address_fill.sh          # アプリ製の行の住所の穴埋め（5項目）
+bash tests/test_pg_connect_survives_rollback.sh  # rollback で dev→public に化けない（5項目）
 ```
+
+`test_pg_connect_survives_rollback.sh` は **«落ちない・壊れない・気付けない»**
+種類の事故を止めるためのものです。PostgreSQL の `SET`（LOCAL 無し）は
+トランザクションの一部なので、`connect_postgres` が接続後に流していた
+`SET search_path TO dev, public` は **呼び出し側の `rollback()` で消えていました**。
+そのあとに修飾なしの表名で SQL を流すと、**dev のつもりで public を触ります**。
+2026-08-31 に実際に起き、`VACUUM (ANALYZE) restaurants` が public に当たりました。
+いまは接続時オプションで渡しているので、ROLLBACK はその値へ戻ります。
 
 `test_9_1_backfill_guard.py` は、**検知が誤って発火しないこと**だけを見ています。
 この判定は 2 回続けて偽陽性で同期を止めました（08-30 は «seed が付いているか» で

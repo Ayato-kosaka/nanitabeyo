@@ -59,6 +59,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def schema_ident(*, schema: str) -> str:
+    """スキーマ名を識別子として埋め込む前に、想定の 2 つに限る。"""
+
+    if schema not in ("dev", "public"):
+        raise ValueError(f"想定外のschemaです: {schema}")
+    return schema
+
+
 def report(cursor: Any, schema: str) -> None:
     for table in TABLES:
         cursor.execute(
@@ -98,11 +106,13 @@ def report(cursor: Any, schema: str) -> None:
             )
 
 
-def measure_scan(cursor: Any) -> None:
+def measure_scan(cursor: Any, schema: str) -> None:
     """実際に «遅い» のかを 1 本の走査で測る（9_1 が落ちた文と同じ形）。"""
 
     started = time.monotonic()
-    cursor.execute("SELECT COUNT(*) FROM restaurants WHERE created_by_source = 'pipeline'")
+    cursor.execute(
+        f"SELECT COUNT(*) FROM {schema}.restaurants WHERE created_by_source = 'pipeline'"
+    )
     count = cursor.fetchone()[0]
     LOGGER.info(
         "pipeline 行の COUNT: %s 行 / %.1f秒（9_1 が 30 分で落ちた文と同じ形）",
@@ -119,7 +129,7 @@ def main() -> None:
         with connection.cursor() as cursor:
             LOGGER.info("=== VACUUM 前 ===")
             report(cursor, args.schema)
-            measure_scan(cursor)
+            measure_scan(cursor, args.schema)
         connection.rollback()
 
         if not args.vacuum:
@@ -129,16 +139,26 @@ def main() -> None:
         # VACUUM はトランザクション内で実行できない。
         connection.autocommit = True
         for table in TABLES:
+            # ⚠️ **表名は必ずスキーマで修飾する。search_path に頼らない。**
+            #
+            # PostgreSQL の `SET`（LOCAL 無し）は **トランザクションの一部**で、
+            # ROLLBACK で巻き戻る。connect_postgres が接続時に張った
+            # `SET search_path TO dev, public` は、上の rollback() で消えていた。
+            # その状態で `VACUUM restaurants` を流したところ、既定の
+            # search_path が効いて **public.restaurants** に当たった
+            # （2026-08-31 に実際に起きた。VACUUM なのでデータは変わらないが、
+            # 意図した対象ではなかった）。
+            target = f"{schema_ident(schema=args.schema)}.{table}"
             started = time.monotonic()
             with connection.cursor() as cursor:
-                cursor.execute(f"VACUUM (ANALYZE) {table}")
-            LOGGER.info("VACUUM (ANALYZE) %s: %.1f秒", table, time.monotonic() - started)
+                cursor.execute(f"VACUUM (ANALYZE) {target}")
+            LOGGER.info("VACUUM (ANALYZE) %s: %.1f秒", target, time.monotonic() - started)
         connection.autocommit = False
 
         with connection.cursor() as cursor:
             LOGGER.info("=== VACUUM 後 ===")
             report(cursor, args.schema)
-            measure_scan(cursor)
+            measure_scan(cursor, args.schema)
         connection.rollback()
     finally:
         connection.close()
