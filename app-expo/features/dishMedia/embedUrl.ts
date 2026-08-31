@@ -225,6 +225,14 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
    */
   var MAX_RESUMES = 3;
   var resumes = 0;
+  /*
+   * #1641 ENDED（0）を信じる最低再生位置（秒）。頭から動いていないのに «終わった» が
+   * 飛んでくることが実測であったため（上の playerState 0 の注記）。
+   */
+  var ENDED_MIN_SECONDS = 1;
+  var lastState = -99;
+  var MAX_STATE_NOTES = 8;
+  var stateNotes = 0;
 
   // ⚠️ **結論は 1 度だけ。** 再生が始まったあとに締め切りが来ても報告し直さない
   //    （呼び出し側が «再生できない» へ戻り、動いている映像に導線の帯が乗ってしまう）
@@ -357,9 +365,38 @@ export function buildEmbedIframeHtml(embedUrl: string): string {
        * ⚠️ playerState 0 は ENDED。report() は 1 度きりなのでここでは呼ばない
        *    （再生できたセルを後から «再生できない» へ落とさないため）。
        */
-      if (data.info.playerState === 0) {
+      /*
+       * ⚠️ **0（ENDED）を «本当に終わった» ときだけ信じる。**
+       *
+       * 実測（run 33370446694 / commit dc3732b9 / Android）:
+       *
+       *     08:04:14.098  youtube autoplay_started audible   sinceActiveMs=2194
+       *     08:04:14.183  youtube paused (currentTime 0s)    sinceActiveMs=2278
+       *
+       * 再生が始まった **85 ミリ秒後**に «0 秒で止まった» が飛んでいる。11 秒の動画が
+       * 2 秒で終わるはずがないので、これは終了ではない。にもかかわらず旧版は
+       * ここで seekTo(0) を撃っており、**自分で頭へ巻き戻して止めていた**。
+       * オーナー報告「２秒くらい流れて止まって、下の tiktok が流れる」はこれである。
+       *
+       * ループの保険として入れたものが、ループの前に発火していた。
+       * **started（実際に再生が始まった）** かつ **再生位置が頭から離れている**
+       * ときだけ終了と見なす。
+       */
+      if (data.info.playerState === 0 && started && (data.info.currentTime || 0) > ENDED_MIN_SECONDS) {
         send({ event: 'command', func: 'seekTo', args: [0, true] });
         send({ event: 'command', func: 'playVideo', args: [] });
+      }
+      /*
+       * #1641【観測】**状態の移り変わりをそのまま残す。**
+       * «誰が止めたのか» は状態の並びを見ないと決まらない。上の断定もこの並びで
+       * 裏を取る。⚠️ 出しすぎないよう先頭の数回だけにする。
+       */
+      if (typeof data.info.playerState === 'number' && data.info.playerState !== lastState) {
+        if (stateNotes < MAX_STATE_NOTES) {
+          stateNotes += 1;
+          note('state', lastState + '>' + data.info.playerState + ' t=' + Math.round((data.info.currentTime || 0) * 10) / 10);
+        }
+        lastState = data.info.playerState;
       }
       /*
        * #1641【観測 + 復帰】**勝手に止まったら撃ち直し、止まったこと自体を残す。**
