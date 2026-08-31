@@ -126,8 +126,14 @@ jobs:
       - name: 🧪 Run Playwright tests (Tier 1 + 2)
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_e2e_tests }}
         # Playwright は位置引数を «ファイル名にかかる正規表現» として解釈する。
-        # 空なら引数を渡さない（＝全件）。schedule 実行には inputs が無いので必ず全件になる。
-        run: pnpm --filter e2e-web test -- ${{ inputs.test_filter }}
+        # 空なら引数が 1 つも増えない（＝全件）。schedule 実行には inputs が無いので必ず全件になる。
+        #
+        # ⚠️ **`--` を挟まないこと。** pnpm はこれを消費せず、そのまま playwright へ渡す。
+        #    実測: `pnpm --filter e2e-web test -- onboarding` → playwright の argv は
+        #    `["--", "onboarding"]` になり、`playwright test --list -- onboarding` は
+        #    **Total: 0 tests in 0 files** を返す。さらに入力が空のときは argv が `["--"]` に
+        #    なるので、**nightly（inputs が空）が 1 件も実行しない**状態になっていた。
+        run: pnpm --filter e2e-web test ${{ inputs.test_filter }}
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
