@@ -275,8 +275,20 @@ describeMutation("グリッドから開いたフィードで 2 つのセルが�
 
 		// 1. 食べたい/食べた → リスト（グリッド）
 		await tabBar.gotoMyDishes();
-		await myDishes.selectView("list");
-		// 一覧は約 964MB の `dish_reviews` を引くので、初回は既定のタイムアウトでは足りない
+		/*
+		⚠️ **`selectView` にも長いタイムアウトを渡すこと。**
+
+		一覧は約 964MB の `dish_reviews` を引くので、初回は既定（25 秒）では足りない。
+		下の `my-dishes-list` にだけ 120 秒を渡していたが、**その手前の `selectView` が
+		ビューの器の可視を既定のタイムアウトで待っていた**ため、iOS シミュレータでは
+		そちらが先に時間切れになっていた（run 33440630546 / iOS）。
+
+		    Timed out while waiting for expectation: TOBEVISIBLE WITH MATCHER(id == "my-dishes-list-view") TIMEOUT(25s)
+
+        失敗時のコマにはグリッドが**正しく描かれていた**。つまり «出ない» のではなく «間に合わない» だった。
+		Android は同じ操作が 25 秒に収まるので、この spec は Android でだけ緑になっていた。
+		*/
+		await myDishes.selectView("list", 120_000);
 		await waitUntilVisible(by.id("my-dishes-list"), 120_000);
 
 		/*

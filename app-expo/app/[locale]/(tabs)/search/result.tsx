@@ -58,7 +58,8 @@ export default function ResultScreen() {
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey || "", idType)(state),
-		[entriesKey, idType],
+		// `idType` はモジュール定数（26 行目）なので依存に含めない
+		[entriesKey],
 	);
 	const { ids, isLoading } = useDishMediaEntriesStore(selector, shallow);
 	const initialLocation = useMemo(() => {

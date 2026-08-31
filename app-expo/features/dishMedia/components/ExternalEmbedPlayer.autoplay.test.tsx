@@ -61,6 +61,23 @@ function renderActiveCell(): ReactTestRenderer {
 	return tree;
 }
 
+/** YouTube（`mode: "iframe"`）のセル。`poster` の扱いが document と違うので分けて描く */
+const YOUTUBE_EMBED = {
+	provider: "youtube" as const,
+	externalContentId: "dQw4w9WgXcQ",
+	canonicalUrl: "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+	embedStatus: "available" as const,
+	playbackStatus: "unknown" as const,
+};
+
+function renderYouTubeCell(): ReactTestRenderer {
+	let tree!: ReactTestRenderer;
+	act(() => {
+		tree = create(<ExternalEmbedPlayer embed={YOUTUBE_EMBED} isActive />);
+	});
+	return tree;
+}
+
 const post = (payload: unknown) =>
 	act(() => {
 		webViewProps.onMessage({ nativeEvent: { data: JSON.stringify(payload) } });
@@ -775,6 +792,35 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
 		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(1);
 		expect(tree.root.findAllByProps({ testID: "external-embed-loading" }).length).toBe(0);
+	});
+
+	/*
+	#1641 ⚠️ **YouTube（iframe）は `poster` で見せてはいけない。**
+
+	オーナー実機報告（2026-08-31）:
+	  「YouTube shorts に邪魔な部品が多くてどれも押せない」
+	  「はじめの 2 秒 部品でて、そこからでなくなりますね」
+
+	`controls=0` 等の URL パラメータで消せるのは **再生中の UI** だけで、**再生が始まる前**の
+	画面にはタイトル・チャンネル名・Shorts バッジ・▶ が出る。`poster` はまさにその瞬間に届くので、
+	そこで不透明にすると «最初の 2 秒だけ部品が出る» になる。
+
+	document（Instagram / TikTok）は注入した CSS が向こうの UI を先に隠しているので、
+	`poster` で早く見せてよい（待たせると鳴るまでの数秒がサムネイルのままで遅く見える）。
+	**この 2 本は対になっている。片方だけ変えないこと。**
+	*/
+	it("YouTube は poster では見せない（最初の 2 秒だけ部品が出るのを防ぐ）", () => {
+		const tree = renderYouTubeCell();
+		post({ src: "nb-embed-autoplay", kind: "poster", detail: null });
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(0);
+	});
+
+	it("YouTube も、実際に鳴り始めたら見せる", () => {
+		const tree = renderYouTubeCell();
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: "muted" });
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(1);
 	});
 
 	/* poster を送らない provider（YouTube の包み）でも、再生が始まれば必ず見せる */

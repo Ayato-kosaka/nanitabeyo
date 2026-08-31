@@ -16,6 +16,7 @@
 		"assert:remote-config-defaults": "node ./scripts/assert-remote-config-defaults.mjs",
 		"assert:legacy-blur-modal-boundary": "node ./scripts/assert-legacy-blur-modal-boundary.mjs",
 		"assert:no-hardcoded-colors": "node ./scripts/assert-no-hardcoded-colors.mjs",
+		"assert:no-new-exhaustive-deps": "node ./scripts/assert-no-new-exhaustive-deps.mjs",
 		"lint": "expo lint .",
 		"typecheck": "tsc -p tsconfig.dev.json --noEmit",
 		"test": "jest",

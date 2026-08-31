@@ -325,6 +325,7 @@ export default function DishMediaFeed({
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- ids は identity ではなく «並び» で見る
 	}, [isScreenActive, currentIndex, ids, entriesKey, idType, logFrontendEvent]);
 
+
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(generateUUID());
 
