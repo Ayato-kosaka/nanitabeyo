@@ -438,6 +438,7 @@ bash tests/test_9_1_restaurant_links.sh      # リンクの追加・削除（6�
 bash tests/test_9_1_address_fill.sh          # アプリ製の行の住所の穴埋め（5項目）
 bash tests/test_9_1_work_table.sh            # 作業表が対象を取りこぼさない（8項目）
 bash tests/test_log_db_load.sh               # 負荷の計測が本処理を殺さない（2項目）
+bash tests/test_db_pressure_guard.sh         # 他人を止めていたら降りる（2項目）
 bash tests/test_pg_connect_survives_rollback.sh  # rollback で dev→public に化けない（6項目）
 ```
 

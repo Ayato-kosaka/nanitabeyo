@@ -18,6 +18,7 @@ from pg_sync_common import (
     SyncStats,
     assert_quality_gate_passed,
     backup_table_to_gcs,
+    check_db_pressure,
     log_db_load,
     connect_postgres,
     fetch_sync_windows,
@@ -377,6 +378,22 @@ def apply_sync(connection: Any) -> None:
                 f"{SYNC_TIME_BUDGET_SECONDS / 60:.0f} 分）。この DB は本番と共有して"
                 "いるので、ここで降ります。上限を伸ばすのではなく、処理の分割を"
                 "検討してください（#1706）"
+            )
+
+        # #1706 **時間の上限だけでは足りない。«他人が困っているか» を見る。**
+        #
+        # 2026-08-31 に本番と dev を止めたとき、私が持っていた守りは時間の上限
+        # だけだった。時間内に収まっていても、他のセッションが待たされていれば
+        # 止めるべきである。**誰も見ていない時間帯に流すなら、なおさら自分で
+        # 気付いて降りる必要がある。**
+        #
+        # 1 トランザクションなので、ここで落ちれば書いたものは全て巻き戻る。
+        # 途中まで適用された中途半端な状態は残らない。
+        harmful, reason = check_db_pressure(cursor.connection)
+        if harmful:
+            raise RuntimeError(
+                f"{reason}。同期が他のサービスを止めているので、ここで降ります"
+                "（#1706）。空いている時間帯に流し直してください"
             )
 
         # #1706 **遅いときに «なぜ» を残す。** 同じ文が実行によって 8 秒にも

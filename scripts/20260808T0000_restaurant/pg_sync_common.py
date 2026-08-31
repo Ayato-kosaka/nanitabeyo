@@ -21,7 +21,19 @@ from pipeline_common import BigQueryPipeline, utc_now
 LOGGER = logging.getLogger(__name__)
 ALLOWED_SCHEMAS = {"dev", "public"}
 # 同期session専用の statement_timeout（30分）。詳細は connect_postgres を参照。
-STATEMENT_TIMEOUT_MS = 30 * 60 * 1000
+# #1706 **1 文が共有 DB を掴んでよい上限。**
+#
+# 30 分にしていたが、それは «自分が完走すること» だけを見た値だった。この DB は
+# 本番と共有しており、**誰も見ていない時間帯に 1 文が 30 分居座れる**のは危険が
+# 大きすぎる。ローカル 62 万行の実測では最も重い文が 39.7 秒（作業表化のあと）。
+# 10 分は 15 倍の余裕があり、それを超えるなら «想定と違うことが起きている» と
+# 判断してよい。伸ばすのではなく、原因を調べる。
+STATEMENT_TIMEOUT_MS = 10 * 60 * 1000
+
+# #1706 «他人が困っている» と判断する閾値。アプリの通常の問い合わせは秒未満で
+# 終わる。30 秒を超えているものが複数あるなら、資源の取り合いが起きている。
+OTHER_QUERY_SLOW_SECONDS = 30
+OTHER_SLOW_QUERY_LIMIT = 3
 
 # 8_1 が書く ERROR check の名前。「部分insertのvalidationで同期を承認しない」を、
 # 件数ではなく**名前の集合**で担保する。件数だけを見ると «17件は揃っているが
@@ -231,6 +243,65 @@ def log_db_load(connection: PgConnection, label: str) -> None:
             )
     except Exception as error:  # 計測の失敗で本処理を止めない
         LOGGER.warning("DB負荷[%s] を測れませんでした: %s", label, error)
+
+
+def check_db_pressure(connection: PgConnection) -> tuple[bool, str]:
+    """**他のサービスを止めていないか**を見る。止めていれば (True, 理由) を返す。
+
+    #1706 2026-08-31、このバッチが共有 DB を圧迫して本番と dev の両方を止めた。
+    そのとき私が持っていた守りは «時間の上限» だけで、**«他人が困っているか» は
+    一度も見ていなかった**。時間内に収まっていても他人が待たされていれば、
+    それは止めるべきである。
+
+    見るのは 2 つ。
+
+      ・**ロック待ち** … 直接的に «自分が誰かを止めている» 印
+      ・**長く走っている他人のクエリ** … アプリの通常の問い合わせは短い。
+        それが長引いているなら、資源の取り合いが起きている
+
+    ⚠️ ここは «おまけ» なので SAVEPOINT の中で実行する。計測の失敗で本処理を
+    落とした事故があった（→ `log_db_load` の docstring）。**測れなかったときは
+    «問題なし» ではなく «分からない» として扱い、本処理は続ける**（測れないことを
+    理由に止めると、些細な失敗で同期が二度と通らなくなる）。
+    """
+
+    in_transaction = not connection.autocommit
+    try:
+        with connection.cursor() as cursor:
+            if in_transaction:
+                cursor.execute("SAVEPOINT db_pressure_probe")
+            try:
+                cursor.execute(
+                    f"""
+                    SELECT
+                      COUNT(*) FILTER (WHERE wait_event_type = 'Lock') AS waiting_on_lock,
+                      COUNT(*) FILTER (
+                        WHERE state = 'active'
+                          AND now() - query_start > INTERVAL '{OTHER_QUERY_SLOW_SECONDS} seconds'
+                      ) AS slow_others
+                    FROM pg_stat_activity
+                    WHERE datname = current_database() AND pid <> pg_backend_pid()
+                    """
+                )
+                waiting, slow_others = cursor.fetchone()
+            except Exception:
+                if in_transaction:
+                    cursor.execute("ROLLBACK TO SAVEPOINT db_pressure_probe")
+                raise
+            if in_transaction:
+                cursor.execute("RELEASE SAVEPOINT db_pressure_probe")
+    except Exception as error:
+        LOGGER.warning("DB の混み具合を測れませんでした（続行します）: %s", error)
+        return False, ""
+
+    if waiting:
+        return True, f"他のセッション {waiting} 本がロック待ちになっています"
+    if slow_others >= OTHER_SLOW_QUERY_LIMIT:
+        return True, (
+            f"他のセッションのうち {slow_others} 本が "
+            f"{OTHER_QUERY_SLOW_SECONDS} 秒を超えて走っています"
+        )
+    return False, ""
 
 
 def assert_quality_gate_passed(
