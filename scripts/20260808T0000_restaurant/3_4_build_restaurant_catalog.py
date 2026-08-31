@@ -187,7 +187,14 @@ def main() -> None:
           address_components_json, '|', COALESCE(plus_code_json, ''), '|',
           COALESCE(address, ''), '|', COALESCE(country_code, ''), '|',
           COALESCE(phone, ''), '|', COALESCE(website, ''), '|',
-          ARRAY_TO_STRING(social_urls, ',')
+          ARRAY_TO_STRING(social_urls, ','), '|',
+          -- #1706 source_names も hash に入れる。
+          --
+          -- 入れないと 9_1 の provenance UPDATE が «名前配列が変わったか» を
+          -- 判定するために、62 万行すべてで jsonb から配列を組み立てて比較する
+          -- ことになる（実測 1,538 秒 / 更新は 1,220 行だけ）。
+          -- hash に含めれば、比較は文字列 1 回で済む。
+          ARRAY_TO_STRING(source_names, ',')
         ))) AS row_hash,
         CURRENT_TIMESTAMP() AS built_at
       FROM publish_values

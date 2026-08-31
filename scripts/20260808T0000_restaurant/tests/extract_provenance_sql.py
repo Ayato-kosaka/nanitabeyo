@@ -16,13 +16,15 @@ SOURCE = Path(__file__).resolve().parent.parent / "9_1_sync_restaurants.py"
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--which", choices=("provenance", "synced_at"), required=True)
+    parser.add_argument("--which", choices=("provenance", "synced_at", "address_fill"), required=True)
     args = parser.parse_args()
 
     src = SOURCE.read_text(encoding="utf-8")
     found = re.findall(r'"""\s*(UPDATE restaurants r\s+SET[^"]*?)"""', src, re.S)
     if args.which == "provenance":
         hit = [q for q in found if "source_seed_id = s.seed_id" in q and "source_names = ARRAY(" in q]
+    elif args.which == "address_fill":
+        hit = [q for q in found if "SET address = s.address" in q]
     else:
         hit = [q for q in found if q.strip().startswith("UPDATE restaurants r\n            SET synced_at")]
     if len(hit) != 1:

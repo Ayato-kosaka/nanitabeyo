@@ -52,15 +52,15 @@ INSERT INTO restaurants (google_place_id, source_seed_id, source_names, source_r
   ('P_SAME','11111111-1111-1111-1111-111111111111','{"のれん"}','hash-1','2020-01-01','pipeline'),
   -- hash が変わった → 書かれる
   ('P_HASH','22222222-2222-2222-2222-222222222222','{"のれん"}','hash-OLD','2020-01-01','pipeline'),
-  -- source_names が変わった → 書かれる
-  ('P_NAMES','33333333-3333-3333-3333-333333333333','{"ふるい"}','hash-3','2020-01-01','pipeline'),
+  -- source_names が変わった → hash も動く（#1706 で source_names を hash に含めた）
+  ('P_NAMES','33333333-3333-3333-3333-333333333333','{"ふるい"}','hash-3-OLD','2020-01-01','pipeline'),
   -- アプリ製・hash 違い → **hash は書かれないが synced_at は付く**
   ('P_USER','44444444-4444-4444-4444-444444444444','{"のれん"}',NULL,'2020-01-01','user');
 
 INSERT INTO restaurant_sync_staging VALUES
   ('P_SAME','11111111-1111-1111-1111-111111111111','["のれん"]','hash-1'),
   ('P_HASH','22222222-2222-2222-2222-222222222222','["のれん"]','hash-NEW'),
-  ('P_NAMES','33333333-3333-3333-3333-333333333333','["あたらしい"]','hash-3'),
+  ('P_NAMES','33333333-3333-3333-3333-333333333333','["あたらしい"]','hash-3-NEW'),
   ('P_USER','44444444-4444-4444-4444-444444444444','["のれん"]','hash-NEW');
 SQL
 
@@ -80,6 +80,15 @@ echo "✅ 1. 中身が変わらない行は provenance UPDATE の対象外"
 [ "$(q "SELECT source_names[1] FROM restaurants WHERE google_place_id='P_NAMES';")" = "あたらしい" ] \
   || fail "source_names が変わった行が更新されていない"
 echo "✅ 2. hash / source_names が変わった行は更新される"
+
+# --- 2-b. ★ source_names は row_hash に含まれている（#1706）---
+#   含めないと provenance UPDATE が 62 万行ぶん jsonb を展開して配列比較する
+#   （実測 1,538 秒 / 更新は 1,220 行だけ）。hash に入れたので比較は文字列 1 回。
+#   つまり «名前配列だけ変わって hash は同じ» は起こり得ない。
+#   3_4 の row_hash に ARRAY_TO_STRING(source_names, ',') が入っていることを固定する。
+grep -q "ARRAY_TO_STRING(source_names" "$REPO_ROOT/scripts/20260808T0000_restaurant/3_4_build_restaurant_catalog.py" \
+  || fail "3_4 の row_hash に source_names が入っていない（provenance の比較が重くなる）"
+echo "✅ 2-b. source_names は row_hash に含まれている"
 
 # --- 3. ★ アプリ製の行に hash を刻まない（既存の不変条件を壊していない）---
 [ -z "$(q "SELECT source_row_hash FROM restaurants WHERE google_place_id='P_USER';")" ] \

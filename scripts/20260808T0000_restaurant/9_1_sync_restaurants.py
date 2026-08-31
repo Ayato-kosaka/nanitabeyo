@@ -108,6 +108,24 @@ def load_staging(connection: Any, path: Path) -> None:
                 "COPY restaurant_sync_staging FROM STDIN WITH (FORMAT CSV, NULL '\\N')",
                 stream,
             )
+        # #1706 **索引と統計を作ってから DML へ入る。**
+        #
+        # staging は TEMP テーブルで、これまで索引も ANALYZE も無かった。
+        # そのため後続の全ての文が 62 万行の seq scan になり、
+        # **0 行しか更新しない文まで 600 秒**かかっていた（2026-08-30 実測）。
+        #
+        #   seed 付替の provenance 解除  566秒 /     0行
+        #   表示値 UPDATE               671秒 /   168行
+        #   古い open_data リンク削除     646秒 / 1,654行
+        #   リンク投入                   680秒 /     2行
+        #
+        # ここで索引を作る数十秒で、その後の数千秒が消える。
+        # ANALYZE も要る。統計が無いと plan が nested loop / hash join を誤る。
+        cursor.execute(
+            "CREATE INDEX ON restaurant_sync_staging (google_place_id)"
+        )
+        cursor.execute("CREATE INDEX ON restaurant_sync_staging (seed_id)")
+        cursor.execute("ANALYZE restaurant_sync_staging")
 
 
 def calculate_stats(connection: Any) -> SyncStats:
@@ -351,6 +369,31 @@ def apply_sync(connection: Any) -> None:
         # **消してから入れ直す形にはしない。** ユーザーやオーナーが後から足した
         # リンク（source が user / owner / official_site）まで消えるためである。
         # オープンデータ由来の行だけを対象に upsert する。
+        # #1706 **アプリ製の行の «空いている» 住所だけを埋める。**
+        #
+        # 上の値 UPDATE は created_by_source='pipeline' に限っているので、
+        # アプリが作った行には address / country_code が永久に入らない。
+        # dev 実測で 2,472 行すべてが address 空だった。
+        # 「上書きしない」と「欠けたままにする」は別の話なので、分けて扱う。
+        #
+        # ⚠️ **NULL の行にしか書かない。** 値が入っている行には触らない。
+        # ユーザー／オーナーが入れた住所を、オープンデータで塗り替えないため。
+        # country_code は 9_9_backfill_country_code.py が
+        # その行自身の address_components から入れる方が精度が高いので、
+        # ここでは **catalog にしか無い address だけ**を対象にする。
+        run(
+            "アプリ製の住所を穴埋め",
+            """
+            UPDATE restaurants r
+            SET address = s.address
+            FROM restaurant_sync_staging s
+            WHERE r.google_place_id = s.google_place_id
+              AND r.created_by_source <> 'pipeline'
+              AND r.address IS NULL
+              AND NULLIF(btrim(s.address), '') IS NOT NULL
+            """,
+        )
+
         # #1700 レビュー: 出所側で値が変わった/消えたときに、**古い値が残り続ける**。
         # ON CONFLICT DO NOTHING は足すだけなので、電話が変わった店は
         # 新旧 2 本を持つことになり、どちらが現在の値か区別できない。
@@ -468,15 +511,16 @@ def apply_sync(connection: Any) -> None:
               synced_at = CURRENT_TIMESTAMP
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
+              -- #1706 **配列を組み立てて比べない。**
+              -- source_names は row_hash に含めた（3_4）ので、hash の比較だけで
+              -- «provenance が変わったか» が分かる。62 万行ぶんの jsonb 展開が
+              -- 消える（実測 1,538 秒 → 索引と併せて大幅短縮）。
+              --
+              -- アプリ製の行は source_row_hash を NULL のままにしているので
+              -- 常に真になるが、2,472 行しかないので支障はない。
               AND (
                 r.source_seed_id IS DISTINCT FROM s.seed_id
-                OR r.source_names IS DISTINCT FROM ARRAY(
-                  SELECT jsonb_array_elements_text(s.source_names_json::jsonb)
-                )
-                OR (
-                  r.created_by_source = 'pipeline'
-                  AND r.source_row_hash IS DISTINCT FROM s.row_hash
-                )
+                OR r.source_row_hash IS DISTINCT FROM s.row_hash
               )
             """,
         )
