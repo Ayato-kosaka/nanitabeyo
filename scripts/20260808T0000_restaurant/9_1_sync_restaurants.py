@@ -155,7 +155,7 @@ def calculate_stats(connection: Any) -> SyncStats:
 
 
 def detect_backfill_missing(
-    pipeline_rows: int, sync_windows: list[Any]
+    has_pipeline_rows: bool, sync_windows: list[Any]
 ) -> tuple[bool, int]:
     """backfill（9_9）の実施漏れを判定する。戻り値は (漏れているか, 過去INSERT数)。
 
@@ -176,7 +176,7 @@ def detect_backfill_missing(
     """
 
     past_inserted = sum(int(getattr(w, "inserted_count", 0) or 0) for w in sync_windows)
-    return past_inserted > 0 and pipeline_rows == 0, past_inserted
+    return past_inserted > 0 and not has_pipeline_rows, past_inserted
 
 
 def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
@@ -216,13 +216,20 @@ def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
         # 同期すると **オープンデータの更新が一件も反映されない**（壊れは
         # しないが黙って止まる）。落ちるより気付きにくいので、ここで数える。
         # 判定の根拠は detect_backfill_missing の docstring にある。
+        # #1706 **数えない。«1 行でもあるか» だけを見る。**
+        #
+        # 判定に要るのは 0 か 0 でないかだけなので、COUNT(*) は無駄である。
+        # しかも高くつく。pipeline が 62 万行中 61.9 万行を占めるため planner は
+        # 索引を使わず全表走査を選び、**死骸が積んだ表では 30 分でも終わらない**
+        # （2026-08-31 に実測。9_1 が 3 回連続で落ちた 3 回目の原因）。
+        # EXISTS なら索引で最初の 1 行に当たった時点で止まる。
         cursor.execute(
-            "SELECT COUNT(*) FROM restaurants WHERE created_by_source = 'pipeline'"
+            "SELECT EXISTS (SELECT 1 FROM restaurants WHERE created_by_source = 'pipeline')"
         )
-        pipeline_rows = cursor.fetchone()[0]
+        has_pipeline_rows = cursor.fetchone()[0]
 
     backfill_missing, past_inserted = detect_backfill_missing(
-        pipeline_rows, sync_windows
+        has_pipeline_rows, sync_windows
     )
 
     if backfill_missing:

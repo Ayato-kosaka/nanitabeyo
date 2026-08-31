@@ -520,6 +520,25 @@ args:        --run-id restaurant-2026-08-23 --schema public --snapshot-date 2026
 確認: 3_3 のログで `existing_pg_matched` の件数が 1 の `row_count` とおおむね一致すること
 （`public` の既存行が Text Search 抜きで place_id を持ち込めている、の意）。
 
+### 2-b. 表の健康状態を測る（同期が一度でも失敗しているなら必須）
+
+```text
+9_9_maintain_restaurants.py --schema public --allow-public              測るだけ
+9_9_maintain_restaurants.py --schema public --allow-public --vacuum     VACUUM (ANALYZE)
+```
+
+**9_1 は 1 トランザクションなので失敗すれば内容は巻き戻るが、書きかけた行の
+バージョンは «死んだ行» として表に残る。** 62 万行を書き換えて失敗した実行が
+2 回あれば、62 万行の表に 120 万行ぶんの死骸が積む。以後の全ての走査が
+その分だけ遅くなり、次の同期も落ちる——という悪循環になる。
+
+2026-08-31 に dev で実際に起き、3 回目は
+`SELECT COUNT(*) FROM restaurants` が 30 分で終わらなかった。
+
+**同期が失敗したら、次を流す前にここを見る。** 死骸が 20% を超えていたら
+`--vacuum` してから進む。数字を見ずに «もう一度流す» のは、遅くなった表を
+さらに膨らませるだけである。
+
 ### 3. 品質ゲート
 
 ```text

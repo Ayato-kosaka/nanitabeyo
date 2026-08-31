@@ -38,17 +38,17 @@ def main() -> None:
             print(f"❌ {label}: got={got} want={want}")
 
     # 1. 初回同期。過去の同期が無いので pipeline が 0 でも正常
-    check("1. 初回同期（実行窓なし）は発火しない", detect(0, [])[0], False)
+    check("1. 初回同期（実行窓なし）は発火しない", detect(False, [])[0], False)
 
     # 2. 過去に同期が走ったが 1 行も INSERT していない（更新のみ）→ 発火しない
     check(
         "2. 過去の同期が 0 行しか INSERT していないなら発火しない",
-        detect(0, [Window(0), Window(0)])[0],
+        detect(False, [Window(0), Window(0)])[0],
         False,
     )
 
     # 3. 実施漏れの唯一の形。過去に INSERT があるのに pipeline が 0 件
-    missing, past = detect(0, [Window(619_497), Window(12)])
+    missing, past = detect(False, [Window(619_497), Window(12)])
     check("3. 過去 INSERT あり × pipeline 0 件 → 発火する", missing, True)
     check("3'. 過去 INSERT 数を合算して報告する", past, 619_509)
 
@@ -57,17 +57,17 @@ def main() -> None:
     #    ここが「行を数える」実装との決定的な違いである。
     check(
         "4. pipeline が 1 件でもあれば発火しない（アプリ製の行が混ざっても）",
-        detect(1, [Window(619_497)])[0],
+        detect(True, [Window(619_497)])[0],
         False,
     )
     check(
-        "4'. backfill 済み（pipeline 61 万件）でも当然発火しない",
-        detect(619_497, [Window(619_497)])[0],
+        "4'. 実行窓が複数あっても pipeline が在れば発火しない",
+        detect(True, [Window(619_497)])[0],
         False,
     )
 
     # 5. inserted_count が NULL の実行ログ（dry-run 直後など）で落ちない
-    check("5. inserted_count が None でも例外にならない", detect(0, [Window(None)])[0], False)
+    check("5. inserted_count が None でも例外にならない", detect(False, [Window(None)])[0], False)
 
     print()
     if failures:

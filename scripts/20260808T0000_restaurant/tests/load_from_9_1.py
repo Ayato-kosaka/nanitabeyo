@@ -7,8 +7,8 @@
 9_1 はモジュールごと import すると BigQuery クライアントまで芋づるで読み込み、
 環境によっては落ちる。必要な定義だけを AST で取り出して exec する。
 
-  python3 load_from_9_1.py sql                        判定に使う件数SQLを出力
-  python3 load_from_9_1.py detect <pipeline行数> [INSERT数...]   1=漏れ / 0=正常
+  python3 load_from_9_1.py sql                            判定に使う存在確認SQLを出力
+  python3 load_from_9_1.py detect <t|f> [INSERT数...]     1=漏れ / 0=正常
 """
 
 from __future__ import annotations
@@ -40,14 +40,14 @@ def load_detect():
 
 
 def load_count_sql() -> str:
-    """«pipeline 行が何行あるか» を数える SQL を 9_1 から取り出す。"""
+    """«pipeline の行が 1 行でもあるか» を見る SQL を 9_1 から取り出す。"""
 
     hits = re.findall(
-        r'"(SELECT COUNT\(\*\) FROM restaurants WHERE created_by_source[^"]*)"',
+        r'"(SELECT EXISTS \(SELECT 1 FROM restaurants WHERE created_by_source[^"]*)"',
         SOURCE.read_text(encoding="utf-8"),
     )
     if len(hits) != 1:
-        raise SystemExit(f"件数SQLを一意に取れませんでした（{len(hits)}件）")
+        raise SystemExit(f"存在確認SQLを一意に取れませんでした（{len(hits)}件）")
     return hits[0]
 
 
@@ -56,9 +56,9 @@ def main() -> None:
         sys.stdout.write(load_count_sql())
         return
     if len(sys.argv) >= 3 and sys.argv[1] == "detect":
-        pipeline_rows = int(sys.argv[2])
+        has_pipeline_rows = sys.argv[2].lower() in ("t", "true", "1")
         windows = [Window(int(v)) for v in sys.argv[3:]]
-        missing, _ = load_detect()(pipeline_rows, windows)
+        missing, _ = load_detect()(has_pipeline_rows, windows)
         sys.stdout.write("1" if missing else "0")
         return
     raise SystemExit(__doc__)

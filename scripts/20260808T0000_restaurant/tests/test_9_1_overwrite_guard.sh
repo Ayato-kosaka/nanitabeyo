@@ -156,6 +156,8 @@ echo "✅ 4. pipeline 行はオープンデータの更新に追随する"
 LOADER="$REPO_ROOT/scripts/20260808T0000_restaurant/tests/load_from_9_1.py"
 COUNT_SQL="$(python3 "$LOADER" sql)"
 detect() {  # $1 = 過去の同期の inserted_count
+  # COUNT ではなく EXISTS（#1706）。62 万行中 61.9 万行が pipeline なので
+  # planner が索引を捨てて全表走査し、死骸の積んだ表では 30 分でも終わらない。
   python3 "$LOADER" detect "$(q "$COUNT_SQL;")" "$1"
 }
 
