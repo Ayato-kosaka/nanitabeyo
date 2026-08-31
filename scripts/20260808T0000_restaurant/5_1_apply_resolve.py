@@ -39,19 +39,28 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--limit", type=int, default=500, help="このバッチで処理する未処理投稿数の上限")
     p.add_argument("--sleep-ms", type=int, default=150, help="resolve 呼び出しの間隔（dev API 負荷対策）")
     p.add_argument("--debug-dump", type=int, default=0, help="先頭 N 件の resolve 生レスポンスをログに出す（診断用）")
+    # 18k+ の再 resolve を数時間で終えるため、post_id ハッシュで水平分割して複数 run を並列に回す。
+    # 各シャードは互いに素な post_id 集合を担当するので二重 resolve/二重挿入が起きない。
+    p.add_argument("--shards", type=int, default=1, help="並列シャード総数（既定1=分割なし）")
+    p.add_argument("--shard", type=int, default=0, help="このバッチが担当するシャード番号 [0, shards)")
     return p.parse_args()
 
 
-def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_id: str, limit: int):
-    """未 resolve（この run で resolved に無い）投稿を取り出す。"""
+def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_id: str, limit: int,
+                      shards: int = 1, shard: int = 0):
+    """未 resolve（この run で resolved に無い）投稿を取り出す。shards>1 のときは post_id で水平分割。"""
     from google.cloud import bigquery
+    shard_filter = ""
+    if shards > 1:
+        # FARM_FINGERPRINT は決定的なので、同じ post_id は常に同じシャードに落ちる（並列非重複）。
+        shard_filter = "AND MOD(ABS(FARM_FINGERPRINT(r.post_id)), @shards) = @shard"
     sql = f"""
       SELECT r.post_id, r.canonical_url, r.discovery_route,
              r.discovery_area_lat, r.discovery_area_lng
       FROM `{pipeline.table(TABLE_POST_RAW)}` r
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
-      WHERE r.run_id = @raw_rid AND v.post_id IS NULL
+      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter}
       QUALIFY ROW_NUMBER() OVER (PARTITION BY r.post_id ORDER BY r.fetched_at DESC) = 1
       LIMIT {int(limit)}
     """
@@ -59,6 +68,9 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
         bigquery.ScalarQueryParameter("raw_rid", "STRING", raw_run_id),
         bigquery.ScalarQueryParameter("resolve_rid", "STRING", resolve_run_id),
     ]
+    if shards > 1:
+        params.append(bigquery.ScalarQueryParameter("shards", "INT64", shards))
+        params.append(bigquery.ScalarQueryParameter("shard", "INT64", shard))
     return list(pipeline.execute(sql, params))
 
 
@@ -72,15 +84,29 @@ def main() -> None:
     now_iso = utc_now().isoformat()
     sleep_s = max(args.sleep_ms, 0) / 1000.0
 
-    posts = _fetch_unresolved(pipeline, raw_run_id, run_id, args.limit)
-    LOGGER.info("未 resolve %d 投稿を処理します（resolve_version=%s）", len(posts), args.resolve_version)
+    posts = _fetch_unresolved(pipeline, raw_run_id, run_id, args.limit, args.shards, args.shard)
+    LOGGER.info("未 resolve %d 投稿を処理します（resolve_version=%s, shard=%d/%d）",
+                len(posts), args.resolve_version, args.shard, args.shards)
 
     with pipeline.step(run_id, "5_1_apply_resolve", parameters={
         "raw_run_id": raw_run_id, "resolve_version": args.resolve_version, "limit": args.limit,
+        "shards": args.shards, "shard": args.shard,
     }, repo_root=None) as result:
-        rows = []
+        # 数千件の resolve は 1〜2h かかる。末尾一括ロードだと進捗が見えず timeout で全ロストするので
+        # FLUSH_EVERY 件ごとに逐次ロードする（WRITE_APPEND。再実行時は resolved 済みを LEFT JOIN でskip）。
+        FLUSH_EVERY = 200
+        rows: list[dict] = []
         n_ok = n_err = 0
         dumped = 0
+        total = 0
+        matched = 0
+
+        def _flush() -> None:
+            nonlocal rows, total
+            if rows:
+                total += pipeline.load_json_rows(TABLE_POST_RESOLVED, rows)
+                rows = []
+
         for post in posts:
             lat = post["discovery_area_lat"]
             lng = post["discovery_area_lng"]
@@ -110,14 +136,19 @@ def main() -> None:
                 "resolve_version": args.resolve_version,
                 "resolved_at": now_iso, "run_id": run_id,
             })
+            if outcome.status == "matched":
+                matched += 1
+            if len(rows) >= FLUSH_EVERY:
+                _flush()
+                LOGGER.info("  … %d/%d 処理・%d 件ロード済み（matched=%d, 失敗=%d）",
+                            n_ok + n_err, len(posts), total, matched, n_err)
             if sleep_s:
                 time.sleep(sleep_s)
 
-        count = pipeline.load_json_rows(TABLE_POST_RESOLVED, rows) if rows else 0
-        result["row_count"] = count
-        matched = sum(1 for r in rows if r["status"] == "matched")
+        _flush()
+        result["row_count"] = total
         LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d）を投入しました",
-                    count, matched, n_err)
+                    total, matched, n_err)
 
 
 if __name__ == "__main__":
