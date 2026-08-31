@@ -589,11 +589,54 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		expect(Number(loadingGrace![1])).toBeGreaterThanOrEqual(20000);
 	});
 
-	it("時間切れ（ページが組み上がらない）のときは document モードでも畳む", () => {
+	/*
+	#1641 ⚠️ **組み上がらないまま時間切れしたセルを、1 回目で畳まないこと。**
+
+	原因を名指しできた（iOS / commit fa0dc74f）。止まったセルは毎回まったく同じ
+	1 つのホストを待ったまま動かない。
+
+	    stall4000 / stall9000 / stall14000 / timeout すべて
+	    ready=loading nodes=12 script=6 body=no res=7
+	    pending=lf16-tiktok-common.tiktokcdn-us.com
+
+	head の script 1 本が CDN から返ってこず、パーサがそこで止まっている。
+	**同じ投稿が同じ run の中で後から再生できている**（05:22:04 失敗 → 05:25:05 再生）ので、
+	«その投稿に映像が無い» ではない。読み直せば別のエッジに当たる目がある。
+	*/
+	it("組み上がらないまま時間切れしたら、畳まずに読み直す（サーバへも報告しない）", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		post({
+			src: "nb-embed-autoplay",
+			kind: "timeout",
+			detail: "still_loading ready=loading nodes=12 script=6 body=no res=7 pending=example.invalid",
+		});
+
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+
+		const retry = mockLogFrontendEvent.mock.calls
+			.map((call) => call[0])
+			.find((event) => event.event_name === "external_embed_load_retry");
+		expect(retry).toBeDefined();
+		expect(retry.payload.reason).toBe("still_loading");
+	});
+
+	it("読み直しても組み上がらなければ、document モードでも畳む", () => {
 		const tree = renderActiveCell();
-		post({ src: "nb-embed-autoplay", kind: "timeout", detail: "still_loading" });
+		/*
+		⚠️ 1 回目では畳まない（上の «読み直す» の検証）。**読み直しを使い切ってから**畳む。
+		黒い板をどけて、アプリが持っているサムネイルを見せるのがここの目的である。
+		*/
+		// 上限（2 回）を超える 3 回目で畳む
+		for (let i = 0; i < 3; i++) {
+			post({ src: "nb-embed-autoplay", kind: "timeout", detail: "still_loading" });
+		}
 		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBeGreaterThan(0);
-		// 黒い板をどけて、アプリが持っているサムネイルを見せる
 		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBe(0);
 		expect(fallbackCount(tree)).toBeGreaterThan(0);
 	});
