@@ -12,6 +12,7 @@ import {
 	Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus, Camera } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -124,6 +125,17 @@ export function ReviewForm({
 	const { colors } = useAppTheme();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const insets = useSafeAreaInsets();
+	/*
+	#1629【オーナー実機報告 2 回目】「料金の入力がキーボードに隠れる」。
+
+	1 回目は `KeyboardAvoidingView` へ `behavior` を渡す修正を出したが **実機では直らなかった**。
+	あれは «自分の枠を測って引き算する» 前提で、Android 15 以降の edge-to-edge では
+	その前提が崩れる（詳細は `hooks/useKeyboardInset.ts`）。
+
+	キーボードの高さを直接もらって、スクロールの中身の下へその分だけ余白を足す。
+	窓が縮むかどうかにも親のレイアウトにも依存しないので、画面ごとの当たり外れが無い。
+	*/
+	const keyboardInset = useKeyboardInset();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { uploadFile: mediaUploadFile } = useFileUploader();
@@ -1273,7 +1285,14 @@ export function ReviewForm({
 				（`app/[locale]/add-record.tsx` が #1375 3 巡目で同じ判断をして実機で直っている）。
 				*/
 				automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-				contentContainerStyle={styles.scrollContent}>
+				/*
+				#1629 Android はここでキーボードのぶんを空ける。
+				iOS は上の `automaticallyAdjustKeyboardInsets` が native 側でやるので二重に足さない。
+				*/
+				contentContainerStyle={[
+					styles.scrollContent,
+					Platform.OS === "android" && keyboardInset > 0 ? { paddingBottom: keyboardInset } : null,
+				]}>
 				{/* #1375 実機確認（5 巡目）: manual（記録フロー）では **高さを固定しない**。
 				    «写真を撮る / ライブラリ / このお店の写真から選ぶ / スキップ» を積むと
 				    `mediaHeight` に収まらず、上の見出しと下のスキップが切れた（撮って気づいた）。

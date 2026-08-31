@@ -45,6 +45,7 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_SEARCH_RADIUS } from "@/features/dishCategories/constants";
@@ -114,6 +115,12 @@ export default function SearchScreen() {
 	const { locale, isJapanese } = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	/*
+	#1629【オーナー実機報告】キーボードで入力欄が隠れる件の横断対応。
+	この画面の «どのあたりで探す？» はスクロールの途中にあるので、キーボードが出ると
+	その下へ入りうる。高さを直接もらって下へ余白を足す（`hooks/useKeyboardInset.ts`）。
+	*/
+	const keyboardInset = useKeyboardInset();
 	// #1375 実機確認（5 巡目）「保存スナックバーの『見る』で食べたい/食べたへ行き、
 	// 探すへ戻ると条件が全部消えている」への対処。条件は画面の外（store）に置き、
 	// 画面が作り直されても «前回の続き» から始める。まだ一度も触っていなければ null で、
@@ -702,7 +709,15 @@ export default function SearchScreen() {
 			<ScrollView
 				testID="search-scroll-view"
 				style={styles.scrollView}
-				contentContainerStyle={styles.scrollContent}
+				/*
+				#1629 Android はキーボードのぶんを自分で空ける。
+				Android 15 以降は edge-to-edge が強制で `adjustResize` が窓を縮めなくなったため、
+				«OS が縮めてくれる» という前提が成り立たない（`hooks/useKeyboardInset.ts`）。
+				*/
+				contentContainerStyle={[
+					styles.scrollContent,
+					Platform.OS === "android" && keyboardInset > 0 ? { paddingBottom: keyboardInset } : null,
+				]}
 				keyboardShouldPersistTaps="always"
 				// ⚠️ iOS ではキーボードが画面に «覆いかぶさる»（Android のようにウィンドウが縮まない）。
 				// このフォームは最下部が詳細条件トグル + 100px の余白 + 検索 FAB で終わるため、
