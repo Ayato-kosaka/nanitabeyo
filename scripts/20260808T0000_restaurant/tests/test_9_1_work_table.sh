@@ -39,7 +39,7 @@ CREATE TABLE restaurants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   google_place_id TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL, address TEXT,
-  source_seed_id UUID UNIQUE, source_row_hash TEXT,
+  source_seed_id UUID UNIQUE, source_row_hash TEXT, synced_at TIMESTAMPTZ,
   created_by_source TEXT NOT NULL DEFAULT 'user');
 CREATE TABLE restaurant_sync_staging (
   seed_id UUID NOT NULL, google_place_id TEXT NOT NULL, match_method TEXT NOT NULL,
@@ -131,5 +131,39 @@ psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 -c "SET search_path=
   || fail "place_id が変わった行を拾えていない"
 echo "✅ 7. seed が同じで place_id が変わった行だけを拾う"
 
+
+# --- 8. ★ 人手 override で直した行の provenance を消さない（順序の契約）---
+#
+# 作業表にする前、«provenance 解除» は `r.google_place_id <> s.google_place_id`
+# で引いていた。«付替» が先に走って place_id を合わせるので、直した行は条件から
+# **自然に外れて**いた。作業表は «実行前» の状態で作るので、その自然に外れるが
+# 効かない。条件を書き忘れると、直した直後の行の provenance を消してしまう。
+#
+# 落ちない・壊れない・気付けない類なので、実物の PostgreSQL で固定する。
+psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 <<'SQL'
+SET search_path = dev;
+TRUNCATE restaurants, restaurant_sync_staging, restaurant_sync_work, restaurant_sync_moved;
+-- seed は同じだが place_id が変わった行を 1 つ作り、人手 override を宣言する
+INSERT INTO restaurants (google_place_id, name, source_seed_id, source_row_hash, created_by_source)
+VALUES ('P_OLD_ID','付替対象','88888888-8888-8888-8888-888888888888','h8','pipeline');
+INSERT INTO restaurant_sync_staging VALUES
+  ('88888888-8888-8888-8888-888888888888','P_NEW_ID','manual_override','東京都8','h8');
+SQL
+psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 -c "SET search_path=dev; $MOVED" >/dev/null 2>&1 \
+  || psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 -c "SET search_path=dev; DROP TABLE restaurant_sync_moved; $MOVED" >/dev/null
+
+OVERRIDE_FIX="$(python3 "$TESTS_DIR/extract_work_table_sql.py" --which override_fix)"
+UNLINK="$(python3 "$TESTS_DIR/extract_work_table_sql.py" --which unlink)"
+
+# 本番と同じ順序で流す: 付替 → provenance 解除
+q "$OVERRIDE_FIX;" >/dev/null
+q "$UNLINK;" >/dev/null
+
+[ "$(q "SELECT google_place_id FROM restaurants;")" = "P_NEW_ID" ] \
+  || fail "人手 override の付替が効いていない"
+[ -n "$(q "SELECT source_seed_id FROM restaurants;")" ] \
+  || fail "人手 override で直した行の provenance を消した（次の同期で不整合になる）"
+echo "✅ 8. 人手 override で直した行の provenance は消さない"
+
 echo
-echo "すべて通過（7/7）"
+echo "すべて通過（8/8）"

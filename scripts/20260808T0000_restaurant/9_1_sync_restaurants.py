@@ -429,6 +429,14 @@ def apply_sync(connection: Any) -> None:
                 synced_at = CURRENT_TIMESTAMP
             FROM restaurant_sync_moved s
             WHERE r.id = s.pg_id
+              -- #1706 **人手 override で直した行は、ここの対象ではない。**
+              --
+              -- 作業表にする前は `r.google_place_id <> s.google_place_id` で
+              -- 引いていた。上の «付替» が先に走って place_id を合わせるので、
+              -- 直した行はこの条件から自然に外れていた。作業表は «実行前» の
+              -- 状態で作るので、その «自然に外れる» が効かない。
+              -- 条件を明示しないと、直した直後の行の provenance を消してしまう。
+              AND s.match_method <> 'manual_override'
             """,
         )
 
