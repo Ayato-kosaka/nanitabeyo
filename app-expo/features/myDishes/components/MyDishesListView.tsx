@@ -194,7 +194,21 @@ const MyDishCard = memo(function MyDishCard({
 					{isExternalEmbed && (
 						<View
 							style={styles.providerBadge}
-							testID="my-dishes-list-item-provider-badge"
+							/*
+							#1641 ⚠️ **provider を testID に含めること。**
+
+							これが無いと e2e から «鳴る投稿のカード» を狙えない。実際、
+							run 33403385170 は «映像を持たない Instagram の素材» を踏んでしまい、
+							再生を 1 度も観測しないまま «同時再生なし» と判定していた
+							（＝ 何も起きなくても緑になる spec だった）。
+
+							provider ごとに分けておけば «TikTok のカードを踏む» と名指しできる。
+							⚠️ provider が分かるときは **必ず接尾辞が付く**（provider 無しの id は残らない）。
+							   «バッジが在るか» を見るテストは接尾辞付きで書き直してある。
+							*/
+							testID={`my-dishes-list-item-provider-badge${
+								item.dishMedia?.externalEmbed?.provider ? `-${item.dishMedia.externalEmbed.provider}` : ""
+							}`}
 							accessibilityElementsHidden
 							importantForAccessibility="no-hide-descendants">
 							{/* 写真の上に載る固定濃色バッジの中なので固定の白でよい */}

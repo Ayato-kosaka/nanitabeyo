@@ -420,13 +420,18 @@ describe("#1375 取り込んだ投稿には provider のロゴを重ねる", () 
 			queryResult([makeItem("a", { thumbnailImageUrl: "https://img/1.jpg", externalEmbedProvider: "instagram" })]),
 		);
 		const tree = await render();
-		expect(has(tree, "my-dishes-list-item-provider-badge")).toBe(true);
+		/*
+		#1641 e2e から «鳴る投稿のカード» を名指しできるよう、testID に provider を含めている。
+		これが無いと «映像を持たない素材» を踏んで、再生を 1 度も観測しないまま緑になる
+		（run 33403385170 で実際に起きた）。
+		*/
+		expect(has(tree, "my-dishes-list-item-provider-badge-instagram")).toBe(true);
 	});
 
 	it("自分で撮った写真にはロゴを出さない", async () => {
 		mockUseMyDishesQuery.mockReturnValue(queryResult([makeItem("b", { thumbnailImageUrl: "https://img/1.jpg" })]));
 		const tree = await render();
-		expect(has(tree, "my-dishes-list-item-provider-badge")).toBe(false);
+		expect(has(tree, "my-dishes-list-item-provider-badge-instagram")).toBe(false);
 	});
 });
 
