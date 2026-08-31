@@ -317,6 +317,11 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 
 - **入力**: `dish_category_variant_catalog`
 - **出力**: PostgreSQL `dish_category_variants`（運用上は “BQ生成分のみ” を置換する設計意図）
+- **アプリ由来行との衝突**: 同じ表記がアプリ由来行にもある場合、
+  **別の QID を指していれば同期全体を中断**する（アプリの写像を黙って上書きしないため）。
+  **同じ QID なら衝突ではない**ので、BQ 側のその行を投入対象から外し、アプリ由来行を残す。
+  外すのは `ON CONFLICT DO UPDATE` が `source` も上書きしてしまい、
+  「この行は誰が入れたのか」が失われるためである（#1748）
 
 #### `9_5_remap_dish_categories_to_searchable.py`
 
