@@ -208,6 +208,80 @@ export function extractMentions(normalizedText: string): MentionToken[] {
 	return tokens;
 }
 
+/** `【…】` で囲まれた店名候補。`start` / `end` は括弧を含まない本体の範囲 */
+export type BracketedNameToken = {
+	name: string;
+	start: number;
+	end: number;
+};
+
+/**
+ * `【店名】` の隅付き括弧に囲まれた文字列を切り出す（#1273）。
+ *
+ * グルメ紹介の実キャプションは **紹介する店の屋号を `【】` に入れる**ことが圧倒的に多い
+ * （実測 `out/infl_captions.jsonl`: 「📍住所…の【おかげ庵】さん okagean_official」の形）。
+ * この本体はハッシュタグでも `@mention` でもないので、これまでは «完全一致トークン» が
+ * 1 つも作れず、店名が丸ごと括弧内に書かれていても含有一致の 0.85 止まりで、
+ * 無人取り込みの prefill（0.90 必須）に届かなかった。
+ *
+ * ## `【】` だけを見る（`『』`『「」』は採らない）
+ *
+ * 同じキャプションで `『酒蔵の御三時 養老パフェ』`（料理名）や `「行きたい！」`（CTA）に
+ * 別の括弧が使われる。`【】` を **店名の目印**として扱い、他の括弧は採らない。
+ * 全角のみ（半角にしか無い括弧は日本語店名の文脈に出ない）。
+ *
+ * 閉じ括弧が無い／本体が長すぎるものは店名ではないので採らない（上限 40 文字）。
+ *
+ * ## `【店名】` `【住所】` のような «項目ラベル» は採らない
+ *
+ * 一部のテンプレは `【店名】\nil gotti` のように括弧を **見出しラベル**として使い、
+ * 実際の値は次行に書く（実測 `toyamashokujikai` の投稿）。この見出し語をトークンにすると
+ * 店名でない「店名」「住所」等が照合へ紛れ込む。既知のラベル語は落とす
+ * （正規化後は小文字なので、ラベルの照合も小文字で行う）。
+ */
+const BRACKETED_NAME_PATTERN = /【([^【】]{1,40})】/g;
+
+/** 括弧を «見出しラベル» に使うテンプレの語。店名ではないので採らない（正規化後は小文字） */
+const BRACKET_LABEL_WORDS: ReadonlySet<string> = new Set([
+	"店名",
+	"住所",
+	"所在地",
+	"場所",
+	"営業時間",
+	"営業日",
+	"定休日",
+	"アクセス",
+	"電話",
+	"電話番号",
+	"メニュー",
+	"価格",
+	"料金",
+	"予約",
+	"駐車場",
+	"時間",
+	"最寄り駅",
+]);
+
+export function extractBracketedNames(normalizedText: string): BracketedNameToken[] {
+	const tokens: BracketedNameToken[] = [];
+	const pattern = new RegExp(BRACKETED_NAME_PATTERN.source, "g");
+
+	let matched: RegExpExecArray | null = pattern.exec(normalizedText);
+	while (matched !== null) {
+		const bodyStart = matched.index + 1;
+		const body = matched[1].trim();
+		if (body.length > 0 && !BRACKET_LABEL_WORDS.has(body)) {
+			// trim で先頭空白が落ちた分だけ開始位置を進める（オフセットを本体に合わせる）
+			const lead = matched[1].length - matched[1].replace(/^\s+/, "").length;
+			const start = bodyStart + lead;
+			tokens.push({ name: body, start, end: start + body.length });
+		}
+		matched = pattern.exec(normalizedText);
+	}
+
+	return tokens;
+}
+
 // ---------------------------------------------------------------------------
 // 文字種の判定
 //

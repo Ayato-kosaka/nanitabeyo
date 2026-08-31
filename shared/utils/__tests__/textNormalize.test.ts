@@ -13,6 +13,7 @@ import {
 	classifySurfaceScript,
 	clampConfidence,
 	confidenceMargin,
+	extractBracketedNames,
 	extractHashtags,
 	extractMentions,
 	isWordBoundaryMatch,
@@ -214,6 +215,28 @@ test("extractMentions: SNS のユーザー名に使われる文字だけを拾�
 	);
 	// 日本語のメンションは対象外（SNS 側の ID 表記が英数のため）
 	assert.deepEqual(extractMentions(normalizeMatchText("@ラーメン太郎")), []);
+});
+
+test("extractBracketedNames: 【店名】の本体と、正規化済みテキスト上の位置を返す（#1273）", () => {
+	assert.deepEqual(extractBracketedNames(normalizeMatchText("この【おかげ庵】さん")), [
+		{ name: "おかげ庵", start: 3, end: 7 },
+	]);
+	// 先頭の空白は本体に含めず、開始位置を進める
+	assert.deepEqual(extractBracketedNames("あ【 ラーメン太郎】い"), [{ name: "ラーメン太郎", start: 3, end: 9 }]);
+});
+
+test("誤爆させない: 【店名】【住所】等の «見出しラベル» は店名として採らない（#1273）", () => {
+	// 一部テンプレは括弧を項目ラベルに使い、値は次行に書く（実測 toyamashokujikai）
+	for (const label of ["店名", "住所", "所在地", "営業時間", "定休日", "アクセス", "メニュー"]) {
+		assert.deepEqual(extractBracketedNames(`【${label}】`), [], label);
+	}
+});
+
+test("extractBracketedNames: 閉じ括弧が無い／長すぎるものは採らない", () => {
+	assert.deepEqual(extractBracketedNames("【閉じない店名 のあとに文が続く"), []);
+	assert.deepEqual(extractBracketedNames(`【${"あ".repeat(41)}】`), []);
+	// 『』「」 は店名の目印にしない（料理名・CTA に使われる）
+	assert.deepEqual(extractBracketedNames("『養老パフェ』「行きたい！」"), []);
 });
 
 // ---------------------------------------------------------------------------

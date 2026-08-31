@@ -45,7 +45,7 @@ import type {
 } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Dimensions } from "react-native";
-import { MediaData, selectMedia } from "@/lib/mediaSelection";
+import { MediaData, recoverPendingMedia, selectMedia } from "@/lib/mediaSelection";
 import { ExistingDishMediaPicker } from "./ExistingDishMediaPicker";
 import { DishCategoryStep } from "./DishCategoryStep";
 import { Image } from "expo-image";
@@ -100,6 +100,15 @@ interface ReviewFormProps {
 }
 
 const { height } = Dimensions.get("window");
+
+/**
+ * #1750 Android の保留結果（`getPendingResultAsync`）の持ち主の名前。
+ *
+ * 保留結果は «どの画面のためのものか» を持たないので、印が無いと
+ * ここで選んだ料理写真がプロフィール画像として拾われうる（およびその逆）。
+ * `selectMedia({ pendingOwner })` と `recoverPendingMedia({ owner })` で同じ値を使う。
+ */
+const REVIEW_PICKER_OWNER = "review-media";
 
 /**
  * Review form component that manages its own internal state to prevent
@@ -520,10 +529,41 @@ export function ReviewForm({
 				// NSMicrophoneUsageDescription が無く、iOS はその場でクラッシュする。
 				// 権限文言の追加はネイティブビルドが要る（= OTA で届かない）ので、
 				// ビルドを流す判断が出るまで動画はライブラリ選択のみとする（#1375 4 巡目）
-				const result = await selectMedia(source === "camera" ? ["images"] : ["images", "videos"], {
-					shouldGenerateThumbnail: true,
-					source,
-				});
+				/*
+				#1750 【バグ】Android はピッカーを開いている間にアプリの MainActivity を殺すことがあり、
+				そのとき `selectMedia` の Promise は **解決も棄却もしない**。この画面は mount で
+				ピッカーを開き直すので «選び直しを強いられる» で済んでいたが、それでも
+				ユーザーが選んだ 1 枚は毎回捨てられていた。
+
+				先に保留結果を取りに行く。取り戻せたらピッカーを開かずにそれを使う。
+				`pendingOwner` の印が一致したときだけ拾うので、**プロフィール画像として選んだものが
+				料理写真に入る（およびその逆）取り違えは起きない**（lib/mediaSelection.ts 参照）。
+				*/
+				// ⚠️ Android かどうかをここでも見るのは «速さ» のためではなく **順番** のためである。
+				// 保留結果は Android にしか存在せず（`recoverPendingMedia` は他では必ず null）、
+				// それでも await を 1 つ挟むと **ピッカーが開くのが 1 マイクロタスク遅れる**。
+				// この画面はマウント直後に開くので、遅らせる意味の無いプラットフォームでは遅らせない。
+				// 外したときに壊れるのは順番だけで、取り違えの安全性は向こう側の判定が持つ。
+				const recovered =
+					Platform.OS === "android"
+						? await recoverPendingMedia({ owner: REVIEW_PICKER_OWNER, shouldGenerateThumbnail: true })
+						: null;
+				if (recovered) {
+					logFrontendEventRef.current({
+						event_name: "review_media_selection_recovered",
+						error_level: "warn",
+						// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
+						payload: { attempt, origin, success: recovered.success, error: recovered.error },
+					});
+				}
+
+				const result =
+					recovered ??
+					(await selectMedia(source === "camera" ? ["images"] : ["images", "videos"], {
+						shouldGenerateThumbnail: true,
+						source,
+						pendingOwner: REVIEW_PICKER_OWNER,
+					}));
 
 				// Guard against setState on unmounted / superseded component
 				if (isStale()) {

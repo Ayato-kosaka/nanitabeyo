@@ -52,11 +52,22 @@ jest.mock("@/hooks/useHaptics", () => ({
 }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 
+/*
+⚠️ **代役が毎回ちがう関数を返さないこと。**
+
+`DishMediaFeed` の `renderItem` は `useCallback` で包まれており、`getBackgroundImageState` を
+依存に持つ。ここで毎レンダー新しい関数を返すと `renderItem` も毎回作り直され、
+**依存漏れ（クロージャが古い値を抱えたまま）が原理的に起こらなくなる**。
+本物（`useDishMediaBackgroundImageResources`）は `useCallback` で identity を保つので、
+代役も同じく固定する。固定しないと «依存漏れを見張るテスト» が素通りする（実際に素通りした）。
+*/
+const mockBackgroundImageState = () => ({ status: "ready", image: {} });
+const mockResetImageStates = jest.fn();
 jest.mock("@/features/dishMedia/hooks/useDishMediaBackgroundImageResources", () => ({
 	useDishMediaBackgroundImageResources: () => ({
 		imageStates: {},
-		resetImageStates: jest.fn(),
-		getBackgroundImageState: () => ({ status: "ready", image: {} }),
+		resetImageStates: mockResetImageStates,
+		getBackgroundImageState: mockBackgroundImageState,
 	}),
 }));
 
@@ -150,6 +161,36 @@ describe("#1641 どのセルを «前面» と見なすか", () => {
 		layout(renderer!);
 
 		expect(latestActiveIds()).toEqual(["dm-only"]);
+	});
+
+	/*
+	⚠️ ここが落ちたら «離れたページが鳴り続ける» が戻っている。
+
+	run 33408324285（Android / main 8357e1ae）で «page-00 で tiktok が 2 つ同時に再生中» として実測した。
+	真因は `renderItem` の `useCallback` の依存配列に `isScreenActive` が無かったこと。
+	依存に無いと identity が変わらず、FlatList はセルを描き直さないので、
+	**前面から外れたページのセルが `isActive` を保ったまま鳴り続ける**。
+
+	上の «isScreenActive=false で作った場合» のテストでは捕まらない。最初から false だと
+	クロージャも false なので、たまたま正しく見えるからである。**切り替えを見ること。**
+	*/
+	it("前面から外れたら、鳴っていたセルも前面でなくなる（描き直しが起きる）", () => {
+		seed(["dm-only"]);
+		act(() => {
+			renderer = TestRenderer.create(
+				<DishMediaFeed entriesKey={ENTRIES_KEY} idType="dish_media" horizontal isScreenActive />,
+			);
+		});
+		layout(renderer!);
+		expect(latestActiveIds()).toEqual(["dm-only"]);
+
+		act(() => {
+			renderer!.update(
+				<DishMediaFeed entriesKey={ENTRIES_KEY} idType="dish_media" horizontal isScreenActive={false} />,
+			);
+		});
+
+		expect(latestActiveIds()).toEqual([]);
 	});
 
 	/*

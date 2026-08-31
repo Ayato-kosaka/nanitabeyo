@@ -23,7 +23,7 @@
  */
 import React from "react";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSheetBottomPadding } from "@/hooks/useSheetBottomPadding";
 
 import type { Palette } from "@/constants/Palette";
 import { useThemedStyles } from "@/contexts/ThemeProvider";
@@ -47,7 +47,8 @@ export function MyDishOwnReviewSheet({
 	const styles = useThemedStyles(createStyles);
 	// #1629【オーナー実機報告】「下が見切れてる」。ジェスチャーバー / ホームインジケータの
 	// 下に «お店の詳細を見る» が潜っていた。Modal は safe area の外まで描けるので自分で足す
-	const insets = useSafeAreaInsets();
+	// （#1742 で同型のシートが 4 つ見つかったため、足し方を hooks/useSheetBottomPadding.ts へ集約した）
+	const sheetPaddingBottom = useSheetBottomPadding(SHEET_PADDING_BOTTOM);
 
 	return (
 		<Modal visible={item !== null} transparent animationType="slide" onRequestClose={onClose} accessibilityViewIsModal>
@@ -60,7 +61,7 @@ export function MyDishOwnReviewSheet({
 				/>
 
 				<View
-					style={[styles.sheet, { paddingBottom: SHEET_PADDING_BOTTOM + insets.bottom }]}
+					style={[styles.sheet, { paddingBottom: sheetPaddingBottom }]}
 					testID="my-dish-own-review-sheet">
 					{item ? (
 						<MyDishOwnReviewContent item={item} variant="sheet" onClose={onClose} onOpenRestaurant={onOpenRestaurant} />

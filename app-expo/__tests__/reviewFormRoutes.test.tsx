@@ -107,7 +107,12 @@ jest.mock("@/lib/googlePlaces", () => ({
 
 // メディア選択は「loading のまま止まっている」状態にする。フォーム本体（カテゴリ行・同意文言）は
 // その間も描かれるので、押した先の検証には十分（error 状態にすると本体が消えるので使わない）
-jest.mock("@/lib/mediaSelection", () => ({ selectMedia: () => new Promise(() => {}) }));
+// #1750 `recoverPendingMedia`（Android の保留結果の復帰）も本体の surface に入った。
+// ここへ足さないと undefined を呼ぶことになり、選択そのものが起きない
+jest.mock("@/lib/mediaSelection", () => ({
+	selectMedia: () => new Promise(() => {}),
+	recoverPendingMedia: jest.fn(async () => null),
+}));
 
 /** 候補に無い名前を入れて戻ったときに走る新規作成 POST */
 const mockCreateDishCategoryVariant = jest.fn(async (_name: string) => ({ id: "created-category-1" }));

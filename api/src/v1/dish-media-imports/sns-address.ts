@@ -55,10 +55,42 @@ const LABELED_ADDRESS = new RegExp(
 const BARE_ADDRESS = new RegExp(`(${ADDRESS_BODY})`, 'g');
 
 /**
+ * #1273 都道府県が省略され、市区町村から始まる住所（「名古屋市東区葵３丁目１２−１８」等）。
+ *
+ * グルメ紹介の実キャプション（`out/infl_captions.jsonl`）では、名古屋・金沢・広島など
+ * **政令市／県庁所在地の投稿は都道府県を省いて市区町村から書く**ことが非常に多い。
+ * 上の PREFECTURE 起点の 2 本ではこれを取りこぼし、住所抽出率が 53% で頭打ちになっていた
+ * （標本 1,800 の実測: この形が 192 件＝取りこぼしの 22.8%）。
+ *
+ * 国土地理院 AddressSearch は都道府県が無くても市区町村から地番まで解決する
+ * （実測: 「名古屋市東区葵3-12-18」→「愛知県名古屋市東区葵三丁目１２番１８号」。
+ * 上記 192 件のうち先頭 30 件を叩いて 30/30 が入力の市区町村と一致する地点を返した）。
+ *
+ * 偽陽性（「名古屋市の3店」等の助詞混じり）を避けるため、市区町村の直後の町名は
+ * **漢字・カタカナに限る**（助詞のひらがなを弾く）。さらに `HAS_BANCHI_DIGIT` で
+ * 地番の数字を必須にし、施設名だけ（「◯◯市役所」等）を落とす。
+ */
+const CITY_LEAD_ADDRESS = new RegExp(
+  '(' +
+    '[一-龠々ヶ]{1,4}[市区町村](?![内外])' + // 市区町村（例: 名古屋市）
+    '(?:[一-龠々ヶ]{1,4}区)?' + // 政令市の行政区（例: 東区。任意）
+    '[一-龠々ヶァ-ヴ]' + // 町名の 1 文字目は漢字／カタカナ（助詞のひらがなを弾く）
+    '[0-9０-９一-龠々ヶァ-ヴa-zA-Z\\-−ー–‐丁目番地条ノ]{2,38}' +
+    ')',
+  'g',
+);
+
+/**
  * 「市区町村まで含んでいるか」の確認。都道府県名だけ（「東京都のラーメン」等）を
  * ジオコーディングすると都庁の座標が返ってしまい、誤った地点で照合してしまう。
  */
 const HAS_CITY_LEVEL = /[市区町村郡]/;
+
+/**
+ * 市区町村始まりの住所に地番の数字が含まれているかの確認。数字が無いものは
+ * 施設名・「市内」等のノイズなので採らない（#1273）。
+ */
+const HAS_BANCHI_DIGIT = /[0-9０-９]/;
 
 /**
  * キャプション群から住所らしき文字列を 1 つ抜く。見つからなければ `null`。
@@ -78,6 +110,14 @@ export function extractPostalAddress(texts: ExtractedText[]): string | null {
   for (const entry of texts) {
     for (const bare of entry.text.matchAll(BARE_ADDRESS)) {
       if (HAS_CITY_LEVEL.test(bare[1])) return bare[1];
+    }
+  }
+  // #1273 都道府県が省略された市区町村始まりの住所（政令市・県庁所在地に多い）。
+  // 上の 2 本（都道府県起点）で拾えたものはそこで返っているので、ここは純粋な «追加» で、
+  // 都道府県付き住所の抽出結果を一切変えない。
+  for (const entry of texts) {
+    for (const cityLead of entry.text.matchAll(CITY_LEAD_ADDRESS)) {
+      if (HAS_BANCHI_DIGIT.test(cityLead[1])) return cityLead[1];
     }
   }
   return null;

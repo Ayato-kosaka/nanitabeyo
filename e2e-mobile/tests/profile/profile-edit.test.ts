@@ -49,6 +49,37 @@ describeAuthenticated("プロフィール編集画面", () => {
 		await editScreen.expectOpened();
 	});
 
+	/*
+	 ─ テストケース: 保存ボタンが画面の中に居る（#1750） ─
+
+	 オーナー実機報告「プロフィール編集で画像を投稿してもアップされない」の真因。
+	 画像の選択は成功していて、**保存ボタンが押せなかった**（実機ログ dev 2026-08-31 17:06 UTC:
+	 `profile_avatar_selected` の 4.5 秒後に `profile_edit_screen_back_pressed`。
+	 `profile_edit_saved` は 1 件も無い）。
+
+	 `KeyboardAwareForm` が器の高さを `height: frame.height - 100`（= 窓の高さから当てずっぽうの
+	 100px を引く）で決めており、器が実際に置かれる領域より必ず高くなるため、一番下の保存ボタンが
+	 タブバーの裏か画面の外へ流れていた。
+
+	 ⚠️ **タップしないこと。** 保存は共有 dev DB のテストユーザーを書き換える。ここで見たいのは
+	 «押せる位置に居るか» だけで、それは `toBeVisible()`（既定で 75% 以上の可視）で足りる。
+
+	 ⚠️ この検証を web へ移さないこと。react-native-web はレイアウトの規則が違い、
+	 この不具合は **ネイティブでだけ**出る。
+	*/
+	it("編集画面を開いた直後から、保存ボタンが画面の中に見えている", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const editScreen = new ProfileEditScreen();
+
+		await tabBar.gotoProfile();
+		await profileScreen.openEdit();
+		await editScreen.expectOpened();
+
+		// キーボードを開かずに（＝ 画像だけ選んで保存する導線と同じ状態で）見えていること
+		await editScreen.expectSaveButtonVisible();
+	});
+
 	// ─ テストケース: 戻る操作でマイページへ帰る ─
 	// ⚠️ `device.pressBack()` は Android 専用。iOS ではヘッダーの戻るボタンで同じ復帰を確認する
 	//（login-screen.test.ts と同じ形）。

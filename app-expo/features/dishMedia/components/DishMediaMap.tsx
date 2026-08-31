@@ -28,6 +28,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
 import { computePreloadIds } from "@/features/dishMedia/preloadWindow";
 import { useContentWidth } from "@/hooks/useContentWidth";
+import { useSheetBottomPadding } from "@/hooks/useSheetBottomPadding";
 import { FixedColors } from "@/constants/Palette";
 
 // #958 【修正】カルーセルの幅は window 実幅ではなく中央カラム幅に追従させる必要があるため、
@@ -126,22 +127,49 @@ export default function DishMediaMap({
 		if (!ids.some((id) => deletedIds[id])) return;
 		setIds((prev) => prev.filter((id) => !deletedIds[id]));
 	}, [liveIds, ids, deletedIds]);
+	/*
+	#1743 【設計】**ピンの絵は «そのカードのサムネイル» から取る。店の写真は落とし先。**
+
+	オーナー実機報告（2026-08-31・お店提案）:
+
+	> お店提案でマップに出てくるピンの画像が、サムネの画像が反映されていない
+
+	`restaurant.imageUrls` は **`restaurants.image_path` を持つ行にだけ付く**
+	（`api/src/v1/restaurants/restaurants.assembler.ts` が `if (restaurants.image_path)` で分岐）。
+	写真が無い Google Place・#843 のカタログ同期由来の行・`image_url` しか持たない行
+	（#1680 の実測で 102 行）は `imageUrls` が `undefined` になり、
+	`AvatarBubbleMarker` は **中身が空の白い丸**を描く。
+
+	一方カルーセルのカードは `dish_media.thumbnailImageUrl` を描いており、こちらは
+	外部埋め込みでも料理カテゴリの絵まで受け皿が用意されている（`dish-media.assembler.ts`）。
+	**ピンとカードは 1 対 1 に対応しているのだから、ピンにも同じ絵を出すのが正しい。**
+	my-dishes の Map は既に同じ規則（`representativeThumbnailUrl` → 店の写真）で描いている
+	（`MyDishesMapView.tsx`）。ここだけが店の写真しか見ていなかった。
+	*/
 	const restaurants = useMemo(() => {
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		return ids
-			.map((id) =>
-				idType === "dish_media"
-					? selectEntryByMediaId(id)(state)?.restaurant
-					: selectEntryByReviewId(id)(state)?.restaurant,
-			)
-			.filter((restaurant): restaurant is NonNullable<typeof restaurant> => restaurant !== undefined)
-			.map((restaurant) => ({
-				id: restaurant.id,
-				name: restaurant.name,
-				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
-				imageUrls: restaurant.imageUrls,
-				google_place_id: restaurant.google_place_id,
+			.map((id) => (idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state)))
+			.filter((entry): entry is NonNullable<typeof entry> => !!entry?.restaurant)
+			.map((entry) => ({
+				/*
+				#1743 ピンの key は **カード（entry）ごと**に採る。
+
+				以前は `google_place_id` を key にしていた。検索結果は 1 店 1 件
+				（`unique_per_restaurant`）なので衝突しないが、この Map は投稿詳細
+				（`posts.tsx`）とプロフィールの検索結果（`profile/search-results.tsx`）でも
+				使われ、そちらは **同じ店の投稿が複数並びうる**。key が重複すると React は
+				片方を捨て、カードの枚数とピンの数がずれる（`index` で対応付けている
+				ハイライトとタップ先も 1 つずつずれる）。
+				*/
+				key: entry.dish_media.id,
+				id: entry.restaurant.id,
+				name: entry.restaurant.name,
+				coordinate: { latitude: entry.restaurant.latitude, longitude: entry.restaurant.longitude },
+				// 空文字は `<Image>` へ渡すと «壊れた画像» になるので `||` で次の候補へ畳む
+				pinImageUrl: entry.dish_media.thumbnailImageUrl || entry.restaurant.imageUrls?.sm || undefined,
+				google_place_id: entry.restaurant.google_place_id,
 			}));
 	}, [ids, idType]);
 
@@ -329,6 +357,18 @@ export default function DishMediaMap({
 
 	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
 	const { showActionSheetWithOptions } = useActionSheet();
+	/*
+	#1742 【設計】Android の ActionSheet は `@expo/react-native-action-sheet` の JS 実装
+	（`CustomActionSheet`）で、`position: "absolute"` の `bottom: 0` に貼るだけで safe area を見ない。
+	edge-to-edge の Android では最下行（キャンセル）がナビゲーションバーへ潜るため、
+	**外から `containerStyle` で下余白を足す以外に手が無い**（ライブラリに inset の設定は無い）。
+
+	`containerStyle` はシートの白い器（ActionGroup の groupContainer）へ当たるので、
+	背景はナビバーの裏まで伸びたまま、行だけがバーの上へ持ち上がる。
+	iOS はネイティブの `ActionSheetIOS` を使う経路で `containerStyle` を見ないが、
+	そちらは OS 側が safe area を持つので何もしなくてよい（web は inset が 0）。
+	*/
+	const actionSheetPaddingBottom = useSheetBottomPadding();
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
 		source: "DishMediaMap",
 	});
@@ -349,6 +389,7 @@ export default function DishMediaMap({
 					title: i18n.t("ActionSheet.title"),
 					options,
 					cancelButtonIndex,
+					containerStyle: { paddingBottom: actionSheetPaddingBottom },
 				},
 				async (selectedIndex?: number) => {
 					if (selectedIndex === undefined || selectedIndex === cancelButtonIndex) return;
@@ -374,7 +415,7 @@ export default function DishMediaMap({
 				},
 			);
 		},
-		[showActionSheetWithOptions, openInGoogleMaps, shareRestaurant],
+		[showActionSheetWithOptions, actionSheetPaddingBottom, openInGoogleMaps, shareRestaurant],
 	);
 
 	// #1729 件数が 2 以下だとライブラリがセルを複製し、同じ media が同時再生される（MIN_LOOPABLE_COUNT 参照）
@@ -455,10 +496,10 @@ export default function DishMediaMap({
 				<MapView ref={mapRef} style={styles.map} initialRegion={region}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
-							key={`marker-${restaurant.google_place_id}`}
+							key={`marker-${restaurant.key}`}
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
-							uri={restaurant.imageUrls?.sm}
+							uri={restaurant.pinImageUrl}
 							color={
 								// 地図タイルは常にライト配色のため、ピンはテーマで振らない（FixedColors 参照）
 								index === currentIndex ? FixedColors.brandOnMap : FixedColors.mapMarkerSurface

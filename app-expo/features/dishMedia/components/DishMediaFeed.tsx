@@ -298,6 +298,34 @@ export default function DishMediaFeed({
 	const { selectionChanged } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
+	/*
+	#1641【観測】**どのフィードが、どのセルを «前面» にしたか。**
+
+	run 33411517726 で «page-00 で tiktok が 2 つ同時に再生中» が出たが、印（testID）は
+	画面の階層をまたいで数えるので、**2 枚がどのフィードに属しているのか**が分からなかった。
+	`entriesKey` を載せれば «同じフィードの中で 2 つ» なのか «別のフィードが 2 つとも前面» なのかが
+	1 行で分かる。前者ならこの中の `index === currentIndex` が、後者なら親（ページャ）が疑わしい。
+
+	前面でない（`isScreenActive === false`）フィードは何も鳴らさないので出さない。
+	*/
+	useEffect(() => {
+		if (!isScreenActive) return;
+		if (ids.length === 0) return;
+		logFrontendEvent({
+			event_name: "dish_media_active_cell",
+			error_level: "log",
+			payload: {
+				entriesKey,
+				idType,
+				index: currentIndex,
+				id: ids[currentIndex] ?? null,
+				total: ids.length,
+			},
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- ids は identity ではなく «並び» で見る
+	}, [isScreenActive, currentIndex, ids, entriesKey, idType, logFrontendEvent]);
+
+
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(generateUUID());
 
@@ -430,11 +458,28 @@ export default function DishMediaFeed({
 			pageWidth,
 			horizontal,
 			currentIndex,
+			/*
+			#1641 ⚠️ **`isScreenActive` を依存から外さないこと。**
+
+			ここに無かったために、`isScreenActive` が変わっても `renderItem` の identity が変わらず、
+			**古い値を抱えたクロージャがそのまま使われ続けていた**。FlatList のセルは
+			`renderItem` が変わらなければ描き直されないので、
+
+			  前面だったページ（isScreenActive=true）から離れる
+			  → 親は isScreenActive=false を渡す
+			  → しかし renderItem は true のままなので、セルは `isActive` を保ったまま
+			  → **離れたページが鳴り続け、着いたページと 2 つ同時に鳴る**
+
+			run 33408324285 で «page-00 で tiktok が 2 つ同時に再生中» として実測した。
+			オーナー報告「YouTube から入って上にスクロールしたら YouTube の音が聞こえる」も同じ。
+			`currentIndex` が同時に動く経路では偶然直っていたので、長く見えていなかった。
+			*/
+			isScreenActive,
 			getTitle,
 			entriesKey,
 			idType,
 			getBackgroundImageState,
-			isScreenActive,
+			// #1752 合成ページの判定と描画関数。渡されないとき（既存の 4 画面）は undefined のまま
 			customIdSet,
 			customPages,
 		],

@@ -118,7 +118,35 @@ async function establishAnonymousSession(supabaseUrl: string, supabaseAnonKey: s
 				].join("\n"),
 			);
 		}
-		throw new Error(`匿名セッションの確立に失敗しました: ${error?.message ?? "session is null"}`);
+		/*
+		#1641 **失敗の «正体» を必ず書き出す。**
+
+		2026-08-31 に run 33416769655 / 33420202252 が 2 本続けてここで落ちたが、出力は
+
+		    匿名セッションの確立に失敗しました: {}
+
+		だけだった。`status` も `code` も出ないので **レート制限なのか、匿名サインインが
+		無効化されたのか、認証基盤の障害なのかを切り分けられず**、CI が丸ごと止まったまま
+		«たぶん枠切れ» と推測するしかなかった（上の 429 の分岐は通っていないので、
+		少なくとも既知のレート制限ではない）。
+
+		⚠️ `error.message` だけを出す形へ戻さないこと。空ボディの応答では何も分からない。
+		*/
+		const detail = [
+			`message=${error?.message ?? "session is null"}`,
+			`status=${(error as { status?: number } | null)?.status ?? "-"}`,
+			`name=${error?.name ?? "-"}`,
+			`code=${(error as { code?: string } | null)?.code ?? "-"}`,
+		].join(" / ");
+		throw new Error(
+			[
+				`匿名セッションの確立に失敗しました: ${detail}`,
+				"切り分け:",
+				"  - status=429 … レート制限（30 回/時/IP）。1 時間待つ",
+				"  - status=422 … 匿名サインインが無効化されている可能性（Supabase の Auth 設定）",
+				"  - status=5xx / status=- … 認証基盤の障害か経路の問題。時間をおいて再実行する",
+			].join("\n"),
+		);
 	}
 
 	writeSessionToEnv("anon", {
@@ -198,12 +226,31 @@ async function withNetworkRetry<T extends { error: { status?: number } | null }>
 	let result = await call();
 
 	for (let attempt = 1; attempt < MAX_ATTEMPTS; attempt += 1) {
-		// 成功、または HTTP ステータスが返っている（= サーバまで届いている）なら再試行しない
-		if (!result.error || typeof result.error.status === "number") return result;
+		/*
+		成功したら終わり。
+
+		#1641 【バグ】以前はここが「HTTP ステータスが返っていたら再試行しない」だった。
+		«サーバまで届いているなら再試行しても同じ» という理屈だが、**5xx を巻き込んでいた**。
+
+		2026-08-31 に run 33416769655 / 33420202252 / 33425723292 の 3 本が続けてここで落ちた。
+		正体は `status=504 / AuthRetryableFetchError`（Supabase 認証のゲートウェイタイムアウト）で、
+		Supabase 自身が **Retryable** と名付けている種類の失敗である。それを 1 度も再試行せずに
+		即 fail していたため、**CI が 45 分ぶん、1 回の一時的な 504 で潰れた**。
+
+		再試行して意味があるのは «向こうが一時的に応答できなかった» ときだけなので、
+		- ステータスが無い（ネットワークで届いていない）
+		- 5xx（届いたが向こうが一時的に落ちている）
+		の 2 つに絞る。4xx は待っても変わらないので即座に諦める
+		（429 のレート制限は窓が 1 時間、422 は設定の問題。どちらも再試行は無駄）。
+		*/
+		if (!result.error) return result;
+		const status = result.error.status;
+		const isRetryable = typeof status !== "number" || status >= 500;
+		if (!isRetryable) return result;
 
 		const waitMs = 2_000 * attempt;
 		console.warn(
-			`⚠️ ${label} がネットワーク起因で失敗しました。${waitMs}ms 後に再試行します（${attempt}/${MAX_ATTEMPTS - 1}）`,
+			`⚠️ ${label} が一時的な失敗（status=${status ?? "-"}）でした。${waitMs}ms 後に再試行します（${attempt}/${MAX_ATTEMPTS - 1}）`,
 		);
 		await new Promise((resolve) => setTimeout(resolve, waitMs));
 		result = await call();

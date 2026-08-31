@@ -1,10 +1,10 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import i18n from "@/lib/i18n";
 import { Card } from "@/components/Card";
-import { MediaData, selectMedia } from "@/lib/mediaSelection";
+import { MediaData, recoverPendingMedia, selectMedia } from "@/lib/mediaSelection";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -12,6 +12,13 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { getCacheKeyForImage } from "@/lib/image";
 import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+
+/**
+ * #1750 保留結果の持ち主の名前。`selectMedia({ pendingOwner })` と
+ * `recoverPendingMedia({ owner })` で同じ値を使うことで、
+ * «料理写真として選んだものがアバターに入る» 取り違えを防ぐ（lib/mediaSelection.ts 参照）。
+ */
+const AVATAR_PICKER_OWNER = "profile-avatar";
 
 interface AvatarImageCardProps {
 	/** 現在のアバター画像URL（なければプレースホルダ） */
@@ -43,6 +50,8 @@ export function AvatarImageCard({ avatarUrl, onSelectImage, onLayout }: AvatarIm
 			const result = await selectMedia(["images"], {
 				allowsEditing: true, // 編集モードを有効化（正方形トリミング）
 				aspect: [1, 1], // 正方形のアスペクト比
+				// #1750 Android で殺されたときに、この画面«だけ»が拾えるようにする印
+				pendingOwner: AVATAR_PICKER_OWNER,
 			});
 			if (result.success && result.media) onSelectImage({ uri: result.media.uri, mimeType: result.media.mimeType });
 			else if (result.error === "permission_denied") showSnackbar(i18n.t("Profile.errors.permissionDenied"));
@@ -64,6 +73,57 @@ export function AvatarImageCard({ avatarUrl, onSelectImage, onLayout }: AvatarIm
 			setIsLoading(false);
 		}
 	}, [lightImpact, logFrontendEvent, onSelectImage, showSnackbar]);
+
+	/**
+	 * #1750 【バグ】**Android がピッカー中に MainActivity を殺すと、選んだ画像が黙って消える。**
+	 *
+	 * このとき `selectMedia` の Promise は解決も棄却もしないので、`handleSelectImage` の
+	 * `catch` も `finally` も走らない。ユーザーには「画像を選んだのに、保存しても反映されない」
+	 * としか見えず、フロントのログにも何も残らなかった（この不具合の調査で、dev / 本番とも
+	 * オーナーの実機セッションに `CreateSignedUrl(user-avatar)` が 1 件も無いことを確認している）。
+	 *
+	 * expo-image-picker はこのために `getPendingResultAsync()` を用意している。
+	 * **アプリが作り直されたあと 1 度だけ**取りに行けば、失われた選択を復元できる。
+	 *
+	 * ⚠️ この画面がマウントされたときにだけ呼ぶこと。保留結果そのものは «どの画面のものか» を
+	 * 持たないので、`AVATAR_PICKER_OWNER` の印が一致したときだけ拾う。
+	 * `hasRecoveredRef` で 1 マウント 1 回に固定してあるのは、再レンダーのたびに取りに行くと
+	 * «ユーザーが選び直した画像を、古い保留結果で上書きする» ことになるためである。
+	 */
+	const hasRecoveredRef = useRef(false);
+	useEffect(() => {
+		if (hasRecoveredRef.current) return;
+		hasRecoveredRef.current = true;
+
+		let cancelled = false;
+		void (async () => {
+			const recovered = await recoverPendingMedia({ owner: AVATAR_PICKER_OWNER });
+			if (!recovered || cancelled) return;
+
+			if (recovered.success && recovered.media) {
+				logFrontendEvent({
+					event_name: "avatar_image_selection_recovered",
+					error_level: "warn",
+					payload: { mimeType: recovered.media.mimeType },
+				});
+				onSelectImage({ uri: recovered.media.uri, mimeType: recovered.media.mimeType });
+				return;
+			}
+
+			// 復帰できなかったこと自体を残す。«何も起きていない» と区別が付かなくなるのが一番困る
+			logFrontendEvent({
+				event_name: "avatar_image_selection_recovery_failed",
+				error_level: "warn",
+				payload: { error: recovered.error, errorMessage: recovered.errorMessage },
+			});
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+		// マウント時 1 回だけ。onSelectImage は毎レンダー新しくなりうるので依存に入れない
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	return (
 		<Card onLayout={onLayout}>
