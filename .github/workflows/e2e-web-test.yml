@@ -133,8 +133,21 @@ jobs:
         #    `["--", "onboarding"]` になり、`playwright test --list -- onboarding` は
         #    **Total: 0 tests in 0 files** を返す。さらに入力が空のときは argv が `["--"]` に
         #    なるので、**nightly（inputs が空）が 1 件も実行しない**状態になっていた。
-        run: pnpm --filter e2e-web test ${{ inputs.test_filter }}
+        #
+        # ⚠️ **`${{ inputs.test_filter }}` を run: の中へ直接展開しないこと。**
+        #    1. 展開された文字列は **シェルのコマンド行の一部** になるため、`|` や `;` や `$(...)`
+        #       がそのまま解釈される。`saved-dish-category-location|dish-category-card-full-bleed`
+        #       を渡したら `|` がパイプになり、2 秒で落ちた（run 33357561252 で実測）
+        #    2. それは同時に **任意コマンドを実行できる穴**でもある。dispatch できる人なら
+        #       `; curl ...` を混ぜられる
+        #    env: 経由なら中身は «データ» として渡り、メタ文字は解釈されない。
+        #    e2e-mobile の DETOX_TEST_FILTER が最初からこの形になっている。
+        #
+        # クォートしないのは «空なら引数 0 個» にするため（`"$TEST_FILTER"` だと空文字列が
+        # 1 引数として渡り、playwright が «どのファイルにも一致しない» と解釈して 0 件になる）。
+        run: pnpm --filter e2e-web test $TEST_FILTER
         env:
+          TEST_FILTER: ${{ inputs.test_filter }}
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 
