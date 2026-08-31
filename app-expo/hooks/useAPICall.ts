@@ -361,14 +361,14 @@ export const useAPICall = () => {
 				#1642 【バグ】ここは **HTTP 503 を丸ごとメンテナンス扱い**にしていた。
 
 				503 を返すのは `MaintenanceGuard` だけではない。
-				  - `EXTERNAL_QUOTA_EXCEEDED` — Google Places の日次上限（#1629 で 503 にした）
 				  - `DELETE /v1/users/me` — Supabase Auth のアカウント削除失敗（再送で完了できる）
 				  - Cloud Run / LB の一時的な過負荷（そもそも errorPayload が我々のものではない）
-				その結果、Places のクォータが枯れただけで「ただいまメンテナンス中です。」が出た
-				（2026-08-31 のオーナー実機。dev ログ `api_call_error` status=503 /
-				 errorCode=EXTERNAL_QUOTA_EXCEEDED / endpoint=v1/dishes/bulk-import が 5 件）。
+				実際にオーナーの実機で「ただいまメンテナンス中です。」が出た（2026-08-31）。
+				真因は Google Places の日次上限を 503 で返していたことで、そちらは
+				`external-api.service.ts` を 429 へ戻して直した（#1642）。ただし
+				**503 = メンテナンス という読み替え自体が誤り**なので、ここも直す。
 				メンテナンスと名乗ると «全機能が止まっている・こちらが意図的に止めた» と読めるので、
-				実際には検索の一部が失敗しただけの障害を誤って重大に見せていた。
+				実際には検索の一部が失敗しただけの障害を誤って重大に見せてしまう。
 
 				【修正】メンテナンスを名乗ってよいのは、Remote Config の `is_maintenance` を読んだ
 				`MaintenanceGuard` が付ける `SERVICE_MAINTENANCE` が乗っているときだけにする。
