@@ -258,6 +258,34 @@ export default function DishMediaFeed({
 	const { selectionChanged } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
+	/*
+	#1641【観測】**どのフィードが、どのセルを «前面» にしたか。**
+
+	run 33411517726 で «page-00 で tiktok が 2 つ同時に再生中» が出たが、印（testID）は
+	画面の階層をまたいで数えるので、**2 枚がどのフィードに属しているのか**が分からなかった。
+	`entriesKey` を載せれば «同じフィードの中で 2 つ» なのか «別のフィードが 2 つとも前面» なのかが
+	1 行で分かる。前者ならこの中の `index === currentIndex` が、後者なら親（ページャ）が疑わしい。
+
+	前面でない（`isScreenActive === false`）フィードは何も鳴らさないので出さない。
+	*/
+	useEffect(() => {
+		if (!isScreenActive) return;
+		if (ids.length === 0) return;
+		logFrontendEvent({
+			event_name: "dish_media_active_cell",
+			error_level: "log",
+			payload: {
+				entriesKey,
+				idType,
+				index: currentIndex,
+				id: ids[currentIndex] ?? null,
+				total: ids.length,
+			},
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- ids は identity ではなく «並び» で見る
+	}, [isScreenActive, currentIndex, ids, entriesKey, idType, logFrontendEvent]);
+
+
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(generateUUID());
 
