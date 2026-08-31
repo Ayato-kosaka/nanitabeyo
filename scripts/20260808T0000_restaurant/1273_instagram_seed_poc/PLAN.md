@@ -155,3 +155,11 @@
   - matched総2,705店の内 ~1,269店分が134内（残りは コーヒー/ご飯 等アプリ外カテゴリ）。
 - [x] **resolve店側レバーの実測評価**: skipped_no_store の内訳＝`area_not_provided`(~4,500,住所抽出0)・`searched/rst=0`(~5,270,店pg不在)。住所抽出は63.9%（駅名geocodeで+~7%可能だが GSI先頭結果が誤地点[渋谷駅→福島]でexact一致のみ安全＝中程度・偽陽性リスク）。→ **matchedの律速はpg母数**（store側resolve改善は二次）。station geocode は投機実装せず保留。
 - **次**: 柱1 wave完了(~17:06Z)→handle集計→4_1/4_2/5_1で柱1 matched。並行 柱3(地方セル絞りSerper)・柱2 741 harvest。
+
+## 進捗更新 2026-08-31 16:25Z（柱1 wave1完了→4_1/4_2起動・wave2投入）
+- [x] **柱1 crawl wave1 完了**（run 201-205 全success, ~30分/batch）: 1万店crawl → 店固有裏取りhandle **1,722店(17.2%)**（testの18%を維持＝歩留まり実証）。handle保有 3,106店(31%)・異なりhandle 2,822。
+- [x] **4_1合流 完了**: sns_source_account に **store_branch 2,532**（1店だけに付くhandle。グローバルチェーン除去済）。
+- [~] **柱1 4_2 harvest 起動**（run sns-2026-08-31, store_branch, --max-accounts 800 --limit-per-account 30, ~4h, 逐次flush）: 店IGの投稿を business_discovery で収集中。完了後 5_1(resolve版上げ)で **柱1 matched** を測る。⚠️店IGは個人アカウント率が影響（business_discovery不可なら空）＝この歩留まりは初測定。
+- [~] **柱1 crawl wave2 投入**（offset 10000-18000, suffix -crawl5..9）: 次の1万店。完了後 4_1再実行で handle 追加合流。
+- **辞書メモ（loop B用）**: dish_category_variant_catalog = 93,738 surface form → 14,522カテゴリ。本番matchedは490カテゴリのみ出現。カテゴリrecall磨きは別tick。
+- **次**: 4_2完了→5_1→柱1 matched測定。wave2完了→4_1再合流→さらにwave3(offset 20000+)。柱2/柱3は柱1測定後にキュー。
