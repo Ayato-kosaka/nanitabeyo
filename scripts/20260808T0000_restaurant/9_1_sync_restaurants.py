@@ -154,6 +154,31 @@ def calculate_stats(connection: Any) -> SyncStats:
     return SyncStats(inserted or 0, updated or 0, skipped or 0)
 
 
+def detect_backfill_missing(
+    pipeline_rows: int, sync_windows: list[Any]
+) -> tuple[bool, int]:
+    """backfill（9_9）の実施漏れを判定する。戻り値は (漏れているか, 過去INSERT数)。
+
+    #843 **「行を数える」形の判定を書いてはいけない。**
+    9_1 の provenance UPDATE は **アプリ製の行にも source_seed_id を刻む**し、
+    同期中に作られたアプリ製の行は実行窓の中に created_at を持つ。つまり
+    «source_seed_id を持つ» でも «実行窓に入っている» でもアプリ製の行が
+    混ざり、backfill 済みでも同期が二度と通らなくなる。実際にこの 2 つの
+    書き方で 2 回続けて落とした（2026-08-30 / 08-31）。
+
+    backfill は全件を一括で更新する one-shot なので、実施漏れは
+    「1 行も 'pipeline' が居ない」という **全か無か** でしか現れない。
+    過去の同期が 1 行でも INSERT しているのに 'pipeline' が 0 件、という
+    組み合わせだけが実施漏れである。誤検知の余地が無い。
+
+    テストが本物を呼べるよう、SQL ではなくここに判定を置く
+    （CLAUDE.md「本番のロジックをテストへ写経しない」）。
+    """
+
+    past_inserted = sum(int(getattr(w, "inserted_count", 0) or 0) for w in sync_windows)
+    return past_inserted > 0 and pipeline_rows == 0, past_inserted
+
+
 def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
     """既存restaurantの暗黙Place ID変更をpublish前に止める。"""
 
@@ -190,33 +215,21 @@ def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
         # 投入した行も、backfill しないままだと 'user' に見える。その状態で
         # 同期すると **オープンデータの更新が一件も反映されない**（壊れは
         # しないが黙って止まる）。落ちるより気付きにくいので、ここで数える。
-        #
-        # ⚠️ `source_seed_id IS NOT NULL` だけで判定してはいけない。
-        # 9_1 の provenance UPDATE は **アプリ製の行にも source_seed_id を刻む**
-        # ので、アプリが作った既存店（dev 実測 2,115 行）が恒久的に引っかかり、
-        # backfill 済みでも同期が二度と通らなくなる。実際にこれで落とした。
-        #
-        # 「パイプラインが INSERT した行」の定義は backfill（9_9）と同じ
-        # ——**同期の実行窓に作られた行**——でなければならない。判定を
-        # 二重に書かないよう、窓の取得は pg_sync_common に寄せてある。
-        unbackfilled = 0
-        for window in sync_windows:
-            cursor.execute(
-                """
-                SELECT COUNT(*)
-                FROM restaurants r
-                WHERE r.created_by_source <> 'pipeline'
-                  AND r.source_seed_id IS NOT NULL
-                  AND r.created_at BETWEEN %s AND %s
-                """,
-                (window.started_at, window.finished_at),
-            )
-            unbackfilled += cursor.fetchone()[0]
+        # 判定の根拠は detect_backfill_missing の docstring にある。
+        cursor.execute(
+            "SELECT COUNT(*) FROM restaurants WHERE created_by_source = 'pipeline'"
+        )
+        pipeline_rows = cursor.fetchone()[0]
 
-    if unbackfilled:
+    backfill_missing, past_inserted = detect_backfill_missing(
+        pipeline_rows, sync_windows
+    )
+
+    if backfill_missing:
         raise RuntimeError(
-            f"過去の同期が作った行のうち{unbackfilled}件が created_by_source='pipeline' に"
-            "なっていません。9_9_backfill_created_by_source.py を先に実行してください"
+            f"過去の同期が{past_inserted}行を INSERT しているのに "
+            "created_by_source='pipeline' の行が 1 件もありません。"
+            "9_9_backfill_created_by_source.py を先に実行してください"
         )
     if invalid_changes:
         raise RuntimeError(
