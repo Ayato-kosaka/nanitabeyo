@@ -11,45 +11,23 @@
 どちらも «行を数える» 形だったのが原因なので、ここでは
 **アプリ製の行がどれだけ混ざっても発火しないこと**を明示的に固定する。
 
-本番の判定関数をそのまま import する（写経しない）。
+判定は load_from_9_1 経由で本番のソースから取り出す（写経しない）。
 
     python3 scripts/20260808T0000_restaurant/tests/test_9_1_backfill_guard.py
 """
 
 from __future__ import annotations
 
-import ast
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
-SOURCE = Path(__file__).resolve().parent.parent / "9_1_sync_restaurants.py"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-
-def _load_detect():
-    """本番の判定関数を **ソースから抜き出して** そのまま使う。
-
-    9_1 は import すると BigQuery クライアントまで芋づるで読み込むため、
-    モジュールごとの import は環境に依存して落ちる。関数定義だけを
-    AST で取り出して exec する。写経ではないので本体を直せば追従する。
-    """
-
-    tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
-    for node in tree.body:
-        if isinstance(node, ast.FunctionDef) and node.name == "detect_backfill_missing":
-            namespace: dict = {"Any": object}
-            exec(compile(ast.Module([node], []), str(SOURCE), "exec"), namespace)
-            return namespace["detect_backfill_missing"]
-    raise SystemExit("detect_backfill_missing を 9_1 から取り出せませんでした")
-
-
-@dataclass
-class Window:
-    inserted_count: int
+from load_from_9_1 import Window, load_detect  # noqa: E402
 
 
 def main() -> None:
-    detect = _load_detect()
+    detect = load_detect()
     failures: list[str] = []
 
     def check(label: str, got, want) -> None:
