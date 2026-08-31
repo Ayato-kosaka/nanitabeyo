@@ -180,15 +180,34 @@ describeMutation("グリッドから開いたフィードで 2 つのセルが�
 			const playing = await readPlaying();
 			for (const name of playing) playingSeen.push(`${label}:${name}`);
 
-			if (playing.length > 1) {
+			/*
+			⚠️ **合否はこの 1 枚だけで決める。**
+
+			以前は `external-embed-playing-*` の印を «2 枚数える» ことを合否にしていた。
+			ところが同じ testID がビューツリーへ二重に現れることがあり
+			（`utils/waits.ts` の `target()` のコメントにあるとおり、このリポジトリで既知の現象）、
+			**1 つしか鳴っていないのに赤になった**。
+
+			実測（run 33414862377 / 528f3813）: Detox は «tiktok が 2 枚» と数えたのに、
+			アプリ側のログは
+			  - `dish_media_active_cell` が 1 件（entriesKey は 1 つ / total=1）
+			  - `external_embed_autoplay_started` が 1 件
+			  - `external_embed_concurrent_playing` が **0 件**（この行は即時送信なので消えない）
+			の 3 つとも «1 つしか鳴っていない» を指していた。
+
+			そこで数を «外から数える» のをやめ、**アプリ自身が数えた結果**を見る。
+			`external-embed-concurrent-playing` は、ExternalEmbedPlayer が
+			«自分が鳴っている最中に他のセルも鳴っている» と判定したときだけ描く印である。
+			1 枚でも在れば本当に同時再生であり、二重に現れても結論は変わらない。
+			*/
+			if (await existsNow(by.id("external-embed-concurrent-playing"), MARKER_PROBE_MS, 0)) {
 				// 落ちる前に «その瞬間» を残す。オーナーへ見せるのは失敗文ではなくこのコマである
 				await device.takeScreenshot(`concurrent-playback-${label}`);
 				throw new Error(
-					`【同時再生】${label} で ${playing.length} つのセルが同時に «再生中» でした: ${playing.join(", ")}。` +
-						" 前面でないセルは ExternalEmbedPlayer ごと return null になるので、" +
-						" external-embed-playing-* が 2 つ在る ＝ 2 つのセルが同時に前面扱いで鳴っている、ということです。" +
-						" オーナー報告「ポンデポチャ押したらインスタの音聞こえる / インスタおしたら YouTube の音聞こえる」と同じ症状で、" +
-						" 先読みしたページ（MyDishesFeedPage の shouldPrefetch）へ isScreenActive が伝わっていない疑いが濃い（#1641 / dc68680a）。" +
+					`【同時再生】${label} で、アプリ自身が «2 つ以上のセルが同時に鳴っている» と判定しました。` +
+						` 参考（外から数えた印。二重計上しうるので合否には使っていない）: ${playing.join(", ") || "なし"}。` +
+						" オーナー報告「ポンデポチャ押したらインスタの音聞こえる / インスタおしたら YouTube の音聞こえる」と同じ症状です。" +
+						" どのセルとどのセルだったかは BigQuery の external_embed_concurrent_playing（両方の contentId 入り）を見てください。" +
 						` 撮ったコマは concurrent-playback-${label} を参照。`,
 				);
 			}

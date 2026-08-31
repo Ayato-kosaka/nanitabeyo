@@ -912,6 +912,24 @@ export type ExternalEmbedPlayerProps = {
 };
 
 /**
+ * #1641【観測】**いま «鳴っている» セルの一覧。**
+ *
+ * 2026-08-31 の run 33408324285 で、Detox は `external-embed-playing-*` の印を **2 枚**見て赤にしたのに、
+ * BigQuery へ届いた `external_embed_autoplay_started` は **1 件だけ**だった
+ * （ログはバッチ送信なので、アプリが落とされた側の 1 件が飛んだと見られる）。
+ * つまり «2 つ同時に鳴った» という事実そのものが、**アプリ側の記録には 1 度も残っていなかった**。
+ *
+ * ここで «2 つ目が鳴り始めた瞬間» を 1 イベントにまとめて残す。片方の autoplay_started が飛んでも、
+ * この 1 行に両方の contentId が載るので «誰と誰が同時だったか» が確定する。
+ * 実機（オーナー端末）でも同じ行が出るので、CI で踏めない再現もこれで拾える。
+ *
+ * ⚠️ 登録の条件は、印（testID）を出す条件と **完全に同じ**にすること。
+ *    ずれると «Detox は赤なのにログは何も言わない» が再発する。
+ */
+type PlayingCell = { provider: string; contentId: string; startedAt: number };
+const playingCells = new Map<symbol, PlayingCell>();
+
+/**
  * この画面が前面か（別ルートへ push されていないか）を、**例外を投げずに**判定する。
  *
  * ⚠️ `useIsFocused()` は使えない。このコンポーネントは ActionSheet などの Portal 配下
@@ -1062,6 +1080,25 @@ export function ExternalEmbedPlayer({
 	 * ページ内のエージェントが「本当に `currentTime` が進んだ」と言ったときだけ `playing` になる。
 	 */
 	const [playback, setPlayback] = useState<"unknown" | "playing" | "unplayable">("unknown");
+	/** #1641【観測】{@link playingCells} での自分の席。インスタンスごとに一意 */
+	const playingCellKeyRef = useRef<symbol>(Symbol("external-embed-playing-cell"));
+	/**
+	 * #1641【検証】**このセルが鳴っている間に、他のセルも鳴っていたか。**
+	 *
+	 * Detox から «同時再生» を判定する唯一の口である。以前は
+	 * `external-embed-playing-{provider}` の印を **2 枚数える**方式だったが、
+	 * 同じ testID がビューツリーへ二重に現れることがあり（`e2e-mobile/utils/waits.ts` の
+	 * `target()` のコメントにあるとおり、このリポジトリで既知の現象）、
+	 * **1 つしか鳴っていないのに 2 枚と数える**ことがあった。
+	 *
+	 * 実測（run 33414862377）: Detox は 2 枚と数えたのに、アプリ側は
+	 * `dish_media_active_cell` が 1 件（total=1）/ `autoplay_started` が 1 件 /
+	 * `external_embed_concurrent_playing` が 0 件。**アプリは 1 つしか鳴らしていなかった。**
+	 *
+	 * 数を «外から数える» のをやめ、**アプリ自身が数えた結果**を印にする。
+	 * この印が出ていれば «本当に 2 つ鳴っている» と言い切れる。
+	 */
+	const [concurrentPlaying, setConcurrentPlaying] = useState(false);
 	/*
 	#1641 «なぜ再生できなかったか»。**畳むかどうかの判断に使う**（下の `collapsedAfterFailure`）。
 	`timeout` は «ページが 1 つも組み上がらなかった» ＝ WebView に見せるものが何も無い、を意味する。
@@ -1522,6 +1559,63 @@ export function ExternalEmbedPlayer({
 	*/
 	// 画面が裏（アプリがバックグラウンド / 呼び出し元がフォーカスを失った）なら描かない
 	// = 音もメモリも解放する
+	/*
+	#1641【観測】**«2 つ同時に鳴った» をアプリ側の記録に残す。**
+
+	この effect の条件は、下の `external-embed-playing-*` の印が画面に出る条件と 1 対 1 である
+	（`playback === "playing"` かつ、`!isActive || !appActive || !screenFocused` で
+	 まるごと `return null` していないこと）。Detox が印を 2 枚見る状況は、必ずここも 2 件になる。
+
+	⚠️ 片方の `autoplay_started` はバッチ送信の途中でアプリが落とされると失われる。
+	   だから «同時だった» の証拠は、**2 件目が鳴った側が 1 行にまとめて**残す。
+	*/
+	useEffect(() => {
+		const key = playingCellKeyRef.current;
+		const visible = playback === "playing" && isActive && appActive && screenFocused;
+
+		if (!visible) {
+			playingCells.delete(key);
+			setConcurrentPlaying(false);
+			return;
+		}
+
+		playingCells.set(key, {
+			provider: embed.provider,
+			contentId: embed.externalContentId,
+			startedAt: Date.now(),
+		});
+
+		setConcurrentPlaying(playingCells.size > 1);
+
+		if (playingCells.size > 1) {
+			logFrontendEvent({
+				event_name: "external_embed_concurrent_playing",
+				error_level: "warn",
+				payload: {
+					count: playingCells.size,
+					// 鳴り始めた順に並べる。先に鳴っていた方が «止まらなかった側» である
+					cells: Array.from(playingCells.values())
+						.sort((a, b) => a.startedAt - b.startedAt)
+						.map((cell) => ({ provider: cell.provider, contentId: cell.contentId })),
+					// この行を出した本人（= 後から鳴り出した側）
+					reporter: embed.externalContentId,
+				},
+				/*
+				⚠️ **この 1 行だけは、溜めずにすぐ送る。**
+				同時再生が起きているとき、Detox は数秒後に spec を落としてアプリごと止める。
+				既定のバッチ（件数 / 一定間隔）を待つと、**いちばん欲しい行が毎回そこで消える**。
+				実際に run 33408324285 と 33411032551 の 2 回とも、Detox は赤なのに
+				この種の行が 1 件も BigQuery へ届かなかった。
+				*/
+				flushNow: true,
+			});
+		}
+
+		return () => {
+			playingCells.delete(key);
+		};
+	}, [playback, isActive, appActive, screenFocused, embed.provider, embed.externalContentId, logFrontendEvent]);
+
 	if (!isActive || !appActive || !screenFocused) return null;
 
 	// 削除・非公開になった投稿（#1273 §39）
@@ -1817,6 +1911,13 @@ export function ExternalEmbedPlayer({
 				/* #1641 provider ごとに分けて出す。«どの provider が再生できたか» を
 				   Detox から 1 つずつ判定できるようにするため（YouTube だけ落ちる、が拾える） */
 				<View style={styles.playingMarker} pointerEvents="none" testID={`external-embed-playing-${embed.provider}`} />
+			)}
+			{/* #1641【検証】**同時再生の判定はこの 1 枚だけを見る。**
+			    上の印を 2 枚数える方式は、同じ testID がツリーへ二重に現れると誤検出する
+			    （run 33414862377 で実際に誤検出した）。こちらは «アプリ自身が数えた結果» なので、
+			    出ていれば本当に 2 つ鳴っている。⚠️ 数える側を上の印へ戻さないこと */}
+			{concurrentPlaying && (
+				<View style={styles.playingMarker} pointerEvents="none" testID="external-embed-concurrent-playing" />
 			)}
 			{/*
 			#1641 **読み込み中はローディングを出す。**（オーナー指示 2026-08-30
