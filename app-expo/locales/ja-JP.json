@@ -744,7 +744,7 @@
 		"emptyState": {
 			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
 		},
-		"everybodyPostsTitle": "レビューする料理を選択",
+		"everybodyPostsTitle": "みんなの投稿",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "レストラン詳細"

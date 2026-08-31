@@ -744,7 +744,7 @@
 		"emptyState": {
 			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
 		},
-		"everybodyPostsTitle": "समीक्षा करने के लिए व्यंजन चुनें",
+		"everybodyPostsTitle": "सबकी पोस्ट",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "रेस्टोरेंट विवरण"

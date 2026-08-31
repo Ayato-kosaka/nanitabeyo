@@ -744,7 +744,7 @@
 		"emptyState": {
 			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
 		},
-		"everybodyPostsTitle": "Choisir un plat à évaluer",
+		"everybodyPostsTitle": "Publications de tous",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "Détails du restaurant"

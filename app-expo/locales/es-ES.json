@@ -744,7 +744,7 @@
 		"emptyState": {
 			"noReviews": "Aún no hay reseñas.\nSé el primero en reseñar este restaurante."
 		},
-		"everybodyPostsTitle": "Elige un plato para reseñar",
+		"everybodyPostsTitle": "Publicaciones de todos",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "Detalles del restaurante"

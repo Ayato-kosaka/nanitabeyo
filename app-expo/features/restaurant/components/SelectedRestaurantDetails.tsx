@@ -81,6 +81,17 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 				// #1418 タブは 1 本に戻り、押下先も «その料理のレビューを書く» に戻ったので、
 				// 文言も旧レビュー側（#1375 の移設で `Restaurant.everybodyPostsTitle`）へ戻す。
 				// #1386 で入札タブと対にするため map 側の «レビュー» へ寄せていた
+				/*
+				#1629【オーナー実機報告】「お店の詳細押すとレビューするフローになる」。
+
+				この文言は **キー名（everybodyPosts）とも、上の申し送りとも食い違っていた**。
+				値だけが «レビューする料理を選択» のまま残っており、店舗詳細を開いた人には
+				画面全体が «レビューを書け» と読める（唯一のボタンも «写真・動画を投稿»）。
+				セクションの見出しなので «みんなの投稿» に戻す。
+
+				⚠️ 押下先が `review-from-media`（= レビューを書く画面）であることは #1418 の
+				   決定なのでここでは変えない。見出しだけを実態へ合わせる。
+				*/
 				const label = i18n.t("Restaurant.everybodyPostsTitle");
 				return (
 					<TouchableOpacity

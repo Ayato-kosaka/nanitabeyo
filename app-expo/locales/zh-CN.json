@@ -744,7 +744,7 @@
 		"emptyState": {
 			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
 		},
-		"everybodyPostsTitle": "选择要评论的菜品",
+		"everybodyPostsTitle": "大家的投稿",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "餐厅详情"

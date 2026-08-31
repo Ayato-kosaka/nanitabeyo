@@ -744,7 +744,7 @@
 		"emptyState": {
 			"noReviews": "아직 리뷰가 없습니다.\n이 레스토랑의 첫 리뷰를 작성해보세요."
 		},
-		"everybodyPostsTitle": "리뷰할 요리 선택",
+		"everybodyPostsTitle": "모두의 게시물",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "레스토랑 상세"

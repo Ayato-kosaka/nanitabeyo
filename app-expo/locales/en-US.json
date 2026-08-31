@@ -744,7 +744,7 @@
 		"emptyState": {
 			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
 		},
-		"everybodyPostsTitle": "Choose a dish to review",
+		"everybodyPostsTitle": "Everyone’s posts",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "Restaurant Details"

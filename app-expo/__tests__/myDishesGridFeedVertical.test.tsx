@@ -32,6 +32,8 @@ jest.mock("@/hooks/useContentWidth", () => ({ useContentWidth: () => 390 }));
 jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+// #1629 一覧は写真なしの行でクチコミのシートを開くようになり、その中で削除の確認を出す
+jest.mock("@/contexts/DialogProvider", () => ({ useDialog: () => ({ confirm: jest.fn() }) }));
 
 const mockPush = jest.fn();
 let mockParams: Record<string, string> = {};

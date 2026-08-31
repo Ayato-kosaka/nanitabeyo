@@ -70,6 +70,20 @@ await record({
 	preset: PRESET,
 	mock: (url) => {
 		if (url.includes("/v1/users/me/dishes")) return { body: ok({ data: ROWS, nextCursor: null, meta: {} }) };
+		// «お店の詳細を見る» の行き先を実際に描かせる。空を返すと「見つかりません」になり、
+		// その画面が何であるかが写らない（1 周これで無駄にした）
+		if (/\/v1\/restaurants\/[^/]+$/.test(url))
+			return {
+				body: ok({
+					restaurant: {
+						id: "restaurant-1",
+						name: "焼肉うしごろ 表参道",
+						imageUrls: { md: null },
+						google_place_id: "place-1",
+					},
+					meta: { averageRating: 4.2, reviewCount: 12 },
+				}),
+			};
 		return null;
 	},
 	flow: async (page, shot) => {

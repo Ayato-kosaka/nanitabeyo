@@ -744,7 +744,7 @@
 		"emptyState": {
 			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
 		},
-		"everybodyPostsTitle": "اختر طبقًا لمراجعته",
+		"everybodyPostsTitle": "منشورات الجميع",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "تفاصيل المطعم"
