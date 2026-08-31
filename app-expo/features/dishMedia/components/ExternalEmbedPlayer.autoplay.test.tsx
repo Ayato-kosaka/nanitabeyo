@@ -341,6 +341,50 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	});
 
 	/*
+	#1641 ⚠️ **«まだ準備できていない» をサーバへ報告しない。**
+
+	実測（run 33345690986 / commit 381e35ac / 同じ 1 つの YouTube セル）:
+
+	    01:26:11  no_video (no_ready)      sinceActiveMs=27745  ← ここで畳んだ
+	    01:26:55  autoplay_started audible sinceActiveMs=34348  ← 6.6 秒後に鳴った
+
+	同じセルが後から鳴っている以上、no_ready は «その投稿に映像が無い» の根拠にならない。
+	素材は dQw4w9WgXcQ（誰でも埋め込めることが広く知られている動画）である。
+	本当に埋め込めない動画は onError / errorCode で **数字**が detail に載るので、
+	沈黙（no_ready / no_state_change）とは区別が付く。
+
+	⚠️ この検証を外すと、遅いだけの投稿に対してサーバへ «確かめ直して» を投げ続ける。
+	*/
+	it("«まだ準備できていない»（no_ready / no_state_change）はサーバへ報告しない", () => {
+		for (const [kind, detail] of [
+			["no_video", "no_ready"],
+			["timeout", "no_state_change"],
+		]) {
+			const onUnplayable = jest.fn();
+			act(() => {
+				create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+			});
+			post({ src: "nb-embed-autoplay", kind, detail });
+			expect(onUnplayable).not.toHaveBeenCalled();
+		}
+	});
+
+	/*
+	#1641 ただし **本当に埋め込めない動画は報告する**。YouTube の IFrame API は
+	onError / errorCode を返すので、detail に数字が載る。沈黙とは区別が付く。
+	*/
+	it("埋め込み不可（errorCode つき）はこれまでどおりサーバへ報告する", () => {
+		const onUnplayable = jest.fn();
+		act(() => {
+			create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		post({ src: "nb-embed-autoplay", kind: "no_video", detail: "150" });
+
+		expect(onUnplayable).toHaveBeenCalledTimes(1);
+	});
+
+	/*
 	#1641 ⚠️ **«空の文書» を分けられる値を落とさないこと。**
 
 	どの値が実際に使えるかは Playwright で実測した（同じ TikTok embed URL を開いて計測）。
