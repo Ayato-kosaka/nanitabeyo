@@ -1082,6 +1082,23 @@ export function ExternalEmbedPlayer({
 	const [playback, setPlayback] = useState<"unknown" | "playing" | "unplayable">("unknown");
 	/** #1641【観測】{@link playingCells} での自分の席。インスタンスごとに一意 */
 	const playingCellKeyRef = useRef<symbol>(Symbol("external-embed-playing-cell"));
+	/**
+	 * #1641【検証】**このセルが鳴っている間に、他のセルも鳴っていたか。**
+	 *
+	 * Detox から «同時再生» を判定する唯一の口である。以前は
+	 * `external-embed-playing-{provider}` の印を **2 枚数える**方式だったが、
+	 * 同じ testID がビューツリーへ二重に現れることがあり（`e2e-mobile/utils/waits.ts` の
+	 * `target()` のコメントにあるとおり、このリポジトリで既知の現象）、
+	 * **1 つしか鳴っていないのに 2 枚と数える**ことがあった。
+	 *
+	 * 実測（run 33414862377）: Detox は 2 枚と数えたのに、アプリ側は
+	 * `dish_media_active_cell` が 1 件（total=1）/ `autoplay_started` が 1 件 /
+	 * `external_embed_concurrent_playing` が 0 件。**アプリは 1 つしか鳴らしていなかった。**
+	 *
+	 * 数を «外から数える» のをやめ、**アプリ自身が数えた結果**を印にする。
+	 * この印が出ていれば «本当に 2 つ鳴っている» と言い切れる。
+	 */
+	const [concurrentPlaying, setConcurrentPlaying] = useState(false);
 	/*
 	#1641 «なぜ再生できなかったか»。**畳むかどうかの判断に使う**（下の `collapsedAfterFailure`）。
 	`timeout` は «ページが 1 つも組み上がらなかった» ＝ WebView に見せるものが何も無い、を意味する。
@@ -1558,6 +1575,7 @@ export function ExternalEmbedPlayer({
 
 		if (!visible) {
 			playingCells.delete(key);
+			setConcurrentPlaying(false);
 			return;
 		}
 
@@ -1566,6 +1584,8 @@ export function ExternalEmbedPlayer({
 			contentId: embed.externalContentId,
 			startedAt: Date.now(),
 		});
+
+		setConcurrentPlaying(playingCells.size > 1);
 
 		if (playingCells.size > 1) {
 			logFrontendEvent({
@@ -1891,6 +1911,13 @@ export function ExternalEmbedPlayer({
 				/* #1641 provider ごとに分けて出す。«どの provider が再生できたか» を
 				   Detox から 1 つずつ判定できるようにするため（YouTube だけ落ちる、が拾える） */
 				<View style={styles.playingMarker} pointerEvents="none" testID={`external-embed-playing-${embed.provider}`} />
+			)}
+			{/* #1641【検証】**同時再生の判定はこの 1 枚だけを見る。**
+			    上の印を 2 枚数える方式は、同じ testID がツリーへ二重に現れると誤検出する
+			    （run 33414862377 で実際に誤検出した）。こちらは «アプリ自身が数えた結果» なので、
+			    出ていれば本当に 2 つ鳴っている。⚠️ 数える側を上の印へ戻さないこと */}
+			{concurrentPlaying && (
+				<View style={styles.playingMarker} pointerEvents="none" testID="external-embed-concurrent-playing" />
 			)}
 			{/*
 			#1641 **読み込み中はローディングを出す。**（オーナー指示 2026-08-30

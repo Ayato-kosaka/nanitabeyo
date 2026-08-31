@@ -71,6 +71,10 @@ const reportPlaying = (externalContentId: string) => {
 	});
 };
 
+/** アプリ自身が «同時に鳴っている» と判定したときだけ出る印（Detox の合否はこれだけを見る） */
+const concurrentMarkers = (target: ReactTestRenderer) =>
+	target.root.findAllByProps({ testID: "external-embed-concurrent-playing" }).length;
+
 const concurrentLogs = () =>
 	mockLogFrontendEvent.mock.calls
 		.map(([arg]) => arg)
@@ -99,6 +103,7 @@ describe("ExternalEmbedPlayer の «同時に鳴った» 記録", () => {
 		reportPlaying(FIRST.externalContentId);
 
 		expect(concurrentLogs()).toHaveLength(0);
+		expect(concurrentMarkers(tree!)).toBe(0);
 	});
 
 	it("2 つのセルが同時に鳴ったら、両方の contentId を 1 行に載せて記録する", () => {
@@ -125,6 +130,11 @@ describe("ExternalEmbedPlayer の «同時に鳴った» 記録", () => {
 		]);
 		// 後から鳴り出した側が報告する（先に鳴っていた方が «止まらなかった側»）
 		expect(logs[0].payload.reporter).toBe(SECOND.externalContentId);
+		/*
+		⚠️ **Detox の合否はこの印だけを見る。** 印を出すのをやめると、e2e は
+		«外から数える» 方式へ戻すしかなくなり、二重計上でまた偽陽性が出る（run 33414862377）。
+		*/
+		expect(concurrentMarkers(tree!)).toBeGreaterThan(0);
 		/*
 		⚠️ **溜めずにすぐ送ること。** 同時再生が起きているとき Detox は数秒後にアプリごと止める。
 		既定のバッチを待つと、いちばん欲しいこの行が毎回そこで消える
@@ -156,5 +166,6 @@ describe("ExternalEmbedPlayer の «同時に鳴った» 記録", () => {
 		reportPlaying(SECOND.externalContentId);
 
 		expect(concurrentLogs()).toHaveLength(0);
+		expect(concurrentMarkers(tree!)).toBe(0);
 	});
 });
