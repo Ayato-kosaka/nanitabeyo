@@ -115,3 +115,14 @@
 - SELECTは execute_sql_readonly のみ（execute_sqlは書込で承認が出る）。1GB超のスキャンだけ確認。
 - 並列は Agent(worktree) と GitHub Actions(db-script-run.yml, 並列は concurrency_group_suffix -xxx)。
 - 各周「必ず次の一手を出す」。意味ある変化だけオーナーへ1-2行。有料はオーナーが言うまで出さない。
+
+## 進捗更新 2026-08-31 10:15Z
+- [x] **柱2 handle拡張 第2周** 統合済: 572→**741**（+169・42都道府県）。次周で1000+へ（中国四国の残県）。
+- [x] **柱1 本番化コード** 統合済（4_4_crawl_official_site_igs.py / 4_1 --source official_site_crawl / sns_store_site_ig）。**未dispatch**。
+  - 柱1 dispatch 手順（resolve確定測定の後・DB新表作成なので実行時に一言添える）:
+    1. BQ(execute_sql=書込・承認可): 単発CREATE で `sns_store_site_ig` を作成（**4_0は使わない**＝DROPで稼働中データ消滅。SQLは 20260830T0000_create_sns_seed_tables.sql の該当CREATE部を単独実行）。
+    2. db-script-run: `4_4_crawl_official_site_igs.py` args `--run-id sns-2026-08-31 --catalog-run-id restaurant-2026-08-23 --limit 5000 --offset 0`（offset 5000刻みで全量、concurrency_group_suffix -crawlN で並列可）。まず `--limit 300 --dry-run` で動作確認。
+    3. db-script-run: `4_1_discover_sns_accounts.py` args `--run-id sns-2026-08-31 --source official_site_crawl --crawl-run-id sns-2026-08-31`。
+    4. その後 4_2(店アカ収集)→5_1(resolve) を回して 柱1 の matched を測る。
+- [~] **resolve店舗照合の磨き上げ** agent 稼働中（56pt分解＋住所/店名照合改善）。
+- [ ] resolve全量→確定測定（自己チェック継続）。
