@@ -177,3 +177,12 @@
 - ★**柱1 harvest は IG business_discovery 200/時に構造的に律速。並列化しても速くならない**: 投稿一覧の取得は business_discovery しか手段が無く（embed 6,870/時は «既知postのcaption取得» 用で handle の投稿列挙には使えない）、レート制限は **app token 単位**。4_2 を --shards で6並列にしても同一 IG_TOKEN の同一バケットを share するので合算 200/時のまま backoff が増えるだけ。→ **4_2 sharding は無意味・実装しない**。2,532 handle の全収集は ~12.6h（200/時）。
 - 帰結: **crawl は harvest を追い越さない**（wave3以降は backlog 消化まで保留、再確認）。柱1の near-term 測定は 800 sample で行う。全量 harvest は時間をかけて消化（毎tickで完了分を 5_1 に流す運用）。
 - カテゴリrecall磨き(loop B)は、offline matcher 複製(fragile)ではなく **5_1 後の実 store-caption の cat=0 実ミス**で行う（evidence-first）。
+
+## 進捗更新 2026-08-31 20:10Z（柱1 4_2完了→5_1 6並列resolve起動）
+- [x] **柱1 4_2 harvest 完了**（run 215 success 19:42Z）: **19,396投稿 / 662アカウント / 異なり既知店 599**（800中662がbusiness_discovery可、残は非公開/不可）。
+- [~] **柱1 5_1 resolve 6並列起動**（run sns-2026-08-31, resolve_version=dev-2026-08-31-store, shard0..5, suffix -p1r0..5）: 柱1投稿のカテゴリ抽出。~1-3h(embed fetch律速)。
+- **5_1完了後にこの2軸を測定して報告**（クエリはそのまま流せる）:
+  - (a) resolve-matched: `WITH l AS (SELECT provider,post_id,status,google_place_id,ROW_NUMBER()OVER(PARTITION BY provider,post_id ORDER BY resolved_at DESC)rn FROM restaurant_recommendation.sns_post_resolved WHERE run_id='sns-2026-08-31') SELECT COUNTIF(status='matched')matched_posts,COUNT(DISTINCT IF(status='matched',google_place_id,NULL))matched_stores FROM l WHERE rn=1`
+  - (b) 既知店×カテゴリ解決(pg同期で使える潜在産出): `WITH l AS (SELECT provider,post_id,status,dish_category_id,ROW_NUMBER()OVER(PARTITION BY provider,post_id ORDER BY resolved_at DESC)rn FROM restaurant_recommendation.sns_post_resolved WHERE run_id='sns-2026-08-31') SELECT COUNTIF(l.status IN('matched','skipped_no_store')AND l.dish_category_id IS NOT NULL)usable_posts,COUNT(DISTINCT IF(l.status IN('matched','skipped_no_store')AND l.dish_category_id IS NOT NULL,raw.discovery_seed_place_id,NULL))usable_known_stores FROM l JOIN restaurant_recommendation.sns_post_raw raw ON raw.run_id='sns-2026-08-31'AND raw.provider=l.provider AND raw.post_id=l.post_id WHERE l.rn=1`
+  - status内訳・cat=0率（＝柱1のカテゴリrecall磨き対象）・柱1新規異なり店(sns-2026-08-30に無い)も。
+- 完了・(a)(b)が出たら §1 6項目でオーナーへ。(b)が大きければ pg母数同期を選択肢提示。
