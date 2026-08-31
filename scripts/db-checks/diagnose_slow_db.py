@@ -64,10 +64,21 @@ def section(title: str) -> None:
 
 
 def timed(cur, label: str, sql: str) -> None:
-    """1 本の SELECT にかかる実時間を測る（プラン確認ではなく «いま速いか»）。"""
+    """1 本の SELECT にかかる実時間を測る（プラン確認ではなく «いま速いか»）。
+
+    statement_timeout に掛かったら **それ自体が結果**なので、落とさずに記録して次へ進む。
+    ここで例外を上げると、一番知りたい «どれだけ遅いか» を採る前に終わってしまう。
+    """
     started = time.perf_counter()
-    cur.execute(sql)
-    cur.fetchall()
+    try:
+        cur.execute(sql)
+        cur.fetchall()
+    except psycopg2.errors.QueryCanceled:
+        # autocommit なので «中断されたトランザクション» は残らない（rollback は要らない）。
+        # rollback を挟むと、PostgreSQL では SET も一緒に巻き戻り、
+        # 以降の search_path / statement_timeout が消える（#1706 で踏んだのと同じ罠）
+        logger.info("  %-42s %s", label, "15 秒で打ち切り（＝ いま相当に遅い）")
+        return
     logger.info("  %-42s %8.1f ms", label, (time.perf_counter() - started) * 1000)
 
 
@@ -91,13 +102,23 @@ def main() -> int:
         # プーラ経由でセッション設定が効かない構成もあるため、失敗しても続行する
         # （このスクリプトは SELECT / SHOW しか発行しない）
         try:
-            conn.set_session(readonly=True)
-            logger.info("接続を read-only に設定しました")
+            # autocommit にするのは «速いから» ではなく **SET を守るため**である。
+            # PostgreSQL の SET はトランザクション内で実行すると rollback で巻き戻るので、
+            # 1 本でもクエリが失敗した瞬間に search_path と statement_timeout が消える。
+            # 読むだけのスクリプトはトランザクションを開閉しない（#1706）
+            conn.set_session(readonly=True, autocommit=True)
+            logger.info("接続を read-only / autocommit に設定しました")
         except psycopg2.Error as exc:
             logger.warning("read-only 設定に失敗（SELECT のみのため続行）: %s", exc)
 
         with conn.cursor() as cur:
             cur.execute(f'SET search_path TO "{args.schema}", extensions')
+
+            # ⚠️ **このスクリプトは «障害の最中に» 走る。**
+            # 相手は本番と共有のインスタンスなので、診断が長引いて本番を巻き込むことは
+            # 絶対に許されない。1 文でも 15 秒を超えたらこちらが落ちる方が正しい。
+            cur.execute("SET statement_timeout = '15s'")
+
             cur.execute("SHOW search_path")
             logger.info("search_path: %s", cur.fetchone()[0])
 
@@ -107,10 +128,13 @@ def main() -> int:
             section("1. 素の応答速度")
             timed(cur, "SELECT 1", "SELECT 1")
             timed(cur, "users を 1 行（PK 走査）", f'SELECT id FROM "{args.schema}".users LIMIT 1')
+            # ⚠️ ここで `count(*)` を書かないこと。全件走査になり、**弱っている共有インスタンスへ
+            # 診断が追い打ちをかける**。行数は 4 章の n_live_tup（統計から読むのでタダ）で足りる。
+            # ここで見たいのは «件数» ではなく «読み出しがいま速いか» なので、上限を付けて測る
             timed(
                 cur,
-                "dish_category_features を数える",
-                f'SELECT count(*) FROM "{args.schema}".dish_category_features',
+                "dish_category_features を 1 万行だけ走査",
+                f'SELECT count(*) FROM (SELECT 1 FROM "{args.schema}".dish_category_features LIMIT 10000) t',
             )
 
             # ── 2. 誰かが占有していないか ────────────────────────────────
