@@ -72,7 +72,20 @@ describeMutation("グリッドから開いたフィードで 2 つのセルが�
 	 * カード自身（`my-dishes-list-item`）には行を区別する testID が無いので、
 	 * **ロゴを子に持つカード**という形で指す。押すのはカードの方（ロゴは飾りで押す物ではない）。
 	 */
-	const embedCard = by.id("my-dishes-list-item").withDescendant(by.id("my-dishes-list-item-provider-badge"));
+	/*
+	#1641 ⚠️ **踏むのは «鳴る投稿» のカードにすること。**
+
+	実測（run 33403385170）: provider を問わず «取り込み元ロゴのあるカード» を踏んでいたら、
+	**映像を持たない Instagram の素材**（DZFdePPzzLI）に当たり、再生を 1 度も観測しないまま
+	«同時再生なし» と判定していた。鳴っていないものが 2 つ同時に鳴ることはないので、
+	その run は **何も起きなくても緑**だった。
+
+	TikTok の素材は CI のほぼ全 run で鳴っている（`external_embed_autoplay_started`）ので、
+	入口として最も確実である。バッジの testID に provider が入っているのはこのため。
+	*/
+	const embedCard = by
+		.id("my-dishes-list-item")
+		.withDescendant(by.id("my-dishes-list-item-provider-badge-tiktok"));
 
 	/**
 	 * 印 1 つを読むときの上限 (ms)。
@@ -259,7 +272,7 @@ describeMutation("グリッドから開いたフィードで 2 つのセルが�
 				.scroll(320, "down");
 		} catch (error) {
 			throw new Error(
-				"グリッドに «取り込み元ロゴ付きのカード»（= 埋め込みの記録）が 1 つも見つかりませんでした。" +
+				"グリッドに «TikTok の取り込みカード» が 1 つも見つかりませんでした。" +
 					" beforeAll の取り込みは成功しているので、一覧（GET /v1/users/me/dishes）に出ていないか、" +
 					" ロゴのバッジ（my-dishes-list-item-provider-badge）が描かれていない疑いがあります。" +
 					`（元の失敗: ${error instanceof Error ? error.message : String(error)}）`,
