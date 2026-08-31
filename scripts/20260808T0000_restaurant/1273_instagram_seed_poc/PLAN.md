@@ -163,3 +163,11 @@
 - [~] **柱1 crawl wave2 投入**（offset 10000-18000, suffix -crawl5..9）: 次の1万店。完了後 4_1再実行で handle 追加合流。
 - **辞書メモ（loop B用）**: dish_category_variant_catalog = 93,738 surface form → 14,522カテゴリ。本番matchedは490カテゴリのみ出現。カテゴリrecall磨きは別tick。
 - **次**: 4_2完了→5_1→柱1 matched測定。wave2完了→4_1再合流→さらにwave3(offset 20000+)。柱2/柱3は柱1測定後にキュー。
+
+## 進捗更新 2026-08-31 17:10Z（★柱1は«pg母数シーディング»機構＝戦略的再定義）
+- [x] **wave2 crawl 完了**（20,000店 crawl累計・店固有handle 3,432）。4_2 harvest 稼働中（168/800 acct・**4,916投稿**・~29投稿/店IG＝店アカウントも business_discovery 可）。
+- ★**重要な気づき（戦略修正）**: 柱1は «店自身の IG» を収集するので、**投稿の店 google_place_id は crawl で既知**（sns_post_raw.discovery_seed_place_id、4,916/4,916 で充填確認）。→ **柱1 の store 特定は resolve の pg 照合に依存しない**＝柱2 を縛った «pg母数の壁»(94%が pg dev 不在) の影響を受けない。resolve は **カテゴリ抽出のためだけ**に使う。
+  - 帰結: 柱1 の «matched»(resolve が pg で店発見) は低く出るが、それは柱1を過小評価する。柱1 の真の産出 = **既知店 × キャプション解決カテゴリ** = そのまま dish_media 化できる (store, posts, category) 三つ組。
+  - **柱1 測定は2軸で出す**: (a) resolve-matched（今すぐ使える＝店が既に pg dev）／(b) 既知店×カテゴリ解決（status=matched または skipped_no_store。pg同期すれば使える柱1の潜在産出）。(b) が pg母数同期の投資根拠。
+- **crawl は harvest 律速を追い越さない**: IG business_discovery 200/時が柱1のスループット律速。3,432 handle 既にキュー＝十数時間分。**wave3 crawl は harvest が追いつくまで出さない**（先行crawlは遊休backlog）。4_2 に shard/offset を足すのは (b) 測定で柱1価値を確認後に判断。
+- **次**: 4_2(800)完了→5_1(version dev-2026-08-31-store)→柱1を(a)(b)で測定→意味あれば pg母数同期を選択肢提示（DB変更・承認要）。
