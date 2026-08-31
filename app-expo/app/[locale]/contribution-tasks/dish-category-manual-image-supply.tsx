@@ -318,6 +318,18 @@ export default function DishCategoryManualImageSupplyScreen() {
 				// 画像選択
 				const result = await selectMedia(["images"], {
 					allowsEditing: false,
+					/*
+					#1750 Android の保留結果に «この画面のものだ» という印を付ける。
+
+					⚠️ **この画面は復帰（`recoverPendingMedia`）を実装していない。** 保留結果は
+					«どのカテゴリのための画像か» を持たないので、復帰するには対象の id も端末へ
+					残す必要があり、そこまでする価値は薄い（貢献者向けの内部画面で、消えても
+					もう一度選び直せばよい）。
+
+					それでも印だけは必ず付けること。付けないと、ここで選んだ画像が
+					**プロフィール画像やレビュー写真として拾われうる**（lib/mediaSelection.ts 参照）。
+					*/
+					pendingOwner: "contribution-dish-category-image",
 				});
 
 				if (!result.success || !result.media) {

@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { Platform } from "react-native";
-import type { BaseResponse } from "@shared/api/v1/res";
+import { ErrorCode, type BaseResponse } from "@shared/api/v1/res";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -357,7 +357,25 @@ export const useAPICall = () => {
 				});
 
 				// 特定ステータスコードによる分岐
-				if (response.status === 503) {
+				/*
+				#1642 【バグ】ここは **HTTP 503 を丸ごとメンテナンス扱い**にしていた。
+
+				503 を返すのは `MaintenanceGuard` だけではない。
+				  - `DELETE /v1/users/me` — Supabase Auth のアカウント削除失敗（再送で完了できる）
+				  - Cloud Run / LB の一時的な過負荷（そもそも errorPayload が我々のものではない）
+				実際にオーナーの実機で「ただいまメンテナンス中です。」が出た（2026-08-31）。
+				真因は Google Places の日次上限を 503 で返していたことで、そちらは
+				`external-api.service.ts` を 429 へ戻して直した（#1642）。ただし
+				**503 = メンテナンス という読み替え自体が誤り**なので、ここも直す。
+				メンテナンスと名乗ると «全機能が止まっている・こちらが意図的に止めた» と読めるので、
+				実際には検索の一部が失敗しただけの障害を誤って重大に見せてしまう。
+
+				【修正】メンテナンスを名乗ってよいのは、Remote Config の `is_maintenance` を読んだ
+				`MaintenanceGuard` が付ける `SERVICE_MAINTENANCE` が乗っているときだけにする。
+				それ以外の 503 は下の汎用 HTTP エラー経路へ落とし、呼び出し側の
+				「取得できなかった」表示（0 件・スナックバー等）に委ねる。
+				*/
+				if (response.status === 503 && backendErrorCode === ErrorCode.SERVICE_MAINTENANCE) {
 					// メンテナンスモード (HTTP 503 Service Unavailable)
 					showDialog(i18n.t("Error.maintenanceMessage"), {
 						okLabel: i18n.t("Common.ok"),

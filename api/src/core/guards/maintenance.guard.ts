@@ -12,12 +12,13 @@ import { isVersionGreaterOrEqual } from '../utils/version.util';
 import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_APP_VERSION } from '../cls/cls.constants';
 import { AppLoggerService } from '../logger/logger.service';
+import { ErrorCode } from '@shared/v1/res';
 
 /**
  * 🔒 メンテナンス・バージョン制御ガード
  *
  * GCS上の設定に基づき、全APIでメンテナンス・強制アップデートを制御
- * - is_maintenance === 'true' → HTTP 503 Service Unavailable
+ * - is_maintenance === 'true' → HTTP 503 Service Unavailable (SERVICE_MAINTENANCE)
  * - X-App-Version < minimum_supported_version → HTTP 426 Upgrade Required
  * - X-App-Version 未送信時は検査スキップ（通す）
  * - 許可パスは /metrics 等の必要最小限のみ
@@ -67,7 +68,7 @@ export class MaintenanceGuard implements CanActivate {
           {
             data: null,
             success: false,
-            errorCode: 'SERVICE_MAINTENANCE',
+            errorCode: ErrorCode.SERVICE_MAINTENANCE,
             message: 'Service is currently under maintenance',
           },
           HttpStatus.SERVICE_UNAVAILABLE,
@@ -83,7 +84,7 @@ export class MaintenanceGuard implements CanActivate {
             {
               data: null,
               success: false,
-              errorCode: 'UNSUPPORTED_VERSION',
+              errorCode: ErrorCode.UNSUPPORTED_VERSION,
               message: `App version ${appVersion} is no longer supported. Minimum required version: ${minimumVersionStr}`,
             },
             426, // HTTP 426 Upgrade Required

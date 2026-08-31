@@ -607,7 +607,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category",
-			"writeReviewForThisDish": "Write a review for this dish",
 			"useTypedDishCategory": "Use “{{name}}”"
 		},
 		"inputs": {

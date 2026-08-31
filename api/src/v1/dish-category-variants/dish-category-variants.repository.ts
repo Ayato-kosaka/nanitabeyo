@@ -265,6 +265,45 @@ export class DishCategoryVariantsRepository {
   }
 
   /**
+   * #1273 照合辞書を補うために、各料理カテゴリの **多言語ラベル（`labels` Json）** を全件読む。
+   *
+   * ## なぜ必要か（辞書に «自分の日本語名» が無いカテゴリがある）
+   *
+   * `dish_category_variants` は BigQuery の `4_1_generate_variants.py` が生成するが、
+   * その最終段で **surface_form をグローバルに一意化**している（同じ表記が複数カテゴリに
+   * ぶら下がると canonical / QID 優先で 1 つへ寄せ、残りを捨てる）。この一意化は
+   * Wikidata 全カテゴリ（約 9 万件）を母集団に走るため、`焼肉` `和食` `餃子` のような
+   * **ありふれた日本語表記が、アプリの 134 カテゴリではない別カテゴリへ持っていかれ**、
+   * アプリが読む 134 カテゴリ分の辞書からは丸ごと欠落する（実測: 134 中 24 カテゴリが
+   * 自分の日本語ラベルを 1 つも持たない。#1273 resolve 精度計測）。
+   *
+   * その結果、キャプションに「焼肉」と明記があっても料理カテゴリ候補が 1 件も出ない。
+   * ここで各カテゴリの `labels.ja`（表示名の正）を辞書へ足し戻すことで、
+   * **DB を書き換えずに** この取りこぼしを塞ぐ（`DishCategoryVariantDictionaryService` が合成する）。
+   *
+   * `labels` は全言語を含む Json なので、日本語以外まで足すと多言語ラベルの誤爆が戻る。
+   * **日本語ラベルの抽出は呼び出し側**（`buildJapaneseLabelVariants`）で行い、ここは生の行を返す。
+   */
+  async findAllCategoryLabelsForMatching(limit: number) {
+    const result = await this.prisma.prisma.dish_categories.findMany({
+      select: {
+        id: true,
+        labels: true,
+      },
+      orderBy: { id: 'asc' },
+      take: limit,
+    });
+
+    this.logger.debug(
+      'AllCategoryLabelsLoaded',
+      'findAllCategoryLabelsForMatching',
+      { count: result.length, limit, truncated: result.length >= limit },
+    );
+
+    return result;
+  }
+
+  /**
    * 料理カテゴリ一覧を取得
    */
   async getDishCategories() {

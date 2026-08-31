@@ -9,6 +9,7 @@ import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useSheetBottomPadding } from "@/hooks/useSheetBottomPadding";
 import { useAPICall, type ApiError } from "@/hooks/useAPICall";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -23,6 +24,9 @@ import { shallow } from "zustand/shallow";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 import type { DeleteDishMediaResponse, DeleteDishReviewResponse, UpdateDishReviewResponse } from "@shared/api/v1/res";
 import { EditDishReviewModal, EDIT_MEDIA_LOCKED_NOTE_TEST_ID } from "./EditDishReviewModal";
+
+/** シート下端のデザイン上の余白。実際の余白はこれに safe area の inset を足したもの */
+const SHEET_PADDING_BOTTOM = 32;
 
 /**
  * フィード右レールの «…» メニュー。
@@ -68,6 +72,9 @@ type Props = {
 export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
+	// #1742 Modal はネイティブでは別ウィンドウで、画面側の safe area が届かない。
+	// 足さないと最下行「キャンセル」が Android のナビゲーションバーへ潜る（hooks/useSheetBottomPadding.ts）
+	const sheetPaddingBottom = useSheetBottomPadding(SHEET_PADDING_BOTTOM);
 	const dishMediaId = String(entry.dish_media.id);
 	// #1629 編集・削除の行だけを出し分ける。«…» 自体は誰の投稿でも出す
 	const isMine = !!entry.dish_media.isMine;
@@ -268,7 +275,10 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 			<Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
 				<Pressable style={styles.backdrop} onPress={() => setMenuVisible(false)}>
 					{/* シート本体のタップは閉じる操作に伝播させない */}
-					<Pressable testID="own-post-menu" style={styles.sheet} onPress={() => {}}>
+					<Pressable
+						testID="own-post-menu"
+						style={[styles.sheet, { paddingBottom: sheetPaddingBottom }]}
+						onPress={() => {}}>
 						{/*
 						  #1629 タイトルを «自分の投稿» から «この投稿» へ変えた。
 						  このメニューは **他人の投稿でも出る**（シェアと報告が入っているため）。
@@ -404,7 +414,7 @@ const createStyles = (colors: Palette) =>
 			borderTopRightRadius: 16,
 			paddingHorizontal: 20,
 			paddingTop: 16,
-			paddingBottom: 32,
+			// paddingBottom は safe area を足すため呼び出し側で組む（SHEET_PADDING_BOTTOM）
 		},
 		sheetTitle: {
 			fontSize: 14,

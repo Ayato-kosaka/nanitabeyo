@@ -76,6 +76,29 @@ interface DishMediaFeedProps {
 	既定 true。渡さない呼び出し元（検索結果・店舗・通知・投稿）の挙動は変わらない。
 	*/
 	isScreenActive?: boolean;
+	/*
+	#1752 **メディアを持たないページを混ぜるための差し込み口（オプトイン）。**
+
+	my-dishes のフィードには «写真の無い記録»（写真を消した記録を含む）が混ざる。
+	それらは `dish_media.id` を持たないので、この Feed の並び（= ストアの ids）には
+	原理的に載らず、**黙って落ちていた**（オーナー実機報告: Calendar の日付が
+	「見つかりません」／ Map の «食べた 3 件» がフィードでは 2 件）。
+
+	そこで «その位置に別の中身を描く» ことだけを外から差せるようにする。
+
+	- `ids` … 合成 id の集合。**エントリを持たない**ので、背景画像の先読みからは必ず外す
+	- `order` … ストアの ids を受け取り、合成 id を混ぜた **最終的な並び**を返す
+	  （どこへ挟むかは呼び出し元にしか分からない。ここでは «末尾に足す» と決め打たない）
+	- `render` … その合成 id のページの中身
+
+	⚠️ 渡さない呼び出し元（検索結果・店舗・通知・投稿）の挙動は 1 ミリも変わらない。
+	⚠️ `order` / `render` は **memo 化して渡すこと**。毎レンダー作り直すと並びの再計算が走る。
+	*/
+	customPages?: {
+		ids: string[];
+		order: (liveIds: string[]) => string[];
+		render: (id: string) => React.ReactNode;
+	};
 }
 
 // --- 本体 --------------------------------------------------------------------
@@ -87,12 +110,22 @@ export default function DishMediaFeed({
 	idType,
 	horizontal = false,
 	isScreenActive = true,
+	customPages,
 }: DishMediaFeedProps) {
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
 		[entriesKey, idType],
 	);
-	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+	const { ids: storeIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+
+	/*
+	#1752 合成ページを混ぜた «この画面が並べるべき順». 渡されていなければストアの並びそのもの。
+	以降このファイルは `liveIds` しか見ない（合成 id もページとして等しく扱うため）。
+	*/
+	const customIds = customPages?.ids;
+	const customOrder = customPages?.order;
+	const customIdSet = useMemo(() => new Set(customIds ?? []), [customIds]);
+	const liveIds = useMemo(() => (customOrder ? customOrder(storeIds) : storeIds), [customOrder, storeIds]);
 
 	// 画面を開いた時点の並びを固定するための state
 	// liked/unlike 等のリアルタイム反映は行わない
@@ -142,7 +175,6 @@ export default function DishMediaFeed({
 		if (!ids.some((id) => deletedIds[id])) return;
 		setIds((prev) => prev.filter((id) => !deletedIds[id]));
 	}, [liveIds, ids, deletedIds]);
-
 
 	// #802 【責務分離】Feed は ids とページング制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
 	// #1629【40】⚠️ ここへ `ids.join(",")` を戻さないこと（上の `idsSession` の設計コメント）
@@ -221,7 +253,15 @@ export default function DishMediaFeed({
 	   全画面ビットマップ 42 枚の取得・デコードが一斉に走り、Android では Glide の
 	   timeout まで踏んでいた。だから **しきい値で分ける**のであって、窓をやめるのではない。
 	*/
-	const preloadIds = useMemo(() => computePreloadIds(ids, currentIndex), [ids, currentIndex]);
+	/*
+	#1752 ⚠️ **合成ページの id を先読みへ渡さないこと。** あちらは `entriesByMediaId` に実体が
+	無いので、渡すと «読めない画像» として descriptor に載り、release / 取り直しの churn を
+	増やすだけになる（#1629【40】でスケルトンが回り続けた経路と同じ）。
+	*/
+	const preloadIds = useMemo(
+		() => computePreloadIds(ids, currentIndex).filter((id) => !customIdSet.has(id)),
+		[ids, currentIndex, customIdSet],
+	);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
 		ids: preloadIds,
 		idType,
@@ -384,25 +424,32 @@ export default function DishMediaFeed({
 				    ユーザーからは «落ちた» と区別がつかない。1 セルの再試行に閉じ込める。
 				    ⚠️ throw を残すか消すかは別論点。まず境界を `DishMediaMap` と揃える */}
 				<ErrorBoundary>
-					<DishMediaContent
-						id={item}
-						/*
-						#1641 ⚠️ **`isScreenActive` を外さないこと。** これが無いと、
-						先読みで開いた隣のページが «自分の中では 0 番目 ＝ 前面» と判断して鳴る
-						（グリッド由来のページは ids が 1 件なので必ずそうなる）。
-						オーナー実機で «押したカードの次の音が鳴る» として 3 回報告された。
-						*/
-						isActive={isScreenActive && index === currentIndex}
-						// #1375（5 巡目・性能 B-2）動画プレイヤーは «見えている ±1» だけ実体化する。
-						// windowSize={5} は前後 2 ページぶんをマウントするので、素直に描くと
-						// 同時に 5 本のデコーダが立つ。±1 は先読み（スワイプ直後の黒画面を出さない）
-						isNearActive={Math.abs(index - currentIndex) <= 1}
-						getTitle={getTitle}
-						sessionId={sessionId.current}
-						entriesKey={entriesKey}
-						idType={idType}
-						backgroundImageState={getBackgroundImageState(item)}
-					/>
+					{/* #1752 メディアを持たないページ（my-dishes の «写真の無い記録»）。
+					    ストアにエントリが無いので `DishMediaContent` の手前で分ける。
+					    ⚠️ 再生の話（`isActive` / `isNearActive`）はこちらには要らない。鳴るものが無い */}
+					{customIdSet.has(item) ? (
+						customPages?.render(item)
+					) : (
+						<DishMediaContent
+							id={item}
+							/*
+							#1641 ⚠️ **`isScreenActive` を外さないこと。** これが無いと、
+							先読みで開いた隣のページが «自分の中では 0 番目 ＝ 前面» と判断して鳴る
+							（グリッド由来のページは ids が 1 件なので必ずそうなる）。
+							オーナー実機で «押したカードの次の音が鳴る» として 3 回報告された。
+							*/
+							isActive={isScreenActive && index === currentIndex}
+							// #1375（5 巡目・性能 B-2）動画プレイヤーは «見えている ±1» だけ実体化する。
+							// windowSize={5} は前後 2 ページぶんをマウントするので、素直に描くと
+							// 同時に 5 本のデコーダが立つ。±1 は先読み（スワイプ直後の黒画面を出さない）
+							isNearActive={Math.abs(index - currentIndex) <= 1}
+							getTitle={getTitle}
+							sessionId={sessionId.current}
+							entriesKey={entriesKey}
+							idType={idType}
+							backgroundImageState={getBackgroundImageState(item)}
+						/>
+					)}
 				</ErrorBoundary>
 			</View>
 		),
@@ -432,6 +479,9 @@ export default function DishMediaFeed({
 			entriesKey,
 			idType,
 			getBackgroundImageState,
+			// #1752 合成ページの判定と描画関数。渡されないとき（既存の 4 画面）は undefined のまま
+			customIdSet,
+			customPages,
 		],
 	);
 

@@ -1,4 +1,4 @@
-import { DEFAULT_TIMEOUT, by, existsNow, tapWhenVisible, waitUntilVisible } from "../fixtures/e2e";
+import { DEFAULT_TIMEOUT, by, tapWhenVisible, waitUntilVisible } from "../fixtures/e2e";
 
 /**
  * 🎞 店舗のレビューフィード（`/[locale]/restaurant/[restaurantId]/feed`）の Screen Object
@@ -24,7 +24,10 @@ export class RestaurantFeedScreen {
 	/** «見るものが無い» 表示（0 件 / 取得失敗）。スピナーで固着しないことの観測点 */
 	readonly empty = by.id("restaurant-feed-empty");
 	/** 「この料理にレビューを書く」CTA（ログイン済み かつ 表示中のメディアがあるときだけ描かれる） */
-	readonly writeReviewButton = by.id("restaurant-feed-write-review-button");
+	/*
+	#1629【オーナー確定】«この料理にレビューを書く» は撤去した（右レールの «食べた» が導線）。
+	locator も消す。跡地を残すと «あるはずのもの» として次の人が使ってしまう。
+	*/
 	/** 閉じる ×（ヘッダーを持たない画面なので浮かせてある） */
 	readonly closeButton = by.id("restaurant-feed-close-button");
 
@@ -36,11 +39,6 @@ export class RestaurantFeedScreen {
 	/** «見るものが無い» 表示が出ていることを検証する */
 	async expectEmpty(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.empty, timeout);
-	}
-
-	/** 投稿 CTA が描かれているかを **待たずに** 判定する（実データ次第で出ない） */
-	async hasWriteReviewButton(): Promise<boolean> {
-		return existsNow(this.writeReviewButton);
 	}
 
 	/** × をタップして閉じる */

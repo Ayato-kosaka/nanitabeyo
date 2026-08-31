@@ -15,17 +15,16 @@ KeyboardAvoidingView では代替できない、このコンポーネント固�
 */
 import React, { useCallback, useRef } from "react";
 import { Keyboard } from "react-native";
-import { StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
-import { useSafeAreaFrame, useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, ScrollView, View, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 
 export function KeyboardAwareForm<K extends readonly string[]>({
 	fields,
-	keyboardVerticalOffset = 0,
 	bottomNode,
 	children,
 }: {
 	fields: K;
-	keyboardVerticalOffset?: number;
 	bottomNode?: React.ReactNode;
 	children: (helpers: {
 		recordY: (key: K[number]) => (e: any) => void;
@@ -34,10 +33,39 @@ export function KeyboardAwareForm<K extends readonly string[]>({
 }) {
 	type FieldKey = K[number];
 
-	// Safe Area を除いたフレームの高さ
-	const frame = useSafeAreaFrame();
 	// Safe Area を考慮したインセット
 	const insets = useSafeAreaInsets();
+	/*
+	#1750 【バグ】**保存ボタンが画面の外にあって押せなかった。**
+
+	旧実装は器の高さを `height: frame.height - 100` と «窓の高さから当てずっぽうの 100px を引く»
+	で決めていた。`useSafeAreaFrame()` が返すのは **窓全体**の高さなので、この器が実際に置かれる
+	領域（窓 − ステータスバー − ScreenHeader − タブバー − ナビゲーションバー）より必ず高くなる。
+	はみ出した分は下へ流れ、器の一番下にある `bottomNode`（＝ 保存ボタン）が
+	**タブバーの裏か画面の外**に来る。
+
+	実機ログ（dev 2026-08-31 17:06-17:07 UTC / commit 6d9b89d8）:
+
+	    profile_edit_started
+	    profile_avatar_selected {uriScheme:"file", mimeType:"image/jpeg"}  ← 画像は選べている
+	    profile_edit_screen_back_pressed                                    ← 保存せず戻っている
+
+	これが 2 回続いており、`profile_edit_saved` は 1 件も無い。つまり
+	«画像が上がらない» の正体は «保存ボタンを押せない» だった。
+
+	表示名だけの保存が通っていたのは、**キーボードを開くと** KeyboardAvoidingView が
+	器を縮めてボタンが画面内へ上がってきたためである。画像を選ぶだけならキーボードを
+	開かないので、ボタンは画面の外に居続ける。
+
+	直し方は #1629 と同じ。**器の高さを計算しない**（`flex: 1` で親に合わせる）。
+	キーボード回避も `KeyboardAvoidingView` をやめ、キーボードの高さだけを見る
+	`useKeyboardInset()` で器の下に余白を空ける。`useKeyboardInset` の JSDoc が
+	«高さを固定した親（height: frame.height 等）の中では前提が崩れる» と名指ししている、
+	まさにその形がここに残っていた。
+
+	⚠️ ここへ `height` / `maxHeight` を戻さないこと。器の高さは親が決める。
+	*/
+	const keyboardInset = useKeyboardInset();
 
 	const scrollRef = useRef<ScrollView>(null);
 
@@ -85,11 +113,11 @@ export function KeyboardAwareForm<K extends readonly string[]>({
 	const onFocusFactory = useCallback((key: FieldKey) => () => scrollToField(key), [scrollToField]);
 
 	return (
-		// キーボードが表示された場合に高さを自動調整
-		<KeyboardAvoidingView
-			style={{ height: frame.height - 100 }}
-			behavior={Platform.select({ ios: "padding", android: "height" })}
-			keyboardVerticalOffset={keyboardVerticalOffset}>
+		/*
+		#1750 器の高さは親に合わせる（`flex: 1`）。キーボードが出ている間はその高さぶん
+		下を空けて器ごと縮めるので、**一番下の `bottomNode`（保存ボタン）は常に画面の中**に居る。
+		*/
+		<View style={[styles.container, keyboardInset > 0 ? { paddingBottom: keyboardInset } : null]}>
 			<ScrollView
 				ref={scrollRef}
 				style={styles.scrollView}
@@ -99,16 +127,20 @@ export function KeyboardAwareForm<K extends readonly string[]>({
 					{ paddingBottom: 24 + insets.bottom },
 				]}
 				keyboardShouldPersistTaps="handled"
-				// iOS の自動インセット調整は避ける（SafeAreaは自前で付与）
-				automaticallyAdjustContentInsets={false}>
+				// iOS の自動インセット調整は避ける（SafeArea も キーボードぶんも自前で付与）。
+				// #1750 上の paddingBottom で器ごと縮めているので、ここで足すと二重になる
+				automaticallyAdjustContentInsets={false}
+				automaticallyAdjustKeyboardInsets={false}>
 				{children({ recordY, onFocusFactory })}
 			</ScrollView>
 			{bottomNode ? bottomNode : null}
-		</KeyboardAvoidingView>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
+	// #1750 高さを数えない。親（画面）が与えた領域をそのまま使う
+	container: { flex: 1 },
 	scrollView: { flex: 1 },
 	contentContainer: {},
 });

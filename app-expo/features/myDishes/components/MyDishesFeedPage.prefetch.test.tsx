@@ -23,6 +23,11 @@ jest.mock("@/features/dishMedia/components/DishMediaFeed", () => ({
 	default: () => null,
 }));
 jest.mock("@/features/myDishes/components/MyDishesFeedChips", () => ({ MyDishesFeedChips: () => null }));
+/*
+#1752 クチコミのページ（写真の無い記録）は、この suite の関心事ではない。
+本物を通すと `useLogger` 経由で supabase クライアントの生成まで引きずり込むので差し替える。
+*/
+jest.mock("@/features/myDishes/components/MyDishOwnReviewPage", () => ({ MyDishOwnReviewPage: () => null }));
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: jest.fn() }) }));
 
 /** 派生クエリ 2 本が «何を渡されたか» を記録する。null なら取得しない、という契約 */

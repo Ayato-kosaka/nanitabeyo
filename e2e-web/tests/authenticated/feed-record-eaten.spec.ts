@@ -24,10 +24,14 @@ import {
  * - **`my-dishes/feed` は前提が重い**。あちらは `GET /v1/users/me/dishes?restaurantId=` に
  *   依存する（= 一覧に自分の行がある店舗が要る）。CTA と遷移先の検証には不要な前提である。
  *
- * ## Q5（CTA は 2 つのまま）もここで守る
+ * ## CTA は «食べた» の 1 つだけ
  *
- * リーダー確定 Q5 は「`restaurant-feed-write-review-button` を消さない」。同じ画面に
- * 既存 CTA と新しい「食べた」が **両方ある**ことをこの spec が固定する。
+ * #1629【オーナー確定】「店舗詳細からフィードに入ったとき、レビューを書くボタンはいらない。
+ * 食べたボタンがあるので、そこが導線になっている」。
+ *
+ * 以前のリーダー確定 Q5 は «`restaurant-feed-write-review-button` を消さない» で、
+ * この spec は «両方ある» ことを固定していた。**オーナー確定で覆ったので逆を固定する**
+ * （同じことを始めるボタンが画面に 2 つある状態だった）。
  *
  * ## dev DB への影響
  *
@@ -69,8 +73,8 @@ test.describe("全画面 Feed からの食べた記録（#1398）", () => {
 		const eatenAction = appPage.getByTestId("dish-action-eaten").first();
 		await expect(eatenAction).toBeVisible({ timeout: 30_000 });
 
-		// Q5 の確定事項: 既存の「この料理にレビューを書く」CTA を消さない。両方あることを固定する
-		await expect(appPage.getByTestId("restaurant-feed-write-review-button").first()).toBeVisible();
+		// #1629【オーナー確定】「この料理にレビューを書く」は撤去済み。復活したらここで落とす
+		await expect(appPage.getByTestId("restaurant-feed-write-review-button")).toHaveCount(0);
 		// 証跡用。Feed の 1 枚はビューポートより高いので、スクロールしないと
 		// アクション列（＝ 撮りたいもの）が写らない
 		await eatenAction.scrollIntoViewIfNeeded();

@@ -607,7 +607,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "डिश श्रेणी चुनें",
-			"writeReviewForThisDish": "इस डिश की समीक्षा लिखें",
 			"useTypedDishCategory": "“{{name}}” का उपयोग करें"
 		},
 		"inputs": {

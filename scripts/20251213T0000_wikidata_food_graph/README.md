@@ -34,6 +34,7 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
   - `9_2_sync_dish_category_features.py`
   - `9_3_sync_dish_category_localized_text.py`
   - `9_4_sync_dish_category_variants.py`
+  - `9_5_remap_dish_categories_to_searchable.py`（随伴データ補正。#1748）
 
 ### 1.2 サブディレクトリの位置づけ
 
@@ -316,6 +317,21 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 
 - **入力**: `dish_category_variant_catalog`
 - **出力**: PostgreSQL `dish_category_variants`（運用上は “BQ生成分のみ” を置換する設計意図）
+- **アプリ由来行との衝突**: 同じ表記がアプリ由来行にもある場合、
+  **別の QID を指していれば同期全体を中断**する（アプリの写像を黙って上書きしないため）。
+  **同じ QID なら衝突ではない**ので、BQ 側のその行を投入対象から外し、アプリ由来行を残す。
+  外すのは `ON CONFLICT DO UPDATE` が `source` も上書きしてしまい、
+  「この行は誰が入れたのか」が失われるためである（#1748）
+
+#### `9_5_remap_dish_categories_to_searchable.py`
+
+- **入力**: `dish_category_catalog` と `dish_category_features_catalog`（付け替え対の導出）
+- **出力**: PostgreSQL `dishes.category_id`（同じ日本語ラベルの “検索に出る” カテゴリへ付け替え）
+- **いつ要るか**: `4_1` の衝突解決が変わり、**既に保存済みの行だけが古い QID のまま**残るとき。
+  変換表を直しても `dishes` の既存行は動かないので、この差を埋めないと
+  「これから保存する分は出るが、前に保存した分は永久に出ない」状態になる（#1748）
+- `--dry-run` で件数と UNIQUE (restaurant_id, category_id) の衝突を先に出せる。
+  衝突する行は子（`dish_media` / `dish_reviews`）を既存 dish へ移してから空の dish を消す
 
 ---
 
@@ -389,6 +405,8 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 - Wikidata labels 更新を伴う: `3_2` → `3_4` → `4_1` → `9_1` → `9_4`
 - 手動 label / alias 補正だけを反映する: `3_4` → `4_1` → `9_1` → `9_4`
 - variants 仕様変更のみ: `4_1` → `9_4`
+- **表記の勝者が入れ替わる仕様変更**: `4_1` → `9_4` → `9_5`
+  （`9_5` を省くと、入れ替わる前の QID で保存済みの `dishes` が検索から到達不能なまま残る。#1748）
 
 > 注意:
 > 現状の `4_1_generate_variants.py` は `aliases_json` を読まない。
@@ -403,6 +421,7 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 - features: `9_2_sync_dish_category_features.py`
 - localized text: `9_3_sync_dish_category_localized_text.py`
 - variants: `9_4_sync_dish_category_variants.py`
+- 既存 `dishes` の付け替え（表記の勝者が変わったときだけ）: `9_5_remap_dish_categories_to_searchable.py`
 
 ---
 

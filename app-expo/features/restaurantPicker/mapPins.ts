@@ -27,7 +27,7 @@ export type RestaurantPin = { restaurant: RestaurantsEntity };
  * 同時に描くマーカーの上限（畳んだあとの数）。
  *
  * my-dishes の地図は 60（`MAX_RENDERED_CLUSTERS`）だが、この画面のマーカーは
- * **写真の丸 + 店名 2 行**（`RestaurantLabelMarker`）で、1 枚あたりのビットマップが
+ * **写真の丸**（`AvatarBubbleMarker`）で、1 枚あたりのビットマップが
  * 明確に大きい。24 は «画面が店名で埋まらない» 上限でもある（実機で 40 枚並べると
  * 文字同士が重なって、どれがどの店か読めなくなる）。
  */

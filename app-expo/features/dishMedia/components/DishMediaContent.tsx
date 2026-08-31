@@ -277,7 +277,17 @@ export default function DishMediaContent({
 	}, [onCardPress, dishMediaEntry, pressed, buttonsGesture, embedButtonGesture]);
 
 	return (
-		<View style={styles.container}>
+		/*
+		#1742 testID はカード押下（= ActionSheet を開く導線）を e2e から叩くための口。
+		ここを押したときのシートが Android でナビゲーションバーへ潜っていた。
+
+		⚠️ **active なカードだけ別の testID にする。** カルーセルは前後のセルも一緒に描くので、
+		同じ testID で `atIndex(0)` を掴むと «画面内に 75% 見えていない» 隣のセルへ当たり、
+		Detox が「その View は押せない」で失敗する（実測: run 33415277422）。
+		active は常に 1 枚（`DishMediaMap.loop.test.tsx` が固定している）ので、
+		これで «いま真ん中に見えているカード» を一意に指せる。
+		*/
+		<View style={styles.container} testID={isActive ? "dish-media-card-active" : "dish-media-card"}>
 			<GestureDetector gesture={tapGesture}>
 				<Animated.View style={[StyleSheet.absoluteFill, pressStyle]}>
 					{/* #802 【設計】表示側 Image の load/display イベントには依存しない。 */}
