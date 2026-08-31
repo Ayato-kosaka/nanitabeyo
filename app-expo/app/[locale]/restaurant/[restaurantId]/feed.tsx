@@ -101,7 +101,6 @@ export default function RestaurantFeedScreen() {
 				<FeedDishMediaViewer
 					initialIndex={isNaN(startIndex) ? 0 : startIndex}
 					entriesKey={entriesKey}
-					restaurantId={restaurantId}
 				/>
 			) : isLoading || (!hasFetchedInitial && !error) ? (
 				<View style={styles.centered} testID="restaurant-feed-loading">

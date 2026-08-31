@@ -12,9 +12,7 @@ import { useContentWidth } from "@/hooks/useContentWidth";
  * dishCategories.tsx の候補カルーセルだけは fullBleed:true を渡し、余白ゼロ(=画面幅いっぱい)の
  * 値を使う。Carousel は style.width をカード幅・スナップ間隔の両方に使うため、
  * ここで両方 contentWidth に揃えておけば、カードは画面幅いっぱいに広がりつつ
- * スナップ位置(中央寄せ)もズレない。#1629【オーナー確定】中央のカードは等倍（scale:1）にした。
- * parallax の scale はアクティブなカードにも掛かるため、0.9 のままだと #1212 の
- * «左右の余白が無い» を満たせなかった（実測 504px / 期待 560px）。隣接カードは layout={{type:"parallax"}}
+ * スナップ位置(中央寄せ)もズレない。左右の隣接カードは layout={{type:"parallax", scale:0.9}}
  * によるアクティブカードの縮小分(左右各5%)だけ画面端からのぞく。
  */
 export function useDishCategoryCardSize(options?: { fullBleed?: boolean }) {
