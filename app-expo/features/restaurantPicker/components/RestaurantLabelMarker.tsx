@@ -32,6 +32,39 @@ Android は Marker の children をビットマップへ焼くため、
 const BUBBLE_SIZE = Platform.OS === "android" ? 34 : 40;
 const LABEL_WIDTH = 96;
 
+/** 店名の行の高さと最大行数。器の高さを式で決めるために定数にする */
+const LABEL_LINE_HEIGHT = 12;
+const LABEL_MAX_LINES = 2;
+/** 丸と文字のあいだ */
+const LABEL_MARGIN_TOP = 2;
+
+/**
+ * #1629 【バグ】**器の高さを固定する。**
+ *
+ * ## 何が起きるか
+ * Android の `react-native-maps` は Marker の children を **ビットマップへ焼いて**地図に貼る。
+ * ビットマップは «焼いた時点の測定サイズ» で確保されるので、**焼いたあとに中身が伸びると
+ * はみ出した分は描かれない**（`AvatarBubbleMarker` の申し送りにある «右・下が扇形に欠ける» の正体）。
+ *
+ * このマーカーは `width` だけ固定で **高さを中身に任せていた**。高さを決めるのは
+ * `<Text numberOfLines={2}>` で、店名が 1 行に収まるか 2 行になるかで **12px 変わる**。
+ * さらに丸の中の写真は非同期に読み込まれる。つまり «最初の測定» と «最終的な見た目» の
+ * 高さが食い違いうる状態だった。
+ *
+ * ## なぜ «2 行ぶんで固定» なのか
+ * 常に最大（2 行）ぶんの高さを確保しておけば、店名が 1 行でも 2 行でも器は伸び縮みしない。
+ * 1 行の店名では下に 12px の余白ができるが、透明なので見た目には出ない。
+ *
+ * ## anchor も一緒に安定する
+ * `anchor` は **割合**で指定する。器の高さが変わると同じ 0.5 でもピクセル位置が変わるため、
+ * «同じ縮尺なのにピンごとに座標からのずれ方が違う» ことになっていた。高さを固定すると
+ * この割合も 1 通りに決まる。
+ *
+ * ⚠️ `LABEL_LINE_HEIGHT` / `LABEL_MAX_LINES` / `BUBBLE_SIZE` を変えたらこの式も追従すること。
+ *    `RestaurantLabelMarker.test.tsx` が «器が高さを持っていること» を固定している。
+ */
+export const LABEL_MARKER_HEIGHT = BUBBLE_SIZE + LABEL_MARGIN_TOP + LABEL_LINE_HEIGHT * LABEL_MAX_LINES;
+
 type Props = RNMarkerProps & {
 	/** 店名。これを丸の下に出す */
 	name: string;
@@ -67,7 +100,7 @@ export function RestaurantLabelMarker({ name, uri, isActive = false, ...props }:
 					) : null}
 				</View>
 				{/* 地図の上に載るので、白フチで輪郭を保つ（バッジ類と同じ考え方） */}
-				<Text style={[styles.label, isActive && styles.labelActive]} numberOfLines={2}>
+				<Text style={[styles.label, isActive && styles.labelActive]} numberOfLines={LABEL_MAX_LINES}>
 					{name}
 				</Text>
 			</View>
@@ -78,6 +111,8 @@ export function RestaurantLabelMarker({ name, uri, isActive = false, ...props }:
 const styles = StyleSheet.create({
 	container: {
 		width: LABEL_WIDTH,
+		// #1629 高さを中身に任せない（上の設計コメント）。焼いたあとに伸びると欠ける
+		height: LABEL_MARKER_HEIGHT,
 		alignItems: "center",
 	},
 	bubble: {
@@ -97,9 +132,9 @@ const styles = StyleSheet.create({
 		height: "100%",
 	},
 	label: {
-		marginTop: 2,
+		marginTop: LABEL_MARGIN_TOP,
 		fontSize: 10,
-		lineHeight: 12,
+		lineHeight: LABEL_LINE_HEIGHT,
 		fontWeight: "700",
 		textAlign: "center",
 		// 地図タイルは常にライト配色なので固定色でよい（FixedColors の申し送り参照）
