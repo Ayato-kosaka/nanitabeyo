@@ -54,6 +54,28 @@ interface DishMediaFeedProps {
 	// #1375 横ページングにする（my-dishes の日付 Feed 用）。既定 false = 従来どおり縦。
 	// 既存の呼び出し元（検索結果・店舗・通知・投稿）は渡さないので挙動は変わらない
 	horizontal?: boolean;
+	/*
+	#1641【オーナー実機報告 2026-08-31】**この Feed が «前面のページ» に居るかどうか。**
+
+	報告は 3 件とも «押したカードの次の音が鳴る» だった。
+
+	    ホンデポチャ（3番目）を押す → 4番目（Instagram）の音が鳴る
+	    麦と麺助（4番目 / Instagram）を押す → 5番目（YouTube）の音が鳴る
+	    YouTube から上へスクロール → YouTube の音が鳴り続ける
+
+	真因は **外側のページャ**にあった。グリッド由来のフィードは
+	**1 ページ = グリッドの 1 セル**で、各ページの ids は必ず 1 件。つまりページの中では
+	常に `index(0) === currentIndex(0)` なので、**マウントした瞬間に再生が始まる**。
+	そこへ #1629 の先読み（`shouldPrefetch={index === activeScopeIndex + 1}`）が
+	**隣のページの取得を開ける**ので、隣のページも描かれ、そのまま鳴っていた。
+
+	⚠️ **`index === currentIndex` だけで «前面» を決めてはいけない。** それは
+	   «このリストの中で何番目か» でしかなく、**このリスト自体が前面に居るか**は別である。
+	   `screenFocused`（ルート単位）でも分けられない。同じルートの中の別ページだから。
+
+	既定 true。渡さない呼び出し元（検索結果・店舗・通知・投稿）の挙動は変わらない。
+	*/
+	isScreenActive?: boolean;
 }
 
 // --- 本体 --------------------------------------------------------------------
@@ -64,6 +86,7 @@ export default function DishMediaFeed({
 	entriesKey,
 	idType,
 	horizontal = false,
+	isScreenActive = true,
 }: DishMediaFeedProps) {
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
@@ -120,6 +143,7 @@ export default function DishMediaFeed({
 		setIds((prev) => prev.filter((id) => !deletedIds[id]));
 	}, [liveIds, ids, deletedIds]);
 
+
 	// #802 【責務分離】Feed は ids とページング制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
 	// #1629【40】⚠️ ここへ `ids.join(",")` を戻さないこと（上の `idsSession` の設計コメント）
 	const backgroundImagesSessionKey = useMemo(
@@ -142,6 +166,28 @@ export default function DishMediaFeed({
 
 	// 現在の表示インデックス（状態）＋最新値ミラー用Ref（Viewabilityコールバックで参照）
 	const [currentIndex, setCurrentIndex] = useState(clampIndex(initialIndex, ids.length));
+
+	/*
+	#1641 **並びが届いた時点で `currentIndex` を `initialIndex` へ合わせる。**
+
+	⚠️ `useState` の初期化子では合わせられない。`ids` は `useState([])` なので、
+	   初期化子が走る時点で必ず `ids.length === 0` であり、
+	   `clampIndex(initialIndex, 0)` は **0 を返す**。つまり `initialIndex` を
+	   いくつ渡しても、最初は必ず 0 番目が前面扱いになる。
+
+	影響: `initialIndex > 0` で開く画面（店舗フィード / 通知フィード / 日付・店舗スコープ）で、
+	viewability が初めて鳴る（`minimumViewTime` 200ms）まで **0 番目のセルが再生される**。
+	`initialIndex` が窓の内側なら、その 0 番目は実際にマウントされて音が出る。
+
+	⚠️ ここで «毎回» 合わせないこと。ユーザーが送ったあとに戻してしまう。
+	   並びが確定した最初の 1 回だけ（`syncedSessionRef`）にする。
+	*/
+	const syncedSessionRef = useRef(0);
+	useEffect(() => {
+		if (idsSession === 0 || syncedSessionRef.current === idsSession) return;
+		syncedSessionRef.current = idsSession;
+		setCurrentIndex(clampedInitialIndex);
+	}, [idsSession, clampedInitialIndex]);
 
 	// #802 / 独立レビュー指摘（High）: preload は **currentIndex の周辺だけ**に絞る。
 	// 以前は ids 全件（my-dishes 経由だと最大 42 件）を同時に `Image.loadAsync` しており、
@@ -312,7 +358,13 @@ export default function DishMediaFeed({
 				<ErrorBoundary>
 					<DishMediaContent
 						id={item}
-						isActive={index === currentIndex}
+						/*
+						#1641 ⚠️ **`isScreenActive` を外さないこと。** これが無いと、
+						先読みで開いた隣のページが «自分の中では 0 番目 ＝ 前面» と判断して鳴る
+						（グリッド由来のページは ids が 1 件なので必ずそうなる）。
+						オーナー実機で «押したカードの次の音が鳴る» として 3 回報告された。
+						*/
+						isActive={isScreenActive && index === currentIndex}
 						// #1375（5 巡目・性能 B-2）動画プレイヤーは «見えている ±1» だけ実体化する。
 						// windowSize={5} は前後 2 ページぶんをマウントするので、素直に描くと
 						// 同時に 5 本のデコーダが立つ。±1 は先読み（スワイプ直後の黒画面を出さない）
