@@ -378,7 +378,33 @@ export default function DishMediaFeed({
 				</ErrorBoundary>
 			</View>
 		),
-		[pageHeight, pageWidth, horizontal, currentIndex, getTitle, entriesKey, idType, getBackgroundImageState],
+		[
+			pageHeight,
+			pageWidth,
+			horizontal,
+			currentIndex,
+			/*
+			#1641 ⚠️ **`isScreenActive` を依存から外さないこと。**
+
+			ここに無かったために、`isScreenActive` が変わっても `renderItem` の identity が変わらず、
+			**古い値を抱えたクロージャがそのまま使われ続けていた**。FlatList のセルは
+			`renderItem` が変わらなければ描き直されないので、
+
+			  前面だったページ（isScreenActive=true）から離れる
+			  → 親は isScreenActive=false を渡す
+			  → しかし renderItem は true のままなので、セルは `isActive` を保ったまま
+			  → **離れたページが鳴り続け、着いたページと 2 つ同時に鳴る**
+
+			run 33408324285 で «page-00 で tiktok が 2 つ同時に再生中» として実測した。
+			オーナー報告「YouTube から入って上にスクロールしたら YouTube の音が聞こえる」も同じ。
+			`currentIndex` が同時に動く経路では偶然直っていたので、長く見えていなかった。
+			*/
+			isScreenActive,
+			getTitle,
+			entriesKey,
+			idType,
+			getBackgroundImageState,
+		],
 	);
 
 	return (
