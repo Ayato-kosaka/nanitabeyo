@@ -10,9 +10,12 @@
 
 ## R1（最重要）**`initialIndex` ではなく `itemKey` を受ける**
 
-Sheet / リストの並びは「写真なしの記録（`dishMedia === null`）」を含み、Feed の並びは
-`dish_media.id` を持つ行だけである。したがって **両者の index は一致しない**。
-index を URL に載せると、写真なしが 1 件混ざった瞬間に別の料理が開く（設計 (1/2) §3 / R1）。
+index を URL に載せてはいけない。Sheet / リストの並びと Feed の並びが一致する保証が無く、
+1 件ずれた瞬間に別の料理が開くからである（設計 (1/2) §3 / R1）。位置は必ず
+`dish_media.id`（写真のある記録）か `MyDishItem.key`（写真の無い記録）で決める。
+
+#1752 まで Feed の並びは «`dish_media.id` を持つ行だけ» だった。いまは **記録の列**であり、
+写真の無い記録も 1 ページとして並ぶ（下の「#1752」の節）。
 
 ## `MyDishItem` から `DishMediaEntry` を合成しない（設計 (1/2) §2-3）
 
@@ -20,12 +23,21 @@ index を URL に載せると、写真なしが 1 件混ざった瞬間に別の
 無い。合成物を `useDishMediaEntriesStore` へ入れると、他画面も読む唯一のソース・オブ・トゥルースに
 嘘の形が混ざる。必ず `GET /v1/dish-media?ids=` で引き直す。
 
-## `DishMediaFeed` は 1 行も変えない（設計 (2/2) §10-1）
+## `DishMediaFeed` へは «足す» だけ（設計 (2/2) §10-1）
 
-PR5 の contextual filter chips も、このページ側のオーバーレイとして載せている。現在表示中の
-エントリは `DishMediaFeed` の既存 prop `onIndexChange` で拾うだけなので、`DishMediaFeed` は
-1 行も変わらない。これが「店舗フィード・通知フィード・投稿フィードの振る舞いが不変」であることの
-証明になる。
+PR5 の contextual filter chips は、このページ側のオーバーレイとして載せている。現在表示中の
+エントリは `DishMediaFeed` の既存 prop `onIndexChange` で拾うだけである。
+
+#1752 で 1 つだけ prop を足した（`customPages`）。**渡さなければ何も変わらない**オプトインで、
+店舗フィード・通知フィード・投稿フィード・検索結果は一切渡していない。
+「あちらの振る舞いは不変」という §10-1 の約束は、この形で守っている。
+
+## #1752 ページの単位は «メディア» ではなく «記録»
+
+写真を消した記録（`dishMedia: null` / `isOwnMediaDeleted: true`）と写真なしの記録も
+1 ページとして並べる。メディアだけで組むと、その記録が黙って落ちて
+**Calendar の日付が «見つかりません»、Map の «3 件» がフィードでは 2 件**になっていた
+（オーナー実機報告 2026-08-31）。中身は `MyDishOwnReviewPage`（グリッドのシートと同一部品）。
 
 ## #1375 実機確認: 閉じるボタンはここに置かない
 
@@ -42,6 +54,7 @@ import { FixedColors, type Palette } from "@/constants/Palette";
 import { useThemedStyles } from "@/contexts/ThemeProvider";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { MyDishesFeedChips } from "@/features/myDishes/components/MyDishesFeedChips";
+import { MyDishOwnReviewPage } from "@/features/myDishes/components/MyDishOwnReviewPage";
 import { myDishesFeedKey } from "@/features/myDishes/constants";
 import { useMyDishesDateQuery } from "@/features/myDishes/hooks/useMyDishesDateQuery";
 import { useMyDishesRestaurantQuery } from "@/features/myDishes/hooks/useMyDishesRestaurantQuery";
@@ -242,6 +255,50 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	}, [items, dishMediaIdFromParams, hasFetchedRows]);
 	const mediaIds = useMemo(() => (mediaIdsSignature ? mediaIdsSignature.split(",") : []), [mediaIdsSignature]);
 
+	/*
+	#1752【オーナー実機報告 2026-08-31】**写真の無い記録もページとして並べる。**
+
+	> カレンダーの 8/20 が「見つかりません」になる。マップは «食べた 3 件» なのに
+	> フィードでは 2 件しか出てこず、フルーツポンチのクチコミが見れない
+
+	真因は上の `mediaIdsSignature` である。**ページ列を «メディアの列» で組んでいた**ので、
+	`dish_media` を消した記録（サーバは `dishMedia: null` / `isOwnMediaDeleted: true` で返す）が
+	黙って落ちていた。落ちた結果、
+	  - その日の記録がそれ 1 件だけなら 0 件 ＝「見つかりません」
+	  - 店舗スコープなら «ピンの 3 件» と «フィードの 2 件» が食い違う
+	となる。**行そのものは届いており、クチコミ本文も `myReview` に入っている**（描いていない
+	だけだった）。
+
+	そこでページ列を «記録の列» に変える。メディアを持たない記録は `MyDishItem.key`
+	（`review:<uuid>` / `dish:<uuid>` の接頭辞付き。裸の uuid である `dish_media.id` とは
+	絶対に衝突しない）を合成 id として置き、`MyDishOwnReviewPage` を描く。
+
+	⚠️ クチコミを持たない行（«食べたい» の行）はページにしない。出しても白紙になる。
+	*/
+	const reviewOnlyItems = useMemo(
+		() => (hasFetchedRows ? items.filter((item) => item.dishMedia === null && item.myReview !== null) : []),
+		[hasFetchedRows, items],
+	);
+	const reviewOnlyItemByKey = useMemo(
+		() => new Map(reviewOnlyItems.map((item) => [item.key, item])),
+		[reviewOnlyItems],
+	);
+	/** 合成ページの id。中身が同じなら同じ参照にして、`DishMediaFeed` の再計算を止める */
+	const reviewPageIdsSignature = useMemo(() => reviewOnlyItems.map((item) => item.key).join(","), [reviewOnlyItems]);
+	const reviewPageIds = useMemo(
+		() => (reviewPageIdsSignature ? reviewPageIdsSignature.split(",") : []),
+		[reviewPageIdsSignature],
+	);
+
+	/**
+	 * 記録の並び（写真あり・なしを混ぜた、一覧・Sheet で見えているのと同じ順）。
+	 * ここが «横に送れる順» の正である。
+	 */
+	const orderedPageIds = useMemo(
+		() => items.map((item) => (item.dishMedia ? String(item.dishMedia.id) : item.key)),
+		[items],
+	);
+
 	/**
 	 * R1 / M-2: «開くべき `dish_media.id`» を決める。index は URL から受け取らない。
 	 * `dishMediaId` が渡っていればそれを直接使う（呼び出し元は必ず持っている）。無い呼び出し元
@@ -428,12 +485,82 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 		};
 	}, []);
 
+	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
+
+	/*
+	#1752 合成ページ（写真の無い記録）の差し込み。`DishMediaFeed` へオプトインで渡す。
+
+	⚠️ `order` / `render` は memo 化して渡すこと（`DishMediaFeed` の `customPages` の JSDoc）。
+	   毎レンダー新しい関数を渡すと、並びの再計算が全レンダーで走る。
+	*/
+	const reviewPageIdSet = useMemo(() => new Set(reviewPageIds), [reviewPageIds]);
+	const orderPageIds = useCallback(
+		(storeIds: string[]) => {
+			const live = new Set(storeIds);
+			// 記録の並び（写真あり・なし混在）のうち、実際に手元にあるものだけを残す
+			const merged = orderedPageIds.filter((id) => live.has(id) || reviewPageIdSet.has(id));
+			// M-2 で «ページ外の 1 件» を先頭へ積んだときのように、行に無い id がストアに居ることがある。
+			// 落とすと開こうとした料理が消えるので、従来どおり先頭へ残す
+			const mergedSet = new Set(merged);
+			const extras = storeIds.filter((id) => !mergedSet.has(id));
+			return [...extras, ...merged];
+		},
+		[orderedPageIds, reviewPageIdSet],
+	);
+	const renderReviewPage = useCallback(
+		(id: string) => {
+			const item = reviewOnlyItemByKey.get(id);
+			if (item === undefined) return null;
+			// 出口（閉じる / お店の詳細）はページ側が自分で持つ（`MyDishOwnReviewPage`）
+			return <MyDishOwnReviewPage item={item} />;
+		},
+		[reviewOnlyItemByKey],
+	);
+	const customPages = useMemo(
+		() =>
+			reviewPageIds.length === 0 ? undefined : { ids: reviewPageIds, order: orderPageIds, render: renderReviewPage },
+		[orderPageIds, renderReviewPage, reviewPageIds],
+	);
+
+	/** このページが実際に並べる順（合成ページ込み）。位置バーと index はこれに対して引く */
+	const pageIds = useMemo(() => (customPages ? orderPageIds(feedIds) : feedIds), [customPages, feedIds, orderPageIds]);
+	/*
+	#1629【35/40】**«残っている件数» は削除済みを引いてから数える。**
+
+	オーナー実機で「削除したら次の投稿が無限ローディングになった」が 3 巡続いた。
+	実ログ（2026-08-29）で確定した筋道はこうである。
+
+	  1. グリッドから開いたフィードは `item` スコープ ＝ **1 ページに 1 レコード**しかない
+	     （実ログの `GET /v1/dish-media?ids=` が毎回 1 件なのが証拠）
+	  2. その 1 件を削除すると `deletedIds` に墓標が立つ。`DishMediaFeed` は墓標を除いた
+	     結果が空になるので **`null` を返す**（黒いまま）
+	  3. ところが親のここは **ストアの `feedIds`（墓標を含んだまま）** で数えていたので
+	     `feedIds.length > 0` ＝ «中身がある» と判断し、ローディングでも 0 件でもない
+	     «何も出ない» 状態で固定されていた
+	  4. さらに取得の effect は `mediaIds.length === 0` で早期 return するため、
+	     **二度と取り直しも起きない**
+
+	墓標を引いた `liveFeedCount` で数えれば、この状態は正しく «0 件» に落ちる。
+	⚠️ `feedIds` そのものは `DishMediaFeed` へ渡さない（あちらが自前で墓標を見る）。
+	   ここで変えるのは **数え方だけ** である。
+
+	#1752 合成ページ（写真の無い記録）はメディアではないので墓標が立たない。
+	`livePageIds` は «この画面が実際に並べるページ» で、`liveFeedCount` は
+	«そのうちメディアのページ» である。**待つかどうかはメディアの側で決める**（下の showLoading）。
+	*/
+	const livePageIds = useMemo(() => pageIds.filter((id) => !deletedIds[id]), [pageIds, deletedIds]);
+	const liveFeedCount = useMemo(() => feedIds.filter((id) => !deletedIds[id]).length, [feedIds, deletedIds]);
+	const livePageCount = livePageIds.length;
+
 	/** R1: index は «Feed が実際に並べている ids» に対して引く。見つからなければ先頭 */
 	const initialIndex = useMemo(() => {
-		if (targetMediaId === null) return 0;
-		const index = feedIds.indexOf(targetMediaId);
+		// #1752 «開くべき記録» はメディアとは限らない。`itemKey` しか無い（= 写真の無い記録を
+		// 直接開いた）ときは合成ページの位置を返す
+		const target = targetMediaId ?? (itemKey !== null && reviewPageIdSet.has(itemKey) ? itemKey : null);
+		if (target === null) return 0;
+		const index = livePageIds.indexOf(target);
 		return index >= 0 ? index : 0;
-	}, [feedIds, targetMediaId]);
+	}, [itemKey, livePageIds, reviewPageIdSet, targetMediaId]);
 
 	/**
 	 * #1397 (PR5/5) chips が読む「いま見ているエントリ」。
@@ -454,7 +581,14 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	 */
 	const [viewedIndex, setViewedIndex] = useState<number | null>(null);
 	const currentIndex = viewedIndex ?? initialIndex;
-	const currentMediaId = feedIds.length > 0 ? (feedIds[Math.min(currentIndex, feedIds.length - 1)] ?? null) : null;
+	/*
+	#1752 いま見ているページ。合成ページ（写真の無い記録）を見ている間は «エントリ» が無いので
+	`currentEntry` は null になり、chips は出さない（本文の上に重ねない）。
+	*/
+	const currentPageId =
+		livePageIds.length > 0 ? (livePageIds[Math.min(currentIndex, livePageIds.length - 1)] ?? null) : null;
+	const isViewingReviewPage = currentPageId !== null && reviewPageIdSet.has(currentPageId);
+	const currentMediaId = isViewingReviewPage ? null : currentPageId;
 	const currentEntry = useDishMediaEntriesStore(selectEntryByMediaId(currentMediaId ?? ""));
 
 	// m-1: 失敗と 0 件を区別し、失敗のほうにだけ再試行を出す。どちらの取得が失敗したかで
@@ -483,38 +617,24 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	const isHydratingMedia = mediaIds.length > 0 && settledKey !== hydrationKey && mediaError === null;
 
 	/*
-	#1629【35/40】**«残っている件数» は削除済みを引いてから数える。**
+	#1752 **ページの «有無» と «待つかどうか» を分ける。**
 
-	オーナー実機で「削除したら次の投稿が無限ローディングになった」が 3 巡続いた。
-	実ログ（2026-08-29）で確定した筋道はこうである。
-
-	  1. グリッドから開いたフィードは `item` スコープ ＝ **1 ページに 1 レコード**しかない
-	     （実ログの `GET /v1/dish-media?ids=` が毎回 1 件なのが証拠）
-	  2. その 1 件を削除すると `deletedIds` に墓標が立つ。`DishMediaFeed` は墓標を除いた
-	     結果が空になるので **`null` を返す**（黒いまま）
-	  3. ところが親のここは **ストアの `feedIds`（墓標を含んだまま）** で数えていたので
-	     `feedIds.length > 0` ＝ «中身がある» と判断し、ローディングでも 0 件でもない
-	     «何も出ない» 状態で固定されていた
-	  4. さらに取得の effect は `mediaIds.length === 0` で早期 return するため、
-	     **二度と取り直しも起きない**
-
-	墓標を引いた `liveFeedCount` で数えれば、この状態は正しく «0 件» に落ちる。
-	⚠️ `feedIds` そのものは `DishMediaFeed` へ渡さない（あちらが自前で墓標を見る）。
-	   ここで変えるのは **数え方だけ** である。
+	- 待つ（スピナー）かどうかは **メディアの側**で決める。`DishMediaFeed` は最初に届いた
+	  非空の並びを固定するので、メディアが届く前に «合成ページ 1 件» で描き始めると
+	  **後から来たメディアのページが永久に並ばない**（写真ありの記録が消えて見える）
+	- 0 件かどうかは **合成ページを足してから**数える。ここを liveFeedCount のままにすると、
+	  写真の無い記録しか無い日（オーナー報告の 8/20）が «0 件 = 見つかりません» に落ちる
 	*/
-	const deletedIds = useDishMediaEntriesStore((state) => state.deletedIds);
-	const liveFeedCount = useMemo(() => feedIds.filter((id) => !deletedIds[id]).length, [feedIds, deletedIds]);
-
 	const showLoading = liveFeedCount === 0 && (isFetchingRows || isHydratingMedia);
 	const hasError = rowsError !== null || mediaError !== null;
-	// 「行は読めたが写真ありが 1 件も無い」は再試行の口を出さない 0 件表示
-	const showEmpty = !showLoading && liveFeedCount === 0 && !hasError;
+	// 「行は読めたが 1 ページも作れない」は再試行の口を出さない 0 件表示
+	const showEmpty = !showLoading && livePageCount === 0 && !hasError;
 	// m-1: 失敗はこちらだけ。「見つかりません」の 1 行で終わらせず再試行を出す
-	const showError = !showLoading && liveFeedCount === 0 && hasError;
+	const showError = !showLoading && livePageCount === 0 && hasError;
 
 	return (
 		<View style={styles.container} testID={`my-dishes-feed-page-${feedScopeId(scope)}`}>
-			{entriesKey !== null && liveFeedCount > 0 ? (
+			{entriesKey !== null && livePageCount > 0 && !showLoading ? (
 				<>
 					{/* ⚠️ `initialIndex` は «ids が確定してから» 渡す。DishMediaFeed は最初に届いた
 					    非空の ids で並びを固定するので、ここで描き始める時点の index が最終値になる。
@@ -555,22 +675,26 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 						onIndexChange={setViewedIndex}
 						horizontal
 						isScreenActive={isActive}
+						/* #1752 写真の無い記録（クチコミだけの記録）を、この並びの中のページとして描く */
+						customPages={customPages}
 					/>
 					{/* #1375 実機確認（2 巡目）: «何個目を見ているか» をストーリーズと同じ
 					    セグメントバーで出す。件数が多いとバーが細くなりすぎるので数字も添える。
 					    5 巡目で横スクロールが両スコープになったので、バーも両方で出す */}
-					{feedIds.length > 1 && (
+					{livePageIds.length > 1 && (
 						<View
 							style={{ ...styles.positionContainer, top: Platform.OS === "ios" ? 48 : 8 }}
 							pointerEvents="none"
 							testID="my-dishes-feed-position">
 							<View style={styles.positionBars}>
-								{feedIds.map((id, index) => (
+								{/* #1752 バーは «記録の数» で引く。メディアの数（feedIds）で引くと、
+								    写真の無い記録が混ざった瞬間に «3 件のうち 2 件» しか出ない */}
+								{livePageIds.map((id, index) => (
 									<View key={id} style={[styles.positionBar, index === currentIndex && styles.positionBarActive]} />
 								))}
 							</View>
 							<Text style={styles.positionCounter} testID="my-dishes-feed-position-counter">
-								{`${Math.min(currentIndex + 1, feedIds.length)} / ${feedIds.length}`}
+								{`${Math.min(currentIndex + 1, livePageIds.length)} / ${livePageIds.length}`}
 							</Text>
 						</View>
 					)}
@@ -589,13 +713,17 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 
 					⚠️ 下へ戻すなら、`DishReviewsSection` の下端を chips のぶん持ち上げる必要がある。
 					   位置だけ動かすと、また本文の上に重なる。
-					*/
-					}
-					<View
-						style={{ ...styles.chipsContainer, top: Platform.OS === "ios" ? 48 + 28 : 8 + 28 }}
-						pointerEvents="box-none">
-						<MyDishesFeedChips entry={currentEntry} />
-					</View>
+					*/}
+					{/* #1752 クチコミのページでは chips を出さない。あれは «いま見ている料理で絞る»
+					    ための道具で、絞る相手（エントリ）が無い。#1629 の「クチコミの上に重なって
+					    自分のレビューが見えない」を、こちらのページで作り直さないためでもある */}
+					{isViewingReviewPage ? null : (
+						<View
+							style={{ ...styles.chipsContainer, top: Platform.OS === "ios" ? 48 + 28 : 8 + 28 }}
+							pointerEvents="box-none">
+							<MyDishesFeedChips entry={currentEntry} />
+						</View>
+					)}
 				</>
 			) : showLoading ? (
 				<View style={styles.centered} testID="my-dishes-feed-loading">
