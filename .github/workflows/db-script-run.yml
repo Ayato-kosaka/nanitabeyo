@@ -67,9 +67,16 @@ on:
         required: false
         default: "scripts/20251213T0000_wikidata_food_graph/requirements.txt"
         type: string
+      concurrency_group_suffix:
+        description: "並列実行したい独立ジョブ用の concurrency グループ接尾辞（例: -shard0）。空なら既定の直列(db-script-run)。互いに素なデータを書くバッチだけ別グループにすること"
+        required: false
+        default: ""
+        type: string
 
 concurrency:
-  group: db-script-run
+  # 既定（空）は従来どおり db-script-run 単一グループで直列化（DB書込競合の保護）。
+  # 互いに素な post_id を書く resolve シャード等は接尾辞を渡して別グループにし、並列実行する。
+  group: db-script-run${{ github.event.inputs.concurrency_group_suffix }}
   cancel-in-progress: false
 
 permissions:
