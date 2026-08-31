@@ -11,7 +11,14 @@
  * （墓標・星・金額・本文・編集・削除）はグリッドのシートと同一部品
  * （`MyDishOwnReviewContent`）で、器だけが違う。
  *
- * ## 黒地の上に «アプリの地» を敷く
+ * ## 上端だけは黒のまま残す
+ *
+ * フィードの «閉じる ×» と «n / m» の位置バーは、**写真の上に載る前提の固定白**である
+ * （`FixedColors.onMedia`。テーマで振らない）。アプリの地をページ全面に敷くと、
+ * ライトテーマでその 2 つが白地に白で消える（自己レビューのスクリーンショットで検出）。
+ * 上端 {@link CONTENT_TOP} だけはメディアと同じ黒を残し、白の操作系が乗る場所を確保する。
+ *
+ * ## その下には «アプリの地» を敷く
  * フィードは写真・動画を引き立てるため固定の黒地（`FixedColors.mediaBackground`）だが、
  * ここに出るのは **文章**である。黒地のまま文字だけ置くと、周りのメディアページと同じ
  * «写真が読み込めていない画面» に見える。テーマ追従の面（`colors.background`）を敷いて、
@@ -23,7 +30,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { Palette } from "@/constants/Palette";
+import { FixedColors, type Palette } from "@/constants/Palette";
 import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { useLocale } from "@/hooks/useLocale";
 import type { MyDishItem } from "@shared/api/v1/res";
@@ -71,15 +78,17 @@ export function MyDishOwnReviewPage({ item }: { item: MyDishItem }) {
 	);
 
 	return (
-		<View
-			testID="my-dish-own-review-page"
-			style={[styles.container, { paddingTop: CONTENT_TOP, paddingBottom: 20 + insets.bottom }]}>
-			<MyDishOwnReviewContent
-				item={item}
-				variant="page"
-				onClose={handleClose}
-				onOpenRestaurant={handleOpenRestaurant}
-			/>
+		<View testID="my-dish-own-review-page" style={styles.container}>
+			{/* 白い «×» と «n / m» が乗る帯。ここだけメディアと同じ黒のまま残す */}
+			<View style={styles.topBand} pointerEvents="none" />
+			<View style={[styles.content, { paddingBottom: 20 + insets.bottom }]}>
+				<MyDishOwnReviewContent
+					item={item}
+					variant="page"
+					onClose={handleClose}
+					onOpenRestaurant={handleOpenRestaurant}
+				/>
+			</View>
 		</View>
 	);
 }
@@ -88,7 +97,15 @@ const createStyles = (colors: Palette) =>
 	StyleSheet.create({
 		container: {
 			flex: 1,
-			paddingHorizontal: 20,
 			backgroundColor: colors.background,
+		},
+		topBand: {
+			height: CONTENT_TOP,
+			backgroundColor: FixedColors.mediaBackground,
+		},
+		content: {
+			flex: 1,
+			paddingHorizontal: 20,
+			paddingTop: 16,
 		},
 	});
