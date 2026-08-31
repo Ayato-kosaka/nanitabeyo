@@ -138,8 +138,8 @@ describe("useSheetBottomPadding", () => {
 	it("キーボードが出ている間は inset を足さない", () => {
 		// `Keyboard.addListener` は実体を差し替えず、発火させるためのハンドルだけ捕まえる
 		// （`DishCategoryGroupVoteInlineOverlay.test.tsx` と同じ手）
-		const handlers: Record<string, () => void> = {};
-		jest.spyOn(Keyboard, "addListener").mockImplementation(((event: string, handler: () => void) => {
+		const handlers: Record<string, (event?: unknown) => void> = {};
+		jest.spyOn(Keyboard, "addListener").mockImplementation(((event: string, handler: (e?: unknown) => void) => {
 			handlers[event] = handler;
 			return { remove: jest.fn() };
 		}) as unknown as typeof Keyboard.addListener);
@@ -153,14 +153,14 @@ describe("useSheetBottomPadding", () => {
 		const renderer = renderInAct(<Probe />);
 		expect(observedPadding).toBe(28 + INSET);
 
-		// hook は iOS だけ will 系を使う。jest-expo の既定 Platform.OS に合わせて名前を引く
-		const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+		// `useKeyboardInset` は iOS だけ will 系を使う。jest-expo の既定 Platform.OS に合わせて名前を引く
+		const showEvent = Platform.OS === "ios" ? "keyboardWillChangeFrame" : "keyboardDidShow";
 		const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
-		act(() => handlers[showEvent]());
+		act(() => handlers[showEvent]({ endCoordinates: { height: 300 } }));
 		expect(observedPadding).toBe(28);
 
-		act(() => handlers[hideEvent]());
+		act(() => handlers[hideEvent]({}));
 		expect(observedPadding).toBe(28 + INSET);
 
 		act(() => renderer.unmount());

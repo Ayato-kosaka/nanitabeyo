@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Keyboard, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 
 /*
 #1742 【設計】**画面の下端に貼り付くシートの下余白は、必ずここで組む。**
@@ -31,27 +31,8 @@ Android は Expo SDK 54 / RN 0.81 で edge-to-edge が既定になっており�
 */
 export function useSheetBottomPadding(base = 0): number {
 	const insets = useSafeAreaInsets();
-	const isKeyboardVisible = useIsKeyboardVisible();
+	// キーボードの «出ているか» は #1629 の `useKeyboardInset` を正にする（判定を 2 か所に書かない）
+	const keyboardInset = useKeyboardInset();
 
-	return isKeyboardVisible ? base : base + insets.bottom;
-}
-
-/** キーボードが出ているか。イベント名の使い分けは `features/map/components/ReviewForm.tsx` と同じ */
-function useIsKeyboardVisible(): boolean {
-	const [isVisible, setIsVisible] = useState(false);
-
-	useEffect(() => {
-		const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-		const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-		const showSub = Keyboard.addListener(showEvent, () => setIsVisible(true));
-		const hideSub = Keyboard.addListener(hideEvent, () => setIsVisible(false));
-
-		return () => {
-			showSub.remove();
-			hideSub.remove();
-		};
-	}, []);
-
-	return isVisible;
+	return keyboardInset > 0 ? base : base + insets.bottom;
 }
