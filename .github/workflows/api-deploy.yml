@@ -174,56 +174,12 @@ jobs:
       # 【設計】叩けるのは認証不要な 3 本だけ。/v1/** は AuthAnonGuard が
       # 付くのでトークン無しでは検証できない。それでも「コンテナが起動して
       # Nest のルーティングとグローバル Interceptor まで通る」ことは確認できる。
+      #
+      # #1764 判定本体は cloud-run-env-update.yml と共通の composite action。
       - name: 🔥 Smoke test
-        env:
-          BASE_URL: ${{ steps.candidate.outputs.url }}
-        run: |
-          set -euo pipefail
-
-          # コールドスタートで初回が落ちることがあるためリトライする。
-          # 第 3 引数に allow-maintenance を渡したパスだけ、メンテ中の 503 を許容する。
-          probe() {
-            local path="$1" jq_expr="${2:-}" maintenance="${3:-}" code
-            for i in $(seq 1 5); do
-              code=$(curl -sS -o /tmp/smoke.json -w '%{http_code}' \
-                       --max-time 20 "${BASE_URL}${path}" || echo 000)
-
-              if [ "$code" = "200" ]; then
-                if [ -z "$jq_expr" ] || jq -e "$jq_expr" /tmp/smoke.json >/dev/null; then
-                  echo "✅ ${path} → 200"
-                  return 0
-                fi
-                echo "❌ ${path} → 200 だが本文が期待と違う"
-                cat /tmp/smoke.json
-                return 1
-              fi
-
-              # MaintenanceGuard による 503 は「サーバは応答している」と見なす。
-              # メンテナンス中のデプロイでスモークが誤検知しないようにするため。
-              if [ "$maintenance" = "allow-maintenance" ] && [ "$code" = "503" ] &&
-                 grep -q SERVICE_MAINTENANCE /tmp/smoke.json; then
-                echo "⚠️ ${path} → 503（メンテナンスモード）"
-                return 0
-              fi
-
-              echo "… ${path} → ${code}（retry ${i}/5）"
-              sleep 5
-            done
-
-            echo "❌ ${path} → ${code}"
-            cat /tmp/smoke.json || true
-            return 1
-          }
-
-          # レスポンスは ResponseWrapInterceptor で BaseResponse に包まれるので
-          # 判定は .status ではなく .data.status を見る。
-          #
-          # /livez だけメンテナンスを許容しない。この path は MaintenanceGuard の
-          # allowedPaths にあり、メンテ中でも 200 のはずだからである。ここで 503 を
-          # 見逃すと、allowedPaths から /livez が外れた事故に気付けなくなる。
-          probe /livez  '.data.status == "ok"'
-          probe /health '.data.status == "ok"' allow-maintenance
-          probe /       ''                     allow-maintenance
+        uses: ./.github/actions/cloud-run-smoke
+        with:
+          base_url: ${{ steps.candidate.outputs.url }}
       # -------------------------------------------
 
       # ---------- 検証を通した候補を 100% へ昇格 ----------

@@ -1,0 +1,66 @@
+name: Cloud Run smoke test
+# #1764 【設計】api-deploy.yml にあったスモークを composite action へ切り出した。
+# デプロイ（api-deploy.yml）と env 更新（cloud-run-env-update.yml）のどちらも
+# 「候補リビジョンを no-traffic で作る → ここを通す → 昇格」というゲート(#1323)を
+# 共有する。判定基準を変えるときはここ 1 か所を直す。
+description: 候補リビジョンの URL に対して /livez /health / を叩き、昇格可否を判定する
+
+inputs:
+  base_url:
+    description: 検証対象（候補リビジョンの tag 付き URL）
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 🔥 Smoke test
+      shell: bash
+      env:
+        BASE_URL: ${{ inputs.base_url }}
+      run: |
+        set -euo pipefail
+
+        # コールドスタートで初回が落ちることがあるためリトライする。
+        # 第 3 引数に allow-maintenance を渡したパスだけ、メンテ中の 503 を許容する。
+        probe() {
+          local path="$1" jq_expr="${2:-}" maintenance="${3:-}" code
+          for i in $(seq 1 5); do
+            code=$(curl -sS -o /tmp/smoke.json -w '%{http_code}' \
+                     --max-time 20 "${BASE_URL}${path}" || echo 000)
+
+            if [ "$code" = "200" ]; then
+              if [ -z "$jq_expr" ] || jq -e "$jq_expr" /tmp/smoke.json >/dev/null; then
+                echo "✅ ${path} → 200"
+                return 0
+              fi
+              echo "❌ ${path} → 200 だが本文が期待と違う"
+              cat /tmp/smoke.json
+              return 1
+            fi
+
+            # MaintenanceGuard による 503 は「サーバは応答している」と見なす。
+            # メンテナンス中のデプロイでスモークが誤検知しないようにするため。
+            if [ "$maintenance" = "allow-maintenance" ] && [ "$code" = "503" ] &&
+               grep -q SERVICE_MAINTENANCE /tmp/smoke.json; then
+              echo "⚠️ ${path} → 503（メンテナンスモード）"
+              return 0
+            fi
+
+            echo "… ${path} → ${code}（retry ${i}/5）"
+            sleep 5
+          done
+
+          echo "❌ ${path} → ${code}"
+          cat /tmp/smoke.json || true
+          return 1
+        }
+
+        # レスポンスは ResponseWrapInterceptor で BaseResponse に包まれるので
+        # 判定は .status ではなく .data.status を見る。
+        #
+        # /livez だけメンテナンスを許容しない。この path は MaintenanceGuard の
+        # allowedPaths にあり、メンテ中でも 200 のはずだからである。ここで 503 を
+        # 見逃すと、allowedPaths から /livez が外れた事故に気付けなくなる。
+        probe /livez  '.data.status == "ok"'
+        probe /health '.data.status == "ok"' allow-maintenance
+        probe /       ''                     allow-maintenance

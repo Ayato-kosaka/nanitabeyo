@@ -132,6 +132,58 @@ const envSchema = z.object({
    */
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // #1764 【設計】Remote Config（API 側）。
+  //
+  // かつては Supabase `config` テーブル → GCS `config.json`（5 分 TTL）で読んでいたが、
+  // Cloud Run の環境変数へ移行した。値の変更は `cloud-run-env-update.yml` を dispatch する
+  // （イメージ再ビルド不要。スモークゲートを通ってリビジョンが差し替わる）。
+  //
+  // - 既定値は移行時点の config.json と同値。**env 未設定でも挙動が変わらない**ように
+  //   全キーに default を置く（必須にすると env の設定漏れで API 全体が起動不能になる）
+  // - アプリ（app-expo）が CDN から直接読むキーはここに置かない。それらは従来どおり
+  //   `config.json` が正（このリストと重複して見える `v1_search_result_restaurants_number`
+  //   だけは両側で使われる。API 側は bulk import のページサイズ用で、変えるときは
+  //   config テーブル側と両方を揃えること）
+  // - 読み口は RemoteConfigService（api/src/core/remote-config/）。call site から
+  //   直接 `env.dish_category_...` を参照しない
+  // ──────────────────────────────────────────────────────────────────────────
+  is_maintenance: z.string().default('false'),
+  minimum_supported_version: z.string().default('1.0.0'),
+  v1_search_result_restaurants_number: z.string().default('5'),
+  v1_bulk_import_preflight_enabled: z.string().default('true'),
+  TOOLS_DISH_CATEGORIES_POPULAR_EXCLUDED_CATEGORY_IDS: z
+    .string()
+    .default(
+      'Q177378,Q1063096,Q471866,Q1061856,Q220964,Q188788,Q11771087,Q549713,Q182940,Q134992253,Q187495,Q1827035,Q112818476,Q1381277,Q1317601,Q2089240,Q1051155,Q182940,Q30524428,Q2089240,Q842566,Q202677,Q4833218,Q2078349,Q1477592,Q614448,Q866153,Q29330,Q477248,Q1105215',
+    ),
+  dish_category_recommendation_weight_time_slot: z.string().default('1.5'),
+  dish_category_recommendation_weight_scene: z.string().default('1.1'),
+  dish_category_recommendation_weight_satiety: z.string().default('1'),
+  dish_category_recommendation_weight_taste: z.string().default('5'),
+  dish_category_recommendation_weight_budget_intent: z.string().default('2.2'),
+  dish_category_recommendation_weight_dining_pace: z.string().default('2.2'),
+  dish_category_recommendation_weight_core_ingredient: z.string().default('8'),
+  dish_category_recommendation_weight_market_salience: z
+    .string()
+    .default('0.05'),
+  dish_category_recommendation_weight_dine_out_orderability: z
+    .string()
+    .default('0.1'),
+  // #737 季節補正の重み。値の根拠と効き方の実測は shared/remoteConfig/remoteConfig.schema.ts の
+  // 同名キーの doc comment を参照（0.25 は最悪条件のシミュレーションで決めた値）
+  dish_category_recommendation_weight_season: z.string().default('0.25'),
+  dish_category_recommendation_score_jitter_ratio: z.string().default('0.12'),
+  dish_category_recommendation_penalty_weight_core_ingredient: z
+    .string()
+    .default('0.003'),
+  dish_category_recommendation_penalty_weight_taste: z
+    .string()
+    .default('0.0005'),
+  dish_category_recommendation_penalty_weight_cooking_method: z
+    .string()
+    .default('0.003'),
 });
 
 /**

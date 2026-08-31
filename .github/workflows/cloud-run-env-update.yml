@@ -1,0 +1,203 @@
+name: Cloud Run Env Update
+
+# #1764 【設計】Cloud Run の環境変数（Remote Config を含む非シークレット）を
+# dispatch 入力で更新する。
+#
+# - ⚠️ **シークレットの値をここへ入力してはならない。** workflow_dispatch の inputs は
+#   マスクされず、run 履歴・イベントペイロードに平文で永久に残る。既知のシークレット
+#   キー（api/src/core/config/env.ts のシークレット群）は下の denylist で拒否するが、
+#   denylist は「うっかり」を止める網であって、新しいシークレットを守るものではない。
+#   シークレットの追加・変更は従来どおり GCP コンソール（手動）で行う
+# - 更新は `--update-env-vars`（マージ）。ここで触らない env・シークレットは消えない
+# - env 変更で作られる新リビジョンも api-deploy.yml と同じゲート(#1323)を通す:
+#   no-traffic で作成 → タグ付き URL へスモーク → 通ったら 100% へ昇格
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "対象環境"
+        required: true
+        type: choice
+        options: [development, production]
+      env_updates:
+        description: "更新する env（1 行に 1 つ、KEY=VALUE 形式。シークレットは入力禁止）"
+        required: true
+        type: string
+
+# デプロイ（api-deploy.yml）と同じ group にして、env 更新とデプロイの
+# リビジョン作成・昇格が競合しないよう直列化する
+concurrency:
+  group: api-cloudrun-deploy
+  cancel-in-progress: false
+
+permissions: # OIDC 用の最小権限
+  contents: read
+  id-token: write
+
+jobs:
+  update-env:
+    name: Update env (${{ github.event.inputs.target }})
+    runs-on: ubuntu-latest
+
+    # GitHub Environments dev / prod に登録したシークレット＆変数を自動でバインド
+    environment: ${{ github.event.inputs.target }}
+
+    env:
+      REGION: ${{ vars.CLOUD_RUN_REGION }}
+      SERVICE_NAME: api-${{ github.event.inputs.target }}
+      # api-deploy.yml の "candidate" と別名にして、デプロイの候補と取り違えない
+      CANDIDATE_TAG: env-candidate
+
+    steps:
+      # composite action（.github/actions/cloud-run-smoke）を使うため checkout が要る
+      - uses: actions/checkout@v4
+
+      - name: 🔒 Validate inputs
+        env:
+          # ${{ }} をスクリプトへ直接埋め込むとシェルインジェクションになるので env 経由で渡す
+          ENV_UPDATES: ${{ github.event.inputs.env_updates }}
+        run: |
+          set -euo pipefail
+
+          # 値をここへ打つと run 履歴に平文で残るため、絶対に受け付けないキー。
+          # 一覧の正は api/src/core/config/env.ts（シークレットとして GitHub /
+          # コンソール側で管理しているもの + Cloud Run 予約 + デプロイが管理するもの）
+          DENYLIST="DATABASE_URL SUPABASE_JWT_SECRET SUPABASE_SERVICE_ROLE_KEY \
+            GOOGLE_PLACE_API_KEY CLAUDE_API_KEY GOOGLE_API_KEY CDN_KEY_SECRET_B64 \
+            GITHUB_TOKEN GCS_DEV_SERVICE_ACCOUNT_BASE64 \
+            PORT K_SERVICE K_REVISION K_CONFIGURATION \
+            API_COMMIT_ID API_NODE_ENV"
+
+          updates=""
+          while IFS= read -r line; do
+            line="${line%$'\r'}"
+            [ -z "$line" ] && continue
+
+            if ! printf '%s' "$line" | grep -Eq '^[A-Za-z_][A-Za-z0-9_]*='; then
+              echo "::error::KEY=VALUE 形式ではありません: ${line}"
+              exit 1
+            fi
+
+            key="${line%%=*}"
+            value="${line#*=}"
+
+            for deny in $DENYLIST; do
+              if [ "$key" = "$deny" ]; then
+                echo "::error::${key} はこの workflow から変更できません。\
+          シークレットの値を inputs に入力してはいけません（run 履歴に平文で残ります）。\
+          シークレットは GCP コンソールから、API_COMMIT_ID / API_NODE_ENV は api-deploy.yml が管理します。"
+                exit 1
+              fi
+            done
+
+            # gcloud へ渡すときの区切り文字に使うため、値に | は使えない
+            if printf '%s' "$value" | grep -q '|'; then
+              echo "::error::値に '|' は使えません: ${key}"
+              exit 1
+            fi
+
+            if [ -z "$updates" ]; then
+              updates="$line"
+            else
+              updates="${updates}|${line}"
+            fi
+          done <<< "$ENV_UPDATES"
+
+          if [ -z "$updates" ]; then
+            echo "::error::更新する env がありません"
+            exit 1
+          fi
+
+          # 値はそもそも非シークレットしか受け付けないので、そのまま GITHUB_ENV へ置く
+          echo "ENV_UPDATE_FLAG=^|^${updates}" >> "$GITHUB_ENV"
+
+      # ---------- Google Cloud へ OIDC でログイン ----------
+      - name: Auth to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+      # -------------------------------------------
+
+      # ---------- env を更新した候補リビジョンを no-traffic で作る ----------
+      # ⚠️ describe の全文（spec.template の env）をログへ出さないこと。手動設定された
+      # シークレットが平文 env として入っており、ログに写すと漏えいになる。
+      # 以降の describe は .status.traffic / .status.url だけを jq で抜く。
+      - id: candidate
+        name: 🚧 Create candidate revision
+        run: |
+          set -euo pipefail
+
+          gcloud run services update "${SERVICE_NAME}" \
+            --region "${REGION}" \
+            --no-traffic \
+            --update-env-vars "${ENV_UPDATE_FLAG}"
+
+          revision=$(gcloud run services describe "${SERVICE_NAME}" \
+                       --region "${REGION}" \
+                       --format 'value(status.latestCreatedRevisionName)')
+
+          # タグを付けて候補専用の URL を得る（スモークの叩き先）
+          gcloud run services update-traffic "${SERVICE_NAME}" \
+            --region "${REGION}" --update-tags "${CANDIDATE_TAG}=${revision}"
+
+          traffic=$(gcloud run services describe "${SERVICE_NAME}" \
+                      --region "${REGION}" --format 'json(status.traffic,status.url)')
+          url=$(echo "$traffic" | jq -r --arg t "${CANDIDATE_TAG}" \
+                  '.status.traffic[]? | select(.tag == $t) | .url' | head -1)
+
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "❌ tag '${CANDIDATE_TAG}' の URL を解決できない"
+            echo "$traffic" | jq '.status.traffic'
+            exit 1
+          fi
+
+          echo "revision=${revision}" >> "$GITHUB_OUTPUT"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          echo "🔍 candidate: ${revision} → ${url}"
+
+      # ---------- スモーク（api-deploy.yml と共通のゲート） ----------
+      - name: 🔥 Smoke test
+        uses: ./.github/actions/cloud-run-smoke
+        with:
+          base_url: ${{ steps.candidate.outputs.url }}
+
+      # ---------- 検証を通した候補を 100% へ昇格 ----------
+      - id: promote
+        name: 🚦 Promote candidate
+        env:
+          REVISION: ${{ steps.candidate.outputs.revision }}
+        run: |
+          set -euo pipefail
+          gcloud run services update-traffic "${SERVICE_NAME}" \
+            --region "${REGION}" --to-revisions "${REVISION}=100"
+          echo "✅ env updated（revision: ${REVISION}）"
+
+      # 【設計】tag 剥がしの失敗で job を落とさない（api-deploy.yml と同じ理由:
+      # この時点で昇格は済んでおり、赤くすると「更新失敗」と実態が食い違う）
+      - id: cleanup_tag
+        name: 🧹 Remove candidate tag
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          gcloud run services update-traffic "${SERVICE_NAME}" \
+            --region "${REGION}" --remove-tags "${CANDIDATE_TAG}"
+
+      - name: ⚠️ Warn on leftover tag
+        if: steps.cleanup_tag.outcome == 'failure'
+        run: |
+          echo "::warning::昇格は成功したが tag '${CANDIDATE_TAG}' を剥がせなかった。\
+          次回の env 更新で tag は新しい候補へ移るが、気になる場合は手動で剥がすこと。"
+
+      # スモークが落ちたとき（= 昇格していないとき）だけ、調査先を出す
+      - name: 🧭 Candidate left for investigation
+        if: failure() && steps.promote.outcome != 'success' && steps.candidate.outputs.url != ''
+        run: |
+          echo "⚠️ 昇格していない。トラフィックは旧リビジョン（旧 env）のまま。"
+          echo "   candidate revision: ${{ steps.candidate.outputs.revision }}"
+          echo "   candidate url     : ${{ steps.candidate.outputs.url }}"

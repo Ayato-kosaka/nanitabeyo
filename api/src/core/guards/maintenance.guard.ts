@@ -17,7 +17,8 @@ import { ErrorCode } from '@shared/v1/res';
 /**
  * 🔒 メンテナンス・バージョン制御ガード
  *
- * GCS上の設定に基づき、全APIでメンテナンス・強制アップデートを制御
+ * Remote Config（#1764 以降は Cloud Run の環境変数）に基づき、
+ * 全APIでメンテナンス・強制アップデートを制御
  * - is_maintenance === 'true' → HTTP 503 Service Unavailable (SERVICE_MAINTENANCE)
  * - X-App-Version < minimum_supported_version → HTTP 426 Upgrade Required
  * - X-App-Version 未送信時は検査スキップ（通す）
@@ -28,10 +29,10 @@ export class MaintenanceGuard implements CanActivate {
   /**
    * 許可するパス（メンテナンス・バージョンチェックを行わない）
    *
-   * `/livez` は外形監視専用の liveness エンドポイント。ここから外すと 2 つ壊れる。
-   *   1. 計画メンテのたびに 503 になり、本番障害としてページャが鳴る
-   *   2. この guard が毎回読む RemoteConfig（GCS）に監視が依存してしまい、
-   *      GCS の一時障害を「API 停止」と誤検知する
+   * `/livez` は外形監視専用の liveness エンドポイント。ここから外すと
+   * 計画メンテのたびに 503 になり、本番障害としてページャが鳴る。
+   * （#1764 以前は「guard が毎回読む GCS の一時障害を API 停止と誤検知する」
+   * 問題もあったが、Remote Config が env 化されて消えた）
    * 「正常に配信できるか」を見たい用途は `/health`（= ガード対象）を使うこと。
    */
   private readonly allowedPaths = ['/metrics', '/livez'];
@@ -52,7 +53,7 @@ export class MaintenanceGuard implements CanActivate {
     }
 
     try {
-      // GCS設定から値を取得
+      // Remote Config（Cloud Run env）から値を取得
       const [isMaintenanceStr, minimumVersionStr] = await Promise.all([
         this.remoteConfigService.getRemoteConfigValue('is_maintenance'),
         this.remoteConfigService.getRemoteConfigValue(
@@ -99,7 +100,9 @@ export class MaintenanceGuard implements CanActivate {
         throw error;
       }
 
-      // GCS設定取得エラー等の場合はフォールバック（通す）。
+      // Remote Config が読めない場合はフォールバック（通す）。
+      // #1764 env 化で読み取りが throw する経路は実質消えたが、fail-open の
+      // 方針と「開いたことを構造化ログで観測できる」性質は維持する。
       //
       // #1599 【バグ】ここは `console.warn` で生テキストを吐いていた。api/src で
       // 構造化ログを経由しない catch はここだけである（他はすべて this.logger.*）。
