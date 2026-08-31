@@ -423,9 +423,16 @@ BigQueryに無いPostgreSQL行は削除しません。`--skip-backup` は復旧�
 「たまたま条件に当たっていないだけ」と区別できないので、実物の PostgreSQL で確かめます。
 
 ```bash
-bash tests/test_9_1_overwrite_guard.sh   # 上書きガード本体（6項目）
-bash tests/test_9_9_backfill.sh          # backfill の行選択（5項目）
+bash tests/test_9_1_overwrite_guard.sh       # 上書きガード本体（6項目）
+bash tests/test_9_9_backfill.sh              # backfill の行選択（5項目）
+python3 tests/test_9_1_backfill_guard.py     # backfill 漏れ «検知» の契約（7項目）
 ```
+
+`test_9_1_backfill_guard.py` は、**検知が誤って発火しないこと**だけを見ています。
+この判定は 2 回続けて偽陽性で同期を止めました（08-30 は «seed が付いているか» で
+2,115 件、08-31 は «実行窓に入っているか» で 1 件）。どちらも «行を数える» 形で、
+アプリ製の行を必ず巻き込みます。いまは «過去の同期が INSERT しているのに
+`pipeline` の行が 1 件も無い» という全か無かの判定にしてあります。
 
 その場にクラスタを立てて壊し、終わったら消すので、外部の DB は要りません
 （`initdb` / `pg_ctl` / `psql` が要ります。既定は PostgreSQL 16）。
