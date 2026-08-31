@@ -227,3 +227,9 @@
   - → **柱1の seedable 店の約74%が pg dev 不在**。**律速は pg母数（restaurant_catalog 621k のうち pg dev に居る分だけ使える）**で確定。柱1のcrawl/harvestは «料理付きの店» を大量に出せる（87.5%）が、pg同期が無いとカバレッジに変わらない。
 - **戦略ピボット**: 柱1の«発見»は実証済み。次の最大レバーは **pg母数同期（#843/#1706 の store-sync 領域）**。※これは障害を起こした 62万行×62万行ジョブ本体なので、走らせるなら off-peak・その pipeline の作法で。私(#1273)の領分ではなく、オーナー判断＋当該WSの調整。
 - **残**: 5_1 直列4000完了間近→残~15kは #1760 並列(3shard・off-peak)。全量後に134カバレッジ増分を確定。柱2(741 harvest)/柱3(地方Serper)は辞書magnificationの効く柱2優先で。
+
+## 進捗更新 2026-08-31 23:35Z（★pg母数投入予告→post-sync再resolveを予約）
+- **オーナー連絡**: restaurant_catalog 621k を **~01:34Z（+2h）に pg dev へ投入**。**~02:35Z（+3h）に続きを止まらず進めよ**。→ 柱1のpg母数律速が解消される＝本命。
+- [x] **post-sync 継続を予約**: `trig_01DJVppVMd2GqwaLUTyEpagy`（02:35Z）。内容: pg投入確認(restaurant_pg_sync_logs＋小バッチで matched 跳ね確認)→ 新版 `dev-2026-09-01-pgfull` でベースライン(18,560)+柱1(19,396)を **--shards 3・off-peak** で再resolve→ 7_1で134カバレッジ確定(旧793セル12.6%/matched17.2%/2,705店と比較)→ オーナー6項目報告→ 柱1crawl拡大/柱2/柱3。
+- ⚠️ **同期中(now〜01:34Z)は新規 resolve を走らせない**（共有DB配慮）。現行の直列 5_1(p1fix,~3000/4000)は pre-sync・gentle なので**完走させる**が、完了後は post-sync までresolveを追加しない。
+- **interim 毎時ティック(00:16/01:16Z)**: resolve・pg叩くジョブは出さない。OKなのは柱2 harvest(4_2=IG+BQ)・柱3準備・柱1 crawl(4_4=BQのみ)・状況確認だけ。02:35Z の trigger が本命を回す。
