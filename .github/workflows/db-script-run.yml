@@ -74,9 +74,13 @@ on:
         type: string
 
 concurrency:
-  # 既定（空）は従来どおり db-script-run 単一グループで直列化（DB書込競合の保護）。
-  # 互いに素な post_id を書く resolve シャード等は接尾辞を渡して別グループにし、並列実行する。
-  group: db-script-run${{ github.event.inputs.concurrency_group_suffix }}
+  # ⚠️ 2026-08-31 障害: concurrency_group_suffix で resolve(5_1) シャードを 6 本並列化したところ、
+  # 各シャードが dev resolve API 経由で共有 Supabase を同時に叩き、dev だけでなく **本番** の
+  # レイテンシまで悪化させた（dev/prod は同一 Supabase インスタンス）。単一グループの直列化は
+  # «BigQuery の書込競合» だけでなく «共有 DB への同時負荷» を止める安全弁でもあった。
+  # よって suffix による分割は撤回し、常に単一グループで直列化する（suffix 入力は無視＝後方互換の no-op）。
+  # 並列で速くしたいバッチがあっても、共有 DB を叩く経路（resolve 等）は直列に保つこと。
+  group: db-script-run
   cancel-in-progress: false
 
 permissions:
