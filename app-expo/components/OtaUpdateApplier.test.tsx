@@ -10,8 +10,8 @@ import { flushLogQueue } from "@/lib/logQueue";
  * 実測（BigQuery / frontend_event_logs）: 08-31 に OTA を 12 本出した日、端末が実際に
  * 走らせた最新コミットは前日の 9b646339 で、当日の修正は 1 本も動いていなかった。
  *
- * ここで固定したいのは «作り直す条件» である。作り直しは画面の状態を飛ばすので、
- * 緩めると «動画を見ている最中に再起動する» に化ける。
+ * ここで固定したいのは «作り直す条件» である。緩めれば «動画を見ている最中に再起動する» に、
+ * 締めれば «また 1 つ前の JS を触らせる» に化ける。両側を押さえる。
  */
 
 jest.mock("expo-updates", () => ({
@@ -37,6 +37,15 @@ const mockUpdates = Updates as unknown as {
 	reloadAsync: jest.Mock;
 };
 
+/** 保留中の非同期（check → fetch）を進める */
+const flush = async () => {
+	await act(async () => {
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+	});
+};
+
 /** AppState.addEventListener を差し替え、テストから前面/背面を切り替えられるようにする */
 const captureAppState = () => {
 	let handler: ((state: string) => void) | null = null;
@@ -51,15 +60,19 @@ const captureAppState = () => {
 	};
 };
 
-/** マウントし、起動時の check → fetch が終わるまで待つ */
 const mountAndSettle = async () => {
 	await act(async () => {
 		TestRenderer.create(<OtaUpdateApplier />);
 	});
-	await act(async () => {
-		await Promise.resolve();
-		await Promise.resolve();
-	});
+	await flush();
+};
+
+const lastAppliedPayload = () => {
+	const call = mockLogFrontendEvent.mock.calls
+		.map(([arg]) => arg)
+		.reverse()
+		.find((arg) => arg?.event_name === "ota_update_applied");
+	return call?.payload;
 };
 
 beforeEach(() => {
@@ -77,74 +90,106 @@ afterEach(() => {
 });
 
 describe("OtaUpdateApplier", () => {
-	it("channel の無いビルド（ローカル prebuild / E2E CI）では更新を確認すらしない", async () => {
+	it("channel の無いビルド（ローカル prebuild / dev client / E2E CI）では更新を確認すらしない", async () => {
 		mockUpdates.channel = null;
-		captureAppState();
+		const appState = captureAppState();
 
 		await mountAndSettle();
+		appState.advance(60_000);
 
 		expect(mockUpdates.checkForUpdateAsync).not.toHaveBeenCalled();
 		expect(mockUpdates.reloadAsync).not.toHaveBeenCalled();
 	});
 
-	it("起動時に更新があれば取得しておく（この時点では作り直さない）", async () => {
-		captureAppState();
+	it("起動直後に取得できたら、前面復帰を待たずにその場で当てる", async () => {
+		const appState = captureAppState();
 
 		await mountAndSettle();
 
 		expect(mockUpdates.fetchUpdateAsync).toHaveBeenCalledTimes(1);
-		expect(mockUpdates.reloadAsync).not.toHaveBeenCalled();
-		expect(mockLogFrontendEvent).toHaveBeenCalledWith(
-			expect.objectContaining({ event_name: "ota_update_downloaded" }),
-		);
-	});
-
-	it("背面に一瞬しか居なかった復帰では作り直さない（アプリ切り替えで画面が飛ばない）", async () => {
-		const appState = captureAppState();
-		await mountAndSettle();
-
-		appState.toBackground();
-		appState.advance(3_000);
-		appState.toActive();
-		appState.advance(10_000);
-
-		expect(mockUpdates.reloadAsync).not.toHaveBeenCalled();
-	});
-
-	it("十分に背面へ居てから戻ったら、ログを送り切ってから作り直す", async () => {
-		const appState = captureAppState();
-		await mountAndSettle();
-
-		appState.toBackground();
-		appState.advance(30_000);
-		appState.toActive();
-
-		expect(mockLogFrontendEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				event_name: "ota_update_applied",
-				payload: expect.objectContaining({ toUpdateId: "update-new" }),
-			}),
-		);
+		expect(lastAppliedPayload()).toEqual(expect.objectContaining({ reason: "launch", toUpdateId: "update-new" }));
+		// ログを送り切る猶予より前に作り直すと、その記録ごと消える
 		expect(flushLogQueue).toHaveBeenCalled();
-		// 送信の猶予を待たずに作り直すとログごと消える
 		expect(mockUpdates.reloadAsync).not.toHaveBeenCalled();
 
 		appState.advance(2_000);
 		expect(mockUpdates.reloadAsync).toHaveBeenCalledTimes(1);
 	});
 
-	it("作り直しは 1 セッションに 1 回だけ（確認→取得→作り直しが回り続けない）", async () => {
+	describe("アプリを使っている最中に公開された更新", () => {
+		/** 起動時は «更新なし»、以降は «あり» を返す。起動から 20 秒経った状態にする */
+		const arriveAfterLaunch = async () => {
+			mockUpdates.checkForUpdateAsync.mockResolvedValueOnce({ isAvailable: false });
+			const appState = captureAppState();
+			await mountAndSettle();
+			expect(mockUpdates.fetchUpdateAsync).not.toHaveBeenCalled();
+			appState.advance(20_000);
+			return appState;
+		};
+
+		it("見つけた復帰では当てない（取得だけして、次の機会を待つ）", async () => {
+			const appState = await arriveAfterLaunch();
+
+			appState.toBackground();
+			appState.advance(30_000);
+			appState.toActive();
+			await flush();
+
+			expect(mockLogFrontendEvent).toHaveBeenCalledWith(
+				expect.objectContaining({ event_name: "ota_update_downloaded" }),
+			);
+			expect(lastAppliedPayload()).toBeUndefined();
+			appState.advance(5_000);
+			expect(mockUpdates.reloadAsync).not.toHaveBeenCalled();
+		});
+
+		it("背面に一瞬しか居なかった復帰では当てない（切り替えただけで画面が飛ばない）", async () => {
+			const appState = await arriveAfterLaunch();
+
+			appState.toBackground();
+			appState.advance(30_000);
+			appState.toActive();
+			await flush();
+
+			appState.toBackground();
+			appState.advance(3_000);
+			appState.toActive();
+			appState.advance(10_000);
+
+			expect(mockUpdates.reloadAsync).not.toHaveBeenCalled();
+		});
+
+		it("十分に背面へ居てから戻ったら当てる", async () => {
+			const appState = await arriveAfterLaunch();
+
+			appState.toBackground();
+			appState.advance(30_000);
+			appState.toActive();
+			await flush();
+
+			appState.toBackground();
+			appState.advance(30_000);
+			appState.toActive();
+
+			expect(lastAppliedPayload()).toEqual(
+				expect.objectContaining({ reason: "foreground", toUpdateId: "update-new" }),
+			);
+			expect(mockUpdates.reloadAsync).not.toHaveBeenCalled();
+
+			appState.advance(2_000);
+			expect(mockUpdates.reloadAsync).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	it("作り直しは 1 セッションに 1 回だけ（確認 → 取得 → 作り直しが回り続けない）", async () => {
 		const appState = captureAppState();
 		await mountAndSettle();
-
-		appState.toBackground();
-		appState.advance(30_000);
-		appState.toActive();
 		appState.advance(2_000);
 
 		appState.toBackground();
 		appState.advance(30_000);
 		appState.toActive();
+		await flush();
 		appState.advance(2_000);
 
 		expect(mockUpdates.reloadAsync).toHaveBeenCalledTimes(1);
