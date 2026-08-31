@@ -1153,7 +1153,11 @@
 			"noPhoto": "写真なし",
 			"noComment": "コメントは書かれていません",
 			"noReview": "この記録にはまだクチコミがありません",
-			"openRestaurant": "お店の詳細を見る"
+			"openRestaurant": "お店の詳細を見る",
+			"edit": "クチコミを編集",
+			"delete": "クチコミを削除",
+			"deleteConfirmTitle": "クチコミを削除しますか？",
+			"deleteConfirmMessage": "この «食べた» 記録のクチコミを削除します。記録そのものも一覧から消えます。元に戻せません。"
 		}
 	},
 	"SnsImport": {

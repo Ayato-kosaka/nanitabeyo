@@ -1153,7 +1153,11 @@
 			"noPhoto": "Sans photo",
 			"noComment": "Aucun commentaire n'a été écrit",
 			"noReview": "Il n'y a pas encore d'avis pour cet enregistrement",
-			"openRestaurant": "Voir les détails du restaurant"
+			"openRestaurant": "Voir les détails du restaurant",
+			"edit": "Modifier l’avis",
+			"delete": "Supprimer l’avis",
+			"deleteConfirmTitle": "Supprimer cet avis ?",
+			"deleteConfirmMessage": "L’avis de cet enregistrement sera supprimé. L’enregistrement disparaîtra aussi de votre liste. Action irréversible."
 		}
 	},
 	"SnsImport": {

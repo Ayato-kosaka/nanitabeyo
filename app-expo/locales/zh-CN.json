@@ -1153,7 +1153,11 @@
 			"noPhoto": "无照片",
 			"noComment": "未填写评论",
 			"noReview": "此记录还没有评论",
-			"openRestaurant": "查看餐厅详情"
+			"openRestaurant": "查看餐厅详情",
+			"edit": "编辑点评",
+			"delete": "删除点评",
+			"deleteConfirmTitle": "要删除这条点评吗？",
+			"deleteConfirmMessage": "将删除该记录的点评。该记录也会从列表中消失。此操作无法撤销。"
 		}
 	},
 	"SnsImport": {

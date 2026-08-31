@@ -44,6 +44,7 @@ const noPhotoRow = (key, { deleted = false, name, comment }) => ({
 		currency_code: "JPY",
 		created_dish_media_id: null,
 		created_at: "2026-08-10T12:00:00.000Z",
+		lock_no: 1,
 		username: "オーナー",
 		isLiked: false,
 		likeCount: 0,
@@ -92,5 +93,19 @@ await record({
 		await page.getByTestId("my-dish-own-review-sheet").waitFor({ timeout: 15_000 });
 		await page.waitForTimeout(900);
 		await shot("03-sheet-no-photo");
+
+		// #1629 オーナー「編集&削除できないばぐ」。シートから編集フォームが開くこと
+		await page.getByTestId("my-dish-own-review-edit").click();
+		await page.getByTestId("edit-review-modal").waitFor({ timeout: 15_000 });
+		await page.waitForTimeout(900);
+		await shot("04-edit-form");
+		await page.getByTestId("edit-review-cancel-button").click();
+		await page.waitForTimeout(600);
+
+		// #1629 オーナー「お店の詳細押すとレビューするフローになるバグ」。
+		// 押した先に実際に何が出るかを撮る（推測しない）
+		await page.getByTestId("my-dish-own-review-open-restaurant").click();
+		await page.waitForTimeout(2000);
+		await shot("05-after-open-restaurant");
 	},
 });

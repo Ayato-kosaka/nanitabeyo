@@ -1153,7 +1153,11 @@
 			"noPhoto": "Sin foto",
 			"noComment": "No se escribió ningún comentario",
 			"noReview": "Todavía no hay reseña para este registro",
-			"openRestaurant": "Ver detalles del restaurante"
+			"openRestaurant": "Ver detalles del restaurante",
+			"edit": "Editar reseña",
+			"delete": "Eliminar reseña",
+			"deleteConfirmTitle": "¿Eliminar esta reseña?",
+			"deleteConfirmMessage": "Se eliminará la reseña de este registro. El registro también desaparecerá de tu lista. Esta acción no se puede deshacer."
 		}
 	},
 	"SnsImport": {
