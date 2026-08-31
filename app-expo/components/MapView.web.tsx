@@ -128,7 +128,8 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 				},
 				{ isGesture: false } as any,
 			);
-		}, [onRegionChangeComplete, region]);
+			// `region` は使っていない（座標は map から取り直す）。入れるとパンのたびに作り直される
+		}, [onRegionChangeComplete]);
 
 		/* タップ／POI 押下 */
 		const handleClick = useCallback(

@@ -38,6 +38,10 @@ export function EarningsTab({
 	const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(["paid", "pending"]);
 
 	// #1509 ステータスの色は «識別子» なのでテーマで振らない（constants/Palette.ts の FixedColors 参照）
+	// **useMemo で包まないこと。** ラベルは `i18n.t` の戻り値で、このファイルは locale を購読していない
+	// （`useLocale` を使っていない）。依存を空にして memo 化すると **初回描画の言語でラベルが固定され、
+	// 言語切り替えで更新されなくなる**。毎レンダー作り直しているのは現在の locale を反映し続けるためである。
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- 上記のとおり毎レンダー作り直すのが正しい
 	const earningStatuses = [
 		{ id: "paid", label: i18n.t("Profile.statusLabels.paid"), color: FixedColors.walletStatusActive },
 		{ id: "pending", label: i18n.t("Profile.statusLabels.pending"), color: FixedColors.walletStatusPending },
