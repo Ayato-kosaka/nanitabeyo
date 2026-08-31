@@ -1243,7 +1243,30 @@ export function ExternalEmbedPlayer({
 			}
 			// no_video（権利ブロック）/ not_supported（デコーダ無し）/ timeout
 			setPlayback("unplayable");
-			setUnplayableKind(parsed.kind ?? null);
+			/*
+			#1641 ⚠️ **«まだ準備できていない» を «再生できない投稿» と呼ばない。**
+
+			実測（run 33345690986 / commit 381e35ac / 同じ 1 つの YouTube セル）:
+
+			    01:26:11  no_video (no_ready)      sinceActiveMs=27745  ← ここで畳んだ
+			    01:26:55  autoplay_started audible sinceActiveMs=34348  ← 6.6 秒後に鳴った
+
+			**同じセルが後から鳴っている。** つまり no_ready は «その投稿に映像が無い» の
+			根拠にならず、«向こうの player がまだ何も言っていない» でしかない。
+			素材が dQw4w9WgXcQ（誰でも埋め込めることが広く知られている動画）である以上、
+			これを «再生できない» と呼ぶ余地は無い。
+
+			本当に埋め込めない動画は別の経路で分かる。YouTube の IFrame API は
+			onError / errorCode を返すので、そちらは **数字**が detail に載る
+			（embedUrl.ts の report('no_video', data.info.errorCode)）。
+			detail が no_ready / no_state_change ＝ **沈黙**は、時間切れであって判定ではない。
+
+			そこで load_failed と同じ扱いにする。畳んで «YouTube で見る» は出す
+			（黒い板のまま放置しない）が、**サーバへは «確かめ直して» を送らない**。
+			ログの kind / detail はそのまま残すので、観測は失わない。
+			*/
+			const silentTimeout = parsed.detail === "no_ready" || parsed.detail === "no_state_change";
+			setUnplayableKind(silentTimeout ? "load_failed" : (parsed.kind ?? null));
 			logFrontendEvent({
 				event_name: "external_embed_unplayable",
 				error_level: "warn",
