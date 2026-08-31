@@ -45,10 +45,12 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_SEARCH_RADIUS } from "@/features/dishCategories/constants";
 import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
+import { wasDeniedInOnboarding } from "@/features/onboarding/permissionOutcomes";
 import { onboardingIndexPath } from "@/features/onboarding/navigation";
 import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
 import { getSavedSearchConditions, saveSearchConditions } from "@/features/search/stores/useSearchConditionsStore";
@@ -114,6 +116,12 @@ export default function SearchScreen() {
 	const { locale, isJapanese } = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	/*
+	#1629【オーナー実機報告】キーボードで入力欄が隠れる件の横断対応。
+	この画面の «どのあたりで探す？» はスクロールの途中にあるので、キーボードが出ると
+	その下へ入りうる。高さを直接もらって下へ余白を足す（`hooks/useKeyboardInset.ts`）。
+	*/
+	const keyboardInset = useKeyboardInset();
 	// #1375 実機確認（5 巡目）「保存スナックバーの『見る』で食べたい/食べたへ行き、
 	// 探すへ戻ると条件が全部消えている」への対処。条件は画面の外（store）に置き、
 	// 画面が作り直されても «前回の続き» から始める。まだ一度も触っていなければ null で、
@@ -607,6 +615,13 @@ export default function SearchScreen() {
 
 	const requestAutoCurrentLocationOnce = useCallback(() => {
 		if (didRequestAutoLocationRef.current) return;
+		// #1736 オンボーディングで «許可しない» と答えた直後に、説明の無い OS ダイアログを
+		// 続けて出さない（Android は canAskAgain が残っている限りもう一度出す）。
+		// ユーザー操作起点の «現在地» ボタンは従来どおり要求する
+		if (wasDeniedInOnboarding("location")) {
+			didRequestAutoLocationRef.current = true;
+			return;
+		}
 		// #1375 復元した地点を現在地で踏み潰さない。人が «渋谷» を選んで検索したあと
 		// 戻ってきたら «現在地» に置き換わっている、という取り消しになるため
 		if (restoredConditionsRef.current?.location) {
@@ -702,7 +717,15 @@ export default function SearchScreen() {
 			<ScrollView
 				testID="search-scroll-view"
 				style={styles.scrollView}
-				contentContainerStyle={styles.scrollContent}
+				/*
+				#1629 Android はキーボードのぶんを自分で空ける。
+				Android 15 以降は edge-to-edge が強制で `adjustResize` が窓を縮めなくなったため、
+				«OS が縮めてくれる» という前提が成り立たない（`hooks/useKeyboardInset.ts`）。
+				*/
+				contentContainerStyle={[
+					styles.scrollContent,
+					Platform.OS === "android" && keyboardInset > 0 ? { paddingBottom: keyboardInset } : null,
+				]}
 				keyboardShouldPersistTaps="always"
 				// ⚠️ iOS ではキーボードが画面に «覆いかぶさる»（Android のようにウィンドウが縮まない）。
 				// このフォームは最下部が詳細条件トグル + 100px の余白 + 検索 FAB で終わるため、

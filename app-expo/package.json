@@ -16,11 +16,13 @@
 		"assert:remote-config-defaults": "node ./scripts/assert-remote-config-defaults.mjs",
 		"assert:legacy-blur-modal-boundary": "node ./scripts/assert-legacy-blur-modal-boundary.mjs",
 		"assert:no-hardcoded-colors": "node ./scripts/assert-no-hardcoded-colors.mjs",
+		"assert:no-new-exhaustive-deps": "node ./scripts/assert-no-new-exhaustive-deps.mjs",
 		"lint": "expo lint .",
 		"typecheck": "tsc -p tsconfig.dev.json --noEmit",
 		"test": "jest",
 		"test:watch": "jest --watchAll",
-		"reset": "node ./scripts/reset-project.js"
+		"reset": "node ./scripts/reset-project.js",
+		"assert:keyboard-avoidance": "node ./scripts/assert-keyboard-avoidance.mjs"
 	},
 	"dependencies": {
 		"@expo/metro-runtime": "~6.1.2",

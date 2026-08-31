@@ -220,6 +220,34 @@ test("取りこぼさない: ハッシュタグと @mention も照合の対象�
 	assert.deepEqual(viaMention.candidates.map((c) => c.restaurantId), ["bb"]);
 });
 
+test("取りこぼさない: 店名が【】に囲まれていれば完全一致 1.00 で prefill する（#1273）", () => {
+	// グルメ紹介キャプションは店名を隅付き括弧に入れる。括弧内は含有だと 0.85 止まりで
+	// 無人取り込みの prefill（0.90）に届かなかった。トークン化して完全一致へ引き上げる
+	const candidates: RestaurantSearchCandidate[] = [
+		{ id: "okage", name: "おかげ庵" },
+		{ id: "sbux", name: "スターバックス 栄店" },
+	];
+	const result = matchRestaurantNames({
+		texts: caption("名古屋市東区葵3-12-18の【おかげ庵】さん okagean_official"),
+		candidates,
+	});
+	assert.equal(result.candidates[0].restaurantId, "okage");
+	assert.equal(result.candidates[0].confidence, base.exactName);
+	assert.equal(result.candidates[0].evidence[0].kind, "exact-name");
+	assert.equal(result.shouldPrefill, true);
+	assert.equal(result.prefillRestaurantId, "okage");
+});
+
+test("誤爆させない: 【店名】等の見出しラベルからは候補を作らない（#1273）", () => {
+	// 括弧を項目ラベルに使い値を次行に置くテンプレ。ラベル語「店名」は店ではない
+	const result = matchRestaurantNames({
+		texts: caption("【店名】\nスターバックス"),
+		candidates: [{ id: "x", name: "店名" }],
+	});
+	assert.deepEqual(result.candidates, []);
+	assert.equal(result.shouldPrefill, false);
+});
+
 test("取りこぼさない: 3 文字の漢字の屋号は含有判定の対象に残す", () => {
 	// `一風堂` `大戸屋` は実在の屋号。ラテン 3 文字と違い固有名詞性が高いので落とさない
 	const candidates: RestaurantSearchCandidate[] = [{ id: "ootoya", name: "大戸屋" }];

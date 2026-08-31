@@ -148,6 +148,24 @@ export class MyDishesScreen {
 	}
 
 	/**
+	 * ＋（記録 CTA）を押して «追加» のシート（`add-record`。SNS 取り込み / 食べたを記録）を開く。
+	 *
+	 * #1629 `gotoRecordDish()` がここから «食べた» タブまで一気に進むため、
+	 * **シートを開いただけの状態**を見たいテスト（SNS 取り込み側）から使えるよう切り出した。
+	 */
+	async openRecordSheet(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.recordButton, timeout);
+		await tapWhenVisible(this.recordButton);
+		await waitUntilVisible(this.snsImportEatenTab, timeout);
+	}
+
+	/** «追加» のシートの上部タブ «食べた» へ切り替える（シートが開いている前提） */
+	async openEatenTab(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.snsImportEatenTab, timeout);
+		await tapWhenVisible(this.snsImportEatenTab);
+	}
+
+	/**
 	 * 記録 CTA から「お店選択」画面へ進む。
 	 *
 	 * #1375 実機確認: ＋ の押下先は **SNS URL 取り込み画面**になったので、
@@ -156,10 +174,8 @@ export class MyDishesScreen {
 	 * ここに 1 本だけ置く。
 	 */
 	async gotoRecordDish(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.recordButton, timeout);
-		await tapWhenVisible(this.recordButton);
-		await waitUntilVisible(this.snsImportEatenTab, timeout);
-		await tapWhenVisible(this.snsImportEatenTab);
+		await this.openRecordSheet(timeout);
+		await this.openEatenTab(timeout);
 		// #1375（3 巡目）「食べた」タブは統合フォームになった。お店はフォーム先頭の
 		// 「お店を選ぶ」から pick モードの地図（select-restaurant）で選ぶ
 		await waitUntilVisible(this.eatenPickRestaurantButton, timeout);
@@ -205,18 +221,43 @@ export class MyDishesScreen {
 	 * その店に既存の料理があれば一覧の先頭を、無ければ打った名前で新規に作る。
 	 */
 	readonly dishCategoryStep = by.id("review-dish-category-step");
-	readonly dishCategoryStepInput = by.id("review-dish-category-step-input");
-	readonly dishCategoryStepSubmitTyped = by.id("review-dish-category-step-submit-typed");
+	readonly dishCategoryStepInput = by.id("review-dish-category-step-search-input");
+
+	/**
+	 * #1629 この欄は **プロジェクト標準のオートコンプリート**（`DishCategoryAutocomplete`）になった。
+	 *
+	 * «この名前で決める» は無くなった（押せるのに必ず失敗するボタンだったため）。選ぶ道は 2 つ:
+	 *
+	 * 1. 打って出たマスタの候補（`-search-suggestion-0`）
+	 * 2. 未入力のときに出る «この店の料理»（`-item-0`）
+	 *
+	 * ⚠️ どちらも **並び順**の testID で指す。カテゴリ id では指せない（`by.id` に前方一致が無い）。
+	 */
+	readonly dishCategoryStepSuggestion = by.id("review-dish-category-step-search-suggestion-0");
+	readonly dishCategoryStepFirstItem = by.id("review-dish-category-step-item-0");
 
 	async chooseDishCategoryInRecordFlow(query: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.dishCategoryStep, timeout);
+		/*
+		⚠️ #1629 **打つ前に必ずタップして «フォーカスさせる»。**
+
+		`DishCategoryAutocomplete` は候補リストを `showSuggestions = 文字数 >= 2 && isFocused`
+		で出す。Detox の `replaceText` は文字を入れるだけでフォーカスを伴わないため、
+		いきなり打つと **候補が 1 度も描画されない**。API は 6 件返しているのに
+		`-search-suggestion-0` が現れず 8 秒待って落ちる、という形になる
+		（実測: run 33321841744。BigQuery 側には `dish_category_search_success {resultCount: 6}` が残っていた）。
+
+		人も «タップしてから打つ» ので、この順にするのが実際の操作にも忠実である。
+		*/
+		await tapWhenVisible(this.dishCategoryStepInput, timeout);
 		await element(this.dishCategoryStepInput).replaceText(query);
-		// 候補に無ければ «この名前で決める» が出る。出ない場合は候補が絞り込まれて残っている
+		// 打ったらマスタの候補が出る。出なければ «この店の料理» の先頭を押す
 		try {
-			await waitUntilVisible(this.dishCategoryStepSubmitTyped, 5000);
-			await tapWhenVisible(this.dishCategoryStepSubmitTyped);
+			await waitUntilVisible(this.dishCategoryStepSuggestion, 8000);
+			await tapWhenVisible(this.dishCategoryStepSuggestion);
 		} catch {
-			await tapWhenVisible(by.id("review-dish-category-step").withDescendant(by.text(query)));
+			await element(this.dishCategoryStepInput).replaceText("");
+			await tapWhenVisible(this.dishCategoryStepFirstItem, 8000);
 		}
 		// 決まると 2 歩目（写真を選ぶ）が出る。コメント欄はまだ出ない
 		await waitUntilVisible(this.addPhotoPlaceholder, timeout);

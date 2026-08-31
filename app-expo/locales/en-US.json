@@ -607,7 +607,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category",
-			"writeReviewForThisDish": "Write a review for this dish",
 			"useTypedDishCategory": "Use “{{name}}”"
 		},
 		"inputs": {
@@ -667,6 +666,7 @@
 			"mediaSelectionFailed": "Failed to select media",
 			"mediaSelectionError": "An error occurred while selecting media. Please try again.",
 			"replaceWithMyPhoto": "Use my own photo",
+			"reselectPhoto": "Change photo",
 			"openSettings": "Open Settings",
 			"pickFromLibrary": "Choose from library",
 			"shootWithCamera": "Take a photo",
@@ -743,10 +743,11 @@
 		"emptyState": {
 			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
 		},
-		"everybodyPostsTitle": "Choose a dish to review",
+		"everybodyPostsTitle": "Everyone’s posts",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "Restaurant Details"
+			"title": "Restaurant Details",
+			"openInGoogleMaps": "Open in Google Maps"
 		}
 	},
 	"Feedback": {
@@ -983,7 +984,8 @@
 		},
 		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
 		"pickTitle": "Pick a shop",
-		"pickOnMap": "Find on map"
+		"pickOnMap": "Find on map",
+		"pickConfirm": "Choose this place"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1026,7 +1028,16 @@
 			"noPhotoHint": "You can record without a photo",
 			"publicReviewNotice": "Your record appears as a public review on the restaurant page",
 			"postNotFoundNoPhoto": "This record has no photo",
-			"skipPhoto": "Skip (no photo)"
+			"skipPhoto": "Skip (no photo)",
+			"missingHint": "Add {{items}} to post.",
+			"missing": {
+				"comment": "a short review",
+				"price": "price",
+				"rating": "rating",
+				"dishCategory": "dish category",
+				"separator": ", ",
+				"currency": "this place's currency is unavailable"
+			}
 		},
 		"filters": {
 			"title": "Filter & sort",
@@ -1136,6 +1147,17 @@
 		"deleted": {
 			"label": "Deleted",
 			"a11yLabel": "The photo for this post was deleted"
+		},
+		"ownReview": {
+			"title": "Your review",
+			"noPhoto": "No photo",
+			"noComment": "No comment was written",
+			"noReview": "There is no review for this record yet",
+			"openRestaurant": "View restaurant details",
+			"edit": "Edit review",
+			"delete": "Delete review",
+			"deleteConfirmTitle": "Delete this review?",
+			"deleteConfirmMessage": "This deletes the review for this record. The record itself will also disappear from your list. This cannot be undone."
 		}
 	},
 	"SnsImport": {
@@ -1164,7 +1186,9 @@
 			"save": "Save to Want to eat",
 			"saveRequirement": "Pick a dish and a restaurant to save.",
 			"resolveAgain": "Read again",
-			"cancel": "Cancel"
+			"cancel": "Cancel",
+			"saveRequirementRestaurant": "Choose a place to save.",
+			"saveRequirementDish": "Choose a dish category to save."
 		},
 		"sections": {
 			"dishCategory": "Dish",

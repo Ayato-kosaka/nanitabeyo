@@ -24,7 +24,18 @@
  * 通報したこと自体が端末を触れる人に見えてしまう。
  */
 import React, { useCallback, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+	KeyboardAvoidingView,
+	Modal,
+	Platform,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { Check, CircleCheck, Flag, X } from "lucide-react-native";
 
 import { useRouter } from "expo-router";
@@ -38,6 +49,7 @@ import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useSheetBottomPadding } from "@/hooks/useSheetBottomPadding";
 import { useLocale } from "@/hooks/useLocale";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { CreateContentReportDto } from "@shared/api/v1/dto";
@@ -87,12 +99,18 @@ interface ReportContentSheetProps {
 /** シートの状態。`accepted` まで来たら理由の選択には戻さない */
 type Phase = "form" | "submitting" | "accepted";
 
+/** シート下端のデザイン上の余白。実際の余白はこれに safe area の inset を足したもの */
+const SHEET_PADDING_BOTTOM = 28;
+
 export function ReportContentSheet({ visible, targetType, targetId, targetLabel, onClose }: ReportContentSheetProps) {
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
+	// #1742 Modal はネイティブでは別ウィンドウで、画面側の safe area が届かない。
+	// 足さないと送信ボタンが Android のナビゲーションバーへ潜る（hooks/useSheetBottomPadding.ts）
+	const sheetPaddingBottom = useSheetBottomPadding(SHEET_PADDING_BOTTOM);
 
 	const [phase, setPhase] = useState<Phase>("form");
 	const [reasonCode, setReasonCode] = useState<ContentReportReasonCode | null>(null);
@@ -176,7 +194,14 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 			onRequestClose={handleClose}
 			// Android の戻るキー・iOS のスワイプでも状態が残らないよう handleClose に寄せる
 			accessibilityViewIsModal>
-			<View style={styles.backdrop}>
+			{/*
+				#1629 **`<Modal>` の中は親のキーボード回避が届かない。**
+				Modal はネイティブでは別ウィンドウとして描かれるので、画面側に
+				KeyboardAvoidingView を置いても中の入力欄は守られない。
+				さらに Android 15（API 35）は edge-to-edge 強制で adjustResize が
+				窓を縮めなくなるため、OS 任せの逃げ道も無い。ここに自前で持つ。
+				*/}
+			<KeyboardAvoidingView style={styles.backdrop} behavior={Platform.select({ ios: "padding", android: "height" })}>
 				{/* 背景タップで閉じる。送信中だけは閉じさせない（送信結果を見せる前に消さない） */}
 				<Pressable
 					style={styles.backdropTouchable}
@@ -185,7 +210,7 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 					importantForAccessibility="no-hide-descendants"
 				/>
 
-				<View style={styles.sheet} testID="report-sheet">
+				<View style={[styles.sheet, { paddingBottom: sheetPaddingBottom }]} testID="report-sheet">
 					{phase === "accepted" ? (
 						<AcceptedView onClose={handleClose} />
 					) : (
@@ -266,7 +291,7 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 						</>
 					)}
 				</View>
-			</View>
+			</KeyboardAvoidingView>
 		</Modal>
 	);
 }
@@ -327,7 +352,7 @@ const createStyles = (colors: Palette) =>
 			borderTopRightRadius: 20,
 			paddingHorizontal: 20,
 			paddingTop: 16,
-			paddingBottom: 28,
+			// paddingBottom は safe area を足すため呼び出し側で組む（SHEET_PADDING_BOTTOM）
 			maxHeight: "85%",
 		},
 		header: {

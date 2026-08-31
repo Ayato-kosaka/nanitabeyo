@@ -46,6 +46,27 @@ const SAVED_CATEGORY: StubbedDishCategory = {
 const TOKYO_STATION = { latitude: 35.6812, longitude: 139.7671 };
 
 test.describe("保存料理カテゴリからの地点検索(#1133)", () => {
+	/*
+	#1629【オーナー確定】**Places の日次上限は上げない。** この spec は «場所検索の結果を使って
+	画面が進むこと» を見るもので、Places の応答そのものが主題ではないので固定値へ差し替える
+	（`utils/locationSearch.ts`）。実物を叩く検証は `tests/search/location-autocomplete.spec.ts`
+	の 1 本だけに残してある。
+	*/
+	test.use({ mockLocationSearch: true });
+
+	/*
+	#1629 このスタブの画像 URL は **Wikimedia 上に実体が無い**（実測 404）。
+
+	`wikimediaThumbFromOriginal` が URL を組み立てられる «形» であることがこの spec の要件で、
+	画像が実在するかどうかは 1 つも検証していない。にもかかわらず読み込み失敗が
+	console error として上がり、REL-08 が 3 本まとめて落としていた。
+
+	⚠️ 実在するファイルへ差し替えても解決にならない。**外部サイトのファイルが消えないことに
+	   依存する形そのものが壊れやすい**（実際にこれで壊れた）。`.invalid` へ逃がせないのは
+	   上のコメントのとおり URL の形が要件だからなので、ここでは «出て当然» として許容する。
+	*/
+	test.use({ allowedConsoleErrors: ["upload.wikimedia.org"] });
+
 	// ─ テストケース: 「最近使った場所」がホームと共有されている ─
 	// 手順:
 	//   1. ホーム（さがすタブ）で「渋谷」を検索し、先頭の候補を確定する（実 API）

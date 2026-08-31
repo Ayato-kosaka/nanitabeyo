@@ -26,6 +26,8 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useDishCategoriesStore } from "@/stores/useDishCategoriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
+import { useMyDishesRevisionStore } from "@/features/myDishes/stores/useMyDishesRevisionStore";
+import { useMyDishesFeedScopeStore } from "@/features/myDishes/stores/useMyDishesFeedScopeStore";
 import { requestLogoutRedirect } from "@/lib/logoutRedirect";
 
 /**
@@ -552,6 +554,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				useDishCategoriesStore.getState().clearByKey();
 				useProfileStore.getState().resetProfile();
 				useCdnCookieStore.getState().clearCookies();
+				/*
+				#1629 【修正】**my-dishes（食べたい/食べた）のキャッシュもここで捨てる。**
+				ここに無かったせいで、オーナー実機で 2 つの症状が同時に出ていた。
+
+				1. ログアウトしても前のユーザーの記録がグリッドに残る
+				2. ログインした直後に «候補がありません» が出る
+
+				2 は 1 の裏返しである。実ログ（dev 2026-08-30）でこの順に並んでいた。
+
+				    logout_success → userChanged(匿名) → my_dishes_fetch_completed {count: 0}
+				    → userChanged(本人) → …
+
+				匿名ユーザーとして 0 件を取り切った時点で `hasFetchedInitial` が true になり、
+				その «空のスライス» が本人へ切り替わっても残るため、新しい取得が返るまで
+                «空» が表示され続ける。件数を隠すのではなく **キャッシュごと捨てる**のが正しい。
+
+				`bump()` は `useMyDishesStore.clearQuery()` でスライスを捨ててから版を進めるので、
+				マウント中のフックは `hasFetchedInitial === false` を見て自然に取り直す
+				（新しい取得経路を足さない。理由は useMyDishesRevisionStore.ts の冒頭）。
+
+				`useMyDishesFeedScopeStore` は全画面 Feed が指す **id の列**を持つ。前のユーザーの
+				id を残すと «他人の記録を開こうとして失敗する» ことになるので一緒に捨てる。
+
+				⚠️ `useMyDishesFilterStore`（エリア・期間などユーザーが選んだ絞り込み）は捨てない。
+				   匿名から本人へ «昇格» する経路が主なので、選んだ絞り込みまで消すと
+				   «画面を開き直したら条件が飛んでいた» という別の不満になる。
+				*/
+				useMyDishesRevisionStore.getState().bump();
+				useMyDishesFeedScopeStore.getState().clear();
 			}
 
 			if (event === "INITIAL_SESSION") {

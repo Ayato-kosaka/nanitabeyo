@@ -65,6 +65,10 @@ function VideoPlayer({
 				Cookie: cdnCookieHeader,
 			},
 		};
+		// retryToken は本体で参照しないが、403 の再試行で **新しい videoSource オブジェクトを
+		// 作り直させる**ためのトークンである（上の 55-56 行のコメント）。外すと Cookie を取り直しても
+		// 同じ参照が返り、再試行が効かなくなる。
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- 上記のとおり «不要な依存» ではない
 	}, [uri, retryToken]);
 
 	const player = useVideoPlayer(videoSource, (player) => {

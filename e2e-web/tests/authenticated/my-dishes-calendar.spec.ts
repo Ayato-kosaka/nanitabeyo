@@ -1,4 +1,5 @@
 import type { Locator, Page, Route } from "@playwright/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { test, expect } from "../../fixtures/test";
 import { loadTestUserCredentials } from "../../utils/testUserSession";
 
@@ -158,6 +159,8 @@ async function wheelUpUntilVisible(page: Page, locator: Locator): Promise<void> 
 }
 
 test.describe("my-dishes Calendar ビュー（web / ログイン済み）", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: ?view=calendar に着地して上方向へ遡れる ─
 	// 手順:
 	//   1. `v1/users/me/dishes` を決定論的な 2 ページへ差し替える

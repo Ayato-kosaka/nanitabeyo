@@ -24,6 +24,10 @@ import { clickRapid } from "../../utils/rapid-click";
  * 「再試行してもまた失敗する」ケースをそのまま固定できる。
  */
 test.describe("DishCategories 取得失敗時の再試行(#1499)", () => {
+	// #1629 この spec は推薦 API を **常に 500 に固定** して «失敗と再試行» を見る。
+	// ブラウザはそれを console error として出すので、前提そのものが生むノイズとして許容する
+	test.use({ allowedConsoleErrors: ["status of 500"] });
+
 	// トピック生成は実 API で数十秒かかることがあるが、本 spec は 500 で即時応答するため
 	// 通常のテストタイムアウトで十分。他の dishCategories 系 spec との足並みだけ揃えておく。
 	test.setTimeout(60_000);

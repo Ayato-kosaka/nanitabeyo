@@ -38,6 +38,14 @@ on:
         type: boolean
         required: false
         default: false
+      android_api_level:
+        description: "Android エミュレータの API レベル。既定 34（Android 14）。#1629 の «キーボードで入力欄が隠れる» は Android 15（API 35）で edge-to-edge が強制され adjustResize が窓を縮めなくなることが疑われており、その再現用に 35 を選べるようにしてある。AVD キャッシュはこの値ごとに分かれる"
+        type: choice
+        required: false
+        default: "34"
+        options:
+          - "34"
+          - "35"
   schedule:
     # #1029 【設計】毎日 JST 4:00（UTC 19:00）。e2e-web(JST 3:00 / timeout 30分) と時間帯を分け、
     # テストユーザーと Supabase の匿名サインイン枠を取り合わないようにする
@@ -48,8 +56,19 @@ permissions:
   contents: read
 
 # 同時実行しても壊れはしないが無駄なので、実行中があれば新しい方を待たせる
+# #1629 【設計】**グループにブランチを含める。**
+#
+# 以前は `e2e-mobile-test` という «リポジトリで 1 本» のグループだった。この workflow は
+# Android と iOS のビルドを含むので nightly は 3 時間走ることがあり、その間に投げた手動実行は
+# **3 時間ただ待つ**。しかもエラーは出ず、ジョブが 1 つも起動しないまま pending に見えるだけで、
+# 待っている理由がどこにも表示されない（実際に «詰まっている» と 2 回誤読した）。
+#
+# 同時実行で壊れるものは無い（runner ごとにエミュレータが立つ）。このグループは
+# **CI 時間の節約が目的**であって排他が目的ではない、と元のコメントも書いている。
+# ブランチ単位にすれば «同じブランチへ連投したときだけ待つ» という本来の意図は保たれ、
+# nightly（main）と検証用の手動実行（作業ブランチ）は並走できる。
 concurrency:
-  group: e2e-mobile-test
+  group: e2e-mobile-test-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -248,7 +267,7 @@ jobs:
             ~/.android/avd/*
             ~/.android/adb*
           # ロケール(ja-JP)をブートプロパティで焼くため、変更時はキーを更新して AVD を作り直す
-          key: avd-34-google_apis-x86_64-ja-v2
+          key: avd-${{ inputs.android_api_level || '34' }}-google_apis-x86_64-ja-v2
 
       # キャッシュがない場合のみ AVD を作成し、起動済みスナップショットを生成する
       # （google_apis: アプリが Google Play services（Maps/AdMob）へ依存するため）
@@ -256,7 +275,7 @@ jobs:
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ inputs.android_api_level || '34' }}
           target: google_apis
           arch: x86_64
           avd-name: e2e_avd
@@ -274,7 +293,7 @@ jobs:
         continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ inputs.android_api_level || '34' }}
           target: google_apis
           arch: x86_64
           avd-name: e2e_avd

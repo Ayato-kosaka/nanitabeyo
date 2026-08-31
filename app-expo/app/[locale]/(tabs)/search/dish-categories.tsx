@@ -242,7 +242,8 @@ export default function DishCategoriesScreen() {
 			showSnackbar(i18n.t("DishCategories.errors.invalidSearchParams"));
 			router.back();
 		}
-	}, [params, pinnedDishCategory, searchParams, searchDishCategories, showSnackbar, router]);
+	// `router` は expo-router からの module import で identity が変わらないため依存に含めない
+	}, [params, pinnedDishCategory, searchParams, searchDishCategories, showSnackbar]);
 
 	const handleViewDetails = useCallback(
 		(dishCategory: DishCategoryRecommendation, originRect?: CardRect) => {

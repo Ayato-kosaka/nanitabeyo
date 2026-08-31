@@ -95,15 +95,17 @@ test.describe("マイページ(ログイン済み)", () => {
 		await expect(appPage).toHaveURL(/\/profile(\?|$)/);
 	});
 
-	// ─ テストケース: 設定にログアウトが表示される(実行はしない) ─
+	// ─ テストケース: アカウント管理にログアウトが表示される(実行はしない) ─
 	// 手順:
 	//   1. ログイン済みでマイページへ遷移する（#1402 で設定は独立した画面ではなくなった）
-	//   2. ログアウト行(settings-logout)が表示されることを検証
-	//   3. クリックは行わない(storageState 共有のため — describe コメント参照)
-	test("設定にログアウトが表示される", async ({ appPage }) => {
+	//   2. «アカウント管理» を開く（#1629 でログアウトはここへ移った）
+	//   3. ログアウト行(settings-logout)が表示されることを検証
+	//   4. クリックは行わない(storageState 共有のため — describe コメント参照)
+	test("アカウント管理にログアウトが表示される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		await settingsPage.openAccount();
 		await expect(settingsPage.logoutItem).toBeVisible();
 	});
 });

@@ -89,8 +89,9 @@ test.describe("ログアウト(ログイン済み)", () => {
 		// 消費してしまい、この経路が再現しなくなる。深い URL の直開き（実ユーザーの
 		// ブックマーク・共有リンク・リロード）から始めることで、ログアウト時の
 		// index.tsx マウントが «初回» になる条件を再現する。
-		await settingsPage.goto();
-		await settingsPage.expectLoaded();
+		// #1629 ログアウト行は «アカウント管理»（/[locale]/profile/account）へ移った。
+		// 直開きで始めるという上の条件は、この深い URL でもそのまま満たされる
+		await settingsPage.gotoAccount();
 		// ログアウト行の表示 ＝ AuthProvider が「ログイン済み(非匿名)」で決着した合図
 		await expect(settingsPage.logoutItem).toBeVisible();
 
@@ -117,8 +118,9 @@ test.describe("ログアウト(ログイン済み)", () => {
 		// 「どの画面が出ているか」で判定し、URL は「設定画面に留まっていないこと」だけを見る。
 		await searchPage.expectLoaded();
 		// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
-		// 「留まっていないこと」を見る URL も /profile/settings → /profile になった
-		await expect(page).not.toHaveURL(/\/profile(\?|$)/);
+		// 「留まっていないこと」を見る URL も /profile/settings → /profile になった。
+		// #1629 ログアウトの起点は /profile/account なので、そこに留まっていないことも見る
+		await expect(page).not.toHaveURL(/\/profile(\/account)?(\?|$)/);
 		await expect(settingsPage.logoutItem).toHaveCount(0);
 
 		// ── [症状3] 画面が固まらない ────────────────────────────────

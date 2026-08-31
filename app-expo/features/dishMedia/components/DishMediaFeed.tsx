@@ -54,6 +54,51 @@ interface DishMediaFeedProps {
 	// #1375 横ページングにする（my-dishes の日付 Feed 用）。既定 false = 従来どおり縦。
 	// 既存の呼び出し元（検索結果・店舗・通知・投稿）は渡さないので挙動は変わらない
 	horizontal?: boolean;
+	/*
+	#1641【オーナー実機報告 2026-08-31】**この Feed が «前面のページ» に居るかどうか。**
+
+	報告は 3 件とも «押したカードの次の音が鳴る» だった。
+
+	    ホンデポチャ（3番目）を押す → 4番目（Instagram）の音が鳴る
+	    麦と麺助（4番目 / Instagram）を押す → 5番目（YouTube）の音が鳴る
+	    YouTube から上へスクロール → YouTube の音が鳴り続ける
+
+	真因は **外側のページャ**にあった。グリッド由来のフィードは
+	**1 ページ = グリッドの 1 セル**で、各ページの ids は必ず 1 件。つまりページの中では
+	常に `index(0) === currentIndex(0)` なので、**マウントした瞬間に再生が始まる**。
+	そこへ #1629 の先読み（`shouldPrefetch={index === activeScopeIndex + 1}`）が
+	**隣のページの取得を開ける**ので、隣のページも描かれ、そのまま鳴っていた。
+
+	⚠️ **`index === currentIndex` だけで «前面» を決めてはいけない。** それは
+	   «このリストの中で何番目か» でしかなく、**このリスト自体が前面に居るか**は別である。
+	   `screenFocused`（ルート単位）でも分けられない。同じルートの中の別ページだから。
+
+	既定 true。渡さない呼び出し元（検索結果・店舗・通知・投稿）の挙動は変わらない。
+	*/
+	isScreenActive?: boolean;
+	/*
+	#1752 **メディアを持たないページを混ぜるための差し込み口（オプトイン）。**
+
+	my-dishes のフィードには «写真の無い記録»（写真を消した記録を含む）が混ざる。
+	それらは `dish_media.id` を持たないので、この Feed の並び（= ストアの ids）には
+	原理的に載らず、**黙って落ちていた**（オーナー実機報告: Calendar の日付が
+	「見つかりません」／ Map の «食べた 3 件» がフィードでは 2 件）。
+
+	そこで «その位置に別の中身を描く» ことだけを外から差せるようにする。
+
+	- `ids` … 合成 id の集合。**エントリを持たない**ので、背景画像の先読みからは必ず外す
+	- `order` … ストアの ids を受け取り、合成 id を混ぜた **最終的な並び**を返す
+	  （どこへ挟むかは呼び出し元にしか分からない。ここでは «末尾に足す» と決め打たない）
+	- `render` … その合成 id のページの中身
+
+	⚠️ 渡さない呼び出し元（検索結果・店舗・通知・投稿）の挙動は 1 ミリも変わらない。
+	⚠️ `order` / `render` は **memo 化して渡すこと**。毎レンダー作り直すと並びの再計算が走る。
+	*/
+	customPages?: {
+		ids: string[];
+		order: (liveIds: string[]) => string[];
+		render: (id: string) => React.ReactNode;
+	};
 }
 
 // --- 本体 --------------------------------------------------------------------
@@ -64,12 +109,23 @@ export default function DishMediaFeed({
 	entriesKey,
 	idType,
 	horizontal = false,
+	isScreenActive = true,
+	customPages,
 }: DishMediaFeedProps) {
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
 		[entriesKey, idType],
 	);
-	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+	const { ids: storeIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+
+	/*
+	#1752 合成ページを混ぜた «この画面が並べるべき順». 渡されていなければストアの並びそのもの。
+	以降このファイルは `liveIds` しか見ない（合成 id もページとして等しく扱うため）。
+	*/
+	const customIds = customPages?.ids;
+	const customOrder = customPages?.order;
+	const customIdSet = useMemo(() => new Set(customIds ?? []), [customIds]);
+	const liveIds = useMemo(() => (customOrder ? customOrder(storeIds) : storeIds), [customOrder, storeIds]);
 
 	// 画面を開いた時点の並びを固定するための state
 	// liked/unlike 等のリアルタイム反映は行わない
@@ -143,6 +199,28 @@ export default function DishMediaFeed({
 	// 現在の表示インデックス（状態）＋最新値ミラー用Ref（Viewabilityコールバックで参照）
 	const [currentIndex, setCurrentIndex] = useState(clampIndex(initialIndex, ids.length));
 
+	/*
+	#1641 **並びが届いた時点で `currentIndex` を `initialIndex` へ合わせる。**
+
+	⚠️ `useState` の初期化子では合わせられない。`ids` は `useState([])` なので、
+	   初期化子が走る時点で必ず `ids.length === 0` であり、
+	   `clampIndex(initialIndex, 0)` は **0 を返す**。つまり `initialIndex` を
+	   いくつ渡しても、最初は必ず 0 番目が前面扱いになる。
+
+	影響: `initialIndex > 0` で開く画面（店舗フィード / 通知フィード / 日付・店舗スコープ）で、
+	viewability が初めて鳴る（`minimumViewTime` 200ms）まで **0 番目のセルが再生される**。
+	`initialIndex` が窓の内側なら、その 0 番目は実際にマウントされて音が出る。
+
+	⚠️ ここで «毎回» 合わせないこと。ユーザーが送ったあとに戻してしまう。
+	   並びが確定した最初の 1 回だけ（`syncedSessionRef`）にする。
+	*/
+	const syncedSessionRef = useRef(0);
+	useEffect(() => {
+		if (idsSession === 0 || syncedSessionRef.current === idsSession) return;
+		syncedSessionRef.current = idsSession;
+		setCurrentIndex(clampedInitialIndex);
+	}, [idsSession, clampedInitialIndex]);
+
 	// #802 / 独立レビュー指摘（High）: preload は **currentIndex の周辺だけ**に絞る。
 	// 以前は ids 全件（my-dishes 経由だと最大 42 件）を同時に `Image.loadAsync` しており、
 	// 開いた瞬間に全画面ビットマップ 42 枚の取得・デコードが一斉に走っていた
@@ -175,7 +253,15 @@ export default function DishMediaFeed({
 	   全画面ビットマップ 42 枚の取得・デコードが一斉に走り、Android では Glide の
 	   timeout まで踏んでいた。だから **しきい値で分ける**のであって、窓をやめるのではない。
 	*/
-	const preloadIds = useMemo(() => computePreloadIds(ids, currentIndex), [ids, currentIndex]);
+	/*
+	#1752 ⚠️ **合成ページの id を先読みへ渡さないこと。** あちらは `entriesByMediaId` に実体が
+	無いので、渡すと «読めない画像» として descriptor に載り、release / 取り直しの churn を
+	増やすだけになる（#1629【40】でスケルトンが回り続けた経路と同じ）。
+	*/
+	const preloadIds = useMemo(
+		() => computePreloadIds(ids, currentIndex).filter((id) => !customIdSet.has(id)),
+		[ids, currentIndex, customIdSet],
+	);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
 		ids: preloadIds,
 		idType,
@@ -212,6 +298,34 @@ export default function DishMediaFeed({
 	const { selectionChanged } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
+	/*
+	#1641【観測】**どのフィードが、どのセルを «前面» にしたか。**
+
+	run 33411517726 で «page-00 で tiktok が 2 つ同時に再生中» が出たが、印（testID）は
+	画面の階層をまたいで数えるので、**2 枚がどのフィードに属しているのか**が分からなかった。
+	`entriesKey` を載せれば «同じフィードの中で 2 つ» なのか «別のフィードが 2 つとも前面» なのかが
+	1 行で分かる。前者ならこの中の `index === currentIndex` が、後者なら親（ページャ）が疑わしい。
+
+	前面でない（`isScreenActive === false`）フィードは何も鳴らさないので出さない。
+	*/
+	useEffect(() => {
+		if (!isScreenActive) return;
+		if (ids.length === 0) return;
+		logFrontendEvent({
+			event_name: "dish_media_active_cell",
+			error_level: "log",
+			payload: {
+				entriesKey,
+				idType,
+				index: currentIndex,
+				id: ids[currentIndex] ?? null,
+				total: ids.length,
+			},
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- ids は identity ではなく «並び» で見る
+	}, [isScreenActive, currentIndex, ids, entriesKey, idType, logFrontendEvent]);
+
+
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(generateUUID());
 
@@ -240,8 +354,32 @@ export default function DishMediaFeed({
 		[pageLength],
 	);
 
-	// --- viewability 閾値（90%以上を“表示中”とみなす） -----------------------
-	const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 90 }), []);
+	/*
+	--- viewability 閾値（90%以上を“表示中”とみなす） -----------------------
+
+	#1641 ⚠️ **`minimumViewTime` を外さないこと。**
+
+	オーナー報告（実機 2026-08-30）2 件の真因がこれだった:
+
+	  - 「先読みで、下のフィードの音が聞こえてしまったりする」
+	  - 「フィードを上下すると TikTok / YouTube が起動しないときがある」
+
+	`pagingEnabled` + `decelerationRate="fast"` で勢いよく送ると、**通り過ぎるだけのセルも
+	一瞬 90% 可視になり** viewability が鳴る。そのたびに `currentIndex` が動くので、
+
+	  1. 着地していないセルの `ExternalEmbedPlayer` が `isActive` でマウントし、
+	     WebView が読み込みを始めて **鳴り出す**（＝「下のフィードの音」）
+	  2. 1 回のフリックで WebView が何枚も生まれては捨てられ、着地したセルの読み込みが
+	     そのぶん遅れる・競合する（＝「起動しないときがある」）
+
+	`minimumViewTime` は **«その位置に留まったか» を待つための RN 公式の口**である。
+	通過しただけのセルはここで落ちるので、上の 2 つが同時に消える。
+
+	⚠️ 大きくしすぎないこと。ここは «再生が始まるまでの時間» に直に効く（オーナー指摘
+	「ロード完了から動画が出るまで黒い」の一部でもある）。埋め込みの読み込みは数秒かかるので
+	200ms は体感に出ないが、500ms を超えると «送ったのに始まらない» に変わる。
+	*/
+	const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 90, minimumViewTime: 200 }), []);
 
 	// --- onViewableItemsChanged（公式推奨：useRef直渡し） ----------------------
 	// 責務: 表示中インデックスの同定・副作用（ハプティクス/ログ/通知）
@@ -286,23 +424,65 @@ export default function DishMediaFeed({
 				    ユーザーからは «落ちた» と区別がつかない。1 セルの再試行に閉じ込める。
 				    ⚠️ throw を残すか消すかは別論点。まず境界を `DishMediaMap` と揃える */}
 				<ErrorBoundary>
-					<DishMediaContent
-						id={item}
-						isActive={index === currentIndex}
-						// #1375（5 巡目・性能 B-2）動画プレイヤーは «見えている ±1» だけ実体化する。
-						// windowSize={5} は前後 2 ページぶんをマウントするので、素直に描くと
-						// 同時に 5 本のデコーダが立つ。±1 は先読み（スワイプ直後の黒画面を出さない）
-						isNearActive={Math.abs(index - currentIndex) <= 1}
-						getTitle={getTitle}
-						sessionId={sessionId.current}
-						entriesKey={entriesKey}
-						idType={idType}
-						backgroundImageState={getBackgroundImageState(item)}
-					/>
+					{/* #1752 メディアを持たないページ（my-dishes の «写真の無い記録»）。
+					    ストアにエントリが無いので `DishMediaContent` の手前で分ける。
+					    ⚠️ 再生の話（`isActive` / `isNearActive`）はこちらには要らない。鳴るものが無い */}
+					{customIdSet.has(item) ? (
+						customPages?.render(item)
+					) : (
+						<DishMediaContent
+							id={item}
+							/*
+							#1641 ⚠️ **`isScreenActive` を外さないこと。** これが無いと、
+							先読みで開いた隣のページが «自分の中では 0 番目 ＝ 前面» と判断して鳴る
+							（グリッド由来のページは ids が 1 件なので必ずそうなる）。
+							オーナー実機で «押したカードの次の音が鳴る» として 3 回報告された。
+							*/
+							isActive={isScreenActive && index === currentIndex}
+							// #1375（5 巡目・性能 B-2）動画プレイヤーは «見えている ±1» だけ実体化する。
+							// windowSize={5} は前後 2 ページぶんをマウントするので、素直に描くと
+							// 同時に 5 本のデコーダが立つ。±1 は先読み（スワイプ直後の黒画面を出さない）
+							isNearActive={Math.abs(index - currentIndex) <= 1}
+							getTitle={getTitle}
+							sessionId={sessionId.current}
+							entriesKey={entriesKey}
+							idType={idType}
+							backgroundImageState={getBackgroundImageState(item)}
+						/>
+					)}
 				</ErrorBoundary>
 			</View>
 		),
-		[pageHeight, pageWidth, horizontal, currentIndex, getTitle, entriesKey, idType, getBackgroundImageState],
+		[
+			pageHeight,
+			pageWidth,
+			horizontal,
+			currentIndex,
+			/*
+			#1641 ⚠️ **`isScreenActive` を依存から外さないこと。**
+
+			ここに無かったために、`isScreenActive` が変わっても `renderItem` の identity が変わらず、
+			**古い値を抱えたクロージャがそのまま使われ続けていた**。FlatList のセルは
+			`renderItem` が変わらなければ描き直されないので、
+
+			  前面だったページ（isScreenActive=true）から離れる
+			  → 親は isScreenActive=false を渡す
+			  → しかし renderItem は true のままなので、セルは `isActive` を保ったまま
+			  → **離れたページが鳴り続け、着いたページと 2 つ同時に鳴る**
+
+			run 33408324285 で «page-00 で tiktok が 2 つ同時に再生中» として実測した。
+			オーナー報告「YouTube から入って上にスクロールしたら YouTube の音が聞こえる」も同じ。
+			`currentIndex` が同時に動く経路では偶然直っていたので、長く見えていなかった。
+			*/
+			isScreenActive,
+			getTitle,
+			entriesKey,
+			idType,
+			getBackgroundImageState,
+			// #1752 合成ページの判定と描画関数。渡されないとき（既存の 4 画面）は undefined のまま
+			customIdSet,
+			customPages,
+		],
 	);
 
 	return (

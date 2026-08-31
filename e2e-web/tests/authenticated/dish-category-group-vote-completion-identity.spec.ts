@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import {
 	GUEST_SUGGESTION_TEST_ID,
 	delayOwnProfile,
@@ -43,6 +44,8 @@ test.skip(
 );
 
 test.describe("友達投票の完了モーダル（ログイン済みユーザー）", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: ログイン状態が確定するまでゲスト用 UI を描かない ─
 	// 手順:
 	//   1. ゲスト用 UI 出現の見張り（MutationObserver）を仕込む

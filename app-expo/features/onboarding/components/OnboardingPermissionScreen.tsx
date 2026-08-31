@@ -16,6 +16,11 @@
 `prompt` のときだけ説明を描画し、同時に OS ダイアログを要求する。このときは
 説明を読ませるために最低表示時間（MINIMUM_VISIBLE_MS）を併走させる。
 
+⚠️ 描画と要求の **順序はプラットフォームで違う**（#1736。詳細は `REVEALS_BEFORE_REQUEST`）。
+ネイティブは «描いてから要求»、web は «要求してから 400ms 待って描画»。
+Android は許可ダイアログ表示中に JS のタイマーが止まるため、web と同じ順序にすると
+説明が永久に描かれず、無地の画面の上にダイアログだけが出る。
+
 ## 中央の «ダミーダイアログ»
 
 参考デザイン（SARAH）と同じく、中央には OS の許可ダイアログを模した **ダミー** を置き、
@@ -24,7 +29,7 @@
 ダミーは装飾なので、タップも読み上げも受けない。
 */
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -58,6 +63,34 @@ const INSTANT_SETTLE_GRACE_MS = 400;
  * OS 側に残るので、答え自体が失われるわけではない。
  */
 const RESPONSE_TIMEOUT_MS = 30000;
+
+/**
+ * 説明を **描いてから** 許可を要求するか。
+ *
+ * #1736 【バグ】**Android は許可ダイアログが出ている間、JS のタイマーが止まる。**
+ *
+ * ネイティブの実行時許可ダイアログは別 Activity なので、アプリの Activity は `onPause` に入る。
+ * React Native は `onHostPause` でタイマー用の frame callback を外す
+ *（react-native v0.81.5 の `JavaTimerManager.onHostPause` → `clearFrameCallback`。
+ * `TimerFrameCallback` も `isPaused` なら即 return する）。
+ *
+ * つまり «要求してから 400ms 待って説明を描く»（下の `INSTANT_SETTLE_GRACE_MS`）という
+ * 組み立ては Android では成立しない。**ダイアログが出ている間、その 400ms は永久に来ない**ので、
+ * ユーザーは無地の画面（`!isAskable` の器）の上に OS ダイアログだけを見ることになる。
+ * 答えて Activity が復帰した «あと» にタイマーが再開して説明が出るため、
+ * 「背景なしで聞かれ、答えたら背景つきの画面が出た」という見え方になる（実機で報告済み）。
+ *
+ * そこでネイティブでは順序を逆にし、**説明を描画してコミットしてから**要求を投げる。
+ * ダイアログが出る前に説明は画面に載っているので、ダイアログはその上へ重なる（#1486 §5 の意図どおり）。
+ *
+ * web は据え置き。ブラウザの許可プロンプトはタイマーを止めないので上記の問題が無く、
+ * 逆に «probe が prompt でも要求が即答で返る» 環境（プライベートブラウジング等）があり、
+ * 先に描くと «一瞬光って消える» が再発する。
+ */
+const REVEALS_BEFORE_REQUEST = Platform.OS !== "web";
+
+/** 次のフレームまで待つ。`setIsAskable(true)` の描画がコミットされてから OS へ要求するために挟む */
+const nextFrame = (): Promise<void> => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 /** 中央に置く «OS ダイアログのダミー» の中身。実物と同じ並び順で渡すこと */
 export type PermissionDialogPreview = {
@@ -141,6 +174,23 @@ export function OnboardingPermissionScreen({
 			if (!isActive) return;
 			if (state !== "prompt") {
 				settle(state === "granted" ? "granted" : state === "denied" ? "denied" : "unavailable");
+				return;
+			}
+
+			// #1736 ネイティブは «描いてから要求する»（上の `REVEALS_BEFORE_REQUEST` のコメント）。
+			// 応答待ちと最低表示時間を並行で走らせるのは web 側と同じ
+			if (REVEALS_BEFORE_REQUEST) {
+				setIsAskable(true);
+				// 描画がコミットされる前に要求すると、ダイアログが先に出て Activity が止まり、
+				// 説明が載らないまま固まる。1 フレーム待ってから要求する
+				await nextFrame();
+				if (!isActive) return;
+
+				const elapsed = new Promise<void>((resolve) => setTimeout(resolve, MINIMUM_VISIBLE_MS));
+				const result = await requestRef.current();
+				if (isActive) setOutcome(result);
+				await elapsed;
+				settle(result);
 				return;
 			}
 

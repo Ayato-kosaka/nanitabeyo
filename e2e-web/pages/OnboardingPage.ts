@@ -181,10 +181,33 @@ export class OnboardingPage {
 		await clickRapid(this.nextButton, times);
 	}
 
-	/** 3 ステップを最後まで進める（各ページで «解決を出す» → «送る» の 2 押下） */
+	/**
+	 * 3 ステップを最後まで進める。
+	 *
+	 * ⚠️ **これは «3 枚目の課題フェーズに居る» ところで止まる。** オンボーディングから
+	 *    抜けるにはこのあと `leaveLastStep()` が要る（「次へ」があと 2 回）。
+	 */
 	async advanceToLastStep(): Promise<void> {
 		await this.goToNextStep(1);
 		await this.goToNextStep(2);
 		await this.expectStep(3);
+	}
+
+	/**
+	 * 3 枚目から **オンボーディングの外へ抜ける**（«解決を出す» → «送る» の 2 押下）。
+	 *
+	 * #1629【バグ】**この 2 押下を 1 押下と書き間違えた spec が 4 本落ちていた。**
+	 * 各ページは «課題 → 解決» の 2 フェーズで、`pressNext()` は **ボタンを 1 回押すだけ**である。
+	 * `advanceToLastStep()` のあとに `pressNext()` を 1 回だけ書くと、3 枚目の解決文が出る
+	 * だけでオンボーディングからは抜けない。その状態で `login-screen-skip` を待つので、
+	 * **30 秒 timeout になるまで «アプリが壊れている» ようにしか見えない**
+	 * （run 33373922355 で実測。同じ間違いが 3 本、`goToNextStep` を `pressNext` と
+	 *   書いた同型の間違いが preload 側に 1 本）。
+	 *
+	 * 押下回数の知識をここ 1 箇所に閉じる。**呼び出し側で `pressNext()` を数えないこと。**
+	 */
+	async leaveLastStep(): Promise<void> {
+		await this.revealSolution(3);
+		await this.pressNext();
 	}
 }

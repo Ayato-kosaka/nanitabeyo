@@ -20,8 +20,119 @@ describe("buildExternalEmbedPlayerSource", () => {
 			"https://www.tiktok.com/embed/v2/6718335390845095173",
 		);
 		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl).toBe(
-			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&enablejsapi=1",
+			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&enablejsapi=1&controls=0&fs=0&iv_load_policy=3&rel=0&disablekb=1&modestbranding=1",
 		);
+	});
+
+	/*
+	#1641 ⚠️ **`controls=0` を外さないこと。**
+
+	オーナー実機報告（2026-08-31 / スクリーンショット）:
+	「YouTube shorts に邪魔な部品が多くてどれも押せない」。
+
+	既定（controls=1）だと YouTube 自身の UI がセル全面に載る。実際に映っていたもの:
+	▶ ボタン / 再生位置バー / 0:00 / 0:11 / Shorts バッジ / 共有ボタン /
+	チャンネル名とアイコン / タイトル。これらがアプリ側の «食べたい» «食べた»
+	«地図を開く» と重なり、**どれが押せるのか分からない画面**になっていた。
+
+	既存の料理動画セル（VideoPlayer）は再生バーもボタンも出さない。埋め込みも
+	同じ見え方にするのが #1641 の受け入れ条件である。
+
+	⚠️ controls=0 は再生できなくする設定ではない。再生は IFrame API（enablejsapi=1）
+	   から撃っており、そちらは何も変わらない。
+	*/
+	/*
+	#1641 ⚠️ **0（ENDED）を «本当に終わった» ときだけ信じること。**
+
+	実測（run 33370446694 / commit dc3732b9 / Android）:
+
+	    08:04:14.098  youtube autoplay_started audible   sinceActiveMs=2194
+	    08:04:14.183  youtube paused (currentTime 0s)    sinceActiveMs=2278
+
+	再生が始まった **85 ミリ秒後**に «0 秒で止まった» が飛んでいる。11 秒の動画が 2 秒で
+	終わるはずがないので、これは終了ではない。にもかかわらず旧版はここで seekTo(0) を
+	撃っており、**自分で頭へ巻き戻して止めていた**。オーナー報告
+	「２秒くらい流れて止まって、下の tiktok が流れる」はこれである。
+
+	ループの保険として入れたものが、ループの前に発火していた。
+	started かつ 再生位置が頭から離れているときだけ終了と見なす。
+	*/
+	it("ENDED は «再生済み» かつ «頭から動いている» ときだけ信じる", () => {
+		const html = buildEmbedIframeHtml("https://www.youtube.com/embed/abc123?enablejsapi=1");
+
+		// 終了判定に started と再生位置の両方が要ること
+		expect(html).toContain("data.info.playerState === 0 && started");
+		expect(html).toContain("ENDED_MIN_SECONDS");
+		// 終了と決まったときは、これまでどおり頭へ戻して撃ち直す
+		expect(html).toContain("'seekTo'");
+		expect(html).toContain("'playVideo'");
+	});
+
+	/*
+	#1641 ⚠️ **止まったら «何度でも» 撃ち直すこと。上限を作らない。**
+
+	実測（run 33374468268 / commit e3cd50c2 / Android）— 同じ 1 つの YouTube セル:
+
+	    08:59:29.268  1>2 t=0.2   0.2 秒で向こうが止めた
+	    08:59:29.531  3>1 t=0.5   撃ち直して復帰（撃ち直し自体は効いている）
+	    08:59:39.435  1>0 t=10.3  本当に終わった → 頭へ戻して再生（ループは正しい）
+	    08:59:43.704  paused resume 2 at 4s
+	    08:59:44.002  paused resume 3 at 4s   ← 上限に達した
+	    （以後どれだけ止まっても撃ち直さない ＝ 止まったまま）
+
+	前面に居る間、止まっている理由は無い（画面外なら親がセルごと外す）。
+	上限を作ると、使い切ったあとに止まりっぱなしになる。
+	⚠️ 代わりに最短間隔（RESUME_MIN_GAP_MS）で撃ちすぎを防ぐ。記録の方だけ上限を持つ。
+	*/
+	it("止まったら何度でも撃ち直す（回数ではなく間隔で抑える）", () => {
+		const html = buildEmbedIframeHtml("https://www.youtube.com/embed/abc123?enablejsapi=1");
+
+		/*
+		⚠️ 上限そのものは残す（無制限だと、向こうが再生を拒み続ける状況で
+		   playVideo を永久に撃ち続ける）。**«止まったまま» を作らない大きさ**であればよい。
+		*/
+		expect(html).toContain("MAX_RESUMES = 30");
+		expect(html).toContain("RESUME_MIN_GAP_MS");
+		expect(html).toContain("lastResumeAt");
+		// 記録の方だけ上限を持つ
+		expect(html).toContain("MAX_RESUME_NOTES");
+	});
+
+	it("YouTube は向こうの UI を出さない（controls / 全画面 / 注釈 / 関連動画）", () => {
+		const url = buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl ?? "";
+
+		expect(url).toContain("controls=0");
+		expect(url).toContain("fs=0");
+		expect(url).toContain("iv_load_policy=3");
+		expect(url).toContain("rel=0");
+		// 再生そのものは IFrame API から撃つので、この 2 つは残っていること
+		expect(url).toContain("enablejsapi=1");
+		expect(url).toContain("autoplay=1");
+	});
+
+	/*
+	#1641 ⚠️ **YouTube のループを URL（`loop=1&playlist=`）へ戻さないこと。**
+
+	一度そう実装したが、**オーナーの実機で不具合になった**（2026-08-30、スクリーンショット）。
+	`playlist` を渡すと YouTube は **プレイリストのプレイヤー**として振る舞い、映像の上に
+	**前後ボタン（⏮ ▶ ⏭）が出る**。単一動画の埋め込みには無いもので、しかもそのコマは
+	0:00 のまま止まっていた。ループのためにプレイヤーの種類ごと変える代償が大きすぎる。
+
+	こちらは `enablejsapi=1` で IFrame API を握っているので、**終わったことを検知して
+	撃ち直す**（`buildEmbedIframeHtml` の playerState 0 = ENDED）。
+	*/
+	it("youtube のループは URL ではなく包みの JS が撃つ（playlist を渡さない）", () => {
+		const url = buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl ?? "";
+		// ここが落ちたら、プレイヤーがプレイリスト用に変わって前後ボタンが出る
+		expect(url).not.toContain("playlist=");
+		expect(url).not.toContain("loop=1");
+		// API を握っていること自体がループの前提（外すとループの手段が無くなる）
+		expect(url).toContain("enablejsapi=1");
+
+		const html = buildEmbedIframeHtml(url);
+		// ENDED（playerState 0）で頭へ戻して撃ち直す
+		expect(html).toContain("data.info.playerState === 0");
+		expect(html).toContain("seekTo");
 	});
 
 	/*
@@ -57,7 +168,7 @@ describe("buildEmbedIframeHtml", () => {
 
 	it("埋め込みを iframe として置く", () => {
 		expect(html).toContain('src="https://www.youtube.com/embed/abc123?enablejsapi=1"');
-		expect(html).toContain("allow=\"autoplay; encrypted-media; picture-in-picture\"");
+		expect(html).toContain('allow="autoplay; encrypted-media; picture-in-picture"');
 	});
 
 	/*
@@ -112,16 +223,23 @@ describe("buildEmbedIframeHtml", () => {
 	});
 
 	/*
-	#1641 プレイヤーが起きてこないセルは、12 秒も第三者のエラー画面を見せ続けない。
+	#1641 プレイヤーが起きてこないセルは、いつまでも第三者のエラー画面を見せ続けない。
 	実測（run 33170443855）: 埋め込み不可の動画は YouTube 自身の bot 確認ページが出たままだった。
+
+	⚠️ **短くしすぎない。** 経緯は 2 段ある。
+
+	| いつ | 値 | 何が起きたか |
+	| --- | --- | --- |
+	| 当初 | 6 秒 | 実機でまだ準備中の YouTube を 2 セル分 «再生できない» へ落とした（run 33205231591） |
+	| その後 | 10 秒 | **それでも足りなかった。** 計装 `sinceActiveMs` の実測で `youtube visit=1 11048ms → no_video (no_ready)`（run 33335797659） |
+	| いま | 20 秒 | 上の実測を受けて延ばした |
+
+	掛かると «YouTube で見る» の帯へ落ちるので、ユーザーからは «起動しない» に見える
+	（オーナー報告そのもの）。**待つ代償はこの値を決めた当時より下がっている**
+	（待っている間はアプリ側のサムネイルが見える）。
 	*/
-	/*
-	⚠️ **短くしすぎない。** 6 秒にしたら、実機でまだ準備中の YouTube を 2 セル分
-	   «再生できない» へ落とした（run 33205231591）。エミュレータでは onReady まで
-	   6 秒を超えることがある。
-	*/
-	it("onReady が来なければ縮退させるが、10 秒は待つ", () => {
-		expect(html).toContain("if (!started) report('no_video', 'no_ready'); }, 10000);");
+	it("onReady が来なければ縮退させるが、20 秒は待つ（10 秒では遅い回線で誤って畳んだ）", () => {
+		expect(html).toContain("if (!started) report('no_video', 'no_ready'); }, 20000);");
 	});
 
 	/*

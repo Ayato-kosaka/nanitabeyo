@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { resolveDishCategoryLabel } from "@/features/myDishes/dishCategoryLabel";
 import { useAPICall } from "@/hooks/useAPICall";
+import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { toErrorLogString } from "@/lib/errorMessage";
 import type { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
@@ -34,6 +36,7 @@ export type RestaurantDishCategory = {
 
 export function useRestaurantDishCategories(restaurantId: string | undefined) {
 	const { callBackend } = useAPICall();
+	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
 	const [categories, setCategories] = useState<RestaurantDishCategory[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -59,11 +62,21 @@ export function useRestaurantDishCategories(restaurantId: string | undefined) {
 					existing.count += 1;
 					continue;
 				}
-				counts.set(dishCategoryId, {
-					dishCategoryId,
-					label: entry.dish.name || dishCategoryId,
-					count: 1,
-				});
+				/*
+				#1629【オーナー実機報告】「このお店の料理が **9483163** って出てる」。
+
+				表示名を `entry.dish.name || dishCategoryId` にしていたため、その店での呼び名が
+				空の行では **カテゴリ id がそのまま画面に出ていた**。しかもそれを選ぶと id が
+				«料理の名前» として下流へ流れ、フォームの料理カテゴリー欄が壊れる。
+
+				表示名の解決は `dishCategoryLabel.ts` の規則（`labels[言語] → labels["en"] → name`）に
+				従い、**id へは絶対に落とさない**（あそこにも「labels を «無ければ QID» に
+				落とさないこと」と書いてある）。名前が 1 つも無い行は «押せる候補» にできないので
+				候補から外す。検索欄から自由入力で決める道が別にあるので、行き止まりにはならない。
+				*/
+				const label = resolveDishCategoryLabel(entry.dish.categoryLabels, locale);
+				if (!label) continue;
+				counts.set(dishCategoryId, { dishCategoryId, label, count: 1 });
 			}
 			// 多い順 → 同数はラベル順（取得のたびに並びが変わらないように）
 			setCategories([...counts.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)));
@@ -77,7 +90,7 @@ export function useRestaurantDishCategories(restaurantId: string | undefined) {
 		} finally {
 			setIsLoading(false);
 		}
-	}, [callBackend, logFrontendEvent, restaurantId]);
+	}, [callBackend, locale, logFrontendEvent, restaurantId]);
 
 	useEffect(() => {
 		void fetch();

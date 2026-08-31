@@ -45,7 +45,9 @@ jest.mock(
 			},
 		),
 );
-jest.mock("@/lib/mediaSelection", () => ({ selectMedia: jest.fn() }));
+// #1750 `recoverPendingMedia`（Android の保留結果の復帰）も本体の surface に入った。
+// ここへ足さないと undefined を呼ぶことになり、選択そのものが起きない
+jest.mock("@/lib/mediaSelection", () => ({ selectMedia: jest.fn(), recoverPendingMedia: jest.fn(async () => null) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("expo-image", () => ({
 	Image: Object.assign(
@@ -84,6 +86,7 @@ jest.mock("expo-router", () => {
 });
 jest.mock("@/lib/googlePlaces", () => ({
 	getCurrencyCodeFromRestaurant: () => "JPY",
+	buildCurrencyChoices: () => ["JPY", "USD"],
 	resolveCurrencySymbol: () => "¥",
 	parseAmountString: (value: string) => Number(value),
 	toMinorAmountInteger: (value: number) => value,

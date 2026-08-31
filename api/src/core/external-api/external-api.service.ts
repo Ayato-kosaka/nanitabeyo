@@ -3,7 +3,8 @@
 // External API service for Wikidata, Google Custom Search, and Claude API
 //
 
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ErrorCode } from '@shared/v1/res';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 import { CreateExternalApiInput } from '../logger/logger.types';
@@ -284,6 +285,35 @@ export class ExternalApiService {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => '');
+        /*
+        #1629 【修正】**1 日あたりの上限に達したときを «壊れた» と混ぜない。**
+
+        Google Places の Text Search は `SearchTextRequestPerDayPerProject` を持ち、
+        使い切ると 429 / RESOURCE_EXHAUSTED を返す（dev の実測: 上限 45 req/day）。
+        それをそのまま `Error` で投げると `ApiExceptionFilter` の «未処理例外» に落ちて
+        500 INTERNAL_ERROR になり、呼び出し元（`POST /v1/dishes/bulk-import`）が失敗して
+        **検索結果が黙って 0 件になる**。オーナー実機の「焼肉うしごろ表参道が検索で出ない」は
+        これだった（dev ログ 2026-08-30。`dish-media/search` が 0 件 → bulk-import が 500）。
+
+        #1642 【修正】この «上限» を **503 で返していたのを 429 へ戻す**。
+        503 は `MaintenanceGuard`（Remote Config の `is_maintenance`）が使っている番号で、
+        クライアントは 503 を受けると «ただいまメンテナンス中です。» を出す。その結果、
+        メンテナンスでも何でもない «Places の日次上限» でメンテ告知が実機に出た
+        （2026-08-31 のオーナー実機。dev ログ `EXTERNAL_QUOTA_EXCEEDED` 5 件）。
+
+        上流が 429 と言っているものを別の番号へ翻訳する理由が無い。そのまま 429 を返す。
+        «相手が壊れている»（EXTERNAL_SERVICE_ERROR）ではないことは `ErrorCode` 側で
+        言えているので、«時間を置けば直る» はクライアントから引き続き読める。
+        */
+        if (response.status === HttpStatus.TOO_MANY_REQUESTS) {
+          throw new HttpException(
+            {
+              code: ErrorCode.EXTERNAL_QUOTA_EXCEEDED,
+              message: `Google Places Text Search API quota exceeded: ${errorText}`,
+            },
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
+        }
         throw new Error(
           `Google Places Text Search API request failed: ${response.status} ${errorText}`,
         );

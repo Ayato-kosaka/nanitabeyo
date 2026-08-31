@@ -11,6 +11,7 @@ import type { ExternalPathString } from "expo-router";
 
 import { OnboardingPermissionScreen } from "@/features/onboarding/components/OnboardingPermissionScreen";
 import { OnboardingScreenOptions } from "@/features/onboarding/components/OnboardingScreenOptions";
+import { rememberOnboardingPermissionOutcome } from "@/features/onboarding/permissionOutcomes";
 import { resolveAfterLocationPath } from "@/features/onboarding/navigation";
 import {
 	getLocationPermissionState,
@@ -38,6 +39,11 @@ export default function OnboardingLocationScreen() {
 			// 解決していなければ通知を尋ねずに Welcome へ進む＝ #1486 §6 の「スキップした人には
 			// 要求しない」側へ倒れるので、安全側に落ちる。
 			const isLoggedIn = isAuthResolved && !isGuestUser(user);
+
+			// #1736 断られたことを覚えておく。検索画面の現在地の自動取得が、この直後に
+			// 説明の無い許可ダイアログを続けて出さないようにするため
+			//（features/onboarding/permissionOutcomes.ts）
+			rememberOnboardingPermissionOutcome("location", outcome);
 
 			logFrontendEvent({
 				event_name: "onboarding_location_permission_settled",

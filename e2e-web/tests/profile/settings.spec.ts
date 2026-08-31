@@ -15,7 +15,6 @@ test.describe("設定項目(匿名ユーザー)", () => {
 	// 手順:
 	//   1. appPage で起動し、/ja-JP/profile へ遷移する（#1402 以前は /ja-JP/profile/settings）
 	//   2. 以下の項目が表示されることを検証:
-	//      - ご意見・不具合(settings-feedback)
 	//      - ブロック済みの料理カテゴリ(settings-blocked-dish-categories) ← #1553 で「トピック」から改称
 	//      - 端末設定(settings-device-settings) ← #1504 で追加
 	//      - なに食べよについて(settings-about) ← #1583 で追加
@@ -27,12 +26,13 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
 
-		await expect(settingsPage.feedbackItem).toBeVisible();
 		await expect(settingsPage.blockedDishCategoriesItem).toBeVisible();
 		await expect(settingsPage.deviceSettingsItem).toBeVisible();
 		await expect(settingsPage.aboutItem).toBeVisible();
 
-		// #1583 移設であって複製ではないこと
+		// #1583 / #1629 移設であって複製ではないこと。
+		// «ご意見・不具合» は #1629 で «なに食べよについて» の 1 ブロック目へ移った
+		await expect(settingsPage.feedbackItem).toHaveCount(0);
 		await expect(settingsPage.termsItem).toHaveCount(0);
 		await expect(settingsPage.privacyItem).toHaveCount(0);
 		await expect(settingsPage.themeSelector).toHaveCount(0);
@@ -88,19 +88,30 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		await expect(appPage.getByTestId("settings-leave-review")).toHaveCount(0);
 	});
 
-	// ─ テストケース: 表示テーマは端末設定ページにある ─
+	// ─ テストケース: 表示テーマは端末設定の «表示テーマ» 行の先にある ─
 	// #1583 オーナー承認（2026-08-25「表示テーマは 端末設定に移して大丈夫ですよ」）。
-	test("表示テーマは端末設定ページにある", async ({ appPage }) => {
+	// #1629 さらに «1 行 1 設定» へ揃えるため、3 択ラジオは端末設定の直置きをやめて
+	// `profile/theme` へ移した（オーナー指示）。端末設定に残るのは «行» だけである。
+	test("表示テーマは端末設定の «表示テーマ» 行から開く専用ページにある", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
 
 		await settingsPage.openDeviceSettings();
-
 		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/device-settings/);
+		// 端末設定にあるのは行だけ。3 択そのものはここに無い
+		await expect(settingsPage.themeItem).toBeVisible();
+		await expect(settingsPage.themeSelector).toHaveCount(0);
+
+		await settingsPage.openTheme();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/theme/);
 		await expect(settingsPage.themeOption("system")).toBeVisible();
 		await expect(settingsPage.themeOption("light")).toBeVisible();
 		await expect(settingsPage.themeOption("dark")).toBeVisible();
+
+		// 割った以上、帰れることまで見る（#1583 の «戻る» のテストと同じ理由）
+		await settingsPage.themeBackButton.click();
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/device-settings/);
 	});
 
 	// ─ テストケース: 匿名時はログアウトが表示されない ─
@@ -114,6 +125,9 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		await settingsPage.expectLoaded();
 
 		await expect(settingsPage.logoutItem).toHaveCount(0);
+		// #1629 ログアウトは «アカウント管理» の先へ移ったので、その入口ごと出ないことを見る。
+		// 行だけ残して先が空、という壊れ方を «ログアウトが無い» と読み違えないため
+		await expect(settingsPage.accountItem).toHaveCount(0);
 	});
 
 	// ─ テストケース: バージョン情報が表示される(#1495 SUP-03) ─
@@ -152,6 +166,8 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		await settingsPage.expectLoaded();
 
 		await expect(settingsPage.notificationsCard).toHaveCount(0);
+		// #1629 カードは `profile/notifications` へ移った。匿名にはその入口も出ない
+		await expect(settingsPage.notificationsItem).toHaveCount(0);
 	});
 });
 

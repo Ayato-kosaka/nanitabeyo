@@ -70,6 +70,14 @@ export class RestaurantDetailPage {
 	 */
 	readonly dishCategoryBackButton: Locator;
 
+	/**
+	 * #1629 投稿グリッドの 1 枚目。
+	 *
+	 * 店舗詳細から «アプリ内 push» で出る経路はここ 1 本だけになった
+	 * （投稿ボタンは撤去。Google マップは外部アプリを開くので push しない）。
+	 */
+	readonly firstReviewTile: Locator;
+
 	constructor(page: Page) {
 		this.page = page;
 		this.title = page.getByTestId("restaurant-detail-screen-title");
@@ -83,6 +91,7 @@ export class RestaurantDetailPage {
 		this.feedCloseButton = page.getByTestId("restaurant-feed-close-button");
 		this.backButton = page.getByTestId("restaurant-detail-screen-back");
 		this.dishCategoryBackButton = page.getByTestId("dish-category-screen-back");
+		this.firstReviewTile = page.getByTestId("restaurant-review-tile").first();
 	}
 
 	/** 店舗詳細へ直接遷移する（locale プレフィックス必須） */

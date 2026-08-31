@@ -130,6 +130,18 @@ jobs:
       - name: app-expo の lint
         run: pnpm --filter app-expo lint
 
+      # #1641 `react-hooks/exhaustive-deps` を **増やせなくする**（ratchet）。
+      #
+      # 上の lint は warning では落ちない。2026-08-31 に `DishMediaFeed` の `renderItem` が
+      # 依存配列へ `isScreenActive` を入れ忘れ、**離れたページのセルが古い値を抱えたまま鳴り続けた**。
+      # ESLint は警告していたが、warning は CI を落とさず、既存 400 件超に埋もれて誰も気付けなかった
+      # （オーナーに «音が重なる» と 3 回報告させ、特定に丸一日かかった）。
+      #
+      # 既存分（47 件）は台帳 `scripts/exhaustive-deps-baseline.json` に載せてある。
+      # **減らすことはできても増やすことはできない。** 増えた場所を名指しして落ちる。
+      - name: app-expo の exhaustive-deps を増やしていないか
+        run: pnpm --filter app-expo assert:no-new-exhaustive-deps
+
       # #1399 SNS の URL をルールベースで解釈する純関数（`shared/utils/snsUrl.ts`）。
       # 外部I/Oゼロで shared/dist にも依存しないため、shared build より前に置ける。
       #
@@ -206,3 +218,13 @@ jobs:
       # 見つからなければそのまま出ていた。ローカル実測 1 秒未満。
       - name: e2e の spec に入れ子の test が無いことを確認
         run: pnpm assert:no-nested-e2e-tests
+
+      # #1749 UI カタログの spec が使う画面 ID が catalog/screens.json に在ることを確認する。
+      # `captureScreenIfReachable()` は «撮れたら撮る» だが、未定義 ID のときだけは
+      # `getScreen()` が try の外で throw し、**その it 以降の撮影が丸ごと失われる**。
+      # 画面 ID を «トピック → 料理カテゴリ» へ改名したとき spec だけ直して screens.json が
+      # 取り残され、お店提案の `search-result-feed` が一度も撮れていなかった（web / mobile 両方）。
+      # 気づいたのは #1743 でその画面を撮ろうとしたときで、それまで誰にも見えていなかった。
+      # ローカル実測 1 秒未満。
+      - name: UI カタログの画面 ID が catalog/screens.json と一致することを確認
+        run: pnpm assert:catalog-screen-ids

@@ -118,6 +118,38 @@ export const resolveNextPath = (next: unknown, locale: string): string | null =>
 };
 
 /**
+ * 🚪 ログイン画面の «自動離脱»（ログイン済みになった瞬間に `next` へ replace する保険）を
+ * 実行してよいか。
+ *
+ * #1736 【バグ】**ログイン成功後、権限フローの画面が 2 枚生えていた。**
+ *
+ * ネイティブの OAuth は「ログイン画面 → `auth/callback` へ replace → callback が
+ * `next` へ replace」という順で進む。ところが React Navigation は replace された画面を
+ * **遷移アニメーションの間はマウントしたまま**にするため、その隙間にセッション確立
+ * （`user` の更新）が届くと、**もう居ないはずのログイン画面の effect が動き出し**、
+ * callback とは別に `next` へ replace してしまう。行き先は同じ
+ * `/[locale]/onboarding/location` なので、位置情報の説明画面が 2 枚積まれ、
+ * OS の許可ダイアログも 2 回出る。
+ *
+ * 実測（dev ログ 2026-08-30 / 08-31、Android 実機）: ログイン経由の 2 セッションは
+ * どちらも `onboarding_location_permission_settled` が **2 回**記録され、
+ * スキップ経由の 7 セッションはすべて 1 回だった。2 回目の直前には必ず
+ * `login_screen_already_authenticated`（path_name が `/ja-JP/auth/callback`）がある。
+ *
+ * この保険が本来面倒を見るのは「**ログイン画面に居るのに**ログイン済み」という状態
+ *（ログイン済みのまま URL 直叩き / ディープリンク）なので、**いま表示されている
+ * ルートがログイン画面であること**を条件に足す。OAuth の帰り道では現在ルートが
+ * `auth/callback` なので、離脱は callback だけが行う。
+ *
+ * @param params.pathname `usePathname()` の値（= いま表示されているルート）
+ */
+export const shouldAutoLeaveLoginScreen = (params: {
+	isAuthResolved: boolean;
+	isGuest: boolean;
+	pathname: string;
+}): boolean => params.isAuthResolved && !params.isGuest && isLoginRoutePath(params.pathname);
+
+/**
  * 🧭 ログイン画面を離れるときの行き先を決める。
  *
  * ## なぜ 2 層なのか

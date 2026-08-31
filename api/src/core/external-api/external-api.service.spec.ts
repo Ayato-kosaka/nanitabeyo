@@ -11,7 +11,9 @@
 const mockEnv: Record<string, unknown> = {};
 jest.mock('../config/env', () => ({ env: mockEnv }));
 
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ErrorCode } from '@shared/v1/res';
 import { ExternalApiService } from './external-api.service';
 import { AppLoggerService } from '../logger/logger.service';
 
@@ -181,6 +183,53 @@ describe('ExternalApiService Error Handling', () => {
         {
           error_message: 'Google API credentials are not configured',
         },
+      );
+    });
+  });
+  /**
+   * #1642 Places の日次上限を **503 で返してはいけない**。
+   *
+   * 503 は `MaintenanceGuard`（Remote Config の `is_maintenance`）の番号で、
+   * クライアントは 503 を «ただいまメンテナンス中です。» と読む。#1629 でここを
+   * 503 にしたため、メンテナンスでも何でもない «上限» でメンテ告知が実機に出た
+   * （2026-08-31 のオーナー実機）。上流が言っている 429 をそのまま返す。
+   */
+  describe('callPlaceSearchText の日次上限', () => {
+    beforeEach(() => {
+      mockEnv.GOOGLE_PLACE_API_KEY = 'test-place-key';
+    });
+
+    afterEach(() => {
+      delete mockEnv.GOOGLE_PLACE_API_KEY;
+    });
+
+    it('上流の 429 は 429 のまま返す（503 にしない）', async () => {
+      const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 429,
+        text: jest.fn().mockResolvedValue('RESOURCE_EXHAUSTED'),
+        // makeExternalApiCall がログ用にボディを複製して読む
+        clone: () => ({ json: jest.fn().mockRejectedValue(new Error('not json')) }),
+      } as unknown as Response);
+
+      const error: unknown = await service
+        .callPlaceSearchText('places.id', { textQuery: '焼肉' })
+        .then(
+          () => {
+            throw new Error('上限に達したのに成功した');
+          },
+          (e: unknown) => e,
+        );
+
+      expect(error).toBeInstanceOf(HttpException);
+      const httpError = error as HttpException;
+      // 🛑 ここが 503 に戻ると、実機へメンテ告知が出る
+      expect(httpError.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      expect(httpError.getStatus()).not.toBe(HttpStatus.SERVICE_UNAVAILABLE);
+      // «相手が壊れている» ではなく «上限» だと呼び出し側が読めること
+      expect((httpError.getResponse() as { code: string }).code).toBe(
+        ErrorCode.EXTERNAL_QUOTA_EXCEEDED,
       );
     });
   });

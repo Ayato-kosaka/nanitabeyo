@@ -61,14 +61,18 @@ test.describe("表示言語の切り替え(#1508)", () => {
 	// ─ テストケース: 設定メニューから言語画面へ入れる ─
 	// 手順:
 	//   1. /ja-JP/profile を開く
-	//   2. 「言語」行（settings-language）が表示されていることを検証
-	//   3. タップして言語画面（language-header-title = 「言語」）へ遷移することを検証
-	test("設定メニューの「言語」から言語画面へ遷移できる", async ({ appPage }) => {
+	//   2. 「端末設定」を開く（#1629 で「言語」はこの先へ移った）
+	//   3. 「言語」行（settings-language）が表示されていることを検証
+	//   4. タップして言語画面（language-header-title = 「言語」）へ遷移することを検証
+	test("端末設定の「言語」から言語画面へ遷移できる", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		const languagePage = new LanguagePage(appPage);
 
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		// #1629 マイページ直下には無い。«端末設定» の 1 ブロック目の先頭行になった
+		await expect(settingsPage.languageItem).toHaveCount(0);
+		await settingsPage.openDeviceSettings();
 		await expect(settingsPage.languageItem).toBeVisible();
 
 		await settingsPage.languageItem.click();
@@ -93,19 +97,20 @@ test.describe("表示言語の切り替え(#1508)", () => {
 		await languagePage.expectLoaded(PAGE_TITLE["ja-JP"]);
 		await expect(languagePage.option("system")).toHaveText(SYSTEM_DEFAULT_LABEL["ja-JP"]);
 
+		// #1629【28】切り替えの着地はタブの根なので、次の切り替えには開き直しが要る
 		// 1 回目: 日本語 → 英語
-		await languagePage.select("en-US", "en-US");
+		await languagePage.selectAndReopen("en-US", "en-US");
 		await languagePage.expectLoaded(PAGE_TITLE["en-US"]);
 		await expect(languagePage.option("system")).toHaveText(SYSTEM_DEFAULT_LABEL["en-US"]);
 
 		// 2 回目: 英語 → 韓国語（英語 UI からでも選択肢のラベルはネイティブ名のまま）
 		await expect(languagePage.option("ko-KR")).toHaveText("한국어");
-		await languagePage.select("ko-KR", "ko-KR");
+		await languagePage.selectAndReopen("ko-KR", "ko-KR");
 		await languagePage.expectLoaded(PAGE_TITLE["ko-KR"]);
 		await expect(languagePage.option("system")).toHaveText(SYSTEM_DEFAULT_LABEL["ko-KR"]);
 
 		// 3 回目: 韓国語 → 端末の設定に従う（= ブラウザの ja-JP へ戻る）
-		await languagePage.select("system", "ja-JP");
+		await languagePage.selectAndReopen("system", "ja-JP");
 		await languagePage.expectLoaded(PAGE_TITLE["ja-JP"]);
 		await expect(languagePage.option("system")).toHaveText(SYSTEM_DEFAULT_LABEL["ja-JP"]);
 	});

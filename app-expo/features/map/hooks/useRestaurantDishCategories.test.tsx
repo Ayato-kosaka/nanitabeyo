@@ -15,13 +15,26 @@ const mockCallBackend = jest.fn();
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
 const mockLogFrontendEvent = jest.fn();
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }) }));
+jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP" }) }));
 
 import { useRestaurantDishCategories } from "./useRestaurantDishCategories";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const entry = (categoryId: string | null, name: string) => ({
-	dish: { category_id: categoryId, name },
+/*
+#1629（オーナー確定）候補の表示名は `dish_categories.labels` から locale で引く。
+`dishes.name`（その店での呼び名）は表示に使わないので、labels を動かして書く。
+*/
+const entry = (categoryId: string | null, ja: string | null) => ({
+	dish: {
+		category_id: categoryId,
+		name: "その店での呼び名（表示には使わない）",
+		categoryLabels: ja === null ? null : { ja },
+	},
+});
+/** labels に日本語が無い行（英語だけ / 何も無い）を作る */
+const entryWithLabels = (categoryId: string, categoryLabels: Record<string, string> | null) => ({
+	dish: { category_id: categoryId, name: "udon", categoryLabels },
 });
 
 function Probe({ restaurantId }: { restaurantId: string }) {
@@ -75,5 +88,42 @@ describe("useRestaurantDishCategories", () => {
 		expect(mockLogFrontendEvent).toHaveBeenCalledWith(
 			expect.objectContaining({ event_name: "restaurant_dish_categories_failed", error_level: "warn" }),
 		);
+	});
+});
+
+/*
+#1629【オーナー実機報告】「このお店の料理が **9483163** って出てる」。
+
+表示名を `dish.name || category_id` にしていたため、その店での呼び名が空の行では
+**カテゴリ id が画面に出て**、選ぶとその id が «料理の名前» として下流へ流れていた。
+表示名は `dishCategoryLabel.ts` の規則（`labels[言語] → labels["en"] → name`）で解決し、
+**id へは絶対に落とさない**。
+*/
+describe("#1629 表示名の解決", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
+	// ★ ここが本命。id が画面へ出ることを二度と許さない
+	it("名前も labels も無い行は候補にしない（カテゴリ id を表示名にしない）", async () => {
+		mockCallBackend.mockResolvedValue({ data: [entry("9483163", ""), entry("cat-a", "ラーメン")] });
+		const tree = await renderProbe();
+		expect(resultOf(tree)).toBe("ラーメン:1");
+		expect(resultOf(tree)).not.toContain("9483163");
+	});
+
+	it("labels があれば、その店での呼び名より labels[言語] を優先する", async () => {
+		mockCallBackend.mockResolvedValue({ data: [entryWithLabels("cat-a", { ja: "うどん", en: "Udon" })] });
+		const tree = await renderProbe();
+		expect(resultOf(tree)).toBe("うどん:1");
+	});
+
+	// ★ #1629: 呼び名（udon）へは落ちない。en があれば en、無ければ候補から外れる
+	it("labels に自分の言語が無ければ en。en も無ければ候補にしない（呼び名へ落ちない）", async () => {
+		mockCallBackend.mockResolvedValue({
+			data: [entryWithLabels("cat-a", { en: "Udon" }), entry("cat-b", "餃子"), entryWithLabels("cat-c", {})],
+		});
+		const tree = await renderProbe();
+		expect(resultOf(tree)).toBe("Udon:1,餃子:1");
 	});
 });

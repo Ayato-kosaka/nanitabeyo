@@ -67,10 +67,33 @@ export default function ReviewScreen() {
 		[locale],
 	);
 
-	// #1127 同上。インライン生成（`onCancel={() => router.back()}`）は親の再レンダーごとに identity が変わる
-	const handleReviewCancel = useCallback(() => {
-		router.back();
-	}, []);
+	/**
+	 * 戻る / キャンセル。
+	 *
+	 * #1629【バグ】**履歴が無い着地で行き止まりになっていた。**
+	 * 素の `router.back()` は履歴が無いと **何も起きない**。この画面は URL 直リンク・
+	 * リロード・共有リンクから «履歴ゼロ» で着地しうるので、そのとき戻るボタンが
+	 * 効かない画面になっていた（e2e が «退出手段が残っていること» を見て検出した）。
+	 *
+	 * 兄弟の 2 画面は最初からこの形になっている
+	 * （`restaurant/[restaurantId].tsx` / `restaurant/[restaurantId]/feed.tsx`）。
+	 * この画面だけが素通しだったので揃える。倒す先は出発点である店舗詳細。
+	 *
+	 * #1127 インライン生成（`onCancel={() => router.back()}`）にしないこと。
+	 * 親の再レンダーごとに identity が変わり、ReviewForm 側の effect が張り替わる。
+	 */
+	const handleBack = useCallback(() => {
+		if (router.canGoBack()) {
+			router.back();
+			return;
+		}
+		router.replace({
+			pathname: "/[locale]/restaurant/[restaurantId]",
+			params: { locale, restaurantId },
+		});
+	}, [locale, restaurantId]);
+
+	const handleReviewCancel = handleBack;
 
 	// #644 【設計】restaurant.id でレストラン詳細を取得（ストアキャッシュ優先）
 	useEffect(() => {
@@ -138,7 +161,7 @@ export default function ReviewScreen() {
 					title={i18n.t("Restaurant.review.title")}
 					onPressBack={() => {
 						lightImpact();
-						router.back();
+						handleBack();
 					}}
 				/>
 				<View style={styles.loadingContainer}>
@@ -156,7 +179,7 @@ export default function ReviewScreen() {
 					title={i18n.t("Restaurant.review.title")}
 					onPressBack={() => {
 						lightImpact();
-						router.back();
+						handleBack();
 					}}
 				/>
 				<View style={styles.errorContainer}>
@@ -176,7 +199,7 @@ export default function ReviewScreen() {
 				title={i18n.t("Restaurant.review.title")}
 				onPressBack={() => {
 					lightImpact();
-					router.back();
+					handleBack();
 				}}
 			/>
 

@@ -608,7 +608,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "اختر فئة الطبق",
-			"writeReviewForThisDish": "اكتب مراجعة لهذا الطبق",
 			"useTypedDishCategory": "استخدام «{{name}}»"
 		},
 		"inputs": {
@@ -667,6 +666,7 @@
 			"mediaSelectionFailed": "فشل تحديد الوسائط",
 			"mediaSelectionError": "حدث خطأ أثناء تحديد الوسائط. يرجى المحاولة مرة أخرى.",
 			"replaceWithMyPhoto": "استخدام صورتي الخاصة",
+			"reselectPhoto": "تغيير الصورة",
 			"openSettings": "فتح الإعدادات",
 			"pickFromLibrary": "اختيار من المكتبة",
 			"shootWithCamera": "التقاط صورة",
@@ -743,10 +743,11 @@
 		"emptyState": {
 			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
 		},
-		"everybodyPostsTitle": "اختر طبقًا لمراجعته",
+		"everybodyPostsTitle": "منشورات الجميع",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "تفاصيل المطعم"
+			"title": "تفاصيل المطعم",
+			"openInGoogleMaps": "الفتح في خرائط Google"
 		}
 	},
 	"Feedback": {
@@ -983,7 +984,8 @@
 		},
 		"unsavedHint": "يمكنك أيضًا اختيار مطاعم لم تحفظها: اكتب اسم المطعم في البحث أعلاه، أو اضغط على أيقونة المطعم على الخريطة.",
 		"pickTitle": "اختيار مطعم",
-		"pickOnMap": "ابحث عن مطعم على الخريطة"
+		"pickOnMap": "ابحث عن مطعم على الخريطة",
+		"pickConfirm": "اختيار هذا المكان"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1026,7 +1028,16 @@
 			"noPhotoHint": "يمكنك التسجيل بدون صورة",
 			"publicReviewNotice": "سيظهر سجلك كمراجعة عامة في صفحة المطعم",
 			"postNotFoundNoPhoto": "لا يحتوي هذا السجل على صورة",
-			"skipPhoto": "تخطّي (بدون صورة)"
+			"skipPhoto": "تخطّي (بدون صورة)",
+			"missingHint": "أضف {{items}} للنشر.",
+			"missing": {
+				"comment": "مراجعة قصيرة",
+				"price": "السعر",
+				"rating": "التقييم",
+				"dishCategory": "فئة الطبق",
+				"separator": "، ",
+				"currency": "عملة هذا المكان غير متوفرة"
+			}
 		},
 		"filters": {
 			"title": "التصفية والترتيب",
@@ -1136,6 +1147,17 @@
 		"deleted": {
 			"label": "تم الحذف",
 			"a11yLabel": "تم حذف صورة هذا المنشور"
+		},
+		"ownReview": {
+			"title": "مراجعتك",
+			"noPhoto": "بدون صورة",
+			"noComment": "لم يُكتب أي تعليق",
+			"noReview": "لا توجد مراجعة لهذا السجل بعد",
+			"openRestaurant": "عرض تفاصيل المطعم",
+			"edit": "تعديل المراجعة",
+			"delete": "حذف المراجعة",
+			"deleteConfirmTitle": "هل تريد حذف هذه المراجعة؟",
+			"deleteConfirmMessage": "سيتم حذف مراجعة هذا السجل، وسيختفي السجل أيضًا من قائمتك. لا يمكن التراجع عن هذا الإجراء."
 		}
 	},
 	"SnsImport": {
@@ -1164,7 +1186,9 @@
 			"save": "حفظ في أريد تناوله",
 			"saveRequirement": "اختر طبقًا ومطعمًا للحفظ.",
 			"resolveAgain": "إعادة القراءة",
-			"cancel": "إلغاء"
+			"cancel": "إلغاء",
+			"saveRequirementRestaurant": "اختر مكانًا للحفظ.",
+			"saveRequirementDish": "اختر فئة الطبق للحفظ."
 		},
 		"sections": {
 			"dishCategory": "الطبق",

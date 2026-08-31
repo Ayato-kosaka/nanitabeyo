@@ -10,12 +10,13 @@ jest.mock('src/core/config/env', () => ({
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishCategoryVariantsRepository } from '../dish-category-variants/dish-category-variants.repository';
 import {
+  buildJapaneseLabelVariants,
   DISH_CATEGORY_VARIANT_CACHE_TTL_MS,
   DISH_CATEGORY_VARIANT_LOAD_LIMIT,
   DishCategoryVariantDictionaryService,
 } from './dish-category-variant-dictionary.service';
 
-function createHarness() {
+function createHarness(categoryRows: unknown[] = []) {
   const findAllVariantsForMatching = jest.fn().mockResolvedValue([
     {
       dish_category_id: 'Q1',
@@ -28,6 +29,9 @@ function createHarness() {
       source: 'wikidata-label',
     },
   ]);
+  const findAllCategoryLabelsForMatching = jest
+    .fn()
+    .mockResolvedValue(categoryRows);
 
   const logger = {
     verbose: jest.fn(),
@@ -38,11 +42,18 @@ function createHarness() {
   } as unknown as AppLoggerService;
 
   const service = new DishCategoryVariantDictionaryService(
-    { findAllVariantsForMatching } as unknown as DishCategoryVariantsRepository,
+    {
+      findAllVariantsForMatching,
+      findAllCategoryLabelsForMatching,
+    } as unknown as DishCategoryVariantsRepository,
     logger,
   );
 
-  return { service, findAllVariantsForMatching };
+  return {
+    service,
+    findAllVariantsForMatching,
+    findAllCategoryLabelsForMatching,
+  };
 }
 
 describe('DishCategoryVariantDictionaryService', () => {
@@ -96,5 +107,66 @@ describe('DishCategoryVariantDictionaryService', () => {
     await expect(service.getIndex()).rejects.toThrow('db down');
     await expect(service.getIndex()).resolves.toBeDefined();
     expect(findAllVariantsForMatching).toHaveBeenCalledTimes(2);
+  });
+
+  // #1273 グローバル一意化で日本語ラベルを失ったカテゴリを、labels.ja から辞書へ足し戻す
+  it('辞書に日本語ラベルが無いカテゴリでも labels.ja から候補が出る', async () => {
+    // Q焼肉 の変種は romaji しか無い（= 本文「焼肉」では当たらない）状態を再現
+    const { service, findAllVariantsForMatching } = createHarness([
+      { id: 'Q焼肉', labels: { ja: '焼肉', en: 'yakiniku' } },
+    ]);
+    findAllVariantsForMatching.mockResolvedValueOnce([
+      { dish_category_id: 'Q焼肉', surface_form: 'yakiniku', source: 'romaji' },
+    ]);
+
+    const index = await service.getIndex();
+
+    expect(index.exact.get('焼肉')?.dishCategoryId).toBe('Q焼肉');
+    expect(index.scannable.some((s) => s.surfaceForm === '焼肉')).toBe(true);
+  });
+
+  it('labels.ja の表記ゆれ（焼鳥・やきとり など）も辞書へ足す', async () => {
+    const { service } = createHarness([
+      { id: 'Q焼き鳥', labels: { ja: '焼き鳥' } },
+    ]);
+
+    const index = await service.getIndex();
+
+    expect(index.exact.get('焼き鳥')?.dishCategoryId).toBe('Q焼き鳥');
+    expect(index.exact.get('焼鳥')?.dishCategoryId).toBe('Q焼き鳥');
+    expect(index.exact.get('やきとり')?.dishCategoryId).toBe('Q焼き鳥');
+  });
+});
+
+describe('buildJapaneseLabelVariants', () => {
+  it('labels.ja とその表記ゆれをエントリ化する', () => {
+    const out = buildJapaneseLabelVariants([{ id: 'Q1', labels: { ja: '餃子' } }]);
+
+    const surfaces = out.map((e) => e.surfaceForm);
+    expect(surfaces).toContain('餃子');
+    // 収録済みの表記ゆれ（ぎょうざ / ギョーザ / ギョウザ）
+    expect(surfaces).toEqual(
+      expect.arrayContaining(['ぎょうざ', 'ギョーザ', 'ギョウザ']),
+    );
+    // 本文走査で減点されない source を付ける
+    expect(out.every((e) => e.source === 'wikidata-label')).toBe(true);
+    expect(out.every((e) => e.dishCategoryId === 'Q1')).toBe(true);
+  });
+
+  it('labels が Json でない・ja が無い・空の行は黙って捨てる（例外を投げない）', () => {
+    expect(
+      buildJapaneseLabelVariants([
+        { id: 'Q1', labels: null },
+        { id: 'Q2', labels: ['ja', 'x'] as unknown },
+        { id: 'Q3', labels: { en: 'curry' } },
+        { id: 'Q4', labels: { ja: '   ' } },
+        { id: '', labels: { ja: 'ラーメン' } },
+      ]),
+    ).toEqual([]);
+  });
+
+  it('null / 非配列でも空配列を返す', () => {
+    expect(buildJapaneseLabelVariants(null)).toEqual([]);
+    expect(buildJapaneseLabelVariants(undefined)).toEqual([]);
   });
 });

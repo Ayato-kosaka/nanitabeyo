@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { test, expect } from "../../fixtures/test";
 import { MyDishesPage } from "../../pages/MyDishesPage";
 import { loadTestUserCredentials } from "../../utils/testUserSession";
@@ -216,6 +217,31 @@ async function mockMyDishes(page: Page): Promise<RecordedRequest[]> {
 		},
 	);
 
+	/*
+	#1629 ── 表示ログ（インプレッション）──────────────────────────────
+	Feed は表示されたメディアごとに `POST /v1/dish-media/<id>/impression` を投げる。
+	ここのメディア id は spec が組んだ架空の値（`media-ramen` 等）なので、実 API は
+	**400 を返す**。ブラウザはそれを console error として出し、REL-08 が spec を落とす
+	（実測: `... status of 400 () [https://api-development.../v1/dish-media/media-ramen/impression]`）。
+	記録の成否はこの spec の関心ではないので、204 で受け取って握る。
+	*/
+	await page.route(
+		(url: URL) => /\/v1\/dish-media\/[^/]+\/impression$/.test(url.pathname),
+		async (route: Route) => {
+			const origin = (await route.request().headerValue("origin")) ?? "*";
+			await route.fulfill({
+				status: 204,
+				headers: {
+					"access-control-allow-origin": origin,
+					"access-control-allow-credentials": "true",
+					"access-control-allow-headers": "authorization,content-type,x-client-info,apikey",
+					"access-control-allow-methods": "GET,POST,OPTIONS",
+				},
+				body: "",
+			});
+		},
+	);
+
 	return recorded;
 }
 
@@ -226,6 +252,8 @@ function lastRequest(recorded: RecordedRequest[], path: string): URLSearchParams
 }
 
 test.describe("#1375 Map のピン → 全画面 Feed / 下部の常設シート（web / ログイン済み）", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: ピン → Sheet → Feed の Map 経路 ─
 	// 手順:
 	//   1. 3 本の API を決定論的な値へ差し替える
@@ -285,6 +313,8 @@ test.describe("#1375 Map のピン → 全画面 Feed / 下部の常設シート
 });
 
 test.describe("#1397 (PR5/5) contextual filter chips", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: chip で絞ると 3 ビューすべてに反映される ─
 	// 手順:
 	//   1. 3 本の API を差し替える（`categoryIds` が付いたら 1 件だけ返す mock）

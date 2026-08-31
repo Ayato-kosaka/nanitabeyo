@@ -69,10 +69,12 @@ test.describe("先読み画像(PRELOAD_IMAGES)", () => {
 
 		// 3 枚とも «描画されたことがある» 状態にしてから観測する。
 		// 1 枚目だけを見て緑にすると、2 / 3 枚目の先読み漏れを見逃す
-		await onboardingPage.expectStep(1);
-		await onboardingPage.pressNext();
+		// ⚠️ `pressNext()` はボタンを 1 回押すだけで、それは «解決フェーズを出す» 押下である。
+		//    ページを送るには 2 押下要る（`goToNextStep`）。ここを `pressNext()` にしていたため
+		//    `expectStep(2)` が来ず 30 秒 timeout になっていた（run 33373922355）
+		await onboardingPage.goToNextStep(1);
 		await onboardingPage.expectStep(2);
-		await onboardingPage.pressNext();
+		await onboardingPage.goToNextStep(2);
 		await onboardingPage.expectStep(3);
 
 		await expect.poll(() => onboardingPage.images.count()).toBeGreaterThan(0);

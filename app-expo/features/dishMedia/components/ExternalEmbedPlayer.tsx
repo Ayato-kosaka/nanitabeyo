@@ -63,7 +63,16 @@ run 32654704176 で、埋め込み中央の「Instagramで見る」を踏んだ�
 描かれた瞬間にフックが例外を投げてアプリごと落ちる**（Detox run 32658978146 で実測）。
 */
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { AppState, type AppStateStatus, StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
+import {
+	ActivityIndicator,
+	AppState,
+	type AppStateStatus,
+	StyleSheet,
+	Text,
+	TouchableOpacity,
+	UIManager,
+	View,
+} from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
 import { NavigationContext } from "@react-navigation/native";
@@ -157,7 +166,28 @@ const AUTOPLAY_SCRIPT = `(function () {
   // アンカーで縦にずれると崩れる。タッチは届かないが、向こうが勝手に動く経路は塞いでおく
   try { document.documentElement.style.overflow = 'hidden'; } catch (e) {}
 
-  var DEADLINE_MS = 12000, TICK_MS = 250;
+  /*
+   * #1641 **締め切りは 20 秒。12 秒では遅い回線に足りない。**
+   *
+   * ⚠️ **短くし直さないこと。** 同じ形の不具合を YouTube 側で既に踏んで直している。
+   *
+   * | 側 | 締め切り | 実測 | 結果 |
+   * | --- | --- | --- | --- |
+   * | YouTube | 10 秒 | 11048ms（run 33335797659） | **締め切りに掛かって no_video へ縮退した** |
+   * | TikTok | 12 秒 | 6089ms（同 run、初回） | 通ったが **予算の半分を使っている** |
+   *
+   * 上の実測はどちらも **CI の高速回線**での値である。オーナーの端末は 4G なので、
+   * ここに掛かる余地は十分にある。掛かると «TikTok で見る» の帯へ落ちるので、
+   * ユーザーからは «起動しない» に見える（オーナー報告）。
+   *
+   * ⚠️ **待つ代償は、この値を決めた当時より下がっている。** 当時は待つ間ずっと黒かったが、
+   *    いまは «向こうに絵が載る» まで WebView を透明にしてあるので、待っている間は
+   *    アプリ側の料理サムネイルが見えている。黒い板を見せ続けるわけではない。
+   *
+   * ⚠️ ただし «本当に映像が無い投稿» を長く待つわけではない。読み込みが終わって
+   *    なお video が無いセルは NO_VIDEO_GRACE_MS の側で先に見切られる。
+   */
+  var DEADLINE_MS = 20000, TICK_MS = 250;
   /*
    * #1641 **ページが組み上がるまでの猶予。**
    *
@@ -169,7 +199,7 @@ const AUTOPLAY_SCRIPT = `(function () {
    * ただし無制限には待たない。ここを過ぎたら «時間切れ» として導線へ縮退させ、
    * **黒いセルのまま放置しない**。
    */
-  var LOADING_GRACE_MS = 15000;
+  var LOADING_GRACE_MS = 20000;
   var installedAt = Date.now();
   var toldDom = false;
   /*
@@ -179,7 +209,19 @@ const AUTOPLAY_SCRIPT = `(function () {
    * 実測（Chrome 152）: 再生できる投稿は <video> が **t=750ms** に現れる。読み込み完了から
    * さらに 2 秒待つので、遅い回線で «まだ描かれていないだけ» を取り違える余地はまず無い。
    */
-  var NO_VIDEO_GRACE_MS = 2000;
+  /*
+   * #1641 ⚠️ **«読み込み完了なのに映像が無い» を急いで結論しない。**
+   *
+   * 実機の iOS で TikTok が 5 回中 2 回だけ no_video になった（BigQuery 実測）。
+   * 同じ投稿が直前・直後に再生できているので **誤判定**である。
+   * 原因は待ち時間が短すぎたこと: TikTok の <video> は **ページの JS が後から作る**ので、
+   * 'complete' の 2 秒後にはまだ無いことがある（再生できた回は 4 秒時点で video=2）。
+   *
+   * ⚠️ 短くし直さないこと。«本当に映像が無い投稿» は取り込みのときにサーバが判定して
+   * not_playable を持っており、そのセルは **WebView を 1 つも作らない**（高速パス）。
+   * つまりここへ来る時点で «映像がある見込み» のほうが高い。急ぐ理由はもう無い。
+   */
+  var NO_VIDEO_GRACE_MS = 6000;
   var completeSince = 0;
   var timer = null, observer = null, deadlineAt = 0, inFlight = false, sent = {}, lastError = null;
   // 自動再生ポリシーで «音あり» を蹴られたか。蹴られた後は二度と音を戻さない
@@ -439,6 +481,13 @@ const AUTOPLAY_SCRIPT = `(function () {
     }
     if (!best) return;
     poster = best;
+    /*
+     * #1641【観測 + 表示】**«画面に出せるものが載った» を 1 回だけ知らせる。**
+     *
+     * 呼び出し側はこれを合図に WebView を見せる。それまでは透明にしておき、
+     * アプリが持っているサムネイルを見せる（オーナー報告「ロード完了から 3 秒黒い」）。
+     */
+    report('poster', null);
     // 映像がまだ無い間は、1 コマ目の画像を «前面へ出す» 対象にする
     // （これをしないと Instagram のヘッダ帯が画像の上に残る）
     isolate(poster);
@@ -451,10 +500,54 @@ const AUTOPLAY_SCRIPT = `(function () {
     stretch(v, 2147483647);
   }
 
+  /*
+   * #1641 **ループは «ページ内の全部の video» へ仕掛ける。**
+   *
+   * オーナー報告（実機 2026-08-30）「インスタ以外ループしない」の TikTok 側。
+   * 実測（端末の stall4000 スナップショット / tiktok）:
+   *
+   *     ready=interactive nodes=223 script=21 iframe=0 video=2 img=0 body=yes res=9
+   *
+   * **TikTok の埋め込みは video を 2 つ持つ。** ところがこれまでは
+   * document.querySelector('video')（＝ 1 つ目）にしか loop と ended を仕掛けて
+   * いなかったので、向こうが 2 つ目を鳴らしていると **ループの保険が 1 つも効かない**。
+   * Instagram は video が 1 つなので、そこだけ «ループする» ように見えていた。
+   *
+   * ⚠️ **stretch/fill はここでやらないこと。** 全面化まで 2 つへ掛けると、
+   *    全画面の video が 2 枚重なる。«どれを見せるか» は今までどおり 1 つ目だけに任せ、
+   *    ここは «終わったら頭から鳴らし直す» だけを担当する。
+   */
+  function onEndedRestart(e) {
+    var el = (e && e.target) || null;
+    if (el) {
+      try {
+        el.currentTime = 0;
+        var p = el.play();
+        if (p && typeof p.catch === 'function') p.catch(function () {});
+      } catch (err) {}
+    }
+    start();
+  }
+
+  function keepLooping() {
+    try {
+      var list = document.querySelectorAll('video');
+      for (var i = 0; i < list.length; i++) {
+        var el = list[i];
+        // 向こうの JS が属性を見て作り直すことがあるので、毎回立て直す
+        try { el.loop = true; el.setAttribute('loop', ''); } catch (e) {}
+        if (!el.__nbLoopBound) {
+          el.__nbLoopBound = true;
+          el.addEventListener('ended', onEndedRestart, false);
+        }
+      }
+    } catch (e) {}
+  }
+
   function prepare(v) {
     fill(v);
     // 属性とプロパティの両方を立てる（Instagram 側の JS が属性を見て作り直すことがある）
-    v.loop = true; v.setAttribute('loop', '');
+    keepLooping();
     v.playsInline = true;
     v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
     if (v.__nbBound) return;
@@ -466,10 +559,11 @@ const AUTOPLAY_SCRIPT = `(function () {
      */
     var refill = setInterval(function () {
       try { fill(v); } catch (e) {}
+      // 全面化と同じ理由で loop も書き戻されうる。ここで貼り直す（新しく現れた video も拾う）
+      keepLooping();
       if (++fillTicks >= 15) clearInterval(refill);
     }, 1000);
-    // loop を向こうの JS に潰された場合の保険。ここだけは畳んだ後でも起こし直す
-    v.addEventListener('ended', function () { try { v.currentTime = 0; } catch (e) {} start(); }, false);
+    // ended の保険は keepLooping() が «全部の video» へ張る（畳んだ後でも起こし直す）
   }
 
   /*
@@ -493,9 +587,135 @@ const AUTOPLAY_SCRIPT = `(function () {
         + ' body=' + (document.body ? 'yes' : 'no')
         // 資源が 1 つも来ていないのか、来ているのに parse が止まっているのかを分ける
         + ' res=' + ((window.performance && performance.getEntriesByType)
-            ? performance.getEntriesByType('resource').length : -1);
+            ? performance.getEntriesByType('resource').length : -1)
+        + navFacts()
+        + pendingScriptHosts();
     } catch (e) {
       return 'snapshot-error';
+    }
+  }
+
+  /*
+   * #1641【観測】**パーサを止めているのは «どこの» script か。**
+   *
+   * iOS の TikTok が組み上がらない形は、CI で **毎回まったく同じ数字**になる。
+   *
+   *     still_loading ready=loading nodes=12 script=6 body=no chars=-1 enc=38814 res=7
+   *
+   * 38.8KB は届いていて、head に script が 6 本ある。なのに body が 1 つも無い。
+   * つまり «向こうが返してくれない» ではなく **head の同期 script でパーサが止まっている**。
+   * ⚠️ ただしここまでは **まだ推測**である。どの script かが分からないと直す先が決まらない。
+   *
+   * 止まっている script は «DOM には居るが、読み込みが終わっていない» ので、
+   * resource timing に載らない。**DOM の script[src] のうち resource timing に無いもの**が
+   * それである。差分を取れば一意に決まる。
+   *
+   * ⚠️ 送るのは **ホスト名だけ**。パスもクエリも本文も 1 文字も載せない
+   *    （この関数群の他の値と同じ方針）。
+   * ⚠️ この注釈にバッククォートを書かないこと。ここはテンプレートリテラルの内側で、
+   *    書いた時点で文字列が終わる。
+   */
+  function pendingScriptHosts() {
+    try {
+      if (!(window.performance && performance.getEntriesByType)) return '';
+      var loaded = {};
+      var entries = performance.getEntriesByType('resource');
+      for (var i = 0; i < entries.length; i++) loaded[entries[i].name] = 1;
+      var hosts = [], seen = {}, nodes = document.querySelectorAll('script[src]');
+      for (var j = 0; j < nodes.length; j++) {
+        var url = nodes[j].src;
+        if (!url || loaded[url]) continue;
+        var host = 'parse-error';
+        try { host = new URL(url, location.href).host; } catch (e) {}
+        if (host && !seen[host]) { seen[host] = 1; hosts.push(host); }
+      }
+      return ' pending=' + (hosts.length ? hosts.join(',') : 'none');
+    } catch (e) {
+      return ' pending=error';
+    }
+  }
+
+  /*
+   * #1641【観測】**«空の文書» が «どの空» なのかを分ける。**
+   *
+   * オーナー端末の実測（2026-08-30 12:40-12:44 UTC / commit 9b646339）で、TikTok が
+   * 4 回とも次の形で落ちていた。
+   *
+   *     ready=complete nodes=5 script=0 iframe=0 video=0 img=0 body=yes res=0
+   *
+   * ここまでは «中身ゼロのページが返った» としか分からず、**直す先が決まらない**。
+   * サーバ側の可能性は潰してある: 同じ embed URL を 12 連打しても毎回 240KB /
+   * script 16 本が返り、レート制限で空が返る事実は再現しなかった。
+   * つまり空は **端末側**で起きている。次の 4 つが分ければ、原因は一意に決まる。
+   *
+   * **どの値が実際に使えるかは実測した**（run 33348354215 / 実機の Detox / 同じ素材）。
+   * 期待だけで並べると «全部 -1» の役に立たない記録が残るので、当てにする値を絞る。
+   *
+   * | 送る値 | Android WebView | iOS WKWebView |
+   * | --- | --- | --- |
+   * | enc（本文バイト数） | **63458** ✅ | **55513 / 停まった TikTok でも 38900** ✅ |
+   * | chars（body の文字数） | **244532** ✅ | **245694 / body 未生成なら -1** ✅ |
+   * | blankUrl（about:blank か） | ✅ | ✅ |
+   * | bytes（転送バイト数） | 63758 | 55813 |
+   * | st（HTTP ステータス） | **200** ✅ | **-1（undefined）** |
+   *
+   * ⚠️ **st を判断の主語にしないこと。** iOS では取れない（WebKit に responseStatus が無い）。
+   *    両方の engine で «向こうが空を返した / そもそも読んでいない» を分けられるのは
+   *    **enc と chars と blankUrl** である。
+   *
+   * ⚠️ Playwright の Chromium は st も bytes も 0 を返すが、**実機の Android WebView は
+   *    200 を返す**。cross-origin の扱いが違うので、**ここの判断を Playwright で決めない**。
+   *
+   * この 3 つで実際に何が分かったか（run 33348354215 / iOS の TikTok）:
+   *
+   *     timeout still_loading ready=loading body=no chars=-1 enc=38900
+   *
+   * **38.9KB は届いている。届いたのに parse が終わっていない**（body すら無い）。
+   * «向こうが返してくれない» ではなく «こちらで組み上がっていない» と確定した。
+   *
+   * ⚠️ 送るのは **数と真偽だけ**。ページの本文・URL・クエリは 1 文字も載せない。
+   * ⚠️ この注釈にバッククォートを書かないこと。ここはテンプレートリテラルの内側で、
+   *    書いた時点で文字列が終わる（この修正でも 1 度壊した）。
+   */
+  function navFacts() {
+    try {
+      if (!(window.performance && performance.getEntriesByType)) return '';
+      var out = '';
+      // about:blank のままか。Chromium は about:blank でも navigation entry を持つので、
+      // «遷移していない» を分けられるのはこちらだけである（上の表）
+      try {
+        out += ' blankUrl=' + (document.URL === 'about:blank' ? 1 : 0);
+      } catch (e) {}
+      try {
+        out += ' chars=' + (document.body ? document.body.innerHTML.length : -1);
+      } catch (e) {}
+      var nav = performance.getEntriesByType('navigation')[0];
+      if (!nav) return out + ' nav=none';
+      return out
+        + ' enc=' + (nav.encodedBodySize == null ? -1 : nav.encodedBodySize)
+        + ' bytes=' + (nav.transferSize == null ? -1 : nav.transferSize)
+        + ' st=' + (nav.responseStatus == null ? -1 : nav.responseStatus);
+    } catch (e) {
+      return ' nav=error';
+    }
+  }
+
+  /*
+   * #1641 «空の文書» か。読み込みが 1 バイトも実らなかったときの形を判定する。
+   *
+   * ⚠️ **3 つ揃ったときだけ true。** 権利ブロックのページを «失敗» と誤判定すると、
+   *    再生できない投稿を永久に読み直し続けることになる。
+   */
+  function isBlankDocument() {
+    try {
+      // 中身が 1 つでもあるなら «来なかった» ではない（権利ブロックのページは絵か文字を持つ）
+      if (document.querySelectorAll('script').length > 0) return false;
+      if (document.querySelectorAll('img').length > 0) return false;
+      if (window.performance && performance.getEntriesByType
+          && performance.getEntriesByType('resource').length > 0) return false;
+      return document.querySelectorAll('*').length <= 8;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -552,7 +772,24 @@ const AUTOPLAY_SCRIPT = `(function () {
         // 読み込みが終わっているのに <video> が無い = 権利ブロック。締め切りを待たない
         if (document.readyState === 'complete') {
           if (!completeSince) completeSince = Date.now();
-          else if (Date.now() - completeSince > NO_VIDEO_GRACE_MS) settle('no_video', 'load_complete');
+          else if (Date.now() - completeSince > NO_VIDEO_GRACE_MS) {
+            /*
+             * #1641 ⚠️ **«中身が来なかった» を «権利ブロック» と呼ばない。**
+             *
+             * オーナー報告（実機 2026-08-30）「TikTok だけたまにロードに失敗する」の真因。
+             * 失敗した回の実測は毎回まったく同じ形で、成功した回とは似ても似つかない:
+             *
+             *     失敗 ready=complete nodes=5   script=0  video=0 img=0 body=yes res=0
+             *     成功 ready=interactive nodes=223 script=21 video=2 img=0 body=yes res=9
+             *
+             * script も img も resource も 0 ＝ **1 バイトも取れていない空の文書**である。
+             * 権利ブロックされたページは «中身のある文書» なので、この形にはならない
+             * （bogus な ID で TikTok を叩いても 239KB / script 16 本が返ることを実測した）。
+             * つまりこれは «この投稿は再生できない» ではなく **読み込みそのものの失敗**で、
+             * 呼び出し側は畳まずに読み直すべきものである。
+             */
+            settle(isBlankDocument() ? 'blank' : 'no_video', 'load_complete ' + snapshot());
+          }
         }
         return;
       }
@@ -612,6 +849,31 @@ const AUTOPLAY_SCRIPT = `(function () {
   start();
 })(); true;`;
 
+/**
+ * #1641 読み込みが実らなかったときに読み直す上限。
+ *
+ * ⚠️ **無制限にしないこと。** 向こうが恒久的に返さない状態（障害・遮断）だと
+ *    永久に読み直し続け、通信量とバッテリーを食う。上限に達したら畳んで
+ *    «◯◯ で見る» を出し、ユーザーに次の手を渡す。
+ */
+const MAX_EMBED_RELOADS = 2;
+
+/**
+ * #1641【観測】**前面に来てから «何も起きていない» と見なすまでの時間。**
+ *
+ * オーナー報告「フィードを上下すると TikTok / YouTube が起動しないときがある」は、
+ * いまの計装では **1 行も残らない**。再生（autoplay_started）も縮退（unplayable）も
+ * 起きていないのが症状そのものだからで、«沈黙» はログに出ない。
+ *
+ * そこで «前面に居るのに、この時間を過ぎてもまだ何も起きていない» を 1 回だけ記録する。
+ * これでオーナーの «起動しない» が、初めて数えられる量になる。
+ *
+ * ⚠️ 短くしすぎないこと。埋め込みの読み込みは実測で数秒かかる（TikTok は 4 秒時点で
+ *    まだ video が無いことがある）。ここを 3 秒などにすると «正常に読み込み中» を
+ *    大量に警告として記録し、本物が埋もれる。
+ */
+const SLOW_START_MS = 8_000;
+
 export type ExternalEmbedPlayerProps = {
 	/*
 	#1641 `playbackStatus` を受け取る。**«再生できない» はサーバが取り込みのときに
@@ -648,6 +910,24 @@ export type ExternalEmbedPlayerProps = {
 	 */
 	isScreenFocused?: boolean;
 };
+
+/**
+ * #1641【観測】**いま «鳴っている» セルの一覧。**
+ *
+ * 2026-08-31 の run 33408324285 で、Detox は `external-embed-playing-*` の印を **2 枚**見て赤にしたのに、
+ * BigQuery へ届いた `external_embed_autoplay_started` は **1 件だけ**だった
+ * （ログはバッチ送信なので、アプリが落とされた側の 1 件が飛んだと見られる）。
+ * つまり «2 つ同時に鳴った» という事実そのものが、**アプリ側の記録には 1 度も残っていなかった**。
+ *
+ * ここで «2 つ目が鳴り始めた瞬間» を 1 イベントにまとめて残す。片方の autoplay_started が飛んでも、
+ * この 1 行に両方の contentId が載るので «誰と誰が同時だったか» が確定する。
+ * 実機（オーナー端末）でも同じ行が出るので、CI で踏めない再現もこれで拾える。
+ *
+ * ⚠️ 登録の条件は、印（testID）を出す条件と **完全に同じ**にすること。
+ *    ずれると «Detox は赤なのにログは何も言わない» が再発する。
+ */
+type PlayingCell = { provider: string; contentId: string; startedAt: number };
+const playingCells = new Map<symbol, PlayingCell>();
 
 /**
  * この画面が前面か（別ルートへ push されていないか）を、**例外を投げずに**判定する。
@@ -717,15 +997,64 @@ export function ExternalEmbedPlayer({
 		});
 	}, [embed.provider, logFrontendEvent]);
 
-	// セルが前面から外れたら «再生できたか» の判定もやり直す（次に来たとき最初から測る）
+	/*
+	セルが前面から外れたら «再生できたか» の判定もやり直す（次に来たとき最初から測る）。
+
+	#1641 ⚠️ **«次に来たとき最初から» に含めるものを取りこぼさない。**
+	前面から外れると WebView はアンマウントされ（下の `return null`）、次に来たときは
+	**まっさらな WebView が読み込みをやり直す**。なのに一部の状態を持ち越していた:
+
+	| 持ち越していたもの | 起きること |
+	| --- | --- |
+	| `reloadsRef` | 前回の滞在で読み直しを使い切ったセルは、**次に来たとき 1 回も読み直せない** |
+	| `webViewReadyToShow` | 中身が空の WebView をいきなり不透明で載せ、**下のサムネイルを隠す**（＝「黒い画面」が戻る） |
+	| `unplayableKind` | 前回の失敗理由で畳むかどうかを決めてしまう |
+
+	フィードを上下すると同じセルへ何度も戻るので、ここが揃っていないと «2 回目以降だけ
+	様子が違う» という再現しにくい形になる。
+	*/
 	useEffect(() => {
-		if (!isActive) {
-			setRenderProcessGone(false);
-			setPlayback("unknown");
+		if (isActive) {
+			// #1641【観測】何回目の訪問か / いつ前面に来たか（下の autoplay_started で使う）
+			visitRef.current += 1;
+			activatedAtRef.current = Date.now();
+			return;
 		}
-	}, [isActive]);
+		/*
+		#1641【観測】**再生中のセルを畳んだことを残す。**
+
+		オーナー実機報告（2026-08-31）「２秒くらい流れて止まって、下の tiktok が流れる」の
+		切り分けに要る。原因は 2 つあり得て、**打ち手がまったく違う**。
+
+		| どちら | 何が起きている | 直す先 |
+		| --- | --- | --- |
+		| 向こうが止めた | playerState 2 が飛んでくる | 包みの側で撃ち直す |
+		| こちらが畳んだ | isActive が false になり、セルごと外れる | 誰を active と見なすかの判定 |
+
+		いまは後者が 1 行も残らないので分けられない。«前面に居るつもりのセルが
+		何ミリ秒で外されたか» を残せば、送りの判定がずれていることが数字で分かる。
+		*/
+		if (hasPlayedRef.current) {
+			logFrontendEvent({
+				event_name: "external_embed_deactivated_while_playing",
+				error_level: "warn",
+				payload: {
+					provider: embed.provider,
+					visit: visitRef.current,
+					sinceActiveMs: Date.now() - activatedAtRef.current,
+				},
+			});
+		}
+		hasPlayedRef.current = false;
+		setRenderProcessGone(false);
+		setPlayback("unknown");
+		setUnplayableKind(null);
+		setWebViewReadyToShow(false);
+		reloadsRef.current = 0;
+	}, [isActive, embed.provider, logFrontendEvent]);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
+
 	const NativeWebView = probeRef.current.WebView;
 
 	const openInAppBrowser = useCallback(
@@ -751,6 +1080,25 @@ export function ExternalEmbedPlayer({
 	 * ページ内のエージェントが「本当に `currentTime` が進んだ」と言ったときだけ `playing` になる。
 	 */
 	const [playback, setPlayback] = useState<"unknown" | "playing" | "unplayable">("unknown");
+	/** #1641【観測】{@link playingCells} での自分の席。インスタンスごとに一意 */
+	const playingCellKeyRef = useRef<symbol>(Symbol("external-embed-playing-cell"));
+	/**
+	 * #1641【検証】**このセルが鳴っている間に、他のセルも鳴っていたか。**
+	 *
+	 * Detox から «同時再生» を判定する唯一の口である。以前は
+	 * `external-embed-playing-{provider}` の印を **2 枚数える**方式だったが、
+	 * 同じ testID がビューツリーへ二重に現れることがあり（`e2e-mobile/utils/waits.ts` の
+	 * `target()` のコメントにあるとおり、このリポジトリで既知の現象）、
+	 * **1 つしか鳴っていないのに 2 枚と数える**ことがあった。
+	 *
+	 * 実測（run 33414862377）: Detox は 2 枚と数えたのに、アプリ側は
+	 * `dish_media_active_cell` が 1 件（total=1）/ `autoplay_started` が 1 件 /
+	 * `external_embed_concurrent_playing` が 0 件。**アプリは 1 つしか鳴らしていなかった。**
+	 *
+	 * 数を «外から数える» のをやめ、**アプリ自身が数えた結果**を印にする。
+	 * この印が出ていれば «本当に 2 つ鳴っている» と言い切れる。
+	 */
+	const [concurrentPlaying, setConcurrentPlaying] = useState(false);
 	/*
 	#1641 «なぜ再生できなかったか»。**畳むかどうかの判断に使う**（下の `collapsedAfterFailure`）。
 	`timeout` は «ページが 1 つも組み上がらなかった» ＝ WebView に見せるものが何も無い、を意味する。
@@ -774,6 +1122,19 @@ export function ExternalEmbedPlayer({
 	const navDecisionsRef = useRef(0);
 	const mountedAtRef = useRef(Date.now());
 	/*
+	#1641【観測】**«何回目にこのセルへ来たか» と «前面に来てから何ミリ秒で鳴ったか»。**
+
+	オーナー報告「フィードを上下すると TikTok / YouTube が起動しないときがある」は、
+	往復周回を Detox へ足しても再現しなかった（run 33320252429 は緑）。合否条件
+	（18 秒以内に結論が出たか）がオーナーの体感と合っていないためで、症状は
+	«永久に起動しない» ではなく «**戻ったときの起動が遅すぎる**» 疑いが濃い。
+
+	⚠️ **推測のまま直さない。** «初回は速いが再訪は遅い» のか «どちらも同じ» のかは、
+	測らなければ分からない。前面に来た回数と、そこから鳴るまでの時間を毎回記録する。
+	*/
+	const visitRef = useRef(0);
+	const activatedAtRef = useRef(Date.now());
+	/*
 	#1641 **«再生できなかった» を 1 度だけサーバへ知らせる。**
 
 	定期的な死活監視は無い（このリポジトリに cron は 1 本も無い）。取り込んだ後で
@@ -789,16 +1150,132 @@ export function ExternalEmbedPlayer({
 	useEffect(() => {
 		if (playback !== "unplayable") return;
 		if (embed.playbackStatus === "not_playable") return;
+		/*
+		#1641 ⚠️ **読み込みが実らなかっただけの投稿をサーバへ報告しない。**
+		端末が中身を受け取れなかったことは «その投稿が再生できない» の根拠にならない
+		（同じ投稿が直前・直後に再生できている。実測は `reloadsRef` の注記）。
+		報告するとサーバが not_playable を書き、**検索フィードから永久に外れる**。
+		*/
+		if (unplayableKind === "load_failed") return;
 		if (reportedRef.current) return;
 		reportedRef.current = true;
 		onUnplayable?.();
-	}, [playback, embed.playbackStatus, onUnplayable]);
+	}, [playback, embed.playbackStatus, onUnplayable, unplayableKind]);
 	/*
 	#1641 **音が出ているか。** YouTube だけ自動では戻せなかったので、
 	«無音で再生中» のときだけタップで解除する口を出す（オーナー指示 2026-08-28）。
 	*/
+	/*
+	#1641【観測】**«前面に居るのに、まだ何も起きていない» を記録する。**
+
+	`playback` が "unknown" のままということは、再生も縮退もしていないということ。
+	オーナーが «起動しない» と言っているのはこの状態で、**いまはログに何も残らない**。
+	結論が出れば `playback` が変わって effect が張り直され、タイマーは片付く。
+	*/
+	useEffect(() => {
+		if (!isActive || playback !== "unknown") return;
+		const timer = setTimeout(() => {
+			logFrontendEvent({
+				event_name: "external_embed_slow_start",
+				error_level: "warn",
+				payload: {
+					provider: embed.provider,
+					mode: source?.mode ?? null,
+					visit: visitRef.current,
+					elapsedMs: Date.now() - activatedAtRef.current,
+				},
+			});
+		}, SLOW_START_MS);
+		return () => clearTimeout(timer);
+	}, [isActive, playback, embed.provider, source?.mode, logFrontendEvent]);
+
 	const [audio, setAudio] = useState<string | null>(null);
-	const webViewRef = useRef<{ injectJavaScript: (script: string) => void } | null>(null);
+	/*
+	#1641【設計】**WebView は «見せられる状態» になるまで透明にしておく。**
+
+	オーナー報告 2026-08-30:「どの PF もロード完了してから、動画流れるまで 3 秒くらい黒い画面になる」。
+
+	原因は **こちらが黒く塗っていたこと**だった。アプリは既に料理のサムネイルを WebView の下へ
+	敷いている（`DishMediaContent` の背景 Image）のに、その上に載せた WebView の html/body を
+	地色（黒）で塗るので、**下のサムネイルが隠れる**。埋め込みページ側に出せる絵が無い間
+	（TikTok は `img=0` ＝ 画像を 1 つも持たない）、そこは本当に何も無い。
+
+	そこで «向こうに絵が載った» まで WebView を透明にし、下のサムネイルを見せる。
+	載った合図は 2 つ:
+
+	- `poster` … ページ内エージェントが 1 コマ目の画像を全面へ広げた
+	- `playing` … 映像が動き出した（`poster` が来ない provider でもここで必ず見える）
+
+	⚠️ **アンマウントではなく透明**にすること。読み込みを進めるために描画は続ける必要がある。
+	*/
+	const [webViewReadyToShow, setWebViewReadyToShow] = useState(false);
+	const webViewRef = useRef<{ injectJavaScript: (script: string) => void; reload: () => void } | null>(null);
+	/*
+	#1641【設計】**読み込みの失敗は «再生できない投稿» ではない。読み直す。**
+
+	オーナー報告（実機 2026-08-30）「TikTok だけ、やっぱりたまに動画ロードに失敗する」。
+	BigQuery の実測（新ビルド `9b64633` の 5 回）:
+
+	| 時刻 | 結果 |
+	| --- | --- |
+	| 12:43:09 | ✅ 再生 |
+	| 12:43:31 | ❌ `no_video` / `nodes=5 script=0 res=0`（空の文書） |
+	| 12:43:55 | ❌ 同上（**まったく同じ数字**） |
+	| 12:44:32 | ✅ 再生 |
+	| 12:44:42 | ❌ 同上 |
+
+	同じ投稿が直前・直後に再生できているので «その投稿が再生できない» のではない。
+	1 バイトも取れていないだけである。にもかかわらずこれまでは
+
+	- `onError` / `onHttpError` を **1 つも持っていなかった**（＝ 読み込みの失敗が観測できない）
+	- 空の文書を `no_video`（＝ 権利ブロック）と同じ扱いにして畳み、**サーバへ
+	  «再生できない» と報告していた**（`onUnplayable`）
+
+	ため、たまたま通信が転んだだけの投稿が «再生できない投稿» に化ける道があった。
+	ここでは畳まずに**上限つきで読み直す**。上限に達したときだけ従来どおり畳む。
+	*/
+	const reloadsRef = useRef(0);
+
+	/**
+	 * 読み込みの失敗から立て直す。**上限に達したときだけ «再生できない» へ倒す。**
+	 *
+	 * ⚠️ ここで `onUnplayable` を呼ばないこと。サーバへ «この投稿は再生できない» と
+	 *    報告する経路であり、通信が転んだだけの投稿を not_playable に落としてしまう。
+	 */
+	const retryLoad = useCallback(
+		(reason: string, detail?: string | null) => {
+			if (hasPlayedRef.current) return; // 一度再生できたセルは触らない
+			const attempt = reloadsRef.current + 1;
+			logFrontendEvent({
+				event_name: "external_embed_load_retry",
+				error_level: "warn",
+				payload: {
+					provider: embed.provider,
+					reason,
+					attempt,
+					willRetry: attempt <= MAX_EMBED_RELOADS,
+					/*
+					#1641【観測】**«空の文書» の中身を、読み直す前に残す。**
+					これを落とすと «空だった» までしか残らず、
+					«向こうが空を返した / そもそも遷移していない» を分けられない（navFacts の注記）。
+					*/
+					detail: detail ?? null,
+					visit: visitRef.current,
+					sinceActiveMs: Date.now() - activatedAtRef.current,
+				},
+			});
+			if (attempt > MAX_EMBED_RELOADS) {
+				// ここまで来たら «向こうが返してくれない» が続いている。畳んで «◯◯ で見る» を出す
+				setPlayback("unplayable");
+				setUnplayableKind("load_failed");
+				return;
+			}
+			reloadsRef.current = attempt;
+			setWebViewReadyToShow(false);
+			webViewRef.current?.reload();
+		},
+		[embed.provider, logFrontendEvent],
+	);
 
 	/*
 	#1641 WebView の中の包みへ «音を出して» と頼む。`__nbEmbedUnmute` は
@@ -821,11 +1298,26 @@ export function ExternalEmbedPlayer({
 			if (parsed.kind === "playing") {
 				hasPlayedRef.current = true;
 				setPlayback("playing");
+				setWebViewReadyToShow(true);
 				setAudio(parsed.detail ?? null);
 				logFrontendEvent({
 					event_name: "external_embed_autoplay_started",
 					error_level: "log",
-					payload: { provider: embed.provider, audio: parsed.detail ?? null },
+					payload: {
+						provider: embed.provider,
+						/*
+						#1641【観測】**どの投稿が鳴っているのかを一意にする。**
+
+						«画面外のページが鳴っている» を突き止めたとき、provider 名と sinceActiveMs から
+						推定するしかなかった（同じ provider が 2 つ並ぶと区別が付かない）。
+						投稿の ID を載せておけば «同時に 2 つ鳴っている» が一目で分かる。
+						*/
+						contentId: embed.externalContentId,
+						audio: parsed.detail ?? null,
+						// #1641【観測】初回と再訪で «鳴るまでの時間» が変わるかを見る
+						visit: visitRef.current,
+						sinceActiveMs: Date.now() - activatedAtRef.current,
+					},
 				});
 				return;
 			}
@@ -847,6 +1339,83 @@ export function ExternalEmbedPlayer({
 			エージェントが起動しただけで «再生できない» へ倒れる。
 			*/
 			// #1641 `stall` は時刻ごとに kind が違う（stall4000 / stall9000 …）ので前方一致で見る
+			/*
+			#1641 «向こうに絵が載った»。WebView を見せてよい合図（結論ではない）。
+
+			⚠️ **iframe（YouTube）だけは、ここで見せてはいけない。**
+
+			オーナー実機報告（2026-08-31）:
+			  「YouTube shorts に邪魔な部品が多くてどれも押せない」
+			  「はじめの 2 秒 部品でて、そこからでなくなりますね」
+
+			`controls=0` 等で消せるのは **再生中の UI** だけで、**再生が始まる前**の画面には
+			タイトル・チャンネル名・Shorts バッジ・▶ が出る。`poster` はまさにその瞬間に届くので、
+			ここで不透明にすると «最初の 2 秒だけ部品が出る» になる。
+
+			iframe は `playing` まで待つ。その間はアプリのサムネイルが見えているので黒くならない。
+			`playing` が来ないまま時間切れになった場合は、従来どおり縮退して導線の帯を出す
+			（＝ 見え方は今より悪くならない）。
+
+			document（Instagram / TikTok）は、注入した CSS が向こうの UI を先に隠しているので
+			早く見せてよい。ここで待たせると、鳴るまでの数秒がサムネイルのままになって遅く見える。
+			*/
+			if (parsed.kind === "poster") {
+				if (source?.mode !== "iframe") setWebViewReadyToShow(true);
+				return;
+			}
+			/*
+			#1641【観測】**«勝手に止まった» を記録する。状態は動かさない。**
+
+			オーナー実機報告（2026-08-31）「２秒くらい流れて止まって、下の tiktok が流れる」。
+			これまで playerState 2（PAUSED）を 1 行も残していなかったので、
+			«YouTube 自身が止まった» のか «こちらがセルを畳んだ» のかを分けられなかった。
+
+			⚠️ **ここで playback を触らないこと。** 止まっただけのセルを «再生できない» へ
+			   倒すと、動いている映像の上に導線の帯が乗る。包みの側が撃ち直している。
+			⚠️ hasPlayedRef のガードより **前**に置くこと。再生済みセルで起きる現象なので、
+			   後ろに置くと 1 行も残らない（それが今回そもそも観測できなかった理由である）。
+			*/
+			/*
+			#1641 ⚠️ **観測用の便を «結論» の側へ落とさないこと。**
+
+			実測（run 33372367946 / commit c303e82f）: 状態遷移を送るために足した
+			kind 'state' が、下の «それ以外は unplayable» の枝まで落ちて
+
+			    external_embed_unplayable {"provider":"youtube","kind":"state","detail":"-99>1 t=0.1"}
+
+			として記録され、**再生できている YouTube のセルを畳んでいた**。
+			観測を足したつもりが、観測対象を壊していた。
+
+			⚠️ 新しい kind を包みの側へ足すときは、**必ずここに «観測» として先に書く**。
+			   最後の枝は «知らない kind は再生できない» と解釈する作りなので、
+			   書き忘れるとそのまま縮退する。
+			*/
+			if (parsed.kind === "state") {
+				logFrontendEvent({
+					event_name: "external_embed_state",
+					error_level: "log",
+					payload: {
+						provider: embed.provider,
+						detail: parsed.detail ?? null,
+						visit: visitRef.current,
+						sinceActiveMs: Date.now() - activatedAtRef.current,
+					},
+				});
+				return;
+			}
+			if (parsed.kind === "paused") {
+				logFrontendEvent({
+					event_name: "external_embed_paused",
+					error_level: "warn",
+					payload: {
+						provider: embed.provider,
+						detail: parsed.detail ?? null,
+						visit: visitRef.current,
+						sinceActiveMs: Date.now() - activatedAtRef.current,
+					},
+				});
+				return;
+			}
 			if (parsed.kind === "boot" || parsed.kind === "dom" || parsed.kind?.startsWith("stall")) {
 				logFrontendEvent({
 					event_name: "external_embed_agent_boot",
@@ -857,16 +1426,83 @@ export function ExternalEmbedPlayer({
 			}
 			// 再生が始まったセルは、後から何を言われても縮退させない（上の hasPlayedRef の説明）
 			if (hasPlayedRef.current) return;
+			/*
+			#1641 **空の文書 = 読み込みの失敗。** «再生できない投稿» ではないので畳まず読み直す
+			（判定の根拠と実測は `reloadsRef` の注記）。
+			*/
+			if (parsed.kind === "blank") {
+				retryLoad("blank_document", parsed.detail ?? null);
+				return;
+			}
+			/*
+			#1641 **組み上がらないまま時間切れ ＝ 読み込みの失敗。** 畳まずに読み直す。
+
+			原因を名指しできた（run 33355…/ iOS / commit fa0dc74f）。止まったセルは
+			**毎回まったく同じ 1 つのホスト**を待ったまま動かない。
+
+			    stall4000  ready=loading nodes=12 script=6 body=no res=7
+			               pending=lf16-tiktok-common.tiktokcdn-us.com
+			    stall9000  （同じ）
+			    stall14000 （同じ）
+			    timeout    （同じ）sinceActiveMs=22129
+
+			38.7KB は届いていて head に script が 6 本ある。そのうち 1 本が
+			この CDN から返ってこないので、**パーサがそこで止まって body すら作られない**。
+			健全なセルは pending=none（Instagram）か、先へ進んだうえで同じホストを
+			非同期に待っているだけ（同 run 05:25:05 の TikTok は
+			ready=interactive nodes=218 video=2 で、その 0.2 秒後に再生できている）。
+
+			⚠️ これは «その投稿に映像が無い» ではない。**同じ投稿が同じ run の中で
+			   後から再生できている**（05:22:04 失敗 → 05:25:05 再生）。
+			   向こうの CDN の 1 本が転んだだけなので、読み直せば別のエッジに当たる目がある。
+
+			⚠️ サーバへ «確かめ直して» も送らない（load_failed と同じ扱い）。
+			   通信が転んだ投稿を not_playable に落とすと、検索フィードから永久に外れる。
+			*/
+			if (parsed.kind === "timeout" && parsed.detail?.startsWith("still_loading")) {
+				retryLoad("still_loading", parsed.detail ?? null);
+				return;
+			}
 			// no_video（権利ブロック）/ not_supported（デコーダ無し）/ timeout
 			setPlayback("unplayable");
-			setUnplayableKind(parsed.kind ?? null);
+			/*
+			#1641 ⚠️ **«まだ準備できていない» を «再生できない投稿» と呼ばない。**
+
+			実測（run 33345690986 / commit 381e35ac / 同じ 1 つの YouTube セル）:
+
+			    01:26:11  no_video (no_ready)      sinceActiveMs=27745  ← ここで畳んだ
+			    01:26:55  autoplay_started audible sinceActiveMs=34348  ← 6.6 秒後に鳴った
+
+			**同じセルが後から鳴っている。** つまり no_ready は «その投稿に映像が無い» の
+			根拠にならず、«向こうの player がまだ何も言っていない» でしかない。
+			素材が dQw4w9WgXcQ（誰でも埋め込めることが広く知られている動画）である以上、
+			これを «再生できない» と呼ぶ余地は無い。
+
+			本当に埋め込めない動画は別の経路で分かる。YouTube の IFrame API は
+			onError / errorCode を返すので、そちらは **数字**が detail に載る
+			（embedUrl.ts の report('no_video', data.info.errorCode)）。
+			detail が no_ready / no_state_change ＝ **沈黙**は、時間切れであって判定ではない。
+
+			そこで load_failed と同じ扱いにする。畳んで «YouTube で見る» は出す
+			（黒い板のまま放置しない）が、**サーバへは «確かめ直して» を送らない**。
+			ログの kind / detail はそのまま残すので、観測は失わない。
+			*/
+			const silentTimeout = parsed.detail === "no_ready" || parsed.detail === "no_state_change";
+			setUnplayableKind(silentTimeout ? "load_failed" : (parsed.kind ?? null));
 			logFrontendEvent({
 				event_name: "external_embed_unplayable",
 				error_level: "warn",
-				payload: { provider: embed.provider, kind: parsed.kind ?? null, detail: parsed.detail ?? null },
+				payload: {
+					provider: embed.provider,
+					kind: parsed.kind ?? null,
+					detail: parsed.detail ?? null,
+					// #1641【観測】再訪でだけ縮退しているのかを見る
+					visit: visitRef.current,
+					sinceActiveMs: Date.now() - activatedAtRef.current,
+				},
 			});
 		},
-		[embed.provider, logFrontendEvent],
+		[embed.provider, logFrontendEvent, retryLoad],
 	);
 
 	// WebView 不在ビルド用: 投稿そのものをアプリ内ブラウザで開く
@@ -942,6 +1578,63 @@ export function ExternalEmbedPlayer({
 	*/
 	// 画面が裏（アプリがバックグラウンド / 呼び出し元がフォーカスを失った）なら描かない
 	// = 音もメモリも解放する
+	/*
+	#1641【観測】**«2 つ同時に鳴った» をアプリ側の記録に残す。**
+
+	この effect の条件は、下の `external-embed-playing-*` の印が画面に出る条件と 1 対 1 である
+	（`playback === "playing"` かつ、`!isActive || !appActive || !screenFocused` で
+	 まるごと `return null` していないこと）。Detox が印を 2 枚見る状況は、必ずここも 2 件になる。
+
+	⚠️ 片方の `autoplay_started` はバッチ送信の途中でアプリが落とされると失われる。
+	   だから «同時だった» の証拠は、**2 件目が鳴った側が 1 行にまとめて**残す。
+	*/
+	useEffect(() => {
+		const key = playingCellKeyRef.current;
+		const visible = playback === "playing" && isActive && appActive && screenFocused;
+
+		if (!visible) {
+			playingCells.delete(key);
+			setConcurrentPlaying(false);
+			return;
+		}
+
+		playingCells.set(key, {
+			provider: embed.provider,
+			contentId: embed.externalContentId,
+			startedAt: Date.now(),
+		});
+
+		setConcurrentPlaying(playingCells.size > 1);
+
+		if (playingCells.size > 1) {
+			logFrontendEvent({
+				event_name: "external_embed_concurrent_playing",
+				error_level: "warn",
+				payload: {
+					count: playingCells.size,
+					// 鳴り始めた順に並べる。先に鳴っていた方が «止まらなかった側» である
+					cells: Array.from(playingCells.values())
+						.sort((a, b) => a.startedAt - b.startedAt)
+						.map((cell) => ({ provider: cell.provider, contentId: cell.contentId })),
+					// この行を出した本人（= 後から鳴り出した側）
+					reporter: embed.externalContentId,
+				},
+				/*
+				⚠️ **この 1 行だけは、溜めずにすぐ送る。**
+				同時再生が起きているとき、Detox は数秒後に spec を落としてアプリごと止める。
+				既定のバッチ（件数 / 一定間隔）を待つと、**いちばん欲しい行が毎回そこで消える**。
+				実際に run 33408324285 と 33411032551 の 2 回とも、Detox は赤なのに
+				この種の行が 1 件も BigQuery へ届かなかった。
+				*/
+				flushNow: true,
+			});
+		}
+
+		return () => {
+			playingCells.delete(key);
+		};
+	}, [playback, isActive, appActive, screenFocused, embed.provider, embed.externalContentId, logFrontendEvent]);
+
 	if (!isActive || !appActive || !screenFocused) return null;
 
 	// 削除・非公開になった投稿（#1273 §39）
@@ -995,8 +1688,13 @@ export function ExternalEmbedPlayer({
 
 	⚠️ セルを離れると `playback` は `unknown` へ戻るので、次に来たときは 1 度だけ再挑戦する。
 	*/
+	/*
+	#1641 `load_failed` も畳む。空の文書のまま WebView を残すと «黒い板» が
+	サムネイルを隠したままになる（時間切れとまったく同じ理由）。
+	*/
 	const collapsedAfterFailure =
-		playback === "unplayable" && (source?.mode === "iframe" || unplayableKind === "timeout");
+		playback === "unplayable" &&
+		(source?.mode === "iframe" || unplayableKind === "timeout" || unplayableKind === "load_failed");
 	const inlineAvailable =
 		source !== null && NativeWebView !== null && !renderProcessGone && !knownNotPlayable && !collapsedAfterFailure;
 	/*
@@ -1081,7 +1779,12 @@ export function ExternalEmbedPlayer({
 				⚠️ web（`.web.tsx`）は iframe の中へ注入できないので、**embedCrop.ts の切り取りを使い続ける**。
 				*/
 				<View
-					style={styles.cell}
+					/*
+					#1641 **向こうに絵が載るまで透明にしておく**（上の `webViewReadyToShow` を参照）。
+					下にはアプリのサムネイルが敷いてあるので、黒ではなく料理の写真が見える。
+					⚠️ 透明にするだけで、**アンマウントはしない**。読み込みを進めるため描画は続ける。
+					*/
+					style={[styles.cell, { opacity: webViewReadyToShow ? 1 : 0 }]}
 					/* #1641 **常に表示専用**。タッチを一切渡さないので、縦スワイプでのフィード送りも
 					   タップでの ActionSheet も、既存の動画セルと完全に同じ経路で処理される
 					   （Android の RNCWebView は縦ドラッグを自分で消費するため、渡すと送りが死ぬ） */
@@ -1153,6 +1856,35 @@ export function ExternalEmbedPlayer({
 							openInAppBrowser(event.nativeEvent.targetUrl, "open_window")
 						}
 						onShouldStartLoadWithRequest={handleShouldStartLoad}
+						/*
+						#1641 ⚠️ **ここが無かった。**
+
+						`onError` / `onHttpError` を 1 つも持っていなかったため、**読み込みの失敗が
+						どこにも記録されず**、空の文書に取り残されたエージェントが «映像が無い»
+						＝ 権利ブロックと報告するのを、そのまま信じていた（`reloadsRef` の実測表）。
+						失敗を «見えるように» したうえで、畳まずに読み直す。
+						*/
+						onError={(event: { nativeEvent: { description?: string; code?: number } }) => {
+							logFrontendEvent({
+								event_name: "external_embed_load_error",
+								error_level: "warn",
+								payload: {
+									provider: embed.provider,
+									code: event.nativeEvent.code ?? null,
+									description: event.nativeEvent.description ?? null,
+								},
+							});
+							retryLoad("load_error");
+						}}
+						onHttpError={(event: { nativeEvent: { statusCode?: number; url?: string } }) => {
+							const status = event.nativeEvent.statusCode ?? null;
+							logFrontendEvent({
+								event_name: "external_embed_load_error",
+								error_level: "warn",
+								payload: { provider: embed.provider, statusCode: status, kind: "http" },
+							});
+							retryLoad("http_" + String(status));
+						}}
 						// レンダラが殺されたら黒いセルで放置せず、«Instagram で見る» へ戻す
 						onRenderProcessGone={() => {
 							logFrontendEvent({
@@ -1198,6 +1930,29 @@ export function ExternalEmbedPlayer({
 				/* #1641 provider ごとに分けて出す。«どの provider が再生できたか» を
 				   Detox から 1 つずつ判定できるようにするため（YouTube だけ落ちる、が拾える） */
 				<View style={styles.playingMarker} pointerEvents="none" testID={`external-embed-playing-${embed.provider}`} />
+			)}
+			{/* #1641【検証】**同時再生の判定はこの 1 枚だけを見る。**
+			    上の印を 2 枚数える方式は、同じ testID がツリーへ二重に現れると誤検出する
+			    （run 33414862377 で実際に誤検出した）。こちらは «アプリ自身が数えた結果» なので、
+			    出ていれば本当に 2 つ鳴っている。⚠️ 数える側を上の印へ戻さないこと */}
+			{concurrentPlaying && (
+				<View style={styles.playingMarker} pointerEvents="none" testID="external-embed-concurrent-playing" />
+			)}
+			{/*
+			#1641 **読み込み中はローディングを出す。**（オーナー指示 2026-08-30
+			「せめてローディング出して欲しい」）
+
+			下にはアプリのサムネイルが見えている状態なので、ここは «あと少し待てば動く» を
+			伝えるだけでよい。控えめな白のインジケータ 1 つに留める
+			（デザイン規約 §1: 赤は主 CTA と FAB だけ。ここは CTA ではない）。
+
+			⚠️ 出す条件は «WebView をまだ見せていない» かつ «結論が出ていない»。
+			   縮退したセルには導線の帯が出るので、そちらと二重に出さない。
+			*/}
+			{inlineAvailable && !webViewReadyToShow && playback === "unknown" && (
+				<View style={styles.loadingOverlay} pointerEvents="none" testID="external-embed-loading">
+					<ActivityIndicator size="small" color={FixedColors.onMedia} />
+				</View>
 			)}
 			{/* #1641 **地色の «覆い» は廃止した。** 覆うと料理の写真ごと隠れる。
 			    代わりに WebView を畳む（上の `collapsedAfterFailure`）。畳めば向こうのページは
@@ -1280,6 +2035,12 @@ const styles = StyleSheet.create({
 		backgroundColor: FixedColors.mediaBackground,
 	},
 	// #1641 «再生できた» の機械可読な印。見た目には出さない
+	// #1641 読み込み中のインジケータ。セルの中央へ 1 つだけ置く
+	loadingOverlay: {
+		...StyleSheet.absoluteFillObject,
+		alignItems: "center",
+		justifyContent: "center",
+	},
 	playingMarker: {
 		position: "absolute",
 		width: 1,

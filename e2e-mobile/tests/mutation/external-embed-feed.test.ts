@@ -103,6 +103,27 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 	};
 
 	/*
+	#1641 **戻る向き。** オーナー報告（実機 2026-08-30）:
+
+	> やっぱりフィードを、上下にするとうまく行かない。YouTube と TikTok。
+
+	この spec は片道にしか送っていなかったので、**一度見たセルへ戻る**という
+	いちばん普通の操作を一度も試していなかった。戻ると WebView は作り直しになるため、
+	往復でしか出ない不具合（状態の持ち越し・読み込みの競合）を素通りしていた。
+	*/
+	const swipeFeedBack = async () => {
+		const candidates = [by.id("external-embed-webview"), by.id("external-embed-fallback")];
+		let target = restaurantFeed.container;
+		for (const candidate of candidates) {
+			if (await existsNow(candidate)) {
+				target = candidate;
+				break;
+			}
+		}
+		await element(target).swipe("down", "fast", 0.6, 0.5, 0.5);
+	};
+
+	/*
 	⚠️ **この spec の間だけ Detox の同期機構を切る。**
 
 	Detox（iOS）は «アプリが暇になる» のを待ってから assertion を実行する。ところが
@@ -241,7 +262,32 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		そこで **セルが前面にいる間、印が出るまで繰り返し見る**。印は一度出れば消えないので、
 		「出るまで見る」で偽陰性だけが消え、偽陽性は増えない。
 		*/
-		const CELL_DWELL_MS = 18_000;
+		/*
+		⚠️ **アプリ側の締め切りより短くしないこと。** ここが短いと、まだ結論を出していない
+		セルを «再生できなかった» と読んでしまう。
+
+		実測（前面に来てから結論が出るまで。すべて iOS シミュレータ）:
+
+		| 何 | 時刻 | 前面から | run |
+		| --- | --- | --- | --- |
+		| youtube 再生 | 08-31 01:26 | **34348ms** | 33345690986 |
+		| youtube 再生 | 08-31 03:13 | 27681ms | 33351477331 |
+		| youtube 再生 | 08-31 03:11 | 23818ms | 33351477331 |
+		| tiktok 時間切れ | 08-31 02:25 | 23154ms | 33348354215 |
+
+		⚠️ **YouTube は CI だと 24〜34 秒かかる。** データセンター IP と WebView の UA が
+		YouTube の bot 判定に当たりやすいのは既知で、素材の注記にも書いてある。
+		18 秒 → 26 秒と 2 度上げたが、26 秒でも 34 秒の回には届かない
+		（run 33351477331 の iOS は «youtube だけ再生しなかった» で赤）。
+		実測の最大 34.3 秒に余裕を足してここで打ち止めにする。
+
+		⚠️ **これ以上は上げないこと。** さらに掛かるなら、それは «遅い» ではなく
+		«何かが起きている» ので、予算ではなくログを読んで真因を探す。
+
+		印が出た時点で抜けるので、この値を延ばしても **結論の出ないセルにしか効かない**
+		（大半のセルは 2〜8 秒で抜ける）。
+		*/
+		const CELL_DWELL_MS = 42_000;
 		/** 印の有無を見るときの上限。短くして 1 周を速く回す（既定の 2 秒だと 3 provider で 6 秒かかる） */
 		const MARKER_PROBE_MS = 500;
 
@@ -388,6 +434,74 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		}
 
 		/*
+		#1641 **往復する。** オーナー報告（実機 2026-08-30）:
+
+		> やっぱりフィードを、上下にするとうまく行かない。YouTube と TikTok。
+
+		上の周回は片道にしか送らないので、**一度見たセルへ戻る**という普通の操作を
+		一度も試していなかった。セルが前面から外れると WebView はアンマウントされ、
+		戻ると作り直しになる。往復でしか出ない不具合（状態の持ち越し・読み込みの競合・
+		プレイヤーが一時停止のまま止まる）は、ここを通らない限り永久に検出できない。
+
+		⚠️ **合否は «結論が出たか» で見る。** 再生できないこと自体は不具合ではない
+		（権利ブロックの投稿がある）。**結論が出ないまま止まっている**セルだけを落とす。
+		オーナーのスクリーンショットはまさにそれで、YouTube のプレイヤーが
+		0:00 で止まったまま操作ボタンだけが出ていた。
+		*/
+		const revisitStuck: string[] = [];
+
+		/** いま前面にいるセルが «結論» を出すまで見る。出なければ label を stuck へ記録する */
+		const observeRevisit = async (label: string) => {
+			const deadline = Date.now() + CELL_DWELL_MS;
+			for (;;) {
+				let providerHere: string | null = null;
+				for (const provider of PROVIDERS) {
+					if (await existsNow(by.id(`external-embed-cell-${provider}`), MARKER_PROBE_MS)) {
+						providerHere = provider;
+						break;
+					}
+				}
+				if (providerHere) {
+					let concluded = await existsNow(by.id(`external-embed-playing-${providerHere}`), MARKER_PROBE_MS);
+					if (!concluded) concluded = await existsNow(by.id("external-embed-fallback"), MARKER_PROBE_MS);
+					if (!concluded) {
+						concluded = await existsNow(by.id(`external-embed-known-not-playable-${providerHere}`), MARKER_PROBE_MS);
+					}
+					if (concluded) return;
+				}
+				if (Date.now() >= deadline) {
+					// 埋め込みセルに居るのに結論が出ないまま時間切れ = オーナーが見ている症状
+					if (providerHere) revisitStuck.push(`${label}(${providerHere})`);
+					return;
+				}
+				await new Promise((resolve) => setTimeout(resolve, 500));
+			}
+		};
+
+		logMemory("revisit-start");
+		for (let i = 0; i < 4; i++) {
+			await swipeFeedBack();
+			await observeRevisit(`back-${i}`);
+			await device.takeScreenshot(`revisit-back-${String(i).padStart(2, "0")}`);
+			logMemory(`revisit-back-${String(i).padStart(2, "0")}`);
+		}
+		for (let i = 0; i < 4; i++) {
+			await swipeFeed();
+			await observeRevisit(`fwd-${i}`);
+			await device.takeScreenshot(`revisit-fwd-${String(i).padStart(2, "0")}`);
+			logMemory(`revisit-fwd-${String(i).padStart(2, "0")}`);
+		}
+
+		if (revisitStuck.length > 0) {
+			throw new Error(
+				`フィードを上下に往復したあと、**結論が出ないまま止まった**セルがありました: ${revisitStuck.join(", ")}。` +
+					` 再生も «◯◯ で見る» への縮退もせず、${CELL_DWELL_MS / 1000} 秒そのままだったということです。` +
+					` オーナー報告「フィードを上下にするとうまく行かない。YouTube と TikTok」と同じ症状です。` +
+					` 撮ったコマは revisit-back-* / revisit-fwd-* を参照。`,
+			);
+		}
+
+		/*
 		#1641 **高速パスが効いたセルを run のログへ残す。**
 
 		オーナー指示「埋め込み時に分岐しているのを直して」の効果は、
@@ -447,7 +561,17 @@ describeMutation("SNS 取り込みリールのアプリ内自動再生 @mutation
 		if (!(await existsNow(restaurantFeed.container))) {
 			throw new Error("スワイプ後にお店フィードの画面が消えました（アプリが落ちた疑い）。");
 		}
-	});
+		/*
+		⚠️ **この spec だけ既定（600 秒）より長く取る。**
+
+		実測（run 33348354215 / commit 1d21d7cc / iOS）: 620884ms かかって時間切れで赤くなった。
+		埋め込みは «向こうのサーバの応答を待つ» spec なので、往復周回まで含めると
+		既定の予算に収まらない。CELL_DWELL_MS を 26 秒へ延ばしたぶんさらに伸びる。
+
+		⚠️ 予算が足りないだけで赤くする spec は、本物の回帰と区別が付かないので価値が無い
+		（CELL_DWELL_MS の注記と同じ理由）。ジョブ側の上限（iOS 180 分）には十分収まる。
+		*/
+	}, 1_500_000);
 
 	// 同じ run の後続 spec を «同期の切れた» 状態へ持ち越さない
 	afterAll(async () => {

@@ -332,6 +332,19 @@ export type ResolveDishMediaImportResponse = {
 	};
 	metadata: {
 		title: string | null;
+		/**
+		 * #1629 説明文（YouTube の動画説明）。
+		 *
+		 * オーナー報告「YouTube Shorts でキャプションが取れてない気がする」。
+		 * **取れてはいた** — サーバは説明文から住所を拾って店舗候補を作っている（実ログで確認）。
+		 * 落ちていたのは **返していなかった**こと。`title` しか返さないので、確認画面には
+		 * 動画の題名しか出ず、キャプションが無いように見えていた。
+		 *
+		 * provider ごとの入り方（詳細は `sns-oembed.service.ts` 冒頭の表）:
+		 * - YouTube … `title` は動画の題名、**本文はこちら**
+		 * - Instagram / TikTok … `title` 自体がキャプション本文なので、こちらは null
+		 */
+		description: string | null;
 		authorName: string | null;
 		authorUrl: string | null;
 		/**

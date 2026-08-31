@@ -16,7 +16,9 @@ import { StyleSheet, UIManager, View } from "react-native";
 
 jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn(() => Promise.resolve({ type: "dismiss" })) }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
-jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+// `mock` 始まりの名前だけが jest.mock の工場から参照できる（jest の制約）
+const mockLogFrontendEvent = jest.fn();
+jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("lucide-react-native", () => ({ Play: () => null, Volume2: () => null }));
 jest.mock("react-native-gesture-handler", () => ({
@@ -55,6 +57,23 @@ function renderActiveCell(): ReactTestRenderer {
 	let tree!: ReactTestRenderer;
 	act(() => {
 		tree = create(<ExternalEmbedPlayer embed={EMBED} isActive />);
+	});
+	return tree;
+}
+
+/** YouTube（`mode: "iframe"`）のセル。`poster` の扱いが document と違うので分けて描く */
+const YOUTUBE_EMBED = {
+	provider: "youtube" as const,
+	externalContentId: "dQw4w9WgXcQ",
+	canonicalUrl: "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+	embedStatus: "available" as const,
+	playbackStatus: "unknown" as const,
+};
+
+function renderYouTubeCell(): ReactTestRenderer {
+	let tree!: ReactTestRenderer;
+	act(() => {
+		tree = create(<ExternalEmbedPlayer embed={YOUTUBE_EMBED} isActive />);
 	});
 	return tree;
 }
@@ -315,11 +334,390 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	実機で実測した（run 33265424032 の iOS `feed-02`: TikTok のセルが真っ黒＋
 	「TikTok で見る」の帯だけ。ページは空のまま `still_loading` で時間切れ）。
 	*/
-	it("時間切れ（ページが組み上がらない）のときは document モードでも畳む", () => {
-		const tree = renderActiveCell();
-		post({ src: "nb-embed-autoplay", kind: "timeout", detail: "still_loading" });
+	/*
+	#1641 オーナー報告（実機 2026-08-30）「TikTok だけ、やっぱりたまに動画ロードに失敗する」。
+
+	空の文書（1 バイトも来なかった）は **«この投稿は再生できない» ではない**。
+	同じ投稿が直前・直後に再生できているので、畳まずに読み直す。
+
+	⚠️ ここで畳んだりサーバへ報告したりすると、通信が転んだだけの投稿が
+	   not_playable に落ち、**検索フィードから永久に外れる**。
+	*/
+	it("空の文書ではすぐ畳まず、サーバへ «再生できない» とも報告しない", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		post({ src: "nb-embed-autoplay", kind: "blank", detail: "load_complete script=0" });
+
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		expect(fallbackCount(tree)).toBe(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+	});
+
+	/*
+	#1641 ⚠️ **観測用の便を «結論» の側へ落とさないこと。**
+
+	実測（run 33372367946 / commit c303e82f）: 状態遷移を送るために足した kind 'state' が
+	«それ以外は unplayable» の枝まで落ちて
+
+	    external_embed_unplayable {"provider":"youtube","kind":"state","detail":"-99>1 t=0.1"}
+
+	として記録され、**再生できている YouTube のセルを畳んでいた**。
+	観測を足したつもりが、観測対象を壊していた。
+
+	包みの側が送る «観測» の便をここに並べて、**どれも畳まない**ことを固定する。
+	⚠️ 新しい観測の kind を足したら、この配列にも足すこと。
+	*/
+	it.each(["poster", "boot", "dom", "stall4000", "stall9000", "state", "paused"])(
+		"観測の便（%s）では畳まないし、サーバへも報告しない",
+		(kind) => {
+			const onUnplayable = jest.fn();
+			let tree!: ReactTestRenderer;
+			act(() => {
+				tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+			});
+
+			post({ src: "nb-embed-autoplay", kind, detail: "observation" });
+
+			expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+			expect(fallbackCount(tree)).toBe(0);
+			expect(onUnplayable).not.toHaveBeenCalled();
+		},
+	);
+
+	/*
+	#1641 ⚠️ **«勝手に止まった» を記録し、かつ状態を動かさないこと。**
+
+	オーナー実機報告（2026-08-31）「２秒くらい流れて止まって、下の tiktok が流れる」。
+	これまで playerState 2（PAUSED）を 1 行も残していなかったので、
+	«YouTube 自身が止まった» のか «こちらがセルを畳んだ» のかを分けられなかった。
+
+	⚠️ ここで畳むと、動いている映像の上に導線の帯が乗る。記録だけして状態は触らない。
+	⚠️ この検証は «再生済みのセル» で行うこと。実際に起きるのはその状況で、
+	   hasPlayedRef のガードより後ろに置くと 1 行も残らない（それが観測できなかった理由）。
+	*/
+	it("再生中に止まったら記録する。ただし畳まない", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: "audible" });
+		post({ src: "nb-embed-autoplay", kind: "paused", detail: "resume 1 at 2s" });
+
+		const paused = mockLogFrontendEvent.mock.calls
+			.map((call) => call[0])
+			.find((event) => event.event_name === "external_embed_paused");
+		expect(paused).toBeDefined();
+		expect(paused.payload.detail).toBe("resume 1 at 2s");
+
+		// 状態は «再生中» のまま。帯も出さないしサーバへも報告しない
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		expect(fallbackCount(tree)).toBe(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+	});
+
+	/*
+	#1641 ⚠️ **«まだ準備できていない» をサーバへ報告しない。**
+
+	実測（run 33345690986 / commit 381e35ac / 同じ 1 つの YouTube セル）:
+
+	    01:26:11  no_video (no_ready)      sinceActiveMs=27745  ← ここで畳んだ
+	    01:26:55  autoplay_started audible sinceActiveMs=34348  ← 6.6 秒後に鳴った
+
+	同じセルが後から鳴っている以上、no_ready は «その投稿に映像が無い» の根拠にならない。
+	素材は dQw4w9WgXcQ（誰でも埋め込めることが広く知られている動画）である。
+	本当に埋め込めない動画は onError / errorCode で **数字**が detail に載るので、
+	沈黙（no_ready / no_state_change）とは区別が付く。
+
+	⚠️ この検証を外すと、遅いだけの投稿に対してサーバへ «確かめ直して» を投げ続ける。
+	*/
+	it("«まだ準備できていない»（no_ready / no_state_change）はサーバへ報告しない", () => {
+		for (const [kind, detail] of [
+			["no_video", "no_ready"],
+			["timeout", "no_state_change"],
+		]) {
+			const onUnplayable = jest.fn();
+			act(() => {
+				create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+			});
+			post({ src: "nb-embed-autoplay", kind, detail });
+			expect(onUnplayable).not.toHaveBeenCalled();
+		}
+	});
+
+	/*
+	#1641 ただし **本当に埋め込めない動画は報告する**。YouTube の IFrame API は
+	onError / errorCode を返すので、detail に数字が載る。沈黙とは区別が付く。
+	*/
+	it("埋め込み不可（errorCode つき）はこれまでどおりサーバへ報告する", () => {
+		const onUnplayable = jest.fn();
+		act(() => {
+			create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		post({ src: "nb-embed-autoplay", kind: "no_video", detail: "150" });
+
+		expect(onUnplayable).toHaveBeenCalledTimes(1);
+	});
+
+	/*
+	#1641 ⚠️ **«空の文書» を分けられる値を落とさないこと。**
+
+	どの値が実際に使えるかは Playwright で実測した（同じ TikTok embed URL を開いて計測）。
+	期待だけで並べると «全部 -1» の役に立たない記録が残る。
+
+	| 送る値 | Android WebView | iOS WKWebView |
+	| --- | --- | --- |
+	| enc | 63458 ✅ | 55513 / 停まった TikTok でも 38900 ✅ |
+	| chars | 244532 ✅ | 245694 / body 未生成なら -1 ✅ |
+	| blankUrl | ✅ | ✅ |
+	| bytes | 63758 | 55813 |
+	| st | 200 ✅ | -1（undefined） |
+
+	⚠️ この 3 つ（enc / chars / blankUrl）を消すと、次に空が返っても
+	   «空だった» までしか残らない。st は iOS で取れないので当てにしない。
+	*/
+	it("空の文書を分けられる値（enc / chars / blankUrl）を送っている", () => {
+		renderActiveCell();
+		const script: string = webViewProps.injectedJavaScript;
+
+		expect(script).toContain("' enc=' +");
+		expect(script).toContain("' chars=' +");
+		expect(script).toContain("' blankUrl=' +");
+	});
+
+	/*
+	#1641 ⚠️ **パーサを止めている script のホストを送る経路を消さないこと。**
+
+	iOS の TikTok が組み上がらない形は CI で毎回まったく同じ数字になる。
+
+	    still_loading ready=loading nodes=12 script=6 body=no chars=-1 enc=38814 res=7
+
+	38.8KB は届いていて head に script が 6 本あるのに body が 1 つも無い。
+	どの script で止まっているかが分からないと直す先が決まらない。
+	止まっている script は resource timing に載らないので、DOM の script[src] との
+	差分で一意に決まる。⚠️ 送るのはホスト名だけ（パス・クエリ・本文は載せない）。
+	*/
+	it("組み上がらないときは、読み込みが終わっていない script のホストを送る", () => {
+		renderActiveCell();
+		const script: string = webViewProps.injectedJavaScript;
+
+		expect(script).toContain("' pending=' +");
+		expect(script).toContain("script[src]");
+		// ⚠️ ホスト名だけ。URL をそのまま送る形になっていないこと
+		expect(script).toContain(".host");
+	});
+
+	/*
+	#1641 ⚠️ **«空だった» で終わる記録を作らない。**
+
+	オーナー端末の実測（2026-08-30 / commit 9b646339）で TikTok が 4 回落ちたとき、
+	残っていたのは «中身ゼロのページが返った» までで、**直す先が決まらなかった**。
+	同じ embed URL を 12 連打してもサーバは毎回 240KB を返すので、空は端末側で起きている。
+	読み直す前に採った中身（HTTP ステータス / 転送バイト数 / 遷移の有無）を落とすと、
+	次に同じことが起きてもまた «空だった» しか残らない。
+
+	⚠️ この検証を外さないこと。外した状態で 1 度、オーナーに 3 回同じ報告をさせている。
+	*/
+	it("空の文書で読み直すときは、採った中身を記録に残す", () => {
+		act(() => {
+			create(<ExternalEmbedPlayer embed={EMBED} isActive />);
+		});
+
+		const detail = "load_complete ready=complete nodes=5 script=0 res=0 st=200 bytes=0 enc=0 chars=0";
+		post({ src: "nb-embed-autoplay", kind: "blank", detail });
+
+		const retry = mockLogFrontendEvent.mock.calls
+			.map((call) => call[0])
+			.find((event) => event.event_name === "external_embed_load_retry");
+		expect(retry).toBeDefined();
+		expect(retry.payload.reason).toBe("blank_document");
+		expect(retry.payload.detail).toBe(detail);
+	});
+
+	/*
+	#1641 ただし **無制限に読み直さない**。向こうが返さない状態が続くなら、
+	畳んでサムネイルを見せ «◯◯ で見る» を出す（ユーザーに次の手を渡す）。
+	それでも «その投稿が再生できない» とは報告しない。
+	*/
+	it("読み直しの上限を超えたら畳む。それでもサーバへは報告しない", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		// 上限（2 回）を超える 3 回目で畳む
+		for (let i = 0; i < 3; i++) {
+			post({ src: "nb-embed-autoplay", kind: "blank", detail: "load_complete script=0" });
+		}
+
 		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBeGreaterThan(0);
-		// 黒い板をどけて、アプリが持っているサムネイルを見せる
+		expect(fallbackCount(tree)).toBeGreaterThan(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+	});
+
+	/*
+	#1641 オーナー実機報告（2026-08-30）「フィードを上下すると起動しないときがある」の一部。
+
+	前面から外れると WebView はアンマウントされ、次に来たときは **まっさらな WebView が
+	読み込みをやり直す**。なのに読み直しの残数（`reloadsRef`）や «絵が載ったか»
+	（`webViewReadyToShow`）を持ち越していたため、**同じセルへ戻ると 2 回目以降だけ
+	様子が違う**という再現しにくい形になっていた。
+
+	フィードは上下に何度も往復するので、ここは «毎回まっさら» でなければならない。
+	*/
+	it("前面から外れて戻ったら、読み直しの残数も «絵が載ったか» もまっさらに戻る", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		// 1 回目の滞在で読み直しを使い切り、畳むところまで行く
+		for (let i = 0; i < 3; i++) {
+			post({ src: "nb-embed-autoplay", kind: "blank", detail: "load_complete script=0" });
+		}
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBeGreaterThan(0);
+
+		// セルが前面から外れる → 戻る
+		act(() => {
+			tree.update(<ExternalEmbedPlayer embed={EMBED} isActive={false} onUnplayable={onUnplayable} />);
+		});
+		act(() => {
+			tree.update(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		// 畳んだ跡が残っていない（前回の失敗理由で畳み続けない）
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		// 中身が空の WebView をいきなり不透明で載せない（＝下のサムネイルを隠さない）
+		expect(tree.root.findAllByProps({ testID: "external-embed-loading" }).length).toBeGreaterThan(0);
+
+		// 読み直しの残数も戻っている：1 回 blank が来ただけでは畳まない
+		post({ src: "nb-embed-autoplay", kind: "blank", detail: "load_complete script=0" });
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+	});
+
+	/*
+	#1641 オーナー報告「フィードを上下すると TikTok / YouTube が起動しないときがある」。
+
+	⚠️ **この症状は、いまの計装では 1 行も残らない。** 再生（autoplay_started）も
+	縮退（unplayable）も起きていないのが症状そのもので、«沈黙» はログに出ないからである。
+	«前面に居るのに、まだ何も起きていない» を 1 回だけ記録して、初めて数えられる量にする。
+
+	ここが落ちたら «起動しない» を観測する手段がまた無くなる（＝オーナーが踏むまで
+	誰も気づけない状態に戻る）。
+	*/
+	it("前面に居るのに何も起きないまま時間が過ぎたら、そのことを記録する", () => {
+		jest.useFakeTimers();
+		try {
+			renderActiveCell();
+			mockLogFrontendEvent.mockClear();
+
+			// まだ «読み込み中» の範囲では警告にしない（正常な数秒を埋もれさせないため）
+			act(() => {
+				jest.advanceTimersByTime(5_000);
+			});
+			expect(mockLogFrontendEvent).not.toHaveBeenCalledWith(
+				expect.objectContaining({ event_name: "external_embed_slow_start" }),
+			);
+
+			act(() => {
+				jest.advanceTimersByTime(5_000);
+			});
+			const call = mockLogFrontendEvent.mock.calls
+				.map((c) => c[0])
+				.find((p) => p.event_name === "external_embed_slow_start");
+			expect(call).toBeDefined();
+			expect(call.payload).toEqual(expect.objectContaining({ provider: "instagram", visit: 1, mode: "document" }));
+		} finally {
+			jest.useRealTimers();
+		}
+	});
+
+	/*
+	#1641 ⚠️ **document モード（Instagram / TikTok）の締め切りを短くしないこと。**
+
+	同じ形の不具合を YouTube 側で既に踏んで直している。どちらも **CI の高速回線**での実測:
+
+	| 側 | 締め切り | 実測 | 結果 |
+	| --- | --- | --- | --- |
+	| YouTube | 10 秒 | 11048ms | **掛かって no_video へ縮退した** |
+	| TikTok | 12 秒 | 6089ms | 通ったが **予算の半分を使っている** |
+
+	オーナーの端末は 4G なので掛かる余地は十分にある。掛かると «TikTok で見る» の帯へ
+	落ちるので、ユーザーからは «起動しない» に見える。
+
+	待つ代償はこの値を決めた当時より下がっている（待っている間はアプリ側のサムネイルが
+	見える）。ここを 12 秒台へ戻すと、遅い回線で «起動しない» が増える。
+	*/
+	it("document モードの締め切りは 20 秒以上（12 秒では遅い回線に足りない）", () => {
+		renderActiveCell();
+		const script: string = webViewProps.injectedJavaScript;
+
+		const deadline = script.match(/var DEADLINE_MS = (\d+)/);
+		expect(deadline).not.toBeNull();
+		expect(Number(deadline![1])).toBeGreaterThanOrEqual(20000);
+
+		const loadingGrace = script.match(/var LOADING_GRACE_MS = (\d+)/);
+		expect(loadingGrace).not.toBeNull();
+		expect(Number(loadingGrace![1])).toBeGreaterThanOrEqual(20000);
+	});
+
+	/*
+	#1641 ⚠️ **組み上がらないまま時間切れしたセルを、1 回目で畳まないこと。**
+
+	原因を名指しできた（iOS / commit fa0dc74f）。止まったセルは毎回まったく同じ
+	1 つのホストを待ったまま動かない。
+
+	    stall4000 / stall9000 / stall14000 / timeout すべて
+	    ready=loading nodes=12 script=6 body=no res=7
+	    pending=lf16-tiktok-common.tiktokcdn-us.com
+
+	head の script 1 本が CDN から返ってこず、パーサがそこで止まっている。
+	**同じ投稿が同じ run の中で後から再生できている**（05:22:04 失敗 → 05:25:05 再生）ので、
+	«その投稿に映像が無い» ではない。読み直せば別のエッジに当たる目がある。
+	*/
+	it("組み上がらないまま時間切れしたら、畳まずに読み直す（サーバへも報告しない）", () => {
+		const onUnplayable = jest.fn();
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={EMBED} isActive onUnplayable={onUnplayable} />);
+		});
+
+		post({
+			src: "nb-embed-autoplay",
+			kind: "timeout",
+			detail: "still_loading ready=loading nodes=12 script=6 body=no res=7 pending=example.invalid",
+		});
+
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBe(0);
+		expect(onUnplayable).not.toHaveBeenCalled();
+
+		const retry = mockLogFrontendEvent.mock.calls
+			.map((call) => call[0])
+			.find((event) => event.event_name === "external_embed_load_retry");
+		expect(retry).toBeDefined();
+		expect(retry.payload.reason).toBe("still_loading");
+	});
+
+	it("読み直しても組み上がらなければ、document モードでも畳む", () => {
+		const tree = renderActiveCell();
+		/*
+		⚠️ 1 回目では畳まない（上の «読み直す» の検証）。**読み直しを使い切ってから**畳む。
+		黒い板をどけて、アプリが持っているサムネイルを見せるのがここの目的である。
+		*/
+		// 上限（2 回）を超える 3 回目で畳む
+		for (let i = 0; i < 3; i++) {
+			post({ src: "nb-embed-autoplay", kind: "timeout", detail: "still_loading" });
+		}
+		expect(tree.root.findAllByProps({ testID: "external-embed-collapsed" }).length).toBeGreaterThan(0);
 		expect(tree.root.findAllByProps({ testID: "external-embed-webview" }).length).toBe(0);
 		expect(fallbackCount(tree)).toBeGreaterThan(0);
 	});
@@ -370,6 +768,69 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 	最後は «知らない kind はすべて unplayable» なので、ここを素通りさせると
 	**起動しただけで導線へ縮退する**（＝ 全セルが常に縮退する）。
 	*/
+	/*
+	#1641 ⚠️ **ロード中に黒い画面を出さない。**（オーナー報告 2026-08-30
+	「どの PF もロード完了してから、動画流れるまで 3 秒くらい黒い画面になる」）
+
+	真因は **こちらが黒く塗っていたこと**。アプリは料理のサムネイルを WebView の下へ敷いて
+	いるのに、上に載せた WebView の html/body を地色（黒）で塗るので下が隠れる。
+	埋め込みページ側に出せる絵が無い間（TikTok は img を 1 つも持たない）そこは本当に何も無い。
+
+	そこで «向こうに絵が載った»（`poster` / `playing`）まで WebView を透明にし、
+	その間はローディングを出す。
+	*/
+	it("絵が載るまでは WebView を透明にし、ローディングを出す", () => {
+		const tree = renderActiveCell();
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(0);
+		expect(tree.root.findAllByProps({ testID: "external-embed-loading" }).length).toBeGreaterThan(0);
+	});
+
+	it("1 コマ目が載ったら WebView を見せ、ローディングを消す", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "poster", detail: null });
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(1);
+		expect(tree.root.findAllByProps({ testID: "external-embed-loading" }).length).toBe(0);
+	});
+
+	/*
+	#1641 ⚠️ **YouTube（iframe）は `poster` で見せてはいけない。**
+
+	オーナー実機報告（2026-08-31）:
+	  「YouTube shorts に邪魔な部品が多くてどれも押せない」
+	  「はじめの 2 秒 部品でて、そこからでなくなりますね」
+
+	`controls=0` 等の URL パラメータで消せるのは **再生中の UI** だけで、**再生が始まる前**の
+	画面にはタイトル・チャンネル名・Shorts バッジ・▶ が出る。`poster` はまさにその瞬間に届くので、
+	そこで不透明にすると «最初の 2 秒だけ部品が出る» になる。
+
+	document（Instagram / TikTok）は注入した CSS が向こうの UI を先に隠しているので、
+	`poster` で早く見せてよい（待たせると鳴るまでの数秒がサムネイルのままで遅く見える）。
+	**この 2 本は対になっている。片方だけ変えないこと。**
+	*/
+	it("YouTube は poster では見せない（最初の 2 秒だけ部品が出るのを防ぐ）", () => {
+		const tree = renderYouTubeCell();
+		post({ src: "nb-embed-autoplay", kind: "poster", detail: null });
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(0);
+	});
+
+	it("YouTube も、実際に鳴り始めたら見せる", () => {
+		const tree = renderYouTubeCell();
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: "muted" });
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(1);
+	});
+
+	/* poster を送らない provider（YouTube の包み）でも、再生が始まれば必ず見せる */
+	it("poster が来なくても、再生が始まれば WebView を見せる", () => {
+		const tree = renderActiveCell();
+		post({ src: "nb-embed-autoplay", kind: "playing", detail: "audible" });
+		const webView = tree.root.findByProps({ testID: "external-embed-webview" });
+		expect(StyleSheet.flatten(webView.props.style).opacity).toBe(1);
+	});
+
 	it("boot / dom / stall の報告では縮退しない", () => {
 		const tree = renderActiveCell();
 		post({ src: "nb-embed-autoplay", kind: "boot", detail: "loading" });
@@ -421,6 +882,11 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			bodyAtTick?: number;
 			/** 各 tick の直前に、そのときの `<body>` と一緒に呼ばれる。向こうの JS が書き戻す状況を作るため */
 			beforeTick?: (body: { style: { setProperty: (k: string, v: string) => void } } | null) => void;
+			/**
+			 * #1641 ページが持つ `<video>` の数。**TikTok の埋め込みは 2 つ持つ**（実測
+			 * `video=2`）ので、1 つしか無い前提のままだとループの保険が試せない。
+			 */
+			videoCount?: number;
 		}) => {
 			const styles = new Map<unknown, Record<string, string>>();
 			const mk = (tag: string, extra: Record<string, unknown> = {}) => {
@@ -446,7 +912,12 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 			const images = (opts.images ?? []).map((i) =>
 				mk("img", { complete: true, naturalWidth: i.w, naturalHeight: i.h }),
 			);
-			const video = opts.video ? mk("video", { paused: true, currentTime: 0, play: () => Promise.resolve() }) : null;
+			const videos = opts.video
+				? Array.from({ length: opts.videoCount ?? 1 }, () =>
+						mk("video", { paused: true, currentTime: 0, play: () => Promise.resolve() }),
+					)
+				: [];
+			const video = videos[0] ?? null;
 			const appended: unknown[] = [];
 			const styleRecorder = () => {
 				const own: Record<string, string> = {};
@@ -473,7 +944,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 				body: opts.bodyAtTick ? null : realBody,
 				createElement: (tag: string) => mk(tag),
 				querySelector: (sel: string) => (sel === "video" ? video : null),
-				querySelectorAll: (sel: string) => (sel === "img" ? images : []),
+				querySelectorAll: (sel: string) => (sel === "img" ? images : sel === "video" ? videos : []),
 			};
 			const post = jest.fn();
 			const windowStub: Record<string, unknown> = { ReactNativeWebView: { postMessage: post } };
@@ -517,7 +988,7 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 				opts.beforeTick?.(documentStub.body);
 				scheduled.forEach((fn) => fn());
 			}
-			return { styles, images, video, appended, post, documentStub, realBody };
+			return { styles, images, video, videos, appended, post, documentStub, realBody };
 		};
 
 		it("<video> が来る前でも、リールの 1 コマ目（一番大きい画像）をセル全面へ広げる", () => {
@@ -606,13 +1077,79 @@ describe("#1641 WebView 入りビルドの自動再生", () => {
 		const conclusions = (post: jest.Mock) =>
 			post.mock.calls
 				.map((call) => JSON.parse(call[0] as string) as { kind: string; detail: string | null })
-				.filter((message) => message.kind !== "boot" && message.kind !== "dom" && !message.kind.startsWith("stall"));
+				.filter(
+					(message) =>
+						message.kind !== "boot" &&
+						message.kind !== "dom" &&
+						message.kind !== "poster" &&
+						!message.kind.startsWith("stall"),
+				);
 
-		it("読み込みが終わっても <video> が無ければ、締め切りを待たず権利ブロックと判定する", () => {
+		/*
+		#1641 オーナー報告（実機 2026-08-30）「インスタ以外ループしない」の TikTok 側。
+
+		実測（端末 / tiktok の stall4000）: `nodes=223 script=21 video=2`。
+		**TikTok の埋め込みは `<video>` を 2 つ持つ。** それまでは
+		`document.querySelector('video')`（＝ 1 つ目）にしか loop と ended を
+		仕掛けていなかったので、向こうが 2 つ目を鳴らしていると保険が 1 つも効かない。
+		*/
+		it("ページの <video> が複数あっても、全部にループを仕掛ける（TikTok は 2 つ持つ）", () => {
+			const { videos } = run({ video: true, images: [], videoCount: 2, ticks: 2 });
+			expect(videos).toHaveLength(2);
+			for (const v of videos) {
+				expect(v.loop).toBe(true);
+				expect(v.setAttribute).toHaveBeenCalledWith("loop", "");
+				// 向こうの JS に loop を潰されたときの保険。畳んだ後でも起こし直す
+				const bound = (v.addEventListener as jest.Mock).mock.calls.map((c) => c[0]);
+				expect(bound).toContain("ended");
+			}
+		});
+
+		/*
+		#1641 オーナー報告（実機 2026-08-30）「TikTok だけたまにロードに失敗する」。
+
+		失敗した回は毎回まったく同じ形だった:
+
+		    失敗 ready=complete nodes=5   script=0  video=0 img=0 res=0
+		    成功 ready=interactive nodes=223 script=21 video=2 img=0 res=9
+
+		**1 バイトも取れていない空の文書**であって «この投稿は再生できない» ではない。
+		ここを `no_video`（＝ 権利ブロック）と同じ扱いにすると、通信が転んだだけの投稿を
+		サーバへ «再生できない» と報告してしまう。
+		*/
+		it("空の文書（1 バイトも来なかった）は権利ブロックと呼ばず、読み直せる形で返す", () => {
+			const { post } = run({ video: false, images: [], readyState: "complete", ticks: 16 });
+			const verdict = conclusions(post)[0];
+			expect(verdict.kind).toBe("blank");
+			expect(verdict.detail).toMatch(/script=0/);
+		});
+
+		it("読み込みが終わっても <video> が無いままなら、締め切りを待たず権利ブロックと判定する", () => {
 			// 実測: 権利ブロックされた投稿は <video> が最後まで作られない（1 コマ目の画像だけ在る）。
 			// 12 秒待たせても結論は変わらないので、«Instagram で見る» を早く出す
-			const { post } = run({ video: false, images: [{ w: 360, h: 638 }], readyState: "complete", ticks: 12 });
-			expect(conclusions(post)[0]).toMatchObject({ kind: "no_video", detail: "load_complete" });
+			// clock は 1 tick = 500ms。猶予 6 秒を超えるまで回す
+			const { post } = run({ video: false, images: [{ w: 360, h: 638 }], readyState: "complete", ticks: 16 });
+			const verdict = conclusions(post)[0];
+			expect(verdict.kind).toBe("no_video");
+			// 諦めた瞬間の DOM も載せる（次に誤判定したとき中身が分かるように）
+			expect(verdict.detail).toMatch(/^load_complete /);
+		});
+
+		/*
+		#1641 ⚠️ **«読み込み完了なのに映像が無い» を急いで結論しない。**
+
+		実機の iOS で TikTok が 5 回中 2 回だけ no_video になった（BigQuery 実測）。
+		同じ投稿が直前・直後に再生できているので**誤判定**である。真因は待ち時間が短すぎたこと:
+		TikTok の <video> は **ページの JS が後から作る**ので、'complete' の 2 秒後にはまだ無い
+		ことがある（再生できた回は 4 秒時点で video=2 だった）。
+
+		⚠️ 短くし直すとこの誤判定が戻る。«本当に映像が無い投稿» は取り込みのときにサーバが
+		   判定済みで、そのセルは WebView を 1 つも作らない（高速パス）。急ぐ理由はもう無い。
+		*/
+		it("読み込み完了から数秒のうちは、まだ権利ブロックと決めつけない", () => {
+			// 6 tick = 3 秒。旧実装（猶予 2 秒）はここで no_video を出していた
+			const { post } = run({ video: false, images: [{ w: 360, h: 638 }], readyState: "complete", ticks: 6 });
+			expect(conclusions(post)).toHaveLength(0);
 		});
 
 		/*

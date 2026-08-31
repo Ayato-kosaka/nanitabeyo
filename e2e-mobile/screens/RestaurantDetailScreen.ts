@@ -29,8 +29,10 @@ import { DEFAULT_TIMEOUT, by, element, existsNow, expect, tapWhenVisible, waitUn
 export class RestaurantDetailScreen {
 	/** 画面タイトル（ScreenHeader が `${testID}-title` として付ける） */
 	readonly title = by.id("restaurant-detail-screen-title");
-	/** 「写真・動画を投稿」ボタン（実データがあるときだけ描かれる） */
-	readonly postPhotoButton = by.id("restaurant-detail-post-photo-button");
+	/** 「Google マップで開く」ボタン（実データがあるときだけ描かれる） */
+	// #1629【オーナー確定】«写真・動画を投稿» を外し、この導線へ差し替えた。
+	// 投稿は «食べたを記録» のフローへ 1 本化されている
+	readonly googleMapsButton = by.id("restaurant-detail-google-maps-button");
 	/** ヘッダーの戻るボタン（`app-expo/components/ScreenHeader.tsx`） */
 	// #1404 ScreenHeader の戻るボタンは `${testID}-back`。共通 id だった頃は、push で背面に残る
 	// 画面のヘッダーと同じ id になり «背面を押していた»
@@ -42,9 +44,9 @@ export class RestaurantDetailScreen {
 		await expect(element(this.backButton)).toBeVisible();
 	}
 
-	/** 投稿ボタンが描かれているかを **待たずに** 判定する（実データ次第で出ない） */
-	async hasPostPhotoButton(): Promise<boolean> {
-		return existsNow(this.postPhotoButton);
+	/** Google マップの導線が描かれているかを **待たずに** 判定する（実データ次第で出ない） */
+	async hasGoogleMapsButton(): Promise<boolean> {
+		return existsNow(this.googleMapsButton);
 	}
 
 	/** ヘッダーの戻るボタンをタップして離脱する */

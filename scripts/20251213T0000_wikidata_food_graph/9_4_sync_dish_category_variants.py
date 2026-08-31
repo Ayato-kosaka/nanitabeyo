@@ -46,6 +46,46 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def classify_app_row_conflicts(
+    app_rows: List[tuple],
+    bq_qid_by_surface: Dict[str, str],
+) -> tuple:
+    """
+    アプリ由来行のうち «本当の衝突» と «同じ写像» を分ける。
+
+    このチェックの目的は「アプリが管理している写像を BQ が **別の QID で** 上書きする」
+    ことの防止である。同じ表記が同じ QID を指しているなら写像は一致しており、
+    止める理由が無い。
+
+    #1748 実際に本番でこれを踏んだ（2026-08-31）。`4_1` 側で label_ja が
+    「豚カツ」→「とんかつ」へ変わり、BQ に `'とんかつ' -> Q1142841` が現れた。
+    本番にはアプリ由来の `'とんかつ' -> Q1142841`（source = wikidata_qid_match）が
+    既にあり、**同じ QID なのに**同期全体が例外で止まった
+    （dev には該当行が無いので通り、本番だけ落ちた）。
+
+    ⚠️ 同じ QID でも **UPSERT の対象からは外す**こと。呼び出し側の
+       `ON CONFLICT DO UPDATE` は `source` も上書きするので、通してしまうと
+       アプリ側が持っている出所（wikidata_qid_match 等）が BQ の source へ
+       書き換わり、«この行は誰が入れたのか» が失われる。写像が同じなら、
+       アプリ由来行をそのまま残すのが正しい。
+
+    Args:
+        app_rows: アプリ由来行の (surface_form, dish_category_id, source) のリスト
+        bq_qid_by_surface: BQ 側の surface_form -> dish_category_id
+
+    Returns:
+        (別の QID を指していた行のリスト, 同じ QID だった surface_form の集合)
+    """
+    real_conflicts = []
+    same_mapping_surfaces = set()
+    for surface_form, app_qid, source in app_rows:
+        if bq_qid_by_surface.get(surface_form) == app_qid:
+            same_mapping_surfaces.add(surface_form)
+        else:
+            real_conflicts.append((surface_form, app_qid, source))
+    return real_conflicts, same_mapping_surfaces
+
+
 def sync_dish_category_variants(
     loader: BigQueryLoader,
     pg_conn: PostgreSQLConnection,
@@ -102,7 +142,7 @@ def sync_dish_category_variants(
         stats.deleted = pg_conn.cursor.rowcount
         logger.info(f"Deleted {stats.deleted} old BQ variants")
 
-        # 3) アプリ由来と衝突する surface_form があるか事前チェック（あれば落とす）
+        # 3) アプリ由来と衝突する surface_form があるか事前チェック
         #    - BQ側 surface_form を一時的に配列にして問い合わせ（量が多いので本当は一時テーブルがより良いが、まずは素直に）
         bq_surface_forms = list({v["surface_form"] for v in variants})
         pg_conn.cursor.execute(
@@ -114,14 +154,35 @@ def sync_dish_category_variants(
             """,
             (BQ_SOURCES, bq_surface_forms)
         )
-        conflicts = pg_conn.cursor.fetchall()
-        if conflicts:
-            # 先頭だけログ
-            for sf, dcid, src in conflicts[:20]:
-                logger.error(f"[CONFLICT] BQ surface_form conflicts with APP row: surface_form='{sf}', dish_category_id={dcid}, source={src}")
-            raise ValueError(f"BQ conflicts with APP-managed variants: {len(conflicts)} surface_forms")
+        app_rows = pg_conn.cursor.fetchall()
 
-        # 4) ここまで来たら「アプリ由来とは衝突しない」ことが保証されたので、BQ勝ちUPSERTしてOK
+        bq_qid_by_surface = {v["surface_form"]: v["dish_category_id"] for v in variants}
+        real_conflicts, same_mapping_surfaces = classify_app_row_conflicts(
+            app_rows, bq_qid_by_surface
+        )
+
+        if same_mapping_surfaces:
+            logger.info(
+                f"アプリ由来と同じ写像だった表記を BQ 側の投入対象から外します: "
+                f"{len(same_mapping_surfaces)} 件"
+            )
+            for sf in sorted(same_mapping_surfaces)[:20]:
+                logger.info(f"  [KEEP-APP-ROW] '{sf}' -> {bq_qid_by_surface[sf]}（写像は同じ）")
+
+        if real_conflicts:
+            # 先頭だけログ
+            for sf, dcid, src in real_conflicts[:20]:
+                logger.error(
+                    f"[CONFLICT] BQ surface_form conflicts with APP row: surface_form='{sf}', "
+                    f"dish_category_id={dcid}(APP) vs {bq_qid_by_surface.get(sf)}(BQ), source={src}"
+                )
+            raise ValueError(f"BQ conflicts with APP-managed variants: {len(real_conflicts)} surface_forms")
+
+        # 同じ写像だった表記は、アプリ由来行を残すために BQ 側から落とす
+        if same_mapping_surfaces:
+            values = [v for v in values if v[1] not in same_mapping_surfaces]
+
+        # 4) ここまで来たら「アプリ由来とは（別の QID で）衝突しない」ことが保証されたので、BQ勝ちUPSERTしてOK
         insert_sql = """
             INSERT INTO dish_category_variants (
                 dish_category_id, surface_form, source, created_at

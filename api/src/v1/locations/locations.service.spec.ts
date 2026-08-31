@@ -311,6 +311,39 @@ describe('LocationsService', () => {
         expect(result).toBe('ja');
       });
     });
+
+    describe('resolveLocalLanguageCode with malformed DB values', () => {
+      // #843 restaurants.address_components は jsonb NOT NULL だが、jsonb の
+      // NOT NULL は JSON リテラルの null も {} も防がない。dishes.service は
+      // この列を `as` キャストだけで渡してくるため、配列でない値が来ても
+      // 500 にならず 'en' へフォールバックすることを固定する。
+      it.each([
+        ['空配列', []],
+        ['null', null],
+        ['undefined', undefined],
+        ['JSONオブジェクト', { country: 'JP' }],
+        ['文字列', 'JP'],
+      ])('%s を渡しても例外を投げず en を返す', (_label, value) => {
+        const result = service.resolveLocalLanguageCode(
+          value as unknown as protos.google.maps.places.v1.Place.IAddressComponent[],
+        );
+
+        expect(result).toBe('en');
+      });
+
+      it('要素が null 混じりでも国コードを取り出せる', () => {
+        const addressComponents = [
+          null,
+          { shortText: 'JP', longText: 'Japan', types: ['country'] },
+        ];
+
+        const result = service.resolveLocalLanguageCode(
+          addressComponents as unknown as protos.google.maps.places.v1.Place.IAddressComponent[],
+        );
+
+        expect(result).toBe('ja');
+      });
+    });
   });
 
   describe('address building with shortText/longText fallback', () => {

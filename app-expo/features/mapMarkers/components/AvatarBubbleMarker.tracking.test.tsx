@@ -15,7 +15,7 @@ pan が重くなるだけでなくネイティブヒープを食い潰して落�
 import React from "react";
 import { act, create } from "react-test-renderer";
 import { AvatarBubbleMarker } from "./AvatarBubbleMarker";
-import { MARKER_TRACKING_SETTLE_MS } from "../hooks/useMarkerViewTracking";
+import { MARKER_TRACKING_MAX_WAIT_MS, MARKER_TRACKING_SETTLE_MS } from "../hooks/useMarkerViewTracking";
 
 /** 素の `Marker` が受け取った props を毎レンダー記録する */
 const markerProps: Record<string, unknown>[] = [];
@@ -112,6 +112,36 @@ describe("AvatarBubbleMarker の tracksViewChanges", () => {
 			tree.update(<AvatarBubbleMarker coordinate={coordinate} uri="https://example.com/a.jpg" isActive />);
 		});
 		expect(latestTracks()).toBe(true);
+	});
+
+	/*
+	#1743 オーナー実機報告（お店提案）「ピンの画像が反映されていない」の原因の 1 つ。
+
+	保険（`MARKER_TRACKING_MAX_WAIT_MS`）が先に焼き直しを止めた後で画像が届いたとき、
+	一度 `true` へ戻さないと Android は焼き直さず、**読み込み前の空の白い丸が永久に貼り付く**。
+	*/
+	it("保険で止まった後に画像が届いたら、焼き直しを再開してから確定させる", () => {
+		act(() => {
+			create(<AvatarBubbleMarker coordinate={coordinate} uri="https://example.com/slow.jpg" />);
+		});
+
+		// 画像が来ないまま保険が発火する（＝この時点の絵は «空の丸»）
+		act(() => {
+			jest.advanceTimersByTime(MARKER_TRACKING_MAX_WAIT_MS);
+		});
+		expect(latestTracks()).toBe(false);
+
+		// 遅れて画像が届いた。ここで焼き直しを許さないと絵が入れ替わらない
+		act(() => {
+			lastOnLoadEnd?.();
+		});
+		expect(latestTracks()).toBe(true);
+
+		// 焼き直したら、また止める（毎フレーム焼き続けない）
+		act(() => {
+			jest.advanceTimersByTime(MARKER_TRACKING_SETTLE_MS);
+		});
+		expect(latestTracks()).toBe(false);
 	});
 
 	it("地図を動かしただけ（props が同じ再レンダー）では焼き直しを再開しない", () => {

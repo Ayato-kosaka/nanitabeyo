@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Ellipsis, Flag, Pencil, Share, Trash2, X } from "lucide-react-native";
-import { FontAwesome } from "@expo/vector-icons";
+import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ellipsis, Flag, Pencil, Share, Trash2 } from "lucide-react-native";
 
 import i18n from "@/lib/i18n";
 // #1513 «…» ボタンだけは常に暗いメディアの上に載るのでテーマ非追従（FixedColors）。
@@ -10,12 +9,11 @@ import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useSheetBottomPadding } from "@/hooks/useSheetBottomPadding";
 import { useAPICall, type ApiError } from "@/hooks/useAPICall";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { useLocale } from "@/hooks/useLocale";
 import { toErrorLogMessage } from "@/lib/errorMessage";
-import { getMinorUnitDigits, parseAmountString, resolveCurrencySymbol, toMinorAmountInteger } from "@/lib/googlePlaces";
 import {
 	selectReviewsByMediaId,
 	useDishMediaEntriesStore,
@@ -24,8 +22,11 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
-import type { UpdateDishReviewDto } from "@shared/api/v1/dto";
 import type { DeleteDishMediaResponse, DeleteDishReviewResponse, UpdateDishReviewResponse } from "@shared/api/v1/res";
+import { EditDishReviewModal, EDIT_MEDIA_LOCKED_NOTE_TEST_ID } from "./EditDishReviewModal";
+
+/** シート下端のデザイン上の余白。実際の余白はこれに safe area の inset を足したもの */
+const SHEET_PADDING_BOTTOM = 32;
 
 /**
  * フィード右レールの «…» メニュー。
@@ -56,8 +57,9 @@ import type { DeleteDishMediaResponse, DeleteDishReviewResponse, UpdateDishRevie
 /** Detox / Playwright から「メディア差し替えの UI が無いこと」を検証するための testID */
 export const MEDIA_LOCKED_NOTE_TEST_ID = "own-post-media-locked-note";
 
-/** 星の数（レビューの rating は 1..5） */
-const MAX_STARS = 5;
+// #1629 編集フォーム本体は `EditDishReviewModal` へ移した（写真の無い記録からも開くため）。
+// 注記の testID は e2e が見ているので、あちらの値をそのまま再輸出する
+export { EDIT_MEDIA_LOCKED_NOTE_TEST_ID };
 
 type Props = {
 	entry: NormalizedDishMediaEntry;
@@ -70,10 +72,12 @@ type Props = {
 export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
+	// #1742 Modal はネイティブでは別ウィンドウで、画面側の safe area が届かない。
+	// 足さないと最下行「キャンセル」が Android のナビゲーションバーへ潜る（hooks/useSheetBottomPadding.ts）
+	const sheetPaddingBottom = useSheetBottomPadding(SHEET_PADDING_BOTTOM);
 	const dishMediaId = String(entry.dish_media.id);
 	// #1629 編集・削除の行だけを出し分ける。«…» 自体は誰の投稿でも出す
 	const isMine = !!entry.dish_media.isMine;
-	const { locale } = useLocale();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -134,15 +138,8 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 	const canDelete = canDeletePost || canDeleteReview;
 
 	const [menuVisible, setMenuVisible] = useState(false);
-	const [editVisible, setEditVisible] = useState(false);
-	const [isSubmitting, setIsSubmitting] = useState(false);
-
-	const [comment, setComment] = useState("");
-	const [rating, setRating] = useState(MAX_STARS);
-	const [price, setPrice] = useState("");
-
-	const currencyCode = myReview?.currency_code ?? null;
-	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
+	// #1629 編集フォームは `EditDishReviewModal` が持つ。ここは «どのレビューを開くか» だけ
+	const [editingReview, setEditingReview] = useState<DishReview | null>(null);
 
 	const openMenu = useCallback(() => {
 		lightImpact();
@@ -157,91 +154,23 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 	const openEdit = useCallback(() => {
 		if (!myReview) return;
 		setMenuVisible(false);
-
-		// 現在値をフォームへ流し込む。price_cents は最小単位なので表示用に戻す
-		setComment(myReview.comment ?? "");
-		setRating(myReview.rating ?? MAX_STARS);
-		setPrice(
-			myReview.price_cents === null || myReview.price_cents === undefined
-				? ""
-				: String(myReview.price_cents / Math.pow(10, getMinorUnitDigits(myReview.currency_code))),
-		);
-		setEditVisible(true);
+		setEditingReview(myReview);
 	}, [myReview]);
 
 	/**
-	 * 保存。`lockNo` を必ず送り、409 が返ったら **黙って上書きせずに** 失敗として扱う。
-	 * ここで再送すると、サーバー側で作った競合検知の意味が消える。
+	 * 保存されたらストアを差し替える。サーバーが返した行で置き換えること
+	 * （`lock_no` を進めないと、続けてもう一度編集したときに古い値で 409 になる）。
 	 */
-	const handleSave = useCallback(async () => {
-		if (!myReview || isSubmitting) return;
-		setIsSubmitting(true);
-
-		const parsedAmount = parseAmountString(price);
-		const priceCents =
-			price.trim() === "" || Number.isNaN(parsedAmount) ? null : toMinorAmountInteger(parsedAmount, currencyCode);
-
-		try {
-			const updated = await callBackend<UpdateDishReviewDto, UpdateDishReviewResponse>(
-				`v1/dish-reviews/${myReview.id}`,
-				{
-					method: "PATCH",
-					requestPayload: {
-						lockNo: myReview.lock_no,
-						comment,
-						rating,
-						priceCents,
-						currencyCode,
-					},
-				},
-			);
-
-			// サーバーが返した行で置き換える。lock_no を進めておかないと、
-			// 続けてもう一度編集したときに自分の古い lock_no で 409 になる
-			useDishMediaEntriesStore.getState().updateReview(myReview.id, (review) => ({
+	const handleSaved = useCallback(
+		(updated: UpdateDishReviewResponse) => {
+			if (!editingReview) return;
+			useDishMediaEntriesStore.getState().updateReview(editingReview.id, (review) => ({
 				...review,
 				...updated,
 			}));
-
-			logFrontendEvent({
-				event_name: "own_review_updated",
-				error_level: "log",
-				payload: { reviewId: myReview.id, dishMediaId },
-			});
-			// #1398 の版数（設計 (1/2) §3）。評価・価格は my-dishes の並び替えとフィルタの
-			// 入力なので、編集はカードの中身だけでなく «どの行がどこに出るか» を変える
-			bumpMyDishesRevision();
-			setEditVisible(false);
-			showSnackbar(i18n.t("DishMediaContent.ownPost.saved"));
-		} catch (error) {
-			const status = (error as ApiError)?.status;
-			showSnackbar(
-				status === 409
-					? i18n.t("DishMediaContent.ownPost.conflict")
-					: status === 403
-						? i18n.t("DishMediaContent.ownPost.forbidden")
-						: i18n.t("DishMediaContent.ownPost.saveFailed"),
-			);
-			logFrontendEvent({
-				event_name: "own_review_update_failed",
-				error_level: "warn",
-				payload: { reviewId: myReview.id, dishMediaId, status, error: toErrorLogMessage(error) },
-			});
-		} finally {
-			setIsSubmitting(false);
-		}
-	}, [
-		myReview,
-		isSubmitting,
-		price,
-		currencyCode,
-		callBackend,
-		comment,
-		rating,
-		logFrontendEvent,
-		dishMediaId,
-		showSnackbar,
-	]);
+		},
+		[editingReview],
+	);
 
 	/**
 	 * 削除。取り返しがつかないので必ず確認を挟む。
@@ -315,9 +244,7 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 				status === 403
 					? i18n.t("DishMediaContent.ownPost.forbidden")
 					: i18n.t(
-							canDeletePost
-								? "DishMediaContent.ownPost.deleteFailed"
-								: "DishMediaContent.ownPost.reviewDeleteFailed",
+							canDeletePost ? "DishMediaContent.ownPost.deleteFailed" : "DishMediaContent.ownPost.reviewDeleteFailed",
 						),
 			);
 			logFrontendEvent({
@@ -348,7 +275,10 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 			<Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
 				<Pressable style={styles.backdrop} onPress={() => setMenuVisible(false)}>
 					{/* シート本体のタップは閉じる操作に伝播させない */}
-					<Pressable testID="own-post-menu" style={styles.sheet} onPress={() => {}}>
+					<Pressable
+						testID="own-post-menu"
+						style={[styles.sheet, { paddingBottom: sheetPaddingBottom }]}
+						onPress={() => {}}>
 						{/*
 						  #1629 タイトルを «自分の投稿» から «この投稿» へ変えた。
 						  このメニューは **他人の投稿でも出る**（シェアと報告が入っているため）。
@@ -426,9 +356,7 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 								accessibilityRole="button">
 								<Trash2 size={20} color={colors.danger} />
 								<Text style={[styles.sheetRowText, styles.destructiveText]}>
-									{i18n.t(
-										canDeletePost ? "DishMediaContent.ownPost.delete" : "DishMediaContent.ownPost.deleteReview",
-									)}
+									{i18n.t(canDeletePost ? "DishMediaContent.ownPost.delete" : "DishMediaContent.ownPost.deleteReview")}
 								</Text>
 							</TouchableOpacity>
 						)}
@@ -455,86 +383,14 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 			</Modal>
 
 			{/* ─────────────── 編集フォーム ─────────────── */}
-			<Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
-				<View style={styles.backdrop}>
-					<View testID="edit-review-modal" style={styles.editSheet}>
-						<View style={styles.editHeader}>
-							<Text style={styles.editTitle}>{i18n.t("DishMediaContent.ownPost.editTitle")}</Text>
-							<TouchableOpacity
-								testID="edit-review-cancel-button"
-								onPress={() => setEditVisible(false)}
-								accessibilityRole="button"
-								accessibilityLabel={i18n.t("DishMediaContent.ownPost.cancel")}>
-								<X size={22} color={colors.textPrimaryAlt} />
-							</TouchableOpacity>
-						</View>
-
-						<ScrollView keyboardShouldPersistTaps="handled">
-							{/* #1513 編集画面にメディア選択の導線は存在しない。
-							    フォームの先頭で理由込みで伝える */}
-							<Text testID="edit-review-media-locked-note" style={styles.lockedNote}>
-								{i18n.t("DishMediaContent.ownPost.mediaLocked")}
-							</Text>
-
-							<Text style={styles.fieldLabel}>{i18n.t("DishMediaContent.ownPost.editComment")}</Text>
-							<TextInput
-								testID="edit-review-comment-input"
-								style={styles.commentInput}
-								value={comment}
-								onChangeText={setComment}
-								multiline
-								textAlignVertical="top"
-							/>
-
-							<Text style={styles.fieldLabel}>{i18n.t("DishMediaContent.ownPost.editRating")}</Text>
-							<View style={styles.starRow}>
-								{Array.from({ length: MAX_STARS }).map((_, index) => {
-									const value = index + 1;
-									return (
-										<TouchableOpacity
-											key={value}
-											testID={`edit-review-star-${value}`}
-											onPress={() => setRating(value)}
-											accessibilityRole="button"
-											accessibilityLabel={i18n.t("Stars.accessibility.rating", { rating: value })}
-											aria-selected={rating === value}>
-											<FontAwesome
-												name={value <= rating ? "star" : "star-o"}
-												size={28}
-												color="gold"
-												style={styles.star}
-											/>
-										</TouchableOpacity>
-									);
-								})}
-							</View>
-
-							<Text style={styles.fieldLabel}>{i18n.t("DishMediaContent.ownPost.editPrice")}</Text>
-							<View style={styles.priceRow}>
-								{currencySymbol ? <Text style={styles.currencySymbol}>{currencySymbol}</Text> : null}
-								<TextInput
-									testID="edit-review-price-input"
-									style={styles.priceInput}
-									value={price}
-									onChangeText={setPrice}
-									keyboardType="numeric"
-									placeholder="0"
-									placeholderTextColor={colors.textPlaceholder}
-								/>
-							</View>
-
-							<TouchableOpacity
-								testID="edit-review-submit-button"
-								style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-								onPress={handleSave}
-								disabled={isSubmitting}
-								accessibilityRole="button">
-								<Text style={styles.submitButtonText}>{i18n.t("DishMediaContent.ownPost.save")}</Text>
-							</TouchableOpacity>
-						</ScrollView>
-					</View>
-				</View>
-			</Modal>
+			{/* #1629 フォーム本体は共有コンポーネント。写真の無い «食べた» 記録
+			    （`MyDishOwnReviewSheet`）からも同じものが開く */}
+			<EditDishReviewModal
+				review={editingReview}
+				onClose={() => setEditingReview(null)}
+				onSaved={handleSaved}
+				logPayload={{ dishMediaId, from: "feed" }}
+			/>
 		</>
 	);
 }
@@ -558,7 +414,7 @@ const createStyles = (colors: Palette) =>
 			borderTopRightRadius: 16,
 			paddingHorizontal: 20,
 			paddingTop: 16,
-			paddingBottom: 32,
+			// paddingBottom は safe area を足すため呼び出し側で組む（SHEET_PADDING_BOTTOM）
 		},
 		sheetTitle: {
 			fontSize: 14,
@@ -597,82 +453,5 @@ const createStyles = (colors: Palette) =>
 			fontSize: 16,
 			color: colors.textSecondary,
 			fontWeight: "500",
-		},
-		editSheet: {
-			backgroundColor: colors.surface,
-			borderTopLeftRadius: 16,
-			borderTopRightRadius: 16,
-			paddingHorizontal: 20,
-			paddingTop: 16,
-			paddingBottom: 32,
-			maxHeight: "85%",
-		},
-		editHeader: {
-			flexDirection: "row",
-			alignItems: "center",
-			justifyContent: "space-between",
-			marginBottom: 12,
-		},
-		editTitle: {
-			fontSize: 18,
-			fontWeight: "700",
-			color: colors.textPrimaryAlt,
-		},
-		fieldLabel: {
-			fontSize: 13,
-			fontWeight: "600",
-			color: colors.textSecondary,
-			marginBottom: 6,
-			marginTop: 8,
-		},
-		commentInput: {
-			minHeight: 96,
-			borderWidth: 1,
-			borderColor: colors.borderMuted,
-			borderRadius: 8,
-			padding: 12,
-			fontSize: 15,
-			color: colors.textPrimaryAlt,
-		},
-		starRow: {
-			flexDirection: "row",
-			alignItems: "center",
-		},
-		star: {
-			marginRight: 6,
-		},
-		priceRow: {
-			flexDirection: "row",
-			alignItems: "center",
-			borderWidth: 1,
-			borderColor: colors.borderMuted,
-			borderRadius: 8,
-			paddingHorizontal: 12,
-		},
-		currencySymbol: {
-			fontSize: 15,
-			color: colors.textSecondary,
-			marginRight: 4,
-		},
-		priceInput: {
-			flex: 1,
-			paddingVertical: 10,
-			fontSize: 15,
-			color: colors.textPrimaryAlt,
-		},
-		submitButton: {
-			marginTop: 20,
-			backgroundColor: FixedColors.submitFilled,
-			borderRadius: 10,
-			paddingVertical: 14,
-			alignItems: "center",
-		},
-		submitButtonDisabled: {
-			opacity: 0.5,
-		},
-		submitButtonText: {
-			color: FixedColors.onFilled,
-			fontSize: 16,
-			fontWeight: "700",
 		},
 	});

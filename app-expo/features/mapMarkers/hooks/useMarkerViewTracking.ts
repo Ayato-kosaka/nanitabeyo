@@ -57,8 +57,8 @@ export const MARKER_TRACKING_SETTLE_MS = 250;
 300 ピンの大半がその状態になれば、修正前とまったく同じ症状（重い・落ちる）へ戻る。
 
 そこで «絵が出揃った合図» が来なくても、この時間で強制的に焼き直しを止める。
-そのあと画像が遅れて届いても `signature` は変わらないので、
-`onContentReady` が呼ばれて再び 250ms 後に確定し直すだけである（絵は正しく出る）。
+そのあと画像が遅れて届いたときは、`onContentReady` が **焼き直しを一度 true へ戻してから**
+250ms 後に確定し直す（下記 ⚠️）。
 */
 export const MARKER_TRACKING_MAX_WAIT_MS = 3_000;
 
@@ -125,6 +125,20 @@ export function useMarkerViewTracking(signature: string): MarkerViewTracking {
 
 	const onContentReady = useCallback(() => {
 		clearTimers();
+		/*
+		#1743 ⚠️ **ここで `true` へ戻すこと。**
+
+		オーナー実機報告（2026-08-31・お店提案）「ピンの画像が反映されていない」の原因の 1 つ。
+
+		保険（`MARKER_TRACKING_MAX_WAIT_MS`）が先に発火して `tracksViewChanges` を
+		`false` にした後に画像が届くと、以前の実装は «250ms 後に `false` にする» だけだった。
+		既に `false` なので **何も起きない**。Android は焼き直しを止めたままなので、
+		読み込み前に焼いた **空の白い丸が永久に貼り付く**（`signature` が変わるまで直らない）。
+
+		絵が届いた合図なのだから、一度焼き直しを許してから改めて確定させる。
+		既に `true` のときは React が同じ値で bail out するので、余計な再描画は起きない。
+		*/
+		setTracksViewChanges(true);
 		settleTimerRef.current = setTimeout(() => {
 			settleTimerRef.current = null;
 			setTracksViewChanges(false);

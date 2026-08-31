@@ -26,6 +26,8 @@ jest.mock("@/contexts/AuthProvider", () => ({
 
 let mockNext: string | undefined;
 let mockCanGoBack = false;
+// #1736 いま表示されているルート。自動離脱は «ログイン画面に居るとき» だけ動く
+let mockPathname = "/ja-JP/auth/login";
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
 // ⚠️ `replace: mockReplace` と直接束縛しないこと。import 文は const 宣言より前へ巻き上げられるため、
@@ -38,6 +40,7 @@ jest.mock("expo-router", () => ({
 		canGoBack: () => mockCanGoBack,
 	},
 	useLocalSearchParams: () => ({ next: mockNext }),
+	usePathname: () => mockPathname,
 }));
 
 jest.mock("react-native-safe-area-context", () => {
@@ -111,6 +114,7 @@ beforeEach(() => {
 	mockIsAuthResolved = false;
 	mockNext = undefined;
 	mockCanGoBack = false;
+	mockPathname = "/ja-JP/auth/login";
 	mockReplace.mockClear();
 	mockBack.mockClear();
 	loginFormProps = null;
@@ -190,6 +194,25 @@ describe("#1359 ログイン画面の auth ゲート", () => {
 		await render();
 
 		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/profile");
+	});
+
+	// #1736 【バグ】ログイン成功後、権限フローの画面が 2 枚生えて OS の許可ダイアログが 2 回出た。
+	//
+	// ネイティブの OAuth は「ログイン画面 → auth/callback → next」と replace で進むが、
+	// replace された画面は遷移アニメーションの間マウントされたままなので、その隙間に
+	// セッション確立が届くと、この保険が callback と **二重に** next へ replace してしまう。
+	// dev の実測でも、ログイン経由のセッションだけ
+	// `onboarding_location_permission_settled` が 2 回記録されていた
+	// （path_name が `/ja-JP/auth/callback` の `login_screen_already_authenticated` が直前にある）。
+	it("callback へ移ったあとは replace しない（権限フローの二重表示の防止）", async () => {
+		mockIsAuthResolved = true;
+		mockUser = { id: "user-1", is_anonymous: false };
+		mockNext = "/ja-JP/onboarding/location";
+		mockPathname = "/ja-JP/auth/callback";
+
+		await render();
+
+		expect(mockReplace).not.toHaveBeenCalled();
 	});
 
 	it("再レンダリングされても replace は 1 回だけ", async () => {

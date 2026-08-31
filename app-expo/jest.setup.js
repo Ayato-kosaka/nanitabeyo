@@ -80,3 +80,16 @@ jest.mock("@lodev09/react-native-true-sheet", () => {
 		}),
 	};
 });
+
+/*
+#1629 **safe area は全テストで既定のモックを敷く。**
+
+`useSafeAreaInsets()` は `<SafeAreaProvider>` が無いと «No safe area value available» で
+throw する。本番はアプリの根に必ず居るので問題ないが、テストは対象コンポーネントだけを
+素で描くので、**下端の余白を足しただけで無関係なテストが 9 本落ちた**（実際に起きた）。
+
+ライブラリ同梱のモック（inset は 0）を敷いておけば、safe area を «使ったかどうか» に
+テストが左右されなくなる。個別に上書きしたいテストは、これまでどおり
+`jest.mock("react-native-safe-area-context", ...)` を書けば勝つ。
+*/
+jest.mock("react-native-safe-area-context", () => require("react-native-safe-area-context/jest/mock").default);

@@ -13,6 +13,7 @@ import type { ExternalPathString } from "expo-router";
 import { OnboardingPermissionScreen } from "@/features/onboarding/components/OnboardingPermissionScreen";
 import { OnboardingScreenOptions } from "@/features/onboarding/components/OnboardingScreenOptions";
 import { onboardingWelcomePath } from "@/features/onboarding/navigation";
+import { rememberOnboardingPermissionOutcome } from "@/features/onboarding/permissionOutcomes";
 import {
 	getNotificationPermissionState,
 	requestNotificationPermission,
@@ -28,6 +29,11 @@ export default function OnboardingNotificationsScreen() {
 
 	const handleSettled = useCallback(
 		(outcome: PermissionOutcome) => {
+			// #1736 断られたことを覚えておく。オンボーディングを抜けた瞬間に effect が張り直される
+			// components/PushTokenRegistration.tsx が、この直後に説明の無い許可ダイアログを
+			// 続けて出さないようにするため（features/onboarding/permissionOutcomes.ts）
+			rememberOnboardingPermissionOutcome("notifications", outcome);
+
 			logFrontendEvent({
 				event_name: "onboarding_notification_permission_settled",
 				error_level: "log",

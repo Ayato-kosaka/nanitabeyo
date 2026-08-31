@@ -66,7 +66,7 @@ type RegionLike = { latitude: number; longitude: number; latitudeDelta: number; 
 let regionChangeHandler: ((region: RegionLike) => void) | undefined;
 
 /** 1 レンダーぶんの «地図に置かれたマーカー» */
-type RenderedMarker = { kind: "label" | "avatar" | "dot" | "cluster"; props: Record<string, unknown> };
+type RenderedMarker = { kind: "avatar" | "dot" | "cluster"; props: Record<string, unknown> };
 let mockRendered: RenderedMarker[] = [];
 /** 直前のレンダーで置かれたマーカー（«props が変わっていないか» の比較用） */
 let mockPreviousRendered: RenderedMarker[] = [];
@@ -102,6 +102,10 @@ jest.mock("@/components/MapView", () => {
 		},
 	};
 });
+// #1629 確認カードを画面下へ置くのに安全域を読む。Provider を立てずに済むよう固定値を返す
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 jest.mock("react-native-maps", () => ({ __esModule: true, default: () => null }));
 
 jest.mock("@/features/mapMarkers", () => {
@@ -111,16 +115,6 @@ jest.mock("@/features/mapMarkers", () => {
 		AvatarBubbleMarker: (props: Record<string, unknown>) => {
 			mockRendered.push({ kind: "avatar", props });
 			return ReactActual.createElement(RNView, { testID: "avatar-marker" });
-		},
-	};
-});
-jest.mock("@/features/restaurantPicker/components/RestaurantLabelMarker", () => {
-	const ReactActual = jest.requireActual("react");
-	const { View: RNView } = jest.requireActual("react-native");
-	return {
-		RestaurantLabelMarker: (props: Record<string, unknown>) => {
-			mockRendered.push({ kind: "label", props });
-			return ReactActual.createElement(RNView, { testID: "label-marker" });
 		},
 	};
 });
@@ -274,8 +268,8 @@ describe("#1629 重なるピンは «数字の丸» へ畳む", () => {
 	});
 });
 
-describe("#1629 引きでは点、寄りで店名つき", () => {
-	it("表示域が広い（0.2 度）ときはラベル付きマーカーを 1 つも置かない", async () => {
+describe("#1629 引きでは点、寄りで丸", () => {
+	it("表示域が広い（0.2 度）ときは点だけを置く（丸を 1 つも置かない）", async () => {
 		// 0.2 度の表示域ではクラスタ半径が 0.016 度になるので、それより広い間隔に置く
 		respondWithNearby(spreadRestaurants(6, 0.05));
 		await render();
@@ -285,13 +279,18 @@ describe("#1629 引きでは点、寄りで店名つき", () => {
 		expect(mockRendered.every((marker) => marker.kind === "dot")).toBe(true);
 	});
 
-	it("寄っている（0.04 度）ときは店名つきのマーカーになる", async () => {
+	/*
+	#1629【オーナー確定】寄ったときのピンは «食べたい / 食べた» のマップと同じ丸
+	（`AvatarBubbleMarker`）に統一した。以前は店名つきの別実装で、そこだけが Android で
+	映らなかった（オーナー実機報告）。
+	*/
+	it("寄っている（0.04 度）ときは丸のマーカーになる", async () => {
 		respondWithNearby(spreadRestaurants(8));
 		await render();
 		await moveMapTo(CLOSE_REGION);
 
 		expect(mockRendered.length).toBeGreaterThan(0);
-		expect(mockRendered.every((marker) => marker.kind === "label")).toBe(true);
+		expect(mockRendered.every((marker) => marker.kind === "avatar")).toBe(true);
 	});
 });
 

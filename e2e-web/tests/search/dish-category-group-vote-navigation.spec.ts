@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { test, expect } from "../../fixtures/test";
 import { waitForAnonymousSession } from "../../utils/auth";
 import { ResultPage } from "../../pages/ResultPage";
@@ -265,6 +266,35 @@ async function mockVoteBackend(page: Page, options: MockOptions = {}): Promise<v
 		});
 	});
 
+	/*
+	表示ログ（インプレッション）。
+
+	フィードは描いたメディアごとに `POST /v1/dish-media/<id>/impression` を投げる。
+	この spec のメディア id は上のスタブが組んだ架空の値（`e2e-1122-dish-media-*`）なので、
+	実 API は **400 を返す**。ブラウザはそれを console error として出し、さらに
+	`useAPICall` が投げる ApiError は Error のサブクラスではないため未捕捉の
+	rejection として `[pageerror] Object` にもなる。実測でこの 2 本が毎回出ていた。
+
+	記録の成否はこの spec の関心（モーダルを介さず遷移して操作できること）ではないので、
+	204 で受け取って握る。`tests/authenticated/my-dishes-sheet-feed.spec.ts` と同じ扱い。
+	*/
+	await page.route(
+		(url: URL) => /\/v1\/dish-media\/[^/]+\/impression$/.test(url.pathname),
+		async (route) => {
+			const origin = (await route.request().headerValue("origin")) ?? "*";
+			await route.fulfill({
+				status: 204,
+				headers: {
+					"access-control-allow-origin": origin,
+					"access-control-allow-credentials": "true",
+					"access-control-allow-headers": "authorization,content-type,x-client-info,apikey",
+					"access-control-allow-methods": "GET,POST,OPTIONS",
+				},
+				body: "",
+			});
+		},
+	);
+
 	// 遷移先（検索結果フィード）が id 指定で引く一覧。
 	//
 	// ⚠️ **形と中身の両方に条件がある。**
@@ -307,6 +337,8 @@ const detailViewRestaurants = (page: Page) => page.getByTestId("dish-category-gr
 const modalCloseButton = (page: Page) => page.getByRole("button", { name: "閉じる" });
 
 test.describe("友達投票の結果画面から店舗画面への遷移 (#1122)", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: モーダルが閉じてから遷移し、遷移先をすぐ操作できる ─
 	// 手順:
 	//   1. 検索済み候補のカードを押して詳細モーダルを開く

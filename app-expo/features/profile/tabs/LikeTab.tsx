@@ -68,7 +68,8 @@ export function LikeTab() {
 	useEffect(() => {
 		if (hasFetchedInitial || isLoading || error) return;
 		fetchInitialByKey(profileLikesEntriesKey, {}, fetcher);
-	}, [profileLikesEntriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading, error]);
+		// `profileLikesEntriesKey` は 21 行目のモジュール定数なので依存に含めない
+	}, [fetchInitialByKey, fetcher, hasFetchedInitial, isLoading, error]);
 
 	const handleItemPress = useCallback(
 		(dishMediaId: string, index: number) => {
@@ -150,11 +151,13 @@ export function LikeTab() {
 
 	const handleLoadMore = useCallback(() => {
 		fetchMoreByKey(profileLikesEntriesKey, {}, fetcher);
-	}, [profileLikesEntriesKey, fetchMoreByKey, fetcher]);
+		// `profileLikesEntriesKey` はモジュール定数（21 行目）
+	}, [fetchMoreByKey, fetcher]);
 
 	const handleRefresh = useCallback(() => {
 		fetchInitialByKey(profileLikesEntriesKey, {}, fetcher);
-	}, [profileLikesEntriesKey, fetchInitialByKey, fetcher]);
+		// `profileLikesEntriesKey` はモジュール定数（21 行目）
+	}, [fetchInitialByKey, fetcher]);
 
 	const renderEmptyState = useCallback(
 		() => (

@@ -6,7 +6,6 @@ import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { useMarkerViewTracking } from "@/features/mapMarkers/hooks/useMarkerViewTracking";
 import type { MapPinCluster } from "@/features/map/clustering";
 import type { PinDetailLevel, RestaurantPin } from "../mapPins";
-import { RestaurantLabelMarker } from "./RestaurantLabelMarker";
 
 /*
 #1629 «お店を選ぶ» 地図のマーカー。
@@ -32,16 +31,35 @@ import { RestaurantLabelMarker } from "./RestaurantLabelMarker";
 「このピンを押した」のクロージャは、この中で `useMemo` / `useCallback` を通して作る。
 結果、選択が変わっても props が変わるのは **その 2 件だけ**になる。
 
-## 引きでは点、寄りで名前つき（`PinDetailLevel`）
+## 引きでは点、寄りで丸（`PinDetailLevel`）
 
-大手の地図アプリと同じで、広い表示域では店名を出さない。ラベルは重なって読めなくなるうえ、
-ビットマップだけが増えるためである。切り替えの基準は `mapPins.ts` の `LABEL_ZOOM_MAX_DELTA`。
+大手の地図アプリと同じで、広い表示域ではピンを点に落とす。切り替えの基準は
+`mapPins.ts` の `LABEL_ZOOM_MAX_DELTA`。
+
+## #1629【オーナー確定】店名つきのピン（`RestaurantLabelMarker`）は削除した
+
+オーナー実機報告「お店を選ぶのマップピンが Android で映らない」。
+«食べたい / 食べた» のマップ（`MyDishesMapView`）は `AvatarBubbleMarker`（丸だけ）で
+**実機で出ており**、この画面だけが «丸 + 店名 2 行 / 幅 96px» の別構成だった。
+
+Android は Marker の children を «焼いた時点の測定サイズ» でビットマップ化するため、
+大きい・後から伸びる中身は欠ける（`AvatarBubbleMarker` の申し送り）。
+オーナー指示で構成を揃え、映っている側に寄せた。
+
+⚠️ **ピンから店名が消える。** #1375 8 巡目は «押すまでどの店か分からない» を理由に
+   店名を載せたが、**そもそも映らないより出るほうが先**という判断である。
+   店名は押したときと、下部の «保存したお店» シートで読める。
 */
 
 export type RestaurantPinCluster = MapPinCluster<RestaurantPin>;
 
-/** マーカーの見た目。`label` = 写真 + 店名（お店を探す）、`avatar` = 写真の丸（保存したお店） */
-export type PinAppearance = "label" | "avatar";
+/**
+ * マーカーの見た目。いまは `avatar`（写真の丸）だけ。
+ *
+ * #1629 `label`（写真 + 店名）は Android で映らなかったため削除した（上の申し送り）。
+ * 型を残してあるのは、将来別の見た目を足すときの入口をこの 1 箇所に保つため。
+ */
+export type PinAppearance = "avatar";
 
 type PinProps = {
 	cluster: RestaurantPinCluster;
@@ -63,28 +81,15 @@ function RestaurantPinMarkerInner({ cluster, appearance, detail, isActive, onPre
 		return <RestaurantDotMarker coordinate={coordinate} isActive={isActive} onPress={handlePress} />;
 	}
 
-	if (appearance === "avatar") {
-		return (
-			<AvatarBubbleMarker
-				testID="select-restaurant-pin"
-				coordinate={coordinate}
-				onPress={handlePress}
-				// 地図タイルは常にライト配色のため、非アクティブのバブルは固定白（FixedColors 参照）
-				color={isActive ? FixedColors.mapMarkerBorderActive : FixedColors.mapMarkerSurface}
-				isActive={isActive}
-				uri={pin.restaurant.imageUrls?.sm}
-			/>
-		);
-	}
-
 	return (
-		<RestaurantLabelMarker
+		<AvatarBubbleMarker
 			testID="select-restaurant-pin"
 			coordinate={coordinate}
-			name={pin.restaurant.name}
-			uri={pin.restaurant.imageUrls?.sm}
-			isActive={isActive}
 			onPress={handlePress}
+			// 地図タイルは常にライト配色のため、非アクティブのバブルは固定白（FixedColors 参照）
+			color={isActive ? FixedColors.mapMarkerBorderActive : FixedColors.mapMarkerSurface}
+			isActive={isActive}
+			uri={pin.restaurant.imageUrls?.sm}
 		/>
 	);
 }
