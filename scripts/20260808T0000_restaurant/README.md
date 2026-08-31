@@ -438,8 +438,38 @@ bash tests/test_9_1_restaurant_links.sh      # リンクの追加・削除（6�
 bash tests/test_9_1_address_fill.sh          # アプリ製の行の住所の穴埋め（5項目）
 bash tests/test_9_1_work_table.sh            # 作業表が対象を取りこぼさない（8項目）
 bash tests/test_log_db_load.sh               # 負荷の計測が本処理を殺さない（2項目）
-bash tests/test_pg_connect_survives_rollback.sh  # rollback で dev→public に化けない（5項目）
+bash tests/test_pg_connect_survives_rollback.sh  # rollback で dev→public に化けない（6項目）
 ```
+
+### 共有 DB で試行錯誤しない — ローカルで 62 万行のまま測る
+
+```bash
+python3 tests/bench_9_1_local.py                          # 本番と同じ 62 万行
+python3 tests/bench_9_1_local.py --rows 50000             # 小さく試す
+python3 tests/bench_9_1_local.py --changed-ratio 0.005    # 定常運転（初回移行のあと）
+```
+
+**2026-08-31 に、同じ «statement timeout» へ 6 回ぶつかった。** そのたびに別の
+真因が出てきた（staging の索引欠如 → 書き込み過多 → 表の肥大 → クエリプラン →
+設計そのもの → 計測の書き間違い）。**6 回とも共有 DB で学んだ**ので、1 回の学習に
+1 時間かかり、途中で本番と dev のアプリを止めた。
+
+**6 回とも、ここで再現できる性質のものだった。**
+
+このベンチは次を «同じ» にしてある。
+
+- **本番の DDL と索引**（migration をそのまま適用する。GIST / GIN trgm / UNIQUE を含む）
+- **行数**（既定 62 万行 + アプリ製 2,500 行）
+- **本番のコード**。SQL を写経せず、`9_1` の `load_staging` / `build_work_tables` /
+  `calculate_stats` / `apply_sync` を **import して呼ぶ**
+
+⚠️ **ハードウェアは違う。** 絶対値は Supabase と一致しない。見るべきは
+«どの文が支配的か» と «前後で何倍になったか» である。
+
+速さだけでなく **中身の正しさも同時に出る**（アプリ製の行の店名・画像が保たれ、
+住所だけが埋まったか）。«速いが壊れている» を見逃さないため。
+
+**共有 DB へ流す前に、必ずここを通す**（→ CLAUDE.md「共有 DB に負荷をかける作業の規則」§5）。
 
 `test_pg_connect_survives_rollback.sh` は **«落ちない・壊れない・気付けない»**
 種類の事故を止めるためのものです。PostgreSQL の `SET`（LOCAL 無し）は
