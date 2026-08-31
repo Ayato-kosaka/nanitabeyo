@@ -436,7 +436,8 @@ bash tests/test_9_1_display_update.sh        # 表示値を «変わる行» に
 bash tests/test_9_1_provenance_update.sh     # provenance / seed / synced_at の分離（6項目）
 bash tests/test_9_1_restaurant_links.sh      # リンクの追加・削除（6項目）
 bash tests/test_9_1_address_fill.sh          # アプリ製の行の住所の穴埋め（5項目）
-bash tests/test_9_1_work_table.sh            # 作業表が対象を取りこぼさない（7項目）
+bash tests/test_9_1_work_table.sh            # 作業表が対象を取りこぼさない（8項目）
+bash tests/test_log_db_load.sh               # 負荷の計測が本処理を殺さない（2項目）
 bash tests/test_pg_connect_survives_rollback.sh  # rollback で dev→public に化けない（5項目）
 ```
 

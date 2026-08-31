@@ -180,28 +180,48 @@ def log_db_load(connection: PgConnection, label: str) -> None:
     «無い» ではない」）。
 
     重い処理の前後で必ず呼ぶ。**止めはしない。見えるようにするだけ。**
+
+    ⚠️ **SAVEPOINT の中で実行する。**
+    ここは «おまけ» なので、失敗しても本処理を止めてはいけない。ところが
+    PostgreSQL では **1 文が失敗した時点でトランザクション全体が中断状態になり、
+    以降の全ての文が拒否される**。try/except で例外を握り潰しても、
+    トランザクションは死んだままである。実際に 2026-08-31、この関数の SQL の
+    書き間違い（`date_trunc(...) FILTER (...)`）ひとつで同期が丸ごと落ちた。
+    **計測が本処理を殺した。** SAVEPOINT へ戻せば、失敗をここで封じ込められる。
     """
 
+    in_transaction = not connection.autocommit
     try:
         with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT
-                  COUNT(*)                                             AS total,
-                  COUNT(*) FILTER (WHERE state = 'active')             AS active,
-                  COUNT(*) FILTER (WHERE wait_event_type = 'Lock')     AS waiting_on_lock,
-                  COALESCE(
-                    date_trunc('second', MAX(now() - query_start))
-                      FILTER (WHERE state = 'active'), INTERVAL '0'
-                  )                                                    AS longest_query
-                FROM pg_stat_activity
-                WHERE datname = current_database() AND pid <> pg_backend_pid()
-                """
-            )
-            total, active, waiting, longest = cursor.fetchone()
+            if in_transaction:
+                cursor.execute("SAVEPOINT db_load_probe")
+            try:
+                cursor.execute(
+                    """
+                    SELECT
+                      COUNT(*)                                          AS total,
+                      COUNT(*) FILTER (WHERE state = 'active')          AS active,
+                      COUNT(*) FILTER (WHERE wait_event_type = 'Lock')  AS waiting_on_lock,
+                      -- FILTER は集約関数にしか付けられない。date_trunc は集約では
+                      -- ないので、**MAX の側**に付ける（2026-08-31 に間違えた）。
+                      date_trunc(
+                        'second',
+                        MAX(now() - query_start) FILTER (WHERE state = 'active')
+                      )                                                 AS longest_query
+                    FROM pg_stat_activity
+                    WHERE datname = current_database() AND pid <> pg_backend_pid()
+                    """
+                )
+                total, active, waiting, longest = cursor.fetchone()
+            except Exception:
+                if in_transaction:
+                    cursor.execute("ROLLBACK TO SAVEPOINT db_load_probe")
+                raise
+            if in_transaction:
+                cursor.execute("RELEASE SAVEPOINT db_load_probe")
         LOGGER.info(
             "DB負荷[%s] 接続=%s / 実行中=%s / ロック待ち=%s / 最長=%s",
-            label, total, active, waiting, longest,
+            label, total, active, waiting, longest or "-",
         )
         if waiting:
             LOGGER.warning(
