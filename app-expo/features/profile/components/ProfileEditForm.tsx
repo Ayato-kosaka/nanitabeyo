@@ -6,6 +6,7 @@ import i18n from "@/lib/i18n";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareForm } from "@/components/KeyboardAwareForm";
 import { AvatarImageCard } from "./AvatarImageCard";
+import type { MediaData } from "@/lib/mediaSelection";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useFileUploader } from "@/hooks/useFileUploader";
@@ -22,6 +23,19 @@ const DISPLAY_NAME_MAX_LENGTH = 30;
 const BIO_MAX_LENGTH = 150;
 
 const FIELD = ["display_name", "avatar", "bio"] as const;
+
+/**
+ * #1750 アバター欄に対するユーザーの «意図»。
+ *
+ * - `unchanged`: 画像欄に触っていない → `avatar_path` を **送らない**（サーバ側は列を触らない）
+ * - `picked`: 新しい画像を選んだ → アップロードして、そのパスを送る
+ * - `removed`: 既存のアバターを外した → `avatar_path: null` を送る（削除）
+ *
+ * ⚠️ `removed` を作れる UI は今のところ無い（AvatarImageCard に削除ボタンが無い）。
+ * それでも型として置いてあるのは、**「null を送る = 削除」という契約をここ 1 箇所に閉じ込める**ためで、
+ * 削除導線が生えたときに保存側を書き換えずに済む。
+ */
+type AvatarDraft = { kind: "unchanged" } | { kind: "picked"; uri: string; mimeType: string } | { kind: "removed" };
 interface ProfileEditFormProps {
 	/**
 	 * 保存が成功したときに呼ばれる。
@@ -52,10 +66,29 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 
 	const profile = useProfileStore((s) => s.profile);
 
-	const [avatar, setAvatar] = useState<{ uri: string | null; mimeType: string | null }>({
-		uri: profile?.avatarUrls?.md || null,
-		mimeType: null,
-	});
+	/**
+	 * #1750 【バグ】アバターの «意図» を状態として持つ。
+	 *
+	 * 旧実装は `{ uri, mimeType }` だけを持ち、保存時に **`uri === null` を「削除して」と解釈**していた。
+	 * だが `uri === null` は「アバターをまだ一度も設定していない人が、画像欄に触らずに保存した」
+	 * ときの状態でもある。つまり «削除» と «そもそも無い» が同じ値になっていて、区別できない。
+	 *
+	 * これが実害になるのは、選んだ画像が**何らかの理由で状態から消えたとき**である。
+	 * そのまま保存すると `avatar_path: null`（= 削除）が飛ぶ。実際に dev のログ
+	 * （2026-08-31 16:08:58 UTC）で `dto: {display_name:"あやと", avatar_path:null}` が観測されている。
+	 *
+	 * 意図を 3 値で持てば、«触っていない» は必ず `undefined`（= 変更なし）へ落ちるので、
+	 * **状態が壊れても «消える» ことだけは起きない**。
+	 */
+	const [avatarDraft, setAvatarDraft] = useState<AvatarDraft>({ kind: "unchanged" });
+
+	// 画像カードに出す URL。«触っていない» ときだけストアの現在値を映す
+	const avatarPreviewUri =
+		avatarDraft.kind === "picked"
+			? avatarDraft.uri
+			: avatarDraft.kind === "removed"
+				? null
+				: (profile?.avatarUrls?.md ?? null);
 	const [display_name, setDisplayName] = useState(profile?.display_name ?? null);
 	const [bio, setBio] = useState(profile?.bio ?? null);
 	const [displayNameError, setDisplayNameError] = useState("");
@@ -71,6 +104,29 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 	 * 同じペイロードなので最終結果は変わらないが、ゴミだけが増える）。
 	 */
 	const isSavingRef = useRef(false);
+
+	/**
+	 * #1750 画像を選べたことを **その場でログに残す**。
+	 *
+	 * これが無かったせいで «ユーザーが画像を選んだのか / 選べていなかったのか» がログから
+	 * 判定できず、「画像が上がらない」の切り分けに実機のやり直しを何度も要求していた。
+	 * 選択の成否はここでしか観測できない（失敗時のログは AvatarImageCard が持つ）。
+	 */
+	const handleSelectAvatar = useCallback(
+		(media: Pick<MediaData, "uri" | "mimeType">) => {
+			setAvatarDraft({ kind: "picked", uri: media.uri, mimeType: media.mimeType });
+			logFrontendEvent({
+				event_name: "profile_avatar_selected",
+				error_level: "log",
+				payload: {
+					// URI 自体は端末内のパスなので残さない。«どの経路で来たか» だけ分かればよい
+					uriScheme: media.uri?.split(":")[0] ?? null,
+					mimeType: media.mimeType,
+				},
+			});
+		},
+		[logFrontendEvent],
+	);
 
 	// 入力時にエラーをクリア（FeedbackForm パターン）
 	const handleDisplayNameChange = useCallback(
@@ -132,15 +188,22 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 
 		// アバター画像のアップロード
 		// null は「既存アバターを削除」, string は「新規アップロード済みパス」, undefined は「変更なし」
+		// #1750 どれを送るかは «ユーザーの意図»（avatarDraft）だけで決める。画面の状態から推論しない
 		let uploadedAvatarPath: string | null | undefined = undefined;
-		if (avatar.uri === null) {
+		if (avatarDraft.kind === "removed") {
 			uploadedAvatarPath = null;
-		} else if (avatar.uri !== (profile?.avatarUrls?.md || null)) {
+		} else if (avatarDraft.kind === "picked") {
 			try {
-				if (!avatar.mimeType) throw new Error("Avatar mimeType is missing");
-				uploadedAvatarPath = await uploadFile(avatar.uri, {
-					mimeType: avatar.mimeType,
+				uploadedAvatarPath = await uploadFile(avatarDraft.uri, {
+					// #1750 mimeType が空でも保存ごと中断しない。`selectMedia` が拡張子から埋めてくれる
+					// ので通常ここは埋まっているが、万一のときは «送らない» より «既定で送る» 方がよい
+					mimeType: avatarDraft.mimeType || "application/octet-stream",
 					baseFileName: "user-avatar",
+				});
+				logFrontendEvent({
+					event_name: "profile_avatar_uploaded",
+					error_level: "log",
+					payload: { objectPath: uploadedAvatarPath },
 				});
 			} catch (error) {
 				logFrontendEvent({
@@ -149,6 +212,9 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 					payload: { error: (error as Error).message },
 				});
 				setIsLoading(false);
+				// #1205 ここは finally を通らない early return なので、多重実行ガードを自分で戻す。
+				// 戻さないと «一度アップロードに失敗したら二度と保存できない» 画面になる
+				isSavingRef.current = false;
 				showSnackbar(i18n.t("Profile.errors.uploadFailed"));
 				return;
 			}
@@ -168,15 +234,19 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 				prev
 					? {
 							...prev,
-							avatar: uploadedAvatarPath,
+							// #1750 【バグ】列名は `avatar_path`。旧実装は `avatar` という **存在しないキー**へ
+							// 書いており、ストア上のアバターは保存後も古いままだった（画面が持ち直せていたのは
+							// 下の avatarUrls のおかげで、`avatar` の方は誰にも読まれていない）。
+							// «変更なし» のときは既存の値を残す（undefined で塗り潰さない）
+							avatar_path: uploadedAvatarPath === undefined ? prev.avatar_path : uploadedAvatarPath,
 							display_name: trimmedDisplayName,
 							bio: normalizedBio,
-							avatarUrls: avatar.uri
-								? {
-										sm: avatar.uri,
-										md: avatar.uri,
-									}
-								: undefined,
+							avatarUrls:
+								avatarDraft.kind === "unchanged"
+									? prev.avatarUrls
+									: avatarPreviewUri
+										? { sm: avatarPreviewUri, md: avatarPreviewUri }
+										: undefined,
 						}
 					: null,
 			);
@@ -186,7 +256,12 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 				error_level: "log",
 				payload: {
 					newBioLength: bio?.length,
-					hasAvatar: !!avatar,
+					// #1750 【バグ】旧実装は `!!avatar` で、`avatar` はオブジェクトなので **常に true** だった。
+					// そのせいで «画像を付けて保存した» と «付けずに保存した» がログ上で区別できず、
+					// 「画像が上がらない」の調査で `hasAvatar: true` なのに `avatar_path: null` という
+					// 読めないログだけが残った（dev 2026-08-31 16:08:58 UTC）。意図をそのまま出す
+					avatarAction: avatarDraft.kind,
+					hasAvatar: !!avatarPreviewUri,
 					hasDisplayName: !!display_name,
 				},
 			});
@@ -205,7 +280,8 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 	}, [
 		mediumImpact,
 		updateProfile,
-		avatar,
+		avatarDraft,
+		avatarPreviewUri,
 		uploadFile,
 		logFrontendEvent,
 		callBackend,
@@ -213,7 +289,6 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 		bio,
 		onSaved,
 		showSnackbar,
-		profile,
 	]);
 
 	return (
@@ -230,7 +305,7 @@ export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 			}>
 			{({ recordY, onFocusFactory }) => (
 				<>
-					<AvatarImageCard avatarUrl={avatar.uri} onSelectImage={(media) => setAvatar(media)} />
+					<AvatarImageCard avatarUrl={avatarPreviewUri} onSelectImage={handleSelectAvatar} />
 
 					<Card onLayout={recordY("display_name")}>
 						<Text style={styles.label}>{i18n.t("Profile.labels.displayName")}</Text>

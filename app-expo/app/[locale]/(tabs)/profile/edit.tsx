@@ -18,13 +18,14 @@ ScrollView の «両方» を既に持っている。ここで重ねると、モ
 useBlurModal 側と二重掛けになっていた状態（#1350 が IME 系不具合の温床として挙げた形）を
 そのまま作り直すことになる。
 */
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { useAuth } from "@/contexts/AuthProvider";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { ProfileEditForm } from "@/features/profile/components/ProfileEditForm";
@@ -67,6 +68,36 @@ export default function ProfileEditScreen() {
 	// ⚠️ これは «ストアから失敗を推論する» のとは逆向きである。失敗の判定はあくまで
 	// hasLoadFailed が持ち、profile はそれを «取り消す» 方向にしか効かないので B-1 は再発しない
 	const hasFailed = hasLoadFailed && !profile;
+
+	/**
+	 * #1750 【バグ】**フォームを «一度でも出したら、もう引っ込めない»。**
+	 *
+	 * 下のゲートは `!profile` でスピナーへ倒す。`profile` は共有ストア（useProfileStore）なので、
+	 * この画面が生きている間に **第三者が空にできる**。フックの JSDoc が挙げている 2 経路
+	 * （AuthProvider のセッション切替 / 別の消費者が mount して走らせるセッション effect）が実際にある。
+	 *
+	 * 空になった瞬間 ProfileEditForm は **アンマウントされ、入力中の表示名・自己紹介と
+	 * «選んだアバター画像» が黙って消える**。そのあと再マウントすると初期値へ戻るので、
+	 * ユーザーには「画像を選んだのに保存すると反映されない」としか見えない。
+	 * 旧実装ではこの状態で保存すると `avatar_path: null`（= 削除）まで飛んでいた
+	 * （ProfileEditForm の AvatarDraft のコメント参照）。
+	 *
+	 * スピナーが要るのは «まだ一度も profile を持てていない» 初回だけである。
+	 * 一度 mount できたら、以後は profile が消えてもフォーム側の状態を正とする。
+	 *
+	 * ⚠️ ただし「引っ込めない」は **同じユーザーでいる間だけ**に限ること。ユーザーが入れ替わったのに
+	 * フォームを残すと、前の人の入力を持ったまま `POST /v1/users/me` を投げることになる
+	 * （このエンドポイントは «いまのトークンの持ち主» を書き換える）。ID が変わったら作り直す。
+	 */
+	const { user } = useAuth();
+	const hasEverLoadedRef = useRef(false);
+	const loadedForUserRef = useRef<string | undefined>(user?.id);
+	if (loadedForUserRef.current !== user?.id) {
+		loadedForUserRef.current = user?.id;
+		hasEverLoadedRef.current = false;
+	}
+	if (profile) hasEverLoadedRef.current = true;
+	const shouldRenderForm = !!profile || hasEverLoadedRef.current;
 
 	/**
 	 * この画面から離れる。
@@ -151,12 +182,13 @@ export default function ProfileEditScreen() {
 						<Text style={styles.errorText}>{i18n.t("Common.errors.unexpected")}</Text>
 						<PrimaryButton label={i18n.t("Common.retry")} onPress={handleRetry} testID="profile-edit-retry-button" />
 					</View>
-				) : !profile ? (
+				) : !shouldRenderForm ? (
 					<View style={styles.messageContainer}>
 						<LoadingIndicator size="large" />
 					</View>
 				) : (
-					<ProfileEditForm onSaved={handleSaved} />
+					/* #1750 ユーザーが入れ替わったらフォームごと作り直す（前の人の入力を持ち越さない） */
+					<ProfileEditForm key={user?.id ?? "anonymous"} onSaved={handleSaved} />
 				)}
 			</SafeAreaView>
 		</LinearGradient>
