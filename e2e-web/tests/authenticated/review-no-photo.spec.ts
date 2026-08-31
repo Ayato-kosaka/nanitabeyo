@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "../../fixtures/test";
 import { RestaurantDetailPage } from "../../pages/RestaurantDetailPage";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import {
 	buildApiHeaders,
 	cancelMediaPicker,
@@ -43,6 +44,14 @@ test.skip(
 );
 
 test.describe("写真なしの食べた記録（#1398）", () => {
+	/*
+	#1629 この spec は **動的ルートへ直接着地する**（店舗詳細 → レビューフォーム）。
+	Firebase Hosting は prerender されない URL を index.html で返すため、サーバ HTML と
+	クライアントの木が必ず食い違う（React #418）。画面は正しく描き直されるので
+	本来のアサーションは通る。同じ扱いを既に 11 ファイルへ広げてある
+	（`utils/consoleNoise.ts` の申し送り）。
+	*/
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
 	// 店舗詳細の取得・料理カテゴリ検索など実 API を直列で叩くため、既定の 30 秒では足りない
 	test.setTimeout(90_000);
 
@@ -66,9 +75,28 @@ test.describe("写真なしの食べた記録（#1398）", () => {
 		await page.goto(`/ja-JP/restaurant/${restaurantId}`);
 		await expect(detailPage.googleMapsButton).toBeVisible({ timeout: 30_000 });
 
-		const fileChooserPromise = page.waitForEvent("filechooser");
+		/*
+		⚠️ **ピッカーの待ち受けは `page.on` で張ること。`waitForEvent` を使わない。**
+
+		`ReviewForm` は `mediaPickerMode` の既定（"auto"）でマウント直後にピッカーを開くが、
+		この画面へ直接着地すると **店舗の取得が終わってから ReviewForm がマウントされる**ため、
+		いつ開くかがネットワーク次第になる。`waitForEvent` は «その時点から待つ» ので、
+		待ち始める前に開かれると取りこぼし、90 秒 timeout で落ちる
+		（実測: run 33382910047。それまでは店舗詳細のボタンからの push だったので
+		  マウントのタイミングが安定しており、この問題が出ていなかった）。
+
+		`page.on` は登録した時点から «来たら拾う» なので、順序に依存しない。
+		*/
+		let chooserSeen = false;
+		page.on("filechooser", (chooser) => {
+			chooserSeen = true;
+			void cancelMediaPicker(page, chooser);
+		});
+
 		await page.goto(`/ja-JP/restaurant/${restaurantId}/review`);
-		await cancelMediaPicker(page, await fileChooserPromise);
+		// ピッカーが開いてキャンセルされた «結果» を待つ。写真なしのプレビュー枠が出れば済んでいる
+		await expect(page.getByTestId("review-add-photo-placeholder")).toBeVisible({ timeout: 60_000 });
+		expect(chooserSeen, "写真ピッカーが一度も開かなかった（この画面の前提が変わっている）").toBe(true);
 	}
 
 	// ─ テストケース: キャンセルしてもフォームに留まり、戻るボタンで退出できる（Q2 の条件）─
