@@ -1,5 +1,16 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+	KeyboardAvoidingView,
+	Modal,
+	Platform,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { Ellipsis, Flag, Pencil, Share, Trash2, X } from "lucide-react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -315,9 +326,7 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 				status === 403
 					? i18n.t("DishMediaContent.ownPost.forbidden")
 					: i18n.t(
-							canDeletePost
-								? "DishMediaContent.ownPost.deleteFailed"
-								: "DishMediaContent.ownPost.reviewDeleteFailed",
+							canDeletePost ? "DishMediaContent.ownPost.deleteFailed" : "DishMediaContent.ownPost.reviewDeleteFailed",
 						),
 			);
 			logFrontendEvent({
@@ -426,9 +435,7 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 								accessibilityRole="button">
 								<Trash2 size={20} color={colors.danger} />
 								<Text style={[styles.sheetRowText, styles.destructiveText]}>
-									{i18n.t(
-										canDeletePost ? "DishMediaContent.ownPost.delete" : "DishMediaContent.ownPost.deleteReview",
-									)}
+									{i18n.t(canDeletePost ? "DishMediaContent.ownPost.delete" : "DishMediaContent.ownPost.deleteReview")}
 								</Text>
 							</TouchableOpacity>
 						)}
@@ -456,7 +463,14 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 
 			{/* ─────────────── 編集フォーム ─────────────── */}
 			<Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
-				<View style={styles.backdrop}>
+				{/*
+					#1629 **`<Modal>` の中は親のキーボード回避が届かない。**
+					Modal はネイティブでは別ウィンドウとして描かれるので、画面側に
+					KeyboardAvoidingView を置いても中の入力欄は守られない。
+					さらに Android 15（API 35）は edge-to-edge 強制で adjustResize が
+					窓を縮めなくなるため、OS 任せの逃げ道も無い。ここに自前で持つ。
+					*/}
+				<KeyboardAvoidingView style={styles.backdrop} behavior={Platform.select({ ios: "padding", android: "height" })}>
 					<View testID="edit-review-modal" style={styles.editSheet}>
 						<View style={styles.editHeader}>
 							<Text style={styles.editTitle}>{i18n.t("DishMediaContent.ownPost.editTitle")}</Text>
@@ -533,7 +547,7 @@ export function DishMediaMoreMenu({ entry, onShare, onReport }: Props) {
 							</TouchableOpacity>
 						</ScrollView>
 					</View>
-				</View>
+				</KeyboardAvoidingView>
 			</Modal>
 		</>
 	);

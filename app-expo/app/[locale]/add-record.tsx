@@ -584,10 +584,17 @@ export default function SnsImportScreen() {
 			) : (
 				<>
 					{/* #1375 実機確認（3 巡目）: 店名検索の入力がキーボードに隠れる。iOS はシート表示なので
-			    behavior は padding が正しい（height だとシート内で二重に縮む） */}
+			    behavior は padding が正しい（height だとシート内で二重に縮む）
+
+			    #1629 【修正】**Android にも behavior を渡す。** 以前は undefined で、
+			    Android では KeyboardAvoidingView が 1px も動かさず OS の adjustResize に
+			    全部任せていた。Android 15（API 35）から edge-to-edge が強制され、
+			    edge-to-edge のアプリでは adjustResize が窓を縮めなくなるため、
+			    任せた先が消えて入力欄がキーボードに隠れる。
+			    値はリポジトリで既に本番稼働している `components/KeyboardAwareForm.tsx` と揃える。 */}
 					<KeyboardAvoidingView
 						style={styles.keyboardAvoiding}
-						behavior={Platform.OS === "ios" ? "padding" : undefined}>
+						behavior={Platform.select({ ios: "padding", android: "height" })}>
 						{/* #1375（10 巡目）E2E から «②店舗 / ③料理» まで送るためのスクロール対象。
 						    読み取り後は縦に長くなり、保存ボタンまでが 1 画面に収まらない */}
 						<ScrollView
@@ -658,7 +665,7 @@ export default function SnsImportScreen() {
 								)}
 
 								{/* #1629 色を渡さないと OS 既定の灰で描かれ、ダークの地の上でほとんど見えない */}
-							{isResolving && <ActivityIndicator style={styles.spinner} color={colors.brand} />}
+								{isResolving && <ActivityIndicator style={styles.spinner} color={colors.brand} />}
 							</View>
 
 							{resolved && (
@@ -943,329 +950,329 @@ export default function SnsImportScreen() {
 // #1509 【設計】テーマ依存のスタイルはファクトリで組む（contexts/ThemeProvider.tsx の useThemedStyles）
 const createStyles = (c: Palette) =>
 	StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: c.surface,
-	},
-	// #1375（9 巡目）戻るボタンはタブ行の中。タブの文字とベースラインが揃うよう縦は詰める
-	backButton: {
-		paddingVertical: 4,
-		paddingRight: 4,
-		// タブは下線ぶんだけ背が高い。その差の半分を戻し、文字の高さへ目で揃える
-		marginBottom: 2,
-	},
-	tabRow: {
-		flexDirection: "row",
-		// #1375（10 巡目）戻るボタンを同じ行へ入れた。下端で揃えるとタブの **下線** に
-		// 引っぱられて ← だけが低く見えるので、中央で揃える
-		alignItems: "center",
-		gap: 20,
-		paddingHorizontal: 12,
-		paddingTop: 8,
-		paddingBottom: 4,
-	},
-	// #1375 実機確認（2 巡目）: 「上部のボタンの位置がズレている」の中身。
-	// 以前は `tabRow` の gap 20 に加えてタブ自身が `paddingRight: 20` を持っていたので、
-	// ラベル間の余白が左右で食い違い、さらに下線（`alignSelf: "stretch"`）が
-	// その padding のぶんだけ右へはみ出してラベルと揃わなかった。
-	// 余白は `tabRow` の gap だけが持ち、タブの幅 = ラベルの幅 に揃える
-	tab: {
-		paddingVertical: 10,
-		alignItems: "stretch",
-	},
-	tabLabel: {
-		fontSize: 22,
-		fontWeight: "700",
-		// 非選択は «薄い黒»。別の色にすると «押せない» ように見える
-		color: c.textTertiary,
-	},
-	tabLabelActive: {
-		color: c.textPrimaryAlt,
-	},
-	tabUnderline: {
-		marginTop: 6,
-		height: 3,
-		borderRadius: 2,
-		alignSelf: "stretch",
-		backgroundColor: c.textPrimaryAlt,
-	},
-	keyboardAvoiding: {
-		flex: 1,
-	},
-	eatenContainer: {
-		flex: 1,
-		paddingTop: 8,
-	},
-	eatenRestaurantField: {
-		marginBottom: 12,
-		// #1375（5 巡目・デザインレビュー #12）この欄だけ左右余白が無く、画面の左端に接していた
-		// （同じ画面のタブ・レビュー欄・投稿ボタンはすべて 16）
-		paddingHorizontal: 16,
-	},
-	eatenRestaurantRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		marginHorizontal: 16,
-		paddingHorizontal: 14,
-		paddingVertical: 12,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: c.borderMuted,
-		backgroundColor: c.surface,
-	},
-	eatenRestaurantLabel: {
-		flex: 1,
-		fontSize: 15,
-		fontWeight: "700",
-		color: c.textPrimaryAlt,
-	},
-	eatenRestaurantPlaceholder: {
-		color: c.textTertiary,
-		fontWeight: "400",
-	},
-	eatenRestaurantChange: {
-		fontSize: 13,
-		fontWeight: "700",
-		color: c.brand,
-	},
-	eatenHint: {
-		marginTop: 12,
-		marginHorizontal: 16,
-		fontSize: 13,
-		lineHeight: 19,
-		color: c.textSecondary,
-	},
-	content: {
-		paddingHorizontal: 16,
-		paddingBottom: 32,
-	},
-	intro: {
-		marginTop: 12,
-		fontSize: 13,
-		lineHeight: 19,
-		color: c.textSecondary,
-	},
-	// 手順ごとの器。枠を描くと «ここまでが 1 つの手順» が目で分かる
-	card: {
-		marginTop: 16,
-		padding: 14,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: c.borderMuted,
-		backgroundColor: c.surface,
-	},
-	stepHeading: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		marginBottom: 10,
-	},
-	stepBadge: {
-		width: 22,
-		height: 22,
-		borderRadius: 11,
-		backgroundColor: c.textPrimaryAlt,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	stepBadgeText: {
-		fontSize: 12,
-		fontWeight: "700",
-		// 地（stepBadge）が textPrimaryAlt なので、文字は CTA と同じ反転規則で振る
-		color: c.ctaLabel,
-	},
-	stepTitle: {
-		fontSize: 15,
-		fontWeight: "700",
-		color: c.textPrimaryAlt,
-	},
-	mapPickButton: {
-		marginTop: 10,
-		alignSelf: "flex-start",
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 16,
-		backgroundColor: c.brandTintAlt,
-	},
-	mapPickLabel: {
-		fontSize: 13,
-		fontWeight: "700",
-		color: c.brand,
-	},
-	footer: {
-		gap: 8,
-		paddingHorizontal: 16,
-		paddingTop: 12,
-		paddingBottom: 12,
-		borderTopWidth: 1,
-		// #1375（5 巡目・デザインレビュー #18）EEE 系の罫線は正本のパレットに無い。罫線は borderMuted（ライトで E5E7EB）へ統一
-		borderTopColor: c.borderMuted,
-		backgroundColor: c.surface,
-	},
-	footerHint: {
-		fontSize: 12,
-		color: c.textSecondary,
-	},
-	label: {
-		marginTop: 12,
-		fontSize: 13,
-		color: c.textSecondary,
-	},
-	input: {
-		marginTop: 6,
-		// 複数行入力なので高さの下限は残す
-		minHeight: 72,
-		// #1375（5 巡目・デザインレビュー #11）②③ の検索欄と同じ寸法へ。
-		// r8 / 枠 #E5E7EB / 縦 10 / 14pt だったため、同じ縦並びで高さが 44 と 56 に割れていた
-		borderWidth: 1,
-		borderColor: c.border,
-		borderRadius: 16,
-		paddingHorizontal: 16,
-		paddingVertical: 16,
-		fontSize: 16,
-		color: c.textPrimary,
-		textAlignVertical: "top",
-	},
-	resolveButton: {
-		marginTop: 16,
-	},
-	// 固定中の URL。押しても編集できないことが «見て» 分かるように地を沈める
-	inputLocked: {
-		backgroundColor: c.surfaceSubtle,
-		color: c.textSecondary,
-	},
-	saveButton: {
-		marginTop: 20,
-	},
-	spinner: {
-		marginTop: 16,
-	},
-	providerRow: {
-		marginTop: 20,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-	},
-	provider: {
-		fontSize: 14,
-		fontWeight: "700",
-		color: c.brand,
-	},
-	captionToggle: {
-		marginTop: 4,
-		fontSize: 13,
-		fontWeight: "700",
-		color: c.textSecondary,
-	},
-	metaTitle: {
-		marginTop: 4,
-		fontSize: 14,
-		lineHeight: 20,
-		color: c.textSecondaryStrong,
-	},
-	sectionTitle: {
-		marginTop: 20,
-		fontSize: 14,
-		fontWeight: "700",
-		color: c.textPrimary,
-	},
-	searchInput: {
-		marginTop: 8,
-		borderWidth: 1,
-		borderColor: c.borderMuted,
-		borderRadius: 8,
-		paddingHorizontal: 12,
-		paddingVertical: 10,
-		fontSize: 14,
-		color: c.textPrimaryAlt,
-	},
-	selectedValue: {
-		marginTop: 8,
-		fontSize: 13,
-		fontWeight: "700",
-		color: c.brand,
-	},
-	// #1375 ② の店名検索（RestaurantNameSearch）と **同じ寸法**にすること。
-	// 角丸 16 / 縦 padding 16 / 文字 16pt が揃っていないと «幅と高さが不揃い» に見える
-	searchField: {
-		marginTop: 8,
-		flexDirection: "row",
-		alignItems: "center",
-		borderRadius: 16,
-		backgroundColor: c.surface,
-		borderWidth: 1,
-		borderColor: c.border,
-	},
-	searchFieldIcon: {
-		marginLeft: 16,
-	},
-	searchFieldInput: {
-		flex: 1,
-		paddingHorizontal: 12,
-		paddingVertical: 16,
-		fontSize: 16,
-		color: c.textPrimary,
-	},
-	searchFieldInputSelected: {
-		fontWeight: "700",
-	},
-	searchFieldClear: {
-		padding: 12,
-	},
-	candidateRow: {
-		marginTop: 8,
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 6,
-	},
-	candidateChip: {
-		paddingHorizontal: 10,
-		paddingVertical: 5,
-		borderRadius: 14,
-		backgroundColor: c.surfaceSubtle,
-	},
-	candidateChipSelected: {
-		backgroundColor: c.brandTintAlt,
-	},
-	candidateLabel: {
-		fontSize: 12,
-		color: c.textSecondaryStrong,
-	},
-	candidateLabelSelected: {
-		color: c.brand,
-		fontWeight: "700",
-	},
-	chipRow: {
-		marginTop: 8,
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 8,
-	},
-	chip: {
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 16,
-		backgroundColor: c.surfaceSubtle,
-	},
-	chipSelected: {
-		backgroundColor: c.brandTintAlt,
-	},
-	chipLabel: {
-		fontSize: 13,
-		color: c.textSecondaryStrong,
-	},
-	chipLabelSelected: {
-		color: c.brand,
-		fontWeight: "700",
-	},
-	hint: {
-		marginTop: 12,
-		fontSize: 13,
-		lineHeight: 19,
-		color: c.textSecondary,
-	},
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		// #1375（9 巡目）戻るボタンはタブ行の中。タブの文字とベースラインが揃うよう縦は詰める
+		backButton: {
+			paddingVertical: 4,
+			paddingRight: 4,
+			// タブは下線ぶんだけ背が高い。その差の半分を戻し、文字の高さへ目で揃える
+			marginBottom: 2,
+		},
+		tabRow: {
+			flexDirection: "row",
+			// #1375（10 巡目）戻るボタンを同じ行へ入れた。下端で揃えるとタブの **下線** に
+			// 引っぱられて ← だけが低く見えるので、中央で揃える
+			alignItems: "center",
+			gap: 20,
+			paddingHorizontal: 12,
+			paddingTop: 8,
+			paddingBottom: 4,
+		},
+		// #1375 実機確認（2 巡目）: 「上部のボタンの位置がズレている」の中身。
+		// 以前は `tabRow` の gap 20 に加えてタブ自身が `paddingRight: 20` を持っていたので、
+		// ラベル間の余白が左右で食い違い、さらに下線（`alignSelf: "stretch"`）が
+		// その padding のぶんだけ右へはみ出してラベルと揃わなかった。
+		// 余白は `tabRow` の gap だけが持ち、タブの幅 = ラベルの幅 に揃える
+		tab: {
+			paddingVertical: 10,
+			alignItems: "stretch",
+		},
+		tabLabel: {
+			fontSize: 22,
+			fontWeight: "700",
+			// 非選択は «薄い黒»。別の色にすると «押せない» ように見える
+			color: c.textTertiary,
+		},
+		tabLabelActive: {
+			color: c.textPrimaryAlt,
+		},
+		tabUnderline: {
+			marginTop: 6,
+			height: 3,
+			borderRadius: 2,
+			alignSelf: "stretch",
+			backgroundColor: c.textPrimaryAlt,
+		},
+		keyboardAvoiding: {
+			flex: 1,
+		},
+		eatenContainer: {
+			flex: 1,
+			paddingTop: 8,
+		},
+		eatenRestaurantField: {
+			marginBottom: 12,
+			// #1375（5 巡目・デザインレビュー #12）この欄だけ左右余白が無く、画面の左端に接していた
+			// （同じ画面のタブ・レビュー欄・投稿ボタンはすべて 16）
+			paddingHorizontal: 16,
+		},
+		eatenRestaurantRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+			marginHorizontal: 16,
+			paddingHorizontal: 14,
+			paddingVertical: 12,
+			borderRadius: 12,
+			borderWidth: 1,
+			borderColor: c.borderMuted,
+			backgroundColor: c.surface,
+		},
+		eatenRestaurantLabel: {
+			flex: 1,
+			fontSize: 15,
+			fontWeight: "700",
+			color: c.textPrimaryAlt,
+		},
+		eatenRestaurantPlaceholder: {
+			color: c.textTertiary,
+			fontWeight: "400",
+		},
+		eatenRestaurantChange: {
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.brand,
+		},
+		eatenHint: {
+			marginTop: 12,
+			marginHorizontal: 16,
+			fontSize: 13,
+			lineHeight: 19,
+			color: c.textSecondary,
+		},
+		content: {
+			paddingHorizontal: 16,
+			paddingBottom: 32,
+		},
+		intro: {
+			marginTop: 12,
+			fontSize: 13,
+			lineHeight: 19,
+			color: c.textSecondary,
+		},
+		// 手順ごとの器。枠を描くと «ここまでが 1 つの手順» が目で分かる
+		card: {
+			marginTop: 16,
+			padding: 14,
+			borderRadius: 12,
+			borderWidth: 1,
+			borderColor: c.borderMuted,
+			backgroundColor: c.surface,
+		},
+		stepHeading: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+			marginBottom: 10,
+		},
+		stepBadge: {
+			width: 22,
+			height: 22,
+			borderRadius: 11,
+			backgroundColor: c.textPrimaryAlt,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		stepBadgeText: {
+			fontSize: 12,
+			fontWeight: "700",
+			// 地（stepBadge）が textPrimaryAlt なので、文字は CTA と同じ反転規則で振る
+			color: c.ctaLabel,
+		},
+		stepTitle: {
+			fontSize: 15,
+			fontWeight: "700",
+			color: c.textPrimaryAlt,
+		},
+		mapPickButton: {
+			marginTop: 10,
+			alignSelf: "flex-start",
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 16,
+			backgroundColor: c.brandTintAlt,
+		},
+		mapPickLabel: {
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.brand,
+		},
+		footer: {
+			gap: 8,
+			paddingHorizontal: 16,
+			paddingTop: 12,
+			paddingBottom: 12,
+			borderTopWidth: 1,
+			// #1375（5 巡目・デザインレビュー #18）EEE 系の罫線は正本のパレットに無い。罫線は borderMuted（ライトで E5E7EB）へ統一
+			borderTopColor: c.borderMuted,
+			backgroundColor: c.surface,
+		},
+		footerHint: {
+			fontSize: 12,
+			color: c.textSecondary,
+		},
+		label: {
+			marginTop: 12,
+			fontSize: 13,
+			color: c.textSecondary,
+		},
+		input: {
+			marginTop: 6,
+			// 複数行入力なので高さの下限は残す
+			minHeight: 72,
+			// #1375（5 巡目・デザインレビュー #11）②③ の検索欄と同じ寸法へ。
+			// r8 / 枠 #E5E7EB / 縦 10 / 14pt だったため、同じ縦並びで高さが 44 と 56 に割れていた
+			borderWidth: 1,
+			borderColor: c.border,
+			borderRadius: 16,
+			paddingHorizontal: 16,
+			paddingVertical: 16,
+			fontSize: 16,
+			color: c.textPrimary,
+			textAlignVertical: "top",
+		},
+		resolveButton: {
+			marginTop: 16,
+		},
+		// 固定中の URL。押しても編集できないことが «見て» 分かるように地を沈める
+		inputLocked: {
+			backgroundColor: c.surfaceSubtle,
+			color: c.textSecondary,
+		},
+		saveButton: {
+			marginTop: 20,
+		},
+		spinner: {
+			marginTop: 16,
+		},
+		providerRow: {
+			marginTop: 20,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+		},
+		provider: {
+			fontSize: 14,
+			fontWeight: "700",
+			color: c.brand,
+		},
+		captionToggle: {
+			marginTop: 4,
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.textSecondary,
+		},
+		metaTitle: {
+			marginTop: 4,
+			fontSize: 14,
+			lineHeight: 20,
+			color: c.textSecondaryStrong,
+		},
+		sectionTitle: {
+			marginTop: 20,
+			fontSize: 14,
+			fontWeight: "700",
+			color: c.textPrimary,
+		},
+		searchInput: {
+			marginTop: 8,
+			borderWidth: 1,
+			borderColor: c.borderMuted,
+			borderRadius: 8,
+			paddingHorizontal: 12,
+			paddingVertical: 10,
+			fontSize: 14,
+			color: c.textPrimaryAlt,
+		},
+		selectedValue: {
+			marginTop: 8,
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.brand,
+		},
+		// #1375 ② の店名検索（RestaurantNameSearch）と **同じ寸法**にすること。
+		// 角丸 16 / 縦 padding 16 / 文字 16pt が揃っていないと «幅と高さが不揃い» に見える
+		searchField: {
+			marginTop: 8,
+			flexDirection: "row",
+			alignItems: "center",
+			borderRadius: 16,
+			backgroundColor: c.surface,
+			borderWidth: 1,
+			borderColor: c.border,
+		},
+		searchFieldIcon: {
+			marginLeft: 16,
+		},
+		searchFieldInput: {
+			flex: 1,
+			paddingHorizontal: 12,
+			paddingVertical: 16,
+			fontSize: 16,
+			color: c.textPrimary,
+		},
+		searchFieldInputSelected: {
+			fontWeight: "700",
+		},
+		searchFieldClear: {
+			padding: 12,
+		},
+		candidateRow: {
+			marginTop: 8,
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 6,
+		},
+		candidateChip: {
+			paddingHorizontal: 10,
+			paddingVertical: 5,
+			borderRadius: 14,
+			backgroundColor: c.surfaceSubtle,
+		},
+		candidateChipSelected: {
+			backgroundColor: c.brandTintAlt,
+		},
+		candidateLabel: {
+			fontSize: 12,
+			color: c.textSecondaryStrong,
+		},
+		candidateLabelSelected: {
+			color: c.brand,
+			fontWeight: "700",
+		},
+		chipRow: {
+			marginTop: 8,
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 8,
+		},
+		chip: {
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 16,
+			backgroundColor: c.surfaceSubtle,
+		},
+		chipSelected: {
+			backgroundColor: c.brandTintAlt,
+		},
+		chipLabel: {
+			fontSize: 13,
+			color: c.textSecondaryStrong,
+		},
+		chipLabelSelected: {
+			color: c.brand,
+			fontWeight: "700",
+		},
+		hint: {
+			marginTop: 12,
+			fontSize: 13,
+			lineHeight: 19,
+			color: c.textSecondary,
+		},
 	});

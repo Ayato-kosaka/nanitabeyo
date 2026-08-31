@@ -24,7 +24,18 @@
  * 通報したこと自体が端末を触れる人に見えてしまう。
  */
 import React, { useCallback, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+	KeyboardAvoidingView,
+	Modal,
+	Platform,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { Check, CircleCheck, Flag, X } from "lucide-react-native";
 
 import { useRouter } from "expo-router";
@@ -176,7 +187,14 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 			onRequestClose={handleClose}
 			// Android の戻るキー・iOS のスワイプでも状態が残らないよう handleClose に寄せる
 			accessibilityViewIsModal>
-			<View style={styles.backdrop}>
+			{/*
+				#1629 **`<Modal>` の中は親のキーボード回避が届かない。**
+				Modal はネイティブでは別ウィンドウとして描かれるので、画面側に
+				KeyboardAvoidingView を置いても中の入力欄は守られない。
+				さらに Android 15（API 35）は edge-to-edge 強制で adjustResize が
+				窓を縮めなくなるため、OS 任せの逃げ道も無い。ここに自前で持つ。
+				*/}
+			<KeyboardAvoidingView style={styles.backdrop} behavior={Platform.select({ ios: "padding", android: "height" })}>
 				{/* 背景タップで閉じる。送信中だけは閉じさせない（送信結果を見せる前に消さない） */}
 				<Pressable
 					style={styles.backdropTouchable}
@@ -266,7 +284,7 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 						</>
 					)}
 				</View>
-			</View>
+			</KeyboardAvoidingView>
 		</Modal>
 	);
 }
