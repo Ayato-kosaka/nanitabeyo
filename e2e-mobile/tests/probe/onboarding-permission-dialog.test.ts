@@ -28,6 +28,10 @@ import { OnboardingScreen } from "../../screens/OnboardingScreen";
  * 撮った絵は `e2e-mobile/artifacts/probe-location-permission-dialog.png` として Artifact に残る。
  * **修正前**: ダイアログの背後が無地 / **修正後**: 見出し・本文・ダミーダイアログが描かれている。
  *
+ * 実測（修正前 / run 33390685508、commit c675ac4）: 背後は**完全な無地**で、
+ * Detox も «There are enqueued timers» のまま 84 秒待って落ちた。
+ * ダイアログ表示中に JS のタイマーが止まる、という診断そのものがこのログにも出ている。
+ *
  * ⚠️ アサーションは «アプリが止まっている間の Detox» に頼らない。ダイアログが前面にある間は
  * Detox の同期機構が window focus を待って進めないため、判定はスクリーンショットで行う
  *（`.claude/skills/evidence-video/SKILL.md` の `has-window-focus=false` の項）。
@@ -67,10 +71,15 @@ describeProbe("#1736 位置情報の許可ダイアログの背後 @probe", () =
 		// ログインはスキップする。ログイン経由の «2 枚生える» 側（#1736 原因 1）は
 		// dev の frontend ログで確定しており、ここで見たいのは «背後の描画» だけ
 		await login.expectOpened();
+
+		// ⚠️ **スキップを押す前に同期を切る。** この 1 押下で許可画面へ進み、OS のダイアログが
+		// 出てアプリは paused になる。Detox は «enqueued timers» が捌けるのを待ち続けるので、
+		// 同期を入れたままだと tap の Promise が返らずタイムアウトする
+		//（run 33390685508 で実測: 84 秒待って失敗。**その瞬間の絵は撮れていた**）。
+		await device.disableSynchronization();
 		await login.skip();
 
-		// ここから先は Detox の API を呼ばない（許可ダイアログが前面に出るとアプリは
-		// paused になり、同期機構が進まなくなる）。素の setTimeout と adb だけで撮る
+		// ここから先は «アプリが止まっている» 前提で、素の setTimeout と adb だけで進める
 		await new Promise<void>((resolve) => setTimeout(resolve, 3_000));
 
 		const png = adb("exec-out", "screencap", "-p");
@@ -82,5 +91,6 @@ describeProbe("#1736 位置情報の許可ダイアログの背後 @probe", () =
 
 		// 撮り終えたらダイアログを閉じ、後続へ «開きっぱなし» を持ち越さない
 		adb("shell", "input", "keyevent", "KEYCODE_BACK");
+		await device.enableSynchronization();
 	});
 });
