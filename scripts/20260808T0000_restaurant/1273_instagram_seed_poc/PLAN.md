@@ -98,3 +98,20 @@
 - 直列バッチは遅く不可視だったので廃止。**5_1 を --shards 6 で並列** + 200件ごと逐次ロードに改修。
 - いま **shard 0..5 の6 run が並列稼働**（run_id=sns-2026-08-30, resolve_version=dev-2026-08-31-newdict）。resolved が18,560へ向けて増える。
 - **毎時ティック**: resolved 件数を見る。①まだ増加中なら待つ（直列バッチは追加dispatchしない＝二重防止）。②失敗/停止したシャードがあれば同じ --shard 引数で再dispatch（LEFT JOINでskip冪等）。③18,560到達で**測定**→オーナーへ報告。
+
+## BACKLOG（棚卸し 2026-08-31 09:50Z）— 責任者Claude・止めずに1つずつ進める
+優先度順。完了したら [x]、進行中は [~]。各周でここを見て次を出す。
+
+- [~] **B1 resolve店舗照合の磨き上げ**（agent稼働中）: カテゴリは12→70%済。残律速は「カテゴリ有・店無し56pt」。住所/地名抽出とmatchRestaurantNamesのrecall改善。(b)pg母数不足は別レバーとして数値化。
+- [~] **柱1 公式サイト→店IG 本番化**（agent稼働中）: 4_4_crawl_official_site_igs.py + 4_1 --source official_site_crawl。店固有〜6万店。完了後 db-script-run で本番投入（DB書込は承認込みで私が実行）。
+- [~] **柱2 handle拡張 第2周**（agent稼働中）: 572→720+→最終1000+。
+- [ ] **② resolve全量完了→地域×料理カバレッジ確定測定**（20分自己チェックで自動継続。18,560到達で7_1+132絞り集計→オーナー報告）。
+- [ ] **柱3 検索**: out/cell_queries.tsv(2412) を Serper無料枠で。**カバレッジの穴（132×都道府県で未充足セル）に絞って**使う（無料枠~2500の一撃なので測定後に穴を特定してから）。
+- [ ] **pg母数のレバー**: restaurant_catalog 621k のうち pg dev に居る分だけが matched になる。B1の(b)実測後、pg dev への店同期が要るなら **DB変更サブIssue+承認** で提案（オーナー判断）。
+- [ ] **恒久自走版②**: GitHub側で resolve→集計まで回り続ける形（私のセッション非依存）。オーナー合図で着手。
+- [ ] **柱2 深掘り**: business_discovery を 50投稿/人 から増やす（今回50で18,560。深めれば投稿増だが距離店は飽和気味）。カバレッジ測定後に費用対効果で判断。
+
+### 運用ルール（このループの不変則）
+- SELECTは execute_sql_readonly のみ（execute_sqlは書込で承認が出る）。1GB超のスキャンだけ確認。
+- 並列は Agent(worktree) と GitHub Actions(db-script-run.yml, 並列は concurrency_group_suffix -xxx)。
+- 各周「必ず次の一手を出す」。意味ある変化だけオーナーへ1-2行。有料はオーナーが言うまで出さない。
