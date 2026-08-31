@@ -186,3 +186,9 @@
   - (b) 既知店×カテゴリ解決(pg同期で使える潜在産出): `WITH l AS (SELECT provider,post_id,status,dish_category_id,ROW_NUMBER()OVER(PARTITION BY provider,post_id ORDER BY resolved_at DESC)rn FROM restaurant_recommendation.sns_post_resolved WHERE run_id='sns-2026-08-31') SELECT COUNTIF(l.status IN('matched','skipped_no_store')AND l.dish_category_id IS NOT NULL)usable_posts,COUNT(DISTINCT IF(l.status IN('matched','skipped_no_store')AND l.dish_category_id IS NOT NULL,raw.discovery_seed_place_id,NULL))usable_known_stores FROM l JOIN restaurant_recommendation.sns_post_raw raw ON raw.run_id='sns-2026-08-31'AND raw.provider=l.provider AND raw.post_id=l.post_id WHERE l.rn=1`
   - status内訳・cat=0率（＝柱1のカテゴリrecall磨き対象）・柱1新規異なり店(sns-2026-08-30に無い)も。
 - 完了・(a)(b)が出たら §1 6項目でオーナーへ。(b)が大きければ pg母数同期を選択肢提示。
+
+## ⚠️ 20:15Z 発見: dev API が 15:17Z 以降 main で稼働＝私の resolve 改善が効いていない
+- api-deploy 履歴: run 327(main, 15:17Z)・run 328(main, 16:30Z)が dev を main で再デプロイ。**私の branch の dev デプロイは run 326(10:33Z)が最後**。#1691 は未マージなので、dev は 15:17Z 以降 **辞書修正(buildJapaneseLabelVariants / findAllCategoryLabelsForMatching / DISH_CATEGORY_JA_LABEL_SYNONYMS)を持たない main の resolve** を走らせている（変数インデックスは6h TTLだが再デプロイでプロセス再起動→キャッシュ消失→main版で再ロード）。別ワークストリーム(#1641)が import 400 対策で dev を main から再デプロイし続けている＝**共有 dev の奪い合い**。
+- 影響: **柱1 の 5_1(20:10Z起動) は辞書修正なしで解決**＝カテゴリ recall が ~6pp + 24カテゴリ分 過小。ただし (b) の usable_known_stores は «店の~29投稿のどれか1つが常用料理に当たれば店として数える» ので degraded でも頑健＝下限として有効。store-matching 改善は柱1では不要(店は既知)。
+- 対応方針（deploy 戦争はしない）: 5_1 は下限測定として完走させる。**正確な柱1測定と両ワークストリーム双方の利益のため «resolve 改善(API差分)を main へ載せる» はオーナー【判断】**（#1691 全体=56k行PoCは不適、API差分だけの focused PR 抽出＋マージが要る）。22:00 測定チェックで cat=0 実率を見て過小度を実測し、報告に caveat を添える。
+- **未解決台帳へ**: 「共有 dev の deploy 競合（#1273 resolve改善 vs #1641 main）＝どの resolve を dev の正にするか」オーナー判断待ち。
