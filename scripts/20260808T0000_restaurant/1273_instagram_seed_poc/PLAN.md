@@ -241,3 +241,14 @@
 - **やめること**: pg狙いの全量再resolveは無意味＝しない。追加pg同期も不要（母数十分）。
 - **戻す方針（loop B）**: (a)場所抽出の底上げ（駅名/地名/市区町村geocodeをexact-matchで安全に。以前の駅名調査を活かす）、(b)店名照合recall。**オフラインで実キャプション(infl_captions.jsonl等)に対し測定→改善→dev反映→再resolveでリフト測定**。DB負荷小。
 - **柱1の価値は不変**: «既知店×カテゴリ» は resolve照合に依存しない（店IDはcrawl既知）ので、pg母数とは別に seedable。柱1のdish_media化はresolve照合ではなく直接 discovery_seed_place_id を使う設計にすればよい（別途）。
+
+## 進捗更新 2026-09-01 03:12Z（真の律速を精緻化: 実キャプション12本）
+- searched/rst=0（=場所は取れたが店0）の実キャプション12本を fetch。多くが **【店名】＋【住所】をフル記載**（matome系: wakayama_lunch_dinner 等）なのに resolve は候補0＝**明白な recall 失敗**。
+- restaurant_catalog(621k) 突合: **KORI庵 は catalog に在る**（住所 和歌山県和歌山市東鍛冶屋町19）のに rst=0。キャプションの住所は **異体字「鍜」(catalogは「鍛」)** ＝ geocode が外れて近傍に出ない疑い＝**resolveのgeocode/正規化 recall バグ（私が直せる）**。
+- 一方 すながわ製麺所・TRAIL HUT・元祖博多だるま・HIYORI WASANBON・perotto・ブレーメン は **catalog に無い**（7中6）＝ **restaurant_catalog の網羅性が足りない**（＝pg-syncではなく catalog 母集団自体。#843/#1706 の領分）。
+- **精緻化した律速マップ**（matched を縛るもの）:
+  1. resolve **場所抽出**（area_not_provided 51%）… 私が直す（loop B）。
+  2. resolve **geocode/店名照合 recall**（catalogに在るのに0＝KORI庵型・異体字/正規化）… 私が直す（loop B）。
+  3. **restaurant_catalog の網羅性**（そもそも catalog に無い店）… #843/#1706（別WS・私の領分外）。
+- pg-sync は無関係（pg=catalog全量）で確定。
+- **私の次手（loop B・DB負荷小）**: ①住所正規化を NFKC＋異体字吸収（鍜↔鍛等）して geocode 命中を上げる ②【住所】ラベルの市区町村住所抽出の取りこぼし確認 ③店名照合recall。オフラインで実キャプションに測って改善→dev反映→再resolveでリフト測定。
