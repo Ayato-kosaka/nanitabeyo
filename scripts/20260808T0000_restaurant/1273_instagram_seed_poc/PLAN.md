@@ -305,3 +305,9 @@
 - [x] batch #2完了: p1fix 7,000→**11,000**, matched **570**(+112, この4kスライスは2.8%＝柱1の告知比率が後半ほど高い)。
 - [~] batch #3 dispatch（**limit 8500＝残 8,396 を全量**, 単一シャード・sleep 200ms, 22:40 JST 深夜off-peak, ~100分）。完了で `sns-2026-08-31`(19,396) の resolve が全量終わる。
 - **次tick**: 全量 drain 確認→**47×134 全国カバレッジを算定**（matched place_id→都道府県 [restaurant_catalog.address] × dish_category_id QID→134 app ラベル）。旧ベースライン(793セル12.6% 等)と比較して増分を出し、**オーナーへ完了報告（6項目）**。
+
+## 進捗更新 2026-09-01 18:12Z（柱1 backlog ~85%消化→残2,996をdrain中・カバレッジは7_1/7_2で確定へ）
+- **状態（03:11 JST 深夜off-peak）**: `sns-2026-08-31` resolve = **16,400/19,396（85%）**, matched **848**, 残 **2,996**。batch #3 は 5,400 で停止（8,500要求・GH Actions 側で途中終了と推定）。
+- [~] **最終 drain batch dispatch**（limit 3000＝残2,996, 単一シャード・sleep200ms, 深夜off-peak）。完了で全量 resolve。
+- **カバレッジは canonical で出す**: 自作の read-only 集計は catalog_run_id 未指定で join が部分的（matched 848 中 462 しか catalog 住所に当たらず）＝当てにならない。→ drain 完了後に **7_1_build_coverage（sns_coverage 生成, 最新 catalog_run_id で住所解決）→ 7_2_report_funnel** を db-script-run で回し、旧ベースライン(793セル12.6%)と比較できる公式値を出す。
+- **次tick**: ①drain 完了確認（全量 resolve）②7_1→7_2 実行 ③funnel＋47×134カバレッジ増分を **オーナーへ6項目報告**（今セッション初の定量成果＝柱1 backlog を coverage に変換）。
