@@ -334,3 +334,8 @@
   2. **柱2 handle無限拡張**（harvest_influencer_handles）＝インフルは実料理×多地域で質が高い。413→拡張して薄い県のインフルを足す。
   3. 柱1残1,870は**grid寄与小につき後回し**（bulk resolveがgridを動かさないのは実証済）。
 - **不変則**: 収集(4_2/4_3/Serper)はIG/BQのみでdev pg非依存＝安全。resolveだけがoff-peak対象。
+
+## 進捗更新 2026-09-01 21:15Z（柱3 Serper 小バッチ検証を dispatch）
+- cell_queries.tsv は git-tracked＋薄い県retarget済（「あじの開き 長野市」…）＝runnerで読める。Serper無料枠は未使用（柱3投稿0）で温存。
+- [~] **柱3検証 dispatch**: 4_3 `--run-id sns-2026-09-01-cell --max-queries 20 --num 20`（Serper+BQのみ＝安全）。~5分。
+- **次tick**: sns_post_raw の run `sns-2026-09-01-cell`(discovery_route=hashtag_search) に投稿が入ったか確認。①入った→配管OK→全量(--max-queries 2412 相当)を1回で流し薄い県のセルを埋める→off-peakでresolve。②0件/error→4_3を切り分け(Serperレスポンス形/正規表現)。
