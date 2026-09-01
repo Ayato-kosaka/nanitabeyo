@@ -275,3 +275,12 @@
 - **安全性の根拠**: 誤抽出は «候補0» にしかならない（matchRestaurantNames がキャプション本文に店名が出るか再確認する＝誤 prefill しない）。純粋な additive。
 - **残（実測リフト・オフピーク限定）**: dev へ反映（api-deploy target=development を **ref=poc ブランチ**で dispatch＝checkout が ref を引くので main を汚さず測れる）→ 新版 `dev-2026-09-01-namefirst` で area_not_provided/no_store 標本を**オフピーク（JST深夜=15:00Z以降）・控えめ**に再resolve→ matched リフト測定。効けば focused PR を main へ＋オーナー6項目報告。効かなければ棄却＋1行FYI。
 - **interim ティック（〜15:00Z, 日中）**: DB叩く再resolveはしない。BQのみの柱1 crawl / 柱2 harvest / 状況確認に充てる。名前先レバーの実測は off-peak で。
+
+## 進捗更新 2026-09-01 06:45Z（★loop B 結論: resolve の 2 レバーは実測で両方とも死。律速は catalog 網羅性）
+- **name-first を BQ で実測（共有dev API を触らず・read-only）**: restaurant_catalog(621k) は BQ にも在る（`restaurant_recommendation.restaurant_catalog`）。住所無しキャプションから抜いた «店名＋市区町村» 60 組を、市区町村中心を GSI 座標化して **catalog を 12km 圏 × 店名一致** で join。
+  - **resolve 忠実方向（catalog.name が店名を含む＝`ILIKE '%店名%'`）で一致したのは 60 組中 1（aossa→"Yutori Coffee AOSSA"）。緩い双方向でも 4。** ≒ **matched リフト 0.06%（忠実）〜0.2%（緩）＝ほぼ 0**。
+  - 抽出自体もノイズが多い（📍/【】がイベント見出し・地域名＝柱2はまとめ投稿が多い）。ただし誤抽出は候補0にしかならず無害（設計どおり）。
+- **確定**: 私が持つ resolve 精度レバーは **異体字/geocode（0 リフト・棄却済み）** と **name-first（≒0 リフト）** の 2 つとも死。**matched を縛るのは restaurant_catalog の網羅性（＝#843/#1706 の領分・私の外）**で確定。resolve 磨き上げ（loop B）は頭打ち。
+- [x] **name-first 実装を revert**（3ファイルを aaf6774 の緑状態へ戻した）。≒0 リフトのために resolve の DB クエリを増やすのは（障害の反省からも）割に合わない。純関数＋specも残さない。
+- **戦略ピボット**: 私が動かせる律速は **量（loop A の発見）** のみ＝より多くの投稿を取れば «catalog に在る店» に当たる母数が増える。以後は loop A（柱1 crawl=BQのみ／柱2 harvest／柱3 Serper）に寄せる。catalog 母数の底上げは #843 の領分（提案はするが実行はしない）。
+- **オーナーへ**: loop B は頭打ちと判明したので、合意していた «resolve 磨き上げ» の方針転換を 1 行で伝える（下記 FYI）。
