@@ -115,14 +115,54 @@ export const EXTERNAL_EMBED_YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w
 export const EXTERNAL_EMBED_YOUTUBE_BOT_CHECKED_URL = "https://www.youtube.com/shorts/8KJDwppL0qg";
 
 /**
- * 料理カテゴリの予備。**`resolve` の候補だけでは席が足りないときに使う。**
+ * 🔒 **投稿ごとの料理カテゴリを固定する表**（#1641）
  *
- * お店フィードは «料理 1 件につき 1 本» しか返さないので、取り込む本数ぶんの
- * 料理カテゴリが要る。`resolve` が返すのは 5 種類で、既に別の投稿が代表している
- * カテゴリはそのぶん使えない。ここは **実際に別の投稿の resolve が返した ID** で、
- * dev の `dish_categories` に存在することを確認済み（2026-08-28）。
+ * ## なぜ固定するのか — 実測で «毎回増えていた»
+ *
+ * 以前は «どの投稿をどの料理へ入れるか» を実行のたびにサーバの状態から決め直していた。
+ * その結果、dev には **同じ投稿の行が積み上がっていた**
+ * （`scripts/db-checks/audit_e2e_external_embed_rows.py` / run 33454802552 実測）:
+ *
+ *     tiktok    7588462458633735445  生存 4 行   ← 08-28 に 3 つ、08-31 にもう 1 つ
+ *     instagram DZFdePPzzLI          生存 2 行
+ *     instagram CDg3owdFa6W          生存 2 行
+ *     youtube   dQw4w9WgXcQ          生存 2 行
+ *     youtube   8KJDwppL0qg          生存 2 行
+ *
+ * さらに **1 つの料理（dish 2de719c4 / Q1365868）に 5 本の埋め込みが相乗り**していた。
+ *
+ * 崩れていたのは «再利用» の判定である。判定材料が 2 つとも実行ごとに動く:
+ *
+ * - **候補プール**は `resolve` が返す料理カテゴリ（サーバ側の並びが変わる）
+ * - **占有状況**は `GET /v1/restaurants/:id/dish-media` で、この API は
+ *   **«各料理につき、いいね数が最大の 1 件» しか返さない**
+ *   （`ROW_NUMBER() OVER (PARTITION BY dish_id ...) WHERE rn = 1`）
+ *
+ * どちらかがずれた瞬間に «前回の割り当て» を見失い、空いている別の料理へもう 1 行作る。
+ * 一意制約は `(provider, external_content_id, dish_id)` なので、dish が違えば止まらない。
+ * しかも増えた行がさらに «見えない相乗り» を生むので、**放っておくと増え続ける**。
+ *
+ * ## 直し方
+ *
+ * **サーバの状態を一切参照せずに、投稿 → 料理カテゴリを固定する。**
+ * `create` は `(provider, external_content_id, dish)` で冪等なので、
+ * 割り当てが動かない限り 2 回目以降は 1 行も増えない。
+ *
+ * ここに書いた ID は、上の棚卸しで **その投稿だけが入っている料理**として実在を確認済み
+ * （2026-09-01 / dev）。したがって初回から新しい行を作らない。
+ *
+ * ⚠️ **値を «空いていそうな ID» で書き換えないこと。** 相乗りしている料理を指すと、
+ *    お店フィードは 1 件しか返さないのでこちらのセルが隠れ、
+ *    spec は «アプリが再生できない» と誤読する。変えるときは棚卸しを回してから。
+ * ⚠️ 取り込む URL を増やしたら、**この表にも 1 行足すこと**（足さないと下で落ちる）。
  */
-const EXTRA_DISH_CATEGORY_IDS = ["Q41415"];
+const DISH_CATEGORY_BY_URL: Readonly<Record<string, string>> = Object.freeze({
+	[EXTERNAL_EMBED_IMPORT_URL]: "Q1204605",
+	[EXTERNAL_EMBED_PLAYABLE_URL]: "Q17605220",
+	[EXTERNAL_EMBED_TIKTOK_URL]: "Q11391553",
+	[EXTERNAL_EMBED_YOUTUBE_URL]: "Q753910",
+	[EXTERNAL_EMBED_YOUTUBE_BOT_CHECKED_URL]: "Q41415",
+});
 
 type FeedResponse = {
 	data?: {
@@ -232,7 +272,7 @@ export async function ensureExternalEmbedImported(
 	};
 
 	/*
-	#1641 ⚠️ **料理カテゴリを取り込みごとに分ける。ここを揃えると、フィードには 1 本しか出ない。**
+	#1641 ⚠️ **料理カテゴリは表（`DISH_CATEGORY_BY_URL`）で固定する。サーバの状態から決め直さない。**
 
 	お店フィード（`GET /v1/restaurants/:id/dish-media`）は
 	**«各料理につき、いいね数が最大の 1 件» しか返さない**
@@ -244,21 +284,11 @@ export async function ensureExternalEmbedImported(
 	実測（run 33146739657）: 4 本取り込んだのにフィードは 2 件、`nextCursor` も null。
 	spec は «TikTok のセルへ一度も着けなかった» と報告したが、**そもそもフィードに無かった**。
 
-	⚠️ **空いているカテゴリへ機械的に配ってもいけない**（run 33148355770 で踏んだ）。
-	   そのカテゴリを **別の投稿が既に代表している**と、こちらの取り込みは隠れたままになる。
-	   «既にその投稿が代表しているカテゴリ» を最優先で再利用し、無ければ空きを取る。
-	   こうすると 2 回目以降は同じ割り当てに落ち着き、行も増えない（create は冪等）。
+	⚠️ **以前はここで «空いているカテゴリ» を実行のたびに選び直していた。それが行を増やしていた。**
+	   判定材料（`resolve` の候補の並び / フィードの代表 1 件）が両方とも実行ごとに動くため、
+	   前回の割り当てを見失って別の料理へもう 1 行作る。実測で tiktok が 4 行、
+	   1 つの料理に 5 本相乗り（run 33454802552）。経緯は `DISH_CATEGORY_BY_URL` の注記にある。
 	*/
-	const pool = [
-		...new Set(
-			[
-				dishCategoryId,
-				...(candidates?.dishCategories ?? []).map((c) => c?.dishCategoryId),
-				...EXTRA_DISH_CATEGORY_IDS,
-			].filter((id): id is string => typeof id === "string" && id.length > 0),
-		),
-	];
-
 	const readFeed = async (): Promise<Map<string, string>> => {
 		const response = await fetch(`${base}/v1/restaurants/${restaurantId}/dish-media?languageTag=ja-JP`, {
 			headers,
@@ -293,41 +323,46 @@ export async function ensureExternalEmbedImported(
 	};
 
 	/*
-	取り込みたいもの。**必須のものを先に並べる。**
-	provider ごとの «アプリ内で再生できるか» が spec の合否なので、3 provider は必須。
-	権利ブロックのリールは «縮退の絵» を撮るためのおまけで、席が足りなければ諦める。
+	取り込みたいもの。**それぞれ専用の料理カテゴリを持つ**（`DISH_CATEGORY_BY_URL`）ので、
+	«席の取り合い» は起きない。以前あった `required`（席が足りなければ諦める）は、
+	席という概念ごと無くなったので削除した。
 	*/
-	const wanted: { url: string; required: boolean }[] = [];
-	if (options.alsoImportPlayable) wanted.push({ url: EXTERNAL_EMBED_PLAYABLE_URL, required: true });
+	const wanted: string[] = [];
+	if (options.alsoImportPlayable) wanted.push(EXTERNAL_EMBED_PLAYABLE_URL);
 	if (options.alsoImportOtherProviders) {
-		wanted.push({ url: EXTERNAL_EMBED_TIKTOK_URL, required: true });
-		wanted.push({ url: EXTERNAL_EMBED_YOUTUBE_URL, required: true });
+		wanted.push(EXTERNAL_EMBED_TIKTOK_URL);
+		wanted.push(EXTERNAL_EMBED_YOUTUBE_URL);
 	}
 	if (options.alsoImportUnplayable) {
-		wanted.push({ url: EXTERNAL_EMBED_YOUTUBE_BOT_CHECKED_URL, required: false });
+		wanted.push(EXTERNAL_EMBED_YOUTUBE_BOT_CHECKED_URL);
 	}
-	wanted.push({ url: EXTERNAL_EMBED_IMPORT_URL, required: !options.alsoImportOtherProviders });
+	wanted.push(EXTERNAL_EMBED_IMPORT_URL);
 
-	const occupied = await readFeed();
-	const taken = new Set<string>();
-	const plan: { url: string; categoryId: string }[] = [];
-	for (const item of wanted) {
-		const contentId = externalContentIdOf(item.url);
-		const mine = pool.find((id) => !taken.has(id) && contentId !== null && occupied.get(id) === contentId);
-		const free = pool.find((id) => !taken.has(id) && !occupied.has(id));
-		const categoryId = mine ?? free;
+	const plan = wanted.map((url) => {
+		const categoryId = DISH_CATEGORY_BY_URL[url];
 		if (!categoryId) {
-			if (item.required) {
-				throw new Error(
-					`${item.url} を入れる料理カテゴリが空いていません（候補 ${pool.length} 種類 / 使用中 ${occupied.size} 種類）。` +
-						" お店フィードは «各料理につき 1 件» しか返さないので、別の投稿が代表しているカテゴリへ入れても隠れてしまいます。",
-				);
-			}
-			continue;
+			/*
+			表に無い URL は **黙って飛ばさない**。飛ばすと «素材が足りない» 状態のまま spec が回り、
+			アプリの不具合として読み違える。取り込む URL を増やしたら表にも足すこと。
+			*/
+			throw new Error(
+				`${url} の料理カテゴリが DISH_CATEGORY_BY_URL に登録されていません。` +
+					" 取り込む URL を増やしたら、同じファイルの表にも 1 行足してください" +
+					"（サーバの状態から選び直すと、同じ投稿の行が実行のたびに増えます）。",
+			);
 		}
-		taken.add(categoryId);
-		plan.push({ url: item.url, categoryId });
-	}
+		return { url, categoryId };
+	});
+
+	/*
+	#1641 **解決した店を run のログへ残す。**
+
+	料理カテゴリは固定表で決め打つが、**店はキャプションのジオコーディングで毎回決まる**。
+	店が変われば (restaurant, category) の料理も変わり、固定表があっても新しい行が 1 セット作られる。
+	増え方を後から追えるように、どの店に入れたのかをここで書き出しておく。
+	*/
+	// eslint-disable-next-line no-console -- run のログへ残すことが目的
+	console.log(`[import] restaurantId=${restaurantId} / ${plan.length} 本を固定の料理カテゴリへ取り込みます`);
 
 	for (const { url, categoryId } of plan) {
 		await create(url, categoryId);
