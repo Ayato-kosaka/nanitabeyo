@@ -440,6 +440,7 @@ bash tests/test_9_1_work_table.sh            # 作業表が対象を取りこぼ
 bash tests/test_log_db_load.sh               # 負荷の計測が本処理を殺さない（2項目）
 bash tests/test_db_pressure_guard.sh         # 他人を止めていたら降りる（2項目）
 bash tests/test_verify_sync_invariant.sh     # 同期後の検査が «壊れたときだけ» 赤くなる（4項目）
+bash tests/test_9_9_clear_user_row_hash.sh   # 古い row_hash の掃除が対象だけを消す（4項目）
 bash tests/test_pg_connect_survives_rollback.sh  # rollback で dev→public に化けない（6項目）
 ```
 
@@ -670,9 +671,30 @@ dry run も実 DML と制約検査をトランザクション内で行い、最�
 
 ### 6. 本適用
 
+**初回は分割 commit を使う。**
+
 ```text
-9_1_sync_restaurants.py --run-id restaurant-2026-08-23 --schema public --allow-public
+9_1_sync_restaurants.py --run-id restaurant-2026-08-23 --schema public --allow-public \
+  --commit-every-chunks 10
 ```
+
+初回は 62 万行の INSERT と 136 万行のリンク投入があり、1 トランザクションでは
+長すぎる。`--commit-every-chunks N` は作業表を N 個に分け、1 個ごとに commit する。
+
+| | 得るもの | 失うもの |
+| --- | --- | --- |
+| 分割する | 1 回あたりが短い。回と回の間で «他人が困っているか» を見て降りられる | **«全部か無か» ではなくなる** |
+| 分割しない | 失敗すれば丸ごと巻き戻る | 初回は 1 トランザクションが長くなりすぎる |
+
+**途中で落ちても壊れない。** 残るのは «正しく同期された行» であって中途半端な行
+ではない（回の内側は 1 トランザクション）。同期は冪等なので、**そのまま流し直せば
+よい**——作業表は «やることがある行» だけを集めるので、済んだ回の行は次回そもそも
+入らない。
+
+2 回目以降は作業表が数千行なので、分ける必要は無い（`--commit-every-chunks` を
+付けない）。
+
+⚠️ `--dry-run` とは併用できない（巻き戻す前提と両立しないため、指定すると落ちる）。
 
 実行前に `public.restaurants` を GCS へ backup する（失敗したら同期しない）。
 BigQuery に無い PostgreSQL の行は**削除しない**。
