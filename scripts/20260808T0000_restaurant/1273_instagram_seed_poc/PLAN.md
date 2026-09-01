@@ -265,3 +265,13 @@
   - 残りは restaurant_catalog 網羅性（#843領分）。
 - **次tick（実装・DB負荷小）**: sns-address に `extractStoreName`（📍/【】）＋ «市区町村だけ geocode して広め半径で area を張る» フォールバックを足し、既存 `searchNearbyRestaurants(q=店名)` に載せる。**地域語が取れた時だけ**張る（全件走査しない）。オフラインで139本の回収率を測り、効くなら dev反映→新版で再resolveしてmatchedリフト測定。効かなければ棄却して報告。
 - **オーナー報告はしない**（matchedリフト未確定。レバー選別は内部の磨き上げ工程）。
+
+## 進捗更新 2026-09-01 05:35Z（loop B: name-first フォールバックを実装・緑・commit済み）
+- [~] **実装完了・ローカル全緑**（commit 28c0c3b, branch poc）:
+  - `sns-address.ts`: `extractStoreName`（📍/【店名】/店名ラベル、ふりがな括弧除去、📍住所/アクセスは店名扱いしない）＋ `extractCoarseArea`（都道府県+市区町村 / 市区町村単独、「楽天市場」型の偽陽性ガード）。
+  - `dish-media-imports.service.ts`: フル住所(地番)が取れない時、店名+市区町村なら**市区町村中心12km で店名一致(q)だけ**を引くフォールバック（`nameQueryOnly`。q なし一覧は張らない＝粗い地点で無関係店を入れない）。author_name に加えキャプション本文の店名も q に。
+  - **DB安全**: 地域スコープ必須→ 621k 全件 ILIKE を回避。地域 or 店名が取れなければ従来どおり縮退（純増）。**設計不変**（interface 不変）。
+  - specs: sns-address 22 緑 / service 42 緑 / tsc clean。
+- **安全性の根拠**: 誤抽出は «候補0» にしかならない（matchRestaurantNames がキャプション本文に店名が出るか再確認する＝誤 prefill しない）。純粋な additive。
+- **残（実測リフト・オフピーク限定）**: dev へ反映（api-deploy target=development を **ref=poc ブランチ**で dispatch＝checkout が ref を引くので main を汚さず測れる）→ 新版 `dev-2026-09-01-namefirst` で area_not_provided/no_store 標本を**オフピーク（JST深夜=15:00Z以降）・控えめ**に再resolve→ matched リフト測定。効けば focused PR を main へ＋オーナー6項目報告。効かなければ棄却＋1行FYI。
+- **interim ティック（〜15:00Z, 日中）**: DB叩く再resolveはしない。BQのみの柱1 crawl / 柱2 harvest / 状況確認に充てる。名前先レバーの実測は off-peak で。
