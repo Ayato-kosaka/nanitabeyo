@@ -54,21 +54,52 @@ def main() -> None:
             )
             LOGGER.info("restaurants（created_by_source 別）")
             LOGGER.info("  %-10s %8s %8s %8s %8s %8s", "source", "行数", "住所", "国", "seed", "名前配列")
-            user_with_values = 0
             for src, total, addr, cc, seed, names in cursor.fetchall():
                 LOGGER.info("  %-10s %8d %8d %8d %8d %8d", src, total, addr, cc, seed, names)
-                if src != "pipeline":
-                    user_with_values += addr + cc
 
-            # ★ ここが本題。アプリ製の行に catalog の値が入っていたらガードが破れている。
-            if user_with_values:
+            # #1706 **«アプリ製の行に値が入っていたら異常» という検査はもう成り立たない。**
+            #
+            # かつてはそれで良かった。同期がアプリ製の行に一切触らなかったからである。
+            # いまは **オーナー承認のうえで 2 つだけ意図的に埋めている**。
+            #
+            #   ・address     … catalog にあってアプリ製の行が **NULL のときだけ**埋める（1-a）
+            #   ・country_code … その行自身の address_components から埋める（9_9 の backfill）
+            #
+            # そのため «件数が 0 か» で判定すると、**正しい振る舞いで赤くなる**。
+            # 赤いのが常態になった検査は、そのうち誰も読まなくなる。
+            #
+            # 見るべきは «値があるか» ではなく **«ユーザーのものが catalog のもので
+            # 潰されていないか»** である。次の 2 つはコードが不変条件として守っている
+            # ので、破れていれば本当に事故である。
+            cursor.execute(
+                """
+                SELECT
+                  -- 同期は pipeline の行にしか row_hash を刻まない。アプリ製の行に
+                  -- 付いていたら、その行は «同期の管理下» に入ってしまっている
+                  COUNT(*) FILTER (WHERE source_row_hash IS NOT NULL)          AS hashed,
+                  -- catalog の image_url は全行 空文字。アプリ製の行が空になって
+                  -- いたら、表示値 UPDATE がアプリ製の行を掴んだということ
+                  COUNT(*) FILTER (WHERE NULLIF(btrim(image_url), '') IS NULL) AS blanked_image
+                FROM restaurants
+                WHERE created_by_source <> 'pipeline'
+                """
+            )
+            hashed, blanked_image = cursor.fetchone()
+            if hashed or blanked_image:
                 LOGGER.error(
-                    "❌ pipeline 以外の行に address/country_code が %d 件入っています。"
-                    "値 UPDATE のガードが効いていません",
-                    user_with_values,
+                    "❌ アプリ製の行が同期に踏まれています: row_hash 付き %d 件 / "
+                    "画像が空になった行 %d 件",
+                    hashed, blanked_image,
                 )
             else:
-                LOGGER.info("✅ アプリ製の行に catalog の値は 1 件も入っていない（ガードが効いている）")
+                LOGGER.info(
+                    "✅ アプリ製の行は同期に踏まれていない"
+                    "（row_hash 0 件 / 画像が空になった行 0 件）"
+                )
+                LOGGER.info(
+                    "   ※ 住所と国コードは **意図的に穴埋めしている**ので、"
+                    "件数があるのが正常（#1706 の 1-a）"
+                )
 
             cursor.execute(
                 "SELECT kind, COUNT(*), COUNT(DISTINCT restaurant_id) FROM restaurant_links GROUP BY 1 ORDER BY 2 DESC"
