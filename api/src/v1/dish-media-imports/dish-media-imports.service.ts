@@ -53,6 +53,8 @@ import { matchRestaurantNames } from '../../../../shared/utils/restaurantNameMat
 import type { ExtractedText } from '../../../../shared/utils/textNormalize';
 import {
   extractPostalAddress,
+  extractCoarseArea,
+  extractStoreName,
   parseGsiAddressSearchResponse,
   type GeocodedPoint,
 } from './sns-address';
@@ -105,6 +107,16 @@ const DEFAULT_CANDIDATE_LIMIT = 5;
  * 指しているので狭くてよい。
  */
 const CAPTION_ADDRESS_RADIUS_M = 1_000;
+
+/**
+ * #1273 loop B: フル住所（地番）が無く «店名 + 市区町村» だけのときに、市区町村の中心から
+ * 張る検索半径（m）。
+ *
+ * 市区町村中心は地番より粗い（政令市なら数 km ずれる）ので広めに取るが、この地点では
+ * **店名一致（q=店名）でしか引かない**（q なしの一覧は取らない）ので、広くても «その名前の店»
+ * しか候補にならず、DB も PostGIS + name ILIKE + LIMIT で有界。全県ではなく市区町村なので 12km で十分。
+ */
+const CAPTION_CITY_RADIUS_M = 12_000;
 
 /**
  * 外部サムネイルを取りにいってよい CDN ホスト（provider 別）。
@@ -850,6 +862,9 @@ export class DishMediaImportsService {
       lng: number;
       radius: number;
       orderByDistance?: boolean;
+      // #1273 loop B: この地点は «店名一致» でしか引かない（q なしの一覧を取らない）。
+      // 市区町村中心のような粗い地点で、無関係な近傍店を大量に入れないため。
+      nameQueryOnly?: boolean;
     }[] = [];
     if (provided === 3) {
       searchAreas.push({
@@ -879,15 +894,39 @@ export class DishMediaImportsService {
     // 同じ理由で住所エリアの引きは入札額順ではなく **距離順**にする（指摘 #3。
     // 半径 1km に 100 件以上ある繁華街で、入札額 0 の個人店が落ちるのを防ぐ）
     const captionAddress = extractPostalAddress(texts);
+    let hasCaptionAddressArea = false;
     if (captionAddress !== null) {
       const geocoded = await this.geocodeCaptionAddress(captionAddress);
       if (geocoded !== null) {
+        hasCaptionAddressArea = true;
         searchAreas.unshift({
           lat: geocoded.lat,
           lng: geocoded.lng,
           radius: CAPTION_ADDRESS_RADIUS_M,
           orderByDistance: true,
         });
+      }
+    }
+
+    // #1273 loop B: フル住所（地番）が取れなかったとき（実測 1,798 本中 647 本＝住所が
+    // 書かれていない）でも、«📍/【店名】＋市区町村» の形は多い（実測: そのうち店名＋地域を
+    // 併記＝約 139 本）。市区町村を粗く座標化し、**その周辺で店名一致だけ**を引く。
+    // 地域スコープが付くので `restaurants.name ILIKE '%店名%'` を全件（621k）に走らせずに済む
+    // （＝共有 DB 保護。地域が取れないもの・店名が取れないものはここでは引かない）。
+    const captionStoreName = extractStoreName(texts);
+    if (!hasCaptionAddressArea && captionStoreName !== null) {
+      const coarseArea = extractCoarseArea(texts);
+      if (coarseArea !== null) {
+        const geocoded = await this.geocodeCaptionAddress(coarseArea);
+        if (geocoded !== null) {
+          searchAreas.unshift({
+            lat: geocoded.lat,
+            lng: geocoded.lng,
+            radius: CAPTION_CITY_RADIUS_M,
+            orderByDistance: true,
+            nameQueryOnly: true,
+          });
+        }
       }
     }
 
@@ -898,22 +937,36 @@ export class DishMediaImportsService {
     const rows = await this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
         const authorQuery = this.buildAuthorNameQuery(authorName);
+        // #1273 loop B: `author_name` に加えて **キャプション本文の店名**（📍/【店名】）も
+        // `q` に使う。両者は別物（author=アカウント名、店名=本文の店）で、どちらか一方しか
+        // 取れないことが多い。重複は除く（同じ文字列を 2 回引かない）。
+        const nameQueries = [
+          ...new Set(
+            [authorQuery, this.buildAuthorNameQuery(captionStoreName)].filter(
+              (q): q is string => q !== null,
+            ),
+          ),
+        ];
         const collected: Awaited<
           ReturnType<RestaurantsRepository['searchNearbyRestaurants']>
         > = [];
 
         for (const areaParams of searchAreas) {
-          collected.push(
-            ...(await this.restaurantsRepo.searchNearbyRestaurants(tx, {
-              ...areaParams,
-              limit: AREA_RESTAURANT_LIMIT,
-            })),
-          );
-          if (authorQuery !== null) {
+          // nameQueryOnly の地点（市区町村中心）では q なしの一覧は取らない
+          // （粗い地点で無関係な近傍店を大量に入れないため）。店名一致だけを引く。
+          if (!areaParams.nameQueryOnly) {
             collected.push(
               ...(await this.restaurantsRepo.searchNearbyRestaurants(tx, {
                 ...areaParams,
-                q: authorQuery,
+                limit: AREA_RESTAURANT_LIMIT,
+              })),
+            );
+          }
+          for (const q of nameQueries) {
+            collected.push(
+              ...(await this.restaurantsRepo.searchNearbyRestaurants(tx, {
+                ...areaParams,
+                q,
                 limit: AUTHOR_NAME_RESTAURANT_LIMIT,
               })),
             );

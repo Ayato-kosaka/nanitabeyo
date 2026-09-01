@@ -5,6 +5,8 @@
 
 import {
   extractPostalAddress,
+  extractCoarseArea,
+  extractStoreName,
   parseGsiAddressSearchResponse,
 } from './sns-address';
 
@@ -97,6 +99,71 @@ describe('extractPostalAddress', () => {
     expect(extractPostalAddress(text('名古屋市役所の近くのカフェ'))).toBeNull();
     // 「市内」「区内」は市区町村トークンにしない
     expect(extractPostalAddress(text('市内3店を食べ歩いた'))).toBeNull();
+  });
+});
+
+// #1273 loop B: フル住所が無い «店名 + 市区町村» 型を地域スコープで引くための抽出。
+describe('extractCoarseArea', () => {
+  it('都道府県 + 市区町村を最優先で返す', () => {
+    expect(extractCoarseArea(text('和歌山県和歌山市の【KORI庵】へ'))).toBe(
+      '和歌山県和歌山市',
+    );
+  });
+
+  it('政令市の行政区まで含める', () => {
+    expect(extractCoarseArea(text('宮城県仙台市若林区のあの店'))).toBe(
+      '宮城県仙台市若林区',
+    );
+  });
+
+  it('都道府県が省略されていれば市区町村単独を返す', () => {
+    expect(extractCoarseArea(text('帯広市で見つけた焼肉屋さん'))).toBe('帯広市');
+  });
+
+  it('「市場」等の非地名複合を市区町村と誤認しない', () => {
+    // 「楽天市場」→「楽天市」のような偽陽性を弾く（実測）
+    expect(extractCoarseArea(text('楽天市場で買える名店の味'))).toBeNull();
+  });
+
+  it('地域語が無ければ null', () => {
+    expect(extractCoarseArea(text('美味しかった！また行きたい'))).toBeNull();
+    expect(extractCoarseArea([])).toBeNull();
+  });
+});
+
+describe('extractStoreName', () => {
+  it('「店名：X」ラベルを最優先で抜く', () => {
+    const caption = [
+      '🏠 店名：中華そば専門店 八王子ラーメンよしだ',
+      '📍 住所：東京都八王子市東町1-3',
+    ].join('\n');
+    expect(extractStoreName(text(caption))).toBe(
+      '中華そば専門店 八王子ラーメンよしだ',
+    );
+  });
+
+  it('📍 の店名を抜き、末尾のふりがな括弧を落とす', () => {
+    expect(extractStoreName(text('📍遊美館（ゆうびかん）\n最高でした'))).toBe(
+      '遊美館',
+    );
+  });
+
+  it('「📍 住所：」「📍 アクセス：」は店名として扱わない', () => {
+    // 住所/経路の📍しか無いときは（店名ラベルも括弧名も無ければ）null
+    expect(
+      extractStoreName(text('📍 住所：東京都八王子市東町1-3\n📍 アクセス：徒歩1分')),
+    ).toBeNull();
+  });
+
+  it('【】「」『』で囲われた店名を拾う', () => {
+    expect(extractStoreName(text('今日は【満寿屋商店】でランチ🥪'))).toBe(
+      '満寿屋商店',
+    );
+  });
+
+  it('店名が取れなければ null', () => {
+    expect(extractStoreName(text('美味しいラーメンでした'))).toBeNull();
+    expect(extractStoreName([])).toBeNull();
   });
 });
 
