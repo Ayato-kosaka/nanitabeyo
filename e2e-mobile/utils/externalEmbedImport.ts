@@ -198,6 +198,10 @@ function externalContentIdOf(url: string): string | null {
 
 type ResolveResponse = {
 	data?: {
+		/** #1641 サーバが «この投稿を解決できたか» を返す。`unknown` のとき `reason` に理由が入る */
+		status?: string;
+		/** 例: `metadata_fetch_failed`（Instagram の埋め込みページをサーバが取得できなかった） */
+		reason?: string | null;
 		candidates?: {
 			dishCategories?: { dishCategoryId?: string }[];
 			restaurants?: { restaurantId?: string }[];
@@ -238,24 +242,59 @@ export async function ensureExternalEmbedImported(
 	const base = backendBaseUrl();
 	const headers = { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` };
 
-	// resolve は Instagram の embed ページ取得（サーバ側）+ ジオコーディングを挟むため長めに待つ
-	const resolveResponse = await fetch(`${base}/v1/dish-media/imports/resolve`, {
-		method: "POST",
-		headers,
-		body: JSON.stringify({ url: EXTERNAL_EMBED_IMPORT_URL }),
-		signal: AbortSignal.timeout(90_000),
+	/*
+	#1641 **resolve は «外部サイトの取得» を含むので、空振りしたら 1 度だけ撃ち直す。**
+
+	run 33461431366（iOS）で、resolve は 201 を返したのに候補が空だった。中身を見ると
+
+	    {"status":"unknown","reason":"metadata_fetch_failed", ...}
+
+	で、**サーバが Instagram の埋め込みページを取得できなかった**ことが理由だった
+	（こちらのコードでも、ジオコーディングでも、店舗照合でもない）。同じ日の 00:34 と 01:19 の
+	run では同じ URL がきちんと解決できているので、**相手側の一過性の失敗**である。
+
+	⚠️ 撃ち直しは 1 回だけにする。恒常的に取れなくなっているなら、待っても変わらない。
+	⚠️ 失敗を «経路が壊れている» と決めつけないこと。`status` / `reason` をそのまま出す。
+	   前はここが «キャプション住所→ジオコーディング→店舗照合を確認してください» とだけ
+	   書いており、**まったく別の場所を探させた**。
+	*/
+	const resolveOnce = async (): Promise<ResolveResponse> => {
+		const response = await fetch(`${base}/v1/dish-media/imports/resolve`, {
+			method: "POST",
+			headers,
+			body: JSON.stringify({ url: EXTERNAL_EMBED_IMPORT_URL }),
+			signal: AbortSignal.timeout(90_000),
+		});
+		if (!response.ok) {
+			throw new Error(`SNS 取り込みの resolve に失敗しました（status=${response.status}）`);
+		}
+		return (await response.json()) as ResolveResponse;
+	};
+	const pickIds = (r: ResolveResponse) => ({
+		restaurantId: r.data?.prefill?.restaurantId ?? r.data?.candidates?.restaurants?.[0]?.restaurantId,
+		dishCategoryId: r.data?.prefill?.dishCategoryId ?? r.data?.candidates?.dishCategories?.[0]?.dishCategoryId,
 	});
-	if (!resolveResponse.ok) {
-		throw new Error(`SNS 取り込みの resolve に失敗しました（status=${resolveResponse.status}）`);
+
+	let resolved = await resolveOnce();
+	let ids = pickIds(resolved);
+	if (!ids.restaurantId || !ids.dishCategoryId) {
+		// eslint-disable-next-line no-console -- 1 回目が空振りしたことを run のログへ残す
+		console.log(
+			`[import] resolve が空振りしました（status=${String(resolved.data?.status)} / reason=${String(resolved.data?.reason)}）。10 秒待って 1 度だけ撃ち直します`,
+		);
+		await new Promise((resolve) => setTimeout(resolve, 10_000));
+		resolved = await resolveOnce();
+		ids = pickIds(resolved);
 	}
-	const resolved = (await resolveResponse.json()) as ResolveResponse;
 	const candidates = resolved.data?.candidates;
-	const restaurantId = resolved.data?.prefill?.restaurantId ?? candidates?.restaurants?.[0]?.restaurantId;
-	const dishCategoryId = resolved.data?.prefill?.dishCategoryId ?? candidates?.dishCategories?.[0]?.dishCategoryId;
+	const { restaurantId, dishCategoryId } = ids;
 	if (!restaurantId || !dishCategoryId) {
 		throw new Error(
-			`resolve は成功したが候補が空です（restaurantId=${String(restaurantId)}, dishCategoryId=${String(dishCategoryId)}）。` +
-				" キャプション住所→国土地理院ジオコーディング→店舗照合の経路が壊れていないか確認してください。",
+			`resolve は 2 回とも候補を返しませんでした（status=${String(resolved.data?.status)} / reason=${String(resolved.data?.reason)}）。` +
+				` restaurantId=${String(restaurantId)} / dishCategoryId=${String(dishCategoryId)}。` +
+				" reason が `metadata_fetch_failed` なら **サーバが Instagram の埋め込みページを取得できなかった**という意味で、" +
+				" こちらのコードでもジオコーディングでも店舗照合でもない（相手側の都合）。" +
+				" それ以外の reason なら、キャプション住所→国土地理院ジオコーディング→店舗照合の経路を疑う。",
 		);
 	}
 
