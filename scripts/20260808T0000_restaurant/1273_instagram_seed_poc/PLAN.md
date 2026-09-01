@@ -300,3 +300,8 @@
 ## 進捗更新 2026-09-01 11:40Z（柱1 backlog batch #2 dispatch・ピーク末）
 - [~] backlog batch #2 dispatch（`sns-2026-08-31`, resolve_version dev-2026-08-31-p1fix, 単一シャード・limit 4000・sleep 200ms）。20:40 JST＝夕食ピーク末→大半は post-peak 実行。完了で 7,000→~11,000、残 backlog 12,396→~8,396。
 - **次tick**: この run 完了/matched を確認→残 ~8k を次の控えめバッチで継続。全量後に 47×134 カバレッジ確定→オーナー報告。
+
+## 進捗更新 2026-09-01 13:40Z（柱1 backlog batch #2完了→#3で残全量をdrain）
+- [x] batch #2完了: p1fix 7,000→**11,000**, matched **570**(+112, この4kスライスは2.8%＝柱1の告知比率が後半ほど高い)。
+- [~] batch #3 dispatch（**limit 8500＝残 8,396 を全量**, 単一シャード・sleep 200ms, 22:40 JST 深夜off-peak, ~100分）。完了で `sns-2026-08-31`(19,396) の resolve が全量終わる。
+- **次tick**: 全量 drain 確認→**47×134 全国カバレッジを算定**（matched place_id→都道府県 [restaurant_catalog.address] × dish_category_id QID→134 app ラベル）。旧ベースライン(793セル12.6% 等)と比較して増分を出し、**オーナーへ完了報告（6項目）**。
