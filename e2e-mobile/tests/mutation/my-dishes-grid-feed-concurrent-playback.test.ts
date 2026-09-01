@@ -273,20 +273,36 @@ describeMutation("グリッドから開いたフィードで 2 つのセルが�
 	it("埋め込みカードから開いたフィードは、縦に送っても常に 1 つしか鳴らない", async () => {
 		await launchAppWithSession({ as: "authenticated" });
 
+		/*
+		⚠️ **同期機構はここで切る。«フィードに着いてから» では遅い（iOS で実測）。**
+
+		以前はここを «一覧の取得が遅いだけ» と読み、`selectView` のタイムアウトを 25 秒 →
+		120 秒へ伸ばした。**それは誤診だった。** 120 秒でも同じ場所で落ち、
+		run 33455299123 の Detox ログにはこう並んでいた（約 10 秒おき・2 分間ずっと）:
+
+		    The app is busy with the following tasks:
+		    • Run loop "Main Run Loop" is awake.
+		    • There are 2 work items pending on the dispatch queue: "Main Queue"
+
+		つまり Detox は **要素を探して待っていたのではなく、アプリが «暇» になるのを待っていた**。
+		同じ run の失敗時スクショにも、Detox 自身が出した可視判定用のコマ
+		（`DETOX_VISIBILITY_*`）にも、**グリッドは最初から完全に描かれている**。
+		待てば直る類ではないので、タイムアウトを伸ばしても永久に緑にならない。
+
+		iOS ではこの画面（埋め込みのカードが並ぶグリッド）に居る間、アプリが暇にならない。
+		この spec は画面を眺めて印を数えるだけで操作のタイミングに依存しないので、
+		**最初から明示的に待つ形へ倒す**のが正しい。
+		（フィード側で切る理由も同じで、`external-embed-feed.test.ts` の run 33065565293 で実測済み）
+
+		⚠️ 戻すときは «タイムアウトを伸ばす» で解決しようとしないこと。2 回とも失敗している。
+		*/
+		await device.disableSynchronization();
+
 		// 1. 食べたい/食べた → リスト（グリッド）
 		await tabBar.gotoMyDishes();
 		/*
-		⚠️ **`selectView` にも長いタイムアウトを渡すこと。**
-
 		一覧は約 964MB の `dish_reviews` を引くので、初回は既定（25 秒）では足りない。
-		下の `my-dishes-list` にだけ 120 秒を渡していたが、**その手前の `selectView` が
-		ビューの器の可視を既定のタイムアウトで待っていた**ため、iOS シミュレータでは
-		そちらが先に時間切れになっていた（run 33440630546 / iOS）。
-
-		    Timed out while waiting for expectation: TOBEVISIBLE WITH MATCHER(id == "my-dishes-list-view") TIMEOUT(25s)
-
-        失敗時のコマにはグリッドが**正しく描かれていた**。つまり «出ない» のではなく «間に合わない» だった。
-		Android は同じ操作が 25 秒に収まるので、この spec は Android でだけ緑になっていた。
+		同期を切ったあとも «描かれるまでの実時間» は変わらないため、長めに待つ。
 		*/
 		await myDishes.selectView("list", 120_000);
 		await waitUntilVisible(by.id("my-dishes-list"), 120_000);
@@ -310,16 +326,7 @@ describeMutation("グリッドから開いたフィードで 2 つのセルが�
 			);
 		}
 
-		/*
-		3. **押す前に Detox の同期機構を切る。**
-
-		フィードへ着いた瞬間から埋め込みは鳴り続けるので、アプリは二度と «暇» にならない。
-		同期を有効にしたまま操作を続けると、アプリではなく待ち方の理由で落ちる
-		（`external-embed-feed.test.ts` の run 33065565293 で実測。同じ run の失敗時スクショには
-		フィードもリールも正しく写っていた）。この spec は画面を眺めて印を数えるだけで、
-		操作のタイミングに依存しないので、明示的に待つ形へ倒すのが正しい。
-		*/
-		await device.disableSynchronization();
+		// 3. 埋め込みのカードを押す（同期機構はこの spec の冒頭で切ってある）
 		await tapWhenVisible(embedCard, 30_000, 0);
 
 		/*
