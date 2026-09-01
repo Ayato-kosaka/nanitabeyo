@@ -291,3 +291,8 @@
 - [~] **backlog resolve を dispatch**（db-script-run, poc branch, **単一シャード・--limit 4000・sleep 200ms＝控えめ**, resolve_version `dev-2026-08-31-p1fix`, 16:35 JST=昼夜ピーク外）。~50-60分。dev は main(5f82c638)＝正しい現行 resolve（name-first は revert 済みで無関係）。
 - **次tick**: ①この run の完了/matched を確認（in_progress なら待つ・再dispatchしない）。②残り ~12k を次の控えめバッチで（単一〜2シャード・ピーク回避）継続。③全量後に 47×134 カバレッジ増分を 7_1 で確定。④柱2/柱3 の新規収集は backlog 消化と並行（BQのみは自由）。
 - **不変則再掲**: resolve は dev pg を引くので単一〜2-3シャード・ピーク回避・版で非破壊。62万×62万の店舗同期(#843)とは別物。
+
+## 進捗更新 2026-09-01 09:15Z（柱1 backlog 4,000 resolve 完了→残 12,396・ピーク中は保留）
+- [x] backlog batch #1 完了: `sns-2026-08-31` の resolve が 3,000→**7,000**（+4,000）、matched **458（6.5%）**。柱1 は告知投稿が多く post 単位 matched は低い（既知）。店単位カバレッジは別途 discovery_seed_place_id で数える設計。
+- **残 backlog = 12,396**。resolve は dev pg＝共有 Supabase なので **夕食ピーク(18-21 JST)は保留**。post-peak(~12:00Z/21:00 JST)以降のティックで残りを控えめ（単一〜2シャード）に drain。
+- **次tick(ピーク中)**: resolve は出さない。BQのみの柱1 crawl/柱2 準備か、状況確認のみ。12:00Z 以降で backlog drain 再開→全量後に 47×134 カバレッジを 7_1 で確定。
