@@ -99,7 +99,13 @@ def main() -> None:
             try:
                 res = serper_search(key, full_q, args.num)
             except urllib.error.HTTPError as e:
-                LOGGER.warning("SERPER %s (q=%s)。無料枠上限の可能性。中断します", e.code, q)
+                # #1273 真因切り分け: code だけでなく Serper の応答本文（{"message": …}）も出す。
+                # 400 は «無料枠上限» とは限らない（不正キー・リクエスト形式・パラメータ等）。
+                try:
+                    err_body = e.read().decode("utf-8", "replace")[:500]
+                except Exception:
+                    err_body = "(応答本文の読み取り失敗)"
+                LOGGER.warning("SERPER %s (q=%s) body=%s。中断します", e.code, q, err_body)
                 break
             for code, url in _posts_from(res):
                 pid = code  # shortcode。4_2(business_discovery)と同じキーで跨ルート重複を解決
