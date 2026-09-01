@@ -156,6 +156,32 @@ export const EXTERNAL_EMBED_YOUTUBE_BOT_CHECKED_URL = "https://www.youtube.com/s
  *    spec は «アプリが再生できない» と誤読する。変えるときは棚卸しを回してから。
  * ⚠️ 取り込む URL を増やしたら、**この表にも 1 行足すこと**（足さないと下で落ちる）。
  */
+/**
+ * 🏠 **取り込み先の店（dev）**。`resolve` が Instagram の取得に失敗したときの逃げ道。
+ *
+ * ## なぜ要るのか
+ *
+ * 料理カテゴリは固定表にしたので、フィクスチャで動くのは **店だけ**になった。
+ * その店はキャプションのジオコーディングで毎回決まるため、`resolve` が
+ * Instagram の埋め込みページを取得できないと **spec が 1 行も走らずに落ちる**。
+ *
+ * 実測（2026-09-01）: `POST /v1/dish-media/imports/resolve` → 201 で
+ *
+ *     {"status":"unknown","reason":"metadata_fetch_failed", ...}
+ *
+ * 02:47（iOS）と 04:00（Android）に発生。04:00 は 10 秒あけた撃ち直しでも同じだった。
+ * つまり **相手側が断続的に取れなくなる**。取り込みの検証はそれ専用の spec の仕事で、
+ * «同時に鳴らない» を見るこの経路まで巻き込んで止める理由は無い。
+ *
+ * ここは成功した run が返してきた実際の値（`八王子ラーメンよしだ`）。
+ *
+ * ⚠️ **逃げ道を使ったことは必ずログへ大きく残す。** 黙って通すと
+ *    «取り込みの経路が生きている» と読み違える。
+ * ⚠️ dev を作り直したら、この ID は消える。そのときは `create` が 4xx で落ちるので、
+ *    成功した run のログ（`[import] restaurantId=`）から取り直すこと。
+ */
+const FALLBACK_RESTAURANT_ID = "5a9c5c91-0274-476a-bb32-9234dbb62378";
+
 const DISH_CATEGORY_BY_URL: Readonly<Record<string, string>> = Object.freeze({
 	[EXTERNAL_EMBED_IMPORT_URL]: "Q1204605",
 	[EXTERNAL_EMBED_PLAYABLE_URL]: "Q17605220",
@@ -277,7 +303,12 @@ export async function ensureExternalEmbedImported(
 
 	let resolved = await resolveOnce();
 	let ids = pickIds(resolved);
-	if (!ids.restaurantId || !ids.dishCategoryId) {
+	/*
+	⚠️ 見るのは **店だけ**である。料理カテゴリは `DISH_CATEGORY_BY_URL` で固定したので、
+	   `resolve` が候補を返さなくても困らない。ここで両方を要求すると、
+	   店が取れているのに «空振り» と読んで無駄に撃ち直す。
+	*/
+	if (!ids.restaurantId) {
 		// eslint-disable-next-line no-console -- 1 回目が空振りしたことを run のログへ残す
 		console.log(
 			`[import] resolve が空振りしました（status=${String(resolved.data?.status)} / reason=${String(resolved.data?.reason)}）。10 秒待って 1 度だけ撃ち直します`,
@@ -286,16 +317,29 @@ export async function ensureExternalEmbedImported(
 		resolved = await resolveOnce();
 		ids = pickIds(resolved);
 	}
-	const candidates = resolved.data?.candidates;
-	const { restaurantId, dishCategoryId } = ids;
-	if (!restaurantId || !dishCategoryId) {
-		throw new Error(
-			`resolve は 2 回とも候補を返しませんでした（status=${String(resolved.data?.status)} / reason=${String(resolved.data?.reason)}）。` +
-				` restaurantId=${String(restaurantId)} / dishCategoryId=${String(dishCategoryId)}。` +
-				" reason が `metadata_fetch_failed` なら **サーバが Instagram の埋め込みページを取得できなかった**という意味で、" +
-				" こちらのコードでもジオコーディングでも店舗照合でもない（相手側の都合）。" +
-				" それ以外の reason なら、キャプション住所→国土地理院ジオコーディング→店舗照合の経路を疑う。",
+	/*
+	2 回とも空振りしたときの扱いを **理由で分ける**。
+
+	- `metadata_fetch_failed` … **相手側が取れないだけ**（こちらのコードでもジオコーディングでも
+	  店舗照合でもない）。既知の店へ逃がして spec を続ける。取り込み経路そのものの検証は
+	  それ専用の spec の仕事であって、«同時に鳴らない» を見るこの経路を道連れにしない
+	- それ以外 … 逃がさずに落とす。こちら側の経路が壊れている可能性がある
+	*/
+	let restaurantId = ids.restaurantId;
+	if (!restaurantId) {
+		if (resolved.data?.reason !== "metadata_fetch_failed") {
+			throw new Error(
+				`resolve は 2 回とも候補を返しませんでした（status=${String(resolved.data?.status)} / reason=${String(resolved.data?.reason)}）。` +
+					" `metadata_fetch_failed` 以外なので逃がしません。" +
+					" キャプション住所→国土地理院ジオコーディング→店舗照合の経路を疑ってください。",
+			);
+		}
+		// eslint-disable-next-line no-console -- 逃げ道を使ったことは黙って通さない
+		console.log(
+			"[import] ⚠️ resolve が 2 回とも metadata_fetch_failed でした（サーバが Instagram の埋め込みページを取得できていない）。" +
+				` 既知の店（${FALLBACK_RESTAURANT_ID}）へ逃がして続行します。**この run は «取り込み経路が生きている» の根拠にはなりません。**`,
 		);
+		restaurantId = FALLBACK_RESTAURANT_ID;
 	}
 
 	const create = async (url: string, categoryId: string) => {
