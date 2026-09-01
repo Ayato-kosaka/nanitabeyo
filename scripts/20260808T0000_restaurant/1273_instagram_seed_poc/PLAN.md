@@ -346,3 +346,9 @@
 - [~] 1クエリ再実行を dispatch（--max-queries 1 --num 10）。
 - **次tick**: run のログから Serper の 400 message を読む。①`invalid api key`/`not enough credits`系＝**SERPER_API_KEY secret の問題（オーナー領分）**→ 1行で上げる。②リクエスト形式/パラメータ系＝**4_3を直す**（num/body等）→ 直して再検証→全量。
 - 柱3が塞がっている間の代替: 柱2 handle拡張 or 柱1残harvest（低価値）。まず400の真因確定を優先。
+
+## 進捗更新 2026-09-01 23:20Z（★柱3 真因＝num>10で400・修正して全量launch）
+- **真因確定**: 1クエリ再実行(--num 10)が**成功し10投稿を投入**。失敗run(--num 20)との差は num のみ＝**SERPERは num>10 を HTTP 400 で弾く**（キー/クレジットは正常）。4_3 の既定 num=20 が原因で**柱3は最初から全滅していた**。
+- [x] 4_3 の `--num` 既定を 10 に修正（commit 3fe5926）。
+- [~] **柱3 全量launch**: 4_3 `--run-id sns-2026-09-01-cell --num 10 --sleep-ms 900`（薄い18県庁所在地×134＝2,412クエリ, Serper+BQのみ=安全, ~80分, idempotent）。無料枠~2,498残で収まる。
+- **次tick**: run sns-2026-09-01-cell(hashtag_search) の収集数を確認→ off-peakで resolve(新版)→ 薄い県セルの増分を 7_1/カバレッジ算定で測る。効けば柱3を残セルへ都市差し替えて継続。
