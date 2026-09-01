@@ -57,49 +57,67 @@ def main() -> None:
             for src, total, addr, cc, seed, names in cursor.fetchall():
                 LOGGER.info("  %-10s %8d %8d %8d %8d %8d", src, total, addr, cc, seed, names)
 
-            # #1706 **«アプリ製の行に値が入っていたら異常» という検査はもう成り立たない。**
+            # #1706 **«アプリ製の行に値が入っていたら異常» という検査は成り立たない。**
             #
-            # かつてはそれで良かった。同期がアプリ製の行に一切触らなかったからである。
-            # いまは **オーナー承認のうえで 2 つだけ意図的に埋めている**。
-            #
-            #   ・address     … catalog にあってアプリ製の行が **NULL のときだけ**埋める（1-a）
-            #   ・country_code … その行自身の address_components から埋める（9_9 の backfill）
-            #
-            # そのため «件数が 0 か» で判定すると、**正しい振る舞いで赤くなる**。
+            # かつてはそれで良かった。同期がアプリ製の行に一切触らなかったからで
+            # ある。いまは **オーナー承認のうえで 2 つだけ意図的に埋めている**
+            # （住所の穴埋め 1-a と、その行自身の address_components からの国コード）。
+            # «件数が 0 か» で判定すると **正しい振る舞いで赤くなる**。
             # 赤いのが常態になった検査は、そのうち誰も読まなくなる。
             #
-            # 見るべきは «値があるか» ではなく **«ユーザーのものが catalog のもので
-            # 潰されていないか»** である。次の 2 つはコードが不変条件として守っている
-            # ので、破れていれば本当に事故である。
+            # 見るのは «値があるか» ではなく **«上書き事故の痕跡があるか»** である。
+            #
+            # ⚠️ **痕跡は «画像が空» ではない。** 2026-09-01 にそう書いて誤検知した。
+            # `image_url` は DEPRECATED（20251112T1100）で、いまのアプリは
+            # `image_path` に書いて `image_url` を空のままにする。dev 実測で 40 件
+            # あり、**全件が image_path を持っていた**（＝正常なアプリ製の行）。
+            #
+            # 表示値 UPDATE がアプリ製の行を掴んだ場合、catalog の値が入るので
+            # **image_url が空 かつ image_path が NULL** になる。両方揃ってはじめて
+            # 事故の痕跡である。
             cursor.execute(
                 """
                 SELECT
-                  -- 同期は pipeline の行にしか row_hash を刻まない。アプリ製の行に
-                  -- 付いていたら、その行は «同期の管理下» に入ってしまっている
-                  COUNT(*) FILTER (WHERE source_row_hash IS NOT NULL)          AS hashed,
-                  -- catalog の image_url は全行 空文字。アプリ製の行が空になって
-                  -- いたら、表示値 UPDATE がアプリ製の行を掴んだということ
-                  COUNT(*) FILTER (WHERE NULLIF(btrim(image_url), '') IS NULL) AS blanked_image
+                  COUNT(*) FILTER (
+                    WHERE NULLIF(btrim(image_url), '') IS NULL AND image_path IS NULL
+                  )                                                      AS media_wiped,
+                  COUNT(*) FILTER (
+                    WHERE NULLIF(btrim(image_url), '') IS NULL AND image_path IS NOT NULL
+                  )                                                      AS path_only,
+                  COUNT(*) FILTER (WHERE source_row_hash IS NOT NULL)    AS hashed
                 FROM restaurants
                 WHERE created_by_source <> 'pipeline'
                 """
             )
-            hashed, blanked_image = cursor.fetchone()
-            if hashed or blanked_image:
+            media_wiped, path_only, hashed = cursor.fetchone()
+
+            if media_wiped:
                 LOGGER.error(
-                    "❌ アプリ製の行が同期に踏まれています: row_hash 付き %d 件 / "
-                    "画像が空になった行 %d 件",
-                    hashed, blanked_image,
+                    "❌ アプリ製の行 %d 件で画像が丸ごと消えています"
+                    "（image_url も image_path も無い）。表示値 UPDATE が"
+                    "アプリ製の行を掴んだ疑いがあります",
+                    media_wiped,
                 )
             else:
-                LOGGER.info(
-                    "✅ アプリ製の行は同期に踏まれていない"
-                    "（row_hash 0 件 / 画像が空になった行 0 件）"
-                )
-                LOGGER.info(
-                    "   ※ 住所と国コードは **意図的に穴埋めしている**ので、"
-                    "件数があるのが正常（#1706 の 1-a）"
-                )
+                LOGGER.info("✅ アプリ製の行の画像は保たれている（上書き事故の痕跡なし）")
+            LOGGER.info(
+                "   image_path だけ持つ行: %d 件（image_url は DEPRECATED。正常）",
+                path_only,
+            )
+
+            # #1706 row_hash は **過去の版の同期が付けた古い足あと**である。
+            # dev 実測 2,115 件、作成は 2025-10-13〜2026-08-23 で、直近 24 時間に
+            # 作られた行は 0 件。表示値も無傷だった（image_url / image_path とも健在）。
+            #
+            # いまのコードは **アプリ製の行に row_hash を刻まない**（provenance
+            # UPDATE の CASE 式。test_9_1_provenance_update.sh §3 で固定）。
+            # つまり «0 件であること» は満たせない過去の事実であり、これを ERROR に
+            # すると永久に赤いままになる。数だけ出して、増えていないかを人が見る。
+            LOGGER.info(
+                "   row_hash が付いたアプリ製の行: %d 件"
+                "（過去の版が付けた古い足あと。いまのコードは新たに刻まない）",
+                hashed,
+            )
 
             cursor.execute(
                 "SELECT kind, COUNT(*), COUNT(DISTINCT restaurant_id) FROM restaurant_links GROUP BY 1 ORDER BY 2 DESC"
