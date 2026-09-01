@@ -316,3 +316,12 @@
 - **batch #3 (run 33514819733) は conclusion=failure**（2h走行後、5,400書込で終了＝partial）。500行tailはcleanupのみでtraceback未取得。原因未確定（poison post / dev API 5xx / timeout いずれか）。
 - [~] **最終drain (run 33542189490, limit3000) in_progress**（残2,996, 深夜off-peak, FLUSH_EVERY=200で逐次書込）。小さいので完走見込み。
 - **次tick**: run274の結果確認。①完走(backlog=0)→ 7_1_build_coverage→7_2_report_funnel を db-script-run で回し公式funnel＋47×134カバレッジ→オーナー6項目報告。②途中failure→ 失敗jobの完全traceback取得(get_job_logs tail_lines大)して真因確定（同型failureが続くなら limit小 or 5_1のper-post例外handling要）。逐次書込ぶんは前進。
+
+## 進捗更新 2026-09-01 19:20Z（★柱1 backlog 全量drain完了→初の全国カバレッジ数値）
+- **drain完了**: `sns-2026-08-31` resolve **19,000/19,396（98%）**、残396は誤差。matched(最新版) **1,014**。
+- **初の全国カバレッジ（全run横断・最新版・catalog restaurant-2026-08-23 で都道府県解決）**:
+  - **47/47 都道府県が着火**（全県に≥1 matched店）。distinct店 **2,900**、matched media **4,229**（07:35Zの3,338→**+891/+27%**）。
+  - app134投影: **112/134 カテゴリ**・**pref×cat セル 825（47×134=6298の13.1%）**。
+- ★**重要な戦略的所見**: 16k の柱1 backlog を全量resolveしても **grid はほぼ動かない**（旧~793→825 セル、+~4%）。matched media は+891だが**既充足セルへの重複**が大半（柱1=告知多く店/カテゴリ重複）。→ **カバレッジの律速は «未充足セルの発見»**（薄い県×欠けカテゴリ）で、bulk resolve ではない。柱3(薄い県Serper)・柱2(インフルエンサー)を欠けセルへ寄せる。
+- ⚠️ **カテゴリ軸は #1748 の QID 不一致で過小**: 「未着火」22カテゴリに フライドチキン/塩ラーメン/酢豚/生姜焼き 等の定番が混じる＝実在するのに app whitelist QID と resolve QID がズレて未計上。112/134 は**下限**。#1748(承認ゲート付きロールアウト)の領分。
+- **次**: 柱1末尾396のcleanup(任意)。柱3を «825で欠けている pref×cat» へ向けて回す。柱2 harvest継続。
