@@ -233,3 +233,11 @@
 - [x] **post-sync 継続を予約**: `trig_01DJVppVMd2GqwaLUTyEpagy`（02:35Z）。内容: pg投入確認(restaurant_pg_sync_logs＋小バッチで matched 跳ね確認)→ 新版 `dev-2026-09-01-pgfull` でベースライン(18,560)+柱1(19,396)を **--shards 3・off-peak** で再resolve→ 7_1で134カバレッジ確定(旧793セル12.6%/matched17.2%/2,705店と比較)→ オーナー6項目報告→ 柱1crawl拡大/柱2/柱3。
 - ⚠️ **同期中(now〜01:34Z)は新規 resolve を走らせない**（共有DB配慮）。現行の直列 5_1(p1fix,~3000/4000)は pre-sync・gentle なので**完走させる**が、完了後は post-sync までresolveを追加しない。
 - **interim 毎時ティック(00:16/01:16Z)**: resolve・pg叩くジョブは出さない。OKなのは柱2 harvest(4_2=IG+BQ)・柱3準備・柱1 crawl(4_4=BQのみ)・状況確認だけ。02:35Z の trigger が本命を回す。
+
+## 進捗更新 2026-09-01 02:55Z（★重要訂正: pg母数は律速ではなかった）
+- **pg母数投入の結果＝0%転換**: 01:35Z同期(updated 621,966/inserted 0=全件refresh)後、baseline skipped_no_store 3,600件を dev-2026-09-01-pgfull で再resolve→ **matched 0**（still_no_store 3,162 / no_cat 438）。
+- **確定事実**: pg dev restaurants は **8/24 に 569,661 insert 済**、以後~57〜62万店。**pg母数は最初から足りていた**。私の«pg母数が律速»（12:45Z/23:18Z）は**誤診**。«5.75%転換»「柱1 26%在籍」は店数ではなく resolve照合結果の取り違えだった。
+- **真の律速（3,600の内訳）**: 51% `area_not_provided`（キャプションから場所抽出できず検索が走らない）＋ 40% `searched`・候補0（近傍検索したが店名照合で一致0）。→ **resolveの照合精度が律速**（=元々オーナーが言っていた磨き上げループ）。
+- **やめること**: pg狙いの全量再resolveは無意味＝しない。追加pg同期も不要（母数十分）。
+- **戻す方針（loop B）**: (a)場所抽出の底上げ（駅名/地名/市区町村geocodeをexact-matchで安全に。以前の駅名調査を活かす）、(b)店名照合recall。**オフラインで実キャプション(infl_captions.jsonl等)に対し測定→改善→dev反映→再resolveでリフト測定**。DB負荷小。
+- **柱1の価値は不変**: «既知店×カテゴリ» は resolve照合に依存しない（店IDはcrawl既知）ので、pg母数とは別に seedable。柱1のdish_media化はresolve照合ではなく直接 discovery_seed_place_id を使う設計にすればよい（別途）。
