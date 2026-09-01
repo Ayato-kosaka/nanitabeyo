@@ -311,3 +311,8 @@
 - [~] **最終 drain batch dispatch**（limit 3000＝残2,996, 単一シャード・sleep200ms, 深夜off-peak）。完了で全量 resolve。
 - **カバレッジは canonical で出す**: 自作の read-only 集計は catalog_run_id 未指定で join が部分的（matched 848 中 462 しか catalog 住所に当たらず）＝当てにならない。→ drain 完了後に **7_1_build_coverage（sns_coverage 生成, 最新 catalog_run_id で住所解決）→ 7_2_report_funnel** を db-script-run で回し、旧ベースライン(793セル12.6%)と比較できる公式値を出す。
 - **次tick**: ①drain 完了確認（全量 resolve）②7_1→7_2 実行 ③funnel＋47×134カバレッジ増分を **オーナーへ6項目報告**（今セッション初の定量成果＝柱1 backlog を coverage に変換）。
+
+## 進捗更新 2026-09-01 18:16Z（batch#3はfailure(部分5,400)判明・最終drain(run274)進行中）
+- **batch #3 (run 33514819733) は conclusion=failure**（2h走行後、5,400書込で終了＝partial）。500行tailはcleanupのみでtraceback未取得。原因未確定（poison post / dev API 5xx / timeout いずれか）。
+- [~] **最終drain (run 33542189490, limit3000) in_progress**（残2,996, 深夜off-peak, FLUSH_EVERY=200で逐次書込）。小さいので完走見込み。
+- **次tick**: run274の結果確認。①完走(backlog=0)→ 7_1_build_coverage→7_2_report_funnel を db-script-run で回し公式funnel＋47×134カバレッジ→オーナー6項目報告。②途中failure→ 失敗jobの完全traceback取得(get_job_logs tail_lines大)して真因確定（同型failureが続くなら limit小 or 5_1のper-post例外handling要）。逐次書込ぶんは前進。
