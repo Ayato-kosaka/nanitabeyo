@@ -53,7 +53,9 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="SERPER 検索で投稿URLを収集する（ルート3・無料枠のみ）")
     p.add_argument("--run-id", default=None)
     p.add_argument("--queries-file", required=True, help="TSV: query<TAB>category_id<TAB>lat<TAB>lng")
-    p.add_argument("--num", type=int, default=20, help="1 クエリの取得件数")
+    # #1273 実測: SERPER の無料プランは num>10 を HTTP 400 で弾く（num=20 で全クエリ中断していた）。
+    # 既定を 10 に下げる。10 件/クエリで薄いセルを埋めるには十分（不足なら都市を差し替える運用）。
+    p.add_argument("--num", type=int, default=10, help="1 クエリの取得件数（SERPER 無料プランは最大 10）")
     p.add_argument("--max-queries", type=int, default=None, help="このバッチのクエリ数上限")
     p.add_argument("--sleep-ms", type=int, default=1200, help="SERPER 呼び出し間隔（無料枠に配慮）")
     return p.parse_args()
