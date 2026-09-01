@@ -339,3 +339,10 @@
 - cell_queries.tsv は git-tracked＋薄い県retarget済（「あじの開き 長野市」…）＝runnerで読める。Serper無料枠は未使用（柱3投稿0）で温存。
 - [~] **柱3検証 dispatch**: 4_3 `--run-id sns-2026-09-01-cell --max-queries 20 --num 20`（Serper+BQのみ＝安全）。~5分。
 - **次tick**: sns_post_raw の run `sns-2026-09-01-cell`(discovery_route=hashtag_search) に投稿が入ったか確認。①入った→配管OK→全量(--max-queries 2412 相当)を1回で流し薄い県のセルを埋める→off-peakでresolve。②0件/error→4_3を切り分け(Serperレスポンス形/正規表現)。
+
+## 進捗更新 2026-09-01 22:20Z（柱3検証: Serper 400で全クエリ中断＝真因切り分け中）
+- **柱3検証結果**: run 275 成功だが投稿0。ログに `SERPER 400 (q=あじの開き 長野市)。中断します`＝**Serperが最初のクエリで HTTP 400**を返し 4_3 が即break（21s）。400は«無料枠上限»とは限らない（4_3のメッセージは誤誘導）。
+- [x] 4_3 の HTTPError ログに**応答本文**を追加（commit 3582da7）→ 真因を message で確定できるように。
+- [~] 1クエリ再実行を dispatch（--max-queries 1 --num 10）。
+- **次tick**: run のログから Serper の 400 message を読む。①`invalid api key`/`not enough credits`系＝**SERPER_API_KEY secret の問題（オーナー領分）**→ 1行で上げる。②リクエスト形式/パラメータ系＝**4_3を直す**（num/body等）→ 直して再検証→全量。
+- 柱3が塞がっている間の代替: 柱2 handle拡張 or 柱1残harvest（低価値）。まず400の真因確定を優先。
