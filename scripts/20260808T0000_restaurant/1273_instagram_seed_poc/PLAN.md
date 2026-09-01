@@ -296,3 +296,7 @@
 - [x] backlog batch #1 完了: `sns-2026-08-31` の resolve が 3,000→**7,000**（+4,000）、matched **458（6.5%）**。柱1 は告知投稿が多く post 単位 matched は低い（既知）。店単位カバレッジは別途 discovery_seed_place_id で数える設計。
 - **残 backlog = 12,396**。resolve は dev pg＝共有 Supabase なので **夕食ピーク(18-21 JST)は保留**。post-peak(~12:00Z/21:00 JST)以降のティックで残りを控えめ（単一〜2シャード）に drain。
 - **次tick(ピーク中)**: resolve は出さない。BQのみの柱1 crawl/柱2 準備か、状況確認のみ。12:00Z 以降で backlog drain 再開→全量後に 47×134 カバレッジを 7_1 で確定。
+
+## 進捗更新 2026-09-01 11:40Z（柱1 backlog batch #2 dispatch・ピーク末）
+- [~] backlog batch #2 dispatch（`sns-2026-08-31`, resolve_version dev-2026-08-31-p1fix, 単一シャード・limit 4000・sleep 200ms）。20:40 JST＝夕食ピーク末→大半は post-peak 実行。完了で 7,000→~11,000、残 backlog 12,396→~8,396。
+- **次tick**: この run 完了/matched を確認→残 ~8k を次の控えめバッチで継続。全量後に 47×134 カバレッジ確定→オーナー報告。
