@@ -24,11 +24,11 @@ def main() -> None:
     src = SOURCE.read_text(encoding="utf-8")
 
     if args.which in ("work", "moved"):
-        table = f"restaurant_sync_{args.which}"
+        # #1706 «全体» は *_all という名前で作り、回ごとの部分集合を
+        # materialize_chunk が同じ名前へ切り出す。抽出するのは «全体» の方。
+        table = f"restaurant_sync_{args.which}_all"
         hits = re.findall(
-            r'"""\s*(CREATE TEMP TABLE ' + table + r' ON COMMIT DROP AS.*?)"""',
-            src,
-            re.S,
+            r'"""\s*(CREATE TEMP TABLE ' + table + r' AS.*?)"""', src, re.S
         )
     else:
         found = re.findall(r'"""\s*(UPDATE restaurants r\s+SET[^"]*?)"""', src, re.S)

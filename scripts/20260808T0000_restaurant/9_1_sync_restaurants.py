@@ -50,6 +50,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-id")
     parser.add_argument("--schema", choices=["dev", "public"], required=True)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--commit-every-chunks",
+        type=int,
+        default=0,
+        help=(
+            "0（既定）なら全体を 1 トランザクションで流す。"
+            "N を指定すると作業表を N 個に分け、1 個ごとに commit する。"
+            "**初回の全件投入のように、1 トランザクションでは長くなりすぎる場合だけ**使う"
+        ),
+    )
     parser.add_argument("--allow-public", action="store_true")
     parser.add_argument(
         "--skip-backup",
@@ -163,11 +173,11 @@ def calculate_stats(connection: Any, staging_rows: int) -> SyncStats:
                 WHERE pg_id IS NOT NULL
                   AND pg_row_hash IS DISTINCT FROM row_hash
               ) AS updated
-            FROM restaurant_sync_work
+            FROM restaurant_sync_work_all
             """
         )
         inserted, updated = cursor.fetchone()
-        cursor.execute("SELECT COUNT(*) FROM restaurant_sync_work")
+        cursor.execute("SELECT COUNT(*) FROM restaurant_sync_work_all")
         work_rows = cursor.fetchone()[0]
     inserted = inserted or 0
     updated = updated or 0
@@ -304,7 +314,7 @@ def build_work_tables(connection: Any) -> tuple[int, int]:
         started = time.monotonic()
         cursor.execute(
             """
-            CREATE TEMP TABLE restaurant_sync_work ON COMMIT DROP AS
+            CREATE TEMP TABLE restaurant_sync_work_all AS
             SELECT
               s.*,
               r.id                AS pg_id,
@@ -334,7 +344,7 @@ def build_work_tables(connection: Any) -> tuple[int, int]:
         started = time.monotonic()
         cursor.execute(
             """
-            CREATE TEMP TABLE restaurant_sync_moved ON COMMIT DROP AS
+            CREATE TEMP TABLE restaurant_sync_moved_all AS
             SELECT s.*, r.id AS pg_id, r.google_place_id AS pg_google_place_id
             FROM restaurant_sync_staging s
             -- #843 seed で引く。source_seed_id は UNIQUE（20260823T0000）なので
@@ -350,11 +360,122 @@ def build_work_tables(connection: Any) -> tuple[int, int]:
         )
 
         cursor.execute("SET LOCAL enable_nestloop = on")
+        cursor.execute("CREATE INDEX ON restaurant_sync_work_all (pg_id)")
+        cursor.execute("CREATE INDEX ON restaurant_sync_work_all (google_place_id)")
+        cursor.execute("ANALYZE restaurant_sync_work_all")
+        cursor.execute("ANALYZE restaurant_sync_moved_all")
+    return work_rows, moved_rows
+
+
+def materialize_chunk(connection: Any, chunk: int, chunks: int) -> tuple[int, int]:
+    """作業表の «この回で処理する分» を切り出す。#1706
+
+    **10 本の DML は `restaurant_sync_work` / `restaurant_sync_moved` しか見ない。**
+    そこで «全体» を別名（`*_all`）で持ち、この関数が回ごとに部分集合を同じ名前で
+    作り直す。**DML 側は 1 文も変えなくてよい。**
+
+    分け方は `google_place_id` のハッシュ剰余。行の並びや ID の連番に依存しないので、
+    途中で新しい店が増えても分配が崩れない。
+
+    chunks=1 のときは全体をそのまま渡す（＝従来と同じ 1 トランザクション）。
+    """
+
+    with connection.cursor() as cursor:
+        for name in ("restaurant_sync_work", "restaurant_sync_moved"):
+            cursor.execute(f"DROP TABLE IF EXISTS {name}")
+        if chunks <= 1:
+            cursor.execute(
+                "CREATE TEMP TABLE restaurant_sync_work AS "
+                "SELECT * FROM restaurant_sync_work_all"
+            )
+            work_rows = cursor.rowcount
+            cursor.execute(
+                "CREATE TEMP TABLE restaurant_sync_moved AS "
+                "SELECT * FROM restaurant_sync_moved_all"
+            )
+            moved_rows = cursor.rowcount
+        else:
+            cursor.execute(
+                """
+                CREATE TEMP TABLE restaurant_sync_work AS
+                SELECT * FROM restaurant_sync_work_all
+                WHERE abs(hashtext(google_place_id)) %% %s = %s
+                """,
+                (chunks, chunk),
+            )
+            work_rows = cursor.rowcount
+            cursor.execute(
+                """
+                CREATE TEMP TABLE restaurant_sync_moved AS
+                SELECT * FROM restaurant_sync_moved_all
+                WHERE abs(hashtext(google_place_id)) %% %s = %s
+                """,
+                (chunks, chunk),
+            )
+            moved_rows = cursor.rowcount
         cursor.execute("CREATE INDEX ON restaurant_sync_work (pg_id)")
         cursor.execute("CREATE INDEX ON restaurant_sync_work (google_place_id)")
         cursor.execute("ANALYZE restaurant_sync_work")
         cursor.execute("ANALYZE restaurant_sync_moved")
     return work_rows, moved_rows
+
+
+def apply_sync_chunked(connection: Any, chunks: int) -> None:
+    """作業表を分けて、1 回ごとに commit する。#1706
+
+    ## いつ使うか
+
+    **初回の全件投入のように、1 トランザクションでは長くなりすぎる場合だけ。**
+    定常運転では作業表が数千行しかないので、分ける意味が無い。
+
+    ## 何を失うか — «全部か無か» ではなくなる
+
+    途中で落ちると、**そこまでの回は commit 済みで残る**。ただし残るのは
+    «正しく同期された行» であって、中途半端な行ではない。回の内側は 1
+    トランザクションなので、行が半分だけ書かれることは無い。
+
+    同期は冪等なので、**失敗したらそのまま流し直せばよい**。作業表は
+    «やることがある行» だけを集めるので、済んだ回の行は次回そもそも入らない。
+
+    ## なぜ advisory lock を張り直すのか
+
+    `pg_advisory_xact_lock` はトランザクションの終わりで外れる。回ごとに commit
+    すると **2 本目の同期が割り込める**ので、セッション単位の
+    `pg_advisory_lock` に変える（接続を閉じるまで保持される）。
+    """
+
+    with connection.cursor() as cursor:
+        # 回をまたいで排他を保つ。トランザクション単位の lock では外れてしまう。
+        cursor.execute(
+            "SELECT pg_advisory_lock(hashtext(%s))",
+            (f"restaurant_recommendation_sync_chunked:{id(connection)}",),
+        )
+    connection.commit()
+
+    started = time.monotonic()
+    for chunk in range(chunks):
+        work_rows, moved_rows = materialize_chunk(connection, chunk, chunks)
+        LOGGER.info(
+            "── %d/%d 回目（対象 %s 行 / 付替 %s 行）",
+            chunk + 1, chunks, f"{work_rows:,}", f"{moved_rows:,}",
+        )
+        if work_rows == 0 and moved_rows == 0:
+            connection.commit()
+            continue
+        apply_sync(connection)
+        connection.commit()
+        LOGGER.info(
+            "── %d/%d 回目を commit（経過 %.1f分）",
+            chunk + 1, chunks, (time.monotonic() - started) / 60,
+        )
+        # 回と回の間は «誰も掴んでいない» 瞬間なので、他が困っていたらここで降りる。
+        harmful, reason = check_db_pressure(connection)
+        if harmful:
+            raise RuntimeError(
+                f"{reason}。{chunk + 1}/{chunks} 回目まで commit 済みです。"
+                "空いている時間帯に流し直してください（同期は冪等なので、"
+                "済んだ分は次回の対象に入りません）"
+            )
 
 
 def apply_sync(connection: Any) -> None:
@@ -824,14 +945,30 @@ def main() -> None:
         # #1706 **重い処理の前後で、共有 DB の負荷を測って残す。**
         # この DB は本番と共有しており、測ることを怠って障害を起こした。
         log_db_load(connection, "同期前")
-        # dry-runも同じDMLをtransaction内で実行し、constraint/JSON cast/競合を
-        # 本番前に検出する。違いはcommitせずrollbackすることだけにする。
-        apply_sync(connection)
-        log_db_load(connection, "同期後")
-        if args.dry_run:
-            connection.rollback()
+
+        chunks = max(args.commit_every_chunks, 0)
+        if chunks > 1 and args.dry_run:
+            # #1706 分割は «回ごとに commit する» ことが目的なので、dry-run とは
+            # 両立しない。黙って片方を無視すると «試したつもり» になるので落とす。
+            raise RuntimeError(
+                "--commit-every-chunks と --dry-run は同時に指定できません。"
+                "dry-run は 1 トランザクションで巻き戻す前提です"
+            )
+
+        if chunks > 1:
+            LOGGER.info("分割 commit: %d 回に分けます（初回の全件投入向け）", chunks)
+            apply_sync_chunked(connection, chunks)
+            log_db_load(connection, "同期後")
         else:
-            connection.commit()
+            # dry-runも同じDMLをtransaction内で実行し、constraint/JSON cast/競合を
+            # 本番前に検出する。違いはcommitせずrollbackすることだけにする。
+            materialize_chunk(connection, 0, 1)
+            apply_sync(connection)
+            log_db_load(connection, "同期後")
+            if args.dry_run:
+                connection.rollback()
+            else:
+                connection.commit()
         write_sync_log(
             pipeline,
             run_id=run_id,

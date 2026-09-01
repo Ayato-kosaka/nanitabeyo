@@ -73,6 +73,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pgdata", default="/tmp/pgdata_1706_bench")
     parser.add_argument("--keep", action="store_true", help="終了後もクラスタを残す")
     parser.add_argument(
+        "--chunks", type=int, default=0,
+        help="分割 commit の回数。0 なら 1 トランザクション（既定）",
+    )
+    parser.add_argument(
         "--moved-ratio",
         type=float,
         default=0.0,
@@ -339,7 +343,12 @@ def main() -> None:
             "plan: insert=%d update=%d skip=%d", stats.inserted, stats.updated, stats.skipped
         )
 
-        sync.apply_sync(connection)
+        if args.chunks > 1:
+            LOGGER.info("分割 commit: %d 回", args.chunks)
+            sync.apply_sync_chunked(connection, args.chunks)
+        else:
+            sync.materialize_chunk(connection, 0, 1)
+            sync.apply_sync(connection)
         log_db_load(connection, "同期後")
         elapsed = time.monotonic() - overall
 
@@ -376,7 +385,40 @@ def main() -> None:
         )
         LOGGER.info("パイプライン製で hash が更新された行: %s", f"{updated_hash:,}")
 
-        connection.rollback()
+        # #1706 **結果そのものの指紋を出す。** 分割 commit が 1 トランザクションと
+        # 同じ結果になることを、件数ではなく中身で突き合わせるために使う。
+        # 速いだけで中身が違っていては «分割してよい» と言えない。
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT md5(string_agg(
+                  google_place_id || '|' || name || '|' || coalesce(address,'') || '|' ||
+                  coalesce(country_code,'') || '|' || coalesce(image_url,'') || '|' ||
+                  coalesce(image_path,'') || '|' || coalesce(source_row_hash,'') || '|' ||
+                  coalesce(source_seed_id::text,'') || '|' || created_by_source,
+                  E'\n' ORDER BY google_place_id))
+                FROM restaurants
+                """
+            )
+            fingerprint = cursor.fetchone()[0]
+            # ⚠️ **UUID を指紋に入れてはいけない。** restaurants.id は
+            # gen_random_uuid() なので実行ごとに変わり、中身が同じでも指紋がずれる。
+            # 2026-09-01 に実際にずれて «分割で結果が変わった» と誤読しかけた。
+            # 実行をまたいで同じものは google_place_id である。
+            cursor.execute(
+                """
+                SELECT md5(string_agg(
+                  r.google_place_id || '|' || l.kind || '|' || l.value,
+                  E'\n' ORDER BY r.google_place_id, l.kind, l.value))
+                FROM restaurant_links l
+                JOIN restaurants r ON r.id = l.restaurant_id
+                """
+            )
+            link_fingerprint = cursor.fetchone()[0]
+        LOGGER.info("FINGERPRINT restaurants=%s links=%s", fingerprint, link_fingerprint)
+
+        if args.chunks <= 1:
+            connection.rollback()
         connection.close()
         csv_path.unlink(missing_ok=True)
     finally:

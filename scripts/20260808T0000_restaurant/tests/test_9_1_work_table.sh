@@ -76,10 +76,15 @@ SQL
 # TEMP 表は psql のセッションが終わると消える。検査は複数回に分けて引くので、
 # **TEMP と ON COMMIT DROP だけを外して**通常の表として作る。
 # 中身の条件（＝取りこぼしの有無）はソースのまま検査する。
-strip_temp() { sed -e 's/CREATE TEMP TABLE/CREATE TABLE/' -e 's/ ON COMMIT DROP AS/ AS/'; }
+strip_temp() { sed -e 's/CREATE TEMP TABLE/CREATE TABLE/'; }
+# 本番は «全体»（*_all）を作ってから回ごとの部分集合へ写す。ここでは 1 回で
+# 全部を処理する形（chunks=1）と同じになるよう、そのまま別名へ写す。
+alias_all() { psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 \
+  -c "SET search_path=dev; DROP TABLE IF EXISTS restaurant_sync_$1; CREATE TABLE restaurant_sync_$1 AS SELECT * FROM restaurant_sync_${1}_all;" >/dev/null; }
 
 WORK="$(python3 "$TESTS_DIR/extract_work_table_sql.py" --which work | strip_temp)"
 psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 -c "SET search_path=dev; $WORK" >/dev/null
+alias_all work
 
 GOT=$(q "SELECT string_agg(google_place_id, ',' ORDER BY google_place_id) FROM restaurant_sync_work;")
 WANT="P_APP_BLANK,P_APP_EMPTY,P_APP_FILLED,P_BRAND_NEW,P_CHANGED,P_RESEEDED"
@@ -127,6 +132,7 @@ echo "✅ 6. 新規行だけ pg_id が NULL"
 MOVED="$(python3 "$TESTS_DIR/extract_work_table_sql.py" --which moved | strip_temp)"
 q "UPDATE restaurant_sync_staging SET google_place_id='P_MOVED_NEW' WHERE seed_id='11111111-1111-1111-1111-111111111111';" >/dev/null
 psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 -c "SET search_path=dev; $MOVED" >/dev/null
+alias_all moved
 [ "$(q "SELECT string_agg(pg_google_place_id, ',') FROM restaurant_sync_moved;")" = "P_SAME" ] \
   || fail "place_id が変わった行を拾えていない"
 echo "✅ 7. seed が同じで place_id が変わった行だけを拾う"
@@ -142,15 +148,16 @@ echo "✅ 7. seed が同じで place_id が変わった行だけを拾う"
 # 落ちない・壊れない・気付けない類なので、実物の PostgreSQL で固定する。
 psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 <<'SQL'
 SET search_path = dev;
-TRUNCATE restaurants, restaurant_sync_staging, restaurant_sync_work, restaurant_sync_moved;
+TRUNCATE restaurants, restaurant_sync_staging, restaurant_sync_work, restaurant_sync_moved, restaurant_sync_work_all, restaurant_sync_moved_all;
 -- seed は同じだが place_id が変わった行を 1 つ作り、人手 override を宣言する
 INSERT INTO restaurants (google_place_id, name, source_seed_id, source_row_hash, created_by_source)
 VALUES ('P_OLD_ID','付替対象','88888888-8888-8888-8888-888888888888','h8','pipeline');
 INSERT INTO restaurant_sync_staging VALUES
   ('88888888-8888-8888-8888-888888888888','P_NEW_ID','manual_override','東京都8','h8');
 SQL
-psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 -c "SET search_path=dev; $MOVED" >/dev/null 2>&1 \
-  || psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 -c "SET search_path=dev; DROP TABLE restaurant_sync_moved; $MOVED" >/dev/null
+psql -h /tmp -p "$PGPORT" -U postgres -q -v ON_ERROR_STOP=1 \
+  -c "SET search_path=dev; DROP TABLE IF EXISTS restaurant_sync_moved_all; $MOVED" >/dev/null
+alias_all moved
 
 OVERRIDE_FIX="$(python3 "$TESTS_DIR/extract_work_table_sql.py" --which override_fix)"
 UNLINK="$(python3 "$TESTS_DIR/extract_work_table_sql.py" --which unlink)"
