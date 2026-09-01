@@ -301,11 +301,27 @@ describeMutation("グリッドから開いたフィードで 2 つのセルが�
 		// 1. 食べたい/食べた → リスト（グリッド）
 		await tabBar.gotoMyDishes();
 		/*
-		一覧は約 964MB の `dish_reviews` を引くので、初回は既定（25 秒）では足りない。
-		同期を切ったあとも «描かれるまでの実時間» は変わらないため、長めに待つ。
+		⚠️ **`selectView` を使わない。器（`my-dishes-list-view`）の «可視» を待たない。**
+
+		iOS ではここが 2 度続けて時間切れになった（run 33455299123 / 33458271783）。
+		どちらも失敗時のコマと Detox 自身の可視判定用のコマ（`DETOX_VISIBILITY_*`）で
+		**グリッドは画面いっぱいに完全に描かれている**。タイムアウトを 25 秒 → 120 秒へ
+		伸ばしても、同期機構を切っても変わらなかった。**器の «可視» だけが真にならない。**
+
+		この spec が必要としているのは器ではなく **中のグリッド（`my-dishes-list`）**なので、
+		器の可視は待たずに中を待つ。器は «在ること» だけ確かめて、結果をログへ残す
+		（可視が真にならない理由の切り分けは、この spec の仕事ではない）。
+
+		⚠️ **タイムアウトを伸ばして直そうとしないこと。2 回失敗している。**
+		⚠️ 一覧は約 964MB の `dish_reviews` を引くので、初回は既定（25 秒）では足りない。
+		   長めに待つこと自体は必要である。
 		*/
-		await myDishes.selectView("list", 120_000);
+		await tapWhenVisible(myDishes.viewButton("list"), 120_000);
 		await waitUntilVisible(by.id("my-dishes-list"), 120_000);
+		// eslint-disable-next-line no-console -- 器の可視が真にならない件の切り分け材料を run のログへ残す
+		console.log(
+			`[diag] my-dishes-list-view exists=${await existsNow(myDishes.view("list"), MARKER_PROBE_MS, 0)}`,
+		);
 
 		/*
 		2. **埋め込みのカードを探す。** 取り込みが古いユーザーだと先頭付近には居ないので、
