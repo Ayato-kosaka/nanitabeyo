@@ -284,3 +284,10 @@
 - [x] **name-first 実装を revert**（3ファイルを aaf6774 の緑状態へ戻した）。≒0 リフトのために resolve の DB クエリを増やすのは（障害の反省からも）割に合わない。純関数＋specも残さない。
 - **戦略ピボット**: 私が動かせる律速は **量（loop A の発見）** のみ＝より多くの投稿を取れば «catalog に在る店» に当たる母数が増える。以後は loop A（柱1 crawl=BQのみ／柱2 harvest／柱3 Serper）に寄せる。catalog 母数の底上げは #843 の領分（提案はするが実行はしない）。
 - **オーナーへ**: loop B は頭打ちと判明したので、合意していた «resolve 磨き上げ» の方針転換を 1 行で伝える（下記 FYI）。
+
+## 進捗更新 2026-09-01 07:35Z（loop A へピボット: 本番ファネル計測＋柱1 backlog を resolve 開始）
+- **本番ファネル（最新 resolve_version/post・全 run）**: resolved **21,560** / matched **3,338（15.5%）** / 異なり店 **2,750** / 生QIDカテゴリ ~496。→ matched% は catalog 律速どおり頭打ち。**量が唯一動かせるレバー**を裏づけ。
+- ★**未 resolve backlog を発見**: sns_post_raw **37,956** vs resolved 21,560 ＝ **16,396 が discovered-not-resolved**。全量が raw_run_id `sns-2026-08-31`（柱1 crawl harvest, 19,396 中 3,000 だけ resolve 済み）。**発見済みを resolve するだけで coverage が増える**（catalog も新規収集も要らない純増）。
+- [~] **backlog resolve を dispatch**（db-script-run, poc branch, **単一シャード・--limit 4000・sleep 200ms＝控えめ**, resolve_version `dev-2026-08-31-p1fix`, 16:35 JST=昼夜ピーク外）。~50-60分。dev は main(5f82c638)＝正しい現行 resolve（name-first は revert 済みで無関係）。
+- **次tick**: ①この run の完了/matched を確認（in_progress なら待つ・再dispatchしない）。②残り ~12k を次の控えめバッチで（単一〜2シャード・ピーク回避）継続。③全量後に 47×134 カバレッジ増分を 7_1 で確定。④柱2/柱3 の新規収集は backlog 消化と並行（BQのみは自由）。
+- **不変則再掲**: resolve は dev pg を引くので単一〜2-3シャード・ピーク回避・版で非破壊。62万×62万の店舗同期(#843)とは別物。
