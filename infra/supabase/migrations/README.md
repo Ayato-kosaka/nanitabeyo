@@ -127,16 +127,20 @@ ALTER TABLE ... DROP COLUMN ...;
 gh api repos/{owner}/{repo}/actions/workflows/db-migrate.yml/runs
 ```
 
-> **2026-08-23 時点の現在地**
+> **2026-09-01 時点の現在地**
 >
-> - `public`: `20260807T0100_drop_share_links_created_by_fkey.sql` まで適用済み
->   （run #7 / 2026-08-11）。それ以降は 1 本も当たっていない
-> - `dev`: `20260807T0100` まで ＋ `20260824T0000`〜`T0400` の 5 本
->   （※旧名 `20260819T*` として #1469 ブランチから適用済み。ファイルは main へ
->   リネームして取り込み済みで、冪等なので再適用は無害）。
->   `20260823T0000_add_restaurant_recommendation_sync_metadata.sql` は**未適用**
-> - 次に dev へ適用するときの `from_file` は `20260823T0000_...` （以降の
->   `20260824T*` は no-op で流れる）
+> - `public`: `20260828T0000_add_restaurants_address_country_and_links.sql` まで適用済み
+>   （v1.14 リリース /
+>   [run 33451203062](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33451203062)）。
+>   このとき `20260823T0000_...` 以降の 16 本をまとめて当てた
+> - `dev`: `20260828T0000` まで適用済み
+> - 次に `public` へ適用するときの `from_file` は、この行より後に足した最初のファイル
+>
+> ⚠️ **`CREATE INDEX CONCURRENTLY` を含む migration を当てたら、`indisvalid` を必ず確認する。**
+> 失敗しても INVALID な索引が残るだけで run は成功し、`IF NOT EXISTS` が以後黙って
+> スキップし続ける。確認は読み取り専用の
+> `scripts/db-checks/assert_index_valid.py` を `db-script-run.yml` から流す
+> （`--schema public --index <名前>`）。v1.14 では 6 本が対象だった
 
 ## 補足: 適用後にやること
 
