@@ -8,13 +8,13 @@ production workflow を dispatch する直前に `--ref` を決めるために�
 
 ## 面ごとのデプロイ元
 
-| 面     | 本番の ref    | workflow                      | production input                               | ref をどう進めるか                         |
-| ------ | ------------- | ----------------------------- | ---------------------------------------------- | ------------------------------------------ |
-| native | `release/X.Y` | `eas-build-submit-prod.yml`   | `platform=all\|ios\|android`                   | main を PR で `release/X.Y` へ統合         |
-| OTA    | `release/X.Y` | `eas-update.yml`              | `channel=production`                           | 配信対象の release へ PR で反映            |
-| web    | **`web`**     | `firebase-hosting-deploy.yml` | `target=production`                            | main を PR で `web` へ統合                 |
-| API    | `release/X.Y` | `api-deploy.yml`              | `target=production`                            | native と同じ release へ相乗り（下記参照） |
-| DB     | **`main`**    | `db-migrate.yml`              | `target_schema=public` + `confirm_public=true` | main へマージした migration が対象         |
+| 面     | 本番の ref    | workflow                      | production input                               | ref をどう進めるか                            |
+| ------ | ------------- | ----------------------------- | ---------------------------------------------- | --------------------------------------------- |
+| native | `release/X.Y` | `eas-build-submit-prod.yml`   | `platform=all\|ios\|android`                   | main を PR で `release/X.Y` へ統合            |
+| OTA    | `release/X.Y` | `eas-update.yml`              | `channel=production`                           | 配信対象の release へ PR で反映               |
+| web    | **`web`**     | `firebase-hosting-deploy.yml` | `target=production`                            | main を PR で `web` へ統合                    |
+| API    | **`main`**    | `api-deploy.yml`              | `target=production`                            | main へマージした時点でいつでも出せる（下記） |
+| DB     | **`main`**    | `db-migrate.yml`              | `target_schema=public` + `confirm_public=true` | main へマージした migration が対象            |
 
 ⚠️ **`web` は `release/X.Y` ではない。** ここを取り違えると、native のリリース作業の流れで
 そのまま web も release ブランチから出てしまう。実際に 2026-09-02 に起きた（後述）。
@@ -29,41 +29,93 @@ production workflow を dispatch する直前に `--ref` を決めるために�
                  ▼                  ▼                  ▼
       ┌────────────────────┐  ┌──────────┐   ┌──────────────────┐
       │ release/X.Y        │  │   web    │   │ main             │
-      │ アプリの «版» を固定 │  │ web の   │   │                  │
-      │ = 審査に出した物を   │  │ 出し先を │   │ migration は版を  │
-      │   後から追える      │  │ 別に持つ │   │ 持たず前へ進むだけ │
-      └──┬──────┬──────┬───┘  └────┬─────┘   └────────┬─────────┘
-         │      │      │           │                  │
-      native   OTA    API         web                DB
-   （審査・  （既存端末 （アプリと （Firebase      （Supabase
-     公開は    への後追い）契約を   Hosting）        public schema）
-     人間）              揃える）
+      │ ストアに出した版を   │  │ web を   │   │ 出したら前の版は  │
+      │ 固定する           │  │ main と  │   │ 消える。版の実体は │
+      │ = 後から追える      │  │ 分ける   │   │ ref の外にある    │
+      └──────┬──────┬──────┘  └────┬─────┘   └────┬────────┬────┘
+             │      │              │              │        │
+          native   OTA            web            API      DB
+        （審査・  （既存端末     （Firebase    （Cloud Run （Supabase
+          公開は    への後追い）   Hosting）      revision）  public）
+          人間）
 ```
 
 分かれ方は 2 つの問いで決まる。
 
-**1. «どの版を出したか» を後から追う必要があるか**
+**1. «ストアに出した版» に縛られるか**
 
-native・OTA・API は必要。ストアに出した binary は差し替えられないので、
-その版と互換な JS（OTA）と API 契約を、後から特定できないといけない。
-だから 3 つとも `release/X.Y` に載る。
+native と OTA だけが縛られる。実配布済みの binary は差し替えられず、
+OTA はその runtimeVersion と互換な JS しか流せない。だから版を固定する
+`release/X.Y` が要る。
 
-**2. アプリの版と無関係に出せるか**
+**2. 版の実体をどこが持っているか**
 
-web と DB は出した瞬間に前の版が消え、アプリの版に縛られない。
+API と DB は ref ではなく**デプロイ先が持つ**。API は Cloud Run の revision
+（image tag = commit SHA）、DB は実スキーマそのもの。git のブランチで二重管理する
+意味が無いので `main` から出す。
 
-- DB は migration が前へ進むだけなので `main` でよい。
-- web は `main` そのものではなく専用の `web` ブランチを持つ。
-  **main には native の審査待ちで止めておきたい変更が入る**ので、
-  それを web へ自動で出さないための緩衝である。
+**web だけは例外で、`main` そのものではなく `web` ブランチを使う。**
+main には native の審査待ちで止めておきたい変更が入るので、それを web へ自動で
+出さないための緩衝が要るため。緩衝が要らなくなったら `main` に寄せてよい。
 
-「いま本番に何が動いているか」は、web と DB では ref から分からない。
-Firebase Hosting のリリース履歴と、実スキーマで確認する。
+## API を単独でリリースする（専用ブランチは作らない）
 
-## API に専用ブランチを切るか（未決）
+**結論: API に専用ブランチは作らない。`main` の任意の commit から、いつでも単独でリリースできる。**
 
-**いまの API は「切れていない」のではなく、native の `release/X.Y` に相乗りしている。**
-本番 API デプロイは実測で 3 回しかなく、3 回とも release ブランチから、アプリのリリースと同時に出ている。
+「API だけ直したい」を **ブランチではなくデプロイの仕組みで**満たす設計である。
+`api-deploy.yml` は既にその形になっている。
+
+```text
+  main の commit ─▶ image: api:<commit sha>   ← 版の実体はこれ（不変）
+                       │
+                       ▼
+        --no-traffic --tag candidate          旧リビジョンが 100% 捌いたまま
+                       │                       新リビジョンを «置くだけ»
+                       ▼
+                  🔥 Smoke test                candidate の URL を直接叩く
+                       │
+            ┌──────────┴──────────┐
+       合格 │                      │ 不合格
+            ▼                      ▼
+   🚦 promote 100%          何もしない = 旧リビジョンのまま
+  （ここで初めて本番が入れ替わる）  （本番は 1 秒も壊れない）
+```
+
+- **いま本番に何が居るか** = Cloud Run の revision と image tag（= commit SHA）。ブランチではない
+- **切り戻し** = `gcloud run services update-traffic --to-revisions <前の revision>=100`。
+  git を触らない。秒で戻る
+- **失敗時** = promote されないので本番は無傷
+
+### 専用ブランチを作らない理由
+
+長命ブランチは「本番に何が居るか」を **二重管理**にするだけで、上の 3 つを何も足さない。
+むしろ腐る。`web` が実際に 6 週間放置され、本番が別ブランチから出る事故になった。
+
+### ブランチの代わりに守る規律
+
+ブランチが無い代わりに、**これだけは必ず守る**。
+
+> **API は «まだユーザーの手元にある一番古いアプリ» と後方互換でなければならない。**
+
+アプリは強制更新できない。ストアの binary も OTA の runtime も何か月も生き残る。
+main へ入れた API 変更は次の deploy で全ユーザーに当たるので、**互換性はブランチではなく
+コードで守る**しかない。
+
+この «一番古いアプリ» は Remote Config の `minimum_supported_version` で宣言してある。
+API はこれ未満のアプリへ **HTTP 426 Upgrade Required** を返して切り離す
+（`api/src/core/guards/maintenance.guard.ts`）。つまり:
+
+- `minimum_supported_version` **以上**のすべてのアプリと互換なら、いつ deploy してもよい
+- 互換にできない変更は expand-contract で段階的に出す
+  （[deployment-matrix.md](../../.codex/skills/gh-nanitabeyo-release/references/deployment-matrix.md) §3）。
+  «次のアプリリリースまで待つ» でごまかさない
+- どうしても切れない古いアプリがあるなら、`minimum_supported_version` を上げる判断を先に行う。
+  **これはユーザーを切る判断なのでオーナーが決める**
+
+### 経緯（2026-09-02 決定）
+
+それまでの実績では、本番 API は 3 回とも `release/X.Y` から、アプリのリリースと同時に出ていた
+（`main` からの本番デプロイは 0 回）。
 
 | 日時 (UTC)       | ref            | run                                                                                |
 | ---------------- | -------------- | ---------------------------------------------------------------------------------- |
@@ -71,22 +123,9 @@ Firebase Hosting のリリース履歴と、実スキーマで確認する。
 | 2026-08-11 11:15 | `release/1.13` | [31485822055](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31485822055) |
 | 2026-08-01 15:40 | `release/1.12` | [30706445416](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/30706445416) |
 
-`main` から本番 API を出した記録は無い（`main` の run はすべて `target=development`）。
-
-つまり今は **「API はアプリのリリース単位でしか本番へ出ない」** という運用になっている。
-専用ブランチ（例 `api/production`）を切る意味は「本番にブランチが要るか」ではなく、
-**API をアプリのリリース周期から切り離すか**である。
-
-|                    | 切る（`api/production`）                    | 切らない（現状: release 相乗り）                     |
-| ------------------ | ------------------------------------------- | ---------------------------------------------------- |
-| API 単独の hotfix  | すぐ出せる                                  | **出せない**。release へ入れるか、release を切り直す |
-| アプリとの契約ずれ | 自分で守る必要がある                        | release 単位なので自動的に揃う                       |
-| 運用コスト         | ブランチ 1 本ぶん同期が増える               | 増えない                                             |
-| 腐るリスク         | **ある**（`web` は実際に 6 週間放置された） | 無い                                                 |
-
-**推奨は「いまは切らない」。** API 単独で緊急修正を出したい場面が実際に発生していない
-（3 回とも release と同時）のに、腐る実績のある長命ブランチを増やす理由が無い。
-API hotfix を release を待たずに出したくなった時点で切ればよく、その時に切っても遅くない。
+この形は **「API だけ直したい」が構造的にできない**（release を切るか、次のリリースまで待つ）。
+API の緊急修正がアプリの審査期間に縛られるのは受け入れられないので、`main` からの
+単独デプロイへ切り替えた。
 
 ## デプロイ前に確認すること
 

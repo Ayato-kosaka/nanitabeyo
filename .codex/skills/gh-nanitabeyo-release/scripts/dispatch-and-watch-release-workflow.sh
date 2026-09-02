@@ -16,8 +16,8 @@ Usage:
 
 --ref に渡すブランチは面ごとに違う。正本は docs/specs/deploy-branches.md。
   native  release/X.Y
-  api     release/X.Y
   web     web
+  api     main
 EOF
   exit 2
 }
@@ -76,7 +76,7 @@ expected_ref_pattern() {
   case "$1" in
     native) printf '^release/[A-Za-z0-9._/-]+$' ;;
     web) printf '^web$' ;;
-    api) printf '^release/[A-Za-z0-9._/-]+$' ;;
+    api) printf '^main$' ;;
     *) return 1 ;;
   esac
 }
