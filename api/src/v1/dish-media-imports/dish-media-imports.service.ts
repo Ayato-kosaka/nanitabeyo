@@ -55,7 +55,10 @@ import {
 } from '../../../../shared/utils/snsUrl';
 import { matchDishCategoriesWithIndex } from '../../../../shared/utils/dishCategoryMatch';
 import { matchRestaurantNames } from '../../../../shared/utils/restaurantNameMatch';
-import type { ExtractedText } from '../../../../shared/utils/textNormalize';
+import {
+  extractPinNames,
+  type ExtractedText,
+} from '../../../../shared/utils/textNormalize';
 import {
   extractPostalAddress,
   parseGsiAddressSearchResponse,
@@ -1259,8 +1262,18 @@ export class DishMediaImportsService {
       });
     }
 
+    // #1273 生キャプション（改行を保った状態）から 📍<店名> 行を切り出し、exact-match の
+    // ヒントとして渡す。含有一致 0.85 止まりで prefill（0.90）に届かなかった «店名を丸ごと
+    // 📍 行に書く» 投稿を、無人取り込みの土俵へ乗せる。
+    // ⚠️ texts の text は正規化前の生キャプション（buildExtractedTexts が metadata.title /
+    //    description をそのまま入れる）なので、ここで改行連結してよい。normalize 済みを渡すと
+    //    改行が潰れて 📍 行の切り出しが効かなくなる。
+    // TODO(#1273 バケット2): 裸ハンドル（extractBareHandles）→ 店 ID 辞書での解決は、辞書が
+    //    入ったら別 Issue でここへ繋ぐ。現状は辞書が無いので抽出のみ用意して未使用。
+    const nameHints = extractPinNames(texts.map((text) => text.text).join('\n'));
+
     const matched = matchRestaurantNames(
-      { texts, candidates: searchCandidates, authorName },
+      { texts, candidates: searchCandidates, authorName, nameHints },
       { maxCandidates: limit },
     );
 
