@@ -3,11 +3,14 @@
   "n_fetched": 118,
   "n_fetch_failed": 32,
   "n_with_ig": 38,
+  "n_with_clean_handle": 36,
+  "n_ig_present_no_handle": 2,
   "ig_rate": 0.322,
   "ig_rate_pct": 32.2,
+  "handle_extract_rate_pct": 30.5,
   "n_via_linktree": 0,
   "n_js_suspect_no_ig": 1,
-  "denominator_note": "ig_rate = n_with_ig / n_fetched (取得成功を分母)",
+  "denominator_note": "ig_rate = n_with_ig / n_fetched。分子=IG 掲載(handle/linktree/embed/投稿リンクのいずれか)、分母=curl 取得成功サイト",
   "no_instagram_subset": {
     "n": 84,
     "n_fetched": 64,
@@ -20,181 +23,241 @@
       "store": "Hidamari Kaki-Gori Stand",
       "website": "http://kaki-gori.com",
       "found_handle": "hidamari_kakigori_stand",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "すしことかつお",
       "website": "https://li-ka1920.jp/floor-map/archives/category/1f",
       "found_handle": "thy_fruits_smoothie",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "すたみな太郎 飯塚店",
       "website": "http://t-stamina.jp/shop_search/1081.html",
       "found_handle": "stamina_taro",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "糸島バーガー 四季彩",
       "website": "http://plaza.rakuten.co.jp/shikisai/",
-      "found_handle": "embed.js",
-      "via_linktree": false
+      "found_handle": null,
+      "via_linktree": false,
+      "ig_embed": true,
+      "ig_post_link": false
     },
     {
       "store": "唐揚げ屋ICHI arita",
       "website": "http://karaageya-ichi.com",
       "found_handle": "sasebo_lemon_friedchiken",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "ビッグマン 佐々店",
       "website": "http://www.sasebo-bigman.jp",
       "found_handle": "saseboburger_bigman",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "OYATUYA.U",
       "website": "https://www.oyatuya-u.com",
       "found_handle": "oyatuya.u",
-      "via_linktree": false
-    },
-    {
-      "store": "COCO’S 古京店",
-      "website": "https://www.cocos-jpn.co.jp",
-      "found_handle": "cocos_j",
-      "via_linktree": false
-    },
-    {
-      "store": "洋食と珈琲の店 トロル",
-      "website": "https://www.iki-troll.com",
-      "found_handle": "trollkitchencar",
-      "via_linktree": false
-    },
-    {
-      "store": "文明堂 アミュプラザ長崎店",
-      "website": "http://www.bunmeido.ne.jp",
-      "found_handle": "bunmeido_nagasakicastella",
-      "via_linktree": false
-    },
-    {
-      "store": "産直牡蠣 イカ道場豊丸水産岩国駅前店",
-      "website": "https://toyomarusuisan.com/iwakuni-ekimae",
-      "found_handle": "chimney_corp.official",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "Cafe Gatto 里親募集型保護猫×古民家カフェ",
       "website": "http://nekocafe-gatto.com",
       "found_handle": "cafegatto.neko",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
+    },
+    {
+      "store": "洋食と珈琲の店 トロル",
+      "website": "https://www.iki-troll.com",
+      "found_handle": "trollkitchencar",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
+    },
+    {
+      "store": "COCO’S 古京店",
+      "website": "https://www.cocos-jpn.co.jp",
+      "found_handle": "cocos_j",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
+    },
+    {
+      "store": "産直牡蠣 イカ道場豊丸水産岩国駅前店",
+      "website": "https://toyomarusuisan.com/iwakuni-ekimae",
+      "found_handle": "chimney_corp.official",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": true
     },
     {
       "store": "Le Mameco",
       "website": "https://lemameco.base.shop",
       "found_handle": "le_mameco",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
-      "store": "山川パーキングエリア外売店",
-      "website": "http://www.w-holdings.co.jp/sapa/index.php?institution_id=2633",
-      "found_handle": "nexco_west_sapa",
-      "via_linktree": false
+      "store": "文明堂 アミュプラザ長崎店",
+      "website": "http://www.bunmeido.ne.jp",
+      "found_handle": "bunmeido_nagasakicastella",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "The Terrace",
       "website": "http://www.limani.jp/restaurant/",
       "found_handle": "hotel_limani",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
+    },
+    {
+      "store": "山川パーキングエリア外売店",
+      "website": "http://www.w-holdings.co.jp/sapa/index.php?institution_id=2633",
+      "found_handle": "nexco_west_sapa",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "口福堂 香椎浜イオン店",
       "website": "https://www.kakiyasuhonten.co.jp",
       "found_handle": "kakiyasu_dining",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "フランス菓子一公加治屋店",
       "website": "http://f-ikkou.com",
       "found_handle": "ituko_kagoshima1982",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": true
     },
     {
       "store": "ミスタードーナツ",
       "website": "https://www.misterdonut.jp",
       "found_handle": "misterdonut_jp",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "アッファビーレ",
       "website": "https://line.me/R/ti/p/@ikq5475i",
       "found_handle": "affabile.kasugabaru",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "石垣やいま村 あんぱる食堂",
       "website": "http://www.yaimamura.com",
       "found_handle": "yaimamura.official",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": true
     },
     {
       "store": "松屋・松のや 広島八木店",
       "website": "https://www.matsuyafoods.co.jp",
       "found_handle": "matsuya_foods",
-      "via_linktree": false
-    },
-    {
-      "store": "お好み焼き・鉄板焼 てっちゃん",
-      "website": "http://matsue.mypl.net/shop/00000341336",
-      "found_handle": "mypl_sanin",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "濵かつ 福岡諸岡店",
       "website": "https://shop.hamakatsu.jp/shop/h0006",
       "found_handle": "hamakatsu_official",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
+    },
+    {
+      "store": "お好み焼き・鉄板焼 てっちゃん",
+      "website": "http://matsue.mypl.net/shop/00000341336",
+      "found_handle": "mypl_sanin",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "モンゴルカレー",
       "website": "https://www.mongol-curry.com",
       "found_handle": "mongolcurry",
-      "via_linktree": false
-    },
-    {
-      "store": "喃風二見店",
-      "website": "https://www.nanpuu.co.jp",
-      "found_handle": "nanpuu_official",
-      "via_linktree": false
-    },
-    {
-      "store": "牛角 福岡キャナルシティ博多前店",
-      "website": "http://www.gyukaku.ne.jp",
-      "found_handle": "gyukaku_official",
-      "via_linktree": false
-    },
-    {
-      "store": "鎌倉パスタ",
-      "website": "http://www.saint-marc-hd.com/kamakura",
-      "found_handle": "kamakurapasta_official",
-      "via_linktree": false
-    },
-    {
-      "store": "麺 和田や",
-      "website": "https://itsuki-inc.com/wadaya",
-      "found_handle": "men.wadaya",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "カリオモンズコーヒー長崎",
       "website": "https://kariomons.com",
       "found_handle": "kariomonscoffee_journal",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
+    },
+    {
+      "store": "牛角 福岡キャナルシティ博多前店",
+      "website": "http://www.gyukaku.ne.jp",
+      "found_handle": "gyukaku_official",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
+    },
+    {
+      "store": "鎌倉パスタ",
+      "website": "http://www.saint-marc-hd.com/kamakura",
+      "found_handle": "kamakurapasta_official",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
+    },
+    {
+      "store": "麺 和田や",
+      "website": "https://itsuki-inc.com/wadaya",
+      "found_handle": "men.wadaya",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     },
     {
       "store": "大吉津名店",
       "website": "http://www.daikichi.co.jp",
       "found_handle": "yakitoridaikichi.official",
-      "via_linktree": false
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
+    },
+    {
+      "store": "喃風二見店",
+      "website": "https://www.nanpuu.co.jp",
+      "found_handle": "nanpuu_official",
+      "via_linktree": false,
+      "ig_embed": false,
+      "ig_post_link": false
     }
   ],
   "sample_all": [
@@ -210,7 +273,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: diningbar-curious.com"
+      "error": "curl: (6) Could not resolve host: diningbar-curious.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "鉄板居酒屋 中家",
@@ -224,7 +290,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: ggyao.usen.com"
+      "error": "curl: (6) Could not resolve host: ggyao.usen.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "BAR naKayama",
@@ -238,7 +307,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "食香房とうじ",
@@ -252,7 +324,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.izakaya-uno.com"
+      "error": "curl: (6) Could not resolve host: www.izakaya-uno.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "カフェ チャッタナ",
@@ -266,7 +341,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (60) SSL: no alternative certificate subject name matches target host name 'chattananomori.com'\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the"
+      "error": "curl: (60) SSL: no alternative certificate subject name matches target host name 'chattananomori.com'\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "ほっともっと 戸次大南店",
+      "website": "http://www.hottomotto.com",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://www.hottomotto.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "Hidamari Kaki-Gori Stand",
@@ -289,7 +384,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "マクドナルド 10号日向店",
@@ -303,7 +401,44 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "寿司Musashi",
+      "website": "https://okinawa-uruma-sushimusashi.gorp.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://r.gnavi.co.jp/gebah67g0000/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "インド料理SHIVA",
+      "website": "http://nttbj.itp.ne.jp/0963604646/index.html",
+      "source": "no_instagram",
+      "http_code": "000",
+      "effective_url": "https://itp.ne.jp/ap/0963604646/index.html",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (92) HTTP/2 stream 1 was not closed cleanly: INTERNAL_ERROR (err 2)",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "すしことかつお",
@@ -321,49 +456,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "インド料理SHIVA",
-      "website": "http://nttbj.itp.ne.jp/0963604646/index.html",
-      "source": "no_instagram",
-      "http_code": "000",
-      "effective_url": "https://itp.ne.jp/ap/0963604646/index.html",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (92) HTTP/2 stream 1 was not closed cleanly: INTERNAL_ERROR (err 2)"
-    },
-    {
-      "store": "ほっともっと 戸次大南店",
-      "website": "http://www.hottomotto.com",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://www.hottomotto.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ディレット",
-      "website": "https://ya01900.gorp.jp",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://ya01900.gorp.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "しゃぶしゃぶと溶岩焼きの店縁-ENISHI- 薬院本店",
@@ -377,7 +473,61 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "ディレット",
+      "website": "https://ya01900.gorp.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://ya01900.gorp.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "キッチン空福亭",
+      "website": "http://www.kyusanko.co.jp/retail/airport/foodcourt.php",
+      "source": "no_instagram",
+      "http_code": "404",
+      "effective_url": "https://www.kyusanko.co.jp/retail/airport/foodcourt.php",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "パンと野菜のレストラン Oxalis （オキ ザリス）",
+      "website": "http://instagram.com",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://www.instagram.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "すたみな太郎 飯塚店",
@@ -393,51 +543,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "寿司Musashi",
-      "website": "https://okinawa-uruma-sushimusashi.gorp.jp",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://r.gnavi.co.jp/gebah67g0000/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "糸島バーガー 四季彩",
-      "website": "http://plaza.rakuten.co.jp/shikisai/",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://plaza.rakuten.co.jp/shikisai/",
-      "fetched": true,
-      "found_handle": "embed.js",
-      "handles": [
-        "embed.js"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "パンと野菜のレストラン Oxalis （オキ ザリス）",
-      "website": "http://instagram.com",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://www.instagram.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "オステリア・ラ・フォンテ",
@@ -451,7 +560,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "酒・味処　武",
@@ -465,7 +577,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.okinawa.fm"
+      "error": "curl: (6) Could not resolve host: www.okinawa.fm",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "糸島バーガー 四季彩",
+      "website": "http://plaza.rakuten.co.jp/shikisai/",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://plaza.rakuten.co.jp/shikisai/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": true,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "大社珈琲",
@@ -479,49 +611,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.cafemaruco.jp"
-    },
-    {
-      "store": "キッチン空福亭",
-      "website": "http://www.kyusanko.co.jp/retail/airport/foodcourt.php",
-      "source": "no_instagram",
-      "http_code": "404",
-      "effective_url": "https://www.kyusanko.co.jp/retail/airport/foodcourt.php",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "沖縄Base",
-      "website": "http://okinawabase2010.ti-da.net",
-      "source": "no_instagram",
-      "http_code": "403",
-      "effective_url": "http://okinawabase2010.ti-da.net/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "BABAKE",
-      "website": "http://babake.jp",
-      "source": "no_instagram",
-      "http_code": "503",
-      "effective_url": "http://babake.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": "curl: (6) Could not resolve host: www.cafemaruco.jp",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "唐揚げ屋ICHI arita",
@@ -539,7 +632,78 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "ほの花",
+      "website": "http://n-honoka.com",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://n-honoka.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "ごはんどき 宇部店",
+      "website": "https://www.maruhandining.co.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://www.maruhandining.co.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "サイゼリヤ",
+      "website": "https://www.saizeriya.co.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://www.saizeriya.co.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "BABAKE",
+      "website": "http://babake.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "http://www.babake.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "ビッグマン 佐々店",
@@ -555,7 +719,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "OYATUYA.U",
@@ -571,35 +738,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
-      "store": "サイゼリヤ",
-      "website": "https://www.saizeriya.co.jp",
+      "store": "沖縄Base",
+      "website": "http://okinawabase2010.ti-da.net",
       "source": "no_instagram",
       "http_code": "200",
-      "effective_url": "https://www.saizeriya.co.jp/",
+      "effective_url": "https://okinawabase2010.ti-da.net/",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ほの花",
-      "website": "http://n-honoka.com",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://n-honoka.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "和や 駅前店",
@@ -613,53 +772,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (56) CONNECT tunnel failed, response 502"
-    },
-    {
-      "store": "ごはんどき 宇部店",
-      "website": "https://www.maruhandining.co.jp",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://www.maruhandining.co.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "COCO’S 古京店",
-      "website": "https://www.cocos-jpn.co.jp",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://www.cocos-jpn.co.jp/",
-      "fetched": true,
-      "found_handle": "cocos_j",
-      "handles": [
-        "cocos_j"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "洋食と珈琲の店 トロル",
-      "website": "https://www.iki-troll.com",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://troll.shopinfo.jp/",
-      "fetched": true,
-      "found_handle": "trollkitchencar",
-      "handles": [
-        "trollkitchencar"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": "curl: (56) CONNECT tunnel failed, response 502",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "キリンビアファーム",
@@ -673,95 +789,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "にっぽんの洋食五津味",
-      "website": "http://yosyokuizumi.com",
-      "source": "no_instagram",
-      "http_code": "000",
-      "effective_url": "http://yosyokuizumi.com/",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: yosyokuizumi.com"
-    },
-    {
-      "store": "文明堂 アミュプラザ長崎店",
-      "website": "http://www.bunmeido.ne.jp",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://bunmeido.ne.jp/",
-      "fetched": true,
-      "found_handle": "bunmeido_nagasakicastella",
-      "handles": [
-        "bunmeido_nagasakicastella"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ひよ子本舗吉野堂",
-      "website": "https://www.hiyoko.co.jp",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://www.hiyoko.co.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "産直牡蠣 イカ道場豊丸水産岩国駅前店",
-      "website": "https://toyomarusuisan.com/iwakuni-ekimae",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://toyomarusuisan.com/iwakuni-ekimae/",
-      "fetched": true,
-      "found_handle": "chimney_corp.official",
-      "handles": [
-        "chimney_corp.official"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "森の泉",
-      "website": "http://user.shikoku.ne.jp/wa2458",
-      "source": "no_instagram",
-      "http_code": "000",
-      "effective_url": "https://user.shikoku.ne.jp/wa2458",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (60) SSL: no alternative certificate subject name matches target host name 'user.shikoku.ne.jp'\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the"
-    },
-    {
-      "store": "酒肴飯 まる清",
-      "website": "http://www.sake-marukiyo.com",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "http://www.sake-marukiyo.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "Cafe Gatto 里親募集型保護猫×古民家カフェ",
@@ -777,7 +808,135 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "洋食と珈琲の店 トロル",
+      "website": "https://www.iki-troll.com",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://troll.shopinfo.jp/",
+      "fetched": true,
+      "found_handle": "trollkitchencar",
+      "handles": [
+        "trollkitchencar"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "にっぽんの洋食五津味",
+      "website": "http://yosyokuizumi.com",
+      "source": "no_instagram",
+      "http_code": "000",
+      "effective_url": "http://yosyokuizumi.com/",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (6) Could not resolve host: yosyokuizumi.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "COCO’S 古京店",
+      "website": "https://www.cocos-jpn.co.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://www.cocos-jpn.co.jp/",
+      "fetched": true,
+      "found_handle": "cocos_j",
+      "handles": [
+        "cocos_j"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "ひよ子本舗吉野堂",
+      "website": "https://www.hiyoko.co.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://www.hiyoko.co.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "森の泉",
+      "website": "http://user.shikoku.ne.jp/wa2458",
+      "source": "no_instagram",
+      "http_code": "000",
+      "effective_url": "https://user.shikoku.ne.jp/wa2458",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (60) SSL: no alternative certificate subject name matches target host name 'user.shikoku.ne.jp'\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "酒肴飯 まる清",
+      "website": "http://www.sake-marukiyo.com",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "http://www.sake-marukiyo.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "産直牡蠣 イカ道場豊丸水産岩国駅前店",
+      "website": "https://toyomarusuisan.com/iwakuni-ekimae",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://toyomarusuisan.com/iwakuni-ekimae/",
+      "fetched": true,
+      "found_handle": "chimney_corp.official",
+      "handles": [
+        "chimney_corp.official"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": true,
+      "ig_present": true
     },
     {
       "store": "さくら食堂",
@@ -791,21 +950,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ステーキハウス神戸館",
-      "website": "http://www.kobekan.co.jp",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://kobekan.co.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "Le Mameco",
@@ -821,7 +969,29 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "文明堂 アミュプラザ長崎店",
+      "website": "http://www.bunmeido.ne.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://bunmeido.ne.jp/",
+      "fetched": true,
+      "found_handle": "bunmeido_nagasakicastella",
+      "handles": [
+        "bunmeido_nagasakicastella"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "ビストロパパ市役所店",
@@ -835,37 +1005,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "山川パーキングエリア外売店",
-      "website": "http://www.w-holdings.co.jp/sapa/index.php?institution_id=2633",
-      "source": "no_instagram",
-      "http_code": "404",
-      "effective_url": "http://www.w-holdings.co.jp/sapa/index.php?institution_id=2633",
-      "fetched": true,
-      "found_handle": "nexco_west_sapa",
-      "handles": [
-        "nexco_west_sapa"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "穂の蔵",
-      "website": "http://www.ichiken-farm.com",
-      "source": "no_instagram",
-      "http_code": "403",
-      "effective_url": "http://www.ichiken-farm.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "The Terrace",
@@ -881,7 +1024,63 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "ステーキハウス神戸館",
+      "website": "http://www.kobekan.co.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://kobekan.co.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "穂の蔵",
+      "website": "http://www.ichiken-farm.com",
+      "source": "no_instagram",
+      "http_code": "403",
+      "effective_url": "http://www.ichiken-farm.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "山川パーキングエリア外売店",
+      "website": "http://www.w-holdings.co.jp/sapa/index.php?institution_id=2633",
+      "source": "no_instagram",
+      "http_code": "404",
+      "effective_url": "http://www.w-holdings.co.jp/sapa/index.php?institution_id=2633",
+      "fetched": true,
+      "found_handle": "nexco_west_sapa",
+      "handles": [
+        "nexco_west_sapa"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "うまいでやきとり屋 袋町店",
@@ -895,7 +1094,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.gochi-machi.jp"
+      "error": "curl: (6) Could not resolve host: www.gochi-machi.jp",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "北斗七星",
@@ -909,7 +1111,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "かつや",
@@ -923,7 +1128,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "ちくぜん",
@@ -937,7 +1145,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "口福堂 香椎浜イオン店",
@@ -953,21 +1164,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "山かつ",
-      "website": "http://www.yamanoce.co.jp/yamakatsu",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://www.yamanoce.co.jp/yamakatsu/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "フランス菓子一公加治屋店",
@@ -983,7 +1183,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": true,
+      "ig_present": true
+    },
+    {
+      "store": "Engelks食堂",
+      "website": "https://engelks.jp",
+      "source": "no_instagram",
+      "http_code": "000",
+      "effective_url": "https://engelks.jp/",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (56) CONNECT tunnel failed, response 502",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "ミスタードーナツ",
@@ -999,7 +1219,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "パティスリーh・ベルジュ",
@@ -1013,63 +1236,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
-      "store": "Engelks食堂",
-      "website": "https://engelks.jp",
-      "source": "no_instagram",
-      "http_code": "000",
-      "effective_url": "https://engelks.jp/",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (56) CONNECT tunnel failed, response 502"
-    },
-    {
-      "store": "お菓子工房 スフレ",
-      "website": "http://www.miten.jp/miten/modules/myalbum32/photo.php?lid=1404",
+      "store": "山かつ",
+      "website": "http://www.yamanoce.co.jp/yamakatsu",
       "source": "no_instagram",
       "http_code": "200",
-      "effective_url": "http://www.miten.jp/miten/modules/myalbum32/photo.php?lid=1404",
+      "effective_url": "https://www.yamanoce.co.jp/yamakatsu/",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "純生食パンHAREPAN・朝生田店",
-      "website": "http://www.kadoya-taimeshi.com/kadoyamanage/shoplist/hare-pan",
-      "source": "no_instagram",
-      "http_code": "404",
-      "effective_url": "https://www.kadoya-taimeshi.com/kadoyamanage/shoplist/hare-pan",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ヒライ",
-      "website": "http://www.hirai-wa.com/shop_south/matubasechuou/",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://www.hirai-wa.com/shop_south/matubasechuou/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "東京飯店",
@@ -1083,21 +1270,44 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
-      "store": "和Dining 是喰",
-      "website": "http://localplace.jp/t200321570",
+      "store": "ヒライ",
+      "website": "http://www.hirai-wa.com/shop_south/matubasechuou/",
       "source": "no_instagram",
-      "http_code": "000",
-      "effective_url": "https://localplace.jp:443/t200321570",
-      "fetched": false,
+      "http_code": "200",
+      "effective_url": "https://www.hirai-wa.com/shop_south/matubasechuou/",
+      "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (60) SSL certificate problem: unable to get local issuer certificate\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the server and therefore could"
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "お菓子工房 スフレ",
+      "website": "http://www.miten.jp/miten/modules/myalbum32/photo.php?lid=1404",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "http://www.miten.jp/miten/modules/myalbum32/photo.php?lid=1404",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "馳走処手いっぽん",
@@ -1111,7 +1321,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: umakamon-teippon.area9.jp"
+      "error": "curl: (6) Could not resolve host: umakamon-teippon.area9.jp",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "純生食パンHAREPAN・朝生田店",
+      "website": "http://www.kadoya-taimeshi.com/kadoyamanage/shoplist/hare-pan",
+      "source": "no_instagram",
+      "http_code": "404",
+      "effective_url": "https://www.kadoya-taimeshi.com/kadoyamanage/shoplist/hare-pan",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "ハカタメモリーズ",
@@ -1125,7 +1355,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.hakata-kentos.com"
+      "error": "curl: (6) Could not resolve host: www.hakata-kentos.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "和Dining 是喰",
+      "website": "http://localplace.jp/t200321570",
+      "source": "no_instagram",
+      "http_code": "000",
+      "effective_url": "https://localplace.jp:443/t200321570",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (60) SSL certificate problem: unable to get local issuer certificate\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the server and therefore could",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "amaze",
@@ -1139,21 +1389,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.italian-amaze.com"
+      "error": "curl: (6) Could not resolve host: www.italian-amaze.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
-      "store": "EVERY BAGEL サークル",
-      "website": "http://bagelcat.ti-da.net",
+      "store": "カフェ ホワイト ガーデン",
+      "website": "http://ameblo.jp/whitegarden722",
       "source": "no_instagram",
-      "http_code": "404",
-      "effective_url": "https://bagelcat.ti-da.net/",
+      "http_code": "200",
+      "effective_url": "https://ameblo.jp/whitegarden722/",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "js_suspect": true,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "アッファビーレ",
@@ -1169,35 +1425,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "フラワーメイト",
-      "website": "http://flowermate.noramba.net",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "http://flowermate.noramba.net/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ダイニングバーリップル",
-      "website": "https://ripple-okinawa.jp",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://ripple-okinawa.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "いかだ屋",
@@ -1211,21 +1442,44 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
-      "store": "リブラブキッチン",
-      "website": "http://live-love.net",
+      "store": "フラワーメイト",
+      "website": "http://flowermate.noramba.net",
       "source": "no_instagram",
-      "http_code": "503",
-      "effective_url": "https://www.live-love.net/",
+      "http_code": "200",
+      "effective_url": "http://flowermate.noramba.net/",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "EVERY BAGEL サークル",
+      "website": "http://bagelcat.ti-da.net",
+      "source": "no_instagram",
+      "http_code": "404",
+      "effective_url": "https://bagelcat.ti-da.net/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "有機茶房 ごえん",
@@ -1239,7 +1493,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (35) OpenSSL/3.0.13: error:0A000410:SSL routines::sslv3 alert handshake failure"
+      "error": "curl: (35) OpenSSL/3.0.13: error:0A000410:SSL routines::sslv3 alert handshake failure",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "ダイニングバーリップル",
+      "website": "https://ripple-okinawa.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://ripple-okinawa.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "割烹山部",
@@ -1253,7 +1527,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.shinsuke.co.jp"
+      "error": "curl: (6) Could not resolve host: www.shinsuke.co.jp",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "餃子の王将高知御座店",
@@ -1267,35 +1544,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "カフェ ホワイト ガーデン",
-      "website": "http://ameblo.jp/whitegarden722",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://ameblo.jp/whitegarden722/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": true,
-      "error": null
-    },
-    {
-      "store": "四cafe",
-      "website": "http://yoncafe.com",
-      "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://www.hugedomains.com/domain_profile.cfm?d=yoncafe.com",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "塩尻喜月堂",
@@ -1309,7 +1561,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "石垣やいま村 あんぱる食堂",
@@ -1325,49 +1580,44 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": true,
+      "ig_present": true
     },
     {
-      "store": "Bar Meister",
-      "website": "http://www.asahibeer.co.jp/area/search/shop.psp.html/91254401.htm",
-      "source": "no_instagram",
-      "http_code": "403",
-      "effective_url": "https://www.asahibeer.co.jp/area/search/shop.psp.html/91254401.htm",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "マドレーヌ",
-      "website": "http://madeleine-kumamoto.co.jp",
+      "store": "四cafe",
+      "website": "http://yoncafe.com",
       "source": "no_instagram",
       "http_code": "200",
-      "effective_url": "https://www.madeleine-kumamoto.co.jp/",
+      "effective_url": "https://www.hugedomains.com/domain_profile.cfm?d=yoncafe.com",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
-      "store": "クローバー",
-      "website": "http://www.neoclassic-clover.com",
+      "store": "リブラブキッチン",
+      "website": "http://live-love.net",
       "source": "no_instagram",
-      "http_code": "200",
-      "effective_url": "https://ufabet777777.cn.com/",
+      "http_code": "503",
+      "effective_url": "https://www.live-love.net/",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "お好み一番地 ゆめタウン丸亀店",
@@ -1381,35 +1631,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "東天閣",
-      "website": "http://1010kaku.com",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "http://1010kaku.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "根岸",
-      "website": "http://machi.goo.ne.jp/0836-33-7044",
-      "source": "with_website",
-      "http_code": "000",
-      "effective_url": "http://machi.goo.ne.jp/0836-33-7044",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: machi.goo.ne.jp"
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "MU-ZA",
@@ -1423,7 +1648,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "松屋・松のや 広島八木店",
@@ -1442,7 +1670,61 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "Bar Meister",
+      "website": "http://www.asahibeer.co.jp/area/search/shop.psp.html/91254401.htm",
+      "source": "no_instagram",
+      "http_code": "403",
+      "effective_url": "https://www.asahibeer.co.jp/area/search/shop.psp.html/91254401.htm",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "東天閣",
+      "website": "http://1010kaku.com",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "http://1010kaku.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "根岸",
+      "website": "http://machi.goo.ne.jp/0836-33-7044",
+      "source": "with_website",
+      "http_code": "000",
+      "effective_url": "http://machi.goo.ne.jp/0836-33-7044",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (6) Could not resolve host: machi.goo.ne.jp",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "ミロワール南香",
@@ -1456,7 +1738,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "マドレーヌ",
+      "website": "http://madeleine-kumamoto.co.jp",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://www.madeleine-kumamoto.co.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "久つろぎや 一",
@@ -1470,35 +1772,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "どんどん亭総社店",
-      "website": "http://www.yaki-29.com/index.html",
-      "source": "with_website",
-      "http_code": "403",
-      "effective_url": "http://www.yaki-29.com/index.html",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "なか卯 429号倉敷中島店",
-      "website": "https://www.nakau.co.jp",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://www.nakau.co.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "ウイーンの森",
@@ -1512,7 +1789,61 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "どんどん亭総社店",
+      "website": "http://www.yaki-29.com/index.html",
+      "source": "with_website",
+      "http_code": "403",
+      "effective_url": "http://www.yaki-29.com/index.html",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "クローバー",
+      "website": "http://www.neoclassic-clover.com",
+      "source": "no_instagram",
+      "http_code": "200",
+      "effective_url": "https://ufabet777777.cn.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "なか卯 429号倉敷中島店",
+      "website": "https://www.nakau.co.jp",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://www.nakau.co.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "パティスリー てるてるぼうず",
@@ -1526,23 +1857,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "お好み焼き・鉄板焼 てっちゃん",
-      "website": "http://matsue.mypl.net/shop/00000341336",
-      "source": "with_website",
-      "http_code": "404",
-      "effective_url": "https://matsue.mypl.net/shop/00000341336/",
-      "fetched": true,
-      "found_handle": "mypl_sanin",
-      "handles": [
-        "mypl_sanin"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "濵かつ 福岡諸岡店",
@@ -1558,7 +1876,97 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "和牛処 信",
+      "website": "http://www.39dl.com/shin_intro.html",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://9m188.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "お好み焼き・鉄板焼 てっちゃん",
+      "website": "http://matsue.mypl.net/shop/00000341336",
+      "source": "with_website",
+      "http_code": "404",
+      "effective_url": "https://matsue.mypl.net/shop/00000341336/",
+      "fetched": true,
+      "found_handle": "mypl_sanin",
+      "handles": [
+        "mypl_sanin"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "若竹丸 時津店",
+      "website": "http://wakatakemaru.com/togitsu.html",
+      "source": "with_website",
+      "http_code": "404",
+      "effective_url": "http://wakatakemaru.com/togitsu.html",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "博多再生酒場",
+      "website": "http://www.hakata-ginzushi.com",
+      "source": "with_website",
+      "http_code": "000",
+      "effective_url": "http://www.hakata-ginzushi.com/",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (6) Could not resolve host: www.hakata-ginzushi.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "薫習",
+      "website": "http://www10.ocn.ne.jp/~kunjyu",
+      "source": "with_website",
+      "http_code": "000",
+      "effective_url": "http://www10.ocn.ne.jp/~kunjyu",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (6) Could not resolve host: www10.ocn.ne.jp",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "モンゴルカレー",
@@ -1574,268 +1982,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "博多再生酒場",
-      "website": "http://www.hakata-ginzushi.com",
-      "source": "with_website",
-      "http_code": "000",
-      "effective_url": "http://www.hakata-ginzushi.com/",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.hakata-ginzushi.com"
-    },
-    {
-      "store": "若竹丸 時津店",
-      "website": "http://wakatakemaru.com/togitsu.html",
-      "source": "with_website",
-      "http_code": "404",
-      "effective_url": "http://wakatakemaru.com/togitsu.html",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "薫習",
-      "website": "http://www10.ocn.ne.jp/~kunjyu",
-      "source": "with_website",
-      "http_code": "000",
-      "effective_url": "http://www10.ocn.ne.jp/~kunjyu",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www10.ocn.ne.jp"
-    },
-    {
-      "store": "ガトー・アイクレール",
-      "website": "http://aiclair.com",
-      "source": "with_website",
-      "http_code": "403",
-      "effective_url": "http://aiclair.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "博多天ぷら たかお",
-      "website": "http://tempura-takao.jp",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "http://tempura-takao.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "和牛処 信",
-      "website": "http://www.39dl.com/shin_intro.html",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://9m188.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "茶亭 開花堂",
-      "website": "http://www.people-i.ne.jp/~kaikadou",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "http://www.people-i.ne.jp/~kaikadou/",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "empty_body"
-    },
-    {
-      "store": "自然生家",
-      "website": "http://www.jinenjyouya.com",
-      "source": "with_website",
-      "http_code": "000",
-      "effective_url": "http://www.jinenjyouya.com/",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.jinenjyouya.com"
-    },
-    {
-      "store": "風車",
-      "website": "http://takarog.ti-da.net",
-      "source": "with_website",
-      "http_code": "404",
-      "effective_url": "https://takarog.ti-da.net/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "天ぷら七八",
-      "website": "http://tempura78.com",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://tempura78.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ケーキハウスさくら",
-      "website": "http://cakehouse-sakura.com",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "http://cakehouse-sakura.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "喃風二見店",
-      "website": "https://www.nanpuu.co.jp",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://nanpuu.co.jp/",
-      "fetched": true,
-      "found_handle": "nanpuu_official",
-      "handles": [
-        "nanpuu_official"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "牛角 福岡キャナルシティ博多前店",
-      "website": "http://www.gyukaku.ne.jp",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://www.gyukaku.ne.jp/",
-      "fetched": true,
-      "found_handle": "gyukaku_official",
-      "handles": [
-        "gyukaku_official"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "鎌倉パスタ",
-      "website": "http://www.saint-marc-hd.com/kamakura",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://www.saint-marc-hd.com:443/kamakura",
-      "fetched": true,
-      "found_handle": "kamakurapasta_official",
-      "handles": [
-        "kamakurapasta_official"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "長浜ラーメン博多屋 古市店",
-      "website": "http://www.hakataya.org/",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://www.hakataya.org/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "炭火焼肉屋さかい 益田店",
-      "website": "http://www.yakiniku.jp/mains/sakai_group/sumibi/ss_html/ss_location32.shtml",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://www.yakiniku.jp/error/404.html",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "麺 和田や",
-      "website": "https://itsuki-inc.com/wadaya",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://itsuki-inc.com/wadaya/",
-      "fetched": true,
-      "found_handle": "men.wadaya",
-      "handles": [
-        "men.wadaya",
-        "itsuki_japan.shop"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "居酒屋和が家",
-      "website": "http://www.localplace.jp/t100099863",
-      "source": "with_website",
-      "http_code": "000",
-      "effective_url": "https://www.localplace.jp:443/t100099863",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (60) SSL certificate problem: unable to get local issuer certificate\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the server and therefore could"
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "カリオモンズコーヒー長崎",
@@ -1852,7 +2002,238 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "博多天ぷら たかお",
+      "website": "http://tempura-takao.jp",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "http://tempura-takao.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "風車",
+      "website": "http://takarog.ti-da.net",
+      "source": "with_website",
+      "http_code": "403",
+      "effective_url": "http://takarog.ti-da.net/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "自然生家",
+      "website": "http://www.jinenjyouya.com",
+      "source": "with_website",
+      "http_code": "000",
+      "effective_url": "http://www.jinenjyouya.com/",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (6) Could not resolve host: www.jinenjyouya.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "茶亭 開花堂",
+      "website": "http://www.people-i.ne.jp/~kaikadou",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "http://www.people-i.ne.jp/~kaikadou/",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "empty_body",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "ガトー・アイクレール",
+      "website": "http://aiclair.com",
+      "source": "with_website",
+      "http_code": "403",
+      "effective_url": "http://aiclair.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "ケーキハウスさくら",
+      "website": "http://cakehouse-sakura.com",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "http://cakehouse-sakura.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "牛角 福岡キャナルシティ博多前店",
+      "website": "http://www.gyukaku.ne.jp",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://www.gyukaku.ne.jp/",
+      "fetched": true,
+      "found_handle": "gyukaku_official",
+      "handles": [
+        "gyukaku_official"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "鎌倉パスタ",
+      "website": "http://www.saint-marc-hd.com/kamakura",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://www.saint-marc-hd.com:443/kamakura",
+      "fetched": true,
+      "found_handle": "kamakurapasta_official",
+      "handles": [
+        "kamakurapasta_official"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "長浜ラーメン博多屋 古市店",
+      "website": "http://www.hakataya.org/",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://www.hakataya.org/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "麺 和田や",
+      "website": "https://itsuki-inc.com/wadaya",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://itsuki-inc.com/wadaya/",
+      "fetched": true,
+      "found_handle": "men.wadaya",
+      "handles": [
+        "men.wadaya",
+        "itsuki_japan.shop"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "天ぷら七八",
+      "website": "http://tempura78.com",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://tempura78.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "炭火焼肉屋さかい 益田店",
+      "website": "http://www.yakiniku.jp/mains/sakai_group/sumibi/ss_html/ss_location32.shtml",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://www.yakiniku.jp/error/404.html",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "居酒屋和が家",
+      "website": "http://www.localplace.jp/t100099863",
+      "source": "with_website",
+      "http_code": "000",
+      "effective_url": "https://www.localplace.jp:443/t100099863",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (60) SSL certificate problem: unable to get local issuer certificate\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the server and therefore could",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "鳥善 西中洲別館",
@@ -1866,35 +2247,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
-      "store": "カルビ市場",
-      "website": "http://tenjin-karubiichiba.com",
+      "store": "ステーキのどん 西明石店",
+      "website": "http://www.steak-don.jp/shops/shop_detail.html?snum=67",
       "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://tenjin-karubiichiba.com/",
+      "http_code": "404",
+      "effective_url": "https://www.steak-don.jp/shops/shop_detail.html?snum=67",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "French Omoto",
-      "website": "http://www.french-oomoto.com",
-      "source": "with_website",
-      "http_code": "000",
-      "effective_url": "http://www.french-oomoto.com/",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.french-oomoto.com"
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "大吉津名店",
@@ -1910,21 +2283,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "和みや",
-      "website": "http://nagomiya7538.on.omisenomikata.jp",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "http://nagomiya7538.on.omisenomikata.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "ダ クオーレ",
@@ -1938,23 +2300,44 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
-      "store": "ありい商店金時工房",
-      "website": "https://www.naruto-mon.jp/gourmet/kintokikobo",
+      "store": "French Omoto",
+      "website": "http://www.french-oomoto.com",
       "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://www.naruto-mon.jp/gourmet/kintokikobo/",
-      "fetched": true,
-      "found_handle": "narutonomon",
-      "handles": [
-        "narutonomon"
-      ],
+      "http_code": "000",
+      "effective_url": "http://www.french-oomoto.com/",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": "curl: (6) Could not resolve host: www.french-oomoto.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "カルビ市場",
+      "website": "http://tenjin-karubiichiba.com",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://tenjin-karubiichiba.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "六ノ家",
@@ -1968,21 +2351,46 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
-      "store": "博多金龍山大通り店",
-      "website": "https://www.hilltopfood.com",
+      "store": "喃風二見店",
+      "website": "https://www.nanpuu.co.jp",
       "source": "with_website",
       "http_code": "200",
-      "effective_url": "https://www.hilltopfood.com/",
+      "effective_url": "https://nanpuu.co.jp/",
       "fetched": true,
+      "found_handle": "nanpuu_official",
+      "handles": [
+        "nanpuu_official"
+      ],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "和みや",
+      "website": "http://nagomiya7538.on.omisenomikata.jp",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "http://nagomiya7538.on.omisenomikata.jp/",
+      "fetched": false,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": "empty_body",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "GiGi",
@@ -1998,35 +2406,46 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
-      "store": "なのはな食堂",
-      "website": "http://www16.plala.or.jp/nanohana-yura/shokudo/index.html",
-      "source": "no_instagram",
-      "http_code": "000",
-      "effective_url": "http://www16.plala.or.jp/nanohana-yura/shokudo/index.html",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
+      "store": "ありい商店金時工房",
+      "website": "https://www.naruto-mon.jp/gourmet/kintokikobo",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://www.naruto-mon.jp/gourmet/kintokikobo/",
+      "fetched": true,
+      "found_handle": "narutonomon",
+      "handles": [
+        "narutonomon"
+      ],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (28) Operation timed out after 15002 milliseconds with 0 bytes received"
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
-      "store": "和牛と鍋焼肉番長",
-      "website": "https://yakiniku-bantyou.gorp.jp",
+      "store": "博多金龍山大通り店",
+      "website": "https://www.hilltopfood.com",
       "source": "with_website",
       "http_code": "200",
-      "effective_url": "https://yakiniku-bantyou.gorp.jp/",
+      "effective_url": "https://www.hilltopfood.com/",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "卵のアート 麦野店",
@@ -2040,7 +2459,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "和牛と鍋焼肉番長",
+      "website": "https://yakiniku-bantyou.gorp.jp",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://yakiniku-bantyou.gorp.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "和風ダイニング 路のカフェ",
@@ -2054,21 +2493,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.michi-no-net.jp"
+      "error": "curl: (6) Could not resolve host: www.michi-no-net.jp",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
-      "store": "風の彩",
-      "website": "http://www17.plala.or.jp/okusakazenoiro",
-      "source": "no_instagram",
+      "store": "BOULANGERIE L'est 六本松店",
+      "website": "http://lest.ciao.jp/lest/buranjeriresuto.html",
+      "source": "with_website",
       "http_code": "000",
-      "effective_url": "http://www17.plala.or.jp/okusakazenoiro",
+      "effective_url": "http://lest.ciao.jp/lest/buranjeriresuto.html",
       "fetched": false,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (28) Operation timed out after 15002 milliseconds with 0 bytes received"
+      "error": "curl: (6) Could not resolve host: lest.ciao.jp",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "Starbucks",
@@ -2084,63 +2529,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "BOULANGERIE L'est 六本松店",
-      "website": "http://lest.ciao.jp/lest/buranjeriresuto.html",
-      "source": "with_website",
-      "http_code": "000",
-      "effective_url": "http://lest.ciao.jp/lest/buranjeriresuto.html",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: lest.ciao.jp"
-    },
-    {
-      "store": "三竹寿",
-      "website": "http://www.3chikuju.com",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://www.3chikuju.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "山口酒造場",
-      "website": "http://niwanouguisu.com",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://niwanouguisu.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ポーザーおばさんの食卓",
-      "website": "http://www.cosmos.ne.jp/~bus/poza.html",
-      "source": "with_website",
-      "http_code": "404",
-      "effective_url": "http://www.cosmos.ne.jp/~bus/poza.html",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
       "store": "AZ cafe Shidaka",
@@ -2156,121 +2548,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
-      "store": "小松屋",
-      "website": "http://www.rakuten.co.jp/komatuyamenbox",
+      "store": "三竹寿",
+      "website": "http://www.3chikuju.com",
       "source": "with_website",
       "http_code": "200",
-      "effective_url": "http://www.rakuten.co.jp/komatuyamenbox",
+      "effective_url": "https://www.3chikuju.com/",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "郷土料理 琉球の爺",
-      "website": "https://localplace.jp/t100151105",
-      "source": "with_website",
-      "http_code": "000",
-      "effective_url": "https://localplace.jp/t100151105",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (60) SSL certificate problem: unable to get local issuer certificate\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the server and therefore could"
-    },
-    {
-      "store": "博多松介西中洲店",
-      "website": "http://www.matsusuke.com",
-      "source": "with_website",
-      "http_code": "409",
-      "effective_url": "http://www.matsusuke.com/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ゆくい",
-      "website": "https://yukui-ishigakijima.stores.jp",
-      "source": "with_website",
-      "http_code": "403",
-      "effective_url": "https://yukui-ishigakijima.stores.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "たこ焼き帝王 大財店",
-      "website": "http://energylin5.wixsite.com/takoyakiteioh/shop",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://energylin5.wixsite.com/takoyakiteioh/shop",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "山東水餃大王",
-      "website": "https://santon-suigyo-daio.com",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://santon-suigyo-daio.com/",
-      "fetched": true,
-      "found_handle": "embed.js",
-      "handles": [
-        "embed.js"
-      ],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "そば工房納屋",
-      "website": "http://sobanaya.web.fc2.com",
-      "source": "with_website",
-      "http_code": "403",
-      "effective_url": "https://error.fc2.com/web/403.html",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "Bar Peekaboo",
-      "website": "http://ip.tosp.co.jp/i.asp?i=peekaboo_kids",
-      "source": "with_website",
-      "http_code": "200",
-      "effective_url": "https://tosp.co.jp/",
-      "fetched": true,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "うみとじかん",
@@ -2286,7 +2584,78 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
+    },
+    {
+      "store": "ポーザーおばさんの食卓",
+      "website": "http://www.cosmos.ne.jp/~bus/poza.html",
+      "source": "with_website",
+      "http_code": "404",
+      "effective_url": "http://www.cosmos.ne.jp/~bus/poza.html",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "博多松介西中洲店",
+      "website": "http://www.matsusuke.com",
+      "source": "with_website",
+      "http_code": "409",
+      "effective_url": "http://www.matsusuke.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "郷土料理 琉球の爺",
+      "website": "https://localplace.jp/t100151105",
+      "source": "with_website",
+      "http_code": "000",
+      "effective_url": "https://localplace.jp/t100151105",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (60) SSL certificate problem: unable to get local issuer certificate\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the server and therefore could",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "ゆくい",
+      "website": "https://yukui-ishigakijima.stores.jp",
+      "source": "with_website",
+      "http_code": "403",
+      "effective_url": "https://yukui-ishigakijima.stores.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "Psyche",
@@ -2302,21 +2671,146 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     },
     {
-      "store": "九州ホルモン酒場 兆すけ",
-      "website": "http://www.cho-ya.net",
+      "store": "山東水餃大王",
+      "website": "https://santon-suigyo-daio.com",
       "source": "with_website",
-      "http_code": "503",
-      "effective_url": "http://www.cho-ya.net/",
+      "http_code": "200",
+      "effective_url": "https://santon-suigyo-daio.com/",
       "fetched": true,
       "found_handle": null,
       "handles": [],
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": true,
+      "ig_post_link": true,
+      "ig_present": true
+    },
+    {
+      "store": "たこ焼き帝王 大財店",
+      "website": "http://energylin5.wixsite.com/takoyakiteioh/shop",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://energylin5.wixsite.com/takoyakiteioh/shop",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "なのはな食堂",
+      "website": "http://www16.plala.or.jp/nanohana-yura/shokudo/index.html",
+      "source": "no_instagram",
+      "http_code": "000",
+      "effective_url": "http://www16.plala.or.jp/nanohana-yura/shokudo/index.html",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (28) Operation timed out after 15001 milliseconds with 0 bytes received",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "風の彩",
+      "website": "http://www17.plala.or.jp/okusakazenoiro",
+      "source": "no_instagram",
+      "http_code": "000",
+      "effective_url": "http://www17.plala.or.jp/okusakazenoiro",
+      "fetched": false,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": "curl: (28) Operation timed out after 15002 milliseconds with 0 bytes received",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "小松屋",
+      "website": "http://www.rakuten.co.jp/komatuyamenbox",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "http://www.rakuten.co.jp/komatuyamenbox",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "山口酒造場",
+      "website": "http://niwanouguisu.com",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://niwanouguisu.com/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "Bar Peekaboo",
+      "website": "http://ip.tosp.co.jp/i.asp?i=peekaboo_kids",
+      "source": "with_website",
+      "http_code": "200",
+      "effective_url": "https://tosp.co.jp/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "そば工房納屋",
+      "website": "http://sobanaya.web.fc2.com",
+      "source": "with_website",
+      "http_code": "403",
+      "effective_url": "https://error.fc2.com/web/403.html",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "うちなー料理首里いろは庭",
@@ -2330,7 +2824,27 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": "curl: (6) Could not resolve host: www.irohatei.com"
+      "error": "curl: (6) Could not resolve host: www.irohatei.com",
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
+    },
+    {
+      "store": "九州ホルモン酒場 兆すけ",
+      "website": "http://www.cho-ya.net",
+      "source": "with_website",
+      "http_code": "503",
+      "effective_url": "http://www.cho-ya.net/",
+      "fetched": true,
+      "found_handle": null,
+      "handles": [],
+      "via_linktree": false,
+      "aggregator_url": null,
+      "js_suspect": false,
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "大山まきば みるくの里",
@@ -2344,21 +2858,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
-    },
-    {
-      "store": "ステーキのどん 西明石店",
-      "website": "http://www.steak-don.jp/shops/shop_detail.html?snum=67",
-      "source": "with_website",
-      "http_code": "000",
-      "effective_url": "https://www.steak-don.jp/shops/shop_detail.html?snum=67",
-      "fetched": false,
-      "found_handle": null,
-      "handles": [],
-      "via_linktree": false,
-      "aggregator_url": null,
-      "js_suspect": false,
-      "error": "curl: (35) Recv failure: Connection reset by peer"
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "八剣伝 吉塚駅前店",
@@ -2372,7 +2875,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": false
     },
     {
       "store": "Teppanyaki Matsuo",
@@ -2390,7 +2896,10 @@
       "via_linktree": false,
       "aggregator_url": null,
       "js_suspect": false,
-      "error": null
+      "error": null,
+      "ig_embed": false,
+      "ig_post_link": false,
+      "ig_present": true
     }
   ]
 }
