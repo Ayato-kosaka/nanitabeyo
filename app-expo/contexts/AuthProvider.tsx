@@ -13,11 +13,11 @@ import { AppState, Platform } from "react-native";
 import { retry } from "@/lib/retry";
 import {
 	ANON_SIGN_IN_RETRIES,
-	getAuthErrorStatus,
 	isRateLimitAuthError,
 	isRetryableAuthError,
 	parseRetryAfterMs,
 	resolveAuthCooldownMs,
+	summarizeAuthError,
 } from "@/lib/authRecovery";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
@@ -445,7 +445,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				nextAttemptAllowedAtRef.current = 0;
 				setAuthError(null);
 			} catch (err: any) {
-				const status = getAuthErrorStatus(err);
+				// #1771 message が Response の文字列化のときは status だけへ畳む（毎回別 fingerprint になるため）
+				const { message: authErrorMessage, status } = summarizeAuthError(err);
 				// #1475 【設計】status 0 = **HTTP 応答に到達していない**（端末の回線断）。
 				// supabase-js が fetch 失敗を AuthRetryableFetchError でラップするときの値で、
 				// 運用側にできることは無い。再試行ボタンとフォアグラウンド復帰の 2 経路で回復する。
@@ -460,7 +461,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				logFrontendEvent({
 					event_name: "authInitError",
 					error_level: isClientNetworkFailure ? "warn" : "error",
-					payload: { message: err.message, status },
+					payload: { message: authErrorMessage, status },
 				});
 				// #1089 認証が確立できていないときは logQueue がアクセストークンを用意できず、
 				// 上の authInitError は送信されずに破棄される（= どこにも記録が残らない）。
