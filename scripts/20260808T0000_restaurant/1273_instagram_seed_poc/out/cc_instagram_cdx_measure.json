@@ -1,0 +1,22 @@
+[
+  {
+    "crawl": "CC-MAIN-2026-34",
+    "blocks_scanned": 2,
+    "instagram_cdx_records": 78,
+    "robots_txt": 77,
+    "post_records": 0,
+    "distinct_profile_handles": 1,
+    "profiles": [
+      "opsis_eng"
+    ]
+  },
+  {
+    "crawl": "CC-MAIN-2026-21",
+    "blocks_scanned": 2,
+    "instagram_cdx_records": 72,
+    "robots_txt": 72,
+    "post_records": 0,
+    "distinct_profile_handles": 0,
+    "profiles": []
+  }
+]
