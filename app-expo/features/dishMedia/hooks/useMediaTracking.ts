@@ -50,6 +50,13 @@ export const useMediaTracking = ({ isActive, sessionId, source, dishMedia }: Use
 			watchMs.current = 0;
 			isCompleted.current = false;
 			rewatchCount.current = 0;
+			/*
+			#1785【修正】**ここも投げっぱなしにしない。**（下の視聴ログと同じ理由）
+			`callBackend` は失敗を Error ではない素のオブジェクトで throw するので、
+			`.catch()` が無いと `unhandledrejection` になり、ブラウザには発生源の分からない
+			エラーだけが残る。表示ログは «送れたら送る» 記録であって、送信の失敗で
+			画面を壊してよいものではない。
+			*/
 			callBackend<DishMediaImpressionBodyDto, void>(`v1/dish-media/${dishMedia.id}/impression`, {
 				method: "POST",
 				requestPayload: {
@@ -57,6 +64,15 @@ export const useMediaTracking = ({ isActive, sessionId, source, dishMedia }: Use
 					session_id: sessionId,
 					source,
 				},
+			}).catch((error) => {
+				logFrontendEvent({
+					event_name: "dish_media_impression_send_error",
+					error_level: "warn",
+					payload: {
+						error: toErrorLogMessage(error),
+						dish_media_id: dishMedia.id,
+					},
+				});
 			});
 		}
 	}, [isActive, dishMedia.id, sessionId, source, logFrontendEvent]);
@@ -137,21 +153,38 @@ export const useMediaTracking = ({ isActive, sessionId, source, dishMedia }: Use
 		};
 
 		viewSending.current = true;
-		await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>(`v1/dish-media/${dishMedia.id}/view`, {
-			method: "POST",
-			requestPayload: payload,
-		});
-		impressionId.current = null;
-		viewSending.current = false;
-	}, [dishMedia.id, callBackend, logFrontendEvent]);
-	useEffect(() => {
-		if (!isActive) {
-			sendView();
+		/*
+		#1785【修正】**送信中フラグは `finally` で必ず戻す。**
+		以前は成功したときにしか戻していなかったので、1 度でも失敗すると
+		`viewSending.current` が true のまま残り、**そのメディアの視聴ログは
+		二度と送られなくなっていた**（先頭の早期 return に永久に引っかかる）。
+		*/
+		try {
+			await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>(`v1/dish-media/${dishMedia.id}/view`, {
+				method: "POST",
+				requestPayload: payload,
+			});
+			impressionId.current = null;
+		} finally {
+			viewSending.current = false;
 		}
+	}, [dishMedia.id, callBackend, logFrontendEvent]);
 
-		// Also send on unmount
-		return () => {
-			// Fire and forget - we can't await in cleanup
+	/*
+	#1785【修正】**視聴ログの送信は «投げっぱなし» にしない。**
+
+	以前は unmount 側にだけ `.catch()` があり、`isActive` が false になったときの
+	呼び出しは素の `sendView()` だった。`callBackend` は失敗を **Error ではない素の
+	オブジェクト**（`ApiError`）で throw するので、その拒否は誰にも拾われず
+	`unhandledrejection` になる。ブラウザではこれが «原因の分からないエラー» として出る
+	（Playwright の失敗ログに `[pageerror] Object` としか出ないのはこれ。素のオブジェクトには
+	stack が無いので、発生源すら出ない）。
+
+	視聴ログは «送れたら送る» 種類の記録であって、送信の失敗で画面を壊してよいものではない。
+	どちらの経路も同じ受け口を通す。
+	*/
+	const sendViewIgnoringFailure = useCallback(
+		(reason: "deactivated" | "unmounted") => {
 			sendView().catch((error) => {
 				logFrontendEvent({
 					event_name: "dish_media_view_send_cleanup_error",
@@ -159,11 +192,25 @@ export const useMediaTracking = ({ isActive, sessionId, source, dishMedia }: Use
 					payload: {
 						error: toErrorLogMessage(error),
 						dish_media_id: dishMedia.id,
+						reason,
 					},
 				});
 			});
+		},
+		[sendView, dishMedia.id, logFrontendEvent],
+	);
+
+	useEffect(() => {
+		if (!isActive) {
+			sendViewIgnoringFailure("deactivated");
+		}
+
+		// Also send on unmount
+		return () => {
+			// Fire and forget - we can't await in cleanup
+			sendViewIgnoringFailure("unmounted");
 		};
-	}, [isActive, sendView, dishMedia.id, logFrontendEvent]);
+	}, [isActive, sendViewIgnoringFailure]);
 
 	// ===== Video Progress Tracking =====
 	const handleVideoProgress = (progress: { currentTime: number; duration: number }) => {
