@@ -411,3 +411,9 @@
 - [~] **4_2 harvest chunk#1 dispatch**（run/account sns-2026-09-02-catalog, store_branch, max-accounts 1200, limit-per-account 50。IG+BQのみ=安全）。~200/h制限で最大6h。
 - **次tick**: sns_post_raw の sns-2026-09-02-catalog 投稿数を確認→ chunk完了なら次chunk dispatch（antijoinで前進。6,848店≈6chunk）。溜まったら 5_1 resolve(category)→7_1(seed_place)でカバレッジ増分。
 - **全体現在地**: カバレッジ 18.3%(1,150セル/47県) banked。柱4で都市セルの深さ＋未充足の都市カテゴリセルを積む。約6chunk（数日）で全量。
+
+## 進捗更新 2026-09-02 09:10Z（柱4 harvest chunk#1 順調: 8,613投稿/185店・48分）
+- **収率良好**: 185アカウント処理→全185が投稿産出（business-account率≈100%）・~46投稿/店・~230/h（レート上限）。柱4の店は活発なbusiness IGで、既知in-catalog店→seed_place matched になる。
+- chunk#1 は ~1,200店/~5h で走行中（FLUSH_EVERY=20で逐次書込）。
+- **次アクション（chunk完了 ~13:20Z 目安）**: ①chunk#2 dispatch（antijoinで未収集分へ前進）②収集分を **off-peak** で 5_1 resolve(category。※seed_place方式なので本当はcategoryだけで良いが5_1は店照合もする＝pg負荷。夕食ピーク回避）③7_1でカバレッジ増分。
+- **間のティック**: chunk走行中は再dispatch不要。監視のみ。ピーク中はresolveも出さない。
