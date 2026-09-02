@@ -745,7 +745,12 @@ def apply_sync(connection: Any) -> None:
               -- 突き合わせを毎回やると statement timeout に当たる。
               -- アプリ製の行は source_row_hash が NULL のままなので常に対象
               -- （2,468 行しかないので支障はない）。
-              AND r.source_row_hash IS DISTINCT FROM s.row_hash
+              --
+              -- ⚠️ 比べる相手は **作業表が持つ «書く前» の row_hash**（pg_row_hash）
+              -- であって、`r.source_row_hash` ではない（理由は下の INSERT を参照）。
+              -- 既に居た行だけが対象なので pg_id で絞る。
+              AND s.pg_id IS NOT NULL
+              AND s.pg_row_hash IS DISTINCT FROM s.row_hash
               AND NOT EXISTS (
                 SELECT 1
                 FROM (
@@ -777,7 +782,20 @@ def apply_sync(connection: Any) -> None:
             JOIN restaurants r
               ON r.google_place_id = s.google_place_id
              -- #1706 DELETE と同じ理由。row_hash が動いた店だけを見る。
-             AND r.source_row_hash IS DISTINCT FROM s.row_hash
+             --
+             -- ⚠️ **`r.source_row_hash` を見てはいけない。**
+             -- この文より前に «新規 INSERT» が走り、入れたばかりの行へ
+             -- `source_row_hash = s.row_hash` を書いている。`r` を見ると
+             -- 新規行は必ず «一致» になり、**1 本もリンクが入らない**。
+             -- 2026-09-02 の本番投入で実際にこうなり、新規 547,941 店の
+             -- 電話・サイト・SNS が 0 件になった（アプリ製の行は
+             -- source_row_hash が NULL なので入り、それで気付けなかった）。
+             --
+             -- 正しい比較相手は **作業表が持つ «書く前» のスナップショット**
+             -- `pg_row_hash` である。作業表は全ての DML より前に作られるので、
+             -- 自分の書き込みに汚染されない。新規行は pg_id / pg_row_hash が
+             -- NULL なので、この条件で自動的に «対象» になる。
+             AND s.pg_row_hash IS DISTINCT FROM s.row_hash
             CROSS JOIN LATERAL (
               -- 電話・サイトは 1 本ずつ、SNS は配列。1 つの SELECT に畳んで
               -- 空文字と NULL を同じ「無い」として落とす。

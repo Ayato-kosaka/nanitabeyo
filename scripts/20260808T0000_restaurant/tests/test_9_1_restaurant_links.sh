@@ -46,20 +46,35 @@ CREATE TABLE restaurant_links (
   kind TEXT NOT NULL, value TEXT NOT NULL, source TEXT NOT NULL,
   fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (restaurant_id, kind, value));
+-- #1706 ⚠️ 作業表は本物と同じ列を持たせる。**pg_id / pg_row_hash を省かない。**
+-- これは «同期が書き込む前» のスナップショットで、リンクの SQL はこちらを見る。
+-- 2026-09-02 の本番投入では、この 2 列をテストの作業表が持っていなかったため、
+-- 「新規行に 1 本もリンクが入らない」欠陥を 6/6 緑のまま通してしまった。
 CREATE TABLE restaurant_sync_work (
-  google_place_id TEXT, phone TEXT, website TEXT, social_urls_json TEXT, row_hash TEXT);
+  google_place_id TEXT, phone TEXT, website TEXT, social_urls_json TEXT, row_hash TEXT,
+  pg_id UUID, pg_row_hash TEXT);
 
 INSERT INTO restaurants (google_place_id, source_row_hash) VALUES
   ('PLACE_IN_STAGING', 'hash-OLD'),      -- hash が動く = リンクを見直す
   ('PLACE_NOT_IN_STAGING', 'hash-X'),
-  ('PLACE_UNCHANGED', 'hash-SAME');      -- hash が同じ = 触らない
+  ('PLACE_UNCHANGED', 'hash-SAME'),      -- hash が同じ = 触らない
+  -- 「新規 INSERT」が直前に入れたばかりの行。**その INSERT が
+  -- source_row_hash = s.row_hash を既に書いている**ので、restaurants 側を
+  -- 見比べると «一致» になる。作業表側は pg_id / pg_row_hash が NULL。
+  ('PLACE_NEW', 'hash-NEW-ROW');
 
 -- 今回の catalog: 電話が新しい番号へ変わり、Instagram は据え置き
-INSERT INTO restaurant_sync_work VALUES
+INSERT INTO restaurant_sync_work
+  (google_place_id, phone, website, social_urls_json, row_hash, pg_id, pg_row_hash) VALUES
   ('PLACE_IN_STAGING', '03-1111-1111', 'https://new.example.com',
-   '["https://instagram.com/keep"]', 'hash-NEW'),
+   '["https://instagram.com/keep"]', 'hash-NEW',
+   (SELECT id FROM restaurants WHERE google_place_id='PLACE_IN_STAGING'), 'hash-OLD'),
   -- hash が変わっていない店。catalog には電話があるが、**触ってはいけない**
-  ('PLACE_UNCHANGED', '03-7777-7777', NULL, '[]', 'hash-SAME');
+  ('PLACE_UNCHANGED', '03-7777-7777', NULL, '[]', 'hash-SAME',
+   (SELECT id FROM restaurants WHERE google_place_id='PLACE_UNCHANGED'), 'hash-SAME'),
+  -- 新規行。作業表を作った時点では PG に居なかったので pg_* は NULL
+  ('PLACE_NEW', '03-2222-2222', 'https://new-shop.example.com',
+   '["https://instagram.com/newshop"]', 'hash-NEW-ROW', NULL, NULL);
 SQL
 
 RID_IN=$(q "SELECT id FROM restaurants WHERE google_place_id='PLACE_IN_STAGING';")
@@ -123,5 +138,24 @@ echo "✅ 5. 冪等（2 回流しても $BEFORE 件のまま）"
   || fail "hash が同じ店へリンクを入れた（走査を絞れていない）"
 echo "✅ 6. row_hash が同じ店は調べ直さない"
 
+# --- 7. ★ 直前に INSERT された新規行にも、リンクが入る ---
+#
+#     2026-09-02 の本番投入で **新規 547,941 店の電話・サイト・SNS が 0 件**に
+#     なった。リンクの SQL が `r.source_row_hash` を見ていたためである。
+#     この文より前に走る «新規 INSERT» が `source_row_hash = s.row_hash` を
+#     書いているので、新規行は必ず «一致» と判定されて弾かれていた。
+#     （アプリ製の行は source_row_hash が NULL のまま入るので、そちらだけ
+#     リンクが付き、全体では «入っている» ように見えて気付けなかった。）
+#
+#     正しい比較相手は、作業表が持つ «書く前» の pg_row_hash である。
+RID_NEW=$(q "SELECT id FROM restaurants WHERE google_place_id='PLACE_NEW';")
+[ "$(q "SELECT COUNT(*) FROM restaurant_links WHERE restaurant_id='$RID_NEW' AND kind='phone' AND value='03-2222-2222';")" = "1" ] \
+  || fail "新規行に電話が入っていない（r.source_row_hash を見ていないか確認）"
+[ "$(q "SELECT COUNT(*) FROM restaurant_links WHERE restaurant_id='$RID_NEW' AND kind='website' AND value='https://new-shop.example.com';")" = "1" ] \
+  || fail "新規行に website が入っていない"
+[ "$(q "SELECT COUNT(*) FROM restaurant_links WHERE restaurant_id='$RID_NEW' AND kind='instagram';")" = "1" ] \
+  || fail "新規行に SNS が入っていない"
+echo "✅ 7. 直前に INSERT された新規行にもリンクが入る"
+
 echo
-echo "すべて通過（6/6）"
+echo "すべて通過（7/7）"
