@@ -100,23 +100,29 @@ def _rows_from_open_data(pipeline: BigQueryPipeline, catalog_run_id: str, limit,
       {limit_sql}
     """
     params = [bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id)]
-    seen = set()
+    # #1273 チェーン除去: 同じ handle が複数 google_place_id に付いていたら «チェーン公式»で、
+    # 特定の1店に紐付けると誤帰属になる（official_site_crawl の _store_branch_rows と同じ規律）。
+    # 先に (handle → place_id 集合) を作り、**1店だけに付く handle** のみ store_branch にする。
+    handle_to_pids: dict[str, set[str]] = {}
     for row in pipeline.execute(sql, params):
         for u in row["social_urls"] or []:
             handle = _extract_handle(u)
-            if not handle:
-                continue
-            key = (handle, row["google_place_id"])
-            if key in seen:
-                continue
-            seen.add(key)
-            yield {
-                "account_id": handle, "provider": PROVIDER_INSTAGRAM, "handle": handle,
-                "account_type": "store_branch", "discovery_method": "open_data_socials",
-                "discovery_seed_place_id": row["google_place_id"],
-                "followers": None, "media_count": None,
-                "discovered_at": now.isoformat(), "run_id": run_id,
-            }
+            if handle:
+                handle_to_pids.setdefault(handle, set()).add(row["google_place_id"])
+    dropped_chain = 0
+    for handle, pids in handle_to_pids.items():
+        if len(pids) >= 2:
+            dropped_chain += 1
+            continue
+        yield {
+            "account_id": handle, "provider": PROVIDER_INSTAGRAM, "handle": handle,
+            "account_type": "store_branch", "discovery_method": "open_data_socials",
+            "discovery_seed_place_id": next(iter(pids)),
+            "followers": None, "media_count": None,
+            "discovered_at": now.isoformat(), "run_id": run_id,
+        }
+    LOGGER.info("open_data_socials: 店固有 handle %d、チェーン除外 %d",
+                sum(1 for h, p in handle_to_pids.items() if len(p) < 2), dropped_chain)
 
 
 def _delete_source_rows(pipeline: BigQueryPipeline, run_id: str, source: str) -> int:
