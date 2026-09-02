@@ -64,6 +64,21 @@ _ALNUM_RUN_RE = re.compile(r"[0-9a-z]+")
 # ひらがな・カタカナ（長音符含む）・CJK 統合漢字(+拡張A)。
 _CJK_RUN_RE = re.compile(r"[぀-ヿ㐀-䶿一-鿿]+")
 
+# «区別に効かない» 汎用トークン。これ «だけ» を共有しても同一店の根拠にならない
+# （実測の誤マッチ: 「& Cafe Bar LAB」→「GOLF LAB」が 'lab' 共有で通っていた）。
+# 業態語・支店語は複数店で共有されるため、共有トークンから除外して «固有語の一致» を要求する。
+_GENERIC_TOKENS = frozenset({
+    # 英語の業態・一般語
+    "cafe", "bar", "coffee", "kitchen", "dining", "restaurant", "ramen", "sushi",
+    "lab", "house", "grill", "table", "food", "tea", "beer", "pizza", "burger",
+    "curry", "bakery", "shop", "bistro", "diner", "noodle", "izakaya", "and",
+    "the", "teishoku", "tavern", "craft", "roastery", "room", "cake", "sweets",
+    "bakeshop", "espresso", "wine", "steak", "yakiniku", "udon", "soba",
+    # 日本語の業態・支店語（bigram）
+    "食堂", "酒場", "珈琲", "喫茶", "横丁", "本店", "支店", "商店", "料理", "飯店",
+    "麺屋", "食品", "本舗", "製麺", "菓子", "洋食", "和食", "居酒", "酒屋",
+})
+
 
 def _normalize_handle(raw: str | None) -> str | None:
     """CSV の instagram_handle を «アカウント名 1 個» に正規化する。
@@ -109,8 +124,13 @@ def _name_tokens(name: str | None) -> set[str]:
 
 
 def _names_share_token(fsq_name: str | None, cat_name: str | None) -> bool:
-    """FSQ 名と catalog 名が «長さ≥2 のトークンを 1 つ以上共有» するか。"""
-    return bool(_name_tokens(fsq_name) & _name_tokens(cat_name))
+    """FSQ 名と catalog 名が «区別に効く固有トークンを 1 つ以上共有» するか。
+
+    業態語・支店語（cafe/bar/食堂/本店 等）は複数店で共有され誤マッチの原因になるので、
+    共有集合からそれらを除いてから判定する（実測の誤マッチ 'GOLF LAB'↔'Cafe Bar LAB' を防ぐ）。
+    """
+    shared = _name_tokens(fsq_name) & _name_tokens(cat_name)
+    return bool(shared - _GENERIC_TOKENS)
 
 
 def parse_args() -> argparse.Namespace:
