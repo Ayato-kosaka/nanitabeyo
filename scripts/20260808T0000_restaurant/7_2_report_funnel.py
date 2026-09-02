@@ -38,7 +38,7 @@ def main() -> None:
 
     raw = one(f"SELECT COUNT(*) posts, COUNT(DISTINCT account_id) accounts, "
               f"COUNTIF(discovery_route='influencer') influencer, COUNTIF(discovery_route='store_account') store, "
-              f"COUNTIF(discovery_route='hashtag_search') search "
+              f"COUNTIF(discovery_route IN ('hashtag_search','search_api')) search "
               f"FROM `{pipeline.table(TABLE_POST_RAW)}` WHERE run_id=@rid")
     resolved = one(f"SELECT COUNT(*) resolved, COUNTIF(status='matched') matched, "
                    f"COUNT(DISTINCT IF(status='matched', google_place_id, NULL)) distinct_stores, "
