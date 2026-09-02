@@ -1,0 +1,1026 @@
+{
+  "total_captions": 1800,
+  "distinct_candidate_handles": 636,
+  "new_vs_posting_handles": 636,
+  "distinct_posting_handles": 36,
+  "likely_store": [
+    {
+      "handle": "shiga_gourmet_rii",
+      "n_posts": 15,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe.orangelecura",
+      "n_posts": 8,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kagoshima_no1_",
+      "n_posts": 8,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "8renta_miyakojima",
+      "n_posts": 6,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "blueseal_painagama",
+      "n_posts": 6,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "okazaki_connect",
+      "n_posts": 6,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "sima_cafe_tounkaraya",
+      "n_posts": 6,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "burwood_donuts",
+      "n_posts": 5,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "blueturtlefarm_miyako",
+      "n_posts": 4,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bu_zuya_",
+      "n_posts": 4,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "dogo_yasuragi",
+      "n_posts": 4,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "mozukumenya.ntsubata",
+      "n_posts": 4,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "niimasoba",
+      "n_posts": 4,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "nippn_official",
+      "n_posts": 4,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "palcohome",
+      "n_posts": 4,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "sushemaro",
+      "n_posts": 4,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "yebisu_soba",
+      "n_posts": 4,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "hinatalife",
+      "n_posts": 3,
+      "n_distinct_posters": 2
+    },
+    {
+      "handle": "12twelve.1101",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "chura_accessory385",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "enico.mt.fuji",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "fukushima_rengetsu",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "fukuwarai830",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "grandprincehotel_hiroshima",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "hotel.mazarium",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "hyattcentricginza",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "iepoyo.miyako",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "ikkataitomomi",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "irabujima.nakayukui",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kaminomaekdp",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kibichaya_miyako",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kijimuna_miyakojima",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kyukamura_urabandai",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "likklemore_yuni",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "maiparimiyako",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "maison_de_biere",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "mazarium.jp",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "miyako_haisai",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "nagamenoyakata.kounkaku",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "nature.cottage.akabeko",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "onmusubi315",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "russellhobbs_japan",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "ryukyu_tonkatsu328",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "shimanoeki.miyako",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "slowtime_van_miyakojima",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "spanaito",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "tenowaya_sakaba_miyakojima",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "y.isagoya",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "yamanouenocafe.garden",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "yu_topia_farm",
+      "n_posts": 3,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "order",
+      "n_posts": 2,
+      "n_distinct_posters": 2
+    },
+    {
+      "handle": "7729_sou",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "8terrace",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "_moguru_official_",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "agri_mahora",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "amour_nagoya",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "apple_wave_oit",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "arashi_kirishima",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "awaumi0706",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bbq",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bibbi_de_bal_de_san",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "blue_385_resinart",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "blueturtle_miyako",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "briskstand_miyakojima",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cakedesignegal",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "centia.hotel_naito",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "charbon_hairsalon",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "den_en_cafe",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "designmatch.miyako",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "ensemblecoffee.miyakoisland",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "fuzikurahonten",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "galayuzawa_official",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "gelato_cafe_ninufa",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "gramercyvillage",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "hachi.lib",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "hachikko_park",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "hanadori_sakanoichi",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "haradakometen",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "harrysshrimptruck",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "hautecouturecafe_official",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "hotelkoushien",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "hotelmonterey_nagasaki",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "iospice1001",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "ishikawa.importedcar",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kaei_gyoza",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kaki__bugyo",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kounan422",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kudanyokota",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kunshu_sanmon",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kurofunesoba_tarumi",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "kurotanuki.umeda",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "marchetable",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "mirainoen",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "montagna__f",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "motsunabe_tokunagaya",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "nagoya_komemarche",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "nakasatsunai_kankou",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "nazoyacafe",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "nina.ritzcarltontokyo",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "ningincoffee_ninginkukan",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "nodobotokeagaru",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "obihirojinja",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "okagean_official",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "puella",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "puella_yokohama",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "ramen_sora",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "riddroom",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "ryuguen_miyako",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "sabo_toujibito2023",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "sakai.sendamachi",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "savory",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "sengokuya",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "setouchiresort_vesselohchi",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "shirabarimango",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "st_grace_aoyama_tgh",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "stand_orange",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "sushidokoro_towa",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "tanno_torico",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "tokachihills",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "tomarutto_kagawa",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "wakamiro_yamanashi_onsenryokan",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "wakogawara",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "xiaogujiejie.maratan",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "yoshioka.sweets.no1",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "yubikan_",
+      "n_posts": 2,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "100shokutei",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "1_toyama",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "1lab_hellovacay_",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "21niice_hiroshima.hatchobori",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "24sweetsshop_morioka",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "2512base",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "29kamichiku",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "29lab.shibano",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "2kado_toyama",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "358dacafe",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "8_beans_coffee_8",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "_and_anne",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "_frill___",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "_hanadori_",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "_steakbulls",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "about___tone_jp",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "aeonmall_morioka",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "airashika_mania",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "akitocoffee_tane",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "aloft_official",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "aloft_official2",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "aman_tokyo",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "amenochi.ringo",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "ampersand_202607",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "amusementbar_rento",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "anbaishouten_official",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "angelo_cafe",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "anjuplus__",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "appare_kanazawa_ekimae",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "appi_resort",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "arrow_camera_osaka",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "artmake_maiko",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "arton_0420",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "asovillage_kitakami",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "avoirlapeche0110",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "awamori.923",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "b.s_masakano",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bakery_chata2017",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bar_joker.miyako",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bar_kajituya",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bar_suke",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bbia.japan",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "berryberry__2022",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "beton.kr",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bettei_hanasuisho",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bikkuri_donkey",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "boba_ri0718",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bon.bueno.buono",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bonkura_sendai",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "bonsai.okazaki",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "boulanger_shigemi",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "boule.de.neige_morioka",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "brown.beans",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "burger_dante",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "burger_house_gaburi",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "butanomure.tonshu",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe.de.gino",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe.ours2",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe.soro",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe.suika",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe.village_onelove",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_fune",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_intheknot",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_kotobalab",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_la_miell",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_mio_",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_mugi_",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_restalt",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_roppe",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_sigasiga",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_tisse",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "cafe_zeeb",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "caferob_kusatsu",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "calm2017",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    },
+    {
+      "handle": "caprices_taketa",
+      "n_posts": 1,
+      "n_distinct_posters": 1
+    }
+  ],
+  "likely_influencer": [
+    {
+      "handle": "japanselect_hotel",
+      "n_distinct_posters": 6,
+      "n_posts": 235
+    },
+    {
+      "handle": "japanselect_event",
+      "n_distinct_posters": 6,
+      "n_posts": 182
+    },
+    {
+      "handle": "otonatabi_hotel",
+      "n_distinct_posters": 2,
+      "n_posts": 13
+    }
+  ],
+  "method_notes": "Extraction: (A) @mention regex @([A-Za-z0-9_.]{2,30}) anywhere on a line; (B) bare-handle line = trimmed content is a single token ^[A-Za-z0-9_][A-Za-z0-9_.]{1,29}$ containing a letter, not a #hashtag/@mention/URL/multi-token line. Normalize = lowercase + strip trailing dots. Excluded: the posting handle of the same line, a stopword/noise list (http/www/com/jp/instagram/cafe/etc.), tokens <2 chars, and generic pure-alpha words (no digit/underscore/dot) that appear only once. Handles are deduped within a caption for post/poster counts. Buckets: LIKELY_INFLUENCER = mentioned by >=3 distinct posters, or a follow-cue (フォロー/Follow/グルメ/gourmet/旅/巡り/系列アカウント) within +/-3 lines and >=2 posters; LIKELY_STORE = mentioned by <=2 distinct posters with a venue cue (〒/住所/店名/📍/アクセス/営業時間/定休日/prefecture kanji) within +/-3 lines. Ambiguous tokens fall to store when low-spread + venue-cued, else influencer. Fully deterministic."
+}
