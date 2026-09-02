@@ -52,18 +52,37 @@ Stage5 は `area_centers × dish_categories` の CROSS JOIN になり、dev の�
 （#843 記載で約62万件）だと素直に書くと重い。**usable dish_media を一時テーブルへ
 materialize してから GiST 索引 / category_id 索引を張り**、そこへ JOIN する
 （`dish_media_coverage_sql.build_usable_dish_media_temp_table_sql` 参照）。
-一時テーブルは読み取り専用トランザクションでも作成できる
-（PostgreSQL は一時テーブルへの書き込みを read-only の制限から除外している）。
 
 不足セル一覧を出すクエリ（HAVING あり）は CROSS JOIN を **1 回だけ**実行する。
 「全セル数」「カテゴリ数」は別の軽いクエリで数え、不足セル数と突き合わせて
 coverage 率を出す（CROSS JOIN を HAVING 無しでも実行する二重コストを避けるため）。
 
-## 読み取り専用である
+## 読み取り専用である（ただし全区間ではない）
 
 SELECT・CREATE TEMP TABLE・一時テーブルへの CREATE INDEX しか実行しない。
 `restaurants` / `dishes` / `dish_media` などの永続テーブルへは一切書き込まない。
-接続も readonly セッションで張る。
+
+**「一時テーブルは read-only トランザクションでも作成できる」は誤りだった。**
+PostgreSQL の read-only トランザクションは `CREATE` / `ALTER` / `DROP` を種類を問わず
+一律に禁じており、一時テーブルであっても DDL は通らない（read-only が許すのは、
+*既に存在する*一時テーブルへの書き込みまで）。実際に `db-script-run.yml` から
+dev へ向けて実行したところ、`CREATE TEMP TABLE` で次の例外で落ちた
+（run: https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33674497269）。
+
+    psycopg2.errors.ReadOnlySqlTransaction:
+    cannot execute CREATE TABLE AS in a read-only transaction
+
+そのため、接続全体を readonly セッションにするのはやめ、次の順序で
+「一時テーブルを作る区間だけ」read-only を外す。
+
+1. 接続時は `autocommit=True` のみ付ける（`readonly=True` は付けない）
+2. `usable_dish_media_tmp` の作成・索引作成・`ANALYZE` を終える
+3. その直後に `SET default_transaction_read_only = on` を実行し、以降のセッションを
+   read-only に切り替える
+4. Stage4 / Stage5（一時テーブルの読み取りのみ）はこの read-only セッションで走る
+
+DDL を流す区間は手順2（一時テーブルの作成）だけに限られ、それ以降は
+「永続テーブルへ書かない」ことがセッションレベルで保証される。
 
 ## 使い方（db-script-run.yml から）
 
@@ -78,6 +97,7 @@ SELECT・CREATE TEMP TABLE・一時テーブルへの CREATE INDEX しか実行�
 ローカルでの単体テスト（DB 接続なし、SQL の組み立てだけを検査）:
 
     python3 -m unittest scripts/db-checks/test_dish_media_coverage_sql.py -v
+    python3 -m unittest scripts/db-checks/test_measure_dish_media_coverage.py -v  # read-only 切り替えの順序
 
 環境変数:
     DATABASE_URL … PostgreSQL 接続文字列（必須。db-script-run.yml が secrets から渡す）
@@ -130,6 +150,10 @@ def run_stage2(cur) -> list[dict]:
 
 
 def build_usable_dish_media_temp_table(cur, table_name: str) -> None:
+    # ここだけが DDL を流す区間。read-only トランザクションでは CREATE TABLE AS が
+    # ReadOnlySqlTransaction で拒否されるため（実測: run 33674497269）、この関数を
+    # 呼ぶ時点ではまだ read-only にしていない。呼び終えたら直後に呼び出し側が
+    # `SET default_transaction_read_only = on` へ切り替える。
     cur.execute(coverage_sql.build_usable_dish_media_temp_table_sql(table_name))
     for index_sql in coverage_sql.build_usable_dish_media_temp_index_sql(table_name):
         cur.execute(index_sql)
@@ -302,9 +326,14 @@ def main() -> int:
     measured_at = datetime.now(timezone.utc).isoformat()
 
     with psycopg2.connect(database_url) as conn:
+        # readonly=True は付けない。一時テーブルの CREATE TABLE AS / CREATE INDEX は
+        # read-only トランザクションでは実行できない（PostgreSQL の read-only は DDL を
+        # 種類を問わず禁じる。実測: run 33674497269）。read-only への切り替えは、
+        # 一時テーブルを作り終えた直後に `SET default_transaction_read_only = on` で行う。
+        #
         # autocommit にするのは diagnose_slow_db.py と同じ理由: 1文でも失敗すると
         # rollback で search_path / statement_timeout ごと巻き戻る（#1706 で踏んだ罠）。
-        conn.set_session(readonly=True, autocommit=True)
+        conn.set_session(autocommit=True)
         with conn.cursor() as cur:
             cur.execute(f'SET search_path TO "{args.schema}", extensions')
             cur.execute("SELECT current_user, current_database()")
@@ -323,6 +352,11 @@ def main() -> int:
             table_name = coverage_sql.DEFAULT_TEMP_TABLE_NAME
             section("usable dish_media を一時テーブルへ materialize")
             build_usable_dish_media_temp_table(cur, table_name)
+
+            # 一時テーブルの作成が終わった直後に read-only へ切り替える。
+            # 以降（Stage4 / Stage5）は永続テーブルへの書き込みがセッションレベルで拒否される。
+            cur.execute("SET default_transaction_read_only = on")
+            logger.info("一時テーブル作成後、セッションを read-only に切り替えました")
 
             stage4_category_coverage = run_stage4(cur, table_name)
             stage5 = run_stage5(
