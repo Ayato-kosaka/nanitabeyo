@@ -1,6 +1,7 @@
 import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
 import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
+import { DISH_CATEGORY_CAROUSEL_LAYOUT } from "@app-expo/features/dishCategories/carouselLayout";
 
 /**
  * 📐 候補カルーセルの横余白撤去(#1212)の回帰テスト(実 API)
@@ -29,12 +30,20 @@ test.describe("候補カルーセルのカード幅とスナップ位置(#1212)"
 		await dishCategoriesPage.expectLoaded();
 	}
 
-	// ─ テストケース: カード幅が中央カラム幅(画面幅)と一致し、左右の余白が無い ─
+	// ─ テストケース: カード幅が中央カラム幅そのものから作られている(左右 16px の余白が無い) ─
 	// 手順:
 	//   1. 検索を実行しトピック画面へ到達する
 	//   2. アクティブなカードの実測幅を取る
-	//   3. ブラウザの `min(window.innerWidth, CONTENT_MAX_WIDTH)`(useContentWidth と同じ式)と比較する
-	test("カード幅は中央カラム幅と一致し、左右の余白が無い", async ({ appPage }) => {
+	//   3. ブラウザの `min(window.innerWidth, CONTENT_MAX_WIDTH)`(useContentWidth と同じ式)に
+	//      カルーセルの `parallax` の `scale` を掛けた値と比較する
+	//
+	// ⚠️ **実測幅は中央カラム幅«そのもの»にはならない**（#1785）。`parallax` はアクティブな
+	//    カードにも `scale` を掛けるためで、これは #1629 でオーナーが «直す必要はない» と
+	//    確定した挙動である（`scale: 1` にした変更は差し戻し済み。commit 18df368e）。
+	//    #1212 が消したのは «カードの寸法に入っていた左右 16px» の方であり、ここが守るのはそちら。
+	//    期待値は写経せず `DISH_CATEGORY_CAROUSEL_LAYOUT` から引く（値を変えたときに
+	//    テストだけが古い数字を守り続けないように）。
+	test("カード幅は中央カラム幅から作られている(左右の余白が無い)", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
 		const dishCategoriesPage = new DishCategoriesPage(appPage);
 		await gotoDishCategories(searchPage, dishCategoriesPage);
@@ -46,8 +55,11 @@ test.describe("候補カルーセルのカード幅とスナップ位置(#1212)"
 		// CenteredAppShell が課す中央カラム幅(CONTENT_MAX_WIDTH=560)を、
 		// app-expo/hooks/useContentWidth.ts と同じ式でブラウザ側から実測する。
 		const expectedContentWidth = await appPage.evaluate(() => Math.min(window.innerWidth, 560));
+		const expectedCardWidth = expectedContentWidth * DISH_CATEGORY_CAROUSEL_LAYOUT.scale;
 
-		expect(Math.abs(box.width - expectedContentWidth)).toBeLessThanOrEqual(2);
+		// 旧実装（寸法に左右 16px ずつ入っていた）なら 32 * scale = 28.8px 小さくなるので、
+		// 2px の許容では通らない = 再発はここで捕まる
+		expect(Math.abs(box.width - expectedCardWidth)).toBeLessThanOrEqual(2);
 	});
 
 	// ─ テストケース: スワイプしてもアクティブカードは画面中央のスナップ位置で止まる ─
