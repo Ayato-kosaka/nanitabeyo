@@ -548,19 +548,26 @@ Supabase はロールに `statement_timeout = 2min` を設定しており、こ�
 > - `db-migrate.yml` を `target_schema: public` で勝手に dispatch しない。
 >   オーナーが `public` と言ったときだけ
 
-### なぜ 1_2 からやり直すのか
+### catalog はスキーマに依存しない（1_2 からやり直す必要は無い）
 
-**BQ のカタログは «どちらの PG スキーマに対して作ったか» を持っている。**
-`1_2` は対象スキーマの `restaurants` を `restaurant_existing_pg_raw` へ取り込み、
-`3_1` がその行の `google_place_id` をそのまま carry-forward する。だから
+**以前この節には «public のスナップショットで catalog を作り直す必要がある» と
+書いていたが、それは誤りだったので撤回した。** 実測で確かめた結果は次のとおり。
 
-- `dev` 向けに作ったカタログは、`dev` の行 id に紐づいた seed を含む
-- `public` へ流すなら、`public` の行を材料に seed を組み直す必要がある
+| 依存の種類 | 状態 |
+| --- | --- |
+| **値**（住所・電話・サイト・画像・plus_code・address_components） | ✅ **解消済み**。`1_2` が表示値を運ばなくなった（#1706）。dev 実測で全列 0 |
+| **PG の UUID** | ✅ **解消済み**。`existing_restaurant_id` を catalog へ出さない（#1674） |
+| **行の存在** | ✅ **解消済み**。出所が `existing_pg` «だけ» の seed を `3_4` が除く（#1706） |
 
-`1_2` は run_id × snapshot_date のパーティションを置き換えるので、**同じ run_id を
-使い回してよい**（`public` 用に取り直すと `dev` の分は消える。`dev` へ戻すときは
-`1_2 --schema dev` から同じ順で流し直す）。open data の生データ（1_3〜1_6）は
-run_id で引くので、**run_id を変えると全部取り直しになる。変えないこと。**
+3 つ目が最後まで残っていた。`1_2` が読んだスキーマのアプリ製の店が、open data に
+相手が居なくても catalog に載っていた（dev 実測 **1,538 行**）。その catalog を別の
+スキーマへ流すと、**他環境の利用者が作った店を INSERT する**ことになる。
+
+いまは `3_4` が除き、`8_1` の `restaurant_catalog_schema_independent` が 0 件で
+あることを検査する。したがって **dev で作った catalog をそのまま public へ流せる。**
+
+⚠️ 除くのは «existing_pg 単独» の seed だけ。open data と混ざった seed（実測 913 行）は
+**place_id の持ち込み元**として必要なので残す。`1_2` の役目はそちらである。
 
 ### 0. 前提（ここが揃っていないと先へ進まない）
 
@@ -582,29 +589,10 @@ run_id で引くので、**run_id を変えると全部取り直しになる。�
 **オーナーの指示で** 本適用する。既存行はすべて `created_by_source='user'` になる
 （＝**同期はそれらの表示値を一切書き換えない**）。これが `public` の既存データを守る仕組みである。
 
-### 1. `public` の既存行を BQ へ取り込む
+### 1〜2. catalog の作り直しは不要
 
-```text
-script_path: scripts/20260808T0000_restaurant/1_2_import_existing_pg_restaurants.py
-args:        --run-id restaurant-2026-08-23 --schema public --snapshot-date 2026-08-23
-```
-
-確認: ログの `row_count` が `public.restaurants` の行数と一致すること。
-
-### 2. seed を組み直す（約 100 分。Google は叩かない）
-
-**1 本ずつ、前が終わってから次を dispatch する**（同時に投げると待機側が黙って cancel される）。
-
-```text
-2_1_build_restaurant_source_records.py  --run-id restaurant-2026-08-23 --snapshot-date 2026-08-23   ≈40分
-2_2_build_restaurant_seed_catalog.py    --run-id restaurant-2026-08-23                              ≈55分
-3_1_seed_existing_google_place_ids.py   --run-id restaurant-2026-08-23                              <1分
-3_3_build_google_place_match_catalog.py --run-id restaurant-2026-08-23                              <1分
-3_4_build_restaurant_catalog.py         --run-id restaurant-2026-08-23                              <1分
-```
-
-確認: 3_3 のログで `existing_pg_matched` の件数が 1 の `row_count` とおおむね一致すること
-（`public` の既存行が Text Search 抜きで place_id を持ち込めている、の意）。
+**dev で作った catalog をそのまま使う。** 理由は上の「catalog はスキーマに依存しない」。
+`1_2` から流し直す必要は無く、`8_1` が 14/14 PASS していればそのまま `9_1` へ進む。
 
 ### 2-b. 表の健康状態を測る（同期が一度でも失敗しているなら必須）
 

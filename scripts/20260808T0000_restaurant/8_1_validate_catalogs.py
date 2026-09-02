@@ -166,6 +166,17 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           ON s.run_id = @run_id AND s.seed_id = c.seed_id
         WHERE c.run_id = @run_id
       ),
+      -- #1706 «落ちてはいけない既存 PG の店» の定義を狭めた。
+      --
+      -- 以前は «existing_restaurant_id を持つ seed は全て catalog に居ること» を
+      -- 求めていた。いまは **open data 側にも相手が居る seed だけ**を対象にする。
+      --
+      -- 出所が existing_pg «だけ» の seed は 3_4 が意図的に外す（open data が
+      -- 何も知らない店で、読み出し元の PG にしか居ないため）。それを «落ちた» と
+      -- 数えると、正しい振る舞いでゲートが赤くなる。
+      --
+      -- 逆に、**open data と混ざった seed が落ちるのは本当の事故**である
+      -- （place_id の持ち込み元が消えることを意味する）。そこだけを守る。
       existing_missing AS (
         SELECT COUNT(*) AS missing_count
         FROM `{dataset}.restaurant_seed_catalog` seed
@@ -174,6 +185,9 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
          AND catalog.seed_id = seed.seed_id
         WHERE seed.run_id = @run_id
           AND seed.existing_restaurant_id IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM UNNEST(seed.source_names) AS n WHERE n != 'existing_pg'
+          )
           AND catalog.seed_id IS NULL
       ),
       -- #1706 **catalog に Google 由来の値が混ざっていないこと。**
@@ -194,6 +208,20 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           COALESCE(address_components_json, '[]') != '[]'
           OR plus_code_json IS NOT NULL
         ) AS leaked_count
+        FROM `{dataset}.restaurant_catalog`
+        WHERE run_id = @run_id
+      ),
+      -- #1706 catalog が «どのスキーマを読んで作ったか» に依存していないこと。
+      --
+      -- 出所が existing_pg «だけ» の行は、open data が何も知らない店であり、
+      -- 読み出し元の PG にしか存在しない。catalog に混ざっていると、その catalog を
+      -- **別のスキーマへ流したときに他環境のアプリ利用者が作った店を INSERT する**。
+      -- dev 実測で 1,538 行あった（#1706）。3_4 で除いているが、
+      -- 除外が消えても静かに戻るだけなので、ここで数える。
+      pg_only_in_catalog AS (
+        SELECT COUNTIF(
+          ARRAY_LENGTH(source_names) = 1 AND source_names[OFFSET(0)] = 'existing_pg'
+        ) AS pg_only_count
         FROM `{dataset}.restaurant_catalog`
         WHERE run_id = @run_id
       ),
@@ -291,6 +319,9 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
         UNION ALL SELECT 'restaurant_catalog_free_of_google_values', 'ERROR',
           CAST(leaked_count AS FLOAT64), 0.0, leaked_count = 0
           FROM google_derived_in_catalog
+        UNION ALL SELECT 'restaurant_catalog_schema_independent', 'ERROR',
+          CAST(pg_only_count AS FLOAT64), 0.0, pg_only_count = 0
+          FROM pg_only_in_catalog
         UNION ALL SELECT 'jp_gate_category_count', 'ERROR', CAST(row_count AS FLOAT64),
           CAST(@expected_category_count AS FLOAT64), row_count = @expected_category_count
           FROM category_stats

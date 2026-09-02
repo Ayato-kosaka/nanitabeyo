@@ -153,6 +153,30 @@ def main() -> None:
           AND m.match_status IN ('existing_pg_matched', 'box_unique_strict', 'manual_matched')
           AND (@allow_osm_only_publish OR s.seed_origin != 'osm_only')
       )
+      -- #1706 **PG にしか居ない店は catalog へ出さない。**
+      --
+      -- `1_2` は «この店の place_id はもう知っている» を open data の seed へ
+      -- 結び付けるために PG を読む。open data 側に相手が居る seed
+      -- （`existing_pg,overture` など）はその役目を果たしている。
+      --
+      -- 一方、**出所が existing_pg «だけ» の seed は、open data が何も知らない店**
+      -- である。catalog へ出しても持ち込める中身が無く（dev 実測 1,538 行すべてで
+      -- 住所・電話・サイト・画像が空）、その店は既に読み出し元の PG に居るので、
+      -- 同じスキーマへ書き戻すのは no-op である。
+      --
+      -- 意味を持つのは **別のスキーマへ流したとき**だけで、そのときは
+      -- «dev のアプリ利用者が作った 1,538 店を public へ INSERT する» という
+      -- 望まない挙動になる。ここを外すことで catalog は
+      -- **どのスキーマを読んで作ったかに依存しなくなる**。
+      --
+      -- ⚠️ 除くのは «existing_pg 単独» の seed だけである。open data と混ざった
+      -- seed（実測 913 行）は place_id の持ち込み元として必要なので残す。
+      , publish_rows AS (
+        SELECT * FROM publish_values
+        WHERE NOT (
+          ARRAY_LENGTH(source_names) = 1 AND source_names[OFFSET(0)] = 'existing_pg'
+        )
+      )
       -- #843 `existing_restaurant_id` は catalog へ出さない。
       -- あれは «1_2 がどのスキーマを読んだか» に依存する PostgreSQL の UUID で、
       -- catalog に載せると «dev で作った catalog を public へ流す» が成立してしまう
@@ -197,7 +221,7 @@ def main() -> None:
           ARRAY_TO_STRING(source_names, ',')
         ))) AS row_hash,
         CURRENT_TIMESTAMP() AS built_at
-      FROM publish_values
+      FROM publish_rows
     """
     service_cell_sql = f"""
       CREATE OR REPLACE TABLE `{pipeline.dataset_ref}.restaurant_service_cell_catalog`
