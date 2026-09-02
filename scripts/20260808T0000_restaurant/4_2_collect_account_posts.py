@@ -125,7 +125,8 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type, max_accounts):
+def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type, max_accounts,
+                   output_run_id: str | None = None):
     from google.cloud import bigquery
     where = "run_id = @rid AND provider = @prov"
     params = [
@@ -135,6 +136,16 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type
     if account_type:
         where += " AND account_type = @atype"
         params.append(bigquery.ScalarQueryParameter("atype", "STRING", account_type))
+    # #1273 チャンク harvest 用: レート制限(~200/h)で全量が CI 1 ジョブ(6h)に収まらないので
+    # --max-accounts で分割する。ORDER BY handle LIMIT だけだと毎回同じ先頭 N を選び進まないため、
+    # **この出力 run に既に投稿がある handle は除外**して «まだ収集していない account» を進める。
+    # （投稿ゼロの account は毎回再試行され得るが、投稿を生む account は確実に前進する）。
+    skip_sql = ""
+    if output_run_id:
+        where += (" AND handle NOT IN ("
+                  f"SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` "
+                  "WHERE run_id = @out_rid AND account_id IS NOT NULL)")
+        params.append(bigquery.ScalarQueryParameter("out_rid", "STRING", output_run_id))
     limit_sql = f"LIMIT {int(max_accounts)}" if max_accounts else ""
     sql = f"""
       SELECT handle, account_type, discovery_seed_place_id
@@ -160,8 +171,10 @@ def main() -> None:
     ig = resolve_ig_user_id(token)
     LOGGER.info("IG business account id = %s", ig)
 
-    accounts = _read_accounts(pipeline, account_run_id, args.account_type, args.max_accounts)
-    LOGGER.info("%d アカウントを処理します", len(accounts))
+    # output_run_id=run_id を渡すと «この run に既に投稿がある handle» を除外する（チャンク前進）。
+    accounts = _read_accounts(pipeline, account_run_id, args.account_type, args.max_accounts,
+                              output_run_id=run_id)
+    LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
     now = utc_now()
     now_iso = now.isoformat()
 
