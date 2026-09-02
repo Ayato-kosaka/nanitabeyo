@@ -1126,6 +1126,8 @@ export class DishMediaRepository {
     const reviews = await this.prisma.prisma.dish_reviews.findMany({
       // #1513 削除済みレビューは価格帯にも入れない
       // #1511 退会したユーザーの投稿は価格帯の母数から外す（averageRating と同じ判定）
+      // #1774 中央値をアプリ側で計算するため件数無制限で引いている。1 つの料理にレビューが
+      // 数千件付く規模になったら、PERCENTILE_CONT の生 SQL による DB 側集計へ移すこと。
       where: {
         dish_id: { in: dishIds },
         deleted_at: null,

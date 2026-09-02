@@ -67,9 +67,9 @@ test("resolvePriceBand: 中央値を含む区間へ丸める", () => {
 	assert.deepEqual(resolvePriceBand("JPY", 500), { minCents: 500, maxCents: 1000, currencyCode: "JPY" });
 });
 
-test("resolvePriceBand: 最上位の刻み（10000+）は上限を持たない", () => {
+test("resolvePriceBand: 最上位の刻み（10000+）は上限を持たない（maxCents: null）", () => {
 	const band = resolvePriceBand("JPY", 15000);
-	assert.deepEqual(band, { minCents: 10000, maxCents: Number.MAX_SAFE_INTEGER, currencyCode: "JPY" });
+	assert.deepEqual(band, { minCents: 10000, maxCents: null, currencyCode: "JPY" });
 });
 
 test("resolvePriceBand: 刻みが未定義の通貨は null", () => {

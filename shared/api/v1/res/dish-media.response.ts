@@ -120,6 +120,9 @@ export type DishMediaEntry = {
 		 * レビューが3件未満、または通貨の刻みが未確定のときは null（`averageRating` と対称）。
 		 * 境界の刻み（円は `{0, 500, 1000, 1500, 2000, 3000, 5000, 8000, 10000+}`）は
 		 * `shared/utils/priceBand.ts` の `PRICE_BAND_STEPS_CENTS` が正本。
+		 *
+		 * `priceBand.maxCents` は最上位の刻み（円なら 10000〜）のとき `null`（「上限なし」）。
+		 * クライアントは `null` を «以上» 表示に、それ以外を «〜未満» のレンジ表示に分岐すること。
 		 */
 		priceBand: PriceBand | null;
 	};

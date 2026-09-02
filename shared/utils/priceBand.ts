@@ -22,7 +22,8 @@ export type PriceBandReviewRow = {
 
 export type PriceBand = {
 	minCents: number;
-	maxCents: number;
+	/** 最上位の刻み（円なら 10000〜）は上限が無いので `null`（「上限なし」）。それ以外は上限（exclusive）の cents */
+	maxCents: number | null;
 	currencyCode: string;
 };
 
@@ -49,8 +50,9 @@ function median(sortedAsc: readonly number[]): number {
 /**
  * 中央値を刻みへ丸めて価格帯を返す。刻み未定義の通貨は null。
  *
- * 最上位の刻み（円なら 10000〜）は上限が無いので、`maxCents` に `Number.MAX_SAFE_INTEGER` を
- * 入れる（「10000+」の open-ended な区間を表す）。
+ * 最上位の刻み（円なら 10000〜）は上限が無いので、`maxCents` に `null` を入れる
+ * （「10000+」の open-ended な区間を表す。`Number.MAX_SAFE_INTEGER` はクライアントへ
+ * そのまま出ると「9007199254740991円」のように描画されてしまうため使わない）。
  */
 export function resolvePriceBand(currencyCode: string, medianCents: number): PriceBand | null {
 	const steps = PRICE_BAND_STEPS_CENTS[currencyCode];
@@ -64,7 +66,7 @@ export function resolvePriceBand(currencyCode: string, medianCents: number): Pri
 
 	return {
 		minCents: steps[bucketIndex],
-		maxCents: bucketIndex + 1 < steps.length ? steps[bucketIndex + 1] : Number.MAX_SAFE_INTEGER,
+		maxCents: bucketIndex + 1 < steps.length ? steps[bucketIndex + 1] : null,
 		currencyCode,
 	};
 }
