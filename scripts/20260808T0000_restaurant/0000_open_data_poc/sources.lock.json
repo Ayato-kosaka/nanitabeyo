@@ -1,0 +1,23 @@
+{
+  "measured_at": "2026-08-08",
+  "overture": {
+    "release": "2026-07-22.0",
+    "stac_item": "https://stac.overturemaps.org/2026-07-22.0/places/place/00015/00015.json",
+    "asset": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-07-22.0/theme=places/type=place/part-00015-f754b4ac-fcf9-5991-bcbd-90e439ba21a0-c000.zstd.parquet",
+    "sha256": "8c2c2432eccdefa5c65882d255112fa2e6dcf54bdaa23c108cf118eb56e5be06",
+    "size_bytes": 626644440
+  },
+  "ifas": {
+    "snapshot_label": "2026年06月末現在",
+    "portal": "https://i2fas.mhlw.go.jp/",
+    "faq": "https://i2fas.mhlw.go.jp/faq.htm",
+    "jurisdiction_list_script": "https://i2fas.mhlw.go.jp/faspub/script/IO_S011001_base.js",
+    "download_template": "https://i2fas.mhlw.go.jp/faspub/page/opendatadownload.jsp?param={municipality_code}_food_business_all.csv",
+    "jurisdiction_files": 157
+  },
+  "osm": {
+    "data_until": "2026-08-07T20:20:18Z",
+    "taginfo_api": "https://taginfo.geofabrik.de/asia/japan/api/4"
+  }
+}
+

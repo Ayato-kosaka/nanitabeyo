@@ -32,6 +32,27 @@ export enum ErrorCode {
 	VALIDATION_ERROR = "VALIDATION_ERROR",
 	/** 外部サービスエラー */
 	EXTERNAL_SERVICE_ERROR = "EXTERNAL_SERVICE_ERROR",
+	/**
+	 * 外部サービスの利用上限に達している（#1629）。
+	 *
+	 * Google Places の Text Search は **1 日あたりの上限**を持つ。使い切ると 429 を返し、
+	 * それまで «その場で店を取り込む» ことに依存していた画面が黙って 0 件になる。
+	 * `EXTERNAL_SERVICE_ERROR`（＝相手が壊れている）と混ぜると «時間を置けば直る» ことが
+	 * クライアントから読めないので、コードを分けて «上限» だと言えるようにする。
+	 */
+	EXTERNAL_QUOTA_EXCEEDED = "EXTERNAL_QUOTA_EXCEEDED",
 	/** 指定された場所はレストランや飲食店ではない */
 	PLACE_NOT_FOOD_AND_DRINK = "PLACE_NOT_FOOD_AND_DRINK",
+	/**
+	 * 計画メンテナンス中（#1642）。`MaintenanceGuard` が Remote Config の
+	 * `is_maintenance === "true"` を読んだときだけ返す 503 である。
+	 *
+	 * ⚠️ **HTTP 503 と «メンテナンス» を同一視してはならない。** 503 は
+	 * `EXTERNAL_QUOTA_EXCEEDED`（外部 API の日次上限）・アカウント削除の失敗・
+	 * Cloud Run の一時的な過負荷でも返る。クライアントが «メンテナンス中です» と
+	 * 名乗ってよいのは、このコードが乗っているときだけ。
+	 */
+	SERVICE_MAINTENANCE = "SERVICE_MAINTENANCE",
+	/** 強制アップデート対象の古いアプリ版（`MaintenanceGuard` の 426） */
+	UNSUPPORTED_VERSION = "UNSUPPORTED_VERSION",
 }

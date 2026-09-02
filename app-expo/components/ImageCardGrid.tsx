@@ -1,19 +1,14 @@
 import React, { memo, ReactNode, useCallback, useMemo } from "react";
-import {
-	FlatList,
-	ListRenderItemInfo,
-	Pressable,
-	StyleProp,
-	StyleSheet,
-	useWindowDimensions,
-	ViewStyle,
-} from "react-native";
+import { FlatList, ListRenderItemInfo, Pressable, StyleProp, StyleSheet, ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useContentWidth } from "@/hooks/useContentWidth";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { getCacheKeyForImage } from "@/lib/image";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 /* -------------------------------------------------------------------------- */
 /*                                  型定義                                    */
@@ -24,6 +19,8 @@ export interface ImageCardItem {
 	id: string | number;
 	/** 表示する画像 URL */
 	imageUrl: string;
+	/** #937 【仕様】料理名等の具体的なラベル。未指定時は汎用文言にフォールバックする */
+	title?: string;
 	/** 追加フィールドは自由に拡張可 */
 	[key: string]: any;
 }
@@ -57,7 +54,14 @@ export interface ImageCardGridProps<T extends ImageCardItem = ImageCardItem> {
 /*                              Card 内部実装                                 */
 /* -------------------------------------------------------------------------- */
 
-function _ImageCard<T extends ImageCardItem>({
+/*
+  #1366 【設計】名前を `_` で始めてはいけない。react-hooks/rules-of-hooks は「大文字で始まる関数」を
+  コンポーネントと見なすため、`_ImageCard` はコンポーネントとして認識されず、中のフック呼び出しが
+  «コンポーネントでもフックでもない関数からの呼び出し» として一律 error になる（＝ルールがこの
+  ファイルのフック順序を一切検査できない状態だった）。memo でラップした公開名と衝突させずに
+  大文字始まりにするため `Impl` 接尾辞にしている。
+*/
+function ImageCardImpl<T extends ImageCardItem>({
 	item,
 	columns = 3,
 	gap = 1,
@@ -66,6 +70,7 @@ function _ImageCard<T extends ImageCardItem>({
 	onPress,
 	cardStyle,
 	children,
+	testID,
 }: {
 	item: T;
 	columns?: number;
@@ -75,9 +80,16 @@ function _ImageCard<T extends ImageCardItem>({
 	onPress?: (i: T) => void;
 	cardStyle?: StyleProp<ViewStyle>;
 	children?: ReactNode;
+	/** #1133 E2E から個々のカードを掴むための識別子。未指定なら DOM/ツリーへ何も出ない */
+	testID?: string;
 }) {
 	const { lightImpact } = useHaptics();
-	const { width: widthDimensions } = useWindowDimensions();
+	// #1629 カードの地は «画像が出るまでの面» なのでテーマに追従させる
+	//（ダークで白いタイルが並ぶのを止める）。影だけは固定の黒でよい
+	const styles = useThemedStyles(createStyles);
+	// #958 【修正】useWindowDimensions はブラウザウィンドウ実幅を返すため、
+	// CenteredAppShell が収める中央カラム幅とズレてカードがカラムの外へはみ出していた
+	const widthDimensions = useContentWidth();
 
 	const source = useMemo(
 		() => ({ uri: item.imageUrl, headers: WIKIMEDIA_HEADERS, cacheKey: getCacheKeyForImage(item.imageUrl) }),
@@ -98,6 +110,9 @@ function _ImageCard<T extends ImageCardItem>({
 		}
 	}, [item, onPress, lightImpact]);
 
+	// #937 【仕様】item.title があれば具体的なラベルを、無ければ汎用文言にフォールバックする
+	const accessibleLabel = item.title ?? i18n.t("ImageCardGrid.openItemDetails");
+
 	return (
 		<Pressable
 			style={[styles.card, { width, height, marginBottom: gap }, cardStyle]}
@@ -105,13 +120,18 @@ function _ImageCard<T extends ImageCardItem>({
 			disabled={!onPress}
 			android_ripple={{ color: "rgba(0,0,0,0.06)" }}
 			accessibilityRole="button"
-			accessibilityLabel={i18n.t("ImageCardGrid.openItemDetails")}>
+			accessibilityLabel={accessibleLabel}
+			testID={testID}>
 			<Image
 				source={source}
 				cachePolicy="memory-disk"
 				transition={100}
 				style={StyleSheet.absoluteFill}
 				contentFit="cover"
+				// #937 【仕様】親 Pressable が同じラベルを読み上げるため、画像自体は装飾扱いにする
+				alt=""
+				accessibilityElementsHidden
+				importantForAccessibility="no"
 			/>
 			<LinearGradient
 				colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.1)"]}
@@ -127,7 +147,7 @@ function _ImageCard<T extends ImageCardItem>({
 /*                               Grid 本体                                    */
 /* -------------------------------------------------------------------------- */
 
-function _ImageCardGrid<T extends ImageCardItem>({
+function ImageCardGridImpl<T extends ImageCardItem>({
 	data,
 	columns = 3,
 	gap = 1,
@@ -142,9 +162,9 @@ function _ImageCardGrid<T extends ImageCardItem>({
 }: ImageCardGridProps<T>) {
 	const renderItem = useCallback(
 		(info: ListRenderItemInfo<T>) => (
-			<_ImageCard item={info.item} aspectRatio={aspectRatio} gap={gap} onPress={onPress} cardStyle={cardStyle}>
+			<ImageCardImpl item={info.item} aspectRatio={aspectRatio} gap={gap} onPress={onPress} cardStyle={cardStyle}>
 				{renderOverlay?.(info.item)}
-			</_ImageCard>
+			</ImageCardImpl>
 		),
 		[aspectRatio, gap, onPress, renderOverlay, cardStyle],
 	);
@@ -168,21 +188,22 @@ function _ImageCardGrid<T extends ImageCardItem>({
 	);
 }
 
-export const ImageCardGrid = memo(_ImageCardGrid) as typeof _ImageCardGrid;
-export const ImageCard = memo(_ImageCard) as typeof _ImageCard;
+export const ImageCardGrid = memo(ImageCardGridImpl) as typeof ImageCardGridImpl;
+export const ImageCard = memo(ImageCardImpl) as typeof ImageCardImpl;
 
 /* -------------------------------------------------------------------------- */
 /*                               スタイル定義                                 */
 /* -------------------------------------------------------------------------- */
-const styles = StyleSheet.create({
-	card: {
-		backgroundColor: "#F8F9FA",
-		overflow: "hidden",
-		position: "relative",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		card: {
+			backgroundColor: colors.surfaceMuted,
+			overflow: "hidden",
+			position: "relative",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.1,
+			shadowRadius: 4,
+			elevation: 3,
+		},
+	});

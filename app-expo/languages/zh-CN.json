@@ -1,6 +1,8 @@
 {
 	"ios": {
-		"CFBundleDisplayName": "CraveCatch - Find your dish"
+		"CFBundleDisplayName": "CraveCatch - Find your dish",
+		"NSLocationWhenInUseUsageDescription": "我们会使用您的位置信息，为您推荐附近的餐厅。",
+		"NSLocationAlwaysAndWhenInUseUsageDescription": "我们会使用您的位置信息，为您推荐附近的餐厅。"
 	},
 	"android": {
 		"app_name": "CraveCatch - Find your dish"

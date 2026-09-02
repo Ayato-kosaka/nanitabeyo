@@ -106,6 +106,7 @@ if ! gcloud pubsub subscriptions describe "${SUBSCRIPTION_NAME}" --project="${PR
     --push-auth-service-account="${PUSH_SA}" \
     --push-auth-token-audience="${CLOUD_RUN_URL}" \
     --ack-deadline=60 \
+    --expiration-period=never \
     --quiet
   echo "✅ Subscription created."
 else
@@ -115,6 +116,7 @@ else
     --push-endpoint="${PUSH_ENDPOINT}" \
     --push-auth-service-account="${PUSH_SA}" \
     --push-auth-token-audience="${CLOUD_RUN_URL}" \
+    --expiration-period=never \
     --quiet
   echo "✅ Subscription updated."
 fi

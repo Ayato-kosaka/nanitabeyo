@@ -6,6 +6,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import type { DishMediaEntry, CreateDishMediaViewResponse } from "@shared/api/v1/res";
 import type { DishMediaImpressionBodyDto, CreateDishMediaViewDto } from "@shared/api/v1/dto";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 interface UseMediaTrackingParams {
 	isActive: boolean;
@@ -156,7 +157,7 @@ export const useMediaTracking = ({ isActive, sessionId, source, dishMedia }: Use
 					event_name: "dish_media_view_send_cleanup_error",
 					error_level: "warn",
 					payload: {
-						error: error instanceof Error ? error.message : String(error),
+						error: toErrorLogMessage(error),
 						dish_media_id: dishMedia.id,
 					},
 				});

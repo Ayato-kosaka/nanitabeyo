@@ -1,0 +1,230 @@
+name: PR Check
+
+# 🔎 pull_request で回る軽量ゲート（#1112）
+# - このリポジトリ初の pull_request トリガー。既存 12 本はすべて workflow_dispatch / schedule。
+# - 検査は 6 つ。いずれも secrets もネットワークも不要なので、fork からの PR でも実行できる。
+#     1. 4-1: remoteConfigSchema のキー集合 ≡ DEFAULT_REMOTE_CONFIG のキー集合（#1116）
+#     2. error-triage の jest（#1196。外部I/Oゼロの純関数群 + SQL 生成物の一致検査。
+#        他のどの workflow からも実行されていない）
+#     3. app-expo の typecheck（どの workflow でも実行されていなかった）
+#     4. app-expo の jest（同上。2026-08-01 時点で 21 suites / 167 tests・全 green を実測済み）
+#     5. legacyBlurModal の import 境界（#1363。ESLint にも同じ境界があるが、あちらが見ていない
+#        features/blurModal の復活と Portal の許可リストもここで守る）
+#     6. app-expo の lint（#1366。既存 48 errors を解消したうえで新規に追加した）
+# - 4-2（実際の config.json との値の突き合わせ）は EAS の env が要るのでここでは SKIP される。
+#   SKIP した旨は必ずログへ出る。4-2 は引き続き nightly の e2e-web-test.yml が担当する。
+# - #1596 api の jest をゲートへ入れた。以前は「api/.env（secrets）を要求し、かつ現状 red」を
+#   理由に外していたが、**外していた期間にモックが本体から静かにズレ、3 suite / 26 件が
+#   «1 度も実行されないまま緑扱い» になっていた**（アカウント削除 #1511 と通知設定 #1510 の
+#   回帰テスト。どちらも «テストがあるから安全» を根拠に出荷したもの）。
+#   secrets 依存は api/test/setup-test-env.ts が「未設定のキーだけ」ダミーで埋めて外した
+#   （実 .env / CI secret があればそちらが勝つ）。赤の実体は本体変更への追随漏れだったので、
+#   直したうえでゲートへ載せている。
+# - step は「安い順・失敗原因が特定しやすい順」に並べてある（fail-fast）。
+# - branches / paths のフィルタは意図的に付けていない。統合ブランチ宛ての PR でも回す必要があり、
+#   かつ 4-1 の入力の片方は shared/remoteConfig/remoteConfig.schema.ts なので、
+#   app-expo/** だけに絞るとこの Issue が守ろうとしている事故そのものを取りこぼす。
+on:
+  pull_request:
+  # #1575 main へ直接入った commit も検査する。PR を経由しない変更（人による直 push）で
+  # main が赤くなり、誰も気づかないまま放置される事故が 2 回起きた。
+  #
+  # ⚠️ これは db-migrate.yml の自動 commit には効かない。GITHUB_TOKEN による push は
+  #    新しい workflow run を起こさない（GitHub の仕様）ため。あちらは workflow 自身が
+  #    push 前に shared をビルドして検算する形で塞いである。ここはあくまで人の直 push 用。
+  push:
+    branches: [main]
+
+# 同一 PR へ続けて push したとき、古い run の結果はもう誰も見ないのでキャンセルする。
+# 既存 workflow が cancel-in-progress: false なのはデプロイ／E2E を中断させないためで、
+# PR ゲートは逆に「最新 commit の結果だけが要る」ため true にする。
+# group に workflow 名と PR 番号を含めているので、PR をまたいでキャンセルし合うことはない。
+concurrency:
+  # push イベントには pull_request.number が無いので commit SHA へ落とす
+  # （空文字だと main への連続 push が互いをキャンセルし合う）。
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  # チェックアウトのみ。PR や Issue へ書き戻す必要は無い。
+  contents: read
+
+jobs:
+  pr-check:
+    name: PR Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # このジョブは push も API 呼び出しもしないので、認証情報を runner に残さない。
+          persist-credentials: false
+
+      # pnpm/action-setup の `v2` は tag ではなく可変な branch なので、SHA で固定する
+      # （下の SHA は 2026-08-01 時点の v2 branch の HEAD ＝ 既存 workflow が今まさに使っている実体）。
+      - name: PNPMをセットアップ
+        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2
+        with:
+          version: 10.8.0
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      # #0 ドキュメント管理規約（docs/README.md）のうち機械的に検査できる部分。
+      # 2026-08 に *_IMPLEMENTATION.md / *_SUMMARY.md が堆積し、存在しない API を説明する
+      # 文書が複数残る事故が起きた（docs/decisions/20260823-documentation-cleanup.md）。
+      # git ls-files を見るだけで依存ゼロ・1 秒未満なので最速の位置に置く。
+      - name: ドキュメント管理規約を検査
+        run: pnpm assert:doc-hygiene
+
+      # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
+      # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
+      - name: Remote Config 既定値のドリフトを検査
+        run: pnpm --filter app-expo assert:remote-config-defaults
+
+      # #1363 legacyBlurModal（社内タスク画面専用の凍結コピー）が公開アプリから import されて
+      # いないことを検査する。同じ境界は app-expo/.eslintrc.js の no-restricted-imports にも
+      # 書いてあり、#1366 で下の lint step が入ったことで **そちらも CI で評価される**ように
+      # なった。それでもこの step を残すのは、依存ゼロで速いことに加え、ESLint が見ていない
+      # 2 つ（撤去した features/blurModal の再出現、react-native-paper の Portal の許可リスト）を
+      # このスクリプトだけが検査しているためである。
+      # 凍結の価値は利用者が社内タスク画面だけに閉じていることに全面的に依存している（#1350 §7）。
+      - name: legacyBlurModal の import 境界を検査
+        run: pnpm --filter app-expo assert:legacy-blur-modal-boundary
+
+      # #1469 で新画面が色を直書きし、ダークモードで «ヘッダーだけ黒く本体は白い» 画面が
+      # 量産された事故の再発防止（#1509）。画面 .tsx の引用符内 hex / "white" / "black" を落とす。
+      # レガシーは理由付きの EXCLUSIONS で凍結し、直書きが消えたらリストから消させる（ラチェット）。
+      # 依存ゼロ・ファイル走査のみなので shared build より前の最速の位置に置く。
+      - name: 画面ファイルの色直書きを検査
+        run: pnpm --filter app-expo assert:no-hardcoded-colors
+
+      # #1196 エラートリアージの純関数群。外部I/Oゼロ（node:crypto のみ）で shared/dist にも
+      # 依存しないため、shared build より前・最速の位置に置ける。
+      # このテストが守っているのは主に「正規化ルール表が RE2 と JS の共通部分集合に留まること」で、
+      # ここが崩れると BigQuery 側の REGEXP_REPLACE と JS の normalize() が別の結果を出し、
+      # 同じエラーが2グループに割れる（= Issue が重複起票される）。
+      # ルール表は SQL の生成元でもあるので、CI で回っていないと PR1 の価値が保全されない。
+      - name: error-triage のユニットテスト
+        run: pnpm --filter error-triage test
+
+      # #1366 これまで lint はどの workflow でも実行されていなかった。載せられなかったのは
+      # 既存 48 errors（react-hooks/rules-of-hooks 45 / no-undef 3）で落ちていたためで、
+      # #1366 でその全件を解消したうえでここへ入れている。
+      #
+      # ⚠️ warning は素通りする（--max-warnings は付けていない）。2026-08-19 時点で 234 件あり、
+      #    ここで 0 を要求すると無関係な PR まで巻き添えで落ちる。error だけを強制する。
+      #    warning の削減は別途。逆に、**新しいルールを error で足すときはこの step が本当に
+      #    強制する**ので、追加時は全件解消してから入れること。
+      #
+      # shared/dist を要求しないので shared build より前に置ける（型情報を使う
+      # typed-linting は有効にしていない）。ローカル実測で約 23 秒。
+      - name: app-expo の lint
+        run: pnpm --filter app-expo lint
+
+      # #1641 `react-hooks/exhaustive-deps` を **増やせなくする**（ratchet）。
+      #
+      # 上の lint は warning では落ちない。2026-08-31 に `DishMediaFeed` の `renderItem` が
+      # 依存配列へ `isScreenActive` を入れ忘れ、**離れたページのセルが古い値を抱えたまま鳴り続けた**。
+      # ESLint は警告していたが、warning は CI を落とさず、既存 400 件超に埋もれて誰も気付けなかった
+      # （オーナーに «音が重なる» と 3 回報告させ、特定に丸一日かかった）。
+      #
+      # 既存分（47 件）は台帳 `scripts/exhaustive-deps-baseline.json` に載せてある。
+      # **減らすことはできても増やすことはできない。** 増えた場所を名指しして落ちる。
+      - name: app-expo の exhaustive-deps を増やしていないか
+        run: pnpm --filter app-expo assert:no-new-exhaustive-deps
+
+      # #1399 SNS の URL をルールベースで解釈する純関数（`shared/utils/snsUrl.ts`）。
+      # 外部I/Oゼロで shared/dist にも依存しないため、shared build より前に置ける。
+      #
+      # ここが守っているのは主に 2 つで、どちらも落ちると静かに壊れる種類のものである。
+      #   1. provider の判定をホスト名の完全一致で行うこと。`includes` / `endsWith` へ緩めると
+      #      `tiktok.com.evil.example` のような同形異字ドメインを取り込んでしまう
+      #   2. canonicalUrl からクエリとフラグメントを落とすこと。残すと `?igsh=` 等が付いた
+      #      同じ投稿が別行になり、自然キー `(provider, external_content_id, dish_id)` が割れる
+      - name: shared のユニットテスト
+        run: pnpm --filter shared test
+
+      # app-expo/tsconfig.dev.json は @shared/* を ../shared/dist/* へ向けているため、
+      # typecheck の前に shared を build しておかないと解決できない。
+      - name: sharedパッケージをビルド
+        run: pnpm --filter shared build
+
+      # 本来 4-1 の不変条件は DEFAULT_REMOTE_CONFIG: RemoteConfigValues の型注釈が守るもの。
+      # ここを通すことで、4-1 とは別経路の二重防御になる（#1112 本文）。
+      - name: app-expo の型検査
+        run: pnpm --filter app-expo typecheck
+
+      # __tests__/remoteConfigDefaults.test.ts と __tests__/remoteConfigCache.test.ts は
+      # まさにこの Issue の主題（既定値とキャッシュ）を守るテストだが、
+      # これまでどの workflow からも実行されていなかった。
+      - name: app-expo のユニットテスト
+        run: pnpm --filter app-expo test
+
+      # #1596 api のユニットテスト。ここが外れていた間に、本体の変更へ追随し忘れた
+      # モックが 3 suite（26 件）を «実行されないまま» にしていた:
+      #   - users.service.delete-me.spec.ts … UsersService へ後から足された 3 つの依存を
+      #     provider へ入れ忘れ、Nest の組み立てごと失敗（アカウント削除の回帰テスト 6 件）
+      #   - notification-job.service.spec.ts … #1510 で足した isPushAllowedForKind が
+      #     モックに無く「is not a function」（14 件）
+      #   - notification-job.preferences.spec.ts … 本体が findUnique → findFirst へ変わり、
+      #     さらに #1557 の getUsersByIdsIncludingDeleted も未追随（6 件）
+      # いずれも型検査では捕まらない（モックは any 相当で通る）。テストを回す以外に
+      # 検出手段が無い種類のズレなので、ここへ載せる。
+      #
+      # 外部 I/O は無く、api/test/setup-test-env.ts が env を埋めるので secrets 不要。
+      # ローカル実測 約 90 秒。
+      - name: api のユニットテスト
+        run: pnpm --filter api test
+
+      # ─────────────────────────────────────────────────────────────
+      # 2026-08-25 追加。**どれも「実際に見逃した defect」があって足している。**
+      # 推測で網を広げたのではなく、この日 1 日で 4 件すり抜けたのが根拠。
+      # ─────────────────────────────────────────────────────────────
+
+      # e2e-web / e2e-mobile はこれまでどの PR ゲートからも型検査されていなかった。
+      # 実際に以下がマージ済みブランチ上で **緑のまま**放置されていた:
+      #   - e2e-web/pages/SettingsPage.ts … 自動マージが JSDoc を縫い合わせて構文エラー
+      #     （`goto()` のコメントが `notificationToggle()` のコメントを飲み込んだ）
+      #   - e2e-mobile … #1402 で消えた `ProfileScreen.gotoSettings()` の呼び出しが 2 ファイルに残存
+      # どちらも「壊れた e2e は次に走らせるまで気づけない」形で、走らせるのは nightly か手動 dispatch。
+      # tsc なら数秒で落とせる（ローカル実測: e2e-web 約 6 秒）。
+      - name: e2e-web の型検査
+        run: pnpm --filter e2e-web typecheck
+
+      - name: e2e-mobile の型検査
+        run: pnpm --filter e2e-mobile typecheck
+
+      # `.prisma` は型検査にもテストにも掛からないため、**衝突マーカーが commit されたまま
+      # PR Check が緑**になっていた（api/prisma/schema.prisma に `<<<<<<< HEAD` が残存）。
+      # prisma validate は schema の構文とリレーションを見るので、この形は確実に落ちる。
+      # ローカル実測 約 21 秒。DB へは接続しない（スキーマの静的検証のみ）。
+      - name: Prisma スキーマを検証
+        run: pnpm --filter api exec prisma validate
+
+      # 入れ子になった `test()` / `it()` は **1 度も実行されない**のに構文としては正しく、
+      # tsc も eslint も気づかない。実際に 2 件、«assert していないのに緑» で残っていた:
+      #   - e2e-web/tests/profile/settings.spec.ts … バージョン検証の中へ通知カード検証が入れ子
+      #   - e2e-mobile/tests/profile/settings.test.ts … ハプティクスの it が閉じずに通知の it を飲み込む
+      # どちらもベース取り込みの衝突解消で «偶然» 見つかったもので、
+      # 見つからなければそのまま出ていた。ローカル実測 1 秒未満。
+      - name: e2e の spec に入れ子の test が無いことを確認
+        run: pnpm assert:no-nested-e2e-tests
+
+      # #1749 UI カタログの spec が使う画面 ID が catalog/screens.json に在ることを確認する。
+      # `captureScreenIfReachable()` は «撮れたら撮る» だが、未定義 ID のときだけは
+      # `getScreen()` が try の外で throw し、**その it 以降の撮影が丸ごと失われる**。
+      # 画面 ID を «トピック → 料理カテゴリ» へ改名したとき spec だけ直して screens.json が
+      # 取り残され、お店提案の `search-result-feed` が一度も撮れていなかった（web / mobile 両方）。
+      # 気づいたのは #1743 でその画面を撮ろうとしたときで、それまで誰にも見えていなかった。
+      # ローカル実測 1 秒未満。
+      - name: UI カタログの画面 ID が catalog/screens.json と一致することを確認
+        run: pnpm assert:catalog-screen-ids

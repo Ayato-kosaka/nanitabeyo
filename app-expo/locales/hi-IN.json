@@ -9,6 +9,8 @@
 		"post": "पोस्ट करें",
 		"postReview": "समीक्षा पोस्ट करें",
 		"retry": "पुनः प्रयास करें",
+		"undo": "पूर्ववत करें",
+		"view": "देखें",
 		"error": "एक त्रुटि हुई है। कृपया पुनः प्रयास करें।",
 		"success": "सफलता",
 		"linkCopied": "लिंक क्लिपबोर्ड पर कॉपी किया गया",
@@ -25,7 +27,10 @@
 		"errors": {
 			"network": "नेटवर्क त्रुटि हुई है। कृपया अपना कनेक्शन जांचें।",
 			"unexpected": "एक अप्रत्याशित त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।",
-			"notFound": "नहीं मिला"
+			"notFound": "नहीं मिला",
+			"authUnavailable": "साइन इन विफल रहा। कृपया अपना नेटवर्क कनेक्शन जांचें और पुनः प्रयास करें।",
+			"authRateLimited": "इस समय बहुत अधिक अनुरोध हैं। कृपया कुछ देर बाद पुनः प्रयास करें।",
+			"videoProcessingFailed": "वीडियो प्रोसेस नहीं हो सका। कृपया दूसरा वीडियो आज़माएँ।"
 		}
 	},
 	"DeepLinking": {
@@ -47,6 +52,8 @@
 		"copyShareLink": "शेयर लिंक कॉपी करें",
 		"voteCta": "वोट करें",
 		"candidatesTitle": "विकल्प",
+		"rankLabel": "स्थान {{rank}}",
+		"unvoted": "अभी तक वोट नहीं",
 		"commentsTitle": "टिप्पणियाँ",
 		"viewRestaurants": "रेस्तरां देखें",
 		"loadingRestaurants": "खोज रहे हैं",
@@ -55,11 +62,15 @@
 		"deleteCandidate": "विकल्प हटाएँ",
 		"deleteCandidateTitle": "यह विकल्प हटाएँ?",
 		"deleteCandidateMessage": "{{name}} को वोट विकल्पों से छिपाएँ।",
+		"candidateDeleted": "{{name}} को उम्मीदवारों से हटा दिया गया",
 		"loadFailed": "वोट लोड नहीं हो सका",
 		"refreshFailed": "नए परिणाम लोड नहीं हो सके",
 		"like": "पसंद",
 		"dislike": "छोड़ें",
+		"likeButtonLabel": "{{title}} पसंद है",
+		"dislikeButtonLabel": "{{title}} पसंद नहीं है",
 		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{total}} में से {{current}}: {{title}}",
 		"noVoteCandidates": "वोट करने के लिए कोई विकल्प नहीं है",
 		"completionTitle": "अपना वोट पक्का करें",
 		"completionDescription": "परिणाम पेज पर दिखने वाला नाम और वैकल्पिक टिप्पणी दर्ज करें।",
@@ -71,7 +82,22 @@
 		"submitFailed": "आपका वोट भेजा नहीं जा सका",
 		"participantsList": "प्रतिभागी: {{names}}",
 		"noParticipants": "अभी कोई प्रतिभागी नहीं है",
-		"noVotes": "अभी कोई वोट नहीं है"
+		"noVotes": "अभी कोई वोट नहीं है",
+		"myVotes": {
+			"pageTitle": "मेरे समूह वोट",
+			"loadFailed": "समूह वोट लोड नहीं हो सके",
+			"noCandidates": "कोई विकल्प नहीं",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} और {{count}} अन्य",
+			"participantSummary": "{{count}} ने वोट किया",
+			"decidedLabel": "विजेता: {{name}}",
+			"votedLabel": "आपने वोट किया",
+			"notVotedLabel": "आपने वोट नहीं किया",
+			"itemAccessibilityLabel": "{{date}} का ग्रुप वोट। {{summary}}। {{participants}}। {{status}}",
+			"emptyTitle": "आपने अभी तक कोई समूह वोट शुरू नहीं किया है",
+			"emptyDescription": "खाना खोजें, कुछ विकल्प चुनें और दोस्तों से वोट करने को कहें।",
+			"emptyAction": "वोट बनाएँ"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
@@ -81,7 +107,18 @@
 		"currentLocation": "वर्तमान स्थान",
 		"DistanceSlider": {
 			"near": "पास",
-			"far": "दूर"
+			"far": "दूर",
+			"edgeEstimate": "खोज क्षेत्र की सीमा तक अनुमानित समय",
+			"approxMinutes": "लगभग {{minutes}} मिनट",
+			"modes": {
+				"walk": "पैदल",
+				"bike": "साइकिल",
+				"car": "कार",
+				"train": "ट्रेन"
+			},
+			"showMore": "और देखें",
+			"showLess": "कम दिखाएं",
+			"estimateHint": "समय मार्ग, यातायात और प्रतीक्षा के अनुसार बदल सकता है"
 		},
 		"BudgetSlider": {
 			"cheap": "सस्ता",
@@ -91,15 +128,24 @@
 		"errors": {
 			"fetchLocation": "स्थान प्राप्त करने में विफल",
 			"getCurrentLocation": "वर्तमान स्थान प्राप्त करने में विफल",
+			"getCurrentLocationDenied": "स्थान की अनुमति अस्वीकार कर दी गई। कृपया नीचे दिए गए फ़ील्ड में अपना स्थान टाइप करें।",
+			"getCurrentLocationUnsupported": "यहां वर्तमान स्थान प्राप्त करना समर्थित नहीं है। कृपया नीचे अपना स्थान टाइप करें।",
+			"getCurrentLocationTimeout": "वर्तमान स्थान प्राप्त करने का समय समाप्त हो गया। कृपया पुनः प्रयास करें या नीचे अपना स्थान टाइप करें।",
 			"noLocationSelected": "कृपया एक स्थान चुनें",
 			"noTimeSlotSelected": "कृपया एक समय स्लॉट चुनें",
 			"noSceneSelected": "कृपया एक दृश्य चुनें",
+			"malformedAddress": "कृपया खोज स्थान फिर से चुनें",
 			"searchFailed": "खोज विफल हुई"
 		},
 		"googleMapsFallback": {
 			"message": "आप अपनी शर्तों से मेल खाने वाले रेस्तरां Google Maps पर देख सकते हैं।",
 			"confirm": "Google Maps खोलें",
 			"cancel": "बंद करें"
+		},
+		"unsupportedRegion": {
+			"title": "फ़िलहाल केवल जापान में उपलब्ध",
+			"message": "यह ऐप फ़िलहाल केवल जापान के स्थानों का समर्थन करता है। कृपया जापान में कोई स्थान चुनें।",
+			"confirm": "ठीक है"
 		},
 		"sections": {
 			"location": "कहां खोजें?",
@@ -123,6 +169,8 @@
 		"accessibility": {
 			"locationInputHint": "रेस्टोरेंट खोजने के लिए स्थान दर्ज करें",
 			"clearLocation": "स्थान साफ़ करें",
+			"useCurrentLocation": "वर्तमान स्थान का उपयोग करें",
+			"showTutorial": "इस्तेमाल का तरीका देखें",
 			"selectLocation": "इस स्थान को चुनें"
 		},
 		"loading": "खोज जारी...",
@@ -198,39 +246,99 @@
 			"seafoodAllergy": "समुद्री भोजन से एलर्जी",
 			"halal": "हलाल"
 		},
-		"tutorial": {
-			"page1": {
-				"title": "आप क्या खाना चाहते हैं, जानें",
-				"body1": "\"आज क्या खाऊं?\" की उलझन को एक साथ हल करें।",
-				"body2": "हम आपके स्थान और समय के आधार पर व्यंजन और रेस्तरां सुझाते हैं।",
-				"cta": "अगला"
-			},
-			"page2": {
-				"title": "तस्वीरें देखें और अपनी पसंद की चीज खोजें",
-				"body1": "हम आपकी वर्तमान प्राथमिकताओं से मेल खाने वाले 6 व्यंजन सुझाते हैं।",
-				"body2": "तस्वीरें देखें और सहजता से चुनें कि आप क्या खाना चाहते हैं।",
-				"cta": "अगला"
-			},
-			"page3": {
-				"title": "तस्वीरें और समीक्षाएं आपको तय करने में मदद करती हैं",
-				"body1": "हम आपके चुने हुए व्यंजन परोसने वाले 5 रेस्तरां सुझाते हैं।",
-				"body2": "तस्वीरें, समीक्षाएं और मानचित्र देखें और जल्दी से एक जगह चुनें।",
-				"cta": "अगला"
-			},
-			"page4": {
-				"title": "चलिए शुरू करें",
-				"body1": "पास के स्वादिष्ट रेस्तरां सुझाने के लिए, हम आपकी वर्तमान स्थिति का उपयोग करेंगे।",
-				"body2": "आप इसे किसी भी समय सेटिंग्स में बदल सकते हैं।",
-				"primaryCta": "वर्तमान स्थिति का उपयोग करें",
-				"secondaryCta": "बाद में"
+		"result": {
+			"accessibility": {
+				"bulkShare": "सभी शेयर करें"
 			}
+		},
+		"recentLocations": {
+			"title": "हाल के स्थान",
+			"clear": "हाल के स्थान साफ़ करें"
+		},
+		"locationConfirmation": {
+			"error": "स्थान की पुष्टि करने में विफल"
 		}
 	},
-	"Topics": {
+	"Onboarding": {
+		"step1": {
+			"problem": "तय ही नहीं हो पाता कि\nआख़िर खाना क्या है",
+			"solution": "बस सुझाए गए व्यंजनों में से चुन लीजिए"
+		},
+		"step2": {
+			"problem": "रेस्टोरेंट के विकल्प इतने हैं कि\nचुनते-चुनते थकान हो जाती है",
+			"solution": "छाँटे हुए रेस्टोरेंट में से चुनिए, तय करना आसान!"
+		},
+		"step3": {
+			"problem": "दोस्तों की राय भी जाननी है",
+			"solution": "दोस्तों के साथ बहुमत से व्यंजन तय कीजिए!"
+		},
+		"back": "पीछे",
+		"next": "आगे",
+		"skip": "छोड़ें",
+		"location": {
+			"title": "आस-पास की बढ़िया जगहें ढूँढ़ें 📍",
+			"body": "स्थान की अनुमति से हम आपके आस-पास के अनुशंसित रेस्टोरेंट सुझा सकते हैं।",
+			"dialog": {
+				"title": "“CraveCatch” को आपकी लोकेशन इस्तेमाल करने की अनुमति दें?",
+				"message": "आपके आस-पास के अनुशंसित रेस्टोरेंट सुझाने के लिए आपकी लोकेशन का उपयोग किया जाता है।",
+				"allowOnce": "एक बार अनुमति दें",
+				"allowWhileUsing": "ऐप इस्तेमाल के दौरान अनुमति दें",
+				"deny": "अनुमति न दें"
+			}
+		},
+		"notifications": {
+			"title": "मन की चाह छूटे नहीं 🔔",
+			"body": "हम आपके लिए चुनी गई सिफ़ारिशें और CraveCatch की ख़बरें भेजेंगे।",
+			"dialog": {
+				"title": "“CraveCatch” आपको सूचनाएँ भेजना चाहता है",
+				"message": "सूचनाओं में अलर्ट, ध्वनियाँ और आइकन बैज शामिल हो सकते हैं।",
+				"deny": "अनुमति न दें",
+				"allow": "अनुमति दें"
+			}
+		},
+		"welcome": {
+			"title": "CraveCatch में आपका स्वागत है!",
+			"body1": "अब खाने की जगह चुनने में उलझने की ज़रूरत नहीं।",
+			"body2": "चलिए, आज की पसंद ढूँढ़ते हैं।",
+			"cta": "शुरू करें"
+		},
+		"accessibility": {
+			"stepProgress": "{{total}} में से {{current}} चरण"
+		}
+	},
+	"DishCategories": {
 		"deepDive": {
 			"title": "इस शैली से छांटें"
 		},
-		"HideTopicModal": {
+		"tutorial": {
+			"helpLabel": "इस स्क्रीन का उपयोग कैसे करें",
+			"helpHint": "व्यंजन सुझाव ट्यूटोरियल शुरू से दिखाएँ",
+			"skip": "छोड़ें",
+			"next": "आगे",
+			"finish": "शुरू करें",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "{{total}} में से चरण {{current}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "अपनी पसंद का व्यंजन चुनें",
+					"body": "व्यंजनों की तुलना करने के लिए बाएँ या दाएँ स्वाइप करें। पसंद आने पर “इसे चुनें!” पर टैप करें।"
+				},
+				"deepDive": {
+					"title": "मूड के हिसाब से गहराई से खोजें",
+					"body": "अभी तय नहीं कर पाए? सुझावों को सीमित करने के लिए अपनी पसंद की शैली चुनें।"
+				},
+				"dishCategoryActions": {
+					"title": "सुझावों को अपनी पसंद के अनुसार बनाएँ",
+					"save": "सेव: पसंदीदा व्यंजन बाद में फिर देखें",
+					"block": "ब्लॉक: नापसंद व्यंजन आगे सुझाए नहीं जाएंगे"
+				},
+				"groupVote": {
+					"title": "दोस्तों के साथ तय करें",
+					"body": "साथ खाने वालों के साथ विकल्प साझा करें और मिलकर वोट करें।"
+				}
+			}
+		},
+		"HideDishCategoryModal": {
 			"title": "छिपाएँ",
 			"description": "कृपया छिपाने का कारण बताएं (वैकल्पिक)",
 			"placeholder": "कारण दर्ज करें...",
@@ -248,13 +356,14 @@
 		"retry": "खोज पर लौटें",
 		"chooseThis": "इसे चुनें!",
 		"hiddenMessage": "{{title}} को छिपा दिया गया है",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "क्या इस व्यंजन को ब्लॉक करना चाहते हैं?",
-			"description": "ब्लॉक किए गए व्यंजन अब आपकी सिफ़ारिशों में नहीं दिखेंगे।",
+			"description": "ब्लॉक की गई व्यंजन श्रेणियाँ अब आपकी सिफ़ारिशों में नहीं दिखेंगी।",
 			"note": "आप इसे कभी भी सेटिंग्स से अनब्लॉक कर सकते हैं।",
 			"confirm": "ब्लॉक करें"
 		},
 		"blockedMessage": "{{title}} को ब्लॉक कर दिया गया है",
+		"savedMessage": "सेव किया गया",
 		"reloadDialog": {
 			"title": "और विकल्प ढूँढें?",
 			"message": "इस समय केवल कुछ ही सिफ़ारिशें उपलब्ध हैं। हम इन्हीं शर्तों के साथ दोबारा खोज करेंगे।",
@@ -264,7 +373,13 @@
 		"imageLoadFailed": "चित्र लोड करने में विफल",
 		"tapToReload": "पुनः लोड करने के लिए टैप करें",
 		"headerTitle": "आपके लिए अनुशंसित व्यंजन",
-		"subCopy": "रेस्तरां खोजने के लिए पसंदीदा व्यंजन पर टैप करें"
+		"subCopy": "रेस्तरां खोजने के लिए पसंदीदा व्यंजन पर टैप करें",
+		"accessibility": {
+			"blockDishCategory": "अनुशंसाओं से {{title}} हटाएं",
+			"saveDishCategory": "{{title}} सेव करें",
+			"unsaveDishCategory": "{{title}} सेव से हटाएं",
+			"thumbnail": "{{title}} थंबनेल, {{total}} में से {{index}}"
+		}
 	},
 	"Notifications": {
 		"title": "सूचनाएँ",
@@ -278,6 +393,9 @@
 			},
 			"dish_reviews": {
 				"like": "ने आपकी समीक्षा को पसंद किया"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "ने आपके ग्रुप में वोट किया"
 			}
 		}
 	},
@@ -286,14 +404,11 @@
 			"million": "M",
 			"thousand": "K"
 		},
-		"menuOptions": {
-			"viewCreatorProfile": "निर्माता की प्रोफ़ाइल पर जाएँ",
-			"reservation": "आरक्षण"
-		},
 		"actions": {
 			"share": "साझा करें",
 			"seeMore": "और देखें",
-			"openMap": "मानचित्र खोलें"
+			"openMap": "मानचित्र खोलें",
+			"review": "समीक्षा"
 		},
 		"share": {
 			"title": "{{dishName}} देखें"
@@ -301,43 +416,105 @@
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},
+		"accessibility": {
+			"viewRestaurant": "{{name}} के रेस्तरां का विवरण देखें",
+			"likeActive": "{{name}} की पसंद हटाएं",
+			"likeInactive": "{{name}} को पसंद करें",
+			"saveActive": "{{name}} को सेव से हटाएं",
+			"saveInactive": "{{name}} सेव करें",
+			"share": "{{name}} शेयर करें",
+			"openMap": "{{name}} का मानचित्र खोलें",
+			"reviewLike": "{{username}} की समीक्षा को पसंद करें",
+			"recordEaten": "{{name}} को 'खा लिया' के रूप में दर्ज करें",
+			"recordEatenAgain": "{{name}} को फिर से रिकॉर्ड करें (पहले से रिकॉर्ड)",
+			"ownPostMenu": "{{name}} की पोस्ट मेन्यू खोलें"
+		},
 		"processing": "मीडिया प्रोसेस किया जा रहा है...",
 		"info": {
 			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
 		},
 		"errors": {
 			"mapOpenFailed": "मानचित्र ऐप नहीं खोल सका",
-			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।"
+			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।",
+			"likeReactionFailed": "लाइक अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
+			"saveReactionFailed": "सेव अपडेट करने में विफल। कृपया पुनः प्रयास करें।"
+		},
+		"save": {
+			"savedMessage": "\"खाना है\" में सेव किया गया"
+		},
+		"embed": {
+			"play": "{{provider}} पर चलाएँ",
+			"openExternally": "{{provider}} पर देखें",
+			"unmute": "आवाज़ चालू करें"
+		},
+		"ownPost": {
+			"menuTitle": "आपकी पोस्ट",
+			"edit": "समीक्षा संपादित करें",
+			"delete": "पोस्ट हटाएँ",
+			"deleteReview": "समीक्षा हटाएँ",
+			"cancel": "रद्द करें",
+			"mediaLocked": "फ़ोटो और वीडियो बदले नहीं जा सकते। आप टिप्पणी, रेटिंग और कीमत संपादित कर सकते हैं।",
+			"deleteConfirmTitle": "इस पोस्ट को हटाएँ?",
+			"deleteConfirmMessage": "यह पोस्ट (फ़ोटो और आपकी समीक्षा) हटा दी जाएगी। इसे वापस नहीं लाया जा सकता।",
+			"deleteReviewConfirmTitle": "इस समीक्षा को हटाएँ?",
+			"deleteReviewConfirmMessage": "केवल आपकी लिखी समीक्षा हटाई जाएगी। फ़ोटो किसी और की है और बनी रहेगी। इसे वापस नहीं लाया जा सकता।",
+			"deleteConfirmButton": "हटाएँ",
+			"deleted": "पोस्ट हटा दी गई",
+			"reviewDeleted": "समीक्षा हटा दी गई",
+			"deleteFailed": "पोस्ट नहीं हटाई जा सकी",
+			"reviewDeleteFailed": "समीक्षा नहीं हटाई जा सकी",
+			"editTitle": "समीक्षा संपादित करें",
+			"editComment": "टिप्पणी",
+			"editRating": "रेटिंग",
+			"editPrice": "कीमत",
+			"save": "सहेजें",
+			"saved": "समीक्षा अपडेट हो गई",
+			"saveFailed": "समीक्षा अपडेट नहीं हो सकी",
+			"conflict": "यह समीक्षा कहीं और अपडेट हो चुकी है। संपादित करने से पहले इसे दोबारा खोलें।",
+			"forbidden": "आप केवल अपनी पोस्ट संपादित या हटा सकते हैं"
+		},
+		"moreMenu": {
+			"title": "यह पोस्ट"
 		}
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "आइटम विवरण खोलें"
 	},
+	"Stars": {
+		"accessibility": {
+			"rating": "रेटिंग {{rating}}/5"
+		}
+	},
 	"Tabs": {
 		"home": "होम",
 		"search": "खोज",
-		"map": "मानचित्र",
 		"review": "समीक्षा",
 		"notifications": "सूचनाएँ",
 		"profile": "प्रोफ़ाइल",
 		"labels": {
 			"search": "खोज",
-			"map": "मानचित्र",
 			"review": "समीक्षा",
 			"notifications": "सूचनाएँ",
-			"profile": "प्रोफ़ाइल"
-		}
+			"profile": "प्रोफ़ाइल",
+			"myDishes": "मेरे व्यंजन"
+		},
+		"myDishes": "मेरे व्यंजन"
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "समीक्षाएं",
+			"saved": "सेव किया गया",
+			"liked": "पसंदीदा",
+			"wallet": "वॉलेट"
+		},
 		"tabs": {
 			"deposits": "जमा",
 			"earnings": "आय",
-			"topics": "विषय",
-			"posts": "पोस्ट",
 			"saved-posts": "पोस्ट",
-			"saved-topics": "विषय",
+			"saved-dish-categories": "व्यंजन",
 			"wallet-deposit": "जमा",
-			"wallet-earning": "आय"
+			"wallet-earning": "आय",
+			"saved-topics": "व्यंजन"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -355,6 +532,7 @@
 			"noLikedDishMediaEntries": "कोई पसंद की गई पोस्ट नहीं",
 			"noSavedItems": "कोई सहेजे गए आइटम नहीं",
 			"noSavedPosts": "जब आपको दिलचस्प पोस्ट मिलें, तो उन्हें दोबारा देखने के लिए \"सहेजें\" का उपयोग करें",
+			"noSavedDishCategories": "जब आपको दिलचस्प व्यंजन मिलें, तो आसपास के रेस्टोरेंट देखने के लिए \"सहेजें\" का उपयोग करें",
 			"noSavedTopics": "जब आपको दिलचस्प व्यंजन मिलें, तो आसपास के रेस्टोरेंट देखने के लिए \"सहेजें\" का उपयोग करें"
 		},
 		"reviews": {
@@ -374,7 +552,8 @@
 			"follow": "फ़ॉलो",
 			"following": "फ़ॉलो कर रहे हैं",
 			"message": "संदेश",
-			"searchByMood": "आज के मूड के अनुसार \"पसंदीदा\" व्यंजन खोजें",
+			"searchForReview": "समीक्षा के लिए रेस्तरां खोजें",
+			"searchByMood": "आज के मूड से खोजें",
 			"sendFeedback": "फीडबैक भेजें"
 		},
 		"stats": {
@@ -406,6 +585,11 @@
 			"displayNameRequired": "प्रदर्शन नाम आवश्यक है",
 			"displayNameLength": "प्रदर्शन नाम 30 वर्ण या उससे कम होना चाहिए",
 			"bioLength": "परिचय 150 वर्ण या उससे कम होना चाहिए"
+		},
+		"guestDisplayName": "अतिथि",
+		"menu": {
+			"likedPosts": "पसंद की गई पोस्ट",
+			"savedDishCategories": "सहेजी गई व्यंजन श्रेणियाँ"
 		}
 	},
 	"NotFound": {
@@ -417,14 +601,13 @@
 		"buttons": {
 			"postReview": "समीक्षा पोस्ट करें",
 			"postPhotoVideoReview": "फोटो/वीडियो पोस्ट करें",
-			"placeBid": "बोली लगाएं",
 			"bid": "बोली",
 			"searchNearby": "इस क्षेत्र में खोजें",
 			"openInGoogle": "Google में खोलें"
 		},
 		"actions": {
 			"selectDishCategory": "डिश श्रेणी चुनें",
-			"writeReviewForThisDish": "इस डिश की समीक्षा लिखें"
+			"useTypedDishCategory": "“{{name}}” का उपयोग करें"
 		},
 		"inputs": {
 			"price": "मूल्य",
@@ -440,18 +623,20 @@
 			"enterReviewShort": "संक्षिप्त समीक्षा (उदाहरण: समृद्ध टोन्कोत्सु शोरबा अविश्वसनीय रूप से स्वादिष्ट था!)",
 			"enterBidAmount": "बोली राशि दर्ज करें",
 			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)",
-			"searchRestaurantsForReview": "नाम या क्षेत्र से खोजें"
+			"searchRestaurantsForReview": "नाम या क्षेत्र से खोजें",
+			"searchAreaForReview": "क्षेत्र से खोजें",
+			"searchDishCategory": "व्यंजन के नाम से खोजें"
 		},
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
 			"paymentProcessing": "भुगतान प्रसंस्करण...",
-			"currentBidAmount": "वर्तमान बोली राशि",
 			"restaurant": "रेस्टोरेंट",
-			"dishCategory": "व्यंजन श्रेणी"
+			"dishCategory": "व्यंजन श्रेणी",
+			"dishesAtThisRestaurant": "इस रेस्तराँ के व्यंजन",
+			"noDishesAtThisRestaurant": "यहाँ अभी कोई व्यंजन दर्ज नहीं है। व्यंजन का नाम लिखें।"
 		},
 		"tabs": {
-			"reviews": "समीक्षाएँ",
-			"bids": "बोली"
+			"reviews": "समीक्षाएँ"
 		},
 		"emptyState": {
 			"noBidsForStatus": "चयनित स्थिति के लिए कोई बोली नहीं"
@@ -465,21 +650,27 @@
 			"bidSuccess": "{{place}} के लिए ¥{{amount}} में सफलतापूर्वक बोली लगाई गई",
 			"bidError": "बोली लगाने में विफल",
 			"reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
-			"reviewError": "समीक्षा पोस्ट करने में विफल",
-			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
+			"reviewError": "समीक्षा पोस्ट करने में विफल"
 		},
 		"currentLocation": "वर्तमान स्थान",
 		"media": {
 			"videoTooLong": "कृपया 2 मिनट से कम का वीडियो चुनें।",
 			"permissionDenied": "मीडिया तक पहुंच नहीं हो सकती। कृपया सेटिंग में अनुमति दें।",
 			"thumbnailFailed": "थंबनेल बनाने में विफल। कृपया दूसरी फ़ाइल आज़माएं।",
+			"unsupportedImageFormat": "यह इमेज फ़ॉर्मैट (HEIC) समर्थित नहीं है। कृपया दूसरी फ़ोटो चुनें, या कैमरा सेटिंग को \"सर्वाधिक संगत\" पर बदलें।",
 			"selectedImage": "चयनित छवि",
 			"selectedVideoThumbnail": "चयनित वीडियो का थंबनेल",
 			"playVideo": "वीडियो चलाएं",
 			"selectingMedia": "मीडिया चयन कर रहे हैं...",
 			"loadingMedia": "मीडिया लोड हो रहा है...",
 			"mediaSelectionFailed": "मीडिया चयन विफल रहा",
-			"mediaSelectionError": "मीडिया का चयन करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।"
+			"mediaSelectionError": "मीडिया का चयन करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
+			"replaceWithMyPhoto": "अपनी फ़ोटो इस्तेमाल करें",
+			"reselectPhoto": "फ़ोटो बदलें",
+			"openSettings": "सेटिंग्स खोलें",
+			"pickFromLibrary": "लाइब्रेरी से चुनें",
+			"shootWithCamera": "फ़ोटो लें",
+			"pickFromExisting": "या इस रेस्तराँ की फ़ोटो चुनें"
 		},
 		"noResultsFound": "No results found",
 		"accessibility": {
@@ -490,6 +681,7 @@
 			"dishCategoryNoResults": "No matching dish categories found",
 			"dishCategoryInputHint": "खोजने के लिए डिश श्रेणी दर्ज करें",
 			"clearDishCategory": "डिश श्रेणी साफ़ करें",
+			"useCurrentLocation": "वर्तमान स्थान का उपयोग करें",
 			"selectDishCategory": "इस डिश श्रेणी को चुनें"
 		},
 		"errors": {
@@ -544,6 +736,18 @@
 				"asian": "एशियाई",
 				"other": "अन्य"
 			}
+		},
+		"review": {
+			"title": "समीक्षा पोस्ट करें"
+		},
+		"emptyState": {
+			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
+		},
+		"everybodyPostsTitle": "सबकी पोस्ट",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "रेस्टोरेंट विवरण",
+			"openInGoogleMaps": "Google मैप्स में खोलें"
 		}
 	},
 	"Feedback": {
@@ -574,26 +778,14 @@
 		}
 	},
 	"auth": {
-		"login_title": "लॉग इन करें",
 		"create_title": "खाता बनाएं",
-		"field_phone": "फोन",
 		"field_name": "नाम",
-		"hint_sms": "हम आपको लॉग इन करने के लिए SMS के माध्यम से एक वन-टाइम कोड भेजेंगे।",
 		"btn_login": "लॉग इन करें",
 		"btn_create": "खाता बनाएं",
 		"divider_or": "या इसके साथ साइन इन करें",
 		"agree_tos": "मैं सेवा की शर्तों से सहमत हूं",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
-		"otp_title": "कोड दर्ज करें",
-		"otp_resending": "कोड दोबारा भेजा जा रहा है...",
-		"otp_send_again": "कोड पुनः भेजें",
-		"otp_enter_all_digits": "कृपया सभी 6 अंक दर्ज करें",
 		"login_success": "सफलतापूर्वक लॉग इन हो गया!",
 		"error_required": "यह फ़ील्ड आवश्यक है",
-		"error_invalid_phone": "अमान्य फोन नंबर",
 		"tos_link_text": "सेवा की शर्तें",
 		"existing_account_checkbox": "क्या आपके पास पहले से खाता है?",
 		"conflict_dialog_title": "मौजूदा खाता मिला",
@@ -605,12 +797,24 @@
 		"consent_login_terms": "सेवा की शर्तें",
 		"consent_login_and": " और ",
 		"consent_login_privacy": "गोपनीयता नीति",
-		"consent_login_suffix": " से सहमत होते हैं।"
+		"consent_login_suffix": " से सहमत होते हैं।",
+		"skip": "छोड़ें",
+		"signup_title": "अपना खाता बनाएँ",
+		"signup_subtitle": "समीक्षाएँ पोस्ट करें और पसंदीदा रेस्टोरेंट सहेजें",
+		"continue_with_google": "Google से जारी रखें",
+		"continue_with_apple": "Apple से जारी रखें"
 	},
 	"Settings": {
 		"title": "सेटिंग्स",
+		"theme": {
+			"sectionTitle": "दिखावट",
+			"options": {
+				"system": "सिस्टम सेटिंग के अनुसार",
+				"light": "लाइट",
+				"dark": "डार्क"
+			}
+		},
 		"sendFeedback": "प्रतिक्रिया भेजें",
-		"leaveReview": "समीक्षा छोड़ें",
 		"rateDialogTitle": "क्या आपको ऐप पसंद है?",
 		"rateDialogMessage": "यदि आपको पसंद है, तो कृपया स्टोर पर हमें रेट करें। हम समीक्षा पृष्ठ खोलेंगे।",
 		"rateDialogOk": "अभी रेट करें",
@@ -620,17 +824,85 @@
 		"copyright": "कॉपीराइट",
 		"legalDocument": "कानूनी दस्तावेज़",
 		"logout": "लॉग आउट",
-		"blockedTopics": {
-			"navigationLabel": "ब्लॉक किए गए व्यंजन विषय",
-			"pageTitle": "ब्लॉक किए गए व्यंजन विषय",
+		"logoutConfirmTitle": "लॉग आउट करें?",
+		"logoutConfirmMessage": "अपनी पोस्ट और समीक्षाएं प्रबंधित करने के लिए आपको फिर से लॉगिन करना होगा।",
+		"blockedDishCategories": {
+			"navigationLabel": "ब्लॉक की गई व्यंजन श्रेणियाँ",
+			"pageTitle": "ब्लॉक की गई व्यंजन श्रेणियाँ",
 			"title": "ब्लॉक किए गए व्यंजन",
 			"empty": "कोई ब्लॉक किए गए व्यंजन नहीं",
 			"loading": "लोड हो रहा है...",
 			"unblockButton": "अनब्लॉक करें",
-			"unblockTitle": "इस विषय को अनब्लॉक करें?",
-			"unblockMessage": "यह व्यंजन विषय सिफारिशों में वापस जोड़ दिया जाएगा।",
+			"unblockTitle": "इस व्यंजन श्रेणी को अनब्लॉक करें?",
+			"unblockMessage": "यह व्यंजन श्रेणी सिफारिशों में वापस जोड़ दी जाएगी।",
 			"unblockConfirm": "अनब्लॉक करें",
 			"unblocked": "अनब्लॉक किया गया"
+		},
+		"notifications": {
+			"sectionTitle": "सूचनाएँ",
+			"osDisabledTitle": "इस डिवाइस पर सूचनाएँ बंद हैं",
+			"osDisabledDescription": "यहाँ की सेटिंग सहेजी जाती है, लेकिन इस डिवाइस पर सूचनाएँ नहीं आएँगी।",
+			"openOsSettings": "डिवाइस सेटिंग खोलें",
+			"updateFailed": "सेटिंग सहेजी नहीं जा सकी",
+			"likes": {
+				"title": "पसंद",
+				"description": "जब कोई आपकी पोस्ट या समीक्षा को पसंद करे"
+			},
+			"saves": {
+				"title": "सहेजे गए",
+				"description": "जब कोई आपकी पोस्ट सहेजे"
+			},
+			"group_votes": {
+				"title": "समूह मतदान",
+				"description": "जब आपके शामिल समूह मतदान में कोई गतिविधि हो"
+			},
+			"navigationLabel": "सूचना सेटिंग"
+		},
+		"language": {
+			"navigationLabel": "भाषा",
+			"pageTitle": "भाषा",
+			"systemDefault": "डिवाइस की सेटिंग के अनुसार",
+			"switching": "भाषा बदली जा रही है…"
+		},
+		"hapticsEnabled": "हैप्टिक फ़ीडबैक",
+		"deviceSettings": {
+			"navigationLabel": "डिवाइस सेटिंग्स",
+			"title": "डिवाइस सेटिंग्स",
+			"description": "ये सेटिंग्स केवल इसी डिवाइस पर सहेजी जाती हैं। ये अन्य डिवाइस या खातों पर लागू नहीं होतीं।"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "मेरे समूह वोट"
+		},
+		"support": "CraveCatch का समर्थन करें",
+		"about": {
+			"navigationLabel": "CraveCatch के बारे में",
+			"title": "CraveCatch के बारे में"
+		},
+		"deleteAccount": "खाता हटाएँ",
+		"deleteAccountInProgress": "हटाया जा रहा है…",
+		"deleteAccountConfirmTitle": "क्या आप अपना खाता हटाना चाहते हैं?",
+		"deleteAccountConfirmMessage": "आपकी प्रोफ़ाइल अब नहीं दिखेगी, और आपकी पोस्ट व समीक्षाएँ सूचियों और खोज से हट जाएँगी। आपकी फ़ोटो और वीडियो हटा दिए जाएँगे, साथ ही लाइक, सहेजे गए आइटम और ब्लॉक भी।\n\nयह क्रिया पूर्ववत नहीं की जा सकती।",
+		"deleteAccountConfirmButton": "जारी रखें",
+		"deleteAccountFinalTitle": "क्या वाकई हटाना है?",
+		"deleteAccountFinalMessage": "आपका खाता और डेटा वापस नहीं लाया जा सकता। आप उसी खाते से दोबारा साइन इन भी नहीं कर पाएंगे।",
+		"deleteAccountFinalButton": "स्थायी रूप से हटाएँ",
+		"deleteAccountSuccess": "आपका खाता हटा दिया गया",
+		"deleteAccountError": "खाता नहीं हटाया जा सका। कृपया बाद में पुनः प्रयास करें।",
+		"blockedTopics": {
+			"navigationLabel": "ब्लॉक की गई व्यंजन श्रेणियाँ",
+			"pageTitle": "ब्लॉक की गई व्यंजन श्रेणियाँ",
+			"title": "ब्लॉक किए गए व्यंजन",
+			"empty": "कोई ब्लॉक किए गए व्यंजन नहीं",
+			"loading": "लोड हो रहा है...",
+			"unblockButton": "अनब्लॉक करें",
+			"unblockTitle": "इस व्यंजन श्रेणी को अनब्लॉक करें?",
+			"unblockMessage": "यह व्यंजन श्रेणी सिफारिशों में वापस जोड़ दी जाएगी।",
+			"unblockConfirm": "अनब्लॉक करें",
+			"unblocked": "अनब्लॉक किया गया"
+		},
+		"account": {
+			"navigationLabel": "खाता प्रबंधन",
+			"title": "खाता प्रबंधन"
 		}
 	},
 	"Dialog": {
@@ -651,6 +923,7 @@
 			"submitting": "अपडेट हो रहा है...",
 			"submitSuccess": "{{count}} छवियां सफलतापूर्वक अपडेट की गईं",
 			"submitError": "छवियां अपडेट करने में विफल",
+			"submitUnavailable": "यह सुविधा अभी उपलब्ध नहीं है (सर्वर साइड लागू नहीं किया गया है)।",
 			"reset": "रीसेट",
 			"selected": "चयनित",
 			"dishCount": "{{count}} व्यंजन"
@@ -680,6 +953,7 @@
 			"savedRestaurantList": "सहेजे गए रेस्तरां",
 			"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
 			"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
+			"fetchSavedRestaurantsTimeout": "इसमें बहुत समय लगा। मानचित्र को ज़ूम करके फिर से खोजें।",
 			"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।"
 		},
 		"emptyState": {
@@ -689,6 +963,327 @@
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "रेस्टोरेंट विवरण"
+		}
+	},
+	"SelectRestaurant": {
+		"title": "रीव्यू करने के लिए रेस्टोरेंट चुनें",
+		"searchThisArea": "इस क्षेत्र में खोजें",
+		"savedRestaurantList": "सहेजे गए रेस्तरां",
+		"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
+		"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
+		"fetchSavedRestaurantsTimeout": "इसमें बहुत समय लगा। मानचित्र को ज़ूम करके फिर से खोजें।",
+		"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।",
+		"nameSearch": {
+			"placeholder": "रेस्टोरेंट के नाम से खोजें",
+			"searching": "खोजा जा रहा है…",
+			"noResults": "कोई मेल खाता रेस्तरां नहीं मिला। इसे जोड़ने के लिए मानचित्र पर किसी रेस्तरां पर टैप करें।",
+			"error": "खोज विफल रही। कृपया पुनः प्रयास करें।"
+		},
+		"accessibility": {
+			"clearNameSearch": "रेस्टोरेंट नाम खोज साफ़ करें"
+		},
+		"unsavedHint": "आप बिना सहेजी दुकानें भी चुन सकते हैं: ऊपर खोज में दुकान का नाम लिखें, या मानचित्र पर दुकान के आइकन पर टैप करें।",
+		"pickTitle": "दुकान चुनें",
+		"pickOnMap": "मैप पर ढूँढें",
+		"pickConfirm": "यही जगह चुनें"
+	},
+	"MyDishes": {
+		"actions": {
+			"markAsEaten": "खाया दर्ज करें",
+			"markAsEatenA11y": "इस व्यंजन को खाया हुआ दर्ज करें"
+		},
+		"views": {
+			"map": "मानचित्र",
+			"list": "सूची",
+			"calendar": "कैलेंडर"
+		},
+		"calendar": {
+			"monthLabel": "{{month}}/{{year}}",
+			"weekdays": {
+				"sun": "रवि",
+				"mon": "सोम",
+				"tue": "मंगल",
+				"wed": "बुध",
+				"thu": "गुरु",
+				"fri": "शुक्र",
+				"sat": "शनि"
+			},
+			"dayA11yLabel": "{{date}} ({{count}} रिकॉर्ड)",
+			"reachedOldest": "आप सबसे पुराने रिकॉर्ड तक पहुँच गए हैं"
+		},
+		"map": {
+			"truncated": "कुछ ही पिन दिखाए जा रहे हैं। कृपया क्षेत्र सीमित करें।",
+			"sheetTitle": "आस-पास {{count}} रेस्तराँ",
+			"tileA11yLabel": "{{name}} (खाना है: {{want}}, खाया: {{eaten}})",
+			"clusterA11yLabel": "यहाँ {{count}} रेस्तराँ",
+			"currentLocation": "मेरे स्थान पर जाएँ"
+		},
+		"guest": {
+			"description": "जिन व्यंजनों को आप आज़माना चाहते हैं और जो आपने खाए हैं उन्हें रिकॉर्ड करने के लिए लॉग इन करें",
+			"loginButton": "लॉग इन करें"
+		},
+		"record": {
+			"cta": "रिकॉर्ड करें",
+			"noPhotoTitle": "फ़ोटो जोड़ें",
+			"noPhotoHint": "आप बिना फ़ोटो के भी रिकॉर्ड कर सकते हैं",
+			"publicReviewNotice": "आपका रिकॉर्ड सार्वजनिक समीक्षा के रूप में रेस्टोरेंट पेज पर दिखेगा",
+			"postNotFoundNoPhoto": "इस रिकॉर्ड में कोई फ़ोटो नहीं है",
+			"skipPhoto": "छोड़ें (बिना फ़ोटो)",
+			"missingHint": "पोस्ट करने के लिए {{items}} भरें।",
+			"missing": {
+				"comment": "छोटी समीक्षा",
+				"price": "कीमत",
+				"rating": "रेटिंग",
+				"dishCategory": "व्यंजन श्रेणी",
+				"separator": ", ",
+				"currency": "इस जगह की मुद्रा उपलब्ध नहीं है"
+			}
+		},
+		"filters": {
+			"title": "फ़िल्टर और क्रम",
+			"apply": "लागू करें",
+			"reset": "रीसेट करें",
+			"status": {
+				"title": "स्थिति",
+				"want": "खाना है",
+				"eaten": "खा लिया",
+				"description": "चुनें कि कौन-से रिकॉर्ड दिखें: खाना चाहते हैं या खा चुके हैं"
+			},
+			"rating": {
+				"title": "रेटिंग",
+				"min": "{{count}} स्टार और ऊपर",
+				"description": "अपने खाए हुए रिकॉर्ड को दी गई रेटिंग से फ़िल्टर करें"
+			},
+			"sort": {
+				"title": "क्रमबद्ध करें",
+				"occurredAtDesc": "नए पहले",
+				"occurredAtAsc": "पुराने पहले",
+				"ratingDesc": "सबसे अधिक रेटिंग",
+				"distance": "सबसे नज़दीक",
+				"distanceRequiresArea": "दूरी के अनुसार क्रम के लिए क्षेत्र चाहिए। मानचित्र पर \"इस क्षेत्र में फिर खोजें\" चुनें।",
+				"featureScoreDesc": "शर्तें चुनें",
+				"description": "क्रम चुनें। “शर्तें चुनें” दबाने पर समय, किसके साथ जाना है आदि खुलते हैं"
+			},
+			"area": {
+				"title": "क्षेत्र",
+				"none": "कोई भी (सभी)",
+				"clear": "क्षेत्र हटाएँ",
+				"hint": "क्षेत्र मानचित्र के \"इस क्षेत्र में फिर खोजें\" से तय होता है।",
+				"selected": "मानचित्र पर चुना गया क्षेत्र (त्रिज्या {{radius}})"
+			},
+			"axes": {
+				"none": "कोई नहीं",
+				"timeSlot": "समय",
+				"scene": "किसके साथ",
+				"budget": "मूल्य सीमा",
+				"diningPace": "भोजन का समय",
+				"foodStyle": "किस तरह का",
+				"description": "विकल्प खोलने के लिए शीर्षक दबाएँ। हर शीर्षक से एक ही चुन सकते हैं"
+			},
+			"period": {
+				"title": "अवधि",
+				"none": "कोई नहीं",
+				"clear": "अवधि हटाएँ"
+			},
+			"category": {
+				"title": "व्यंजन श्रेणी",
+				"description": "दिख रहे रिकॉर्ड में सबसे आम व्यंजन श्रेणियों से फ़िल्टर करें",
+				"count": "{{label}} ({{count}})",
+				"showAll": "और देखें ({{count}} और)"
+			},
+			"activeCount": "{{count}} फ़िल्टर सक्रिय"
+		},
+		"empty": {
+			"description": "जिन व्यंजनों को आप सहेजेंगे या खाया हुआ दर्ज करेंगे, वे यहाँ दिखेंगे।",
+			"noResultsInArea": "इस क्षेत्र में कोई रिकॉर्ड नहीं है।",
+			"noResultsInAreaHint": "मानचित्र को हिलाकर “इस क्षेत्र में खोजें” दबाएँ, या फ़िल्टर हटाएँ।",
+			"noResultsForFilter": "इन फ़िल्टर से मेल खाता कोई रिकॉर्ड नहीं है।",
+			"noResultsForFilterHint": "फ़िल्टर हटाने पर आपके अन्य रिकॉर्ड दिखेंगे।"
+		},
+		"list": {
+			"noPhoto": "फ़ोटो नहीं"
+		},
+		"sheet": {
+			"title": "{{restaurant}} के आपके रिकॉर्ड",
+			"counts": "खाना है {{want}} · खा लिया {{eaten}}",
+			"openRestaurant": "रेस्टोरेंट पेज खोलें",
+			"expand": "फ़ुल स्क्रीन में देखें",
+			"seeAllInList": "सूची में सब देखें",
+			"noPhotoHint": "इस रिकॉर्ड में फ़ोटो नहीं है। टैप करने पर रेस्टोरेंट पेज खुलेगा।"
+		},
+		"feed": {
+			"chips": {
+				"filterCategory": "{{name}} से फ़िल्टर करें",
+				"filterStatusEaten": "«खा लिया» से फ़िल्टर करें",
+				"filterStatusWant": "«खाना है» से फ़िल्टर करें",
+				"filterMinRating": "{{count}} स्टार और ऊपर से फ़िल्टर करें",
+				"applied": "फ़िल्टर अपडेट हो गए"
+			}
+		},
+		"searchThisArea": "इस क्षेत्र में फिर खोजें",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "देखने के तीन तरीके",
+					"body": "मैप, ग्रिड और कैलेंडर एक ही «खाना है / खाया» दिखाते हैं। «यहाँ आसपास क्या खाऊँ» के लिए मैप, «कब क्या खाया» के लिए कैलेंडर।"
+				},
+				"openFeed": {
+					"title": "टैप करें, पूरी स्क्रीन पर खुलेगा",
+					"body": "पिन, कार्ड या तारीख़ पर टैप करें — वह रिकॉर्ड पूरी स्क्रीन पर खुलेगा।",
+					"axis": "ऊपर-नीचे स्वाइप से रेस्तराँ या दिन बदलें, दाएँ-बाएँ से उसी का दूसरा फ़ोटो।"
+				},
+				"add": {
+					"title": "यहाँ से जोड़ें",
+					"sns": "Instagram, TikTok या YouTube का लिंक पेस्ट करें — रेस्तराँ और व्यंजन पढ़कर «खाना है» में सेव कर देंगे।",
+					"eaten": "खा चुके हैं? «खाया रिकॉर्ड करें» चुनें। फ़ोटो बाद में भी, या बिल्कुल नहीं भी।"
+				},
+				"filter": {
+					"title": "बढ़ने पर यहाँ छाँटें",
+					"body": "«खाना है / खाया», व्यंजन, इलाक़ा, किसके साथ और समय से छाँटें। यह विकल्प बढ़ाने नहीं, उलझन घटाने के लिए है।"
+				}
+			},
+			"replay": "ट्यूटोरियल फिर से देखें"
+		},
+		"deleted": {
+			"label": "हटाई गई",
+			"a11yLabel": "इस पोस्ट की फ़ोटो हटा दी गई है"
+		},
+		"ownReview": {
+			"title": "आपकी समीक्षा",
+			"noPhoto": "कोई फ़ोटो नहीं",
+			"noComment": "कोई टिप्पणी नहीं लिखी गई",
+			"noReview": "इस रिकॉर्ड की अभी कोई समीक्षा नहीं है",
+			"openRestaurant": "रेस्तरां का विवरण देखें",
+			"edit": "समीक्षा संपादित करें",
+			"delete": "समीक्षा हटाएं",
+			"deleteConfirmTitle": "क्या यह समीक्षा हटानी है?",
+			"deleteConfirmMessage": "इस रिकॉर्ड की समीक्षा हटा दी जाएगी। रिकॉर्ड भी आपकी सूची से हट जाएगा। इसे वापस नहीं लाया जा सकता।"
+		}
+	},
+	"SnsImport": {
+		"title": "सोशल मीडिया से इंपोर्ट करें",
+		"confirm": {
+			"heading": "यह पोस्ट इंपोर्ट की जाएगी"
+		},
+		"expandPending": {
+			"heading": "छोटा लिंक शेयर किया गया है",
+			"description": "छोटे लिंक को खोलकर पोस्ट पहचानने की सुविधा अभी तैयार नहीं है। कृपया पोस्ट पेज का URL शेयर करें।"
+		},
+		"unsupported": {
+			"heading": "यह URL इंपोर्ट नहीं किया जा सकता",
+			"description": "समर्थित सेवाएँ TikTok / YouTube Shorts / Instagram हैं।"
+		},
+		"tabs": {
+			"sns": "SNS से",
+			"eaten": "खाया हुआ दर्ज करें"
+		},
+		"input": {
+			"label": "SNS URL पेस्ट करें",
+			"placeholder": "https://www.tiktok.com/... या साझा किया गया टेक्स्ट"
+		},
+		"actions": {
+			"resolve": "पढ़ें",
+			"save": "खाना है में सहेजें",
+			"saveRequirement": "सहेजने के लिए व्यंजन और रेस्तराँ चुनें।",
+			"resolveAgain": "फिर से पढ़ें",
+			"cancel": "रद्द करें",
+			"saveRequirementRestaurant": "सहेजने के लिए जगह चुनें।",
+			"saveRequirementDish": "सहेजने के लिए व्यंजन श्रेणी चुनें।"
+		},
+		"sections": {
+			"dishCategory": "व्यंजन",
+			"restaurant": "रेस्तराँ",
+			"dishCategorySearchPlaceholder": "व्यंजन खोजें (2+ अक्षर)",
+			"selected": "चयनित: {{value}}",
+			"pickOnMap": "मानचित्र पर दुकान ढूँढें"
+		},
+		"save": {
+			"done": "खाना है में सहेजा गया",
+			"failed": "सहेजा नहीं जा सका"
+		},
+		"intro": "Instagram, TikTok या YouTube Shorts की पोस्ट का URL चिपकाएँ, फिर व्यंजन और दुकान चुनकर उसे “खाना चाहते हैं” में सहेजें। लॉगिन ज़रूरी नहीं।",
+		"steps": {
+			"paste": "URL चिपकाएँ",
+			"dish": "व्यंजन श्रेणी चुनें",
+			"restaurant": "दुकान चुनें"
+		},
+		"pickRestaurant": {
+			"title": "मानचित्र पर दुकान चुनें",
+			"hint": "मानचित्र पर दुकान के आइकन पर टैप करें, या ऊपर खोजें। चुनते ही आप आयात स्क्रीन पर लौट आएँगे।",
+			"done": "“{{name}}” चुना गया"
+		},
+		"result": {
+			"summary": "पढ़ लिया गया",
+			"noInfo": "इस पोस्ट से जानकारी नहीं पढ़ी जा सकी। सहेजने के लिए नीचे दुकान और व्यंजन श्रेणी चुनें।",
+			"showFullCaption": "और देखें",
+			"collapseCaption": "कम देखें"
+		},
+		"eaten": {
+			"pickRestaurant": "दुकान चुनें",
+			"pick": "चुनें",
+			"change": "बदलें",
+			"hint": "पहले रेस्तराँ चुनें। फिर व्यंजन चुनें और फ़ोटो (वैकल्पिक), छोटी समीक्षा, कीमत और रेटिंग जोड़ें।",
+			"done": "खाया के रूप में दर्ज हुआ"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "छोड़ें",
+			"next": "आगे",
+			"finish": "शुरू करें",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "{{total}} में से चरण {{current}}"
+		}
+	},
+	"Report": {
+		"action": "रिपोर्ट",
+		"title": "इस पोस्ट की रिपोर्ट करें",
+		"reviewTitle": "इस समीक्षा की रिपोर्ट करें",
+		"description": "रिपोर्ट का कारण चुनें। हमारी टीम इसकी जाँच करेगी। पोस्ट करने वाले को सूचना नहीं दी जाएगी।",
+		"reasons": {
+			"spam": "स्पैम या विज्ञापन",
+			"sexual": "अश्लील सामग्री",
+			"violence": "हिंसक या असहज सामग्री",
+			"harassment": "उत्पीड़न या अपमान",
+			"illegal": "गैरकानूनी गतिविधि",
+			"misinformation": "गलत जानकारी",
+			"rights": "कॉपीराइट या अन्य अधिकारों का उल्लंघन",
+			"privacy": "निजी जानकारी दिख रही है",
+			"irrelevant": "खाने से संबंधित नहीं",
+			"other": "अन्य"
+		},
+		"detailsLabel": "अतिरिक्त जानकारी (वैकल्पिक)",
+		"detailsPlaceholder": "जाँच में मदद करने वाली जानकारी लिखें (1000 अक्षर तक)",
+		"submit": "रिपोर्ट भेजें",
+		"submitting": "भेजा जा रहा है...",
+		"accepted": {
+			"title": "रिपोर्ट करने के लिए धन्यवाद",
+			"description": "हम इसकी समीक्षा करेंगे। परिणाम की जानकारी अलग से नहीं दी जाती।",
+			"close": "बंद करें",
+			"history": "आपकी रिपोर्ट"
+		},
+		"errors": {
+			"submitFailed": "रिपोर्ट नहीं भेजी जा सकी। कृपया फिर कोशिश करें।"
+		},
+		"accessibility": {
+			"open": "{{name}} की पोस्ट की रिपोर्ट करें",
+			"openReview": "{{name}} की समीक्षा की रिपोर्ट करें",
+			"reason": "कारण: {{reason}}",
+			"reasonSelected": "कारण: {{reason}} (चयनित)",
+			"submit": "{{name}} की पोस्ट की रिपोर्ट भेजें",
+			"submitReview": "{{name}} की समीक्षा की रिपोर्ट भेजें"
+		},
+		"history": {
+			"navigationLabel": "आपकी रिपोर्ट",
+			"pageTitle": "आपकी रिपोर्ट",
+			"empty": "अभी कोई रिपोर्ट नहीं",
+			"emptyDescription": "किसी पोस्ट या समीक्षा की रिपोर्ट करने पर वह यहाँ दिखेगी।",
+			"note": "समीक्षा की स्थिति या परिणाम साझा नहीं किए जाते।",
+			"error": "आपकी रिपोर्ट लोड नहीं हो सकीं",
+			"target": {
+				"dish_media": "पोस्ट",
+				"dish_reviews": "समीक्षा"
+			}
 		}
 	}
 }

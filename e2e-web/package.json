@@ -6,16 +6,20 @@
 	"scripts": {
 		"test": "playwright test",
 		"test:smoke": "playwright test --grep @smoke",
+		"test:harness": "HARNESS_ONLY=1 playwright test --project=harness",
 		"test:mutation": "RUN_MUTATION=1 playwright test --grep @mutation",
 		"test:all": "RUN_MUTATION=1 playwright test",
+		"test:catalog": "RUN_CATALOG=1 playwright test --project=ui-catalog --project=ui-catalog-authenticated",
 		"test:ui": "playwright test --ui",
 		"test:headed": "playwright test --headed",
 		"report": "playwright show-report",
 		"serve:dist": "node ./scripts/serve-dist.mjs",
 		"build:web": "pnpm --filter app-expo build:web",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"test:catalog:all": "RUN_CATALOG=1 RUN_MUTATION=1 playwright test --project=ui-catalog --project=ui-catalog-authenticated"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "^4.12.1",
 		"@playwright/test": "^1.54.2",
 		"@supabase/supabase-js": "^2.49.4",
 		"@types/node": "^22.15.3",

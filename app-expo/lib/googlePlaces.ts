@@ -558,6 +558,12 @@ export function parseAmountString(raw: string): number {
  * - minorUnits=3 -> *1000
  */
 export function toMinorAmountInteger(amount: number, currencyCode: string | null | undefined): number {
+	// #843 通貨が分からないまま既定 2 桁へ落ちると、円の「1000」が 100000 として
+	// 送信される（JPY は 0 桁）。エラーも警告も出ないので気付けない。
+	// 呼び出し側に «通貨を確定させてから呼ぶ» を強制するため、ここで落とす。
+	if (!currencyCode) {
+		throw new Error("通貨コードが未確定のまま金額を最小単位へ変換しようとしました");
+	}
 	const minorUnits = getMinorUnitDigits(currencyCode);
 	const factor = Math.pow(10, minorUnits);
 
@@ -622,6 +628,60 @@ export function getCurrencyCodeFromAddressComponents(
  */
 export function getCurrencyCodeFromRestaurant(restaurant: { address_components?: any }): string | null {
 	return getCurrencyCodeFromAddressComponents(restaurant.address_components);
+}
+
+/**
+ * #843 店から通貨が決まらないときに、ユーザーへ提示する候補。
+ *
+ * オープンデータ由来で作った店舗（619,508件）は `address_components` が空なので、
+ * 店から通貨を引けない。黙って既定値を使うと金額が桁違いで記録されるため、
+ * ユーザーに選ばせる。候補はここに定義した順で表示する。
+ */
+const CURRENCY_BY_REGION: Record<string, string> = {
+	JP: "JPY",
+	US: "USD",
+	KR: "KRW",
+	TW: "TWD",
+	CN: "CNY",
+	HK: "HKD",
+	GB: "GBP",
+	AU: "AUD",
+	CA: "CAD",
+	SG: "SGD",
+	TH: "THB",
+	VN: "VND",
+	IN: "INR",
+	CH: "CHF",
+};
+
+/** 選択肢として常に出す主要通貨。ロケール由来の候補を先頭へ寄せて使う。 */
+export const SELECTABLE_CURRENCY_CODES = ["JPY", "USD", "EUR", "KRW", "TWD", "CNY", "GBP"] as const;
+
+/**
+ * ロケールから通貨コードを推定する。
+ *
+ * これは «既定値» ではなく «選択肢の初期カーソル» として使うこと。推定が外れても
+ * ユーザーが選び直せる状態で提示する。黙って確定させてはいけない。
+ */
+export function resolveCurrencyCodeFromLocale(locale: string | null | undefined): string | null {
+	if (!locale) return null;
+	// "ja-JP" / "ja_JP" / "ja" のいずれも受ける。地域が無ければ言語から引く。
+	const parts = locale.replace("_", "-").split("-");
+	const region = parts.length > 1 ? parts[parts.length - 1].toUpperCase() : null;
+	if (region && CURRENCY_BY_REGION[region]) return CURRENCY_BY_REGION[region];
+
+	const languageToRegion: Record<string, string> = { ja: "JP", ko: "KR", en: "US", zh: "CN", th: "TH", vi: "VN" };
+	const fallbackRegion = languageToRegion[parts[0]?.toLowerCase() ?? ""];
+	return fallbackRegion ? CURRENCY_BY_REGION[fallbackRegion] : null;
+}
+
+/**
+ * 選択肢を «ロケール由来を先頭に» 並べ替えて返す。
+ */
+export function buildCurrencyChoices(locale: string | null | undefined): string[] {
+	const preferred = resolveCurrencyCodeFromLocale(locale);
+	const rest = SELECTABLE_CURRENCY_CODES.filter((code) => code !== preferred);
+	return preferred ? [preferred, ...rest] : [...SELECTABLE_CURRENCY_CODES];
 }
 
 /**

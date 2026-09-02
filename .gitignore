@@ -1,5 +1,6 @@
 # --- Node Modules ---
 node_modules/
+node_modules
 .pnpm/
 .expo/
 .next/
@@ -30,12 +31,17 @@ api/.runtimeconfig.json
 # --- Functional Test Results ---
 test-results/
 *.csv
+# 店舗媒体パイプラインの入力契約を示す、意図的に管理する最小サンプル。
+!scripts/20260808T0000_restaurant/social_media.example.csv
 *.log
 
 # --- E2E / Playwright ---
 e2e-web/playwright-report/
 e2e-web/test-results/
 e2e-web/blob-report/
+# UI カタログのスクリーンショット（CI の Artifact / GCS 公開で配布するためリポジトリには入れない）
+e2e-web/screenshots/
+e2e-mobile/screenshots/
 e2e-web/.auth/
 e2e-web/.env
 
@@ -60,3 +66,15 @@ yarn-error.log*
 supabase/.temp/
 supabase/.env*.pyc
 __pycache__/
+e2e-mobile/.detox-ci-logs/
+
+# Claude Code のサブエージェントが作る一時 worktree。エージェント終了時に消えるが、
+# 走っている間はリポジトリ内に見えるので追跡しない
+.claude/worktrees/
+
+# ec2-chrome-operate: 実行のたびに生成するリモートスクリプト（成果物ではない）
+.claude/skills/ec2-chrome-operate/*.local.sh
+.claude/skills/ec2-chrome-operate/chunks/
+
+# #1636 数えた投稿 URL は同じ手順を踏んでも同じものが並ばない実測データなので、*.csv の除外から外す
+!scripts/20260808T0000_restaurant/1636_post_url_survey/out/*.csv

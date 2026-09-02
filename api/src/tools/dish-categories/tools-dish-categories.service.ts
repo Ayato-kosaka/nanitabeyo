@@ -62,18 +62,28 @@ export class ToolsDishCategoriesService {
 
       // メディアにCDN署名付きサムネイルURLを付与
       const candidateMedia = mediaList.map((media) => {
-        const mediaSignedUrl = this.storage.generateCdnSignedURL(
-          buildResizedPath(
-            {
-              table: 'dish_media',
-              column: 'media_path',
-              recordId: media.id,
-              size: 1024,
-              originalPath: media.media_path,
-            },
-            'cdn',
-          ),
-        );
+        // #1395 media_path が null なのは render_type='external_embed'（SNS の公式埋め込み）の
+        // 行だけで、あれは自ストレージに実体を持たないためリサイズ後のパスが存在しない。
+        // 空文字の path で署名すると «開けない URL» を返してしまうので、署名自体を行わない。
+        //
+        // ⚠️ この画面は候補メディアのサムネイルを出すためのものなので、external_embed の行が
+        // 実際に流入し始めたら «埋め込みから代表画像を出す» か «候補から外す» かを決める必要がある。
+        // #1399 の取り込みが有効になるまでは該当行が 0 件なので、現状の見え方は変わらない。
+        const mediaSignedUrl =
+          media.media_path === null
+            ? ''
+            : this.storage.generateCdnSignedURL(
+                buildResizedPath(
+                  {
+                    table: 'dish_media',
+                    column: 'media_path',
+                    recordId: media.id,
+                    size: 1024,
+                    originalPath: media.media_path,
+                  },
+                  'cdn',
+                ),
+              );
         return {
           ...convertPrismaToSupabase_DishMedia(media),
           mediaSignedUrl,

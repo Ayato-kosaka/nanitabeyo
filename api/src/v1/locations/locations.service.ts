@@ -70,11 +70,19 @@ export class LocationsService {
     countryCode: string | null;
     subterritoryCode: string | null;
   } {
-    const countryComponent = addressComponents.find((component) =>
-      component.types?.includes('country'),
+    // #843 呼び出し元の一つ（dishes.service.createOrGetDish）は DB の
+    // restaurants.address_components を `as` キャストだけで渡してくる。この列は
+    // jsonb NOT NULL だが、jsonb の NOT NULL は JSON リテラルの null も `{}` も
+    // 防がないため、配列である保証がない。配列でない値が来ると
+    // `addressComponents.find is not a function` で POST /v1/dishes が 500 になる。
+    // Google API 由来の呼び出し元は手前で存在チェックしているが、DB 由来の経路には
+    // それが無い。フロント側（app-expo/lib/googlePlaces.ts）には同じガードがある。
+    const components = Array.isArray(addressComponents) ? addressComponents : [];
+    const countryComponent = components.find((component) =>
+      component?.types?.includes('country'),
     );
-    const adminLevel1Component = addressComponents.find((component) =>
-      component.types?.includes('administrative_area_level_1'),
+    const adminLevel1Component = components.find((component) =>
+      component?.types?.includes('administrative_area_level_1'),
     );
 
     // #677 【設計】shortText または longText のいずれか存在すればOKとする（Google API 仕様で shortText 欠損パターンがあるため）
@@ -554,10 +562,64 @@ export class LocationsService {
         return [];
       }
 
-      return places;
+      // #952 【設計】Google は同じ場所を粒度違いで複数返すことがある
+      // (例: 渋谷駅 →「日本、東京都渋谷区」の transit_station と
+      //  「日本、東京都渋谷区２丁目２４」の番地レベル geocode の2件)。
+      // ユーザーにとって同名候補の粒度差は意味を持たず単なる重複に見えるため、
+      // ここで同名候補を1件に畳む。全クライアントに効かせるためサーバー側で行う。
+      return this.dedupeAutocompletePlaces(places);
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * #1176 【設計】Autocomplete 候補の重複除去は「表示が完全に同一のもの」だけに限定する。
+   *
+   * かつては #952(同名の非 establishment を落とす)と #1123(同名の鉄道駅を1件に畳む)の
+   * ルールを持っていたが、いずれも **mainText(表示名)が同じなら同一地点とみなす**
+   * 前提に立っていた。この前提は成立しない。
+   *
+   * `autocompleteLocations` のリクエストには locationBias / locationRestriction が無く、
+   * 全国の候補が同一レスポンスに並び得る。日本には同名の別駅・別施設が多数実在する
+   * (大久保駅 = 東京都新宿区 / 兵庫県明石市 / 京都府宇治市 / 秋田市 など)。
+   * 名前ベースで畳むと、ユーザーが選びたい地点が候補から消えて **選択不能** になる(#1176)。
+   *
+   * 重複表示は「わずらわしい」だけだが、選択不能は「目的を達成できない」であり、
+   * 損害の非対称性が大きい。したがって Google の返す候補は原則そのまま通す。
+   *
+   * 残す唯一の例外がルール2(完全重複)である。mainText と secondaryText の**両方**が
+   * 一致する候補は、UI 上まったく区別が付かず、ユーザーはどちらを選んでも同じ体験になる。
+   * この場合だけは畳んでも選択肢を奪わない。
+   *
+   * ルール:
+   * 1. mainText / secondaryText を正規化(NFKC + 空白除去)する。
+   * 2. mainText と secondaryText が**両方**一致する候補だけを1件に畳む。
+   * 3. 返却順は Google の関連度順(元の配列順)を維持する。並び替えは行わない。
+   *
+   * 将来 locationBias を入れて候補が地理的に絞られるようになれば、名前ベースの
+   * 畳み込みを再検討する余地はある。それまでは通す側に倒す。
+   */
+  private dedupeAutocompletePlaces(
+    places: AutocompleteLocationsResponse,
+  ): AutocompleteLocationsResponse {
+    const normalizeKey = (text: string): string =>
+      text.normalize('NFKC').replace(/\s+/g, '');
+
+    const seenExactKeys = new Set<string>();
+
+    return places.filter((place) => {
+      // ルール2: mainText + secondaryText まで完全一致する候補は同一表示になるため1件に畳む
+      const exactKey = `${normalizeKey(place.mainText)}\u0000${normalizeKey(
+        place.secondaryText,
+      )}`;
+      if (seenExactKeys.has(exactKey)) {
+        return false;
+      }
+      seenExactKeys.add(exactKey);
+
+      return true;
+    });
   }
 
   /**

@@ -5,8 +5,30 @@ name: E2E Web Test
 # - dev 環境の静的ビルド(EAS の development 環境変数を焼き込み)をローカル配信し、
 #   Cloud Run api-development に接続してテストする(ローカル実行と同一構成)
 # - Tier 3 (@mutation) は dev DB へ書き込むため CI では実行しない(手動実行のみ)
+# - 手動実行では UI カタログ(全画面のスクリーンショット + 画面一覧)も収集できる
 on:
   workflow_dispatch:
+    inputs:
+      run_e2e_tests:
+        description: "Tier 1 + 2 の Playwright テストを実行する"
+        required: false
+        default: true
+        type: boolean
+      capture_ui_catalog:
+        description: "UI カタログ(全画面のスクリーンショットと画面一覧)を収集して Artifact に上げる"
+        required: false
+        default: false
+        type: boolean
+      capture_review_flow:
+        description: "UI カタログにレビュー投稿フロー(店舗詳細/投稿フォーム/レビュー詳細)を含める ※dev DB へ書き込む"
+        required: false
+        default: false
+        type: boolean
+      test_filter:
+        description: "実行する spec をファイル名の部分一致で絞る（例: onboarding。空なら全件）。落ちている数本だけを 25 分ではなく数分で回して «実際のエラー文» を見るための入力。⚠️ マージ前の最終確認は必ず空（全件）で回すこと"
+        required: false
+        default: ""
+        type: string
   schedule:
     # 毎日 JST 3:00(UTC 18:00)に実行
     - cron: "0 18 * * *"
@@ -20,7 +42,8 @@ jobs:
   e2e-web:
     name: Playwright E2E (development)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # UI カタログ収集(手動実行時のみ)を含めても収まる長さにしてある
+    timeout-minutes: 45
 
     steps:
       - name: ⏬ Checkout repository
@@ -54,10 +77,44 @@ jobs:
       # (EXPO_PUBLIC_BACKEND_BASE_URL=api-development 等がビルドに焼き込まれる)
       - name: 🛠️ Sync environment variables from EAS CLI
         working-directory: app-expo
-        run: pnpx eas-cli env:pull development --non-interactive
+        run: pnpx eas-cli env:pull development --non-interactive --path .env
+
+      # #1076 この run のビルドにだけ commit SHA を焼き込む。
+      # eas-cli env:update は使わない: EAS 側の共有 development 環境そのものを書き換えるため、
+      # CI の SHA が全開発者の env:pull に降ってくるうえ、E2E Web / E2E Mobile の同時実行で競合する。
+      # env:pull が生成した .env の末尾へ追記する。dotenv は同一ファイル内で後勝ちなので、
+      # env:pull 側が同名キーを出力していてもこの行が最終値になる。
+      # printf の先頭 \n は、env:pull の出力が改行で終わっていない場合に前行と連結して
+      # 「前行の値まで壊す」事故を防ぐ保険（echo では防げない）。
+      - name: 🔖 Inject commit id into .env
+        working-directory: app-expo
+        env:
+          COMMIT_ID: ${{ github.sha }}
+        run: printf '\nEXPO_PUBLIC_COMMIT_ID=%s\n' "$COMMIT_ID" >> .env
 
       - name: 🏗️ Build Web App
         run: pnpm --filter app-expo build:web
+
+      # #1030 【セキュリティ】E2E セッション注入フックが本番相当バンドルへ混入していないことを検証する
+      # sentinel ゲート（web は上のビルド成果物を流用し、native は検査用に追加 export する）。
+      # metro.config.js の resolver 差し替えが Expo SDK 更新等で壊れた場合、ここで fail して気付ける
+      - name: 🛡️ Assert no E2E hook in production bundles
+        run: |
+          pnpm --filter app-expo build:e2e-check-native
+          pnpm --filter app-expo assert:no-e2e-hook
+
+      # #1092 PR3 アプリへ埋め込んだ Remote Config の既定値が、実際の config.json と乖離していないか。
+      # 既定値は「CDN へ到達できない端末が使う値」なので、乖離するとその端末だけ挙動が変わり、
+      # かつリポジトリ内からは検知できない（テストの期待値も実装と同じ手書き値の複製のため、
+      # 両方が同時に間違っていても緑になる）。実物と突き合わせられるのは CI だけなのでここで守る。
+      # このゲートは 2 段構え（#1116）。
+      #   4-1: remoteConfigSchema のキー集合 ≡ DEFAULT_REMOTE_CONFIG のキー集合。
+      #        env にも CDN の到達性にも依存しないため、どの環境でも必ず実行される。
+      #   4-2: schema 既知キーの値を実際の config.json と突き合わせる。EAS の env と CDN 到達性が要る。
+      #        この job では上の env:pull で app-expo/.env が出来ているので 4-2 も実行される。
+      # env が無い環境（ローカル等）で skip されるのは 4-2 だけであり、skip した旨は必ず出力される。
+      - name: 🔎 Assert Remote Config defaults are not drifted
+        run: pnpm --filter app-expo assert:remote-config-defaults
 
       # ubuntu-latest では WebKit(mobile-safari)も動作するため両方インストールする
       - name: 🎭 Install Playwright browsers
@@ -65,11 +122,72 @@ jobs:
 
       # Tier 1 + 2 を全プロジェクトで実行(@mutation は playwright.config.ts の grepInvert で除外済み)
       # TEST_USER_* 未設定の場合、authenticated 系は自動スキップされる(テスト側の skip 条件)
+      # 定期実行では inputs が空になるため、workflow_dispatch 以外では常に実行する
       - name: 🧪 Run Playwright tests (Tier 1 + 2)
-        run: pnpm --filter e2e-web test
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_e2e_tests }}
+        # Playwright は位置引数を «ファイル名にかかる正規表現» として解釈する。
+        # 空なら引数が 1 つも増えない（＝全件）。schedule 実行には inputs が無いので必ず全件になる。
+        #
+        # ⚠️ **`--` を挟まないこと。** pnpm はこれを消費せず、そのまま playwright へ渡す。
+        #    実測: `pnpm --filter e2e-web test -- onboarding` → playwright の argv は
+        #    `["--", "onboarding"]` になり、`playwright test --list -- onboarding` は
+        #    **Total: 0 tests in 0 files** を返す。さらに入力が空のときは argv が `["--"]` に
+        #    なるので、**nightly（inputs が空）が 1 件も実行しない**状態になっていた。
+        #
+        # ⚠️ **`${{ inputs.test_filter }}` を run: の中へ直接展開しないこと。**
+        #    1. 展開された文字列は **シェルのコマンド行の一部** になるため、`|` や `;` や `$(...)`
+        #       がそのまま解釈される。`saved-dish-category-location|dish-category-card-full-bleed`
+        #       を渡したら `|` がパイプになり、2 秒で落ちた（run 33357561252 で実測）
+        #    2. それは同時に **任意コマンドを実行できる穴**でもある。dispatch できる人なら
+        #       `; curl ...` を混ぜられる
+        #    env: 経由なら中身は «データ» として渡り、メタ文字は解釈されない。
+        #    e2e-mobile の DETOX_TEST_FILTER が最初からこの形になっている。
+        #
+        # クォートしないのは «空なら引数 0 個» にするため（`"$TEST_FILTER"` だと空文字列が
+        # 1 引数として渡り、playwright が «どのファイルにも一致しない» と解釈して 0 件になる）。
+        run: pnpm --filter e2e-web test $TEST_FILTER
+        env:
+          TEST_FILTER: ${{ inputs.test_filter }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      # 📸 UI カタログ: 全画面を巡回してスクリーンショットを撮る(@catalog)
+      # - 検証ではなく収集が目的。到達できない画面があっても失敗させず、一覧に「未取得」として残す
+      #   (詳細は e2e-web/tests/catalog/ui-catalog.spec.ts のコメント)
+      # - 上のテストが落ちてもカタログは取れる(ビルド成果物は出来ている)ため always() で実行する
+      - name: 📸 Capture UI catalog screenshots
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.capture_ui_catalog }}
+        # 収集の失敗は「その画面が未取得」として次のステップの一覧に必ず出るため、
+        # ここで run を赤くしない(赤くすると撮れた分の Artifact 公開まで巻き添えで止まる)
+        continue-on-error: true
+        run: pnpm --filter e2e-web ${{ inputs.capture_review_flow && 'test:catalog:all' || 'test:catalog' }}
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      # スクリーンショットと画面定義(catalog/screens.json)を突き合わせて一覧を生成する
+      - name: 📋 Generate UI catalog document
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.capture_ui_catalog }}
+        run: |
+          pnpm catalog:doc
+          {
+            echo "## UI catalog"
+            echo
+            cat e2e-web/screenshots/UI_CATALOG.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # evidence-collect.yml がこの Artifact を GCS へ公開する(公開 URL はファイル名がそのまま画面名になる)
+      - name: 📤 Upload UI catalog artifact
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.capture_ui_catalog }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-catalog-screenshots
+          path: |
+            e2e-web/screenshots/**/*.png
+            e2e-web/screenshots/UI_CATALOG.md
+            e2e-web/screenshots/ui-catalog.json
+          if-no-files-found: error
+          retention-days: 14
 
       # 動画・スクリーンショット・トレース付きの HTML レポートを保存する
       # (ダウンロード後に `npx playwright show-report <展開先>` で閲覧)

@@ -222,6 +222,14 @@ FROM `${DATASET}.stg_external_api_logs`;
 -- 4-1. VIEW の REPLACE：frontend_event_logs
 -- -----------------------------------------------------------------------------
 -- Supabase 由来のレガシーデータ + Cloud Logging Sink からの新規ログ
+--
+-- `created_at` は、全データソースで「イベントが発生した時刻」を返す契約とする。
+-- Cloud Logging の `timestamp` は API stdout の取込時刻であり、クライアント側の
+-- バッチ送信・リトライによって発生時刻より遅れるため、新規ログの主時刻には使わない。
+-- 一方、`jsonPayload.created_at` がない過去の Cloud Logging ログは、従来どおり
+-- `timestamp` を返す。これにより既存データの View 結果を変えずに移行できる。
+-- Sink の `jsonPayload` は固定 STRUCT のため、列追加前でも View を作れるように
+-- JSON 化して取得する。新旧 API・Sink スキーマの混在期間も同じフォールバックを守る。
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW `${DATASET}.frontend_event_logs` AS
 -- 1) Supabase 由来のレガシーデータ
@@ -247,7 +255,11 @@ SELECT
   jsonPayload.error_level AS error_level,
   jsonPayload.path_name AS path_name,
   SAFE.PARSE_JSON(jsonPayload.payload) AS payload,
-  timestamp AS created_at,
+  -- 不正・未出力の時刻では、分析を止めずに従来の取込時刻へ戻す。
+  COALESCE(
+    SAFE_CAST(JSON_VALUE(TO_JSON_STRING(jsonPayload), '$.created_at') AS TIMESTAMP),
+    timestamp
+  ) AS created_at,
   jsonPayload.created_app_version AS created_app_version,
   jsonPayload.created_commit_id AS created_commit_id
 FROM

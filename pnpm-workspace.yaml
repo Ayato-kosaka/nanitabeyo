@@ -3,3 +3,7 @@ packages:
   - api
   - shared
   - e2e-web
+  - e2e-mobile
+  # #1196 本番ログ（BigQuery）エラーの定期トリアージ。
+  # scripts/ 配下で唯一の workspace package。テストを走らせるために載せている。
+  - scripts/error-triage

@@ -21,6 +21,7 @@ import { LocationsModule } from '../locations/locations.module'; // Google Place
 import { RemoteConfigModule } from '../../core/remote-config/remote-config.module';
 import { DishCategoriesModule } from '../dish-categories/dish-categories.module';
 import { RestaurantsModule } from '../restaurants/restaurants.module';
+import { DishMediaModule } from '../dish-media/dish-media.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     LocationsModule, // Google Places API 連携
     RemoteConfigModule, // Remote Config サービス
     DishCategoriesModule, // 料理カテゴリ管理
+    forwardRef(() => DishMediaModule), // #829 Google import の既存メディア返却
     forwardRef(() => RestaurantsModule), // レストラン管理
   ],
   controllers: [DishesController],

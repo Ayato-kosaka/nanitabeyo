@@ -30,6 +30,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      # #1027 / #1030 / #1031 【セキュリティ】E2E フック用フラグ
+      # （セッション注入・メディア選択差し替え・チュートリアルシード）が
+      # 本番系ジョブへ紛れ込んでいないことを検証する。
+      # 主ガードは metro.config.js の EAS 経路 hard fail だが、ローカルバンドル経路の早期検知として残す
+      - name: 🔒 Assert E2E hook flags are empty
+        run: |
+          if [ -n "${EXPO_PUBLIC_E2E_AUTH_HOOK:-}" ]; then
+            echo "::error::EXPO_PUBLIC_E2E_AUTH_HOOK が設定されています。本番系ワークフローでの設定は禁止です（#1030）。"
+            exit 1
+          fi
+          if [ -n "${EXPO_PUBLIC_E2E_MEDIA_HOOK:-}" ]; then
+            echo "::error::EXPO_PUBLIC_E2E_MEDIA_HOOK が設定されています。本番系ワークフローでの設定は禁止です（#1031）。"
+            exit 1
+          fi
+          if [ -n "${EXPO_PUBLIC_E2E_TUTORIAL_HOOK:-}" ]; then
+            echo "::error::EXPO_PUBLIC_E2E_TUTORIAL_HOOK が設定されています。本番系ワークフローでの設定は禁止です（#1027）。"
+            exit 1
+          fi
+
       - name: 🟣 Setup PNPM
         uses: pnpm/action-setup@v2
         with:
@@ -38,7 +57,13 @@ jobs:
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # #1375 20 のままだと EAS CLI のインストールが必ず失敗する。
+          #   error @oclif/plugin-autocomplete@3.3.0: The engine "node" is incompatible
+          #   with this module. Expected version ">=22.0.0". Got "20.20.2"
+          # `eas-version: latest` で最新を取りに行くので、CLI 側が Node 22 を要求し始めた時点で
+          # このジョブは «配信できない» 状態になる（2026-08-25 の OTA 配信が実際にこれで落ちた）。
+          # ランナー自体も Node 20 の非推奨警告を出しているので 22 へ上げる。
+          node-version: "22"
           cache: "pnpm"
 
       - name: 📦 Install dependencies

@@ -1,6 +1,6 @@
 import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
-import { TopicsPage } from "../../pages/TopicsPage";
+import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { ResultPage } from "../../pages/ResultPage";
 import { ProfilePage } from "../../pages/ProfilePage";
 
@@ -30,7 +30,7 @@ test.skip(
 
 test.describe("リアクション @mutation", () => {
 	// 検索 → トピック提案 → 結果フィード遷移は AI 生成待ちで時間がかかることがあるため
-	// 既定の 30 秒テストタイムアウトを延長する(topics-flow.spec.ts と同様の理由)
+	// 既定の 30 秒テストタイムアウトを延長する(dish-categories-flow.spec.ts と同様の理由)
 	test.setTimeout(90_000);
 
 	// AI レコメンドが選ぶ料理・店舗によっては dev 環境側のデータ不備(画像未処理等)で
@@ -51,14 +51,14 @@ test.describe("リアクション @mutation", () => {
 	//      dev DB に「いいね」状態が残る(不可逆)。ファイル冒頭のコメント参照
 	test("いいね @mutation", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 		const resultPage = new ResultPage(appPage);
 
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
 		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
-		await topicsPage.chooseFirstTopic();
+		await dishCategoriesPage.expectLoaded();
+		await dishCategoriesPage.chooseFirstDishCategory();
 		await resultPage.expectLoaded();
 
 		const likeIcon = resultPage.likeButton.first().locator("svg");
@@ -81,14 +81,14 @@ test.describe("リアクション @mutation", () => {
 	//      「保存」状態が残る(不可逆)。ファイル冒頭のコメント参照
 	test("保存 @mutation", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 		const resultPage = new ResultPage(appPage);
 
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
 		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
-		await topicsPage.chooseFirstTopic();
+		await dishCategoriesPage.expectLoaded();
+		await dishCategoriesPage.chooseFirstDishCategory();
 		await resultPage.expectLoaded();
 
 		const saveIcon = resultPage.saveButton.first().locator("svg");

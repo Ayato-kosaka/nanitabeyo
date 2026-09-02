@@ -1,0 +1,19 @@
+{
+	"name": "error-triage",
+	"version": "0.0.0",
+	"private": true,
+	"description": "本番ログ（BigQuery）エラーの定期トリアージ（#1196）。PR2 まで: 純関数群 + SQL 生成器 + BigQuery 読み取り（dry-run の plan のみ）。",
+	"scripts": {
+		"test": "jest",
+		"generate:sql": "node ./generate-sql.js"
+	},
+	"devDependencies": {
+		"jest": "~29.7.0"
+	},
+	"jest": {
+		"testEnvironment": "node",
+		"testMatch": [
+			"<rootDir>/**/*.test.js"
+		]
+	}
+}

@@ -1,6 +1,6 @@
 // Constants and option data for the search feature
 import i18n from "@/lib/i18n";
-import type { TutorialPageConst } from "./components/TutorialBottomSheet";
+import { ONBOARDING_IMAGES } from "@/features/onboarding/constants";
 
 export const timeSlots = [
 	{ id: "morning", label: "Search.timeSlots.morning", icon: "🌅", image: require("./assets/timeSlots/morning.webp") },
@@ -13,6 +13,12 @@ export const timeSlots = [
 		image: require("./assets/timeSlots/late_night.webp"),
 	},
 ] as const;
+
+// #1015 【パフォーマンス】priceLevelOptionsと同型の派生Map。呼び出し側のfind()をO(1)参照に置き換える。
+export const timeSlotsById = Object.fromEntries(timeSlots.map((option) => [option.id, option])) as Record<
+	string,
+	(typeof timeSlots)[number]
+>;
 
 export const sceneOptions = [
 	{ id: "solo", label: "Search.sceneOptions.solo", icon: "👤", image: require("./assets/scenes/solo.webp") },
@@ -27,6 +33,11 @@ export const sceneOptions = [
 	},
 ] as const;
 
+export const sceneOptionsById = Object.fromEntries(sceneOptions.map((option) => [option.id, option])) as Record<
+	string,
+	(typeof sceneOptions)[number]
+>;
+
 export const moodOptions = [
 	{ id: "light", label: "Search.moodOptions.light", icon: "🥗" },
 	{ id: "normal", label: "Search.moodOptions.normal", icon: "🍱" },
@@ -35,10 +46,15 @@ export const moodOptions = [
 
 export const tasteOptions = [
 	{ id: "sweet", label: "Search.tasteOptions.sweet", icon: "🍰" },
-	// { id: "spicy", label: "Search.tasteOptions.spicy", icon: "🌶️" },
+	{ id: "spicy", label: "Search.tasteOptions.spicy", icon: "🌶️" },
 	{ id: "healthy", label: "Search.tasteOptions.healthy", icon: "🥬" },
 	{ id: "junk", label: "Search.tasteOptions.junk", icon: "🍔" },
 ] as const;
+
+export const tasteOptionsById = Object.fromEntries(tasteOptions.map((option) => [option.id, option])) as Record<
+	string,
+	(typeof tasteOptions)[number]
+>;
 
 export const coreIngredientOptions = [
 	{ id: "meat", label: "Search.coreIngredientOptions.meat", icon: "🍖" },
@@ -46,6 +62,10 @@ export const coreIngredientOptions = [
 	{ id: "rice", label: "Search.coreIngredientOptions.rice", icon: "🍚" },
 	{ id: "noodle", label: "Search.coreIngredientOptions.noodle", icon: "🍜" },
 ] as const;
+
+export const coreIngredientOptionsById = Object.fromEntries(
+	coreIngredientOptions.map((option) => [option.id, option]),
+) as Record<string, (typeof coreIngredientOptions)[number]>;
 
 export const foodStyleOptions = [
 	...tasteOptions.map((option) => ({ ...option, featureType: "taste" as const })),
@@ -57,20 +77,27 @@ export const diningPaceOptions = [
 	{ id: "leisurely", label: "Search.diningPaceOptions.leisurely", icon: "🐢" },
 ] as const;
 
+export const diningPaceOptionsById = Object.fromEntries(
+	diningPaceOptions.map((option) => [option.id, option]),
+) as Record<string, (typeof diningPaceOptions)[number]>;
+
+// #935 【修正】label はモジュール評価時に i18n.t() を呼んでいたため、
+// 起動時ロケールの文言で固定されロケール切替後も更新されないバグがあった
+// (timeSlots 等の他オプション定義と同様、キー文字列を保持し使用箇所で i18n.t() する方式に統一)。
 // Distance options in meters
 export const distanceOptions = [
-	{ value: 100, label: i18n.t("Search.distanceLabels.100m") },
-	{ value: 300, label: i18n.t("Search.distanceLabels.300m") },
-	{ value: 500, label: i18n.t("Search.distanceLabels.500m") },
-	{ value: 800, label: i18n.t("Search.distanceLabels.800m") },
-	{ value: 1000, label: i18n.t("Search.distanceLabels.1km") },
-	{ value: 2000, label: i18n.t("Search.distanceLabels.2km") },
-	{ value: 3000, label: i18n.t("Search.distanceLabels.3km") },
-	{ value: 5000, label: i18n.t("Search.distanceLabels.5km") },
-	{ value: 10000, label: i18n.t("Search.distanceLabels.10km") },
-	{ value: 15000, label: i18n.t("Search.distanceLabels.15km") },
-	{ value: 20000, label: i18n.t("Search.distanceLabels.20km") },
-];
+	{ value: 100, label: "Search.distanceLabels.100m" },
+	{ value: 300, label: "Search.distanceLabels.300m" },
+	{ value: 500, label: "Search.distanceLabels.500m" },
+	{ value: 800, label: "Search.distanceLabels.800m" },
+	{ value: 1000, label: "Search.distanceLabels.1km" },
+	{ value: 2000, label: "Search.distanceLabels.2km" },
+	{ value: 3000, label: "Search.distanceLabels.3km" },
+	{ value: 5000, label: "Search.distanceLabels.5km" },
+	{ value: 10000, label: "Search.distanceLabels.10km" },
+	{ value: 15000, label: "Search.distanceLabels.15km" },
+	{ value: 20000, label: "Search.distanceLabels.20km" },
+] as const;
 
 // Price level options (Google Maps PriceLevel enum compliant, excluding FREE)
 export const priceLevelOptions = [
@@ -116,42 +143,19 @@ export const MOOD_ICON_SIZES = {
 	heavy: 40,
 } as const;
 
-export const TUTORIAL_PAGES = [
-	{
-		image: require("@/assets/images/tutorial/search-page1.webp"),
-		titleKey: "Search.tutorial.page1.title",
-		bodyLineKeys: ["Search.tutorial.page1.body1", "Search.tutorial.page1.body2"],
-		primaryCtaLabelKey: "Search.tutorial.page1.cta",
-	},
-	{
-		image: require("@/assets/images/tutorial/search-page2.webp"),
-		titleKey: "Search.tutorial.page2.title",
-		bodyLineKeys: ["Search.tutorial.page2.body1", "Search.tutorial.page2.body2"],
-		primaryCtaLabelKey: "Search.tutorial.page2.cta",
-	},
-	{
-		image: require("@/assets/images/tutorial/search-page3.webp"),
-		titleKey: "Search.tutorial.page3.title",
-		bodyLineKeys: ["Search.tutorial.page3.body1", "Search.tutorial.page3.body2"],
-		primaryCtaLabelKey: "Search.tutorial.page3.cta",
-	},
-	{
-		image: require("@/assets/images/tutorial/search-page4.webp"),
-		titleKey: "Search.tutorial.page4.title",
-		bodyLineKeys: ["Search.tutorial.page4.body1", "Search.tutorial.page4.body2"],
-		primaryCtaLabelKey: "Search.tutorial.page4.primaryCta",
-		secondaryCtaLabelKey: "Search.tutorial.page4.secondaryCta",
-	},
-] as const satisfies readonly TutorialPageConst[];
-
 // 先読みする画像の配列
+//
+// #1486 §2【要件】オンボーディングの 6 枚は「表示前にプリロード + デコード」する。
+// 先読みの実体は検索画面末尾のオフスクリーンブロック（app/[locale]/(tabs)/search/index.tsx）で、
+// 検索画面はオンボーディングが開く «前» に必ずマウントされるため（初回導線は検索画面から push する）、
+// ここへ載せておけばページ送りでロード待ちが起きない。
+//
+// ⚠️ 増減させたら e2e-web/utils/preload-assets.ts の `PRELOAD_ASSET_PATTERNS` も更新すること。
 export const PRELOAD_IMAGES = [
-	// 検索チュートリアル画像
-	...TUTORIAL_PAGES.map((page) => page.image),
-	// アプリアイコン画像
+	// オンボーディング画像（共感 3 枚 + 解決 3 枚）
+	...ONBOARDING_IMAGES,
+	// アプリアイコン画像（オンボーディングの権限説明・Welcome でも使う）
 	require("@/assets/images/icon.webp"),
-	// レビュー機能のヒーロー画像
-	require("@/features/review/assets/review-hero.webp"),
 	// Apple アイコン画像
 	require("@/assets/images/logo_apple_icon.png"),
 	// Google アイコン画像

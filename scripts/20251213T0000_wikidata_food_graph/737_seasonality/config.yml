@@ -1,0 +1,48 @@
+# #737 seasonality（Wikipedia 月次ページビュー → season feature）設定ファイル
+
+# BigQuery設定
+dataset: "food-scroll.wikidata_food_graph"
+
+# タスク識別子
+task: "#737_seasonality"
+
+# 実行ID（タイムスタンプベース、実行時に --run-id で上書き可能）
+run_id_prefix: "20260825T0000"
+
+# 対象の言語版。sitelinks_json から記事を引くときのホストと、API のプロジェクト名
+wiki_host: "ja.wikipedia.org"
+wiki_project: "ja.wikipedia"
+
+# publish 時に付ける地域スコープ。
+# season の feature_key は `<region_scope>:month:MM` になる。
+# 例: "region:country:JP" → "region:country:JP:month:08"
+#
+# API 側（dish-categories.repository.ts）は狭い地域 → 広い地域 → global の順に探すので、
+# 将来 global の曲線を作るときは region_scope: "global" で別 run を流せばよい。
+region_scope: "region:country:JP"
+
+# 取得期間（YYYY-MM）。5年分あれば単発の話題によるスパイクは平均で薄まる
+start_ym: "2021-01"
+end_ym: "2026-07"   # 進行中の月は日数が揃わないので前月まで
+# Wikimedia は直近月の集計が遅れることがあり、**全記事いっせいに** 90%以上落ちた値が返る。
+# 実測（2026-08-25 時点の 2026-07）: ラーメン 15,442 → 444 / 焼き鳥 2,753 → 80。
+# 記事単位ではなく全体で起きるので、放置すると「その月は不人気」という偽の季節性を全件へ刻む。
+# build_curve.sql が「全記事合計が中央値のこの割合未満の月」を捨てて防ぐ。
+# 本物の季節性は夏物と冬物が逆に動くため合計はほとんど動かない（実測の断絶は 97% 減）。
+min_month_completeness_ratio: 0.5
+
+# Wikimedia API
+# ⚠️ User-Agent は必須。連絡先が無いと予告なくブロックされうる
+user_agent: "nanitabeyo-seasonality/1.0 (https://github.com/Ayato-kosaka/nanitabeyo)"
+sleep_sec: 1.3          # 実測: これ未満だと 429 が頻発する
+max_retries: 5
+
+# ── レビュー対象を機械で絞る閾値 ──
+# 実測（134件を全件処理）では、この閾値で 31 件まで絞れた。
+# 残り（平坦・低PV）は season の行を作らないので、推薦への影響はゼロ。
+min_amplitude: 1.8      # ピーク月指数 ÷ 谷月指数。対照群（焼き鳥 1.1 / 餃子 1.3）は必ず落ちる
+min_monthly_pv: 300     # これ未満は分散が大きすぎる（実例: チーズタッカルビ 月14PV）
+min_months_observed: 36 # 3年分。少ないと 1 年の偶然が指数に残る
+
+# ファイルパス設定
+work_dir: "/tmp/wikidata_food_seasonality"

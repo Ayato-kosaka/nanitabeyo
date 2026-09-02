@@ -34,6 +34,7 @@ import {
   CreateDishCategoryGroupVoteResponse,
   DeleteDishCategoryGroupVoteCandidateResponse,
   DishCategoryGroupVoteDetailResponse,
+  RestoreDishCategoryGroupVoteCandidateResponse,
   SubmitDishCategoryGroupVoteResponse,
   UpdateDishCategoryGroupVoteCandidateDishMediaResponse,
 } from '@shared/v1/res';
@@ -46,9 +47,7 @@ import { DishCategoryGroupVotesService } from './dish-category-group-votes.servi
 @ApiTags('DishCategoryGroupVotes')
 @Controller('v1/dish-category-group-votes')
 export class DishCategoryGroupVotesController {
-  constructor(
-    private readonly service: DishCategoryGroupVotesService,
-  ) {}
+  constructor(private readonly service: DishCategoryGroupVotesService) {}
 
   /* ------------------------------------------------------------------ */
   /*              POST /v1/dish-category-group-votes                    */
@@ -60,9 +59,14 @@ export class DishCategoryGroupVotesController {
   @ApiOperation({
     summary: 'dish_category グループ投票セッション作成',
     description:
-      '候補表示名・画像を作成時点のスナップショットとして固定し、共有用 shareToken を発行する。',
+      '候補表示名・画像を作成時点のスナップショットとして固定し、共有用 shareToken を発行する。' +
+      ' #1507 body に idempotencyKey (UUID v4) を付けると再送に対して冪等になり、' +
+      '同一ホスト・同一キーの 2 回目以降は新規セッションを作らず初回と同じ id / shareToken を 201 で返す。',
   })
-  @ApiResponse({ status: 201, description: '作成成功' })
+  @ApiResponse({
+    status: 201,
+    description: '作成成功（冪等キーによる再送で既存セッションを返した場合も 201）',
+  })
   async create(
     @Body() dto: CreateDishCategoryGroupVoteDto,
     @CurrentUser() user: RequestUser,
@@ -164,5 +168,28 @@ export class DishCategoryGroupVotesController {
     @CurrentUser() user: RequestUser,
   ): Promise<DeleteDishCategoryGroupVoteCandidateResponse> {
     return this.service.deleteCandidate(sessionId, candidateId, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* PATCH /v1/dish-category-group-votes/:sessionId/candidates/:candidateId/restore */
+  /* ------------------------------------------------------------------ */
+  @Patch(':sessionId/candidates/:candidateId/restore')
+  @UseGuards(AuthAnonGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '論理削除した候補を復元',
+    description:
+      'ホストのみ実行可能。削除のUndo導線として使う。既に復元済み(未削除)なら冪等に成功する。',
+  })
+  @ApiParam({ name: 'sessionId', required: true })
+  @ApiParam({ name: 'candidateId', required: true })
+  @ApiResponse({ status: 200, description: '復元成功' })
+  @ApiResponse({ status: 403, description: 'ホスト以外は復元不可' })
+  async restoreCandidate(
+    @Param('sessionId', ParseUUIDPipe) sessionId: string,
+    @Param('candidateId', ParseUUIDPipe) candidateId: string,
+    @CurrentUser() user: RequestUser,
+  ): Promise<RestoreDishCategoryGroupVoteCandidateResponse> {
+    return this.service.restoreCandidate(sessionId, candidateId, user.id);
   }
 }

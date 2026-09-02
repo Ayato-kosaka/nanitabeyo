@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(aws --profile sandbox:*)",
+      "Bash(bash .claude/skills/ec2-chrome-operate/ec2_exec.sh:*)"
+    ]
+  }
+}

@@ -26,9 +26,9 @@
 # - Sink:
 #     dev : logs-to-bq-dev
 #     prod: logs-to-bq-prod
-# - TTL:
-#     dev : 90日
-#     prod: 730日（2年）
+# - Dataset の default table expiration は設定しない。
+#   ログ保持期間が必要な場合は、Cloud Logging Sink の raw table に
+#   partition expiration を明示設定する。
 #
 # ## ロールバック
 # - Dataset / Sink を個別に削除する（自動ロールバックは提供しない）。
@@ -87,10 +87,6 @@ DATASET_PROD="nanitabeyo_logs_prod"
 SINK_NAME_DEV="logs-to-bq-dev"
 SINK_NAME_PROD="logs-to-bq-prod"
 
-# TTL 設定（日数）
-TTL_DAYS_DEV="90"
-TTL_DAYS_PROD="730"
-
 # Sink フィルタ
 # jsonPayload.log_type ベースでフィルタリング（NestJS stdout JSON 出力に対応）（環境別）
 SINK_FILTER_DEV='resource.type="cloud_run_revision"
@@ -124,30 +120,27 @@ gcloud config set project "${PROJECT_ID}" >/dev/null
 run_dataset_setup() {
   local env_name="$1"
   local dataset_id="$2"
-  local ttl_days="$3"
 
   echo "🔧 Step1 (${env_name}): setup_logging_bigquery_dataset.sh を実行します…"
   echo "  - DATASET   : ${dataset_id}"
-  echo "  - TTL (days): ${ttl_days}"
   echo
 
   ./setup_logging_bigquery_dataset.sh \
     "${PROJECT_ID}" \
     "${dataset_id}" \
     "${REGION}" \
-    "${env_name}" \
-    "${ttl_days}"
+    "${env_name}"
 
   echo "✅ ${env_name}: BigQuery Dataset setup 完了"
   echo
 }
 
 if [[ "${MODE}" == "all" || "${MODE}" == "dev" ]]; then
-  run_dataset_setup "dev" "${DATASET_DEV}" "${TTL_DAYS_DEV}"
+  run_dataset_setup "dev" "${DATASET_DEV}"
 fi
 
 if [[ "${MODE}" == "all" || "${MODE}" == "prod" ]]; then
-  run_dataset_setup "prod" "${DATASET_PROD}" "${TTL_DAYS_PROD}"
+  run_dataset_setup "prod" "${DATASET_PROD}"
 fi
 
 # ---------------------------------------------------------------------------

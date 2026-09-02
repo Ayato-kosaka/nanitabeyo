@@ -308,7 +308,14 @@ def main():
         default='/tmp',
         help='Output directory for dry-run summary'
     )
-    
+    parser.add_argument(
+        '--yes',
+        action='store_true',
+        help='Skip the interactive (y/N) confirmation for --schema public. '
+             'Required for non-interactive environments (e.g. GitHub Actions), '
+             'where input() would otherwise raise EOFError. Has no effect for --schema dev.'
+    )
+
     args = parser.parse_args()
     
     # 環境変数チェック
@@ -327,8 +334,8 @@ def main():
     # PostgreSQL 接続初期化
     pg_conn = PostgreSQLConnection(database_url, args.schema)
     
-    # スキーマバリデーション
-    if not pg_conn.validate_schema(require_confirmation=True):
+    # スキーマバリデーション（--yes 指定時のみ public の対話確認をスキップする）
+    if not pg_conn.validate_schema(require_confirmation=not args.yes):
         sys.exit(1)
     
     # BigQuery Loader 初期化

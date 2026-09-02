@@ -31,6 +31,15 @@ const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 4173);
  */
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 
+/**
+ * ハーネス自己検証（`harness` プロジェクト = tests/harness/）だけを回すモード。
+ *
+ * このプロジェクトのテストは `page.setContent()` のダミーページしか触らないため、
+ * `app-expo/dist` も静的サーバも不要。ビルド前の環境でも回せるよう webServer を止める
+ * （dist が無いと serve-dist.mjs が起動に失敗し、実行そのものが始まらない）。
+ */
+const HARNESS_ONLY = !!process.env.HARNESS_ONLY;
+
 /** 認証済みユーザーの storageState 保存先（setup プロジェクトが生成、gitignore 済み） */
 export const STORAGE_STATE_PATH = path.resolve(__dirname, ".auth/user.json");
 
@@ -46,6 +55,21 @@ export const STORAGE_STATE_PATH = path.resolve(__dirname, ".auth/user.json");
  *   storageState を使わずフレッシュな状態で実行する）
  */
 export const ANON_STORAGE_STATE_PATH = path.resolve(__dirname, ".auth/anon.json");
+
+/**
+ * 既定の実行から除外するタグの正規表現を組み立てる。
+ *
+ * `grepInvert` は 1 つしか指定できないため、除外したいタグが増えても
+ * 「どのタグを外したか」を見失わないようここで一括管理する。
+ *
+ * @returns 除外タグの正規表現（除外なしなら undefined）
+ */
+function buildExcludedTags(): RegExp | undefined {
+	const excluded: string[] = [];
+	if (!process.env.RUN_MUTATION) excluded.push("@mutation");
+	if (!process.env.RUN_CATALOG) excluded.push("@catalog");
+	return excluded.length > 0 ? new RegExp(excluded.join("|")) : undefined;
+}
 
 export default defineConfig({
 	testDir: "./tests",
@@ -65,9 +89,11 @@ export default defineConfig({
 	// HTML レポート（`pnpm report` で閲覧）+ コンソールの list 表示
 	reporter: [["html", { open: "never" }], ["list"]],
 
-	// Tier 3 (@mutation) は既定で除外し、RUN_MUTATION=1 のときだけ実行可能にする
-	// （共有 dev 環境の DB への書き込みを「意図した時だけ」に限定するための安全弁）
-	grepInvert: process.env.RUN_MUTATION ? undefined : /@mutation/,
+	// 既定では実行しないタグ。
+	// - @mutation (Tier 3): 共有 dev 環境の DB へ書き込むため「意図した時だけ」に限定する安全弁
+	// - @catalog: UI カタログ用のスクリーンショット収集。検証ではないうえ実行が重いので、
+	//   夜間 CI の Tier 1+2 とは切り離して RUN_CATALOG=1（= pnpm test:catalog）でのみ回す
+	grepInvert: buildExcludedTags(),
 
 	expect: {
 		// 実 API (Cloud Run) を叩くため、既定の 5 秒では初回リクエストやコールドスタートで不安定になる。
@@ -130,8 +156,25 @@ export default defineConfig({
 		{
 			name: "desktop-chrome",
 			use: { ...devices["Desktop Chrome"], storageState: ANON_STORAGE_STATE_PATH },
-			testIgnore: [/tests\/setup\//, /tests\/authenticated\//, /tests\/config\//],
+			testIgnore: [
+				/tests\/setup\//,
+				/tests\/authenticated\//,
+				/tests\/config\//,
+				/tests\/catalog\//,
+				/tests\/harness\//,
+			],
 			dependencies: ["anon-setup"],
+		},
+
+		// ── E2E ハーネス自身の自己検証（アプリ・API・認証に依存しない） ─────
+		// console error / pageerror を既定の失敗条件にするゲート（REL-08 / #1500）が
+		// 壊れていないことを、意図的にエラーを出すダミーページで検証する専用プロジェクト。
+		// アプリのビルド成果物も匿名セッションも要らないので、依存も storageState も持たせない
+		// （= dist が無い環境でも `pnpm test:harness` 単独で回せる）
+		{
+			name: "harness",
+			use: { ...devices["Desktop Chrome"] },
+			testMatch: /tests\/harness\//,
 		},
 
 		// ── デスクトップ（ログイン済みユーザー） ─────────────────────────
@@ -146,9 +189,25 @@ export default defineConfig({
 			dependencies: ["setup"],
 		},
 
-		// ── モバイル（@smoke のみ） ──────────────────────────────────────
-		// モバイルファーストのフードアプリのため、スマホビューポートでのレイアウト崩れ・導線破壊を検知する。
-		// 実行時間を抑えるため @smoke タグのテストのみに絞る
+		// ── UI カタログ（スクリーンショット収集） ───────────────────────
+		// 全画面のスクリーンショットを撮って catalog/screens.json の定義と突き合わせ、
+		// 画面一覧ドキュメントを生成するための専用プロジェクト（@catalog タグで既定除外）。
+		// 匿名 / ログイン済みで見える画面が異なるため、storageState 違いの 2 本に分けている。
+		{
+			name: "ui-catalog",
+			use: { ...devices["Desktop Chrome"], storageState: ANON_STORAGE_STATE_PATH },
+			testMatch: /tests\/catalog\/ui-catalog\.spec\.ts/,
+			dependencies: ["anon-setup"],
+		},
+		{
+			name: "ui-catalog-authenticated",
+			use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE_PATH },
+			// ログイン済みの収集（ui-catalog-authenticated）と、そこからしか到達できない
+			// レビュー投稿フロー（ui-catalog-mutation。@mutation で既定は除外）の 2 本
+			testMatch: /tests\/catalog\/ui-catalog-(authenticated|mutation)\.spec\.ts/,
+			dependencies: ["setup"],
+		},
+
 		{
 			name: "mobile-chrome",
 			use: { ...devices["Pixel 7"], storageState: ANON_STORAGE_STATE_PATH },
@@ -163,15 +222,17 @@ export default defineConfig({
 		},
 	],
 
-	// PLAYWRIGHT_BASE_URL 指定時（デプロイ済み環境へのテスト時）はローカルサーバを起動しない
-	webServer: process.env.PLAYWRIGHT_BASE_URL
-		? undefined
-		: {
-				// Firebase Hosting の配信挙動（[locale] rewrite + SPA fallback）を模した静的サーバ。
-				// 既にポートが使用中の場合は再利用する（ローカルで serve:dist を手動起動している場合など）
-				command: "node ./scripts/serve-dist.mjs",
-				port: PORT,
-				reuseExistingServer: !process.env.CI,
-				timeout: 30_000,
-			},
+	// PLAYWRIGHT_BASE_URL 指定時（デプロイ済み環境へのテスト時）と
+	// HARNESS_ONLY 指定時（ハーネス自己検証のみ）はローカルサーバを起動しない
+	webServer:
+		process.env.PLAYWRIGHT_BASE_URL || HARNESS_ONLY
+			? undefined
+			: {
+					// Firebase Hosting の配信挙動（[locale] rewrite + SPA fallback）を模した静的サーバ。
+					// 既にポートが使用中の場合は再利用する（ローカルで serve:dist を手動起動している場合など）
+					command: "node ./scripts/serve-dist.mjs",
+					port: PORT,
+					reuseExistingServer: !process.env.CI,
+					timeout: 30_000,
+				},
 });

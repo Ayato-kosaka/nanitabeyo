@@ -1,0 +1,59 @@
+-- NOTE: 旧 20260819T0300_add_restaurants_name_trgm_index.sql からのリネーム（#1469 ブランチが dev へ旧名で先行適用済み。SQL 本体は同一で、全体が冪等なので再適用は無害）。
+-- リネーム理由: main の 20260823T0000 より後ろに並べ、「ファイル名順 = 適用順」を守るため。
+-- ==============================================================================
+-- 20260819T0300_add_restaurants_name_trgm_index.sql
+-- #1395（親 #1375）
+-- ==============================================================================
+-- 【目的】
+--   GET /v1/restaurants/search に店名の部分一致検索（q）を足すため、
+--   restaurants.name へ pg_trgm の GIN 索引を張る。
+--
+-- 【背景】
+--   - #1375 設計の正本 §5:「Google Places Autocomplete / Text Search を新規に使用しない。
+--     店舗候補は自前の restaurants テーブルから引く」
+--   - restaurants の既存索引は 20250802T0300_create_restaurants.sql:21 の
+--     idx_restaurants_location（GIST）と google_place_id の UNIQUE だけで、
+--     name に索引が無い。名前で絞ると必ず Seq Scan になる。
+--   - dish_reviews が 964MB で Disk IO Budget が枯渇間近（20260718T0000 のヘッダ）という
+--     事情を踏まえると、店舗選択のたびに Seq Scan を走らせるのは許容できない。
+--
+-- 【なぜ btree ではなく trgm GIN なのか（20251011T0400 と矛盾しないこと）】
+--   20251011T0400 では trgm 索引を「消して」text_pattern_ops の btree に置き換えたが、
+--   あちらの要件は前方一致・完全一致・IN だけであり btree で足りた。
+--   こちらの要件は「一蘭」で「らーめん 一蘭 渋谷店」を引き当てたい＝**中間一致**であり、
+--   btree では原理的に効かない。要件が違うので同じ結論にはならない。
+--   （「消したものを戻している」ように見えるが、別の要件に対する別の判断である）
+--
+-- 【拡張】
+--   pg_trgm は 20250802T0259_create_dish_category_variants.sql:1 で導入済みのため追加不要。
+--   gin_trgm_ops は apply-migration.sh が流す
+--   `SET search_path TO $DB_SCHEMA, extensions` で解決するので **無修飾**で書く
+--   （20250802T0259 に倣う）。
+--
+-- 【CREATE INDEX CONCURRENTLY について】
+--   - 本番テーブルへの書き込みを止めないため CONCURRENTLY を使う。
+--   - CONCURRENTLY はトランザクション内で実行できない。
+--     scripts/apply-migration.sh:53-58 は --single-transaction も BEGIN も使わない
+--     （autocommit）ので実行できる。前例は 20260718T0000:95 / 20251011T0400:23,27。
+--   - **失敗すると INVALID なインデックスが残る**。他の DDL と混ぜないため
+--     このファイルは索引 1 本だけにしてある。
+--
+-- 【⚠️ 適用後に必ず確認すること（#1395 レビュー m-1）】
+--   apply-migration.sh:49 は from_file 以降の全ファイルを毎回順に流す。
+--   CONCURRENTLY が失敗して INVALID index が残ると、次回以降 IF NOT EXISTS が
+--   「もう在る」と判断して**黙ってスキップし続ける**。索引は永久に作られず、
+--   エラーも出ず、店名検索だけが遅いままになる。適用後に必ず次を実行すること:
+--
+--     SELECT indisvalid FROM pg_index WHERE indexrelid = 'idx_restaurants_name_trgm'::regclass;
+--
+--   false だったら作り直す:
+--
+--     DROP INDEX CONCURRENTLY IF EXISTS idx_restaurants_name_trgm;
+--     -- そのうえで本ファイルを再実行する
+--
+-- 【ロールバック】
+--   DROP INDEX CONCURRENTLY IF EXISTS idx_restaurants_name_trgm;
+-- ==============================================================================
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_restaurants_name_trgm
+  ON restaurants USING GIN (name gin_trgm_ops);

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { useLogger } from "@/hooks/useLogger";
 
-// #633 【設計】entriesKey ベースに変更（topicId ではなく検索条件全体のキー）
+// #633 【設計】entriesKey ベースに変更（dishCategoryId ではなく検索条件全体のキー）
 export function useSearchResult(entriesKey: string) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [showCompletionModal, setShowCompletionModal] = useState(false);

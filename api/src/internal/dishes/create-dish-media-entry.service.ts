@@ -44,10 +44,9 @@ export class CreateDishMediaEntryService {
       photoUriCount: payload.photoUri.length,
     });
 
-    // 冪等性チェック: 既に処理済みかどうか確認
-    const isAlreadyProcessed = await this.checkIdempotency(
-      payload.idempotencyKey,
-    );
+    // #829 【バグ】place/category で止めると、bulk-import が返した別 ID の row が作られず orphan response になる。
+    // #829 【設計】handler retry は同じ payload ID が completed 済みのときだけ処理済みとみなす。
+    const isAlreadyProcessed = await this.checkIdempotency(payload);
     if (isAlreadyProcessed) {
       this.logger.log('JobAlreadyProcessed', 'processAsyncJob', {
         jobId: payload.jobId,
@@ -89,6 +88,47 @@ export class CreateDishMediaEntryService {
   private async downloadAndStorePhotos(
     payload: CreateDishMediaEntryJobPayload,
   ): Promise<void> {
+    // #1395 media_path は external_embed（SNS の公式埋め込み）のために nullable 化された。
+    // ただし **この経路が作るのは常に render_type='stored'**（自ストレージへ写真を保存する行）
+    // であり、media_path は呼び出し側で必ず組み立てられている。
+    // null で来るのは payload の組み立てが壊れているときだけなので、ここで 1 度だけ絞って落とす。
+    // 各利用箇所へ `!` を撒くと、本当に null が来たとき «GCS の空パスへ書きに行く» という
+    // 分かりにくい壊れ方をする。
+    const mediaPath = payload.dish_media.media_path;
+    if (mediaPath === null) {
+      throw new Error(
+        `media_path is required for stored dish_media (jobId=${payload.jobId})`,
+      );
+    }
+
+    // #514 【設計】原本の有無を先に見る。photoUri の有無では分岐しない。
+    //
+    // 保存に成功した後、DB transaction や resize enqueue で落ちると、Cloud Tasks は
+    // 同じ payload で再試行する。そのとき Google の photoUri は既に期限切れや 429 に
+    // なっていることがあり、fetch から始めると「GCS には有効な原本があるのに
+    // ダウンロードだけが永久に失敗する」状態になる（リトライ上限まで消費して
+    // processing の行が残る）。原本があるなら download は要らない。
+    //
+    // #1053 【課金】bulk-import が「GCS に実体あり」と判定した再利用パスでは photoUri が空。
+    // その場合も同じ判定に乗る。実体があるのに Photo Media を取り直して課金しない。
+    //
+    // `uploadFileAtPath` は `overwriteIfExists: false` なので、実体がある状態で
+    // download しても保存は no-op になる。先に確認しても結果は変わらない。
+    const originalExists = await this.storage.fileExists(mediaPath);
+    if (originalExists) {
+      this.logger.debug('PhotoDownloadSkipped', 'downloadAndStorePhotos', {
+        jobId: payload.jobId,
+        mediaPath,
+        hasPhotoUri: payload.photoUri.length > 0,
+      });
+      return;
+    }
+
+    // 原本が無く、取りに行く先も無い。DB 登録と resize enqueue へ進めてはいけない。
+    if (payload.photoUri.length === 0) {
+      throw new Error(`Stored photo is missing: ${mediaPath}`);
+    }
+
     const downloadPromises = payload.photoUri.map(async (photoUri, index) => {
       try {
         // 写真データを取得
@@ -103,7 +143,7 @@ export class CreateDishMediaEntryService {
         const uploadResult = await this.storage.uploadFileAtPath({
           buffer,
           mimeType: 'image/jpeg', // Assuming JPEG, adjust if necessary
-          fullPath: payload.dish_media.media_path,
+          fullPath: mediaPath,
           overwriteIfExists: false, // 冪等性のため既存ファイルは上書きしない
         });
 
@@ -119,12 +159,13 @@ export class CreateDishMediaEntryService {
           photoUri,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
-        // エラーでもフォールバックとして元のURIを返す
-        return photoUri;
+        // Cloud Tasks に失敗を返し、429 や一時的な GCS 障害を再試行させる。
+        // 原本が無いまま DB 登録と resize enqueue を続けてはいけない。
+        throw error;
       }
     });
 
-    await Promise.allSettled(downloadPromises);
+    await Promise.all(downloadPromises);
   }
 
   /**
@@ -134,45 +175,72 @@ export class CreateDishMediaEntryService {
     dishMedia: PrismaDishMedia,
     restaurants: PrismaRestaurants,
   ) {
+    // #1053 【設計】分岐判定は media/thumbnail の AND なので、
+    // 「media=completed / thumbnail=processing」は未完了に倒れて handler が再実行される。
+    // そのとき completed 側まで再 enqueue すると、resize-image 側が fileExists で
+    // 早期 return するため画像処理自体は走らないものの、Cloud Tasks の実行回数と
+    // Cloud Run のリクエスト数だけが二重に増える。completed の列は skip する。
+    // #1395 media_path が null なのは render_type='external_embed' の行だけで、
+    // あれは自ストレージに実体を持たないためリサイズの対象にならない。
+    // ここへ来る時点で 'stored' のはずだが、型の上では null を取りうるので明示的に skip する。
+    const skipMedia =
+      dishMedia.media_processing_status === 'completed' ||
+      dishMedia.media_path === null;
+    const skipThumbnail = dishMedia.thumbnail_processing_status === 'completed';
+
+    if (skipMedia || skipThumbnail) {
+      this.logger.debug('ResizeEnqueueSkipped', 'enqueueResizeImageJob', {
+        dishMediaId: dishMedia.id,
+        skipMedia,
+        skipThumbnail,
+      });
+    }
+
     return Promise.all([
       // メイン画像リサイズジョブ
-      this.cloudTasksService
-        .enqueueResizeImage({
-          table: 'dish_media',
-          column: 'media_path',
-          recordId: dishMedia.id,
-          size: 1024,
-          aspectRatio: 9 / 16,
-          originalPath: dishMedia.media_path,
-        })
-        .catch((error) => {
-          this.logger.error('EnqueueResizeImageError', 'createDishMediaEntry', {
-            dishMediaId: dishMedia.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-          throw error;
-        }),
+      !skipMedia &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'dish_media',
+            column: 'media_path',
+            recordId: dishMedia.id,
+            size: 1024,
+            aspectRatio: 9 / 16,
+            originalPath: dishMedia.media_path ?? '',
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeImageError',
+              'createDishMediaEntry',
+              {
+                dishMediaId: dishMedia.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
       // サムネイル画像リサイズジョブ
-      this.cloudTasksService
-        .enqueueResizeImage({
-          table: 'dish_media',
-          column: 'thumbnail_path',
-          recordId: dishMedia.id,
-          size: 256,
-          aspectRatio: 9 / 16,
-          originalPath: dishMedia.thumbnail_path,
-        })
-        .catch((error) => {
-          this.logger.error(
-            'EnqueueResizeThumbnailError',
-            'createDishMediaEntry',
-            {
-              dishMediaId: dishMedia.id,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            },
-          );
-          throw error;
-        }),
+      !skipThumbnail &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'dish_media',
+            column: 'thumbnail_path',
+            recordId: dishMedia.id,
+            size: 256,
+            aspectRatio: 9 / 16,
+            originalPath: dishMedia.thumbnail_path,
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeThumbnailError',
+              'createDishMediaEntry',
+              {
+                dishMediaId: dishMedia.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
       restaurants.image_path &&
         this.cloudTasksService
           .enqueueResizeImage({
@@ -219,9 +287,67 @@ export class CreateDishMediaEntryService {
   }
 
   /**
+   * #514 既存 restaurant の `image_path` を新しい原本へ貼り替えてよいかを判定する。
+   *
+   * 貼り替えるのは「今の path が壊れている」ときだけにする。無条件に上書きすると、
+   * 同じ place へ別カテゴリを import するたびに店舗画像が入れ替わり、その都度
+   * resize 完了までの間だけ CDN が 404 を返す（bug を直すついでに UI を揺らす）。
+   *
+   * 貼り替え先として許すのは `dish_media.media_path` と一致する path だけ。
+   * `downloadAndStorePhotos` が GCS 上の存在を確認したのはこの path であり、
+   * 未確認の path を書き込むと #514 と同じ「原本の無い path」を作ってしまう。
+   */
+  private async shouldAdoptNewRestaurantImagePath(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<boolean> {
+    const nextPath = payload.restaurants.image_path;
+    if (!nextPath) return false;
+
+    if (nextPath !== payload.dish_media.media_path) {
+      this.logger.warn(
+        'RestaurantImagePathNotVerified',
+        'shouldAdoptNewRestaurantImagePath',
+        {
+          jobId: payload.jobId,
+          imagePath: nextPath,
+          mediaPath: payload.dish_media.media_path,
+        },
+      );
+      return false;
+    }
+
+    const existing =
+      await this.dishesRepository.findRestaurantImagePathByGooglePlaceId(
+        payload.restaurants.google_place_id,
+      );
+    // 行がまだ無いなら upsert の create 側で新しい path が入る。
+    if (!existing) return false;
+    if (!existing.image_path) return true;
+    if (existing.image_path === nextPath) return false;
+
+    const currentExists = await this.storage.fileExists(existing.image_path);
+    if (currentExists) return false;
+
+    this.logger.log(
+      'RestaurantImagePathRepaired',
+      'shouldAdoptNewRestaurantImagePath',
+      {
+        jobId: payload.jobId,
+        googlePlaceId: payload.restaurants.google_place_id,
+        staleImagePath: existing.image_path,
+        nextImagePath: nextPath,
+      },
+    );
+    return true;
+  }
+
+  /**
    * 4テーブルのUPSERT処理（dishesRepository を使用）
    */
   private async upsertDatabaseEntries(payload: CreateDishMediaEntryJobPayload) {
+    const updateImagePath =
+      await this.shouldAdoptNewRestaurantImagePath(payload);
+
     return await this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
         // 1. レストラン登録
@@ -234,6 +360,7 @@ export class CreateDishMediaEntryService {
             plus_code: payload.restaurants.plus_code as Prisma.InputJsonValue,
           },
           payload.restaurants.google_place_id,
+          { updateImagePath },
         );
 
         // 2. 料理登録
@@ -269,12 +396,15 @@ export class CreateDishMediaEntryService {
   }
 
   /**
-   * 冪等性チェック: 既に処理済みかどうか確認
+   * #829 【設計】Cloud Tasks retry の冪等性境界。
+   *
+   * processing の同一 ID は、DB insert 後に画像保存や resize enqueue で落ちた可能性があるため再実行する。
+   * completed の同一 ID だけを return 対象にして、未完了 row の復旧余地を残す。
    */
-  private async checkIdempotency(idempotencyKey: string): Promise<boolean> {
-    // TODO: Redis や専用テーブルで冪等性キーを管理
-    // 現在は簡略化実装
-    return false;
+  private async checkIdempotency(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<boolean> {
+    return this.dishesRepository.isDishMediaCompleted(payload.dish_media.id);
   }
 
   /**

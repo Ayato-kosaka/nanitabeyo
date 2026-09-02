@@ -24,6 +24,7 @@ import { ExternalApiModule } from '../../core/external-api/external-api.module';
   ],
   controllers: [DishCategoryVariantsController],
   providers: [DishCategoryVariantsService, DishCategoryVariantsRepository],
-  exports: [DishCategoryVariantsService],
+  // #1399 SNS import の候補生成が辞書を全件読むため Repository も公開する
+  exports: [DishCategoryVariantsService, DishCategoryVariantsRepository],
 })
 export class DishCategoryVariantsModule {}

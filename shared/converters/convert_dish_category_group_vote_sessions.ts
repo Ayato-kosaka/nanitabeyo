@@ -16,6 +16,8 @@ export function convertSupabaseToPrisma_DishCategoryGroupVoteSessions(supabase: 
     id: supabase.id,
     host_user_id: supabase.host_user_id,
     share_token: supabase.share_token,
+    // #1507 GRP-14 冪等キー。既存行は NULL
+    idempotency_key: supabase.idempotency_key,
     search_context: supabase.search_context,
     created_at: new Date(supabase.created_at),
     updated_at: new Date(supabase.updated_at),
@@ -32,6 +34,7 @@ export function convertPrismaToSupabase_DishCategoryGroupVoteSessions(prisma: Pr
     id: prisma.id,
     host_user_id: prisma.host_user_id,
     share_token: prisma.share_token,
+    idempotency_key: prisma.idempotency_key,
     search_context: prisma.search_context,
     created_at: prisma.created_at?.toISOString() ?? null,
     updated_at: prisma.updated_at?.toISOString() ?? null,

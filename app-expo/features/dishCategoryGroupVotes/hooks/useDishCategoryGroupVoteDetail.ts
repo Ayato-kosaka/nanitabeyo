@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DishCategoryGroupVoteDetailResponse } from "@shared/api/v1/res";
 import { useAPICall } from "@/hooks/useAPICall";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 export function useDishCategoryGroupVoteDetail(shareToken?: string) {
 	const { callBackend } = useAPICall();
@@ -39,7 +40,7 @@ export function useDishCategoryGroupVoteDetail(shareToken?: string) {
 			setError(null);
 			return nextDetail;
 		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
+			const message = toErrorLogMessage(err);
 			if (!hadDetail) {
 				setError(message);
 			}

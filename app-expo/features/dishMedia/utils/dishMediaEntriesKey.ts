@@ -28,8 +28,10 @@ export function makeDishMediaEntriesKey(params: {
 	radius: number;
 	priceLevels: string[];
 	languageCode?: string;
+	/** #817 端末言語でレビューの並びが変わるため、キーに含めないと言語切替で古い結果が残る */
+	viewerLanguageCode?: string;
 }): string {
-	const { categoryId, location, radius, priceLevels, languageCode } = params;
+	const { categoryId, location, radius, priceLevels, languageCode, viewerLanguageCode } = params;
 
 	// #633 【設計】location は緯度経度 or place_id で表現
 	const locationKey =
@@ -42,7 +44,8 @@ export function makeDishMediaEntriesKey(params: {
 	const priceLevelsKey = sortedPriceLevels.join(",");
 
 	const languageCodeKey = languageCode ?? "default";
+	const viewerLanguageKey = viewerLanguageCode ?? "default";
 
 	// #633 【設計】各要素を | で結合（可読性とデバッグのため）
-	return `cat:${categoryId}|loc:${locationKey}|r:${radius}|pr:${priceLevelsKey}|lang:${languageCodeKey}`;
+	return `cat:${categoryId}|loc:${locationKey}|r:${radius}|pr:${priceLevelsKey}|lang:${languageCodeKey}|vlang:${viewerLanguageKey}`;
 }

@@ -1,12 +1,4 @@
-import {
-	IsArray,
-	IsIn,
-	IsNotEmpty,
-	IsOptional,
-	IsString,
-	IsUUID,
-	ValidateNested,
-} from "class-validator";
+import { IsArray, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 
 export const DishCategoryGroupVoteReactions = ["like", "dislike"] as const;

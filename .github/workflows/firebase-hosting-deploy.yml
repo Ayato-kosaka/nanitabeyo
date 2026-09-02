@@ -33,14 +33,21 @@ jobs:
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # #1375 20 のままだと EAS CLI のインストールが必ず失敗する。
+          # `eas-cli latest` は Node >= 22 を要求する（実測: @oclif/plugin-autocomplete が
+          # 「The engine "node" is incompatible … Expected ">=22.0.0". Got "20.20.2"」で落ちる）。
+          # eas-update.yml / eas-build-preview-prod.yml は先に直したが、**この 3 本が残っていた**。
+          node-version: "22"
           cache: "pnpm"
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🗺️ Generate Sitemap
-        run: WEB_BASE_URL=${{ vars.WEB_BASE_URL }} node scripts/gen-sitemap.mjs
+      # 🗺️ sitemap.xml は app-expo の build:web が生成する
+      #    （app-expo/scripts/generate-sitemap.mjs）。
+      #    かつてここで scripts/gen-sitemap.mjs を呼んでいたが、#281 で生成器が
+      #    2 本になり、後から走る build:web が旧出力を上書きする状態になっていた。
+      #    生成器は 1 本に統一したので、ここでの明示実行は不要。
 
       # Build our shared library so it emits .d.ts / .js into shared/dist
       - name: 📚 Build shared package
@@ -63,51 +70,148 @@ jobs:
       - name: 🏗️ Build Web App
         run: pnpm --filter app-expo build:web
 
-      # 【デプロイ前ゲート】firebase.json の rewrite 先が dist に実在するかを静的に検証する。
-      # 過去に「expo export の出力形式変更(X.html → X/index.html)に rewrite が追従せず、
-      # 本番の主要 4 タブへの直リンクが 404 になる」事故が起きたための再発防止。
-      # ブラウザ不要・数秒で完了する(e2e-web/tests/config/firebase-rewrites.spec.ts)
-      - name: 🔍 Verify firebase.json rewrites match dist
+      # 【デプロイ前ゲート】ビルド成果物(dist)そのものを見る静的検証。ブラウザ不要・数秒で完了する。
+      #   - firebase.json の rewrite 先が dist に実在するか
+      #     (expo export の出力形式変更に rewrite が追従せず、本番の主要 4 タブへの
+      #      直リンクが 404 になった事故の再発防止 / tests/config/firebase-rewrites.spec.ts)
+      #   - #1783 SSG の HTML に負の width/height が焼き付いていないか
+      #     (SSG 時のウィンドウ幅 0 由来。ハイドレーションでは直らないため web で要素が
+      #      消える / tests/config/static-render-sizes.spec.ts)
+      - name: 🔍 Verify dist against firebase.json rewrites and static render sizes
         run: pnpm --filter e2e-web exec playwright test --project=config
 
       - name: 📄 Generate app-ads.txt from secret
         working-directory: app-expo
         run: echo "${{ secrets.ADMOB_APP_ADS_TXT }}" > dist/app-ads.txt
 
-      - name: 🚀 Deploy to Firebase Hosting
-        id: firebase_deploy
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
-          projectId: ${{ secrets.FIREBASE_PROJECT_ID_PROD }}
-          channelId: ${{ github.event.inputs.target == 'production' && 'live' || github.event.inputs.target }}
-
-      # 【デプロイ後検証】デプロイされたばかりの URL に対して @smoke(起動・直リンク)を実行する。
-      # production は本番ドメイン、preview/development はプレビューチャンネル URL を対象にする。
-      # スモークは NestJS API を呼ばないため、プレビュー URL が API の CORS_ORIGIN に
-      # 含まれていなくても成立する
+      # #721 デプロイ先のサイトと、スモークの対象 URL を環境ごとに決める。
       #
-      # 注意: このワークフローは target 未指定で firebase.json の全 Hosting サイト
-      # (food-scroll と app-nanitabeyo-net の 2 つ)をデプロイするため、アクションの
-      # details_url(= urls[0])は並び順先頭の food-scroll(本番へ 301 リダイレクトするだけの
-      # サイト)のプレビュー URL になってしまう。それを対象にするとリダイレクト先の本番を
-      # テストして green になり「デプロイしたばかりのアプリを検証していない」ことになるため、
-      # urls 配列から app-nanitabeyo-net の URL を明示的に選択する(見つからなければ fail)
-      - name: 🔎 Resolve smoke test URL
-        id: smoke_url
+      # ## action-hosting-deploy をやめた理由
+      # あのアクションの `target` は **1 サイトしか渡せない**。以前は `--only` を
+      # まったく付けずに firebase.json の全サイトを一度に出していたが、そこへ
+      # dev 用サイト(nanitabeyo-dev)を足すと、production デプロイのときに
+      # 本番ビルド（本番 API を向いた bundle）が dev サイトへも載ってしまう。
+      # dev サイトの /s/** は api-development を向いているので、中身と rewrite の
+      # 向き先がちぐはぐな状態になる。複数サイトを名指しするため CLI を直接叩く。
+      #
+      # production の対象は従来と同じ 3 サイトなので、**本番の挙動は変えていない**。
+      #
+      # ## development を preview チャンネルにしない理由
+      # preview チャンネルの URL には hash が入り、既定 7 日で失効する。作り直すと
+      # hash が変わるので、WEB_BASE_URL も API の CORS_ORIGIN も固定できなかった。
+      # 専用サイトの live チャンネルなら https://nanitabeyo-dev.web.app で不変になる。
+      # なお CORS_ORIGIN 側だけは `https://nanitabeyo-dev--preview-*.web.app` の
+      # ワイルドカード指定に対応済み（api/src/core/config/cors-origin.ts）。
+      # WEB_BASE_URL は依然として 1 つの固定 URL しか持てないため、上の判断は変わらない。
+      #
+      # ## ⚠️ preview を development と同じ扱いにしないこと
+      # target は 3 つある。`production 以外はすべて else` にすると、**preview を流した
+      # だけで development の配信が置き換わる**。preview は EAS の preview 環境変数で
+      # bundle を作るのに対し、nanitabeyo-dev の `/s/**` rewrite は api-development を
+      # 向いたままなので、クライアントと共有リンクで環境がちぐはぐになる。
+      # preview は従来どおり **チャンネル**（live ではない）へ出す。
+      - name: 🎯 デプロイ対象と検証 URL を決める
+        id: plan
         env:
           DEPLOY_TARGET: ${{ github.event.inputs.target }}
           WEB_BASE_URL: ${{ vars.WEB_BASE_URL }}
-          DEPLOY_URLS: ${{ steps.firebase_deploy.outputs.urls }}
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
-          if [ "$DEPLOY_TARGET" = "production" ]; then
-            url="$WEB_BASE_URL"
+          set -euo pipefail
+          case "$DEPLOY_TARGET" in
+            production)
+              echo "channel=live" >> "$GITHUB_OUTPUT"
+              echo "only=hosting:food-scroll,hosting:app-nanitabeyo-net,hosting:oia-relay" >> "$GITHUB_OUTPUT"
+              echo "url=${WEB_BASE_URL}" >> "$GITHUB_OUTPUT"
+              ;;
+            development)
+              echo "channel=live" >> "$GITHUB_OUTPUT"
+              echo "only=hosting:nanitabeyo-dev" >> "$GITHUB_OUTPUT"
+              echo "url=https://nanitabeyo-dev.web.app" >> "$GITHUB_OUTPUT"
+              ;;
+            preview)
+              # 使い捨ての確認用。live は踏まないので development の配信に影響しない。
+              # URL は毎回変わるため、デプロイ後に出力から拾う（url はここでは決めない）
+              #
+              # #1485 のレビューで発覚: チャンネルIDが固定文字列 "preview" だと、
+              # 複数ブランチが同時に preview を流したとき **同じURL・同じチャンネル**を
+              # 取り合い、後から流した方が先の内容を無条件に上書きしてしまう
+              # （実際に別ブランチの確認用デプロイに上書きされ、無関係な画面が出た）。
+              # ブランチ名から一意なチャンネルIDを作り、ブランチごとに専用URLへ分離する。
+              slug=$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/-+/-/g; s/^-+//; s/-+$//')
+              channel="pr-${slug}"
+              # Firebase のチャンネルIDは 63 文字以内。切り詰めで末尾がハイフンになる場合を除去する
+              channel=$(echo "${channel:0:63}" | sed -E 's/-+$//')
+              # ブランチ名が記号のみ等でslugが空になる場合の保険（コミットSHAで一意性を確保）
+              if [ -z "$slug" ]; then
+                channel="pr-${GITHUB_SHA:0:12}"
+              fi
+              echo "channel=$channel" >> "$GITHUB_OUTPUT"
+              echo "only=nanitabeyo-dev" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::未知の target です: ${DEPLOY_TARGET}"
+              exit 1
+              ;;
+          esac
+
+      - name: 🔑 Firebase 認証情報を用意
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GCP_SA_KEY" > "${RUNNER_TEMP}/firebase-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=${RUNNER_TEMP}/firebase-sa.json" >> "$GITHUB_ENV"
+
+      - name: 🚀 Deploy to Firebase Hosting
+        id: firebase_deploy
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.plan.outputs.channel }}" = "live" ]; then
+            pnpm dlx firebase-tools@latest deploy \
+              --only "${{ steps.plan.outputs.only }}" \
+              --project "${{ secrets.FIREBASE_PROJECT_ID_PROD }}" \
+              --non-interactive
+            echo "デプロイ先: ${{ steps.plan.outputs.only }} (live)"
           else
-            url=$(echo "$DEPLOY_URLS" | jq -r '.[] | select(contains("app-nanitabeyo-net"))' | head -n 1)
+            # `deploy --only hosting:x` は必ず live へ出るので、チャンネルは
+            # hosting:channel:deploy を使う。URL は毎回変わるので JSON で受け取る
+            pnpm dlx firebase-tools@latest hosting:channel:deploy \
+              "${{ steps.plan.outputs.channel }}" \
+              --only "${{ steps.plan.outputs.only }}" \
+              --project "${{ secrets.FIREBASE_PROJECT_ID_PROD }}" \
+              --expires 7d \
+              --non-interactive \
+              --json > "${RUNNER_TEMP}/channel.json"
+            url=$(jq -r '[.result[] | .url] | first // empty' "${RUNNER_TEMP}/channel.json")
+            if [ -z "$url" ]; then
+              echo "::error::preview チャンネルの URL を取得できませんでした"
+              cat "${RUNNER_TEMP}/channel.json"
+              exit 1
+            fi
+            echo "channel_url=$url" >> "$GITHUB_OUTPUT"
+            echo "デプロイ先: ${{ steps.plan.outputs.only }} (channel: ${{ steps.plan.outputs.channel }}) -> $url"
+          fi
+
+      - name: 🧹 Firebase 認証情報を破棄
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/firebase-sa.json"
+
+      # 【デプロイ後検証】デプロイされたばかりの URL に対して @smoke(起動・直リンク)を実行する。
+      # URL が環境ごとに固定になったので、以前のような urls 配列からの選別は不要になった
+      # （旧実装は先頭が food-scroll(本番へ 301 するだけのサイト)になり、リダイレクト先の
+      #   本番をテストして green になる、という取り違えを避けるための細工が要っていた）。
+      - name: 🔎 Resolve smoke test URL
+        id: smoke_url
+        run: |
+          set -euo pipefail
+          # live は plan で決めた固定 URL、preview はデプロイ出力から拾った URL
+          url="${{ steps.plan.outputs.url }}"
+          if [ -z "$url" ]; then
+            url="${{ steps.firebase_deploy.outputs.channel_url }}"
           fi
           if [ -z "$url" ]; then
-            echo "::error::スモーク対象 URL を解決できませんでした(urls: $DEPLOY_URLS)"
+            echo "::error::スモーク対象 URL を解決できませんでした"
             exit 1
           fi
           echo "url=$url" >> "$GITHUB_OUTPUT"

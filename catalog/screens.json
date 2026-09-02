@@ -1,0 +1,1733 @@
+{
+	"$comment": "UI カタログ（画面一覧）の唯一の情報源。e2e-web / e2e-mobile の catalog spec と catalog/generate-catalog.mjs が共通で読む。id がそのままスクリーンショット名（web: <id>.png / mobile: <id>-<platform>.png）になるため、公開 URL だけを見ても画面が分かる命名にすること。platforms.<web|mobile>.capture は auto=必ず撮る / optional=実データ次第 / manual=自動取得の対象外。",
+	"schemaVersion": 1,
+	"defaultLocale": "ja-JP",
+	"screens": [
+		{
+			"id": "search-form",
+			"name": "検索フォーム（さがすタブ）",
+			"route": "/[locale]/search",
+			"url": "/ja-JP/search",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "アプリの起動直後に表示される既定タブ。場所・時間帯・シーンを指定して料理を検索する入口。",
+			"from": [
+				"起動（/ → /[locale] へロケールリダイレクト）",
+				"タブバー「さがす」",
+				"料理提案画面から戻る"
+			],
+			"to": [
+				"料理提案（検索実行）",
+				"食べたい/食べたタブ",
+				"マイページタブ"
+			]
+		},
+		{
+			"id": "search-form-advanced-open",
+			"name": "検索フォーム（詳細条件を展開）",
+			"route": "/[locale]/search",
+			"url": "/ja-JP/search",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "詳細条件トグル（search-advanced-toggle）を開いた状態。距離スライダー・予算・食べたい系統などが表示される",
+			"description": "同一 URL 内の UI 状態。検索条件の詳細（距離・予算・味/主素材の系統など）を展開したところ。",
+			"from": [
+				"検索フォーム"
+			],
+			"to": [
+				"料理提案（検索実行）"
+			]
+		},
+		{
+			"id": "search-form-location-suggestions",
+			"name": "検索フォーム（場所サジェスト表示）",
+			"route": "/[locale]/search",
+			"url": "/ja-JP/search",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "場所入力欄に文字を入れ、オートコンプリートの候補リストが開いた状態",
+			"description": "同一 URL 内の UI 状態。Google Places 由来の場所候補を選ぶと検索の必須項目「場所」が確定する。",
+			"from": [
+				"検索フォーム"
+			],
+			"to": [
+				"検索フォーム（場所確定）"
+			]
+		},
+		{
+			"id": "onboarding-step1",
+			"name": "オンボーディング 1/3（そもそも何食べたいか決まらない）",
+			"route": "/[locale]/onboarding",
+			"url": "/ja-JP/onboarding",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "3 ステップの 1 枚目。課題文は表示と同時に下から上へフェードインし、右下の矢印を押すと解決フェーズへ切り替わる（自動では切り替わらない）",
+			"description": "共感写真を全面に敷き、課題「そもそも何食べたいか決まらない」を提示する。解決フェーズでは黒の半透明オーバーレイの上に「提案されたオススメの料理の中から選ぶだけ」と料理提案の図が重なる。",
+			"from": ["検索フォーム（初回訪問）", "検索フォームのヘルプボタン（？）"],
+			"to": ["オンボーディング 2/3"]
+		},
+		{
+			"id": "onboarding-step2",
+			"name": "オンボーディング 2/3（お店の候補が多すぎて、決めるの疲れるなぁ）",
+			"route": "/[locale]/onboarding",
+			"url": "/ja-JP/onboarding",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "3 ステップの 2 枚目（1 枚目の解決フェーズで矢印をもう一度押すと着く）",
+			"description": "課題「お店の候補が多すぎて、決めるの疲れるなぁ」に対し、「厳選したお店から選ぶから決めやすい！」を、地図上の候補と厳選された店舗カードの図で示す。",
+			"from": ["オンボーディング 1/3"],
+			"to": ["オンボーディング 3/3"]
+		},
+		{
+			"id": "onboarding-step3",
+			"name": "オンボーディング 3/3（友達の意見も聞きたいなぁ）",
+			"route": "/[locale]/onboarding",
+			"url": "/ja-JP/onboarding",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "3 ステップの 3 枚目（最終）",
+			"description": "課題「友達の意見も聞きたいなぁ」に対し、「友達と多数決で料理を決められる！」を投票結果の図で示す。解決フェーズで矢印をもう一度押すと既存ログイン画面へ進む。",
+			"from": ["オンボーディング 2/3"],
+			"to": ["ログイン"]
+		},
+		{
+			"id": "onboarding-location",
+			"name": "オンボーディング 位置情報許可",
+			"route": "/[locale]/onboarding/location",
+			"url": "/ja-JP/onboarding/location",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "未回答のときだけ表示され、画面表示と同時に OS の位置情報許可ダイアログが出る。中央に OS ダイアログを模したダミーを描き、おすすめの選択肢を強調する。回答済みなら表示されずに次へ進む",
+			"description": "「近くのお店を、すぐ見つけよう 📍」。許可 / 拒否のどちらでも次へ進む。ログイン済みなら通知許可へ、未ログインなら Welcome へ分岐する。",
+			"from": ["ログイン（ログイン / スキップ）"],
+			"to": ["オンボーディング 通知許可", "オンボーディング Welcome"]
+		},
+		{
+			"id": "onboarding-notifications",
+			"name": "オンボーディング 通知許可",
+			"route": "/[locale]/onboarding/notifications",
+			"url": "/ja-JP/onboarding/notifications",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "未回答のときだけ表示され、画面表示と同時に OS の通知許可ダイアログが出る（ログイン済みのみ到達する）。中央に OS ダイアログを模したダミーを描き、「許可」を強調する。回答済みなら表示されずに次へ進む",
+			"description": "「食べたいを、見逃さない 🔔」。ログインをスキップしたユーザーはこの画面を通らない。許可 / 拒否のどちらでも次へ進む。",
+			"from": ["オンボーディング 位置情報許可"],
+			"to": ["オンボーディング Welcome"]
+		},
+		{
+			"id": "onboarding-welcome",
+			"name": "オンボーディング Welcome",
+			"route": "/[locale]/onboarding/welcome",
+			"url": "/ja-JP/onboarding/welcome",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "ロゴ周辺にクラッカーが弾ける完了演出",
+			"description": "「なに食べよへようこそ！」。「はじめる」でオンボーディング完了フラグを確定してアプリ本体へ戻る。本体表示の直後に ATT の許可ダイアログが出る。",
+			"from": ["オンボーディング 位置情報許可", "オンボーディング 通知許可"],
+			"to": ["検索フォーム"]
+		},
+		{
+			"id": "search-dishCategories",
+			"name": "料理提案（トピックカード）",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "検索条件から生成された料理トピックのカルーセル。カードをスワイプして選び、「この料理にする！」で結果フィードへ進む。",
+			"from": [
+				"検索フォーム（検索実行）"
+			],
+			"to": [
+				"検索結果フィード（この料理にする！）",
+				"検索フォーム（戻る）",
+				"みんなで投票（共有）"
+			]
+		},
+		{
+			"id": "search-dish-categories-tutorial-swipe",
+			"name": "料理提案チュートリアル 1/4（気になる料理を選ぼう）",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "スポットライトチュートリアルのステップ 1（testID: topics-tutorial-step-swipeAndDecide）",
+			"description": "同一 URL 内の UI 状態。左右スワイプでの見比べと「この料理にする！」の案内。",
+			"from": [
+				"料理提案（初回表示）",
+				"料理提案のヘルプボタン（？）"
+			],
+			"to": [
+				"料理提案チュートリアル 次ステップ"
+			]
+		},
+		{
+			"id": "search-dish-categories-tutorial-deep-dive",
+			"name": "料理提案チュートリアル 2/4（気分に合わせて深堀再検索）",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "スポットライトチュートリアルのステップ 2（testID: topics-tutorial-step-deepDive）",
+			"description": "同一 URL 内の UI 状態。系統を選んで近い系統で再検索できることの案内。",
+			"from": [
+				"料理提案（初回表示）",
+				"料理提案のヘルプボタン（？）"
+			],
+			"to": [
+				"料理提案チュートリアル 次ステップ"
+			]
+		},
+		{
+			"id": "search-dish-categories-tutorial-dishCategory-actions",
+			"name": "料理提案チュートリアル 3/4（好みに合わせて整理）",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "スポットライトチュートリアルのステップ 3（testID: topics-tutorial-step-topicActions）",
+			"description": "同一 URL 内の UI 状態。保存・ブロックの案内。",
+			"from": [
+				"料理提案（初回表示）",
+				"料理提案のヘルプボタン（？）"
+			],
+			"to": [
+				"料理提案チュートリアル 次ステップ"
+			]
+		},
+		{
+			"id": "search-dish-categories-tutorial-group-vote",
+			"name": "料理提案チュートリアル 4/4（友達と決める）",
+			"route": "/[locale]/search/dish-categories",
+			"url": "/ja-JP/search/dish-categories",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "スポットライトチュートリアルのステップ 4（testID: topics-tutorial-step-groupVote）",
+			"description": "同一 URL 内の UI 状態。候補を共有してみんなで投票できることの案内。",
+			"from": [
+				"料理提案（初回表示）",
+				"料理提案のヘルプボタン（？）"
+			],
+			"to": [
+				"料理提案"
+			]
+		},
+		{
+			"id": "search-result-feed",
+			"name": "検索結果フィード（料理メディア）",
+			"route": "/[locale]/search/result",
+			"url": "/ja-JP/search/result",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "選んだ料理トピックに対する店舗・料理メディアの縦フィード。いいね／保存／店舗地図への導線を持つ。",
+			"from": [
+				"料理提案（この料理にする！）"
+			],
+			"to": [
+				"料理提案（閉じる＝戻る）",
+				"店舗詳細・地図アプリ（外部）",
+				"検索結果フィード（お店の ActionSheet）"
+			]
+		},
+		{
+			"id": "search-result-action-sheet",
+			"name": "検索結果フィード（お店の ActionSheet）",
+			"route": "/[locale]/search/result",
+			"url": "/ja-JP/search/result",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon",
+					"note": "web ではカード押下の ActionSheet を出していない（ネイティブのみの UI）"
+				},
+				"mobile": {
+					"capture": "optional",
+					"session": "anon"
+				}
+			},
+			"state": "カードを押して «このお店、気になる？» の ActionSheet を開いた状態",
+			"description": "カード押下で開く、Google マップで開く／友人に共有する／キャンセルの選択肢。#1742 の «最下行がナビゲーションバーへ潜る» を Android 実機で確かめるための面でもある。",
+			"from": [
+				"検索結果フィード（カードを押す）"
+			],
+			"to": [
+				"検索結果フィード（キャンセル）",
+				"地図アプリ・共有シート（外部）"
+			]
+		},
+		{
+			"id": "search-group-vote-result",
+			"name": "みんなで投票・結果",
+			"route": "/[locale]/search/dish-category-group-votes/[shareToken]",
+			"url": "/ja-JP/search/dish-category-group-votes/<shareToken>",
+			"platforms": {
+				"web": {
+					"capture": "optional",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "optional",
+					"session": "anon"
+				}
+			},
+			"state": "共有トークンが無効な場合は読み込み失敗＋再試行ボタンの状態になる",
+			"description": "料理候補をグループで投票した結果を共有リンクで見る画面。候補の削除や再投票の導線を持つ。",
+			"from": [
+				"料理提案（みんなで投票の共有リンク）",
+				"外部で共有された URL の直接オープン"
+			],
+			"to": [
+				"みんなで投票・投票画面"
+			],
+			"note": "実データの shareToken が必要。E2E では無効トークンでのエラー状態のみ取得する（投票の新規作成は dev DB への書き込みになるため行わない）。"
+		},
+		{
+			"id": "search-group-vote-vote",
+			"name": "みんなで投票・投票",
+			"route": "/[locale]/search/dish-category-group-votes/[shareToken]/vote",
+			"url": "/ja-JP/search/dish-category-group-votes/<shareToken>/vote",
+			"platforms": {
+				"web": {
+					"capture": "optional",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "optional",
+					"session": "anon"
+				}
+			},
+			"state": "共有トークンが無効な場合は読み込み失敗＋再試行ボタンの状態になる",
+			"description": "共有リンクを受け取った人が料理候補に投票する画面。Web で開かれた場合はアプリで開き直すバナーを出す。",
+			"from": [
+				"みんなで投票・結果",
+				"外部で共有された URL の直接オープン"
+			],
+			"to": [
+				"みんなで投票・結果"
+			],
+			"note": "実データの shareToken が必要。E2E では無効トークンでのエラー状態のみ取得する。"
+		},
+		{
+			"id": "my-dishes-guest",
+			"name": "食べたい/食べたタブ（ゲスト）",
+			"route": "/[locale]/my-dishes",
+			"url": "/ja-JP/my-dishes",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "匿名ユーザー向け。ログイン誘導のみで3ビュー（Map/リスト/Calendar）や記録の導線は出ない",
+			"description": "食べたい/食べたタブの未ログイン時表示。ログインすると3ビューの shell と記録 CTA に切り替わる。",
+			"from": [
+				"タブバー「食べたい/食べた」"
+			],
+			"to": [
+				"ログイン"
+			]
+		},
+		{
+			"id": "profile-guest",
+			"name": "マイページ（ゲスト）",
+			"route": "/[locale]/profile",
+			"url": "/ja-JP/profile",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "匿名ユーザー。プロフィール要約＋縦リスト（いいね／保存した料理カテゴリ／旧設定画面の項目）",
+			"description": "プロフィールタブ。#1402 で 4 グリッドタブを廃止し、独立していた設定画面の項目もここへ統合した。匿名時はゲスト表示＋ログインボタンで、ログアウト行は出ない（Web では「レビューを書く」も非表示）。",
+			"from": [
+				"タブバー「マイページ」",
+				"URL 直リンク"
+			],
+			"to": [
+				"いいねした投稿",
+				"保存した料理カテゴリ",
+				"ログイン",
+				"ご意見・不具合",
+				"ブロック済みの料理カテゴリ",
+				"利用規約/プライバシーポリシー/ガイドライン/著作権（/legal/[doc]）"
+			]
+		},
+		{
+			"id": "profile-saved-dish-categories",
+			"name": "保存した料理カテゴリ",
+			"route": "/[locale]/profile/saved-dish-categories",
+			"url": "/ja-JP/profile/saved-dish-categories",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "保存した料理カテゴリの一覧。#1402 でマイページ内のサブタブから «単独のルート» になった（グリッドの実装 SavedTopicsTab はそのまま流用）。カードを押すと地点検索の画面へ進む。",
+			"from": [
+				"マイページ（「保存した料理カテゴリ」の行）",
+				"URL 直リンク"
+			],
+			"to": [
+				"保存料理カテゴリの地点検索",
+				"マイページ（戻る）"
+			]
+		},
+		{
+			"id": "profile-saved-dish-category-location",
+			"name": "保存料理カテゴリの地点検索",
+			"route": "/[locale]/profile/saved-dish-category-location",
+			"url": "/ja-JP/profile/saved-dish-category-location",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "保存した料理カテゴリのカードから開く地点検索（#1369 でモーダルからルートへ）。ホーム（さがすタブ）と同じ LocationAutocomplete・同じ履歴（recent_locations_v1）を使う。地点を確定すると検索結果マップへ進む。",
+			"from": [
+				"保存した料理カテゴリ"
+			],
+			"to": [
+				"マイページ由来の検索結果マップ",
+				"マイページ（戻る）"
+			],
+			"note": "本来の入口は保存済みカテゴリのカードで、検索には topicId / topicLabelEn のパラメータが要る。画面の見た目はパラメータの有無で変わらないため、カタログは直リンクで撮る。"
+		},
+		{
+			"id": "profile-liked",
+			"name": "いいねした投稿",
+			"route": "/[locale]/profile/liked",
+			"url": "/ja-JP/profile/liked",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "いいねした料理メディアの一覧。#1402 でマイページ内のタブから «単独のルート» になった（グリッドの実装 LikeTab はそのまま流用）。",
+			"from": [
+				"マイページ（「いいねした投稿」の行）",
+				"URL 直リンク"
+			],
+			"to": [
+				"料理メディアフィード（profile/food）",
+				"マイページ（戻る）"
+			]
+		},
+		{
+			"id": "auth-login",
+			"name": "ログイン",
+			"route": "/[locale]/auth/login",
+			"url": "/ja-JP/auth/login",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "ログインの唯一の実体（#1359）。Google / Apple の OAuth ボタンとリーガルリンクを持つ。かつては呼び出し 4 箇所それぞれで BlurModal として重ねていたが、1 つのルートへ統合した。`?next=` は履歴を持たない着地（コールドロード / web の OAuth 全画面リダイレクト）用の戻り先。",
+			"from": [
+				"マイページ（ゲスト）",
+				"食べたい/食べたタブ（ゲスト）",
+				"レビューのお店詳細（ゲスト）",
+				"地図のお店詳細（ゲスト）"
+			],
+			"to": [
+				"外部 IdP（Google / Apple OAuth）",
+				"利用規約・プライバシーポリシー（/legal/[doc]）"
+			]
+		},
+		{
+			"id": "legal-terms",
+			"name": "利用規約",
+			"route": "/[locale]/legal/[doc]",
+			"url": "/ja-JP/legal/terms",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "Markdown の法務文書を表示する単独ページ（#1368）。`[doc]` は guidelines / terms / privacy / copyright の 4 値で、UI は 4 文書とも同一・中身だけが異なるため代表 2 本を撮っている。かつては設定とログインがそれぞれ BlurModal で重ねていたが、共有・ブックマーク・ストア審査・SEO のために URL で指せるルートへ移した（sitemap 掲載対象）。",
+			"from": [
+				"設定",
+				"URL 直リンク（ストア審査・問い合わせ・検索結果）"
+			],
+			"to": [
+				"設定（戻る）",
+				"呼び出し元の画面（戻る）"
+			]
+		},
+		{
+			"id": "legal-privacy",
+			"name": "プライバシーポリシー",
+			"route": "/[locale]/legal/[doc]",
+			"url": "/ja-JP/legal/privacy",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "利用規約と同じルート（`/[locale]/legal/[doc]`）で `doc` だけが異なるページ。ログイン画面の同意文言からもここへ遷移する。",
+			"from": [
+				"設定",
+				"ログイン画面の同意文言のリンク",
+				"URL 直リンク"
+			],
+			"to": [
+				"設定（戻る）",
+				"ログイン（戻る）"
+			]
+		},
+		{
+			"id": "legal-not-found",
+			"name": "法務ドキュメント（公開していない doc）",
+			"route": "/[locale]/legal/[doc]",
+			"url": "/ja-JP/legal/tos",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "公開していない `doc`（例: /legal/tos）で着地した状態",
+			"description": "同一ルートのエラー状態。既定の文書へ倒すと `/legal/<任意の文字列>` が全部同じ文書の複製として 200 を返すため、not-found を出す（app-expo/lib/legalRoute.ts）。戻る導線はこの分岐の外にあり、行き止まりにはならない。",
+			"from": [
+				"URL 直リンク（誤ったリンク・古いブックマーク）"
+			],
+			"to": [
+				"設定（戻る）"
+			]
+		},
+		{
+			"id": "profile-feedback",
+			"name": "ご意見・不具合（フィードバック）",
+			"route": "/[locale]/profile/feedback",
+			"url": "/ja-JP/profile/feedback",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "フィードバック送信フォーム。送信すると GitHub issue が作られるため E2E では送信しない。",
+			"from": [
+				"設定"
+			],
+			"to": [
+				"設定（戻る）"
+			]
+		},
+		{
+			"id": "profile-blocked-dish-categories",
+			"name": "ブロック済みの料理トピック",
+			"route": "/[locale]/profile/blocked-dish-categories",
+			"url": "/ja-JP/profile/blocked-dish-categories",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "ブロックが 0 件のときは空状態（EmptyState）",
+			"description": "料理提案でブロックしたカテゴリの一覧。ここから解除できる。",
+			"from": [
+				"設定"
+			],
+			"to": [
+				"設定（戻る）"
+			]
+		},
+		{
+			"id": "not-found",
+			"name": "NotFound（404）",
+			"route": "/[locale]/+not-found",
+			"url": "/ja-JP/this-route-does-not-exist",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "optional",
+					"session": "anon",
+					"note": "ネイティブの NotFound 画面には testID が無いため、到達判定をせずに撮影する。"
+				}
+			},
+			"state": null,
+			"description": "存在しないパスに対する画面。ホームへ戻るリンクのみを持つ。",
+			"from": [
+				"不正な URL の直接オープン"
+			],
+			"to": [
+				"起動（ホーム）"
+			]
+		},
+		{
+			"id": "auth-error-fallback",
+			"name": "認証失敗フォールバック",
+			"route": "/[locale]",
+			"url": "/ja-JP",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "anon",
+					"note": "匿名サインインの失敗はブラウザのようにネットワークを差し替えて再現できないため対象外。"
+				}
+			},
+			"state": "匿名サインインが 429 等で失敗したときのエラー UI（再試行ボタン付き）",
+			"description": "起動時の匿名サインインに失敗した場合に表示される復帰用の画面（#1089）。E2E ではネットワークをスタブして再現する。",
+			"from": [
+				"起動（匿名サインイン失敗時）"
+			],
+			"to": [
+				"検索フォーム（再試行が成功した場合）"
+			]
+		},
+		{
+			"id": "search-form-en-US",
+			"name": "検索フォーム（en-US ロケール）",
+			"route": "/[locale]/search",
+			"url": "/en-US/search",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "anon",
+					"note": "ネイティブの表示言語は端末のロケール設定で決まり、CI は ja-JP に固定しているため対象外。"
+				}
+			},
+			"state": "ロケール違いの同一画面。URL の先頭セグメントが表示言語を決める",
+			"description": "多言語対応の確認用。ja-JP 以外のロケールでも同じ画面構成で英語表記になる。",
+			"from": [
+				"起動（デバイスロケールが en-US の場合）",
+				"URL 直リンク"
+			],
+			"to": [
+				"料理提案（検索実行）"
+			]
+		},
+		{
+			"id": "contribution-dish-category-image-optimizer",
+			"name": "運営ツール: 料理カテゴリ画像の最適化",
+			"route": "/[locale]/contribution-tasks/dish-category-image-optimizer",
+			"url": "/ja-JP/contribution-tasks/dish-category-image-optimizer",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "運営用ツール。料理カテゴリ画像のトリミング候補を選んで最適化する（アプリ内導線なし）。",
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
+			"to": []
+		},
+		{
+			"id": "contribution-dish-category-image-review",
+			"name": "運営ツール: 料理カテゴリ画像の差分レビュー",
+			"route": "/[locale]/contribution-tasks/dish-category-image-review",
+			"url": "/ja-JP/contribution-tasks/dish-category-image-review",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "運営用ツール。変更前後の画像を並べて差し替え可否をレビューする（アプリ内導線なし）。",
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
+			"to": []
+		},
+		{
+			"id": "contribution-dish-category-manual-image-supply",
+			"name": "協力タスク: 料理カテゴリ画像の手動供給",
+			"route": "/[locale]/contribution-tasks/dish-category-manual-image-supply",
+			"url": "/ja-JP/contribution-tasks/dish-category-manual-image-supply",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "初回は使い方チュートリアルのページが表示される",
+			"description": "ユーザー協力で料理カテゴリの画像を集める画面（アプリ内導線なし）。",
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
+			"to": []
+		},
+		{
+			"id": "contribution-dish-category-manual-text-supply",
+			"name": "協力タスク: 料理カテゴリ文言の手動改善",
+			"route": "/[locale]/contribution-tasks/dish-category-manual-text-supply",
+			"url": "/ja-JP/contribution-tasks/dish-category-manual-text-supply",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "スワイプ（Tinder 風）UI。データが尽きると「全て確認しました」表示になる",
+			"description": "ユーザー協力で料理カテゴリの title / subTitle を改善する画面（アプリ内導線なし）。",
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
+			"to": []
+		},
+		{
+			"id": "contribution-dish-copy-survey",
+			"name": "協力タスク: 料理コピー調査アンケート",
+			"route": "/[locale]/contribution-tasks/dish-copy-survey",
+			"url": "/ja-JP/contribution-tasks/dish-copy-survey",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "10 枚のカルーセル＋回答モーダル",
+			"description": "料理画像に対するタイトル・タグラインの好みを集めるアンケート（アプリ内導線なし）。",
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
+			"to": []
+		},
+		{
+			"id": "contribution-dish-ranking-summary",
+			"name": "運営ツール: 料理ランキングレビュー",
+			"route": "/[locale]/contribution-tasks/dish-ranking-summary",
+			"url": "/ja-JP/contribution-tasks/dish-ranking-summary",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "条件プルダウン＋ランキング一覧。総括コメントの入力導線を持つ",
+			"description": "運営用ツール。条件別の料理ランキングをレビューしてコメントする（アプリ内導線なし）。",
+			"from": [
+				"URL 直リンク（運営が共有）"
+			],
+			"to": []
+		},
+		{
+			"id": "profile-authenticated",
+			"name": "マイページ（ログイン済み）",
+			"route": "/[locale]/profile",
+			"url": "/ja-JP/profile",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "authenticated"
+				}
+			},
+			"state": "ログイン済み。匿名時との差分は「プロフィールを編集」ボタンと「ログアウト」行の有無",
+			"description": "ログイン済みのマイページ。#1402 で 4 グリッドタブと独立した設定画面が無くなり、匿名時との差分はヘッダーのボタン（ログイン→プロフィールを編集）と縦リスト末尾のログアウト行だけになった。",
+			"from": [
+				"タブバー「マイページ」"
+			],
+			"to": [
+				"プロフィール編集",
+				"いいねした投稿",
+				"保存した料理カテゴリ",
+				"ご意見・不具合",
+				"ブロック済みの料理カテゴリ",
+				"起動（ログアウト）"
+			]
+		},
+		{
+			"id": "profile-edit",
+			"name": "プロフィール編集",
+			"route": "/[locale]/profile/edit",
+			"url": "/ja-JP/profile/edit",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "authenticated"
+				}
+			},
+			"state": null,
+			"description": "表示名・自己紹介・アバターを編集して保存する画面（#1369 でモーダルからルートへ）。保存に成功すると元の画面へ戻る。",
+			"from": [
+				"マイページ（ログイン済み）"
+			],
+			"to": [
+				"マイページ（戻る / 保存後）"
+			],
+			"note": "編集ボタンはログイン済みのときだけ描画される（匿名時は同じ位置にログインボタンが出る）。E2E は保存を実行しない（共有 dev DB のテストユーザーを書き換えるため）。"
+		},
+		{
+			"id": "profile-food-feed",
+			"name": "料理メディアフィード（マイページ由来）",
+			"route": "/[locale]/profile/food",
+			"url": "/ja-JP/profile/food?tabName=profileLikes&startIndex=0",
+			"platforms": {
+				"web": {
+					"capture": "optional",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "optional",
+					"session": "authenticated"
+				}
+			},
+			"state": null,
+			"description": "「いいねした投稿」のグリッドから開く縦フィード。#1402 で 4 グリッドタブが廃止され、このルートへ来る導線は «いいね» だけになった。",
+			"from": [
+				"いいねした投稿"
+			],
+			"to": [
+				"マイページ（戻る）"
+			],
+			"note": "いいねが 1 件以上必要。テストユーザーのデータ次第で取得できないことがある。"
+		},
+		{
+			"id": "notifications",
+			"name": "お知らせ（通知一覧）",
+			"route": "/[locale]/notifications",
+			"url": "/ja-JP/notifications",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "authenticated"
+				}
+			},
+			"state": "ログイン済みのみタブに出る（匿名は href: null で非表示）。通知 0 件なら空状態",
+			"description": "いいね・保存などの通知一覧。画面入場時に一括既読になる。",
+			"from": [
+				"タブバー「お知らせ」（ログイン済みのみ）"
+			],
+			"to": [
+				"通知対象の料理メディアフィード（notifications/feed）"
+			]
+		},
+		{
+			"id": "my-dishes-authenticated",
+			"name": "食べたい/食べたタブ（ログイン済み）",
+			"route": "/[locale]/my-dishes",
+			"url": "/ja-JP/my-dishes",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "authenticated"
+				}
+			},
+			"state": "ログイン済み。ログイン誘導ではなく 3 ビュー（Map/リスト/Calendar）の shell と「記録する」CTA が出る",
+			"description": "食べたい/食べたタブの入口。3 ビューを切り替えられ、CTA から店舗選択画面へ進む。",
+			"from": [
+				"タブバー「食べたい/食べた」"
+			],
+			"to": [
+				"店舗選択（レビュー投稿）"
+			]
+		},
+		{
+			"id": "my-dishes-select-restaurant",
+			"name": "店舗選択（レビュー投稿）",
+			"route": "/[locale]/my-dishes/select-restaurant",
+			"url": "/ja-JP/my-dishes/select-restaurant",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "authenticated"
+				}
+			},
+			"state": "地図＋場所検索。保存済み店舗のシートを開ける",
+			"description": "レビューを書く店舗を地図から選ぶ画面。選択すると店舗詳細へ進む。",
+			"from": [
+				"食べたい/食べたタブ（ログイン済み）"
+			],
+			"to": [
+				"店舗詳細",
+				"食べたい/食べたタブ（戻る）"
+			]
+		},
+		{
+			"id": "review-restaurant-detail",
+			"name": "店舗詳細",
+			"route": "/[locale]/restaurant/[restaurantId]",
+			"url": "/ja-JP/restaurant/<restaurantId>",
+			"platforms": {
+				"web": {
+					"capture": "mutation",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "mutation",
+					"session": "authenticated"
+				}
+			},
+			"state": null,
+			"description": "アプリ唯一の店舗詳細。「写真・動画を投稿」でレビュー投稿フォームへ、レビュー一覧のグリッド押下で «その料理へのレビュー投稿» へ進む。#1411 で入札の導線（ボタン / タブ / 現在の入札額 / bid ルート）を、#1419 で Google マップ導線を落とした。どちらも #1386 の統合で到達不能だった地図タブから持ち込まれたもので、地図タブ自体も #1419 で削除した。",
+			"from": [
+				"店舗選択（レビュー投稿）",
+				"検索結果フィードの店舗導線",
+				"URL 直リンク・共有リンク"
+			],
+			"to": [
+				"レビュー投稿フォーム",
+				"店舗のレビューフィード",
+				"ログイン（ゲストが投稿を押したとき）"
+			],
+			"note": "レストラン選択で POST /v1/restaurants が走る（同一 Place は upsert のため重複しない）。#1386 でルート化そのものの検証は e2e-web の tests/my-dishes/restaurant-routes.spec.ts / e2e-mobile の tests/my-dishes/restaurant-routes.test.ts が API モック・ディープリンクで持つ。"
+		},
+		{
+			"id": "review-post-form",
+			"name": "レビュー投稿フォーム",
+			"route": "/[locale]/restaurant/[restaurantId]/review",
+			"url": "/ja-JP/restaurant/<restaurantId>/review",
+			"platforms": {
+				"web": {
+					"capture": "mutation",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "mutation",
+					"session": "authenticated"
+				}
+			},
+			"state": "マウント時に端末のメディア選択（ファイルピッカー）が起動する",
+			"description": "写真・動画とコメント・評価を入力してレビューを投稿するフォーム。",
+			"from": [
+				"店舗詳細"
+			],
+			"to": [
+				"投稿完了後のレビュー詳細（post/[id]）"
+			],
+			"note": "メディア選択は web はファイル入力、native は E2E ビルドの固定画像スタブで通す。"
+		},
+		{
+			"id": "review-dish-category",
+			"name": "料理カテゴリ選択（レビュー投稿）",
+			"route": "/[locale]/restaurant/[restaurantId]/dish-category",
+			"url": "/ja-JP/restaurant/e2e-catalog-restaurant/dish-category",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "レビュー投稿フォームから開く料理カテゴリの検索・選択（#1386 でモーダル z1100 からルートへ）。候補に無い名前はそのまま新規カテゴリとして作られる。",
+			"from": [
+				"レビュー投稿フォーム"
+			],
+			"to": [
+				"レビュー投稿フォーム（選択して戻る）"
+			],
+			"note": "この画面も店舗データを読まないため、カタログはダミー id の直リンクで撮る。候補の取得は入力後に走るので、撮影時は空の入力欄が写る。"
+		},
+		{
+			"id": "review-restaurant-feed",
+			"name": "店舗のレビューフィード",
+			"route": "/[locale]/restaurant/[restaurantId]/feed",
+			"url": "/ja-JP/restaurant/<restaurantId>/feed?initialIndex=0",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "店舗詳細のレビュー一覧（グリッド）から開く全画面フィード（#1386 でモーダル z1100 からルートへ）。ログイン済みなら「この料理にレビューを書く」から既存メディアへのレビュー投稿へ進む。",
+			"from": [
+				"URL 直リンク（#1418 でアプリ内の導線からは外した）"
+			],
+			"to": [
+				"既存メディアからのレビュー投稿",
+				"店舗詳細（×）"
+			],
+			"note": "実在する restaurantId と、その店舗に紐づく料理メディアが必要なため自動取得の対象外（0 件だと «見るものが無い» 表示になる）。#1418 でアプリ内の導線からは外したため、いまは URL 直リンクでしか着地しない。"
+		},
+		{
+			"id": "review-from-media",
+			"name": "既存メディアからのレビュー投稿",
+			"route": "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			"url": "/ja-JP/restaurant/<restaurantId>/review-from-media/<dishMediaId>",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "authenticated"
+				}
+			},
+			"state": null,
+			"description": "既に登録されている料理メディアに対して自分のレビューを追加するフォーム。",
+			"from": [
+				"店舗詳細（レビュー一覧のグリッド）",
+				"店舗のレビューフィード（この料理にレビューを書く）"
+			],
+			"to": [
+				"投稿完了後のレビュー詳細（post/[id]）"
+			],
+			"note": "#1386 で入口が «店舗詳細のグリッド直押し» から «フィードの CTA» へ変わった。実在する restaurantId と dishMediaId が必要なため自動取得の対象外。"
+		},
+		{
+			"id": "review-post-detail",
+			"name": "レビュー詳細（投稿直後）",
+			"route": "/[locale]/post/[id]",
+			"url": "/ja-JP/post/<id>",
+			"platforms": {
+				"web": {
+					"capture": "mutation",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "mutation",
+					"session": "authenticated"
+				}
+			},
+			"state": null,
+			"description": "レビュー投稿の完了後に遷移する自分の投稿の詳細画面。",
+			"from": [
+				"レビュー投稿フォーム",
+				"既存メディアからのレビュー投稿"
+			],
+			"to": [
+				"食べたい/食べたタブ（戻る）"
+			],
+			"note": "レビュー投稿（不可逆）を伴う。コメントは [E2E] プレフィックス付きで投稿する。"
+		},
+		{
+			"id": "notifications-feed",
+			"name": "通知からの料理メディアフィード",
+			"route": "/[locale]/notifications/feed",
+			"url": "/ja-JP/notifications/feed?idType=dish_media",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "通知をタップして開く料理メディアの縦フィード。",
+			"from": [
+				"お知らせ（通知一覧）"
+			],
+			"to": [
+				"お知らせ（戻る）"
+			],
+			"note": "通知が 1 件以上ある状態が前提。テストユーザーの通知有無に依存するため自動取得の対象外。"
+		},
+		{
+			"id": "posts",
+			"name": "投稿の共有ビュー（posts）",
+			"route": "/[locale]/posts",
+			"url": "/ja-JP/posts?ids=<dishMediaId>",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "anon",
+					"note": "共有リンク（Web）向けの画面。実在する dishMediaId も必要。"
+				}
+			},
+			"state": "タブバーには出ない隠しルート（href: null）。SEO 用のメタ情報を上書きする",
+			"description": "共有リンクから特定の料理メディアを見せる画面。アプリで開き直すバナーを表示する。",
+			"from": [
+				"共有リンクの直接オープン"
+			],
+			"to": [
+				"アプリ（ディープリンク）"
+			],
+			"note": "実在する dishMediaId が必要なため自動取得の対象外。"
+		},
+		{
+			"id": "profile-search-results",
+			"name": "マイページ由来の検索結果マップ",
+			"route": "/[locale]/profile/search-results",
+			"url": "/ja-JP/profile/search-results?entriesKey=<key>",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "マイページの保存トピックなどから開く、地図付きの料理メディア一覧。",
+			"from": [
+				"保存料理カテゴリの地点検索"
+			],
+			"to": [
+				"マイページ（閉じる）"
+			],
+			"note": "entriesKey に紐づくストア状態が必要（URL 直リンクでは復元されない）ため自動取得の対象外。"
+		},
+		{
+			"id": "auth-callback",
+			"name": "OAuth コールバック",
+			"route": "/[locale]/auth/callback",
+			"url": "/ja-JP/auth/callback",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "anon"
+				}
+			},
+			"state": "処理中はスピナーのみ。ID 連携の衝突時は確認ダイアログを表示する",
+			"description": "Google / Apple の OAuth 後に戻ってくる画面。セッション確立後にマイページへ遷移する。",
+			"from": [
+				"外部 IdP（Google / Apple）"
+			],
+			"to": [
+				"マイページ"
+			],
+			"note": "外部 IdP を経由しないと本来の状態にならず、E2E では OAuth 自体を自動化しない方針のため自動取得の対象外。"
+		},
+		{
+			"id": "store-redirect",
+			"name": "ストアリダイレクト",
+			"route": "/store",
+			"url": "/store",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "anon",
+					"note": "Web 専用の中継ページ。"
+				}
+			},
+			"state": "UI を持たない（即座に外部リダイレクトする）",
+			"description": "モバイルブラウザから App Store / Google Play へ、デスクトップからは Web トップへ送る中継ページ。",
+			"from": [
+				"共有リンク・広告などの外部導線"
+			],
+			"to": [
+				"App Store / Google Play（外部）",
+				"Web トップ"
+			],
+			"note": "描画要素を持たず外部サイトへ遷移するため、スクリーンショットの対象にしない。"
+		}
+	],
+	"$flowComment": "画面遷移図（Mermaid）の辺。from/to は screens[].id か、下の pseudoNodes に定義した仮想ノード id。",
+	"pseudoNodes": {
+		"app-launch": "アプリ起動（ルート /）",
+		"tab-bar": "ボトムタブバー",
+		"direct-link": "URL 直リンク・共有リンク",
+		"external-idp": "外部 IdP（Google / Apple）"
+	},
+	"flow": [
+		{
+			"from": "app-launch",
+			"to": "search-form",
+			"label": "ロケールリダイレクト"
+		},
+		{
+			"from": "app-launch",
+			"to": "auth-error-fallback",
+			"label": "匿名サインイン失敗"
+		},
+		{
+			"from": "tab-bar",
+			"to": "search-form",
+			"label": "さがす"
+		},
+		{
+			"from": "tab-bar",
+			"to": "my-dishes-guest",
+			"label": "食べたい/食べた（ゲスト）"
+		},
+		{
+			"from": "tab-bar",
+			"to": "my-dishes-authenticated",
+			"label": "食べたい/食べた（ログイン済み）"
+		},
+		{
+			"from": "tab-bar",
+			"to": "profile-guest",
+			"label": "マイページ（ゲスト）"
+		},
+		{
+			"from": "tab-bar",
+			"to": "profile-authenticated",
+			"label": "マイページ（ログイン済み）"
+		},
+		{
+			"from": "tab-bar",
+			"to": "notifications",
+			"label": "お知らせ（ログイン済みのみ）"
+		},
+		{
+			"from": "search-form",
+			"to": "search-form-advanced-open",
+			"label": "詳細条件"
+		},
+		{
+			"from": "search-form",
+			"to": "search-form-location-suggestions",
+			"label": "場所入力"
+		},
+		{
+			"from": "search-form",
+			"to": "search-dishCategories",
+			"label": "検索実行"
+		},
+		{
+			"from": "search-form",
+			"to": "onboarding-step1",
+			"label": "初回 / ？"
+		},
+		{
+			"from": "onboarding-step1",
+			"to": "onboarding-step2",
+			"label": "次へ"
+		},
+		{
+			"from": "onboarding-step2",
+			"to": "onboarding-step3",
+			"label": "次へ"
+		},
+		{
+			"from": "onboarding-step3",
+			"to": "auth-login",
+			"label": "次へ / スキップ"
+		},
+		{
+			"from": "auth-login",
+			"to": "onboarding-location",
+			"label": "ログイン / スキップ"
+		},
+		{
+			"from": "onboarding-location",
+			"to": "onboarding-notifications",
+			"label": "ログイン済み"
+		},
+		{
+			"from": "onboarding-location",
+			"to": "onboarding-welcome",
+			"label": "未ログイン"
+		},
+		{
+			"from": "onboarding-notifications",
+			"to": "onboarding-welcome",
+			"label": "回答後"
+		},
+		{
+			"from": "onboarding-welcome",
+			"to": "search-form",
+			"label": "はじめる"
+		},
+		{
+			"from": "search-dishCategories",
+			"to": "search-dish-categories-tutorial-swipe",
+			"label": "初回 / ？"
+		},
+		{
+			"from": "search-dish-categories-tutorial-swipe",
+			"to": "search-dish-categories-tutorial-deep-dive",
+			"label": "次へ"
+		},
+		{
+			"from": "search-dish-categories-tutorial-deep-dive",
+			"to": "search-dish-categories-tutorial-dishCategory-actions",
+			"label": "次へ"
+		},
+		{
+			"from": "search-dish-categories-tutorial-dishCategory-actions",
+			"to": "search-dish-categories-tutorial-group-vote",
+			"label": "次へ"
+		},
+		{
+			"from": "search-dish-categories-tutorial-group-vote",
+			"to": "search-dishCategories",
+			"label": "使ってみる"
+		},
+		{
+			"from": "search-dishCategories",
+			"to": "search-result-feed",
+			"label": "この料理にする！"
+		},
+		{
+			"from": "search-result-feed",
+			"to": "search-dishCategories",
+			"label": "閉じる"
+		},
+		{
+			"from": "search-result-feed",
+			"to": "search-result-action-sheet",
+			"label": "カードを押す"
+		},
+		{
+			"from": "search-result-action-sheet",
+			"to": "search-result-feed",
+			"label": "キャンセル"
+		},
+		{
+			"from": "search-dishCategories",
+			"to": "search-group-vote-result",
+			"label": "みんなで投票を共有"
+		},
+		{
+			"from": "search-group-vote-result",
+			"to": "search-group-vote-vote",
+			"label": "投票する"
+		},
+		{
+			"from": "my-dishes-guest",
+			"to": "auth-login",
+			"label": "ログイン"
+		},
+		{
+			"from": "auth-login",
+			"to": "external-idp",
+			"label": "Google / Apple"
+		},
+		{
+			"from": "external-idp",
+			"to": "auth-callback",
+			"label": "OAuth コールバック"
+		},
+		{
+			"from": "auth-callback",
+			"to": "profile-authenticated",
+			"label": "セッション確立"
+		},
+		{
+			"from": "profile-guest",
+			"to": "auth-login",
+			"label": "ログイン"
+		},
+		{
+			"from": "profile-guest",
+			"to": "profile-saved-dish-categories",
+			"label": "保存した料理カテゴリ"
+		},
+		{
+			"from": "profile-guest",
+			"to": "profile-liked",
+			"label": "いいねした投稿"
+		},
+		{
+			"from": "profile-liked",
+			"to": "profile-food-feed",
+			"label": "グリッドを開く"
+		},
+		{
+			"from": "profile-saved-dish-categories",
+			"to": "profile-saved-dish-category-location",
+			"label": "保存トピックを開く"
+		},
+		{
+			"from": "profile-saved-dish-category-location",
+			"to": "profile-search-results",
+			"label": "地点を確定"
+		},
+		{
+			"from": "profile-guest",
+			"to": "legal-terms",
+			"label": "利用規約"
+		},
+		{
+			"from": "profile-guest",
+			"to": "legal-privacy",
+			"label": "プライバシーポリシー"
+		},
+		{
+			"from": "auth-login",
+			"to": "legal-privacy",
+			"label": "同意文言のプライバシーポリシー"
+		},
+		{
+			"from": "profile-guest",
+			"to": "profile-feedback",
+			"label": "ご意見・不具合"
+		},
+		{
+			"from": "profile-guest",
+			"to": "profile-blocked-dish-categories",
+			"label": "ブロック済みトピック"
+		},
+		{
+			"from": "profile-authenticated",
+			"to": "profile-edit",
+			"label": "プロフィールを編集"
+		},
+		{
+			"from": "profile-authenticated",
+			"to": "profile-liked",
+			"label": "いいねした投稿"
+		},
+		{
+			"from": "profile-authenticated",
+			"to": "profile-saved-dish-categories",
+			"label": "保存した料理カテゴリ"
+		},
+		{
+			"from": "my-dishes-authenticated",
+			"to": "my-dishes-select-restaurant",
+			"label": "レビューを投稿する"
+		},
+		{
+			"from": "my-dishes-select-restaurant",
+			"to": "review-restaurant-detail",
+			"label": "店舗を選ぶ"
+		},
+		{
+			"from": "review-restaurant-detail",
+			"to": "review-post-form",
+			"label": "写真・動画を投稿する"
+		},
+		{
+			"from": "review-restaurant-detail",
+			"to": "review-from-media",
+			"label": "レビューのグリッドを押す"
+		},
+		{
+			"from": "review-restaurant-feed",
+			"to": "review-from-media",
+			"label": "この料理にレビューを書く"
+		},
+		{
+			"from": "review-post-form",
+			"to": "review-dish-category",
+			"label": "料理カテゴリを選ぶ"
+		},
+		{
+			"from": "review-post-form",
+			"to": "review-post-detail",
+			"label": "投稿完了"
+		},
+		{
+			"from": "review-from-media",
+			"to": "review-post-detail",
+			"label": "投稿完了"
+		},
+		{
+			"from": "notifications",
+			"to": "notifications-feed",
+			"label": "通知をタップ"
+		},
+		{
+			"from": "direct-link",
+			"to": "posts",
+			"label": "投稿の共有リンク"
+		},
+		{
+			"from": "direct-link",
+			"to": "search-group-vote-vote",
+			"label": "投票の共有リンク"
+		},
+		{
+			"from": "direct-link",
+			"to": "not-found",
+			"label": "不正な URL"
+		},
+		{
+			"from": "direct-link",
+			"to": "legal-terms",
+			"label": "/[locale]/legal/terms（sitemap 掲載）"
+		},
+		{
+			"from": "direct-link",
+			"to": "legal-not-found",
+			"label": "公開していない /legal/<doc>"
+		},
+		{
+			"from": "direct-link",
+			"to": "store-redirect",
+			"label": "/store"
+		},
+		{
+			"from": "direct-link",
+			"to": "search-form-en-US",
+			"label": "他ロケールの URL"
+		},
+		{
+			"from": "direct-link",
+			"to": "contribution-dish-category-image-optimizer",
+			"label": "運営ツール"
+		},
+		{
+			"from": "direct-link",
+			"to": "contribution-dish-category-image-review",
+			"label": "運営ツール"
+		},
+		{
+			"from": "direct-link",
+			"to": "contribution-dish-category-manual-image-supply",
+			"label": "協力タスク"
+		},
+		{
+			"from": "direct-link",
+			"to": "contribution-dish-category-manual-text-supply",
+			"label": "協力タスク"
+		},
+		{
+			"from": "direct-link",
+			"to": "contribution-dish-copy-survey",
+			"label": "協力タスク"
+		},
+		{
+			"from": "direct-link",
+			"to": "contribution-dish-ranking-summary",
+			"label": "運営ツール"
+		}
+	],
+	"$captureLevels": {
+		"auto": "必ず撮る",
+		"optional": "実データ次第で撮れないことがある（撮れなくてもジョブは失敗させない）",
+		"mutation": "dev DB へ書き込むフローのため RUN_MUTATION=1 のときだけ撮る",
+		"manual": "自動取得の対象外（理由は note）"
+	}
+}

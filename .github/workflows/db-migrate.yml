@@ -1,0 +1,350 @@
+name: DB Migrate
+
+# ==============================================================================
+# dev / public スキーマへの migration 適用。dev 適用時のみ schema.prisma / Prisma Client /
+# shared/supabase/database.types.ts を再生成し、shared がビルドできることを検算してから commit する。
+#
+# ## ⚠️ public への適用は本番 DB の変更です
+#
+# このリポジトリの本番と開発は「別 DB」ではなく **同じ DB の別スキーマ**
+# （本番 = public / 開発 = dev / test）です。適用先を choice で選び、対象外の
+# アプリケーションスキーマへ migration が漏れていないことを事後に検算します。
+#
+# 三重にしてあります。**どれも外さないこと。**
+#
+# 1. `DB_SCHEMA` は `dev` / `public` の choice のみ許可します。
+#    `scripts/apply-migration.sh` は `SET search_path TO $DB_SCHEMA, extensions` を
+#    流してから各ファイルを実行するので、スキーマ修飾のない DDL は選択先に落ちます。
+#
+# 2. 適用前に、対象ファイルが **スキーマ固定を自力で外していないか**を静的に検査します。
+#    対象外スキーマの明示修飾や `SET search_path` の再設定を含むファイルがあれば止めます。
+#
+# 3. 適用の前後で **対象外スキーマのオブジェクト一覧のハッシュ**を取り、
+#    差分があれば失敗させます（dev 適用時は public、public 適用時は dev を検算）。
+#
+# なお migration はテーブルを作るので、資格情報には選択先スキーマへ CREATE できる権限が
+# 要ります。`secrets.POSTGRES_DATABASE_URL` には migration 用の接続文字列を登録してください。
+#
+# ## なぜ Actions でやるのか
+# migration は「誰かのローカルから流す」と、いつ・どのファイルまで当たったのかが
+# 記録に残りません。dispatch のログが残る形にしておくと、後から追えます。
+#
+# ## 実適用（dry_run=false）は main ブランチからのみ
+# 2026-08 に、機能ブランチ（#1469）から dev へ migration を先行適用した結果、
+# 「dev の schema と噛み合うコードがそのブランチにしか無く、api-development を
+# main からデプロイできない」状態が発生しました。以後、DB 変更は
+# «migration だけの小 PR を先に main へマージ → main からこの workflow で適用»
+# という migration-first 運用に固定します（infra/supabase/migrations/README.md）。
+# ブランチからは dry_run のみ許可します（適用対象と検査の事前確認用）。
+# ==============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_schema:
+        description: "migration の適用先スキーマ（public は本番）"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - public
+      from_file:
+        description: "適用を開始する migration ファイル名（例: 20260807T0000_create_share_links.sql）。このファイル以降が順に適用されます"
+        required: true
+        type: string
+      dry_run:
+        description: "true なら適用せず、対象ファイルと接続先の確認だけ行う"
+        required: false
+        default: true
+        type: boolean
+      regenerate_prisma:
+        description: "dev 適用後に prisma db pull / generate を実行し、差分をこのブランチへ commit する"
+        required: false
+        default: true
+        type: boolean
+      confirm_public:
+        description: "public へ実適用する場合のみ true にする（dry run では不要）"
+        required: false
+        default: false
+        type: boolean
+
+# dev / public は同じ DB なので、同時に 2 本流れないよう直列化する
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: ${{ inputs.target_schema }} スキーマへ migration を適用
+    runs-on: ubuntu-latest
+    # production Environment に承認ルールがあれば public 適用時に強制される
+    environment: ${{ inputs.target_schema == 'public' && 'production' || 'development' }}
+    permissions:
+      contents: write
+    env:
+      DB_SCHEMA: ${{ inputs.target_schema }}
+      PROTECTED_SCHEMA: ${{ inputs.target_schema == 'public' && 'dev' || 'public' }}
+      DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+      MIGRATION_DIR: infra/supabase/migrations
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: secret の有無を確認
+        shell: bash
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "::error::secrets.POSTGRES_DATABASE_URL が未設定です。migration 対象 DB の接続文字列を登録してください。"
+            exit 1
+          fi
+
+      - name: 実適用は main ブランチからのみ許可
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::error::実適用（dry_run=false）は main ブランチからのみ実行できます（現在: ${GITHUB_REF_NAME}）。"
+            echo "::error::migration を適用したい場合は、migration ファイルだけの小 PR を先に main へマージしてください（infra/supabase/migrations/README.md）。"
+            exit 1
+          fi
+
+      - name: public 実適用の確認
+        if: ${{ inputs.target_schema == 'public' && !inputs.dry_run }}
+        shell: bash
+        run: |
+          if [ "${{ inputs.confirm_public }}" != "true" ]; then
+            echo "::error::public への実適用には confirm_public=true が必要です。"
+            exit 1
+          fi
+
+      - name: pnpm をセットアップ
+        uses: pnpm/action-setup@v4
+
+      - name: Node をセットアップ
+        # スキーマ検査スクリプト（node）を後段で使うため、条件付きにせず常に入れる
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: psql をインストール
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: 適用対象を決める
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET="${{ inputs.from_file }}"
+          if [ ! -f "${MIGRATION_DIR}/${TARGET}" ]; then
+            echo "::error::${MIGRATION_DIR}/${TARGET} が見つかりません。"
+            exit 1
+          fi
+          ls "${MIGRATION_DIR}"/*.sql | sort | awk -v t="${MIGRATION_DIR}/${TARGET}" '$0 >= t' > /tmp/targets.txt
+          echo "── ${TARGET} 以降に適用されるファイル ──"
+          cat /tmp/targets.txt
+          echo "適用先スキーマ: ${DB_SCHEMA}"
+
+      # ── 安全ゲート 2: スキーマ固定を自力で外していないか ──────────────────
+      # apply-migration.sh は `SET search_path TO $DB_SCHEMA, extensions` を流してから
+      # 各ファイルを実行する。対象外スキーマの明示修飾と search_path の上書きを検査する。
+      - name: 対象ファイルが選択スキーマから出ようとしていないか検査
+        shell: bash
+        # 素朴な grep にしないこと。`-- 匿名ユーザーもあり public.users FK は張らない` のような
+        # 日本語コメントに引っかかり、正しい migration が流せなくなる
+        # （実際 20260623T0000_create_dish_category_group_votes.sql が該当する）。
+        # コメントと文字列リテラルを落としてから見るために専用スクリプトへ切り出してある
+        run: xargs -a /tmp/targets.txt node scripts/assert-migration-schema-scoped.mjs --target-schema "${DB_SCHEMA}"
+
+      # ── 安全ゲート 3: 事後の検算に使う対象外スキーマのスナップショット ──────
+      - name: 接続先と対象外スキーマのスナップショットを取る
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${DATABASE_URL}" -tAc "select 'user=' || current_user || ' db=' || current_database()"
+          psql "${DATABASE_URL}" -tAc "
+            select coalesce(md5(string_agg(sig, '|' order by sig)), '(empty)') from (
+              -- pg_class.relkind は text ではなく char 型。裸の || は複数の演算子候補に
+              -- 一致してしまい ERROR: operator is not unique ... || unknown で落ちる。
+              -- 連結する全項を ::text へ明示キャストすること。
+              -- また string_agg は 0 行だと NULL を返し md5(NULL) も NULL になるので、
+              -- 空スキーマでも before/after を比較できるよう外側で coalesce する。
+              select c.relkind::text || ':' || c.relname::text || ':' || count(a.attname)::text as sig
+              from pg_class c
+              join pg_namespace n on n.oid = c.relnamespace
+              left join pg_attribute a on a.attrelid = c.oid and a.attnum > 0
+              where n.nspname = '${PROTECTED_SCHEMA}'
+              group by c.relkind, c.relname
+            ) t" > /tmp/protected_before.txt
+          echo "${PROTECTED_SCHEMA} スキーマのハッシュ(before): $(cat /tmp/protected_before.txt)"
+
+      - name: dry run（適用しない）
+        if: ${{ inputs.dry_run }}
+        shell: bash
+        run: |
+          echo "dry_run=true のため適用しませんでした。"
+          echo "適用するには dry_run を false にして再実行してください。"
+
+      - name: migration を適用
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 既存の scripts/apply-migration.sh をそのまま使う（適用ロジックを二重に持たない）。
+          # あのスクリプトは scripts/.env を source するので、ここで生成する。
+          # DB_SCHEMA は choice で検証済みの値だけを書き出す
+          printf 'DATABASE_URL=%s\nDB_SCHEMA=%s\n' "${DATABASE_URL}" "${DB_SCHEMA}" > scripts/.env
+          trap 'rm -f scripts/.env' EXIT
+          bash scripts/apply-migration.sh "${{ inputs.from_file }}"
+
+      - name: 対象外スキーマが変わっていないことを検算
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${DATABASE_URL}" -tAc "
+            select coalesce(md5(string_agg(sig, '|' order by sig)), '(empty)') from (
+              -- pg_class.relkind は text ではなく char 型。裸の || は複数の演算子候補に
+              -- 一致してしまい ERROR: operator is not unique ... || unknown で落ちる。
+              -- 連結する全項を ::text へ明示キャストすること。
+              -- また string_agg は 0 行だと NULL を返し md5(NULL) も NULL になるので、
+              -- 空スキーマでも before/after を比較できるよう外側で coalesce する。
+              select c.relkind::text || ':' || c.relname::text || ':' || count(a.attname)::text as sig
+              from pg_class c
+              join pg_namespace n on n.oid = c.relnamespace
+              left join pg_attribute a on a.attrelid = c.oid and a.attnum > 0
+              where n.nspname = '${PROTECTED_SCHEMA}'
+              group by c.relkind, c.relname
+            ) t" > /tmp/protected_after.txt
+          echo "${PROTECTED_SCHEMA} スキーマのハッシュ(after) : $(cat /tmp/protected_after.txt)"
+          if ! diff -q /tmp/protected_before.txt /tmp/protected_after.txt >/dev/null; then
+            echo "::error::対象外スキーマ(${PROTECTED_SCHEMA})が変化しました。適用した SQL を確認し、必要なら手で戻してください。"
+            exit 1
+          fi
+          echo "✅ ${PROTECTED_SCHEMA} は不変"
+
+      # ── dev 適用後のみ schema.prisma / Prisma Client を再生成 ──────────────
+      - name: 依存関係をインストール
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
+        shell: bash
+        run: pnpm install --frozen-lockfile
+
+      - name: schema.prisma と Prisma Client を再生成
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
+        shell: bash
+        # scripts/db-pull.sh を呼ばないのは、あれが app-expo/.env を読むため。
+        # ここでは DATABASE_URL だけで完結する「introspect → generate」に絞る。
+        run: |
+          set -euo pipefail
+          sed "s/__SCHEMA__/${DB_SCHEMA}/g" api/prisma/schema.template.prisma > api/prisma/schema.prisma
+          pnpm -C api exec prisma db pull --schema prisma/schema.prisma --config ../prisma.config.ts
+          pnpm -C api exec prisma generate --schema prisma/schema.prisma --config ../prisma.config.ts
+
+      # ── #1575 Supabase 型も同じ commit で進める ────────────────────────────
+      # この workflow は「DB を進める唯一の actor」であり、必要な資格情報を全部持っている。
+      # 片側（schema.prisma）だけを進めて push していたことが、2026-08-23 と 08-24 の
+      # 2 回の «main が赤いまま放置» の原因だった（#1575）。両側を同じ commit で進める。
+      #
+      # `supabase gen types` はログインも SUPABASE_ACCESS_TOKEN も要らない。--db-url に
+      # 接続文字列を渡せばよく、それは既に secrets.POSTGRES_DATABASE_URL がある。
+      # CLI が postgres-meta コンテナを起動するので Docker が要るが、
+      # GitHub-hosted ubuntu runner には入っている。
+      #
+      # 出力を直接リダイレクトしないこと。途中で落ちたときに database.types.ts が
+      # 空・破損のまま残り、次の検算が「列が消えた」形で誤爆する。
+      - name: Supabase 型（database.types.ts）を再生成
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
+        shell: bash
+        env:
+          SUPABASE_CLI_VERSION: "2.115.0"
+        run: |
+          set -euo pipefail
+          npx --yes "supabase@${SUPABASE_CLI_VERSION}" gen types typescript \
+            --db-url "${DATABASE_URL}" --schema "${DB_SCHEMA}" > /tmp/database.types.ts
+          if ! grep -q "^export type Database = {" /tmp/database.types.ts; then
+            echo "::error::supabase gen types の出力が想定の形ではありません。生成を中止します。"
+            head -20 /tmp/database.types.ts
+            exit 1
+          fi
+          mv /tmp/database.types.ts shared/supabase/database.types.ts
+          echo "✅ shared/supabase/database.types.ts を再生成しました"
+
+      # ── 検算: push する前に、自分が main を壊していないことを確かめる ────────
+      # converters は「対象型の全プロパティを持つリテラル」を返す形なので、tsc が
+      # 「Supabase 型の列集合 ≡ Prisma 型の列集合」を強制する。つまり shared のビルドが
+      # そのまま両者の一致検査になっている（#1575 §1-1）。
+      # 失敗＝ converters の手追従が要る、ということ。
+      - name: shared がビルドできることを検算する
+        id: verify_shared
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm -F shared build 2>&1 | tee /tmp/shared-build.log
+
+      - name: 差分があればこのブランチへ commit する（dev のみ・検算が通ったときだけ）
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma && steps.verify_shared.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # scripts/.env が残っていたら絶対に commit しない（接続文字列が入っている）
+          rm -f scripts/.env api/.env
+          if git diff --quiet -- api/prisma/schema.prisma shared/prisma shared/supabase/database.types.ts; then
+            echo "schema.prisma / Prisma Client / database.types.ts に差分はありません。"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/prisma/schema.prisma shared/prisma shared/supabase/database.types.ts
+          git commit -m "chore(db): ${DB_SCHEMA} スキーマの introspect 結果を反映する (${{ inputs.from_file }})"
+          git push origin HEAD:"${GITHUB_REF_NAME}"
+
+      # ── 検算が落ちたとき: main へは push せず、退避ブランチへ逃がして run を失敗させる ──
+      # main を緑のまま保つことを最優先する。DB だけが先行する状態になるが、
+      # README 規則 3（additive のみ）の範囲なので既存コードは動き続ける。
+      # 次に dispatch したとき再 introspect されるので、取りこぼしはない。
+      - name: 検算が落ちたので退避ブランチへ逃がす
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma && steps.verify_shared.outcome == 'failure' }}
+        shell: bash
+        env:
+          # dispatch 入力を shell へ直接展開しない（コマンド注入を避ける）
+          FROM_FILE: ${{ inputs.from_file }}
+        run: |
+          set -euo pipefail
+          rm -f scripts/.env api/.env
+          ESCAPE_BRANCH="chore/db-introspect-$(basename "${FROM_FILE}" .sql)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/prisma/schema.prisma shared/prisma shared/supabase/database.types.ts
+          git commit -m "chore(db): ${DB_SCHEMA} の introspect 結果（converters の追従が未了） (${FROM_FILE})"
+          git push --force origin "HEAD:refs/heads/${ESCAPE_BRANCH}"
+
+          {
+            echo "## ⚠️ introspect 結果を main へ入れませんでした"
+            echo
+            echo "\`pnpm -F shared build\` が落ちたため、\`main\` は緑のまま保ちました。"
+            echo "**\`shared/converters/\` の手追従が要ります**（\`shared/converters/README.md\`）。"
+            echo
+            echo "生成物は \`${ESCAPE_BRANCH}\` へ退避してあります。"
+            echo "このブランチから PR を作り、converters を追従させてマージしてください。"
+            echo
+            echo '```'
+            cat /tmp/shared-build.log
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          echo "::error::shared のビルドが通らないため main へ push しませんでした。退避先: ${ESCAPE_BRANCH}（converters の追従が要ります）"
+          exit 1
+
+      - name: 適用後のテーブル一覧（先頭 40 件）
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          psql "${DATABASE_URL}" -c \
+            "select table_name from information_schema.tables where table_schema='${DB_SCHEMA}' order by 1 limit 40"

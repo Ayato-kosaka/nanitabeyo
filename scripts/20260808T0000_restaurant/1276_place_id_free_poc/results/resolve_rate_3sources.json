@@ -1,0 +1,120 @@
+{
+  "rule": "box_unique",
+  "skipped_unprobed": 0,
+  "resolve_rate": {
+    "all": {
+      "denominator": 3000,
+      "matched": 2010,
+      "rate": 0.67
+    },
+    "text_hit": {
+      "denominator": 2995,
+      "matched": 2010,
+      "rate": 0.671119
+    },
+    "in_wide_box": {
+      "denominator": 2376,
+      "matched": 2007,
+      "rate": 0.844697
+    },
+    "in_box": {
+      "denominator": 351,
+      "matched": 313,
+      "rate": 0.891738
+    },
+    "in_tight_box": {
+      "denominator": 1933,
+      "matched": 1773,
+      "rate": 0.917227
+    }
+  },
+  "decision_detail": {
+    "tight_unique_in_ab": 1728,
+    "no_candidate_in_box": 621,
+    "box_not_unique": 369,
+    "wide_unique_in_ab": 282
+  },
+  "by_source": {
+    "ifas": {
+      "all": {
+        "denominator": 631,
+        "matched": 392,
+        "rate": 0.621236
+      },
+      "text_hit": {
+        "denominator": 628,
+        "matched": 392,
+        "rate": 0.624204
+      },
+      "in_wide_box": {
+        "denominator": 454,
+        "matched": 391,
+        "rate": 0.861233
+      },
+      "in_box": {
+        "denominator": 61,
+        "matched": 55,
+        "rate": 0.901639
+      },
+      "in_tight_box": {
+        "denominator": 349,
+        "matched": 322,
+        "rate": 0.922636
+      }
+    },
+    "osm": {
+      "all": {
+        "denominator": 325,
+        "matched": 195,
+        "rate": 0.6
+      },
+      "text_hit": {
+        "denominator": 324,
+        "matched": 195,
+        "rate": 0.601852
+      },
+      "in_wide_box": {
+        "denominator": 253,
+        "matched": 194,
+        "rate": 0.766798
+      },
+      "in_box": {
+        "denominator": 0,
+        "matched": 0,
+        "rate": 0.0
+      },
+      "in_tight_box": {
+        "denominator": 209,
+        "matched": 181,
+        "rate": 0.866029
+      }
+    },
+    "overture": {
+      "all": {
+        "denominator": 2044,
+        "matched": 1423,
+        "rate": 0.696184
+      },
+      "text_hit": {
+        "denominator": 2043,
+        "matched": 1423,
+        "rate": 0.696525
+      },
+      "in_wide_box": {
+        "denominator": 1669,
+        "matched": 1422,
+        "rate": 0.852007
+      },
+      "in_box": {
+        "denominator": 290,
+        "matched": 258,
+        "rate": 0.889655
+      },
+      "in_tight_box": {
+        "denominator": 1375,
+        "matched": 1270,
+        "rate": 0.923636
+      }
+    }
+  }
+}

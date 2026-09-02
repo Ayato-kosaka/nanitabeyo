@@ -1,0 +1,21 @@
+{
+	// e2e-mobile は実行時に ts-jest が TS を変換するため、
+	// この tsconfig は `pnpm typecheck` (tsc --noEmit) による型チェックと ts-jest の設定共有用。
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "CommonJS",
+		"moduleResolution": "Node",
+		"types": ["node", "jest", "detox"],
+		"noEmit": true,
+		"baseUrl": ".",
+		"paths": {
+			// #1503 直リンクスモークが回す公開ルートの一覧を app-expo / e2e-web と共有するため。
+			// 実行時の解決は jest.config.js の moduleNameMapper 側にも同じ対応を書くこと
+			//（ts-jest は tsconfig の paths を解決しない）。
+			// 参照先は react / expo / detox に依存しない純粋なモジュールに限ること。
+			"@app-expo/*": ["../app-expo/*"]
+		}
+	},
+	"include": ["tests/**/*.ts", "screens/**/*.ts", "fixtures/**/*.ts", "utils/**/*.ts"]
+}
