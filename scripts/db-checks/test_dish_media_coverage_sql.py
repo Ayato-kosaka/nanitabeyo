@@ -1,15 +1,24 @@
 """#1782 dish_media_coverage_sql.py の SQL 組み立てをガードするテスト（DB 接続なし）。
 
-usable dish_media の 5 条件・グリッド粒度・不足セルの閾値は、実 DB を叩かなくても
-生成された SQL 文字列を見れば検査できる。1 つでも条件が抜けたら赤くなることを
-このテストで保証する。
+usable dish_media の 5 条件・S2 level・JP gate カテゴリ絞り込み・不足セルの閾値は、
+実 DB を叩かなくても生成された SQL 文字列を見れば検査できる。1 つでも条件が抜けたら
+赤くなることをこのテストで保証する。
+
+area・category は当初グリッド近似 / dish_categories 全件（誤って134件と思い込んでいた）
+で実装していたが、既存の定義（S2 level 14 セル / JP gate 通過カテゴリ）に合わせて直した。
+このファイルの `S2LevelDefaultTest` / `JpGateCategoryTest` は、その既存定義から
+数値・条件がズレていないことをソース同士の突き合わせで検査する（写経ではなく参照）。
 """
 
 from __future__ import annotations
 
+import re
 import unittest
+from pathlib import Path
 
 import dish_media_coverage_sql as sut
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class UsableDishMediaConditionsTest(unittest.TestCase):
@@ -78,23 +87,78 @@ class Stage4Test(unittest.TestCase):
         self.assertNotIn("deleted_at", sql)
 
 
-class GridDegreeTest(unittest.TestCase):
-    def test_default_grid_degree_is_reflected(self) -> None:
-        sql = sut.build_area_centers_sql()
-        self.assertIn("FLOOR(latitude / 0.1)", sql)
-        self.assertIn("FLOOR(longitude / 0.1)", sql)
+class S2LevelDefaultTest(unittest.TestCase):
+    """area の単位はグリッド近似ではなく S2 セル。既定 level は新しく決めるのではなく、
+    3_4_build_restaurant_catalog.py の `--service-cell-level` 既定値に合わせる。
+    ここでは重い依存（google-cloud-bigquery）を読み込まずに済むよう、実行はせず
+    ソーステキストを正規表現で突き合わせる。
+    """
 
-    def test_custom_grid_degree_is_reflected(self) -> None:
-        sql = sut.build_area_centers_sql(0.2)
-        self.assertIn("FLOOR(latitude / 0.2)", sql)
-        self.assertIn("FLOOR(longitude / 0.2)", sql)
-        self.assertNotIn("/ 0.1", sql)
+    def test_default_s2_level_matches_service_cell_level_default(self) -> None:
+        catalog_script = (
+            REPO_ROOT
+            / "scripts/20260808T0000_restaurant/3_4_build_restaurant_catalog.py"
+        )
+        source = catalog_script.read_text(encoding="utf-8")
+        match = re.search(r'"--service-cell-level".*?default=(\d+)', source, re.DOTALL)
+        self.assertIsNotNone(
+            match,
+            "3_4_build_restaurant_catalog.py の --service-cell-level 既定値が見つからない"
+            "（ファイル構成が変わった場合はこのテストの正規表現を追随させること）",
+        )
+        self.assertEqual(int(match.group(1)), sut.DEFAULT_S2_LEVEL)
 
-    def test_stage5_and_shortage_queries_use_the_same_grid_degree(self) -> None:
-        coverage_sql = sut.build_stage5_coverage_sql(grid_degree=0.25)
-        shortage_sql = sut.build_shortage_cells_sql(grid_degree=0.25)
-        self.assertIn("FLOOR(latitude / 0.25)", coverage_sql)
-        self.assertIn("FLOOR(latitude / 0.25)", shortage_sql)
+
+class AreaCellsTempTableTest(unittest.TestCase):
+    def test_temp_table_has_s2_cell_id_and_centroid_columns(self) -> None:
+        sql = sut.build_area_cells_temp_table_sql("area_cells_tmp")
+        self.assertIn("CREATE TEMP TABLE area_cells_tmp", sql)
+        self.assertIn("s2_cell_id BIGINT", sql)
+        self.assertIn("center_lat", sql)
+        self.assertIn("center_lng", sql)
+        self.assertIn("restaurant_count", sql)
+
+    def test_no_grid_based_definition_remains(self) -> None:
+        # #1782 で撤回したグリッド近似（FLOOR(lat/cell)）が復活していないことを保証する。
+        self.assertFalse(hasattr(sut, "build_area_centers_sql"))
+        self.assertFalse(hasattr(sut, "DEFAULT_GRID_DEGREE"))
+
+
+class JpGateCategoryTest(unittest.TestCase):
+    """8_1_validate_catalogs.py の `target_categories` CTE と同じ条件で絞っているかを
+    検査する。dish_categories 全件（誤って134件と思い込んでいた実体）を使っていないことも
+    合わせて保証する。
+    """
+
+    def setUp(self) -> None:
+        self.sql = sut.jp_gate_category_select_sql()
+
+    def test_filters_by_gate_feature_type_and_jp_key_and_positive_score(self) -> None:
+        self.assertIn("feature_type = 'gate'", self.sql)
+        self.assertIn("feature_key = 'region:country:JP'", self.sql)
+        self.assertIn("score > 0", self.sql)
+
+    def test_reads_from_dish_category_features_not_all_categories(self) -> None:
+        self.assertIn("FROM dish_category_features f", self.sql)
+        self.assertIn("FROM dish_categories c", self.sql)
+
+    def test_condition_values_match_8_1_validate_catalogs_source(self) -> None:
+        # 写経ではなく参照であることを保証する: 8_1_validate_catalogs.py 側の
+        # target_categories CTE が使っている値と、ここで使っている値を突き合わせる。
+        validate_script = (
+            REPO_ROOT / "scripts/20260808T0000_restaurant/8_1_validate_catalogs.py"
+        )
+        source = validate_script.read_text(encoding="utf-8")
+        self.assertIn("target_categories AS", source)
+        self.assertIn(f"feature_type = '{sut.JP_GATE_FEATURE_TYPE}'", source)
+        self.assertIn(f"feature_key = '{sut.JP_GATE_FEATURE_KEY}'", source)
+        self.assertIn("score > 0", source)
+
+    def test_stage5_uses_jp_gate_categories_not_all_dish_categories(self) -> None:
+        sql = sut.build_stage5_coverage_sql()
+        self.assertIn("jp_gate_categories", sql)
+        self.assertIn("region:country:JP", sql)
+        self.assertNotIn("CROSS JOIN dish_categories c", sql)
 
 
 class RadiusTest(unittest.TestCase):
