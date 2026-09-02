@@ -2,6 +2,7 @@ import { SupabaseDishes } from "../../../converters/convert_dishes";
 import { SupabaseDishMedia } from "../../../converters/convert_dish_media";
 import { SupabaseDishReviews } from "../../../converters/convert_dish_reviews";
 import { RestaurantsEntity } from "./restaurants.response";
+import type { PriceBand } from "../../../utils/priceBand";
 
 /**
  * #511 【設計】メディア加工ステータスの型定義
@@ -114,6 +115,13 @@ export type DishMediaEntry = {
 		 * （`app-expo/features/myDishes/dishCategoryLabel.ts`）。
 		 */
 		categoryLabels: Record<string, string> | null;
+		/**
+		 * #1774 `restaurant × dish_category`（= この dish）単位の価格帯。
+		 * レビューが3件未満、または通貨の刻みが未確定のときは null（`averageRating` と対称）。
+		 * 境界の刻み（円は `{0, 500, 1000, 1500, 2000, 3000, 5000, 8000, 10000+}`）は
+		 * `shared/utils/priceBand.ts` の `PRICE_BAND_STEPS_CENTS` が正本。
+		 */
+		priceBand: PriceBand | null;
 	};
 	dish_media: SupabaseDishMedia & {
 		isMine: boolean;
