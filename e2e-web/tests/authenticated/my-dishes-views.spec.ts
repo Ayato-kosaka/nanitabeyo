@@ -94,6 +94,15 @@ function buildItem(status: "want" | "eaten", occurredAt: string, name: string) {
 			restaurant_id: restaurant.id,
 			category_id: "category-e2e",
 			name,
+			/*
+			#1785 【契約】一覧・chip・Feed が出す «料理の表示名» は **`dish.name` ではなく
+			`categoryLabels`** から来る（#1629 のオーナー確定。規則は
+			app-expo/features/myDishes/dishCategoryLabel.ts）。
+			ここが無いと `resolveDishCategoryLabel` が null を返し、画面には
+			料理名の代わりに «写真なし» が出る。**モックに name しか無いと、
+			アプリは正しいのにテストだけが落ちる。**
+			*/
+			categoryLabels: { ja: name, en: name },
 			reviewCount: 1,
 			averageRating: 4,
 			// 写真なしの記録でも灰色プレースホルダーにしない契約（#1375 追補2 決定3）。
