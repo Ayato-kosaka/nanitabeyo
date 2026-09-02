@@ -388,3 +388,13 @@
 - [~] **7_1 を柱1(sns-2026-08-31)で実行**して sns_coverage を再構築（BQのみ・安全）。完了で 柱1 のセルが read-only 実測(+311)どおり増えるはず。
 - **次tick**: ①7_1完了確認＋sns_coverage の柱1セル数を検算（≈期待値）②総カバレッジ = 柱1+柱2 の sns_coverage 合算で 18.4% を確認 ③**dish_media 生成側**も既知店ルートは seed_place を使う設計に（＝実プロダクト価値。#1399保存ゲートの状況を確認）④柱4(catalog自社IG 10,475店)を sns_source_account へ抽出→harvest（seed_place方式で matched 保証）。
 - **教訓（CLAUDE.md 候補）**: «頭打ち»と結論する前に «パイプラインが持っている情報を捨てていないか» を疑う。今回 discovery_seed_place_id（収集時に判明済の店）を resolve が捨てていた。危うく大レバーを残したまま «catalog天井» と誤結論しかけた。
+
+## 進捗更新 2026-09-02 06:30Z（★seed_place修正を検証完了: 13.5%→18.3% persist済み）
+- [x] **7_1(sns-2026-08-31)実行完了・sns_coverage 再構築**。canonical 実測: **総app-cells 1,150（18.3% / 6,298）・47/47県**（旧 848/13.5%）。read-only予測1,159とほぼ一致＝検証OK。
+  - 内訳: 柱1(seed_place方式)=615cells/119cat、柱2=878cells/115cat（union後1,150）。
+- **確定した成果**: discovery_seed_place_id を店に使う修正だけで、**新規discovery無しで +302セル(+35%)**。前回の«catalog天井»は誤りだったと数値で確定。
+- **次の成長レバー（優先順）**:
+  1. **柱4 = catalog自社IG 10,475店** を sns_source_account へ抽出→4_2 harvest→resolve。seed_place方式で matched 保証。都市セルの深さ＋一部新セル。
+  2. **dish_media 生成側**を seed_place 対応に（実プロダクト。#1399保存ゲートの現状確認）。
+  3. 柱2 handle無限拡張（harvest_influencer_handles）で新規インフル→新セル。
+- **オーナー**: 訂正(«大レバーあり»)を数値で確定＝18.3% persist。1行で確認だけ入れる。
