@@ -382,3 +382,9 @@
 - **真の律速は catalog網羅ではなく «既知店を捨てる pipeline»だった**。柱1(と将来の柱4=catalog自社IG 10,475店)は **discovery_seed_place_id を店として使い、resolve はカテゴリ専用** にすれば matched が桁で増える。
 - **前言撤回**: «3柱頭打ち・毎時ループ止める» 推奨は誤り。**大レバーが残っていた**。ループは続行。
 - **実装（次）**: ①7_1_build_coverage を «seed_place_id 優先» に改修→公式カバレッジを 18.4% に更新 ②dish_media 生成側も既知店ルートは seed_place を使う設計（#1399保存ゲートは別途）③柱4(10,475店)harvestで都市セルの深さ＋一部新セル。
+
+## 進捗更新 2026-09-02 05:20Z（seed_place修正を7_1へ実装・persist実行）
+- [x] **7_1_build_coverage を改修**（commit 1c21dee）: 既知店ルートは `COALESCE(discovery_seed_place_id, google_place_id)` を店にし、WHERE を `dish_category_id IS NOT NULL AND (matched OR seed_placeあり)` に。seed無しは従来通り。
+- [~] **7_1 を柱1(sns-2026-08-31)で実行**して sns_coverage を再構築（BQのみ・安全）。完了で 柱1 のセルが read-only 実測(+311)どおり増えるはず。
+- **次tick**: ①7_1完了確認＋sns_coverage の柱1セル数を検算（≈期待値）②総カバレッジ = 柱1+柱2 の sns_coverage 合算で 18.4% を確認 ③**dish_media 生成側**も既知店ルートは seed_place を使う設計に（＝実プロダクト価値。#1399保存ゲートの状況を確認）④柱4(catalog自社IG 10,475店)を sns_source_account へ抽出→harvest（seed_place方式で matched 保証）。
+- **教訓（CLAUDE.md 候補）**: «頭打ち»と結論する前に «パイプラインが持っている情報を捨てていないか» を疑う。今回 discovery_seed_place_id（収集時に判明済の店）を resolve が捨てていた。危うく大レバーを残したまま «catalog天井» と誤結論しかけた。
