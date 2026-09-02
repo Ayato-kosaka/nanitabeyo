@@ -65,6 +65,12 @@ export class RestaurantsController {
   @ApiQuery({ name: 'lng', description: '経度', type: 'number' })
   @ApiQuery({ name: 'radius', description: '半径（メートル）', type: 'number' })
   @ApiQuery({
+    name: 'q',
+    required: false,
+    description:
+      '#1395 店名の部分一致（自前 restaurants テーブル。Google Places は呼ばない）。指定時は距離順になる',
+  })
+  @ApiQuery({
     name: 'cursor',
     required: false,
     description: 'ページネーション用カーソル',

@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useLogger } from "./useLogger";
+import { toErrorLogString } from "@/lib/errorMessage";
 
 interface PerformanceTimer {
 	start: (name: string, metadata?: Record<string, any>) => void;
@@ -60,7 +61,7 @@ export const usePerformanceLogger = (): PerformanceTimer => {
 				logFrontendEvent({
 					event_name: "performance_measure",
 					error_level: "error",
-					payload: { operation: name, duration, success: false, error: String(error), ...metadata },
+					payload: { operation: name, duration, success: false, error: toErrorLogString(error), ...metadata },
 				});
 				throw error;
 			}
@@ -85,7 +86,7 @@ export const usePerformanceLogger = (): PerformanceTimer => {
 				logFrontendEvent({
 					event_name: "performance_measure_async",
 					error_level: "error",
-					payload: { operation: name, duration, success: false, error: String(error), ...metadata },
+					payload: { operation: name, duration, success: false, error: toErrorLogString(error), ...metadata },
 				});
 				throw error;
 			}

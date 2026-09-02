@@ -5,14 +5,14 @@
 # * 目的:
 #   - BigQuery API を有効化
 #   - BigQuery Dataset を作成（冪等）
-#   - ロケーション / デフォルト TTL を設定
+#   - ロケーションを設定し、デフォルト table expiration を解除する
 #
 # 使い方:
 #   chmod +x setup_logging_bigquery_dataset.sh
-#   ./setup_logging_bigquery_dataset.sh <PROJECT_ID> <DATASET_ID> <REGION> <ENV> <TTL_DAYS>
+#   ./setup_logging_bigquery_dataset.sh <PROJECT_ID> <DATASET_ID> <REGION> <ENV>
 #
 # 例:
-#   ./setup_logging_bigquery_dataset.sh food-scroll nanitabeyo_logs_dev asia-northeast1 dev 90
+#   ./setup_logging_bigquery_dataset.sh food-scroll nanitabeyo_logs_dev asia-northeast1 dev
 #
 # 必要条件:
 #   - gcloud CLI がログイン済み
@@ -29,23 +29,17 @@ PROJECT_ID="${1:-}"
 DATASET_ID="${2:-}"
 REGION="${3:-asia-northeast1}"
 ENV="${4:-dev}"
-TTL_DAYS="${5:-90}"
 
 if [[ -z "${PROJECT_ID}" || -z "${DATASET_ID}" ]]; then
   echo "❌ 引数不足です。"
-  echo "使い方: $0 <PROJECT_ID> <DATASET_ID> <REGION> <ENV> <TTL_DAYS>"
+  echo "使い方: $0 <PROJECT_ID> <DATASET_ID> <REGION> <ENV>"
   exit 1
 fi
-
-# TTL を秒に変換
-TTL_SECONDS=$((TTL_DAYS * 86400))
 
 echo "▶️  PROJECT_ID   : ${PROJECT_ID}"
 echo "▶️  DATASET_ID   : ${DATASET_ID}"
 echo "▶️  REGION       : ${REGION}"
 echo "▶️  ENV          : ${ENV}"
-echo "▶️  TTL_DAYS     : ${TTL_DAYS}"
-echo "▶️  TTL_SECONDS  : ${TTL_SECONDS}"
 echo "────────────────────────────────────────────────────────"
 
 # プロジェクトを固定
@@ -65,19 +59,21 @@ else
   bq --location="${REGION}" mk \
     --project_id="${PROJECT_ID}" \
     --dataset \
-    --default_table_expiration="${TTL_SECONDS}" \
-    --description="Logging dataset for ${ENV} environment (TTL: ${TTL_DAYS} days)" \
+    --description="Logging dataset for ${ENV} environment" \
     "${DATASET_ID}"
   echo "✅ Dataset created."
 fi
 
-# --- 3) Dataset の TTL 設定を更新（既存の場合も TTL を適用） -------------------
-echo "🔄 Updating Dataset default table expiration…"
+# --- 3) default table expiration を解除 ----------------------------------------
+# BigQuery の dataset default table expiration は VIEW にも適用されるため、
+# ログの保持期間には使用しない。保持期間が必要な場合は raw table の
+# partition expiration を明示的に設定すること。
+echo "🔄 Clearing Dataset default table expiration…"
 bq update \
   --project_id="${PROJECT_ID}" \
-  --default_table_expiration="${TTL_SECONDS}" \
+  --default_table_expiration=0 \
   "${DATASET_ID}"
-echo "✅ Dataset TTL updated to ${TTL_DAYS} days."
+echo "✅ Dataset default table expiration cleared."
 
 # --- 4) 動作チェックのための出力 ---------------------------------------------
 echo ""

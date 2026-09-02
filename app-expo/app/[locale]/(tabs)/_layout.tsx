@@ -1,15 +1,20 @@
 import { Tabs } from "expo-router";
-import { MapPinned, Bell, User, Search, Pencil } from "lucide-react-native";
+import { Bell, User, Search, UtensilsCrossed } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
+import { FixedColors } from "@/constants/Palette";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 const ICON_SIZE = 21;
 
 export default function TabLayout() {
 	const { user } = useAuth();
 	const insets = useSafeAreaInsets();
+	// #1509 タブバーは全画面に常駐する下地なので、基盤と同じ PR でテーマ対応する
+	const { colors } = useAppTheme();
 
 	return (
 		<Tabs
@@ -26,16 +31,17 @@ export default function TabLayout() {
 					height: ICON_SIZE,
 				},
 				tabBarStyle: {
-					backgroundColor: "#fff",
+					// #1509 ライトでは `#fff`（= `surface` の `#FFFFFF`）と同一色。表記だけを揃えており見た目は変わらない
+					backgroundColor: colors.surface,
 					paddingTop: 4,
-					shadowColor: "#000",
+					shadowColor: FixedColors.shadow,
 					shadowOffset: { width: 0, height: -4 },
 					shadowOpacity: 0.15,
 					shadowRadius: 24,
 					elevation: 12,
 				},
-				tabBarActiveTintColor: "#F05537",
-				tabBarInactiveTintColor: "#6B7280",
+				tabBarActiveTintColor: colors.brand,
+				tabBarInactiveTintColor: colors.textSecondary,
 			}}>
 			<Tabs.Screen
 				name="search"
@@ -52,28 +58,14 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen
-				name="map"
+				name="my-dishes"
 				options={{
-					href: null,
-					title: i18n.t("Tabs.map"),
-					tabBarLabel: i18n.t("Tabs.labels.map"),
-					tabBarButtonTestID: "tab-map",
+					title: i18n.t("Tabs.myDishes"),
+					tabBarLabel: i18n.t("Tabs.labels.myDishes"),
+					tabBarButtonTestID: "tab-my-dishes",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
-							<MapPinned size={ICON_SIZE} color={color} />
-						</View>
-					),
-				}}
-			/>
-			<Tabs.Screen
-				name="review"
-				options={{
-					title: i18n.t("Tabs.review"),
-					tabBarLabel: i18n.t("Tabs.labels.review"),
-					tabBarButtonTestID: "tab-review",
-					tabBarIcon: ({ color }) => (
-						<View style={{ marginVertical: 4 }}>
-							<Pencil size={ICON_SIZE} color={color} />
+							<UtensilsCrossed size={ICON_SIZE} color={color} />
 						</View>
 					),
 				}}
@@ -89,7 +81,18 @@ export default function TabLayout() {
 							<Bell size={ICON_SIZE} color={color} />
 						</View>
 					),
-					href: user?.is_anonymous ? null : undefined,
+					// #1092 【設計】auth 未確定(user === null)を「ゲスト」と同じ扱いに寄せる。
+					// `user?.is_anonymous` の truthy 判定だと未確定は falsy になり、通知タブが
+					// **出てから消える**（タブ本数が変わりタブバー全体が再レイアウトする）。
+					// #1419 でマップタブを削除したので、いまの本数は
+					// search / my-dishes / notifications / profile の **4 本**、ゲストでは 3 本になる。
+					// 出てから消えるより、出ない→出るの方が害が小さい。web の SSG は
+					// user === null の状態を出力するので、その観点でもこちらが安全。
+					//
+					// #1092 PR4b 【修正】判定を `user?.is_anonymous !== false` から `isGuestUser()` へ寄せた。
+					// 旧式は `is_anonymous` が undefined（型の上では optional）のときもゲストへ倒れるため、
+					// **ログイン済みなのに通知タブが出ない**が起こりうる。判定の中身と理由は lib/authGuest.ts。
+					href: isGuestUser(user) ? null : undefined,
 				}}
 			/>
 			<Tabs.Screen

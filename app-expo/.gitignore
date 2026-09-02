@@ -4,10 +4,15 @@ node_modules/
 # expo
 .expo/
 dist/
+# #1030 sentinel ゲート（scripts/assert-no-e2e-hook.mjs）用の native バンドル出力先
+dist-e2e-check/
 web-build/
 expo-env.d.ts
 
 # native
+# CNG (expo prebuild) の生成物。コミットせず都度生成する（Detox E2E ビルド等で使用）
+/android
+/ios
 *.orig.*
 *.jks
 *.p8
@@ -33,3 +38,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# エビデンス撮影（.claude/skills/evidence-video）のローカルビルド出力。
+# build-and-serve.sh が毎回生成し stop で消すが、撮影中は残るため無視する。
+dist-local/

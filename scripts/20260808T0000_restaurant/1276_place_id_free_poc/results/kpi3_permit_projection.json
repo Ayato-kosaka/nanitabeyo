@@ -1,0 +1,30 @@
+{
+  "台帳が入手できた自治体": [
+    "鹿児島市",
+    "中央区",
+    "名古屋市中区",
+    "津市"
+  ],
+  "google_places": 274,
+  "reach_without_permits": {
+    "reached": 175,
+    "rate": 0.6387
+  },
+  "reach_with_permits": {
+    "reached": 203,
+    "rate": 0.7409
+  },
+  "gain_points": 10.22,
+  "permit_rows_probed": 1317,
+  "overall": {
+    "before": {
+      "reached": 1086,
+      "rate": 0.6216
+    },
+    "after": {
+      "reached": 1124,
+      "rate": 0.6434
+    }
+  },
+  "読み方": "台帳が在る自治体では ③ が +10.2pt 上がる。全国の自治体で台帳を入手できれば、③ は 62% → 72% 前後まで行くと見積もれる。90% にはさらに別のソースが要る"
+}

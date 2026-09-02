@@ -4,6 +4,8 @@ import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
 import { EarningItem } from "../../constants";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface EarningsTabProps {
 	data: EarningItem[];
@@ -32,11 +34,17 @@ export function EarningsTab({
 	error,
 	onRetry,
 }: EarningsTabProps) {
+	const styles = useThemedStyles(createStyles);
 	const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(["paid", "pending"]);
 
+	// #1509 ステータスの色は «識別子» なのでテーマで振らない（constants/Palette.ts の FixedColors 参照）
+	// **useMemo で包まないこと。** ラベルは `i18n.t` の戻り値で、このファイルは locale を購読していない
+	// （`useLocale` を使っていない）。依存を空にして memo 化すると **初回描画の言語でラベルが固定され、
+	// 言語切り替えで更新されなくなる**。毎レンダー作り直しているのは現在の locale を反映し続けるためである。
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- 上記のとおり毎レンダー作り直すのが正しい
 	const earningStatuses = [
-		{ id: "paid", label: i18n.t("Profile.statusLabels.paid"), color: "#4CAF50" },
-		{ id: "pending", label: i18n.t("Profile.statusLabels.pending"), color: "#FF9800" },
+		{ id: "paid", label: i18n.t("Profile.statusLabels.paid"), color: FixedColors.walletStatusActive },
+		{ id: "pending", label: i18n.t("Profile.statusLabels.pending"), color: FixedColors.walletStatusPending },
 	];
 
 	const toggleEarningStatus = useCallback((statusId: string) => {
@@ -75,7 +83,7 @@ export function EarningsTab({
 				))}
 			</ScrollView>
 		);
-	}, [selectedEarningStatuses, earningStatuses, toggleEarningStatus]);
+	}, [selectedEarningStatuses, earningStatuses, toggleEarningStatus, styles]);
 
 	const renderEarningItem = useCallback(
 		({ item, index }: { item: EarningItem; index: number }) => {
@@ -84,6 +92,7 @@ export function EarningsTab({
 					item={{
 						id: item.id,
 						imageUrl: item.imageUrl,
+						title: `${i18n.t("Search.currencySuffix")}${item.earnings.toLocaleString()}`,
 					}}
 					onPress={() => onItemPress?.(item, index)}>
 					<View style={styles.earningCardOverlay}>
@@ -95,7 +104,8 @@ export function EarningsTab({
 							style={[
 								styles.statusChip,
 								{
-									backgroundColor: item.status === "paid" ? "#4CAF50" : "#FF9800",
+									backgroundColor:
+										item.status === "paid" ? FixedColors.walletStatusActive : FixedColors.walletStatusPending,
 								},
 							]}>
 							<Text style={styles.statusText}>
@@ -106,7 +116,7 @@ export function EarningsTab({
 				</ImageCard>
 			);
 		},
-		[onItemPress],
+		[onItemPress, styles],
 	);
 
 	const renderEmptyState = useCallback(() => {
@@ -130,7 +140,7 @@ export function EarningsTab({
 				</View>
 			</View>
 		);
-	}, [error, onRetry]);
+	}, [error, onRetry, styles]);
 
 	return (
 		<GridList
@@ -152,100 +162,108 @@ export function EarningsTab({
 	);
 }
 
-const styles = StyleSheet.create({
-	gridContent: {
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-	},
-	gridRow: {
-		gap: 1,
-	},
-	statusFilterContainer: {
-		marginVertical: 16,
-	},
-	statusFilterContent: {
-		gap: 8,
-	},
-	statusFilterChip: {
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-		borderRadius: 16,
-		backgroundColor: "#EDEFF1",
-		marginHorizontal: 4,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
-	},
-	statusFilterChipText: {
-		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "500",
-	},
-	statusFilterChipTextActive: {
-		color: "#FFFFFF",
-		fontWeight: "600",
-	},
-	earningCardOverlay: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		padding: 8,
-	},
-	earningCardAmount: {
-		fontSize: 15,
-		fontWeight: "700",
-		color: "#FFF",
-		marginBottom: 4,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 2,
-	},
-	statusChip: {
-		alignSelf: "flex-start",
-		paddingVertical: 4,
-		paddingHorizontal: 4,
-		borderRadius: 8,
-	},
-	statusText: {
-		fontSize: 10,
-		fontWeight: "600",
-		color: "#FFFFFF",
-	},
-	emptyStateContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	emptyStateCard: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-		padding: 32,
-		width: "100%",
-		alignItems: "center",
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.08,
-		shadowRadius: 16,
-		elevation: 4,
-	},
-	emptyStateText: {
-		fontSize: 16,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-	retryButton: {
-		marginTop: 16,
-		backgroundColor: "#F05537",
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
-	},
-	retryButtonText: {
-		color: "#FFFFFF",
-		fontWeight: "600",
-	},
-});
+// #1509 【設計】`StyleSheet.create` はモジュール評価時に 1 度だけ走るためテーマを追従できない。
+// パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		gridContent: {
+			paddingHorizontal: 16,
+			paddingVertical: 8,
+		},
+		gridRow: {
+			gap: 1,
+		},
+		statusFilterContainer: {
+			marginVertical: 16,
+		},
+		statusFilterContent: {
+			gap: 8,
+		},
+		statusFilterChip: {
+			paddingHorizontal: 16,
+			paddingVertical: 8,
+			borderRadius: 16,
+			backgroundColor: c.surfaceChipAlt,
+			marginHorizontal: 4,
+			// 影はテーマに依らず黒。暗面では実質見えないだけで、値としては黒のままでよい
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.1,
+			shadowRadius: 4,
+			elevation: 3,
+		},
+		statusFilterChipText: {
+			fontSize: 13,
+			color: c.textSecondary,
+			fontWeight: "500",
+		},
+		statusFilterChipTextActive: {
+			// 選択中はステータス色（テーマ非追従）で塗り潰されるので、その上の字も振らない
+			color: FixedColors.onFilled,
+			fontWeight: "600",
+		},
+		earningCardOverlay: {
+			position: "absolute",
+			bottom: 0,
+			left: 0,
+			right: 0,
+			padding: 8,
+		},
+		earningCardAmount: {
+			fontSize: 15,
+			fontWeight: "700",
+			// 料理写真の上に載る金額。メディアの上は常に暗いので白のまま振らない
+			color: FixedColors.onMedia,
+			marginBottom: 4,
+			textShadowColor: "rgba(0, 0, 0, 0.8)",
+			textShadowOffset: { width: 0, height: 1 },
+			textShadowRadius: 2,
+		},
+		statusChip: {
+			alignSelf: "flex-start",
+			paddingVertical: 4,
+			paddingHorizontal: 4,
+			borderRadius: 8,
+		},
+		statusText: {
+			fontSize: 10,
+			fontWeight: "600",
+			// 地がステータス色（テーマ非追従の塗り潰し）なので、字も振らない
+			color: FixedColors.onFilled,
+		},
+		emptyStateContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		emptyStateCard: {
+			backgroundColor: c.surface,
+			borderRadius: 20,
+			padding: 32,
+			width: "100%",
+			alignItems: "center",
+			justifyContent: "center",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.08,
+			shadowRadius: 16,
+			elevation: 4,
+		},
+		emptyStateText: {
+			fontSize: 16,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+		retryButton: {
+			marginTop: 16,
+			backgroundColor: c.brand,
+			paddingHorizontal: 20,
+			paddingVertical: 10,
+			borderRadius: 20,
+		},
+		retryButtonText: {
+			// ブランド色で塗り潰したボタンの上の字。地がライト / ダークで変わらないので振らない
+			color: FixedColors.onFilled,
+			fontWeight: "600",
+		},
+	});

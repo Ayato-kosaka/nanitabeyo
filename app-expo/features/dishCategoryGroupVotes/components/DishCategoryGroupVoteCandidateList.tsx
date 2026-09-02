@@ -11,6 +11,7 @@ import { DishCategoryGroupVoteCandidateCard } from "./DishCategoryGroupVoteCandi
 type Props = {
 	candidates: DishCategoryGroupVoteCandidate[];
 	isHost: boolean;
+	hasVotes: boolean;
 	loadingCandidateId: string | null;
 	onPressCandidate: (candidate: DishCategoryGroupVoteCandidate) => void;
 	onPressDishMedia: (candidate: DishCategoryGroupVoteCandidate) => void;
@@ -20,13 +21,17 @@ type Props = {
 export function DishCategoryGroupVoteCandidateList({
 	candidates,
 	isHost,
+	hasVotes,
 	loadingCandidateId,
 	onPressCandidate,
 	onPressDishMedia,
 	onDeleteCandidate,
 }: Props) {
-	// rank は同率を保持するため、同順位内だけ displayOrder で表示順を安定させる。
-	// rank が返らない古いレスポンスでも末尾で displayOrder 順に並べる。
+	// #856 【仕様】結果一覧は rank 昇順(=likeCount DESC 由来)で表示し、同順位内と
+	// rank が返らない古いレスポンスは displayOrder で表示順を安定させる。
+	// #941 【修正】「全員未投票で全候補1位」対応の際に誤って displayOrder 固定へ変更して
+	// しまっていたため、レビュー指摘を受け #856 の rank 昇順ソートへ復旧した
+	// (未投票時は全候補 rank=1 のため自然に displayOrder 順となり、未投票バッジ表示と両立する)。
 	const visibleCandidates = candidates
 		.filter((candidate) => candidate.deletedAt === null)
 		.sort((a, b) => {
@@ -43,6 +48,7 @@ export function DishCategoryGroupVoteCandidateList({
 					key={candidate.id}
 					candidate={candidate}
 					isHost={isHost}
+					hasVotes={hasVotes}
 					isDishMediaLoading={loadingCandidateId === candidate.id}
 					onPressCandidate={onPressCandidate}
 					onPressDishMedia={onPressDishMedia}

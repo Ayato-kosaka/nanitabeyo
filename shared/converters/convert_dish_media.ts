@@ -19,12 +19,15 @@ export function convertSupabaseToPrisma_DishMedia(supabase: SupabaseDishMedia): 
     media_path: supabase.media_path,
     media_processing_status: supabase.media_processing_status,
     media_type: supabase.media_type,
+    render_type: supabase.render_type,
     thumbnail_path: supabase.thumbnail_path,
     thumbnail_processing_status: supabase.thumbnail_processing_status,
     video_duration_ms: supabase.video_duration_ms,
     created_at: new Date(supabase.created_at),
     updated_at: new Date(supabase.updated_at),
     lock_no: supabase.lock_no,
+    // #1513 論理削除で追加した列
+    deleted_at: supabase.deleted_at ? new Date(supabase.deleted_at) : null,
   };
 }
 
@@ -41,11 +44,14 @@ export function convertPrismaToSupabase_DishMedia(prisma: PrismaDishMedia): Supa
     media_path: prisma.media_path,
     media_processing_status: prisma.media_processing_status,
     media_type: prisma.media_type,
+    render_type: prisma.render_type,
     thumbnail_path: prisma.thumbnail_path,
     thumbnail_processing_status: prisma.thumbnail_processing_status,
     video_duration_ms: prisma.video_duration_ms,
     created_at: prisma.created_at?.toISOString() ?? null,
     updated_at: prisma.updated_at?.toISOString() ?? null,
     lock_no: prisma.lock_no,
+    // #1513 論理削除で追加した列
+    deleted_at: prisma.deleted_at?.toISOString() ?? null,
   };
 }

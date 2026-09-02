@@ -4,6 +4,8 @@
 // ユーザー協力で料理カテゴリの title/subTitle を改善するための単体画面
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+import { FixedColors, type Palette } from "@/constants/Palette";
 import {
 	View,
 	StyleSheet,
@@ -30,7 +32,7 @@ import Animated, {
 	Extrapolate,
 } from "react-native-reanimated";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -38,9 +40,9 @@ import { Env } from "@/constants/Env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
-import { CARD_WIDTH } from "@/features/topics/constants";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -81,6 +83,9 @@ const SWIPE_THRESHOLD = 100;
 /* -------------------------------------------------------------------------- */
 
 export default function DishCategoryManualTextSupplyScreen() {
+	// #1629 プレースホルダー等、スタイル外へ直接渡す色をテーマへ追従させるために読む
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
 	const { width, height } = useWindowDimensions();
 	const router = useRouter();
@@ -98,6 +103,14 @@ export default function DishCategoryManualTextSupplyScreen() {
 	// #749 【状態】ローディング
 	const [isLoadingCandidates, setIsLoadingCandidates] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	/**
+	 * #1205 【修正】貢献タスク送信の多重実行を防ぐ同期ガード。
+	 *
+	 * `isSubmitting`（useState）は送信ボタンを disabled にする表示用途で、判定には使えない。
+	 * 通過すると `POST v1/contribution-tasks` が二重に走る。この API のリポジトリ実装は
+	 * 素の `create` で一意制約も無いため、**同じ内容の contribution_tasks 行が 2 件できる**。
+	 */
+	const isSubmittingRef = useRef(false);
 
 	// #749 【状態】エラー
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -119,14 +132,14 @@ export default function DishCategoryManualTextSupplyScreen() {
 	const translateX = useSharedValue(0);
 	const translateY = useSharedValue(0);
 
-	/* ---- BlurModal（チュートリアル用） ---- */
-	const tutorialModal = useBlurModal({
+	/* ---- LegacyBlurModal（チュートリアル用） ---- */
+	const tutorialModal = useLegacyBlurModal({
 		intensity: 80,
 		closeOnBackdropPress: false,
 	});
 
-	/* ---- BlurModal（編集モーダル用） ---- */
-	const editModal = useBlurModal({
+	/* ---- LegacyBlurModal（編集モーダル用） ---- */
+	const editModal = useLegacyBlurModal({
 		intensity: 70,
 		closeOnBackdropPress: false,
 	});
@@ -176,7 +189,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 			logFrontendEvent({
 				event_name: "dish_manual_text_supply_data_load_error",
 				error_level: "error",
-				payload: { error: err instanceof Error ? err.message : String(err) },
+				payload: { error: toErrorLogMessage(err) },
 			});
 		} finally {
 			setIsLoadingCandidates(false);
@@ -397,6 +410,11 @@ export default function DishCategoryManualTextSupplyScreen() {
 		if (!editingItem) return;
 		if (!validateEdit()) return;
 
+		// #1205 多重実行の判定は ref で行う（宣言箇所のコメント参照）。
+		// バリデーションの early return より後に立てること（手前だと解除されない）
+		if (isSubmittingRef.current) return;
+		isSubmittingRef.current = true;
+
 		setIsSubmitting(true);
 		mediumImpact();
 
@@ -456,10 +474,12 @@ export default function DishCategoryManualTextSupplyScreen() {
 				error_level: "error",
 				payload: {
 					targetId: editingItem.item_qid,
-					error: err instanceof Error ? err.message : String(err),
+					error: toErrorLogMessage(err),
 				},
 			});
 		} finally {
+			// #1205 送信失敗後も押し直せるよう、成功・失敗のいずれでも必ず解除する
+			isSubmittingRef.current = false;
 			setIsSubmitting(false);
 		}
 	}, [
@@ -520,7 +540,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 	if (isLoadingCandidates) {
 		return (
 			<View style={[styles.container, { paddingTop: insets.top }]}>
-				<ActivityIndicator size="large" color="#FF6B35" style={{ marginTop: 100 }} />
+				<ActivityIndicator size="large" color={colors.brandAlt} style={{ marginTop: 100 }} />
 				<Text style={styles.loadingText}>読み込み中...</Text>
 			</View>
 		);
@@ -575,7 +595,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>文言改善にご協力ください</Text>
 				<Pressable onPress={handleHelpPress} hitSlop={10}>
-					<HelpCircle size={24} color="#333" />
+					<HelpCircle size={24} color={colors.textPrimarySoft} />
 				</Pressable>
 			</View>
 
@@ -583,7 +603,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 			<View style={styles.cardArea}>
 				{currentItem ? (
 					<GestureDetector gesture={panGesture}>
-						<Animated.View style={[animatedCardStyle, { width: CARD_WIDTH }]}>
+						<Animated.View style={[animatedCardStyle, { width: width - 32 }]}>
 							<CardView item={currentItem} cardHeight={cardHeight} />
 						</Animated.View>
 					</GestureDetector>
@@ -594,15 +614,17 @@ export default function DishCategoryManualTextSupplyScreen() {
 			{currentItem && (
 				<View style={styles.buttonArea}>
 					<Pressable style={styles.actionButton} onPress={handleEdit}>
-						<Edit3 size={24} color="#FFF" />
+						{/* 塗り潰したボタン（brandAlt）の上の白。地が振れないので文字も振らない */}
+						<Edit3 size={24} color={FixedColors.onFilled} />
 						<Text style={styles.buttonText}>改善案を送る</Text>
 					</Pressable>
 					<Pressable style={[styles.actionButton, styles.skipButton]} onPress={handleSkip}>
-						<SkipForward size={24} color="#666" />
+						<SkipForward size={24} color={colors.textMuted} />
 						<Text style={styles.buttonText}>スキップ</Text>
 					</Pressable>
 					<Pressable style={[styles.actionButton, styles.okButton]} onPress={handleOk}>
-						<Check size={24} color="#FFF" />
+						{/* 塗り潰したボタン（successAlt）の上の白 */}
+						<Check size={24} color={FixedColors.onFilled} />
 						<Text style={styles.buttonText}>このままでOK</Text>
 					</Pressable>
 				</View>
@@ -610,7 +632,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 
 			{/* チュートリアルモーダル */}
 			{showTutorial && (
-				<tutorialModal.BlurModal contentContainerStyle={styles.modalContent}>
+				<tutorialModal.LegacyBlurModal contentContainerStyle={styles.modalContent}>
 					<View style={styles.tutorialContainer}>
 						<Text style={styles.tutorialTitle}>文言改善にご協力ください</Text>
 						<Text style={styles.tutorialText}>
@@ -621,12 +643,12 @@ export default function DishCategoryManualTextSupplyScreen() {
 						</Text>
 						<PrimaryButton label="始める" onPress={closeTutorial} style={{ marginTop: 30 }} />
 					</View>
-				</tutorialModal.BlurModal>
+				</tutorialModal.LegacyBlurModal>
 			)}
 
 			{/* 編集モーダル */}
 			{editingItem && (
-				<editModal.BlurModal contentContainerStyle={styles.modalContent} showCloseButton={false}>
+				<editModal.LegacyBlurModal contentContainerStyle={styles.modalContent} showCloseButton={false}>
 					<View style={{ height }}>
 						<ScrollView
 							style={styles.editContainer}
@@ -640,6 +662,8 @@ export default function DishCategoryManualTextSupplyScreen() {
 								value={editTitle}
 								onChangeText={setEditTitle}
 								placeholder="タイトルを入力"
+								// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+								placeholderTextColor={colors.textSecondary}
 								multiline
 							/>
 
@@ -649,6 +673,8 @@ export default function DishCategoryManualTextSupplyScreen() {
 								value={editSubTitle}
 								onChangeText={setEditSubTitle}
 								placeholder="サブタイトルを入力"
+								// #1629 ダークで既定色（濃いグレー）のまま地に埋もれるため、テーマのトークンを明示する
+								placeholderTextColor={colors.textSecondary}
 								multiline
 								numberOfLines={3}
 							/>
@@ -682,7 +708,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 									onPress={handleEditSubmit}
 									disabled={isSubmitting}>
 									{isSubmitting ? (
-										<ActivityIndicator size="small" color="#FFF" />
+										<ActivityIndicator size="small" color={FixedColors.onFilled} />
 									) : (
 										<Text style={styles.editButtonTextPrimary}>送信</Text>
 									)}
@@ -690,7 +716,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 							</View>
 						</ScrollView>
 					</View>
-				</editModal.BlurModal>
+				</editModal.LegacyBlurModal>
 			)}
 		</View>
 	);
@@ -710,6 +736,12 @@ const CardView = ({
 	isPreview?: boolean;
 }) => {
 	const { logFrontendEvent } = useLogger();
+	// #1629 このカードは画面本体とは別コンポーネントなので、ここでもテーマを解決する
+	const styles = useThemedStyles(createStyles);
+	// #958 【修正】以前は features/dishCategories/constants.ts の CARD_WIDTH(モジュール評価時の
+	// window幅で固定、リサイズ非追従)を直接使っていた。本ツールは中央カラム対象外(社内管理画面)
+	// のためウィンドウ幅そのままでよいが、削除された CARD_WIDTH の代わりに素の window 幅を使う
+	const { width: cardWidth } = useWindowDimensions();
 
 	// #749 【設計】画像ロード管理
 	const {
@@ -739,7 +771,7 @@ const CardView = ({
 	const shouldShowSkeleton = loadState === "loading" || isRetrying;
 
 	return (
-		<View style={[styles.card, { height: cardHeight }]}>
+		<View style={[styles.card, { width: cardWidth - 32, height: cardHeight }]}>
 			<Image
 				source={{ uri: imageUrl }}
 				cachePolicy="memory"
@@ -771,265 +803,267 @@ const CardView = ({
 /*                               スタイル定義                                  */
 /* -------------------------------------------------------------------------- */
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#F5F5F5",
-	},
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-	},
-	headerTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#333",
-	},
-	cardArea: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	card: {
-		width: CARD_WIDTH,
-		borderRadius: 24,
-		overflow: "hidden",
-		backgroundColor: "#EEE",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.3,
-		shadowRadius: 12,
-		elevation: 12,
-	},
-	cardImage: {
-		width: "100%",
-		height: "100%",
-	},
-	skeletonOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		zIndex: 1,
-	},
-	cardOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		backgroundColor: "rgba(0, 0, 0, 0.1)",
-		padding: 24,
-		justifyContent: "flex-end",
-		zIndex: 3,
-	},
-	cardContent: {
-		flex: 1,
-		justifyContent: "flex-end",
-	},
-	cardTitle: {
-		fontSize: 32,
-		fontWeight: "700",
-		color: "#FFFFFF",
-		marginBottom: 16,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 2 },
-		textShadowRadius: 4,
-		lineHeight: 40,
-		letterSpacing: -0.5,
-	},
-	cardDescription: {
-		fontSize: 18,
-		color: "#FFFFFF",
-		lineHeight: 28,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 3,
-		fontWeight: "500",
-	},
-	buttonArea: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingHorizontal: 20,
-		paddingBottom: 20,
-		gap: 12,
-	},
-	actionButton: {
-		flexDirection: "column",
-		alignItems: "center",
-		height: "100%",
-		backgroundColor: "#FF6B35",
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		borderRadius: 30,
-		gap: 8,
-		flex: 1,
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.2,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	skipButton: {
-		backgroundColor: "#E0E0E0",
-		paddingHorizontal: 20,
-	},
-	okButton: {
-		backgroundColor: "#4CAF50",
-	},
-	buttonText: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#FFF",
-	},
-	loadingText: {
-		fontSize: 16,
-		color: "#666",
-		marginTop: 20,
-		textAlign: "center",
-	},
-	errorText: {
-		fontSize: 16,
-		color: "#D32F2F",
-		marginTop: 100,
-		textAlign: "center",
-		paddingHorizontal: 20,
-	},
-	thanksContainer: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		paddingHorizontal: 40,
-	},
-	thanksTitle: {
-		fontSize: 28,
-		fontWeight: "700",
-		color: "#333",
-		marginBottom: 20,
-		textAlign: "center",
-	},
-	thanksMessage: {
-		fontSize: 16,
-		color: "#666",
-		lineHeight: 24,
-		textAlign: "center",
-	},
-	skipLink: {
-		fontSize: 16,
-		color: "#FF6B35",
-		textDecorationLine: "underline",
-	},
-	modalContent: {
-		marginHorizontal: 20,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		padding: 24,
-		maxWidth: 500,
-		alignSelf: "center",
-		width: "100%",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.3,
-		shadowRadius: 12,
-		elevation: 12,
-	},
-	tutorialContainer: {
-		alignItems: "center",
-	},
-	tutorialTitle: {
-		fontSize: 24,
-		fontWeight: "700",
-		color: "#333",
-		marginBottom: 20,
-		textAlign: "center",
-	},
-	tutorialText: {
-		fontSize: 16,
-		color: "#666",
-		lineHeight: 24,
-		textAlign: "left",
-	},
-	tutorialBold: {
-		fontWeight: "700",
-		color: "#333",
-	},
-	editContainer: {
-		flex: 1,
-	},
-	editTitle: {
-		fontSize: 22,
-		fontWeight: "700",
-		color: "#333",
-		marginBottom: 20,
-		textAlign: "center",
-	},
-	inputLabel: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#333",
-		marginBottom: 8,
-		marginTop: 16,
-	},
-	textInput: {
-		borderWidth: 1,
-		borderColor: "#DDD",
-		borderRadius: 8,
-		padding: 12,
-		fontSize: 16,
-		color: "#333",
-		backgroundColor: "#FFF",
-	},
-	textInputMulti: {
-		minHeight: 80,
-		textAlignVertical: "top",
-	},
-	validationError: {
-		fontSize: 14,
-		color: "#D32F2F",
-		marginTop: 8,
-	},
-	previewLabel: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#333",
-		marginTop: 24,
-		marginBottom: 12,
-	},
-	editButtons: {
-		flexDirection: "row",
-		gap: 12,
-		marginTop: 24,
-	},
-	editButton: {
-		flex: 1,
-		paddingVertical: 16,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	editButtonPrimary: {
-		backgroundColor: "#FF6B35",
-	},
-	editButtonSecondary: {
-		backgroundColor: "#E0E0E0",
-	},
-	editButtonDisabled: {
-		backgroundColor: "#BDBDBD",
-	},
-	editButtonTextPrimary: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#FFF",
-	},
-	editButtonTextSecondary: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#666",
-	},
-});
+// #1629 パレットを受け取るファクトリにし、画面側で `useThemedStyles` から呼ぶ（`contexts/ThemeProvider.tsx`）。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.backgroundAlt,
+		},
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+		},
+		headerTitle: {
+			fontSize: 18,
+			fontWeight: "700",
+			color: c.textPrimarySoft,
+		},
+		cardArea: {
+			flex: 1,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		card: {
+			borderRadius: 24,
+			overflow: "hidden",
+			backgroundColor: c.surfaceSunken,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 4 },
+			shadowOpacity: 0.3,
+			shadowRadius: 12,
+			elevation: 12,
+		},
+		cardImage: {
+			width: "100%",
+			height: "100%",
+		},
+		skeletonOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			bottom: 0,
+			zIndex: 1,
+		},
+		cardOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			bottom: 0,
+			backgroundColor: "rgba(0, 0, 0, 0.1)",
+			padding: 24,
+			justifyContent: "flex-end",
+			zIndex: 3,
+		},
+		cardContent: {
+			flex: 1,
+			justifyContent: "flex-end",
+		},
+		cardTitle: {
+			fontSize: 32,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
+			marginBottom: 16,
+			textShadowColor: "rgba(0, 0, 0, 0.8)",
+			textShadowOffset: { width: 0, height: 2 },
+			textShadowRadius: 4,
+			lineHeight: 40,
+			letterSpacing: -0.5,
+		},
+		cardDescription: {
+			fontSize: 18,
+			color: FixedColors.onMedia,
+			lineHeight: 28,
+			textShadowColor: "rgba(0, 0, 0, 0.8)",
+			textShadowOffset: { width: 0, height: 1 },
+			textShadowRadius: 3,
+			fontWeight: "500",
+		},
+		buttonArea: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			paddingHorizontal: 20,
+			paddingBottom: 20,
+			gap: 12,
+		},
+		actionButton: {
+			flexDirection: "column",
+			alignItems: "center",
+			height: "100%",
+			backgroundColor: c.brandAlt,
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+			borderRadius: 30,
+			gap: 8,
+			flex: 1,
+			justifyContent: "center",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.2,
+			shadowRadius: 4,
+			elevation: 4,
+		},
+		skipButton: {
+			backgroundColor: c.surfaceDisabled,
+			paddingHorizontal: 20,
+		},
+		okButton: {
+			backgroundColor: c.successAlt,
+		},
+		buttonText: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: FixedColors.onFilled,
+		},
+		loadingText: {
+			fontSize: 16,
+			color: c.textMuted,
+			marginTop: 20,
+			textAlign: "center",
+		},
+		errorText: {
+			fontSize: 16,
+			color: c.dangerAlt,
+			marginTop: 100,
+			textAlign: "center",
+			paddingHorizontal: 20,
+		},
+		thanksContainer: {
+			flex: 1,
+			alignItems: "center",
+			justifyContent: "center",
+			paddingHorizontal: 40,
+		},
+		thanksTitle: {
+			fontSize: 28,
+			fontWeight: "700",
+			color: c.textPrimarySoft,
+			marginBottom: 20,
+			textAlign: "center",
+		},
+		thanksMessage: {
+			fontSize: 16,
+			color: c.textMuted,
+			lineHeight: 24,
+			textAlign: "center",
+		},
+		skipLink: {
+			fontSize: 16,
+			color: c.brandAlt,
+			textDecorationLine: "underline",
+		},
+		modalContent: {
+			marginHorizontal: 20,
+			// #1629 LegacyBlurModal の «本体» の地。膜だけ暗くならないようここもテーマへ追従させる
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			padding: 24,
+			maxWidth: 500,
+			alignSelf: "center",
+			width: "100%",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 4 },
+			shadowOpacity: 0.3,
+			shadowRadius: 12,
+			elevation: 12,
+		},
+		tutorialContainer: {
+			alignItems: "center",
+		},
+		tutorialTitle: {
+			fontSize: 24,
+			fontWeight: "700",
+			color: c.textPrimarySoft,
+			marginBottom: 20,
+			textAlign: "center",
+		},
+		tutorialText: {
+			fontSize: 16,
+			color: c.textMuted,
+			lineHeight: 24,
+			textAlign: "left",
+		},
+		tutorialBold: {
+			fontWeight: "700",
+			color: c.textPrimarySoft,
+		},
+		editContainer: {
+			flex: 1,
+		},
+		editTitle: {
+			fontSize: 22,
+			fontWeight: "700",
+			color: c.textPrimarySoft,
+			marginBottom: 20,
+			textAlign: "center",
+		},
+		inputLabel: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textPrimarySoft,
+			marginBottom: 8,
+			marginTop: 16,
+		},
+		textInput: {
+			borderWidth: 1,
+			borderColor: c.borderSoft,
+			borderRadius: 8,
+			padding: 12,
+			fontSize: 16,
+			color: c.textPrimarySoft,
+			backgroundColor: c.surface,
+		},
+		textInputMulti: {
+			minHeight: 80,
+			textAlignVertical: "top",
+		},
+		validationError: {
+			fontSize: 14,
+			color: c.dangerAlt,
+			marginTop: 8,
+		},
+		previewLabel: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textPrimarySoft,
+			marginTop: 24,
+			marginBottom: 12,
+		},
+		editButtons: {
+			flexDirection: "row",
+			gap: 12,
+			marginTop: 24,
+		},
+		editButton: {
+			flex: 1,
+			paddingVertical: 16,
+			borderRadius: 8,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		editButtonPrimary: {
+			backgroundColor: c.brandAlt,
+		},
+		editButtonSecondary: {
+			backgroundColor: c.surfaceDisabled,
+		},
+		editButtonDisabled: {
+			backgroundColor: c.surfaceDisabledStrong,
+		},
+		editButtonTextPrimary: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: FixedColors.onFilled,
+		},
+		editButtonTextSecondary: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textMuted,
+		},
+	});

@@ -1,11 +1,32 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
+import Constants from "expo-constants";
 
 import i18n from "@/lib/i18n";
 import { resolvePublicLocale, SITE_NAME_BY_PUBLIC_LOCALE } from "@/constants/seoLocales";
 import { Env } from "@/constants/Env";
 import { useLocale } from "@/hooks/useLocale";
+import { openExternalUrl } from "@/lib/openExternalUrl";
+// ⚠️ `isInAppBrowser` は同名の state があるので別名で入れる（そのまま入れると state に隠され、
+// `setIsInAppBrowser(isInAppBrowser(ua))` が boolean の呼び出しになって実行時に落ちる）
+import {
+	isAndroidUserAgent,
+	isInAppBrowser as detectInAppBrowser,
+	isIOSUserAgent,
+	resolveOpenInAppHref,
+} from "@/lib/openInAppUrl";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+
+/**
+ * Android の applicationId。`intent://…;package=…` に載せる。
+ *
+ * app.config.ts の `android.package` を単一の出所とし、万一読めなかったときだけ
+ * リテラルへ退避する（ここがズレると intent が «何も起きない» で終わり、
+ * 原因が非常に分かりにくい）。
+ */
+const ANDROID_PACKAGE = Constants.expoConfig?.android?.package ?? "com.nanitabeyo";
 
 export interface OpenInAppBannerProps {
 	/** 現在のパス（例: "posts"） */
@@ -33,16 +54,17 @@ export interface OpenInAppBannerProps {
  * - OIA relay はサーバ側で許可ホストを固定し open redirect を防ぐ
  * - JSで遷移をいじらない（ULはリンクタップが最強）
  */
-const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
+const OpenInAppBannerWeb: React.FC<OpenInAppBannerProps> = ({
 	path,
 	params,
 	universalBaseUrl = Env.WEB_BASE_URL /* 例: https://app.nanitabeyo.net を想定。違うなら差し替え */,
 	scheme = "nanitabeyo",
 }) => {
-	// ネイティブアプリでは不要（Web deep linking 導線専用）
-	if (Platform.OS !== "web") return null;
-
 	const { locale } = useLocale();
+	// #1629 バナー本体はアプリ内の «面» なのでテーマに追従させる。
+	// 半透明の箱（fallback / help）だけは固定色で、理由は下のスタイル定義に書いてある
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 
 	// SSR/Prerender 対策：window が無い環境では何もしない
 	const isBrowser = typeof window !== "undefined" && typeof document !== "undefined";
@@ -124,15 +146,11 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	}, [urlToGo]);
 
 	// プラットフォーム判定（UAベース）
-	const { isIOS, isAndroid } = useMemo(() => {
-		const ua = navigator.userAgent || "";
-		return {
-			isIOS: /iPhone|iPad|iPod/i.test(ua),
-			isAndroid: /Android/i.test(ua),
-		};
-	}, []);
-	// 実際にユーザーに踏ませるURL（原則 relay、無ければ直UL）
-	const primaryHref = isIOS ? (oiaRelayUrl ?? urlToGo) : urlToGo;
+	const userAgent = useMemo(() => (isBrowser ? navigator.userAgent || "" : ""), [isBrowser]);
+	const { isIOS, isAndroid } = useMemo(
+		() => ({ isIOS: isIOSUserAgent(userAgent), isAndroid: isAndroidUserAgent(userAgent) }),
+		[userAgent],
+	);
 
 	const storeUrl = useMemo(() => {
 		// “自動遷移”はしない方針なので、ボタン用にURLを返すだけ
@@ -143,6 +161,26 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		if (isAndroid) return Env.PLAY_STORE_URL || undefined;
 		return undefined;
 	}, [isBrowser, isIOS, isAndroid]);
+
+	/**
+	 * 実際にユーザーに踏ませる URL。
+	 *
+	 * ⚠️ **https 一択にしないこと。** Android + Meta 系アプリ内ブラウザ（Instagram / Facebook）は
+	 * https のナビゲーションを WebView 内で処理してしまい App Links が発火しないため、
+	 * 「アプリで開く」を押しても **その場から出られない**（実機で確認）。
+	 * この分岐の根拠と、あえて対象を広げていない理由は `lib/openInAppUrl.ts` に書いてある。
+	 */
+	const primaryHref = useMemo(
+		() =>
+			resolveOpenInAppHref({
+				universalUrl: urlToGo,
+				userAgent,
+				relayUrl: oiaRelayUrl,
+				storeUrl,
+				androidPackage: ANDROID_PACKAGE,
+			}),
+		[urlToGo, userAgent, oiaRelayUrl, storeUrl],
+	);
 
 	useEffect(() => {
 		if (!isBrowser) return;
@@ -163,23 +201,10 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			}
 		};
 
-		// In-App Browser 判定（完全ではないが実務上はかなり効く）
-		const checkInApp = () => {
-			const ua = navigator.userAgent || "";
-			// Instagram / Facebook / Messenger / LINE / TikTok などの典型
-			const inApp =
-				/Instagram/i.test(ua) ||
-				/\bFBAN\b/i.test(ua) ||
-				/\bFBAV\b/i.test(ua) ||
-				/FB_IAB/i.test(ua) ||
-				/Line/i.test(ua) ||
-				/TikTok/i.test(ua);
-
-			setIsInAppBrowser(inApp);
-		};
-
 		checkMobile();
-		checkInApp();
+		// In-App Browser 判定（完全ではないが実務上はかなり効く）。
+		// 判定は lib/openInAppUrl.ts に集約している（href の決定と同じ基準を使うため）
+		setIsInAppBrowser(detectInAppBrowser(navigator.userAgent || ""));
 	}, [isBrowser]);
 
 	useEffect(() => {
@@ -221,9 +246,10 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 	if (!isMobile || !isBrowser) return null;
 
+	// #1629 <a> は RN の StyleSheet を通らないので、ここだけ CSSProperties でテーマ色を組む
 	const openLinkStyle: React.CSSProperties = {
 		textDecoration: "none",
-		backgroundColor: "#f05537",
+		backgroundColor: colors.brand,
 		padding: "9px 14px",
 		borderRadius: 8,
 		display: "flex",
@@ -233,7 +259,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 	const schemeLinkStyle: React.CSSProperties = {
 		textDecoration: "none",
-		backgroundColor: "#f05537",
+		backgroundColor: colors.brand,
 		padding: "8px 10px",
 		borderRadius: 8,
 		display: "flex",
@@ -268,16 +294,17 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 						onClick={onTapOpen}
 						role="button"
 						aria-label={i18n.t("DeepLinking.openInApp")}>
-						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{i18n.t("DeepLinking.openInApp")}</span>
+						<span style={{ color: FixedColors.onFilled, fontSize: 13, fontWeight: 800 }}>{i18n.t("DeepLinking.openInApp")}</span>
 					</a>
 
 					{/* ストア：自動ではなく“ボタン”で提供（ポリシー/ブロック回避・UX改善） */}
 					{!!storeUrl && (
 						<Pressable
 							style={styles.storeButton}
-							// target="_blank" 相当：RNW の Pressable では a タグじゃないので window.open する
+							// target="_blank" 相当：RNW の Pressable では a タグじゃないので別タブで開く
 							// ただし “クリック同期” なのでブロックされにくい
-							onPress={() => window.open(storeUrl, "_blank", "noopener,noreferrer")}>
+							// #1121 window.open 直書きをやめ、外部遷移の共通ヘルパーへ寄せた（Web 専用コンポーネントなので挙動は同じ）
+							onPress={() => void openExternalUrl(storeUrl)}>
 							<Text style={styles.storeButtonText}>{i18n.t("DeepLinking.getApp")}</Text>
 						</Pressable>
 					)}
@@ -297,7 +324,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 						}}
 						role="button"
 						aria-label={i18n.t("DeepLinking.tryScheme")}>
-						<span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>{i18n.t("DeepLinking.tryScheme")}</span>
+						<span style={{ color: FixedColors.onFilled, fontSize: 12, fontWeight: 800 }}>{i18n.t("DeepLinking.tryScheme")}</span>
 					</a>
 				</View>
 			)}
@@ -321,122 +348,155 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	);
 };
 
+/*
+  #1366 【修正】`Platform.OS !== "web"` の早期 return を、その後ろに続く 22 個のフックより
+  前に置いたままにしない。react-hooks/rules-of-hooks が «条件付きのフック呼び出し» として
+  一律 error にしていたのはこの形である。
+
+  `Platform.OS` はモジュール定数で同一プロセス内では変化しないため、この 1 件に限れば
+  観測できる不具合は無い。ただし «早期 return の後ろにフックがある» という形そのものが
+  壊れやすい。React 19 の実挙動を測った結果は SavedPostsTab.tsx のコメントに書いたとおりで、
+  早期 return の «前» にフックが 1 本でも入った瞬間に
+  「Rendered more hooks than during the previous render」で throw する。
+  ここは特に危ない: 下の内側コンポーネントは visibilitychange のリスナと setTimeout を
+  張っており、フック 0 本のレンダーへ切り替わる形になると **cleanup が呼ばれず両方残る**。
+
+  フックを無条件化して早期 return を後ろへ動かす直し方は採れない。内側は window / document /
+  navigator を触るので、ネイティブでも評価されるようになると壊れる。
+  そこで判定だけを持つ外側と、フックを持つ内側（OpenInAppBannerWeb）に分けてある。
+*/
+const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = (props) => {
+	// ネイティブアプリでは不要（Web deep linking 導線専用）
+	if (Platform.OS !== "web") return null;
+
+	return <OpenInAppBannerWeb {...props} />;
+};
+
 export const OpenInAppBanner = memo(OpenInAppBannerComponent);
 
-const styles = StyleSheet.create({
-	// 画面上部に重ねる（ページ内容を完全に隠さないよう余白は最小）
-	overlay: {
-		position: "absolute" as any,
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 1000,
-		paddingVertical: 8,
-		paddingHorizontal: 12,
-	},
-	banner: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		backgroundColor: "#fbeedd",
-		borderRadius: 10,
-		paddingVertical: 10,
-		paddingHorizontal: 12,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.12,
-		shadowRadius: 6,
-		elevation: 4,
-	},
-	bannerInfo: {
-		flexDirection: "row",
-		alignItems: "center",
-		flex: 1,
-		paddingRight: 10,
-	},
-	icon: {
-		width: 32,
-		height: 32,
-		borderRadius: 7,
-		marginRight: 10,
-	},
-	textBlock: {
-		flex: 1,
-		minWidth: 0,
-	},
-	bannerName: {
-		fontSize: 15,
-		fontWeight: "800",
-		color: "#1A1A1A",
-	},
-	actions: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	storeButton: {
-		backgroundColor: "#1A1A1A",
-		paddingVertical: 9,
-		paddingHorizontal: 12,
-		borderRadius: 8,
-	},
-	storeButtonText: {
-		color: "#FFFFFF",
-		fontSize: 13,
-		fontWeight: "800",
-	},
-	fallbackRow: {
-		marginTop: 8,
-		backgroundColor: "rgba(255,255,255,0.92)",
-		borderRadius: 10,
-		paddingVertical: 10,
-		paddingHorizontal: 12,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.08,
-		shadowRadius: 4,
-		elevation: 2,
-	},
-	fallbackText: {
-		flex: 1,
-		paddingRight: 10,
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#333",
-	},
-	helpBox: {
-		marginTop: 8,
-		backgroundColor: "rgba(26,26,26,0.96)",
-		borderRadius: 12,
-		paddingVertical: 12,
-		paddingHorizontal: 12,
-	},
-	helpTitle: {
-		color: "#fff",
-		fontSize: 13,
-		fontWeight: "900",
-	},
-	helpBody: {
-		marginTop: 6,
-		color: "#fff",
-		fontSize: 12,
-		fontWeight: "600",
-		lineHeight: 16,
-	},
-	helpClose: {
-		marginTop: 10,
-		alignSelf: "flex-end",
-		paddingVertical: 8,
-		paddingHorizontal: 10,
-		borderRadius: 8,
-		backgroundColor: "rgba(255,255,255,0.16)",
-	},
-	helpCloseText: {
-		color: "#fff",
-		fontSize: 12,
-		fontWeight: "800",
-	},
-});
+/*
+#1629 バナー本体（地・店名・「アプリを入手」）はテーマに追従させる。
+半透明の箱は追従させない:
+- fallbackRow は «下のページが透ける白い箱»。地を暗くすると、下に透けるページと
+  その上の濃い文字を一緒に反転させる必要が出て絵が壊れる。地が固定なので字も固定（onTranslucentWhite）
+- helpBox は «濃い色で塗り潰した吹き出し»。ライトでもダークでも同じだけ目立ってよいので固定、
+  上に載る字は onFilled（＝白）
+*/
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		// 画面上部に重ねる（ページ内容を完全に隠さないよう余白は最小）
+		overlay: {
+			position: "absolute" as any,
+			top: 0,
+			left: 0,
+			right: 0,
+			zIndex: 1000,
+			paddingVertical: 8,
+			paddingHorizontal: 12,
+		},
+		banner: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			backgroundColor: colors.promoBannerSurface,
+			borderRadius: 10,
+			paddingVertical: 10,
+			paddingHorizontal: 12,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.12,
+			shadowRadius: 6,
+			elevation: 4,
+		},
+		bannerInfo: {
+			flexDirection: "row",
+			alignItems: "center",
+			flex: 1,
+			paddingRight: 10,
+		},
+		icon: {
+			width: 32,
+			height: 32,
+			borderRadius: 7,
+			marginRight: 10,
+		},
+		textBlock: {
+			flex: 1,
+			minWidth: 0,
+		},
+		bannerName: {
+			fontSize: 15,
+			fontWeight: "800",
+			color: colors.textPrimary,
+		},
+		actions: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+		},
+		storeButton: {
+			backgroundColor: colors.inverseSurface,
+			paddingVertical: 9,
+			paddingHorizontal: 12,
+			borderRadius: 8,
+		},
+		storeButtonText: {
+			color: colors.onInverseSurface,
+			fontSize: 13,
+			fontWeight: "800",
+		},
+		fallbackRow: {
+			marginTop: 8,
+			backgroundColor: "rgba(255,255,255,0.92)",
+			borderRadius: 10,
+			paddingVertical: 10,
+			paddingHorizontal: 12,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 1 },
+			shadowOpacity: 0.08,
+			shadowRadius: 4,
+			elevation: 2,
+		},
+		fallbackText: {
+			flex: 1,
+			paddingRight: 10,
+			fontSize: 12,
+			fontWeight: "600",
+			color: FixedColors.onTranslucentWhite,
+		},
+		helpBox: {
+			marginTop: 8,
+			backgroundColor: "rgba(26,26,26,0.96)",
+			borderRadius: 12,
+			paddingVertical: 12,
+			paddingHorizontal: 12,
+		},
+		helpTitle: {
+			color: FixedColors.onFilled,
+			fontSize: 13,
+			fontWeight: "900",
+		},
+		helpBody: {
+			marginTop: 6,
+			color: FixedColors.onFilled,
+			fontSize: 12,
+			fontWeight: "600",
+			lineHeight: 16,
+		},
+		helpClose: {
+			marginTop: 10,
+			alignSelf: "flex-end",
+			paddingVertical: 8,
+			paddingHorizontal: 10,
+			borderRadius: 8,
+			backgroundColor: "rgba(255,255,255,0.16)",
+		},
+		helpCloseText: {
+			color: FixedColors.onFilled,
+			fontSize: 12,
+			fontWeight: "800",
+		},
+	});

@@ -20,11 +20,11 @@ import { SIZE_MAP, LoadingIndicatorProps, dualBallLottie } from "./shared";
  * <LoadingIndicator size="large" style={{ marginTop: 20 }} />
  */
 export const LoadingIndicator: React.FC<LoadingIndicatorProps> = React.memo(
-	({ size = "large", style, accessibilityLabel = "Loading" }) => {
+	({ size = "large", style, accessibilityLabel = "Loading", testID }) => {
 		const dimension = SIZE_MAP[size];
 
 		return (
-			<View style={[styles.container, style]} pointerEvents="none">
+			<View style={[styles.container, style]} testID={testID} pointerEvents="none">
 				<LottieView source={dualBallLottie} autoPlay loop style={{ width: dimension, height: dimension }} />
 			</View>
 		);

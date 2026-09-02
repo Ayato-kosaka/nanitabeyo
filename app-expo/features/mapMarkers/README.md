@@ -15,8 +15,7 @@ Map 上のピン表示を **1 つの feature** として集約し、Android/iOS 
   - `AvatarBubbleMarkerBitmap.tsx`: Map 上に描画する Marker コンポーネント（placeholder 付き）
   - `BubblePinBitmap.tsx`: view-shot で PNG 化するためのオフスクリーン View
 - `hooks/`
-  - `useMarkerBitmap.ts`: 旧実装の互換 Hook（削除せず残置）
-- `README_ARCHITECTURE.md` / `README_IMPLEMENTATION.md`: 設計図と実装詳細
+  - `useMarkerBitmap.ts`: 旧パス（`@/hooks/*`）からの import 互換のための Hook
 - `index.ts`: 公開 API の入口
 
 ## 使い方
@@ -38,5 +37,4 @@ import { MarkerBitmapRendererProvider, AvatarBubbleMarkerBitmap } from "@/featur
 
 ## 注意点
 
-- 仕様変更（生成順や色判定など）は別チケットで実施する前提です
-- README/コメントは日本語で統一しています
+- 生成順・キャッシュ・色判定の設計判断は、該当コードの `【設計】` コメントを見ること

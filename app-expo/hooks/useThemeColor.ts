@@ -3,6 +3,7 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 
+import { getPalette } from "@/constants/Palette";
 import { Colors } from "@/constants/PaperTheme";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
@@ -24,5 +25,7 @@ export function useThemeColor(
 	}
 
 	console.warn(`Color "${colorName}" is not a string. Got:`, color);
-	return "#000"; // fallback color
+	// #1629 フォールバックも黒の直書きにしない（ダークでは «暗い地に黒い字» になる）。
+	// スキームに合わせた主要文字色へ倒す
+	return getPalette(theme).textPrimary;
 }

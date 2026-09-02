@@ -1,0 +1,681 @@
+name: Claude Worker
+
+# ローカルのリーダーClaudeが、役割・モデル・プロンプトを都度決めて起動する汎用ワーカー。
+# Issueの分割方法や設計・実装・レビューの進め方は、このWorkflowでは規定しない。
+run-name: >-
+  Claude Worker / ${{ inputs.task_key }} / ${{ inputs.model }} / ${{ inputs.access }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_key:
+        description: "実行を識別する一意なキー（英小文字・数字・._-）"
+        required: true
+        type: string
+      prompt:
+        description: "ローカルのリーダーClaudeが生成した完全な実行指示"
+        required: true
+        type: string
+      model:
+        description: "Claude Codeへ渡すモデルのエイリアスまたはモデルID"
+        required: true
+        default: "sonnet"
+        type: string
+      base_ref:
+        description: "checkoutするブランチ、タグ、またはcommit SHA（空ならbase_branch）"
+        required: false
+        default: ""
+        type: string
+      base_branch:
+        description: "PRのbaseにするブランチ（空なら既定ブランチ）"
+        required: false
+        default: ""
+        type: string
+      access:
+        description: "observeはコードpush不可・Issue/PR記録可、writeは作業ブランチへの書込可"
+        required: true
+        default: "observe"
+        type: choice
+        options:
+          - observe
+          - write
+      branch_name:
+        description: "write時に使用するブランチ名。observeでは未使用"
+        required: false
+        default: ""
+        type: string
+      max_turns:
+        description: "Claude Codeの最大ターン数（pnpm installやモノレポ全体のtypecheck/buildを伴う実装runは80〜150程度が目安）"
+        required: true
+        default: 40
+        type: number
+      extra_claude_args:
+        description: "allowedToolsやeffort等、モデル・最大ターン数以外のClaude Code CLI引数"
+        required: false
+        default: ""
+        type: string
+      retention_days:
+        description: "テストエビデンスArtifactの保存日数"
+        required: true
+        default: 14
+        type: number
+      setup_playwright:
+        description: "true にすると、Claude Code実行前に依存install・shared build・EAS development環境変数のapp-expo/.envへの取得・Playwright(chromium)ブラウザのインストールを済ませる。UI変更を伴うrunでturnを節約するために使う。"
+        required: false
+        default: false
+        type: boolean
+
+# 権限は各Jobで明示し、Workflow全体には暗黙の書込権限を与えない。
+permissions: {}
+
+jobs:
+  validate:
+    name: 入力検証
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      # 両ワーカーが checkout する ref。base_ref が指定されたときは
+      # 「GitHubが解決した40桁のcommit SHA」へ正規化してから渡す（下の step の説明を参照）。
+      checkout_ref: ${{ steps.resolve.outputs.checkout_ref }}
+    steps:
+      - name: 入力値を安全な範囲に制限
+        shell: bash
+        env:
+          TASK_KEY: ${{ inputs.task_key }}
+          ACCESS: ${{ inputs.access }}
+          BRANCH_NAME: ${{ inputs.branch_name }}
+          BASE_BRANCH: ${{ inputs.base_branch || github.event.repository.default_branch }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          MAX_TURNS: ${{ inputs.max_turns }}
+          RETENTION_DAYS: ${{ inputs.retention_days }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TASK_KEY" =~ ^[a-z0-9][a-z0-9._-]{0,79}$ ]]; then
+            echo "::error::task_key は英小文字・数字・._-の80文字以内で指定してください。"
+            exit 1
+          fi
+
+          if (( MAX_TURNS < 1 || MAX_TURNS > 300 )); then
+            echo "::error::max_turns は1〜300で指定してください。"
+            exit 1
+          fi
+
+          if (( RETENTION_DAYS < 1 || RETENTION_DAYS > 90 )); then
+            echo "::error::retention_days は1〜90で指定してください。"
+            exit 1
+          fi
+
+          if ! git check-ref-format --branch "$BASE_BRANCH" >/dev/null; then
+            echo "::error::base_branchがGitのブランチ名として不正です。"
+            exit 1
+          fi
+
+          if [[ "$ACCESS" == "write" ]]; then
+            if [[ -z "$BRANCH_NAME" ]]; then
+              echo "::error::writeではbranch_nameが必須です。"
+              exit 1
+            fi
+
+            if ! git check-ref-format --branch "$BRANCH_NAME" >/dev/null; then
+              echo "::error::branch_nameがGitのブランチ名として不正です。"
+              exit 1
+            fi
+
+            if [[ "$BRANCH_NAME" == "$DEFAULT_BRANCH" || "$BRANCH_NAME" == "$BASE_BRANCH" ]]; then
+              echo "::error::writeのbranch_nameには既定ブランチまたはPRのbase branchを指定できません。"
+              exit 1
+            fi
+          fi
+
+      # ⚠️ base_ref は «checkout できる形» まで、runner を1つも使う前に確定させる。
+      #
+      # 2026-08-26、run 32913852426 は base_ref に短縮SHA `f528bc69` を渡された。
+      # この validate job は base_ref を1文字も検査していなかったので素通りし、
+      # 8秒後に checkout が
+      #   「A branch or tag with the name 'f528bc69' could not be found」
+      # で落ちた。actions/checkout が ref として解決できるのは
+      # «リモートに実在するブランチ名 / タグ名» か «ちょうど40桁のcommit SHA» だけで、
+      # 短縮SHAはどちらにも当たらないためである。
+      #
+      # ここで弾くだけでなく **解決して full SHA へ正規化する**。そうすれば短縮SHAは
+      # 「エラーにならず、意図どおり動く」ようになり、加えて validate と checkout の間に
+      # ブランチが動いても両ワーカーが同じcommitを見ることが保証される。
+      - name: checkoutするrefを解決する
+        id: resolve
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ inputs.base_ref }}
+          BASE_BRANCH: ${{ inputs.base_branch || github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$BASE_REF" ]]; then
+            # base_ref 未指定のときの挙動は従来どおり «ブランチ名のまま checkout» にする。
+            # ここを SHA へ正規化すると CLAUDE_BRANCH がブランチ名でなくなり、
+            # 既定経路の挙動を変えてしまうため、あえて解決しない。
+            if ! gh api "repos/${GITHUB_REPOSITORY}/branches/${BASE_BRANCH}" --jq '.name' >/dev/null 2>&1; then
+              echo "::error::base_branch '$BASE_BRANCH' がこのリポジトリに存在しません。checkoutは必ず失敗するので、ここで止めます。"
+              exit 1
+            fi
+            echo "checkout_ref=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+            echo "base_ref 未指定のため、base_branch '$BASE_BRANCH' をcheckoutします。"
+            exit 0
+          fi
+
+          # commits API はブランチ名・タグ名・full SHA・短縮SHA のいずれも解決し、
+          # full SHA を返す。解決できないものだけがここで落ちる。
+          if ! RESOLVED="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${BASE_REF}" --jq '.sha' 2>/dev/null)"; then
+            echo "::error::base_ref '$BASE_REF' をこのリポジトリのcommitとして解決できません（ブランチ名・タグ名・commit SHAのいずれでもない、または削除済みです）。"
+            exit 1
+          fi
+
+          if [[ ! "$RESOLVED" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::base_ref '$BASE_REF' の解決結果 '$RESOLVED' が40桁のcommit SHAではありません。"
+            exit 1
+          fi
+
+          echo "checkout_ref=$RESOLVED" >> "$GITHUB_OUTPUT"
+          if [[ "$BASE_REF" != "$RESOLVED" ]]; then
+            echo "base_ref '$BASE_REF' を full SHA '$RESOLVED' へ正規化しました。"
+          else
+            echo "base_ref '$RESOLVED' を確認しました。"
+          fi
+
+  observe:
+    name: 読み取りワーカー
+    needs: validate
+    if: inputs.access == 'observe'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      # 設計・調査・レビューではコードのpushを禁止する。
+      contents: read
+      # プロンプトで指示された場合だけ、Issue・PRへ結果を記録できる。
+      issues: write
+      pull-requests: write
+      # CI結果を根拠としてレビューできるようにする。
+      actions: read
+      # Claude GitHub Appの短期トークン取得に使用する。
+      id-token: write
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.validate.outputs.checkout_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: PNPMをセットアップ
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 依存関係をインストール
+        shell: bash
+        # Claude Code自身がturnを使ってinstallする手間を省く。実装runでは特に効果が大きい。
+        run: pnpm install --frozen-lockfile
+
+      - name: sharedパッケージをビルド
+        shell: bash
+        # app-expo/api の typecheck・build は shared/dist を前提にしている。
+        run: pnpm --filter shared build
+
+      - name: Expo & EAS CLIをセットアップ
+        if: inputs.setup_playwright
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: development環境変数をapp-expo/.envへ取得
+        if: inputs.setup_playwright
+        working-directory: app-expo
+        shell: bash
+        # e2e-web-test.yml と同じ取得方法。EXPO_PUBLIC_BACKEND_BASE_URL 等が
+        # dev環境向けの値で焼き込まれる。
+        run: pnpx eas-cli env:pull development --non-interactive --path .env
+
+      # 2026-08-23、この step が無かったために、公開したエビデンス動画・スクショの
+      # 日本語がすべて豆腐（□）で描画され、レビューに使えないものを配ってしまった。
+      # `playwright install --with-deps` が入れるのは Latin 系のフォントだけで、
+      # CJK・アラビア文字・デーヴァナーガリーは含まれない。このアプリは 8 言語対応な
+      # ので、日本語だけでなく zh-CN / ko-KR / ar-SA / hi-IN も同時に落ちる。
+      # setup_playwright に紐づけない。ワーカーが自分で playwright を入れる経路が
+      # あり、そこを通ると豆腐に戻るため、常に入れる。
+      - name: 多言語フォントをインストール（エビデンスの文字化け防止）
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            fonts-noto-cjk fonts-noto-core fonts-noto-color-emoji
+          fc-cache -f >/dev/null
+          # 入ったことを数字で確認する。0 ならエビデンスは撮る前から無意味なので落とす。
+          for lang in ja zh ko ar hi; do
+            n=$(fc-list ":lang=$lang" | wc -l)
+            echo "lang=$lang のフォント数: $n"
+            if [[ "$n" -eq 0 ]]; then
+              echo "::error::$lang のフォントが無い。この状態で撮った画像は文字化けする。"
+              exit 1
+            fi
+          done
+
+      - name: Playwrightブラウザをインストール
+        if: inputs.setup_playwright
+        shell: bash
+        run: pnpm --filter e2e-web exec playwright install --with-deps chromium
+
+      - name: Artifact格納先を準備
+        shell: bash
+        # Git管理下へエビデンスを置くと、実装commitへの混入につながるため/tmpへ分離する。
+        run: mkdir -p /tmp/claude-artifacts
+
+      - name: Claude Codeを実行
+        id: claude
+        uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
+        env:
+          # workflow_dispatchのrefではなく、実際に調査するrefをGitHub MCPへ渡す。
+          CLAUDE_BRANCH: ${{ needs.validate.outputs.checkout_ref }}
+          # setup_playwright時、e2e-webのテストがログイン系specを自動実行できるようにする
+          # (TEST_USER_*未設定時はテスト側のskip条件で自動的にスキップされる)。
+          TEST_USER_EMAIL: ${{ inputs.setup_playwright && secrets.TEST_USER_EMAIL || '' }}
+          TEST_USER_PASSWORD: ${{ inputs.setup_playwright && secrets.TEST_USER_PASSWORD || '' }}
+        with:
+          # Maxプランで生成した長期OAuthトークンを使用し、APIキー課金を発生させない。
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: ${{ inputs.prompt }}
+          base_branch: ${{ inputs.base_branch || github.event.repository.default_branch }}
+          # ⚠️ 読み取りワーカーにも bypassPermissions が要る。
+          #
+          # 2026-08-21、権利面の調査を頼んだ observe run が **permission_denials=29** で
+          # 終わった。`success` かつ最終メッセージも 9546 文字あったので一見成功に見えるが、
+          # WebFetch / WebSearch が拒否されており **外部を 1 ページも見ないまま「調査」していた**。
+          # 成果物の体裁は整うので、denials を見ないと気付けない種類の失敗である。
+          #
+          # 「observe は読み取り専用だから権限は要らない」は誤りだった。ここでの
+          # «読み取り専用» は **リポジトリへ書けないこと** を指しており、それを担保するのは
+          # 下の `additional_permissions: contents: read`（＋ push ステップが無いこと）であって、
+          # ツールの許可とは別の層である。調査タスクでは外部取得こそが仕事なので、
+          # ツールを塞ぐと仕事そのものが成立しない。
+          #
+          # write 側と同じ理由で `--allowedTools` は綴り変更に対する保険として残す
+          # （bypassPermissions が効いている限り、実際に効くのは permission-mode の方）。
+          claude_args: |
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.max_turns }}
+            --permission-mode bypassPermissions
+            --allowedTools Bash,Edit,Write,Read,Glob,Grep,TodoWrite,WebFetch,WebSearch,Task
+            ${{ inputs.extra_claude_args }}
+          # Claude GitHub Appトークンの既定値はcontents: writeのため、
+          # observeでは明示的にreadへ下げ、コード変更を権限レベルで防ぐ。
+          # **コード変更を防いでいるのはこの行であって、ツールの許可ではない。**
+          additional_permissions: |
+            contents: read
+            pull_requests: write
+            issues: write
+            actions: read
+          # 公開リポジトリのログへツール出力や機密情報を露出させない。
+          show_full_output: false
+          display_report: false
+
+      - name: 信頼済み要約スクリプトを取得
+        if: always()
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .claude-worker-trusted
+          sparse-checkout: .github/scripts/summarize-claude-output.sh
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: 実行結果を要約
+        if: always()
+        shell: bash
+        env:
+          CLAUDE_EXECUTION_OUTPUT: ${{ steps.claude.outputs.execution_file }}
+        run: bash .claude-worker-trusted/.github/scripts/summarize-claude-output.sh
+
+      # 読み取りワーカーの «成果物を出したか» 検証。書き込みワーカーの
+      # 「commit・pushされたことを検証」に相当するものが、こちらには無かった。
+      #
+      # 2026-08-20、#1400 の設計runが **19分走って `success` のままコメントを1つも投稿せずに終了**した。
+      # observeの成果物は commit ではなく «最後に書かれたテキスト» なので、
+      # 何も書かずに終わっても誰も気付けず、リーダーは «成功した» と受け取ってしまう。
+      # 実際にはその19分ぶんのトークンが丸ごと無駄になっていた。
+      #
+      # ここでは «最終アシスタントメッセージが空» だけを失敗とする。Issue へ投稿したかどうかまでは
+      # 見ない（投稿の要否はプロンプト次第で、ここで一律に強制すると調査だけを頼んだrunまで赤くなる）。
+      # 空でなければ中身は job ログの `claude-result-begin:` 〜 `claude-result-end:` から回収できる。
+      - name: 成果物が出力されたことを検証
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
+        run: |
+          # ⚠️ 「Claudeが〜しなかった」と報告してよいのは、**Claudeが実際に走ったとき**だけ。
+          #
+          # 2026-08-26、run 32913852426 は step 2（checkout）が base_ref の短縮SHAで
+          # 落ち、Claudeの step は skipped だった。にもかかわらずこの step が
+          # 「成果物を1文字も出力せずに終了しました」と報告し、しかもそれが job の
+          # **最後のエラー**なので、リーダーには «Claudeが黙って終わった / 権限拒否» に見えた。
+          # 真因（checkoutの失敗）はログを先頭まで遡らないと分からない。
+          # 同じ罠は step 6（sharedのビルド）でも踏んでおり、そのときは «Claudeが出力せず
+          # 50秒で落ちる» と誤診したまま文書化だけして直していなかった（#1574）。
+          #
+          # 段取りの step が落ちた run は「段取りが落ちた」とだけ言う。Claudeの話をしない。
+          if [[ "$CLAUDE_OUTCOME" == "skipped" ]]; then
+            echo "::error::Claude Codeは実行されていません（前段のstepが失敗したためskipされました）。このjobの失敗原因はClaudeではなく、このjobで**最初に赤くなったstep**です（checkout / pnpm install / sharedのビルド / フォント導入 等）。ログを先頭から見てください。"
+            exit 1
+          fi
+
+          if [[ "$CLAUDE_OUTCOME" != "success" ]]; then
+            echo "::error::Claude Codeのstep自体が失敗しました（outcome=$CLAUDE_OUTCOME）。[subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}]"
+            exit 1
+          fi
+
+          if [[ "${CLAUDE_RESULT_CHARS:-0}" -eq 0 ]]; then
+            echo "::error::読み取りワーカーが成果物を1文字も出力せずに終了しました。observeの成果物は commit ではなく «最後に書かれたテキスト» なので、これは成功ではありません。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}] 拒否されたツール名はjobログの 'claude-denial:' 行を見ること。"
+            exit 1
+          fi
+          echo "成果物を確認しました（${CLAUDE_RESULT_CHARS} 文字）。本文は job ログの 'claude-result-begin:' 〜 'claude-result-end:' にあります。"
+
+      - name: テストエビデンスを保存
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: claude-${{ inputs.task_key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/claude-artifacts/
+          if-no-files-found: ignore
+          # dotfileへ紛れた認証情報等を意図せず公開Artifactへ含めない。
+          include-hidden-files: false
+          retention-days: ${{ inputs.retention_days }}
+
+  write:
+    name: 書き込みワーカー
+    needs: validate
+    if: inputs.access == 'write'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    # 異なるbranchは並列のまま、同じbranchへのpushだけを直列化する。
+    concurrency:
+      group: claude-worker-${{ github.repository }}-${{ inputs.branch_name }}
+      cancel-in-progress: false
+    permissions:
+      # 対象branchはCLAUDE_BRANCHとpromptで固定し、既定branchはrulesetでも保護する。
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: read
+      id-token: write
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.validate.outputs.checkout_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: 指定された作業ブランチへ切り替え
+        shell: bash
+        env:
+          BRANCH_NAME: ${{ inputs.branch_name }}
+        run: |
+          set -euo pipefail
+
+          # 既存ブランチならレビュー指摘への追従として継続し、なければ現在のbase_refから作る。
+          if git show-ref --verify --quiet "refs/heads/$BRANCH_NAME"; then
+            git switch "$BRANCH_NAME"
+          elif git ls-remote --exit-code --heads origin "refs/heads/$BRANCH_NAME" >/dev/null 2>&1; then
+            git fetch --no-tags origin "refs/heads/$BRANCH_NAME:refs/remotes/origin/$BRANCH_NAME"
+            git switch --create "$BRANCH_NAME" --track "origin/$BRANCH_NAME"
+          else
+            git switch --create "$BRANCH_NAME"
+          fi
+
+      - name: 実行前のHEADを記録
+        id: pre_claude
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: PNPMをセットアップ
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 依存関係をインストール
+        shell: bash
+        # Claude Code自身がturnを使ってinstallする手間を省く。実装runでは特に効果が大きい。
+        run: pnpm install --frozen-lockfile
+
+      - name: sharedパッケージをビルド
+        shell: bash
+        # app-expo/api の typecheck・build は shared/dist を前提にしている。
+        run: pnpm --filter shared build
+
+      - name: Expo & EAS CLIをセットアップ
+        if: inputs.setup_playwright
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: development環境変数をapp-expo/.envへ取得
+        if: inputs.setup_playwright
+        working-directory: app-expo
+        shell: bash
+        run: pnpx eas-cli env:pull development --non-interactive --path .env
+
+      # 2026-08-23、この step が無かったために、公開したエビデンス動画・スクショの
+      # 日本語がすべて豆腐（□）で描画され、レビューに使えないものを配ってしまった。
+      # `playwright install --with-deps` が入れるのは Latin 系のフォントだけで、
+      # CJK・アラビア文字・デーヴァナーガリーは含まれない。このアプリは 8 言語対応な
+      # ので、日本語だけでなく zh-CN / ko-KR / ar-SA / hi-IN も同時に落ちる。
+      # setup_playwright に紐づけない。ワーカーが自分で playwright を入れる経路が
+      # あり、そこを通ると豆腐に戻るため、常に入れる。
+      - name: 多言語フォントをインストール（エビデンスの文字化け防止）
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            fonts-noto-cjk fonts-noto-core fonts-noto-color-emoji
+          fc-cache -f >/dev/null
+          # 入ったことを数字で確認する。0 ならエビデンスは撮る前から無意味なので落とす。
+          for lang in ja zh ko ar hi; do
+            n=$(fc-list ":lang=$lang" | wc -l)
+            echo "lang=$lang のフォント数: $n"
+            if [[ "$n" -eq 0 ]]; then
+              echo "::error::$lang のフォントが無い。この状態で撮った画像は文字化けする。"
+              exit 1
+            fi
+          done
+
+      - name: Playwrightブラウザをインストール
+        if: inputs.setup_playwright
+        shell: bash
+        run: pnpm --filter e2e-web exec playwright install --with-deps chromium
+
+      - name: Artifact格納先を準備
+        shell: bash
+        # 実装ファイルとテストエビデンスを分離し、誤commitを防ぐ。
+        run: mkdir -p /tmp/claude-artifacts
+
+      # ⚠️ 使えるツールを明示すること。既定に頼らない。
+      #
+      # 2026-08-20、書き込みワーカーが5本続けて «何もcommitせずに正常終了» した。
+      # 原因は Bash / Write / Edit / WebFetch が軒並み権限拒否されていたこと
+      # （1本で permission_denials=22。subtype=success・turns=76 で、上限でもturn切れでもない）。
+      # **ファイルを書く手段が1つも無い状態で走らせていた**ので、Claudeは作業できずに
+      # 引き返すしかなかった。
+      #
+      # Actionのバージョンはコミットで固定しているが、Actionが実行時に入れる
+      # Claude Code CLI は固定されていない。CLI側の既定（permission mode・sandbox）が
+      # 変わるとワーカーが黙って作業不能になる。ここを明示しておけば、CLIの既定が
+      # 何であっても書き込みワーカーは動く。
+      #
+      # なぜ `acceptEdits` ではなく `bypassPermissions` なのか。
+      # 拒否 22 件のうち大半は `Bash` で、1 件は `dangerouslyDisableSandbox` 付きだった。
+      #   - `acceptEdits` が自動承認するのは **ファイル編集だけ**。`Bash` は確認を求めるので、
+      #     非対話実行（確認する人が居ない）では結局すべて拒否になる。
+      #   - `dangerouslyDisableSandbox` の存在は «サンドボックス外への昇格» という
+      #     別の承認軸があることを示す。`git push` も `pnpm install` もネットワークが要るので
+      #     必ずここへ来る。`--allowedTools Bash` は «Bash というツール» を許すだけで、
+      #     この昇格までは前もって承認できない。
+      # なお `--allowedTools Bash` を入れた時点で **任意の Bash を許している**ので、
+      # `acceptEdits` との差は実質的にセキュリティの差ではなく信頼性の差でしかない。
+      # `--allowedTools` は、CLI が `--permission-mode` の綴りを変えたときの保険として残す。
+      #
+      # 影響範囲は次の 3 つで閉じている。
+      #   1. 使い捨ての GitHub ホストランナー上でしか動かない
+      #   2. GitHub 側でできることは job の `permissions:` と `additional_permissions` が決める
+      #      （ここは 1 行も緩めていない。`contents: write` は元から付いている）
+      #   3. 触れるブランチは `CLAUDE_BRANCH` で作業ブランチに固定している
+      #
+      # `observe` 側は読み取り専用のままにする（あちらへは付けない）。ここで許可するのは
+      # 「runner上の作業ツリーを触る」ことだけで、GitHubへの権限は下の
+      # `additional_permissions` と job の `permissions:` が引き続き決める。
+      - name: Claude Codeを実行
+        id: claude
+        uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
+        env:
+          # Action内部のGitHub MCPも、事前に切り替えた同じ作業ブランチだけを更新させる。
+          CLAUDE_BRANCH: ${{ inputs.branch_name }}
+          TEST_USER_EMAIL: ${{ inputs.setup_playwright && secrets.TEST_USER_EMAIL || '' }}
+          TEST_USER_PASSWORD: ${{ inputs.setup_playwright && secrets.TEST_USER_PASSWORD || '' }}
+        with:
+          # Maxプランで生成した長期OAuthトークンを使用し、APIキー課金を発生させない。
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: ${{ inputs.prompt }}
+          base_branch: ${{ inputs.base_branch || github.event.repository.default_branch }}
+          claude_args: |
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.max_turns }}
+            --permission-mode bypassPermissions
+            --allowedTools Bash,Edit,Write,Read,Glob,Grep,TodoWrite,WebFetch,WebSearch,Task
+            ${{ inputs.extra_claude_args }}
+          # 使用権限をWorkflow上にも列挙し、動的promptから権限を拡張させない。
+          additional_permissions: |
+            contents: write
+            pull_requests: write
+            issues: write
+            actions: read
+          # 公開リポジトリのログへツール出力や機密情報を露出させない。
+          show_full_output: false
+          display_report: false
+
+      - name: 信頼済み要約スクリプトを取得
+        if: always()
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .claude-worker-trusted
+          sparse-checkout: .github/scripts/summarize-claude-output.sh
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: 実行結果を要約
+        if: always()
+        shell: bash
+        env:
+          CLAUDE_EXECUTION_OUTPUT: ${{ steps.claude.outputs.execution_file }}
+        run: bash .claude-worker-trusted/.github/scripts/summarize-claude-output.sh
+
+      - name: commit・pushされたことを検証
+        # このstepは常に実行し、Claude Codeが権限拒否やturn切れで行き詰まり
+        # 何もcommit・pushしないまま終了した場合でもjobを明示的に失敗させる。
+        # (SDKの実行自体は is_error:false で「成功」報告されることがあるため、
+        # workflow runのconclusionだけでは成果物の有無を判断できない)
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          BRANCH_NAME: ${{ inputs.branch_name }}
+          PRE_SHA: ${{ steps.pre_claude.outputs.sha }}
+          CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
+        run: |
+          set -euo pipefail
+
+          # ⚠️ 「Claudeが〜しなかった」と報告してよいのは、**Claudeが実際に走ったとき**だけ。
+          #
+          # このstepは `always()` で動いていたため、段取りのstep（checkout / pnpm install /
+          # sharedのビルド / フォント導入）が落ちてClaudeがskipされたrunでも走っていた。
+          # そのとき下の `git rev-parse HEAD` は «作業ツリーが無い» まま実行され、
+          # set -e で git の生のエラーを吐いて終わる。リーダーに届く最後のエラーが
+          # 「commitが無い」でも git の内部エラーでもなく、**真因を1文字も含まない**。
+          # observe側は同じ形で «成果物を1文字も出力せずに終了しました» と誤って報告し、
+          # 実際に run 32913852426（base_refに短縮SHA）でリーダーを誤診させた。
+          # 同じ罠は step 6（sharedのビルド）でも踏んでおり、そのときは «Claudeが出力せず
+          # 50秒で落ちる» と誤診したまま文書化だけして直していなかった（#1574）。
+          #
+          # 段取りのstepが落ちたrunは「段取りが落ちた」とだけ言う。Claudeの話をしない。
+          if [[ "$CLAUDE_OUTCOME" == "skipped" ]]; then
+            echo "::error::Claude Codeは実行されていません（前段のstepが失敗したためskipされました）。このjobの失敗原因はClaudeではなく、このjobで**最初に赤くなったstep**です（checkout / pnpm install / sharedのビルド / フォント導入 等）。ログを先頭から見てください。"
+            exit 1
+          fi
+
+          if [[ "$CLAUDE_OUTCOME" != "success" ]]; then
+            echo "::error::Claude Codeのstep自体が失敗しました（outcome=$CLAUDE_OUTCOME）。[subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}]"
+            exit 1
+          fi
+
+          POST_SHA=$(git rev-parse HEAD)
+          if [[ "$PRE_SHA" == "$POST_SHA" ]]; then
+            # ⚠️ 原因の切り分けに要る値をこの1行へ必ず載せること。
+            # リーダーはStep Summaryを読めない（GitHubのAPIが公開していない）ので、
+            # ここが「commitが無い」だけだと «上限» / «権限拒否» / «promptの不備» を区別できず、
+            # 同じ失敗を何度も再実行することになる（実際に4回繰り返した）。
+            # 値は summarize-claude-output.sh がGITHUB_ENVへ入れた集計値のみで、引数値は含まない。
+            echo "::error::作業ブランチ '$BRANCH_NAME' に新しいcommitがありません（実行前後でHEADが変化していません）。Claude Codeが権限不足・turn切れ・その他の理由で変更を確定できなかった可能性があります。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}] 拒否されたツール名はjobログの 'claude-denial:' 行を見ること。"
+            exit 1
+          fi
+          echo "✓ HEADが変化: $PRE_SHA -> $POST_SHA"
+
+          # ⚠️ ここは `git rev-parse "origin/$BRANCH_NAME"` で書いてはいけない。
+          # rev-parse は解決できない ref を渡されると **その引数文字列自体をstdoutへ出す**
+          # (エラーはstderr、exit 128)。したがって `|| echo ""` は発火せず、REMOTE_SHA には
+          # "origin/claude/xxx" という文字列が入り、下の -z ガードを素通りする。
+          # 結果、**リモートにブランチが無いのにstepがsuccessで終わる**。
+          # 実際にこれを踏んだ: run 32607186274 は turn切れでpush前に終わったのに、
+          # このstepがsuccessを返したためリーダーが成果物ありと誤認した。
+          # ls-remote はローカルのremote-tracking refに依存せずoriginへ直接問い合わせるので、
+          # 「originにあるか」を判定する手段としてこちらが正しい。
+          REMOTE_SHA=$(git ls-remote --heads origin "$BRANCH_NAME" | awk '{print $1}')
+          if [[ -z "$REMOTE_SHA" ]]; then
+            echo "::error::作業ブランチ '$BRANCH_NAME' がoriginへpushされていません。commitはローカルに存在しますが共有されていません。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}]"
+            exit 1
+          fi
+          # 「一部だけpushされている」も失敗として扱う。warningにするとstepがsuccessで終わり、
+          # リーダーはブランチに全成果が載っていると誤認する。このstepの目的は
+          # 「成果物が本当に共有されたか」の判定なので、中途半端なpushは成功ではない。
+          if [[ "$REMOTE_SHA" != "$POST_SHA" ]]; then
+            echo "::error::originの '$BRANCH_NAME' ($REMOTE_SHA) が最新のローカルcommit ($POST_SHA) と一致しません。最後の変更がpushされていません。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}]"
+            exit 1
+          fi
+          echo "✓ originへpush済み: $REMOTE_SHA"
+
+      - name: テストエビデンスを保存
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: claude-${{ inputs.task_key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/claude-artifacts/
+          if-no-files-found: ignore
+          include-hidden-files: false
+          retention-days: ${{ inputs.retention_days }}

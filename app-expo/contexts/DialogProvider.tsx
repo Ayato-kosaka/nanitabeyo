@@ -1,4 +1,8 @@
 import i18n from "@/lib/i18n";
+// #1577 ダイアログは «画面の面» として開くので、テーマに追従させる。
+// 直書きのままだと暗い画面の上に白いダイアログが浮く。
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import React, {
 	createContext,
 	useCallback,
@@ -11,6 +15,7 @@ import React, {
 } from "react";
 import { BackHandler, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Portal, Dialog, Button, Paragraph, Text, TextInput, HelperText } from "react-native-paper";
+import { useContentWidth } from "@/hooks/useContentWidth";
 
 /**
  * =========================
@@ -265,7 +270,16 @@ const useIsMountedRef = () => {
 };
 
 export const DialogProvider = ({ children }: { children: ReactNode }) => {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const isMountedRef = useIsMountedRef();
+
+	// #958 【修正】paper の Portal は PaperProvider 直下のホスト(=CenteredAppShell の外側)に
+	// 描画されるため、Dialog がウィンドウ全幅に広がり web の中央カラムからはみ出していた。
+	// Dialog 自体をカラム幅(-左右マージン26px相当)に制約し中央寄せする。
+	// native では contentWidth = 画面幅のため、paper 既定(marginHorizontal:26)と同じ見た目になる。
+	const contentWidth = useContentWidth();
+	const dialogWidth = Math.max(0, contentWidth - 52);
 
 	/**
 	 * キューは ref で持つ（state で持つと無駄レンダーが増えやすい）
@@ -280,6 +294,23 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 		inlineError: null,
 		promptValue: "",
 	});
+
+	/**
+	 * #1205 【修正】ダイアログのアクション（OK / custom action）の多重実行を防ぐ同期ガード。
+	 *
+	 * `state.confirming`（useState）は **ボタンを disabled にし、dismiss / 戻るキーを塞ぐ表示用途**
+	 * であって、多重実行の判定には使えない。React が再レンダリングをコミットする前に 2 発目の
+	 * 押下が処理されると、両方が `state.confirming === false` を読んで通過しうるためで、
+	 * 通過すると custom（`showDialog` + `onConfirm`）の `onConfirm` が 2 回走る。
+	 * 実害の例：`features/dishCategories/hooks/useBlockDishCategory.ts` のブロックは 2 発目が
+	 * `reactions` の一意制約で失敗し、**ブロックできているのにダイアログにエラーが残る**。
+	 *
+	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続呼び出しでもレースしない。
+	 * `features/map/components/ReviewForm.tsx:173-185` の `isSubmittingRef` と同じ方式。
+	 * 解除は `runConfirmFlow` / `runCustomAction` の `finally` だけで行う。早期 return する経路
+	 *（prompt の validate エラーなど）も finally を通るので「1 回失敗したら二度と押せない」にはならない。
+	 */
+	const isConfirmingRef = useRef(false);
 
 	/** 現在の request を表示する（キュー先頭をポップして state に載せる） */
 	const showNextIfIdle = useCallback(() => {
@@ -468,6 +499,9 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 						key: "cancel",
 						label: cancelLabel,
 						mode: "text",
+						// #1156 【設計】E2E から確実に掴めるよう、既定 2 ボタンには安定した testID を必ず付ける。
+						// ラベルは i18n で変わるため、ラベル一致で掴むテストは多言語で壊れる。
+						testID: "dialog-action-cancel",
 						onPress: () => {
 							try {
 								options?.onCancel?.();
@@ -480,6 +514,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 						key: "ok",
 						label: okLabel,
 						mode: "text",
+						testID: "dialog-action-ok",
 						onPress: async () => {
 							// 互換 onConfirm をここで実行
 							if (options?.onConfirm) {
@@ -633,73 +668,81 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 		if (!cur) return;
 
 		// すでに confirm 中なら多重実行させない（1）
-		if (state.confirming) return;
-
-		// prompt の場合：validate を先に通す（2）
-		if (cur.kind === "prompt") {
-			const value = state.promptValue;
-
-			const validationError = cur.validate?.(value) ?? null;
-			if (validationError) {
-				setState((prev) => ({ ...prev, inlineError: validationError }));
-				return; // 閉じない
-			}
-
-			// OK で解決して閉じる
-			try {
-				cur.resolve(value);
-			} catch {
-				// ignore
-			}
-			closeCurrent("confirm");
-			return;
-		}
-
-		// confirm request の場合：OK で true を返して閉じる
-		if (cur.kind === "confirm") {
-			try {
-				cur.resolve(true);
-			} catch {
-				// ignore
-			}
-			closeCurrent("confirm");
-			return;
-		}
-
-		// custom request の場合：onConfirm / action 実行（async 対応）
-		setState((prev) => ({ ...prev, confirming: true, inlineError: null }));
+		// #1205 判定は同期的に確定する ref で行う（state.confirming は表示用。宣言のコメント参照）
+		if (isConfirmingRef.current || state.confirming) return;
+		isConfirmingRef.current = true;
 
 		try {
-			// 「OK action」を探して実行（actions 配列対応）（7）
-			const okAction = cur.actions.find((a) => a.key === "ok");
-			if (okAction?.onPress) {
-				await okAction.onPress();
-			} else if (cur.onConfirm) {
-				// 念のためフォールバック
-				await cur.onConfirm();
+			// prompt の場合：validate を先に通す（2）
+			if (cur.kind === "prompt") {
+				const value = state.promptValue;
+
+				const validationError = cur.validate?.(value) ?? null;
+				if (validationError) {
+					setState((prev) => ({ ...prev, inlineError: validationError }));
+					return; // 閉じない
+				}
+
+				// OK で解決して閉じる
+				try {
+					cur.resolve(value);
+				} catch {
+					// ignore
+				}
+				closeCurrent("confirm");
+				return;
 			}
 
-			// 成功後に閉じるか（1）
-			if (cur.closeOnConfirm) {
+			// confirm request の場合：OK で true を返して閉じる
+			if (cur.kind === "confirm") {
+				try {
+					cur.resolve(true);
+				} catch {
+					// ignore
+				}
 				closeCurrent("confirm");
-			} else {
-				setState((prev) => ({ ...prev, confirming: false }));
+				return;
 			}
-		} catch (e) {
-			// エラー通知（1,11）
+
+			// custom request の場合：onConfirm / action 実行（async 対応）
+			setState((prev) => ({ ...prev, confirming: true, inlineError: null }));
+
 			try {
-				cur.onError?.(e);
-			} catch {
-				// ignore
-			}
+				// 「OK action」を探して実行（actions 配列対応）（7）
+				const okAction = cur.actions.find((a) => a.key === "ok");
+				if (okAction?.onPress) {
+					await okAction.onPress();
+				} else if (cur.onConfirm) {
+					// 念のためフォールバック
+					await cur.onConfirm();
+				}
 
-			const msg: string = cur.errorMessage ?? i18n.t("Common.errors.unexpected");
-			setState((prev) => ({ ...prev, confirming: false, inlineError: msg }));
+				// 成功後に閉じるか（1）
+				if (cur.closeOnConfirm) {
+					closeCurrent("confirm");
+				} else {
+					setState((prev) => ({ ...prev, confirming: false }));
+				}
+			} catch (e) {
+				// エラー通知（1,11）
+				try {
+					cur.onError?.(e);
+				} catch {
+					// ignore
+				}
 
-			// 失敗時も閉じるか（1）
-			if (cur.closeOnError) {
-				closeCurrent("confirm");
+				const msg: string = cur.errorMessage ?? i18n.t("Common.errors.unexpected");
+				setState((prev) => ({ ...prev, confirming: false, inlineError: msg }));
+
+				// 失敗時も閉じるか（1）
+				if (cur.closeOnError) {
+					closeCurrent("confirm");
+				}
 			}
+		} finally {
+			// #1205 成功・失敗・早期 return のいずれでも必ず通る、唯一の解除箇所。
+			// エラー表示を残して閉じない（closeOnError:false）経路でも解除されるので再試行できる。
+			isConfirmingRef.current = false;
 		}
 	}, [closeCurrent, state.confirming, state.current, state.promptValue]);
 
@@ -742,9 +785,10 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 			if (!cur || cur.kind !== "custom") return;
 
 			// confirm中は action 無効（1）
-			if (state.confirming) return;
+			// #1205 ここも判定は ref で行う（state.confirming は表示用。宣言のコメント参照）
+			if (isConfirmingRef.current || state.confirming) return;
 
-			// cancel/ok は専用ハンドラへ
+			// cancel/ok は専用ハンドラへ（ref はまだ立てていないので runConfirmFlow 側で立てる）
 			if (action.key === "cancel") {
 				handleCancel();
 				return;
@@ -755,6 +799,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 			}
 
 			// その他 action は実行して、必要なら閉じる（ここでは「action 側で hideDialog する」方針）
+			isConfirmingRef.current = true;
 			try {
 				setState((prev) => ({ ...prev, confirming: true, inlineError: null }));
 				await action.onPress?.();
@@ -767,6 +812,8 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 				const msg: string = cur.errorMessage ?? i18n.t("Common.error");
 				setState((prev) => ({ ...prev, inlineError: msg }));
 			} finally {
+				// #1205 成功・失敗のどちらでも必ず通る解除箇所（再試行できる状態に戻す）
+				isConfirmingRef.current = false;
 				setState((prev) => ({ ...prev, confirming: false }));
 			}
 		},
@@ -830,7 +877,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 			<Portal>
 				<Dialog
 					visible={visible}
-					style={styles.dialog}
+					style={[styles.dialog, { width: dialogWidth, alignSelf: "center" }]}
 					/**
 					 * onDismiss は「呼ばれる」ので、許可しない場合は handleDismiss 内で弾く（6）
 					 */
@@ -845,7 +892,16 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 								contentContainerStyle={{ paddingBottom: 4 }}
 								// confirm中でもスクロールは許可
 							>
-								<Paragraph style={styles.message}>{cur?.message ?? ""}</Paragraph>
+								{/*
+								  #1511 【設計】本文にも安定した testID を与える。ボタン（dialog-confirm-button /
+								  dialog-cancel-button）には既に付いているのに本文だけ無く、E2E から «何と書いてあるか» を
+								  確かめる手段が by.text() の **完全一致**しか無かった。本文は 1 つの Text に段落まるごと
+								  入るため、「この操作は取り消せません。」のような一部分では絶対に一致しない。
+								  実際 e2e-mobile の tests/authenticated/account-delete.test.ts はそれで落ち続けていた。
+								*/}
+								<Paragraph style={styles.message} testID="dialog-message">
+									{cur?.message ?? ""}
+								</Paragraph>
 
 								{/* prompt UI（2） */}
 								{cur?.kind === "prompt" && (
@@ -890,7 +946,9 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 
 							const onPress = async () => {
 								// confirm中は無視（1）
-								if (state.confirming) return;
+								// #1205 disabled（下の `state.confirming`）は再レンダリング後にしか効かないため、
+								// 押下の入口でも同期的な ref で弾く（宣言のコメント参照）
+								if (isConfirmingRef.current || state.confirming) return;
 
 								if (isCancel) {
 									handleCancel();
@@ -910,15 +968,21 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 								<Button
 									key={a.key}
 									mode={isOk || isCancel ? "contained" : (a.mode ?? "text")}
-									buttonColor={isOk ? "#F05537" : isCancel ? "#F8F9FA" : undefined}
-									textColor={isOk ? "#FFFFFF" : isCancel ? "#6B7280" : undefined}
+									buttonColor={isOk ? colors.brand : isCancel ? colors.surfaceMuted : undefined}
+									textColor={isOk ? FixedColors.onFilled : isCancel ? colors.textSecondary : undefined}
 									style={isOk || isCancel ? styles.actionButton : undefined}
 									contentStyle={isOk || isCancel ? styles.actionButtonContent : undefined}
 									labelStyle={[styles.actionButtonLabel, isOk && styles.confirmButtonLabel]}
 									onPress={onPress}
 									disabled={disabled}
 									accessibilityLabel={a.accessibilityLabel}
-									testID={a.testID}>
+									// #1131 【設計】OK / キャンセルには既定の testID を与える。
+									// ネイティブ（Detox）にはラベル文字列でしか要素を特定できない場面があり、
+									// 「設定画面のログアウト行」と「確認ダイアログのログアウトボタン」のように
+									// **同じ文言のボタンが同時に 2 つ存在する**と matcher が複数一致して操作できない
+									// （Detox は複数一致した matcher の操作を例外にする）。
+									// 個別の testID が渡されていればそちらを優先する（custom actions は従来どおり）。
+									testID={a.testID ?? (isOk ? "dialog-confirm-button" : isCancel ? "dialog-cancel-button" : undefined)}>
 									{a.label}
 								</Button>
 							);
@@ -937,43 +1001,44 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 	);
 };
 
-const styles = StyleSheet.create({
-	dialog: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-	},
-	title: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1C1B1F",
-		letterSpacing: -0.3,
-	},
-	message: {
-		fontSize: 16,
-		fontWeight: "500",
-		lineHeight: 24,
-		color: "#49454F",
-	},
-	actions: {
-		gap: 4,
-		paddingHorizontal: 24,
-		paddingBottom: 20,
-	},
-	actionButton: {
-		borderRadius: 16,
-	},
-	actionButtonContent: {
-		minHeight: 48,
-		paddingHorizontal: 8,
-	},
-	actionButtonLabel: {
-		fontSize: 16,
-		fontWeight: "600",
-	},
-	confirmButtonLabel: {
-		fontWeight: "700",
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		dialog: {
+			backgroundColor: colors.surface,
+			borderRadius: 20,
+		},
+		title: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: colors.dialogTitle,
+			letterSpacing: -0.3,
+		},
+		message: {
+			fontSize: 16,
+			fontWeight: "500",
+			lineHeight: 24,
+			color: colors.dialogMessage,
+		},
+		actions: {
+			gap: 4,
+			paddingHorizontal: 24,
+			paddingBottom: 20,
+		},
+		actionButton: {
+			borderRadius: 16,
+		},
+		actionButtonContent: {
+			minHeight: 48,
+			paddingHorizontal: 8,
+		},
+		actionButtonLabel: {
+			fontSize: 16,
+			fontWeight: "600",
+		},
+		confirmButtonLabel: {
+			fontWeight: "700",
+		},
+	});
 
 /** useDialog フック */
 export const useDialog = (): DialogContextType => {

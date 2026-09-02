@@ -1,0 +1,260 @@
+name: Error Triage
+
+# 🩺 本番ログ（BigQuery）の error を集計し、エラーグループ単位で Issue を同期する（#1196）。
+#
+# - read-only。BigQuery へテーブル・ビュー・スケジュールドクエリは追加しない
+#   （#1196 / .codex/bigquery/safety-policy.md）。
+# - 状態ストアは GitHub Issue のみ。リポジトリへ状態ファイルを commit しないので contents: read で足りる。
+#
+# ■ Job を3つに分ける理由（横断レビュー N7 / #1198 §9）
+#   `permissions:` は **Job 単位でしか効かない**。「フラグで dry-run」方式にすると、
+#   dry-run のつもりの run が `issues: write` を持ったまま走ることになる。
+#   そこで「どこまで書けるか」を Job の権限で物理的に分ける（claude-worker.yml の observe / write 分割と同じ）。
+#
+#   | Job       | 何をするか                                     | issues  | 書き込み |
+#   |-----------|------------------------------------------------|---------|----------|
+#   | `plan`    | BigQuery だけ見て「何が起票されるか」を出す    | read    | 権限レベルで不可能 |
+#   | `preview` | 既存 Issue と突合まで行い、書き込みは行わない  | read    | 権限レベルで不可能 |
+#   | `triage`  | 起票・reopen・body 更新・sub-issue 紐付け      | write   | ここだけ |
+#
+#   `preview` は「実際に何が起票／reopen されるか」を、書き込み権限を1ビットも持たずに確認するためのもの。
+#   sub-issues API が GITHUB_TOKEN で通るか（横断レビュー §6-2 の未検証事項）も、ここで安全に確かめられる。
+#
+# ■ schedule の検算（#1199 §3 / 横断レビュー N6）
+#   運用は「日次 09:00 JST」。JST = UTC+9 なので 09:00 JST − 9h = **00:00 UTC**。
+#   cron は UTC 固定・DST 無しなので `0 0 * * *` で年間ずれない（日本に DST は無く、UTC にも無い）。
+#   窓は 25h スライド（`window.js`）なので、schedule が1時間遅延しても前回窓との間に隙間ができない。
+#
+# ■ BigQuery へのアクセス方式（横断レビュー §6-1 / B4）
+#   `bq` CLI ではなく **BigQuery REST `jobs.query` を Node 組み込み `fetch` で直叩き**する。
+#   理由: `bq` × WIF の前例がこのリポジトリに1本も無く（Workflow 全数確認済み）初回で詰まるリスクが
+#   高いこと、`google-github-actions/auth` の `token_format: access_token` でアクセストークンが
+#   直接取れること、REST のリクエストボディに `maximumBytesBilled` と `dryRun` を入れられるので
+#   **コスト上限も dry-run 見積りも CLI と等価**に保てること、依存パッケージが増えないこと。
+#   この方式なら `setup-gcloud` も `bq` も要らない。
+#
+# ■ コストガードは2層（#1199 §5）
+#   (Ⅰ) `maximumBytesBilled = 1GB` を常にリクエストへ載せる。`scripts/error-triage/bq.js` に
+#        ハードコードしてあり、**この Workflow の env / inputs からは渡せない**。上限が可変なら上限ではない。
+#   (Ⅱ) 本クエリの前に `dryRun: true` で見積もり、1GB を超えていたら本クエリを投げずに fail する。
+#   どちらも `scripts/error-triage/bq.js` 側の責務で、YAML から `bq` を直接叩かない。
+
+on:
+  schedule:
+    # 09:00 JST（= 00:00 UTC）。上の「schedule の検算」を参照。
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "plan=BigQueryのみ / preview=突合まで（書き込み無し） / apply=起票する"
+        required: false
+        default: "plan"
+        type: choice
+        options:
+          - plan
+          - preview
+          - apply
+      lookback_hours:
+        description: "遡る時間数。既定 25 は schedule 遅延で取りこぼさないための 1h ぶんの重複"
+        required: false
+        default: "25"
+        type: string
+
+# 前回の run が長引いているところへ次を重ねない。
+# cron と手動 workflow_dispatch が同時に走ると、同じ未知 fingerprint を2回起票し得る唯一の経路になる
+# （#1198 §7-5）。`cancel-in-progress: false` は必須（起票の途中で殺すと孤児 Issue を量産する）。
+concurrency:
+  group: error-triage
+  cancel-in-progress: false
+
+# Workflow 全体には暗黙の書込権限を与えない（claude-worker.yml に倣う）。
+permissions: {}
+
+env:
+  # dataset の実体は food-scroll.nanitabeyo_logs_prod（scripts/error-triage/sql-generator.js が唯一の正）。
+  # ここに置くのは「どのプロジェクトへ課金するか」だけで、スキャン上限と起票上限は置かない。
+  LOOKBACK_HOURS: ${{ inputs.lookback_hours || '25' }}
+
+jobs:
+  # ---------------- dry-run: BigQuery だけ見る。GitHub へは書けない ----------------
+  plan:
+    name: 起票計画のみ（dry-run）
+    # schedule では回さない（triage が同じクエリを投げるので、二重に課金するだけ）。
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'plan'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # WIF（OIDC）に必須
+      # この Job は既存 Issue を読まない（突合そのものを行わない）。
+      # 起票・reopen・コメントは issues: write が要るので、この Job では**権限レベルで不可能**。
+      issues: read
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # この Job は push も GitHub への書き込みもしないので、認証情報を runner に残さない。
+          persist-credentials: false
+
+      # scripts/error-triage は runtime 依存パッケージがゼロ（node:crypto / node:fs / 組み込み fetch のみ）
+      # なので pnpm install は要らない。install を挟まないぶん速く、サプライチェーン面も小さい。
+      - name: Node.js をセットアップ
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      # 専用の read-only SA（error-triage-reader@food-scroll.iam.gserviceaccount.com）を借用する。
+      # この SA は roles/bigquery.jobUser と dataset nanitabeyo_logs_prod の READER だけを持つ。
+      # api-deploy.yml が使う GCP_SERVICE_ACCOUNT も、4本の Workflow で共用されている GCP_SA_KEY も使わない。
+      - name: Google Cloud へ認証（WIF）
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_TRIAGE_SERVICE_ACCOUNT }}
+          # ★ REST を直叩きするのでアクセストークンを直接受け取る。
+          #   これがあるので setup-gcloud（= gcloud SDK 同梱の bq）を入れずに済む。
+          token_format: access_token
+
+      # 見積り(dryRun) → 上限チェック → 本クエリ → 契約エンベロープ → 起票計画 → Job Summary。
+      # ここまでで GitHub への書き込みは一切発生しない（そもそも issues: write が無い）。
+      - name: 起票計画を作成（dry-run）
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          BQ_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/error-triage
+          node scripts/error-triage/main.js plan \
+            --lookback-hours "$LOOKBACK_HOURS" \
+            --out /tmp/error-triage/plan.json
+
+      - name: 計画を Artifact として保存
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: error-triage-plan-${{ github.run_id }}
+          path: /tmp/error-triage/
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ---------------- 突合まで行い、書き込みは行わない（issues: read）----------------
+  preview:
+    name: 突合まで（書き込み無し）
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'preview'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      # ★ read だけ。`apply --dry-run` は書き込み API を1本も呼ばないが、
+      #   「呼ばないこと」をコードのフラグに頼らず**権限で保証する**のがこの Job の存在理由。
+      issues: read
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Node.js をセットアップ
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Google Cloud へ認証（WIF）
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_TRIAGE_SERVICE_ACCOUNT }}
+          token_format: access_token
+
+      - name: 突合結果を確認（--dry-run）
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          BQ_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/error-triage
+          node scripts/error-triage/main.js apply \
+            --dry-run \
+            --lookback-hours "$LOOKBACK_HOURS" \
+            --out /tmp/error-triage/plan.json
+
+      - name: 計画を Artifact として保存
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: error-triage-preview-${{ github.run_id }}
+          path: /tmp/error-triage/
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ---------------- 本番: Issue を起票・reopen・更新する唯一の Job ----------------
+  triage:
+    name: Issue を同期（起票あり）
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'apply')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      # actions/checkout ＋ 再発判定 (3) の GET /repos/{o}/{r}/commits/{sha}
+      contents: read
+      id-token: write # WIF（OIDC）に必須
+      # 一覧取得・起票・ラベル付与・reopen・コメント・body 更新・sub-issue 紐付け。
+      # GITHUB_TOKEN には「Issue の作成だけ許可」のような細粒度スコープが無いため、これが下限。
+      issues: write
+      # pull-requests / actions / checks / statuses / packages などは一切不要（既定の {} で落ちる）。
+      # list_issues が返す PR は scripts/error-triage/triage.js の buildIndex が
+      # `pull_request` フィールドを見て捨てるので、pull-requests 権限は要らない。
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # この Job は Issue へは書くが、リポジトリへは push しない。
+          persist-credentials: false
+
+      - name: Node.js をセットアップ
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Google Cloud へ認証（WIF）
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_TRIAGE_SERVICE_ACCOUNT }}
+          token_format: access_token
+
+      # BigQuery → 索引（ラベル ∪ 親の sub_issues）→ 突合 → 起票 / reopen / body 更新
+      # → sub-issue 紐付け（best-effort）→ 親 #1196 の常駐サマリコメントを更新。
+      #
+      # 書き込みが起きるのは scripts/error-triage/github.js の applyPlan だけ。
+      # 起票は単一 POST で原子的に完了させ、紐付けはその後の best-effort（横断レビュー §6-2）。
+      # sub-issue 紐付けの失敗では run を落とさず、失敗件数を Job Summary へ出す。
+      - name: Issue を同期
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          BQ_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/error-triage
+          node scripts/error-triage/main.js apply \
+            --lookback-hours "$LOOKBACK_HOURS" \
+            --out /tmp/error-triage/plan.json
+
+      # 起票の途中で落ちても「何を起票したか」を残す（if: always()）。
+      # 次回 run は索引を GitHub から再構成するので、続きから自然に再開する。
+      - name: 計画と適用結果を Artifact として保存
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: error-triage-apply-${{ github.run_id }}
+          path: /tmp/error-triage/
+          if-no-files-found: warn
+          retention-days: 14

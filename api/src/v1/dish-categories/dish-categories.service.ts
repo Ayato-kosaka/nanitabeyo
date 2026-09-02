@@ -21,7 +21,11 @@ import {
   DishCategoryCandidateWithScores,
   DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
-import { shuffle } from 'src/core/utils/backend-utils';
+import {
+  buildSeasonFallbackKeys,
+  getCurrentMonthKey,
+  shuffle,
+} from 'src/core/utils/backend-utils';
 
 // #533 【定数】候補取得上限数
 const CANDIDATE_LIMIT = 200;
@@ -82,6 +86,7 @@ export class DishCategoriesService {
         addressTokens: normalized.addressTokens,
         regionTokens: normalized.regionTokens,
         regionFallbackKeys: normalized.regionFallbackKeys,
+        seasonFallbackKeys: normalized.seasonFallbackKeys,
         budgetIntentKeys: normalized.budgetIntentKeys,
         timeSlotKey: normalized.timeSlotKey,
         sceneKey: normalized.sceneKey,
@@ -106,31 +111,34 @@ export class DishCategoriesService {
         await this.repo.findCategoryPenaltyFeatures(candidateIds);
 
       // #757 【設計】Step 2-2.5: ペナルティ重み取得
-      const [penaltyWeightCoreIngredient, penaltyWeightTaste, penaltyWeightCookingMethod] =
-        await this.remoteConfigService
-          .getRemoteConfigValues([
-            'dish_category_recommendation_penalty_weight_core_ingredient',
-            'dish_category_recommendation_penalty_weight_taste',
-            'dish_category_recommendation_penalty_weight_cooking_method',
-          ])
-          .then((values) =>
-            values.map((v) => {
-              const float = parseFloat(v);
-              if (isNaN(float) || float < 0) {
-                this.logger.error(
-                  'InvalidRemoteConfigValue',
-                  'getRecommendations',
-                  {
-                    key: v,
-                  },
-                );
-                throw new BadRequestException(
-                  `Invalid penalty weight value in remote config: ${v}`,
-                );
-              }
-              return float;
-            }),
-          );
+      const [
+        penaltyWeightCoreIngredient,
+        penaltyWeightTaste,
+        penaltyWeightCookingMethod,
+      ] = await this.remoteConfigService
+        .getRemoteConfigValues([
+          'dish_category_recommendation_penalty_weight_core_ingredient',
+          'dish_category_recommendation_penalty_weight_taste',
+          'dish_category_recommendation_penalty_weight_cooking_method',
+        ])
+        .then((values) =>
+          values.map((v) => {
+            const float = parseFloat(v);
+            if (isNaN(float) || float < 0) {
+              this.logger.error(
+                'InvalidRemoteConfigValue',
+                'getRecommendations',
+                {
+                  key: v,
+                },
+              );
+              throw new BadRequestException(
+                `Invalid penalty weight value in remote config: ${v}`,
+              );
+            }
+            return float;
+          }),
+        );
 
       // #757 【設計】Step 2-3: 逐次最適化でスレート構成
       // IMPORTANT:
@@ -175,6 +183,22 @@ export class DishCategoriesService {
         DEEP_DIVE_SCORE_THRESHOLD,
       );
 
+      // #954 【仕様】カード再訪時に保存状態を正しく初期化するため、選定済み候補分だけ
+      // reactions(action_type=save) を取得してSetにする(候補全件ではなく選定後に絞ることでクエリを軽くする)。
+      const savedCategoryIds = new Set(
+        (
+          await this.prisma.prisma.reactions.findMany({
+            where: {
+              user_id: userId,
+              target_type: 'dish_categories',
+              target_id: { in: categoryIds },
+              action_type: 'save',
+            },
+            select: { target_id: true },
+          })
+        ).map((reaction) => reaction.target_id),
+      );
+
       // Step 2-6: レスポンス構築
       const items = this.buildResponseItems(
         selectedCandidates,
@@ -182,6 +206,7 @@ export class DishCategoriesService {
         categories,
         deepDiveFeatureMap,
         dto.localLanguageCode,
+        savedCategoryIds,
       );
 
       return items;
@@ -203,6 +228,35 @@ export class DishCategoriesService {
     dto: QueryDishCategoryRecommendationsDto,
   ): DishCategoryCandidateNormalizedInput {
     // #533 【仕様】addressのパース
+    //
+    // #1196 【仕様】期待する入力形式(クライアントは必ずこの形で送ること)
+    //
+    //   address = "country:JP, administrative_area_level_1:大阪府, locality:大阪市"
+    //
+    // これは `api/src/v1/locations/locations.service.ts` の `buildAddressFromComponents` が
+    // 生成する機械可読なトークン列であり、**表示用の住所文字列ではない**。
+    // ここでカンマ分割して各トークンへ `region:` を前置し、
+    //
+    //   region_tokens = ["region:country:JP", "region:administrative_area_level_1:大阪府", ...]
+    //
+    // を作って dish_category_features(feature_type='gate') の feature_key と照合する
+    // (照合は dish-categories.repository.ts の region_ok_categories を参照)。
+    //
+    // #1196 【重要】この形式が崩れると何が起きるか:
+    // 例えば市区町村名単体の "大阪市" が来ると region_tokens は ["region:大阪市"] になる。
+    // ホワイトリストは国単位(日本向けは 'region:country:JP' のみ)なのでどの JP ゲートにも当たらず、
+    // 'region:scope:global' を持つカテゴリしか残らない。その結果、候補0件('no_candidates')か、
+    // 残ってもスレート(6枚)を組めない('insufficient_candidates')で fallbackToClaude が発火する。
+    // Claude は海外向けの保険であって日本向けの経路ではないため、
+    // 本番では Claude 側のエラーがそのまま失敗になった(1日 1,445件 / 204ユーザー)。
+    // なおゲートの照合は Postgres の `=` で**大小文字区別あり**なので、"country:jp" のような
+    // 小文字の国コードも同じ結末になる。
+    //
+    // 【サーバ側では直さない】この API は仕様どおりに動いており、バグではない。
+    // address の形式を守るのはクライアントの責務で、サーバでは値を復元できない
+    // (「大阪市」から国を推測することはできない)。よって検証も救済もここには置かない。
+    // 原因はクライアントの現在地フォールバックが expo の `city` をそのまま address にしていたこと。
+    // 詳細と修正は `app-expo/lib/addressFormat.ts` / `app-expo/hooks/useLocationSearch.ts` を参照。
     const addressTokens = dto.address
       .split(',')
       .map((token) => token.trim())
@@ -217,6 +271,22 @@ export class DishCategoriesService {
 
     // #533 【仕様】regionFallbackKeys生成（狭い地域→広い地域→global）
     const regionFallbackKeys = [...regionTokens].reverse().concat('global');
+
+    // #737 【仕様】seasonFallbackKeys生成
+    //
+    // 季節はユーザーが選ぶ条件ではなく「いつ検索したか」で決まる文脈なので、
+    // クライアントからは受け取らず**サーバ側で現在月から導出する**。
+    // こうするとクライアント改修も OTA も要らず、旧バージョンの端末にも即日効く。
+    //
+    // 地域は既存の regionFallbackKeys をそのまま流用し、各キーへ `:month:MM` を付ける。
+    //   ["region:locality:大阪市:month:08", …, "region:country:JP:month:08", "global:month:08"]
+    // regionFallbackKeys の末尾は必ず 'global' なので、**JP のデータが無い地点でも
+    // 最後に 'global:month:MM' へ落ちる**（#737 オーナー指示。global のデータ投入は今回のスコープ外だが、
+    // 後から入れるだけで海外にも効くようにキーだけ通しておく）。
+    const seasonFallbackKeys = buildSeasonFallbackKeys(
+      regionFallbackKeys,
+      getCurrentMonthKey(),
+    );
 
     // #533 【仕様】空文字をnullに正規化
     const timeSlotKey = dto.timeSlot || null;
@@ -254,6 +324,7 @@ export class DishCategoriesService {
       addressTokens,
       regionTokens,
       regionFallbackKeys,
+      seasonFallbackKeys,
       budgetIntentKeys,
       timeSlotKey,
       sceneKey,
@@ -700,6 +771,7 @@ export class DishCategoriesService {
       Array<{ feature_type: string; feature_key: string; score: number }>
     >,
     localLanguageCode: string,
+    savedCategoryIds: Set<string>,
   ): DishCategoryRecommendationItem[] {
     const items: DishCategoryRecommendationItem[] = [];
 
@@ -745,6 +817,7 @@ export class DishCategoriesService {
         categoryId: category.id,
         imageUrl: category.image_url,
         deepDiveFeatures: deepDiveFeatureMap.get(candidate.category_id) ?? [],
+        isSaved: savedCategoryIds.has(category.id),
       });
     }
 
@@ -753,6 +826,27 @@ export class DishCategoriesService {
 
   /**
    * #533 【フォールバック】Claude経路（既存実装）
+   *
+   * #1196 【仕様】これはどういうときに発火するのか
+   *
+   * DB 由来の推薦(dish_category_features のゲート + スコアリング)で候補を組めなかったときの保険であり、
+   * 発火条件は 3 つだけ:
+   *   1. 候補0件            … 地域ゲート(region_ok_categories)に 1 件も当たらなかった
+   *   2. 候補6件未満        … ゲートは通ったがスレート(6枚)を構成できなかった
+   *   3. 例外               … getRecommendations 内で想定外の例外が出た
+   *
+   * 【本来の用途】ホワイトリスト未整備の**海外の地点**を救うための経路である。
+   * 日本向けには `region:country:JP` のゲートが投入済みなので、
+   * address が正規形式("country:JP, ...")である限り 1. は起こりえない。
+   *
+   * 【したがって】日本の住所でここが発火したら、それは仕様ではなく**バグ**である。
+   * 実際 #1196 では、クライアントが現在地フォールバックで "大阪市" のような市区町村名単体を
+   * address として送っていたためゲートに当たらず、この経路が 1日 1,445件発火し、
+   * Claude 側の失敗(課金枯渇による 400)でそのまま推薦0件になっていた。
+   *
+   * 【残す理由】海外の地点では今も必要なため、この経路自体は消さない。
+   * 「日本の住所で発火させない」ことで対処する。発火の検知は呼び出し元の
+   * FallbackToClaude ログ(reason 付き)で行う。
    */
   private async fallbackToClaude(
     dto: QueryDishCategoryRecommendationsDto,
@@ -775,17 +869,26 @@ export class DishCategoriesService {
         await this.repo.findDishCategoriesByNames(categoryNames);
 
       // #747 【設計】Claude経路でも block 対象の料理カテゴリを除外
+      // #954 【仕様】あわせて save 状態も取得し、カード再訪時の保存状態表示に使う(1クエリにまとめて往復を減らす)。
+      const userCategoryReactions = await this.prisma.prisma.reactions.findMany(
+        {
+          where: {
+            user_id: userId,
+            target_type: 'dish_categories',
+            action_type: { in: ['block', 'save'] },
+          },
+          select: { target_id: true, action_type: true },
+        },
+      );
       const blockedCategoryIds = new Set(
-        (
-          await this.prisma.prisma.reactions.findMany({
-            where: {
-              user_id: userId,
-              target_type: 'dish_categories',
-              action_type: 'block',
-            },
-            select: { target_id: true },
-          })
-        ).map((reaction) => reaction.target_id),
+        userCategoryReactions
+          .filter((reaction) => reaction.action_type === 'block')
+          .map((reaction) => reaction.target_id),
+      );
+      const savedCategoryIds = new Set(
+        userCategoryReactions
+          .filter((reaction) => reaction.action_type === 'save')
+          .map((reaction) => reaction.target_id),
       );
 
       const mappedItems = claudeRecommendations
@@ -821,6 +924,9 @@ export class DishCategoriesService {
             reason: claudeRec.reason,
             categoryId: matchedCategory?.id || '',
             imageUrl: matchedCategory?.image_url || '',
+            isSaved: matchedCategory
+              ? savedCategoryIds.has(matchedCategory.id)
+              : false,
           };
         })
         .filter(

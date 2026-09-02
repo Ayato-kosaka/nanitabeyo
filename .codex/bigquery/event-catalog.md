@@ -1,5 +1,10 @@
 # Event Catalog
 
+> **Before running any of these queries:** the `*_event_logs` views cannot prune partitions,
+> so a time-ranged query against them costs 18.4 GB/day instead of ~77 MB.
+> Rewrite time-ranged queries onto `run_googleapis_com_stdout` filtered on `timestamp`.
+> See [safety-policy.md](./safety-policy.md).
+
 This file is a starting point for log investigations. It combines source-code
 confirmed event names with queries that can refresh the production view of what
 actually appears in BigQuery.
@@ -105,6 +110,7 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `topic_image_manual_retry`
 - `saved_topic_selected`
 - `saved_topic_location_selected`
+- `saved_topic_location_screen_back_pressed`
 
 ### Dish Media Flow
 
@@ -163,11 +169,75 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 
 ### Profile, Auth, And Settings
 
+> **⚠️ #1062 以前の OAuth 系イベントの解釈について**
+>
+> #1062 の修正コミット以前、`oauth_callback_success` は「例外が投げられなかったこと」しか意味しておらず、
+> **セッションを確立できていない失敗が混入している**（特に Android の development build を QR /
+> `expo start` の `a` キーで起動したセッション。`Linking.getInitialURL()` が dev launcher の起動 URL を
+> 返し続け、`code` が取り落とされていた）。同様に `oauth_signin_success` にはブラウザのキャンセルが
+> 含まれている。過去分と比較する際はこの点に注意すること。
+>
+> 修正後は次の関係が成り立つ（発火条件を狭めただけで、旧系列は再構成できる）。
+>
+> ```
+> 旧 oauth_signin_success                    ≡ 新 oauth_signin_success + oauth_signin_browser_dismissed
+> 旧 oauth_callback_success + 旧 oauth_callback_error
+>                                            ≡ 新 oauth_callback_success + oauth_callback_no_result + oauth_callback_error
+> ```
+>
+> callback 側を「旧 success ≡ 新 success + no_result + error」と書くのは誤り。旧コードでも
+> throw 経路（iOS / Web でのエラー応答・exchange 失敗）は旧 `oauth_callback_error` を出していた。
+> 新 `oauth_callback_error` には「旧 success に化けていた分（Android QR 起動で握り潰されていたエラー）」と
+> 「旧 error 相当分」が混在する。
+>
+> ログインが成立したかを判定するには `oauth_callback_success`（`payload.via` / `payload.source` /
+> `payload.is_anonymous` を持つ）を使い、`onAuthStateChange:SIGNED_IN` の追随を確認すること。
+>
+> **⚠️ `oauth_signin_*` でログインの成否を判定しないこと。** Android の
+> `WebBrowser.openAuthSessionAsync` は「AppState が active に戻ったこと」と「deep link の url イベント」を
+> race させるため、**deep link でログインに成功した場合でも `dismiss` を返す**。実測でも、成功と同一試行で
+> `oauth_signin_browser_dismissed` が記録され、その 1 秒後に `oauth_callback_success` と
+> `userChanged`（`previous_user_id != new_user_id`）が出ている。したがって Android では
+> `oauth_signin_success` はほぼ発火せず、`oauth_signin_browser_dismissed` は「キャンセル」を意味しない。
+> これらはブラウザセッションの結末の記録であって、認証の成否ではない。
+
+> **⚠️ #1135 認証初期化の「巻き戻し防止」イベント（`*Superseded` / `anonymousSignInDiscarded`）の解釈**
+>
+> 認証初期化（`AuthProvider.runAuthAttempt`）は、その最中に別経路（Web の OAuth code 交換など）が
+> 新しいセッションを載せた場合、自分が読んだ古い結果を書き戻さずにスキップする。
+> スキップしたことを記録するのが次の 3 イベントで、いずれも `error_level: "log"`（異常終了ではない）。
+>
+> | イベント | 発火位置 | 意味 |
+> |---|---|---|
+> | `sessionRestoreSuperseded` | `getSession()` がセッションを返した後 | 復元結果の書き戻しをスキップした |
+> | `anonymousSignInSuperseded` | `getSession()` が「セッション無し」を返した後 | 匿名サインインの**呼び出し自体**をスキップした |
+> | `anonymousSignInDiscarded` | 匿名サインイン**成功後**の書き戻し直前 | 匿名セッションを作ったが、その間に別セッションが載ったため書き戻しをスキップした |
+>
+> **⚠️ `sessionRestoreSuperseded` を「競合の検知シグナル」としてそのまま監視しないこと。**
+> コールドスタート時にアクセストークンが失効していると、`getSession()` がロック内でリフレッシュを行い
+> `TOKEN_REFRESHED` で世代が進むため、**正常起動でもこの分岐に入る**（アクセストークン寿命を超えて
+> 久しぶりに起動したセッションは全てこれになる。E2E のセッション注入経路も同様）。
+> 異常系（別ユーザーのセッションに追い越された）だけを見たい場合は
+> **`payload.stale_user_id` と `payload.current_user_id` の一致で区別する**こと。
+>
+> - `stale_user_id == current_user_id` … 正常。同一ユーザーのトークン更新に追い越されただけ（state は `TOKEN_REFRESHED` ハンドラが正しく設定済み）
+> - `stale_user_id != current_user_id` … 本来見たい競合。別経路が別ユーザーのセッションを確立した
+>
+> この性質上、`sessionRestored` の件数はこの修正以降減る（減った分が `sessionRestoreSuperseded` に移る）ため、
+> 過去分と件数を比較する際は両者の合計で見ること。
+> `anonymousSignInSuperseded` / `anonymousSignInDiscarded` は正常起動では発火しないので、そのまま競合の
+> 検知に使える（`anonymousSignInDiscarded` は「匿名サインインの枠を 1 消費したが使わなかった」を意味する。
+> Supabase の匿名サインインは 30 回/時/IP 制限があるため、多発する場合は経路を疑うこと）。
+
 - `sessionRestored`
+- `sessionRestoreSuperseded`
+- `anonymousSignInSuperseded`
+- `anonymousSignInDiscarded`
 - `signInAnonymously`
 - `authInitError`
 - `userChanged`
 - `oauth_callback_success`
+- `oauth_callback_no_result`
 - `oauth_link_conflict`
 - `oauth_callback_error`
 - `oauth_conflict_switch_existing`
@@ -180,17 +250,25 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `otp_verify_error`
 - `authentication_success`
 - `oauth_signin_success`
+- `oauth_signin_browser_dismissed`
 - `oauth_signin_error`
 - `profile_shared`
 - `profile_edit_started`
+- `profile_edit_screen_back_pressed`
+- `profile_edit_load_retry_pressed`
 - `profile_edit_saved`
 - `profile_update_failed`
 - `profile_avatar_upload_failed`
 - `profile_tab_changed`
+- `profile_liked_pressed`
+- `profile_saved_topics_pressed`
+- `profile_liked_screen_back_pressed`
+- `profile_saved_topics_screen_back_pressed`
 - `user_profile_created`
 - `user_profile_creation_error`
 - `load_own_profile_error`
-- `login_modal_opened`
+- `login_screen_opened`
+- `login_screen_back_pressed`
 - `settings_screen_opened`
 - `settings_blocked_topics_pressed`
 - `settings_leave_review_pressed`

@@ -39,3 +39,41 @@ export async function waitForAnonymousSession(page: Page, timeout = 15_000): Pro
 		{ timeout },
 	);
 }
+
+/** localStorage に保存されている Supabase セッションのユーザー情報（最小限） */
+export type StoredSessionUser = {
+	/** auth.users.id */
+	id: string;
+	/** 匿名サインインで作られたユーザーか（Supabase の `user.is_anonymous`） */
+	isAnonymous: boolean;
+};
+
+/**
+ * localStorage に保存されている Supabase セッションのユーザーを読み出す。
+ *
+ * 「ログアウト後に **別の匿名ユーザーとして** セッションが再確立されたか」を
+ * 見分けるために使う（キーの有無だけを見る {@link waitForAnonymousSession} では、
+ * ログアウト前のログイン済みセッションが残っているだけの状態と区別できない）。
+ *
+ * 値の形式は tests/setup/auth.setup.ts が書き込むものと同じ「Session の JSON そのまま」。
+ * ページ遷移の最中は実行コンテキストが破棄されて evaluate が例外になりうるため、
+ * 呼び出し側は expect.poll などで再試行すること。
+ *
+ * @returns セッションが無い / 壊れている場合は null
+ */
+export async function readStoredSessionUser(page: Page): Promise<StoredSessionUser | null> {
+	return page.evaluate(() => {
+		const key = Object.keys(window.localStorage).find((k) => k.startsWith("sb-") && k.endsWith("-auth-token"));
+		if (!key) return null;
+		const raw = window.localStorage.getItem(key);
+		if (!raw) return null;
+		try {
+			const user = JSON.parse(raw)?.user;
+			if (typeof user?.id !== "string") return null;
+			return { id: user.id, isAnonymous: user.is_anonymous === true };
+		} catch {
+			// サインアウト処理の途中など、書き換え中の値を読んだ場合は「まだ無い」として扱う
+			return null;
+		}
+	});
+}

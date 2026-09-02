@@ -1,0 +1,14 @@
+{
+	"groupCount": 6,
+	"groupLimit": 500,
+	"keptRows": 286,
+	"excludedRows": 4820,
+	"excludedBreakdown": [
+		{ "reason": "expected_client_error", "eventName": "HttpException", "httpStatus": 404, "count": 3011 },
+		{ "reason": "unauthenticated_race", "eventName": "api_call_error", "httpStatus": null, "count": 902 },
+		{ "reason": "client_network", "eventName": "api_call_error", "httpStatus": 0, "count": 604 },
+		{ "reason": "unknown_build_meta", "eventName": null, "httpStatus": null, "count": 201 },
+		{ "reason": "external_transient", "eventName": null, "httpStatus": 503, "count": 100 },
+		{ "reason": "transient_status", "eventName": "api_call_error", "httpStatus": 429, "count": 2 }
+	]
+}

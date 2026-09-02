@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useAPICall } from "../../../hooks/useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import type { UnreadCountResponse } from "@shared/api/v1/res";
 
 /**
@@ -20,7 +21,8 @@ export const useNotificationUnreadCount = () => {
 
 	const refresh = useCallback(async () => {
 		// #通知機能 【設計】匿名ユーザーは未読数を取得しない
-		if (!user || user.is_anonymous) {
+		// #1092 PR4b 判定は共通化（lib/authGuest.ts）。通知タブの表示可否と同じ式にしておく
+		if (isGuestUser(user)) {
 			setUnreadCount(0);
 			return;
 		}

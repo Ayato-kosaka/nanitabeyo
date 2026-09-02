@@ -7,7 +7,6 @@
 				"paths": [
 					"/*/restaurant/*",
 					"/*/profile/*",
-					"/*/topic/*",
 					"/*/food/*",
 					"/*/home/*",
 					"/*/map/*",

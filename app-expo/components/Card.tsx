@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import { View, ViewProps, ViewStyle, Platform, StyleProp } from "react-native";
-import { useColorScheme } from "react-native";
+import { FixedColors } from "@/constants/Palette";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 export interface CardProps extends ViewProps {
 	/** 角丸 (dp)。デフォルト 20 */
@@ -32,14 +33,18 @@ export const Card = forwardRef<View, CardProps>(
 		ref,
 	) => {
 		/** ----- Theme-aware background ----- */
-		const bgColor = "#FFFFFF";
+		// #1509 【設計】ここは `useColorScheme` を import しながら使わず `#FFFFFF` 固定だった。
+		// カードは全画面の下地なので、ここが白のままだとダークにしても白い矩形が残る。
+		const { colors } = useAppTheme();
+		const bgColor = colors.surface;
 
 		/** ----- Compose shadow style (iOS / Android / Web) ----- */
 		const shadowStyle: ViewStyle =
 			Platform.OS === "android"
 				? { elevation }
 				: {
-						shadowColor: "#000",
+						// #1509 影はテーマ非追従（`#000` と `#000000` は同一色。値は変わっていない）
+						shadowColor: FixedColors.shadow,
 						shadowOffset: { width: 0, height: 0 },
 						shadowOpacity: 0.1,
 						shadowRadius: elevation * 4,

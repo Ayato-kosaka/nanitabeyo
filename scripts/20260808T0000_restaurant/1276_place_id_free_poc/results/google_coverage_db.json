@@ -1,0 +1,19 @@
+{
+  "blocks": 40,
+  "circles": 1000,
+  "truncated_circles": 26,
+  "google_places": 1747,
+  "match_radius_m": 40.0,
+  "verdicts": {
+    "対応行あり": 1736,
+    "対応行なし": 11
+  },
+  "coverage_rate": 0.9937,
+  "nearest_distance_m": {
+    "p50": 5.910257955382854,
+    "p90": 14.106883055992673
+  },
+  "requests": 1000,
+  "http_errors": 0,
+  "sku": "Nearby Search (IDs Only) のみ = $0.00"
+}

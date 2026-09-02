@@ -42,6 +42,7 @@ import {
   SearchDishMediaResponse,
   CreateDishMediaResponse,
   CreateDishMediaViewResponse,
+  DeleteDishMediaResponse,
   QueryDishMediaByIdsResponse,
 } from '@shared/v1/res';
 
@@ -99,6 +100,14 @@ export class DishMediaController {
   })
   @ApiQuery({ name: 'radius', required: true, description: '検索半径 (m)' })
   @ApiQuery({ name: 'categoryId', required: false })
+  @ApiQuery({
+    name: 'preferredLanguageCodes',
+    required: false,
+    isArray: true,
+    type: String,
+    description:
+      'レビュー表示で優先する元言語コード（優先度の高い順。端末言語→検索地点の言語）',
+  })
   @ApiResponse({ status: 200, description: '取得成功' })
   async searchDishMedia(
     @Query() query: SearchDishMediaDto,
@@ -126,13 +135,44 @@ export class DishMediaController {
   }
 
   /* ------------------------------------------------------------------ */
+  /*              DELETE /v1/dish-media/:id (投稿の削除) #1513           */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1513 自分の投稿を論理削除する。dish_media と、その投稿と一緒に作られた
+   * レビューがまとめて消える。
+   *
+   * `:id/reaction` より **後ろ** に置かない。Nest はセグメント数が違う経路を
+   * 取り違えないので順序は挙動に影響しないが、読む側が「reaction 削除の一種」と
+   * 誤読しないよう本体の削除をここに置いている。
+   */
+  @Delete(':id')
+  @UseGuards(AuthUserGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '投稿(dish_media)の削除（論理削除）' })
+  @ApiParam({ name: 'id', required: true, description: 'dish_media.id' })
+  @ApiResponse({ status: 200, description: '削除成功' })
+  @ApiResponse({ status: 403, description: '自分の投稿ではない' })
+  @ApiResponse({ status: 404, description: '存在しない' })
+  async deleteDishMedia(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ): Promise<DeleteDishMediaResponse> {
+    return this.dishMediaService.deleteDishMedia(id, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
   /*                  POST /v1/dish-media/:id/view                          */
   /* ------------------------------------------------------------------ */
   @Post(':id/view')
   @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'DishMedia 視聴記録' })
-  @ApiResponse({ status: 200, description: '記録成功' })
+  @ApiResponse({
+    status: 200,
+    description:
+      '記録成功。ただし #1223 の残存タイミング障害（参照先 dish_media / impression が未登録）では 500 にせず `stored: false` / `id: null` / `analysis_applied: false` を返す。',
+  })
   @ApiResponse({ status: 400, description: 'バリデーションエラー' })
   @ApiResponse({ status: 404, description: 'DishMedia が見つからない' })
   @ApiParam({ name: 'id', required: true })

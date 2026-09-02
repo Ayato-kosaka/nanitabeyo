@@ -82,17 +82,29 @@ const useHeaderCollapse = (headerHeight: number = 0) => {
 };
 
 // Container component
-function Container({
-	children,
-	headerHeight = 0,
-	renderHeader,
-	renderTabBar,
-	initialTabName,
-	swipeEnabled = true,
-	style,
-	onIndexChange,
-	pagerProps,
-}: TabsContainerProps) {
+// #954 【修正】native(react-native-collapsible-tab-view)の CollapsibleRef.jumpToTab と
+// 同等の命令的タブ切替を web でも使えるよう forwardRef 化する。initialTabName(宣言的)は
+// 同名パラメータの再遷移では変化せず再発火しないため、遷移のたびに確実に切り替えるには
+// 命令的 API が必要だった。
+//
+// ⚠️ #1402 現在、jumpToTab を呼んでいる箇所は 1 つも無い。唯一の利用者だったマイページの
+// 4 グリッドタブ（?tab= でタブを指名する仕組み）が廃止されたため。native 側の API と
+// 形を揃えるために残してあるので、web だけ先に落とさないこと（落とすなら両方の Tabs.Container を
+// «宣言的 initialTabName のみ» に揃えるのが筋）。
+const Container = React.forwardRef<{ jumpToTab: (name: string) => void }, TabsContainerProps>(function Container(
+	{
+		children,
+		headerHeight = 0,
+		renderHeader,
+		renderTabBar,
+		initialTabName,
+		swipeEnabled = true,
+		style,
+		onIndexChange,
+		pagerProps,
+	},
+	ref,
+) {
 	const [index, setIndex] = useState(0);
 	const [actualHeaderHeight, setActualHeaderHeight] = useState(headerHeight);
 	const { headerTranslateY, onScroll } = useHeaderCollapse(actualHeaderHeight);
@@ -132,6 +144,20 @@ function Container({
 			onIndexChange?.(newIndex);
 		},
 		[onIndexChange],
+	);
+
+	// #954 【設計】native の CollapsibleRef.jumpToTab と同じ形の命令的タブ切替
+	React.useImperativeHandle(
+		ref,
+		() => ({
+			jumpToTab: (name: string) => {
+				const found = routes.findIndex((route) => route.key === name);
+				if (found >= 0) {
+					handleIndexChange(found);
+				}
+			},
+		}),
+		[routes, handleIndexChange],
 	);
 
 	const onHeaderLayout = useCallback((event: LayoutChangeEvent) => {
@@ -226,7 +252,7 @@ function Container({
 			/>
 		</View>
 	);
-}
+});
 
 // Tab component
 function Tab({ name, children }: TabProps) {

@@ -1,7 +1,19 @@
 // libs/api-contracts/src/v1/dish-media/dto/search-dish-media.dto.ts
 
-import { IsNumber, IsOptional, IsPositive, Max, Min, Matches, IsUUID, IsString } from "class-validator";
-import { Type } from "class-transformer";
+import {
+	IsNumber,
+	IsOptional,
+	IsPositive,
+	Max,
+	Min,
+	Matches,
+	IsUUID,
+	IsString,
+	IsArray,
+	ArrayMaxSize,
+} from "class-validator";
+import { Type, Transform } from "class-transformer";
+import { BCP47_LANGUAGE_TAG_PATTERN } from "../../../../utils/languageCode";
 
 /**
  * Query parameters accepted by **GET /v1/dish-media/search**.
@@ -48,6 +60,32 @@ export class SearchDishMediaDto {
 	@Min(1)
 	@Max(100)
 	limit?: number;
+
+	/**
+	 * レビュー表示で優先する元言語コードを、優先度の高い順に並べたリスト。
+	 *
+	 * #817 【設計】優先順位は「端末言語 → 検索地点の言語 → その他」。
+	 * レビューは読んで意思決定するためのテキストなので、まず読める言語(端末言語)を
+	 * 優先する。ただし現地レビューの在庫が薄いため、フィルタではなく並び替えとして
+	 * 適用し、不足分は検索地点の言語・その他の言語で埋める。
+	 *
+	 * GET のクエリ文字列としてはカンマ区切りで受け取る。
+	 *
+	 * @example ["ja", "ja"]
+	 */
+	@IsOptional()
+	@Transform(({ value }) =>
+		// GET なので "ja,en" 形式の文字列でも配列でも受け取れるようにする
+		typeof value === "string" ? value.split(",").filter(Boolean) : value,
+	)
+	@IsArray()
+	@ArrayMaxSize(5)
+	@IsString({ each: true })
+	@Matches(BCP47_LANGUAGE_TAG_PATTERN, {
+		each: true,
+		message: "preferredLanguageCodes must follow IETF BCP 47 format (e.g., en, ja, zh-Hant)",
+	})
+	preferredLanguageCodes?: string[];
 
 	// /**
 	//  * 前ページから渡されるカーソル

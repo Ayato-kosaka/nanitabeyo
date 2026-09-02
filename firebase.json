@@ -14,134 +14,371 @@
 		{
 			"site": "app-nanitabeyo-net",
 			"public": "app-expo/dist",
-			"ignore": ["firebase.json", "**/node_modules/**"],
+			"ignore": [
+				"firebase.json",
+				"**/node_modules/**"
+			],
 			"headers": [
 				{
 					"source": "/sitemap.xml",
 					"headers": [
-						{ "key": "Content-Type", "value": "application/xml; charset=utf-8" },
-						{ "key": "Cache-Control", "value": "public, max-age=3600" }
+						{
+							"key": "Content-Type",
+							"value": "application/xml; charset=utf-8"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=3600"
+						}
 					]
 				},
 				{
 					"source": "/robots.txt",
 					"headers": [
-						{ "key": "Content-Type", "value": "text/plain; charset=utf-8" },
-						{ "key": "Cache-Control", "value": "public, max-age=3600" }
+						{
+							"key": "Content-Type",
+							"value": "text/plain; charset=utf-8"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=3600"
+						}
 					]
 				},
 				{
 					"source": "/favicon.ico",
 					"headers": [
-						{ "key": "Content-Type", "value": "image/x-icon" },
-						{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+						{
+							"key": "Content-Type",
+							"value": "image/x-icon"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
 					]
 				},
 				{
 					"source": "/favicon*.ico",
 					"headers": [
-						{ "key": "Content-Type", "value": "image/x-icon" },
-						{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+						{
+							"key": "Content-Type",
+							"value": "image/x-icon"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
 					]
 				},
 				{
 					"source": "/favicon-*.png",
 					"headers": [
-						{ "key": "Content-Type", "value": "image/png" },
-						{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+						{
+							"key": "Content-Type",
+							"value": "image/png"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
 					]
 				},
 				{
 					"source": "/android-chrome-192x192.png",
 					"headers": [
-						{ "key": "Content-Type", "value": "image/png" },
-						{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+						{
+							"key": "Content-Type",
+							"value": "image/png"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
 					]
 				},
 				{
 					"source": "/apple-touch-icon.png",
 					"headers": [
-						{ "key": "Content-Type", "value": "image/png" },
-						{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+						{
+							"key": "Content-Type",
+							"value": "image/png"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
 					]
 				},
 				{
 					"source": "/manifest.json",
 					"headers": [
-						{ "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
-						{ "key": "Cache-Control", "value": "public, max-age=3600" }
+						{
+							"key": "Content-Type",
+							"value": "application/manifest+json; charset=utf-8"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=3600"
+						}
 					]
 				},
 				{
 					"source": "/.well-known/apple-app-site-association",
-					"headers": [{ "key": "Content-Type", "value": "application/json" }]
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					]
 				},
 				{
 					"source": "/.well-known/assetlinks.json",
-					"headers": [{ "key": "Content-Type", "value": "application/json" }]
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					]
 				},
 				{
 					"source": "/apple-app-site-association",
-					"headers": [{ "key": "Content-Type", "value": "application/json" }]
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					]
 				}
 			],
+			"cleanUrls": true,
 			"rewrites": [
-				{ "source": "/:locale/auth/callback", "destination": "/[locale]/auth/callback.html" },
-				{ "source": "/:locale/auth/callback/", "destination": "/[locale]/auth/callback.html" },
 				{
-					"source": "/:locale/contribution-tasks/dish-category-image-optimizer",
-					"destination": "/[locale]/contribution-tasks/dish-category-image-optimizer.html"
+					"source": "/s/**",
+					"run": {
+						"serviceId": "api-production",
+						"region": "asia-northeast1"
+					}
 				},
 				{
-					"source": "/:locale/contribution-tasks/dish-category-image-optimizer/",
-					"destination": "/[locale]/contribution-tasks/dish-category-image-optimizer.html"
+					"source": "/ja-JP/search/dish-category-group-votes/**",
+					"destination": "/ja-JP/search/dish-category-group-votes/[shareToken]/vote.html"
 				},
 				{
-					"source": "/:locale/contribution-tasks/dish-category-image-review",
-					"destination": "/[locale]/contribution-tasks/dish-category-image-review.html"
+					"source": "/en-US/search/dish-category-group-votes/**",
+					"destination": "/en-US/search/dish-category-group-votes/[shareToken]/vote.html"
 				},
 				{
-					"source": "/:locale/contribution-tasks/dish-category-image-review/",
-					"destination": "/[locale]/contribution-tasks/dish-category-image-review.html"
+					"source": "/fr-FR/search/dish-category-group-votes/**",
+					"destination": "/fr-FR/search/dish-category-group-votes/[shareToken]/vote.html"
 				},
 				{
-					"source": "/:locale/contribution-tasks/dish-category-manual-image-supply",
-					"destination": "/[locale]/contribution-tasks/dish-category-manual-image-supply.html"
+					"source": "/zh-CN/search/dish-category-group-votes/**",
+					"destination": "/zh-CN/search/dish-category-group-votes/[shareToken]/vote.html"
 				},
 				{
-					"source": "/:locale/contribution-tasks/dish-category-manual-image-supply/",
-					"destination": "/[locale]/contribution-tasks/dish-category-manual-image-supply.html"
+					"source": "/ar-SA/search/dish-category-group-votes/**",
+					"destination": "/ar-SA/search/dish-category-group-votes/[shareToken]/vote.html"
 				},
 				{
-					"source": "/:locale/contribution-tasks/dish-copy-survey",
-					"destination": "/[locale]/contribution-tasks/dish-copy-survey.html"
+					"source": "/ko-KR/search/dish-category-group-votes/**",
+					"destination": "/ko-KR/search/dish-category-group-votes/[shareToken]/vote.html"
 				},
 				{
-					"source": "/:locale/contribution-tasks/dish-copy-survey/",
-					"destination": "/[locale]/contribution-tasks/dish-copy-survey.html"
+					"source": "/es-ES/search/dish-category-group-votes/**",
+					"destination": "/es-ES/search/dish-category-group-votes/[shareToken]/vote.html"
 				},
-				{ "source": "/:locale/map", "destination": "/[locale]/map.html" },
-				{ "source": "/:locale/map/", "destination": "/[locale]/map.html" },
-				{ "source": "/:locale/notifications", "destination": "/[locale]/notifications/index.html" },
-				{ "source": "/:locale/notifications/", "destination": "/[locale]/notifications/index.html" },
-				{ "source": "/:locale/notifications/feed", "destination": "/[locale]/notifications/feed.html" },
-				{ "source": "/:locale/notifications/feed/", "destination": "/[locale]/notifications/feed.html" },
-				{ "source": "/:locale/posts", "destination": "/[locale]/posts.html" },
-				{ "source": "/:locale/posts/", "destination": "/[locale]/posts.html" },
-				{ "source": "/:locale/profile", "destination": "/[locale]/profile/index.html" },
-				{ "source": "/:locale/profile/", "destination": "/[locale]/profile/index.html" },
-				{ "source": "/:locale/profile/food", "destination": "/[locale]/profile/food.html" },
-				{ "source": "/:locale/profile/food/", "destination": "/[locale]/profile/food.html" },
-				{ "source": "/:locale/profile/search-results", "destination": "/[locale]/profile/search-results.html" },
-				{ "source": "/:locale/profile/search-results/", "destination": "/[locale]/profile/search-results.html" },
-				{ "source": "/:locale/profile/settings", "destination": "/[locale]/profile/settings.html" },
-				{ "source": "/:locale/profile/settings/", "destination": "/[locale]/profile/settings.html" },
-				{ "source": "/:locale/review", "destination": "/[locale]/review/index.html" },
-				{ "source": "/:locale/review/", "destination": "/[locale]/review/index.html" },
-				{ "source": "/:locale/review/selectRestaurant", "destination": "/[locale]/review/selectRestaurant.html" },
-				{ "source": "/:locale/review/selectRestaurant/", "destination": "/[locale]/review/selectRestaurant.html" },
-				{ "source": "/:locale/search", "destination": "/[locale]/search/index.html" },
-				{ "source": "/:locale/search/", "destination": "/[locale]/search/index.html" },
+				{
+					"source": "/hi-IN/search/dish-category-group-votes/**",
+					"destination": "/hi-IN/search/dish-category-group-votes/[shareToken]/vote.html"
+				},
+				{
+					"source": "**",
+					"destination": "/index.html"
+				}
+			]
+		},
+		{
+			"site": "nanitabeyo-dev",
+			"public": "app-expo/dist",
+			"ignore": [
+				"firebase.json",
+				"**/node_modules/**"
+			],
+			"headers": [
+				{
+					"source": "/sitemap.xml",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "application/xml; charset=utf-8"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=3600"
+						}
+					]
+				},
+				{
+					"source": "/robots.txt",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "text/plain; charset=utf-8"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=3600"
+						}
+					]
+				},
+				{
+					"source": "/favicon.ico",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "image/x-icon"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
+					]
+				},
+				{
+					"source": "/favicon*.ico",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "image/x-icon"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
+					]
+				},
+				{
+					"source": "/favicon-*.png",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "image/png"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
+					]
+				},
+				{
+					"source": "/android-chrome-192x192.png",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "image/png"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
+					]
+				},
+				{
+					"source": "/apple-touch-icon.png",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "image/png"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=31536000, immutable"
+						}
+					]
+				},
+				{
+					"source": "/manifest.json",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "application/manifest+json; charset=utf-8"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "public, max-age=3600"
+						}
+					]
+				},
+				{
+					"source": "/.well-known/apple-app-site-association",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					]
+				},
+				{
+					"source": "/.well-known/assetlinks.json",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					]
+				},
+				{
+					"source": "/apple-app-site-association",
+					"headers": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					]
+				}
+			],
+			"cleanUrls": true,
+			"rewrites": [
+				{
+					"source": "/s/**",
+					"run": {
+						"serviceId": "api-development",
+						"region": "asia-northeast1"
+					}
+				},
+				{
+					"source": "/ja-JP/search/dish-category-group-votes/**",
+					"destination": "/ja-JP/search/dish-category-group-votes/[shareToken]/vote.html"
+				},
+				{
+					"source": "/en-US/search/dish-category-group-votes/**",
+					"destination": "/en-US/search/dish-category-group-votes/[shareToken]/vote.html"
+				},
+				{
+					"source": "/fr-FR/search/dish-category-group-votes/**",
+					"destination": "/fr-FR/search/dish-category-group-votes/[shareToken]/vote.html"
+				},
+				{
+					"source": "/zh-CN/search/dish-category-group-votes/**",
+					"destination": "/zh-CN/search/dish-category-group-votes/[shareToken]/vote.html"
+				},
+				{
+					"source": "/ar-SA/search/dish-category-group-votes/**",
+					"destination": "/ar-SA/search/dish-category-group-votes/[shareToken]/vote.html"
+				},
+				{
+					"source": "/ko-KR/search/dish-category-group-votes/**",
+					"destination": "/ko-KR/search/dish-category-group-votes/[shareToken]/vote.html"
+				},
+				{
+					"source": "/es-ES/search/dish-category-group-votes/**",
+					"destination": "/es-ES/search/dish-category-group-votes/[shareToken]/vote.html"
+				},
+				{
+					"source": "/hi-IN/search/dish-category-group-votes/**",
+					"destination": "/hi-IN/search/dish-category-group-votes/[shareToken]/vote.html"
+				},
 				{
 					"source": "**",
 					"destination": "/index.html"
@@ -151,11 +388,20 @@
 		{
 			"site": "oia-relay",
 			"public": "app-expo/relay-public",
-			"ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+			"ignore": [
+				"firebase.json",
+				"**/.*",
+				"**/node_modules/**"
+			],
 			"headers": [
 				{
 					"source": "**",
-					"headers": [{ "key": "Cache-Control", "value": "no-store" }]
+					"headers": [
+						{
+							"key": "Cache-Control",
+							"value": "no-store"
+						}
+					]
 				}
 			]
 		}

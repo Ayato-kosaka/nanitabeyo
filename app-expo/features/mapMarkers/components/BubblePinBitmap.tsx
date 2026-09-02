@@ -1,6 +1,7 @@
 // app-expo/features/mapMarkers/components/BubblePinBitmap.tsx
 import React, { useEffect, useMemo, useRef } from "react";
 import { Image, StyleSheet, View } from "react-native";
+import { FixedColors } from "@/constants/Palette";
 
 /**
  * #235 BubblePinBitmap
@@ -47,7 +48,21 @@ type Props = {
 	onImageError?: (key: string, error?: unknown) => void;
 };
 
-export function BubblePinBitmap({ uri, size = 48, color = "#FFFFFF", requestKey, onImageReady, onImageError }: Props) {
+/*
+#1629 【設計】この View は画面外で描いて PNG 化し、その PNG を **地図のマーカー画像**として
+置くためのものである（`MarkerBitmapRendererProvider`）。焼き上がった絵は Google Map の
+タイルの上に載り、タイルはアプリのテーマに追従せず常にライト配色なので、
+ここの色をテーマで振ってはいけない（ダークで暗くすると地図の上で見えなくなる）。
+さらに PNG はキャッシュされて再利用されるため、テーマ切替に追従すること自体が構造的に不可能。
+*/
+export function BubblePinBitmap({
+	uri,
+	size = 48,
+	color = FixedColors.mapMarkerSurface,
+	requestKey,
+	onImageReady,
+	onImageError,
+}: Props) {
 	const radius = size / 2;
 
 	// ✅ 通知の多重実行を防ぐ（onLoad / onLoadEnd が複数回走るケースがある）
@@ -121,7 +136,8 @@ export function BubblePinBitmap({ uri, size = 48, color = "#FFFFFF", requestKey,
 					styles.avatarContainer,
 					avatarSizeStyle,
 					{
-						backgroundColor: "#E0E0E0", // 画像が無い/遅い時のベース
+						// 画像が無い/遅い時のベース（地図の上なので固定色。上のコメント参照）
+						backgroundColor: FixedColors.mapMarkerImagePlaceholder,
 					},
 				]}>
 				{uri ? (

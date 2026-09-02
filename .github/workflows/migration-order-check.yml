@@ -1,0 +1,45 @@
+name: Migration Order Check
+
+# ==============================================================================
+# migration の「ファイル名順 = 適用順」を PR で守るゲート
+#
+# このリポジトリの migration は DB 側に台帳を持たず、apply-migration.sh が
+# from_file 以降をファイル名昇順で流す。よって、既存ファイルより辞書順で前に
+# 新ファイルが割り込むと適用順が壊れる（実際に 2026-08 に発生した。
+# 20260819T* が dev 先行適用のまま、main へ 20260823T0000 が先に入った）。
+#
+# ここでは PR が追加する *.sql が base の最後尾より後ろであることだけを検査する。
+# 依存ゼロの bash なので fork からの PR でも動く。
+# 運用の全体像: infra/supabase/migrations/README.md
+# ==============================================================================
+
+on:
+  pull_request:
+    paths:
+      - "infra/supabase/migrations/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  order-check:
+    name: migration ファイル名の順序を検査
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: base を取得して順序を検査
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          bash scripts/assert-migration-filename-order.sh "$BASE_SHA"

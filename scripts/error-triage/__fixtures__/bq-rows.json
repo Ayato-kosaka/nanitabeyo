@@ -1,0 +1,165 @@
+[
+	{
+		"surface": "backend",
+		"groupKey": {
+			"eventName": "UnhandledException",
+			"pathName": null,
+			"functionName": "ApiExceptionFilter",
+			"apiName": null,
+			"endpoint": null,
+			"method": null,
+			"statusCode": null,
+			"httpStatus": 500,
+			"route": "/v<n>/dishes/bulk-import",
+			"errorCode": null
+		},
+		"messagePattern": "TypeError: Cannot read properties of undefined (reading 'qid')",
+		"occurrences": 142,
+		"affectedUsers": 37,
+		"anonymousOccurrences": 12,
+		"firstSeenUtc": "2026-08-06T00:14:02Z",
+		"lastSeenUtc": "2026-08-06T23:41:55Z",
+		"hourlyCounts": [
+			{ "hourUtc": "2026-08-06T00:00:00Z", "count": 70 },
+			{ "hourUtc": "2026-08-06T23:00:00Z", "count": 72 }
+		],
+		"commits": [{ "sha": "9f2c1ab4d7e0", "count": 130 }],
+		"appVersions": [],
+		"representativeCommit": "9f2c1ab4d7e0"
+	},
+	{
+		"surface": "frontend",
+		"groupKey": {
+			"eventName": "api_call_error",
+			"pathName": "/review/restaurant/<placeid>/review",
+			"functionName": null,
+			"apiName": null,
+			"endpoint": null,
+			"method": null,
+			"statusCode": null,
+			"httpStatus": 500,
+			"route": "/v<n>/dish-media",
+			"errorCode": "INTERNAL_ERROR"
+		},
+		"messagePattern": "Internal server error",
+		"occurrences": 61,
+		"affectedUsers": 22,
+		"anonymousOccurrences": 4,
+		"firstSeenUtc": "2026-08-06T03:02:11Z",
+		"lastSeenUtc": "2026-08-06T22:10:48Z",
+		"hourlyCounts": [{ "hourUtc": "2026-08-06T03:00:00Z", "count": 61 }],
+		"commits": [{ "sha": "9f2c1ab4d7e0", "count": 61 }],
+		"appVersions": ["1.4.2", "1.4.3"],
+		"localeCounts": [
+			{ "locale": "ja-JP", "count": 30 },
+			{ "locale": "en-US", "count": 20 },
+			{ "locale": "ja", "count": 11 }
+		],
+		"representativeCommit": "9f2c1ab4d7e0"
+	},
+	{
+		"surface": "external",
+		"groupKey": {
+			"eventName": null,
+			"pathName": null,
+			"functionName": null,
+			"apiName": "Claude API",
+			"endpoint": "https://api.anthropic.com/v<n>/messages",
+			"method": "POST",
+			"statusCode": 529,
+			"httpStatus": null,
+			"route": null,
+			"errorCode": null
+		},
+		"messagePattern": null,
+		"occurrences": 8,
+		"affectedUsers": 5,
+		"anonymousOccurrences": 0,
+		"firstSeenUtc": "2026-08-06T11:30:02Z",
+		"lastSeenUtc": "2026-08-06T11:44:19Z",
+		"hourlyCounts": [{ "hourUtc": "2026-08-06T11:00:00Z", "count": 8 }],
+		"commits": [{ "sha": "9f2c1ab4d7e0", "count": 8 }],
+		"appVersions": [],
+		"representativeCommit": "9f2c1ab4d7e0"
+	},
+	{
+		"surface": "frontend",
+		"groupKey": {
+			"eventName": "signup_failed",
+			"pathName": "/auth/signup",
+			"functionName": null,
+			"apiName": null,
+			"endpoint": null,
+			"method": null,
+			"statusCode": null,
+			"httpStatus": 500,
+			"route": "/v<n>/auth/signup",
+			"errorCode": "INTERNAL_ERROR"
+		},
+		"messagePattern": "Failed to create account",
+		"occurrences": 40,
+		"affectedUsers": 0,
+		"anonymousOccurrences": 40,
+		"firstSeenUtc": "2026-08-06T07:00:05Z",
+		"lastSeenUtc": "2026-08-06T20:33:10Z",
+		"hourlyCounts": [{ "hourUtc": "2026-08-06T07:00:00Z", "count": 40 }],
+		"commits": [{ "sha": "9f2c1ab4d7e0", "count": 40 }],
+		"appVersions": ["1.4.3"],
+		"localeCounts": [{ "locale": "ja-JP", "count": 40 }],
+		"representativeCommit": "9f2c1ab4d7e0"
+	},
+	{
+		"surface": "backend",
+		"groupKey": {
+			"eventName": "JSONParseError",
+			"pathName": null,
+			"functionName": "ApiExceptionFilter",
+			"apiName": null,
+			"endpoint": null,
+			"method": null,
+			"statusCode": null,
+			"httpStatus": 400,
+			"route": "/v<n>/logs/frontend",
+			"errorCode": null
+		},
+		"messagePattern": "Invalid JSON format: Unexpected token } in JSON at position <n>",
+		"occurrences": 30,
+		"affectedUsers": 4,
+		"anonymousOccurrences": 0,
+		"firstSeenUtc": "2026-08-06T04:00:00Z",
+		"lastSeenUtc": "2026-08-06T22:00:00Z",
+		"hourlyCounts": [
+			{ "hourUtc": "2026-08-06T04:00:00Z", "count": 2 },
+			{ "hourUtc": "2026-08-06T18:00:00Z", "count": 13 },
+			{ "hourUtc": "2026-08-06T22:00:00Z", "count": 15 }
+		],
+		"commits": [{ "sha": "b7c2e91aa011", "count": 30 }],
+		"appVersions": [],
+		"representativeCommit": "b7c2e91aa011"
+	},
+	{
+		"surface": "backend",
+		"groupKey": {
+			"eventName": "UnknownException",
+			"pathName": null,
+			"functionName": "ApiExceptionFilter",
+			"apiName": null,
+			"endpoint": null,
+			"method": null,
+			"statusCode": null,
+			"httpStatus": 500,
+			"route": "/v<n>/locations/search",
+			"errorCode": null
+		},
+		"messagePattern": "getaddrinfo EAI_AGAIN api.anthropic.com",
+		"occurrences": 5,
+		"affectedUsers": 1,
+		"anonymousOccurrences": 0,
+		"firstSeenUtc": "2026-08-06T15:10:00Z",
+		"lastSeenUtc": "2026-08-06T15:20:00Z",
+		"hourlyCounts": [{ "hourUtc": "2026-08-06T15:00:00Z", "count": 5 }],
+		"commits": [{ "sha": "9f2c1ab4d7e0", "count": 5 }],
+		"appVersions": [],
+		"representativeCommit": "9f2c1ab4d7e0"
+	}
+]

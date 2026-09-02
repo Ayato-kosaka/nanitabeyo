@@ -1,5 +1,7 @@
 shared/prisma
 shared/converters
+# supabase gen types の生成物。整形すると再生成のたびに差分が出る（#1575）
+shared/supabase/database.types.ts
 
 # --- Node Modules ---
 node_modules/
@@ -48,3 +50,6 @@ yarn-error.log*
 # --- Optional: Supabase CLI metadata ---
 supabase/.temp/
 supabase/.env
+# --- UI カタログ（生成物）---
+e2e-web/screenshots/
+e2e-mobile/screenshots/

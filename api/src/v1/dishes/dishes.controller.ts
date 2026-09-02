@@ -20,6 +20,8 @@ import { CreateDishDto, BulkImportDishesDto } from '@shared/v1/dto';
 import { CreateDishResponse, BulkImportDishesResponse } from '@shared/v1/res';
 
 // 横串 (Auth)
+import { CurrentUser } from '../../core/auth/current-user.decorator';
+import { RequestUser } from '../../core/auth/auth.types';
 import { AuthAnonGuard } from '../../core/auth/auth.guard';
 
 // ドメイン Service
@@ -52,7 +54,11 @@ export class DishesController {
   @ApiResponse({ status: 201, description: '一括登録成功' })
   async bulkImportDishes(
     @Body() dto: BulkImportDishesDto,
+    @CurrentUser() user: RequestUser,
   ): Promise<BulkImportDishesResponse> {
-    return this.dishesService.bulkImportFromGoogle(dto);
+    // #829 【バグ】既存 entry を返すようになったため、viewer を渡さないと
+    // isMine/isSaved/isLiked が常に false になり、保存済みの dish を
+    // 未保存として表示 → タップで unique 制約違反の 500 を招く。
+    return this.dishesService.bulkImportFromGoogle(dto, user.id);
   }
 }

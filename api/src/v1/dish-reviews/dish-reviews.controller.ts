@@ -12,6 +12,7 @@ import {
   Delete,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
   UsePipes,
@@ -25,10 +26,16 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { CreateDishReviewDto, LikeDishReviewParamsDto } from '@shared/v1/dto';
+import {
+  CreateDishReviewDto,
+  LikeDishReviewParamsDto,
+  UpdateDishReviewDto,
+} from '@shared/v1/dto';
 import {
   CreateDishReviewResponse,
+  DeleteDishReviewResponse,
   LikeDishReviewResponse,
+  UpdateDishReviewResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -62,6 +69,61 @@ export class DishReviewsController {
     @CurrentUser() user: RequestUser,
   ): Promise<CreateDishReviewResponse> {
     return this.dishReviewsService.createDishReview(dto, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*            PATCH /v1/dish-reviews/:id (認証必須) #1513              */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1513 自分のレビューのテキスト系項目だけを更新する。
+   *
+   * `AuthAnonGuard` ではなく `AuthUserGuard` を使う。匿名ユーザーは投稿できないので、
+   * 匿名のまま編集できる余地を残す必要が無い。
+   *
+   * ValidationPipe の `whitelist: true` は必須。これがあることで、DTO に無い
+   * メディア系フィールド（media_path / createdDishMediaId 等）は握り潰される。
+   */
+  @Patch(':id')
+  @UseGuards(AuthUserGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({
+    summary: '料理レビュー編集（テキスト等のみ。メディアは差し替え不可）',
+  })
+  @ApiParam({ name: 'id', required: true, description: 'dish_reviews.id' })
+  @ApiResponse({ status: 200, description: '編集成功' })
+  @ApiResponse({ status: 403, description: '自分のレビューではない' })
+  @ApiResponse({ status: 404, description: '存在しない / 削除済み' })
+  @ApiResponse({ status: 409, description: 'lock_no 不一致（同時編集）' })
+  async updateDishReview(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateDishReviewDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<UpdateDishReviewResponse> {
+    return this.dishReviewsService.updateDishReview(id, dto, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*            DELETE /v1/dish-reviews/:id (認証必須) #1513             */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1513 自分のレビューを論理削除する。消えるのはレビュー 1 件だけで、
+   * 紐づく dish_media は残る（投稿ごと消すのは DELETE /v1/dish-media/:id）。
+   */
+  @Delete(':id')
+  @UseGuards(AuthUserGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '料理レビュー削除（論理削除）' })
+  @ApiParam({ name: 'id', required: true, description: 'dish_reviews.id' })
+  @ApiResponse({ status: 200, description: '削除成功' })
+  @ApiResponse({ status: 403, description: '自分のレビューではない' })
+  @ApiResponse({ status: 404, description: '存在しない' })
+  async deleteDishReview(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ): Promise<DeleteDishReviewResponse> {
+    return this.dishReviewsService.deleteDishReview(id, user.id);
   }
 
   /* ------------------------------------------------------------------ */

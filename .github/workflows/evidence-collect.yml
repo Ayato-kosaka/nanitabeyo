@@ -1,0 +1,466 @@
+name: Evidence Collect
+
+# 📸 テストエビデンス公開ワークフロー
+# - 指定した Claude Worker run の Artifact をダウンロードする
+# - オーケストレーターが照合した対象commit SHAとrun結果を記録する
+# - 画像・動画を nanitabeyo-public へ公開する
+# - オーケストレーターがIssue/PRコメントを作れるようmanifestを生成する
+#
+# このWorkflow自身はIssue/PRへコメントしない。
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Artifactを持つClaude Worker workflow run ID"
+        required: true
+        type: string
+      artifact_name:
+        description: "ダウンロードするArtifact名（例: claude-issue-123-review-123456789-1）"
+        required: true
+        type: string
+      source_sha:
+        description: "オーケストレーターが照合済みのテスト対象commit SHA"
+        required: true
+        type: string
+      allow_failed_run:
+        description: "失敗した元runからも収集する（原因調査用。既定は success のみ）"
+        required: false
+        default: false
+        type: boolean
+      wait_timeout_minutes:
+        description: "元runがまだ走っているとき、完了を待つ上限（分）。0で待たずに即失敗する"
+        required: false
+        default: 25
+        type: number
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  collect:
+    name: Publish ${{ inputs.artifact_name }} from run ${{ inputs.run_id }}
+    runs-on: ubuntu-24.04
+    # 元runの完了待ち（wait_timeout_minutes、既定25分）＋ダウンロードと公開の実作業が
+    # 収まる長さにする。ここが待ち時間より短いと、待っている最中にjobごと打ち切られる。
+    timeout-minutes: 35
+    env:
+      GCS_BUCKET: nanitabeyo-public
+      GCP_KEY: ${{ secrets.GCP_SA_KEY }}
+      SOURCE_RUN_ID: ${{ inputs.run_id }}
+      ARTIFACT_NAME: ${{ inputs.artifact_name }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      ALLOW_FAILED_RUN: ${{ inputs.allow_failed_run }}
+      WAIT_TIMEOUT_MINUTES: ${{ inputs.wait_timeout_minutes }}
+      # 元runが信頼できるWorkflowであることを .path で判定する（.name は run-name のため使えない）
+      # - claude-worker.yml: テストエビデンス収集の本来の入力
+      # - e2e-web-test.yml    : 手動実行で収集したUIカタログのスクリーンショット（Web）
+      # - e2e-mobile-test.yml : 同上（ネイティブ / Android・iOS）
+      EXPECTED_WORKFLOW_PATHS: |
+        .github/workflows/claude-worker.yml
+        .github/workflows/e2e-web-test.yml
+        .github/workflows/e2e-mobile-test.yml
+
+    steps:
+      - name: 入力値を検証
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::run_idは数字のみで指定してください。"
+            exit 1
+          fi
+
+          if [[ ! "$ARTIFACT_NAME" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::artifact_nameは英数字・._-のみで指定してください。"
+            exit 1
+          fi
+
+          if [[ ! "$SOURCE_SHA" =~ ^[0-9a-fA-F]{40,64}$ ]]; then
+            echo "::error::source_shaは40〜64桁の16進commit SHAで指定してください。"
+            exit 1
+          fi
+
+          if [[ ! "$WAIT_TIMEOUT_MINUTES" =~ ^[0-9]+$ ]] || (( WAIT_TIMEOUT_MINUTES > 30 )); then
+            echo "::error::wait_timeout_minutesは0〜30で指定してください（jobのtimeout-minutesを超えられません）。"
+            exit 1
+          fi
+
+      - name: 元runを検証
+        id: source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RUN_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}")"
+          # 【バグ】run オブジェクトの .name は workflow 名ではなく run-name を返す。
+          # claude-worker.yml は run-name を定義しているため .name は
+          # "Claude Worker / <task_key> / <model> / <access>" になり、
+          # "Claude Worker" と完全一致することは無い（＝この検証は必ず落ちていた）。
+          # workflow ファイルを一意に指す .path で判定する。
+          WORKFLOW_PATH="$(jq -r '.path' <<<"$RUN_JSON")"
+          RUN_NAME="$(jq -r '.name' <<<"$RUN_JSON")"
+          EVENT="$(jq -r '.event' <<<"$RUN_JSON")"
+          STATUS="$(jq -r '.status' <<<"$RUN_JSON")"
+          CONCLUSION="$(jq -r '.conclusion' <<<"$RUN_JSON")"
+          SOURCE_URL="$(jq -r '.html_url' <<<"$RUN_JSON")"
+
+          # 許可Workflowの完全一致判定（部分一致で別Workflowを通さないよう1行ずつ比較する）
+          IS_ALLOWED_WORKFLOW=false
+          while IFS= read -r allowed_path; do
+            [[ -z "$allowed_path" ]] && continue
+            if [[ "$WORKFLOW_PATH" == "$allowed_path" ]]; then
+              IS_ALLOWED_WORKFLOW=true
+              break
+            fi
+          done <<<"$EXPECTED_WORKFLOW_PATHS"
+
+          if [[ "$IS_ALLOWED_WORKFLOW" != "true" || "$EVENT" != "workflow_dispatch" ]]; then
+            echo "::error::元runは許可されたWorkflowのworkflow_dispatchではありません（path=$WORKFLOW_PATH, event=$EVENT, run-name=$RUN_NAME）。"
+            exit 1
+          fi
+
+          # ⚠️ 「まだ走っている」は失敗ではなく、**待てば解決する状態**である。
+          #
+          # 2026-08-25、run 32909994882 は元run（e2e-mobile）が in_progress のまま
+          # dispatchされ、8秒で赤くなった。実際にはオーナーが完了を目視してから
+          # 手で再dispatchし、26分後に同じ入力で成功している。
+          # つまり **待つべきところを失敗で返し、その待ちを人間にやらせていた**。
+          # エビデンス収集は元runの完了が前提なので、ここで待つのが正しい。
+          #
+          # 待ち上限は wait_timeout_minutes（既定25分。iOSのDetoxが約15分かかる）。
+          # 0を渡せば従来どおり即失敗する。
+          DEADLINE=$(( SECONDS + WAIT_TIMEOUT_MINUTES * 60 ))
+          while [[ "$STATUS" != "completed" ]]; do
+            if (( SECONDS >= DEADLINE )); then
+              echo "::error::元run（$SOURCE_URL）が完了しません（status=$STATUS）。${WAIT_TIMEOUT_MINUTES}分待って諦めました。元runが終わってから再実行するか、wait_timeout_minutesを延ばしてください。"
+              exit 1
+            fi
+            echo "元runは status=$STATUS です。30秒後に再確認します（残り $(( (DEADLINE - SECONDS) / 60 ))分）。"
+            sleep 30
+            RUN_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}")"
+            STATUS="$(jq -r '.status' <<<"$RUN_JSON")"
+            CONCLUSION="$(jq -r '.conclusion' <<<"$RUN_JSON")"
+          done
+
+          # 【設計】既定では success の元runだけを通す。
+          # 「緑の run から採ったエビデンス」であることが、このワークフローの出力の意味そのものだから。
+          #
+          # ただし **赤い run の原因調査**にはスクリーンショットが要る（Artifact の直リンクは
+          # 署名付き blob storage で、環境によっては到達できない）。そこで allow_failed_run で
+          # 明示的にオプトインしたときだけ、完了済みの失敗runも許す。
+          # ⚠️ このとき出力は «エビデンス» ではなく «調査用» である。ログに警告を残し、
+          # PR へ貼るときは必ず「失敗runのスクリーンショット」と明記すること。
+          if [[ "$CONCLUSION" != "success" ]]; then
+            if [[ "$ALLOW_FAILED_RUN" != "true" ]]; then
+              echo "::error::元runが成功完了していません（status=$STATUS, conclusion=$CONCLUSION）。"
+              echo "::error::原因調査で失敗runから収集したい場合は allow_failed_run=true を指定してください。"
+              exit 1
+            fi
+            echo "::warning::元runは $CONCLUSION です。この出力は «合格エビデンス» ではなく原因調査用です。"
+          fi
+
+          echo "sha=${SOURCE_SHA,,}" >> "$GITHUB_OUTPUT"
+          echo "url=$SOURCE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Artifactをダウンロード
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.run_id }}
+          name: ${{ inputs.artifact_name }}
+          path: /tmp/evidence
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 画像・動画とmanifestを準備
+        id: prepare
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          SOURCE_URL: ${{ steps.source.outputs.url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 <<'PY'
+          import json
+          import mimetypes
+          import os
+          import re
+          import shutil
+          import urllib.parse
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          source = Path("/tmp/evidence")
+          publish = Path("/tmp/public-evidence")
+          manifest_dir = Path("/tmp/evidence-manifest")
+          publish.mkdir(parents=True, exist_ok=True)
+          manifest_dir.mkdir(parents=True, exist_ok=True)
+
+          image_extensions = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+          video_extensions = {".mp4", ".webm", ".mov", ".m4v"}
+          allowed_extensions = image_extensions | video_extensions
+
+          repository = os.environ["GITHUB_REPOSITORY"]
+          run_id = os.environ["SOURCE_RUN_ID"]
+          artifact_name = os.environ["ARTIFACT_NAME"]
+          bucket = os.environ["GCS_BUCKET"]
+          prefix = f"e2e-evidence/{repository}/runs/{run_id}/{artifact_name}"
+
+          used_object_paths = set()
+
+          def safe_object_path(relative, used):
+              """GCS オブジェクト名として安全な相対パスを返す。
+
+              gsutil の glob 解釈と URL エンコード肥大を避けるため、
+              各セグメントを [A-Za-z0-9._-] だけに落とす。
+              衝突したら連番を付ける。
+              """
+              segments = []
+              for segment in relative.parts[:-1]:
+                  segments.append(re.sub(r"[^A-Za-z0-9._-]+", "_", segment) or "_")
+
+              stem = relative.stem
+              suffix = relative.suffix.lower()
+              safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("_") or "file"
+              safe_suffix = re.sub(r"[^A-Za-z0-9.]+", "", suffix) or ".bin"
+
+              candidate = "/".join(segments + [f"{safe_stem}{safe_suffix}"])
+              if candidate not in used:
+                  used.add(candidate)
+                  return candidate
+
+              counter = 2
+              while True:
+                  candidate = "/".join(segments + [f"{safe_stem}-{counter}{safe_suffix}"])
+                  if candidate not in used:
+                      used.add(candidate)
+                      return candidate
+                  counter += 1
+
+          images = []
+          videos = []
+
+          for path in sorted(source.rglob("*")):
+              if not path.is_file() or path.is_symlink():
+                  continue
+
+              extension = path.suffix.lower()
+              if extension not in allowed_extensions:
+                  continue
+
+              relative = path.relative_to(source)
+              # 【バグ】gsutil は `[` `]` `*` `?` を glob として解釈するため、
+              # これらを含むファイル名は「該当なし」となり転送に失敗する。
+              # 日本語ファイル名も URL が %エンコードで肥大する。
+              # 公開名は安全な文字だけへ正規化し、元の名前は manifest に残す。
+              safe_relative = safe_object_path(relative, used_object_paths)
+              destination = publish / safe_relative
+              destination.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(path, destination)
+
+              object_name = f"{prefix}/{safe_relative}"
+              encoded_object = urllib.parse.quote(object_name, safe="/")
+              entry = {
+                  "path": relative.as_posix(),
+                  "publishedPath": safe_relative,
+                  "url": f"https://storage.googleapis.com/{bucket}/{encoded_object}",
+                  "contentType": mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+              }
+
+              if extension in image_extensions:
+                  images.append(entry)
+              else:
+                  videos.append(entry)
+
+          if not images and not videos:
+              raise SystemExit("公開対象の画像・動画がArtifact内にありません。")
+
+          public_base = f"https://storage.googleapis.com/{bucket}/{urllib.parse.quote(prefix, safe='/')}"
+
+          manifest = {
+              "schemaVersion": 1,
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "repository": repository,
+              "sourceRunId": int(run_id),
+              "sourceRunUrl": os.environ["SOURCE_URL"],
+              "sourceCommitSha": os.environ["SOURCE_SHA"],
+              "artifactName": artifact_name,
+              "bucket": bucket,
+              "gcsPrefix": f"gs://{bucket}/{prefix}",
+              "publicManifestUrl": f"{public_base}/manifest.json",
+              # 【設計】人が見るための入口。Artifactを落とさずブラウザ1枚で全エビデンスを確認できるようにする
+              "publicGalleryUrl": f"{public_base}/index.html",
+              "images": images,
+              "videos": videos,
+          }
+
+          manifest_path = manifest_dir / "manifest.json"
+          manifest_path.write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          def render_gallery(manifest):
+              """公開した画像・動画を一覧するHTMLを組み立てる。
+
+              外部依存ゼロの単一ファイル。ファイル名がそのまま見出しになるため、
+              撮影側が「何の画面か分かる名前」を付けていれば、この1ページで用が足りる。
+              """
+              def esc(text):
+                  return (
+                      str(text)
+                      .replace("&", "&amp;")
+                      .replace("<", "&lt;")
+                      .replace(">", "&gt;")
+                      .replace('"', "&quot;")
+                  )
+
+              cards = []
+              for entry in manifest["images"]:
+                  cards.append(
+                      f'<figure><a href="{esc(entry["url"])}" target="_blank" rel="noreferrer">'
+                      f'<img loading="lazy" src="{esc(entry["url"])}" alt="{esc(entry["path"])}"></a>'
+                      f'<figcaption>{esc(entry["path"])}</figcaption></figure>'
+                  )
+              for entry in manifest["videos"]:
+                  cards.append(
+                      f'<figure><video controls preload="metadata" src="{esc(entry["url"])}"></video>'
+                      f'<figcaption>{esc(entry["path"])}</figcaption></figure>'
+                  )
+
+              return f"""<!doctype html>
+          <html lang="ja">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta name="robots" content="noindex">
+          <title>Evidence: {esc(manifest["artifactName"])} (run {esc(manifest["sourceRunId"])})</title>
+          <style>
+            :root {{ color-scheme: light dark; }}
+            body {{ font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 24px; line-height: 1.6; }}
+            header {{ margin-bottom: 24px; }}
+            h1 {{ font-size: 1.25rem; margin: 0 0 8px; }}
+            dl {{ display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; font-size: 0.875rem; }}
+            dt {{ opacity: 0.7; }}
+            dd {{ margin: 0; word-break: break-all; }}
+            .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }}
+            figure {{ margin: 0; border: 1px solid rgba(128,128,128,0.35); border-radius: 8px; overflow: hidden; }}
+            img, video {{ display: block; width: 100%; height: auto; background: rgba(128,128,128,0.12); }}
+            figcaption {{ padding: 8px 10px; font-size: 0.8125rem; word-break: break-all; }}
+          </style>
+          </head>
+          <body>
+          <header>
+            <h1>{esc(manifest["artifactName"])}</h1>
+            <dl>
+              <dt>Source run</dt><dd><a href="{esc(manifest["sourceRunUrl"])}">{esc(manifest["sourceRunUrl"])}</a></dd>
+              <dt>Commit</dt><dd><code>{esc(manifest["sourceCommitSha"])}</code></dd>
+              <dt>Generated</dt><dd>{esc(manifest["generatedAt"])}</dd>
+              <dt>Files</dt><dd>images {len(manifest["images"])} / videos {len(manifest["videos"])}</dd>
+              <dt>manifest.json</dt><dd><a href="{esc(manifest["publicManifestUrl"])}">{esc(manifest["publicManifestUrl"])}</a></dd>
+            </dl>
+          </header>
+          <main class="grid">
+          {"".join(cards)}
+          </main>
+          </body>
+          </html>
+          """
+
+          (manifest_dir / "index.html").write_text(render_gallery(manifest), encoding="utf-8")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"prefix={prefix}\n")
+              output.write(f"image_count={len(images)}\n")
+              output.write(f"video_count={len(videos)}\n")
+              output.write(f"manifest_url={manifest['publicManifestUrl']}\n")
+              output.write(f"gallery_url={manifest['publicGalleryUrl']}\n")
+          PY
+
+      # ubuntu-24.04 ランナーへの gcloud 同梱は保証されていないため、
+      # api-deploy.yml と同様に SDK のセットアップを明示する。
+      # 既に入っていても害はない。
+      - name: Google Cloud SDKをセットアップ
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Google Cloudへ認証
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$GCP_KEY" ]]; then
+            echo "::error::Repository Secret GCP_SA_KEYが設定されていません。"
+            exit 1
+          fi
+
+          KEY_FILE="$RUNNER_TEMP/gcp-key.json"
+          printf '%s' "$GCP_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          gcloud auth activate-service-account --key-file="$KEY_FILE"
+          gcloud config set project "$(jq -r '.project_id' "$KEY_FILE")"
+
+      - name: 画像・動画とmanifestをGCSへ公開
+        env:
+          GCS_PREFIX: ${{ steps.prepare.outputs.prefix }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob dotglob
+
+          media=(/tmp/public-evidence/*)
+          gsutil -m \
+            -h "Cache-Control:public,max-age=31536000,immutable" \
+            cp -r "${media[@]}" "gs://${GCS_BUCKET}/${GCS_PREFIX}/"
+
+          gsutil \
+            -h "Cache-Control:public,max-age=300" \
+            -h "Content-Type:application/json; charset=utf-8" \
+            cp /tmp/evidence-manifest/manifest.json \
+            "gs://${GCS_BUCKET}/${GCS_PREFIX}/manifest.json"
+
+          # 一覧ページ。画像より後に上げる（先に上げると、画像が揃う前に開かれた場合に
+          # ブラウザ/プロキシが 404 をキャッシュしうる）
+          gsutil \
+            -h "Cache-Control:public,max-age=300" \
+            -h "Content-Type:text/html; charset=utf-8" \
+            cp /tmp/evidence-manifest/index.html \
+            "gs://${GCS_BUCKET}/${GCS_PREFIX}/index.html"
+
+      - name: manifestをArtifactとして保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-manifest-${{ inputs.run_id }}
+          path: |
+            /tmp/evidence-manifest/manifest.json
+            /tmp/evidence-manifest/index.html
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: 結果をJob summaryへ出力
+        env:
+          SOURCE_URL: ${{ steps.source.outputs.url }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          IMAGE_COUNT: ${{ steps.prepare.outputs.image_count }}
+          VIDEO_COUNT: ${{ steps.prepare.outputs.video_count }}
+          MANIFEST_URL: ${{ steps.prepare.outputs.manifest_url }}
+          GALLERY_URL: ${{ steps.prepare.outputs.gallery_url }}
+        shell: bash
+        run: |
+          {
+            echo "## Evidence published"
+            echo
+            echo "- 📷 **一覧（写真付き）: $GALLERY_URL**"
+            echo "- Source run: $SOURCE_URL"
+            echo "- Commit: \`$SOURCE_SHA\`"
+            echo "- Images: $IMAGE_COUNT"
+            echo "- Videos: $VIDEO_COUNT"
+            echo "- Manifest: $MANIFEST_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 一時的な認証ファイルを削除
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/gcp-key.json"

@@ -1,34 +1,18 @@
-import { LoadScript } from "@react-google-maps/api";
-import { ReactNode, useMemo } from "react";
-import { Env } from "@/constants/Env";
-import { useLocale } from "@/hooks/useLocale";
+import { ReactNode } from "react";
+import { GoogleMapsScriptProvider } from "@/components/GoogleMapsScript";
 
-function deriveLanguageAndRegion(locale: string): { language: string; region: string } {
-	// locale examples: 'ja', 'en-US', 'zh-Hant-TW'
-	const parts = locale.split("-");
-	const language = parts[0];
-	// Find 2-letter region (last part with length 2 and alpha)
-	let region = parts.findLast?.((p) => /^[a-zA-Z]{2}$/.test(p)) || parts[1] || "US";
-	region = region.toUpperCase();
-	// Fallback mapping
-	if (!region) {
-		if (language === "ja") region = "JP";
-		else if (language === "en") region = "US";
-		else region = language.toUpperCase();
-	}
-	return { language, region };
-}
-
-export const AppProvider = ({ children }: { children: ReactNode }) => {
-	const { locale } = useLocale();
-	const { language, region } = useMemo(() => deriveLanguageAndRegion(locale), [locale]);
-	return (
-		<LoadScript
-			googleMapsApiKey={Env.GOOGLE_MAPS_WEB_API_KEY}
-			language={language}
-			region={region}
-			libraries={["places"]}>
-			{children}
-		</LoadScript>
-	);
-};
+/**
+ * 🌐 web 版のアプリ共通プロバイダ。
+ *
+ * #1503 【バグ】以前はここで `<LoadScript>` がアプリ全体を包んでいて、Google Maps の
+ * スクリプトが読み終わるまで **children を 1 つも描画しなかった**。その結果
+ *
+ * - prerender された HTML は公開 4 ルートすべてで `Loading...` だけ（＝直リンクの初回表示が空）
+ * - スクリプトの読み込みが失敗・遅延すると、地図と無関係な画面まで白いまま固定される
+ *
+ * という状態だった。読み込みの管理は `GoogleMapsScriptProvider` へ移し、
+ * **待つのは地図を描く画面だけ**にしてある（`components/GoogleMapsScript.web.tsx` 参照）。
+ */
+export const AppProvider = ({ children }: { children: ReactNode }) => (
+	<GoogleMapsScriptProvider>{children}</GoogleMapsScriptProvider>
+);

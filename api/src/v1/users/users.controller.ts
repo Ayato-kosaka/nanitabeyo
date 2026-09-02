@@ -42,6 +42,8 @@ import {
   QuerySavedRestaurantsDto,
   QueryMeBlockedDishCategoriesDto,
   UnblockDishCategoryParamsDto,
+  QueryMyDishesDto,
+  QueryMeDishCategoryGroupVotesDto,
 } from '@shared/v1/dto';
 import {
   GetUserProfileResponse,
@@ -55,6 +57,10 @@ import {
   QueryMeSavedRestaurantsResponse,
   QueryMeBlockedDishCategoriesResponse,
   UnblockDishCategoryResponse,
+  QueryMyDishesResponse,
+  QueryMeDishMapPinsResponse,
+  QueryMeDishCategoryGroupVotesResponse,
+  DeleteMeResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -109,6 +115,42 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
   ): Promise<UpdateUserProfileResponse> {
     return await this.usersService.updateUserProfile(user.id, dto);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                       DELETE /v1/users/me                          */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1511 ACC-01 アカウント削除。
+   *
+   * ⚠️ **`AuthUserGuard`（= 正規ログインのみ）。** ゲスト（匿名）ユーザーには
+   * そもそも `users` 行が無く、削除対象となる実体を持たない。ストア審査が求める
+   * 「アカウントを作成できるアプリは削除手段を提供する」も正規アカウントへの要求である。
+   *
+   * ⚠️ **取り消せない。** アプリ DB 側は匿名化（論理削除）だが、Supabase Auth の
+   * アカウントは物理削除するため、同じ資格情報での再ログイン経路は残らない。
+   * クライアントは実行前に必ず確認ダイアログでその旨を明示すること。
+   *
+   * 冪等: 途中で失敗した削除は、同じリクエストの再送で最後まで完了できる。
+   */
+  @Delete('/me')
+  @UseGuards(AuthUserGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'アカウント削除（取り消し不可・#1511）',
+    description:
+      'users 行は残したまま PII を匿名化して deleted_at を立て、本人の行動データとストレージ実体を削除し、Supabase Auth のアカウントを物理削除する。',
+  })
+  @ApiResponse({ status: 200, description: '削除成功' })
+  @ApiResponse({ status: 403, description: 'ゲストユーザーは削除できません' })
+  @ApiResponse({ status: 404, description: 'ユーザーが見つかりません' })
+  @ApiResponse({
+    status: 503,
+    description:
+      '認証アカウントの削除に失敗（再送で完了できる。アプリ DB 側の匿名化は完了している）',
+  })
+  async deleteMe(@CurrentUser() user: RequestUser): Promise<DeleteMeResponse> {
+    return await this.usersService.deleteMe(user.id);
   }
 
   /* ------------------------------------------------------------------ */
@@ -260,6 +302,34 @@ export class UsersController {
   }
 
   /* ------------------------------------------------------------------ */
+  /*          GET /v1/users/me/dish-category-group-votes               */
+  /* ------------------------------------------------------------------ */
+  @Get('me/dish-category-group-votes')
+  @UseGuards(AuthAnonGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: '自分が主催した dish_category グループ投票一覧',
+    description:
+      'host_user_id が自分のセッションだけを返す(参加しただけのセッションは含まない)。hasVoted は主催者自身が投票済みかを表す。',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Cursor for pagination',
+  })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  async getMeDishCategoryGroupVotes(
+    @Query() query: QueryMeDishCategoryGroupVotesDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<QueryMeDishCategoryGroupVotesResponse> {
+    const { data, nextCursor } =
+      await this.usersService.getMeDishCategoryGroupVotes(user.id, query);
+
+    return { data, nextCursor };
+  }
+
+  /* ------------------------------------------------------------------ */
   /*             GET /v1/users/me/saved-restaurants                    */
   /* ------------------------------------------------------------------ */
   // #644 【設計】保存したお店を位置情報で検索
@@ -289,6 +359,91 @@ export class UsersController {
       await this.usersService.getMySavedNearbyRestaurants(user.id, query);
 
     return { data, nextCursor };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                    GET /v1/users/me/dishes                        */
+  /* ------------------------------------------------------------------ */
+  // #1395 「食べたい/食べた」の一覧。リストと Calendar が同じクエリ契約を共有する
+  //
+  // Guard は AuthAnonGuard。既存の me/* と同じで、匿名セッションのユーザーにも
+  // 実 user.id があるためゲストでも動く（AuthUserGuard にするとゲストが 401 になる）
+  @Get('me/dishes')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '自分の「食べたい/食べた」一覧' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'want / eaten（multi・CSV可）。未指定は両方',
+  })
+  @ApiQuery({
+    name: 'lat',
+    required: false,
+    description: 'エリア中心の緯度。lat/lng/radius は 3 点セット',
+  })
+  @ApiQuery({ name: 'lng', required: false, description: 'エリア中心の経度' })
+  @ApiQuery({ name: 'radius', required: false, description: 'エリア半径（m）' })
+  @ApiQuery({
+    name: 'categoryIds',
+    required: false,
+    description: '料理カテゴリ（multi・CSV可）',
+  })
+  @ApiQuery({ name: 'minRating', required: false, description: '★n 以上' })
+  @ApiQuery({
+    name: 'ratings',
+    required: false,
+    description: '★n のみ（multi・CSV可）',
+  })
+  @ApiQuery({ name: 'from', required: false, description: 'occurredAt の下限' })
+  @ApiQuery({ name: 'to', required: false, description: 'occurredAt の上限' })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+    description:
+      '-occurredAt(既定) / occurredAt / -rating / distance / -featureScore',
+  })
+  @ApiQuery({
+    name: 'featureKeys',
+    required: false,
+    description:
+      'sort=-featureScore のときの軸。"<feature_type>:<feature_key>" の CSV。' +
+      '例: timeSlot:dinner,scene:friends,dining_pace:quick（複数指定はスコアの合計順）',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'keyset カーソル',
+  })
+  @ApiQuery({ name: 'limit', required: false, description: '既定 42' })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  @ApiResponse({ status: 400, description: 'クエリ不正（カーソル / エリア）' })
+  async getMyDishes(
+    @Query() query: QueryMyDishesDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<QueryMyDishesResponse> {
+    return await this.usersService.getMyDishes(user.id, query);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*               GET /v1/users/me/dishes/map-pins                    */
+  /* ------------------------------------------------------------------ */
+  // #1395 Map ビュー。一覧と同じ QueryMyDishesDto を取り、店舗単位に集約して返す
+  @Get('me/dishes/map-pins')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: '自分の「食べたい/食べた」の店舗ピン（同一店舗につき 1 つ）',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '取得成功。上限で切られた場合は truncated: true',
+  })
+  async getMyDishMapPins(
+    @Query() query: QueryMyDishesDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<QueryMeDishMapPinsResponse> {
+    return await this.usersService.getMyDishMapPins(user.id, query);
   }
 
   /* ------------------------------------------------------------------ */

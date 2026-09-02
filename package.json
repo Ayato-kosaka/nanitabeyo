@@ -6,20 +6,28 @@
 		"app-expo",
 		"api",
 		"shared",
-		"e2e-web"
+		"e2e-web",
+		"e2e-mobile",
+		"scripts/error-triage"
 	],
 	"scripts": {
 		"dev": "turbo run dev",
 		"build": "turbo run build",
 		"lint": "turbo run lint",
+		"assert:doc-hygiene": "node ./scripts/assert-doc-hygiene.mjs",
+		"assert:no-nested-e2e-tests": "node ./scripts/assert-no-nested-e2e-tests.mjs",
+		"assert:catalog-screen-ids": "node ./scripts/assert-catalog-screen-ids.mjs",
 		"format": "prettier --write .",
 		"typecheck": "turbo run typecheck",
 		"test:e2e": "pnpm --filter e2e-web test",
+		"test:e2e:mobile": "pnpm --filter e2e-mobile test",
 		"deploy:api": "pnpm --workspace api run deploy",
 		"db:migration": "bash scripts/apply-migration.sh",
 		"db:pull": "bash scripts/db-pull.sh",
 		"db:reset": "bash scripts/reset-schema.sh",
-		"deploy:storage": "pnpm firebase deploy --only storage"
+		"deploy:storage": "pnpm firebase deploy --only storage",
+		"catalog:doc": "node ./catalog/generate-catalog.mjs --screenshots e2e-web/screenshots",
+		"catalog:doc:mobile": "node ./catalog/generate-catalog.mjs --platform mobile --screenshots e2e-mobile/screenshots"
 	},
 	"devDependencies": {
 		"firebase-tools": "^14.1.0",

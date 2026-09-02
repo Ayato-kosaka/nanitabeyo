@@ -3,7 +3,8 @@
 // External API service for Wikidata, Google Custom Search, and Claude API
 //
 
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ErrorCode } from '@shared/v1/res';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 import { CreateExternalApiInput } from '../logger/logger.types';
@@ -195,6 +196,12 @@ export class ExternalApiService {
 
     const endpoint = `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}`;
 
+    // #1596 失敗時のログレベルを分けるために、HTTP ステータスを catch まで持ち越す。
+    // 403 は「クォータ超過・鍵の権限不足」で、こちらの運用で起こりうる想定内の失敗。
+    // それ以外（5xx・ネットワーク断）は Google 側の障害かこちらのバグであり、
+    // **error として拾えないと気付けない**。
+    let responseStatus: number | null = null;
+
     try {
       const response = await this.makeExternalApiCall({
         api_name: 'Google Custom Search API',
@@ -203,6 +210,7 @@ export class ExternalApiService {
         function_name: 'getCorrectedSpelling',
         request_payload: {},
       });
+      responseStatus = response.status;
 
       if (!response.ok) {
         throw new Error(
@@ -226,14 +234,24 @@ export class ExternalApiService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.warn(
-        'GoogleCustomSearchAPICallError',
-        'getCorrectedSpelling',
-        {
-          error_message: errorMessage,
-          query,
-        },
-      );
+
+      // #1596 403 だけ warn、それ以外は error。
+      //
+      // ここは **元々 spec がそう書いてあったのに実装が追いついていなかった**箇所。
+      // `external-api.service.spec.ts` の «should log 403 errors as warning instead of
+      // error» / «should log non-403 errors as error level» は、api の jest が
+      // env 起因で suite ごと落ちていたため一度も実行されておらず、
+      // 実装は全部 warn のままだった。結果、Google Custom Search の 5xx・ネットワーク断が
+      // error レベルに乗らず、error-triage の起票対象から外れていた。
+      const logFailure =
+        responseStatus === 403
+          ? this.logger.warn.bind(this.logger)
+          : this.logger.error.bind(this.logger);
+
+      logFailure('GoogleCustomSearchAPICallError', 'getCorrectedSpelling', {
+        error_message: errorMessage,
+        query,
+      });
       return null;
     }
   }
@@ -267,6 +285,35 @@ export class ExternalApiService {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => '');
+        /*
+        #1629 【修正】**1 日あたりの上限に達したときを «壊れた» と混ぜない。**
+
+        Google Places の Text Search は `SearchTextRequestPerDayPerProject` を持ち、
+        使い切ると 429 / RESOURCE_EXHAUSTED を返す（dev の実測: 上限 45 req/day）。
+        それをそのまま `Error` で投げると `ApiExceptionFilter` の «未処理例外» に落ちて
+        500 INTERNAL_ERROR になり、呼び出し元（`POST /v1/dishes/bulk-import`）が失敗して
+        **検索結果が黙って 0 件になる**。オーナー実機の「焼肉うしごろ表参道が検索で出ない」は
+        これだった（dev ログ 2026-08-30。`dish-media/search` が 0 件 → bulk-import が 500）。
+
+        #1642 【修正】この «上限» を **503 で返していたのを 429 へ戻す**。
+        503 は `MaintenanceGuard`（Remote Config の `is_maintenance`）が使っている番号で、
+        クライアントは 503 を受けると «ただいまメンテナンス中です。» を出す。その結果、
+        メンテナンスでも何でもない «Places の日次上限» でメンテ告知が実機に出た
+        （2026-08-31 のオーナー実機。dev ログ `EXTERNAL_QUOTA_EXCEEDED` 5 件）。
+
+        上流が 429 と言っているものを別の番号へ翻訳する理由が無い。そのまま 429 を返す。
+        «相手が壊れている»（EXTERNAL_SERVICE_ERROR）ではないことは `ErrorCode` 側で
+        言えているので、«時間を置けば直る» はクライアントから引き続き読める。
+        */
+        if (response.status === HttpStatus.TOO_MANY_REQUESTS) {
+          throw new HttpException(
+            {
+              code: ErrorCode.EXTERNAL_QUOTA_EXCEEDED,
+              message: `Google Places Text Search API quota exceeded: ${errorText}`,
+            },
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
+        }
         throw new Error(
           `Google Places Text Search API request failed: ${response.status} ${errorText}`,
         );
@@ -374,7 +421,13 @@ export class ExternalApiService {
         return { buffer, contentType, byteLength: buffer.length };
       }
     } catch (error) {
-      this.logger.error('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
+      // #1320 【設計】唯一の呼び出し元 locations.service.ts の tryGetPhotoMedia は
+      // 写真候補を順に試すフォールバックを持っており、ここでの失敗は設計上回復可能。
+      // 回復しきれなかった最終的な失敗は呼び出し元側（dishes.service.ts の
+      // bulk-import の per-place catch）で error として記録されるため、ここを
+      // error にすると、フォールバックが成功しているケースまで人間の対応が
+      // 必要な事象として自動起票されてしまう。
+      this.logger.warn('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         photoRef,
         widthPx,

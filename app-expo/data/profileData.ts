@@ -1,31 +1,22 @@
 import { GetUserProfileResponse } from "@shared/api/v1/res";
-import { SupabaseUsers } from "@shared/converters/convert_users";
 
+// #948 【仕様】display_name/avatar_path/bio はいずれも ProfileHeader 側で isGuest 分岐して
+// i18n・ローカルアセットに差し替えるため、ここでは実際には画面に出ないプレースホルダ値にする。
 const getGuestProfile = (): GetUserProfileResponse => ({
 	id: "guest",
 	username: "guest",
-	display_name: "Guest",
-	avatar_path: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200&h=200", // Fixed logo will be updated later
+	display_name: "",
+	avatar_path: null,
 	bio: "",
-	preferred_locale: "ar",
+	// #948 【仕様】preferred_locale は非nullable列。ゲストの実際の表示言語は useLocale() 側で
+	// 決定されこの値は参照されないため、技術的なプレースホルダとして "en" を設定する。
+	preferred_locale: "en",
 	created_at: new Date().toISOString(),
 	last_login_at: null,
+	// #1511 ACC-01 論理削除日時。ゲストは削除済みではないので null
+	deleted_at: null,
 	lock_no: 0,
 	updated_at: new Date().toISOString(),
 });
 
 export const userProfile: GetUserProfileResponse = getGuestProfile();
-
-export const otherUserProfile: SupabaseUsers = {
-	id: "user_456",
-	username: "chef_master",
-	display_name: "Chef Master",
-	avatar_path:
-		"https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200&h=200",
-	bio: "👨‍🍳 Professional chef & food creator\n🏆 Michelin starred restaurant owner\n📚 Sharing recipes & cooking tips",
-	preferred_locale: "ar",
-	created_at: new Date().toISOString(),
-	last_login_at: null,
-	lock_no: 0,
-	updated_at: new Date().toISOString(),
-};
