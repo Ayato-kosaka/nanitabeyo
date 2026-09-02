@@ -115,12 +115,35 @@ def _exa_urls(key: str, q: str, num: int) -> list[str]:
     return [r.get("url") or "" for r in (res.get("results") or [])]
 
 
+def _firecrawl_urls(key: str, q: str, num: int) -> list[str]:
+    # #1273 実測（無鍵で HTTP 200・日本語の «料理×エリア» で IG 投稿URLが返る）:
+    #   「焼き鳥 米原」→ /p//reel/ 18件, 「ラーメン 渋谷」→ 11件, 「寿司 金沢」→ 8件。
+    # 地方セルでも投稿URLが返る（Serper が地方で死んでいた問題を回避）。
+    # 鍵は無くても叩けるが keyless は IP/日で低上限。FIRECRAWL_API_KEY（無料・カード不要・
+    # 1,000 credits/月）を入れると上限が上がる。あれば Bearer 認証、無ければ keyless で続行。
+    body = json.dumps(
+        {"query": q, "limit": min(num, 20), "includeDomains": [IG_DOMAIN]}
+    ).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    req = urllib.request.Request(
+        "https://api.firecrawl.dev/v2/search", data=body, headers=headers, method="POST",
+    )
+    res = _http_json(req)
+    return [w.get("url") or "" for w in ((res.get("data") or {}).get("web") or [])]
+
+
 # provider 名 → (必要な env 変数名, 呼び出し関数)。--provider の値域はこの辞書のキー。
+# firecrawl は keyless でも動く（env 未設定を許す）。他は鍵必須。
 _PROVIDERS = {
     "brave": ("BRAVE_SEARCH_API_KEY", _brave_urls),
     "tavily": ("TAVILY_API_KEY", _tavily_urls),
     "exa": ("EXA_API_KEY", _exa_urls),
+    "firecrawl": ("FIRECRAWL_API_KEY", _firecrawl_urls),
 }
+# 鍵が無くても動く provider（keyless 可）。main() の «鍵必須» チェックを免除する。
+_KEYLESS_OK = {"firecrawl"}
 
 
 def _posts_from_urls(urls: list[str]):
@@ -180,8 +203,10 @@ def main() -> None:
         return
 
     key = os.getenv(env_var)
-    if not key:
+    if not key and args.provider not in _KEYLESS_OK:
         raise RuntimeError(f"{env_var} 未設定（db-script-run.yml の secret）。{args.provider} は keyless 不可。")
+    if not key:
+        LOGGER.info("%s は keyless で実行します（%s 未設定。上限UPは env 設定で）。", args.provider, env_var)
 
     pipeline = BigQueryPipeline()
     now_iso = utc_now().isoformat()
