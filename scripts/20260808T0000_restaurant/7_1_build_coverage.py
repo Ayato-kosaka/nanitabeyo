@@ -73,14 +73,25 @@ def main() -> None:
         WHERE run_id = @resolved_rid
         QUALIFY ROW_NUMBER() OVER (PARTITION BY provider, post_id ORDER BY resolved_at DESC) = 1
       )
-      SELECT v.google_place_id, v.dish_category_id, r.discovery_route AS source_route,
-             c.address
+      -- #1273【重要】既知店ルート（柱1/柱4）は «店» を discovery_seed_place_id で確定する。
+      -- resolve は投稿URLからキャプションを取り直して店名照合するが、店の «自分の投稿» は
+      -- 店名を書かないことが多く、店照合が外れて status!='matched' になる（実測: 柱1 19,396 投稿の
+      -- カテゴリ解決済 9,933 のうち matched は 1,044 だけ＝8,889 を取りこぼしていた）。
+      -- 収集時点で店は判明している（discovery_seed_place_id、全て in-catalog・46都道府県）ので、
+      -- **店はそれを使い、resolve はカテゴリ専用**にする。これで既存データだけでセルが +37%。
+      -- discovery_seed_place_id が無い投稿（柱2 インフル・柱3 検索）は従来どおり status='matched' のみ。
+      SELECT
+        COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_place_id) AS google_place_id,
+        v.dish_category_id, r.discovery_route AS source_route, c.address
       FROM latest v
       JOIN `{pipeline.table(TABLE_POST_RAW)}` r
         ON r.run_id = @raw_rid AND r.provider = v.provider AND r.post_id = v.post_id
       LEFT JOIN `{pipeline.table('restaurant_catalog')}` c
-        ON c.run_id = @crid AND c.google_place_id = v.google_place_id
-      WHERE v.status = 'matched'
+        ON c.run_id = @crid
+       AND c.google_place_id = COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_place_id)
+      WHERE v.dish_category_id IS NOT NULL
+        AND (v.status = 'matched'
+             OR (r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''))
     """
     params = [
         bigquery.ScalarQueryParameter("resolved_rid", "STRING", resolved_run_id),
