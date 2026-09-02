@@ -659,19 +659,24 @@ Supabase はロールに `statement_timeout = 2min` を設定しており、こ�
 
 2 回目以降は作業表が効いて数千行になるので、この重さは初回だけである。
 
-### 5. 同期の dry run
+### 5. dry run は流さない
 
-```text
-9_1_sync_restaurants.py --run-id restaurant-2026-08-23 --schema public --dry-run --allow-public
-```
+**`--dry-run` は同じ DML をもう一度流すことになる。** 巻き戻すので結果は残らないが、
+**共有 DB への負荷は本適用と同じだけかかる**。2 回流せば 2 倍である。
 
-dry run も実 DML と制約検査をトランザクション内で行い、最後に rollback する。
+代わりに **分割の 1 回目を canary として読む**。約 6.2 万行を commit した時点で、
+回あたりの時間・DB 負荷・insert 件数がすべて分かる。おかしければそこで止められる
+（残りの 9 回は流れていない）。
 
-確認: 3 つ全部を見る。
+件数の見込みは DML の前に出る。`build_work_tables` → `calculate_stats` は
+作業表を作るだけで本体には触らないので、`insert / update / skip` はログの
+`restaurant sync plan:` で確認できる。
 
-- `insert` の件数が想定（≒ カタログ件数 − `public` の既存一致分）に収まっている
-- 検証エラー（Place ID の暗黙変更 / place_id の取り合い / backfill 漏れ）が 0 件
-- **文ごとの所要時間**が出るので、30 分（statement timeout）に近い文が無いこと
+### 5-b. （参考）dev では dry run を使ってよい
+
+dev は本番と同じインスタンスを共有しているので、**同じ理由で dry run は避ける**。
+どうしても事前に確かめたいなら、共有 DB ではなく
+`tests/bench_9_1_local.py` を使う（→「共有 DB で試行錯誤しない」）。
 
 ### 6. 本適用
 
