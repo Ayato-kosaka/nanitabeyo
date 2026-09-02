@@ -88,6 +88,22 @@ Firebase Hosting のリリース履歴と、実スキーマで確認する。
 （3 回とも release と同時）のに、腐る実績のある長命ブランチを増やす理由が無い。
 API hotfix を release を待たずに出したくなった時点で切ればよく、その時に切っても遅くない。
 
+## デプロイ前に確認すること
+
+**`web` が main から離れていないか。** 離れたまま deploy すると、
+その面だけ古い版が本番へ出る。deploy の前に必ず見る。
+
+```bash
+git fetch --prune origin
+# ⚠️ shallow clone だと下の数はすべて嘘になる（release-policy.md §フェーズ0）
+git rev-parse --is-shallow-repository   # true なら先に git fetch --unshallow origin
+git rev-list --count origin/web..origin/main   # 0 でなければ先に main を web へ統合する
+```
+
+離れていたら、deploy より先に main を `web` へ PR で統合する。
+**放っておくほど統合が難しくなる**（2026-09-02 時点で 1522 コミット遅れ、
+統合時の衝突 2 ファイル）。これが「`web` を使わず release から出す」を招いた。
+
 ## この表を変えるときは
 
 1. **この文書を先に直す。**
@@ -108,6 +124,8 @@ API hotfix を release を待たずに出したくなった時点で切ればよ
 - 原因は `dispatch-and-watch-release-workflow.sh` が **native / API / web のすべてに対して
   `release/*` の ref を要求していた**こと。web を正しい ref から出そうとしても script が弾くので、
   リリース作業の流れでそのまま release ブランチから出るしかなかった
+- 実測（full clone）: `web` は main から **1522 コミット遅れ / 40 コミット先行**、
+  差分 1598 ファイル。main の統合は可能で、衝突は 2 ファイルだった
 
 「リリースブランチ」という 1 つの言葉が面をまたいで使われていたのが根本で、
 面ごとに ref が違うことを書いた文書が 1 つも無かった。この文書がその置き場である。
