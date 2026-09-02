@@ -84,13 +84,19 @@ echo "✅ 1. 意図した穴埋めでも image_path だけの行でも発火し�
 #     **全件が image_path を持っていた**（＝アプリが正常に作った行）。
 echo "✅ 2. image_url が空でも image_path があれば事故ではない（実測 40 件がこの形）"
 
-# --- 3. ★ 画像が丸ごと消えたら発火する ---
-#     表示値 UPDATE がアプリ製の行を掴むと catalog の値（url='' / path=NULL）が入る。
-#     2026-08-24 に実際に起きた事故の形。
+# --- 3. ★ 画像が全く無い行を «数えられる»（ただし事故とは呼ばない）---
+#
+#     2026-09-02 の本番同期でここを ERROR にして 2 件で赤くなった。調べた結果、
+#     **アプリは画像なしでも店を作れる**（写真の無い POI を選んだ場合）ので、
+#     両方が空なのは正当な状態だった。同期直前の backup と全 106,653 行を
+#     突き合わせて **変化 0 件**を確認している。
+#
+#     スナップショット 1 枚から «触られたか» は判定できない。判定できるふりを
+#     すると、正しい振る舞いで赤くなる検査になる。数えるだけにする。
 q "UPDATE restaurants SET image_url='', image_path=NULL WHERE google_place_id='P_APP';" >/dev/null
 read -r WIPED PATH_ONLY HASHED <<<"$(run_check)"
-[ "$WIPED" = "1" ] || fail "画像が丸ごと消えたのに発火しない（上書き事故を見逃す）"
-echo "✅ 3. image_url も image_path も無くなったら発火する"
+[ "$WIPED" = "1" ] || fail "画像が全く無い行を数えられていない"
+echo "✅ 3. 画像が全く無い行を数えられる（事故とは呼ばない）"
 
 # --- 4. row_hash は数えるだけ（過去の版が付けた足あとで、0 にはできない）---
 q "UPDATE restaurants SET source_row_hash='legacy' WHERE google_place_id='P_APP_PATH';" >/dev/null

@@ -91,32 +91,41 @@ def main() -> None:
             )
             media_wiped, path_only, hashed = cursor.fetchone()
 
-            if media_wiped:
-                LOGGER.error(
-                    "❌ アプリ製の行 %d 件で画像が丸ごと消えています"
-                    "（image_url も image_path も無い）。表示値 UPDATE が"
-                    "アプリ製の行を掴んだ疑いがあります",
-                    media_wiped,
-                )
-            else:
-                LOGGER.info("✅ アプリ製の行の画像は保たれている（上書き事故の痕跡なし）")
+            # #1706 ⚠️ **«画像が無い» を ERROR にしてはいけない。**
+            #
+            # 2026-09-02 の本番同期でここが 2 件で赤くなった。調べた結果、
+            # **アプリが画像なしで店を作れる**（写真の無い POI を選んだ場合）ので、
+            # 両方が空なのは正当な状態だった。作成は 2025-12〜2026-08 で、
+            # 同期直前の backup と全 106,653 行を突き合わせて **変化 0 件**を確認。
+            #
+            # 上書き事故を防ぐ役目は、この検査ではなく **9_1 の WHERE 句**が
+            # 持っている（値 UPDATE は created_by_source='pipeline' 限定）。
+            # それは実物の PostgreSQL で固定済み（test_9_1_overwrite_guard.sh 6/6、
+            # test_9_1_display_update.sh §4）。
+            #
+            # スナップショット 1 枚から «触られたか» は判定できない。判定できる
+            # ふりをして ERROR を出すと、**正しい振る舞いで赤くなる検査**になり、
+            # そのうち誰も読まなくなる。ここは数えて出すだけにする。
+            #
+            # 本当に確かめたいときは 9_9_compare_with_backup.py を使う。
+            # 同期直前の backup が «触る前» の姿なので、事実で言える。
+            LOGGER.info(
+                "   画像が全く無いアプリ製の行: %d 件"
+                "（アプリは画像なしでも店を作れる。上書き事故の判定には使えない）",
+                media_wiped,
+            )
             LOGGER.info(
                 "   image_path だけ持つ行: %d 件（image_url は DEPRECATED。正常）",
                 path_only,
             )
-
-            # #1706 row_hash は **過去の版の同期が付けた古い足あと**である。
-            # dev 実測 2,115 件、作成は 2025-10-13〜2026-08-23 で、直近 24 時間に
-            # 作られた行は 0 件。表示値も無傷だった（image_url / image_path とも健在）。
-            #
-            # いまのコードは **アプリ製の行に row_hash を刻まない**（provenance
-            # UPDATE の CASE 式。test_9_1_provenance_update.sh §3 で固定）。
-            # つまり «0 件であること» は満たせない過去の事実であり、これを ERROR に
-            # すると永久に赤いままになる。数だけ出して、増えていないかを人が見る。
             LOGGER.info(
                 "   row_hash が付いたアプリ製の行: %d 件"
                 "（過去の版が付けた古い足あと。いまのコードは新たに刻まない）",
                 hashed,
+            )
+            LOGGER.info(
+                "   ※ «同期が既存行を触っていないこと» を事実で確かめるには "
+                "9_9_compare_with_backup.py を使う（同期直前の backup と突き合わせる）"
             )
 
             cursor.execute(
