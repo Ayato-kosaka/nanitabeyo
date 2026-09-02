@@ -442,3 +442,10 @@
   - **エリアをhashtagから復元は弱い**: no-address 649本中、市区町tokenは13.9%・area+📍は6%のみ（県tokenは粗すぎてnearby探索に使えない）。→ area_not_provided バケットは見た目より硬い。
 - **戦略的含意**: インフル投稿の店照合は硬い（だから535,996"潜在"が変換しなかった）。**律速の少ない主戦力は既知店ルート（seed_place・照合不要）**＝FSQ倍増が正着。ただし open-data IG 全量でも母数の~3%が天井（#843の「無料だけで全国は疑問」と整合）。
 - **harvestキュー**: ④catalog(281)走行中→完了後にFSQ(sns-2026-09-02-fsq 15,967)をharvest連結。IG ~200/h律速のため各tick で «harvest走行中か» を見て未走なら次chunkをdispatch。
+
+## 進捗更新 2026-09-02 16:15Z（柱2 resolve改善を実装・取り込み / 第2の律速=resolve速度を特定）
+- **柱2 resolve改善を実装・テスト緑・ブランチ取り込み**（commit 92ea2b5）: `extractPinNames`/`extractBareHandles`（生キャプション対象）＋`matchRestaurantNames` に `nameHints`（📍店名を exact 1.0 昇格・含有/曖昧には使わず誤爆ゼロ）。shared 142 / api dish-media 64 緑・typecheck 緑・非破壊。**有効化には dev API 再デプロイ(main マージ)が要る**→ #1789 辞書と一緒に1回で出す提案をオーナーへ。
+- **エージェント3本の結論**: 柱1公式サイト実IG率=**32%**（15%の2倍・オーナー仮説的中）／柱5 Threads=審査ゲートで不可（オーナー: IGのみ→取り下げ）／検索型は全滅（DDG anomaly / Bing b_no / IG hashtag API 用途外）。=**自力=自前IG API(business_discovery)＋自前crawl(柱1)に集約、柱3 Serper外し**。
+- **#1791 実装側完了**（commit 9b3117f）: 4_2 を複数トークン×並列シャード対応（`--token-env`/`--shard-count`/`--shard-index`、handleハッシュ分割）。トークンN個で N×200/h。オーナー判断待ち=トークン数。
+- **第2の律速を特定**: resolve は dev API 律速で **~2,600 posts/h・off-peak のみ**。harvest 200店/h と合わせ、3日の実処理量はこの2つで決まる。catalog 43k の resolve は数晩がかり。
+- **現在地**: FSQ harvest 継続／catalog resolve 稼働(2,600/43k)。カバレッジ再測定は resolve がまとまってから（数時間後）。判断待ち: #1791 トークン数・#1789 辞書テーブル承認・resolve改善のデプロイ可否。
