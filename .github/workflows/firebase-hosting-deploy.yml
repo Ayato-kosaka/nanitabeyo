@@ -70,11 +70,14 @@ jobs:
       - name: 🏗️ Build Web App
         run: pnpm --filter app-expo build:web
 
-      # 【デプロイ前ゲート】firebase.json の rewrite 先が dist に実在するかを静的に検証する。
-      # 過去に「expo export の出力形式変更(X.html → X/index.html)に rewrite が追従せず、
-      # 本番の主要 4 タブへの直リンクが 404 になる」事故が起きたための再発防止。
-      # ブラウザ不要・数秒で完了する(e2e-web/tests/config/firebase-rewrites.spec.ts)
-      - name: 🔍 Verify firebase.json rewrites match dist
+      # 【デプロイ前ゲート】ビルド成果物(dist)そのものを見る静的検証。ブラウザ不要・数秒で完了する。
+      #   - firebase.json の rewrite 先が dist に実在するか
+      #     (expo export の出力形式変更に rewrite が追従せず、本番の主要 4 タブへの
+      #      直リンクが 404 になった事故の再発防止 / tests/config/firebase-rewrites.spec.ts)
+      #   - #1783 SSG の HTML に負の width/height が焼き付いていないか
+      #     (SSG 時のウィンドウ幅 0 由来。ハイドレーションでは直らないため web で要素が
+      #      消える / tests/config/static-render-sizes.spec.ts)
+      - name: 🔍 Verify dist against firebase.json rewrites and static render sizes
         run: pnpm --filter e2e-web exec playwright test --project=config
 
       - name: 📄 Generate app-ads.txt from secret
