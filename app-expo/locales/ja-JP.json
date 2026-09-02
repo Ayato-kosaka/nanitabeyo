@@ -747,7 +747,8 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "レストラン詳細",
-			"openInGoogleMaps": "Google マップで開く"
+			"openInGoogleMaps": "Google マップで開く",
+			"unrated": "未評価"
 		}
 	},
 	"Feedback": {

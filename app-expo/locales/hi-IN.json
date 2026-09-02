@@ -747,7 +747,8 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "रेस्टोरेंट विवरण",
-			"openInGoogleMaps": "Google मैप्स में खोलें"
+			"openInGoogleMaps": "Google मैप्स में खोलें",
+			"unrated": "अभी तक रेटिंग नहीं"
 		}
 	},
 	"Feedback": {

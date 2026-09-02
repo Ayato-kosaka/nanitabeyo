@@ -747,7 +747,8 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "레스토랑 상세",
-			"openInGoogleMaps": "Google 지도에서 열기"
+			"openInGoogleMaps": "Google 지도에서 열기",
+			"unrated": "평가 없음"
 		}
 	},
 	"Feedback": {

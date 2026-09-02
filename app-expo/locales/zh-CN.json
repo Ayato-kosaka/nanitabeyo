@@ -747,7 +747,8 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "餐厅详情",
-			"openInGoogleMaps": "在 Google 地图中打开"
+			"openInGoogleMaps": "在 Google 地图中打开",
+			"unrated": "暂无评分"
 		}
 	},
 	"Feedback": {

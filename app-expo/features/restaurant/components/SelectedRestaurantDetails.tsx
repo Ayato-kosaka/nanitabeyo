@@ -223,9 +223,24 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 						<View style={styles.restaurantDetails}>
 							<Text style={styles.restaurantName}>{restaurant.name}</Text>
 							<View style={styles.ratingContainer}>
-								<Stars rating={meta.averageRating} />
-								<Text style={styles.ratingText}>{meta.averageRating}</Text>
-								<Text style={styles.reviewCount}>({meta.reviewCount})</Text>
+								{/* #1667 【バグ】レビュー 0 件を rating=0（★ 空 5 つ）で描くと «最低評価» と
+								    見分けが付かない。0 件のときだけ「未評価」に差し替える。
+								    1 件以上のときの見た目は変えない（API の averageRating/reviewCount は non-null のまま） */}
+								{meta.reviewCount === 0 ? (
+									<Text testID="restaurant-detail-unrated" style={styles.unratedText}>
+										{i18n.t("Restaurant.detail.unrated")}
+									</Text>
+								) : (
+									<>
+										<Stars rating={meta.averageRating} />
+										<Text testID="restaurant-detail-rating-value" style={styles.ratingText}>
+											{meta.averageRating}
+										</Text>
+										<Text testID="restaurant-detail-review-count" style={styles.reviewCount}>
+											({meta.reviewCount})
+										</Text>
+									</>
+								)}
 							</View>
 							{/* #1629【オーナー確定】「写真・動画を投稿」を外し、«Google マップで開く» を戻した。
 							    投稿は «食べたを記録» のフローに 1 本化されている（上の設計コメント）。
@@ -304,6 +319,10 @@ const createStyles = (c: Palette) =>
 	},
 	reviewCount: {
 		fontSize: 12,
+		color: c.textMuted,
+	},
+	unratedText: {
+		fontSize: 13,
 		color: c.textMuted,
 	},
 	tabContainer: {

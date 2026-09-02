@@ -747,7 +747,8 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "تفاصيل المطعم",
-			"openInGoogleMaps": "الفتح في خرائط Google"
+			"openInGoogleMaps": "الفتح في خرائط Google",
+			"unrated": "غير مقيّم"
 		}
 	},
 	"Feedback": {
