@@ -450,7 +450,8 @@ bash tests/test_9_9_backfill.sh              # backfill の行選択（5項目�
 python3 tests/test_9_1_backfill_guard.py     # backfill 漏れ «検知» の契約（7項目）
 bash tests/test_9_1_display_update.sh        # 表示値を «変わる行» にしか書かない（5項目）
 bash tests/test_9_1_provenance_update.sh     # provenance / seed / synced_at の分離（6項目）
-bash tests/test_9_1_restaurant_links.sh      # リンクの追加・削除（6項目）
+bash tests/test_9_1_restaurant_links.sh      # リンクの追加・削除（7項目）
+bash tests/test_9_9_backfill_restaurant_links.sh  # 取りこぼしたリンクの埋め直し（6項目）
 bash tests/test_9_1_address_fill.sh          # アプリ製の行の住所の穴埋め（5項目）
 bash tests/test_9_1_work_table.sh            # 作業表が対象を取りこぼさない（8項目）
 bash tests/test_log_db_load.sh               # 負荷の計測が本処理を殺さない（2項目）
@@ -721,6 +722,31 @@ BigQuery に無い PostgreSQL の行は**削除しない**。
 
 確認: `created_by_source='user'` の行の name / image_url / image_path が
 同期前と変わっていないこと（＝既存データが欠けても書き換わってもいない）。
+
+⚠️ **スナップショット 1 枚では «触られたか» は判定できない。**
+事実で確かめるときは `9_9_compare_with_backup.py` を使う（手順 6 の直前に
+取った GCS backup と全行を突き合わせる）。
+
+⚠️ **`9_9_audit_column_coverage.py` の結果を «出力を眺めて終わり» にしない。**
+2026-09-02 の本番投入では、この監査で **pipeline 側のリンク保有率が全 kind で
+0.0%**（＝新規 547,941 店の電話・サイト・SNS が 1 本も入っていない）ことが
+分かった。合計本数（184,430 本）だけを見ていると «入っている» と読めてしまう。
+**母集団ごとの保有率を、列ごとに 0% が無いか目で追うこと。**
+
+### 8. 取りこぼしたリンクを埋め直す（必要なときだけ）
+
+同期は冪等で、作業表は «やることがある行» しか集めない。したがって投入後に
+リンクの取りこぼしが見つかっても、**9_1 を流し直しても埋まらない**
+（`source_row_hash` が catalog と一致しているので作業表がほぼ空になる）。
+«リンクを 1 本も持たない行» を対象にする別の入口を使う。
+
+```text
+9_9_backfill_restaurant_links.py --run-id <run_id> --schema public --allow-public --dry-run
+9_9_backfill_restaurant_links.py --run-id <run_id> --schema public --allow-public --chunks 10
+```
+
+足すだけで消さない。対象は `created_by_source='pipeline'` かつ open_data の
+リンクを 1 本も持たない行に限る。冪等なので、途中で降りたらそのまま流し直せる。
 
 ### 巻き戻し
 

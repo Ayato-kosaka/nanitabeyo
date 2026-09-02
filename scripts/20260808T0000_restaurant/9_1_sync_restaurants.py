@@ -478,6 +478,59 @@ def apply_sync_chunked(connection: Any, chunks: int) -> None:
             )
 
 
+# #1706 **リンク投入の SQL は 1 箇所にしか置かない。**
+#
+# 2026-09-02 の本番投入で «新規行に 1 本もリンクが入らない» 欠陥を出した。
+# その取りこぼしを埋める 9_9_backfill_restaurant_links.py は、この文を
+# **写経せず import して使う**（CLAUDE.md「本番のロジックをテストへ写経しない」
+# と同じ理由。複製すると片方だけ直って静かにずれる）。
+LINK_INSERT_SQL = """
+    INSERT INTO restaurant_links (restaurant_id, kind, value, source, fetched_at)
+    SELECT r.id, v.kind, v.value, 'open_data', CURRENT_TIMESTAMP
+    FROM restaurant_sync_work s
+    JOIN restaurants r
+      ON r.google_place_id = s.google_place_id
+     -- #1706 DELETE と同じ理由。row_hash が動いた店だけを見る。
+     --
+     -- ⚠️ **`r.source_row_hash` を見てはいけない。**
+     -- この文より前に «新規 INSERT» が走り、入れたばかりの行へ
+     -- `source_row_hash = s.row_hash` を書いている。`r` を見ると
+     -- 新規行は必ず «一致» になり、**1 本もリンクが入らない**。
+     -- 2026-09-02 の本番投入で実際にこうなり、新規 547,941 店の
+     -- 電話・サイト・SNS が 0 件になった（アプリ製の行は
+     -- source_row_hash が NULL なので入り、それで気付けなかった）。
+     --
+     -- 正しい比較相手は **作業表が持つ «書く前» のスナップショット**
+     -- `pg_row_hash` である。作業表は全ての DML より前に作られるので、
+     -- 自分の書き込みに汚染されない。新規行は pg_id / pg_row_hash が
+     -- NULL なので、この条件で自動的に «対象» になる。
+     AND s.pg_row_hash IS DISTINCT FROM s.row_hash
+    CROSS JOIN LATERAL (
+      -- 電話・サイトは 1 本ずつ、SNS は配列。1 つの SELECT に畳んで
+      -- 空文字と NULL を同じ「無い」として落とす。
+      SELECT 'phone'::text AS kind, s.phone AS value
+      WHERE NULLIF(btrim(COALESCE(s.phone, '')), '') IS NOT NULL
+      UNION ALL
+      SELECT 'website', s.website
+      WHERE NULLIF(btrim(COALESCE(s.website, '')), '') IS NOT NULL
+      UNION ALL
+      SELECT
+        CASE
+          WHEN u.value ILIKE '%%instagram.com%%' THEN 'instagram'
+          WHEN u.value ILIKE '%%tiktok.com%%'    THEN 'tiktok'
+          WHEN u.value ILIKE '%%facebook.com%%'  THEN 'facebook'
+          WHEN u.value ILIKE '%%twitter.com%%'
+            OR u.value ILIKE '%%//x.com/%%'      THEN 'x'
+          ELSE 'other'
+        END,
+        u.value
+      FROM jsonb_array_elements_text(s.social_urls_json::jsonb) AS u(value)
+      WHERE NULLIF(btrim(u.value), '') IS NOT NULL
+    ) AS v
+    ON CONFLICT (restaurant_id, kind, value) DO NOTHING
+"""
+
+
 def apply_sync(connection: Any) -> None:
     """同期の DML を流す。
 
@@ -775,51 +828,7 @@ def apply_sync(connection: Any) -> None:
 
         run(
             "リンク投入",
-            """
-            INSERT INTO restaurant_links (restaurant_id, kind, value, source, fetched_at)
-            SELECT r.id, v.kind, v.value, 'open_data', CURRENT_TIMESTAMP
-            FROM restaurant_sync_work s
-            JOIN restaurants r
-              ON r.google_place_id = s.google_place_id
-             -- #1706 DELETE と同じ理由。row_hash が動いた店だけを見る。
-             --
-             -- ⚠️ **`r.source_row_hash` を見てはいけない。**
-             -- この文より前に «新規 INSERT» が走り、入れたばかりの行へ
-             -- `source_row_hash = s.row_hash` を書いている。`r` を見ると
-             -- 新規行は必ず «一致» になり、**1 本もリンクが入らない**。
-             -- 2026-09-02 の本番投入で実際にこうなり、新規 547,941 店の
-             -- 電話・サイト・SNS が 0 件になった（アプリ製の行は
-             -- source_row_hash が NULL なので入り、それで気付けなかった）。
-             --
-             -- 正しい比較相手は **作業表が持つ «書く前» のスナップショット**
-             -- `pg_row_hash` である。作業表は全ての DML より前に作られるので、
-             -- 自分の書き込みに汚染されない。新規行は pg_id / pg_row_hash が
-             -- NULL なので、この条件で自動的に «対象» になる。
-             AND s.pg_row_hash IS DISTINCT FROM s.row_hash
-            CROSS JOIN LATERAL (
-              -- 電話・サイトは 1 本ずつ、SNS は配列。1 つの SELECT に畳んで
-              -- 空文字と NULL を同じ「無い」として落とす。
-              SELECT 'phone'::text AS kind, s.phone AS value
-              WHERE NULLIF(btrim(COALESCE(s.phone, '')), '') IS NOT NULL
-              UNION ALL
-              SELECT 'website', s.website
-              WHERE NULLIF(btrim(COALESCE(s.website, '')), '') IS NOT NULL
-              UNION ALL
-              SELECT
-                CASE
-                  WHEN u.value ILIKE '%%instagram.com%%' THEN 'instagram'
-                  WHEN u.value ILIKE '%%tiktok.com%%'    THEN 'tiktok'
-                  WHEN u.value ILIKE '%%facebook.com%%'  THEN 'facebook'
-                  WHEN u.value ILIKE '%%twitter.com%%'
-                    OR u.value ILIKE '%%//x.com/%%'      THEN 'x'
-                  ELSE 'other'
-                END,
-                u.value
-              FROM jsonb_array_elements_text(s.social_urls_json::jsonb) AS u(value)
-              WHERE NULLIF(btrim(u.value), '') IS NOT NULL
-            ) AS v
-            ON CONFLICT (restaurant_id, kind, value) DO NOTHING
-            """,
+            LINK_INSERT_SQL,
         )
 
         # provenanceは既存行にも付ける。これによりPG表示値を維持しつつ、どのseedが

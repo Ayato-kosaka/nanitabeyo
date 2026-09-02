@@ -12,11 +12,19 @@ import re
 import sys
 from pathlib import Path
 
-SOURCE = Path(__file__).resolve().parent.parent / "9_1_sync_restaurants.py"
+HERE = Path(__file__).resolve().parent.parent
+SOURCE = HERE / "9_1_sync_restaurants.py"
+BACKFILL = HERE / "9_9_backfill_restaurant_links.py"
 
 PATTERNS = {
-    "delete": r'"""\s*(DELETE FROM restaurant_links.*?)"""',
-    "insert": r'"""\s*(INSERT INTO restaurant_links.*?)"""',
+    "delete": (SOURCE, r'"""\s*(DELETE FROM restaurant_links.*?)"""'),
+    "insert": (SOURCE, r'"""\s*(INSERT INTO restaurant_links.*?)"""'),
+    # #1706 埋め直しの «対象の集め方»。ここを写経すると、9_1 を直したときに
+    # 埋め直し側だけ古い条件のまま緑になる。
+    "backfill_target": (
+        BACKFILL,
+        r'"""\s*(CREATE TEMP TABLE restaurant_link_backfill_all.*?)"""',
+    ),
 }
 
 
@@ -25,8 +33,9 @@ def main() -> None:
     parser.add_argument("--which", choices=sorted(PATTERNS), required=True)
     args = parser.parse_args()
 
-    src = SOURCE.read_text(encoding="utf-8")
-    found = re.findall(PATTERNS[args.which], src, re.S)
+    source, pattern = PATTERNS[args.which]
+    src = source.read_text(encoding="utf-8")
+    found = re.findall(pattern, src, re.S)
     if len(found) != 1:
         sys.exit(f"{args.which} の SQL を一意に取れませんでした（{len(found)}件）")
     # psycopg2 のリテラル %% は psql では % 一つ
