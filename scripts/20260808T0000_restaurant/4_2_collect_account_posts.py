@@ -67,8 +67,8 @@ def _get(url: str, timeout: float = 30.0) -> dict:
         raise RuntimeError(f"IG API {e.code}: {body[:300]}")
 
 
-def resolve_ig_user_id(token: str) -> str:
-    uid = os.getenv("IG_USER_ID")
+def resolve_ig_user_id(token: str, user_env: str = "IG_USER_ID") -> str:
+    uid = os.getenv(user_env)
     if uid:
         return uid
     q = urllib.parse.urlencode({"fields": "instagram_business_account{id}", "access_token": token})
@@ -122,11 +122,22 @@ def parse_args() -> argparse.Namespace:
                    help="対象を絞る（省略時は全部）")
     p.add_argument("--max-accounts", type=int, default=None, help="このバッチで処理するアカウント数上限")
     p.add_argument("--limit-per-account", type=int, default=200, help="1 アカウントあたりの投稿数上限")
+    # #1791 複数トークン並列化: business_discovery のレート制限は «アプリ(トークン)単位»。
+    # シャードごとに別 Meta アプリのトークンを割り当てれば合算スループットが上がる。
+    # 既定は従来どおり IG_TOKEN / IG_USER_ID。シャード2以降は --token-env IG_TOKEN_2 等で切替。
+    p.add_argument("--token-env", default="IG_TOKEN",
+                   help="business_discovery に使うトークンの env 名（#1791 シャード並列用。既定 IG_TOKEN）")
+    p.add_argument("--user-env", default="IG_USER_ID",
+                   help="IG ビジネスアカウント id の env 名（--token-env と対で切替。既定 IG_USER_ID）")
+    # #1791 並列シャード: 複数トークンで «互いに素な» アカウント集合を同時に回すための分割。
+    # handle のハッシュで N 分割し、各シャードは自分の担当分だけ処理する（重複収集を防ぐ）。
+    p.add_argument("--shard-count", type=int, default=1, help="アカウントの分割数（#1791 並列用。既定 1=分割なし）")
+    p.add_argument("--shard-index", type=int, default=0, help="このシャードの担当インデックス（0..shard-count-1）")
     return p.parse_args()
 
 
 def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type, max_accounts,
-                   output_run_id: str | None = None):
+                   output_run_id: str | None = None, shard_count: int = 1, shard_index: int = 0):
     from google.cloud import bigquery
     where = "run_id = @rid AND provider = @prov"
     params = [
@@ -136,6 +147,12 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type
     if account_type:
         where += " AND account_type = @atype"
         params.append(bigquery.ScalarQueryParameter("atype", "STRING", account_type))
+    # #1791 並列シャード: handle のハッシュで N 分割。並列トークンで同時に回しても
+    # 各シャードの担当が互いに素になり、二重収集しない。shard_count=1 なら無効。
+    if shard_count and shard_count > 1:
+        where += " AND MOD(ABS(FARM_FINGERPRINT(handle)), @shard_count) = @shard_index"
+        params.append(bigquery.ScalarQueryParameter("shard_count", "INT64", int(shard_count)))
+        params.append(bigquery.ScalarQueryParameter("shard_index", "INT64", int(shard_index)))
     # #1273 チャンク harvest 用: レート制限(~200/h)で全量が CI 1 ジョブ(6h)に収まらないので
     # --max-accounts で分割する。ORDER BY handle LIMIT だけだと毎回同じ先頭 N を選び進まないため、
     # **この出力 run に既に投稿がある handle は除外**して «まだ収集していない account» を進める。
@@ -163,17 +180,18 @@ def main() -> None:
     args = parse_args()
     run_id = require_run_id(args.run_id)
     account_run_id = args.account_run_id or run_id
-    token = os.getenv("IG_TOKEN")
+    token = os.getenv(args.token_env)
     if not token:
-        raise RuntimeError("IG_TOKEN 未設定（db-script-run.yml の secret）。")
+        raise RuntimeError(f"{args.token_env} 未設定（db-script-run.yml の secret）。")
 
     pipeline = BigQueryPipeline()
-    ig = resolve_ig_user_id(token)
-    LOGGER.info("IG business account id = %s", ig)
+    ig = resolve_ig_user_id(token, args.user_env)
+    LOGGER.info("IG business account id = %s（token_env=%s）", ig, args.token_env)
 
     # output_run_id=run_id を渡すと «この run に既に投稿がある handle» を除外する（チャンク前進）。
     accounts = _read_accounts(pipeline, account_run_id, args.account_type, args.max_accounts,
-                              output_run_id=run_id)
+                              output_run_id=run_id,
+                              shard_count=args.shard_count, shard_index=args.shard_index)
     LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
     now = utc_now()
     now_iso = now.isoformat()
