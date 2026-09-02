@@ -38,6 +38,22 @@ dry-runし、同じrun_idを段階的に昇格させます。Cloud Schedulerは�
 
 **どこが正か**が一目で分かる形にしてある。手順の羅列は「手動実行順」にある。
 
+### SoT の境界（#1382）
+
+| | 役割 |
+| --- | --- |
+| **PostgreSQL** | `restaurants` / `dishes` / `dish_media` の **operational SoT**。ユーザーの入力が正 |
+| **BigQuery** | raw / 名寄せ / 推薦 / **publish 候補** / 分析の processing layer |
+
+`restaurant_catalog` は **PostgreSQL 全量の写しではなく、pipeline が今回 publish したい出力**である。
+したがって **catalog に無いことを理由に PostgreSQL の行を削除しない。** 削除・非公開は
+catalog の不在ではなく、明示的な state（`dish_media` の `deleted` / `private` /
+`unavailable`）で扱う。restaurant の閉店も同じ考え方で、`3_6` は «根拠» を集めるだけで
+判定はしない。
+
+`scripts/20251213T0000_wikidata_food_graph` は **BQ が SoT で PG を全量洗い替える**別の
+モデルである。ここと混同しないこと。
+
 ```text
   ┌── BigQuery（オープンデータの側。ここが «店の事実» の正）────────────────┐
   │                                                                        │
