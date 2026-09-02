@@ -398,3 +398,9 @@
   2. **dish_media 生成側**を seed_place 対応に（実プロダクト。#1399保存ゲートの現状確認）。
   3. 柱2 handle無限拡張（harvest_influencer_handles）で新規インフル→新セル。
 - **オーナー**: 訂正(«大レバーあり»)を数値で確定＝18.3% persist。1行で確認だけ入れる。
+
+## 進捗更新 2026-09-02 07:30Z（柱4 = catalog自社IG を起動: 4_1 open_data_socials）
+- **柱4は新規スクリプト不要**: 4_1 に `--source open_data_socials` が既存＝restaurant_catalog.social_urls の IG を store_branch(discovery_seed_place_id付き)として取り込む。seed_place方式で matched 保証。
+- [x] 4_1 open_data に **チェーン除去**を追加（commit d61893b。同一handleが複数店=誤帰属を排除。実測: 店固有 6,849 / チェーン 432）。
+- [~] **4_1 open_data_socials を dispatch**（run-id sns-2026-09-02-catalog, catalog restaurant-2026-08-23。BQのみ・安全）。→ sns_source_account に ~6,849 店アカウント。
+- **次tick**: ①sns_source_account の sns-2026-09-02-catalog 件数確認 ②**4_2 harvest 開始**（business_discovery、~200/h・app token単位＝直列、6,849handle≈34h→6h以下のチャンクで複数run。IG+BQのみ=安全・off-peak不問）③harvest分を 5_1 resolve(category)→ 7_1(seed_place方式)でカバレッジ増分測定。都市セルの深さ＋未充足の都市カテゴリセルを埋める見込み。
