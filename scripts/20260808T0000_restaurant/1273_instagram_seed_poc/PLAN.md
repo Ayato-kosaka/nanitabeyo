@@ -404,3 +404,10 @@
 - [x] 4_1 open_data に **チェーン除去**を追加（commit d61893b。同一handleが複数店=誤帰属を排除。実測: 店固有 6,849 / チェーン 432）。
 - [~] **4_1 open_data_socials を dispatch**（run-id sns-2026-09-02-catalog, catalog restaurant-2026-08-23。BQのみ・安全）。→ sns_source_account に ~6,849 店アカウント。
 - **次tick**: ①sns_source_account の sns-2026-09-02-catalog 件数確認 ②**4_2 harvest 開始**（business_discovery、~200/h・app token単位＝直列、6,849handle≈34h→6h以下のチャンクで複数run。IG+BQのみ=安全・off-peak不問）③harvest分を 5_1 resolve(category)→ 7_1(seed_place方式)でカバレッジ増分測定。都市セルの深さ＋未充足の都市カテゴリセルを埋める見込み。
+
+## 進捗更新 2026-09-02 08:20Z（柱4 harvest 開始: chunk#1）
+- [x] sns_source_account に柱4 **6,848店**(open_data_socials・チェーン除去済)を確認。
+- [x] 4_2 に**チャンクharvest対応**（出力runに投稿済handleを除外＝未収集分を前進。commit c0b02d7）。FLUSH_EVERY=20で逐次書込＝timeoutでもロス無し。
+- [~] **4_2 harvest chunk#1 dispatch**（run/account sns-2026-09-02-catalog, store_branch, max-accounts 1200, limit-per-account 50。IG+BQのみ=安全）。~200/h制限で最大6h。
+- **次tick**: sns_post_raw の sns-2026-09-02-catalog 投稿数を確認→ chunk完了なら次chunk dispatch（antijoinで前進。6,848店≈6chunk）。溜まったら 5_1 resolve(category)→7_1(seed_place)でカバレッジ増分。
+- **全体現在地**: カバレッジ 18.3%(1,150セル/47県) banked。柱4で都市セルの深さ＋未充足の都市カテゴリセルを積む。約6chunk（数日）で全量。
