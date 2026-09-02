@@ -9,10 +9,15 @@ usage() {
 Usage:
   dispatch-and-watch-release-workflow.sh \
     --kind <native|api|web> \
-    --ref <release-branch> \
+    --ref <deploy-branch> \
     --expected-sha <full-commit-sha> \
     [--platform <all|ios|android>] \
     --confirm-production CONFIRM_PRODUCTION
+
+--ref に渡すブランチは面ごとに違う。正本は docs/specs/deploy-branches.md。
+  native  release/X.Y
+  web     web
+  api     main
 EOF
   exit 2
 }
@@ -59,8 +64,28 @@ done
   echo 'production実行を停止しました: 明示確認トークンがありません。' >&2
   exit 3
 }
-[[ "$release_ref" =~ ^release/[A-Za-z0-9._/-]+$ ]] || {
-  echo 'production実行を停止しました: release/* refが必要です。' >&2
+# #1783 【設計】デプロイ元ブランチは面ごとに違う。正本は docs/specs/deploy-branches.md。
+#
+# ここを `release/*` 一律にしていたため、web を正しい `web` ブランチから出そうとしても
+# script が弾き、native のリリース作業の流れでそのまま release ブランチから
+# 本番 web が出ていた（2026-09-02 に発覚。`web` は 6 週間更新が止まっていた）。
+#
+# ⚠️ 面を増やす・ref を変えるときは **先に docs/specs/deploy-branches.md を直す。**
+#    ここは表の写しではなく、その表を機械的に強制する唯一の場所である。
+expected_ref_pattern() {
+  case "$1" in
+    native) printf '^release/[A-Za-z0-9._/-]+$' ;;
+    web) printf '^web$' ;;
+    api) printf '^main$' ;;
+    *) return 1 ;;
+  esac
+}
+
+ref_pattern=$(expected_ref_pattern "$kind") || usage
+[[ "$release_ref" =~ $ref_pattern ]] || {
+  printf 'production実行を停止しました: --kind %s のデプロイ元は %s です（渡された ref: %s）。\n' \
+    "$kind" "$ref_pattern" "$release_ref" >&2
+  echo '正本: docs/specs/deploy-branches.md' >&2
   exit 3
 }
 [[ "$expected_sha" =~ ^[0-9a-fA-F]{40}$ ]] || {

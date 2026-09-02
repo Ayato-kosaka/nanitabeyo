@@ -10,6 +10,15 @@
 
 ## 1. 現行workflow
 
+**どのブランチから出すかは面ごとに違う。正本は [docs/specs/deploy-branches.md](../../../../docs/specs/deploy-branches.md)。**
+この表に ref を書き写さない（2 箇所に書くと必ず片方が腐る）。dispatch 直前に必ずそちらを開き、
+`scripts/dispatch-and-watch-release-workflow.sh` へ渡す `--ref` を決める。
+
+⚠️ **web は release ブランチではない。** 「リリースブランチ」という言葉が面をまたいで
+使われていたため、native のリリース作業の流れでそのまま本番 web を `release/X.Y` から
+出す事故が起きた（2026-09-02）。script 側でも面ごとに ref を強制してあるので、
+違う面の ref を渡すと dispatch 前に停止する。
+
 | 対象 | Workflow | production input | 注意 |
 |---|---|---|---|
 | Native build/store upload | `.github/workflows/eas-build-submit-prod.yml` | `platform=all|ios|android` | EAS commandは`--no-wait --auto-submit`。Actions完了後もEAS build/submissionを監視する |
