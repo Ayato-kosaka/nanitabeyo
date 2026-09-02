@@ -574,8 +574,12 @@ Supabase はロールに `statement_timeout = 2min` を設定しており、こ�
 | # | 条件 | 確認方法 |
 | --- | --- | --- |
 | 0-1 | PR が main へマージ済み | — |
-| 0-2 | migration 3 本が `public` に当たっている | 下記 |
-| 0-3 | `dev` で 8_1 が 14/14 PASS、9_1 が成功している | 直近の run のログ |
+| 0-2 | migration 3 本が `public` に当たっている | **`9_9_check_public_schema.py --schema public --allow-public`**（情報スキーマだけを読む。データは触らない） |
+| 0-3 | `8_1` が 15/15 PASS | 直近の run のログ。とくに `restaurant_catalog_schema_independent = 0` |
+
+実測（2026-09-02）: 0-2 は **適用済み**。`public.restaurants` は **106,653 行で
+全て `created_by_source='user'`**。パイプラインは一度も流れていないので、既存行は
+**値 UPDATE の対象外**である（`pipeline` 限定）。
 
 0-2 の 3 本（いずれも `ADD COLUMN IF NOT EXISTS` / `CREATE TABLE IF NOT EXISTS` で冪等）:
 
