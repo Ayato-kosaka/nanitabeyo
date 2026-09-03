@@ -36,8 +36,9 @@
 1. Stage1: `restaurants` の総件数
 2. Stage2: `restaurant_links.kind` ごとの、リンクを持つ店舗数
 3. Stage4: category（JP gate 通過分）ごとの usable dish_media を持つ店舗数（地理条件なし）
-4. Stage5: `area(S2セル) × dish_category(JP gate)` の coverage 集計と、`--min-restaurants`
-   未満の不足セル一覧（既定 5 店舗未満）
+4. Stage5: `area(S2セル) × dish_category(JP gate)` の coverage 集計。全組み合わせのうち
+   `--min-restaurants` 以上／未満／ゼロの件数（既定閾値 5 店舗）と、coverage が多い順の
+   上位 20 件。不足セルを 1 行ずつは列挙しない（後述「Stage5 のアルゴリズム」参照）
 
 ## 既存の coverage 計測（8_1_validate_catalogs.py）との違い
 
@@ -63,9 +64,9 @@
   #843 のクローズ判定は完結しない
 - **「日本のどこでも店提案が動く」とは言えない。** S2セルは restaurants が実在する
   座標から作るため、店舗が1件も無い空白地帯はそもそもセルとして現れず、
-  「不足セル一覧に無い＝そこも十分」という意味にはならない
+  `covered_zero_restaurants`（coverageゼロの件数）にも含まれない
 - **異なる `--s2-level` で測った数字とは比較できない。** レベルを変えるとセルの粒度も
-  不足セル数も変わる。前提（`assumptions` フィールド）が同じ実行同士でしか比べられない
+  coverage の件数も変わる。前提（`assumptions` フィールド）が同じ実行同士でしか比べられない
 - **店舗詳細画面（`findDishMediaByRestaurant`）の「使える」件数とは一致しない。**
   そちらは `playback_status` を見ておらず定義が異なる（#1782 で判明。直すのは別件）
 - **鮮度は測定した瞬間のもの。** `dish_media` は日々増減するため、この JSON の
@@ -76,17 +77,31 @@
 標準出力をそのまま貼るだけなので、ファイルを書いてもランナー終了後に消える。
 JSON を必ず標準出力にも出すのはこのため）。
 
-## 重いクエリを現実的な時間で終わらせる工夫
+## Stage5 のアルゴリズム（起点を少ない側にする）
 
-Stage5 は `area_cells × jp_gate_categories` の CROSS JOIN になり、dev の店舗規模
-（#843 記載で約62万件）だと素直に書くと重い。**usable dish_media を一時テーブルへ
-materialize してから GiST 索引 / category_id 索引を張り**、そこへ JOIN する
-（`dish_media_coverage_sql.build_usable_dish_media_temp_table_sql` 参照）。area セル側も
-Python で集計した結果を一時テーブル（`area_cells_tmp`）へ積んでから JOIN する。
+当初は `area_cells CROSS JOIN jp_gate_categories`（dev実測で area セル 125,834 ×
+カテゴリ 134 = 16,861,756 行）を先に作り、各行へ `ST_DWithin` で usable dish_media を
+LEFT JOIN していた。分母（組み合わせ数）は巨大だが、**中身が入り得るのは usable
+dish_media が近くにある組み合わせだけ**であり、usable dish_media は dev実測で
+4,906 行しかない。この向きのまま statement_timeout=300s で実行すると
+`psycopg2.errors.QueryCanceled` でタイムアウトした
+（run: https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33698994719）。
 
-不足セル一覧を出すクエリ（HAVING あり）は CROSS JOIN を **1 回だけ**実行する。
-「全セル数」「カテゴリ数」は別の軽いクエリで数え、不足セル数と突き合わせて
-coverage 率を出す（CROSS JOIN を HAVING 無しでも実行する二重コストを避けるため）。
+そこで JOIN の起点を逆にした（`dish_media_coverage_sql._stage5_matched_sql`）。
+
+1. `usable_dish_media_tmp`（起点。高々数千行）から `jp_gate_categories` を
+   `category_id` で INNER JOIN する
+2. 各行について、半径 `--radius-m`（既定 20,000m）以内にある `area_cells_tmp` の
+   代表点を `ST_DWithin` で INNER JOIN する。`area_cells_tmp` 側に代表点の
+   GiST 式索引を張ってあるため（`build_area_cells_temp_index_sql`）、
+   全 area_cells を毎回スキャンしない
+3. `(s2_cell_id, category_id)` で `GROUP BY` し `COUNT(DISTINCT restaurant_id)` を取る
+
+INNER JOIN なので、この集計には **coverage が非ゼロの組み合わせしか現れない**。
+「5 店舗以上」「1〜4 店舗」の件数はこの集計から `FILTER` で数え（`build_stage5_summary_sql`）、
+「0 店舗」の件数は「全組み合わせ数（area セル数 × カテゴリ数、別の軽いクエリで数える）
+− この集計の行数」の引き算で出す（`covered_zero`）。**16.8M 件を 1 行ずつ返す・
+列挙することはしない。** 上位 20 件（`build_stage5_top_cells_sql`）だけを別クエリで取る。
 
 ## 読み取り専用である（ただし全区間ではない）
 
@@ -109,7 +124,8 @@ dev へ向けて実行したところ、`CREATE TEMP TABLE` で次の例外で�
 1. 接続時は `autocommit=True` のみ付ける（`readonly=True` は付けない）
 2. `usable_dish_media_tmp` の作成・索引作成・`ANALYZE` を終える
 3. `restaurants` の座標を読み出して S2 セル化し、`area_cells_tmp` の作成・INSERT・
-   `ANALYZE` を終える（`s2_cell_id` が PRIMARY KEY なので追加の索引は不要）
+   代表点への GiST 式索引作成（`build_area_cells_temp_index_sql`。Stage5 が
+   usable dish_media 側からこの索引へ半径検索を投げる）・`ANALYZE` を終える
 4. その直後に `SET default_transaction_read_only = on` を実行し、以降のセッションを
    read-only に切り替える
 5. Stage4 / Stage5（一時テーブルの読み取りのみ）はこの read-only セッションで走る
@@ -129,7 +145,7 @@ DDL を流す区間は手順2・3（一時テーブルの作成）だけに限�
 
 S2 level や半径・閾値を変えたいときは引数を足す:
 
-    args: --schema dev --s2-level 14 --radius-m 20000 --min-restaurants 5 --max-shortage-rows 2000
+    args: --schema dev --s2-level 14 --radius-m 20000 --min-restaurants 5
 
 ローカルでの単体テスト（DB 接続なし、SQL の組み立てだけを検査）:
 
@@ -243,6 +259,8 @@ def build_area_cells_temp_table(cur, table_name: str, s2_level: int) -> int:
     cur.execute(coverage_sql.build_area_cells_temp_table_sql(table_name))
     if area_cells:
         execute_values(cur, coverage_sql.build_area_cells_insert_sql(table_name), area_cells)
+    for index_sql in coverage_sql.build_area_cells_temp_index_sql(table_name):
+        cur.execute(index_sql)
     cur.execute(f"ANALYZE {table_name}")
     logger.info(
         "area_cells 一時テーブル（S2 level %s）: %s セル（restaurants %s 件から集計）",
@@ -280,7 +298,6 @@ def run_stage5(
     s2_level: int,
     radius_m: float,
     min_restaurants: int,
-    max_shortage_rows: int,
     statement_timeout_s: int,
 ) -> dict:
     section("Stage5: area(S2セル) x dish_category(JP gate) の coverage")
@@ -301,14 +318,23 @@ def run_stage5(
     cur.execute(f"SET statement_timeout = '{statement_timeout_s}s'")
     try:
         cur.execute(
-            coverage_sql.build_shortage_cells_sql(
+            coverage_sql.build_stage5_summary_sql(
                 radius_m=radius_m,
                 min_restaurants=min_restaurants,
                 area_table_name=area_table_name,
                 media_table_name=media_table_name,
             )
         )
-        rows = cur.fetchall()
+        covered_at_or_above_min, covered_below_min, covered_total = cur.fetchone()
+
+        cur.execute(
+            coverage_sql.build_stage5_top_cells_sql(
+                radius_m=radius_m,
+                area_table_name=area_table_name,
+                media_table_name=media_table_name,
+            )
+        )
+        top_rows = cur.fetchall()
     except psycopg2.errors.QueryCanceled:
         logger.error(
             "❌ Stage5 が %s 秒でタイムアウトしました。--s2-level を小さく（粗く）するか、"
@@ -317,7 +343,10 @@ def run_stage5(
         )
         raise
 
-    shortage_cells = [
+    covered_zero = total_combos - covered_total
+    coverage_rate = (covered_at_or_above_min / total_combos) if total_combos else None
+
+    top_cells = [
         {
             "s2_cell_id": s2_cell_id_value,
             "restaurant_count": restaurant_count,
@@ -325,28 +354,26 @@ def run_stage5(
             "category_label": category_label,
             "restaurants_with_usable_media": restaurants_with_usable_media,
         }
-        for s2_cell_id_value, restaurant_count, category_id, category_label, restaurants_with_usable_media in rows
+        for s2_cell_id_value, restaurant_count, category_id, category_label, restaurants_with_usable_media in top_rows
     ]
-    shortage_count = len(shortage_cells)
-    omitted = max(0, shortage_count - max_shortage_rows)
-    if omitted:
-        logger.warning(
-            "⚠ 不足セルが %s 件あり、JSON には先頭 %s 件だけを載せます（%s 件を省略）。"
-            " --max-shortage-rows を上げれば全件出せます。",
-            f"{shortage_count:,}",
-            f"{max_shortage_rows:,}",
-            f"{omitted:,}",
-        )
-    covered_combos = total_combos - shortage_count
-    coverage_rate = (covered_combos / total_combos) if total_combos else None
 
     logger.info(
-        "不足セル（usable dish_media を持つ店舗が %s 店舗未満）= %s / %s（coverage率 %s）",
+        "coverage が %s 店舗以上 = %s / %s（%s） / 1〜%s 店舗 = %s / 0 店舗 = %s",
         min_restaurants,
-        f"{shortage_count:,}",
+        f"{covered_at_or_above_min:,}",
         f"{total_combos:,}",
         f"{coverage_rate:.1%}" if coverage_rate is not None else "n/a",
+        min_restaurants - 1,
+        f"{covered_below_min:,}",
+        f"{covered_zero:,}",
     )
+    for row in top_cells:
+        logger.info(
+            "s2_cell_id=%s category_id=%-24s restaurants_with_usable_media=%s",
+            row["s2_cell_id"],
+            row["category_id"],
+            f"{row['restaurants_with_usable_media']:,}",
+        )
 
     return {
         "s2_level": s2_level,
@@ -355,11 +382,11 @@ def run_stage5(
         "total_area_cells": total_area_cells,
         "total_categories": total_categories,
         "total_area_category_combos": total_combos,
-        "shortage_combos": shortage_count,
-        "covered_combos": covered_combos,
+        "covered_at_or_above_min_restaurants": covered_at_or_above_min,
         "coverage_rate": coverage_rate,
-        "shortage_cells": shortage_cells[:max_shortage_rows],
-        "shortage_cells_omitted": omitted,
+        "covered_below_min_restaurants": covered_below_min,
+        "covered_zero_restaurants": covered_zero,
+        "top_cells": top_cells,
     }
 
 
@@ -391,16 +418,10 @@ def parse_args() -> argparse.Namespace:
         help=f"不足セルと判定する閾値（この店舗数未満。既定: {coverage_sql.DEFAULT_MIN_RESTAURANTS}）",
     )
     parser.add_argument(
-        "--max-shortage-rows",
-        type=int,
-        default=2000,
-        help="JSON へ載せる不足セルの最大件数（既定: 2000。超えた分は omitted 件数として明示する）",
-    )
-    parser.add_argument(
         "--statement-timeout-s",
         type=int,
         default=300,
-        help="Stage5 の CROSS JOIN に許す最大秒数（既定: 300）",
+        help="Stage5 の集計クエリに許す最大秒数（既定: 300）",
     )
     parser.add_argument(
         "--out-json",
@@ -465,7 +486,6 @@ def main() -> int:
                 s2_level=args.s2_level,
                 radius_m=args.radius_m,
                 min_restaurants=args.min_restaurants,
-                max_shortage_rows=args.max_shortage_rows,
                 statement_timeout_s=args.statement_timeout_s,
             )
 
