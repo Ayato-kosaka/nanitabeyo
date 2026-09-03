@@ -1,7 +1,8 @@
 /*
 #1667 【バグ】レビュー 0 件の店で ★ 空 5 つ + 「0」が出て、«最低評価» と見分けが付かなかった。
 
-`meta.reviewCount === 0` のときだけ「未評価」に差し替え、1 件以上のときの見た目は変えない
+【オーナー確定 2026-09-03】0 件のときは **何も出さない**。「未評価」というラベルも出さない
+（無いものを言葉で埋めない、が標準）。1 件以上のときの見た目は変えない
 （→ `SelectedRestaurantDetails.tsx` の分岐）。API の `averageRating` / `reviewCount` は
 nullable にしていないので、この画面がレビュー件数で出し分けることを固定する。
 */
@@ -80,16 +81,17 @@ afterEach(async () => {
 const findByTestId = (tree: TestRenderer.ReactTestRenderer, testID: string) =>
 	tree.root.findAll((node) => node.props?.testID === testID, { deep: false });
 
-describe("#1667 レビュー 0 件の店は «未評価» を出し、★ と数字は出さない", () => {
-	it("reviewCount=0 のとき「未評価」を描き、星と数字は描かない", async () => {
+describe("#1667 レビュー 0 件の店は、評価まわりを何も描かない", () => {
+	it("reviewCount=0 のとき、星も数字も «未評価» ラベルも描かない", async () => {
 		const tree = await render(<SelectedRestaurantDetails restaurantEntry={buildEntry(0, 0)} />);
 
-		expect(findByTestId(tree, "restaurant-detail-unrated")).toHaveLength(1);
+		// «未評価» のようなラベルへ戻したらここが赤くなる
+		expect(findByTestId(tree, "restaurant-detail-unrated")).toHaveLength(0);
 		expect(findByTestId(tree, "restaurant-detail-rating-value")).toHaveLength(0);
 		expect(findByTestId(tree, "restaurant-detail-review-count")).toHaveLength(0);
 	});
 
-	it("reviewCount>=1 のときは従来どおり星と数字を描き、「未評価」は描かない", async () => {
+	it("reviewCount>=1 のときは従来どおり星と数字を描く", async () => {
 		const tree = await render(<SelectedRestaurantDetails restaurantEntry={buildEntry(4.2, 12)} />);
 
 		expect(findByTestId(tree, "restaurant-detail-unrated")).toHaveLength(0);

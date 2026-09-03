@@ -747,8 +747,7 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "Détails du restaurant",
-			"openInGoogleMaps": "Ouvrir dans Google Maps",
-			"unrated": "Pas encore noté"
+			"openInGoogleMaps": "Ouvrir dans Google Maps"
 		}
 	},
 	"Feedback": {
