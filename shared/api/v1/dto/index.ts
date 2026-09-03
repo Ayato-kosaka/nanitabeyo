@@ -36,7 +36,8 @@ export { QueryRestaurantDishMediaDto } from "./restaurants/query-restaurant-dish
 export { QueryRestaurantBidsDto } from "./restaurants/query-restaurant-bids.dto";
 export { QueryRestaurantsByGooglePlaceIdDto } from "./restaurants/query-restaurants-by-google-place-id.dto";
 
-export { QueryMapsEmbedDto, MAPS_EMBED_MODES, type MapsEmbedMode } from "./maps/query-maps-embed.dto";
+export { QueryMapsEmbedDto } from "./maps/query-maps-embed.dto";
+export { CreateMapsEmbedTokenDto, MAPS_EMBED_MODES, type MapsEmbedMode } from "./maps/create-maps-embed-token.dto";
 
 export { CreateUserUploadSignedUrlDto } from "./user-uploads/create-user-upload-signed-url.dto";
 
