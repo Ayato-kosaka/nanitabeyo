@@ -155,7 +155,7 @@ class JpGateCategoryTest(unittest.TestCase):
         self.assertIn("score > 0", source)
 
     def test_stage5_uses_jp_gate_categories_not_all_dish_categories(self) -> None:
-        sql = sut.build_stage5_coverage_sql()
+        sql = sut.build_stage5_top_cells_sql()
         self.assertIn("jp_gate_categories", sql)
         self.assertIn("region:country:JP", sql)
         self.assertNotIn("CROSS JOIN dish_categories c", sql)
@@ -163,38 +163,118 @@ class JpGateCategoryTest(unittest.TestCase):
 
 class RadiusTest(unittest.TestCase):
     def test_custom_radius_is_reflected_in_st_dwithin(self) -> None:
-        sql = sut.build_stage5_coverage_sql(radius_m=12345)
+        sql = sut.build_stage5_top_cells_sql(radius_m=12345)
         self.assertIn("12345", sql)
         self.assertIn("ST_DWithin(", sql)
 
 
-class ShortageThresholdTest(unittest.TestCase):
-    def test_default_threshold_is_five_in_having(self) -> None:
-        sql = sut.build_shortage_cells_sql()
+class Stage5InvertedJoinTest(unittest.TestCase):
+    """#1782 Stage5 が 300 秒でタイムアウトした事故
+    （run: https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33698994719）の修正。
+
+    旧実装は `area_cells CROSS JOIN jp_gate_categories`（dev実測1,686万行）を先に作って
+    usable dish_media を LEFT JOIN していた。新実装は起点を逆にし、usable dish_media
+    （高々数千行）から area_cells / jp_gate_categories へ INNER JOIN で辿る。
+    このテストは、その向きが逆戻りしていないことを生成された SQL 文字列で検査する。
+    """
+
+    def test_matched_aggregation_starts_from_media_table_not_area_cells(self) -> None:
+        sql = sut.build_stage5_top_cells_sql(
+            area_table_name="area_cells_tmp", media_table_name="usable_dish_media_tmp"
+        )
+        self.assertIn("FROM usable_dish_media_tmp t", sql)
+        self.assertIn("JOIN area_cells_tmp ac", sql)
+        self.assertNotIn("CROSS JOIN", sql)
+        self.assertNotIn("LEFT JOIN", sql)
+
+    def test_old_full_cross_join_functions_are_gone(self) -> None:
+        # 撤回した「area_cells起点・不足セルを1行ずつ返す」旧実装が復活していないことを保証する。
+        self.assertFalse(hasattr(sut, "build_shortage_cells_sql"))
+        self.assertFalse(hasattr(sut, "build_stage5_coverage_sql"))
+        self.assertFalse(hasattr(sut, "_stage5_base_sql"))
+
+
+class MinRestaurantsBucketTest(unittest.TestCase):
+    """coverage を `min_restaurants` 以上/未満の2バケットに集計する build_stage5_summary_sql()
+    と、0件は「全組み合わせ数 − 集計行数」の引き算で出す設計（16.8M行を列挙しない）を検査する。
+    """
+
+    def test_default_threshold_is_five_in_filter_clauses(self) -> None:
+        sql = sut.build_stage5_summary_sql()
         self.assertIn(
-            "HAVING count(DISTINCT t.restaurant_id) < 5",
+            "count(*) FILTER (WHERE restaurants_with_usable_media >= 5)",
+            sql,
+        )
+        self.assertIn(
+            "count(*) FILTER (WHERE restaurants_with_usable_media < 5)",
             sql,
         )
 
-    def test_custom_threshold_is_reflected_in_having(self) -> None:
-        sql = sut.build_shortage_cells_sql(min_restaurants=8)
+    def test_custom_threshold_is_reflected_in_filter_clauses(self) -> None:
+        sql = sut.build_stage5_summary_sql(min_restaurants=8)
         self.assertIn(
-            "HAVING count(DISTINCT t.restaurant_id) < 8",
+            "count(*) FILTER (WHERE restaurants_with_usable_media >= 8)",
+            sql,
+        )
+        self.assertIn(
+            "count(*) FILTER (WHERE restaurants_with_usable_media < 8)",
             sql,
         )
 
-    def test_coverage_query_without_having_has_no_threshold_filter(self) -> None:
-        # HAVING を持つのは不足セル専用クエリだけで、全件クエリには無いことを確認する
-        sql = sut.build_stage5_coverage_sql()
-        self.assertNotIn("HAVING", sql)
+    def test_top_cells_query_has_no_threshold_filter(self) -> None:
+        # min_restaurants は引数に取らない（閾値はバケット集計だけの関心事）
+        sql = sut.build_stage5_top_cells_sql()
+        self.assertNotIn("FILTER", sql)
 
-    def test_shortage_query_reuses_the_same_aggregation_as_coverage_query(self) -> None:
-        # 集計本体（SELECT ... GROUP BY まで）が完全に同じ文字列であること。
-        # ここがズレていたら、不足セル一覧と合計値が別の定義で数えていることになる。
-        coverage_sql = sut.build_stage5_coverage_sql()
-        shortage_sql = sut.build_shortage_cells_sql()
-        shared_prefix = coverage_sql.split("\nORDER BY")[0]
-        self.assertIn(shared_prefix, shortage_sql)
+    def test_summary_and_top_cells_reuse_the_same_matched_aggregation(self) -> None:
+        # 集計本体（usable dish_media -> area_cells の JOIN + GROUP BY）が完全に同じ
+        # 文字列であること。ここがズレていたら、バケット集計と上位セル一覧が
+        # 別の定義で数えていることになる。
+        matched_sql = sut._stage5_matched_sql(
+            radius_m=sut.DEFAULT_RADIUS_M,
+            area_table_name=sut.DEFAULT_AREA_CELLS_TABLE_NAME,
+            media_table_name=sut.DEFAULT_TEMP_TABLE_NAME,
+        )
+        summary_sql = sut.build_stage5_summary_sql()
+        top_cells_sql = sut.build_stage5_top_cells_sql()
+        self.assertIn(matched_sql, summary_sql)
+        self.assertIn(matched_sql, top_cells_sql)
+
+    def test_top_cells_query_orders_by_coverage_descending_with_limit(self) -> None:
+        sql = sut.build_stage5_top_cells_sql(top_n=20)
+        self.assertIn("ORDER BY restaurants_with_usable_media DESC", sql)
+        self.assertIn("LIMIT 20", sql)
+
+
+class AreaCellsGistIndexTest(unittest.TestCase):
+    """Stage5 は usable dish_media 側から area_cells へ ST_DWithin を投げる向きになったため、
+    area_cells 側の代表点に GiST 式索引が無いと、起点行数 × 全 area_cells 件数の
+    ネステッドループになってしまう。索引の式と JOIN 条件の式が一致していることを検査する
+    （ズレていると索引が使われず全件スキャンに戻る）。
+    """
+
+    def test_index_uses_gist_on_the_centroid_expression(self) -> None:
+        stmts = sut.build_area_cells_temp_index_sql("area_cells_tmp")
+        joined = "\n".join(stmts)
+        self.assertIn("USING GIST", joined)
+        self.assertIn(
+            "ST_SetSRID(ST_MakePoint(center_lng, center_lat), 4326)::geography",
+            joined,
+        )
+
+    def test_index_expression_matches_the_join_condition_expression(self) -> None:
+        index_stmts = sut.build_area_cells_temp_index_sql("area_cells_tmp")
+        matched_sql = sut._stage5_matched_sql(
+            radius_m=sut.DEFAULT_RADIUS_M,
+            area_table_name="area_cells_tmp",
+            media_table_name=sut.DEFAULT_TEMP_TABLE_NAME,
+        )
+        self.assertIn(
+            "ST_SetSRID(ST_MakePoint(ac.center_lng, ac.center_lat), 4326)::geography",
+            matched_sql,
+        )
+        # 索引側は alias 無し、JOIN 条件側は alias(ac.) 付き — 列名部分が一致していること
+        self.assertIn("center_lng, center_lat", "\n".join(index_stmts))
 
 
 if __name__ == "__main__":

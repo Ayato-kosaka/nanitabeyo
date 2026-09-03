@@ -62,6 +62,9 @@ class FakeCursor:
     def fetchone(self):
         if "current_user" in self._last_sql:
             return ("test_user", "test_db")
+        if "covered_at_or_above_min" in self._last_sql:
+            # Stage5 のバケット集計クエリ(build_stage5_summary_sql)は3列返す。
+            return (0, 0, 0)
         return (0,)
 
     def fetchall(self):
