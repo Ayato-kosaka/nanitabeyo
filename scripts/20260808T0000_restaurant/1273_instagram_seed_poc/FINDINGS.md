@@ -149,3 +149,32 @@ website 保有店の 27.6%（89/322）は «website» 自体が集約メディ�
 - **中間テーブル**は migration `20260830T0000_create_sns_seed_tables.sql` に `sns_store_site_ig` として追加（4_0 で作成）。
 - **標本 322 での実測**（ユニット）: 店固有 handle を持つ 86 店・異なり handle 84・裏取りあり 46。
   89 の (place_id, handle) → チェーン 9 handle を除外 → **store_branch 80 行**が 4_1 に載る。到達性: fetch_failed 61・robots 9・no_handle 166。
+
+---
+
+## 2026-09-03 — resolve 律速の除去（caption 持ち回り）と柱4 CC の却下確定
+
+### 勝ち筋: resolve の律速だった «投稿ごとの IG 取得» を caption 同梱で消した
+- resolve のレート制限の真因は、投稿ごとに `instagram.com/p/{code}/embed/captioned/`（公開SSR・
+  トークン無し・IP 単位で制限）を取りに行くこと。並列 IG 取得で実測 73% 失敗、単発でも数時間で劣化。
+- **収集時に得たテキストを caption として持ち回り、resolve へ渡すと IG を取りに行かず純テキスト処理**に
+  なる。→ 好きなだけ並列できる。実測: concurrency 40 で **meta_fail=0**（search 経路 360件・柱1 2,038件とも）。
+- 実装: dev API 側 PR #1805（`resolve` が `caption` を受けたら fetch を skip）。パイプライン側は
+  `sns_post_raw.caption`（4_0b で列追加）＋ 5_1 `--concurrency`（ThreadPoolExecutor）。
+
+### 柱1（店アカウント）も caption 付きで集め直せる — カテゴリ判定 43%→67%
+- `4_2_collect_account_posts.py` の business_discovery フィールドに `caption` を追加（`id,permalink` と
+  同じ 1 コールで返る＝**API コスト増ゼロ**、レート制限も増えない）。収集で 99.4% が実 caption（平均230字）。
+- これを並列 resolve → **カテゴリ判定率 42.9%→66.7%・meta_fail=0**。旧 43% は IG 取得失敗が主因だった。
+- 柱1 は «店＝discovery_seed_place_id で確定・resolve はカテゴリ専用»（seed-trust, 7_1）。よって
+  «収集した店アカウント × caption でカテゴリ» が取れれば seed-trust セルが増える。distinct-store エンジン。
+
+### 柱4（Common Crawl WAT）は却下確定 — 蒸し返さない
+- CC WAT の投稿URL 22,575 件を resolve して **matched 0 件（0.0%）**。option C（元ページ Title を caption に
+  載せる）も実装・実測したが、Title は «IG 埋め込みを載せた無関係ページ» のもの（企業サイト・海外ブログ等）で
+  日本の飲食店シグナルを持たない。jp-source は 3% でそれも飲食ではない。**CC は日本の飲食シードには使えない。**
+
+### 現在地（全 run union・seed-trust・市区町村×dish_category・異なり店）
+- ≥5 店セル = **35**、≥3 = 158、≥1 = 4,916。breadth はあるが depth が無い（≒1 店/セル）。
+- 律速は «セルあたりの異なり店数»。柱1（店アカウント収集）を caption 付きで回して distinct 店を増やすのが主レバー。
+  business_discovery スループット（単トークン ~130 アカウント/h 実測）が収集の壁。
