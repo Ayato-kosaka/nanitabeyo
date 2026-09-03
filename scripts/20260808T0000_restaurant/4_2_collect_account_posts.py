@@ -2,7 +2,8 @@
 """#1273 収集ルート1/2: sns_source_account の各アカウントの投稿URLを sns_post_raw へ入れる。
 
 Instagram Graph API の business_discovery で、対象ハンドルの media(permalink) を集める。
-**caption は保存しない**（resolve が URL から取り直す）。保存するのは投稿を一意に指す URL と来歴だけ。
+#1273 caption も保存する（business_discovery が id,permalink と同じ 1 コールで返す＝追加コスト無し）。
+resolve へ caption を渡すと IG を取りに行かず並列できる（柱1 の大量投稿を parallel resolve する土台）。
 
 IG_TOKEN は GitHub Actions secret。business_discovery に必要な «自分の IG ビジネスアカウント id» は
 env IG_USER_ID があれば使い、無ければ /me/accounts から自動解決する。
@@ -88,7 +89,9 @@ def discover_media(ig: str, token: str, handle: str, per_account_limit: int, pag
     while fetched < per_account_limit:
         limit = min(page_size, per_account_limit - fetched)
         media_args = f"media.limit({limit})" + (f".after({after})" if after else "")
-        fields = f"business_discovery.username({handle}){{{media_args}{{id,permalink}}}}"
+        # #1273 caption も取る（business_discovery は 1 コールで返す＝追加コスト無し）。
+        # resolve へ渡すと IG を取りに行かず並列できる（柱1 の 57k 未 resolve を parallel 化する路）。
+        fields = f"business_discovery.username({handle}){{{media_args}{{id,permalink,caption}}}}"
         q = urllib.parse.urlencode({"fields": fields, "access_token": token})
         try:
             d = _get(f"{GRAPH}/{ig}?{q}")
@@ -107,7 +110,7 @@ def discover_media(ig: str, token: str, handle: str, per_account_limit: int, pag
         for m in media.get("data", []):
             if m.get("permalink") and m.get("id"):
                 fetched += 1
-                yield m["id"], m["permalink"]
+                yield m["id"], m["permalink"], (m.get("caption") or None)
         after = media.get("paging", {}).get("cursors", {}).get("after")
         if not after:
             return
@@ -233,7 +236,7 @@ def main() -> None:
             handle = acc["handle"]
             route = _ROUTE_BY_ACCOUNT_TYPE.get(acc["account_type"], "influencer")
             n = 0
-            for media_id, permalink in discover_media(ig, token, handle, args.limit_per_account):
+            for media_id, permalink, caption in discover_media(ig, token, handle, args.limit_per_account):
                 # 投稿の一意キーは shortcode（検索ルート4_3と揃え、跨ルート重複解決を防ぐ）
                 pid = ig_shortcode_from_url(permalink) or media_id
                 if pid in seen:
@@ -247,6 +250,7 @@ def main() -> None:
                     "discovery_seed_place_id": acc["discovery_seed_place_id"],
                     "discovery_area_lat": None, "discovery_area_lng": None,
                     "discovery_category_id": None,
+                    "caption": caption, "author_name": handle,
                     "fetched_at": now_iso, "run_id": run_id,
                 })
                 n += 1
