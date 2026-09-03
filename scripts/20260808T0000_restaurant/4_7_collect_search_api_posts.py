@@ -12,6 +12,11 @@ Graph API の business_discovery（200 req/時の壁）を通らない検索型�
                        1000 credits/月（basic=1 credit）。include_domains=["instagram.com"]。
     --provider exa     Exa /search        header x-api-key: $EXA_API_KEY
                        $10/月 + 初回 $20（$7/1k）。includeDomains=["instagram.com"]。
+    --provider firecrawl / you / linkup / yep（#1273 追加。無料枠と規約は FINDINGS.md 2026-09-03 参照）
+
+#1273 P1 «店起点»（--store-mode）: sns_source_account の未収集 store_branch handle を BQ から読み、
+«"@handle"» を include_domains=instagram.com で検索して、その店の投稿を caption 付きで集める。
+snippet に handle か店名を含む投稿だけ discovery_seed_place_id を付け（seed-trust）、柱1として数える。
 
 いずれも «一般 Web 検索を instagram.com に絞る» ので、返る URL から /p//reel//tv/ の投稿だけを拾う。
 account_id は NULL（単体投稿）。#1273 検索結果の title+snippet を caption として保存し、
@@ -147,6 +152,60 @@ def _firecrawl_urls(key: str, q: str, num: int) -> list[tuple[str, str]]:
     ]
 
 
+def _you_urls(key: str, q: str, num: int) -> list[tuple[str, str]]:
+    # You.com Search API（$100 無料 credit・カード不要・10 rps）。include_domains で instagram.com に絞る。
+    # 規約(A12): API キー利用は §2.4.16 の例外で OK。keyless は使わない。
+    body = json.dumps(
+        {"query": q, "count": min(num, 100), "country": "JP", "language": "JA",
+         "include_domains": [IG_DOMAIN]}
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        "https://ydc-index.io/v1/search", data=body,
+        headers={"X-API-Key": key, "Content-Type": "application/json"}, method="POST",
+    )
+    res = _http_json(req)
+    out = []
+    for r in (((res.get("results") or {}).get("web")) or []):
+        snippets = r.get("snippets") or []
+        out.append((r.get("url") or "", _join_text(r.get("title"), r.get("description"), *snippets[:2])))
+    return out
+
+
+def _linkup_urls(key: str, q: str, num: int) -> list[tuple[str, str]]:
+    # Linkup（4,000 q 無料）。includeDomains で絞り、searchResults で name/url/content を得る。
+    # 規約(A12): ToU §4.2 自社製品への統合として保存 OK。
+    body = json.dumps(
+        {"q": q, "depth": "standard", "outputType": "searchResults",
+         "includeDomains": [IG_DOMAIN], "maxResults": min(num, 50)}
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.linkup.so/v1/search", data=body,
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, method="POST",
+    )
+    res = _http_json(req)
+    return [
+        (r.get("url") or "", _join_text(r.get("name"), r.get("content")))
+        for r in (res.get("results") or []) if r.get("type", "text") == "text"
+    ]
+
+
+def _yep_urls(key: str, q: str, num: int) -> list[tuple[str, str]]:
+    # Yep Search API（1,000 req 無料・カード不要）。include_domains はカンマ区切りのルートドメイン。
+    body = json.dumps(
+        {"query": q, "limit": min(num, 20), "include_domains": IG_DOMAIN,
+         "language": ["ja"], "location": "JP"}
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        "https://platform.yep.com/api/search", data=body,
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, method="POST",
+    )
+    res = _http_json(req)
+    return [
+        (r.get("url") or "", _join_text(r.get("title"), r.get("description"), r.get("snippet")))
+        for r in (res.get("results") or [])
+    ]
+
+
 # provider 名 → (必要な env 変数名, 呼び出し関数)。--provider の値域はこの辞書のキー。
 # firecrawl は keyless でも動く（env 未設定を許す）。他は鍵必須。
 _PROVIDERS = {
@@ -154,6 +213,9 @@ _PROVIDERS = {
     "tavily": ("TAVILY_API_KEY", _tavily_urls),
     "exa": ("EXA_API_KEY", _exa_urls),
     "firecrawl": ("FIRECRAWL_API_KEY", _firecrawl_urls),
+    "you": ("YOU_API_KEY", _you_urls),
+    "linkup": ("LINKUP_API_KEY", _linkup_urls),
+    "yep": ("YEP_API_KEY", _yep_urls),
 }
 # 鍵が無くても動く provider（keyless 可）。main() の «鍵必須» チェックを免除する。
 _KEYLESS_OK = {"firecrawl"}
@@ -239,7 +301,17 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--provider", required=True, choices=sorted(_PROVIDERS), help="使う検索 API")
     p.add_argument("--run-id", default=None)
-    p.add_argument("--queries-file", required=True, help="TSV: query<TAB>category_id<TAB>lat<TAB>lng")
+    p.add_argument("--queries-file", default=None, help="TSV: query<TAB>category_id<TAB>lat<TAB>lng（--store-mode 無しのとき必須）")
+    # #1273 P1 «店起点»: IG API を使わず、検索インデックスに «"@handle" site:instagram.com» を投げて
+    # その店の投稿を caption 付きで集める（A6/A10 実測: 88% ヒット・13.6 投稿/handle・snippet 日本語 80%）。
+    # 対象は sns_source_account の未収集 store_branch（discovery_seed_place_id 付き）。店は place_id で
+    # 確定（seed-trust）するので、snippet に handle か店名が含まれる投稿だけ discovery_seed_place_id を
+    # 付ける（同名他店・@mention だけの投稿の誤帰属を防ぐ）。
+    p.add_argument("--store-mode", action="store_true",
+                   help="sns_source_account の未収集 store_branch handle を BQ から読み、店起点で投稿を集める")
+    p.add_argument("--account-run-id", default=None, help="--store-mode で読む sns_source_account の run_id（省略時は全 run）")
+    p.add_argument("--shards", type=int, default=1, help="--store-mode の handle 分割数（provider 間で互いに素にする）")
+    p.add_argument("--shard", type=int, default=0, help="このバッチの担当シャード [0, shards)")
     # #1273 実測(A17): 10 件→20 件にするだけで投稿ヒットが 1.3→11.9/クエリ。各 provider 関数が
     # 自分の上限（exa 10・firecrawl 20 等）に丸めるので 20 を既定にする。
     p.add_argument("--num", type=int, default=20, help="1 クエリの取得件数（provider 側で上限に丸める）")
@@ -268,13 +340,86 @@ def _read_cells(path: Path, max_queries, offset: int = 0):
     return cells[:max_queries] if max_queries else cells
 
 
+def _read_store_handles(pipeline: BigQueryPipeline, account_run_id, max_queries, offset: int,
+                        shards: int, shard: int) -> list[dict]:
+    """未収集の店アカ handle（place_id・店名・市区町村付き）を BQ から読む。
+
+    未収集 = sns_post_raw に account_id として 1 投稿も無い handle。FARM_FINGERPRINT(handle) で
+    シャード分割し、複数 provider を互いに素な集合で同時に回せる。
+    """
+    from google.cloud import bigquery
+    where = "a.provider = 'instagram' AND a.account_type = 'store_branch' AND a.discovery_seed_place_id IS NOT NULL"
+    params = []
+    if account_run_id:
+        where += " AND a.run_id = @arid"
+        params.append(bigquery.ScalarQueryParameter("arid", "STRING", account_run_id))
+    if shards > 1:
+        where += " AND MOD(ABS(FARM_FINGERPRINT(a.handle)), @shards) = @shard"
+        params += [bigquery.ScalarQueryParameter("shards", "INT64", shards),
+                   bigquery.ScalarQueryParameter("shard", "INT64", shard)]
+    sql = f"""
+      WITH acc AS (
+        SELECT a.handle, a.discovery_seed_place_id AS place_id
+        FROM `{pipeline.table('sns_source_account')}` a
+        WHERE {where}
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY a.handle ORDER BY a.discovered_at DESC) = 1
+      ),
+      collected AS (SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` WHERE account_id IS NOT NULL)
+      SELECT acc.handle, acc.place_id, c.name AS store_name,
+             REGEXP_EXTRACT(c.address, r'(?:{_PREF_ALT})(.+?[市区町村])') AS city
+      FROM acc
+      LEFT JOIN collected ON collected.account_id = acc.handle
+      LEFT JOIN `{pipeline.table('restaurant_catalog')}` c
+        ON c.run_id = (SELECT run_id FROM `{pipeline.table('restaurant_catalog')}` GROUP BY run_id ORDER BY COUNT(*) DESC LIMIT 1)
+       AND c.google_place_id = acc.place_id
+      WHERE collected.account_id IS NULL
+      ORDER BY acc.handle
+      LIMIT {int(max_queries or 1000000)} OFFSET {int(offset or 0)}
+    """
+    return [dict(r) for r in pipeline.execute(sql, params)]
+
+
+_PREF_ALT = ("北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|"
+             "神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|"
+             "大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|"
+             "福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県")
+
+
+def _norm(s: str) -> str:
+    return re.sub(r"[\s\u3000・\-−ー~〜()（）「」『』【】]", "", (s or "")).lower()
+
+
+def _mentions_store(text: str, handle: str, store_name: str | None) -> bool:
+    """snippet がその店を指しているか（handle か店名の 3 文字以上の連続一致）。seed-trust の誤付与ガード。"""
+    t = _norm(text)
+    if handle and handle.lower() in (text or "").lower():
+        return True
+    n = _norm(store_name or "")
+    if len(n) >= 3 and n in t:
+        return True
+    # 店名が長い場合は先頭 4 文字の一致でも可（«焼肉きんぐ 渋谷店» → «焼肉きんぐ»）
+    return len(n) >= 6 and n[:4] in t
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
     run_id = require_run_id(args.run_id)
     env_var, fetch = _PROVIDERS[args.provider]
 
-    cells = _read_cells(Path(args.queries_file), args.max_queries, args.query_offset)
+    stores: list[dict] = []
+    if args.store_mode:
+        pipeline0 = BigQueryPipeline()
+        stores = _read_store_handles(pipeline0, args.account_run_id, args.max_queries, args.query_offset,
+                                     args.shards, args.shard)
+        # クエリ形 D（A1 実測: 店名一致 94%）に寄せる: «"@handle" site:instagram.com» は handle 経由で
+        # 店確定できるので最優先。site: は provider 側の include_domains と二重でも害は無い。
+        cells = [(f'"@{st["handle"]}"', None, None, None) for st in stores]
+        LOGGER.info("store-mode: 未収集の店アカ %d 件（shard %d/%d, offset %d）", len(cells), args.shard, args.shards, args.query_offset)
+    else:
+        if not args.queries_file:
+            raise SystemExit("--queries-file か --store-mode のどちらかが要ります")
+        cells = _read_cells(Path(args.queries_file), args.max_queries, args.query_offset)
     LOGGER.info("%d クエリを %s で引きます（無料枠のみ）", len(cells), args.provider)
     sleep_s = max(args.sleep_ms, 0) / 1000.0
 
@@ -302,8 +447,9 @@ def main() -> None:
     ) as result:
         rows = []
         seen = set()
-        n_ok = n_skip = 0
-        for q, cat, lat, lng in cells:
+        n_ok = n_skip = n_seeded = 0
+        for i, (q, cat, lat, lng) in enumerate(cells):
+            st = stores[i] if args.store_mode else None
             try:
                 urls = _fetch_with_retry(fetch, key, q, args.num, args.max_retries, args.provider)
             except _QuotaExhausted:
@@ -313,6 +459,10 @@ def main() -> None:
                 continue
             n_ok += 1
             for code, url, caption in _posts_from_urls(urls):
+                seed_place = None
+                if st is not None and _mentions_store(caption, st["handle"], st.get("store_name")):
+                    seed_place = st["place_id"]
+                    n_seeded += 1
                 pid = code  # shortcode。4_2/4_3 と同じキーで跨ルート重複を解決
                 if pid in seen:
                     continue
@@ -322,11 +472,12 @@ def main() -> None:
                         "post_id": pid,
                         "provider": PROVIDER_INSTAGRAM,
                         "canonical_url": url,
-                        "account_id": None,
-                        "discovery_route": DISCOVERY_ROUTE,
-                        "discovery_method": args.provider,
+                        # store-mode で店に帰属できた投稿は柱1（store_account）として扱い、seed-trust で店確定。
+                        "account_id": (st["handle"] if seed_place else None),
+                        "discovery_route": ("store_account" if seed_place else DISCOVERY_ROUTE),
+                        "discovery_method": (f"search_handle:{args.provider}" if args.store_mode else args.provider),
                         "discovery_query": q,
-                        "discovery_seed_place_id": None,
+                        "discovery_seed_place_id": seed_place,
                         "discovery_area_lat": lat,
                         "discovery_area_lng": lng,
                         "discovery_category_id": cat,
@@ -357,6 +508,7 @@ def main() -> None:
         result["row_count"] = count
         result["queries_ok"] = n_ok
         result["queries_skipped"] = n_skip
+        result["posts_seeded"] = n_seeded
         LOGGER.info(
             "sns_post_raw に %d 投稿を投入しました（%s / 検索 %d クエリ中 成功 %d・スキップ %d）",
             count, args.provider, len(cells), n_ok, n_skip,
