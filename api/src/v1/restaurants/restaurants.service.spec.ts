@@ -1,9 +1,22 @@
 // api/src/v1/restaurants/restaurants.service.spec.ts
 //
-// #1780 地図 POI からの新規店舗作成で Google 写真を自社 Storage へ保存するのをやめた回帰テスト
+// #1780 新規店舗作成で Google 写真を自社 Storage へ保存するのをやめた回帰テスト。
+//
+// restaurants 行が作られる «導線» は 3 つある。この spec が押さえるのは 1 と 2:
+//
+//   導線1 地図の POI をタップ        select-restaurant.tsx handlePoiPress
+//   導線2 店名オートコンプリート選択  select-restaurant.tsx handleAutocompleteSelect
+//         → どちらも createAndOpenRestaurant → POST /v1/restaurants
+//         → RestaurantsService.createRestaurant（このファイルの対象）
+//   導線3 Google 一括取り込み        POST /v1/dishes/bulk-import
+//         → DishesService.bulkImportFromGoogle（#1780 の範囲外。写真保存が残っている）
+//
+// 押さえていること:
 // - fieldMask に photos を含めない
 // - storageService.uploadFile / locationsService.tryGetPhotoMedia を呼ばない
 // - 写真が無くても restaurant が作成される（従来は必須フィールド扱いで作成を中断していた）
+// - Google の写真 URL（image_url）も保持しない
+// - 1 件の作成で叩く Place Details の «回数と fieldMask» を固定する（課金 SKU の根拠）
 
 // core/config/env は import 時に process.env をバリデーションして throw するため、
 // 実DB・実APIに触れない単体テストでも .env が無いと suite ごと落ちる。
@@ -159,6 +172,40 @@ describe('RestaurantsService.createRestaurant', () => {
     expect(dishesRepository.createOrGetRestaurant).toHaveBeenCalledWith(
       TX,
       expect.objectContaining({ image_path: null }),
+      PLACE_ID,
+    );
+  });
+
+  it('導線1/2: 1 件の作成で Place Details を 2 回叩く（fieldMask を固定する）', async () => {
+    // #843 課金の根拠。呼び出し «回数» と «要求フィールド» が SKU 階層を決めるので、
+    // ここが黙って増えたら気づけるように固定する。
+    externalApi.callPlaceDetails
+      .mockResolvedValueOnce(buildPlaceDetail())
+      .mockResolvedValueOnce(buildPlaceDetail());
+
+    await service.createRestaurant(dto);
+
+    expect(externalApi.callPlaceDetails).toHaveBeenCalledTimes(2);
+    // 1 回目: 店名の言語判定と «飲食店か» の判定（resolveRestaurantLanguage）
+    expect(externalApi.callPlaceDetails.mock.calls[0][0]).toBe(
+      'addressComponents,types',
+    );
+    // 2 回目: 保存する値の取得（fetchAndValidatePlaceDetail）
+    expect(externalApi.callPlaceDetails.mock.calls[1][0]).toBe(
+      'id,displayName,location,addressComponents,plusCode',
+    );
+  });
+
+  it('導線1/2: Google の写真 URL（image_url）も保持しない', async () => {
+    externalApi.callPlaceDetails
+      .mockResolvedValueOnce(buildPlaceDetail())
+      .mockResolvedValueOnce(buildPlaceDetail());
+
+    await service.createRestaurant(dto);
+
+    expect(dishesRepository.createOrGetRestaurant).toHaveBeenCalledWith(
+      TX,
+      expect.objectContaining({ image_url: '', image_path: null }),
       PLACE_ID,
     );
   });
