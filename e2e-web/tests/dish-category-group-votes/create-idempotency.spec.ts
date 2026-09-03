@@ -72,46 +72,62 @@ test.describe("友達投票の作成が再送に対して冪等（#1507）", () 
 	//   4. もう一度押す → 2 発目は 201 を返す
 	//   5. **2 回のリクエストの `idempotencyKey` が同じ**ことを検証（ここが本体）
 	//      違う値だとサーバーは別の作成意図として扱い、セッションが 2 件できる
-	test("失敗後にもう一度押すと、同じ idempotencyKey で再送する", async ({ appPage }) => {
-		const searchPage = new SearchPage(appPage);
-		const dishCategoriesPage = new DishCategoriesPage(appPage);
+	/*
+	#1785 このテストは作成 API を **わざと 503 にする**（下の «1 発目は…» のスタブ）。
+	そうするとブラウザ自身が
 
-		await searchPage.typeLocation("渋谷");
-		await searchPage.selectLocationSuggestion(0);
-		await searchPage.submitButton.click();
-		await dishCategoriesPage.expectLoaded();
+	    Failed to load resource: ... 503 ... [/v1/dish-category-group-votes]
 
-		const sentKeys: (string | undefined)[] = [];
-		await appPage.route(CREATE_URL_GLOB, async (route) => {
-			if (route.request().method().toUpperCase() !== "POST") {
-				await route.continue();
-				return;
-			}
-			sentKeys.push(idempotencyKeyOf(route));
-			if (sentKeys.length === 1) {
-				// 1 発目は「サーバーまでは届いたが応答が返らなかった」状況の代用
-				await fulfillEnvelope(route, 503, { success: false, message: "e2e-1507 forced failure" });
-				return;
-			}
-			await fulfillEnvelope(route, 201, {
-				success: true,
-				data: { id: "00000000-0000-4000-8000-000000001507", shareToken: "e2e1507sharetoken" },
+	を console error として必ず出し、REL-08 の «console error があれば失敗» ゲートが拾う。
+	アプリの不具合ではなく **テストの仕掛けそのもの**である。
+
+	⚠️ 全 spec 共通の `KNOWN_CONSOLE_NOISE` へは入れないこと。作成 API の 503 を
+	どの spec でも見逃すことになり、«本当に落ちている» を検知できなくなる。
+	*/
+	test.describe("作成 API がわざと 503 を返すとき", () => {
+		test.use({ allowedConsoleErrors: ["/v1/dish-category-group-votes"] });
+
+		test("失敗後にもう一度押すと、同じ idempotencyKey で再送する", async ({ appPage }) => {
+			const searchPage = new SearchPage(appPage);
+			const dishCategoriesPage = new DishCategoriesPage(appPage);
+
+			await searchPage.typeLocation("渋谷");
+			await searchPage.selectLocationSuggestion(0);
+			await searchPage.submitButton.click();
+			await dishCategoriesPage.expectLoaded();
+
+			const sentKeys: (string | undefined)[] = [];
+			await appPage.route(CREATE_URL_GLOB, async (route) => {
+				if (route.request().method().toUpperCase() !== "POST") {
+					await route.continue();
+					return;
+				}
+				sentKeys.push(idempotencyKeyOf(route));
+				if (sentKeys.length === 1) {
+					// 1 発目は「サーバーまでは届いたが応答が返らなかった」状況の代用
+					await fulfillEnvelope(route, 503, { success: false, message: "e2e-1507 forced failure" });
+					return;
+				}
+				await fulfillEnvelope(route, 201, {
+					success: true,
+					data: { id: "00000000-0000-4000-8000-000000001507", shareToken: "e2e1507sharetoken" },
+				});
 			});
+
+			await expect(dishCategoriesPage.groupVoteButton).toBeVisible();
+			await dishCategoriesPage.groupVoteButton.click();
+			await expect.poll(() => sentKeys.length, { timeout: 30_000 }).toBe(1);
+
+			// 失敗しても画面に留まり、もう一度押せる（#1205 の finally / catch による解除）
+			await expect(dishCategoriesPage.groupVoteButton).toBeEnabled({ timeout: 30_000 });
+			await dishCategoriesPage.groupVoteButton.click();
+			await expect.poll(() => sentKeys.length, { timeout: 30_000 }).toBe(2);
+
+			expect(sentKeys[0], "冪等キーが送られていない（サーバー側の冪等化が一切効かない）").toMatch(UUID_V4);
+			expect(sentKeys[1], "再送で冪等キーが作り直されている（サーバーは別の作成意図として 2 件目を作る）").toBe(
+				sentKeys[0],
+			);
 		});
-
-		await expect(dishCategoriesPage.groupVoteButton).toBeVisible();
-		await dishCategoriesPage.groupVoteButton.click();
-		await expect.poll(() => sentKeys.length, { timeout: 30_000 }).toBe(1);
-
-		// 失敗しても画面に留まり、もう一度押せる（#1205 の finally / catch による解除）
-		await expect(dishCategoriesPage.groupVoteButton).toBeEnabled({ timeout: 30_000 });
-		await dishCategoriesPage.groupVoteButton.click();
-		await expect.poll(() => sentKeys.length, { timeout: 30_000 }).toBe(2);
-
-		expect(sentKeys[0], "冪等キーが送られていない（サーバー側の冪等化が一切効かない）").toMatch(UUID_V4);
-		expect(sentKeys[1], "再送で冪等キーが作り直されている（サーバーは別の作成意図として 2 件目を作る）").toBe(
-			sentKeys[0],
-		);
 	});
 
 	// ─ テストケース②: 同じキーの再送で、サーバーが同じセッションを返す ─

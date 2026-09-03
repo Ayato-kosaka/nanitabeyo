@@ -543,13 +543,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			const newUserId = session?.user?.id ?? null;
 			const prevUser = sessionRef.current?.user ?? null;
 			const hasUserChanged = (prevUser?.id ?? null) !== (newUserId ?? null);
+			/*
+			#1785【設計】**起動時の «復元» を «ユーザーが切り替わった» と数えない。**
+
+			この runtime に前のユーザーが居ないなら、捨てるキャッシュは 1 つも無い。
+			下のストアはどれも in-memory（`persist` を 1 つも使っていない）ので、起動直後は
+			全部空である。それでも `prevUser === null` を «切り替わった» と数えていたため、
+			**ログイン済みのユーザーが毎回アプリを開くたびに**次が起きていた。
+
+			    my-dishes の取得が始まる → INITIAL_SESSION が届く → bump() が
+			    clearQuery() で飛行中のスライスごと捨てる → フックが取り直す
+
+			一覧の取得は実測で平均 4.48 秒・最大 11.23 秒（#1395 §0(A)）。**起動のたびに
+			それを 2 本走らせていた。** e2e-web の my-dishes-calendar が «着地直後の取得は
+			1 回» で落ちていたのはこれである（同じ URL が 2ms 差で 2 本飛ぶ）。
+
+			捨てる目的は «前のユーザーのデータを残さない» ことなので、前のユーザーが
+			居るときだけ捨てれば足りる。#1629 が直した経路（匿名 → 本人 / ログアウト）は
+			どちらも `prevUser` が居るので、これまでどおり捨てる。
+			*/
+			const isBootRestore = prevUser === null;
 			logFrontendEvent({
 				event_name: `onAuthStateChange:${event}`,
 				error_level: "debug",
 				payload: { user_id: newUserId, event },
 			});
 
-			if (hasUserChanged) {
+			if (hasUserChanged && !isBootRestore) {
 				// ✅ ユーザーが切り替わったときにストアをクリア
 				useDishMediaEntriesStore.getState().clearByKey();
 				useDishCategoriesStore.getState().clearByKey();

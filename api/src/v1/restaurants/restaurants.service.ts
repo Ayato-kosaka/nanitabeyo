@@ -32,8 +32,6 @@ import { DishesRepository } from '../dishes/dishes.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { LocationsService } from '../locations/locations.service';
-import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
-import { StorageService } from 'src/core/storage/storage.service';
 import { RestaurantsAssembler } from './restaurants.assembler';
 import { isFoodAndDrinkPlaceForUser } from '../../../../shared/utils/google_places_restaurant_type';
 import { google } from '@googlemaps/places/build/protos/protos';
@@ -51,8 +49,6 @@ export class RestaurantsService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaRepository: DishMediaRepository,
     private readonly locationsService: LocationsService,
-    private readonly cloudTasksService: CloudTasksService,
-    private readonly storageService: StorageService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -160,6 +156,7 @@ export class RestaurantsService {
   /**
    * レストラン作成用に Place 詳細を取得し、必須フィールドをバリデーションする
    * - 不足フィールドがあれば Error を投げる（既存挙動を維持）
+   * #1780 Google 写真の自社 Storage 保存をやめたため、photos は fieldMask から外し必須にもしない
    */
   private async fetchAndValidatePlaceDetail(
     googlePlaceId: string,
@@ -171,7 +168,6 @@ export class RestaurantsService {
       'location',
       'addressComponents',
       'plusCode',
-      'photos',
     ].join(',');
 
     const placeDetail = await this.externalApi.callPlaceDetails(
@@ -190,7 +186,6 @@ export class RestaurantsService {
     if (typeof placeDetail.location?.longitude !== 'number')
       missingFields.push('location.longitude');
     if (!placeDetail.addressComponents) missingFields.push('addressComponents');
-    if (!placeDetail.photos) missingFields.push('photos');
 
     if (missingFields.length > 0) {
       // ここは既存実装同様、詳細な place をログに出している（PII 対応は別課題として後回し）
@@ -208,48 +203,16 @@ export class RestaurantsService {
   }
 
   /**
-   * Google Place の写真を Storage にアップロードする
-   * - 写真がない場合は何もしない
-   * - 新規作成時は Resize が終わっていないため、UploadResult.signedUrl を返す
-   */
-  private async uploadRestaurantImageIfAny(
-    placeDetail: google.maps.places.v1.IPlace,
-    googlePlaceId: string,
-  ): Promise<{ imagePath: string | null; imageSignedUrl?: string }> {
-    const photoMedia = await this.locationsService.tryGetPhotoMedia(
-      placeDetail.photos!,
-      false,
-    );
-
-    if (!photoMedia) {
-      return { imagePath: null, imageSignedUrl: undefined };
-    }
-
-    const result = await this.storageService.uploadFile({
-      buffer: photoMedia.buffer,
-      mimeType: 'image/jpeg',
-      resourceType: 'google-maps',
-      usageType: 'photo',
-      identifier: googlePlaceId,
-    });
-
-    return {
-      imagePath: result.path,
-      imageSignedUrl: result.signedUrl,
-    };
-  }
-
-  /**
    * restaurants テーブルにレコードを登録
    * - Prisma.restaurantsCreateInput を利用し、id など DB が付与する値は指定しない
+   * #1780 Google 写真の自社 Storage 保存をやめたため、image_path は常に null で作成する
    */
   private async createRestaurantRecord(params: {
     googlePlaceId: string;
     languageCode: string;
     placeDetail: google.maps.places.v1.IPlace;
-    imagePath: string | null;
   }): Promise<PrismaRestaurants> {
-    const { googlePlaceId, languageCode, placeDetail, imagePath } = params;
+    const { googlePlaceId, languageCode, placeDetail } = params;
 
     const restaurantData: Prisma.restaurantsCreateInput = {
       google_place_id: googlePlaceId,
@@ -259,7 +222,7 @@ export class RestaurantsService {
       longitude: placeDetail.location!.longitude!,
       // 【非推奨カラム】だがスキーマ上必須であれば空文字で維持
       image_url: '',
-      image_path: imagePath,
+      image_path: null,
       // as を利用して Prisma.JsonValue にキャスト（JSON として保持する前提）
       address_components:
         placeDetail.addressComponents as unknown as Prisma.InputJsonValue,
@@ -277,61 +240,6 @@ export class RestaurantsService {
         googlePlaceId,
       ),
     );
-  }
-
-  /**
-   * レストラン画像のリサイズタスクを Cloud Tasks に enqueue する
-   * - 画像がない場合は何もしない
-   */
-  private async enqueueImageResizeIfNeeded(
-    restaurantId: string,
-    imagePath: string | null,
-  ): Promise<void> {
-    if (!imagePath) return;
-
-    // 既存実装通りに 256 / 64 の 2 パターンをキューイング
-    await this.cloudTasksService.enqueueResizeImage({
-      table: 'restaurants',
-      column: 'image_path',
-      recordId: restaurantId,
-      size: 256,
-      aspectRatio: 9 / 16,
-      originalPath: imagePath,
-    });
-    await this.cloudTasksService.enqueueResizeImage({
-      table: 'restaurants',
-      column: 'image_path',
-      recordId: restaurantId,
-      size: 64,
-      aspectRatio: 9 / 16,
-      originalPath: imagePath,
-    });
-  }
-
-  /**
-   * レスポンス用のレストランデータを組み立てる
-   * - 基本は assembler.enrichRestaurantsWithImageUrls に統一
-   * - 新規作成時のみ、UploadResult.signedUrl で imageUrls を上書きする
-   */
-  private buildRestaurantWithImageOverride(
-    restaurant: PrismaRestaurants,
-    options?: { uploadedSignedUrl?: string },
-  ) {
-    // まずは既存の assembler ロジックで統一的に変換
-    const base = this.assembler.enrichRestaurantsWithImageUrls(restaurant);
-
-    // 新規作成時など、アップロード直後に signedUrl を優先したい場合のみ上書き
-    if (options?.uploadedSignedUrl) {
-      return {
-        ...base,
-        imageUrls: {
-          sm: options.uploadedSignedUrl,
-          md: options.uploadedSignedUrl,
-        },
-      };
-    }
-
-    return base;
   }
 
   /* ------------------------------------------------------------------ */
@@ -383,7 +291,8 @@ export class RestaurantsService {
       const meta = await this.fetchRestaurantMeta(existingRestaurant.id);
 
       return {
-        restaurant: this.buildRestaurantWithImageOverride(existingRestaurant),
+        restaurant:
+          this.assembler.enrichRestaurantsWithImageUrls(existingRestaurant),
         meta,
       };
     }
@@ -398,7 +307,6 @@ export class RestaurantsService {
 
     // 2-3. Place 詳細を取得して DB 登録まで実行
     let restaurant: PrismaRestaurants;
-    let imageSignedUrl: string | undefined;
 
     try {
       const placeDetail = await this.fetchAndValidatePlaceDetail(
@@ -406,19 +314,11 @@ export class RestaurantsService {
         restaurantLanguageCode,
       );
 
-      const { imagePath, imageSignedUrl: uploadedSignedUrl } =
-        await this.uploadRestaurantImageIfAny(placeDetail, dto.googlePlaceId);
-
-      imageSignedUrl = uploadedSignedUrl;
-
       restaurant = await this.createRestaurantRecord({
         googlePlaceId: dto.googlePlaceId,
         languageCode: restaurantLanguageCode,
         placeDetail,
-        imagePath,
       });
-
-      await this.enqueueImageResizeIfNeeded(restaurant.id, imagePath);
 
       this.logger.debug('RestaurantCreated', 'createRestaurant', {
         restaurantId: restaurant.id,
@@ -439,10 +339,7 @@ export class RestaurantsService {
     const meta = await this.fetchRestaurantMeta(restaurant.id);
 
     return {
-      restaurant: this.buildRestaurantWithImageOverride(restaurant, {
-        // 新規作成時のみ、Resize 前の signedUrl を返す仕様
-        uploadedSignedUrl: imageSignedUrl,
-      }),
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(restaurant),
       meta,
     };
   }

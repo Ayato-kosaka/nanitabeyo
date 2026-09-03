@@ -2,6 +2,16 @@ import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
 import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { ResultPage } from "../../pages/ResultPage";
+// #1785 色は spec へ写経せずアプリの Palette から引く（reaction-rollback.spec.ts と同じ理由）
+import { FixedColors } from "@app-expo/constants/Palette";
+
+/** ActionButtons.tsx の Heart / Bookmark が実際に描く fill 属性 */
+const ICON_FILL = {
+	liked: FixedColors.likeActive,
+	notLiked: FixedColors.onMedia,
+	saved: FixedColors.myDishStatusOrange,
+	notSaved: "transparent",
+} as const;
 import { ProfilePage } from "../../pages/ProfilePage";
 
 /**
@@ -21,7 +31,7 @@ import { ProfilePage } from "../../pages/ProfilePage";
  *
  * ## 前提
  * いいね/保存ボタンは検索結果フィード(ResultPage)の料理メディアカードから操作する。
- * Heart アイコンの fill 属性(#FF3040 = いいね済み / white = 未いいね)で状態を判定する。
+ * Heart アイコンの fill 属性で状態を判定する（具体的な色は `ICON_FILL`）。
  */
 test.skip(
 	() => !process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD,
@@ -43,9 +53,9 @@ test.describe("リアクション @mutation", () => {
 	// 手順:
 	//   1. ログイン済みで起動し、検索フローで結果フィード(料理メディア)を表示する
 	//   2. 表示中カードのいいねボタン(dish-action-like)をタップ
-	//      → Heart アイコンの fill が #FF3040(いいね済み)に変わることを検証
+	//      → Heart アイコンの fill が «いいね済み» の色に変わることを検証
 	//      (POST v1/dish-media/{id}/reaction)
-	//   3. もう一度タップして解除 → fill が white に戻ることを検証
+	//   3. もう一度タップして解除 → fill が «未いいね» の色に戻ることを検証
 	//      (DELETE v1/dish-media/{id}/reaction)
 	//      ※ 手順 2 のアサーションが失敗した場合、解除(手順 3)は実行されず
 	//      dev DB に「いいね」状態が残る(不可逆)。ファイル冒頭のコメント参照
@@ -64,17 +74,17 @@ test.describe("リアクション @mutation", () => {
 		const likeIcon = resultPage.likeButton.first().locator("svg");
 
 		await resultPage.likeButton.first().click();
-		await expect(likeIcon).toHaveAttribute("fill", "#FF3040");
+		await expect(likeIcon).toHaveAttribute("fill", ICON_FILL.liked);
 
 		await resultPage.likeButton.first().click();
-		await expect(likeIcon).toHaveAttribute("fill", "white");
+		await expect(likeIcon).toHaveAttribute("fill", ICON_FILL.notLiked);
 	});
 
 	// ─ テストケース: 保存 → マイページ反映 → 解除 ─
 	// 手順:
 	//   1. 結果フィードで保存ボタン(dish-action-save)をタップ → 保存済み表示を検証
-	//      (Bookmark アイコンの fill が orange になる)
-	//   2. 保存を解除 → fill が white に戻ることを検証
+	//      (Bookmark アイコンの fill が «保存済み» の色になる)
+	//   2. 保存を解除 → fill が «未保存» の値に戻ることを検証
 	//      (マイページの保存済みタブ反映確認は非同期反映のタイミング差でフレークしやすいため、
 	//      アイコン状態変化を主検証とする)
 	//      ※ 手順 1 のアサーションが失敗した場合、解除は実行されず dev DB に
@@ -94,9 +104,9 @@ test.describe("リアクション @mutation", () => {
 		const saveIcon = resultPage.saveButton.first().locator("svg");
 
 		await resultPage.saveButton.first().click();
-		await expect(saveIcon).toHaveAttribute("fill", "orange");
+		await expect(saveIcon).toHaveAttribute("fill", ICON_FILL.saved);
 
 		await resultPage.saveButton.first().click();
-		await expect(saveIcon).toHaveAttribute("fill", "white");
+		await expect(saveIcon).toHaveAttribute("fill", ICON_FILL.notSaved);
 	});
 });

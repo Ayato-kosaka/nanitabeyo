@@ -90,6 +90,8 @@ export const mockDishItems: (DishMediaEntry & {
 			averageRating: 4,
 			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
 			categoryLabels: null,
+			// #1774 モックはレビュー行を持たないので priceBand も null
+			priceBand: null,
 		},
 		dish_media: {
 			id: "media_feed_1",
@@ -232,6 +234,8 @@ export const mockDishItems: (DishMediaEntry & {
 			averageRating: 4,
 			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
 			categoryLabels: null,
+			// #1774 モックはレビュー行を持たないので priceBand も null
+			priceBand: null,
 		},
 		dish_media: {
 			id: "media_feed_2",
@@ -374,6 +378,8 @@ export const mockDishItems: (DishMediaEntry & {
 			averageRating: 4,
 			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
 			categoryLabels: null,
+			// #1774 モックはレビュー行を持たないので priceBand も null
+			priceBand: null,
 		},
 		dish_media: {
 			id: "media_feed_3",
@@ -516,6 +522,8 @@ export const mockDishItems: (DishMediaEntry & {
 			averageRating: 4,
 			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
 			categoryLabels: null,
+			// #1774 モックはレビュー行を持たないので priceBand も null
+			priceBand: null,
 		},
 		dish_media: {
 			id: "media_feed_4",
@@ -658,6 +666,8 @@ export const mockDishItems: (DishMediaEntry & {
 			averageRating: 4,
 			// #1375 カテゴリの正式表記。モックは持たないので null（表示は dish.name へ落ちる）
 			categoryLabels: null,
+			// #1774 モックはレビュー行を持たないので priceBand も null
+			priceBand: null,
 		},
 		dish_media: {
 			id: "media_feed_5",

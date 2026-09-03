@@ -1047,6 +1047,8 @@ export function ReviewForm({
 					   次にサーバから引き直したとき、正規の `labels` で上書きされる。
 					*/
 					categoryLabels: dishCategoryName ? { [toLanguageCode(locale)]: dishCategoryName } : null,
+					// #1774 投稿直後はレビュー1件目なので priceBand は集計不能（3件未満と同じ扱い）
+					priceBand: null,
 				};
 
 				// dish-media.media_path をアップロード

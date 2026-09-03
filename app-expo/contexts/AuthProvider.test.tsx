@@ -511,6 +511,48 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		expect(mockClearMyDishesFeedScope).toHaveBeenCalledTimes(1);
 	});
 
+	/*
+	#1785 起動のたびに一覧を 2 回取っていたのを固定する。
+
+	ログイン済みのユーザーがアプリを開くと、`INITIAL_SESSION` が «前のユーザーが null →
+	本人» として届く。これを «切り替わった» と数えていたため、
+
+	    my-dishes の取得が始まる → INITIAL_SESSION → bump() が飛行中のスライスごと捨てる
+	    → フックが取り直す
+
+	が毎回起きていた。一覧の取得は平均 4.48 秒・最大 11.23 秒（#1395 §0(A)）なので、
+	**起動のたびにそれを 2 本**走らせていたことになる。
+
+	⚠️ この期待を «捨てる» 側へ戻さないこと。起動直後に捨てるものは 1 つも無い
+	   （このコンテキストが捨てるストアは全部 in-memory で、`persist` を 1 つも使っていない）。
+	   捨てて困るのは «もう始まっている取得» だけである。
+	*/
+	it("起動時にセッションを復元しただけなら my-dishes のキャッシュは捨てない（#1785 2 回取得）", async () => {
+		// ⚠️ **`INITIAL_SESSION` は復元が `sessionRef` へ入るより先に届く。**
+		//    実ブラウザで確認した順序がこれで、そのとき «前のユーザー» はまだ null である。
+		//    `getSession()` を先に解決させてから流すと «同じユーザー» になってしまい、
+		//    修正の有無にかかわらず緑になる（= 何も守らないテストになる）
+		let resolveGetSession!: (result: unknown) => void;
+		auth.getSession.mockReturnValue(
+			new Promise((resolve) => {
+				resolveGetSession = resolve;
+			}),
+		);
+
+		await mountProvider();
+
+		await act(async () => {
+			await emitAuthStateChange("INITIAL_SESSION", fakeSession("user-1"));
+		});
+
+		expect(mockBumpMyDishes).not.toHaveBeenCalled();
+		expect(mockClearMyDishesFeedScope).not.toHaveBeenCalled();
+
+		await act(async () => {
+			resolveGetSession({ data: { session: fakeSession("user-1") }, error: null });
+		});
+	});
+
 	it("同じユーザーのままなら my-dishes のキャッシュは捨てない（毎回取り直すのは無駄）", async () => {
 		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
 
