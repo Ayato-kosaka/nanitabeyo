@@ -495,7 +495,9 @@ def main() -> None:
         stores = _read_cell_targets(pipeline0, args.max_queries, args.query_offset, args.shards, args.shard,
                                     args.cell_min, args.cell_max)
         # handle は無いので店名＋市区町村で引く（クエリ形 D）。discovery_category_id に狙いのカテゴリを残す。
-        cells = [(f'"{st["store_name"]}" {st["city"]}', st["category_id"], None, None) for st in stores]
+        # 店名の全角スペースは検索語の区切りにならないので半角へ（"ランチカフェ　ログ" → "ランチカフェ ログ"）
+        cells = [(f'"{" ".join((st["store_name"] or "").split())}" {st["city"]}', st["category_id"], None, None)
+                 for st in stores]
         for st in stores:
             st["handle"] = ""
         LOGGER.info("cell-mode: %d-%d 店セル向けの店起点クエリ %d 件（shard %d/%d, offset %d）",
