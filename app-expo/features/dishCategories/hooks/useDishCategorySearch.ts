@@ -148,6 +148,8 @@ export const useDishCategorySearch = () => {
 			searchLocationLanguageCode: string,
 			radius: number = DEFAULT_SEARCH_RADIUS,
 			priceLevels: string[] = [...DEFAULT_PRICE_LEVELS],
+			// #288 ユーザーが選んだ時間帯。呼び出し元に無ければ undefined のまま渡す（除外・加点なし）
+			timeSlot?: SearchParams["timeSlot"],
 		) => {
 			const remoteConfig = getRemoteConfig();
 			const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
@@ -163,6 +165,7 @@ export const useDishCategorySearch = () => {
 				viewerLanguageCode: locale,
 				radius,
 				priceLevels,
+				timeSlot,
 				searchResultRestaurantsNumber,
 			});
 		},
