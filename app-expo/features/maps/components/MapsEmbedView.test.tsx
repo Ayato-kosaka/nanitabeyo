@@ -18,7 +18,7 @@ describe("MapsEmbedView（native, WebView 不在ビルド）", () => {
 		act(() => {
 			tree = create(
 				<MapsEmbedView
-					url="https://api.example.com/v1/maps/embed?mode=search&q=ramen"
+					url="https://api.example.com/v1/maps/embed?token=met1.abc.def"
 					testID="maps-view"
 					fallback={<Text testID="external-fallback">Google マップで開く</Text>}
 				/>,
@@ -31,5 +31,23 @@ describe("MapsEmbedView（native, WebView 不在ビルド）", () => {
 		).toBe(0);
 		expect(tree.root.findAllByProps({ testID: "maps-view-fallback" }).length).toBeGreaterThan(0);
 		expect(tree.root.findAllByProps({ testID: "external-fallback" }).length).toBeGreaterThan(0);
+	});
+
+	// #1810 PL レビュー 3番: fallback へ切り替わったことを呼び出し側（MapsEmbedModal）が
+	// 検知できないと、fallback の中と外で同じボタンが二重に出る事故を防げない
+	it("WebView が居ないので onFallback が呼ばれる", () => {
+		const onFallback = jest.fn();
+		act(() => {
+			create(
+				<MapsEmbedView
+					url="https://api.example.com/v1/maps/embed?token=met1.abc.def"
+					testID="maps-view"
+					fallback={<Text>fallback</Text>}
+					onFallback={onFallback}
+				/>,
+			);
+		});
+
+		expect(onFallback).toHaveBeenCalledTimes(1);
 	});
 });

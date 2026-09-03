@@ -1,9 +1,11 @@
 /*
-#843 MapsEmbedModal の表示ロジック検証。
+#843 / #1810 MapsEmbedModal の表示ロジック検証。
 - params が null なら何も描かない
-- WebView が居ないビルド（テスト環境の既定）では MapsEmbedView が fallback を出す
-  （「Google マップで開く」の従来経路は消えず、そこから外部へ出られる）
-- 埋め込みが動いていても、常に外部リンクを残す（退避として消さない要件）
+- トークン取得中はスピナーだけを出す（埋め込みも fallback もまだ出さない）
+- トークン取得に失敗したら、埋め込みを試さず fallback（外部リンクの導線）へ倒す
+- トークン取得に成功しても、WebView が居ないテスト環境では MapsEmbedView 自身が
+  fallback へ倒れる（従来どおり）
+- fallback が出ているときは、フッタの外部リンクを重ねて出さない（#1810 PL レビュー 3番）
 */
 import React from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
@@ -21,6 +23,10 @@ jest.mock("@/contexts/ThemeProvider", () => ({
 }));
 jest.mock("@/constants/Env", () => ({ Env: { BACKEND_BASE_URL: "https://api.example.com" } }));
 
+// jest.mock のファクトリから参照できるのは `mock` 始まりの変数だけ
+const mockCallBackend = jest.fn();
+jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
+
 const mockOpenExternalUrl = jest.fn(async (_url: string) => {});
 jest.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: (url: string) => mockOpenExternalUrl(url) }));
 
@@ -36,10 +42,21 @@ const PARAMS: MapsEmbedModalParams = {
 	source: "search_result_screen",
 };
 
+/** pending な Promise を作る（トークン取得がまだ終わっていない状態を作るため） */
+const pendingForever = () => new Promise(() => {});
+
+/** 保留中の act() 内マイクロタスクを 1 サイクル流す */
+const flush = () =>
+	act(async () => {
+		await Promise.resolve();
+		await Promise.resolve();
+	});
+
 describe("MapsEmbedModal", () => {
 	afterEach(() => {
 		mockOpenExternalUrl.mockClear();
 		mockLogFrontendEvent.mockClear();
+		mockCallBackend.mockReset();
 	});
 
 	it("params が null なら何も描かない", () => {
@@ -50,45 +67,80 @@ describe("MapsEmbedModal", () => {
 		expect(tree.toJSON()).toBeNull();
 	});
 
-	it("WebView 不在ビルドでは地図の代わりに fallback（外部リンクの導線）を出す", () => {
+	it("トークン取得中はスピナーのみ（fallback ブロックはまだ出さない。フッタの外部リンクは残す）", () => {
+		mockCallBackend.mockReturnValue(pendingForever());
+
 		let tree!: ReactTestRenderer;
 		act(() => {
 			tree = create(<MapsEmbedModal params={PARAMS} onClose={jest.fn()} />);
 		});
 
-		// host（実 View）に "maps-embed-modal-view" が付いていないこと（WebView 本体を描いていない）
-		expect(
-			tree.root.findAll(
-				(node) => typeof node.type === "string" && node.props.testID === "maps-embed-modal-view",
-			).length,
-		).toBe(0);
-		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-view-fallback" }).length).toBeGreaterThan(0);
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-loading" }).length).toBeGreaterThan(0);
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-fallback-button" }).length).toBe(0);
+		// fallback ブロック（と同じボタン）が出ていないので、フッタの外部リンクは重複にならない
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-external-link" }).length).toBeGreaterThan(0);
+	});
+
+	it("POST /v1/maps/embed-token を正しい payload で呼ぶ", () => {
+		mockCallBackend.mockReturnValue(pendingForever());
+
+		act(() => {
+			create(<MapsEmbedModal params={PARAMS} onClose={jest.fn()} />);
+		});
+
+		expect(mockCallBackend).toHaveBeenCalledWith("v1/maps/embed-token", {
+			method: "POST",
+			requestPayload: { mode: "search", q: "ラーメン", center: "35.6,139.7", zoom: undefined, hl: "ja" },
+		});
+	});
+
+	it("トークン取得に失敗したら、埋め込みを試さず fallback へ倒す（フッタの外部リンクは重ねない）", async () => {
+		mockCallBackend.mockRejectedValue(new Error("network error"));
+
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<MapsEmbedModal params={PARAMS} onClose={jest.fn()} />);
+		});
+		await flush();
+
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-loading" }).length).toBe(0);
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-view" }).length).toBe(0);
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-fallback-button" }).length).toBeGreaterThan(0);
+		// #1810 PL レビュー 3番: fallback 表示中はフッタの同じボタンを出さない
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-external-link" }).length).toBe(0);
+
+		expect(mockLogFrontendEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ event_name: "maps_embed_token_fetch_failed" }),
+		);
 
 		const fallbackButton = tree.root
 			.findAllByProps({ testID: "maps-embed-modal-fallback-button" })
 			.find((node) => typeof node.props.onPress === "function");
-		expect(fallbackButton).toBeDefined();
-
 		act(() => fallbackButton!.props.onPress());
 		expect(mockOpenExternalUrl).toHaveBeenCalledWith(PARAMS.externalUrl);
 	});
 
-	it("常に外部リンク（退避）を出す。押すと externalUrl を開く", () => {
+	it("トークン取得に成功しても、WebView 不在ビルド（テスト環境）では MapsEmbedView 自身が fallback へ倒れ、フッタは重ねない", async () => {
+		mockCallBackend.mockResolvedValue({ token: "met1.abc.def", expiresAt: "2099-01-01T00:00:00.000Z" });
+
 		let tree!: ReactTestRenderer;
 		act(() => {
 			tree = create(<MapsEmbedModal params={PARAMS} onClose={jest.fn()} />);
 		});
+		await flush();
 
-		const externalLink = tree.root
-			.findAllByProps({ testID: "maps-embed-modal-external-link" })
-			.find((node) => typeof node.props.onPress === "function");
-		expect(externalLink).toBeDefined();
-
-		act(() => externalLink!.props.onPress());
-		expect(mockOpenExternalUrl).toHaveBeenCalledWith(PARAMS.externalUrl);
+		// MapsEmbedView 側の fallback（testID サフィックス "-fallback"）が出ている
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-view-fallback" }).length).toBeGreaterThan(0);
+		expect(
+			tree.root.findAll((node) => typeof node.type === "string" && node.props.testID === "maps-embed-modal-view")
+				.length,
+		).toBe(0);
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-fallback-button" }).length).toBeGreaterThan(0);
+		expect(tree.root.findAllByProps({ testID: "maps-embed-modal-external-link" }).length).toBe(0);
 	});
 
 	it("閉じるボタンを押すと onClose が呼ばれる", () => {
+		mockCallBackend.mockReturnValue(pendingForever());
 		const onClose = jest.fn();
 		let tree!: ReactTestRenderer;
 		act(() => {

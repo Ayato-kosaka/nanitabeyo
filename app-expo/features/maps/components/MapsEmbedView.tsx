@@ -13,7 +13,7 @@
 ユーザーにとって「壊れている」にしか見えないため、`onHttpError` / `onError` を
 拾って `fallback`（従来の外部ブラウザ導線）へ切り替える。
 */
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, UIManager, View } from "react-native";
 
 type WebViewComponent = React.ComponentType<Record<string, unknown>>;
@@ -37,21 +37,33 @@ const probeNativeWebView = (): WebViewComponent | null => {
 };
 
 export type MapsEmbedViewProps = {
-	/** `GET /v1/maps/embed` の URL（features/maps/embedUrl.ts の buildMapsEmbedApiUrl） */
+	/** `GET /v1/maps/embed` の URL（features/maps/embedUrl.ts の buildMapsEmbedUrlFromToken） */
 	url: string;
 	/** WebView が居ないビルド、または読み込みに失敗したときに描く代替 UI */
 	fallback: React.ReactNode;
+	/**
+	 * #1810 PL レビュー 3番【設計】fallback へ切り替わった瞬間に呼ばれる。
+	 * 呼び出し側（MapsEmbedModal）はこれを受けて、fallback の中と外で同じ
+	 * 「Google マップで開く」ボタンを二重に出さないようにする。
+	 */
+	onFallback?: () => void;
 	testID?: string;
 };
 
-export function MapsEmbedView({ url, fallback, testID }: MapsEmbedViewProps) {
+export function MapsEmbedView({ url, fallback, onFallback, testID }: MapsEmbedViewProps) {
 	const probeRef = useRef(probeNativeWebView());
 	const NativeWebView = probeRef.current;
 	const [failed, setFailed] = useState(false);
+	const isFallback = !NativeWebView || failed;
 
 	const handleLoadFailed = useCallback(() => setFailed(true), []);
 
-	if (!NativeWebView || failed) {
+	useEffect(() => {
+		if (isFallback) onFallback?.();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isFallback]);
+
+	if (isFallback) {
 		return (
 			<View style={styles.container} testID={testID ? `${testID}-fallback` : "maps-embed-fallback"}>
 				{fallback}

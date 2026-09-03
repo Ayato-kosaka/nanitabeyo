@@ -17,7 +17,7 @@ import type { MapsEmbedViewProps } from "./MapsEmbedView";
 
 export type { MapsEmbedViewProps };
 
-export function MapsEmbedView({ url, fallback, testID }: MapsEmbedViewProps) {
+export function MapsEmbedView({ url, fallback, onFallback, testID }: MapsEmbedViewProps) {
 	const [failed, setFailed] = useState(false);
 
 	useEffect(() => {
@@ -25,14 +25,23 @@ export function MapsEmbedView({ url, fallback, testID }: MapsEmbedViewProps) {
 		setFailed(false);
 		fetch(url)
 			.then((res) => {
-				if (!cancelled && !res.ok) setFailed(true);
+				if (cancelled) return;
+				if (!res.ok) {
+					setFailed(true);
+					onFallback?.();
+				}
 			})
 			.catch(() => {
-				if (!cancelled) setFailed(true);
+				if (cancelled) return;
+				setFailed(true);
+				onFallback?.();
 			});
 		return () => {
 			cancelled = true;
 		};
+		// onFallback はモーダル側で useCallback により安定させる前提。deps に含めると
+		// 参照が変わるたびに fetch をやり直してしまう（#1810 PL レビュー 3番の付随実装）
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [url]);
 
 	if (failed) {

@@ -3,9 +3,13 @@
 // #843 【設計】Google Places の呼び出し上限に当たったときのフォールバックを、
 // アプリ内地図（`GET /v1/maps/embed` が返す HTML）で表示するための URL 組み立て。
 //
-// ここでは API キーを一切扱わない。キーはサーバ（api/src/v1/maps）だけが知っていて、
-// クライアントはこの URL を WebView（native）/ iframe（web）の src にそのまま渡すだけ。
+// #1810 PL レビュー 2番【設計】GET /v1/maps/embed は認証ガードを持てない
+// （WebView / iframe は Authorization ヘッダを送れない）。代わりに、認証必須の
+// POST /v1/maps/embed-token（`MapsEmbedModal` が `useAPICall` 経由で叩く）が
+// 発行した短命トークンだけを受け取る。ここではキーもトークンの中身も一切扱わず、
+// 「トークンを受け取って URL に埋め込む」「リクエストボディの形を整える」だけを行う。
 
+import type { CreateMapsEmbedTokenDto } from "@shared/api/v1/dto";
 import { Env } from "@/constants/Env";
 
 export type MapsEmbedMode = "search" | "place";
@@ -19,11 +23,24 @@ export type MapsEmbedParams = {
 	hl?: string;
 };
 
-/** `GET /v1/maps/embed` の URL を組み立てる */
-export function buildMapsEmbedApiUrl({ mode, q, center, zoom, hl }: MapsEmbedParams): string {
-	const params = new URLSearchParams({ mode, q });
-	if (center) params.set("center", `${center.latitude},${center.longitude}`);
-	if (zoom != null) params.set("zoom", String(zoom));
-	if (hl) params.set("hl", hl);
-	return `${Env.BACKEND_BASE_URL}/v1/maps/embed?${params.toString()}`;
+/** POST /v1/maps/embed-token のリクエストボディを組み立てる（center を "<lat>,<lng>" へ変換） */
+export function buildMapsEmbedTokenRequestPayload({
+	mode,
+	q,
+	center,
+	zoom,
+	hl,
+}: MapsEmbedParams): CreateMapsEmbedTokenDto {
+	return {
+		mode,
+		q,
+		center: center ? `${center.latitude},${center.longitude}` : undefined,
+		zoom,
+		hl,
+	};
+}
+
+/** `GET /v1/maps/embed` の URL を、発行済みトークンから組み立てる */
+export function buildMapsEmbedUrlFromToken(token: string): string {
+	return `${Env.BACKEND_BASE_URL}/v1/maps/embed?token=${encodeURIComponent(token)}`;
 }

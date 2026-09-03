@@ -56,4 +56,30 @@ describe("MapsEmbedView（web, iframe）", () => {
 		expect(tree.root.findAllByType("iframe" as never).length).toBe(0);
 		expect(tree.root.findAllByProps({ testID: "fb" }).length).toBeGreaterThan(0);
 	});
+
+	// #1810 PL レビュー 3番: fallback へ切り替わったことを呼び出し側（MapsEmbedModal）が
+	// 検知できないと、fallback の中と外で同じボタンが二重に出る事故を防げない
+	it("fetch が !ok なら onFallback が呼ばれる", async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 }) as unknown as typeof fetch;
+		const onFallback = jest.fn();
+
+		await act(async () => {
+			create(<MapsEmbedView url={URL} testID="maps-view" fallback={<Text>fallback</Text>} onFallback={onFallback} />);
+			await Promise.resolve();
+		});
+
+		expect(onFallback).toHaveBeenCalledTimes(1);
+	});
+
+	it("fetch が成功すれば onFallback は呼ばれない", async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
+		const onFallback = jest.fn();
+
+		await act(async () => {
+			create(<MapsEmbedView url={URL} testID="maps-view" fallback={<Text>fallback</Text>} onFallback={onFallback} />);
+			await Promise.resolve();
+		});
+
+		expect(onFallback).not.toHaveBeenCalled();
+	});
 });
