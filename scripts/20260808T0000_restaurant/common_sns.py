@@ -138,11 +138,23 @@ class ResolveClient:
         lat: float | None = None,
         lng: float | None = None,
         radius: float | None = None,
+        caption: str | None = None,
+        author_name: str | None = None,
     ) -> dict[str, Any]:
-        """resolve のレスポンス JSON をそのまま返す（判定は classify で行う）。"""
+        """resolve のレスポンス JSON をそのまま返す（判定は classify で行う）。
+
+        #1273 大量並列: caption を渡すと resolve は IG を取りに行かない（投稿ごとの
+        IG 取得がレート制限の元凶）。収集時に得たテキスト（検索の title/snippet・
+        記事本文・business_discovery のキャプション）を渡すと、店照合/カテゴリ判定が
+        純粋なテキスト処理になり、IG を叩かず好きなだけ並列できる。
+        """
         body: dict[str, Any] = {"url": url}
         if lat is not None and lng is not None and radius is not None:
             body.update({"lat": lat, "lng": lng, "radius": radius})
+        if caption is not None and caption.strip() != "":
+            body["caption"] = caption
+        if author_name is not None and author_name.strip() != "":
+            body["authorName"] = author_name
         data = json.dumps(body).encode("utf-8")
         req = urllib.request.Request(
             f"{self.base_url}/v1/dish-media/imports/resolve",
