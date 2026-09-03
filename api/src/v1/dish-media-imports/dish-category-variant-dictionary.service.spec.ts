@@ -153,6 +153,21 @@ describe('buildJapaneseLabelVariants', () => {
     expect(out.every((e) => e.dishCategoryId === 'Q1')).toBe(true);
   });
 
+  it('#1273 業態語・略称の表記ゆれ（喫茶→カフェ、中華そば→ラーメン、食堂→定食 など）も辞書へ足す', () => {
+    const out = buildJapaneseLabelVariants([
+      { id: 'Q30022', labels: { ja: 'カフェ' } },
+      { id: 'Q234646', labels: { ja: 'ラーメン' } },
+      { id: 'Q117231375', labels: { ja: '定食' } },
+    ]);
+    const forms = (id: string) =>
+      out.filter((e) => e.dishCategoryId === id).map((e) => e.surfaceForm);
+    expect(forms('Q30022')).toEqual(expect.arrayContaining(['カフェ', '喫茶', '純喫茶', '珈琲']));
+    expect(forms('Q234646')).toEqual(expect.arrayContaining(['ラーメン', '中華そば', 'らぁ麺']));
+    expect(forms('Q117231375')).toEqual(expect.arrayContaining(['定食', '食堂', '定食屋']));
+    // 他カテゴリと衝突しうる断片は入れない（味玉→ラーメン、海鮮→海鮮料理 等）
+    expect(forms('Q234646')).not.toContain('味玉');
+  });
+
   it('labels が Json でない・ja が無い・空の行は黙って捨てる（例外を投げない）', () => {
     expect(
       buildJapaneseLabelVariants([
