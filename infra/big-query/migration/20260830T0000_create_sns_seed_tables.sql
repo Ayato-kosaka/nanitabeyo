@@ -99,12 +99,14 @@ CREATE TABLE `${DATASET}.sns_post_raw` (
   discovery_area_lat      FLOAT64,          -- ルート3: 検索エリア中心（resolve へ渡す）
   discovery_area_lng      FLOAT64,
   discovery_category_id   STRING,           -- ルート3: 検索に使った料理 QID（source 分解用。分類の正解ではない）
+  caption                 STRING,           -- #1273 収集時に得たテキスト（検索の title+snippet・記事本文・BDのキャプション）。resolve へ渡すと IG 再取得を skip でき大量並列できる
+  author_name             STRING,           -- #1273 収集時に判明している投稿者名（店照合の author-name 用）
   fetched_at              TIMESTAMP NOT NULL,
   run_id                  STRING NOT NULL
 )
 PARTITION BY DATE(fetched_at)
 CLUSTER BY provider, discovery_route
-OPTIONS (description = '投稿URLプール（追記のみ）。caption 列は持たない（resolve が URL から取り直す）。#1273');
+OPTIONS (description = '投稿URLプール（追記のみ）。#1273 caption/author_name を持ち、resolve へ渡して IG 再取得を無くし大量並列できる。');
 
 -- -----------------------------------------------------------------------------
 -- ③ resolve 適用結果（旧 parse ステップを置換。post_raw と 1:1）

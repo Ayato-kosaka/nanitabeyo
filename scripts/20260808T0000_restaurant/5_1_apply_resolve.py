@@ -37,7 +37,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--raw-run-id", default=None, help="読む sns_post_raw の run_id（省略時は --run-id）")
     p.add_argument("--resolve-version", default="dev", help="この resolve デプロイの識別（再処理管理用）")
     p.add_argument("--limit", type=int, default=500, help="このバッチで処理する未処理投稿数の上限")
-    p.add_argument("--sleep-ms", type=int, default=150, help="resolve 呼び出しの間隔（dev API 負荷対策）")
+    p.add_argument("--sleep-ms", type=int, default=150, help="resolve 呼び出しの間隔（--concurrency 1 のときだけ効く。dev API 負荷対策）")
+    # #1273 大量並列: caption を持つ投稿は resolve が IG を叩かない（純テキスト処理）ので
+    # 好きなだけ並列できる。ThreadPoolExecutor で --concurrency 本を同時に走らせる。
+    # ⚠️ caption を «持たない» 投稿は resolve が IG を取りに行く＝並列すると IG レート制限
+    # （実測 73% 失敗）。その場合は --concurrency 1 に落とすこと（既定 1＝従来どおり直列）。
+    p.add_argument("--concurrency", type=int, default=1,
+                   help="同時 resolve 数。caption 付き投稿(IG非取得)なら大きく。未取得経路は 1 のまま")
     p.add_argument("--debug-dump", type=int, default=0, help="先頭 N 件の resolve 生レスポンスをログに出す（診断用）")
     # 18k+ の再 resolve を数時間で終えるため、post_id ハッシュで水平分割して複数 run を並列に回す。
     # 各シャードは互いに素な post_id 集合を担当するので二重 resolve/二重挿入が起きない。
@@ -79,7 +85,8 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
       )"""
     sql = f"""
       SELECT r.post_id, r.canonical_url, r.discovery_route,
-             r.discovery_area_lat, r.discovery_area_lng
+             r.discovery_area_lat, r.discovery_area_lng,
+             r.caption, r.author_name
       FROM `{pipeline.table(TABLE_POST_RAW)}` r
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
@@ -136,24 +143,36 @@ def main() -> None:
                 total += pipeline.load_json_rows(TABLE_POST_RESOLVED, rows)
                 rows = []
 
-        for post in posts:
+        def _resolve_one(post):
+            """1 投稿を resolve。caption があれば渡す→resolve は IG を取りに行かない。
+            戻り値 (post, resp) / 失敗時 (post, None)。HTTP だけを行うので thread-safe。"""
             lat = post["discovery_area_lat"]
             lng = post["discovery_area_lng"]
             radius = DEFAULT_AREA_RADIUS_M if (lat is not None and lng is not None) else None
             try:
-                resp = client.resolve_raw(post["canonical_url"], lat=lat, lng=lng, radius=radius)
-                if dumped < args.debug_dump:
-                    import json as _json
-                    LOGGER.info("[debug] url=%s\n%s", post["canonical_url"],
-                                _json.dumps(resp, ensure_ascii=False)[:1500])
-                    dumped += 1
-                outcome = classify(resp)
-                n_ok += 1
+                resp = client.resolve_raw(
+                    post["canonical_url"], lat=lat, lng=lng, radius=radius,
+                    caption=post.get("caption"), author_name=post.get("author_name"),
+                )
+                return (post, resp)
             except (urllib.error.URLError, TimeoutError, ValueError) as e:
                 # resolve 到達不可・タイムアウト等はこの投稿を «未処理» のまま残す（行を作らない）
                 LOGGER.warning("resolve 失敗 post_id=%s: %s", post["post_id"], str(e)[:160])
+                return (post, None)
+
+        def _handle(post, resp) -> None:
+            """resolve 結果を集約する。**メインスレッドだけが呼ぶ**ので lock 不要。"""
+            nonlocal n_ok, n_err, dumped, matched
+            if resp is None:
                 n_err += 1
-                continue
+                return
+            if dumped < args.debug_dump:
+                import json as _json
+                LOGGER.info("[debug] url=%s\n%s", post["canonical_url"],
+                            _json.dumps(resp, ensure_ascii=False)[:1500])
+                dumped += 1
+            outcome = classify(resp)
+            n_ok += 1
             rows.append({
                 "post_id": post["post_id"], "provider": PROVIDER_INSTAGRAM,
                 "status": outcome.status,
@@ -171,8 +190,21 @@ def main() -> None:
                 _flush()
                 LOGGER.info("  … %d/%d 処理・%d 件ロード済み（matched=%d, 失敗=%d）",
                             n_ok + n_err, len(posts), total, matched, n_err)
-            if sleep_s:
-                time.sleep(sleep_s)
+
+        concurrency = max(args.concurrency, 1)
+        if concurrency == 1:
+            # 直列（従来どおり）。caption 無し＝IG 取得経路はここで回す（並列 IG はレート制限）。
+            for post in posts:
+                _handle(*_resolve_one(post))
+                if sleep_s:
+                    time.sleep(sleep_s)
+        else:
+            # 大量並列。caption 付き（IG 非取得）でだけ concurrency を上げること。
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as ex:
+                futs = [ex.submit(_resolve_one, post) for post in posts]
+                for fut in concurrent.futures.as_completed(futs):
+                    _handle(*fut.result())
 
         _flush()
         result["row_count"] = total

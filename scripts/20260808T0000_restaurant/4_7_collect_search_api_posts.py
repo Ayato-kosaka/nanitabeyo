@@ -14,7 +14,8 @@ Graph API の business_discovery（200 req/時の壁）を通らない検索型�
                        $10/月 + 初回 $20（$7/1k）。includeDomains=["instagram.com"]。
 
 いずれも «一般 Web 検索を instagram.com に絞る» ので、返る URL から /p//reel//tv/ の投稿だけを拾う。
-account_id は NULL（単体投稿）。caption は保存しない（resolve が URL から取り直す）。
+account_id は NULL（単体投稿）。#1273 検索結果の title+snippet を caption として保存し、
+resolve へ渡すと IG を取りに行かず店/カテゴリ照合できる（＝大量並列 resolve の入力）。
 
 入力は 4_3 と同形の TSV（--queries-file）で 1 行 1 セル:
     <query>\t<dish_category_id>\t<lat>\t<lng>
@@ -72,7 +73,10 @@ def _brave_urls(key: str, q: str, num: int) -> list[str]:
         method="GET",
     )
     res = _http_json(req)
-    return [r.get("url") or "" for r in ((res.get("web") or {}).get("results") or [])]
+    return [
+        (r.get("url") or "", _join_text(r.get("title"), r.get("description")))
+        for r in ((res.get("web") or {}).get("results") or [])
+    ]
 
 
 def _tavily_urls(key: str, q: str, num: int) -> list[str]:
@@ -91,10 +95,13 @@ def _tavily_urls(key: str, q: str, num: int) -> list[str]:
         method="POST",
     )
     res = _http_json(req)
-    return [r.get("url") or "" for r in (res.get("results") or [])]
+    return [
+        (r.get("url") or "", _join_text(r.get("title"), r.get("content")))
+        for r in (res.get("results") or [])
+    ]
 
 
-def _exa_urls(key: str, q: str, num: int) -> list[str]:
+def _exa_urls(key: str, q: str, num: int) -> list[tuple[str, str]]:
     # includeDomains はドメインパスも取れる（instagram.com/p 等）が、reel/tv も拾うため
     # ここではホスト単位で絞り、投稿判定は _POST_RE に任せる。type=keyword で site 検索的に振る舞う。
     body = json.dumps(
@@ -112,10 +119,13 @@ def _exa_urls(key: str, q: str, num: int) -> list[str]:
         method="POST",
     )
     res = _http_json(req)
-    return [r.get("url") or "" for r in (res.get("results") or [])]
+    return [
+        (r.get("url") or "", _join_text(r.get("title"), r.get("text")))
+        for r in (res.get("results") or [])
+    ]
 
 
-def _firecrawl_urls(key: str, q: str, num: int) -> list[str]:
+def _firecrawl_urls(key: str, q: str, num: int) -> list[tuple[str, str]]:
     # #1273 実測（無鍵で HTTP 200・日本語の «料理×エリア» で IG 投稿URLが返る）:
     #   「焼き鳥 米原」→ /p//reel/ 18件, 「ラーメン 渋谷」→ 11件, 「寿司 金沢」→ 8件。
     # 地方セルでも投稿URLが返る（Serper が地方で死んでいた問題を回避）。
@@ -131,7 +141,10 @@ def _firecrawl_urls(key: str, q: str, num: int) -> list[str]:
         "https://api.firecrawl.dev/v2/search", data=body, headers=headers, method="POST",
     )
     res = _http_json(req)
-    return [w.get("url") or "" for w in ((res.get("data") or {}).get("web") or [])]
+    return [
+        (w.get("url") or "", _join_text(w.get("title"), w.get("description")))
+        for w in ((res.get("data") or {}).get("web") or [])
+    ]
 
 
 # provider 名 → (必要な env 変数名, 呼び出し関数)。--provider の値域はこの辞書のキー。
@@ -146,13 +159,22 @@ _PROVIDERS = {
 _KEYLESS_OK = {"firecrawl"}
 
 
-def _posts_from_urls(urls: list[str]):
-    """結果 URL の列から instagram 投稿 (shortcode, canonical_url) を取り出す。"""
-    for link in urls:
+def _join_text(*parts) -> str:
+    """検索結果の title / snippet を 1 本のテキストに畳む（None・空は捨てる）。
+
+    #1273 大量並列: この «URL と一緒に返ってくるテキスト» を caption として保存し、
+    resolve へ渡すと IG を取りに行かずに店名・料理を照合できる（＝並列の壁を回避）。
+    """
+    return " ".join(str(p).strip() for p in parts if p and str(p).strip())
+
+
+def _posts_from_urls(results: list[tuple[str, str]]):
+    """(url, text) の列から instagram 投稿 (shortcode, canonical_url, caption) を取り出す。"""
+    for link, text in results:
         m = _POST_RE.search(link or "")
         if m:
             kind, code = m.group(1).lower(), m.group(2)
-            yield code, f"https://www.instagram.com/{kind}/{code}/"
+            yield code, f"https://www.instagram.com/{kind}/{code}/", (text or "")
 
 
 def parse_args() -> argparse.Namespace:
@@ -229,7 +251,7 @@ def main() -> None:
                     err_body = "(応答本文の読み取り失敗)"
                 LOGGER.warning("%s %s (q=%s) body=%s。中断します", args.provider, e.code, q, err_body)
                 break
-            for code, url in _posts_from_urls(urls):
+            for code, url, caption in _posts_from_urls(urls):
                 pid = code  # shortcode。4_2/4_3 と同じキーで跨ルート重複を解決
                 if pid in seen:
                     continue
@@ -247,6 +269,9 @@ def main() -> None:
                         "discovery_area_lat": lat,
                         "discovery_area_lng": lng,
                         "discovery_category_id": cat,
+                        # #1273 検索結果の title+snippet を caption として保存。resolve へ渡すと
+                        # IG を取りに行かず店/カテゴリ照合でき、大量並列できる（空なら NULL）。
+                        "caption": caption or None,
                         "fetched_at": now_iso,
                         "run_id": run_id,
                     }
