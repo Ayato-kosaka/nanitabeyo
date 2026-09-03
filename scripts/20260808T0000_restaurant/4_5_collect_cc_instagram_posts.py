@@ -87,6 +87,22 @@ def list_wat_paths(crawl: str) -> list[str]:
     return gzip.decompress(raw).decode("utf-8").splitlines()
 
 
+# #1273 option C: WAT payload(JSON)の元ページ Title を caption にする。resolve へ渡すと
+# IG を取りに行かず並列できる（search 経路と同じ）。Title は住所が薄いのでカテゴリ寄り。
+_TITLE_RE = re.compile(rb'"Title"\s*:\s*"((?:\\.|[^"\\]){1,400})"')
+
+
+def _extract_title(line: bytes) -> str | None:
+    """WAT payload 行から元ページ Title を取り出し JSON エスケープを戻す。"""
+    m = _TITLE_RE.search(line)
+    if not m:
+        return None
+    try:
+        return json.loads('"' + m.group(1).decode("utf-8", "replace") + '"') or None
+    except Exception:
+        return m.group(1).decode("utf-8", "replace") or None
+
+
 def harvest_wat_file(path: str, *, jp_only: bool, max_posts: int | None,
                      posts: dict[str, dict]) -> dict:
     """WAT 1 ファイルを stream で読み、instagram 投稿 shortcode を posts へ蓄積する。
@@ -121,6 +137,8 @@ def harvest_wat_file(path: str, *, jp_only: bool, max_posts: int | None,
         if b"instagram.com" not in line:
             continue
         text = line.decode("utf-8", "replace")
+        # この payload(JSON)行の元ページ Title を caption にする（#1273 option C）。
+        cur_caption = _extract_title(line)
         for pm in _POST_RE.finditer(text):
             file_hits += 1
             if jp_only and not cur_jp:
@@ -134,6 +152,7 @@ def harvest_wat_file(path: str, *, jp_only: bool, max_posts: int | None,
                 "source_page": cur_page,
                 "source_host": cur_host,
                 "is_jp": cur_jp,
+                "caption": cur_caption,
             }
             file_new += 1
             if max_posts is not None and len(posts) >= max_posts:
@@ -164,6 +183,7 @@ def build_rows(posts: dict[str, dict], crawl: str, run_id: str, now_iso: str) ->
             "discovery_area_lat": None,
             "discovery_area_lng": None,
             "discovery_category_id": None,
+            "caption": meta.get("caption"),
             "fetched_at": now_iso,
             "run_id": run_id,
         })
