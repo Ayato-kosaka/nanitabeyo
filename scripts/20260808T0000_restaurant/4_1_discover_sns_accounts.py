@@ -5,6 +5,7 @@
   influencer_list    … グルメインフルエンサーの handle 一覧（seed ファイル）を取り込む（ルート2）
   open_data_socials  … restaurant_catalog.social_urls の instagram を店アカウントとして取り込む（ルート1）
   official_site_crawl… 4_4 が作った sns_store_site_ig（店公式サイト crawl の店固有 IG）を合流（柱1）
+  caption_mentions   … 収集済み投稿の caption 中の @mention を新しいアカウントとして取り込む（柱2の自己増殖）
 
 いずれも「アカウントを見つける」だけ。投稿の収集は 4_2、店舗照合は resolve（このスクリプトはしない）。
 SERPER でハンドルを探すルート1の補完（serper_account）は 4_1b で別途。
@@ -46,7 +47,8 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="SNS 収集元アカウントを収集する（ルート1/2）")
     p.add_argument("--run-id", default=None)
     p.add_argument("--source", required=True,
-                   choices=["influencer_list", "open_data_socials", "official_site_crawl"])
+                   choices=["influencer_list", "open_data_socials", "official_site_crawl",
+                            "caption_mentions"])
     p.add_argument("--handles-file", default=str(HERE / "sns_influencer_seed_handles.txt"),
                    help="influencer_list 用。1 行 1 handle")
     p.add_argument("--catalog-run-id", default=None,
@@ -54,6 +56,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--crawl-run-id", default=None,
                    help="official_site_crawl 用。読む sns_store_site_ig の run_id（省略時は --run-id と同じ）")
     p.add_argument("--limit", type=int, default=None, help="open_data_socials の上限（動作確認用）")
+    p.add_argument("--caption-run-ids", default=None,
+                   help="caption_mentions 用。caption を読む sns_post_raw の run_id をカンマ区切りで（省略時は全 run）")
+    p.add_argument("--min-posters", type=int, default=1,
+                   help="caption_mentions 用。何人の異なる投稿者に言及された handle を採るか")
     return p.parse_args()
 
 
@@ -190,6 +196,62 @@ def _rows_from_official_site_crawl(pipeline: BigQueryPipeline, crawl_run_id: str
     yield from store_branch_rows_from_crawl(pairs, run_id, now)
 
 
+# caption 内の @mention。IG の handle 規則（英数・_・. の 1〜30 文字）に合わせる。
+_MENTION_RE = re.compile(r"@([A-Za-z0-9._]{2,30})")
+
+
+def _rows_from_caption_mentions(pipeline: BigQueryPipeline, run_ids, min_posters: int,
+                                run_id: str, now):
+    """収集済み caption の @mention を新規アカウントとして採る（#1812 柱2 の自己増殖）。
+
+    グルメアカウントは互いを、また店を @mention するので、収集 → mention 抽出 → 収集 と
+    回すと handle が自己増殖する。**API を 1 回も使わない**（既に BQ にある caption を読むだけ）。
+    実測（キャプション 1,800 件）: 新規 handle 636 件＝0.35 件/caption。
+
+    account_type は «複数の投稿者から言及された» なら influencer、1 人だけなら unknown。
+    店アカは 1 人の投稿者（その店自身）からしか出ないことが多く、この閾値で粗く分かれる。
+    """
+    from google.cloud import bigquery
+    where = "caption IS NOT NULL AND caption != ''"
+    params = []
+    if run_ids:
+        where += " AND run_id IN UNNEST(@rids)"
+        params.append(bigquery.ArrayQueryParameter("rids", "STRING", run_ids))
+    sql = f"""
+      WITH src AS (SELECT account_id AS poster, caption FROM `{pipeline.table('sns_post_raw')}` WHERE {where}),
+      m AS (
+        SELECT LOWER(h) AS handle, poster
+        FROM src, UNNEST(REGEXP_EXTRACT_ALL(caption, r'@([A-Za-z0-9._]{{2,30}})')) AS h
+      ),
+      agg AS (
+        SELECT handle, COUNT(DISTINCT poster) posters, COUNT(*) mentions
+        FROM m WHERE handle NOT IN UNNEST(@reserved) GROUP BY handle
+      ),
+      known AS (SELECT DISTINCT LOWER(handle) handle FROM `{pipeline.table(TABLE_SOURCE_ACCOUNT)}` WHERE handle IS NOT NULL)
+      SELECT a.handle, a.posters, a.mentions
+      FROM agg a LEFT JOIN known k USING (handle)
+      WHERE k.handle IS NULL AND a.posters >= @minp
+      ORDER BY a.posters DESC, a.mentions DESC
+    """
+    params += [bigquery.ArrayQueryParameter("reserved", "STRING", sorted(_NON_ACCOUNT)),
+               bigquery.ScalarQueryParameter("minp", "INT64", int(min_posters))]
+    n_infl = 0
+    for row in pipeline.execute(sql, params):
+        handle = row["handle"].strip(".")
+        if not handle:
+            continue
+        is_infl = row["posters"] >= 2
+        n_infl += is_infl
+        yield {
+            "account_id": handle, "provider": PROVIDER_INSTAGRAM, "handle": handle,
+            "account_type": "influencer" if is_infl else "unknown",
+            "discovery_method": "caption_mentions", "discovery_seed_place_id": None,
+            "followers": None, "media_count": None,
+            "discovered_at": now.isoformat(), "run_id": run_id,
+        }
+    LOGGER.info("  うち複数投稿者から言及＝influencer 扱い: %d 件", n_infl)
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
@@ -204,6 +266,10 @@ def main() -> None:
         _delete_source_rows(pipeline, run_id, args.source)
         if args.source == "influencer_list":
             rows = list(_rows_from_influencer_list(Path(args.handles_file), run_id, now))
+        elif args.source == "caption_mentions":
+            rids = [x.strip() for x in (args.caption_run_ids or "").split(",") if x.strip()]
+            LOGGER.info("sns_post_raw の caption から @mention を抽出します（run_ids=%s）", rids or "全て")
+            rows = list(_rows_from_caption_mentions(pipeline, rids, args.min_posters, run_id, now))
         elif args.source == "official_site_crawl":
             crawl_rid = args.crawl_run_id or run_id
             LOGGER.info("sns_store_site_ig run_id=%s から店固有 IG を合流します", crawl_rid)
