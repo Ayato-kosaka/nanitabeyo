@@ -310,6 +310,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--store-mode", action="store_true",
                    help="sns_source_account の未収集 store_branch handle を BQ から読み、店起点で投稿を集める")
     p.add_argument("--account-run-id", default=None, help="--store-mode で読む sns_source_account の run_id（省略時は全 run）")
+    # #1273 P2 «3-4 店セル狙い撃ち»: KPI（134 カテゴリ）で 3-4 店しか無いセルの市区町村にある、店名に
+    # そのカテゴリ語を含む未使用 catalog 店へ «"店名" 市区町村» を投げる（A1 実測: 店名一致 94%）。
+    # 店は place_id で seed-trust、snippet に店名を含む投稿だけ付与。
+    p.add_argument("--cell-mode", action="store_true",
+                   help="KPI で 3-4 店のセルを埋める店起点クエリを BQ から生成して回す")
+    p.add_argument("--cell-min", type=int, default=3, help="--cell-mode: 対象セルの現店数の下限")
+    p.add_argument("--cell-max", type=int, default=4, help="--cell-mode: 対象セルの現店数の上限")
     p.add_argument("--shards", type=int, default=1, help="--store-mode の handle 分割数（provider 間で互いに素にする）")
     p.add_argument("--shard", type=int, default=0, help="このバッチの担当シャード [0, shards)")
     # #1273 実測(A17): 10 件→20 件にするだけで投稿ヒットが 1.3→11.9/クエリ。各 provider 関数が
@@ -379,6 +386,70 @@ def _read_store_handles(pipeline: BigQueryPipeline, account_run_id, max_queries,
     return [dict(r) for r in pipeline.execute(sql, params)]
 
 
+def _read_cell_targets(pipeline: BigQueryPipeline, max_queries, offset: int, shards: int, shard: int,
+                       cell_min: int, cell_max: int) -> list[dict]:
+    """KPI（134 カテゴリ）で cell_min〜cell_max 店のセルについて、同市区町村の «店名にカテゴリ語を含む
+    未使用 catalog 店» を返す。1 店 1 クエリ。usable の定義・市区町村補完は 7_1 と同じ。"""
+    from google.cloud import bigquery
+    kpi_path = Path(__file__).resolve().parent / "kpi_dish_categories.json"
+    kpi = json.loads(kpi_path.read_text(encoding="utf-8"))["kpi_qids"]  # qid -> label_ja
+    sql = f"""
+      WITH K AS (SELECT qid, label FROM UNNEST(@kpi_qids) qid WITH OFFSET o JOIN UNNEST(@kpi_labels) label WITH OFFSET o2 ON o = o2),
+      latest AS (
+        SELECT run_id, provider, post_id, status, google_place_id, dish_category_id
+        FROM `{pipeline.table(TABLE_POST_RESOLVED)}`
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY run_id, provider, post_id ORDER BY resolved_at DESC) = 1
+      ),
+      cat AS (
+        SELECT google_place_id, name, location,
+          REGEXP_EXTRACT(address, r'(?:{_PREF_ALT})(.+?[市区町村])') AS city
+        FROM `{pipeline.table('restaurant_catalog')}`
+        WHERE run_id = (SELECT run_id FROM `{pipeline.table('restaurant_catalog')}` GROUP BY run_id ORDER BY COUNT(*) DESC LIMIT 1)
+      ),
+      usable AS (
+        SELECT DISTINCT COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_place_id) AS place, v.dish_category_id AS c
+        FROM latest v JOIN `{pipeline.table(TABLE_POST_RAW)}` r
+          ON r.run_id = v.run_id AND r.provider = v.provider AND r.post_id = v.post_id
+        WHERE v.dish_category_id IN (SELECT qid FROM K)
+          AND (v.status = 'matched' OR (r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''))
+      ),
+      need AS (SELECT u.place, ca.location FROM (SELECT DISTINCT place FROM usable) u JOIN cat ca ON ca.google_place_id = u.place WHERE ca.city IS NULL AND ca.location IS NOT NULL),
+      ref AS (SELECT location, city FROM cat WHERE city IS NOT NULL AND location IS NOT NULL),
+      nn AS (
+        SELECT n.place, r.city, ST_DISTANCE(n.location, r.location) d FROM need n JOIN ref r ON ST_DWITHIN(n.location, r.location, 1500)
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY n.place ORDER BY d) = 1
+      ),
+      cells AS (
+        SELECT u.c, COALESCE(ca.city, nn.city) AS city, COUNT(DISTINCT u.place) dsc
+        FROM usable u JOIN cat ca ON ca.google_place_id = u.place LEFT JOIN nn ON nn.place = u.place
+        WHERE COALESCE(ca.city, nn.city) IS NOT NULL
+        GROUP BY u.c, city
+        HAVING dsc BETWEEN @cmin AND @cmax
+      ),
+      cand AS (
+        SELECT s.c AS category_id, k.label, s.city, s.dsc, ca.google_place_id AS place_id, ca.name AS store_name
+        FROM cells s JOIN K k ON k.qid = s.c
+        JOIN cat ca ON ca.city = s.city AND STRPOS(ca.name, k.label) > 0
+        LEFT JOIN usable u ON u.place = ca.google_place_id AND u.c = s.c
+        WHERE u.place IS NULL
+      )
+      SELECT * FROM cand
+      {"WHERE MOD(ABS(FARM_FINGERPRINT(place_id)), @shards) = @shard" if shards > 1 else ""}
+      ORDER BY dsc DESC, city, category_id, place_id
+      LIMIT {int(max_queries or 1000000)} OFFSET {int(offset or 0)}
+    """
+    params = [
+        bigquery.ArrayQueryParameter("kpi_qids", "STRING", list(kpi.keys())),
+        bigquery.ArrayQueryParameter("kpi_labels", "STRING", list(kpi.values())),
+        bigquery.ScalarQueryParameter("cmin", "INT64", cell_min),
+        bigquery.ScalarQueryParameter("cmax", "INT64", cell_max),
+    ]
+    if shards > 1:
+        params += [bigquery.ScalarQueryParameter("shards", "INT64", shards),
+                   bigquery.ScalarQueryParameter("shard", "INT64", shard)]
+    return [dict(r) for r in pipeline.execute(sql, params)]
+
+
 _PREF_ALT = ("北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|"
              "神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|"
              "大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|"
@@ -416,6 +487,16 @@ def main() -> None:
         # 店確定できるので最優先。site: は provider 側の include_domains と二重でも害は無い。
         cells = [(f'"@{st["handle"]}"', None, None, None) for st in stores]
         LOGGER.info("store-mode: 未収集の店アカ %d 件（shard %d/%d, offset %d）", len(cells), args.shard, args.shards, args.query_offset)
+    elif args.cell_mode:
+        pipeline0 = BigQueryPipeline()
+        stores = _read_cell_targets(pipeline0, args.max_queries, args.query_offset, args.shards, args.shard,
+                                    args.cell_min, args.cell_max)
+        # handle は無いので店名＋市区町村で引く（クエリ形 D）。discovery_category_id に狙いのカテゴリを残す。
+        cells = [(f'"{st["store_name"]}" {st["city"]}', st["category_id"], None, None) for st in stores]
+        for st in stores:
+            st["handle"] = ""
+        LOGGER.info("cell-mode: %d-%d 店セル向けの店起点クエリ %d 件（shard %d/%d, offset %d）",
+                    args.cell_min, args.cell_max, len(cells), args.shard, args.shards, args.query_offset)
     else:
         if not args.queries_file:
             raise SystemExit("--queries-file か --store-mode のどちらかが要ります")
@@ -449,7 +530,7 @@ def main() -> None:
         seen = set()
         n_ok = n_skip = n_seeded = 0
         for i, (q, cat, lat, lng) in enumerate(cells):
-            st = stores[i] if args.store_mode else None
+            st = stores[i] if (args.store_mode or args.cell_mode) else None
             try:
                 urls = _fetch_with_retry(fetch, key, q, args.num, args.max_retries, args.provider)
             except _QuotaExhausted:
@@ -473,9 +554,10 @@ def main() -> None:
                         "provider": PROVIDER_INSTAGRAM,
                         "canonical_url": url,
                         # store-mode で店に帰属できた投稿は柱1（store_account）として扱い、seed-trust で店確定。
-                        "account_id": (st["handle"] if seed_place else None),
+                        "account_id": (st["handle"] if (seed_place and st.get("handle")) else None),
                         "discovery_route": ("store_account" if seed_place else DISCOVERY_ROUTE),
-                        "discovery_method": (f"search_handle:{args.provider}" if args.store_mode else args.provider),
+                        "discovery_method": (f"search_handle:{args.provider}" if args.store_mode
+                                             else f"search_cell:{args.provider}" if args.cell_mode else args.provider),
                         "discovery_query": q,
                         "discovery_seed_place_id": seed_place,
                         "discovery_area_lat": lat,
