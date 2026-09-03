@@ -17,10 +17,12 @@ import { ContributionTasksModule } from './contribution-tasks/contribution-tasks
 import { DishCategoryGroupVotesModule } from './dish-category-group-votes/dish-category-group-votes.module';
 import { ShareLinksModule } from './share-links/share-links.module';
 import { ContentReportsModule } from './content-reports/content-reports.module';
+import { MapsModule } from './maps/maps.module';
 
 @Module({
   imports: [
     HelloModule,
+    MapsModule,
     DishMediaModule,
     DishMediaImportsModule,
     DishCategoriesModule,
