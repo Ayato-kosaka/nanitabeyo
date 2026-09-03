@@ -109,7 +109,7 @@ def _exa_urls(key: str, q: str, num: int) -> list[tuple[str, str]]:
             "query": q,
             "includeDomains": [IG_DOMAIN],
             "numResults": min(num, 10),  # base 価格は 10 件まで。超過は課金増なので上限 10
-            "type": "keyword",
+            "type": "fast",  # 現行 API の enum（instant/fast/auto/deep-*）。keyword は無い
         }
     ).encode("utf-8")
     req = urllib.request.Request(
@@ -159,6 +159,62 @@ _PROVIDERS = {
 _KEYLESS_OK = {"firecrawl"}
 
 
+def _retry_after_seconds(e: urllib.error.HTTPError, body: str) -> float | None:
+    """429/5xx の待ち秒数。Retry-After ヘッダ → JSON の retry_after(_seconds) → None。"""
+    ra = e.headers.get("Retry-After") if e.headers else None
+    if ra:
+        try:
+            return float(ra)
+        except ValueError:
+            pass
+    m = re.search(r'"retry_after(?:_seconds)?"\s*:\s*([0-9.]+)', body or "")
+    return float(m.group(1)) if m else None
+
+
+def _fetch_with_retry(fetch, key, q, num, max_retries: int, provider: str):
+    """429/5xx は Retry-After（無ければ指数バックオフ）で再試行。日次上限（retry_after が 1h 超）は
+    _QuotaExhausted を投げて呼び出し側に «このバッチは打ち切り» を知らせる。4xx（429 以外）は None（スキップ）。
+
+    #1273 実測(A17): 旧実装は 429 で全体 break していたため 2,412 クエリ中 263 本しか走らなかった。
+    """
+    backoff = 5.0
+    for attempt in range(max_retries + 1):
+        try:
+            return fetch(key, q, num)
+        except urllib.error.HTTPError as e:
+            try:
+                body = e.read().decode("utf-8", "replace")[:500]
+            except Exception:
+                body = "(応答本文の読み取り失敗)"
+            if e.code == 429 or e.code >= 500:
+                wait = _retry_after_seconds(e, body)
+                if wait is not None and wait > 3600:
+                    LOGGER.warning("%s %s (q=%s) retry_after=%.0fs＝日次/月次上限。バッチ打ち切り。body=%s",
+                                   provider, e.code, q, wait, body)
+                    raise _QuotaExhausted(body)
+                if attempt >= max_retries:
+                    LOGGER.warning("%s %s (q=%s) リトライ上限。スキップ。body=%s", provider, e.code, q, body)
+                    return None
+                wait = wait if wait is not None else backoff
+                LOGGER.info("%s %s (q=%s) %.1fs 待って再試行 %d/%d", provider, e.code, q, wait, attempt + 1, max_retries)
+                time.sleep(min(wait, 600))
+                backoff = min(backoff * 2, 120)
+                continue
+            LOGGER.warning("%s %s (q=%s) スキップ。body=%s", provider, e.code, q, body)
+            return None
+        except (urllib.error.URLError, TimeoutError) as e:
+            if attempt >= max_retries:
+                LOGGER.warning("%s 到達不可 (q=%s): %s。スキップ", provider, q, e)
+                return None
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 120)
+    return None
+
+
+class _QuotaExhausted(Exception):
+    """provider の日次/月次上限に当たった（このバッチではもう取れない）。"""
+
+
 def _join_text(*parts) -> str:
     """検索結果の title / snippet を 1 本のテキストに畳む（None・空は捨てる）。
 
@@ -184,7 +240,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--provider", required=True, choices=sorted(_PROVIDERS), help="使う検索 API")
     p.add_argument("--run-id", default=None)
     p.add_argument("--queries-file", required=True, help="TSV: query<TAB>category_id<TAB>lat<TAB>lng")
-    p.add_argument("--num", type=int, default=10, help="1 クエリの取得件数（provider の無料枠上限に合わせ 10）")
+    # #1273 実測(A17): 10 件→20 件にするだけで投稿ヒットが 1.3→11.9/クエリ。各 provider 関数が
+    # 自分の上限（exa 10・firecrawl 20 等）に丸めるので 20 を既定にする。
+    p.add_argument("--num", type=int, default=20, help="1 クエリの取得件数（provider 側で上限に丸める）")
+    p.add_argument("--max-retries", type=int, default=5, help="429/5xx のリトライ回数（Retry-After を尊重）")
     p.add_argument("--max-queries", type=int, default=None, help="このバッチのクエリ数上限")
     p.add_argument("--query-offset", type=int, default=0, help="queries-file の開始行（CI バッチ分割用。max-queries と併用で file を面で進める）")
     p.add_argument("--sleep-ms", type=int, default=1000, help="呼び出し間隔（無料枠に配慮）")
@@ -243,16 +302,16 @@ def main() -> None:
     ) as result:
         rows = []
         seen = set()
+        n_ok = n_skip = 0
         for q, cat, lat, lng in cells:
             try:
-                urls = fetch(key, q, args.num)
-            except urllib.error.HTTPError as e:
-                try:
-                    err_body = e.read().decode("utf-8", "replace")[:500]
-                except Exception:
-                    err_body = "(応答本文の読み取り失敗)"
-                LOGGER.warning("%s %s (q=%s) body=%s。中断します", args.provider, e.code, q, err_body)
+                urls = _fetch_with_retry(fetch, key, q, args.num, args.max_retries, args.provider)
+            except _QuotaExhausted:
                 break
+            if urls is None:
+                n_skip += 1
+                continue
+            n_ok += 1
             for code, url, caption in _posts_from_urls(urls):
                 pid = code  # shortcode。4_2/4_3 と同じキーで跨ルート重複を解決
                 if pid in seen:
@@ -296,11 +355,11 @@ def main() -> None:
             )
         count = pipeline.load_json_rows(TABLE_POST_RAW, rows) if rows else 0
         result["row_count"] = count
+        result["queries_ok"] = n_ok
+        result["queries_skipped"] = n_skip
         LOGGER.info(
-            "sns_post_raw に %d 投稿を投入しました（%s / 検索 %d クエリ）",
-            count,
-            args.provider,
-            len(cells),
+            "sns_post_raw に %d 投稿を投入しました（%s / 検索 %d クエリ中 成功 %d・スキップ %d）",
+            count, args.provider, len(cells), n_ok, n_skip,
         )
 
 
