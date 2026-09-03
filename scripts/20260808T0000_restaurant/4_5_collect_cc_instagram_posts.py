@@ -27,7 +27,8 @@ sns_post_raw へ 4_3 と同じ形で入れる（account_id=NULL の単体投稿�
 - discovery_query  = 'cc:{crawl}'        （どの crawl から拾ったか。監査用）
 - run_id
 
-caption は保存しない（resolve が URL から取り直す）。
+caption には «リンク元ページの Title»（WAT payload の HTML-Metadata.Head.Title）を載せる
+（#1273 option C）。search 経路(4_7)と同じく resolve へ渡すと IG を取りに行かず並列できる。
 
 ## 運用（CI = db-script-run.yml で回す）
 
@@ -226,6 +227,7 @@ def main(argv=None) -> None:
             break
 
     jp_count = sum(1 for m in posts.values() if m["is_jp"])
+    cap_count = sum(1 for m in posts.values() if m.get("caption"))
     summary = {
         "crawl": args.crawl,
         "wat_files_total": len(paths),
@@ -234,6 +236,8 @@ def main(argv=None) -> None:
         "jp_only": args.jp_only,
         "distinct_posts": len(posts),
         "distinct_posts_jp_source": jp_count,
+        "distinct_posts_with_caption": cap_count,
+        "caption_rate": round(cap_count / max(len(posts), 1), 3),
         "mean_distinct_per_file": round(
             sum(s["new_distinct_posts"] for s in file_stats) / max(len(file_stats), 1), 1
         ),
@@ -248,6 +252,7 @@ def main(argv=None) -> None:
                 "post_type": m["post_type"],
                 "source_host": m["source_host"],
                 "is_jp": m["is_jp"],
+                "caption": m.get("caption"),
             }
             for code, m in list(posts.items())[:5000]
         ]
