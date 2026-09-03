@@ -181,6 +181,55 @@ def _unwrap(resp: dict[str, Any]) -> dict[str, Any]:
     return resp
 
 
+# #1273 【設計】KPI 優先のカテゴリ選択。
+# resolve の語彙は 1,577 QID だが、アプリ／カバレッジ KPI は 134 カテゴリ（140 QID）。実測（2026-09-03）では
+# 店アカ caption 投稿のカテゴリ付き 75% のうち KPI 内は 38% しかなく、残りは «コーヒー» «シフォンケーキ» «札幌ラーメン»
+# など KPI 外 QID に流れていた（その 74% は KPI 親を含む）。ここで (a) 候補の中に KPI の QID があればそれを優先し、
+# (b) 無ければ «KPI 外 → KPI 親» の畳み表（kpi_dish_categories.json.fold_to_kpi）で親へ畳む。どちらも無ければ従来どおり rank1。
+# 元の rank1 が KPI 内ならそのまま（挙動不変）。診断は resolve_reason の `k=` フラグに残す（p=優先 / f=畳み / -=そのまま）。
+_KPI_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kpi_dish_categories.json")
+_KPI_CACHE: dict[str, Any] | None = None
+
+
+def _kpi_tables() -> tuple[set[str], dict[str, str]]:
+    """(KPI QID 集合, KPI外→KPI親 の畳み表)。KPI_PREFER=0 で無効化（空集合）。読めなければ空で従来挙動。"""
+    global _KPI_CACHE
+    if _KPI_CACHE is None:
+        qids: set[str] = set()
+        fold: dict[str, str] = {}
+        if os.getenv("KPI_PREFER", "1") != "0":
+            try:
+                with open(_KPI_JSON, encoding="utf-8") as f:
+                    d = json.load(f)
+                qids = set((d.get("kpi_qids") or {}).keys())
+                fold = {k: v for k, v in (d.get("fold_to_kpi") or {}).items() if v in qids}
+            except (OSError, ValueError):
+                qids, fold = set(), {}
+        _KPI_CACHE = {"qids": qids, "fold": fold}
+    return _KPI_CACHE["qids"], _KPI_CACHE["fold"]
+
+
+def pick_kpi_category(prefill_id: str | None, cat_cands: list[dict] | None) -> tuple[str | None, float | None, str]:
+    """(category_id, confidence, kflag) を返す。kflag: '-'=従来どおり / 'p'=候補内の KPI を優先 / 'f'=親へ畳んだ。"""
+    qids, fold = _kpi_tables()
+    cands = sorted(cat_cands or [], key=lambda c: c.get("rank", 10**9))
+    rank1 = cands[0] if cands else None
+    base_id = prefill_id or (rank1.get("dishCategoryId") if rank1 else None)
+    base_conf = rank1.get("confidence") if rank1 else None
+    if not qids or base_id is None or base_id in qids:
+        return base_id, base_conf, "-"
+    # (a) 候補列に KPI の QID があればそれ（ランク順で最初のもの）
+    for c in cands:
+        cid = c.get("dishCategoryId")
+        if cid in qids:
+            return cid, c.get("confidence"), "p"
+    # (b) 選ばれた QID（または候補列のどれか）が KPI 親へ畳めるなら畳む
+    for cid, conf in [(base_id, base_conf)] + [(c.get("dishCategoryId"), c.get("confidence")) for c in cands]:
+        if cid in fold:
+            return fold[cid], conf, "f"
+    return base_id, base_conf, "-"
+
+
 def _rank1(cands: list[dict] | None) -> dict | None:
     for c in cands or []:
         if c.get("rank") == 1:
@@ -213,10 +262,8 @@ def classify(resp: dict[str, Any]) -> ResolveOutcome:
     cat_cands = candidates.get("dishCategories") or []
     rst_cands = candidates.get("restaurants") or []
 
-    # --- 料理カテゴリ: prefill 優先、無ければ rank1 候補 ---
-    cat1 = _rank1(cat_cands)
-    category_id = prefill.get("dishCategoryId") or (cat1.get("dishCategoryId") if cat1 else None)
-    category_conf = cat1.get("confidence") if cat1 else None
+    # --- 料理カテゴリ: prefill 優先、無ければ rank1 候補。さらに KPI（134）を優先／親へ畳む ---
+    category_id, category_conf, kflag = pick_kpi_category(prefill.get("dishCategoryId"), cat_cands)
 
     # --- 店舗: prefill.restaurantId→candidate 逆引き、無ければ rank1 候補の place_id ---
     place_id = None
@@ -237,7 +284,7 @@ def classify(resp: dict[str, Any]) -> ResolveOutcome:
     pf = ("c" if prefill.get("dishCategoryId") else "") + ("r" if pref_rid else "")
     diag = (
         f"{top_reason or '-'}|rs={rsearch.get('reason') or '-'}"
-        f"|cat={len(cat_cands)}|rst={len(rst_cands)}|pf={pf or '-'}"
+        f"|cat={len(cat_cands)}|rst={len(rst_cands)}|pf={pf or '-'}|k={kflag}"
     )
 
     if category_id is None:
