@@ -178,3 +178,29 @@ website 保有店の 27.6%（89/322）は «website» 自体が集約メディ�
 - ≥5 店セル = **35**、≥3 = 158、≥1 = 4,916。breadth はあるが depth が無い（≒1 店/セル）。
 - 律速は «セルあたりの異なり店数»。柱1（店アカウント収集）を caption 付きで回して distinct 店を増やすのが主レバー。
   business_discovery スループット（単トークン ~130 アカウント/h 実測）が収集の壁。
+
+---
+
+## 2026-09-03 — 打開策（20 本並列検討）の結論と P0 の実測
+
+### 前提の是正
+- **KPI の分母**: 1,577 QID 全体ではなく **132/134 アプリカテゴリ限定**（`dish_category_catalog.label_ja` で 140 QID。`kpi_dish_categories.json`）。
+- **集計バグ**: 7_1 の市区町村抽出が「都道府県で始まる住所」しか読めず、catalog 住所の 39% が対象外＝usable 店の 43% がセルに数えられていなかった。lat/lng 最近傍（1.5km・検証 99.3% 一致）で補完。
+
+### P0 の実測（sns_coverage run `sns-2026-09-03-cov`、収集 8 run union）
+| 対象 | ≥1店 | ≥3店 | ≥5店 |
+|---|---|---|---|
+| 134 限定（KPI） | 2,853 → 4,734 | 152 → 459 | **32 → 132** |
+| 全 QID | 7,343 → 13,375 | 269 → 847 | 58 → 251 |
+
+### 真因（なぜ business_discovery に 20h 詰まっていたか）
+検索インデックスに `"@handle" site:instagram.com` を投げれば IG API なしで店の投稿が caption 付きで取れる（16 handle 中 14 ヒット・13.6 投稿/handle）。店は place_id で seed-trust 確定。さらに 4_7 は 429 で全体中断・10 件/クエリのままで、20 件＋リトライで収率 9 倍（1.3→11.9 投稿/q）。
+
+### 規約（条文確認済み）
+NG: Meta 複数トークン／IG ページ直取得（現行 resolve の embed/captioned 取得も該当＝caption 持ち回りが唯一の適合路）／Google SERP スクレイプ（Bright Data・SerpApi）／Brave・Parallel（結果保存・DB 化禁止）。OK: You.com（キー有）・Tavily・Linkup・Yep・Common Crawl・Threads（要審査）。
+
+### 却下確定（蒸し返さない）
+CC WAT 飲食メディア限定（tabelog/retty は CC 上に IG リンク 0/300）／Wayback／店公式サイト埋め込み（3/98）／oEmbed（caption 返らず）／IG location ページ／店単位カテゴリ伝播（ペア増 0）／一覧外検索（CSE 新規停止・Bing 廃止・各 HTML は bot 壁）。
+
+### 次（キー待ち）
+P1: 未収集 17,456 店アカ handle を検索で投稿化（You.com 20k/Tavily 1k/Yep 1k/Linkup 4k ≈ 26k クエリ・規約 OK）。P2: 3-4 店セル（331）を店起点で狙い撃ち。P3: 料理×市区町村で depth。
