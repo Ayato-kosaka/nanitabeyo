@@ -53,6 +53,7 @@ import {
   formatRestaurantDishMediaCursor,
   parseRestaurantDishMediaCursor,
 } from './restaurant-dish-media-cursor';
+import { fetchRestaurantOpeningStatuses } from '../restaurants/restaurant-opening-status';
 
 /** #817 優先言語のレビュー先読みクエリの戻り値 */
 type DishReviewWithUser = Prisma.dish_reviewsGetPayload<{
@@ -132,6 +133,28 @@ export class DishMediaRepository {
     // RAW を使うときはバインド変数で SQL Injection を防止
     const [userLat, userLon] = location.split(',').map(Number);
     const pageSeed = crypto.randomUUID(); // ランダム順序を毎回ランダムにしたい。
+
+    /*
+      #1666 【設計】「今開いているか」を3値（open/closed/unknown）で求め、closed を
+      候補集合から除外し、open にだけ従来どおりのスコア加点をする。
+
+      判定ロジック本体（曜日・深夜営業・例外日の上書き・出所の優先順位）は
+      `shared/utils/openingHours.ts` の純関数で、ここでは Prisma から生データを取って
+      渡すだけの `fetchRestaurantOpeningStatuses` を呼ぶだけにしてある（判定を
+      このクエリへ書き写さない。店舗詳細側など他の呼び出し元も同じ関数を使う想定）。
+
+      `restaurant_opening_hours` / `restaurant_hours_exceptions` は当面 coverage が低く
+      小さいテーブルなので、この1クエリぶんのオーバーヘッドは無視できる
+      （restaurants 全件ではなく、営業時間データが**ある**店だけを起点に取得している）。
+      「営業時間が分からない店」は Map に含まれず `unknown` 扱いのまま残る＝除外されない。
+    */
+    const openingStatuses = await fetchRestaurantOpeningStatuses(tx);
+    const closedRestaurantIds: string[] = [];
+    const openRestaurantIds: string[] = [];
+    for (const [restaurantId, status] of openingStatuses) {
+      if (status === 'closed') closedRestaurantIds.push(restaurantId);
+      else if (status === 'open') openRestaurantIds.push(restaurantId);
+    }
 
     const GUMBLE_TAU = 0.216; // 0.3–0.5 * σ（base_score の標準偏差）で後で調整する
     const NEW_MAX = Math.max(1, Math.round(limit / 5)); // 新着枠の最大件数
@@ -280,6 +303,10 @@ export class DishMediaRepository {
           WHERE dmee.dish_media_id = dm.id
             AND dmee.playback_status = 'not_playable'
         )
+        /* #1666 「営業時間が分かっていて、今閉まっている」店は候補集合から除外する。
+           closedRestaurantIds は JS 側で3値判定を済ませた結果（shared/utils/openingHours.ts）。
+           「分からない」店（大多数）はここに入らないので無条件で候補に残る。 */
+        AND NOT (d.restaurant_id = ANY(${closedRestaurantIds}::uuid[]))
     ),
     -- 距離計算
     geo AS (
@@ -291,19 +318,13 @@ export class DishMediaRepository {
         ) / 1000.0 AS distance_km
       FROM base_candidates bc
     ),
-    -- 営業時間（あればフィルタ・無ければ true）
+    -- #1666 営業時間が「分かっていて、今開いている」店だけ加点する（openRestaurantIds も
+    -- JS 側の3値判定の結果。closed は base_candidates で既に除外済みなので、ここに来る行は
+    -- open か unknown のどちらか。unknown は今までどおり is_open_at=false と同じ扱いになる）
     open_flags AS (
       SELECT
         g.*,
-        /* ▼ 営業時間テーブルがある場合の例
-        EXISTS (
-          SELECT 1 FROM restaurant_open_hours roh
-          WHERE roh.restaurant_id = g.restaurant_id
-            AND roh.opens_at <= (SELECT open_at FROM params)
-            AND roh.closes_at >  (SELECT open_at FROM params)
-        ) AS is_open_at
-        */
-        FALSE AS is_open_at
+        (g.restaurant_id = ANY(${openRestaurantIds}::uuid[])) AS is_open_at
       FROM geo g
     ),
     -- 疲労ペナルティ（同一ユーザーに直近24h表示済みのメディアは候補に残して減点）
