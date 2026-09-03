@@ -186,12 +186,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--queries-file", required=True, help="TSV: query<TAB>category_id<TAB>lat<TAB>lng")
     p.add_argument("--num", type=int, default=10, help="1 クエリの取得件数（provider の無料枠上限に合わせ 10）")
     p.add_argument("--max-queries", type=int, default=None, help="このバッチのクエリ数上限")
+    p.add_argument("--query-offset", type=int, default=0, help="queries-file の開始行（CI バッチ分割用。max-queries と併用で file を面で進める）")
     p.add_argument("--sleep-ms", type=int, default=1000, help="呼び出し間隔（無料枠に配慮）")
     p.add_argument("--dry-run", action="store_true", help="API を叩かず入力の読み取りと件数だけ出す")
     return p.parse_args()
 
 
-def _read_cells(path: Path, max_queries):
+def _read_cells(path: Path, max_queries, offset: int = 0):
     cells = []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.rstrip("\n")
@@ -204,6 +205,7 @@ def _read_cells(path: Path, max_queries):
         lng = float(parts[3]) if len(parts) > 3 and parts[3].strip() else None
         if q:
             cells.append((q, cat, lat, lng))
+    cells = cells[offset:] if offset else cells
     return cells[:max_queries] if max_queries else cells
 
 
@@ -213,7 +215,7 @@ def main() -> None:
     run_id = require_run_id(args.run_id)
     env_var, fetch = _PROVIDERS[args.provider]
 
-    cells = _read_cells(Path(args.queries_file), args.max_queries)
+    cells = _read_cells(Path(args.queries_file), args.max_queries, args.query_offset)
     LOGGER.info("%d クエリを %s で引きます（無料枠のみ）", len(cells), args.provider)
     sleep_s = max(args.sleep_ms, 0) / 1000.0
 
