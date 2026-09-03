@@ -1,7 +1,7 @@
 // api/src/v1/restaurants/restaurant-opening-status.ts
 //
-// #1666 `restaurant_opening_hours` / `restaurant_hours_exceptions` から
-// 「今この店は開いているか」（3値: open / closed / unknown）を求める。
+// #288 / #1666 `restaurant_opening_hours` / `restaurant_hours_exceptions` から
+// 「**選んだ時間帯**にこの店は営業しているか」（3値: open / closed / unknown）を求める。
 //
 // 判定ロジック本体は `shared/utils/openingHours.ts` の純関数（resolveOpeningStatus）が
 // 唯一の実装で、ここは Prisma から生データを取ってそこへ渡すだけの薄い層にしてある。
@@ -16,6 +16,7 @@ import {
   type RestaurantOpeningHourRow,
   type RestaurantOpeningStatus,
 } from '../../../../shared/utils/openingHours';
+import { getTimeSlotWindow, type TimeSlot } from '../../../../shared/utils/timeSlot';
 
 /** Postgres の TIME（タイムゾーン無し）を Prisma が返す Date から「真夜中からの分」へ変換する */
 function timeToMinutes(value: Date): number {
@@ -29,8 +30,9 @@ function dateToYmd(value: Date): string {
 
 /**
  * `restaurant_opening_hours` / `restaurant_hours_exceptions` にデータが **ある** レストランだけを
- * 対象に、3値の営業状態を計算して返す。データが無い店（現状は全店。#1666 のクローラは別 PR）は
- * 戻り値の Map に含まれない。呼び出し側は `.get(restaurantId) ?? 'unknown'` として扱うこと。
+ * 対象に、`timeSlot` の窓と重なるかで3値の営業状態を計算して返す。データが無い店
+ * （現状は全店。#1666 のクローラは別 PR）は戻り値の Map に含まれない。呼び出し側は
+ * `.get(restaurantId) ?? 'unknown'` として扱うこと。
  *
  * データが無い店の全件走査を避けるため、`restaurant_opening_hours` /
  * `restaurant_hours_exceptions`（この2テーブル自体、当面は coverage が低く小さい）を起点に取得する。
@@ -39,9 +41,10 @@ function dateToYmd(value: Date): string {
  */
 export async function fetchRestaurantOpeningStatuses(
   tx: Prisma.TransactionClient,
+  timeSlot: TimeSlot,
   now: Date = new Date(),
 ): Promise<Map<string, RestaurantOpeningStatus>> {
-  const context = deriveJstCalendarContext(now);
+  const context = deriveJstCalendarContext(now, getTimeSlotWindow(timeSlot));
   const todayDateUtc = new Date(`${context.todayDate}T00:00:00.000Z`);
   const yesterdayDateUtc = new Date(`${context.yesterdayDate}T00:00:00.000Z`);
 

@@ -72,3 +72,19 @@ describe('#1666 検索候補は「分かっていて閉まっている」店を�
     expect(openFlags).not.toContain('FALSE AS is_open_at');
   });
 });
+
+describe('#288 timeSlot 未指定なら除外も加点も起きない（互換の番人）', () => {
+  it('timeSlot が無いときは fetchRestaurantOpeningStatuses を呼ばず空 Map のままにしている', () => {
+    expect(SOURCE).toContain(
+      'const openingStatuses = timeSlot\n' +
+        '      ? await fetchRestaurantOpeningStatuses(tx, timeSlot)\n' +
+        '      : new Map<string, RestaurantOpeningStatus>();',
+    );
+  });
+
+  it('findDishMediaIds は SearchDishMediaDto から timeSlot を受け取っている', () => {
+    expect(SOURCE).toContain(
+      "{ location, radius, categoryId, limit = 5, timeSlot }: SearchDishMediaDto,",
+    );
+  });
+});

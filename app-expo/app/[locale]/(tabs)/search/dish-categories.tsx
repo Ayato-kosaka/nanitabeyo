@@ -273,6 +273,9 @@ export default function DishCategoriesScreen() {
 				languageCode: params.localLanguageCode,
 				// #817 端末言語でレビューの並びが変わるためキーに含める
 				viewerLanguageCode: locale,
+				// #288 timeSlot で結果が変わるため、キーに含めないと別の時間帯で検索し直しても
+				// 古い timeSlot の結果がキャッシュから返ってしまう
+				timeSlot: params.timeSlot,
 			});
 
 			// #633 【設計】未取得 & 非ロード中の場合のみ fetch（重複実行を防止）
@@ -286,6 +289,7 @@ export default function DishCategoriesScreen() {
 						params.localLanguageCode,
 						params.distance,
 						params.priceLevels,
+						params.timeSlot,
 					);
 					upsertDishMediaEntries(dishItems);
 					return dishItems.map((item) => String(item.dish_media.id));

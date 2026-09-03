@@ -15,6 +15,7 @@
  * @param radius - 検索半径（メートル）
  * @param priceLevels - 価格帯の配列（順序は問わない）
  * @param languageCode - 検索言語コード
+ * @param timeSlot - #288 選んだ時間帯（営業時間フィルタの入力になり結果が変わるため含める）
  * @returns 一意の entriesKey 文字列
  */
 export function makeDishMediaEntriesKey(params: {
@@ -30,8 +31,10 @@ export function makeDishMediaEntriesKey(params: {
 	languageCode?: string;
 	/** #817 端末言語でレビューの並びが変わるため、キーに含めないと言語切替で古い結果が残る */
 	viewerLanguageCode?: string;
+	/** #288 未指定なら timeSlot によるフィルタは行われない側と揃え、キーにも含めない扱いにする */
+	timeSlot?: string;
 }): string {
-	const { categoryId, location, radius, priceLevels, languageCode, viewerLanguageCode } = params;
+	const { categoryId, location, radius, priceLevels, languageCode, viewerLanguageCode, timeSlot } = params;
 
 	// #633 【設計】location は緯度経度 or place_id で表現
 	const locationKey =
@@ -45,7 +48,8 @@ export function makeDishMediaEntriesKey(params: {
 
 	const languageCodeKey = languageCode ?? "default";
 	const viewerLanguageKey = viewerLanguageCode ?? "default";
+	const timeSlotKey = timeSlot ?? "none";
 
 	// #633 【設計】各要素を | で結合（可読性とデバッグのため）
-	return `cat:${categoryId}|loc:${locationKey}|r:${radius}|pr:${priceLevelsKey}|lang:${languageCodeKey}|vlang:${viewerLanguageKey}`;
+	return `cat:${categoryId}|loc:${locationKey}|r:${radius}|pr:${priceLevelsKey}|lang:${languageCodeKey}|vlang:${viewerLanguageKey}|ts:${timeSlotKey}`;
 }

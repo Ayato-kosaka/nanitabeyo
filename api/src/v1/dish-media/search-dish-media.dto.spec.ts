@@ -85,3 +85,32 @@ describe('SearchDishMediaDto.preferredLanguageCodes', () => {
     expect((await validate(dto)).length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * #288 timeSlot は「選んだ時間帯に営業しているか」フィルタの入力になる。
+ * 未指定は既存クライアント互換のため許可し、それ以外は
+ * `morning|lunch|dinner|late_night` の4値だけを許可する。
+ */
+describe('SearchDishMediaDto.timeSlot', () => {
+  it.each(['morning', 'lunch', 'dinner', 'late_night'])('%s を通す', async (timeSlot) => {
+    const dto = createDto({ timeSlot });
+
+    expect(dto.timeSlot).toBe(timeSlot);
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('未指定でも通る（後方互換。除外・加点なしとして扱われる）', async () => {
+    const dto = createDto();
+
+    expect(dto.timeSlot).toBeUndefined();
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it.each(['breakfast', 'night', ''])('4値以外の %s は弾く', async (timeSlot) => {
+    const dto = createDto({ timeSlot });
+    const errors = await validate(dto);
+
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].property).toBe('timeSlot');
+  });
+});
