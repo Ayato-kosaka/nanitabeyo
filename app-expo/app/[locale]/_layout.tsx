@@ -2,8 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Stack, useRootNavigationState, useRouter, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
-import { DialogProvider } from "@/contexts/DialogProvider";
-import { AuthProvider } from "@/contexts/AuthProvider";
+import { AppShellProviders } from "@/contexts/AppShellProviders";
 import { SnackbarProvider } from "@/contexts/SnackbarProvider";
 import { PaperProvider, Portal } from "react-native-paper";
 import { SplashHandler } from "@/components/SplashHandler";
@@ -24,7 +23,6 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
 import { SeoProvider, SeoHeadRenderer, SeoData } from "@/contexts/SeoContext";
 import { resolvePublicLocale, resolveStaticSeoForPath } from "@/constants/seoLocales";
-import { TrueSheetProvider } from "@lodev09/react-native-true-sheet";
 import { buildLocaleStaticParams, type LocaleStaticParam } from "@/lib/seo/localeStaticParams";
 
 /**
@@ -63,7 +61,6 @@ function LocaleLayout() {
 	useFrameworkReady();
 	const router = useRouter();
 	const { locale, isJapanese } = useLocale();
-
 
 	// #1503 【バグ】i18n の locale 同期は **描画中**に行う（以前は下の useEffect で行っていた）。
 	// effect は `expo export` の静的レンダリング（prerender）では走らないため、サーバが焼く HTML
@@ -191,56 +188,67 @@ function LocaleLayout() {
 					    同じ中央カラムへ自動的に収まる */}
 					<CenteredAppShell>
 						<SnackbarProvider>
-							<DialogProvider>
-								<TrueSheetProvider>
-									<AuthProvider>
-										<PushTokenRegistration />
-										<MetaAppEventsInitializer />
-										{/* #1641 OTA を «次の起動» まで待たせない（UI 無し）。
-										    既定のままだと利用者が触る JS は常に 1 つ前になる */}
-										<OtaUpdateApplier />
-										{/* #1400 共有された URL の取り込み入口（UI 無し）。
-										    PR1 では受け取り口が «共有なし» を返すので no-op */}
-										<SnsShareIntake />
-										<Portal.Host>
-											<SplashHandler>
-												<HealthCheckInitializer>
-													<AppProvider>
-														{/* #940 【設計】render中の未捕捉例外で白画面になるのを防ぐ最終防波堤。
-														    再試行はアプリのルートへ戻すことで安全な状態に復帰させる */}
-														<ErrorBoundary onRetry={() => router.replace("/")}>
-															{/*
-															#1629【27】**Stack へ `contentStyle` を必ず与える。**
+							{/* #1810 【設計】Dialog/Auth/TrueSheet の入れ子順序は `contexts/AppShellProviders.tsx`
+							    に切り出してある。以前はここに Portal.Host と MapsEmbedModalProvider も含めていたが、
+							    #843 でアプリ内地図を Portal 経由の全画面オーバーレイから expo-router のルート
+							    （`maps-embed`）へ変えたことで不要になった。Portal.Host は元の位置（ここ）へ戻す。 */}
+							<AppShellProviders>
+								<PushTokenRegistration />
+								<MetaAppEventsInitializer />
+								{/* #1641 OTA を «次の起動» まで待たせない（UI 無し）。
+							    既定のままだと利用者が触る JS は常に 1 つ前になる */}
+								<OtaUpdateApplier />
+								{/* #1400 共有された URL の取り込み入口（UI 無し）。
+							    PR1 では受け取り口が «共有なし» を返すので no-op */}
+								<SnsShareIntake />
+								<Portal.Host>
+									<SplashHandler>
+										<HealthCheckInitializer>
+											<AppProvider>
+												{/* #940 【設計】render中の未捕捉例外で白画面になるのを防ぐ最終防波堤。
+											    再試行はアプリのルートへ戻すことで安全な状態に復帰させる */}
+												<ErrorBoundary onRetry={() => router.replace("/")}>
+													{/*
+												#1629【27】**Stack へ `contentStyle` を必ず与える。**
 
-															expo-router の NavigationContainer は既定で react-navigation の
-															`DefaultTheme` を使う（`DarkTheme` を渡している箇所はリポジトリに無い）。
-															`DefaultTheme.colors.background` は `rgb(242,242,242)` の明るいグレーで、
-															画面が全面を塗り切らない瞬間 — 遷移アニメーションの最中、モーダルの背後、
-															画面のマウント直後 — に**ダークモードでもそこだけ明るく光る**。
+												expo-router の NavigationContainer は既定で react-navigation の
+												`DefaultTheme` を使う（`DarkTheme` を渡している箇所はリポジトリに無い）。
+												`DefaultTheme.colors.background` は `rgb(242,242,242)` の明るいグレーで、
+												画面が全面を塗り切らない瞬間 — 遷移アニメーションの最中、モーダルの背後、
+												画面のマウント直後 — に**ダークモードでもそこだけ明るく光る**。
 
-															⚠️ これは «色を直書きした» のではなく «色を書かなかった» ことで起きるので、
-															   `assert-no-hardcoded-colors.mjs` には原理的に検出できない。
-															*/}
-															<Stack screenOptions={{ header: () => null, contentStyle: { backgroundColor: colors.background } }}>
-																<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-																{/* #1375 実機確認（2 巡目）: ＋ からの取り込みは iOS ネイティブのシート
-																    （背後の画面が縮む pageSheet）で出す。下スワイプで閉じるのは
-																    ネイティブのジェスチャに任せる（自前 PanResponder は web の保険） */}
-																<Stack.Screen
-																	name="sns-import"
-																	options={{ presentation: "modal", header: () => null }}
-																/>
-																<Stack.Screen name="+not-found" />
-															</Stack>
-														</ErrorBoundary>
-														<StatusBar style="light" />
-													</AppProvider>
-												</HealthCheckInitializer>
-											</SplashHandler>
-										</Portal.Host>
-									</AuthProvider>
-								</TrueSheetProvider>
-							</DialogProvider>
+												⚠️ これは «色を直書きした» のではなく «色を書かなかった» ことで起きるので、
+												   `assert-no-hardcoded-colors.mjs` には原理的に検出できない。
+												*/}
+													<Stack
+														screenOptions={{
+															header: () => null,
+															contentStyle: { backgroundColor: colors.background },
+														}}>
+														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+														{/* #1375 実機確認（2 巡目）: ＋ からの取り込みは iOS ネイティブのシート
+													    （背後の画面が縮む pageSheet）で出す。下スワイプで閉じるのは
+													    ネイティブのジェスチャに任せる（自前 PanResponder は web の保険） */}
+														<Stack.Screen
+															name="sns-import"
+															options={{ presentation: "modal", header: () => null }}
+														/>
+														{/* #843 / #1810 Google Places の呼び出し上限フォールバックのアプリ内地図。
+													    地図のような全画面表示は Portal ではなくルートで持つ
+													    （assert-legacy-blur-modal-boundary.mjs 参照） */}
+														<Stack.Screen
+															name="maps-embed"
+															options={{ presentation: "modal", header: () => null }}
+														/>
+														<Stack.Screen name="+not-found" />
+													</Stack>
+												</ErrorBoundary>
+												<StatusBar style="light" />
+											</AppProvider>
+										</HealthCheckInitializer>
+									</SplashHandler>
+								</Portal.Host>
+							</AppShellProviders>
 						</SnackbarProvider>
 					</CenteredAppShell>
 				</PaperProvider>

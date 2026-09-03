@@ -698,6 +698,11 @@
 		"consent_review_copyright": "저작권",
 		"consent_review_suffix": "에 동의하는 것으로 간주됩니다."
 	},
+	"MapsEmbed": {
+		"title": "지도",
+		"unavailable": "이 기기에서는 지도 미리보기를 사용할 수 없습니다",
+		"openExternal": "Google 지도에서 열기"
+	},
 	"Restaurant": {
 		"Loading": {
 			"title": "선택하기 쉽도록 레스토랑 5곳을 엄선하고 있어요",

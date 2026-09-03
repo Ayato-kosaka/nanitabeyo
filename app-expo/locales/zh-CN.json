@@ -698,6 +698,11 @@
 		"consent_review_copyright": "版权",
 		"consent_review_suffix": "。"
 	},
+	"MapsEmbed": {
+		"title": "地图",
+		"unavailable": "此设备无法预览地图",
+		"openExternal": "在 Google 地图中打开"
+	},
 	"Restaurant": {
 		"Loading": {
 			"title": "正在精选5家餐厅让您更容易选择",

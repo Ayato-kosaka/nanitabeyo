@@ -698,6 +698,11 @@
 		"consent_review_copyright": "حقوق النشر",
 		"consent_review_suffix": " الخاصة بنا."
 	},
+	"MapsEmbed": {
+		"title": "الخريطة",
+		"unavailable": "معاينة الخريطة غير متاحة على هذا الجهاز",
+		"openExternal": "الفتح في خرائط Google"
+	},
 	"Restaurant": {
 		"Loading": {
 			"title": "نختار 5 مطاعم لتسهيل اختيارك",
