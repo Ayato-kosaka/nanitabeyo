@@ -985,7 +985,11 @@
 		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
 		"pickTitle": "Choisir un établissement",
 		"pickOnMap": "Chercher sur la carte",
-		"pickConfirm": "Choisir ce lieu"
+		"pickConfirm": "Choisir ce lieu",
+		"confirmName": {
+			"title": "Confirmer le nom du restaurant",
+			"message": "Il sera enregistré sous ce nom. Modifiez-le si nécessaire."
+		}
 	},
 	"MyDishes": {
 		"actions": {

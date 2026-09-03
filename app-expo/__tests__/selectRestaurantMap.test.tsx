@@ -41,6 +41,10 @@ jest.mock("@/contexts/ThemeProvider", () => ({
 
 const mockCallBackend = jest.fn();
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
+// #1671 POI確認UIの `prompt`。この画面ではダイアログの中身は検証対象外なので、常に確定させる
+jest.mock("@/contexts/DialogProvider", () => ({
+	useDialog: () => ({ prompt: () => Promise.resolve(null) }),
+}));
 
 const mockGetLocationDetails = jest.fn();
 const mockGetCurrentLocation = jest.fn(() => Promise.reject(new Error("denied")));

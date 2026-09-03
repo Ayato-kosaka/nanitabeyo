@@ -248,12 +248,15 @@ export class RestaurantsService {
     languageCode: string;
     placeDetail: google.maps.places.v1.IPlace;
     imagePath: string | null;
+    name?: string;
   }): Promise<PrismaRestaurants> {
-    const { googlePlaceId, languageCode, placeDetail, imagePath } = params;
+    const { googlePlaceId, languageCode, placeDetail, imagePath, name } =
+      params;
 
     const restaurantData: Prisma.restaurantsCreateInput = {
       google_place_id: googlePlaceId,
-      name: placeDetail.displayName!.text!, // バリデーション済みのため非 null アサーション
+      // #1671 ユーザーが確認した店名があればそれを使う。無ければ従来どおり Google の表示名
+      name: name || placeDetail.displayName!.text!, // バリデーション済みのため非 null アサーション
       name_language_code: languageCode,
       latitude: placeDetail.location!.latitude!,
       longitude: placeDetail.location!.longitude!,
@@ -416,6 +419,7 @@ export class RestaurantsService {
         languageCode: restaurantLanguageCode,
         placeDetail,
         imagePath,
+        name: dto.name,
       });
 
       await this.enqueueImageResizeIfNeeded(restaurant.id, imagePath);

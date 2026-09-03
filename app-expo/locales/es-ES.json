@@ -985,7 +985,11 @@
 		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa.",
 		"pickTitle": "Elegir local",
 		"pickOnMap": "Buscar en el mapa",
-		"pickConfirm": "Elegir este lugar"
+		"pickConfirm": "Elegir este lugar",
+		"confirmName": {
+			"title": "Confirmar el nombre del restaurante",
+			"message": "Se guardará con este nombre. Puedes editarlo si es necesario."
+		}
 	},
 	"MyDishes": {
 		"actions": {

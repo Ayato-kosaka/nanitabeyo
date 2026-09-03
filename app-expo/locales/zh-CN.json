@@ -985,7 +985,11 @@
 		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
 		"pickTitle": "选择店铺",
 		"pickOnMap": "在地图上查找店铺",
-		"pickConfirm": "选择这家店"
+		"pickConfirm": "选择这家店",
+		"confirmName": {
+			"title": "确认店名",
+			"message": "将以此名称保存，如有需要可以修改。"
+		}
 	},
 	"MyDishes": {
 		"actions": {

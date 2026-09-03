@@ -87,6 +87,13 @@ jest.mock("@/hooks/useAPICall", () => ({
 	useAPICall: () => ({ callBackend: mockCallBackend }),
 	ApiError: class ApiError extends Error {},
 }));
+
+/*
+#1671 POI確認UIの `prompt`。既定では «そのまま確定»（渡された defaultValue で解決）する
+モックにしておき、確認ダイアログの中身そのものを見たいテストだけ個別に差し替える。
+*/
+const mockPrompt = jest.fn((options: { defaultValue?: string }) => Promise.resolve(options.defaultValue ?? null));
+jest.mock("@/contexts/DialogProvider", () => ({ useDialog: () => ({ prompt: mockPrompt }) }));
 jest.mock("@/hooks/useLocationSearch", () => ({
 	useLocationSearch: () => ({
 		getLocationDetails: jest.fn(),
@@ -191,7 +198,18 @@ jest.mock("@/features/restaurantPicker/components/SavedRestaurantsSheet", () => 
 		),
 	};
 });
-jest.mock("@/components/LocationAutocomplete", () => ({ LocationAutocomplete: () => null }));
+// #1671 オートコンプリート選択（`onSelectSuggestion`）をテストから起動できるよう露出する
+jest.mock("@/components/LocationAutocomplete", () => {
+	const ReactActual = jest.requireActual("react");
+	const { View: RNView } = jest.requireActual("react-native");
+	return {
+		LocationAutocomplete: ({
+			onSelectSuggestion,
+		}: {
+			onSelectSuggestion?: (prediction: Record<string, unknown>) => void;
+		}) => ReactActual.createElement(RNView, { testID: "location-autocomplete", onPress: onSelectSuggestion }),
+	};
+});
 jest.mock("@/components/PrimaryButton", () => ({ PrimaryButton: () => null }));
 jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
 jest.mock("@/components/ScreenHeader", () => ({ ScreenHeader: () => null }));
@@ -240,6 +258,8 @@ beforeEach(() => {
 	renderedPins.length = 0;
 	mockRouteParams.current = {};
 	mockCallBackend.mockReset();
+	mockPrompt.mockClear();
+	mockPrompt.mockImplementation((options: { defaultValue?: string }) => Promise.resolve(options.defaultValue ?? null));
 	// 保存した店の検索（GET）は { data } を、店の作成（POST v1/restaurants）は単体を返す
 	mockCallBackend.mockImplementation((path: string) =>
 		Promise.resolve(path === "v1/restaurants" ? CREATED : { data: [SAVED] }),
@@ -459,5 +479,123 @@ describe("#1375 «お店を探す»（pick モード）のピン", () => {
 		expect(mockCallBackend).not.toHaveBeenCalledWith("v1/restaurants/search", expect.anything());
 		// pick モードでないときのピンは «保存したお店»。近くのお店は 1 件も引いていない
 		expect(renderedPins).toHaveLength(1);
+	});
+});
+
+/*
+#1671 地図の POI を押して新規店舗を作るとき、Google の表示名をそのまま保存するのをやめ、
+ユーザーが確認した値を保存する。
+
+- 新規（`GET v1/restaurants/by-google-place-id` が null）のときだけ確認ダイアログを出す
+- 既存店（同エンドポイントが非 null を返す）では確認を出さずそのまま開く（毎回聞かれると邪魔）
+- キャンセルしたら作成しない
+- POI・オートコンプリートのどちらも `createAndOpenRestaurant` に合流するので、両方で確認される
+- 表示名を渡せない呼び出しは、確認をスキップして従来どおり作成する（壊さない）
+*/
+describe("#1671 新規作成のときだけ店名を確認する", () => {
+	/** by-google-place-id の応答を差し替えつつ、店の作成（POST）は CREATED を返す既定のモック */
+	const respondWithExisting = (existing: unknown) => {
+		mockCallBackend.mockImplementation((path: string) => {
+			if (path === "v1/restaurants/by-google-place-id") return Promise.resolve(existing);
+			if (path === "v1/restaurants") return Promise.resolve(CREATED);
+			return Promise.resolve({ data: [] });
+		});
+	};
+
+	it("新規の Google Place: 確認ダイアログが Google の表示名を初期値に出て、確認した店名が POST へ送られる", async () => {
+		respondWithExisting(null);
+		mockPrompt.mockImplementation(() => Promise.resolve("確認済みの店名"));
+
+		const tree = await render(<SelectRestaurantScreen />);
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-new", name: "Google の表示名", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockPrompt).toHaveBeenCalledWith(expect.objectContaining({ defaultValue: "Google の表示名" }));
+		expect(mockCallBackend).toHaveBeenCalledWith(
+			"v1/restaurants",
+			expect.objectContaining({
+				method: "POST",
+				requestPayload: { googlePlaceId: "place-new", name: "確認済みの店名" },
+			}),
+		);
+		expect(callOrder).toEqual(["upsert", "push"]);
+	});
+
+	it("既存の Google Place: 確認を出さず、そのまま開く", async () => {
+		respondWithExisting(SAVED.restaurant);
+
+		const tree = await render(<SelectRestaurantScreen />);
+		await press(tree, "map-view", {
+			nativeEvent: {
+				placeId: "place-existing",
+				name: "Google の表示名",
+				coordinate: { latitude: 35, longitude: 139 },
+			},
+		});
+
+		expect(mockPrompt).not.toHaveBeenCalled();
+		expect(mockCallBackend).toHaveBeenCalledWith(
+			"v1/restaurants",
+			expect.objectContaining({ method: "POST", requestPayload: { googlePlaceId: "place-existing" } }),
+		);
+		expect(callOrder).toEqual(["upsert", "push"]);
+	});
+
+	it("確認をキャンセルすると、店を作らずに戻る（POST を送らない）", async () => {
+		respondWithExisting(null);
+		mockPrompt.mockImplementation(() => Promise.resolve(null));
+
+		const tree = await render(<SelectRestaurantScreen />);
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-cancel", name: "Google の表示名", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockCallBackend).not.toHaveBeenCalledWith("v1/restaurants", expect.anything());
+		expect(callOrder).toEqual([]);
+	});
+
+	it("オートコンプリートで飲食店を選んだときも、店名（mainText）を初期値に確認する", async () => {
+		respondWithExisting(null);
+		mockPrompt.mockImplementation(() => Promise.resolve("テスト食堂"));
+
+		const tree = await render(<SelectRestaurantScreen />);
+		await press(tree, "location-autocomplete", {
+			place_id: "place-autocomplete",
+			// ⚠️ text は secondaryText + mainText の結合で住所が混ざるため、初期値には使えない
+			text: "日本、東京都渋谷区 テスト食堂",
+			mainText: "テスト食堂",
+			secondaryText: "日本、東京都渋谷区",
+			types: ["restaurant"],
+		});
+
+		expect(mockPrompt).toHaveBeenCalledWith(expect.objectContaining({ defaultValue: "テスト食堂" }));
+		expect(mockCallBackend).toHaveBeenCalledWith(
+			"v1/restaurants",
+			expect.objectContaining({
+				requestPayload: { googlePlaceId: "place-autocomplete", name: "テスト食堂" },
+			}),
+		);
+	});
+
+	/*
+	⚠️ このテストは «ガードを 1 つ外すと赤くなる» 回帰である。`createAndOpenRestaurant` の
+	`if (defaultName)` を外す（常に確認を試みるようにする）と、表示名の無い呼び出しでも
+	`prompt` が呼ばれてしまい、このテストが落ちる。
+	*/
+	it("表示名を取れない呼び出しでは、確認を出さずに従来どおり作成する（互換）", async () => {
+		respondWithExisting(null);
+
+		const tree = await render(<SelectRestaurantScreen />);
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-noname", name: "", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockPrompt).not.toHaveBeenCalled();
+		expect(mockCallBackend).not.toHaveBeenCalledWith("v1/restaurants/by-google-place-id", expect.anything());
+		expect(mockCallBackend).toHaveBeenCalledWith(
+			"v1/restaurants",
+			expect.objectContaining({ requestPayload: { googlePlaceId: "place-noname" } }),
+		);
 	});
 });

@@ -13,10 +13,16 @@ import {
 	type AutocompleteLocation,
 	type CreateRestaurantResponse,
 	type QueryMeSavedRestaurantsResponse,
+	type QueryRestaurantsByGooglePlaceIdResponse,
 	type QueryRestaurantsResponse,
 	ErrorCode,
 } from "@shared/api/v1/res";
-import type { CreateRestaurantDto, QueryRestaurantsDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
+import type {
+	CreateRestaurantDto,
+	QueryRestaurantsByGooglePlaceIdDto,
+	QueryRestaurantsDto,
+	QuerySavedRestaurantsDto,
+} from "@shared/api/v1/dto";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
@@ -25,6 +31,7 @@ import { useLogger } from "@/hooks/useLogger";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useDialog } from "@/contexts/DialogProvider";
 import {
 	RestaurantClusterMarker,
 	RestaurantPinMarker,
@@ -109,6 +116,7 @@ export default function SelectRestaurantScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
+	const { prompt } = useDialog();
 	const { locale, isJapanese } = useLocale();
 	const navigation = useNavigation();
 	const [searchQuery, setSearchQuery] = useState("");
@@ -308,13 +316,58 @@ export default function SelectRestaurantScreen() {
 
 	// #644 【設計】レストラン作成＆詳細画面へ遷移する関数（ストアにキャッシュ→ナビゲーション）
 	// #525 【設計】エラーハンドリングを整備し、422/404/network_error 等を適切にスナックバーで通知
+	/*
+	#1671【設計】**新規作成のときだけ、店名を確認してから保存する。**
+
+	Google の表示名をそのまま自社データへ保存していたのをやめ、ユーザーが確認した値を保存する。
+	POI タップ・オートコンプリート選択のどちらも最終的にここへ合流するので、確認はここ 1 箇所に入れる。
+
+	«新規かどうか» は `GET /v1/restaurants/by-google-place-id`（DB を見るだけで Google は叩かない）
+	で判定する。既に自社データにある店は名前を確認しても意味が無い（後段の API も無視する）ので、
+	確認を出さずにそのまま開く。
+
+	`defaultName` を渡せない呼び出し元（表示名を持っていない経路）は、確認をスキップして
+	従来どおり作成する（壊さない）。
+	*/
 	const createAndOpenRestaurant = useCallback(
-		async (googlePlaceId: string) => {
+		async (googlePlaceId: string, defaultName?: string) => {
+			let confirmedName: string | undefined;
+
+			if (defaultName) {
+				try {
+					const existing = await callBackend<
+						QueryRestaurantsByGooglePlaceIdDto,
+						QueryRestaurantsByGooglePlaceIdResponse | null
+					>("v1/restaurants/by-google-place-id", {
+						method: "GET",
+						requestPayload: { googlePlaceId },
+					});
+
+					if (!existing) {
+						const confirmed = await prompt({
+							title: i18n.t("SelectRestaurant.confirmName.title"),
+							message: i18n.t("SelectRestaurant.confirmName.message"),
+							defaultValue: defaultName,
+						});
+						// キャンセル: 店を作らずに戻る
+						if (confirmed === null) return;
+						confirmedName = confirmed.trim() || defaultName;
+					}
+				} catch (error) {
+					// 存在確認に失敗しても、確認をスキップして従来どおり作成へ進む（壊さない）
+					logFrontendEvent({
+						event_name: "poi_existing_check_error",
+						error_level: "warn",
+						payload: { error, googlePlaceId },
+					});
+				}
+			}
+
 			setIsLoadingRestaurantCreation(true);
 			try {
 				const response = await callBackend<CreateRestaurantDto, CreateRestaurantResponse>("v1/restaurants", {
 					method: "POST",
-					requestPayload: { googlePlaceId },
+					requestPayload: confirmedName ? { googlePlaceId, name: confirmedName } : { googlePlaceId },
 				});
 
 				if (isPickMode) {
@@ -371,14 +424,14 @@ export default function SelectRestaurantScreen() {
 				setIsLoadingRestaurantCreation(false);
 			}
 		},
-		[callBackend, isPickMode, logFrontendEvent, showSnackbar, locale],
+		[callBackend, isPickMode, logFrontendEvent, showSnackbar, locale, prompt],
 	);
 
 	// #644 【設計】POI押下時にレストラン情報を取得してモーダル表示
 	const handlePoiPress = useCallback(
 		async (event: PoiClickEvent) => {
 			lightImpact();
-			createAndOpenRestaurant(event.nativeEvent.placeId);
+			createAndOpenRestaurant(event.nativeEvent.placeId, event.nativeEvent.name);
 		},
 		[createAndOpenRestaurant, lightImpact],
 	);
@@ -780,7 +833,8 @@ export default function SelectRestaurantScreen() {
 			lightImpact();
 			if (isFoodAndDrinkPlaceForUser(prediction)) {
 				// 飲食店カテゴリの場合はレストラン作成＆詳細表示
-				createAndOpenRestaurant(prediction.place_id);
+				// mainText が店名部分（text は secondaryText + mainText の結合で住所が混ざる）
+				createAndOpenRestaurant(prediction.place_id, prediction.mainText);
 			} else {
 				// 一般の場所の場合は地図移動のみ
 				try {
