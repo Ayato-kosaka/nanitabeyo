@@ -55,6 +55,8 @@ import {
 } from './restaurant-dish-media-cursor';
 import { fetchRestaurantOpeningStatuses } from '../restaurants/restaurant-opening-status';
 import type { RestaurantOpeningStatus } from '../../../../shared/utils/openingHours';
+// #1798 「使える dish_media」の判定は 1 箇所に定義し、店提案・店舗詳細の両方から埋め込む
+import { USABLE_DISH_MEDIA_CONDITIONS } from './usable-dish-media-filter';
 
 /** #817 優先言語のレビュー先読みクエリの戻り値 */
 type DishReviewWithUser = Prisma.dish_reviewsGetPayload<{
@@ -268,47 +270,16 @@ export class DishMediaRepository {
       -- 価格帯の絞り込みはMVPでは未対応
       WHERE 1=1
         -- カテゴリ
-        AND d.category_id = (SELECT category_id FROM params) 
-        -- #1513 論理削除済みの投稿は候補集合に入れない。ここを漏らすと
-        -- 「消したはずの投稿が検索に出る」という最も見つけにくい形で漏れる
-        AND dm.deleted_at IS NULL
         AND d.category_id = (SELECT category_id FROM params)
-        -- #1511 退会したユーザーの投稿はフィードに出さない（作者の users.deleted_at で判定）。
-        -- user_id が NULL の取り込みメディアは対象外なので NOT EXISTS で書く
-        AND NOT EXISTS (
-          SELECT 1 FROM users u
-          WHERE u.id = dm.user_id
-            AND u.deleted_at IS NOT NULL
-        )
-        -- #1257 実体（GCS original）が届いていない行を検索候補から除外する。
-        -- media_processing_status を「加工完了フラグ」としてではなく「原本到達の代理指標」として使う。
-        -- 単純に processing のみを弾く案では、原本のダウンロードに恒久的に失敗して
-        -- processing のまま固着した行や、リサイズに失敗した failed 行という別種の
-        -- 「実体未着」を見落とす（processing と failed は原因が違うだけで、どちらも
-        -- 検索へ公開してはいけない点は同じ）。そのため completed 以外を一律に除外する。
-        AND dm.media_processing_status = 'completed'
-        /* #1641 **埋め込みの枠の中で再生できないと分かっている投稿は、検索フィードへ出さない。**
-
-           オーナー指摘 2026-08-28:「検索タブのお店提案では出さないで欲しい」。
-           権利ブロックのリールや埋め込みを許可していない YouTube 動画は、開いても
-           サムネイルが止まっているだけで、そのセルは «スワイプさせるためだけの空振り» になる。
-
-           ⚠️ **playback_status <> 'not_playable' と書いてはいけない。**
-              取り込みメディア以外（自撮りの投稿）は dmee の行を持たないので、
-              等値比較にすると **NULL になって全部落ちる**。NOT EXISTS で «そう判定された
-              行が在るときだけ弾く» と書く。
-
-           ⚠️ **unknown は弾かない。** 判定できなかっただけの投稿を隠すと、
-              provider が仕様を変えた日に取り込み済みの投稿が一斉に検索から消える。
+        /* #1798 「使える dish_media」の判定（論理削除されていない / 投稿者が退会していない /
+           実体が届いている / 埋め込みが再生不能と分かっていない）は
+           usable-dish-media-filter.ts の USABLE_DISH_MEDIA_CONDITIONS に一本化してある
+           （findDishMediaByRestaurant と同じ定義を使う。理由もそちらに書いてある）。
 
            ⚠️ 置き場所は base_candidates（ROW_NUMBER より**前**）である。後段で外すと、
-              「1 dish につき 1 本」の枠を再生できない投稿が取ってしまい、
-              **その料理が丸ごとフィードから消える**。 */
-        AND NOT EXISTS (
-          SELECT 1 FROM dish_media_external_embeddings dmee
-          WHERE dmee.dish_media_id = dm.id
-            AND dmee.playback_status = 'not_playable'
-        )
+              「1 dish につき 1 本」の枠を使えない投稿が取ってしまい、
+              **その料理が丸ごとフィードから消える**（#1257 / #1641 で実際に踏んだ罠）。 */
+        ${USABLE_DISH_MEDIA_CONDITIONS}
         /* #288 / #1666 「営業時間が分かっていて、選んだ timeSlot には閉まっている」店は
            候補集合から除外する。closedRestaurantIds は JS 側で3値判定を済ませた結果
            （shared/utils/openingHours.ts）。「分からない」店（大多数）と timeSlot 未指定時は
@@ -602,21 +573,15 @@ export class DishMediaRepository {
         LEFT JOIN dish_media_analysis_results dmar
           ON dmar.dish_media_id = dm.id
         WHERE d.restaurant_id = ${restaurantId}::uuid
-          -- #1513 論理削除済みの投稿は店舗詳細にも出さない
-          AND dm.deleted_at IS NULL
-          -- #1511 退会したユーザーの投稿は店舗の投稿一覧にも出さない
-          AND NOT EXISTS (
-            SELECT 1 FROM users u
-            WHERE u.id = dm.user_id
-              AND u.deleted_at IS NOT NULL
-          )
-          -- #1257 findDishMediaIds と同じ理由で、実体（GCS original）が届いていない行を
-          -- レストラン詳細の一覧からも除外する。ここを漏らすと、検索には出なくなった
-          -- 未着メディアが店舗ページ経由でだけ露出し続ける。
-          -- 「各 dish につきいいね数最大の1件」を選ぶ ROW_NUMBER より前段で除外する必要がある。
-          -- 後段で弾くと、未着行が代表に選ばれた dish が丸ごと欠落し、completed な
-          -- 次点メディアまで巻き添えで消える。
-          AND dm.media_processing_status = 'completed'
+          /* #1798 「使える dish_media」の判定は usable-dish-media-filter.ts の
+             USABLE_DISH_MEDIA_CONDITIONS に一本化してある（findDishMediaIds と同じ定義を使う）。
+             以前はここへ条件を個別にコピペしており、playback_status の除外だけ
+             追随せずずれていた（店提案には出ないのに店舗詳細には出る）。
+
+             ⚠️ 置き場所は「各 dish につきいいね数最大の1件」を選ぶ ROW_NUMBER より前段である。
+                後段で弾くと、除外対象の行が代表に選ばれた dish が丸ごと欠落し、
+                使える次点メディアまで巻き添えで消える（#1257 で実際に踏んだ罠）。 */
+          ${USABLE_DISH_MEDIA_CONDITIONS}
       ),
       ranked AS (
         SELECT
