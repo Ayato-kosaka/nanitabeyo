@@ -35,6 +35,10 @@ import {
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
 import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
+import {
+  computePriceBand,
+  type PriceBand,
+} from '../../../../shared/utils/priceBand';
 import { prioritizeReviewsByLanguage } from './review-ordering';
 import { buildLanguageWhereClause } from './language-where';
 // #1511 退会したユーザーの投稿・レビューを外す where 断片（共有リンクの OGP でも使う）
@@ -70,6 +74,11 @@ export interface DishMediaEntryEntity {
      * レスポンスへそのまま出すものではなく、`thumbnailImageUrl` の解決にだけ使う。
      */
     categoryImageUrl: string | null;
+    /**
+     * #1774 `restaurant × dish_category` 単位の価格帯。中央値が3件未満、または
+     * 通貨の刻みが未定義のときは null（`averageRating` と同じ null 合流パターン）。
+     */
+    priceBand: PriceBand | null;
   };
   dish_media: PrismaDishMedia & {
     isMine: boolean;
@@ -976,6 +985,9 @@ export class DishMediaRepository {
       }),
     );
 
+    // #1774 restaurant × dish_category（= dish_id）単位の価格帯
+    const priceBandByDish = await this.findPriceBandsByDishIds(dishIds);
+
     const dishMediaMap = new Map(dishMedias.map((m) => [m.id, m]));
 
     // #817 【設計】表示する reviewLimit 件を先に確定させてから reactions を引く。
@@ -1051,6 +1063,8 @@ export class DishMediaRepository {
               > | null) ?? null,
             categoryImageUrl:
               dishMedia.dishes.dish_categories?.image_url ?? null,
+            // #1774 restaurant × dish_category 単位の価格帯（3件未満・通貨未確定は null）
+            priceBand: priceBandByDish.get(dishMedia.dish_id) ?? null,
           },
           dish_media: {
             ...(dishMedia as PrismaDishMedia),
@@ -1088,6 +1102,59 @@ export class DishMediaRepository {
           })),
         };
       });
+  }
+
+  /**
+   * #1774 restaurant × dish_category（= dish_id）単位の価格帯を計算する。
+   *
+   * 集計ルール自体（中央値・最低3件・通貨除外・NULL 通貨の除外）は
+   * `shared/utils/priceBand.ts` の `computePriceBand` が唯一の実装で、ここでは
+   * その入力になる「有効なレビュー行」を絞り込むだけにする。集計ロジックを
+   * ここへ書き写すと、テスト（`priceBand.test.ts`）が守っているのは
+   * 別の実装になってしまう。
+   *
+   * `currency_code IS NULL` の行はここでは除かない（`computePriceBand` 側で必ず除外する）。
+   * DB 側で先に絞ると、「ガードを外したら壊れる」ことをテストで実測できなくなるため、
+   * フィルタの責務は集計ロジック本体に置く。
+   */
+  private async findPriceBandsByDishIds(
+    dishIds: string[],
+  ): Promise<Map<string, PriceBand | null>> {
+    const result = new Map<string, PriceBand | null>();
+    if (dishIds.length === 0) return result;
+
+    const reviews = await this.prisma.prisma.dish_reviews.findMany({
+      // #1513 削除済みレビューは価格帯にも入れない
+      // #1511 退会したユーザーの投稿は価格帯の母数から外す（averageRating と同じ判定）
+      // #1774 中央値をアプリ側で計算するため件数無制限で引いている。1 つの料理にレビューが
+      // 数千件付く規模になったら、PERCENTILE_CONT の生 SQL による DB 側集計へ移すこと。
+      where: {
+        dish_id: { in: dishIds },
+        deleted_at: null,
+        price_cents: { not: null },
+        ...NOT_AUTHORED_BY_DELETED_USER,
+      },
+      select: { dish_id: true, price_cents: true, currency_code: true },
+    });
+
+    const rowsByDish = new Map<
+      string,
+      { priceCents: number | null; currencyCode: string | null }[]
+    >();
+    for (const review of reviews) {
+      const rows = rowsByDish.get(review.dish_id) ?? [];
+      rows.push({
+        priceCents: review.price_cents,
+        currencyCode: review.currency_code,
+      });
+      rowsByDish.set(review.dish_id, rows);
+    }
+
+    for (const [dishId, rows] of rowsByDish) {
+      result.set(dishId, computePriceBand(rows));
+    }
+
+    return result;
   }
 
   /**

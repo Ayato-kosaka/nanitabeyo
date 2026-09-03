@@ -53,6 +53,7 @@ import {
 import { protos } from '@googlemaps/places';
 import { selectGooglePlaceReviews } from './select-google-place-reviews';
 import { normalizeLanguageCode } from '../../../../shared/utils/languageCode';
+import { computePriceBand } from '../../../../shared/utils/priceBand';
 
 @Injectable()
 export class DishesService {
@@ -758,6 +759,15 @@ export class DishesService {
             categoryLabels: dto.categoryName
               ? { [dto.languageCode ?? 'ja']: dto.categoryName }
               : null,
+            // #1774 Google import 由来のレビューは価格を持たないため、実質常に null
+            // （cold-start の価格取得経路は #1774 の別スコープ）。ロジックは共通の
+            // computePriceBand を使い、repository 側と実装を二重管理しない。
+            priceBand: computePriceBand(
+              dishReviews.map((r) => ({
+                priceCents: r.price_cents,
+                currencyCode: r.currency_code,
+              })),
+            ),
           },
           dish_media: {
             ...dishMedia,

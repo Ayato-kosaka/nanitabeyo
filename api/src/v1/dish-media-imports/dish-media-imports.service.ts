@@ -55,7 +55,10 @@ import {
 } from '../../../../shared/utils/snsUrl';
 import { matchDishCategoriesWithIndex } from '../../../../shared/utils/dishCategoryMatch';
 import { matchRestaurantNames } from '../../../../shared/utils/restaurantNameMatch';
-import type { ExtractedText } from '../../../../shared/utils/textNormalize';
+import {
+  extractPinNames,
+  type ExtractedText,
+} from '../../../../shared/utils/textNormalize';
 import {
   extractPostalAddress,
   parseGsiAddressSearchResponse,
@@ -801,68 +804,42 @@ export class DishMediaImportsService {
       content = parsed;
     }
 
-    /* 3. provider 別の公式 oEmbed */
-    const outcome = await this.oembed.fetchMetadata(content);
-    /* #1641 メタデータが取れたかどうかとは独立に、再生可否は確定していることがある
-       （YouTube の «埋め込み不可» は oEmbed 401 = メタデータ失敗として現れる）。
-       だから status の分岐より**先に**引き取る。 */
-    playback = outcome.playback;
-
-    if (outcome.status === 'unavailable') {
-      return {
-        response: this.emptyResponse(
-          'unavailable',
-          'metadata_content_unavailable',
-          content,
-          expandedFromShortlink,
-          dto,
-        ),
-        playback,
+    /* 3. メタデータ。
+       #1273 大量並列 resolve: **収集時のキャプションが渡されていれば IG を取りに行かない。**
+       投稿ごとに `instagram.com/p/{code}/embed/captioned/` を叩くのがレート制限の元凶で、
+       これが並列も長時間連続も頭打ちにしていた（実測: 並列 fetch失敗73% / 単発長時間も劣化）。
+       収集側（business_discovery のキャプション・CC/検索の記事本文）で既にテキストは
+       得られているので、それを持ち回って渡せば店照合/カテゴリ判定は純粋なテキスト処理になり、
+       IG を一切叩かず好きなだけ並列できる。渡されないときは従来どおり provider 公式経路で取る。 */
+    let metadata: SnsMetadata;
+    const providedCaption =
+      typeof dto.caption === 'string' && dto.caption.trim() !== ''
+        ? dto.caption
+        : null;
+    if (providedCaption !== null) {
+      metadata = {
+        title: providedCaption,
+        description: null,
+        authorName:
+          typeof dto.authorName === 'string' && dto.authorName.trim() !== ''
+            ? dto.authorName
+            : null,
+        authorUrl: null,
+        thumbnailUrl: null,
       };
-    }
-    if (outcome.status === 'unknown') {
-      // Instagram（取得手段が無い）も、oEmbed の 5xx / タイムアウトもここへ来る。
-      // **どちらも「取り込みは続行してよい」状態**なので、埋め込みに要る情報は返し切る。
-      return {
-        response: this.emptyResponse(
-          'unknown',
-          outcome.kind === 'provider_unsupported'
-            ? 'metadata_provider_unsupported'
-            : 'metadata_fetch_failed',
-          content,
-          expandedFromShortlink,
-          dto,
-        ),
-        playback,
-      };
-    }
+      // playback は既定の PLAYBACK_UNKNOWN のまま（埋め込み可否は判定していない）。
+    } else {
+      const outcome = await this.oembed.fetchMetadata(content);
+      /* #1641 メタデータが取れたかどうかとは独立に、再生可否は確定していることがある
+         （YouTube の «埋め込み不可» は oEmbed 401 = メタデータ失敗として現れる）。
+         だから status の分岐より**先に**引き取る。 */
+      playback = outcome.playback;
 
-    /*
-    #1641 **YouTube は Shorts だけを取り込む**（#1399 リーダー確定 §1）。
-
-    `/watch?v=` と `youtu.be/` は URL だけでは Shorts か判定できないので
-    `requiresShortsCheck` が立つ。**その確定処理がどこにも無く、横長の通常動画が
-    そのまま取り込めていた**（オーナー指摘 2026-08-28。セルでは上下に黒帯が出る）。
-
-    ⚠️ 判定できなかったときは**弾かずに通す**（同 §3 の条件 1）。判定材料は YouTube の
-       実装であって契約された仕様ではないので、安全側に倒すと向こうが挙動を変えた日に
-       取り込みが全部止まる。`requiresShortsCheck` を立てたまま返し、呼び出し側に委ねる。
-    */
-    if (
-      content.provider === 'youtube' &&
-      content.requiresShortsCheck === true
-    ) {
-      const verdict = await this.oembed.confirmYouTubeShorts(
-        content.externalContentId,
-      );
-      if (verdict === 'not_shorts') {
-        this.logger.debug('SnsImportYouTubeNotShorts', 'resolve', {
-          externalContentId: content.externalContentId,
-        });
+      if (outcome.status === 'unavailable') {
         return {
           response: this.emptyResponse(
-            'unsupported',
-            'youtube_not_shorts',
+            'unavailable',
+            'metadata_content_unavailable',
             content,
             expandedFromShortlink,
             dto,
@@ -870,12 +847,63 @@ export class DishMediaImportsService {
           playback,
         };
       }
-      // Shorts だと確定したなら、呼び出し側へ «要確認» を持ち越さない
-      if (verdict === 'shorts')
-        content = { ...content, requiresShortsCheck: false };
-    }
+      if (outcome.status === 'unknown') {
+        // Instagram（取得手段が無い）も、oEmbed の 5xx / タイムアウトもここへ来る。
+        // **どちらも「取り込みは続行してよい」状態**なので、埋め込みに要る情報は返し切る。
+        return {
+          response: this.emptyResponse(
+            'unknown',
+            outcome.kind === 'provider_unsupported'
+              ? 'metadata_provider_unsupported'
+              : 'metadata_fetch_failed',
+            content,
+            expandedFromShortlink,
+            dto,
+          ),
+          playback,
+        };
+      }
 
-    const metadata = outcome.metadata;
+      /*
+      #1641 **YouTube は Shorts だけを取り込む**（#1399 リーダー確定 §1）。
+
+      `/watch?v=` と `youtu.be/` は URL だけでは Shorts か判定できないので
+      `requiresShortsCheck` が立つ。**その確定処理がどこにも無く、横長の通常動画が
+      そのまま取り込めていた**（オーナー指摘 2026-08-28。セルでは上下に黒帯が出る）。
+
+      ⚠️ 判定できなかったときは**弾かずに通す**（同 §3 の条件 1）。判定材料は YouTube の
+         実装であって契約された仕様ではないので、安全側に倒すと向こうが挙動を変えた日に
+         取り込みが全部止まる。`requiresShortsCheck` を立てたまま返し、呼び出し側に委ねる。
+      */
+      if (
+        content.provider === 'youtube' &&
+        content.requiresShortsCheck === true
+      ) {
+        const verdict = await this.oembed.confirmYouTubeShorts(
+          content.externalContentId,
+        );
+        if (verdict === 'not_shorts') {
+          this.logger.debug('SnsImportYouTubeNotShorts', 'resolve', {
+            externalContentId: content.externalContentId,
+          });
+          return {
+            response: this.emptyResponse(
+              'unsupported',
+              'youtube_not_shorts',
+              content,
+              expandedFromShortlink,
+              dto,
+            ),
+            playback,
+          };
+        }
+        // Shorts だと確定したなら、呼び出し側へ «要確認» を持ち越さない
+        if (verdict === 'shorts')
+          content = { ...content, requiresShortsCheck: false };
+      }
+
+      metadata = outcome.metadata;
+    }
     const texts = this.buildExtractedTexts(content, metadata);
 
     /* 4-5. 料理カテゴリ候補と店舗候補。互いの結果を使わないので並列に走らせる
@@ -1259,8 +1287,18 @@ export class DishMediaImportsService {
       });
     }
 
+    // #1273 生キャプション（改行を保った状態）から 📍<店名> 行を切り出し、exact-match の
+    // ヒントとして渡す。含有一致 0.85 止まりで prefill（0.90）に届かなかった «店名を丸ごと
+    // 📍 行に書く» 投稿を、無人取り込みの土俵へ乗せる。
+    // ⚠️ texts の text は正規化前の生キャプション（buildExtractedTexts が metadata.title /
+    //    description をそのまま入れる）なので、ここで改行連結してよい。normalize 済みを渡すと
+    //    改行が潰れて 📍 行の切り出しが効かなくなる。
+    // TODO(#1273 バケット2): 裸ハンドル（extractBareHandles）→ 店 ID 辞書での解決は、辞書が
+    //    入ったら別 Issue でここへ繋ぐ。現状は辞書が無いので抽出のみ用意して未使用。
+    const nameHints = extractPinNames(texts.map((text) => text.text).join('\n'));
+
     const matched = matchRestaurantNames(
-      { texts, candidates: searchCandidates, authorName },
+      { texts, candidates: searchCandidates, authorName, nameHints },
       { maxCandidates: limit },
     );
 

@@ -293,9 +293,7 @@ model dish_media_external_embeddings {
   created_at          DateTime   @default(now()) @db.Timestamptz(6)
   updated_at          DateTime   @default(now()) @db.Timestamptz(6)
   thumbnail_url       String?
-  /// #1641 埋め込みの枠の中で再生できるか（unknown / playable / not_playable）。embed_status とは直交する
   playback_status     String     @default("unknown")
-  /// not_playable のときだけ入る理由。playable / unknown を書くときは必ず null に戻すこと（CHECK 違反で取り込みが落ちる）
   playback_reason     String?
   playback_checked_at DateTime?  @db.Timestamptz(6)
   dish_media          dish_media @relation(fields: [dish_media_id, dish_id], references: [id, dish_id], onDelete: Cascade, onUpdate: NoAction, map: "dmee_dish_media_dish_fk")
@@ -303,7 +301,6 @@ model dish_media_external_embeddings {
   @@unique([dish_media_id, dish_id], map: "dmee_media_dish_uq")
   @@unique([provider, external_content_id, dish_id], map: "dmee_provider_content_dish_uq")
   @@index([embed_status, last_verified_at], map: "idx_dmee_status_verified")
-  @@index([dish_media_id], map: "idx_dmee_not_playable")
   @@schema("dev")
 }
 
@@ -632,6 +629,24 @@ model restaurant_bids {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model restaurant_hours_exceptions {
+  restaurant_id  String      @db.Uuid
+  source         String
+  exception_date DateTime    @db.Date
+  is_closed      Boolean
+  opens_at       DateTime?   @db.Time(6)
+  closes_at      DateTime?   @db.Time(6)
+  fetched_at     DateTime    @db.Timestamptz(6)
+  restaurants    restaurants @relation(fields: [restaurant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([restaurant_id, source, exception_date])
+  @@index([restaurant_id, exception_date], map: "idx_restaurant_hours_exceptions_date")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model restaurant_links {
   restaurant_id String      @db.Uuid
   kind          String
@@ -650,29 +665,50 @@ model restaurant_links {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model restaurant_opening_hours {
+  restaurant_id    String      @db.Uuid
+  source           String
+  day_of_week      Int         @db.SmallInt
+  opens_at         DateTime    @db.Time(6)
+  closes_at        DateTime    @db.Time(6)
+  crosses_midnight Boolean     @default(false)
+  fetched_at       DateTime    @db.Timestamptz(6)
+  source_url       String?
+  restaurants      restaurants @relation(fields: [restaurant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([restaurant_id, source, day_of_week, opens_at])
+  @@index([restaurant_id, day_of_week], map: "idx_restaurant_opening_hours_lookup")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model restaurants {
-  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  google_place_id    String                    @unique
-  name               String
-  name_language_code String
-  latitude           Float
-  longitude          Float
-  image_url          String
-  address_components Json
-  plus_code          Json?
-  created_at         DateTime                  @default(now()) @db.Timestamptz(6)
-  location           Unsupported("geography")? @default(dbgenerated("(st_setsrid(st_makepoint(longitude, latitude), 4326))::geography"))
-  image_path         String?
-  source_seed_id     String?                   @db.Uuid
-  source_names       String[]                  @default([])
-  source_row_hash    String?
-  synced_at          DateTime?                 @db.Timestamptz(6)
-  created_by_source  String                    @default("user")
-  address            String?
-  country_code       String?
-  dishes             dishes[]
-  restaurant_bids    restaurant_bids[]
-  restaurant_links   restaurant_links[]
+  id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  google_place_id             String                        @unique
+  name                        String
+  name_language_code          String
+  latitude                    Float
+  longitude                   Float
+  image_url                   String
+  address_components          Json
+  plus_code                   Json?
+  created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  location                    Unsupported("geography")?     @default(dbgenerated("(st_setsrid(st_makepoint(longitude, latitude), 4326))::geography"))
+  image_path                  String?
+  source_seed_id              String?                       @db.Uuid
+  source_names                String[]                      @default([])
+  source_row_hash             String?
+  synced_at                   DateTime?                     @db.Timestamptz(6)
+  created_by_source           String                        @default("user")
+  address                     String?
+  country_code                String?
+  dishes                      dishes[]
+  restaurant_bids             restaurant_bids[]
+  restaurant_hours_exceptions restaurant_hours_exceptions[]
+  restaurant_links            restaurant_links[]
+  restaurant_opening_hours    restaurant_opening_hours[]
 
   @@index([created_by_source], map: "idx_restaurants_created_by_source")
   @@index([location], map: "idx_restaurants_location", type: Gist)

@@ -87,6 +87,8 @@ export class DishMediaAssembler {
         averageRating: src.dish.averageRating,
         // #1375 カテゴリの正式表記（ローマ字の name をユーザーに見せないため）
         categoryLabels: src.dish.categoryLabels,
+        // #1774 restaurant × dish_category 単位の価格帯（3件未満・通貨未確定は null）
+        priceBand: src.dish.priceBand,
       };
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
