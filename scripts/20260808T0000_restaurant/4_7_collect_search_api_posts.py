@@ -43,7 +43,7 @@ import urllib.request
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW
+from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED
 
 LOGGER = logging.getLogger(__name__)
 
@@ -371,14 +371,17 @@ def _read_store_handles(pipeline: BigQueryPipeline, account_run_id, max_queries,
         WHERE {where}
         QUALIFY ROW_NUMBER() OVER (PARTITION BY a.handle ORDER BY a.discovered_at DESC) = 1
       ),
-      collected AS (SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` WHERE account_id IS NOT NULL)
+      collected AS (SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` WHERE account_id IS NOT NULL),
+      -- BQ は JOIN 条件にサブクエリを置けない（"Unsupported subquery with table in join predicate"）ので CTE に出す
+      cat AS (
+        SELECT google_place_id, name, address FROM `{pipeline.table('restaurant_catalog')}`
+        WHERE run_id = (SELECT run_id FROM `{pipeline.table('restaurant_catalog')}` GROUP BY run_id ORDER BY COUNT(*) DESC LIMIT 1)
+      )
       SELECT acc.handle, acc.place_id, c.name AS store_name,
              REGEXP_EXTRACT(c.address, r'(?:{_PREF_ALT})(.+?[市区町村])') AS city
       FROM acc
       LEFT JOIN collected ON collected.account_id = acc.handle
-      LEFT JOIN `{pipeline.table('restaurant_catalog')}` c
-        ON c.run_id = (SELECT run_id FROM `{pipeline.table('restaurant_catalog')}` GROUP BY run_id ORDER BY COUNT(*) DESC LIMIT 1)
-       AND c.google_place_id = acc.place_id
+      LEFT JOIN cat c ON c.google_place_id = acc.place_id
       WHERE collected.account_id IS NULL
       ORDER BY acc.handle
       LIMIT {int(max_queries or 1000000)} OFFSET {int(offset or 0)}
