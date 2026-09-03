@@ -497,6 +497,44 @@ describe('DishMediaImportsService — Instagram（埋め込み SSR。#1375 3 巡
     expect(result.metadata.title).not.toContain('<b>');
   });
 
+  it('#1273 caption を渡すと IG を取りに行かず、そのテキストから候補が出る（大量並列 resolve）', async () => {
+    const { service } = createHarness();
+    // INSTAGRAM_EMBED_URL は **routing しない**。取りに行けば必ず失敗して unknown になる。
+    // caption 直渡しで ok + 候補が返れば、IG を叩かずに済んでいる証拠。
+    const result = await service.resolve({
+      url: 'https://www.instagram.com/reel/DAbcDefGhIj/',
+      caption:
+        '濃口醤油とラードを効かせた八王子ラーメン！【中華そば専門店 八王子ラーメンよしだ】#ラーメン',
+      authorName: 'umaguru.tokyo',
+    });
+
+    expect(result.status).toBe('ok');
+    expect(result.reason).toBe('resolved');
+    expect(result.source.provider).toBe('instagram');
+    expect(
+      result.candidates.dishCategories.map((c) => c.dishCategoryId),
+    ).toContain('Q1');
+    expect(result.metadata.title).toContain('八王子ラーメンよしだ');
+    expect(result.metadata.authorName).toBe('umaguru.tokyo');
+  });
+
+  it('caption が空文字なら従来どおり IG を取りに行く（縮退の分岐は変えない）', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: SSR_EMBED_HTML,
+    });
+
+    const result = await service.resolve({
+      url: 'https://www.instagram.com/reel/DAbcDefGhIj/',
+      caption: '   ',
+    });
+
+    expect(result.status).toBe('ok');
+    expect(result.metadata.authorName).toBe('umaguru.tokyo');
+  });
+
   it('JS シェルが返ったら «取れなかった» へ縮退する（保存までは進める）', async () => {
     const { service, transport } = createHarness();
     transport.route(INSTAGRAM_EMBED_URL, {
