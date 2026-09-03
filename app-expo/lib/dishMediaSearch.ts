@@ -45,6 +45,7 @@ export async function createDishItemsForCategory({
 	viewerLanguageCode,
 	radius = DEFAULT_SEARCH_RADIUS,
 	priceLevels = [...DEFAULT_PRICE_LEVELS],
+	timeSlot,
 	searchResultRestaurantsNumber = parseInt(getRemoteConfig()?.v1_search_result_restaurants_number!, 10),
 }: {
 	callBackend: CallBackend;
@@ -57,6 +58,8 @@ export async function createDishItemsForCategory({
 	viewerLanguageCode?: string;
 	radius?: number;
 	priceLevels?: string[];
+	/** #288 ユーザーが選んだ時間帯。未指定なら店提案側の除外・加点は行われない（既存動作のまま） */
+	timeSlot?: SearchDishMediaDto["timeSlot"];
 	searchResultRestaurantsNumber?: number;
 }): Promise<DishMediaEntry[]> {
 	// まず既存の dish_media を検索する。0 件の時だけ import に進む。
@@ -70,6 +73,7 @@ export async function createDishItemsForCategory({
 			// #817 【設計】レビューは「読んで意思決定するテキスト」なので、まず読める言語
 			// (端末言語)を優先し、在庫が薄い分を検索地点の言語で埋める。
 			preferredLanguageCodes: buildPreferredLanguageCodes(viewerLanguageCode, searchLocationLanguageCode),
+			timeSlot,
 		},
 	});
 
