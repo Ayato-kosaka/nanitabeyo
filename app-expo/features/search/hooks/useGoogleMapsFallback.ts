@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useDialog } from "@/contexts/DialogProvider";
-import { useMapsEmbedModal } from "@/contexts/MapsEmbedModalProvider";
+import { useMapsEmbedModal } from "@/features/maps/hooks/useMapsEmbedModal";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { buildGoogleMapsSearchUrl } from "@/lib/googleMaps";
@@ -23,7 +23,7 @@ type UseGoogleMapsFallbackParams = {
  * 検索結果が 0 件のときの Google Maps fallback ダイアログを扱う。
  *
  * #843【設計】確認後に開くのは外部ブラウザではなく、アプリ内地図
- * （`MapsEmbedModalProvider` の `showMapsEmbedModal`、mode=search）。
+ * （`useMapsEmbedModal` の `showMapsEmbedModal`、mode=search）。
  * Google Maps アプリ/ブラウザへの外部遷移は、埋め込みが使えない/失敗したときの
  * 退避として `MapsEmbedModal` の中に残る（外へは出さない）。
  *

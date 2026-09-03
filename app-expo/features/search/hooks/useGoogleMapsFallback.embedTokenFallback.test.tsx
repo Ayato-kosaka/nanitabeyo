@@ -1,17 +1,23 @@
 /*
 #1810 PL レビュー 3番【回帰防止】«Google マップ検索結果 0 件» のフォールバックで確認したときの
-挙動を、`MapsEmbedModalProvider` を実物のまま固定する。
+挙動を、`useMapsEmbedModal`（features/maps/hooks/useMapsEmbedModal.ts）を実物のまま固定する。
 
 `useGoogleMapsFallback.test.ts` は `useMapsEmbedModal` をモックしており、
 「正しい params で `showMapsEmbedModal` を呼んだか」までしか検証できない
-（トークン取得の成否で実際にモーダルが開くかどうかは検証対象の外）。
-このファイルは Provider を実物のまま組み立て、トークン取得（`POST /v1/maps/embed-token`）
+（トークン取得の成否で実際に遷移するかどうかは検証対象の外）。
+このファイルは hook を実物のまま組み立て、トークン取得（`POST /v1/maps/embed-token`）
 の成否によって実際に
 
-  - 失敗 → モーダルを一度も開かず `openExternalUrl` で外部ブラウザへ直行する（main と同じ体験）
-  - 成功 → モーダル（本物の `MapsEmbedModal`）が開く。`openExternalUrl` は呼ばない
+  - 失敗 → `/[locale]/maps-embed` へ一度も遷移せず `openExternalUrl` で外部ブラウザへ直行する
+    （main と同じ体験）
+  - 成功 → `/[locale]/maps-embed` へ解決済みの embedUrl で router.push する。
+    `openExternalUrl` は呼ばない
 
 ことだけが変わることを固定する。
+
+#843 で `MapsEmbedModal` は Portal ベースの全画面オーバーレイから expo-router のルート
+（`app/[locale]/maps-embed.tsx`）へ変わったため、以前のように «同じ描画ツリーにモーダルが
+現れるか» では検証できない。ここでは `router.push` の呼び出しそのものを観測する。
 */
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
@@ -19,6 +25,7 @@ import TestRenderer, { act } from "react-test-renderer";
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
 jest.mock("@/hooks/useSheetBottomPadding", () => ({ useSheetBottomPadding: () => 0 }));
+jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("lucide-react-native", () => ({ X: () => null }));
 jest.mock("@/contexts/ThemeProvider", () => ({
 	useAppTheme: () => ({ colors: new Proxy({}, { get: () => "#000000" }) }),
@@ -39,39 +46,25 @@ jest.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: (url: string) => mo
 const mockShowDialog = jest.fn();
 jest.mock("@/contexts/DialogProvider", () => ({ useDialog: () => ({ showDialog: mockShowDialog }) }));
 
-// Portal.Host 前提の Portal を素通りへ差し替える（contexts/DialogProvider.test.tsx と同じ方針）
-jest.mock("react-native-paper", () => {
-	const ReactModule = require("react");
-	const { View: RNView } = require("react-native");
-	return {
-		__esModule: true,
-		Portal: ({ children }: { children?: React.ReactNode }) => ReactModule.createElement(RNView, null, children),
-	};
-});
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 
-import { MapsEmbedModalProvider } from "@/contexts/MapsEmbedModalProvider";
 import { useGoogleMapsFallback } from "./useGoogleMapsFallback";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 type ShowDialogOptions = { onConfirm: () => void };
 
-function renderHookWithRealProvider(): {
-	hook: ReturnType<typeof useGoogleMapsFallback>;
-	tree: TestRenderer.ReactTestRenderer;
-} {
+function renderHook(): ReturnType<typeof useGoogleMapsFallback> {
 	let captured!: ReturnType<typeof useGoogleMapsFallback>;
 	const Harness = () => {
 		captured = useGoogleMapsFallback({ source: "search_result_screen" });
 		return null;
 	};
-	let tree!: TestRenderer.ReactTestRenderer;
 	act(() => {
-		tree = TestRenderer.create(
-			React.createElement(MapsEmbedModalProvider, null, React.createElement(Harness)),
-		);
+		TestRenderer.create(React.createElement(Harness));
 	});
-	return { hook: captured, tree };
+	return captured;
 }
 
 /** 保留中の act() 内マイクロタスクを流す */
@@ -82,17 +75,18 @@ const flush = () =>
 		await Promise.resolve();
 	});
 
-describe("#1810 useGoogleMapsFallback: トークン取得の成否でモーダル/外部ブラウザを出し分ける（実 Provider）", () => {
+describe("#1810 useGoogleMapsFallback: トークン取得の成否でルート遷移/外部ブラウザを出し分ける（実 hook）", () => {
 	afterEach(() => {
 		mockCallBackend.mockReset();
 		mockOpenExternalUrl.mockClear();
 		mockShowDialog.mockClear();
 		mockLogFrontendEvent.mockClear();
+		mockPush.mockClear();
 	});
 
-	it("トークン取得に失敗したら、モーダルを開かず外部ブラウザへ直行する（main と同じ体験）", async () => {
+	it("トークン取得に失敗したら、/[locale]/maps-embed へ遷移せず外部ブラウザへ直行する（main と同じ体験）", async () => {
 		mockCallBackend.mockRejectedValue(new Error("network error"));
-		const { hook, tree } = renderHookWithRealProvider();
+		const hook = renderHook();
 
 		act(() => {
 			hook.showGoogleMapsFallbackDialog({
@@ -107,14 +101,14 @@ describe("#1810 useGoogleMapsFallback: トークン取得の成否でモーダ�
 		});
 		await flush();
 
-		expect(tree.root.findAllByProps({ testID: "maps-embed-modal" }).length).toBe(0);
+		expect(mockPush).not.toHaveBeenCalled();
 		expect(mockOpenExternalUrl).toHaveBeenCalledTimes(1);
 		expect(mockOpenExternalUrl.mock.calls[0][0]).toContain("https://www.google.com/maps/search/");
 	});
 
-	it("トークン取得に成功したら、モーダル（本物）が開く。外部ブラウザへは行かない", async () => {
+	it("トークン取得に成功したら、/[locale]/maps-embed へ解決済みの embedUrl で router.push する。外部ブラウザへは行かない", async () => {
 		mockCallBackend.mockResolvedValue({ token: "evidence-stub-token", expiresAt: "2099-01-01T00:00:00.000Z" });
-		const { hook, tree } = renderHookWithRealProvider();
+		const hook = renderHook();
 
 		act(() => {
 			hook.showGoogleMapsFallbackDialog({
@@ -129,7 +123,16 @@ describe("#1810 useGoogleMapsFallback: トークン取得の成否でモーダ�
 		});
 		await flush();
 
-		expect(tree.root.findAllByProps({ testID: "maps-embed-modal" }).length).toBeGreaterThan(0);
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pathname: "/[locale]/maps-embed",
+				params: expect.objectContaining({
+					locale: "ja-JP",
+					mode: "search",
+					embedUrl: "https://api.example.com/v1/maps/embed?token=evidence-stub-token",
+				}),
+			}),
+		);
 		expect(mockOpenExternalUrl).not.toHaveBeenCalled();
 	});
 });

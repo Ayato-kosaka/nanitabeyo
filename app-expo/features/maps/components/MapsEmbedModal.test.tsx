@@ -2,15 +2,15 @@
 #843 / #1810 MapsEmbedModal の表示ロジック検証。
 
 #1810 PL レビュー 3番でトークン取得（`POST /v1/maps/embed-token`）は
-`MapsEmbedModalProvider` 側へ移した（キー未設定の間 «モーダルが開く→表示できない→
-もう一度押す» という無意味な往復を無くすため。取得に失敗したらそもそもモーダルを開かない）。
-そのため、このコンポーネントは常に解決済みの `embedUrl` を受け取る前提になり、
-ここで固定するのは次の 2 点だけになった。
+`useMapsEmbedModal`（features/maps/hooks/useMapsEmbedModal.ts）側へ移した（キー未設定の間
+«画面が開く→表示できない→もう一度押す» という無意味な往復を無くすため。取得に失敗したら
+そもそも画面へ遷移しない）。そのため、このコンポーネントは常に解決済みの `embedUrl` を
+受け取る前提になり、ここで固定するのは次の 2 点だけになった。
 - params が null なら何も描かない
 - WebView が居ないテスト環境では MapsEmbedView 自身が fallback へ倒れ、
   フッタの外部リンクは重ねて出さない（#1810 PL レビュー 3番）
 
-トークン取得の成功/失敗の分岐は `contexts/MapsEmbedModalProvider.test.tsx` が持つ。
+トークン取得の成功/失敗の分岐は `features/maps/hooks/useMapsEmbedModal.test.tsx` が持つ。
 */
 import React from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
@@ -35,9 +35,6 @@ import { MapsEmbedModal, type ResolvedMapsEmbedModalParams } from "./MapsEmbedMo
 
 const PARAMS: ResolvedMapsEmbedModalParams = {
 	mode: "search",
-	q: "ラーメン",
-	center: { latitude: 35.6, longitude: 139.7 },
-	hl: "ja",
 	title: "ラーメン",
 	externalUrl: "https://www.google.com/maps/search/ramen/@35.6,139.7,14z",
 	source: "search_result_screen",

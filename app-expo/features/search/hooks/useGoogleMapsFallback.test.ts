@@ -12,7 +12,7 @@ const mockShowDialog = jest.fn();
 jest.mock("@/contexts/DialogProvider", () => ({ useDialog: () => ({ showDialog: mockShowDialog }) }));
 
 const mockShowMapsEmbedModal = jest.fn();
-jest.mock("@/contexts/MapsEmbedModalProvider", () => ({
+jest.mock("@/features/maps/hooks/useMapsEmbedModal", () => ({
 	useMapsEmbedModal: () => ({ showMapsEmbedModal: mockShowMapsEmbedModal }),
 }));
 

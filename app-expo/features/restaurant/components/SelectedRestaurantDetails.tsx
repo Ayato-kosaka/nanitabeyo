@@ -66,7 +66,7 @@ import { getCacheKeyForImage } from "@/lib/image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { useMapsEmbedModal } from "@/contexts/MapsEmbedModalProvider";
+import { useMapsEmbedModal } from "@/features/maps/hooks/useMapsEmbedModal";
 import { RestaurantEntry } from "@/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { useRouter } from "expo-router";

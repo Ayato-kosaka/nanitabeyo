@@ -1,15 +1,22 @@
 /*
-#1810 PL レビュー 3番【回帰防止】店舗詳細の «Google マップで開く» を、`MapsEmbedModalProvider`
-を実物のまま固定する。
+#1810 PL レビュー 3番【回帰防止】店舗詳細の «Google マップで開く» を、`useMapsEmbedModal`
+（features/maps/hooks/useMapsEmbedModal.ts）を実物のまま固定する。
 
 `__tests__/restaurantDetailRoutes.test.tsx` は `useMapsEmbedModal` をモックしており、
-押下先の分岐（feed への push 等）だけを検証対象にしている。ここでは Provider を実物のまま
+押下先の分岐（feed への push 等）だけを検証対象にしている。ここでは hook を実物のまま
 組み立て、トークン取得（`POST /v1/maps/embed-token`）の成否によって実際に
 
-  - 失敗 → モーダルを一度も開かず `openExternalUrl` で外部ブラウザへ直行する（main と同じ体験）
-  - 成功 → モーダル（本物の `MapsEmbedModal`）が開く。`openExternalUrl` は呼ばない
+  - 失敗 → `/[locale]/maps-embed` へ一度も遷移せず `openExternalUrl` で外部ブラウザへ直行する
+    （main と同じ体験）
+  - 成功 → `/[locale]/maps-embed` へ解決済みの embedUrl で router.push する。
+    `openExternalUrl` は呼ばない
 
 ことだけが変わることを固定する。
+
+#843 で `MapsEmbedModal` は Portal ベースの全画面オーバーレイから expo-router のルート
+（`app/[locale]/maps-embed.tsx`）へ変わったため、以前のように «同じ描画ツリーにモーダルが
+現れるか» では検証できない。ここでは `router.push` の呼び出しそのものを観測する
+（遷移先の画面本体は `app/[locale]/maps-embed.tsx` 側で別途検証する）。
 */
 import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
@@ -49,7 +56,9 @@ jest.mock("@/contexts/SnackbarProvider", () => {
 	const showSnackbar = jest.fn();
 	return { useSnackbar: () => ({ showSnackbar }) };
 });
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }) }));
+
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 
 // collapsible tabs は「ヘッダーと中身を描く器」としてだけ必要（restaurantDetailRoutes.test.tsx と同じ）
 jest.mock("@/components/collapsible-tabs", () => {
@@ -80,17 +89,6 @@ jest.mock("@/lib/googlePlaces", () => ({
 	getGoogleMapsLink: jest.fn(async () => ({ mapUrl: "https://maps.google.com/?q=test", canOpen: true })),
 }));
 
-// Portal.Host 前提の Portal を素通りへ差し替える（contexts/DialogProvider.test.tsx と同じ方針）
-jest.mock("react-native-paper", () => {
-	const ReactModule = require("react");
-	const { View: RNView } = require("react-native");
-	return {
-		__esModule: true,
-		Portal: ({ children }: { children?: React.ReactNode }) => ReactModule.createElement(RNView, null, children),
-	};
-});
-
-import { MapsEmbedModalProvider } from "@/contexts/MapsEmbedModalProvider";
 import { SelectedRestaurantDetails } from "./SelectedRestaurantDetails";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -117,6 +115,7 @@ afterEach(async () => {
 	mockCallBackend.mockReset();
 	mockOpenExternalUrl.mockClear();
 	mockLogFrontendEvent.mockClear();
+	mockPush.mockClear();
 });
 
 const pressGoogleMapsButton = async (tree: TestRenderer.ReactTestRenderer): Promise<void> => {
@@ -131,32 +130,33 @@ const pressGoogleMapsButton = async (tree: TestRenderer.ReactTestRenderer): Prom
 	});
 };
 
-describe("#1810 SelectedRestaurantDetails: トークン取得の成否でモーダル/外部ブラウザを出し分ける（実 Provider）", () => {
-	it("トークン取得に失敗したら、モーダルを開かず外部ブラウザへ直行する（main と同じ体験）", async () => {
+describe("#1810 SelectedRestaurantDetails: トークン取得の成否でルート遷移/外部ブラウザを出し分ける（実 hook）", () => {
+	it("トークン取得に失敗したら、/[locale]/maps-embed へ遷移せず外部ブラウザへ直行する（main と同じ体験）", async () => {
 		mockCallBackend.mockRejectedValue(new Error("network error"));
 
-		const tree = await render(
-			<MapsEmbedModalProvider>
-				<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />
-			</MapsEmbedModalProvider>,
-		);
+		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
 		await pressGoogleMapsButton(tree);
 
-		expect(tree.root.findAllByProps({ testID: "maps-embed-modal" }).length).toBe(0);
+		expect(mockPush).not.toHaveBeenCalledWith(expect.objectContaining({ pathname: "/[locale]/maps-embed" }));
 		expect(mockOpenExternalUrl).toHaveBeenCalledWith("https://maps.google.com/?q=test");
 	});
 
-	it("トークン取得に成功したら、モーダル（本物）が開く。外部ブラウザへは行かない", async () => {
+	it("トークン取得に成功したら、/[locale]/maps-embed へ解決済みの embedUrl で router.push する。外部ブラウザへは行かない", async () => {
 		mockCallBackend.mockResolvedValue({ token: "evidence-stub-token", expiresAt: "2099-01-01T00:00:00.000Z" });
 
-		const tree = await render(
-			<MapsEmbedModalProvider>
-				<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />
-			</MapsEmbedModalProvider>,
-		);
+		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
 		await pressGoogleMapsButton(tree);
 
-		expect(tree.root.findAllByProps({ testID: "maps-embed-modal" }).length).toBeGreaterThan(0);
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pathname: "/[locale]/maps-embed",
+				params: expect.objectContaining({
+					locale: "ja-JP",
+					mode: "place",
+					embedUrl: "https://api.example.com/v1/maps/embed?token=evidence-stub-token",
+				}),
+			}),
+		);
 		expect(mockOpenExternalUrl).not.toHaveBeenCalled();
 	});
 });
