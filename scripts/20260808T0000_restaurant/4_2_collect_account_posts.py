@@ -46,12 +46,42 @@ class AccountNotDiscoverable(Exception):
     """handle が存在しない / ビジネス・クリエイターでない等、そのアカウントを飛ばすべき状態。"""
 
 
+# #1812 レート制御: Graph API は毎レスポンスに x-app-usage（アプリ単位の使用率 %）を返す。
+# これを見ずに投げ続けると 100% で (#4) を食らい、以後 1 時間近くロックされる。実測でも
+# «最初の 5 分で 37 アカウント → 次の 53 分で 0» というバースト→全損の形になっていた。
+# 使用率が上がったら自分で減速する方が、同じ枠で連続的に多く取れる。
+_APP_USAGE = {"pct": 0}
+
+
+def _note_usage(headers) -> None:
+    raw = headers.get("x-app-usage") or headers.get("X-App-Usage")
+    if not raw:
+        return
+    try:
+        d = json.loads(raw)
+    except Exception:  # noqa: BLE001 - ヘッダが壊れていても本処理は止めない
+        return
+    _APP_USAGE["pct"] = max(int(d.get("call_count") or 0), int(d.get("total_time") or 0),
+                            int(d.get("total_cputime") or 0))
+
+
+def pace_for_app_usage() -> None:
+    """x-app-usage の使用率に応じて呼び出し前に待つ（100% に当てない）。"""
+    pct = _APP_USAGE["pct"]
+    delay = 60 if pct >= 95 else 20 if pct >= 85 else 8 if pct >= 75 else 2 if pct >= 60 else 0
+    if delay:
+        LOGGER.debug("x-app-usage %d%% のため %ds 待機", pct, delay)
+        time.sleep(delay)
+
+
 def _get(url: str, timeout: float = 30.0) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": "nanitabeyo-sns-seed/1.0"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
+            _note_usage(resp.headers)
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
+        _note_usage(e.headers)
         body = e.read().decode("utf-8", "replace")
         try:
             err = json.loads(body).get("error", {})
@@ -93,6 +123,7 @@ def discover_media(ig: str, token: str, handle: str, per_account_limit: int, pag
         # resolve へ渡すと IG を取りに行かず並列できる（柱1 の 57k 未 resolve を parallel 化する路）。
         fields = f"business_discovery.username({handle}){{{media_args}{{id,permalink,caption}}}}"
         q = urllib.parse.urlencode({"fields": fields, "access_token": token})
+        pace_for_app_usage()
         try:
             d = _get(f"{GRAPH}/{ig}?{q}")
         except RateLimited as e:
