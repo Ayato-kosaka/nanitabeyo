@@ -2,11 +2,9 @@ import { useEffect, useMemo } from "react";
 import { Stack, useRootNavigationState, useRouter, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
-import { DialogProvider } from "@/contexts/DialogProvider";
-import { MapsEmbedModalProvider } from "@/contexts/MapsEmbedModalProvider";
-import { AuthProvider } from "@/contexts/AuthProvider";
+import { AppShellProviders } from "@/contexts/AppShellProviders";
 import { SnackbarProvider } from "@/contexts/SnackbarProvider";
-import { PaperProvider, Portal } from "react-native-paper";
+import { PaperProvider } from "react-native-paper";
 import { SplashHandler } from "@/components/SplashHandler";
 import { AppProvider } from "@/components/AppProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -25,7 +23,6 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
 import { SeoProvider, SeoHeadRenderer, SeoData } from "@/contexts/SeoContext";
 import { resolvePublicLocale, resolveStaticSeoForPath } from "@/constants/seoLocales";
-import { TrueSheetProvider } from "@lodev09/react-native-true-sheet";
 import { buildLocaleStaticParams, type LocaleStaticParam } from "@/lib/seo/localeStaticParams";
 
 /**
@@ -191,62 +188,57 @@ function LocaleLayout() {
 					    同じ中央カラムへ自動的に収まる */}
 					<CenteredAppShell>
 						<SnackbarProvider>
-							<DialogProvider>
-								<MapsEmbedModalProvider>
-									<TrueSheetProvider>
-										<AuthProvider>
-											<PushTokenRegistration />
-											<MetaAppEventsInitializer />
-											{/* #1641 OTA を «次の起動» まで待たせない（UI 無し）。
-										    既定のままだと利用者が触る JS は常に 1 つ前になる */}
-											<OtaUpdateApplier />
-											{/* #1400 共有された URL の取り込み入口（UI 無し）。
-										    PR1 では受け取り口が «共有なし» を返すので no-op */}
-											<SnsShareIntake />
-											<Portal.Host>
-												<SplashHandler>
-													<HealthCheckInitializer>
-														<AppProvider>
-															{/* #940 【設計】render中の未捕捉例外で白画面になるのを防ぐ最終防波堤。
-														    再試行はアプリのルートへ戻すことで安全な状態に復帰させる */}
-															<ErrorBoundary onRetry={() => router.replace("/")}>
-																{/*
-															#1629【27】**Stack へ `contentStyle` を必ず与える。**
+							{/* #1810 【設計】Dialog/Auth/Portal.Host/MapsEmbedModal/TrueSheet の入れ子順序は
+							    `contexts/AppShellProviders.tsx` に切り出してある（並び順を戻すと
+							    `AppShellProviders.test.tsx` が赤くなる。理由もそちらのコメント参照） */}
+							<AppShellProviders>
+								<PushTokenRegistration />
+								<MetaAppEventsInitializer />
+								{/* #1641 OTA を «次の起動» まで待たせない（UI 無し）。
+							    既定のままだと利用者が触る JS は常に 1 つ前になる */}
+								<OtaUpdateApplier />
+								{/* #1400 共有された URL の取り込み入口（UI 無し）。
+							    PR1 では受け取り口が «共有なし» を返すので no-op */}
+								<SnsShareIntake />
+								<SplashHandler>
+									<HealthCheckInitializer>
+										<AppProvider>
+											{/* #940 【設計】render中の未捕捉例外で白画面になるのを防ぐ最終防波堤。
+										    再試行はアプリのルートへ戻すことで安全な状態に復帰させる */}
+											<ErrorBoundary onRetry={() => router.replace("/")}>
+												{/*
+											#1629【27】**Stack へ `contentStyle` を必ず与える。**
 
-															expo-router の NavigationContainer は既定で react-navigation の
-															`DefaultTheme` を使う（`DarkTheme` を渡している箇所はリポジトリに無い）。
-															`DefaultTheme.colors.background` は `rgb(242,242,242)` の明るいグレーで、
-															画面が全面を塗り切らない瞬間 — 遷移アニメーションの最中、モーダルの背後、
-															画面のマウント直後 — に**ダークモードでもそこだけ明るく光る**。
+											expo-router の NavigationContainer は既定で react-navigation の
+											`DefaultTheme` を使う（`DarkTheme` を渡している箇所はリポジトリに無い）。
+											`DefaultTheme.colors.background` は `rgb(242,242,242)` の明るいグレーで、
+											画面が全面を塗り切らない瞬間 — 遷移アニメーションの最中、モーダルの背後、
+											画面のマウント直後 — に**ダークモードでもそこだけ明るく光る**。
 
-															⚠️ これは «色を直書きした» のではなく «色を書かなかった» ことで起きるので、
-															   `assert-no-hardcoded-colors.mjs` には原理的に検出できない。
-															*/}
-																<Stack
-																	screenOptions={{
-																		header: () => null,
-																		contentStyle: { backgroundColor: colors.background },
-																	}}>
-																	<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-																	{/* #1375 実機確認（2 巡目）: ＋ からの取り込みは iOS ネイティブのシート
-																    （背後の画面が縮む pageSheet）で出す。下スワイプで閉じるのは
-																    ネイティブのジェスチャに任せる（自前 PanResponder は web の保険） */}
-																	<Stack.Screen
-																		name="sns-import"
-																		options={{ presentation: "modal", header: () => null }}
-																	/>
-																	<Stack.Screen name="+not-found" />
-																</Stack>
-															</ErrorBoundary>
-															<StatusBar style="light" />
-														</AppProvider>
-													</HealthCheckInitializer>
-												</SplashHandler>
-											</Portal.Host>
-										</AuthProvider>
-									</TrueSheetProvider>
-								</MapsEmbedModalProvider>
-							</DialogProvider>
+											⚠️ これは «色を直書きした» のではなく «色を書かなかった» ことで起きるので、
+											   `assert-no-hardcoded-colors.mjs` には原理的に検出できない。
+											*/}
+												<Stack
+													screenOptions={{
+														header: () => null,
+														contentStyle: { backgroundColor: colors.background },
+													}}>
+													<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+													{/* #1375 実機確認（2 巡目）: ＋ からの取り込みは iOS ネイティブのシート
+												    （背後の画面が縮む pageSheet）で出す。下スワイプで閉じるのは
+												    ネイティブのジェスチャに任せる（自前 PanResponder は web の保険） */}
+													<Stack.Screen
+														name="sns-import"
+														options={{ presentation: "modal", header: () => null }}
+													/>
+													<Stack.Screen name="+not-found" />
+												</Stack>
+											</ErrorBoundary>
+											<StatusBar style="light" />
+										</AppProvider>
+									</HealthCheckInitializer>
+								</SplashHandler>
+							</AppShellProviders>
 						</SnackbarProvider>
 					</CenteredAppShell>
 				</PaperProvider>
