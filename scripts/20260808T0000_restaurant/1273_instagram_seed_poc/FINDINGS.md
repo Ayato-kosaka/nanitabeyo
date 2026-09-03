@@ -204,3 +204,15 @@ CC WAT 飲食メディア限定（tabelog/retty は CC 上に IG リンク 0/300
 
 ### 次（キー待ち）
 P1: 未収集 17,456 店アカ handle を検索で投稿化（You.com 20k/Tavily 1k/Yep 1k/Linkup 4k ≈ 26k クエリ・規約 OK）。P2: 3-4 店セル（331）を店起点で狙い撃ち。P3: 料理×市区町村で depth。
+
+### 2026-09-03 15:30Z — 事故: 辞書追加の dev デプロイで caption 持ち回り（#1805）が消えた
+
+- 症状: storecap の辞書再 resolve（version `dev-2026-09-03-dict`）で 21,400 件中 9,597 件（45%）が
+  `metadata_fetch_failed`。raw 側は 98.6% が caption 付きなのに、resolve が IG を取りに行っていた。
+- 真因: 作業ブランチ `claude/instagram-seed-data-poc-te51my` は main から 459 コミット遅れており、
+  PR #1805（caption を渡せば IG 取得をスキップ）を含んでいなかった。このブランチから api-deploy
+  （development）を流した時点で dev API から持ち回りが消え、concurrency 40 で IG を叩く状態になった。
+- 対処: 走っていた再 resolve を中断 → origin/main をマージ（辞書は本ブランチの上位集合を採用、
+  spec 74/74 pass・tsc OK）→ dev 再デプロイ → storecap/fire/search を新 version で再 resolve。
+- 教訓: **feature ブランチから api-deploy を流す前に `git merge-base --is-ancestor origin/main HEAD`
+  を確認する**。dev は «main ＋ このブランチの差分» でなければ、他 PR の修正を静かに巻き戻す。
