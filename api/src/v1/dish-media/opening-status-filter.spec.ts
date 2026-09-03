@@ -84,7 +84,7 @@ describe('#288 timeSlot 未指定なら除外も加点も起きない（互換�
 
   it('findDishMediaIds は SearchDishMediaDto から timeSlot を受け取っている', () => {
     expect(SOURCE).toContain(
-      "{ location, radius, categoryId, limit = 5, timeSlot }: SearchDishMediaDto,",
+      '{ location, radius, categoryId, limit = 5, timeSlot }: SearchDishMediaDto,',
     );
   });
 });

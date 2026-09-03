@@ -16,7 +16,10 @@ import {
   type RestaurantOpeningHourRow,
   type RestaurantOpeningStatus,
 } from '../../../../shared/utils/openingHours';
-import { getTimeSlotWindow, type TimeSlot } from '../../../../shared/utils/timeSlot';
+import {
+  getTimeSlotWindow,
+  type TimeSlot,
+} from '../../../../shared/utils/timeSlot';
 
 /** Postgres の TIME（タイムゾーン無し）を Prisma が返す Date から「真夜中からの分」へ変換する */
 function timeToMinutes(value: Date): number {
