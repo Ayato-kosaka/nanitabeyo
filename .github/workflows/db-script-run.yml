@@ -68,11 +68,15 @@ on:
         default: "scripts/20251213T0000_wikidata_food_graph/requirements.txt"
         type: string
       concurrency_group_suffix:
-        description: "並列実行したい独立ジョブ用の concurrency グループ接尾辞（例: -shard0）。空なら既定の直列(db-script-run)。互いに素なデータを書くバッチだけ別グループにすること"
+        description: "並走を許可するための concurrency グループ接尾辞（例: restaurant-pipeline）。書き先のテーブル/データセットが他の実行と重ならないと判断できるときだけ指定する。空なら従来どおり全 dispatch を直列化"
         required: false
         default: ""
         type: string
 
+# 既定（suffix 空）は従来どおり db-script-run 全体で直列化する。
+# 互いに書き先が重ならないスクリプトを並走させたいときだけ、呼び出し側が
+# concurrency_group_suffix で別グループへ分ける。同じ suffix 同士は直列のまま。
+# 並走してよいかの判断は script_path/args と同じく呼び出し側の責任（冒頭の設計方針を参照）。
 concurrency:
   # 既定（空）は db-script-run 単一グループで直列化（DB書込競合の保護）。suffix 指定時は別グループで並走。
   # 判断は呼び出し側の責任（#1760）。
@@ -83,7 +87,7 @@ concurrency:
   # 共有 DB を重く叩くジョブ» は suffix で並走させないこと。resolve(5_1) は dev pg を引くので
   # **off-peak・控えめ並列（多くて 2〜3 shard）・非破壊版** で回す。BigQuery だけのバッチ
   # （crawl 4_4 等）は自由に並走してよい。
-  group: db-script-run${{ github.event.inputs.concurrency_group_suffix }}
+  group: db-script-run${{ inputs.concurrency_group_suffix != '' && format('-{0}', inputs.concurrency_group_suffix) || '' }}
   cancel-in-progress: false
 
 permissions:

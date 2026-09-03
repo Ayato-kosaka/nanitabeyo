@@ -4,7 +4,7 @@ import { getRemoteConfig } from "../lib/remoteConfig";
 import { Env } from "../constants/Env";
 import type { CreateFrontendLogDto } from "@shared/api/v1/dto";
 import { UNKNOWN_BUILD_META_CLIENT } from "@shared/api/v1/constants/build-meta";
-import { enqueueLog } from "@/lib/logQueue";
+import { enqueueLog, flushLogQueue } from "@/lib/logQueue";
 
 /**
  * ログレベルの優先度マッピング。
@@ -21,6 +21,16 @@ type FrontendEventLogInput = {
 	event_name: string;
 	error_level: CreateFrontendLogDto["error_level"];
 	payload: Record<string, any>;
+	/**
+	 * #1641 溜めずに **その場で送り切る**。既定は false（バッチに任せる）。
+	 *
+	 * バッチは «アプリが生き続ける» 前提の最適化である。直後にアプリが止まる種類の記録
+	 * — 落ちる寸前の不具合や、e2e が数秒後に落とす種類の事象 — は、待たせると
+	 * **いちばん欲しい 1 行が毎回そこで消える**（run 33408324285 / 33411032551 で 2 回とも消えた）。
+	 *
+	 * ⚠️ 常用しないこと。1 行ごとに HTTP が 1 本増える。«消えたら困る» ものだけに付ける。
+	 */
+	flushNow?: boolean;
 };
 
 /**
@@ -49,7 +59,7 @@ export const useLogger = () => {
 	 * @param error_level - エラーレベル（"verbose", "debug", "log", "warn", "error" のいずれか）
 	 * @param payload - 任意の付加情報（オブジェクト形式）
 	 */
-	const logFrontendEvent = useCallback(async ({ event_name, error_level, payload }: FrontendEventLogInput) => {
+	const logFrontendEvent = useCallback(async ({ event_name, error_level, payload, flushNow }: FrontendEventLogInput) => {
 		const path_name = pathRef.current;
 		try {
 			const remoteConfig = getRemoteConfig();
@@ -78,6 +88,8 @@ export const useLogger = () => {
 
 			// #1012 【設計】即時送信ではなくキューへ蓄積し、バッチ送信(#1011)にまとめる
 			enqueueLog(logDto);
+			// #1641 直後にアプリが止まる種類の記録は、バッチを待たずに送り切る（上の flushNow を参照）
+			if (flushNow) flushLogQueue();
 
 			if (Env.NODE_ENV === "development") {
 				console.log(`📤 [${error_level}] [${path_name}] ${event_name}`, payload);

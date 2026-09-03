@@ -26,6 +26,8 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useDishCategoriesStore } from "@/stores/useDishCategoriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
+import { useMyDishesRevisionStore } from "@/features/myDishes/stores/useMyDishesRevisionStore";
+import { useMyDishesFeedScopeStore } from "@/features/myDishes/stores/useMyDishesFeedScopeStore";
 import { requestLogoutRedirect } from "@/lib/logoutRedirect";
 
 /**
@@ -540,18 +542,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			const newUserId = session?.user?.id ?? null;
 			const prevUser = sessionRef.current?.user ?? null;
 			const hasUserChanged = (prevUser?.id ?? null) !== (newUserId ?? null);
+			/*
+			#1785【設計】**起動時の «復元» を «ユーザーが切り替わった» と数えない。**
+
+			この runtime に前のユーザーが居ないなら、捨てるキャッシュは 1 つも無い。
+			下のストアはどれも in-memory（`persist` を 1 つも使っていない）ので、起動直後は
+			全部空である。それでも `prevUser === null` を «切り替わった» と数えていたため、
+			**ログイン済みのユーザーが毎回アプリを開くたびに**次が起きていた。
+
+			    my-dishes の取得が始まる → INITIAL_SESSION が届く → bump() が
+			    clearQuery() で飛行中のスライスごと捨てる → フックが取り直す
+
+			一覧の取得は実測で平均 4.48 秒・最大 11.23 秒（#1395 §0(A)）。**起動のたびに
+			それを 2 本走らせていた。** e2e-web の my-dishes-calendar が «着地直後の取得は
+			1 回» で落ちていたのはこれである（同じ URL が 2ms 差で 2 本飛ぶ）。
+
+			捨てる目的は «前のユーザーのデータを残さない» ことなので、前のユーザーが
+			居るときだけ捨てれば足りる。#1629 が直した経路（匿名 → 本人 / ログアウト）は
+			どちらも `prevUser` が居るので、これまでどおり捨てる。
+			*/
+			const isBootRestore = prevUser === null;
 			logFrontendEvent({
 				event_name: `onAuthStateChange:${event}`,
 				error_level: "debug",
 				payload: { user_id: newUserId, event },
 			});
 
-			if (hasUserChanged) {
+			if (hasUserChanged && !isBootRestore) {
 				// ✅ ユーザーが切り替わったときにストアをクリア
 				useDishMediaEntriesStore.getState().clearByKey();
 				useDishCategoriesStore.getState().clearByKey();
 				useProfileStore.getState().resetProfile();
 				useCdnCookieStore.getState().clearCookies();
+				/*
+				#1629 【修正】**my-dishes（食べたい/食べた）のキャッシュもここで捨てる。**
+				ここに無かったせいで、オーナー実機で 2 つの症状が同時に出ていた。
+
+				1. ログアウトしても前のユーザーの記録がグリッドに残る
+				2. ログインした直後に «候補がありません» が出る
+
+				2 は 1 の裏返しである。実ログ（dev 2026-08-30）でこの順に並んでいた。
+
+				    logout_success → userChanged(匿名) → my_dishes_fetch_completed {count: 0}
+				    → userChanged(本人) → …
+
+				匿名ユーザーとして 0 件を取り切った時点で `hasFetchedInitial` が true になり、
+				その «空のスライス» が本人へ切り替わっても残るため、新しい取得が返るまで
+                «空» が表示され続ける。件数を隠すのではなく **キャッシュごと捨てる**のが正しい。
+
+				`bump()` は `useMyDishesStore.clearQuery()` でスライスを捨ててから版を進めるので、
+				マウント中のフックは `hasFetchedInitial === false` を見て自然に取り直す
+				（新しい取得経路を足さない。理由は useMyDishesRevisionStore.ts の冒頭）。
+
+				`useMyDishesFeedScopeStore` は全画面 Feed が指す **id の列**を持つ。前のユーザーの
+				id を残すと «他人の記録を開こうとして失敗する» ことになるので一緒に捨てる。
+
+				⚠️ `useMyDishesFilterStore`（エリア・期間などユーザーが選んだ絞り込み）は捨てない。
+				   匿名から本人へ «昇格» する経路が主なので、選んだ絞り込みまで消すと
+				   «画面を開き直したら条件が飛んでいた» という別の不満になる。
+				*/
+				useMyDishesRevisionStore.getState().bump();
+				useMyDishesFeedScopeStore.getState().clear();
 			}
 
 			if (event === "INITIAL_SESSION") {

@@ -1,7 +1,9 @@
 import type { Page, Route } from "@playwright/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { test, expect } from "../../fixtures/test";
 import { MyDishesPage } from "../../pages/MyDishesPage";
 import { loadTestUserCredentials } from "../../utils/testUserSession";
+import { stubDishMediaTracking } from "../../utils/dishMediaTracking";
 
 /**
  * 🍽 #1397 my-dishes の «Map のピン → 料理メディア Sheet → 全画面 Feed» と
@@ -90,6 +92,15 @@ function buildRow(dish: typeof RAMEN) {
 			restaurant_id: RESTAURANT_ID,
 			category_id: dish.categoryId,
 			name: dish.name,
+			/*
+			#1785 【契約】一覧・chip・Feed が出す «料理の表示名» は **`dish.name` ではなく
+			`categoryLabels`** から来る（#1629 のオーナー確定。規則は
+			app-expo/features/myDishes/dishCategoryLabel.ts）。
+			ここが無いと `resolveDishCategoryLabel` が null を返し、画面には
+			料理名の代わりに «写真なし» が出る。**モックに name しか無いと、
+			アプリは正しいのにテストだけが落ちる。**
+			*/
+			categoryLabels: { ja: dish.name, en: dish.name },
 			reviewCount: 1,
 			averageRating: 4,
 			categoryImageUrl: "https://example.invalid/category.jpg",
@@ -216,6 +227,10 @@ async function mockMyDishes(page: Page): Promise<RecordedRequest[]> {
 		},
 	);
 
+	// #1629 / #1785 表示ログ・視聴ログは記録の成否をこの spec で見ないので握る。
+	// 握り方（なぜ 204 空ボディでは駄目か / なぜ view も要るか）は utils/dishMediaTracking.ts
+	await stubDishMediaTracking(page);
+
 	return recorded;
 }
 
@@ -226,6 +241,8 @@ function lastRequest(recorded: RecordedRequest[], path: string): URLSearchParams
 }
 
 test.describe("#1375 Map のピン → 全画面 Feed / 下部の常設シート（web / ログイン済み）", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: ピン → Sheet → Feed の Map 経路 ─
 	// 手順:
 	//   1. 3 本の API を決定論的な値へ差し替える
@@ -285,6 +302,8 @@ test.describe("#1375 Map のピン → 全画面 Feed / 下部の常設シート
 });
 
 test.describe("#1397 (PR5/5) contextual filter chips", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: chip で絞ると 3 ビューすべてに反映される ─
 	// 手順:
 	//   1. 3 本の API を差し替える（`categoryIds` が付いたら 1 件だけ返す mock）

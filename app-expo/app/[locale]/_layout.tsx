@@ -14,6 +14,7 @@ import { CenteredAppShell } from "@/components/CenteredAppShell";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
+import { OtaUpdateApplier } from "@/components/OtaUpdateApplier";
 import { SnsShareIntake } from "@/components/SnsShareIntake";
 import { getPaperTheme } from "@/constants/PaperTheme";
 import { ThemeProvider, useAppTheme } from "@/contexts/ThemeProvider";
@@ -195,6 +196,9 @@ function LocaleLayout() {
 									<AuthProvider>
 										<PushTokenRegistration />
 										<MetaAppEventsInitializer />
+										{/* #1641 OTA を «次の起動» まで待たせない（UI 無し）。
+										    既定のままだと利用者が触る JS は常に 1 つ前になる */}
+										<OtaUpdateApplier />
 										{/* #1400 共有された URL の取り込み入口（UI 無し）。
 										    PR1 では受け取り口が «共有なし» を返すので no-op */}
 										<SnsShareIntake />

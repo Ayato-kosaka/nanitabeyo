@@ -443,7 +443,9 @@
 			"savedMessage": "\"खाना है\" में सेव किया गया"
 		},
 		"embed": {
-			"play": "{{provider}} पर चलाएँ"
+			"play": "{{provider}} पर चलाएँ",
+			"openExternally": "{{provider}} पर देखें",
+			"unmute": "आवाज़ चालू करें"
 		},
 		"ownPost": {
 			"menuTitle": "आपकी पोस्ट",
@@ -605,7 +607,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "डिश श्रेणी चुनें",
-			"writeReviewForThisDish": "इस डिश की समीक्षा लिखें",
 			"useTypedDishCategory": "“{{name}}” का उपयोग करें"
 		},
 		"inputs": {
@@ -665,6 +666,7 @@
 			"mediaSelectionFailed": "मीडिया चयन विफल रहा",
 			"mediaSelectionError": "मीडिया का चयन करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
 			"replaceWithMyPhoto": "अपनी फ़ोटो इस्तेमाल करें",
+			"reselectPhoto": "फ़ोटो बदलें",
 			"openSettings": "सेटिंग्स खोलें",
 			"pickFromLibrary": "लाइब्रेरी से चुनें",
 			"shootWithCamera": "फ़ोटो लें",
@@ -741,10 +743,11 @@
 		"emptyState": {
 			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
 		},
-		"everybodyPostsTitle": "समीक्षा करने के लिए व्यंजन चुनें",
+		"everybodyPostsTitle": "सबकी पोस्ट",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "रेस्टोरेंट विवरण"
+			"title": "रेस्टोरेंट विवरण",
+			"openInGoogleMaps": "Google मैप्स में खोलें"
 		}
 	},
 	"Feedback": {
@@ -981,7 +984,8 @@
 		},
 		"unsavedHint": "आप बिना सहेजी दुकानें भी चुन सकते हैं: ऊपर खोज में दुकान का नाम लिखें, या मानचित्र पर दुकान के आइकन पर टैप करें।",
 		"pickTitle": "दुकान चुनें",
-		"pickOnMap": "मैप पर ढूँढें"
+		"pickOnMap": "मैप पर ढूँढें",
+		"pickConfirm": "यही जगह चुनें"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1024,7 +1028,16 @@
 			"noPhotoHint": "आप बिना फ़ोटो के भी रिकॉर्ड कर सकते हैं",
 			"publicReviewNotice": "आपका रिकॉर्ड सार्वजनिक समीक्षा के रूप में रेस्टोरेंट पेज पर दिखेगा",
 			"postNotFoundNoPhoto": "इस रिकॉर्ड में कोई फ़ोटो नहीं है",
-			"skipPhoto": "छोड़ें (बिना फ़ोटो)"
+			"skipPhoto": "छोड़ें (बिना फ़ोटो)",
+			"missingHint": "पोस्ट करने के लिए {{items}} भरें।",
+			"missing": {
+				"comment": "छोटी समीक्षा",
+				"price": "कीमत",
+				"rating": "रेटिंग",
+				"dishCategory": "व्यंजन श्रेणी",
+				"separator": ", ",
+				"currency": "इस जगह की मुद्रा उपलब्ध नहीं है"
+			}
 		},
 		"filters": {
 			"title": "फ़िल्टर और क्रम",
@@ -1134,6 +1147,17 @@
 		"deleted": {
 			"label": "हटाई गई",
 			"a11yLabel": "इस पोस्ट की फ़ोटो हटा दी गई है"
+		},
+		"ownReview": {
+			"title": "आपकी समीक्षा",
+			"noPhoto": "कोई फ़ोटो नहीं",
+			"noComment": "कोई टिप्पणी नहीं लिखी गई",
+			"noReview": "इस रिकॉर्ड की अभी कोई समीक्षा नहीं है",
+			"openRestaurant": "रेस्तरां का विवरण देखें",
+			"edit": "समीक्षा संपादित करें",
+			"delete": "समीक्षा हटाएं",
+			"deleteConfirmTitle": "क्या यह समीक्षा हटानी है?",
+			"deleteConfirmMessage": "इस रिकॉर्ड की समीक्षा हटा दी जाएगी। रिकॉर्ड भी आपकी सूची से हट जाएगा। इसे वापस नहीं लाया जा सकता।"
 		}
 	},
 	"SnsImport": {
@@ -1162,7 +1186,9 @@
 			"save": "खाना है में सहेजें",
 			"saveRequirement": "सहेजने के लिए व्यंजन और रेस्तराँ चुनें।",
 			"resolveAgain": "फिर से पढ़ें",
-			"cancel": "रद्द करें"
+			"cancel": "रद्द करें",
+			"saveRequirementRestaurant": "सहेजने के लिए जगह चुनें।",
+			"saveRequirementDish": "सहेजने के लिए व्यंजन श्रेणी चुनें।"
 		},
 		"sections": {
 			"dishCategory": "व्यंजन",

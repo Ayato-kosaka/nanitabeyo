@@ -46,7 +46,9 @@ jest.mock(
 			},
 		),
 );
-jest.mock("@/lib/mediaSelection", () => ({ selectMedia: jest.fn() }));
+// #1750 `recoverPendingMedia`（Android の保留結果の復帰）も本体の surface に入った。
+// ここへ足さないと undefined を呼ぶことになり、選択そのものが起きない
+jest.mock("@/lib/mediaSelection", () => ({ selectMedia: jest.fn(), recoverPendingMedia: jest.fn(async () => null) }));
 // #1375（5 巡目）既存メディア一覧は自分で API を叩くので、ここでは «置かれているか» だけを見る器にする
 /*
 #1375（6 巡目）記録フローは «料理カテゴリー → 写真» の順になった。
@@ -106,6 +108,7 @@ jest.mock("expo-router", () => {
 });
 jest.mock("@/lib/googlePlaces", () => ({
 	getCurrencyCodeFromRestaurant: () => "JPY",
+	buildCurrencyChoices: () => ["JPY", "USD"],
 	resolveCurrencySymbol: () => "¥",
 	parseAmountString: (value: string) => Number(value),
 	toMinorAmountInteger: (value: number) => value,
@@ -877,5 +880,109 @@ describe("#1629 取り込んだ SNS 投稿からレビューを書く", () => {
 		});
 
 		expect(findTextNodes(embedTree.root, "Map.media.loadingMedia")).toHaveLength(0);
+	});
+});
+
+/*
+#1629【オーナー実機報告】「食べたを押すと、料理カテゴリにラーメンが表示されなくてレビューが書けない」。
+
+dev の実ログ（2026-08-30 10:14 / 麦と麺助）で確定した筋道:
+
+  1. SNS から取り込んだ投稿は `dishes.name` が空のことがある（キャプションから拾えなかった）
+  2. `review-from-media` はその投稿を `prefilledMedia` として渡す
+  3. 表示名の初期値が `prefilledMedia.dish.name` の直読みだったので **料理カテゴリー欄が空欄**
+  4. 投稿の可否条件が «表示名が空でないこと» を含んでいたので **ボタンが押せない**
+  5. その行は写真が決まっていると押せない ＝ **自分で埋める手段が無い**（行き止まり）
+
+実ログのその投稿は `categoryLabels` に日本語を持っていた（Q234646 = ラーメン）ので、
+表示名の規則（`labels[言語] → labels["en"] → name`）どおり解決すれば «ラーメン» が出る。
+*/
+describe("#1629 取り込んだ投稿から «食べた» を記録するとき", () => {
+	/** `dishes.name` が空で、カテゴリの多言語表記だけを持つ投稿（実ログと同じ形） */
+	const makeImportedMedia = () =>
+		({
+			id: "dish-media-imported",
+			media_type: "image",
+			render_type: "external_embed",
+			mediaUrl: null,
+			thumbnailImageUrl: "https://cdn.example.test/thumb.jpg",
+			dish: {
+				name: "",
+				category_id: "Q234646",
+				categoryLabels: { ja: "ラーメン", en: "Ramen" },
+			},
+		}) as never;
+
+	// ★ ここが本命。空欄のまま «レビューが書けない» を二度と作らない
+	it("店での呼び名が空でも、料理カテゴリーに «ラーメン» が出る", async () => {
+		let tree!: TestRenderer.ReactTestRenderer;
+		await act(async () => {
+			tree = TestRenderer.create(
+				<ReviewForm restaurant={restaurant} onCancel={noop} prefilledMedia={makeImportedMedia()} />,
+			);
+		});
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		expect(findTextNodes(tree.root, "ラーメン").length).toBeGreaterThan(0);
+	});
+});
+
+/*
+#1629【オーナー指示】投稿ボタンが押せない理由を画面に出す。
+
+無効なボタンが灰色で置いてあるだけだと «何が足りないのか» が読めない。
+足りないものを名指しし、**埋まったら消える**ことを固定する。
+*/
+describe("#1629 投稿できないときは «何が足りないか» を出す", () => {
+	/*
+	⚠️ 写真が決まっていない状態（既定の auto）では、このファイルのモックだと
+	   メディア選択が失敗してエラーカードへ倒れ、フォーム本体が描かれない。
+	   «足りないもの» の 1 行はフォーム本体の下に出るので、写真が決まっている形で見る。
+	*/
+	const makeMedia = () =>
+		({
+			id: "dish-media-hint",
+			media_type: "image",
+			render_type: "external_embed",
+			mediaUrl: null,
+			thumbnailImageUrl: "https://cdn.example.test/thumb.jpg",
+			dish: { name: "", category_id: "Q234646", categoryLabels: { ja: "ラーメン" } },
+		}) as never;
+
+	/** そのまま投稿できる状態まで埋める（写真は prefilledMedia で決まっている） */
+	const fillAll = async (tree: TestRenderer.ReactTestRenderer) => {
+		await act(async () => {
+			tree.root.find((n) => n.props?.testID === "review-comment-input").props.onChangeText("うまかった");
+		});
+		await act(async () => {
+			tree.root.findAll((n) => n.props?.testID === "review-price-input")[0].props.onChangeText("800");
+		});
+		await act(async () => {
+			tree.root.find((n) => n.props?.testID === "review-star-5").props.onPress();
+		});
+	};
+
+	it("足りないあいだは出て、埋まったら消える", async () => {
+		let tree!: TestRenderer.ReactTestRenderer;
+		await act(async () => {
+			tree = TestRenderer.create(<ReviewForm restaurant={restaurant} onCancel={noop} prefilledMedia={makeMedia()} />);
+		});
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		// ⚠️ このファイルは `PrimaryButton` を null にモックしているので、**ボタン本体は数えられない**。
+		//    見るのはボタンの上に出る «足りないもの» の 1 行だけにする。
+		//    また `i18n.t` のモックは補間値を返さないので、**行の有無**で判定する
+		const hintCount = () =>
+			tree.root.findAll((node) => node.props?.testID === "review-submit-hint", { deep: true }).length;
+
+		expect(hintCount()).toBeGreaterThan(0);
+
+		await fillAll(tree);
+
+		expect(hintCount()).toBe(0);
 	});
 });

@@ -443,7 +443,9 @@
 			"savedMessage": "Ajouté à Envie d'essayer"
 		},
 		"embed": {
-			"play": "Lire sur {{provider}}"
+			"play": "Lire sur {{provider}}",
+			"openExternally": "Voir sur {{provider}}",
+			"unmute": "Activer le son"
 		},
 		"ownPost": {
 			"menuTitle": "Votre publication",
@@ -606,7 +608,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "Sélectionner la catégorie du plat",
-			"writeReviewForThisDish": "Écrire un avis sur ce plat",
 			"useTypedDishCategory": "Utiliser « {{name}} »"
 		},
 		"inputs": {
@@ -665,6 +666,7 @@
 			"mediaSelectionFailed": "Échec de la sélection des médias",
 			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer.",
 			"replaceWithMyPhoto": "Utiliser ma propre photo",
+			"reselectPhoto": "Changer de photo",
 			"openSettings": "Ouvrir les réglages",
 			"pickFromLibrary": "Choisir dans la galerie",
 			"shootWithCamera": "Prendre une photo",
@@ -741,10 +743,11 @@
 		"emptyState": {
 			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
 		},
-		"everybodyPostsTitle": "Choisir un plat à évaluer",
+		"everybodyPostsTitle": "Publications de tous",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "Détails du restaurant"
+			"title": "Détails du restaurant",
+			"openInGoogleMaps": "Ouvrir dans Google Maps"
 		}
 	},
 	"Feedback": {
@@ -981,7 +984,8 @@
 		},
 		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
 		"pickTitle": "Choisir un établissement",
-		"pickOnMap": "Chercher sur la carte"
+		"pickOnMap": "Chercher sur la carte",
+		"pickConfirm": "Choisir ce lieu"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1024,7 +1028,16 @@
 			"noPhotoHint": "Vous pouvez enregistrer sans photo",
 			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant",
 			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo",
-			"skipPhoto": "Passer (sans photo)"
+			"skipPhoto": "Passer (sans photo)",
+			"missingHint": "Ajoutez {{items}} pour publier.",
+			"missing": {
+				"comment": "un court avis",
+				"price": "prix",
+				"rating": "note",
+				"dishCategory": "catégorie du plat",
+				"separator": ", ",
+				"currency": "la devise de ce lieu est indisponible"
+			}
 		},
 		"filters": {
 			"title": "Filtrer et trier",
@@ -1134,6 +1147,17 @@
 		"deleted": {
 			"label": "Supprimée",
 			"a11yLabel": "La photo de cette publication a été supprimée"
+		},
+		"ownReview": {
+			"title": "Votre avis",
+			"noPhoto": "Sans photo",
+			"noComment": "Aucun commentaire n'a été écrit",
+			"noReview": "Il n'y a pas encore d'avis pour cet enregistrement",
+			"openRestaurant": "Voir les détails du restaurant",
+			"edit": "Modifier l’avis",
+			"delete": "Supprimer l’avis",
+			"deleteConfirmTitle": "Supprimer cet avis ?",
+			"deleteConfirmMessage": "L’avis de cet enregistrement sera supprimé. L’enregistrement disparaîtra aussi de votre liste. Action irréversible."
 		}
 	},
 	"SnsImport": {
@@ -1162,7 +1186,9 @@
 			"save": "Enregistrer dans Envies",
 			"saveRequirement": "Choisissez un plat et un restaurant pour enregistrer.",
 			"resolveAgain": "Relire",
-			"cancel": "Annuler"
+			"cancel": "Annuler",
+			"saveRequirementRestaurant": "Choisissez un lieu pour enregistrer.",
+			"saveRequirementDish": "Choisissez une catégorie de plat pour enregistrer."
 		},
 		"sections": {
 			"dishCategory": "Plat",

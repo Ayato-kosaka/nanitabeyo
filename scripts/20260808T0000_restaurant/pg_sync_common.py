@@ -9,9 +9,10 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import psycopg2
-from google.cloud import storage
+from google.cloud import bigquery, storage
 from psycopg2 import sql
 from psycopg2.extensions import connection as PgConnection
 
@@ -40,6 +41,8 @@ RESTAURANT_ERROR_CHECKS = frozenset(
         "restaurant_catalog_non_empty",
         "restaurant_google_place_id_unique",
         "restaurant_required_fields_valid",
+        "restaurant_overseas_only_from_existing_pg",
+        "restaurant_merge_no_data_loss",
         "existing_pg_restaurants_preserved",
         "existing_pg_serving_values_preserved",
         "jp_gate_category_count",
@@ -279,3 +282,38 @@ def write_sync_log(
 
 def new_sync_id() -> str:
     return str(uuid.uuid4())
+
+
+def fetch_sync_windows(
+    pipeline: BigQueryPipeline, schema: str, *, allow_empty: bool = False
+) -> list[Any]:
+    """本番同期（dry-run でない成功実行）の実行窓を新しい順に返す。
+
+    #843 「パイプラインが INSERT した行」を時刻で特定するための唯一の材料。
+    backfill（9_9）と、その実施漏れを検知する 9_1 の両方がここを見る。
+    別々に書くと片方だけが更新され、判定がずれる。
+
+    allow_empty=True は「まだ一度も本番同期していない」を正常とみなす側。
+    9_1 の初回同期はこの状態から始まるので、そこでは落としてはいけない。
+    """
+
+    rows = list(
+        pipeline.execute(
+            f"""
+            SELECT started_at, finished_at, inserted_count
+            FROM `{pipeline.dataset_ref}.restaurant_pg_sync_logs`
+            WHERE started_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 90 DAY)
+              AND pg_schema = @schema
+              AND target_table = 'restaurants'
+              AND NOT dry_run
+              AND status = 'succeeded'
+            ORDER BY started_at DESC
+            """,
+            [bigquery.ScalarQueryParameter("schema", "STRING", schema)],
+        )
+    )
+    if not rows and not allow_empty:
+        raise RuntimeError(
+            f"直近90日に成功した {schema} の本番同期がありません。backfill 対象を特定できません"
+        )
+    return rows

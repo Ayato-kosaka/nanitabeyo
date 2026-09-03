@@ -14,6 +14,16 @@ jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJ
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/hooks/useContentWidth", () => ({ useContentWidth: () => 390 }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
+// #1629 シートが編集・削除を持ったので、API / ダイアログ / スナックバーまで芋づるで読まれる。
+// このテストが見たいのは一覧の見た目と遷移先だけなので、口だけ塞ぐ
+const mockCallBackend = jest.fn();
+const mockConfirm = jest.fn();
+jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
+jest.mock("@/contexts/DialogProvider", () => ({ useDialog: () => ({ confirm: mockConfirm }) }));
+jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 0, bottom: 34, left: 0, right: 0 }),
+}));
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => mockPush(...args) } }));
@@ -65,6 +75,8 @@ const makeItem = (
 		restaurantId?: string;
 		/** #1629 1 セル = 1 ページなので、行ごとに違う dish_media.id を差せるようにする */
 		dishMediaId?: string;
+		/** #1629 写真なしの行から «自分のクチコミ» を開けることを見るテスト用 */
+		myReview?: Record<string, unknown> | null;
 	} = {},
 ): MyDishItem =>
 	({
@@ -86,11 +98,9 @@ const makeItem = (
 						id: overrides.dishMediaId ?? "media-1",
 						thumbnailImageUrl: overrides.thumbnailImageUrl,
 						render_type: overrides.externalEmbedProvider ? "external_embed" : "stored",
-						externalEmbed: overrides.externalEmbedProvider
-							? { provider: overrides.externalEmbedProvider }
-							: undefined,
+						externalEmbed: overrides.externalEmbedProvider ? { provider: overrides.externalEmbedProvider } : undefined,
 					},
-		myReview: null,
+		myReview: overrides.myReview ?? null,
 		isOwnMediaDeleted: overrides.isOwnMediaDeleted ?? false,
 	}) as unknown as MyDishItem;
 
@@ -111,6 +121,8 @@ const render = async (): Promise<TestRenderer.ReactTestRenderer> => {
 
 beforeEach(() => {
 	mockPush.mockClear();
+	mockCallBackend.mockReset();
+	mockConfirm.mockReset();
 });
 
 afterEach(async () => {
@@ -231,7 +243,9 @@ describe("#1513 isOwnMediaDeleted の行は墓標になる（黙って消さな�
 
 		// 跡地に別の絵を入れない
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-image")).toHaveLength(0);
-		expect(tree.root.findAll((node) => node.props?.testID === DELETED_MEDIA_TOMBSTONE_TEST_ID).length).toBeGreaterThan(0);
+		expect(tree.root.findAll((node) => node.props?.testID === DELETED_MEDIA_TOMBSTONE_TEST_ID).length).toBeGreaterThan(
+			0,
+		);
 		// 文言（i18n はキーをそのまま返すモック）
 		expect(
 			tree.root.findAll((node) => typeof node.type === "string" && node.children.includes("MyDishes.deleted.label"))
@@ -297,14 +311,52 @@ describe("#1397 (PR4/5) Q2 リスト項目のタップ先は «その項目の�
 		// #1629 一覧からは «その 1 件» のスコープ（scope=list）で開く。店舗スコープではない
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale: "ja-JP", scope: "list", itemKey: "review:with-photo", dishMediaId: "media-1" },
+			params: {
+				locale: "ja-JP",
+				scope: "list",
+				itemKey: "review:with-photo",
+				// #1761 直リンクで行を引き直すための手がかり。写真ありの行でも一緒に渡す
+				restaurantId: "restaurant-1",
+				dishMediaId: "media-1",
+			},
 		});
 		expect(Object.keys(mockPush.mock.calls[0][0].params)).not.toContain("initialIndex");
 	});
 
-	it("写真なしの項目は従来どおり店舗詳細へ push する（Feed に入れられない）", async () => {
+	/*
+	#1761 **写真の無い行もフィードへ送る。**
+
+	#1629 ではここでボトムシートを開いていた（それ以前は店舗詳細へ飛ばしていて、記録を開いても
+	記録が読めなかった）。Calendar / Map が #1752 でフィードへ寄ったので、グリッドだけ器を
+	変える理由が無くなった。クチコミが読めるページはフィードが持つ（`MyDishOwnReviewPage`）。
+	*/
+	it("写真なしでもクチコミがあれば Feed へ push する（dishMediaId は付かない）", async () => {
 		mockUseMyDishesQuery.mockReturnValue({
-			items: [makeItem("review:no-photo", { categoryImageUrl: "https://example.com/category.jpg" })],
+			items: [makeItem("review:no-photo", { myReview: { id: "review-1", rating: 4, comment: "うますぎた！" } })],
+			isLoading: false,
+			isLoadingMore: false,
+			error: null,
+			hasNextPage: false,
+			loadMore: jest.fn(),
+			refresh: jest.fn(),
+		});
+		const tree = await render();
+
+		await pressFirstItem(tree);
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/my-dishes/feed",
+			params: { locale: "ja-JP", scope: "list", itemKey: "review:no-photo", restaurantId: "restaurant-1" },
+		});
+		// 修正前（#1629）はここが店舗詳細だった。戻していないことを見る
+		expect(mockPush).not.toHaveBeenCalledWith(
+			expect.objectContaining({ pathname: "/[locale]/restaurant/[restaurantId]" }),
+		);
+	});
+
+	it("写真もクチコミも無い行（«食べたい»）だけ店舗詳細へ push する", async () => {
+		mockUseMyDishesQuery.mockReturnValue({
+			items: [makeItem("dish:want", { categoryImageUrl: "https://example.com/category.jpg" })],
 			isLoading: false,
 			isLoadingMore: false,
 			error: null,
@@ -406,13 +458,18 @@ describe("#1375 取り込んだ投稿には provider のロゴを重ねる", () 
 			queryResult([makeItem("a", { thumbnailImageUrl: "https://img/1.jpg", externalEmbedProvider: "instagram" })]),
 		);
 		const tree = await render();
-		expect(has(tree, "my-dishes-list-item-provider-badge")).toBe(true);
+		/*
+		#1641 e2e から «鳴る投稿のカード» を名指しできるよう、testID に provider を含めている。
+		これが無いと «映像を持たない素材» を踏んで、再生を 1 度も観測しないまま緑になる
+		（run 33403385170 で実際に起きた）。
+		*/
+		expect(has(tree, "my-dishes-list-item-provider-badge-instagram")).toBe(true);
 	});
 
 	it("自分で撮った写真にはロゴを出さない", async () => {
 		mockUseMyDishesQuery.mockReturnValue(queryResult([makeItem("b", { thumbnailImageUrl: "https://img/1.jpg" })]));
 		const tree = await render();
-		expect(has(tree, "my-dishes-list-item-provider-badge")).toBe(false);
+		expect(has(tree, "my-dishes-list-item-provider-badge-instagram")).toBe(false);
 	});
 });
 
@@ -429,12 +486,26 @@ describe("#1375 取り込んだ投稿には provider のロゴを重ねる", () 
 */
 describe("#1629 一覧から Feed へ入るときの縦ページャの並び", () => {
 	const ROWS = [
-		makeItem("review:a", { thumbnailImageUrl: "https://example.com/a.jpg", restaurantId: "r-1", dishMediaId: "media-a" }),
+		makeItem("review:a", {
+			thumbnailImageUrl: "https://example.com/a.jpg",
+			restaurantId: "r-1",
+			dishMediaId: "media-a",
+		}),
 		// 同じ店の 2 件目。**潰さない**。グリッドに 2 セル出ているなら縦も 2 ページ
-		makeItem("review:b", { thumbnailImageUrl: "https://example.com/b.jpg", restaurantId: "r-1", dishMediaId: "media-b" }),
-		makeItem("review:c", { thumbnailImageUrl: "https://example.com/c.jpg", restaurantId: "r-2", dishMediaId: "media-c" }),
-		// 写真なしの行は Feed に入れられないので、並びからも外す
-		makeItem("review:d", { restaurantId: "r-3" }),
+		makeItem("review:b", {
+			thumbnailImageUrl: "https://example.com/b.jpg",
+			restaurantId: "r-1",
+			dishMediaId: "media-b",
+		}),
+		makeItem("review:c", {
+			thumbnailImageUrl: "https://example.com/c.jpg",
+			restaurantId: "r-2",
+			dishMediaId: "media-c",
+		}),
+		// #1761 写真なしでもクチコミがあれば 1 ページ（dishMediaId は null）
+		makeItem("review:d", { restaurantId: "r-3", myReview: { id: "review-d" } }),
+		// クチコミも無い行（«食べたい»）はページにしない。開いても読むものが無い
+		makeItem("dish:e", { restaurantId: "r-4" }),
 	];
 
 	const pressNth = async (n: number) => {
@@ -461,9 +532,10 @@ describe("#1629 一覧から Feed へ入るときの縦ページャの並び", (
 		await pressNth(0);
 
 		expect(useMyDishesFeedScopeStore.getState().listItems).toEqual([
-			{ itemKey: "review:a", dishMediaId: "media-a" },
-			{ itemKey: "review:b", dishMediaId: "media-b" },
-			{ itemKey: "review:c", dishMediaId: "media-c" },
+			{ itemKey: "review:a", dishMediaId: "media-a", restaurantId: "r-1" },
+			{ itemKey: "review:b", dishMediaId: "media-b", restaurantId: "r-1" },
+			{ itemKey: "review:c", dishMediaId: "media-c", restaurantId: "r-2" },
+			{ itemKey: "review:d", dishMediaId: null, restaurantId: "r-3" },
 		]);
 		// 店舗の並びは触らない（あれは Map の入口のもの）
 		expect(useMyDishesFeedScopeStore.getState().restaurantIds).toEqual([]);
@@ -474,7 +546,13 @@ describe("#1629 一覧から Feed へ入るときの縦ページャの並び", (
 
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale: "ja-JP", scope: "list", itemKey: "review:b", dishMediaId: "media-b" },
+			params: {
+				locale: "ja-JP",
+				scope: "list",
+				itemKey: "review:b",
+				restaurantId: "r-1",
+				dishMediaId: "media-b",
+			},
 		});
 	});
 });

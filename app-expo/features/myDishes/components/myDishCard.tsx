@@ -82,7 +82,7 @@ export const useMyDishImageSource = (
  * 規則は `features/myDishes/dishCategoryLabel.ts` に 1 本化してある。
  */
 export const resolveMyDishTitle = (item: MyDishItem, locale?: string | null): string | null =>
-	resolveDishCategoryLabel(item.dish.categoryLabels, item.dish.name, locale ?? i18n.locale) ||
+	resolveDishCategoryLabel(item.dish.categoryLabels, locale ?? i18n.locale) ||
 	item.restaurant.name ||
 	null;
 

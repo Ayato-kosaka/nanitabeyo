@@ -121,6 +121,11 @@ jest.mock("@/features/map/components/tabs/RestaurantReviewsTab", () => {
 const mockCallBackend = jest.fn();
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
 jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
+// #1629 «Google マップで開く» が外部へ出る処理を持つ。押下先だけ見たいので口を塞ぐ
+jest.mock("@/lib/googlePlaces", () => ({
+	getGoogleMapsLink: jest.fn(async () => ({ mapUrl: "https://maps.google.com/?q=test", canOpen: true })),
+}));
+jest.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: jest.fn(async () => {}) }));
 
 import RestaurantDetailScreen from "../app/[locale]/restaurant/[restaurantId]";
 import { useRestaurantStore } from "@/stores/useRestaurantStore";
@@ -185,47 +190,57 @@ describe("#1388 店詳細ルートの push 先", () => {
 	});
 
 	/*
-	#1418 【バグ】グリッド押下は `review-from-media` へ **直行**する。
+	#1629【オーナー確定】**グリッド押下は «その投稿を見る»（feed）へ入る。**
 
-	#1386 で feed を挟んだが、それは «押下 1 回» を «押下 2 回» にする劣化だった。
-	さらに feed の「この料理にレビューを書く」は `!isGuestUser(user)` で出ないので、
-	**ゲストはこの機能へ到達する手段を完全に失っていた**。
+	#1418 はここを `review-from-media`（= レビューを書く画面）への直行にしていた。
+	当時この画面は «レビュー投稿導線» だったので筋が通っていたが、いまは «店舗詳細» で、
+	投稿一覧を押した人が求めているのは «その投稿を見ること» である
+	（オーナー実機報告「お店の詳細押すとレビューするフローになる」）。
 
-	⚠️ ここが `feed` に戻ったら、ゲストの導線がもう一度消える。
+	#1418 が心配していた «ゲストが文字だけのレビューへ到達できない» は、
+	フィードの中の «この料理にレビューを書く» が `!isGuestUser(user)` で出し分けている件で、
+	これはゲストのログイン導線（#1359）の問題である。この画面の押下先で解くものではない。
+
+	⚠️ 開始位置は index で渡すこと。渡さないと、どれを押しても 1 件目が開く。
 	*/
-	it("レビューのグリッド押下は review-from-media ルートへ直行する", async () => {
+	it("投稿グリッドの押下は feed ルートへ、押した位置つきで push する", async () => {
 		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
 
 		await press(tree, "reviews-tab-item");
 
 		expect(mockPush).toHaveBeenCalledWith({
-			// #1375 移設先（レビュータブ廃止で `(tabs)/review/restaurant/**` → `restaurant/**`）
-			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
-			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, dishMediaId: "dish-media-7" },
+			pathname: "/[locale]/restaurant/[restaurantId]/feed",
+			// スタブは 3 番目を押したことにしている。ここが "0" に化けたら index を渡し忘れている
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, initialIndex: "3" },
 		});
 	});
 
-	// ⚠️ アプリ内から feed を開かないこと（#1414 B-3）。直リンクでしか着地しない画面である
-	it("グリッド押下で feed ルートへは行かない", async () => {
+	/*
+	#1629【オーナー確定】**「写真・動画を投稿」はこの画面から外した。**
+
+	投稿は «食べたを記録» のフロー（my-dishes → 記録 → お店を選ぶ）に 1 本化されている。
+	店舗詳細にも同じことを始めるボタンがあったため、画面に出ているものが
+	«店の情報 0 件 / レビューを書く導線 2 件» になっていた。
+
+	⚠️ ここが赤くなったら投稿ボタンが復活している。
+	*/
+	it("「写真・動画を投稿」を描かない（投稿は記録フローへ 1 本化した）", async () => {
 		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
 
-		await press(tree, "reviews-tab-item");
-
-		expect(mockPush).not.toHaveBeenCalledWith(
-			expect.objectContaining({ pathname: "/[locale]/restaurant/[restaurantId]/feed" }),
-		);
+		expect(tree.root.findAll((node) => node.props?.testID === "restaurant-detail-post-photo-button")).toHaveLength(0);
 	});
 
-	// 非ゲストの投稿導線。ゲストの `next` は loginEntryPoints.test.tsx が持つ
-	it("「写真・動画を投稿」は review ルートへ push する", async () => {
+	/*
+	#1629【オーナー確定】代わりに «Google マップで開く» を戻した。
+	#1411 が入札の撤去と一緒に消したが、これは店の情報（場所・営業時間・電話）へ辿り着く
+	導線であって入札とは無関係である。
+	*/
+	it("「Google マップで開く」を描く", async () => {
 		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
 
-		await press(tree, "restaurant-detail-post-photo-button");
-
-		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/restaurant/[restaurantId]/review",
-			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
-		});
+		expect(
+			tree.root.findAll((node) => node.props?.testID === "restaurant-detail-google-maps-button"),
+		).not.toHaveLength(0);
 	});
 });
 

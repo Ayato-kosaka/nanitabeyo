@@ -87,6 +87,10 @@ function createGate(): { promise: Promise<void>; release: () => void } {
 }
 
 test.describe("地点確認(confirming/confirmed/error)の状態表示 (#1502)", () => {
+	// #1629 この spec は details を **404 / 500 に固定** して «エラー表示» を見る。
+	// 前提そのものが生む console error なので許容する
+	test.use({ allowedConsoleErrors: ["status of 404", "status of 500"] });
+
 	// ─ テストケース: 確認中(スピナー) → 確定(✓ だけ) → ✓ が黙って消える ─
 	// 手順:
 	//   1. autocomplete を固定候補にモックし、details(OK_PLACE_ID)を保留可能にモックする

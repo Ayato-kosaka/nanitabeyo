@@ -18,6 +18,7 @@ from pg_sync_common import (
     assert_quality_gate_passed,
     backup_table_to_gcs,
     connect_postgres,
+    fetch_sync_windows,
     new_sync_id,
     write_sync_log,
 )
@@ -51,10 +52,12 @@ def csv_value(value: Any) -> Any:
 def export_catalog(pipeline: BigQueryPipeline, run_id: str, path: Path) -> int:
     query = f"""
       SELECT
-        existing_restaurant_id, seed_id, google_place_id, match_method,
+        seed_id, google_place_id, match_method,
         name, name_language_code,
         latitude, longitude, image_url, image_path, address_components_json,
-        plus_code_json, TO_JSON_STRING(source_names) AS source_names_json, row_hash
+        plus_code_json, address, country_code,
+        phone, website, TO_JSON_STRING(social_urls) AS social_urls_json,
+        TO_JSON_STRING(source_names) AS source_names_json, row_hash
       FROM `{pipeline.dataset_ref}.restaurant_catalog`
       WHERE run_id = @run_id
       ORDER BY google_place_id
@@ -77,7 +80,6 @@ def export_catalog(pipeline: BigQueryPipeline, run_id: str, path: Path) -> int:
 def load_staging(connection: Any, path: Path) -> None:
     create_sql = """
       CREATE TEMP TABLE restaurant_sync_staging (
-        existing_restaurant_id UUID,
         seed_id UUID NOT NULL,
         google_place_id TEXT NOT NULL,
         match_method TEXT NOT NULL,
@@ -89,6 +91,11 @@ def load_staging(connection: Any, path: Path) -> None:
         image_path TEXT,
         address_components_json TEXT NOT NULL,
         plus_code_json TEXT,
+        address TEXT,
+        country_code TEXT,
+        phone TEXT,
+        website TEXT,
+        social_urls_json TEXT NOT NULL,
         source_names_json TEXT NOT NULL,
         row_hash TEXT NOT NULL
       ) ON COMMIT DROP
@@ -117,19 +124,18 @@ def calculate_stats(connection: Any) -> SyncStats:
                   AND r.source_row_hash IS NOT DISTINCT FROM s.row_hash
               ) AS skipped
             FROM restaurant_sync_staging s
+            -- #843 かつては `OR r.id = s.existing_restaurant_id` を付けていたが、
+            -- 両方成立する行を二重に数えるうえ、PG の UUID に依存していた。
+            -- google_place_id は UNIQUE なので、これだけで 1 行に定まる。
             LEFT JOIN restaurants r
               ON r.google_place_id = s.google_place_id
-              OR (
-                s.existing_restaurant_id IS NOT NULL
-                AND r.id = s.existing_restaurant_id
-              )
             """
         )
         inserted, updated, skipped = cursor.fetchone()
     return SyncStats(inserted or 0, updated or 0, skipped or 0)
 
 
-def validate_staging(connection: Any) -> None:
+def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
     """既存restaurantの暗黙Place ID変更をpublish前に止める。"""
 
     with connection.cursor() as cursor:
@@ -137,7 +143,9 @@ def validate_staging(connection: Any) -> None:
             """
             SELECT COUNT(*)
             FROM restaurant_sync_staging s
-            JOIN restaurants r ON r.id = s.existing_restaurant_id
+            -- #843 seed で引く。source_seed_id は UNIQUE（20260823T0000）なので
+            -- 高々1行に定まり、PG の UUID をカタログ側へ持ち込まずに済む。
+            JOIN restaurants r ON r.source_seed_id = s.seed_id
             WHERE r.google_place_id <> s.google_place_id
               AND s.match_method <> 'manual_override'
             """
@@ -147,12 +155,50 @@ def validate_staging(connection: Any) -> None:
             """
             SELECT COUNT(*)
             FROM restaurant_sync_staging s
+            -- 「この seed は既に PG のどの行か」を seed で引いてから、
+            -- その place_id を別の行が使っていないかを見る。
+            -- 初回同期では linked が 0 件なので、この検査は自然に無効になる。
+            JOIN restaurants linked ON linked.source_seed_id = s.seed_id
             JOIN restaurants occupied ON occupied.google_place_id = s.google_place_id
-            WHERE s.existing_restaurant_id IS NOT NULL
-              AND occupied.id <> s.existing_restaurant_id
+            WHERE occupied.id <> linked.id
             """
         )
         occupied_place_ids = cursor.fetchone()[0]
+
+        # #843 backfill 忘れの検知。
+        #
+        # created_by_source の既定は 'user' なので、パイプラインが過去に
+        # 投入した行も、backfill しないままだと 'user' に見える。その状態で
+        # 同期すると **オープンデータの更新が一件も反映されない**（壊れは
+        # しないが黙って止まる）。落ちるより気付きにくいので、ここで数える。
+        #
+        # ⚠️ `source_seed_id IS NOT NULL` だけで判定してはいけない。
+        # 9_1 の provenance UPDATE は **アプリ製の行にも source_seed_id を刻む**
+        # ので、アプリが作った既存店（dev 実測 2,115 行）が恒久的に引っかかり、
+        # backfill 済みでも同期が二度と通らなくなる。実際にこれで落とした。
+        #
+        # 「パイプラインが INSERT した行」の定義は backfill（9_9）と同じ
+        # ——**同期の実行窓に作られた行**——でなければならない。判定を
+        # 二重に書かないよう、窓の取得は pg_sync_common に寄せてある。
+        unbackfilled = 0
+        for window in sync_windows:
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM restaurants r
+                WHERE r.created_by_source <> 'pipeline'
+                  AND r.source_seed_id IS NOT NULL
+                  AND r.created_at BETWEEN %s AND %s
+                """,
+                (window.started_at, window.finished_at),
+            )
+            unbackfilled += cursor.fetchone()[0]
+
+    if unbackfilled:
+        raise RuntimeError(
+            f"過去の同期が作った行のうち{unbackfilled}件が created_by_source='pipeline' に"
+            "なっていません。9_9_backfill_created_by_source.py を先に実行してください"
+        )
     if invalid_changes:
         raise RuntimeError(
             f"人手overrideでない既存Google Place ID変更が{invalid_changes}件あります"
@@ -172,7 +218,7 @@ def apply_sync(connection: Any) -> None:
             UPDATE restaurants r
             SET google_place_id = s.google_place_id
             FROM restaurant_sync_staging s
-            WHERE s.existing_restaurant_id = r.id
+            WHERE r.source_seed_id = s.seed_id
               AND r.google_place_id <> s.google_place_id
               AND s.match_method = 'manual_override'
             """
@@ -191,31 +237,59 @@ def apply_sync(connection: Any) -> None:
             """
         )
 
-        # まず不足行だけ追加する。existing_restaurant_idがある場合は既存UUIDを維持し、
-        # open data新規行だけgen_random_uuid()で作る。
+        # まず不足行だけ追加する。
+        #
+        # #843 かつては `COALESCE(s.existing_restaurant_id, gen_random_uuid())` で
+        # 既存UUIDを維持していたが、**この分岐は結果を変えていなかった**。
+        # existing_restaurant_id が入っている行は PG に既に在るので
+        # ON CONFLICT (google_place_id) DO NOTHING で弾かれ、INSERT されない。
+        # 一方この列は «1_2 がどのスキーマを読んだか» に依存しており、
+        # dev の catalog を public へ流すと dev の UUID が public の主キーに
+        # なりえた。結果を変えない依存は外す。
         cursor.execute(
             """
             INSERT INTO restaurants (
               id, google_place_id, name, name_language_code, latitude, longitude,
               image_url, image_path, address_components, plus_code,
-              source_seed_id, source_names, source_row_hash, synced_at
+              address, country_code,
+              source_seed_id, source_names, source_row_hash, synced_at,
+              created_by_source
             )
             SELECT
-              COALESCE(s.existing_restaurant_id, gen_random_uuid()),
+              gen_random_uuid(),
               s.google_place_id, s.name, s.name_language_code, s.latitude, s.longitude,
               s.image_url, s.image_path, s.address_components_json::jsonb,
               CASE WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb END,
+              s.address, s.country_code,
               s.seed_id,
               ARRAY(SELECT jsonb_array_elements_text(s.source_names_json::jsonb)),
               s.row_hash,
-              CURRENT_TIMESTAMP
+              CURRENT_TIMESTAMP,
+              -- #843 ここで所有者を刻む。ON CONFLICT DO NOTHING なので、既に
+              -- 存在する行（＝アプリが作った行）の created_by_source は
+              -- 書き換わらない。スナップショットに載っていたかどうかに関係なく
+              -- アプリ製の行が 'user' のまま残るのが、この設計の要点である。
+              'pipeline'
             FROM restaurant_sync_staging s
             ON CONFLICT (google_place_id) DO NOTHING
             """
         )
 
-        # BigQueryで新規作成した行だけは再実行時にcanonical値を更新する。
-        # 既存PG由来行は、表示名・位置・Google JSONを絶対に上書きしない。
+        # パイプラインが作った行だけ、再実行時にcanonical値を更新する。
+        #
+        # #843 かつてこの条件は `s.existing_restaurant_id IS NULL` だった。
+        # つまり「1_2 が撮ったスナップショットに載っていないなら新規行だろう」
+        # という **PostgreSQL の外にある古いデータへの否定条件** で判定していた。
+        # スナップショットから同期までは実測で約40時間あり、その間にアプリが
+        # 作った行はスナップショットに載らないので「新規」と誤認され、
+        # 表示値をオープンデータ値で上書きされた（2026-08-24 の dev で7行）。
+        #
+        # 判定を、行のとなりに刻まれた時間に依らない事実へ移す。これで
+        # スナップショットが何時間古かろうと、アプリが作った行は触れない。
+        #
+        # `source_seed_id IS NULL` は条件に使えない。この直後の provenance
+        # UPDATE が **アプリ製の行にも source_seed_id を付ける**ため、2回目の
+        # 実行で条件が反転してしまう。
         cursor.execute(
             """
             UPDATE restaurants r
@@ -229,11 +303,90 @@ def apply_sync(connection: Any) -> None:
               address_components = s.address_components_json::jsonb,
               plus_code = CASE
                 WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb
-              END
+              END,
+              address = s.address,
+              country_code = s.country_code
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
-              AND s.existing_restaurant_id IS NULL
+              AND r.created_by_source = 'pipeline'
               AND r.source_row_hash IS DISTINCT FROM s.row_hash
+            """
+        )
+
+        # #1681 電話・公式サイト・SNS を restaurant_links へ入れる。
+        #
+        # BigQuery はこれらを計算済みなのに PG に受け口が無く、9_1 が捨てていた
+        # （保有率 電話 89.2% / SNS 79.2% / サイト 44.9%）。website は営業時間の
+        # 取得（#1666）の入口なので、無いとそちらへ着手できない。
+        #
+        # **消してから入れ直す形にはしない。** ユーザーやオーナーが後から足した
+        # リンク（source が user / owner / official_site）まで消えるためである。
+        # オープンデータ由来の行だけを対象に upsert する。
+        # #1700 レビュー: 出所側で値が変わった/消えたときに、**古い値が残り続ける**。
+        # ON CONFLICT DO NOTHING は足すだけなので、電話が変わった店は
+        # 新旧 2 本を持つことになり、どちらが現在の値か区別できない。
+        #
+        # **オープンデータ由来の行だけ**を、今回の catalog に無いものに限って消す。
+        # ユーザー・オーナー・公式サイト由来（source <> 'open_data'）は触らない。
+        # 対象も staging に居る店に限る（catalog に載らなかった店の履歴は消さない）。
+        cursor.execute(
+            """
+            DELETE FROM restaurant_links l
+            USING restaurants r, restaurant_sync_staging s
+            WHERE l.restaurant_id = r.id
+              AND r.google_place_id = s.google_place_id
+              AND l.source = 'open_data'
+              AND NOT EXISTS (
+                SELECT 1
+                FROM (
+                  SELECT 'phone'::text AS kind, s.phone AS value
+                  UNION ALL SELECT 'website', s.website
+                  UNION ALL SELECT
+                    CASE
+                      WHEN u.value ILIKE '%%instagram.com%%' THEN 'instagram'
+                      WHEN u.value ILIKE '%%tiktok.com%%'    THEN 'tiktok'
+                      WHEN u.value ILIKE '%%facebook.com%%'  THEN 'facebook'
+                      WHEN u.value ILIKE '%%twitter.com%%'
+                        OR u.value ILIKE '%%//x.com/%%'      THEN 'x'
+                      ELSE 'other'
+                    END,
+                    u.value
+                  FROM jsonb_array_elements_text(s.social_urls_json::jsonb) AS u(value)
+                ) AS cur
+                WHERE cur.kind = l.kind AND cur.value = l.value
+              )
+            """
+        )
+
+        cursor.execute(
+            """
+            INSERT INTO restaurant_links (restaurant_id, kind, value, source, fetched_at)
+            SELECT r.id, v.kind, v.value, 'open_data', CURRENT_TIMESTAMP
+            FROM restaurant_sync_staging s
+            JOIN restaurants r ON r.google_place_id = s.google_place_id
+            CROSS JOIN LATERAL (
+              -- 電話・サイトは 1 本ずつ、SNS は配列。1 つの SELECT に畳んで
+              -- 空文字と NULL を同じ「無い」として落とす。
+              SELECT 'phone'::text AS kind, s.phone AS value
+              WHERE NULLIF(btrim(COALESCE(s.phone, '')), '') IS NOT NULL
+              UNION ALL
+              SELECT 'website', s.website
+              WHERE NULLIF(btrim(COALESCE(s.website, '')), '') IS NOT NULL
+              UNION ALL
+              SELECT
+                CASE
+                  WHEN u.value ILIKE '%%instagram.com%%' THEN 'instagram'
+                  WHEN u.value ILIKE '%%tiktok.com%%'    THEN 'tiktok'
+                  WHEN u.value ILIKE '%%facebook.com%%'  THEN 'facebook'
+                  WHEN u.value ILIKE '%%twitter.com%%'
+                    OR u.value ILIKE '%%//x.com/%%'      THEN 'x'
+                  ELSE 'other'
+                END,
+                u.value
+              FROM jsonb_array_elements_text(s.social_urls_json::jsonb) AS u(value)
+              WHERE NULLIF(btrim(u.value), '') IS NOT NULL
+            ) AS v
+            ON CONFLICT (restaurant_id, kind, value) DO NOTHING
             """
         )
 
@@ -247,7 +400,17 @@ def apply_sync(connection: Any) -> None:
               source_names = ARRAY(
                 SELECT jsonb_array_elements_text(s.source_names_json::jsonb)
               ),
-              source_row_hash = s.row_hash,
+              -- #843 source_row_hash は **pipeline の行にだけ**刻む。
+              --
+              -- ここを無条件にすると、アプリが作った行にも catalog の row_hash が
+              -- 付く。その行が何かの拍子に created_by_source='pipeline' へ変わると、
+              -- 値 UPDATE の条件 `source_row_hash IS DISTINCT FROM s.row_hash` が
+              -- 最初から偽になり、**その行だけオープンデータの更新が永久に
+              -- 届かなくなる**。落ちず、壊れず、気付けない。
+              source_row_hash = CASE
+                WHEN r.created_by_source = 'pipeline' THEN s.row_hash
+                ELSE r.source_row_hash
+              END,
               synced_at = CURRENT_TIMESTAMP
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
@@ -282,7 +445,10 @@ def main() -> None:
         if not args.dry_run and not args.skip_backup:
             backup_table_to_gcs(connection, args.schema, "restaurants", run_id=run_id)
         load_staging(connection, staging_path)
-        validate_staging(connection)
+        # 初回同期では窓が 0 件になる。それは backfill 漏れではないので通す。
+        validate_staging(
+            connection, fetch_sync_windows(pipeline, args.schema, allow_empty=True)
+        )
         stats = calculate_stats(connection)
         LOGGER.info(
             "restaurant sync plan: insert=%d update=%d skip=%d",

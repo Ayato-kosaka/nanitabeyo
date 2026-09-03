@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { View, Text, Switch, TouchableOpacity, StyleSheet, StyleProp, TextStyle } from "react-native";
+import { View, Text, Switch, TouchableOpacity, StyleSheet, StyleProp, TextStyle, Platform } from "react-native";
 
 import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
@@ -57,6 +57,31 @@ export function SettingsToggleItem({
 		onValueChange(!value);
 	}, [onValueChange, value]);
 
+	/*
+	#1785 【設計】«スイッチ» を名乗るのは、native では行、web では Switch の中の input。
+
+	react-native-web の `Switch` は必ず
+	`<input type="checkbox" role="switch">` を描く（react-native-web/dist/exports/Switch）。
+	そのため行にも `accessibilityRole="switch"` を付けると、web では
+	**role="switch" の中に role="switch" の input が入れ子**になり、axe が 2 つ挙げる。
+
+	  - `nested-interactive`(serious) … 操作要素の入れ子（div[aria-label="…"]）
+	  - `label`(critical) …………………… その input に名前が無い（aria-label は
+	                                     `accessibilityLabel` を渡さない限り空）
+
+	native では逆で、`TouchableOpacity` が子をまとめて 1 つの読み上げ要素にするため、
+	中の `Switch` は単独では読まれない。**行が role を持たないと «スイッチ» だと分からない。**
+
+	そこで «スイッチの正体» を platform ごとに 1 つだけにする。
+	  web    … 行は素の器。中の input が名前付きのスイッチ
+	  native … 行がスイッチ。中の Switch は見た目だけ
+
+	⚠️ web で行に role/aria-checked を戻さないこと。入れ子が復活して axe が赤くなる。
+	⚠️ web の input を消さないこと。E2E は `input[type="checkbox"]` の checked で
+	   状態を読んでいる（e2e-web/pages/SettingsPage.ts）。
+	*/
+	const isWeb = Platform.OS === "web";
+
 	return (
 		<>
 			<TouchableOpacity
@@ -64,11 +89,20 @@ export function SettingsToggleItem({
 				onPress={handlePress}
 				disabled={disabled}
 				testID={testID}
-				accessibilityRole="switch"
-				accessibilityLabel={label}
+				accessibilityRole={isWeb ? undefined : "switch"}
+				accessibilityLabel={isWeb ? undefined : label}
 				// #1510 補足文は支援技術にも読ませる。行のラベルとは別の情報なので hint に載せる
-				accessibilityHint={description}
-				accessibilityState={{ checked: value, disabled: !!disabled }}>
+				accessibilityHint={isWeb ? undefined : description}
+				accessibilityState={isWeb ? undefined : { checked: value, disabled: !!disabled }}
+				/*
+				#1629 【修正】react-native-web は `accessibilityState.checked` を DOM の
+				`aria-checked` へ変換しない（`SelectableChip` / `ThemeSelector` と同じ既知の非対応）。
+				その結果 web では **`role="switch"` なのに `aria-checked` を持たない行**になり、
+				スクリーンリーダーから «オンかオフか» が読めない。axe も
+				`aria-required-attr`（critical）として検出する。
+				repo の他の箇所と同じく、両対応の `aria-checked` を直接指定して埋める。
+				*/
+				aria-checked={isWeb ? undefined : value}>
 				<View style={styles.labelColumn}>
 					<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
 					{!!description && (
@@ -90,6 +124,10 @@ export function SettingsToggleItem({
 						value={value}
 						onValueChange={onValueChange}
 						disabled={disabled}
+						// #1785 web ではこの input が «スイッチ» の本体なので、名前はここに要る
+						// （native では行が読み上げ対象なので付けない＝二重読み上げにしない）
+						accessibilityLabel={isWeb ? label : undefined}
+						accessibilityHint={isWeb ? description : undefined}
 						trackColor={{ false: colors.trackMuted, true: colors.brand }}
 						thumbColor={FixedColors.onFilled}
 						ios_backgroundColor={colors.trackMuted}

@@ -58,6 +58,19 @@ jest.mock("@/features/profile/stores/useProfileStore", () => ({
 jest.mock("@/stores/useCdnCookieStore", () => ({
 	useCdnCookieStore: { getState: () => ({ clearCookies: jest.fn() }) },
 }));
+/*
+#1629 my-dishes のキャッシュを «ユーザーが変わったら捨てる» ことを検証するため、
+呼ばれたかどうかを読めるモックにする（他のストアは呼び出しを見ていないので使い捨てで足りる）。
+`mock` 始まりの変数名だけが jest.mock の工場から参照できる（jest の制約）。
+*/
+const mockBumpMyDishes = jest.fn();
+const mockClearMyDishesFeedScope = jest.fn();
+jest.mock("@/features/myDishes/stores/useMyDishesRevisionStore", () => ({
+	useMyDishesRevisionStore: { getState: () => ({ bump: mockBumpMyDishes }) },
+}));
+jest.mock("@/features/myDishes/stores/useMyDishesFeedScopeStore", () => ({
+	useMyDishesFeedScopeStore: { getState: () => ({ clear: mockClearMyDishesFeedScope }) },
+}));
 
 /** 上の jest.mock で差し替えた supabase.auth（すべて jest.fn） */
 const auth = supabase.auth as unknown as {
@@ -464,5 +477,94 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		});
 
 		expect(auth.signInAnonymously).toHaveBeenCalledTimes(1);
+	});
+
+	/*
+	#1629 オーナー実機報告 2 件の共通の真因を固定する。
+
+	  1. ログアウトしても前のユーザーの記録がグリッドに残る
+	  2. ログインした直後に «候補がありません» が出る
+
+	dev の実ログ（2026-08-30）はこの順に並んでいた。
+
+	    logout_success → userChanged(匿名) → my_dishes_fetch_completed {count: 0}
+	    → userChanged(本人)
+
+	匿名として 0 件を取り切ると `hasFetchedInitial` が true になり、その «空のスライス» が
+	本人へ切り替わっても残る。だから «残る» と «空» は同じ 1 つの原因である。
+
+	⚠️ この期待を消すと、**画面には «前の人のデータ» か «空» のどちらかが必ず出る**。
+	   件数の表示側で隠すのではなく、キャッシュごと捨てること。
+	*/
+	it("ユーザーが変わったら my-dishes のキャッシュを捨てる（前ユーザーの記録も «空» も残さない）", async () => {
+		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("anon-1") }, error: null });
+
+		await mountProvider();
+		mockBumpMyDishes.mockClear();
+		mockClearMyDishesFeedScope.mockClear();
+
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("user-1"));
+		});
+
+		expect(mockBumpMyDishes).toHaveBeenCalledTimes(1);
+		expect(mockClearMyDishesFeedScope).toHaveBeenCalledTimes(1);
+	});
+
+	/*
+	#1785 起動のたびに一覧を 2 回取っていたのを固定する。
+
+	ログイン済みのユーザーがアプリを開くと、`INITIAL_SESSION` が «前のユーザーが null →
+	本人» として届く。これを «切り替わった» と数えていたため、
+
+	    my-dishes の取得が始まる → INITIAL_SESSION → bump() が飛行中のスライスごと捨てる
+	    → フックが取り直す
+
+	が毎回起きていた。一覧の取得は平均 4.48 秒・最大 11.23 秒（#1395 §0(A)）なので、
+	**起動のたびにそれを 2 本**走らせていたことになる。
+
+	⚠️ この期待を «捨てる» 側へ戻さないこと。起動直後に捨てるものは 1 つも無い
+	   （このコンテキストが捨てるストアは全部 in-memory で、`persist` を 1 つも使っていない）。
+	   捨てて困るのは «もう始まっている取得» だけである。
+	*/
+	it("起動時にセッションを復元しただけなら my-dishes のキャッシュは捨てない（#1785 2 回取得）", async () => {
+		// ⚠️ **`INITIAL_SESSION` は復元が `sessionRef` へ入るより先に届く。**
+		//    実ブラウザで確認した順序がこれで、そのとき «前のユーザー» はまだ null である。
+		//    `getSession()` を先に解決させてから流すと «同じユーザー» になってしまい、
+		//    修正の有無にかかわらず緑になる（= 何も守らないテストになる）
+		let resolveGetSession!: (result: unknown) => void;
+		auth.getSession.mockReturnValue(
+			new Promise((resolve) => {
+				resolveGetSession = resolve;
+			}),
+		);
+
+		await mountProvider();
+
+		await act(async () => {
+			await emitAuthStateChange("INITIAL_SESSION", fakeSession("user-1"));
+		});
+
+		expect(mockBumpMyDishes).not.toHaveBeenCalled();
+		expect(mockClearMyDishesFeedScope).not.toHaveBeenCalled();
+
+		await act(async () => {
+			resolveGetSession({ data: { session: fakeSession("user-1") }, error: null });
+		});
+	});
+
+	it("同じユーザーのままなら my-dishes のキャッシュは捨てない（毎回取り直すのは無駄）", async () => {
+		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
+
+		await mountProvider();
+		mockBumpMyDishes.mockClear();
+		mockClearMyDishesFeedScope.mockClear();
+
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("user-1"));
+		});
+
+		expect(mockBumpMyDishes).not.toHaveBeenCalled();
+		expect(mockClearMyDishesFeedScope).not.toHaveBeenCalled();
 	});
 });

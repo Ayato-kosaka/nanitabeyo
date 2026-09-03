@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { type Palette } from "@/constants/Palette";
+import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
-import { View, StyleSheet, TouchableOpacity, InteractionManager } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, InteractionManager, Platform } from "react-native";
 import { Navigation, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
@@ -18,6 +18,7 @@ import {
 } from "@shared/api/v1/res";
 import type { CreateRestaurantDto, QueryRestaurantsDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
 import { asApiList } from "@/lib/apiList";
 import { useLogger } from "@/hooks/useLogger";
@@ -103,6 +104,8 @@ export default function SelectRestaurantScreen() {
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
+	// #1629 確認カードを画面下へ置くので、ホームバー等の安全域ぶん持ち上げる
+	const insets = useSafeAreaInsets();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
@@ -204,9 +207,32 @@ export default function SelectRestaurantScreen() {
 				});
 				// 追い越しを捨てる（指を離すたびに投げるので、古い応答が後から届きうる）
 				if (requestId !== nearbyRequestRef.current) return;
-				setNearbyRestaurants(asApiList(response));
+				const list = asApiList(response);
+				setNearbyRestaurants(list);
+				/*
+				#1629 【追加】**ピンの元になる件数を残す。**
+
+				オーナー実機報告「お店を選ぶのマップピンが Android で映らない」を追ったとき、
+				この経路には «成功したときのログ» が 1 つも無く、
+				  - 0 件が返ってきた
+				  - そもそも応答が返ってこなかった
+				  - 返ったが描画されなかった
+				の 3 つを実ログから区別できなかった。件数と半径を残せば次からは切り分けられる。
+				*/
+				logFrontendEvent({
+					event_name: "nearby_restaurants_search_completed",
+					error_level: "log",
+					payload: {
+						count: list.length,
+						radius: radiusForRegion(region),
+						lat: region.latitude,
+						lng: region.longitude,
+					},
+				});
 			} catch (error) {
 				// 自分で止めたものは «失敗» ではない。ログにも出さない
+				// （クライアントの 30 秒タイムアウトはここには来ない。`useAPICall` は
+				//   `code: "network_error"` + `timedOut: true` を投げるので下の warn に落ちる）
 				if ((error as ApiError | undefined)?.code === "aborted") return;
 				// 地図の手がかりが出ないだけなので、画面は止めない（スナックバーも出さない）
 				logFrontendEvent({
@@ -470,7 +496,8 @@ export default function SelectRestaurantScreen() {
 
 				// #1561 API が 200 で «data の無い本文» を返すと、次のレンダーの .map で
 				// 画面ごと ErrorBoundary へ落ちていた（throw は try の外なので catch できない）
-				setSavedRestaurants(asApiList(response.data));
+				const list = asApiList(response.data);
+				setSavedRestaurants(list);
 				setActiveRestaurantId(null);
 				// #1629 取り直した範囲でクラスタも畳み直す（地図は動いていないので通常は同じ参照が返る）
 				updateClusterViewport(region);
@@ -804,11 +831,67 @@ export default function SelectRestaurantScreen() {
 		() => clusterMapPins(pins, clusterViewport, { maxRendered: MAX_PICKER_MARKERS }),
 		[pins, clusterViewport],
 	);
+
+	/*
+	#1629【オーナー実機報告 → 指示】「店ピンを二度押さないと反映されない」。
+
+	## なぜ 2 回なのか（この仕様は残す）
+
+	#1375 8 巡目のオーナー指示で **1 回目は選択・2 回目で確定**にした。地図を触っていて
+	指が当たっただけで «記録するお店» が決まってしまうのを防ぐためである。
+
+	## ではなぜ «反映されない» と見えたのか
+
+	1 回目に起きることが **ピンの色が変わるだけ**だったからである。地図上の小さな印の色が
+	変わっても «選ばれた» と読めないし、下のシートが畳まれていれば行が選ばれたことも見えない。
+	つまり «1 回目が無反応に見える» のであって、2 回押す作法そのものが問題ではない。
+
+	そこで **1 回目で «選んだ店の名前と「このお店にする」» を画面に出す**。
+	押す対象が言葉で出るので、指が当たっただけの誤爆は «出ただけ» で終わり、
+	決めたい人は 1 タップで確定できる。オーナーの «推奨で» はこれ。
+	*/
+	const selectedPin = useMemo(
+		() => (activeRestaurantId === null ? null : (pins.find((pin) => pin.restaurant.id === activeRestaurantId) ?? null)),
+		[activeRestaurantId, pins],
+	);
 	/*
 	引きでは «点»、寄りで «写真 + 店名»。ラベルは引くと重なって読めなくなるうえ、
 	ビットマップだけが増える。大手の地図アプリと同じ切り替え（基準は mapPins.ts）。
 	*/
 	const pinDetail = useMemo(() => pinDetailLevelForRegion(clusterViewport), [clusterViewport]);
+
+	/*
+	#1629【オーナー実機報告】「食べたを記録のお店を選ぶのマップピンが Android で映らない」。
+
+	**推測で描画を直す前に、«何本描こうとしているのか» をログへ出す。**
+	いまは «0 本なのか / 描いているのに見えないのか» を分ける材料がどこにも無い。
+
+	コードを読んで分かっている前提（原因の断定ではない）:
+	- 日本語ユーザーはこの画面を **必ず日本全体（REGION_JP / delta 20）** で開く
+	  （初期化 useEffect の isJapanese 分岐。理由のコメントはファイル作成時から無い）
+	- `pinDetailLevelForRegion` は引きでは «点» を返すので、その縮尺のピンは点になる
+	- Android のバブルは 37px 上限・尻尾なし、iOS は 48px + 尻尾
+	  （`AvatarBubbleMarker` のコメント。Android の Marker children がクリップされるため）
+
+	pins / clusters / detail / delta が実データで揃えば、
+	«全国表示で点になっているだけ» なのか «本当に描けていない» のかを判定できる。
+	*/
+	useEffect(() => {
+		logFrontendEvent({
+			event_name: "restaurant_picker_markers_rendered",
+			error_level: "log",
+			payload: {
+				pins: pins.length,
+				clusters: clusters.length,
+				detail: pinDetail,
+				isPickMode,
+				latitudeDelta: clusterViewport.latitudeDelta,
+				longitudeDelta: clusterViewport.longitudeDelta,
+				platform: Platform.OS,
+				osVersion: String(Platform.Version),
+			},
+		});
+	}, [pins.length, clusters.length, pinDetail, isPickMode, clusterViewport, logFrontendEvent]);
 
 	/*
 	#1375（実機: マップの重さ）**マーカー配列を memo で固定する。**
@@ -831,7 +914,20 @@ export default function SelectRestaurantScreen() {
 					<RestaurantPinMarker
 						key={cluster.id}
 						cluster={cluster}
-						appearance={isPickMode ? "label" : "avatar"}
+						/*
+						#1629【オーナー確定】**«食べたい / 食べた» のマップと同じ構成にする。**
+
+						オーナー実機報告「お店を選ぶのマップピンが Android で映らない」。
+						あちら（`MyDishesMapView`）は `AvatarBubbleMarker`（丸だけ）で **実機で出ている**。
+						こちらだけが «丸 + 店名 2 行» の別構成（`RestaurantLabelMarker`）で、
+						そこだけが映らないという報告だった。オーナー指示で構成を揃える。
+
+						⚠️ **ピンから店名が消える**（丸の写真だけになる）。#1375 8 巡目は
+						   «押すまでどの店か分からない» を理由に店名を載せたが、
+						   **そもそも映らないより出るほうが先**という判断。店名は押したときと
+						   下部の «保存したお店» シートで読める。
+						*/
+						appearance="avatar"
 						detail={pinDetail}
 						isActive={activeRestaurantId === cluster.pins[0].restaurant.id}
 						onPress={handlePinPress}
@@ -840,7 +936,7 @@ export default function SelectRestaurantScreen() {
 					<RestaurantClusterMarker key={cluster.id} cluster={cluster} onPress={handleClusterPress} />
 				),
 			),
-		[activeRestaurantId, clusters, handleClusterPress, handlePinPress, isPickMode, pinDetail],
+		[activeRestaurantId, clusters, handleClusterPress, handlePinPress, pinDetail],
 	);
 
 	return (
@@ -931,6 +1027,36 @@ export default function SelectRestaurantScreen() {
 				</View>
 			</View>
 
+			{/*
+			#1629【オーナー指示】確認カードは **画面の下**へ置く。
+
+			> 「このお店にする」ボタンは下部にして欲しい。
+
+			最初は検索窓の下（上部）に出していたが、地図で店を探しているときの指は下にある。
+			⚠️ **シートのぶん持ち上げない。** `SavedRestaurantsSheet` は `!isPickMode` のときしか
+			   描かれないので、pick モードのこのカードと同時に画面へ出ることはない
+			   （自己レビューで «176pt 浮かせても被る相手が居ない» と分かった）。
+			   安全域のぶんだけ上げて、指の届くところへ置く。
+			⚠️ `pointerEvents="box-none"` にしないと、カードの左右の余白が地図のタップを食う。
+			*/}
+			{isPickMode && selectedPin && (
+				<View style={[styles.pickConfirmLayer, { bottom: insets.bottom + 16 }]} pointerEvents="box-none">
+					<View style={styles.pickConfirmCard} testID="select-restaurant-pick-confirm">
+						<Text style={styles.pickConfirmName} numberOfLines={1} ellipsizeMode="tail">
+							{selectedPin.restaurant.name}
+						</Text>
+						<TouchableOpacity
+							testID="select-restaurant-pick-confirm-button"
+							style={styles.pickConfirmButton}
+							onPress={() => handlePinPress(selectedPin as RestaurantPin)}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("SelectRestaurant.pickConfirm")}>
+							<Text style={styles.pickConfirmLabel}>{i18n.t("SelectRestaurant.pickConfirm")}</Text>
+						</TouchableOpacity>
+					</View>
+				</View>
+			)}
+
 			{/* Saved Restaurants BottomSheet
 
 			    #1375（オーナー指示）**「お店を選ぶ」ときは出さない。**
@@ -984,6 +1110,48 @@ const createStyles = (c: Palette) =>
 		searchButtonContainer: {
 			marginTop: 8,
 			alignItems: "center",
+		},
+		// #1629 確認カードを浮かせる層。地図の上・シートの上に置く
+		pickConfirmLayer: {
+			position: "absolute",
+			left: 0,
+			right: 0,
+		},
+		// #1629 1 回目のタップで出る確認カード。検索まわりと同じ幅・角丸に揃える
+		pickConfirmCard: {
+			marginHorizontal: 16,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingLeft: 16,
+			paddingRight: 8,
+			paddingVertical: 8,
+			borderRadius: 16,
+			backgroundColor: c.surface,
+			// 地図の上に浮くので、地の色と混ざらないよう影を付ける（検索窓と同じ考え方）。
+			// 影の色はテーマに依らず固定（LocationAutocomplete / RestaurantNameSearch と同じトークン）
+			shadowColor: FixedColors.shadow,
+			shadowOpacity: 0.12,
+			shadowRadius: 8,
+			shadowOffset: { width: 0, height: 2 },
+			elevation: 3,
+		},
+		pickConfirmName: {
+			flex: 1,
+			fontSize: 15,
+			fontWeight: "700",
+			color: c.textPrimary,
+		},
+		pickConfirmButton: {
+			paddingHorizontal: 14,
+			paddingVertical: 8,
+			borderRadius: 12,
+			backgroundColor: c.ctaBackground,
+		},
+		pickConfirmLabel: {
+			fontSize: 14,
+			fontWeight: "700",
+			color: c.ctaLabel,
 		},
 		loadingOverlay: {
 			position: "absolute",

@@ -118,9 +118,14 @@ describe("店舗詳細のルート（#1386）", () => {
 		await feedScreen.expectOpened();
 		await feedScreen.expectEmpty();
 
-		// 0 件なので投稿 CTA は出ない（出ていたら «存在しないメディアへのレビュー» を開ける導線になる）
-		const hasCta = await feedScreen.hasWriteReviewButton();
-		assert.equal(hasCta, false, "料理メディアが 0 件のときは投稿 CTA を描かないはず");
+		/*
+		#1629【オーナー確定】«この料理にレビューを書く» は撤去した（右レールの «食べた» が導線）。
+
+		ここには «0 件のときは投稿 CTA を出さない» という検証があったが、**ボタン自体が
+		どの状態でも存在しなくなった**ので、残すと構造上ぜったいに落ちないテストになる。
+		«描かれないこと» の固定は app-expo 側（`__tests__/reviewFormRoutes.test.tsx`）と
+		e2e-web（`feed-record-eaten.spec.ts`）が受け持つ。ここでは消す。
+		*/
 
 		await feedScreen.close();
 

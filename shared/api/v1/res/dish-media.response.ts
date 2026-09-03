@@ -2,6 +2,7 @@ import { SupabaseDishes } from "../../../converters/convert_dishes";
 import { SupabaseDishMedia } from "../../../converters/convert_dish_media";
 import { SupabaseDishReviews } from "../../../converters/convert_dish_reviews";
 import { RestaurantsEntity } from "./restaurants.response";
+import type { PriceBand } from "../../../utils/priceBand";
 
 /**
  * #511 【設計】メディア加工ステータスの型定義
@@ -31,6 +32,23 @@ export type ExternalEmbedProvider = "instagram" | "tiktok" | "youtube";
 /** #1273 §39 埋め込みの死活 */
 export type ExternalEmbedStatus = "unknown" | "available" | "unavailable";
 
+/**
+ * #1641 埋め込みの枠の中で**再生できるか**。`ExternalEmbedStatus`（投稿が生きているか）とは直交する。
+ *
+ * - `unknown`      … 判定していない / 判定できなかった。**従来どおり実際に読み込んで試す**
+ * - `playable`     … 再生できると分かっている
+ * - `not_playable` … 再生できないと分かっている。**WebView をマウントせずサムネイルを出す**
+ */
+export type ExternalEmbedPlaybackStatus = "unknown" | "playable" | "not_playable";
+
+/**
+ * #1641 `not_playable` の理由。**表示の分岐には使わない**（トリアージ用）。
+ *
+ * 分岐に使うと «理由が増えたら画面が壊れる» 構造になる。画面が見るのは
+ * `playbackStatus` だけで十分である。
+ */
+export type ExternalEmbedPlaybackReason = "copyright_blocked" | "embedding_disabled" | "no_video_in_embed";
+
 /** #1395 `render_type='external_embed'` の dish_media が指す外部投稿 */
 export type DishMediaExternalEmbed = {
 	provider: ExternalEmbedProvider;
@@ -45,6 +63,42 @@ export type DishMediaExternalEmbed = {
 	 * 取れなければ null（表示は料理カテゴリ画像へ落ちる）。
 	 */
 	thumbnailUrl: string | null;
+	/**
+	 * #1641 埋め込みの枠の中で再生できるか。**取り込みのときにサーバが判定して持っている。**
+	 *
+	 * これがあると、クライアントは «とりあえず WebView を出して、駄目だったら畳む»
+	 * をやらなくて済む（オーナー指摘 2026-08-28「埋め込み時に分岐しているんですね。
+	 * それって処理重くなりますよね？」）。`not_playable` のセルは
+	 * **WebView を 1 つも作らずに**サムネイル表示へ落ちる。
+	 *
+	 * ⚠️ `unknown` を `not_playable` と同じに扱わないこと。TikTok は判定材料が無く
+	 * 常に `unknown` である。`unknown` は従来どおり実際に読み込んで試す。
+	 */
+	playbackStatus: ExternalEmbedPlaybackStatus;
+	/** `playbackStatus === 'not_playable'` のときだけ入る。**分岐には使わない** */
+	playbackReason: ExternalEmbedPlaybackReason | null;
+};
+
+/**
+ * #1641 `POST /v1/dish-media/imports/:dishMediaId/playback-report` のレスポンス。
+ *
+ * ## 端末の判定をそのまま保存しない
+ *
+ * 端末が «再生できなかった» と言う理由は、投稿の側とは限らない（機内モード・
+ * 一時的な 5xx・古いビルド・WebView が殺された直後）。それを鵜呑みにして保存すると、
+ * **通信が不安定なユーザーが 1 人いるだけで、その投稿が全員の検索から消える**。
+ *
+ * だから端末の報告は «見に行くきっかけ» としてだけ使い、**判定はサーバがやり直す**。
+ * 返るのはやり直した後の状態である。
+ */
+export type ReportExternalEmbedPlaybackResponse = {
+	playbackStatus: ExternalEmbedPlaybackStatus;
+	playbackReason: ExternalEmbedPlaybackReason | null;
+	/**
+	 * サーバが実際に provider へ問い合わせ直したか。
+	 * 直近に確認済みだった場合や、埋め込みの行が無い場合は `false`（間引いた）。
+	 */
+	rechecked: boolean;
 };
 
 /** 一つの料理メディア投稿（dish_media）とそれに関連する情報（レストラン、料理、レビュー） */
@@ -61,6 +115,16 @@ export type DishMediaEntry = {
 		 * （`app-expo/features/myDishes/dishCategoryLabel.ts`）。
 		 */
 		categoryLabels: Record<string, string> | null;
+		/**
+		 * #1774 `restaurant × dish_category`（= この dish）単位の価格帯。
+		 * レビューが3件未満、または通貨の刻みが未確定のときは null（`averageRating` と対称）。
+		 * 境界の刻み（円は `{0, 500, 1000, 1500, 2000, 3000, 5000, 8000, 10000+}`）は
+		 * `shared/utils/priceBand.ts` の `PRICE_BAND_STEPS_CENTS` が正本。
+		 *
+		 * `priceBand.maxCents` は最上位の刻み（円なら 10000〜）のとき `null`（「上限なし」）。
+		 * クライアントは `null` を «以上» 表示に、それ以外を «〜未満» のレンジ表示に分岐すること。
+		 */
+		priceBand: PriceBand | null;
 	};
 	dish_media: SupabaseDishMedia & {
 		isMine: boolean;
@@ -192,7 +256,16 @@ export type ResolveDishMediaImportReason =
 	/** oEmbed が 400 / 404 / 410 を返した（削除・非公開） */
 	| "metadata_content_unavailable"
 	/** oEmbed は成功したが、候補生成に使えるテキストが 1 文字も無かった */
-	| "metadata_empty";
+	| "metadata_empty"
+	/**
+	 * YouTube だが **Shorts ではなかった**（横長の通常動画）。
+	 *
+	 * 取り込みの対象は Shorts だけ（#1399 リーダー確定 §1）。`/watch?v=` と `youtu.be/` は
+	 * URL だけでは判定できないので `HEAD /shorts/{id}` で確定させる。
+	 * ⚠️ **判定できなかったとき（ネットワーク失敗など）はこれを返さない。**
+	 * 弾かずに通し、`requiresShortsCheck` を立てたままにする（同 §3）。
+	 */
+	| "youtube_not_shorts";
 
 /** 店舗候補を探したか / 探さなかった理由 */
 export type ResolveDishMediaImportRestaurantSearchReason =
@@ -270,6 +343,19 @@ export type ResolveDishMediaImportResponse = {
 	};
 	metadata: {
 		title: string | null;
+		/**
+		 * #1629 説明文（YouTube の動画説明）。
+		 *
+		 * オーナー報告「YouTube Shorts でキャプションが取れてない気がする」。
+		 * **取れてはいた** — サーバは説明文から住所を拾って店舗候補を作っている（実ログで確認）。
+		 * 落ちていたのは **返していなかった**こと。`title` しか返さないので、確認画面には
+		 * 動画の題名しか出ず、キャプションが無いように見えていた。
+		 *
+		 * provider ごとの入り方（詳細は `sns-oembed.service.ts` 冒頭の表）:
+		 * - YouTube … `title` は動画の題名、**本文はこちら**
+		 * - Instagram / TikTok … `title` 自体がキャプション本文なので、こちらは null
+		 */
+		description: string | null;
 		authorName: string | null;
 		authorUrl: string | null;
 		/**

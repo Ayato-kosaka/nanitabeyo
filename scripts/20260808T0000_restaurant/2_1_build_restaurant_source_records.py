@@ -88,9 +88,32 @@ def address_from_components(value: str | None) -> str:
 
 
 def valid_coordinates(latitude: Any, longitude: Any) -> bool:
+    """座標として成立しているか。**日本かどうかは見ない。**
+
+    #843 ここで日本の矩形まで課していたため、既存PGにある海外の店（実測 338 行 /
+    13.8%。トビリシ・ロンドン等の実在店）が «不正な行» として捨てられていた。
+    «座標として壊れている» と «探索範囲の外» は別の話なので、関数を分ける。
+    """
+
     if not isinstance(latitude, (int, float)) or not isinstance(
         longitude, (int, float)
     ):
+        return False
+    if isinstance(latitude, bool) or isinstance(longitude, bool):
+        return False
+    return -90.0 <= latitude <= 90.0 and -180.0 <= longitude <= 180.0
+
+
+def in_japan_bounds(latitude: Any, longitude: Any) -> bool:
+    """今回の探索範囲（日本）に入るか。
+
+    open data 側は日本のぶんしか取り込まないのでこれで絞る。
+    既存PG行には課さない — 海外の店を «無かったこと» にしないため。
+    Google 照合へ回すかどうかも、最終的にはこの判定で決まる（3_2 は
+    seed の座標を使って矩形を組み立てるので、範囲外の seed は候補にならない）。
+    """
+
+    if not valid_coordinates(latitude, longitude):
         return False
     return (
         JAPAN_BOUNDS["min_lat"] <= latitude <= JAPAN_BOUNDS["max_lat"]
@@ -137,9 +160,21 @@ def build_common_row(
     plus_code_json: str | None,
     raw_payload_json: str | None,
     record_hash: str,
+    require_japan: bool = True,
 ) -> dict[str, Any] | None:
+    """共通形式の 1 行を組む。座標か名前が使えなければ None。
+
+    #843 `require_japan` は «探索範囲の外なら取り込まない» の意味である。
+    open data は日本ぶんしか扱わないので既定 True。**既存PG行だけは False** で呼ぶ。
+    海外の店を «不正な行» として捨てないためで、これを混ぜていたせいで
+    実測 338 行（既存 2,446 行の 13.8%）が BigQuery 側から消えていた。
+    """
+
     cleaned_name = (name or "").strip()
-    if not cleaned_name or not valid_coordinates(latitude, longitude):
+    if not cleaned_name:
+        return None
+    in_scope = in_japan_bounds if require_japan else valid_coordinates
+    if not in_scope(latitude, longitude):
         return None
     assert latitude is not None and longitude is not None
     cleaned_address = (address or "").strip()
@@ -214,6 +249,8 @@ def iter_source_records(
             plus_code_json=row.plus_code_json,
             raw_payload_json=None,
             record_hash=row.record_hash,
+            # #843 既存PG行には日本の矩形を課さない（海外の実在店を捨てないため）
+            require_japan=False,
         )
         if result is None:
             # 既存PG行だけは「open dataの不正行」と同じように黙って捨てない。

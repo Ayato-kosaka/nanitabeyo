@@ -56,9 +56,11 @@ describe("useMyDishesFeedScopeStore", () => {
 	*/
 	it("一覧の行の並びを、重複を潰さずそのまま持ち、clear で空へ戻る", () => {
 		const rows = [
-			{ itemKey: "review:a", dishMediaId: "media-a" },
+			{ itemKey: "review:a", dishMediaId: "media-a", restaurantId: "r-1" },
 			// 同じ店の 2 件目でも別のページ。key は itemKey なので衝突しない
-			{ itemKey: "review:b", dishMediaId: "media-b" },
+			{ itemKey: "review:b", dishMediaId: "media-b", restaurantId: "r-1" },
+			// #1761 写真の無い記録も 1 ページ（dishMediaId は null）
+			{ itemKey: "review:c", dishMediaId: null, restaurantId: "r-2" },
 		];
 		useMyDishesFeedScopeStore.getState().setListItems(rows);
 		expect(useMyDishesFeedScopeStore.getState().listItems).toEqual(rows);

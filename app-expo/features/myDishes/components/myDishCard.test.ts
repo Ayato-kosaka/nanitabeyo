@@ -21,7 +21,17 @@ const makeItem = (overrides: Record<string, unknown> = {}): MyDishItem =>
 			image_url: "https://example.com/deprecated-should-not-be-used.jpg",
 			imageUrls: { sm: "https://example.com/restaurant-sm.jpg", md: "https://example.com/restaurant-md.jpg" },
 		},
-		dish: { id: "d1", name: "唐揚げ定食", categoryImageUrl: "https://example.com/category.jpg" },
+		/*
+		#1629（オーナー確定）カードの料理名は `dish_categories.labels` から locale で引く。
+		`dishes.name` は «その店での呼び名» で表示に使わないので、**意図的に別の文字**を入れて
+		«うっかり name へ戻したら落ちる» 形にしてある。
+		*/
+		dish: {
+			id: "d1",
+			name: "店での呼び名（出てはいけない）",
+			categoryLabels: { ja: "唐揚げ定食" },
+			categoryImageUrl: "https://example.com/category.jpg",
+		},
 		dishMedia: null,
 		myReview: null,
 		...overrides,
@@ -65,9 +75,15 @@ describe("resolveMyDishImageUrl", () => {
 });
 
 describe("resolveMyDishTitle", () => {
-	it("料理名 → 店名の順で落とす", () => {
-		expect(resolveMyDishTitle(makeItem())).toBe("唐揚げ定食");
-		expect(resolveMyDishTitle(makeItem({ dish: { id: "d1", name: null, categoryImageUrl: "" } }))).toBe("テスト食堂");
+	it("カテゴリの正式表記 → 店名の順で落とす（店での呼び名は使わない）", () => {
+		expect(resolveMyDishTitle(makeItem(), "ja-JP")).toBe("唐揚げ定食");
+		// 表記が引けない料理は店名へ落ちる。**呼び名（name）が入っていても使わない**
+		expect(
+			resolveMyDishTitle(
+				makeItem({ dish: { id: "d1", name: "karaage", categoryLabels: null, categoryImageUrl: "" } }),
+				"ja-JP",
+			),
+		).toBe("テスト食堂");
 	});
 });
 

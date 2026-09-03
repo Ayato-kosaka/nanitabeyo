@@ -10,15 +10,20 @@
  */
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
-import { useWindowDimensions } from "react-native";
+import { Dimensions } from "react-native";
 import { useDishCategoryCardSize } from "./useDishCategoryCardSize";
 
 // Harness は null しか返さない(RNのネイティブコンポーネントを描画しない)ため、
 // react-native は最小限のスタブで足りる。useContentWidth が読むのは
-// useWindowDimensions と Platform.OS のみ。
+// Dimensions と Platform.OS のみ
+// (#1783 で useWindowDimensions から useSyncExternalStore + Dimensions へ移した。
+//  SSG のハイドレーション中だけ既定値を返すため — hooks/useContentWidth.ts 参照)。
 jest.mock("react-native", () => ({
 	Platform: { OS: "ios" },
-	useWindowDimensions: jest.fn(),
+	Dimensions: {
+		get: jest.fn(),
+		addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+	},
 }));
 
 function Harness({
@@ -34,7 +39,7 @@ function Harness({
 }
 
 function renderDishCategoryCardSize(windowWidth: number, fullBleed?: boolean) {
-	(useWindowDimensions as jest.Mock).mockReturnValue({ width: windowWidth, height: 800 });
+	(Dimensions.get as jest.Mock).mockReturnValue({ width: windowWidth, height: 800, scale: 1, fontScale: 1 });
 	let captured: { cardWidth: number; cardMaxHeight: number } | undefined;
 	act(() => {
 		TestRenderer.create(<Harness fullBleed={fullBleed} onResult={(result) => (captured = result)} />);

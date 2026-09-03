@@ -24,6 +24,18 @@ export const TUTORIAL_STORAGE_KEY = "search_tutorial_seen_v1";
 export const DISH_CATEGORIES_TUTORIAL_STORAGE_KEY = "topics_spotlight_tutorial_seen_v1";
 
 /**
+ * 「食べたい/食べた」画面スポットライトチュートリアルの表示済みフラグ。
+ * app-expo/features/myDishes/components/MyDishesSpotlightTutorial.tsx の
+ * `MY_DISHES_TUTORIAL_STORAGE_KEY` と必ず一致させる。
+ *
+ * ⚠️ #1629 これをシードしないと、**このタブに来た全てのテストがオーバーレイに遮られる**。
+ * オーバーレイは画面全体を覆うので、症状は «その画面が壊れている» ではなく
+ * «タブバーのボタンが押せない»（他の要素がクリックを横取りする）として出る。
+ * 実際に `tests/navigation/tab-bar.spec.ts` がこれで 30 秒待って落ちていた。
+ */
+export const MY_DISHES_TUTORIAL_STORAGE_KEY = "my_dishes_spotlight_tutorial_seen_v1";
+
+/**
  * オンボーディングを「表示済み」としてシードする。
  *
  * ja-JP ロケールでは検索タブ初回フォーカス時にオンボーディング画面へ自動遷移し、
@@ -48,6 +60,18 @@ export async function seedDishCategoriesTutorialAsSeen(context: BrowserContext):
 	await context.addInitScript((key) => {
 		window.localStorage.setItem(key, "true");
 	}, DISH_CATEGORIES_TUTORIAL_STORAGE_KEY);
+}
+
+/**
+ * 「食べたい/食べた」チュートリアルを「表示済み」としてシードする。
+ *
+ * このタブを通る（あるいはタブバーを操作する）テストがスポットライトに遮られないよう、
+ * 専用 spec 以外では fixture から既定で適用する。
+ */
+export async function seedMyDishesTutorialAsSeen(context: BrowserContext): Promise<void> {
+	await context.addInitScript((key) => {
+		window.localStorage.setItem(key, "true");
+	}, MY_DISHES_TUTORIAL_STORAGE_KEY);
 }
 
 /**

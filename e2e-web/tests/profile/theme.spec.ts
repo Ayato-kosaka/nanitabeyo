@@ -51,8 +51,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	//   2. 3 択がすべて表示され、「システム追従」だけが選択済みであることを検証
 	test("既定はシステム追従で、3 択がすべて表示される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
-		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
-		await settingsPage.gotoDeviceSettings();
+		// #1629 表示テーマの 3 択は «端末設定 → 表示テーマ» の先の専用ページにある
+		await settingsPage.gotoTheme();
 
 		await expect(settingsPage.themeSelector).toBeVisible();
 		await expect(settingsPage.themeOption("system")).toBeVisible();
@@ -74,8 +74,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	// どこかでライトの色が壊れている。
 	test("ライト → ダーク → ライトで面色が往復し、ライトは元の値に戻る", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
-		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
-		await settingsPage.gotoDeviceSettings();
+		// #1629 表示テーマの 3 択は «端末設定 → 表示テーマ» の先の専用ページにある
+		await settingsPage.gotoTheme();
 
 		await settingsPage.selectTheme("light");
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", LIGHT.surface);
@@ -100,8 +100,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	// 「保存経路が動いていること」を検証したことにならない（読み出しだけのテストになる）。
 	test("選んだテーマがリロード後も保持される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
-		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
-		await settingsPage.gotoDeviceSettings();
+		// #1629 表示テーマの 3 択は «端末設定 → 表示テーマ» の先の専用ページにある
+		await settingsPage.gotoTheme();
 		await settingsPage.selectTheme("dark");
 
 		await appPage.reload();
@@ -119,8 +119,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	test("システム追従は OS のカラースキームに従う", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await appPage.emulateMedia({ colorScheme: "dark" });
-		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
-		await settingsPage.gotoDeviceSettings();
+		// #1629 表示テーマの 3 択は «端末設定 → 表示テーマ» の先の専用ページにある
+		await settingsPage.gotoTheme();
 
 		await expect(settingsPage.themeOptionCheck("system")).toBeVisible();
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", DARK.surface);
@@ -137,8 +137,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	test("明示的なライトは OS のダーク設定より優先される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await appPage.emulateMedia({ colorScheme: "dark" });
-		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
-		await settingsPage.gotoDeviceSettings();
+		// #1629 表示テーマの 3 択は «端末設定 → 表示テーマ» の先の専用ページにある
+		await settingsPage.gotoTheme();
 
 		await settingsPage.selectTheme("light");
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", LIGHT.surface);
@@ -158,8 +158,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 		const searchPage = new SearchPage(appPage);
 		const tabBar = new TabBar(appPage);
 
-		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
-		await settingsPage.gotoDeviceSettings();
+		// #1629 表示テーマの 3 択は «端末設定 → 表示テーマ» の先の専用ページにある
+		await settingsPage.gotoTheme();
 		await settingsPage.selectTheme("dark");
 
 		await tabBar.gotoSearch();
@@ -178,8 +178,8 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 		const searchPage = new SearchPage(appPage);
 		const tabBar = new TabBar(appPage);
 
-		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
-		await settingsPage.gotoDeviceSettings();
+		// #1629 表示テーマの 3 択は «端末設定 → 表示テーマ» の先の専用ページにある
+		await settingsPage.gotoTheme();
 		await settingsPage.selectTheme("light");
 
 		await tabBar.gotoSearch();
@@ -197,15 +197,15 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 	// ダーク対応で最も起きやすい事故（面だけ暗くして文字を黒のまま残す）はここで捕まる。
 	// tests/search/search-accessibility.spec.ts と同じ判定基準に揃えてある。
 	//
-	// ⚠️ #1583 で **監査対象を 1 画面から 3 画面へ広げた。**
+	// ⚠️ #1583 で **監査対象を 1 画面から 3 画面へ広げ、#1629 で 4 画面にした。**
 	// テーマの切替 UI が «端末設定» へ移ったので、素直に書き換えると監査対象も
 	// 端末設定（コントロール 2 つだけの小さな画面）だけになり、それまで見ていた
 	// マイページ（行が 10 以上ある）が監査から外れる。**移設で監査が痩せる**ので、
 	// 切替と監査を分け、規約 4 行を持つ «なに食べよについて» も足してある。
 	test("ダークでも axe の重大な違反(critical/serious)が無い", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
-		// #1583 表示テーマは «端末設定» ページへ移った（マイページには無い）
-		await settingsPage.gotoDeviceSettings();
+		// #1629 3 択は «端末設定 → 表示テーマ» の先へ移った（マイページにも端末設定にも無い）
+		await settingsPage.gotoTheme();
 		await settingsPage.selectTheme("dark");
 		await expect(settingsPage.themeCardSurface).toHaveCSS("background-color", DARK.surface);
 
@@ -223,6 +223,10 @@ test.describe("表示テーマ（#1509 SET-05）", () => {
 			).toEqual([]);
 		};
 
+		await auditCurrentScreen("表示テーマ");
+
+		// 端末設定（#1629 でテーマが抜けた後も、言語・ハプティクスの行が残る）
+		await settingsPage.gotoDeviceSettings();
 		await auditCurrentScreen("端末設定");
 
 		// マイページ（#1583 以前はここが唯一の監査対象だった）

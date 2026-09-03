@@ -3,6 +3,19 @@ import type { Locator, Page } from "@playwright/test";
 import { SearchPage } from "../../pages/SearchPage";
 import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { ResultPage } from "../../pages/ResultPage";
+// #1785 【設計】アイコンの色は **アプリのソースから引く**。spec へ literal を写経すると、
+// パレット側が変わったときテストだけが古い色を守り続ける（実際 `orange` → `#ED6C02` の
+// 変更に追従できず main が赤いまま放置された）。Palette.ts は import を 1 つも持たない
+// 純粋なモジュールなので、e2e-web からそのまま引ける（tsconfig の `@app-expo/*`）。
+import { FixedColors } from "@app-expo/constants/Palette";
+
+/** ActionButtons.tsx の Heart / Bookmark が実際に描く fill 属性 */
+const ICON_FILL = {
+	liked: FixedColors.likeActive,
+	notLiked: FixedColors.onMedia,
+	saved: FixedColors.myDishStatusOrange,
+	notSaved: "transparent",
+} as const;
 
 /**
  * ↩️ いいね / 保存の楽観更新が API 失敗時にロールバックされることのテスト（DAT-01 / #1501）
@@ -31,7 +44,7 @@ import { ResultPage } from "../../pages/ResultPage";
  * リクエストを保留したまま **楽観更新後の状態を先に assert** してから失敗させる。
  *
  * 状態の判定は reactions.spec.ts と同じく Heart / Bookmark の `fill` 属性で行う
- * （いいね済み = #FF3040、保存済み = orange、未反応 = white）。
+ * （具体的な色は `ICON_FILL`。値はアプリの Palette から引いており、spec には書かない）。
  * いいね数は testID を持たない `<Text>` なので、ボタンの親（actionContainer）の
  * テキストとして読む（ActionButtons.tsx の描画構造を参照）。
  */
@@ -117,6 +130,10 @@ async function openResultFeed(appPage: Page): Promise<ResultPage> {
 }
 
 test.describe("いいね / 保存の失敗時ロールバック", () => {
+	// #1629 この spec は `route.abort("failed")` で **わざと通信を失敗させて** ロールバックを見る。
+	// ブラウザはそれを net::ERR_FAILED として console へ出すので、前提が生むノイズとして許容する
+	test.use({ allowedConsoleErrors: ["net::ERR_FAILED"] });
+
 	// 検索 → トピック提案 → 結果フィード遷移は AI 生成待ちで時間がかかるため、
 	// reactions.spec.ts と同じ理由で既定の 30 秒テストタイムアウトを延長する
 	test.setTimeout(90_000);
@@ -143,8 +160,8 @@ test.describe("いいね / 保存の失敗時ロールバック", () => {
 		const likeIcon = likeButton.locator("svg");
 		const initialFill = await likeIcon.getAttribute("fill");
 		const initialCount = await likeCountText(likeButton);
-		// 反転後の期待値。未いいね(white) → いいね済み(#FF3040) とその逆
-		const optimisticFill = initialFill === "#FF3040" ? "white" : "#FF3040";
+		// 反転後の期待値。未いいね → いいね済み とその逆
+		const optimisticFill = initialFill === ICON_FILL.liked ? ICON_FILL.notLiked : ICON_FILL.liked;
 
 		const gate = await stubFailingReaction(appPage);
 
@@ -159,7 +176,7 @@ test.describe("いいね / 保存の失敗時ロールバック", () => {
 		await expect(appPage.getByText(LIKE_FAILED_MESSAGE, { exact: true })).toBeVisible();
 		await expect(likeIcon, "API 失敗後はアイコンが押す前の状態へ戻るはず").toHaveAttribute(
 			"fill",
-			initialFill ?? "white",
+			initialFill ?? ICON_FILL.notLiked,
 		);
 		await expect
 			.poll(() => likeCountText(likeButton), { message: "API 失敗後はいいね数が押す前の値へ戻るはず" })
@@ -169,14 +186,14 @@ test.describe("いいね / 保存の失敗時ロールバック", () => {
 	});
 
 	// ─ テストケース: 保存が失敗したら表示が元へ戻る ─
-	// 手順はいいねと同じ（保存ボタン dish-action-save / fill は orange ⇔ white）
+	// 手順はいいねと同じ（保存ボタン dish-action-save / fill は ICON_FILL.saved ⇔ notSaved）
 	test("保存の API が失敗したら、アイコンが押す前の状態へ戻る", async ({ appPage }) => {
 		const resultPage = await openResultFeed(appPage);
 
 		const saveButton = resultPage.saveButton.first();
 		const saveIcon = saveButton.locator("svg");
 		const initialFill = await saveIcon.getAttribute("fill");
-		const optimisticFill = initialFill === "orange" ? "white" : "orange";
+		const optimisticFill = initialFill === ICON_FILL.saved ? ICON_FILL.notSaved : ICON_FILL.saved;
 
 		const gate = await stubFailingReaction(appPage);
 
@@ -190,7 +207,7 @@ test.describe("いいね / 保存の失敗時ロールバック", () => {
 		await expect(appPage.getByText(SAVE_FAILED_MESSAGE, { exact: true })).toBeVisible();
 		await expect(saveIcon, "API 失敗後はアイコンが押す前の状態へ戻るはず").toHaveAttribute(
 			"fill",
-			initialFill ?? "white",
+			initialFill ?? ICON_FILL.notSaved,
 		);
 
 		await gate.stop();
@@ -221,7 +238,7 @@ test.describe("いいね / 保存の失敗時ロールバック", () => {
 
 		const snackbar = appPage.getByText(LIKE_FAILED_MESSAGE, { exact: true });
 		await expect(snackbar).toBeVisible();
-		await expect(likeIcon).toHaveAttribute("fill", initialFill ?? "white");
+		await expect(likeIcon).toHaveAttribute("fill", initialFill ?? ICON_FILL.notLiked);
 		expect(gate.count(), "1 回の押下で API 着弾は 1 件のはず").toBe(1);
 
 		// 再試行はスナックバーのアクションボタン（Common.retry）。
@@ -230,7 +247,7 @@ test.describe("いいね / 保存の失敗時ロールバック", () => {
 		await expect.poll(() => gate.count(), { message: "再試行で 2 件目の API が飛ぶはず" }).toBe(2);
 
 		// 2 回目も失敗するため、最終的な表示は最初の状態のまま
-		await expect(likeIcon).toHaveAttribute("fill", initialFill ?? "white");
+		await expect(likeIcon).toHaveAttribute("fill", initialFill ?? ICON_FILL.notLiked);
 
 		await gate.stop();
 	});

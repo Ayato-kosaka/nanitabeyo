@@ -26,7 +26,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, usePathname } from "expo-router";
 import type { ExternalPathString } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 
@@ -34,7 +34,7 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { useAuth } from "@/contexts/AuthProvider";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import { isGuestUser } from "@/lib/authGuest";
-import { resolveNextPath, resolvePostLoginTarget } from "@/lib/authNext";
+import { resolveNextPath, resolvePostLoginTarget, shouldAutoLeaveLoginScreen } from "@/lib/authNext";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -52,6 +52,8 @@ export default function LoginScreen() {
 	// `next` は外部（URL / ディープリンク）から来る値。行き先として採用してよいかは
 	// lib/authNext.ts で検証する。ここでは生のまま受け取るだけにする
 	const { next, skippable } = useLocalSearchParams<{ next?: string; skippable?: string }>();
+	// #1736 いま表示されているルート。自動離脱（下記の effect）を «ログイン画面に居るとき» に限るために使う
+	const pathname = usePathname();
 
 	// #1370 【設計】OAuth の redirectTo に載せる行き先。**検証を通した値だけ**を LoginForm へ渡す。
 	// web の OAuth は全画面リダイレクトなので、URL に載せる以外に callback へ引き継ぐ手段が無い。
@@ -76,8 +78,14 @@ export default function LoginScreen() {
 	// `isGuestUser` は user === null（認証未確定）をゲストへ倒す（lib/authGuest.ts）ので、
 	// 未確定の間は発火しない。それでも isAuthResolved を明示的に見るのは、この不変条件を
 	// authGuest 側の実装に依存させないため。
+	//
+	// #1736 【バグ】**現在ルートがログイン画面のときだけ**動かすこと（判定は lib/authNext.ts の
+	// `shouldAutoLeaveLoginScreen`）。ネイティブの OAuth では callback へ replace した «後» も
+	// 遷移アニメーションの間この画面はマウントされたままで、そこへセッション確立が届くと
+	// callback と二重に `next` へ replace し、権限フローの画面が 2 枚生えていた。
 	useEffect(() => {
-		if (!isAuthResolved || isGuestUser(user) || hasLeftRef.current) return;
+		if (!shouldAutoLeaveLoginScreen({ isAuthResolved, isGuest: isGuestUser(user), pathname })) return;
+		if (hasLeftRef.current) return;
 		hasLeftRef.current = true;
 
 		// ここは back を使わない。back は「ログイン導線を出した画面」へ戻す動きで、
@@ -89,7 +97,7 @@ export default function LoginScreen() {
 			payload: { href },
 		});
 		router.replace(href as ExternalPathString);
-	}, [isAuthResolved, user, nextPath, locale, logFrontendEvent]);
+	}, [isAuthResolved, user, pathname, nextPath, locale, logFrontendEvent]);
 
 	/**
 	 * #1486 §4【設計】「ログインせずに次へ進む」を出してよいか。

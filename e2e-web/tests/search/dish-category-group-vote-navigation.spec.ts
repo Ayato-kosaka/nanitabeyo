@@ -1,7 +1,9 @@
 import type { Page, Route } from "@playwright/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { test, expect } from "../../fixtures/test";
 import { waitForAnonymousSession } from "../../utils/auth";
 import { ResultPage } from "../../pages/ResultPage";
+import { stubDishMediaTracking } from "../../utils/dishMediaTracking";
 
 /**
  * 🗳 友達投票の結果画面 →「店を見る」導線 (#1122 の回帰テスト)
@@ -265,6 +267,10 @@ async function mockVoteBackend(page: Page, options: MockOptions = {}): Promise<v
 		});
 	});
 
+	// 表示ログ・視聴ログ。記録の成否はこの spec の関心（モーダルを介さず遷移して操作できること）
+	// ではないので握る。握り方は utils/dishMediaTracking.ts（#1785 で 204 空ボディから直した）
+	await stubDishMediaTracking(page);
+
 	// 遷移先（検索結果フィード）が id 指定で引く一覧。
 	//
 	// ⚠️ **形と中身の両方に条件がある。**
@@ -307,6 +313,8 @@ const detailViewRestaurants = (page: Page) => page.getByTestId("dish-category-gr
 const modalCloseButton = (page: Page) => page.getByRole("button", { name: "閉じる" });
 
 test.describe("友達投票の結果画面から店舗画面への遷移 (#1122)", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// ─ テストケース: モーダルが閉じてから遷移し、遷移先をすぐ操作できる ─
 	// 手順:
 	//   1. 検索済み候補のカードを押して詳細モーダルを開く

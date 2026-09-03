@@ -40,6 +40,10 @@ export function RestaurantBidsTab({ restaurantId }: RestaurantBidsTabProps) {
 	// #1629 ステータスの色は面の色ではなく «識別子»（緑 = 進行中 / 青 = 完了 / 橙 = 返金）。
 	// ウォレットの同じ 3 状態と同じ値・同じ理由なので `FixedColors.walletStatus*` を再利用する
 	// （テーマで振ると、同じ入札が別の状態に見えてしまう）。
+	// **useMemo で包まないこと。** ラベルは `i18n.t` の戻り値で、このファイルは locale を購読していない
+	// （`useLocale` を使っていない）。依存を空にして memo 化すると **初回描画の言語でラベルが固定され、
+	// 言語切り替えで更新されなくなる**。毎レンダー作り直しているのは現在の locale を反映し続けるためである。
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- 上記のとおり毎レンダー作り直すのが正しい
 	const bidStatuses: BidStatus[] = [
 		{ id: "pending", label: i18n.t("Profile.statusLabels.active"), color: FixedColors.walletStatusActive },
 		{ id: "paid", label: i18n.t("Profile.statusLabels.completed"), color: FixedColors.walletStatusCompleted },

@@ -443,7 +443,9 @@
 			"savedMessage": "먹고 싶어요에 저장했습니다"
 		},
 		"embed": {
-			"play": "{{provider}}에서 재생"
+			"play": "{{provider}}에서 재생",
+			"openExternally": "{{provider}}에서 보기",
+			"unmute": "소리 켜기"
 		},
 		"ownPost": {
 			"menuTitle": "내 게시물",
@@ -606,7 +608,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "요리 카테고리 선택",
-			"writeReviewForThisDish": "이 요리에 대한 리뷰 작성",
 			"useTypedDishCategory": "“{{name}}”(으)로 결정"
 		},
 		"inputs": {
@@ -665,6 +666,7 @@
 			"mediaSelectionFailed": "미디어 선택 실패",
 			"mediaSelectionError": "미디어 선택 중 오류가 발생했습니다. 다시 시도해주세요.",
 			"replaceWithMyPhoto": "내 사진으로 바꾸기",
+			"reselectPhoto": "사진 다시 선택",
 			"openSettings": "설정 열기",
 			"pickFromLibrary": "라이브러리에서 선택",
 			"shootWithCamera": "사진 촬영",
@@ -741,10 +743,11 @@
 		"emptyState": {
 			"noReviews": "아직 리뷰가 없습니다.\n이 레스토랑의 첫 리뷰를 작성해보세요."
 		},
-		"everybodyPostsTitle": "리뷰할 요리 선택",
+		"everybodyPostsTitle": "모두의 게시물",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "레스토랑 상세"
+			"title": "레스토랑 상세",
+			"openInGoogleMaps": "Google 지도에서 열기"
 		}
 	},
 	"Feedback": {
@@ -981,7 +984,8 @@
 		},
 		"unsavedHint": "저장하지 않은 가게도 고를 수 있습니다. 위 검색창에 가게 이름을 넣거나 지도의 가게 아이콘을 누르세요.",
 		"pickTitle": "가게 고르기",
-		"pickOnMap": "지도에서 가게 찾기"
+		"pickOnMap": "지도에서 가게 찾기",
+		"pickConfirm": "이 가게로 결정"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1024,7 +1028,16 @@
 			"noPhotoHint": "사진 없이도 기록할 수 있습니다",
 			"publicReviewNotice": "기록은 공개 리뷰로 음식점 페이지에 표시됩니다",
 			"postNotFoundNoPhoto": "이 기록에는 사진이 없습니다",
-			"skipPhoto": "건너뛰기 (사진 없음)"
+			"skipPhoto": "건너뛰기 (사진 없음)",
+			"missingHint": "{{items}}을(를) 입력하면 게시할 수 있습니다.",
+			"missing": {
+				"comment": "한줄 리뷰",
+				"price": "가격",
+				"rating": "추천도",
+				"dishCategory": "요리 카테고리",
+				"separator": ", ",
+				"currency": "이 가게의 통화를 가져오지 못했습니다"
+			}
 		},
 		"filters": {
 			"title": "필터 및 정렬",
@@ -1134,6 +1147,17 @@
 		"deleted": {
 			"label": "삭제되었습니다",
 			"a11yLabel": "이 게시물의 사진은 삭제되었습니다"
+		},
+		"ownReview": {
+			"title": "내 리뷰",
+			"noPhoto": "사진 없음",
+			"noComment": "작성된 코멘트가 없습니다",
+			"noReview": "이 기록에는 아직 리뷰가 없습니다",
+			"openRestaurant": "가게 상세 보기",
+			"edit": "리뷰 수정",
+			"delete": "리뷰 삭제",
+			"deleteConfirmTitle": "이 리뷰를 삭제할까요?",
+			"deleteConfirmMessage": "이 기록의 리뷰를 삭제합니다. 기록도 목록에서 사라집니다. 되돌릴 수 없습니다."
 		}
 	},
 	"SnsImport": {
@@ -1162,7 +1186,9 @@
 			"save": "먹고 싶다에 저장",
 			"saveRequirement": "음식과 가게를 선택하면 저장할 수 있습니다.",
 			"resolveAgain": "다시 읽기",
-			"cancel": "취소"
+			"cancel": "취소",
+			"saveRequirementRestaurant": "가게를 선택하면 저장할 수 있습니다.",
+			"saveRequirementDish": "요리 카테고리를 선택하면 저장할 수 있습니다."
 		},
 		"sections": {
 			"dishCategory": "음식",

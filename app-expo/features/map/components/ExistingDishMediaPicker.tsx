@@ -7,6 +7,8 @@ import { type Palette } from "@/constants/Palette";
 import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
+import { resolveDishCategoryLabel } from "@/features/myDishes/dishCategoryLabel";
 import { useLogger } from "@/hooks/useLogger";
 import { getCacheKeyForImage } from "@/lib/image";
 import { toErrorLogString } from "@/lib/errorMessage";
@@ -55,6 +57,7 @@ export function ExistingDishMediaPicker({
 }) {
 	const styles = useThemedStyles(createStyles);
 	const { callBackend } = useAPICall();
+	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
 	/** サムネイルが引けた行だけ（`thumbnailImageUrl` は非 null と分かっている） */
@@ -122,6 +125,16 @@ export function ExistingDishMediaPicker({
 		? entries.filter((entry) => entry.dish.category_id === dishCategoryId)
 		: entries;
 
+	/*
+	#1629【オーナー実機報告】タイルの見出しが «udon» のようなローマ字になっていた。
+
+	`dish.name` は «その店でのその料理の呼び名» で、SNS 取り込み由来だとローマ字が入る。
+	表示は `dishCategoryLabel.ts` の規則（`labels[言語] → labels["en"] → name`）で解決すること
+	（`MyDishesFeedChips` / `categoryFacets` / 料理カテゴリーの候補一覧と同じ規則）。
+	*/
+	const labelOf = (entry: DishMediaEntry): string =>
+		resolveDishCategoryLabel(entry.dish.categoryLabels, locale) ?? "";
+
 	if (visibleEntries.length === 0) return null;
 
 	return (
@@ -139,7 +152,7 @@ export function ExistingDishMediaPicker({
 						onPress={() => handlePress(item)}
 						style={styles.tile}
 						accessibilityRole="button"
-						accessibilityLabel={item.dish.name ?? undefined}>
+						accessibilityLabel={labelOf(item) || undefined}>
 						<Image
 							source={{
 								uri: item.dish_media.thumbnailImageUrl ?? undefined,
@@ -154,7 +167,7 @@ export function ExistingDishMediaPicker({
 							importantForAccessibility="no"
 						/>
 						<Text style={styles.tileLabel} numberOfLines={1} ellipsizeMode="tail">
-							{item.dish.name ?? ""}
+							{labelOf(item)}
 						</Text>
 					</Pressable>
 				)}

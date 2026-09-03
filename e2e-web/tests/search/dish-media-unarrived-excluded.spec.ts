@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import type { Page, Response } from "@playwright/test";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { SearchPage } from "../../pages/SearchPage";
@@ -98,6 +99,8 @@ function collectDishMediaResponses(
 }
 
 test.describe("実体未着の料理メディアは一覧に出ない（#1257）", () => {
+	test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
+
 	// 実 API + AI によるお題生成を経由するため、既定の 30 秒では足りない
 	// （tests/search/dish-media-accessibility.spec.ts と同じ理由）
 	test.setTimeout(90_000);

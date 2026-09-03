@@ -26,8 +26,16 @@ test.describe("ブロック済み料理カテゴリの文言(#1132)", () => {
 	test("ja-JP で「料理カテゴリ」と表示され、旧文言「トピック」が残っていない", async ({ appPage }) => {
 		await appPage.goto("/ja-JP/profile/blocked-dish-categories");
 
-		// locales/ja-JP.json の Settings.blockedDishCategories.pageTitle と同じ文字列
-		await expect(appPage.getByText("ブロック済みの料理カテゴリ", { exact: true })).toBeVisible();
+		/*
+		locales/ja-JP.json の Settings.blockedDishCategories.pageTitle と同じ文字列。
+
+		⚠️ #1629 **文言だけで掴まないこと。** expo-router の静的書き出しでは、この画面を
+		直開きしても親（マイページ）が一緒に DOM へ載る。マイページには同じ文言の行
+		（`settings-blocked-dish-categories`）があるので、`getByText` は 2 件に当たって
+		strict mode 違反で落ちる。**見たいのはヘッダーのタイトル**なので、
+		そのために付けてある testID（#1132 の設計コメント参照）で絞る。
+		*/
+		await expect(appPage.getByTestId("blocked-dish-categories-header-title")).toHaveText("ブロック済みの料理カテゴリ");
 
 		// ⚠️ ここが本題。1 ファイルでも直し漏れると旧文言が画面へ出る。
 		//    exact: false で「トピック」を含む要素が 1 つも無いことを見る。
@@ -65,7 +73,10 @@ test.describe("ブロック済み料理カテゴリの文言(#1132)", () => {
 		await appPage.goto("/ar-SA/profile/blocked-dish-categories");
 
 		// locales/ar-SA.json の Settings.blockedDishCategories.pageTitle
-		await expect(appPage.getByText("فئات الأطباق المحظورة", { exact: true })).toBeVisible();
+		// （上と同じ理由でヘッダーの testID で絞る。RTL で画面外へ出れば toBeVisible が落ちる）
+		const header = appPage.getByTestId("blocked-dish-categories-header-title");
+		await expect(header).toBeVisible();
+		await expect(header).toHaveText("فئات الأطباق المحظورة");
 
 		// ロケール解決が壊れると ja-JP の文言が出る（#721 の症状 b と同じ型の事故）
 		await expect(appPage.getByText("ブロック済みの料理カテゴリ")).toHaveCount(0);

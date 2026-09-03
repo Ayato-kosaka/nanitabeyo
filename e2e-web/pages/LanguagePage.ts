@@ -63,11 +63,28 @@ export class LanguagePage {
 	 * `useLocaleFonts`）が終わるまで残ることがある。**URL の変化で待つ**のが唯一の確実な観測点で、
 	 * 文言の検証はその後に行う（先に文言を待つと、切り替え前の文言に一致してしまい素通りする）。
 	 *
+	 * ⚠️ #1629【28】**着地は言語画面ではなく «タブの根»（`/<locale>/profile`）である。**
+	 * 新しいロケールのパスへそのまま `replace` すると Stack がその 1 画面だけで組まれ、
+	 * «プロフィールへ二度と戻れない» という実機の不具合になった
+	 *（app-expo/app/[locale]/(tabs)/profile/language.tsx の注記）。
+	 * 続けて切り替えたいときは `reopen()` で言語画面を開き直すこと。
+	 *
 	 * @param key 押す選択肢（`"system"` または公開ロケール）
 	 * @param expectedLocale 遷移後に URL へ現れるロケール（`"system"` なら端末ロケールの解決結果）
 	 */
 	async select(key: string, expectedLocale: string): Promise<void> {
 		await this.option(key).click();
-		await this.page.waitForURL(new RegExp(`/${expectedLocale}/profile/language`));
+		await this.page.waitForURL(new RegExp(`/${expectedLocale}/profile(/|$)`));
+	}
+
+	/**
+	 * #1629【28】言語を選び、切り替わったあとの言語画面を開き直す。
+	 *
+	 * 切り替えの着地はタブの根なので、«続けてもう一度切り替える» には開き直しが要る。
+	 * 実ユーザーも同じ手順（マイページ → 端末設定 → 言語）を踏む。
+	 */
+	async selectAndReopen(key: string, expectedLocale: string): Promise<void> {
+		await this.select(key, expectedLocale);
+		await this.goto(expectedLocale);
 	}
 }

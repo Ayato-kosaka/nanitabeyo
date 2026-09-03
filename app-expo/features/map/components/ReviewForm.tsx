@@ -12,6 +12,7 @@ import {
 	Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus, Camera } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -22,12 +23,14 @@ import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview } from "./InitialMediaPreview";
 import {
+	buildCurrencyChoices,
 	getCurrencyCodeFromRestaurant,
 	parseAmountString,
 	resolveCurrencySymbol,
 	toMinorAmountInteger,
 } from "@/lib/googlePlaces";
 import { useLocale } from "@/hooks/useLocale";
+import { resolveDishCategoryLabel, toLanguageCode } from "@/features/myDishes/dishCategoryLabel";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -42,7 +45,7 @@ import type {
 } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Dimensions } from "react-native";
-import { MediaData, selectMedia } from "@/lib/mediaSelection";
+import { MediaData, recoverPendingMedia, selectMedia } from "@/lib/mediaSelection";
 import { ExistingDishMediaPicker } from "./ExistingDishMediaPicker";
 import { DishCategoryStep } from "./DishCategoryStep";
 import { Image } from "expo-image";
@@ -99,6 +102,15 @@ interface ReviewFormProps {
 const { height } = Dimensions.get("window");
 
 /**
+ * #1750 Android の保留結果（`getPendingResultAsync`）の持ち主の名前。
+ *
+ * 保留結果は «どの画面のためのものか» を持たないので、印が無いと
+ * ここで選んだ料理写真がプロフィール画像として拾われうる（およびその逆）。
+ * `selectMedia({ pendingOwner })` と `recoverPendingMedia({ owner })` で同じ値を使う。
+ */
+const REVIEW_PICKER_OWNER = "review-media";
+
+/**
  * Review form component that manages its own internal state to prevent
  * Japanese IME composition issues. Only communicates final values back to parent.
  *
@@ -122,6 +134,17 @@ export function ReviewForm({
 	const { colors } = useAppTheme();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const insets = useSafeAreaInsets();
+	/*
+	#1629【オーナー実機報告 2 回目】「料金の入力がキーボードに隠れる」。
+
+	1 回目は `KeyboardAvoidingView` へ `behavior` を渡す修正を出したが **実機では直らなかった**。
+	あれは «自分の枠を測って引き算する» 前提で、Android 15 以降の edge-to-edge では
+	その前提が崩れる（詳細は `hooks/useKeyboardInset.ts`）。
+
+	キーボードの高さを直接もらって、スクロールの中身の下へその分だけ余白を足す。
+	窓が縮むかどうかにも親のレイアウトにも依存しないので、画面ごとの当たり外れが無い。
+	*/
+	const keyboardInset = useKeyboardInset();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { uploadFile: mediaUploadFile } = useFileUploader();
@@ -222,6 +245,17 @@ export function ReviewForm({
 	const activePrefilledMedia = prefilledMedia ?? pickedExistingMedia;
 	/** «画面の中で写真を選ぶ» 見た目を出しているか（高さを固定しない条件。下のコメント参照） */
 	const showsManualMediaChooser = mediaPickerMode === "manual" && !activePrefilledMedia;
+	/*
+	#1629 写真の «作り直し» の入口は 1 つだけにする（下のプレビューのコメント参照）。
+	記録フロー（`manual`）は «選び直す»、それ以外（親が写真を決めている画面）は
+	«自分の写真に差し替える»。**両方 true になる組み合わせを作らないこと。**
+	*/
+	const isRecordFlowMedia = mediaPickerMode === "manual" && prefilledMedia === undefined;
+	/*
+	#1629【オーナー指示】料理カテゴリーを後から変えさせない範囲。記録フロー（`manual`）だけである。
+	理由と «塞ぎすぎるとどうなるか» は下の料理カテゴリー行のコメント。
+	*/
+	const isDishCategoryLocked = mediaPickerMode === "manual";
 	const effectivePrefilledMedia = useOwnMedia ? undefined : activePrefilledMedia;
 
 	const prefilledMediaRef = useRef(effectivePrefilledMedia);
@@ -313,21 +347,65 @@ export function ReviewForm({
 	const { locale } = useLocale();
 	const router = useRouter();
 
-	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
+	// #843 店から通貨が引けるとは限らない。オープンデータ由来で作った店舗は
+	// address_components が空なので null になる。以前はここが null のまま
+	// toMinorAmountInteger へ渡り、既定 2 桁で「1000円」が 100000 として
+	// 送信されていた（JPY は 0 桁）。通貨が決まらないときはユーザーに選ばせる。
+	const restaurantCurrencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
+	const currencyChoices = useMemo(() => buildCurrencyChoices(locale), [locale]);
+	const [manualCurrencyCode, setManualCurrencyCode] = useState<string | null>(null);
+	const currencyCode = restaurantCurrencyCode ?? manualCurrencyCode;
+	const needsCurrencyChoice = !restaurantCurrencyCode;
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 	// price は、小数点を含めた文字列として管理しているため、対象通貨での minorUnit(桁数) に基づいて整数変換を行う
-	const parsedPrice = useMemo(
-		() => parseAmountString(price) && toMinorAmountInteger(parseAmountString(price), currencyCode),
-		[price, currencyCode],
-	);
+	const parsedPrice = useMemo(() => {
+		if (!currencyCode) return null;
+		const amount = parseAmountString(price);
+		return amount ? toMinorAmountInteger(amount, currencyCode) : null;
+	}, [price, currencyCode]);
 
+	/*
+	#1629【オーナー実機報告】**表示名を投稿の可否条件にしない。**
+
+	`dishCategoryName` は «画面に出す文字» であって、記録に必要なのは `dishCategoryId` である。
+	表示名が空でも id さえあれば記録は成立するのに、名前を必須にしていたため
+	**表示名が解決できない投稿では永久にボタンが押せない**状態が作れた（上の effect のコメント）。
+	表示名の解決は直したが、条件そのものも id 側へ寄せておく。**二重の防御**である。
+
+	⚠️ `currencyCode` の判定と `parsedPrice ?? 0` は main 側（#843）の変更。**残すこと。**
+	   通貨が決まらない店で «金額 0 の記録» が通ってしまうのを防いでいる。
+	*/
 	const isValid =
+		!!currencyCode &&
 		Number.isFinite(parsedPrice) &&
-		parsedPrice > 0 &&
+		(parsedPrice ?? 0) > 0 &&
 		reviewText.trim() &&
 		rating > 0 &&
-		dishCategoryName.trim() &&
 		!!dishCategoryId;
+
+	/*
+	#1629【オーナー指示】**押せない理由を画面に出す。**
+
+	> 投稿ボタンが押せない理由（例: 「お店を選んでください」）を画面に出す →いれたい。
+
+	無効なボタンが灰色で置いてあるだけだと «何が足りないのか» が読めない。#1629 では
+	«料理カテゴリーが空欄 → 投稿できない» に当たったが、当人からは «壊れている» としか見えなかった。
+	足りないものを名指しする。順番は画面の並び（レビュー → 料金 → おすすめ度）に合わせる。
+
+	⚠️ `currencyCode` が決まらない店では **ヒントが 1 つも出ない**まま押せなくなる（自己レビューで検出）。
+	   ユーザーが埋められる項目ではないので «入力してください» とは言えないが、黙って灰色のままにも
+	   しない。専用の 1 文（`MyDishes.record.missing.currency`）を出して «自分のせいではない» と分かる形にする。
+	*/
+	const missingLabels = useMemo(() => {
+		const missing: string[] = [];
+		if (!currencyCode) missing.push(i18n.t("MyDishes.record.missing.currency"));
+		if (!dishCategoryId) missing.push(i18n.t("MyDishes.record.missing.dishCategory"));
+		if (!reviewText.trim()) missing.push(i18n.t("MyDishes.record.missing.comment"));
+		if (!(Number.isFinite(parsedPrice) && (parsedPrice ?? 0) > 0))
+			missing.push(i18n.t("MyDishes.record.missing.price"));
+		if (!(rating > 0)) missing.push(i18n.t("MyDishes.record.missing.rating"));
+		return missing;
+	}, [dishCategoryId, parsedPrice, rating, reviewText]);
 
 	/*
 	  #1386 【設計】このフォームはもうオーバーレイを 1 つも持たない。
@@ -352,17 +430,33 @@ export function ReviewForm({
 	  「呼び出し元が portal を持たない」ことは `__tests__/reviewFormRoutes.test.tsx` が固定している。
 	*/
 
-	/**
-	 * #1375（5 巡目）既存メディアを選んだら、料理カテゴリーはそのメディアの料理になる
-	 * （`review-from-media` と同じ仕組み。マウント時の初期値と同じ経路を後から通す）。
-	 * ⚠️ 親から `prefilledMedia` を渡された画面ではこの effect は 1 度も走らない
-	 * （`pickedExistingMedia` が undefined のままなので）
-	 */
+	/*
+	#1375（5 巡目）写真が決まっているなら、料理カテゴリーはその写真の料理になる。
+
+	#1629【オーナー実機報告】「食べたを押すと、料理カテゴリにラーメンが表示されなくてレビューが書けない」。
+
+	## 何が起きていたか（dev の実ログ 2026-08-30 10:14 で確定）
+
+	SNS から取り込んだ投稿（麦と麺助 / ラーメン）を «食べた» で開くと、この画面は
+	`prefilledMedia` 付きで開く。ところが表示名の初期値が **`prefilledMedia.dish.name` の直読み**
+	だった。取り込み由来の `dishes.name` は空のことがあり、その場合
+
+	  1. 料理カテゴリー欄が **空欄**のまま出る（「ラーメンが表示されない」）
+	  2. `isValid` が `dishCategoryName.trim()` を要求するので **投稿ボタンが押せない**
+	  3. しかもこの行は `activePrefilledMedia` があると押せない ＝ **自分で埋める手段が無い**
+
+	つまり «行き止まり» だった。実ログのその投稿は `categoryLabels` に ja を含む多言語表記を
+	持っていた（`Q234646` = ラーメン）ので、規則どおり解決すれば «ラーメン» が出る。
+
+	`pickedExistingMedia`（この画面の中で選んだ写真）だけでなく **親から渡された
+	`prefilledMedia` にも効かせる**。両者は `activePrefilledMedia` に畳んである。
+	*/
 	useEffect(() => {
-		if (!pickedExistingMedia) return;
-		setDishCategoryName(pickedExistingMedia.dish.name ?? "");
-		setDishCategoryId(pickedExistingMedia.dish.category_id ?? null);
-	}, [pickedExistingMedia]);
+		const media = activePrefilledMedia;
+		if (!media) return;
+		setDishCategoryName(resolveDishCategoryLabel(media.dish.categoryLabels, locale) ?? "");
+		setDishCategoryId(media.dish.category_id ?? null);
+	}, [activePrefilledMedia, locale]);
 
 	/**
 	 * #1386 料理カテゴリ選択画面（ルート）からの «戻り値»。
@@ -435,10 +529,41 @@ export function ReviewForm({
 				// NSMicrophoneUsageDescription が無く、iOS はその場でクラッシュする。
 				// 権限文言の追加はネイティブビルドが要る（= OTA で届かない）ので、
 				// ビルドを流す判断が出るまで動画はライブラリ選択のみとする（#1375 4 巡目）
-				const result = await selectMedia(source === "camera" ? ["images"] : ["images", "videos"], {
-					shouldGenerateThumbnail: true,
-					source,
-				});
+				/*
+				#1750 【バグ】Android はピッカーを開いている間にアプリの MainActivity を殺すことがあり、
+				そのとき `selectMedia` の Promise は **解決も棄却もしない**。この画面は mount で
+				ピッカーを開き直すので «選び直しを強いられる» で済んでいたが、それでも
+				ユーザーが選んだ 1 枚は毎回捨てられていた。
+
+				先に保留結果を取りに行く。取り戻せたらピッカーを開かずにそれを使う。
+				`pendingOwner` の印が一致したときだけ拾うので、**プロフィール画像として選んだものが
+				料理写真に入る（およびその逆）取り違えは起きない**（lib/mediaSelection.ts 参照）。
+				*/
+				// ⚠️ Android かどうかをここでも見るのは «速さ» のためではなく **順番** のためである。
+				// 保留結果は Android にしか存在せず（`recoverPendingMedia` は他では必ず null）、
+				// それでも await を 1 つ挟むと **ピッカーが開くのが 1 マイクロタスク遅れる**。
+				// この画面はマウント直後に開くので、遅らせる意味の無いプラットフォームでは遅らせない。
+				// 外したときに壊れるのは順番だけで、取り違えの安全性は向こう側の判定が持つ。
+				const recovered =
+					Platform.OS === "android"
+						? await recoverPendingMedia({ owner: REVIEW_PICKER_OWNER, shouldGenerateThumbnail: true })
+						: null;
+				if (recovered) {
+					logFrontendEventRef.current({
+						event_name: "review_media_selection_recovered",
+						error_level: "warn",
+						// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
+						payload: { attempt, origin, success: recovered.success, error: recovered.error },
+					});
+				}
+
+				const result =
+					recovered ??
+					(await selectMedia(source === "camera" ? ["images"] : ["images", "videos"], {
+						shouldGenerateThumbnail: true,
+						source,
+						pendingOwner: REVIEW_PICKER_OWNER,
+					}));
 
 				// Guard against setState on unmounted / superseded component
 				if (isStale()) {
@@ -684,6 +809,32 @@ export function ReviewForm({
 		runMediaSelection("retry", mediaGenerationRef.current);
 	}, [runMediaSelection]);
 
+	/*
+	#1629【オーナー実機報告】**選んだ写真は選び直せる。**
+
+	> メディアを選んだら編集ができなくて困ってます。
+	> うどんの刻んだメディアがあるからこれを自分の写真に変えたら再編集ができないか、これ直してほしくて。
+
+	記録フロー（`mediaPickerMode === "manual"`）では «写真を決めた» 時点で選択肢が畳まれ、
+	**そこから先はどうやっても写真を変えられなかった**。«この店の写真から選ぶ» で選んだ投稿も、
+	«自分の写真に変える» で開いたピッカーも、一度決めたら戻れない。
+	戻る道が無いのに、その決定が料理カテゴリー欄まで固定していた（下の `disabled` の行）ので、
+	間違えたら画面を閉じてやり直すしかなかった。
+
+	1 歩目（写真の選び方）へ戻すだけで、既存の分岐がそのまま «最初から選び直し» として動く。
+
+	⚠️ 親から `prefilledMedia` を渡された画面（店舗フィードからの記録）には出さない。
+	   あちらは «その投稿に対する記録» と決まっていて、写真を差し替える意味が無い
+	   （差し替えたいときの入口は従来どおり «自分の写真に変える»）。
+	*/
+	const handleReselectMedia = useCallback(() => {
+		lightImpact();
+		setPickedExistingMedia(undefined);
+		setUseOwnMedia(false);
+		setHasDecidedMedia(false);
+		setMediaState({ status: "none" });
+	}, [lightImpact]);
+
 	// #1375 4 巡目: 「その場で撮る」導線。ガードの作法は handleRetry と同一に保つ
 	const handleShootWithCamera = useCallback(() => {
 		if (!isSelectingMediaRef.current) setMediaState({ status: "loading" });
@@ -792,13 +943,11 @@ export function ReviewForm({
 		setDishCategoryError(null);
 	}, []);
 
-	const handleCreateDishCategoryFromName = useCallback(
-		(name: string) => {
-			setDishCategoryError(null);
-			void applyTypedDishCategory(name);
-		},
-		[applyTypedDishCategory],
-	);
+	/*
+	#1629 «この名前で決める» は `DishCategoryStep` から外した（押せるのに必ず失敗するため。
+	理由はあちらのヘッダ）。自由入力から新規カテゴリを作る経路は、料理カテゴリー選択画面から
+	戻ってくる下の effect（`applyTypedDishCategory`）だけになった。
+	*/
 
 	/**
 	 * #1386 料理カテゴリ選択画面の «戻り値» を受け取る。
@@ -889,10 +1038,17 @@ export function ReviewForm({
 					...createDishResponse,
 					reviewCount: 1,
 					averageRating: rating,
-					// #1375 投稿直後の楽観更新。作成 API はカテゴリの正式表記を返さないので null。
-					// 表示は dish.name へ落ちる（`dishCategoryLabel.ts`）ので壊れない。
-					// 次に一覧を引き直したときサーバの値で埋まる
-					categoryLabels: null,
+					/*
+					#1375 投稿直後の楽観更新。作成 API はカテゴリの正式表記を返さない。
+
+					⚠️ #1629 で `dishes.name` へのフォールバックを **やめた**ので、null のままだと
+					   投稿直後の 1 件だけ **料理カテゴリー名が空**で一覧に並ぶ（引き直すまで直らない）。
+					   いま画面に出している表記（`dishCategoryName`）をそのまま入れておく。
+					   次にサーバから引き直したとき、正規の `labels` で上書きされる。
+					*/
+					categoryLabels: dishCategoryName ? { [toLanguageCode(locale)]: dishCategoryName } : null,
+					// #1774 投稿直後はレビュー1件目なので priceBand は集計不能（3件未満と同じ扱い）
+					priceBand: null,
 				};
 
 				// dish-media.media_path をアップロード
@@ -940,7 +1096,7 @@ export function ReviewForm({
 							review: {
 								comment: reviewText,
 								languageCode: locale,
-								priceCents: parsedPrice,
+								priceCents: parsedPrice ?? undefined, // isValid で非 null の正数を担保（#843）
 								currencyCode: currencyCode ?? undefined,
 								rating,
 							},
@@ -955,10 +1111,11 @@ export function ReviewForm({
 					isLiked: false,
 					likeCount: 0,
 					mediaUrl: mediaState.media.uri,
-					thumbnailImageUrl: mediaState.media.type === "video"
-						? // #1375 サムネイル生成に失敗すると `!` で undefined がストアへ入り、投稿直後だけ真っ黒なセルになる
-							(mediaState.media.thumbnailUri ?? mediaState.media.uri)
-						: mediaState.media.uri,
+					thumbnailImageUrl:
+						mediaState.media.type === "video"
+							? // #1375 サムネイル生成に失敗すると `!` で undefined がストアへ入り、投稿直後だけ真っ黒なセルになる
+								(mediaState.media.thumbnailUri ?? mediaState.media.uri)
+							: mediaState.media.uri,
 					// #511 ローカルの uri をセットして読み込むため、処理済み状態にする
 					media_processing_status: "completed",
 					thumbnail_processing_status: "completed",
@@ -975,17 +1132,17 @@ export function ReviewForm({
 			const createdDishReview =
 				createdDishReviewFromMedia ??
 				(await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
-				method: "POST",
-				requestPayload: {
-					dishId,
-					comment: reviewText,
-					languageCode: locale,
-					priceCents: parsedPrice,
-					currencyCode: currencyCode ?? undefined,
-					rating,
-					// #1398 B4 写真なしのときは `createdDishMediaId` を**送らない**。
-					// DTO 上すでに任意で、API は未指定なら `created_dish_media_id` に NULL を書く
-					...(dish_media ? { createdDishMediaId: dish_media.id } : {}),
+					method: "POST",
+					requestPayload: {
+						dishId,
+						comment: reviewText,
+						languageCode: locale,
+						priceCents: parsedPrice ?? undefined, // isValid で非 null の正数を担保（#843）
+						currencyCode: currencyCode ?? undefined,
+						rating,
+						// #1398 B4 写真なしのときは `createdDishMediaId` を**送らない**。
+						// DTO 上すでに任意で、API は未指定なら `created_dish_media_id` に NULL を書く
+						...(dish_media ? { createdDishMediaId: dish_media.id } : {}),
 					},
 				}));
 
@@ -1145,12 +1302,39 @@ export function ReviewForm({
 	}
 
 	return (
-		<KeyboardAvoidingView style={styles.keyboardAvoidingView}>
+		<KeyboardAvoidingView
+			style={styles.keyboardAvoidingView}
+			behavior={Platform.select({ ios: "padding", android: "height" })}>
 			<ScrollView
 				style={styles.container}
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
-				contentContainerStyle={styles.scrollContent}>
+				/*
+				#1629 オーナー実機報告「レビューで価格入力時にキーボードで隠れる」。
+
+				真因は **キーボード回避が 1 つも効いていなかった**こと。外側の `KeyboardAvoidingView` は
+				`behavior` を渡していないため（下の `keyboardAvoidingView` のコメント参照）
+				**何もしない**。価格・コメントはフォームの下半分にあるので、そのままキーボードの下へ入る。
+
+				iOS はここで native の UIScrollView にキーボードぶんのインセットを入れさせる。
+				`KeyboardAvoidingView` で外枠を縮める手もあるが、そちらは **フォーカスした入力欄まで
+				運んでくれない**（縮むだけで、隠れている欄は隠れたまま）。
+				`automaticallyAdjustKeyboardInsets` は native 側がインセットと
+				«フォーカス中の入力欄までのスクロール» の両方をやる。
+
+				Android は OS が window を縮め（`softwareKeyboardLayoutMode` の既定 = resize）、
+				ScrollView が自分でフォーカス中の欄まで運ぶので、こちら側では何もしない
+				（`app/[locale]/add-record.tsx` が #1375 3 巡目で同じ判断をして実機で直っている）。
+				*/
+				automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+				/*
+				#1629 Android はここでキーボードのぶんを空ける。
+				iOS は上の `automaticallyAdjustKeyboardInsets` が native 側でやるので二重に足さない。
+				*/
+				contentContainerStyle={[
+					styles.scrollContent,
+					Platform.OS === "android" && keyboardInset > 0 ? { paddingBottom: keyboardInset } : null,
+				]}>
 				{/* #1375 実機確認（5 巡目）: manual（記録フロー）では **高さを固定しない**。
 				    «写真を撮る / ライブラリ / このお店の写真から選ぶ / スキップ» を積むと
 				    `mediaHeight` に収まらず、上の見出しと下のスキップが切れた（撮って気づいた）。
@@ -1161,7 +1345,6 @@ export function ReviewForm({
 						<DishCategoryStep
 							restaurantId={restaurant.id}
 							onSelectExisting={handleSelectDishCategoryInline}
-							onSubmitTyped={handleCreateDishCategoryFromName}
 							testID="review-dish-category-step"
 						/>
 						{dishCategoryError && (
@@ -1172,6 +1355,74 @@ export function ReviewForm({
 					</View>
 				) : (
 					<>
+						{/*
+						#1629【オーナー指示】**料理カテゴリーは写真の «上» に置く。**
+
+						> 料理カテゴリーを決めた後にメディアを選ぶと思うんですけど…
+						> 料理カテゴリー選択は写真の上に持ってきちゃいましょう。
+
+						記録の順番は «お店 → 料理カテゴリー → 写真 → 残りの入力» なので、決めた順に上から
+						並んでいるのが読みやすい。以前はコメント欄の下（写真より **後**）に居たため、
+						«さっき決めたはずのものが、写真より下に出てくる» 形になっていた。
+						*/}
+						<View style={styles.dishCategoryRowAbovePhoto}>
+							{/* 料理カテゴリ選択 Pressable 行 */}
+							{/*
+						#1629【オーナー指示】**料理カテゴリーは、ここでは変えられない。**
+
+						> 料理カテゴリは変えれなくして欲しい。店は変えたらその他クリアで良い。
+
+						料理カテゴリーは «お店 → 料理 → 写真» の 2 歩目で決まる。ところがこの行から
+						後で変えられたため、**先に決まった料理を前提に選んだ写真**（«この店の写真から選ぶ» は
+						その料理で絞り込んでいる）と食い違わせることができた。うどんの写真を選んだあとに
+						寿司へ変えれば、うどんの写真が寿司の記録として投稿できてしまう。
+
+						選び直す道が塞がるわけではない。**お店を選び直せば全部やり直しになる**
+						（`add-record.tsx` が `key={restaurantId}` でフォームごと作り直すので、
+						料理カテゴリーも写真も残らない）。オーナーの «店は変えたらその他クリアで良い» はこれである。
+
+						⚠️ **塞いでよいのは記録フロー（`mediaPickerMode === "manual"`）だけ。**
+						   店舗詳細から開くレビュー画面（`/restaurant/[id]/review`）には 2 歩目の
+						   `DishCategoryStep` が無く、**この行が料理カテゴリーを選ぶ唯一の手段**である。
+						   そこまで塞ぐと投稿できない画面ができる（自己レビューで踏みかけた）。
+						   e2e-web の `review-no-photo.spec.ts` / `ui-catalog-mutation.spec.ts` が
+						   その経路をこの行から通っており、常時 disabled にすると赤くなる。
+
+						⚠️ `Pressable` のままにしてあるのは、`disabled` の意味を «押せない» に一本化するため。
+						   `View` へ変えると accessibility の役割まで変わる。
+						*/}
+							<Pressable
+								testID="review-dish-category-row"
+								style={styles.dishCategorySelectRow}
+								onPress={handleOpenDishCategory}
+								// #400 prefilledMedia のときはそのメディアの料理に固定される
+								// #1629 記録フローは 2 歩目（DishCategoryStep）で決まっているので、ここでは変えさせない
+								disabled={!!activePrefilledMedia || isDishCategoryLocked}
+								accessibilityRole={!!activePrefilledMedia || isDishCategoryLocked ? "text" : "button"}
+								accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
+								{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
+								<View style={styles.inputRowLabelWithIcon}>
+									<Utensils size={18} color={colors.textSecondary} />
+									<Text style={styles.inputRowLabel}>
+										{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
+									</Text>
+								</View>
+								<View style={styles.dishCategorySelectContent}>
+									{dishCategoryName && (
+										<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
+											{dishCategoryName}
+										</Text>
+									)}
+									{/* #1629 押せないときは «押せる» の記号（>）を出さない */}
+									{!prefilledMedia && !isDishCategoryLocked && <ChevronRight size={20} color={colors.textMuted} />}
+								</View>
+							</Pressable>
+							{dishCategoryError && (
+								<Text style={styles.errorText} accessibilityLiveRegion="polite">
+									{dishCategoryError}
+								</Text>
+							)}
+						</View>
 						<View
 							testID="review-media-slot"
 							style={
@@ -1270,9 +1521,37 @@ export function ReviewForm({
 							) : (
 								<View style={styles.previewWrap}>
 									<InitialMediaPreview media={mediaState.media} />
+									{/*
+									#1629【オーナー指示】**«選び直す» と «自分の写真に差し替える» を同時に出さない。**
+
+									> 写真を撮り直すと自分の写真に差し替えるが同時に出るパターンってある？
+									> なければどちらも右下寄せで
+
+									実際には出ていた（記録フローで «この店の写真から選ぶ» を使った場合）。しかも
+									«選び直す» の行き先には «ライブラリから選ぶ» が含まれるので、2 つは機能が重なる。
+									そこで **入口で 1 つに決める**:
+
+									| 画面 | 出るボタン |
+									| --- | --- |
+									| 記録フロー（自分で写真を決める） | «写真を選び直す»（選び方の 1 歩目へ戻る） |
+									| 店舗フィードからの記録（写真は親が決めている） | «自分の写真に差し替える» |
+
+									排他になったので、どちらも同じ位置（右下）に置ける。
+									*/}
+									{isRecordFlowMedia ? (
+										<TouchableOpacity
+											testID="review-reselect-media"
+											style={styles.replacePhotoButton}
+											onPress={handleReselectMedia}
+											accessibilityRole="button"
+											accessibilityLabel={i18n.t("Map.media.reselectPhoto")}>
+											<ImagePlus size={14} color={FixedColors.onMedia} />
+											<Text style={styles.replacePhotoLabel}>{i18n.t("Map.media.reselectPhoto")}</Text>
+										</TouchableOpacity>
+									) : null}
 									{/* #1375 実機確認（2 巡目）: 食べたを記録（prefilledMedia モード）でも
 							    自分で撮った写真に差し替えられる入口を出す */}
-									{effectivePrefilledMedia !== undefined && (
+									{!isRecordFlowMedia && effectivePrefilledMedia !== undefined && (
 										<TouchableOpacity
 											testID="review-replace-with-my-photo"
 											style={styles.replacePhotoButton}
@@ -1295,147 +1574,136 @@ export function ReviewForm({
 						    最初から «写真の選び方 + コメント + 料理 + 価格 + 星» が同時に出ていると
 						    何をすればよいか読み取れない、というオーナー指摘への対処 */}
 						{!needsMediaChoiceFirst && (
-						<View style={styles.formContainer}>
-							{/* 
+							<View style={styles.formContainer}>
+								{/* 
 					#644 【設計】レビュー入力フィールド仕様
 					- 既存メディアに対するテキストレビュー追加モード
 					- 短文 placeholder（豚骨スープが...）を使用
 					- 100文字制限を適用
 					- 文字数カウンタを表示
 				*/}
-							<View>
-								<TextInput
-									testID="review-comment-input"
-									style={[styles.textInput, styles.textArea]}
-									placeholderTextColor={colors.textPlaceholder}
-									placeholder={i18n.t("Map.placeholders.enterReviewShort")}
-									value={reviewText}
-									onChangeText={setReviewText}
-									multiline
-									numberOfLines={4}
-									textAlignVertical="top"
-									maxLength={100}
-								/>
-								<Text style={styles.characterCount}>
-									{i18n.t("Restaurant.characterCount", { current: reviewText.length, max: 100 })}
-								</Text>
-							</View>
-
-							{/* 料理カテゴリ選択 Pressable 行 */}
-							<Pressable
-								testID="review-dish-category-row"
-								style={styles.dishCategorySelectRow}
-								onPress={handleOpenDishCategory}
-								// #400 prefilledMedia のときは料理カテゴリ選択を無効化（そのメディアの料理に固定される）。
-								// #1375（5 巡目）既存メディアを «選んだ» ときも同じ（activePrefilledMedia に入る）
-								disabled={!!activePrefilledMedia}
-								accessibilityRole="button"
-								accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
-								{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
-								<View style={styles.inputRowLabelWithIcon}>
-									<Utensils size={18} color={colors.textSecondary} />
-									<Text style={styles.inputRowLabel}>
-										{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
+								<View>
+									<TextInput
+										testID="review-comment-input"
+										style={[styles.textInput, styles.textArea]}
+										placeholderTextColor={colors.textPlaceholder}
+										placeholder={i18n.t("Map.placeholders.enterReviewShort")}
+										value={reviewText}
+										onChangeText={setReviewText}
+										multiline
+										numberOfLines={4}
+										textAlignVertical="top"
+										maxLength={100}
+									/>
+									<Text style={styles.characterCount}>
+										{i18n.t("Restaurant.characterCount", { current: reviewText.length, max: 100 })}
 									</Text>
 								</View>
-								<View style={styles.dishCategorySelectContent}>
-									{dishCategoryName && (
-										<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
-											{dishCategoryName}
-										</Text>
-									)}
-									{!prefilledMedia && <ChevronRight size={20} color={colors.textMuted} />}
-								</View>
-							</Pressable>
-							{dishCategoryError && (
-								<Text style={styles.errorText} accessibilityLiveRegion="polite">
-									{dishCategoryError}
-								</Text>
-							)}
 
-							{/* 価格入力 行 */}
-							<View style={styles.priceInputRow}>
-								{/* #644 【UX】価格ラベルにアイコン追加 */}
-								<View style={styles.inputRowLabelWithIcon}>
-									<CircleDollarSign size={18} color={colors.textSecondary} />
-									<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
-								</View>
-								{currencySymbol ? (
-									<View style={styles.priceInputContainer}>
-										<Text style={styles.currencySymbol}>{currencySymbol}</Text>
+								{/* 価格入力 行 */}
+								<View style={styles.priceInputRow}>
+									{/* #644 【UX】価格ラベルにアイコン追加 */}
+									<View style={styles.inputRowLabelWithIcon}>
+										<CircleDollarSign size={18} color={colors.textSecondary} />
+										<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
+									</View>
+									{currencySymbol ? (
+										<View style={styles.priceInputContainer}>
+											<Text style={styles.currencySymbol}>{currencySymbol}</Text>
+											<TextInput
+												testID="review-price-input"
+												style={[styles.textInput, styles.priceInput]}
+												placeholder={"0"}
+												placeholderTextColor={colors.textPlaceholder}
+												value={price}
+												onChangeText={setPrice}
+												keyboardType="numeric"
+											/>
+										</View>
+									) : (
 										<TextInput
 											testID="review-price-input"
-											style={[styles.textInput, styles.priceInput]}
+											style={[styles.textInput, styles.priceInputSmall]}
 											placeholder={"0"}
 											placeholderTextColor={colors.textPlaceholder}
 											value={price}
 											onChangeText={setPrice}
 											keyboardType="numeric"
 										/>
-									</View>
-								) : (
-									<TextInput
-										testID="review-price-input"
-										style={[styles.textInput, styles.priceInputSmall]}
-										placeholder={"0"}
-										placeholderTextColor={colors.textPlaceholder}
-										value={price}
-										onChangeText={setPrice}
-										keyboardType="numeric"
-									/>
-								)}
-							</View>
-
-							{/* 評価入力 行 */}
-							<View style={styles.ratingInputRow}>
-								{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
-								<View style={styles.inputRowLabelWithIcon}>
-									<ThumbsUp size={18} color={colors.textSecondary} />
-									<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
+									)}
 								</View>
-								{/* 星評価コンポーネント */}
-								<View style={styles.ratingContainer}>
-									<View style={styles.ratingInput}>
-										{[1, 2, 3, 4, 5].map((star) => {
-											// #644 【UX】未選択時の星アイコン外枠を灰色に変更
-											const isActive = star <= rating;
+
+								{/* #843 店から通貨が引けないときだけ出す選択列。
+							    既定値を黙って使うと金額が桁違いで記録されるため、選ぶまで投稿できない。 */}
+								{needsCurrencyChoice && (
+									<View style={styles.currencyChoiceRow} testID="review-currency-choice">
+										{currencyChoices.map((code) => {
+											const selected = manualCurrencyCode === code;
 											return (
-												<TouchableOpacity key={star} testID={`review-star-${star}`} onPress={() => setRating(star)}>
-													<Star
-														size={36}
-														color={isActive ? FixedColors.ratingActive : colors.trackMuted}
-														fill={isActive ? FixedColors.ratingActive : "transparent"}
-													/>
-												</TouchableOpacity>
+												<Pressable
+													key={code}
+													testID={`review-currency-choice-${code}`}
+													onPress={() => setManualCurrencyCode(code)}
+													style={[styles.currencyChoiceChip, selected && styles.currencyChoiceChipSelected]}>
+													<Text style={[styles.currencyChoiceText, selected && styles.currencyChoiceTextSelected]}>
+														{resolveCurrencySymbol(code, locale) ?? code} {code}
+													</Text>
+												</Pressable>
 											);
 										})}
 									</View>
-									<Text style={styles.ratingText} accessibilityLiveRegion="polite">
-										{rating}
-									</Text>
+								)}
+
+								{/* 評価入力 行 */}
+								<View style={styles.ratingInputRow}>
+									{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
+									<View style={styles.inputRowLabelWithIcon}>
+										<ThumbsUp size={18} color={colors.textSecondary} />
+										<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
+									</View>
+									{/* 星評価コンポーネント */}
+									<View style={styles.ratingContainer}>
+										<View style={styles.ratingInput}>
+											{[1, 2, 3, 4, 5].map((star) => {
+												// #644 【UX】未選択時の星アイコン外枠を灰色に変更
+												const isActive = star <= rating;
+												return (
+													<TouchableOpacity key={star} testID={`review-star-${star}`} onPress={() => setRating(star)}>
+														<Star
+															size={36}
+															color={isActive ? FixedColors.ratingActive : colors.trackMuted}
+															fill={isActive ? FixedColors.ratingActive : "transparent"}
+														/>
+													</TouchableOpacity>
+												);
+											})}
+										</View>
+										<Text style={styles.ratingText} accessibilityLiveRegion="polite">
+											{rating}
+										</Text>
+									</View>
 								</View>
-							</View>
 
-							{/* 同意メッセージ */}
-							<Text style={styles.consentText}>
-								{i18n.t("Map.consent_review_prefix")}
-								<Text
-									testID="review-consent-guidelines-link"
-									style={styles.consentLink}
-									onPress={() => handleOpenLegalDocument("guidelines")}>
-									{i18n.t("Map.consent_review_guidelines")}
+								{/* 同意メッセージ */}
+								<Text style={styles.consentText}>
+									{i18n.t("Map.consent_review_prefix")}
+									<Text
+										testID="review-consent-guidelines-link"
+										style={styles.consentLink}
+										onPress={() => handleOpenLegalDocument("guidelines")}>
+										{i18n.t("Map.consent_review_guidelines")}
+									</Text>
+									{i18n.t("Map.consent_review_and")}
+									<Text
+										testID="review-consent-copyright-link"
+										style={styles.consentLink}
+										onPress={() => handleOpenLegalDocument("copyright")}>
+										{i18n.t("Map.consent_review_copyright")}
+									</Text>
+									{i18n.t("Map.consent_review_suffix")}
 								</Text>
-								{i18n.t("Map.consent_review_and")}
-								<Text
-									testID="review-consent-copyright-link"
-									style={styles.consentLink}
-									onPress={() => handleOpenLegalDocument("copyright")}>
-									{i18n.t("Map.consent_review_copyright")}
-								</Text>
-								{i18n.t("Map.consent_review_suffix")}
-							</Text>
 
-							{/*
+								{/*
 						#1398 R4 【設計】記録は「非公開の食事ログ」に見えやすいが、実際は公開レビューであり
 						店舗の平均評価にも載る（#1375 追補 決定1）。誤解を招く UI のまま出さないため、同意文言の
 						直下に 1 行足す。
@@ -1444,10 +1712,10 @@ export function ReviewForm({
 						リーダー判断の R4 は描画画面を限定していない。`review-from-media` 経路（prefilledMedia）
 						も同じく公開レビューになるので常時表示へ変更した。
 					*/}
-							<Text testID="review-public-notice" style={styles.publicNoticeText}>
-								{i18n.t("MyDishes.record.publicReviewNotice")}
-							</Text>
-						</View>
+								<Text testID="review-public-notice" style={styles.publicNoticeText}>
+									{i18n.t("MyDishes.record.publicReviewNotice")}
+								</Text>
+							</View>
 						)}
 					</>
 				)}
@@ -1456,6 +1724,13 @@ export function ReviewForm({
 			{/* 投稿ボタン */}
 			{!isKeyboardVisible && !needsMediaChoiceFirst && !needsDishCategoryFirst && (
 				<View style={[styles.buttonContainer, { paddingBottom: 12 + insets.bottom }]}>
+					{!isValid && !isSubmitting && missingLabels.length > 0 && (
+						<Text style={styles.submitHint} testID="review-submit-hint">
+							{i18n.t("MyDishes.record.missingHint", {
+								items: missingLabels.join(i18n.t("MyDishes.record.missing.separator")),
+							})}
+						</Text>
+					)}
 					<PrimaryButton
 						testID="review-submit-button"
 						label={i18n.t("Common.postReview")}
@@ -1553,12 +1828,31 @@ const createStyles = (c: Palette) =>
 			flex: 1,
 			backgroundColor: c.surface,
 		},
-		// #644 【UX】KeyboardAvoidingView でキーボード表示時の位置調整
+		/*
+		#644 【UX】キーボード表示時の位置調整。
+
+		#1629 【修正】**Android へ behavior を渡すようにした（オーナー実機報告「料金がキーボードに隠れる」）。**
+
+		以前はここに `behavior` が無く、回避は ScrollView 側の
+		`automaticallyAdjustKeyboardInsets`（iOS）と **OS の window リサイズ（Android）** が担っていた。
+		Android 15（API 35）から edge-to-edge が強制され、edge-to-edge のアプリでは
+		`adjustResize` が窓を縮めなくなる。つまり Android 側は **任せた先が消えて丸ごと無防備**になる。
+
+		⚠️ «二重に縮む» を心配して behavior を外す判断が過去にあったが、RN の
+		`KeyboardAvoidingView` は自分の frame を測って «画面下端までの距離» を差し引くので、
+		窓が既に縮んでいる端末（Android 14 以前）では足す量がほぼ 0 になる。
+		同じ値は `components/KeyboardAwareForm.tsx` が本番で使い続けている。
+		*/
 		keyboardAvoidingView: {
 			flex: 1,
 		},
 		scrollContent: {
 			paddingBottom: 64,
+		},
+		// #1629 写真の上へ移した料理カテゴリー行。左右の余白は formContainer と揃える
+		dishCategoryRowAbovePhoto: {
+			paddingHorizontal: 16,
+			paddingTop: 16,
 		},
 		formContainer: {
 			paddingHorizontal: 16,
@@ -1598,6 +1892,32 @@ const createStyles = (c: Palette) =>
 			color: c.textStrong,
 			textAlign: "right",
 			maxWidth: 160,
+		},
+		currencyChoiceRow: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 8,
+			marginTop: 8,
+		},
+		currencyChoiceChip: {
+			paddingHorizontal: 12,
+			paddingVertical: 6,
+			borderRadius: 16,
+			borderWidth: 1,
+			borderColor: c.trackMuted,
+			backgroundColor: c.surface,
+		},
+		currencyChoiceChipSelected: {
+			borderColor: c.ctaBackground,
+			backgroundColor: c.ctaBackground,
+		},
+		currencyChoiceText: {
+			fontSize: 13,
+			color: c.textSecondary,
+		},
+		currencyChoiceTextSelected: {
+			color: c.ctaLabel,
+			fontWeight: "600",
 		},
 		priceInputRow: {
 			flexDirection: "row",
@@ -1716,6 +2036,14 @@ const createStyles = (c: Palette) =>
 			paddingVertical: 6,
 			borderRadius: 14,
 			backgroundColor: "rgba(17,24,39,0.7)",
+		},
+		// #1629 押せない理由。ボタンのすぐ上に小さく置く（読ませたいのはボタンの方なので控えめに）
+		submitHint: {
+			marginHorizontal: 16,
+			marginBottom: 6,
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "center",
 		},
 		replacePhotoLabel: {
 			fontSize: 11,

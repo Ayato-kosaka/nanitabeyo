@@ -16,7 +16,11 @@ import {
 	useDishMediaEntriesStore,
 	IdType,
 } from "@/stores/useDishMediaEntriesStore";
-import type { MediaProcessingStatus, QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
+import type {
+	MediaProcessingStatus,
+	QueryDishMediaByIdsResponse,
+	ReportExternalEmbedPlaybackResponse,
+} from "@shared/api/v1/res";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -92,6 +96,34 @@ export default function DishMediaContent({
 
 	const { callBackend } = useAPICall();
 	const insets = useSafeAreaInsets();
+
+	/*
+	#1641 **埋め込みが再生できなかったことをサーバへ知らせる。**
+
+	定期的な死活監視は無い（このリポジトリに cron は 1 本も無い）。取り込んだ後で
+	楽曲の権利ブロックが入る / 投稿者が埋め込みを切る、は実際に起きるが、
+	**実際に踏んだ端末が知らせない限り誰も気づけない**。
+
+	⚠️ **送るのは «確かめ直して» という合図だけで、判定は送らない。** 端末が再生できない
+	   理由は投稿の側とは限らない（機内モード・WebView が殺された直後）。サーバが
+	   provider へ問い合わせ直して判定する（`reportUnplayable`）。
+	⚠️ **失敗を握り潰す。** これは画面の裏で自動的に飛ぶ呼び出しで、ユーザーには
+	   «再生できなかった» という結果が既に見えている。ここで失敗を見せる意味が無い。
+	*/
+	const handleEmbedUnplayable = useCallback(() => {
+		const dishMediaId = dishMediaEntry.dish_media.id;
+		callBackend<Record<string, never>, ReportExternalEmbedPlaybackResponse>(
+			`v1/dish-media/imports/${dishMediaId}/playback-report`,
+			// 本文は空。**端末に «理由» を送らせない**（送らせると保存したくなる）
+			{ method: "POST", requestPayload: {} },
+		).catch((error) => {
+			logFrontendEvent({
+				event_name: "external_embed_playback_report_failed",
+				error_level: "warn",
+				payload: { dishMediaId, error: error instanceof Error ? error.message : String(error) },
+			});
+		});
+	}, [callBackend, dishMediaEntry.dish_media.id, logFrontendEvent]);
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 
 	const { handleVideoProgress, handleVideoLoop } = useMediaTracking({
@@ -245,7 +277,17 @@ export default function DishMediaContent({
 	}, [onCardPress, dishMediaEntry, pressed, buttonsGesture, embedButtonGesture]);
 
 	return (
-		<View style={styles.container}>
+		/*
+		#1742 testID はカード押下（= ActionSheet を開く導線）を e2e から叩くための口。
+		ここを押したときのシートが Android でナビゲーションバーへ潜っていた。
+
+		⚠️ **active なカードだけ別の testID にする。** カルーセルは前後のセルも一緒に描くので、
+		同じ testID で `atIndex(0)` を掴むと «画面内に 75% 見えていない» 隣のセルへ当たり、
+		Detox が「その View は押せない」で失敗する（実測: run 33415277422）。
+		active は常に 1 枚（`DishMediaMap.loop.test.tsx` が固定している）ので、
+		これで «いま真ん中に見えているカード» を一意に指せる。
+		*/
+		<View style={styles.container} testID={isActive ? "dish-media-card-active" : "dish-media-card"}>
 			<GestureDetector gesture={tapGesture}>
 				<Animated.View style={[StyleSheet.absoluteFill, pressStyle]}>
 					{/* #802 【設計】表示側 Image の load/display イベントには依存しない。 */}
@@ -287,6 +329,7 @@ export default function DishMediaContent({
 						<ExternalEmbedPlayer
 							embed={dishMediaEntry.dish_media.externalEmbed}
 							isActive={isActive}
+							onUnplayable={handleEmbedUnplayable}
 							blockParentTapGesture={embedButtonGesture}
 						/>
 					)}

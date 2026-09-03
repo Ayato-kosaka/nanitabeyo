@@ -35,6 +35,10 @@ import {
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
 import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
+import {
+  computePriceBand,
+  type PriceBand,
+} from '../../../../shared/utils/priceBand';
 import { prioritizeReviewsByLanguage } from './review-ordering';
 import { buildLanguageWhereClause } from './language-where';
 // #1511 退会したユーザーの投稿・レビューを外す where 断片（共有リンクの OGP でも使う）
@@ -65,6 +69,16 @@ export interface DishMediaEntryEntity {
     averageRating: number;
     /** #1375 dish_categories.labels（言語コード → 表記）。取れなければ null */
     categoryLabels: Record<string, string> | null;
+    /**
+     * #1641 dish_categories.image_url。**サムネイルが 1 つも無いときの最後の受け皿。**
+     * レスポンスへそのまま出すものではなく、`thumbnailImageUrl` の解決にだけ使う。
+     */
+    categoryImageUrl: string | null;
+    /**
+     * #1774 `restaurant × dish_category` 単位の価格帯。中央値が3件未満、または
+     * 通貨の刻みが未定義のときは null（`averageRating` と同じ null 合流パターン）。
+     */
+    priceBand: PriceBand | null;
   };
   dish_media: PrismaDishMedia & {
     isMine: boolean;
@@ -244,6 +258,28 @@ export class DishMediaRepository {
         -- 「実体未着」を見落とす（processing と failed は原因が違うだけで、どちらも
         -- 検索へ公開してはいけない点は同じ）。そのため completed 以外を一律に除外する。
         AND dm.media_processing_status = 'completed'
+        /* #1641 **埋め込みの枠の中で再生できないと分かっている投稿は、検索フィードへ出さない。**
+
+           オーナー指摘 2026-08-28:「検索タブのお店提案では出さないで欲しい」。
+           権利ブロックのリールや埋め込みを許可していない YouTube 動画は、開いても
+           サムネイルが止まっているだけで、そのセルは «スワイプさせるためだけの空振り» になる。
+
+           ⚠️ **playback_status <> 'not_playable' と書いてはいけない。**
+              取り込みメディア以外（自撮りの投稿）は dmee の行を持たないので、
+              等値比較にすると **NULL になって全部落ちる**。NOT EXISTS で «そう判定された
+              行が在るときだけ弾く» と書く。
+
+           ⚠️ **unknown は弾かない。** 判定できなかっただけの投稿を隠すと、
+              provider が仕様を変えた日に取り込み済みの投稿が一斉に検索から消える。
+
+           ⚠️ 置き場所は base_candidates（ROW_NUMBER より**前**）である。後段で外すと、
+              「1 dish につき 1 本」の枠を再生できない投稿が取ってしまい、
+              **その料理が丸ごとフィードから消える**。 */
+        AND NOT EXISTS (
+          SELECT 1 FROM dish_media_external_embeddings dmee
+          WHERE dmee.dish_media_id = dm.id
+            AND dmee.playback_status = 'not_playable'
+        )
     ),
     -- 距離計算
     geo AS (
@@ -607,7 +643,7 @@ export class DishMediaRepository {
       },
     );
 
-    let whereClause: Prisma.dish_reviewsWhereInput = {
+    const whereClause: Prisma.dish_reviewsWhereInput = {
       user_id: userId,
       // #1513 論理削除済みは自分のプロフィールからも見えない
       deleted_at: null,
@@ -886,7 +922,12 @@ export class DishMediaRepository {
             // ローマ字が入る。カテゴリの正式表記（言語コード → 表記）を一緒に返し、
             // クライアントが «利用者の言語 → 英語 → 店での呼び名» の順で出せるようにする。
             // labels 列だけを select するので、この join で読む量は最小に留まる。
-            dish_categories: { select: { labels: true } },
+            //
+            // #1641 `image_url` も引く。SNS 取り込みの行は自ストレージにサムネイルを
+            // 持たないことがあり（取り込み当時に複製へ失敗した / provider の署名 URL が失効した）、
+            // **何も無いとセルが真っ黒になる**（run 33223480840 の feed-05 で実測）。
+            // 最後の受け皿として料理カテゴリの絵を返す。列 1 つぶんの追加である。
+            dish_categories: { select: { labels: true, image_url: true } },
             dish_reviews: {
               // #1513 削除済みレビューは本文欄に出さない
               // #1511 同じ料理に付いた «他人の» レビューのうち、退会者のものも落とす
@@ -943,6 +984,9 @@ export class DishMediaRepository {
         ];
       }),
     );
+
+    // #1774 restaurant × dish_category（= dish_id）単位の価格帯
+    const priceBandByDish = await this.findPriceBandsByDishIds(dishIds);
 
     const dishMediaMap = new Map(dishMedias.map((m) => [m.id, m]));
 
@@ -1017,6 +1061,10 @@ export class DishMediaRepository {
                 string,
                 string
               > | null) ?? null,
+            categoryImageUrl:
+              dishMedia.dishes.dish_categories?.image_url ?? null,
+            // #1774 restaurant × dish_category 単位の価格帯（3件未満・通貨未確定は null）
+            priceBand: priceBandByDish.get(dishMedia.dish_id) ?? null,
           },
           dish_media: {
             ...(dishMedia as PrismaDishMedia),
@@ -1054,6 +1102,59 @@ export class DishMediaRepository {
           })),
         };
       });
+  }
+
+  /**
+   * #1774 restaurant × dish_category（= dish_id）単位の価格帯を計算する。
+   *
+   * 集計ルール自体（中央値・最低3件・通貨除外・NULL 通貨の除外）は
+   * `shared/utils/priceBand.ts` の `computePriceBand` が唯一の実装で、ここでは
+   * その入力になる「有効なレビュー行」を絞り込むだけにする。集計ロジックを
+   * ここへ書き写すと、テスト（`priceBand.test.ts`）が守っているのは
+   * 別の実装になってしまう。
+   *
+   * `currency_code IS NULL` の行はここでは除かない（`computePriceBand` 側で必ず除外する）。
+   * DB 側で先に絞ると、「ガードを外したら壊れる」ことをテストで実測できなくなるため、
+   * フィルタの責務は集計ロジック本体に置く。
+   */
+  private async findPriceBandsByDishIds(
+    dishIds: string[],
+  ): Promise<Map<string, PriceBand | null>> {
+    const result = new Map<string, PriceBand | null>();
+    if (dishIds.length === 0) return result;
+
+    const reviews = await this.prisma.prisma.dish_reviews.findMany({
+      // #1513 削除済みレビューは価格帯にも入れない
+      // #1511 退会したユーザーの投稿は価格帯の母数から外す（averageRating と同じ判定）
+      // #1774 中央値をアプリ側で計算するため件数無制限で引いている。1 つの料理にレビューが
+      // 数千件付く規模になったら、PERCENTILE_CONT の生 SQL による DB 側集計へ移すこと。
+      where: {
+        dish_id: { in: dishIds },
+        deleted_at: null,
+        price_cents: { not: null },
+        ...NOT_AUTHORED_BY_DELETED_USER,
+      },
+      select: { dish_id: true, price_cents: true, currency_code: true },
+    });
+
+    const rowsByDish = new Map<
+      string,
+      { priceCents: number | null; currencyCode: string | null }[]
+    >();
+    for (const review of reviews) {
+      const rows = rowsByDish.get(review.dish_id) ?? [];
+      rows.push({
+        priceCents: review.price_cents,
+        currencyCode: review.currency_code,
+      });
+      rowsByDish.set(review.dish_id, rows);
+    }
+
+    for (const [dishId, rows] of rowsByDish) {
+      result.set(dishId, computePriceBand(rows));
+    }
+
+    return result;
   }
 
   /**

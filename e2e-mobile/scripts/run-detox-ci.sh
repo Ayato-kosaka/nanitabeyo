@@ -71,6 +71,19 @@ if [ "${EXIT_CODE}" -ne 0 ] && [[ "${SCRIPT_NAME}" == *android* ]] && command -v
 	if adb devices | grep -qE '^\S+[[:space:]]+device$'; then
 		echo "▶ クラッシュログ（logcat の crash バッファ）を回収します"
 		adb logcat -b crash -d > "${ARTIFACTS_DIR}/logcat-crash.log" 2>&1 || true
+
+		# #1375 【重要】**crash バッファだけでは «落ちた理由» が分からないことがある。**
+		# run 32860661371（Android・案 A の埋め込み）で、アプリがランチャーへ戻る＝確実に
+		# 落ちているのに `logcat -b crash` が **0 バイト**だった。crash バッファへ入るのは
+		# Java の未捕捉例外と tombstone を伴うネイティブ abort だけで、
+		#
+		#   - lowmemorykiller / ActivityManager によるプロセス kill（`am_kill`）
+		#   - WebView のレンダラプロセス消滅（`RenderProcessGone` / `DEAD_OBJECT`）
+		#   - GPU の描画面確保失敗
+		#
+		# はいずれも **main バッファにしか出ない**。原因を «見えるように» するため
+		# main バッファも一緒に残す。全文だと数十 MB になり得るので末尾だけにする。
+		adb logcat -b main -d 2>/dev/null | tail -n 5000 > "${ARTIFACTS_DIR}/logcat-main-tail.log" || true
 	else
 		echo "▶ 接続中の Android 端末が無いため、クラッシュログの回収をスキップします"
 	fi

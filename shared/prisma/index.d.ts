@@ -213,12 +213,26 @@ export type reactions = $Result.DefaultSelection<Prisma.$reactionsPayload>
  */
 export type restaurant_bids = $Result.DefaultSelection<Prisma.$restaurant_bidsPayload>
 /**
+ * Model restaurant_hours_exceptions
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type restaurant_hours_exceptions = $Result.DefaultSelection<Prisma.$restaurant_hours_exceptionsPayload>
+/**
  * Model restaurant_links
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
 export type restaurant_links = $Result.DefaultSelection<Prisma.$restaurant_linksPayload>
+/**
+ * Model restaurant_opening_hours
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type restaurant_opening_hours = $Result.DefaultSelection<Prisma.$restaurant_opening_hoursPayload>
 /**
  * Model restaurants
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -777,6 +791,16 @@ export class PrismaClient<
   get restaurant_bids(): Prisma.restaurant_bidsDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.restaurant_hours_exceptions`: Exposes CRUD operations for the **restaurant_hours_exceptions** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Restaurant_hours_exceptions
+    * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.findMany()
+    * ```
+    */
+  get restaurant_hours_exceptions(): Prisma.restaurant_hours_exceptionsDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.restaurant_links`: Exposes CRUD operations for the **restaurant_links** model.
     * Example usage:
     * ```ts
@@ -785,6 +809,16 @@ export class PrismaClient<
     * ```
     */
   get restaurant_links(): Prisma.restaurant_linksDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.restaurant_opening_hours`: Exposes CRUD operations for the **restaurant_opening_hours** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Restaurant_opening_hours
+    * const restaurant_opening_hours = await prisma.restaurant_opening_hours.findMany()
+    * ```
+    */
+  get restaurant_opening_hours(): Prisma.restaurant_opening_hoursDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.restaurants`: Exposes CRUD operations for the **restaurants** model.
@@ -1340,7 +1374,9 @@ export namespace Prisma {
     prompt_variants: 'prompt_variants',
     reactions: 'reactions',
     restaurant_bids: 'restaurant_bids',
+    restaurant_hours_exceptions: 'restaurant_hours_exceptions',
     restaurant_links: 'restaurant_links',
+    restaurant_opening_hours: 'restaurant_opening_hours',
     restaurants: 'restaurants',
     role_permissions: 'role_permissions',
     roles: 'roles',
@@ -1365,7 +1401,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "content_reports" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_group_vote_candidate_votes" | "dish_category_group_vote_candidates" | "dish_category_group_vote_participants" | "dish_category_group_vote_sessions" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_external_embeddings" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurant_links" | "restaurants" | "role_permissions" | "roles" | "share_links" | "user_device_tokens" | "user_notification_cursors" | "user_notification_preferences" | "user_roles" | "users"
+      modelProps: "backend_event_logs" | "config" | "content_reports" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_group_vote_candidate_votes" | "dish_category_group_vote_candidates" | "dish_category_group_vote_participants" | "dish_category_group_vote_sessions" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_external_embeddings" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurant_hours_exceptions" | "restaurant_links" | "restaurant_opening_hours" | "restaurants" | "role_permissions" | "roles" | "share_links" | "user_device_tokens" | "user_notification_cursors" | "user_notification_preferences" | "user_roles" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3663,6 +3699,80 @@ export namespace Prisma {
           }
         }
       }
+      restaurant_hours_exceptions: {
+        payload: Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>
+        fields: Prisma.restaurant_hours_exceptionsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.restaurant_hours_exceptionsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.restaurant_hours_exceptionsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload>
+          }
+          findFirst: {
+            args: Prisma.restaurant_hours_exceptionsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.restaurant_hours_exceptionsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload>
+          }
+          findMany: {
+            args: Prisma.restaurant_hours_exceptionsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload>[]
+          }
+          create: {
+            args: Prisma.restaurant_hours_exceptionsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload>
+          }
+          createMany: {
+            args: Prisma.restaurant_hours_exceptionsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.restaurant_hours_exceptionsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload>[]
+          }
+          delete: {
+            args: Prisma.restaurant_hours_exceptionsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload>
+          }
+          update: {
+            args: Prisma.restaurant_hours_exceptionsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload>
+          }
+          deleteMany: {
+            args: Prisma.restaurant_hours_exceptionsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.restaurant_hours_exceptionsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.restaurant_hours_exceptionsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload>[]
+          }
+          upsert: {
+            args: Prisma.restaurant_hours_exceptionsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_hours_exceptionsPayload>
+          }
+          aggregate: {
+            args: Prisma.Restaurant_hours_exceptionsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRestaurant_hours_exceptions>
+          }
+          groupBy: {
+            args: Prisma.restaurant_hours_exceptionsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Restaurant_hours_exceptionsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.restaurant_hours_exceptionsCountArgs<ExtArgs>
+            result: $Utils.Optional<Restaurant_hours_exceptionsCountAggregateOutputType> | number
+          }
+        }
+      }
       restaurant_links: {
         payload: Prisma.$restaurant_linksPayload<ExtArgs>
         fields: Prisma.restaurant_linksFieldRefs
@@ -3734,6 +3844,80 @@ export namespace Prisma {
           count: {
             args: Prisma.restaurant_linksCountArgs<ExtArgs>
             result: $Utils.Optional<Restaurant_linksCountAggregateOutputType> | number
+          }
+        }
+      }
+      restaurant_opening_hours: {
+        payload: Prisma.$restaurant_opening_hoursPayload<ExtArgs>
+        fields: Prisma.restaurant_opening_hoursFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.restaurant_opening_hoursFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.restaurant_opening_hoursFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload>
+          }
+          findFirst: {
+            args: Prisma.restaurant_opening_hoursFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.restaurant_opening_hoursFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload>
+          }
+          findMany: {
+            args: Prisma.restaurant_opening_hoursFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload>[]
+          }
+          create: {
+            args: Prisma.restaurant_opening_hoursCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload>
+          }
+          createMany: {
+            args: Prisma.restaurant_opening_hoursCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.restaurant_opening_hoursCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload>[]
+          }
+          delete: {
+            args: Prisma.restaurant_opening_hoursDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload>
+          }
+          update: {
+            args: Prisma.restaurant_opening_hoursUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload>
+          }
+          deleteMany: {
+            args: Prisma.restaurant_opening_hoursDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.restaurant_opening_hoursUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.restaurant_opening_hoursUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload>[]
+          }
+          upsert: {
+            args: Prisma.restaurant_opening_hoursUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$restaurant_opening_hoursPayload>
+          }
+          aggregate: {
+            args: Prisma.Restaurant_opening_hoursAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRestaurant_opening_hours>
+          }
+          groupBy: {
+            args: Prisma.restaurant_opening_hoursGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Restaurant_opening_hoursGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.restaurant_opening_hoursCountArgs<ExtArgs>
+            result: $Utils.Optional<Restaurant_opening_hoursCountAggregateOutputType> | number
           }
         }
       }
@@ -4526,7 +4710,9 @@ export namespace Prisma {
     prompt_variants?: prompt_variantsOmit
     reactions?: reactionsOmit
     restaurant_bids?: restaurant_bidsOmit
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsOmit
     restaurant_links?: restaurant_linksOmit
+    restaurant_opening_hours?: restaurant_opening_hoursOmit
     restaurants?: restaurantsOmit
     role_permissions?: role_permissionsOmit
     roles?: rolesOmit
@@ -5040,13 +5226,17 @@ export namespace Prisma {
   export type RestaurantsCountOutputType = {
     dishes: number
     restaurant_bids: number
+    restaurant_hours_exceptions: number
     restaurant_links: number
+    restaurant_opening_hours: number
   }
 
   export type RestaurantsCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | RestaurantsCountOutputTypeCountDishesArgs
     restaurant_bids?: boolean | RestaurantsCountOutputTypeCountRestaurant_bidsArgs
+    restaurant_hours_exceptions?: boolean | RestaurantsCountOutputTypeCountRestaurant_hours_exceptionsArgs
     restaurant_links?: boolean | RestaurantsCountOutputTypeCountRestaurant_linksArgs
+    restaurant_opening_hours?: boolean | RestaurantsCountOutputTypeCountRestaurant_opening_hoursArgs
   }
 
   // Custom InputTypes
@@ -5077,8 +5267,22 @@ export namespace Prisma {
   /**
    * RestaurantsCountOutputType without action
    */
+  export type RestaurantsCountOutputTypeCountRestaurant_hours_exceptionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: restaurant_hours_exceptionsWhereInput
+  }
+
+  /**
+   * RestaurantsCountOutputType without action
+   */
   export type RestaurantsCountOutputTypeCountRestaurant_linksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: restaurant_linksWhereInput
+  }
+
+  /**
+   * RestaurantsCountOutputType without action
+   */
+  export type RestaurantsCountOutputTypeCountRestaurant_opening_hoursArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: restaurant_opening_hoursWhereInput
   }
 
 
@@ -40086,6 +40290,1090 @@ export namespace Prisma {
 
 
   /**
+   * Model restaurant_hours_exceptions
+   */
+
+  export type AggregateRestaurant_hours_exceptions = {
+    _count: Restaurant_hours_exceptionsCountAggregateOutputType | null
+    _min: Restaurant_hours_exceptionsMinAggregateOutputType | null
+    _max: Restaurant_hours_exceptionsMaxAggregateOutputType | null
+  }
+
+  export type Restaurant_hours_exceptionsMinAggregateOutputType = {
+    restaurant_id: string | null
+    source: string | null
+    exception_date: Date | null
+    is_closed: boolean | null
+    opens_at: Date | null
+    closes_at: Date | null
+    fetched_at: Date | null
+  }
+
+  export type Restaurant_hours_exceptionsMaxAggregateOutputType = {
+    restaurant_id: string | null
+    source: string | null
+    exception_date: Date | null
+    is_closed: boolean | null
+    opens_at: Date | null
+    closes_at: Date | null
+    fetched_at: Date | null
+  }
+
+  export type Restaurant_hours_exceptionsCountAggregateOutputType = {
+    restaurant_id: number
+    source: number
+    exception_date: number
+    is_closed: number
+    opens_at: number
+    closes_at: number
+    fetched_at: number
+    _all: number
+  }
+
+
+  export type Restaurant_hours_exceptionsMinAggregateInputType = {
+    restaurant_id?: true
+    source?: true
+    exception_date?: true
+    is_closed?: true
+    opens_at?: true
+    closes_at?: true
+    fetched_at?: true
+  }
+
+  export type Restaurant_hours_exceptionsMaxAggregateInputType = {
+    restaurant_id?: true
+    source?: true
+    exception_date?: true
+    is_closed?: true
+    opens_at?: true
+    closes_at?: true
+    fetched_at?: true
+  }
+
+  export type Restaurant_hours_exceptionsCountAggregateInputType = {
+    restaurant_id?: true
+    source?: true
+    exception_date?: true
+    is_closed?: true
+    opens_at?: true
+    closes_at?: true
+    fetched_at?: true
+    _all?: true
+  }
+
+  export type Restaurant_hours_exceptionsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which restaurant_hours_exceptions to aggregate.
+     */
+    where?: restaurant_hours_exceptionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of restaurant_hours_exceptions to fetch.
+     */
+    orderBy?: restaurant_hours_exceptionsOrderByWithRelationInput | restaurant_hours_exceptionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: restaurant_hours_exceptionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` restaurant_hours_exceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` restaurant_hours_exceptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned restaurant_hours_exceptions
+    **/
+    _count?: true | Restaurant_hours_exceptionsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Restaurant_hours_exceptionsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Restaurant_hours_exceptionsMaxAggregateInputType
+  }
+
+  export type GetRestaurant_hours_exceptionsAggregateType<T extends Restaurant_hours_exceptionsAggregateArgs> = {
+        [P in keyof T & keyof AggregateRestaurant_hours_exceptions]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRestaurant_hours_exceptions[P]>
+      : GetScalarType<T[P], AggregateRestaurant_hours_exceptions[P]>
+  }
+
+
+
+
+  export type restaurant_hours_exceptionsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: restaurant_hours_exceptionsWhereInput
+    orderBy?: restaurant_hours_exceptionsOrderByWithAggregationInput | restaurant_hours_exceptionsOrderByWithAggregationInput[]
+    by: Restaurant_hours_exceptionsScalarFieldEnum[] | Restaurant_hours_exceptionsScalarFieldEnum
+    having?: restaurant_hours_exceptionsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Restaurant_hours_exceptionsCountAggregateInputType | true
+    _min?: Restaurant_hours_exceptionsMinAggregateInputType
+    _max?: Restaurant_hours_exceptionsMaxAggregateInputType
+  }
+
+  export type Restaurant_hours_exceptionsGroupByOutputType = {
+    restaurant_id: string
+    source: string
+    exception_date: Date
+    is_closed: boolean
+    opens_at: Date | null
+    closes_at: Date | null
+    fetched_at: Date
+    _count: Restaurant_hours_exceptionsCountAggregateOutputType | null
+    _min: Restaurant_hours_exceptionsMinAggregateOutputType | null
+    _max: Restaurant_hours_exceptionsMaxAggregateOutputType | null
+  }
+
+  type GetRestaurant_hours_exceptionsGroupByPayload<T extends restaurant_hours_exceptionsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Restaurant_hours_exceptionsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Restaurant_hours_exceptionsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Restaurant_hours_exceptionsGroupByOutputType[P]>
+            : GetScalarType<T[P], Restaurant_hours_exceptionsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type restaurant_hours_exceptionsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    restaurant_id?: boolean
+    source?: boolean
+    exception_date?: boolean
+    is_closed?: boolean
+    opens_at?: boolean
+    closes_at?: boolean
+    fetched_at?: boolean
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["restaurant_hours_exceptions"]>
+
+  export type restaurant_hours_exceptionsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    restaurant_id?: boolean
+    source?: boolean
+    exception_date?: boolean
+    is_closed?: boolean
+    opens_at?: boolean
+    closes_at?: boolean
+    fetched_at?: boolean
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["restaurant_hours_exceptions"]>
+
+  export type restaurant_hours_exceptionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    restaurant_id?: boolean
+    source?: boolean
+    exception_date?: boolean
+    is_closed?: boolean
+    opens_at?: boolean
+    closes_at?: boolean
+    fetched_at?: boolean
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["restaurant_hours_exceptions"]>
+
+  export type restaurant_hours_exceptionsSelectScalar = {
+    restaurant_id?: boolean
+    source?: boolean
+    exception_date?: boolean
+    is_closed?: boolean
+    opens_at?: boolean
+    closes_at?: boolean
+    fetched_at?: boolean
+  }
+
+  export type restaurant_hours_exceptionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"restaurant_id" | "source" | "exception_date" | "is_closed" | "opens_at" | "closes_at" | "fetched_at", ExtArgs["result"]["restaurant_hours_exceptions"]>
+  export type restaurant_hours_exceptionsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }
+  export type restaurant_hours_exceptionsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }
+  export type restaurant_hours_exceptionsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }
+
+  export type $restaurant_hours_exceptionsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "restaurant_hours_exceptions"
+    objects: {
+      restaurants: Prisma.$restaurantsPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      restaurant_id: string
+      source: string
+      exception_date: Date
+      is_closed: boolean
+      opens_at: Date | null
+      closes_at: Date | null
+      fetched_at: Date
+    }, ExtArgs["result"]["restaurant_hours_exceptions"]>
+    composites: {}
+  }
+
+  type restaurant_hours_exceptionsGetPayload<S extends boolean | null | undefined | restaurant_hours_exceptionsDefaultArgs> = $Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload, S>
+
+  type restaurant_hours_exceptionsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<restaurant_hours_exceptionsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Restaurant_hours_exceptionsCountAggregateInputType | true
+    }
+
+  export interface restaurant_hours_exceptionsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['restaurant_hours_exceptions'], meta: { name: 'restaurant_hours_exceptions' } }
+    /**
+     * Find zero or one Restaurant_hours_exceptions that matches the filter.
+     * @param {restaurant_hours_exceptionsFindUniqueArgs} args - Arguments to find a Restaurant_hours_exceptions
+     * @example
+     * // Get one Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends restaurant_hours_exceptionsFindUniqueArgs>(args: SelectSubset<T, restaurant_hours_exceptionsFindUniqueArgs<ExtArgs>>): Prisma__restaurant_hours_exceptionsClient<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Restaurant_hours_exceptions that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {restaurant_hours_exceptionsFindUniqueOrThrowArgs} args - Arguments to find a Restaurant_hours_exceptions
+     * @example
+     * // Get one Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends restaurant_hours_exceptionsFindUniqueOrThrowArgs>(args: SelectSubset<T, restaurant_hours_exceptionsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__restaurant_hours_exceptionsClient<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Restaurant_hours_exceptions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_hours_exceptionsFindFirstArgs} args - Arguments to find a Restaurant_hours_exceptions
+     * @example
+     * // Get one Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends restaurant_hours_exceptionsFindFirstArgs>(args?: SelectSubset<T, restaurant_hours_exceptionsFindFirstArgs<ExtArgs>>): Prisma__restaurant_hours_exceptionsClient<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Restaurant_hours_exceptions that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_hours_exceptionsFindFirstOrThrowArgs} args - Arguments to find a Restaurant_hours_exceptions
+     * @example
+     * // Get one Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends restaurant_hours_exceptionsFindFirstOrThrowArgs>(args?: SelectSubset<T, restaurant_hours_exceptionsFindFirstOrThrowArgs<ExtArgs>>): Prisma__restaurant_hours_exceptionsClient<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Restaurant_hours_exceptions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_hours_exceptionsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.findMany()
+     * 
+     * // Get first 10 Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.findMany({ take: 10 })
+     * 
+     * // Only select the `restaurant_id`
+     * const restaurant_hours_exceptionsWithRestaurant_idOnly = await prisma.restaurant_hours_exceptions.findMany({ select: { restaurant_id: true } })
+     * 
+     */
+    findMany<T extends restaurant_hours_exceptionsFindManyArgs>(args?: SelectSubset<T, restaurant_hours_exceptionsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Restaurant_hours_exceptions.
+     * @param {restaurant_hours_exceptionsCreateArgs} args - Arguments to create a Restaurant_hours_exceptions.
+     * @example
+     * // Create one Restaurant_hours_exceptions
+     * const Restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.create({
+     *   data: {
+     *     // ... data to create a Restaurant_hours_exceptions
+     *   }
+     * })
+     * 
+     */
+    create<T extends restaurant_hours_exceptionsCreateArgs>(args: SelectSubset<T, restaurant_hours_exceptionsCreateArgs<ExtArgs>>): Prisma__restaurant_hours_exceptionsClient<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Restaurant_hours_exceptions.
+     * @param {restaurant_hours_exceptionsCreateManyArgs} args - Arguments to create many Restaurant_hours_exceptions.
+     * @example
+     * // Create many Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends restaurant_hours_exceptionsCreateManyArgs>(args?: SelectSubset<T, restaurant_hours_exceptionsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Restaurant_hours_exceptions and returns the data saved in the database.
+     * @param {restaurant_hours_exceptionsCreateManyAndReturnArgs} args - Arguments to create many Restaurant_hours_exceptions.
+     * @example
+     * // Create many Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Restaurant_hours_exceptions and only return the `restaurant_id`
+     * const restaurant_hours_exceptionsWithRestaurant_idOnly = await prisma.restaurant_hours_exceptions.createManyAndReturn({
+     *   select: { restaurant_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends restaurant_hours_exceptionsCreateManyAndReturnArgs>(args?: SelectSubset<T, restaurant_hours_exceptionsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Restaurant_hours_exceptions.
+     * @param {restaurant_hours_exceptionsDeleteArgs} args - Arguments to delete one Restaurant_hours_exceptions.
+     * @example
+     * // Delete one Restaurant_hours_exceptions
+     * const Restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.delete({
+     *   where: {
+     *     // ... filter to delete one Restaurant_hours_exceptions
+     *   }
+     * })
+     * 
+     */
+    delete<T extends restaurant_hours_exceptionsDeleteArgs>(args: SelectSubset<T, restaurant_hours_exceptionsDeleteArgs<ExtArgs>>): Prisma__restaurant_hours_exceptionsClient<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Restaurant_hours_exceptions.
+     * @param {restaurant_hours_exceptionsUpdateArgs} args - Arguments to update one Restaurant_hours_exceptions.
+     * @example
+     * // Update one Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends restaurant_hours_exceptionsUpdateArgs>(args: SelectSubset<T, restaurant_hours_exceptionsUpdateArgs<ExtArgs>>): Prisma__restaurant_hours_exceptionsClient<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Restaurant_hours_exceptions.
+     * @param {restaurant_hours_exceptionsDeleteManyArgs} args - Arguments to filter Restaurant_hours_exceptions to delete.
+     * @example
+     * // Delete a few Restaurant_hours_exceptions
+     * const { count } = await prisma.restaurant_hours_exceptions.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends restaurant_hours_exceptionsDeleteManyArgs>(args?: SelectSubset<T, restaurant_hours_exceptionsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Restaurant_hours_exceptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_hours_exceptionsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends restaurant_hours_exceptionsUpdateManyArgs>(args: SelectSubset<T, restaurant_hours_exceptionsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Restaurant_hours_exceptions and returns the data updated in the database.
+     * @param {restaurant_hours_exceptionsUpdateManyAndReturnArgs} args - Arguments to update many Restaurant_hours_exceptions.
+     * @example
+     * // Update many Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Restaurant_hours_exceptions and only return the `restaurant_id`
+     * const restaurant_hours_exceptionsWithRestaurant_idOnly = await prisma.restaurant_hours_exceptions.updateManyAndReturn({
+     *   select: { restaurant_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends restaurant_hours_exceptionsUpdateManyAndReturnArgs>(args: SelectSubset<T, restaurant_hours_exceptionsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Restaurant_hours_exceptions.
+     * @param {restaurant_hours_exceptionsUpsertArgs} args - Arguments to update or create a Restaurant_hours_exceptions.
+     * @example
+     * // Update or create a Restaurant_hours_exceptions
+     * const restaurant_hours_exceptions = await prisma.restaurant_hours_exceptions.upsert({
+     *   create: {
+     *     // ... data to create a Restaurant_hours_exceptions
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Restaurant_hours_exceptions we want to update
+     *   }
+     * })
+     */
+    upsert<T extends restaurant_hours_exceptionsUpsertArgs>(args: SelectSubset<T, restaurant_hours_exceptionsUpsertArgs<ExtArgs>>): Prisma__restaurant_hours_exceptionsClient<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Restaurant_hours_exceptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_hours_exceptionsCountArgs} args - Arguments to filter Restaurant_hours_exceptions to count.
+     * @example
+     * // Count the number of Restaurant_hours_exceptions
+     * const count = await prisma.restaurant_hours_exceptions.count({
+     *   where: {
+     *     // ... the filter for the Restaurant_hours_exceptions we want to count
+     *   }
+     * })
+    **/
+    count<T extends restaurant_hours_exceptionsCountArgs>(
+      args?: Subset<T, restaurant_hours_exceptionsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Restaurant_hours_exceptionsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Restaurant_hours_exceptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Restaurant_hours_exceptionsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Restaurant_hours_exceptionsAggregateArgs>(args: Subset<T, Restaurant_hours_exceptionsAggregateArgs>): Prisma.PrismaPromise<GetRestaurant_hours_exceptionsAggregateType<T>>
+
+    /**
+     * Group by Restaurant_hours_exceptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_hours_exceptionsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends restaurant_hours_exceptionsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: restaurant_hours_exceptionsGroupByArgs['orderBy'] }
+        : { orderBy?: restaurant_hours_exceptionsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, restaurant_hours_exceptionsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRestaurant_hours_exceptionsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the restaurant_hours_exceptions model
+   */
+  readonly fields: restaurant_hours_exceptionsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for restaurant_hours_exceptions.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__restaurant_hours_exceptionsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    restaurants<T extends restaurantsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, restaurantsDefaultArgs<ExtArgs>>): Prisma__restaurantsClient<$Result.GetResult<Prisma.$restaurantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the restaurant_hours_exceptions model
+   */
+  interface restaurant_hours_exceptionsFieldRefs {
+    readonly restaurant_id: FieldRef<"restaurant_hours_exceptions", 'String'>
+    readonly source: FieldRef<"restaurant_hours_exceptions", 'String'>
+    readonly exception_date: FieldRef<"restaurant_hours_exceptions", 'DateTime'>
+    readonly is_closed: FieldRef<"restaurant_hours_exceptions", 'Boolean'>
+    readonly opens_at: FieldRef<"restaurant_hours_exceptions", 'DateTime'>
+    readonly closes_at: FieldRef<"restaurant_hours_exceptions", 'DateTime'>
+    readonly fetched_at: FieldRef<"restaurant_hours_exceptions", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * restaurant_hours_exceptions findUnique
+   */
+  export type restaurant_hours_exceptionsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_hours_exceptions to fetch.
+     */
+    where: restaurant_hours_exceptionsWhereUniqueInput
+  }
+
+  /**
+   * restaurant_hours_exceptions findUniqueOrThrow
+   */
+  export type restaurant_hours_exceptionsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_hours_exceptions to fetch.
+     */
+    where: restaurant_hours_exceptionsWhereUniqueInput
+  }
+
+  /**
+   * restaurant_hours_exceptions findFirst
+   */
+  export type restaurant_hours_exceptionsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_hours_exceptions to fetch.
+     */
+    where?: restaurant_hours_exceptionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of restaurant_hours_exceptions to fetch.
+     */
+    orderBy?: restaurant_hours_exceptionsOrderByWithRelationInput | restaurant_hours_exceptionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for restaurant_hours_exceptions.
+     */
+    cursor?: restaurant_hours_exceptionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` restaurant_hours_exceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` restaurant_hours_exceptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of restaurant_hours_exceptions.
+     */
+    distinct?: Restaurant_hours_exceptionsScalarFieldEnum | Restaurant_hours_exceptionsScalarFieldEnum[]
+  }
+
+  /**
+   * restaurant_hours_exceptions findFirstOrThrow
+   */
+  export type restaurant_hours_exceptionsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_hours_exceptions to fetch.
+     */
+    where?: restaurant_hours_exceptionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of restaurant_hours_exceptions to fetch.
+     */
+    orderBy?: restaurant_hours_exceptionsOrderByWithRelationInput | restaurant_hours_exceptionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for restaurant_hours_exceptions.
+     */
+    cursor?: restaurant_hours_exceptionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` restaurant_hours_exceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` restaurant_hours_exceptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of restaurant_hours_exceptions.
+     */
+    distinct?: Restaurant_hours_exceptionsScalarFieldEnum | Restaurant_hours_exceptionsScalarFieldEnum[]
+  }
+
+  /**
+   * restaurant_hours_exceptions findMany
+   */
+  export type restaurant_hours_exceptionsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_hours_exceptions to fetch.
+     */
+    where?: restaurant_hours_exceptionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of restaurant_hours_exceptions to fetch.
+     */
+    orderBy?: restaurant_hours_exceptionsOrderByWithRelationInput | restaurant_hours_exceptionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing restaurant_hours_exceptions.
+     */
+    cursor?: restaurant_hours_exceptionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` restaurant_hours_exceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` restaurant_hours_exceptions.
+     */
+    skip?: number
+    distinct?: Restaurant_hours_exceptionsScalarFieldEnum | Restaurant_hours_exceptionsScalarFieldEnum[]
+  }
+
+  /**
+   * restaurant_hours_exceptions create
+   */
+  export type restaurant_hours_exceptionsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a restaurant_hours_exceptions.
+     */
+    data: XOR<restaurant_hours_exceptionsCreateInput, restaurant_hours_exceptionsUncheckedCreateInput>
+  }
+
+  /**
+   * restaurant_hours_exceptions createMany
+   */
+  export type restaurant_hours_exceptionsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many restaurant_hours_exceptions.
+     */
+    data: restaurant_hours_exceptionsCreateManyInput | restaurant_hours_exceptionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * restaurant_hours_exceptions createManyAndReturn
+   */
+  export type restaurant_hours_exceptionsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * The data used to create many restaurant_hours_exceptions.
+     */
+    data: restaurant_hours_exceptionsCreateManyInput | restaurant_hours_exceptionsCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * restaurant_hours_exceptions update
+   */
+  export type restaurant_hours_exceptionsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a restaurant_hours_exceptions.
+     */
+    data: XOR<restaurant_hours_exceptionsUpdateInput, restaurant_hours_exceptionsUncheckedUpdateInput>
+    /**
+     * Choose, which restaurant_hours_exceptions to update.
+     */
+    where: restaurant_hours_exceptionsWhereUniqueInput
+  }
+
+  /**
+   * restaurant_hours_exceptions updateMany
+   */
+  export type restaurant_hours_exceptionsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update restaurant_hours_exceptions.
+     */
+    data: XOR<restaurant_hours_exceptionsUpdateManyMutationInput, restaurant_hours_exceptionsUncheckedUpdateManyInput>
+    /**
+     * Filter which restaurant_hours_exceptions to update
+     */
+    where?: restaurant_hours_exceptionsWhereInput
+    /**
+     * Limit how many restaurant_hours_exceptions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * restaurant_hours_exceptions updateManyAndReturn
+   */
+  export type restaurant_hours_exceptionsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * The data used to update restaurant_hours_exceptions.
+     */
+    data: XOR<restaurant_hours_exceptionsUpdateManyMutationInput, restaurant_hours_exceptionsUncheckedUpdateManyInput>
+    /**
+     * Filter which restaurant_hours_exceptions to update
+     */
+    where?: restaurant_hours_exceptionsWhereInput
+    /**
+     * Limit how many restaurant_hours_exceptions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * restaurant_hours_exceptions upsert
+   */
+  export type restaurant_hours_exceptionsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the restaurant_hours_exceptions to update in case it exists.
+     */
+    where: restaurant_hours_exceptionsWhereUniqueInput
+    /**
+     * In case the restaurant_hours_exceptions found by the `where` argument doesn't exist, create a new restaurant_hours_exceptions with this data.
+     */
+    create: XOR<restaurant_hours_exceptionsCreateInput, restaurant_hours_exceptionsUncheckedCreateInput>
+    /**
+     * In case the restaurant_hours_exceptions was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<restaurant_hours_exceptionsUpdateInput, restaurant_hours_exceptionsUncheckedUpdateInput>
+  }
+
+  /**
+   * restaurant_hours_exceptions delete
+   */
+  export type restaurant_hours_exceptionsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    /**
+     * Filter which restaurant_hours_exceptions to delete.
+     */
+    where: restaurant_hours_exceptionsWhereUniqueInput
+  }
+
+  /**
+   * restaurant_hours_exceptions deleteMany
+   */
+  export type restaurant_hours_exceptionsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which restaurant_hours_exceptions to delete
+     */
+    where?: restaurant_hours_exceptionsWhereInput
+    /**
+     * Limit how many restaurant_hours_exceptions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * restaurant_hours_exceptions without action
+   */
+  export type restaurant_hours_exceptionsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model restaurant_links
    */
 
@@ -41157,6 +42445,1137 @@ export namespace Prisma {
 
 
   /**
+   * Model restaurant_opening_hours
+   */
+
+  export type AggregateRestaurant_opening_hours = {
+    _count: Restaurant_opening_hoursCountAggregateOutputType | null
+    _avg: Restaurant_opening_hoursAvgAggregateOutputType | null
+    _sum: Restaurant_opening_hoursSumAggregateOutputType | null
+    _min: Restaurant_opening_hoursMinAggregateOutputType | null
+    _max: Restaurant_opening_hoursMaxAggregateOutputType | null
+  }
+
+  export type Restaurant_opening_hoursAvgAggregateOutputType = {
+    day_of_week: number | null
+  }
+
+  export type Restaurant_opening_hoursSumAggregateOutputType = {
+    day_of_week: number | null
+  }
+
+  export type Restaurant_opening_hoursMinAggregateOutputType = {
+    restaurant_id: string | null
+    source: string | null
+    day_of_week: number | null
+    opens_at: Date | null
+    closes_at: Date | null
+    crosses_midnight: boolean | null
+    fetched_at: Date | null
+    source_url: string | null
+  }
+
+  export type Restaurant_opening_hoursMaxAggregateOutputType = {
+    restaurant_id: string | null
+    source: string | null
+    day_of_week: number | null
+    opens_at: Date | null
+    closes_at: Date | null
+    crosses_midnight: boolean | null
+    fetched_at: Date | null
+    source_url: string | null
+  }
+
+  export type Restaurant_opening_hoursCountAggregateOutputType = {
+    restaurant_id: number
+    source: number
+    day_of_week: number
+    opens_at: number
+    closes_at: number
+    crosses_midnight: number
+    fetched_at: number
+    source_url: number
+    _all: number
+  }
+
+
+  export type Restaurant_opening_hoursAvgAggregateInputType = {
+    day_of_week?: true
+  }
+
+  export type Restaurant_opening_hoursSumAggregateInputType = {
+    day_of_week?: true
+  }
+
+  export type Restaurant_opening_hoursMinAggregateInputType = {
+    restaurant_id?: true
+    source?: true
+    day_of_week?: true
+    opens_at?: true
+    closes_at?: true
+    crosses_midnight?: true
+    fetched_at?: true
+    source_url?: true
+  }
+
+  export type Restaurant_opening_hoursMaxAggregateInputType = {
+    restaurant_id?: true
+    source?: true
+    day_of_week?: true
+    opens_at?: true
+    closes_at?: true
+    crosses_midnight?: true
+    fetched_at?: true
+    source_url?: true
+  }
+
+  export type Restaurant_opening_hoursCountAggregateInputType = {
+    restaurant_id?: true
+    source?: true
+    day_of_week?: true
+    opens_at?: true
+    closes_at?: true
+    crosses_midnight?: true
+    fetched_at?: true
+    source_url?: true
+    _all?: true
+  }
+
+  export type Restaurant_opening_hoursAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which restaurant_opening_hours to aggregate.
+     */
+    where?: restaurant_opening_hoursWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of restaurant_opening_hours to fetch.
+     */
+    orderBy?: restaurant_opening_hoursOrderByWithRelationInput | restaurant_opening_hoursOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: restaurant_opening_hoursWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` restaurant_opening_hours from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` restaurant_opening_hours.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned restaurant_opening_hours
+    **/
+    _count?: true | Restaurant_opening_hoursCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Restaurant_opening_hoursAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Restaurant_opening_hoursSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Restaurant_opening_hoursMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Restaurant_opening_hoursMaxAggregateInputType
+  }
+
+  export type GetRestaurant_opening_hoursAggregateType<T extends Restaurant_opening_hoursAggregateArgs> = {
+        [P in keyof T & keyof AggregateRestaurant_opening_hours]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRestaurant_opening_hours[P]>
+      : GetScalarType<T[P], AggregateRestaurant_opening_hours[P]>
+  }
+
+
+
+
+  export type restaurant_opening_hoursGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: restaurant_opening_hoursWhereInput
+    orderBy?: restaurant_opening_hoursOrderByWithAggregationInput | restaurant_opening_hoursOrderByWithAggregationInput[]
+    by: Restaurant_opening_hoursScalarFieldEnum[] | Restaurant_opening_hoursScalarFieldEnum
+    having?: restaurant_opening_hoursScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Restaurant_opening_hoursCountAggregateInputType | true
+    _avg?: Restaurant_opening_hoursAvgAggregateInputType
+    _sum?: Restaurant_opening_hoursSumAggregateInputType
+    _min?: Restaurant_opening_hoursMinAggregateInputType
+    _max?: Restaurant_opening_hoursMaxAggregateInputType
+  }
+
+  export type Restaurant_opening_hoursGroupByOutputType = {
+    restaurant_id: string
+    source: string
+    day_of_week: number
+    opens_at: Date
+    closes_at: Date
+    crosses_midnight: boolean
+    fetched_at: Date
+    source_url: string | null
+    _count: Restaurant_opening_hoursCountAggregateOutputType | null
+    _avg: Restaurant_opening_hoursAvgAggregateOutputType | null
+    _sum: Restaurant_opening_hoursSumAggregateOutputType | null
+    _min: Restaurant_opening_hoursMinAggregateOutputType | null
+    _max: Restaurant_opening_hoursMaxAggregateOutputType | null
+  }
+
+  type GetRestaurant_opening_hoursGroupByPayload<T extends restaurant_opening_hoursGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Restaurant_opening_hoursGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Restaurant_opening_hoursGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Restaurant_opening_hoursGroupByOutputType[P]>
+            : GetScalarType<T[P], Restaurant_opening_hoursGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type restaurant_opening_hoursSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    restaurant_id?: boolean
+    source?: boolean
+    day_of_week?: boolean
+    opens_at?: boolean
+    closes_at?: boolean
+    crosses_midnight?: boolean
+    fetched_at?: boolean
+    source_url?: boolean
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["restaurant_opening_hours"]>
+
+  export type restaurant_opening_hoursSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    restaurant_id?: boolean
+    source?: boolean
+    day_of_week?: boolean
+    opens_at?: boolean
+    closes_at?: boolean
+    crosses_midnight?: boolean
+    fetched_at?: boolean
+    source_url?: boolean
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["restaurant_opening_hours"]>
+
+  export type restaurant_opening_hoursSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    restaurant_id?: boolean
+    source?: boolean
+    day_of_week?: boolean
+    opens_at?: boolean
+    closes_at?: boolean
+    crosses_midnight?: boolean
+    fetched_at?: boolean
+    source_url?: boolean
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["restaurant_opening_hours"]>
+
+  export type restaurant_opening_hoursSelectScalar = {
+    restaurant_id?: boolean
+    source?: boolean
+    day_of_week?: boolean
+    opens_at?: boolean
+    closes_at?: boolean
+    crosses_midnight?: boolean
+    fetched_at?: boolean
+    source_url?: boolean
+  }
+
+  export type restaurant_opening_hoursOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"restaurant_id" | "source" | "day_of_week" | "opens_at" | "closes_at" | "crosses_midnight" | "fetched_at" | "source_url", ExtArgs["result"]["restaurant_opening_hours"]>
+  export type restaurant_opening_hoursInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }
+  export type restaurant_opening_hoursIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }
+  export type restaurant_opening_hoursIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
+  }
+
+  export type $restaurant_opening_hoursPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "restaurant_opening_hours"
+    objects: {
+      restaurants: Prisma.$restaurantsPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      restaurant_id: string
+      source: string
+      day_of_week: number
+      opens_at: Date
+      closes_at: Date
+      crosses_midnight: boolean
+      fetched_at: Date
+      source_url: string | null
+    }, ExtArgs["result"]["restaurant_opening_hours"]>
+    composites: {}
+  }
+
+  type restaurant_opening_hoursGetPayload<S extends boolean | null | undefined | restaurant_opening_hoursDefaultArgs> = $Result.GetResult<Prisma.$restaurant_opening_hoursPayload, S>
+
+  type restaurant_opening_hoursCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<restaurant_opening_hoursFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Restaurant_opening_hoursCountAggregateInputType | true
+    }
+
+  export interface restaurant_opening_hoursDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['restaurant_opening_hours'], meta: { name: 'restaurant_opening_hours' } }
+    /**
+     * Find zero or one Restaurant_opening_hours that matches the filter.
+     * @param {restaurant_opening_hoursFindUniqueArgs} args - Arguments to find a Restaurant_opening_hours
+     * @example
+     * // Get one Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends restaurant_opening_hoursFindUniqueArgs>(args: SelectSubset<T, restaurant_opening_hoursFindUniqueArgs<ExtArgs>>): Prisma__restaurant_opening_hoursClient<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Restaurant_opening_hours that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {restaurant_opening_hoursFindUniqueOrThrowArgs} args - Arguments to find a Restaurant_opening_hours
+     * @example
+     * // Get one Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends restaurant_opening_hoursFindUniqueOrThrowArgs>(args: SelectSubset<T, restaurant_opening_hoursFindUniqueOrThrowArgs<ExtArgs>>): Prisma__restaurant_opening_hoursClient<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Restaurant_opening_hours that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_opening_hoursFindFirstArgs} args - Arguments to find a Restaurant_opening_hours
+     * @example
+     * // Get one Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends restaurant_opening_hoursFindFirstArgs>(args?: SelectSubset<T, restaurant_opening_hoursFindFirstArgs<ExtArgs>>): Prisma__restaurant_opening_hoursClient<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Restaurant_opening_hours that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_opening_hoursFindFirstOrThrowArgs} args - Arguments to find a Restaurant_opening_hours
+     * @example
+     * // Get one Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends restaurant_opening_hoursFindFirstOrThrowArgs>(args?: SelectSubset<T, restaurant_opening_hoursFindFirstOrThrowArgs<ExtArgs>>): Prisma__restaurant_opening_hoursClient<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Restaurant_opening_hours that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_opening_hoursFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.findMany()
+     * 
+     * // Get first 10 Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.findMany({ take: 10 })
+     * 
+     * // Only select the `restaurant_id`
+     * const restaurant_opening_hoursWithRestaurant_idOnly = await prisma.restaurant_opening_hours.findMany({ select: { restaurant_id: true } })
+     * 
+     */
+    findMany<T extends restaurant_opening_hoursFindManyArgs>(args?: SelectSubset<T, restaurant_opening_hoursFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Restaurant_opening_hours.
+     * @param {restaurant_opening_hoursCreateArgs} args - Arguments to create a Restaurant_opening_hours.
+     * @example
+     * // Create one Restaurant_opening_hours
+     * const Restaurant_opening_hours = await prisma.restaurant_opening_hours.create({
+     *   data: {
+     *     // ... data to create a Restaurant_opening_hours
+     *   }
+     * })
+     * 
+     */
+    create<T extends restaurant_opening_hoursCreateArgs>(args: SelectSubset<T, restaurant_opening_hoursCreateArgs<ExtArgs>>): Prisma__restaurant_opening_hoursClient<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Restaurant_opening_hours.
+     * @param {restaurant_opening_hoursCreateManyArgs} args - Arguments to create many Restaurant_opening_hours.
+     * @example
+     * // Create many Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends restaurant_opening_hoursCreateManyArgs>(args?: SelectSubset<T, restaurant_opening_hoursCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Restaurant_opening_hours and returns the data saved in the database.
+     * @param {restaurant_opening_hoursCreateManyAndReturnArgs} args - Arguments to create many Restaurant_opening_hours.
+     * @example
+     * // Create many Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Restaurant_opening_hours and only return the `restaurant_id`
+     * const restaurant_opening_hoursWithRestaurant_idOnly = await prisma.restaurant_opening_hours.createManyAndReturn({
+     *   select: { restaurant_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends restaurant_opening_hoursCreateManyAndReturnArgs>(args?: SelectSubset<T, restaurant_opening_hoursCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Restaurant_opening_hours.
+     * @param {restaurant_opening_hoursDeleteArgs} args - Arguments to delete one Restaurant_opening_hours.
+     * @example
+     * // Delete one Restaurant_opening_hours
+     * const Restaurant_opening_hours = await prisma.restaurant_opening_hours.delete({
+     *   where: {
+     *     // ... filter to delete one Restaurant_opening_hours
+     *   }
+     * })
+     * 
+     */
+    delete<T extends restaurant_opening_hoursDeleteArgs>(args: SelectSubset<T, restaurant_opening_hoursDeleteArgs<ExtArgs>>): Prisma__restaurant_opening_hoursClient<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Restaurant_opening_hours.
+     * @param {restaurant_opening_hoursUpdateArgs} args - Arguments to update one Restaurant_opening_hours.
+     * @example
+     * // Update one Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends restaurant_opening_hoursUpdateArgs>(args: SelectSubset<T, restaurant_opening_hoursUpdateArgs<ExtArgs>>): Prisma__restaurant_opening_hoursClient<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Restaurant_opening_hours.
+     * @param {restaurant_opening_hoursDeleteManyArgs} args - Arguments to filter Restaurant_opening_hours to delete.
+     * @example
+     * // Delete a few Restaurant_opening_hours
+     * const { count } = await prisma.restaurant_opening_hours.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends restaurant_opening_hoursDeleteManyArgs>(args?: SelectSubset<T, restaurant_opening_hoursDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Restaurant_opening_hours.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_opening_hoursUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends restaurant_opening_hoursUpdateManyArgs>(args: SelectSubset<T, restaurant_opening_hoursUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Restaurant_opening_hours and returns the data updated in the database.
+     * @param {restaurant_opening_hoursUpdateManyAndReturnArgs} args - Arguments to update many Restaurant_opening_hours.
+     * @example
+     * // Update many Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Restaurant_opening_hours and only return the `restaurant_id`
+     * const restaurant_opening_hoursWithRestaurant_idOnly = await prisma.restaurant_opening_hours.updateManyAndReturn({
+     *   select: { restaurant_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends restaurant_opening_hoursUpdateManyAndReturnArgs>(args: SelectSubset<T, restaurant_opening_hoursUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Restaurant_opening_hours.
+     * @param {restaurant_opening_hoursUpsertArgs} args - Arguments to update or create a Restaurant_opening_hours.
+     * @example
+     * // Update or create a Restaurant_opening_hours
+     * const restaurant_opening_hours = await prisma.restaurant_opening_hours.upsert({
+     *   create: {
+     *     // ... data to create a Restaurant_opening_hours
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Restaurant_opening_hours we want to update
+     *   }
+     * })
+     */
+    upsert<T extends restaurant_opening_hoursUpsertArgs>(args: SelectSubset<T, restaurant_opening_hoursUpsertArgs<ExtArgs>>): Prisma__restaurant_opening_hoursClient<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Restaurant_opening_hours.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_opening_hoursCountArgs} args - Arguments to filter Restaurant_opening_hours to count.
+     * @example
+     * // Count the number of Restaurant_opening_hours
+     * const count = await prisma.restaurant_opening_hours.count({
+     *   where: {
+     *     // ... the filter for the Restaurant_opening_hours we want to count
+     *   }
+     * })
+    **/
+    count<T extends restaurant_opening_hoursCountArgs>(
+      args?: Subset<T, restaurant_opening_hoursCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Restaurant_opening_hoursCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Restaurant_opening_hours.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Restaurant_opening_hoursAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Restaurant_opening_hoursAggregateArgs>(args: Subset<T, Restaurant_opening_hoursAggregateArgs>): Prisma.PrismaPromise<GetRestaurant_opening_hoursAggregateType<T>>
+
+    /**
+     * Group by Restaurant_opening_hours.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {restaurant_opening_hoursGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends restaurant_opening_hoursGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: restaurant_opening_hoursGroupByArgs['orderBy'] }
+        : { orderBy?: restaurant_opening_hoursGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, restaurant_opening_hoursGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRestaurant_opening_hoursGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the restaurant_opening_hours model
+   */
+  readonly fields: restaurant_opening_hoursFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for restaurant_opening_hours.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__restaurant_opening_hoursClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    restaurants<T extends restaurantsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, restaurantsDefaultArgs<ExtArgs>>): Prisma__restaurantsClient<$Result.GetResult<Prisma.$restaurantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the restaurant_opening_hours model
+   */
+  interface restaurant_opening_hoursFieldRefs {
+    readonly restaurant_id: FieldRef<"restaurant_opening_hours", 'String'>
+    readonly source: FieldRef<"restaurant_opening_hours", 'String'>
+    readonly day_of_week: FieldRef<"restaurant_opening_hours", 'Int'>
+    readonly opens_at: FieldRef<"restaurant_opening_hours", 'DateTime'>
+    readonly closes_at: FieldRef<"restaurant_opening_hours", 'DateTime'>
+    readonly crosses_midnight: FieldRef<"restaurant_opening_hours", 'Boolean'>
+    readonly fetched_at: FieldRef<"restaurant_opening_hours", 'DateTime'>
+    readonly source_url: FieldRef<"restaurant_opening_hours", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * restaurant_opening_hours findUnique
+   */
+  export type restaurant_opening_hoursFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_opening_hours to fetch.
+     */
+    where: restaurant_opening_hoursWhereUniqueInput
+  }
+
+  /**
+   * restaurant_opening_hours findUniqueOrThrow
+   */
+  export type restaurant_opening_hoursFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_opening_hours to fetch.
+     */
+    where: restaurant_opening_hoursWhereUniqueInput
+  }
+
+  /**
+   * restaurant_opening_hours findFirst
+   */
+  export type restaurant_opening_hoursFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_opening_hours to fetch.
+     */
+    where?: restaurant_opening_hoursWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of restaurant_opening_hours to fetch.
+     */
+    orderBy?: restaurant_opening_hoursOrderByWithRelationInput | restaurant_opening_hoursOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for restaurant_opening_hours.
+     */
+    cursor?: restaurant_opening_hoursWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` restaurant_opening_hours from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` restaurant_opening_hours.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of restaurant_opening_hours.
+     */
+    distinct?: Restaurant_opening_hoursScalarFieldEnum | Restaurant_opening_hoursScalarFieldEnum[]
+  }
+
+  /**
+   * restaurant_opening_hours findFirstOrThrow
+   */
+  export type restaurant_opening_hoursFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_opening_hours to fetch.
+     */
+    where?: restaurant_opening_hoursWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of restaurant_opening_hours to fetch.
+     */
+    orderBy?: restaurant_opening_hoursOrderByWithRelationInput | restaurant_opening_hoursOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for restaurant_opening_hours.
+     */
+    cursor?: restaurant_opening_hoursWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` restaurant_opening_hours from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` restaurant_opening_hours.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of restaurant_opening_hours.
+     */
+    distinct?: Restaurant_opening_hoursScalarFieldEnum | Restaurant_opening_hoursScalarFieldEnum[]
+  }
+
+  /**
+   * restaurant_opening_hours findMany
+   */
+  export type restaurant_opening_hoursFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    /**
+     * Filter, which restaurant_opening_hours to fetch.
+     */
+    where?: restaurant_opening_hoursWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of restaurant_opening_hours to fetch.
+     */
+    orderBy?: restaurant_opening_hoursOrderByWithRelationInput | restaurant_opening_hoursOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing restaurant_opening_hours.
+     */
+    cursor?: restaurant_opening_hoursWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` restaurant_opening_hours from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` restaurant_opening_hours.
+     */
+    skip?: number
+    distinct?: Restaurant_opening_hoursScalarFieldEnum | Restaurant_opening_hoursScalarFieldEnum[]
+  }
+
+  /**
+   * restaurant_opening_hours create
+   */
+  export type restaurant_opening_hoursCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    /**
+     * The data needed to create a restaurant_opening_hours.
+     */
+    data: XOR<restaurant_opening_hoursCreateInput, restaurant_opening_hoursUncheckedCreateInput>
+  }
+
+  /**
+   * restaurant_opening_hours createMany
+   */
+  export type restaurant_opening_hoursCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many restaurant_opening_hours.
+     */
+    data: restaurant_opening_hoursCreateManyInput | restaurant_opening_hoursCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * restaurant_opening_hours createManyAndReturn
+   */
+  export type restaurant_opening_hoursCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * The data used to create many restaurant_opening_hours.
+     */
+    data: restaurant_opening_hoursCreateManyInput | restaurant_opening_hoursCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * restaurant_opening_hours update
+   */
+  export type restaurant_opening_hoursUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    /**
+     * The data needed to update a restaurant_opening_hours.
+     */
+    data: XOR<restaurant_opening_hoursUpdateInput, restaurant_opening_hoursUncheckedUpdateInput>
+    /**
+     * Choose, which restaurant_opening_hours to update.
+     */
+    where: restaurant_opening_hoursWhereUniqueInput
+  }
+
+  /**
+   * restaurant_opening_hours updateMany
+   */
+  export type restaurant_opening_hoursUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update restaurant_opening_hours.
+     */
+    data: XOR<restaurant_opening_hoursUpdateManyMutationInput, restaurant_opening_hoursUncheckedUpdateManyInput>
+    /**
+     * Filter which restaurant_opening_hours to update
+     */
+    where?: restaurant_opening_hoursWhereInput
+    /**
+     * Limit how many restaurant_opening_hours to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * restaurant_opening_hours updateManyAndReturn
+   */
+  export type restaurant_opening_hoursUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * The data used to update restaurant_opening_hours.
+     */
+    data: XOR<restaurant_opening_hoursUpdateManyMutationInput, restaurant_opening_hoursUncheckedUpdateManyInput>
+    /**
+     * Filter which restaurant_opening_hours to update
+     */
+    where?: restaurant_opening_hoursWhereInput
+    /**
+     * Limit how many restaurant_opening_hours to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * restaurant_opening_hours upsert
+   */
+  export type restaurant_opening_hoursUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    /**
+     * The filter to search for the restaurant_opening_hours to update in case it exists.
+     */
+    where: restaurant_opening_hoursWhereUniqueInput
+    /**
+     * In case the restaurant_opening_hours found by the `where` argument doesn't exist, create a new restaurant_opening_hours with this data.
+     */
+    create: XOR<restaurant_opening_hoursCreateInput, restaurant_opening_hoursUncheckedCreateInput>
+    /**
+     * In case the restaurant_opening_hours was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<restaurant_opening_hoursUpdateInput, restaurant_opening_hoursUncheckedUpdateInput>
+  }
+
+  /**
+   * restaurant_opening_hours delete
+   */
+  export type restaurant_opening_hoursDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    /**
+     * Filter which restaurant_opening_hours to delete.
+     */
+    where: restaurant_opening_hoursWhereUniqueInput
+  }
+
+  /**
+   * restaurant_opening_hours deleteMany
+   */
+  export type restaurant_opening_hoursDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which restaurant_opening_hours to delete
+     */
+    where?: restaurant_opening_hoursWhereInput
+    /**
+     * Limit how many restaurant_opening_hours to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * restaurant_opening_hours without action
+   */
+  export type restaurant_opening_hoursDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model restaurants
    */
 
@@ -41452,7 +43871,9 @@ export namespace Prisma {
     country_code?: boolean
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
+    restaurant_hours_exceptions?: boolean | restaurants$restaurant_hours_exceptionsArgs<ExtArgs>
     restaurant_links?: boolean | restaurants$restaurant_linksArgs<ExtArgs>
+    restaurant_opening_hours?: boolean | restaurants$restaurant_opening_hoursArgs<ExtArgs>
     _count?: boolean | RestaurantsCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["restaurants"]>
 
@@ -41523,7 +43944,9 @@ export namespace Prisma {
   export type restaurantsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
+    restaurant_hours_exceptions?: boolean | restaurants$restaurant_hours_exceptionsArgs<ExtArgs>
     restaurant_links?: boolean | restaurants$restaurant_linksArgs<ExtArgs>
+    restaurant_opening_hours?: boolean | restaurants$restaurant_opening_hoursArgs<ExtArgs>
     _count?: boolean | RestaurantsCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type restaurantsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -41534,7 +43957,9 @@ export namespace Prisma {
     objects: {
       dishes: Prisma.$dishesPayload<ExtArgs>[]
       restaurant_bids: Prisma.$restaurant_bidsPayload<ExtArgs>[]
+      restaurant_hours_exceptions: Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>[]
       restaurant_links: Prisma.$restaurant_linksPayload<ExtArgs>[]
+      restaurant_opening_hours: Prisma.$restaurant_opening_hoursPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -41951,7 +44376,9 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     dishes<T extends restaurants$dishesArgs<ExtArgs> = {}>(args?: Subset<T, restaurants$dishesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     restaurant_bids<T extends restaurants$restaurant_bidsArgs<ExtArgs> = {}>(args?: Subset<T, restaurants$restaurant_bidsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_bidsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    restaurant_hours_exceptions<T extends restaurants$restaurant_hours_exceptionsArgs<ExtArgs> = {}>(args?: Subset<T, restaurants$restaurant_hours_exceptionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_hours_exceptionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     restaurant_links<T extends restaurants$restaurant_linksArgs<ExtArgs> = {}>(args?: Subset<T, restaurants$restaurant_linksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_linksPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    restaurant_opening_hours<T extends restaurants$restaurant_opening_hoursArgs<ExtArgs> = {}>(args?: Subset<T, restaurants$restaurant_opening_hoursArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_opening_hoursPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -42435,6 +44862,30 @@ export namespace Prisma {
   }
 
   /**
+   * restaurants.restaurant_hours_exceptions
+   */
+  export type restaurants$restaurant_hours_exceptionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_hours_exceptions
+     */
+    select?: restaurant_hours_exceptionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_hours_exceptions
+     */
+    omit?: restaurant_hours_exceptionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_hours_exceptionsInclude<ExtArgs> | null
+    where?: restaurant_hours_exceptionsWhereInput
+    orderBy?: restaurant_hours_exceptionsOrderByWithRelationInput | restaurant_hours_exceptionsOrderByWithRelationInput[]
+    cursor?: restaurant_hours_exceptionsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Restaurant_hours_exceptionsScalarFieldEnum | Restaurant_hours_exceptionsScalarFieldEnum[]
+  }
+
+  /**
    * restaurants.restaurant_links
    */
   export type restaurants$restaurant_linksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -42456,6 +44907,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: Restaurant_linksScalarFieldEnum | Restaurant_linksScalarFieldEnum[]
+  }
+
+  /**
+   * restaurants.restaurant_opening_hours
+   */
+  export type restaurants$restaurant_opening_hoursArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the restaurant_opening_hours
+     */
+    select?: restaurant_opening_hoursSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the restaurant_opening_hours
+     */
+    omit?: restaurant_opening_hoursOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: restaurant_opening_hoursInclude<ExtArgs> | null
+    where?: restaurant_opening_hoursWhereInput
+    orderBy?: restaurant_opening_hoursOrderByWithRelationInput | restaurant_opening_hoursOrderByWithRelationInput[]
+    cursor?: restaurant_opening_hoursWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Restaurant_opening_hoursScalarFieldEnum | Restaurant_opening_hoursScalarFieldEnum[]
   }
 
   /**
@@ -51401,6 +53876,19 @@ export namespace Prisma {
   export type Restaurant_bidsScalarFieldEnum = (typeof Restaurant_bidsScalarFieldEnum)[keyof typeof Restaurant_bidsScalarFieldEnum]
 
 
+  export const Restaurant_hours_exceptionsScalarFieldEnum: {
+    restaurant_id: 'restaurant_id',
+    source: 'source',
+    exception_date: 'exception_date',
+    is_closed: 'is_closed',
+    opens_at: 'opens_at',
+    closes_at: 'closes_at',
+    fetched_at: 'fetched_at'
+  };
+
+  export type Restaurant_hours_exceptionsScalarFieldEnum = (typeof Restaurant_hours_exceptionsScalarFieldEnum)[keyof typeof Restaurant_hours_exceptionsScalarFieldEnum]
+
+
   export const Restaurant_linksScalarFieldEnum: {
     restaurant_id: 'restaurant_id',
     kind: 'kind',
@@ -51411,6 +53899,20 @@ export namespace Prisma {
   };
 
   export type Restaurant_linksScalarFieldEnum = (typeof Restaurant_linksScalarFieldEnum)[keyof typeof Restaurant_linksScalarFieldEnum]
+
+
+  export const Restaurant_opening_hoursScalarFieldEnum: {
+    restaurant_id: 'restaurant_id',
+    source: 'source',
+    day_of_week: 'day_of_week',
+    opens_at: 'opens_at',
+    closes_at: 'closes_at',
+    crosses_midnight: 'crosses_midnight',
+    fetched_at: 'fetched_at',
+    source_url: 'source_url'
+  };
+
+  export type Restaurant_opening_hoursScalarFieldEnum = (typeof Restaurant_opening_hoursScalarFieldEnum)[keyof typeof Restaurant_opening_hoursScalarFieldEnum]
 
 
   export const RestaurantsScalarFieldEnum: {
@@ -54130,6 +56632,72 @@ export namespace Prisma {
     lock_no?: IntWithAggregatesFilter<"restaurant_bids"> | number
   }
 
+  export type restaurant_hours_exceptionsWhereInput = {
+    AND?: restaurant_hours_exceptionsWhereInput | restaurant_hours_exceptionsWhereInput[]
+    OR?: restaurant_hours_exceptionsWhereInput[]
+    NOT?: restaurant_hours_exceptionsWhereInput | restaurant_hours_exceptionsWhereInput[]
+    restaurant_id?: UuidFilter<"restaurant_hours_exceptions"> | string
+    source?: StringFilter<"restaurant_hours_exceptions"> | string
+    exception_date?: DateTimeFilter<"restaurant_hours_exceptions"> | Date | string
+    is_closed?: BoolFilter<"restaurant_hours_exceptions"> | boolean
+    opens_at?: DateTimeNullableFilter<"restaurant_hours_exceptions"> | Date | string | null
+    closes_at?: DateTimeNullableFilter<"restaurant_hours_exceptions"> | Date | string | null
+    fetched_at?: DateTimeFilter<"restaurant_hours_exceptions"> | Date | string
+    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
+  }
+
+  export type restaurant_hours_exceptionsOrderByWithRelationInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    exception_date?: SortOrder
+    is_closed?: SortOrder
+    opens_at?: SortOrderInput | SortOrder
+    closes_at?: SortOrderInput | SortOrder
+    fetched_at?: SortOrder
+    restaurants?: restaurantsOrderByWithRelationInput
+  }
+
+  export type restaurant_hours_exceptionsWhereUniqueInput = Prisma.AtLeast<{
+    restaurant_id_source_exception_date?: restaurant_hours_exceptionsRestaurant_idSourceException_dateCompoundUniqueInput
+    AND?: restaurant_hours_exceptionsWhereInput | restaurant_hours_exceptionsWhereInput[]
+    OR?: restaurant_hours_exceptionsWhereInput[]
+    NOT?: restaurant_hours_exceptionsWhereInput | restaurant_hours_exceptionsWhereInput[]
+    restaurant_id?: UuidFilter<"restaurant_hours_exceptions"> | string
+    source?: StringFilter<"restaurant_hours_exceptions"> | string
+    exception_date?: DateTimeFilter<"restaurant_hours_exceptions"> | Date | string
+    is_closed?: BoolFilter<"restaurant_hours_exceptions"> | boolean
+    opens_at?: DateTimeNullableFilter<"restaurant_hours_exceptions"> | Date | string | null
+    closes_at?: DateTimeNullableFilter<"restaurant_hours_exceptions"> | Date | string | null
+    fetched_at?: DateTimeFilter<"restaurant_hours_exceptions"> | Date | string
+    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
+  }, "restaurant_id_source_exception_date">
+
+  export type restaurant_hours_exceptionsOrderByWithAggregationInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    exception_date?: SortOrder
+    is_closed?: SortOrder
+    opens_at?: SortOrderInput | SortOrder
+    closes_at?: SortOrderInput | SortOrder
+    fetched_at?: SortOrder
+    _count?: restaurant_hours_exceptionsCountOrderByAggregateInput
+    _max?: restaurant_hours_exceptionsMaxOrderByAggregateInput
+    _min?: restaurant_hours_exceptionsMinOrderByAggregateInput
+  }
+
+  export type restaurant_hours_exceptionsScalarWhereWithAggregatesInput = {
+    AND?: restaurant_hours_exceptionsScalarWhereWithAggregatesInput | restaurant_hours_exceptionsScalarWhereWithAggregatesInput[]
+    OR?: restaurant_hours_exceptionsScalarWhereWithAggregatesInput[]
+    NOT?: restaurant_hours_exceptionsScalarWhereWithAggregatesInput | restaurant_hours_exceptionsScalarWhereWithAggregatesInput[]
+    restaurant_id?: UuidWithAggregatesFilter<"restaurant_hours_exceptions"> | string
+    source?: StringWithAggregatesFilter<"restaurant_hours_exceptions"> | string
+    exception_date?: DateTimeWithAggregatesFilter<"restaurant_hours_exceptions"> | Date | string
+    is_closed?: BoolWithAggregatesFilter<"restaurant_hours_exceptions"> | boolean
+    opens_at?: DateTimeNullableWithAggregatesFilter<"restaurant_hours_exceptions"> | Date | string | null
+    closes_at?: DateTimeNullableWithAggregatesFilter<"restaurant_hours_exceptions"> | Date | string | null
+    fetched_at?: DateTimeWithAggregatesFilter<"restaurant_hours_exceptions"> | Date | string
+  }
+
   export type restaurant_linksWhereInput = {
     AND?: restaurant_linksWhereInput | restaurant_linksWhereInput[]
     OR?: restaurant_linksWhereInput[]
@@ -54191,6 +56759,79 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"restaurant_links"> | Date | string
   }
 
+  export type restaurant_opening_hoursWhereInput = {
+    AND?: restaurant_opening_hoursWhereInput | restaurant_opening_hoursWhereInput[]
+    OR?: restaurant_opening_hoursWhereInput[]
+    NOT?: restaurant_opening_hoursWhereInput | restaurant_opening_hoursWhereInput[]
+    restaurant_id?: UuidFilter<"restaurant_opening_hours"> | string
+    source?: StringFilter<"restaurant_opening_hours"> | string
+    day_of_week?: IntFilter<"restaurant_opening_hours"> | number
+    opens_at?: DateTimeFilter<"restaurant_opening_hours"> | Date | string
+    closes_at?: DateTimeFilter<"restaurant_opening_hours"> | Date | string
+    crosses_midnight?: BoolFilter<"restaurant_opening_hours"> | boolean
+    fetched_at?: DateTimeFilter<"restaurant_opening_hours"> | Date | string
+    source_url?: StringNullableFilter<"restaurant_opening_hours"> | string | null
+    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
+  }
+
+  export type restaurant_opening_hoursOrderByWithRelationInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    day_of_week?: SortOrder
+    opens_at?: SortOrder
+    closes_at?: SortOrder
+    crosses_midnight?: SortOrder
+    fetched_at?: SortOrder
+    source_url?: SortOrderInput | SortOrder
+    restaurants?: restaurantsOrderByWithRelationInput
+  }
+
+  export type restaurant_opening_hoursWhereUniqueInput = Prisma.AtLeast<{
+    restaurant_id_source_day_of_week_opens_at?: restaurant_opening_hoursRestaurant_idSourceDay_of_weekOpens_atCompoundUniqueInput
+    AND?: restaurant_opening_hoursWhereInput | restaurant_opening_hoursWhereInput[]
+    OR?: restaurant_opening_hoursWhereInput[]
+    NOT?: restaurant_opening_hoursWhereInput | restaurant_opening_hoursWhereInput[]
+    restaurant_id?: UuidFilter<"restaurant_opening_hours"> | string
+    source?: StringFilter<"restaurant_opening_hours"> | string
+    day_of_week?: IntFilter<"restaurant_opening_hours"> | number
+    opens_at?: DateTimeFilter<"restaurant_opening_hours"> | Date | string
+    closes_at?: DateTimeFilter<"restaurant_opening_hours"> | Date | string
+    crosses_midnight?: BoolFilter<"restaurant_opening_hours"> | boolean
+    fetched_at?: DateTimeFilter<"restaurant_opening_hours"> | Date | string
+    source_url?: StringNullableFilter<"restaurant_opening_hours"> | string | null
+    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
+  }, "restaurant_id_source_day_of_week_opens_at">
+
+  export type restaurant_opening_hoursOrderByWithAggregationInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    day_of_week?: SortOrder
+    opens_at?: SortOrder
+    closes_at?: SortOrder
+    crosses_midnight?: SortOrder
+    fetched_at?: SortOrder
+    source_url?: SortOrderInput | SortOrder
+    _count?: restaurant_opening_hoursCountOrderByAggregateInput
+    _avg?: restaurant_opening_hoursAvgOrderByAggregateInput
+    _max?: restaurant_opening_hoursMaxOrderByAggregateInput
+    _min?: restaurant_opening_hoursMinOrderByAggregateInput
+    _sum?: restaurant_opening_hoursSumOrderByAggregateInput
+  }
+
+  export type restaurant_opening_hoursScalarWhereWithAggregatesInput = {
+    AND?: restaurant_opening_hoursScalarWhereWithAggregatesInput | restaurant_opening_hoursScalarWhereWithAggregatesInput[]
+    OR?: restaurant_opening_hoursScalarWhereWithAggregatesInput[]
+    NOT?: restaurant_opening_hoursScalarWhereWithAggregatesInput | restaurant_opening_hoursScalarWhereWithAggregatesInput[]
+    restaurant_id?: UuidWithAggregatesFilter<"restaurant_opening_hours"> | string
+    source?: StringWithAggregatesFilter<"restaurant_opening_hours"> | string
+    day_of_week?: IntWithAggregatesFilter<"restaurant_opening_hours"> | number
+    opens_at?: DateTimeWithAggregatesFilter<"restaurant_opening_hours"> | Date | string
+    closes_at?: DateTimeWithAggregatesFilter<"restaurant_opening_hours"> | Date | string
+    crosses_midnight?: BoolWithAggregatesFilter<"restaurant_opening_hours"> | boolean
+    fetched_at?: DateTimeWithAggregatesFilter<"restaurant_opening_hours"> | Date | string
+    source_url?: StringNullableWithAggregatesFilter<"restaurant_opening_hours"> | string | null
+  }
+
   export type restaurantsWhereInput = {
     AND?: restaurantsWhereInput | restaurantsWhereInput[]
     OR?: restaurantsWhereInput[]
@@ -54215,7 +56856,9 @@ export namespace Prisma {
     country_code?: StringNullableFilter<"restaurants"> | string | null
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
+    restaurant_hours_exceptions?: Restaurant_hours_exceptionsListRelationFilter
     restaurant_links?: Restaurant_linksListRelationFilter
+    restaurant_opening_hours?: Restaurant_opening_hoursListRelationFilter
   }
 
   export type restaurantsOrderByWithRelationInput = {
@@ -54239,7 +56882,9 @@ export namespace Prisma {
     country_code?: SortOrderInput | SortOrder
     dishes?: dishesOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsOrderByRelationAggregateInput
     restaurant_links?: restaurant_linksOrderByRelationAggregateInput
+    restaurant_opening_hours?: restaurant_opening_hoursOrderByRelationAggregateInput
   }
 
   export type restaurantsWhereUniqueInput = Prisma.AtLeast<{
@@ -54266,7 +56911,9 @@ export namespace Prisma {
     country_code?: StringNullableFilter<"restaurants"> | string | null
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
+    restaurant_hours_exceptions?: Restaurant_hours_exceptionsListRelationFilter
     restaurant_links?: Restaurant_linksListRelationFilter
+    restaurant_opening_hours?: Restaurant_opening_hoursListRelationFilter
   }, "id" | "google_place_id">
 
   export type restaurantsOrderByWithAggregationInput = {
@@ -57349,6 +59996,75 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
+  export type restaurant_hours_exceptionsCreateInput = {
+    source: string
+    exception_date: Date | string
+    is_closed: boolean
+    opens_at?: Date | string | null
+    closes_at?: Date | string | null
+    fetched_at: Date | string
+    restaurants: restaurantsCreateNestedOneWithoutRestaurant_hours_exceptionsInput
+  }
+
+  export type restaurant_hours_exceptionsUncheckedCreateInput = {
+    restaurant_id: string
+    source: string
+    exception_date: Date | string
+    is_closed: boolean
+    opens_at?: Date | string | null
+    closes_at?: Date | string | null
+    fetched_at: Date | string
+  }
+
+  export type restaurant_hours_exceptionsUpdateInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    exception_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    is_closed?: BoolFieldUpdateOperationsInput | boolean
+    opens_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closes_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    restaurants?: restaurantsUpdateOneRequiredWithoutRestaurant_hours_exceptionsNestedInput
+  }
+
+  export type restaurant_hours_exceptionsUncheckedUpdateInput = {
+    restaurant_id?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    exception_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    is_closed?: BoolFieldUpdateOperationsInput | boolean
+    opens_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closes_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type restaurant_hours_exceptionsCreateManyInput = {
+    restaurant_id: string
+    source: string
+    exception_date: Date | string
+    is_closed: boolean
+    opens_at?: Date | string | null
+    closes_at?: Date | string | null
+    fetched_at: Date | string
+  }
+
+  export type restaurant_hours_exceptionsUpdateManyMutationInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    exception_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    is_closed?: BoolFieldUpdateOperationsInput | boolean
+    opens_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closes_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type restaurant_hours_exceptionsUncheckedUpdateManyInput = {
+    restaurant_id?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    exception_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    is_closed?: BoolFieldUpdateOperationsInput | boolean
+    opens_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closes_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type restaurant_linksCreateInput = {
     kind: string
     value: string
@@ -57411,6 +60127,82 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type restaurant_opening_hoursCreateInput = {
+    source: string
+    day_of_week: number
+    opens_at: Date | string
+    closes_at: Date | string
+    crosses_midnight?: boolean
+    fetched_at: Date | string
+    source_url?: string | null
+    restaurants: restaurantsCreateNestedOneWithoutRestaurant_opening_hoursInput
+  }
+
+  export type restaurant_opening_hoursUncheckedCreateInput = {
+    restaurant_id: string
+    source: string
+    day_of_week: number
+    opens_at: Date | string
+    closes_at: Date | string
+    crosses_midnight?: boolean
+    fetched_at: Date | string
+    source_url?: string | null
+  }
+
+  export type restaurant_opening_hoursUpdateInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    day_of_week?: IntFieldUpdateOperationsInput | number
+    opens_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    closes_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    crosses_midnight?: BoolFieldUpdateOperationsInput | boolean
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    source_url?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurants?: restaurantsUpdateOneRequiredWithoutRestaurant_opening_hoursNestedInput
+  }
+
+  export type restaurant_opening_hoursUncheckedUpdateInput = {
+    restaurant_id?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    day_of_week?: IntFieldUpdateOperationsInput | number
+    opens_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    closes_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    crosses_midnight?: BoolFieldUpdateOperationsInput | boolean
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    source_url?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type restaurant_opening_hoursCreateManyInput = {
+    restaurant_id: string
+    source: string
+    day_of_week: number
+    opens_at: Date | string
+    closes_at: Date | string
+    crosses_midnight?: boolean
+    fetched_at: Date | string
+    source_url?: string | null
+  }
+
+  export type restaurant_opening_hoursUpdateManyMutationInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    day_of_week?: IntFieldUpdateOperationsInput | number
+    opens_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    closes_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    crosses_midnight?: BoolFieldUpdateOperationsInput | boolean
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    source_url?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type restaurant_opening_hoursUncheckedUpdateManyInput = {
+    restaurant_id?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    day_of_week?: IntFieldUpdateOperationsInput | number
+    opens_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    closes_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    crosses_midnight?: BoolFieldUpdateOperationsInput | boolean
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    source_url?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type restaurantsCreateInput = {
     id?: string
     google_place_id: string
@@ -57432,7 +60224,9 @@ export namespace Prisma {
     country_code?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUncheckedCreateInput = {
@@ -57456,7 +60250,9 @@ export namespace Prisma {
     country_code?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUpdateInput = {
@@ -57480,7 +60276,9 @@ export namespace Prisma {
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsUncheckedUpdateInput = {
@@ -57504,7 +60302,9 @@ export namespace Prisma {
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsCreateManyInput = {
@@ -60099,6 +62899,42 @@ export namespace Prisma {
     _max?: NestedEnumrestaurant_bid_statusFilter<$PrismaModel>
   }
 
+  export type restaurant_hours_exceptionsRestaurant_idSourceException_dateCompoundUniqueInput = {
+    restaurant_id: string
+    source: string
+    exception_date: Date | string
+  }
+
+  export type restaurant_hours_exceptionsCountOrderByAggregateInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    exception_date?: SortOrder
+    is_closed?: SortOrder
+    opens_at?: SortOrder
+    closes_at?: SortOrder
+    fetched_at?: SortOrder
+  }
+
+  export type restaurant_hours_exceptionsMaxOrderByAggregateInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    exception_date?: SortOrder
+    is_closed?: SortOrder
+    opens_at?: SortOrder
+    closes_at?: SortOrder
+    fetched_at?: SortOrder
+  }
+
+  export type restaurant_hours_exceptionsMinOrderByAggregateInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    exception_date?: SortOrder
+    is_closed?: SortOrder
+    opens_at?: SortOrder
+    closes_at?: SortOrder
+    fetched_at?: SortOrder
+  }
+
   export type restaurant_linksRestaurant_idKindValueCompoundUniqueInput = {
     restaurant_id: string
     kind: string
@@ -60132,10 +62968,64 @@ export namespace Prisma {
     created_at?: SortOrder
   }
 
+  export type restaurant_opening_hoursRestaurant_idSourceDay_of_weekOpens_atCompoundUniqueInput = {
+    restaurant_id: string
+    source: string
+    day_of_week: number
+    opens_at: Date | string
+  }
+
+  export type restaurant_opening_hoursCountOrderByAggregateInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    day_of_week?: SortOrder
+    opens_at?: SortOrder
+    closes_at?: SortOrder
+    crosses_midnight?: SortOrder
+    fetched_at?: SortOrder
+    source_url?: SortOrder
+  }
+
+  export type restaurant_opening_hoursAvgOrderByAggregateInput = {
+    day_of_week?: SortOrder
+  }
+
+  export type restaurant_opening_hoursMaxOrderByAggregateInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    day_of_week?: SortOrder
+    opens_at?: SortOrder
+    closes_at?: SortOrder
+    crosses_midnight?: SortOrder
+    fetched_at?: SortOrder
+    source_url?: SortOrder
+  }
+
+  export type restaurant_opening_hoursMinOrderByAggregateInput = {
+    restaurant_id?: SortOrder
+    source?: SortOrder
+    day_of_week?: SortOrder
+    opens_at?: SortOrder
+    closes_at?: SortOrder
+    crosses_midnight?: SortOrder
+    fetched_at?: SortOrder
+    source_url?: SortOrder
+  }
+
+  export type restaurant_opening_hoursSumOrderByAggregateInput = {
+    day_of_week?: SortOrder
+  }
+
   export type Restaurant_bidsListRelationFilter = {
     every?: restaurant_bidsWhereInput
     some?: restaurant_bidsWhereInput
     none?: restaurant_bidsWhereInput
+  }
+
+  export type Restaurant_hours_exceptionsListRelationFilter = {
+    every?: restaurant_hours_exceptionsWhereInput
+    some?: restaurant_hours_exceptionsWhereInput
+    none?: restaurant_hours_exceptionsWhereInput
   }
 
   export type Restaurant_linksListRelationFilter = {
@@ -60144,11 +63034,25 @@ export namespace Prisma {
     none?: restaurant_linksWhereInput
   }
 
+  export type Restaurant_opening_hoursListRelationFilter = {
+    every?: restaurant_opening_hoursWhereInput
+    some?: restaurant_opening_hoursWhereInput
+    none?: restaurant_opening_hoursWhereInput
+  }
+
   export type restaurant_bidsOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
+  export type restaurant_hours_exceptionsOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type restaurant_linksOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type restaurant_opening_hoursOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -61886,6 +64790,20 @@ export namespace Prisma {
     deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
   }
 
+  export type restaurantsCreateNestedOneWithoutRestaurant_hours_exceptionsInput = {
+    create?: XOR<restaurantsCreateWithoutRestaurant_hours_exceptionsInput, restaurantsUncheckedCreateWithoutRestaurant_hours_exceptionsInput>
+    connectOrCreate?: restaurantsCreateOrConnectWithoutRestaurant_hours_exceptionsInput
+    connect?: restaurantsWhereUniqueInput
+  }
+
+  export type restaurantsUpdateOneRequiredWithoutRestaurant_hours_exceptionsNestedInput = {
+    create?: XOR<restaurantsCreateWithoutRestaurant_hours_exceptionsInput, restaurantsUncheckedCreateWithoutRestaurant_hours_exceptionsInput>
+    connectOrCreate?: restaurantsCreateOrConnectWithoutRestaurant_hours_exceptionsInput
+    upsert?: restaurantsUpsertWithoutRestaurant_hours_exceptionsInput
+    connect?: restaurantsWhereUniqueInput
+    update?: XOR<XOR<restaurantsUpdateToOneWithWhereWithoutRestaurant_hours_exceptionsInput, restaurantsUpdateWithoutRestaurant_hours_exceptionsInput>, restaurantsUncheckedUpdateWithoutRestaurant_hours_exceptionsInput>
+  }
+
   export type restaurantsCreateNestedOneWithoutRestaurant_linksInput = {
     create?: XOR<restaurantsCreateWithoutRestaurant_linksInput, restaurantsUncheckedCreateWithoutRestaurant_linksInput>
     connectOrCreate?: restaurantsCreateOrConnectWithoutRestaurant_linksInput
@@ -61898,6 +64816,20 @@ export namespace Prisma {
     upsert?: restaurantsUpsertWithoutRestaurant_linksInput
     connect?: restaurantsWhereUniqueInput
     update?: XOR<XOR<restaurantsUpdateToOneWithWhereWithoutRestaurant_linksInput, restaurantsUpdateWithoutRestaurant_linksInput>, restaurantsUncheckedUpdateWithoutRestaurant_linksInput>
+  }
+
+  export type restaurantsCreateNestedOneWithoutRestaurant_opening_hoursInput = {
+    create?: XOR<restaurantsCreateWithoutRestaurant_opening_hoursInput, restaurantsUncheckedCreateWithoutRestaurant_opening_hoursInput>
+    connectOrCreate?: restaurantsCreateOrConnectWithoutRestaurant_opening_hoursInput
+    connect?: restaurantsWhereUniqueInput
+  }
+
+  export type restaurantsUpdateOneRequiredWithoutRestaurant_opening_hoursNestedInput = {
+    create?: XOR<restaurantsCreateWithoutRestaurant_opening_hoursInput, restaurantsUncheckedCreateWithoutRestaurant_opening_hoursInput>
+    connectOrCreate?: restaurantsCreateOrConnectWithoutRestaurant_opening_hoursInput
+    upsert?: restaurantsUpsertWithoutRestaurant_opening_hoursInput
+    connect?: restaurantsWhereUniqueInput
+    update?: XOR<XOR<restaurantsUpdateToOneWithWhereWithoutRestaurant_opening_hoursInput, restaurantsUpdateWithoutRestaurant_opening_hoursInput>, restaurantsUncheckedUpdateWithoutRestaurant_opening_hoursInput>
   }
 
   export type restaurantsCreatesource_namesInput = {
@@ -61918,11 +64850,25 @@ export namespace Prisma {
     connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
   }
 
+  export type restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput = {
+    create?: XOR<restaurant_hours_exceptionsCreateWithoutRestaurantsInput, restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput> | restaurant_hours_exceptionsCreateWithoutRestaurantsInput[] | restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput[]
+    connectOrCreate?: restaurant_hours_exceptionsCreateOrConnectWithoutRestaurantsInput | restaurant_hours_exceptionsCreateOrConnectWithoutRestaurantsInput[]
+    createMany?: restaurant_hours_exceptionsCreateManyRestaurantsInputEnvelope
+    connect?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+  }
+
   export type restaurant_linksCreateNestedManyWithoutRestaurantsInput = {
     create?: XOR<restaurant_linksCreateWithoutRestaurantsInput, restaurant_linksUncheckedCreateWithoutRestaurantsInput> | restaurant_linksCreateWithoutRestaurantsInput[] | restaurant_linksUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: restaurant_linksCreateOrConnectWithoutRestaurantsInput | restaurant_linksCreateOrConnectWithoutRestaurantsInput[]
     createMany?: restaurant_linksCreateManyRestaurantsInputEnvelope
     connect?: restaurant_linksWhereUniqueInput | restaurant_linksWhereUniqueInput[]
+  }
+
+  export type restaurant_opening_hoursCreateNestedManyWithoutRestaurantsInput = {
+    create?: XOR<restaurant_opening_hoursCreateWithoutRestaurantsInput, restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput> | restaurant_opening_hoursCreateWithoutRestaurantsInput[] | restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput[]
+    connectOrCreate?: restaurant_opening_hoursCreateOrConnectWithoutRestaurantsInput | restaurant_opening_hoursCreateOrConnectWithoutRestaurantsInput[]
+    createMany?: restaurant_opening_hoursCreateManyRestaurantsInputEnvelope
+    connect?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
   }
 
   export type dishesUncheckedCreateNestedManyWithoutRestaurantsInput = {
@@ -61939,11 +64885,25 @@ export namespace Prisma {
     connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
   }
 
+  export type restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput = {
+    create?: XOR<restaurant_hours_exceptionsCreateWithoutRestaurantsInput, restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput> | restaurant_hours_exceptionsCreateWithoutRestaurantsInput[] | restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput[]
+    connectOrCreate?: restaurant_hours_exceptionsCreateOrConnectWithoutRestaurantsInput | restaurant_hours_exceptionsCreateOrConnectWithoutRestaurantsInput[]
+    createMany?: restaurant_hours_exceptionsCreateManyRestaurantsInputEnvelope
+    connect?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+  }
+
   export type restaurant_linksUncheckedCreateNestedManyWithoutRestaurantsInput = {
     create?: XOR<restaurant_linksCreateWithoutRestaurantsInput, restaurant_linksUncheckedCreateWithoutRestaurantsInput> | restaurant_linksCreateWithoutRestaurantsInput[] | restaurant_linksUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: restaurant_linksCreateOrConnectWithoutRestaurantsInput | restaurant_linksCreateOrConnectWithoutRestaurantsInput[]
     createMany?: restaurant_linksCreateManyRestaurantsInputEnvelope
     connect?: restaurant_linksWhereUniqueInput | restaurant_linksWhereUniqueInput[]
+  }
+
+  export type restaurant_opening_hoursUncheckedCreateNestedManyWithoutRestaurantsInput = {
+    create?: XOR<restaurant_opening_hoursCreateWithoutRestaurantsInput, restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput> | restaurant_opening_hoursCreateWithoutRestaurantsInput[] | restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput[]
+    connectOrCreate?: restaurant_opening_hoursCreateOrConnectWithoutRestaurantsInput | restaurant_opening_hoursCreateOrConnectWithoutRestaurantsInput[]
+    createMany?: restaurant_opening_hoursCreateManyRestaurantsInputEnvelope
+    connect?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
   }
 
   export type restaurantsUpdatesource_namesInput = {
@@ -61979,6 +64939,20 @@ export namespace Prisma {
     deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
   }
 
+  export type restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput = {
+    create?: XOR<restaurant_hours_exceptionsCreateWithoutRestaurantsInput, restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput> | restaurant_hours_exceptionsCreateWithoutRestaurantsInput[] | restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput[]
+    connectOrCreate?: restaurant_hours_exceptionsCreateOrConnectWithoutRestaurantsInput | restaurant_hours_exceptionsCreateOrConnectWithoutRestaurantsInput[]
+    upsert?: restaurant_hours_exceptionsUpsertWithWhereUniqueWithoutRestaurantsInput | restaurant_hours_exceptionsUpsertWithWhereUniqueWithoutRestaurantsInput[]
+    createMany?: restaurant_hours_exceptionsCreateManyRestaurantsInputEnvelope
+    set?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+    disconnect?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+    delete?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+    connect?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+    update?: restaurant_hours_exceptionsUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_hours_exceptionsUpdateWithWhereUniqueWithoutRestaurantsInput[]
+    updateMany?: restaurant_hours_exceptionsUpdateManyWithWhereWithoutRestaurantsInput | restaurant_hours_exceptionsUpdateManyWithWhereWithoutRestaurantsInput[]
+    deleteMany?: restaurant_hours_exceptionsScalarWhereInput | restaurant_hours_exceptionsScalarWhereInput[]
+  }
+
   export type restaurant_linksUpdateManyWithoutRestaurantsNestedInput = {
     create?: XOR<restaurant_linksCreateWithoutRestaurantsInput, restaurant_linksUncheckedCreateWithoutRestaurantsInput> | restaurant_linksCreateWithoutRestaurantsInput[] | restaurant_linksUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: restaurant_linksCreateOrConnectWithoutRestaurantsInput | restaurant_linksCreateOrConnectWithoutRestaurantsInput[]
@@ -61991,6 +64965,20 @@ export namespace Prisma {
     update?: restaurant_linksUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_linksUpdateWithWhereUniqueWithoutRestaurantsInput[]
     updateMany?: restaurant_linksUpdateManyWithWhereWithoutRestaurantsInput | restaurant_linksUpdateManyWithWhereWithoutRestaurantsInput[]
     deleteMany?: restaurant_linksScalarWhereInput | restaurant_linksScalarWhereInput[]
+  }
+
+  export type restaurant_opening_hoursUpdateManyWithoutRestaurantsNestedInput = {
+    create?: XOR<restaurant_opening_hoursCreateWithoutRestaurantsInput, restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput> | restaurant_opening_hoursCreateWithoutRestaurantsInput[] | restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput[]
+    connectOrCreate?: restaurant_opening_hoursCreateOrConnectWithoutRestaurantsInput | restaurant_opening_hoursCreateOrConnectWithoutRestaurantsInput[]
+    upsert?: restaurant_opening_hoursUpsertWithWhereUniqueWithoutRestaurantsInput | restaurant_opening_hoursUpsertWithWhereUniqueWithoutRestaurantsInput[]
+    createMany?: restaurant_opening_hoursCreateManyRestaurantsInputEnvelope
+    set?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
+    disconnect?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
+    delete?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
+    connect?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
+    update?: restaurant_opening_hoursUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_opening_hoursUpdateWithWhereUniqueWithoutRestaurantsInput[]
+    updateMany?: restaurant_opening_hoursUpdateManyWithWhereWithoutRestaurantsInput | restaurant_opening_hoursUpdateManyWithWhereWithoutRestaurantsInput[]
+    deleteMany?: restaurant_opening_hoursScalarWhereInput | restaurant_opening_hoursScalarWhereInput[]
   }
 
   export type dishesUncheckedUpdateManyWithoutRestaurantsNestedInput = {
@@ -62021,6 +65009,20 @@ export namespace Prisma {
     deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
   }
 
+  export type restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput = {
+    create?: XOR<restaurant_hours_exceptionsCreateWithoutRestaurantsInput, restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput> | restaurant_hours_exceptionsCreateWithoutRestaurantsInput[] | restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput[]
+    connectOrCreate?: restaurant_hours_exceptionsCreateOrConnectWithoutRestaurantsInput | restaurant_hours_exceptionsCreateOrConnectWithoutRestaurantsInput[]
+    upsert?: restaurant_hours_exceptionsUpsertWithWhereUniqueWithoutRestaurantsInput | restaurant_hours_exceptionsUpsertWithWhereUniqueWithoutRestaurantsInput[]
+    createMany?: restaurant_hours_exceptionsCreateManyRestaurantsInputEnvelope
+    set?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+    disconnect?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+    delete?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+    connect?: restaurant_hours_exceptionsWhereUniqueInput | restaurant_hours_exceptionsWhereUniqueInput[]
+    update?: restaurant_hours_exceptionsUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_hours_exceptionsUpdateWithWhereUniqueWithoutRestaurantsInput[]
+    updateMany?: restaurant_hours_exceptionsUpdateManyWithWhereWithoutRestaurantsInput | restaurant_hours_exceptionsUpdateManyWithWhereWithoutRestaurantsInput[]
+    deleteMany?: restaurant_hours_exceptionsScalarWhereInput | restaurant_hours_exceptionsScalarWhereInput[]
+  }
+
   export type restaurant_linksUncheckedUpdateManyWithoutRestaurantsNestedInput = {
     create?: XOR<restaurant_linksCreateWithoutRestaurantsInput, restaurant_linksUncheckedCreateWithoutRestaurantsInput> | restaurant_linksCreateWithoutRestaurantsInput[] | restaurant_linksUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: restaurant_linksCreateOrConnectWithoutRestaurantsInput | restaurant_linksCreateOrConnectWithoutRestaurantsInput[]
@@ -62033,6 +65035,20 @@ export namespace Prisma {
     update?: restaurant_linksUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_linksUpdateWithWhereUniqueWithoutRestaurantsInput[]
     updateMany?: restaurant_linksUpdateManyWithWhereWithoutRestaurantsInput | restaurant_linksUpdateManyWithWhereWithoutRestaurantsInput[]
     deleteMany?: restaurant_linksScalarWhereInput | restaurant_linksScalarWhereInput[]
+  }
+
+  export type restaurant_opening_hoursUncheckedUpdateManyWithoutRestaurantsNestedInput = {
+    create?: XOR<restaurant_opening_hoursCreateWithoutRestaurantsInput, restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput> | restaurant_opening_hoursCreateWithoutRestaurantsInput[] | restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput[]
+    connectOrCreate?: restaurant_opening_hoursCreateOrConnectWithoutRestaurantsInput | restaurant_opening_hoursCreateOrConnectWithoutRestaurantsInput[]
+    upsert?: restaurant_opening_hoursUpsertWithWhereUniqueWithoutRestaurantsInput | restaurant_opening_hoursUpsertWithWhereUniqueWithoutRestaurantsInput[]
+    createMany?: restaurant_opening_hoursCreateManyRestaurantsInputEnvelope
+    set?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
+    disconnect?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
+    delete?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
+    connect?: restaurant_opening_hoursWhereUniqueInput | restaurant_opening_hoursWhereUniqueInput[]
+    update?: restaurant_opening_hoursUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_opening_hoursUpdateWithWhereUniqueWithoutRestaurantsInput[]
+    updateMany?: restaurant_opening_hoursUpdateManyWithWhereWithoutRestaurantsInput | restaurant_opening_hoursUpdateManyWithWhereWithoutRestaurantsInput[]
+    deleteMany?: restaurant_opening_hoursScalarWhereInput | restaurant_opening_hoursScalarWhereInput[]
   }
 
   export type permissionsCreateNestedOneWithoutRole_permissionsInput = {
@@ -65373,7 +68389,9 @@ export namespace Prisma {
     address?: string | null
     country_code?: string | null
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUncheckedCreateWithoutDishesInput = {
@@ -65396,7 +68414,9 @@ export namespace Prisma {
     address?: string | null
     country_code?: string | null
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsCreateOrConnectWithoutDishesInput = {
@@ -65550,7 +68570,9 @@ export namespace Prisma {
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsUncheckedUpdateWithoutDishesInput = {
@@ -65573,7 +68595,9 @@ export namespace Prisma {
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type notificationsCreateWithoutNotification_recipientsInput = {
@@ -66075,7 +69099,9 @@ export namespace Prisma {
     address?: string | null
     country_code?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUncheckedCreateWithoutRestaurant_bidsInput = {
@@ -66098,7 +69124,9 @@ export namespace Prisma {
     address?: string | null
     country_code?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsCreateOrConnectWithoutRestaurant_bidsInput = {
@@ -66192,7 +69220,9 @@ export namespace Prisma {
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsUncheckedUpdateWithoutRestaurant_bidsInput = {
@@ -66215,7 +69245,9 @@ export namespace Prisma {
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type usersUpsertWithoutRestaurant_bidsInput = {
@@ -66263,6 +69295,122 @@ export namespace Prisma {
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
+  export type restaurantsCreateWithoutRestaurant_hours_exceptionsInput = {
+    id?: string
+    google_place_id: string
+    name: string
+    name_language_code: string
+    latitude: number
+    longitude: number
+    image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
+    created_by_source?: string
+    address?: string | null
+    country_code?: string | null
+    dishes?: dishesCreateNestedManyWithoutRestaurantsInput
+    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
+    restaurant_links?: restaurant_linksCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursCreateNestedManyWithoutRestaurantsInput
+  }
+
+  export type restaurantsUncheckedCreateWithoutRestaurant_hours_exceptionsInput = {
+    id?: string
+    google_place_id: string
+    name: string
+    name_language_code: string
+    latitude: number
+    longitude: number
+    image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
+    created_by_source?: string
+    address?: string | null
+    country_code?: string | null
+    dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_links?: restaurant_linksUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedCreateNestedManyWithoutRestaurantsInput
+  }
+
+  export type restaurantsCreateOrConnectWithoutRestaurant_hours_exceptionsInput = {
+    where: restaurantsWhereUniqueInput
+    create: XOR<restaurantsCreateWithoutRestaurant_hours_exceptionsInput, restaurantsUncheckedCreateWithoutRestaurant_hours_exceptionsInput>
+  }
+
+  export type restaurantsUpsertWithoutRestaurant_hours_exceptionsInput = {
+    update: XOR<restaurantsUpdateWithoutRestaurant_hours_exceptionsInput, restaurantsUncheckedUpdateWithoutRestaurant_hours_exceptionsInput>
+    create: XOR<restaurantsCreateWithoutRestaurant_hours_exceptionsInput, restaurantsUncheckedCreateWithoutRestaurant_hours_exceptionsInput>
+    where?: restaurantsWhereInput
+  }
+
+  export type restaurantsUpdateToOneWithWhereWithoutRestaurant_hours_exceptionsInput = {
+    where?: restaurantsWhereInput
+    data: XOR<restaurantsUpdateWithoutRestaurant_hours_exceptionsInput, restaurantsUncheckedUpdateWithoutRestaurant_hours_exceptionsInput>
+  }
+
+  export type restaurantsUpdateWithoutRestaurant_hours_exceptionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    google_place_id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_by_source?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
+    restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
+    restaurant_links?: restaurant_linksUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUpdateManyWithoutRestaurantsNestedInput
+  }
+
+  export type restaurantsUncheckedUpdateWithoutRestaurant_hours_exceptionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    google_place_id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_by_source?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_links?: restaurant_linksUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedUpdateManyWithoutRestaurantsNestedInput
+  }
+
   export type restaurantsCreateWithoutRestaurant_linksInput = {
     id?: string
     google_place_id: string
@@ -66284,6 +69432,8 @@ export namespace Prisma {
     country_code?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUncheckedCreateWithoutRestaurant_linksInput = {
@@ -66307,6 +69457,8 @@ export namespace Prisma {
     country_code?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsCreateOrConnectWithoutRestaurant_linksInput = {
@@ -66346,6 +69498,8 @@ export namespace Prisma {
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsUncheckedUpdateWithoutRestaurant_linksInput = {
@@ -66369,6 +69523,124 @@ export namespace Prisma {
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_opening_hours?: restaurant_opening_hoursUncheckedUpdateManyWithoutRestaurantsNestedInput
+  }
+
+  export type restaurantsCreateWithoutRestaurant_opening_hoursInput = {
+    id?: string
+    google_place_id: string
+    name: string
+    name_language_code: string
+    latitude: number
+    longitude: number
+    image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
+    created_by_source?: string
+    address?: string | null
+    country_code?: string | null
+    dishes?: dishesCreateNestedManyWithoutRestaurantsInput
+    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
+    restaurant_links?: restaurant_linksCreateNestedManyWithoutRestaurantsInput
+  }
+
+  export type restaurantsUncheckedCreateWithoutRestaurant_opening_hoursInput = {
+    id?: string
+    google_place_id: string
+    name: string
+    name_language_code: string
+    latitude: number
+    longitude: number
+    image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
+    created_by_source?: string
+    address?: string | null
+    country_code?: string | null
+    dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
+    restaurant_links?: restaurant_linksUncheckedCreateNestedManyWithoutRestaurantsInput
+  }
+
+  export type restaurantsCreateOrConnectWithoutRestaurant_opening_hoursInput = {
+    where: restaurantsWhereUniqueInput
+    create: XOR<restaurantsCreateWithoutRestaurant_opening_hoursInput, restaurantsUncheckedCreateWithoutRestaurant_opening_hoursInput>
+  }
+
+  export type restaurantsUpsertWithoutRestaurant_opening_hoursInput = {
+    update: XOR<restaurantsUpdateWithoutRestaurant_opening_hoursInput, restaurantsUncheckedUpdateWithoutRestaurant_opening_hoursInput>
+    create: XOR<restaurantsCreateWithoutRestaurant_opening_hoursInput, restaurantsUncheckedCreateWithoutRestaurant_opening_hoursInput>
+    where?: restaurantsWhereInput
+  }
+
+  export type restaurantsUpdateToOneWithWhereWithoutRestaurant_opening_hoursInput = {
+    where?: restaurantsWhereInput
+    data: XOR<restaurantsUpdateWithoutRestaurant_opening_hoursInput, restaurantsUncheckedUpdateWithoutRestaurant_opening_hoursInput>
+  }
+
+  export type restaurantsUpdateWithoutRestaurant_opening_hoursInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    google_place_id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_by_source?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
+    restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
+    restaurant_links?: restaurant_linksUpdateManyWithoutRestaurantsNestedInput
+  }
+
+  export type restaurantsUncheckedUpdateWithoutRestaurant_opening_hoursInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    google_place_id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_by_source?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput
+    restaurant_links?: restaurant_linksUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type dishesCreateWithoutRestaurantsInput = {
@@ -66449,6 +69721,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type restaurant_hours_exceptionsCreateWithoutRestaurantsInput = {
+    source: string
+    exception_date: Date | string
+    is_closed: boolean
+    opens_at?: Date | string | null
+    closes_at?: Date | string | null
+    fetched_at: Date | string
+  }
+
+  export type restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput = {
+    source: string
+    exception_date: Date | string
+    is_closed: boolean
+    opens_at?: Date | string | null
+    closes_at?: Date | string | null
+    fetched_at: Date | string
+  }
+
+  export type restaurant_hours_exceptionsCreateOrConnectWithoutRestaurantsInput = {
+    where: restaurant_hours_exceptionsWhereUniqueInput
+    create: XOR<restaurant_hours_exceptionsCreateWithoutRestaurantsInput, restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput>
+  }
+
+  export type restaurant_hours_exceptionsCreateManyRestaurantsInputEnvelope = {
+    data: restaurant_hours_exceptionsCreateManyRestaurantsInput | restaurant_hours_exceptionsCreateManyRestaurantsInput[]
+    skipDuplicates?: boolean
+  }
+
   export type restaurant_linksCreateWithoutRestaurantsInput = {
     kind: string
     value: string
@@ -66472,6 +69772,36 @@ export namespace Prisma {
 
   export type restaurant_linksCreateManyRestaurantsInputEnvelope = {
     data: restaurant_linksCreateManyRestaurantsInput | restaurant_linksCreateManyRestaurantsInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type restaurant_opening_hoursCreateWithoutRestaurantsInput = {
+    source: string
+    day_of_week: number
+    opens_at: Date | string
+    closes_at: Date | string
+    crosses_midnight?: boolean
+    fetched_at: Date | string
+    source_url?: string | null
+  }
+
+  export type restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput = {
+    source: string
+    day_of_week: number
+    opens_at: Date | string
+    closes_at: Date | string
+    crosses_midnight?: boolean
+    fetched_at: Date | string
+    source_url?: string | null
+  }
+
+  export type restaurant_opening_hoursCreateOrConnectWithoutRestaurantsInput = {
+    where: restaurant_opening_hoursWhereUniqueInput
+    create: XOR<restaurant_opening_hoursCreateWithoutRestaurantsInput, restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput>
+  }
+
+  export type restaurant_opening_hoursCreateManyRestaurantsInputEnvelope = {
+    data: restaurant_opening_hoursCreateManyRestaurantsInput | restaurant_opening_hoursCreateManyRestaurantsInput[]
     skipDuplicates?: boolean
   }
 
@@ -66526,6 +69856,35 @@ export namespace Prisma {
     lock_no?: IntFilter<"restaurant_bids"> | number
   }
 
+  export type restaurant_hours_exceptionsUpsertWithWhereUniqueWithoutRestaurantsInput = {
+    where: restaurant_hours_exceptionsWhereUniqueInput
+    update: XOR<restaurant_hours_exceptionsUpdateWithoutRestaurantsInput, restaurant_hours_exceptionsUncheckedUpdateWithoutRestaurantsInput>
+    create: XOR<restaurant_hours_exceptionsCreateWithoutRestaurantsInput, restaurant_hours_exceptionsUncheckedCreateWithoutRestaurantsInput>
+  }
+
+  export type restaurant_hours_exceptionsUpdateWithWhereUniqueWithoutRestaurantsInput = {
+    where: restaurant_hours_exceptionsWhereUniqueInput
+    data: XOR<restaurant_hours_exceptionsUpdateWithoutRestaurantsInput, restaurant_hours_exceptionsUncheckedUpdateWithoutRestaurantsInput>
+  }
+
+  export type restaurant_hours_exceptionsUpdateManyWithWhereWithoutRestaurantsInput = {
+    where: restaurant_hours_exceptionsScalarWhereInput
+    data: XOR<restaurant_hours_exceptionsUpdateManyMutationInput, restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsInput>
+  }
+
+  export type restaurant_hours_exceptionsScalarWhereInput = {
+    AND?: restaurant_hours_exceptionsScalarWhereInput | restaurant_hours_exceptionsScalarWhereInput[]
+    OR?: restaurant_hours_exceptionsScalarWhereInput[]
+    NOT?: restaurant_hours_exceptionsScalarWhereInput | restaurant_hours_exceptionsScalarWhereInput[]
+    restaurant_id?: UuidFilter<"restaurant_hours_exceptions"> | string
+    source?: StringFilter<"restaurant_hours_exceptions"> | string
+    exception_date?: DateTimeFilter<"restaurant_hours_exceptions"> | Date | string
+    is_closed?: BoolFilter<"restaurant_hours_exceptions"> | boolean
+    opens_at?: DateTimeNullableFilter<"restaurant_hours_exceptions"> | Date | string | null
+    closes_at?: DateTimeNullableFilter<"restaurant_hours_exceptions"> | Date | string | null
+    fetched_at?: DateTimeFilter<"restaurant_hours_exceptions"> | Date | string
+  }
+
   export type restaurant_linksUpsertWithWhereUniqueWithoutRestaurantsInput = {
     where: restaurant_linksWhereUniqueInput
     update: XOR<restaurant_linksUpdateWithoutRestaurantsInput, restaurant_linksUncheckedUpdateWithoutRestaurantsInput>
@@ -66552,6 +69911,36 @@ export namespace Prisma {
     source?: StringFilter<"restaurant_links"> | string
     fetched_at?: DateTimeFilter<"restaurant_links"> | Date | string
     created_at?: DateTimeFilter<"restaurant_links"> | Date | string
+  }
+
+  export type restaurant_opening_hoursUpsertWithWhereUniqueWithoutRestaurantsInput = {
+    where: restaurant_opening_hoursWhereUniqueInput
+    update: XOR<restaurant_opening_hoursUpdateWithoutRestaurantsInput, restaurant_opening_hoursUncheckedUpdateWithoutRestaurantsInput>
+    create: XOR<restaurant_opening_hoursCreateWithoutRestaurantsInput, restaurant_opening_hoursUncheckedCreateWithoutRestaurantsInput>
+  }
+
+  export type restaurant_opening_hoursUpdateWithWhereUniqueWithoutRestaurantsInput = {
+    where: restaurant_opening_hoursWhereUniqueInput
+    data: XOR<restaurant_opening_hoursUpdateWithoutRestaurantsInput, restaurant_opening_hoursUncheckedUpdateWithoutRestaurantsInput>
+  }
+
+  export type restaurant_opening_hoursUpdateManyWithWhereWithoutRestaurantsInput = {
+    where: restaurant_opening_hoursScalarWhereInput
+    data: XOR<restaurant_opening_hoursUpdateManyMutationInput, restaurant_opening_hoursUncheckedUpdateManyWithoutRestaurantsInput>
+  }
+
+  export type restaurant_opening_hoursScalarWhereInput = {
+    AND?: restaurant_opening_hoursScalarWhereInput | restaurant_opening_hoursScalarWhereInput[]
+    OR?: restaurant_opening_hoursScalarWhereInput[]
+    NOT?: restaurant_opening_hoursScalarWhereInput | restaurant_opening_hoursScalarWhereInput[]
+    restaurant_id?: UuidFilter<"restaurant_opening_hours"> | string
+    source?: StringFilter<"restaurant_opening_hours"> | string
+    day_of_week?: IntFilter<"restaurant_opening_hours"> | number
+    opens_at?: DateTimeFilter<"restaurant_opening_hours"> | Date | string
+    closes_at?: DateTimeFilter<"restaurant_opening_hours"> | Date | string
+    crosses_midnight?: BoolFilter<"restaurant_opening_hours"> | boolean
+    fetched_at?: DateTimeFilter<"restaurant_opening_hours"> | Date | string
+    source_url?: StringNullableFilter<"restaurant_opening_hours"> | string | null
   }
 
   export type permissionsCreateWithoutRole_permissionsInput = {
@@ -67808,12 +71197,31 @@ export namespace Prisma {
     lock_no?: number
   }
 
+  export type restaurant_hours_exceptionsCreateManyRestaurantsInput = {
+    source: string
+    exception_date: Date | string
+    is_closed: boolean
+    opens_at?: Date | string | null
+    closes_at?: Date | string | null
+    fetched_at: Date | string
+  }
+
   export type restaurant_linksCreateManyRestaurantsInput = {
     kind: string
     value: string
     source: string
     fetched_at?: Date | string
     created_at?: Date | string
+  }
+
+  export type restaurant_opening_hoursCreateManyRestaurantsInput = {
+    source: string
+    day_of_week: number
+    opens_at: Date | string
+    closes_at: Date | string
+    crosses_midnight?: boolean
+    fetched_at: Date | string
+    source_url?: string | null
   }
 
   export type dishesUpdateWithoutRestaurantsInput = {
@@ -67900,6 +71308,33 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
+  export type restaurant_hours_exceptionsUpdateWithoutRestaurantsInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    exception_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    is_closed?: BoolFieldUpdateOperationsInput | boolean
+    opens_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closes_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type restaurant_hours_exceptionsUncheckedUpdateWithoutRestaurantsInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    exception_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    is_closed?: BoolFieldUpdateOperationsInput | boolean
+    opens_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closes_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    exception_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    is_closed?: BoolFieldUpdateOperationsInput | boolean
+    opens_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closes_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type restaurant_linksUpdateWithoutRestaurantsInput = {
     kind?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
@@ -67922,6 +71357,36 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type restaurant_opening_hoursUpdateWithoutRestaurantsInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    day_of_week?: IntFieldUpdateOperationsInput | number
+    opens_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    closes_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    crosses_midnight?: BoolFieldUpdateOperationsInput | boolean
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    source_url?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type restaurant_opening_hoursUncheckedUpdateWithoutRestaurantsInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    day_of_week?: IntFieldUpdateOperationsInput | number
+    opens_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    closes_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    crosses_midnight?: BoolFieldUpdateOperationsInput | boolean
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    source_url?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type restaurant_opening_hoursUncheckedUpdateManyWithoutRestaurantsInput = {
+    source?: StringFieldUpdateOperationsInput | string
+    day_of_week?: IntFieldUpdateOperationsInput | number
+    opens_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    closes_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    crosses_midnight?: BoolFieldUpdateOperationsInput | boolean
+    fetched_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    source_url?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type role_permissionsCreateManyRolesInput = {

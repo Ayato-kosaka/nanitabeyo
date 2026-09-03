@@ -87,6 +87,8 @@ export class DishMediaAssembler {
         averageRating: src.dish.averageRating,
         // #1375 カテゴリの正式表記（ローマ字の name をユーザーに見せないため）
         categoryLabels: src.dish.categoryLabels,
+        // #1774 restaurant × dish_category 単位の価格帯（3件未満・通貨未確定は null）
+        priceBand: src.dish.priceBand,
       };
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
@@ -110,10 +112,28 @@ export class DishMediaAssembler {
       // #1399 external_embed は自ストレージにサムネイルが無い（thumbnail_path: ''）。
       // その場合は取り込み時に保存した外部サムネイル URL（oEmbed 由来）へ落とす。
       // Instagram のように外部サムネイルも取れない provider では null になる
+      /*
+       * #1641 **外部埋め込みの行では «何も無い» を作らない。**
+       *
+       * 高速パス（サーバが not_playable と判定済みなら WebView を作らない）を入れた結果、
+       * サムネイルが 1 つも無い行が **真っ黒なセル**になった（run 33223480840 の feed-05 で実測）。
+       * それまで見えていた料理の写真はアプリが持っていたものではなく、
+       * **Instagram の埋め込みページが描いていた 1 コマ目**で、読み込みをやめた瞬間に消えた。
+       *
+       * dev の実測では 19 行中 2 行が «自ストレージにも provider の URL にもサムネイルが無い»
+       * 状態だった（取り込み当時に複製へ失敗した / 署名 URL が失効した）。
+       * 料理カテゴリの絵を最後の受け皿にすると、**構造的に真っ黒が出なくなる**。
+       *
+       * ⚠️ 受け皿を当てるのは `render_type='external_embed'` の行だけにする。
+       *    自撮り投稿でサムネイルが無いのは «加工がまだ終わっていない» という別の状態で、
+       *    そちらはスケルトンを出すのが正しい。カテゴリの絵を当てると
+       *    «出来上がったのに違う絵が出ている» ように見える。
+       */
       const thumbnailImageUrl = isDeleted
         ? null
         : (this.getThumbnailImageUrl(src.dish_media) ??
           externalEmbed?.thumbnailUrl ??
+          (externalEmbed !== null ? src.dish.categoryImageUrl : null) ??
           null);
       const dish_media = {
         ...dishMediaBase,
@@ -271,6 +291,13 @@ export class DishMediaAssembler {
       embedStatus: row.embed_status as DishMediaExternalEmbed['embedStatus'],
       lastVerifiedAt: row.last_verified_at?.toISOString() ?? null,
       thumbnailUrl: row.thumbnail_url ?? null,
+      // #1641 再生可否。取り込みのときに判定済みで、クライアントはこれを見て
+      // WebView を作るかどうかを決める（«出してから畳む» をやめる）
+      playbackStatus:
+        row.playback_status as DishMediaExternalEmbed['playbackStatus'],
+      playbackReason:
+        (row.playback_reason as DishMediaExternalEmbed['playbackReason']) ??
+        null,
     };
   }
 

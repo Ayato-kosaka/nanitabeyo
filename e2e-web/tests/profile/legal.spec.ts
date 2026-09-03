@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { PRERENDER_MISS_HYDRATION_NOISE } from "../../utils/consoleNoise";
 import { LegalPage } from "../../pages/LegalPage";
 import { SettingsPage } from "../../pages/SettingsPage";
 
@@ -36,11 +37,17 @@ test.describe("法務ドキュメント画面", () => {
 	// 手順:
 	//   1. /ja-JP/legal/tos（存在しない文書）へ直接遷移する
 	//   2. not-found 表示が出て、本文コンテナが描かれないことを検証
-	test("公開していない doc は not-found を出し、既定の文書へ倒れない", async ({ appPage }) => {
-		const legalPage = new LegalPage(appPage);
+	test.describe("公開していない doc", () => {
+		// #1629 存在しない doc は prerender されておらず SPA フォールバックの index.html で返るため、
+		// hydration 不一致が構造上必ず出る（utils/consoleNoise.ts。正本は tests/smoke/deep-link.spec.ts）
+		test.use({ allowedConsoleErrors: PRERENDER_MISS_HYDRATION_NOISE });
 
-		await legalPage.goto("tos");
-		await legalPage.expectNotFound();
+		test("公開していない doc は not-found を出し、既定の文書へ倒れない", async ({ appPage }) => {
+			const legalPage = new LegalPage(appPage);
+
+			await legalPage.goto("tos");
+			await legalPage.expectNotFound();
+		});
 	});
 
 	// ─ テストケース: マイページの設定項目から開いて戻れる ─

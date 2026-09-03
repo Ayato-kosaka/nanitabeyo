@@ -443,7 +443,9 @@
 			"savedMessage": "已保存到想吃"
 		},
 		"embed": {
-			"play": "在{{provider}}上播放"
+			"play": "在{{provider}}上播放",
+			"openExternally": "在{{provider}}上查看",
+			"unmute": "开启声音"
 		},
 		"ownPost": {
 			"menuTitle": "我的帖子",
@@ -605,7 +607,6 @@
 		},
 		"actions": {
 			"selectDishCategory": "选择菜品类别",
-			"writeReviewForThisDish": "为这道菜写评论",
 			"useTypedDishCategory": "使用“{{name}}”"
 		},
 		"inputs": {
@@ -665,6 +666,7 @@
 			"mediaSelectionFailed": "媒体选择失败",
 			"mediaSelectionError": "选择媒体时发生错误。请重试。",
 			"replaceWithMyPhoto": "改用我自己的照片",
+			"reselectPhoto": "重新选择照片",
 			"openSettings": "打开设置",
 			"pickFromLibrary": "从相册选择",
 			"shootWithCamera": "拍照",
@@ -741,10 +743,11 @@
 		"emptyState": {
 			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
 		},
-		"everybodyPostsTitle": "选择要评论的菜品",
+		"everybodyPostsTitle": "大家的投稿",
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
-			"title": "餐厅详情"
+			"title": "餐厅详情",
+			"openInGoogleMaps": "在 Google 地图中打开"
 		}
 	},
 	"Feedback": {
@@ -981,7 +984,8 @@
 		},
 		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
 		"pickTitle": "选择店铺",
-		"pickOnMap": "在地图上查找店铺"
+		"pickOnMap": "在地图上查找店铺",
+		"pickConfirm": "选择这家店"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1024,7 +1028,16 @@
 			"noPhotoHint": "没有照片也可以记录",
 			"publicReviewNotice": "该记录将作为公开评价显示在餐厅页面上",
 			"postNotFoundNoPhoto": "该记录没有照片",
-			"skipPhoto": "跳过（不加照片）"
+			"skipPhoto": "跳过（不加照片）",
+			"missingHint": "填写 {{items}} 后即可发布。",
+			"missing": {
+				"comment": "简短点评",
+				"price": "价格",
+				"rating": "推荐度",
+				"dishCategory": "料理分类",
+				"separator": "、",
+				"currency": "无法获取该店铺的货币"
+			}
 		},
 		"filters": {
 			"title": "筛选与排序",
@@ -1134,6 +1147,17 @@
 		"deleted": {
 			"label": "已删除",
 			"a11yLabel": "这条帖子的照片已被删除"
+		},
+		"ownReview": {
+			"title": "我的评论",
+			"noPhoto": "无照片",
+			"noComment": "未填写评论",
+			"noReview": "此记录还没有评论",
+			"openRestaurant": "查看餐厅详情",
+			"edit": "编辑点评",
+			"delete": "删除点评",
+			"deleteConfirmTitle": "要删除这条点评吗？",
+			"deleteConfirmMessage": "将删除该记录的点评。该记录也会从列表中消失。此操作无法撤销。"
 		}
 	},
 	"SnsImport": {
@@ -1162,7 +1186,9 @@
 			"save": "保存到想吃",
 			"saveRequirement": "选择菜品和店铺后即可保存。",
 			"resolveAgain": "重新读取",
-			"cancel": "取消"
+			"cancel": "取消",
+			"saveRequirementRestaurant": "选择店铺后即可保存。",
+			"saveRequirementDish": "选择料理分类后即可保存。"
 		},
 		"sections": {
 			"dishCategory": "菜品",

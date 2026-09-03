@@ -40,7 +40,12 @@ import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { RestaurantsRepository } from '../restaurants/restaurants.repository';
 import { DishCategoryVariantDictionaryService } from './dish-category-variant-dictionary.service';
-import { SnsOembedService, type SnsMetadata } from './sns-oembed.service';
+import {
+  SnsOembedService,
+  PLAYBACK_UNKNOWN,
+  type EmbedPlaybackVerdict,
+  type SnsMetadata,
+} from './sns-oembed.service';
 
 import { Prisma } from '../../../../shared/prisma/client';
 import {
@@ -65,6 +70,7 @@ import type {
 } from '@shared/v1/dto';
 import type {
   CreateDishMediaImportResponse,
+  ReportExternalEmbedPlaybackResponse,
   ResolveDishMediaImportDishCategoryCandidate,
   ResolveDishMediaImportReason,
   ResolveDishMediaImportResponse,
@@ -138,6 +144,48 @@ const IMPORT_THUMBNAIL_MAX_BYTES = 5 * 1024 * 1024;
 const GSI_ADDRESS_SEARCH_BASE =
   'https://msearch.gsi.go.jp/address-search/AddressSearch';
 
+/**
+ * #1641 端末の «再生できなかった» 報告から、同じ投稿をもう一度確かめに行くまでの最短間隔。
+ *
+ * この経路は**ユーザーの端末が引き金になって provider を叩く**。間引きが無いと、
+ * 電波の悪い 1 台がフィードを往復するだけで同じ投稿へ何十回も問い合わせが飛ぶ
+ * （こちらが弾かれる側になる）。6 時間空けても «壊れた投稿がしばらく残る» だけで、
+ * 実害は «そのセルが 1 回空振りする» に留まる。
+ */
+const PLAYBACK_RECHECK_MIN_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * #1641 再生可否の判定を `dish_media_external_embeddings` の更新値へ写す。
+ *
+ * ## `playback_reason` は**必ず同じ data に入れる**
+ *
+ * `playback_reason` は «`not_playable` のときだけ非 NULL» という CHECK 制約
+ * （`dmee_playback_reason_check`）で守られている。再取り込みで
+ * `not_playable` → `playable` へ変わったときに status だけ書き換えると、
+ * 古い理由が残ったまま制約に当たって**取り込みが 500 になる**。
+ * だから «status を書くときは reason も書く» を、この 1 箇所へ閉じ込める。
+ *
+ * ## `unknown` は書かない
+ *
+ * 判定できなかったのだから、**既に分かっている判定を上書きしてはいけない**。
+ * 空オブジェクトを返して、列を触らせない（新規行は列の DEFAULT 'unknown' になる）。
+ */
+function playbackUpdate(playback: EmbedPlaybackVerdict):
+  | Record<string, never>
+  | {
+      playback_status: string;
+      playback_reason: string | null;
+      playback_checked_at: Date;
+    } {
+  if (playback.status === 'unknown') return {};
+  return {
+    playback_status: playback.status,
+    playback_reason:
+      playback.status === 'not_playable' ? playback.reason : null,
+    playback_checked_at: new Date(),
+  };
+}
+
 @Injectable()
 export class DishMediaImportsService {
   constructor(
@@ -152,6 +200,133 @@ export class DishMediaImportsService {
     private readonly logger: AppLoggerService,
     private readonly cls: ClsService,
   ) {}
+
+  /**
+   * #1641 端末から «このセルは再生できなかった» と報告を受けて、**サーバが確かめ直す**。
+   *
+   * ## 端末の言い分は保存しない
+   *
+   * 「再生できなかった」の原因は投稿の側とは限らない（機内モード・一時的な 5xx・
+   * WebView が殺された直後・古いビルド）。鵜呑みにして書くと、**通信が不安定な
+   * ユーザーが 1 人いるだけで、その投稿が全員の検索から消える**。
+   * ここで受け取るのは «見に行くきっかけ» だけで、判定は取り込みのときと同じ経路
+   * （`SnsOembedService.fetchMetadata` の `playback`）でやり直す。
+   *
+   * ## 直したいのは «取り込んだ後で壊れた» 投稿である
+   *
+   * 取り込み時は再生できたが、後から楽曲の権利ブロックが入る / 投稿者が埋め込みを
+   * 切る、ということが起きる。定期バッチは持っていない（このリポジトリに死活監視の
+   * cron は 1 本も無い）ので、**実際に踏んだ端末が引き金を引く**のがいちばん確実で、
+   * かつ «誰も見ていない投稿を確かめ続ける» 無駄も出ない。
+   *
+   * ## 例外を投げない
+   *
+   * 埋め込みの行が無い（自撮りの投稿だった等）場合も 200 で返す。この呼び出しは
+   * 画面の裏で自動的に飛ぶので、失敗をユーザーへ見せる意味が無い。
+   */
+  async reportUnplayable(
+    dishMediaId: string,
+  ): Promise<ReportExternalEmbedPlaybackResponse> {
+    /* ⚠️ **provider への問い合わせをトランザクションの中に入れない。**
+       `withTransaction` は接続を掴んだまま中身を走らせる。外部 HTTP（最悪 15 秒）を
+       挟むと、その間コネクションプールの 1 本が塞がる。読みと書きを別のトランザクションに
+       分け、間で問い合わせる。 */
+    const row = await this.prisma.withTransaction((tx) =>
+      tx.dish_media_external_embeddings.findFirst({
+        where: { dish_media_id: dishMediaId },
+        select: {
+          canonical_url: true,
+          playback_status: true,
+          playback_reason: true,
+          playback_checked_at: true,
+        },
+      }),
+    );
+
+    const current = (row: {
+      playback_status: string;
+      playback_reason: string | null;
+    }): Omit<ReportExternalEmbedPlaybackResponse, 'rechecked'> => ({
+      playbackStatus:
+        row.playback_status as ReportExternalEmbedPlaybackResponse['playbackStatus'],
+      playbackReason:
+        (row.playback_reason as ReportExternalEmbedPlaybackResponse['playbackReason']) ??
+        null,
+    });
+
+    if (row === null) {
+      return {
+        playbackStatus: 'unknown',
+        playbackReason: null,
+        rechecked: false,
+      };
+    }
+
+    // 直近に確かめたばかりなら、もう一度 provider を叩かない
+    const checkedAt = row.playback_checked_at?.getTime() ?? null;
+    if (
+      checkedAt !== null &&
+      Date.now() - checkedAt < PLAYBACK_RECHECK_MIN_INTERVAL_MS
+    ) {
+      return { ...current(row), rechecked: false };
+    }
+
+    const parsed = parseSnsUrl(row.canonical_url);
+    if (parsed === null || parsed.kind !== 'content') {
+      // 保存した URL がいまの判定器では解釈できない。推測で書かない
+      this.logger.warn('EmbedPlaybackRecheckUnparsable', 'reportUnplayable', {
+        dishMediaId,
+      });
+      return { ...current(row), rechecked: false };
+    }
+
+    const outcome = await this.oembed.fetchMetadata(parsed);
+    const playback = outcome.playback;
+
+    /* ⚠️ **debug ではなく log（info）で残す。** ここは端末の報告を受けて **DB を書き換える**
+       転換点で、後から «いつ・何が・何へ変わったか» を追えないと、
+       «勝手に消えた投稿» を説明できなくなる。debug は dev のログ基盤に残らない
+       （実測: BigQuery の backend_event_logs に 1 行も出なかった）。 */
+    this.logger.log('EmbedPlaybackRechecked', 'reportUnplayable', {
+      dishMediaId,
+      provider: parsed.provider,
+      before: row.playback_status,
+      after: playback.status,
+    });
+
+    /* ⚠️ **判定できなかったときは status を書き換えない。** 端末が «駄目だった» と
+       言っているからといって not_playable へ寄せると、provider が一時的に落ちた日に
+       取り込み済みの投稿がまとめて検索から消える。
+       ただし `playback_checked_at` は進める（間引きが効かないと、同じ端末が
+       何度でも provider を叩ける経路になる）。 */
+    const data =
+      playback.status === 'unknown'
+        ? { playback_checked_at: new Date() }
+        : {
+            playback_status: playback.status,
+            // status と reason は必ず同じ UPDATE で書く（CHECK dmee_playback_reason_check）
+            playback_reason:
+              playback.status === 'not_playable' ? playback.reason : null,
+            playback_checked_at: new Date(),
+          };
+
+    await this.prisma.withTransaction((tx) =>
+      tx.dish_media_external_embeddings.updateMany({
+        where: { dish_media_id: dishMediaId },
+        data,
+      }),
+    );
+
+    return {
+      playbackStatus:
+        playback.status === 'unknown'
+          ? current(row).playbackStatus
+          : playback.status,
+      playbackReason:
+        playback.status === 'not_playable' ? playback.reason : null,
+      rechecked: true,
+    };
+  }
 
   /**
    * #1399 SNS の URL から取り込んだ 1 件を **保存する**。
@@ -180,7 +355,9 @@ export class DishMediaImportsService {
     dto: CreateDishMediaImportDto,
     userId: string,
   ): Promise<CreateDishMediaImportResponse> {
-    const resolved = await this.resolve({ url: dto.url });
+    const { response: resolved, playback } = await this.resolveInternal({
+      url: dto.url,
+    });
 
     if (resolved.status === 'unsupported') {
       throw new BadRequestException(`IMPORT_UNSUPPORTED:${resolved.reason}`);
@@ -203,7 +380,13 @@ export class DishMediaImportsService {
     // その場合は 1 回だけやり直す — 2 回目は findFirst が先行の行を見つけて
     // 冪等経路（save だけ足す）を通るので、契約どおり成功で返せる
     try {
-      return await this.runCreateTransaction(dto, userId, resolved, appVersion);
+      return await this.runCreateTransaction(
+        dto,
+        userId,
+        resolved,
+        playback,
+        appVersion,
+      );
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -213,7 +396,13 @@ export class DishMediaImportsService {
           provider,
           externalContentId,
         });
-        return this.runCreateTransaction(dto, userId, resolved, appVersion);
+        return this.runCreateTransaction(
+          dto,
+          userId,
+          resolved,
+          playback,
+          appVersion,
+        );
       }
       throw error;
     }
@@ -224,6 +413,7 @@ export class DishMediaImportsService {
     dto: CreateDishMediaImportDto,
     userId: string,
     resolved: ResolveDishMediaImportResponse,
+    playback: EmbedPlaybackVerdict,
     appVersion: string,
   ): Promise<CreateDishMediaImportResponse> {
     const { provider, externalContentId, canonicalUrl } = resolved.source;
@@ -313,21 +503,33 @@ export class DishMediaImportsService {
           });
         }
 
-        if (dishMediaId !== null && resolved.status === 'ok') {
-          // #1375（3 巡目）再取り込み時はサムネイル URL を更新する。Instagram / TikTok の
-          // CDN URL は署名付きで数日〜数週間で失効するため、取れたときに貼り替えておく
-          await tx.dish_media_external_embeddings.updateMany({
-            where: {
-              provider,
-              external_content_id: externalContentId,
-              dish_id: dish.id,
-            },
-            data: {
-              thumbnail_url: resolved.metadata.thumbnailUrl,
-              embed_status: 'available',
-              last_verified_at: new Date(),
-            },
-          });
+        if (dishMediaId !== null) {
+          const data = {
+            // #1375（3 巡目）再取り込み時はサムネイル URL を更新する。Instagram / TikTok の
+            // CDN URL は署名付きで数日〜数週間で失効するため、取れたときに貼り替えておく
+            ...(resolved.status === 'ok'
+              ? {
+                  thumbnail_url: resolved.metadata.thumbnailUrl,
+                  embed_status: 'available' as const,
+                  last_verified_at: new Date(),
+                }
+              : {}),
+            /* #1641 再生可否も貼り替える。**メタデータ取得の成否とは別の条件で書く。**
+               YouTube の «埋め込み不可» は oEmbed 401（= resolved.status は 'unknown'）
+               として現れるので、`status === 'ok'` の中に入れると
+               **一番書きたいケースだけ書けない**。 */
+            ...playbackUpdate(playback),
+          };
+          if (Object.keys(data).length > 0) {
+            await tx.dish_media_external_embeddings.updateMany({
+              where: {
+                provider,
+                external_content_id: externalContentId,
+                dish_id: dish.id,
+              },
+              data,
+            });
+          }
         }
 
         if (dishMediaId === null) {
@@ -368,6 +570,8 @@ export class DishMediaImportsService {
               // 表示の一次ソースはこの後の複製（replicateExternalThumbnail）が置く
               // dish_media.thumbnail_path（オーナー承認 2026-08-23: 自ストレージへ複製する）
               thumbnail_url: resolved.metadata.thumbnailUrl,
+              // #1641 判定できていなければ列の DEFAULT（'unknown'）のままになる
+              ...playbackUpdate(playback),
             },
           });
         }
@@ -532,7 +736,31 @@ export class DishMediaImportsService {
   async resolve(
     dto: ResolveDishMediaImportDto,
   ): Promise<ResolveDishMediaImportResponse> {
+    return (await this.resolveInternal(dto)).response;
+  }
+
+  /**
+   * #1641 `resolve()` の本体。**再生可否の判定を一緒に返す。**
+   *
+   * ## なぜ公開レスポンスへ載せないのか
+   *
+   * `playback` は «その投稿を検索フィードへ出すか / WebView をマウントするか» という
+   * **保存側の都合**であって、確認画面がユーザーへ見せる情報ではない。公開レスポンスへ
+   * 足すと、クライアントがそれを見て独自に分岐しはじめ、判定の正が 2 箇所になる。
+   * 保存に要るものだけを内部で受け渡す。
+   *
+   * ## 追加のリクエストはゼロである
+   *
+   * 判定材料は**キャプション取得のために既に引いた応答**（Instagram の埋め込み SSR /
+   * YouTube の oEmbed のステータス）だけで、ここから外部へ増える通信は無い。
+   */
+  private async resolveInternal(dto: ResolveDishMediaImportDto): Promise<{
+    response: ResolveDishMediaImportResponse;
+    playback: EmbedPlaybackVerdict;
+  }> {
     const limit = dto.limit ?? DEFAULT_CANDIDATE_LIMIT;
+    // メタデータを取る前に失敗した経路は «判定できなかった»。弾かない側の既定値で返す
+    let playback: EmbedPlaybackVerdict = PLAYBACK_UNKNOWN;
 
     /* 1. URL の解釈。判定ロジックはここに書かない（`shared/utils/snsUrl.ts` が正本） */
     const parsed = parseSnsUrl(dto.url);
@@ -540,13 +768,16 @@ export class DishMediaImportsService {
       this.logger.debug('SnsImportUnsupportedUrl', 'resolve', {
         length: dto.url.length,
       });
-      return this.emptyResponse(
-        'unsupported',
-        'unsupported_url',
-        null,
-        false,
-        dto,
-      );
+      return {
+        response: this.emptyResponse(
+          'unsupported',
+          'unsupported_url',
+          null,
+          false,
+          dto,
+        ),
+        playback,
+      };
     }
 
     /* 2. 短縮 URL なら展開して、もう一度同じ判定に通す */
@@ -556,13 +787,16 @@ export class DishMediaImportsService {
     if (parsed.kind === 'shortlink') {
       const expanded = await this.expandShortlink(parsed);
       if (expanded.content === null) {
-        return this.emptyResponse(
-          'unsupported',
-          expanded.reason,
-          null,
-          true,
-          dto,
-        );
+        return {
+          response: this.emptyResponse(
+            'unsupported',
+            expanded.reason,
+            null,
+            true,
+            dto,
+          ),
+          playback,
+        };
       }
       content = expanded.content;
       expandedFromShortlink = true;
@@ -570,33 +804,106 @@ export class DishMediaImportsService {
       content = parsed;
     }
 
-    /* 3. provider 別の公式 oEmbed */
-    const outcome = await this.oembed.fetchMetadata(content);
+    /* 3. メタデータ。
+       #1273 大量並列 resolve: **収集時のキャプションが渡されていれば IG を取りに行かない。**
+       投稿ごとに `instagram.com/p/{code}/embed/captioned/` を叩くのがレート制限の元凶で、
+       これが並列も長時間連続も頭打ちにしていた（実測: 並列 fetch失敗73% / 単発長時間も劣化）。
+       収集側（business_discovery のキャプション・CC/検索の記事本文）で既にテキストは
+       得られているので、それを持ち回って渡せば店照合/カテゴリ判定は純粋なテキスト処理になり、
+       IG を一切叩かず好きなだけ並列できる。渡されないときは従来どおり provider 公式経路で取る。 */
+    let metadata: SnsMetadata;
+    const providedCaption =
+      typeof dto.caption === 'string' && dto.caption.trim() !== ''
+        ? dto.caption
+        : null;
+    if (providedCaption !== null) {
+      metadata = {
+        title: providedCaption,
+        description: null,
+        authorName:
+          typeof dto.authorName === 'string' && dto.authorName.trim() !== ''
+            ? dto.authorName
+            : null,
+        authorUrl: null,
+        thumbnailUrl: null,
+      };
+      // playback は既定の PLAYBACK_UNKNOWN のまま（埋め込み可否は判定していない）。
+    } else {
+      const outcome = await this.oembed.fetchMetadata(content);
+      /* #1641 メタデータが取れたかどうかとは独立に、再生可否は確定していることがある
+         （YouTube の «埋め込み不可» は oEmbed 401 = メタデータ失敗として現れる）。
+         だから status の分岐より**先に**引き取る。 */
+      playback = outcome.playback;
 
-    if (outcome.status === 'unavailable') {
-      return this.emptyResponse(
-        'unavailable',
-        'metadata_content_unavailable',
-        content,
-        expandedFromShortlink,
-        dto,
-      );
-    }
-    if (outcome.status === 'unknown') {
-      // Instagram（取得手段が無い）も、oEmbed の 5xx / タイムアウトもここへ来る。
-      // **どちらも「取り込みは続行してよい」状態**なので、埋め込みに要る情報は返し切る。
-      return this.emptyResponse(
-        'unknown',
-        outcome.kind === 'provider_unsupported'
-          ? 'metadata_provider_unsupported'
-          : 'metadata_fetch_failed',
-        content,
-        expandedFromShortlink,
-        dto,
-      );
-    }
+      if (outcome.status === 'unavailable') {
+        return {
+          response: this.emptyResponse(
+            'unavailable',
+            'metadata_content_unavailable',
+            content,
+            expandedFromShortlink,
+            dto,
+          ),
+          playback,
+        };
+      }
+      if (outcome.status === 'unknown') {
+        // Instagram（取得手段が無い）も、oEmbed の 5xx / タイムアウトもここへ来る。
+        // **どちらも「取り込みは続行してよい」状態**なので、埋め込みに要る情報は返し切る。
+        return {
+          response: this.emptyResponse(
+            'unknown',
+            outcome.kind === 'provider_unsupported'
+              ? 'metadata_provider_unsupported'
+              : 'metadata_fetch_failed',
+            content,
+            expandedFromShortlink,
+            dto,
+          ),
+          playback,
+        };
+      }
 
-    const metadata = outcome.metadata;
+      /*
+      #1641 **YouTube は Shorts だけを取り込む**（#1399 リーダー確定 §1）。
+
+      `/watch?v=` と `youtu.be/` は URL だけでは Shorts か判定できないので
+      `requiresShortsCheck` が立つ。**その確定処理がどこにも無く、横長の通常動画が
+      そのまま取り込めていた**（オーナー指摘 2026-08-28。セルでは上下に黒帯が出る）。
+
+      ⚠️ 判定できなかったときは**弾かずに通す**（同 §3 の条件 1）。判定材料は YouTube の
+         実装であって契約された仕様ではないので、安全側に倒すと向こうが挙動を変えた日に
+         取り込みが全部止まる。`requiresShortsCheck` を立てたまま返し、呼び出し側に委ねる。
+      */
+      if (
+        content.provider === 'youtube' &&
+        content.requiresShortsCheck === true
+      ) {
+        const verdict = await this.oembed.confirmYouTubeShorts(
+          content.externalContentId,
+        );
+        if (verdict === 'not_shorts') {
+          this.logger.debug('SnsImportYouTubeNotShorts', 'resolve', {
+            externalContentId: content.externalContentId,
+          });
+          return {
+            response: this.emptyResponse(
+              'unsupported',
+              'youtube_not_shorts',
+              content,
+              expandedFromShortlink,
+              dto,
+            ),
+            playback,
+          };
+        }
+        // Shorts だと確定したなら、呼び出し側へ «要確認» を持ち越さない
+        if (verdict === 'shorts')
+          content = { ...content, requiresShortsCheck: false };
+      }
+
+      metadata = outcome.metadata;
+    }
     const texts = this.buildExtractedTexts(content, metadata);
 
     /* 4-5. 料理カテゴリ候補と店舗候補。互いの結果を使わないので並列に走らせる
@@ -617,31 +924,37 @@ export class DishMediaImportsService {
         : 'resolved';
 
     return {
-      status: 'ok',
-      reason,
-      source: this.buildSource(content, expandedFromShortlink),
-      metadata: {
-        title: metadata.title,
-        authorName: metadata.authorName,
-        authorUrl: metadata.authorUrl,
-        thumbnailUrl: metadata.thumbnailUrl,
-        extractedTexts: texts.map((text) => ({
-          field: text.field,
-          text: text.text,
-        })),
-      },
-      candidates: {
-        dishCategories: dishCategoryOutcome.candidates,
-        restaurants: restaurantOutcome.candidates,
-      },
-      prefill: {
-        dishCategoryId: dishCategoryOutcome.prefillDishCategoryId,
-        restaurantId: restaurantOutcome.prefillRestaurantId,
-      },
-      restaurantSearch: {
-        performed: restaurantOutcome.performed,
-        reason: restaurantOutcome.reason,
-        scannedCount: restaurantOutcome.scannedCount,
+      playback,
+      response: {
+        status: 'ok',
+        reason,
+        source: this.buildSource(content, expandedFromShortlink),
+        metadata: {
+          title: metadata.title,
+          // #1629 説明文も返す。内部の候補抽出には使っていたのに返しておらず、
+          // 確認画面では «キャプションが取れていない» ように見えていた（型側のコメント参照）
+          description: metadata.description ?? null,
+          authorName: metadata.authorName,
+          authorUrl: metadata.authorUrl,
+          thumbnailUrl: metadata.thumbnailUrl,
+          extractedTexts: texts.map((text) => ({
+            field: text.field,
+            text: text.text,
+          })),
+        },
+        candidates: {
+          dishCategories: dishCategoryOutcome.candidates,
+          restaurants: restaurantOutcome.candidates,
+        },
+        prefill: {
+          dishCategoryId: dishCategoryOutcome.prefillDishCategoryId,
+          restaurantId: restaurantOutcome.prefillRestaurantId,
+        },
+        restaurantSearch: {
+          performed: restaurantOutcome.performed,
+          reason: restaurantOutcome.reason,
+          scannedCount: restaurantOutcome.scannedCount,
+        },
       },
     };
   }
@@ -666,6 +979,30 @@ export class DishMediaImportsService {
     content: SnsUrlContent | null;
     reason: ResolveDishMediaImportReason;
   }> {
+    /*
+    #1641 **TikTok は公式 oEmbed で先に解決する。**
+
+    自分で `vt.tiktok.com` へアクセスして 301 を追う方式は、**Cloud Run からは
+    接続そのものが成立しない**（dev 実ログ: `kind: "network_error"` /
+    外部 API ログ `status_code=0`）。同じ URL は開発環境の curl では 301 を返すので、
+    TikTok 側がこのサーバの出口を弾いていると見られ、こちらからは直せない。
+
+    oEmbed は短縮 URL をそのまま受けて動画 ID とキャプションを返し、
+    その `www.tiktok.com` へは到達できている（フル URL の取り込みは成功している）。
+    詳細は `SnsOembedService.resolveTikTokShortlink` のコメント。
+
+    ⚠️ oEmbed が失敗したら**従来のリダイレクト追跡へ落ちる**。TikTok が oEmbed を
+    閉じたときに «短縮 URL が一切使えない» へ戻らないよう、経路は 2 本残す。
+    */
+    if (shortlink.provider === 'tiktok') {
+      const viaOembed = await this.oembed.resolveTikTokShortlink(
+        shortlink.expandUrl,
+      );
+      if (viaOembed !== null) {
+        return { content: viaOembed, reason: 'resolved' };
+      }
+    }
+
     const isSnsUrl = (url: URL) => parseSnsUrl(url.href) !== null;
     const isResolvedContent = (url: URL) =>
       parseSnsUrl(url.href)?.kind === 'content';
@@ -719,7 +1056,7 @@ export class DishMediaImportsService {
     content: SnsUrlContent,
     metadata: SnsMetadata,
   ): ExtractedText[] {
-    if (metadata.title === null) return [];
+    const texts: ExtractedText[] = [];
 
     // TikTok / Instagram の `title` はキャプション本文（ハッシュタグ・店舗情報込み）、
     // YouTube の `title` は動画題名。由来が違うので field を分けておく
@@ -727,7 +1064,20 @@ export class DishMediaImportsService {
     // Instagram は #1375（3 巡目）で埋め込み SSR からキャプションが取れるようになった
     const field: ExtractedText['field'] =
       content.provider === 'youtube' ? 'title' : 'caption';
-    return [{ field, text: metadata.title }];
+    if (metadata.title !== null) texts.push({ field, text: metadata.title });
+
+    /*
+    #1641 **YouTube は説明文も渡す。** オーナー報告「キャプションが取れてないので店が入らない」。
+
+    YouTube の題名には店舗情報が無く、店名・住所は**説明文**に書かれている（実測 `8KJDwppL0qg`）。
+    題名だけを渡していたため候補がゼロになり、毎回お店を手で選ぶ必要があった。
+    説明文はキャプション相当なので `caption` として渡す。
+    */
+    if (metadata.description) {
+      texts.push({ field: 'caption', text: metadata.description });
+    }
+
+    return texts;
   }
 
   /* ------------------------------------------------------------------ */
@@ -1067,6 +1417,7 @@ export class DishMediaImportsService {
       source: this.buildSource(content, expandedFromShortlink),
       metadata: {
         title: null,
+        description: null,
         authorName: null,
         authorUrl: null,
         thumbnailUrl: null,

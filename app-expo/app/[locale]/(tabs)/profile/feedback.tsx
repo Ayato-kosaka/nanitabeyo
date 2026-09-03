@@ -50,7 +50,11 @@ export default function FeedbackScreen() {
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader title={i18n.t("Feedback.title")} onPressBack={handleBack} />
 				{/* モーダル時代は useBlurModal が担っていたキーボード回避を画面側で行う */}
-				<KeyboardAvoidingView style={styles.keyboardAvoiding} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+				{/* #1629 Android にも behavior を渡す（undefined だと Android で 1px も動かない）。
+				    理由は add-record.tsx の同じ箇所のコメントを参照 */}
+				<KeyboardAvoidingView
+					style={styles.keyboardAvoiding}
+					behavior={Platform.select({ ios: "padding", android: "height" })}>
 					<ScrollView
 						style={styles.scrollView}
 						contentContainerStyle={styles.scrollContent}

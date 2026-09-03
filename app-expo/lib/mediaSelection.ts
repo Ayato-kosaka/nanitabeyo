@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import type { CreateDishMediaDto } from "@shared/api/v1/dto";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { selectMediaForE2E } from "./e2e/selectMediaStub";
 
 const MAX_VIDEO_DURATION_SECONDS = 120; // 2 minutes
@@ -54,6 +55,41 @@ function isUnsupportedImageAsset(asset: { mimeType?: string | null; fileName?: s
 	// クエリ文字列やフラグメントを落としてから拡張子を見る
 	const name = (asset.fileName ?? asset.uri ?? "").toLowerCase().split(/[?#]/)[0] ?? "";
 	return name.endsWith(".heic") || name.endsWith(".heif");
+}
+
+/**
+ * #1750 【バグ】`asset.mimeType` は端末によって **空文字**で返る。
+ *
+ * 旧実装は `asset.mimeType ?? "application/octet-stream"` だったが、`??` は `null` /
+ * `undefined` しか拾わないので `""` はそのまま素通りしていた。本番ログ（prod,
+ * 2026-08）に `{"mimeType":"","baseFileName":"user-avatar"}` が実在し、その結果
+ *   - API の `getExt("")` が "bin" を返し、原本が `..._user-avatar.bin` で保存される
+ *   - `buildFullPath` の usageType が `<userId>/` + "" となり **パスに // が入る**
+ *   - 呼び出し側が `if (!mimeType) throw` で弾いていると、保存そのものが失敗する
+ * が同時に起きていた。
+ *
+ * ここで «選んだ時点で» 拡張子から埋めておけば、後段はどれも起きない。
+ * 判別できないときだけ `application/octet-stream` へ落とす（従来の既定値と同じ）。
+ */
+function resolveMimeType(asset: { mimeType?: string | null; fileName?: string | null; uri?: string }): string {
+	const declared = asset.mimeType?.trim();
+	if (declared) return declared;
+
+	const name = (asset.fileName ?? asset.uri ?? "").toLowerCase().split(/[?#]/)[0] ?? "";
+	const ext = name.includes(".") ? name.split(".").pop() : undefined;
+
+	// API の EXTENSION_TABLE（api/src/core/storage/storage.utils.ts）に載っているものだけを埋める。
+	// ここに無い拡張子を勝手に足すと、サーバが読めない形式へ «読めるふり» の MIME を付けることになる
+	const table: Record<string, string> = {
+		jpg: "image/jpeg",
+		jpeg: "image/jpeg",
+		png: "image/png",
+		gif: "image/gif",
+		webp: "image/webp",
+		mp4: "video/mp4",
+		mov: "video/quicktime",
+	};
+	return (ext && table[ext]) || "application/octet-stream";
 }
 
 // ミリ秒/秒 混在に耐える正規化
@@ -174,6 +210,26 @@ async function getVideoDuration(uri: string): Promise<number | null> {
 }
 
 /**
+ * #1750 «いま開いているピッカーは、どの画面のためのものか» を端末へ残すキー。
+ *
+ * Android の保留結果（`getPendingResultAsync`）は **持ち主を持たない**。
+ * 印を付けずに拾うと、料理写真として選んだものが、あとで開いたプロフィール編集へ
+ * «選んだ画像» として入り込む。プロセスごと殺されるのがこの機能の前提なので、
+ * 印はメモリではなく端末（AsyncStorage）へ置く必要がある。
+ */
+const PENDING_PICKER_OWNER_KEY = "mediaSelection.pendingPickerOwner";
+
+const setPendingPickerOwner = async (owner: string | null): Promise<void> => {
+	if (Platform.OS !== "android") return;
+	try {
+		if (owner === null) await AsyncStorage.removeItem(PENDING_PICKER_OWNER_KEY);
+		else await AsyncStorage.setItem(PENDING_PICKER_OWNER_KEY, owner);
+	} catch {
+		// 印が残せなくても «復帰できない» だけで、通常の選択は壊れない。握り潰す
+	}
+};
+
+/**
  * Launch media picker and handle media selection
  * Returns media data with thumbnail for videos
  */
@@ -188,6 +244,12 @@ export async function selectMedia(
 		 * web はカメラ起動をサポートしないのでライブラリへ縮退する。既定は `"library"`
 		 */
 		source?: "library" | "camera";
+		/**
+		 * #1750 Android で «アプリが殺されたときに、この選択を誰が拾ってよいか» を表す名前。
+		 * 渡した画面だけが `recoverPendingMedia({ owner })` で復帰できる。
+		 * 省略すると印を残さない ＝ 復帰の対象にならない（従来どおりの挙動）。
+		 */
+		pendingOwner?: string;
 	},
 ): Promise<MediaSelectionResult> {
 	try {
@@ -243,79 +305,167 @@ export async function selectMedia(
 			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
 		};
 
+		// #1750 ピッカーを開く «前» に印を置く。開いたあとでは、殺されるのが先になりうる
+		if (options?.pendingOwner) await setPendingPickerOwner(options.pendingOwner);
+
 		// Launch picker（camera はその場で撮影。以降の検証・サムネ生成は共通）
 		const result =
 			source === "camera"
 				? await ImagePicker.launchCameraAsync(pickerOptions)
 				: await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
-		if (result.canceled) {
-			return { success: false, error: "cancelled" };
-		}
+		// ここへ来た ＝ 殺されずに戻れた。保留結果は無いので印も要らない
+		if (options?.pendingOwner) await setPendingPickerOwner(null);
 
-		const asset = result.assets[0];
-		if (!asset) {
-			return { success: false, error: "unknown" };
-		}
-
-		// #1425 【バグ】サーバが HEIC をデコードできないので、選ばせた時点で断る。
-		//
-		// #1156 の `preferredAssetRepresentationMode: Compatible` は **iOS 限定**で、
-		// Android と web では無視される。Samsung / Pixel の「高効率」設定は HEIC で保存するため、
-		// Android のフォトピッカーは HEIC をそのまま返しうる。
-		//
-		// ここで断らないと «アップロードは 200 で成功 → 投稿後に静かに failed» になり、
-		// フィードには「このメディアは現在ご利用いただけません」とだけ出る。
-		// サーバ側（#1425）は恒久失敗として畳むだけで、画像が見えるようにはならない。
-		if (!isVideoAsset(asset) && isUnsupportedImageAsset(asset)) {
-			return { success: false, error: "unsupported_image_format" };
-		}
-
-		const isVideo = isVideoAsset(asset);
-
-		// Check video duration
-		let durationSec: number | null = null;
-		if (isVideo) {
-			// iOS: ms のことが多い。Web は別関数で取得。Android は秒のことが多い。
-			durationSec = normalizeToSeconds(asset.duration);
-			// For web, we need to get duration manually
-			if (Platform.OS === "web" && !durationSec) {
-				durationSec = normalizeToSeconds(await getVideoDuration(asset.uri));
-			}
-			if (durationSec && durationSec > MAX_VIDEO_DURATION_SECONDS) {
-				return { success: false, error: "video_too_long" };
-			}
-		}
-
-		// ---- サムネ生成 ----
-		let thumbnailUri: string | undefined;
-		if (options?.shouldGenerateThumbnail && isVideo) {
-			const thumbnail = await generateVideoThumbnail(asset.uri);
-			if (!thumbnail) {
-				return {
-					success: false,
-					error: "thumbnail_failed",
-				};
-			}
-			thumbnailUri = thumbnail;
-		}
-
-		const media: MediaData = {
-			type: isVideo ? "video" : "image",
-			uri: asset.uri,
-			width: asset.width,
-			height: asset.height,
-			durationSec: isVideo && durationSec ? durationSec : undefined,
-			thumbnailUri: isVideo ? thumbnailUri : undefined,
-			mimeType: asset.mimeType ?? "application/octet-stream",
-		};
-
-		return {
-			success: true,
-			media,
-		};
+		return await toMediaSelectionResult(result, options);
 	} catch (error) {
 		console.error("Error selecting media:", error);
+		return {
+			success: false,
+			error: "unknown",
+			errorMessage: error instanceof Error ? error.message : String(error),
+		};
+	}
+}
+
+/**
+ * ピッカーの結果（`launchImageLibraryAsync` / `launchCameraAsync` / `getPendingResultAsync`）を
+ * このアプリの `MediaSelectionResult` へ落とす。
+ *
+ * #1750 `selectMedia` の中身から切り出したもの。**Android の «復帰» 経路
+ * （`recoverPendingMedia`）が通常経路とまったく同じ検証を通る**ようにするために共通化してある。
+ * 片方だけ HEIC 判定や動画の長さ検証を持つ状態にしないこと。
+ */
+async function toMediaSelectionResult(
+	result: ImagePicker.ImagePickerResult,
+	options?: { shouldGenerateThumbnail?: boolean },
+): Promise<MediaSelectionResult> {
+	if (result.canceled) {
+		return { success: false, error: "cancelled" };
+	}
+
+	const asset = result.assets?.[0];
+	if (!asset) {
+		return { success: false, error: "unknown" };
+	}
+
+	// #1425 【バグ】サーバが HEIC をデコードできないので、選ばせた時点で断る。
+	//
+	// #1156 の `preferredAssetRepresentationMode: Compatible` は **iOS 限定**で、
+	// Android と web では無視される。Samsung / Pixel の「高効率」設定は HEIC で保存するため、
+	// Android のフォトピッカーは HEIC をそのまま返しうる。
+	//
+	// ここで断らないと «アップロードは 200 で成功 → 投稿後に静かに failed» になり、
+	// フィードには「このメディアは現在ご利用いただけません」とだけ出る。
+	// サーバ側（#1425）は恒久失敗として畳むだけで、画像が見えるようにはならない。
+	if (!isVideoAsset(asset) && isUnsupportedImageAsset(asset)) {
+		return { success: false, error: "unsupported_image_format" };
+	}
+
+	const isVideo = isVideoAsset(asset);
+
+	// Check video duration
+	let durationSec: number | null = null;
+	if (isVideo) {
+		// iOS: ms のことが多い。Web は別関数で取得。Android は秒のことが多い。
+		durationSec = normalizeToSeconds(asset.duration);
+		// For web, we need to get duration manually
+		if (Platform.OS === "web" && !durationSec) {
+			durationSec = normalizeToSeconds(await getVideoDuration(asset.uri));
+		}
+		if (durationSec && durationSec > MAX_VIDEO_DURATION_SECONDS) {
+			return { success: false, error: "video_too_long" };
+		}
+	}
+
+	// ---- サムネ生成 ----
+	let thumbnailUri: string | undefined;
+	if (options?.shouldGenerateThumbnail && isVideo) {
+		const thumbnail = await generateVideoThumbnail(asset.uri);
+		if (!thumbnail) {
+			return {
+				success: false,
+				error: "thumbnail_failed",
+			};
+		}
+		thumbnailUri = thumbnail;
+	}
+
+	const media: MediaData = {
+		type: isVideo ? "video" : "image",
+		uri: asset.uri,
+		width: asset.width,
+		height: asset.height,
+		durationSec: isVideo && durationSec ? durationSec : undefined,
+		thumbnailUri: isVideo ? thumbnailUri : undefined,
+		mimeType: resolveMimeType(asset),
+	};
+
+	return {
+		success: true,
+		media,
+	};
+}
+
+/**
+ * #1750 【バグ】**Android は、ピッカーを開いている間にアプリの MainActivity を殺すことがある。**
+ *
+ * これが起きると `launchImageLibraryAsync()` の Promise は **解決も棄却もしない**。
+ * 呼び出し元から見ると「ユーザーは画像を選んだのに、`onSelectImage` が一度も呼ばれない」
+ * ＝ 何のエラーも出ないまま選択が消える、という形になる。プロフィール編集ではこれが
+ * 「画像を選んで保存しても上がらない」として観測されていた（本番・dev とも
+ * `CreateSignedUrl(baseFileName=user-avatar)` が 1 件も出ていない実機セッションがある）。
+ *
+ * expo-image-picker はこのために `getPendingResultAsync()` を用意している
+ * （公式ドキュメントの «Make sure that you handle MainActivity destruction on Android»）。
+ * **アプリが作り直されたあとに 1 度呼ぶと、失われた選択結果を取り戻せる。**
+ * このリポジトリはこれまでどこからも呼んでいなかった。
+ *
+ * ⚠️ 保留結果は «どの画面のためのものか» を持たない。取りに行ってよいのは
+ * **ピッカーを開いた当の画面が復帰したときだけ**である。アプリ起動時にまとめて拾うと、
+ * 料理写真として選んだものがアバターに入るような取り違えが起きる。
+ *
+ * 開発者オプションの「アクティビティを保持しない」を ON にすると再現できる。
+ *
+ * @returns 取り戻せた選択結果。復帰対象が無い / Android 以外なら `null`
+ */
+export async function recoverPendingMedia(options: {
+	/**
+	 * `selectMedia({ pendingOwner })` に渡したのと同じ名前。
+	 * 端末に残っている印と一致したときだけ拾う（一致しなければ他画面のものなので触らない）。
+	 */
+	owner: string;
+	shouldGenerateThumbnail?: boolean;
+}): Promise<MediaSelectionResult | null> {
+	if (Platform.OS !== "android") return null;
+
+	try {
+		let storedOwner: string | null = null;
+		try {
+			storedOwner = await AsyncStorage.getItem(PENDING_PICKER_OWNER_KEY);
+		} catch {
+			return null;
+		}
+		if (storedOwner !== options.owner) return null;
+
+		// 印は «拾おうとした» 時点で外す。残すと、復帰に失敗したあとも同じ画面が
+		// 毎回取りに行くことになる（getPendingResultAsync 自体は 1 度で空になる）
+		await setPendingPickerOwner(null);
+
+		const pending = await ImagePicker.getPendingResultAsync();
+		if (!pending) return null;
+
+		// ImagePickerErrorResult（`code` を持つ）は復帰できなかった側。握り潰さずに返す
+		if ("code" in pending) {
+			return {
+				success: false,
+				error: "unknown",
+				errorMessage: `pending_result_error: ${pending.code}`,
+			};
+		}
+
+		return await toMediaSelectionResult(pending, options);
+	} catch (error) {
 		return {
 			success: false,
 			error: "unknown",

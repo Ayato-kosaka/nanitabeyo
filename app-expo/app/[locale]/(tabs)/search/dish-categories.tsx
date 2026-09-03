@@ -46,6 +46,7 @@ import type { DishCategoriesTutorialTargetRefs } from "@/features/tutorial/types
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+import { DISH_CATEGORY_CAROUSEL_LAYOUT } from "@/features/dishCategories/carouselLayout";
 
 const DEEP_DIVE_SCORE_THRESHOLD = 0.85;
 
@@ -242,7 +243,8 @@ export default function DishCategoriesScreen() {
 			showSnackbar(i18n.t("DishCategories.errors.invalidSearchParams"));
 			router.back();
 		}
-	}, [params, pinnedDishCategory, searchParams, searchDishCategories, showSnackbar, router]);
+	// `router` は expo-router からの module import で identity が変わらないため依存に含めない
+	}, [params, pinnedDishCategory, searchParams, searchDishCategories, showSnackbar]);
 
 	const handleViewDetails = useCallback(
 		(dishCategory: DishCategoryRecommendation, originRect?: CardRect) => {
@@ -955,7 +957,10 @@ export default function DishCategoriesScreen() {
 					}}>
 					{visibleDishCategories.length > 0 ? (
 						cardHeight > 0 && (
-							<View style={styles.carouselContainer}>
+							/* #1785 スワイプの掴み先。カード側（`dish-categories-tutorial-target-swipe`）は
+							   parallax で 0.9 倍に描かれるため、Espresso の «90% 以上見えていること» を
+							   構造的に満たせない（実測 81%）。器は等倍なので、native の e2e はここを掴む */
+							<View testID="dish-categories-carousel" style={styles.carouselContainer}>
 								{/* #1156 carousel v5: width/height は style へ、mode/modeConfig は layout へ移行。
 								    v5 は loop の既定が false になったため、v4 の挙動を保つよう明示する。 */}
 								<Carousel
@@ -964,11 +969,9 @@ export default function DishCategoriesScreen() {
 									renderItem={renderCard}
 									onSnapToItem={handleSnapToItem}
 									loop
-									layout={{
-										type: "parallax",
-										scale: 0.9,
-										offset: 100,
-									}}
+									// #1785 値は features/dishCategories/carouselLayout.ts が正
+									//（e2e が «中央カードの実測幅» の期待値をここから引くため）
+									layout={DISH_CATEGORY_CAROUSEL_LAYOUT}
 									style={{ width: cardWidth, height: cardHeight + DISH_CATEGORY_CARD_CTA_OVERHANG }}
 								/>
 							</View>

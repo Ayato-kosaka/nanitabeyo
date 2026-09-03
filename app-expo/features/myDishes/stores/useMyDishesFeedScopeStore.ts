@@ -48,8 +48,17 @@ import { createWithEqualityFn } from "zustand/traditional";
  * `GET /v1/dish-media?ids=` だけでそのページを描けるようにするため。
  * `itemKey` は一覧の行を一意に指すので、ページャの key にそのまま使える
  * （店舗 id を key にすると、同じ店が 2 行あるだけで衝突する）。
+ *
+ * #1761 **`dishMediaId` は null を取る。** 写真の無い記録（投稿を消した記録を含む）も
+ * グリッドの 1 セル ＝ フィードの 1 ページである。以前はそれだけボトムシートで開いていたが、
+ * Calendar / Map が #1752 でフィードに寄ったので、入口ごとの例外をなくした。
+ *
+ * `restaurantId` は **web の直リンク・リロードのためだけ**に持つ。写真の無いページは
+ * クチコミ本文（`myReview`）が要り、それは行にしか無い。通常の遷移では
+ * `useMyDishesStore.itemByKey` に行が残っているので取得は増えないが、リロード後は空なので
+ * «その店舗の記録» を引き直して key で選ぶ（行 1 件を key で引く API は無い）。
  */
-export type MyDishesFeedListItem = { itemKey: string; dishMediaId: string };
+export type MyDishesFeedListItem = { itemKey: string; dishMediaId: string | null; restaurantId: string };
 
 export type MyDishesFeedScopeStore = {
 	/** 順序付きの店舗 id（Map のピンの並び）。空なら «並びは分からない»（Feed は 1 ページへ縮退する） */

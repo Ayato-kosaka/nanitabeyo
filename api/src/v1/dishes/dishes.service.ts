@@ -53,6 +53,7 @@ import {
 import { protos } from '@googlemaps/places';
 import { selectGooglePlaceReviews } from './select-google-place-reviews';
 import { normalizeLanguageCode } from '../../../../shared/utils/languageCode';
+import { computePriceBand } from '../../../../shared/utils/priceBand';
 
 @Injectable()
 export class DishesService {
@@ -746,10 +747,27 @@ export class DishesService {
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
                   dishReviews.length
                 : 0,
-            // #1375 この経路（一括取り込みの応答）はカテゴリ表を引いていないので null を返す。
-            // クライアントは «無ければ dish.name» へ落ちる（dishCategoryLabel.ts）ので表示は壊れない。
-            // ここで引くために join を足すと、取り込みのたびに余計な参照が増える
-            categoryLabels: null,
+            /*
+              #1375 この経路（一括取り込みの応答）はカテゴリ表を引いていない。
+
+              ⚠️ #1629 で `dishes.name` へのフォールバックを **やめた**ので、ここを null のままに
+                 すると受け取った側の料理カテゴリー欄が **空欄**になる（«食べた» を開くと
+                 表記が出ず、投稿の可否まで巻き添えになりうる）。
+                 カテゴリ表は引かずとも、**この取り込みで使ったカテゴリ名は手元にある**ので、
+                 それを «その言語の表記» として返す。カテゴリ表を引く join は増やさない。
+            */
+            categoryLabels: dto.categoryName
+              ? { [dto.languageCode ?? 'ja']: dto.categoryName }
+              : null,
+            // #1774 Google import 由来のレビューは価格を持たないため、実質常に null
+            // （cold-start の価格取得経路は #1774 の別スコープ）。ロジックは共通の
+            // computePriceBand を使い、repository 側と実装を二重管理しない。
+            priceBand: computePriceBand(
+              dishReviews.map((r) => ({
+                priceCents: r.price_cents,
+                currencyCode: r.currency_code,
+              })),
+            ),
           },
           dish_media: {
             ...dishMedia,

@@ -43,6 +43,8 @@ const callOrder: string[] = [];
 const mockPush = jest.fn((_href: unknown) => {
 	callOrder.push("push");
 });
+// #1629 «1 回目では確定しない / カードのボタンで確定する» を見るために露出する
+const mockBack = jest.fn();
 const mockUpsert = jest.fn((_entry: unknown) => {
 	callOrder.push("upsert");
 });
@@ -54,7 +56,8 @@ jest.mock("expo-router", () => {
 	const stub = {
 		push: (href: unknown) => mockPush(href),
 		replace: () => {},
-		back: () => {},
+		// #1629 «1 回目では確定しない / カードのボタンで確定する» を見るために露出する
+		back: () => mockBack(),
 		canGoBack: () => true,
 	};
 	return {
@@ -123,25 +126,31 @@ jest.mock("@/components/MapView", () => {
 	};
 });
 jest.mock("react-native-maps", () => ({ __esModule: true, default: () => null }));
-// #1375 «お店を探す» のピン（店名つき）。何個描かれたかと、名前が渡ったかだけ見る
-const labelMarkerNames: string[] = [];
-jest.mock("@/features/restaurantPicker/components/RestaurantLabelMarker", () => {
-	const ReactActual = jest.requireActual("react");
-	const { View: RNView } = jest.requireActual("react-native");
-	return {
-		RestaurantLabelMarker: ({ name, onPress }: { name: string; onPress?: () => void }) => {
-			labelMarkerNames.push(name);
-			return ReactActual.createElement(RNView, { testID: "nearby-marker", onPress });
-		},
-	};
-});
+// #1629 確認カードを画面下へ置くのに安全域を読む。Provider を立てずに済むよう固定値を返す
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+/*
+#1629【オーナー確定】ピンは «食べたい / 食べた» のマップと同じ丸（`AvatarBubbleMarker`）に
+統一した。以前は «近くのお店 = 店名つき / 保存したお店 = 丸» と別実装で、前者だけが
+Android で映らなかった（オーナー実機報告）。
+
+同じ画面に 2 種類が並ぶことは無い（`pins` は pick モードなら近くのお店、そうでなければ
+保存したお店の **どちらか一方**）。したがって «何個描かれたか» だけで両方の検証が足りる。
+
+⚠️ **店名はピンに載らなくなった**ので、名前の検証はできない。名前が正しく渡ることは
+   店を押したあとの確認カード（`select-restaurant-pick-confirm`）が見ている。
+*/
+const renderedPins: { onPress?: () => void }[] = [];
 jest.mock("@/features/mapMarkers", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
 	return {
 		// マーカーは「押せる何か」としてだけ必要。押下ハンドラを testID 付きで露出する
-		AvatarBubbleMarker: ({ onPress }: { onPress?: () => void }) =>
-			ReactActual.createElement(RNView, { testID: "map-marker", onPress }),
+		AvatarBubbleMarker: ({ onPress }: { onPress?: () => void }) => {
+			renderedPins.push({ onPress });
+			return ReactActual.createElement(RNView, { testID: "restaurant-pin", onPress });
+		},
 	};
 });
 // シートの中身は要らない。カード押下 / 投稿ボタン押下の 2 経路だけを押せる形で露出する
@@ -227,7 +236,8 @@ const press = async (tree: TestRenderer.ReactTestRenderer, testID: string, arg?:
 
 beforeEach(() => {
 	callOrder.length = 0;
-	labelMarkerNames.length = 0;
+	mockBack.mockClear();
+	renderedPins.length = 0;
 	mockRouteParams.current = {};
 	mockCallBackend.mockReset();
 	// 保存した店の検索（GET）は { data } を、店の作成（POST v1/restaurants）は単体を返す
@@ -289,10 +299,10 @@ describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
 	it("保存した店のマーカー押下: 1 度目は遷移せず、2 度目に upsert → push する", async () => {
 		const tree = await render(<SelectRestaurantScreen />);
 
-		await press(tree, "map-marker");
+		await press(tree, "restaurant-pin");
 		expect(callOrder).toEqual([]);
 
-		await press(tree, "map-marker");
+		await press(tree, "restaurant-pin");
 		expect(callOrder).toEqual(["upsert", "push"]);
 	});
 });
@@ -362,7 +372,8 @@ describe("#1375 «お店を探す»（pick モード）のピン", () => {
 		await settleRegion(tree);
 
 		expect(mockCallBackend).toHaveBeenCalledWith("v1/restaurants/search", expect.objectContaining({ method: "GET" }));
-		expect(labelMarkerNames).toEqual(expect.arrayContaining(["お店0", "お店1", "お店2"]));
+		// #1629 ピンに店名は載らなくなったので «3 件ぶん立つこと» を見る（上のモックの申し送り）
+		expect(renderedPins).toHaveLength(3);
 	});
 
 	it("重なるピンは «数字の丸» 1 個へ畳む（120 件をそのまま置かない）", async () => {
@@ -374,7 +385,7 @@ describe("#1375 «お店を探す»（pick モード）のピン", () => {
 		const tree = await render(<SelectRestaurantScreen />);
 		await settleRegion(tree);
 
-		expect(labelMarkerNames).toHaveLength(0);
+		expect(renderedPins).toHaveLength(0);
 		// 実体（host 要素）だけ数える。composite を含めると 1 個の丸が複数回一致する
 		expect(
 			tree.root.findAll((node) => typeof node.type === "string" && node.props?.testID === "select-restaurant-cluster"),
@@ -390,7 +401,54 @@ describe("#1375 «お店を探す»（pick モード）のピン", () => {
 		const tree = await render(<SelectRestaurantScreen />);
 		await settleRegion(tree);
 
-		expect(labelMarkerNames).toHaveLength(0);
+		expect(renderedPins).toHaveLength(0);
+	});
+
+	/*
+	#1629【オーナー実機報告 → 指示】「店ピンを二度押さないと反映されない」。
+
+	**2 回押す作法そのものは残す**（#1375 8 巡目のオーナー指示。地図を触っていて指が当たった
+	だけで記録するお店が決まるのを防ぐため）。壊れていたのは «1 回目に何が起きたか分からない»
+	ことで、1 回目に起きるのはピンの色が変わることだけだった。
+
+	1 回目のタップで «選んだ店の名前 + このお店にする» を出し、押す対象を言葉で見せる。
+	*/
+	it("1 回目のタップで «このお店にする» が出る。まだ確定はしない", async () => {
+		mockRouteParams.current = { mode: "pick" };
+		mockCallBackend.mockImplementation((path: string) =>
+			// ⚠️ ピンは 1 本にする。`press` は testID が 1 つであることを前提にしている
+			Promise.resolve(path === "v1/restaurants/search" ? nearby(1) : { data: [SAVED] }),
+		);
+
+		const tree = await render(<SelectRestaurantScreen />);
+		await settleRegion(tree);
+
+		// 前提: ピンが立っている（0 本のまま «出ない» を ✅ と読まない）
+		expect(renderedPins.length).toBeGreaterThan(0);
+		// 何も選んでいない間はカードを出さない
+		expect(tree.root.findAll((node) => node.props?.testID === "select-restaurant-pick-confirm")).toHaveLength(0);
+
+		await press(tree, "restaurant-pin");
+
+		expect(
+			tree.root.findAll((node) => node.props?.testID === "select-restaurant-pick-confirm").length,
+		).toBeGreaterThan(0);
+		// **まだ確定していない**（画面を離れない）
+		expect(mockBack).not.toHaveBeenCalled();
+	});
+
+	it("カードの «このお店にする» で確定して前の画面へ戻る", async () => {
+		mockRouteParams.current = { mode: "pick" };
+		mockCallBackend.mockImplementation((path: string) =>
+			Promise.resolve(path === "v1/restaurants/search" ? nearby(1) : { data: [SAVED] }),
+		);
+
+		const tree = await render(<SelectRestaurantScreen />);
+		await settleRegion(tree);
+		await press(tree, "restaurant-pin");
+		await press(tree, "select-restaurant-pick-confirm-button");
+
+		expect(mockBack).toHaveBeenCalled();
 	});
 
 	it("pick モードでないときは、この検索を投げない（従来どおり保存したお店を出す）", async () => {
@@ -399,6 +457,7 @@ describe("#1375 «お店を探す»（pick モード）のピン", () => {
 		await settleRegion(tree);
 
 		expect(mockCallBackend).not.toHaveBeenCalledWith("v1/restaurants/search", expect.anything());
-		expect(labelMarkerNames).toHaveLength(0);
+		// pick モードでないときのピンは «保存したお店»。近くのお店は 1 件も引いていない
+		expect(renderedPins).toHaveLength(1);
 	});
 });

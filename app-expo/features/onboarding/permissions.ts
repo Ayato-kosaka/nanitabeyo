@@ -60,19 +60,42 @@ export const getNotificationPermissionState = async (): Promise<PermissionPrompt
 };
 
 /**
+ * 進行中の要求。**同じ許可を二重に OS へ投げない**ための番人（#1736）。
+ *
+ * 権限の説明画面が何らかの理由で 2 枚同時に立つと（実際に #1736 で起きた）、
+ * それぞれが `requestXxxPermissionsAsync()` を呼び、Android はダイアログを 2 回出す。
+ * 画面側の `hasSettledRef` は «二重に次へ進む» ことしか防げないので、
+ * **OS へ届く要求の側**でも 1 本に畳んでおく。
+ *
+ * 進行中の間だけ共有し、決着したら捨てる（後から «許可へ変えて戻ってきた» 人の
+ * 再要求まで古い答えで返さないため）。
+ */
+const singleFlight = (run: () => Promise<PermissionOutcome>): (() => Promise<PermissionOutcome>) => {
+	let inFlight: Promise<PermissionOutcome> | null = null;
+
+	return () => {
+		if (inFlight) return inFlight;
+		inFlight = run().finally(() => {
+			inFlight = null;
+		});
+		return inFlight;
+	};
+};
+
+/**
  * 位置情報（使用中のみ）の許可を求める（#1486 §5）。
  *
  * すでに回答済みなら OS はダイアログを出さず、現在の状態をそのまま返す
  *（#1486 §5「すでに回答済みの場合はOS仕様に従い再表示しない」は OS 側の挙動で満たされる）。
  */
-export const requestLocationPermission = async (): Promise<PermissionOutcome> => {
+export const requestLocationPermission = singleFlight(async (): Promise<PermissionOutcome> => {
 	try {
 		const { status } = await Location.requestForegroundPermissionsAsync();
 		return status === "granted" ? "granted" : "denied";
 	} catch {
 		return "unavailable";
 	}
-};
+});
 
 /**
  * 通知の許可を求める（#1486 §6）。
@@ -81,7 +104,7 @@ export const requestLocationPermission = async (): Promise<PermissionOutcome> =>
  * 未回答のときだけ `requestPermissionsAsync()` を呼ぶことで、
  * 「拒否済みのユーザーに対して毎回無駄な往復をする」のを避ける。
  */
-export const requestNotificationPermission = async (): Promise<PermissionOutcome> => {
+export const requestNotificationPermission = singleFlight(async (): Promise<PermissionOutcome> => {
 	try {
 		const { status: existingStatus } = await Notifications.getPermissionsAsync();
 		if (existingStatus === "granted") return "granted";
@@ -92,4 +115,4 @@ export const requestNotificationPermission = async (): Promise<PermissionOutcome
 	} catch {
 		return "unavailable";
 	}
-};
+});
