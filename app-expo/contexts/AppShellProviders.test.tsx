@@ -95,6 +95,14 @@ jest.mock("@/lib/fetchWithAuth", () => ({
 		response: {
 			ok: true,
 			status: 200,
+			// #1810 PL レビュー 3番【回帰】ここに headers が無いと、`useAPICall` の
+			// `response.headers.get(...)`（Set-Cookie / x-request-id の読み取り）が
+			// 「Cannot read properties of undefined (reading 'get')」で必ず失敗する。
+			// 修正前はモーダルがトークン取得の成否に関係なく開いていたため、この欠落があっても
+			// 「モーダルが描かれるか」というこのテストの検証は通ってしまっていた（トークン取得は
+			// 実際には毎回失敗し、縮退表示になっていた）。#1810 でトークン取得に失敗すると
+			// モーダル自体を開かなくなったため、この欠落がテストの土台ごと壊す形で表面化した。
+			headers: { get: () => null } as unknown as Headers,
 			json: async () => ({ success: true, data: { token: "embed-token" } }),
 		} as unknown as Response,
 		endpoint: "v1/maps/embed-token",
@@ -138,11 +146,17 @@ describe("#1810 AppShellProviders: Portal 経由で mount される画面にも 
 			);
 		});
 
-		// トークン取得（fetchWithAuth のモック）が解決するまで tick を進める
+		// トークン取得（fetchWithAuth のモック）が解決するまで tick を進める。
+		// #1810 PL レビュー 3番でトークン取得を MapsEmbedModalProvider 側（モーダルを開く前）へ
+		// 寄せたことで、ここでの `showMapsEmbedModal` 呼び出しは AuthProvider のセッション復元より
+		// «先» に走るようになった（子の mount effect → 親の mount effect の順で走るため）。
+		// そのため `useAPICall` は `getSession()` がまだ空の状態から `waitForAuthResolved()` で
+		// AuthProvider 側の初期化（getSession → onAuthStateChange 等、複数の await を挟む）が
+		// 終わるのを待つ経路に入る。3 tick では足りないことがあるため、余裕を持って回す
 		await act(async () => {
-			await Promise.resolve();
-			await Promise.resolve();
-			await Promise.resolve();
+			for (let i = 0; i < 20; i++) {
+				await Promise.resolve();
+			}
 		});
 
 		// #1810 修正前はここに到達する前に

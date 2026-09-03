@@ -5,8 +5,9 @@
 //
 // #1810 PL レビュー 2番【設計】GET /v1/maps/embed は認証ガードを持てない
 // （WebView / iframe は Authorization ヘッダを送れない）。代わりに、認証必須の
-// POST /v1/maps/embed-token（`MapsEmbedModal` が `useAPICall` 経由で叩く）が
-// 発行した短命トークンだけを受け取る。ここではキーもトークンの中身も一切扱わず、
+// POST /v1/maps/embed-token（`MapsEmbedModalProvider` がモーダルを開く前に
+// `useAPICall` 経由で叩く。#1810 PL レビュー 3番）が発行した短命トークンだけを受け取る。
+// ここではキーもトークンの中身も一切扱わず、
 // 「トークンを受け取って URL に埋め込む」「リクエストボディの形を整える」だけを行う。
 
 import type { CreateMapsEmbedTokenDto } from "@shared/api/v1/dto";
