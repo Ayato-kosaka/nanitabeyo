@@ -116,6 +116,38 @@ const DEFAULT_CANDIDATE_LIMIT = 5;
 const CAPTION_ADDRESS_RADIUS_M = 1_000;
 
 /**
+ * #1841 📍<店名> 行を **DB を引くクエリ（`q`）** として使うときの設定。
+ *
+ * それまで `extractPinNames` の結果は `matchRestaurantNames` の加点にしか使っておらず、
+ * **候補セットは地理でしか作っていなかった**。候補は `searchNearbyRestaurants` が返した
+ * 店だけなので、キャプションに店名がフルで書いてあっても «近傍 100 件» の外にある店は
+ * 構造的に出てこない（オーナー報告 #1834 / 分析 #1841）。
+ *
+ * `author_name` は既に «名指しの `q`» としてこの枠の外から店を拾っており、#1812 の実測でも
+ * «候補の並べ方を変えても 100 件枠が問題である以上は届かない / 名指しの q なら届く» と
+ * 出ている。同じ経路へ 📍店名 を流す（経路は新設しない）。
+ *
+ * 半径は現在地に依存させない。店名は名指しなので、アプリの店名検索（全国）と同じ扱いでよい。
+ * `q` があるときは trgm 索引が駆動表で、半径は絞り込みにしか効かない（`restaurants.repository.ts`）。
+ * 2,000km なのは、日本の南西端（石垣島）が中心点から 1,508km あり 1,500km では入らないため。
+ */
+const PIN_NAME_SEARCH_RADIUS_M = 2_000_000;
+
+/**
+ * 位置情報も住所も無いときに、店名検索の中心として使う点（瀬戸内海）。
+ *
+ * `ST_DWithin` は中心を必ず要るので «全国» を表す中心が要る。稚内・根室・石垣の
+ * どれもが `PIN_NAME_SEARCH_RADIUS_M` に収まる点として選んである。
+ */
+const PIN_NAME_FALLBACK_CENTER = { lat: 34.5, lng: 134.5 };
+
+/** 1 投稿あたり 📍店名 を `q` に投げる本数の上限（クエリ本数を抑える） */
+const PIN_NAME_MAX_QUERIES = 3;
+
+/** 📍店名 を `q` に投げるときの 1 本あたりの件数 */
+const PIN_NAME_RESTAURANT_LIMIT = 20;
+
+/**
  * 外部サムネイルを取りにいってよい CDN ホスト（provider 別）。
  *
  * `thumbnail_url` は provider の応答由来だが、それでもサーバから外へ出る先は
@@ -1244,7 +1276,19 @@ export class DishMediaImportsService {
       }
     }
 
-    if (searchAreas.length === 0) {
+    // #1841 📍<店名> 行は «名指し» なので、地理の候補セットが作れなくても店を引ける。
+    // そのためエリアの有無を判定する **前に** 抜いておく。
+    //
+    // ⚠️ texts の text は正規化前の生キャプション（buildExtractedTexts が metadata.title /
+    //    description をそのまま入れる）なので、ここで改行連結してよい。normalize 済みを渡すと
+    //    改行が潰れて 📍 行の切り出しが効かなくなる。
+    const nameHints = extractPinNames(texts.map((text) => text.text).join('\n'));
+    const pinNameQueries = nameHints
+      .map((hint) => this.buildNameSearchQuery(hint))
+      .filter((q): q is string => q !== null)
+      .slice(0, PIN_NAME_MAX_QUERIES);
+
+    if (searchAreas.length === 0 && pinNameQueries.length === 0) {
       return empty(provided > 0 ? 'area_incomplete' : 'area_not_provided');
     }
 
@@ -1254,6 +1298,23 @@ export class DishMediaImportsService {
         const collected: Awaited<
           ReturnType<RestaurantsRepository['searchNearbyRestaurants']>
         > = [];
+
+        // #1841 **店名で先に引く。** `matchRestaurantNames` は先頭 200 件で頭打ちになるので、
+        // 一番根拠の強い «キャプションに名指しされた店» を先頭へ置く。地理の候補は後ろでよい。
+        // 中心はエリアがあればそれを使い（アプリの店名検索が地図の中心を使うのと同じ形）、
+        // 無ければ全国の中心へ落とす。どちらでも半径は全国なので結果は変わらない。
+        const pinCenter = searchAreas[0] ?? PIN_NAME_FALLBACK_CENTER;
+        for (const pinQuery of pinNameQueries) {
+          collected.push(
+            ...(await this.restaurantsRepo.searchNearbyRestaurants(tx, {
+              lat: pinCenter.lat,
+              lng: pinCenter.lng,
+              radius: PIN_NAME_SEARCH_RADIUS_M,
+              q: pinQuery,
+              limit: PIN_NAME_RESTAURANT_LIMIT,
+            })),
+          );
+        }
 
         for (const areaParams of searchAreas) {
           collected.push(
@@ -1287,16 +1348,11 @@ export class DishMediaImportsService {
       });
     }
 
-    // #1273 生キャプション（改行を保った状態）から 📍<店名> 行を切り出し、exact-match の
-    // ヒントとして渡す。含有一致 0.85 止まりで prefill（0.90）に届かなかった «店名を丸ごと
-    // 📍 行に書く» 投稿を、無人取り込みの土俵へ乗せる。
-    // ⚠️ texts の text は正規化前の生キャプション（buildExtractedTexts が metadata.title /
-    //    description をそのまま入れる）なので、ここで改行連結してよい。normalize 済みを渡すと
-    //    改行が潰れて 📍 行の切り出しが効かなくなる。
+    // #1273 📍<店名> は exact-match のヒントとしても渡す（含有一致 0.85 止まりで prefill
+    // 0.90 に届かなかった «店名を丸ごと 📍 行に書く» 投稿を、無人取り込みの土俵へ乗せる）。
+    // #1841 で、同じ nameHints を **候補を引く `q`** にも使うようになった（上の pinNameQueries）。
     // TODO(#1273 バケット2): 裸ハンドル（extractBareHandles）→ 店 ID 辞書での解決は、辞書が
     //    入ったら別 Issue でここへ繋ぐ。現状は辞書が無いので抽出のみ用意して未使用。
-    const nameHints = extractPinNames(texts.map((text) => text.text).join('\n'));
-
     const matched = matchRestaurantNames(
       { texts, candidates: searchCandidates, authorName, nameHints },
       { maxCandidates: limit },
@@ -1367,9 +1423,20 @@ export class DishMediaImportsService {
 
   /** `author_name` を `q` として使ってよい形に整える。使えないなら `null` */
   private buildAuthorNameQuery(authorName: string | null): string | null {
-    if (authorName === null) return null;
+    return this.buildNameSearchQuery(authorName);
+  }
 
-    const trimmed = authorName.trim();
+  /**
+   * 店名を `searchNearbyRestaurants` の `q` として使ってよい形に整える。使えないなら `null`。
+   *
+   * `author_name`（#1375）と 📍店名（#1841）の両方がこれを通る。長さの条件は同じ
+   * （1 文字だと `name ILIKE '%x%'` が実質全件に当たる / 上限は `QueryRestaurantsDto.q` の
+   * `@MaxLength(64)` と揃える）ので、**判定を 2 箇所に書かない**。
+   */
+  private buildNameSearchQuery(name: string | null): string | null {
+    if (name === null) return null;
+
+    const trimmed = name.trim();
     if (trimmed.length < AUTHOR_NAME_QUERY_MIN_LENGTH) return null;
     if (trimmed.length > AUTHOR_NAME_QUERY_MAX_LENGTH) return null;
 
