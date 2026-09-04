@@ -645,15 +645,38 @@ export default function SnsImportScreen() {
 								    赤は主 CTA（下の «食べたいに保存»）に譲り、ここは灰の副 CTA にする
 								    （docs/design-guidelines.md §1「2 つ目以降のボタンは灰背景」） */}
 								{isUrlLocked ? (
-									<PrimaryButton
-										testID="sns-import-cancel-button"
-										onPress={handleCancelResolved}
-										label={i18n.t("SnsImport.actions.cancel")}
-										colors={[colors.surfaceSubtle, colors.surfaceSubtle]}
-										labelStyle={{ color: colors.textSecondaryStrong }}
-										shadowColor="transparent"
-										style={styles.resolveButton}
-									/>
+									<>
+										{/*
+										#1834【オーナー指示】「再試行できるように」。
+
+										取得に失敗した（`status: unknown`。実測では Instagram のレート制限）ときは、
+										**同じ URL のまま押し直すと取れることがある**。それまではボタンが «キャンセル» だけで、
+										一度 URL を捨てて貼り直すしか道が無かった。
+										⚠️ 出すのは取得に失敗したときだけ。読み取れているのに «もう一度読み取る» を
+										   常設すると、provider を無駄に叩く導線になる（レート制限は叩くほど悪化する）。
+										*/}
+										{resolved?.status === "unknown" && (
+											<PrimaryButton
+												testID="sns-import-retry-button"
+												onPress={handleResolve}
+												label={i18n.t("SnsImport.actions.resolveAgain")}
+												loading={isResolving}
+												colors={[colors.surfaceSubtle, colors.surfaceSubtle]}
+												labelStyle={{ color: colors.textSecondaryStrong }}
+												shadowColor="transparent"
+												style={styles.resolveButton}
+											/>
+										)}
+										<PrimaryButton
+											testID="sns-import-cancel-button"
+											onPress={handleCancelResolved}
+											label={i18n.t("SnsImport.actions.cancel")}
+											colors={[colors.surfaceSubtle, colors.surfaceSubtle]}
+											labelStyle={{ color: colors.textSecondaryStrong }}
+											shadowColor="transparent"
+											style={styles.resolveButton}
+										/>
+									</>
 								) : (
 									<PrimaryButton
 										testID="sns-import-resolve-button"
