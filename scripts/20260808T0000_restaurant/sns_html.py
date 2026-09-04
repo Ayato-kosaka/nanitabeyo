@@ -78,3 +78,47 @@ def page_text(raw: bytes) -> str:
     return (strip_tags(t.group(1)) if t else "") + " " + (html_mod.unescape(d.group(1)) if d else "")
 
 
+
+
+# ---------------------------------------------------------------------------
+# 記事本文から «店名» を切り出す（#1812 経路C）
+#
+# 日本のローカルグルメ媒体の見出しは «【市区町村】…「店名」…» の形で、
+# 【】は市区町村、『』「」が店名という書き分けがほぼ守られている。
+#
+# 切り出した店名は `sns_post_raw.author_name` へ入れる。resolve はこれを
+# 店名クエリ（`q`）としてエリア内検索に投げるので、エリアの候補上限（100 件）に
+# 埋もれた個人店でも名指しで引ける。**resolve 側は一切変えなくてよい。**
+#
+# 実測（経路C の投稿 400 件・5km 以内のカタログ店と突合）:
+#   『』のみ 18 件 / 「」のみ 57 件 / どちらか 75 件（18.8%）
+#   現在の matched は 2.1% なので、ここが取り切れれば桁で変わる。
+# ---------------------------------------------------------------------------
+
+_RE_QUOTED = re.compile(r"[『「]([^』」]{2,30})[』」]")
+# 店名ではないことが字面で分かるもの。文になっている／日付や告知の常套句。
+_RE_NOT_NAME = re.compile(r"[。！？!?]|です|ます|しました|ください|でした|とは$|^\d+$")
+_NAME_STOPWORDS = frozenset({
+    "営業時間", "定休日", "アクセス", "メニュー", "予約", "駐車場", "テイクアウト",
+    "新型コロナウイルス", "こどもの日", "母の日", "父の日", "バレンタイン", "ハロウィン",
+})
+
+
+def store_name_from_text(text: str) -> str | None:
+    """記事の文言から、店名として最も確からしい 1 つを返す。
+
+    『』を「」より優先する（媒体は店名に『』を使う傾向が強く、「」は普通の引用にも使う）。
+    同じ括弧の中では長い方を採る。文になっているもの・行事名は捨てる。
+    """
+    if not text:
+        return None
+    best: str | None = None
+    best_rank = (-1, -1)
+    for m in _RE_QUOTED.finditer(text):
+        body = m.group(1).strip()
+        if not body or body in _NAME_STOPWORDS or _RE_NOT_NAME.search(body):
+            continue
+        rank = (1 if text[m.start()] == "『" else 0, len(body))
+        if rank > best_rank:
+            best_rank, best = rank, body
+    return best

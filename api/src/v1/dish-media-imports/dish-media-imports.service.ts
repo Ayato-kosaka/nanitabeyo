@@ -1262,24 +1262,6 @@ export class DishMediaImportsService {
               limit: AREA_RESTAURANT_LIMIT,
             })),
           );
-          // #1812 入札額順の 100 件だけだと、エリアに 100 店を超えるところで
-          // «入札額 0 の個人店» が一切見えない。実測: 我孫子市の重心 3km 内には
-          // カタログ店が 247 件あり、キャプションに『CAFE DOCK』と書いてあるのに
-          // 当の店（重心から 2,635m）が候補に入らず skipped_no_store になっていた。
-          //
-          // DTO の limit 上限が 100 なので 1 本のクエリでは埋められない。**距離順の
-          // 100 件を追加で引いて後ろに足す**。既存の入札額順は先頭のままなので、
-          // 入札している店の優先度は変わらない（増える方向にしか動かない）。
-          // 住所エリアは既に距離順なので二度引かない。
-          if (!areaParams.orderByDistance) {
-            collected.push(
-              ...(await this.restaurantsRepo.searchNearbyRestaurants(tx, {
-                ...areaParams,
-                orderByDistance: true,
-                limit: AREA_RESTAURANT_LIMIT,
-              })),
-            );
-          }
           if (authorQuery !== null) {
             collected.push(
               ...(await this.restaurantsRepo.searchNearbyRestaurants(tx, {

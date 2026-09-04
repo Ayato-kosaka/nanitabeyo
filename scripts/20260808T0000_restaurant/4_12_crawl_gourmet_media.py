@@ -37,7 +37,8 @@ from datetime import timezone
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (PROVIDER_INSTAGRAM, TABLE_POST_RAW,
                         area_from_text, build_city_index, city_index_sql)
-from sns_html import RE_KANA, captions_from_html, decode_html, page_text
+from sns_html import (RE_KANA, captions_from_html, decode_html, page_text,
+                      store_name_from_text)
 
 LOGGER = logging.getLogger(__name__)
 UA = {"User-Agent": "Mozilla/5.0 (compatible; nanitabeyo-research/1.0; +github.com/Ayato-kosaka/nanitabeyo)",
@@ -123,13 +124,17 @@ def scan_article(url: str, by_pair, uniq) -> list[dict]:
     # 1 記事に 4 件以上埋まっているものは «まとめ記事» でタイトルと投稿が対応しないので付けない。
     attach_page = len(caps) <= 3 and bool(page)
     area = area_from_text(page, by_pair, uniq)
+    # 記事見出しの『』「」は店名。resolve へ author_name として渡すと店名クエリになり、
+    # エリアの候補上限（100 件）に埋もれた個人店でも名指しで引ける。
+    store_name = store_name_from_text(page)
     host = urllib.parse.urlparse(url).netloc.lower()
     rows = []
     for code, cap in caps.items():
         caption = f"{cap} / {page}" if (cap and attach_page) else (cap or (page if attach_page else ""))
         if not caption or not RE_KANA.search(caption):
             continue
-        rows.append({"post_id": code, "caption": caption[:2000], "host": host, "area": area})
+        rows.append({"post_id": code, "caption": caption[:2000], "host": host,
+                     "area": area, "store_name": store_name})
     return rows
 
 
@@ -270,7 +275,7 @@ def main() -> None:
                         "discovery_area_lat": r["area"][0] if r["area"] else None,
                         "discovery_area_lng": r["area"][1] if r["area"] else None,
                         "discovery_category_id": None, "fetched_at": now, "run_id": run_id,
-                        "caption": r["caption"], "author_name": None,
+                        "caption": r["caption"], "author_name": r["store_name"],
                     })
             pool.shutdown()
             LOGGER.info("  %d/%d %s: 記事 %d → 投稿 %d（累計 %d / 地点あり %d）",

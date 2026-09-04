@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#1273 既に書き込んだ投稿へ «探す地点» を後から入れる（discovery_area_lat/lng の後埋め）。
+"""#1273 既に書き込んだ投稿へ «探す地点» と «店名» を後から入れる（後埋め）。
 
 ## なぜこれが要るか（#1812）
 resolve が店を探せる地点は 2 つしか無い（`dish-media-imports.service.ts` の
@@ -30,6 +30,7 @@ import logging
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
 from common_sns import (TABLE_POST_RAW, area_from_text, build_city_index, city_index_sql)
+from sns_html import store_name_from_text
 
 LOGGER = logging.getLogger(__name__)
 CHUNK = 5000  # 1 回の UPDATE に載せる件数（配列パラメータのサイズを抑える）
@@ -56,20 +57,32 @@ def main() -> None:
     LOGGER.info("市区町村 %d 件（うち全国で一意 %d 件）", len(by_pair), len(uniq))
 
     posts = list(pipeline.execute(
-        f"""SELECT post_id, caption FROM `{pipeline.table(TABLE_POST_RAW)}`
-            WHERE run_id = @rid AND caption IS NOT NULL AND discovery_area_lat IS NULL
+        f"""SELECT post_id, caption, discovery_area_lat, author_name
+            FROM `{pipeline.table(TABLE_POST_RAW)}`
+            WHERE run_id = @rid AND caption IS NOT NULL
+              AND (discovery_area_lat IS NULL OR author_name IS NULL)
             QUALIFY ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY fetched_at DESC) = 1""",
         [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
-    LOGGER.info("地点の無い投稿 %d 件を見ます", len(posts))
+    LOGGER.info("地点か店名が欠けている投稿 %d 件を見ます", len(posts))
 
     hits = []
+    names = []
     for p in posts:
-        area = area_from_text(p["caption"], by_pair, uniq)
-        if area:
-            hits.append({"post_id": p["post_id"], "lat": area[0], "lng": area[1]})
+        if p["discovery_area_lat"] is None:
+            area = area_from_text(p["caption"], by_pair, uniq)
+            if area:
+                hits.append({"post_id": p["post_id"], "lat": area[0], "lng": area[1]})
+        if not p["author_name"]:
+            # 記事見出しの『』「」は店名。resolve へ渡すと店名クエリになり、
+            # エリアの候補上限に埋もれた個人店でも名指しで引ける。
+            name = store_name_from_text(p["caption"])
+            if name:
+                names.append({"post_id": p["post_id"], "name": name})
+    LOGGER.info("店名を当てられる投稿: %d 件（%.1f%%）", len(names),
+                100.0 * len(names) / max(len(posts), 1))
     LOGGER.info("地点を当てられる投稿: %d 件（%.1f%%）", len(hits),
                 100.0 * len(hits) / max(len(posts), 1))
-    if args.dry_run or not hits:
+    if args.dry_run:
         return
 
     # 構造体配列パラメータは扱いが面倒なので、3 本の平行な配列で渡し、添字で組み直す。
@@ -94,7 +107,28 @@ def main() -> None:
         pipeline.execute(sql, params)
         done += len(chunk)
         LOGGER.info("  %d/%d 件へ地点を入れました", done, len(hits))
-    LOGGER.info("完了: %d 件", done)
+    LOGGER.info("地点の後埋め完了: %d 件", done)
+
+    name_sql = f"""
+      UPDATE `{pipeline.table(TABLE_POST_RAW)}` t
+      SET author_name = s.name
+      FROM (
+        SELECT @pids[OFFSET(o)] AS post_id, @names[OFFSET(o)] AS name
+        FROM UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH(@pids) - 1)) o
+      ) s
+      WHERE t.run_id = @rid AND t.post_id = s.post_id AND t.author_name IS NULL
+    """
+    ndone = 0
+    for i in range(0, len(names), CHUNK):
+        chunk = names[i:i + CHUNK]
+        pipeline.execute(name_sql, [
+            bigquery.ScalarQueryParameter("rid", "STRING", run_id),
+            bigquery.ArrayQueryParameter("pids", "STRING", [h["post_id"] for h in chunk]),
+            bigquery.ArrayQueryParameter("names", "STRING", [h["name"] for h in chunk]),
+        ])
+        ndone += len(chunk)
+        LOGGER.info("  店名 %d/%d 件", ndone, len(names))
+    LOGGER.info("店名の後埋め完了: %d 件", ndone)
 
 
 if __name__ == "__main__":
