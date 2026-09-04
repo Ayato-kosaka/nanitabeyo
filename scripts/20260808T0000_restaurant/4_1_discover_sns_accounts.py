@@ -6,6 +6,7 @@
   open_data_socials  … restaurant_catalog.social_urls の instagram を店アカウントとして取り込む（ルート1）
   official_site_crawl… 4_4 が作った sns_store_site_ig（店公式サイト crawl の店固有 IG）を合流（柱1）
   caption_mentions   … 収集済み投稿の caption 中の @mention を新しいアカウントとして取り込む（柱2の自己増殖）
+  embedded_authors   … 埋め込み経路で採れた投稿の投稿者 handle を新しいアカウントとして取り込む
 
 いずれも「アカウントを見つける」だけ。投稿の収集は 4_2、店舗照合は resolve（このスクリプトはしない）。
 SERPER でハンドルを探すルート1の補完（serper_account）は 4_1b で別途。
@@ -48,7 +49,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--run-id", default=None)
     p.add_argument("--source", required=True,
                    choices=["influencer_list", "open_data_socials", "official_site_crawl",
-                            "caption_mentions"])
+                            "caption_mentions", "embedded_authors"])
     p.add_argument("--handles-file", default=str(HERE / "sns_influencer_seed_handles.txt"),
                    help="influencer_list 用。1 行 1 handle")
     p.add_argument("--catalog-run-id", default=None,
@@ -60,6 +61,8 @@ def parse_args() -> argparse.Namespace:
                    help="caption_mentions 用。caption を読む sns_post_raw の run_id をカンマ区切りで（省略時は全 run）")
     p.add_argument("--min-posters", type=int, default=1,
                    help="caption_mentions 用。何人の異なる投稿者に言及された handle を採るか")
+    p.add_argument("--min-posts", type=int, default=1,
+                   help="embedded_authors 用。埋め込みで何件の投稿が採れた handle を採るか")
     return p.parse_args()
 
 
@@ -252,6 +255,59 @@ def _rows_from_caption_mentions(pipeline: BigQueryPipeline, run_ids, min_posters
     LOGGER.info("  うち複数投稿者から言及＝influencer 扱い: %d 件", n_infl)
 
 
+def _rows_from_embedded_authors(pipeline: BigQueryPipeline, run_ids, min_posts: int,
+                                run_id: str, now):
+    """埋め込み経路（A/B/C）で採れた投稿の投稿者を、新しい収集元アカウントとして採る。
+
+    #1815 【設計】柱2 の handle が 413 件しか無いのが business_discovery の枠を空ける原因だった。
+    経路A/C で第三者ページから採った投稿には **投稿者 handle が必ず付いている**。
+    しかもグルメ媒体が «埋め込むに値する» と判断したアカウントなので、飲食である確度が高い。
+    caption_mentions（新規 80 件）と違い、こちらは投稿の実体を伴うので母数が桁で大きい。
+
+    account_type は «複数のホストに埋め込まれている» なら influencer、1 ホストだけなら unknown。
+    店アカは自分のサイト（経路B）や 1 つの記事にしか出ないことが多く、この閾値で粗く分かれる。
+    """
+    from google.cloud import bigquery
+    where = "account_id IS NOT NULL AND account_id != ''"
+    params = []
+    if run_ids:
+        where += " AND run_id IN UNNEST(@rids)"
+        params.append(bigquery.ArrayQueryParameter("rids", "STRING", run_ids))
+    sql = f"""
+      WITH src AS (
+        SELECT LOWER(account_id) AS handle, post_id,
+               NET.HOST(discovery_query) AS host
+        FROM `{pipeline.table('sns_post_raw')}` WHERE {where}
+      ),
+      agg AS (
+        SELECT handle, COUNT(DISTINCT post_id) AS posts, COUNT(DISTINCT host) AS hosts
+        FROM src WHERE handle NOT IN UNNEST(@reserved) GROUP BY handle
+      ),
+      known AS (SELECT DISTINCT LOWER(handle) handle FROM `{pipeline.table(TABLE_SOURCE_ACCOUNT)}` WHERE handle IS NOT NULL)
+      SELECT a.handle, a.posts, a.hosts
+      FROM agg a LEFT JOIN known k USING (handle)
+      WHERE k.handle IS NULL AND a.posts >= @minp
+      ORDER BY a.hosts DESC, a.posts DESC
+    """
+    params += [bigquery.ArrayQueryParameter("reserved", "STRING", sorted(_NON_ACCOUNT)),
+               bigquery.ScalarQueryParameter("minp", "INT64", int(min_posts))]
+    n_infl = 0
+    for row in pipeline.execute(sql, params):
+        handle = row["handle"].strip(".")
+        if not handle:
+            continue
+        is_infl = row["hosts"] >= 2
+        n_infl += is_infl
+        yield {
+            "account_id": handle, "provider": PROVIDER_INSTAGRAM, "handle": handle,
+            "account_type": "influencer" if is_infl else "unknown",
+            "discovery_method": "embedded_authors", "discovery_seed_place_id": None,
+            "followers": None, "media_count": None,
+            "discovered_at": now.isoformat(), "run_id": run_id,
+        }
+    LOGGER.info("  うち複数ホストに埋め込まれ＝influencer 扱い: %d 件", n_infl)
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
@@ -270,6 +326,10 @@ def main() -> None:
             rids = [x.strip() for x in (args.caption_run_ids or "").split(",") if x.strip()]
             LOGGER.info("sns_post_raw の caption から @mention を抽出します（run_ids=%s）", rids or "全て")
             rows = list(_rows_from_caption_mentions(pipeline, rids, args.min_posters, run_id, now))
+        elif args.source == "embedded_authors":
+            rids = [x.strip() for x in (args.caption_run_ids or "").split(",") if x.strip()]
+            LOGGER.info("sns_post_raw の投稿者 handle を採ります（run_ids=%s）", rids or "全て")
+            rows = list(_rows_from_embedded_authors(pipeline, rids, args.min_posts, run_id, now))
         elif args.source == "official_site_crawl":
             crawl_rid = args.crawl_run_id or run_id
             LOGGER.info("sns_store_site_ig run_id=%s から店固有 IG を合流します", crawl_rid)
