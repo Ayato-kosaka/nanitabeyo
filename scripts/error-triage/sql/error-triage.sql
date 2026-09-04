@@ -75,10 +75,19 @@ src AS (
        AND jsonPayload.error_level = 'error')
       -- external は error_level 列そのものが無い（logger.service.ts:93-113）。
       -- error_message も使えない（上記）ので status_code だけで定義する。
+      --
+      -- ⚠️ #1834 **3xx も «失敗» である。** この条件は長らく «0 / NULL / >= 400» だけで、
+      --    リダイレクトは «成功» の側に落ちていた。しかしこのリポジトリの外部通信は
+      --    すべて SafeFetch を通っており、**SafeFetch はリダイレクトを追わない**
+      --    （fetchJson / fetchText は unexpected_status で throw する）。
+      --    つまり 3xx が返った時点で **データは 1 バイトも取れていない**。
+      --    実害: Instagram がログイン壁へ 302 を返してキャプションが取れなかった件
+      --    （#1834）が、この条件から漏れて 1 件も起票されなかった。
+      --    実測ノイズ: 30 日で 2 行だけ（= この 302 そのもの）。
       OR (jsonPayload.log_type = 'external_api_logs'
           AND (   SAFE_CAST(jsonPayload.status_code AS INT64) IS NULL
                OR SAFE_CAST(jsonPayload.status_code AS INT64) = 0
-               OR SAFE_CAST(jsonPayload.status_code AS INT64) >= 400))
+               OR SAFE_CAST(jsonPayload.status_code AS INT64) >= 300))
     )
 ),
 
@@ -285,9 +294,18 @@ keyed AS (
        AND SAFE_CAST(n.feHttpStatus AS INT64) = 0
        AND IFNULL(n.feTimedOut, '') != 'true'
         THEN 'client_network'
-      -- (E4) 一時障害系ステータス。constants.js の EXCLUDED_HTTP_STATUSES が唯一の正
+      -- (E4) 一時障害系ステータス。constants.js の TRANSIENT_HTTP_STATUSES が唯一の正
+      --
+      --      ⚠️ #1834 **frontend では 403 / 404 を除外しない**（backend の E6 とは定数を分ける）。
+      --      403 / 404 を除外していた理由は «Cloud Run が公開エンドポイントなので外部スキャナの
+      --      ノイズが乗る» だったが、それは **backend 側の性質**である。frontend のログは
+      --      «自分たちのアプリが呼んだとき» にしか出ないので、スキャナは 1 行も作れない。
+      --      つまり frontend の 404 は «自分たちが存在しない URL を叩いた» ＝ 実バグである。
+      --      実測: backend の 403/404 は WordPress スキャナ（/wp-json/... /.env /wp-login.php）が
+      --      上位を独占しており除外は妥当。frontend の 403/404 は 30 日で **0 行**なので、
+      --      外してもノイズは増えない。
       WHEN n.surface = 'frontend'
-       AND SAFE_CAST(n.feHttpStatus AS INT64) IN (401, 403, 404, 408, 425, 426, 429)
+       AND SAFE_CAST(n.feHttpStatus AS INT64) IN (401, 408, 425, 426, 429)
         THEN 'transient_status'
       -- (E5) 端末が現在地を返せない。kind の値集合は denied/timeout/unavailable/unsupported の4値
       --      （locationPermissionError.ts）。denied / timeout / unavailable を除外する。
@@ -322,8 +340,16 @@ keyed AS (
       -- (E7) 外部API側の一時障害。error_message が STRUCT に無いため、
       --      現状は status_code 側の条件だけが効く（正規表現の段は将来 error_message が
       --      生えたときのために残してある）。
+      --
+      --      ⚠️ #1834 **status_code = 0 は «外部の一時障害» ではないので外した。**
+      --      0 は «接続そのものが成立しなかった» で、相手が落ちているのか
+      --      **こちらの出口が塞がれているのか**を区別しない。実際に
+      --      「Cloud Run から vt.tiktok.com へ接続できない」（sns-oembed.service.ts の
+      --      設計コメント）を人力で突き止める羽目になっており、その間ここは黙っていた。
+      --      408 / 429 / 5xx は «相手が応答した上での一時障害» なので除外のまま残す。
+      --      実測ノイズ: 30 日で 0 行（429 の Google Places クォータだけが該当し、それは除外のまま）。
       WHEN n.surface = 'external'
-       AND (n.extStatusCode IN (0, 408, 429, 502, 503, 504)
+       AND (n.extStatusCode IN (408, 429, 502, 503, 504)
             OR REGEXP_CONTAINS(IFNULL(n.extErrorMessage, ''),
                  r'''(ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|fetch failed)'''))
         THEN 'external_transient'

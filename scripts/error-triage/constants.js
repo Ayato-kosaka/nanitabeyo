@@ -209,7 +209,11 @@ const TRANSIENT_HTTP_STATUSES = Object.freeze([401, 408, 425, 426, 429]);
  *   #1197 §4 の E6（backend 4xx 一律除外）をそのまま入れると、リリース直後の
  *   スキーマ不整合という最も検知したい事故が丸ごと消える。
  *
- * frontend の E4 と backend の E6 はこの同じ定数を共有する。
+ * ⚠️ #1834 **これは backend（E6）専用になった。** frontend（E4）は
+ * `TRANSIENT_HTTP_STATUSES` の方を使う。403 / 404 を除外する理由（外部スキャナ）は
+ * «Cloud Run が公開エンドポイントである» という backend 側の性質であって、
+ * 自分たちのアプリが呼んだときにしか出ない frontend のログには当てはまらないため。
+ * frontend の 404 は «存在しない URL を自分で叩いた» ＝ 実バグである。
  */
 const EXCLUDED_HTTP_STATUSES = Object.freeze([...TRANSIENT_HTTP_STATUSES, 403, 404].sort((a, b) => a - b));
 
@@ -218,7 +222,7 @@ const EXCLUSION_REASONS = Object.freeze([
 	"unknown_build_meta", // E1 frontend の created_commit_id が unknown- 始まり
 	"unauthenticated_race", // E2 Supabase access_token is missing
 	"client_network", // E3 frontend api_call_error かつ status=0
-	"transient_status", // E4 frontend の EXCLUDED_HTTP_STATUSES
+	"transient_status", // E4 frontend の TRANSIENT_HTTP_STATUSES（#1834 で 403/404 を外した）
 	// E5 端末が現在地を返せない（kind = denied/timeout/unavailable）。
 	//    「権限拒否」だけではないので user_denied_permission から改名した。除外の対象は
 	//    current_location_* の event に閉じてある（sql-generator.js の E5 を参照）。
