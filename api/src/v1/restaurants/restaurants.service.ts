@@ -480,17 +480,48 @@ export class RestaurantsService {
     );
 
     if (existingRestaurant) {
-      // 既存レストランの場合はメタ情報を取得して返すだけ
-      const meta = await this.fetchRestaurantMeta(existingRestaurant.id);
+      /*
+       * #1671 【設計】**既存店でも «空いている住所・国コード» は埋める。**
+       *
+       * パイプライン製の 62 万行は `address` / `country_code` が空のままで、
+       * ユーザーが POI を押しても «既存店だからそのまま開く» のでこの穴は
+       * **永久に埋まらなかった**（チケット本文の指摘そのもの）。
+       *
+       * 確認ページを通ってきた（= draftToken がある）ときだけ埋める。
+       * ⚠️ 既に入っている値は上書きしない（→ `fillMissingAddress` のコメント）。
+       */
+      let restaurant = existingRestaurant;
+      const confirmationForExisting = this.resolveConfirmedValues(dto);
 
-      const fallbacks = await this.fetchFallbackThumbnails([
-        existingRestaurant,
-      ]);
+      if (confirmationForExisting) {
+        const filled = await this.prisma.withTransaction(
+          (tx: Prisma.TransactionClient) =>
+            this.repo.fillMissingAddress(tx, {
+              restaurantId: existingRestaurant.id,
+              address: confirmationForExisting.confirmed.address,
+              countryCode: confirmationForExisting.confirmed.countryCode,
+            }),
+        );
+
+        if (filled > 0) {
+          this.logger.log('RestaurantAddressFilled', 'createRestaurant', {
+            restaurantId: existingRestaurant.id,
+            changedFields: confirmationForExisting.changedFields,
+          });
+          // 埋めた値を返す（呼び出し元が古い値をキャッシュしないため）
+          restaurant =
+            (await this.findRestaurantByGooglePlaceId(dto.googlePlaceId)) ??
+            existingRestaurant;
+        }
+      }
+
+      const meta = await this.fetchRestaurantMeta(restaurant.id);
+      const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
 
       return {
         restaurant: this.assembler.enrichRestaurantsWithImageUrls(
-          existingRestaurant,
-          fallbacks.get(existingRestaurant.id),
+          restaurant,
+          fallbacks.get(restaurant.id),
         ),
         meta,
       };

@@ -876,6 +876,50 @@ export class RestaurantsRepository {
     });
   }
 
+  /**
+   * #1671 【設計】**空いている住所・国コードだけを埋める。既にある値は上書きしない。**
+   *
+   * パイプライン製の 62 万行は `address` / `country_code` が空のままで、ユーザーが
+   * POI を押しても «既存店だからそのまま開く» 経路に入るため**永久に埋まらなかった**。
+   * 確認ページを通ったときだけ、ユーザーが確認した値でその穴を塞ぐ。
+   *
+   * ⚠️ **上書きはしない。** 既に誰かが確認して入れた値を、後から来た別のユーザーの
+   * 確認で書き換えると «最後に触った人が勝つ» になる。埋まっているものは触らない。
+   * （競合の解決を入れるなら #1827 の結論を待つ）
+   *
+   * ⚠️ 判定は **SQL の WHERE でやる**。読んでから TS で分岐して書くと、
+   * 同じ店を 2 人が同時に確認したときに後勝ちが起きる。
+   *
+   * @returns 実際に埋めた行数（0 なら既に埋まっていた）
+   */
+  async fillMissingAddress(
+    tx: Prisma.TransactionClient,
+    params: {
+      restaurantId: string;
+      address: string;
+      countryCode: string | null;
+    },
+  ): Promise<number> {
+    const { restaurantId, address, countryCode } = params;
+    const result = await tx.restaurants.updateMany({
+      where: {
+        id: restaurantId,
+        // 空いているものだけ。片方でも空いていれば対象にする
+        OR: [
+          { address: null },
+          { address: '' },
+          { country_code: null },
+          { country_code: '' },
+        ],
+      },
+      data: {
+        address,
+        ...(countryCode ? { country_code: countryCode } : {}),
+      },
+    });
+    return result.count;
+  }
+
   /* ------------------------------------------------------------------ */
   /*                   Restaurant review statistics (count + average rating)                       */
   /* ------------------------------------------------------------------ */

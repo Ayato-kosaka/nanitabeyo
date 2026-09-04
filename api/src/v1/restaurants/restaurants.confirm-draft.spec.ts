@@ -72,6 +72,12 @@ describe('#1671 確認ページ経由の店舗作成', () => {
   let service: RestaurantsService;
   let externalApi: { callPlaceDetails: jest.Mock };
   let dishesRepository: { createOrGetRestaurant: jest.Mock };
+  let repo: {
+    findRestaurantByGooglePlaceId: jest.Mock;
+    fillMissingAddress: jest.Mock;
+    getRestaurantReviewStats: jest.Mock;
+    getRestaurantBidStats: jest.Mock;
+  };
   let locationsService: {
     resolveLocalLanguageCode: jest.Mock;
     extractCountryCode: jest.Mock;
@@ -101,6 +107,16 @@ describe('#1671 確認ページ経由の店舗作成', () => {
       resolveLocalLanguageCode: jest.fn().mockReturnValue('ja'),
       extractCountryCode: jest.fn().mockReturnValue('JP'),
     };
+    repo = {
+      findRestaurantByGooglePlaceId: jest.fn().mockResolvedValue(null),
+      fillMissingAddress: jest.fn().mockResolvedValue(1),
+      getRestaurantReviewStats: jest
+        .fn()
+        .mockResolvedValue({ reviewCount: 0, averageRating: 0 }),
+      getRestaurantBidStats: jest
+        .fn()
+        .mockResolvedValue({ totalCents: 0, maxEndDate: null }),
+    };
     logger = {
       debug: jest.fn(),
       warn: jest.fn(),
@@ -111,18 +127,7 @@ describe('#1671 確認ページ経由の店舗作成', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RestaurantsService,
-        {
-          provide: RestaurantsRepository,
-          useValue: {
-            findRestaurantByGooglePlaceId: jest.fn().mockResolvedValue(null),
-            getRestaurantReviewStats: jest
-              .fn()
-              .mockResolvedValue({ reviewCount: 0, averageRating: 0 }),
-            getRestaurantBidStats: jest
-              .fn()
-              .mockResolvedValue({ totalCents: 0, maxEndDate: null }),
-          },
-        },
+        { provide: RestaurantsRepository, useValue: repo },
         {
           provide: RestaurantsAssembler,
           useValue: { enrichRestaurantsWithImageUrls: jest.fn((r) => r) },
@@ -422,6 +427,77 @@ describe('#1671 確認ページ経由の店舗作成', () => {
         expect.objectContaining({ name: GOOGLE_NAME }),
         PLACE_ID,
       );
+    });
+  });
+
+  describe('既にある店の «空いた住所» を埋める（62 万行の穴）', () => {
+    const EXISTING = {
+      id: 'existing-uuid',
+      google_place_id: PLACE_ID,
+      name: 'パイプラインが作った店',
+      image_path: null,
+      address: null,
+      country_code: null,
+    };
+
+    it('確認ページを通ってきたら、空いている住所・国コードを埋める', async () => {
+      const { draftToken } = await issueDraft();
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue(EXISTING);
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        name: GOOGLE_NAME,
+        latitude: GOOGLE_LAT,
+        longitude: GOOGLE_LNG,
+        address: '東京都渋谷区神南1-2-3',
+        countryCode: 'JP',
+      } as CreateRestaurantDto);
+
+      expect(repo.fillMissingAddress).toHaveBeenCalledWith(
+        TX,
+        expect.objectContaining({
+          restaurantId: 'existing-uuid',
+          address: '東京都渋谷区神南1-2-3',
+          countryCode: 'JP',
+        }),
+      );
+    });
+
+    it('⚠️ 既存店でも新しい行は作らない（既にある店なので）', async () => {
+      const { draftToken } = await issueDraft();
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue(EXISTING);
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        address: '東京都',
+      } as CreateRestaurantDto);
+
+      expect(dishesRepository.createOrGetRestaurant).not.toHaveBeenCalled();
+    });
+
+    it('確認ページを通っていない（draftToken 無し）なら、住所には触らない', async () => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue(EXISTING);
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+      } as CreateRestaurantDto);
+
+      expect(repo.fillMissingAddress).not.toHaveBeenCalled();
+    });
+
+    it('⚠️ Google Places は 1 回も叩かない（既存店なので下読みも要らない）', async () => {
+      const { draftToken } = await issueDraft();
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue(EXISTING);
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        address: '東京都',
+      } as CreateRestaurantDto);
+
+      expect(externalApi.callPlaceDetails).not.toHaveBeenCalled();
     });
   });
 });
