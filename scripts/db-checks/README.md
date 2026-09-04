@@ -19,9 +19,13 @@
   │ restaurants.         │─jest→│ sql/search_      │─読む→│ measure_order_by_  │
   │ repository.ts        │      │ nearby_*.sql     │      │ posts.py           │
   └──────────────────────┘      ├──────────────────┤      └────────────────────┘
-  ┌──────────────────────┐      │ sql/opening_     │      ┌────────────────────┐
-  │ restaurant-opening-  │─jest→│ status.*.sql     │─読む→│ explain_opening_   │
-  │ status.ts            │      └──────────────────┘      │ status.py          │
+  ┌──────────────────────┐      ├──────────────────┤      ┌────────────────────┐
+  │ restaurant-opening-  │─jest→│ sql/opening_     │─読む→│ explain_opening_   │
+  │ status.ts            │      │ status.*.sql     │      │ status.py          │
+  └──────────────────────┘      ├──────────────────┤      └────────────────────┘
+  ┌──────────────────────┐      │ sql/dish_media_  │      ┌────────────────────┐
+  │ dish-media.          │─jest→│ search.sql       │─読む→│ explain_dish_media_│
+  │ repository.ts        │      └──────────────────┘      │ search.py          │
   └──────────────────────┘                                └────────────────────┘
         ↑ ここだけが正本            ↑ 手で書かない              ↑ 条件を書き足さない
 ```
@@ -43,6 +47,7 @@
 | `measure_review_coverage.py` | **#1264** レビューの自社 UGC / Google 取り込みの内訳 | `--schema dev` |
 | `measure_order_by_posts.py` | **#1629/#1686** 店舗検索が索引に乗り続けているか（custom / generic 両プラン） | `--schema dev --assert` |
 | `explain_opening_status.py` | **#1666** 営業時間の引き上げが「近くの候補集合」に閉じているか | `--schema dev --assert` |
+| `explain_dish_media_search.py` | **#1666** 店提案の本体クエリが索引に乗り続けているか（custom / generic 両プラン） | `--schema dev --assert` |
 | `measure_restaurants_nearby.py` / `measure_saved_restaurants.py` / `measure_wide_area_search.py` / `measure_map_pins_distribution.py` | 近傍検索まわりの実測 | `--schema dev` |
 | `measure_external_embed_thumbnails.py` | 外部埋め込みのサムネイル欠落 | `--schema dev` |
 | `audit_schema_drift.py` / `audit_schema_indexes.py` / `assert_index_valid.py` | スキーマ・索引の点検 | `--schema dev` |
