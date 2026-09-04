@@ -32,6 +32,7 @@ lat/lng は省略可（空欄）。query は「ラーメン 渋谷」のよう�
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import logging
 import os
@@ -296,7 +297,9 @@ def _fetch_with_retry(fetch, key, q, num, max_retries: int, provider: str):
                 raise _QuotaExhausted(body)
             LOGGER.warning("%s %s (q=%s) スキップ。body=%s", provider, e.code, q, body)
             return None
-        except (urllib.error.URLError, TimeoutError) as e:
+        except (urllib.error.URLError, TimeoutError, http.client.HTTPException, OSError) as e:
+            # #1815 http.client.RemoteDisconnected は URLError を経由せず素で上がってくることがあり、
+            # 17,158 クエリの実行を 1,150 本目で丸ごと落とした。接続系はすべてリトライ対象にする。
             if attempt >= max_retries:
                 LOGGER.warning("%s 到達不可 (q=%s): %s。スキップ", provider, q, e)
                 return None
