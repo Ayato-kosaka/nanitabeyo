@@ -16,7 +16,8 @@ from pathlib import Path
 from collections import defaultdict
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import PREF_PATTERN, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_COVERAGE
+from common_sns import (PREF_PATTERN, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_COVERAGE,
+                        STORE_ID_SQL, STORE_KNOWN_SQL)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -97,14 +98,12 @@ def main() -> None:
       -- discovery_seed_place_id が無い投稿（柱2 インフル・柱3 検索）は従来どおり status='matched' のみ。
       base AS (
         SELECT DISTINCT
-          COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_place_id) AS google_place_id,
+          {STORE_ID_SQL} AS google_place_id,
           v.dish_category_id, r.discovery_route AS source_route, v.post_id
         FROM latest v
         JOIN `{pipeline.table(TABLE_POST_RAW)}` r
           ON r.run_id IN UNNEST(@resolved_rids) AND r.provider = v.provider AND r.post_id = v.post_id
-        WHERE v.dish_category_id IS NOT NULL
-          AND (v.status = 'matched'
-               OR (r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''))
+        WHERE v.dish_category_id IS NOT NULL AND {STORE_KNOWN_SQL}
       ),
       cat AS (
         SELECT google_place_id, address, location,

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""#1273 フェーズB: matched の ready 部分集合を sns_dish_media_catalog に組む（BQ→BQ）。
+"""#1273 フェーズB: 店が判明している ready 部分集合を sns_dish_media_catalog に組む（BQ→BQ）。
 
-sns_post_resolved(status='matched') と sns_post_raw(canonical_url) を突き合わせ、
+sns_post_resolved と sns_post_raw(canonical_url) を突き合わせ、
 pg へ配信できる «確定行» を row_hash 付きで作る。pg には触れない（9_2 が触る）。
 """
 
@@ -15,6 +15,7 @@ from pipeline_common import (
 )
 from common_sns import (
     PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_DISH_MEDIA_CATALOG,
+    STORE_ID_SQL, STORE_KNOWN_SQL,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -37,14 +38,14 @@ def main() -> None:
 
     from google.cloud import bigquery
     sql = f"""
-      SELECT v.post_id, v.google_place_id, v.dish_category_id,
+      SELECT v.post_id, {STORE_ID_SQL} AS google_place_id, v.dish_category_id,
              ANY_VALUE(r.canonical_url) AS canonical_url
       FROM `{pipeline.table(TABLE_POST_RESOLVED)}` v
       JOIN `{pipeline.table(TABLE_POST_RAW)}` r
         ON r.run_id = @src AND r.provider = v.provider AND r.post_id = v.post_id
-      WHERE v.run_id = @src AND v.status = 'matched'
-        AND v.google_place_id IS NOT NULL AND v.dish_category_id IS NOT NULL
-      GROUP BY v.post_id, v.google_place_id, v.dish_category_id
+      WHERE v.run_id = @src AND {STORE_KNOWN_SQL}
+        AND {STORE_ID_SQL} IS NOT NULL AND v.dish_category_id IS NOT NULL
+      GROUP BY v.post_id, google_place_id, v.dish_category_id
     """
     params = [bigquery.ScalarQueryParameter("src", "STRING", src_run_id)]
 

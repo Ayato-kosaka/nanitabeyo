@@ -44,7 +44,8 @@ import urllib.request
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED
+from common_sns import (PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED,
+                        STORE_ID_SQL, STORE_KNOWN_SQL)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -473,11 +474,10 @@ def _read_cell_targets(pipeline: BigQueryPipeline, max_queries, offset: int, sha
         WHERE run_id = (SELECT run_id FROM `{pipeline.table('restaurant_catalog')}` GROUP BY run_id ORDER BY COUNT(*) DESC LIMIT 1)
       ),
       usable AS (
-        SELECT DISTINCT COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_place_id) AS place, v.dish_category_id AS c
+        SELECT DISTINCT {STORE_ID_SQL} AS place, v.dish_category_id AS c
         FROM latest v JOIN `{pipeline.table(TABLE_POST_RAW)}` r
           ON r.run_id = v.run_id AND r.provider = v.provider AND r.post_id = v.post_id
-        WHERE v.dish_category_id IN (SELECT qid FROM K)
-          AND (v.status = 'matched' OR (r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''))
+        WHERE v.dish_category_id IN (SELECT qid FROM K) AND {STORE_KNOWN_SQL}
       ),
       need AS (SELECT u.place, ca.location FROM (SELECT DISTINCT place FROM usable) u JOIN cat ca ON ca.google_place_id = u.place WHERE ca.city IS NULL AND ca.location IS NOT NULL),
       ref AS (SELECT location, city FROM cat WHERE city IS NOT NULL AND location IS NOT NULL),

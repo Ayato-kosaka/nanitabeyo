@@ -368,3 +368,23 @@ def classify(resp: dict[str, Any]) -> ResolveOutcome:
     if not place_id:
         return ResolveOutcome(STATUS_SKIPPED_NO_STORE, None, category_id, None, category_conf, diag)
     return ResolveOutcome(STATUS_MATCHED, place_id, category_id, restaurant_conf, category_conf, diag)
+
+
+# --- «その投稿はどの店のものか» の唯一の判定 -------------------------------------
+#
+# 【設計】#1273 seed-trust: 柱1（店アカウント）と柱1-B（店サイト埋め込み）は
+# **収集時点で店が確定している**（そのアカウント＝その店 / その店の公式サイトに貼られた投稿）。
+# discovery_seed_place_id はすべて in-catalog なので、resolve が店を引けなくても
+# 店は分かっている。resolve はカテゴリ専用として使う。
+#
+# ⚠️ **この判定を SQL へ写経しないこと。** 7_1（KPI 台帳）と 9_1（実際に配信する行）に
+# 同じ判定を別々に書いた結果、7_1 は seed を数えるのに 9_1 は status='matched' しか見ておらず、
+# **カバレッジには計上されているのにアプリには 1 件も出ないデータ**が 2,676 店ぶん生まれていた。
+# 数える側と配る側がずれると、KPI は «報告のための数字» になって意味を失う。
+STORE_ID_SQL = "COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_place_id)"
+
+# 上の店 ID が非 NULL になる行の条件。matched か、seed を持っているか。
+STORE_KNOWN_SQL = (
+    "(v.status = 'matched' "
+    "OR (r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''))"
+)
