@@ -1234,6 +1234,7 @@
 		"result": {
 			"summary": "Read successfully",
 			"noInfo": "No information could be read from this post. Pick the shop and dish category below to save it.",
+			"fetchFailed": "We couldn't fetch this post's details right now (trying again in a moment often works). You can still pick the shop and dish category below to save it.",
 			"showFullCaption": "Show more",
 			"collapseCaption": "Show less"
 		},
@@ -1243,6 +1244,13 @@
 			"change": "Change",
 			"hint": "Pick a restaurant first. Then choose the dish, and add a photo (optional), a short review, the price and your rating.",
 			"done": "Recorded as eaten"
+		},
+		"reasons": {
+			"unsupported_url": "We support TikTok, YouTube Shorts and Instagram.",
+			"shortlink_expansion_failed": "We couldn't open that short link. Please paste the post page URL instead.",
+			"shortlink_target_unsupported": "That short link doesn't point to a post we can import.",
+			"metadata_content_unavailable": "This post has been deleted or is private.",
+			"youtube_not_shorts": "For YouTube we can only import Shorts (short vertical videos)."
 		}
 	},
 	"Tutorial": {

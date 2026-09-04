@@ -1205,10 +1205,51 @@ export class DishMediaImportsService {
       orderByDistance?: boolean;
     }[] = [];
     if (provided === 3) {
+      /*
+        #1834 【性能】**現在地エリアも «距離順» で引く。既定の «投稿が多い順» を使わない。**
+
+        ## 何が起きていたか
+
+        オーナー報告「SNS インポートの読み込みがめっちゃ遅い」。本番ログを request_id で
+        時系列に並べると、1 リクエストの中で内訳がはっきり分かれていた（2026-09-04 実測）:
+
+          Instagram 埋め込み取得            1,396 ms
+          住所ジオコーディング                 91 ms
+          住所エリアの店舗検索（距離順）        332 ms / 138 ms
+          **現在地エリアの店舗検索（既定順）  26,672 ms**  ← ここだけで 9 割
+          現在地エリアの店舗検索（author 付き） 450 ms
+
+        3 リクエストとも同じ形で、26.7 / 29.2 / 26.4 秒。**クライアントの上限は 30 秒**
+        なので、体感は «30 秒待たされる» か «待った末に読み取り失敗» のどちらかになる
+        （実際に `api_call_timeout` が出ており、直後にユーザーが押し直した再取得が
+        Instagram のレート制限（302）に当たって «読み取れませんでした» になっていた。
+        つまり «遅い» と «読み取れないことが多い» は同じ 1 本の原因から出ている）。
+
+        ## なぜ既定順だと重いのか
+
+        既定順（`orderByDistance` なし）は «投稿が多い順» の枠を組む経路で、
+        `post_counts`（dish_media 全行の集計）と、投稿を持つ店 1 件ずつの
+        LATERAL 探索が走る。この経路の計測ラチェット
+        （`measure_order_by_posts.py` / `restaurants.order-by-posts-plan.spec.ts`）は
+        **limit 20 でしか測っていない**が、ここは limit 100 で呼んでいる。
+        LIMIT は literal で埋まる（`restaurants.repository.ts` の設計コメント参照）ので
+        **limit 100 は別の prepared statement・別のプラン**であり、一度も測られていない。
+
+        ## なぜ距離順が正しいのか（速いからではない）
+
+        ここで集めた候補は `matchRestaurantNames` が**キャプションとの文字列一致**で
+        並べ替える。投稿数の多寡は一致の強さと何の関係も無いので、«投稿が多い順» で
+        上位 100 件を選ぶと、繁華街では «投稿が多いだけの無関係な店» で枠が埋まり
+        **本命の個人店が候補に入らない**。住所エリア側を距離順にしたのと同じ理由
+        （すぐ下のコメント）が、現在地エリアにもそのまま当てはまる。
+        距離順は KNN 索引から «近い順に limit 件» を直接取るので、走る行数は半径にも
+        投稿数にも依存しない。
+      */
       searchAreas.push({
         lat: dto.lat as number,
         lng: dto.lng as number,
         radius: dto.radius as number,
+        orderByDistance: true,
       });
     }
 

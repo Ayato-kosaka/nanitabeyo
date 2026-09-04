@@ -1234,6 +1234,7 @@
 		"result": {
 			"summary": "Lectura completada",
 			"noInfo": "No se pudo leer información de esta publicación. Elige el local y la categoría abajo para guardarla.",
+			"fetchFailed": "No hemos podido obtener los datos de esta publicación ahora mismo (suele funcionar si lo intentas de nuevo en un momento). Aun así puedes elegir el restaurante y la categoría de plato abajo para guardarla.",
 			"showFullCaption": "Ver más",
 			"collapseCaption": "Ver menos"
 		},
@@ -1243,6 +1244,13 @@
 			"change": "Cambiar",
 			"hint": "Primero elige un restaurante. Después selecciona el plato y añade una foto (opcional), una breve reseña, el precio y tu valoración.",
 			"done": "Registrado como comido"
+		},
+		"reasons": {
+			"unsupported_url": "Admitimos TikTok, YouTube Shorts e Instagram.",
+			"shortlink_expansion_failed": "No hemos podido abrir ese enlace corto. Pega la URL de la página de la publicación.",
+			"shortlink_target_unsupported": "Ese enlace corto no lleva a una publicación que podamos importar.",
+			"metadata_content_unavailable": "Esta publicación se ha eliminado o es privada.",
+			"youtube_not_shorts": "De YouTube solo podemos importar Shorts (vídeos verticales cortos)."
 		}
 	},
 	"Tutorial": {

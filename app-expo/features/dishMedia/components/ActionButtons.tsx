@@ -27,7 +27,7 @@ import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
-import { MY_DISH_STATUS_ORANGE } from "@/features/myDishes/statusColors";
+import { MY_DISH_STATUS_COLORS, MY_DISH_STATUS_ORANGE } from "@/features/myDishes/statusColors";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { ReportContentSheet } from "./ReportContentSheet";
 import { DishMediaMoreMenu } from "./DishMediaMoreMenu";
@@ -454,13 +454,17 @@ function ActionButtonsContent({
 
 						それまでは «白の塗り» で状態を示していたが、写真の上では
 						«白の輪郭（未保存）» と «白の塗り（保存済み）» の差が読めなかった。
-						一覧のバッジで承認された同じオレンジ（`MY_DISH_STATUS_ORANGE`）へ揃える。
+						一覧のバッジで承認された同じ色へ揃える。
 						⚠️ 下のラベルは白のまま（オーナー指示）。**アイコンだけを色で示す。**
+
+						#1834【オーナー指示】«食べたい» は緑、«食べた» はオレンジ。一覧のバッジと同じ
+						«塗りの色»（`fill`）をそのままアイコンの色に使う。⚠️ 色の正は `statusColors.ts` の
+						1 箇所だけ。ここで別の緑を書かないこと（一覧とフィードで色がずれる）。
 						*/}
 						<Bookmark
 							size={28}
-							color={isSaved ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia}
-							fill={isSaved ? MY_DISH_STATUS_ORANGE : "transparent"}
+							color={isSaved ? MY_DISH_STATUS_COLORS.want.fill : FixedColors.onMedia}
+							fill={isSaved ? MY_DISH_STATUS_COLORS.want.fill : "transparent"}
 						/>
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("MyDishes.filters.status.want")}</Text>
@@ -484,7 +488,8 @@ function ActionButtonsContent({
 							)}
 							// 読み上げでも «記録済み» が分かるようにする（色だけに頼らない）
 							aria-selected={!!isEaten}>
-							{/* #1375（9 巡目・オーナー指示）記録済みは «食べたい» と同じオレンジ。
+							{/* #1375（9 巡目・オーナー指示）記録済みはオレンジ。
+							    #1834 «食べたい»（緑）と色相で分かれる側である。
 							    ⚠️ ラベルは白のまま（**色を付けるのはアイコンだけ**） */}
 							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia} />
 						</TouchableOpacity>
