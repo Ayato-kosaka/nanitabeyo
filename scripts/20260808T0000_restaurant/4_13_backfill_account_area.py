@@ -60,16 +60,33 @@ def parse_args() -> argparse.Namespace:
                    help="重心を採用するアカウントの散らばり上限（中央値距離, m）")
     p.add_argument("--min-anchors", type=int, default=MIN_ANCHORS,
                    help="重心を作るのに要る matched 投稿の最小数")
+    p.add_argument("--include-caption-anchors", action="store_true",
+                   help="matched 店だけでなく «4_11 がキャプションから入れた地点» も重心の材料にする")
     p.add_argument("--dry-run", action="store_true", help="何件埋まるかだけ数える")
     return p.parse_args()
 
 
-def _anchor_sql(pipeline: BigQueryPipeline) -> str:
+def _anchor_sql(pipeline: BigQueryPipeline, include_caption_anchors: bool = False) -> str:
     """アカウントごとの «matched 店の重心» と «散らばり（中央値距離）» を出す。
 
     重心は run をまたいで集める（どの経路で matched したかは問わない）。同じ post_id が
     複数回 resolve されている（再実行）ので、最新の 1 行だけを見る。
     """
+    # 【設計】既定は «matched した店の座標» だけを材料にする（実測の裏付けがある方）。
+    # --include-caption-anchors を付けると «4_11 がキャプションから入れた市区町村の座標» も
+    # 材料に加える。matched がまだ 1 件も無いアカウントにも重心が作れるようになり、実測で
+    # embcap+inflcap の «地点が無い投稿» 60,367 件のうち、matched 重心で拾えるのが 12,932 件
+    # なのに対し、キャプション由来を足すと **27,514 件**が追加で拾える。
+    # 市区町村の重心は店の座標より粗いが、散らばり（中央値距離）の上限で弾く仕組みは同じなので、
+    # 全国に散っているアカウントは従来どおり不採用になる。
+    caption_anchor_sql = ""
+    if include_caption_anchors:
+        caption_anchor_sql = f"""
+        UNION ALL
+        SELECT account_id AS handle, discovery_area_lat AS lat, discovery_area_lng AS lng
+        FROM `{pipeline.table(TABLE_POST_RAW)}`
+        WHERE account_id IS NOT NULL AND discovery_area_lat IS NOT NULL
+              AND discovery_area_lng IS NOT NULL"""
     return f"""
       WITH latest AS (
         SELECT post_id, status, google_place_id
@@ -82,6 +99,7 @@ def _anchor_sql(pipeline: BigQueryPipeline) -> str:
         JOIN latest res ON res.post_id = r.post_id AND res.status = 'matched'
         JOIN `{pipeline.table('restaurant_catalog')}` c ON c.google_place_id = res.google_place_id
         WHERE r.account_id IS NOT NULL AND c.latitude IS NOT NULL AND c.longitude IS NOT NULL
+        {caption_anchor_sql}
       ),
       agg AS (
         SELECT handle, COUNT(*) AS n,
@@ -105,7 +123,7 @@ def main() -> None:
     pipeline = BigQueryPipeline()
     from google.cloud import bigquery
 
-    rows = list(pipeline.execute(_anchor_sql(pipeline), [
+    rows = list(pipeline.execute(_anchor_sql(pipeline, args.include_caption_anchors), [
         bigquery.ScalarQueryParameter("min_anchors", "INT64", int(args.min_anchors)),
     ]))
     centroid = {r["handle"]: (r["lat"], r["lng"]) for r in rows
