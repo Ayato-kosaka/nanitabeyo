@@ -559,11 +559,31 @@ DB 変更はコード変更の PR に混ぜず、**DB 変更だけのサブ Issu
 - **PR を出す前に `git log origin/main..HEAD --oneline` を読み、
   «自分がこの PR で説明するもの» と一致していることを確かめる。**
   一致しないなら、説明ではなくブランチの方を直す
-- ⚠️ **GitHub の «Files changed» を «main との差分» だと思ってはいけない。**
-  あれは merge-base 基準なので、main が進んでいると実際の差分と食い違う。
-  «マージしたら何が変わるか» は `git diff origin/main origin/<branch>` で見る。
-  この違いを知らないと、**古いブランチをマージして main の修正を消す**（同日、
-  実際にその状態の PR が 2 本できた）
+- ⚠️ **«マージしたら main がどう変わるか» を、差分コマンドで代用しないこと。**
+  同じ日にこれで**二度**間違えた。
+
+  | 見たもの | それが答える問い |
+  | --- | --- |
+  | GitHub の «Files changed» | 「**merge-base から**このブランチで何をしたか」 |
+  | `git diff origin/main origin/<branch>` | 「2 つのツリーは**どこが違うか**」（**両方向**） |
+  | `git merge-tree --write-tree origin/main origin/<branch>` | 「**マージしたら main がどう変わるか**」 |
+
+  2 番目を «マージ結果» と読むと、**ブランチを切ったあとに main が得たファイルが
+  «削除» として出る**。これを見て「このPRは main の修正を消す」と誤判定し、
+  無関係な PR 2 本を止めたうえ、オーナーへ誤った報告をした。
+  （気づいたのは、main から切ったばかりで 1 ファイルしか触っていない PR にも
+  «17 ファイル消える» と出たため）
+
+  **マージ結果を知りたいときは `git merge-tree` を使う。**
+
+  ```bash
+  TREE=$(git merge-tree --write-tree origin/main origin/<branch>)
+  git diff --stat origin/main "$TREE"   # マージ後に main がどう変わるか
+  ```
+
+  ⚠️ `git merge-tree` は競合すると tree ではなく競合内容を出す。**出力が
+  オブジェクト名かどうかを確かめてから diff に渡すこと**（確かめずに渡すと
+  «変更 0 ファイル» に見え、競合を «問題なし» と誤読する）
 
 ## CLAUDE.md を育てる規則
 
