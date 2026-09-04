@@ -57,7 +57,7 @@ def main() -> None:
     LOGGER.info("市区町村 %d 件（うち全国で一意 %d 件）", len(by_pair), len(uniq))
 
     posts = list(pipeline.execute(
-        f"""SELECT post_id, caption, discovery_area_lat, author_name
+        f"""SELECT post_id, caption, discovery_area_lat, author_name, discovery_query
             FROM `{pipeline.table(TABLE_POST_RAW)}`
             WHERE run_id = @rid AND caption IS NOT NULL
               AND (discovery_area_lat IS NULL OR NOT STARTS_WITH(caption, "📍"))
@@ -69,7 +69,13 @@ def main() -> None:
     names = []
     for p in posts:
         if p["discovery_area_lat"] is None:
-            area = area_from_text(p["caption"], by_pair, uniq)
+            # キャプション優先。取れなければ discovery_query から採る。
+            # 【設計】柱3（検索）のクエリは «<料理> <市区町村>» の形なので、スニペットに
+            # 市区町村名が出てこなくても **クエリには必ず入っている**。実測で search3 の
+            # 30,150 投稿中 6,794 件がキャプションからは地点を採れず、地点が無いと
+            # resolve は候補を空で返す（area_not_provided）。
+            area = (area_from_text(p["caption"], by_pair, uniq)
+                    or area_from_text(p["discovery_query"], by_pair, uniq))
             if area:
                 hits.append({"post_id": p["post_id"], "lat": area[0], "lng": area[1]})
         # 記事見出しの『』「」は店名。**キャプションの先頭に 📍 行として合成する。**
