@@ -127,6 +127,7 @@ extracted AS (
     JSON_VALUE(payloadText, '$.status')                 AS feHttpStatus,  -- useAPICall.ts:278
     JSON_VALUE(payloadText, '$.endpoint')               AS feEndpoint,    -- useAPICall.ts:276
     JSON_VALUE(payloadText, '$.kind')                   AS feKind,        -- useLocationSearch.ts:314
+    JSON_VALUE(payloadText, '$.timedOut')               AS feTimedOut,    -- useAPICall.ts:279 自前の30秒タイマーだけが立てる
     JSON_VALUE(payloadText, '$.errorPayload.errorCode') AS feErrorCode,
     JSON_VALUE(payloadText, '$.statusCode')             AS beHttpStatus,  -- api-exception.filter.ts:46
     JSON_VALUE(payloadText, '$.url')                    AS beUrl          -- api-exception.filter.ts:45
@@ -146,7 +147,7 @@ normalized AS (
     e.ingestedAt, e.userId, e.createdCommitId, e.createdAppVersion,
     e.surface, e.eventName, e.functionName, e.apiName, e.extMethod, e.extStatusCode,
     e.rawMessage, e.extErrorMessage,
-    e.feHttpStatus, e.feKind, e.feErrorCode, e.beHttpStatus,
+    e.feHttpStatus, e.feKind, e.feTimedOut, e.feErrorCode, e.beHttpStatus,
     (
       SELECT ARRAY_AGG(
         TRIM(
@@ -263,9 +264,26 @@ keyed AS (
        AND REGEXP_CONTAINS(IFNULL(n.rawMessage, ''), r'''Supabase access_token is missing''')
         THEN 'unauthenticated_race'
       -- (E3) 端末の回線起因（useAPICall.ts:225-245 の status: 0）
+      --
+      --      ⚠️ #1834 **timedOut: true は除外しない。**
+      --      timedOut を立てるのは useAPICall.ts の **自前の 30 秒タイマーだけ**で、
+      --      «リクエストは届いたが、サーバが 30 秒以内に返さなかった» を意味する。
+      --      回線が切れている端末は status: 0 で即座に落ち、このフラグは立たない。
+      --      つまりこれはサーバ側の遅延であって «端末の回線起因» ではない。
+      --
+      --      実害があった: SNS インポートの resolve が 26.7 秒かかっていた不具合
+      --      （2026-09-04 / #1834）は、この行に当たって **除外され、Issue が 1 件も立たなかった**。
+      --      同じ窓に v1/restaurants/search と reverse-geocoding の 30 秒超も居り、
+      --      «サーバが遅い» という系統がまるごと見えなくなっていた。
+      --      他の signal も届かない: 302 は external の «>= 400» に掛からず、
+      --      SnsOembedFailed / api_call_timeout は warn なので収集されない。
+      --
+      --      このファイルの原則どおり «見えるほうの失敗（Issue が立つ）» に倒す。
+      --      件数は実測で 18 時間に 4 件なので、ノイズにはならない。
       WHEN n.surface = 'frontend'
        AND n.eventName = 'api_call_error'
        AND SAFE_CAST(n.feHttpStatus AS INT64) = 0
+       AND IFNULL(n.feTimedOut, '') != 'true'
         THEN 'client_network'
       -- (E4) 一時障害系ステータス。constants.js の EXCLUDED_HTTP_STATUSES が唯一の正
       WHEN n.surface = 'frontend'
