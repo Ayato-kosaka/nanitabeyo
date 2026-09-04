@@ -64,6 +64,8 @@ def parse_args() -> argparse.Namespace:
                    help="0 より大きいと、未処理が無くなるかこの時間まで取得と resolve を繰り返す")
     p.add_argument("--idle-sleep-s", type=int, default=120,
                    help="未処理が無かったときに次を見に行くまでの待ち時間")
+    p.add_argument("--post-ids", default=None,
+                   help="この post_id（カンマ区切り）だけを解き直す。原因調査で --debug-dump と併用する")
     p.add_argument("--only-with-area", action="store_true",
                    help="discovery_area_lat/lng を持つ投稿だけ resolve する")
     p.add_argument("--reresolve-prev-status", default=None,
@@ -74,7 +76,7 @@ def parse_args() -> argparse.Namespace:
 def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_id: str,
                       resolve_version: str, limit: int, shards: int = 1, shard: int = 0,
                       reresolve_prev_status: str | None = None, caption_regexp: str | None = None,
-                      only_with_area: bool = False):
+                      only_with_area: bool = False, post_ids: list[str] | None = None):
     """未 resolve（この run × **この resolve_version** で未処理）の投稿を取り出す。
 
     version を anti-join に含めるので、--resolve-version を上げると全投稿が «その version では未処理»
@@ -87,6 +89,8 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
         # FARM_FINGERPRINT は決定的なので、同じ post_id は常に同じシャードに落ちる（並列非重複）。
         shard_filter = "AND MOD(ABS(FARM_FINGERPRINT(r.post_id)), @shards) = @shard"
     area_filter = "AND r.discovery_area_lat IS NOT NULL" if only_with_area else ""
+    # 特定の投稿だけを解き直す（原因調査用）。--debug-dump と併せて生レスポンスを見る。
+    ids_filter = "AND r.post_id IN UNNEST(@post_ids)" if post_ids else ""
     caption_filter = ""
     if caption_regexp:
         caption_filter = "AND r.caption IS NOT NULL AND REGEXP_CONTAINS(r.caption, @caprx)"
@@ -110,7 +114,7 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
            AND v.resolve_version = @resolve_version
-      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter}
+      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter} {ids_filter}
       QUALIFY ROW_NUMBER() OVER (PARTITION BY r.post_id ORDER BY r.fetched_at DESC) = 1
       LIMIT {int(limit)}
     """
@@ -122,6 +126,8 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
     if shards > 1:
         params.append(bigquery.ScalarQueryParameter("shards", "INT64", shards))
         params.append(bigquery.ScalarQueryParameter("shard", "INT64", shard))
+    if post_ids:
+        params.append(bigquery.ArrayQueryParameter("post_ids", "STRING", post_ids))
     if reresolve_prev_status:
         params.append(bigquery.ScalarQueryParameter("prev_status", "STRING", reresolve_prev_status))
     if caption_regexp:
@@ -142,7 +148,8 @@ def main() -> None:
     def fetch() -> list:
         return _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
                                  args.shards, args.shard, args.reresolve_prev_status,
-                                 args.caption_regexp, args.only_with_area)
+                                 args.caption_regexp, args.only_with_area,
+                                 [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None)
 
     deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes > 0 else 0.0
     posts = fetch()
