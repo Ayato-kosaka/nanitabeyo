@@ -32,6 +32,14 @@ const MAPS_EMBED_SRC = /https:\/\/www\.google\.com\/maps\/embed\/v1\//;
 
 test.describe("#843 アプリ内地図（Maps Embed）", () => {
 	test("embed-token が発行でき、その HTML に Google の埋め込み地図が入っている", async ({ page }) => {
+		/*
+		⚠️ **先にアプリを開く。** `buildApiHeaders` はアクセストークンを localStorage から
+		   読むが、about:blank のままだとオリジンが無く
+		   `SecurityError: Failed to read the 'localStorage' property` で落ちる
+		   （storageState を注入していても、一度もナビゲートしていなければ読めない）。
+		*/
+		await page.goto("/ja-JP");
+
 		const headers = await buildApiHeaders(page);
 		const base = apiBase();
 
