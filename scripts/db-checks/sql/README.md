@@ -9,6 +9,7 @@
 | `search_nearby_restaurants.*.sql` | `api/src/v1/restaurants/restaurants.repository.ts` | `measure_order_by_posts.py` |
 | `opening_status.*.sql` | `api/src/v1/restaurants/restaurant-opening-status.ts` | `explain_opening_status.py` |
 | `usable_dish_media_conditions.sql` | `api/src/v1/dish-media/usable-dish-media-filter.ts` | `dish_media_coverage_sql.py` |
+| `dish_media_search.sql` | `api/src/v1/dish-media/dish-media.repository.ts`（`findDishMediaIds`） | `explain_dish_media_search.py` |
 
 ## なぜファイルにするのか
 
@@ -29,6 +30,7 @@ SQL を意図して変えたときだけ、次で書き出す（手編集はし�
 UPDATE_RESTAURANT_SQL_SNAPSHOT=1 pnpm --filter api exec jest restaurants.order-by-posts-plan
 UPDATE_RESTAURANT_SQL_SNAPSHOT=1 pnpm --filter api exec jest opening-status-sql
 UPDATE_RESTAURANT_SQL_SNAPSHOT=1 pnpm --filter api exec jest usable-dish-media-filter.spec.snapshot
+UPDATE_RESTAURANT_SQL_SNAPSHOT=1 pnpm --filter api exec jest dish-media-search-sql
 ```
 
 バインド位置は半角疑問符で表現されている。**SQL のコメントに半角疑問符を書かないこと**
