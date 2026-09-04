@@ -1,0 +1,8 @@
+[
+  "lng",
+  "lat",
+  "radius",
+  "knnLimit",
+  "dowToday",
+  "dowYesterday"
+]

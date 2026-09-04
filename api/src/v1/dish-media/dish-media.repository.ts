@@ -54,6 +54,8 @@ import {
   parseRestaurantDishMediaCursor,
 } from './restaurant-dish-media-cursor';
 import { fetchRestaurantOpeningStatuses } from '../restaurants/restaurant-opening-status';
+// #1666 「近くの店の候補集合」の定義。営業時間の引き上げも同じ集合を対象にする
+import { nearbyRestaurantsCte } from '../restaurants/nearby-restaurants-cte';
 import type { RestaurantOpeningStatus } from '../../../../shared/utils/openingHours';
 // #1798 「使える dish_media」の判定は 1 箇所に定義し、店提案・店舗詳細の両方から埋め込む
 import { USABLE_DISH_MEDIA_CONDITIONS } from './usable-dish-media-filter';
@@ -151,13 +153,22 @@ export class DishMediaRepository {
       `timeSlot` が未指定（旧クライアント・保存検索の再取得など）のときは、
       問い合わせ自体を省略し空 Map のまま扱う＝除外も加点も起きない（既存動作と同じ）。
 
-      `restaurant_opening_hours` / `restaurant_hours_exceptions` は当面 coverage が低く
-      小さいテーブルなので、この1クエリぶんのオーバーヘッドは無視できる
-      （restaurants 全件ではなく、営業時間データが**ある**店だけを起点に取得している）。
+      ⚠️ #1666 **引き上げる範囲は下の本体クエリと同じ候補集合に限る。**
+      以前は曜日でしか絞っておらず、営業時間データを持つ店が少ないうちは軽いが、
+      クローラでテーブルが埋まると 620,000 店 × 曜日 2 日ぶん ≒ **124 万行を
+      検索 1 回ごとに引き上げる**（「今は空だから速い」だけの時限爆弾だった）。
+      絞り込みの定義は `nearby-restaurants-cte.ts` が正本で、下の本体クエリと
+      **同じ断片**を埋め込んでいる。片方だけ書き戻すとここがずれる。
+
       「営業時間が分からない店」は Map に含まれず `unknown` 扱いのまま残る＝除外されない。
     */
     const openingStatuses = timeSlot
-      ? await fetchRestaurantOpeningStatuses(tx, timeSlot)
+      ? await fetchRestaurantOpeningStatuses(tx, timeSlot, {
+          userLat,
+          userLon,
+          radiusM: radius,
+          limit,
+        })
       : new Map<string, RestaurantOpeningStatus>();
     const closedRestaurantIds: string[] = [];
     const openRestaurantIds: string[] = [];
@@ -220,9 +231,7 @@ export class DishMediaRepository {
           4326
         )::geography AS user_geog,
         -- 距離減衰パラメタ
-        GREATEST(2.0, 0.3 * (${radius}::double precision / 1000.0)) AS d0,
-        -- 最大 KNN 候補数
-        GREATEST(1000, 50 * CAST(${limit} AS integer)) AS knn_limit
+        GREATEST(2.0, 0.3 * (${radius}::double precision / 1000.0)) AS d0
     ),
     -- ========== 重み ==========
     weights AS (
@@ -238,24 +247,13 @@ export class DishMediaRepository {
         0.40 AS w_avg_rating,
         1.50 AS w_recent_user_impression_penalty
     ),
-    -- ========== 候補集合（Stage0: 地理フィルタ） ==========
-    candidates_radius AS (
-      SELECT
-        r.id AS restaurant_id,
-        r.location AS rest_geog
-      FROM restaurants r
-      WHERE ST_DWithin(
-              r.location,
-              (SELECT user_geog FROM params),
-              (SELECT radius_m FROM params)
-            )
-    ),
-    nearby_restaurants AS (
-      SELECT cr.restaurant_id, cr.rest_geog
-      FROM candidates_radius cr
-      ORDER BY cr.rest_geog <-> (SELECT user_geog FROM params)  -- KNN
-      LIMIT (SELECT knn_limit FROM params)
-    ),
+    /* ========== 候補集合（Stage0: 地理フィルタ） ==========
+       #1666 定義は nearby-restaurants-cte.ts が正本。**ここへ書き戻さないこと** —
+       上の営業時間の引き上げが「同じ候補集合」を対象にしていることが崩れ、
+       検索 1 回ごとに全店ぶんの restaurant_opening_hours を引くようになる。
+       ⚠️ ここはテンプレートリテラルの中なので、コメントにバッククォートを書かないこと
+          （文字列が途中で閉じて構文エラーになる）。 */
+    ${nearbyRestaurantsCte({ userLat, userLon, radiusM: radius, limit })},
     -- ========== 候補集合（Stage0: ハードフィルタ） ==========
     base_candidates AS (
       SELECT
