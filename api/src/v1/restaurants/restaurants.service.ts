@@ -36,6 +36,8 @@ import { RestaurantsAssembler } from './restaurants.assembler';
 import { isFoodAndDrinkPlaceForUser } from '../../../../shared/utils/google_places_restaurant_type';
 import { google } from '@googlemaps/places/build/protos/protos';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
+// #1780 店の代替画像（dish_media サムネイル）の入力型
+import type { ThumbnailUrlSource } from '../dish-media/dish-media-thumbnail';
 
 @Injectable()
 export class RestaurantsService {
@@ -64,6 +66,28 @@ export class RestaurantsService {
   ): Promise<PrismaRestaurants | null> {
     return this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
       this.repo.findRestaurantByGooglePlaceId(tx, googlePlaceId),
+    );
+  }
+
+  /**
+   * #1780 【設計】**`image_path` を持たない店の «顔» を dish_media サムネイルで埋める。**
+   *
+   * #1793 で Google の写真の複製をやめたので、これ以降に作られる店の `image_path` は
+   * 必ず null になる。何もしないと **新しい店は全部«画像なし»** で、店詳細・店名検索・
+   * 保存済み店・地図ピンが空の枠を描く（#1780 完了条件 4）。
+   *
+   * ⚠️ **1 クエリでまとめて引く。** ここを店ごとに引くと、店名検索や近隣一覧が
+   *    店の数だけクエリを撃つ（N+1）。`image_path` を持つ店は代替が要らないので
+   *    最初から問い合わせない。
+   */
+  private async fetchFallbackThumbnails(
+    restaurants: PrismaRestaurants[],
+  ): Promise<Map<string, ThumbnailUrlSource>> {
+    const ids = restaurants.filter((r) => !r.image_path).map((r) => r.id);
+    if (ids.length === 0) return new Map();
+
+    return this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+      this.dishMediaRepository.findFallbackThumbnailsByRestaurantIds(tx, ids),
     );
   }
 
@@ -264,9 +288,17 @@ export class RestaurantsService {
       count: results.length,
     });
 
+    // #1780 画像を持たない店の代替サムネイルを 1 クエリでまとめて引いてから詰める
+    const fallbacks = await this.fetchFallbackThumbnails(
+      results.map((r) => r.restaurant),
+    );
+
     // レスポンス変換は assembler に統一
     return results.map((r) => ({
-      restaurant: this.assembler.enrichRestaurantsWithImageUrls(r.restaurant),
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+        r.restaurant,
+        fallbacks.get(r.restaurant.id),
+      ),
       meta: r.meta,
     }));
   }
@@ -290,9 +322,15 @@ export class RestaurantsService {
       // 既存レストランの場合はメタ情報を取得して返すだけ
       const meta = await this.fetchRestaurantMeta(existingRestaurant.id);
 
+      const fallbacks = await this.fetchFallbackThumbnails([
+        existingRestaurant,
+      ]);
+
       return {
-        restaurant:
-          this.assembler.enrichRestaurantsWithImageUrls(existingRestaurant),
+        restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+          existingRestaurant,
+          fallbacks.get(existingRestaurant.id),
+        ),
         meta,
       };
     }
@@ -338,8 +376,18 @@ export class RestaurantsService {
     // 既存実装との相性を保ちつつ meta は常に fetch する
     const meta = await this.fetchRestaurantMeta(restaurant.id);
 
+    /*
+    #1780 作ったばかりの店には dish_media がまだ 1 件も無いので、ここは必ず空振りする。
+    それでも呼ぶのは、**既存店が createRestaurant を通り抜けてくる**（同じ place_id で
+    2 回目以降）ときに «画像がある店だけ画像が出ない» のを作らないため。
+    */
+    const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
+
     return {
-      restaurant: this.assembler.enrichRestaurantsWithImageUrls(restaurant),
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+        restaurant,
+        fallbacks.get(restaurant.id),
+      ),
       meta,
     };
   }
@@ -443,8 +491,13 @@ export class RestaurantsService {
       averageRating: reviewStats.averageRating,
     });
 
+    const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
+
     return {
-      restaurant: this.assembler.enrichRestaurantsWithImageUrls(restaurant),
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+        restaurant,
+        fallbacks.get(restaurant.id),
+      ),
       meta: {
         reviewCount: reviewStats.reviewCount,
         averageRating: reviewStats.averageRating,
@@ -489,6 +542,10 @@ export class RestaurantsService {
     });
 
     // ここも assembler に統一
-    return this.assembler.enrichRestaurantsWithImageUrls(restaurant);
+    const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
+    return this.assembler.enrichRestaurantsWithImageUrls(
+      restaurant,
+      fallbacks.get(restaurant.id),
+    );
   }
 }

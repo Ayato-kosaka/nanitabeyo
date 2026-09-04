@@ -519,7 +519,8 @@ export class DishesService {
           // #1681 住所と国コードはオープンデータ由来で埋める列なので、この経路では
           // 作らない（Google の住所は ToS 3.2.3 で保持できない）。既存値は保つ。
           address: existingGoogleImportEntry?.restaurant.address ?? null,
-          country_code: existingGoogleImportEntry?.restaurant.country_code ?? null,
+          country_code:
+            existingGoogleImportEntry?.restaurant.country_code ?? null,
         };
 
         const dish: SupabaseDishes = {

@@ -6,7 +6,11 @@
 // target ごとに変える。dish_media は投稿固有のタイトルとサムネイルが要る（それが
 // この Issue の主目的）。友達投票は locale の共通テンプレートで足りる。
 
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import type { PublicLocale } from '@shared/v1/constants/publicLocales';
@@ -44,7 +48,8 @@ export type ResolvedShareTarget = {
  * 投稿の共有が必ず 400 になる。DTO 側（`ShareTargetDishMediaParamsDto`）も
  * 同じ理由で `@IsUUID()` を版指定なしにしてある。
  */
-const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_SHAPE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class ShareLinkTargetResolvers {
@@ -113,7 +118,11 @@ export class ShareLinkTargetResolvers {
     // 消えたはずの投稿が残り続ける（アプリを開けば 404 なのに、カードだけ生きている状態）。
     // 複合条件を書くため `findUnique` ではなく `findFirst` を使う
     const head = await this.prisma.dish_media.findFirst({
-      where: { id: uniqueIds[0], deleted_at: null, ...NOT_AUTHORED_BY_DELETED_USER },
+      where: {
+        id: uniqueIds[0],
+        deleted_at: null,
+        ...NOT_AUTHORED_BY_DELETED_USER,
+      },
       select: {
         id: true,
         thumbnail_path: true,
@@ -147,7 +156,8 @@ export class ShareLinkTargetResolvers {
         });
 
     const restaurantName = head.dishes.restaurants.name;
-    const dishName = head.dishes.name ?? localizedCategory?.topic_title ?? restaurantName;
+    const dishName =
+      head.dishes.name ?? localizedCategory?.topic_title ?? restaurantName;
     const text = DISH_MEDIA_PREVIEW_TEXT[locale];
 
     return {
@@ -193,18 +203,19 @@ export class ShareLinkTargetResolvers {
       throw new BadRequestException('target.params.shareToken is required');
     }
 
-    const session = await this.prisma.dish_category_group_vote_sessions.findUnique({
-      where: { share_token: shareToken },
-      select: {
-        id: true,
-        dish_category_group_vote_candidates: {
-          where: { deleted_at: null },
-          orderBy: { display_order: 'asc' },
-          take: 1,
-          select: { image_url: true },
+    const session =
+      await this.prisma.dish_category_group_vote_sessions.findUnique({
+        where: { share_token: shareToken },
+        select: {
+          id: true,
+          dish_category_group_vote_candidates: {
+            where: { deleted_at: null },
+            orderBy: { display_order: 'asc' },
+            take: 1,
+            select: { image_url: true },
+          },
         },
-      },
-    });
+      });
 
     if (!session) {
       throw new NotFoundException('share target not found');
@@ -217,13 +228,17 @@ export class ShareLinkTargetResolvers {
     // 候補が 1 件も無い投票では、Web 側の既定 OG 画像（`/og/<locale>.jpg`）へ落とす。
     // ここを空文字にすると og:image 無しのカードになり、SNS では一番目立たない出方をする
     const firstCandidateImage =
-      session.dish_category_group_vote_candidates[0]?.image_url ?? `/og/${locale}.jpg`;
+      session.dish_category_group_vote_candidates[0]?.image_url ??
+      `/og/${locale}.jpg`;
 
     return {
       targetId: session.id,
       targetParams: { shareToken },
       previewTitle: truncatePreviewText(text.title, PREVIEW_TITLE_MAX_LENGTH),
-      previewDescription: truncatePreviewText(text.description, PREVIEW_DESCRIPTION_MAX_LENGTH),
+      previewDescription: truncatePreviewText(
+        text.description,
+        PREVIEW_DESCRIPTION_MAX_LENGTH,
+      ),
       previewImagePath: firstCandidateImage,
     };
   }

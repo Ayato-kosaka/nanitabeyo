@@ -17,6 +17,13 @@ import {
 } from '@shared/v1/res';
 import type { dish_media_external_embeddings as ExternalEmbedRow } from '../../../../shared/prisma/client';
 import { env } from '../../core/config/env';
+// #1780 サムネイル URL の組み立ての正本。店の代表画像（RestaurantsAssembler）も同じものを使う
+import {
+  buildCdnUrlFromPath,
+  buildDishMediaThumbnailUrl,
+  type ThumbnailUrlSource,
+} from './dish-media-thumbnail';
+export type { ThumbnailUrlSource };
 
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
@@ -24,13 +31,6 @@ import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converte
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
 import { CookieQueueService } from '../../core/cookie-queue/cookie-queue.service';
 import { AppLoggerService } from 'src/core/logger/logger.service';
-
-/**
- * #511 【設計】GCS パスから CDN URL を生成するユーティリティ関数
- */
-function buildCdnUrlFromPath(gcsPath: string): string {
-  return `https://${env.CDN_HOST}/${gcsPath}`;
-}
 
 /**
  * #1395 `dish_media` に増える列。
@@ -43,18 +43,6 @@ function buildCdnUrlFromPath(gcsPath: string): string {
 type DishMediaRenderColumns = {
   /** 'stored' | 'external_embed' */
   render_type?: string | null;
-};
-
-/**
- * サムネイル URL の組み立てに必要な最小限の列。
- *
- * #1395 サムネイルは全 provider について取り込み時に自ストレージへ保存する
- * （統一キャッシュ方式）ので、`render_type` によらず必要な列はこの 3 つだけである。
- */
-export type ThumbnailUrlSource = {
-  id: string;
-  thumbnail_path: string;
-  thumbnail_processing_status: string;
 };
 
 @Injectable()
@@ -304,42 +292,14 @@ export class DishMediaAssembler {
   /**
    * #511 【設計】dish_media エンティティからサムネイル画像の URL を生成
    *
-   * thumbnail_processing_status が 'completed' の場合はリサイズ済みパスを返す
-   * それ以外はオリジナルパスを返す
-   *
    * #1395 Map ピンのように `DishMediaEntry` を丸ごと組み立てない経路からも
-   * 同じ規則を使えるよう public にしてある（サムネイル URL の組み立てを 2 箇所に持たない）。
+   * 同じ規則を使えるよう public にしてある。
    *
-   * ⚠️ #1399 `thumbnail_path` が空の行では **null を返す**。SNS 取り込み
-   * （render_type='external_embed'）は自ストレージにサムネイルを持たず
-   * `thumbnail_path: ''` で作られる。ここを guard しないと
-   * `buildResizedPath` が `Invalid originalPath` を throw し、その行を含む
-   * **一覧・フィード全体が 500 になる**（実際に my-dishes が
-   * 「データの読み込みに失敗しました」で全滅した）。
+   * #1780 実装そのものは `dish-media-thumbnail.ts` の
+   * `buildDishMediaThumbnailUrl()` が持つ（店の代表画像も同じ規則で組み立てるため）。
+   * **ここへ組み立てを書き戻さないこと。**
    */
   public getThumbnailImageUrl(dishMedia: ThumbnailUrlSource): string | null {
-    if (!dishMedia.thumbnail_path) return null;
-
-    const status =
-      dishMedia.thumbnail_processing_status as MediaProcessingStatus | null;
-
-    if (status === 'completed') {
-      // リサイズ済みサムネイルパス
-      const cdnUrl = buildResizedPath(
-        {
-          table: 'dish_media',
-          column: 'thumbnail_path',
-          recordId: dishMedia.id,
-          size: 256,
-          originalPath: dishMedia.thumbnail_path,
-        },
-        'cdn',
-      );
-      return this.storage.generateCdnSignedURL(cdnUrl);
-    } else {
-      // #511 【設計】未完了時はオリジナルパスの CDN Signed URL を返す
-      const originalCdnUrl = buildCdnUrlFromPath(dishMedia.thumbnail_path);
-      return this.storage.generateCdnSignedURL(originalCdnUrl);
-    }
+    return buildDishMediaThumbnailUrl(this.storage, dishMedia);
   }
 }

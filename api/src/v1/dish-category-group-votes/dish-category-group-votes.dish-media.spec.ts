@@ -165,9 +165,7 @@ describe('DishCategoryGroupVotesService#updateCandidateDishMedia #1513', () => {
 
 describe('DishCategoryGroupVotesRepository #1513 削除済み dish_media の落とし方', () => {
   const makeDb = (liveIds: string[]) => {
-    const findMany = jest
-      .fn()
-      .mockResolvedValue(liveIds.map((id) => ({ id })));
+    const findMany = jest.fn().mockResolvedValue(liveIds.map((id) => ({ id })));
     return { db: { dish_media: { findMany } }, findMany };
   };
 

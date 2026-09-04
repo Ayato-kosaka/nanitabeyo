@@ -210,7 +210,9 @@ describe('ExternalApiService Error Handling', () => {
         status: 429,
         text: jest.fn().mockResolvedValue('RESOURCE_EXHAUSTED'),
         // makeExternalApiCall がログ用にボディを複製して読む
-        clone: () => ({ json: jest.fn().mockRejectedValue(new Error('not json')) }),
+        clone: () => ({
+          json: jest.fn().mockRejectedValue(new Error('not json')),
+        }),
       } as unknown as Response);
 
       const error: unknown = await service

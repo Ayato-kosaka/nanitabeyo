@@ -69,7 +69,9 @@ describe('#1629 店舗検索の既定の並びは «投稿が多い順»', () =>
   it('投稿は dish_media で数え、削除済み（deleted_at）は数えない', async () => {
     const sql = await buildSql();
 
-    expect(sql).toContain('FROM dish_media dm JOIN dishes d ON d.id = dm.dish_id');
+    expect(sql).toContain(
+      'FROM dish_media dm JOIN dishes d ON d.id = dm.dish_id',
+    );
     expect(sql).toContain('dm.deleted_at IS NULL');
   });
 
@@ -98,7 +100,10 @@ describe('#1629 店舗検索の既定の並びは «投稿が多い順»', () =>
     expect(postCounts).not.toContain('restaurants');
     expect(postCounts).not.toContain('ST_DWithin');
 
-    const posted = sql.slice(sql.indexOf('posted AS ('), sql.indexOf('nearest AS ('));
+    const posted = sql.slice(
+      sql.indexOf('posted AS ('),
+      sql.indexOf('nearest AS ('),
+    );
     expect(posted).toContain('FROM post_counts pc');
     expect(posted).toMatch(
       /ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT \d+/,

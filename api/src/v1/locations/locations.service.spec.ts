@@ -605,12 +605,17 @@ describe('LocationsService', () => {
       // 名前で畳まなくなったため、type に依存せず守られる。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
-          buildSuggestion('place-bus-a', '市役所前', '日本、福岡県久留米市中央町', [
-            'bus_stop',
-            'transit_station',
-            'point_of_interest',
-            'establishment',
-          ]),
+          buildSuggestion(
+            'place-bus-a',
+            '市役所前',
+            '日本、福岡県久留米市中央町',
+            [
+              'bus_stop',
+              'transit_station',
+              'point_of_interest',
+              'establishment',
+            ],
+          ),
           buildSuggestion('place-bus-b', '市役所前', '日本、福岡県柳川市本町', [
             'bus_stop',
             'transit_station',

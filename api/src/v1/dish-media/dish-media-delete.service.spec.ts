@@ -184,11 +184,7 @@ describe('DishMediaRepository #1513 softDeleteDishMediaWithReviews', () => {
       dish_reviews: { findFirst, updateMany: reviewUpdateMany },
       dish_media: { updateMany: mediaUpdateMany },
     };
-    const repo = new DishMediaRepository(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
+    const repo = new DishMediaRepository({} as never, {} as never, {} as never);
     return { repo, tx, findFirst, reviewUpdateMany, mediaUpdateMany };
   };
 

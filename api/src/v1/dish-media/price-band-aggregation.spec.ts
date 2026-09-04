@@ -78,7 +78,9 @@ describe('#1774 DishMediaRepository.findPriceBandsByDishIds', () => {
       { dish_id: 'dish-1', price_cents: 100000, currency_code: null },
     ]);
 
-    const result = await (repository as any).findPriceBandsByDishIds(['dish-1']);
+    const result = await (repository as any).findPriceBandsByDishIds([
+      'dish-1',
+    ]);
 
     expect(result.get('dish-1')).toBeNull();
   });

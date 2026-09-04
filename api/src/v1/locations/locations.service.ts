@@ -77,7 +77,9 @@ export class LocationsService {
     // `addressComponents.find is not a function` で POST /v1/dishes が 500 になる。
     // Google API 由来の呼び出し元は手前で存在チェックしているが、DB 由来の経路には
     // それが無い。フロント側（app-expo/lib/googlePlaces.ts）には同じガードがある。
-    const components = Array.isArray(addressComponents) ? addressComponents : [];
+    const components = Array.isArray(addressComponents)
+      ? addressComponents
+      : [];
     const countryComponent = components.find((component) =>
       component?.types?.includes('country'),
     );

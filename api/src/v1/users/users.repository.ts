@@ -725,9 +725,10 @@ export class UsersRepository {
         { where: { user_id: userId } },
       );
       // 本人の受信箱。notifications 本体（他人にも配られている）は消さない
-      const notificationRecipients = await tx.notification_recipients.deleteMany(
-        { where: { recipient_id: userId } },
-      );
+      const notificationRecipients =
+        await tx.notification_recipients.deleteMany({
+          where: { recipient_id: userId },
+        });
       // 権限の剥奪（PermissionGuard は user_roles を見る）
       const roles = await tx.user_roles.deleteMany({
         where: { user_id: userId },
