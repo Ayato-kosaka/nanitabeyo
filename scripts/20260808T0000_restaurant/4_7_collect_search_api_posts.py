@@ -254,6 +254,10 @@ def _retry_after_seconds(e: urllib.error.HTTPError, body: str) -> float | None:
     return float(m.group(1)) if m else None
 
 
+_LOOKS_LIKE_QUOTA = re.compile(
+    r"usage limit|quota|out of credits|credit limit|exceeded your|plan's set", re.I)
+
+
 def _fetch_with_retry(fetch, key, q, num, max_retries: int, provider: str):
     """429/5xx は Retry-After（無ければ指数バックオフ）で再試行。日次上限（retry_after が 1h 超）は
     _QuotaExhausted を投げて呼び出し側に «このバッチは打ち切り» を知らせる。4xx（429 以外）は None（スキップ）。
@@ -283,6 +287,13 @@ def _fetch_with_retry(fetch, key, q, num, max_retries: int, provider: str):
                 time.sleep(min(wait, 600))
                 backoff = min(backoff * 2, 120)
                 continue
+            # #1815 上限切れは 429 だけではない。tavily は **432** に
+            # "exceeds your plan's set usage limit" を載せて返す。これを «1 クエリの失敗» と
+            # 扱うと、残りの数千クエリを空振りで舐め続けて時間を溶かす（実測でそうなった）。
+            # 本文に上限の文言があれば、そのバッチは打ち切る。
+            if _LOOKS_LIKE_QUOTA.search(body):
+                LOGGER.warning("%s %s (q=%s) 上限切れ。バッチ打ち切り。body=%s", provider, e.code, q, body)
+                raise _QuotaExhausted(body)
             LOGGER.warning("%s %s (q=%s) スキップ。body=%s", provider, e.code, q, body)
             return None
         except (urllib.error.URLError, TimeoutError) as e:
