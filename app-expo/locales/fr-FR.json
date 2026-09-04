@@ -990,7 +990,21 @@
 		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
 		"pickTitle": "Choisir un établissement",
 		"pickOnMap": "Chercher sur la carte",
-		"pickConfirm": "Choisir ce lieu"
+		"pickConfirm": "Choisir ce lieu",
+		"confirmPage": {
+			"title": "Confirmer les informations du restaurant",
+			"lead": "Nous ajouterons le restaurant avec ces informations. Corrigez ce qui est inexact.",
+			"nameLabel": "Nom",
+			"namePlaceholder": "Saisissez le nom du restaurant",
+			"locationLabel": "Emplacement",
+			"locationHint": "Vérifiez que cet emplacement est correct.",
+			"addressLabel": "Adresse",
+			"addressPlaceholder": "Saisissez l'adresse",
+			"countryLabel": "Pays",
+			"countryUnknown": "Inconnu",
+			"submit": "Ajouter avec ces informations",
+			"expired": "Cette confirmation a expiré. Veuillez sélectionner à nouveau le restaurant."
+		}
 	},
 	"MyDishes": {
 		"actions": {

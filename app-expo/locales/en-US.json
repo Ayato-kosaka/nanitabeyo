@@ -990,7 +990,21 @@
 		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
 		"pickTitle": "Pick a shop",
 		"pickOnMap": "Find on map",
-		"pickConfirm": "Choose this place"
+		"pickConfirm": "Choose this place",
+		"confirmPage": {
+			"title": "Confirm restaurant details",
+			"lead": "We'll add the restaurant with these details. Correct anything that looks wrong.",
+			"nameLabel": "Name",
+			"namePlaceholder": "Enter the restaurant name",
+			"locationLabel": "Location",
+			"locationHint": "Check that this location is correct.",
+			"addressLabel": "Address",
+			"addressPlaceholder": "Enter the address",
+			"countryLabel": "Country",
+			"countryUnknown": "Unknown",
+			"submit": "Add with these details",
+			"expired": "This confirmation has expired. Please pick the restaurant again."
+		}
 	},
 	"MyDishes": {
 		"actions": {
