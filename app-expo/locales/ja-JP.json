@@ -990,7 +990,21 @@
 		"unsavedHint": "保存していないお店も選べます。上の検索にお店の名前を入れるか、地図のお店アイコンをタップしてください。",
 		"pickTitle": "お店を選ぶ",
 		"pickOnMap": "地図からお店を探す",
-		"pickConfirm": "このお店にする"
+		"pickConfirm": "このお店にする",
+		"confirmPage": {
+			"title": "お店の情報を確認",
+			"lead": "この内容でお店を登録します。違っていれば直してください。",
+			"nameLabel": "店名",
+			"namePlaceholder": "店名を入力",
+			"locationLabel": "場所",
+			"locationHint": "この位置で合っているか確認してください。",
+			"addressLabel": "住所",
+			"addressPlaceholder": "住所を入力",
+			"countryLabel": "国",
+			"countryUnknown": "不明",
+			"submit": "この内容で登録",
+			"expired": "確認の有効期限が切れました。もう一度お店を選び直してください。"
+		}
 	},
 	"MyDishes": {
 		"actions": {
