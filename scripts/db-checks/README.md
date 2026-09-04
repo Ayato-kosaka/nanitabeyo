@@ -14,7 +14,8 @@
   ┌──────────────────────┐      ┌──────────────────┐      ┌────────────────────┐
   │ usable-dish-media-   │─jest→│ sql/usable_dish_ │─読む→│ dish_media_        │
   │ filter.ts（正本）    │      │ media_conditions │      │ coverage_sql.py    │
-  └──────────────────────┘      │ .sql             │      └────────────────────┘
+  │                      │      │ .sql             │─読む→│ measure_restaurant_│
+  │                      │      │                  │      │ images.py          │
   ┌──────────────────────┐      ├──────────────────┤      ┌────────────────────┐
   │ restaurants.         │─jest→│ sql/search_      │─読む→│ measure_order_by_  │
   │ repository.ts        │      │ nearby_*.sql     │      │ posts.py           │
@@ -49,6 +50,7 @@
 | `explain_opening_status.py` | **#1666** 営業時間の引き上げが「近くの候補集合」に閉じているか | `--schema dev --assert` |
 | `explain_dish_media_search.py` | **#1666** 店提案の本体クエリが索引に乗り続けているか（custom / generic 両プラン） | `--schema dev --assert` |
 | `measure_restaurants_nearby.py` / `measure_saved_restaurants.py` / `measure_wide_area_search.py` / `measure_map_pins_distribution.py` | 近傍検索まわりの実測 | `--schema dev` |
+| `measure_restaurant_images.py` | **#1780** Google 由来画像を消したときに「見た目が変わる」店の数 | `--schema dev` |
 | `measure_external_embed_thumbnails.py` | 外部埋め込みのサムネイル欠落 | `--schema dev` |
 | `audit_schema_drift.py` / `audit_schema_indexes.py` / `assert_index_valid.py` | スキーマ・索引の点検 | `--schema dev` |
 | `diagnose_slow_db.py` | 遅いクエリの切り分け | `--schema dev` |
