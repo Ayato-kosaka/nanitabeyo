@@ -82,6 +82,38 @@ def captions_from_html(raw: bytes) -> dict[str, str]:
     return out
 
 
+# --- Instagram 公式の埋め込みページ（/embed/captioned/）専用 ---------------------
+#
+# ⚠️ `captions_from_html` は **第三者サイトが貼った blockquote** から採る関数で、
+# 公式の埋め込みページには blockquote が無い。構造が違うので別の関数にする
+# （4_14 で captions_from_html をそのまま使い、300 件取って 0 件だった）。
+#
+# 公式ページの本文は <div class="Caption"> の中で、先頭に投稿者 handle のリンク、
+# 末尾に「N w」のような相対時刻が入る。どちらもキャプション本文ではないので落とす。
+_RE_EMBED_CAPTION = re.compile(r'class="Caption"[^>]*>(.*?)</div>', re.S | re.I)
+# ⚠️ アンカーは **タグ丸ごと**消す。属性だけを消すと `<a` が残り、strip_tags が
+# 次の `>` までを 1 つのタグと見なして本文を食う（実測で先頭の一文が消えた）。
+_RE_CAPTION_USERNAME = re.compile(r'<a[^>]*class="CaptionUsername"[^>]*>.*?</a>', re.S | re.I)
+_RE_CAPTION_TIME = re.compile(r'<div class="CaptionComments".*', re.S | re.I)
+_RE_TRAILING_AGE = re.compile(r"\s*\d+\s*[smhdwy]\s*$", re.I)
+
+
+def caption_from_embed_html(raw: bytes) -> str | None:
+    """`instagram.com/p/<code>/embed/captioned/` の HTML から本文を採る。無ければ None。"""
+    text = decode_html(raw)
+    m = _RE_EMBED_CAPTION.search(text)
+    if not m:
+        return None
+    frag = m.group(1)
+    frag = _RE_CAPTION_TIME.sub("", frag)
+    frag = _RE_CAPTION_USERNAME.sub("", frag)
+    body = strip_tags(frag).strip()
+    body = _RE_TRAILING_AGE.sub("", body).strip()
+    if not body or BOILER.search(body):
+        return None
+    return body[:2000]
+
+
 # 埋め込みの投稿者 handle は 2 か所に出る。定型文の «(@handle)» と、
 # プロフィールへのリンク «instagram.com/<handle>/?utm_source=ig_embed»。
 # permalink（/p/<code>/）と紛れるので、あとに /p/ /reel/ /tv/ が続かないものだけを採る。

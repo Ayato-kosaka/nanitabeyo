@@ -46,7 +46,7 @@ from queue import Queue
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
 from common_sns import TABLE_POST_RAW
-from sns_html import captions_from_html
+from sns_html import caption_from_embed_html
 
 LOGGER = logging.getLogger(__name__)
 CHUNK = 2000  # 1 回の UPDATE に載せる件数
@@ -106,9 +106,9 @@ def _fetch_caption(code: str, timeout: float = 20.0) -> tuple[str | None, int]:
         return None, e.code
     except Exception:  # noqa: BLE001 - ネットワーク断は «取れなかった» と同じ扱い
         return None, -1
-    caps = captions_from_html(raw)
-    cap = caps.get(code) or ""
-    return (cap or None), status
+    # ⚠️ `captions_from_html`（第三者サイトの blockquote 用）ではなく、
+    # 公式の埋め込みページ用の抽出器を使う。構造が違い、前者では 1 件も採れない。
+    return caption_from_embed_html(raw), status
 
 
 def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store: int) -> str:
