@@ -33,6 +33,82 @@ TABLE_DISH_MEDIA_CATALOG = "sns_dish_media_catalog"
 
 PROVIDER_INSTAGRAM = "instagram"
 
+# --- 日本の都道府県（正本）---
+# «..[都府県]» のような形で書くと «神奈川県» の後ろ 3 文字だけを拾うなど静かに間違える。
+# 47 個は閉じた集合なので列挙する。7_1（住所→都道府県/市区町村）・4_9（ソースページの地域）・
+# 4_11（キャプションの地域）が同じ判定を持たないよう、ここを唯一の正とする。
+PREF_PATTERN = ("北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|"
+                "神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|"
+                "大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|"
+                "福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県")
+
+_RE_PREF = re.compile(PREF_PATTERN)
+_RE_CITY = re.compile(r"[一-龥ぁ-んァ-ヴー]{1,6}[市区町村]")
+
+# 市区町村→座標の索引を作る SQL。restaurant_catalog.address から作り、外部ジオコーダを足さない。
+CITY_INDEX_SQL = """
+  WITH cityc AS (
+    SELECT REGEXP_EXTRACT(address, r'(__PREF__)') pref,
+           REGEXP_EXTRACT(address, r'(?:__PREF__)([^0-9０-９]{2,8}?[市区町村])') city,
+           latitude lat, longitude lng
+    FROM `__CATALOG__` WHERE run_id = @crid AND address IS NOT NULL
+  )
+  SELECT pref, city, AVG(lat) lat, AVG(lng) lng, COUNT(*) n
+  FROM cityc WHERE pref IS NOT NULL AND city IS NOT NULL
+  GROUP BY pref, city
+"""
+
+
+def city_index_sql(catalog_table: str) -> str:
+    return CITY_INDEX_SQL.replace("__PREF__", PREF_PATTERN).replace("__CATALOG__", catalog_table)
+
+
+def build_city_index(rows) -> tuple[dict, dict]:
+    """city_index_sql の結果から (（県,市区町村）→座標, 全国で一意な市区町村→座標) を作る。"""
+    by_pair: dict[tuple[str, str], tuple[float, float]] = {}
+    prefs_of: dict[str, set[str]] = {}
+    best: dict[str, tuple[int, float, float]] = {}
+    for r in rows:
+        by_pair[(r["pref"], r["city"])] = (r["lat"], r["lng"])
+        prefs_of.setdefault(r["city"], set()).add(r["pref"])
+        if r["city"] not in best or r["n"] > best[r["city"]][0]:
+            best[r["city"]] = (r["n"], r["lat"], r["lng"])
+    uniq = {c: (best[c][1], best[c][2]) for c, p in prefs_of.items() if len(p) == 1}
+    return by_pair, uniq
+
+
+def area_from_text(text: str, by_pair: dict, uniq: dict) -> tuple[float, float] | None:
+    """文言から «resolve に渡す探索地点» を作る。#1273 の唯一の判定（写経しないこと）。
+
+    resolve が店を探せる地点は «渡された lat/lng» か «キャプション中の郵便番号付き住所» の
+    2 つしか無い。素の Instagram キャプションが住所を持つのは実測 0.6% なので、
+    市区町村名から地点を作れるかどうかが «店が引けるか» を決める。
+
+    誤爆させないための規則:
+    - 都道府県が書いてあれば、その県の市区町村としてのみ当てる
+    - 無ければ、全国で 1 県にしか無い市区町村名のときだけ当てる（«中央区» «北区» は捨てる）
+
+    抜き出した塊は «神奈川県横浜市»（手前を巻き込む）や «大阪市東成区»（2 つ繋がる）に
+    なるので、市/区/町/村 で終わる部分文字列を総当たりし、長い方から当てる。
+    """
+    if not text:
+        return None
+    m = _RE_PREF.search(text)
+    pref = m.group(0) if m else None
+    cands: set[str] = set()
+    for token in _RE_CITY.findall(text):
+        for j, ch in enumerate(token):
+            if ch in "市区町村":
+                for k in range(j):
+                    if j - k + 1 >= 2:
+                        cands.add(token[k:j + 1])
+    for city in sorted(cands, key=len, reverse=True):
+        if pref and (pref, city) in by_pair:
+            return by_pair[(pref, city)]
+        if not pref and city in uniq:
+            return uniq[city]
+    return None
+
 # Instagram の投稿を跨ルートで一意に指すキーは shortcode（permalink 内）。
 # business_discovery(4_2) と 検索(4_3) で同じ投稿を同じ post_id に正規化し、重複解決を防ぐ。
 _IG_SHORTCODE_RE = re.compile(r"instagram\.com/(?:[A-Za-z0-9_.]+/)?(?:p|reel|tv)/([A-Za-z0-9_-]+)", re.IGNORECASE)

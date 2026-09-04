@@ -32,7 +32,8 @@ import urllib.request
 from datetime import timezone
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT
+from common_sns import (PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT,
+                        area_from_text, build_city_index, city_index_sql)
 
 LOGGER = logging.getLogger(__name__)
 BASE = "https://data.commoncrawl.org/"
@@ -85,6 +86,19 @@ def _store_hosts(pipeline: BigQueryPipeline, catalog_run_id: str) -> dict[str, s
     return {r["host"]: r["place_id"] for r in pipeline.execute(sql, params)}
 
 
+def _cities(pipeline: BigQueryPipeline, catalog_run_id: str):
+    """市区町村→座標の索引。判定そのものは common_sns（唯一の正）に置く。
+
+    実測（WAT 2 本）: 日本語ページの 36% がタイトル/説明に市区町村名を持ち、
+    そのページが投稿の 39% を抱えている。素の Instagram キャプションが住所を持つのは 0.6% で、
+    ソースページの地域が «どこの店か» の唯一の手掛かりになる。
+    """
+    from google.cloud import bigquery
+    rows = pipeline.execute(city_index_sql(pipeline.table("restaurant_catalog")),
+                            [bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id)])
+    return build_city_index(rows)
+
+
 def _page_meta(hm: dict) -> tuple[str, str]:
     head = hm.get("Head") or {}
     title = (head.get("Title") or "").strip()
@@ -115,7 +129,7 @@ def _pick(texts: list[str]) -> tuple[str | None, str | None]:
     return caption, handle
 
 
-def scan_record(raw: bytes, store_hosts: dict[str, str]):
+def scan_record(raw: bytes, store_hosts: dict[str, str], by_pair, uniq):
     """WAT 1 レコードから (post_id -> row素材) を返す。"""
     try:
         rec = json.loads(raw)
@@ -161,6 +175,9 @@ def scan_record(raw: bytes, store_hosts: dict[str, str]):
     # 多数の投稿を並べる一覧ページに同じタイトルを配ると、resolve に嘘を食わせる。
     page_text = (title + " " + desc).strip()
     allow_page_fallback = len(by_code) <= 3 and bool(page_text)
+    # 地点はページ（サイト）の属性なので、投稿数に関係なくそのページの全投稿へ当てる。
+    # 店名と違って «一覧ページの 1 件目だけが正しい» という性質を持たない。
+    area = area_from_text(page_text, by_pair, uniq)
 
     out: dict[str, dict] = {}
     for code, texts in by_code.items():
@@ -178,13 +195,14 @@ def scan_record(raw: bytes, store_hosts: dict[str, str]):
             continue  # キャプションが無い投稿URLは resolve が IG 取得に回るので採らない
         if not (place_id or host.endswith(".jp") or RE_KANA.search(caption)):
             continue  # 日本語でないページは捨てる（繁体字ブログが大量に混ざる）
-        out[code] = {"caption": caption[:2000], "handle": handle, "host": host, "place_id": place_id}
+        out[code] = {"caption": caption[:2000], "handle": handle, "host": host,
+                     "place_id": place_id, "area": area}
         if handle:
             profiles.add(handle)
     return out, profiles
 
 
-def scan_file(url: str, store_hosts: dict[str, str]):
+def scan_file(url: str, store_hosts: dict[str, str], by_pair, uniq):
     posts: dict[str, dict] = {}
     profiles: set[str] = set()
     seen_bytes = 0
@@ -195,12 +213,13 @@ def scan_file(url: str, store_hosts: dict[str, str]):
                 seen_bytes += len(raw)
                 if not raw.startswith(b'{"Container"') or b"instagram.com" not in raw:
                     continue
-                got, prof = scan_record(raw, store_hosts)
+                got, prof = scan_record(raw, store_hosts, by_pair, uniq)
                 profiles |= prof
                 for code, row in got.items():
                     cur = posts.get(code)
                     # 同じ投稿が複数ページに出たら «キャプションが長い / 店が確定している» 方を採る
                     if cur is None or (row["place_id"] and not cur["place_id"]) or \
+                       (row["area"] and not cur["area"]) or \
                        len(row["caption"]) > len(cur["caption"]):
                         posts[code] = row
     except (EOFError, OSError) as e:  # ストリーム断でも取れた分は使う
@@ -230,6 +249,8 @@ def main() -> None:
     LOGGER.info("カタログの website ホストを読みます…")
     store_hosts = _store_hosts(pipeline, args.catalog_run_id)
     LOGGER.info("  店固有ホスト %d 件", len(store_hosts))
+    by_pair, uniq = _cities(pipeline, args.catalog_run_id)
+    LOGGER.info("  市区町村 %d 件（うち全国で一意 %d 件）", len(by_pair), len(uniq))
 
     with _open(f"{BASE}crawl-data/{args.crawl}/wat.paths.gz") as r:
         paths = [p for p in gzip.decompress(r.read()).decode().split("\n") if p.strip()]
@@ -244,7 +265,7 @@ def main() -> None:
         acc_rows: list[dict] = []
         seen_posts: set[str] = set()
         seen_handles: set[str] = set()
-        total_posts = total_seed = total_mb = 0
+        total_posts = total_seed = total_area = total_mb = 0
 
         def flush() -> None:
             nonlocal rows, acc_rows
@@ -257,7 +278,7 @@ def main() -> None:
         # 1 ジョブ内のスレッド並列は測って捨てた: 単発 78MB/s に対し 6 並列で合計 46MB/s と
         # 遅くなる（回線が上限で、並べても増えない）。並列化はジョブ（=シャード）を増やす側でやる。
         for n, path in enumerate(mine, 1):
-            posts, profiles, nbytes = scan_file(BASE + path, store_hosts)
+            posts, profiles, nbytes = scan_file(BASE + path, store_hosts, by_pair, uniq)
             total_mb += nbytes / 1048576
             for code, row in posts.items():
                 if code in seen_posts:
@@ -266,13 +287,17 @@ def main() -> None:
                 total_posts += 1
                 if row["place_id"]:
                     total_seed += 1
+                if row["area"]:
+                    total_area += 1
                 rows.append({
                     "post_id": code, "provider": PROVIDER_INSTAGRAM,
                     "canonical_url": f"https://www.instagram.com/p/{code}/",
                     "account_id": row["handle"], "discovery_route": "cc_wat",
                     "discovery_method": "cc_wat_embed", "discovery_query": row["host"],
-                    "discovery_seed_place_id": row["place_id"], "discovery_area_lat": None,
-                    "discovery_area_lng": None, "discovery_category_id": None,
+                    "discovery_seed_place_id": row["place_id"],
+                    "discovery_area_lat": row["area"][0] if row["area"] else None,
+                    "discovery_area_lng": row["area"][1] if row["area"] else None,
+                    "discovery_category_id": None,
                     "fetched_at": now, "run_id": run_id,
                     "caption": row["caption"], "author_name": row["handle"],
                 })
@@ -287,15 +312,17 @@ def main() -> None:
                     "discovered_at": now, "run_id": run_id,
                 })
             if n % args.flush_every == 0:
-                LOGGER.info("  %d/%d 本 | caption付き投稿 %d（うち店確定 %d） | handle %d | %.0fMB",
-                            n, len(mine), total_posts, total_seed, len(seen_handles), total_mb)
+                LOGGER.info("  %d/%d 本 | caption付き投稿 %d（店確定 %d / 地点あり %d） | handle %d | %.0fMB",
+                            n, len(mine), total_posts, total_seed, total_area,
+                            len(seen_handles), total_mb)
                 flush()
         flush()
         result["row_count"] = total_posts
         result["seed_trusted"] = total_seed
         result["handles"] = len(seen_handles)
-        LOGGER.info("完了: caption付き投稿 %d（店確定 %d）| handle %d | %.0fMB",
-                    total_posts, total_seed, len(seen_handles), total_mb)
+        result["with_area"] = total_area
+        LOGGER.info("完了: caption付き投稿 %d（店確定 %d / 地点あり %d）| handle %d | %.0fMB",
+                    total_posts, total_seed, total_area, len(seen_handles), total_mb)
 
 
 if __name__ == "__main__":
