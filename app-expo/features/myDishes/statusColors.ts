@@ -22,18 +22,21 @@ import { FixedColors } from "@/constants/Palette";
 記号にも使っていたため、«押すもの» と «状態を表すだけのもの» が同じ強さで並んでいた。
 オーナー指示でオレンジへ分けた。
 
-## #1834 色相も分ける（塗りの有無は残す）
+## #1834 色相で分ける（10 巡目・オーナー指示）
 
 チーム指摘: 「食べたい、食べたはオレンジ、オレンジ囲みで色分けされてるが、食べたいの
 ボタンは緑色にするとか、色を変えたほうが視覚的に見分けられやすいと思った」。
 
-塗りの有無だけだと、**バッジが 1 つしか無い場面**（フィードの ⭐ / 一覧の 1 行、
-1 件しか記録が無い日）で «塗られていない» のが «食べたい» なのか «ただの枠» なのかを
-比較対象なしに読み取れない。そこで **緑（食べたい） / オレンジ（食べた）** の色相を足す。
+【判断ログ】2026-09-04 — 案を 3 つ出し（A 現状 / B 白塗り + 緑枠 / C 緑塗り）、
+**オーナー指示は C「食べたい は緑塗りにして欲しい。合う色で」**。
+→ **両方を «塗る» ことにし、区別は色相 1 本で持つ。**
 
-⚠️ **色相を足すのであって、塗りの有無を置き換えるのではない。** 塗りの差は色覚に依存せず、
-   サムネイルの上でも形として読める。2 つの手がかりを重ねるのが冗長符号化の定石で、
-   片方だけにすると 5 巡目に戻る（→ 上の «塗りで区別する»）。
+⚠️ **この節の上に書いてある «塗りの有無で区別する»（5 巡目）は、ここで上書きされている。**
+   塗りの有無が持っていた «色覚に依存しない» 性質は失われる。代わりに色相の差を
+   十分に取り（緑 `#2E7D32` / オレンジ `#ED6C02` は明度も色相も離してある）、
+   バッジには**必ず «食べたい» / «食べた» の文字を添える**ことで色だけに頼らない状態を保つ
+   （地図の帯・カレンダーの点は文字が入らないので、凡例を必ず一緒に出す。
+   `MyDishStatusLegend` がその役目）。
 
 ⚠️ **`#ED6C02` は白文字とのコントラスト比 3.11:1** で、太字の数字・アイコン（UI 部品）の
 下限 3:1 を満たす。**これより明るいオレンジ（`#F97316` = 2.8、`#FB8C00` = 2.37）へ
@@ -68,12 +71,12 @@ export const MY_DISH_STATUS_ORANGE = FixedColors.myDishStatusOrange;
 /**
  * #1834 状態の記号に使う緑（**«食べたい» 側**）。
  *
- * ⚠️ 明るくしない（白地に載る文字が読めなくなる。`constants/Palette.ts` の注記を参照）。
+ * ⚠️ 明るくしない（上に載る白文字が読めなくなる。`constants/Palette.ts` の注記を参照）。
  */
 export const MY_DISH_STATUS_GREEN = FixedColors.myDishStatusGreen;
 
 export const MY_DISH_STATUS_COLORS: Record<MyDishStatus, MyDishStatusPaint> = {
-	want: { fill: FixedColors.myDishStatusOn, border: MY_DISH_STATUS_GREEN, on: MY_DISH_STATUS_GREEN },
+	want: { fill: MY_DISH_STATUS_GREEN, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
 	eaten: { fill: MY_DISH_STATUS_ORANGE, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
 };
 

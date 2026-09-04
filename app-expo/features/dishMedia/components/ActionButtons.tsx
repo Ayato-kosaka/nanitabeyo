@@ -457,14 +457,14 @@ function ActionButtonsContent({
 						一覧のバッジで承認された同じ色へ揃える。
 						⚠️ 下のラベルは白のまま（オーナー指示）。**アイコンだけを色で示す。**
 
-						#1834【チーム指摘】«食べたい» と «食べた» を色相でも見分けられるようにしたので、
-						ここも一覧と同じ **緑（食べたい）** にする。⚠️ 色の正は `statusColors.ts` の
+						#1834【オーナー指示】«食べたい» は緑、«食べた» はオレンジ。一覧のバッジと同じ
+						«塗りの色»（`fill`）をそのままアイコンの色に使う。⚠️ 色の正は `statusColors.ts` の
 						1 箇所だけ。ここで別の緑を書かないこと（一覧とフィードで色がずれる）。
 						*/}
 						<Bookmark
 							size={28}
-							color={isSaved ? MY_DISH_STATUS_COLORS.want.on : FixedColors.onMedia}
-							fill={isSaved ? MY_DISH_STATUS_COLORS.want.on : "transparent"}
+							color={isSaved ? MY_DISH_STATUS_COLORS.want.fill : FixedColors.onMedia}
+							fill={isSaved ? MY_DISH_STATUS_COLORS.want.fill : "transparent"}
 						/>
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("MyDishes.filters.status.want")}</Text>
