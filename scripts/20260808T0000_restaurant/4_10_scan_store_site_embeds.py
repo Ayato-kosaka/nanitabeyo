@@ -130,23 +130,30 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--limit", type=int, default=0, help="0 なら全件")
     p.add_argument("--workers", type=int, default=8)
     p.add_argument("--flush-every", type=int, default=500)
+    # 既定は «handle が採れた店»。no_handle は «サイトは読めたが Instagram の handle が
+    # 見つからなかった» 店で 84,752 件ある。handle が無くても投稿の埋め込みだけはある
+    # ことがあるので、別ジョブで拾えるようにする。
+    p.add_argument("--statuses", default="ok",
+                   help="対象にする sns_store_site_ig.status（カンマ区切り。例: ok,no_handle）")
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
 
 
-def _read_stores(pipeline: BigQueryPipeline, site_run_id: str, shards: int, shard: int, limit: int):
+def _read_stores(pipeline: BigQueryPipeline, site_run_id: str, shards: int, shard: int, limit: int,
+                 statuses: list[str]):
     shard_filter = "AND MOD(ABS(FARM_FINGERPRINT(google_place_id)), @shards) = @shard" if shards > 1 else ""
     sql = f"""
       SELECT google_place_id, ANY_VALUE(website) website, ANY_VALUE(host) host,
              ANY_VALUE(handle) handle
       FROM `{pipeline.table('sns_store_site_ig')}`
-      WHERE run_id = @srid AND status = 'ok' AND handle IS NOT NULL
+      WHERE run_id = @srid AND status IN UNNEST(@statuses)
         AND website IS NOT NULL AND website != '' {shard_filter}
       GROUP BY google_place_id
       {f'LIMIT {int(limit)}' if limit else ''}
     """
     from google.cloud import bigquery
-    params = [bigquery.ScalarQueryParameter("srid", "STRING", site_run_id)]
+    params = [bigquery.ScalarQueryParameter("srid", "STRING", site_run_id),
+              bigquery.ArrayQueryParameter("statuses", "STRING", statuses)]
     if shards > 1:
         params += [bigquery.ScalarQueryParameter("shards", "INT64", shards),
                    bigquery.ScalarQueryParameter("shard", "INT64", shard)]
@@ -159,13 +166,14 @@ def main() -> None:
     run_id = require_run_id(args.run_id)
     pipeline = BigQueryPipeline()
 
-    stores = _read_stores(pipeline, args.site_run_id, args.shards, args.shard, args.limit)
+    statuses = [x.strip() for x in args.statuses.split(",") if x.strip()]
+    stores = _read_stores(pipeline, args.site_run_id, args.shards, args.shard, args.limit, statuses)
     LOGGER.info("対象 %d 店（site_run_id=%s, shard=%d/%d）", len(stores), args.site_run_id,
                 args.shard, args.shards)
 
     with pipeline.step(run_id, "4_10_scan_store_site_embeds", parameters={
         "site_run_id": args.site_run_id, "shards": args.shards, "shard": args.shard,
-        "stores": len(stores),
+        "statuses": args.statuses, "stores": len(stores),
     }, repo_root=None) as result:
         now = utc_now().astimezone(timezone.utc).isoformat()
         rows: list[dict] = []
