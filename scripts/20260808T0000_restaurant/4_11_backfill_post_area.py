@@ -118,7 +118,7 @@ def main() -> None:
     # «投稿した Instagram アカウント» の欄なので、記事から採った店名では埋めない。
     name_sql = f"""
       UPDATE `{pipeline.table(TABLE_POST_RAW)}` t
-      SET caption = CONCAT("📍", s.name, "\n", t.caption), author_name = NULL
+      SET caption = CONCAT("📍", s.name, CHR(10), t.caption), author_name = NULL
       FROM (
         SELECT @pids[OFFSET(o)] AS post_id, @names[OFFSET(o)] AS name
         FROM UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH(@pids) - 1)) o
