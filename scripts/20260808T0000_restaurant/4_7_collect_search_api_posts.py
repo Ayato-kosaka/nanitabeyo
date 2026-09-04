@@ -353,6 +353,9 @@ def parse_args() -> argparse.Namespace:
     # 出力は sns_post_raw の 1 行 1 JSON なので、そのまま BQ へ流し込める。
     p.add_argument("--out-jsonl", default=None,
                    help="BigQuery へ書かず、この JSONL へ行を書く（--queries-file と併用。BQ 資格情報が不要になる）")
+    p.add_argument("--load-jsonl", default=None,
+                   help="--out-jsonl で書いた JSONL（.gz 可）を sns_post_raw へ投入するだけのモード。"
+                        "検索はしない。BQ 資格情報のある環境（CI）で使う")
     return p.parse_args()
 
 
@@ -523,10 +526,50 @@ def _append_jsonl(out: Path, rows: list[dict]) -> None:
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
+def _load_jsonl_into_bq(path: Path, run_id: str) -> None:
+    """--out-jsonl で書いた行を sns_post_raw へ入れる（検索はしない）。
+
+    #1815 検索 API のキーはローカルにしか無く、BigQuery の書き込み資格情報は CI にしか無い。
+    その 2 つが交わらないので «ローカルで採って JSONL、CI で投入» に分けている。
+    行の形は同じスクリプトが書いたものなので、ここでは run_id だけ上書きして流す。
+    """
+    import gzip
+
+    pipeline = BigQueryPipeline()
+    opener = gzip.open if path.suffix == ".gz" else open
+    rows, seen = [], set()
+    with opener(path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            r = json.loads(line)
+            if r["post_id"] in seen:
+                continue
+            seen.add(r["post_id"])
+            r["run_id"] = run_id
+            rows.append(r)
+    LOGGER.info("%s から %d 投稿（重複除去後）を読みました", path, len(rows))
+    with pipeline.step(run_id, "4_7_load_jsonl", parameters={"path": str(path)}, repo_root=None) as result:
+        from google.cloud import bigquery
+
+        ids = sorted(seen)
+        for i in range(0, len(ids), 5000):
+            pipeline.execute(
+                f"DELETE FROM `{pipeline.table(TABLE_POST_RAW)}` WHERE run_id=@rid AND post_id IN UNNEST(@ids)",
+                [bigquery.ScalarQueryParameter("rid", "STRING", run_id),
+                 bigquery.ArrayQueryParameter("ids", "STRING", ids[i:i + 5000])])
+        result["row_count"] = pipeline.load_json_rows(TABLE_POST_RAW, rows) if rows else 0
+        LOGGER.info("sns_post_raw に %d 投稿を投入しました", result["row_count"])
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
     run_id = require_run_id(args.run_id)
+    if args.load_jsonl:
+        _load_jsonl_into_bq(Path(args.load_jsonl), run_id)
+        return
     env_var, fetch = _PROVIDERS[args.provider]
 
     stores: list[dict] = []
