@@ -299,6 +299,70 @@ export class RestaurantsService {
   /* ------------------------------------------------------------------ */
 
   /**
+   * #1671 既にある店の «確認ページの初期値» を、**自社 DB だけ**から組み立てる。
+   * Google は 1 回も叩かない（→ `createRestaurantDraft` の冒頭コメント）。
+   */
+  private buildDraftFromExistingRestaurant(
+    existing: PrismaRestaurants,
+  ): CreateRestaurantDraftResponse {
+    const addressComponents = Array.isArray(existing.address_components)
+      ? (existing.address_components as unknown as Parameters<
+          typeof buildDisplayAddress
+        >[0])
+      : [];
+
+    // 列が空なら addressComponents から組み立てて初期値にする。
+    // どちらも空なら空欄で出し、ユーザーが 1 から書く
+    const countryCode =
+      existing.country_code ||
+      this.locationsService.extractCountryCode(
+        addressComponents as Parameters<
+          LocationsService['extractCountryCode']
+        >[0],
+      );
+    const address =
+      existing.address || buildDisplayAddress(addressComponents, countryCode);
+
+    const payload: RestaurantDraftTokenPayload = {
+      googlePlaceId: existing.google_place_id,
+      name: existing.name,
+      nameLanguageCode: existing.name_language_code,
+      latitude: existing.latitude,
+      longitude: existing.longitude,
+      addressComponentsJson: JSON.stringify(addressComponents),
+      plusCodeJson: existing.plus_code
+        ? JSON.stringify(existing.plus_code)
+        : null,
+      address,
+      countryCode,
+    };
+
+    this.logger.debug('RestaurantDraftFromExisting', 'createRestaurantDraft', {
+      restaurantId: existing.id,
+      googlePlaceId: existing.google_place_id,
+    });
+
+    return {
+      draft: {
+        googlePlaceId: payload.googlePlaceId,
+        name: payload.name,
+        nameLanguageCode: payload.nameLanguageCode,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        addressComponents,
+        address,
+        countryCode,
+        countryName: extractCountryName(addressComponents),
+      },
+      draftToken: signRestaurantDraftToken(
+        payload,
+        env.SUPABASE_JWT_SECRET,
+        Date.now(),
+      ),
+    };
+  }
+
+  /**
    * #1671 【設計】**店を作らずに、確認ページへ出す値だけを返す。**
    *
    * `createRestaurant` の «Google から取るところ» と同じ手順を踏むが、DB へは一切書かない。
@@ -313,6 +377,25 @@ export class RestaurantsService {
   async createRestaurantDraft(
     dto: CreateRestaurantDraftDto,
   ): Promise<CreateRestaurantDraftResponse> {
+    /*
+     * ⚠️ **既にある店なら Google を 1 回も叩かない。**
+     *
+     * #1671 で «住所が空の既存店も確認ページへ回す» ようにしたが、素朴に実装すると
+     * この下読みが走り、**それまで 0 回だった経路へ Place Details が 2 回**（#1781 の
+     * ⑥ Essentials + ⑦ Pro）増える。パイプライン製の 62 万行はほぼ全部が住所空なので、
+     * 「POI を押すたびに 2 回」に等しい。#1781 の実測では ④⑥⑦ 合計で月 3,887 回、
+     * Pro の無料枠は月 5,000 回しかないため、**#843 の趣旨に反して課金が始まりうる**。
+     *
+     * 既にある店の名前・座標は**自社 DB に入っている**。足りないのは住所で、それは
+     * ユーザーが確認画面で入れる。**Google に聞く理由が無い。**
+     */
+    const existing = await this.findRestaurantByGooglePlaceId(
+      dto.googlePlaceId,
+    );
+    if (existing) {
+      return this.buildDraftFromExistingRestaurant(existing);
+    }
+
     const { languageCode, placeDetailForLocalLang } =
       await this.resolveRestaurantLanguage(dto.googlePlaceId);
 
@@ -480,17 +563,48 @@ export class RestaurantsService {
     );
 
     if (existingRestaurant) {
-      // 既存レストランの場合はメタ情報を取得して返すだけ
-      const meta = await this.fetchRestaurantMeta(existingRestaurant.id);
+      /*
+       * #1671 【設計】**既存店でも «空いている住所・国コード» は埋める。**
+       *
+       * パイプライン製の 62 万行は `address` / `country_code` が空のままで、
+       * ユーザーが POI を押しても «既存店だからそのまま開く» のでこの穴は
+       * **永久に埋まらなかった**（チケット本文の指摘そのもの）。
+       *
+       * 確認ページを通ってきた（= draftToken がある）ときだけ埋める。
+       * ⚠️ 既に入っている値は上書きしない（→ `fillMissingAddress` のコメント）。
+       */
+      let restaurant = existingRestaurant;
+      const confirmationForExisting = this.resolveConfirmedValues(dto);
 
-      const fallbacks = await this.fetchFallbackThumbnails([
-        existingRestaurant,
-      ]);
+      if (confirmationForExisting) {
+        const filled = await this.prisma.withTransaction(
+          (tx: Prisma.TransactionClient) =>
+            this.repo.fillMissingAddress(tx, {
+              restaurantId: existingRestaurant.id,
+              address: confirmationForExisting.confirmed.address,
+              countryCode: confirmationForExisting.confirmed.countryCode,
+            }),
+        );
+
+        if (filled > 0) {
+          this.logger.log('RestaurantAddressFilled', 'createRestaurant', {
+            restaurantId: existingRestaurant.id,
+            changedFields: confirmationForExisting.changedFields,
+          });
+          // 埋めた値を返す（呼び出し元が古い値をキャッシュしないため）
+          restaurant =
+            (await this.findRestaurantByGooglePlaceId(dto.googlePlaceId)) ??
+            existingRestaurant;
+        }
+      }
+
+      const meta = await this.fetchRestaurantMeta(restaurant.id);
+      const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
 
       return {
         restaurant: this.assembler.enrichRestaurantsWithImageUrls(
-          existingRestaurant,
-          fallbacks.get(existingRestaurant.id),
+          restaurant,
+          fallbacks.get(restaurant.id),
         ),
         meta,
       };
