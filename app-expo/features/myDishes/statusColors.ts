@@ -22,6 +22,19 @@ import { FixedColors } from "@/constants/Palette";
 記号にも使っていたため、«押すもの» と «状態を表すだけのもの» が同じ強さで並んでいた。
 オーナー指示でオレンジへ分けた。
 
+## #1834 色相も分ける（塗りの有無は残す）
+
+チーム指摘: 「食べたい、食べたはオレンジ、オレンジ囲みで色分けされてるが、食べたいの
+ボタンは緑色にするとか、色を変えたほうが視覚的に見分けられやすいと思った」。
+
+塗りの有無だけだと、**バッジが 1 つしか無い場面**（フィードの ⭐ / 一覧の 1 行、
+1 件しか記録が無い日）で «塗られていない» のが «食べたい» なのか «ただの枠» なのかを
+比較対象なしに読み取れない。そこで **緑（食べたい） / オレンジ（食べた）** の色相を足す。
+
+⚠️ **色相を足すのであって、塗りの有無を置き換えるのではない。** 塗りの差は色覚に依存せず、
+   サムネイルの上でも形として読める。2 つの手がかりを重ねるのが冗長符号化の定石で、
+   片方だけにすると 5 巡目に戻る（→ 上の «塗りで区別する»）。
+
 ⚠️ **`#ED6C02` は白文字とのコントラスト比 3.11:1** で、太字の数字・アイコン（UI 部品）の
 下限 3:1 を満たす。**これより明るいオレンジ（`#F97316` = 2.8、`#FB8C00` = 2.37）へ
 動かさないこと。** 上に載る白文字が読めなくなる。
@@ -46,14 +59,21 @@ export type MyDishStatusPaint = {
 };
 
 /**
- * 状態の記号に使うオレンジ。記号としてはこの 1 色だけを使う。
+ * 状態の記号に使うオレンジ（**«食べた» 側**）。
  *
  * ⚠️ 明るくしない（白文字が読めなくなる。上のコントラストの注記を参照）。
  */
 export const MY_DISH_STATUS_ORANGE = FixedColors.myDishStatusOrange;
 
+/**
+ * #1834 状態の記号に使う緑（**«食べたい» 側**）。
+ *
+ * ⚠️ 明るくしない（白地に載る文字が読めなくなる。`constants/Palette.ts` の注記を参照）。
+ */
+export const MY_DISH_STATUS_GREEN = FixedColors.myDishStatusGreen;
+
 export const MY_DISH_STATUS_COLORS: Record<MyDishStatus, MyDishStatusPaint> = {
-	want: { fill: FixedColors.myDishStatusOn, border: MY_DISH_STATUS_ORANGE, on: MY_DISH_STATUS_ORANGE },
+	want: { fill: FixedColors.myDishStatusOn, border: MY_DISH_STATUS_GREEN, on: MY_DISH_STATUS_GREEN },
 	eaten: { fill: MY_DISH_STATUS_ORANGE, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
 };
 

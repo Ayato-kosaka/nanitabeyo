@@ -2,7 +2,7 @@
 #1375 実機確認（5 巡目）「食べたい / 食べたの内訳が読めない」への対処の回帰テスト。
 
 守るのは 3 つ。
-1. 色の正が `statusColors.ts` の 1 箇所にあること（カード・一覧・カレンダー・地図で同じ緑と赤）
+1. 色の正が `statusColors.ts` の 1 箇所にあること（カード・一覧・カレンダー・地図で同じ緑とオレンジ）
 2. 内訳バッジは 0 件の側を描かないこと（1 件の日に «0» が並ばない）
 3. 地図の帯タイルが `pin.counts` をそのまま出すこと（この表示のために API を増やさない）
 */
@@ -41,7 +41,7 @@ function render(element: React.ReactElement) {
 const countOf = (tree: TestRenderer.ReactTestRenderer, testID: string) =>
 	tree.root.findAll((n) => typeof n.type === "string" && n.props?.testID === testID).length;
 
-describe("#1375 食べたい=緑 / 食べた=赤 の内訳表示", () => {
+describe("#1375 / #1834 食べたい=緑 / 食べた=オレンジ の内訳表示", () => {
 	it("countMyDishStatuses は status を 2 つの数へ畳む", () => {
 		expect(countMyDishStatuses([{ status: "want" }, { status: "eaten" }, { status: "eaten" }])).toEqual({
 			want: 1,
@@ -50,16 +50,23 @@ describe("#1375 食べたい=緑 / 食べた=赤 の内訳表示", () => {
 		expect(countMyDishStatuses([])).toEqual({ want: 0, eaten: 0 });
 	});
 
-	it("色は statusColors の 1 箇所が正: 食べたい = 白塗り赤枠 / 食べた = 赤塗り", () => {
-		// #1375（5 巡目）オーナー指示で «緑 / 赤» の色相分けから «塗りの有無» へ変えた。
-		// 白塗りの側は文字も枠も赤でなければ読めないので、3 つ組が揃っていることまで見る
+	it("色は statusColors の 1 箇所が正: 食べたい = 白塗り緑枠 / 食べた = オレンジ塗り", () => {
+		// #1375（5 巡目）オーナー指示で色相分けから «塗りの有無» へ変え、
+		// #1834（チーム指摘）でその上に色相を **足した**（置き換えていない）。
+		// 白塗りの側は文字も枠も緑でなければ読めないので、3 つ組が揃っていることまで見る
 		expect(MY_DISH_STATUS_COLORS.want.fill).toBe("#FFFFFF");
-		expect(MY_DISH_STATUS_COLORS.want.border).toBe(MY_DISH_STATUS_COLORS.eaten.fill);
-		expect(MY_DISH_STATUS_COLORS.want.on).toBe(MY_DISH_STATUS_COLORS.eaten.fill);
+		expect(MY_DISH_STATUS_COLORS.want.border).toBe(MY_DISH_STATUS_COLORS.want.on);
 		expect(MY_DISH_STATUS_COLORS.eaten.on).toBe("#FFFFFF");
 		// 「白地に白文字」を作れないこと
 		expect(MY_DISH_STATUS_COLORS.want.fill).not.toBe(MY_DISH_STATUS_COLORS.want.on);
 		expect(MY_DISH_STATUS_COLORS.eaten.fill).not.toBe(MY_DISH_STATUS_COLORS.eaten.on);
+		/*
+		#1834 **手がかりを 2 つ持つ**（どちらか片方を消さないための固定）。
+		  1. 塗りの有無 … want は白塗り、eaten は色で塗る
+		  2. 色相      … want と eaten の記号色が違う
+		*/
+		expect(MY_DISH_STATUS_COLORS.want.fill).not.toBe(MY_DISH_STATUS_COLORS.eaten.fill);
+		expect(MY_DISH_STATUS_COLORS.want.on).not.toBe(MY_DISH_STATUS_COLORS.eaten.fill);
 	});
 
 	it("凡例は «食べたい» と «食べた» の 2 つを、それぞれの塗りの丸つきで出す", () => {
