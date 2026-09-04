@@ -28,6 +28,11 @@ const DEBOUNCE_DELAY_MS = 300;
  * 地球の裏側の同名店が混ざっても選択肢として意味が無いからである。
  */
 const NAME_SEARCH_RADIUS_M = 1_500_000;
+/**
+ * 検索を投げる最短の文字数。pg_trgm の索引は 3 文字未満で効かず、全国半径では
+ * seq scan になる（`handleChangeText` の実測表を参照）。
+ */
+const NAME_SEARCH_MIN_LENGTH = 3;
 const RESULT_LIMIT = 20;
 
 export type RestaurantNameSearchProps = {
@@ -189,8 +194,25 @@ export function RestaurantNameSearch({
 			}
 
 			const trimmed = text.trim();
-			if (trimmed.length === 0) {
-				// 入力が空になった時点で直前の in-flight 応答も無効化する
+			/*
+			#1841 レビュー実測。**3 文字未満は投げない。**
+
+			この欄は全国（NAME_SEARCH_RADIUS_M）で引く。`restaurants.name` の pg_trgm 索引は
+			パターンから 3 文字のトライグラムを取り出せないと使えない（`query-restaurants.dto.ts`
+			の `q` のコメント）ため、2 文字以下は 57 万行の seq scan になる。本番ログの実測:
+
+			| q | 所要 |
+			| --- | --- |
+			| 「す」1 文字 | 20,065 ms |
+			| 「すり」2 文字 | 18,380 ms |
+			| 「すりー」3 文字 | 1,471 ms |
+			| 「八王子」3 文字 | 77 ms |
+
+			debounce があるので画面は破綻していなかったが、**サーバは 1 打鍵ごとに 18〜20 秒ぶん
+			焼いていた**（結果はクライアントが捨てる）。投げないことで失うものは無い。
+			*/
+			if (trimmed.length < NAME_SEARCH_MIN_LENGTH) {
+				// 入力が空 / 短すぎる時点で直前の in-flight 応答も無効化する
 				latestRequestIdRef.current += 1;
 				setResults([]);
 				setStatus("idle");

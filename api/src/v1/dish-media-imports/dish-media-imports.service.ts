@@ -141,6 +141,23 @@ const PIN_NAME_SEARCH_RADIUS_M = 2_000_000;
  */
 const PIN_NAME_FALLBACK_CENTER = { lat: 34.5, lng: 134.5 };
 
+/**
+ * **全国半径で `q` を投げてよい最短の長さ。**
+ *
+ * `restaurants.name` の pg_trgm GIN 索引はパターンから 3 文字のトライグラムを取り出せないと
+ * 使えない（`query-restaurants.dto.ts` の `q` のコメント / #1416 レビュー m-a）。
+ * これまで `q` は **必ずエリア内**（現在地 5km / 住所 1km）で投げていたため、2 文字で索引が
+ * 効かなくても «エリア内検索なので破綻はしない» が安全弁になっていた。
+ *
+ * #1841 で `q` を初めて全国半径に載せたことで、その安全弁が外れる。本番実測で
+ * «一蘭»（2 文字）× 2,000km = **23.8 秒**、5km なら 0.55 秒。`PIN_NAME_MAX_QUERIES` が 3 なので
+ * 最悪 60 秒超になり、#1834 で潰したクライアント 30 秒上限をまた踏む。
+ *
+ * したがって **DB を引くのは 3 文字以上に限る**。2 文字の 📍店名は `nameHints`（候補セット内の
+ * スコア加点）としてだけ使う。加点は DB を引かないのでコストは増えず、機能もほぼ落ちない。
+ */
+const WIDE_RADIUS_NAME_QUERY_MIN_LENGTH = 3;
+
 /** 1 投稿あたり 📍店名 を `q` に投げる本数の上限（クエリ本数を抑える） */
 const PIN_NAME_MAX_QUERIES = 3;
 
@@ -1286,6 +1303,9 @@ export class DishMediaImportsService {
     const pinNameQueries = nameHints
       .map((hint) => this.buildNameSearchQuery(hint))
       .filter((q): q is string => q !== null)
+      // 全国半径で投げるので 3 文字未満は落とす（索引が効かず seq scan になる）。
+      // 落とした名前も nameHints としては生きており、候補セット内の加点には使われる。
+      .filter((q) => q.length >= WIDE_RADIUS_NAME_QUERY_MIN_LENGTH)
       .slice(0, PIN_NAME_MAX_QUERIES);
 
     if (searchAreas.length === 0 && pinNameQueries.length === 0) {

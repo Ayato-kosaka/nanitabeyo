@@ -301,4 +301,37 @@ describe("#1629 店名検索の半径は «見えている範囲» ではなく 
 		// ハーネスの viewport は 0.01 度（≒ 1km 級）。それに引きずられていないこと
 		expect(payload.radius).toBeGreaterThanOrEqual(1_000_000);
 	});
+
+	/*
+	#1841 レビュー。全国半径で引く以上、pg_trgm の索引が効かない 3 文字未満を投げてはいけない。
+	本番ログ実測で「す」1 文字 = 20,065ms / 「すり」2 文字 = 18,380ms / 「八王子」3 文字 = 77ms。
+	debounce が結果を捨てるので画面は無事だったが、サーバは 1 打鍵ごとに 18〜20 秒焼いていた。
+	**値ではなくパターンを固定する**: 全国半径へ投げる q は必ず 3 文字以上。
+	*/
+	it("3 文字未満は投げない（索引が効かず seq scan になるため）", async () => {
+		const tree = await render(<NameSearchHarness />);
+		const input = findByTestId(tree, "select-restaurant-name-search-input");
+
+		for (const short of ["す", "すり"]) {
+			await act(async () => {
+				input.props.onChangeText(short);
+				jest.advanceTimersByTime(300);
+				await Promise.resolve();
+				await Promise.resolve();
+			});
+		}
+		expect(nameSearchCalls()).toHaveLength(0);
+
+		await act(async () => {
+			input.props.onChangeText("すりー");
+			jest.advanceTimersByTime(300);
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+		expect(nameSearchCalls()).toHaveLength(1);
+		for (const call of nameSearchCalls()) {
+			const q = (call[1].requestPayload as { q?: string }).q ?? "";
+			expect(q.length).toBeGreaterThanOrEqual(3);
+		}
+	});
 });
