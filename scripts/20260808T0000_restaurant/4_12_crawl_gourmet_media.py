@@ -87,7 +87,7 @@ def _robots_allows(host: str) -> bool:
     return True
 
 
-def article_urls(host: str, max_urls: int) -> list[str]:
+def article_urls(host: str, max_urls: int, skip_urls: int = 0) -> list[str]:
     """sitemap を辿って記事URLを列挙する。sitemap index は 1 段だけ展開する。"""
     seen: list[str] = []
     for path in SITEMAP_CANDIDATES:
@@ -108,8 +108,10 @@ def article_urls(host: str, max_urls: int) -> list[str]:
                 seen.append(u)
         if seen:
             break
-    # 新しい記事ほど店が現存している見込みが高いので後ろから採る
-    return list(dict.fromkeys(reversed(seen)))[:max_urls]
+    # 新しい記事ほど店が現存している見込みが高いので後ろから採る。
+    # skip_urls は «浅く読んだ続きから読む» ための飛ばし幅。同じ記事を 2 度取りに行くと
+    # 相手のサーバに無駄な負荷をかけるので、深掘りの回は必ずここで前回ぶんを飛ばす。
+    return list(dict.fromkeys(reversed(seen)))[skip_urls:skip_urls + max_urls]
 
 
 def scan_article(url: str, by_pair, uniq) -> list[dict]:
@@ -190,6 +192,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--min-posts", type=int, default=3, help="host を採る最小の飲食投稿数")
     p.add_argument("--max-hosts", type=int, default=400)
     p.add_argument("--max-urls-per-host", type=int, default=1500)
+    p.add_argument("--skip-urls-per-host", type=int, default=0,
+                   help="新しい方から数えて何本の記事を飛ばすか（浅く読んだ続きを読む深掘り用）")
     p.add_argument("--shards", type=int, default=1)
     p.add_argument("--shard", type=int, default=0)
     p.add_argument("--workers", type=int, default=6, help="1 host 内で同時に読む記事数")
@@ -254,7 +258,7 @@ def main() -> None:
             if not _robots_allows(host):
                 LOGGER.info("  %s: robots で全面禁止。飛ばします", host)
                 continue
-            urls = article_urls(host, args.max_urls_per_host)
+            urls = article_urls(host, args.max_urls_per_host, args.skip_urls_per_host)
             if not urls:
                 LOGGER.info("  %s: sitemap から記事URLを採れませんでした", host)
                 continue
