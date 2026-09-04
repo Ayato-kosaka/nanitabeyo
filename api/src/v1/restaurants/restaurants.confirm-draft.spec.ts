@@ -105,7 +105,17 @@ describe('#1671 確認ページ経由の店舗作成', () => {
     };
     locationsService = {
       resolveLocalLanguageCode: jest.fn().mockReturnValue('ja'),
-      extractCountryCode: jest.fn().mockReturnValue('JP'),
+      // ⚠️ 素直に 'JP' を返し切ると «空の入力でも国が出る» という嘘のモックになり、
+      //    「addressComponents が空でも落ちないか」を確かめられない。
+      //    本物（LocationsService.extractCountryCode）と同じく、country が
+      //    無ければ null を返す形にしておく
+      extractCountryCode: jest.fn((components: { types?: string[] }[]) =>
+        (Array.isArray(components) ? components : []).some((c) =>
+          (c.types ?? []).includes('country'),
+        )
+          ? 'JP'
+          : null,
+      ),
     };
     repo = {
       findRestaurantByGooglePlaceId: jest.fn().mockResolvedValue(null),
@@ -498,6 +508,95 @@ describe('#1671 確認ページ経由の店舗作成', () => {
       } as CreateRestaurantDto);
 
       expect(externalApi.callPlaceDetails).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('⚠️ 既にある店の下読みは Google を 1 回も叩かない（#1781 ⑥⑦ を増やさない）', () => {
+    const EXISTING_ROW = {
+      id: 'existing-uuid',
+      google_place_id: PLACE_ID,
+      name: 'パイプラインが作った店',
+      name_language_code: 'ja',
+      latitude: 35.61,
+      longitude: 139.71,
+      address: null,
+      country_code: null,
+      address_components: ADDRESS_COMPONENTS,
+      plus_code: null,
+      image_path: null,
+    };
+
+    beforeEach(() => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue(EXISTING_ROW);
+    });
+
+    it('Place Details を呼ばない', async () => {
+      await service.createRestaurantDraft({ googlePlaceId: PLACE_ID });
+      expect(externalApi.callPlaceDetails).not.toHaveBeenCalled();
+    });
+
+    it('自社 DB の値を初期値として返す', async () => {
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+
+      expect(draft).toMatchObject({
+        googlePlaceId: PLACE_ID,
+        name: 'パイプラインが作った店',
+        nameLanguageCode: 'ja',
+        latitude: 35.61,
+        longitude: 139.71,
+      });
+    });
+
+    it('住所の列が空なら addressComponents から組み立てて初期値にする', async () => {
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+      // 国名（日本）は住所文字列から外れ、都道府県だけが残る
+      expect(draft.address).toBe('東京都');
+      expect(draft.countryCode).toBe('JP');
+    });
+
+    it('住所の列が既に入っていれば、そちらを優先する', async () => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue({
+        ...EXISTING_ROW,
+        address: '既に確認された住所',
+        country_code: 'JP',
+      });
+
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+      expect(draft.address).toBe('既に確認された住所');
+    });
+
+    it('addressComponents が配列でなくても落ちない（jsonb は [] も {} も入る）', async () => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue({
+        ...EXISTING_ROW,
+        address_components: {},
+      });
+
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+      expect(draft.address).toBe('');
+      expect(draft.countryCode).toBeNull();
+    });
+
+    it('発行したトークンは、そのまま作成へ渡して検証を通る', async () => {
+      const { draftToken } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        address: '東京都渋谷区神南1-2-3',
+        countryCode: 'JP',
+      } as CreateRestaurantDto);
+
+      expect(repo.fillMissingAddress).toHaveBeenCalled();
     });
   });
 });
