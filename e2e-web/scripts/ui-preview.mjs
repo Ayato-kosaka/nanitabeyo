@@ -93,7 +93,9 @@ const iso = (n, day) => {
 // 既定は従来どおり "eaten" なので、既存の呼び出しの見え方は変わらない）
 // #1375（9 巡目）`provider` を渡すと «SNS から取り込んだ行» になる（一覧のロゴの確認用）。
 // 既定は undefined なので、既存の呼び出しの見え方は変わらない
-const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status = "eaten", provider) => ({
+// #1774 `priceBand` を渡すと «価格帯の帯» が出る。渡さなければ null（＝何も描かない）。
+// 既定は null なので、既存の呼び出しの見え方は変わらない
+const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status = "eaten", provider, priceBand = null) => ({
 	key,
 	status,
 	occurredAt,
@@ -107,6 +109,7 @@ const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status =
 		reviewCount: 3,
 		averageRating: 4.2,
 		categoryImageUrl: "https://img.example.invalid/c.jpg",
+		priceBand,
 	},
 	dishMedia: withMedia
 		? {
@@ -134,7 +137,15 @@ const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status =
 // this month: several days with records; last month: a few
 const page1 = [
 	// #1375 9 巡目: 先頭を «Instagram から取り込んだ行» にする（一覧のロゴがここに出る）
-	item("a", iso(0, 2), true, ["Q1", "ラーメン"], "eaten", "instagram"),
+	// #1774 先頭に価格帯を持たせる。上下限のある «途中の刻み» の方（上限なしの帯は EMBED_ENTRY）。
+	// ⚠️ 値は shared/utils/priceBand.ts の steps から取ること。JPY は
+	//    [0, 500, 1000, 1500, 2000, 3000, 5000, 8000, 10000] で、単位は «円»（名前は Cents だが）。
+	//    ここに steps に無い値を書くと、本番では出ない絵を撮ってしまう
+	item("a", iso(0, 2), true, ["Q1", "ラーメン"], "eaten", "instagram", {
+		minCents: 1000,
+		maxCents: 1500,
+		currencyCode: "JPY",
+	}),
 	item("b", iso(0, 5), true),
 	item("b2", iso(0, 5), true),
 	item("c", iso(0, 11), true),
@@ -260,6 +271,10 @@ const EMBED_ENTRY = {
 	dish: {
 		id: "dish-embed",
 		name: "ラーメン",
+		// #1774 価格帯の帯を撮るため。maxCents: null = 最上位の «上限なし» の帯
+		// （ここを 0 や MAX_SAFE_INTEGER で埋めると «9007199254740991円» と描かれる）
+		// 10000 は JPY の最上位の刻み（shared/utils/priceBand.ts の steps の末尾）
+		priceBand: { minCents: 10000, maxCents: null, currencyCode: "JPY" },
 		restaurant_id: "r-embed",
 		category_id: "Q1",
 		created_at: "2026-08-01T00:00:00Z",

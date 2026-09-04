@@ -1312,5 +1312,9 @@
 				"dish_reviews": "レビュー"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}}〜{{max}}",
+		"openEnded": "{{symbol}}{{min}}〜"
 	}
 }
