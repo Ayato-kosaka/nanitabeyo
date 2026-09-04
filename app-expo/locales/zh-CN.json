@@ -1304,5 +1304,9 @@
 				"dish_reviews": "评价"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}}~{{max}}",
+		"openEnded": "{{symbol}}{{min}}~"
 	}
 }
