@@ -12,11 +12,17 @@ import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import {
 	type AutocompleteLocation,
 	type CreateRestaurantResponse,
+	type QueryRestaurantsByGooglePlaceIdResponse,
 	type QueryMeSavedRestaurantsResponse,
 	type QueryRestaurantsResponse,
 	ErrorCode,
 } from "@shared/api/v1/res";
-import type { CreateRestaurantDto, QueryRestaurantsDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
+import type {
+	CreateRestaurantDto,
+	QueryRestaurantsByGooglePlaceIdDto,
+	QueryRestaurantsDto,
+	QuerySavedRestaurantsDto,
+} from "@shared/api/v1/dto";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
@@ -308,57 +314,73 @@ export default function SelectRestaurantScreen() {
 
 	// #644 【設計】レストラン作成＆詳細画面へ遷移する関数（ストアにキャッシュ→ナビゲーション）
 	// #525 【設計】エラーハンドリングを整備し、422/404/network_error 等を適切にスナックバーで通知
+	/*
+	 * #1671 【設計】**Google の値をそのまま自社データにしない。**
+	 *
+	 * 新規の店は、作る前に確認ページ（confirm-restaurant）へ回す。店ができるのは
+	 * ユーザーが「この内容で登録」を押したときだけである。
+	 *
+	 * ⚠️ **既にある店は確認ページへ回さない。** 一度確認された店を毎回聞き直すのは
+	 * ただの邪魔になるし、Google を叩く理由も無い。ここで先に自社 DB を引くのは
+	 * そのためで、**この問い合わせは Google Places を使わない**（自社 DB を見るだけ）。
+	 */
 	const createAndOpenRestaurant = useCallback(
 		async (googlePlaceId: string) => {
 			setIsLoadingRestaurantCreation(true);
 			try {
-				const response = await callBackend<CreateRestaurantDto, CreateRestaurantResponse>("v1/restaurants", {
-					method: "POST",
+				const existing = await callBackend<
+					QueryRestaurantsByGooglePlaceIdDto,
+					QueryRestaurantsByGooglePlaceIdResponse | null
+				>("v1/restaurants/by-google-place-id", {
+					method: "GET",
 					requestPayload: { googlePlaceId },
 				});
 
-				if (isPickMode) {
-					// pick モード: 選択として返して戻るだけ。詳細画面へは行かない
-					usePickedRestaurantStore.getState().setPicked({
-						restaurantId: response.restaurant.id,
-						name: response.restaurant.name,
-						restaurant: response.restaurant,
+				if (existing) {
+					/*
+					 * 既存店: 従来どおり `POST /v1/restaurants` を通す。
+					 *
+					 * ⚠️ **この POST は Google を 1 回も叩かない。** サーバは place_id で既存行を
+					 *    見つけた時点で早期 return するので、追加の Place Details は発生しない。
+					 *    それでも POST を通すのは、**meta（レビュー数・入札）が要る**ためである。
+					 *    `by-google-place-id` は店の実体しか返さないので、これを省くと
+					 *    #1451 の «upsert してから push»（遷移先が API を引き直さない）が崩れる。
+					 */
+					const response = await callBackend<CreateRestaurantDto, CreateRestaurantResponse>("v1/restaurants", {
+						method: "POST",
+						requestPayload: { googlePlaceId },
 					});
-					router.back();
+
+					if (isPickMode) {
+						usePickedRestaurantStore.getState().setPicked({
+							restaurantId: response.restaurant.id,
+							name: response.restaurant.name,
+							restaurant: response.restaurant,
+						});
+						router.back();
+						return;
+					}
+
+					useRestaurantStore.getState().upsert({ restaurant: response.restaurant, meta: response.meta });
+					router.push({
+						pathname: "/[locale]/restaurant/[restaurantId]",
+						params: { locale, restaurantId: response.restaurant.id },
+					});
 					return;
 				}
 
-				// #644 【設計】ストアに upsert してから詳細画面へ遷移
-				const { upsert } = useRestaurantStore.getState();
-				upsert({
-					restaurant: response.restaurant,
-					meta: response.meta,
-				});
-
+				// 新規: 確認ページへ。ここではまだ 1 行も作らない
 				router.push({
-					pathname: "/[locale]/restaurant/[restaurantId]",
-					params: { locale, restaurantId: response.restaurant.id },
+					pathname: "/[locale]/(tabs)/my-dishes/confirm-restaurant",
+					params: { locale, googlePlaceId, ...(isPickMode ? { pick: "1" } : {}) },
 				});
 			} catch (rawError: unknown) {
 				const error = rawError as ApiError;
-
-				// 422 + PLACE_NOT_FOOD_AND_DRINK: レストランではない Place
-				if (error.status === 422 && error.errorCode === ErrorCode.PLACE_NOT_FOOD_AND_DRINK) {
-					showSnackbar(i18n.t("Map.errors.placeNotRestaurant"));
-					return;
-				}
-
-				// 404: Place が見つからない
-				if (error.status === 404) {
-					showSnackbar(i18n.t("Map.errors.placeNotFound"));
-					return;
-				}
 
 				// ネットワークエラー
 				if (error.code === "network_error" || error.status === 0) {
 					showSnackbar(i18n.t("Common.errors.network"));
 				} else {
-					// その他のエラー（http_error / api_error / invalid_response など）
 					showSnackbar(i18n.t("Common.errors.unexpected"));
 				}
 
@@ -371,12 +393,11 @@ export default function SelectRestaurantScreen() {
 				setIsLoadingRestaurantCreation(false);
 			}
 		},
-		[callBackend, isPickMode, logFrontendEvent, showSnackbar, locale],
+		[callBackend, isPickMode, locale, logFrontendEvent, showSnackbar],
 	);
 
-	// #644 【設計】POI押下時にレストラン情報を取得してモーダル表示
 	const handlePoiPress = useCallback(
-		async (event: PoiClickEvent) => {
+		(event: PoiClickEvent) => {
 			lightImpact();
 			createAndOpenRestaurant(event.nativeEvent.placeId);
 		},
