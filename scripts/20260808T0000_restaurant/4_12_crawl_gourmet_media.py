@@ -37,8 +37,8 @@ from datetime import timezone
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (PROVIDER_INSTAGRAM, TABLE_POST_RAW,
                         area_from_text, build_city_index, city_index_sql)
-from sns_html import (RE_KANA, captions_from_html, decode_html, page_text,
-                      store_name_from_text)
+from sns_html import (RE_KANA, captions_from_html, decode_html, handles_from_html,
+                      page_text, store_name_from_text)
 
 LOGGER = logging.getLogger(__name__)
 UA = {"User-Agent": "Mozilla/5.0 (compatible; nanitabeyo-research/1.0; +github.com/Ayato-kosaka/nanitabeyo)",
@@ -119,6 +119,8 @@ def scan_article(url: str, by_pair, uniq) -> list[dict]:
     caps = captions_from_html(raw)
     if not caps:
         return []
+    # 投稿者 handle は柱2 の在庫になる。HTTP は増えない（同じ HTML を読むだけ）
+    handles = handles_from_html(raw)
     page = page_text(raw).strip()
     # 記事タイトルは «【市区町村】…店名…料理» の形で、店とカテゴリの手掛かりそのもの。
     # 1 記事に 4 件以上埋まっているものは «まとめ記事» でタイトルと投稿が対応しないので付けない。
@@ -134,7 +136,8 @@ def scan_article(url: str, by_pair, uniq) -> list[dict]:
         if not caption or not RE_KANA.search(caption):
             continue
         rows.append({"post_id": code, "caption": caption[:2000], "host": host,
-                     "area": area, "store_name": store_name})
+                     "area": area, "store_name": store_name,
+                     "handle": handles.get(code)})
     return rows
 
 
@@ -269,7 +272,7 @@ def main() -> None:
                     rows.append({
                         "post_id": r["post_id"], "provider": PROVIDER_INSTAGRAM,
                         "canonical_url": f"https://www.instagram.com/p/{r['post_id']}/",
-                        "account_id": None, "discovery_route": "gourmet_media",
+                        "account_id": r.get("handle"), "discovery_route": "gourmet_media",
                         "discovery_method": "media_embed", "discovery_query": r["host"],
                         "discovery_seed_place_id": None,
                         "discovery_area_lat": r["area"][0] if r["area"] else None,
