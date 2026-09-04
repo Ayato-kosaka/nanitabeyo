@@ -202,13 +202,16 @@ def main() -> None:
         [bigquery.ScalarQueryParameter("crid", "STRING", args.catalog_run_id)]))
     LOGGER.info("市区町村 %d 件（全国で一意 %d 件）", len(by_pair), len(uniq))
 
+    # 順番が効く。媒体ネットワーク（号外NET 等）はタイトルが «【市区町村】…店名…料理» の形で
+    # 揃っていて地点あり率 100%、CC 由来の host は玉石混交（実測 candy-afternoon.com は 2.3%）。
+    # 濃い方を先に処理しないと、6 時間の枠を薄い host で使い切って本命に届かない。
     hosts: list[str] = []
-    if args.hosts_from_run_ids:
-        hosts = _read_hosts(pipeline, [x.strip() for x in args.hosts_from_run_ids.split(",") if x.strip()],
-                            args.min_posts, args.max_hosts)
     if args.network_index_urls:
-        hosts += network_hosts([u.strip() for u in args.network_index_urls.split(",") if u.strip()])
+        hosts = network_hosts([u.strip() for u in args.network_index_urls.split(",") if u.strip()])
     hosts += [h.strip() for h in args.extra_hosts.split(",") if h.strip()]
+    if args.hosts_from_run_ids:
+        hosts += _read_hosts(pipeline, [x.strip() for x in args.hosts_from_run_ids.split(",") if x.strip()],
+                             args.min_posts, args.max_hosts)
     hosts = list(dict.fromkeys(hosts))
     mine = [h for i, h in enumerate(hosts) if i % max(args.shards, 1) == args.shard]
     LOGGER.info("host %d 件中このシャードは %d 件", len(hosts), len(mine))
