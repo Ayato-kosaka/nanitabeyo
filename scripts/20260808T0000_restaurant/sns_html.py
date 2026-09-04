@@ -48,6 +48,16 @@ def strip_tags(fragment: str) -> str:
     return re.sub(r"\s+", " ", t).strip()
 
 
+# 塊の切れ目は HTML の要素境界で取る。
+#
+# 【設計】以前は strip_tags したあと «2 つ以上の空白» で切っていたが、strip_tags は
+# 空白の連続を 1 つに畳むので、この条件は**決して成立しない**。結果、キャプションと
+# 末尾の定型文（"A post shared by …"）が 1 つの塊になり、BOILER に当たって
+# **キャプションがまるごと捨てられていた**。経路B/C が投稿本文ではなくページタイトルで
+# resolve していたのはこれが原因。要素境界で切れば両者は別の塊になる。
+_RE_BLOCK_SPLIT = re.compile(r"(?:</p>|<br\s*/?>|</div>|</a>|</h[1-6]>)", re.I)
+
+
 def captions_from_html(raw: bytes) -> dict[str, str]:
     """HTML から {post_id: caption} を採る。公式 blockquote が本命。"""
     text = decode_html(raw)
@@ -56,9 +66,10 @@ def captions_from_html(raw: bytes) -> dict[str, str]:
         m = RE_PERMALINK.search(bq)
         if not m:
             continue
-        body = strip_tags(bq)
-        # 定型文だけの行を落として、残った最長の塊を本文とみなす
-        parts = [p.strip() for p in re.split(r"\s{2,}|｜|\|", body) if p.strip()]
+        # 定型文だけの塊を落として、残った最長の塊を本文とみなす
+        parts: list[str] = []
+        for chunk in _RE_BLOCK_SPLIT.split(bq):
+            parts += [p.strip() for p in re.split(r"｜|\|", strip_tags(chunk)) if p.strip()]
         cand = [p for p in parts if not BOILER.search(p) and len(p) >= 8]
         cap = max(cand, key=len) if cand else ""
         if cap:
@@ -68,6 +79,48 @@ def captions_from_html(raw: bytes) -> dict[str, str]:
     # blockquote の外に素で貼られている permalink も拾う（キャプションは無い）
     for m in RE_PERMALINK.finditer(text):
         out.setdefault(m.group(1), "")
+    return out
+
+
+# 埋め込みの投稿者 handle は 2 か所に出る。定型文の «(@handle)» と、
+# プロフィールへのリンク «instagram.com/<handle>/?utm_source=ig_embed»。
+# permalink（/p/<code>/）と紛れるので、あとに /p/ /reel/ /tv/ が続かないものだけを採る。
+_RE_AT = re.compile(r"[(（]\s*@([A-Za-z0-9._]{2,30})\s*[)）]")
+_RE_PROFILE = re.compile(r"instagram\.com/([A-Za-z0-9._]{2,30})/(?![a-z]{1,4}/)[?\"']", re.I)
+# handle ではないパス
+_NOT_HANDLE = frozenset({"p", "reel", "tv", "explore", "accounts", "about", "developer",
+                         "legal", "directory", "stories", "reels", "embed"})
+
+
+def handles_from_html(raw: bytes) -> dict[str, str]:
+    """HTML から {post_id: 投稿者 handle} を採る。
+
+    #1815 【設計】柱2（インフルエンサー）の handle 在庫が business_discovery の枠を
+    空けている。グルメ媒体が «埋め込むに値する» と判断したアカウントは飲食である確度が
+    高いので、埋め込みを読むときに handle も一緒に採る。**HTTP は増えない**（同じ HTML）。
+    """
+    text = decode_html(raw)
+    out: dict[str, str] = {}
+    for bq in RE_BLOCKQUOTE.findall(text):
+        m = RE_PERMALINK.search(bq)
+        if not m:
+            continue
+        handle = ""
+        # permalink 自体が instagram.com/<handle>/p/<code> 形式ならそこが最も確実
+        owner = re.search(r"instagram\.com/([A-Za-z0-9._]{2,30})/(?:p|reel|tv)/", bq, re.I)
+        if owner and owner.group(1).lower() not in _NOT_HANDLE:
+            handle = owner.group(1)
+        if not handle:
+            at = _RE_AT.search(strip_tags(bq))
+            if at:
+                handle = at.group(1)
+        if not handle:
+            prof = _RE_PROFILE.search(bq)
+            if prof and prof.group(1).lower() not in _NOT_HANDLE:
+                handle = prof.group(1)
+        handle = handle.strip(".").lower()
+        if handle and handle not in _NOT_HANDLE:
+            out[m.group(1)] = handle
     return out
 
 
