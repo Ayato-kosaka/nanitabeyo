@@ -335,6 +335,29 @@ def run_stage5(
             )
         )
         top_rows = cur.fetchall()
+
+        # #1782 完了条件2「不足セルが一覧で出る」。
+        # ⚠️ «閾値に満たない全部» は dev 実測で 1,646 万行あり、一覧にしても打ち手は決まらない。
+        #    打ち手が決まるのは «1 件以上あるが届いていない» セル（あと 1〜4 件で成立に変わる）。
+        cur.execute(
+            coverage_sql.build_stage5_shortfall_cells_sql(
+                radius_m=radius_m,
+                min_restaurants=min_restaurants,
+                area_table_name=area_table_name,
+                media_table_name=media_table_name,
+            )
+        )
+        shortfall_rows = cur.fetchall()
+
+        cur.execute(
+            coverage_sql.build_stage5_shortfall_by_category_sql(
+                radius_m=radius_m,
+                min_restaurants=min_restaurants,
+                area_table_name=area_table_name,
+                media_table_name=media_table_name,
+            )
+        )
+        shortfall_category_rows = cur.fetchall()
     except psycopg2.errors.QueryCanceled:
         logger.error(
             "❌ Stage5 が %s 秒でタイムアウトしました。--s2-level を小さく（粗く）するか、"
@@ -357,6 +380,27 @@ def run_stage5(
         for s2_cell_id_value, restaurant_count, category_id, category_label, restaurants_with_usable_media in top_rows
     ]
 
+    shortfall_cells = [
+        {
+            "s2_cell_id": s2_cell_id_value,
+            "restaurant_count": restaurant_count,
+            "category_id": category_id,
+            "category_label": category_label,
+            "restaurants_with_usable_media": restaurants_with_usable_media,
+        }
+        for s2_cell_id_value, restaurant_count, category_id, category_label, restaurants_with_usable_media in shortfall_rows
+    ]
+    shortfall_by_category = [
+        {
+            "category_id": category_id,
+            "category_label": category_label,
+            "shortfall_cells": shortfall,
+            "covered_cells": covered,
+            "best_cell_restaurants": best,
+        }
+        for category_id, category_label, shortfall, covered, best in shortfall_category_rows
+    ]
+
     logger.info(
         "coverage が %s 店舗以上 = %s / %s（%s） / 1〜%s 店舗 = %s / 0 店舗 = %s",
         min_restaurants,
@@ -375,6 +419,21 @@ def run_stage5(
             f"{row['restaurants_with_usable_media']:,}",
         )
 
+    if shortfall_by_category:
+        logger.info("")
+        logger.info(
+            "-- あと少しで成立するカテゴリ（惜しいセルを多く抱えている順）"
+            "。0 店舗のセルは «店を見つけるところから» なので別枠（#1273） --"
+        )
+        for row in shortfall_by_category:
+            logger.info(
+                "category_id=%-24s 惜しいセル=%s / 成立済み=%s / 最良セル=%s 店",
+                row["category_id"],
+                f"{row['shortfall_cells']:,}",
+                f"{row['covered_cells']:,}",
+                f"{row['best_cell_restaurants']:,}",
+            )
+
     return {
         "s2_level": s2_level,
         "radius_m": radius_m,
@@ -387,6 +446,9 @@ def run_stage5(
         "covered_below_min_restaurants": covered_below_min,
         "covered_zero_restaurants": covered_zero,
         "top_cells": top_cells,
+        # #1782 完了条件2。合計値だけでは打ち手が決まらないので、惜しいセルを一覧で残す
+        "shortfall_cells": shortfall_cells,
+        "shortfall_by_category": shortfall_by_category,
     }
 
 

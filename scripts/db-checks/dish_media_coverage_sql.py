@@ -18,6 +18,8 @@ Python側（measure_dish_media_coverage.py が呼ぶ normalization.s2_cell_id()�
 
 from __future__ import annotations
 
+from pathlib import Path
+
 # 3_4_build_restaurant_catalog.py の `--service-cell-level` 既定値と合わせる
 # （coverage の分母となる S2 セルは、BigQuery 側の restaurant_service_cell_catalog と
 # 同じ粒度でなければ比較できない。test_dish_media_coverage_sql.py が値の一致を
@@ -51,26 +53,44 @@ def _area_cell_point_expr(alias: str = "") -> str:
 JP_GATE_FEATURE_TYPE = "gate"
 JP_GATE_FEATURE_KEY = "region:country:JP"
 
-# dish-media.repository.ts の base_candidates CTE と同じ 4 条件（WHERE で書けるもの）。
-# 5 条件目の「dish の category_id が検索カテゴリと一致」は WHERE ではなく、
-# usable_dish_media_select_sql() が dishes を JOIN して d.category_id を選択列に
-# 出すことで表現している（=「そのカテゴリの dish に紐づく投稿だけを対象にする」）。
-USABLE_DISH_MEDIA_CONDITIONS = (
-    # #1513 論理削除済みの投稿は対象外 — dish-media.repository.ts:236
-    "dm.deleted_at IS NULL",
-    # #1257 実体（GCS original）が届いていない投稿は対象外 — dish-media.repository.ts:251
-    "dm.media_processing_status = 'completed'",
-    # #1511 退会したユーザーの投稿は対象外 — dish-media.repository.ts:240-244
-    "NOT EXISTS (\n"
-    "    SELECT 1 FROM users u\n"
-    "    WHERE u.id = dm.user_id AND u.deleted_at IS NOT NULL\n"
-    "  )",
-    # #1641 埋め込みの枠で再生不能と分かっている投稿は対象外 — dish-media.repository.ts:269-273
-    "NOT EXISTS (\n"
-    "    SELECT 1 FROM dish_media_external_embeddings dmee\n"
-    "    WHERE dmee.dish_media_id = dm.id AND dmee.playback_status = 'not_playable'\n"
-    "  )",
+# 「使える dish_media」の判定は **本番コードが正本**であり、ここには持たない。
+#
+# #1782 完了条件 3「usable dish_media の判定が本番コードから抜き出されており、
+# **二重定義になっていない**」。以前はこの位置に 4 条件を手で書き写して持っており、
+# 添えてあった行番号コメント（dish-media.repository.ts:236 等）は #1798 と #1666 で
+# 行が動いた時点で既に指していなかった。**計測側が古い判定のまま緑を出し続けると、
+# 「Google を外せるか」の判断材料が静かに嘘になる。**
+#
+# 正本は api/src/v1/dish-media/usable-dish-media-filter.ts で、
+# usable-dish-media-filter.spec.snapshot.spec.ts が下のファイルへ書き出し、
+# 内容が一致することを機械検査している（#1629 の SQL 写経事故と同じ作法）。
+#
+# ⚠️ 5 条件目の「dish の category_id が検索カテゴリと一致」だけは WHERE ではなく、
+#    usable_dish_media_select_sql() が dishes を JOIN して d.category_id を選択列に
+#    出すことで表現している（= そのカテゴリの dish に紐づく投稿だけを対象にする）。
+USABLE_CONDITIONS_SQL_PATH = (
+    Path(__file__).resolve().parent / "sql" / "usable_dish_media_conditions.sql"
 )
+
+
+def usable_dish_media_conditions_sql() -> str:
+    """本番の判定（WHERE の末尾へ連結できる AND 始まりの断片）を読む。
+
+    ⚠️ ここで条件を書き足さない・書き換えないこと。変えるなら本番側を変えて
+       スナップショットを書き出し直す（ファイル先頭のコメントに手順がある）。
+    """
+    if not USABLE_CONDITIONS_SQL_PATH.exists():
+        raise SystemExit(
+            f"❌ {USABLE_CONDITIONS_SQL_PATH} がない。"
+            " UPDATE_RESTAURANT_SQL_SNAPSHOT=1 pnpm --filter api exec jest "
+            "usable-dish-media-filter.spec.snapshot  で書き出すこと"
+        )
+    lines = [
+        line
+        for line in USABLE_CONDITIONS_SQL_PATH.read_text(encoding="utf-8").splitlines()
+        if not line.lstrip().startswith("--")
+    ]
+    return "\n".join(lines).strip()
 
 
 def usable_dish_media_select_sql() -> str:
@@ -80,7 +100,6 @@ def usable_dish_media_select_sql() -> str:
     （呼ぶのはここから作る一時テーブルの構築 SQL 経由のみで、この関数自体を
     Stage4/Stage5 が個別に埋め込むことはしない）。
     """
-    where_clause = "\n  AND ".join(USABLE_DISH_MEDIA_CONDITIONS)
     return (
         "SELECT\n"
         "  dm.id AS dish_media_id,\n"
@@ -90,7 +109,8 @@ def usable_dish_media_select_sql() -> str:
         "FROM dish_media dm\n"
         "JOIN dishes d ON d.id = dm.dish_id\n"
         "JOIN restaurants r ON r.id = d.restaurant_id\n"
-        f"WHERE {where_clause}"
+        # 断片は AND で始まるので、常に真の述語をひとつ置いてから連結する
+        "WHERE 1=1\n  " + usable_dish_media_conditions_sql()
     )
 
 
@@ -282,6 +302,65 @@ def build_stage5_summary_sql(
         " AS covered_below_min,\n"
         "  count(*) AS covered_total\n"
         "FROM matched"
+    )
+
+
+def build_stage5_shortfall_cells_sql(
+    top_n: int = DEFAULT_TOP_CELLS_LIMIT,
+    radius_m: float = DEFAULT_RADIUS_M,
+    min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
+    area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
+    media_table_name: str = DEFAULT_TEMP_TABLE_NAME,
+) -> str:
+    """#1782 完了条件2: **あと少しで成立する** area × category を、惜しい順に出す。
+
+    ⚠️ 「不足セル」を素直に «閾値に満たない全部» と読むと 16,467,553 行になる
+       （dev 実測: 0 店舗 16,389,774 + 1〜4 店舗 77,779）。**一覧にしても打ち手は決まらない。**
+
+    打ち手が決まるのは «1 件以上あるが閾値に届いていない» セルである。ここは投稿が
+    あと 1〜4 件増えれば成立に変わる。0 店舗のセルは «そのエリアにその料理の店を
+    見つけるところから» なので、投稿の追加では動かず、性質が違う（#1273 の担当）。
+
+    多い順に並べるのは «いちばん惜しいものから潰す» ため。
+    """
+    return (
+        _stage5_matched_sql(radius_m, area_table_name, media_table_name)
+        + f"\nHAVING count(DISTINCT t.restaurant_id) < {min_restaurants}"
+        + "\nORDER BY restaurants_with_usable_media DESC, ac.s2_cell_id, c.category_id"
+        + f"\nLIMIT {top_n}"
+    )
+
+
+def build_stage5_shortfall_by_category_sql(
+    top_n: int = DEFAULT_TOP_CELLS_LIMIT,
+    radius_m: float = DEFAULT_RADIUS_M,
+    min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
+    area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
+    media_table_name: str = DEFAULT_TEMP_TABLE_NAME,
+) -> str:
+    """#1782 完了条件2: 惜しいセルをカテゴリ単位でまとめる（«どの料理から手を付けるか»）。
+
+    セル一覧はエリアの粒度が細かすぎて（S2 level 14 = 約 1.3km 四方）、
+    隣接セルが同じ店を見るので同じ行が並ぶ。**打ち手はカテゴリ単位で決まる**ので、
+    «惜しいセルを最も多く抱えているカテゴリ» を出す。
+    """
+    return (
+        "WITH matched AS (\n"
+        f"{_stage5_matched_sql(radius_m, area_table_name, media_table_name)}\n"
+        ")\n"
+        "SELECT\n"
+        "  category_id,\n"
+        "  category_label,\n"
+        f"  count(*) FILTER (WHERE restaurants_with_usable_media < {min_restaurants})"
+        " AS shortfall_cells,\n"
+        f"  count(*) FILTER (WHERE restaurants_with_usable_media >= {min_restaurants})"
+        " AS covered_cells,\n"
+        "  max(restaurants_with_usable_media) AS best_cell_restaurants\n"
+        "FROM matched\n"
+        "GROUP BY category_id, category_label\n"
+        f"HAVING count(*) FILTER (WHERE restaurants_with_usable_media < {min_restaurants}) > 0\n"
+        "ORDER BY shortfall_cells DESC, category_id\n"
+        f"LIMIT {top_n}"
     )
 
 
