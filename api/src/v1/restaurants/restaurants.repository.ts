@@ -351,7 +351,15 @@ export class RestaurantsRepository {
       再現環境の generic は 651 ms → 166 ms になった。
 
       ⚠️ literal にすると limit の値ごとに別の prepared statement になる。
-         この API の limit は実質 20（クライアントの既定）に固定されているので実害は無い。
+         **＝ limit ごとに別のプランであり、測っていない limit は «測れていない» のと同じ。**
+
+         #1834 ここに「この API の limit は実質 20（クライアントの既定）に固定されているので
+         実害は無い」と書いてあったが、**これは事実ではなかった**。SNS 取り込み
+         （`dish-media-imports.service.ts`）が内部から **limit 100** で呼んでおり、
+         その組み合わせは計測ラチェット（`measure_order_by_posts.py` /
+         `restaurants.order-by-posts-plan.spec.ts` はどちらも limit 20）の外に居た。
+         本番では既定順 + limit 100 が **26.7 秒**かかっていた（同じリクエスト内の
+         距離順 + limit 100 は 0.33 秒）。ラチェットが緑でも守れていない範囲がある。
       ⚠️ SQL へ直接埋める値なので、**必ず整数へ丸めて範囲を締めてから** Prisma.raw に渡す。
          DTO 側は @Min(1) / @Max(100) だが @IsInt が無く、内部呼び出し
          （dish-media-imports）も同じ型を通るため、ここで最終的に潰しておく。

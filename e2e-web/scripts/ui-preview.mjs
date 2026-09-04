@@ -172,7 +172,7 @@ const EMBED_ENTRY = {
   dish_reviews: [],
 };
 
-const resolveResponse = {
+let resolveResponse = {
   status: "ok", reason: "resolved",
   source: { provider: "instagram", externalContentId: "DZFdePPzzLI", canonicalUrl: "https://www.instagram.com/reel/DZFdePPzzLI/", mediaIndex: null },
   metadata: { title: LONG_CAPTION, authorName: "umaguru.tokyo", authorUrl: null, thumbnailUrl: null, extractedTexts: [] },
@@ -185,6 +185,21 @@ const resolveResponse = {
   },
   prefill: { dishCategoryId: "Q188", restaurantId: null },
   restaurantSearch: { performed: true, reason: "searched", scannedCount: 12 },
+};
+
+/*
+#1834【チーム指摘】「読み取れたのか、読み取れてないのかよく分からんかった」。
+
+**取りに行って失敗した**（Instagram のレート制限で 302 が返る。本番で実際に起きている）
+状態のレスポンス。«取れたが手がかりゼロ» と文言が分かれていることを目で確かめるために撮る。
+*/
+const RESOLVE_FETCH_FAILED = {
+  status: "unknown", reason: "metadata_fetch_failed",
+  source: { provider: "instagram", externalContentId: "DAlEDrCv9wN", canonicalUrl: "https://www.instagram.com/reel/DAlEDrCv9wN/", mediaIndex: null },
+  metadata: { title: null, description: null, authorName: null, authorUrl: null, thumbnailUrl: null, extractedTexts: [] },
+  candidates: { dishCategories: [], restaurants: [] },
+  prefill: { dishCategoryId: null, restaurantId: null },
+  restaurantSearch: { performed: false, reason: "no_extracted_text", scannedCount: 0 },
 };
 
 
@@ -373,6 +388,16 @@ await shot("sns-import-caption-expanded");
 await page.mouse.wheel(0, 600);
 await page.waitForTimeout(800);
 await shot("sns-import-resolved-bottom");
+
+// 3a. #1834 取りに行って失敗した状態（«読み取れなかった» と «情報が無かった» の書き分け）
+resolveResponse = RESOLVE_FETCH_FAILED;
+await goto("/ja-JP/add-record");
+await page.getByTestId("sns-import-screen").waitFor({ timeout: 120000 }).catch((e) => console.log("sns wait:", e.message));
+await page.waitForTimeout(2000);
+await page.getByTestId("sns-import-url-input").fill("https://www.instagram.com/reel/DAlEDrCv9wN/");
+await page.getByTestId("sns-import-resolve-button").click();
+await page.waitForTimeout(2500);
+await shot("sns-import-fetch-failed");
 
 // 3b. 食べたを記録タブ（#1375 5 巡目: 店選択の統一 + メディアの選び方）
 await goto("/ja-JP/add-record");

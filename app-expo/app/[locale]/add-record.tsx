@@ -57,6 +57,7 @@ import {
 } from "react-native";
 import { ChevronLeft, Search, X } from "lucide-react-native";
 import { resolveProviderIcon, resolveProviderLabel } from "@/features/dishMedia/providerIcon";
+import { resolveResultSummaryKey } from "@/features/dishMedia/snsImportResultMessage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -748,10 +749,18 @@ export default function SnsImportScreen() {
 											{/* #1375 実機確認（3 巡目）: **読み取り後に何も出ないのを禁止する。**
 								    Instagram はサーバから取れる情報が無いので、候補ゼロは主要経路である。
 								    その場合も «読み取りは終わった。次はこうする» を必ず言う */}
+											{/*
+											#1834【チーム指摘】「読み取れたのか、読み取れてないのかよく分からんかった」。
+
+											原因は文言が 1 つしか無かったことである。**«投稿を取りに行って失敗した»
+											（status: unknown / metadata_fetch_failed。実測では Instagram の 302 =
+											レート制限）** と、**«取れたが手がかりが無かった»（status: ok・候補ゼロ）** が、
+											どちらも「この投稿から読み取れる情報はありませんでした。」で出ていた。
+											前者はもう一度押せば取れることがあり、後者は何度押しても変わらない。
+											**ユーザーが次に取る行動が違うので、文言を分ける。**
+											*/}
 											<Text style={styles.hint} testID="sns-import-result-summary">
-												{resolved.candidates.dishCategories.length > 0 || resolved.candidates.restaurants.length > 0
-													? i18n.t("SnsImport.result.summary")
-													: i18n.t("SnsImport.result.noInfo")}
+												{i18n.t(resolveResultSummaryKey(resolved))}
 											</Text>
 										</>
 									)}
