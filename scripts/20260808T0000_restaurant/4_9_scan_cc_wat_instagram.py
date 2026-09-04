@@ -134,6 +134,8 @@ def scan_record(raw: bytes, store_hosts: dict[str, str]):
 
     by_code: dict[str, list[str]] = {}
     handle_of: dict[str, str] = {}
+    # 埋め込みから採れた handle だけを在庫に足す。«埋め込まれる投稿を実際に持っている»
+    # ことが確認できたアカウントなので、素のプロフィールURLより桁で質が高い。
     profiles: set[str] = set()
     for ln in links:
         u = ln.get("url") or ""
@@ -141,10 +143,9 @@ def scan_record(raw: bytes, store_hosts: dict[str, str]):
             continue
         m = RE_IG_POST.search(u)
         if not m:
-            h = re.search(r"instagram\.com/([A-Za-z0-9._]{2,30})/?$", u)
-            if h and h.group(1).lower() not in RESERVED:
-                profiles.add(h.group(1).lower())
-            continue
+            continue  # 素のプロフィールURLは採らない（1本あたり 4,225 件出て、その殆どが
+                      # «日本のページに貼られただけの誰か» である。handle 在庫は既に過剰で、
+                      # 足りないのは投稿の方なので、ここで増やしても詰まりが悪化するだけ）
         code = m.group(2)
         if m.group(1) and m.group(1).lower() not in RESERVED:
             handle_of.setdefault(code, m.group(1).lower())
