@@ -28,12 +28,15 @@
 // 解釈した。地図に位置を出して、合っていれば進む。ずれている場合の直し方が要ると
 // 分かったら、その時に別途出す。
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, TextInput, ScrollView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import MapView from "@/components/MapView";
-import MapViewClass, { Marker } from "react-native-maps";
+// ⚠️ **`Marker` は `react-native-maps` から直接 import しないこと。**
+// web では `MapView.web.tsx` の `Marker`（@react-google-maps/api のラッパ）へ
+// 解決される必要がある。`react-native-maps` から取るとネイティブ専用の実体が
+// 混ざり、web で画面ごと落ちる（実際にプレビューが真っ白になった）。
+import MapView, { Marker } from "@/components/MapView";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -75,7 +78,6 @@ export default function ConfirmRestaurantScreen() {
 	const [address, setAddress] = useState("");
 	const [isLoading, setIsLoading] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const mapRef = useRef<MapViewClass>(null);
 
 	/* ------------------------------------------------------------------ */
 	/* 下読み（保存しない）                                                */
@@ -271,7 +273,6 @@ export default function ConfirmRestaurantScreen() {
 						<Text style={styles.hint}>{i18n.t("SelectRestaurant.confirmPage.locationHint")}</Text>
 						<View style={styles.mapWrapper} testID="confirm-restaurant-map">
 							<MapView
-								ref={mapRef}
 								style={styles.map}
 								initialRegion={region}
 								// 確認するだけの地図なので操作させない（動かせると «直せる» と誤解させる）
@@ -300,7 +301,8 @@ export default function ConfirmRestaurantScreen() {
 						{/* ---------------- 国 ---------------- */}
 						<Text style={styles.label}>{i18n.t("SelectRestaurant.confirmPage.countryLabel")}</Text>
 						<Text style={styles.readonlyValue} testID="confirm-restaurant-country">
-							{draft.countryCode ?? i18n.t("SelectRestaurant.confirmPage.countryUnknown")}
+							{/* 国コード（JP）だけを見せても «確認» にならないので、表示名を優先する */}
+							{draft.countryName ?? draft.countryCode ?? i18n.t("SelectRestaurant.confirmPage.countryUnknown")}
 						</Text>
 					</ScrollView>
 

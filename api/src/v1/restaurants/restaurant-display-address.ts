@@ -80,3 +80,22 @@ export function buildDisplayAddress(
   // 小 → 大。読点区切り
   return parts.join(', ');
 }
+
+/**
+ * #1671 確認ページの «国» 欄に出す表示名（「日本」「United States」など）。
+ *
+ * ⚠️ **保存するのは `country_code`（ISO 2 文字）のままで、ここは表示専用**である。
+ * ユーザーに `JP` とだけ見せても «確認» にならない（自分の国かどうか判断できない）。
+ *
+ * Google が現地言語で返した `longText` をそのまま使う。取れなければ null
+ * （呼び出し側がコード表示か «不明» へ落とす）。
+ */
+export function extractCountryName(
+  addressComponents: AddressComponentLike[] | null | undefined,
+): string | null {
+  const components = Array.isArray(addressComponents) ? addressComponents : [];
+  const country = components.find((c) =>
+    (c.types ?? []).includes(COUNTRY_TYPE),
+  );
+  return country?.longText || null;
+}

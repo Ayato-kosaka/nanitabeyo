@@ -49,7 +49,10 @@ import {
   type RestaurantDraftTokenPayload,
 } from './restaurant-draft.token';
 import { env } from '../../core/config/env';
-import { buildDisplayAddress } from './restaurant-display-address';
+import {
+  buildDisplayAddress,
+  extractCountryName,
+} from './restaurant-display-address';
 
 @Injectable()
 export class RestaurantsService {
@@ -366,6 +369,8 @@ export class RestaurantsService {
         addressComponents,
         address: payload.address,
         countryCode,
+        // 表示専用。保存するのは countryCode のままなので、トークンには封じない
+        countryName: extractCountryName(addressComponents),
       },
       draftToken: signRestaurantDraftToken(
         payload,

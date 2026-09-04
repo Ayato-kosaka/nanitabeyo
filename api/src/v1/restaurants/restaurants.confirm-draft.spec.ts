@@ -181,6 +181,8 @@ describe('#1671 確認ページ経由の店舗作成', () => {
         countryCode: 'JP',
         // 国名（日本）は住所文字列から外れ、都道府県だけが残る
         address: '東京都',
+        // «国» 欄はコードではなく表示名を出す（JP とだけ見せても確認にならない）
+        countryName: '日本',
       });
       expect(draft.addressComponents).toEqual(ADDRESS_COMPONENTS);
     });

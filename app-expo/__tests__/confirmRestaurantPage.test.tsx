@@ -59,6 +59,9 @@ jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) =
 jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+// ⚠️ `Marker` も **`@/components/MapView` から** 出す。画面側が
+// `react-native-maps` から直接 import する形へ戻ると web で落ちるので、
+// このモックが «MapView 経由で取れること» を前提にしていること自体が歯止めになる。
 jest.mock("@/components/MapView", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
@@ -67,14 +70,6 @@ jest.mock("@/components/MapView", () => {
 		default: ReactActual.forwardRef(({ children }: { children?: React.ReactNode }, _ref: unknown) =>
 			ReactActual.createElement(RNView, { testID: "map-view" }, children),
 		),
-	};
-});
-jest.mock("react-native-maps", () => {
-	const ReactActual = jest.requireActual("react");
-	const { View: RNView } = jest.requireActual("react-native");
-	return {
-		__esModule: true,
-		default: class {},
 		Marker: ({ children }: { children?: React.ReactNode }) =>
 			ReactActual.createElement(RNView, { testID: "marker" }, children),
 	};
@@ -104,6 +99,7 @@ const DRAFT = {
 		addressComponents: [],
 		address: "東京都渋谷区神南1-2-3",
 		countryCode: "JP",
+		countryName: "日本",
 	},
 	draftToken: "rdt1.signed.token",
 };
@@ -173,7 +169,8 @@ describe("#1671 新規店舗の確認ページ", () => {
 
 		expect(findByTestId(tree, "confirm-restaurant-name").props.value).toBe(DRAFT.draft.name);
 		expect(findByTestId(tree, "confirm-restaurant-address").props.value).toBe(DRAFT.draft.address);
-		expect(findByTestId(tree, "confirm-restaurant-country").props.children).toBe("JP");
+		// コードではなく表示名を出す（JP とだけ見せても «確認» にならない）
+		expect(findByTestId(tree, "confirm-restaurant-country").props.children).toBe("日本");
 	});
 
 	it("「この内容で登録」を押して初めて店ができる", async () => {

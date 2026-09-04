@@ -4,7 +4,10 @@
 // ⚠️ ここが担保するのは «だいたい読める初期値が出る» ことだけである。
 // 正しさの担保はユーザーの確認であって、この関数ではない（→ 実装の冒頭コメント）。
 
-import { buildDisplayAddress } from './restaurant-display-address';
+import {
+  buildDisplayAddress,
+  extractCountryName,
+} from './restaurant-display-address';
 
 const jp = [
   { longText: '1-2-3', types: ['premise'] },
@@ -98,5 +101,26 @@ describe('#1671 確認ページの住所欄の初期値', () => {
         'JP',
       ),
     ).toBe('');
+  });
+
+  describe('«国» 欄の表示名', () => {
+    it('現地言語の国名を返す（コードではない）', () => {
+      expect(extractCountryName(jp)).toBe('日本');
+      expect(extractCountryName(us)).toBe('United States');
+    });
+
+    it('country component が無ければ null', () => {
+      expect(
+        extractCountryName([{ longText: '渋谷区', types: ['locality'] }]),
+      ).toBeNull();
+    });
+
+    it.each([
+      ['null', null],
+      ['undefined', undefined],
+      ['配列ですらない値', {} as never],
+    ])('%s → null', (_label, input) => {
+      expect(extractCountryName(input as never)).toBeNull();
+    });
   });
 });

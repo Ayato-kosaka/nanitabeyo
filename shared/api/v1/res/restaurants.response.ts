@@ -45,6 +45,11 @@ export type CreateRestaurantDraftResponse = {
 		address: string;
 		/** addressComponents から解決した ISO 3166-1 alpha-2。判定できなければ null */
 		countryCode: string | null;
+		/**
+		 * 確認ページの «国» 欄に出す表示名（「日本」など）。**表示専用で保存しない。**
+		 * ユーザーに `JP` とだけ見せても «確認» にならないため。取れなければ null
+		 */
+		countryName: string | null;
 	};
 	/**
 	 * POST /v1/restaurants へそのまま渡すトークン。
