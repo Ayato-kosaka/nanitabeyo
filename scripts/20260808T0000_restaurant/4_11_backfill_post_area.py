@@ -60,7 +60,7 @@ def main() -> None:
         f"""SELECT post_id, caption, discovery_area_lat, author_name
             FROM `{pipeline.table(TABLE_POST_RAW)}`
             WHERE run_id = @rid AND caption IS NOT NULL
-              AND (discovery_area_lat IS NULL OR author_name IS NULL)
+              AND (discovery_area_lat IS NULL OR NOT STARTS_WITH(caption, "📍"))
             QUALIFY ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY fetched_at DESC) = 1""",
         [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
     LOGGER.info("地点か店名が欠けている投稿 %d 件を見ます", len(posts))
@@ -72,13 +72,18 @@ def main() -> None:
             area = area_from_text(p["caption"], by_pair, uniq)
             if area:
                 hits.append({"post_id": p["post_id"], "lat": area[0], "lng": area[1]})
-        if not p["author_name"]:
-            # 記事見出しの『』「」は店名。resolve へ渡すと店名クエリになり、
-            # エリアの候補上限に埋もれた個人店でも名指しで引ける。
+        # 記事見出しの『』「」は店名。**キャプションの先頭に 📍 行として合成する。**
+        #
+        # 【設計】以前はこれを author_name へ入れて resolve へ渡していたが、
+        # `authorName` は «その投稿をした Instagram アカウント» を指す欄であって、
+        # 記事の見出しに出てくる店名を入れる場所ではない（責務の取り違え）。
+        # resolve 側には 📍行 を exact-name のヒントとして読む仕組み（extractPinNames）が
+        # 既にあるので、こちらはキャプションを整えて渡すだけでよい。API は変えない。
+        if "📍" not in (p["caption"] or ""):
             name = store_name_from_text(p["caption"])
             if name:
                 names.append({"post_id": p["post_id"], "name": name})
-    LOGGER.info("店名を当てられる投稿: %d 件（%.1f%%）", len(names),
+    LOGGER.info("店名を 📍行 として足せる投稿: %d 件（%.1f%%）", len(names),
                 100.0 * len(names) / max(len(posts), 1))
     LOGGER.info("地点を当てられる投稿: %d 件（%.1f%%）", len(hits),
                 100.0 * len(hits) / max(len(posts), 1))
@@ -109,14 +114,16 @@ def main() -> None:
         LOGGER.info("  %d/%d 件へ地点を入れました", done, len(hits))
     LOGGER.info("地点の後埋め完了: %d 件", done)
 
+    # 店名は «📍店名 + 改行» をキャプションの先頭へ足す形で渡す。author_name は
+    # «投稿した Instagram アカウント» の欄なので、記事から採った店名では埋めない。
     name_sql = f"""
       UPDATE `{pipeline.table(TABLE_POST_RAW)}` t
-      SET author_name = s.name
+      SET caption = CONCAT("📍", s.name, "\n", t.caption), author_name = NULL
       FROM (
         SELECT @pids[OFFSET(o)] AS post_id, @names[OFFSET(o)] AS name
         FROM UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH(@pids) - 1)) o
       ) s
-      WHERE t.run_id = @rid AND t.post_id = s.post_id AND t.author_name IS NULL
+      WHERE t.run_id = @rid AND t.post_id = s.post_id AND NOT STARTS_WITH(t.caption, "📍")
     """
     ndone = 0
     for i in range(0, len(names), CHUNK):
@@ -127,8 +134,8 @@ def main() -> None:
             bigquery.ArrayQueryParameter("names", "STRING", [h["name"] for h in chunk]),
         ])
         ndone += len(chunk)
-        LOGGER.info("  店名 %d/%d 件", ndone, len(names))
-    LOGGER.info("店名の後埋め完了: %d 件", ndone)
+        LOGGER.info("  📍行 %d/%d 件", ndone, len(names))
+    LOGGER.info("📍行の後埋め完了: %d 件", ndone)
 
 
 if __name__ == "__main__":

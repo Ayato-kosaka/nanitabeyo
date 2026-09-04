@@ -128,8 +128,10 @@ def scan_article(url: str, by_pair, uniq) -> list[dict]:
     # 1 記事に 4 件以上埋まっているものは «まとめ記事» でタイトルと投稿が対応しないので付けない。
     attach_page = len(caps) <= 3 and bool(page)
     area = area_from_text(page, by_pair, uniq)
-    # 記事見出しの『』「」は店名。resolve へ author_name として渡すと店名クエリになり、
-    # エリアの候補上限（100 件）に埋もれた個人店でも名指しで引ける。
+    # 記事見出しの『』「」は店名。**キャプションの先頭に 📍 行として合成する。**
+    # resolve 側には 📍行 を exact-name のヒントとして読む仕組み（extractPinNames）が
+    # あるので、API を変えずに «この投稿はこの店の話» を伝えられる。
+    # author_name（＝投稿した Instagram アカウント）にはこれを入れない。責務が違う。
     store_name = store_name_from_text(page)
     host = urllib.parse.urlparse(url).netloc.lower()
     rows = []
@@ -137,9 +139,10 @@ def scan_article(url: str, by_pair, uniq) -> list[dict]:
         caption = f"{cap} / {page}" if (cap and attach_page) else (cap or (page if attach_page else ""))
         if not caption or not RE_KANA.search(caption):
             continue
+        if store_name:
+            caption = f"📍{store_name}\n{caption}"
         rows.append({"post_id": code, "caption": caption[:2000], "host": host,
-                     "area": area, "store_name": store_name,
-                     "handle": handles.get(code)})
+                     "area": area, "handle": handles.get(code)})
     return rows
 
 
@@ -282,7 +285,7 @@ def main() -> None:
                         "discovery_area_lat": r["area"][0] if r["area"] else None,
                         "discovery_area_lng": r["area"][1] if r["area"] else None,
                         "discovery_category_id": None, "fetched_at": now, "run_id": run_id,
-                        "caption": r["caption"], "author_name": r["store_name"],
+                        "caption": r["caption"], "author_name": None,
                     })
             pool.shutdown()
             LOGGER.info("  %d/%d %s: 記事 %d → 投稿 %d（累計 %d / 地点あり %d）",

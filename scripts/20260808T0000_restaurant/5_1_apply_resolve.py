@@ -64,6 +64,9 @@ def parse_args() -> argparse.Namespace:
                    help="0 より大きいと、未処理が無くなるかこの時間まで取得と resolve を繰り返す")
     p.add_argument("--idle-sleep-s", type=int, default=120,
                    help="未処理が無かったときに次を見に行くまでの待ち時間")
+    p.add_argument("--area-radius-m", type=int, default=DEFAULT_AREA_RADIUS_M,
+                   help="lat/lng と一緒に渡す検索半径（m）。市区町村の重心を地点にしている経路では "
+                        "3km だと届かない（実測: 重心から店までの中央値 7,253m）")
     p.add_argument("--post-ids", default=None,
                    help="この post_id（カンマ区切り）だけを解き直す。原因調査で --debug-dump と併用する")
     p.add_argument("--only-with-area", action="store_true",
@@ -181,7 +184,7 @@ def main() -> None:
             戻り値 (post, resp) / 失敗時 (post, None)。HTTP だけを行うので thread-safe。"""
             lat = post["discovery_area_lat"]
             lng = post["discovery_area_lng"]
-            radius = DEFAULT_AREA_RADIUS_M if (lat is not None and lng is not None) else None
+            radius = args.area_radius_m if (lat is not None and lng is not None) else None
             try:
                 resp = client.resolve_raw(
                     post["canonical_url"], lat=lat, lng=lng, radius=radius,
