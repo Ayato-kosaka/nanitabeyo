@@ -58,6 +58,12 @@ def parse_args() -> argparse.Namespace:
                    help="caption がこの正規表現に一致する投稿だけ resolve する（RE2）")
     # 4_11 で地点を後埋めした投稿だけを狙って解き直すためのもの。地点の付いていない投稿を
     # 一緒に流しても、前回と同じ答えしか返らない。
+    # #1812 収集ジョブが数時間走り続けるので、1 回の dispatch で «その時点の未処理» だけを
+    # 片付けても、終わった頃には新しい投稿が積み上がっている。取り切るまで繰り返す。
+    p.add_argument("--max-minutes", type=int, default=0,
+                   help="0 より大きいと、未処理が無くなるかこの時間まで取得と resolve を繰り返す")
+    p.add_argument("--idle-sleep-s", type=int, default=120,
+                   help="未処理が無かったときに次を見に行くまでの待ち時間")
     p.add_argument("--only-with-area", action="store_true",
                    help="discovery_area_lat/lng を持つ投稿だけ resolve する")
     p.add_argument("--reresolve-prev-status", default=None,
@@ -133,9 +139,13 @@ def main() -> None:
     now_iso = utc_now().isoformat()
     sleep_s = max(args.sleep_ms, 0) / 1000.0
 
-    posts = _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
-                              args.shards, args.shard, args.reresolve_prev_status, args.caption_regexp,
-                              args.only_with_area)
+    def fetch() -> list:
+        return _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
+                                 args.shards, args.shard, args.reresolve_prev_status,
+                                 args.caption_regexp, args.only_with_area)
+
+    deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes > 0 else 0.0
+    posts = fetch()
     LOGGER.info("未 resolve %d 投稿を処理します（resolve_version=%s, shard=%d/%d, 狙い撃ち=%s）",
                 len(posts), args.resolve_version, args.shard, args.shards,
                 args.reresolve_prev_status or "全未処理")
@@ -208,19 +218,34 @@ def main() -> None:
                             n_ok + n_err, len(posts), total, matched, n_err)
 
         concurrency = max(args.concurrency, 1)
-        if concurrency == 1:
-            # 直列（従来どおり）。caption 無し＝IG 取得経路はここで回す（並列 IG はレート制限）。
-            for post in posts:
-                _handle(*_resolve_one(post))
-                if sleep_s:
-                    time.sleep(sleep_s)
-        else:
-            # 大量並列。caption 付き（IG 非取得）でだけ concurrency を上げること。
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as ex:
-                futs = [ex.submit(_resolve_one, post) for post in posts]
-                for fut in concurrent.futures.as_completed(futs):
-                    _handle(*fut.result())
+
+        def run_batch(batch: list) -> None:
+            if concurrency == 1:
+                # 直列（従来どおり）。caption 無し＝IG 取得経路はここで回す（並列 IG はレート制限）。
+                for post in batch:
+                    _handle(*_resolve_one(post))
+                    if sleep_s:
+                        time.sleep(sleep_s)
+            else:
+                # 大量並列。caption 付き（IG 非取得）でだけ concurrency を上げること。
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as ex:
+                    futs = [ex.submit(_resolve_one, post) for post in batch]
+                    for fut in concurrent.futures.as_completed(futs):
+                        _handle(*fut.result())
+
+        run_batch(posts)
+        while deadline and time.monotonic() < deadline:
+            _flush()
+            posts = fetch()
+            if not posts:
+                LOGGER.info("未処理なし。%d 秒待って見直します（残り %.0f 分）",
+                            args.idle_sleep_s, (deadline - time.monotonic()) / 60)
+                time.sleep(args.idle_sleep_s)
+                continue
+            LOGGER.info("追加の未 resolve %d 投稿（累計 %d 件ロード済み）", len(posts), total)
+            n_ok = n_err = 0
+            run_batch(posts)
 
         _flush()
         result["row_count"] = total
