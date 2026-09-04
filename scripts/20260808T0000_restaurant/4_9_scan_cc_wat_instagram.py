@@ -166,8 +166,14 @@ def scan_record(raw: bytes, store_hosts: dict[str, str]):
     for code, texts in by_code.items():
         caption, handle = _pick(texts)
         handle = handle or handle_of.get(code)
-        if not caption and allow_page_fallback:
-            caption = page_text
+        # ページのタイトル＋説明を «場所の手掛かり» としてキャプションへ足す。
+        # resolve が店を探せる地点は «渡された lat/lng» か «キャプション中の住所» の 2 つしか無く、
+        # 素の Instagram キャプションは住所を持たないことが殆どである（実測 0.6%）。
+        # 一方でソースページのタイトルは «【大阪市東成区】…｜号外NET 大阪市東成区・生野区» のように
+        # 地域を書いていることが多く、これが唯一の «どこの店か» の手掛かりになる。
+        # 一覧ページ（4 投稿以上）では投稿とページの内容が対応しないので足さない。
+        if allow_page_fallback and page_text:
+            caption = f"{caption} / {page_text}" if caption else page_text
         if not caption:
             continue  # キャプションが無い投稿URLは resolve が IG 取得に回るので採らない
         if not (place_id or host.endswith(".jp") or RE_KANA.search(caption)):
