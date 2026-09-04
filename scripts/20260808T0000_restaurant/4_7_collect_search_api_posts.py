@@ -256,7 +256,8 @@ def _retry_after_seconds(e: urllib.error.HTTPError, body: str) -> float | None:
 
 
 _LOOKS_LIKE_QUOTA = re.compile(
-    r"usage limit|quota|out of credits|credit limit|exceeded your|plan's set", re.I)
+    r"usage limit|quota|out of credits|credit limit|exceeded your|plan's set|"
+    r"insufficient|no credits|limit reached|upgrade your plan", re.I)
 
 
 def _fetch_with_retry(fetch, key, q, num, max_retries: int, provider: str):
@@ -275,6 +276,11 @@ def _fetch_with_retry(fetch, key, q, num, max_retries: int, provider: str):
             except Exception:
                 body = "(応答本文の読み取り失敗)"
             if e.code == 429 or e.code >= 500:
+                # #1815 429 の本文が «残高切れ» を言っているなら、待っても回復しない。
+                # linkup は INSUFFICIENT_CREDITS を 429 で返すので、リトライで時間を溶かしていた。
+                if _LOOKS_LIKE_QUOTA.search(body):
+                    LOGGER.warning("%s %s (q=%s) 残高切れ。バッチ打ち切り。body=%s", provider, e.code, q, body)
+                    raise _QuotaExhausted(body)
                 wait = _retry_after_seconds(e, body)
                 if wait is not None and wait > 3600:
                     LOGGER.warning("%s %s (q=%s) retry_after=%.0fs＝日次/月次上限。バッチ打ち切り。body=%s",
