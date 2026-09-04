@@ -71,6 +71,8 @@ def parse_args() -> argparse.Namespace:
                    help="この post_id（カンマ区切り）だけを解き直す。原因調査で --debug-dump と併用する")
     p.add_argument("--only-with-area", action="store_true",
                    help="discovery_area_lat/lng を持つ投稿だけ resolve する")
+    p.add_argument("--only-without-area", action="store_true",
+                   help="**地点が無い**投稿だけを対象にする（#1841 の «位置情報なしで 📍店名 から引けるか» の計測用）")
     p.add_argument("--reresolve-prev-status", default=None,
                    help="この «直近 version の status» の投稿だけ再解決する（例 skipped_no_store）。省略時は全未処理")
     return p.parse_args()
@@ -79,7 +81,8 @@ def parse_args() -> argparse.Namespace:
 def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_id: str,
                       resolve_version: str, limit: int, shards: int = 1, shard: int = 0,
                       reresolve_prev_status: str | None = None, caption_regexp: str | None = None,
-                      only_with_area: bool = False, post_ids: list[str] | None = None):
+                      only_with_area: bool = False, post_ids: list[str] | None = None,
+                      only_without_area: bool = False):
     """未 resolve（この run × **この resolve_version** で未処理）の投稿を取り出す。
 
     version を anti-join に含めるので、--resolve-version を上げると全投稿が «その version では未処理»
@@ -92,6 +95,9 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
         # FARM_FINGERPRINT は決定的なので、同じ post_id は常に同じシャードに落ちる（並列非重複）。
         shard_filter = "AND MOD(ABS(FARM_FINGERPRINT(r.post_id)), @shards) = @shard"
     area_filter = "AND r.discovery_area_lat IS NOT NULL" if only_with_area else ""
+    # #1841 «位置情報を渡さないとき 📍店名 だけで店に届くか» を測るための逆フィルタ。
+    if only_without_area:
+        area_filter = "AND r.discovery_area_lat IS NULL"
     # 特定の投稿だけを解き直す（原因調査用）。--debug-dump と併せて生レスポンスを見る。
     ids_filter = "AND r.post_id IN UNNEST(@post_ids)" if post_ids else ""
     caption_filter = ""
@@ -152,7 +158,8 @@ def main() -> None:
         return _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
                                  args.shards, args.shard, args.reresolve_prev_status,
                                  args.caption_regexp, args.only_with_area,
-                                 [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None)
+                                 [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None,
+                                 args.only_without_area)
 
     deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes > 0 else 0.0
     posts = fetch()
