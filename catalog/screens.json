@@ -1075,6 +1075,26 @@
 			]
 		},
 		{
+			"id": "my-dishes-confirm-restaurant",
+			"name": "新規店舗の確認（レビュー投稿）",
+			"route": "/[locale]/my-dishes/confirm-restaurant",
+			"url": "/ja-JP/my-dishes/confirm-restaurant?googlePlaceId=<googlePlaceId>",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "authenticated"
+				}
+			},
+			"state": "店名・場所（地図）・住所・国。初期値は Google 由来で、店名と住所は編集できる",
+			"description": "#1671 地図の POI・店名検索から新規に店を作るとき、Google の値をそのまま保存せずユーザーに確認させる画面。「この内容で登録」を押すまで restaurants に 1 行も入らない。⚠️ capture=manual なのは、開いた時点で POST /v1/restaurants/draft が走り Google Place Details（課金 SKU）を叩くため。自動収集の対象にするとカタログを回すたびに課金が発生する。撮るときは googlePlaceId を指定して手動で実行する。",
+			"from": ["店舗選択（地図の POI をタップ / 店名検索で新規の店を選ぶ）"],
+			"to": ["店舗詳細（この内容で登録）", "店舗選択（戻る・キャンセル。店は作られない）"]
+		},
+		{
 			"id": "review-restaurant-detail",
 			"name": "店舗詳細",
 			"route": "/[locale]/restaurant/[restaurantId]",
