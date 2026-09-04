@@ -257,7 +257,8 @@ def _retry_after_seconds(e: urllib.error.HTTPError, body: str) -> float | None:
 
 _LOOKS_LIKE_QUOTA = re.compile(
     r"usage limit|quota|out of credits|credit limit|exceeded your|plan's set|"
-    r"insufficient|no credits|limit reached|upgrade your plan", re.I)
+    r"insufficient|no credits|limit reached|upgrade your plan|"
+    r"depleted|payment_required|add credit", re.I)
 
 
 def _fetch_with_retry(fetch, key, q, num, max_retries: int, provider: str):
