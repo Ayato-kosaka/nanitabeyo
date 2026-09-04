@@ -25,6 +25,32 @@ export type CreateRestaurantResponse = {
 	meta: { reviewCount: number; averageRating: number; totalCents: number; maxEndDate: string | null };
 };
 
+/**
+ * POST /v1/restaurants/draft のレスポンス型
+ *
+ * #1671 確認ページへ出す **Google 由来の既定値**と、それを封じた署名トークン。
+ * まだ何も保存していない（店は「この内容で登録」を押すまで作られない）。
+ */
+export type CreateRestaurantDraftResponse = {
+	draft: {
+		googlePlaceId: string;
+		/** 現地の言語での表示名。確認ページの店名欄の初期値 */
+		name: string;
+		nameLanguageCode: string;
+		latitude: number;
+		longitude: number;
+		/** Google の addressComponents。確認ページは住所と国をここから組み立てる */
+		addressComponents: unknown;
+		/** addressComponents から解決した ISO 3166-1 alpha-2。判定できなければ null */
+		countryCode: string | null;
+	};
+	/**
+	 * POST /v1/restaurants へそのまま渡すトークン。
+	 * ⚠️ 中身は署名済みで、クライアントが作り替えると作成が 400 になる。
+	 */
+	draftToken: string;
+};
+
 /** POST /v1/restaurants/:id/bids/intents のレスポンス型 */
 export type CreateRestaurantBidIntentResponse = { clientSecret: string };
 

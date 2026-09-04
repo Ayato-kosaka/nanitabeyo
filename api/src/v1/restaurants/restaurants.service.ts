@@ -5,6 +5,7 @@
 // ❸ Handles Google Place API integration, restaurant creation/search, dish media queries
 
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -16,12 +17,14 @@ import { Prisma } from '../../../../shared/prisma/client';
 import {
   QueryRestaurantsDto,
   CreateRestaurantDto,
+  CreateRestaurantDraftDto,
   QueryRestaurantDishMediaDto,
   QueryRestaurantsByGooglePlaceIdDto,
 } from '@shared/v1/dto';
 import {
   QueryRestaurantsResponse,
   CreateRestaurantResponse,
+  CreateRestaurantDraftResponse,
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
   GetRestaurantByIdResponse,
@@ -38,6 +41,14 @@ import { google } from '@googlemaps/places/build/protos/protos';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 // #1780 店の代替画像（dish_media サムネイル）の入力型
 import type { ThumbnailUrlSource } from '../dish-media/dish-media-thumbnail';
+import {
+  diffConfirmedRestaurantValues,
+  signRestaurantDraftToken,
+  verifyRestaurantDraftToken,
+  type ConfirmedRestaurantValues,
+  type RestaurantDraftTokenPayload,
+} from './restaurant-draft.token';
+import { env } from '../../core/config/env';
 
 @Injectable()
 export class RestaurantsService {
@@ -235,15 +246,21 @@ export class RestaurantsService {
     googlePlaceId: string;
     languageCode: string;
     placeDetail: google.maps.places.v1.IPlace;
+    /**
+     * #1671 確認ページでユーザーが確定させた値。
+     * **これが渡されたときは Google の値ではなくこちらを保存する**（それがこの機能の目的）。
+     */
+    confirmed?: ConfirmedRestaurantValues;
   }): Promise<PrismaRestaurants> {
-    const { googlePlaceId, languageCode, placeDetail } = params;
+    const { googlePlaceId, languageCode, placeDetail, confirmed } = params;
 
     const restaurantData: Prisma.restaurantsCreateInput = {
       google_place_id: googlePlaceId,
-      name: placeDetail.displayName!.text!, // バリデーション済みのため非 null アサーション
+      // バリデーション済みのため非 null アサーション
+      name: confirmed?.name ?? placeDetail.displayName!.text!,
       name_language_code: languageCode,
-      latitude: placeDetail.location!.latitude!,
-      longitude: placeDetail.location!.longitude!,
+      latitude: confirmed?.latitude ?? placeDetail.location!.latitude!,
+      longitude: confirmed?.longitude ?? placeDetail.location!.longitude!,
       // 【非推奨カラム】だがスキーマ上必須であれば空文字で維持
       image_url: '',
       image_path: null,
@@ -264,6 +281,132 @@ export class RestaurantsService {
         googlePlaceId,
       ),
     );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* POST /v1/restaurants/draft (#1671 確認ページの下読み)                */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * #1671 【設計】**店を作らずに、確認ページへ出す値だけを返す。**
+   *
+   * `createRestaurant` の «Google から取るところ» と同じ手順を踏むが、DB へは一切書かない。
+   * 返す `draftToken` に Google 由来の既定値を署名して封じてあるので、
+   * 続く `POST /v1/restaurants` は **Google を 1 回も叩かずに**
+   * 「ユーザーが既定値を書き換えたか」を判定できる（→ `restaurant-draft.token.ts`）。
+   *
+   * ⚠️ **Google の呼び出し回数は増えない。** 従来 `createRestaurant` が行っていた
+   * 2 回（言語判定・詳細取得）が、そのままここへ前倒しされるだけである。
+   * ユーザーがキャンセルした場合は、従来なら «作られてしまっていた行» が減る。
+   */
+  async createRestaurantDraft(
+    dto: CreateRestaurantDraftDto,
+  ): Promise<CreateRestaurantDraftResponse> {
+    const { languageCode, placeDetailForLocalLang } =
+      await this.resolveRestaurantLanguage(dto.googlePlaceId);
+
+    this.ensureIsFoodAndDrink(placeDetailForLocalLang, dto.googlePlaceId);
+
+    let placeDetail: google.maps.places.v1.IPlace;
+    try {
+      placeDetail = await this.fetchAndValidatePlaceDetail(
+        dto.googlePlaceId,
+        languageCode,
+      );
+    } catch (error) {
+      // createRestaurant と同じマッピング（Place 詳細が取れない = 404）
+      this.logger.error('GooglePlaceDetailsFailed', 'createRestaurantDraft', {
+        googlePlaceId: dto.googlePlaceId,
+        error: (error as Error).message,
+      });
+      throw new NotFoundException('Google Place not found or invalid');
+    }
+
+    const addressComponents = placeDetail.addressComponents ?? [];
+    const countryCode = this.locationsService.extractCountryCode(
+      addressComponents as Parameters<
+        LocationsService['extractCountryCode']
+      >[0],
+    );
+
+    const payload: RestaurantDraftTokenPayload = {
+      googlePlaceId: dto.googlePlaceId,
+      name: placeDetail.displayName!.text!,
+      nameLanguageCode: languageCode,
+      latitude: placeDetail.location!.latitude!,
+      longitude: placeDetail.location!.longitude!,
+      addressComponentsJson: JSON.stringify(addressComponents),
+      plusCodeJson: placeDetail.plusCode
+        ? JSON.stringify(placeDetail.plusCode)
+        : null,
+    };
+
+    this.logger.debug('RestaurantDraftIssued', 'createRestaurantDraft', {
+      googlePlaceId: dto.googlePlaceId,
+      countryCode,
+    });
+
+    return {
+      draft: {
+        googlePlaceId: payload.googlePlaceId,
+        name: payload.name,
+        nameLanguageCode: payload.nameLanguageCode,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        addressComponents,
+        countryCode,
+      },
+      draftToken: signRestaurantDraftToken(
+        payload,
+        env.SUPABASE_JWT_SECRET,
+        Date.now(),
+      ),
+    };
+  }
+
+  /**
+   * #1671 `draftToken` を検証し、**保存に使う値**と**書き換えられた項目**を返す。
+   *
+   * トークンが無ければ `null`（＝従来どおり Google の値をそのまま保存する経路）。
+   * トークンが壊れている・期限切れ・別の店のものなら 400 で弾く。
+   */
+  private resolveConfirmedValues(dto: CreateRestaurantDto): {
+    baseline: RestaurantDraftTokenPayload;
+    confirmed: ConfirmedRestaurantValues;
+    changedFields: string[];
+  } | null {
+    if (!dto.draftToken) return null;
+
+    const baseline = verifyRestaurantDraftToken(
+      dto.draftToken,
+      env.SUPABASE_JWT_SECRET,
+      Date.now(),
+    );
+    if (!baseline) {
+      throw new BadRequestException(
+        'draftToken is invalid or expired. Re-open the confirmation page.',
+      );
+    }
+
+    // ⚠️ 別の店のトークンを付け替えて «確認済み» を騙れないようにする。
+    //    ここが無いと、A 店の下読みで得たトークンで B 店を好きな値で作れる。
+    if (baseline.googlePlaceId !== dto.googlePlaceId) {
+      throw new BadRequestException(
+        'draftToken was issued for a different googlePlaceId.',
+      );
+    }
+
+    const confirmed: ConfirmedRestaurantValues = {
+      name: dto.name ?? baseline.name,
+      latitude: dto.latitude ?? baseline.latitude,
+      longitude: dto.longitude ?? baseline.longitude,
+    };
+
+    return {
+      baseline,
+      confirmed,
+      changedFields: diffConfirmedRestaurantValues(baseline, confirmed),
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -336,6 +479,58 @@ export class RestaurantsService {
     }
 
     // 2. 新規作成フロー
+    //
+    // #1671 確認ページを通ってきた場合（draftToken あり）は、Google 由来の値も
+    // 現地言語コードも**署名済みトークンの中に入っている**ので、
+    // **Google を 1 回も叩かずに**そのまま登録できる。
+    const confirmation = this.resolveConfirmedValues(dto);
+
+    if (confirmation) {
+      const { baseline, confirmed, changedFields } = confirmation;
+
+      const restaurant = await this.createRestaurantRecord({
+        googlePlaceId: dto.googlePlaceId,
+        languageCode: baseline.nameLanguageCode,
+        // トークンへ封じた Google 由来の値を、Place 詳細の代わりに使う
+        placeDetail: {
+          displayName: { text: baseline.name },
+          location: {
+            latitude: baseline.latitude,
+            longitude: baseline.longitude,
+          },
+          addressComponents: JSON.parse(
+            baseline.addressComponentsJson,
+          ) as google.maps.places.v1.IPlace['addressComponents'],
+          plusCode: baseline.plusCodeJson
+            ? (JSON.parse(
+                baseline.plusCodeJson,
+              ) as google.maps.places.v1.IPlace['plusCode'])
+            : undefined,
+        },
+        confirmed,
+      });
+
+      // ⚠️ **書き換えを «記録する» ところまでがこのチケットの要件**である。
+      //    どう扱うか（追認する / 荒らしとして扱う）は #1827 で決めるので、
+      //    ここでは判断せず、後から数えられる形で残すだけにする。
+      this.logger.log('RestaurantCreatedFromConfirmation', 'createRestaurant', {
+        restaurantId: restaurant.id,
+        googlePlaceId: restaurant.google_place_id,
+        changedFields,
+        userEditedDefaults: changedFields.length > 0,
+      });
+
+      const meta = await this.fetchRestaurantMeta(restaurant.id);
+      const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
+      return {
+        restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+          restaurant,
+          fallbacks.get(restaurant.id),
+        ),
+        meta,
+      };
+    }
+
     // 2-1. 対象の Google Place ID の restaurant の現地の言語コードを特定
     const { languageCode: restaurantLanguageCode, placeDetailForLocalLang } =
       await this.resolveRestaurantLanguage(dto.googlePlaceId);

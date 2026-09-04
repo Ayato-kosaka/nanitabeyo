@@ -29,6 +29,7 @@ import {
 import {
   QueryRestaurantsDto,
   CreateRestaurantDto,
+  CreateRestaurantDraftDto,
   QueryRestaurantDishMediaDto,
   QueryRestaurantsByGooglePlaceIdDto,
   RestaurantIdParamsDto,
@@ -36,6 +37,7 @@ import {
 import {
   QueryRestaurantsResponse,
   CreateRestaurantResponse,
+  CreateRestaurantDraftResponse,
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
   GetRestaurantByIdResponse,
@@ -99,6 +101,31 @@ export class RestaurantsController {
   ): Promise<CreateRestaurantResponse> {
     // Google Place Details API からレストラン情報を取得して作成
     return this.restaurantsService.createRestaurant(dto);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                  POST /v1/restaurants/draft                        */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * #1671 確認ページへ出す値を、**店を作らずに**取ってくる。
+   *
+   * ⚠️ このパスは `POST /v1/restaurants` より **先に** 宣言する必要はない
+   * （どちらも固定パスで衝突しない）が、`@Get(':id')` より前に置く決まりは守ること。
+   */
+  @Post('draft')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({
+    summary: '#1671 確認ページ用に Google Place の値を下読みする（保存しない）',
+  })
+  @ApiResponse({ status: 201, description: '下読み成功' })
+  @ApiResponse({ status: 404, description: 'Google Place が見つからない' })
+  @ApiResponse({ status: 422, description: '飲食店ではない Place' })
+  async createRestaurantDraft(
+    @Body() dto: CreateRestaurantDraftDto,
+  ): Promise<CreateRestaurantDraftResponse> {
+    return this.restaurantsService.createRestaurantDraft(dto);
   }
 
   /* ------------------------------------------------------------------ */
