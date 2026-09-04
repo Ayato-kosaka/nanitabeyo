@@ -698,6 +698,11 @@
 		"consent_review_copyright": "著作権",
 		"consent_review_suffix": " に同意したことになります。"
 	},
+	"MapsEmbed": {
+		"title": "地図",
+		"unavailable": "この端末では地図を表示できません",
+		"openExternal": "Google マップで開く"
+	},
 	"Restaurant": {
 		"Loading": {
 			"title": "決めやすいように、お店を5つ厳選しています",

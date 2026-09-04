@@ -21,3 +21,4 @@ export * from "./ops.response";
 export * from "./dish-category-group-votes.response";
 export * from "./share-links.response";
 export * from "./content-reports.response";
+export * from "./maps.response";

@@ -698,6 +698,11 @@
 		"consent_review_copyright": "Droits d'auteur",
 		"consent_review_suffix": "."
 	},
+	"MapsEmbed": {
+		"title": "Carte",
+		"unavailable": "L'aperçu de la carte n'est pas disponible sur cet appareil",
+		"openExternal": "Ouvrir dans Google Maps"
+	},
 	"Restaurant": {
 		"Loading": {
 			"title": "Sélection de 5 restaurants pour faciliter votre choix",

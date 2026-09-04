@@ -66,6 +66,7 @@ import { getCacheKeyForImage } from "@/lib/image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { useMapsEmbedModal } from "@/features/maps/hooks/useMapsEmbedModal";
 import { RestaurantEntry } from "@/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { useRouter } from "expo-router";
@@ -120,6 +121,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 	const { locale } = useLocale();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { showSnackbar } = useSnackbar();
+	const { showMapsEmbedModal } = useMapsEmbedModal();
 	const { restaurant, meta } = restaurantEntry;
 
 	/*
@@ -133,6 +135,13 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 	代わりに «Google マップで開く» を戻す。#1411 が入札の撤去と一緒に消したが、
 	これは店の情報（場所・営業時間・電話）へ辿り着く導線であって入札とは無関係で、
 	撤去する理由が申し送りに書かれていなかった。
+
+	#843【設計】**写真が取れない店（Google Places の呼び出し上限に当たった帰結）ほど、
+	この店の情報が欲しい。** 押した先を外部ブラウザへ直行させず、まずアプリ内地図
+	（mode=place, q=place_id:<google_place_id>）を出す。埋め込みが使えない/失敗したときの
+	退避として、従来の外部ブラウザ導線は `MapsEmbedModal` の中に残る（外へは出さない）。
+	`google_place_id` が無い店（理論上は無いはずだが型は optional）だけは、
+	従来どおり直接外部へ出す。
 	*/
 	const handleOpenGoogleMaps = useCallback(async () => {
 		lightImpact();
@@ -150,7 +159,18 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 				return;
 			}
-			await openExternalUrl(mapUrl);
+			if (!restaurant.google_place_id) {
+				await openExternalUrl(mapUrl);
+				return;
+			}
+			showMapsEmbedModal({
+				mode: "place",
+				q: `place_id:${restaurant.google_place_id}`,
+				hl: locale.split("-")[0],
+				title: restaurant.name,
+				externalUrl: mapUrl,
+				source: "restaurant_detail",
+			});
 		} catch (error) {
 			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 			logFrontendEvent({
@@ -163,7 +183,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				},
 			});
 		}
-	}, [lightImpact, logFrontendEvent, restaurant, showSnackbar]);
+	}, [lightImpact, locale, logFrontendEvent, restaurant, showMapsEmbedModal, showSnackbar]);
 
 	/*
 	#1629【オーナー確定】**一覧を押したら «その投稿を見る»（フィード）へ行く。**

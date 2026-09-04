@@ -698,6 +698,11 @@
 		"consent_review_copyright": "कॉपीराइट",
 		"consent_review_suffix": " से सहमत होते हैं।"
 	},
+	"MapsEmbed": {
+		"title": "मानचित्र",
+		"unavailable": "इस डिवाइस पर मानचित्र पूर्वावलोकन उपलब्ध नहीं है",
+		"openExternal": "Google मैप्स में खोलें"
+	},
 	"Restaurant": {
 		"Loading": {
 			"title": "आपकी पसंद आसान बनाने के लिए 5 रेस्तरां चुन रहे हैं",
