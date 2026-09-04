@@ -179,6 +179,8 @@ describe('#1671 確認ページ経由の店舗作成', () => {
         latitude: GOOGLE_LAT,
         longitude: GOOGLE_LNG,
         countryCode: 'JP',
+        // 国名（日本）は住所文字列から外れ、都道府県だけが残る
+        address: '東京都',
       });
       expect(draft.addressComponents).toEqual(ADDRESS_COMPONENTS);
     });
@@ -258,6 +260,29 @@ describe('#1671 確認ページ経由の店舗作成', () => {
       );
     });
 
+    it('⚠️ address / country_code が埋まる（62 万行が永久に空だった穴）', async () => {
+      const { draftToken } = await issueDraft();
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        name: GOOGLE_NAME,
+        latitude: GOOGLE_LAT,
+        longitude: GOOGLE_LNG,
+        address: '東京都渋谷区神南1-2-3',
+        countryCode: 'JP',
+      } as CreateRestaurantDto);
+
+      expect(dishesRepository.createOrGetRestaurant).toHaveBeenCalledWith(
+        TX,
+        expect.objectContaining({
+          address: '東京都渋谷区神南1-2-3',
+          country_code: 'JP',
+        }),
+        PLACE_ID,
+      );
+    });
+
     it('書き換えた項目が記録される', async () => {
       const { draftToken } = await issueDraft();
 
@@ -323,6 +348,8 @@ describe('#1671 確認ページ経由の店舗作成', () => {
           longitude: GOOGLE_LNG,
           addressComponentsJson: JSON.stringify(ADDRESS_COMPONENTS),
           plusCodeJson: null,
+          address: '東京都',
+          countryCode: 'JP',
         },
         'test-SUPABASE_JWT_SECRET',
         // TTL ぶん過去に発行したことにする
@@ -370,6 +397,16 @@ describe('#1671 確認ページ経由の店舗作成', () => {
         }),
         PLACE_ID,
       );
+    });
+
+    it('⚠️ address / country_code には触らない（Google の値を «確認済み» の顔で入れない）', async () => {
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+      } as CreateRestaurantDto);
+
+      const [, saved] = dishesRepository.createOrGetRestaurant.mock.calls[0];
+      expect(saved).not.toHaveProperty('address');
+      expect(saved).not.toHaveProperty('country_code');
     });
 
     it('⚠️ name だけ送られても、draftToken が無ければ無視する（検知できない値を信じない）', async () => {

@@ -24,6 +24,8 @@ const BASELINE: RestaurantDraftTokenPayload = {
   longitude: 140.882,
   addressComponentsJson: '[{"longText":"宮城県"}]',
   plusCodeJson: '{"globalCode":"8RJ4744C+2X"}',
+  address: '宮城県仙台市青葉区中央1-1-1',
+  countryCode: 'JP',
 };
 
 describe('#1671 restaurant draft token', () => {
@@ -149,6 +151,8 @@ describe('#1671 restaurant draft token', () => {
           name: BASELINE.name,
           latitude: BASELINE.latitude,
           longitude: BASELINE.longitude,
+          address: BASELINE.address,
+          countryCode: BASELINE.countryCode,
         }),
       ).toEqual([]);
     });
@@ -159,6 +163,8 @@ describe('#1671 restaurant draft token', () => {
           name: '牛たん利久 仙台駅店',
           latitude: BASELINE.latitude,
           longitude: BASELINE.longitude,
+          address: BASELINE.address,
+          countryCode: BASELINE.countryCode,
         }),
       ).toEqual(['name']);
     });
@@ -169,6 +175,8 @@ describe('#1671 restaurant draft token', () => {
           name: BASELINE.name,
           latitude: BASELINE.latitude + 0.001,
           longitude: BASELINE.longitude - 0.001,
+          address: BASELINE.address,
+          countryCode: BASELINE.countryCode,
         }),
       ).toEqual(['latitude', 'longitude']);
     });
@@ -181,6 +189,8 @@ describe('#1671 restaurant draft token', () => {
           name: BASELINE.name,
           latitude: BASELINE.latitude + COORDINATE_EQUALITY_EPSILON / 2,
           longitude: BASELINE.longitude,
+          address: BASELINE.address,
+          countryCode: BASELINE.countryCode,
         }),
       ).toEqual([]);
     });
@@ -195,8 +205,34 @@ describe('#1671 restaurant draft token', () => {
           name: atZero.name,
           latitude: COORDINATE_EQUALITY_EPSILON,
           longitude: atZero.longitude,
+          address: BASELINE.address,
+          countryCode: BASELINE.countryCode,
         }),
       ).toEqual(['latitude']);
+    });
+
+    it('住所を直したら address が挙がる', () => {
+      expect(
+        diffConfirmedRestaurantValues(BASELINE, {
+          name: BASELINE.name,
+          latitude: BASELINE.latitude,
+          longitude: BASELINE.longitude,
+          address: '宮城県仙台市青葉区中央1-1-2',
+          countryCode: BASELINE.countryCode,
+        }),
+      ).toEqual(['address']);
+    });
+
+    it('国を直したら countryCode が挙がる', () => {
+      expect(
+        diffConfirmedRestaurantValues(BASELINE, {
+          name: BASELINE.name,
+          latitude: BASELINE.latitude,
+          longitude: BASELINE.longitude,
+          address: BASELINE.address,
+          countryCode: 'US',
+        }),
+      ).toEqual(['countryCode']);
     });
 
     it('人が動かした程度（約 1m）のずれは確実に拾う', () => {
@@ -205,6 +241,8 @@ describe('#1671 restaurant draft token', () => {
           name: BASELINE.name,
           latitude: BASELINE.latitude + 1e-5,
           longitude: BASELINE.longitude,
+          address: BASELINE.address,
+          countryCode: BASELINE.countryCode,
         }),
       ).toEqual(['latitude']);
     });

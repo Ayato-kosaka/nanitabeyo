@@ -59,6 +59,10 @@ export type RestaurantDraftTokenPayload = {
   addressComponentsJson: string;
   /** Google の plusCode。無い店があるので null 可 */
   plusCodeJson: string | null;
+  /** addressComponents から組み立てた表示用住所。確認ページの住所欄の初期値 */
+  address: string;
+  /** ISO 3166-1 alpha-2。判定できなければ null */
+  countryCode: string | null;
 };
 
 type SignedPayload = RestaurantDraftTokenPayload & { exp: number };
@@ -128,6 +132,8 @@ export function verifyRestaurantDraftToken(
     longitude,
     addressComponentsJson,
     plusCodeJson,
+    address,
+    countryCode,
   } = parsed;
   return {
     googlePlaceId,
@@ -137,6 +143,8 @@ export function verifyRestaurantDraftToken(
     longitude,
     addressComponentsJson,
     plusCodeJson,
+    address,
+    countryCode,
   };
 }
 
@@ -151,6 +159,8 @@ function isSignedPayloadShape(value: unknown): value is SignedPayload {
     typeof v.longitude === 'number' &&
     typeof v.addressComponentsJson === 'string' &&
     (v.plusCodeJson === null || typeof v.plusCodeJson === 'string') &&
+    typeof v.address === 'string' &&
+    (v.countryCode === null || typeof v.countryCode === 'string') &&
     typeof v.exp === 'number'
   );
 }
@@ -160,6 +170,8 @@ export type ConfirmedRestaurantValues = {
   name: string;
   latitude: number;
   longitude: number;
+  address: string;
+  countryCode: string | null;
 };
 
 /**
@@ -193,6 +205,10 @@ export function diffConfirmedRestaurantValues(
     COORDINATE_EQUALITY_EPSILON
   ) {
     changed.push('longitude');
+  }
+  if (confirmed.address !== baseline.address) changed.push('address');
+  if (confirmed.countryCode !== baseline.countryCode) {
+    changed.push('countryCode');
   }
   return changed;
 }

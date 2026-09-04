@@ -33,4 +33,16 @@ export class CreateRestaurantDto {
 	@IsNumber()
 	@IsLongitude()
 	longitude?: number;
+
+	/** 確認ページでユーザーが確定させた住所（表示用の 1 行） */
+	@IsOptional()
+	@IsString()
+	@Length(0, 500)
+	address?: string;
+
+	/** 確認ページでユーザーが確定させた国コード（ISO 3166-1 alpha-2） */
+	@IsOptional()
+	@IsString()
+	@Length(2, 2)
+	countryCode?: string;
 }

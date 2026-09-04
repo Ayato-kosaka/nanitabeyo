@@ -39,8 +39,10 @@ export type CreateRestaurantDraftResponse = {
 		nameLanguageCode: string;
 		latitude: number;
 		longitude: number;
-		/** Google の addressComponents。確認ページは住所と国をここから組み立てる */
+		/** Google の addressComponents。監査用にそのまま返す */
 		addressComponents: unknown;
+		/** addressComponents から組み立てた表示用住所。住所欄の初期値（ユーザーが直せる） */
+		address: string;
 		/** addressComponents から解決した ISO 3166-1 alpha-2。判定できなければ null */
 		countryCode: string | null;
 	};

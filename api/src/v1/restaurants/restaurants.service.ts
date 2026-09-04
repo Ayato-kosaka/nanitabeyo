@@ -49,6 +49,7 @@ import {
   type RestaurantDraftTokenPayload,
 } from './restaurant-draft.token';
 import { env } from '../../core/config/env';
+import { buildDisplayAddress } from './restaurant-display-address';
 
 @Injectable()
 export class RestaurantsService {
@@ -261,6 +262,13 @@ export class RestaurantsService {
       name_language_code: languageCode,
       latitude: confirmed?.latitude ?? placeDetail.location!.latitude!,
       longitude: confirmed?.longitude ?? placeDetail.location!.longitude!,
+      // #1671 62 万行のパイプライン製の行はここが空のままで、POI を押しても永久に埋まらなかった。
+      // 確認ページを通ったときだけ、ユーザーが確認した値で埋める。
+      // ⚠️ 確認を通っていない経路（draftToken なし）では **触らない**。
+      //    Google の値を «確認済み» の顔で入れないため（それがこのチケットの主旨）。
+      ...(confirmed
+        ? { address: confirmed.address, country_code: confirmed.countryCode }
+        : {}),
       // 【非推奨カラム】だがスキーマ上必須であれば空文字で維持
       image_url: '',
       image_path: null,
@@ -339,6 +347,8 @@ export class RestaurantsService {
       plusCodeJson: placeDetail.plusCode
         ? JSON.stringify(placeDetail.plusCode)
         : null,
+      address: buildDisplayAddress(addressComponents, countryCode),
+      countryCode,
     };
 
     this.logger.debug('RestaurantDraftIssued', 'createRestaurantDraft', {
@@ -354,6 +364,7 @@ export class RestaurantsService {
         latitude: payload.latitude,
         longitude: payload.longitude,
         addressComponents,
+        address: payload.address,
         countryCode,
       },
       draftToken: signRestaurantDraftToken(
@@ -400,6 +411,8 @@ export class RestaurantsService {
       name: dto.name ?? baseline.name,
       latitude: dto.latitude ?? baseline.latitude,
       longitude: dto.longitude ?? baseline.longitude,
+      address: dto.address ?? baseline.address,
+      countryCode: dto.countryCode ?? baseline.countryCode,
     };
 
     return {
