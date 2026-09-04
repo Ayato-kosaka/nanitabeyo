@@ -514,6 +514,15 @@ def _mentions_store(text: str, handle: str, store_name: str | None) -> bool:
     return len(n) >= 6 and n[:4] in t
 
 
+def _append_jsonl(out: Path, rows: list[dict]) -> None:
+    if not rows:
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("a", encoding="utf-8") as fh:
+        for r in rows:
+            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
@@ -622,17 +631,19 @@ def main() -> None:
                         "run_id": run_id,
                     }
                 )
+            # --out-jsonl は BQ の逐次ロードが使えないぶん、ここで面倒を見る。
+            # 末尾一括だと数千クエリぶんが 1 回の失敗で全部飛ぶし、進捗も数字で見えない。
+            if pipeline is None and rows and (i + 1) % 50 == 0:
+                _append_jsonl(Path(args.out_jsonl), rows)
+                LOGGER.info("進捗 %d/%d クエリ・%d 投稿を書き出し", i + 1, len(cells), len(rows))
+                rows = []
             if sleep_s:
                 time.sleep(sleep_s)
 
         if pipeline is None:
-            out = Path(args.out_jsonl)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            with out.open("a", encoding="utf-8") as fh:
-                for r in rows:
-                    fh.write(json.dumps(r, ensure_ascii=False) + "\n")
-            LOGGER.info("%s へ %d 行を書きました（検索 %d クエリ中 成功 %d・スキップ %d）",
-                        out, len(rows), len(cells), n_ok, n_skip)
+            _append_jsonl(Path(args.out_jsonl), rows)
+            LOGGER.info("%s へ書き終えました（検索 %d クエリ中 成功 %d・スキップ %d）",
+                        args.out_jsonl, len(cells), n_ok, n_skip)
             return
 
         # 同 run 内の重複だけ消してから追記（4_3 と同じ MERGE 的処理）。
