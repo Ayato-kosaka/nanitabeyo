@@ -186,6 +186,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--shard", type=int, default=0)
     p.add_argument("--workers", type=int, default=6, help="1 host 内で同時に読む記事数")
     p.add_argument("--flush-every", type=int, default=1, help="何 host ごとに BQ へ流すか")
+    # シャード数を変えて流し直すことがあるので、その run で既に投稿を採れた host は飛ばす。
+    # 再開可能にしておかないと、割り当てが変わるたびに同じ媒体を読み直して相手にも迷惑をかける。
+    p.add_argument("--skip-done-hosts", action="store_true",
+                   help="この run_id で既に投稿を採れている host を対象から外す")
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
 
@@ -213,6 +217,14 @@ def main() -> None:
         hosts += _read_hosts(pipeline, [x.strip() for x in args.hosts_from_run_ids.split(",") if x.strip()],
                              args.min_posts, args.max_hosts)
     hosts = list(dict.fromkeys(hosts))
+    if args.skip_done_hosts:
+        done = {r["host"] for r in pipeline.execute(
+            f"SELECT DISTINCT discovery_query host FROM `{pipeline.table(TABLE_POST_RAW)}` "
+            "WHERE run_id = @rid AND discovery_query IS NOT NULL",
+            [bigquery.ScalarQueryParameter("rid", "STRING", run_id)])}
+        before = len(hosts)
+        hosts = [h for h in hosts if h not in done]
+        LOGGER.info("処理済み host %d 件を除外（%d → %d）", len(done), before, len(hosts))
     mine = [h for i, h in enumerate(hosts) if i % max(args.shards, 1) == args.shard]
     LOGGER.info("host %d 件中このシャードは %d 件", len(hosts), len(mine))
 
