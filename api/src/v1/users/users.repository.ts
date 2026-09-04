@@ -169,6 +169,8 @@ const toRestaurant = (row: RestaurantColumns): PrismaRestaurants => ({
   // #1681 同じ理由で SELECT していない。`RestaurantsEntity` へ畳まれる際に落ちる。
   address: null,
   country_code: null,
+  // #1671 同上。ここは «その店の言語» を決めないので、引く必要が無い
+  subterritory_code: null,
   id: row.r_id,
   google_place_id: row.r_google_place_id,
   name: row.r_name,

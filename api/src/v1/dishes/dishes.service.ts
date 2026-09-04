@@ -521,6 +521,9 @@ export class DishesService {
           address: existingGoogleImportEntry?.restaurant.address ?? null,
           country_code:
             existingGoogleImportEntry?.restaurant.country_code ?? null,
+          // #1671 同上。確認ページ経由でしか埋めない列なので、この経路では作らない
+          subterritory_code:
+            existingGoogleImportEntry?.restaurant.subterritory_code ?? null,
         };
 
         const dish: SupabaseDishes = {
