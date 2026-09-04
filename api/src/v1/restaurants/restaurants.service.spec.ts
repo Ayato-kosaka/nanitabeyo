@@ -127,7 +127,16 @@ describe('RestaurantsService.createRestaurant', () => {
         },
         { provide: DishesRepository, useValue: dishesRepository },
         { provide: DishMediaService, useValue: {} },
-        { provide: DishMediaRepository, useValue: {} },
+        {
+          provide: DishMediaRepository,
+          useValue: {
+            // #1780 image_path を持たない店は dish_media サムネイルを顔にする。
+            // 既定は «代替も無い» 店（この spec の関心は fieldMask と写真の非保存）
+            findFallbackThumbnailsByRestaurantIds: jest
+              .fn()
+              .mockResolvedValue(new Map()),
+          },
+        },
         { provide: LocationsService, useValue: locationsService },
         // #1780 RestaurantsService はもう StorageService に依存しないが、回帰した場合に
         // Nest の DI がこの mock を自動で拾えるよう token だけは登録しておく

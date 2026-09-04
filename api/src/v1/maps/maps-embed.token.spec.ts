@@ -34,7 +34,10 @@ describe('#1810 maps embed token', () => {
   });
 
   it('center/zoom/hl を省略しても発行・検証できる', () => {
-    const minimal: MapsEmbedTokenPayload = { mode: 'place', q: 'place_id:ChIJplace1' };
+    const minimal: MapsEmbedTokenPayload = {
+      mode: 'place',
+      q: 'place_id:ChIJplace1',
+    };
     const token = signMapsEmbedToken(minimal, SECRET, NOW);
 
     expect(verifyMapsEmbedToken(token, SECRET, NOW)).toEqual(minimal);
@@ -43,14 +46,20 @@ describe('#1810 maps embed token', () => {
   it('有効期限内（TTL 直前）は通る', () => {
     const token = signMapsEmbedToken(PAYLOAD, SECRET, NOW);
 
-    expect(verifyMapsEmbedToken(token, SECRET, NOW + MAPS_EMBED_TOKEN_TTL_MS - 1)).not.toBeNull();
+    expect(
+      verifyMapsEmbedToken(token, SECRET, NOW + MAPS_EMBED_TOKEN_TTL_MS - 1),
+    ).not.toBeNull();
   });
 
   it('有効期限を過ぎたトークンは null', () => {
     const token = signMapsEmbedToken(PAYLOAD, SECRET, NOW);
 
-    expect(verifyMapsEmbedToken(token, SECRET, NOW + MAPS_EMBED_TOKEN_TTL_MS)).toBeNull();
-    expect(verifyMapsEmbedToken(token, SECRET, NOW + MAPS_EMBED_TOKEN_TTL_MS + 1)).toBeNull();
+    expect(
+      verifyMapsEmbedToken(token, SECRET, NOW + MAPS_EMBED_TOKEN_TTL_MS),
+    ).toBeNull();
+    expect(
+      verifyMapsEmbedToken(token, SECRET, NOW + MAPS_EMBED_TOKEN_TTL_MS + 1),
+    ).toBeNull();
   });
 
   it('署名を 1 文字でも書き換えたら null', () => {
@@ -64,7 +73,9 @@ describe('#1810 maps embed token', () => {
   it('payload を書き換えて署名が追従していなければ null（例: mode を差し替えるなりすまし）', () => {
     const token = signMapsEmbedToken(PAYLOAD, SECRET, NOW);
     const [prefix, payloadB64, signature] = token.split('.');
-    const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    const decoded = JSON.parse(
+      Buffer.from(payloadB64, 'base64url').toString('utf8'),
+    );
     const tamperedPayloadB64 = Buffer.from(
       JSON.stringify({ ...decoded, q: 'place_id:ChIJdifferent' }),
       'utf8',
@@ -91,7 +102,11 @@ describe('#1810 maps embed token', () => {
   });
 
   it('必須キー（q）が欠けた payload は、正しい鍵の署名でも shape チェックで弾く', () => {
-    const token = signMapsEmbedToken({ mode: 'search' } as unknown as MapsEmbedTokenPayload, SECRET, NOW);
+    const token = signMapsEmbedToken(
+      { mode: 'search' } as unknown as MapsEmbedTokenPayload,
+      SECRET,
+      NOW,
+    );
 
     expect(verifyMapsEmbedToken(token, SECRET, NOW)).toBeNull();
   });

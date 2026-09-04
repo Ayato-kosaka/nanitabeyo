@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { asApiList } from "@/lib/apiList";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
-import { Image } from "expo-image";
 // #1375（6 巡目・オーナー指示）右のボタンは «地図から探す» なので、
 // 1 地点を指す MapPin ではなく «折り畳んだ地図» の Map を使う（ピンだと «現在地» に見える）
 import { Map as MapIcon, Search, X } from "lucide-react-native";
@@ -10,7 +9,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { getCacheKeyForImage } from "@/lib/image";
+import { RestaurantAvatar } from "@/components/RestaurantAvatar";
 import i18n from "@/lib/i18n";
 import type { QueryRestaurantsDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
@@ -374,12 +373,13 @@ export function RestaurantNameSearch({
 									accessibilityRole="button"
 									accessibilityLabel={result.restaurant.name}
 									testID={`${testID}-result-${index}`}>
-									<Image
-										source={{
-											uri: result.restaurant.imageUrls?.sm,
-											cacheKey: getCacheKeyForImage(result.restaurant.imageUrls?.sm),
-										}}
+									{/* #1780 画像を持たない店でも灰色の四角にしない */}
+									<RestaurantAvatar
+										testID={`${testID}-result-${index}-image`}
+										uri={result.restaurant.imageUrls?.sm}
 										style={styles.resultImage}
+										iconSize={18}
+										accessibilityLabel={result.restaurant.name}
 									/>
 									<Text style={styles.resultName} numberOfLines={1} ellipsizeMode="tail">
 										{result.restaurant.name}

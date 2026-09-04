@@ -1295,7 +1295,9 @@ export class DishMediaImportsService {
     //    改行が潰れて 📍 行の切り出しが効かなくなる。
     // TODO(#1273 バケット2): 裸ハンドル（extractBareHandles）→ 店 ID 辞書での解決は、辞書が
     //    入ったら別 Issue でここへ繋ぐ。現状は辞書が無いので抽出のみ用意して未使用。
-    const nameHints = extractPinNames(texts.map((text) => text.text).join('\n'));
+    const nameHints = extractPinNames(
+      texts.map((text) => text.text).join('\n'),
+    );
 
     const matched = matchRestaurantNames(
       { texts, candidates: searchCandidates, authorName, nameHints },

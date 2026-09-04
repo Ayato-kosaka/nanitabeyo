@@ -166,7 +166,10 @@ describe('ContentReportsService', () => {
         status: 'pending',
       });
 
-      const result = await service.create(d({ reasonCode: 'sexual' }), REPORTER);
+      const result = await service.create(
+        d({ reasonCode: 'sexual' }),
+        REPORTER,
+      );
 
       // 409 にしない: ユーザーには「受け付けました」としか見せず、
       // «自分が通報済みかどうか» をステータスコードから読めないようにする
@@ -240,7 +243,6 @@ describe('ContentReportsService', () => {
         }),
       );
     });
-
   });
 });
 
@@ -314,7 +316,10 @@ describe('ContentReportsService.findMine（#1584 自分の報告履歴）', () =
   it('limit + 1 件引けたときだけ nextCursor を返す', async () => {
     repository.findByReporter.mockResolvedValue(
       Array.from({ length: 21 }, (_, i) =>
-        row(`r-${i}`, `2026-08-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`),
+        row(
+          `r-${i}`,
+          `2026-08-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`,
+        ),
       ),
     );
 

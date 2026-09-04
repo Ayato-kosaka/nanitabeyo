@@ -61,8 +61,7 @@ import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
 import { useLogger } from "@/hooks/useLogger";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
-import { Image } from "expo-image";
-import { getCacheKeyForImage } from "@/lib/image";
+import { RestaurantAvatar } from "@/components/RestaurantAvatar";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -233,12 +232,13 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
-						<Image
-							source={{
-								uri: restaurant.imageUrls?.md,
-								cacheKey: getCacheKeyForImage(restaurant.imageUrls?.md),
-							}}
+						{/* #1780 画像を持たない店（= これ以降に作られる店の全部）でも空の枠にしない */}
+						<RestaurantAvatar
+							testID="restaurant-detail-avatar"
+							uri={restaurant.imageUrls?.md}
 							style={styles.restaurantAvatar}
+							iconSize={26}
+							accessibilityLabel={restaurant.name}
 						/>
 						<View style={styles.restaurantDetails}>
 							<Text style={styles.restaurantName}>{restaurant.name}</Text>
@@ -302,62 +302,62 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 
 const createStyles = (c: Palette) =>
 	StyleSheet.create({
-	restaurantInfo: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginVertical: 4,
-	},
-	restaurantAvatar: {
-		width: 60,
-		height: 60,
-		borderRadius: 20,
-	},
-	restaurantDetails: {
-		flex: 1,
-		marginLeft: 12,
-	},
-	restaurantName: {
-		fontSize: 18,
-		fontWeight: "bold",
-		color: c.textStrong,
-		marginBottom: 4,
-	},
-	ratingContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 4,
-	},
-	ratingText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: c.textStrong,
-		marginRight: 4,
-	},
-	reviewCount: {
-		fontSize: 12,
-		color: c.textMuted,
-	},
-	tabContainer: {
-		flexDirection: "row",
-		marginHorizontal: 16,
-		marginBottom: 16,
-	},
-	tab: {
-		flex: 1,
-		paddingVertical: 12,
-		alignItems: "center",
-	},
-	activeTab: {
-		borderBottomWidth: 2,
-		borderBottomColor: c.brand,
-	},
-	tabText: {
-		fontSize: 16,
-		color: c.textMuted,
-		fontWeight: "500",
-	},
-	activeTabText: {
-		color: c.brand,
-		fontWeight: "600",
-	},
-});
+		restaurantInfo: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginVertical: 4,
+		},
+		restaurantAvatar: {
+			width: 60,
+			height: 60,
+			borderRadius: 20,
+		},
+		restaurantDetails: {
+			flex: 1,
+			marginLeft: 12,
+		},
+		restaurantName: {
+			fontSize: 18,
+			fontWeight: "bold",
+			color: c.textStrong,
+			marginBottom: 4,
+		},
+		ratingContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: 4,
+		},
+		ratingText: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textStrong,
+			marginRight: 4,
+		},
+		reviewCount: {
+			fontSize: 12,
+			color: c.textMuted,
+		},
+		tabContainer: {
+			flexDirection: "row",
+			marginHorizontal: 16,
+			marginBottom: 16,
+		},
+		tab: {
+			flex: 1,
+			paddingVertical: 12,
+			alignItems: "center",
+		},
+		activeTab: {
+			borderBottomWidth: 2,
+			borderBottomColor: c.brand,
+		},
+		tabText: {
+			fontSize: 16,
+			color: c.textMuted,
+			fontWeight: "500",
+		},
+		activeTabText: {
+			color: c.brand,
+			fontWeight: "600",
+		},
+	});

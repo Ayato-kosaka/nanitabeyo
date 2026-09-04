@@ -130,9 +130,7 @@ export function withPoolMetrics<TPool extends Pool>(pool: TPool): TPool {
     const startedAt = performance.now();
 
     const observeAcquire = (status: 'success' | 'error') => {
-      poolAcquireLatency
-        .labels(status)
-        .observe(performance.now() - startedAt);
+      poolAcquireLatency.labels(status).observe(performance.now() - startedAt);
       updatePoolStateMetrics(pool);
     };
 

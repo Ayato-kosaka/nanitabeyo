@@ -41,14 +41,18 @@ export function buildTargetWebPath(
 ): string {
   switch (targetType) {
     case 'dish_media': {
-      const ids = Array.isArray(targetParams.ids) ? targetParams.ids.map(String) : [targetId];
+      const ids = Array.isArray(targetParams.ids)
+        ? targetParams.ids.map(String)
+        : [targetId];
       // ids は UUID しか入らない（作成時に検証済み）が、保存後に手で書き換えられた
       // 場合に備えて encode する。ここを素通しにすると `?ids=` を経由した注入になる
       return `/${locale}/posts?ids=${encodeURIComponent(ids.join(','))}`;
     }
     case 'dish_category_group_vote_sessions': {
       const shareToken =
-        typeof targetParams.shareToken === 'string' ? targetParams.shareToken : '';
+        typeof targetParams.shareToken === 'string'
+          ? targetParams.shareToken
+          : '';
       // shareToken が失われている行は、投票画面ではなくホームへ落とす
       if (!shareToken) return `/${locale}`;
       return `/${locale}/search/dish-category-group-votes/${encodeURIComponent(shareToken)}/vote`;
@@ -63,10 +67,16 @@ export function buildTargetWebPath(
  * この 2 語だけをここに持つ。増やすときは共有カード専用に留めること
  *（アプリの文言をここへ写し始めると、二重管理になって必ずずれる）。
  */
-export const SHARE_PAGE_LABELS: Record<PublicLocale, { openInApp: string; openInWeb: string }> = {
+export const SHARE_PAGE_LABELS: Record<
+  PublicLocale,
+  { openInApp: string; openInWeb: string }
+> = {
   'ja-JP': { openInApp: 'アプリで開く', openInWeb: 'ブラウザで見る' },
   'en-US': { openInApp: 'Open in app', openInWeb: 'View in browser' },
-  'fr-FR': { openInApp: "Ouvrir dans l'app", openInWeb: 'Voir dans le navigateur' },
+  'fr-FR': {
+    openInApp: "Ouvrir dans l'app",
+    openInWeb: 'Voir dans le navigateur',
+  },
   'zh-CN': { openInApp: '在应用中打开', openInWeb: '在浏览器中查看' },
   'ar-SA': { openInApp: 'افتح في التطبيق', openInWeb: 'العرض في المتصفح' },
   'ko-KR': { openInApp: '앱에서 열기', openInWeb: '브라우저에서 보기' },

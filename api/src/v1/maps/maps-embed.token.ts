@@ -48,8 +48,13 @@ export function signMapsEmbedToken(
   secret: string,
   now: number,
 ): string {
-  const signed: SignedPayload = { ...payload, exp: now + MAPS_EMBED_TOKEN_TTL_MS };
-  const payloadB64 = Buffer.from(JSON.stringify(signed), 'utf8').toString('base64url');
+  const signed: SignedPayload = {
+    ...payload,
+    exp: now + MAPS_EMBED_TOKEN_TTL_MS,
+  };
+  const payloadB64 = Buffer.from(JSON.stringify(signed), 'utf8').toString(
+    'base64url',
+  );
   const signature = sign(payloadB64, secret);
   return `${TOKEN_PREFIX}.${payloadB64}.${signature}`;
 }

@@ -54,9 +54,9 @@ describe('#1599 sanitizeEndpointForLog', () => {
   });
 
   it('クエリの無い URL はそのまま（どの API を叩いたかは残す）', () => {
-    expect(sanitizeEndpointForLog('https://api.anthropic.com/v1/messages')).toBe(
-      'https://api.anthropic.com/v1/messages',
-    );
+    expect(
+      sanitizeEndpointForLog('https://api.anthropic.com/v1/messages'),
+    ).toBe('https://api.anthropic.com/v1/messages');
   });
 
   // URL として壊れていても、`?` 以降は落とす（保険）

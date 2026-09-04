@@ -171,7 +171,9 @@ export class ContentReportsService {
         ? (() => {
             const last = page[page.length - 1];
             // #1599 `(created_at, id)` の複合カーソル。時刻だけだと同時刻の行が飛ぶ
-            return last ? formatCompositeCursor(last.created_at, last.id) : null;
+            return last
+              ? formatCompositeCursor(last.created_at, last.id)
+              : null;
           })()
         : null,
     };

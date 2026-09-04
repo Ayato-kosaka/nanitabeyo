@@ -5,13 +5,12 @@ import { presentSheetSafely, dismissSheetSafely } from "@/lib/trueSheet";
 import { SheetGestureRoot } from "@/components/SheetGestureRoot";
 import { Carousel, type CarouselRef } from "react-native-reanimated-carousel";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
-import { getCacheKeyForImage } from "@/lib/image";
 import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+import { RestaurantAvatar } from "@/components/RestaurantAvatar";
 import { InteractionManager } from "react-native";
 import { ScrollView } from "react-native";
 import { useContentWidth } from "@/hooks/useContentWidth";
@@ -447,12 +446,13 @@ function PrimaryCard({
 	const styles = useThemedStyles(createStyles);
 	return (
 		<TouchableOpacity style={styles.savedRestaurantCard} activeOpacity={0.7} onPress={onPress}>
-			<Image
-				source={{
-					uri: item.restaurant.imageUrls?.md,
-					cacheKey: getCacheKeyForImage(item.restaurant.imageUrls?.md),
-				}}
+			{/* #1780 画像を持たない店でも空の枠にしない */}
+			<RestaurantAvatar
+				testID="saved-restaurant-image"
+				uri={item.restaurant.imageUrls?.md}
 				style={styles.savedRestaurantImage}
+				iconSize={28}
+				accessibilityLabel={item.restaurant.name}
 			/>
 			<View style={styles.savedRestaurantInfo}>
 				<Text style={styles.savedRestaurantName} numberOfLines={1} ellipsizeMode="tail">

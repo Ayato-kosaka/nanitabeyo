@@ -57,6 +57,8 @@ import { fetchRestaurantOpeningStatuses } from '../restaurants/restaurant-openin
 import type { RestaurantOpeningStatus } from '../../../../shared/utils/openingHours';
 // #1798 「使える dish_media」の判定は 1 箇所に定義し、店提案・店舗詳細の両方から埋め込む
 import { USABLE_DISH_MEDIA_CONDITIONS } from './usable-dish-media-filter';
+// #1780 店の代表画像を dish_media サムネイルから出すときの入力型（URL の組み立ては Assembler）
+import type { ThumbnailUrlSource } from './dish-media.assembler';
 
 /** #817 優先言語のレビュー先読みクエリの戻り値 */
 type DishReviewWithUser = Prisma.dish_reviewsGetPayload<{
@@ -530,6 +532,78 @@ export class DishMediaRepository {
 
     // 抽出された dishMediaIds をランダム順にして返す
     return shuffle(resultDishMediaIds);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*    店の代表画像に使う dish_media サムネイル（#1780）                */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1780 【設計】**店の画像は自社側の dish_media サムネイルから出す。**
+   *
+   * #1793 で Google の写真を自社 Storage へ複製するのをやめたため、これ以降に
+   * 作られる店は `restaurants.image_path` が必ず null になる。`imageUrls` は
+   * `image_path` を持つ行にだけ付くので、**新しく作られた店は全部«画像なし»**になり、
+   * 店詳細・店名検索・保存済み店・地図ピンが空の枠を描く。
+   * オーナー確定仕様（[#1780 2026-09-02 判断ログ]）の受け皿がこれである。
+   *
+   * 代表に選ぶのは «いいね数が最大の 1 件»。店舗詳細の一覧
+   * （`findDishMediaByRestaurant`）と同じ並びなので、**アバターとページ先頭の絵が一致する**。
+   *
+   * ⚠️ `thumbnail_path` が空の行（SNS 取り込み = `render_type='external_embed'`）は
+   *    対象外にしてある。あちらのサムネイルは自ストレージではなく
+   *    `dish_media_external_embeddings.thumbnail_url`（provider 由来）にあり、
+   *    署名の作法が違って同じ経路では組み立てられない。ここで無理に混ぜると
+   *    `generateCdnSignedURL` に外部 URL を渡す形になる。取り込み由来を店の顔に
+   *    使うかは、それ自体を決めてから別途足すこと。
+   */
+  async findFallbackThumbnailsByRestaurantIds(
+    tx: Prisma.TransactionClient,
+    restaurantIds: string[],
+  ): Promise<Map<string, ThumbnailUrlSource>> {
+    if (restaurantIds.length === 0) return new Map();
+
+    const rows = await tx.$queryRaw<
+      {
+        restaurant_id: string;
+        id: string;
+        thumbnail_path: string;
+        thumbnail_processing_status: string;
+      }[]
+    >(Prisma.sql`
+      SELECT DISTINCT ON (d.restaurant_id)
+        d.restaurant_id,
+        dm.id,
+        dm.thumbnail_path,
+        dm.thumbnail_processing_status
+      FROM dish_media dm
+      JOIN dishes d
+        ON d.id = dm.dish_id
+      LEFT JOIN dish_media_analysis_results dmar
+        ON dmar.dish_media_id = dm.id
+      WHERE d.restaurant_id IN (${Prisma.join(
+        restaurantIds.map((id) => Prisma.sql`${id}::uuid`),
+      )})
+        -- 自ストレージにサムネイルを持つ行だけ（理由はこのメソッドの説明にある）
+        AND dm.thumbnail_path <> ''
+        /* #1798 「使える dish_media」の判定は usable-dish-media-filter.ts へ一本化してある。
+           店の顔に «削除済み / 退会者の投稿 / 実体が届いていない / 再生不能» を出さない。 */
+        ${USABLE_DISH_MEDIA_CONDITIONS}
+      ORDER BY
+        d.restaurant_id,
+        COALESCE(dmar.like_total, 0) DESC,
+        dm.id DESC;
+    `);
+
+    return new Map(
+      rows.map((r) => [
+        r.restaurant_id,
+        {
+          id: r.id,
+          thumbnail_path: r.thumbnail_path,
+          thumbnail_processing_status: r.thumbnail_processing_status,
+        },
+      ]),
+    );
   }
 
   /* ------------------------------------------------------------------ */
