@@ -87,8 +87,10 @@ def main() -> None:
     pipeline = BigQueryPipeline()
     from google.cloud import bigquery
 
-    cte = _CITY_CTE.format(catalog=pipeline.table("restaurant_catalog"),
-                           raw=pipeline.table(TABLE_POST_RAW))
+    # str.format は使えない。SQL 中の正規表現 `{2,8}` を placeholder と誤認して KeyError になる。
+    cte = (_CITY_CTE
+           .replace("{catalog}", pipeline.table("restaurant_catalog"))
+           .replace("{raw}", pipeline.table(TABLE_POST_RAW)))
     params = [
         bigquery.ScalarQueryParameter("rid", "STRING", run_id),
         bigquery.ScalarQueryParameter("crid", "STRING", args.catalog_run_id),
