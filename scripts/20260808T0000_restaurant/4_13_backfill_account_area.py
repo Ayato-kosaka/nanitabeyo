@@ -141,7 +141,7 @@ def main() -> None:
     done = 0
     for i in range(0, len(hits), CHUNK):
         chunk = hits[i:i + CHUNK]
-        pipeline.execute(sql, [
+        pipeline.execute_dml_retrying(sql, [
             bigquery.ScalarQueryParameter("rid", "STRING", run_id),
             bigquery.ArrayQueryParameter("pids", "STRING", [h["post_id"] for h in chunk]),
             bigquery.ArrayQueryParameter("lats", "FLOAT64", [h["lat"] for h in chunk]),

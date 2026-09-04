@@ -115,7 +115,7 @@ def main() -> None:
             bigquery.ArrayQueryParameter("lats", "FLOAT64", [h["lat"] for h in chunk]),
             bigquery.ArrayQueryParameter("lngs", "FLOAT64", [h["lng"] for h in chunk]),
         ]
-        pipeline.execute(sql, params)
+        pipeline.execute_dml_retrying(sql, params)
         done += len(chunk)
         LOGGER.info("  %d/%d 件へ地点を入れました", done, len(hits))
     LOGGER.info("地点の後埋め完了: %d 件", done)
@@ -134,7 +134,7 @@ def main() -> None:
     ndone = 0
     for i in range(0, len(names), CHUNK):
         chunk = names[i:i + CHUNK]
-        pipeline.execute(name_sql, [
+        pipeline.execute_dml_retrying(name_sql, [
             bigquery.ScalarQueryParameter("rid", "STRING", run_id),
             bigquery.ArrayQueryParameter("pids", "STRING", [h["post_id"] for h in chunk]),
             bigquery.ArrayQueryParameter("names", "STRING", [h["name"] for h in chunk]),
