@@ -196,9 +196,6 @@ website 保有店の 27.6%（89/322）は «website» 自体が集約メディ�
 ### 真因（なぜ business_discovery に 20h 詰まっていたか）
 検索インデックスに `"@handle" site:instagram.com` を投げれば IG API なしで店の投稿が caption 付きで取れる（16 handle 中 14 ヒット・13.6 投稿/handle）。店は place_id で seed-trust 確定。さらに 4_7 は 429 で全体中断・10 件/クエリのままで、20 件＋リトライで収率 9 倍（1.3→11.9 投稿/q）。
 
-### 規約（条文確認済み）
-NG: Meta 複数トークン／IG ページ直取得（現行 resolve の embed/captioned 取得も該当＝caption 持ち回りが唯一の適合路）／Google SERP スクレイプ（Bright Data・SerpApi）／Brave・Parallel（結果保存・DB 化禁止）。OK: You.com（キー有）・Tavily・Linkup・Yep・Common Crawl・Threads（要審査）。
-
 ### 却下確定（蒸し返さない）
 CC WAT 飲食メディア限定（tabelog/retty は CC 上に IG リンク 0/300）／Wayback／店公式サイト埋め込み（3/98）／oEmbed（caption 返らず）／IG location ページ／店単位カテゴリ伝播（ペア増 0）／一覧外検索（CSE 新規停止・Bing 廃止・各 HTML は bot 壁）。
 

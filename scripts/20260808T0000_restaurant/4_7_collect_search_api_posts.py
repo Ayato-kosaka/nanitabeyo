@@ -12,7 +12,7 @@ Graph API の business_discovery（200 req/時の壁）を通らない検索型�
                        1000 credits/月（basic=1 credit）。include_domains=["instagram.com"]。
     --provider exa     Exa /search        header x-api-key: $EXA_API_KEY
                        $10/月 + 初回 $20（$7/1k）。includeDomains=["instagram.com"]。
-    --provider firecrawl / you / linkup / yep（#1273 追加。無料枠と規約は FINDINGS.md 2026-09-03 参照）
+    --provider firecrawl / you / linkup / yep（#1273 追加。無料枠は FINDINGS.md 2026-09-03 参照）
 
 #1273 P1 «店起点»（--store-mode）: sns_source_account の未収集 store_branch handle を BQ から読み、
 «"@handle"» を include_domains=instagram.com で検索して、その店の投稿を caption 付きで集める。
