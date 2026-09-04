@@ -13,7 +13,14 @@ import { FixedColors } from "@app-expo/constants/Palette";
 const ICON_FILL = {
 	liked: FixedColors.likeActive,
 	notLiked: FixedColors.onMedia,
-	saved: FixedColors.myDishStatusOrange,
+	// #1834 «保存 = 食べたい» は緑塗り（オーナー指示）。app 側は
+	// MY_DISH_STATUS_COLORS.want.fill を使うが、その実体は
+	// FixedColors.myDishStatusGreen なので、ここは Palette を直接引く。
+	// ⚠️ statusColors.ts は `@/` 別名を使う «純粋でない» モジュールなので、
+	//    ここから import してはいけない（Playwright は別名を解決しない）。
+	// ⚠️ 色をここへ書き写さないこと。#1840 で色が変わったとき、書き写していた
+	//    ためにテストだけ古い色を守り続け、nightly が赤くなった。
+	saved: FixedColors.myDishStatusGreen,
 	notSaved: "transparent",
 } as const;
 
