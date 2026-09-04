@@ -52,6 +52,10 @@ def parse_args() -> argparse.Namespace:
     # 再解決を «非破壊» のパイプライン一級操作にする（delete 不要）。resolve 改善後は
     # --resolve-version を上げて回すと、同 version で未処理の投稿だけを追記解決する。
     # 集計側は post ごとの «最新 resolve_version» を見る（7_1 / 測定クエリ）。
+    # #1812 CC WAT 経路: caption 付き投稿が桁で増えたので、resolve へ回す前に caption で絞れるようにする。
+    # 何を «飲食» と見なすかは経路ごとに違うので、正規表現は dispatch 側で指定する（コードに埋めない）。
+    p.add_argument("--caption-regexp", default=None,
+                   help="caption がこの正規表現に一致する投稿だけ resolve する（RE2）")
     p.add_argument("--reresolve-prev-status", default=None,
                    help="この «直近 version の status» の投稿だけ再解決する（例 skipped_no_store）。省略時は全未処理")
     return p.parse_args()
@@ -59,7 +63,7 @@ def parse_args() -> argparse.Namespace:
 
 def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_id: str,
                       resolve_version: str, limit: int, shards: int = 1, shard: int = 0,
-                      reresolve_prev_status: str | None = None):
+                      reresolve_prev_status: str | None = None, caption_regexp: str | None = None):
     """未 resolve（この run × **この resolve_version** で未処理）の投稿を取り出す。
 
     version を anti-join に含めるので、--resolve-version を上げると全投稿が «その version では未処理»
@@ -71,6 +75,9 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
     if shards > 1:
         # FARM_FINGERPRINT は決定的なので、同じ post_id は常に同じシャードに落ちる（並列非重複）。
         shard_filter = "AND MOD(ABS(FARM_FINGERPRINT(r.post_id)), @shards) = @shard"
+    caption_filter = ""
+    if caption_regexp:
+        caption_filter = "AND r.caption IS NOT NULL AND REGEXP_CONTAINS(r.caption, @caprx)"
     prev_filter = ""
     if reresolve_prev_status:
         # 直近 version（resolved_at 最新）の status が指定値の post_id に限定する。
@@ -91,7 +98,7 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
            AND v.resolve_version = @resolve_version
-      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter}
+      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter}
       QUALIFY ROW_NUMBER() OVER (PARTITION BY r.post_id ORDER BY r.fetched_at DESC) = 1
       LIMIT {int(limit)}
     """
@@ -105,6 +112,8 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
         params.append(bigquery.ScalarQueryParameter("shard", "INT64", shard))
     if reresolve_prev_status:
         params.append(bigquery.ScalarQueryParameter("prev_status", "STRING", reresolve_prev_status))
+    if caption_regexp:
+        params.append(bigquery.ScalarQueryParameter("caprx", "STRING", caption_regexp))
     return list(pipeline.execute(sql, params))
 
 
@@ -119,7 +128,7 @@ def main() -> None:
     sleep_s = max(args.sleep_ms, 0) / 1000.0
 
     posts = _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
-                              args.shards, args.shard, args.reresolve_prev_status)
+                              args.shards, args.shard, args.reresolve_prev_status, args.caption_regexp)
     LOGGER.info("未 resolve %d 投稿を処理します（resolve_version=%s, shard=%d/%d, 狙い撃ち=%s）",
                 len(posts), args.resolve_version, args.shard, args.shards,
                 args.reresolve_prev_status or "全未処理")
