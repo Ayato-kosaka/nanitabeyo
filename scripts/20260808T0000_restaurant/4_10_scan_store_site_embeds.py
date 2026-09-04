@@ -50,6 +50,27 @@ BOILER = re.compile(r"(view this post on instagram|この投稿をinstagramで�
                     r"がシェアした投稿|a post shared by|さんがシェアした投稿)", re.I)
 
 
+# 日本の店サイトは Shift_JIS / EUC-JP がまだ多い。UTF-8 決め打ちで読むとキャプションが
+# 丸ごと文字化けし、resolve が «カテゴリ不明» を返す（実測で skipped_no_category の一部が
+# これだった）。宣言された charset を見てから、日本語で実際に使われる順に試す。
+_RE_CHARSET = re.compile(rb'charset\s*=\s*["\']?\s*([A-Za-z0-9_\-]+)')
+_ENC_ALIAS = {"shift_jis": "cp932", "shift-jis": "cp932", "sjis": "cp932", "x-sjis": "cp932",
+              "windows-31j": "cp932", "ms932": "cp932", "euc-jp": "euc_jp"}
+
+
+def _decode(raw: bytes) -> str:
+    m = _RE_CHARSET.search(raw[:4096])
+    declared = m.group(1).decode("ascii", "ignore").lower() if m else ""
+    for cand in (_ENC_ALIAS.get(declared, declared), "utf-8", "cp932", "euc_jp"):
+        if not cand:
+            continue
+        try:
+            return raw.decode(cand)
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return raw.decode("utf-8", "replace")
+
+
 def _text(fragment: str) -> str:
     t = html_mod.unescape(RE_TAG.sub(" ", fragment))
     return re.sub(r"\s+", " ", t).strip()
@@ -57,10 +78,7 @@ def _text(fragment: str) -> str:
 
 def _captions_from_html(raw: bytes) -> dict[str, str]:
     """HTML から {post_id: caption} を採る。公式 blockquote が本命。"""
-    try:
-        text = raw.decode("utf-8", "replace")
-    except Exception:  # noqa: BLE001
-        return {}
+    text = _decode(raw)
     out: dict[str, str] = {}
     for bq in RE_BLOCKQUOTE.findall(text):
         m = RE_PERMALINK.search(bq)
@@ -82,10 +100,7 @@ def _captions_from_html(raw: bytes) -> dict[str, str]:
 
 
 def _page_text(raw: bytes) -> str:
-    try:
-        text = raw.decode("utf-8", "replace")
-    except Exception:  # noqa: BLE001
-        return ""
+    text = _decode(raw)
     t = RE_TITLE.search(text)
     d = RE_DESC.search(text)
     return (_text(t.group(1)) if t else "") + " " + (html_mod.unescape(d.group(1)) if d else "")
@@ -108,12 +123,19 @@ def scan_store(store: dict, per_store: int = 10) -> list[dict]:
     # 本物の埋め込みキャプションを持つものを先に、ページタイトル頼りのものを後に。
     # 後者は同じ文が全投稿に付くので、resolve へ何十件も流しても同じ答えしか返らない。
     ordered = sorted(caps.items(), key=lambda kv: -len(kv[1]))[:max(per_store, 1)]
+    used_page_text = False
     for code, cap in ordered:
         # キャプションが取れない投稿には、ページのタイトル＋説明を当てる。
         # 店は既に確定しているので、ここは «カテゴリを決める手掛かり» を渡すためのもの。
-        caption = cap or page
-        if not caption or not RE_KANA.search(caption):
-            caption = caption or page
+        if cap:
+            caption = cap
+        else:
+            # 埋め込みキャプションが無い投稿はページの文言で代用するが、同じ文を
+            # 何十件も resolve へ流しても同じ答えしか返らない。1 店 1 件に絞る。
+            if used_page_text or not page:
+                continue
+            used_page_text = True
+            caption = page
         rows.append({"post_id": code, "caption": caption[:2000] or None,
                      "place_id": store["google_place_id"], "handle": store.get("handle"),
                      "host": store.get("host")})
