@@ -206,6 +206,26 @@ def _yep_urls(key: str, q: str, num: int) -> list[tuple[str, str]]:
     ]
 
 
+def _serper_urls(key: str, q: str, num: int) -> list[tuple[str, str]]:
+    """SERPER（google.serper.dev）。**キーが GitHub Secrets に既にある唯一の provider。**
+
+    #1815 他の 4 社（you / tavily / yep / linkup）のキーはこのリポジトリの Secrets に無く、
+    CI から使えない。store-mode を CI で回せるのは今のところこれだけなので、4_3 と同じ
+    呼び出しをここへも生やす（4_3 は queries-file 専用で store-mode を持たない）。
+    無料プランは num>10 を 400 で弾くので 10 に丸める。
+    """
+    body = json.dumps({"q": f"{q} site:{IG_DOMAIN}", "num": min(num, 10), "gl": "jp", "hl": "ja"}).encode("utf-8")
+    req = urllib.request.Request(
+        "https://google.serper.dev/search", data=body,
+        headers={"X-API-KEY": key, "Content-Type": "application/json"}, method="POST",
+    )
+    res = _http_json(req)
+    return [
+        (r.get("link") or "", _join_text(r.get("title"), r.get("snippet")))
+        for r in (res.get("organic") or [])
+    ]
+
+
 # provider 名 → (必要な env 変数名, 呼び出し関数)。--provider の値域はこの辞書のキー。
 # firecrawl は keyless でも動く（env 未設定を許す）。他は鍵必須。
 _PROVIDERS = {
@@ -216,6 +236,7 @@ _PROVIDERS = {
     "you": ("YOU_API_KEY", _you_urls),
     "linkup": ("LINKUP_API_KEY", _linkup_urls),
     "yep": ("YEP_API_KEY", _yep_urls),
+    "serper": ("SERPER_API_KEY", _serper_urls),
 }
 # 鍵が無くても動く provider（keyless 可）。main() の «鍵必須» チェックを免除する。
 _KEYLESS_OK = {"firecrawl"}
@@ -327,11 +348,22 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--query-offset", type=int, default=0, help="queries-file の開始行（CI バッチ分割用。max-queries と併用で file を面で進める）")
     p.add_argument("--sleep-ms", type=int, default=1000, help="呼び出し間隔（無料枠に配慮）")
     p.add_argument("--dry-run", action="store_true", help="API を叩かず入力の読み取りと件数だけ出す")
+    # #1815 検索 API のキーはこのリポジトリの GitHub Secrets に無い（オーナーがローカルへ渡した）。
+    # BigQuery の書き込み資格情報が無い環境でも走らせられるよう、行を JSONL へ吐く口を用意する。
+    # 出力は sns_post_raw の 1 行 1 JSON なので、そのまま BQ へ流し込める。
+    p.add_argument("--out-jsonl", default=None,
+                   help="BigQuery へ書かず、この JSONL へ行を書く（--queries-file と併用。BQ 資格情報が不要になる）")
     return p.parse_args()
 
 
 def _read_cells(path: Path, max_queries, offset: int = 0):
-    cells = []
+    """TSV を読む。列は `query / category_id / lat / lng`（以降は省略可）。
+
+    #1815 5・6 列目に `seed_place_id` と `store_name` を置くと、--store-mode と同じ
+    seed-trust（snippet がその店を指していれば店を確定）が queries-file でも効く。
+    BQ の読み取り資格情報が無い環境（ローカル）で店起点の検索を回すために要る。
+    """
+    cells, stores = [], []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.rstrip("\n")
         if not line or line.startswith("#"):
@@ -341,10 +373,17 @@ def _read_cells(path: Path, max_queries, offset: int = 0):
         cat = parts[1].strip() if len(parts) > 1 and parts[1].strip() else None
         lat = float(parts[2]) if len(parts) > 2 and parts[2].strip() else None
         lng = float(parts[3]) if len(parts) > 3 and parts[3].strip() else None
+        place = parts[4].strip() if len(parts) > 4 and parts[4].strip() else None
+        sname = parts[5].strip() if len(parts) > 5 and parts[5].strip() else None
         if q:
             cells.append((q, cat, lat, lng))
-    cells = cells[offset:] if offset else cells
-    return cells[:max_queries] if max_queries else cells
+            stores.append({"handle": q.strip('"').lstrip("@").split()[0] if place else "",
+                           "place_id": place, "store_name": sname})
+    if offset:
+        cells, stores = cells[offset:], stores[offset:]
+    if max_queries:
+        cells, stores = cells[:max_queries], stores[:max_queries]
+    return cells, stores
 
 
 def _read_store_handles(pipeline: BigQueryPipeline, account_run_id, max_queries, offset: int,
@@ -505,7 +544,10 @@ def main() -> None:
     else:
         if not args.queries_file:
             raise SystemExit("--queries-file か --store-mode のどちらかが要ります")
-        cells = _read_cells(Path(args.queries_file), args.max_queries, args.query_offset)
+        cells, file_stores = _read_cells(Path(args.queries_file), args.max_queries, args.query_offset)
+        # 5 列目に place_id がある行だけ seed-trust の対象にする
+        if any(st["place_id"] for st in file_stores):
+            stores = file_stores
     LOGGER.info("%d クエリを %s で引きます（無料枠のみ）", len(cells), args.provider)
     sleep_s = max(args.sleep_ms, 0) / 1000.0
 
@@ -522,20 +564,25 @@ def main() -> None:
     if not key:
         LOGGER.info("%s は keyless で実行します（%s 未設定。上限UPは env 設定で）。", args.provider, env_var)
 
-    pipeline = BigQueryPipeline()
+    import contextlib
+
+    pipeline = None if args.out_jsonl else BigQueryPipeline()
     now_iso = utc_now().isoformat()
 
-    with pipeline.step(
+    step = (contextlib.nullcontext({}) if pipeline is None else pipeline.step(
         run_id,
         "4_7_collect_search_api_posts",
         parameters={"provider": args.provider, "queries": len(cells), "num": args.num},
         repo_root=Path(__file__).resolve().parents[1],
-    ) as result:
+    ))
+    with step as result:
         rows = []
         seen = set()
         n_ok = n_skip = n_seeded = 0
         for i, (q, cat, lat, lng) in enumerate(cells):
-            st = stores[i] if (args.store_mode or args.cell_mode) else None
+            st = stores[i] if i < len(stores) else None
+            if st is not None and not st.get("place_id"):
+                st = None
             try:
                 urls = _fetch_with_retry(fetch, key, q, args.num, args.max_retries, args.provider)
             except _QuotaExhausted:
@@ -577,6 +624,16 @@ def main() -> None:
                 )
             if sleep_s:
                 time.sleep(sleep_s)
+
+        if pipeline is None:
+            out = Path(args.out_jsonl)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            with out.open("a", encoding="utf-8") as fh:
+                for r in rows:
+                    fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+            LOGGER.info("%s へ %d 行を書きました（検索 %d クエリ中 成功 %d・スキップ %d）",
+                        out, len(rows), len(cells), n_ok, n_skip)
+            return
 
         # 同 run 内の重複だけ消してから追記（4_3 と同じ MERGE 的処理）。
         if rows:
