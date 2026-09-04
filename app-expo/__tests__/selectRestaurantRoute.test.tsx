@@ -245,7 +245,9 @@ beforeEach(() => {
 	// 新規（by-google-place-id が null）の分岐は、その test の中で個別に上書きする。
 	mockCallBackend.mockImplementation((path: string) => {
 		if (path === "v1/restaurants") return Promise.resolve(CREATED);
-		if (path === "v1/restaurants/by-google-place-id") return Promise.resolve(CREATED.restaurant);
+		if (path === "v1/restaurants/by-google-place-id")
+			// #1671 既定は «住所も埋まっている既存店»（そのまま開く側）
+			return Promise.resolve({ ...CREATED.restaurant, address: "東京都渋谷区神南1-2-3", country_code: "JP" });
 		return Promise.resolve({ data: [SAVED] });
 	});
 });
@@ -300,6 +302,50 @@ describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
 			pathname: "/[locale]/(tabs)/my-dishes/confirm-restaurant",
 			params: { locale: "ja-JP", googlePlaceId: "place-new" },
 		});
+	});
+
+	/*
+	#1671 パイプライン製の 62 万行は address / country_code が空のままで、ユーザーが
+	POI を押しても «既存店だからそのまま開く» 経路に入るため**永久に埋まらなかった**。
+	住所が空の既存店は確認ページへ回し、そこで埋める。
+	*/
+	it("地図の POI 押下（既にあるが住所が空の店）: 確認ページへ回す", async () => {
+		mockCallBackend.mockImplementation((path: string) => {
+			if (path === "v1/restaurants/by-google-place-id")
+				// パイプライン製の行。address / country_code が空
+				return Promise.resolve({ ...CREATED.restaurant, address: null, country_code: null });
+			if (path === "v1/restaurants") throw new Error("確認前に開いてはいけない");
+			return Promise.resolve({ data: [SAVED] });
+		});
+
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-1", name: "テスト食堂", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({ pathname: "/[locale]/(tabs)/my-dishes/confirm-restaurant" }),
+		);
+	});
+
+	it("住所が空文字だけの既存店も、確認ページへ回す", async () => {
+		mockCallBackend.mockImplementation((path: string) => {
+			if (path === "v1/restaurants/by-google-place-id")
+				return Promise.resolve({ ...CREATED.restaurant, address: "   ", country_code: "JP" });
+			if (path === "v1/restaurants") throw new Error("確認前に開いてはいけない");
+			return Promise.resolve({ data: [SAVED] });
+		});
+
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-1", name: "テスト食堂", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({ pathname: "/[locale]/(tabs)/my-dishes/confirm-restaurant" }),
+		);
 	});
 
 	it("pick モードで新しい店を選んだときは、確認ページへ pick を引き継ぐ", async () => {

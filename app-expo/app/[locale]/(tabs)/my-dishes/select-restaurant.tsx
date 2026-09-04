@@ -336,9 +336,18 @@ export default function SelectRestaurantScreen() {
 					requestPayload: { googlePlaceId },
 				});
 
-				if (existing) {
+				/*
+				 * #1671 既存店でも **住所・国コードが空なら確認ページへ回す**。
+				 *
+				 * パイプライン製の 62 万行はここが空のままで、ユーザーが POI を押しても
+				 * «既存店だからそのまま開く» 経路に入るため**永久に埋まらなかった**
+				 * （チケット本文の指摘）。確認ページを通せば、そこで埋まる。
+				 */
+				const needsAddressConfirmation = !!existing && (!existing.address?.trim() || !existing.country_code?.trim());
+
+				if (existing && !needsAddressConfirmation) {
 					/*
-					 * 既存店: 従来どおり `POST /v1/restaurants` を通す。
+					 * 既存店（住所も埋まっている）: 従来どおり `POST /v1/restaurants` を通す。
 					 *
 					 * ⚠️ **この POST は Google を 1 回も叩かない。** サーバは place_id で既存行を
 					 *    見つけた時点で早期 return するので、追加の Place Details は発生しない。
@@ -369,7 +378,8 @@ export default function SelectRestaurantScreen() {
 					return;
 				}
 
-				// 新規: 確認ページへ。ここではまだ 1 行も作らない
+				// 新規、または住所が空の既存店: 確認ページへ。
+				// ここではまだ 1 行も作らないし、既存店なら 1 行も書き換えない
 				router.push({
 					pathname: "/[locale]/(tabs)/my-dishes/confirm-restaurant",
 					params: { locale, googlePlaceId, ...(isPickMode ? { pick: "1" } : {}) },
