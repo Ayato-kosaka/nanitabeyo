@@ -29,6 +29,9 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     // 係争地域など国が引けない店があるため NULL 許容。
     address: supabase.address,
     country_code: supabase.country_code,
+    // #1671 州・県の識別子。ISO 3166-2 «風» だが ISO そのものではない
+    // （値は country_code + '-' + Google の administrative_area_level_1.shortText）。
+    subterritory_code: supabase.subterritory_code,
     address_components: supabase.address_components,
     plus_code: supabase.plus_code,
     created_at: new Date(supabase.created_at),
@@ -59,6 +62,7 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     created_by_source: prisma.created_by_source,
     address: prisma.address,
     country_code: prisma.country_code,
+    subterritory_code: prisma.subterritory_code,
     address_components: prisma.address_components,
     plus_code: prisma.plus_code,
     created_at: prisma.created_at?.toISOString() ?? null,
