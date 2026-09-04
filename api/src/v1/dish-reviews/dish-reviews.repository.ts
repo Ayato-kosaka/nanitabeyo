@@ -75,6 +75,9 @@ export class DishReviewsRepository {
         lock_no: true,
         deleted_at: true,
         created_dish_media_id: true,
+        // #1774 «更新後に価格が残るのに通貨が無い» を Service で判定するために要る
+        price_cents: true,
+        currency_code: true,
       },
     });
   }
