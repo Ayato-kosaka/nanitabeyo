@@ -56,4 +56,48 @@ describeAuthenticated("食べたを記録の店名検索 @authenticated", () => 
 		await element(searchInput).replaceText("ラーメン");
 		await device.takeScreenshot("record-restaurant-search-typed");
 	});
+
+	/**
+	 * 📸 #1780 **画像の無い店が «灰色の四角» ではなくアイコンの受け皿になる**ことを
+	 * ネイティブで撮る。
+	 *
+	 * ## なぜ上のテストでは足りなかったか
+	 *
+	 * 上は «入力欄が潰れていない» ことだけを見るので、**結果が返る前にテストが終わる**。
+	 * 実際 run 33955792513 のスクリーンショットは 2 枚とも «検索中...» のままで、
+	 * 一覧が 1 行も写っていなかった。**撮れた枚数と «写っているか» は別である。**
+	 *
+	 * ## 何を見るか
+	 *
+	 * dev の 62 万店はパイプライン製で `image_url` を持たない（#1780 で新規保存も
+	 * やめた）。したがって検索結果はほぼ全部が «画像の無い店» になり、
+	 * `RestaurantAvatar` の受け皿（`...-image-placeholder`）が描かれるはずである。
+	 *
+	 * ⚠️ **この画面は Google を叩かない。** 店名検索は自社の
+	 * `GET /v1/restaurants/search`（#1416）で、Autocomplete も Text Search も
+	 * 呼ばない。オーナーの「place detail 使うので ci にしてはダメよ」に反しない。
+	 */
+	it("#1780 画像の無い店はアイコンの受け皿になる（灰色の四角にしない）", async () => {
+		await tabBar.gotoMyDishes();
+		await waitUntilVisible(myDishes.recordButton, DEFAULT_TIMEOUT);
+		await tapWhenVisible(myDishes.recordButton);
+
+		await waitUntilVisible(myDishes.snsImportEatenTab, DEFAULT_TIMEOUT);
+		await tapWhenVisible(myDishes.snsImportEatenTab);
+
+		const searchInput = by.id("sns-import-eaten-restaurant-search-input");
+		await waitUntilVisible(searchInput, DEFAULT_TIMEOUT);
+		await element(searchInput).replaceText("ラーメン");
+
+		/*
+		  ⚠️ **結果が返るまで待つ。** ここを待たずに撮ると «検索中...» が写る
+		     （上のテストで実際にそうなった）。1 件目の受け皿が見えたら描画済みとみなす。
+		     dev のデータが変わって 1 件も返らなくなったら、ここで落ちて気付ける。
+		*/
+		await waitUntilVisible(
+			by.id("sns-import-eaten-restaurant-search-result-0-image-placeholder"),
+			DEFAULT_TIMEOUT,
+		);
+		await device.takeScreenshot("record-restaurant-search-no-image-placeholder");
+	});
 });
