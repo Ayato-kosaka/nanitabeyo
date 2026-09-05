@@ -423,8 +423,19 @@ def classify(resp: dict[str, Any]) -> ResolveOutcome:
         f"|cat={len(cat_cands)}|rst={len(rst_cands)}|pf={pf or '-'}|k={kflag}"
     )
 
+    # ⚠️ 片方が決まらなかったからといって、決まっていた方まで捨てない。
+    # 2026-09-05 実測: カテゴリが決まらなかった行のうち **8,383 行は店が決まっていた**のに
+    # `google_place_id` を None で書いていた（`skipped_no_store` の側はカテゴリを残していて
+    # 非対称だった）。resolve に «取り消し» は無く、決まらなかったのは «決められなかった»
+    # だけである。同じ考え違いで `LATEST_RESOLVED_QUALIFY` が «解けなかった解き直し» に
+    # 先の結果を殺させていた（cov13 987 → cov14 961）。捨てた情報は後から復元できない。
+    #
+    # 保持しても «カテゴリの無い行» が配信されることはない: 9_1 は
+    # `WHERE v.dish_category_id IS NOT NULL` で絞っている。効くのは収集ターゲット選び
+    # （4_7 / 4_17 の «もう投稿を持っている店» 判定）と、キャプションを足しての再 resolve。
     if category_id is None:
-        return ResolveOutcome(STATUS_SKIPPED_NO_CATEGORY, None, None, None, category_conf, diag)
+        return ResolveOutcome(STATUS_SKIPPED_NO_CATEGORY, place_id, None,
+                              restaurant_conf, category_conf, diag)
     if not place_id:
         return ResolveOutcome(STATUS_SKIPPED_NO_STORE, None, category_id, None, category_conf, diag)
     return ResolveOutcome(STATUS_MATCHED, place_id, category_id, restaurant_conf, category_conf, diag)
