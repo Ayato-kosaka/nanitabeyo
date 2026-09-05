@@ -808,6 +808,13 @@ def store_handle_dict_sql(store_site_ig_table: str, source_account_table: str,
 #   - キリル文字は **3 文字以上連続** したときだけ数える（「МASU」の М 1 文字は装飾）
 #   - 韓国式住所トークンは «住所» 欄だけを見る（店名の「Lo-ro」「Cafe Cheonghak-dong」で
 #     誤爆する）。`-gun` は日本の «郡» と衝突するので**採らない**
+#   - 文字の根拠は **住所が入っている行にだけ**当てる。«日本語の手がかりが無い» は
+#     住所を見て初めて言えることで、住所が空の行では «情報が無い» と区別が付かない。
+#     PostgreSQL の `restaurants.address` はユーザー登録行で NULL のことがあり、実測でも
+#     「韓国料理TonTon 한국식당 톤톤」（大阪）「板前焼肉一雅 이치마사」（大阪）
+#     「韓国料理専門店 佳楽 가락」（東京）を海外と誤判定していた。
+#     restaurant_catalog 側で住所が空なのは 620,428 行中 128 行だけで、この条件を
+#     足しても検出は 100,063 行のまま **1 行も減らない**（実測）
 #
 # ⚠️ **この判定を SQL / 別スクリプトへ写経しないこと。** 使う側は
 # `foreign_restaurant_sql()` が返す式を埋め込む。写経した複製は、本番だけが直ったときに
@@ -892,8 +899,10 @@ def foreign_restaurant_sql(
         f"        COALESCE({country_code}, 'JP') != 'JP'\n"
         "        -- (b) 韓国式の住所（住所欄だけ。店名の 'Lo-ro' で誤爆させない）\n"
         f"        OR {contains(addr, KOREAN_ADDRESS_RE)}\n"
-        "        -- (b') ハングル / キリル語。日本語の手がかりがある行には当てない\n"
-        f"        OR ({contains(text, FOREIGN_SCRIPT_RE)}\n"
+        "        -- (b') ハングル / キリル語。**住所がある行にだけ**当て、\n"
+        "        --      日本語の手がかりがある行には当てない\n"
+        f"        OR ({addr} != ''\n"
+        f"            AND {contains(text, FOREIGN_SCRIPT_RE)}\n"
         f"            AND NOT {contains(text, JAPAN_TEXT_RE)})\n"
         "        -- (c) 国外領域の矩形（«日本を囲う矩形» ではない）。日本領の飛び地は除く\n"
         f"        OR (({_box_sql(latitude, longitude, FOREIGN_TERRITORY_BOXES)})\n"

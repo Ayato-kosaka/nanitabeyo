@@ -78,6 +78,11 @@ repairable AS (
 """
 
 # 何行あるか。restaurants → dishes → dish_media → dmee の順に辿る。
+#
+# ⚠️ **«海外の店ぜんぶ» と «修復対象» を必ず分けて出す。** dev の実測では海外 100,400 店の
+# うち 337 店がユーザー登録（ジョージアの店など。**正当**で触らない）で、dish_media 2,937 行の
+# 大半・レビュー 4,442 件はそちら側に付いていた。1 つの数にまとめると «消すと 4,442 件の
+# レビューが消える» と読めてしまい、オーナーの判断を誤らせる。
 SQL_COUNTS = FOREIGN_RESTAURANTS_CTE + """
 SELECT
   (SELECT COUNT(*) FROM restaurants)                                  AS restaurants_total,
@@ -85,37 +90,44 @@ SELECT
   (SELECT COUNT(*) FROM repairable)                                   AS foreign_pipeline_restaurants,
   (SELECT COUNT(*) FROM foreign_restaurants WHERE created_by_source <> 'pipeline')
                                                                       AS foreign_user_restaurants,
-  (SELECT COUNT(*) FROM dishes d JOIN foreign_restaurants f ON f.id = d.restaurant_id)
+  (SELECT COUNT(*) FROM dishes d JOIN repairable f ON f.id = d.restaurant_id)
                                                                       AS foreign_dishes,
   (SELECT COUNT(*) FROM dish_media m
      JOIN dishes d ON d.id = m.dish_id
-     JOIN foreign_restaurants f ON f.id = d.restaurant_id)             AS foreign_dish_media,
+     JOIN repairable f ON f.id = d.restaurant_id)                      AS foreign_dish_media,
   (SELECT COUNT(*) FROM dish_media m
      JOIN dishes d ON d.id = m.dish_id
-     JOIN foreign_restaurants f ON f.id = d.restaurant_id
+     JOIN repairable f ON f.id = d.restaurant_id
     WHERE m.render_type = 'external_embed')                            AS foreign_dish_media_embed,
   (SELECT COUNT(*) FROM dish_media_external_embeddings e
      JOIN dishes d ON d.id = e.dish_id
-     JOIN foreign_restaurants f ON f.id = d.restaurant_id)             AS foreign_embeddings
+     JOIN repairable f ON f.id = d.restaurant_id)                      AS foreign_embeddings,
+  (SELECT COUNT(*) FROM dishes d JOIN foreign_restaurants f ON f.id = d.restaurant_id)
+                                                                      AS all_foreign_dishes,
+  (SELECT COUNT(*) FROM dish_media m
+     JOIN dishes d ON d.id = m.dish_id
+     JOIN foreign_restaurants f ON f.id = d.restaurant_id)             AS all_foreign_dish_media
 """
 
 # 消してよいか。ユーザーの痕跡がある行はバッチで消してはいけないので、別に数える。
+# **修復対象（パイプライン製）だけ**を数える。ユーザーが登録した海外店の痕跡は
+# そもそも触らないので、ここに混ぜると «消すと失われるもの» を過大に見せてしまう。
 SQL_USER_TRACES = FOREIGN_RESTAURANTS_CTE + """
 , foreign_media AS (
   SELECT m.id
   FROM dish_media m
   JOIN dishes d ON d.id = m.dish_id
-  JOIN foreign_restaurants f ON f.id = d.restaurant_id
+  JOIN repairable f ON f.id = d.restaurant_id
 ),
 foreign_dishes AS (
-  SELECT d.id FROM dishes d JOIN foreign_restaurants f ON f.id = d.restaurant_id
+  SELECT d.id FROM dishes d JOIN repairable f ON f.id = d.restaurant_id
 )
 SELECT
   (SELECT COUNT(*) FROM dish_media_likes l JOIN foreign_media m ON m.id = l.dish_media_id)
                                                                        AS likes,
   (SELECT COUNT(*) FROM dish_reviews v JOIN foreign_dishes d ON d.id = v.dish_id)
                                                                        AS reviews,
-  (SELECT COUNT(*) FROM restaurant_bids b JOIN foreign_restaurants f ON f.id = b.restaurant_id)
+  (SELECT COUNT(*) FROM restaurant_bids b JOIN repairable f ON f.id = b.restaurant_id)
                                                                        AS bids,
   (SELECT COUNT(*) FROM payouts p JOIN foreign_media m ON m.id = p.dish_media_id)
                                                                        AS payouts
@@ -129,7 +141,7 @@ SELECT f.google_place_id, f.name, f.address, f.country_code,
        (SELECT COUNT(*) FROM dishes d WHERE d.restaurant_id = f.id) AS dishes,
        (SELECT COUNT(*) FROM dish_media m JOIN dishes d ON d.id = m.dish_id
          WHERE d.restaurant_id = f.id) AS media
-FROM foreign_restaurants f
+FROM repairable f
 ORDER BY media DESC, f.google_place_id
 LIMIT %s
 """
@@ -326,17 +338,25 @@ def main() -> None:
         LOGGER.info(
             "    ユーザー製（正当・触らない）: %d 行", counts["foreign_user_restaurants"]
         )
-        LOGGER.info("  その店にぶら下がる dishes  : %d 行", counts["foreign_dishes"])
+        LOGGER.info("  --- 修復対象（パイプライン製）にぶら下がる行 ---")
+        LOGGER.info("  dishes                    : %d 行", counts["foreign_dishes"])
         LOGGER.info(
-            "  その店の dish_media        : %d 行（うち external_embed %d 行）",
+            "  dish_media                : %d 行（うち external_embed %d 行）",
             counts["foreign_dish_media"],
             counts["foreign_dish_media_embed"],
         )
-        LOGGER.info("  その店の 埋め込み実体      : %d 行", counts["foreign_embeddings"])
+        LOGGER.info("  埋め込み実体              : %d 行", counts["foreign_embeddings"])
+        LOGGER.info(
+            "  （参考）ユーザー登録の海外店を含めると dishes %d 行 / dish_media %d 行。"
+            "こちらは触らない",
+            counts["all_foreign_dishes"],
+            counts["all_foreign_dish_media"],
+        )
 
         LOGGER.info("")
         LOGGER.info(
-            "ユーザーの痕跡（消す前に必ず見る）: いいね %d / レビュー %d / 入札 %d / payout %d",
+            "修復対象に付いたユーザーの痕跡（消す前に必ず見る）: "
+            "いいね %d / レビュー %d / 入札 %d / payout %d",
             traces["likes"],
             traces["reviews"],
             traces["bids"],
@@ -350,7 +370,7 @@ def main() -> None:
         )
 
         LOGGER.info("")
-        LOGGER.info("--- 入っている店（media の多い順に %d 件）---", args.limit)
+        LOGGER.info("--- 修復対象の店（media の多い順に %d 件）---", args.limit)
         with connection.cursor() as cursor:
             cursor.execute(SQL_SAMPLE, (args.limit,))
             for row in cursor.fetchall():

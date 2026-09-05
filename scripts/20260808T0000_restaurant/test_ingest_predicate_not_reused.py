@@ -248,6 +248,12 @@ class JudgementGoldenSetTest(unittest.TestCase):
         ("炉端×おでん Lo-ro", "沖縄県名護市城1-9-5"),
         ("Cafe ri-ri", "1-1 Honmachi"),
         ("居酒屋　対馬屋", "長崎県対馬市厳原町大手橋1068番地"),
+        # #1815 PostgreSQL の `restaurants.address` はユーザー登録行で NULL のことがある。
+        # 住所が無いと «日本語の手がかりが無い» が成り立ってしまうので、実測で誤判定していた
+        # 3 店（public の実データ）を golden set に入れる。
+        ("韓国料理TonTon 한국식당 톤톤", ""),
+        ("板前焼肉一雅 이치마사 ICHIMASA", ""),
+        ("韓国料理専門店 佳楽 가락", ""),
     )
 
     FOREIGN_ROWS = (
@@ -272,7 +278,8 @@ class JudgementGoldenSetTest(unittest.TestCase):
         if re.search(common_sns.KOREAN_ADDRESS_RE, address):
             return True
         return bool(
-            re.search(common_sns.FOREIGN_SCRIPT_RE, text)
+            address  # 住所が無い行に文字の根拠を当てない（#1815）
+            and re.search(common_sns.FOREIGN_SCRIPT_RE, text)
             and not re.search(common_sns.JAPAN_TEXT_RE, text)
         )
 
