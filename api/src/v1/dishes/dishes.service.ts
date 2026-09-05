@@ -115,8 +115,9 @@ export class DishesService {
     }
 
     // レストランの住所情報からローカル言語コードを推測。
-    // #1671 ⚠️ **列も渡すこと。** パイプライン製の 62 万行は address_components が
-    // '[]' で、渡さないと 'en' へ落ちて日本の店に英語の料理名が付く（実測 92.44%）。
+    // #1671 ⚠️ **列も渡すこと。** パイプライン製の行は address_components が '[]' で
+    // （dev の 99.60% がそう）、渡さないと 'en' へ落ちて日本の店に英語の料理名が付く。
+    // 実測で全料理の 92.44%（36,051 件）がこれで英語名になっていた。
     const languageCode = this.locationsService.resolveLocalLanguageCode(
       restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[],
       {
