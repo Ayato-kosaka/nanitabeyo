@@ -177,8 +177,17 @@ def parse_args() -> argparse.Namespace:
                    help="sns_coverage の run_id。指定すると «惜しいセル» の多い市区町村の店を優先する")
     p.add_argument("--catalog-run-id", default=None,
                    help="住所・座標を引く restaurant_catalog の run_id（省略時は最大の run）")
-    p.add_argument("--account-type", default=None, choices=["influencer", "store_branch", "store_brand"],
+    p.add_argument("--account-type", default=None,
+                   choices=["influencer", "store_branch", "store_brand", "unknown"],
                    help="対象を絞る（省略時は全部）")
+    # #1815 【設計】収集の順番は «ハンドルの綴り» ではなく **sns_source_account.account_type** で決める。
+    # 2026-09-05 の層別実測（成果 = 配信カタログ sns_dish_media_catalog に載る異なり店 / アカウント）:
+    #   influencer +食語 44.500 / influencer −食語 26.152 / store_branch +食語 1.127 /
+    #   unknown +食語 0.944 / store_branch −食語 0.668 / unknown −食語 0.129
+    # 食語（ハンドルの綴り）はどの層でも一貫して 1.7 倍効くが **層をまたぐ効果ではない**ので、
+    # 綴りで先に並べると influencer が後ろへ回って逆効果になる。**まず account_type、次に食語**。
+    p.add_argument("--order-by-account-layer", action="store_true",
+                   help="account_type × 食語 の層の順に並べる（influencer → store_branch+食語 → …）")
     p.add_argument("--max-accounts", type=int, default=None, help="このバッチで処理するアカウント数上限")
     # #1815 既定を 200 → 10 へ。business_discovery は media.limit(N) を **1 コールで** 返すので
     # N<=50 なら 1 アカウント = 1 コール、N=200 だと 4 コール（実測スループット 88/h 対 ~220/h）。
@@ -429,6 +438,24 @@ def _read_candidates(pipeline: BigQueryPipeline, candidate_run_id: str, tiers, m
     return list(pipeline.execute(sql, params))
 
 
+def _food_token_regex() -> str:
+    """食語の正本は 4_19（`FOOD_TOKENS`）。ここで語彙を書き写さない（ずれると層がずれる）。"""
+    import importlib
+    rank = importlib.import_module("4_19_rank_account_candidates")
+    return rank._token_regex(rank.FOOD_TOKENS)
+
+
+def _account_layer_sql(account_type_col: str, handle_col: str) -> str:
+    """層の順位（小さいほど先）。正本は 2026-09-05 の層別実測（--order-by-account-layer の説明）。"""
+    food = f"REGEXP_CONTAINS(LOWER({handle_col}), r'{_food_token_regex()}')"
+    store = f"{account_type_col} IN ('store_branch', 'store_brand')"
+    return (f"CASE WHEN {account_type_col} = 'influencer' AND {food} THEN 0 "
+            f"WHEN {account_type_col} = 'influencer' THEN 1 "
+            f"WHEN {store} AND {food} THEN 2 "
+            f"WHEN {food} THEN 3 "
+            f"WHEN {store} THEN 4 ELSE 5 END")
+
+
 def _latest_catalog_run_id(pipeline: BigQueryPipeline) -> str:
     for row in pipeline.execute(
         f"SELECT run_id FROM `{pipeline.table('restaurant_catalog')}` "
@@ -442,13 +469,19 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
                    output_run_id: str | None = None, shard_count: int = 1, shard_index: int = 0,
                    skip_collected_scope: str = "run",
                    priority_coverage_run_id: str | None = None,
-                   catalog_run_id: str | None = None):
+                   catalog_run_id: str | None = None,
+                   layer_order: bool = False):
     from google.cloud import bigquery
-    where = "run_id IN UNNEST(@acc_rids) AND provider = @prov"
-    params = [
-        bigquery.ArrayQueryParameter("acc_rids", "STRING", list(account_run_ids)),
-        bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
-    ]
+    # #1815 発見 run は増え続けるので «全部» を指定できるようにする（列挙を書き写さない）。
+    if list(account_run_ids) == ["all"]:
+        where = "provider = @prov"
+        params = [bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM)]
+    else:
+        where = "run_id IN UNNEST(@acc_rids) AND provider = @prov"
+        params = [
+            bigquery.ArrayQueryParameter("acc_rids", "STRING", list(account_run_ids)),
+            bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
+        ]
     if account_type:
         where += " AND account_type = @atype"
         params.append(bigquery.ScalarQueryParameter("atype", "STRING", account_type))
@@ -480,8 +513,11 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
       GROUP BY handle
     """
 
+    layer_sql = _account_layer_sql("account_type", "handle") if layer_order else "0"
+
     if not priority_coverage_run_id:
-        sql = f"WITH todo AS ({todo_sql}) SELECT * FROM todo ORDER BY handle {limit_sql}"
+        sql = (f"WITH todo AS ({todo_sql}) SELECT * FROM todo "
+               f"ORDER BY {layer_sql}, handle {limit_sql}")
         return list(pipeline.execute(sql, params))
 
     # #1815 【設計】並びは «KPI にいちばん近いセルから». セルは (カテゴリ×市区町村) で、
@@ -492,6 +528,7 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
     catalog_run_id = catalog_run_id or _latest_catalog_run_id(pipeline)
     params.append(bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id))
     params.append(bigquery.ScalarQueryParameter("cov_rid", "STRING", priority_coverage_run_id))
+    layer_sql_t = _account_layer_sql("t.account_type", "t.handle") if layer_order else "0"
     sql = f"""
       WITH todo AS ({todo_sql}),
       cat AS (
@@ -531,7 +568,7 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
       LEFT JOIN nn USING (handle)
       LEFT JOIN near n
         ON n.pref = COALESCE(t.pref, nn.pref) AND n.city = COALESCE(t.city, nn.city)
-      ORDER BY IFNULL(n.score, 0) DESC, t.handle
+      ORDER BY {layer_sql_t}, IFNULL(n.score, 0) DESC, t.handle
       {limit_sql}
     """
     return list(pipeline.execute(sql, params))
@@ -568,7 +605,8 @@ def main() -> None:
                                   shard_count=args.shard_count, shard_index=args.shard_index,
                                   skip_collected_scope=args.skip_collected_scope,
                                   priority_coverage_run_id=args.priority_coverage_run_id,
-                                  catalog_run_id=args.catalog_run_id)
+                                  catalog_run_id=args.catalog_run_id,
+                                  layer_order=args.order_by_account_layer)
     LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
     now = utc_now()
     now_iso = now.isoformat()
@@ -580,6 +618,7 @@ def main() -> None:
         "priority_coverage_run_id": args.priority_coverage_run_id,
         "shard": f"{args.shard_index}/{args.shard_count}",
         "candidate_run_id": args.candidate_run_id, "tiers": args.tiers,
+        "order_by_account_layer": args.order_by_account_layer,
     }, repo_root=HERE.parents[1]) as result:
         # 収集は 413 アカウントを（レート制限のため）複数バッチに分けて回す。run_id 単位の
         # DELETE だと先行バッチを消してしまうので、**このバッチが担当するアカウント分だけ**を
