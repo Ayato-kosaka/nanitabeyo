@@ -103,7 +103,8 @@ jobs:
         run: |
           python3 -m unittest \
             scripts/20260808T0000_restaurant/test_osm_opening_hours.py \
-            scripts/20260808T0000_restaurant/test_jp_site_opening_hours.py
+            scripts/20260808T0000_restaurant/test_jp_site_opening_hours.py \
+            scripts/20260808T0000_restaurant/test_measure_official_site_hours.py
 
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
