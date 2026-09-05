@@ -55,7 +55,7 @@ REGION_RE = re.compile(ranker._token_regex(ranker.REGION_TOKENS))
 
 
 def handle_row(handle: str, *, seed: str | None = None, collected: bool = False,
-               posts: int = 0, stores: int = 0) -> dict:
+               posts: int = 0, delivered: int = 0) -> dict:
     """`feature_sql` が返す 1 行と同じ形を、同じ語彙から組み立てる。
 
     **判定の写経を避ける**ため、`has_food_token` / `region_token` は
@@ -71,7 +71,7 @@ def handle_row(handle: str, *, seed: str | None = None, collected: bool = False,
         "mention_posters": 0,
         "collected": collected,
         "observed_posts": posts,
-        "observed_stores": stores,
+        "delivered_stores": delivered,
     }
 
 
@@ -103,8 +103,8 @@ class TierTest(unittest.TestCase):
 class CalibrationTest(unittest.TestCase):
     def test_rates_come_from_collected_rows_only(self):
         rows = [
-            handle_row("sapporo_gourmet", collected=True, posts=80, stores=40),
-            handle_row("hakata_meshi", collected=True, posts=60, stores=20),
+            handle_row("sapporo_gourmet", collected=True, posts=80, delivered=40),
+            handle_row("hakata_meshi", collected=True, posts=60, delivered=20),
             # 未収集は実績 0。分母にも分子にも入れてはいけない。
             handle_row("sendai_gourmet"),
             handle_row("kobe_lunch"),
@@ -112,12 +112,23 @@ class CalibrationTest(unittest.TestCase):
         stats = ranker.calibrate(rows)["A_food_region"]
         self.assertEqual(stats["collected"], 2)
         self.assertEqual(stats["uncollected"], 2)
-        self.assertAlmostEqual(stats["stores_per_call"], 30.0)
+        self.assertAlmostEqual(stats["delivered_stores_per_call"], 30.0)
         self.assertAlmostEqual(stats["expected_stores"], 60.0)
+
+    def test_metric_is_delivered_stores_not_matched(self):
+        """分子は配信カタログの異なり店。`matched` で数えると店アカウント段を 2.5 倍過小評価する。
+
+        （2026-09-05 実測: D 段は matched 0.216 に対し配信ベース 0.550）
+        """
+        row = handle_row("sapporo_gourmet", collected=True, posts=10, delivered=7)
+        self.assertNotIn("observed_stores", row)
+        self.assertEqual(row["delivered_stores"], 7)
+        self.assertAlmostEqual(
+            ranker.calibrate([row])["A_food_region"]["delivered_stores_per_call"], 7.0)
 
     def test_tier_with_no_collected_handle_scores_zero_not_crash(self):
         stats = ranker.calibrate([handle_row("nagoya_gourmet")])["A_food_region"]
-        self.assertEqual(stats["stores_per_call"], 0.0)
+        self.assertEqual(stats["delivered_stores_per_call"], 0.0)
 
 
 if __name__ == "__main__":

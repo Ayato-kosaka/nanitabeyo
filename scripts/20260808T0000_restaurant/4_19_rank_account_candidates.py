@@ -8,32 +8,58 @@ business_discovery（アプリ単位 ~200 コール/時）**である。1 ハン
 **«どのハンドルに 1 コール使うか» がそのまま成果**になる。ところが今の順番は
 «見つけた順» で、実測の取れ高は 100 倍以上ばらついていた。
 
-`sns_source_account` の 163,215 ハンドルのうち収集済みは 43,569。この script の
+`sns_source_account` の 163,215 ハンドルのうち収集済みは 43,652。この script の
 較正クエリ（`--dry-run`）が出す実測は次のとおり。段は **ハンドル文字列だけ**
 （＝ コールを 1 回も使わずに分かる特徴）で決まる。
 
-| 段 | ハンドル | 収集済 | 未収集 | **異なり店/コール** | 投稿/コール | 未収集を全部回した期待店数 |
+分子は **配信カタログ `sns_dish_media_catalog` に載る異なり店**（run `sns-catalog-2026-09-05b`・
+全体で 19,336 店）。`sns_post_resolved.status='matched'` では数えない（下の «訂正» を読むこと）。
+
+| 段 | ハンドル | 収集済 | 未収集 | **配信店/コール** | 投稿/コール | 未収集を全部回した期待配信店数 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| A 料理語 × 地域語 | 274 | 120 | 154 | **18.625** | 77.8 | 2,868 |
-| B 料理語のみ | 1,827 | 582 | 1,245 | 1.723 | 16.8 | 2,146 |
-| C 地域語のみ | 19,254 | 4,849 | 14,405 | 1.090 | 13.6 | 15,694 |
-| D 店アカウント（seed 有） | 34,743 | 5,316 | 29,427 | 0.216 | 31.7 | 6,344 |
-| E その他 | 107,117 | 32,702 | 74,415 | 0.154 | 5.0 | 11,453 |
+| A 料理語 × 地域語 | 274 | 147 | 127 | **15.347** | 72.0 | 1,949 |
+| B 料理語のみ | 1,827 | 582 | 1,245 | 1.792 | 16.8 | 2,231 |
+| C 地域語のみ | 19,254 | 4,858 | 14,396 | 1.181 | 13.6 | 17,002 |
+| D 店アカウント（seed 有） | 34,743 | 5,363 | 29,380 | 0.550 | 31.5 | 16,159 |
+| E その他 | 107,117 | 32,702 | 74,415 | 0.169 | 5.0 | 12,576 |
+
+⚠️ この表は **動く**。柱1 のワーカーが収集を進めると各段の «収集済/未収集» もレートも変わる
+（同じ日の 2 時間で A 段は 120→147 収集済み・18.800→15.347 に動いた）。だから
+**係数を焼き付けず、毎 run この較正をやり直す**。上の数字は 2026-09-05 時点の記録。
 
 `sapporo_gourmet` `fukuoka_meshi` のような **«地域 × 料理» のハンドルはご当地グルメ
 アカウントの型**で、1 アカウントが多数の店を回る。逆に店アカウントは 1 店しか出さない。
-**同じ 1 コールで 86 倍違う（18.625 対 0.216）。**
+**同じ 1 コールで 28 倍違う（15.347 対 0.550）。**
 
-上の表は «キュレーションされた influencer_list» を含むので選択バイアスがある。
-バイアスの無い部分集合（`cc_wat_profile` / `embedded_authors` ＝ 誰も選んでいない
-Common Crawl 由来のプール）だけで数え直しても **4.70 店/コール 対 0.067**（70 倍）で、
-効果は本物である。
+同じ 15,768 コールを A→B→C に配ると期待 **21,182 配信店**、D（＝ 店アカウントを順に潰す
+今の並び）に配ると **8,672 店**。**約 2.4 倍。**
 
-**見積もりの水増しも実測した**（同 run の重複クエリ）。段の中で «同じ店を複数の
-アカウントが出す» 率は A 1.02 / B 1.02 / C 1.08 / DE 1.12 倍しかない。ご当地アカウントは
-担当地域が違うので互いに重ならず、上の期待店数はほぼそのまま «異なり店» になる。
-参考: A+B+C の収集済み 500 アカウント（全収集アカウントの 1.1%）だけで、
-matched 店 16,305 のうち 7,751 店（47.5%。段をまたぐ重複を除いた union）を出している。
+### ⚠️ 訂正（2026-09-05）— `matched` で数えると店アカウント段を 2.5 倍過小評価する
+
+初版は分子を `sns_post_resolved.status='matched'` にしていた。しかし配信側
+（`9_1` / `common_sns.post_store_cte_sql`）は **seed-trust**
+（`COALESCE(discovery_seed_place_id, resolve の place_id)`）で店を決めるので、
+**店アカウント経由の店は `matched` にならないまま配信されている**。
+
+| 段 | matched で数えた（誤） | 配信カタログで数えた（正） |
+| --- | ---: | ---: |
+| A | 18.625 | 18.800 |
+| B | 1.723 | 1.792 |
+| C | 1.090 | 1.181 |
+| **D 店アカウント** | **0.216** | **0.550（+155%）** |
+| E | 0.154 | 0.169 |
+
+この訂正で «A→B→C は D の 6 倍» という初版の主張は **2.4 倍**に下がる。効果の向きは
+変わらないが、**倍率を 2.5 倍盛っていた**。以後この案件の成果は必ず配信カタログで数える。
+
+### 選択バイアスと水増しの確認
+
+- 誰も選んでいない部分集合（`cc_wat_profile` / `embedded_authors`）だけで数え直しても
+  料理語×地域語は **4.698 対 0.067（70 倍）**。効果は curation 由来ではない。
+- 段内で «同じ店を複数アカウントが出す» 水増し率は **A 1.02 / B 1.03 / C 1.07 / DE 1.10 倍**
+  （配信ベースで実測）。ご当地アカウントは担当地域が違うのでほぼ重ならない。
+- 参考: 料理語か地域語を持つ収集済み 941 アカウント（全収集アカウントの **2.2%**）が、
+  配信店 19,336 のうち **8,232 店（42.6%）**を出している（段をまたぐ重複を除いた union）。
 
 ## この script がやること
 
@@ -75,7 +101,7 @@ from google.cloud import bigquery
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (BARE_HANDLE_MAX_POSTERS, GENERIC_HANDLE_STOPWORDS,
-                        PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED,
+                        PROVIDER_INSTAGRAM, TABLE_DISH_MEDIA_CATALOG, TABLE_POST_RAW,
                         TABLE_SOURCE_ACCOUNT, bare_handle_candidate_sql)
 
 LOGGER = logging.getLogger(__name__)
@@ -143,7 +169,7 @@ CANDIDATE_SCHEMA = [
     bigquery.SchemaField("handle", "STRING", mode="REQUIRED"),
     bigquery.SchemaField("provider", "STRING", mode="REQUIRED"),
     bigquery.SchemaField("tier", "STRING", mode="REQUIRED"),
-    bigquery.SchemaField("expected_stores_per_call", "FLOAT", mode="REQUIRED"),
+    bigquery.SchemaField("expected_delivered_stores_per_call", "FLOAT", mode="REQUIRED"),
     bigquery.SchemaField("has_food_token", "BOOLEAN", mode="REQUIRED"),
     bigquery.SchemaField("has_region_token", "BOOLEAN", mode="REQUIRED"),
     bigquery.SchemaField("region_token", "STRING"),
@@ -159,11 +185,18 @@ CANDIDATE_SCHEMA = [
 def feature_sql(pipeline: BigQueryPipeline) -> str:
     """ハンドル 1 行 ＝ 特徴 ＋ 実績（収集済みのみ）を返す SQL。
 
-    実績（`observed_posts` / `observed_stores`）は **較正にだけ**使う。未収集ハンドルでは
+    実績（`observed_posts` / `delivered_stores`）は **較正にだけ**使う。未収集ハンドルでは
     0 になるので、score の計算に混ぜてはいけない（混ぜると «未収集だから 0 点» になる）。
+
+    ⚠️ **成果は `sns_post_resolved.status='matched'` で数えない。**
+    配信側（`9_1` / `common_sns.post_store_cte_sql`）は seed-trust
+    （`COALESCE(discovery_seed_place_id, resolve の place_id)`）で店を決めるので、
+    **店アカウント経由の店は matched にならないまま配信されている**。matched で数えると
+    店アカウント段（D）を 0.216 と過小評価する（実測の配信ベースは 0.550＝ 2.5 倍）。
+    分子は必ず配信カタログ `sns_dish_media_catalog` の異なり `google_place_id` にする。
     """
     post_raw = pipeline.table(TABLE_POST_RAW)
-    resolved = pipeline.table(TABLE_POST_RESOLVED)
+    catalog = pipeline.table(TABLE_DISH_MEDIA_CATALOG)
     account = pipeline.table(TABLE_SOURCE_ACCOUNT)
     food_re = _token_regex(FOOD_TOKENS)
     region_re = _token_regex(REGION_TOKENS)
@@ -187,20 +220,19 @@ def feature_sql(pipeline: BigQueryPipeline) -> str:
       WHERE provider = @provider AND account_id IS NOT NULL AND account_id != ''
       GROUP BY 1
     ),
-    -- 1 投稿の最終 resolve だけを見る（再 resolve で行が増えるため）。
-    resolved_last AS (
-      SELECT post_id,
-             ANY_VALUE(google_place_id HAVING MAX resolved_at) AS google_place_id
-      FROM `{resolved}`
-      GROUP BY post_id
+    -- 配信カタログ（＝ 実際にユーザーへ出る行）。run を跨いで数えない。
+    catalog AS (
+      SELECT external_content_id AS post_id, google_place_id
+      FROM `{catalog}`
+      WHERE run_id = @catalog_run_id
+      GROUP BY 1, 2
     ),
-    realized AS (
+    delivered AS (
       SELECT LOWER(p.account_id) AS handle,
-             COUNT(DISTINCT r.google_place_id) AS observed_stores
+             COUNT(DISTINCT c.google_place_id) AS delivered_stores
       FROM `{post_raw}` p
-      JOIN resolved_last r USING (post_id)
+      JOIN catalog c USING (post_id)
       WHERE p.provider = @provider AND p.account_id IS NOT NULL
-        AND r.google_place_id IS NOT NULL
       GROUP BY 1
     )
     SELECT h.handle,
@@ -212,11 +244,11 @@ def feature_sql(pipeline: BigQueryPipeline) -> str:
            IFNULL(m.mention_posters, 0) AS mention_posters,
            c.handle IS NOT NULL AS collected,
            IFNULL(c.observed_posts, 0) AS observed_posts,
-           IFNULL(z.observed_stores, 0) AS observed_stores
+           IFNULL(z.delivered_stores, 0) AS delivered_stores
     FROM handles h
     LEFT JOIN mention m USING (handle)
     LEFT JOIN collected c USING (handle)
-    LEFT JOIN realized z USING (handle)
+    LEFT JOIN delivered z USING (handle)
     """
 
 
@@ -229,19 +261,18 @@ def dedup_sql(pipeline: BigQueryPipeline) -> str:
     «ホストを 10 倍にすれば店も 10 倍» と同じ誤りを繰り返す。
     """
     post_raw = pipeline.table(TABLE_POST_RAW)
-    resolved = pipeline.table(TABLE_POST_RESOLVED)
+    catalog = pipeline.table(TABLE_DISH_MEDIA_CATALOG)
     food_re = _token_regex(FOOD_TOKENS)
     region_re = _token_regex(REGION_TOKENS)
     return f"""
-    WITH resolved_last AS (
-      SELECT post_id, ANY_VALUE(google_place_id HAVING MAX resolved_at) AS google_place_id
-      FROM `{resolved}` GROUP BY post_id
+    WITH catalog AS (
+      SELECT external_content_id AS post_id, google_place_id
+      FROM `{catalog}` WHERE run_id = @catalog_run_id GROUP BY 1, 2
     ),
     pairs AS (
-      SELECT LOWER(p.account_id) AS handle, r.google_place_id
-      FROM `{post_raw}` p JOIN resolved_last r USING (post_id)
+      SELECT LOWER(p.account_id) AS handle, c.google_place_id
+      FROM `{post_raw}` p JOIN catalog c USING (post_id)
       WHERE p.provider = @provider AND p.account_id IS NOT NULL
-        AND r.google_place_id IS NOT NULL
       GROUP BY 1, 2
     )
     SELECT CASE WHEN REGEXP_CONTAINS(handle, r'{food_re}')
@@ -254,6 +285,20 @@ def dedup_sql(pipeline: BigQueryPipeline) -> str:
            COUNT(DISTINCT google_place_id) AS distinct_stores
     FROM pairs GROUP BY 1 ORDER BY 1
     """
+
+
+def latest_catalog_run_id(pipeline: BigQueryPipeline) -> str:
+    """較正の分母にする配信カタログ run を 1 つ選ぶ。
+
+    `sns_dish_media_catalog` は run ごとの全量スナップショットなので、run を跨いで
+    数えると «作り直す前の店» まで足してしまう。**最新の 1 run だけ**を見る。
+    """
+    rows = list(pipeline.execute(
+        f"SELECT run_id FROM `{pipeline.table(TABLE_DISH_MEDIA_CATALOG)}` "
+        "GROUP BY run_id ORDER BY MAX(built_at) DESC LIMIT 1"))
+    if not rows:
+        raise RuntimeError(f"{TABLE_DISH_MEDIA_CATALOG} が空です。較正できません。")
+    return rows[0]["run_id"]
 
 
 def tier_of(row) -> str:
@@ -279,7 +324,7 @@ def tier_of(row) -> str:
 def calibrate(rows: list[dict]) -> dict[str, dict]:
     """収集済みハンドルだけを使って、段ごとの «異なり店/アカウント» を実測する。
 
-    ⚠️ `observed_stores` はアカウントごとの異なり店なので、段の合計は
+    ⚠️ `delivered_stores` はアカウントごとの異なり店なので、段の合計は
     **店の重複を含む**（有名店は複数のアカウントが出す）。段どうしの比較には使えるが、
     «この段を全部回せば N 店増える» の N には使えない。実測の重複率は
     レポート側（`--dry-run` の出力）に別途出す。
@@ -292,24 +337,24 @@ def calibrate(rows: list[dict]) -> dict[str, dict]:
         s["handles"] += 1
         if row["collected"]:
             s["collected"] += 1
-            s["stores"] += row["observed_stores"]
+            s["stores"] += row["delivered_stores"]
             s["posts"] += row["observed_posts"]
         else:
             s["uncollected"] += 1
     for s in stats.values():
-        s["stores_per_call"] = (s["stores"] / s["collected"]) if s["collected"] else 0.0
+        s["delivered_stores_per_call"] = (s["stores"] / s["collected"]) if s["collected"] else 0.0
         s["posts_per_call"] = (s["posts"] / s["collected"]) if s["collected"] else 0.0
-        s["expected_stores"] = s["stores_per_call"] * s["uncollected"]
+        s["expected_stores"] = s["delivered_stores_per_call"] * s["uncollected"]
     return stats
 
 
 def log_calibration(stats: dict[str, dict]) -> None:
-    LOGGER.info("段 | ハンドル | 収集済 | 未収集 | 店/コール | 投稿/コール | 未収集を全部回した期待店数")
+    LOGGER.info("段 | ハンドル | 収集済 | 未収集 | 配信店/コール | 投稿/コール | 未収集を全部回した期待配信店数")
     for tier in sorted(stats):
         s = stats[tier]
         LOGGER.info("%-18s | %7d | %6d | %7d | %8.3f | %10.1f | %10.0f",
                     tier, s["handles"], s["collected"], s["uncollected"],
-                    s["stores_per_call"], s["posts_per_call"], s["expected_stores"])
+                    s["delivered_stores_per_call"], s["posts_per_call"], s["expected_stores"])
 
 
 def parse_args() -> argparse.Namespace:
@@ -317,6 +362,8 @@ def parse_args() -> argparse.Namespace:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--run-id")
     parser.add_argument("--provider", default=PROVIDER_INSTAGRAM)
+    parser.add_argument("--catalog-run-id",
+                        help="較正の分母にする配信カタログの run_id（既定: 最新の run）")
     parser.add_argument("--top", type=int, default=0,
                         help="候補表へ書く上位件数（0 = 未収集ハンドル全部）")
     parser.add_argument("--csv-out", type=Path,
@@ -333,12 +380,15 @@ def main() -> None:
     pipeline = BigQueryPipeline()
     now = utc_now()
 
+    catalog_run_id = args.catalog_run_id or latest_catalog_run_id(pipeline)
     params = [
         bigquery.ScalarQueryParameter("provider", "STRING", args.provider),
         bigquery.ArrayQueryParameter("stopwords", "STRING", list(GENERIC_HANDLE_STOPWORDS)),
         bigquery.ScalarQueryParameter("max_posters", "INT64", BARE_HANDLE_MAX_POSTERS),
+        bigquery.ScalarQueryParameter("catalog_run_id", "STRING", catalog_run_id),
     ]
-    LOGGER.info("ハンドルの特徴と実績を読みます（provider=%s）", args.provider)
+    LOGGER.info("ハンドルの特徴と実績を読みます（provider=%s / 配信カタログ run=%s）",
+                args.provider, catalog_run_id)
     rows = [dict(r) for r in pipeline.execute(feature_sql(pipeline), params)]
     LOGGER.info("ハンドル %d 件（収集済 %d）", len(rows), sum(1 for r in rows if r["collected"]))
 
@@ -347,7 +397,7 @@ def main() -> None:
 
     LOGGER.info("段の中の重複（見積もりの水増し率）:")
     LOGGER.info("段 | アカウント | (アカウント,店)ペア | 異なり店 | 水増し率")
-    for r in pipeline.execute(dedup_sql(pipeline), params[:1]):
+    for r in pipeline.execute(dedup_sql(pipeline), [params[0], params[3]]):
         factor = (r["account_store_pairs"] / r["distinct_stores"]) if r["distinct_stores"] else 0.0
         LOGGER.info("%-18s | %8d | %10d | %8d | %6.2f", r["tier"], r["accounts"],
                     r["account_store_pairs"], r["distinct_stores"], factor)
@@ -357,23 +407,23 @@ def main() -> None:
         row["tier"] = tier_of(row)
         # score は段の実測値そのもの。言及されているハンドルは «実在して話題にされている»
         # ので、同じ段の中での並びだけを言及者数で決める（段をまたいで逆転させない）。
-        row["expected_stores_per_call"] = stats[row["tier"]]["stores_per_call"]
-    candidates.sort(key=lambda r: (r["expected_stores_per_call"], r["mention_posters"]),
+        row["expected_delivered_stores_per_call"] = stats[row["tier"]]["delivered_stores_per_call"]
+    candidates.sort(key=lambda r: (r["expected_delivered_stores_per_call"], r["mention_posters"]),
                     reverse=True)
     if args.top:
         candidates = candidates[: args.top]
     LOGGER.info("候補 %d 件（期待店数 合計 %.0f）", len(candidates),
-                sum(r["expected_stores_per_call"] for r in candidates))
+                sum(r["expected_delivered_stores_per_call"] for r in candidates))
 
     if args.csv_out:
         args.csv_out.parent.mkdir(parents=True, exist_ok=True)
         with args.csv_out.open("w", encoding="utf-8", newline="") as stream:
             writer = csv.writer(stream)
-            writer.writerow(["handle", "tier", "expected_stores_per_call", "region_token",
+            writer.writerow(["handle", "tier", "expected_delivered_stores_per_call", "region_token",
                              "mention_posters", "seed_place_id", "discovery_methods"])
             for row in candidates:
                 writer.writerow([row["handle"], row["tier"],
-                                 f"{row['expected_stores_per_call']:.3f}",
+                                 f"{row['expected_delivered_stores_per_call']:.3f}",
                                  row["region_token"] or "", row["mention_posters"],
                                  row["seed_place_id"] or "",
                                  "|".join(row["discovery_methods"] or [])])
@@ -393,7 +443,7 @@ def main() -> None:
             "handle": row["handle"],
             "provider": args.provider,
             "tier": row["tier"],
-            "expected_stores_per_call": row["expected_stores_per_call"],
+            "expected_delivered_stores_per_call": row["expected_delivered_stores_per_call"],
             "has_food_token": bool(row["has_food_token"]),
             "has_region_token": row["region_token"] is not None,
             "region_token": row["region_token"],
