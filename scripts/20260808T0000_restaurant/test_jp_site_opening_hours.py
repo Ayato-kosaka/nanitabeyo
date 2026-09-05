@@ -149,7 +149,7 @@ class NonJapaneseTextIsRefusedTest(unittest.TestCase):
         self.assertIsNone(parse("Restaurant OPEN 11:00 - 22:00. Closed Sunday."))
 
     def test_korean_page_is_refused(self) -> None:
-        """dev には country_code='JP' のまま韓国語サイトを持つ行がある（#1666 dry-run）。"""
+        """dev には country_code='JP' のまま **韓国にある店**の行がある（#1666 dry-run で座標確認）。"""
         self.assertIsNone(parse("파리바게뜨 영업시간 OPEN 09:00-22:00 휴무일 월요일"))
 
     def test_chinese_page_is_refused(self) -> None:

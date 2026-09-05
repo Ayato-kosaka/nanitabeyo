@@ -81,10 +81,10 @@ class ClassificationTest(unittest.TestCase):
 class NonJapanesePageTest(unittest.TestCase):
     """**日本語かどうかはページの中身で決める。`country_code` を信用しない。**
 
-    dry-run（run 33989057072）で `--country JP` を効かせたのに韓国語サイトが標本に
-    残った。つまりその行の `country_code` は 'JP' である。日本にある韓国料理店なのか
-    国コードの誤りなのかはこの計測では決められないが、**どちらであっても日本語専用
-    パーサの命中率の母数からは外す**のが正しい。母数に混ぜると命中率が薄まる。
+    dry-run（run 33989897700）で `--country JP` を効かせたのに韓国語サイトが標本に残り、
+    座標を出したら **韓国にある店**だった（国コードの誤り。別途起票）。
+    ⚠️ 国コードを直してもこの判定は要る。**日本にある韓国料理店**の韓国語サイトや、
+    日本の店の英語サイトが残るため。母数に混ぜると日本語パーサの命中率が薄まる。
     """
 
     def classify(self, html: str) -> str:

@@ -149,10 +149,11 @@ _JAPANESE_HOURS_VOCAB_RE = re.compile(
 def is_japanese_text(text: str) -> bool:
     """日本語専用の処理に流してよい文章か。**日本語が 1 つも無ければ False**。
 
-    ⚠️ 判定を «外から与えられた国コード» でやらないこと。dev には
-    `country_code = 'JP'` のまま韓国語のサイトを持つ行がある（#1666 の dry-run で実測）。
-    日本にある韓国料理店なのか国コードの誤りなのかは分からないが、**どちらであっても
-    日本語専用パーサに流してはいけない**。判断の材料は実際の文章だけにする。
+    ⚠️ 判定を «外から与えられた国コード» でやらないこと。dev には `country_code = 'JP'` の
+    まま韓国にある店の行がある（#1666 の dry-run で座標まで確認。原因は
+    `3_4_build_restaurant_catalog.py` が矩形で国を決めていること）。仮にそれを直しても、
+    **日本にある韓国料理店の韓国語サイト**や **日本の店の英語サイト**は残る。
+    国は «どこにあるか» であって «何語で書いてあるか» ではない。判断の材料は文章だけにする。
     """
     return bool(_JAPANESE_KANA_RE.search(text) or _JAPANESE_HOURS_VOCAB_RE.search(text))
 
