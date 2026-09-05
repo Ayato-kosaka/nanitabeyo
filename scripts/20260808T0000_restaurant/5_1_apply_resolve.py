@@ -132,6 +132,10 @@ def parse_args() -> argparse.Namespace:
     # 実測 2026-09-05: 未処理 99,937 投稿に対し run 単位で数えると 118,283（1.18 倍）。
     # 解き直しを狙うときは付けない（付けると «結果があるもの» は全部飛ぶ）。
     # 接続の張り直しが 1 投稿の所要時間のどれだけを占めるかを測る/戻すためのつまみ。
+    # BigQuery の load job は «1 回あたり» の固定待ちが大きい（実測 200 行でも 1000 行でも
+    # 約 4.6 秒）。並列度を上げると 200 行はすぐ溜まるので、回数が増えるぶんだけ無駄になる。
+    p.add_argument("--flush-every", type=int, default=0,
+                   help="何件ごとに sns_post_resolved へロードするか。0 なら concurrency から自動（200×並列度、上限 2000）")
     p.add_argument("--no-keep-alive", action="store_true",
                    help="resolve への HTTPS 接続を毎回張り直す（従来動作。keep-alive の効果測定用）")
     p.add_argument("--skip-resolved-anywhere", action="store_true",
@@ -248,7 +252,8 @@ def main() -> None:
     }, repo_root=None) as result:
         # 数千件の resolve は 1〜2h かかる。末尾一括ロードだと進捗が見えず timeout で全ロストするので
         # FLUSH_EVERY 件ごとに逐次ロードする（WRITE_APPEND。再実行時は resolved 済みを LEFT JOIN でskip）。
-        FLUSH_EVERY = 200
+        # 既定は並列度に合わせる。直列（concurrency=1）のときは従来どおり 200 のまま。
+        FLUSH_EVERY = args.flush_every if args.flush_every > 0 else min(200 * max(args.concurrency, 1), 2000)
         rows: list[dict] = []
         n_ok = n_err = 0
         dumped = 0
