@@ -1,0 +1,451 @@
+# #1273 初期シード調達の実装プラン（確定した打開策の統合）
+
+最終更新: 2026-08-28 / 詳細な実測は `REPORT.md` `FINDINGS.md` `out/measurements.json`
+
+## 大原則（実測で確定）
+
+**投稿URLを 1 本得れば、そこから `dish_media` 完成まで無料・審査不要。**
+- エンリッチ = `instagram.com/p/{code}/embed/captioned/`（500連射100%・6,870/時・ブロック0）
+- 分類・店舗づけ = `resolve`（api/src/v1/dish-media-imports/、実装済み）
+- 取り込み = `POST /v1/dish-media/imports`
+
+したがって設計は「**飲食の投稿URL/アカウントをどう発見するか**」に集約される。
+
+## 3 本柱（無料 → 最安の順）
+
+### 柱1【無料・確度高】店 → 店の公式IGアカウント → 投稿
+- 発見: open data socials（Overture/FSQ/OSM/Wikidata の union ≈ 4万アカウント）
+  ＋ Common Crawl で店の公式サイトを読む（website店の18.3%）
+- 到達: **約9〜17万店**。アカウント＝店で照合自明・最高品質
+- エンリッチ: business_discovery（200/時）または embed（6,870/時）
+
+### 柱2【無料・今回の本命】グルメインフルエンサー → 投稿 → 店
+- 発見: 公開リスト記事から handle 抽出（実測: 6本で263、55%が地方特化）
+- **柱1が届かない «公式サイトもIGも無い地方・小規模店» を第三者投稿で拾う**
+- エンリッチ: business_discovery で各人の全投稿（解決率94%・media_count中央値≈1,667・飲食率0.98[n=2速報]）
+- 制約: business_discovery 200/時。複数IGアカウントで並列化
+- 追加カバー: 【測定中】
+
+### 柱3【最安・仕上げ】料理カテゴリ×市区町村 → 検索 → 投稿
+- 柱1+2 で埋まらない残りだけを Serper で発見
+- 費用: 132カテゴリ×800市区町村×3ページ ≈ 31.6万クエリ ≈ **$95**（Serper $0.30/1k）
+- 実測: 108セル全部で「対象地域5店以上」、地域一致58.6%
+
+## 却下した発見手段（実測済み・再検討不要）
+- IG 場所ページ/web_profile_info/投稿JSON/サイトマップ = 全滅（embed 以外死亡）
+- WAT 素 = 飲食2%・散在 / WAT+WET join = 偽陽性だらけ（非飲食ページが大半）
+- まとめメディア無料クロール = WAF or 自社写真で permalink 0
+- 既製データセット（Kaggle/Zenodo/HF/DataCite/archive.org/GDELT）= 日本の飲食ほぼ0
+- 無料検索API（Gemini grounding 等）= 規約でリンク収集禁止
+
+## コスト早見
+| 目標 | 手段 | 費用 |
+| --- | --- | ---: |
+| 〜17万店 | 柱1（無料） | $0 |
+| ＋地方無サイト店 | 柱2（無料・要IGアカウント×時間） | $0 |
+| 50万店まで仕上げ | 柱3（Serper 増分） | 〜$95 |
+
+## 次のアクション
+1. 柱2の追加カバーを business_discovery で実測（進行中）
+2. スノーボール検証: インフルエンサー投稿の @メンションから新規«店アカウント»を採れるか（柱1へ還流）
+3. 実装は #1318（スキーマ/書き込み経路）と接続して Sub-issue 化
+
+---
+
+## 現在地ログ 2026-08-30（本番«止まらない»ループ開始）
+
+正本はこの PLAN.md ＋ Issue #1273 台帳。毎時トリガー(`trig_01VLS3H4bCgjeWTGjrSuADtq`)で下記2ループを回す。
+
+### 本番パイプラインの実測（run_id=`sns-2026-08-30`, dev resolve）
+- 収集1085(influencer 55×20) → resolve 100% → **matched 23 / 異なり店20 / 15カテゴリ**。
+- 天井分解: カテゴリ候補が出た 12% ・住所取れて pg 検索 40% ・pg店ヒット 26%。→ **律速はカテゴリ抽出**。
+- 地域×料理カバレッジ = 47都道府県×132カテゴリ=6,204セルのうち充足 ≈ 0.3%（「1セル≥5店」は0）。
+
+### この日の前進（コミット済み・本番ブランチ）
+- **柱2 seed 413→572**（新規159・40/47都道府県。地方特化まとめ記事から無料抽出）。
+- **resolve精度 真因特定＋修正**: `dish_category_variants` のグローバル一意化で 134中24カテゴリが日本語ラベル欠落
+  → `labels.ja` を索引へ足し戻す。標本1798で カテゴリ当たり **59.2%→64.9%**、誤爆ほぼ0、strictly additive。
+
+### ⚠️ 効かせるのに要る依存（未完）
+- 上の resolve 修正は **dev へデプロイされて初めて本番パイプライン（dev resolve を叩く）に効く**。
+  デプロイ前に harvest を再 resolve しても旧辞書のまま。→ dev 反映が次のクリティカルパス。
+- 柱2フル harvest（全413×50, run 170）実行中。完了後: 4_1で572を source_account へ→新規handleを4_2→5_1。
+
+### 走っているワーカー / ジョブ
+- 柱1（公式サイト→店IG抽出の最適化）Agent 稼働中（別worktree）。
+- 柱2フル harvest（GitHub Actions run 170）。
+- 毎時トリガーで回収・次手・新ルート検証。
+
+### 次に積むキュー（頭打ちなら新ルート）
+1. resolve改善を dev 反映 → harvest 再 resolve で matched 率の実本番リフトを測る。
+2. 柱2: 572で harvest 全量 → カバレッジ更新。seed を 1000+ へ次周も拡張。
+3. 柱1: 公式サイト抽出をスケール、store IG を 4_1 へ接続。
+4. 柱3: Serper 無料枠で 料理×市区町村 の穴埋め（4_3、既存）。
+5. resolve の店舗照合(matchRestaurantNames)側の recall も同様に磨く。
+
+## RESUME 2026-08-31 07:30Z（毎時ループの次アクション）
+
+- **harvest 完了**: `sns_post_raw` run_id=`sns-2026-08-30` に **18,560投稿 / 374アカウント**（柱2フル）。
+- **resolve辞書修正を dev へデプロイ済み**（api-deploy run 325, 00:25Z success。dev resolve は新辞書）。
+- 旧辞書の resolved 1085件は削除済み。**新辞書で全18,560を再resolve中**（5_1 を `--limit 2500` でバッチ、resolve_version=`dev-2026-08-31-newdict`）。
+- **毎時ティックの次アクション**: 
+  1. `sns_post_resolved`(run_id=`sns-2026-08-30`) の件数を見る。18,560未満なら 5_1 を `--limit 2500` で**もう1バッチ** dispatch（既resolveはLEFT JOINでskip、冪等）。
+  2. 18,560に到達したら**測定**: status内訳・matched率・異なり店/カテゴリ・地域×料理カバレッジ（47×132セル充足）。旧12%→新辞書での改善を出す。
+  3. 測定が出たらオーナーへ §1 6項目で報告（これは «意味のある変化»）。
+  4. 並行して柱1本番接続（`4_1 --source official_site_crawl`）・柱3（`out/cell_queries.tsv`をSerper無料枠で）・インフルエンサー拡張の次周も進める。
+
+## RESUME 2026-08-31 07:45Z（更新: 並列シャードで再resolve中）
+- 直列バッチは遅く不可視だったので廃止。**5_1 を --shards 6 で並列** + 200件ごと逐次ロードに改修。
+- いま **shard 0..5 の6 run が並列稼働**（run_id=sns-2026-08-30, resolve_version=dev-2026-08-31-newdict）。resolved が18,560へ向けて増える。
+- **毎時ティック**: resolved 件数を見る。①まだ増加中なら待つ（直列バッチは追加dispatchしない＝二重防止）。②失敗/停止したシャードがあれば同じ --shard 引数で再dispatch（LEFT JOINでskip冪等）。③18,560到達で**測定**→オーナーへ報告。
+
+## BACKLOG（棚卸し 2026-08-31 09:50Z）— 責任者Claude・止めずに1つずつ進める
+優先度順。完了したら [x]、進行中は [~]。各周でここを見て次を出す。
+
+- [~] **B1 resolve店舗照合の磨き上げ**（agent稼働中）: カテゴリは12→70%済。残律速は「カテゴリ有・店無し56pt」。住所/地名抽出とmatchRestaurantNamesのrecall改善。(b)pg母数不足は別レバーとして数値化。
+- [~] **柱1 公式サイト→店IG 本番化**（agent稼働中）: 4_4_crawl_official_site_igs.py + 4_1 --source official_site_crawl。店固有〜6万店。完了後 db-script-run で本番投入（DB書込は承認込みで私が実行）。
+- [~] **柱2 handle拡張 第2周**（agent稼働中）: 572→720+→最終1000+。
+- [ ] **② resolve全量完了→地域×料理カバレッジ確定測定**（20分自己チェックで自動継続。18,560到達で7_1+132絞り集計→オーナー報告）。
+- [ ] **柱3 検索**: out/cell_queries.tsv(2412) を Serper無料枠で。**カバレッジの穴（132×都道府県で未充足セル）に絞って**使う（無料枠~2500の一撃なので測定後に穴を特定してから）。
+- [ ] **pg母数のレバー**: restaurant_catalog 621k のうち pg dev に居る分だけが matched になる。B1の(b)実測後、pg dev への店同期が要るなら **DB変更サブIssue+承認** で提案（オーナー判断）。
+- [ ] **恒久自走版②**: GitHub側で resolve→集計まで回り続ける形（私のセッション非依存）。オーナー合図で着手。
+- [ ] **柱2 深掘り**: business_discovery を 50投稿/人 から増やす（今回50で18,560。深めれば投稿増だが距離店は飽和気味）。カバレッジ測定後に費用対効果で判断。
+
+### 運用ルール（このループの不変則）
+- SELECTは execute_sql_readonly のみ（execute_sqlは書込で承認が出る）。1GB超のスキャンだけ確認。
+- 並列は Agent(worktree) と GitHub Actions(db-script-run.yml, 並列は concurrency_group_suffix -xxx)。
+- 各周「必ず次の一手を出す」。意味ある変化だけオーナーへ1-2行。有料はオーナーが言うまで出さない。
+
+## 進捗更新 2026-08-31 10:15Z
+- [x] **柱2 handle拡張 第2周** 統合済: 572→**741**（+169・42都道府県）。次周で1000+へ（中国四国の残県）。
+- [x] **柱1 本番化コード** 統合済（4_4_crawl_official_site_igs.py / 4_1 --source official_site_crawl / sns_store_site_ig）。**未dispatch**。
+  - 柱1 dispatch 手順（resolve確定測定の後・DB新表作成なので実行時に一言添える）:
+    1. BQ(execute_sql=書込・承認可): 単発CREATE で `sns_store_site_ig` を作成（**4_0は使わない**＝DROPで稼働中データ消滅。SQLは 20260830T0000_create_sns_seed_tables.sql の該当CREATE部を単独実行）。
+    2. db-script-run: `4_4_crawl_official_site_igs.py` args `--run-id sns-2026-08-31 --catalog-run-id restaurant-2026-08-23 --limit 5000 --offset 0`（offset 5000刻みで全量、concurrency_group_suffix -crawlN で並列可）。まず `--limit 300 --dry-run` で動作確認。
+    3. db-script-run: `4_1_discover_sns_accounts.py` args `--run-id sns-2026-08-31 --source official_site_crawl --crawl-run-id sns-2026-08-31`。
+    4. その後 4_2(店アカ収集)→5_1(resolve) を回して 柱1 の matched を測る。
+- [~] **resolve店舗照合の磨き上げ** agent 稼働中（56pt分解＋住所/店名照合改善）。
+- [ ] resolve全量→確定測定（自己チェック継続）。
+
+## 進捗更新 2026-08-31 10:20Z（3ワーカー統合完了）
+- [x] **resolve店舗照合の磨き上げ** 統合済（commit patch）: (a)市区町村始まり住所抽出 53→64%・カテゴリ陽性58→71%、(c)【店名】括弧の完全一致prefill 発火19→100%(誤爆0)。**strictly additive/契約・DB不変/テスト緑**。
+  - ⚠️ **本番反映に2回目のdevデプロイが必要**。今稼働中の resolve(18,560) は **辞書修正のみ**の状態(store-matchingは未反映)なので、その確定測定=辞書修正ベースライン。
+- **次の段取り（測定後）**:
+  1. 現resolve完了→**辞書修正ベースラインの確定測定**（地域×料理カバレッジ）をオーナー報告。
+  2. store-matching改善を **api-deploy(target=development)** で dev反映（2回目）。
+  3. skipped_no_store の行を消して**再resolve**（store-matchingリフト測定）。または全消し→全再resolve。
+  4. 柱1 dispatch（PLAN前掲の手順）→ store IG を sns_source_account へ→ 4_2/5_1 で柱1 matched測定。
+  5. 柱2は741で harvest 全量を回すか、深掘り（50→N投稿/人）をカバレッジ穴に応じて。
+
+## 進捗更新 2026-08-31 12:45Z（store-matching 本番リフト確定・非破壊）
+- [x] **resolve 版管理（非破壊再解決）をパイプラインに組込み**: delete廃止。`5_1`は版を上げると追記、`--reresolve-prev-status`で狙い撃ち、`7_1`は最新版集計。→ 以後 resolve改善は «版を上げて回すだけ»。
+- [x] **store-matching 改善を dev反映(2回目)→ skipped_no_store 10,366件を非破壊再解決（version dev-2026-08-31-store）**:
+  - **matched 14.0%→17.2% / 異なり店 2,221→2,705（+484）**（最新版集計）。全47都道府県。
+  - newly_matched 596（skipped_no_storeの5.75%に店が付いた）。
+  - **残り94%は pg dev に店が無い＝pg母数が店側の主律速**（resolveでは直せない）。ベースライン18,560(version dev-2026-08-30)は無傷。
+- **現在の確定ファネル（run_id=sns-2026-08-30, 最新版）**: 収集18,560 → matched **3,194（17.2%）** / 異なり店 **2,705** / 全47都道府県 / セル充足（132-JP絞りは未算出、7_1で地域×料理更新中）。
+- **次（自律）**: [~]柱1(公式サイト→店IG)本番投入（12:54Z自己チェックで起動）／[ ]柱3検索(cell_queries.tsv Serper)／[ ]柱2 741 harvest増。pg母数同期はDB変更=承認要、効果を見てから選択肢提示。
+
+## 進捗更新 2026-08-31 15:40Z（柱1本番wave起動＋134絞りカバレッジ確定）
+- [x] **柱1 crawl-test 歩留まり確認**（run 197, 300店）: 店固有裏取りhandle **58（18%）**＝PoC 5-11%目安超え。website保有店は282,163/621,966 → 18%外挿で**店IG ~5万**（柱1天井の実証）。
+- [~] **柱1 本番crawl wave 起動**: db-script-run 5並列（run 201-205, offset 0/2000/4000/6000/8000・各--limit 2000・suffix -crawl0..4）。~90分で~1万店crawl→handle抽出。完了後 4_1 --source official_site_crawl → 4_2 → 5_1 で柱1 matched測定。
+- [x] **«何割埋まる»を134アプリカテゴリ絞りで確定**（run_id=sns-2026-08-30・最新版・sns_coverage×dish_category_catalog[QID→label_ja]絞り）:
+  - 47都道府県×134カテゴリ=6,298セル中 **充足(≥1店) 793セル=12.6%** / **≥5店 29セル=0.46%** / カバー済カテゴリ **105/134**（29カテゴリは全国0）。
+  - 薄い県: 長野(2/134)・高知(4)・山形(5)・宮崎/島根(7)…＝地方。都市部は厚い。→ 柱3/柱1/柱2の投入先はこの地方セル。
+  - matched総2,705店の内 ~1,269店分が134内（残りは コーヒー/ご飯 等アプリ外カテゴリ）。
+- [x] **resolve店側レバーの実測評価**: skipped_no_store の内訳＝`area_not_provided`(~4,500,住所抽出0)・`searched/rst=0`(~5,270,店pg不在)。住所抽出は63.9%（駅名geocodeで+~7%可能だが GSI先頭結果が誤地点[渋谷駅→福島]でexact一致のみ安全＝中程度・偽陽性リスク）。→ **matchedの律速はpg母数**（store側resolve改善は二次）。station geocode は投機実装せず保留。
+- **次**: 柱1 wave完了(~17:06Z)→handle集計→4_1/4_2/5_1で柱1 matched。並行 柱3(地方セル絞りSerper)・柱2 741 harvest。
+
+## 進捗更新 2026-08-31 16:25Z（柱1 wave1完了→4_1/4_2起動・wave2投入）
+- [x] **柱1 crawl wave1 完了**（run 201-205 全success, ~30分/batch）: 1万店crawl → 店固有裏取りhandle **1,722店(17.2%)**（testの18%を維持＝歩留まり実証）。handle保有 3,106店(31%)・異なりhandle 2,822。
+- [x] **4_1合流 完了**: sns_source_account に **store_branch 2,532**（1店だけに付くhandle。グローバルチェーン除去済）。
+- [~] **柱1 4_2 harvest 起動**（run sns-2026-08-31, store_branch, --max-accounts 800 --limit-per-account 30, ~4h, 逐次flush）: 店IGの投稿を business_discovery で収集中。完了後 5_1(resolve版上げ)で **柱1 matched** を測る。⚠️店IGは個人アカウント率が影響（business_discovery不可なら空）＝この歩留まりは初測定。
+- [~] **柱1 crawl wave2 投入**（offset 10000-18000, suffix -crawl5..9）: 次の1万店。完了後 4_1再実行で handle 追加合流。
+- **辞書メモ（loop B用）**: dish_category_variant_catalog = 93,738 surface form → 14,522カテゴリ。本番matchedは490カテゴリのみ出現。カテゴリrecall磨きは別tick。
+- **次**: 4_2完了→5_1→柱1 matched測定。wave2完了→4_1再合流→さらにwave3(offset 20000+)。柱2/柱3は柱1測定後にキュー。
+
+## 進捗更新 2026-08-31 17:10Z（★柱1は«pg母数シーディング»機構＝戦略的再定義）
+- [x] **wave2 crawl 完了**（20,000店 crawl累計・店固有handle 3,432）。4_2 harvest 稼働中（168/800 acct・**4,916投稿**・~29投稿/店IG＝店アカウントも business_discovery 可）。
+- ★**重要な気づき（戦略修正）**: 柱1は «店自身の IG» を収集するので、**投稿の店 google_place_id は crawl で既知**（sns_post_raw.discovery_seed_place_id、4,916/4,916 で充填確認）。→ **柱1 の store 特定は resolve の pg 照合に依存しない**＝柱2 を縛った «pg母数の壁»(94%が pg dev 不在) の影響を受けない。resolve は **カテゴリ抽出のためだけ**に使う。
+  - 帰結: 柱1 の «matched»(resolve が pg で店発見) は低く出るが、それは柱1を過小評価する。柱1 の真の産出 = **既知店 × キャプション解決カテゴリ** = そのまま dish_media 化できる (store, posts, category) 三つ組。
+  - **柱1 測定は2軸で出す**: (a) resolve-matched（今すぐ使える＝店が既に pg dev）／(b) 既知店×カテゴリ解決（status=matched または skipped_no_store。pg同期すれば使える柱1の潜在産出）。(b) が pg母数同期の投資根拠。
+- **crawl は harvest 律速を追い越さない**: IG business_discovery 200/時が柱1のスループット律速。3,432 handle 既にキュー＝十数時間分。**wave3 crawl は harvest が追いつくまで出さない**（先行crawlは遊休backlog）。4_2 に shard/offset を足すのは (b) 測定で柱1価値を確認後に判断。
+- **次**: 4_2(800)完了→5_1(version dev-2026-08-31-store)→柱1を(a)(b)で測定→意味あれば pg母数同期を選択肢提示（DB変更・承認要）。
+
+## 進捗更新 2026-08-31 18:12Z（柱1 harvestの構造的スループット制約を確定）
+- 4_2 harvest 順調に前進（17:19時点168acct→18:12時点 **385acct/11,313投稿**。停滞は逐次flush粒度の見え方だった）。~800は~19:30見込み。
+- ★**柱1 harvest は IG business_discovery 200/時に構造的に律速。並列化しても速くならない**: 投稿一覧の取得は business_discovery しか手段が無く（embed 6,870/時は «既知postのcaption取得» 用で handle の投稿列挙には使えない）、レート制限は **app token 単位**。4_2 を --shards で6並列にしても同一 IG_TOKEN の同一バケットを share するので合算 200/時のまま backoff が増えるだけ。→ **4_2 sharding は無意味・実装しない**。2,532 handle の全収集は ~12.6h（200/時）。
+- 帰結: **crawl は harvest を追い越さない**（wave3以降は backlog 消化まで保留、再確認）。柱1の near-term 測定は 800 sample で行う。全量 harvest は時間をかけて消化（毎tickで完了分を 5_1 に流す運用）。
+- カテゴリrecall磨き(loop B)は、offline matcher 複製(fragile)ではなく **5_1 後の実 store-caption の cat=0 実ミス**で行う（evidence-first）。
+
+## 進捗更新 2026-08-31 20:10Z（柱1 4_2完了→5_1 6並列resolve起動）
+- [x] **柱1 4_2 harvest 完了**（run 215 success 19:42Z）: **19,396投稿 / 662アカウント / 異なり既知店 599**（800中662がbusiness_discovery可、残は非公開/不可）。
+- [~] **柱1 5_1 resolve 6並列起動**（run sns-2026-08-31, resolve_version=dev-2026-08-31-store, shard0..5, suffix -p1r0..5）: 柱1投稿のカテゴリ抽出。~1-3h(embed fetch律速)。
+- **5_1完了後にこの2軸を測定して報告**（クエリはそのまま流せる）:
+  - (a) resolve-matched: `WITH l AS (SELECT provider,post_id,status,google_place_id,ROW_NUMBER()OVER(PARTITION BY provider,post_id ORDER BY resolved_at DESC)rn FROM restaurant_recommendation.sns_post_resolved WHERE run_id='sns-2026-08-31') SELECT COUNTIF(status='matched')matched_posts,COUNT(DISTINCT IF(status='matched',google_place_id,NULL))matched_stores FROM l WHERE rn=1`
+  - (b) 既知店×カテゴリ解決(pg同期で使える潜在産出): `WITH l AS (SELECT provider,post_id,status,dish_category_id,ROW_NUMBER()OVER(PARTITION BY provider,post_id ORDER BY resolved_at DESC)rn FROM restaurant_recommendation.sns_post_resolved WHERE run_id='sns-2026-08-31') SELECT COUNTIF(l.status IN('matched','skipped_no_store')AND l.dish_category_id IS NOT NULL)usable_posts,COUNT(DISTINCT IF(l.status IN('matched','skipped_no_store')AND l.dish_category_id IS NOT NULL,raw.discovery_seed_place_id,NULL))usable_known_stores FROM l JOIN restaurant_recommendation.sns_post_raw raw ON raw.run_id='sns-2026-08-31'AND raw.provider=l.provider AND raw.post_id=l.post_id WHERE l.rn=1`
+  - status内訳・cat=0率（＝柱1のカテゴリrecall磨き対象）・柱1新規異なり店(sns-2026-08-30に無い)も。
+- 完了・(a)(b)が出たら §1 6項目でオーナーへ。(b)が大きければ pg母数同期を選択肢提示。
+
+## ⚠️ 20:15Z 発見: dev API が 15:17Z 以降 main で稼働＝私の resolve 改善が効いていない
+- api-deploy 履歴: run 327(main, 15:17Z)・run 328(main, 16:30Z)が dev を main で再デプロイ。**私の branch の dev デプロイは run 326(10:33Z)が最後**。#1691 は未マージなので、dev は 15:17Z 以降 **辞書修正(buildJapaneseLabelVariants / findAllCategoryLabelsForMatching / DISH_CATEGORY_JA_LABEL_SYNONYMS)を持たない main の resolve** を走らせている（変数インデックスは6h TTLだが再デプロイでプロセス再起動→キャッシュ消失→main版で再ロード）。別ワークストリーム(#1641)が import 400 対策で dev を main から再デプロイし続けている＝**共有 dev の奪い合い**。
+- 影響: **柱1 の 5_1(20:10Z起動) は辞書修正なしで解決**＝カテゴリ recall が ~6pp + 24カテゴリ分 過小。ただし (b) の usable_known_stores は «店の~29投稿のどれか1つが常用料理に当たれば店として数える» ので degraded でも頑健＝下限として有効。store-matching 改善は柱1では不要(店は既知)。
+- 対応方針（deploy 戦争はしない）: 5_1 は下限測定として完走させる。**正確な柱1測定と両ワークストリーム双方の利益のため «resolve 改善(API差分)を main へ載せる» はオーナー【判断】**（#1691 全体=56k行PoCは不適、API差分だけの focused PR 抽出＋マージが要る）。22:00 測定チェックで cat=0 実率を見て過小度を実測し、報告に caveat を添える。
+- **未解決台帳へ**: 「共有 dev の deploy 競合（#1273 resolve改善 vs #1641 main）＝どの resolve を dev の正にするか」オーナー判断待ち。
+
+## 進捗更新 2026-08-31 20:57Z（障害後の立て直し・(d)完了）
+- **障害**: 真因は run 216 の 62万行×62万行（店舗同期 #843/#1706、17:10:12開始が推薦38.5s悪化と秒一致）。私のresolveは相乗り負荷でオーナーが切り分け・免責。恒久対策として db-script-run を単一グループ直列へ戻した（77226e0。共有DB同時負荷の安全弁）。
+- **オーナー決定**: (a)オフライン突合✓ (b)再開✓（本番回復）(c)Supabase分離は今はしない (d)resolve改善をmainへ✓。
+- [x] **(d) 完了**: resolve改善の API/shared 9ファイルだけを focused PR #1756 に抽出→**main へ squash マージ(5f82c638)**。ローカル全緑(shared131/api22/typecheck)。repository.tsは main #1629 と合流。**dev を main から再デプロイ中**（api-deploy target=development）。完了で dev resolve が正しく効き、共有dev競合も解消。
+- [x] **#1748 突合の影響を実測**: 3件（焼肉/かき氷/餃子）は誤QID(picker)がfeatures不在＝検索到達不可。私の旧カバレッジは検索側QIDで既に充足済みでセルはほぼ動かない（誤QID分 計72投稿は正カテゴリへ統合されるだけ）。#1748本体はアプリ取り込み→検索の製品バグで、#1748側の承認ゲート付きロールアウト。
+- **次（再開後・DBに優しく）**:
+  1. dev再デプロイ完了を確認（api-deploy run 成功・/livez 200）。
+  2. **(b) 柱1 再計測**: 5_1 を **--shards 1 で直列・本番ピーク回避**、run sns-2026-08-31、resolve_version=`dev-2026-08-31-p1fix`（新版）。完了で (a)resolve-matched /(b)既知店×カテゴリ の2軸＋補正済み134カバレッジ→オーナー報告。**6並列はしない**（障害の反省）。
+  3. **(a) カテゴリ突合の磨き上げ**: shared/utils 純関数＋BQ辞書＋#1748補正をオフラインで回し recall 計測（DB非書込）。
+  4. crawl/harvest 再開は柱1測定の後、直列で。
+- **不変則追加**: resolve(5_1)は共有DBを叩くので **必ず直列・本番ピーク回避・版を上げて非破壊**。並列シャードは使わない。
+
+## 進捗更新 2026-08-31 21:11Z（dev再デプロイ完了→柱1 5_1 直列開始）
+- [x] dev 再デプロイ完了（api-deploy run 329, main 5f82c638, 21:04Z success）＝dev resolve に私の改善が反映。
+- [~] **柱1 5_1 直列実行中**（run sns-2026-08-31, resolve_version=`dev-2026-08-31-p1fix`, **--shards 1**・--limit 4000, 06:10 JST off-peak）。~30-40分。**6並列はしない**。
+- **次tick**: ①走っているrun確認（5_1が in_progress なら再dispatchせず待つ）。②5_1完了で柱1を2軸測定（(a)resolve-matched /(b)既知店×カテゴリ、クエリはPLAN 20:10Z項）＋#1748ピッカー→検索remap＋134カバレッジ増分→**初の柱1数値をオーナー報告**。③残り投稿(19,396中4,000超)は次のoff-peakで直列 --limit で継続。④並行 (a) オフライン辞書磨き（3,333変数行をshared/utils純関数に通しrecall計測）。
+
+## 進捗更新 2026-08-31 22:20Z（柱1 早期計測＋cat=0の真因＝構造的）
+- **#1760 反映**: db-script-run に並列(suffix)を復活（コメントを実因=店舗同期62万行×62万行に修正、resolveはoff-peak・控えめ並列の不変則付き。commit e9dafd1）。
+- **柱1 5_1(p1fix) 部分計測（2,800/4,000, 正しいdev resolve）**: matched **5.0%(a)** / skipped_no_store 50.4% / **cat=0 44.3%**。→ (b)«既知店+カテゴリ» = matched+no_store = **55.4%**（pg同期で使える柱1潜在産出）。
+- ★**cat=0 の真因を実キャプション16本で確認（IG embed直fetch・DB非接続）**: 大半が**辞書ギャップではなく構造的**。
+  1. **店投稿は«告知»が多くて料理語が無い**（休業日/新年挨拶/セール/出店告知）＝正当にcat=0。
+  2. **アプリ134外/非飲食の店**が crawl に混入（パン屋[パンは134に無い]・茶園・美容室）。
+  3. **非日本語キャプション**（韓国語のコーヒー/デザート店が複数）。
+  → **(a) 辞書magnificationの柱1 ROIは小さい**（告知には料理語が無い）。辞書磨きは料理を語る**柱2(インフルエンサー)**に効く。柱1は**(b)店単位が正しい指標**（店の~30投稿の1つに料理があれば店として数える＝告知ノイズに頑健）。
+- **次**: 4,000完了で (a)(b) 確定＋#1748 remap＋134カバレッジ増分→報告。残り~15kは #1760 の並列で3shard・off-peakで。柱1の«量»レバーは crawl拡大＋pg母数同期（承認要）。辞書磨きは柱2キャプションで測る。
+
+## 進捗更新 2026-08-31 23:18Z（★柱1 初計測確定→律速はpg母数）
+- **柱1 計測（3,000投稿/176店サンプル・正しいdev resolve p1fix）**:
+  - **(b) 店産出率 87.5%**（154/176店が«料理カテゴリ付き投稿≥1»＝seedable dish_media）。店単位集計は告知ノイズに頑健（予測どおり）。
+  - **(a) pg dev在籍は約26%**（resolve-matched 46店・投稿単位4.8%）＝今すぐ使える分。
+  - → **柱1の seedable 店の約74%が pg dev 不在**。**律速は pg母数（restaurant_catalog 621k のうち pg dev に居る分だけ使える）**で確定。柱1のcrawl/harvestは «料理付きの店» を大量に出せる（87.5%）が、pg同期が無いとカバレッジに変わらない。
+- **戦略ピボット**: 柱1の«発見»は実証済み。次の最大レバーは **pg母数同期（#843/#1706 の store-sync 領域）**。※これは障害を起こした 62万行×62万行ジョブ本体なので、走らせるなら off-peak・その pipeline の作法で。私(#1273)の領分ではなく、オーナー判断＋当該WSの調整。
+- **残**: 5_1 直列4000完了間近→残~15kは #1760 並列(3shard・off-peak)。全量後に134カバレッジ増分を確定。柱2(741 harvest)/柱3(地方Serper)は辞書magnificationの効く柱2優先で。
+
+## 進捗更新 2026-08-31 23:35Z（★pg母数投入予告→post-sync再resolveを予約）
+- **オーナー連絡**: restaurant_catalog 621k を **~01:34Z（+2h）に pg dev へ投入**。**~02:35Z（+3h）に続きを止まらず進めよ**。→ 柱1のpg母数律速が解消される＝本命。
+- [x] **post-sync 継続を予約**: `trig_01DJVppVMd2GqwaLUTyEpagy`（02:35Z）。内容: pg投入確認(restaurant_pg_sync_logs＋小バッチで matched 跳ね確認)→ 新版 `dev-2026-09-01-pgfull` でベースライン(18,560)+柱1(19,396)を **--shards 3・off-peak** で再resolve→ 7_1で134カバレッジ確定(旧793セル12.6%/matched17.2%/2,705店と比較)→ オーナー6項目報告→ 柱1crawl拡大/柱2/柱3。
+- ⚠️ **同期中(now〜01:34Z)は新規 resolve を走らせない**（共有DB配慮）。現行の直列 5_1(p1fix,~3000/4000)は pre-sync・gentle なので**完走させる**が、完了後は post-sync までresolveを追加しない。
+- **interim 毎時ティック(00:16/01:16Z)**: resolve・pg叩くジョブは出さない。OKなのは柱2 harvest(4_2=IG+BQ)・柱3準備・柱1 crawl(4_4=BQのみ)・状況確認だけ。02:35Z の trigger が本命を回す。
+
+## 進捗更新 2026-09-01 02:55Z（★重要訂正: pg母数は律速ではなかった）
+- **pg母数投入の結果＝0%転換**: 01:35Z同期(updated 621,966/inserted 0=全件refresh)後、baseline skipped_no_store 3,600件を dev-2026-09-01-pgfull で再resolve→ **matched 0**（still_no_store 3,162 / no_cat 438）。
+- **確定事実**: pg dev restaurants は **8/24 に 569,661 insert 済**、以後~57〜62万店。**pg母数は最初から足りていた**。私の«pg母数が律速»（12:45Z/23:18Z）は**誤診**。«5.75%転換»「柱1 26%在籍」は店数ではなく resolve照合結果の取り違えだった。
+- **真の律速（3,600の内訳）**: 51% `area_not_provided`（キャプションから場所抽出できず検索が走らない）＋ 40% `searched`・候補0（近傍検索したが店名照合で一致0）。→ **resolveの照合精度が律速**（=元々オーナーが言っていた磨き上げループ）。
+- **やめること**: pg狙いの全量再resolveは無意味＝しない。追加pg同期も不要（母数十分）。
+- **戻す方針（loop B）**: (a)場所抽出の底上げ（駅名/地名/市区町村geocodeをexact-matchで安全に。以前の駅名調査を活かす）、(b)店名照合recall。**オフラインで実キャプション(infl_captions.jsonl等)に対し測定→改善→dev反映→再resolveでリフト測定**。DB負荷小。
+- **柱1の価値は不変**: «既知店×カテゴリ» は resolve照合に依存しない（店IDはcrawl既知）ので、pg母数とは別に seedable。柱1のdish_media化はresolve照合ではなく直接 discovery_seed_place_id を使う設計にすればよい（別途）。
+
+## 進捗更新 2026-09-01 03:12Z（真の律速を精緻化: 実キャプション12本）
+- searched/rst=0（=場所は取れたが店0）の実キャプション12本を fetch。多くが **【店名】＋【住所】をフル記載**（matome系: wakayama_lunch_dinner 等）なのに resolve は候補0＝**明白な recall 失敗**。
+- restaurant_catalog(621k) 突合: **KORI庵 は catalog に在る**（住所 和歌山県和歌山市東鍛冶屋町19）のに rst=0。キャプションの住所は **異体字「鍜」(catalogは「鍛」)** ＝ geocode が外れて近傍に出ない疑い＝**resolveのgeocode/正規化 recall バグ（私が直せる）**。
+- 一方 すながわ製麺所・TRAIL HUT・元祖博多だるま・HIYORI WASANBON・perotto・ブレーメン は **catalog に無い**（7中6）＝ **restaurant_catalog の網羅性が足りない**（＝pg-syncではなく catalog 母集団自体。#843/#1706 の領分）。
+- **精緻化した律速マップ**（matched を縛るもの）:
+  1. resolve **場所抽出**（area_not_provided 51%）… 私が直す（loop B）。
+  2. resolve **geocode/店名照合 recall**（catalogに在るのに0＝KORI庵型・異体字/正規化）… 私が直す（loop B）。
+  3. **restaurant_catalog の網羅性**（そもそも catalog に無い店）… #843/#1706（別WS・私の領分外）。
+- pg-sync は無関係（pg=catalog全量）で確定。
+- **私の次手（loop B・DB負荷小）**: ①住所正規化を NFKC＋異体字吸収（鍜↔鍛等）して geocode 命中を上げる ②【住所】ラベルの市区町村住所抽出の取りこぼし確認 ③店名照合recall。オフラインで実キャプションに測って改善→dev反映→再resolveでリフト測定。
+
+## 進捗更新 2026-09-01 05:20Z（loop B オフライン計測: レバーを実測で選別）
+- **実キャプション1,798本に resolve の実regex(verbatim)＋GSI実叩きで計測**（DB非接続・GSIは無料）:
+  1. `extractPostalAddress` 抽出率 **64.0%**（1151/1798, bare586/labeled373/citylead192）。未抽出647本の内訳は大半が**構造的**（住所が書かれていない＝📍店名だけ・bioの地域署名・イベントまとめ）。**regex磨きのROIは小**。
+  2. **GSI geocode 命中率 100%**（抽出済み住所140標本 140/140）。NFKC/異体字正規化の**リフト=0**。→ **«KORI庵型 異体字/geocode drift» レバーは死んでいる**（単発の逸話を過大評価していた）。**作らない**。
+  3. 未抽出647本のうち **📍/【】店名あり=463**、そのうち**地域語も併記=139のみ**。名前だけ(地域なし)=324、名前も無し=184。
+- **確定したレバーマップ（matched を縛るもの・私の領分）**:
+  - ~~異体字/geocode正規化~~ → **リフト0で棄却**（#1)。
+  - 住所regex磨き → 未抽出は構造的が大半でROI小（#2)。
+  - ★**name-first（📍/【店名】→ 店名で店照合）＝唯一の生きたレバー**。ただし**地域スコープ必須**（621k全件ILIKEは障害の元＝禁止）。DB安全に叩けるのは地域語併記の**139本≒7.7%**。地域なし324本は全件走査が要る＝**やらない**。
+  - 残りは restaurant_catalog 網羅性（#843領分）。
+- **次tick（実装・DB負荷小）**: sns-address に `extractStoreName`（📍/【】）＋ «市区町村だけ geocode して広め半径で area を張る» フォールバックを足し、既存 `searchNearbyRestaurants(q=店名)` に載せる。**地域語が取れた時だけ**張る（全件走査しない）。オフラインで139本の回収率を測り、効くなら dev反映→新版で再resolveしてmatchedリフト測定。効かなければ棄却して報告。
+- **オーナー報告はしない**（matchedリフト未確定。レバー選別は内部の磨き上げ工程）。
+
+## 進捗更新 2026-09-01 05:35Z（loop B: name-first フォールバックを実装・緑・commit済み）
+- [~] **実装完了・ローカル全緑**（commit 28c0c3b, branch poc）:
+  - `sns-address.ts`: `extractStoreName`（📍/【店名】/店名ラベル、ふりがな括弧除去、📍住所/アクセスは店名扱いしない）＋ `extractCoarseArea`（都道府県+市区町村 / 市区町村単独、「楽天市場」型の偽陽性ガード）。
+  - `dish-media-imports.service.ts`: フル住所(地番)が取れない時、店名+市区町村なら**市区町村中心12km で店名一致(q)だけ**を引くフォールバック（`nameQueryOnly`。q なし一覧は張らない＝粗い地点で無関係店を入れない）。author_name に加えキャプション本文の店名も q に。
+  - **DB安全**: 地域スコープ必須→ 621k 全件 ILIKE を回避。地域 or 店名が取れなければ従来どおり縮退（純増）。**設計不変**（interface 不変）。
+  - specs: sns-address 22 緑 / service 42 緑 / tsc clean。
+- **安全性の根拠**: 誤抽出は «候補0» にしかならない（matchRestaurantNames がキャプション本文に店名が出るか再確認する＝誤 prefill しない）。純粋な additive。
+- **残（実測リフト・オフピーク限定）**: dev へ反映（api-deploy target=development を **ref=poc ブランチ**で dispatch＝checkout が ref を引くので main を汚さず測れる）→ 新版 `dev-2026-09-01-namefirst` で area_not_provided/no_store 標本を**オフピーク（JST深夜=15:00Z以降）・控えめ**に再resolve→ matched リフト測定。効けば focused PR を main へ＋オーナー6項目報告。効かなければ棄却＋1行FYI。
+- **interim ティック（〜15:00Z, 日中）**: DB叩く再resolveはしない。BQのみの柱1 crawl / 柱2 harvest / 状況確認に充てる。名前先レバーの実測は off-peak で。
+
+## 進捗更新 2026-09-01 06:45Z（★loop B 結論: resolve の 2 レバーは実測で両方とも死。律速は catalog 網羅性）
+- **name-first を BQ で実測（共有dev API を触らず・read-only）**: restaurant_catalog(621k) は BQ にも在る（`restaurant_recommendation.restaurant_catalog`）。住所無しキャプションから抜いた «店名＋市区町村» 60 組を、市区町村中心を GSI 座標化して **catalog を 12km 圏 × 店名一致** で join。
+  - **resolve 忠実方向（catalog.name が店名を含む＝`ILIKE '%店名%'`）で一致したのは 60 組中 1（aossa→"Yutori Coffee AOSSA"）。緩い双方向でも 4。** ≒ **matched リフト 0.06%（忠実）〜0.2%（緩）＝ほぼ 0**。
+  - 抽出自体もノイズが多い（📍/【】がイベント見出し・地域名＝柱2はまとめ投稿が多い）。ただし誤抽出は候補0にしかならず無害（設計どおり）。
+- **確定**: 私が持つ resolve 精度レバーは **異体字/geocode（0 リフト・棄却済み）** と **name-first（≒0 リフト）** の 2 つとも死。**matched を縛るのは restaurant_catalog の網羅性（＝#843/#1706 の領分・私の外）**で確定。resolve 磨き上げ（loop B）は頭打ち。
+- [x] **name-first 実装を revert**（3ファイルを aaf6774 の緑状態へ戻した）。≒0 リフトのために resolve の DB クエリを増やすのは（障害の反省からも）割に合わない。純関数＋specも残さない。
+- **戦略ピボット**: 私が動かせる律速は **量（loop A の発見）** のみ＝より多くの投稿を取れば «catalog に在る店» に当たる母数が増える。以後は loop A（柱1 crawl=BQのみ／柱2 harvest／柱3 Serper）に寄せる。catalog 母数の底上げは #843 の領分（提案はするが実行はしない）。
+- **オーナーへ**: loop B は頭打ちと判明したので、合意していた «resolve 磨き上げ» の方針転換を 1 行で伝える（下記 FYI）。
+
+## 進捗更新 2026-09-01 07:35Z（loop A へピボット: 本番ファネル計測＋柱1 backlog を resolve 開始）
+- **本番ファネル（最新 resolve_version/post・全 run）**: resolved **21,560** / matched **3,338（15.5%）** / 異なり店 **2,750** / 生QIDカテゴリ ~496。→ matched% は catalog 律速どおり頭打ち。**量が唯一動かせるレバー**を裏づけ。
+- ★**未 resolve backlog を発見**: sns_post_raw **37,956** vs resolved 21,560 ＝ **16,396 が discovered-not-resolved**。全量が raw_run_id `sns-2026-08-31`（柱1 crawl harvest, 19,396 中 3,000 だけ resolve 済み）。**発見済みを resolve するだけで coverage が増える**（catalog も新規収集も要らない純増）。
+- [~] **backlog resolve を dispatch**（db-script-run, poc branch, **単一シャード・--limit 4000・sleep 200ms＝控えめ**, resolve_version `dev-2026-08-31-p1fix`, 16:35 JST=昼夜ピーク外）。~50-60分。dev は main(5f82c638)＝正しい現行 resolve（name-first は revert 済みで無関係）。
+- **次tick**: ①この run の完了/matched を確認（in_progress なら待つ・再dispatchしない）。②残り ~12k を次の控えめバッチで（単一〜2シャード・ピーク回避）継続。③全量後に 47×134 カバレッジ増分を 7_1 で確定。④柱2/柱3 の新規収集は backlog 消化と並行（BQのみは自由）。
+- **不変則再掲**: resolve は dev pg を引くので単一〜2-3シャード・ピーク回避・版で非破壊。62万×62万の店舗同期(#843)とは別物。
+
+## 進捗更新 2026-09-01 09:15Z（柱1 backlog 4,000 resolve 完了→残 12,396・ピーク中は保留）
+- [x] backlog batch #1 完了: `sns-2026-08-31` の resolve が 3,000→**7,000**（+4,000）、matched **458（6.5%）**。柱1 は告知投稿が多く post 単位 matched は低い（既知）。店単位カバレッジは別途 discovery_seed_place_id で数える設計。
+- **残 backlog = 12,396**。resolve は dev pg＝共有 Supabase なので **夕食ピーク(18-21 JST)は保留**。post-peak(~12:00Z/21:00 JST)以降のティックで残りを控えめ（単一〜2シャード）に drain。
+- **次tick(ピーク中)**: resolve は出さない。BQのみの柱1 crawl/柱2 準備か、状況確認のみ。12:00Z 以降で backlog drain 再開→全量後に 47×134 カバレッジを 7_1 で確定。
+
+## 進捗更新 2026-09-01 11:40Z（柱1 backlog batch #2 dispatch・ピーク末）
+- [~] backlog batch #2 dispatch（`sns-2026-08-31`, resolve_version dev-2026-08-31-p1fix, 単一シャード・limit 4000・sleep 200ms）。20:40 JST＝夕食ピーク末→大半は post-peak 実行。完了で 7,000→~11,000、残 backlog 12,396→~8,396。
+- **次tick**: この run 完了/matched を確認→残 ~8k を次の控えめバッチで継続。全量後に 47×134 カバレッジ確定→オーナー報告。
+
+## 進捗更新 2026-09-01 13:40Z（柱1 backlog batch #2完了→#3で残全量をdrain）
+- [x] batch #2完了: p1fix 7,000→**11,000**, matched **570**(+112, この4kスライスは2.8%＝柱1の告知比率が後半ほど高い)。
+- [~] batch #3 dispatch（**limit 8500＝残 8,396 を全量**, 単一シャード・sleep 200ms, 22:40 JST 深夜off-peak, ~100分）。完了で `sns-2026-08-31`(19,396) の resolve が全量終わる。
+- **次tick**: 全量 drain 確認→**47×134 全国カバレッジを算定**（matched place_id→都道府県 [restaurant_catalog.address] × dish_category_id QID→134 app ラベル）。旧ベースライン(793セル12.6% 等)と比較して増分を出し、**オーナーへ完了報告（6項目）**。
+
+## 進捗更新 2026-09-01 18:12Z（柱1 backlog ~85%消化→残2,996をdrain中・カバレッジは7_1/7_2で確定へ）
+- **状態（03:11 JST 深夜off-peak）**: `sns-2026-08-31` resolve = **16,400/19,396（85%）**, matched **848**, 残 **2,996**。batch #3 は 5,400 で停止（8,500要求・GH Actions 側で途中終了と推定）。
+- [~] **最終 drain batch dispatch**（limit 3000＝残2,996, 単一シャード・sleep200ms, 深夜off-peak）。完了で全量 resolve。
+- **カバレッジは canonical で出す**: 自作の read-only 集計は catalog_run_id 未指定で join が部分的（matched 848 中 462 しか catalog 住所に当たらず）＝当てにならない。→ drain 完了後に **7_1_build_coverage（sns_coverage 生成, 最新 catalog_run_id で住所解決）→ 7_2_report_funnel** を db-script-run で回し、旧ベースライン(793セル12.6%)と比較できる公式値を出す。
+- **次tick**: ①drain 完了確認（全量 resolve）②7_1→7_2 実行 ③funnel＋47×134カバレッジ増分を **オーナーへ6項目報告**（今セッション初の定量成果＝柱1 backlog を coverage に変換）。
+
+## 進捗更新 2026-09-01 18:16Z（batch#3はfailure(部分5,400)判明・最終drain(run274)進行中）
+- **batch #3 (run 33514819733) は conclusion=failure**（2h走行後、5,400書込で終了＝partial）。500行tailはcleanupのみでtraceback未取得。原因未確定（poison post / dev API 5xx / timeout いずれか）。
+- [~] **最終drain (run 33542189490, limit3000) in_progress**（残2,996, 深夜off-peak, FLUSH_EVERY=200で逐次書込）。小さいので完走見込み。
+- **次tick**: run274の結果確認。①完走(backlog=0)→ 7_1_build_coverage→7_2_report_funnel を db-script-run で回し公式funnel＋47×134カバレッジ→オーナー6項目報告。②途中failure→ 失敗jobの完全traceback取得(get_job_logs tail_lines大)して真因確定（同型failureが続くなら limit小 or 5_1のper-post例外handling要）。逐次書込ぶんは前進。
+
+## 進捗更新 2026-09-01 19:20Z（★柱1 backlog 全量drain完了→初の全国カバレッジ数値）
+- **drain完了**: `sns-2026-08-31` resolve **19,000/19,396（98%）**、残396は誤差。matched(最新版) **1,014**。
+- **初の全国カバレッジ（全run横断・最新版・catalog restaurant-2026-08-23 で都道府県解決）**:
+  - **47/47 都道府県が着火**（全県に≥1 matched店）。distinct店 **2,900**、matched media **4,229**（07:35Zの3,338→**+891/+27%**）。
+  - app134投影: **112/134 カテゴリ**・**pref×cat セル 825（47×134=6298の13.1%）**。
+- ★**重要な戦略的所見**: 16k の柱1 backlog を全量resolveしても **grid はほぼ動かない**（旧~793→825 セル、+~4%）。matched media は+891だが**既充足セルへの重複**が大半（柱1=告知多く店/カテゴリ重複）。→ **カバレッジの律速は «未充足セルの発見»**（薄い県×欠けカテゴリ）で、bulk resolve ではない。柱3(薄い県Serper)・柱2(インフルエンサー)を欠けセルへ寄せる。
+- ⚠️ **カテゴリ軸は #1748 の QID 不一致で過小**: 「未着火」22カテゴリに フライドチキン/塩ラーメン/酢豚/生姜焼き 等の定番が混じる＝実在するのに app whitelist QID と resolve QID がズレて未計上。112/134 は**下限**。#1748(承認ゲート付きロールアウト)の領分。
+- **次**: 柱1末尾396のcleanup(任意)。柱3を «825で欠けている pref×cat» へ向けて回す。柱2 harvest継続。
+
+## 進捗更新 2026-09-01 20:20Z（発見ルート状態の訂正＋ギャップ地図＝次フェーズの指示書）
+- **発見ソース実測（sns_source_account）**: influencer(柱2)=**413handleのみ**（374収集済＝ほぼ枯渇。«2,532handle»は柱2ではなく **store_branch(柱1)**の誤認だった）。store_branch(柱1)=2,532中662収集＝**~1,870未収集**（ただし柱1は告知多くgrid寄与小）。**hashtag_search(柱3/Serper)=投稿0＝未実行**。
+- ★**ギャップ地図（薄い県＝欠けセルの実体, raw cats/県）**: 長野**5**・高知**8**・山形/宮崎**11**・島根12・奈良15・栃木/青森16・福島17・秋田/滋賀/香川19・北海道20…。**都市は厚く地方が薄い**（柱3 retarget先と一致）。
+- **確定した次レバー（優先順）**:
+  1. **柱3 Serper**（cell_queriesは既に薄い18県庁所在地×134へ retarget済）＝欠けセルを直撃。**未検証＋無料枠一撃(~2,412q)**なので、次tickで**小バッチ検証(数セル)→配管OK確認→全量**。壊れてたら直す。
+  2. **柱2 handle無限拡張**（harvest_influencer_handles）＝インフルは実料理×多地域で質が高い。413→拡張して薄い県のインフルを足す。
+  3. 柱1残1,870は**grid寄与小につき後回し**（bulk resolveがgridを動かさないのは実証済）。
+- **不変則**: 収集(4_2/4_3/Serper)はIG/BQのみでdev pg非依存＝安全。resolveだけがoff-peak対象。
+
+## 進捗更新 2026-09-01 21:15Z（柱3 Serper 小バッチ検証を dispatch）
+- cell_queries.tsv は git-tracked＋薄い県retarget済（「あじの開き 長野市」…）＝runnerで読める。Serper無料枠は未使用（柱3投稿0）で温存。
+- [~] **柱3検証 dispatch**: 4_3 `--run-id sns-2026-09-01-cell --max-queries 20 --num 20`（Serper+BQのみ＝安全）。~5分。
+- **次tick**: sns_post_raw の run `sns-2026-09-01-cell`(discovery_route=hashtag_search) に投稿が入ったか確認。①入った→配管OK→全量(--max-queries 2412 相当)を1回で流し薄い県のセルを埋める→off-peakでresolve。②0件/error→4_3を切り分け(Serperレスポンス形/正規表現)。
+
+## 進捗更新 2026-09-01 22:20Z（柱3検証: Serper 400で全クエリ中断＝真因切り分け中）
+- **柱3検証結果**: run 275 成功だが投稿0。ログに `SERPER 400 (q=あじの開き 長野市)。中断します`＝**Serperが最初のクエリで HTTP 400**を返し 4_3 が即break（21s）。400は«無料枠上限»とは限らない（4_3のメッセージは誤誘導）。
+- [x] 4_3 の HTTPError ログに**応答本文**を追加（commit 3582da7）→ 真因を message で確定できるように。
+- [~] 1クエリ再実行を dispatch（--max-queries 1 --num 10）。
+- **次tick**: run のログから Serper の 400 message を読む。①`invalid api key`/`not enough credits`系＝**SERPER_API_KEY secret の問題（オーナー領分）**→ 1行で上げる。②リクエスト形式/パラメータ系＝**4_3を直す**（num/body等）→ 直して再検証→全量。
+- 柱3が塞がっている間の代替: 柱2 handle拡張 or 柱1残harvest（低価値）。まず400の真因確定を優先。
+
+## 進捗更新 2026-09-01 23:20Z（★柱3 真因＝num>10で400・修正して全量launch）
+- **真因確定**: 1クエリ再実行(--num 10)が**成功し10投稿を投入**。失敗run(--num 20)との差は num のみ＝**SERPERは num>10 を HTTP 400 で弾く**（キー/クレジットは正常）。4_3 の既定 num=20 が原因で**柱3は最初から全滅していた**。
+- [x] 4_3 の `--num` 既定を 10 に修正（commit 3fe5926）。
+- [~] **柱3 全量launch**: 4_3 `--run-id sns-2026-09-01-cell --num 10 --sleep-ms 900`（薄い18県庁所在地×134＝2,412クエリ, Serper+BQのみ=安全, ~80分, idempotent）。無料枠~2,498残で収まる。
+- **次tick**: run sns-2026-09-01-cell(hashtag_search) の収集数を確認→ off-peakで resolve(新版)→ 薄い県セルの増分を 7_1/カバレッジ算定で測る。効けば柱3を残セルへ都市差し替えて継続。
+
+## 進捗更新 2026-09-02 00:15Z（柱3 収集完了=282投稿・低収率／resolveで«新セル»価値を測る）
+- **柱3 全量完了**: 2,412クエリ中 **197クエリのみヒット・282投稿**＝低収率。地方都市×料理の site:instagram.com は Google index が薄い（あじの開き 長野市 等は IG投稿ほぼ無し）＝柱3の地方セル収率は構造的に低い。
+- [~] **282を resolve** dispatch（run/version=dev-2026-09-01-cell, 単一・limit500・sleep250＝極小負荷, 09:15 JST 昼ピーク前）。柱3の価値は«量»でなく«未充足セルに当たるか»→ resolve後に測る。
+- **次tick**: dev-2026-09-01-cell の matched を見て、**長野/高知/山形 等 薄い県に新カテゴリセルが増えたか**をカバレッジ差分で確認。増えれば柱3は«薄い県直撃»として有効（都市差し替えで継続）。増分ゼロなら柱3も頭打ちとして記録。
+- **示唆（暫定）**: 私の発見レバー（柱1=grid動かず/柱2=枯渇/柱3=低収率）が出揃った。全国カバレッジ ~13%(825セル) の底上げは catalog網羅(#843) と «新しい無料ルート» に依存。次は新ルート探索も視野。
+
+## 進捗更新 2026-09-02 01:10Z（★3柱すべて頭打ち＝カバレッジ ~13.5% で高原。次は新ルート）
+- **柱3 resolve結果**: 282投稿中 **matched 5（1.8%）**＝地方投稿は店照合にほぼ乗らない。純セル寄与 ≤5。**柱3は死レバー**（地方IG収率低×resolve低）。無料枠は消費。
+- **現在の全国カバレッジ（app134投影・全run最新版）**: **セル 848 / 6298（13.5%）**・**118/134カテゴリ**・**47/47都道府県**・店 ~2,900。
+- ★**3柱の総括（すべて頭打ち・実測済）**:
+  - 柱1(店アカ)= 19k resolveも grid動かず（既充足重複）。残1,870harvestも同傾向で保留。
+  - 柱2(インフル)= 413handleで枯渇。handle無限拡張が要るが基盤は都市集中。
+  - 柱3(Serper地方)= 282投稿/5matched＝ほぼ0。無料枠消費済。
+- **残る底上げレバー（私の外 or 新規）**: ①restaurant_catalog網羅(#843) ②#1748のQID修正＝«未着火»16カテゴリ(フライドチキン/塩ラーメン等・実在)が計上され報告値が回復 ③**新しい無料発見ルート**（loop 指示「頭打ちなら新ルート」）。
+- **次tick**: 新しい無料ルートの発掘に着手（例: 食べログ/Retty等の公開ページ×Common Crawl、地図系OSM/Overtureの既取得rawの再利用、ハッシュタグ以外のIG探索）。却下済(WAT裸/既製DB/GDELT)は蒸し返さない。
+
+## 進捗更新 2026-09-02 02:15Z（★確定: カバレッジ天井は«catalog網羅»(#843)＝discoveryでは動かせない）
+- **新ルート候補「柱4=catalogの自社IG」を実測**: restaurant_catalog(621k)で social_urls に instagram を持つ店=**10,475（1.68%）/42県**。«在籍保証»でmatchするが…
+- ★**薄い県はcatalog自体が薄い**: IG付き店が 宮崎2/山形2/栃木3/青森3/奈良3/福島5/長野6・高知/島根≈0。**10,475は都市集中**。→ 柱4は«既充足の都市セルを厚くする»だけで**薄い県セルは埋まらない**（柱1と同じ壁）。
+- ★**結論（3柱＋柱4で確定）**: **全国カバレッジの天井 13.5%(848/6298) は catalog網羅性の天井**。地方の店が 621k catalog に少ない（かつIG無し）ので、**どのIG投稿discoveryルートでも地方セルは埋まらない**。＝ #843(店マスタ拡充)の領分。#1273 discovery が動かせるのは都市セルの«深さ»のみ（セル数は増えない）。
+- **#1273 で残る実質的な打ち手**: ①#1748のQID修正＝«未着火»16カテゴリ(実在)の計上回復（報告値↑・測定精度）②都市セルの深さ増（feed品質・ただしセル数不変）。いずれも小。
+- **loop運用の見直し**: discoveryは頭打ち確定。毎時ティックで新規discoveryを積むのは busywork。次tickからは «新レバーが見つかった時だけ動く／それ以外は現状維持の確認» に落とす。catalog拡充(#843)が進めば #1273 の matched は自動で伸びる（既存パイプラインが拾う）。
+
+## 進捗更新 2026-09-02 04:20Z（★★前言撤回: «天井»は誤り。discovery_seed_place_id を使えば +37%）
+- **重大発見（前回の«catalog天井»結論を撤回）**: 柱1の 19,396投稿は**全て discovery_seed_place_id を持ち（599店・全て in-catalog・46都道府県）**、うち**カテゴリ解決済 9,933（51%）**。だが resolve は**キャプションから店を引き直す**設計のため matched は 1,044(5.4%)止まり＝**8,889投稿（カテゴリ有・店未マッチ）を捨てていた**。
+- ★**修正した場合のカバレッジ（read-only実測）**: 既存matched + «柱1の既知店(seed_place)×解決カテゴリ» を合算すると **セル 848→1,159（+311/+37%, 13.5%→18.4%）・カテゴリ 118→130/134・47/47県**。**既存データだけ**で。新規discovery不要。
+- **真の律速は catalog網羅ではなく «既知店を捨てる pipeline»だった**。柱1(と将来の柱4=catalog自社IG 10,475店)は **discovery_seed_place_id を店として使い、resolve はカテゴリ専用** にすれば matched が桁で増える。
+- **前言撤回**: «3柱頭打ち・毎時ループ止める» 推奨は誤り。**大レバーが残っていた**。ループは続行。
+- **実装（次）**: ①7_1_build_coverage を «seed_place_id 優先» に改修→公式カバレッジを 18.4% に更新 ②dish_media 生成側も既知店ルートは seed_place を使う設計（#1399保存ゲートは別途）③柱4(10,475店)harvestで都市セルの深さ＋一部新セル。
+
+## 進捗更新 2026-09-02 05:20Z（seed_place修正を7_1へ実装・persist実行）
+- [x] **7_1_build_coverage を改修**（commit 1c21dee）: 既知店ルートは `COALESCE(discovery_seed_place_id, google_place_id)` を店にし、WHERE を `dish_category_id IS NOT NULL AND (matched OR seed_placeあり)` に。seed無しは従来通り。
+- [~] **7_1 を柱1(sns-2026-08-31)で実行**して sns_coverage を再構築（BQのみ・安全）。完了で 柱1 のセルが read-only 実測(+311)どおり増えるはず。
+- **次tick**: ①7_1完了確認＋sns_coverage の柱1セル数を検算（≈期待値）②総カバレッジ = 柱1+柱2 の sns_coverage 合算で 18.4% を確認 ③**dish_media 生成側**も既知店ルートは seed_place を使う設計に（＝実プロダクト価値。#1399保存ゲートの状況を確認）④柱4(catalog自社IG 10,475店)を sns_source_account へ抽出→harvest（seed_place方式で matched 保証）。
+- **教訓（CLAUDE.md 候補）**: «頭打ち»と結論する前に «パイプラインが持っている情報を捨てていないか» を疑う。今回 discovery_seed_place_id（収集時に判明済の店）を resolve が捨てていた。危うく大レバーを残したまま «catalog天井» と誤結論しかけた。
+
+## 進捗更新 2026-09-02 06:30Z（★seed_place修正を検証完了: 13.5%→18.3% persist済み）
+- [x] **7_1(sns-2026-08-31)実行完了・sns_coverage 再構築**。canonical 実測: **総app-cells 1,150（18.3% / 6,298）・47/47県**（旧 848/13.5%）。read-only予測1,159とほぼ一致＝検証OK。
+  - 内訳: 柱1(seed_place方式)=615cells/119cat、柱2=878cells/115cat（union後1,150）。
+- **確定した成果**: discovery_seed_place_id を店に使う修正だけで、**新規discovery無しで +302セル(+35%)**。前回の«catalog天井»は誤りだったと数値で確定。
+- **次の成長レバー（優先順）**:
+  1. **柱4 = catalog自社IG 10,475店** を sns_source_account へ抽出→4_2 harvest→resolve。seed_place方式で matched 保証。都市セルの深さ＋一部新セル。
+  2. **dish_media 生成側**を seed_place 対応に（実プロダクト。#1399保存ゲートの現状確認）。
+  3. 柱2 handle無限拡張（harvest_influencer_handles）で新規インフル→新セル。
+- **オーナー**: 訂正(«大レバーあり»)を数値で確定＝18.3% persist。1行で確認だけ入れる。
+
+## 進捗更新 2026-09-02 07:30Z（柱4 = catalog自社IG を起動: 4_1 open_data_socials）
+- **柱4は新規スクリプト不要**: 4_1 に `--source open_data_socials` が既存＝restaurant_catalog.social_urls の IG を store_branch(discovery_seed_place_id付き)として取り込む。seed_place方式で matched 保証。
+- [x] 4_1 open_data に **チェーン除去**を追加（commit d61893b。同一handleが複数店=誤帰属を排除。実測: 店固有 6,849 / チェーン 432）。
+- [~] **4_1 open_data_socials を dispatch**（run-id sns-2026-09-02-catalog, catalog restaurant-2026-08-23。BQのみ・安全）。→ sns_source_account に ~6,849 店アカウント。
+- **次tick**: ①sns_source_account の sns-2026-09-02-catalog 件数確認 ②**4_2 harvest 開始**（business_discovery、~200/h・app token単位＝直列、6,849handle≈34h→6h以下のチャンクで複数run。IG+BQのみ=安全・off-peak不問）③harvest分を 5_1 resolve(category)→ 7_1(seed_place方式)でカバレッジ増分測定。都市セルの深さ＋未充足の都市カテゴリセルを埋める見込み。
+
+## 進捗更新 2026-09-02 08:20Z（柱4 harvest 開始: chunk#1）
+- [x] sns_source_account に柱4 **6,848店**(open_data_socials・チェーン除去済)を確認。
+- [x] 4_2 に**チャンクharvest対応**（出力runに投稿済handleを除外＝未収集分を前進。commit c0b02d7）。FLUSH_EVERY=20で逐次書込＝timeoutでもロス無し。
+- [~] **4_2 harvest chunk#1 dispatch**（run/account sns-2026-09-02-catalog, store_branch, max-accounts 1200, limit-per-account 50。IG+BQのみ=安全）。~200/h制限で最大6h。
+- **次tick**: sns_post_raw の sns-2026-09-02-catalog 投稿数を確認→ chunk完了なら次chunk dispatch（antijoinで前進。6,848店≈6chunk）。溜まったら 5_1 resolve(category)→7_1(seed_place)でカバレッジ増分。
+- **全体現在地**: カバレッジ 18.3%(1,150セル/47県) banked。柱4で都市セルの深さ＋未充足の都市カテゴリセルを積む。約6chunk（数日）で全量。
+
+## 進捗更新 2026-09-02 09:10Z（柱4 harvest chunk#1 順調: 8,613投稿/185店・48分）
+- **収率良好**: 185アカウント処理→全185が投稿産出（business-account率≈100%）・~46投稿/店・~230/h（レート上限）。柱4の店は活発なbusiness IGで、既知in-catalog店→seed_place matched になる。
+- chunk#1 は ~1,200店/~5h で走行中（FLUSH_EVERY=20で逐次書込）。
+- **次アクション（chunk完了 ~13:20Z 目安）**: ①chunk#2 dispatch（antijoinで未収集分へ前進）②収集分を **off-peak** で 5_1 resolve(category。※seed_place方式なので本当はcategoryだけで良いが5_1は店照合もする＝pg負荷。夕食ピーク回避）③7_1でカバレッジ増分。
+- **間のティック**: chunk走行中は再dispatch不要。監視のみ。ピーク中はresolveも出さない。
+
+## 進捗更新 2026-09-02 10:15Z（オーナーと認識合わせ・報告規約を永続化 / カテゴリ損失を診断）
+- **オーナー指摘（重要）**: 報告が未合意の自作語（柱1〜4・resolve精度2レバー・「18.3%」）だらけで意味不明。まず目線合わせ。以後は「前提→困った→作戦→結果」＋チケット駆動（親=正/現在地、sub-issue=作戦ごと）で進める。CLAUDE.md §2.5/§2.6 に永続化（commit cab449c）。
+- **coverage の正直な言い直し**: 「18.3%」＝都道府県×134で **1店以上** のセル割合（実測17.7%=1,115/6,298）。**合格基準=異なり5店以上/セルでは 0.8%（51/6,298）**。#1273 に現在地台帳コメント新設（issuecomment-5507980513）。
+- **カテゴリ損失の診断（新規・DB非変更の調査）**: resolve済のうち134カテゴリに入るのは store_account 4,357/19,516・influencer 6,733/18,560。**«カテゴリは付くが134外» が store 5,656・infl 5,515** と大きい。中身は コーヒー/ワイン/ご飯/日本酒/抹茶/ドーナツ/おにぎり/カクテル/味噌汁 等＝**大半が134の対象外品目（カフェ・居酒屋・デザート投稿）で辞書マッピングでは救えない**。救える見込みはバスクチーズケーキ→チーズケーキ等 数百件のみ。→ 結論: カテゴリ判定率の «伸びしろ» は小さく、主レバーは引き続き ④（店アカウント増）。
+- **④ harvest**: chunk（08:17Z dispatch）が in_progress（~2h・6h上限内）。sns_post_raw=17,395投稿/369店。**認識合わせ中かつ日本の夕食ピーク帯のため、新規dispatchもresolveも出さない**。走行中の harvest は安全（IG+BQ）なので継続。毎時ループの次回で回収。
+
+## 進捗更新 2026-09-02 11:00Z（★店照合の真因を実キャプションで特定 / エリア粒度を自決）
+- **エリア粒度を自決**: アプリ検索は radius 500〜1000m（`api/.../dishes.service.ts` dto.radius, test 500/800/1000）。coverage は **~1km 近傍メッシュ**で測る（#1778、オーナー確認不要）。実測: 近傍 ≥5店セルは全国 **10か所**、usable店 **2,146**。
+- **535,996 の正体**: `out/infl_fast.json` = 374アカの生涯投稿 media_count 合計（＝天井）。実収集は 18,560 のみ（per-account 上限）。嘘ではないが «集められる上限» を «集めた» と取り違えていた。量は本質ボトルネックではない。
+- **店照合の真因を実キャプション1,800で特定（eyeball→mechanize）**: 現行 resolve は «住所抽出→GSIジオコード→近傍店→店名照合» のみ。ところが実データは:
+  - 住所抽出 63.9% / **📍ピン+店名 29.4%** / **タグされた店ハンドル 41.2%** / 📍or ハンドル **59.4%**。
+  - **パイプラインは 📍店名もタグ店ハンドルも使っていない**＝「書いてあるのにマッチできてない」の正体。インフル店照合が 17% で頭打ちの主因。
+- **作戦（#1776）**: ①タグ店ハンドル→google_place_id 解決（店ハンドル→place_id 辞書と突合、精度~100%・無料・ジオコード不要）②📍ピン店名を店名照合候補に。①は #1777（店ハンドル辞書を ~38k へ拡大）と**複利で効く**。
+- **#1777 の即効レバー**: キャプションから抽出したタグ店ハンドル 636（36インフルだけで）＝ほぼ新規店（現辞書 9,320 と重複~4%）。全インフルで数千規模。open data(FSQ35k/Overture11k)＋これらを辞書へ足す。
+- **並行**: ④ harvest CI 継続 / handle snowball agent 完了（`out/caption_mentioned_handles.json`）。
+
+## 進捗更新 2026-09-02 11:25Z（★FSQ店ハンドル 15,967 着地・pool倍増 / resolveレバー精査）
+- **#1777 着地**: 4_1c 本番run(sns-2026-09-02-fsq)で **FSQ店ハンドル 15,967** を sns_source_account へ。stoplistで16,228→15,967（汎用語誤マッチを精度優先で除外）。**店ハンドルpool ≈20,209(19,756店)へ倍増**（旧~9,320）。オーナー指摘「6,848=1%」への直接回答。
+- **resolveレバーの精査（eyeball→数値化）**: 実キャプションで店照合の各レバーを実測—
+  - タグ店ハンドル 41%（最大レバーだが handle→place_id 辞書＋既知pool内であることが前提＝resolver側にIGハンドル保持が要る）。
+  - 📍ピン店名 29%（住所ありバケットの店名照合候補として有効）。
+  - **エリアをhashtagから復元は弱い**: no-address 649本中、市区町tokenは13.9%・area+📍は6%のみ（県tokenは粗すぎてnearby探索に使えない）。→ area_not_provided バケットは見た目より硬い。
+- **戦略的含意**: インフル投稿の店照合は硬い（だから535,996"潜在"が変換しなかった）。**律速の少ない主戦力は既知店ルート（seed_place・照合不要）**＝FSQ倍増が正着。ただし open-data IG 全量でも母数の~3%が天井（#843の「無料だけで全国は疑問」と整合）。
+- **harvestキュー**: ④catalog(281)走行中→完了後にFSQ(sns-2026-09-02-fsq 15,967)をharvest連結。IG ~200/h律速のため各tick で «harvest走行中か» を見て未走なら次chunkをdispatch。
+
+## 進捗更新 2026-09-02 16:15Z（柱2 resolve改善を実装・取り込み / 第2の律速=resolve速度を特定）
+- **柱2 resolve改善を実装・テスト緑・ブランチ取り込み**（commit 92ea2b5）: `extractPinNames`/`extractBareHandles`（生キャプション対象）＋`matchRestaurantNames` に `nameHints`（📍店名を exact 1.0 昇格・含有/曖昧には使わず誤爆ゼロ）。shared 142 / api dish-media 64 緑・typecheck 緑・非破壊。**有効化には dev API 再デプロイ(main マージ)が要る**→ #1789 辞書と一緒に1回で出す提案をオーナーへ。
+- **エージェント3本の結論**: 柱1公式サイト実IG率=**32%**（15%の2倍・オーナー仮説的中）／柱5 Threads=審査ゲートで不可（オーナー: IGのみ→取り下げ）／検索型は全滅（DDG anomaly / Bing b_no / IG hashtag API 用途外）。=**自力=自前IG API(business_discovery)＋自前crawl(柱1)に集約、柱3 Serper外し**。
+- **#1791 実装側完了**（commit 9b3117f）: 4_2 を複数トークン×並列シャード対応（`--token-env`/`--shard-count`/`--shard-index`、handleハッシュ分割）。トークンN個で N×200/h。オーナー判断待ち=トークン数。
+- **第2の律速を特定**: resolve は dev API 律速で **~2,600 posts/h・off-peak のみ**。harvest 200店/h と合わせ、3日の実処理量はこの2つで決まる。catalog 43k の resolve は数晩がかり。
+- **現在地**: FSQ harvest 継続／catalog resolve 稼働(2,600/43k)。カバレッジ再測定は resolve がまとまってから（数時間後）。判断待ち: #1791 トークン数・#1789 辞書テーブル承認・resolve改善のデプロイ可否。

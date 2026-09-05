@@ -78,3 +78,6 @@ e2e-mobile/.detox-ci-logs/
 
 # #1636 数えた投稿 URL は同じ手順を踏んでも同じものが並ばない実測データなので、*.csv の除外から外す
 !scripts/20260808T0000_restaurant/1636_post_url_survey/out/*.csv
+
+# Claude Code のローカル権限設定（コミットしない）
+.claude/settings.local.json

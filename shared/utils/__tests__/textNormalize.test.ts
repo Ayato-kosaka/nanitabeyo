@@ -347,12 +347,51 @@ test("誤爆させない: ラテン文字の別名が、無関係な英単語の
 	assert.equal(matchesAsWord("(pasta)", "pasta"), true);
 });
 
-test("誤爆させない: カタカナ語がカタカナの並びの途中に当たらない", () => {
+test("誤爆させない: カタカナ語は «右» へ伸びない（別語になるため）", () => {
 	// 独立レビューが実データで再現した誤爆
 	assert.equal(matchesAsWord("パイナップルジュースが最高", "パイ"), false);
 	assert.equal(matchesAsWord("カレーライスを食べた", "カレー"), false);
 	assert.equal(matchesAsWord("アイスコーヒー", "アイス"), false);
-	assert.equal(matchesAsWord("ミニラーメン", "ラーメン"), false);
+	// #1273 実データで最も多かった右伸び（フォーム / パフォーマンス / フォーク）
+	assert.equal(matchesAsWord("プラットフォームの話", "フォー"), false);
+	assert.equal(matchesAsWord("イタリアンレストランへ", "イタリアン"), false);
+});
+
+test("取りこぼさない: カタカナ語は «左» へ伸ばしてよい（複合語の主要部）— #1273", () => {
+	// カタカナ複合語の主要部は右端に来るので、左に付くものは上位語の具体化にしかならない。
+	// 実測で skipped_no_category の «カテゴリ名が書いてあるのに候補ゼロ» の 82% がここだった。
+	assert.equal(matchesAsWord("バスクチーズケーキ", "チーズケーキ"), true);
+	assert.equal(matchesAsWord("スープカレーを食べた", "カレー"), true);
+	assert.equal(matchesAsWord("ボドゲカフェ", "カフェ"), true);
+	assert.equal(matchesAsWord("ケンタッキーフライドチキン", "フライドチキン"), true);
+	assert.equal(matchesAsWord("クリスマスケーキ", "ケーキ"), true);
+});
+
+test("誤爆させない: 左を伸ばしてよいのは surface が 3 文字以上のときだけ — #1273", () => {
+	// 2 文字のカタカナまで緩めると «たまたま末尾が一致しただけ» が通る
+	assert.equal(matchesAsWord("スパイ映画", "パイ"), false);
+	assert.equal(matchesAsWord("エビフライ定食", "ライ"), false);
+});
+
+test("誤爆させない: 直前のカタカナが 2 文字以下なら «語を途中で切った» とみなす — #1273", () => {
+	// 実データの誤爆はどれも語を途中で切っている（切れ端が 1〜2 文字にしかならない）
+	assert.equal(matchesAsWord("アラフォー女子会", "フォー"), false); // アラ|フォー
+	assert.equal(matchesAsWord("アドバイスをもらった", "バイス"), false); // アド|バイス
+	assert.equal(matchesAsWord("タンブラー持参", "ブラー"), false); // タン|ブラー
+	assert.equal(matchesAsWord("ガスコンロ", "コンロ"), false); // ガス|コンロ
+	assert.equal(matchesAsWord("アドリア海のリゾート", "ドリア"), false); // ア|ドリア
+	// 本来の言及は落とさない
+	assert.equal(matchesAsWord("ベトナムのフォーが絶品", "フォー"), true);
+	assert.equal(matchesAsWord("シーフードドリア", "ドリア"), true); // シーフード|ドリア
+});
+
+test("誤爆させない: denylist の表記は左を伸ばさない（`フォー`）— #1273", () => {
+	// 直前 3 文字以上でも数字・屋号の末尾に立つだけ（実測 47 件中 45 件がこの形）
+	assert.equal(matchesAsWord("トゥエンティフォー スイーツ", "フォー"), false);
+	assert.equal(matchesAsWord("ツーアンドフォーの店", "フォー"), false);
+	assert.equal(matchesAsWord("レディーフォーで支援", "フォー"), false);
+	// 単独で出てくれば当たる（現行の 156 投稿を落とさない）
+	assert.equal(matchesAsWord("本場のフォーを食べた", "フォー"), true);
 });
 
 test("取りこぼさない: カタカナ語の直後にひらがなの助詞が来ても当たる", () => {

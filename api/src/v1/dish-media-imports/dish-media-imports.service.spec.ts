@@ -741,6 +741,114 @@ describe('DishMediaImportsService — 店舗候補', () => {
     expect(harness.searchNearbyRestaurants).not.toHaveBeenCalled();
   });
 
+  // #1841 «キャプションに店名が書いてあるのに候補に出ない» の回帰。
+  // それまで 📍店名 は候補セット内の加点にしか使っておらず、候補は地理でしか作っていなかった。
+  // 位置情報が無い（＝地理の候補セットが作れない）ときこそ、名指しが唯一の手掛かりになる。
+  it('#1841 位置情報が無くても、📍店名 があれば店名で引いて候補を返す', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '中華そば よしだ')],
+    });
+    harness.transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('📍中華そば よしだ\n美味しかった #ラーメン'),
+    });
+
+    const result = await harness.service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    expect(result.restaurantSearch).toMatchObject({ performed: true });
+    expect(result.candidates.restaurants[0]).toMatchObject({
+      restaurantId: 'r1',
+    });
+    // 店名は «名指し» なので、現在地に依存しない全国の半径で引く
+    expect(harness.searchNearbyRestaurants).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ q: '中華そば よしだ', radius: 2_000_000 }),
+    );
+  });
+
+  it('#1841 現在地から遠い店でも、📍店名 があれば店名の引きが現在地の半径に縛られない', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '中華そば よしだ')],
+    });
+    harness.transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('📍中華そば よしだ\n美味しかった #ラーメン'),
+    });
+
+    await harness.service.resolve({
+      url: TIKTOK_VIDEO_URL,
+      lat: 35.658,
+      lng: 139.701,
+      radius: 5000,
+    });
+
+    const calls = harness.searchNearbyRestaurants.mock.calls as [
+      unknown,
+      { q?: string; radius: number },
+    ][];
+    const byName = calls.filter((call) => call[1].q === '中華そば よしだ');
+    expect(byName).toHaveLength(1);
+    // 現在地の 5km ではなく全国で引いている（＝ 5km 圏外の店にも届く）
+    expect(byName[0][1].radius).toBe(2_000_000);
+  });
+
+  // #1841 レビュー: 全国半径 × 2 文字は pg_trgm の索引が効かず seq scan になる
+  // （本番実測 «一蘭» 2,000km = 23.8 秒 / 5km = 0.55 秒）。#1834 の 30 秒上限を再び踏むので、
+  // **値ではなくパターン**を固定する: «全国半径で投げる q は必ず 3 文字以上»。
+  it('#1841 全国半径の店名クエリに 3 文字未満を投げない', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
+    });
+    harness.transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('📍一蘭\n📍中華そば よしだ\n美味しかった #ラーメン'),
+    });
+
+    await harness.service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    const calls = harness.searchNearbyRestaurants.mock.calls as [
+      unknown,
+      { q?: string; radius: number },
+    ][];
+    const wide = calls.filter((call) => call[1].radius >= 1_000_000);
+    // パターン: 全国半径で投げた q は、1 本残らず 3 文字以上であること
+    expect(wide.length).toBeGreaterThan(0);
+    for (const call of wide) {
+      expect((call[1].q ?? '').length).toBeGreaterThanOrEqual(3);
+    }
+    // 2 文字の「一蘭」は DB を引く q には使われない
+    expect(wide.map((call) => call[1].q)).not.toContain('一蘭');
+  });
+
+  it('#1841 📍行が無ければ店名では引かない（従来どおり地理だけ）', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
+    });
+    routeTikTok(harness.transport);
+
+    await harness.service.resolve({
+      url: TIKTOK_VIDEO_URL,
+      lat: 35.658,
+      lng: 139.701,
+      radius: 5000,
+    });
+
+    // author_name の引き（#1375）は従来どおり出る。増えていないことを見たいので、
+    // 全国半径（＝📍店名の引き）が 1 本も無いことを確かめる。
+    const calls = harness.searchNearbyRestaurants.mock.calls as [
+      unknown,
+      { q?: string; radius: number },
+    ][];
+    expect(calls.some((call) => call[1].radius === 2_000_000)).toBe(false);
+    expect(calls.map((call) => call[1].q)).toEqual([
+      undefined,
+      'Scout, Suki & Stella',
+    ]);
+  });
+
   it('lat/lng/radius が揃ったときだけ探して順位付けする', async () => {
     const harness = createHarness({
       restaurants: [

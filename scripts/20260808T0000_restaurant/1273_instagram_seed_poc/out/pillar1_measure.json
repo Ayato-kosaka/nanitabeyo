@@ -1,0 +1,49 @@
+{
+  "n_sample": 322,
+  "fetch_ok": 245,
+  "website_is_ig": 7,
+  "fetch_failed": 61,
+  "robots_blocked": 9,
+  "reachable": 252,
+  "unreachable_pct": 21.74,
+  "aggregator_hosts": 89,
+  "new_handle_source_tags": {
+    "ig_url": 96,
+    "website_is_ig": 7,
+    "jsonld_sameas": 7,
+    "at_text": 7
+  },
+  "at_text_net_new_stores": 1,
+  "chain_handles_ge2_stores": {
+    "hitosara_official": 3,
+    "sukiya_jp": 3,
+    "31icecream_japan": 2,
+    "starbucks_j": 2,
+    "parisbaguette_kr": 2
+  },
+  "before_old": {
+    "union": 102,
+    "union_pct": 31.68,
+    "store_specific": 78,
+    "store_specific_pct": 24.22,
+    "distinct_handles": 99
+  },
+  "after_new": {
+    "union": 102,
+    "union_pct": 31.68,
+    "store_specific": 77,
+    "store_specific_pct": 23.91,
+    "store_specific_strict": 37,
+    "store_specific_strict_pct": 11.49,
+    "distinct_handles": 99
+  },
+  "own_site": {
+    "fetched": 188,
+    "union": 85,
+    "store_specific": 76
+  },
+  "aggregator_site": {
+    "union": 17,
+    "store_specific": 1
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "purpose": "#1273 4.11 『店名で引いた投稿が本当にその店のものか』の目視ラベル。機械判定（キャプションに店名が現れるか）は 53.0% だったが、このリポジトリでは機械判定が系統的に膨らんだ実績があるため裏を取る。",
+  "labeled_at": "2026-08-28",
+  "labeler": "Claude（Serper が返したタイトル＝キャプションと、FSQ の店名・市区町村を突き合わせて判定）",
+  "source": "out/serper_store_posts.json（店名一致ありと判定された 53 店から seed 7 で 15 件）",
+  "machine_rate": {"n": 100, "any_post_pct": 88.0, "naming_store_pct": 53.0, "mean_posts_per_store": 6.99},
+  "labels": [
+    {"store": "ハミングバード / 姫路市", "verdict": "correct", "why": "『姫路喫茶調査隊は、HUMMING BIRD へ行きました』。地域も一致"},
+    {"store": "Bar Meister / 延岡市", "verdict": "correct", "why": "『BAR MEISTER #宮崎 #延岡市』"},
+    {"store": "とり男 / 福岡市", "verdict": "correct", "why": "『焼き鳥とり男。福岡市渡辺通にある』"},
+    {"store": "なのはな食堂 / 都城市", "verdict": "correct", "why": "『本日のなのはな食堂です。都城市総合文化ホール内でランチ』"},
+    {"store": "天津飯店 / 佐世保市", "verdict": "correct", "why": "『#天津飯店 #佐世保市高天町』"},
+    {"store": "すしことかつお / 鹿児島市", "verdict": "correct", "why": "店名がそのまま出ている"},
+    {"store": "すたみな太郎 飯塚店 / 飯塚市", "verdict": "correct", "why": "『【すたみな太郎飯塚店】』で支店名まで一致"},
+    {"store": "kurumu. / 日南市", "verdict": "correct", "why": "『クルム @kurumu.2 宮崎県日南』でアカウントまで一致"},
+    {"store": "Cafe Jardin / 広島市", "verdict": "correct", "why": "『ひろしま美術館 Cafe Jardin』"},
+    {"store": "頂好茶館 / 福岡市", "verdict": "correct", "why": "『#頂好茶館#台灣料理#福岡』"},
+    {"store": "台湾料理龍祥 / 加古川市", "verdict": "correct", "why": "『台湾料理 龍祥。加古川市神野町石守にある』"},
+    {"store": "オステリアファルコ / 福岡市中央区", "verdict": "correct", "why": "『Osteria Falco 福岡市中央区薬院伊福町11』で住所まで一致"},
+    {"store": "ウイング / 姫路市", "verdict": "wrong", "why": "返ったのは『就労支援事業所Wing』で飲食店ではない。短い一般名詞の店名が誤判定を生む典型"},
+    {"store": "リキ / 徳島市", "verdict": "ambiguous", "why": "『焼肉【リキ】』と『中華そば リキ』の 2 店が混ざる。どちらが対象か決まらない"},
+    {"store": "Otokomae / 福山市", "verdict": "ambiguous", "why": "『#Otokomae』のハッシュタグだけで、店を指しているか判別できない"}
+  ],
+  "result": {
+    "n": 15, "correct": 12, "wrong": 1, "ambiguous": 2,
+    "precision_pct": 80.0,
+    "note": "n=15 なので幅は広い（95%CI 概ね 55〜93%）。短い一般名詞の店名（3 文字以下が 53 店中 10 店）が誤判定の温床である",
+    "audited_naming_store_pct": 42.4,
+    "audited_stores_nationwide": 499000,
+    "denominator": "FSQ の日本の飲食（営業中）1,177,934 店"
+  }
+}

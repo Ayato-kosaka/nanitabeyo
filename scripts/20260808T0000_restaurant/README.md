@@ -69,16 +69,45 @@ dry-runし、同じrun_idを段階的に昇格させます。Cloud Schedulerは�
   │                     ON CONFLICT DO NOTHING で足す（ユーザー追加を消さない）│
   └────────────────────────────────────────────────────────────────────────┘
 
-権利確認済みSNS URL
-  -> dish_media_social_raw              (4_1)
-  -> dish/dish_media/coverage catalog   (4_2)
-  -> PostgreSQL dishes/dish_media       (9_2)
+**国（`country_code`）の正は «取り込んだときの値» である**（#843）。1_3 が Overture の
+`addresses[1].country='JP'` で日本を絞り、2_1 がその値を source record へ、2_2 が seed へ、
+3_4 が catalog へ運ぶ。座標の矩形（緯度20.0–46.5 / 経度122.0–154.0）は **韓国全土と
+ロシア沿海地方を含む**ので、国の判定には決して使わない。
+
+SNS（#1273 Instagram）の料理媒体は、上の restaurants に **相乗りする**別の流れである。
+
+```text
+  ┌── BigQuery ───────────────────────────────────────────────────────────┐
+  │  店アカ / 店サイト埋め込み / 検索 ──▶ sns_post_raw        4_1〜4_14   │
+  │                                          ▼                            │
+  │            resolve API（店とカテゴリの唯一の頭脳）─▶ sns_post_resolved │
+  │                                          ▼                       5_1  │
+  │            sns_dish_media_catalog（google_place_id + QID）        9_1  │
+  └──────────────────────────────────────────┼────────────────────────────┘
+                                             │ 9_2（品質ゲート 8_1 --sns-only が緑のときだけ
+                                             │     / dev 専用 / 既定 dry-run）
+  ┌──────────────────────────────────────────▼────────────────────────────┐
+  │ PostgreSQL                                                            │
+  │  dishes                        … 無ければ作る。既存行は触らない        │
+  │  dish_media                    … render_type='external_embed' の «器»  │
+  │  dish_media_external_embeddings… 投稿 ID と canonical_url の実体       │
+  │                                                                       │
+  │  ⚠️ 値の正は **API の取り込み実装**                                    │
+  │     （api/src/v1/dish-media-imports/dish-media-imports.service.ts）。   │
+  │     9_2 はそれと 1 列も違えない。違えるとアプリの分岐が片方で壊れる    │
+  └───────────────────────────────────────────────────────────────────────┘
 ```
 
 **この図の要点は矢印ではなく、下の箱の中の 2 行**である。
 «誰が書いてよい行か» を行のとなりに刻んであるので、
 BigQuery 側のスナップショットが何時間古かろうとアプリの行は壊れない
 （古いスナップショットへの否定条件で判定していたのが 2026-08-24 の事故の真因）。
+
+SNS 側で図に描けない 1 点だけ書いておく。**«その投稿はどの店か» の正は
+`common_sns.post_store_cte_sql` の `post_store` だけ**である（配信 9_1 と計上 7_1 が
+同じものを使う）。収集経路が示すのは «どの店の看板の下で見つけたか» であって
+«どの店の投稿か» ではないので、**看板（IG アカウント / 公式サイトのドメイン）が
+2 店以上を指しているならその seed は使わず、1 店に絞れない投稿は配信しない**（#1846）。
 
 ## 名寄せ方針
 
@@ -207,14 +236,6 @@ infra/supabase/migrations/20260823T0000_add_restaurant_recommendation_sync_metad
 `dish_media_external_embeddings` 子tableへ隔離します。
 APIは検索時にこの子tableを参照するため、deploy順は **migration → API/対応client → 9_*同期**
 です。特に外部媒体を公開する`9_2`は、対応clientの展開後に実行します。
-
-## 今回の納品範囲（#843 レストラン先行分）
-
-この branch/PR には **restaurants への投入経路（1_x〜3_x, 8_1, 9_1）だけ**が
-入っています。SNS 料理媒体の経路（`4_1` / `4_2` / `9_2` と
-`1273_sns_dish_media_poc`、supabase の dish_media 系 migration）は統合ブランチ
-（PR #1480）で後続納品します。本 README のセクション 4 と `9_2` の記述は
-その後続分の予告です。
 
 ## GitHub Actions での実行（db-script-run.yml）
 
@@ -375,6 +396,61 @@ API keyはheaderで送り、query文字列・ID配列・HTTP status・採否だ�
 媒体の未充足率は初期投入を観測できるようWARNINGですが、最終充足判定では
 `--fail-on-warning`を付けます。9_* は最新ERRORが全件PASSしていなければ起動しません。
 
+SNS 経路（#1273 / `sns_dish_media_catalog` → 9_2）は **run_id が restaurant 側と別**なので、
+`--sns-run-id` で SNS の check を入れ、`--sns-only` で restaurant 側の check を外す
+（SNS の run_id には `restaurant_source_records` が 1 行も無く、restaurant の check は
+全て ERROR になる）。店の実在と国内判定は PostgreSQL ではなく `restaurant_catalog`
+（9_1 が PG へ配る表）と突き合わせるので、その run_id を明示する。
+
+```bash
+.venv/bin/python 8_1_validate_catalogs.py \
+  --run-id sns-catalog-2026-09-05 \
+  --sns-run-id sns-catalog-2026-09-05 \
+  --restaurant-catalog-run-id restaurant-2026-08-23 \
+  --sns-only
+```
+
+| check | 見るもの | 閾値 | 2026-09-05 実測 |
+| --- | --- | --- | --- |
+| `sns_dish_media_catalog_non_empty` | ERROR: catalog が空でない | ≥ 1 | 142,489 行 |
+| `sns_media_pg_unique_key_unique` | ERROR: PG の UNIQUE(provider, 投稿ID, dish) 相当の重複 | 0 | 0 |
+| `sns_media_required_fields_valid` | ERROR: canonical_url / provider / QID / row_hash が dmee の NOT NULL・CHECK に通る | 0 | 0 |
+| `sns_media_duplicate_post_rate` | ERROR: 同じ投稿が複数行に出ている割合（1 投稿 1 dish_media） | **0** | 修正前 1.409%（2,008 行 / 1,388 投稿。全件が «同じ投稿に別の店»） → #1846 で 9_1 が «1 投稿 1 店» を確定するようにしたので 0 |
+| `sns_media_store_inside_japan` | ERROR: restaurant_catalog に居るが**日本の店ではない**（判定は `common_sns.foreign_store_sql`） | 0 | 修正前 0（構造上いつでも緑）→ #1815 の判定で 931 行 / 113 店。9_1 が落とすようになった後は 0 |
+| `sns_media_store_known_rate` | WARNING: restaurant_catalog に居ない店を指す割合（9_2 が落として続行する行） | ≤ 1% | 0.349%（497 行 / 84 店） |
+| `sns_media_jp_gate_category_rate` | WARNING: アプリの 134 カテゴリ外を指す割合（捨てずに配信する） | ≤ 30% | 18.702%（26,648 行 / 1,401 カテゴリ） |
+
+閾値の根拠は `8_1_validate_catalogs.py` の定数コメントにある（全て今日の実測が基準）。
+
+### 8.5. 日本以外の店を配信しない（#1815）
+
+`restaurant_catalog` は **100,063 行（16.13%）が日本以外の店**なのに `country_code` が
+全行 `'JP'` である（1_3 / 3_4 は直したが、catalog を組み直すまでこの値のまま）。
+8_1 の海外チェックが «取り込みの矩形を取り込み結果へ当てる» 作りで構造上いつでも緑だったため、
+126 店 / dish_media 1,025 行が dev まで届いた。
+
+判定は **`common_sns.foreign_store_sql` の 1 箇所だけ**にある（国 / 文字・住所の形 /
+**国外**領域の矩形 の 3 本）。配信する 3 経路と品質ゲートがその式を埋め込む。
+**«日本を囲う矩形» は判定に使わない**（それが事故の原因である）。
+
+| 場所 | 何をするか |
+| --- | --- |
+| `9_1_build_sns_dish_media_catalog.py` | `--restaurant-catalog-run-id` が必須。海外の店の投稿を配信カタログへ入れない |
+| `9_2_sync_sns_dish_media.py` | 同上。古い catalog を読んだときの最後の砦。落とした数を WARNING で出す |
+| `9_1_sync_restaurants.py` | 海外の店を `restaurants` へ作らない（既存 PG 由来の海外店は従来どおり通す） |
+| `8_1_validate_catalogs.py` | `restaurant_overseas_only_from_existing_pg` / `sns_media_store_inside_japan` が同じ判定で数える |
+
+判定の精度（run=restaurant-2026-08-23 / 620,428 行の実測）と、それを固定する test は
+`common_sns.py` の該当節と `test_ingest_predicate_not_reused.py` にある。
+
+**既に PostgreSQL へ入ってしまった行**は `9_9_audit_foreign_rows.py` で数える（読み取り専用。
+修復 SQL は表示するだけ）。
+
+```bash
+.venv/bin/python 9_9_audit_foreign_rows.py --schema dev
+.venv/bin/python 9_9_audit_foreign_rows.py --schema public --allow-public   # 読むだけ
+```
+
 ### 9. PostgreSQL同期
 
 必ず `dev --dry-run`、`dev`、動作確認、`public --dry-run`、`public` の順に進めます。
@@ -384,15 +460,34 @@ dry-runも実際のDMLとconstraint検査をtransaction内で行い、最後にr
 .venv/bin/python 9_1_sync_restaurants.py --schema dev --dry-run
 .venv/bin/python 9_1_sync_restaurants.py --schema dev
 
-.venv/bin/python 9_2_sync_dishes_and_media.py --schema dev --dry-run
-.venv/bin/python 9_2_sync_dishes_and_media.py --schema dev
-
 # publicは明示的な二重確認flagが必要
 .venv/bin/python 9_1_sync_restaurants.py --schema public --dry-run --allow-public
 .venv/bin/python 9_1_sync_restaurants.py --schema public --allow-public
-.venv/bin/python 9_2_sync_dishes_and_media.py --schema public --dry-run --allow-public
-.venv/bin/python 9_2_sync_dishes_and_media.py --schema public --allow-public
 ```
+
+SNS 料理媒体（#1273）は `9_2_sync_sns_dish_media.py`。**dev 専用で、既定が dry-run** である
+（`--execute` を明示しない限り 1 行も書かない。`--schema public` は argparse が弾く）。
+
+```bash
+# 何行入って何行落ちるかだけを出す（既定）
+.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 \
+  --catalog-run-id sns-2026-09-04-inflcap --restaurant-catalog-run-id restaurant-2026-08-23
+# 複数の run をまとめて配る / 全 run を配る
+.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --all-catalog-runs \
+  --restaurant-catalog-run-id restaurant-2026-08-23
+# 実際に書く（オーナー承認後）
+.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --all-catalog-runs \
+  --restaurant-catalog-run-id restaurant-2026-08-23 --execute
+```
+
+9_2 が **落として続行する**もの（1 件の取りこぼしで全件を止めないため。件数はログに出る）:
+PG に居ない店 / PG に無い料理カテゴリ / canonical_url や provider が DB の値域外 /
+**日本以外の店**（#1815）。
+**捨てないもの**: アプリの 134 カテゴリ外の QID（PG には入るが日本の検索には出ない）。
+
+SQL は実 PostgreSQL 16 で検証できる。
+`bash tests/test_9_2_sns_dish_media_sync.sh`（実物の migration を流し、9_2 のソースから
+抜き出した SQL をそのまま実行する。写経しない）。
 
 本実行前に対象tableをGCSへstreaming backupします。backup失敗時は同期を中止します。
 BigQueryに無いPostgreSQL行は削除しません。`--skip-backup` は復旧手段を別途確保した緊急時だけ

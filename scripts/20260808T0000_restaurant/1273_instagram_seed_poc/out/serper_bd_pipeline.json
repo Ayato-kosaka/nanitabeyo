@@ -1,0 +1,1360 @@
+{
+  "summary": {
+    "n": 130,
+    "with_candidate": 113,
+    "verified": 0,
+    "verified_pct": 0.0,
+    "bd_rate_limited": true,
+    "media_total_of_verified": 0
+  },
+  "rows": [
+    {
+      "name": "キッチン空福亭",
+      "locality": "益城町",
+      "query": "キッチン空福亭 益城町 instagram",
+      "candidates": [
+        "shuichiichimura",
+        "fukuchanbentou"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "漁火",
+      "locality": "糟屋郡粕屋町",
+      "query": "漁火 糟屋郡粕屋町 instagram",
+      "candidates": [
+        "grandpa.1030",
+        "isaribi.sumiyaki"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "grand nanpuu",
+      "locality": "Himeji",
+      "query": "grand nanpuu Himeji instagram",
+      "candidates": [
+        "nanpuu_himejiaoyama"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "いなりや",
+      "locality": "内子町",
+      "query": "いなりや 内子町 instagram",
+      "candidates": [
+        "uchiko_inariya_strike"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ブルーブライトビーンズ",
+      "locality": "宮崎市",
+      "query": "ブルーブライトビーンズ 宮崎市 instagram",
+      "candidates": [
+        "bluebeansroastery",
+        "blusebeans303",
+        "calmnessofbeauty"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "大衆酒場 あゆみ",
+      "locality": "松山市",
+      "query": "大衆酒場 あゆみ 松山市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "屋台のたまちゃん別館",
+      "locality": "福岡市",
+      "query": "屋台のたまちゃん別館 福岡市 instagram",
+      "candidates": [
+        "yatainotamachan",
+        "tomocyan_yatai"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "cafe木箱",
+      "locality": "那覇市",
+      "query": "cafe木箱 那覇市 instagram",
+      "candidates": [
+        "cafekibako"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ふく屋",
+      "locality": "宜野湾市",
+      "query": "ふく屋 宜野湾市 instagram",
+      "candidates": [
+        "fukuya_okinawa",
+        "fukuya_official"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "喫茶ふるさと",
+      "locality": "高岡郡 四万十町",
+      "query": "喫茶ふるさと 高岡郡 四万十町 instagram",
+      "candidates": [
+        "shimanto_town_official",
+        "hanpei_k",
+        "ochakuri_cafe"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "熊本さくら 新土河原店",
+      "locality": "Kumamoto",
+      "query": "熊本さくら 新土河原店 Kumamoto instagram",
+      "candidates": [
+        "kumamoto.sakura"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "シルバン弁当",
+      "locality": "伊江村",
+      "query": "シルバン弁当 伊江村 instagram",
+      "candidates": [
+        "iejima_iju_official",
+        "kominka_ajidokoro_yui"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "さらめし",
+      "locality": "佐賀市",
+      "query": "さらめし 佐賀市 instagram",
+      "candidates": [
+        "biton.saga"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "炭火焼うなぎ竹田",
+      "locality": "浦添市",
+      "query": "炭火焼うなぎ竹田 浦添市 instagram",
+      "candidates": [
+        "unagiyatakeda"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "薬酒BAR&ドライフラワーCARE",
+      "locality": "大分市",
+      "query": "薬酒BAR&ドライフラワーCARE 大分市 instagram",
+      "candidates": [
+        "bar_care"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "チョアチキン 学園店",
+      "locality": "松江市",
+      "query": "チョアチキン 学園店 松江市 instagram",
+      "candidates": [
+        "choachicken_031020",
+        "choachickenhigashiizumoten",
+        "choachicken.jp"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "おばざいeん",
+      "locality": "姫路市",
+      "query": "おばざいeん 姫路市 instagram",
+      "candidates": [
+        "haratchi_2026"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Jin",
+      "locality": "徳島市",
+      "query": "Jin 徳島市 instagram",
+      "candidates": [
+        "jeansfactory_tokushima",
+        "isejidayori",
+        "jin.xeno"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "いざかふぇ Cou Cou",
+      "locality": "北九州市",
+      "query": "いざかふぇ Cou Cou 北九州市 instagram",
+      "candidates": [
+        "coucou_takeno",
+        "kitakyu_gourmet_yumiko",
+        "coucoucafe"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ワインと炭焼き たらら",
+      "locality": "岡山市",
+      "query": "ワインと炭焼き たらら 岡山市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ごはんとおやつ。",
+      "locality": "Usuki",
+      "query": "ごはんとおやつ。 Usuki instagram",
+      "candidates": [
+        "gohantooyatu__usuki"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "すたみな太郎 飯塚店",
+      "locality": "飯塚市",
+      "query": "すたみな太郎 飯塚店 飯塚市 instagram",
+      "candidates": [
+        "stamina_taro",
+        "iizuka_furusato"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "BAR naKayama",
+      "locality": "長崎市",
+      "query": "BAR naKayama 長崎市 instagram",
+      "candidates": [
+        "bar_nakayama"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ほっともっと 戸次大南店",
+      "locality": "大分市",
+      "query": "ほっともっと 戸次大南店 大分市 instagram",
+      "candidates": [
+        "hottomotto_official"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Dining&BarCURIOUS",
+      "locality": "大牟田市",
+      "query": "Dining&BarCURIOUS 大牟田市 instagram",
+      "candidates": [
+        "curious_jumpei",
+        "tsukito_yuyake"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "一休お好み焼店",
+      "locality": "玉野市",
+      "query": "一休お好み焼店 玉野市 instagram",
+      "candidates": [
+        "okonomiyaki_19"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Mouffe Cafe",
+      "locality": "鹿児島市",
+      "query": "Mouffe Cafe 鹿児島市 instagram",
+      "candidates": [
+        "mouffecafe"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "寿し処一里松",
+      "locality": "吉野川市",
+      "query": "寿し処一里松 吉野川市 instagram",
+      "candidates": [
+        "ichimatsusushi",
+        "yoshinogawacity_official",
+        "ichimatsuzushi"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Ciao 唐人町店",
+      "locality": "福岡市",
+      "query": "Ciao 唐人町店 福岡市 instagram",
+      "candidates": [
+        "kitchen_kotta",
+        "oohori_touzin",
+        "_kitchenciao"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "PAKIRA パキラ",
+      "locality": "岡山市",
+      "query": "PAKIRA パキラ 岡山市 instagram",
+      "candidates": [
+        "nail.pachira",
+        "pakira.band"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "洋食屋 ヒッコリーのきのみ",
+      "locality": "鞍手町",
+      "query": "洋食屋 ヒッコリーのきのみ 鞍手町 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ケンタッキーフライドチキン",
+      "locality": "Hiroshima",
+      "query": "ケンタッキーフライドチキン Hiroshima instagram",
+      "candidates": [
+        "kfc_japan"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "向日葵",
+      "locality": "廿日市市",
+      "query": "向日葵 廿日市市 instagram",
+      "candidates": [
+        "trip_hatsukaichi",
+        "hatsukaichi_city_official",
+        "tsuta_himawari"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ジェラート屋ミルクファームフルショウ",
+      "locality": "豊後大野市",
+      "query": "ジェラート屋ミルクファームフルショウ 豊後大野市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "お弁当のヒライ 阿蘇高森店",
+      "locality": "阿蘇郡南阿蘇村",
+      "query": "お弁当のヒライ 阿蘇高森店 阿蘇郡南阿蘇村 instagram",
+      "candidates": [
+        "obentounohirai",
+        "higorakutateya"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ダイニングキッチン Puerta del Sol プルエタデルソル",
+      "locality": "別府市",
+      "query": "ダイニングキッチン Puerta del Sol プルエタデルソル 別府市 instagram",
+      "candidates": [
+        "puerta_del_sol_beppu"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Pasta Pasta",
+      "locality": "福岡市",
+      "query": "Pasta Pasta 福岡市 instagram",
+      "candidates": [
+        "oipas_tenjin",
+        "pastapasta_yakuin"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "トラットリア エム",
+      "locality": "竹原市",
+      "query": "トラットリア エム 竹原市 instagram",
+      "candidates": [
+        "trattoria.m.takehara"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "チクゴ飲料",
+      "locality": "みやま市",
+      "query": "チクゴ飲料 みやま市 instagram",
+      "candidates": [
+        "miyamapost",
+        "miyama.chiikiokoshi",
+        "miyamashikankoukyoukai"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "糸島バーガー 四季彩",
+      "locality": "糸島市",
+      "query": "糸島バーガー 四季彩 糸島市 instagram",
+      "candidates": [
+        "itoshima_shikisai",
+        "takata_shikisai"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "から揚げ専門店からふく空港通り店",
+      "locality": "糟屋郡志免町",
+      "query": "から揚げ専門店からふく空港通り店 糟屋郡志免町 instagram",
+      "candidates": [
+        "karasuke_official"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "雫流",
+      "locality": "鹿児島市",
+      "query": "雫流 鹿児島市 instagram",
+      "candidates": [
+        "shizuru2014"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "鰻や 正一",
+      "locality": "熊本市中央区",
+      "query": "鰻や 正一 熊本市中央区 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "すしことかつお",
+      "locality": "鹿児島市",
+      "query": "すしことかつお 鹿児島市 instagram",
+      "candidates": [
+        "kagoshima_sushikotokatsuo"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "マクドナルド 10号日向店",
+      "locality": "日向市",
+      "query": "マクドナルド 10号日向店 日向市 instagram",
+      "candidates": [
+        "hyuga.city",
+        "mcdonaldsjapan"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "海鮮とおむすび",
+      "locality": "福岡市",
+      "query": "海鮮とおむすび 福岡市 instagram",
+      "candidates": [
+        "kaisen_to_omusubi",
+        "donabetosakana__miiro"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Hidamari Kaki-Gori Stand",
+      "locality": "高松市",
+      "query": "Hidamari Kaki-Gori Stand 高松市 instagram",
+      "candidates": [
+        "hidamari_kakigori_stand"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "インド料理SHIVA",
+      "locality": "熊本市",
+      "query": "インド料理SHIVA 熊本市 instagram",
+      "candidates": [
+        "sih_iva"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "餃子の一心",
+      "locality": "うるま市",
+      "query": "餃子の一心 うるま市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Wish",
+      "locality": "防府市",
+      "query": "Wish 防府市 instagram",
+      "candidates": [
+        "hofucity_butchi_stagram"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "鉄板居酒屋 中家",
+      "locality": "福岡市",
+      "query": "鉄板居酒屋 中家 福岡市 instagram",
+      "candidates": [
+        "kazu_teppan_fukuoka",
+        "teppanyakitchen"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "カフェ チャッタナ",
+      "locality": "多可郡",
+      "query": "カフェ チャッタナ 多可郡 instagram",
+      "candidates": [
+        "chattana_no_mori"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "岩部製菓",
+      "locality": "三木町",
+      "query": "岩部製菓 三木町 instagram",
+      "candidates": [
+        "okasidokoro_hatoya"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "らーめん道場太鼓判鳥取駅前サンロード店",
+      "locality": "鳥取市",
+      "query": "らーめん道場太鼓判鳥取駅前サンロード店 鳥取市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "寿司Musashi",
+      "locality": "うるま市",
+      "query": "寿司Musashi うるま市 instagram",
+      "candidates": [
+        "sushi.musashi",
+        "musashi__6340"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "エルハイナー永田",
+      "locality": "倉吉市",
+      "query": "エルハイナー永田 倉吉市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Shiitake Monster",
+      "locality": "Yufu",
+      "query": "Shiitake Monster Yufu instagram",
+      "candidates": [
+        "_shiitakemonster_"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "博多もつ鍋おおやま ワンビル店",
+      "locality": "福岡市",
+      "query": "博多もつ鍋おおやま ワンビル店 福岡市 instagram",
+      "candidates": [
+        "ooyama.motu"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ハミングバード",
+      "locality": "姫路市",
+      "query": "ハミングバード 姫路市 instagram",
+      "candidates": [
+        "hummingjijii",
+        "hummingbird_higashiabiko",
+        "hummingbird__cafe"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "きりしま屋",
+      "locality": "小林市",
+      "query": "きりしま屋 小林市 instagram",
+      "candidates": [
+        "kankou_kobayashi",
+        "kobamachi",
+        "ichibashokudou_kobayashi"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "The Fishermans Daughter",
+      "locality": "豊見城市",
+      "query": "The Fishermans Daughter 豊見城市 instagram",
+      "candidates": [
+        "thefishermans_daughter",
+        "thefishermansdaughter.es"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "尾道浪漫珈琲ANAクラウンプラザホテル広島",
+      "locality": "広島市",
+      "query": "尾道浪漫珈琲ANAクラウンプラザホテル広島 広島市 instagram",
+      "candidates": [
+        "onomichiromancoffee",
+        "roman.anacrown"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "サイゼリアゆめタウン筑紫野店",
+      "locality": "筑紫野市",
+      "query": "サイゼリアゆめタウン筑紫野店 筑紫野市 instagram",
+      "candidates": [
+        "youmetown_chikushino_",
+        "chikushi_gas",
+        "rintosull_yumetaunchikushino"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "マクドナルド 55号野市店 (McDonald's)",
+      "locality": "香南市",
+      "query": "マクドナルド 55号野市店 (McDonald's) 香南市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "千丸",
+      "locality": "速見郡",
+      "query": "千丸 速見郡 instagram",
+      "candidates": [
+        "sachi___malu",
+        "hayamimaru",
+        "yusen_maru"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "SPEAKEASY POEM",
+      "locality": "岩国市",
+      "query": "SPEAKEASY POEM 岩国市 instagram",
+      "candidates": [
+        "junki_ren",
+        "speak.easy_poetry"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "スパイスカリークミン",
+      "locality": "松江市",
+      "query": "スパイスカリークミン 松江市 instagram",
+      "candidates": [
+        "spicecurrycumin"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ほっかほっか亭 玉里南店",
+      "locality": "鹿児島市",
+      "query": "ほっかほっか亭 玉里南店 鹿児島市 instagram",
+      "candidates": [
+        "hokkahokkatei_tamazatominami",
+        "hokkahokka_tei"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "58フィフティーエイト",
+      "locality": "恩納村",
+      "query": "58フィフティーエイト 恩納村 instagram",
+      "candidates": [
+        "58fifty_eight_okinawa",
+        "appreciate8",
+        "nabee2901"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "文明堂 アミュプラザ長崎店",
+      "locality": "長崎市",
+      "query": "文明堂 アミュプラザ長崎店 長崎市 instagram",
+      "candidates": [
+        "amu_nagasaki",
+        "bunmeido_nagasakicastella"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "お好み焼き にし川",
+      "locality": "大洲市",
+      "query": "お好み焼き にし川 大洲市 instagram",
+      "candidates": [
+        "nisi3104"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "フランス菓子 vert",
+      "locality": "松江市",
+      "query": "フランス菓子 vert 松江市 instagram",
+      "candidates": [
+        "vert_1696"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "萬來",
+      "locality": "加古郡稲美町",
+      "query": "萬來 加古郡稲美町 instagram",
+      "candidates": [
+        "banrai_",
+        "banraiken_cuc",
+        "banrai_tsujido"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "広一",
+      "locality": "広島市中区",
+      "query": "広一 広島市中区 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "阿吽",
+      "locality": "加古川市",
+      "query": "阿吽 加古川市 instagram",
+      "candidates": [
+        "sake_wine_aun",
+        "sanen4.15"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Skipper's 1990",
+      "locality": "岡山市",
+      "query": "Skipper's 1990 岡山市 instagram",
+      "candidates": [
+        "mechanix5150",
+        "skippers_beer_pub"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ほっともっと",
+      "locality": "高松市",
+      "query": "ほっともっと 高松市 instagram",
+      "candidates": [
+        "hottomotto_official"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "食香房とうじ",
+      "locality": "洲本市",
+      "query": "食香房とうじ 洲本市 instagram",
+      "candidates": [
+        "keropi_kekero",
+        "dining_bar.aki.to.haru"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "台湾料理龍祥",
+      "locality": "加古川市",
+      "query": "台湾料理龍祥 加古川市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "韓国香辛料理 コッペギ",
+      "locality": "周南市",
+      "query": "韓国香辛料理 コッペギ 周南市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ディレット",
+      "locality": "広島市",
+      "query": "ディレット 広島市 instagram",
+      "candidates": [
+        "d.i.r.e.t.t.o"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "しゃぶしゃぶと溶岩焼きの店縁-ENISHI- 薬院本店",
+      "locality": "福岡市",
+      "query": "しゃぶしゃぶと溶岩焼きの店縁-ENISHI- 薬院本店 福岡市 instagram",
+      "candidates": [
+        "dining_waranohi"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "焼鳥進",
+      "locality": "久留米市",
+      "query": "焼鳥進 久留米市 instagram",
+      "candidates": [
+        "kurume.yakitorishin"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "居酒屋ぎゃん亭",
+      "locality": "屋久島町",
+      "query": "居酒屋ぎゃん亭 屋久島町 instagram",
+      "candidates": [
+        "gyantei_1210",
+        "yakushima_gourmet_information"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Cafe Camino De Arab",
+      "locality": "Urasoe-Shi",
+      "query": "Cafe Camino De Arab Urasoe-Shi instagram",
+      "candidates": [
+        "cafecamino1"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "TeaRoom Cozy Corner",
+      "locality": "別府市",
+      "query": "TeaRoom Cozy Corner 別府市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "オステリア・ラ・フォンテ",
+      "locality": "福山市",
+      "query": "オステリア・ラ・フォンテ 福山市 instagram",
+      "candidates": [
+        "lafonte_fukuyama"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Up-schon",
+      "locality": "Saga",
+      "query": "Up-schon Saga instagram",
+      "candidates": [
+        "yuta7301",
+        "sagabar_official",
+        "sagaoishii"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "三八",
+      "locality": "熊本市",
+      "query": "三八 熊本市 instagram",
+      "candidates": [
+        "ichijyu_sanpachi_kmj",
+        "kumanomi_3",
+        "ryoriya_hachi"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "イタリア料理 ラ・ヴィータ",
+      "locality": "高知市",
+      "query": "イタリア料理 ラ・ヴィータ 高知市 instagram",
+      "candidates": [
+        "italianlavita",
+        "lavita_uji"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "喫茶ブラウン",
+      "locality": "姶良市",
+      "query": "喫茶ブラウン 姶良市 instagram",
+      "candidates": [
+        "atelier_coen_aira",
+        "napenape5523",
+        "kamouraview"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "あぐー豚・石垣牛・島野菜 黄金だし しゃぶき 石垣島",
+      "locality": "石垣市",
+      "query": "あぐー豚・石垣牛・島野菜 黄金だし しゃぶき 石垣島 石垣市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "暖心 ひなた",
+      "locality": "観音寺市",
+      "query": "暖心 ひなた 観音寺市 instagram",
+      "candidates": [
+        "dagashiyahinata"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "居酒屋八十八",
+      "locality": "宮崎市",
+      "query": "居酒屋八十八 宮崎市 instagram",
+      "candidates": [
+        "ramen_yasohachi",
+        "hachiku_miyazaki"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "33タコライス",
+      "locality": "那覇市",
+      "query": "33タコライス 那覇市 instagram",
+      "candidates": [
+        "thetacoricehouse.naha",
+        "okinawa.oni.tacorice",
+        "shikamas_tacos_naha"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "えびちゃん食堂",
+      "locality": "飯塚市",
+      "query": "えびちゃん食堂 飯塚市 instagram",
+      "candidates": [
+        "sakaba_syokudou_ebichan"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "レストランロータス",
+      "locality": "那覇市",
+      "query": "レストランロータス 那覇市 instagram",
+      "candidates": [
+        "okinawa_221",
+        "red_niku",
+        "okinawa__select"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ブランジュリアミー尾道店",
+      "locality": "尾道市",
+      "query": "ブランジュリアミー尾道店 尾道市 instagram",
+      "candidates": [
+        "boulangerieamie_onomichi",
+        "amie_bakery_bakery_cafe",
+        "boulangerieamie_mihara"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Coffee And Plants",
+      "locality": "山口市",
+      "query": "Coffee And Plants 山口市 instagram",
+      "candidates": [
+        "coffeeandplants_",
+        "hana_wine.and.coffee"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "炉端と焼鳥 ひとくち 中央駅店",
+      "locality": "鹿児島市",
+      "query": "炉端と焼鳥 ひとくち 中央駅店 鹿児島市 instagram",
+      "candidates": [
+        "hitokuchi_robata_yakitori"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "シーサイド",
+      "locality": "三豊市",
+      "query": "シーサイド 三豊市 instagram",
+      "candidates": [
+        "sea_side20",
+        "setouchi_seaside",
+        "mitoyo_gram"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "唐揚げ屋ICHI arita",
+      "locality": "西松浦郡有田町",
+      "query": "唐揚げ屋ICHI arita 西松浦郡有田町 instagram",
+      "candidates": [
+        "karaageya_ichi_arita"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "アフタヌーンティー・ティールーム 天満屋岡山店",
+      "locality": "岡山市北区",
+      "query": "アフタヌーンティー・ティールーム 天満屋岡山店 岡山市北区 instagram",
+      "candidates": [
+        "afternoontea_official"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "和や 駅前店",
+      "locality": "下関市",
+      "query": "和や 駅前店 下関市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "焼とり 力",
+      "locality": "下関市",
+      "query": "焼とり 力 下関市 instagram",
+      "candidates": [
+        "li_6095",
+        "toritori_hiroba",
+        "city_shimonoseki_official"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "パンと野菜のレストラン Oxalis （オキ ザリス）",
+      "locality": "山鹿市",
+      "query": "パンと野菜のレストラン Oxalis （オキ ザリス） 山鹿市 instagram",
+      "candidates": [
+        "oxalis1018"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "たけや",
+      "locality": "北九州市",
+      "query": "たけや 北九州市 instagram",
+      "candidates": [
+        "takeya0712"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "イロドリ",
+      "locality": "五島市",
+      "query": "イロドリ 五島市 instagram",
+      "candidates": [
+        "irodori51o",
+        "fukue.lunch"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "長崎チリンチリンアイス",
+      "locality": "長崎市",
+      "query": "長崎チリンチリンアイス 長崎市 instagram",
+      "candidates": [
+        "maedareika"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "シン!わだや",
+      "locality": "姶良町",
+      "query": "シン!わだや 姶良町 instagram",
+      "candidates": [
+        "shin_wadaya"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ごはんどき 宇部店",
+      "locality": "宇部市",
+      "query": "ごはんどき 宇部店 宇部市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "シャトラン",
+      "locality": "宮崎市",
+      "query": "シャトラン 宮崎市 instagram",
+      "candidates": [
+        "seagaia_official"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "オステリアファルコ",
+      "locality": "福岡市中央区",
+      "query": "オステリアファルコ 福岡市中央区 instagram",
+      "candidates": [
+        "osteria_falco"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "居酒屋ニパチ 国分店",
+      "locality": "霧島市",
+      "query": "居酒屋ニパチ 国分店 霧島市 instagram",
+      "candidates": [
+        "nipachi_official"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "豚ステーキ＆牛タンステーキ十一六本松店",
+      "locality": "福岡市",
+      "query": "豚ステーキ＆牛タンステーキ十一六本松店 福岡市 instagram",
+      "candidates": [
+        "toichi_ropponmatsu"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "武将",
+      "locality": "八女市",
+      "query": "武将 八女市 instagram",
+      "candidates": [
+        "busyou1115",
+        "yakitori.busyou",
+        "busho_ramen"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "東京苑",
+      "locality": "東諸県郡国富町",
+      "query": "東京苑 東諸県郡国富町 instagram",
+      "candidates": [
+        "miyazaki.tokyoen"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "カプチーノ　洲本",
+      "locality": "洲本市",
+      "query": "カプチーノ　洲本 洲本市 instagram",
+      "candidates": [],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "銀盃",
+      "locality": "那覇市",
+      "query": "銀盃 那覇市 instagram",
+      "candidates": [
+        "ginpai_1201"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "TRATTORIA & BAR グラッツェ食堂",
+      "locality": "大分市",
+      "query": "TRATTORIA & BAR グラッツェ食堂 大分市 instagram",
+      "candidates": [
+        "oita__gohan",
+        "ristorantequindici"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "BABAKE",
+      "locality": "長崎市",
+      "query": "BABAKE 長崎市 instagram",
+      "candidates": [
+        "nagasaki_babake"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "ジェラートピケカフェ鳥栖プレミアムアウトレット店",
+      "locality": "鳥栖市",
+      "query": "ジェラートピケカフェ鳥栖プレミアムアウトレット店 鳥栖市 instagram",
+      "candidates": [
+        "gelato_pique_cafe"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "正",
+      "locality": "産山村",
+      "query": "正 産山村 instagram",
+      "candidates": [
+        "ubuyamamura"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "おうちごはん あいご亭",
+      "locality": "南あわじ市",
+      "query": "おうちごはん あいご亭 南あわじ市 instagram",
+      "candidates": [
+        "aigotei_official"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "居酒屋祭華",
+      "locality": "北九州市",
+      "query": "居酒屋祭華 北九州市 instagram",
+      "candidates": [
+        "takahiro.kai.1119",
+        "kitakyushu_gururich_tourism"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "エンジェライト",
+      "locality": "佐世保市",
+      "query": "エンジェライト 佐世保市 instagram",
+      "candidates": [
+        "starlightschool"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "MYSTAR",
+      "locality": "小野市",
+      "query": "MYSTAR 小野市 instagram",
+      "candidates": [
+        "onocity_official",
+        "visit_ono"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "Rico",
+      "locality": "長崎市",
+      "query": "Rico 長崎市 instagram",
+      "candidates": [
+        "riko_730",
+        "riko19890724",
+        "rico.61"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "愛ご屋",
+      "locality": "松山市",
+      "query": "愛ご屋 松山市 instagram",
+      "candidates": [
+        "aigoya_ehime"
+      ],
+      "verified": null,
+      "account": null
+    },
+    {
+      "name": "弁当のたむら",
+      "locality": "萩市",
+      "query": "弁当のたむら 萩市 instagram",
+      "candidates": [
+        "bentou_no_tamura",
+        "tamuranoouchi"
+      ],
+      "verified": null,
+      "account": null
+    }
+  ]
+}

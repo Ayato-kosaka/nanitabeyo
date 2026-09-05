@@ -1,0 +1,1082 @@
+[
+  {
+    "tier": "high",
+    "category": "ラーメン",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 26,
+    "results": 30,
+    "in_area": 24,
+    "in_area_pct": 80.0
+  },
+  {
+    "tier": "high",
+    "category": "ラーメン",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 21,
+    "results": 25,
+    "in_area": 15,
+    "in_area_pct": 60.0
+  },
+  {
+    "tier": "high",
+    "category": "ラーメン",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 26,
+    "results": 26,
+    "in_area": 18,
+    "in_area_pct": 69.2
+  },
+  {
+    "tier": "high",
+    "category": "ラーメン",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 23,
+    "results": 29,
+    "in_area": 22,
+    "in_area_pct": 75.9
+  },
+  {
+    "tier": "high",
+    "category": "ラーメン",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 22,
+    "results": 30,
+    "in_area": 20,
+    "in_area_pct": 66.7
+  },
+  {
+    "tier": "high",
+    "category": "ラーメン",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 27,
+    "results": 30,
+    "in_area": 28,
+    "in_area_pct": 93.3
+  },
+  {
+    "tier": "high",
+    "category": "寿司",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 27,
+    "in_area_pct": 93.1
+  },
+  {
+    "tier": "high",
+    "category": "寿司",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 24,
+    "results": 27,
+    "in_area": 21,
+    "in_area_pct": 77.8
+  },
+  {
+    "tier": "high",
+    "category": "寿司",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 26,
+    "results": 29,
+    "in_area": 18,
+    "in_area_pct": 62.1
+  },
+  {
+    "tier": "high",
+    "category": "寿司",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 24,
+    "results": 28,
+    "in_area": 20,
+    "in_area_pct": 71.4
+  },
+  {
+    "tier": "high",
+    "category": "寿司",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 20,
+    "in_area_pct": 69.0
+  },
+  {
+    "tier": "high",
+    "category": "寿司",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 26,
+    "results": 27,
+    "in_area": 18,
+    "in_area_pct": 66.7
+  },
+  {
+    "tier": "high",
+    "category": "焼肉",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 26,
+    "results": 28,
+    "in_area": 23,
+    "in_area_pct": 82.1
+  },
+  {
+    "tier": "high",
+    "category": "焼肉",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 24,
+    "results": 28,
+    "in_area": 27,
+    "in_area_pct": 96.4
+  },
+  {
+    "tier": "high",
+    "category": "焼肉",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 28,
+    "results": 30,
+    "in_area": 17,
+    "in_area_pct": 56.7
+  },
+  {
+    "tier": "high",
+    "category": "焼肉",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 21,
+    "results": 24,
+    "in_area": 17,
+    "in_area_pct": 70.8
+  },
+  {
+    "tier": "high",
+    "category": "焼肉",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 27,
+    "results": 29,
+    "in_area": 16,
+    "in_area_pct": 55.2
+  },
+  {
+    "tier": "high",
+    "category": "焼肉",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 25,
+    "results": 30,
+    "in_area": 21,
+    "in_area_pct": 70.0
+  },
+  {
+    "tier": "high",
+    "category": "カレー",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 25,
+    "results": 30,
+    "in_area": 24,
+    "in_area_pct": 80.0
+  },
+  {
+    "tier": "high",
+    "category": "カレー",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 22,
+    "results": 28,
+    "in_area": 18,
+    "in_area_pct": 64.3
+  },
+  {
+    "tier": "high",
+    "category": "カレー",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 25,
+    "results": 27,
+    "in_area": 19,
+    "in_area_pct": 70.4
+  },
+  {
+    "tier": "high",
+    "category": "カレー",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 24,
+    "results": 28,
+    "in_area": 13,
+    "in_area_pct": 46.4
+  },
+  {
+    "tier": "high",
+    "category": "カレー",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 28,
+    "results": 29,
+    "in_area": 17,
+    "in_area_pct": 58.6
+  },
+  {
+    "tier": "high",
+    "category": "カレー",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 22,
+    "results": 25,
+    "in_area": 18,
+    "in_area_pct": 72.0
+  },
+  {
+    "tier": "high",
+    "category": "パスタ",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 26,
+    "results": 30,
+    "in_area": 19,
+    "in_area_pct": 63.3
+  },
+  {
+    "tier": "high",
+    "category": "パスタ",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 25,
+    "results": 29,
+    "in_area": 20,
+    "in_area_pct": 69.0
+  },
+  {
+    "tier": "high",
+    "category": "パスタ",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 26,
+    "results": 29,
+    "in_area": 19,
+    "in_area_pct": 65.5
+  },
+  {
+    "tier": "high",
+    "category": "パスタ",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 23,
+    "results": 30,
+    "in_area": 14,
+    "in_area_pct": 46.7
+  },
+  {
+    "tier": "high",
+    "category": "パスタ",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 23,
+    "results": 28,
+    "in_area": 9,
+    "in_area_pct": 32.1
+  },
+  {
+    "tier": "high",
+    "category": "パスタ",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 29,
+    "results": 30,
+    "in_area": 14,
+    "in_area_pct": 46.7
+  },
+  {
+    "tier": "high",
+    "category": "ハンバーガー",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 19,
+    "results": 24,
+    "in_area": 21,
+    "in_area_pct": 87.5
+  },
+  {
+    "tier": "high",
+    "category": "ハンバーガー",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 25,
+    "results": 26,
+    "in_area": 15,
+    "in_area_pct": 57.7
+  },
+  {
+    "tier": "high",
+    "category": "ハンバーガー",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 20,
+    "results": 25,
+    "in_area": 13,
+    "in_area_pct": 52.0
+  },
+  {
+    "tier": "high",
+    "category": "ハンバーガー",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 21,
+    "results": 25,
+    "in_area": 16,
+    "in_area_pct": 64.0
+  },
+  {
+    "tier": "high",
+    "category": "ハンバーガー",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 24,
+    "results": 28,
+    "in_area": 12,
+    "in_area_pct": 42.9
+  },
+  {
+    "tier": "high",
+    "category": "ハンバーガー",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 28,
+    "results": 29,
+    "in_area": 16,
+    "in_area_pct": 55.2
+  },
+  {
+    "tier": "mid",
+    "category": "とんかつ",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 26,
+    "results": 30,
+    "in_area": 22,
+    "in_area_pct": 73.3
+  },
+  {
+    "tier": "mid",
+    "category": "とんかつ",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 28,
+    "results": 30,
+    "in_area": 22,
+    "in_area_pct": 73.3
+  },
+  {
+    "tier": "mid",
+    "category": "とんかつ",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 21,
+    "in_area_pct": 72.4
+  },
+  {
+    "tier": "mid",
+    "category": "とんかつ",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 26,
+    "results": 30,
+    "in_area": 19,
+    "in_area_pct": 63.3
+  },
+  {
+    "tier": "mid",
+    "category": "とんかつ",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 21,
+    "in_area_pct": 72.4
+  },
+  {
+    "tier": "mid",
+    "category": "とんかつ",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 29,
+    "results": 30,
+    "in_area": 8,
+    "in_area_pct": 26.7
+  },
+  {
+    "tier": "mid",
+    "category": "お好み焼き",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 25,
+    "results": 27,
+    "in_area": 19,
+    "in_area_pct": 70.4
+  },
+  {
+    "tier": "mid",
+    "category": "お好み焼き",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 20,
+    "results": 24,
+    "in_area": 17,
+    "in_area_pct": 70.8
+  },
+  {
+    "tier": "mid",
+    "category": "お好み焼き",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 27,
+    "results": 28,
+    "in_area": 14,
+    "in_area_pct": 50.0
+  },
+  {
+    "tier": "mid",
+    "category": "お好み焼き",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 20,
+    "in_area_pct": 69.0
+  },
+  {
+    "tier": "mid",
+    "category": "お好み焼き",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 21,
+    "results": 23,
+    "in_area": 13,
+    "in_area_pct": 56.5
+  },
+  {
+    "tier": "mid",
+    "category": "お好み焼き",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 25,
+    "results": 28,
+    "in_area": 17,
+    "in_area_pct": 60.7
+  },
+  {
+    "tier": "mid",
+    "category": "天ぷら",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 27,
+    "results": 29,
+    "in_area": 20,
+    "in_area_pct": 69.0
+  },
+  {
+    "tier": "mid",
+    "category": "天ぷら",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 23,
+    "results": 29,
+    "in_area": 26,
+    "in_area_pct": 89.7
+  },
+  {
+    "tier": "mid",
+    "category": "天ぷら",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 29,
+    "results": 30,
+    "in_area": 25,
+    "in_area_pct": 83.3
+  },
+  {
+    "tier": "mid",
+    "category": "天ぷら",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 28,
+    "results": 30,
+    "in_area": 16,
+    "in_area_pct": 53.3
+  },
+  {
+    "tier": "mid",
+    "category": "天ぷら",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 26,
+    "results": 28,
+    "in_area": 19,
+    "in_area_pct": 67.9
+  },
+  {
+    "tier": "mid",
+    "category": "天ぷら",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 27,
+    "results": 30,
+    "in_area": 17,
+    "in_area_pct": 56.7
+  },
+  {
+    "tier": "mid",
+    "category": "餃子",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 23,
+    "results": 28,
+    "in_area": 21,
+    "in_area_pct": 75.0
+  },
+  {
+    "tier": "mid",
+    "category": "餃子",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 27,
+    "results": 30,
+    "in_area": 22,
+    "in_area_pct": 73.3
+  },
+  {
+    "tier": "mid",
+    "category": "餃子",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 29,
+    "results": 29,
+    "in_area": 21,
+    "in_area_pct": 72.4
+  },
+  {
+    "tier": "mid",
+    "category": "餃子",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 23,
+    "results": 26,
+    "in_area": 22,
+    "in_area_pct": 84.6
+  },
+  {
+    "tier": "mid",
+    "category": "餃子",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 15,
+    "in_area_pct": 51.7
+  },
+  {
+    "tier": "mid",
+    "category": "餃子",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 12,
+    "in_area_pct": 41.4
+  },
+  {
+    "tier": "mid",
+    "category": "タコス",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 26,
+    "results": 29,
+    "in_area": 17,
+    "in_area_pct": 58.6
+  },
+  {
+    "tier": "mid",
+    "category": "タコス",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 28,
+    "results": 29,
+    "in_area": 20,
+    "in_area_pct": 69.0
+  },
+  {
+    "tier": "mid",
+    "category": "タコス",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 23,
+    "results": 27,
+    "in_area": 9,
+    "in_area_pct": 33.3
+  },
+  {
+    "tier": "mid",
+    "category": "タコス",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 22,
+    "results": 27,
+    "in_area": 14,
+    "in_area_pct": 51.9
+  },
+  {
+    "tier": "mid",
+    "category": "タコス",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 25,
+    "results": 30,
+    "in_area": 12,
+    "in_area_pct": 40.0
+  },
+  {
+    "tier": "mid",
+    "category": "タコス",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 24,
+    "results": 28,
+    "in_area": 10,
+    "in_area_pct": 35.7
+  },
+  {
+    "tier": "mid",
+    "category": "ステーキ",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 25,
+    "results": 27,
+    "in_area": 20,
+    "in_area_pct": 74.1
+  },
+  {
+    "tier": "mid",
+    "category": "ステーキ",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 20,
+    "results": 25,
+    "in_area": 23,
+    "in_area_pct": 92.0
+  },
+  {
+    "tier": "mid",
+    "category": "ステーキ",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 23,
+    "results": 30,
+    "in_area": 10,
+    "in_area_pct": 33.3
+  },
+  {
+    "tier": "mid",
+    "category": "ステーキ",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 23,
+    "results": 25,
+    "in_area": 12,
+    "in_area_pct": 48.0
+  },
+  {
+    "tier": "mid",
+    "category": "ステーキ",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 22,
+    "results": 26,
+    "in_area": 14,
+    "in_area_pct": 53.8
+  },
+  {
+    "tier": "mid",
+    "category": "ステーキ",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 11,
+    "in_area_pct": 37.9
+  },
+  {
+    "tier": "tail",
+    "category": "うなぎ",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 19,
+    "in_area_pct": 65.5
+  },
+  {
+    "tier": "tail",
+    "category": "うなぎ",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 21,
+    "results": 24,
+    "in_area": 20,
+    "in_area_pct": 83.3
+  },
+  {
+    "tier": "tail",
+    "category": "うなぎ",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 24,
+    "results": 30,
+    "in_area": 18,
+    "in_area_pct": 60.0
+  },
+  {
+    "tier": "tail",
+    "category": "うなぎ",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 26,
+    "results": 30,
+    "in_area": 16,
+    "in_area_pct": 53.3
+  },
+  {
+    "tier": "tail",
+    "category": "うなぎ",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 23,
+    "results": 29,
+    "in_area": 14,
+    "in_area_pct": 48.3
+  },
+  {
+    "tier": "tail",
+    "category": "うなぎ",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 29,
+    "results": 30,
+    "in_area": 15,
+    "in_area_pct": 50.0
+  },
+  {
+    "tier": "tail",
+    "category": "ジンギスカン",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 27,
+    "results": 29,
+    "in_area": 17,
+    "in_area_pct": 58.6
+  },
+  {
+    "tier": "tail",
+    "category": "ジンギスカン",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 23,
+    "results": 27,
+    "in_area": 16,
+    "in_area_pct": 59.3
+  },
+  {
+    "tier": "tail",
+    "category": "ジンギスカン",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 26,
+    "results": 28,
+    "in_area": 13,
+    "in_area_pct": 46.4
+  },
+  {
+    "tier": "tail",
+    "category": "ジンギスカン",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 23,
+    "results": 26,
+    "in_area": 17,
+    "in_area_pct": 65.4
+  },
+  {
+    "tier": "tail",
+    "category": "ジンギスカン",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 17,
+    "results": 28,
+    "in_area": 8,
+    "in_area_pct": 28.6
+  },
+  {
+    "tier": "tail",
+    "category": "ジンギスカン",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 23,
+    "results": 27,
+    "in_area": 13,
+    "in_area_pct": 48.1
+  },
+  {
+    "tier": "tail",
+    "category": "ふぐ",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 25,
+    "results": 27,
+    "in_area": 10,
+    "in_area_pct": 37.0
+  },
+  {
+    "tier": "tail",
+    "category": "ふぐ",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 27,
+    "results": 29,
+    "in_area": 14,
+    "in_area_pct": 48.3
+  },
+  {
+    "tier": "tail",
+    "category": "ふぐ",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 24,
+    "results": 26,
+    "in_area": 14,
+    "in_area_pct": 53.8
+  },
+  {
+    "tier": "tail",
+    "category": "ふぐ",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 26,
+    "results": 27,
+    "in_area": 16,
+    "in_area_pct": 59.3
+  },
+  {
+    "tier": "tail",
+    "category": "ふぐ",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 25,
+    "results": 29,
+    "in_area": 8,
+    "in_area_pct": 27.6
+  },
+  {
+    "tier": "tail",
+    "category": "ふぐ",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 27,
+    "results": 28,
+    "in_area": 15,
+    "in_area_pct": 53.6
+  },
+  {
+    "tier": "tail",
+    "category": "沖縄そば",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 27,
+    "results": 29,
+    "in_area": 20,
+    "in_area_pct": 69.0
+  },
+  {
+    "tier": "tail",
+    "category": "沖縄そば",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 28,
+    "results": 30,
+    "in_area": 9,
+    "in_area_pct": 30.0
+  },
+  {
+    "tier": "tail",
+    "category": "沖縄そば",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 28,
+    "results": 30,
+    "in_area": 13,
+    "in_area_pct": 43.3
+  },
+  {
+    "tier": "tail",
+    "category": "沖縄そば",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 26,
+    "results": 28,
+    "in_area": 12,
+    "in_area_pct": 42.9
+  },
+  {
+    "tier": "tail",
+    "category": "沖縄そば",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 30,
+    "results": 30,
+    "in_area": 13,
+    "in_area_pct": 43.3
+  },
+  {
+    "tier": "tail",
+    "category": "沖縄そば",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 24,
+    "results": 29,
+    "in_area": 17,
+    "in_area_pct": 58.6
+  },
+  {
+    "tier": "tail",
+    "category": "ビリヤニ",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 23,
+    "results": 28,
+    "in_area": 16,
+    "in_area_pct": 57.1
+  },
+  {
+    "tier": "tail",
+    "category": "ビリヤニ",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 25,
+    "results": 28,
+    "in_area": 10,
+    "in_area_pct": 35.7
+  },
+  {
+    "tier": "tail",
+    "category": "ビリヤニ",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 26,
+    "results": 28,
+    "in_area": 11,
+    "in_area_pct": 39.3
+  },
+  {
+    "tier": "tail",
+    "category": "ビリヤニ",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 26,
+    "results": 28,
+    "in_area": 16,
+    "in_area_pct": 57.1
+  },
+  {
+    "tier": "tail",
+    "category": "ビリヤニ",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 25,
+    "results": 28,
+    "in_area": 11,
+    "in_area_pct": 39.3
+  },
+  {
+    "tier": "tail",
+    "category": "ビリヤニ",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 26,
+    "results": 27,
+    "in_area": 8,
+    "in_area_pct": 29.6
+  },
+  {
+    "tier": "tail",
+    "category": "ネパール料理",
+    "area_type": "超高密度都市",
+    "area": "渋谷",
+    "unique_posts": 26,
+    "results": 27,
+    "in_area": 14,
+    "in_area_pct": 51.9
+  },
+  {
+    "tier": "tail",
+    "category": "ネパール料理",
+    "area_type": "大都市中心部",
+    "area": "大阪 難波",
+    "unique_posts": 23,
+    "results": 26,
+    "in_area": 9,
+    "in_area_pct": 34.6
+  },
+  {
+    "tier": "tail",
+    "category": "ネパール料理",
+    "area_type": "大都市郊外",
+    "area": "町田",
+    "unique_posts": 29,
+    "results": 29,
+    "in_area": 14,
+    "in_area_pct": 48.3
+  },
+  {
+    "tier": "tail",
+    "category": "ネパール料理",
+    "area_type": "地方政令市",
+    "area": "仙台",
+    "unique_posts": 27,
+    "results": 30,
+    "in_area": 11,
+    "in_area_pct": 36.7
+  },
+  {
+    "tier": "tail",
+    "category": "ネパール料理",
+    "area_type": "地方中核市",
+    "area": "高松",
+    "unique_posts": 28,
+    "results": 30,
+    "in_area": 20,
+    "in_area_pct": 66.7
+  },
+  {
+    "tier": "tail",
+    "category": "ネパール料理",
+    "area_type": "郊外",
+    "area": "五所川原",
+    "unique_posts": 24,
+    "results": 28,
+    "in_area": 5,
+    "in_area_pct": 17.9
+  }
+]

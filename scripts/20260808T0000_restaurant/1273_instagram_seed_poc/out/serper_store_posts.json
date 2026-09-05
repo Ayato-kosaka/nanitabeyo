@@ -1,0 +1,1071 @@
+{
+  "summary": {
+    "source": "fsq_jp_no_instagram_sample.csv",
+    "n": 100,
+    "stores_with_any_post": 88,
+    "stores_with_post_naming_store": 53,
+    "pct_any_post": 88.0,
+    "pct_named": 53.0,
+    "mean_posts_per_store": 6.99
+  },
+  "rows": [
+    {
+      "name": "立飲み屋 Kiritsu キリツ 鹿児島中央駅前店",
+      "locality": "鹿児島市",
+      "query": "site:instagram.com/p \"立飲み屋 Kiritsu キリツ 鹿児島中央駅前店\" 鹿児島市",
+      "posts": 9,
+      "posts_naming_store": 0,
+      "sample": [
+        "立飲み屋キリツ鹿児島中央駅前店の近く ...",
+        "【立飲み屋 Kiritsu_中央駅前店】鹿児島県鹿児島市 とり ..."
+      ]
+    },
+    {
+      "name": "はまなすコーヒーハウス",
+      "locality": "土佐市",
+      "query": "site:instagram.com/p \"はまなすコーヒーハウス\" 土佐市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "本日はコーヒーフェスのため 元気に10時Openします。 ...",
+        "． 本日限定カレーの日と言うことで ． #食堂はまなす #むつ総合 ..."
+      ]
+    },
+    {
+      "name": "唐揚げ屋ICHI arita",
+      "locality": "西松浦郡有田町",
+      "query": "site:instagram.com/p \"唐揚げ屋ICHI arita\" 西松浦郡有田町",
+      "posts": 3,
+      "posts_naming_store": 3,
+      "sample": [
+        "唐揚げ屋ICHI arita | 手羽先唐揚げ🍗も 大人気です😊✨ 2日間じっくり ...",
+        "唐揚げ屋ICHI arita"
+      ]
+    },
+    {
+      "name": "マドレーヌ",
+      "locality": "熊本市",
+      "query": "site:instagram.com/p \"マドレーヌ\" 熊本市",
+      "posts": 8,
+      "posts_naming_store": 7,
+      "sample": [
+        "「マドレーヌ」 焼き菓子の定番ですね😊 以前は『おひさま ...",
+        "いらっしゃいませ。 2025年クリスマスケーキ決まりました 今年 ..."
+      ]
+    },
+    {
+      "name": "台湾料理龍祥",
+      "locality": "加古川市",
+      "query": "site:instagram.com/p \"台湾料理龍祥\" 加古川市",
+      "posts": 9,
+      "posts_naming_store": 4,
+      "sample": [
+        "コスパ◯のボリュームある中華が人気のお店、台湾料理 龍祥 ...",
+        "加古川市神野町石守にある、コスパ抜群の中華が人気のお店 ..."
+      ]
+    },
+    {
+      "name": "なのはな食堂",
+      "locality": "都城市",
+      "query": "site:instagram.com/p \"なのはな食堂\" 都城市",
+      "posts": 10,
+      "posts_naming_store": 4,
+      "sample": [
+        "本日のなのはな食堂です。都城市総合文化ホール内でランチ ...",
+        "【いつかの昼ご飯】 MJホール(都城総合文化ホール)の下(神柱 ..."
+      ]
+    },
+    {
+      "name": "天津飯店",
+      "locality": "佐世保市",
+      "query": "site:instagram.com/p \"天津飯店\" 佐世保市",
+      "posts": 9,
+      "posts_naming_store": 8,
+      "sample": [
+        "#天津飯店 #佐世保市高天町 #皿うどん #大盛り #パリパリ麺 ...",
+        "! #天津飯店 佐世保市高天町 #唐揚げ定食 (大盛り)800円也。 ..."
+      ]
+    },
+    {
+      "name": "オステリアファルコ",
+      "locality": "福岡市中央区",
+      "query": "site:instagram.com/p \"オステリアファルコ\" 福岡市中央区",
+      "posts": 10,
+      "posts_naming_store": 6,
+      "sample": [
+        "📍Osteria Falcoオステリア ファルコ 岡市中央区薬院伊福町11 ...",
+        "オステリア ファルコ｜薬院 イタリアン ランチ ディナー"
+      ]
+    },
+    {
+      "name": "すしことかつお",
+      "locality": "鹿児島市",
+      "query": "site:instagram.com/p \"すしことかつお\" 鹿児島市",
+      "posts": 10,
+      "posts_naming_store": 3,
+      "sample": [
+        "おはようございます🌞 あずきちゃんですっ🙇‍♀️ すしことかつお ...",
+        "鰹が美味しい『すしことかつお🍣🐟』 | メニュー更新 せんべろわ2 ..."
+      ]
+    },
+    {
+      "name": "雫流",
+      "locality": "鹿児島市",
+      "query": "site:instagram.com/p \"雫流\" 鹿児島市",
+      "posts": 9,
+      "posts_naming_store": 3,
+      "sample": [
+        "2024.12.26 鹿児島市 天文館にある 「雫流」さんへ👯‍♂️💕 生粋 ...",
+        "天パーク通りの2階にある #雫流 . 牡蠣大好き人間 . 新鮮な ..."
+      ]
+    },
+    {
+      "name": "K's Mon chou chou",
+      "locality": "熊本市",
+      "query": "site:instagram.com/p \"K's Mon chou chou\" 熊本市",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "樹樹",
+      "locality": "福岡市",
+      "query": "site:instagram.com/p \"樹樹\" 福岡市",
+      "posts": 10,
+      "posts_naming_store": 5,
+      "sample": [
+        "福岡市博多区中洲、中洲川端駅の近くにある喫茶店、樹樹☕ ...",
+        "………………… あんなに真っ赤だった葉も落ちて 少しさみしい ..."
+      ]
+    },
+    {
+      "name": "ハミングバード",
+      "locality": "姫路市",
+      "query": "site:instagram.com/p \"ハミングバード\" 姫路市",
+      "posts": 10,
+      "posts_naming_store": 9,
+      "sample": [
+        "letter: 今日の姫路喫茶調査隊は、HUMMING BIRDへ行きまし ...",
+        "花影町のハミングバードから備品が運び出され ..."
+      ]
+    },
+    {
+      "name": "ケンタッキーフライドチキン",
+      "locality": "Hiroshima",
+      "query": "site:instagram.com/p \"ケンタッキーフライドチキン\" Hiroshima",
+      "posts": 10,
+      "posts_naming_store": 3,
+      "sample": [
+        "ケンタッキーフライドチキンが広島、鹿児島及び神奈川の一部 ...",
+        "HiroPa・PR担当です☺️ 広島市内2店舗限定！ ケンタッキー ..."
+      ]
+    },
+    {
+      "name": "ブランジュリアミー尾道店",
+      "locality": "尾道市",
+      "query": "site:instagram.com/p \"ブランジュリアミー尾道店\" 尾道市",
+      "posts": 9,
+      "posts_naming_store": 0,
+      "sample": [
+        "🇮🇹ワイン各種提供しております🥂 ⁡ 『赤ワイン、白 ...",
+        "昨日は、第3回アトリエメンバーズミーティングを開催しました。 ..."
+      ]
+    },
+    {
+      "name": "こし葉",
+      "locality": "米子市",
+      "query": "site:instagram.com/p \"こし葉\" 米子市",
+      "posts": 2,
+      "posts_naming_store": 0,
+      "sample": [
+        "Photo by Queen Love (@gongbenmeishuzi)",
+        "少し後悔↘️ とはいえ、着物生活少しずつ幅が広がってます"
+      ]
+    },
+    {
+      "name": "マクドナルド 55号野市店 (McDonald's)",
+      "locality": "香南市",
+      "query": "site:instagram.com/p \"マクドナルド 55号野市店 (McDonald's)\" 香南市",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "チックパイプ",
+      "locality": "三原市",
+      "query": "site:instagram.com/p \"チックパイプ\" 三原市",
+      "posts": 8,
+      "posts_naming_store": 4,
+      "sample": [
+        "三原市でダーツバーを開かれているチックパイプさんの醤油の夜鳴き ...",
+        "#ダーツ #チックパイプ66 #chickpipe #ひよこの夜鳴きラーメン ..."
+      ]
+    },
+    {
+      "name": "MYSTAR",
+      "locality": "小野市",
+      "query": "site:instagram.com/p \"MYSTAR\" 小野市",
+      "posts": 9,
+      "posts_naming_store": 1,
+      "sample": [
+        "だいかねの家が素敵な施工事例をご紹介します📸 間接照明を設置 ...",
+        "【第22回MYSTARアマプロダンス選手権大会】ご案内 日程： ..."
+      ]
+    },
+    {
+      "name": "タジマ カフェ+オフィス",
+      "locality": "たつの市",
+      "query": "site:instagram.com/p \"タジマ カフェ+オフィス\" たつの市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "こんにちは😊 TAJIMA cafe オープンです♪ もう9 ...",
+        "カフェで、ほっこり絵本タイム。 たつの市からお越しのご家族。 6 ..."
+      ]
+    },
+    {
+      "name": "頂好茶館",
+      "locality": "福岡市",
+      "query": "site:instagram.com/p \"頂好茶館\" 福岡市",
+      "posts": 5,
+      "posts_naming_store": 1,
+      "sample": [
+        "#頂好茶館#台灣料理#福岡台灣鄉親尾牙餐會#九州 ...",
+        "【20220327花見會】 櫻花季🌸 即將到來，大家家裡旁邊的 ..."
+      ]
+    },
+    {
+      "name": "ごはんどき 宇部店",
+      "locality": "宇部市",
+      "query": "site:instagram.com/p \"ごはんどき 宇部店\" 宇部市",
+      "posts": 4,
+      "posts_naming_store": 0,
+      "sample": [
+        "︎妻崎食堂 ⚪︎〒759-0204 山口県宇部市妻崎開作1430-6 ⚪︎11: ...",
+        "今日の昼ごはんは山口県の下関警察署2階にある四季彩食堂"
+      ]
+    },
+    {
+      "name": "Whitelady",
+      "locality": "那覇市",
+      "query": "site:instagram.com/p \"Whitelady\" 那覇市",
+      "posts": 10,
+      "posts_naming_store": 5,
+      "sample": [
+        "10月24日、木曜日 ガールズ bar Whiteladyゎ21:00〜ラスト ...",
+        ". 2026年8月9日日曜日🩵 10分サービスDAY🕰️✨ こんばんは ..."
+      ]
+    },
+    {
+      "name": "弁当のたむら",
+      "locality": "萩市",
+      "query": "site:instagram.com/p \"弁当のたむら\" 萩市",
+      "posts": 1,
+      "posts_naming_store": 1,
+      "sample": [
+        "弁当のたむら on Instagram: \"本日も多くのご注文ありがとう ..."
+      ]
+    },
+    {
+      "name": "キッチン麦",
+      "locality": "福岡市",
+      "query": "site:instagram.com/p \"キッチン麦\" 福岡市",
+      "posts": 10,
+      "posts_naming_store": 1,
+      "sample": [
+        "近くにあったら最高のお弁当やさん✨ だし巻き卵 ...",
+        "西南グルメフェス2026🌼 福岡で活躍する同窓生の飲食店が一堂に会 ..."
+      ]
+    },
+    {
+      "name": "松屋・松のや 広島八木店",
+      "locality": "広島市",
+      "query": "site:instagram.com/p \"松屋・松のや 広島八木店\" 広島市",
+      "posts": 1,
+      "posts_naming_store": 1,
+      "sample": [
+        "こんばんは🌉 3月14日に松屋・松のや広島八木店さんが ..."
+      ]
+    },
+    {
+      "name": "ほっともっと 戸次大南店",
+      "locality": "大分市",
+      "query": "site:instagram.com/p \"ほっともっと 戸次大南店\" 大分市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "おはようございます！ 日中は暖かく、朝晩冷えますがいかが ...",
+        ". 9月13(金)〜15(日)まで大分市内5店舗、マルミヤストア戸次 ..."
+      ]
+    },
+    {
+      "name": "creative french toast in okinawa",
+      "locality": "沖縄市",
+      "query": "site:instagram.com/p \"creative french toast in okinawa\" 沖縄市",
+      "posts": 9,
+      "posts_naming_store": 1,
+      "sample": [
+        ". ⁡ 12/30(火)まで営業しております☕️ プロフィール ...",
+        "フレンチトーストで至福のランチタイムをお過ごしください ..."
+      ]
+    },
+    {
+      "name": "炭火焼うなぎ竹田",
+      "locality": "浦添市",
+      "query": "site:instagram.com/p \"炭火焼うなぎ竹田\" 浦添市",
+      "posts": 10,
+      "posts_naming_store": 7,
+      "sample": [
+        "【臨時休業のお知らせ】 いつも炭火焼うなぎ竹田をご利用 ...",
+        "【土用の丑の日 店内営業のご案内】 いつも炭火焼うなぎ竹田を ..."
+      ]
+    },
+    {
+      "name": "cafe gram 岡山天満屋店",
+      "locality": "岡山市",
+      "query": "site:instagram.com/p \"cafe gram 岡山天満屋店\" 岡山市",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "和み囲酒屋雅masa",
+      "locality": "久留米市",
+      "query": "site:instagram.com/p \"和み囲酒屋雅masa\" 久留米市",
+      "posts": 3,
+      "posts_naming_store": 0,
+      "sample": [
+        "久留米で「心ゆくまでお酒を楽しみたい！」って人、絶対 ...",
+        "2周年通常例会 @shusei.kurumecentral 1部・2部商談会 ..."
+      ]
+    },
+    {
+      "name": "ウイング",
+      "locality": "姫路市",
+      "query": "site:instagram.com/p \"ウイング\" 姫路市",
+      "posts": 9,
+      "posts_naming_store": 3,
+      "sample": [
+        "就労支援事業所Wingです🍀 今日は今年最後の開所日、皆で大掃除 ...",
+        "こんにちは✨ 就労移行支援事業所Wingです😃 ..."
+      ]
+    },
+    {
+      "name": "メンフィス ギャング カフェ",
+      "locality": "呉",
+      "query": "site:instagram.com/p \"メンフィス ギャング カフェ\" 呉",
+      "posts": 9,
+      "posts_naming_store": 4,
+      "sample": [
+        "広島県呉市にあるメンフィスギャングカフェ🥩 骸骨がお出迎え🦴 ...",
+        "#メンフィスギャングカフェ #呉市 #広島グルメ #呉グルメ #1ポンド ..."
+      ]
+    },
+    {
+      "name": "Nishipan",
+      "locality": "高松市",
+      "query": "site:instagram.com/p \"Nishipan\" 高松市",
+      "posts": 10,
+      "posts_naming_store": 6,
+      "sample": [
+        "【番外編 in香川】 『nishipan ニシパン(香川県高松 ...",
+        "nishipan（ニシパン）（高松市） 人気のパン屋さん✨ 種類が豊富で"
+      ]
+    },
+    {
+      "name": "暖心 ひなた",
+      "locality": "観音寺市",
+      "query": "site:instagram.com/p \"暖心 ひなた\" 観音寺市",
+      "posts": 9,
+      "posts_naming_store": 0,
+      "sample": [
+        "【まいぷれ新見市掲載店ニュース】 安達動物病院 さん 新しい家族を ...",
+        "ฅ 🎄✨福六 CHRISTMAS EVENT 出店✨🎄 📅 12月20日（土）10時"
+      ]
+    },
+    {
+      "name": "すたみな太郎 飯塚店",
+      "locality": "飯塚市",
+      "query": "site:instagram.com/p \"すたみな太郎 飯塚店\" 飯塚市",
+      "posts": 8,
+      "posts_naming_store": 1,
+      "sample": [
+        "たべるタバスコ | 【すたみな太郎飯塚店】 ...",
+        "お昼ご飯を食べて岡垣町にある成田山へ初詣に行きました ..."
+      ]
+    },
+    {
+      "name": "馳走処手いっぽん",
+      "locality": "福岡市",
+      "query": "site:instagram.com/p \"馳走処手いっぽん\" 福岡市",
+      "posts": 4,
+      "posts_naming_store": 1,
+      "sample": [
+        "10月に帰った時に行った博多区店屋町の『馳走処 手いっぽん』 ...",
+        "豐富度與舒適感兼具，從小孩的遊樂選擇到長輩的悠閒路線都有"
+      ]
+    },
+    {
+      "name": "Bar Meister",
+      "locality": "延岡市",
+      "query": "site:instagram.com/p \"Bar Meister\" 延岡市",
+      "posts": 10,
+      "posts_naming_store": 3,
+      "sample": [
+        "#マイスター #meister #barmeister #bar #バー #オーセンティック ...",
+        "2024.04.27 BAR MEISTER #宮崎 #延岡市 #ファインダー越しの私 ..."
+      ]
+    },
+    {
+      "name": "Pilvi",
+      "locality": "松江市",
+      "query": "site:instagram.com/p \"Pilvi\" 松江市",
+      "posts": 10,
+      "posts_naming_store": 6,
+      "sample": [
+        "松江市寺町の【pilvi】へ！ 食事用のパンも、焼き菓子も、ケーキ ...",
+        "心温まるベーカリーランチを松江で。 島根県松江市寺町にある ..."
+      ]
+    },
+    {
+      "name": "吉晶",
+      "locality": "岡山市",
+      "query": "site:instagram.com/p \"吉晶\" 岡山市",
+      "posts": 7,
+      "posts_naming_store": 3,
+      "sample": [
+        "nadeshiko | 丸の内の懐石料理 吉晶 に行って来ました🍱 日銀の近く ...",
+        "□今日は懐石・割烹料理の名店『吉晶』へ。 ⁡ ※ミシュランガイド京都 ..."
+      ]
+    },
+    {
+      "name": "キリンビアファーム",
+      "locality": "朝倉市",
+      "query": "site:instagram.com/p \"キリンビアファーム\" 朝倉市",
+      "posts": 10,
+      "posts_naming_store": 4,
+      "sample": [
+        "こんにちは♪ キリンビアファームです！ 本日も工場直送の ...",
+        "キリンビアファーム（朝倉市） ・BBQリブ ..."
+      ]
+    },
+    {
+      "name": "焼肉_一（はじめ）",
+      "locality": "熊本市",
+      "query": "site:instagram.com/p \"焼肉_一（はじめ）\" 熊本市",
+      "posts": 7,
+      "posts_naming_store": 0,
+      "sample": [
+        "🎶店舗紹介🎶 【焼肉 無限】 熊本名物・馬刺しや赤牛をはじめと ...",
+        "【熊本・個室焼肉】 🥩阿蘇あか牛を一頭買いで堪能！ 火褐 ..."
+      ]
+    },
+    {
+      "name": "フランス菓子一公加治屋店",
+      "locality": "鹿児島市",
+      "query": "site:instagram.com/p \"フランス菓子一公加治屋店\" 鹿児島市",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "和食亭さくら",
+      "locality": "福智町",
+      "query": "site:instagram.com/p \"和食亭さくら\" 福智町",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "蔵司 〒822-1101 福岡県田川郡福智町赤池970−140",
+        "Hanakoに東長崎が紹介されてなんとも感慨深い。明日あさって ..."
+      ]
+    },
+    {
+      "name": "Sutadinya",
+      "locality": "Kitanakagusuku",
+      "query": "site:instagram.com/p \"Sutadinya\" Kitanakagusuku",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "サイゼリアゆめタウン筑紫野店",
+      "locality": "筑紫野市",
+      "query": "site:instagram.com/p \"サイゼリアゆめタウン筑紫野店\" 筑紫野市",
+      "posts": 9,
+      "posts_naming_store": 0,
+      "sample": [
+        "長年 #バーガーキング を羨みつつも縁の無い生活をしていた ...",
+        "夏休み 福岡帰省で美味しく喰らいましたー❣️ 松花堂ランチ ..."
+      ]
+    },
+    {
+      "name": "酒・味処　武",
+      "locality": "石垣市",
+      "query": "site:instagram.com/p \"酒・味処　武\" 石垣市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        ". . 無期限！泡盛ボトルキープできます☺️！ 🐟🍙🐟🍙🐟🍙 ...",
+        "真鱈白子 ・ポン酢 ・天ぷら ・昆布焼き 大人気の白子は毎回すぐ ..."
+      ]
+    },
+    {
+      "name": "扇屋本店工場",
+      "locality": "鹿児島市",
+      "query": "site:instagram.com/p \"扇屋本店工場\" 鹿児島市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "今週の #水出しアイスコーヒー は、 #エチオピア ストレート。 珈琲 ...",
+        "いつもご利用ありがとうございます✨ 本日より🌸桜餅🌸の販売を ..."
+      ]
+    },
+    {
+      "name": "Food&Drink Creme / クリーム",
+      "locality": "鹿児島市",
+      "query": "site:instagram.com/p \"Food&Drink Creme / クリーム\" 鹿児島市",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "お好み焼 弁慶まる",
+      "locality": "広島市",
+      "query": "site:instagram.com/p \"お好み焼 弁慶まる\" 広島市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "倉敷に。 生まれて初めて食べる広島のお好み焼きですって☺️ ...",
+        "塩分と旨みを欲する体に最高の「サ飯」を！ 赤倉温泉街から車 ..."
+      ]
+    },
+    {
+      "name": "イタリアン　ドーニ　デッラ　テーラ",
+      "locality": "吉野川市",
+      "query": "site:instagram.com/p \"イタリアン　ドーニ　デッラ　テーラ\" 吉野川市",
+      "posts": 1,
+      "posts_naming_store": 0,
+      "sample": [
+        "ドーニ・デッラ・テーラ | ♡見ていただき♡ 先週salalaに掲載して ..."
+      ]
+    },
+    {
+      "name": "The dining 伍右衛門",
+      "locality": "Okayama",
+      "query": "site:instagram.com/p \"The dining 伍右衛門\" Okayama",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "ヒライ",
+      "locality": "宇城市",
+      "query": "site:instagram.com/p \"ヒライ\" 宇城市",
+      "posts": 9,
+      "posts_naming_store": 7,
+      "sample": [
+        "✏︎... #ヒライ 松橋中央店 ⁡ 山ちゃんラーメン ⁡ 【出張飯 ...",
+        "名物ちくわｻﾗﾀﾞ🥗✨ 沢山ありますよ〜✨٩( ᐛ )و✨ おべんとうの ..."
+      ]
+    },
+    {
+      "name": "洋食と珈琲の店 トロル",
+      "locality": "壱岐市",
+      "query": "site:instagram.com/p \"洋食と珈琲の店 トロル\" 壱岐市",
+      "posts": 9,
+      "posts_naming_store": 1,
+      "sample": [
+        "『#洋食と珈琲の店トロル』 #長崎喫茶店#壱岐喫茶店#壱岐ランチ# ...",
+        "【イベントのお知らせ】 壱岐島うまいもんフェスinカホテラス ..."
+      ]
+    },
+    {
+      "name": "Bistro Ange",
+      "locality": "下関市",
+      "query": "site:instagram.com/p \"Bistro Ange\" 下関市",
+      "posts": 1,
+      "posts_naming_store": 0,
+      "sample": [
+        "先日の土用丑の日のランチメニューをご紹介します✨ 鰻 ..."
+      ]
+    },
+    {
+      "name": "らーめん道場太鼓判鳥取駅前サンロード店",
+      "locality": "鳥取市",
+      "query": "site:instagram.com/p \"らーめん道場太鼓判鳥取駅前サンロード店\" 鳥取市",
+      "posts": 9,
+      "posts_naming_store": 0,
+      "sample": [
+        "鳥取駅前で出会う、絶品のご当地牛骨ラーメン！ノスタルジック ...",
+        "鳥取ラーメン訪問111 ラーメン道場 太鼓判 〒680-0831 鳥取 ..."
+      ]
+    },
+    {
+      "name": "ミロワール南香",
+      "locality": "都城市",
+      "query": "site:instagram.com/p \"ミロワール南香\" 都城市",
+      "posts": 10,
+      "posts_naming_store": 2,
+      "sample": [
+        ". 都城市のミロワール南香さんがつくられる バイオ茶ショコラ ...",
+        "本当に久しぶりに老舗のミロワール南香さんのケーキ ..."
+      ]
+    },
+    {
+      "name": "花いちりん",
+      "locality": "赤穂市",
+      "query": "site:instagram.com/p \"花いちりん\" 赤穂市",
+      "posts": 3,
+      "posts_naming_store": 0,
+      "sample": [
+        "沖縄で民泊をされていた2人のおうちに滞在中、大きな転機が訪れまし ...",
+        "「WAVE_02」 27in × 27in 「VAGUE_02 ..."
+      ]
+    },
+    {
+      "name": "から揚げ専門店からふく空港通り店",
+      "locality": "糟屋郡志免町",
+      "query": "site:instagram.com/p \"から揚げ専門店からふく空港通り店\" 糟屋郡志免町",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "Cafe Jardin",
+      "locality": "広島市",
+      "query": "site:instagram.com/p \"Cafe Jardin\" 広島市",
+      "posts": 10,
+      "posts_naming_store": 2,
+      "sample": [
+        "photo 📍広島美術館 Cafe jardin 🗓️2026/08/09",
+        ". ひろしま美術館 Cafe Jardin 🐈‍⬛ 大きくはないけれど 緑の庭園 ..."
+      ]
+    },
+    {
+      "name": "しゃぶしゃぶと溶岩焼きの店縁-ENISHI- 薬院本店",
+      "locality": "福岡市",
+      "query": "site:instagram.com/p \"しゃぶしゃぶと溶岩焼きの店縁-ENISHI- 薬院本店\" 福岡市",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "鰻や 正一",
+      "locality": "熊本市中央区",
+      "query": "site:instagram.com/p \"鰻や 正一\" 熊本市中央区",
+      "posts": 10,
+      "posts_naming_store": 5,
+      "sample": [
+        "鰻や正一 熊本県熊本市中央区坪井4-20-39 徳一さんの隣 ...",
+        "☆4 鰻や正一（まさかず） 熊本県熊本市中央区坪井4丁目20 ..."
+      ]
+    },
+    {
+      "name": "ウサギよりカメ２ もんじゃ焼き",
+      "locality": "Fukuoka",
+      "query": "site:instagram.com/p \"ウサギよりカメ２ もんじゃ焼き\" Fukuoka",
+      "posts": 5,
+      "posts_naming_store": 0,
+      "sample": [
+        "[ 博多アイアンマン / 하카타 아이언맨 ] 후쿠오카에서 찾은 현지인 찐 ...",
+        "🇯🇵 셀프바 술 무한리필 노미호다이까지 가능✨ 🌟 더 많은 ..."
+      ]
+    },
+    {
+      "name": "いざかふぇ Cou Cou",
+      "locality": "北九州市",
+      "query": "site:instagram.com/p \"いざかふぇ Cou Cou\" 北九州市",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "和Dining 是喰",
+      "locality": "高松市",
+      "query": "site:instagram.com/p \"和Dining 是喰\" 高松市",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "リキ",
+      "locality": "徳島市",
+      "query": "site:instagram.com/p \"リキ\" 徳島市",
+      "posts": 9,
+      "posts_naming_store": 3,
+      "sample": [
+        "🥩 徳島で焼肉なら、ここ好きかも…！ 徳島市南昭和町にある 【リキ】 ...",
+        "中華そば リキで中華そばに生たまごとニンニクトッピング😋800 ..."
+      ]
+    },
+    {
+      "name": "Grasso",
+      "locality": "大分市",
+      "query": "site:instagram.com/p \"Grasso\" 大分市",
+      "posts": 10,
+      "posts_naming_store": 1,
+      "sample": [
+        "お久しぶり GRASSO 2 Chome-6-14 Chuomachi, Oita, 870-0035",
+        "リニューアルした瑠蒼(ルソウ)さんへ！ 食べたかったトンテキを ..."
+      ]
+    },
+    {
+      "name": "焼とり 力",
+      "locality": "下関市",
+      "query": "site:instagram.com/p \"焼とり 力\" 下関市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "焼鳥 一力 宇部店＠宇部市中央町 「震えてるぞ。 ...",
+        ". 《天草の塩》が鳥の旨みを際立せ800度の備長炭で焼き上げた ..."
+      ]
+    },
+    {
+      "name": "かつや",
+      "locality": "熊本市",
+      "query": "site:instagram.com/p \"かつや\" 熊本市",
+      "posts": 10,
+      "posts_naming_store": 7,
+      "sample": [
+        "かつや 熊本益城インター店 熊本市東区にあるとんかつのお店です。 ...",
+        "かつや熊本益城インター店 📍熊本市東区花立6丁目5-1 🚗駐車場あり ..."
+      ]
+    },
+    {
+      "name": "尾道浪漫珈琲ANAクラウンプラザホテル広島",
+      "locality": "広島市",
+      "query": "site:instagram.com/p \"尾道浪漫珈琲ANAクラウンプラザホテル広島\" 広島市",
+      "posts": 2,
+      "posts_naming_store": 0,
+      "sample": [
+        "バレンタインイベントのお知らせ！！ 尾道浪漫珈琲 ANAクラウン ...",
+        "瀬戸内レモンジュエリーは#おみやげ街道 #ekie 広島店でも ..."
+      ]
+    },
+    {
+      "name": "Otokomae",
+      "locality": "福山市",
+      "query": "site:instagram.com/p \"Otokomae\" 福山市",
+      "posts": 9,
+      "posts_naming_store": 1,
+      "sample": [
+        "結果着地🙏🏻😁🍺🍻🎉 #Otokomae #hirosima #Fukuyama #正月休み ...",
+        "‏‎HOME‎‏ | ‏‎@organ_handmade stroll hat(cobalt blue/cool gre"
+      ]
+    },
+    {
+      "name": "焼き鳥のぼせもん",
+      "locality": "諫早市",
+      "query": "site:instagram.com/p \"焼き鳥のぼせもん\" 諫早市",
+      "posts": 3,
+      "posts_naming_store": 2,
+      "sample": [
+        "20年以上通ってます。 「焼き鳥のぼせもん」は、やっぱり美味しい ...",
+        ". 📍諫早 のぼせもん 焼き鳥を食べに✌🏻 初めてこんにゃくの串を ..."
+      ]
+    },
+    {
+      "name": "ゆくい処 石だたみ",
+      "locality": "那覇市",
+      "query": "site:instagram.com/p \"ゆくい処 石だたみ\" 那覇市",
+      "posts": 1,
+      "posts_naming_store": 0,
+      "sample": [
+        "ちぢれ麺が特徴です。 スープは、鰹豚鶏から出汁 を取ってるそうで、 ..."
+      ]
+    },
+    {
+      "name": "カフェ チャッタナ",
+      "locality": "多可郡",
+      "query": "site:instagram.com/p \"カフェ チャッタナ\" 多可郡",
+      "posts": 10,
+      "posts_naming_store": 2,
+      "sample": [
+        "今年も暮れてまいりましたねぇ。 カフェchattanaの2025年 ...",
+        "#20260123余暇村公園 #残雪 #兵庫 #兵庫県 #多可町 # ..."
+      ]
+    },
+    {
+      "name": "ごはんとおやつ。",
+      "locality": "Usuki",
+      "query": "site:instagram.com/p \"ごはんとおやつ。\" Usuki",
+      "posts": 10,
+      "posts_naming_store": 5,
+      "sample": [
+        "駐車場の看板が完成しました！！ 場所は ごはんとおやつ ...",
+        "臼杵でテイクアウト 「ごはんとおやつ。」さん𓂃٭ ..."
+      ]
+    },
+    {
+      "name": "とり男",
+      "locality": "福岡市",
+      "query": "site:instagram.com/p \"とり男\" 福岡市",
+      "posts": 6,
+      "posts_naming_store": 3,
+      "sample": [
+        ". 【焼き鳥とり男】 . . 福岡市渡辺通にある ...",
+        "こんばんは！ とり男です😃 福岡の焼き鳥と言えば豚バラ！ 当店では ..."
+      ]
+    },
+    {
+      "name": "屋台のたまちゃん別館",
+      "locality": "福岡市",
+      "query": "site:instagram.com/p \"屋台のたまちゃん別館\" 福岡市",
+      "posts": 9,
+      "posts_naming_store": 0,
+      "sample": [
+        "福岡市内を中心に【大衆焼肉たまや】や【大衆食堂うっちゃり】や長浜 ...",
+        "長浜ラーメンにチャレンジする屋台など7軒の新しい屋台ができ ..."
+      ]
+    },
+    {
+      "name": "フランス菓子 vert",
+      "locality": "松江市",
+      "query": "site:instagram.com/p \"フランス菓子 vert\" 松江市",
+      "posts": 1,
+      "posts_naming_store": 0,
+      "sample": [
+        "しばらくご無沙汰していた、フランス菓子屋さんVert(ヴェール)で、某 ..."
+      ]
+    },
+    {
+      "name": "喫茶ブラウン",
+      "locality": "姶良市",
+      "query": "site:instagram.com/p \"喫茶ブラウン\" 姶良市",
+      "posts": 2,
+      "posts_naming_store": 0,
+      "sample": [
+        "「レモンタルトと焼き菓子の詰め合わせ」 オンラインショップで販売中 ...",
+        "お菓子教室 レモンタルト🍋 このクオリティが自分で作れるとは←自画 ..."
+      ]
+    },
+    {
+      "name": "やさいや",
+      "locality": "姫路市",
+      "query": "site:instagram.com/p \"やさいや\" 姫路市",
+      "posts": 10,
+      "posts_naming_store": 10,
+      "sample": [
+        "和風創作料理 やさいや | ☆ 年始営業のお知らせ ☆ 毎年5日 ...",
+        "西夢前台 やさいや さんのランチコースのご紹介です ..."
+      ]
+    },
+    {
+      "name": "喫茶ふるさと",
+      "locality": "高岡郡 四万十町",
+      "query": "site:instagram.com/p \"喫茶ふるさと\" 高岡郡 四万十町",
+      "posts": 9,
+      "posts_naming_store": 0,
+      "sample": [
+        ". 明日もお待ちしています🐶 ――――― 珈琲館どなあでは、 ...",
+        "カフェten様がこの度新しくなりました。 四万十町役場西庁舎 ..."
+      ]
+    },
+    {
+      "name": "ひょうたん島クラブ",
+      "locality": "鹿足郡津和野町",
+      "query": "site:instagram.com/p \"ひょうたん島クラブ\" 鹿足郡津和野町",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "木村さんツアー始まりました！ 7/11（土） 女川市 おちゃっこクラブ& ...",
+        "『松江しんじ湖音泉コンサート』開催のお知らせです ..."
+      ]
+    },
+    {
+      "name": "道後味処二郎",
+      "locality": "松山市",
+      "query": "site:instagram.com/p \"道後味処二郎\" 松山市",
+      "posts": 10,
+      "posts_naming_store": 6,
+      "sample": [
+        "いつも「道後味処 二郎」をご愛顧いただき、ありがとうございます。 ...",
+        "こんにちは♪道後味処二郎です。 昨日の雨とは打って変わっ ..."
+      ]
+    },
+    {
+      "name": "ビストロパパ市役所店",
+      "locality": "東広島市",
+      "query": "site:instagram.com/p \"ビストロパパ市役所店\" 東広島市",
+      "posts": 10,
+      "posts_naming_store": 3,
+      "sample": [
+        "欧風料理 ビストロパパ本店 広島県東広島市西条中央7-2-3 082-424 ...",
+        "ビストロパパ市役所店 (@bistro_papa_ )でランチ♪ ..."
+      ]
+    },
+    {
+      "name": "味季うえだ",
+      "locality": "熊本市",
+      "query": "site:instagram.com/p \"味季うえだ\" 熊本市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "【蔵人珈蔵】 熊本市東区小山6丁目22-17 ほうれん草サラダ ...",
+        "うえだ食彩館ゆとりの里、きのこフェア開催中！ 本日は ..."
+      ]
+    },
+    {
+      "name": "Hidamari Kaki-Gori Stand",
+      "locality": "高松市",
+      "query": "site:instagram.com/p \"Hidamari Kaki-Gori Stand\" 高松市",
+      "posts": 10,
+      "posts_naming_store": 1,
+      "sample": [
+        "ひだまりかき氷スタンド高松店です🍧 8月10日（月曜日）道の ...",
+        "ひだまりかき氷スタンド高松店です。 本日6月4日(土)11時"
+      ]
+    },
+    {
+      "name": "Kfc",
+      "locality": "Naha",
+      "query": "site:instagram.com/p \"Kfc\" Naha",
+      "posts": 7,
+      "posts_naming_store": 2,
+      "sample": [
+        "Uni vona naha xava swipexali swa kfc..hi fole line ni ...",
+        "Okinawa! A rainy start, but we had a great time. ..."
+      ]
+    },
+    {
+      "name": "ブルーブライトビーンズ",
+      "locality": "宮崎市",
+      "query": "site:instagram.com/p \"ブルーブライトビーンズ\" 宮崎市",
+      "posts": 9,
+      "posts_naming_store": 0,
+      "sample": [
+        "2026/4/28(tue) ブルー好きですか？ 今回はコチラの合わせを ...",
+        "移動式カフェ「ブルーボトル コーヒートラック」を流山おおたか ..."
+      ]
+    },
+    {
+      "name": "ぱんのいえ",
+      "locality": "久留米市",
+      "query": "site:instagram.com/p \"ぱんのいえ\" 久留米市",
+      "posts": 10,
+      "posts_naming_store": 2,
+      "sample": [
+        "久留米市三潴町の「ぱんの家」🥐🍞🥖素材にこだわった地元の人 ...",
+        "̗̀ ( ˶'ᵕ'˶) ̖́ ⁡ お盆期間も通常営業です。 よろしくお願いします ..."
+      ]
+    },
+    {
+      "name": "割烹山部",
+      "locality": "倉敷市",
+      "query": "site:instagram.com/p \"割烹山部\" 倉敷市",
+      "posts": 2,
+      "posts_naming_store": 0,
+      "sample": [
+        "@gohobi_hotel_ 今回ご紹介するご褒美ホテルは岡山県倉敷 ...",
+        "『モンタギュー』☕️ めっちゃ気になってた西バイパス沿いのカフェ ..."
+      ]
+    },
+    {
+      "name": "kurumu.",
+      "locality": "日南市",
+      "query": "site:instagram.com/p \"kurumu.\" 日南市",
+      "posts": 10,
+      "posts_naming_store": 4,
+      "sample": [
+        "可愛いクッキーに思わず笑顔になる 📍クルム @kurumu.2 宮崎県日 ...",
+        "こんにちは〜🎶 8月31日でKurumu.は3年目を迎える事ができました ..."
+      ]
+    },
+    {
+      "name": "焼肉　一福",
+      "locality": "高知市",
+      "query": "site:instagram.com/p \"焼肉　一福\" 高知市",
+      "posts": 9,
+      "posts_naming_store": 5,
+      "sample": [
+        "こんばんは！ 焼肉一福です。 当店ではお料理4500円~お客様 ...",
+        "こんにちは！ 焼肉一福です！ 12月の定休日のお知らせ ..."
+      ]
+    },
+    {
+      "name": "Skipper's 1990",
+      "locality": "岡山市",
+      "query": "site:instagram.com/p \"Skipper's 1990\" 岡山市",
+      "posts": 0,
+      "posts_naming_store": 0,
+      "sample": []
+    },
+    {
+      "name": "キッチン空福亭",
+      "locality": "益城町",
+      "query": "site:instagram.com/p \"キッチン空福亭\" 益城町",
+      "posts": 8,
+      "posts_naming_store": 0,
+      "sample": [
+        "熊本県外からお越しのお客様へ📣 熊本空港✈️熊本駅🚅 ...",
+        "昨日の伊丹空港にて✈️ 搭乗口に向かう途中 なんか変わった ..."
+      ]
+    },
+    {
+      "name": "桜島",
+      "locality": "福岡市",
+      "query": "site:instagram.com/p \"桜島\" 福岡市",
+      "posts": 8,
+      "posts_naming_store": 8,
+      "sample": [
+        "福岡市中央区六本松 漁師茶屋桜島 ＝＝＝＝＝＝＝＝＝＝＝ ...",
+        "桜島(｀・ω・´)🌋 ツアー福岡公演のあと、鹿児島の親戚を母と ..."
+      ]
+    },
+    {
+      "name": "cocktail stand ぐらすホッパー",
+      "locality": "福岡市",
+      "query": "site:instagram.com/p \"cocktail stand ぐらすホッパー\" 福岡市",
+      "posts": 8,
+      "posts_naming_store": 0,
+      "sample": [
+        "お代りOK。 #福岡市中央区今泉 #Cocktail Bar ぐらすホッパー",
+        "時間があったので、紅茶のカクテルを試作してみました。 ..."
+      ]
+    },
+    {
+      "name": "つきとぶどう",
+      "locality": "北九州市",
+      "query": "site:instagram.com/p \"つきとぶどう\" 北九州市",
+      "posts": 10,
+      "posts_naming_store": 3,
+      "sample": [
+        "『つきとぶどう』 @emimin_tencho ふらっと訪れたくなるお店🍷 ...",
+        "多国籍！ Mこと君がありえないぐらい ワインを ..."
+      ]
+    },
+    {
+      "name": "一休お好み焼店",
+      "locality": "玉野市",
+      "query": "site:instagram.com/p \"一休お好み焼店\" 玉野市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "【メニュー紹介】 「ワンハンド一休焼(仮称)」🔹現状は非売品 さて ...",
+        "岡山天満屋地下食品売場、岡山贔屓コーナーでの取り扱いが ..."
+      ]
+    },
+    {
+      "name": "華心",
+      "locality": "高知市",
+      "query": "site:instagram.com/p \"華心\" 高知市",
+      "posts": 10,
+      "posts_naming_store": 1,
+      "sample": [
+        "祭都・泉州の合言葉。それは‥‥ 「片付けまでがお祭り✨」 夢のような ...",
+        "秋子作 #京都市立芸術大学 #日本画専攻 #日本画家 #彫刻家 ..."
+      ]
+    },
+    {
+      "name": "肉酒場大嵐",
+      "locality": "広島市",
+      "query": "site:instagram.com/p \"肉酒場大嵐\" 広島市",
+      "posts": 10,
+      "posts_naming_store": 0,
+      "sample": [
+        "ホルモン酒場 大嵐です😁 先日2名様でご来店いただきました😊 ...",
+        "本日紹介のメニューのご紹介✨ 焼肉ホルモン酒場 大嵐です🍋 ..."
+      ]
+    }
+  ]
+}

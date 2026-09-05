@@ -242,26 +242,80 @@ export class DishCategoryVariantsRepository {
    *
    * 呼び出し側（`DishCategoryVariantDictionaryService`）が TTL つきでキャッシュするので、
    * import のたびに全件読みが走るわけではない。
+   *
+   * ## ⚠️ #1273 «上限に当たったときに何を捨てるか» は順序が決める
+   *
+   * 上の «約 5,000 行» は外れていた。実データは **93,735 行**（BigQuery の
+   * `dish_category_variant_catalog` を `9_4_sync_dish_category_variants.py` が
+   * そのまま同期する。カテゴリは 14,597 件ある）で、上限 50,000 に**当たっている**。
+   *
+   * このとき `ORDER BY surface_form ASC` だと、捨てられる行が**文字体系で偏る**。
+   * ラテン文字は CJK より前に並ぶので、先頭 50,000 行はほぼラテン文字で埋まり、
+   * **CJK の 15,160 行のうち 15,125 行（99.8%）が辞書に載らない**（実測 2026-09-05）。
+   * アプリが検索できる 134 カテゴリに限ると **471 行中 0 行**しか載っていなかった。
+   *
+   * そこで «アプリが検索に出せるカテゴリ（`dish_category_features` を持つもの）の行» を
+   * 先に載せる。この 134 カテゴリぶんは全部で 3,290 行しかないので、上限が何であれ
+   * **必ず全部載る**（＝日本語の別名も漢字・かなの別表記も落ちない）。
+   *
+   * ⚠️ **«CJK を全部先に載せる» にはしない。** 残り 14,463 カテゴリの CJK 別名は
+   * «検索から永久に到達できないカテゴリ»（#1748）を指しており、載せると
+   * `buildJapaneseLabelVariants` が足し戻した表記と衝突して
+   * `putUnique` が**両方**捨てる／その QID で保存されて検索に出ない、のどちらかになる。
+   * 上限で落ちているおかげで今はその事故が起きていないので、順序を変えて掘り起こさない。
+   *
+   * ## この順序で新しく生まれる曖昧さ（実測 1 件）
+   *
+   * 新しく載る 1,715 行のうち、**別カテゴリの `labels.ja` と衝突するのは `魚生` の 1 件だけ**
+   * （`刺身盛り合わせ` の中国語ラベル vs `魚生`(Q2609461) の日本語ラベル。BigQuery 実測 2026-09-05）。
+   * 他の 6 件（`焼肉` `餃子` `かき氷` `タルト` `ナポリタン` `親子丼`）は
+   * **`buildJapaneseLabelVariants` の足し戻しで既に衝突している**ものなので、この変更とは無関係。
    */
   async findAllVariantsForMatching(limit: number) {
-    const result = await this.prisma.prisma.dish_category_variants.findMany({
-      select: {
-        dish_category_id: true,
-        surface_form: true,
-        source: true,
-      },
-      // 決定的な順序にしておく。上限に当たったときに毎回違う辞書が載るのを避ける
-      orderBy: { surface_form: 'asc' },
-      take: limit,
-    });
+    const result = await this.prisma.prisma.$queryRaw<
+      {
+        dish_category_id: string;
+        surface_form: string;
+        source: string | null;
+        searchable: boolean;
+      }[]
+    >`
+      SELECT
+        v.dish_category_id,
+        v.surface_form,
+        v.source,
+        (f.dish_category_id IS NOT NULL) AS searchable
+      FROM dish_category_variants v
+      -- 検索に出せるカテゴリは 134 件しかないので、DISTINCT の結果をハッシュ結合する
+      LEFT JOIN (
+        SELECT DISTINCT dish_category_id FROM dish_category_features
+      ) f ON f.dish_category_id = v.dish_category_id
+      ORDER BY
+        -- アプリが検索に出せるカテゴリを先に。ここが上限で削られてはいけない部分
+        (f.dish_category_id IS NOT NULL) DESC,
+        -- 残りは従来どおり。上限に当たったときに毎回違う辞書が載るのを避ける
+        v.surface_form ASC
+      LIMIT ${limit}
+    `;
+
+    // #1273 「アプリのカテゴリぶんが全部載ったか」を後から確認できるようにする。
+    // truncated=true でも searchable の数が減っていなければ、落ちたのは
+    // «検索に出ないカテゴリの別名» だけである（＝実害が無い切り捨て）。
+    let searchableCount = 0;
+    for (const row of result) if (row.searchable) searchableCount += 1;
 
     this.logger.debug('AllVariantsLoaded', 'findAllVariantsForMatching', {
       count: result.length,
+      searchableCount,
       limit,
       truncated: result.length >= limit,
     });
 
-    return result;
+    return result.map((row) => ({
+      dish_category_id: row.dish_category_id,
+      surface_form: row.surface_form,
+      source: row.source,
+    }));
   }
 
   /**

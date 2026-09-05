@@ -1,0 +1,457 @@
+{
+  "summary": {
+    "crawl": "CC-MAIN-2026-34",
+    "hosts_checked": 60,
+    "hosts_in_cc": 40,
+    "hosts_with_instagram": 11,
+    "in_cc_pct": 66.7,
+    "instagram_pct_of_checked": 18.3,
+    "instagram_pct_of_in_cc": 27.5
+  },
+  "detail": [
+    {
+      "name": "塩尻喜月堂",
+      "host": "www.shio.com",
+      "in_cc": false
+    },
+    {
+      "name": "和牛処 信",
+      "host": "www.39dl.com",
+      "in_cc": false
+    },
+    {
+      "name": "久つろぎや 一",
+      "host": "www.kutsurogiya-ichi.jp",
+      "in_cc": true,
+      "cdx_lines": 4,
+      "pages_fetched": 4,
+      "handles": [
+        "hajime11111111"
+      ]
+    },
+    {
+      "name": "東天閣",
+      "host": "1010kaku.com",
+      "in_cc": false
+    },
+    {
+      "name": "MU-ZA",
+      "host": "www.mu-za.com",
+      "in_cc": true,
+      "cdx_lines": 2,
+      "pages_fetched": 1,
+      "handles": []
+    },
+    {
+      "name": "カリオモンズコーヒー長崎",
+      "host": "kariomons.com",
+      "in_cc": true,
+      "cdx_lines": 288,
+      "pages_fetched": 5,
+      "handles": [
+        "kariomonscoffee_journal",
+        "kariomonscoffee_store"
+      ]
+    },
+    {
+      "name": "小松屋",
+      "host": "www.rakuten.co.jp",
+      "in_cc": true,
+      "cdx_lines": 3120,
+      "pages_fetched": 5,
+      "handles": []
+    },
+    {
+      "name": "お好み焼き・鉄板焼 てっちゃん",
+      "host": "matsue.mypl.net",
+      "in_cc": true,
+      "cdx_lines": 2,
+      "pages_fetched": 0,
+      "handles": []
+    },
+    {
+      "name": "ウイーンの森",
+      "host": "www.ufs.co.jp",
+      "in_cc": true,
+      "cdx_lines": 71,
+      "pages_fetched": 4,
+      "handles": []
+    },
+    {
+      "name": "根岸",
+      "host": "machi.goo.ne.jp",
+      "in_cc": false
+    },
+    {
+      "name": "どんどん亭総社店",
+      "host": "www.yaki-29.com",
+      "in_cc": false
+    },
+    {
+      "name": "パティスリー てるてるぼうず",
+      "host": "www.patisserie-teruterubozu.com",
+      "in_cc": true,
+      "cdx_lines": 28,
+      "pages_fetched": 3,
+      "handles": []
+    },
+    {
+      "name": "なか卯 429号倉敷中島店",
+      "host": "www.nakau.co.jp",
+      "in_cc": true,
+      "cdx_lines": 2,
+      "pages_fetched": 0,
+      "handles": []
+    },
+    {
+      "name": "若竹丸 時津店",
+      "host": "wakatakemaru.com",
+      "in_cc": true,
+      "cdx_lines": 61,
+      "pages_fetched": 5,
+      "handles": []
+    },
+    {
+      "name": "天ぷら七八",
+      "host": "tempura78.com",
+      "in_cc": true,
+      "cdx_lines": 4,
+      "pages_fetched": 4,
+      "handles": []
+    },
+    {
+      "name": "濵かつ 福岡諸岡店",
+      "host": "shop.hamakatsu.jp",
+      "in_cc": true,
+      "cdx_lines": 19,
+      "pages_fetched": 5,
+      "handles": [
+        "hamakatsu_official"
+      ]
+    },
+    {
+      "name": "モンゴルカレー",
+      "host": "www.mongol-curry.com",
+      "in_cc": true,
+      "cdx_lines": 2,
+      "pages_fetched": 2,
+      "handles": []
+    },
+    {
+      "name": "喃風二見店",
+      "host": "www.nanpuu.co.jp",
+      "in_cc": true,
+      "cdx_lines": 2,
+      "pages_fetched": 0,
+      "handles": []
+    },
+    {
+      "name": "博多天ぷら たかお",
+      "host": "tempura-takao.jp",
+      "in_cc": true,
+      "cdx_lines": 27,
+      "pages_fetched": 5,
+      "handles": []
+    },
+    {
+      "name": "ガトー・アイクレール",
+      "host": "aiclair.com",
+      "in_cc": false
+    },
+    {
+      "name": "茶亭 開花堂",
+      "host": "www.people-i.ne.jp",
+      "in_cc": true,
+      "cdx_lines": 2,
+      "pages_fetched": 0,
+      "handles": []
+    },
+    {
+      "name": "博多再生酒場",
+      "host": "www.hakata-ginzushi.com",
+      "in_cc": false
+    },
+    {
+      "name": "薫習",
+      "host": "www10.ocn.ne.jp",
+      "in_cc": false
+    },
+    {
+      "name": "長浜ラーメン博多屋 古市店",
+      "host": "www.hakataya.org",
+      "in_cc": true,
+      "cdx_lines": 32,
+      "pages_fetched": 5,
+      "handles": []
+    },
+    {
+      "name": "風車",
+      "host": "takarog.ti-da.net",
+      "in_cc": false
+    },
+    {
+      "name": "牛角 福岡キャナルシティ博多前店",
+      "host": "www.gyukaku.ne.jp",
+      "in_cc": true,
+      "cdx_lines": 51,
+      "pages_fetched": 1,
+      "handles": [
+        "gyukaku_official"
+      ]
+    },
+    {
+      "name": "鎌倉パスタ",
+      "host": "www.saint-marc-hd.com",
+      "in_cc": true,
+      "cdx_lines": 435,
+      "pages_fetched": 0,
+      "handles": []
+    },
+    {
+      "name": "ステーキのどん 西明石店",
+      "host": "www.steak-don.jp",
+      "in_cc": true,
+      "cdx_lines": 69,
+      "pages_fetched": 4,
+      "handles": []
+    },
+    {
+      "name": "自然生家",
+      "host": "www.jinenjyouya.com",
+      "in_cc": false
+    },
+    {
+      "name": "ほっともっと",
+      "host": "www.hottomotto.com",
+      "in_cc": true,
+      "cdx_lines": 1264,
+      "pages_fetched": 1,
+      "handles": []
+    },
+    {
+      "name": "ケーキハウスさくら",
+      "host": "cakehouse-sakura.com",
+      "in_cc": false
+    },
+    {
+      "name": "炭火焼肉屋さかい 益田店",
+      "host": "www.yakiniku.jp",
+      "in_cc": true,
+      "cdx_lines": 10,
+      "pages_fetched": 1,
+      "handles": []
+    },
+    {
+      "name": "麺 和田や",
+      "host": "itsuki-inc.com",
+      "in_cc": true,
+      "cdx_lines": 8,
+      "pages_fetched": 5,
+      "handles": [
+        "itsuki_japan.shop",
+        "minato_curry"
+      ]
+    },
+    {
+      "name": "鳥善 西中洲別館",
+      "host": "www.torizen.net",
+      "in_cc": false
+    },
+    {
+      "name": "大吉津名店",
+      "host": "www.daikichi.co.jp",
+      "in_cc": true,
+      "cdx_lines": 124,
+      "pages_fetched": 5,
+      "handles": [
+        "yakitoridaikichi.official"
+      ]
+    },
+    {
+      "name": "ほっともっと 与儀店",
+      "host": "www.hottomotto.com",
+      "in_cc": true,
+      "cdx_lines": 1264,
+      "pages_fetched": 1,
+      "handles": []
+    },
+    {
+      "name": "居酒屋和が家",
+      "host": "www.localplace.jp",
+      "in_cc": true,
+      "cdx_lines": 2299,
+      "pages_fetched": 2,
+      "handles": []
+    },
+    {
+      "name": "うみとじかん",
+      "host": "umitojikan.com",
+      "in_cc": true,
+      "cdx_lines": 3,
+      "pages_fetched": 2,
+      "handles": [
+        "umitojikan"
+      ]
+    },
+    {
+      "name": "ダ クオーレ",
+      "host": "presso-k.com",
+      "in_cc": true,
+      "cdx_lines": 1,
+      "pages_fetched": 0,
+      "handles": []
+    },
+    {
+      "name": "カルビ市場",
+      "host": "tenjin-karubiichiba.com",
+      "in_cc": true,
+      "cdx_lines": 350,
+      "pages_fetched": 5,
+      "handles": []
+    },
+    {
+      "name": "和みや",
+      "host": "nagomiya7538.on.omisenomikata.jp",
+      "in_cc": false
+    },
+    {
+      "name": "ありい商店金時工房",
+      "host": "www.naruto-mon.jp",
+      "in_cc": true,
+      "cdx_lines": 937,
+      "pages_fetched": 5,
+      "handles": [
+        "narutonomon"
+      ]
+    },
+    {
+      "name": "山口酒造場",
+      "host": "niwanouguisu.com",
+      "in_cc": true,
+      "cdx_lines": 121,
+      "pages_fetched": 5,
+      "handles": []
+    },
+    {
+      "name": "六ノ家",
+      "host": "rokunoya.com",
+      "in_cc": true,
+      "cdx_lines": 1,
+      "pages_fetched": 0,
+      "handles": []
+    },
+    {
+      "name": "French Omoto",
+      "host": "www.french-oomoto.com",
+      "in_cc": false
+    },
+    {
+      "name": "博多金龍山大通り店",
+      "host": "www.hilltopfood.com",
+      "in_cc": true,
+      "cdx_lines": 10,
+      "pages_fetched": 5,
+      "handles": []
+    },
+    {
+      "name": "AZ cafe Shidaka",
+      "host": "www.az-hotel.com",
+      "in_cc": true,
+      "cdx_lines": 570,
+      "pages_fetched": 5,
+      "handles": [
+        "azhotel_chain"
+      ]
+    },
+    {
+      "name": "Starbucks",
+      "host": "starbucks.co.jp",
+      "in_cc": true,
+      "cdx_lines": 1047,
+      "pages_fetched": 5,
+      "handles": [
+        "starbucks_j"
+      ]
+    },
+    {
+      "name": "GiGi",
+      "host": "gigi2009.com",
+      "in_cc": false
+    },
+    {
+      "name": "和牛と鍋焼肉番長",
+      "host": "yakiniku-bantyou.gorp.jp",
+      "in_cc": false
+    },
+    {
+      "name": "卵のアート 麦野店",
+      "host": "www.eggart.jp",
+      "in_cc": true,
+      "cdx_lines": 2,
+      "pages_fetched": 1,
+      "handles": []
+    },
+    {
+      "name": "Bar Peekaboo",
+      "host": "ip.tosp.co.jp",
+      "in_cc": true,
+      "cdx_lines": 369,
+      "pages_fetched": 0,
+      "handles": []
+    },
+    {
+      "name": "三竹寿",
+      "host": "www.3chikuju.com",
+      "in_cc": true,
+      "cdx_lines": 12,
+      "pages_fetched": 5,
+      "handles": []
+    },
+    {
+      "name": "Psyche",
+      "host": "cafepsyche.base.shop",
+      "in_cc": false
+    },
+    {
+      "name": "和風ダイニング 路のカフェ",
+      "host": "www.michi-no-net.jp",
+      "in_cc": false
+    },
+    {
+      "name": "山東水餃大王",
+      "host": "santon-suigyo-daio.com",
+      "in_cc": true,
+      "cdx_lines": 19,
+      "pages_fetched": 5,
+      "handles": [
+        "embed.js"
+      ]
+    },
+    {
+      "name": "BOULANGERIE L'est 六本松店",
+      "host": "lest.ciao.jp",
+      "in_cc": false
+    },
+    {
+      "name": "ポーザーおばさんの食卓",
+      "host": "www.cosmos.ne.jp",
+      "in_cc": true,
+      "cdx_lines": 25,
+      "pages_fetched": 4,
+      "handles": []
+    },
+    {
+      "name": "うちなー料理首里いろは庭",
+      "host": "www.irohatei.com",
+      "in_cc": false
+    },
+    {
+      "name": "郷土料理 琉球の爺",
+      "host": "localplace.jp",
+      "in_cc": true,
+      "cdx_lines": 2299,
+      "pages_fetched": 2,
+      "handles": []
+    }
+  ]
+}

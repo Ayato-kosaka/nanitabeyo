@@ -155,6 +155,21 @@ describe('buildJapaneseLabelVariants', () => {
     expect(out.every((e) => e.dishCategoryId === 'Q1')).toBe(true);
   });
 
+  it('#1273 業態語・略称の表記ゆれ（喫茶→カフェ、中華そば→ラーメン、食堂→定食 など）も辞書へ足す', () => {
+    const out = buildJapaneseLabelVariants([
+      { id: 'Q30022', labels: { ja: 'カフェ' } },
+      { id: 'Q234646', labels: { ja: 'ラーメン' } },
+      { id: 'Q117231375', labels: { ja: '定食' } },
+    ]);
+    const forms = (id: string) =>
+      out.filter((e) => e.dishCategoryId === id).map((e) => e.surfaceForm);
+    expect(forms('Q30022')).toEqual(expect.arrayContaining(['カフェ', '喫茶', '純喫茶', '珈琲']));
+    expect(forms('Q234646')).toEqual(expect.arrayContaining(['ラーメン', '中華そば', 'らぁ麺']));
+    expect(forms('Q117231375')).toEqual(expect.arrayContaining(['定食', '食堂', '定食屋']));
+    // 他カテゴリと衝突しうる断片は入れない（味玉→ラーメン、海鮮→海鮮料理 等）
+    expect(forms('Q234646')).not.toContain('味玉');
+  });
+
   it('labels が Json でない・ja が無い・空の行は黙って捨てる（例外を投げない）', () => {
     expect(
       buildJapaneseLabelVariants([
@@ -170,5 +185,26 @@ describe('buildJapaneseLabelVariants', () => {
   it('null / 非配列でも空配列を返す', () => {
     expect(buildJapaneseLabelVariants(null)).toEqual([]);
     expect(buildJapaneseLabelVariants(undefined)).toEqual([]);
+  });
+
+  /*
+    #1273 «カタカナ語 ＋ 業態語» の複合。カタカナの語境界は右へ伸びない（`フォー` ⊄ `フォーク`）
+    ので、`イタリアンレストラン` は表記として持たない限り `イタリアン` に当たらない。
+    実測で skipped_no_category のうち 790 投稿がこの形だけを理由に候補ゼロだった。
+  */
+  it('業態語が付いた複合表記も足す（右境界では届かないため）', () => {
+    const surfaces = buildJapaneseLabelVariants([
+      { id: 'Q1', labels: { ja: 'イタリアン' } },
+      { id: 'Q2', labels: { ja: 'アフタヌーン' } },
+    ]).map((e) => e.surfaceForm);
+
+    expect(surfaces).toEqual(
+      expect.arrayContaining([
+        'イタリアン',
+        'イタリアンレストラン',
+        'イタリアンバル',
+        'アフタヌーンティー',
+      ]),
+    );
   });
 });

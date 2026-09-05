@@ -13,6 +13,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -139,6 +140,31 @@ class BigQueryPipeline:
         job_config = bigquery.QueryJobConfig(query_parameters=parameters or [])
         job = self.client.query(sql, job_config=job_config, location=self.config.region)
         return job.result()
+
+    def execute_dml_retrying(
+        self, sql: str, parameters: list[bigquery.ScalarQueryParameter] | None = None,
+        *, attempts: int = 6, base_sleep_s: float = 5.0,
+    ) -> Any:
+        """UPDATE/DELETE を «同時更新でシリアライズできない» 400 に耐えて実行する。
+
+        BigQuery は同じテーブルへの DML を同時に走らせると、片方を
+        `Could not serialize access to table ... due to concurrent update` で落とす。
+        後埋め系（4_11 / 4_13）は sns_post_raw を run 単位で並列に更新し、その裏で
+        収集ジョブが同じテーブルへ append しているので、これは通常運転で起きる。
+        実際に 4_13 が 1 チャンク目で落ちた。指数バックオフで待って掛け直す。
+        """
+        from google.api_core.exceptions import BadRequest
+
+        for i in range(attempts):
+            try:
+                return self.execute(sql, parameters)
+            except BadRequest as e:  # noqa: PERF203 - リトライ対象を message で見分ける
+                if "serialize access" not in str(e) or i == attempts - 1:
+                    raise
+                wait = base_sleep_s * (2 ** i)
+                LOGGER.warning("同時更新で弾かれました。%.0fs 待って再試行します（%d/%d）",
+                               wait, i + 1, attempts - 1)
+                time.sleep(wait)
 
     def execute_sql_file(self, path: Path) -> None:
         sql = path.read_text(encoding="utf-8").replace("${DATASET}", self.dataset_ref)

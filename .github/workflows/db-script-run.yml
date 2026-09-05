@@ -78,6 +78,15 @@ on:
 # concurrency_group_suffix で別グループへ分ける。同じ suffix 同士は直列のまま。
 # 並走してよいかの判断は script_path/args と同じく呼び出し側の責任（冒頭の設計方針を参照）。
 concurrency:
+  # 既定（空）は db-script-run 単一グループで直列化（DB書込競合の保護）。suffix 指定時は別グループで並走。
+  # 判断は呼び出し側の責任（#1760）。
+  #
+  # ⚠️ 2026-08-31 障害の教訓（切り分け済み）: 本番/dev のレイテンシ悪化の真因は、単発で
+  # «restaurant_catalog 62万行 × 62万行» を回す店舗同期ジョブ（#843/#1706）が共有 Supabase を
+  # 数十秒占有したことだった（推薦 p50 が 38.5s へ）。並列機構そのものは無罪。ただし «個々で
+  # 共有 DB を重く叩くジョブ» は suffix で並走させないこと。resolve(5_1) は dev pg を引くので
+  # **off-peak・控えめ並列（多くて 2〜3 shard）・非破壊版** で回す。BigQuery だけのバッチ
+  # （crawl 4_4 等）は自由に並走してよい。
   group: db-script-run${{ inputs.concurrency_group_suffix != '' && format('-{0}', inputs.concurrency_group_suffix) || '' }}
   cancel-in-progress: false
 
@@ -97,6 +106,18 @@ jobs:
       # GOOGLE_MAPS_API_KEY とは別に発行し、キー側もText Search APIのみに制限する。
       # 未登録なら空になるだけで、他のスクリプトの実行には影響しない。
       PLACES_TEXT_SEARCH_API_KEY: ${{ secrets.PLACES_TEXT_SEARCH_API_KEY }}
+      # #1273 SNS seed パイプライン（scripts/20260808T0000_restaurant/ の 4_x 収集系）が使う。
+      # IG_TOKEN = Instagram Graph API（business_discovery / 公開埋め込み取得）。
+      # SERPER_API_KEY = 穴埋めのカテゴリ検索（無料枠のみ）。
+      # scratchpad は揮発するため、必ず GitHub Actions secrets に置いてここから読む。
+      # 未登録なら空になるだけで、他のスクリプトの実行には影響しない。
+      IG_TOKEN: ${{ secrets.IG_TOKEN }}
+      SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+      # #1273 5_1_apply_resolve.py が resolve API を叩くための自己署名 JWT に使う。
+      # 匿名サインイン(GoTrue)はバッチ用途ではアンチパターン（使い捨てユーザー堆積・匿名レート制限）
+      # のため使わず、この dev の JWT 秘密鍵で短命 HS256 トークンを自己署名して Bearer で渡す。
+      # resolve は署名・exp・sub だけ検証し iss/aud は見ないので API 無改造で通る。
+      SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
 
     steps:
       - name: リポジトリを取得

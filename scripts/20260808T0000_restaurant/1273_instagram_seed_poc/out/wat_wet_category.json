@@ -1,0 +1,246 @@
+{
+  "summary": {
+    "files": 2,
+    "ig_pages_joined": 316,
+    "pages_with_category_text": 117,
+    "pages_cat>=3_with_post": 0,
+    "food_pages_with_post_link": 1,
+    "distinct_posts_from_food_pages": 1,
+    "food_pages_with_account_link": 117
+  },
+  "top": [
+    {
+      "url": "http://taizotamakoshi.jp/blog2/?m=202508",
+      "distinct_cats": 26,
+      "cats": [
+        "うどん",
+        "お好み焼き",
+        "しゃぶしゃぶ",
+        "すき焼き",
+        "そば",
+        "とんかつ"
+      ],
+      "posts": [],
+      "accts": [
+        "osusumeoutigohan"
+      ]
+    },
+    {
+      "url": "https://premier-wakayama.jp/items/887/",
+      "distinct_cats": 19,
+      "cats": [
+        "うどん",
+        "すき焼き",
+        "アイスクリーム",
+        "イタリアン",
+        "オムライス",
+        "カフェ"
+      ],
+      "posts": [],
+      "accts": [
+        "premier_wakayama"
+      ]
+    },
+    {
+      "url": "https://www.inuki-cafe.jp/fetch/?ciy=1831&twn%5B311889%5D=311889",
+      "distinct_cats": 19,
+      "cats": [
+        "うどん",
+        "そば",
+        "イタリアン",
+        "カフェ",
+        "カレー",
+        "ケーキ"
+      ],
+      "posts": [],
+      "accts": [
+        "misehaji"
+      ]
+    },
+    {
+      "url": "https://shop.ng-life.jp/usces-member/?usces_page=newmember&redirect_to=https%3A%2F%2Fshop.ng-life.jp%2Fcandlemimin%2F0507-001%2F%23sku-0507-001-02",
+      "distinct_cats": 15,
+      "cats": [
+        "うどん",
+        "そば",
+        "とんかつ",
+        "イタリアン",
+        "カツ丼",
+        "カレー"
+      ],
+      "posts": [],
+      "accts": [
+        "niigata_shop"
+      ]
+    },
+    {
+      "url": "https://www.toyamashi-kankoukyoukai.jp/15116/",
+      "distinct_cats": 13,
+      "cats": [
+        "うどん",
+        "そば",
+        "イタリアン",
+        "カフェ",
+        "カレー",
+        "フォー"
+      ],
+      "posts": [],
+      "accts": [
+        "toyamacity_tourism_association"
+      ]
+    },
+    {
+      "url": "https://naonews.jp/3022",
+      "distinct_cats": 12,
+      "cats": [
+        "そば",
+        "カレー",
+        "キッシュ",
+        "グラタン",
+        "ソフトクリーム",
+        "トースト"
+      ],
+      "posts": [],
+      "accts": [
+        "naonoryu"
+      ]
+    },
+    {
+      "url": "https://shop.fujingaho.jp/shop/customer/fav_brand.aspx?add_brand=yokohamachukagaimanchinro",
+      "distinct_cats": 10,
+      "cats": [
+        "イタリアン",
+        "カレー",
+        "ケーキ",
+        "ジェラート",
+        "タルト",
+        "パスタ"
+      ],
+      "posts": [],
+      "accts": [
+        "fujingahoshop"
+      ]
+    },
+    {
+      "url": "https://program.bayfm.co.jp/salad/program/category/%E3%83%80%E3%83%96%E3%83%ABdj/",
+      "distinct_cats": 7,
+      "cats": [
+        "うどん",
+        "ケーキ",
+        "ハンバーグ",
+        "ビーフシチュー",
+        "フォー",
+        "フレンチ"
+      ],
+      "posts": [],
+      "accts": [
+        "bayfm_official"
+      ]
+    },
+    {
+      "url": "https://narita.soushin-ichiba.jp/osteria-campagna/",
+      "distinct_cats": 6,
+      "cats": [
+        "イタリアン",
+        "カルパッチョ",
+        "カルボナーラ",
+        "パスタ",
+        "和食",
+        "居酒屋"
+      ],
+      "posts": [],
+      "accts": [
+        "soushin_ichiba"
+      ]
+    },
+    {
+      "url": "https://fupo.jp/present/lpa2604/",
+      "distinct_cats": 5,
+      "cats": [
+        "そば",
+        "カフェ",
+        "カレー",
+        "ハンバーガー",
+        "ラーメン"
+      ],
+      "posts": [],
+      "accts": [
+        "fupo_fukui"
+      ]
+    },
+    {
+      "url": "https://mammanatale.jp/blog/column/detail/20240213171710/",
+      "distinct_cats": 5,
+      "cats": [
+        "かき氷",
+        "カフェ",
+        "ケーキ",
+        "ソフトクリーム",
+        "チーズケーキ"
+      ],
+      "posts": [],
+      "accts": [
+        "caffemammanatale"
+      ]
+    },
+    {
+      "url": "https://online-store.sembikiya.co.jp/shopdetail/000000000215/ct127/page1/recommend/",
+      "distinct_cats": 5,
+      "cats": [
+        "アイスクリーム",
+        "カレー",
+        "ケーキ",
+        "ナポリタン",
+        "フォー"
+      ],
+      "posts": [],
+      "accts": [
+        "nihombashi_sembikiya_official"
+      ]
+    },
+    {
+      "url": "https://ja-harima.jp/pages/154/",
+      "distinct_cats": 5,
+      "cats": [
+        "うどん",
+        "そば",
+        "ステーキ",
+        "ハンバーグ",
+        "フォー"
+      ],
+      "posts": [],
+      "accts": [
+        "ja_harima",
+        "ja_harima.shokusai"
+      ]
+    },
+    {
+      "url": "https://tabizine.jp/article/642677/",
+      "distinct_cats": 4,
+      "cats": [
+        "そば",
+        "カフェ",
+        "タコライス",
+        "フォー"
+      ],
+      "posts": [],
+      "accts": [
+        "_tabizine_"
+      ]
+    },
+    {
+      "url": "https://www.hira2.jp/news/nagomi-20251101.html",
+      "distinct_cats": 4,
+      "cats": [
+        "おでん",
+        "カフェ",
+        "フォー",
+        "居酒屋"
+      ],
+      "posts": [],
+      "accts": [
+        "hira2shin"
+      ]
+    }
+  ]
+}

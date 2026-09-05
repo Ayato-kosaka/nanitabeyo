@@ -1,0 +1,831 @@
+{
+  "measured_at": "2026-08-28",
+  "bigquery_run_id": "restaurant-2026-08-23",
+  "population": {
+    "restaurant_seed_catalog_rows": 1513803,
+    "overture_records": 1081471,
+    "ifas_records": 270894,
+    "osm_records": 190642,
+    "food_permit_records": 114292,
+    "existing_pg_records": 2108,
+    "note": "#1342 が使う『飲食店母集団』は 1,132,482 店。以下の % はこの母集団を分母にする"
+  },
+  "4_1_overture_socials": {
+    "stores_with_instagram_link": 18437,
+    "pct_of_overture_records": 1.705,
+    "distinct_instagram_handles": 11279,
+    "stores_with_facebook_link": 963579,
+    "stores_with_website": 545560
+  },
+  "4_2_foursquare_os_places": {
+    "access": "Hugging Face gated（トークンで解錠）。S3 バケットは LICENSE/NOTICE のみでデータ無し",
+    "release": "2026-08-11",
+    "jp_places": 5017666,
+    "jp_dining": 1400600,
+    "jp_dining_open": 1177934,
+    "jp_dining_open_with_instagram": 57897,
+    "jp_dining_open_instagram_pct": 4.915,
+    "jp_dining_open_distinct_instagram": 35451,
+    "jp_dining_open_with_website": 312559,
+    "jp_all_with_instagram": 153999,
+    "overlap_sample_n": 300,
+    "overlap_also_in_overture": 72,
+    "overlap_pct": 24.0,
+    "union_with_overture_estimate": 38222
+  },
+  "4_3_official_site_crawl": {
+    "source": "#1345 / 1273_sns_dish_media_poc/out/instagram_handle_reach.json（600店の目視ラベル付き標本）",
+    "n_sample": 600,
+    "website_is_instagram": 7,
+    "extracted_from_site": 84,
+    "union": 91,
+    "union_pct": 15.17,
+    "distinct_handles": 96,
+    "store_specific_pct": 5.06
+  },
+  "4_4_openstreetmap": {
+    "osm_records": 190642,
+    "records_with_instagram_anywhere_in_tags": 2111,
+    "records_with_contact_instagram_key": 1574,
+    "contact_instagram_value_is_url": 766,
+    "contact_instagram_value_is_bare_handle": 808,
+    "contact_instagram_landed_in_social_urls": 1574,
+    "records_with_bare_instagram_key": 23,
+    "records_mentioning_instagram_in_other_tags": 515,
+    "distinct_handles": 2050,
+    "loader_gap_note": "落としているのは contact: の無い instagram キーの 23 件だけ"
+  },
+  "4_5_wikidata_p2003": {
+    "jp_items_with_p2003_any_type": 9954,
+    "jp_restaurant_items_total": 1026,
+    "jp_restaurant_items_with_p2003": 146,
+    "sparql_endpoint": "https://query.wikidata.org/sparql"
+  },
+  "4_8_meta_hashtag_search": {
+    "gate": "App Review + business verification",
+    "allowed_usage_is_closed_list": true,
+    "allowed_usage": [
+      "Discover content associated with its current campaign.",
+      "Provide customer support.",
+      "Identify entrants to its contests, competitions, or sweepstakes.",
+      "Understand public sentiment around brand.",
+      "Understand and manage their audience, develop their content strategy and obtain digital rights."
+    ],
+    "recent_media_window_hours": 24,
+    "unique_hashtags_per_7_days": 30,
+    "business_discovery": {
+      "token_scopes": [
+        "pages_show_list",
+        "business_management",
+        "instagram_basic",
+        "instagram_manage_insights",
+        "instagram_content_publish",
+        "pages_read_engagement",
+        "public_profile"
+      ],
+      "app_review_needed_in_practice": false,
+      "note": "オーナー発行のトークンで、App Review 無しに第三者の飲食店アカウントへ通った。#1273/#1284 の «実機ブロック済み» は覆る",
+      "attempted": 148,
+      "resolved": 111,
+      "resolve_pct": 75.0,
+      "error_code_for_unresolved": "110/2207013 Invalid user id（Business/Creator でない個人アカウント、または消滅）",
+      "media_count_total_of_resolved": 47608,
+      "media_count_median": 276,
+      "with_next_page": 107,
+      "rate_limit": {
+        "observed_block_after_calls": 200,
+        "window": "1 時間",
+        "error": "(#4) Application request limit reached, is_transient=true",
+        "implication_500k_stores_hours": 2500
+      }
+    }
+  },
+  "4_11_web_search_api": {
+    "instagram_robots_txt": {
+      "googlebot_may_crawl_posts": true,
+      "bingbot_may_crawl_posts": true,
+      "disallowed_paths_for_googlebot": [
+        "/*/c/",
+        "/*/comments/",
+        "/*/liked_by/",
+        "/accounts/login/*?next=",
+        "/ajax/",
+        "/client_error/",
+        "/direct/",
+        "/logging/",
+        "/publicapi/",
+        "/qp/batch_fetch_web/",
+        "/query/"
+      ],
+      "wildcard_agent_rule": "User-agent: *  Disallow: /",
+      "sitemaps_published": [
+        "ig_places_sitemap.xml.gz",
+        "ig_seo_profile_sitemap.xml.gz",
+        "ig_seo_profile_sitemap_non_media_eligible.xml.gz",
+        "ig_seo_location_sitemap.xml.gz",
+        "dim_ig_logged_out_web_keyword_ent.xml.gz"
+      ],
+      "sitemaps_fetched": false,
+      "sitemaps_fetch_blocked_by": "User-agent: * Disallow: / （我々は許可エージェントに含まれない）"
+    },
+    "yield_probe": {
+      "engine": "Google index 経由の web 検索",
+      "n_cells": 5,
+      "cells": [
+        {
+          "cell": "焼き鳥 x 東京",
+          "post_urls": 10,
+          "in_area_named_stores": 6
+        },
+        {
+          "cell": "ラーメン x 青森",
+          "post_urls": 10,
+          "in_area_named_stores": 6
+        },
+        {
+          "cell": "ラーメン x 高松",
+          "post_urls": 10,
+          "in_area_named_stores": 5
+        },
+        {
+          "cell": "寿司 x 高松",
+          "post_urls": 10,
+          "in_area_named_stores": 6
+        },
+        {
+          "cell": "うなぎ x 高松",
+          "post_urls": 9,
+          "in_area_named_stores": 1
+        }
+      ],
+      "mean_in_area_named_stores_per_query": 4.8,
+      "note": "n=5 の予備測定。108 セルの本測定は未実施"
+    },
+    "vendors": {
+      "brave": {
+        "free_per_month": 1000,
+        "usd_per_1000": 5,
+        "storage": "禁止",
+        "quote": "store, cache, or create a database of Search Results, in whole or in part, other than transient storage required for operation of Customer Applications"
+      },
+      "serper": {
+        "free_trial_queries": 2500,
+        "usd_per_1000_from": 0.3,
+        "storage": "禁止条項なし",
+        "restrictions": [
+          "出典の詐称の禁止",
+          "付加価値の無いミラーリングの禁止"
+        ]
+      },
+      "serpapi": {
+        "free_per_month": 250,
+        "usd_per_1000": 5.9,
+        "storage": "条項なし",
+        "legal_shield_usd": 2000000
+      },
+      "google_cse": {
+        "free_per_day": 100,
+        "usd_per_1000": 5,
+        "closed_to_new_customers": true,
+        "migration_deadline": "2027-01-01"
+      },
+      "bing": {
+        "retired": "2025-08-11"
+      },
+      "dataforseo": {
+        "minimum_deposit_usd": 50,
+        "storage": "ページ上に記載なし"
+      }
+    },
+    "scale": {
+      "stores_target": 500000,
+      "queries_if_no_duplication": 104167,
+      "queries_with_2x_duplication": 200000,
+      "cost_usd_serper": [
+        60,
+        200
+      ],
+      "cost_usd_serpapi": 1180,
+      "cost_usd_brave": 1000,
+      "years_on_free_tiers_only": [
+        1,
+        6
+      ],
+      "poc_108_cells_queries": [
+        1000,
+        2000
+      ],
+      "poc_fits_in_serper_free_tier": true
+    },
+    "cell_yield_108": {
+      "design": "#1273 §15 と同じ 18 カテゴリ × 6 地域タイプ。1 セル 3 ページ",
+      "credits_used": 324,
+      "mean_unique_posts_per_cell": 25.0,
+      "in_area_rate_pct": 58.6,
+      "mean_in_area_posts_per_cell": 16.5,
+      "cells_meeting_5plus_in_area": "108 / 108",
+      "by_tier_in_area_pct": {
+        "high": 66.4,
+        "mid": 61.1,
+        "tail": 48.4
+      },
+      "by_area_in_area_pct": {
+        "超高密度都市": 69.2,
+        "大都市中心部": 65.6,
+        "大都市郊外": 56.3,
+        "地方政令市": 58.6,
+        "地方中核市": 51.2,
+        "郊外": 51.2
+      },
+      "weakest_cell": "ネパール料理 x 五所川原 = 5/28",
+      "caveat": "地域一致はタイトルに地名が現れるかの近似。手検分では うなぎ×五所川原 6/10、ジンギスカン×高松 7/10、ラーメン×渋谷 8/10、ネパール料理×五所川原 1/10"
+    },
+    "account_discovery": {
+      "ground_truth_test": {
+        "n": 100,
+        "credits": 100,
+        "query_template": "{name} {locality} instagram",
+        "any_profile_returned": 97,
+        "recall_top1_pct": 79.0,
+        "recall_any_pct": 84.0,
+        "note": "FSQ が正解ハンドルを持つ店だけで測ったので、目視ラベル不要"
+      },
+      "unknown_store_test": {
+        "n": 130,
+        "with_candidate": 113,
+        "with_candidate_pct": 86.9,
+        "verified": "測定中（business_discovery のレート制限待ち）",
+        "population": "FSQ の日本の飲食（営業中）で instagram 列が空の店 199,757 店の標本"
+      }
+    },
+    "cell_depth": {
+      "pages_tested": 10,
+      "unique_posts": {
+        "ラーメン x 高松": 71,
+        "うなぎ x 五所川原": 64,
+        "寿司 x 渋谷": 86
+      },
+      "note": "10 ページ目でも新規が 6〜8 本出る。index はさらに深い"
+    },
+    "query_templates": {
+      "{name} {locality} instagram": {
+        "n": 100,
+        "recall_top1_pct": 79.0,
+        "recall_any_pct": 84.0
+      },
+      "{name} {locality} site:instagram.com": {
+        "n": 60,
+        "recall_top1_pct": 53.33,
+        "recall_any_pct": 56.67
+      },
+      "best": "{name} {locality} instagram"
+    },
+    "result_cap": {
+      "note": "Google/Bing は 1 クエリあたり概ね数百件で打ち切る。『焼き鳥』1 クエリから 100万件は取れない",
+      "implication": "量を出すには category × 市区町村へ分割するしかなく、費用は投稿数ではなくクエリ数で決まる。分割しても総額は約 $317 で変わらない",
+      "why_search_wins": "SERP の title が Google の抽出したキャプションそのもの。1 回 $0.0003 の検索で『投稿URL＋キャプション＋店名の手がかり』が同時に返る。WAT はここが取れない"
+    }
+  },
+  "4_14_common_crawl": {
+    "crawl": "CC-MAIN-2026-34",
+    "cluster_idx_rows": 873102,
+    "instagram_com_cdx_records": 78,
+    "instagram_com_robots_txt_records": 77,
+    "instagram_post_urls_in_index": 0,
+    "wat_files": 100000,
+    "wat_file_bytes_sample": 151385264,
+    "wat_total_bytes_estimate": 15138526400000,
+    "environment_note": "web.archive.org へは egress proxy が通らない（000）。archive.org 本体は 200",
+    "breakthrough": {
+      "embed_harvest_from_media_sites": {
+        "domains": 14,
+        "pages_fetched": 222,
+        "distinct_post_ids": 11,
+        "posts_per_page": 0.05,
+        "verdict": "媒体サイトからの埋め込み収集は歩留まりが低い"
+      },
+      "store_official_sites": {
+        "hosts_checked": 60,
+        "hosts_in_cc": 40,
+        "in_cc_pct": 66.7,
+        "hosts_with_instagram_link": 11,
+        "instagram_pct_of_checked": 18.3,
+        "instagram_pct_of_in_cc": 27.5,
+        "verdict": "**4.3 の自前クロールを、相手サーバに触れず無料で代替できる。** 15.17% と同等以上",
+        "caveat": "n=60。1 件は embed.js の誤検出。ページ取得に失敗したホストがあるため過小評価側"
+      },
+      "fineweb2_ja": {
+        "docs_sampled": 20000,
+        "docs_with_instagram_post_url": 1,
+        "verdict": "抽出済みコーパスは href が落ちるので使えない。生 HTML でなければならない"
+      }
+    },
+    "wayback_from_this_sandbox": {
+      "web.archive.org_https": "000（egress proxy が通さない）",
+      "web.archive.org_http": 403,
+      "timetravel": "000",
+      "note": "Wayback CDX は未検証のまま残る。EC2（.claude/skills/ec2-chrome-operate）からなら試せる"
+    },
+    "wat_yield_measured": {
+      "note": "以前『15.1TB で非現実的』としたが、1 ファイルあたりの収率と処理時間を実測した",
+      "files_sampled": 4,
+      "mean_posts_per_file": 641.0,
+      "mean_jp_domain_posts_per_file": 31.5,
+      "total_wat_files": 100000,
+      "extrapolated_instagram_posts_per_crawl": 64100000,
+      "extrapolated_jp_domain_posts_per_crawl": 3150000,
+      "download_decompress": "約650MB(展開後)/6秒/ファイル。全10万ファイル逐次で6.4日、32並列で4.8時間。CC の egress は無料",
+      "content_check": "日本ドメイン由来の投稿を目視サンプルした結果、飲食は少数（鍼灸・企業ブログ・高校サイト等が多い）。WAT はリンクだけでキャプションを持たないので、飲食判定・店舗照合には別途エンリッチが要る",
+      "verdict": "**無料で投稿 URL の火力は出る（1 crawl で JP 315万本）。だが『裸の URL』で、飲食か・どの店かを無料で判定する手段が無いのがボトルネック**"
+    },
+    "wat_food_rate_corrected": {
+      "loose_regex_pct": 15.0,
+      "manual_review": "60 本のキャプションを目視。9 件の loose 判定のうち実レストランは POTATO & CAFE 1 件のみ。残りはブライダル・雨具・美術展・ダイビング・イナバ物置",
+      "true_food_pct_estimate": "1〜2%",
+      "verdict": "WAT の日本由来 instagram は大半が非飲食（企業・趣味・イベント告知）。**発見源としては効率が悪い**（無料だが 100 本エンリッチして飲食 1〜2 本）。3.15M × 2% = 約6万本/crawl 程度で、しかも店舗照合が別途要る"
+    },
+    "wat_domain_stratification": {
+      "hypothesis": "オーナー案『WET/元ページで飲食を事前フィルタ』の軽量版。元ドメインで層別して飲食率が上がるか",
+      "result": "小標本（17投稿）だが、飲食IGリンクは1ドメイン1本ずつで、bayfm・JA静岡・アニメ・企業サイト等の無関係な.jpに散在。食メディアに集中しない",
+      "verdict": "**ドメイン/WET フィルタで WAT を効率化するのは難しい。** 飲食リンクがクラスタしないため、allowlist が作れない。WAT は無料の発見源としては不採用"
+    }
+  },
+  "4_20_unknown_license_datasets": {
+    "kaggle": {
+      "api_reachable_without_auth": true,
+      "queries": 12,
+      "unique_datasets": 145,
+      "instagram_related": 64,
+      "mentioning_japan": 0,
+      "post_url_lists": 0,
+      "only_food_hit": {
+        "title": "New York Turk Restaurants Visited",
+        "license": "Apache 2.0",
+        "bytes": 2323
+      }
+    },
+    "zenodo": {
+      "queries": 10,
+      "unique_hits": 138,
+      "instagram_in_title": 10,
+      "japan_restaurant": 0,
+      "post_url_lists": 0,
+      "note": "10件はすべて単一テーマの研究コーパス"
+    },
+    "huggingface": {
+      "queries": 10,
+      "unique_hits": 50,
+      "with_license": 13,
+      "japanese_language_tag": 0,
+      "japan_restaurant": 0,
+      "post_url_lists": 0
+    },
+    "github": {
+      "repo_search_hits": 0,
+      "code_search_hits": 119,
+      "code_hits_are_incidental": true,
+      "post_url_lists": 0
+    },
+    "verdict": "規約が不明だから却下なのではなく、そもそも存在しない",
+    "wide_survey": {
+      "datacite": {
+        "unique": 312,
+        "instagram_in_title": 62,
+        "japan": 0,
+        "food": 5,
+        "note": "5件はいずれも研究コーパスで URL 一覧ではない"
+      },
+      "openml": {
+        "instagram_hits": 0
+      },
+      "osf": {
+        "reachable": true
+      },
+      "data_world": {
+        "reachable": true,
+        "instagram_mentions": 0
+      },
+      "academic_torrents": {
+        "reachable": true,
+        "instagram_mentions": 0
+      },
+      "aws_open_data": {
+        "http": 403
+      },
+      "nii_idr": {
+        "reachable": true,
+        "instagram_mentions": 0
+      },
+      "archive_team_twitter_stream": {
+        "items": 130,
+        "access_restricted_item": true,
+        "http": 401,
+        "verdict": "公開ダウンロード不可"
+      },
+      "hatena_bookmark": {
+        "entries_scanned": 1000,
+        "distinct_post_ids": 5,
+        "food_title_pct": 0.0,
+        "verdict": "はてなは技術・ニュース層で飲食が出てこない"
+      },
+      "mastodon_misskey": {
+        "verdict": "全文検索が自分の投稿に限られ、instagram.com/p は 0 件"
+      },
+      "verdict": "既製のデータセットは存在しない。作るしかない"
+    },
+    "gdelt_gkg": {
+      "source": "BigQuery gdelt-bq.gdeltv2.gkg_partitioned（無料でクエリ可）",
+      "window": "30日",
+      "rows_scanned": 8754116,
+      "rows_with_instagram_embed": 225978,
+      "jp_domain_with_instagram_embed": 20,
+      "verdict": "グローバルには 30日で 22万件の IG 埋め込みがあるが、日本ドメインは 20件と極小。日本の飲食には効かない"
+    },
+    "deep_dig": {
+      "archive_org_instagram_dataset": {
+        "url": "https://archive.org/download/instagram-dataset",
+        "size": "51.5GB（instagram_media.csv.gz 4.3GB 等）、直 HTTP DL 可・access-restricted 無し",
+        "content": "shortcode(→/p/ 復元可)・caption・lat/lng・location_id・カテゴリ付き。70M media 規模",
+        "verification": "locationinfo を実地サンプル。**ロシア中心のクロール**。『Japanese Restaurant』カテゴリの店の実体はモスクワ（Токио-City / Nobu Moscow、電話 +7、.ru サイト）。日本を含む行は 11,687 中 17（0.15%）、飲食 13 のうち実際に日本の店は 1 件のみ",
+        "verdict": "**日本の飲食には使えない。** 日本の店の実数はほぼゼロ。エージェントの『本命』評価は率の過大評価だった"
+      },
+      "web_data_commons_restaurant": {
+        "url": "https://data.dws.informatik.uni-mannheim.de/structureddata/2023-12/quads/classspecific/Restaurant/",
+        "content": "Common Crawl から schema.org/Restaurant を抽出（4.86M エンティティ・無料）",
+        "verification": "part_0 実測: instagram.com 行 10,353 のうち /p/・/reel/ は 30 件のみ。大半は sameAs→アカウントのプロフィール URL。日本×instagram は part_0 で 267 行",
+        "verdict": "投稿 URL 源ではない。**4.1〜4.5 のアカウント経路をわずかに補完する程度**（日本の店→IG アカウントが全 18 パートで数千件規模）"
+      },
+      "reddit_dump_academic_torrents": {
+        "size": "3.12TB（2005-2024 一括）",
+        "verdict": "IG リンク密度を実測できず（Arctic Shift API が 3 回 timeout）。日本の food サブレは小さく、日本の飲食には効きにくい"
+      },
+      "instagram_influencer_dataset_kim": {
+        "size": "10.18M 投稿・メタ 37GB＋画像 189GB",
+        "gate": "Google Form 申請制で即 DL 不可",
+        "verdict": "ゲート付き。日本比率不明"
+      }
+    }
+  },
+  "scraper_options": {
+    "self_built_google_scraper": "Serper/SerpApi の再発明。プロキシプール＋CAPTCHA 突破が要り、住宅IPプロキシは往々にして $0.30/1k を超える。Google ToS 違反。この環境でも google.com/search への直アクセスは分類器に遮断された。一度きりの 118万クエリには割に合わない",
+    "apify_instagram_hashtag_scraper": {
+      "price_per_result_usd": 0.0023,
+      "cheap_tier": 0.0007,
+      "free_tier": "$5/月クレジット ≒ 2,100〜7,000 件",
+      "note": "#焼き鳥 等のハッシュタグから投稿を直接取得（カテゴリ経路そのもの）。キャプション・位置も付く。ただし Instagram を直接叩くので IG 規約違反、かつ #1284 で確認済みのとおり直接アクセスは不安定",
+      "cost_1M_posts": [
+        700,
+        2300
+      ],
+      "cost_132M_posts": [
+        92400,
+        303600
+      ]
+    },
+    "bright_data": "Instagram データセットをレコード課金で販売。トライアルクレジットあり。IG 直接収集の規約リスクはベンダが負う建付けだが要契約確認",
+    "phantombuster": "自分の IG cookie が要り、IG 側のレート制限を受ける。グロースハック向けで数百万件のバルクには不向き",
+    "verdict": "カテゴリ経路をハッシュタグで直接やるなら Apify が最安 $0.0007/件。だが総量 132カテゴリ×100万件=1.32億件では $9万〜30万で、店単位検索の $317 より桁違いに高い。1M件程度なら Apify $700 ≒ Serper $317"
+  },
+  "FREE_enrichment_breakthrough": {
+    "finding": "instagram.com/p/{code}/embed/captioned/ は 2026-08 現在もトークン無し・審査無しでキャプション全文を返す。resolve エンドポイント（api/src/v1/dish-media-imports/sns-oembed.service.ts）が本番でこれを使っている",
+    "test": "WAT から取った日本由来の投稿 60 本を embed で取得: 60/60 = 100% 成功。キャプションに店名・料理・アカウント名が入る",
+    "implication": "『裸の投稿 URL → 料理カテゴリ＋店舗』のエンリッチは無料で解けている。ボトルネックはエンリッチではなく『飲食の投稿 URL をどう発見するか』だけ",
+    "rate_limit_note": "#1284 では embed は短時間バーストで約7,500req/時/IP、持続レートは未確定。ここが唯一の技術的未知数",
+    "embed_rate_limit_resolved": {
+      "test": "実在コードを無遅延で 500 本連射（1 IP・262秒）",
+      "result": "500/500 = 100% が HTTP 200。約6,870/時。429/401/ログイン壁は 0。#1284 の『持続レート未検証』を解消",
+      "caveat": "1 IP・500本・262秒の測定。数時間〜複数IPの長期挙動は外挿。コードは一部再利用（IG 側キャッシュの可能性）だが、それでも 500 連続でブロック無しは強い証拠",
+      "implication": "無料で発見した 8〜17万店を embed（6,870/時）または business_discovery（200/時）で無料エンリッチできる。速度は日〜週で、複数IP/アカウントで並列化可能"
+    }
+  },
+  "bright_data": {
+    "instagram_scraper_api": {
+      "price_per_1000": 1.5,
+      "free_per_month": 5000,
+      "input": "hashtag/profile/URL"
+    },
+    "instagram_posts_dataset": {
+      "price_per_100k_usd": 250,
+      "free_sample": 1000,
+      "records": "310M"
+    },
+    "storage": "公開データのみ・GDPR/CCPA準拠を掲げるが、法的責任は利用者側に残る（Indemnification §8）。買ったデータの自社DB化は可だが DPA 遵守義務あり",
+    "verdict": "Apify と同水準（$1.5/1K・月5,000無料）。日本×飲食はハッシュタグ入力で収集する形"
+  },
+  "FREE_ceiling_synthesis": {
+    "architecture": "[飲食URLの発見] → resolve(embed・無料) → 料理カテゴリ＋店舗。エンリッチは無料で解決済み。残る変数は発見のみ",
+    "free_discovery_sources": {
+      "open_data_accounts": "4.1〜4.5 の union で約 40,000 アカウント（＝店。照合自明）",
+      "site_reading_via_common_crawl": "website 保有店 312,559 の約18% から IG アカウント → 約57,000 店（相手サーバ無負荷・無料）",
+      "site_crawl_live": "4.3 全体で 15.17% = 約172,000 店。ただし自前クロール（第三者サーバへアクセス）",
+      "wat": "非効率（飲食2%・クラスタせず）。不採用",
+      "gdelt_datasets": "日本の飲食ほぼゼロ。不採用"
+    },
+    "free_ceiling_no_crawl": "約80,000〜90,000 店（open data 40k + CC サイト読み 57k、一部重複）＝ 約7〜8%",
+    "free_ceiling_with_self_crawl": "約172,000 店 = 15.17%",
+    "beyond_ceiling": "自分のサイトを持たない/IGアカウントを持たない店は、検索でしか発見できず、そこが有料（Serper $317 等）",
+    "enrichment_all_free": "business_discovery（200コール/時・無料）＋ embed（無料100%）"
+  },
+  "discovery_blind_spots_tested": {
+    "instagram_endpoints": {
+      "embed_captioned": "○ 動く（キャプション・6870/時・500連射ブロック0）",
+      "explore_locations_page": "✗ JSシェル（SSRなし・711KB）。投稿URLは出ない。ただし embed HTML には該当投稿の location link が1本含まれる（店舗照合の構造化シグナル）",
+      "web_profile_info_json": "✗ 401（#1284 は『脆い』だったが 2026-08 は認証必須に悪化）",
+      "post_json_a1": "✗ JSシェル/404。tokenレスの投稿JSONは死んでいる",
+      "sitemaps": "✗ 403（ig_seo_location/places/profile すべて）",
+      "business_discovery": "○ token 必要・200コール/時・第三者店に通る"
+    },
+    "wat_domain_stratified": {
+      "sampled": 17,
+      "food_pct": 17.6,
+      "finding": "飲食投稿は食メディアに集中せず、個人ブログに散在（1ホスト1投稿）。ドメイン allowlist で率を上げる余地は無い"
+    },
+    "verdict": "IG 側の無料エンドポイントで『アカウントの投稿一覧』を tokenレスで取る道は全滅。残る無料手段は open data アカウント＋CC店サイト（発見）→ business_discovery/embed（エンリッチ）"
+  },
+  "cost_model_refined": {
+    "note": "$317 は 1M クエリ（10ページ×105k セル）前提だったが過大。route① が 17万店を無料で埋めるので route② は残りだけでよい",
+    "route1_free_ceiling_stores": 172000,
+    "gap_to_500k": 328000,
+    "option_A_cell_3pages": {
+      "queries": 316000,
+      "usd": 95,
+      "basis": "132カテゴリ×800市区町村×3ページ。3ページで 108/108 セルが『5店以上』を満たした実測に基づく"
+    },
+    "option_B_one_query_per_gap_store": {
+      "queries": 328000,
+      "usd": 99
+    },
+    "option_C_apify_hashtag_500k_posts": {
+      "usd": 350,
+      "note": "$0.0007/件"
+    },
+    "cheapest_topup_to_500k_usd": [
+      95,
+      100
+    ],
+    "correction": "以前『$317〜$1178』と報告したが、route① 無料層の上に載せる増分は約 $95〜$100 に下がる"
+  },
+  "influencer_route_breakthrough": {
+    "concept": "グルメインフルエンサー（特に地方特化アカウント）を無料の公開リストから発見し、business_discovery で各人の数百投稿を回収する。1投稿≒1店で店名がキャプションに入る。route① が届かない «公式サイトもIGも無い地方・小規模店» を、第三者の投稿として拾える",
+    "handle_discovery_measured": {
+      "sources_fetched": 6,
+      "distinct_handles": 263,
+      "regional_prefecture_handles": 146,
+      "regional_pct": 55.5,
+      "examples_regional": [
+        "akita_select",
+        "aomori.rinko",
+        "allniigata",
+        "ehime_select",
+        "dokoigu_yamagata",
+        "cocoa_nagano"
+      ],
+      "note": "6 ページで 263。エージェント調査では同種リスト記事が多数あり、30〜50記事で 500〜2000 handle 見込み",
+      "asset": "out/influencer_handles.json"
+    },
+    "why_lists_not_search": "検索結果は投稿主が多様（292投稿→263アカウント=0.90/post）で、検索から増幅は効かない。インフルエンサーは公開リストから直接seedするのが正しい",
+    "coverage_estimate_UNMEASURED": {
+      "posts_per_account": "300〜600（エージェント推定・訪問ペース1000〜1200店/年から）",
+      "free_added_unique_stores": "3万〜25万（推定・重複率次第で大きく振れる）",
+      "decisive_next_measurement": "263 handle を business_discovery（要トークン）で叩き、実投稿数・異なり店名・重複率・飲食率を実測する。トークンがあれば約1〜2時間"
+    },
+    "media_crawl_route4_dead": "RETRIP/SARAH は WAF で無料クロール不可。macaro-ni/favy/gnavi は自社写真で IG permalink ほぼ0。まとめメディアは «handle 発見源» としてのみ有効"
+  },
+  "wet_join_route1_NEGATIVE": {
+    "idea": "オーナー案: WAT(instagramリンク)とWET(本文)を同一セグメントでJOINし、周辺テキストで店を当てて route① を増やす",
+    "measured": {
+      "wat_ig_account_pages_per_file": 143,
+      "wet_join_success": "100%（URL JOIN は動く）",
+      "food_text_pct": 38.5,
+      "store_name_pct_of_food": 65.5
+    },
+    "verdict": "**却下**。数字は高く見えるが目視すると偽陽性だらけ。抽出店名は『全国76店』『取り扱い書店』『病棟の食堂』、アカウントは病院(akiyamahp)・医学出版(chugaiigaku)・バスケ(bambitiousnara)・旅行(rurubu_kids)。instagramアカウントを貼る日本語ページは大半が非飲食で、正規表現では飲食店を分離できない",
+    "what_would_be_needed": "WET本文を loose regex ではなく Overture 110万店の実名ガゼッタと厳密照合すれば精度は上がるが、110万名×15TBのJOINにはインデックスが要り、無料の範囲では非現実的",
+    "note": "route① を安く増やす手段としては、store 自身のサイトをCCで読む(既存4.14=website店の18.3%)の方が精度が高い。WET join はそれを超えない"
+  },
+  "facebook_route_NEGATIVE": {
+    "idea": "#1342 で 88.82%(69.8万店)が FB リンクを持つ。FBページの About に IG があれば無料で大量のアカウントに届く",
+    "measured": "www/m/mbasic.facebook.com すべて 302 → /login/?next= へ。facebookexternalhit UA でも 302",
+    "verdict": "却下。Facebook は完全にログイン壁（#1356 と整合）。70万店の FB リンクを無料で IG アカウントに変換する道は無い。FB Graph API は App Review 必須"
+  },
+  "wat_wet_category_filter_NEGATIVE": {
+    "idea": "オーナー案: WAT/WET を 134 料理カテゴリ辞書で絞れば、店↔アカウント や カテゴリ↔投稿 を採れるのでは",
+    "measured_2files": {
+      "ig_linking_jp_pages": 316,
+      "pages_with_category_text": 117,
+      "pages_cat>=3_with_POST_link": 0,
+      "food_pages_with_POST_link": 1,
+      "food_pages_with_ACCOUNT_link": 117
+    },
+    "route2_verdict": "却下。316ページ中 instagram /p/ 投稿リンクは1本のみ。«料理カテゴリの投稿を集めたまとめブログ» はクロール可能な形では存在しない（食メディアは自社写真＋アカウントfollowウィジェット）",
+    "route1_verdict": "改善するが不十分。料理語を多く含むページの実体はカタログ・観光協会・ラジオ・農協・ギフトEC で、個別レストランではない。アカウントも組織の公式1つ。（例: taizotamakoshi 26種→osusumeoutigohan[家庭料理], toyamacity_tourism, ja_harima[農協], bayfm[ラジオ]）",
+    "conclusion": "WAT/WET はどう絞っても飲食店単位の (店,アカウント) / (カテゴリ,投稿) を効率的に出せない。無料の発見は柱1(open data+店サイト)と柱2(インフルエンサー)に確定"
+  },
+  "influencer_route_MEASURED": {
+    "handles_tested": 413,
+    "resolved": 374,
+    "resolve_pct": 90.6,
+    "media_total_posts": 535996,
+    "media_median": 1046,
+    "media_mean": 1433,
+    "followers_median": 56943,
+    "accounts_with_500plus_posts": 286,
+    "food_rate_early": 0.98,
+    "gross_food_posts_estimate": 525000,
+    "interpretation": "413 handle（無料の公開リスト由来）のうち374が有効。延べ53.6万投稿を保有し、飲食率0.98。1投稿≒1店なので、重複を割った異なり店数が «柱2で無料追加できる店数»。重複率は測定中（深掘りパス）",
+    "distinct_stores_UNMEASURED": "延べ53.6万 × (1-重複率)。重複は地方特化handleほど低い（別々の地元店を撮る）",
+    "deep_pass": {
+      "sampled": 38,
+      "mean_media_count": 1443,
+      "dish_category_caption_rate": 0.57,
+      "at_mention_snowball": "0件。インフルエンサーは店を @メンションせず、キャプション本文の「」内に店名を書く（通知/離脱を避けるため）",
+      "caption_structure": "📍地名「店名」＋料理説明 の構造（例: 📍浅草橋「台東STAND」イタリアン立ち飲み / 📍青梅市「清流ガーデン 澤乃井園」）。まれに（ handle ）で店アカウントも併記",
+      "implication": "スノーボールは @メンション では効かないが、キャプションから «店名＋地域» が明示的に取れるので (1)異なり店数の測定、(2)Overtureガゼッタとの照合、(3)店舗づけ が容易。0.57 は 酒場/立ち飲み/バー を134カテゴリが拾えず過小の可能性"
+    },
+    "distinct_store_extraction": {
+      "sample": "10 influencers / 500 captions（直近50投稿×10）",
+      "food_signal_pct": 87,
+      "captions_with_bracket_storename_pct": 56,
+      "captions_with_full_address": "624件抽出（うち番地つき完全住所で 281 異なり）",
+      "distinct_full_addresses": 281,
+      "address_posting_influencers": 8,
+      "distinct_addr_per_influencer_50posts_median": 40.5,
+      "within_influencer_repeat": "9%（重複が非常に低い＝別々の店を撮る）",
+      "matching_signal": "キャプションに «店名（「」）＋完全住所（県市区町村番地）» が入るため Overture 住所照合が容易。@メンションは使わない",
+      "example_addresses": [
+        "滋賀県長浜市朝日町1-2",
+        "岩手県花巻市石鳥谷町好地7-80-20-1",
+        "石川県金沢市東山2丁目6-2",
+        "愛媛県新居浜市高木町4-10",
+        "香川県三豊市豊中町笠田笠岡2075-1"
+      ]
+    }
+  },
+  "COVERAGE_ESTIMATE": {
+    "pillar1_store_accounts_stores": "90,000〜170,000（open data + CC店サイト、実測レンジ）",
+    "pillar2_influencers_now": {
+      "handles": 413,
+      "resolved": 374,
+      "gross_posts": 535996,
+      "food_rate": 0.87,
+      "distinct_venues_per_influencer_full_feed_estimate": 847,
+      "gross_distinct_estimate_374": 316875,
+      "after_cross_overlap_30to50pct": [
+        158438,
+        221813
+      ],
+      "note": "1人 40.5店/50投稿 × 中央値1046投稿 ≒ 847店/人(粗・重複減衰前)。地方特化ほど相互重複が低い"
+    },
+    "seed_expandable": "413→1000+（CEVSTY 47都道府県・star-inc量産・地方記事）で比例拡大",
+    "headline": "柱2は延べ53.6万投稿・異なり店 十数万規模を無料で供給し、柱1が届かない地方・無サイト店に偏る。柱1+柱2で無料 20〜35万店、seed拡張で50万に接近。残差は検索$95で仕上げ",
+    "caveats": "distinct_venues は 10 influencer / 500 caption 標本からの外挿。全投稿での重複減衰と cross-influencer 重複、Overture 実照合率は未確定（次段）"
+  },
+  "overture_address_match": {
+    "sample_n": 80,
+    "source": "influencer caption 📍addresses (all_addresses.json -> addr_clean.json)",
+    "exact_match_pct": 40.0,
+    "exact_match_n": 32,
+    "note": "32/80 exact-match Overture restaurant address; remaining differ only in 丁目/番地 notation. All 80 are well-formed real JP addresses resolving to an Overture locality. Confirms captions carry genuine geocodable store locations.",
+    "overture_table": "restaurant_overture_raw run_id=restaurant-2026-08-23 (1,081,471 rows)"
+  },
+  "phaseA_first_measurement": {
+    "date": "2026-08-30",
+    "sample": "infl_captions.jsonl = 36 influencers / 1800 distinct posts (既存収集分。IG_TOKEN失効で再harvestは保留)",
+    "with_address_pct": 60,
+    "with_category_pct": 68,
+    "with_both": 755,
+    "distinct_stores_by_norm_addr": 957,
+    "coverage_cells": 530,
+    "categories_covered": "98/134",
+    "distinct_cities": 185,
+    "note": "BigQuery food-scroll.sns_seed に4テーブルを作成済み（対話turnで実施）。ただし fired ループturnでは MCP(BigQuery/GitHub) が利用不可のため、sns_coverage 等へのデータ投入と Issue #1273 記録は対話turn保留。coverage行(93)はSQL(out/cov_cat_insert.sql)を用意済みだが未投入。店=正規化住所、カテゴリ=132日本語名キーワード一致の近似（resolve未通し）。",
+    "geographic_spread": "富山/石川/新潟/沖縄/愛媛/香川/福島など地方に分散。東京集中ではない（インフルエンサー経路の地方到達を実証）",
+    "top_categories": {
+      "カフェ": 163,
+      "ラーメン": 44,
+      "居酒屋": 29,
+      "ハンバーグ": 24,
+      "焼肉": 22
+    },
+    "blocker": "IG_TOKEN/SERPER/HF は scratchpad/.env にあったが、scratchpadは揮発しセッション跨ぎで消失。374人全フィードの実測（外挿→確定）にはトークン再供給が必要。",
+    "bq_state": {
+      "schema_created": true,
+      "tables_created": 4,
+      "coverage_rows_loaded": 0,
+      "reason_not_loaded": "fired loop turn は MCP 不可。対話turnで cov_cat_insert.sql を投入する"
+    }
+  },
+  "phaseA_parser_v2": {
+    "date": "2026-08-30",
+    "change": "find_addr に「市区町村始まり住所」フォールバックを追加（都道府県省略の投稿を回収）＋ノイズ除去（市区町村2文字以上/市内区内除外/番地数字必須/主要市→region補完）",
+    "before": {
+      "with_addr_pct": 60,
+      "distinct_stores": 957,
+      "cells": 530,
+      "cities": 185
+    },
+    "after": {
+      "with_addr_pct": 70,
+      "distinct_stores": 1102,
+      "cells": 613,
+      "cities": 204,
+      "categories": "98/134"
+    },
+    "gain": "同じ1800投稿から異なり店 +15%（957→1102）。抽出率60→70%。resolve/parse磨き上げの実測例",
+    "note": "これは近似parseの改善。本番は resolve API(単一頭脳) が同等の正規化・一意化を担う。今回の知見(市区町村始まり・番地数字必須)を resolve 改善の入力にする。"
+  },
+  "phaseA_gap_analysis": {
+    "date": "2026-08-30",
+    "basis": "現サンプル(36インフルエンサー/1800投稿)の被覆",
+    "categories_covered": "96/134",
+    "categories_missing": 38,
+    "missing_categories_examples": [
+      "やきとん",
+      "ウナギ",
+      "もんじゃ焼き",
+      "ホルモン焼き",
+      "冷やし中華",
+      "牛丼",
+      "親子丼",
+      "天丼",
+      "鍋料理",
+      "担担麺",
+      "酢豚",
+      "四川料理"
+    ],
+    "thin_categories_lt5": 51,
+    "top_region": "東京都72（ただし岩手49/富山44/愛知43/千葉43/香川42と地方も厚い＝東京集中ではない）",
+    "interpretation": "穴=丼もの/中華/鍋/一部粉もの。これらは酒場・カフェ系インフルエンサーが撮らない領域。→ 穴埋めは「丼・中華・鍋」に強い別ジャンルのインフルエンサーをseed拡張するか、カテゴリ検索(焼き鳥タイプ)で狙い撃ち。",
+    "caveat": "「都道府県11件missing」は city→prefecture マップ未整備(政令市以外はregion=None)による見かけの欠損を含む。カテゴリ穴の方が信頼できる指標。"
+  },
+  "phaseA_classifier_variants": {
+    "date": "2026-08-30",
+    "finding": "「38カテゴリ未カバー」は主に分類の取りこぼしだった。表記ゆれ実測: うなぎ/鰻23投稿・ホルモン23・蟹28・牡蠣20・手羽先10・釜飯7 等が正式名(カタカナ)不一致で未分類だった。",
+    "change": "find_cat に保守的な変種フォールバックを追加(exact一致を優先し、外れた時だけ変種)。",
+    "result": "被覆カテゴリ 96→100/134、分類済み 98→104。cells 613→622。",
+    "residual_missing": 34,
+    "residual_cause": "残る未カバーは (a)複数料理同居で単一ラベルが別カテゴリを選ぶ衝突, (b)住所が同時に取れない, (c)真に稀(あじの開き/さば塩焼き/四川料理)。本番の resolve は多ラベル+信頼度なので (a)(b) は解消し、真の穴はさらに小さい。",
+    "correction": "先の gap_analysis「38未カバー」は分類要因で過大。真の被覆はこれより良い。"
+  },
+  "4_3_pillar1_optimization": {
+    "measured_at": "2026-08-30",
+    "purpose": "店公式サイト本文からの店固有IG抽出を最適化。同一HTMLでの before(既存byte-regex)→after(多経路+店固有分類) と全国見込み更新。",
+    "sample": "restaurant_overture_raw snapshot=2026-08-23 の website 保有店から FARM_FINGERPRINT 決定的抽出 322 店（out/pillar1_sample_stores.json）。live fetch(proxy直, robots尊重, IG非取得)。",
+    "reachability": {
+      "n": 322,
+      "reachable": 252,
+      "fetch_failed": 61,
+      "robots_blocked": 9,
+      "unreachable_pct": 21.74,
+      "aggregator_website_hosts": 89
+    },
+    "ab_same_html": {
+      "before_old_byteregex": {
+        "union_pct": 31.68,
+        "store_specific_pct": 24.22
+      },
+      "after_new_multisource": {
+        "union_pct": 31.68,
+        "store_specific_pct": 23.91,
+        "store_specific_strict_pct": 11.49
+      },
+      "recall_lift": "0pt。union 31.68%→31.68%、異なりhandle 99→99。多経路(JSON-LD sameAs/meta/link/footer)は全て生HTMLに instagram.com/ の literal を含むため byte-regex で既に回収済み。純新規は @handle テキストのみで 322店中 1店(+0.31pt)。",
+      "conclusion": "抽出recallは既に天井。柱1の伸び代は parsing ではなく (a)到達性 (b)店固有への絞り込み(precision)。"
+    },
+    "precision_layer": {
+      "note": "既存 cc_store_sites.py は店固有フィルタを持たず union をそのまま出す。改善版は platform blocklist + コーパス内チェーン重複除去 + 集約メディア上は店名裏取り必須、で union→store固有へ絞る。",
+      "union": 102,
+      "store_specific_lenient": 77,
+      "store_specific_strict": 37,
+      "own_site": {
+        "fetched": 188,
+        "union": 85,
+        "store_specific": 76
+      },
+      "aggregator_site": {
+        "union": 17,
+        "store_specific": 1
+      },
+      "dropped_from_union": "102→77。除外25店=チェーン共通12(hitosara_official/sukiya_jp/31icecream_japan/starbucks_j/parisbaguette_kr等)+集約メディア裏取り無し14。",
+      "caveat": "標本322では «標本内に1回だけ出るブランドチェーン»(capricciosa_official/tullyscoffeejapan/jollypasta_jp等)を店固有に誤カウントする。本番規模では handle→複数google_place_id のグローバル重複除去で除かれ、真の独立店率は #1345 手動 5.06% 側へ寄る。"
+    },
+    "nationwide_projection": {
+      "base_stores_with_website": 545560,
+      "union_31_68pct": 172833,
+      "store_specific_lenient_23_91pct": 130443,
+      "store_specific_strict_11_49pct": 62685,
+      "reference_1345_manual_5_06pct": 27605,
+      "recommended_planning_number": "約6.3万店（strict 11.49%）を上限寄り、下限は #1345手動基準 2.8万店。本番のグローバルチェーン除去でこの帯の下側に収束する見込み。"
+    },
+    "before_baseline_1345": {
+      "source": "#1345 / 1273_sns_dish_media_poc/out/instagram_handle_reach.json（600店の目視ラベル付き標本）",
+      "n_sample": 600,
+      "website_is_instagram": 7,
+      "extracted_from_site": 84,
+      "union": 91,
+      "union_pct": 15.17,
+      "distinct_handles": 96,
+      "store_specific_pct": 5.06
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "summary": {
+    "crawl": "CC-MAIN-2026-34",
+    "domains": 14,
+    "pages_fetched": 222,
+    "distinct_post_ids": 11,
+    "posts_per_page": 0.05
+  },
+  "domains": [
+    {
+      "domain": "prtimes.jp",
+      "cdx_lines": 4739,
+      "records_200": 4623,
+      "pages_fetched": 24,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0.0
+    },
+    {
+      "domain": "macaro-ni.jp",
+      "cdx_lines": 5215,
+      "records_200": 5192,
+      "pages_fetched": 24,
+      "distinct_post_ids": 1,
+      "posts_per_page": 0.042
+    },
+    {
+      "domain": "retrip.jp",
+      "cdx_lines": 2,
+      "records_200": 0,
+      "pages_fetched": 0,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0
+    },
+    {
+      "domain": "icotto.jp",
+      "cdx_lines": 2107,
+      "records_200": 1979,
+      "pages_fetched": 25,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0.0
+    },
+    {
+      "domain": "favy.jp",
+      "cdx_lines": 4575,
+      "records_200": 4441,
+      "pages_fetched": 23,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0.0
+    },
+    {
+      "domain": "tokyo-calendar.jp",
+      "cdx_lines": 5653,
+      "records_200": 5640,
+      "pages_fetched": 25,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0.0
+    },
+    {
+      "domain": "pathee.com",
+      "cdx_lines": 4,
+      "records_200": 2,
+      "pages_fetched": 2,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0.0
+    },
+    {
+      "domain": "walkerplus.com",
+      "cdx_lines": 3051,
+      "records_200": 2991,
+      "pages_fetched": 25,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0.0
+    },
+    {
+      "domain": "tabizine.jp",
+      "cdx_lines": 3220,
+      "records_200": 3191,
+      "pages_fetched": 25,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0.0
+    },
+    {
+      "domain": "note.com",
+      "error": "HTTP Error 503: Service Unavailable"
+    },
+    {
+      "domain": "ameblo.jp",
+      "cdx_lines": 4542,
+      "records_200": 4135,
+      "pages_fetched": 24,
+      "distinct_post_ids": 10,
+      "posts_per_page": 0.417
+    },
+    {
+      "domain": "hatenablog.com",
+      "cdx_lines": 22,
+      "records_200": 0,
+      "pages_fetched": 0,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0
+    },
+    {
+      "domain": "mognavi.jp",
+      "cdx_lines": 3310,
+      "records_200": 2870,
+      "pages_fetched": 25,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0.0
+    },
+    {
+      "domain": "dressing-media.jp",
+      "cdx_lines": 0,
+      "records_200": 0,
+      "pages_fetched": 0,
+      "distinct_post_ids": 0,
+      "posts_per_page": 0
+    }
+  ]
+}
