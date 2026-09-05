@@ -15,7 +15,7 @@ from collections import defaultdict
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (PREF_PATTERN, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_COVERAGE,
-                        STORE_ID_SQL, STORE_KNOWN_SQL)
+                        post_store_cte_sql)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -100,14 +100,21 @@ def main() -> None:
       -- 収集時点で店は判明している（discovery_seed_place_id、全て in-catalog・46都道府県）ので、
       -- **店はそれを使い、resolve はカテゴリ専用**にする。これで既存データだけでセルが +37%。
       -- discovery_seed_place_id が無い投稿（柱2 インフル・柱3 検索）は従来どおり status='matched' のみ。
+      --
+      -- ⚠️ #1846: **店の決め方は `post_store` が唯一の正**（9_1 と同じもの）。ここに
+      -- «seed があればそれ» を書き戻すと、チェーンのブランドサイト / ブランドアカウント由来の
+      -- 投稿が複数店に計上され、KPI だけが増えて配信されない状態に戻る。
+      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="latest",
+                          runs_param="resolved_rids")},
       base AS (
         SELECT DISTINCT
-          {STORE_ID_SQL} AS google_place_id,
+          ps.google_place_id,
           v.dish_category_id, r.discovery_route AS source_route, v.post_id
         FROM latest v
+        JOIN post_store ps ON ps.post_id = v.post_id
         JOIN `{pipeline.table(TABLE_POST_RAW)}` r
           ON r.run_id IN UNNEST(@resolved_rids) AND r.provider = v.provider AND r.post_id = v.post_id
-        WHERE v.dish_category_id IS NOT NULL AND {STORE_KNOWN_SQL}
+        WHERE v.dish_category_id IS NOT NULL
       ),
       cat AS (
         SELECT google_place_id, address, location,

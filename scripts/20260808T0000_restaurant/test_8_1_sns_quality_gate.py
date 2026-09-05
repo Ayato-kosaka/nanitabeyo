@@ -91,11 +91,11 @@ class ChecksExistTest(unittest.TestCase):
 class ThresholdTest(unittest.TestCase):
     """閾値は «今日の実測» を基準に置いたもの。上げ下げするなら根拠ごと直す。"""
 
-    def test_duplicate_post_rate_passes_today_and_catches_the_known_break(self) -> None:
-        # 2026-09-05 実測: 2,008 / 142,489 = 1.409%。9_1 が resolve の最新行へ
-        # 絞れていなかったときは 18.5%（common_sns.LATEST_RESOLVED_QUALIFY）
-        self.assertGreater(validate.SNS_DUPLICATE_POST_RATE_MAX, 2008 / 142489)
-        self.assertLess(validate.SNS_DUPLICATE_POST_RATE_MAX, 0.185)
+    def test_duplicate_post_rate_allows_nothing(self) -> None:
+        # #1846: 9_1 が «1 投稿 1 店» を確定するようになったので、catalog は構造的に
+        # 1 投稿 1 行になる。少しでも余ったら «店の当て方が壊れた» なので 0 で止める。
+        # （許していた頃の実測 1.409% は全件が «同じ投稿に別の店» だった）
+        self.assertEqual(validate.SNS_DUPLICATE_POST_RATE_MAX, 0.0)
 
     def test_unknown_store_rate_passes_today(self) -> None:
         # 2026-09-05 実測: 497 / 142,489 = 0.349%

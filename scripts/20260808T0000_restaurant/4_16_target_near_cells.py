@@ -14,8 +14,9 @@ n=1 のセルは 4 店で 1 セルなので同じ 1 店の単価が 4 倍違う�
 ## 写経しないもの（判定の正本）
 - **KPI の数え方** = `7_1_build_coverage.py`。ここは 7_1 が作った `sns_coverage` を
   «読むだけ» で、matched の数え直しをしない（数える側と的を出す側がずれない）。
-- **店の決め方** = `common_sns.STORE_ID_SQL` / `STORE_KNOWN_SQL`。「まだ投稿を取っていない店」の
-  判定に同じ列（`sns_post_raw.discovery_seed_place_id`）を使う。
+- **店の決め方** = «1 投稿 1 店» は `common_sns.post_store_cte_sql`（配信 9_1 / 計上 7_1）。
+  ここが使う「まだ投稿を取っていない店」判定は広めの `STORE_ID_ANY_SQL` /
+  `STORE_KNOWN_ANY_SQL` で、同じ列（`sns_post_raw.discovery_seed_place_id`）を見る。
 - **都道府県の列挙** = `common_sns.PREF_PATTERN`。
 - **handle の決め方 / チェーン除去** = `4_1_discover_sns_accounts.py`。ここでは handle を
   新しく作らず、4_1 が既に作った `sns_source_account` の行を «狙う店の分だけ» 別 run_id へ

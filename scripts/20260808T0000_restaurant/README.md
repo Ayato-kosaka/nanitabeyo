@@ -103,6 +103,12 @@ SNS（#1273 Instagram）の料理媒体は、上の restaurants に **相乗り�
 BigQuery 側のスナップショットが何時間古かろうとアプリの行は壊れない
 （古いスナップショットへの否定条件で判定していたのが 2026-08-24 の事故の真因）。
 
+SNS 側で図に描けない 1 点だけ書いておく。**«その投稿はどの店か» の正は
+`common_sns.post_store_cte_sql` の `post_store` だけ**である（配信 9_1 と計上 7_1 が
+同じものを使う）。収集経路が示すのは «どの店の看板の下で見つけたか» であって
+«どの店の投稿か» ではないので、**看板（IG アカウント / 公式サイトのドメイン）が
+2 店以上を指しているならその seed は使わず、1 店に絞れない投稿は配信しない**（#1846）。
+
 ## 名寄せ方針
 
 ### Open data間
@@ -409,7 +415,7 @@ SNS 経路（#1273 / `sns_dish_media_catalog` → 9_2）は **run_id が restaur
 | `sns_dish_media_catalog_non_empty` | ERROR: catalog が空でない | ≥ 1 | 142,489 行 |
 | `sns_media_pg_unique_key_unique` | ERROR: PG の UNIQUE(provider, 投稿ID, dish) 相当の重複 | 0 | 0 |
 | `sns_media_required_fields_valid` | ERROR: canonical_url / provider / QID / row_hash が dmee の NOT NULL・CHECK に通る | 0 | 0 |
-| `sns_media_duplicate_post_rate` | ERROR: 同じ投稿が複数行に出ている割合（1 投稿 1 dish_media） | ≤ 3% | **1.409%**（2,008 行 / 1,388 投稿。全件が «同じ投稿に別の店»） |
+| `sns_media_duplicate_post_rate` | ERROR: 同じ投稿が複数行に出ている割合（1 投稿 1 dish_media） | **0** | 修正前 1.409%（2,008 行 / 1,388 投稿。全件が «同じ投稿に別の店»） → #1846 で 9_1 が «1 投稿 1 店» を確定するようにしたので 0 |
 | `sns_media_store_inside_japan` | ERROR: restaurant_catalog に居るが日本の矩形の外 | 0 | 0 |
 | `sns_media_store_known_rate` | WARNING: restaurant_catalog に居ない店を指す割合（9_2 が落として続行する行） | ≤ 1% | 0.349%（497 行 / 84 店） |
 | `sns_media_jp_gate_category_rate` | WARNING: アプリの 134 カテゴリ外を指す割合（捨てずに配信する） | ≤ 30% | 18.702%（26,648 行 / 1,401 カテゴリ） |
