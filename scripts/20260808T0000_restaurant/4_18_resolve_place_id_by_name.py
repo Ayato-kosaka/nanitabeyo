@@ -81,10 +81,10 @@ Google Places の課金は **endpoint × fieldMask** で決まる。このスク
 
 ```bash
 # 件数だけ数える（API も BigQuery 書き込みも起きない）
-python3 4_15_resolve_place_id_by_name.py --run-id sns-2026-09-05-name --limit 2000 --dry-run
+python3 4_18_resolve_place_id_by_name.py --run-id sns-2026-09-05-name --limit 2000 --dry-run
 
 # 実行（--execute が無ければ API を叩かない）
-python3 4_15_resolve_place_id_by_name.py --run-id sns-2026-09-05-name --limit 2000 \
+python3 4_18_resolve_place_id_by_name.py --run-id sns-2026-09-05-name --limit 2000 \
     --execute --qps 8 --workers 12
 ```
 
