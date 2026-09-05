@@ -207,8 +207,14 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-# #1273 4_19 の «段». 上ほど 1 コールあたりの期待 異なり店 が大きい（実測 A 18.625 / D 0.216）。
-TIER_ORDER = ("A_food_region", "B_food", "C_region", "D_store_attributed", "E_rest")
+# #1273 4_19 の «段». 上ほど 1 コールあたりの期待 異なり店 が大きい。
+# ⚠️ 4_19 は «配信カタログに載る異なり店/コール» で較正し直され、段の名前も並びも変わった
+# （2026-09-05 実測: A_curated 31.862 / B_store_attributed 0.542 / C_region 0.057 /
+# D_food 0.056 / E_rest 0.055）。**段の名前は 4_19 が正本**なので、ここは «知っている名前を
+# 並べるだけ» にして、知らない名前は末尾へ落とす（4_19 が段を足しても 4_2 は壊れない）。
+# 旧名（A_food_region / B_food / D_store_attributed）は、旧 run の候補表を読み直せるよう残す。
+TIER_ORDER = ("A_curated", "A_food_region", "B_store_attributed", "B_food",
+              "C_region", "D_food", "D_store_attributed", "E_rest")
 
 # #1273 4_19 の region_token（ローマ字）→ 都道府県。段の **中** の並べ替えにだけ使う
 # （段をまたいで逆転させない）。住所から都道府県を決める正本は common_sns.PREF_PATTERN で、
@@ -344,7 +350,8 @@ def _tier_rank_sql(column: str) -> str:
 
 def _read_candidates(pipeline: BigQueryPipeline, candidate_run_id: str, tiers, max_accounts,
                      shard_count: int = 1, shard_index: int = 0,
-                     priority_coverage_run_id: str | None = None):
+                     priority_coverage_run_id: str | None = None,
+                     catalog_run_id: str | None = None):
     """4_19 の候補表を «段の順 → 段の中は惜しいセルの多い県から» で読む。
 
     段の中の並べ替えだけに coverage を使う（コーディネータの指示 2026-09-05）。段をまたいで
@@ -371,17 +378,35 @@ def _read_candidates(pipeline: BigQueryPipeline, candidate_run_id: str, tiers, m
 
     if priority_coverage_run_id:
         params.append(bigquery.ScalarQueryParameter("cov_rid", "STRING", priority_coverage_run_id))
+        catalog_run_id = catalog_run_id or _latest_catalog_run_id(pipeline)
+        params.append(bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id))
+        # 惜しいセル（あと 1〜3 店で 5 店に届く = distinct_store_count 2..4）の重み。
+        # 店アカウント（seed 有）は **その店の市区町村** で、地域語アカウントは
+        # region_token → 都道府県 で当てる。どちらも取れなければ 0（段の末尾へ）。
         pref_join = f"""
       , tokmap AS ({REGION_TOKEN_PREF_SQL})
-      , prefscore AS (
-          SELECT region AS pref,
+      , cellscore AS (
+          SELECT region AS pref, city,
                  SUM(CASE distinct_store_count WHEN 4 THEN 3 WHEN 3 THEN 2 WHEN 2 THEN 1 ELSE 0 END) AS score
           FROM `{pipeline.table(TABLE_COVERAGE)}`
           WHERE run_id = @cov_rid AND source_route = 'all' AND region IS NOT NULL
-          GROUP BY region
+          GROUP BY region, city
+        )
+      , prefscore AS (SELECT pref, SUM(score) AS score FROM cellscore GROUP BY pref)
+      , cityscore AS (SELECT pref, city, score FROM cellscore WHERE city IS NOT NULL)
+      , seedcity AS (
+          SELECT google_place_id,
+                 REGEXP_EXTRACT(address, r'({PREF_PATTERN})') AS pref,
+                 REGEXP_EXTRACT(address, r'(?:{PREF_PATTERN})([^0-9０-９]{{2,8}}?[市区町村])') AS city
+          FROM `{pipeline.table('restaurant_catalog')}`
+          WHERE run_id = @crid
         )"""
-        score_expr = "IFNULL(p.score, 0)"
-        joins = ("LEFT JOIN tokmap t ON t.tok = c.region_token "
+        # 市区町村スコアは県スコアより桁が小さいので、比較できるよう県スコアへ寄せずに
+        # «市区町村が分かるならそれ / 分からなければ県» の順で COALESCE する。
+        score_expr = "IFNULL(cs.score, IFNULL(p.score, 0))"
+        joins = ("LEFT JOIN seedcity sc ON sc.google_place_id = c.seed_place_id "
+                 "LEFT JOIN cityscore cs ON cs.pref = sc.pref AND cs.city = sc.city "
+                 "LEFT JOIN tokmap t ON t.tok = c.region_token "
                  "LEFT JOIN prefscore p ON p.pref = t.pref")
     else:
         pref_join, score_expr, joins = "", "0", ""
@@ -397,6 +422,7 @@ def _read_candidates(pipeline: BigQueryPipeline, candidate_run_id: str, tiers, m
              c.seed_place_id AS discovery_seed_place_id,
              c.tier
       FROM cand c {joins}
+      QUALIFY ROW_NUMBER() OVER (PARTITION BY c.handle ORDER BY {score_expr} DESC) = 1
       ORDER BY {_tier_rank_sql('c.tier')}, {score_expr} DESC, c.mention_posters DESC, c.handle
       {limit_sql}
     """
@@ -532,7 +558,8 @@ def main() -> None:
         accounts = _read_candidates(
             pipeline, args.candidate_run_id, tiers, args.max_accounts,
             shard_count=args.shard_count, shard_index=args.shard_index,
-            priority_coverage_run_id=args.priority_coverage_run_id)
+            priority_coverage_run_id=args.priority_coverage_run_id,
+            catalog_run_id=args.catalog_run_id)
         from collections import Counter
         LOGGER.info("候補表の段の内訳: %s", dict(Counter(a["tier"] for a in accounts)))
     else:
