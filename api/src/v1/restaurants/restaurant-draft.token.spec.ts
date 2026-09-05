@@ -26,6 +26,9 @@ const BASELINE: RestaurantDraftTokenPayload = {
   plusCodeJson: '{"globalCode":"8RJ4744C+2X"}',
   address: '宮城県仙台市青葉区中央1-1-1',
   countryCode: 'JP',
+  // #1671 ⚠️ ISO 3166-2 ではなく «国コード + Google の shortText»。
+  // 実データがこの形（JP-Miyagi）なので、テストもこの形で持つ
+  subterritoryCode: 'JP-Miyagi',
 };
 
 describe('#1671 restaurant draft token', () => {
@@ -153,6 +156,7 @@ describe('#1671 restaurant draft token', () => {
           longitude: BASELINE.longitude,
           address: BASELINE.address,
           countryCode: BASELINE.countryCode,
+          subterritoryCode: BASELINE.subterritoryCode,
         }),
       ).toEqual([]);
     });
@@ -165,6 +169,7 @@ describe('#1671 restaurant draft token', () => {
           longitude: BASELINE.longitude,
           address: BASELINE.address,
           countryCode: BASELINE.countryCode,
+          subterritoryCode: BASELINE.subterritoryCode,
         }),
       ).toEqual(['name']);
     });
@@ -177,6 +182,7 @@ describe('#1671 restaurant draft token', () => {
           longitude: BASELINE.longitude - 0.001,
           address: BASELINE.address,
           countryCode: BASELINE.countryCode,
+          subterritoryCode: BASELINE.subterritoryCode,
         }),
       ).toEqual(['latitude', 'longitude']);
     });
@@ -191,6 +197,7 @@ describe('#1671 restaurant draft token', () => {
           longitude: BASELINE.longitude,
           address: BASELINE.address,
           countryCode: BASELINE.countryCode,
+          subterritoryCode: BASELINE.subterritoryCode,
         }),
       ).toEqual([]);
     });
@@ -207,6 +214,7 @@ describe('#1671 restaurant draft token', () => {
           longitude: atZero.longitude,
           address: BASELINE.address,
           countryCode: BASELINE.countryCode,
+          subterritoryCode: BASELINE.subterritoryCode,
         }),
       ).toEqual(['latitude']);
     });
@@ -219,6 +227,7 @@ describe('#1671 restaurant draft token', () => {
           longitude: BASELINE.longitude,
           address: '宮城県仙台市青葉区中央1-1-2',
           countryCode: BASELINE.countryCode,
+          subterritoryCode: BASELINE.subterritoryCode,
         }),
       ).toEqual(['address']);
     });
@@ -231,6 +240,7 @@ describe('#1671 restaurant draft token', () => {
           longitude: BASELINE.longitude,
           address: BASELINE.address,
           countryCode: 'US',
+          subterritoryCode: BASELINE.subterritoryCode,
         }),
       ).toEqual(['countryCode']);
     });
@@ -243,6 +253,7 @@ describe('#1671 restaurant draft token', () => {
           longitude: BASELINE.longitude,
           address: BASELINE.address,
           countryCode: BASELINE.countryCode,
+          subterritoryCode: BASELINE.subterritoryCode,
         }),
       ).toEqual(['latitude']);
     });

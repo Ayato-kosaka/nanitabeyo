@@ -63,6 +63,16 @@ export type RestaurantDraftTokenPayload = {
   address: string;
   /** ISO 3166-1 alpha-2。判定できなければ null */
   countryCode: string | null;
+  /**
+   * #1671 州・県の識別子。判定できなければ null。
+   *
+   * ⚠️ **ISO 3166-2 とは限らない**（`JP-Oita` のような値が入る）。
+   * ⚠️ **ユーザーは編集できない。** 画面に出しても意味が分からない機械用の鍵であり、
+   *    自由入力させると `subterritory_overrides.json` と一致しなくなるだけである。
+   *    それでもトークンへ封じるのは、`countryCode` と同じく **Google 由来の値が
+   *    確定までの間に差し替えられないこと**を保証するためである。
+   */
+  subterritoryCode: string | null;
 };
 
 type SignedPayload = RestaurantDraftTokenPayload & { exp: number };
@@ -134,6 +144,7 @@ export function verifyRestaurantDraftToken(
     plusCodeJson,
     address,
     countryCode,
+    subterritoryCode,
   } = parsed;
   return {
     googlePlaceId,
@@ -145,6 +156,7 @@ export function verifyRestaurantDraftToken(
     plusCodeJson,
     address,
     countryCode,
+    subterritoryCode,
   };
 }
 
@@ -161,6 +173,8 @@ function isSignedPayloadShape(value: unknown): value is SignedPayload {
     (v.plusCodeJson === null || typeof v.plusCodeJson === 'string') &&
     typeof v.address === 'string' &&
     (v.countryCode === null || typeof v.countryCode === 'string') &&
+    (v.subterritoryCode === null ||
+      typeof v.subterritoryCode === 'string') &&
     typeof v.exp === 'number'
   );
 }
@@ -172,6 +186,12 @@ export type ConfirmedRestaurantValues = {
   longitude: number;
   address: string;
   countryCode: string | null;
+  /**
+   * #1671 ⚠️ **ユーザーは触れない。常にトークンの値がそのまま入る。**
+   * したがって `diffConfirmedRestaurantValues` の «変更された項目» にも出てこない。
+   * 画面に出さない理由は `RestaurantDraftTokenPayload` 側のコメントを参照。
+   */
+  subterritoryCode: string | null;
 };
 
 /**
