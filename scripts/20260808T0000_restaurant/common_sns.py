@@ -17,8 +17,12 @@ import hmac
 import json
 import os
 import re
+import http.client
+import socket
+import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
@@ -253,19 +257,84 @@ class ResolveClient:
     （匿名ユーザーを量産しないための設計）。
     """
 
-    def __init__(self, base_url: str | None = None, *, jwt_ttl: int = 600, timeout: float = 20.0):
+    def __init__(self, base_url: str | None = None, *, jwt_ttl: int = 600, timeout: float = 20.0,
+                 keep_alive: bool = True):
         self.base_url = (base_url or backend_base_url()).rstrip("/")
         self.jwt_ttl = jwt_ttl
         self.timeout = timeout
+        self.keep_alive = keep_alive
         self._jwt: str | None = None
         self._jwt_exp = 0.0
+        self._jwt_lock = threading.Lock()
+        # #1273 【設計】**TCP+TLS を毎回張り直さない。**
+        # urllib.request.urlopen は 1 リクエストごとに接続を作って捨てる。resolve は
+        # 1 投稿 = 1 リクエストで数万回叩くので、これだけで «サーバが何もしない投稿»
+        # （キャプションだけ・エリア無し＝店舗検索が走らない経路）の所要時間の大半を占める。
+        # スレッドごとに 1 本の HTTPS 接続を持ち回して keep-alive で使い回す。
+        # 接続はスレッド間で共有しない（http.client は thread-safe ではない）。
+        self._local = threading.local()
 
     def _auth_header(self) -> str:
-        now = time.time()
-        if self._jwt is None or now > self._jwt_exp - 30:
-            self._jwt = mint_service_jwt(self.jwt_ttl)
-            self._jwt_exp = now + self.jwt_ttl
-        return f"Bearer {self._jwt}"
+        # 並列 resolve から同時に呼ばれる。ロックが無いと同じ TTL の JWT を人数分作る
+        # （害は無いが無駄）。取り直しの瞬間だけ直列化する。
+        with self._jwt_lock:
+            now = time.time()
+            if self._jwt is None or now > self._jwt_exp - 30:
+                self._jwt = mint_service_jwt(self.jwt_ttl)
+                self._jwt_exp = now + self.jwt_ttl
+            return f"Bearer {self._jwt}"
+
+    def _conn(self):
+        """このスレッド専用の HTTPS 接続。無ければ張る。"""
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            parts = urllib.parse.urlsplit(self.base_url)
+            cls = (http.client.HTTPSConnection if parts.scheme == "https"
+                   else http.client.HTTPConnection)
+            conn = cls(parts.netloc, timeout=self.timeout)
+            self._local.conn = conn
+        return conn
+
+    def _drop_conn(self) -> None:
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except OSError:
+                pass
+            self._local.conn = None
+
+    def _post_keep_alive(self, path: str, data: bytes, headers: dict[str, str]) -> bytes:
+        """keep-alive で POST する。相手に切られていたら 1 度だけ張り直して再送する。
+
+        ⚠️ 呼び出し側は `urllib.error.URLError` / `TimeoutError` / `ValueError` しか
+        捕まえない（5_1）。ここで http.client の例外をそのまま外へ出すと «失敗した投稿だけ
+        飛ばす» が効かずジョブごと落ちるので、必ず URLError 系へ翻訳する。
+        """
+        base_path = urllib.parse.urlsplit(self.base_url).path.rstrip("/")
+        url = f"{self.base_url}{path}"
+        for attempt in (0, 1):
+            conn = self._conn()
+            try:
+                conn.request("POST", base_path + path, body=data, headers=headers)
+                resp = conn.getresponse()
+                body = resp.read()
+                if resp.status >= 400:
+                    self._drop_conn()
+                    raise urllib.error.HTTPError(url, resp.status, resp.reason, resp.headers, None)
+                return body
+            except (http.client.HTTPException, ConnectionError, socket.gaierror) as e:
+                # 使い回した接続が既に閉じられていた等。1 度だけ張り直して再送する。
+                self._drop_conn()
+                if attempt == 1:
+                    raise urllib.error.URLError(e) from e
+            except TimeoutError:
+                self._drop_conn()
+                raise
+            except OSError as e:
+                self._drop_conn()
+                raise urllib.error.URLError(e) from e
+        raise urllib.error.URLError("unreachable")
 
     def resolve_raw(
         self,
@@ -292,15 +361,16 @@ class ResolveClient:
         if author_name is not None and author_name.strip() != "":
             body["authorName"] = author_name
         data = json.dumps(body).encode("utf-8")
+        headers = {
+            "content-type": "application/json",
+            "authorization": self._auth_header(),
+        }
+        path = "/v1/dish-media/imports/resolve"
+        if self.keep_alive:
+            headers["content-length"] = str(len(data))
+            return json.loads(self._post_keep_alive(path, data, headers).decode("utf-8"))
         req = urllib.request.Request(
-            f"{self.base_url}/v1/dish-media/imports/resolve",
-            data=data,
-            method="POST",
-            headers={
-                "content-type": "application/json",
-                "authorization": self._auth_header(),
-            },
-        )
+            f"{self.base_url}{path}", data=data, method="POST", headers=headers)
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
 

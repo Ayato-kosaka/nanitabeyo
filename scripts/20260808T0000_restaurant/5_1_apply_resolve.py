@@ -131,6 +131,9 @@ def parse_args() -> argparse.Namespace:
     # anti-join だけだと **既に別 run で解けている投稿をもう一度 resolve へ投げる**。
     # 実測 2026-09-05: 未処理 99,937 投稿に対し run 単位で数えると 118,283（1.18 倍）。
     # 解き直しを狙うときは付けない（付けると «結果があるもの» は全部飛ぶ）。
+    # 接続の張り直しが 1 投稿の所要時間のどれだけを占めるかを測る/戻すためのつまみ。
+    p.add_argument("--no-keep-alive", action="store_true",
+                   help="resolve への HTTPS 接続を毎回張り直す（従来動作。keep-alive の効果測定用）")
     p.add_argument("--skip-resolved-anywhere", action="store_true",
                    help="他の run_id / resolve_version で既に結果がある投稿を対象から外す（積み残しの一括処理用）")
     return p.parse_args()
@@ -215,7 +218,7 @@ def main() -> None:
     run_id = require_run_id(args.run_id)
     raw_run_id = args.raw_run_id or run_id
     pipeline = BigQueryPipeline()
-    client = ResolveClient()  # base_url は common_sns の BACKEND_BASE_URL
+    client = ResolveClient(keep_alive=not args.no_keep_alive)  # base_url は common_sns の BACKEND_BASE_URL
     now_iso = utc_now().isoformat()
     sleep_s = max(args.sleep_ms, 0) / 1000.0
     timings = Timings()
