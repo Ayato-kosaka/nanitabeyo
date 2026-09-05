@@ -126,6 +126,13 @@ def parse_args() -> argparse.Namespace:
                    help="**地点が無い**投稿だけを対象にする（#1841 の «位置情報なしで 📍店名 から引けるか» の計測用）")
     p.add_argument("--reresolve-prev-status", default=None,
                    help="この «直近 version の status» の投稿だけ再解決する（例 skipped_no_store）。省略時は全未処理")
+    # #1273 «未処理» の定義を «この run_id × この version で未処理» から «どこにも結果が無い» へ広げる。
+    # 同じ post_id が複数の収集 run に入る（cc_wat は ccwat2〜5 で重なる）ので、run 単位の
+    # anti-join だけだと **既に別 run で解けている投稿をもう一度 resolve へ投げる**。
+    # 実測 2026-09-05: 未処理 99,937 投稿に対し run 単位で数えると 118,283（1.18 倍）。
+    # 解き直しを狙うときは付けない（付けると «結果があるもの» は全部飛ぶ）。
+    p.add_argument("--skip-resolved-anywhere", action="store_true",
+                   help="他の run_id / resolve_version で既に結果がある投稿を対象から外す（積み残しの一括処理用）")
     return p.parse_args()
 
 
@@ -133,7 +140,7 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
                       resolve_version: str, limit: int, shards: int = 1, shard: int = 0,
                       reresolve_prev_status: str | None = None, caption_regexp: str | None = None,
                       only_with_area: bool = False, post_ids: list[str] | None = None,
-                      only_without_area: bool = False):
+                      only_without_area: bool = False, skip_resolved_anywhere: bool = False):
     """未 resolve（この run × **この resolve_version** で未処理）の投稿を取り出す。
 
     version を anti-join に含めるので、--resolve-version を上げると全投稿が «その version では未処理»
@@ -151,6 +158,13 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
         area_filter = "AND r.discovery_area_lat IS NULL"
     # 特定の投稿だけを解き直す（原因調査用）。--debug-dump と併せて生レスポンスを見る。
     ids_filter = "AND r.post_id IN UNNEST(@post_ids)" if post_ids else ""
+    # «どこかに結果がある» 投稿を丸ごと外す。run をまたいだ二重 resolve を止めるためのもの。
+    anywhere_filter = ""
+    if skip_resolved_anywhere:
+        anywhere_filter = (
+            f"AND r.post_id NOT IN (SELECT post_id FROM `{pipeline.table(TABLE_POST_RESOLVED)}` "
+            "WHERE post_id IS NOT NULL)"
+        )
     caption_filter = ""
     if caption_regexp:
         caption_filter = "AND r.caption IS NOT NULL AND REGEXP_CONTAINS(r.caption, @caprx)"
@@ -174,7 +188,7 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
            AND v.resolve_version = @resolve_version
-      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter} {ids_filter}
+      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter} {ids_filter} {anywhere_filter}
       QUALIFY ROW_NUMBER() OVER (PARTITION BY r.post_id ORDER BY r.fetched_at DESC) = 1
       LIMIT {int(limit)}
     """
@@ -214,7 +228,7 @@ def main() -> None:
                                      args.shards, args.shard, args.reresolve_prev_status,
                                      args.caption_regexp, args.only_with_area,
                                      [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None,
-                                     args.only_without_area)
+                                     args.only_without_area, args.skip_resolved_anywhere)
         finally:
             bq.add("BQ:未処理の取り出し(1回)", time.perf_counter() - t0)
 
