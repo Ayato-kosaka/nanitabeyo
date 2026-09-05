@@ -319,11 +319,22 @@ def main() -> None:
             raise RuntimeError("SERPER_API_KEY 未設定（db-script-run.yml の secret）。")
         rows: list[dict] = []
         seen: set[tuple[str, str]] = set()
+        consecutive_failures = 0
         for i, (pref, q) in enumerate(queries, start=1):
             try:
                 res = serper_search(key, q, args.num)
+                consecutive_failures = 0
             except urllib.error.HTTPError as e:
-                LOGGER.warning("SERPER %s (q=%s)。このクエリを飛ばします", e.code, q)
+                # 本文まで出す。code だけだと «無料枠切れ» と «クエリが悪い» を区別できない
+                # （2026-09-05、188 クエリ全部 400 で 0 件になり、原因が分からなかった）。
+                body = e.read().decode("utf-8", "replace")[:300]
+                LOGGER.warning("SERPER %s (q=%s) body=%s", e.code, q, body)
+                consecutive_failures += 1
+                # 全部同じ理由で落ちているなら、残りを投げても枠を消すだけ。
+                if consecutive_failures >= 5:
+                    raise RuntimeError(
+                        f"SERPER が {consecutive_failures} 回連続で失敗しました（最後の本文: {body}）。"
+                        "キーか無料枠を確認してください。") from e
                 continue
             for handle, origin, rank in handles_from(res):
                 if (handle, q) in seen:
