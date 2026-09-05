@@ -208,11 +208,22 @@ describe("#1398 (PR3/7) ActionButtons の「食べた」導線", () => {
 1. `isEaten` が来たら色が変わり、読み上げでも «記録済み» が分かる（色だけに頼らない）
 2. それでも **押せる**（再訪は別の記録として正しい。済 = 無効化ではない）
 */
-describe("#1375 記録済みの色", () => {
+describe("#1375 / #1834 記録済み・保存済みの色", () => {
 	const eatenEntry = {
 		...entry,
 		dish_media: { ...entry.dish_media, isEaten: true },
 	} as unknown as DishMediaEntry;
+
+	const savedEntry = {
+		...entry,
+		dish_media: { ...entry.dish_media, isSaved: true },
+	} as unknown as DishMediaEntry;
+
+	/** 「保存（＝食べたい）」ボタンの中のアイコン（ホスト要素だけを見る） */
+	const savedIconColor = (tree: TestRenderer.ReactTestRenderer): string =>
+		tree.root
+			.find((node) => node.props?.testID === "dish-action-save")
+			.find((node) => typeof node.type === "string" && node.props?.testID === "icon-Bookmark").props.color;
 
 	/** 「食べたを記録」ボタンの中のアイコン（ホスト要素だけを見る） */
 	const eatenIconColor = (tree: TestRenderer.ReactTestRenderer): string =>
@@ -243,6 +254,36 @@ describe("#1375 記録済みの色", () => {
 		const button = tree.root.find((node) => node.props?.testID === "dish-action-eaten");
 		expect(button.props["aria-selected"]).toBe(true);
 		expect(button.props.accessibilityLabel).toBe("DishMediaContent.accessibility.recordEatenAgain");
+	});
+
+	/*
+	#1834 続き（11 巡目）**«食べたい»（保存）側の «状態 → 色» も、CI が回すテストで縛る。**
+
+	この向きを見ていたのは `reactions.spec.ts` だけで、あれは `@mutation` ゲート
+	（`RUN_MUTATION=1` かつ認証情報が要る）なので既定の CI では回らない。
+	つまりここで色名の定数を直に書き戻しても、回るテストは全部緑のままだった。
+	上の «食べた» 側と対にして、両方向を同じ形で固定する。
+	*/
+	it("isSaved のときブックマークは «食べたい» の色になる（色名の直書きへ戻さない）", async () => {
+		mockUseAuth.mockReturnValue({ user: { id: "user-1", is_anonymous: false }, isAuthResolved: true });
+		useDishMediaEntriesStore.getState().upsertDishMediaEntries([savedEntry]);
+
+		const tree = await render(
+			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
+		);
+		expect(savedIconColor(tree)).toBe(MY_DISH_STATUS_COLORS.want.fill);
+		// «食べたい» と «食べた» が同じ色に潰れていないこと（色相 1 本で区別しているため）
+		expect(MY_DISH_STATUS_COLORS.want.fill).not.toBe(MY_DISH_STATUS_COLORS.eaten.fill);
+	});
+
+	it("isSaved が false のときブックマークは白のまま", async () => {
+		mockUseAuth.mockReturnValue({ user: { id: "user-1", is_anonymous: false }, isAuthResolved: true });
+		useDishMediaEntriesStore.getState().upsertDishMediaEntries([entry]);
+
+		const tree = await render(
+			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
+		);
+		expect(savedIconColor(tree)).toBe("#FFFFFF");
 	});
 
 	it("記録済みでも押せる（再訪の記録を妨げない）", async () => {

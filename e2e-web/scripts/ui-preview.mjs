@@ -440,7 +440,7 @@ await context.route("**/localhost:9999/**", (r) => {
 		return env({ data: page1, nextCursor: null, meta: { oldestOccurredAt: iso(1, 1) } });
 	// #1505 グループ投票の履歴一覧。空状態も撮れるよう、返す配列は下のシナリオから差し替える
 	if (p.endsWith("/v1/users/me/dish-category-group-votes")) return env({ data: groupVoteItems, nextCursor: null });
-	// #1375 5 巡目: Map ビューの下帯（店名 + 緑/赤の内訳バッジ + 凡例）を撮るため
+	// #1375 5 巡目: Map ビューの下帯（店名 + 食べたい / 食べたの内訳バッジ + 凡例）を撮るため
 	if (p.endsWith("/v1/users/me/dishes/map-pins"))
 		return env({
 			data: [

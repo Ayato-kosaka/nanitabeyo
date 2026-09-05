@@ -1,6 +1,10 @@
 import type { MyDishStatus } from "@shared/api/v1/dto";
 
-import { FixedColors } from "@/constants/Palette";
+// #1834 続き ⚠️ **ここを `@/` 別名へ戻さないこと。**
+// e2e-web の spec（reactions / reaction-rollback）はこのモジュールから
+// «どちらの状態にどちらの色を当てるか» を引く。Playwright は TS を変換するだけで
+// `@/` を解決しないため、別名にすると spec 側が色を写経する形へ逆戻りする。
+import { FixedColors } from "../../constants/Palette";
 
 /**
  * #1375 my-dishes 全体で «食べたい / 食べた» を表す記号色。
@@ -45,6 +49,27 @@ import { FixedColors } from "@/constants/Palette";
 ⚠️ これは **状態を区別するための記号色**であって、「この色を CTA 以外へ広げてよい」という
 意味ではない（`docs/design-guidelines.md` §1）。新しい画面へ足したくなったら、
 まず状態の記号かどうかを確かめること。
+
+## #1834 続き 緑を «食べた» へ移す（11 巡目・オーナー指示）
+
+【判断ログ】2026-09-05 — オーナー指摘:
+
+> 🟢→完了してるイメージがある色やから（食べた）の方を🟢に
+> （食べたいと食べたのテーマカラーを逆）するのはどうやろか？
+
+**🟢 は «完了» の含意を持つ。まだ食べていない «食べたい» に当てると意味が逆になる。**
+→ 10 巡目で決めた 2 色（`#2E7D32` / `#ED6C02`）は値をそのままに、**当てる状態だけを入れ替えた**。
+
+| 状態 | 塗り |
+| --- | --- |
+| want（食べたい） | **オレンジ `#ED6C02`** |
+| eaten（食べた） | **緑 `#2E7D32`** |
+
+値を動かしていないので、10 巡目で取った «白文字が読める暗さ»（下の 2 つの ⚠️）は
+そのまま生きている。色相 1 本で区別している以上、**文字と凡例も従来どおり必ず添える**。
+
+⚠️ この向きは `statusBadges.test.tsx` が «どちらの状態にどちらの色か» まで縛っている。
+   10 巡目までは «2 色が違うこと» しか見ておらず、入れ替えても緑のまま通ってしまった。
  *
  * ## 3 つ組で持つ理由
  *
@@ -62,22 +87,22 @@ export type MyDishStatusPaint = {
 };
 
 /**
- * 状態の記号に使うオレンジ（**«食べた» 側**）。
+ * 状態の記号に使うオレンジ（#1834 続き・11 巡目から **«食べたい» 側**）。
  *
  * ⚠️ 明るくしない（白文字が読めなくなる。上のコントラストの注記を参照）。
  */
 export const MY_DISH_STATUS_ORANGE = FixedColors.myDishStatusOrange;
 
 /**
- * #1834 状態の記号に使う緑（**«食べたい» 側**）。
+ * #1834 状態の記号に使う緑（#1834 続き・11 巡目から **«食べた» 側**。🟢 = 完了）。
  *
  * ⚠️ 明るくしない（上に載る白文字が読めなくなる。`constants/Palette.ts` の注記を参照）。
  */
 export const MY_DISH_STATUS_GREEN = FixedColors.myDishStatusGreen;
 
 export const MY_DISH_STATUS_COLORS: Record<MyDishStatus, MyDishStatusPaint> = {
-	want: { fill: MY_DISH_STATUS_GREEN, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
-	eaten: { fill: MY_DISH_STATUS_ORANGE, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
+	want: { fill: MY_DISH_STATUS_ORANGE, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
+	eaten: { fill: MY_DISH_STATUS_GREEN, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
 };
 
 /** 件数の内訳。`countMyDishStatuses` の返り値 */
