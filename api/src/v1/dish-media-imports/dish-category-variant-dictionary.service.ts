@@ -32,7 +32,19 @@ import {
 } from '../../../../shared/utils/dishCategoryMatch';
 import { normalizeMatchText } from '../../../../shared/utils/textNormalize';
 
-/** 辞書として読む行数の上限。実測見込み（約 5,000 行）の 10 倍を安全余裕として取る */
+/**
+ * 辞書として読む行数の上限。**実データ 93,735 行に対して常に当たっている**（2026-09-05 実測）。
+ *
+ * 当初は「実測見込み（約 5,000 行）の 10 倍の安全余裕」のつもりだったが、実際の
+ * `dish_category_variants` は 14,597 カテゴリ ×（英語名 / 各言語ラベル / ローマ字 / ひらがな化）で
+ * 93,735 行ある。つまりこの値は «滅多に当たらない保険» ではなく、**辞書に何を載せるかを
+ * 決めている本番のパラメータ**である。
+ *
+ * ⚠️ **数を上げて全部載せる、はやらない。** 本文走査は
+ * `index.scannable` を 1 テキストにつき総なめするので、行数がそのままレイテンシになる。
+ * 加えて増えるぶんの大半は日本語キャプションに当たらない他言語ラベル（誤爆源）である。
+ * 代わりに **何を先に載せるかを `findAllVariantsForMatching` の ORDER BY で決めている**。
+ */
 export const DISH_CATEGORY_VARIANT_LOAD_LIMIT = 50_000;
 
 /**
@@ -281,7 +293,8 @@ export class DishCategoryVariantDictionaryService {
       ambiguousCount: index.ambiguousCount,
       scannableCount: index.scannable.length,
       elapsedMs: Date.now() - startedAt,
-      // 上限に達していたら辞書が想定より大きい。閾値の見直しが要る
+      // #1273 常に true（実データ 93,735 行 > 上限 50,000）。**これは異常ではない**。
+      // 何が落ちたかは `findAllVariantsForMatching` の searchableCount を見ること
       truncated: rows.length >= DISH_CATEGORY_VARIANT_LOAD_LIMIT,
     });
 
