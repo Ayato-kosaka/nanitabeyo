@@ -87,12 +87,25 @@ describeAuthenticated("食べたを記録の店名検索 @authenticated", () => 
 
 		const searchInput = by.id("sns-import-eaten-restaurant-search-input");
 		await waitUntilVisible(searchInput, DEFAULT_TIMEOUT);
-		await element(searchInput).replaceText("ラーメン");
+
+		/*
+		  ⚠️ **語の選び方に意味がある。「ラーメン」ではいけない。**
+
+		  当初は «dev の 62 万店はパイプライン製で画像を持たないから、何で検索しても
+		  画像なしが並ぶ» と考えたが、**実測で外れた**（run 33957116422 の
+		  スクリーンショットは «ラーメン» の結果 4 件が全部 画像あり）。
+		  店名検索は投稿のある店＝画像を持つ店を上位に返す。
+
+		  「8番ラーメン」は `scripts/db-checks/find_image_less_restaurant.py` が
+		  **image_url も dish_media も持たない**ことを dev で確認した店（14 店舗以上）。
+		*/
+		await element(searchInput).replaceText("8番ラーメン");
 
 		/*
 		  ⚠️ **結果が返るまで待つ。** ここを待たずに撮ると «検索中...» が写る
 		     （上のテストで実際にそうなった）。1 件目の受け皿が見えたら描画済みとみなす。
-		     dev のデータが変わって 1 件も返らなくなったら、ここで落ちて気付ける。
+		     dev のデータが変わって画像を持ってしまったら、ここで落ちて気付ける
+		     （そのときは上のスクリプトで別の店を探し直す）。
 		*/
 		await waitUntilVisible(
 			by.id("sns-import-eaten-restaurant-search-result-0-image-placeholder"),
