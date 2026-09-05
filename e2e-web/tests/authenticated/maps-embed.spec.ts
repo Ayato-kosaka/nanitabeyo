@@ -37,8 +37,20 @@ test.describe("#843 アプリ内地図（Maps Embed）", () => {
 		   読むが、about:blank のままだとオリジンが無く
 		   `SecurityError: Failed to read the 'localStorage' property` で落ちる
 		   （storageState を注入していても、一度もナビゲートしていなければ読めない）。
+
+		⚠️ **`/ja-JP` へ直接着地しないこと。** ロケール付きの URL は prerender されて
+		   おらず、Firebase Hosting の `** → /index.html` で «ロケール解決前の器» が
+		   返る。ブラウザは URL に従って本来の画面を描くのでサーバ HTML と食い違い、
+		   React が hydration 失敗（#418）を投げる。この repo は #418 を
+		   «prerender の不一致» の検知点として使っているため、auto フィクスチャが
+		   spec を落とす（run 33975561754 で実測。**地図ではなく着地点の問題**）。
+
+		   `allowedConsoleErrors` で握り潰さず、**アプリの実際の入口である `/` から入る**。
+		   ルートは prerender 済みなので食い違いが起きず、この spec でも #418 の検知が
+		   生きたまま残る（utils/consoleNoise.ts の «この spec が動的ルートへ直接着地する
+		   場合にだけ使う» 条件に、この spec は当てはまらない）。
 		*/
-		await page.goto("/ja-JP");
+		await page.goto("/");
 
 		const headers = await buildApiHeaders(page);
 		const base = apiBase();
