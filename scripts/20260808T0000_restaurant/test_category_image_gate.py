@@ -27,24 +27,11 @@ BigQuery へは繋がない。固定するのは «壊れても実行は成功�
 from __future__ import annotations
 
 import sys
-import types
 import unittest
 from pathlib import Path
 
-# pipeline_common は import 時に `from google.cloud import bigquery` する。ここは SQL 文字列
-# だけを見るので、import を通すためだけの軽量スタブを差し込む（test_post_store_sql と同じ理由）。
-if "google.cloud.bigquery" not in sys.modules:
-    _bq = types.ModuleType("google.cloud.bigquery")
-    for _n in ("Client", "ScalarQueryParameter", "ArrayQueryParameter", "QueryJobConfig",
-               "LoadJobConfig", "ParquetOptions"):
-        setattr(_bq, _n, type(_n, (), {}))
-    _bq.WriteDisposition = types.SimpleNamespace(WRITE_APPEND="WRITE_APPEND")
-    _bq.SourceFormat = types.SimpleNamespace(NEWLINE_DELIMITED_JSON="NDJSON", PARQUET="PARQUET")
-    _google = sys.modules.setdefault("google", types.ModuleType("google"))
-    _cloud = sys.modules.setdefault("google.cloud", types.ModuleType("google.cloud"))
-    setattr(_google, "cloud", _cloud)
-    setattr(_cloud, "bigquery", _bq)
-    sys.modules["google.cloud.bigquery"] = _bq
+# google.cloud.bigquery の軽量スタブは conftest.py が 1 箇所で用意する
+# （各テストへ写経すると «先に入れた者勝ち» で実行順に依存して落ちる）。
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
