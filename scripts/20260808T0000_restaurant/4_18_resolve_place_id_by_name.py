@@ -845,8 +845,8 @@ def main() -> None:
     if unknown:
         raise SystemExit(f"--name-sources に知らない書き方があります: {sorted(unknown)}")
     keys, reasons = build_name_keys(posts, by_pair, uniq, geo["pref_of_unique_city"], sources)
-    LOGGER.info("店が決まっていない投稿 %d 件を読みました（📍 か 『「 を含むものだけ）",
-                sum(reasons.values()))
+    LOGGER.info("店が決まっていない投稿 %d 件を読みました（店名の印がある caption だけ）"
+                " / 使う書き方: %s", sum(reasons.values()), ",".join(sources))
     LOGGER.info("店名を採れた投稿 %d 件 / 店名なし %d 件 / 地点なし %d 件 / 名前が地名 %d 件",
                 reasons["ok"], reasons["no_store_name"], reasons["no_area_hint"],
                 reasons["name_is_the_area"])
