@@ -442,3 +442,43 @@ probe は business_discovery **1 コール**（25 投稿 = 1 ページ）で済�
 ⚠️ `ouchigohan` `anagomeshi_ueno` のような **区切り無しの連結も落ちる**。それでも
 この規則を採るのは、段が取れ高を予測しないと実証済み（C 0.057 / D 0.056 / E 0.055）で、
 段は `--candidate-tiers` のラベルにしか使わないため。
+
+### 7. ⚠️ いちばん大きい発見 — 手作り一覧の 341 件が未収集のまま残っている
+
+`sns_influencer_seed_handles.txt` は **741 件**あるのに、BigQuery に入っているのは 450 件。
+
+| | 件数 |
+| --- | ---: |
+| seed ファイルの handle（一意） | **741** |
+| `sns_source_account` に登録済み | 450 |
+| **BQ に 1 行も無い（＝ 4_1 を流し直していない）** | **291** |
+| 投稿を収集済み | 400 |
+| **未収集（＝ そのまま取れる）** | **341** |
+
+**`4_1 --source influencer_list` が seed ファイルの追記に追いついていない。**
+前に «curated の未収集は 36 件» と報告したのは `sns_source_account` に入っている分だけを
+数えていたためで、**実際の未収集は 341 件**である。
+
+curated の実測単価 31.9 配信店/アカウントで見積もると **約 10,900 配信店**。
+必要なコールは probe + 深掘りで 341 × 8 ≒ 2,700（IG 枠で約 14 時間）。
+**同じ 2,700 コールを店アカウント（0.542）に使うと 1,463 店。約 7.5 倍。**
+
+検索 API も新しい判定器も要らない。**いま流せる。**
+
+手順（`sns_source_account` へ書くので柱1 か オーナーの指示で）:
+
+    4_1_discover_sns_accounts.py --source influencer_list --run-id <new>
+    4_2_collect_account_posts.py --account-run-id <new> --account-type influencer
+
+### 8. 検索 API 経路は «鍵切れ» で測れていない
+
+`4_20` を 188 クエリで流したところ **全クエリが SERPER 400
+`{"message":"Not enough credits"}`**。無料枠が尽きている。
+他のプロバイダ（Tavily / You / Yep / Linkup）の鍵は `db-script-run.yml` に
+渡されていない（`IG_TOKEN` と `SERPER_API_KEY` だけ）。
+
+**この経路の p はまだ 1 度も測れていない。** 測るには次のどちらかが要る:
+- SERPER の枠を足す
+- 別プロバイダの鍵を GitHub secret と `db-script-run.yml` の env へ追加する
+
+⚠️ §7 の 341 件（約 10,900 店）を先に流し切る方が、順番として先である。
