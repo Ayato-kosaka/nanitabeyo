@@ -554,8 +554,17 @@ TABLE_DISH_CATEGORY_IMAGES = "dish_category_images"
 # scripts/db-checks/measure_delivered_but_invisible.py）:
 #
 #     usable 145,392 行のうち 3 段とも絵が無い行 = 3,119 行（2.15%）
-#     その 221 カテゴリは **1 つも JP ゲート（KPI が数える 134 カテゴリ）に無い**
-#     ＝ 落としても KPI（市区町村 × カテゴリのセルに異なり店 5 店）の分子は 0 組しか減らない
+#     その 221 カテゴリのほぼ全部は JP ゲート（KPI が数える 134 カテゴリ）の外
+#
+# ⚠️ **«1 つも JP ゲートに無い» は誤りだった（2026-09-05 実測、run sns-catalog-2026-09-05c）。**
+# KPI の 140 QID のうち **`Q65241114`（ナポリタン）だけが `dish_category_images` に
+# 非空の行を 1 件も持たない**。この 1 カテゴリのぶんだけ、このゲートは KPI の分子を削る:
+#
+#     ナポリタンで落ちた投稿 34 / 異なり店 22（他の 228 カテゴリ 3,369 投稿は KPI 外）
+#
+# 直し方は **ゲートを緩めることではなく、ナポリタンの絵を 1 枚入れること**。
+# 絵が無いまま配れば «真っ黒なセル» が戻るだけで、KPI のセルは埋まらない。
+# この 1 行が 0 に戻ったかは `dish_category_images` を数えれば分かる。
 #
 # `dish_categories.image_url` は `9_1_sync_dish_categories.py` が
 # `COALESCE(rep.image_url, '')`（`dish_category_images` の代表 1 枚）で作る。
