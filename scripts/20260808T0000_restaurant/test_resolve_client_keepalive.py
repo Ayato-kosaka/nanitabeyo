@@ -23,16 +23,21 @@ import common_sns
 
 class _Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    conn_ids: list[int] = []
+    # ⚠️ 接続の本数を `id(self.connection)` で数えてはいけない。閉じたソケットの
+    #    アドレスが再利用されると «別の接続» が同じ id になり、**単体では通るのに
+    #    まとめて走らせると落ちる**（実際に起きた）。受理のたびに増える counter で数える。
+    accepted: int = 0
     fail_next: list[str] = []
     status: int = 200
+
+    def setup(self):  # 1 接続の受理につき 1 回だけ呼ばれる
+        _Handler.accepted += 1
+        super().setup()
 
     def log_message(self, *args):  # ログを黙らせる
         pass
 
     def do_POST(self):
-        # 1 接続ごとに 1 度だけ、その接続の id を記録する（= 使い回しの本数が数えられる）
-        _Handler.conn_ids.append(id(self.connection))
         if _Handler.fail_next:
             _Handler.fail_next.pop()
             self.close_connection = True
@@ -50,7 +55,7 @@ class _Handler(BaseHTTPRequestHandler):
 
 class KeepAliveTest(unittest.TestCase):
     def setUp(self) -> None:
-        _Handler.conn_ids = []
+        _Handler.accepted = 0
         _Handler.fail_next = []
         _Handler.status = 200
         self.srv = HTTPServer(("127.0.0.1", 0), _Handler)
@@ -70,14 +75,14 @@ class KeepAliveTest(unittest.TestCase):
         c = self._client()
         for _ in range(5):
             self.assertEqual(c.resolve_raw("https://www.instagram.com/p/x/"), {"data": {"status": "ok"}})
-        self.assertEqual(len(set(_Handler.conn_ids)), 1,
-                         f"接続が使い回されていない: {len(set(_Handler.conn_ids))} 本")
+        self.assertEqual(_Handler.accepted, 1,
+                         f"接続が使い回されていない: {_Handler.accepted} 本")
 
     def test_without_keep_alive_each_request_makes_a_new_connection(self) -> None:
         c = self._client(keep_alive=False)
         for _ in range(3):
             c.resolve_raw("https://www.instagram.com/p/x/")
-        self.assertEqual(len(set(_Handler.conn_ids)), 3)
+        self.assertEqual(_Handler.accepted, 3)
 
     def test_a_dropped_connection_is_retried_once(self) -> None:
         c = self._client()
