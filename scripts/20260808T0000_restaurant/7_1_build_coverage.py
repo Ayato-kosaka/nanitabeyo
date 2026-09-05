@@ -9,10 +9,8 @@ resolve が単一頭脳なので、ここは «集計だけ»。照合や分類�
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import re
-from pathlib import Path
 from collections import defaultdict
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
@@ -45,11 +43,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--resolved-run-ids", default=None,
                    help="union する run_id をカンマ区切りで（--resolved-run-id より優先）")
     # KPI は «アプリの 134 カテゴリ限定» で見る（resolve の語彙は 1,577 QID あり、分母が違うと ≥5 セル数が
-    # 全く別物になる。2026-09-03 実測: 全 QID 58 セル / 134 限定 32 セル）。ラベル JSON→QID は
-    # wikidata_food_graph.dish_category_catalog.label_ja で引く。
-    p.add_argument("--kpi-labels-json",
-                   default=str(Path(__file__).resolve().parent / "1273_instagram_seed_poc" / "out" / "dish_categories_jp.json"),
-                   help="KPI 用カテゴリ（日本語ラベル）JSON。空文字で無効")
+    # 全く別物になる。2026-09-03 実測: 全 QID 58 セル / 134 限定 32 セル）。
+    #
+    # ⚠️ #1815 【重要】この 134 を «日本語ラベルで QID を引く» 方法で作ってはいけない。
+    # dish_category_catalog には label_ja が同名の別 QID が居る（餃子=Q107014807/Q640769、
+    # 焼肉=Q2431975/Q844466、かき氷・タルト・ナポリタン・親子丼も同様）ため、134 ラベルを引くと
+    # **140 QID** に膨らむ。膨らんだ 6 QID はアプリの JP ゲートに入っていない＝日本のユーザーが
+    # そのカテゴリを検索できないので、数えても**アプリには出ない**（2026-09-04 実測: ≥1 セル
+    # 12,411→11,941、≥5 セル 918→898 が «出ないのに数えていた» 分）。
+    # 正はアプリと同じ «JP ゲート»（8_1 の target_categories と同じ条件）。
+    p.add_argument("--kpi-gate-feature-key", default="region:country:JP",
+                   help="KPI 対象カテゴリを決める dish_category_features_catalog の gate key。空文字で KPI 無効")
     p.add_argument("--catalog-run-id", default=None, help="住所を引く restaurant_catalog の run_id（省略時は最新）")
     return p.parse_args()
 
@@ -135,18 +139,17 @@ def main() -> None:
         bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id),
     ]
     kpi_qids: set[str] = set()
-    if args.kpi_labels_json:
+    if args.kpi_gate_feature_key:
         try:
-            labels = json.loads(Path(args.kpi_labels_json).read_text(encoding="utf-8")).get("categories_ja") or []
             for row in pipeline.execute(
-                "SELECT DISTINCT item_qid FROM `food-scroll.wikidata_food_graph.dish_category_catalog` "
-                "WHERE label_ja IN UNNEST(@labels)",
-                [bigquery.ArrayQueryParameter("labels", "STRING", labels)],
+                f"SELECT DISTINCT item_qid FROM `{pipeline.config.dish_dataset_ref}.dish_category_features_catalog` "
+                "WHERE feature_type = 'gate' AND feature_key = @key AND score > 0",
+                [bigquery.ScalarQueryParameter("key", "STRING", args.kpi_gate_feature_key)],
             ):
                 kpi_qids.add(row["item_qid"])
-            LOGGER.info("KPI 対象カテゴリ: ラベル %d → QID %d", len(labels), len(kpi_qids))
+            LOGGER.info("KPI 対象カテゴリ（%s ゲート）: QID %d", args.kpi_gate_feature_key, len(kpi_qids))
         except Exception as e:  # noqa: BLE001 - KPI 表示は付加情報。集計本体は止めない
-            LOGGER.warning("KPI ラベル JSON の読み込みに失敗（%s）。134 限定 KPI は出しません", e)
+            LOGGER.warning("KPI ゲートの取得に失敗（%s）。134 限定 KPI は出しません", e)
 
     with pipeline.step(run_id, "7_1_build_coverage", parameters={
         "resolved_run_ids": resolved_run_ids, "catalog_run_id": catalog_run_id,
@@ -195,8 +198,29 @@ def main() -> None:
         LOGGER.info("KPI(全QID) 市区町村×カテゴリ: ≥1店=%d ≥3店=%d ≥5店=%d usable店=%d", a1, a3, a5, ast)
         if kpi_qids:
             k1, k3, k5, kst = _kpi(kpi_qids)
-            LOGGER.info("KPI(134カテゴリ限定) 市区町村×カテゴリ: ≥1店=%d ≥3店=%d ≥5店=%d usable店=%d", k1, k3, k5, kst)
+            LOGGER.info("KPI(%d カテゴリ＝JPゲート限定) 市区町村×カテゴリ: ≥1店=%d ≥3店=%d ≥5店=%d usable店=%d",
+                        len(kpi_qids), k1, k3, k5, kst)
             result["kpi134_ge5"] = k5
+            # #1815 «ゲート外の同名ラベル QID»（餃子=Q640769 など）へ流れた分を、黙って落とさず数える。
+            # ここが 0 でないなら、resolve 側の KPI 優先表（kpi_dish_categories.json の kpi_qids）が
+            # アプリのカテゴリと食い違っている＝取ったのに出せないデータが積み上がっている。
+            try:
+                twin_qids = {
+                    r["item_qid"]
+                    for r in pipeline.execute(
+                        f"SELECT DISTINCT c.item_qid FROM `{pipeline.config.dish_dataset_ref}.dish_category_catalog` c "
+                        f"JOIN `{pipeline.config.dish_dataset_ref}.dish_category_catalog` g "
+                        "  ON g.label_ja = c.label_ja AND g.item_qid IN UNNEST(@gate) "
+                        "WHERE c.item_qid NOT IN UNNEST(@gate)",
+                        [bigquery.ArrayQueryParameter("gate", "STRING", sorted(kpi_qids))],
+                    )
+                }
+                if twin_qids:
+                    t1, _, t5, tst = _kpi(twin_qids)
+                    LOGGER.info("ゲート外の同名ラベル QID(%d 個)に流れたぶん（KPI には数えない）: "
+                                "≥1店セル=%d ≥5店セル=%d 店=%d", len(twin_qids), t1, t5, tst)
+            except Exception as e:  # noqa: BLE001 - 診断。集計本体は止めない
+                LOGGER.warning("同名ラベル QID の診断に失敗（%s）", e)
 
 
 if __name__ == "__main__":
