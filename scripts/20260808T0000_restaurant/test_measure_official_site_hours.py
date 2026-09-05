@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -49,34 +50,75 @@ class HtmlToTextTest(unittest.TestCase):
 
 
 class ClassificationTest(unittest.TestCase):
-    """到達したページを 3 つに分ける判定。ここが «LLM が要るか» の数字を決める。"""
+    """到達したページをどの箱へ入れるか。ここが «LLM が要るか» の数字を決める。
 
-    def parse(self, text: str):
-        return measure.parse_jp_site_opening_hours(text)
+    ⚠️ 判定の順序を**テストへ写経しない**。本番と同じ `classify_page` を呼ぶ。
+    写経すると、本番だけ直ったときに**テストが緑のまま古い順序を守り続ける**。
+    """
 
-    def mentions(self, text: str) -> bool:
-        return bool(measure._HOURS_MENTION_RE.search(text))
+    def classify(self, html: str) -> str:
+        return measure.classify_page(measure.html_to_text(html))
 
     def test_parsed_page_counts_as_parsed(self) -> None:
-        text = measure.html_to_text("<div>営業時間　11:30～14:30　定休日　月曜</div>")
-        self.assertIsNotNone(self.parse(text))
+        self.assertEqual(self.classify("<div>営業時間　11:30～14:30　定休日　月曜</div>"), "parsed")
 
     def test_page_with_hours_wording_but_unparsable_is_the_llm_candidate(self) -> None:
         """«人間なら読めるがパーサは諦めた» が LLM 候補。ここを取りこぼさない。"""
-        text = measure.html_to_text("<div>営業時間　午後4時〜午後10時　定休日　第1・第3月曜</div>")
-        self.assertIsNone(self.parse(text), "このパーサは午前/午後と第 n 週を読まない")
-        self.assertTrue(self.mentions(text), "営業時間の語はあるので LLM 候補として数える")
+        html = "<div>営業時間　午後4時〜午後10時　定休日　第1・第3月曜</div>"
+        self.assertIsNone(measure.parse_jp_site_opening_hours(measure.html_to_text(html)), "このパーサは午前/午後と第 n 週を読まない")
+        self.assertEqual(self.classify(html), "mentions_hours_unparsed")
 
     def test_page_without_any_hours_wording_is_not_a_candidate(self) -> None:
-        text = measure.html_to_text("<p>お知らせ 13:00-15:00 の講演会</p>")
-        self.assertIsNone(self.parse(text))
-        self.assertFalse(self.mentions(text))
+        self.assertEqual(self.classify("<p>お知らせ 13:00-15:00 の講演会です</p>"), "no_hours_mentioned")
 
     def test_mention_net_is_wider_than_the_parser(self) -> None:
         """網はパーサより広くなければならない（狭いと候補を過小に見積もる）。"""
         for wording in ["営業時間", "営業日", "定休日", "休業日", "ランチ", "ディナー", "開店", "閉店", "OPEN"]:
             with self.subTest(wording=wording):
-                self.assertTrue(self.mentions(f"当店の{wording}について"))
+                self.assertTrue(measure._HOURS_MENTION_RE.search(f"当店の{wording}について"))
+
+
+class NonJapanesePageTest(unittest.TestCase):
+    """**日本語かどうかはページの中身で決める。`country_code` を信用しない。**
+
+    dry-run（run 33989897700）で `--country JP` を効かせたのに韓国語サイトが標本に残り、
+    座標を出したら **韓国にある店**だった（国コードの誤り。別途起票）。
+    ⚠️ 国コードを直してもこの判定は要る。**日本にある韓国料理店**の韓国語サイトや、
+    日本の店の英語サイトが残るため。母数に混ぜると日本語パーサの命中率が薄まる。
+    """
+
+    def classify(self, html: str) -> str:
+        return measure.classify_page(measure.html_to_text(html))
+
+    def test_korean_page_is_excluded_from_the_denominator(self) -> None:
+        html = "<div>파리바게뜨 영업시간 09:00-22:00 휴무일 월요일</div>"
+        self.assertEqual(self.classify(html), "not_japanese_page")
+
+    def test_english_page_is_excluded(self) -> None:
+        """⚠️ `OPEN` は営業時間の網に入っているので、日本語判定が無いと LLM 候補に化ける。"""
+        html = "<div>OPEN 11:00-14:00 Closed on Mondays</div>"
+        self.assertEqual(self.classify(html), "not_japanese_page")
+
+    def test_chinese_page_is_excluded_even_though_it_is_kanji(self) -> None:
+        """漢字だけを見ると中国語ページを日本語と誤判定する。仮名で判定する理由。"""
+        html = "<div>营业时间 11:00-14:00 每周一休息</div>"
+        self.assertEqual(self.classify(html), "not_japanese_page")
+
+    def test_japanese_page_without_any_kana_still_counts_as_parsed(self) -> None:
+        """⚠️ **日本語判定を «仮名があるか» だけにした瞬間に落ちるテスト。**
+
+        `営業時間 11:00-14:00 定休日 月曜` は **仮名を 1 文字も含まない日本語ページ**で、
+        パーサは読める。仮名だけで弾くと `not_japanese_page` へ落ち、
+        **`parsed`（= $0 で構造化できた件数）を実際より少なく報告する**。
+        """
+        html = "<div>営業時間 11:00-14:00 定休日 月曜</div>"
+        text = measure.html_to_text(html)
+        self.assertFalse(re.search(r"[ぁ-んァ-ヴー]", text), "この文には仮名が無い（前提の確認）")
+        self.assertEqual(self.classify(html), "parsed")
+
+    def test_japanese_page_is_not_excluded(self) -> None:
+        html = "<div>お知らせ 本日は貸切です</div>"
+        self.assertEqual(self.classify(html), "no_hours_mentioned")
 
 
 class SamplingTest(unittest.TestCase):
@@ -96,6 +138,17 @@ class SamplingTest(unittest.TestCase):
 
     def test_only_http_urls_are_sampled(self) -> None:
         self.assertIn("^https?://", measure.SAMPLE_SQL)
+
+    def test_dry_run_can_show_where_the_row_actually_is(self) -> None:
+        """⚠️ 標本がおかしいときに **相手のサイトを叩かずに** 確かめられること。
+
+        韓国語サイトが JP として残った件は、緯度経度が日本国内かどうかで
+        «日本にある韓国料理店» と «国コードの誤り» を切り分けられる。
+        dry-run はネットワークへ出ないので、何度でも確かめてよい。
+        """
+        for column in ["r.country_code", "r.latitude", "r.longitude"]:
+            with self.subTest(column=column):
+                self.assertIn(column, measure.SAMPLE_SQL)
 
 
 class SafetyTest(unittest.TestCase):
