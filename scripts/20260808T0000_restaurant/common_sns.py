@@ -441,7 +441,21 @@ def classify(resp: dict[str, Any]) -> ResolveOutcome:
 # 同じ判定を別々に書いた結果、7_1 は seed を数えるのに 9_1 は status='matched' しか見ておらず、
 # **カバレッジには計上されているのにアプリには 1 件も出ないデータ**が 2,676 店ぶん生まれていた。
 # 数える側と配る側がずれると、KPI は «報告のための数字» になって意味を失う。
-STORE_ID_SQL = "COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_place_id)"
+#
+# ⚠️⚠️ **#1846: seed-trust には «看板が 1 店を指しているとき» という前提がある。**
+# 下の 2 つ（`*_ANY_SQL`）は «その投稿に紐づき得る店» を広く取る式で、**配信・計上に
+# 使ってはいけない**。1 投稿 1 店を確定するのは `post_store_cte_sql()` の `post_store`。
+# 実測（sns-catalog-2026-09-05 / 142,489 行）: この広い式で配信カタログを組んだ結果、
+# **1,388 投稿が 2 店以上に紐づき**、どちらが出るかは 9_2 の `google_place_id ASC` ＝
+# place_id の辞書順で決まっていた。内訳は「チェーンのブランドサイトが全支店の place_id に
+# 登録されている」985 / 「1 つの IG アカウントが複数支店の place_id に紐づいている」292 /
+# 「seed があるのに resolve の店が混ざった」41 / 他 70。候補どうしは 65% が 5km 以上離れており
+# （381 投稿は 50km 以上）、辞書順で選ぶのは «別の市の店に付ける» のと同じだった。
+#
+# `*_ANY_SQL` は «この (店, カテゴリ) はもう投稿を持っているか»（4_7 / 4_17 の収集ターゲット
+# 選び）にだけ残す。そこでは広すぎても «取りに行かない店が少し増える» だけで、
+# ユーザーに間違った店を見せることはない。
+STORE_ID_ANY_SQL = "COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_place_id)"
 
 # --- «その投稿の resolve 結果はどれか» の唯一の判定 ------------------------------
 #
@@ -458,10 +472,108 @@ LATEST_RESOLVED_QUALIFY = (
 )
 
 # 上の店 ID が非 NULL になる行の条件。matched か、seed を持っているか。
-STORE_KNOWN_SQL = (
+STORE_KNOWN_ANY_SQL = (
     "(v.status = 'matched' "
     "OR (r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''))"
 )
+
+
+# --- «看板» が指している店の数 ---------------------------------------------------
+#
+# 【設計】#1846: 収集経路が示すのは «どの店の看板の下で見つけたか» であって
+# «どの店の投稿か» ではない。看板が 1 店を名乗っているのに実際は複数店を指している
+# とき（チェーンのブランドサイト／ブランドアカウント）、seed は店を決めていない。
+#
+# 看板の識別子（identity key）は経路ごとに違う。
+# - `store_account`    … その投稿を採ってきた IG アカウント（`account_id`）
+# - `store_site_embed` … 投稿が埋め込まれていた公式サイトのドメイン（`discovery_query`）
+#                        www 有無で別ドメイン扱いになるため揃える（実測: `hachibei.com` と
+#                        `www.hachibei.com` が別々に入っていた）
+# それ以外の経路（cc_wat / gourmet_media / search_api）は «第三者のページが店に言及した»
+# ものなので、ホストが多数の店を指すのは当たり前で欠陥ではない（実測でもこの経路だけで
+# 衝突している投稿は 2 件）。だから identity key を持たせず、共有度で落とさない。
+SEED_IDENTITY_KEY_SQL = r"""CASE r.discovery_route
+        WHEN 'store_account'    THEN CONCAT('account:', IFNULL(r.account_id, ''))
+        WHEN 'store_site_embed' THEN CONCAT('site:', REGEXP_REPLACE(
+               LOWER(IFNULL(r.discovery_query, '')), r'^www\.', ''))
+        ELSE NULL
+      END"""
+
+# 看板の «強さ»。小さいほど強い。同じ投稿に複数の候補が立ったときはここで決める。
+# 1: 店自身のアカウント > 2: 店の公式サイトの埋め込み > 3: 第三者ページの seed >
+# 4: resolve の店照合（seed がどれも使えないときだけ）。
+SEED_STORE_RANK_SQL = """CASE r.discovery_route
+        WHEN 'store_account'    THEN 1
+        WHEN 'store_site_embed' THEN 2
+        ELSE 3
+      END"""
+RESOLVED_STORE_RANK = 4
+
+
+def post_store_cte_sql(raw_table: str, *, latest_cte: str, runs_param: str | None = None) -> str:
+    """«1 投稿 = 1 店» を確定する CTE 群（末尾の CTE 名は ``post_store``）を返す。
+
+    ⚠️ **配信（9_1）と計上（7_1）は必ずこれを使う。** 店の決め方を SQL へ書き写すと、
+    数える側と配る側がずれる（`STORE_ID_ANY_SQL` のコメント参照）。
+
+    規則は 2 つだけ。
+
+    1. **複数店を指している看板の seed は候補にしない。** そのアカウント / そのサイトが
+       2 店以上の place_id に紐づいているなら、その seed は «ブランド» を指しているだけで
+       店を決めていない。共有度は run を跨いで数える（run を絞ると «この run では 1 店»
+       という理由で共有に気づけない）。
+    2. **残った候補が 1 店に絞れないなら、その投稿は使わない。** 間違った店に付けるより
+       落とす方が正しい（実測で候補どうしの 65% は 5km 以上離れている）。
+
+    Args:
+        raw_table: ``sns_post_raw`` の完全修飾名。
+        latest_cte: 直前に定義済みの «投稿ごとの最新 resolve» CTE 名
+            （``status`` / ``google_place_id`` / ``post_id`` を持つこと）。
+        runs_param: seed を採る run を絞るクエリパラメータ名（``@`` は付けない）。
+            None なら全 run。**共有度の集計は常に全 run で行う**。
+    """
+    run_filter = f"AND r.run_id IN UNNEST(@{runs_param})" if runs_param else ""
+    return f"""
+      seed_identity AS (
+        -- 共有度は «全 run» で測る。run を絞ると看板の共有に気づけない。
+        SELECT r.discovery_seed_place_id AS place_id, {SEED_IDENTITY_KEY_SQL} AS identity_key
+        FROM `{raw_table}` r
+        WHERE r.provider = '{PROVIDER_INSTAGRAM}'
+          AND r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''
+      ),
+      identity_place_count AS (
+        SELECT identity_key, COUNT(DISTINCT place_id) AS n_place
+        FROM seed_identity WHERE identity_key IS NOT NULL GROUP BY identity_key
+      ),
+      store_candidate AS (
+        SELECT DISTINCT r.post_id, r.discovery_seed_place_id AS google_place_id,
+               {SEED_STORE_RANK_SQL} AS store_rank
+        FROM `{raw_table}` r
+        LEFT JOIN identity_place_count k ON k.identity_key = {SEED_IDENTITY_KEY_SQL}
+        WHERE r.provider = '{PROVIDER_INSTAGRAM}' {run_filter}
+          AND r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''
+          AND ({SEED_IDENTITY_KEY_SQL} IS NULL OR IFNULL(k.n_place, 0) <= 1)
+        UNION ALL
+        -- seed がひとつも使えなかった投稿だけ resolve の店照合に落ちる（rank で自動的にそうなる）
+        SELECT v.post_id, v.google_place_id, {RESOLVED_STORE_RANK}
+        FROM {latest_cte} v
+        WHERE v.status = 'matched' AND v.google_place_id IS NOT NULL
+      ),
+      post_store AS (
+        -- ⚠️ HAVING は SELECT の別名を先に見るので、集計列と同じ名前を候補列に付けない
+        --    （`HAVING COUNT(DISTINCT google_place_id)` が `ANY_VALUE(...)` を指して
+        --    «Aggregations of aggregations» で落ちる）。候補側は cand_place に分ける。
+        SELECT post_id, ANY_VALUE(cand_place) AS google_place_id,
+               ANY_VALUE(cand_rank) AS store_rank
+        FROM (
+          SELECT c.post_id, c.google_place_id AS cand_place, c.store_rank AS cand_rank,
+                 MIN(c.store_rank) OVER (PARTITION BY c.post_id) AS best_rank
+          FROM store_candidate c
+        )
+        WHERE cand_rank = best_rank
+        GROUP BY post_id
+        HAVING COUNT(DISTINCT cand_place) = 1
+      )"""
 
 
 # --- 素のハンドル（@ の無い IG handle）抽出の唯一の正 -----------------------------

@@ -76,8 +76,8 @@ from common_sns import (
     BARE_HANDLE_MAX_POSTERS,
     GENERIC_HANDLE_STOPWORDS,
     PROVIDER_INSTAGRAM,
-    STORE_ID_SQL,
-    STORE_KNOWN_SQL,
+    STORE_ID_ANY_SQL,
+    STORE_KNOWN_ANY_SQL,
     TABLE_POST_RAW,
     TABLE_POST_RESOLVED,
     TABLE_SOURCE_ACCOUNT,
@@ -163,8 +163,10 @@ def _params(pipeline_limit: int | None = None):
 def stats_sql(pipeline: BigQueryPipeline, *, corroborated_only: bool = True) -> str:
     """誤爆率（stoplist 前後）と、確定する投稿数・店数・うち新規店を数える SQL。
 
-    «既に知っている店» の判定は `STORE_ID_SQL` / `STORE_KNOWN_SQL` が唯一の正
-    （ここで別の条件を書くと、カバレッジ台帳と «新規» の数がずれる）。
+    «既に知っている店» の判定は `STORE_ID_ANY_SQL` / `STORE_KNOWN_ANY_SQL`。ここは
+    «その店の投稿をもう持っているか»（＝取りに行かなくてよいか）を見る広めの集合で、
+    **配信・KPI 計上の «1 投稿 1 店» とは別物**（#1846: そちらは `post_store_cte_sql`）。
+    広すぎても «取りに行かない店が少し増える» だけで、間違った店を見せることはない。
 
     ⚠️ SQL を組み立てる関数を実行から分けてあるのは、**BigQuery へ繋がない場所でも
     «実際に投げる SQL» をそのまま取り出して検証できる**ようにするため。
@@ -177,10 +179,10 @@ def stats_sql(pipeline: BigQueryPipeline, *, corroborated_only: bool = True) -> 
         SELECT c.post_id, c.handle FROM cand_all c JOIN handle_dict d USING (handle)
       ),
       known_store AS (
-        SELECT DISTINCT {STORE_ID_SQL} AS place_id
+        SELECT DISTINCT {STORE_ID_ANY_SQL} AS place_id
         FROM `{pipeline.table(TABLE_POST_RAW)}` r
         LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v USING (post_id)
-        WHERE {STORE_KNOWN_SQL}
+        WHERE {STORE_KNOWN_ANY_SQL}
       )
       SELECT
         (SELECT COUNT(*) FROM raw_hit) AS raw_pairs,

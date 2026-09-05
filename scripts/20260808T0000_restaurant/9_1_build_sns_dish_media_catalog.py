@@ -3,6 +3,9 @@
 
 sns_post_resolved と sns_post_raw(canonical_url) を突き合わせ、
 pg へ配信できる «確定行» を row_hash 付きで作る。pg には触れない（9_2 が触る）。
+
+#1846: **出力は 1 投稿 1 行**（店もカテゴリも 1 つに確定したものだけ）。
+店を 1 つに絞れなかった投稿は配信しない。判定は `common_sns.post_store_cte_sql`。
 """
 
 from __future__ import annotations
@@ -15,7 +18,7 @@ from pipeline_common import (
 )
 from common_sns import (
     PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_DISH_MEDIA_CATALOG,
-    STORE_ID_SQL, STORE_KNOWN_SQL, LATEST_RESOLVED_QUALIFY,
+    LATEST_RESOLVED_QUALIFY, post_store_cte_sql,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -43,25 +46,61 @@ def main() -> None:
     from google.cloud import bigquery
     # ⚠️ raw の結合に run_id 条件を付けない。raw と resolved が別の run に分かれている投稿を
     #    落としてしまう（7_1 は union で引くので、付けると 7_1 と数が合わなくなる）。
+    # ⚠️ 店は `post_store`（common_sns.post_store_cte_sql）が唯一の正。ここで
+    #    `COALESCE(seed, resolve)` を書き直すと «1 投稿が 2 店に紐づく» が戻る（#1846）。
     sql = f"""
       WITH v AS (
         SELECT * FROM `{pipeline.table(TABLE_POST_RESOLVED)}`
         WHERE run_id IN UNNEST(@srcs)
         {LATEST_RESOLVED_QUALIFY}
-      )
-      SELECT v.post_id, {STORE_ID_SQL} AS google_place_id, v.dish_category_id,
+      ),
+      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="v", runs_param="srcs")}
+      SELECT v.post_id, ps.google_place_id, v.dish_category_id,
              ANY_VALUE(r.canonical_url) AS canonical_url
       FROM v
+      JOIN post_store ps ON ps.post_id = v.post_id
       JOIN `{pipeline.table(TABLE_POST_RAW)}` r
         ON r.run_id IN UNNEST(@srcs) AND r.provider = v.provider AND r.post_id = v.post_id
-      WHERE {STORE_KNOWN_SQL}
-        AND {STORE_ID_SQL} IS NOT NULL AND v.dish_category_id IS NOT NULL
+      WHERE v.dish_category_id IS NOT NULL
       GROUP BY v.post_id, google_place_id, v.dish_category_id
     """
+    # 落とした投稿は «黙って消える» のが一番まずい（次に誰かが «なぜ減った» を調べ直す）。
+    # 店を 1 つに絞れずに配信しなかった投稿を、理由ごとに数えて run のログへ残す。
+    dropped_sql = f"""
+      WITH v AS (
+        SELECT * FROM `{pipeline.table(TABLE_POST_RESOLVED)}`
+        WHERE run_id IN UNNEST(@srcs)
+        {LATEST_RESOLVED_QUALIFY}
+      ),
+      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="v", runs_param="srcs")},
+      -- カテゴリが付いていない投稿はそもそも配信対象外なので、数えるのは «カテゴリはあるのに
+      -- 店が決まらなかったせいで落ちた» ぶんだけにする（そうしないと «落とした数» が水増しになる）
+      with_category AS (SELECT post_id FROM v WHERE dish_category_id IS NOT NULL),
+      cand_posts AS (
+        SELECT DISTINCT post_id FROM store_candidate
+        WHERE post_id IN (SELECT post_id FROM with_category)
+      ),
+      seeded AS (
+        SELECT DISTINCT r.post_id FROM `{pipeline.table(TABLE_POST_RAW)}` r
+        WHERE r.provider = '{PROVIDER_INSTAGRAM}' AND r.run_id IN UNNEST(@srcs)
+          AND r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''
+          AND r.post_id IN (SELECT post_id FROM with_category)
+      )
+      SELECT
+        (SELECT COUNT(*) FROM cand_posts c
+          WHERE c.post_id NOT IN (SELECT post_id FROM post_store)) AS ambiguous_posts,
+        (SELECT COUNT(*) FROM seeded s
+          WHERE s.post_id NOT IN (SELECT post_id FROM cand_posts)) AS shared_identity_only_posts
+    """
+
     params = [bigquery.ArrayQueryParameter("srcs", "STRING", src_run_ids)]
 
+    # `pipeline.step` は parameters を **ブロックの終わりに** JSON 化するので、
+    # 中で足した値もそのまま run ログ（parameters_json）へ残る。落とした数はここに置く。
+    step_params: dict[str, object] = {"resolved_run_ids": ",".join(src_run_ids)}
+
     with pipeline.step(run_id, "9_1_build_sns_dish_media_catalog",
-                       parameters={"resolved_run_ids": ",".join(src_run_ids)}, repo_root=None) as result:
+                       parameters=step_params, repo_root=None) as result:
         rows = []
         for r in pipeline.execute(sql, params):
             payload = {
@@ -80,7 +119,14 @@ def main() -> None:
         pipeline.delete_run_rows(TABLE_DISH_MEDIA_CATALOG, run_id)
         count = pipeline.load_json_rows(TABLE_DISH_MEDIA_CATALOG, rows) if rows else 0
         result["row_count"] = count
-        LOGGER.info("sns_dish_media_catalog に %d 件（配信可 ready）を組みました", count)
+        drop = next(iter(pipeline.execute(dropped_sql, params)), None)
+        if drop is not None:
+            step_params["dropped_ambiguous_posts"] = int(drop["ambiguous_posts"] or 0)
+            step_params["dropped_shared_identity_posts"] = int(drop["shared_identity_only_posts"] or 0)
+            LOGGER.info("配信しなかった投稿: 店を絞れず %d / 看板が複数店を指すのみ %d",
+                        step_params["dropped_ambiguous_posts"],
+                        step_params["dropped_shared_identity_posts"])
+        LOGGER.info("sns_dish_media_catalog に %d 件（配信可 ready・1 投稿 1 行）を組みました", count)
 
 
 if __name__ == "__main__":
