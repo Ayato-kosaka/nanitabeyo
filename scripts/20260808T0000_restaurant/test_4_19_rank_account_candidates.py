@@ -54,7 +54,7 @@ def handle_row(handle: str, *, seed: str | None = None, collected: bool = False,
         "seed_place_id": seed,
         "store_attributed": seed is not None,
         "has_food_token": bool(FOOD_RE.search(handle)),
-        "region_token": (REGION_RE.search(handle).group(0) if REGION_RE.search(handle) else None),
+        "region_token": (REGION_RE.search(handle).group(1) if REGION_RE.search(handle) else None),
         "mention_posters": 0,
         "collected": collected,
         "observed_posts": posts,
@@ -82,9 +82,25 @@ class TierTest(unittest.TestCase):
         for dish in ("ramen", "sushi", "yakiniku", "izakaya", "curry", "soba", "udon"):
             self.assertNotIn(dish, ranker.FOOD_TOKENS, dish)
 
+    def test_tokens_need_a_word_boundary(self):
+        """部分文字列で当てない（2026-09-05: A 段 273 件のうち 71 件＝26% が誤爆していた）。"""
+        for handle in ("nationaltheatre_tokyo", "aichi_creative", "sumai_yokohama",
+                       "mariakoishikawa", "osaka_meat", "great_sapporo", "sweat_tokyo"):
+            self.assertIsNone(FOOD_RE.search(handle), handle)
+
+    def test_word_boundary_keeps_real_food_words(self):
+        for handle in ("sapporo_gourmet", "fukuoka.meshi", "niigata_lunch2024",
+                       "tokyo_eat", "osaka_foodie", "kobe_umai"):
+            self.assertIsNotNone(FOOD_RE.search(handle), handle)
+
+    def test_region_extract_returns_the_token_only(self):
+        """`REGEXP_EXTRACT` は捕捉グループ 1 を返す。境界の文字を混ぜないこと。"""
+        self.assertEqual(REGION_RE.search("sapporo_gourmet").group(1), "sapporo")
+        self.assertEqual(REGION_RE.search("gourmet_fukuoka").group(1), "fukuoka")
+
     def test_longer_token_wins_in_alternation(self):
         """`food` が `foodie` を先に食べると語の切り分けが変わる。長い順に並べること。"""
-        self.assertEqual(FOOD_RE.search("osaka_foodie").group(0), "foodie")
+        self.assertEqual(FOOD_RE.search("osaka_foodie").group(1), "foodie")
 
 
 class CalibrationTest(unittest.TestCase):
