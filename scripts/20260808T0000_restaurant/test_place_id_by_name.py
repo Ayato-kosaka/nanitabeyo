@@ -341,3 +341,59 @@ class PinNameRuleDriftTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NameSourcesTest(unittest.TestCase):
+    """#1273 «📍と『』しか見ていなかった» を広げた分を固定する。
+
+    固定するのは «その書き方から店名が採れること» と、**広げても地名・見出しを
+    Google へ投げないこと**の 2 つ。地名は 1 件に確定してしまうぶん危ない
+    （市役所・駅の place_id が付いた投稿が配信される）。
+    """
+
+    def test_each_way_of_writing_a_store_name_is_read(self) -> None:
+        for caption, expected in [
+            ("【店名】どてっぱん 京都木屋町店", ("どてっぱん 京都木屋町店", "label")),
+            ("店名：麺屋こころ", ("麺屋こころ", "label")),
+            ("🏠 らーめん 尾又家", ("らーめん 尾又家", "marker")),
+            ("📌 御菓子処 扇屋", ("御菓子処 扇屋", "marker")),
+            ("【焼肉バル ラッキールウ 金沢片町店】に行った", ("焼肉バル ラッキールウ 金沢片町店", "bracket")),
+        ]:
+            self.assertEqual(expected, resolver.extract_store_name(caption), caption)
+
+    def test_the_older_ways_still_win(self) -> None:
+        # 📍 と『』が同じ投稿にあるなら、そちらが確実に店名である（【】は地名の飾りにも使う）
+        self.assertEqual(("養老軒", "quoted"),
+                         resolver.extract_store_name("【八王子市】『養老軒』のパフェが絶品"))
+        self.assertEqual(("遊食刻 金沢駅前店", "pin"),
+                         resolver.extract_store_name("【金沢グルメ】\n📍遊食刻 金沢駅前店"))
+
+    def test_bracketed_headings_are_not_store_names(self) -> None:
+        for caption in ["【営業時間】11:00-22:00", "【店名】", "【メニュー】唐揚げ定食",
+                        "【公式】", "【日時】6月1日", "【まとめ】"]:
+            found = resolver.extract_store_name(caption)
+            self.assertIsNone(found, f"{caption} -> {found}")
+
+    def test_bracketed_place_names_are_not_probed(self) -> None:
+        """【福岡市】は店名ではない。地名は 1 件に確定してしまうので、投げると誤帰属になる。"""
+        by_pair = {("福岡県", "福岡市"): (33.59, 130.40), ("京都府", "京都市山科区"): (34.96, 135.81)}
+        uniq = {"福岡市": (33.59, 130.40), "京都市山科区": (34.96, 135.81)}
+        posts = [{"post_id": "p1", "caption": "【福岡市】【うどん 極】に行った"},
+                 {"post_id": "p2", "caption": "【福岡市】の名店をまとめました"}]
+        keys, reasons = resolver.build_name_keys(posts, by_pair, uniq, {"福岡市": "福岡県"})
+        self.assertEqual(["うどん 極"], [k.store_name for k in keys])
+        self.assertEqual(1, reasons["name_is_the_area"])
+
+    def test_every_source_has_its_mark_in_the_sql_filter(self) -> None:
+        """SQL の絞り込みは `NAME_SOURCES` と対。片方だけ足すと、その書き方は 1 件も読まれない。
+
+        （実際、拡張前の SQL は 📍 と『「 しか通しておらず、【】の 43,468 件は
+        抽出を直しても読まれないままだった。）
+        """
+        pattern = re.compile(resolver.CAPTION_HAS_NAME_MARK.replace("(?im)", ""),
+                             re.I | re.M)
+        for caption, source in [("📍まる屋", "pin"), ("『まる屋』", "quoted"),
+                                ("【まる屋】", "bracket"), ("🏠まる屋", "marker"),
+                                ("店名：まる屋", "label")]:
+            self.assertTrue(pattern.search(caption), f"{source}: {caption} が SQL で落ちる")
+            self.assertIsNotNone(resolver.extract_store_name(caption), caption)

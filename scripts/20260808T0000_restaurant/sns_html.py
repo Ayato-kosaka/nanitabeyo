@@ -184,9 +184,17 @@ def page_text(raw: bytes) -> str:
 _RE_QUOTED = re.compile(r"[『「]([^』」]{2,30})[』」]")
 # 店名ではないことが字面で分かるもの。文になっている／日付や告知の常套句。
 _RE_NOT_NAME = re.compile(r"[。！？!?]|です|ます|しました|ください|でした|とは$|^\d+$")
+# 括弧の中身が «名前» ではなく **見出しのラベル**であるもの。完全一致だけを落とす
+# （部分一致にすると「お店のケーキ屋さん」のような実在の屋号を巻き込む）。
+# 【】を見るようにして増えた分は #1273 で実データから拾った（【店名】【営業時間】…の形が
+# 定型で、括弧の中身がラベル・外が値になっている）。
 _NAME_STOPWORDS = frozenset({
     "営業時間", "定休日", "アクセス", "メニュー", "予約", "駐車場", "テイクアウト",
     "新型コロナウイルス", "こどもの日", "母の日", "父の日", "バレンタイン", "ハロウィン",
+    "店名", "お店", "店舗名", "shop", "store", "shop name", "住所", "所在地", "電話番号",
+    "日時", "席", "座席", "公式", "画像", "雰囲気", "料金", "値段", "支払い", "決済",
+    "仕事内容", "勤務時間", "募集", "材料", "作り方", "下準備", "注意点", "ポイント",
+    "まとめ", "感想", "詳細", "概要", "場所", "時間", "期間", "内容", "特徴", "注文",
 })
 
 
@@ -244,6 +252,29 @@ def normalize_match_text(value: str | None) -> str:
     return " ".join(unicodedata.normalize("NFKC", capped).split()).lower()
 
 
+def name_from_line_tail(after: str) -> str | None:
+    """行のうち «マーカー / ラベルより後ろ» から店名を切り出す（📍行の後処理そのもの）。
+
+    住所ピンを落とす・営業情報の手前で切る・`｜` 以降の読み仮名を落とす、の 3 つは
+    📍 に限った話ではなく «1 行に店名が書いてある» すべての形に同じだけ効く。
+    `pin_names_from_text` から切り出して、他のマーカー（`marker_names_from_text`）と
+    ラベル（`label_names_from_text`）が **同じ規則**を使えるようにした（#1273）。
+    """
+    after = _RE_PIN_LEAD_SEPARATOR.sub("", after).strip()
+    if not after:
+        return None
+    if _RE_PIN_ADDRESS_LEAD.search(after) or _RE_PIN_PREFECTURE_LEAD.search(after):
+        return None
+    cutoff = _RE_PIN_NAME_CUTOFF.search(after)
+    if cutoff and cutoff.start() > 0:
+        after = after[:cutoff.start()].strip()
+    after = _RE_PIN_ALIAS_SEPARATOR.sub("", after).strip()
+    normalized = normalize_match_text(after)
+    if PIN_NAME_MIN_LENGTH <= len(normalized) <= PIN_NAME_MAX_LENGTH:
+        return normalized
+    return None
+
+
 def pin_names_from_text(raw_text: str | None) -> list[str]:
     """各行の `📍` 直後に書かれた **店名**を切り出す。**生キャプションを渡すこと。**
 
@@ -251,25 +282,90 @@ def pin_names_from_text(raw_text: str | None) -> list[str]:
     住所ピン（`📍住所：…` `📍東京都…`）は店ではないので落とし、店名の後ろに住所・電話・
     営業情報が続く行はそこで切る。`｜`/`|` 以降（読みの別名）も落とす。
     """
+    return _marker_names(raw_text, (_PIN_MARK,))
+
+
+# ---------------------------------------------------------------------------
+# 📍 以外の «店名の書き方»（#1273 — この経路の入力を増やす）
+#
+# 4_18 は 📍行 と『』「」しか見ていなかった。店が決まっていない caption 付き投稿
+# 361,703 件を BigQuery で数えると、**📍 も『「 も無いものが 169,733 件（47%）**あり、
+# そのうち 43,468 件は【】を使っている。「データが無い」のではなく
+# **こちらが見ていない書き方で書いてある**だけなので、同じ後処理（`name_from_line_tail`）を
+# 当てる先を増やす。新しい判定規則は作らない（作ると 📍 と別々に育つ）。
+#
+# ⚠️ ここに «短いマーカー» を足さないこと。⭐/✅ は «おすすめ» の意味で本文の途中に付き、
+# その行の残りは店名ではない（実測でキャッチコピーばかり採れた）。足してよいのは
+# «その行が店の行であることを、そのマーカー自体が示している» ものだけである。
+# ---------------------------------------------------------------------------
+
+# 📍 と同じ «その行は店の行» を意味するマーカー。家・店・食器はどれも 📍 の代用として使われる。
+_STORE_LINE_MARKS = ("📌", "🏠", "🏡", "🏪", "🍴", "🍽")
+
+# «店名：» «【店名】» «🏠店名» のように **ラベルで店名だと書いてある**行。
+# 括弧・マーカーで飾られていても意味は同じなので、行頭の飾りをまとめて読み飛ばす。
+_RE_STORE_LABEL = re.compile(
+    r"^[\s\W_]{0,4}(?:店名|お店|店舗名|shop\s*name|shop|store)\s*[】》〉≫＞\]\)]?\s*[:：]?",
+    re.I)
+
+# 『』「」と同じ «括弧で囲まれた名前»。【】は媒体・個人どちらも店名に使う（実測 171,850 件）。
+_RE_BRACKETED = re.compile(r"[【《〈≪]([^】》〉≫]{2,30})[】》〉≫]")
+
+
+def _marker_names(raw_text: str | None, marks: tuple[str, ...]) -> list[str]:
     if not raw_text:
         return []
     names: list[str] = []
     for raw_line in raw_text[:_MATCH_TEXT_MAX_LENGTH].splitlines():
         line = raw_line.strip()
-        # 1 行に複数の 📍 があっても «店名を指す» のは最後の 1 個（先頭は絵文字装飾のことが多い）
-        pin_at = line.rfind(_PIN_MARK)
-        if pin_at == -1:
+        # 1 行に複数のマーカーがあっても «店名を指す» のは最後の 1 個
+        # （先頭は絵文字装飾のことが多い）
+        at = max((line.rfind(mark), mark) for mark in marks)
+        if at[0] == -1:
             continue
-        after = _RE_PIN_LEAD_SEPARATOR.sub("", line[pin_at + len(_PIN_MARK):]).strip()
-        if not after:
+        name = name_from_line_tail(line[at[0] + len(at[1]):])
+        if name:
+            names.append(name)
+    return names
+
+
+def marker_names_from_text(raw_text: str | None) -> list[str]:
+    """📍 の代わりに使われるマーカー（📌🏠🏡🏪🍴🍽）の行から店名を切り出す。"""
+    return _marker_names(raw_text, _STORE_LINE_MARKS)
+
+
+def label_names_from_text(raw_text: str | None) -> list[str]:
+    """«店名：xxx» «【店名】xxx» のように、投稿者が «これは店名だ» と書いている行。"""
+    if not raw_text:
+        return []
+    names: list[str] = []
+    for raw_line in raw_text[:_MATCH_TEXT_MAX_LENGTH].splitlines():
+        line = raw_line.strip()
+        label = _RE_STORE_LABEL.match(line)
+        if label is None or label.end() == 0:
             continue
-        if _RE_PIN_ADDRESS_LEAD.search(after) or _RE_PIN_PREFECTURE_LEAD.search(after):
+        name = name_from_line_tail(line[label.end():])
+        if name:
+            names.append(name)
+    return names
+
+
+def bracket_names_from_text(text: str | None) -> list[str]:
+    """【】《》〈〉≪≫ の中身を、長い順ではなく **書かれた順**に返す。
+
+    `store_name_from_text`（『』「」）と同じ除外（文になっているもの・行事名）を当てる。
+    どれを採るかは呼び出し側（4_18 の `_is_probeable_name`）が決める — ここで 1 つに
+    絞ると、«【福岡市】【うどん 極】» のように **1 行に地名と店名が並ぶ**書き方で
+    店名を落としてしまう（実測でこの形が多い）。
+    """
+    if not text:
+        return []
+    names: list[str] = []
+    for m in _RE_BRACKETED.finditer(text[:_MATCH_TEXT_MAX_LENGTH]):
+        body = m.group(1).strip()
+        if not body or body in _NAME_STOPWORDS or _RE_NOT_NAME.search(body):
             continue
-        cutoff = _RE_PIN_NAME_CUTOFF.search(after)
-        if cutoff and cutoff.start() > 0:
-            after = after[:cutoff.start()].strip()
-        after = _RE_PIN_ALIAS_SEPARATOR.sub("", after).strip()
-        normalized = normalize_match_text(after)
+        normalized = normalize_match_text(body)
         if PIN_NAME_MIN_LENGTH <= len(normalized) <= PIN_NAME_MAX_LENGTH:
             names.append(normalized)
     return names

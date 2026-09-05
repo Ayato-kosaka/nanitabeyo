@@ -167,7 +167,9 @@ from free_places import (DailyQuotaExhausted, FreePlacesClient, RateLimiter,  # 
                          SearchResult)
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now  # noqa: E402
 import sns_html  # noqa: E402
-from sns_html import pin_names_from_text, store_name_from_text, normalize_match_text  # noqa: E402
+from sns_html import (bracket_names_from_text, label_names_from_text,  # noqa: E402
+                      marker_names_from_text, normalize_match_text, pin_names_from_text,
+                      store_name_from_text)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -366,26 +368,57 @@ def strip_probe_label(name: str) -> str:
     return _RE_LABEL_LEAD.sub("", name).strip()
 
 
-def extract_store_name(caption: str | None) -> tuple[str, str] | None:
-    """キャプションから (店名, どこから採ったか) を返す。**規則を新しく作らない。**
+# 店名の «書き方» と、それを切り出す関数。**規則は全て `sns_html` にあり、ここでは選ぶだけ。**
+#
+# 並びが優先順位である。上ほど «投稿者が店名だと明示している» 度合いが高い。
+# 1 投稿から採るのは 1 つだけ（«1 投稿 1 店» — #1815）なので、上から見て最初に
+# 通ったものを使う。
+#
+# 📍 を先に見るのは、4_11 が『』「」から採った店名を «📍店名» としてキャプション先頭へ
+# 足しているため（同じ店名を 2 経路で採らないよう、先に 📍 を見れば済む）。
+#
+# label / marker / bracket は #1273 で足した（→ `sns_html` の同名関数）。
+# 【】を最後に置くのは、`【八王子市】『養老軒』` のように **地名の飾りにも使われる**からで、
+# 『』が同じ投稿にあるならそちらが確実に店名である。
+NAME_SOURCES: tuple[tuple[str, Any], ...] = (
+    ("pin", pin_names_from_text),
+    ("label", label_names_from_text),
+    ("marker", marker_names_from_text),
+    ("quoted", lambda text: [store_name_from_text(text or "")] if store_name_from_text(text or "") else []),
+    ("bracket", bracket_names_from_text),
+)
+DEFAULT_NAME_SOURCES = tuple(name for name, _ in NAME_SOURCES)
 
-    - 📍行: `shared/utils/textNormalize.ts` の `extractPinNames`（Python 版は `sns_html`）
-    - 『』「」: `sns_html.store_name_from_text`（#1812 で入れた既存の規則）
 
-    📍 を先に見るのは、4_11 が『』「」から採った店名を «📍店名» としてキャプション先頭へ
-    足しているため（同じ店名を 2 経路で採らないよう、先に 📍 を見れば済む）。
+def iter_store_name_candidates(
+    caption: str | None, sources: tuple[str, ...] = DEFAULT_NAME_SOURCES,
+) -> list[tuple[str, str]]:
+    """キャプションから (店名, どこから採ったか) を **優先順に全部** 返す。
+
+    1 つに絞らないのは、`【福岡市】【うどん 極】` のように «先に書いてある方が地名» の
+    形があるため。どれを使うかは、市区町村が決まってから `build_name_keys` が選ぶ
+    （地名と同じ文字列は店名ではない、が地名を知らないと判定できない）。
     """
-    for name in pin_names_from_text(caption):
-        probe = strip_probe_label(name)
-        if _is_probeable_name(probe, labelled=probe != name):
-            return probe, "pin"
-    quoted = store_name_from_text(caption or "")
-    if quoted:
-        normalized = normalize_match_text(quoted)
-        probe = strip_probe_label(normalized)
-        if _is_probeable_name(probe, labelled=probe != normalized):
-            return probe, "quoted"
-    return None
+    seen: set[str] = set()
+    found: list[tuple[str, str]] = []
+    for source, extract in NAME_SOURCES:
+        if source not in sources:
+            continue
+        for name in extract(caption):
+            normalized = normalize_match_text(name)
+            probe = strip_probe_label(normalized)
+            if probe in seen:
+                continue
+            seen.add(probe)
+            if _is_probeable_name(probe, labelled=probe != normalized):
+                found.append((probe, source))
+    return found
+
+
+def extract_store_name(caption: str | None) -> tuple[str, str] | None:
+    """キャプションから (店名, どこから採ったか) を 1 つ返す（地名は考慮しない入口）。"""
+    candidates = iter_store_name_candidates(caption)
+    return candidates[0] if candidates else None
 
 
 def _is_probeable_name(name: str, *, labelled: bool = False) -> bool:
@@ -431,22 +464,36 @@ def _is_probeable_name(name: str, *, labelled: bool = False) -> bool:
     return any(ch.isalpha() for ch in name)
 
 
+def _is_area_name(name: str, pref: str, city: str, by_pair: dict, uniq: dict) -> bool:
+    """その «名前» が地名そのものかを見る（店名ではないので Google へ投げない）。
+
+    【】は «【福岡市】» のように地名の見出しにも使われる。地名は Google で 1 件に
+    確定してしまう（市役所・駅）ので、**確定するぶんだけ危ない**。
+    完全一致だけを落とす（«うどん 極 福岡市役所前店» のような屋号を巻き込まないため）。
+    """
+    flat = name.replace(" ", "")
+    if flat in (city, pref, pref + city) or flat in uniq:
+        return True
+    found = city_from_text(name, by_pair, uniq)
+    return found is not None and flat == (found[0] or "") + found[1]
+
+
 def build_name_keys(
     posts: Iterable[dict[str, Any]],
     by_pair: dict,
     uniq: dict,
     pref_of_unique_city: dict,
+    sources: tuple[str, ...] = DEFAULT_NAME_SOURCES,
 ) -> tuple[dict[NameKey, dict[str, Any]], dict[str, int]]:
     """投稿を (店名, 市区町村) へ畳む。戻り値は (キー→{post_ids, name_source}, 落ちた理由の内訳)。"""
     keys: dict[NameKey, dict[str, Any]] = {}
-    reasons = {"no_store_name": 0, "no_area_hint": 0, "ok": 0}
+    reasons = {"no_store_name": 0, "no_area_hint": 0, "name_is_the_area": 0, "ok": 0}
     for post in posts:
         caption = post.get("caption")
-        found = extract_store_name(caption)
-        if found is None:
+        candidates = iter_store_name_candidates(caption, sources)
+        if not candidates:
             reasons["no_store_name"] += 1
             continue
-        name, source = found
         # 地点は «キャプション優先、無ければ検索クエリ»（4_11 と同じ順序）
         area = (city_from_text(caption or "", by_pair, uniq)
                 or city_from_text(post.get("discovery_query") or "", by_pair, uniq))
@@ -458,6 +505,13 @@ def build_name_keys(
         if pref is None or (pref, city) not in by_pair:
             reasons["no_area_hint"] += 1
             continue
+        # 【福岡市】【うどん 極】の «福岡市» は店名ではない。地名そのものを投げると
+        # 市役所や駅が 1 件だけ返って «確定» してしまい、誤帰属になる（#1841 と同じ理由）。
+        usable = [(n, s) for n, s in candidates if not _is_area_name(n, pref, city, by_pair, uniq)]
+        if not usable:
+            reasons["name_is_the_area"] += 1
+            continue
+        name, source = usable[0]
         reasons["ok"] += 1
         entry = keys.setdefault(NameKey(name, pref, city), {"post_ids": [], "name_source": source})
         entry["post_ids"].append(post["post_id"])
@@ -517,6 +571,9 @@ def parse_args() -> argparse.Namespace:
                    help="Google へ聞く (店名, 市区町村) の上限（0 = 無制限）。"
                         "request 数はこの 2 倍。Text Search の 1 日上限 75,000 に合わせて刻む")
     p.add_argument("--source-run-id", default=None, help="対象を 1 つの収集 run に絞るとき")
+    p.add_argument("--name-sources", default=",".join(DEFAULT_NAME_SOURCES),
+                   help="使う店名の書き方（" + ",".join(DEFAULT_NAME_SOURCES) + " から選ぶ）。"
+                        "取りこぼしを測るとき以外は既定のままでよい")
     p.add_argument("--execute", action="store_true", help="指定したときだけ Google API を叩く")
     p.add_argument("--dry-run", action="store_true", help="件数だけ数える（API も BigQuery 書き込みも無し）")
     p.add_argument("--qps", type=float, default=8.0)
@@ -553,11 +610,17 @@ def load_city_index(args: argparse.Namespace, pipeline: BigQueryPipeline | None)
     return by_pair, uniq, {"boxes": boxes, "pref_of_unique_city": pref_of_unique_city}
 
 
-# 店名候補が入りうるキャプションだけを SQL 側で絞る。
-# 抽出は 📍行 と『』「」しか見ないので、どちらも無いキャプションは読むだけ無駄である。
-# 実測（2026-09-05、BigQuery）: 店が決まっていない caption 付き投稿 342,392 件のうち、
-# 📍 か 『「 を含むのは 181,692 件（53%）。残り 160,700 件を読まずに済む。
-CAPTION_HAS_NAME_MARK = r"📍|[『「]"
+# 店名候補が入りうるキャプションだけを SQL 側で絞る。**`NAME_SOURCES` と対になっている。**
+# 抽出が見る印が 1 つも無いキャプションは、読むだけ無駄である。
+#
+# ⚠️ `NAME_SOURCES` へ書き方を足したら、その印をここへも足すこと。足さないと
+# **その書き方のキャプションは 1 件も読まれない**（SQL で先に落ちる）。
+#
+# 実測（2026-09-05、BigQuery / 店が決まっていない caption 付き投稿 361,703 件）:
+#   📍 か 『「 を含む            191,971 件（53%）… 拡張前に見ていた範囲
+#   それが無く【《〈≪ を含む      43,468 件      … 拡張で新しく読めるようになる分
+#   それも無い                  126,265 件      … 依然として読まない
+CAPTION_HAS_NAME_MARK = r"(?im)📍|[『「【《〈≪]|[📌🏠🏡🏪🍴🍽]|^[\s\W_]{0,4}(?:店名|お店|店舗名|shop)"
 
 POSTS_SQL = """
   WITH r AS (
@@ -673,11 +736,20 @@ def main() -> None:
 
     by_pair, uniq, geo = load_city_index(args, pipeline)
     posts = load_posts(args, pipeline)
-    keys, reasons = build_name_keys(posts, by_pair, uniq, geo["pref_of_unique_city"])
+    sources = tuple(s.strip() for s in args.name_sources.split(",") if s.strip())
+    unknown = set(sources) - set(DEFAULT_NAME_SOURCES)
+    if unknown:
+        raise SystemExit(f"--name-sources に知らない書き方があります: {sorted(unknown)}")
+    keys, reasons = build_name_keys(posts, by_pair, uniq, geo["pref_of_unique_city"], sources)
     LOGGER.info("店が決まっていない投稿 %d 件を読みました（📍 か 『「 を含むものだけ）",
                 sum(reasons.values()))
-    LOGGER.info("店名を採れた投稿 %d 件 / 店名なし %d 件 / 地点なし %d 件",
-                reasons["ok"], reasons["no_store_name"], reasons["no_area_hint"])
+    LOGGER.info("店名を採れた投稿 %d 件 / 店名なし %d 件 / 地点なし %d 件 / 名前が地名 %d 件",
+                reasons["ok"], reasons["no_store_name"], reasons["no_area_hint"],
+                reasons["name_is_the_area"])
+    by_source: dict[str, int] = {}
+    for entry in keys.values():
+        by_source[entry["name_source"]] = by_source.get(entry["name_source"], 0) + 1
+    LOGGER.info("キーの出どころ: %s", json.dumps(by_source, ensure_ascii=False, sort_keys=True))
     LOGGER.info("異なり (店名, 市区町村) = %d 件（Google へ聞く回数はこの 2 倍）", len(keys))
 
     done = load_done_keys(pipeline) if not args.dry_run else set()
