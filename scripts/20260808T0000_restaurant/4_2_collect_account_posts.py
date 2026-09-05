@@ -25,11 +25,17 @@ import urllib.request
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url
+from common_sns import (PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_COVERAGE, TABLE_POST_RAW,
+                        TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url)
 
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
 GRAPH = "https://graph.facebook.com/v23.0"
+# #1273 4_19 が書く候補表（正本は 4_19_rank_account_candidates.py）。
+TABLE_ACCOUNT_CANDIDATE = "sns_account_candidate_v2"
+# BigQuery は ORDER BY の «裸の 0» を列番号と解釈して 400 を返す（2026-09-05 実測）。
+# 並べ替えを効かせないときはこの式を置く。
+_NO_ORDER = "CAST(0 AS INT64)"
 
 _ROUTE_BY_ACCOUNT_TYPE = {
     "influencer": "influencer",
@@ -152,10 +158,53 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="business_discovery で投稿URLを収集する（ルート1/2）")
     p.add_argument("--run-id", default=None)
     p.add_argument("--account-run-id", default=None, help="読む sns_source_account の run_id（省略時は --run-id と同じ）")
-    p.add_argument("--account-type", default=None, choices=["influencer", "store_branch", "store_brand"],
+    # #1815 在庫の handle は «発見した run» ごとに分かれて入る（sitecrawl / fsq / catalog / 08-31 …）。
+    # 単一 run_id しか読めないと «別 run で発見した店» は永久に収集対象へ入らない。実測で
+    # 40,911 handle のうち 34,615（84.6%）が «一度も収集を試されていない» 状態だった。カンマ区切りで union する。
+    p.add_argument("--account-run-ids", default=None,
+                   help="読む sns_source_account の run_id をカンマ区切りで（--account-run-id より優先）")
+    # #1815 «既に投稿がある handle» の判定範囲。run = この出力 run だけ（従来）/ any = どの run でも
+    # 1 枚でも採れている handle は飛ばす。KPI は «異なり店» なので、同じ店を採り直しても 1 セルも増えない。
+    p.add_argument("--skip-collected-scope", default="run", choices=["run", "any"],
+                   help="収集済みと見なす範囲。any なら他 run で採れている handle も飛ばす（既定 run）")
+    # #1815 KPI 直結の並び替え。«あと 1〜3 店で 5 店に届くセル» を持つ市区町村の店から先に採る。
+    # 指定しなければ従来どおり handle の昇順（＝アルファベット順で頭から）。
+    # #1273 4_19 の «段»（A 料理語×地域語 → B 料理語 → C 地域語 → D 店アカウント → E その他）で
+    # 流す。実測で 1 コールあたりの異なり店が A 18.625 対 D 0.216（86 倍）なので、
+    # «店アカウントを全部採り切る» より «同じコール枠で異なり店を最大化する» 方が正しい。
+    p.add_argument("--candidate-run-id", default=None,
+                   help="sns_account_candidate_v2 の run_id。指定するとこの候補表を段の順に処理する")
+    p.add_argument("--tiers", default=None,
+                   help="処理する段をカンマ区切りで（例 A_food_region,B_food,C_region）。省略時は全部")
+    p.add_argument("--priority-coverage-run-id", default=None,
+                   help="sns_coverage の run_id。指定すると «惜しいセル» の多い市区町村の店を優先する")
+    p.add_argument("--catalog-run-id", default=None,
+                   help="住所・座標を引く restaurant_catalog の run_id（省略時は最大の run）")
+    p.add_argument("--account-type", default=None,
+                   choices=["influencer", "store_branch", "store_brand", "unknown"],
                    help="対象を絞る（省略時は全部）")
+    # #1815 【設計】収集の順番は «ハンドルの綴り» ではなく **sns_source_account.account_type** で決める。
+    # 2026-09-05 の層別実測（成果 = 配信カタログ sns_dish_media_catalog に載る異なり店 / アカウント）:
+    #   influencer +食語 44.500 / influencer −食語 26.152 / store_branch +食語 1.127 /
+    #   unknown +食語 0.944 / store_branch −食語 0.668 / unknown −食語 0.129
+    # 食語（ハンドルの綴り）はどの層でも一貫して 1.7 倍効くが **層をまたぐ効果ではない**ので、
+    # 綴りで先に並べると influencer が後ろへ回って逆効果になる。**まず account_type、次に食語**。
+    p.add_argument("--order-by-account-layer", action="store_true",
+                   help="account_type × 食語 の層の順に並べる（influencer → store_branch+食語 → …）")
     p.add_argument("--max-accounts", type=int, default=None, help="このバッチで処理するアカウント数上限")
-    p.add_argument("--limit-per-account", type=int, default=200, help="1 アカウントあたりの投稿数上限")
+    # #1815 既定を 200 → 10 へ。business_discovery は media.limit(N) を **1 コールで** 返すので
+    # N<=50 なら 1 アカウント = 1 コール、N=200 だと 4 コール（実測スループット 88/h 対 ~220/h）。
+    #
+    # ⚠️ **適正値は段で違う**（2026-09-05 実測）。呼び出し側が明示すること。
+    # - D 段（店アカウント）は 1 アカウント = 1 店なので、要るのは «その店のカテゴリが 1 つ以上
+    #   決まる» ことだけ。柱1 の 2,104 店（投稿の 53.4% がカテゴリ付き）で
+    #   3 枚 81.7% / 5 枚 87.2% / **10 枚 90.3%** / 20 枚 93.4% / 全 94.5 枚 93.4%。
+    #   10 枚で満額の 96.7% を保ちつつ resolve の下流量は 1/9。→ 既定はこちら。
+    # - A/B/C 段（ご当地グルメ・食べ歩きアカウント）は 1 アカウントが多数の店を回る。実測で
+    #   198.6 投稿 = 4 コールから 49.5 店（12.4 店/コール）。枚数を絞ると店ごと落ちるので、
+    #   **1 コールで取り切れる上限 50 を指定する**（51 枚目から 2 コール目に入る）。
+    p.add_argument("--limit-per-account", type=int, default=10,
+                   help="1 アカウントあたりの投稿数上限（D 段は 10、A/B/C 段は 50 を渡す）")
     # #1791 複数トークン並列化: business_discovery のレート制限は «アプリ(トークン)単位»。
     # シャードごとに別 Meta アプリのトークンを割り当てれば合算スループットが上がる。
     # 既定は従来どおり IG_TOKEN / IG_USER_ID。シャード2以降は --token-env IG_TOKEN_2 等で切替。
@@ -170,14 +219,272 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type, max_accounts,
-                   output_run_id: str | None = None, shard_count: int = 1, shard_index: int = 0):
+# #1273 4_19 の «段». 上ほど 1 コールあたりの期待 異なり店 が大きい。
+# ⚠️ 4_19 は «配信カタログに載る異なり店/コール» で較正し直され、段の名前も並びも変わった
+# （2026-09-05 実測: A_curated 31.862 / B_store_attributed 0.542 / C_region 0.057 /
+# D_food 0.056 / E_rest 0.055）。**段の名前は 4_19 が正本**なので、ここは «知っている名前を
+# 並べるだけ» にして、知らない名前は末尾へ落とす（4_19 が段を足しても 4_2 は壊れない）。
+# 旧名（A_food_region / B_food / D_store_attributed）は、旧 run の候補表を読み直せるよう残す。
+TIER_ORDER = ("A_curated", "A_food_region", "B_store_attributed", "B_food",
+              "C_region", "D_food", "D_store_attributed", "E_rest")
+
+# #1273 4_19 の region_token（ローマ字）→ 都道府県。段の **中** の並べ替えにだけ使う
+# （段をまたいで逆転させない）。住所から都道府県を決める正本は common_sns.PREF_PATTERN で、
+# これはハンドル文字列用の別物。広域語（kansai / kyushu 等）は 1 県に決まらないので入れない。
+REGION_TOKEN_PREF_SQL = """
+  SELECT * FROM UNNEST([
+    STRUCT('sapporo' AS tok, '北海道' AS pref),
+    STRUCT('hokkaido' AS tok, '北海道' AS pref),
+    STRUCT('susukino' AS tok, '北海道' AS pref),
+    STRUCT('hakodate' AS tok, '北海道' AS pref),
+    STRUCT('asahikawa' AS tok, '北海道' AS pref),
+    STRUCT('obihiro' AS tok, '北海道' AS pref),
+    STRUCT('kushiro' AS tok, '北海道' AS pref),
+    STRUCT('aomori' AS tok, '青森県' AS pref),
+    STRUCT('hachinohe' AS tok, '青森県' AS pref),
+    STRUCT('morioka' AS tok, '岩手県' AS pref),
+    STRUCT('sendai' AS tok, '宮城県' AS pref),
+    STRUCT('miyagi' AS tok, '宮城県' AS pref),
+    STRUCT('akita' AS tok, '秋田県' AS pref),
+    STRUCT('yamagata' AS tok, '山形県' AS pref),
+    STRUCT('fukushima' AS tok, '福島県' AS pref),
+    STRUCT('koriyama' AS tok, '福島県' AS pref),
+    STRUCT('iwaki' AS tok, '福島県' AS pref),
+    STRUCT('ibaraki' AS tok, '茨城県' AS pref),
+    STRUCT('mito' AS tok, '茨城県' AS pref),
+    STRUCT('tochigi' AS tok, '栃木県' AS pref),
+    STRUCT('utsunomiya' AS tok, '栃木県' AS pref),
+    STRUCT('gunma' AS tok, '群馬県' AS pref),
+    STRUCT('maebashi' AS tok, '群馬県' AS pref),
+    STRUCT('takasaki' AS tok, '群馬県' AS pref),
+    STRUCT('saitama' AS tok, '埼玉県' AS pref),
+    STRUCT('omiya' AS tok, '埼玉県' AS pref),
+    STRUCT('kawagoe' AS tok, '埼玉県' AS pref),
+    STRUCT('chiba' AS tok, '千葉県' AS pref),
+    STRUCT('funabashi' AS tok, '千葉県' AS pref),
+    STRUCT('kashiwa' AS tok, '千葉県' AS pref),
+    STRUCT('tokyo' AS tok, '東京都' AS pref),
+    STRUCT('shinjuku' AS tok, '東京都' AS pref),
+    STRUCT('shibuya' AS tok, '東京都' AS pref),
+    STRUCT('ikebukuro' AS tok, '東京都' AS pref),
+    STRUCT('ueno' AS tok, '東京都' AS pref),
+    STRUCT('ginza' AS tok, '東京都' AS pref),
+    STRUCT('akihabara' AS tok, '東京都' AS pref),
+    STRUCT('kichijoji' AS tok, '東京都' AS pref),
+    STRUCT('nakameguro' AS tok, '東京都' AS pref),
+    STRUCT('ebisu' AS tok, '東京都' AS pref),
+    STRUCT('shimokita' AS tok, '東京都' AS pref),
+    STRUCT('asakusa' AS tok, '東京都' AS pref),
+    STRUCT('kanda' AS tok, '東京都' AS pref),
+    STRUCT('shinbashi' AS tok, '東京都' AS pref),
+    STRUCT('machida' AS tok, '東京都' AS pref),
+    STRUCT('yokohama' AS tok, '神奈川県' AS pref),
+    STRUCT('kawasaki' AS tok, '神奈川県' AS pref),
+    STRUCT('shonan' AS tok, '神奈川県' AS pref),
+    STRUCT('kamakura' AS tok, '神奈川県' AS pref),
+    STRUCT('niigata' AS tok, '新潟県' AS pref),
+    STRUCT('toyama' AS tok, '富山県' AS pref),
+    STRUCT('kanazawa' AS tok, '石川県' AS pref),
+    STRUCT('ishikawa' AS tok, '石川県' AS pref),
+    STRUCT('fukui' AS tok, '福井県' AS pref),
+    STRUCT('kofu' AS tok, '山梨県' AS pref),
+    STRUCT('yamanashi' AS tok, '山梨県' AS pref),
+    STRUCT('nagano' AS tok, '長野県' AS pref),
+    STRUCT('matsumoto' AS tok, '長野県' AS pref),
+    STRUCT('gifu' AS tok, '岐阜県' AS pref),
+    STRUCT('shizuoka' AS tok, '静岡県' AS pref),
+    STRUCT('hamamatsu' AS tok, '静岡県' AS pref),
+    STRUCT('numazu' AS tok, '静岡県' AS pref),
+    STRUCT('nagoya' AS tok, '愛知県' AS pref),
+    STRUCT('aichi' AS tok, '愛知県' AS pref),
+    STRUCT('sakae' AS tok, '愛知県' AS pref),
+    STRUCT('toyota' AS tok, '愛知県' AS pref),
+    STRUCT('okazaki' AS tok, '愛知県' AS pref),
+    STRUCT('mie' AS tok, '三重県' AS pref),
+    STRUCT('yokkaichi' AS tok, '三重県' AS pref),
+    STRUCT('shiga' AS tok, '滋賀県' AS pref),
+    STRUCT('otsu' AS tok, '滋賀県' AS pref),
+    STRUCT('kyoto' AS tok, '京都府' AS pref),
+    STRUCT('osaka' AS tok, '大阪府' AS pref),
+    STRUCT('umeda' AS tok, '大阪府' AS pref),
+    STRUCT('namba' AS tok, '大阪府' AS pref),
+    STRUCT('shinsaibashi' AS tok, '大阪府' AS pref),
+    STRUCT('kyobashi' AS tok, '大阪府' AS pref),
+    STRUCT('tennoji' AS tok, '大阪府' AS pref),
+    STRUCT('sakai' AS tok, '大阪府' AS pref),
+    STRUCT('kobe' AS tok, '兵庫県' AS pref),
+    STRUCT('sannomiya' AS tok, '兵庫県' AS pref),
+    STRUCT('hyogo' AS tok, '兵庫県' AS pref),
+    STRUCT('himeji' AS tok, '兵庫県' AS pref),
+    STRUCT('nishinomiya' AS tok, '兵庫県' AS pref),
+    STRUCT('nara' AS tok, '奈良県' AS pref),
+    STRUCT('wakayama' AS tok, '和歌山県' AS pref),
+    STRUCT('tottori' AS tok, '鳥取県' AS pref),
+    STRUCT('shimane' AS tok, '島根県' AS pref),
+    STRUCT('matsue' AS tok, '島根県' AS pref),
+    STRUCT('okayama' AS tok, '岡山県' AS pref),
+    STRUCT('kurashiki' AS tok, '岡山県' AS pref),
+    STRUCT('hiroshima' AS tok, '広島県' AS pref),
+    STRUCT('fukuyama' AS tok, '広島県' AS pref),
+    STRUCT('yamaguchi' AS tok, '山口県' AS pref),
+    STRUCT('shimonoseki' AS tok, '山口県' AS pref),
+    STRUCT('tokushima' AS tok, '徳島県' AS pref),
+    STRUCT('takamatsu' AS tok, '香川県' AS pref),
+    STRUCT('kagawa' AS tok, '香川県' AS pref),
+    STRUCT('matsuyama' AS tok, '愛媛県' AS pref),
+    STRUCT('ehime' AS tok, '愛媛県' AS pref),
+    STRUCT('kochi' AS tok, '高知県' AS pref),
+    STRUCT('fukuoka' AS tok, '福岡県' AS pref),
+    STRUCT('hakata' AS tok, '福岡県' AS pref),
+    STRUCT('tenjin' AS tok, '福岡県' AS pref),
+    STRUCT('kitakyushu' AS tok, '福岡県' AS pref),
+    STRUCT('kokura' AS tok, '福岡県' AS pref),
+    STRUCT('kurume' AS tok, '福岡県' AS pref),
+    STRUCT('saga' AS tok, '佐賀県' AS pref),
+    STRUCT('nagasaki' AS tok, '長崎県' AS pref),
+    STRUCT('sasebo' AS tok, '長崎県' AS pref),
+    STRUCT('kumamoto' AS tok, '熊本県' AS pref),
+    STRUCT('oita' AS tok, '大分県' AS pref),
+    STRUCT('beppu' AS tok, '大分県' AS pref),
+    STRUCT('miyazaki' AS tok, '宮崎県' AS pref),
+    STRUCT('kagoshima' AS tok, '鹿児島県' AS pref),
+    STRUCT('okinawa' AS tok, '沖縄県' AS pref),
+    STRUCT('naha' AS tok, '沖縄県' AS pref),
+    STRUCT('ishigaki' AS tok, '沖縄県' AS pref)
+  ])
+"""
+
+
+def _tier_rank_sql(column: str) -> str:
+    cases = " ".join(f"WHEN '{t}' THEN {i}" for i, t in enumerate(TIER_ORDER))
+    return f"CASE {column} {cases} ELSE {len(TIER_ORDER)} END"
+
+
+def _read_candidates(pipeline: BigQueryPipeline, candidate_run_id: str, tiers, max_accounts,
+                     shard_count: int = 1, shard_index: int = 0,
+                     priority_coverage_run_id: str | None = None,
+                     catalog_run_id: str | None = None):
+    """4_19 の候補表を «段の順 → 段の中は惜しいセルの多い県から» で読む。
+
+    段の中の並べ替えだけに coverage を使う（コーディネータの指示 2026-09-05）。段をまたいで
+    «惜しいセル» で逆転させると、1 コールで 86 倍違う段の差を捨てることになる。
+    """
     from google.cloud import bigquery
-    where = "run_id = @rid AND provider = @prov"
+    where = "run_id = @cand_rid AND provider = @prov"
     params = [
-        bigquery.ScalarQueryParameter("rid", "STRING", account_run_id),
+        bigquery.ScalarQueryParameter("cand_rid", "STRING", candidate_run_id),
         bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
     ]
+    if tiers:
+        where += " AND tier IN UNNEST(@tiers)"
+        params.append(bigquery.ArrayQueryParameter("tiers", "STRING", list(tiers)))
+    if shard_count and shard_count > 1:
+        where += " AND MOD(ABS(FARM_FINGERPRINT(handle)), @shard_count) = @shard_index"
+        params.append(bigquery.ScalarQueryParameter("shard_count", "INT64", int(shard_count)))
+        params.append(bigquery.ScalarQueryParameter("shard_index", "INT64", int(shard_index)))
+    # 候補表は «4_19 を回した時点で未収集» なので、その後に他ジョブが採った分をここで外す。
+    where += (" AND handle NOT IN ("
+              f"SELECT DISTINCT LOWER(account_id) FROM `{pipeline.table(TABLE_POST_RAW)}` "
+              "WHERE account_id IS NOT NULL)")
+    limit_sql = f"LIMIT {int(max_accounts)}" if max_accounts else ""
+
+    if priority_coverage_run_id:
+        params.append(bigquery.ScalarQueryParameter("cov_rid", "STRING", priority_coverage_run_id))
+        catalog_run_id = catalog_run_id or _latest_catalog_run_id(pipeline)
+        params.append(bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id))
+        # 惜しいセル（あと 1〜3 店で 5 店に届く = distinct_store_count 2..4）の重み。
+        # 店アカウント（seed 有）は **その店の市区町村** で、地域語アカウントは
+        # region_token → 都道府県 で当てる。どちらも取れなければ 0（段の末尾へ）。
+        pref_join = f"""
+      , tokmap AS ({REGION_TOKEN_PREF_SQL})
+      , cellscore AS (
+          SELECT region AS pref, city,
+                 SUM(CASE distinct_store_count WHEN 4 THEN 3 WHEN 3 THEN 2 WHEN 2 THEN 1 ELSE 0 END) AS score
+          FROM `{pipeline.table(TABLE_COVERAGE)}`
+          WHERE run_id = @cov_rid AND source_route = 'all' AND region IS NOT NULL
+          GROUP BY region, city
+        )
+      , prefscore AS (SELECT pref, SUM(score) AS score FROM cellscore GROUP BY pref)
+      , cityscore AS (SELECT pref, city, score FROM cellscore WHERE city IS NOT NULL)
+      , seedcity AS (
+          SELECT google_place_id,
+                 REGEXP_EXTRACT(address, r'({PREF_PATTERN})') AS pref,
+                 REGEXP_EXTRACT(address, r'(?:{PREF_PATTERN})([^0-9０-９]{{2,8}}?[市区町村])') AS city
+          FROM `{pipeline.table('restaurant_catalog')}`
+          WHERE run_id = @crid
+        )"""
+        # 市区町村スコアは県スコアより桁が小さいので、比較できるよう県スコアへ寄せずに
+        # «市区町村が分かるならそれ / 分からなければ県» の順で COALESCE する。
+        score_expr = "IFNULL(cs.score, IFNULL(p.score, 0))"
+        joins = ("LEFT JOIN seedcity sc ON sc.google_place_id = c.seed_place_id "
+                 "LEFT JOIN cityscore cs ON cs.pref = sc.pref AND cs.city = sc.city "
+                 "LEFT JOIN tokmap t ON t.tok = c.region_token "
+                 "LEFT JOIN prefscore p ON p.pref = t.pref")
+    else:
+        pref_join, score_expr, joins = "", _NO_ORDER, ""
+
+    sql = f"""
+      WITH cand AS (
+        SELECT handle, tier, region_token, mention_posters, seed_place_id, store_attributed
+        FROM `{pipeline.table(TABLE_ACCOUNT_CANDIDATE)}`
+        WHERE {where}
+      ){pref_join}
+      SELECT c.handle,
+             IF(c.store_attributed, 'store_branch', 'influencer') AS account_type,
+             c.seed_place_id AS discovery_seed_place_id,
+             c.tier
+      FROM cand c {joins}
+      QUALIFY ROW_NUMBER() OVER (PARTITION BY c.handle ORDER BY {score_expr} DESC) = 1
+      ORDER BY {_tier_rank_sql('c.tier')}, {score_expr} DESC, c.mention_posters DESC, c.handle
+      {limit_sql}
+    """
+    return list(pipeline.execute(sql, params))
+
+
+def _food_token_regex() -> str:
+    """食語の正本は 4_19（`FOOD_TOKENS`）。ここで語彙を書き写さない（ずれると層がずれる）。"""
+    import importlib
+    rank = importlib.import_module("4_19_rank_account_candidates")
+    return rank._token_regex(rank.FOOD_TOKENS)
+
+
+def _account_layer_sql(account_type_col: str, handle_col: str) -> str:
+    """層の順位（小さいほど先）。正本は 2026-09-05 の層別実測（--order-by-account-layer の説明）。"""
+    food = f"REGEXP_CONTAINS(LOWER({handle_col}), r'{_food_token_regex()}')"
+    store = f"{account_type_col} IN ('store_branch', 'store_brand')"
+    return (f"CASE WHEN {account_type_col} = 'influencer' AND {food} THEN 0 "
+            f"WHEN {account_type_col} = 'influencer' THEN 1 "
+            f"WHEN {store} AND {food} THEN 2 "
+            f"WHEN {food} THEN 3 "
+            f"WHEN {store} THEN 4 ELSE 5 END")
+
+
+def _latest_catalog_run_id(pipeline: BigQueryPipeline) -> str:
+    for row in pipeline.execute(
+        f"SELECT run_id FROM `{pipeline.table('restaurant_catalog')}` "
+        f"GROUP BY run_id ORDER BY COUNT(*) DESC LIMIT 1"
+    ):
+        return row["run_id"]
+    raise RuntimeError("restaurant_catalog に run_id がありません。")
+
+
+def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, max_accounts,
+                   output_run_id: str | None = None, shard_count: int = 1, shard_index: int = 0,
+                   skip_collected_scope: str = "run",
+                   priority_coverage_run_id: str | None = None,
+                   catalog_run_id: str | None = None,
+                   layer_order: bool = False):
+    from google.cloud import bigquery
+    # #1815 発見 run は増え続けるので «全部» を指定できるようにする（列挙を書き写さない）。
+    if list(account_run_ids) == ["all"]:
+        where = "provider = @prov"
+        params = [bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM)]
+    else:
+        where = "run_id IN UNNEST(@acc_rids) AND provider = @prov"
+        params = [
+            bigquery.ArrayQueryParameter("acc_rids", "STRING", list(account_run_ids)),
+            bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
+        ]
     if account_type:
         where += " AND account_type = @atype"
         params.append(bigquery.ScalarQueryParameter("atype", "STRING", account_type))
@@ -187,23 +494,84 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type
         where += " AND MOD(ABS(FARM_FINGERPRINT(handle)), @shard_count) = @shard_index"
         params.append(bigquery.ScalarQueryParameter("shard_count", "INT64", int(shard_count)))
         params.append(bigquery.ScalarQueryParameter("shard_index", "INT64", int(shard_index)))
-    # #1273 チャンク harvest 用: レート制限(~200/h)で全量が CI 1 ジョブ(6h)に収まらないので
-    # --max-accounts で分割する。ORDER BY handle LIMIT だけだと毎回同じ先頭 N を選び進まないため、
-    # **この出力 run に既に投稿がある handle は除外**して «まだ収集していない account» を進める。
-    # （投稿ゼロの account は毎回再試行され得るが、投稿を生む account は確実に前進する）。
-    skip_sql = ""
-    if output_run_id:
-        where += (" AND handle NOT IN ("
-                  f"SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` "
-                  "WHERE run_id = @out_rid AND account_id IS NOT NULL)")
-        params.append(bigquery.ScalarQueryParameter("out_rid", "STRING", output_run_id))
+
+    # #1273 チャンク harvest: レート制限で全量が CI 1 ジョブ(6h)に収まらないので --max-accounts で
+    # 分割する。毎回同じ先頭 N を選んで進まないのを防ぐため、**既に投稿がある handle は除外**する。
+    # #1815 scope=any にすると «他 run で採れている handle» も除外する（KPI は異なり店なので採り直しは無価値）。
+    if skip_collected_scope == "any":
+        collected_where = "account_id IS NOT NULL"
+    else:
+        collected_where = "run_id = @out_rid AND account_id IS NOT NULL"
+        params.append(bigquery.ScalarQueryParameter("out_rid", "STRING", output_run_id or ""))
+    where += (" AND handle NOT IN ("
+              f"SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` "
+              f"WHERE {collected_where})")
+
     limit_sql = f"LIMIT {int(max_accounts)}" if max_accounts else ""
-    sql = f"""
-      SELECT handle, account_type, discovery_seed_place_id
+    todo_sql = f"""
+      SELECT handle, ANY_VALUE(account_type) AS account_type,
+             ANY_VALUE(discovery_seed_place_id) AS discovery_seed_place_id
       FROM `{pipeline.table(TABLE_SOURCE_ACCOUNT)}`
       WHERE {where}
-      QUALIFY ROW_NUMBER() OVER (PARTITION BY handle ORDER BY discovered_at DESC) = 1
-      ORDER BY handle
+      GROUP BY handle
+    """
+
+    layer_sql = _account_layer_sql("account_type", "handle") if layer_order else _NO_ORDER
+
+    if not priority_coverage_run_id:
+        sql = (f"WITH todo AS ({todo_sql}) SELECT * FROM todo "
+               f"ORDER BY {layer_sql}, handle {limit_sql}")
+        return list(pipeline.execute(sql, params))
+
+    # #1815 【設計】並びは «KPI にいちばん近いセルから». セルは (カテゴリ×市区町村) で、
+    # あと 1〜3 店で 5 店に届くセル（distinct_store_count 2..4）を市区町村ごとに重み付けして数え、
+    # その市区町村に居る店の handle を先に処理する。n=4 のセルは 1 店で埋まるので重い。
+    # 店の市区町村は 7_1 と同じ考え方で決める: 住所から取れないもの（実測 49%）は
+    # 最寄りの市区町村重心（20km 以内）を充てる。ここは «並び替え» なので厳密さより網羅を優先する。
+    catalog_run_id = catalog_run_id or _latest_catalog_run_id(pipeline)
+    params.append(bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id))
+    params.append(bigquery.ScalarQueryParameter("cov_rid", "STRING", priority_coverage_run_id))
+    layer_sql_t = _account_layer_sql("t.account_type", "t.handle") if layer_order else _NO_ORDER
+    sql = f"""
+      WITH todo AS ({todo_sql}),
+      cat AS (
+        SELECT google_place_id,
+               REGEXP_EXTRACT(address, r'({PREF_PATTERN})') AS pref,
+               REGEXP_EXTRACT(address, r'(?:{PREF_PATTERN})([^0-9０-９]{{2,8}}?[市区町村])') AS city,
+               latitude AS lat, longitude AS lng
+        FROM `{pipeline.table('restaurant_catalog')}`
+        WHERE run_id = @crid
+      ),
+      cityc AS (
+        SELECT pref, city, ST_GEOGPOINT(AVG(lng), AVG(lat)) AS g
+        FROM cat WHERE pref IS NOT NULL AND city IS NOT NULL AND lat IS NOT NULL
+        GROUP BY pref, city
+      ),
+      near AS (
+        SELECT region AS pref, city,
+               SUM(CASE distinct_store_count WHEN 4 THEN 3 WHEN 3 THEN 2 WHEN 2 THEN 1 ELSE 0 END) AS score
+        FROM `{pipeline.table(TABLE_COVERAGE)}`
+        WHERE run_id = @cov_rid AND source_route = 'all' AND region IS NOT NULL AND city IS NOT NULL
+        GROUP BY region, city
+      ),
+      t1 AS (
+        SELECT t.handle, t.account_type, t.discovery_seed_place_id, c.pref, c.city, c.lat, c.lng
+        FROM todo t LEFT JOIN cat c ON c.google_place_id = t.discovery_seed_place_id
+      ),
+      nn AS (
+        SELECT t.handle, cc.pref, cc.city
+        FROM t1 t JOIN cityc cc
+          ON t.city IS NULL AND t.lat IS NOT NULL
+         AND ST_DWITHIN(ST_GEOGPOINT(t.lng, t.lat), cc.g, 20000)
+        QUALIFY ROW_NUMBER() OVER (
+          PARTITION BY t.handle ORDER BY ST_DISTANCE(ST_GEOGPOINT(t.lng, t.lat), cc.g)) = 1
+      )
+      SELECT t.handle, t.account_type, t.discovery_seed_place_id
+      FROM t1 t
+      LEFT JOIN nn USING (handle)
+      LEFT JOIN near n
+        ON n.pref = COALESCE(t.pref, nn.pref) AND n.city = COALESCE(t.city, nn.city)
+      ORDER BY {layer_sql_t}, IFNULL(n.score, 0) DESC, t.handle
       {limit_sql}
     """
     return list(pipeline.execute(sql, params))
@@ -213,7 +581,9 @@ def main() -> None:
     configure_logging()
     args = parse_args()
     run_id = require_run_id(args.run_id)
-    account_run_id = args.account_run_id or run_id
+    account_run_ids = [x.strip() for x in (args.account_run_ids or "").split(",") if x.strip()] \
+        or [args.account_run_id or run_id]
+    account_run_id = ",".join(account_run_ids)
     token = os.getenv(args.token_env)
     if not token:
         raise RuntimeError(f"{args.token_env} 未設定（db-script-run.yml の secret）。")
@@ -223,9 +593,23 @@ def main() -> None:
     LOGGER.info("IG business account id = %s（token_env=%s）", ig, args.token_env)
 
     # output_run_id=run_id を渡すと «この run に既に投稿がある handle» を除外する（チャンク前進）。
-    accounts = _read_accounts(pipeline, account_run_id, args.account_type, args.max_accounts,
-                              output_run_id=run_id,
-                              shard_count=args.shard_count, shard_index=args.shard_index)
+    if args.candidate_run_id:
+        tiers = [x.strip() for x in (args.tiers or "").split(",") if x.strip()]
+        accounts = _read_candidates(
+            pipeline, args.candidate_run_id, tiers, args.max_accounts,
+            shard_count=args.shard_count, shard_index=args.shard_index,
+            priority_coverage_run_id=args.priority_coverage_run_id,
+            catalog_run_id=args.catalog_run_id)
+        from collections import Counter
+        LOGGER.info("候補表の段の内訳: %s", dict(Counter(a["tier"] for a in accounts)))
+    else:
+        accounts = _read_accounts(pipeline, account_run_ids, args.account_type, args.max_accounts,
+                                  output_run_id=run_id,
+                                  shard_count=args.shard_count, shard_index=args.shard_index,
+                                  skip_collected_scope=args.skip_collected_scope,
+                                  priority_coverage_run_id=args.priority_coverage_run_id,
+                                  catalog_run_id=args.catalog_run_id,
+                                  layer_order=args.order_by_account_layer)
     LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
     now = utc_now()
     now_iso = now.isoformat()
@@ -233,14 +617,21 @@ def main() -> None:
     with pipeline.step(run_id, "4_2_collect_account_posts", parameters={
         "account_run_id": account_run_id, "account_type": args.account_type,
         "max_accounts": args.max_accounts, "limit_per_account": args.limit_per_account,
+        "skip_collected_scope": args.skip_collected_scope,
+        "priority_coverage_run_id": args.priority_coverage_run_id,
+        "shard": f"{args.shard_index}/{args.shard_count}",
+        "candidate_run_id": args.candidate_run_id, "tiers": args.tiers,
+        "order_by_account_layer": args.order_by_account_layer,
     }, repo_root=HERE.parents[1]) as result:
         # 収集は 413 アカウントを（レート制限のため）複数バッチに分けて回す。run_id 単位の
         # DELETE だと先行バッチを消してしまうので、**このバッチが担当するアカウント分だけ**を
         # 消してから入れ直す（バッチ冪等・他バッチ非破壊）。
         from google.cloud import bigquery
         handles = [acc["handle"] for acc in accounts]
-        if handles:
-            pipeline.execute(
+        # #1815 scope=any のときは «どの run でも投稿が無い handle» しか選んでいないので消す行が無い。
+        # 並列シャード中に無駄な DML を撃つと sns_post_raw の serialize 競合を増やすだけなので撃たない。
+        if handles and args.skip_collected_scope != "any" and not args.candidate_run_id:
+            pipeline.execute_dml_retrying(
                 f"DELETE FROM `{pipeline.table(TABLE_POST_RAW)}` "
                 f"WHERE run_id = @rid AND account_id IN UNNEST(@handles)",
                 [
