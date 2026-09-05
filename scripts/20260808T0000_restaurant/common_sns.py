@@ -467,8 +467,23 @@ STORE_ID_ANY_SQL = "COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_pla
 # (run_id, provider, post_id) の最新、**9_1 は絞っていなかった**。そのため 9_1 の出力は
 # 171,531 行 / 139,774 投稿＝ **18.5% が重複**し、うち 20,536 は «同じ投稿に別カテゴリ» だった。
 # dish_media は 1 投稿 1 行なので、これは同じ投稿が 2 つの料理として並ぶことを意味する。
+#
+# ⚠️ **«最新» だけで選ぶと、後から来た解けなかった解き直しが、先に解けていた結果を殺す。**
+# 2026-09-05 実測: cov13 (≥5 セル 987) → cov14 (961) と **26 セル減った**。原因は
+# `sns-2026-09-04-ccwat` の 5_1 が 00:26〜05:46 と長時間書き続けたこと。ccwat は収率が低く
+# （84,034 投稿でカテゴリ付き 10,592・matched 386）、その «解けなかった» 行が resolved_at で
+# 勝ってしまい、**4,802 投稿がカテゴリを失い 1,272 投稿が matched を失った**。
+#
+# resolve に «取り消し» は無い。カテゴリ無し／matched でない行は «決められなかった» であって
+# «前の判断を否定した» ではないので、成功した判断を残す方が正しい。
+# 順序は «カテゴリ有り → matched → 最新»（この順で実測: ≥5 セル 961 → 994 / 使える店
+# 17,554 → 17,878。収集ゼロで取り戻せる）。
 LATEST_RESOLVED_QUALIFY = (
-    "QUALIFY ROW_NUMBER() OVER (PARTITION BY provider, post_id ORDER BY resolved_at DESC) = 1"
+    "QUALIFY ROW_NUMBER() OVER ("
+    "PARTITION BY provider, post_id "
+    "ORDER BY COALESCE(dish_category_id IS NOT NULL, FALSE) DESC, "
+    "COALESCE(status = 'matched', FALSE) DESC, "
+    "resolved_at DESC) = 1"
 )
 
 # 上の店 ID が非 NULL になる行の条件。matched か、seed を持っているか。
