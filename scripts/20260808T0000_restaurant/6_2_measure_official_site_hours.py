@@ -38,6 +38,12 @@
 - トップページ 1 枚だけを見る。**リンクは辿らない**（実測で 3 ホップ必要な例があったが、
   それは «追従が要る割合» を別途測る話。ここでは «1 枚で取れる割合» を測る）
 
+## ⚠️ 既定で日本（JP）に閉じる
+
+パーサは**日本語専用**である。dry-run（run 33988256520）の標本 20 件に韓国語サイトが
+3 件あり、そのまま測ると «日本語ページの何割を読めるか» が薄まって判断材料にならない。
+`--country ALL` で外せるが、そのときの数字を «日本語パーサの命中率» として読まないこと。
+
 ## 使い方
 
     script_path: scripts/20260808T0000_restaurant/6_2_measure_official_site_hours.py
@@ -147,6 +153,10 @@ def robots_allows(url: str, cache: dict[str, urllib.robotparser.RobotFileParser 
     return True if rp is None else rp.can_fetch(USER_AGENT, url)
 
 
+# ⚠️ **国で絞る。** パーサは日本語専用なので、韓国語サイトを母数に混ぜると
+# «日本語ページの何割を読めるか» が薄まり、«LLM が要るか» の判断材料にならなくなる。
+# dry-run（run 33988256520）の標本 20 件に韓国語サイトが 3 件あって気づいた。
+# `--country ALL` で外せるが、そのときは «日本語パーサの命中率» として読まないこと。
 SAMPLE_SQL = """
 SELECT r.id::text, r.name, l.value AS url
 FROM {schema}.restaurant_links l
@@ -154,6 +164,7 @@ JOIN {schema}.restaurants r ON r.id = l.restaurant_id
 WHERE l.kind = 'website'
   AND NULLIF(btrim(l.value), '') IS NOT NULL
   AND l.value ~* '^https?://'
+  AND (%(country)s = 'ALL' OR r.country_code = %(country)s)
 ORDER BY md5(l.restaurant_id::text || %(seed)s)
 LIMIT %(limit)s
 """
@@ -164,6 +175,11 @@ def main() -> int:
     p.add_argument("--schema", default="dev", help="対象スキーマ（既定 dev）")
     p.add_argument("--limit", type=int, default=300, help="標本の件数（既定 300）")
     p.add_argument("--seed", default="1666", help="標本の並びを決める文字列。同じ値なら同じ標本になる")
+    p.add_argument(
+        "--country",
+        default="JP",
+        help="国コードで絞る（既定 JP）。パーサは日本語専用なので既定で JP に閉じる。ALL で全件",
+    )
     p.add_argument("--min-interval", type=float, default=2.0, help="1 件あたり最低これだけ空ける秒数")
     p.add_argument("--timeout", type=float, default=20.0, help="1 件あたりのタイムアウト秒")
     p.add_argument("--dry-run", action="store_true", help="ネットワークへ出ず、対象だけ出す")
@@ -182,10 +198,15 @@ def main() -> int:
     import psycopg2  # 依存は requirements.txt（psycopg2-binary）
 
     with psycopg2.connect(dsn) as conn, conn.cursor() as cur:
-        cur.execute(SAMPLE_SQL.format(schema=args.schema), {"seed": args.seed, "limit": args.limit})
+        cur.execute(
+            SAMPLE_SQL.format(schema=args.schema),
+            {"seed": args.seed, "limit": args.limit, "country": args.country},
+        )
         rows = cur.fetchall()
 
-    print(f"標本: {len(rows)} 件（schema={args.schema} / seed={args.seed}）")
+    print(f"標本: {len(rows)} 件（schema={args.schema} / seed={args.seed} / country={args.country}）")
+    if args.country != "JP":
+        print("⚠️ country が JP ではありません。この結果を «日本語パーサの命中率» として読まないこと")
     if args.dry_run:
         for rid, name, url in rows[:20]:
             print(f"  {rid}  {name}  {url}")

@@ -79,6 +79,25 @@ class ClassificationTest(unittest.TestCase):
                 self.assertTrue(self.mentions(f"当店の{wording}について"))
 
 
+class SamplingTest(unittest.TestCase):
+    """標本の作り方。**ここが狂うと数字の意味が変わる。**"""
+
+    def test_country_filter_is_in_the_sql(self) -> None:
+        """⚠️ 国で絞れること。パーサは日本語専用なので、韓国語サイトを母数に混ぜると
+        «日本語ページの何割を読めるか» が薄まる（dry-run の標本 20 件に 3 件あった）。
+        """
+        self.assertIn("country_code", measure.SAMPLE_SQL)
+        self.assertIn("'ALL'", measure.SAMPLE_SQL)
+
+    def test_sample_is_reproducible_by_seed(self) -> None:
+        """同じ seed なら同じ標本。«前より良くなった» を比べるために要る。"""
+        self.assertIn("md5(", measure.SAMPLE_SQL)
+        self.assertIn("%(seed)s", measure.SAMPLE_SQL)
+
+    def test_only_http_urls_are_sampled(self) -> None:
+        self.assertIn("^https?://", measure.SAMPLE_SQL)
+
+
 class SafetyTest(unittest.TestCase):
     def test_public_schema_is_refused(self) -> None:
         """⚠️ 本番スキーマを読む理由がここには無い。引数で選べないことを固定する。"""
