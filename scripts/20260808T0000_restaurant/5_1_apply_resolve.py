@@ -21,6 +21,7 @@ import urllib.error
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (
     PROVIDER_INSTAGRAM,
+    posts_with_category_sql,
     TABLE_POST_RAW,
     TABLE_POST_RESOLVED,
     ResolveClient,
@@ -157,6 +158,12 @@ def parse_args() -> argparse.Namespace:
                    help="何件ごとに sns_post_resolved へロードするか。0 なら concurrency から自動（200×並列度、上限 2000）")
     p.add_argument("--no-keep-alive", action="store_true",
                    help="resolve への HTTPS 接続を毎回張り直す（従来動作。keep-alive の効果測定用）")
+    # caption 後埋め（4_14）→ 解き直しの «対象» を決める。配信カタログは
+    # dish_category_id が付いた投稿しか使わないので、後埋めで取り返せるのは
+    # «いまカテゴリが付いていない投稿» だけ。既にカテゴリがある投稿（C 群 34,859）を
+    # 巻き込むと、同じ答えを出し直すだけで時間を使う。
+    p.add_argument("--only-without-category", action="store_true",
+                   help="いま（最新の resolve で）料理カテゴリが付いていない投稿だけを対象にする")
     p.add_argument("--skip-resolved-anywhere", action="store_true",
                    help="他の run_id / resolve_version で既に結果がある投稿を対象から外す（積み残しの一括処理用）")
     return p.parse_args()
@@ -166,7 +173,8 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
                       resolve_version: str, limit: int, shards: int = 1, shard: int = 0,
                       reresolve_prev_status: str | None = None, caption_regexp: str | None = None,
                       only_with_area: bool = False, post_ids: list[str] | None = None,
-                      only_without_area: bool = False, skip_resolved_anywhere: bool = False):
+                      only_without_area: bool = False, skip_resolved_anywhere: bool = False,
+                      only_without_category: bool = False):
     """未 resolve（この run × **この resolve_version** で未処理）の投稿を取り出す。
 
     version を anti-join に含めるので、--resolve-version を上げると全投稿が «その version では未処理»
@@ -185,6 +193,11 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
     # 特定の投稿だけを解き直す（原因調査用）。--debug-dump と併せて生レスポンスを見る。
     ids_filter = "AND r.post_id IN UNNEST(@post_ids)" if post_ids else ""
     # «どこかに結果がある» 投稿を丸ごと外す。run をまたいだ二重 resolve を止めるためのもの。
+    # «いまカテゴリが付いている» の判定は common_sns が唯一の正（写経しない）。
+    no_category_filter = ""
+    if only_without_category:
+        no_category_filter = (
+            f"AND r.post_id NOT IN ({posts_with_category_sql(pipeline.table(TABLE_POST_RESOLVED))})")
     anywhere_filter = ""
     if skip_resolved_anywhere:
         anywhere_filter = (
@@ -214,7 +227,7 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
            AND v.resolve_version = @resolve_version
-      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter} {ids_filter} {anywhere_filter}
+      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter} {ids_filter} {anywhere_filter} {no_category_filter}
       QUALIFY ROW_NUMBER() OVER (PARTITION BY r.post_id ORDER BY r.fetched_at DESC) = 1
       LIMIT {int(limit)}
     """
@@ -255,7 +268,8 @@ def main() -> None:
                                      args.shards, args.shard, args.reresolve_prev_status,
                                      args.caption_regexp, args.only_with_area,
                                      [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None,
-                                     args.only_without_area, args.skip_resolved_anywhere)
+                                     args.only_without_area, args.skip_resolved_anywhere,
+                                     args.only_without_category)
         finally:
             bq.add("BQ:未処理の取り出し(1回)", time.perf_counter() - t0)
 
