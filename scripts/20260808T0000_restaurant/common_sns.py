@@ -30,6 +30,9 @@ TABLE_POST_RAW = "sns_post_raw"
 TABLE_POST_RESOLVED = "sns_post_resolved"
 TABLE_COVERAGE = "sns_coverage"
 TABLE_DISH_MEDIA_CATALOG = "sns_dish_media_catalog"
+# #1815 店の国・住所・座標を持つ唯一の表（9_1_sync_restaurants が PG へ配る表）。
+# sns_post_raw / sns_post_resolved は国を持たないので、国の判定は必ずここと突き合わせる。
+TABLE_RESTAURANT_CATALOG = "restaurant_catalog"
 
 PROVIDER_INSTAGRAM = "instagram"
 
@@ -819,3 +822,168 @@ def store_handle_dict_sql(store_site_ig_table: str, source_account_table: str,
         GROUP BY handle
         HAVING COUNT(DISTINCT pid) = 1
       )"""
+
+
+# --- «その店は日本の店か» の唯一の判定 ---------------------------------------------
+#
+# 【設計】#1815 / #1273: `restaurant_catalog` 620,428 行のうち **100,058 行（16.13%）が
+# 日本以外の店**（大半が韓国、次いでロシア沿海地方）なのに `country_code` は全行 'JP' で、
+# うち 126 店 / dish_media 1,025 行が `sns_dish_media_catalog` に載って dev へ配信された。
+#
+# ⚠️⚠️ **取り込みの矩形（緯度20.0–46.5 / 経度122.0–154.0）を «日本かどうか» の判定に
+# 使ってはいけない。** それは 1_3 が «取り込む» ために使った条件であり、取り込んだ結果へ
+# 当て直しても構造上いつでも真になる。実際 8_1 の海外チェックはそれをやっていたので、
+# 韓国の店が 97,726 行入った run でも緑だった。**取り込み条件を検査条件へ流用しない。**
+#
+# 判定は独立した 3 本の根拠の OR で、この 3 本以外を足さない。
+#
+# | 根拠 | 何を見るか | 独立性 |
+# | --- | --- | --- |
+# | (a) `country_code` | 1_3 が Overture の `addresses[1].country` から運んだ実測値 | 出所のある値 |
+# | (b) 文字と住所の形 | ハングル / キリル語 / 韓国式の住所トークン | 座標を一切見ない |
+# | (c) 国外領域の矩形 | ソウル・釜山・済州・鬱陵島・沿海地方 «だけ» を囲う矩形 | 文字を一切見ない |
+#
+# (c) は «日本を囲う矩形»（＝取り込み条件）ではなく **«国外を囲う矩形»** である。
+# 前者は «中に居れば日本» という嘘をつくが、後者は «ソウルの真ん中に居る» という
+# 単独で成立する事実しか言わない。対馬（韓国本土の矩形と重なる日本領）は矩形から除く。
+#
+# ## 実測（run=restaurant-2026-08-23 / 620,428 行、2026-09-05）
+#
+# - (b) 文字ルールが挙げる行: 99,862 / (c) 国外矩形に入る行: 100,058
+# - 両方に当たる: 99,857。**独立な 2 つの根拠が 99.8% 一致する**
+# - (b) だけ = 5 行。うち 3 行は白翎島・楸子島の実在の韓国店（矩形の穴）で、
+#   **日本の店の誤検知は 2 行だけ**（「용녀」/2370-2 Awayamachi、
+#   「yong sundubu 집」/大船1-20-2。店名がハングルなのに住所に日本語が 1 文字も無い）
+# - (c) だけ = 201 行。全て韓国の店で、住所が `Chungmuro 2(i)-ga` `Yongsan Dong 2 Ga`
+#   のように韓国式トークンが空白区切りで書かれていて (b) が拾えないもの
+# - 目視した 291 行（無作為 120 / 国外矩形の外にある該当行の全 91 / 住所ルールのみ 20 /
+#   未検出 60）のうち、**日本国内の韓国料理店を «海外» と誤判定したものは 0 件**
+#
+# ## 日本国内の韓国料理店を弾かないための規則（誤検知の本体）
+#
+# ハングルを含む店名は新大久保・鶴橋・福岡に大量にある。**文字だけで判定してはいけない。**
+# 修正前の 8_1（ハングル or キリル 1 文字）は日本国内 62 店を海外と誤判定していた
+# （新大久保「하남돼지집」、大阪「정낙지」、福岡「골목게장」など 51 店＋
+# 「ＢＡＲ ＢＯＯＴ ＣＡМＰ」「Lounge Я」のようにキリル文字を装飾に使う日本の店 11 店）。
+# そこで:
+#   - 文字の根拠は **«日本語の手がかり» が無いときだけ**有効にする（下の JAPAN_TEXT_RE）
+#   - キリル文字は **3 文字以上連続** したときだけ数える（「МASU」の М 1 文字は装飾）
+#   - 韓国式住所トークンは «住所» 欄だけを見る（店名の「Lo-ro」「Cafe Cheonghak-dong」で
+#     誤爆する）。`-gun` は日本の «郡» と衝突するので**採らない**
+#   - 文字の根拠は **住所が入っている行にだけ**当てる。«日本語の手がかりが無い» は
+#     住所を見て初めて言えることで、住所が空の行では «情報が無い» と区別が付かない。
+#     PostgreSQL の `restaurants.address` はユーザー登録行で NULL のことがあり、実測でも
+#     「韓国料理TonTon 한국식당 톤톤」（大阪）「板前焼肉一雅 이치마사」（大阪）
+#     「韓国料理専門店 佳楽 가락」（東京）を海外と誤判定していた。
+#     restaurant_catalog 側で住所が空なのは 620,428 行中 128 行だけで、この条件を
+#     足しても検出は 100,063 行のまま **1 行も減らない**（実測）
+#
+# ⚠️ **この判定を SQL / 別スクリプトへ写経しないこと。** 使う側は
+# `foreign_restaurant_sql()` が返す式を埋め込む。写経した複製は、本番だけが直ったときに
+# 緑のまま古い挙動を守り続ける（CLAUDE.md「列を足したら〜」の事故）。
+
+# ⚠️ 文字クラスは **実体文字**で書く（`\uAC00` や `\x{AC00}` を使わない）。
+#    この 3 つの正規表現は BigQuery(RE2) / Python(re) / PostgreSQL(ARE) の 3 方言で
+#    そのまま使う。3 方言が同じに解釈する書き方は «実体文字» と «先頭の (?i)» だけで、
+#    Unicode エスケープの綴りは方言ごとに違う（RE2 は `\x{}`、他は `\u`）。
+#    同じ理由で `(?i)` はパターンの **先頭にしか置けない**（PostgreSQL の ARE の制約）。
+#    語中の大小文字は `[Cc]home` のように文字クラスで書く。
+
+# ハングル（音節・字母）と、3 文字以上続くキリル文字。
+FOREIGN_SCRIPT_RE = r"[가-힣ᄀ-ᇿ]|[Ѐ-ӿ]{3,}"
+
+# 韓国式の住所トークン（ローマ字表記）。**住所欄にだけ当てる。**
+# `gun`（郡）は日本の住所（「北安曇郡」= Kitaazumi-gun）と衝突するので入れない。
+KOREAN_ADDRESS_RE = (
+    r"(?i)(^|[^a-z])[a-z0-9]+-(dong|eup|myeon|myun|gil|ro|daero|ri|ga)([^a-z]|$)"
+)
+
+# 日本語の手がかり。これがあるときは «文字» の根拠を無効にする（新大久保の韓国料理店）。
+JAPAN_TEXT_RE = r"[぀-ヿ]|丁目|番地|〒|[Cc][Hh][Oo][Mm][Ee]|" + PREF_PATTERN
+
+# 国外領域の矩形（lat_lo, lat_hi, lng_lo, lng_hi, ラベル）。
+# ⚠️ «日本を囲う矩形» を足さないこと（取り込み条件の流用になる）。ここは «そこに居れば
+#    日本ではない» と単独で言える土地だけを囲う。
+FOREIGN_TERRITORY_BOXES: tuple[tuple[float, float, float, float, str], ...] = (
+    (34.0, 38.7, 124.5, 129.6, "韓国本土"),
+    (33.1, 33.99, 126.1, 126.99, "済州・楸子島"),
+    (37.4, 37.6, 130.7, 131.0, "鬱陵島"),
+    (42.0, 49.0, 130.0, 137.0, "ロシア沿海地方"),
+)
+# 上の «韓国本土» の矩形と重なる日本領。ここに入る行は矩形の根拠から外す。
+JAPAN_ENCLAVE_BOXES: tuple[tuple[float, float, float, float, str], ...] = (
+    (34.0, 34.8, 129.1, 129.6, "対馬"),
+)
+
+
+def _box_sql(latitude: str, longitude: str, boxes) -> str:
+    return " OR ".join(
+        f"({latitude} BETWEEN {lo} AND {hi} AND {longitude} BETWEEN {wlo} AND {whi})"
+        for lo, hi, wlo, whi, _ in boxes
+    )
+
+
+def foreign_restaurant_sql(
+    *,
+    name: str,
+    address: str,
+    country_code: str,
+    latitude: str,
+    longitude: str,
+    dialect: str = "bigquery",
+) -> str:
+    """«この店は日本の店ではない» を判定する SQL 式（BOOLEAN）を返す。
+
+    引数は列名ではなく **列を指す式**（``rc.name`` / ``r.address`` など）を渡す。
+    BigQuery でも PostgreSQL でも同じ規則を使えるよう、方言差だけをここで吸収する。
+
+    Args:
+        dialect: ``"bigquery"``（RE2 / ``REGEXP_CONTAINS``）または
+            ``"postgres"``（ARE / ``~``）。
+    """
+    if dialect not in ("bigquery", "postgres"):
+        raise ValueError(f"未知の dialect: {dialect!r}")
+
+    def contains(expr: str, pattern: str) -> str:
+        if dialect == "bigquery":
+            return f"REGEXP_CONTAINS({expr}, r'{pattern}')"
+        return f"({expr} ~ '{pattern}')"
+
+    text = (
+        f"CONCAT(COALESCE({name}, ''), ' ', COALESCE({address}, ''))"
+        if dialect == "bigquery"
+        else f"(COALESCE({name}, '') || ' ' || COALESCE({address}, ''))"
+    )
+    addr = f"COALESCE({address}, '')"
+    return (
+        "(\n"
+        "        -- (a) 取り込み時の国。NULL は «分からない» なので日本扱いにする\n"
+        f"        COALESCE({country_code}, 'JP') != 'JP'\n"
+        "        -- (b) 韓国式の住所（住所欄だけ。店名の 'Lo-ro' で誤爆させない）\n"
+        f"        OR {contains(addr, KOREAN_ADDRESS_RE)}\n"
+        "        -- (b') ハングル / キリル語。**住所がある行にだけ**当て、\n"
+        "        --      日本語の手がかりがある行には当てない\n"
+        f"        OR ({addr} != ''\n"
+        f"            AND {contains(text, FOREIGN_SCRIPT_RE)}\n"
+        f"            AND NOT {contains(text, JAPAN_TEXT_RE)})\n"
+        "        -- (c) 国外領域の矩形（«日本を囲う矩形» ではない）。日本領の飛び地は除く\n"
+        f"        OR (({_box_sql(latitude, longitude, FOREIGN_TERRITORY_BOXES)})\n"
+        f"            AND NOT ({_box_sql(latitude, longitude, JAPAN_ENCLAVE_BOXES)}))\n"
+        "      )"
+    )
+
+
+def foreign_store_sql(alias: str = "rc") -> str:
+    """`restaurant_catalog` の 1 行が «日本以外の店» かを判定する式を返す。
+
+    どの列が国の根拠になるのかを決めるのはここ 1 箇所だけにする。呼ぶ側
+    （9_1_build_sns_dish_media_catalog / 9_2 / 9_1_sync_restaurants / 8_1 / 9_9 監査）は
+    列名を書かない。
+    """
+    return foreign_restaurant_sql(
+        name=f"{alias}.name",
+        address=f"{alias}.address",
+        country_code=f"{alias}.country_code",
+        latitude=f"{alias}.latitude",
+        longitude=f"{alias}.longitude",
+    )

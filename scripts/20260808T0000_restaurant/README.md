@@ -416,11 +416,40 @@ SNS 経路（#1273 / `sns_dish_media_catalog` → 9_2）は **run_id が restaur
 | `sns_media_pg_unique_key_unique` | ERROR: PG の UNIQUE(provider, 投稿ID, dish) 相当の重複 | 0 | 0 |
 | `sns_media_required_fields_valid` | ERROR: canonical_url / provider / QID / row_hash が dmee の NOT NULL・CHECK に通る | 0 | 0 |
 | `sns_media_duplicate_post_rate` | ERROR: 同じ投稿が複数行に出ている割合（1 投稿 1 dish_media） | **0** | 修正前 1.409%（2,008 行 / 1,388 投稿。全件が «同じ投稿に別の店»） → #1846 で 9_1 が «1 投稿 1 店» を確定するようにしたので 0 |
-| `sns_media_store_inside_japan` | ERROR: restaurant_catalog に居るが日本の矩形の外 | 0 | 0 |
+| `sns_media_store_inside_japan` | ERROR: restaurant_catalog に居るが**日本の店ではない**（判定は `common_sns.foreign_store_sql`） | 0 | 修正前 0（構造上いつでも緑）→ #1815 の判定で 931 行 / 113 店。9_1 が落とすようになった後は 0 |
 | `sns_media_store_known_rate` | WARNING: restaurant_catalog に居ない店を指す割合（9_2 が落として続行する行） | ≤ 1% | 0.349%（497 行 / 84 店） |
 | `sns_media_jp_gate_category_rate` | WARNING: アプリの 134 カテゴリ外を指す割合（捨てずに配信する） | ≤ 30% | 18.702%（26,648 行 / 1,401 カテゴリ） |
 
 閾値の根拠は `8_1_validate_catalogs.py` の定数コメントにある（全て今日の実測が基準）。
+
+### 8.5. 日本以外の店を配信しない（#1815）
+
+`restaurant_catalog` は **100,063 行（16.13%）が日本以外の店**なのに `country_code` が
+全行 `'JP'` である（1_3 / 3_4 は直したが、catalog を組み直すまでこの値のまま）。
+8_1 の海外チェックが «取り込みの矩形を取り込み結果へ当てる» 作りで構造上いつでも緑だったため、
+126 店 / dish_media 1,025 行が dev まで届いた。
+
+判定は **`common_sns.foreign_store_sql` の 1 箇所だけ**にある（国 / 文字・住所の形 /
+**国外**領域の矩形 の 3 本）。配信する 3 経路と品質ゲートがその式を埋め込む。
+**«日本を囲う矩形» は判定に使わない**（それが事故の原因である）。
+
+| 場所 | 何をするか |
+| --- | --- |
+| `9_1_build_sns_dish_media_catalog.py` | `--restaurant-catalog-run-id` が必須。海外の店の投稿を配信カタログへ入れない |
+| `9_2_sync_sns_dish_media.py` | 同上。古い catalog を読んだときの最後の砦。落とした数を WARNING で出す |
+| `9_1_sync_restaurants.py` | 海外の店を `restaurants` へ作らない（既存 PG 由来の海外店は従来どおり通す） |
+| `8_1_validate_catalogs.py` | `restaurant_overseas_only_from_existing_pg` / `sns_media_store_inside_japan` が同じ判定で数える |
+
+判定の精度（run=restaurant-2026-08-23 / 620,428 行の実測）と、それを固定する test は
+`common_sns.py` の該当節と `test_ingest_predicate_not_reused.py` にある。
+
+**既に PostgreSQL へ入ってしまった行**は `9_9_audit_foreign_rows.py` で数える（読み取り専用。
+修復 SQL は表示するだけ）。
+
+```bash
+.venv/bin/python 9_9_audit_foreign_rows.py --schema dev
+.venv/bin/python 9_9_audit_foreign_rows.py --schema public --allow-public   # 読むだけ
+```
 
 ### 9. PostgreSQL同期
 
@@ -441,15 +470,19 @@ SNS 料理媒体（#1273）は `9_2_sync_sns_dish_media.py`。**dev 専用で、
 
 ```bash
 # 何行入って何行落ちるかだけを出す（既定）
-.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --catalog-run-id sns-2026-09-04-inflcap
+.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 \
+  --catalog-run-id sns-2026-09-04-inflcap --restaurant-catalog-run-id restaurant-2026-08-23
 # 複数の run をまとめて配る / 全 run を配る
-.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --all-catalog-runs
+.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --all-catalog-runs \
+  --restaurant-catalog-run-id restaurant-2026-08-23
 # 実際に書く（オーナー承認後）
-.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --all-catalog-runs --execute
+.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --all-catalog-runs \
+  --restaurant-catalog-run-id restaurant-2026-08-23 --execute
 ```
 
 9_2 が **落として続行する**もの（1 件の取りこぼしで全件を止めないため。件数はログに出る）:
-PG に居ない店 / PG に無い料理カテゴリ / canonical_url や provider が DB の値域外。
+PG に居ない店 / PG に無い料理カテゴリ / canonical_url や provider が DB の値域外 /
+**日本以外の店**（#1815）。
 **捨てないもの**: アプリの 134 カテゴリ外の QID（PG には入るが日本の検索には出ない）。
 
 SQL は実 PostgreSQL 16 で検証できる。
