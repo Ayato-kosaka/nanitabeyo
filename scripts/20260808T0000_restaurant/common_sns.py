@@ -110,7 +110,15 @@ def city_name_candidates(text: str) -> list[str]:
                 for k in range(j):
                     if j - k + 1 >= 2:
                         cands.add(token[k:j + 1])
-    return sorted(cands, key=len, reverse=True)
+    # 長さが同じ候補の順序は set の反復順（= PYTHONHASHSEED）で変わる。同じキャプションが
+    # run ごとに別の市区町村へ落ちると、4_18 が «済みのキー» を別キーとして数え直し、
+    # 1 日 75,000 request の上限を無駄に使う（実測で 238/239 と揺れた）。
+    #
+    # 同じ長さのときは **先に書いてある方**を採る。名前順（辞書順）で固定すると、
+    # 「大衆馬肉酒場 うまる 新潟駅前店」のキャプションで «新潟市» ではなく «中央区» が
+    # 先に来て、東京の店として問い合わせてしまった（実測）。投稿の主語は普通、先に書かれる。
+    source = text or ""
+    return sorted(cands, key=lambda c: (-len(c), source.find(c)))
 
 
 def city_from_text(text: str, by_pair: dict, uniq: dict) -> tuple[str | None, str] | None:
@@ -127,9 +135,18 @@ def city_from_text(text: str, by_pair: dict, uniq: dict) -> tuple[str | None, st
     """
     if not text:
         return None
-    m = _RE_PREF.search(text)
-    pref = m.group(0) if m else None
-    for city in city_name_candidates(text):
+    prefs = [m.group(0) for m in _RE_PREF.finditer(text)]
+    pref = prefs[0] if prefs else None
+    candidates = city_name_candidates(text)
+    # «新潟県新潟市» のように県と市区町村が**隣り合って**書かれているものが最優先。
+    # これが無いと、キャプションのどこかに «東京都» と書いてあるだけで «中央区» を拾い、
+    # 「大衆馬肉酒場 うまる 新潟駅前店」を東京の店として問い合わせてしまう（実測）。
+    # 県は 1 か所目に限らない（先に別の県が話題として出てくることがある）。
+    for city in candidates:
+        for candidate_pref in prefs:
+            if (candidate_pref, city) in by_pair and candidate_pref + city in text:
+                return (candidate_pref, city)
+    for city in candidates:
         if pref and (pref, city) in by_pair:
             return (pref, city)
         if not pref and city in uniq:

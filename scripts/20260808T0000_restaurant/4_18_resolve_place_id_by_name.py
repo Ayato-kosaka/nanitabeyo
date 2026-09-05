@@ -4,8 +4,8 @@
 ## なぜ要るか（実測）
 
 resolve が店を引ける経路は «restaurant_catalog の近傍検索» だけなので、**catalog に無い店は
-原理的に当たらない**。2026-09-05 時点で店が決まっていない投稿は 382,386 件あり、そのうち
-170,261 件（44.5%）は キャプションに 📍店名 か 『』「」店名 が**書いてある**。
+原理的に当たらない**。2026-09-05 時点で店が決まっていない caption 付きの投稿は 342,392 件あり、そのうち
+181,692 件（53.1%）は キャプションに 📍 か 『』「」が**書いてある**（BigQuery 実測）。
 「データが無い」のではなく「書いてある店名を Google へ問い合わせていない」だけである。
 
 ## 課金しない構造（ここが第一制約）
@@ -45,28 +45,41 @@ Google Places の課金は **endpoint × fieldMask** で決まる。このスク
 
 ## 実測（2026-09-05、インフルエンサー caption 1,800 件 / `1841_place_id_by_name/`）
 
-| | 数 | 分母 |
+同じ 1,800 件のキャプションで、**«投げる前に店名でないものを落とす» を入れる前後**。
+どちらも判定（`decide_name_match`）は同じで、変えたのは `_is_probeable_name` だけである。
+
+| | 入れる前 | 入れた後 |
+| --- | ---: | ---: |
+| Google へ聞いた (店名, 市区町村) | 365 | **240** |
+| Google への request | 730 | **480（−34%）** |
+| 確定 | 76 | **77** |
+| **確定率** | 20.8% | **32.1%** |
+| 確定のうち `restaurant_catalog` に居て照合できた | 38 | 40 |
+| **そのうち同じ店だった（精度）** | 36（**94.7%**） | 38（**95.0%**） |
+
+前後で同じ place_id が 73 件。落ちた 3 件は「ミルクを食べるバター」（商品名）
+「show by jaws(カヤック/ sup 体験)」（店ではない）「鹿児島空港 ふく福 おすすめメニューtop3」
+（宣伝文）で、**どれも店名ではなかった**。代わりに「panda火鍋」（`店名:` を落とせるように
+なった）「茶館 きっかわ 嘉門亭」「焼肉ホルモンたけ田」「足軽おにぎり 金沢店」が確定した
+（真ん中の 2 件は catalog の店名と一致することを確認済み）。
+
+### 確定率を上げたのは «判定» ではなく «何を聞くか» である
+
+捨てた理由の内訳（入れた後）は `city_box_not_unique` 108 / `no_candidate_in_city_box` 33 /
+`area_query_not_unique` 16 / `probes_disagree` 6。件数の一番多い
+«市の矩形で 1 件に決まらない» は Text Search が店名に関連する店を複数返すために起きる。
+**ここを判定側で緩める案は測って捨てた**（`probe_cache.csv.gz` で課金せずに再評価できる）。
+
+| 試した緩め方 | 確定 | 実際に見た結果 |
 | --- | ---: | --- |
-| 店名 + 市区町村 が採れた投稿 | 490 | 1,800 件のキャプション（店名なし 983 / 地点なし 327） |
-| 異なり (店名, 市区町村) | 365 | 上の投稿を畳んだもの |
-| **確定** | **76（20.8%）** | 問い合わせた 365 キー（request 730 本 / 約 2 分） |
-| 確定のうち `restaurant_catalog` に既に居た | 38 | 76 |
-| **そのうち同じ店だった** | **36（94.7%）** | 目視で 38 件を突き合わせ |
+| 現行（矩形で 1 件 & area で 1 件 & 同じ） | 77 | 精度 95.0% |
+| 「area が一意でその place が矩形の中」 | +13 | 13 件を人が確認して**正しかったのは 5〜7 件**。バス停・商業施設・寺・遊覧船を引いていた |
+| 「2 つの probe の関連度 1 位が一致」 | +55 | 自動照合の精度が 79% → 64% に落ちる |
 
-捨てた理由の内訳は `city_box_not_unique` 196 / `no_candidate_in_city_box` 58 /
-`area_query_not_unique` 23 / `probes_disagree` 12。**確定率を決めているのは
-«市の矩形で 1 件に決まらない»** で、Text Search が店名に対して関連する店を複数返すためである。
-
-誤りは 38 件中 2 件で、どちらも **判定ではなく «抜き出した文字列が店名でない»** ことが原因
-（`「」` の中が料理名だった / 同じ施設の別テナント）。同じ原因で駅名・神社を引いていたぶんは
-`_is_probeable_name` で落とした（→ その関数のコメント）。残りの 38 件は catalog に**無い**店
-＝ この仕組みでしか採れなかった店で、`sample_place_id_by_name.tsv` の Google Maps URL から
-人が 1 件ずつ確認できる。
-
-上の 365 キーぶんの応答は `probe_cache.csv.gz` に入れてあるので、採用ルールを緩めたときの
-確定数は**課金せずに**測り直せる。同じ 365 キーでの実測: 現行 76 キーに対し、
-「area が一意でその place が矩形の中」なら 94 キー、「矩形が一意で area がそれを挙げる」なら
-90 キー。**+18 キーのために厳しさを 1 段落とす取引**であり、その誤りは未計測なので採らない。
+`restaurant_catalog` を «名前の辞書» にして矩形内の候補を絞る案も測った。未確定の
+163 キーに対し catalog 側で名前が一致した候補は 9 件しか無く、**確定は最大 4 件しか増えない**。
+残っている未確定キーの中身が「水信玄餅」「かき氷」「炉端焼き」のような料理名・
+一般名詞だからで、判定でも辞書でもなく **キャプションにそれ以上の情報が無い**のが上限である。
 
 ## 出力
 
@@ -80,33 +93,52 @@ Google Places の課金は **endpoint × fieldMask** で決まる。このスク
 ## 使い方
 
 ```bash
-# 件数だけ数える（API も BigQuery 書き込みも起きない）
-python3 4_18_resolve_place_id_by_name.py --run-id sns-2026-09-05-name --limit 2000 --dry-run
+# 今回いくつ聞くことになるかを数える（API も BigQuery 書き込みも起きない）
+python3 4_18_resolve_place_id_by_name.py --run-id sns-2026-09-05-name --dry-run
 
-# 実行（--execute が無ければ API を叩かない）
-python3 4_18_resolve_place_id_by_name.py --run-id sns-2026-09-05-name --limit 2000 \
-    --execute --qps 8 --workers 12
+# 実行（--execute が無ければ API を叩かない）。1 日 75,000 request なので --max-keys で刻む
+python3 4_18_resolve_place_id_by_name.py --run-id sns-2026-09-05-name \
+    --max-keys 35000 --execute --qps 8 --workers 12
 ```
+
+**刻むのは `--max-keys`（Google へ聞くキー数）であって `--limit`（読む投稿数）ではない。**
+投稿は `ORDER BY post_id` の先頭から返るので、`--limit` で刻むと毎回同じ投稿を読み直して
+先へ進まない。`--max-keys` は «まだ聞いていないキー» を投稿数の多い順に取るので、
+同じコマンドを日をまたいで繰り返すだけで全量が終わる（済みのキーは
+`sns_name_place_lookup` を見て二度聞かない）。
 
 `--posts-jsonl` / `--city-index-json` / `--out-jsonl` は BigQuery の資格情報が無い環境で
 精度検証を回すための入出力。本番（db-script-run.yml）では指定しない。
 
 ## 全量の見積り
 
-店が決まっていない投稿は 382,386 件（うち caption 有り 332,258）で、そのうち
-**132,243 件（39.8%）にキャプションから店名候補と地域が両方採れる**（2026-09-05 の BigQuery 実測）。
-上の実測レート（投稿→キー 0.75、キーの確定 20.8%）を当てると、異なりキーは約 99,000、
-Google への request は **約 198,000 本**。実測スループット 8 req/s で **約 7 時間**、
-確定は **約 20,000 キー**。1 キーが平均何投稿ぶんかは経路で変わる（この検証では 1.05）ので、
-投稿の枚数はキー数以上、としか言えない。
-Text Search Essentials (IDs Only) は $0.00 だが 1 日 75,000 request の回数上限があるので
-（`free_places.DailyQuotaExhausted`）、3 日に分けるか `--limit` で刻む。
+BigQuery 実測（2026-09-05）: 店が決まっていない caption 付き投稿は **342,392 件**、
+そのうち 📍 か『「 を含む＝店名が書いてありうるものが **181,692 件（53%）**。
+残り 160,700 件は読むだけ無駄なので `POSTS_SQL` の `REGEXP_CONTAINS` で先に落としている。
+市区町村名まで採れるのは **約 132,000 件**（旧抽出での BigQuery 実測）。
+
+上の実測レート（新しい抽出は旧抽出の 53% の投稿を残し、投稿→キーは 0.92、確定率 32.1%）を
+当てると、**異なりキー 約 64,000 / request 約 128,000 本 / 確定 約 20,000 キー**。
+実測スループット 8 req/s で **約 4.5 時間**だが、Text Search Essentials (IDs Only) は
+$0.00 でも **1 日 75,000 request の回数上限**があるので（`free_places.DailyQuotaExhausted`）、
+`--max-keys 35000` で **2 日**に分ける。正確な数は `--dry-run` が
+「今回の Google への request 見込み」として出すので、流す前にそれを見ること。
 
 ## この隣にあるもの
 
 `1841_place_id_by_name/` は上の実測のエビデンス。`sample_place_id_by_name.tsv` は
-365 キーぶんの判定（Google Maps URL 付き。人が 1 件ずつ確認できる）、`probe_cache.csv.gz` は
+240 キーぶんの判定（Google Maps URL 付き。人が 1 件ずつ確認できる）、`probe_cache.csv.gz` は
 Google の応答（place_id のみ）で、`cache_io.py load` で戻せば**課金せずに**判定を作り直せる。
+再現手順は次のとおり（Google へは 1 本も投げない）。
+
+```bash
+python3 1276_place_id_free_poc/cache_io.py load \
+    --archive 1841_place_id_by_name/probe_cache.csv.gz --cache cache/name_probe.sqlite
+python3 4_18_resolve_place_id_by_name.py --run-id verify --execute --no-bq-write \
+    --posts-jsonl <captions.jsonl> \
+    --city-index-json 1841_place_id_by_name/city_index_eval.json \
+    --out-jsonl /tmp/after.jsonl --cache cache/name_probe.sqlite
+```
 """
 
 from __future__ import annotations
@@ -116,6 +148,7 @@ import json
 import logging
 import math
 import os
+import re
 import sqlite3
 import sys
 import threading
@@ -133,6 +166,7 @@ from common_sns import (TABLE_POST_RAW, TABLE_POST_RESOLVED, build_city_bbox_ind
 from free_places import (DailyQuotaExhausted, FreePlacesClient, RateLimiter,  # noqa: E402
                          SearchResult)
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now  # noqa: E402
+import sns_html  # noqa: E402
 from sns_html import pin_names_from_text, store_name_from_text, normalize_match_text  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
@@ -250,8 +284,14 @@ def decide_name_match(box: SearchResult | None, area: SearchResult | None) -> Na
 
 # 店名として短すぎるもの。TS の下限は 2 だが、2 文字の屋号は Google 検索で必ず何かに当たる。
 MIN_PROBE_NAME_LENGTH = 3
+# 店名がこれより長いことはまず無い。実測ではこの長さを超える «名前» は全て文（キャッチコピー）。
+MAX_PROBE_NAME_LENGTH = 25
 # 名前ではないことが字面で分かるもの（URL・ハンドルだけの行・数字だけ）
 _NOT_A_NAME = ("http://", "https://", "www.")
+
+# «店名: なんどり» の «店名:» はラベルであって名前ではない。付けたまま投げると
+# Google の関連度が落ちる（実測 6 件が «店名:» 付きのまま投げられていた）。
+_RE_LABEL_LEAD = re.compile(r"^\s*(店名|お店|店舗名|shop|store)\s*[:：]\s*", re.IGNORECASE)
 
 # **店ではない場所**の名前。実測 90 件の確定のうち 9 件が «北四番丁駅» «池袋駅» のような
 # 最寄り駅で、3 件が神社・橋だった。これらは place_id としては正しく引けてしまうが、
@@ -261,9 +301,69 @@ _NOT_A_NAME = ("http://", "https://", "www.")
 #
 # ⚠️ 短い綴りを足さないこと。«ic»（インターチェンジのつもり）を入れると `music` `picnic` が
 # 巻き添えで落ちる。落とすのは «それ単体で施設名になっている» 語尾だけにする。
+#
+# 2026-09-05 に、判定を緩めた場合の確定先を 1 件ずつ人が見て、次の 4 種類を足した
+# （どれも «正しい place_id だが店ではない» = 誤帰属になる）。
+# バス停「定禅寺通市役所前」「鶴ケ谷団地入口」/ 商業施設「ニッケコルトンプラザ」/
+# 寺社「西教寺」/ 遊覧船・海水浴場のような観光地物。
 _NOT_A_STORE_SUFFIX = ("駅", "神社", "八幡宮", "大社", "公園", "空港", "大学", "高校",
                        "病院", "役所", "図書館", "美術館", "博物館", "体育館", "駐車場",
-                       "インター", "橋")
+                       "インター", "橋", "寺", "団地入口", "市役所前", "海水浴場",
+                       "遊覧船", "プラザ", "スタジアム", "アリーナ", "神宮")
+
+# 店名ではなく «文» であることが字面で分かるもの。
+# ---------------------------------------------------------------------------
+# 2026-09-05 の実測が根拠。『』「」から採った 256 キーのうち、実際に店名だったのは
+# 41 件しか無く、残りは料理名（水信玄餅）・キャッチコピー（友達や恋人を連れて行きたくなる）・
+# 見出し（店舗情報）・住所（鹿児島市西田1丁目3-19）だった。これらは **Google へ投げても
+# 確定しない**ので、投げる前に落とす。落とすと確定率が 20.8% → 32.1% に上がり、
+# request が 34% 減る（確定数は 76 → 77 で減っていない）。
+# 巻き添えの 3 件はどれも «店ではないもの»（top3 の宣伝文・商品名・カヤック体験）だった。
+_RE_SENTENCE_TAIL = re.compile(
+    r"(たい|たく|ます|ました|です|でした|ない|なる|なった|する|した|してる|しよう|できる|"
+    r"ください|ちゃう|しまう|みたい|かも|だけど|けれど|けど|から|ので|のに|ですが|"
+    r"ましょう|しれない|欲しい|ほしい|楽しい|美味しい|うまい|すごい|やばい|だよな|だよね)"
+    r"[。．!！?？…♪、,\.\s]*$")
+# 名前の «中» にはまず出ない助詞だけを見る。«が»«は» は「たがみんち」「はまの」のような
+# 屋号に普通に含まれるので使わない（試したら確定を 2 件巻き添えにした）。
+_RE_PARTICLES = re.compile(r"(を|へは|より|まで|ながら|ても|ては|なら|ばかり|くらい|ぐらい|"
+                           r"という|って)")
+_RE_PRICE = re.compile(r"[0-9０-９][0-9０-９,，]*\s*(円|¥|￥|yen)|[¥￥]\s*[0-9０-９]"
+                       r"|[0-9０-９]+\s*[%％]")
+_RE_BOILERPLATE = re.compile(
+    r"(店舗情報|営業時間|定休日|アクセス|住所|電話番号|メニュー|予約|詳細|クーポン|キャンペーン|"
+    r"プレゼント|フォロー|コメント|いいね|保存|プロフィール|リンク|best\s*[0-9]|top\s*[0-9]|"
+    r"おすすめ|オススメ|特集|まとめ|ランキング|限定|プラン|開催|イベント|フェア|新商品|割引|"
+    r"半額|無料|体験|フェス|大会)", re.IGNORECASE)
+# 住所（丁目・番地・«1-3» のような番地表記）
+_RE_ADDRESS_SHAPE = re.compile(r"([0-9０-９]+\s*(丁目|番地|番|号)"
+                               r"|[0-9０-９]+\s*[-−ー]\s*[0-9０-９]+)")
+# 絵文字・矢印などの装飾。屋号にはまず入らず、キャッチコピーには高頻度で入る。
+_RE_PICTOGRAPH = re.compile("[\U0001F000-\U0001FAFF☀-➿⬀-⯿️←-⇿⤀-⥿]")
+# 句読点・三点リーダ。名詞句には出ない。
+_RE_PUNCTUATION = re.compile(r"[。．、,！!？?…‥]|\.{2,}")
+
+# 料理カテゴリ名そのもの（「かき氷」「桃パフェ」）は店名ではない。アプリの 134 カテゴリを
+# そのまま辞書に使う（別辞書を持つと片方だけ育つ）。**完全一致だけ**を落とす。
+# 部分一致で落とすと「えびすそば」「船町ベースカフェ」のような実在の屋号を巻き添えにする
+# （実測で確定 2 件を落とした）。
+_DISH_LABELS_PATH = Path(__file__).resolve().parent / "kpi_dish_categories.json"
+
+
+def _dish_labels() -> frozenset[str]:
+    try:
+        raw = json.loads(_DISH_LABELS_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):  # 辞書が無くても probe は続けられる
+        return frozenset()
+    return frozenset(v.replace(" ", "") for v in raw.get("kpi_qids", {}).values())
+
+
+DISH_LABELS = _dish_labels()
+
+
+def strip_probe_label(name: str) -> str:
+    """«店名:» のようなラベルを落とす。抽出規則ではなく «Google へ投げる形» の正規化。"""
+    return _RE_LABEL_LEAD.sub("", name).strip()
 
 
 def extract_store_name(caption: str | None) -> tuple[str, str] | None:
@@ -276,25 +376,37 @@ def extract_store_name(caption: str | None) -> tuple[str, str] | None:
     足しているため（同じ店名を 2 経路で採らないよう、先に 📍 を見れば済む）。
     """
     for name in pin_names_from_text(caption):
-        if _is_probeable_name(name):
-            return name, "pin"
+        probe = strip_probe_label(name)
+        if _is_probeable_name(probe, labelled=probe != name):
+            return probe, "pin"
     quoted = store_name_from_text(caption or "")
     if quoted:
         normalized = normalize_match_text(quoted)
-        if _is_probeable_name(normalized):
-            return normalized, "quoted"
+        probe = strip_probe_label(normalized)
+        if _is_probeable_name(probe, labelled=probe != normalized):
+            return probe, "quoted"
     return None
 
 
-def _is_probeable_name(name: str) -> bool:
+def _is_probeable_name(name: str, *, labelled: bool = False) -> bool:
     """Google へ聞く価値があり、聞いても誤帰属しない形かを見る（**抽出規則ではない**）。
 
     抽出そのものは TS と同じ規則に固定してあり、ここでは «その名前で問い合わせるか» だけを
-    決める。実測 94 件のうち唯一の明確な誤帰属は、📍行 のローマ字住所
-    （`1-16-11 aobadai, meguro-ku, tokyo, 3f`）を店名として投げたものだった。
-    `PIN_ADDRESS_LEAD` は日本語の «住所» にしか当たらないので、数字始まりをここで落とす。
+    決める。ここで落としたぶんは Google を **1 度も引かない**ので、確定率が上がるだけでなく
+    1 日 75,000 request の上限が実質 1.5 倍になる。
+
+    実測（2026-09-05、365 キー）: 125 キーが落ち、そのうち確定していたのは 3 件だけで、
+    3 件とも «店ではないもの»（宣伝文・商品名・カヤック体験）だった。
+
+    最初からある «数字始まりを落とす» は、📍行 のローマ字住所
+    （`1-16-11 aobadai, meguro-ku, tokyo, 3f`）を店名として投げていた実測が根拠。
+    `PIN_ADDRESS_LEAD` は日本語の «住所» にしか当たらない。
     """
-    if len(name) < MIN_PROBE_NAME_LENGTH:
+    # «店名: 半助» のようにラベルが付いていたものは、投稿者が «これは店名だ» と書いている。
+    # 2 文字でも投げてよい（TS の下限も 2）。ラベルが無いものは 3 文字未満を投げない
+    # ——2 文字の綴りは Google 検索で必ず «何か» に当たるため。
+    minimum = sns_html.PIN_NAME_MIN_LENGTH if labelled else MIN_PROBE_NAME_LENGTH
+    if not (minimum <= len(name) <= MAX_PROBE_NAME_LENGTH):
         return False
     if any(marker in name for marker in _NOT_A_NAME):
         return False
@@ -303,6 +415,17 @@ def _is_probeable_name(name: str) -> bool:
         return False
     # 駅・神社などは «店» ではない。引けてしまうぶん、投稿を貼ると誤帰属になる。
     if name.endswith(_NOT_A_STORE_SUFFIX) or "神社" in name:
+        return False
+    # 文（キャッチコピー・呼びかけ）・値段・住所・見出し・絵文字は店名ではない
+    if _RE_PICTOGRAPH.search(name) or _RE_PUNCTUATION.search(name):
+        return False
+    if _RE_PRICE.search(name) or _RE_ADDRESS_SHAPE.search(name):
+        return False
+    if _RE_BOILERPLATE.search(name) or _RE_SENTENCE_TAIL.search(name):
+        return False
+    if _RE_PARTICLES.search(name):
+        return False
+    if name.replace(" ", "") in DISH_LABELS:
         return False
     # 記号と数字だけの «名前» は店名ではない
     return any(ch.isalpha() for ch in name)
@@ -388,7 +511,11 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="キャプションの店名から無料 SKU で place_id を逆引きする")
     p.add_argument("--run-id", default=None)
     p.add_argument("--catalog-run-id", default="restaurant-2026-08-23")
-    p.add_argument("--limit", type=int, required=True, help="読む投稿の上限。API 呼び出しの上限でもある")
+    p.add_argument("--limit", type=int, default=0,
+                   help="読む投稿の上限（0 = 全件）。**API 呼び出しの上限ではない**（→ --max-keys）")
+    p.add_argument("--max-keys", type=int, default=0,
+                   help="Google へ聞く (店名, 市区町村) の上限（0 = 無制限）。"
+                        "request 数はこの 2 倍。Text Search の 1 日上限 75,000 に合わせて刻む")
     p.add_argument("--source-run-id", default=None, help="対象を 1 つの収集 run に絞るとき")
     p.add_argument("--execute", action="store_true", help="指定したときだけ Google API を叩く")
     p.add_argument("--dry-run", action="store_true", help="件数だけ数える（API も BigQuery 書き込みも無し）")
@@ -426,13 +553,20 @@ def load_city_index(args: argparse.Namespace, pipeline: BigQueryPipeline | None)
     return by_pair, uniq, {"boxes": boxes, "pref_of_unique_city": pref_of_unique_city}
 
 
+# 店名候補が入りうるキャプションだけを SQL 側で絞る。
+# 抽出は 📍行 と『』「」しか見ないので、どちらも無いキャプションは読むだけ無駄である。
+# 実測（2026-09-05、BigQuery）: 店が決まっていない caption 付き投稿 342,392 件のうち、
+# 📍 か 『「 を含むのは 181,692 件（53%）。残り 160,700 件を読まずに済む。
+CAPTION_HAS_NAME_MARK = r"📍|[『「]"
+
 POSTS_SQL = """
   WITH r AS (
     SELECT post_id, ANY_VALUE(provider) provider, ANY_VALUE(caption) caption,
            ANY_VALUE(discovery_query) discovery_query,
            ANY_VALUE(discovery_seed_place_id) seed_place_id
     FROM `__RAW__`
-    WHERE caption IS NOT NULL AND (@source_run_id IS NULL OR run_id = @source_run_id)
+    WHERE caption IS NOT NULL AND REGEXP_CONTAINS(caption, r'__NAME_MARK__')
+      AND (@source_run_id IS NULL OR run_id = @source_run_id)
     GROUP BY post_id
   ), v AS (
     SELECT post_id, ANY_VALUE(google_place_id) google_place_id
@@ -444,23 +578,34 @@ POSTS_SQL = """
   WHERE (r.seed_place_id IS NULL OR r.seed_place_id = '')
     AND (v.google_place_id IS NULL OR v.google_place_id = '')
   ORDER BY r.post_id
-  LIMIT @limit
+  __LIMIT__
 """
 
 
-def load_posts(args: argparse.Namespace, pipeline: BigQueryPipeline | None) -> list[dict[str, Any]]:
+def load_posts(args: argparse.Namespace, pipeline: BigQueryPipeline | None) -> Iterable[dict[str, Any]]:
+    """対象の投稿を返す。**`--limit` は «読む投稿» の上限で、API 呼び出しの上限ではない。**
+
+    API を刻むのは `--max-keys`（→ `parse_args`）の役目である。投稿側で刻むと、毎回
+    同じ先頭 N 件を読み直すだけで先へ進まない（`ORDER BY post_id` は毎回同じ順序を返す）。
+    投稿は «読んで畳む» だけなので全件読んで構わない — 課金されるのは Google への問い合わせで、
+    そちらは «済みのキーを聞き直さない»（`load_done_keys`）と `--max-keys` で止める。
+    """
     if args.posts_jsonl:
         with Path(args.posts_jsonl).open(encoding="utf-8") as stream:
-            return [json.loads(line) for line in stream if line.strip()][: args.limit]
+            posts = [json.loads(line) for line in stream if line.strip()]
+        return posts[: args.limit] if args.limit else posts
     from google.cloud import bigquery
 
     assert pipeline is not None
     sql = (POSTS_SQL.replace("__RAW__", pipeline.table(TABLE_POST_RAW))
-           .replace("__RESOLVED__", pipeline.table(TABLE_POST_RESOLVED)))
-    return [dict(r) for r in pipeline.execute(sql, [
-        bigquery.ScalarQueryParameter("source_run_id", "STRING", args.source_run_id),
-        bigquery.ScalarQueryParameter("limit", "INT64", args.limit),
-    ])]
+           .replace("__RESOLVED__", pipeline.table(TABLE_POST_RESOLVED))
+           .replace("__NAME_MARK__", CAPTION_HAS_NAME_MARK)
+           .replace("__LIMIT__", "LIMIT @limit" if args.limit else ""))
+    parameters = [bigquery.ScalarQueryParameter("source_run_id", "STRING", args.source_run_id)]
+    if args.limit:
+        parameters.append(bigquery.ScalarQueryParameter("limit", "INT64", args.limit))
+    # RowIterator をそのまま返す（342,392 件ぶんの caption を一度に持たない）
+    return pipeline.execute(sql, parameters)
 
 
 def load_done_keys(pipeline: BigQueryPipeline | None) -> set[tuple[str, str, str]]:
@@ -528,9 +673,9 @@ def main() -> None:
 
     by_pair, uniq, geo = load_city_index(args, pipeline)
     posts = load_posts(args, pipeline)
-    LOGGER.info("店が決まっていない投稿 %d 件を読みました", len(posts))
-
     keys, reasons = build_name_keys(posts, by_pair, uniq, geo["pref_of_unique_city"])
+    LOGGER.info("店が決まっていない投稿 %d 件を読みました（📍 か 『「 を含むものだけ）",
+                sum(reasons.values()))
     LOGGER.info("店名を採れた投稿 %d 件 / 店名なし %d 件 / 地点なし %d 件",
                 reasons["ok"], reasons["no_store_name"], reasons["no_area_hint"])
     LOGGER.info("異なり (店名, 市区町村) = %d 件（Google へ聞く回数はこの 2 倍）", len(keys))
@@ -538,6 +683,18 @@ def main() -> None:
     done = load_done_keys(pipeline) if not args.dry_run else set()
     todo = [k for k in keys if (k.store_name, k.pref, k.city) not in done]
     LOGGER.info("うち未問い合わせ %d 件（済み %d 件は聞き直さない）", len(todo), len(keys) - len(todo))
+
+    # 投稿数の多いキーから聞く。1 キーの確定が何投稿ぶんの店を決めるかは post_count なので、
+    # 上限で途中打ち切りになったとき «効くほうから» 消化しておく。
+    # 同数のときは順序を実行ごとに変えない（キャッシュと resume が噛み合わなくなる）。
+    todo.sort(key=lambda k: (-len(keys[k]["post_ids"]), k.pref, k.city, k.store_name))
+    if args.max_keys and len(todo) > args.max_keys:
+        remaining = len(todo) - args.max_keys
+        todo = todo[: args.max_keys]
+        LOGGER.info("--max-keys %d で今回は %d 件だけ聞きます（残り %d 件は次の run）",
+                    args.max_keys, len(todo), remaining)
+    LOGGER.info("今回の Google への request 見込み: %d 本（Text Search の 1 日上限は 75,000）",
+                2 * len(todo))
 
     if args.dry_run or not args.execute:
         LOGGER.info("--execute が無いので Google API も BigQuery 書き込みも行いません")

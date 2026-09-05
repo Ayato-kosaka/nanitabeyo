@@ -25,6 +25,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE / "1276_place_id_free_poc"))
 
+import common_sns  # noqa: E402
 import free_places  # noqa: E402
 import sns_html  # noqa: E402
 from free_places import SearchResult  # noqa: E402
@@ -163,6 +164,106 @@ class StoreNameExtractionTest(unittest.TestCase):
     def test_address_pins_are_not_store_names(self) -> None:
         self.assertIsNone(resolver.extract_store_name("📍東京都八王子市東町1-3"))
         self.assertIsNone(resolver.extract_store_name("📍住所：東京都八王子市東町1-3"))
+
+
+class NotAStoreNameTest(unittest.TestCase):
+    """『』「」から採れる «店名でない文字列» を、Google へ投げる前に落とすこと。
+
+    実測（2026-09-05）: 『』「」から採った 256 キーのうち店名は 41 件しか無く、
+    残りは料理名・キャッチコピー・見出し・住所だった。落とすと確定率が 20.8% → 31.9% に上がり、
+    request が 35% 減る。**このテストが守っているのは «確定率» ではなく «1 日 75,000 request を
+    店名でない文字列に使わないこと»** である。
+    """
+
+    def _not_probed(self, *names: str) -> None:
+        for name in names:
+            self.assertFalse(resolver._is_probeable_name(name), name)
+
+    def _probed(self, *names: str) -> None:
+        for name in names:
+            self.assertTrue(resolver._is_probeable_name(name), name)
+
+    def test_catch_copy_is_not_probed(self) -> None:
+        self._not_probed("友達や恋人を連れて行きたくなる", "ほんとうにうまいお店ってこうだよな",
+                         "薬膳ってちょっと苦そう...", "今日は美味しい海鮮食べたい",
+                         "日常の中の非日常を味わう")
+
+    def test_headings_and_promotions_are_not_probed(self) -> None:
+        self._not_probed("店舗情報", "鹿児島でおすすめの飲食店best3", "営業時間",
+                         "ながおか米百俵フェス", "広島みなと夢花火大会",
+                         "鹿児島空港 ふく福 おすすめメニューtop3")
+
+    def test_prices_and_addresses_are_not_probed(self) -> None:
+        self._not_probed("小鍋セット 1,800円", "瓶ビール¥299",
+                         "鹿児島市西田1丁目3-19", "宮古島市平良西仲宗根460-5")
+
+    def test_emoji_and_punctuation_are_not_probed(self) -> None:
+        self._not_probed("みかん🍊", "いいね❤️+コメント💬", "深夜の新名物...")
+
+    def test_dish_label_alone_is_not_probed(self) -> None:
+        """アプリの料理カテゴリ名そのものは店名ではない（完全一致のときだけ落とす）。"""
+        self._not_probed("かき氷")
+        # 部分一致で落とすと実在の屋号を巻き添えにする（実測で確定 2 件を失った）
+        self._probed("えびすそば", "船町ベースカフェ")
+
+    def test_real_store_names_are_still_probed(self) -> None:
+        """屋号に含まれる «が»«は» で落とさないこと（実測で 2 件を巻き添えにした形）。"""
+        self._probed("たがみんち", "讃岐らーめん はまの", "yuhi ひがし茶屋街店",
+                     "焼鳥劇場 旅鶏 裏片町店", "amusement bar rento.",
+                     "wildcat house 山猫軒", "中国料理 四川飯店 新潟")
+
+    def test_facilities_that_are_not_stores_are_not_probed(self) -> None:
+        """バス停・商業施設・寺は place_id としては引けるが «料理を出した店» ではない。"""
+        self._not_probed("定禅寺通市役所前", "鶴ケ谷団地入口", "ニッケコルトンプラザ",
+                         "西教寺", "高松北部海水浴場")
+
+
+class CityIsPickedDeterministicallyTest(unittest.TestCase):
+    """同じキャプションが run ごとに別の市区町村へ落ちないこと。
+
+    落ちる先が揺れると、4_18 が «もう聞いたキー» を別キーとして数え直し、
+    1 日 75,000 request の上限を無駄に使う（実測でキー数が 238/239 と揺れた）。
+    """
+
+    BY_PAIR = {("東京都", "中央区"): (35.67, 139.77), ("新潟県", "新潟市"): (37.90, 139.02),
+               ("東京都", "新宿区"): (35.69, 139.70)}
+    UNIQ = {"新潟市": (37.90, 139.02)}
+
+    def test_same_text_always_gives_the_same_city(self) -> None:
+        text = "大衆馬肉酒場 うまる 新潟駅前店 新潟市の中央区みたいな場所 東京都のノリ"
+        first = common_sns.city_from_text(text, self.BY_PAIR, self.UNIQ)
+        for _ in range(20):
+            self.assertEqual(first, common_sns.city_from_text(text, self.BY_PAIR, self.UNIQ))
+
+    def test_city_written_right_after_the_prefecture_wins(self) -> None:
+        """«東京都» と «中央区» が離れて書いてあるだけで «東京都中央区» と読まないこと。"""
+        text = "東京都からわざわざ来た。新潟県新潟市の店。中央区にもあるらしい"
+        self.assertEqual(("新潟県", "新潟市"),
+                         common_sns.city_from_text(text, {**self.BY_PAIR,
+                                                          ("新潟県", "中央区"): (0, 0)}, self.UNIQ))
+
+    def test_longer_city_name_still_wins_over_position(self) -> None:
+        text = "中央区の話。東京都八王子市のカフェ"
+        by_pair = {**self.BY_PAIR, ("東京都", "八王子市"): (35.66, 139.32)}
+        self.assertEqual(("東京都", "八王子市"),
+                         common_sns.city_from_text(text, by_pair, self.UNIQ))
+
+
+class ProbeLabelTest(unittest.TestCase):
+    """«店名:» はラベルであって名前ではない。付けたまま投げない。"""
+
+    def test_label_is_stripped_before_probing(self) -> None:
+        self.assertEqual(("半助", "pin"), resolver.extract_store_name("📍店名:半助"))
+        self.assertEqual(("cafe mio", "pin"), resolver.extract_store_name("📍店名: cafe mio"))
+        self.assertEqual(("panda火鍋", "quoted"),
+                         resolver.extract_store_name("【高松市】『店名:panda火鍋』が話題"))
+
+    def test_label_relaxes_the_length_floor_but_nothing_else(self) -> None:
+        # ラベル付き = 投稿者が «これは店名だ» と書いているので 2 文字でも投げる
+        self.assertTrue(resolver._is_probeable_name("半助", labelled=True))
+        self.assertFalse(resolver._is_probeable_name("半助"))
+        # ラベルが付いていても «文» は投げない
+        self.assertFalse(resolver._is_probeable_name("行きたくなる", labelled=True))
 
 
 class PinNameExtractionTest(unittest.TestCase):
