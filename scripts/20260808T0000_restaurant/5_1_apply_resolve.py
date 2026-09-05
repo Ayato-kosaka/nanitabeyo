@@ -89,12 +89,31 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--resolve-version", default="dev", help="この resolve デプロイの識別（再処理管理用）")
     p.add_argument("--limit", type=int, default=500, help="このバッチで処理する未処理投稿数の上限")
     p.add_argument("--sleep-ms", type=int, default=150, help="resolve 呼び出しの間隔（--concurrency 1 のときだけ効く。dev API 負荷対策）")
+    # #1273 【設計】**並列度の上限は dev API ではなく DB の接続数で決まる。**
+    # 実測 2026-09-05（`nanitabeyo_logs_dev.run_googleapis_com_stdout`）:
+    #
+    # | 全ワーカー合計の同時リクエスト | 1 投稿 p50 | 実効スループット | backend error |
+    # | --- | --- | --- | --- |
+    # | 1  | 227ms | 3.6 投稿/秒 | 0 |
+    # | 4  | 220ms | 15.8 投稿/秒 | 0 |
+    # | 8  | 274ms（keep-alive 前）/ 159ms（後） | 24.9〜26.3 投稿/秒 | 0 |
+    # | 17 | — | — | 0（15 分） |
+    # | 24 | — | — | **82 件/分** |
+    #
+    # 24 で出た error は全部 `EMAXCONNSESSION: max clients reached in session mode
+    # - pool_size: 15` ＝ **Supabase プーラの接続上限**。API 側は DB_POOL_MAX=5 ×
+    # Cloud Run max-instances 8 なので、投げ過ぎると自分で自分の DB を塞げる。
+    # **1 本のワーカーで 8、同時に走らせるワーカーは 2 本まで**（合計 16）を上限にする。
+    #
     # #1273 大量並列: caption を持つ投稿は resolve が IG を叩かない（純テキスト処理）ので
     # 好きなだけ並列できる。ThreadPoolExecutor で --concurrency 本を同時に走らせる。
     # ⚠️ caption を «持たない» 投稿は resolve が IG を取りに行く＝並列すると IG レート制限
     # （実測 73% 失敗）。その場合は --concurrency 1 に落とすこと（既定 1＝従来どおり直列）。
     p.add_argument("--concurrency", type=int, default=1,
-                   help="同時 resolve 数。caption 付き投稿(IG非取得)なら大きく。未取得経路は 1 のまま")
+                   help="同時 resolve 数。caption 付き投稿(IG非取得)なら大きく。未取得経路は 1 のまま。"
+                        "⚠️ **全ワーカーの合計で 16 を超えないこと**（下記の実測）")
+    p.add_argument("--resolve-retries", type=int, default=2,
+                   help="429 / 5xx を投げ直す回数。0 で投げ直さない")
     p.add_argument("--debug-dump", type=int, default=0, help="先頭 N 件の resolve 生レスポンスをログに出す（診断用）")
     # 18k+ の再 resolve を数時間で終えるため、post_id ハッシュで水平分割して複数 run を並列に回す。
     # 各シャードは互いに素な post_id 集合を担当するので二重 resolve/二重挿入が起きない。
@@ -222,7 +241,8 @@ def main() -> None:
     run_id = require_run_id(args.run_id)
     raw_run_id = args.raw_run_id or run_id
     pipeline = BigQueryPipeline()
-    client = ResolveClient(keep_alive=not args.no_keep_alive)  # base_url は common_sns の BACKEND_BASE_URL
+    client = ResolveClient(keep_alive=not args.no_keep_alive,
+                           retries=args.resolve_retries)  # base_url は common_sns の BACKEND_BASE_URL
     now_iso = utc_now().isoformat()
     sleep_s = max(args.sleep_ms, 0) / 1000.0
     timings = Timings()
@@ -358,8 +378,8 @@ def main() -> None:
         LOGGER.info("実効スループット: %d 件 / %.1f 秒 = **%.2f 投稿/秒**（= %.0f 投稿/時, concurrency=%d, shard=%d/%d）",
                     total, elapsed, total / elapsed if elapsed else 0.0,
                     3600 * total / elapsed if elapsed else 0.0, concurrency, args.shard, args.shards)
-        LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d）を投入しました",
-                    total, matched, n_err)
+        LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d, 429/5xx の投げ直し=%d 回）を投入しました",
+                    total, matched, n_err, client.retried)
 
 
 if __name__ == "__main__":
