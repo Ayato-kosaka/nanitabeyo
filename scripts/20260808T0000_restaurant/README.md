@@ -69,10 +69,27 @@ dry-runし、同じrun_idを段階的に昇格させます。Cloud Schedulerは�
   │                     ON CONFLICT DO NOTHING で足す（ユーザー追加を消さない）│
   └────────────────────────────────────────────────────────────────────────┘
 
-権利確認済みSNS URL
-  -> dish_media_social_raw              (4_1)
-  -> dish/dish_media/coverage catalog   (4_2)
-  -> PostgreSQL dishes/dish_media       (9_2)
+SNS（#1273 Instagram）の料理媒体は、上の restaurants に **相乗りする**別の流れである。
+
+```text
+  ┌── BigQuery ───────────────────────────────────────────────────────────┐
+  │  店アカ / 店サイト埋め込み / 検索 ──▶ sns_post_raw        4_1〜4_14   │
+  │                                          ▼                            │
+  │            resolve API（店とカテゴリの唯一の頭脳）─▶ sns_post_resolved │
+  │                                          ▼                       5_1  │
+  │            sns_dish_media_catalog（google_place_id + QID）        9_1  │
+  └──────────────────────────────────────────┼────────────────────────────┘
+                                             │ 9_2（dev 専用 / 既定 dry-run）
+  ┌──────────────────────────────────────────▼────────────────────────────┐
+  │ PostgreSQL                                                            │
+  │  dishes                        … 無ければ作る。既存行は触らない        │
+  │  dish_media                    … render_type='external_embed' の «器»  │
+  │  dish_media_external_embeddings… 投稿 ID と canonical_url の実体       │
+  │                                                                       │
+  │  ⚠️ 値の正は **API の取り込み実装**                                    │
+  │     （api/src/v1/dish-media-imports/dish-media-imports.service.ts）。   │
+  │     9_2 はそれと 1 列も違えない。違えるとアプリの分岐が片方で壊れる    │
+  └───────────────────────────────────────────────────────────────────────┘
 ```
 
 **この図の要点は矢印ではなく、下の箱の中の 2 行**である。
@@ -207,14 +224,6 @@ infra/supabase/migrations/20260823T0000_add_restaurant_recommendation_sync_metad
 `dish_media_external_embeddings` 子tableへ隔離します。
 APIは検索時にこの子tableを参照するため、deploy順は **migration → API/対応client → 9_*同期**
 です。特に外部媒体を公開する`9_2`は、対応clientの展開後に実行します。
-
-## 今回の納品範囲（#843 レストラン先行分）
-
-この branch/PR には **restaurants への投入経路（1_x〜3_x, 8_1, 9_1）だけ**が
-入っています。SNS 料理媒体の経路（`4_1` / `4_2` / `9_2` と
-`1273_sns_dish_media_poc`、supabase の dish_media 系 migration）は統合ブランチ
-（PR #1480）で後続納品します。本 README のセクション 4 と `9_2` の記述は
-その後続分の予告です。
 
 ## GitHub Actions での実行（db-script-run.yml）
 
@@ -384,15 +393,30 @@ dry-runも実際のDMLとconstraint検査をtransaction内で行い、最後にr
 .venv/bin/python 9_1_sync_restaurants.py --schema dev --dry-run
 .venv/bin/python 9_1_sync_restaurants.py --schema dev
 
-.venv/bin/python 9_2_sync_dishes_and_media.py --schema dev --dry-run
-.venv/bin/python 9_2_sync_dishes_and_media.py --schema dev
-
 # publicは明示的な二重確認flagが必要
 .venv/bin/python 9_1_sync_restaurants.py --schema public --dry-run --allow-public
 .venv/bin/python 9_1_sync_restaurants.py --schema public --allow-public
-.venv/bin/python 9_2_sync_dishes_and_media.py --schema public --dry-run --allow-public
-.venv/bin/python 9_2_sync_dishes_and_media.py --schema public --allow-public
 ```
+
+SNS 料理媒体（#1273）は `9_2_sync_sns_dish_media.py`。**dev 専用で、既定が dry-run** である
+（`--execute` を明示しない限り 1 行も書かない。`--schema public` は argparse が弾く）。
+
+```bash
+# 何行入って何行落ちるかだけを出す（既定）
+.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --catalog-run-id sns-2026-09-04-inflcap
+# 複数の run をまとめて配る / 全 run を配る
+.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --all-catalog-runs
+# 実際に書く（オーナー承認後）
+.venv/bin/python 9_2_sync_sns_dish_media.py --run-id sns-2026-09-05 --all-catalog-runs --execute
+```
+
+9_2 が **落として続行する**もの（1 件の取りこぼしで全件を止めないため。件数はログに出る）:
+PG に居ない店 / PG に無い料理カテゴリ / canonical_url や provider が DB の値域外。
+**捨てないもの**: アプリの 134 カテゴリ外の QID（PG には入るが日本の検索には出ない）。
+
+SQL は実 PostgreSQL 16 で検証できる。
+`bash tests/test_9_2_sns_dish_media_sync.sh`（実物の migration を流し、9_2 のソースから
+抜き出した SQL をそのまま実行する。写経しない）。
 
 本実行前に対象tableをGCSへstreaming backupします。backup失敗時は同期を中止します。
 BigQueryに無いPostgreSQL行は削除しません。`--skip-backup` は復旧手段を別途確保した緊急時だけ
