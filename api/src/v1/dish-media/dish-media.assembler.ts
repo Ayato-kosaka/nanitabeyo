@@ -17,6 +17,7 @@ import {
 } from '@shared/v1/res';
 import type { dish_media_external_embeddings as ExternalEmbedRow } from '../../../../shared/prisma/client';
 import { env } from '../../core/config/env';
+import { firstNonEmptyUrl } from '../../../../shared/utils/imageFallback';
 // #1780 サムネイル URL の組み立ての正本。店の代表画像（RestaurantsAssembler）も同じものを使う
 import {
   buildCdnUrlFromPath,
@@ -110,19 +111,33 @@ export class DishMediaAssembler {
        *
        * dev の実測では 19 行中 2 行が «自ストレージにも provider の URL にもサムネイルが無い»
        * 状態だった（取り込み当時に複製へ失敗した / 署名 URL が失効した）。
-       * 料理カテゴリの絵を最後の受け皿にすると、**構造的に真っ黒が出なくなる**。
        *
        * ⚠️ 受け皿を当てるのは `render_type='external_embed'` の行だけにする。
        *    自撮り投稿でサムネイルが無いのは «加工がまだ終わっていない» という別の状態で、
        *    そちらはスケルトンを出すのが正しい。カテゴリの絵を当てると
        *    «出来上がったのに違う絵が出ている» ように見える。
+       *
+       * #1273 ⚠️ **«料理カテゴリの絵を当てれば構造的に真っ黒が出なくなる» は誤りだった。**
+       *    `dish_categories.image_url` は NOT NULL だが **空文字を許す**
+       *    （`20250802T0258_create_dish_categories.sql:6` / 同期は
+       *    `9_1_sync_dish_categories.py` の `COALESCE(rep.image_url, '')`）。
+       *    そこを `??` で繋いでいたので、空文字は «見つかった» 扱いで先へ通り、
+       *    `thumbnailImageUrl` が空文字のまま画面へ届いていた。
+       *
+       *    dev 実測（2026-09-05 / `scripts/db-checks/measure_delivered_but_invisible.py`）:
+       *    usable 145,392 行のうち **3,119 行（2.15%）が 3 段とも空**。
+       *    その 221 カテゴリは KPI が数える 134 カテゴリに 1 つも無かったので、
+       *    配信側（`9_1_build_sns_dish_media_catalog.py`）でそのカテゴリへ配るのをやめた。
+       *    ここは «届いてしまった行を空文字のまま通さない» 側の受け持ちで、
+       *    空なら `null` を返す（クライアントは null 判定 1 つで «絵が無い» を扱える）。
        */
       const thumbnailImageUrl = isDeleted
         ? null
-        : (this.getThumbnailImageUrl(src.dish_media) ??
-          externalEmbed?.thumbnailUrl ??
-          (externalEmbed !== null ? src.dish.categoryImageUrl : null) ??
-          null);
+        : firstNonEmptyUrl(
+            this.getThumbnailImageUrl(src.dish_media),
+            externalEmbed?.thumbnailUrl,
+            externalEmbed !== null ? src.dish.categoryImageUrl : null,
+          );
       const dish_media = {
         ...dishMediaBase,
         // Explicitly add only the required additional fields for DishMediaEntry.dish_media

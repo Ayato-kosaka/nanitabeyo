@@ -36,6 +36,7 @@ import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { MyDishesMapSheet } from "./MyDishesMapSheet";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import { MyDishClusterMarker } from "./MyDishClusterMarker";
+import { firstNonEmptyUrl } from "@shared/utils/imageFallback";
 
 /**
  * #1396 my-dishes の Map ビュー（設計書 (2/2) §7 の PR4）。
@@ -360,10 +361,15 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						//
 						// #1513 ただし «自分の投稿が削除済み»（isOwnMediaDeleted）のピンは
 						// `restaurant.image_url` へも落とさない。ピンは残したまま中身を墓標へ差し替える
+						// #1273 `restaurant.image_url` は NOT NULL で «無い» が空文字。`??` は空文字を
+						// 通してしまうので、判定は shared/utils/imageFallback.ts に一本化する
 						uri={
 							cluster.pins[0].isOwnMediaDeleted
 								? undefined
-								: (cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined)
+								: (firstNonEmptyUrl(
+										cluster.pins[0].representativeThumbnailUrl,
+										cluster.pins[0].restaurant.image_url,
+									) ?? undefined)
 						}
 						bubbleContent={cluster.pins[0].isOwnMediaDeleted ? <DeletedMediaTombstone variant="pin" /> : undefined}
 					/>

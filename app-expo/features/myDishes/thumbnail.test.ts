@@ -68,6 +68,30 @@ describe("resolveMyDishThumbnailUrl（#1375 追補2 決定3）", () => {
 			),
 		).toBeNull();
 	});
+
+	/*
+	#1273 **«無い» は null ではなく空文字で来る。**
+
+	`dish_categories.image_url` も `restaurants.image_url` も NOT NULL の TEXT で、
+	同期は `COALESCE(..., '')` で書く（`9_1_sync_dish_categories.py` / `9_1_sync_restaurants.py`）。
+	`??` で繋いでいたので空文字が «見つかった» 扱いで通り、次の候補へ落ちていなかった。
+	dev 実測（2026-09-05）で絵の無いカテゴリは 221 種類・usable の 2.15% にあたる。
+	*/
+	it("#1273 categoryImageUrl が空文字でも restaurant.image_url へ落ちる", () => {
+		const item = makeItem({
+			thumbnailImageUrl: null,
+			categoryImageUrl: "",
+			restaurantImageUrl: "https://example.com/restaurant.jpg",
+		});
+		expect(resolveMyDishThumbnailUrl(item)).toBe("https://example.com/restaurant.jpg");
+	});
+
+	it("#1273 全部空文字なら空文字ではなく null を返す", () => {
+		const item = makeItem({ thumbnailImageUrl: null, categoryImageUrl: "", restaurantImageUrl: "" });
+		expect(resolveMyDishThumbnailUrl(item)).toBeNull();
+		// 呼び出し側の分岐（`url ? photo : none`）と `!== null` が食い違わないこと
+		expect(resolveMyDishThumbnail(item)).toEqual({ kind: "none" });
+	});
 });
 
 /*

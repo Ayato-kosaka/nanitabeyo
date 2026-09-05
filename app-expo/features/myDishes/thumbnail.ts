@@ -1,4 +1,5 @@
 import type { MyDishItem } from "@shared/api/v1/res";
+import { firstNonEmptyUrl } from "@shared/utils/imageFallback";
 
 /**
  * #1398 PR5 「食べた/食べたい」記録の代表サムネイル URL 解決（#1375 追補2 決定3）。
@@ -21,8 +22,16 @@ import type { MyDishItem } from "@shared/api/v1/res";
  * 埋まっているケースでも、それが**別ユーザーの投稿**であることがある
  * （サーバ側 `COALESCE(own_media_id, fb.id)` の fb 側）。これは意図した挙動であり、バグではない。
  */
+/*
+ * #1273 ⚠️ **`??` で繋がないこと。** `dish.categoryImageUrl`（`dish_categories.image_url`）も
+ * `restaurant.image_url` も **NOT NULL で «無い» を空文字で表す**列である。`??` は空文字を
+ * «見つかった» として通すので、カテゴリの絵が空の記録は `restaurant.image_url` へ落ちず、
+ * 空文字が返って呼び出し側（`resolveMyDishThumbnail`）で `kind: "none"` の無地になっていた。
+ * dev 実測（2026-09-05）で絵の無いカテゴリは 221 種類・usable の 2.15% にあたる。
+ * 判定は `shared/utils/imageFallback.ts` に 1 本だけ置く。
+ */
 export const resolveMyDishThumbnailUrl = (item: MyDishItem): string | null =>
-	item.dishMedia?.thumbnailImageUrl ?? item.dish?.categoryImageUrl ?? item.restaurant?.image_url ?? null;
+	firstNonEmptyUrl(item.dishMedia?.thumbnailImageUrl, item.dish?.categoryImageUrl, item.restaurant?.image_url);
 
 /**
  * #1513 サムネイル枠に何を描くか。

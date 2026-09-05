@@ -429,6 +429,73 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
     });
 
     /*
+    #1273 **«カテゴリの絵を当てれば構造的に真っ黒が出なくなる» は誤りだった。**
+
+    `dish_categories.image_url` は NOT NULL だが空文字を許す（同期が
+    `COALESCE(rep.image_url, '')` で書く）。`??` は空文字を «見つかった» として通すので、
+    絵の無いカテゴリでは `thumbnailImageUrl` が空文字のまま画面へ届いていた。
+    dev 実測（2026-09-05）: usable 145,392 行のうち 3,119 行（2.15%）が 3 段とも空。
+
+    ⚠️ ここで固定するのは «空文字を «絵がある» と数えない» ことである。
+       戻すと全画面フィードの真っ黒なセルが戻る。
+    */
+    it('#1273 料理カテゴリの絵が空文字なら、空文字ではなく null を返す', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry(
+          {
+            render_type: 'external_embed',
+            media_path: null,
+            media_processing_status: 'completed',
+            thumbnail_path: '',
+            thumbnail_processing_status: 'completed',
+            externalEmbed: {
+              id: 'embed-1',
+              dish_media_id: 'media-1',
+              provider: 'instagram',
+              external_content_id: 'Dap33wsTO4p',
+              canonical_url: 'https://www.instagram.com/reel/Dap33wsTO4p/',
+              embed_status: 'available',
+              last_verified_at: null,
+              thumbnail_url: null,
+            },
+          },
+          { categoryImageUrl: '' },
+        ) as any,
+      );
+
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBeNull();
+    });
+
+    it('#1273 provider のサムネイル URL が空文字なら、カテゴリの絵へ落ちる', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry(
+          {
+            render_type: 'external_embed',
+            media_path: null,
+            media_processing_status: 'completed',
+            thumbnail_path: '',
+            thumbnail_processing_status: 'completed',
+            externalEmbed: {
+              id: 'embed-1',
+              dish_media_id: 'media-1',
+              provider: 'instagram',
+              external_content_id: 'Dap33wsTO4p',
+              canonical_url: 'https://www.instagram.com/reel/Dap33wsTO4p/',
+              embed_status: 'available',
+              last_verified_at: null,
+              thumbnail_url: '',
+            },
+          },
+          { categoryImageUrl: 'https://cdn/ramen.jpg' },
+        ) as any,
+      );
+
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBe(
+        'https://cdn/ramen.jpg',
+      );
+    });
+
+    /*
     ⚠️ **自撮り投稿には当てない。** そちらでサムネイルが無いのは «加工がまだ終わっていない»
        という別の状態で、スケルトンを出すのが正しい。カテゴリの絵を当てると
        «出来上がったのに違う絵が出ている» ように見える。

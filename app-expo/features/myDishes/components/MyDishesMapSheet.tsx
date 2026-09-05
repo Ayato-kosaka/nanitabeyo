@@ -33,6 +33,7 @@ import type { MyDishPin } from "@shared/api/v1/res";
 import { MyDishStatusLegend } from "@/features/myDishes/components/MyDishStatusLegend";
 import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishStatusCountBadges";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
+import { firstNonEmptyUrl } from "@shared/utils/imageFallback";
 
 /** 1 枚あたりの幅。3 枚強が見える幅にして「横に続きがある」ことを見せる */
 const TILE_WIDTH = 104;
@@ -55,7 +56,11 @@ const PinTile = memo(function PinTile({ pin, onPress }: { pin: MyDishPin; onPres
 	// #1513 «自分の投稿が削除済み» のピンは `restaurant.image_url` へも落とさない
 	// （跡地に別の絵を入れない）。帯のタイルもピンと同じ墓標にする。ピン側の分岐は
 	// `MyDishesMapView.tsx` の AvatarBubbleMarker にある
-	const uri = pin.isOwnMediaDeleted ? null : (pin.representativeThumbnailUrl ?? pin.restaurant.image_url ?? null);
+	// #1273 `restaurant.image_url` は NOT NULL で «無い» が空文字なので `??` では落ちない
+	//（判定は shared/utils/imageFallback.ts に 1 本だけ置く）
+	const uri = pin.isOwnMediaDeleted
+		? null
+		: firstNonEmptyUrl(pin.representativeThumbnailUrl, pin.restaurant.image_url);
 
 	return (
 		<Pressable
