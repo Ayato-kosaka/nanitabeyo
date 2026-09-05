@@ -370,8 +370,18 @@ const HAS_LATIN_LETTER = /[a-z]/;
  * `extractMentions` が `@` 必須で取りこぼす «裸ハンドル»（`cafe_fune`）を拾う。投稿者自身の
  * ハンドルは除外する（`ownHandle`。先頭 `@` は無視して比べる）。返す値は正規化済み（小文字）。
  *
- * **この関数の出力を店 ID へ解決する «ハンドル→店ID辞書» はまだ無い（別 Issue）。**
- * 現状は抽出だけを固定し、辞書が入ったところで照合へ繋ぐ。
+ * ## 一括処理側（#1273 の 4_17）との関係
+ *
+ * «ハンドル→店ID辞書» に当てて店を確定する処理は、BigQuery 側の
+ * `scripts/20260808T0000_restaurant/4_17_resolve_bare_handles.py` が持つ。
+ * トークンの **形**（`BARE_HANDLE_PATTERN` / `HAS_LATIN_LETTER`）は両者で同じものを使うが、
+ * あちらは埋め込みキャプションが相手で**行構造が消えている**ため、行ではなく
+ * `[a-z0-9._]` の最大ランをトークンにする。
+ *
+ * ⚠️ **一般語の除外リスト（`instagram` `tokyo` のような «たまたま店ハンドルだった英単語»）は
+ * `common_sns.GENERIC_HANDLE_STOPWORDS` が唯一の正である。** ここへ写経しないこと。
+ * この関数を店 ID の解決へ繋ぐときは、その語彙を持ってきて共有する（実測で、当たりの
+ * 90.5% がその語彙 1 つで説明できる誤爆だった）。
  */
 export function extractBareHandles(rawText: string | null | undefined, ownHandle?: string | null): string[] {
 	if (typeof rawText !== "string" || rawText.length === 0) return [];

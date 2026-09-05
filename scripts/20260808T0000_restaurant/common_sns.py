@@ -388,3 +388,186 @@ STORE_KNOWN_SQL = (
     "(v.status = 'matched' "
     "OR (r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''))"
 )
+
+
+# --- 素のハンドル（@ の無い IG handle）抽出の唯一の正 -----------------------------
+#
+# 【設計】#1273 4_17: 埋め込み経路（`/embed/captioned/`・第三者ページの blockquote）で
+# 採ったキャプションは、**`@` がタグごと剥がれて素のトークンだけが残る**
+# （`sns_html.strip_tags` が `<a>@handle</a>` を本文へ畳む）。実測でもキャプション
+# 592,329 件のうち `@` を含むものは 5.5% しか無く、`@` 前提の抽出
+# （4_1 --source caption_mentions）は大半を取りこぼしていた。ここは
+# «キャプションから素のハンドル候補を切り出す» 規則を **1 箇所だけ**に固定する場所である。
+#
+# ⚠️ この規則を SQL / 別スクリプトへ写経しないこと。使う側は `bare_handle_candidate_sql()`
+#    が返す SQL 片を組み込む（BigQuery の RE2 と Python の re が同じ結果になるよう、
+#    後読み・先読みを使わない書き方だけにしてある）。
+#
+# ⚠️ トークンの «形» は `shared/utils/textNormalize.ts` の `extractBareHandles`
+#    （`BARE_HANDLE_PATTERN` / `HAS_LATIN_LETTER`）と同じものを使う。あちらは «行まるごとが
+#    ハンドル» の行だけを見る（resolve は 1 投稿しか見ないので誤爆の害が大きい）。
+#    こちらは行構造が消えた埋め込みキャプションを相手にするので、行ではなく
+#    **`[a-z0-9._]` の最大ラン**をトークンにし、代わりに下の一般語ガードで誤爆を止める。
+
+# 1. URL とハッシュタグは先に落とす。落とさないと `instagram.com/xxx` の `xxx` や
+#    `#lunchtime` がハンドル候補になる（ハッシュタグを残すと当たりは +8% 増えるが、
+#    «語» が紛れ込む経路を 1 本増やすので採らない）。
+BARE_HANDLE_URL_RE = r"https?://[^\s]+"
+BARE_HANDLE_HASHTAG_RE = r"#[^\s#]+"
+
+# 2. 残りから `[a-z0-9._]` の最大ランを切り出す（区切り記号が自動的に境界になる）。
+BARE_HANDLE_TOKEN_RE = r"[a-z0-9._]+"
+
+# 3. 端の `.` `_` を落としてから形を見る（`textNormalize.ts` と同じ形）。
+BARE_HANDLE_TRIM_LEAD_RE = r"^[._]+"
+BARE_HANDLE_TRIM_TRAIL_RE = r"[._]+$"
+BARE_HANDLE_SHAPE_RE = r"^[a-z0-9][a-z0-9._]{1,29}$"
+BARE_HANDLE_HAS_LETTER_RE = r"[a-z]"
+
+# 4. 一般語ガード（**KPI を汚さないための本体**）。
+#
+# 実測（2026-09-04、キャプション 592,329 件）: 素のトークンを店ハンドル辞書に当てると
+# 76,987 ペア当たるが、そのうち **87.5% は下の stopword のどれか 1 語**である
+# （`instagram` だけで 58,495 ペア）。「辞書に載っている店ハンドルが、たまたま英単語だった」
+# ために起きる誤爆なので、語彙で落とすしかない。
+GENERIC_HANDLE_STOPWORDS: tuple[str, ...] = (
+    # プラットフォーム・投稿定型
+    "instagram", "instagram.com", "facebook", "twitter", "tiktok", "youtube", "line",
+    "threads", "pinterest", "use.repost", "repost", "reel", "reels", "story", "stories",
+    "link", "bio", "dm", "follow", "share", "profile",
+    # 飲食まわりの一般名詞
+    "restaurant", "restaurants", "kitchen", "cafe", "coffee", "bar", "shop", "store",
+    "food", "foods", "lunch", "dinner", "breakfast", "menu", "open", "close", "closed",
+    "name", "top", "new", "news", "best", "good", "zero", "pain", "american", "meetup",
+    # 地名・曜日・月（キャプションに素で書かれる）
+    "japan", "japanese", "tokyo", "osaka", "kyoto", "nagoya", "fukuoka", "sapporo",
+    "yokohama", "kobe", "sendai",
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+    "today", "tomorrow",
+    "january", "february", "march", "april", "may", "june", "july", "august",
+    "september", "october", "november", "december",
+    # 飲食店ではない有名ブランド（辞書に 1 店として載っていることがある）
+    "ikea", "dior", "subway", "reebok", "ralphlauren", "diesel", "kfc",
+    # 実測で «語» として多用されていた日本語ローマ字
+    "irodori", "mare", "toto", "sano", "suma", "aman", "attic", "supports", "tenpura",
+)
+
+# 5. 語彙で列挙しきれない一般語は «コーパス内の広がり» で落とす。
+#    英字だけのトークン（`tokyo` `kitchen`）は語と被りやすいので、**異なり投稿者が
+#    この人数以上のものは «語» とみなして捨てる**。`_` `.` 数字を含むトークン
+#    （`cafe_fune` `202currydou`）は語と被らないので、この guard は当てない
+#    （当てると `eclatdepaix_chocolat` のような «よく言及される店» を落としてしまう）。
+BARE_HANDLE_MAX_POSTERS = 4
+
+
+def bare_handle_candidate_sql(post_raw_table: str) -> str:
+    """キャプション → 素のハンドル候補までの CTE 群を返す（`WITH` の中身。末尾カンマ無し）。
+
+    公開する CTE:
+
+    | CTE | 中身 |
+    | --- | --- |
+    | `cand_all` | (post_id, poster, seed, handle, pure_alpha)。形だけ見た候補。**stopword 適用前** |
+    | `cand` | `cand_all` から stopword を落としたもの |
+    | `cand_freq` | (handle, posters) コーパス全体での異なり投稿者数 |
+    | `ok` | `cand` に一般語ガードを当てたもの。**これが «抜けたハンドル»** |
+
+    `cand_all` を残してあるのは、**誤爆率（stoplist 前後）を同じクエリで数えられるように**
+    するため（別のクエリで数え直すと、片方だけ規則が変わっても気づけない）。
+
+    クエリパラメータ `@stopwords`（ARRAY<STRING>）と `@max_posters`（INT64）を要求する。
+    """
+    return f"""
+      cap_src AS (
+        SELECT post_id,
+               LOWER(IFNULL(account_id, '')) AS poster,
+               discovery_seed_place_id AS seed,
+               LOWER(NORMALIZE(caption, NFKC)) AS caption_norm
+        FROM `{post_raw_table}`
+        WHERE caption IS NOT NULL AND caption != ''
+      ),
+      cap_clean AS (
+        SELECT post_id, poster, seed,
+               REGEXP_REPLACE(REGEXP_REPLACE(caption_norm, r'{BARE_HANDLE_URL_RE}', ' '),
+                              r'{BARE_HANDLE_HASHTAG_RE}', ' ') AS text
+        FROM cap_src
+      ),
+      cap_token AS (
+        SELECT DISTINCT post_id, poster, seed, token
+        FROM cap_clean, UNNEST(REGEXP_EXTRACT_ALL(text, r'{BARE_HANDLE_TOKEN_RE}')) AS token
+      ),
+      cand_all AS (
+        SELECT post_id, poster, seed, handle, REGEXP_CONTAINS(handle, r'^[a-z]+$') AS pure_alpha
+        FROM (
+          SELECT post_id, poster, seed,
+                 REGEXP_REPLACE(REGEXP_REPLACE(token, r'{BARE_HANDLE_TRIM_LEAD_RE}', ''),
+                                r'{BARE_HANDLE_TRIM_TRAIL_RE}', '') AS handle
+          FROM cap_token
+        )
+        WHERE REGEXP_CONTAINS(handle, r'{BARE_HANDLE_SHAPE_RE}')
+          AND REGEXP_CONTAINS(handle, r'{BARE_HANDLE_HAS_LETTER_RE}')
+          AND handle != poster
+      ),
+      cand AS (
+        SELECT * FROM cand_all WHERE handle NOT IN UNNEST(@stopwords)
+      ),
+      cand_freq AS (
+        SELECT handle, COUNT(DISTINCT NULLIF(poster, '')) AS posters FROM cand GROUP BY handle
+      ),
+      ok AS (
+        SELECT c.*, f.posters FROM cand c JOIN cand_freq f USING (handle)
+        WHERE NOT (c.pure_alpha AND f.posters >= @max_posters)
+      )"""
+
+
+def store_handle_dict_sql(store_site_ig_table: str, source_account_table: str,
+                          *, corroborated_only: bool = True) -> str:
+    """handle → google_place_id 辞書（CTE `handle_dict`）を返す。
+
+    柱1（店公式サイト crawl の `sns_store_site_ig`）と、オープンデータ／柱1-B が入れた
+    `sns_source_account.discovery_seed_place_id` の両方を合わせる。
+    **複数の店に付く handle はチェーン公式**なので採らない（4_1 の
+    `store_branch_rows_from_crawl` と同じ規律。あちらは «登録するか»、ここは
+    «引き当ててよいか» を決める）。
+
+    ## `corroborated_only`（既定 True）
+
+    店の公式サイトに貼られた IG が **その店のアカウントとは限らない**。実測（4_17 の
+    精度サンプル 200 件）では、誤帰属 24 件のうち **18 件が `corroborated = FALSE` の
+    site crawl 由来**だった（観光協会・地域情報誌・スタッフ個人・靴店など、店ではない
+    アカウントを店の place_id へ結びつけていた）。
+
+    そこで既定では «裏取り済み» だけを引き当てに使う:
+
+    - `sns_store_site_ig.corroborated = TRUE`（ドメイン／店名の裏取りあり）
+    - `sns_source_account` のうち **site crawl 由来ではない**もの（オープンデータの
+      `social_urls` や Foursquare。店のレコード自体が持っていた IG）
+
+    引き換えに辞書は 49,548 → 31,910 handle になり、確定できる投稿は 6,056 → 4,319 件、
+    新規店は 1,721 → 1,191 店に減る。**«当たる数» より «当てた店が合っていること» を
+    採る**（誤帰属はカバレッジ KPI を汚し、アプリでは別の店の動画として出てしまう）。
+    広げたいときだけ `corroborated_only=False` にする。
+    """
+    site_where = " AND corroborated" if corroborated_only else ""
+    account_where = (" AND discovery_method != 'official_site_crawl'"
+                     if corroborated_only else "")
+    return f"""
+      handle_dict AS (
+        -- ⚠️ 内側の列名を `place_id` にすると、HAVING の `COUNT(DISTINCT place_id)` が
+        --    出力エイリアス（ANY_VALUE(...)）を指してしまい «Aggregations of aggregations»
+        --    で落ちる。内側は `pid` のままにすること。
+        SELECT handle, ANY_VALUE(pid) AS place_id
+        FROM (
+          SELECT LOWER(handle) AS handle, google_place_id AS pid
+          FROM `{store_site_ig_table}`
+          WHERE handle IS NOT NULL AND google_place_id IS NOT NULL
+            AND google_place_id != ''{site_where}
+          UNION ALL
+          SELECT LOWER(handle), discovery_seed_place_id
+          FROM `{source_account_table}`
+          WHERE handle IS NOT NULL AND discovery_seed_place_id IS NOT NULL
+            AND discovery_seed_place_id != ''{account_where}
+        )
+        GROUP BY handle
+        HAVING COUNT(DISTINCT pid) = 1
+      )"""
