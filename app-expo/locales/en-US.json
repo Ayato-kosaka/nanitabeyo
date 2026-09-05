@@ -990,7 +990,21 @@
 		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
 		"pickTitle": "Pick a shop",
 		"pickOnMap": "Find on map",
-		"pickConfirm": "Choose this place"
+		"pickConfirm": "Choose this place",
+		"confirmPage": {
+			"title": "Confirm restaurant details",
+			"lead": "We'll add the restaurant with these details. Correct anything that looks wrong.",
+			"nameLabel": "Name",
+			"namePlaceholder": "Enter the restaurant name",
+			"locationLabel": "Location",
+			"locationHint": "Check that this location is correct.",
+			"addressLabel": "Address",
+			"addressPlaceholder": "Enter the address",
+			"countryLabel": "Country",
+			"countryUnknown": "Unknown",
+			"submit": "Add with these details",
+			"expired": "This confirmation has expired. Please pick the restaurant again."
+		}
 	},
 	"MyDishes": {
 		"actions": {
@@ -1220,6 +1234,7 @@
 		"result": {
 			"summary": "Read successfully",
 			"noInfo": "No information could be read from this post. Pick the shop and dish category below to save it.",
+			"fetchFailed": "We couldn't fetch this post's details right now (trying again in a moment often works). You can still pick the shop and dish category below to save it.",
 			"showFullCaption": "Show more",
 			"collapseCaption": "Show less"
 		},
@@ -1229,6 +1244,13 @@
 			"change": "Change",
 			"hint": "Pick a restaurant first. Then choose the dish, and add a photo (optional), a short review, the price and your rating.",
 			"done": "Recorded as eaten"
+		},
+		"reasons": {
+			"unsupported_url": "We support TikTok, YouTube Shorts and Instagram.",
+			"shortlink_expansion_failed": "We couldn't open that short link. Please paste the post page URL instead.",
+			"shortlink_target_unsupported": "That short link doesn't point to a post we can import.",
+			"metadata_content_unavailable": "This post has been deleted or is private.",
+			"youtube_not_shorts": "For YouTube we can only import Shorts (short vertical videos)."
 		}
 	},
 	"Tutorial": {
@@ -1290,5 +1312,9 @@
 				"dish_reviews": "Review"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}}–{{max}}",
+		"openEnded": "{{symbol}}{{min}}+"
 	}
 }

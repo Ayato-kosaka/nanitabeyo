@@ -990,7 +990,21 @@
 		"unsavedHint": "يمكنك أيضًا اختيار مطاعم لم تحفظها: اكتب اسم المطعم في البحث أعلاه، أو اضغط على أيقونة المطعم على الخريطة.",
 		"pickTitle": "اختيار مطعم",
 		"pickOnMap": "ابحث عن مطعم على الخريطة",
-		"pickConfirm": "اختيار هذا المكان"
+		"pickConfirm": "اختيار هذا المكان",
+		"confirmPage": {
+			"title": "تأكيد بيانات المطعم",
+			"lead": "سنضيف المطعم بهذه البيانات. صحّح ما هو غير صحيح.",
+			"nameLabel": "الاسم",
+			"namePlaceholder": "أدخل اسم المطعم",
+			"locationLabel": "الموقع",
+			"locationHint": "تأكّد من صحة هذا الموقع.",
+			"addressLabel": "العنوان",
+			"addressPlaceholder": "أدخل العنوان",
+			"countryLabel": "الدولة",
+			"countryUnknown": "غير معروف",
+			"submit": "الإضافة بهذه البيانات",
+			"expired": "انتهت صلاحية هذا التأكيد. يُرجى اختيار المطعم مرة أخرى."
+		}
 	},
 	"MyDishes": {
 		"actions": {
@@ -1220,6 +1234,7 @@
 		"result": {
 			"summary": "تمت القراءة",
 			"noInfo": "تعذّر قراءة معلومات من هذا المنشور. اختر المطعم وفئة الطبق أدناه للحفظ.",
+			"fetchFailed": "تعذّر جلب معلومات هذا المنشور الآن (غالبًا ما تنجح المحاولة بعد قليل). ويمكنك مع ذلك اختيار المطعم وفئة الطبق أدناه لحفظه.",
 			"showFullCaption": "عرض المزيد",
 			"collapseCaption": "عرض أقل"
 		},
@@ -1229,6 +1244,13 @@
 			"change": "تغيير",
 			"hint": "اختر المطعم أولاً، ثم اختر الطبق، وأضف صورة (اختيارية) ومراجعة قصيرة والسعر وتقييمك.",
 			"done": "تم تسجيله كمأكول"
+		},
+		"reasons": {
+			"unsupported_url": "ندعم TikTok و YouTube Shorts و Instagram.",
+			"shortlink_expansion_failed": "تعذّر فتح هذا الرابط المختصر. الرجاء لصق رابط صفحة المنشور.",
+			"shortlink_target_unsupported": "هذا الرابط المختصر لا يؤدي إلى منشور يمكن استيراده.",
+			"metadata_content_unavailable": "تم حذف هذا المنشور أو أنه خاص.",
+			"youtube_not_shorts": "من YouTube يمكن استيراد Shorts فقط (مقاطع رأسية قصيرة)."
 		}
 	},
 	"Tutorial": {
@@ -1290,5 +1312,9 @@
 				"dish_reviews": "مراجعة"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}} – {{max}}",
+		"openEnded": "{{symbol}}{{min}}+"
 	}
 }

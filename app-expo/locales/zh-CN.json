@@ -990,7 +990,21 @@
 		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
 		"pickTitle": "选择店铺",
 		"pickOnMap": "在地图上查找店铺",
-		"pickConfirm": "选择这家店"
+		"pickConfirm": "选择这家店",
+		"confirmPage": {
+			"title": "确认店铺信息",
+			"lead": "将以这些信息添加店铺。如有错误请修改。",
+			"nameLabel": "店名",
+			"namePlaceholder": "请输入店名",
+			"locationLabel": "位置",
+			"locationHint": "请确认此位置是否正确。",
+			"addressLabel": "地址",
+			"addressPlaceholder": "请输入地址",
+			"countryLabel": "国家/地区",
+			"countryUnknown": "未知",
+			"submit": "以此信息添加",
+			"expired": "确认已过期，请重新选择店铺。"
+		}
 	},
 	"MyDishes": {
 		"actions": {
@@ -1220,6 +1234,7 @@
 		"result": {
 			"summary": "读取完成",
 			"noInfo": "无法从该帖子读取信息。在下方选择店铺和菜品类别即可保存。",
+			"fetchFailed": "暂时无法获取该帖子的信息（稍后重试通常可以成功）。你也可以直接在下方选择店铺和菜品分类后保存。",
 			"showFullCaption": "查看更多",
 			"collapseCaption": "收起"
 		},
@@ -1229,6 +1244,13 @@
 			"change": "更改",
 			"hint": "请先选择餐厅，然后选择菜品，再填写照片（可选）、简短评价、价格和推荐度。",
 			"done": "已记录为吃过"
+		},
+		"reasons": {
+			"unsupported_url": "支持 TikTok / YouTube Shorts / Instagram。",
+			"shortlink_expansion_failed": "无法打开该短链接。请改为粘贴帖子页面的网址。",
+			"shortlink_target_unsupported": "该短链接指向的内容无法导入。",
+			"metadata_content_unavailable": "该帖子已被删除或设为私密。",
+			"youtube_not_shorts": "YouTube 仅支持导入 Shorts（竖屏短视频）。"
 		}
 	},
 	"Tutorial": {
@@ -1290,5 +1312,9 @@
 				"dish_reviews": "评价"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}}~{{max}}",
+		"openEnded": "{{symbol}}{{min}}~"
 	}
 }

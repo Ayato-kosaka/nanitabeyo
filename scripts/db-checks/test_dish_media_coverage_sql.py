@@ -22,46 +22,67 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class UsableDishMediaConditionsTest(unittest.TestCase):
-    """店提案の実クエリ（dish-media.repository.ts の base_candidates CTE）から抽出した
-    5 条件が、usable_dish_media_select_sql() に全部含まれていることを 1 つずつ検査する。
-    どれか 1 つでも実装から抜けたら、対応するテストだけが赤くなる。
+    """「使える dish_media」の判定を **このスクリプトが持っていない** ことを検査する。
+
+    #1782 完了条件 3。以前はここに 4 条件を手で書き写しており、添えてあった行番号
+    （dish-media.repository.ts:236 等）は #1798 と #1666 で行が動いた時点で既に
+    指していなかった。**計測側が古い判定のまま緑を出し続けると、「Google を外せるか」の
+    判断材料が静かに嘘になる。**
+
+    正本は api/src/v1/dish-media/usable-dish-media-filter.ts で、jest が
+    scripts/db-checks/sql/usable_dish_media_conditions.sql へ書き出している。
     """
 
     def setUp(self) -> None:
         self.sql = sut.usable_dish_media_select_sql()
+        self.source = (
+            REPO_ROOT
+            / "api/src/v1/dish-media/usable-dish-media-filter.ts"
+        ).read_text(encoding="utf-8")
 
-    def test_condition_1_not_soft_deleted(self) -> None:
-        # dish-media.repository.ts:236
-        self.assertIn("dm.deleted_at IS NULL", self.sql)
+    def test_conditions_come_from_the_generated_file(self) -> None:
+        """条件は正本から書き出したファイルの中身がそのまま入っている。"""
+        fragment = sut.usable_dish_media_conditions_sql()
+        self.assertIn(fragment, self.sql)
+        # 空のファイルを読んで «条件なし» で測ってしまう事故を潰す
+        self.assertGreater(len(fragment.splitlines()), 4)
 
-    def test_condition_2_category_matches_via_dishes_join(self) -> None:
-        # dish-media.repository.ts:233,237 — WHERE ではなく dishes を JOIN して
-        # d.category_id を選択列に出すことで表現している
+    def test_generated_file_matches_the_typescript_source(self) -> None:
+        """書き出したファイルが本番の TypeScript と一致している。
+
+        jest（usable-dish-media-filter.spec.snapshot.spec.ts）が同じことを検査しているが、
+        **Python 側だけを回したときにも気付ける**ようにここでも見る。
+        本番を直してスナップショットを書き出し忘れたら、ここが赤くなる。
+        """
+        for line in sut.usable_dish_media_conditions_sql().splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            self.assertIn(stripped, self.source)
+
+    def test_category_matches_via_dishes_join(self) -> None:
+        """5 条件目だけは WHERE ではなく JOIN で表現している（正本の断片には無い）。"""
         self.assertIn("JOIN dishes d ON d.id = dm.dish_id", self.sql)
         self.assertIn("d.category_id AS category_id", self.sql)
 
-    def test_condition_3_author_not_withdrawn(self) -> None:
-        # dish-media.repository.ts:240-244
-        self.assertIn("FROM users u", self.sql)
-        self.assertIn("u.id = dm.user_id", self.sql)
-        self.assertIn("u.deleted_at IS NOT NULL", self.sql)
+    def test_conditions_are_not_written_by_hand_here(self) -> None:
+        """判定の文字列をこのモジュールが自前で持っていないこと。
 
-    def test_condition_4_media_processing_completed(self) -> None:
-        # dish-media.repository.ts:251
-        self.assertIn("dm.media_processing_status = 'completed'", self.sql)
-
-    def test_condition_5_not_known_unplayable(self) -> None:
-        # dish-media.repository.ts:269-273
-        self.assertIn("FROM dish_media_external_embeddings dmee", self.sql)
-        self.assertIn("dmee.dish_media_id = dm.id", self.sql)
-        self.assertIn("dmee.playback_status = 'not_playable'", self.sql)
-
-    def test_all_five_conditions_are_registered_in_the_single_source(self) -> None:
-        # 条件を1箇所（USABLE_DISH_MEDIA_CONDITIONS）に集めていること自体を検査する。
-        # ここが4件未満に減っていたら、誰かが条件を消して気づかず出荷しようとしている。
-        self.assertEqual(4, len(sut.USABLE_DISH_MEDIA_CONDITIONS))
-        for condition in sut.USABLE_DISH_MEDIA_CONDITIONS:
-            self.assertIn(condition, self.sql)
+        ⚠️ ここが本命。誰かが «ファイルを読むのは面倒だから» と書き戻したら赤くする。
+        """
+        module_source = (
+            REPO_ROOT / "scripts/db-checks/dish_media_coverage_sql.py"
+        ).read_text(encoding="utf-8")
+        # コメント行（説明として名前を出しているもの）を除いた本体だけを見る
+        body = "\n".join(
+            line for line in module_source.splitlines() if not line.lstrip().startswith("#")
+        )
+        for forbidden in (
+            "dm.deleted_at IS NULL",
+            "media_processing_status = 'completed'",
+            "playback_status = 'not_playable'",
+        ):
+            self.assertNotIn(forbidden, body)
 
 
 class TempTableTest(unittest.TestCase):
@@ -85,6 +106,50 @@ class Stage4Test(unittest.TestCase):
         # Stage4 は一時テーブルを読むだけで、usable の条件文字列を再度書き下さない
         self.assertNotIn("media_processing_status", sql)
         self.assertNotIn("deleted_at", sql)
+
+
+class Stage5ShortfallTest(unittest.TestCase):
+    """#1782 完了条件2「不足セルが一覧で出る」。
+
+    ⚠️ 「不足セル」を «閾値に満たない全部» と読むと dev 実測で 1,646 万行になる
+       （0 店舗 16,389,774 + 1〜4 店舗 77,779）。**一覧にしても打ち手は決まらない。**
+       打ち手が決まるのは «1 件以上あるが届いていない» セルなので、そこを出す。
+    """
+
+    def test_shortfall_cells_only_lists_cells_that_have_at_least_one(self) -> None:
+        sql = sut.build_stage5_shortfall_cells_sql()
+        # 集計本体は INNER JOIN なので 0 店舗のセルは最初から現れない。
+        # そのうえで閾値未満へ絞る
+        self.assertIn("HAVING count(DISTINCT t.restaurant_id) < 5", sql)
+        self.assertIn(f"FROM {sut.DEFAULT_TEMP_TABLE_NAME} t", sql)
+
+    def test_shortfall_cells_are_ordered_closest_to_the_threshold_first(self) -> None:
+        # «いちばん惜しいものから潰す» ための並び
+        self.assertIn(
+            "ORDER BY restaurants_with_usable_media DESC",
+            sut.build_stage5_shortfall_cells_sql(),
+        )
+
+    def test_shortfall_respects_a_custom_threshold(self) -> None:
+        sql = sut.build_stage5_shortfall_cells_sql(min_restaurants=3)
+        self.assertIn("HAVING count(DISTINCT t.restaurant_id) < 3", sql)
+        self.assertNotIn("< 5", sql)
+
+    def test_shortfall_by_category_rolls_up_for_deciding_what_to_work_on(self) -> None:
+        sql = sut.build_stage5_shortfall_by_category_sql()
+        self.assertIn("GROUP BY category_id, category_label", sql)
+        self.assertIn("AS shortfall_cells", sql)
+        self.assertIn("ORDER BY shortfall_cells DESC", sql)
+
+    def test_shortfall_queries_reuse_the_same_aggregation(self) -> None:
+        """集計本体を書き写していないこと（top_cells / summary と同じ土台を使う）。"""
+        matched = sut._stage5_matched_sql(
+            sut.DEFAULT_RADIUS_M,
+            sut.DEFAULT_AREA_CELLS_TABLE_NAME,
+            sut.DEFAULT_TEMP_TABLE_NAME,
+        )
+        self.assertIn(matched, sut.build_stage5_shortfall_cells_sql())
+        self.assertIn(matched, sut.build_stage5_shortfall_by_category_sql())
 
 
 class S2LevelDefaultTest(unittest.TestCase):

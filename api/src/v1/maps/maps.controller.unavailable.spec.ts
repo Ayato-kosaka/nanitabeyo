@@ -25,7 +25,12 @@ jest.mock('../../core/config/env', () => ({
 import 'reflect-metadata';
 import { createHmac } from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Global, INestApplication, Module, VersioningType } from '@nestjs/common';
+import {
+  Global,
+  INestApplication,
+  Module,
+  VersioningType,
+} from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { ClsService } from 'nestjs-cls';
 import request = require('supertest');
@@ -47,7 +52,13 @@ const SUPABASE_JWT_SECRET = 'test-SUPABASE_JWT_SECRET';
     { provide: ClsService, useValue: { set: jest.fn(), get: jest.fn() } },
     {
       provide: AppLoggerService,
-      useValue: { debug: jest.fn(), log: jest.fn(), warn: jest.fn(), error: jest.fn(), externalApi: jest.fn() },
+      useValue: {
+        debug: jest.fn(),
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        externalApi: jest.fn(),
+      },
     },
   ],
   exports: [SupabaseJwtStrategy, ClsService, AppLoggerService],
@@ -55,17 +66,25 @@ const SUPABASE_JWT_SECRET = 'test-SUPABASE_JWT_SECRET';
 class TestAuthSupportModule {}
 
 function mintTestJwt(payload: Record<string, unknown>, secret: string): string {
-  const base64url = (input: string) => Buffer.from(input, 'utf8').toString('base64url');
+  const base64url = (input: string) =>
+    Buffer.from(input, 'utf8').toString('base64url');
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const body = base64url(JSON.stringify(payload));
-  const signature = createHmac('sha256', secret).update(`${header}.${body}`).digest('base64url');
+  const signature = createHmac('sha256', secret)
+    .update(`${header}.${body}`)
+    .digest('base64url');
   return `${header}.${body}.${signature}`;
 }
 
 function validAuthHeader(): string {
   const nowSec = Math.floor(Date.now() / 1000);
   const jwt = mintTestJwt(
-    { sub: 'test-user-id', is_anonymous: true, iat: nowSec, exp: nowSec + 3600 },
+    {
+      sub: 'test-user-id',
+      is_anonymous: true,
+      iat: nowSec,
+      exp: nowSec + 3600,
+    },
     SUPABASE_JWT_SECRET,
   );
   return `Bearer ${jwt}`;
@@ -104,7 +123,9 @@ describe('MapsController（キー未設定）', () => {
         .expect(503);
 
       // JSON のエラーレスポンスにキーは含まれない（そもそも読んでいない）
-      expect(JSON.stringify(res.body)).not.toContain('GOOGLE_MAPS_EMBED_API_KEY');
+      expect(JSON.stringify(res.body)).not.toContain(
+        'GOOGLE_MAPS_EMBED_API_KEY',
+      );
     });
 
     it('バリデーションエラー（mode 不正）は 503 より先に 400 になる', async () => {
@@ -118,11 +139,20 @@ describe('MapsController（キー未設定）', () => {
 
   describe('GET /v1/maps/embed', () => {
     it('token が正しい形でも 503 を返す（バリデーションより先に落ちない）', async () => {
-      const token = signMapsEmbedToken({ mode: 'search', q: 'ramen' }, SUPABASE_JWT_SECRET, Date.now());
+      const token = signMapsEmbedToken(
+        { mode: 'search', q: 'ramen' },
+        SUPABASE_JWT_SECRET,
+        Date.now(),
+      );
 
-      const res = await request(app.getHttpServer()).get('/v1/maps/embed').query({ token }).expect(503);
+      const res = await request(app.getHttpServer())
+        .get('/v1/maps/embed')
+        .query({ token })
+        .expect(503);
 
-      expect(JSON.stringify(res.body)).not.toContain('GOOGLE_MAPS_EMBED_API_KEY');
+      expect(JSON.stringify(res.body)).not.toContain(
+        'GOOGLE_MAPS_EMBED_API_KEY',
+      );
     });
 
     it('token クエリが無ければ 503 より先に 400 になる', async () => {

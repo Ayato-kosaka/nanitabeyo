@@ -43613,6 +43613,7 @@ export namespace Prisma {
     created_by_source: string | null
     address: string | null
     country_code: string | null
+    subterritory_code: string | null
   }
 
   export type RestaurantsMaxAggregateOutputType = {
@@ -43631,6 +43632,7 @@ export namespace Prisma {
     created_by_source: string | null
     address: string | null
     country_code: string | null
+    subterritory_code: string | null
   }
 
   export type RestaurantsCountAggregateOutputType = {
@@ -43652,6 +43654,7 @@ export namespace Prisma {
     created_by_source: number
     address: number
     country_code: number
+    subterritory_code: number
     _all: number
   }
 
@@ -43682,6 +43685,7 @@ export namespace Prisma {
     created_by_source?: true
     address?: true
     country_code?: true
+    subterritory_code?: true
   }
 
   export type RestaurantsMaxAggregateInputType = {
@@ -43700,6 +43704,7 @@ export namespace Prisma {
     created_by_source?: true
     address?: true
     country_code?: true
+    subterritory_code?: true
   }
 
   export type RestaurantsCountAggregateInputType = {
@@ -43721,6 +43726,7 @@ export namespace Prisma {
     created_by_source?: true
     address?: true
     country_code?: true
+    subterritory_code?: true
     _all?: true
   }
 
@@ -43829,6 +43835,7 @@ export namespace Prisma {
     created_by_source: string
     address: string | null
     country_code: string | null
+    subterritory_code: string | null
     _count: RestaurantsCountAggregateOutputType | null
     _avg: RestaurantsAvgAggregateOutputType | null
     _sum: RestaurantsSumAggregateOutputType | null
@@ -43869,6 +43876,7 @@ export namespace Prisma {
     created_by_source?: boolean
     address?: boolean
     country_code?: boolean
+    subterritory_code?: boolean
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
     restaurant_hours_exceptions?: boolean | restaurants$restaurant_hours_exceptionsArgs<ExtArgs>
@@ -43896,6 +43904,7 @@ export namespace Prisma {
     created_by_source?: boolean
     address?: boolean
     country_code?: boolean
+    subterritory_code?: boolean
   }, ExtArgs["result"]["restaurants"]>
 
   export type restaurantsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -43917,6 +43926,7 @@ export namespace Prisma {
     created_by_source?: boolean
     address?: boolean
     country_code?: boolean
+    subterritory_code?: boolean
   }, ExtArgs["result"]["restaurants"]>
 
   export type restaurantsSelectScalar = {
@@ -43938,9 +43948,10 @@ export namespace Prisma {
     created_by_source?: boolean
     address?: boolean
     country_code?: boolean
+    subterritory_code?: boolean
   }
 
-  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "address_components" | "plus_code" | "created_at" | "image_path" | "source_seed_id" | "source_names" | "source_row_hash" | "synced_at" | "created_by_source" | "address" | "country_code", ExtArgs["result"]["restaurants"]>
+  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "address_components" | "plus_code" | "created_at" | "image_path" | "source_seed_id" | "source_names" | "source_row_hash" | "synced_at" | "created_by_source" | "address" | "country_code" | "subterritory_code", ExtArgs["result"]["restaurants"]>
   export type restaurantsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
@@ -43980,6 +43991,7 @@ export namespace Prisma {
       created_by_source: string
       address: string | null
       country_code: string | null
+      subterritory_code: string | null
     }, ExtArgs["result"]["restaurants"]>
     composites: {}
   }
@@ -44426,6 +44438,7 @@ export namespace Prisma {
     readonly created_by_source: FieldRef<"restaurants", 'String'>
     readonly address: FieldRef<"restaurants", 'String'>
     readonly country_code: FieldRef<"restaurants", 'String'>
+    readonly subterritory_code: FieldRef<"restaurants", 'String'>
   }
     
 
@@ -53933,7 +53946,8 @@ export namespace Prisma {
     synced_at: 'synced_at',
     created_by_source: 'created_by_source',
     address: 'address',
-    country_code: 'country_code'
+    country_code: 'country_code',
+    subterritory_code: 'subterritory_code'
   };
 
   export type RestaurantsScalarFieldEnum = (typeof RestaurantsScalarFieldEnum)[keyof typeof RestaurantsScalarFieldEnum]
@@ -56854,6 +56868,7 @@ export namespace Prisma {
     created_by_source?: StringFilter<"restaurants"> | string
     address?: StringNullableFilter<"restaurants"> | string | null
     country_code?: StringNullableFilter<"restaurants"> | string | null
+    subterritory_code?: StringNullableFilter<"restaurants"> | string | null
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
     restaurant_hours_exceptions?: Restaurant_hours_exceptionsListRelationFilter
@@ -56880,6 +56895,7 @@ export namespace Prisma {
     created_by_source?: SortOrder
     address?: SortOrderInput | SortOrder
     country_code?: SortOrderInput | SortOrder
+    subterritory_code?: SortOrderInput | SortOrder
     dishes?: dishesOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsOrderByRelationAggregateInput
@@ -56909,6 +56925,7 @@ export namespace Prisma {
     created_by_source?: StringFilter<"restaurants"> | string
     address?: StringNullableFilter<"restaurants"> | string | null
     country_code?: StringNullableFilter<"restaurants"> | string | null
+    subterritory_code?: StringNullableFilter<"restaurants"> | string | null
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
     restaurant_hours_exceptions?: Restaurant_hours_exceptionsListRelationFilter
@@ -56935,6 +56952,7 @@ export namespace Prisma {
     created_by_source?: SortOrder
     address?: SortOrderInput | SortOrder
     country_code?: SortOrderInput | SortOrder
+    subterritory_code?: SortOrderInput | SortOrder
     _count?: restaurantsCountOrderByAggregateInput
     _avg?: restaurantsAvgOrderByAggregateInput
     _max?: restaurantsMaxOrderByAggregateInput
@@ -56964,6 +56982,7 @@ export namespace Prisma {
     created_by_source?: StringWithAggregatesFilter<"restaurants"> | string
     address?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
     country_code?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
+    subterritory_code?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
   }
 
   export type role_permissionsWhereInput = {
@@ -60222,6 +60241,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
@@ -60248,6 +60268,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
@@ -60274,6 +60295,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
@@ -60300,6 +60322,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput
@@ -60326,6 +60349,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
   }
 
   export type restaurantsUpdateManyMutationInput = {
@@ -60347,6 +60371,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type restaurantsUncheckedUpdateManyInput = {
@@ -60368,6 +60393,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type role_permissionsCreateInput = {
@@ -63075,6 +63101,7 @@ export namespace Prisma {
     created_by_source?: SortOrder
     address?: SortOrder
     country_code?: SortOrder
+    subterritory_code?: SortOrder
   }
 
   export type restaurantsAvgOrderByAggregateInput = {
@@ -63098,6 +63125,7 @@ export namespace Prisma {
     created_by_source?: SortOrder
     address?: SortOrder
     country_code?: SortOrder
+    subterritory_code?: SortOrder
   }
 
   export type restaurantsMinOrderByAggregateInput = {
@@ -63116,6 +63144,7 @@ export namespace Prisma {
     created_by_source?: SortOrder
     address?: SortOrder
     country_code?: SortOrder
+    subterritory_code?: SortOrder
   }
 
   export type restaurantsSumOrderByAggregateInput = {
@@ -68388,6 +68417,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksCreateNestedManyWithoutRestaurantsInput
@@ -68413,6 +68443,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksUncheckedCreateNestedManyWithoutRestaurantsInput
@@ -68569,6 +68600,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUpdateManyWithoutRestaurantsNestedInput
@@ -68594,6 +68626,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUncheckedUpdateManyWithoutRestaurantsNestedInput
@@ -69098,6 +69131,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksCreateNestedManyWithoutRestaurantsInput
@@ -69123,6 +69157,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksUncheckedCreateNestedManyWithoutRestaurantsInput
@@ -69219,6 +69254,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUpdateManyWithoutRestaurantsNestedInput
@@ -69244,6 +69280,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUncheckedUpdateManyWithoutRestaurantsNestedInput
@@ -69314,6 +69351,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksCreateNestedManyWithoutRestaurantsInput
@@ -69339,6 +69377,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_links?: restaurant_linksUncheckedCreateNestedManyWithoutRestaurantsInput
@@ -69380,6 +69419,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUpdateManyWithoutRestaurantsNestedInput
@@ -69405,6 +69445,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_links?: restaurant_linksUncheckedUpdateManyWithoutRestaurantsNestedInput
@@ -69430,6 +69471,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
@@ -69455,6 +69497,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
@@ -69496,6 +69539,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
@@ -69521,6 +69565,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput
@@ -69546,6 +69591,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsCreateNestedManyWithoutRestaurantsInput
@@ -69571,6 +69617,7 @@ export namespace Prisma {
     created_by_source?: string
     address?: string | null
     country_code?: string | null
+    subterritory_code?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedCreateNestedManyWithoutRestaurantsInput
@@ -69612,6 +69659,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUpdateManyWithoutRestaurantsNestedInput
@@ -69637,6 +69685,7 @@ export namespace Prisma {
     created_by_source?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     country_code?: NullableStringFieldUpdateOperationsInput | string | null
+    subterritory_code?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_hours_exceptions?: restaurant_hours_exceptionsUncheckedUpdateManyWithoutRestaurantsNestedInput

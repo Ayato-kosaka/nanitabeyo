@@ -20,6 +20,8 @@ import {
   getTimeSlotWindow,
   type TimeSlot,
 } from '../../../../shared/utils/timeSlot';
+// #1666 引き上げる範囲は店提案の本体クエリと同じ候補集合に限る
+import { nearbyRestaurantsCte } from './nearby-restaurants-cte';
 
 /** Postgres の TIME（タイムゾーン無し）を Prisma が返す Date から「真夜中からの分」へ変換する */
 function timeToMinutes(value: Date): number {
@@ -32,54 +34,92 @@ function dateToYmd(value: Date): string {
 }
 
 /**
+ * 引き上げる範囲。**「ユーザーの近くの候補集合」以外を対象にしてはいけない。**
+ *
+ * #1666 これが無かったとき、`restaurant_opening_hours` を **曜日でしか絞っていなかった**。
+ * 営業時間データを持つ店が少ないうちは軽いが、クローラでテーブルが埋まると
+ * 620,000 店 × 曜日 2 日ぶん ≒ **124 万行を検索 1 回ごとに引き上げる**。
+ * 「今は空だから速い」だけの時限爆弾だったので、着手前提条件として先に塞いだ。
+ */
+export type OpeningStatusScope = {
+  userLat: number;
+  userLon: number;
+  radiusM: number;
+  /** 店提案の返却件数。KNN で残す候補数（`knnCandidateLimit`）の入力になる */
+  limit: number;
+};
+
+/**
  * `restaurant_opening_hours` / `restaurant_hours_exceptions` にデータが **ある** レストランだけを
  * 対象に、`timeSlot` の窓と重なるかで3値の営業状態を計算して返す。データが無い店
- * （現状は全店。#1666 のクローラは別 PR）は戻り値の Map に含まれない。呼び出し側は
+ * （現状はほぼ全店。#1666 のクローラは別 PR）は戻り値の Map に含まれない。呼び出し側は
  * `.get(restaurantId) ?? 'unknown'` として扱うこと。
  *
- * データが無い店の全件走査を避けるため、`restaurant_opening_hours` /
- * `restaurant_hours_exceptions`（この2テーブル自体、当面は coverage が低く小さい）を起点に取得する。
- * 将来 coverage が上がってこれらのテーブルが育ったら、店舗候補を先に絞り込んでから
- * IN 句で引く形（例えば dish-media 側の候補 restaurant_id 集合を渡す）へ変える必要がある。
+ * ⚠️ **引き上げる範囲は `scope` の候補集合に限る。** 絞り込みの定義は
+ *    `nearby-restaurants-cte.ts` が正本で、店提案の本体クエリと**同じ断片**を埋め込んでいる。
+ *    ここへ絞り込みを書き写すと、片方だけ変わったときに «本体は 1,000 店を見ているのに
+ *    営業時間は 62 万店ぶん引く» という形でずれる。
  */
 export async function fetchRestaurantOpeningStatuses(
   tx: Prisma.TransactionClient,
   timeSlot: TimeSlot,
+  scope: OpeningStatusScope,
   now: Date = new Date(),
 ): Promise<Map<string, RestaurantOpeningStatus>> {
   const context = deriveJstCalendarContext(now, getTimeSlotWindow(timeSlot));
-  const todayDateUtc = new Date(`${context.todayDate}T00:00:00.000Z`);
-  const yesterdayDateUtc = new Date(`${context.yesterdayDate}T00:00:00.000Z`);
+  const candidates = nearbyRestaurantsCte(scope);
 
   const [hoursRows, exceptionRows] = await Promise.all([
-    tx.restaurant_opening_hours.findMany({
-      where: {
-        day_of_week: {
-          in: [context.todayDayOfWeek, context.yesterdayDayOfWeek],
-        },
-      },
-      select: {
-        restaurant_id: true,
-        source: true,
-        day_of_week: true,
-        opens_at: true,
-        closes_at: true,
-        crosses_midnight: true,
-      },
-    }),
-    tx.restaurant_hours_exceptions.findMany({
-      where: {
-        exception_date: { in: [todayDateUtc, yesterdayDateUtc] },
-      },
-      select: {
-        restaurant_id: true,
-        source: true,
-        exception_date: true,
-        is_closed: true,
-        opens_at: true,
-        closes_at: true,
-      },
-    }),
+    tx.$queryRaw<
+      {
+        restaurant_id: string;
+        source: string;
+        day_of_week: number;
+        opens_at: Date;
+        closes_at: Date;
+        crosses_midnight: boolean;
+      }[]
+    >(Prisma.sql`
+      WITH ${candidates}
+      SELECT
+        roh.restaurant_id,
+        roh.source,
+        roh.day_of_week,
+        roh.opens_at,
+        roh.closes_at,
+        roh.crosses_midnight
+      FROM restaurant_opening_hours roh
+      JOIN nearby_restaurants nr ON nr.restaurant_id = roh.restaurant_id
+      WHERE roh.day_of_week IN (${Prisma.join([
+        context.todayDayOfWeek,
+        context.yesterdayDayOfWeek,
+      ])});
+    `),
+    tx.$queryRaw<
+      {
+        restaurant_id: string;
+        source: string;
+        exception_date: Date;
+        is_closed: boolean;
+        opens_at: Date | null;
+        closes_at: Date | null;
+      }[]
+    >(Prisma.sql`
+      WITH ${candidates}
+      SELECT
+        rhe.restaurant_id,
+        rhe.source,
+        rhe.exception_date,
+        rhe.is_closed,
+        rhe.opens_at,
+        rhe.closes_at
+      FROM restaurant_hours_exceptions rhe
+      JOIN nearby_restaurants nr ON nr.restaurant_id = rhe.restaurant_id
+      WHERE rhe.exception_date IN (${Prisma.join([
+        Prisma.sql`${context.todayDate}::date`,
+        Prisma.sql`${context.yesterdayDate}::date`,
+      ])});
+    `),
   ]);
 
   const hoursByRestaurant = new Map<string, RestaurantOpeningHourRow[]>();

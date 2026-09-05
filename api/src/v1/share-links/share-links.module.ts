@@ -16,7 +16,11 @@ import { AuthModule } from '../../core/auth/auth.module';
 @Module({
   imports: [PrismaModule, LoggerModule, AuthModule],
   controllers: [ShareLinksController],
-  providers: [ShareLinksService, ShareLinksRepository, ShareLinkTargetResolvers],
+  providers: [
+    ShareLinksService,
+    ShareLinksRepository,
+    ShareLinkTargetResolvers,
+  ],
   exports: [ShareLinksService],
 })
 export class ShareLinksModule {}

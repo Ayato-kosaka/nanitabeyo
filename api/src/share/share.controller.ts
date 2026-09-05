@@ -9,7 +9,15 @@
 // 2. `@SkipResponseWrap()` … 付けないと `ResponseWrapInterceptor` が HTML を
 //    `{ success, data }` の JSON へ包んでしまい、OGP が 1 つも読めなくなる
 
-import { Controller, Get, Header, HttpStatus, NotFoundException, Param, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Header,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Res,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { ApiExcludeController } from '@nestjs/swagger';
 
@@ -21,9 +29,19 @@ import { ShareLinksService } from '../v1/share-links/share-links.service';
 import type { ShareLinkRecord } from '../v1/share-links/share-links.repository';
 import { renderSharePage } from './share-page.html';
 import { toDirectImageUrl } from './share-image';
-import { SHARE_PAGE_LABELS, buildOpenInAppUrl, buildTargetWebPath } from './share-links.web-path';
-import { resolvePublicLocale, toOgLocale } from '@shared/v1/constants/publicLocales';
-import { SHARE_LINK_PATH_PREFIX, type ShareLinkTargetType } from '@shared/v1/constants/shareLinks';
+import {
+  SHARE_PAGE_LABELS,
+  buildOpenInAppUrl,
+  buildTargetWebPath,
+} from './share-links.web-path';
+import {
+  resolvePublicLocale,
+  toOgLocale,
+} from '@shared/v1/constants/publicLocales';
+import {
+  SHARE_LINK_PATH_PREFIX,
+  type ShareLinkTargetType,
+} from '@shared/v1/constants/shareLinks';
 
 /**
  * OGP 画像の署名 URL の有効期限。
@@ -57,7 +75,10 @@ export class ShareController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   // CDN には置くが、ブラウザには持たせない（revoke を最短で効かせるため）。
   // stale-while-revalidate があるので、オリジンが遅れてもカードは出続ける
-  @Header('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400')
+  @Header(
+    'Cache-Control',
+    'public, max-age=0, s-maxage=300, stale-while-revalidate=86400',
+  )
   async getSharePage(@Param('token') token: string): Promise<string> {
     const record = await this.shareLinks.findActiveByToken(token);
     if (!record) {
@@ -108,7 +129,10 @@ export class ShareController {
    */
   @Get(':token/og-image')
   @SkipResponseWrap()
-  async getOgImage(@Param('token') token: string, @Res() res: Response): Promise<void> {
+  async getOgImage(
+    @Param('token') token: string,
+    @Res() res: Response,
+  ): Promise<void> {
     const record = await this.shareLinks.findActiveByToken(token);
     if (!record) throw new NotFoundException('share link not found');
 

@@ -990,7 +990,21 @@
 		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa.",
 		"pickTitle": "Elegir local",
 		"pickOnMap": "Buscar en el mapa",
-		"pickConfirm": "Elegir este lugar"
+		"pickConfirm": "Elegir este lugar",
+		"confirmPage": {
+			"title": "Confirma los datos del restaurante",
+			"lead": "Añadiremos el restaurante con estos datos. Corrige lo que no sea correcto.",
+			"nameLabel": "Nombre",
+			"namePlaceholder": "Escribe el nombre del restaurante",
+			"locationLabel": "Ubicación",
+			"locationHint": "Comprueba que esta ubicación sea correcta.",
+			"addressLabel": "Dirección",
+			"addressPlaceholder": "Escribe la dirección",
+			"countryLabel": "País",
+			"countryUnknown": "Desconocido",
+			"submit": "Añadir con estos datos",
+			"expired": "La confirmación ha caducado. Vuelve a elegir el restaurante."
+		}
 	},
 	"MyDishes": {
 		"actions": {
@@ -1220,6 +1234,7 @@
 		"result": {
 			"summary": "Lectura completada",
 			"noInfo": "No se pudo leer información de esta publicación. Elige el local y la categoría abajo para guardarla.",
+			"fetchFailed": "No hemos podido obtener los datos de esta publicación ahora mismo (suele funcionar si lo intentas de nuevo en un momento). Aun así puedes elegir el restaurante y la categoría de plato abajo para guardarla.",
 			"showFullCaption": "Ver más",
 			"collapseCaption": "Ver menos"
 		},
@@ -1229,6 +1244,13 @@
 			"change": "Cambiar",
 			"hint": "Primero elige un restaurante. Después selecciona el plato y añade una foto (opcional), una breve reseña, el precio y tu valoración.",
 			"done": "Registrado como comido"
+		},
+		"reasons": {
+			"unsupported_url": "Admitimos TikTok, YouTube Shorts e Instagram.",
+			"shortlink_expansion_failed": "No hemos podido abrir ese enlace corto. Pega la URL de la página de la publicación.",
+			"shortlink_target_unsupported": "Ese enlace corto no lleva a una publicación que podamos importar.",
+			"metadata_content_unavailable": "Esta publicación se ha eliminado o es privada.",
+			"youtube_not_shorts": "De YouTube solo podemos importar Shorts (vídeos verticales cortos)."
 		}
 	},
 	"Tutorial": {
@@ -1290,5 +1312,9 @@
 				"dish_reviews": "Reseña"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}}–{{max}}",
+		"openEnded": "{{symbol}}{{min}}+"
 	}
 }

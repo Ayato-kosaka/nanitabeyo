@@ -62,6 +62,19 @@ export class LocationsService {
   ) {}
 
   /**
+   * #1671 addressComponents から国コード (ISO-2) だけを取り出す公開口。
+   *
+   * 確認ページ（POST /v1/restaurants/draft）が「この店はどの国か」を出すために使う。
+   * ⚠️ **判定は `extractLocationCodes` に委譲する。** ここへ同じ find を書き写すと、
+   * shortText 欠損の扱い（#677）のような細部が片方だけ直って静かにずれる。
+   */
+  extractCountryCode(
+    addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
+  ): string | null {
+    return this.extractLocationCodes(addressComponents).countryCode;
+  }
+
+  /**
    * addressComponents から国コード (ISO-2) と州コード (ISO-3166-2) を抽出
    */
   private extractLocationCodes(
@@ -77,7 +90,9 @@ export class LocationsService {
     // `addressComponents.find is not a function` で POST /v1/dishes が 500 になる。
     // Google API 由来の呼び出し元は手前で存在チェックしているが、DB 由来の経路には
     // それが無い。フロント側（app-expo/lib/googlePlaces.ts）には同じガードがある。
-    const components = Array.isArray(addressComponents) ? addressComponents : [];
+    const components = Array.isArray(addressComponents)
+      ? addressComponents
+      : [];
     const countryComponent = components.find((component) =>
       component?.types?.includes('country'),
     );

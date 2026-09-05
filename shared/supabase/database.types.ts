@@ -1439,6 +1439,7 @@ export type Database = {
           source_names: string[]
           source_row_hash: string | null
           source_seed_id: string | null
+          subterritory_code: string | null
           synced_at: string | null
         }
         Insert: {
@@ -1460,6 +1461,7 @@ export type Database = {
           source_names?: string[]
           source_row_hash?: string | null
           source_seed_id?: string | null
+          subterritory_code?: string | null
           synced_at?: string | null
         }
         Update: {
@@ -1481,6 +1483,7 @@ export type Database = {
           source_names?: string[]
           source_row_hash?: string | null
           source_seed_id?: string | null
+          subterritory_code?: string | null
           synced_at?: string | null
         }
         Relationships: []

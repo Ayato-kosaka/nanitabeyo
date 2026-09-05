@@ -58,20 +58,30 @@ function blankComments(text: string): string {
     const ch = text[i];
     const next = text[i + 1];
     if (quote) {
-      if (ch === '\\') { i += 1; continue; }
+      if (ch === '\\') {
+        i += 1;
+        continue;
+      }
       if (ch === quote) quote = null;
       continue;
     }
-    if (ch === "'" || ch === '"' || ch === '`') { quote = ch; continue; }
+    if (ch === "'" || ch === '"' || ch === '`') {
+      quote = ch;
+      continue;
+    }
     if (ch === '/' && next === '/') {
       const end = text.indexOf('\n', i);
       const stop = end === -1 ? text.length : end;
-      blank(i, stop); i = stop; continue;
+      blank(i, stop);
+      i = stop;
+      continue;
     }
     if (ch === '/' && next === '*') {
       const end = text.indexOf('*/', i + 2);
       const stop = end === -1 ? text.length : end + 2;
-      blank(i, stop); i = stop - 1; continue;
+      blank(i, stop);
+      i = stop - 1;
+      continue;
     }
   }
   return out.join('');

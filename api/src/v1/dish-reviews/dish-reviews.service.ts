@@ -6,6 +6,7 @@
 //
 
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -117,6 +118,44 @@ export class DishReviewsService {
         reviewId,
       });
       throw new NotFoundException('Review not found');
+    }
+
+    /*
+    #1774 【設計】**«価格はあるが通貨が無い» 行を作らせない。**
+
+    `price_cents` は最小単位の整数で、桁数は通貨ごとに違う（JPY は 0 桁、USD は 2 桁）。
+    通貨の無い `price_cents` は数として意味を持たず、表示側 (`formatReviewPrice`) も
+    通貨が無ければ `null` を返すので、**保存はされるが誰にも見えない行**になる。
+    実際に dev の `dish_reviews` にこの形の残骸が 2 行ある。
+
+    PATCH は «送らなかった項目は据え置き» なので、ボディだけを見ても判定できない。
+    **更新後の状態**（今回の値 ?? 現在の値）で見る。作成側は 1 リクエストで全部揃うので
+    DTO の `@CurrencyCodeWithPrice()` が同じことを境界で見ている。
+    */
+    const nextPriceCents =
+      dto.priceCents !== undefined
+        ? dto.priceCents
+        : (review.price_cents ?? null);
+    const nextCurrencyCode =
+      dto.currencyCode !== undefined
+        ? dto.currencyCode
+        : (review.currency_code ?? null);
+    /*
+    ⚠️ **今回の更新が価格・通貨に触ったときだけ見る。** 更新後の状態«だけ»で判定すると、
+       既に残骸になっている行（価格はあるが通貨が無い 2 件）が、コメントの誤字直しすら
+       できない **永久に編集不能な行**になる。壊れた行を直す口まで塞いではいけない。
+    */
+    const touchesPrice =
+      dto.priceCents !== undefined || dto.currencyCode !== undefined;
+    if (touchesPrice && nextPriceCents !== null && !nextCurrencyCode) {
+      this.logger.warn('ReviewPriceWithoutCurrency', 'updateDishReview', {
+        reviewId,
+        userId,
+        nextPriceCents,
+      });
+      throw new BadRequestException(
+        'currencyCode is required when priceCents is set',
+      );
     }
 
     const data: Prisma.dish_reviewsUpdateInput = {};

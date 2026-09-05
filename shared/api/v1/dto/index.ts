@@ -30,6 +30,7 @@ export { QueryReverseGeocodingDto } from "./locations/query-reverse-geocoding.dt
 
 export { QueryRestaurantsDto } from "./restaurants/query-restaurants.dto";
 export { CreateRestaurantDto } from "./restaurants/create-restaurant.dto";
+export { CreateRestaurantDraftDto } from "./restaurants/create-restaurant-draft.dto";
 export { RestaurantIdParamsDto } from "./restaurants/restaurant-id-params.dto";
 export { CreateRestaurantBidIntentDto } from "./restaurants/create-restaurant-bid-intent.dto";
 export { QueryRestaurantDishMediaDto } from "./restaurants/query-restaurant-dish-media.dto";

@@ -129,6 +129,32 @@ const INSTAGRAM_EMBED_BASE = 'https://www.instagram.com';
 /** SSR embed は約 260 KiB。既定の 256 KiB では**わずかに足りない**ので明示する */
 const INSTAGRAM_EMBED_MAX_BYTES = 1024 * 1024;
 
+/**
+ * #1834 レート制限に当たったときに取り直すまでの待ち（ms）。
+ *
+ * ⚠️ 伸ばさないこと。resolve 全体はクライアントの 30 秒上限の中にある。
+ */
+const INSTAGRAM_EMBED_RETRY_DELAY_MS = 900;
+
+/**
+ * #1834 Instagram に **弾かれた**（＝取り直す価値がある）か。
+ *
+ * - `302` … ログイン壁へのリダイレクト。実測でこの形で来る
+ * - `429` … 明示的なレート制限
+ *
+ * ⚠️ ここに 400 / 404 / 410 を足さないこと。それは «投稿が消えた» で、
+ *    取り直しても結果は変わらない（`CONTENT_UNAVAILABLE_STATUSES` の担当）。
+ */
+function isInstagramRateLimited(error: unknown): boolean {
+  if (!(error instanceof SafeFetchError)) return false;
+  if (error.kind !== 'unexpected_status') return false;
+  const status = error.detail?.status;
+  return status === 302 || status === 429;
+}
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
 /** YouTube の視聴ページ。**説明文（キャプション）は oEmbed では返らない**ので、ここから取る */
 const YOUTUBE_WATCH_BASE = 'https://www.youtube.com';
 
@@ -281,11 +307,7 @@ export class SnsOembedService {
 
     let html: string;
     try {
-      html = await this.safeFetch.fetchText(embedUrl, {
-        apiName: API_NAMES.instagram,
-        functionName: 'fetchInstagramEmbedMetadata',
-        maxResponseBytes: INSTAGRAM_EMBED_MAX_BYTES,
-      });
+      html = await this.fetchInstagramEmbedHtml(embedUrl);
     } catch (error) {
       return this.classifyFailure(error, 'instagram');
     }
@@ -331,6 +353,48 @@ export class SnsOembedService {
         thumbnailUrl: this.pickHttpsUrl(metadata.thumbnailUrl),
       },
     };
+  }
+
+  /**
+   * #1834 埋め込み SSR の HTML を取る。**レート制限に当たったら 1 回だけ取り直す。**
+   *
+   * ## なぜ要るのか
+   *
+   * オーナー報告「読み取れへんことの方が多かった（5 店舗ほど検証）」を本番ログで
+   * 追ったところ、Instagram が **302**（ログイン壁へのリダイレクト＝レート制限）を
+   * 返した回が 2 回あり、そのどちらも «この投稿から読み取れる情報はありませんでした» に
+   * なっていた（2026-09-04 の実測。同じ時間帯の 200 と 302 が交互に出ている）。
+   * 302 は «その投稿が空» でも «消えた» でもなく、**こちらが弾かれただけ**である。
+   *
+   * ## 1 回だけ・短い間だけ
+   *
+   * ⚠️ **回数を増やさないこと。** 叩き直しはレート制限を悪化させる側の行為で、
+   *    `dish-media-imports.service.ts` のコメントにあるとおり
+   *    «投稿ごとの `/embed/captioned/` 取得がレート制限の元凶» である。
+   *    1 回で当たらなければ諦めて «取得できなかった» として返し、画面は手入力へ縮退する
+   *    （ユーザーは押し直せる）。
+   * ⚠️ 待ち時間を伸ばさないこと。resolve 全体はクライアントの 30 秒上限の中にある。
+   */
+  private async fetchInstagramEmbedHtml(embedUrl: string): Promise<string> {
+    const fetchOnce = () =>
+      this.safeFetch.fetchText(embedUrl, {
+        apiName: API_NAMES.instagram,
+        functionName: 'fetchInstagramEmbedMetadata',
+        maxResponseBytes: INSTAGRAM_EMBED_MAX_BYTES,
+      });
+
+    try {
+      return await fetchOnce();
+    } catch (error) {
+      if (!isInstagramRateLimited(error)) throw error;
+
+      this.logger.warn('InstagramEmbedRetrying', 'fetchInstagramEmbedMetadata', {
+        status:
+          error instanceof SafeFetchError ? (error.detail?.status ?? null) : null,
+      });
+      await sleep(INSTAGRAM_EMBED_RETRY_DELAY_MS);
+      return fetchOnce();
+    }
   }
 
   /**

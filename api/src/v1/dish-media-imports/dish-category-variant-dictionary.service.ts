@@ -136,7 +136,11 @@ export function buildJapaneseLabelVariants(
 ): DishCategoryVariantEntry[] {
   const out: DishCategoryVariantEntry[] = [];
   for (const category of categories ?? []) {
-    if (!category || typeof category.id !== 'string' || category.id.length === 0)
+    if (
+      !category ||
+      typeof category.id !== 'string' ||
+      category.id.length === 0
+    )
       continue;
 
     const labels = category.labels;

@@ -241,9 +241,15 @@ beforeEach(() => {
 	mockRouteParams.current = {};
 	mockCallBackend.mockReset();
 	// 保存した店の検索（GET）は { data } を、店の作成（POST v1/restaurants）は単体を返す
-	mockCallBackend.mockImplementation((path: string) =>
-		Promise.resolve(path === "v1/restaurants" ? CREATED : { data: [SAVED] }),
-	);
+	// #1671 既定は «その place_id の店が既にある» 側にしておく（既存の 4 経路の検査はこの前提）。
+	// 新規（by-google-place-id が null）の分岐は、その test の中で個別に上書きする。
+	mockCallBackend.mockImplementation((path: string) => {
+		if (path === "v1/restaurants") return Promise.resolve(CREATED);
+		if (path === "v1/restaurants/by-google-place-id")
+			// #1671 既定は «住所も埋まっている既存店»（そのまま開く側）
+			return Promise.resolve({ ...CREATED.restaurant, address: "東京都渋谷区神南1-2-3", country_code: "JP" });
+		return Promise.resolve({ data: [SAVED] });
+	});
 });
 
 describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
@@ -251,7 +257,7 @@ describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
 	⚠️ アサーションは «push されたこと» ではなく **`["upsert", "push"]` という列**に置くこと。
 	push だけを見ていると、順序を入れ替えても緑のままになる（それが今まさに無防備だった形）。
 	*/
-	it("地図の POI 押下: 店を作ってから upsert → push の順で遷移する", async () => {
+	it("地図の POI 押下（既にある店）: upsert → push の順で遷移する", async () => {
 		const tree = await render(<SelectRestaurantScreen />);
 
 		await press(tree, "map-view", {
@@ -264,6 +270,104 @@ describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
 			pathname: "/[locale]/restaurant/[restaurantId]",
 			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
 		});
+	});
+
+	/*
+	#1671 【設計】**新規の店は、作る前に確認ページへ回す。**
+
+	オーナー判断: 「店名・座標はユーザーに 1 タップで確認してもらって自社データにする。
+	住所や国コードも。ダイアログじゃなくてページにしたほうが良いと思う。」
+
+	⚠️ ここで見るのは «確認ページへ push したこと» だけではなく、
+	**`POST /v1/restaurants` を投げていないこと**である。押した瞬間に店ができてしまう
+	作りへ戻したら、それは «確認» ではない。push だけ見ていると、その回帰を見逃す。
+	*/
+	it("地図の POI 押下（新しい店）: 店を作らずに確認ページへ回す", async () => {
+		mockCallBackend.mockImplementation((path: string) => {
+			// この place_id の店はまだ無い
+			if (path === "v1/restaurants/by-google-place-id") return Promise.resolve(null);
+			if (path === "v1/restaurants") throw new Error("確認前に店を作ってはいけない");
+			return Promise.resolve({ data: [SAVED] });
+		});
+
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-new", name: "まだ無い店", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockCallBackend).not.toHaveBeenCalledWith("v1/restaurants", expect.anything());
+		expect(callOrder).toEqual(["push"]);
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/my-dishes/confirm-restaurant",
+			params: { locale: "ja-JP", googlePlaceId: "place-new" },
+		});
+	});
+
+	/*
+	#1671 パイプライン製の 62 万行は address / country_code が空のままで、ユーザーが
+	POI を押しても «既存店だからそのまま開く» 経路に入るため**永久に埋まらなかった**。
+	住所が空の既存店は確認ページへ回し、そこで埋める。
+	*/
+	it("地図の POI 押下（既にあるが住所が空の店）: 確認ページへ回す", async () => {
+		mockCallBackend.mockImplementation((path: string) => {
+			if (path === "v1/restaurants/by-google-place-id")
+				// パイプライン製の行。address / country_code が空
+				return Promise.resolve({ ...CREATED.restaurant, address: null, country_code: null });
+			if (path === "v1/restaurants") throw new Error("確認前に開いてはいけない");
+			return Promise.resolve({ data: [SAVED] });
+		});
+
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-1", name: "テスト食堂", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({ pathname: "/[locale]/(tabs)/my-dishes/confirm-restaurant" }),
+		);
+	});
+
+	it("住所が空文字だけの既存店も、確認ページへ回す", async () => {
+		mockCallBackend.mockImplementation((path: string) => {
+			if (path === "v1/restaurants/by-google-place-id")
+				return Promise.resolve({ ...CREATED.restaurant, address: "   ", country_code: "JP" });
+			if (path === "v1/restaurants") throw new Error("確認前に開いてはいけない");
+			return Promise.resolve({ data: [SAVED] });
+		});
+
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-1", name: "テスト食堂", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({ pathname: "/[locale]/(tabs)/my-dishes/confirm-restaurant" }),
+		);
+	});
+
+	it("pick モードで新しい店を選んだときは、確認ページへ pick を引き継ぐ", async () => {
+		mockRouteParams.current = { mode: "pick", locale: "ja-JP" };
+		mockCallBackend.mockImplementation((path: string) => {
+			if (path === "v1/restaurants/by-google-place-id") return Promise.resolve(null);
+			if (path === "v1/restaurants") throw new Error("確認前に店を作ってはいけない");
+			return Promise.resolve({ data: [SAVED] });
+		});
+
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-new", name: "まだ無い店", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pathname: "/[locale]/(tabs)/my-dishes/confirm-restaurant",
+				params: expect.objectContaining({ googlePlaceId: "place-new", pick: "1" }),
+			}),
+		);
 	});
 
 	it("保存した店のカード押下: upsert → push の順で遷移する", async () => {
@@ -430,9 +534,9 @@ describe("#1375 «お店を探す»（pick モード）のピン", () => {
 
 		await press(tree, "restaurant-pin");
 
-		expect(
-			tree.root.findAll((node) => node.props?.testID === "select-restaurant-pick-confirm").length,
-		).toBeGreaterThan(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "select-restaurant-pick-confirm").length).toBeGreaterThan(
+			0,
+		);
 		// **まだ確定していない**（画面を離れない）
 		expect(mockBack).not.toHaveBeenCalled();
 	});

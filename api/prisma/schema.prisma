@@ -704,6 +704,7 @@ model restaurants {
   created_by_source           String                        @default("user")
   address                     String?
   country_code                String?
+  subterritory_code           String?
   dishes                      dishes[]
   restaurant_bids             restaurant_bids[]
   restaurant_hours_exceptions restaurant_hours_exceptions[]

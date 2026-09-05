@@ -26,7 +26,9 @@ describe('#721 共有トークン', () => {
 
     // 16 bytes を base64url にすると padding 無しで 22 文字。
     // ここが短くなる変更が入ると総当たりの前提が崩れるので、桁で固定する
-    expect(body).toHaveLength(Math.ceil((SHARE_LINK_TOKEN_RANDOM_BYTES * 8) / 6));
+    expect(body).toHaveLength(
+      Math.ceil((SHARE_LINK_TOKEN_RANDOM_BYTES * 8) / 6),
+    );
     // base64url の文字種のみ（`+` `/` `=` が混ざると URL で壊れる）
     expect(body).toMatch(/^[A-Za-z0-9_-]+$/);
   });
@@ -34,7 +36,9 @@ describe('#721 共有トークン', () => {
   // 「ランダムに見える」ではなく「重複しない」を見る。
   // 実装が固定値やカウンタへ退化したら、この件数で必ず落ちる
   it('1000 本生成しても 1 本も重複しない', () => {
-    const tokens = new Set(Array.from({ length: 1000 }, () => generateShareToken()));
+    const tokens = new Set(
+      Array.from({ length: 1000 }, () => generateShareToken()),
+    );
 
     expect(tokens.size).toBe(1000);
   });

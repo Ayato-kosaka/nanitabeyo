@@ -526,7 +526,8 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   synced_at: 'synced_at',
   created_by_source: 'created_by_source',
   address: 'address',
-  country_code: 'country_code'
+  country_code: 'country_code',
+  subterritory_code: 'subterritory_code'
 };
 
 exports.Prisma.Role_permissionsScalarFieldEnum = {

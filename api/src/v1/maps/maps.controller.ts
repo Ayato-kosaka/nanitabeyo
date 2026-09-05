@@ -40,7 +40,11 @@ import { SkipResponseWrap } from '../../core/interceptors/response-wrap.intercep
 import { env } from '../../core/config/env';
 import { AuthAnonGuard } from '../../core/auth/auth.guard';
 import { buildMapsEmbedSrc, renderMapsEmbedPage } from './maps-embed.html';
-import { MAPS_EMBED_TOKEN_TTL_MS, signMapsEmbedToken, verifyMapsEmbedToken } from './maps-embed.token';
+import {
+  MAPS_EMBED_TOKEN_TTL_MS,
+  signMapsEmbedToken,
+  verifyMapsEmbedToken,
+} from './maps-embed.token';
 
 // クライアントには渡さない内部向けエンドポイントのため Swagger には出さない
 // （robots.txt / share と同じ扱い）
@@ -57,16 +61,27 @@ export class MapsController {
   @Post('embed-token')
   @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  createEmbedToken(@Body() dto: CreateMapsEmbedTokenDto): CreateMapsEmbedTokenResponse {
+  createEmbedToken(
+    @Body() dto: CreateMapsEmbedTokenDto,
+  ): CreateMapsEmbedTokenResponse {
     this.assertEmbedApiKeyConfigured();
 
     const now = Date.now();
     const token = signMapsEmbedToken(
-      { mode: dto.mode, q: dto.q, center: dto.center, zoom: dto.zoom, hl: dto.hl },
+      {
+        mode: dto.mode,
+        q: dto.q,
+        center: dto.center,
+        zoom: dto.zoom,
+        hl: dto.hl,
+      },
       env.SUPABASE_JWT_SECRET,
       now,
     );
-    return { token, expiresAt: new Date(now + MAPS_EMBED_TOKEN_TTL_MS).toISOString() };
+    return {
+      token,
+      expiresAt: new Date(now + MAPS_EMBED_TOKEN_TTL_MS).toISOString(),
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -90,7 +105,11 @@ export class MapsController {
   getEmbed(@Query() query: QueryMapsEmbedDto): string {
     this.assertEmbedApiKeyConfigured();
 
-    const payload = verifyMapsEmbedToken(query.token, env.SUPABASE_JWT_SECRET, Date.now());
+    const payload = verifyMapsEmbedToken(
+      query.token,
+      env.SUPABASE_JWT_SECRET,
+      Date.now(),
+    );
     if (!payload) {
       throw new UnauthorizedException('Invalid or expired maps embed token');
     }
@@ -113,7 +132,9 @@ export class MapsController {
    */
   private assertEmbedApiKeyConfigured(): void {
     if (!env.GOOGLE_MAPS_EMBED_API_KEY) {
-      throw new ServiceUnavailableException('Google Maps Embed API key is not configured');
+      throw new ServiceUnavailableException(
+        'Google Maps Embed API key is not configured',
+      );
     }
   }
 }

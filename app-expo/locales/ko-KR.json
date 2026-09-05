@@ -990,7 +990,21 @@
 		"unsavedHint": "저장하지 않은 가게도 고를 수 있습니다. 위 검색창에 가게 이름을 넣거나 지도의 가게 아이콘을 누르세요.",
 		"pickTitle": "가게 고르기",
 		"pickOnMap": "지도에서 가게 찾기",
-		"pickConfirm": "이 가게로 결정"
+		"pickConfirm": "이 가게로 결정",
+		"confirmPage": {
+			"title": "가게 정보 확인",
+			"lead": "이 내용으로 가게를 등록합니다. 틀린 부분이 있으면 수정해 주세요.",
+			"nameLabel": "가게 이름",
+			"namePlaceholder": "가게 이름을 입력하세요",
+			"locationLabel": "위치",
+			"locationHint": "이 위치가 맞는지 확인해 주세요.",
+			"addressLabel": "주소",
+			"addressPlaceholder": "주소를 입력하세요",
+			"countryLabel": "국가",
+			"countryUnknown": "알 수 없음",
+			"submit": "이 내용으로 등록",
+			"expired": "확인 유효 기간이 지났습니다. 가게를 다시 선택해 주세요."
+		}
 	},
 	"MyDishes": {
 		"actions": {
@@ -1220,6 +1234,7 @@
 		"result": {
 			"summary": "읽어왔습니다",
 			"noInfo": "이 게시물에서 읽을 수 있는 정보가 없었습니다. 아래에서 가게와 요리 카테고리를 고르면 저장할 수 있습니다.",
+			"fetchFailed": "지금은 게시물 정보를 가져오지 못했습니다(잠시 후 다시 시도하면 되는 경우가 많습니다). 아래에서 가게와 요리 카테고리를 골라 저장할 수도 있습니다.",
 			"showFullCaption": "더 보기",
 			"collapseCaption": "접기"
 		},
@@ -1229,6 +1244,13 @@
 			"change": "변경",
 			"hint": "먼저 가게를 선택하세요. 그다음 요리를 고르고 사진(선택)·한 줄 리뷰·가격·추천도를 입력할 수 있습니다.",
 			"done": "먹었다를 기록했습니다"
+		},
+		"reasons": {
+			"unsupported_url": "TikTok / YouTube Shorts / Instagram을 지원합니다.",
+			"shortlink_expansion_failed": "단축 URL을 열지 못했습니다. 게시물 페이지 URL을 붙여넣어 주세요.",
+			"shortlink_target_unsupported": "이 단축 URL은 가져올 수 있는 게시물이 아닙니다.",
+			"metadata_content_unavailable": "이 게시물은 삭제되었거나 비공개입니다.",
+			"youtube_not_shorts": "YouTube는 Shorts(세로형 짧은 영상)만 가져올 수 있습니다."
 		}
 	},
 	"Tutorial": {
@@ -1290,5 +1312,9 @@
 				"dish_reviews": "리뷰"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}}~{{max}}",
+		"openEnded": "{{symbol}}{{min}}~"
 	}
 }

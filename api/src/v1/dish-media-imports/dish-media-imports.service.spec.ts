@@ -497,6 +497,68 @@ describe('DishMediaImportsService — Instagram（埋め込み SSR。#1375 3 巡
     expect(result.metadata.title).not.toContain('<b>');
   });
 
+  /*
+    #1834【チーム指摘】「むしろ読み取れへんことの方が多かった（5 店舗ほど検証）」。
+
+    本番ログ（2026-09-04）で Instagram の埋め込み取得が **302**（ログイン壁への
+    リダイレクト = レート制限）を返した回が 2 回あり、どちらも «読み取れませんでした» に
+    なっていた。同じ時間帯に 200 も返っているので «その投稿が取れない» のではなく
+    **こちらが弾かれただけ**である。1 回だけ間を置いて取り直す。
+  */
+  it('302（レート制限）なら 1 回だけ取り直し、2 回目が SSR なら読み取れる', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 302,
+      headers: { location: 'https://www.instagram.com/accounts/login/' },
+    });
+    // 1 回目の応答を返した «あと» に 200 へ差し替える（本物の «次は通る» を再現する）
+    const originalRequest = transport.request.bind(transport);
+    let instagramHits = 0;
+    transport.request = (request) =>
+      originalRequest(request).then((response) => {
+        if (request.url.includes('/embed/captioned/')) {
+          instagramHits += 1;
+          transport.route(INSTAGRAM_EMBED_URL, {
+            status: 200,
+            headers: { 'content-type': 'text/html; charset=utf-8' },
+            body: SSR_EMBED_HTML,
+          });
+        }
+        return response;
+      });
+
+    const result = await service.resolve({
+      url: 'https://www.instagram.com/reel/DAbcDefGhIj/',
+    });
+
+    expect(instagramHits).toBe(2);
+    expect(result.status).toBe('ok');
+    expect(result.metadata.authorName).toBe('umaguru.tokyo');
+  });
+
+  /*
+    ⚠️ **取り直しは 1 回まで。** 叩き直しはレート制限を悪化させる側の行為なので、
+       «取れるまで粘る» にしない（画面は手入力へ縮退できる設計になっている）。
+  */
+  it('302 が続いても取り直しは 1 回で打ち切り、«取れなかった» へ縮退する', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 302,
+      headers: { location: 'https://www.instagram.com/accounts/login/' },
+    });
+
+    const result = await service.resolve({
+      url: 'https://www.instagram.com/reel/DAbcDefGhIj/',
+    });
+
+    const instagramHits = transport.requests.filter((request) =>
+      request.url.includes('/embed/captioned/'),
+    ).length;
+    expect(instagramHits).toBe(2);
+    expect(result.status).toBe('unknown');
+    expect(result.reason).toBe('metadata_fetch_failed');
+  });
+
   it('#1273 caption を渡すと IG を取りに行かず、そのテキストから候補が出る（大量並列 resolve）', async () => {
     const { service } = createHarness();
     // INSTAGRAM_EMBED_URL は **routing しない**。取りに行けば必ず失敗して unknown になる。
@@ -854,6 +916,44 @@ describe('DishMediaImportsService — 店舗候補', () => {
     // 1 本目はエリア一覧（q なし）、2 本目が author_name
     expect(queries).toContain(undefined);
     expect(queries).toContain('Scout, Suki & Stella');
+  });
+
+  /*
+    #1834【チーム指摘】「SNS インポートの読み込みがめっちゃ遅い」。
+
+    本番ログ（2026-09-04）で 1 リクエストを request_id で分解すると、現在地エリアの
+    店舗検索だけで **26,672 ms**（resolve 全体の 9 割）だった。既定の並び（«投稿が多い順»）は
+    dish_media の集計と、投稿を持つ店 1 件ずつの探索が走る経路で、
+    ここは limit 100 で呼ぶためラチェット（limit 20 でしか測っていない）の外に居た。
+
+    ⚠️ 根拠は **速さ**である。«当たりやすさ» を根拠にしない（#1812 の実測では
+    距離順にしても matched は 0 件しか増えなかった。律速は並び順ではなく 100 件の枠）。
+    拾える範囲のトレードオフと、枠そのものを外す打ち手は
+    `dish-media-imports.service.ts` の該当コメントに書いてある。
+  */
+  it('現在地エリアも距離順で引く（既定の «投稿が多い順» を使わない）', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
+    });
+    routeTikTok(harness.transport);
+
+    await harness.service.resolve({
+      url: TIKTOK_VIDEO_URL,
+      lat: 35.658,
+      lng: 139.701,
+      radius: 3000,
+    });
+
+    const areaCalls = (
+      harness.searchNearbyRestaurants.mock.calls as [
+        unknown,
+        { lat: number; radius: number; orderByDistance?: boolean },
+      ][]
+    ).filter((call) => call[1].lat === 35.658);
+    expect(areaCalls.length).toBeGreaterThan(0);
+    for (const call of areaCalls) {
+      expect(call[1].orderByDistance).toBe(true);
+    }
   });
 
   // #1375 4 巡目: 現在地が店から離れていても、キャプションの住所から店へ辿れる

@@ -990,7 +990,21 @@
 		"unsavedHint": "保存していないお店も選べます。上の検索にお店の名前を入れるか、地図のお店アイコンをタップしてください。",
 		"pickTitle": "お店を選ぶ",
 		"pickOnMap": "地図からお店を探す",
-		"pickConfirm": "このお店にする"
+		"pickConfirm": "このお店にする",
+		"confirmPage": {
+			"title": "お店の情報を確認",
+			"lead": "この内容でお店を登録します。違っていれば直してください。",
+			"nameLabel": "店名",
+			"namePlaceholder": "店名を入力",
+			"locationLabel": "場所",
+			"locationHint": "この位置で合っているか確認してください。",
+			"addressLabel": "住所",
+			"addressPlaceholder": "住所を入力",
+			"countryLabel": "国",
+			"countryUnknown": "不明",
+			"submit": "この内容で登録",
+			"expired": "確認の有効期限が切れました。もう一度お店を選び直してください。"
+		}
 	},
 	"MyDishes": {
 		"actions": {
@@ -1220,6 +1234,7 @@
 		"result": {
 			"summary": "読み取りました",
 			"noInfo": "この投稿から読み取れる情報はありませんでした。下でお店と料理カテゴリーを選ぶと保存できます。",
+			"fetchFailed": "投稿の情報を取得できませんでした（時間をおくと取得できることがあります）。このまま下でお店と料理カテゴリーを選んでも保存できます。",
 			"showFullCaption": "もっと見る",
 			"collapseCaption": "閉じる"
 		},
@@ -1229,6 +1244,13 @@
 			"change": "変更",
 			"hint": "まずお店を選んでください。次に料理を選び、写真（任意）・一言レビュー・料金・おすすめ度を入力できます。",
 			"done": "食べたを記録しました"
+		},
+		"reasons": {
+			"unsupported_url": "対応しているのは TikTok / YouTube Shorts / Instagram です。",
+			"shortlink_expansion_failed": "短縮 URL を開けませんでした。投稿ページの URL を貼り直してください。",
+			"shortlink_target_unsupported": "この短縮 URL の先は取り込める投稿ではありませんでした。",
+			"metadata_content_unavailable": "この投稿は削除されたか、非公開になっています。",
+			"youtube_not_shorts": "YouTube は Shorts（縦向きの短い動画）だけ取り込めます。"
 		}
 	},
 	"Tutorial": {
@@ -1290,5 +1312,9 @@
 				"dish_reviews": "レビュー"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}}〜{{max}}",
+		"openEnded": "{{symbol}}{{min}}〜"
 	}
 }

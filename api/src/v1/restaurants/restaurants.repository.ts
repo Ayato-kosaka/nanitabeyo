@@ -93,6 +93,7 @@ export class RestaurantsRepository {
         | 'created_by_source'
         | 'address'
         | 'country_code'
+        | 'subterritory_code'
       > & {
         review_count: number;
         average_rating: number;
@@ -236,6 +237,7 @@ export class RestaurantsRepository {
       r.created_by_source,
       r.address,
       r.country_code,
+      r.subterritory_code,
       agg.review_count,
       agg.average_rating,
       c.last_saved_at
@@ -293,6 +295,7 @@ export class RestaurantsRepository {
         created_by_source: row.created_by_source,
         address: row.address,
         country_code: row.country_code,
+        subterritory_code: row.subterritory_code,
       },
       meta: {
         reviewCount: row.review_count,
@@ -774,6 +777,7 @@ export class RestaurantsRepository {
         | 'created_by_source'
         | 'address'
         | 'country_code'
+        | 'subterritory_code'
       > & {
         review_count: number;
         average_rating: number;
@@ -801,10 +805,9 @@ export class RestaurantsRepository {
         r.synced_at,
         -- #843 その行を誰が作ったか。9_1 の同期はこの値が 'pipeline' の行だけを上書きする
         r.created_by_source,
-      r.address,
-      r.country_code,
         r.address,
         r.country_code,
+        r.subterritory_code,
         c.total_cents,
         c.max_end_date,
         agg.review_count,
@@ -874,6 +877,50 @@ export class RestaurantsRepository {
     return tx.restaurants.findUnique({
       where: { google_place_id },
     });
+  }
+
+  /**
+   * #1671 【設計】**空いている住所・国コードだけを埋める。既にある値は上書きしない。**
+   *
+   * パイプライン製の 62 万行は `address` / `country_code` が空のままで、ユーザーが
+   * POI を押しても «既存店だからそのまま開く» 経路に入るため**永久に埋まらなかった**。
+   * 確認ページを通ったときだけ、ユーザーが確認した値でその穴を塞ぐ。
+   *
+   * ⚠️ **上書きはしない。** 既に誰かが確認して入れた値を、後から来た別のユーザーの
+   * 確認で書き換えると «最後に触った人が勝つ» になる。埋まっているものは触らない。
+   * （競合の解決を入れるなら #1827 の結論を待つ）
+   *
+   * ⚠️ 判定は **SQL の WHERE でやる**。読んでから TS で分岐して書くと、
+   * 同じ店を 2 人が同時に確認したときに後勝ちが起きる。
+   *
+   * @returns 実際に埋めた行数（0 なら既に埋まっていた）
+   */
+  async fillMissingAddress(
+    tx: Prisma.TransactionClient,
+    params: {
+      restaurantId: string;
+      address: string;
+      countryCode: string | null;
+    },
+  ): Promise<number> {
+    const { restaurantId, address, countryCode } = params;
+    const result = await tx.restaurants.updateMany({
+      where: {
+        id: restaurantId,
+        // 空いているものだけ。片方でも空いていれば対象にする
+        OR: [
+          { address: null },
+          { address: '' },
+          { country_code: null },
+          { country_code: '' },
+        ],
+      },
+      data: {
+        address,
+        ...(countryCode ? { country_code: countryCode } : {}),
+      },
+    });
+    return result.count;
   }
 
   /* ------------------------------------------------------------------ */

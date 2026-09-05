@@ -2,7 +2,8 @@
 #1375 実機確認（5 巡目）「食べたい / 食べたの内訳が読めない」への対処の回帰テスト。
 
 守るのは 3 つ。
-1. 色の正が `statusColors.ts` の 1 箇所にあること（カード・一覧・カレンダー・地図で同じ緑と赤）
+1. 色の正が `statusColors.ts` の 1 箇所にあること（カード・一覧・カレンダー・地図で同じ緑とオレンジ）
+   ＋ どちらの塗りも «上に載る白» が読める暗さであること（#1834 で区別が色相 1 本になったため）
 2. 内訳バッジは 0 件の側を描かないこと（1 件の日に «0» が並ばない）
 3. 地図の帯タイルが `pin.counts` をそのまま出すこと（この表示のために API を増やさない）
 */
@@ -41,7 +42,7 @@ function render(element: React.ReactElement) {
 const countOf = (tree: TestRenderer.ReactTestRenderer, testID: string) =>
 	tree.root.findAll((n) => typeof n.type === "string" && n.props?.testID === testID).length;
 
-describe("#1375 食べたい=緑 / 食べた=赤 の内訳表示", () => {
+describe("#1375 / #1834 食べたい=緑 / 食べた=オレンジ の内訳表示", () => {
 	it("countMyDishStatuses は status を 2 つの数へ畳む", () => {
 		expect(countMyDishStatuses([{ status: "want" }, { status: "eaten" }, { status: "eaten" }])).toEqual({
 			want: 1,
@@ -50,16 +51,31 @@ describe("#1375 食べたい=緑 / 食べた=赤 の内訳表示", () => {
 		expect(countMyDishStatuses([])).toEqual({ want: 0, eaten: 0 });
 	});
 
-	it("色は statusColors の 1 箇所が正: 食べたい = 白塗り赤枠 / 食べた = 赤塗り", () => {
-		// #1375（5 巡目）オーナー指示で «緑 / 赤» の色相分けから «塗りの有無» へ変えた。
-		// 白塗りの側は文字も枠も赤でなければ読めないので、3 つ組が揃っていることまで見る
-		expect(MY_DISH_STATUS_COLORS.want.fill).toBe("#FFFFFF");
-		expect(MY_DISH_STATUS_COLORS.want.border).toBe(MY_DISH_STATUS_COLORS.eaten.fill);
-		expect(MY_DISH_STATUS_COLORS.want.on).toBe(MY_DISH_STATUS_COLORS.eaten.fill);
+	it("色は statusColors の 1 箇所が正: 食べたい = 緑塗り / 食べた = オレンジ塗り", () => {
+		// #1834（10 巡目・オーナー指示「食べたい は緑塗りにして欲しい」）。
+		// 区別は **色相 1 本**で持つので、2 つの塗りが違う色であることが要である
+		expect(MY_DISH_STATUS_COLORS.want.fill).not.toBe(MY_DISH_STATUS_COLORS.eaten.fill);
+		// どちらも塗りの上に白の文字・枠を載せる（3 つ組が揃っていること）
+		expect(MY_DISH_STATUS_COLORS.want.on).toBe("#FFFFFF");
+		expect(MY_DISH_STATUS_COLORS.want.border).toBe("#FFFFFF");
 		expect(MY_DISH_STATUS_COLORS.eaten.on).toBe("#FFFFFF");
-		// 「白地に白文字」を作れないこと
+		expect(MY_DISH_STATUS_COLORS.eaten.border).toBe("#FFFFFF");
+		// 「同色に同色」を作れないこと（塗りの上の文字が読めなくなる）
 		expect(MY_DISH_STATUS_COLORS.want.fill).not.toBe(MY_DISH_STATUS_COLORS.want.on);
 		expect(MY_DISH_STATUS_COLORS.eaten.fill).not.toBe(MY_DISH_STATUS_COLORS.eaten.on);
+		/*
+		#1834 ⚠️ **塗りの上に載る白が読めるだけの暗さを保つ。**
+		   区別が色相 1 本になったぶん、明るい緑へ動かすと «白文字が読めない» が直に出る。
+		   UI 部品の下限 3:1 を、輝度比で機械的に見る（`#2E7D32` = 5.13:1 / `#ED6C02` = 3.11:1）。
+		*/
+		const luminance = (hex: string) => {
+			const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+			const lin = ch.map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+			return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+		};
+		for (const paint of Object.values(MY_DISH_STATUS_COLORS)) {
+			expect(1.05 / (luminance(paint.fill) + 0.05)).toBeGreaterThanOrEqual(3);
+		}
 	});
 
 	it("凡例は «食べたい» と «食べた» の 2 つを、それぞれの塗りの丸つきで出す", () => {

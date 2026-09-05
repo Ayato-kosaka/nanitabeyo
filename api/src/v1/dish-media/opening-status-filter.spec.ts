@@ -74,11 +74,25 @@ describe('#1666 検索候補は「分かっていて閉まっている」店を�
 });
 
 describe('#288 timeSlot 未指定なら除外も加点も起きない（互換の番人）', () => {
+  /*
+  ⚠️ ここは «呼び分けの形» だけを見る。以前は引数まで含めた文字列の完全一致だったため、
+     #1666 で引き上げ範囲（scope）を足しただけで落ちた。**守りたいのは
+     «timeSlot が無ければ呼ばない»** であって、引数の並びではない。
+  */
   it('timeSlot が無いときは fetchRestaurantOpeningStatuses を呼ばず空 Map のままにしている', () => {
-    expect(SOURCE).toContain(
-      'const openingStatuses = timeSlot\n' +
-        '      ? await fetchRestaurantOpeningStatuses(tx, timeSlot)\n' +
-        '      : new Map<string, RestaurantOpeningStatus>();',
+    expect(SOURCE).toMatch(
+      /const openingStatuses = timeSlot\s*\?\s*await fetchRestaurantOpeningStatuses\([\s\S]*?\)\s*:\s*new Map<string, RestaurantOpeningStatus>\(\);/,
+    );
+  });
+
+  /*
+  #1666 **引き上げる範囲を候補集合に限る。** 以前は曜日でしか絞っておらず、
+  クローラで `restaurant_opening_hours` が埋まると 620,000 店 × 曜日 2 日ぶん
+  ≒ 124 万行を検索 1 回ごとに引き上げる形だった（「今は空だから速い」だけの時限爆弾）。
+  */
+  it('営業時間の引き上げに、本体クエリと同じ候補集合の範囲を渡している', () => {
+    expect(SOURCE).toMatch(
+      /await fetchRestaurantOpeningStatuses\(tx, timeSlot, \{[\s\S]*?userLat,[\s\S]*?userLon,[\s\S]*?radiusM: radius,[\s\S]*?limit,[\s\S]*?\}\)/,
     );
   });
 

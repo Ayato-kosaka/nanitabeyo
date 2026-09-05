@@ -12,7 +12,7 @@
 
 const { readFileSync } = require("node:fs");
 
-const { EXCLUDED_HTTP_STATUSES, FP_ALGO_VERSION, GROUP_LIMIT, MESSAGE_PATTERN_MAX_LENGTH } = require("./constants");
+const { EXCLUDED_HTTP_STATUSES, FP_ALGO_VERSION, GROUP_LIMIT, MESSAGE_PATTERN_MAX_LENGTH, TRANSIENT_HTTP_STATUSES } = require("./constants");
 const { assertSqlFpAlgoVersion, FINGERPRINT_KEY_FIELDS, parseSqlFpAlgoVersion } = require("./fingerprint");
 const { NORMALIZE_RULES, POST_RULE_STEPS, SQL_EXPR_PLACEHOLDER } = require("./normalize-rules");
 const { SQL_FILE_PATH, readGeneratedSql } = require("./generate-sql");
@@ -413,10 +413,51 @@ describe("不変条件 3 / 4: 生値と禁止フィールドを契約へ出さ�
 });
 
 describe("除外ルール: constants.js が唯一の正", () => {
-	test("EXCLUDED_HTTP_STATUSES が frontend / backend の両方に同じ形で入っている", () => {
+	/*
+	#1834 **frontend（E4）と backend（E6）は別の定数を使う。**
+
+	403 / 404 を除外する理由は «Cloud Run が公開エンドポイントなので外部スキャナが来る» で、
+	これは backend 側の性質である。frontend のログは自分たちのアプリが呼んだときにしか
+	出ないのでスキャナは 1 行も作れず、frontend の 404 は «存在しない URL を自分で叩いた»
+	＝ 実バグである。**同じ定数を共有していると、この違いが消える。**
+	*/
+	test("backend（E6）は EXCLUDED_HTTP_STATUSES を 1 回だけ使う", () => {
 		const list = EXCLUDED_HTTP_STATUSES.join(", ");
-		const occurrences = generated.split(`IN (${list})`).length - 1;
-		expect(occurrences).toBe(2);
+		expect(generated.split(`IN (${list})`).length - 1).toBe(1);
+		expect(generated).toContain(`SAFE_CAST(n.beHttpStatus AS INT64) IN (${list})`);
+	});
+
+	test("frontend（E4）は TRANSIENT_HTTP_STATUSES を使う（403 / 404 を除外しない）", () => {
+		const list = TRANSIENT_HTTP_STATUSES.join(", ");
+		expect(generated).toContain(`SAFE_CAST(n.feHttpStatus AS INT64) IN (${list})`);
+		for (const status of [403, 404]) {
+			expect(TRANSIENT_HTTP_STATUSES).not.toContain(status);
+		}
+	});
+
+	/*
+	#1834 **タイムアウト（timedOut: true）は «端末の回線起因» ではない。**
+	自前の 30 秒タイマーだけが立てるフラグで、«届いたがサーバが返さなかった» を意味する。
+	*/
+	test("E3 は timedOut: true を除外しない", () => {
+		expect(generated).toContain("IFNULL(n.feTimedOut, '') != 'true'");
+	});
+
+	/*
+	#1834 **外部 API の 3xx は «成功» ではない。**
+	SafeFetch はリダイレクトを追わないので、3xx が返った時点でデータは取れていない。
+	*/
+	test("external の収集条件は 3xx も拾う", () => {
+		expect(generated).toContain("SAFE_CAST(jsonPayload.status_code AS INT64) >= 300");
+		expect(generated).not.toContain("SAFE_CAST(jsonPayload.status_code AS INT64) >= 400");
+	});
+
+	/*
+	#1834 **status_code = 0（接続そのものが成立しない）は «外部の一時障害» ではない。**
+	相手が落ちているのか、こちらの出口が塞がれているのかを区別しないため。
+	*/
+	test("E7 は status_code = 0 を除外しない", () => {
+		expect(generated).toContain("n.extStatusCode IN (408, 429, 502, 503, 504)");
 	});
 
 	test("400 / 409 / 422 は除外リストに入っていない（レビュー §6-4）", () => {
