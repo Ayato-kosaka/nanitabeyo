@@ -16,6 +16,7 @@ import hashlib
 import hmac
 import json
 import os
+import random
 import re
 import http.client
 import socket
@@ -258,11 +259,20 @@ class ResolveClient:
     """
 
     def __init__(self, base_url: str | None = None, *, jwt_ttl: int = 600, timeout: float = 20.0,
-                 keep_alive: bool = True):
+                 keep_alive: bool = True, retries: int = 2):
         self.base_url = (base_url or backend_base_url()).rstrip("/")
         self.jwt_ttl = jwt_ttl
         self.timeout = timeout
         self.keep_alive = keep_alive
+        # #1273 【設計】**429 / 5xx は投稿を捨てずに待って投げ直す。**
+        # 実測（2026-09-05, dev）: 同時 24 リクエストで 1 分に 82 件の 500 が出て、
+        # 中身は `EMAXCONNSESSION: max clients reached in session mode - pool_size: 15`
+        # ＝ **Supabase のプーラの接続上限**であって API のバグではない。上限を踏むのは
+        # «こちらが投げすぎた» ときだけなので、少し待てば通る。ここで捨てると
+        # その投稿は次の fetch まで «未処理» のまま残り、同じ混雑にまた当たる。
+        self.retries = max(retries, 0)
+        # リトライした回数（診断用。呼び出し側がログへ出す）
+        self.retried = 0
         self._jwt: str | None = None
         self._jwt_exp = 0.0
         self._jwt_lock = threading.Lock()
@@ -283,6 +293,11 @@ class ResolveClient:
                 self._jwt = mint_service_jwt(self.jwt_ttl)
                 self._jwt_exp = now + self.jwt_ttl
             return f"Bearer {self._jwt}"
+
+    @staticmethod
+    def _backoff_s(attempt: int) -> float:
+        """再送までの待ち。全スレッドが揃って投げ直すと混雑を作り直すのでばらす。"""
+        return (0.75 * (3 ** attempt)) * (0.5 + random.random())
 
     def _conn(self):
         """このスレッド専用の HTTPS 接続。無ければ張る。"""
@@ -319,21 +334,26 @@ class ResolveClient:
                 conn.request("POST", base_path + path, body=data, headers=headers)
                 resp = conn.getresponse()
                 body = resp.read()
-                if resp.status >= 400:
-                    self._drop_conn()
-                    raise urllib.error.HTTPError(url, resp.status, resp.reason, resp.headers, None)
-                return body
+                if resp.status < 400:
+                    return body
+                self._drop_conn()
+                status, reason, hdrs = resp.status, resp.reason, resp.headers
             except (http.client.HTTPException, ConnectionError, socket.gaierror) as e:
                 # 使い回した接続が既に閉じられていた等。1 度だけ張り直して再送する。
                 self._drop_conn()
                 if attempt == 1:
                     raise urllib.error.URLError(e) from e
+                continue
             except TimeoutError:
                 self._drop_conn()
                 raise
             except OSError as e:
                 self._drop_conn()
                 raise urllib.error.URLError(e) from e
+            # ⚠️ 4xx/5xx は **try の外**で投げる。`HTTPError` は `OSError` の子なので、
+            #    上の `except OSError` の中で投げると自分で捕まえて `URLError` に包み直し、
+            #    **ステータスコードが消えて 5xx のリトライ判定ができなくなる**（実際にやった）。
+            raise urllib.error.HTTPError(url, status, reason, hdrs, None)
         raise urllib.error.URLError("unreachable")
 
     def resolve_raw(
@@ -366,13 +386,30 @@ class ResolveClient:
             "authorization": self._auth_header(),
         }
         path = "/v1/dish-media/imports/resolve"
-        if self.keep_alive:
-            headers["content-length"] = str(len(data))
-            return json.loads(self._post_keep_alive(path, data, headers).decode("utf-8"))
-        req = urllib.request.Request(
-            f"{self.base_url}{path}", data=data, method="POST", headers=headers)
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+
+        def once() -> dict[str, Any]:
+            if self.keep_alive:
+                headers["content-length"] = str(len(data))
+                return json.loads(self._post_keep_alive(path, data, headers).decode("utf-8"))
+            req = urllib.request.Request(
+                f"{self.base_url}{path}", data=data, method="POST", headers=headers)
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+
+        for attempt in range(self.retries + 1):
+            try:
+                return once()
+            except urllib.error.HTTPError as e:
+                # 混雑（429）とサーバ側の一時失敗（5xx）だけ待って投げ直す。
+                # 4xx（400/401 等）はこちらの組み立てが悪いので、投げ直しても同じ。
+                if attempt >= self.retries or not (e.code == 429 or 500 <= e.code < 600):
+                    raise
+            except TimeoutError:
+                if attempt >= self.retries:
+                    raise
+            self.retried += 1
+            time.sleep(self._backoff_s(attempt))
+        raise urllib.error.URLError("unreachable")
 
 
 def _unwrap(resp: dict[str, Any]) -> dict[str, Any]:
