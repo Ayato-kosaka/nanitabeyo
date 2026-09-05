@@ -73,7 +73,17 @@ SELECT
   )                                                                 AS would_fill,
   -- 州の材料が無く、落としたら情報が消える行（= 失っても元から無い）
   count(*) FILTER (WHERE country_code IS NOT NULL AND admin1_short IS NULL)
-                                                                    AS country_only
+                                                                    AS country_only,
+  -- ⚠️ **migration 20260904T0000 の CHECK（length BETWEEN 3 AND 32）に収まるか。**
+  --    上限 32 はこちらが «だいたいで» 決めた値で、実データで確かめていなかった。
+  --    収まらない行があると、その店を確認ページから保存した瞬間に 23514 で 500 になる。
+  max(length(country_code || '-' || admin1_short)) FILTER (
+    WHERE country_code IS NOT NULL AND admin1_short IS NOT NULL
+  )                                                                 AS max_len,
+  count(*) FILTER (
+    WHERE country_code IS NOT NULL AND admin1_short IS NOT NULL
+      AND length(country_code || '-' || admin1_short) > 32
+  )                                                                 AS over_32
 FROM derived
 """
 
@@ -126,7 +136,15 @@ def main() -> int:
             cur.execute(f'SET search_path TO "{args.schema}", extensions')
 
             cur.execute(SQL)
-            total, has_country, can_derive, would_fill, country_only = cur.fetchone()
+            (
+                total,
+                has_country,
+                can_derive,
+                would_fill,
+                country_only,
+                max_len,
+                over_32,
+            ) = cur.fetchone()
 
             LOGGER.info("=" * 78)
             LOGGER.info(
@@ -139,6 +157,11 @@ def main() -> int:
             _report("州（admin1.shortText）まで持っている", can_derive, total)
             _report("🔴 実際に埋まる行（いま NULL で組み立てられる）", would_fill, total)
             _report("国だけで州の材料が無い（落としても失わない）", country_only, total)
+
+            LOGGER.info("")
+            LOGGER.info("## CHECK 制約（length BETWEEN 3 AND 32）に収まるか")
+            LOGGER.info("    実際の最大長                     : %s 文字", max_len)
+            _report("🔴 32 文字を超える行（保存で 500 になる）", over_32, total)
 
             LOGGER.info("")
             LOGGER.info("## 入る値の内訳（上位 15）")
