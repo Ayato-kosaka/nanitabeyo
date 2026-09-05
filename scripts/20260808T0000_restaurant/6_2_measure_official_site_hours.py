@@ -25,6 +25,11 @@
 | `mentions_hours_unparsed` | 営業時間の語はあるのにパーサが諦めた = **LLM の候補はここだけ** |
 | `no_hours_mentioned` | そもそも営業時間の記載が見当たらない = LLM でも取れない |
 
+⚠️ その手前に `not_japanese_page` がある。**日本語かどうかはページの中身で決める。**
+`--country JP` を効かせても韓国語サイトが標本に残った（run 33989057072）。つまりその行の
+`country_code` は 'JP' である。日本にある韓国料理店なのか国コードの誤りなのかはここでは
+決められないが、**どちらであっても日本語専用パーサの母数からは外すのが正しい**。
+
 ⚠️ **`parsed` の «正しさ» は測っていない。** ここで分かるのは «構造化できた件数» であって
 «内容が合っているか» ではない。パーサの正しさは実サイトの原文 5 件に対する
 `test_jp_site_opening_hours.py` が担当する。**この 2 つを混ぜて報告しないこと。**
@@ -71,14 +76,50 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from jp_site_opening_hours import parse_jp_site_opening_hours  # noqa: E402
+from jp_site_opening_hours import is_japanese_text, parse_jp_site_opening_hours  # noqa: E402
 
 USER_AGENT = "NanitabeyoResearchBot/1.0 (+https://github.com/Ayato-kosaka/nanitabeyo; research)"
 MAX_BYTES = 2_000_000  # 実測で生 HTML 1.4MB のサイトがあった。それが入る程度で頭打ちにする
 
 # 「営業時間の話をしている」と読める語。`jp_site_opening_hours` の判定より **広く**取る。
 # ここは «パーサが諦めただけで、人間なら読めた» を数えるための網なので、緩いほうが正しい。
+#
+# ⚠️ **ここにも `open` / `OPEN` という言語に依存しない語が入っている。**
+#    `jp_site_opening_hours._OPENING_CONTEXT_RE` が同じ形で英語・韓国語ページを
+#    通していたので、同じ欠陥が無いか当たり直した（#1666）。**この網は安全**である。
+#    `classify_page` が先に `is_japanese_text` を通しており、非日本語ページはここへ
+#    届かないため。**順序を入れ替えるとこの網が欠陥に変わる**ので入れ替えないこと。
 _HOURS_MENTION_RE = re.compile(r"営業時間|営業日|定休日|休業日|open|OPEN|Open|ランチ|ディナー|開店|閉店")
+
+# ⚠️ **日本語かどうかは «ページの中身» で決める。`country_code` を信用しない。**
+#
+# dry-run（run 33989057072）で `--country JP` を効かせたのに、韓国語のサイトが標本に
+# 残った（`파리바게뜨` → paris.co.kr など）。つまり **その行の country_code は 'JP' である**。
+# 日本にある韓国料理店なのか、国コードが誤っているのかは、この計測からは決められない。
+# どちらであっても、**日本語専用パーサの命中率を測る母数からは外す**のが正しい。
+#
+# ⚠️ 判定は `jp_site_opening_hours.is_japanese_text` を **そのまま使う**。同じ判断を
+#    ここへ書き写すと、パーサ側だけ直したときに **この計測だけが古い基準で数え続ける**。
+
+
+def classify_page(text: str) -> str:
+    """到達できたページを 1 つの箱へ入れる。**ここが数字の意味を決める唯一の場所**である。
+
+    `not_japanese_page` を先に見る。`parsed` / `mentions_hours_unparsed` /
+    `no_hours_mentioned` は «日本語ページの中での内訳» であって、非日本語ページを
+    混ぜると **命中率が薄まる**。
+
+    ⚠️ 仮名だけで «日本語» を判定してはいけない。`営業時間 11:00-14:00 定休日 月曜` は
+    **仮名を 1 文字も含まない日本語ページ**で、パーサは読める。`is_japanese_text` が
+    その形を含めて判定するので、ここではそれを呼ぶだけにする。
+    """
+    if not is_japanese_text(text):
+        return "not_japanese_page"
+    if parse_jp_site_opening_hours(text) is not None:
+        return "parsed"
+    if _HOURS_MENTION_RE.search(text):
+        return "mentions_hours_unparsed"
+    return "no_hours_mentioned"
 
 
 def html_to_text(html: str) -> str:
@@ -158,7 +199,7 @@ def robots_allows(url: str, cache: dict[str, urllib.robotparser.RobotFileParser 
 # dry-run（run 33988256520）の標本 20 件に韓国語サイトが 3 件あって気づいた。
 # `--country ALL` で外せるが、そのときは «日本語パーサの命中率» として読まないこと。
 SAMPLE_SQL = """
-SELECT r.id::text, r.name, l.value AS url
+SELECT r.id::text, r.name, l.value AS url, r.country_code, r.latitude, r.longitude
 FROM {schema}.restaurant_links l
 JOIN {schema}.restaurants r ON r.id = l.restaurant_id
 WHERE l.kind = 'website'
@@ -208,18 +249,20 @@ def main() -> int:
     if args.country != "JP":
         print("⚠️ country が JP ではありません。この結果を «日本語パーサの命中率» として読まないこと")
     if args.dry_run:
-        for rid, name, url in rows[:20]:
-            print(f"  {rid}  {name}  {url}")
+        for rid, name, url, cc, lat, lon in rows[:20]:
+            print(f"  {cc}  ({lat:.3f},{lon:.3f})  {name}  {url}")
         print(f"  …（--dry-run のためここで終わり。ネットワークへは出ていません）")
         return 0
 
     counts: Counter[str] = Counter()
     failure_reasons: Counter[str] = Counter()
     robots_cache: dict[str, urllib.robotparser.RobotFileParser | None] = {}
-    examples: dict[str, list[str]] = {"parsed": [], "mentions_hours_unparsed": []}
+    # not_japanese_page も例を残す。«日本にある韓国料理店なのか国コードの誤りなのか» を
+    # 後から人が確かめられる唯一の手がかりになる。
+    examples: dict[str, list[str]] = {"parsed": [], "mentions_hours_unparsed": [], "not_japanese_page": []}
     last_request_at = 0.0
 
-    for i, (rid, name, url) in enumerate(rows, start=1):
+    for i, (rid, name, url, _cc, _lat, _lon) in enumerate(rows, start=1):
         wait = args.min_interval - (time.monotonic() - last_request_at)
         if wait > 0:
             time.sleep(wait)
@@ -237,23 +280,17 @@ def main() -> int:
             counts["unreachable"] += 1
             failure_reasons[reason] += 1
         else:
-            text = html_to_text(html)
-            if parse_jp_site_opening_hours(text) is not None:
-                counts["parsed"] += 1
-                if len(examples["parsed"]) < 5:
-                    examples["parsed"].append(f"{name} {url}")
-            elif _HOURS_MENTION_RE.search(text):
-                counts["mentions_hours_unparsed"] += 1
-                if len(examples["mentions_hours_unparsed"]) < 5:
-                    examples["mentions_hours_unparsed"].append(f"{name} {url}")
-            else:
-                counts["no_hours_mentioned"] += 1
+            bucket = classify_page(html_to_text(html))
+            counts[bucket] += 1
+            if bucket in examples and len(examples[bucket]) < 5:
+                examples[bucket].append(f"{name} {url}")
 
         if i % 25 == 0:
             print(f"  … {i}/{len(rows)} 件（{dict(counts)}）", flush=True)
 
     total = len(rows)
     reached = counts["parsed"] + counts["mentions_hours_unparsed"] + counts["no_hours_mentioned"]
+    reached_any = reached + counts["not_japanese_page"]
 
     def pct(n: int, d: int) -> str:
         return f"{n / d * 100:.1f}%" if d else "—"
@@ -262,8 +299,10 @@ def main() -> int:
     print(f"標本                         : {total}")
     print(f"  到達できなかった           : {counts['unreachable']}  ({pct(counts['unreachable'], total)})")
     print(f"  robots.txt が禁止していた  : {counts['blocked_by_robots']}  ({pct(counts['blocked_by_robots'], total)})")
-    print(f"  到達できた                 : {reached}  ({pct(reached, total)})")
-    print("\n到達できたページの内訳（← ここが «LLM が要るか» を決める）")
+    print(f"  到達できた                 : {reached_any}  ({pct(reached_any, total)})")
+    print(f"    うち日本語でないページ   : {counts['not_japanese_page']}  ({pct(counts['not_japanese_page'], reached_any)})")
+    print(f"    うち日本語のページ       : {reached}  ({pct(reached, reached_any)})")
+    print("\n日本語ページの内訳（← ここが «LLM が要るか» を決める）")
     print(f"  parsed（$0 で構造化できた）        : {counts['parsed']}  ({pct(counts['parsed'], reached)})")
     print(f"  mentions_hours_unparsed（LLM 候補）: {counts['mentions_hours_unparsed']}  ({pct(counts['mentions_hours_unparsed'], reached)})")
     print(f"  no_hours_mentioned（記載なし）     : {counts['no_hours_mentioned']}  ({pct(counts['no_hours_mentioned'], reached)})")

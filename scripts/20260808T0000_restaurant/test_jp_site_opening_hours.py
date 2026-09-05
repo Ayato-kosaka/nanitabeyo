@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -127,6 +128,46 @@ class WholeTextIsRefusedTest(unittest.TestCase):
         rows = parse("営業時間 11:00-14:00")
         assert rows is not None
         self.assertEqual(dows(rows), set(range(7)))
+
+
+class NonJapaneseTextIsRefusedTest(unittest.TestCase):
+    """⚠️ **実際に踏んだ穴（#1666 の計測で発覚）。**
+
+    `_OPENING_CONTEXT_RE` に `OPEN` / `Open` が入っているせいで、**英語・韓国語のページが
+    «営業時間の話をしている» と判定されていた**。このモジュールの休業日の判定
+    （`定休日` / `不定休`）は日本語しか読まないので、いったん非日本語のページが通ると
+    **止める仕組みが 1 つも無い**。実測では `Closed on Mondays` と書いてあるページから
+    **月曜を含む 7 行**ができていた。
+
+    `dish_media` の店に当てれば «休みの日に開いている» と表示される。
+    パーサが読めない言語は **読まずに諦める**（unknown は候補から消えないので害が無い）。
+    """
+
+    def test_english_page_is_refused(self) -> None:
+        self.assertIsNone(parse("OPEN 11:00-14:00 Closed on Mondays"))
+        self.assertIsNone(parse("Open 9:00-17:00"))
+        self.assertIsNone(parse("Restaurant OPEN 11:00 - 22:00. Closed Sunday."))
+
+    def test_korean_page_is_refused(self) -> None:
+        """dev には country_code='JP' のまま韓国語サイトを持つ行がある（#1666 dry-run）。"""
+        self.assertIsNone(parse("파리바게뜨 영업시간 OPEN 09:00-22:00 휴무일 월요일"))
+
+    def test_chinese_page_is_refused(self) -> None:
+        """«营业时间 / 營業時間» は日本語の «営業時間» と字が違う。当たってはいけない。"""
+        self.assertIsNone(parse("营业时间 OPEN 11:00-14:00 每周一休息"))
+        self.assertIsNone(parse("營業時間 OPEN 11:00-14:00"))
+
+    def test_japanese_page_without_any_kana_is_still_read(self) -> None:
+        """⚠️ 逆方向の番人。**«日本語 = 仮名がある» にすると日本語ページを落とす。**
+
+        `営業時間 11:00-14:00 定休日 月曜` には仮名が 1 文字も無いが日本語である。
+        ここを落とすと «$0 で構造化できた件数» を実際より少なく報告する。
+        """
+        text = "営業時間 11:00-14:00 定休日 月曜"
+        self.assertIsNone(re.search(r"[ぁ-んァ-ヴー]", text), "この文には仮名が無い（前提の確認）")
+        rows = parse(text)
+        assert rows is not None
+        self.assertEqual(dows(rows), {0, 2, 3, 4, 5, 6}, "月曜だけ落ちる")
 
 
 class GrammarTest(unittest.TestCase):
