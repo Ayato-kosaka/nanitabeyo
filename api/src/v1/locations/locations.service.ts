@@ -75,9 +75,21 @@ export class LocationsService {
   }
 
   /**
-   * addressComponents から国コード (ISO-2) と州コード (ISO-3166-2) を抽出
+   * #1671 addressComponents から «国» と «サブ領域» を 1 度に取り出す公開口。
+   *
+   * ⚠️ **`extractCountryCode` と別に呼び分けないこと。** 2 つの値は同じ
+   * `addressComponents` から同時に決まる（`subterritoryCode` は `countryCode` を
+   * 前置きした連結）。片方だけ取り直すと、shortText 欠損の扱い（#677）が
+   * 片方にだけ効いて静かにずれる。
+   *
+   * ⚠️ 返る `subterritoryCode` は **ISO 3166-2 とは限らない**。中身は
+   * `${countryCode}-${administrative_area_level_1.shortText}` で、日本では
+   * `JP-Oita` のように英語名が入る。`subterritory_overrides.json` との
+   * **完全一致引き**にしか使わないので、一致しなければ国レベルへ落ちるだけである
+   * （DB 側に ISO の形を要求する CHECK を置かない理由もこれ。
+   *   migration 20260904T0000 のコメントを参照）。
    */
-  private extractLocationCodes(
+  extractLocationCodes(
     addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
   ): {
     countryCode: string | null;

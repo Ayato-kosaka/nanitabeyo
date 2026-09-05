@@ -80,7 +80,7 @@ describe('#1671 確認ページ経由の店舗作成', () => {
   };
   let locationsService: {
     resolveLocalLanguageCode: jest.Mock;
-    extractCountryCode: jest.Mock;
+    extractLocationCodes: jest.Mock;
   };
   let logger: {
     debug: jest.Mock;
@@ -107,14 +107,29 @@ describe('#1671 確認ページ経由の店舗作成', () => {
       resolveLocalLanguageCode: jest.fn().mockReturnValue('ja'),
       // ⚠️ 素直に 'JP' を返し切ると «空の入力でも国が出る» という嘘のモックになり、
       //    「addressComponents が空でも落ちないか」を確かめられない。
-      //    本物（LocationsService.extractCountryCode）と同じく、country が
-      //    無ければ null を返す形にしておく
-      extractCountryCode: jest.fn((components: { types?: string[] }[]) =>
-        (Array.isArray(components) ? components : []).some((c) =>
-          (c.types ?? []).includes('country'),
-        )
-          ? 'JP'
-          : null,
+      //    本物（LocationsService.extractLocationCodes）と同じ形にしておく。
+      //
+      // ⚠️ **subterritoryCode は ISO 3166-2 ではない。** 本物は
+      //    `${countryCode}-${administrative_area_level_1.shortText}` を組み立てる
+      //    ので、日本では JP-Tokyo のような英語名が入る。ここを 'JP-13' のような
+      //    «ISO っぽい» 値にすると、本番で起きないことをテストが守ってしまう
+      extractLocationCodes: jest.fn(
+        (components: { types?: string[]; shortText?: string }[]) => {
+          const list = Array.isArray(components) ? components : [];
+          const countryCode = list.some((c) =>
+            (c.types ?? []).includes('country'),
+          )
+            ? 'JP'
+            : null;
+          const admin1 = list.find((c) =>
+            (c.types ?? []).includes('administrative_area_level_1'),
+          )?.shortText;
+          return {
+            countryCode,
+            subterritoryCode:
+              countryCode && admin1 ? `${countryCode}-${admin1}` : null,
+          };
+        },
       ),
     };
     repo = {
@@ -204,7 +219,7 @@ describe('#1671 確認ページ経由の店舗作成', () => {
 
     it('国コードの判定は LocationsService に委譲する（同じ判定を書き写さない）', async () => {
       await service.createRestaurantDraft({ googlePlaceId: PLACE_ID });
-      expect(locationsService.extractCountryCode).toHaveBeenCalledWith(
+      expect(locationsService.extractLocationCodes).toHaveBeenCalledWith(
         ADDRESS_COMPONENTS,
       );
     });
@@ -300,6 +315,56 @@ describe('#1671 確認ページ経由の店舗作成', () => {
       );
     });
 
+    it('#1671 subterritory_code も保存される（料理を現地語で名付けるため）', async () => {
+      const { draftToken } = await issueDraft();
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        name: GOOGLE_NAME,
+        latitude: GOOGLE_LAT,
+        longitude: GOOGLE_LNG,
+      } as CreateRestaurantDto);
+
+      expect(dishesRepository.createOrGetRestaurant).toHaveBeenCalledWith(
+        TX,
+        expect.objectContaining({ subterritory_code: 'JP-Tokyo' }),
+        PLACE_ID,
+      );
+    });
+
+    it('⚠️ subterritory_code はユーザーが差し替えられない（トークンの値が勝つ）', async () => {
+      const { draftToken } = await issueDraft();
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        name: GOOGLE_NAME,
+        latitude: GOOGLE_LAT,
+        longitude: GOOGLE_LNG,
+        // 画面には出していない項目だが、API は直接叩ける。
+        // ここを通してしまうと subterritory_overrides.json と一致しない値を
+        // 好きに入れられ、料理の命名を外から曲げられる
+        subterritoryCode: 'CH-GE',
+      } as CreateRestaurantDto);
+
+      expect(dishesRepository.createOrGetRestaurant).toHaveBeenCalledWith(
+        TX,
+        expect.objectContaining({ subterritory_code: 'JP-Tokyo' }),
+        PLACE_ID,
+      );
+    });
+
+    it('⚠️ 確認ページを通っていなければ subterritory_code を入れない', async () => {
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+      } as CreateRestaurantDto);
+
+      const [, data] = dishesRepository.createOrGetRestaurant.mock.calls[0];
+      // Google の値を «確認済み» の顔で入れないこと（このチケットの主旨）
+      expect(data).not.toHaveProperty('subterritory_code');
+    });
+
     it('書き換えた項目が記録される', async () => {
       const { draftToken } = await issueDraft();
 
@@ -367,6 +432,7 @@ describe('#1671 確認ページ経由の店舗作成', () => {
           plusCodeJson: null,
           address: '東京都',
           countryCode: 'JP',
+          subterritoryCode: 'JP-Tokyo',
         },
         'test-SUPABASE_JWT_SECRET',
         // TTL ぶん過去に発行したことにする
@@ -470,6 +536,30 @@ describe('#1671 確認ページ経由の店舗作成', () => {
           restaurantId: 'existing-uuid',
           address: '東京都渋谷区神南1-2-3',
           countryCode: 'JP',
+        }),
+      );
+    });
+
+    it('#1671 サブ領域コードも一緒に埋める（料理の命名に使う）', async () => {
+      const { draftToken } = await issueDraft();
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue(EXISTING);
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        name: GOOGLE_NAME,
+        latitude: GOOGLE_LAT,
+        longitude: GOOGLE_LNG,
+        address: '東京都渋谷区神南1-2-3',
+        countryCode: 'JP',
+      } as CreateRestaurantDto);
+
+      expect(repo.fillMissingAddress).toHaveBeenCalledWith(
+        TX,
+        expect.objectContaining({
+          // ⚠️ ISO 3166-2 の 'JP-13' ではない。Google の shortText が 'Tokyo' なので
+          //    'JP-Tokyo' になる。ここを ISO へ直したくなったら #1846 を先に読むこと
+          subterritoryCode: 'JP-Tokyo',
         }),
       );
     });

@@ -901,26 +901,42 @@ export class RestaurantsRepository {
       restaurantId: string;
       address: string;
       countryCode: string | null;
+      subterritoryCode: string | null;
     },
   ): Promise<number> {
-    const { restaurantId, address, countryCode } = params;
-    const result = await tx.restaurants.updateMany({
-      where: {
-        id: restaurantId,
-        // 空いているものだけ。片方でも空いていれば対象にする
-        OR: [
-          { address: null },
-          { address: '' },
-          { country_code: null },
-          { country_code: '' },
-        ],
-      },
-      data: {
-        address,
-        ...(countryCode ? { country_code: countryCode } : {}),
-      },
-    });
-    return result.count;
+    const { restaurantId, address, countryCode, subterritoryCode } = params;
+
+    /*
+      #1671 【設計】**列ごとに «空いているものだけ» を埋める。**
+
+      ⚠️ 以前はここが `updateMany` で、WHERE に «どれか 1 つでも空なら» を書き、
+      SET では `address` を **無条件に**書いていた。そのため
+
+          address = '既に確認済みの住所' / country_code = NULL
+
+      の行が WHERE に引っかかり、**埋まっていた住所を上書きしていた**。
+      「埋まっているものは触らない」と書いてあるのに、そうなっていなかった。
+
+      Prisma の updateMany は «列ごとに条件を変える» を書けないので、生 SQL にする。
+      `COALESCE(NULLIF(col, ''), $新しい値)` なら、空（NULL または空文字）のときだけ
+      新しい値が入り、埋まっている列はそのままの値で上書きされる（＝実質そのまま）。
+
+      ⚠️ 判定は SQL の中に閉じること。読んでから TS で分岐して書くと、
+      同じ店を 2 人が同時に確認したときに後勝ちが起きる。
+    */
+    return tx.$executeRaw(Prisma.sql`
+      UPDATE restaurants
+      SET
+        address           = COALESCE(NULLIF(address, ''), ${address}),
+        country_code      = COALESCE(NULLIF(country_code, ''), ${countryCode}),
+        subterritory_code = COALESCE(NULLIF(subterritory_code, ''), ${subterritoryCode})
+      WHERE id = ${restaurantId}::uuid
+        AND (
+             NULLIF(address, '') IS NULL
+          OR NULLIF(country_code, '') IS NULL
+          OR NULLIF(subterritory_code, '') IS NULL
+        )
+    `);
   }
 
   /* ------------------------------------------------------------------ */

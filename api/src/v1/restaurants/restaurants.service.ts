@@ -270,7 +270,12 @@ export class RestaurantsService {
       // ⚠️ 確認を通っていない経路（draftToken なし）では **触らない**。
       //    Google の値を «確認済み» の顔で入れないため（それがこのチケットの主旨）。
       ...(confirmed
-        ? { address: confirmed.address, country_code: confirmed.countryCode }
+        ? {
+            address: confirmed.address,
+            country_code: confirmed.countryCode,
+            // #1671 料理の命名（現地言語の解決）に使う。確認ページを通ったときだけ入れる
+            subterritory_code: confirmed.subterritoryCode,
+          }
         : {}),
       // 【非推奨カラム】だがスキーマ上必須であれば空文字で維持
       image_url: '',
@@ -313,13 +318,14 @@ export class RestaurantsService {
 
     // 列が空なら addressComponents から組み立てて初期値にする。
     // どちらも空なら空欄で出し、ユーザーが 1 から書く
-    const countryCode =
-      existing.country_code ||
-      this.locationsService.extractCountryCode(
-        addressComponents as Parameters<
-          LocationsService['extractCountryCode']
-        >[0],
-      );
+    const derived = this.locationsService.extractLocationCodes(
+      addressComponents as Parameters<
+        LocationsService['extractLocationCodes']
+      >[0],
+    );
+    const countryCode = existing.country_code || derived.countryCode;
+    const subterritoryCode =
+      existing.subterritory_code || derived.subterritoryCode;
     const address =
       existing.address || buildDisplayAddress(addressComponents, countryCode);
 
@@ -335,6 +341,7 @@ export class RestaurantsService {
         : null,
       address,
       countryCode,
+      subterritoryCode,
     };
 
     this.logger.debug('RestaurantDraftFromExisting', 'createRestaurantDraft', {
@@ -417,11 +424,13 @@ export class RestaurantsService {
     }
 
     const addressComponents = placeDetail.addressComponents ?? [];
-    const countryCode = this.locationsService.extractCountryCode(
-      addressComponents as Parameters<
-        LocationsService['extractCountryCode']
-      >[0],
-    );
+    // #1671 国とサブ領域は同じ addressComponents から同時に決まる。呼び分けない
+    const { countryCode, subterritoryCode } =
+      this.locationsService.extractLocationCodes(
+        addressComponents as Parameters<
+          LocationsService['extractLocationCodes']
+        >[0],
+      );
 
     const payload: RestaurantDraftTokenPayload = {
       googlePlaceId: dto.googlePlaceId,
@@ -435,11 +444,13 @@ export class RestaurantsService {
         : null,
       address: buildDisplayAddress(addressComponents, countryCode),
       countryCode,
+      subterritoryCode,
     };
 
     this.logger.debug('RestaurantDraftIssued', 'createRestaurantDraft', {
       googlePlaceId: dto.googlePlaceId,
       countryCode,
+      subterritoryCode,
     });
 
     return {
@@ -501,6 +512,8 @@ export class RestaurantsService {
       longitude: dto.longitude ?? baseline.longitude,
       address: dto.address ?? baseline.address,
       countryCode: dto.countryCode ?? baseline.countryCode,
+      // #1671 ⚠️ ユーザーは編集できないので dto を見ない。トークンの値をそのまま通す
+      subterritoryCode: baseline.subterritoryCode,
     };
 
     return {
@@ -583,6 +596,8 @@ export class RestaurantsService {
               restaurantId: existingRestaurant.id,
               address: confirmationForExisting.confirmed.address,
               countryCode: confirmationForExisting.confirmed.countryCode,
+              subterritoryCode:
+                confirmationForExisting.confirmed.subterritoryCode,
             }),
         );
 
