@@ -31,6 +31,57 @@ LOGGER = logging.getLogger(__name__)
 DEFAULT_AREA_RADIUS_M = 3000
 
 
+# #1273 【設計】resolve のスループットを «推測で語らない» ための計測。
+# 1 投稿の所要時間は «resolve API の往復» が支配的だが、その中身（IG 取得する/しない・
+# エリア検索する/しない）で桁が違う。どの条件が何 ms なのかを **run 自身が数えて**
+# ジョブログへ出す。集計の分母は «その条件に該当した投稿数» で、母数ごと必ず併記する。
+class Timings:
+    """条件ごとの所要時間サンプルを溜め、p50/p90 と件数で報告する。thread-safe。"""
+
+    def __init__(self) -> None:
+        import threading
+        self._lock = threading.Lock()
+        self.samples: dict[str, list[float]] = {}
+
+    def add(self, key: str, seconds: float) -> None:
+        with self._lock:
+            self.samples.setdefault(key, []).append(seconds)
+
+    @staticmethod
+    def _pct(xs: list[float], q: float) -> float:
+        if not xs:
+            return 0.0
+        ys = sorted(xs)
+        i = min(len(ys) - 1, max(0, int(round(q * (len(ys) - 1)))))
+        return ys[i]
+
+    def report(self, title: str) -> None:
+        with self._lock:
+            keys = sorted(self.samples)
+        LOGGER.info("=== %s ===", title)
+        LOGGER.info("%-34s %7s %9s %9s %9s %9s", "条件", "件数", "平均ms", "p50ms", "p90ms", "合計s")
+        for k in keys:
+            xs = self.samples[k]
+            LOGGER.info("%-34s %7d %9.0f %9.0f %9.0f %9.1f", k, len(xs),
+                        1000 * sum(xs) / len(xs), 1000 * self._pct(xs, 0.5),
+                        1000 * self._pct(xs, 0.9), sum(xs))
+
+
+def _cond_key(post, resp) -> str:
+    """1 投稿の «条件» を 1 本の文字列にする（caption 有無 × エリア有無 × 検索が走ったか）。"""
+    cap = "cap" if (post.get("caption") or "").strip() else "nocap"
+    area = "area" if post["discovery_area_lat"] is not None else "noarea"
+    if resp is None:
+        return f"{cap}/{area}/ERROR"
+    d = resp.get("data") if isinstance(resp.get("data"), dict) else resp
+    rs = (d or {}).get("restaurantSearch") or {}
+    if rs.get("performed"):
+        tail = "search"
+    else:
+        tail = "no_search:" + str(rs.get("reason") or (d or {}).get("reason") or "?")
+    return f"{cap}/{area}/{tail}"
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="sns_post_raw を resolve に通して sns_post_resolved を作る")
     p.add_argument("--run-id", default=None)
@@ -153,14 +204,21 @@ def main() -> None:
     client = ResolveClient()  # base_url は common_sns の BACKEND_BASE_URL
     now_iso = utc_now().isoformat()
     sleep_s = max(args.sleep_ms, 0) / 1000.0
+    timings = Timings()
+    bq = Timings()
 
     def fetch() -> list:
-        return _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
-                                 args.shards, args.shard, args.reresolve_prev_status,
-                                 args.caption_regexp, args.only_with_area,
-                                 [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None,
-                                 args.only_without_area)
+        t0 = time.perf_counter()
+        try:
+            return _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
+                                     args.shards, args.shard, args.reresolve_prev_status,
+                                     args.caption_regexp, args.only_with_area,
+                                     [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None,
+                                     args.only_without_area)
+        finally:
+            bq.add("BQ:未処理の取り出し(1回)", time.perf_counter() - t0)
 
+    t_start = time.monotonic()
     deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes > 0 else 0.0
     posts = fetch()
     LOGGER.info("未 resolve %d 投稿を処理します（resolve_version=%s, shard=%d/%d, 狙い撃ち=%s）",
@@ -183,7 +241,10 @@ def main() -> None:
         def _flush() -> None:
             nonlocal rows, total
             if rows:
+                t0 = time.perf_counter()
+                n = len(rows)
                 total += pipeline.load_json_rows(TABLE_POST_RESOLVED, rows)
+                bq.add(f"BQ:sns_post_resolved へロード({n}行/回)", time.perf_counter() - t0)
                 rows = []
 
         def _resolve_one(post):
@@ -192,16 +253,19 @@ def main() -> None:
             lat = post["discovery_area_lat"]
             lng = post["discovery_area_lng"]
             radius = args.area_radius_m if (lat is not None and lng is not None) else None
+            t0 = time.perf_counter()
             try:
                 resp = client.resolve_raw(
                     post["canonical_url"], lat=lat, lng=lng, radius=radius,
                     caption=post.get("caption"), author_name=post.get("author_name"),
                 )
-                return (post, resp)
             except (urllib.error.URLError, TimeoutError, ValueError) as e:
                 # resolve 到達不可・タイムアウト等はこの投稿を «未処理» のまま残す（行を作らない）
+                timings.add(_cond_key(post, None), time.perf_counter() - t0)
                 LOGGER.warning("resolve 失敗 post_id=%s: %s", post["post_id"], str(e)[:160])
                 return (post, None)
+            timings.add(_cond_key(post, resp), time.perf_counter() - t0)
+            return (post, resp)
 
         def _handle(post, resp) -> None:
             """resolve 結果を集約する。**メインスレッドだけが呼ぶ**ので lock 不要。"""
@@ -266,6 +330,12 @@ def main() -> None:
 
         _flush()
         result["row_count"] = total
+        elapsed = time.monotonic() - t_start
+        timings.report(f"1 投稿あたりの resolve 所要時間（concurrency={concurrency}）")
+        bq.report("BigQuery の待ち時間")
+        LOGGER.info("実効スループット: %d 件 / %.1f 秒 = **%.2f 投稿/秒**（= %.0f 投稿/時, concurrency=%d, shard=%d/%d）",
+                    total, elapsed, total / elapsed if elapsed else 0.0,
+                    3600 * total / elapsed if elapsed else 0.0, concurrency, args.shard, args.shards)
         LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d）を投入しました",
                     total, matched, n_err)
 
