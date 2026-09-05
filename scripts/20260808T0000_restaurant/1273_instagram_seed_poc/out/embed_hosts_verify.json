@@ -1,0 +1,2067 @@
+{
+ "wat_scan": {
+  "crawl": "CC-MAIN-2026-34",
+  "files": 40,
+  "file_index_from": 16000,
+  "file_index_step": 900,
+  "gb": 5.86,
+  "sec_per_file": 8,
+  "hosts_with_ig_post_embed": 4174,
+  "jp_food_hosts": 123,
+  "new_vs_all_known_hosts": 89,
+  "already_crawled_by_4_12": 3,
+  "note": "4_9 が舐めた wat.paths[0:16000] の外側から 40 本。hosts は «日本語 × 飲食の根拠を持つ» 123 件（source=known は既知 host）"
+ },
+ "verify_random_new20": [
+  {
+   "host": "shokutuu.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "panja-bread.com",
+   "robots": true,
+   "articles_in_sitemap": 11,
+   "fetched": 8,
+   "articles_with_embed": 2,
+   "posts": 20,
+   "jp": true,
+   "food": false,
+   "sample": "https://panja-bread.com/panja/"
+  },
+  {
+   "host": "matsugeblog.com",
+   "robots": true,
+   "articles_in_sitemap": 441,
+   "fetched": 8,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "news123.work",
+   "robots": true,
+   "articles_in_sitemap": 2001,
+   "fetched": 8,
+   "articles_with_embed": 1,
+   "posts": 1,
+   "jp": true,
+   "food": true,
+   "sample": "https://news123.work/gourmet/hirunandesu220830curry/"
+  },
+  {
+   "host": "nagasaki-izakaya.com",
+   "robots": true,
+   "articles_in_sitemap": 203,
+   "fetched": 8,
+   "articles_with_embed": 8,
+   "posts": 160,
+   "jp": true,
+   "food": true,
+   "sample": "https://nagasaki-izakaya.com/fdm-menu-section/hoju-pig/"
+  },
+  {
+   "host": "kiten.jp",
+   "robots": true,
+   "articles_in_sitemap": 916,
+   "fetched": 8,
+   "articles_with_embed": 8,
+   "posts": 72,
+   "jp": true,
+   "food": true,
+   "sample": "https://kiten.jp/info/770107"
+  },
+  {
+   "host": "saiyu-koshigaya.com",
+   "robots": true,
+   "articles_in_sitemap": 52,
+   "fetched": 8,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "newnaga.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "ladasia.com",
+   "robots": true,
+   "articles_in_sitemap": 166,
+   "fetched": 8,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": true,
+   "sample": ""
+  },
+  {
+   "host": "hitachinaka-tsushin.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "fukucyan.net",
+   "robots": true,
+   "articles_in_sitemap": 1190,
+   "fetched": 7,
+   "articles_with_embed": 3,
+   "posts": 25,
+   "jp": true,
+   "food": true,
+   "sample": "https://fukucyan.net/archives/2554501.html"
+  },
+  {
+   "host": "michinoeki-kannabe.com",
+   "robots": true,
+   "articles_in_sitemap": 476,
+   "fetched": 8,
+   "articles_with_embed": 8,
+   "posts": 80,
+   "jp": true,
+   "food": false,
+   "sample": "https://michinoeki-kannabe.com/spa/8411/"
+  },
+  {
+   "host": "gurutto-matsumoto.com",
+   "robots": true,
+   "articles_in_sitemap": 3000,
+   "fetched": 8,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "nino-fellows-club.jp",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "tohoku-walker.jp",
+   "robots": true,
+   "articles_in_sitemap": 469,
+   "fetched": 8,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "t-pash.com",
+   "robots": true,
+   "articles_in_sitemap": 32,
+   "fetched": 8,
+   "articles_with_embed": 5,
+   "posts": 45,
+   "jp": true,
+   "food": true,
+   "sample": "https://t-pash.com/blog_category/photo/"
+  },
+  {
+   "host": "ohagitodaifuku.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "grace-iwaki.com",
+   "robots": true,
+   "articles_in_sitemap": 3000,
+   "fetched": 8,
+   "articles_with_embed": 3,
+   "posts": 3,
+   "jp": true,
+   "food": false,
+   "sample": "https://www.gurutto-iwaki.com/detail/969/news/news-708505.html"
+  },
+  {
+   "host": "getuniversal.co.jp",
+   "robots": true,
+   "articles_in_sitemap": 176,
+   "fetched": 8,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "mic-paint.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  }
+ ],
+ "verify_media_like_new33": [
+  {
+   "host": "shokutuu.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "tohoku-walker.jp",
+   "robots": true,
+   "articles_in_sitemap": 469,
+   "fetched": 12,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "saiyu-koshigaya.com",
+   "robots": true,
+   "articles_in_sitemap": 52,
+   "fetched": 12,
+   "articles_with_embed": 3,
+   "posts": 24,
+   "jp": true,
+   "food": false,
+   "sample": "https://www.saiyu-koshigaya.com/efforts/article_96/"
+  },
+  {
+   "host": "atsugi-lab.com",
+   "robots": true,
+   "articles_in_sitemap": 2382,
+   "fetched": 12,
+   "articles_with_embed": 1,
+   "posts": 3,
+   "jp": true,
+   "food": true,
+   "sample": "https://atsugi-lab.com/sponsor-partner/"
+  },
+  {
+   "host": "e-mono-web.jp",
+   "robots": true,
+   "articles_in_sitemap": 245,
+   "fetched": 12,
+   "articles_with_embed": 10,
+   "posts": 200,
+   "jp": true,
+   "food": false,
+   "sample": "https://www.e-mono-web.jp/about/"
+  },
+  {
+   "host": "ayasuke-life.com",
+   "robots": true,
+   "articles_in_sitemap": 69,
+   "fetched": 12,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": true,
+   "sample": ""
+  },
+  {
+   "host": "leadup.blog",
+   "robots": true,
+   "articles_in_sitemap": 310,
+   "fetched": 12,
+   "articles_with_embed": 4,
+   "posts": 80,
+   "jp": true,
+   "food": false,
+   "sample": "https://leadup.blog/xeory-fixed-banner/8751/"
+  },
+  {
+   "host": "bs-h15th.net",
+   "robots": true,
+   "articles_in_sitemap": 242,
+   "fetched": 12,
+   "articles_with_embed": 12,
+   "posts": 216,
+   "jp": true,
+   "food": false,
+   "sample": "https://bs-h15th.net/2026/07/5084/"
+  },
+  {
+   "host": "kasioda.com",
+   "robots": true,
+   "articles_in_sitemap": 3000,
+   "fetched": 12,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": true,
+   "sample": ""
+  },
+  {
+   "host": "myzkc.jp",
+   "robots": true,
+   "articles_in_sitemap": 2873,
+   "fetched": 12,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": true,
+   "sample": ""
+  },
+  {
+   "host": "kelownainfo.jp",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "ohatadaisukeshouten.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "mitoyo-kanko.com",
+   "robots": true,
+   "articles_in_sitemap": 740,
+   "fetched": 12,
+   "articles_with_embed": 12,
+   "posts": 216,
+   "jp": true,
+   "food": false,
+   "sample": "https://www.mitoyo-kanko.com/chichibu_data/chichibu_data_year/2027/"
+  },
+  {
+   "host": "nail-recruit.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "hitachinaka-tsushin.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "ng-life.jp",
+   "robots": true,
+   "articles_in_sitemap": 392,
+   "fetched": 12,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": true,
+   "sample": ""
+  },
+  {
+   "host": "nagoyanotes.com",
+   "robots": true,
+   "articles_in_sitemap": 383,
+   "fetched": 12,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": true,
+   "sample": ""
+  },
+  {
+   "host": "bellasol.shop",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "sendaiminami-tusin.com",
+   "robots": true,
+   "articles_in_sitemap": 2426,
+   "fetched": 12,
+   "articles_with_embed": 12,
+   "posts": 75,
+   "jp": true,
+   "food": true,
+   "sample": "https://sendaiminami-tusin.com/yakurai-rose2023/"
+  },
+  {
+   "host": "kireina-umi.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "news123.work",
+   "robots": true,
+   "articles_in_sitemap": 2001,
+   "fetched": 12,
+   "articles_with_embed": 1,
+   "posts": 1,
+   "jp": true,
+   "food": true,
+   "sample": "https://news123.work/gourmet/hirunandesu220830curry/"
+  },
+  {
+   "host": "kokusaidorinews.com",
+   "robots": true,
+   "articles_in_sitemap": 79,
+   "fetched": 12,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": true,
+   "sample": ""
+  },
+  {
+   "host": "gyl-magazine.jp",
+   "robots": true,
+   "articles_in_sitemap": 559,
+   "fetched": 12,
+   "articles_with_embed": 1,
+   "posts": 3,
+   "jp": true,
+   "food": false,
+   "sample": "https://gyl-magazine.jp/kaithong-tokyo/"
+  },
+  {
+   "host": "kurasimple.net",
+   "robots": true,
+   "articles_in_sitemap": 805,
+   "fetched": 12,
+   "articles_with_embed": 11,
+   "posts": 165,
+   "jp": true,
+   "food": false,
+   "sample": "https://www.kurasimple.net/hf02/"
+  },
+  {
+   "host": "gurutto-matsumoto.com",
+   "robots": true,
+   "articles_in_sitemap": 3000,
+   "fetched": 12,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": true,
+   "sample": ""
+  },
+  {
+   "host": "bait-casting.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "entamelangon.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "ibd.qlife.jp",
+   "robots": true,
+   "articles_in_sitemap": 2065,
+   "fetched": 12,
+   "articles_with_embed": 12,
+   "posts": 108,
+   "jp": true,
+   "food": false,
+   "sample": "https://ibd.qlife.jp/pregnancy-survey"
+  },
+  {
+   "host": "kansai-kaiten.com",
+   "robots": true,
+   "articles_in_sitemap": 2457,
+   "fetched": 12,
+   "articles_with_embed": 5,
+   "posts": 5,
+   "jp": true,
+   "food": true,
+   "sample": "https://kansai-kaiten.com/elepant_kusatsu2603/"
+  },
+  {
+   "host": "1plus.pw",
+   "robots": true,
+   "articles_in_sitemap": 924,
+   "fetched": 12,
+   "articles_with_embed": 12,
+   "posts": 12,
+   "jp": true,
+   "food": true,
+   "sample": "https://www.1plus.pw/rule/"
+  },
+  {
+   "host": "kuromaru.asia",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "takuhaaai.com",
+   "robots": true,
+   "articles_in_sitemap": 337,
+   "fetched": 12,
+   "articles_with_embed": 12,
+   "posts": 123,
+   "jp": true,
+   "food": true,
+   "sample": "https://takuhaaai.com/privacy-policy/"
+  },
+  {
+   "host": "matsugeblog.com",
+   "robots": true,
+   "articles_in_sitemap": 441,
+   "fetched": 12,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  }
+ ],
+ "verify_network_gurutto12": [
+  {
+   "host": "gurutto-fukushima.com",
+   "robots": true,
+   "articles_in_sitemap": 3000,
+   "fetched": 10,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "gurutto-fujinomiya.com",
+   "robots": true,
+   "articles_in_sitemap": 786,
+   "fetched": 1,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "gurutto-yokkaichi.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "gurutto-awajishima.com",
+   "robots": true,
+   "articles_in_sitemap": 62,
+   "fetched": 10,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "gurutto-oosumi.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "gurutto-iwaki.com",
+   "robots": true,
+   "articles_in_sitemap": 3000,
+   "fetched": 10,
+   "articles_with_embed": 3,
+   "posts": 3,
+   "jp": true,
+   "food": false,
+   "sample": "https://www.gurutto-iwaki.com/detail/969/news/news-708505.html"
+  },
+  {
+   "host": "gurutto-koriyama.com",
+   "robots": true,
+   "articles_in_sitemap": 3000,
+   "fetched": 10,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "gurutto-soso.com",
+   "robots": true,
+   "articles_in_sitemap": 3000,
+   "fetched": 10,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "gurutto-aizu.com",
+   "robots": true,
+   "articles_in_sitemap": 3000,
+   "fetched": 10,
+   "articles_with_embed": 2,
+   "posts": 2,
+   "jp": true,
+   "food": true,
+   "sample": "https://www.gurutto-aizu.com/detail/951/news/news-253312.html"
+  },
+  {
+   "host": "gurutto-shimokawa.com",
+   "robots": true,
+   "articles_in_sitemap": 79,
+   "fetched": 3,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "gurutto-tsuchiura.com",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "gurutto-uminote.com",
+   "robots": true,
+   "articles_in_sitemap": 224,
+   "fetched": 10,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": true,
+   "food": false,
+   "sample": ""
+  }
+ ],
+ "verify_network_keizai_mypl20": [
+  {
+   "host": "nishitama.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "koto.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "kazusa-kimitsu.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "shunan.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "taipei.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "himeji.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "utsunomiya.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "iseshima.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "choshi.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "kasuga-onojo.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "iki-tsushima.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "hachioji.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "niimi.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "wakayama.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "chiba.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "vancouver.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "okayama.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "imabari.keizai.biz",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "kawasaki.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  },
+  {
+   "host": "ohtawara.mypl.net",
+   "robots": true,
+   "articles_in_sitemap": 0,
+   "fetched": 0,
+   "articles_with_embed": 0,
+   "posts": 0,
+   "jp": false,
+   "food": false,
+   "sample": ""
+  }
+ ],
+ "wat_scan_hosts": [
+  {
+   "host": "sachycamera.com",
+   "pages": "2",
+   "posts": "12",
+   "food": "1",
+   "kana": "2",
+   "source": "wat",
+   "title": "遊びながら目的を果たす。気づくとできてる。これでいいのだ。 – サチカメ！"
+  },
+  {
+   "host": "tukinohito.com",
+   "pages": "2",
+   "posts": "10",
+   "food": "2",
+   "kana": "2",
+   "source": "wat",
+   "title": "プチプチ投資　「つみたてNISA」　嬉しいんだけど。。。"
+  },
+  {
+   "host": "urawa8.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "タルトがメインのケーキ屋さん・見た目良くお土産に【ラメゾンアンソレイユターブルパティスリー 】～浦和駅～ | 浦和の暮らし研究室"
+  },
+  {
+   "host": "sakura-mirai.com",
+   "pages": "1",
+   "posts": "18",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "ベルマークの御礼 | さくら保育園"
+  },
+  {
+   "host": "hanatouta.hummingwater.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "夏野菜とかき揚げの天ぷら盛り合わせ"
+  },
+  {
+   "host": "ja-shizuokashi.or.jp",
+   "pages": "1",
+   "posts": "21",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "2026年度広報モニター募集中！｜JA静岡市"
+  },
+  {
+   "host": "korfball.jp",
+   "pages": "1",
+   "posts": "6",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "JKA説明会資料 – 日本コーフボール協会"
+  },
+  {
+   "host": "michinoeki-kannabe.com",
+   "pages": "1",
+   "posts": "10",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "神鍋温泉ゆとろぎの季節湯＜2025年冬至の前日はゆず湯です＞ 12/21(日)開催 | 道の駅 神鍋高原"
+  },
+  {
+   "host": "panja-bread.com",
+   "pages": "1",
+   "posts": "10",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "ぱんじゃ – 株式会社ふたば"
+  },
+  {
+   "host": "gurutto-matsumoto.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "熊が怖くて、最近散歩に行きづらい…🐻💦そんな声をよく聞きます。外が不安な日は、涼しい室内で安全に運動を。チョコザップなら、...（2026.08.03） | 安曇野市の美容・健康 - チョコザップ安曇野穂高店 | ぐるっ"
+  },
+  {
+   "host": "neyagawa-np.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "川勝町の「らーめん一作」が改装のため一時休業。7月2日〜21日 - 寝屋川つーしん"
+  },
+  {
+   "host": "swing-by.tokyo",
+   "pages": "2",
+   "posts": "19",
+   "food": "1",
+   "kana": "2",
+   "source": "known",
+   "title": "萌え御朱印 - 町田 オタク・サブカルBAR Swing-By"
+  },
+  {
+   "host": "matsugeblog.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【令和の虎】渡邊正都さんのその後は？ヴィーガンカレーやレストランの現在とともに解説！【Fine Fast Foods/gaston&gaspar】 | まつげブログ"
+  },
+  {
+   "host": "yukkurihouse.com",
+   "pages": "1",
+   "posts": "6",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "偏食な子供におすすめの外食先！勝率80％越えスポットを紹介！！ | ゆっくりはうす"
+  },
+  {
+   "host": "fuyukohimatsubushi.com",
+   "pages": "1",
+   "posts": "4",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "【KinKi Kidsのブンブブーン】韓国グルメまとめ(ジェジュンのサムゲタン・北斗晶のチュクミ・高橋愛のキンパなど)勝地涼さんと堪能｜7月2日"
+  },
+  {
+   "host": "hbacc.jp",
+   "pages": "1",
+   "posts": "8",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "宇部市のフィットネスクラブ－HBACC ｜ゴルフ練習場併設のジム"
+  },
+  {
+   "host": "itabashi-times.com",
+   "pages": "1",
+   "posts": "6",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "板橋が金沢にグッと近づいた！？不動通りのラッピーフェスティバルに行ってきた。 – いたばしTIMES"
+  },
+  {
+   "host": "ng-life.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【気軽にフレンチ】新潟市西区寺尾にオープンした「French Rice（フレンチライス）」でおしゃれランチ＆デリを堪能してきた♪ | 新潟永住計画"
+  },
+  {
+   "host": "my-hkg.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "日本未上陸！香港で出会ったハーゲンダッツカフェが楽しすぎた - My Hong Kong｜迷香港"
+  },
+  {
+   "host": "rce.jp",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "社員研修による臨時休業のお知らせ | 株式会社RCE"
+  },
+  {
+   "host": "ameblo.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "【ベーキングパウダー・砂糖不使用】米粉のふわふわメープルケーキ＊朝はトイレ混む問題 | 元パティシエの砂糖・油ひかえめおやつ"
+  },
+  {
+   "host": "diy-chocori.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "セルフリノベーション - Chocori’s DIY"
+  },
+  {
+   "host": "nagasaki-izakaya.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "2021年7月 – 長崎市思案橋銅座の居酒屋「長崎炉ばた はち舎」公式ホームページ"
+  },
+  {
+   "host": "nekomoriya.biz",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "紫陽花の季節には～5way？苦心の作トートバッグ – 極楽ひだまり保育園"
+  },
+  {
+   "host": "bar-unity.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "Cr1BmXuUEAA-SSc | REGGAE BAR UNITY | 北海道釧路市のレゲエバー"
+  },
+  {
+   "host": "kakogawa.goguynet.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "【加古川市】新店名は「カフェ・グリーンラバーズ」。別府川沿いに移転して2/21（水）オープンです。 | 号外NET 加古川市・高砂市"
+  },
+  {
+   "host": "kimukazu.me",
+   "pages": "2",
+   "posts": "16",
+   "food": "1",
+   "kana": "2",
+   "source": "wat",
+   "title": "リストランテ ミヤモト | キムカズ発信"
+  },
+  {
+   "host": "kiten.jp",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "高円寺・スポーツ居酒屋KITEN! | 1/8(土)新日本 vs ノア！夢の対決が実現！"
+  },
+  {
+   "host": "nino-fellows-club.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "福岡 太宰府🍛MIDLE.（ミドル）「表参道すぐ⛩High古民家カフェの本格カレー。」 | Nino.Fellows.Club Official Site"
+  },
+  {
+   "host": "shota-sato.net",
+   "pages": "2",
+   "posts": "7",
+   "food": "2",
+   "kana": "2",
+   "source": "known",
+   "title": "エステやヘッドスパ、顔剃りもできる三鷹のヘアスタジオカルージュへお邪魔してきました。 | Hartim代官山・恵比寿｜美容院｜縮毛矯正｜髪質改善"
+  },
+  {
+   "host": "kurasimple.net",
+   "pages": "2",
+   "posts": "15",
+   "food": "2",
+   "kana": "2",
+   "source": "wat",
+   "title": "山形と庄内で開催します♪『お片づけカードワーク』｜山形・庄内（酒田･鶴岡）の片づけ・整理収納アドバイザー【暮らしんぷる】"
+  },
+  {
+   "host": "grace-iwaki.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": ".。.:＊・゜年末年始お休みのご案内。.:＊・゜⁡年内の営業を12/28(木)までとさせていただき、29日(金)〜2024/1/4(木)までをお休み....（2023.12.19） | Grace(グレース)｜いわき市の"
+  },
+  {
+   "host": "kyotopi.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "京都錦市場近くに味噌ラーメン専門店「KYOTO MISO RAMEN KAZU（京都味噌ラーメンカズ」がオープン"
+  },
+  {
+   "host": "sanericci.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "出張DJ Disco music Party ” Friday Night Fever ” @ 神奈川 新横浜 ラントラクト ｜ 出張DJ／PAと音響デザインの sanericci cafe ♪（サネリッチ・カフェ）"
+  },
+  {
+   "host": "bellasol.shop",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【超レア石】スギライトブレスレット｜心身の浄化と癒しに導く三大ヒーリングストーン - BellaSol｜湘南の天然石アクセサリー"
+  },
+  {
+   "host": "food-page.com",
+   "pages": "1",
+   "posts": "12",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "今こそ「QRコードメニュー」を活用しましょう！ | 飲食店ホームページ制作のフードページ"
+  },
+  {
+   "host": "nagoyanotes.com",
+   "pages": "1",
+   "posts": "4",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "発酵バター専門店haneru(ハネル)名古屋店はどこ？通販やお取り寄せは可能？"
+  },
+  {
+   "host": "sendaiminami-tusin.com",
+   "pages": "2",
+   "posts": "7",
+   "food": "2",
+   "kana": "2",
+   "source": "wat",
+   "title": "仙台市青葉区錦町にパン屋さんが11月21日オープン！ | 仙台南つうしん"
+  },
+  {
+   "host": "entamelangon.com",
+   "pages": "1",
+   "posts": "3",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【スタバ】ネット限定「クリスマスカードギフト2019」を自分にご褒美！ペーパーバッグはオーナメントに最高！ | ランコカフェ"
+  },
+  {
+   "host": "gyl-magazine.jp",
+   "pages": "1",
+   "posts": "3",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "Teppanyaki: Azamino Ukai-Tei in Yokohama | Information and Reviews｜Gyl Magazine"
+  },
+  {
+   "host": "leadup.blog",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【リードアップ通信2025年11月号】英作文のコツ・高校受験Q&A・大学受験は何校受ければいいの？ | 進学塾リードアップ(旧Makeage[メイケージ])｜検見川浜・稲毛海岸の本当に成績アップできる塾"
+  },
+  {
+   "host": "mic-paint.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "ゼンハイザーSKM835-XSW | PRO_Fit マイク塗装"
+  },
+  {
+   "host": "emilyssw.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "YouTubeチャンネル開設🎶 | EMILY - Pop'n Jazz Singer Songwriter"
+  },
+  {
+   "host": "kireina-umi.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【2019年】兵庫県の綺麗な海「切浜海水浴場」情報！水質や営業時間は？ | 日本の綺麗なビーチ達"
+  },
+  {
+   "host": "ryoheiyotsumoto.com",
+   "pages": "1",
+   "posts": "3",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "ポルカドッド聴きながらFUNNYな気分でお気に入りの奴らとカフェで気取って茶でもでもシバけたら、それだけで人生楽しくね？ | ryoheiyotsumoto.com"
+  },
+  {
+   "host": "smart-resort.com",
+   "pages": "1",
+   "posts": "2",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "株式会社 Smart Resort - 賢い旅の、新しいカタチ。"
+  },
+  {
+   "host": "ohagitodaifuku.com",
+   "pages": "1",
+   "posts": "12",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "おはぎと大福 | 神楽坂／おはぎ"
+  },
+  {
+   "host": "all-gunma.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "【2024】群馬でソースカツどんをテイクアウト・持ち帰りできるおすすめのお店15選！ | おーる群馬"
+  },
+  {
+   "host": "ohmy.s8d.jp",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "宮古島の下里通りにあるビストロ「ビストロ・ピエロ」の地元食材を使った料理が美味しすぎる！ | oh! my ブログ"
+  },
+  {
+   "host": "sobamaeyamato.co.jp",
+   "pages": "1",
+   "posts": "30",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "蕎麦前 山都 （そばまえやまと） 蕎麦前山都"
+  },
+  {
+   "host": "helloasia.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "シンガポール 有名パダン料理店が当面営業停止に。 | シンガポール情報局"
+  },
+  {
+   "host": "kiai-masako.jp",
+   "pages": "1",
+   "posts": "6",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "3つのよいこと　7月28日（水） | 氣愛塾"
+  },
+  {
+   "host": "izumoan.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "老舗の和菓子"
+  },
+  {
+   "host": "saiyu-koshigaya.com",
+   "pages": "1",
+   "posts": "8",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "休診のお知らせ（2023年5月2日）｜【人工透析】埼友クリニック、越谷泌尿器科・内科"
+  },
+  {
+   "host": "bs-h15th.net",
+   "pages": "1",
+   "posts": "18",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "1412548_950454278362606_4485100171279252993_o - Site.BoyScout.H15th【枚方第15団】"
+  },
+  {
+   "host": "home.tsuku2.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "尾鷲 海鮮ランチ｜地魚刺身定食1800円〜 ほんじつのさかな（夢古道おわせ）｜漁港直送"
+  },
+  {
+   "host": "kurozo.dreamlog.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "【絶品】京都　一善や 『干柿と胡桃と無花果のミルフィーユ』 : くろにゃんの孤高のグルメ旅"
+  },
+  {
+   "host": "myzkc.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【開店】ドーナツ屋さんのTRUFFLE DONUT 宮崎 一ツ葉店がオープンしたよ | ジモシル宮崎"
+  },
+  {
+   "host": "kokusaidorinews.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "ビタスムージーズ｜沖縄の果物を使ったスムージーが飲めるおすすめのお店！ | 国際通り通信"
+  },
+  {
+   "host": "shokutuu.net",
+   "pages": "1",
+   "posts": "21",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【実食レポート】北垣商店（熊本県）の「天草梅肉ポーク（ロース）」 | 食通きどり"
+  },
+  {
+   "host": "1plus.pw",
+   "pages": "2",
+   "posts": "1",
+   "food": "1",
+   "kana": "2",
+   "source": "wat",
+   "title": "【六甲道ランチ】やさしくて、ちょうどいい。 「ラーメン えがお」で味わう、ラーメン×炒飯の王道セット神戸市の賃貸物件を探すならOnePlus六甲道本店"
+  },
+  {
+   "host": "ayasuke-life.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "表参道【カイカイナ kaikaina】絶品クリームと厳選したフルーツで作るフルーツサンド！"
+  },
+  {
+   "host": "fukucyan.net",
+   "pages": "2",
+   "posts": "8",
+   "food": "2",
+   "kana": "2",
+   "source": "wat",
+   "title": "リーズナブルなお弁当と名物・海軍カレー！「笑屋　諫早店」（諫早市幸町） : 長崎＠諫早市民 ふくちゃんの食う・寝る・遊ぶ日記"
+  },
+  {
+   "host": "jyoutouminamiah.jp",
+   "pages": "1",
+   "posts": "12",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "ブラックボード！！ | 城東みなみ動物病院"
+  },
+  {
+   "host": "kasioda.com",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "新大久保で人気の焼肉・サムギョプサル屋さんおすすめはここ！その２ – 韓国情報メディアK Village MODULY Web（モドゥリーウェブ）"
+  },
+  {
+   "host": "sakanaya-maruyasu.com",
+   "pages": "1",
+   "posts": "26",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "【メルマガ】｢さかな家からのお知らせ｣(1/28 第19号 2415号)より | 丸安魚店/さかな家"
+  },
+  {
+   "host": "ukemenouter.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "インターネット | ウケメンのアウターヘイブン"
+  },
+  {
+   "host": "newnaga.com",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "地獄カフェ"
+  },
+  {
+   "host": "kitaq.media",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "【若松区】 豊前裏打ち会「めん天」 ぶっかけうどんとカツ丼が絶品 | 北九州ノコト"
+  },
+  {
+   "host": "t-pash.com",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "t-pash.com | 株式会社Pash コーポレートサイト"
+  },
+  {
+   "host": "sayuris-chiffon.com",
+   "pages": "1",
+   "posts": "8",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "プライバシーポリシー | たまご屋さんのシフォンケーキ『Sayuri's chiffon』【米粉シフォン専門店】"
+  },
+  {
+   "host": "e-mono-web.jp",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "初心者も上級者も大満足！丸棒を使った簡単DIY「KINOBO」 - いいものマガジンウェブ｜読者参加型コミュニティマガジン"
+  },
+  {
+   "host": "hatajirushi.jp",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "株式会社WHERE | 山梨ハタオリ産地の今を伝える ハタオリマチのハタ印"
+  },
+  {
+   "host": "haveagood.holiday",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "Day & Coffeeへ行くなら！おすすめの過ごし方や周辺情報をチェック | Holiday [ホリデー]"
+  },
+  {
+   "host": "kissa-so-su.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "3月の営業日🗓 – KISSA SO-SU"
+  },
+  {
+   "host": "5horn.jp",
+   "pages": "2",
+   "posts": "6",
+   "food": "2",
+   "kana": "2",
+   "source": "known",
+   "title": "【9月のおすすめケーキ】秋の味覚♪２種類のフルーツタルト登場 - 松本市のケーキ屋 5HORN(ファイブホルン)【公式】"
+  },
+  {
+   "host": "odakesyokuhin.co.jp",
+   "pages": "1",
+   "posts": "12",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "新潟の名物・特産品販売 小竹食品 - 新潟の名物や特産品を中心に美味しい食を全国へお届けいたします。"
+  },
+  {
+   "host": "fhoto-shoufuku.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "階段で微笑んでいる写真 | 『出張PHOTO 笑福』奈良県の出張撮影サービス"
+  },
+  {
+   "host": "getuniversal.co.jp",
+   "pages": "1",
+   "posts": "8",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "地球をキャンパスに学ぶ英会話・スペイン語プログラムGET – 地球をキャンパスに学ぶ英会話・スペイン語プログラムGET｜高田馬場校＆ピースボート洋上校"
+  },
+  {
+   "host": "maroniekai-swc.jp",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "マロニエだより - 社会福祉法人 マロニエ会 - Page 3"
+  },
+  {
+   "host": "photohouse.co.jp",
+   "pages": "1",
+   "posts": "4",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "兵庫県でも認められました。 | Photohouse / 西宮・尼崎・武庫之荘　家族写真や証明写真の写真館　フォトハウス"
+  },
+  {
+   "host": "roman-atumi.com",
+   "pages": "1",
+   "posts": "16",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "#上喜元スマイルジョー純米吟醸無濾過生#上喜元#スマイル#ジョー#純米吟醸#無濾過生#純米生原酒#生もと#酒田酒造#Smile#ジョウキゲン#限定酒#山形県#酒田市#Japan#drink#sake#日本酒#酒屋#愛知県"
+  },
+  {
+   "host": "yuru-survival.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "PXL_20250105_073844428.MP | ゆるくサバイバル"
+  },
+  {
+   "host": "dennkiya.com",
+   "pages": "1",
+   "posts": "8",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "エディオン三山木電器"
+  },
+  {
+   "host": "cake-hidamari.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "タイガースおむつケーキ 完成紹介！！ | 広島のおむつケーキ専門店、アトリエ陽だまり"
+  },
+  {
+   "host": "ikebukuro-times.com",
+   "pages": "1",
+   "posts": "6",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "テレビ朝日「じゅん散歩」に池袋が登場！2024年11月18日（月） – 池袋タイムズ"
+  },
+  {
+   "host": "massan.petfoods.shop",
+   "pages": "1",
+   "posts": "12",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "キャットフードやドッグフードの匂いについて。匂いの意味や匂いが強くなる原材料は？｜ペットフード販売士マッサンのペットフードの学校"
+  },
+  {
+   "host": "mymy.pleasure.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "cafe sweets Sablier(カフェスイーツサブリエ）│紀の川市ランチ 9月オープン！大人気でランチタイムは予約で満席！ - 和歌山カフェ/ランチ/ディナーブログ mymy.pleasure"
+  },
+  {
+   "host": "osaka-gourmet01.com",
+   "pages": "1",
+   "posts": "12",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "天王寺 | けんけんの関西食べある記"
+  },
+  {
+   "host": "seido-gsj.jp",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "総本部中級審査会！！"
+  },
+  {
+   "host": "j-freshfactory.com",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "J Fresh Factory株式会社 | 性能のいい花、作っています。 - Page 2"
+  },
+  {
+   "host": "kelownainfo.jp",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【2025年度版】ケロウナのファミリー向けクリスマス・ホリデーおすすめイベント特集 | ケロウナ info.jp"
+  },
+  {
+   "host": "dannadaisuki.com",
+   "pages": "1",
+   "posts": "4",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "クロッフルを千葉で買える人気おすすめカフェ＆お店5選をご紹介！"
+  },
+  {
+   "host": "kansai-kaiten.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【大阪新店】衝撃の5日間、全品半額！シンガポール発・世界を魅了した“八色小籠包”が心斎橋に降臨！『Paradise Dynasty 大阪心斎橋』2026年7月16日オープン！ | 関西ニューオープン情報"
+  },
+  {
+   "host": "ohatadaisukeshouten.com",
+   "pages": "1",
+   "posts": "10",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "※受注生産：3月受付、4月出荷予定【長野県長野市】国産 春のジャム（いちご）＆はちみつ 大畑おすすめ3種セット | 大畑大介商店"
+  },
+  {
+   "host": "tsutsu-ken.com",
+   "pages": "2",
+   "posts": "1",
+   "food": "1",
+   "kana": "2",
+   "source": "wat",
+   "title": "【筒けんフェスティバル】筒けん検定を受けたい人は１０月３１日（金）がチャンス！｜できるから、たのしくなる〜筒けん（つつけん）"
+  },
+  {
+   "host": "yh-kyoto.or.jp",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "utano01の記事一覧"
+  },
+  {
+   "host": "kitanosaketen.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "#限定生原酒 - 北野商店 | 小豆島 Benefit Station きたの"
+  },
+  {
+   "host": "kuromaru.asia",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "ガイドの私のお薦めツアー Mr.サク | くろまる情報局"
+  },
+  {
+   "host": "sid.ac.jp",
+   "pages": "2",
+   "posts": "8",
+   "food": "2",
+   "kana": "2",
+   "source": "wat",
+   "title": "理学療法科8/6(土)・7(日)は夏特別オープンキャンパス！ - 専門学校仙台総合医療大学校"
+  },
+  {
+   "host": "play-in-nature.com",
+   "pages": "1",
+   "posts": "2",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "御前崎港周辺で釣るべきおすすめ魚9選！ポイントも紹介！"
+  },
+  {
+   "host": "cave-tanakaya.com",
+   "pages": "2",
+   "posts": "9",
+   "food": "2",
+   "kana": "2",
+   "source": "wat",
+   "title": "珍しいブドウ品種のワイン | カーヴ田中屋"
+  },
+  {
+   "host": "nail-recruit.com",
+   "pages": "2",
+   "posts": "9",
+   "food": "2",
+   "kana": "2",
+   "source": "wat",
+   "title": "IMG_1583 | ネイリスト求人採用情報 未経験者歓迎【東京 銀座 新宿 池袋 渋谷 上野 自由が丘 吉祥寺 亀戸 町田 八王子 浦和 川口 大宮 南船橋 柏 柏の葉】正社員月給28万～+個人歩合最大4.3万+達成手"
+  },
+  {
+   "host": "atsugi-lab.com",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【梅雨期間限定！】「サンクトガーレン タップルーム」で20種類の樽生ビール飲み放題がスタート！今年は土日も開催！［本厚木ミロード②］ 本厚木・厚木情報メディア 厚木らぼ"
+  },
+  {
+   "host": "uji-joyo.goguynet.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "【城陽市】2021年8月6日（金）高級食パン専門店がアル・プラザ城陽にオープンします！ | 号外NET 宇治市・城陽市"
+  },
+  {
+   "host": "news123.work",
+   "pages": "1",
+   "posts": "3",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【つぶれない店】ズコットケーキ果実園リーベルケーキぼる塾田辺さん"
+  },
+  {
+   "host": "hitachinaka-tsushin.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "S__35880966 | ひたちなか通信"
+  },
+  {
+   "host": "nisinihonwalker.net",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "自家製天然酵母と国産小麦のパンとお菓子のカフェ「ノカ」ヨガやダンスができるスタジオも愛媛県東温市"
+  },
+  {
+   "host": "studio-da-gunma.info",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "駐車場看板 | 群馬の看板・印刷・店舗等のデザイン studio D.A"
+  },
+  {
+   "host": "toyota.goguynet.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "known",
+   "title": "【豊田市】名古屋の行列店「鶏そば啜る」の暖簾分け店『鶏そば まくる』が6月27日グランドオープン♪ 早速、お店に行ってみました！ | 号外NET 豊田市"
+  },
+  {
+   "host": "suhada-nagomi.com",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "冬のおすすめ食材！〜冷え性さんの養生法②〜 - .nagomi（なごみ ナゴミ） アトピー・ニキビ・敏感肌など 肌トラブル改善専門サロン/福井市"
+  },
+  {
+   "host": "tohoku-walker.jp",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "秋田市新屋松見美ガ丘東町に種類豊富な天然酵母ぱん「森の時間2号店 秋田市店」が9月17日オープン"
+  },
+  {
+   "host": "ladasia.com",
+   "pages": "1",
+   "posts": "9",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "タイ古式マッサージ&バリニーズアロマ「ラダシア」"
+  },
+  {
+   "host": "l-journey-japan.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "L.Journey JAPAN"
+  },
+  {
+   "host": "takuhaaai.com",
+   "pages": "1",
+   "posts": "10",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "成城石井オンラインショップの良い口コミ・悪い口コミまとめ | 宅配グルメ.com"
+  },
+  {
+   "host": "tamacafe.net",
+   "pages": "1",
+   "posts": "1",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "大きなフォカッチャ・ピクニッカパン教室追加日案内／伊奈町・志久「cafe The Garden」 | たまカフェ"
+  },
+  {
+   "host": "umikyo.com",
+   "pages": "1",
+   "posts": "10",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "2021年6月26日 - 石垣島でダイビングスクールや体験ダイビングならうみの教室"
+  },
+  {
+   "host": "mitoyo-kanko.com",
+   "pages": "1",
+   "posts": "18",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "【香川・三豊】おすすめ地元グルメ・レストラン | 三豊市観光交流局 - パート 4"
+  },
+  {
+   "host": "alecio-fc.com",
+   "pages": "1",
+   "posts": "20",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "U-12/10トレーニングマッチ（和白東小学校） | 一般社団法人アレシオスポーツクラブ公式HP"
+  },
+  {
+   "host": "ibd.qlife.jp",
+   "pages": "2",
+   "posts": "9",
+   "food": "2",
+   "kana": "2",
+   "source": "wat",
+   "title": "豆乳たらこうどん – IBDプラス"
+  },
+  {
+   "host": "wasyufromage.com",
+   "pages": "1",
+   "posts": "2",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "四谷三丁目「いしやん」さんでお任せ串揚げと日本酒 | 和酒xフロマージュ"
+  },
+  {
+   "host": "bait-casting.com",
+   "pages": "1",
+   "posts": "12",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "アノストレート、ネコリグ苦手なワタクシなりのセッティング（仮）【ボレアス】 | ベイトリール フェチ"
+  },
+  {
+   "host": "monotone.jp",
+   "pages": "1",
+   "posts": "12",
+   "food": "1",
+   "kana": "1",
+   "source": "wat",
+   "title": "monotone blog | ページ 4 | 人生は楽しむためにある！素敵な人生は幸せな毎日から♪ 田舎で気ままに暮らすフリーランスSEの日常を綴るブログ。"
+  }
+ ]
+}
