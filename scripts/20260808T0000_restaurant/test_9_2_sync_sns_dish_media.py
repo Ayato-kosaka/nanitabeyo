@@ -6,6 +6,7 @@ SQL 本体の検証は実 PostgreSQL を立てる tests/test_9_2_sns_dish_media_
   1. dev 以外へは絶対に書かない
   2. 既定は dry-run（--execute を明示しない限り書かない）
   3. 1 投稿 1 行に畳んで読む（同じ投稿を複数の dish_media にしない）
+  4. #1815 店の国の突き合わせ先（restaurant_catalog の run_id）を省略できない
 """
 
 from __future__ import annotations
@@ -23,11 +24,20 @@ assert _SPEC.loader is not None
 _SPEC.loader.exec_module(sync)
 
 
+# #1815 --restaurant-catalog-run-id は必須。省略できないことは下の
+# ForeignStoreGateTest が固定するので、他の test は毎回これを付けて呼ぶ。
+_RC = ["--restaurant-catalog-run-id", "restaurant-2026-08-23"]
+
+
+def _args(extra: list[str] | None = None):
+    return sync.parse_args(_RC + (extra or []))
+
+
 class SchemaGuardTest(unittest.TestCase):
     def test_public_is_rejected_by_argparse(self) -> None:
         # argparse の choices で弾く（SystemExit）
         with self.assertRaises(SystemExit):
-            sync.parse_args(["--schema", "public"])
+            sync.parse_args(_RC + ["--schema", "public"])
 
     def test_public_is_rejected_by_assertion(self) -> None:
         # choices を外されても、結果そのものを止める二段目
@@ -36,40 +46,66 @@ class SchemaGuardTest(unittest.TestCase):
         sync.assert_dev_schema("dev")  # dev は通る
 
     def test_default_schema_is_dev(self) -> None:
-        self.assertEqual("dev", sync.parse_args([]).schema)
+        self.assertEqual("dev", _args().schema)
 
 
 class DryRunDefaultTest(unittest.TestCase):
     def test_dry_run_is_the_default(self) -> None:
-        self.assertTrue(sync.resolve_dry_run(sync.parse_args([])))
+        self.assertTrue(sync.resolve_dry_run(_args()))
 
     def test_execute_turns_writing_on(self) -> None:
-        self.assertFalse(sync.resolve_dry_run(sync.parse_args(["--execute"])))
+        self.assertFalse(sync.resolve_dry_run(_args(["--execute"])))
 
     def test_execute_and_dry_run_together_is_an_error(self) -> None:
         with self.assertRaises(ValueError):
-            sync.resolve_dry_run(sync.parse_args(["--execute", "--dry-run"]))
+            sync.resolve_dry_run(_args(["--execute", "--dry-run"]))
 
 
 class CatalogRunIdTest(unittest.TestCase):
     def test_defaults_to_the_sync_run_id(self) -> None:
         self.assertEqual(
             ["sns-2026-09-04"],
-            sync.parse_catalog_run_ids(sync.parse_args([]), "sns-2026-09-04"),
+            sync.parse_catalog_run_ids(_args(), "sns-2026-09-04"),
         )
 
     def test_comma_separated_ids(self) -> None:
-        args = sync.parse_args(["--catalog-run-id", "a, b ,c"])
+        args = _args(["--catalog-run-id", "a, b ,c"])
         self.assertEqual(["a", "b", "c"], sync.parse_catalog_run_ids(args, "x"))
 
     def test_all_runs_is_none(self) -> None:
-        args = sync.parse_args(["--all-catalog-runs"])
+        args = _args(["--all-catalog-runs"])
         self.assertIsNone(sync.parse_catalog_run_ids(args, "x"))
 
     def test_all_runs_and_explicit_ids_conflict(self) -> None:
-        args = sync.parse_args(["--all-catalog-runs", "--catalog-run-id", "a"])
+        args = _args(["--all-catalog-runs", "--catalog-run-id", "a"])
         with self.assertRaises(ValueError):
             sync.parse_catalog_run_ids(args, "x")
+
+
+class ForeignStoreGateTest(unittest.TestCase):
+    """#1815 日本以外の店を PG へ渡さない。
+
+    126 店 / dish_media 1,025 行が dev へ入った事故は、この経路に国の判定が
+    **1 つも無かった**ために起きた。突き合わせ先を «省略できる» ようにすると、
+    引数を書き忘れた 1 回で同じことが起きる。
+    """
+
+    def test_restaurant_catalog_run_id_is_required(self) -> None:
+        with self.assertRaises(SystemExit):
+            sync.parse_args([])
+
+    def test_query_drops_foreign_stores(self) -> None:
+        sql = sync.catalog_query(_FakePipeline(), ["r1"])
+        self.assertIn("proj.ds.restaurant_catalog", sql)
+        self.assertIn("NOT IFNULL(", sql)
+
+    def test_judgement_is_not_transcribed(self) -> None:
+        # 判定は common_sns が唯一の正。9_2 が自前で持っていたら写経である
+        source = (Path(__file__).resolve().parent / "9_2_sync_sns_dish_media.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("foreign_store_sql", source)
+        self.assertNotIn("가-힣", source)
 
 
 class _FakePipeline:
@@ -94,9 +130,12 @@ class CatalogQueryTest(unittest.TestCase):
         self.assertNotIn("run_id IN UNNEST", sync.catalog_query(_FakePipeline(), None))
 
     def test_parameters_match_the_query(self) -> None:
-        names = {p.name for p in sync.query_parameters(["r1"])}
-        self.assertEqual({"providers", "run_ids"}, names)
-        self.assertEqual({"providers"}, {p.name for p in sync.query_parameters(None)})
+        names = {p.name for p in sync.query_parameters(["r1"], "rc1")}
+        self.assertEqual({"providers", "run_ids", "restaurant_catalog_run_id"}, names)
+        self.assertEqual(
+            {"providers", "restaurant_catalog_run_id"},
+            {p.name for p in sync.query_parameters(None, "rc1")},
+        )
 
     def test_providers_match_the_db_check(self) -> None:
         # dmee_provider_check（20260824T0200）と同じ値域。狭めると PG が受け取れる行を手前で捨てる
