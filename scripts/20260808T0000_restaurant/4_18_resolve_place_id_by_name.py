@@ -164,6 +164,7 @@ import re
 import sqlite3
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -813,7 +814,9 @@ def main() -> None:
         LOGGER.info("--execute が無いので Google API も BigQuery 書き込みも行いません")
         return
 
-    client = FreePlacesClient(api_key(), rate_limiter=RateLimiter(qps=args.qps))
+    limiter = RateLimiter(qps=args.qps)
+    client = FreePlacesClient(api_key(), rate_limiter=limiter)
+    started_at = time.monotonic()
     cache = ProbeCache(Path(args.cache))
     rows: list[dict[str, Any]] = []
     counts: dict[str, int] = {}
@@ -854,8 +857,13 @@ def main() -> None:
     LOGGER.info("判定の内訳: %s", json.dumps(counts, ensure_ascii=False, sort_keys=True))
     matched = counts.get(DECISION_MATCHED, 0)
     LOGGER.info("確定 %d / %d 件（%.1f%%）", matched, len(rows), 100.0 * matched / max(len(rows), 1))
-    LOGGER.info("Google への request 数: %d（すべて Text Search Essentials IDs Only = $0.00）",
-                client.request_count)
+    elapsed = max(time.monotonic() - started_at, 1e-6)
+    # 枠（1 日 75,000 request）とレート制限は «次にいくつ刻めるか» を決める唯一の材料なので、
+    # 毎回ログに残す。429 を受けた回数（throttle）が 0 なら --qps はまだ上げられる。
+    LOGGER.info("Google への request 数: %d（すべて Text Search Essentials IDs Only = $0.00）"
+                " / %.0f 秒 = %.1f req/s / 429 で待った回数 %d / 応答が 200 でなかった回数 %d",
+                client.request_count, elapsed, client.request_count / elapsed,
+                limiter.throttle_events, client.error_count)
 
     if args.out_jsonl:
         with Path(args.out_jsonl).open("w", encoding="utf-8") as stream:
