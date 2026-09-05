@@ -257,16 +257,36 @@ def main() -> int:
     logger.info("=== 7. GET /v1/restaurants/:id/dish-media（店舗詳細）===")
     status, body = api_get(f"/v1/restaurants/{rid}/dish-media", {"limit": 5}, token)
     logger.info("  HTTP %s  restaurant=%s (%s)", status, rid, rname)
+    # ⚠️ 封筒は {data: {data: [...], nextCursor}}（PaginatedResponse を ResponseWrap が包む）
     if isinstance(body, dict):
-        data = body.get("data") or {}
-        items = data.get("items") if isinstance(data, dict) else None
-        if items is None and isinstance(data, list):
-            items = data
-        logger.info("  items=%d", len(items or []))
+        page = body.get("data") or {}
+        items = page.get("data") if isinstance(page, dict) else None
+        logger.info("  items=%d nextCursor=%s", len(items or []), (page or {}).get("nextCursor"))
         for it in (items or [])[:3]:
             logger.info("  %s", json.dumps(summarize_entry(it), ensure_ascii=False))
     else:
         logger.info("  body: %s", body)
+
+    logger.info("")
+    logger.info("=== 8. 受け皿すら無い行（真っ黒になる行）の内訳 ===")
+    conn2 = psycopg2.connect(dsn, connect_timeout=15)
+    conn2.set_session(readonly=True, autocommit=True)
+    with conn2.cursor() as c2:
+        c2.execute(f'SET search_path TO "{args.schema}", public, extensions')
+        c2.execute(
+            """
+            SELECT d.category_id, COALESCE(c.labels->>'ja', c.name), COUNT(*)
+            FROM dish_media dm
+            JOIN dishes d ON d.id = dm.dish_id
+            JOIN dish_categories c ON c.id = d.category_id
+            WHERE dm.render_type = 'external_embed'
+              AND (c.image_url IS NULL OR c.image_url = '')
+            GROUP BY 1,2 ORDER BY 3 DESC LIMIT 15
+            """
+        )
+        for cid, label, n in c2.fetchall():
+            logger.info("  %-12s %-24s %6d 件", cid, label, n)
+    conn2.close()
 
     return 0
 
