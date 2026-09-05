@@ -53,7 +53,11 @@ CITY_INDEX_SQL = """
            latitude lat, longitude lng
     FROM `__CATALOG__` WHERE run_id = @crid AND address IS NOT NULL
   )
-  SELECT pref, city, AVG(lat) lat, AVG(lng) lng, COUNT(*) n
+  SELECT pref, city, AVG(lat) lat, AVG(lng) lng, COUNT(*) n,
+         -- #1841 市区町村の «広がり»。矩形 locationRestriction の辺に使う。
+         -- 飛び地・住所の誤りで端が伸びるので、上下 2% を落とした範囲を市域と見なす。
+         APPROX_QUANTILES(lat, 100)[OFFSET(2)] lat_lo, APPROX_QUANTILES(lat, 100)[OFFSET(98)] lat_hi,
+         APPROX_QUANTILES(lng, 100)[OFFSET(2)] lng_lo, APPROX_QUANTILES(lng, 100)[OFFSET(98)] lng_hi
   FROM cityc WHERE pref IS NOT NULL AND city IS NOT NULL
   GROUP BY pref, city
 """
@@ -61,6 +65,22 @@ CITY_INDEX_SQL = """
 
 def city_index_sql(catalog_table: str) -> str:
     return CITY_INDEX_SQL.replace("__PREF__", PREF_PATTERN).replace("__CATALOG__", catalog_table)
+
+
+def build_city_bbox_index(rows) -> tuple[dict, dict]:
+    """city_index_sql の結果から (（県,市区町村）→矩形, 全国で一意な市区町村名→県) を作る。
+
+    #1841 で足した。矩形は `locationRestriction` の辺（= «この市の中に居ること» の裏取り）に、
+    県の逆引きは «全国で一意な市区町村名» から検索語 «東京都八王子市» を組むために使う。
+    `build_city_index` と同じ行を読むので、SQL は 1 回で足りる。
+    """
+    boxes: dict[tuple[str, str], tuple[float, float, float, float]] = {}
+    prefs_of: dict[str, set[str]] = {}
+    for r in rows:
+        boxes[(r["pref"], r["city"])] = (r["lat_lo"], r["lng_lo"], r["lat_hi"], r["lng_hi"])
+        prefs_of.setdefault(r["city"], set()).add(r["pref"])
+    pref_of_unique_city = {c: next(iter(p)) for c, p in prefs_of.items() if len(p) == 1}
+    return boxes, pref_of_unique_city
 
 
 def build_city_index(rows) -> tuple[dict, dict]:
@@ -77,6 +97,46 @@ def build_city_index(rows) -> tuple[dict, dict]:
     return by_pair, uniq
 
 
+def city_name_candidates(text: str) -> list[str]:
+    """文言に含まれる «市区町村名らしい部分文字列» を、長い順に返す。
+
+    抜き出した塊は «神奈川県横浜市»（手前を巻き込む）や «大阪市東成区»（2 つ繋がる）に
+    なるので、市/区/町/村 で終わる部分文字列を総当たりする。長い方が具体的なので先に当てる。
+    """
+    cands: set[str] = set()
+    for token in _RE_CITY.findall(text or ""):
+        for j, ch in enumerate(token):
+            if ch in "市区町村":
+                for k in range(j):
+                    if j - k + 1 >= 2:
+                        cands.add(token[k:j + 1])
+    return sorted(cands, key=len, reverse=True)
+
+
+def city_from_text(text: str, by_pair: dict, uniq: dict) -> tuple[str | None, str] | None:
+    """文言から «どの市区町村か» を決めて (都道府県, 市区町村) を返す。当てられなければ None。
+
+    #1841 で足した。`area_from_text` は «座標» を返すが、Google へ投げる検索語には
+    «東京都八王子市» という **文字列**が要る。同じ走査を 2 か所に書かないよう、
+    判定本体をこちらへ移し、`area_from_text` はこの結果を座標へ引き直すだけにする。
+
+    誤爆させないための規則:
+    - 都道府県が書いてあれば、その県の市区町村としてのみ当てる
+    - 無ければ、全国で 1 県にしか無い市区町村名のときだけ当てる（«中央区» «北区» は捨てる）。
+      このとき県は分からないので、第 1 要素は None を返す
+    """
+    if not text:
+        return None
+    m = _RE_PREF.search(text)
+    pref = m.group(0) if m else None
+    for city in city_name_candidates(text):
+        if pref and (pref, city) in by_pair:
+            return (pref, city)
+        if not pref and city in uniq:
+            return (None, city)
+    return None
+
+
 def area_from_text(text: str, by_pair: dict, uniq: dict) -> tuple[float, float] | None:
     """文言から «resolve に渡す探索地点» を作る。#1273 の唯一の判定（写経しないこと）。
 
@@ -84,30 +144,13 @@ def area_from_text(text: str, by_pair: dict, uniq: dict) -> tuple[float, float] 
     2 つしか無い。素の Instagram キャプションが住所を持つのは実測 0.6% なので、
     市区町村名から地点を作れるかどうかが «店が引けるか» を決める。
 
-    誤爆させないための規則:
-    - 都道府県が書いてあれば、その県の市区町村としてのみ当てる
-    - 無ければ、全国で 1 県にしか無い市区町村名のときだけ当てる（«中央区» «北区» は捨てる）
-
-    抜き出した塊は «神奈川県横浜市»（手前を巻き込む）や «大阪市東成区»（2 つ繋がる）に
-    なるので、市/区/町/村 で終わる部分文字列を総当たりし、長い方から当てる。
+    どの市区町村と見なすかは `city_from_text` が決める（ここには書かない）。
     """
-    if not text:
+    key = city_from_text(text, by_pair, uniq)
+    if key is None:
         return None
-    m = _RE_PREF.search(text)
-    pref = m.group(0) if m else None
-    cands: set[str] = set()
-    for token in _RE_CITY.findall(text):
-        for j, ch in enumerate(token):
-            if ch in "市区町村":
-                for k in range(j):
-                    if j - k + 1 >= 2:
-                        cands.add(token[k:j + 1])
-    for city in sorted(cands, key=len, reverse=True):
-        if pref and (pref, city) in by_pair:
-            return by_pair[(pref, city)]
-        if not pref and city in uniq:
-            return uniq[city]
-    return None
+    pref, city = key
+    return by_pair[(pref, city)] if pref else uniq[city]
 
 # Instagram の投稿を跨ルートで一意に指すキーは shortcode（permalink 内）。
 # business_discovery(4_2) と 検索(4_3) で同じ投稿を同じ post_id に正規化し、重複解決を防ぐ。
