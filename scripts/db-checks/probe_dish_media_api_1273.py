@@ -120,7 +120,7 @@ def main() -> int:
     conn = psycopg2.connect(dsn, connect_timeout=15)
     conn.set_session(readonly=True, autocommit=True)
     cur = conn.cursor()
-    cur.execute(f'SET search_path TO "{args.schema}", public')
+    cur.execute(f'SET search_path TO "{args.schema}", public, extensions')
     cur.execute("SET statement_timeout = '120000ms'")
 
     # ---- 1. 取り込み行の素性 -------------------------------------------------
