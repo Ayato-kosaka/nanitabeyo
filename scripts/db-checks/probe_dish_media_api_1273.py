@@ -236,6 +236,15 @@ def main() -> int:
     else:
         logger.info("  body: %s", body)
 
+    # 半径を広げると何枚のカードが並ぶか（フィードは 1 店につき 1 枚）
+    status, body = api_get(
+        "/v1/dish-media/search",
+        {"location": f"{lat},{lng}", "radius": 20000, "categoryId": cat, "limit": 20, "preferredLanguageCodes": "ja"},
+        token,
+    )
+    items20 = (body.get("data") if isinstance(body, dict) else None) or []
+    logger.info("  半径 20km・limit 20 での件数: HTTP %s / %d 枚", status, len(items20) if isinstance(items20, list) else -1)
+
     logger.info("")
     logger.info("=== 6. GET /v1/dish-media?ids=（フィードの実体取得）===")
     status, body = api_get("/v1/dish-media", {"ids": ids}, token)
@@ -275,7 +284,7 @@ def main() -> int:
         c2.execute(f'SET search_path TO "{args.schema}", public, extensions')
         c2.execute(
             """
-            SELECT d.category_id, COALESCE(c.labels->>'ja', c.name), COUNT(*)
+            SELECT d.category_id, COALESCE(c.labels->>'ja', c.label_en), COUNT(*)
             FROM dish_media dm
             JOIN dishes d ON d.id = dm.dish_id
             JOIN dish_categories c ON c.id = d.category_id
@@ -286,6 +295,43 @@ def main() -> int:
         )
         for cid, label, n in c2.fetchall():
             logger.info("  %-12s %-24s %6d 件", cid, label, n)
+        # --- 9. «見える» 上限。search も店舗詳細も «1 dish につき 1 本» しか出さない ---
+        logger.info("")
+        logger.info("=== 9. 取り込んだ投稿のうち «画面に出られる» 上限 ===")
+        c2.execute(
+            """
+            SELECT COUNT(*) AS media, COUNT(DISTINCT dm.dish_id) AS dishes,
+                   COUNT(DISTINCT d.restaurant_id) AS restaurants
+            FROM dish_media dm JOIN dishes d ON d.id = dm.dish_id
+            WHERE dm.render_type = 'external_embed' AND dm.deleted_at IS NULL
+              AND dm.media_processing_status = 'completed'
+            """
+        )
+        media, dishes_n, rest_n = c2.fetchone()
+        logger.info(
+            "  投稿 %d 件 / 料理(店×カテゴリ) %d 件 / 店 %d 件。"
+            "search も店舗詳細も «1 dish につき 1 本» なので、いま画面に出られるのは最大 %d 件（%.1f%%）",
+            media, dishes_n, rest_n, dishes_n, 100.0 * dishes_n / media if media else 0.0,
+        )
+
+        # --- 10. canonical_url のサンプル（手元で «動画か静止画か» を測るため） ---
+        logger.info("")
+        logger.info("=== 10. canonical_url のサンプル 30 件（別々の店から）===")
+        c2.execute(
+            """
+            SELECT canonical_url FROM (
+              SELECT e.canonical_url, d.restaurant_id,
+                     ROW_NUMBER() OVER (PARTITION BY d.restaurant_id ORDER BY e.dish_media_id) AS rn
+              FROM dish_media_external_embeddings e
+              JOIN dish_media dm ON dm.id = e.dish_media_id
+              JOIN dishes d ON d.id = dm.dish_id
+              WHERE dm.render_type = 'external_embed' AND e.playback_status = 'unknown'
+                AND e.embed_status = 'unknown'
+            ) t WHERE rn = 1 LIMIT 30
+            """
+        )
+        for (u,) in c2.fetchall():
+            logger.info("  %s", u)
     conn2.close()
 
     return 0
