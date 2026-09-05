@@ -169,9 +169,19 @@ def parse_args() -> argparse.Namespace:
                    help="収集済みと見なす範囲。any なら他 run で採れている handle も飛ばす（既定 run）")
     # #1815 KPI 直結の並び替え。«あと 1〜3 店で 5 店に届くセル» を持つ市区町村の店から先に採る。
     # 指定しなければ従来どおり handle の昇順（＝アルファベット順で頭から）。
-    # #1273 4_19 の «段»（A 料理語×地域語 → B 料理語 → C 地域語 → D 店アカウント → E その他）で
-    # 流す。実測で 1 コールあたりの異なり店が A 18.625 対 D 0.216（86 倍）なので、
-    # «店アカウントを全部採り切る» より «同じコール枠で異なり店を最大化する» 方が正しい。
+    # ⚠️ **«ハンドルの綴りで段を決めれば 86 倍» は交絡で、撤回済み（2026-09-05）。**
+    # あの数字は成果を `matched` で数えていた。«配信カタログに載る異なり店» で層別すると、
+    # 効いていたのは綴りではなく `sns_source_account.account_type` だった:
+    #
+    #   influencer 26.2〜44.5 店/アカ ／ store_branch 0.67〜1.13 ／ unknown 0.13〜0.94
+    #
+    # さらに «新しく増えた配信店» で測ると差はもっと大きい。手作り influencer 一覧は
+    # 8 アカウントで新規 446 店（76.38 店/アカ）、店アカウントは 108 アカウントで新規 4 店。
+    # 店アカウントの店は、経路B（店の公式サイトの埋め込み）が IG を叩かずに既に配信済みだから。
+    #
+    # したがって **IG 枠は influencer に使う**。段（`--tiers`）はラベルとして残すが、
+    # 優先順位の根拠にはしない。経緯は `1273_instagram_seed_poc/FINDINGS.md` と
+    # `handle_spelling_yield.py`（再現できる測定）にある。
     p.add_argument("--candidate-run-id", default=None,
                    help="sns_account_candidate_v2 の run_id。指定するとこの候補表を段の順に処理する")
     p.add_argument("--tiers", default=None,
