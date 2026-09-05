@@ -649,6 +649,32 @@ RESOLVED_STORE_RANK = 4
 TABLE_DISH_CATEGORY_IMAGES = "dish_category_images"
 
 
+# --- «KPI が数えるカテゴリはどれか» の唯一の判定 ---------------------------------
+#
+# 【設計】#1273 / #1815: KPI は «市区町村 × カテゴリ のセルに使える異なり店 5 店以上»。
+# その «カテゴリ» は `dish_category_features_catalog` の JP ゲート（`feature_type='gate'` /
+# `feature_key='region:country:JP'` / `score>0`）で決まる **134 個**である。
+#
+# ⚠️ **ラベル照合が返す 140 QID を KPI と取り違えないこと。** 2026-09-05 に 2 度起きた:
+# 「絵の無いカテゴリを落とすと KPI が 1 カテゴリ削れる（ナポリタン Q65241114）」という
+# 報告は 140 側で数えていた。134 側で数えると欠けるカテゴリは **0 件**で、ゲートは
+# KPI の分子を 1 組も削らない。数え方が違うだけで結論が反転する。
+#
+# 数えるときは必ずこの式を通し、**140 で数えた数字を KPI と呼ばない。**
+KPI_GATE_FEATURE_KEY = "region:country:JP"
+
+
+def kpi_gate_category_sql(dish_dataset_ref: str, *, key_param: str | None = "key") -> str:
+    """KPI が数える 134 カテゴリの QID を返す SELECT。判定はここ 1 箇所だけに置く。
+
+    key_param: ゲートキーを渡すクエリパラメータ名。``None`` を渡すと
+        ``KPI_GATE_FEATURE_KEY`` をリテラルで埋める（パラメータを持たない呼び出し用）。
+    """
+    key = f"@{key_param}" if key_param else f"'{KPI_GATE_FEATURE_KEY}'"
+    return (f"SELECT DISTINCT item_qid FROM `{dish_dataset_ref}.dish_category_features_catalog` "
+            f"WHERE feature_type = 'gate' AND feature_key = {key} AND score > 0")
+
+
 # --- «その料理カテゴリの絵があるか» の唯一の判定 ---------------------------------
 #
 # 【設計】#1273: 取り込み投稿（render_type='external_embed'）はアプリ側に画像を 1 枚も
@@ -661,17 +687,18 @@ TABLE_DISH_CATEGORY_IMAGES = "dish_category_images"
 # scripts/db-checks/measure_delivered_but_invisible.py）:
 #
 #     usable 145,392 行のうち 3 段とも絵が無い行 = 3,119 行（2.15%）
-#     その 221 カテゴリのほぼ全部は JP ゲート（KPI が数える 134 カテゴリ）の外
+#     その 221 カテゴリは **1 つも JP ゲート（KPI が数える 134 カテゴリ）に無い**
+#     ＝ 落としても KPI（市区町村 × カテゴリのセルに異なり店 5 店）の分子は 0 組しか減らない
 #
-# ⚠️ **«1 つも JP ゲートに無い» は誤りだった（2026-09-05 実測、run sns-catalog-2026-09-05c）。**
-# KPI の 140 QID のうち **`Q65241114`（ナポリタン）だけが `dish_category_images` に
-# 非空の行を 1 件も持たない**。この 1 カテゴリのぶんだけ、このゲートは KPI の分子を削る:
+# ⚠️⚠️ **「KPI の 140 QID」で数え直して «このゲートは KPI を 1 カテゴリ削る» と結論した
+# 報告があったが、誤りである（2026-09-05）。** `Q65241114`（ナポリタン）は
+# `dish_category_images` に非空の行を持たないが、**JP ゲートに入っていない**
+# （`feature_type='gate'` / `feature_key='region:country:JP'` / `score>0` の行が 0 件）。
+# 空の絵しか無いカテゴリを «非空» で数え直しても、JP ゲート 134 のうち欠けるものは **0 件**。
 #
-#     ナポリタンで落ちた投稿 34 / 異なり店 22（他の 228 カテゴリ 3,369 投稿は KPI 外）
-#
-# 直し方は **ゲートを緩めることではなく、ナポリタンの絵を 1 枚入れること**。
-# 絵が無いまま配れば «真っ黒なセル» が戻るだけで、KPI のセルは埋まらない。
-# この 1 行が 0 に戻ったかは `dish_category_images` を数えれば分かる。
+# **KPI の分母は 134（JP ゲート）であって、ラベル照合が返す 140 QID ではない。**
+# この取り違えは繰り返し起きている。134 を作る式は 1 箇所に置いてある（下の
+# `KPI_GATE_*`）ので、**数えるときは必ずそれを通すこと。140 で数えた数字を KPI と呼ばない。**
 #
 # `dish_categories.image_url` は `9_1_sync_dish_categories.py` が
 # `COALESCE(rep.image_url, '')`（`dish_category_images` の代表 1 枚）で作る。

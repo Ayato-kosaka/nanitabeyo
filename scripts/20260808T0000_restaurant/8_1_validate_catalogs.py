@@ -17,7 +17,7 @@ from typing import Any
 
 from google.cloud import bigquery
 
-from common_sns import foreign_store_sql
+from common_sns import foreign_store_sql, kpi_gate_category_sql
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 
 LOGGER = logging.getLogger(__name__)
@@ -327,11 +327,7 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           )
       ),
       target_categories AS (
-        SELECT DISTINCT item_qid
-        FROM `{dish_dataset}.dish_category_features_catalog`
-        WHERE feature_type = 'gate'
-          AND feature_key = 'region:country:JP'
-          AND score > 0
+        {kpi_gate_category_sql(dish_dataset, key_param=None)}
       ),
       category_stats AS (
         SELECT COUNT(*) AS row_count FROM target_categories
