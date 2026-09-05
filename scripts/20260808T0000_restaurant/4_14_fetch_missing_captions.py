@@ -45,7 +45,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
-from common_sns import TABLE_POST_RAW
+from common_sns import TABLE_POST_RAW, TABLE_POST_RESOLVED, posts_with_category_sql
 from sns_html import caption_from_embed_html
 
 LOGGER = logging.getLogger(__name__)
@@ -61,6 +61,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--run-id", default=None, help="対象の sns_post_raw.run_id")
     p.add_argument("--only-with-seed", action="store_true",
                    help="discovery_seed_place_id を持つ投稿だけ（店が確定済み＝最も確実に効く）")
+    # #1273 「caption を入れてから resolve する」段取りで使う。caption 空の投稿には
+    # **まだ resolve していないもの**と、**caption 無しのまま resolve 済みのもの**が混ざる。
+    # 後者にも価値はある（実測 2026-09-05: run sns-2026-09-02-fsq で 20,250 投稿 /
+    # 1,310 店が «resolve 済みだがカテゴリが付かなかった»）が、**取りに行く量が倍以上に
+    # 増える**ので、どちらを対象にするかは呼び出し側が明示する。
+    p.add_argument("--only-unresolved", action="store_true",
+                   help="sns_post_resolved に 1 行も無い投稿だけ（A 群。«これから resolve する分»）")
+    # B 群。A 群と **互いに素**になるようにしてある（片方は «行が無い»、こちらは «行はある»）。
+    # 2 本を並べて流しても同じ投稿を二重に取りに行かない ＝ Instagram への取得も重複しない。
+    p.add_argument("--only-resolved-without-category", action="store_true",
+                   help="resolve 済みだが最新にカテゴリが無い投稿だけ（B 群。カタログに 1 行も出ていない）")
     p.add_argument("--max-per-store", type=int, default=25,
                    help="1 店あたりの取得上限。深さより幅（実測で 20 本超えると 8.55 カテゴリ）")
     p.add_argument("--limit", type=int, default=200000, help="このバッチの取得上限")
@@ -111,9 +122,26 @@ def _fetch_caption(code: str, timeout: float = 20.0) -> tuple[str | None, int]:
     return caption_from_embed_html(raw), status
 
 
-def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store: int) -> str:
+def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store: int,
+                only_unresolved: bool = False,
+                only_resolved_without_category: bool = False) -> str:
     seed_filter = ("AND discovery_seed_place_id IS NOT NULL AND discovery_seed_place_id != ''"
                    if only_with_seed else "")
+    # 「まだ resolve していない投稿」= resolved に post_id が 1 行も無いもの。run_id や
+    # resolve_version では絞らない（同じ投稿が複数の収集 run に入るため。5_1 の
+    # --skip-resolved-anywhere と同じ考え方）。
+    unresolved_filter = ""
+    if only_unresolved:
+        unresolved_filter = (
+            f"AND post_id NOT IN (SELECT post_id FROM `{pipeline.table(TABLE_POST_RESOLVED)}` "
+            "WHERE post_id IS NOT NULL)")
+    # B 群 = «行はある» かつ «最新にカテゴリが無い»。C 群（カテゴリが付いている）は触らない。
+    # «カテゴリが付いている» の判定は common_sns が唯一の正（写経しない）。
+    if only_resolved_without_category:
+        resolved = pipeline.table(TABLE_POST_RESOLVED)
+        unresolved_filter = (
+            f"AND post_id IN (SELECT post_id FROM `{resolved}` WHERE post_id IS NOT NULL) "
+            f"AND post_id NOT IN ({posts_with_category_sql(resolved)})")
     # 1 店あたりを打ち切る。深く掘るより全店を «20 本以上» の帯へ乗せる方がペアが増える。
     per_store = ""
     if max_per_store > 0:
@@ -126,7 +154,7 @@ def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store:
       SELECT post_id, canonical_url
       FROM `{pipeline.table(TABLE_POST_RAW)}`
       WHERE run_id = @rid AND (caption IS NULL OR LENGTH(caption) = 0)
-        AND canonical_url IS NOT NULL {seed_filter}
+        AND canonical_url IS NOT NULL {seed_filter} {unresolved_filter}
       {per_store}
     """
 
@@ -139,7 +167,8 @@ def main() -> None:
     from google.cloud import bigquery
 
     rows = list(pipeline.execute(
-        _select_sql(pipeline, args.only_with_seed, args.max_per_store),
+        _select_sql(pipeline, args.only_with_seed, args.max_per_store, args.only_unresolved,
+                    args.only_resolved_without_category),
         [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
     targets = []
     for r in rows:
