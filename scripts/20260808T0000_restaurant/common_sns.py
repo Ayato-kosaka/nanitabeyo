@@ -607,6 +607,27 @@ LATEST_RESOLVED_QUALIFY = (
     "resolved_at DESC) = 1"
 )
 
+# --- «いま料理カテゴリが付いている投稿» の唯一の判定 -------------------------------
+#
+# 【設計】#1273 caption 後埋め（4_14）→ 解き直し（5_1）の «対象» はここで決まる。
+# 配信カタログ（9_1）は `dish_category_id IS NOT NULL` の投稿しか使わないので、
+# 後埋めで取り返せるのは «いまカテゴリが付いていない投稿» だけである。実測 2026-09-05、
+# run sns-2026-09-02-fsq の caption 空・seed 付き投稿は 3 つに割れる:
+#
+#   A: resolve の行が 1 つも無い              18,798 投稿 /   780 店
+#   B: 行はあるが最新にカテゴリが無い          20,250 投稿 / 1,310 店
+#   C: 最新にカテゴリが付いている              34,859 投稿 / 1,419 店 ← 触らない
+#
+# ⚠️ «最新» の決め方は `LATEST_RESOLVED_QUALIFY` が唯一の正。ここへ書き写すと、
+#    数える側（7_1 / 9_1）と拾う側（4_14 / 5_1）が別々に育ってずれる。
+# ⚠️ run_id で絞らない。同じ post_id は複数の収集 run に入るので、run を絞ると
+#    «別 run では解けている» 投稿を «未処理» と誤判定する（5_1 --skip-resolved-anywhere と同じ話）。
+def posts_with_category_sql(resolved_table: str) -> str:
+    """いま（最新の resolve で）料理カテゴリが付いている post_id を返す SELECT。"""
+    return (f"SELECT post_id FROM (SELECT post_id, dish_category_id FROM `{resolved_table}` "
+            f"{LATEST_RESOLVED_QUALIFY}) WHERE dish_category_id IS NOT NULL")
+
+
 # 上の店 ID が非 NULL になる行の条件。matched か、seed を持っているか。
 STORE_KNOWN_ANY_SQL = (
     "(v.status = 'matched' "

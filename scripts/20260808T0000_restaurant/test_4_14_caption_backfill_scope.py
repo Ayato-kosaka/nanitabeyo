@@ -94,3 +94,47 @@ class OnlyUnresolvedTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GroupsAreDisjointTest(unittest.TestCase):
+    """A 群と B 群が **互いに素**であることを固定する。
+
+    2 本の 4_14 を並べて流すので、集合が重なると同じ投稿を二重に取りに行く
+    ＝ Instagram への取得レートが黙って倍になる（検証済みの安全レートは 1.9/s）。
+    片方は «resolved に行が無い»、もう片方は «行はある» で切っているので、
+    定義上重ならない。その «切り方» が消えていないことを見る。
+    """
+
+    def test_a_group_requires_no_resolved_row(self) -> None:
+        sql = _select(only_with_seed=True, max_per_store=25, only_unresolved=True)
+        self.assertIn("post_id NOT IN (SELECT post_id FROM `proj.ds.sns_post_resolved` "
+                      "WHERE post_id IS NOT NULL)", sql)
+        self.assertNotIn("post_id IN (SELECT post_id FROM `proj.ds.sns_post_resolved` "
+                         "WHERE post_id IS NOT NULL)", sql.replace("NOT IN", "NOTIN"))
+
+    def test_b_group_requires_a_resolved_row_and_no_category(self) -> None:
+        sql = _select(only_with_seed=True, max_per_store=25,
+                      only_resolved_without_category=True)
+        # «行はある»
+        self.assertIn("AND post_id IN (SELECT post_id FROM `proj.ds.sns_post_resolved` "
+                      "WHERE post_id IS NOT NULL)", sql)
+        # «最新にカテゴリが無い»（判定は common_sns の 1 本を通す）
+        self.assertIn("dish_category_id IS NOT NULL", sql)
+        self.assertIn("QUALIFY ROW_NUMBER() OVER", sql)
+
+    def test_c_group_is_excluded_from_b(self) -> None:
+        # C 群＝カテゴリが付いている投稿。B の SQL は必ずそれを NOT IN で外す。
+        sql = _select(only_with_seed=True, max_per_store=25,
+                      only_resolved_without_category=True)
+        self.assertRegex(sql, r"AND post_id NOT IN \(SELECT post_id FROM \(SELECT post_id, dish_category_id")
+
+    def test_latest_resolve_rule_is_not_transcribed(self) -> None:
+        # «最新の resolve» の決め方は common_sns.LATEST_RESOLVED_QUALIFY だけが持つ。
+        # 4_14 / 5_1 が自前で ROW_NUMBER を書き直すと、数える側とずれる。
+        import common_sns
+        for name in ("4_14_fetch_missing_captions.py", "5_1_apply_resolve.py"):
+            src = (HERE / name).read_text()
+            self.assertNotIn("COALESCE(dish_category_id IS NOT NULL, FALSE)", src,
+                             f"{name} が «最新の resolve» の判定を写経している")
+        self.assertIn("COALESCE(dish_category_id IS NOT NULL, FALSE)",
+                      common_sns.LATEST_RESOLVED_QUALIFY)
