@@ -27,7 +27,7 @@ import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
-import { MY_DISH_STATUS_COLORS, MY_DISH_STATUS_ORANGE } from "@/features/myDishes/statusColors";
+import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { ReportContentSheet } from "./ReportContentSheet";
 import { DishMediaMoreMenu } from "./DishMediaMoreMenu";
@@ -450,16 +450,18 @@ function ActionButtonsContent({
 						)}
 						aria-selected={isSaved}>
 						{/*
-						#1375（9 巡目・オーナー指示）**押してある «食べたい» はオレンジで塗る。**
+						#1375（9 巡目・オーナー指示）**押してある «食べたい» は塗る。**
 
 						それまでは «白の塗り» で状態を示していたが、写真の上では
 						«白の輪郭（未保存）» と «白の塗り（保存済み）» の差が読めなかった。
 						一覧のバッジで承認された同じ色へ揃える。
 						⚠️ 下のラベルは白のまま（オーナー指示）。**アイコンだけを色で示す。**
 
-						#1834【オーナー指示】«食べたい» は緑、«食べた» はオレンジ。一覧のバッジと同じ
-						«塗りの色»（`fill`）をそのままアイコンの色に使う。⚠️ 色の正は `statusColors.ts` の
-						1 箇所だけ。ここで別の緑を書かないこと（一覧とフィードで色がずれる）。
+						#1834 続き（11 巡目・オーナー指示）«食べたい» はオレンジ、«食べた» は緑
+						（🟢 = 完了）。一覧のバッジと同じ «塗りの色»（`fill`）をそのままアイコンの色に使う。
+						⚠️ 色の正は `statusColors.ts` の 1 箇所だけ。ここで色名の定数
+						（`MY_DISH_STATUS_ORANGE` 等）を直に書かないこと。当てる状態を入れ替えたときに
+						**フィードだけ古い向きのまま残る**（実際 11 巡目でここが取り残された）。
 						*/}
 						<Bookmark
 							size={28}
@@ -488,10 +490,11 @@ function ActionButtonsContent({
 							)}
 							// 読み上げでも «記録済み» が分かるようにする（色だけに頼らない）
 							aria-selected={!!isEaten}>
-							{/* #1375（9 巡目・オーナー指示）記録済みはオレンジ。
-							    #1834 «食べたい»（緑）と色相で分かれる側である。
+							{/* #1375（9 巡目・オーナー指示）記録済みは塗る。
+							    #1834 続き（11 巡目）**記録済み = 緑**（🟢 = 完了）。
+							    «食べたい»（オレンジ）と色相で分かれる側である。
 							    ⚠️ ラベルは白のまま（**色を付けるのはアイコンだけ**） */}
-							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_ORANGE : FixedColors.onMedia} />
+							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_COLORS.eaten.fill : FixedColors.onMedia} />
 						</TouchableOpacity>
 						{/* #1629 【仕様】ラベルは «食べた»（オーナー指示。何も付けない）。
 

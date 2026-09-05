@@ -16,6 +16,7 @@ jest.mock("expo-image", () => ({ Image: () => null }));
 jest.mock("@/lib/image", () => ({ getCacheKeyForImage: (uri: string) => uri }));
 
 import { MY_DISH_STATUS_COLORS, countMyDishStatuses } from "./statusColors";
+import { FixedColors } from "@/constants/Palette";
 import { MyDishStatusLegend } from "./components/MyDishStatusLegend";
 import { MyDishesMapSheet } from "./components/MyDishesMapSheet";
 import type { MyDishPin } from "@shared/api/v1/res";
@@ -42,7 +43,7 @@ function render(element: React.ReactElement) {
 const countOf = (tree: TestRenderer.ReactTestRenderer, testID: string) =>
 	tree.root.findAll((n) => typeof n.type === "string" && n.props?.testID === testID).length;
 
-describe("#1375 / #1834 食べたい=緑 / 食べた=オレンジ の内訳表示", () => {
+describe("#1375 / #1834 食べたい=オレンジ / 食べた=緑 の内訳表示", () => {
 	it("countMyDishStatuses は status を 2 つの数へ畳む", () => {
 		expect(countMyDishStatuses([{ status: "want" }, { status: "eaten" }, { status: "eaten" }])).toEqual({
 			want: 1,
@@ -51,10 +52,19 @@ describe("#1375 / #1834 食べたい=緑 / 食べた=オレンジ の内訳表�
 		expect(countMyDishStatuses([])).toEqual({ want: 0, eaten: 0 });
 	});
 
-	it("色は statusColors の 1 箇所が正: 食べたい = 緑塗り / 食べた = オレンジ塗り", () => {
+	it("色は statusColors の 1 箇所が正: 食べた = 緑塗り / 食べたい = オレンジ塗り", () => {
 		// #1834（10 巡目・オーナー指示「食べたい は緑塗りにして欲しい」）。
 		// 区別は **色相 1 本**で持つので、2 つの塗りが違う色であることが要である
 		expect(MY_DISH_STATUS_COLORS.want.fill).not.toBe(MY_DISH_STATUS_COLORS.eaten.fill);
+		/*
+		#1834 続き（11 巡目・オーナー指示）**🟢 は «完了» の記号なので «食べた» 側へ当てる。**
+
+		⚠️ ここは «2 色が違うこと» ではなく **«どちらの状態にどちらの色が当たるか»** を縛る。
+		   10 巡目までこの向きを縛っていなかったため、当てる先を入れ替えても
+		   テストが緑のまま通ってしまう状態だった（＝逆向きの再発を検知できない）。
+		*/
+		expect(MY_DISH_STATUS_COLORS.eaten.fill).toBe(FixedColors.myDishStatusGreen);
+		expect(MY_DISH_STATUS_COLORS.want.fill).toBe(FixedColors.myDishStatusOrange);
 		// どちらも塗りの上に白の文字・枠を載せる（3 つ組が揃っていること）
 		expect(MY_DISH_STATUS_COLORS.want.on).toBe("#FFFFFF");
 		expect(MY_DISH_STATUS_COLORS.want.border).toBe("#FFFFFF");

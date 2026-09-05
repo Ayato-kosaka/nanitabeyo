@@ -2,21 +2,20 @@ import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
 import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { ResultPage } from "../../pages/ResultPage";
-// #1785 色は spec へ写経せずアプリの Palette から引く（reaction-rollback.spec.ts と同じ理由）
+// #1785 色は spec へ写経せずアプリのソースから引く（reaction-rollback.spec.ts と同じ理由）
 import { FixedColors } from "@app-expo/constants/Palette";
+import { MY_DISH_STATUS_COLORS } from "@app-expo/features/myDishes/statusColors";
 
 /** ActionButtons.tsx の Heart / Bookmark が実際に描く fill 属性 */
 const ICON_FILL = {
 	liked: FixedColors.likeActive,
 	notLiked: FixedColors.onMedia,
-	// #1834 «保存 = 食べたい» は緑塗り（オーナー指示）。app 側は
-	// MY_DISH_STATUS_COLORS.want.fill を使うが、その実体は
-	// FixedColors.myDishStatusGreen なので、ここは Palette を直接引く。
-	// ⚠️ statusColors.ts は `@/` 別名を使う «純粋でない» モジュールなので、
-	//    ここから import してはいけない（Playwright は別名を解決しない）。
-	// ⚠️ 色をここへ書き写さないこと。#1840 で色が変わったとき、書き写していた
-	//    ためにテストだけ古い色を守り続け、nightly が赤くなった。
-	saved: FixedColors.myDishStatusGreen,
+	// #1834 続き（11 巡目）«保存 = 食べたい» はオレンジ塗り（🟢 は «完了» なので «食べた» 側へ移した）。
+	// ⚠️ **色名（`FixedColors.myDishStatus*`）で束ねないこと。** app 側が使うのは
+	//    `MY_DISH_STATUS_COLORS.want.fill` であり、«どちらの状態にどちらの色を当てるか» は
+	//    statusColors.ts が持つ。色名で書くと、値ではなく **当てる先** が入れ替わったときに
+	//    追従できず、テストだけが古い向きを守り続ける（11 巡目でまさにこの形になった）。
+	saved: MY_DISH_STATUS_COLORS.want.fill,
 	notSaved: "transparent",
 } as const;
 import { ProfilePage } from "../../pages/ProfilePage";
