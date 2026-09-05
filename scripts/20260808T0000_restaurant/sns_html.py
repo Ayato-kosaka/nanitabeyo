@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import html as html_mod
 import re
+import unicodedata
 
 RE_BLOCKQUOTE = re.compile(r"<blockquote[^>]*instagram-media.*?</blockquote>", re.S | re.I)
 RE_PERMALINK = re.compile(r"instagram\.com/(?:[A-Za-z0-9._]{2,30}/)?(?:p|reel|tv)/([A-Za-z0-9_-]{5,20})", re.I)
@@ -207,3 +208,68 @@ def store_name_from_text(text: str) -> str | None:
         if rank > best_rank:
             best_rank, best = rank, body
     return best
+
+
+# ---------------------------------------------------------------------------
+# 📍<店名> 行の切り出し（#1841 / 親 #1273）
+#
+# **判定の正は `shared/utils/textNormalize.ts` の `extractPinNames`** である。
+# resolve（API 側）はその関数でキャプションの 📍行 を店名ヒントに使っており、こちらが
+# 別の規則で切ると «resolve は店名として見ていない文字列» を Google へ投げることになる。
+# 規則を増やさないため、定数（正規表現・長さの上限）は TS 側と 1 対 1 に写し、
+# `test_place_id_by_name.py::PinNameRuleDriftTest` が TS の定義と突き合わせて固定する。
+# TS を直したらこのテストが赤くなるので、片側だけ育つことはない。
+#
+# 走査を «行単位» でやるのも TS と同じ理由による。`normalize_match_text` は改行を空白へ
+# 潰すので、先に行へ割ってからでないと «📍 の行» という構造が消える。
+# ---------------------------------------------------------------------------
+
+_PIN_MARK = "📍"
+_MATCH_TEXT_MAX_LENGTH = 4096
+PIN_NAME_MIN_LENGTH = 2
+PIN_NAME_MAX_LENGTH = 40
+
+_RE_PIN_ADDRESS_LEAD = re.compile(r"^(?:住所|所在地|場所|アクセス|〒|tel|電話|address)", re.I)
+_RE_PIN_PREFECTURE_LEAD = re.compile(r"^(?:東京都|北海道|(?:大阪|京都)府|[一-龥]{2,3}県)")
+_RE_PIN_NAME_CUTOFF = re.compile(r"(?:\s住所|住所[:：]|〒|\stel|tel[:：]|☎|営業時間|定休日|アクセス|\s{2,})", re.I)
+_RE_PIN_LEAD_SEPARATOR = re.compile(r"^[\s：:・|｜]+")
+_RE_PIN_ALIAS_SEPARATOR = re.compile(r"[｜|].*$")
+
+
+def normalize_match_text(value: str | None) -> str:
+    """NFKC → 空白圧縮 → 小文字化。`normalizeMatchText`（TS）/ `norm_key`（BQ 側）と同じ 3 手順。"""
+    if not value:
+        return ""
+    capped = value[:_MATCH_TEXT_MAX_LENGTH]
+    return " ".join(unicodedata.normalize("NFKC", capped).split()).lower()
+
+
+def pin_names_from_text(raw_text: str | None) -> list[str]:
+    """各行の `📍` 直後に書かれた **店名**を切り出す。**生キャプションを渡すこと。**
+
+    `shared/utils/textNormalize.ts` の `extractPinNames` と同じ結果を返す（例外は投げない）。
+    住所ピン（`📍住所：…` `📍東京都…`）は店ではないので落とし、店名の後ろに住所・電話・
+    営業情報が続く行はそこで切る。`｜`/`|` 以降（読みの別名）も落とす。
+    """
+    if not raw_text:
+        return []
+    names: list[str] = []
+    for raw_line in raw_text[:_MATCH_TEXT_MAX_LENGTH].splitlines():
+        line = raw_line.strip()
+        # 1 行に複数の 📍 があっても «店名を指す» のは最後の 1 個（先頭は絵文字装飾のことが多い）
+        pin_at = line.rfind(_PIN_MARK)
+        if pin_at == -1:
+            continue
+        after = _RE_PIN_LEAD_SEPARATOR.sub("", line[pin_at + len(_PIN_MARK):]).strip()
+        if not after:
+            continue
+        if _RE_PIN_ADDRESS_LEAD.search(after) or _RE_PIN_PREFECTURE_LEAD.search(after):
+            continue
+        cutoff = _RE_PIN_NAME_CUTOFF.search(after)
+        if cutoff and cutoff.start() > 0:
+            after = after[:cutoff.start()].strip()
+        after = _RE_PIN_ALIAS_SEPARATOR.sub("", after).strip()
+        normalized = normalize_match_text(after)
+        if PIN_NAME_MIN_LENGTH <= len(normalized) <= PIN_NAME_MAX_LENGTH:
+            names.append(normalized)
+    return names
