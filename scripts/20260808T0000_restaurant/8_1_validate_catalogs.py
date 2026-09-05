@@ -34,8 +34,87 @@ DISH_MEDIA_CHECKS = frozenset({
     "all_area_category_pairs_filled",
 })
 
+# #1273 SNS 経路（4_* → 5_1 → 9_1_build_sns_dish_media_catalog → 9_2_sync_sns_dish_media）の
+# 配信直前ゲート。旧 dish_media_catalog 向けの検査（DISH_MEDIA_CHECKS）は
+# sns_dish_media_catalog を 1 行も見ないので、SNS の中身は誰も検査していなかった。
+#
+# jp_gate_category_count をこの集合へ入れているのは、SNS だけを検証する
+# （--sns-only）ときにも «134 カテゴリの一覧そのものが壊れていないか» が要るからである。
+# sns_media_jp_gate_category_rate はその一覧を分母に使うので、一覧が壊れていれば率も嘘になる。
+SNS_MEDIA_CHECKS = frozenset({
+    "jp_gate_category_count",
+    "sns_dish_media_catalog_non_empty",
+    "sns_media_pg_unique_key_unique",
+    "sns_media_required_fields_valid",
+    "sns_media_duplicate_post_rate",
+    "sns_media_store_inside_japan",
+    "sns_media_store_known_rate",
+    "sns_media_jp_gate_category_rate",
+})
 
-def parse_args() -> argparse.Namespace:
+# SNS の集合に入っているが restaurant 側の check でもあるもの。SNS を流していない run
+# でも残す（134 カテゴリの一覧そのものの検査であって、SNS 固有の検査ではない）。
+SHARED_WITH_RESTAURANT_CHECKS = frozenset({"jp_gate_category_count"})
+
+# --- SNS 経路の閾値 -----------------------------------------------------------
+#
+# すべて 2026-09-05 の実測（run_id=sns-catalog-2026-09-05 / 142,489 行 / 19,605 店 /
+# 140,481 投稿）を基準に置いている。「なんとなく」で置いた数字はここに 1 つも無い。
+
+# «同じ投稿が複数行に出ている» 行の割合。ERROR。
+#
+# dish_media の ID は build_dish_media_id(provider, 投稿ID) で決まる（料理カテゴリを
+# 含めない）ので、**1 投稿は 1 dish_media にしかならない**。9_2 は catalog を
+# ROW_NUMBER() で 1 投稿 1 行へ畳んで読むため、余った行は PG を壊さずに捨てられる。
+# つまりこれは «壊れる» 検査ではなく «店の当て方が壊れ始めていないか» の検査である。
+#
+# 閾値 3% の根拠:
+#   - 今日の実測 1.409%（2,008 行 / 142,489 行。1,388 投稿）。中身は全件が
+#     «同じ投稿に別の店»（別カテゴリは 0 件）で、同じ投稿が複数の店アカウントから
+#     採れたときに起きる。柱1（店アカウント収集）が伸びるほど自然に増える量なので、
+#     今日の倍までは «増えた» と呼ばない
+#   - 一方、9_1 が resolve の最新行へ絞れていなかったときの実測は **18.5%** だった
+#     （common_sns.LATEST_RESOLVED_QUALIFY のコメント）。同じ壊れ方が再発したら
+#     3% は必ず超える
+SNS_DUPLICATE_POST_RATE_MAX = 0.03
+
+# restaurant_catalog に居ない店を指している行の割合。WARNING。
+#
+# 9_2 はこの行を落として続行する（止めると 1 件の取りこぼしで全件が届かなくなる）ので、
+# 止める理由が無い。見たいのは «増えていないか» だけである。
+#
+# 閾値 1% の根拠:
+#   - 今日の実測 0.349%（497 行 / 84 店）
+#   - restaurant_catalog は run_id=restaurant-2026-08-23 の snapshot なので、resolve が
+#     後から見つけた place_id は構造的にここへ落ちる。ゆっくり増えるのが正常
+#   - 3 倍（1%）を超えたら «ゆっくり» ではない。restaurant 側の再同期が要るか、
+#     resolve が catalog に無い place_id を作り始めたかのどちらかを疑う
+SNS_UNKNOWN_STORE_RATE_MAX = 0.01
+
+# アプリの 134 カテゴリ（JP ゲート）の外を指している行の割合。WARNING。
+#
+# 捨てない。dish_categories には 134 の外も居るので PG へは入る。ただし JP の検索には
+# 出ないので、割合が跳ねたら «resolve がアプリの語彙の外へ流れ始めた» という意味になる。
+#
+# 閾値 30% の根拠:
+#   - 今日の実測 18.702%（26,648 行 / 1,401 カテゴリ）
+#   - 7_2 のファネルで観測されている帯は 19.9〜21.2%。18.7〜21.2% が «いつもの範囲»
+#   - その上限（21.2%）に対して約 1.4 倍。帯の中で揺れる限りは鳴らず、帯を明らかに
+#     外れたときだけ鳴る位置
+SNS_OUTSIDE_JP_GATE_CATEGORY_RATE_MAX = 0.30
+
+# dish_media_external_embeddings.provider の CHECK（dmee_provider_check）と同じ値域。
+# infra/supabase/migrations/20260824T0200_create_dish_media_external_embeddings.sql
+# ここを狭めると «PG が受け取れる行を手前で ERROR にする» ことになるので、DB に合わせる。
+# 9_2_sync_sns_dish_media.ALLOWED_PROVIDERS と一致していることは
+# test_8_1_sns_quality_gate.py が ast で読んで固定する（写経のずれを検知する）。
+DMEE_ALLOWED_PROVIDERS = ("instagram", "tiktok", "youtube", "x")
+
+# 日本の矩形。restaurant_overseas_only_from_existing_pg と同じ値を使う。
+JAPAN_BBOX = (20.0, 46.5, 122.0, 154.0)  # lat_min, lat_max, lng_min, lng_max
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="BQ publish catalogsの品質ゲートを実行します"
     )
@@ -50,11 +129,33 @@ def parse_args() -> argparse.Namespace:
         "して必ず ERROR になる。restaurant 側の検査だけで 9_1 の可否を判断したいときに使う",
     )
     parser.add_argument(
+        "--sns-run-id",
+        default=None,
+        help="#1273 SNS 経路の検査を実行する。読む sns_dish_media_catalog の run_id。"
+        "渡さないと SNS check は結果から外れる（SNS を流していない run で "
+        "sns_dish_media_catalog_non_empty が必ず ERROR になるのを避けるため）",
+    )
+    parser.add_argument(
+        "--restaurant-catalog-run-id",
+        default=None,
+        help="#1273 SNS 経路の «店が実在するか / 国内か» を照らし合わせる restaurant_catalog "
+        "の run_id。省略時は --run-id。SNS の run_id と restaurant の run_id は別なので、"
+        "SNS 経路のゲートでは基本的に明示する",
+    )
+    parser.add_argument(
+        "--sns-only",
+        action="store_true",
+        help="#1273 SNS 経路の check «だけ» を残す。restaurant / dish_media 側の check は"
+        "結果から外す。SNS の run_id には restaurant_source_records が 1 行も無く、"
+        "restaurant 側の check が全て ERROR になるため、SNS の run_id でゲートを"
+        "回すときに使う（9_2 はこの run_id で検証結果を探す）",
+    )
+    parser.add_argument(
         "--fail-on-warning",
         action="store_true",
         help="coverage不足のWARNINGでも終了codeを非0にする場合だけ指定",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def validation_sql(pipeline: BigQueryPipeline) -> str:
@@ -210,6 +311,66 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
       category_stats AS (
         SELECT COUNT(*) AS row_count FROM target_categories
       ),
+      -- #1273 ここから SNS 経路（sns_dish_media_catalog）の検査。
+      --
+      -- 旧 dish_media_catalog（media_stats / media_orphans）はこの表を 1 行も見ない。
+      -- 9_2 が PG(dev) へ書くのはこの表なので、ここを検査しないと «中身を誰も見ずに
+      -- dev へ入る» ことになる。
+      sns_media_stats AS (
+        SELECT
+          COUNT(*) AS row_count,
+          -- 1 投稿 1 dish_media（build_dish_media_id は料理カテゴリを含めない）
+          COUNT(DISTINCT CONCAT(provider, ':', external_content_id)) AS distinct_post_count,
+          -- PG 側の UNIQUE (provider, external_content_id, dish_id) と同じ粒度。
+          -- dish_id は (店, 料理カテゴリ) なので、ここでは (店, カテゴリ) で代用する。
+          -- ここが重複していると 9_2 の ON CONFLICT DO NOTHING が黙って飲み込む。
+          COUNT(DISTINCT CONCAT(
+            provider, ':', external_content_id, ':', google_place_id, ':', dish_category_id
+          )) AS distinct_pg_key_count,
+          -- dmee の NOT NULL / CHECK に当たるものを手前で数える。
+          --   canonical_url … dmee.canonical_url は NOT NULL。空文字も入れない
+          --   provider      … dmee_provider_check の値域
+          --   dish_category_id … PG の dish_categories.id は Wikidata QID
+          COUNTIF(
+            NULLIF(canonical_url, '') IS NULL
+            OR NOT STARTS_WITH(canonical_url, 'https://')
+            OR provider NOT IN UNNEST(@sns_allowed_providers)
+            OR NULLIF(google_place_id, '') IS NULL
+            OR NOT REGEXP_CONTAINS(dish_category_id, r'^Q[0-9]+$')
+            OR NULLIF(row_hash, '') IS NULL
+          ) AS invalid_count
+        FROM `{dataset}.sns_dish_media_catalog`
+        WHERE run_id = @sns_run_id
+      ),
+      -- «その店は PG に居るか / 日本の店か»。
+      --
+      -- 8_1 は PostgreSQL に触らない。PG の restaurants を作っているのは 9_1 が配信する
+      -- restaurant_catalog なので、そちらを «PG に居る店» の代理として照らし合わせる。
+      -- 座標もこの表しか持っていない（sns_post_resolved は国・座標を持たない）ので、
+      -- 国外混入の判定もここで行う。
+      sns_media_store_state AS (
+        SELECT
+          COUNT(*) AS row_count,
+          COUNTIF(rc.google_place_id IS NULL) AS unknown_store_rows,
+          COUNTIF(
+            rc.google_place_id IS NOT NULL
+            AND (rc.latitude NOT BETWEEN @jp_lat_min AND @jp_lat_max
+                 OR rc.longitude NOT BETWEEN @jp_lng_min AND @jp_lng_max)
+          ) AS overseas_rows
+        FROM `{dataset}.sns_dish_media_catalog` m
+        LEFT JOIN `{dataset}.restaurant_catalog` rc
+          ON rc.run_id = @restaurant_catalog_run_id
+         AND rc.google_place_id = m.google_place_id
+        WHERE m.run_id = @sns_run_id
+      ),
+      sns_media_category_state AS (
+        SELECT
+          COUNT(*) AS row_count,
+          COUNTIF(t.item_qid IS NULL) AS outside_gate_rows
+        FROM `{dataset}.sns_dish_media_catalog` m
+        LEFT JOIN target_categories t ON t.item_qid = m.dish_category_id
+        WHERE m.run_id = @sns_run_id
+      ),
       media_stats AS (
         SELECT
           COUNT(*) AS row_count,
@@ -313,9 +474,116 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
         UNION ALL SELECT 'all_area_category_pairs_filled', 'WARNING',
           SAFE_DIVIDE(CAST(shortage_rows AS FLOAT64), NULLIF(row_count, 0)), 0.0,
           shortage_rows = 0 FROM coverage_stats
+        -- #1273 SNS 経路（9_2 が PG(dev) へ書く行）の検査。
+        UNION ALL SELECT 'sns_dish_media_catalog_non_empty', 'ERROR',
+          CAST(row_count AS FLOAT64), 1.0, row_count >= 1 FROM sns_media_stats
+        UNION ALL SELECT 'sns_media_pg_unique_key_unique', 'ERROR',
+          CAST(row_count - distinct_pg_key_count AS FLOAT64), 0.0,
+          row_count = distinct_pg_key_count FROM sns_media_stats
+        UNION ALL SELECT 'sns_media_required_fields_valid', 'ERROR',
+          CAST(invalid_count AS FLOAT64), 0.0, invalid_count = 0 FROM sns_media_stats
+        UNION ALL SELECT 'sns_media_duplicate_post_rate', 'ERROR',
+          COALESCE(SAFE_DIVIDE(
+            CAST(row_count - distinct_post_count AS FLOAT64), NULLIF(row_count, 0)
+          ), 0.0),
+          @sns_duplicate_post_rate_max,
+          COALESCE(SAFE_DIVIDE(
+            CAST(row_count - distinct_post_count AS FLOAT64), NULLIF(row_count, 0)
+          ), 0.0) <= @sns_duplicate_post_rate_max
+          FROM sns_media_stats
+        UNION ALL SELECT 'sns_media_store_inside_japan', 'ERROR',
+          CAST(overseas_rows AS FLOAT64), 0.0, overseas_rows = 0
+          FROM sns_media_store_state
+        UNION ALL SELECT 'sns_media_store_known_rate', 'WARNING',
+          COALESCE(SAFE_DIVIDE(
+            CAST(unknown_store_rows AS FLOAT64), NULLIF(row_count, 0)
+          ), 0.0),
+          @sns_unknown_store_rate_max,
+          COALESCE(SAFE_DIVIDE(
+            CAST(unknown_store_rows AS FLOAT64), NULLIF(row_count, 0)
+          ), 0.0) <= @sns_unknown_store_rate_max
+          FROM sns_media_store_state
+        UNION ALL SELECT 'sns_media_jp_gate_category_rate', 'WARNING',
+          COALESCE(SAFE_DIVIDE(
+            CAST(outside_gate_rows AS FLOAT64), NULLIF(row_count, 0)
+          ), 0.0),
+          @sns_outside_jp_gate_category_rate_max,
+          COALESCE(SAFE_DIVIDE(
+            CAST(outside_gate_rows AS FLOAT64), NULLIF(row_count, 0)
+          ), 0.0) <= @sns_outside_jp_gate_category_rate_max
+          FROM sns_media_category_state
       )
       SELECT * FROM checks ORDER BY severity, check_name
     """
+
+
+def query_parameters(args: argparse.Namespace, run_id: str) -> list[Any]:
+    """validation_sql が参照する named parameter を全て組む。
+
+    SNS の check を実行しない run でも SQL は同じ 1 本なので、@sns_run_id 等は必ず渡す。
+    渡さない run では sns_dish_media_catalog に 1 行も当たらず、結果は下の
+    select_checks が結果集合から外す。
+    """
+
+    lat_min, lat_max, lng_min, lng_max = JAPAN_BBOX
+    return [
+        bigquery.ScalarQueryParameter("run_id", "STRING", run_id),
+        bigquery.ScalarQueryParameter(
+            "expected_category_count", "INT64", args.expected_category_count
+        ),
+        bigquery.ScalarQueryParameter("sns_run_id", "STRING", args.sns_run_id or run_id),
+        bigquery.ScalarQueryParameter(
+            "restaurant_catalog_run_id",
+            "STRING",
+            args.restaurant_catalog_run_id or run_id,
+        ),
+        bigquery.ArrayQueryParameter(
+            "sns_allowed_providers", "STRING", list(DMEE_ALLOWED_PROVIDERS)
+        ),
+        bigquery.ScalarQueryParameter(
+            "sns_duplicate_post_rate_max", "FLOAT64", SNS_DUPLICATE_POST_RATE_MAX
+        ),
+        bigquery.ScalarQueryParameter(
+            "sns_unknown_store_rate_max", "FLOAT64", SNS_UNKNOWN_STORE_RATE_MAX
+        ),
+        bigquery.ScalarQueryParameter(
+            "sns_outside_jp_gate_category_rate_max",
+            "FLOAT64",
+            SNS_OUTSIDE_JP_GATE_CATEGORY_RATE_MAX,
+        ),
+        bigquery.ScalarQueryParameter("jp_lat_min", "FLOAT64", lat_min),
+        bigquery.ScalarQueryParameter("jp_lat_max", "FLOAT64", lat_max),
+        bigquery.ScalarQueryParameter("jp_lng_min", "FLOAT64", lng_min),
+        bigquery.ScalarQueryParameter("jp_lng_max", "FLOAT64", lng_max),
+    ]
+
+
+def select_checks(check_names: list[str], args: argparse.Namespace) -> tuple[list[str], list[str]]:
+    """実行した check のうち «この run で意味を成すもの» と «外したもの» に分ける。
+
+    SQL は 1 本なので全 check が計算される。どれを検証結果として残すかは、
+    その run が何を流したかで決まる。
+
+    - `--sns-only`     … SNS の check だけを残す（SNS の run_id には restaurant 側の
+                          行が 1 つも無く、restaurant の check は全て ERROR になる）
+    - `--sns-run-id` 無し … SNS の check を外す（sns_dish_media_catalog_non_empty が
+                          必ず ERROR になる）
+    - `--skip-dish-media-checks` … 旧 dish_media 経路の check を外す
+    """
+
+    kept: list[str] = []
+    skipped: list[str] = []
+    for name in check_names:
+        if args.sns_only:
+            drop = name not in SNS_MEDIA_CHECKS
+        elif name in SNS_MEDIA_CHECKS - SHARED_WITH_RESTAURANT_CHECKS:
+            drop = args.sns_run_id is None
+        elif name in DISH_MEDIA_CHECKS:
+            drop = args.skip_dish_media_checks
+        else:
+            drop = False
+        (skipped if drop else kept).append(name)
+    return kept, skipped
 
 
 def main() -> None:
@@ -323,12 +591,7 @@ def main() -> None:
     args = parse_args()
     run_id = require_run_id(args.run_id)
     pipeline = BigQueryPipeline()
-    parameters = [
-        bigquery.ScalarQueryParameter("run_id", "STRING", run_id),
-        bigquery.ScalarQueryParameter(
-            "expected_category_count", "INT64", args.expected_category_count
-        ),
-    ]
+    parameters = query_parameters(args, run_id)
     checked_at = utc_now()
     # 1回の検証結果をvalidation_idで束ねる。9_* はこの単位で全ERRORを評価し、
     # 部分的なstreaming insertや古い検証結果の混在を許さない。
@@ -339,17 +602,19 @@ def main() -> None:
         parameters={
             "expected_category_count": args.expected_category_count,
             "fail_on_warning": args.fail_on_warning,
+            "sns_run_id": args.sns_run_id,
+            "restaurant_catalog_run_id": args.restaurant_catalog_run_id,
+            "sns_only": args.sns_only,
         },
         repo_root=REPO_ROOT,
     ) as step:
         results = list(pipeline.execute(validation_sql(pipeline), parameters))
-        if args.skip_dish_media_checks:
-            skipped = [r.check_name for r in results if r.check_name in DISH_MEDIA_CHECKS]
-            results = [r for r in results if r.check_name not in DISH_MEDIA_CHECKS]
-            step["skipped_dish_media_checks"] = skipped
+        kept, skipped = select_checks([r.check_name for r in results], args)
+        results = [r for r in results if r.check_name in set(kept)]
+        if skipped:
+            step["skipped_checks"] = skipped
             LOGGER.warning(
-                "dish_media 経路の検査を外した: %s。restaurants だけを公開する納品でのみ使うこと",
-                ", ".join(skipped),
+                "この run で意味を成さない検査を外した: %s", ", ".join(skipped)
             )
         rows: list[dict[str, Any]] = []
         for result in results:
