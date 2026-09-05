@@ -80,7 +80,52 @@ def pace_for_app_usage() -> None:
         time.sleep(delay)
 
 
+# #1815 IG 側の一時エラーで «6 時間の収集ジョブ» を落とさない。
+#
+# 2026-09-05、341 件の influencer を採る予定だった run が **28 アカウントで落ちた**。
+# 原因は 1 回の `IG API 500: {"error":{... "is_transient":true ...}}`。相手が
+# «あとで試して» と明示しているものを、こちらは即座に例外にしてバッチごと終わらせていた。
+#
+# 同じ考え違いを resolve 側では既に直してある（`common_sns.ResolveClient` の 429/5xx 再送）。
+# «相手の一時的な失敗を、自分の恒久的な失敗として扱わない» は 1 箇所の話ではないので、
+# IG を叩くこの経路にも同じ規則を入れる。
+#
+# 再送してよいのは «相手が一時的だと言っているもの» だけ:
+#   - `error.is_transient` が true
+#   - HTTP 5xx（サーバ側の失敗）
+# レート制限（code 4 / 17 / 613 / 429）は別扱いのまま（`RateLimited` で呼び出し側が待つ）。
+# handle が引けない（code 110）も別扱いのまま（そのアカウントだけ飛ばす）。
+TRANSIENT_RETRIES = 3
+TRANSIENT_BACKOFF_S = (5.0, 20.0, 60.0)
+
+
+def _is_transient(err: dict, http_status: int) -> bool:
+    """相手が «一時的» と言っているか。ここだけが再送の可否を決める。"""
+    return bool(err.get("is_transient")) or http_status >= 500
+
+
 def _get(url: str, timeout: float = 30.0) -> dict:
+    last: Exception | None = None
+    for attempt in range(TRANSIENT_RETRIES + 1):
+        try:
+            return _get_once(url, timeout)
+        except _TransientIGError as e:
+            last = e
+            if attempt >= TRANSIENT_RETRIES:
+                break
+            delay = TRANSIENT_BACKOFF_S[min(attempt, len(TRANSIENT_BACKOFF_S) - 1)]
+            LOGGER.warning("IG の一時エラー（%s）。%.0f 秒待って再送します（%d/%d）",
+                           e, delay, attempt + 1, TRANSIENT_RETRIES)
+            time.sleep(delay)
+    assert last is not None
+    raise RuntimeError(str(last))
+
+
+class _TransientIGError(RuntimeError):
+    """相手が «あとで試して» と言った失敗。_get の中だけで使う。"""
+
+
+def _get_once(url: str, timeout: float = 30.0) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": "nanitabeyo-sns-seed/1.0"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -101,6 +146,8 @@ def _get(url: str, timeout: float = 30.0) -> dict:
         # アカウントは «そのアカウントを飛ばす» べき状態で、バッチ全体を止めない。
         if code == 110 or err.get("error_user_title") == "Cannot find User":
             raise AccountNotDiscoverable(err.get("error_user_msg") or err.get("message") or "not discoverable")
+        if _is_transient(err, e.code):
+            raise _TransientIGError(f"IG API {e.code}: {body[:300]}")
         raise RuntimeError(f"IG API {e.code}: {body[:300]}")
 
 
