@@ -274,7 +274,7 @@ describe('#1671 確認ページ経由の店舗作成', () => {
       );
     });
 
-    it('Google 由来の addressComponents は下読みの値がそのまま保存される', async () => {
+    it('⚠️ #1780 Google 由来の生データ（addressComponents / plusCode）を保存しない', async () => {
       const { draftToken } = await issueDraft();
 
       await service.createRestaurant({
@@ -285,9 +285,33 @@ describe('#1671 確認ページ経由の店舗作成', () => {
         longitude: GOOGLE_LNG,
       } as CreateRestaurantDto);
 
+      const [, data] = dishesRepository.createOrGetRestaurant.mock.calls[0];
+
+      // #843 §4 の方針。取得はするが保存しない
+      expect(data.address_components).toEqual([]);
+      expect(data).not.toHaveProperty('plus_code');
+    });
+
+    it('⚠️ #1780 保存しない代わりに、列へ畳んだ値は残っている', async () => {
+      const { draftToken } = await issueDraft();
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        name: GOOGLE_NAME,
+        latitude: GOOGLE_LAT,
+        longitude: GOOGLE_LNG,
+      } as CreateRestaurantDto);
+
+      // ここが空になると «生データも列も無い» 店ができ、料理の命名が
+      // 英語へ落ちる（#1850 で直したのと同じ壊れ方）。両方同時に外さないこと
       expect(dishesRepository.createOrGetRestaurant).toHaveBeenCalledWith(
         TX,
-        expect.objectContaining({ address_components: ADDRESS_COMPONENTS }),
+        expect.objectContaining({
+          address: '東京都',
+          country_code: 'JP',
+          subterritory_code: 'JP-Tokyo',
+        }),
         PLACE_ID,
       );
     });

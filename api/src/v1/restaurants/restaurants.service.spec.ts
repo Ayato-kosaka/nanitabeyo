@@ -200,8 +200,15 @@ describe('RestaurantsService.createRestaurant', () => {
       'addressComponents,types',
     );
     // 2 回目: 保存する値の取得（fetchAndValidatePlaceDetail）
+    // #1780 ⚠️ **保存しない値を fieldMask へ足さないこと。**
+    // `plusCode` は保存もしなければ読み手も無いので落とした。
+    // `addressComponents` は保存しないが、確認ページの初期値をその場で
+    // 組み立てるために要るので残す。
     expect(externalApi.callPlaceDetails.mock.calls[1][0]).toBe(
-      'id,displayName,location,addressComponents,plusCode',
+      'id,displayName,location,addressComponents',
+    );
+    expect(externalApi.callPlaceDetails.mock.calls[1][0]).not.toContain(
+      'plusCode',
     );
   });
 
