@@ -27,6 +27,9 @@ from pathlib import Path
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url
 
+# #1273 4_19 が作る «1 コールあたりの期待配信店数» 順の候補表。--candidate-run-id で使う。
+TABLE_ACCOUNT_CANDIDATE = "sns_account_candidate_v2"
+
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
 GRAPH = "https://graph.facebook.com/v23.0"
@@ -152,6 +155,12 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="business_discovery で投稿URLを収集する（ルート1/2）")
     p.add_argument("--run-id", default=None)
     p.add_argument("--account-run-id", default=None, help="読む sns_source_account の run_id（省略時は --run-id と同じ）")
+    p.add_argument("--candidate-run-id", default=None,
+                   help="4_19 が作った sns_account_candidate_v2 の run_id。指定すると "
+                        "«1 コールあたりの期待配信店数» の高い順にアカウントを選ぶ "
+                        "（--account-run-id の代わり）")
+    p.add_argument("--candidate-tiers", default=None,
+                   help="--candidate-run-id と併用。回す段をカンマ区切りで絞る（例 A_curated,B_store_attributed）")
     p.add_argument("--account-type", default=None, choices=["influencer", "store_branch", "store_brand"],
                    help="対象を絞る（省略時は全部）")
     p.add_argument("--max-accounts", type=int, default=None, help="このバッチで処理するアカウント数上限")
@@ -171,8 +180,22 @@ def parse_args() -> argparse.Namespace:
 
 
 def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type, max_accounts,
-                   output_run_id: str | None = None, shard_count: int = 1, shard_index: int = 0):
+                   output_run_id: str | None = None, shard_count: int = 1, shard_index: int = 0,
+                   candidate_run_id: str | None = None, candidate_tiers: str | None = None):
+    """収集するアカウントを選ぶ。
+
+    既定は `sns_source_account` の run_id から handle 順。`candidate_run_id` を渡すと
+    **4_19 の候補表から «1 コールあたりの期待配信店数» の高い順**に選ぶ。
+
+    【設計】#1273 business_discovery は ~200 コール/時で、未収集は 119,472 件ある
+    （全部で ~25 日）。よって «どの順で回すか» が成果そのものになる。実測（配信カタログ基準）:
+    人が選んだ influencer_list の未収集 36 件が 31.9 店/コール、店アカウント（seed 有）が
+    0.542、それ以外は 0.055。**先頭の 36 件だけで、店アカウント 2,100 件ぶんに相当する。**
+    """
     from google.cloud import bigquery
+    if candidate_run_id:
+        return _read_accounts_ranked(pipeline, candidate_run_id, candidate_tiers, account_type,
+                                     max_accounts, output_run_id, shard_count, shard_index)
     where = "run_id = @rid AND provider = @prov"
     params = [
         bigquery.ScalarQueryParameter("rid", "STRING", account_run_id),
@@ -209,6 +232,51 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type
     return list(pipeline.execute(sql, params))
 
 
+def _read_accounts_ranked(pipeline: BigQueryPipeline, candidate_run_id: str, candidate_tiers,
+                          account_type, max_accounts, output_run_id, shard_count, shard_index):
+    """4_19 の候補表から、期待配信店数の高い順にアカウントを返す。
+
+    `account_type` / `discovery_seed_place_id` は `sns_source_account` 側が正なので、
+    候補表は «順番» だけを持ち、行の中身はここで引き直す（2 箇所に同じ値を持たない）。
+    """
+    from google.cloud import bigquery
+    where = ["c.run_id = @crid", "c.provider = @prov"]
+    params = [
+        bigquery.ScalarQueryParameter("crid", "STRING", candidate_run_id),
+        bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
+    ]
+    if candidate_tiers:
+        where.append("c.tier IN UNNEST(@tiers)")
+        params.append(bigquery.ArrayQueryParameter(
+            "tiers", "STRING", [s.strip() for s in candidate_tiers.split(",") if s.strip()]))
+    if account_type:
+        where.append("a.account_type = @atype")
+        params.append(bigquery.ScalarQueryParameter("atype", "STRING", account_type))
+    if shard_count and shard_count > 1:
+        where.append("MOD(ABS(FARM_FINGERPRINT(c.handle)), @shard_count) = @shard_index")
+        params.append(bigquery.ScalarQueryParameter("shard_count", "INT64", int(shard_count)))
+        params.append(bigquery.ScalarQueryParameter("shard_index", "INT64", int(shard_index)))
+    if output_run_id:
+        where.append("c.handle NOT IN (SELECT DISTINCT account_id FROM "
+                     f"`{pipeline.table(TABLE_POST_RAW)}` "
+                     "WHERE run_id = @out_rid AND account_id IS NOT NULL)")
+        params.append(bigquery.ScalarQueryParameter("out_rid", "STRING", output_run_id))
+    limit_sql = f"LIMIT {int(max_accounts)}" if max_accounts else ""
+    sql = f"""
+      SELECT c.handle,
+             ANY_VALUE(a.account_type) AS account_type,
+             ANY_VALUE(a.discovery_seed_place_id) AS discovery_seed_place_id
+      FROM `{pipeline.table(TABLE_ACCOUNT_CANDIDATE)}` c
+      LEFT JOIN `{pipeline.table(TABLE_SOURCE_ACCOUNT)}` a
+        ON LOWER(a.handle) = c.handle AND a.provider = c.provider
+      WHERE {' AND '.join(where)}
+      GROUP BY c.handle, c.expected_delivered_stores_per_call
+      ORDER BY c.expected_delivered_stores_per_call DESC, c.handle
+      {limit_sql}
+    """
+    return list(pipeline.execute(sql, params))
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
@@ -225,7 +293,9 @@ def main() -> None:
     # output_run_id=run_id を渡すと «この run に既に投稿がある handle» を除外する（チャンク前進）。
     accounts = _read_accounts(pipeline, account_run_id, args.account_type, args.max_accounts,
                               output_run_id=run_id,
-                              shard_count=args.shard_count, shard_index=args.shard_index)
+                              shard_count=args.shard_count, shard_index=args.shard_index,
+                              candidate_run_id=args.candidate_run_id,
+                              candidate_tiers=args.candidate_tiers)
     LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
     now = utc_now()
     now_iso = now.isoformat()
