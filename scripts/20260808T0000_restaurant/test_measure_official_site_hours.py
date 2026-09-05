@@ -29,6 +29,11 @@ assert _spec and _spec.loader
 measure = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(measure)
 
+# ⚠️ 取りに行く作法と分類は `official_site_crawl` が持つ（6_2 と 6_3 の共有）。
+#    **本番が持っている場所をそのまま見る。** ここへ写経すると、本番だけ直したときに
+#    テストが緑のまま古い挙動を守り続ける。
+import official_site_crawl as crawl  # noqa: E402
+
 
 class HtmlToTextTest(unittest.TestCase):
     def test_script_and_style_contents_are_dropped(self) -> None:
@@ -39,13 +44,13 @@ class HtmlToTextTest(unittest.TestCase):
             "<body><!-- コメント -->"
             "<div>営業時間　11:30～14:30</div></body></html>"
         )
-        text = measure.html_to_text(html)
+        text = crawl.html_to_text(html)
         self.assertNotIn("99:99", text)
         self.assertNotIn("コメント", text)
         self.assertIn("11:30", text)
 
     def test_entities_and_whitespace_are_normalized(self) -> None:
-        text = measure.html_to_text("<p>営業時間&nbsp;&nbsp;11:00-14:00</p>\n\n<p>A&amp;B</p>")
+        text = crawl.html_to_text("<p>営業時間&nbsp;&nbsp;11:00-14:00</p>\n\n<p>A&amp;B</p>")
         self.assertEqual(text, "営業時間 11:00-14:00 A&B")
 
 
@@ -57,7 +62,7 @@ class ClassificationTest(unittest.TestCase):
     """
 
     def classify(self, html: str) -> str:
-        return measure.classify_page(measure.html_to_text(html))
+        return crawl.classify_page(crawl.html_to_text(html))
 
     def test_parsed_page_counts_as_parsed(self) -> None:
         self.assertEqual(self.classify("<div>営業時間　11:30～14:30　定休日　月曜</div>"), "parsed")
@@ -65,7 +70,7 @@ class ClassificationTest(unittest.TestCase):
     def test_page_with_hours_wording_but_unparsable_is_the_llm_candidate(self) -> None:
         """«人間なら読めるがパーサは諦めた» が LLM 候補。ここを取りこぼさない。"""
         html = "<div>営業時間　午後4時〜午後10時　定休日　第1・第3月曜</div>"
-        self.assertIsNone(measure.parse_jp_site_opening_hours(measure.html_to_text(html)), "このパーサは午前/午後と第 n 週を読まない")
+        self.assertIsNone(crawl.parse_jp_site_opening_hours(crawl.html_to_text(html)), "このパーサは午前/午後と第 n 週を読まない")
         self.assertEqual(self.classify(html), "mentions_hours_unparsed")
 
     def test_page_without_any_hours_wording_is_not_a_candidate(self) -> None:
@@ -75,7 +80,7 @@ class ClassificationTest(unittest.TestCase):
         """網はパーサより広くなければならない（狭いと候補を過小に見積もる）。"""
         for wording in ["営業時間", "営業日", "定休日", "休業日", "ランチ", "ディナー", "開店", "閉店", "OPEN"]:
             with self.subTest(wording=wording):
-                self.assertTrue(measure._HOURS_MENTION_RE.search(f"当店の{wording}について"))
+                self.assertTrue(crawl._HOURS_MENTION_RE.search(f"当店の{wording}について"))
 
 
 class NonJapanesePageTest(unittest.TestCase):
@@ -88,7 +93,7 @@ class NonJapanesePageTest(unittest.TestCase):
     """
 
     def classify(self, html: str) -> str:
-        return measure.classify_page(measure.html_to_text(html))
+        return crawl.classify_page(crawl.html_to_text(html))
 
     def test_korean_page_is_excluded_from_the_denominator(self) -> None:
         html = "<div>파리바게뜨 영업시간 09:00-22:00 휴무일 월요일</div>"
@@ -112,7 +117,7 @@ class NonJapanesePageTest(unittest.TestCase):
         **`parsed`（= $0 で構造化できた件数）を実際より少なく報告する**。
         """
         html = "<div>営業時間 11:00-14:00 定休日 月曜</div>"
-        text = measure.html_to_text(html)
+        text = crawl.html_to_text(html)
         self.assertFalse(re.search(r"[ぁ-んァ-ヴー]", text), "この文には仮名が無い（前提の確認）")
         self.assertEqual(self.classify(html), "parsed")
 
@@ -134,29 +139,29 @@ class AsciiUrlTest(unittest.TestCase):
         実際の標本にこの URL があった。`%e7` を `%25e7` にしてはいけない。
         """
         url = "https://www.terakoyahonpo.jp/kanto/%e7%86%b1%e6%b5%b7%e5%ba%97"
-        self.assertEqual(measure.to_ascii_url(url), url)
+        self.assertEqual(crawl.to_ascii_url(url), url)
 
     def test_japanese_host_and_path_become_sendable(self) -> None:
-        got = measure.to_ascii_url("http://日本語.jp/メニュー")
+        got = crawl.to_ascii_url("http://日本語.jp/メニュー")
         self.assertEqual(got, "http://xn--wgv71a119e.jp/%E3%83%A1%E3%83%8B%E3%83%A5%E3%83%BC")
         got.encode("ascii")  # 送れること（ここが本題）
 
     def test_tilde_is_preserved(self) -> None:
         """`~user` 形式は標本に実在する（http://www9.ocn.ne.jp/~ka-na-ya）。"""
         url = "http://www9.ocn.ne.jp/~ka-na-ya"
-        self.assertEqual(measure.to_ascii_url(url), url)
+        self.assertEqual(crawl.to_ascii_url(url), url)
 
     def test_fragment_is_dropped_and_space_encoded(self) -> None:
         """フラグメントはサーバへ送らない。空白は送れないのでエンコードする。"""
         self.assertEqual(
-            measure.to_ascii_url("https://example.com/a b?q=café&x=1#frag"),
+            crawl.to_ascii_url("https://example.com/a b?q=café&x=1#frag"),
             "https://example.com/a%20b?q=caf%C3%A9&x=1",
         )
 
     def test_host_that_cannot_be_idna_is_left_alone(self) -> None:
         """アンダースコア入りホストは IDNA にできない。**落とさず素通しする。**"""
         url = "http://my_host.example.com/x"
-        self.assertEqual(measure.to_ascii_url(url), url)
+        self.assertEqual(crawl.to_ascii_url(url), url)
 
 
 class SamplingTest(unittest.TestCase):
