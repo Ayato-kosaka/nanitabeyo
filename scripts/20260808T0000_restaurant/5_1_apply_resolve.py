@@ -31,6 +31,57 @@ LOGGER = logging.getLogger(__name__)
 DEFAULT_AREA_RADIUS_M = 3000
 
 
+# #1273 【設計】resolve のスループットを «推測で語らない» ための計測。
+# 1 投稿の所要時間は «resolve API の往復» が支配的だが、その中身（IG 取得する/しない・
+# エリア検索する/しない）で桁が違う。どの条件が何 ms なのかを **run 自身が数えて**
+# ジョブログへ出す。集計の分母は «その条件に該当した投稿数» で、母数ごと必ず併記する。
+class Timings:
+    """条件ごとの所要時間サンプルを溜め、p50/p90 と件数で報告する。thread-safe。"""
+
+    def __init__(self) -> None:
+        import threading
+        self._lock = threading.Lock()
+        self.samples: dict[str, list[float]] = {}
+
+    def add(self, key: str, seconds: float) -> None:
+        with self._lock:
+            self.samples.setdefault(key, []).append(seconds)
+
+    @staticmethod
+    def _pct(xs: list[float], q: float) -> float:
+        if not xs:
+            return 0.0
+        ys = sorted(xs)
+        i = min(len(ys) - 1, max(0, int(round(q * (len(ys) - 1)))))
+        return ys[i]
+
+    def report(self, title: str) -> None:
+        with self._lock:
+            keys = sorted(self.samples)
+        LOGGER.info("=== %s ===", title)
+        LOGGER.info("%-34s %7s %9s %9s %9s %9s", "条件", "件数", "平均ms", "p50ms", "p90ms", "合計s")
+        for k in keys:
+            xs = self.samples[k]
+            LOGGER.info("%-34s %7d %9.0f %9.0f %9.0f %9.1f", k, len(xs),
+                        1000 * sum(xs) / len(xs), 1000 * self._pct(xs, 0.5),
+                        1000 * self._pct(xs, 0.9), sum(xs))
+
+
+def _cond_key(post, resp) -> str:
+    """1 投稿の «条件» を 1 本の文字列にする（caption 有無 × エリア有無 × 検索が走ったか）。"""
+    cap = "cap" if (post.get("caption") or "").strip() else "nocap"
+    area = "area" if post["discovery_area_lat"] is not None else "noarea"
+    if resp is None:
+        return f"{cap}/{area}/ERROR"
+    d = resp.get("data") if isinstance(resp.get("data"), dict) else resp
+    rs = (d or {}).get("restaurantSearch") or {}
+    if rs.get("performed"):
+        tail = "search"
+    else:
+        tail = "no_search:" + str(rs.get("reason") or (d or {}).get("reason") or "?")
+    return f"{cap}/{area}/{tail}"
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="sns_post_raw を resolve に通して sns_post_resolved を作る")
     p.add_argument("--run-id", default=None)
@@ -38,12 +89,31 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--resolve-version", default="dev", help="この resolve デプロイの識別（再処理管理用）")
     p.add_argument("--limit", type=int, default=500, help="このバッチで処理する未処理投稿数の上限")
     p.add_argument("--sleep-ms", type=int, default=150, help="resolve 呼び出しの間隔（--concurrency 1 のときだけ効く。dev API 負荷対策）")
+    # #1273 【設計】**並列度の上限は dev API ではなく DB の接続数で決まる。**
+    # 実測 2026-09-05（`nanitabeyo_logs_dev.run_googleapis_com_stdout`）:
+    #
+    # | 全ワーカー合計の同時リクエスト | 1 投稿 p50 | 実効スループット | backend error |
+    # | --- | --- | --- | --- |
+    # | 1  | 227ms | 3.6 投稿/秒 | 0 |
+    # | 4  | 220ms | 15.8 投稿/秒 | 0 |
+    # | 8  | 274ms（keep-alive 前）/ 159ms（後） | 24.9〜26.3 投稿/秒 | 0 |
+    # | 17 | — | — | 0（15 分） |
+    # | 24 | — | — | **82 件/分** |
+    #
+    # 24 で出た error は全部 `EMAXCONNSESSION: max clients reached in session mode
+    # - pool_size: 15` ＝ **Supabase プーラの接続上限**。API 側は DB_POOL_MAX=5 ×
+    # Cloud Run max-instances 8 なので、投げ過ぎると自分で自分の DB を塞げる。
+    # **1 本のワーカーで 8、同時に走らせるワーカーは 2 本まで**（合計 16）を上限にする。
+    #
     # #1273 大量並列: caption を持つ投稿は resolve が IG を叩かない（純テキスト処理）ので
     # 好きなだけ並列できる。ThreadPoolExecutor で --concurrency 本を同時に走らせる。
     # ⚠️ caption を «持たない» 投稿は resolve が IG を取りに行く＝並列すると IG レート制限
     # （実測 73% 失敗）。その場合は --concurrency 1 に落とすこと（既定 1＝従来どおり直列）。
     p.add_argument("--concurrency", type=int, default=1,
-                   help="同時 resolve 数。caption 付き投稿(IG非取得)なら大きく。未取得経路は 1 のまま")
+                   help="同時 resolve 数。caption 付き投稿(IG非取得)なら大きく。未取得経路は 1 のまま。"
+                        "⚠️ **全ワーカーの合計で 16 を超えないこと**（下記の実測）")
+    p.add_argument("--resolve-retries", type=int, default=2,
+                   help="429 / 5xx を投げ直す回数。0 で投げ直さない")
     p.add_argument("--debug-dump", type=int, default=0, help="先頭 N 件の resolve 生レスポンスをログに出す（診断用）")
     # 18k+ の再 resolve を数時間で終えるため、post_id ハッシュで水平分割して複数 run を並列に回す。
     # 各シャードは互いに素な post_id 集合を担当するので二重 resolve/二重挿入が起きない。
@@ -75,6 +145,20 @@ def parse_args() -> argparse.Namespace:
                    help="**地点が無い**投稿だけを対象にする（#1841 の «位置情報なしで 📍店名 から引けるか» の計測用）")
     p.add_argument("--reresolve-prev-status", default=None,
                    help="この «直近 version の status» の投稿だけ再解決する（例 skipped_no_store）。省略時は全未処理")
+    # #1273 «未処理» の定義を «この run_id × この version で未処理» から «どこにも結果が無い» へ広げる。
+    # 同じ post_id が複数の収集 run に入る（cc_wat は ccwat2〜5 で重なる）ので、run 単位の
+    # anti-join だけだと **既に別 run で解けている投稿をもう一度 resolve へ投げる**。
+    # 実測 2026-09-05: 未処理 99,937 投稿に対し run 単位で数えると 118,283（1.18 倍）。
+    # 解き直しを狙うときは付けない（付けると «結果があるもの» は全部飛ぶ）。
+    # 接続の張り直しが 1 投稿の所要時間のどれだけを占めるかを測る/戻すためのつまみ。
+    # BigQuery の load job は «1 回あたり» の固定待ちが大きい（実測 200 行でも 1000 行でも
+    # 約 4.6 秒）。並列度を上げると 200 行はすぐ溜まるので、回数が増えるぶんだけ無駄になる。
+    p.add_argument("--flush-every", type=int, default=0,
+                   help="何件ごとに sns_post_resolved へロードするか。0 なら concurrency から自動（200×並列度、上限 2000）")
+    p.add_argument("--no-keep-alive", action="store_true",
+                   help="resolve への HTTPS 接続を毎回張り直す（従来動作。keep-alive の効果測定用）")
+    p.add_argument("--skip-resolved-anywhere", action="store_true",
+                   help="他の run_id / resolve_version で既に結果がある投稿を対象から外す（積み残しの一括処理用）")
     return p.parse_args()
 
 
@@ -82,7 +166,7 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
                       resolve_version: str, limit: int, shards: int = 1, shard: int = 0,
                       reresolve_prev_status: str | None = None, caption_regexp: str | None = None,
                       only_with_area: bool = False, post_ids: list[str] | None = None,
-                      only_without_area: bool = False):
+                      only_without_area: bool = False, skip_resolved_anywhere: bool = False):
     """未 resolve（この run × **この resolve_version** で未処理）の投稿を取り出す。
 
     version を anti-join に含めるので、--resolve-version を上げると全投稿が «その version では未処理»
@@ -100,6 +184,13 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
         area_filter = "AND r.discovery_area_lat IS NULL"
     # 特定の投稿だけを解き直す（原因調査用）。--debug-dump と併せて生レスポンスを見る。
     ids_filter = "AND r.post_id IN UNNEST(@post_ids)" if post_ids else ""
+    # «どこかに結果がある» 投稿を丸ごと外す。run をまたいだ二重 resolve を止めるためのもの。
+    anywhere_filter = ""
+    if skip_resolved_anywhere:
+        anywhere_filter = (
+            f"AND r.post_id NOT IN (SELECT post_id FROM `{pipeline.table(TABLE_POST_RESOLVED)}` "
+            "WHERE post_id IS NOT NULL)"
+        )
     caption_filter = ""
     if caption_regexp:
         caption_filter = "AND r.caption IS NOT NULL AND REGEXP_CONTAINS(r.caption, @caprx)"
@@ -123,7 +214,7 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
            AND v.resolve_version = @resolve_version
-      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter} {ids_filter}
+      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter} {ids_filter} {anywhere_filter}
       QUALIFY ROW_NUMBER() OVER (PARTITION BY r.post_id ORDER BY r.fetched_at DESC) = 1
       LIMIT {int(limit)}
     """
@@ -150,17 +241,25 @@ def main() -> None:
     run_id = require_run_id(args.run_id)
     raw_run_id = args.raw_run_id or run_id
     pipeline = BigQueryPipeline()
-    client = ResolveClient()  # base_url は common_sns の BACKEND_BASE_URL
+    client = ResolveClient(keep_alive=not args.no_keep_alive,
+                           retries=args.resolve_retries)  # base_url は common_sns の BACKEND_BASE_URL
     now_iso = utc_now().isoformat()
     sleep_s = max(args.sleep_ms, 0) / 1000.0
+    timings = Timings()
+    bq = Timings()
 
     def fetch() -> list:
-        return _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
-                                 args.shards, args.shard, args.reresolve_prev_status,
-                                 args.caption_regexp, args.only_with_area,
-                                 [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None,
-                                 args.only_without_area)
+        t0 = time.perf_counter()
+        try:
+            return _fetch_unresolved(pipeline, raw_run_id, run_id, args.resolve_version, args.limit,
+                                     args.shards, args.shard, args.reresolve_prev_status,
+                                     args.caption_regexp, args.only_with_area,
+                                     [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None,
+                                     args.only_without_area, args.skip_resolved_anywhere)
+        finally:
+            bq.add("BQ:未処理の取り出し(1回)", time.perf_counter() - t0)
 
+    t_start = time.monotonic()
     deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes > 0 else 0.0
     posts = fetch()
     LOGGER.info("未 resolve %d 投稿を処理します（resolve_version=%s, shard=%d/%d, 狙い撃ち=%s）",
@@ -173,7 +272,8 @@ def main() -> None:
     }, repo_root=None) as result:
         # 数千件の resolve は 1〜2h かかる。末尾一括ロードだと進捗が見えず timeout で全ロストするので
         # FLUSH_EVERY 件ごとに逐次ロードする（WRITE_APPEND。再実行時は resolved 済みを LEFT JOIN でskip）。
-        FLUSH_EVERY = 200
+        # 既定は並列度に合わせる。直列（concurrency=1）のときは従来どおり 200 のまま。
+        FLUSH_EVERY = args.flush_every if args.flush_every > 0 else min(200 * max(args.concurrency, 1), 2000)
         rows: list[dict] = []
         n_ok = n_err = 0
         dumped = 0
@@ -183,7 +283,10 @@ def main() -> None:
         def _flush() -> None:
             nonlocal rows, total
             if rows:
+                t0 = time.perf_counter()
+                n = len(rows)
                 total += pipeline.load_json_rows(TABLE_POST_RESOLVED, rows)
+                bq.add(f"BQ:sns_post_resolved へロード({n}行/回)", time.perf_counter() - t0)
                 rows = []
 
         def _resolve_one(post):
@@ -192,16 +295,19 @@ def main() -> None:
             lat = post["discovery_area_lat"]
             lng = post["discovery_area_lng"]
             radius = args.area_radius_m if (lat is not None and lng is not None) else None
+            t0 = time.perf_counter()
             try:
                 resp = client.resolve_raw(
                     post["canonical_url"], lat=lat, lng=lng, radius=radius,
                     caption=post.get("caption"), author_name=post.get("author_name"),
                 )
-                return (post, resp)
             except (urllib.error.URLError, TimeoutError, ValueError) as e:
                 # resolve 到達不可・タイムアウト等はこの投稿を «未処理» のまま残す（行を作らない）
+                timings.add(_cond_key(post, None), time.perf_counter() - t0)
                 LOGGER.warning("resolve 失敗 post_id=%s: %s", post["post_id"], str(e)[:160])
                 return (post, None)
+            timings.add(_cond_key(post, resp), time.perf_counter() - t0)
+            return (post, resp)
 
         def _handle(post, resp) -> None:
             """resolve 結果を集約する。**メインスレッドだけが呼ぶ**ので lock 不要。"""
@@ -266,8 +372,14 @@ def main() -> None:
 
         _flush()
         result["row_count"] = total
-        LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d）を投入しました",
-                    total, matched, n_err)
+        elapsed = time.monotonic() - t_start
+        timings.report(f"1 投稿あたりの resolve 所要時間（concurrency={concurrency}）")
+        bq.report("BigQuery の待ち時間")
+        LOGGER.info("実効スループット: %d 件 / %.1f 秒 = **%.2f 投稿/秒**（= %.0f 投稿/時, concurrency=%d, shard=%d/%d）",
+                    total, elapsed, total / elapsed if elapsed else 0.0,
+                    3600 * total / elapsed if elapsed else 0.0, concurrency, args.shard, args.shards)
+        LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d, 429/5xx の投げ直し=%d 回）を投入しました",
+                    total, matched, n_err, client.retried)
 
 
 if __name__ == "__main__":
