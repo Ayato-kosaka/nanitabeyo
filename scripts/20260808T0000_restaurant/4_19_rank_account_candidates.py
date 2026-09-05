@@ -8,58 +8,55 @@ business_discovery（アプリ単位 ~200 コール/時）**である。1 ハン
 **«どのハンドルに 1 コール使うか» がそのまま成果**になる。ところが今の順番は
 «見つけた順» で、実測の取れ高は 100 倍以上ばらついていた。
 
-`sns_source_account` の 163,215 ハンドルのうち収集済みは 43,652。この script の
-較正クエリ（`--dry-run`）が出す実測は次のとおり。段は **ハンドル文字列だけ**
-（＝ コールを 1 回も使わずに分かる特徴）で決まる。
+`sns_source_account` の 163,215 ハンドルのうち収集済みは 43,710。**未収集は 119,505 件**で、
+全部回すと ~25 日かかる。だから «どのハンドルに 1 コール使うか» が成果そのものになる。
 
-分子は **配信カタログ `sns_dish_media_catalog` に載る異なり店**（run `sns-catalog-2026-09-05b`・
-全体で 19,336 店）。`sns_post_resolved.status='matched'` では数えない（下の «訂正» を読むこと）。
+分子は **配信カタログ `sns_dish_media_catalog` に載る異なり店**（最新 run・全体 19,336 店）。
+`sns_post_resolved.status='matched'` では数えない（訂正 1）。
 
-| 段 | ハンドル | 収集済 | 未収集 | **配信店/コール** | 投稿/コール | 未収集を全部回した期待配信店数 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| A 料理語 × 地域語 | 274 | 147 | 127 | **15.347** | 72.0 | 1,949 |
-| B 料理語のみ | 1,827 | 582 | 1,245 | 1.792 | 16.8 | 2,231 |
-| C 地域語のみ | 19,254 | 4,858 | 14,396 | 1.181 | 13.6 | 17,002 |
-| D 店アカウント（seed 有） | 34,743 | 5,363 | 29,380 | 0.550 | 31.5 | 16,159 |
-| E その他 | 107,117 | 32,702 | 74,415 | 0.169 | 5.0 | 12,576 |
+| 段 | 収集済 | 未収集 | **配信店/コール** | 未収集を全部回した期待配信店数 |
+| --- | ---: | ---: | ---: | ---: |
+| A 人が選んだ influencer_list | 377 | **115** | **26.4**（22〜49） | ~3,000 |
+| B 店アカウント（seed 有） | 5,446 | **29,864** | **0.550** | 16,425 |
+| C 地域語のみ（非 curated） | 4,132 | 13,089 | 0.145 | 1,898 |
+| D 料理語のみ（非 curated） | 580 | 1,245 | 0.121 | 151 |
+| E その他（非 curated） | 33,038 | 75,130 | 0.056 | 4,207 |
 
-⚠️ この表は **動く**。柱1 のワーカーが収集を進めると各段の «収集済/未収集» もレートも変わる
-（同じ日の 2 時間で A 段は 120→147 収集済み・18.800→15.347 に動いた）。だから
-**係数を焼き付けず、毎 run この較正をやり直す**。上の数字は 2026-09-05 時点の記録。
+**順は A → B → それ以外。** A は 115 件しか無いが 1 コールあたり B の ~48 倍なので必ず先に回す。
+A を使い切った後の本体は **B（店アカウント）** で、これは柱1 が既に進めている並びである。
 
-`sapporo_gourmet` `fukuoka_meshi` のような **«地域 × 料理» のハンドルはご当地グルメ
-アカウントの型**で、1 アカウントが多数の店を回る。逆に店アカウントは 1 店しか出さない。
-**同じ 1 コールで 28 倍違う（15.347 対 0.550）。**
+### ⚠️ 訂正 2（2026-09-05 夕）— «ハンドル文字列が効く» は間違いだった
 
-同じ 15,768 コールを A→B→C に配ると期待 **21,182 配信店**、D（＝ 店アカウントを順に潰す
-今の並び）に配ると **8,672 店**。**約 2.4 倍。**
+初版は «料理語 × 地域語 のハンドル（`sapporo_gourmet` 型）は 15.3 店/コールで、
+店アカウント（0.550）の 28 倍» と報告した。**交絡である。**
 
-### ⚠️ 訂正（2026-09-05）— `matched` で数えると店アカウント段を 2.5 倍過小評価する
+`influencer_list`（人が手で選んだグルメアカウントの一覧）に載っているかどうかで層別すると:
 
-初版は分子を `sns_post_resolved.status='matched'` にしていた。しかし配信側
-（`9_1` / `common_sns.post_store_cte_sql`）は **seed-trust**
-（`COALESCE(discovery_seed_place_id, resolve の place_id)`）で店を決めるので、
-**店アカウント経由の店は `matched` にならないまま配信されている**。
+| 段 | curated あり | **curated なし** | 未収集のうち curated |
+| --- | ---: | ---: | ---: |
+| 料理語 × 地域語 | 49.455 | **0.076** | 2 / 57 |
+| 料理語のみ | 40.115 | **0.121** | 5 / 1,250 |
+| 地域語のみ | 38.145 | **0.145** | 14 / 13,103 |
+| 料理語も地域語も無い | 22.202 | **0.056** | 94 / 75,224 |
 
-| 段 | matched で数えた（誤） | 配信カタログで数えた（正） |
-| --- | ---: | ---: |
-| A | 18.625 | 18.800 |
-| B | 1.723 | 1.792 |
-| C | 1.090 | 1.181 |
-| **D 店アカウント** | **0.216** | **0.550（+155%）** |
-| E | 0.154 | 0.169 |
+- 高い取れ高を出していたのは «ハンドルに `gourmet` と `sapporo` が入っている» ことではなく
+  **«人が影響力アカウントとして選んだ»** ことだった。
+- **curated を除くと、料理語・地域語の段（0.076〜0.145）は店アカウント段（0.550）より下**。
+  未収集プールはほぼ全部 curated ではない（A 段の未収集 57 件のうち curated は 2 件）。
+- したがって初版の «A→B→C へ並べ替えれば 2.4 倍» は **誤り**。その順で回すと
+  15,768 コールで ~4,950 店にしかならず、**同じ枠を店アカウントに使う（8,672 店）より悪い**。
+- 正しい効果は «**curated 未収集 115 件を最初に回す**» ことだけ:
+  115 コールで ~3,000 店（同じ 115 コールを店アカウントに使うと 63 店）。
+  15,768 コール全体では 8,672 → 11,530 店＝ **+33%**。
 
-この訂正で «A→B→C は D の 6 倍» という初版の主張は **2.4 倍**に下がる。効果の向きは
-変わらないが、**倍率を 2.5 倍盛っていた**。以後この案件の成果は必ず配信カタログで数える。
+言及回数（`mention_posters`）も非 curated では効かなかった（0 回 0.054 / 1 回 0.083 /
+2 回以上 0.039）。**未収集プールで大きく効く特徴は `store_attributed` だけ**（0.550 対 0.056）。
 
-### 選択バイアスと水増しの確認
+### 教訓
 
-- 誰も選んでいない部分集合（`cc_wat_profile` / `embedded_authors`）だけで数え直しても
-  料理語×地域語は **4.698 対 0.067（70 倍）**。効果は curation 由来ではない。
-- 段内で «同じ店を複数アカウントが出す» 水増し率は **A 1.02 / B 1.03 / C 1.07 / DE 1.10 倍**
-  （配信ベースで実測）。ご当地アカウントは担当地域が違うのでほぼ重ならない。
-- 参考: 料理語か地域語を持つ収集済み 941 アカウント（全収集アカウントの **2.2%**）が、
-  配信店 19,336 のうち **8,232 店（42.6%）**を出している（段をまたぐ重複を除いた union）。
+«選択バイアスは除いた» と最初に書いた確認（`cc_wat_profile` 部分集合）は
+**分子が `matched` のときだけ成り立っていて、配信ベースで層別し直すと消えた**。
+交絡の確認は «成果指標を確定させてから» やること。
 
 ## この script がやること
 
@@ -97,6 +94,7 @@ import csv
 import logging
 from pathlib import Path
 
+from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
@@ -108,6 +106,12 @@ LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
 
 TABLE_ACCOUNT_CANDIDATE = "sns_account_candidate_v2"
+
+# 【設計】#1273 «人が選んだ影響力アカウントの一覧に載っているか»。
+# これは発見経路ではなく **既に人手で選ばれた事実**（`4_1 --source influencer_list`）。
+# 2026-09-05 の実測で、ハンドル文字列（料理語・地域語）の効きは **ほぼ全部これの代理**
+# だったと分かったので、独立した特徴として最上位に置く（詳細は docstring の «訂正 2»）。
+CURATED_METHODS: tuple[str, ...] = ("influencer_list",)
 
 # --- 料理語 / 地域語 ----------------------------------------------------------------
 #
@@ -173,6 +177,7 @@ CANDIDATE_SCHEMA = [
     bigquery.SchemaField("has_food_token", "BOOLEAN", mode="REQUIRED"),
     bigquery.SchemaField("has_region_token", "BOOLEAN", mode="REQUIRED"),
     bigquery.SchemaField("region_token", "STRING"),
+    bigquery.SchemaField("curated", "BOOLEAN", mode="REQUIRED"),
     bigquery.SchemaField("store_attributed", "BOOLEAN", mode="REQUIRED"),
     bigquery.SchemaField("seed_place_id", "STRING"),
     bigquery.SchemaField("mention_posters", "INTEGER", mode="REQUIRED"),
@@ -238,6 +243,8 @@ def feature_sql(pipeline: BigQueryPipeline) -> str:
     SELECT h.handle,
            h.discovery_methods,
            h.seed_place_id,
+           EXISTS(SELECT 1 FROM UNNEST(h.discovery_methods) dm
+                  WHERE dm IN UNNEST(@curated_methods)) AS curated,
            h.seed_place_id IS NOT NULL AS store_attributed,
            REGEXP_CONTAINS(h.handle, r'{food_re}') AS has_food_token,
            REGEXP_EXTRACT(h.handle, r'{region_re}') AS region_token,
@@ -262,6 +269,7 @@ def dedup_sql(pipeline: BigQueryPipeline) -> str:
     """
     post_raw = pipeline.table(TABLE_POST_RAW)
     catalog = pipeline.table(TABLE_DISH_MEDIA_CATALOG)
+    account = pipeline.table(TABLE_SOURCE_ACCOUNT)
     food_re = _token_regex(FOOD_TOKENS)
     region_re = _token_regex(REGION_TOKENS)
     return f"""
@@ -269,17 +277,24 @@ def dedup_sql(pipeline: BigQueryPipeline) -> str:
       SELECT external_content_id AS post_id, google_place_id
       FROM `{catalog}` WHERE run_id = @catalog_run_id GROUP BY 1, 2
     ),
+    curated_handles AS (
+      SELECT DISTINCT LOWER(handle) AS handle
+      FROM `{account}`
+      WHERE handle IS NOT NULL
+        AND discovery_method IN UNNEST(@curated_methods)
+    ),
     pairs AS (
-      SELECT LOWER(p.account_id) AS handle, c.google_place_id
+      SELECT LOWER(p.account_id) AS handle,
+             LOWER(p.account_id) IN (SELECT handle FROM curated_handles) AS curated,
+             c.google_place_id
       FROM `{post_raw}` p JOIN catalog c USING (post_id)
       WHERE p.provider = @provider AND p.account_id IS NOT NULL
-      GROUP BY 1, 2
+      GROUP BY 1, 2, 3
     )
-    SELECT CASE WHEN REGEXP_CONTAINS(handle, r'{food_re}')
-                 AND REGEXP_CONTAINS(handle, r'{region_re}') THEN 'A_food_region'
-                WHEN REGEXP_CONTAINS(handle, r'{food_re}') THEN 'B_food'
+    SELECT CASE WHEN curated THEN 'A_curated'
                 WHEN REGEXP_CONTAINS(handle, r'{region_re}') THEN 'C_region'
-                ELSE 'DE_rest' END AS tier,
+                WHEN REGEXP_CONTAINS(handle, r'{food_re}') THEN 'D_food'
+                ELSE 'E_rest' END AS tier,
            COUNT(DISTINCT handle) AS accounts,
            COUNT(*) AS account_store_pairs,
            COUNT(DISTINCT google_place_id) AS distinct_stores
@@ -302,22 +317,31 @@ def latest_catalog_run_id(pipeline: BigQueryPipeline) -> str:
 
 
 def tier_of(row) -> str:
-    """コールを 1 回も使わずに決まる段。上ほど «1 コールあたりの期待店数» が高い。
+    """コールを 1 回も使わずに決まる段。段の «順» は較正が決めるので、ここは分け方だけ。
 
-    段は «料理語 × 地域語» を主軸にする（実測でここが 100 倍効く）。店アカウント
-    （`store_attributed`）は店が確定する代わりに 1 店しか出ないので、**料理語×地域語が
-    無いときの内訳**としてだけ分ける。
+    ⚠️ **`curated` を最初に見ること。** 2026-09-05 の実測で、«料理語 × 地域語» の高い
+    取れ高は **ほぼ全部 «人が選んだ influencer_list に載っている» ことの代理**だった。
+    curated を外して数え直すと、料理語・地域語の段は店アカウント段より **下**になる:
+
+    | 段 | curated 込み（誤） | curated を分けた後（正） |
+    | --- | ---: | ---: |
+    | 料理語 × 地域語 | 15.347 | **0.076** |
+    | 料理語のみ | 1.792 | **0.121** |
+    | 地域語のみ | 1.181 | **0.145** |
+    | 店アカウント（seed 有） | 0.550 | **0.550** |
+    | その他 | 0.169 | **0.056** |
+
+    つまり **ハンドル文字列は «影響力アカウントらしさ» をほとんど予測しない**。
+    未収集プールで唯一大きく効くのは `store_attributed`（0.550 対 0.056 ＝ 10 倍）。
     """
-    food = bool(row["has_food_token"])
-    region = row["region_token"] is not None
-    if food and region:
-        return "A_food_region"
-    if food:
-        return "B_food"
-    if region:
-        return "C_region"
+    if row["curated"]:
+        return "A_curated"
     if row["store_attributed"]:
-        return "D_store_attributed"
+        return "B_store_attributed"
+    if row["region_token"] is not None:
+        return "C_region"
+    if row["has_food_token"]:
+        return "D_food"
     return "E_rest"
 
 
@@ -357,6 +381,31 @@ def log_calibration(stats: dict[str, dict]) -> None:
                     s["delivered_stores_per_call"], s["posts_per_call"], s["expected_stores"])
 
 
+def ensure_candidate_table(pipeline: BigQueryPipeline) -> None:
+    """候補表を作る。**列が変わっていたら作り直す。**
+
+    この表は毎 run 作り直せる派生物（正は `sns_source_account` と配信カタログ）なので、
+    古い列のまま残すより捨てて作り直す方が安全である。実際に 2026-09-05、列名を
+    変えたのに既存表が残っていて Load Job が «unknown field» で落ちた
+    （`create_table(exists_ok=True)` は既存表のスキーマを直さない）。
+    """
+    table_id = pipeline.table(TABLE_ACCOUNT_CANDIDATE)
+    try:
+        current = pipeline.client.get_table(table_id)
+    except NotFound:
+        pipeline.client.create_table(bigquery.Table(table_id, schema=CANDIDATE_SCHEMA))
+        LOGGER.info("%s を作成しました", TABLE_ACCOUNT_CANDIDATE)
+        return
+    want = [(f.name, f.field_type, f.mode) for f in CANDIDATE_SCHEMA]
+    have = [(f.name, f.field_type, f.mode) for f in current.schema]
+    if want == have:
+        return
+    LOGGER.warning("%s の列が変わっているため作り直します（旧 %d 列 → 新 %d 列）",
+                   TABLE_ACCOUNT_CANDIDATE, len(have), len(want))
+    pipeline.client.delete_table(table_id)
+    pipeline.client.create_table(bigquery.Table(table_id, schema=CANDIDATE_SCHEMA))
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -386,6 +435,7 @@ def main() -> None:
         bigquery.ArrayQueryParameter("stopwords", "STRING", list(GENERIC_HANDLE_STOPWORDS)),
         bigquery.ScalarQueryParameter("max_posters", "INT64", BARE_HANDLE_MAX_POSTERS),
         bigquery.ScalarQueryParameter("catalog_run_id", "STRING", catalog_run_id),
+        bigquery.ArrayQueryParameter("curated_methods", "STRING", list(CURATED_METHODS)),
     ]
     LOGGER.info("ハンドルの特徴と実績を読みます（provider=%s / 配信カタログ run=%s）",
                 args.provider, catalog_run_id)
@@ -397,7 +447,7 @@ def main() -> None:
 
     LOGGER.info("段の中の重複（見積もりの水増し率）:")
     LOGGER.info("段 | アカウント | (アカウント,店)ペア | 異なり店 | 水増し率")
-    for r in pipeline.execute(dedup_sql(pipeline), [params[0], params[3]]):
+    for r in pipeline.execute(dedup_sql(pipeline), [params[0], params[3], params[4]]):
         factor = (r["account_store_pairs"] / r["distinct_stores"]) if r["distinct_stores"] else 0.0
         LOGGER.info("%-18s | %8d | %10d | %8d | %6.2f", r["tier"], r["accounts"],
                     r["account_store_pairs"], r["distinct_stores"], factor)
@@ -433,10 +483,7 @@ def main() -> None:
         LOGGER.info("--dry-run のため候補表へは書きません")
         return
 
-    pipeline.client.create_table(
-        bigquery.Table(pipeline.table(TABLE_ACCOUNT_CANDIDATE), schema=CANDIDATE_SCHEMA),
-        exists_ok=True,
-    )
+    ensure_candidate_table(pipeline)
     pipeline.delete_run_rows(TABLE_ACCOUNT_CANDIDATE, run_id)
     written = pipeline.load_json_rows(TABLE_ACCOUNT_CANDIDATE, (
         {
@@ -447,6 +494,7 @@ def main() -> None:
             "has_food_token": bool(row["has_food_token"]),
             "has_region_token": row["region_token"] is not None,
             "region_token": row["region_token"],
+            "curated": bool(row["curated"]),
             "store_attributed": bool(row["store_attributed"]),
             "seed_place_id": row["seed_place_id"],
             "mention_posters": row["mention_posters"],

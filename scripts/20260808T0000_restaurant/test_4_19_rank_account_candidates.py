@@ -54,8 +54,8 @@ FOOD_RE = re.compile(ranker._token_regex(ranker.FOOD_TOKENS))
 REGION_RE = re.compile(ranker._token_regex(ranker.REGION_TOKENS))
 
 
-def handle_row(handle: str, *, seed: str | None = None, collected: bool = False,
-               posts: int = 0, delivered: int = 0) -> dict:
+def handle_row(handle: str, *, seed: str | None = None, curated: bool = False,
+               collected: bool = False, posts: int = 0, delivered: int = 0) -> dict:
     """`feature_sql` が返す 1 行と同じ形を、同じ語彙から組み立てる。
 
     **判定の写経を避ける**ため、`has_food_token` / `region_token` は
@@ -65,6 +65,7 @@ def handle_row(handle: str, *, seed: str | None = None, collected: bool = False,
         "handle": handle,
         "discovery_methods": [],
         "seed_place_id": seed,
+        "curated": curated,
         "store_attributed": seed is not None,
         "has_food_token": bool(FOOD_RE.search(handle)),
         "region_token": (REGION_RE.search(handle).group(0) if REGION_RE.search(handle) else None),
@@ -76,22 +77,33 @@ def handle_row(handle: str, *, seed: str | None = None, collected: bool = False,
 
 
 class TierTest(unittest.TestCase):
-    def test_regional_gourmet_handle_is_top_tier(self):
-        for handle in ("sapporo_gourmet", "fukuoka.meshi", "niigata_lunch2024",
-                       "kumamoto_tabearuki"):
-            self.assertEqual(ranker.tier_of(handle_row(handle)), "A_food_region", handle)
+    def test_curated_wins_over_handle_string(self):
+        """`influencer_list` に載っていることが最上位。ハンドル文字列より先に見る。
 
-    def test_food_only_and_region_only_split(self):
+        2026-09-05 実測: «料理語 × 地域語» の 15.3 店/コールは curated の交絡で、
+        curated を除くと 0.076（店アカウント 0.550 より下）まで落ちた。
+        """
+        self.assertEqual(ranker.tier_of(handle_row("sapporo_gourmet", curated=True)), "A_curated")
+        self.assertEqual(ranker.tier_of(handle_row("no_tokens_here", curated=True)), "A_curated")
+
+    def test_regional_gourmet_handle_is_not_top_tier_when_not_curated(self):
+        """**回帰テスト**: ハンドル文字列だけで最上位へ上げない（初版の欠陥）。"""
+        for handle in ("sapporo_gourmet", "fukuoka.meshi", "niigata_lunch2024"):
+            self.assertNotEqual(ranker.tier_of(handle_row(handle)), "A_curated", handle)
+
+    def test_store_attributed_outranks_handle_string_tiers(self):
+        """非 curated では店アカウント（0.550）が料理語・地域語（0.12〜0.15）より上。"""
+        self.assertEqual(ranker.tier_of(handle_row("menya_ajigen", seed="ChIJxxxx")),
+                         "B_store_attributed")
+        # seed を持つなら、ハンドルに料理語・地域語があっても店アカウント段に入れる。
+        self.assertEqual(ranker.tier_of(handle_row("sapporo_gourmet", seed="ChIJxxxx")),
+                         "B_store_attributed")
         self.assertEqual(ranker.tier_of(handle_row("tokyo_ramen_ya")), "C_region")
-        self.assertEqual(ranker.tier_of(handle_row("daily_gourmet_life")), "B_food")
-
-    def test_store_account_without_tokens_is_below_region(self):
-        """店アカウントは «店が確定する» が 1 店しか出さない。段は料理語/地域語より下。"""
-        row = handle_row("menya_ajigen", seed="ChIJxxxx")
-        self.assertEqual(ranker.tier_of(row), "D_store_attributed")
+        self.assertEqual(ranker.tier_of(handle_row("daily_gourmet_life")), "D_food")
+        self.assertEqual(ranker.tier_of(handle_row("plain_handle")), "E_rest")
 
     def test_dish_names_are_not_food_tokens(self):
-        """料理名を FOOD_TOKENS に足さない（足すと店アカウントが A/B 段を占拠する）。"""
+        """料理名を FOOD_TOKENS に足さない（足すと店アカウントが語の段へ紛れる）。"""
         for dish in ("ramen", "sushi", "yakiniku", "izakaya", "curry", "soba", "udon"):
             self.assertNotIn(dish, ranker.FOOD_TOKENS, dish)
 
@@ -99,17 +111,21 @@ class TierTest(unittest.TestCase):
         """`food` が `foodie` を先に食べると語の切り分けが変わる。長い順に並べること。"""
         self.assertEqual(FOOD_RE.search("osaka_foodie").group(0), "foodie")
 
+    def test_curated_methods_excludes_unmeasured_sources(self):
+        """収集実績が 0 の source を curated に混ぜない（測っていない段へ高い score が付く）。"""
+        self.assertEqual(ranker.CURATED_METHODS, ("influencer_list",))
+
 
 class CalibrationTest(unittest.TestCase):
     def test_rates_come_from_collected_rows_only(self):
         rows = [
-            handle_row("sapporo_gourmet", collected=True, posts=80, delivered=40),
-            handle_row("hakata_meshi", collected=True, posts=60, delivered=20),
+            handle_row("sapporo_gourmet", curated=True, collected=True, posts=80, delivered=40),
+            handle_row("hakata_meshi", curated=True, collected=True, posts=60, delivered=20),
             # 未収集は実績 0。分母にも分子にも入れてはいけない。
-            handle_row("sendai_gourmet"),
-            handle_row("kobe_lunch"),
+            handle_row("sendai_gourmet", curated=True),
+            handle_row("kobe_lunch", curated=True),
         ]
-        stats = ranker.calibrate(rows)["A_food_region"]
+        stats = ranker.calibrate(rows)["A_curated"]
         self.assertEqual(stats["collected"], 2)
         self.assertEqual(stats["uncollected"], 2)
         self.assertAlmostEqual(stats["delivered_stores_per_call"], 30.0)
@@ -120,14 +136,14 @@ class CalibrationTest(unittest.TestCase):
 
         （2026-09-05 実測: D 段は matched 0.216 に対し配信ベース 0.550）
         """
-        row = handle_row("sapporo_gourmet", collected=True, posts=10, delivered=7)
+        row = handle_row("sapporo_gourmet", curated=True, collected=True, posts=10, delivered=7)
         self.assertNotIn("observed_stores", row)
         self.assertEqual(row["delivered_stores"], 7)
         self.assertAlmostEqual(
-            ranker.calibrate([row])["A_food_region"]["delivered_stores_per_call"], 7.0)
+            ranker.calibrate([row])["A_curated"]["delivered_stores_per_call"], 7.0)
 
     def test_tier_with_no_collected_handle_scores_zero_not_crash(self):
-        stats = ranker.calibrate([handle_row("nagoya_gourmet")])["A_food_region"]
+        stats = ranker.calibrate([handle_row("nagoya_gourmet", curated=True)])["A_curated"]
         self.assertEqual(stats["delivered_stores_per_call"], 0.0)
 
 
