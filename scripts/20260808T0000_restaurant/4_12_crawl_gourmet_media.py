@@ -20,20 +20,49 @@ sitemap を辿れば同じ媒体の記事を 1 本残らず読める。
 実測（higashinari-ikuno.goguynet.jp の記事 12 本）: 3 本に Instagram 埋め込み、投稿 5 件。
 1 サイト 1,091 記事 → 約 450 投稿。
 
+## sitemap を持たない host を捨てないための第二経路（#1273）
+sitemap は «あれば速い» だけで、**持っていない媒体が未クロール host の 38%** ある
+（CC WAT 由来の未クロール host 123 件を実測: sitemap あり 76 / 無し 47）。
+そこを «sitemap から記事URLを採れませんでした» で黙って飛ばしていたので、その 38% は
+**記事を 1 本も読まないまま捨てられていた**（CC WAT で飲食投稿 2 位の okayamagourmet.com も含む）。
+
+そこで sitemap が空だったときに限り、**Common Crawl の URL index（CDX）から
+そのホストの URL 一覧を引いて記事URLを作る**。CDX は SURT 昇順なので該当ブロックだけ
+Range 取得すれば済む（アクセスは CC に対してだけで、相手サーバには 1 リクエストも増えない）。
+CDX は画像・CSS・タグ一覧も返すので `is_article_url` で記事らしいものへ絞る。
+robots の尊重・記事の読み方・レート制御は sitemap 経路とまったく同じものを通る。
+
+実測（未クロール host を先頭 12 記事だけ読み、`scan_article` が返す行で数えた。
+**埋め込みの数で数えてはいけない**。キャプションを持たない埋め込みは行にならず、
+okayamagourmet.com は 12 記事に埋め込み 244 個ありながら行は 0 だった）:
+
+| 経路 | host | 記事URL(中央/平均) | 行が出た host | 行が出た記事 | 行 | 記事1本あたり |
+| --- | --- | --- | --- | --- | --- | --- |
+| CDX（sitemap 無し 47 host） | 47 | 82 / 428 | 16 (34%) | 12.0% | 95 | 0.18 |
+| sitemap（未クロール 20 host） | 20 | 499 / 1145 | 2 (10%) | 1.9% | 6 | 0.03 |
+
+**同じ «CC WAT 由来の未クロール host» の中では、CDX 経路の方が単価が高い**（0.18 vs 0.03）。
+sitemap 側が低いのは、濃い host を 4_12 が既に汲み尽くしていて、残りが薄いため。
+どちらにせよ CDX 経路の 47 host はこれまで 1 行も採れていなかった。
+
 ## 使い方（db-script-run.yml）
   args: --run-id sns-2026-09-04-media --hosts-from-run-ids sns-2026-09-04-ccwat4 --shards 4 --shard 0
 """
 from __future__ import annotations
 
 import argparse
+import json
 import logging
+import os
 import re
+import tempfile
 import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timezone
 
+import cc_cdx
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (PROVIDER_INSTAGRAM, TABLE_POST_RAW,
                         area_from_text, build_city_index, city_index_sql)
@@ -48,6 +77,36 @@ SITEMAP_CANDIDATES = ("/sitemap.xml", "/wp-sitemap.xml", "/sitemap_index.xml", "
 # 記事ではないページ（一覧・タグ・作者・固定ページ）は投稿を持たないことが多く、
 # 読むだけ無駄なうえ相手にも負荷をかける。
 RE_SKIP = re.compile(r"/(tag|category|author|page|feed|wp-json|search)/", re.I)
+
+# ---- CDX 経路（sitemap が無い host のフォールバック）専用の «記事らしさ» --------------
+# sitemap は媒体自身が «読ませたいページ» を挙げたものなので、ほぼ記事しか入っていない。
+# CDX は CC がその host で見た URL を**全部**返すので、画像・CSS・タグ一覧・カートまで来る。
+# 記事でないものを読むのは相手への無駄なアクセスなので、ここで落とす。
+RE_CDX_ASSET = re.compile(
+    r"\.(jpe?g|png|gif|webp|avif|svg|ico|bmp|css|js|mjs|map|json|xml|txt|csv|pdf|zip|gz|tar|"
+    r"mp3|mp4|m4a|mov|avi|wmv|webm|woff2?|ttf|otf|eot|doc|docx|xls|xlsx|ppt|pptx)$", re.I)
+# `/archives/12345` は多くのブログで «記事そのもの» なのでここには入れない（日付だけの
+# アーカイブ一覧は RE_CDX_DATE_ARCHIVE が落とす）。
+RE_CDX_SKIP_PATH = re.compile(
+    r"/(wp-content|wp-admin|wp-includes|wp-json|xmlrpc\.php|comment-page-\d+|trackback|embed|amp|"
+    r"cart|checkout|my-?account|login|signup|register|mypage|privacy|policy|contact|inquiry|"
+    r"sitemap[^/]*|tags?|categor(y|ies)|author|feed|rss|atom|comments|attachment|search|date)(/|$)", re.I)
+# 日付アーカイブ（`/2026/09/`・`/gourmet/2026/`）は記事ではなく記事の一覧。
+# 年月日の後ろにスラッグが続くものだけ記事とみなす。
+RE_CDX_DATE_ARCHIVE = re.compile(r"^(/[a-z]+)?/(\d{4})(/\d{1,2}){0,2}/?$", re.I)
+# クエリ付き URL は基本落とす。WordPress の `?p=123` 系だけは記事の実体なので残す。
+RE_CDX_ARTICLE_QUERY = re.compile(r"(p|page_id|post|post_id|id|entry)=\d+$", re.I)
+# «新しい記事から読む» ための並び替えキー。CC の取得時刻は 1 クロール内で 2 週間しか
+# 幅が無く記事の新しさを表さないので、URL に埋まっている年と末尾の連番を見る。
+RE_URL_YEAR = re.compile(r"/(20[0-3]\d)(?:/|-|_)")
+RE_URL_SERIAL = re.compile(r"(\d{2,10})/?$")
+CDX_CRAWL = "CC-MAIN-2026-34"
+CDX_CACHE_DIR = os.path.join(tempfile.gettempdir(), "cc_index")
+# 1 host は CDX の連続した数ブロックに収まる。ここを大きくしても該当しないブロックは
+# 先頭で打ち切るので、巨大な host（数十万 URL）に届く余裕として持つだけ。
+CDX_MAX_BLOCKS = 40
+# 記事URLをどちらの経路で採ったかを sns_post_raw に残すための値。
+DISCOVERY_METHOD = {"sitemap": "media_embed", "cdx": "media_embed_cdx"}
 
 
 def _get(url: str, limit: int = 1_500_000) -> bytes | None:
@@ -87,6 +146,83 @@ def _robots_allows(host: str) -> bool:
     return True
 
 
+def is_article_url(url: str, host: str) -> bool:
+    """CDX が返した URL のうち «記事本文のページ» だけを通す。
+
+    落とすもの: 別ホスト / トップページ / 画像・CSS などの資産 / 一覧（タグ・カテゴリ・
+    日付アーカイブ・ページャ）/ 管理系・カート・問い合わせ / 記事 id 以外のクエリ付き。
+    """
+    try:
+        p = urllib.parse.urlsplit(url)
+    except ValueError:
+        return False
+    if p.scheme not in ("http", "https"):
+        return False
+    h = p.netloc.lower().split(":")[0].removeprefix("www.")
+    if h != host.lower().removeprefix("www."):
+        return False
+    path = p.path or "/"
+    article_query = bool(p.query) and bool(RE_CDX_ARTICLE_QUERY.fullmatch(p.query))
+    if p.query and not article_query:
+        return False
+    # `/?p=1234` は WordPress の記事そのもの。パスが `/` でも記事として扱う。
+    if path == "/" and not article_query:
+        return False
+    if RE_SKIP.search(path) or RE_CDX_SKIP_PATH.search(path) or RE_CDX_ASSET.search(path):
+        return False
+    if RE_CDX_DATE_ARCHIVE.match(path):
+        return False
+    return True
+
+
+def _cdx_order_key(url: str) -> tuple[int, int, str]:
+    """新しい記事ほど先に読むための並び順。年 → 末尾の連番 → URL の降順。"""
+    path = urllib.parse.urlsplit(url).path
+    year = RE_URL_YEAR.search(path)
+    serial = RE_URL_SERIAL.search(path.rstrip("/") or "/")
+    return (int(year.group(1)) if year else 0,
+            int(serial.group(1)[-9:]) if serial else 0,
+            path)
+
+
+_CDX_INDEX: dict[str, tuple[list[list[str]], list[str]]] = {}
+
+
+def _cdx_index(crawl: str, cache_dir: str) -> tuple[list[list[str]], list[str]]:
+    """cluster.idx は 100MB あるので、CDX を実際に引く host が出るまで落とさない。"""
+    if crawl not in _CDX_INDEX:
+        rows = cc_cdx.load_cluster_idx(crawl, cache_dir)
+        _CDX_INDEX[crawl] = (rows, [r[0] for r in rows])
+    return _CDX_INDEX[crawl]
+
+
+def cdx_article_urls(host: str, max_urls: int, skip_urls: int = 0,
+                     crawl: str = CDX_CRAWL, cache_dir: str = CDX_CACHE_DIR) -> list[str]:
+    """sitemap を持たない host の記事URLを Common Crawl の URL index から作る。"""
+    rows, keys = _cdx_index(crawl, cache_dir)
+    # `)` まで付けるのが要点。付けないと `okayamagourmet2.com` のような別ホストまで入る。
+    pfx = cc_cdx.surt_prefix(host) + ")"
+    urls: set[str] = set()
+    lines = 0
+    for line in cc_cdx.iter_cdx_lines(pfx, rows, keys, crawl, max_blocks=CDX_MAX_BLOCKS):
+        lines += 1
+        try:
+            rec = json.loads(line.split(" ", 2)[2])
+        except (IndexError, ValueError):
+            continue
+        if rec.get("status") != "200":
+            continue
+        mime = (rec.get("mime-detected") or rec.get("mime") or "").lower()
+        if mime and "html" not in mime:
+            continue
+        url = (rec.get("url") or "").split("#")[0]
+        if is_article_url(url, host):
+            urls.add(url)
+    LOGGER.info("  %s: CDX %d 行 → 記事らしい URL %d 本", host, lines, len(urls))
+    ordered = sorted(urls, key=_cdx_order_key, reverse=True)
+    return ordered[skip_urls:skip_urls + max_urls]
+
+
 def article_urls(host: str, max_urls: int, skip_urls: int = 0) -> list[str]:
     """sitemap を辿って記事URLを列挙する。sitemap index は 1 段だけ展開する。"""
     seen: list[str] = []
@@ -112,6 +248,21 @@ def article_urls(host: str, max_urls: int, skip_urls: int = 0) -> list[str]:
     # skip_urls は «浅く読んだ続きから読む» ための飛ばし幅。同じ記事を 2 度取りに行くと
     # 相手のサーバに無駄な負荷をかけるので、深掘りの回は必ずここで前回ぶんを飛ばす。
     return list(dict.fromkeys(reversed(seen)))[skip_urls:skip_urls + max_urls]
+
+
+def article_urls_with_source(host: str, max_urls: int, skip_urls: int = 0,
+                             cdx_crawl: str | None = None,
+                             cdx_cache_dir: str = CDX_CACHE_DIR) -> tuple[list[str], str]:
+    """記事URLと «どこから採ったか»。sitemap が空のときだけ CDX へ落ちる。
+
+    ここが唯一の分岐点。`article_urls`（sitemap）と `cdx_article_urls`（CDX）は
+    どちらも «記事URLの一覧» を返すだけで、優先順位を知らない。
+    """
+    urls = article_urls(host, max_urls, skip_urls)
+    if urls or not cdx_crawl:
+        return urls, "sitemap"
+    # ここに来る host が未クロール host の 38% ある。CDX で救う（→ モジュール冒頭の説明）。
+    return cdx_article_urls(host, max_urls, skip_urls, cdx_crawl, cdx_cache_dir), "cdx"
 
 
 def scan_article(url: str, by_pair, uniq) -> list[dict]:
@@ -205,6 +356,11 @@ def parse_args() -> argparse.Namespace:
     # 再開可能にしておかないと、割り当てが変わるたびに同じ媒体を読み直して相手にも迷惑をかける。
     p.add_argument("--skip-done-hosts", action="store_true",
                    help="この run_id で既に投稿を採れている host を対象から外す")
+    # sitemap を持たない host（実測で未クロール host の 38%）を CDX で救う。既定で有効。
+    p.add_argument("--no-cdx-fallback", action="store_true",
+                   help="sitemap が無い host を CDX から読むフォールバックを止める")
+    p.add_argument("--cdx-crawl", default=CDX_CRAWL, help="フォールバックに使う Common Crawl の版")
+    p.add_argument("--cdx-cache-dir", default=CDX_CACHE_DIR)
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
 
@@ -250,6 +406,9 @@ def main() -> None:
         rows: list[dict] = []
         seen: set[str] = set()
         total = with_area = 0
+        cdx_crawl = None if args.no_cdx_fallback else args.cdx_crawl
+        by_source = {"sitemap": 0, "cdx": 0}          # 投稿数
+        hosts_by_source = {"sitemap": 0, "cdx": 0}    # 記事URLを採れた host 数
 
         def flush() -> None:
             nonlocal rows
@@ -261,10 +420,12 @@ def main() -> None:
             if not _robots_allows(host):
                 LOGGER.info("  %s: robots で全面禁止。飛ばします", host)
                 continue
-            urls = article_urls(host, args.max_urls_per_host, args.skip_urls_per_host)
+            urls, source = article_urls_with_source(
+                host, args.max_urls_per_host, args.skip_urls_per_host, cdx_crawl, args.cdx_cache_dir)
             if not urls:
-                LOGGER.info("  %s: sitemap から記事URLを採れませんでした", host)
+                LOGGER.info("  %s: sitemap からも CDX からも記事URLを採れませんでした", host)
                 continue
+            hosts_by_source[source] += 1
             pool = ThreadPoolExecutor(max_workers=max(args.workers, 1))
             got = 0
             for found in pool.map(lambda u: scan_article(u, by_pair, uniq), urls):
@@ -274,13 +435,16 @@ def main() -> None:
                     seen.add(r["post_id"])
                     total += 1
                     got += 1
+                    by_source[source] += 1
                     if r["area"]:
                         with_area += 1
                     rows.append({
                         "post_id": r["post_id"], "provider": PROVIDER_INSTAGRAM,
                         "canonical_url": f"https://www.instagram.com/p/{r['post_id']}/",
                         "account_id": r.get("handle"), "discovery_route": "gourmet_media",
-                        "discovery_method": "media_embed", "discovery_query": r["host"],
+                        # 経路を discovery_method に残す。後から «CDX 経路が割に合ったか» を
+                        # BigQuery だけで数え直せるようにするため（ログは残らない）。
+                        "discovery_method": DISCOVERY_METHOD[source], "discovery_query": r["host"],
                         "discovery_seed_place_id": None,
                         "discovery_area_lat": r["area"][0] if r["area"] else None,
                         "discovery_area_lng": r["area"][1] if r["area"] else None,
@@ -288,15 +452,20 @@ def main() -> None:
                         "caption": r["caption"], "author_name": None,
                     })
             pool.shutdown()
-            LOGGER.info("  %d/%d %s: 記事 %d → 投稿 %d（累計 %d / 地点あり %d）",
-                        n, len(mine), host, len(urls), got, total, with_area)
+            LOGGER.info("  %d/%d %s[%s]: 記事 %d → 投稿 %d（累計 %d / 地点あり %d）",
+                        n, len(mine), host, source, len(urls), got, total, with_area)
             if n % args.flush_every == 0:
                 flush()
             time.sleep(1)  # 媒体を連続で叩かない
         flush()
         result["row_count"] = total
         result["with_area"] = with_area
-        LOGGER.info("完了: 投稿 %d（地点あり %d）| host %d", total, with_area, len(mine))
+        result["posts_by_source"] = by_source
+        result["hosts_by_source"] = hosts_by_source
+        LOGGER.info("完了: 投稿 %d（地点あり %d）| host %d | sitemap %d host/%d 投稿・"
+                    "CDX %d host/%d 投稿", total, with_area, len(mine),
+                    hosts_by_source["sitemap"], by_source["sitemap"],
+                    hosts_by_source["cdx"], by_source["cdx"])
 
 
 if __name__ == "__main__":

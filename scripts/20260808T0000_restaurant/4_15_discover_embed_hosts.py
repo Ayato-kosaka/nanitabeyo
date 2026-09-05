@@ -30,23 +30,21 @@ host を探す目的では、これは捨てすぎである。媒体かどうか
 from __future__ import annotations
 
 import argparse
-import bisect
 import collections
 import csv
 import gzip
-import io
 import json
 import logging
 import os
 import random
 import re
-import subprocess
 import sys
 import tempfile
 import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
+import cc_cdx
 from sns_html import RE_KANA, captions_from_html
 
 LOGGER = logging.getLogger(__name__)
@@ -113,18 +111,12 @@ def host_of(uri: str) -> str:
 # --------------------------------------------------------------------------------------
 # mode: wat — CC の WAT を host 単位で数える
 # --------------------------------------------------------------------------------------
-def _download(url: str, dest: str) -> bool:
-    """WAT は 150MB 前後ある。python の stream 読みはプロキシ経由で途中切断するので curl で落とす。"""
-    r = subprocess.run(["curl", "-sS", "--retry", "2", "--max-time", "900",
-                        "-A", UA["User-Agent"], "-o", dest, url])
-    return r.returncode == 0 and os.path.getsize(dest) > 0
-
-
 def scan_wat_file(path: str, hosts: dict) -> tuple[int, int]:
     """WAT 1 本を舐めて hosts[host] に «埋め込みページ数・投稿数・日本語/飲食の根拠» を足す。"""
     dest = os.path.join(tempfile.gettempdir(), "wat_" + path.split("/")[-1])
     try:
-        if not _download(CC_BASE + path, dest):
+        # WAT は 150MB 前後ある。curl で落とす（cc_cdx.download と同じ理由・同じ実装）。
+        if not cc_cdx.download(CC_BASE + path, dest):
             LOGGER.warning("  DL 失敗: %s", path)
             return 0, 0
         pages = 0
@@ -208,26 +200,6 @@ def run_wat(args: argparse.Namespace) -> None:
 # --------------------------------------------------------------------------------------
 # mode: expand — CDX index から «同じドメインの全サブドメイン» を引く
 # --------------------------------------------------------------------------------------
-def _cc_get(url: str, rng: tuple[int, int] | None = None, timeout: int = 180) -> bytes:
-    req = urllib.request.Request(url, headers=UA)
-    if rng:
-        req.add_header("Range", f"bytes={rng[0]}-{rng[1]}")
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.read()
-
-
-def load_cluster_idx(crawl: str, cache_dir: str) -> list[list[str]]:
-    """CDX の cluster.idx（SURT 昇順のブロック索引・約 100MB）を落として持つ。"""
-    os.makedirs(cache_dir, exist_ok=True)
-    dest = os.path.join(cache_dir, f"cluster_{crawl}.idx")
-    if not os.path.exists(dest) or os.path.getsize(dest) == 0:
-        LOGGER.info("cluster.idx を取得します（約 100MB）…")
-        url = f"{CC_BASE}cc-index/collections/{crawl}/indexes/cluster.idx"
-        if not _download(url, dest):
-            raise RuntimeError("cluster.idx の取得に失敗しました")
-    return [ln.rstrip("\n").split("\t") for ln in open(dest, encoding="utf-8") if ln.strip()]
-
-
 def hosts_under_domain(domain: str, rows: list[list[str]], keys: list[str], crawl: str,
                        max_blocks: int = 60) -> dict[str, int]:
     """CDX は SURT 昇順なので、あるドメインの行は連続している。そのブロックだけ range 取得する。
@@ -236,29 +208,17 @@ def hosts_under_domain(domain: str, rows: list[list[str]], keys: list[str], craw
     号外NET のような «サブドメイン網» だけでなく、ぐるっと系（gurutto-aizu.com /
     gurutto-koriyama.com / gurutto-fukushima.com …）のような **ドメインを分けた網**も、
     SURT が同じ前置で並ぶので 1 回のブロック読みで全部列挙できる。
+
+    CDX へのアクセスそのものは `cc_cdx` が持つ（4_12 と同じ手順を 2 か所に書かない）。
     """
-    pfx = domain.lower() if "," in domain else ",".join(reversed(domain.lower().split(".")))
-    lo = max(bisect.bisect_left(keys, pfx) - 1, 0)
-    idx = f"{CC_BASE}cc-index/collections/{crawl}/indexes"
+    pfx = cc_cdx.surt_prefix(domain)
+    # 前置指定のときはそのまま。ドメイン指定のときは «そのドメイン本体（`)`）とその
+    # サブドメイン（`,`）» だけに絞る（`goguynet2.jp` のような別ドメインを巻き込まない）。
+    line_prefixes = (pfx,) if "," in domain else (pfx + ",", pfx + ")")
     out: dict[str, int] = {}
-    for k, r in enumerate(rows[lo:lo + max_blocks]):
-        if k and not r[0].startswith(pfx):
-            break
-        try:
-            raw = _cc_get(f"{idx}/{r[1]}", (int(r[2]), int(r[2]) + int(r[3]) - 1))
-            text = gzip.GzipFile(fileobj=io.BytesIO(raw)).read().decode("utf-8", "replace")
-        except Exception as e:  # noqa: BLE001 - 取れないブロックは飛ばす
-            LOGGER.warning("  ブロック取得に失敗: %s", str(e)[:60])
-            continue
-        for line in text.splitlines():
-            key = line.split(" ", 1)[0]
-            if "," in domain:
-                if not key.startswith(pfx):
-                    continue
-            elif not (key.startswith(pfx + ",") or key.startswith(pfx + ")")):
-                continue
-            host = ".".join(reversed(key.split(")")[0].split(",")))
-            out[host] = out.get(host, 0) + 1
+    for line in cc_cdx.iter_cdx_lines(pfx, rows, keys, crawl, max_blocks, line_prefixes):
+        host = ".".join(reversed(line.split(" ", 1)[0].split(")")[0].split(",")))
+        out[host] = out.get(host, 0) + 1
     return out
 
 
@@ -276,7 +236,7 @@ def run_expand(args: argparse.Namespace) -> None:
     doms = {d for d, hs in by_dom.items()
             if len(hs) >= args.min_siblings and "." in d and not RE_HOSTING_DOMAIN.match(d)} | forced
     LOGGER.info("展開対象ドメイン %d 件（host %d 件から）", len(doms), len(hosts))
-    rows = load_cluster_idx(args.crawl, args.cache_dir)
+    rows = cc_cdx.load_cluster_idx(args.crawl, args.cache_dir)
     keys = [r[0] for r in rows]
     out: dict[str, dict] = {h: dict(d, source="input") for h, d in hosts.items()}
     for n, dom in enumerate(sorted(doms), 1):
