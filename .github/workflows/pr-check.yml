@@ -92,6 +92,19 @@ jobs:
       - name: 鍵と設定値の置き場の表を検査
         run: pnpm assert:env-store-map
 
+      # #1666 営業時間パーサ 2 本（OSM の opening_hours / 公式サイトの日本語自由記述）を回す。
+      # どちらも «分からないものは推測しない» を守るのが要で、崩れると **開いている店が
+      # 検索から消える**（間違って closed にする）。純関数なので DB もネットワークも要らない。
+      #
+      # ⚠️ scripts 配下には他にも test_*.py が 10 本あるが、psycopg2 等の依存が要るため
+      # ここでは回していない（依存を入れる話は別途）。**通っていないものを «通っている» と
+      # 数えないよう、対象をファイル名で明示している。**
+      - name: 営業時間パーサのユニットテスト
+        run: |
+          python3 -m unittest \
+            scripts/20260808T0000_restaurant/test_osm_opening_hours.py \
+            scripts/20260808T0000_restaurant/test_jp_site_opening_hours.py
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
