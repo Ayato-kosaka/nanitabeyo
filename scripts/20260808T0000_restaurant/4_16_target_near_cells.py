@@ -54,7 +54,8 @@ from collections import defaultdict
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import (PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_COVERAGE,
+from common_sns import (kpi_gate_category_sql,
+    PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_COVERAGE,
                         TABLE_SOURCE_ACCOUNT, TABLE_STORE_SITE_IG)
 
 LOGGER = logging.getLogger(__name__)
@@ -287,8 +288,7 @@ def load_kpi_categories(pipeline: BigQueryPipeline, gate_key: str) -> dict[str, 
         f"""
           SELECT g.item_qid, ANY_VALUE(c.label_ja) AS label_ja
           FROM (
-            SELECT DISTINCT item_qid FROM `{pipeline.config.dish_dataset_ref}.dish_category_features_catalog`
-            WHERE feature_type = 'gate' AND feature_key = @key AND score > 0
+            {kpi_gate_category_sql(pipeline.config.dish_dataset_ref)}
           ) g
           LEFT JOIN `{pipeline.config.dish_dataset_ref}.dish_category_catalog` c USING (item_qid)
           GROUP BY g.item_qid

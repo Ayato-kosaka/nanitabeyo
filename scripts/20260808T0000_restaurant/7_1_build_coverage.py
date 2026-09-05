@@ -15,6 +15,7 @@ from collections import defaultdict
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (LATEST_RESOLVED_QUALIFY, PREF_PATTERN, TABLE_POST_RAW,
+                        kpi_gate_category_sql,
                         TABLE_POST_RESOLVED, TABLE_COVERAGE,
                         post_store_cte_sql)
 
@@ -150,8 +151,7 @@ def main() -> None:
     if args.kpi_gate_feature_key:
         try:
             for row in pipeline.execute(
-                f"SELECT DISTINCT item_qid FROM `{pipeline.config.dish_dataset_ref}.dish_category_features_catalog` "
-                "WHERE feature_type = 'gate' AND feature_key = @key AND score > 0",
+                kpi_gate_category_sql(pipeline.config.dish_dataset_ref),
                 [bigquery.ScalarQueryParameter("key", "STRING", args.kpi_gate_feature_key)],
             ):
                 kpi_qids.add(row["item_qid"])

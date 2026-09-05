@@ -16,9 +16,14 @@ import hashlib
 import hmac
 import json
 import os
+import random
 import re
+import http.client
+import socket
+import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
@@ -30,6 +35,9 @@ TABLE_POST_RAW = "sns_post_raw"
 TABLE_POST_RESOLVED = "sns_post_resolved"
 TABLE_COVERAGE = "sns_coverage"
 TABLE_DISH_MEDIA_CATALOG = "sns_dish_media_catalog"
+# #1815 店の国・住所・座標を持つ唯一の表（9_1_sync_restaurants が PG へ配る表）。
+# sns_post_raw / sns_post_resolved は国を持たないので、国の判定は必ずここと突き合わせる。
+TABLE_RESTAURANT_CATALOG = "restaurant_catalog"
 
 PROVIDER_INSTAGRAM = "instagram"
 
@@ -253,19 +261,103 @@ class ResolveClient:
     （匿名ユーザーを量産しないための設計）。
     """
 
-    def __init__(self, base_url: str | None = None, *, jwt_ttl: int = 600, timeout: float = 20.0):
+    def __init__(self, base_url: str | None = None, *, jwt_ttl: int = 600, timeout: float = 20.0,
+                 keep_alive: bool = True, retries: int = 2):
         self.base_url = (base_url or backend_base_url()).rstrip("/")
         self.jwt_ttl = jwt_ttl
         self.timeout = timeout
+        self.keep_alive = keep_alive
+        # #1273 【設計】**429 / 5xx は投稿を捨てずに待って投げ直す。**
+        # 実測（2026-09-05, dev）: 同時 24 リクエストで 1 分に 82 件の 500 が出て、
+        # 中身は `EMAXCONNSESSION: max clients reached in session mode - pool_size: 15`
+        # ＝ **Supabase のプーラの接続上限**であって API のバグではない。上限を踏むのは
+        # «こちらが投げすぎた» ときだけなので、少し待てば通る。ここで捨てると
+        # その投稿は次の fetch まで «未処理» のまま残り、同じ混雑にまた当たる。
+        self.retries = max(retries, 0)
+        # リトライした回数（診断用。呼び出し側がログへ出す）
+        self.retried = 0
         self._jwt: str | None = None
         self._jwt_exp = 0.0
+        self._jwt_lock = threading.Lock()
+        # #1273 【設計】**TCP+TLS を毎回張り直さない。**
+        # urllib.request.urlopen は 1 リクエストごとに接続を作って捨てる。resolve は
+        # 1 投稿 = 1 リクエストで数万回叩くので、これだけで «サーバが何もしない投稿»
+        # （キャプションだけ・エリア無し＝店舗検索が走らない経路）の所要時間の大半を占める。
+        # スレッドごとに 1 本の HTTPS 接続を持ち回して keep-alive で使い回す。
+        # 接続はスレッド間で共有しない（http.client は thread-safe ではない）。
+        self._local = threading.local()
 
     def _auth_header(self) -> str:
-        now = time.time()
-        if self._jwt is None or now > self._jwt_exp - 30:
-            self._jwt = mint_service_jwt(self.jwt_ttl)
-            self._jwt_exp = now + self.jwt_ttl
-        return f"Bearer {self._jwt}"
+        # 並列 resolve から同時に呼ばれる。ロックが無いと同じ TTL の JWT を人数分作る
+        # （害は無いが無駄）。取り直しの瞬間だけ直列化する。
+        with self._jwt_lock:
+            now = time.time()
+            if self._jwt is None or now > self._jwt_exp - 30:
+                self._jwt = mint_service_jwt(self.jwt_ttl)
+                self._jwt_exp = now + self.jwt_ttl
+            return f"Bearer {self._jwt}"
+
+    @staticmethod
+    def _backoff_s(attempt: int) -> float:
+        """再送までの待ち。全スレッドが揃って投げ直すと混雑を作り直すのでばらす。"""
+        return (0.75 * (3 ** attempt)) * (0.5 + random.random())
+
+    def _conn(self):
+        """このスレッド専用の HTTPS 接続。無ければ張る。"""
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            parts = urllib.parse.urlsplit(self.base_url)
+            cls = (http.client.HTTPSConnection if parts.scheme == "https"
+                   else http.client.HTTPConnection)
+            conn = cls(parts.netloc, timeout=self.timeout)
+            self._local.conn = conn
+        return conn
+
+    def _drop_conn(self) -> None:
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except OSError:
+                pass
+            self._local.conn = None
+
+    def _post_keep_alive(self, path: str, data: bytes, headers: dict[str, str]) -> bytes:
+        """keep-alive で POST する。相手に切られていたら 1 度だけ張り直して再送する。
+
+        ⚠️ 呼び出し側は `urllib.error.URLError` / `TimeoutError` / `ValueError` しか
+        捕まえない（5_1）。ここで http.client の例外をそのまま外へ出すと «失敗した投稿だけ
+        飛ばす» が効かずジョブごと落ちるので、必ず URLError 系へ翻訳する。
+        """
+        base_path = urllib.parse.urlsplit(self.base_url).path.rstrip("/")
+        url = f"{self.base_url}{path}"
+        for attempt in (0, 1):
+            conn = self._conn()
+            try:
+                conn.request("POST", base_path + path, body=data, headers=headers)
+                resp = conn.getresponse()
+                body = resp.read()
+                if resp.status < 400:
+                    return body
+                self._drop_conn()
+                status, reason, hdrs = resp.status, resp.reason, resp.headers
+            except (http.client.HTTPException, ConnectionError, socket.gaierror) as e:
+                # 使い回した接続が既に閉じられていた等。1 度だけ張り直して再送する。
+                self._drop_conn()
+                if attempt == 1:
+                    raise urllib.error.URLError(e) from e
+                continue
+            except TimeoutError:
+                self._drop_conn()
+                raise
+            except OSError as e:
+                self._drop_conn()
+                raise urllib.error.URLError(e) from e
+            # ⚠️ 4xx/5xx は **try の外**で投げる。`HTTPError` は `OSError` の子なので、
+            #    上の `except OSError` の中で投げると自分で捕まえて `URLError` に包み直し、
+            #    **ステータスコードが消えて 5xx のリトライ判定ができなくなる**（実際にやった）。
+            raise urllib.error.HTTPError(url, status, reason, hdrs, None)
+        raise urllib.error.URLError("unreachable")
 
     def resolve_raw(
         self,
@@ -292,17 +384,35 @@ class ResolveClient:
         if author_name is not None and author_name.strip() != "":
             body["authorName"] = author_name
         data = json.dumps(body).encode("utf-8")
-        req = urllib.request.Request(
-            f"{self.base_url}/v1/dish-media/imports/resolve",
-            data=data,
-            method="POST",
-            headers={
-                "content-type": "application/json",
-                "authorization": self._auth_header(),
-            },
-        )
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+        headers = {
+            "content-type": "application/json",
+            "authorization": self._auth_header(),
+        }
+        path = "/v1/dish-media/imports/resolve"
+
+        def once() -> dict[str, Any]:
+            if self.keep_alive:
+                headers["content-length"] = str(len(data))
+                return json.loads(self._post_keep_alive(path, data, headers).decode("utf-8"))
+            req = urllib.request.Request(
+                f"{self.base_url}{path}", data=data, method="POST", headers=headers)
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+
+        for attempt in range(self.retries + 1):
+            try:
+                return once()
+            except urllib.error.HTTPError as e:
+                # 混雑（429）とサーバ側の一時失敗（5xx）だけ待って投げ直す。
+                # 4xx（400/401 等）はこちらの組み立てが悪いので、投げ直しても同じ。
+                if attempt >= self.retries or not (e.code == 429 or 500 <= e.code < 600):
+                    raise
+            except TimeoutError:
+                if attempt >= self.retries:
+                    raise
+            self.retried += 1
+            time.sleep(self._backoff_s(attempt))
+        raise urllib.error.URLError("unreachable")
 
 
 def _unwrap(resp: dict[str, Any]) -> dict[str, Any]:
@@ -539,6 +649,32 @@ RESOLVED_STORE_RANK = 4
 TABLE_DISH_CATEGORY_IMAGES = "dish_category_images"
 
 
+# --- «KPI が数えるカテゴリはどれか» の唯一の判定 ---------------------------------
+#
+# 【設計】#1273 / #1815: KPI は «市区町村 × カテゴリ のセルに使える異なり店 5 店以上»。
+# その «カテゴリ» は `dish_category_features_catalog` の JP ゲート（`feature_type='gate'` /
+# `feature_key='region:country:JP'` / `score>0`）で決まる **134 個**である。
+#
+# ⚠️ **ラベル照合が返す 140 QID を KPI と取り違えないこと。** 2026-09-05 に 2 度起きた:
+# 「絵の無いカテゴリを落とすと KPI が 1 カテゴリ削れる（ナポリタン Q65241114）」という
+# 報告は 140 側で数えていた。134 側で数えると欠けるカテゴリは **0 件**で、ゲートは
+# KPI の分子を 1 組も削らない。数え方が違うだけで結論が反転する。
+#
+# 数えるときは必ずこの式を通し、**140 で数えた数字を KPI と呼ばない。**
+KPI_GATE_FEATURE_KEY = "region:country:JP"
+
+
+def kpi_gate_category_sql(dish_dataset_ref: str, *, key_param: str | None = "key") -> str:
+    """KPI が数える 134 カテゴリの QID を返す SELECT。判定はここ 1 箇所だけに置く。
+
+    key_param: ゲートキーを渡すクエリパラメータ名。``None`` を渡すと
+        ``KPI_GATE_FEATURE_KEY`` をリテラルで埋める（パラメータを持たない呼び出し用）。
+    """
+    key = f"@{key_param}" if key_param else f"'{KPI_GATE_FEATURE_KEY}'"
+    return (f"SELECT DISTINCT item_qid FROM `{dish_dataset_ref}.dish_category_features_catalog` "
+            f"WHERE feature_type = 'gate' AND feature_key = {key} AND score > 0")
+
+
 # --- «その料理カテゴリの絵があるか» の唯一の判定 ---------------------------------
 #
 # 【設計】#1273: 取り込み投稿（render_type='external_embed'）はアプリ側に画像を 1 枚も
@@ -553,6 +689,16 @@ TABLE_DISH_CATEGORY_IMAGES = "dish_category_images"
 #     usable 145,392 行のうち 3 段とも絵が無い行 = 3,119 行（2.15%）
 #     その 221 カテゴリは **1 つも JP ゲート（KPI が数える 134 カテゴリ）に無い**
 #     ＝ 落としても KPI（市区町村 × カテゴリのセルに異なり店 5 店）の分子は 0 組しか減らない
+#
+# ⚠️⚠️ **「KPI の 140 QID」で数え直して «このゲートは KPI を 1 カテゴリ削る» と結論した
+# 報告があったが、誤りである（2026-09-05）。** `Q65241114`（ナポリタン）は
+# `dish_category_images` に非空の行を持たないが、**JP ゲートに入っていない**
+# （`feature_type='gate'` / `feature_key='region:country:JP'` / `score>0` の行が 0 件）。
+# 空の絵しか無いカテゴリを «非空» で数え直しても、JP ゲート 134 のうち欠けるものは **0 件**。
+#
+# **KPI の分母は 134（JP ゲート）であって、ラベル照合が返す 140 QID ではない。**
+# この取り違えは繰り返し起きている。134 を作る式は 1 箇所に置いてある（下の
+# `KPI_GATE_*`）ので、**数えるときは必ずそれを通すこと。140 で数えた数字を KPI と呼ばない。**
 #
 # `dish_categories.image_url` は `9_1_sync_dish_categories.py` が
 # `COALESCE(rep.image_url, '')`（`dish_category_images` の代表 1 枚）で作る。
@@ -819,3 +965,168 @@ def store_handle_dict_sql(store_site_ig_table: str, source_account_table: str,
         GROUP BY handle
         HAVING COUNT(DISTINCT pid) = 1
       )"""
+
+
+# --- «その店は日本の店か» の唯一の判定 ---------------------------------------------
+#
+# 【設計】#1815 / #1273: `restaurant_catalog` 620,428 行のうち **100,058 行（16.13%）が
+# 日本以外の店**（大半が韓国、次いでロシア沿海地方）なのに `country_code` は全行 'JP' で、
+# うち 126 店 / dish_media 1,025 行が `sns_dish_media_catalog` に載って dev へ配信された。
+#
+# ⚠️⚠️ **取り込みの矩形（緯度20.0–46.5 / 経度122.0–154.0）を «日本かどうか» の判定に
+# 使ってはいけない。** それは 1_3 が «取り込む» ために使った条件であり、取り込んだ結果へ
+# 当て直しても構造上いつでも真になる。実際 8_1 の海外チェックはそれをやっていたので、
+# 韓国の店が 97,726 行入った run でも緑だった。**取り込み条件を検査条件へ流用しない。**
+#
+# 判定は独立した 3 本の根拠の OR で、この 3 本以外を足さない。
+#
+# | 根拠 | 何を見るか | 独立性 |
+# | --- | --- | --- |
+# | (a) `country_code` | 1_3 が Overture の `addresses[1].country` から運んだ実測値 | 出所のある値 |
+# | (b) 文字と住所の形 | ハングル / キリル語 / 韓国式の住所トークン | 座標を一切見ない |
+# | (c) 国外領域の矩形 | ソウル・釜山・済州・鬱陵島・沿海地方 «だけ» を囲う矩形 | 文字を一切見ない |
+#
+# (c) は «日本を囲う矩形»（＝取り込み条件）ではなく **«国外を囲う矩形»** である。
+# 前者は «中に居れば日本» という嘘をつくが、後者は «ソウルの真ん中に居る» という
+# 単独で成立する事実しか言わない。対馬（韓国本土の矩形と重なる日本領）は矩形から除く。
+#
+# ## 実測（run=restaurant-2026-08-23 / 620,428 行、2026-09-05）
+#
+# - (b) 文字ルールが挙げる行: 99,862 / (c) 国外矩形に入る行: 100,058
+# - 両方に当たる: 99,857。**独立な 2 つの根拠が 99.8% 一致する**
+# - (b) だけ = 5 行。うち 3 行は白翎島・楸子島の実在の韓国店（矩形の穴）で、
+#   **日本の店の誤検知は 2 行だけ**（「용녀」/2370-2 Awayamachi、
+#   「yong sundubu 집」/大船1-20-2。店名がハングルなのに住所に日本語が 1 文字も無い）
+# - (c) だけ = 201 行。全て韓国の店で、住所が `Chungmuro 2(i)-ga` `Yongsan Dong 2 Ga`
+#   のように韓国式トークンが空白区切りで書かれていて (b) が拾えないもの
+# - 目視した 291 行（無作為 120 / 国外矩形の外にある該当行の全 91 / 住所ルールのみ 20 /
+#   未検出 60）のうち、**日本国内の韓国料理店を «海外» と誤判定したものは 0 件**
+#
+# ## 日本国内の韓国料理店を弾かないための規則（誤検知の本体）
+#
+# ハングルを含む店名は新大久保・鶴橋・福岡に大量にある。**文字だけで判定してはいけない。**
+# 修正前の 8_1（ハングル or キリル 1 文字）は日本国内 62 店を海外と誤判定していた
+# （新大久保「하남돼지집」、大阪「정낙지」、福岡「골목게장」など 51 店＋
+# 「ＢＡＲ ＢＯＯＴ ＣＡМＰ」「Lounge Я」のようにキリル文字を装飾に使う日本の店 11 店）。
+# そこで:
+#   - 文字の根拠は **«日本語の手がかり» が無いときだけ**有効にする（下の JAPAN_TEXT_RE）
+#   - キリル文字は **3 文字以上連続** したときだけ数える（「МASU」の М 1 文字は装飾）
+#   - 韓国式住所トークンは «住所» 欄だけを見る（店名の「Lo-ro」「Cafe Cheonghak-dong」で
+#     誤爆する）。`-gun` は日本の «郡» と衝突するので**採らない**
+#   - 文字の根拠は **住所が入っている行にだけ**当てる。«日本語の手がかりが無い» は
+#     住所を見て初めて言えることで、住所が空の行では «情報が無い» と区別が付かない。
+#     PostgreSQL の `restaurants.address` はユーザー登録行で NULL のことがあり、実測でも
+#     「韓国料理TonTon 한국식당 톤톤」（大阪）「板前焼肉一雅 이치마사」（大阪）
+#     「韓国料理専門店 佳楽 가락」（東京）を海外と誤判定していた。
+#     restaurant_catalog 側で住所が空なのは 620,428 行中 128 行だけで、この条件を
+#     足しても検出は 100,063 行のまま **1 行も減らない**（実測）
+#
+# ⚠️ **この判定を SQL / 別スクリプトへ写経しないこと。** 使う側は
+# `foreign_restaurant_sql()` が返す式を埋め込む。写経した複製は、本番だけが直ったときに
+# 緑のまま古い挙動を守り続ける（CLAUDE.md「列を足したら〜」の事故）。
+
+# ⚠️ 文字クラスは **実体文字**で書く（`\uAC00` や `\x{AC00}` を使わない）。
+#    この 3 つの正規表現は BigQuery(RE2) / Python(re) / PostgreSQL(ARE) の 3 方言で
+#    そのまま使う。3 方言が同じに解釈する書き方は «実体文字» と «先頭の (?i)» だけで、
+#    Unicode エスケープの綴りは方言ごとに違う（RE2 は `\x{}`、他は `\u`）。
+#    同じ理由で `(?i)` はパターンの **先頭にしか置けない**（PostgreSQL の ARE の制約）。
+#    語中の大小文字は `[Cc]home` のように文字クラスで書く。
+
+# ハングル（音節・字母）と、3 文字以上続くキリル文字。
+FOREIGN_SCRIPT_RE = r"[가-힣ᄀ-ᇿ]|[Ѐ-ӿ]{3,}"
+
+# 韓国式の住所トークン（ローマ字表記）。**住所欄にだけ当てる。**
+# `gun`（郡）は日本の住所（「北安曇郡」= Kitaazumi-gun）と衝突するので入れない。
+KOREAN_ADDRESS_RE = (
+    r"(?i)(^|[^a-z])[a-z0-9]+-(dong|eup|myeon|myun|gil|ro|daero|ri|ga)([^a-z]|$)"
+)
+
+# 日本語の手がかり。これがあるときは «文字» の根拠を無効にする（新大久保の韓国料理店）。
+JAPAN_TEXT_RE = r"[぀-ヿ]|丁目|番地|〒|[Cc][Hh][Oo][Mm][Ee]|" + PREF_PATTERN
+
+# 国外領域の矩形（lat_lo, lat_hi, lng_lo, lng_hi, ラベル）。
+# ⚠️ «日本を囲う矩形» を足さないこと（取り込み条件の流用になる）。ここは «そこに居れば
+#    日本ではない» と単独で言える土地だけを囲う。
+FOREIGN_TERRITORY_BOXES: tuple[tuple[float, float, float, float, str], ...] = (
+    (34.0, 38.7, 124.5, 129.6, "韓国本土"),
+    (33.1, 33.99, 126.1, 126.99, "済州・楸子島"),
+    (37.4, 37.6, 130.7, 131.0, "鬱陵島"),
+    (42.0, 49.0, 130.0, 137.0, "ロシア沿海地方"),
+)
+# 上の «韓国本土» の矩形と重なる日本領。ここに入る行は矩形の根拠から外す。
+JAPAN_ENCLAVE_BOXES: tuple[tuple[float, float, float, float, str], ...] = (
+    (34.0, 34.8, 129.1, 129.6, "対馬"),
+)
+
+
+def _box_sql(latitude: str, longitude: str, boxes) -> str:
+    return " OR ".join(
+        f"({latitude} BETWEEN {lo} AND {hi} AND {longitude} BETWEEN {wlo} AND {whi})"
+        for lo, hi, wlo, whi, _ in boxes
+    )
+
+
+def foreign_restaurant_sql(
+    *,
+    name: str,
+    address: str,
+    country_code: str,
+    latitude: str,
+    longitude: str,
+    dialect: str = "bigquery",
+) -> str:
+    """«この店は日本の店ではない» を判定する SQL 式（BOOLEAN）を返す。
+
+    引数は列名ではなく **列を指す式**（``rc.name`` / ``r.address`` など）を渡す。
+    BigQuery でも PostgreSQL でも同じ規則を使えるよう、方言差だけをここで吸収する。
+
+    Args:
+        dialect: ``"bigquery"``（RE2 / ``REGEXP_CONTAINS``）または
+            ``"postgres"``（ARE / ``~``）。
+    """
+    if dialect not in ("bigquery", "postgres"):
+        raise ValueError(f"未知の dialect: {dialect!r}")
+
+    def contains(expr: str, pattern: str) -> str:
+        if dialect == "bigquery":
+            return f"REGEXP_CONTAINS({expr}, r'{pattern}')"
+        return f"({expr} ~ '{pattern}')"
+
+    text = (
+        f"CONCAT(COALESCE({name}, ''), ' ', COALESCE({address}, ''))"
+        if dialect == "bigquery"
+        else f"(COALESCE({name}, '') || ' ' || COALESCE({address}, ''))"
+    )
+    addr = f"COALESCE({address}, '')"
+    return (
+        "(\n"
+        "        -- (a) 取り込み時の国。NULL は «分からない» なので日本扱いにする\n"
+        f"        COALESCE({country_code}, 'JP') != 'JP'\n"
+        "        -- (b) 韓国式の住所（住所欄だけ。店名の 'Lo-ro' で誤爆させない）\n"
+        f"        OR {contains(addr, KOREAN_ADDRESS_RE)}\n"
+        "        -- (b') ハングル / キリル語。**住所がある行にだけ**当て、\n"
+        "        --      日本語の手がかりがある行には当てない\n"
+        f"        OR ({addr} != ''\n"
+        f"            AND {contains(text, FOREIGN_SCRIPT_RE)}\n"
+        f"            AND NOT {contains(text, JAPAN_TEXT_RE)})\n"
+        "        -- (c) 国外領域の矩形（«日本を囲う矩形» ではない）。日本領の飛び地は除く\n"
+        f"        OR (({_box_sql(latitude, longitude, FOREIGN_TERRITORY_BOXES)})\n"
+        f"            AND NOT ({_box_sql(latitude, longitude, JAPAN_ENCLAVE_BOXES)}))\n"
+        "      )"
+    )
+
+
+def foreign_store_sql(alias: str = "rc") -> str:
+    """`restaurant_catalog` の 1 行が «日本以外の店» かを判定する式を返す。
+
+    どの列が国の根拠になるのかを決めるのはここ 1 箇所だけにする。呼ぶ側
+    （9_1_build_sns_dish_media_catalog / 9_2 / 9_1_sync_restaurants / 8_1 / 9_9 監査）は
+    列名を書かない。
+    """
+    return foreign_restaurant_sql(
+        name=f"{alias}.name",
+        address=f"{alias}.address",
+        country_code=f"{alias}.country_code",
+        latitude=f"{alias}.latitude",
+        longitude=f"{alias}.longitude",
+    )
