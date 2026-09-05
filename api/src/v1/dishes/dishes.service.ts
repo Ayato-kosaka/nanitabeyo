@@ -114,9 +114,15 @@ export class DishesService {
       throw new Error('Restaurant not found');
     }
 
-    // レストランの住所情報からローカル言語コードを推測
+    // レストランの住所情報からローカル言語コードを推測。
+    // #1671 ⚠️ **列も渡すこと。** パイプライン製の 62 万行は address_components が
+    // '[]' で、渡さないと 'en' へ落ちて日本の店に英語の料理名が付く（実測 92.44%）。
     const languageCode = this.locationsService.resolveLocalLanguageCode(
       restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[],
+      {
+        countryCode: restaurant.country_code,
+        subterritoryCode: restaurant.subterritory_code,
+      },
     );
 
     const dishNameFromLabels: string =

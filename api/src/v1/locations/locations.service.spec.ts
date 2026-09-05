@@ -344,6 +344,83 @@ describe('LocationsService', () => {
         expect(result).toBe('ja');
       });
     });
+
+    describe('#1671 保存済みの列へのフォールバック', () => {
+      // dev の実測: 621,974 店のうち 619,498 店（99.60%）は address_components に
+      // country が無く、'en' へ落ちていた。結果 36,051 件（全料理の 92.44%）が
+      // 英語名で作られていた（run 33939661379）。列は 100% 埋まっている。
+      it('address_components が空でも、country_code 列があれば現地語になる', () => {
+        const result = service.resolveLocalLanguageCode([], {
+          countryCode: 'JP',
+          subterritoryCode: null,
+        });
+
+        expect(result).toBe('ja');
+      });
+
+      it('配列ですらない値でも、列から解決できる（jsonb は [] も {} も入る）', () => {
+        const result = service.resolveLocalLanguageCode(
+          null as unknown as protos.google.maps.places.v1.Place.IAddressComponent[],
+          { countryCode: 'JP', subterritoryCode: null },
+        );
+
+        expect(result).toBe('ja');
+      });
+
+      it('列の州コードも効く（州で言語が変わる国）', () => {
+        const result = service.resolveLocalLanguageCode([], {
+          countryCode: 'CH',
+          subterritoryCode: 'CH-GE',
+        });
+
+        // ジュネーブはフランス語。国だけだと CH の重み順（de）になる
+        expect(result).toBe('fr');
+      });
+
+      it('⚠️ address_components を優先する（列で上書きしない）', () => {
+        const addressComponents = [
+          { shortText: 'CH', longText: 'Switzerland', types: ['country'] },
+          {
+            shortText: 'GE',
+            longText: 'Genève',
+            types: ['administrative_area_level_1'],
+          },
+        ];
+
+        // 列には別の国が入っていても、components が引けるならそちらが勝つ
+        const result = service.resolveLocalLanguageCode(
+          addressComponents as unknown as protos.google.maps.places.v1.Place.IAddressComponent[],
+          { countryCode: 'JP', subterritoryCode: null },
+        );
+
+        expect(result).toBe('fr');
+      });
+
+      it('⚠️ 国と州を «組» で選ぶ（components の国 + 列の州を混ぜない）', () => {
+        const addressComponents = [
+          { shortText: 'JP', longText: 'Japan', types: ['country'] },
+        ];
+
+        // components から国は引けるが州は引けない。ここで列の CH-GE を拾うと
+        // «JP + CH-GE» という別の国の州コードが混ざる
+        const result = service.resolveLocalLanguageCode(
+          addressComponents as unknown as protos.google.maps.places.v1.Place.IAddressComponent[],
+          { countryCode: 'CH', subterritoryCode: 'CH-GE' },
+        );
+
+        expect(result).toBe('ja');
+      });
+
+      it('列も無ければ従来どおり en', () => {
+        expect(
+          service.resolveLocalLanguageCode([], {
+            countryCode: null,
+            subterritoryCode: null,
+          }),
+        ).toBe('en');
+        expect(service.resolveLocalLanguageCode([])).toBe('en');
+      });
+    });
   });
 
   describe('address building with shortText/longText fallback', () => {
