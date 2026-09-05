@@ -13,24 +13,11 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-import types
 import unittest
 from pathlib import Path
 
-try:  # noqa: SIM105
-    import google.cloud.bigquery  # noqa: F401
-except Exception:  # noqa: BLE001 - 本物が無い環境でも純関数のテストは回す
-    _bq = types.ModuleType("google.cloud.bigquery")
-    for _n in ("Client", "ScalarQueryParameter", "ArrayQueryParameter", "QueryJobConfig",
-               "LoadJobConfig", "ParquetOptions", "SchemaField", "Table"):
-        setattr(_bq, _n, type(_n, (), {}))
-    _bq.WriteDisposition = types.SimpleNamespace(WRITE_APPEND="WRITE_APPEND")
-    _bq.SourceFormat = types.SimpleNamespace(NEWLINE_DELIMITED_JSON="NDJSON", PARQUET="PARQUET")
-    _google = sys.modules.setdefault("google", types.ModuleType("google"))
-    _cloud = sys.modules.setdefault("google.cloud", types.ModuleType("google.cloud"))
-    setattr(_google, "cloud", _cloud)
-    setattr(_cloud, "bigquery", _bq)
-    sys.modules["google.cloud.bigquery"] = _bq
+# google.cloud.bigquery の軽量スタブは conftest.py が 1 箇所で用意する
+# （各テストへ写経すると «先に入れた者勝ち» で実行順に依存して落ちる）。
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
