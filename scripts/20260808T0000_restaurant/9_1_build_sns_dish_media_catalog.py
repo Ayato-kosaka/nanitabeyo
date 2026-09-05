@@ -7,7 +7,12 @@ pg へ配信できる «確定行» を row_hash 付きで作る。pg には触�
 #1846: **出力は 1 投稿 1 行**（店もカテゴリも 1 つに確定したものだけ）。
 店を 1 つに絞れなかった投稿は配信しない。判定は `common_sns.post_store_cte_sql`。
 
-#1815: **日本以外の店は配信しない。** 判定は `common_sns.foreign_restaurant_sql`
+#1273: **絵を 1 枚も出せない料理カテゴリへは配信しない**。取り込み投稿はアプリ側に
+サムネイルを持たないので、画面の最後の受け皿は `dish_categories.image_url` しか無い。
+そこが空のカテゴリへ配ると真っ黒なセルになる（dev 実測 3,119 行 / 2.15%）。
+判定は `common_sns.category_with_image_cte_sql`。落とした数は run ログへ残す。
+
+#1815: **日本以外の店は配信しない。** 判定は `common_sns.foreign_store_sql`
 （写経しないこと）。ここは配信経路の入口なので、ここで落とせば 9_2 まで届かない。
 """
 
@@ -21,7 +26,8 @@ from pipeline_common import (
 )
 from common_sns import (
     PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_DISH_MEDIA_CATALOG,
-    LATEST_RESOLVED_QUALIFY, TABLE_RESTAURANT_CATALOG, foreign_store_sql,
+    TABLE_DISH_CATEGORY_IMAGES, TABLE_RESTAURANT_CATALOG,
+    LATEST_RESOLVED_QUALIFY, category_with_image_cte_sql, foreign_store_sql,
     post_store_cte_sql,
 )
 
@@ -56,6 +62,7 @@ def main() -> None:
     now_iso = utc_now().isoformat()
 
     from google.cloud import bigquery
+    images_table = f"{pipeline.config.dish_dataset_ref}.{TABLE_DISH_CATEGORY_IMAGES}"
     # ⚠️ raw の結合に run_id 条件を付けない。raw と resolved が別の run に分かれている投稿を
     #    落としてしまう（7_1 は union で引くので、付けると 7_1 と数が合わなくなる）。
     # ⚠️ 店は `post_store`（common_sns.post_store_cte_sql）が唯一の正。ここで
@@ -66,11 +73,15 @@ def main() -> None:
         WHERE run_id IN UNNEST(@srcs)
         {LATEST_RESOLVED_QUALIFY}
       ),
-      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="v", runs_param="srcs")}
+      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="v", runs_param="srcs")},
+      {category_with_image_cte_sql(images_table)}
       SELECT v.post_id, ps.google_place_id, v.dish_category_id,
              ANY_VALUE(r.canonical_url) AS canonical_url
       FROM v
       JOIN post_store ps ON ps.post_id = v.post_id
+      -- #1273 絵を 1 枚も出せないカテゴリへは配らない（理由は common_sns の CTE に書いてある）。
+      -- ⚠️ この JOIN を外すと «真っ黒なセル» が戻る。外すなら先に KPI への影響を測り直すこと。
+      JOIN category_with_image ci ON ci.dish_category_id = v.dish_category_id
       JOIN `{pipeline.table(TABLE_POST_RAW)}` r
         ON r.run_id IN UNNEST(@srcs) AND r.provider = v.provider AND r.post_id = v.post_id
       -- #1815 店の国はここでしか分からない。LEFT JOIN なのは «catalog に居ない店» を
@@ -91,6 +102,7 @@ def main() -> None:
         {LATEST_RESOLVED_QUALIFY}
       ),
       {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="v", runs_param="srcs")},
+      {category_with_image_cte_sql(images_table)},
       -- カテゴリが付いていない投稿はそもそも配信対象外なので、数えるのは «カテゴリはあるのに
       -- 店が決まらなかったせいで落ちた» ぶんだけにする（そうしないと «落とした数» が水増しになる）
       with_category AS (SELECT post_id FROM v WHERE dish_category_id IS NOT NULL),
@@ -118,7 +130,20 @@ def main() -> None:
           WHERE c.post_id NOT IN (SELECT post_id FROM post_store)) AS ambiguous_posts,
         (SELECT COUNT(*) FROM seeded s
           WHERE s.post_id NOT IN (SELECT post_id FROM cand_posts)) AS shared_identity_only_posts,
-        (SELECT COUNT(DISTINCT post_id) FROM store_country) AS foreign_store_posts
+        (SELECT COUNT(DISTINCT post_id) FROM store_country) AS foreign_store_posts,
+        -- #1273 «店は決まったのに、絵を出せないカテゴリだったので配らなかった» 投稿数とカテゴリ数。
+        -- 0 でないことが正常（落とすのが仕様）。増え続けるなら resolve が
+        -- 絵の無いカテゴリへ寄せている合図なので、そちらを直す手がかりになる。
+        (SELECT COUNT(*) FROM v
+          WHERE v.dish_category_id IS NOT NULL
+            AND v.post_id IN (SELECT post_id FROM post_store)
+            AND v.dish_category_id NOT IN (SELECT dish_category_id FROM category_with_image)
+        ) AS no_category_image_posts,
+        (SELECT COUNT(DISTINCT v.dish_category_id) FROM v
+          WHERE v.dish_category_id IS NOT NULL
+            AND v.post_id IN (SELECT post_id FROM post_store)
+            AND v.dish_category_id NOT IN (SELECT dish_category_id FROM category_with_image)
+        ) AS no_category_image_categories
     """
 
     params = [
@@ -158,11 +183,17 @@ def main() -> None:
             step_params["dropped_ambiguous_posts"] = int(drop["ambiguous_posts"] or 0)
             step_params["dropped_shared_identity_posts"] = int(drop["shared_identity_only_posts"] or 0)
             step_params["dropped_foreign_store_posts"] = int(drop["foreign_store_posts"] or 0)
-            LOGGER.info("配信しなかった投稿: 店を絞れず %d / 看板が複数店を指すのみ %d "
-                        "/ 日本以外の店 %d",
+            step_params["dropped_no_category_image_posts"] = int(drop["no_category_image_posts"] or 0)
+            step_params["dropped_no_category_image_categories"] = int(
+                drop["no_category_image_categories"] or 0
+            )
+            LOGGER.info("配信しなかった投稿: 店を絞れず %d / 看板が複数店を指すのみ %d / "
+                        "日本以外の店 %d / カテゴリに絵が無い %d（%d カテゴリ）",
                         step_params["dropped_ambiguous_posts"],
                         step_params["dropped_shared_identity_posts"],
-                        step_params["dropped_foreign_store_posts"])
+                        step_params["dropped_foreign_store_posts"],
+                        step_params["dropped_no_category_image_posts"],
+                        step_params["dropped_no_category_image_categories"])
         LOGGER.info("sns_dish_media_catalog に %d 件（配信可 ready・1 投稿 1 行）を組みました", count)
 
 

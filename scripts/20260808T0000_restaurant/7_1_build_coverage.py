@@ -14,7 +14,8 @@ import re
 from collections import defaultdict
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import (PREF_PATTERN, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_COVERAGE,
+from common_sns import (LATEST_RESOLVED_QUALIFY, PREF_PATTERN, TABLE_POST_RAW,
+                        TABLE_POST_RESOLVED, TABLE_COVERAGE,
                         post_store_cte_sql)
 
 LOGGER = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ def main() -> None:
         SELECT provider, post_id, status, google_place_id, dish_category_id
         FROM `{pipeline.table(TABLE_POST_RESOLVED)}`
         WHERE run_id IN UNNEST(@resolved_rids)
-        QUALIFY ROW_NUMBER() OVER (PARTITION BY provider, post_id ORDER BY resolved_at DESC) = 1
+        {LATEST_RESOLVED_QUALIFY}
       ),
       -- #1273【重要】既知店ルート（柱1/柱4）は «店» を discovery_seed_place_id で確定する。
       -- resolve は投稿URLからキャプションを取り直して店名照合するが、店の «自分の投稿» は

@@ -13,25 +13,11 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
-import types
 import unittest
 from pathlib import Path
 
-# pipeline_common は import 時に `from google.cloud import bigquery` する。検証対象は BQ に
-# 触れない純関数なので、実クライアント（この環境では cryptography が panic する）を避け、
-# import を通すためだけの軽量スタブを差し込む。実 dispatch は本物の client で動く。
-if "google.cloud.bigquery" not in sys.modules:
-    _bq = types.ModuleType("google.cloud.bigquery")
-    for _n in ("Client", "ScalarQueryParameter", "ArrayQueryParameter", "QueryJobConfig",
-               "LoadJobConfig", "ParquetOptions"):
-        setattr(_bq, _n, type(_n, (), {}))
-    _bq.WriteDisposition = types.SimpleNamespace(WRITE_APPEND="WRITE_APPEND")
-    _bq.SourceFormat = types.SimpleNamespace(NEWLINE_DELIMITED_JSON="NDJSON", PARQUET="PARQUET")
-    _google = sys.modules.setdefault("google", types.ModuleType("google"))
-    _cloud = sys.modules.setdefault("google.cloud", types.ModuleType("google.cloud"))
-    setattr(_google, "cloud", _cloud)
-    setattr(_cloud, "bigquery", _bq)
-    sys.modules["google.cloud.bigquery"] = _bq
+# google.cloud.bigquery の軽量スタブは conftest.py が 1 箇所で用意する
+# （各テストへ写経すると «先に入れた者勝ち» で実行順に依存して落ちる）。
 
 HERE = Path(__file__).resolve().parent
 POC = HERE / "1273_instagram_seed_poc"
