@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#1273 既存 sns_post_raw に caption / author_name 列を **非破壊で** 追加する。
+"""#1273 既存 sns_post_raw に caption / author_name / seed_source 列を **非破壊で** 追加する。
 
 4_0 の migration は DROP→CREATE で、再実行すると収集済みデータを消す。既に大量の
 投稿URLが入っているので、ここは `ALTER TABLE ADD COLUMN IF NOT EXISTS` で列だけ足す
@@ -28,11 +28,19 @@ def main() -> None:
     configure_logging()
     pipeline = BigQueryPipeline()
     table = pipeline.table(TABLE_POST_RAW)
-    for col in ("caption", "author_name"):
+    # #1815 seed_source: `discovery_seed_place_id` を **誰が入れたか**。
+    # 収集時に確定した seed（そのアカウント＝その店。ほぼ確実）と、4_17 が
+    # キャプションの裸ハンドルから後入れした seed（目視 200 件で誤帰属 4%）は
+    # 確度が違うので、混ざると監査も巻き戻しもできない。
+    #
+    # ⚠️ **`discovery_method` で代用しない。** あれは «どうやってこの投稿を見つけたか»
+    # （ig_business_discovery / tavily / media_embed …）であって «店をどう決めたか» ではない。
+    # 上書きすると収集経路の情報が消える（一度その実装をしかけて気づいた）。
+    for col in ("caption", "author_name", "seed_source"):
         sql = f"ALTER TABLE `{table}` ADD COLUMN IF NOT EXISTS {col} STRING"
         LOGGER.info("適用: %s", sql)
         pipeline.client.query(sql, location=pipeline.config.region).result()
-    LOGGER.info("sns_post_raw に caption / author_name 列を追加しました（冪等）。")
+    LOGGER.info("sns_post_raw に caption / author_name / seed_source 列を追加しました（冪等）。")
 
 
 if __name__ == "__main__":

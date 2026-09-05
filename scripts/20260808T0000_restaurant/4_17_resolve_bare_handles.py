@@ -274,16 +274,19 @@ def backfill_sql(pipeline: BigQueryPipeline, limit: int | None,
     - **既に値がある行は触らない**（収集時に確定した店の方が確度が高い）
     - 同じ post_id の行が複数 run にまたがって入っていることがあるので、
       «まだ空の行» は全部埋める（1 投稿 1 店の判定は `writable` が済ませている）
-    - **`discovery_method` に印を付ける。** ここで入れた seed は目視 200 件で誤帰属 4% あり、
+    - **`seed_source` に印を付ける。** ここで入れた seed は目視 200 件で誤帰属 4% あり、
       収集時に確定した seed（そのアカウント＝その店）とは確度が違う。印が無いと両者が混ざって
       **監査も巻き戻しもできない**（経路で偶然区別できるのは今だけで、設計された区別ではない）。
-      `discovery_route` は収集経路のままにするので、元の情報は失わない。
+
+      ⚠️ **`discovery_method` を上書きしない。** あれは «どうやってこの投稿を見つけたか»
+      （ig_business_discovery / tavily / media_embed …）であって «店をどう決めたか» ではない。
+      上書きすると収集経路の情報が消える。専用の列を使う。
     """
     limit_sql = "ORDER BY post_id LIMIT @row_limit" if limit else ""
     return f"""
       UPDATE `{pipeline.table(TABLE_POST_RAW)}` r
       SET discovery_seed_place_id = m.place_id,
-          discovery_method = '{DISCOVERY_METHOD}'
+          seed_source = '{DISCOVERY_METHOD}'
       FROM ({_hits_with(pipeline, corroborated_only=corroborated_only)}
             SELECT post_id, place_id FROM writable {limit_sql}) m
       WHERE r.post_id = m.post_id

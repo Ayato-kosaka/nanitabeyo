@@ -123,9 +123,10 @@ class SqlContractTest(unittest.TestCase):
         混ざると監査も巻き戻しもできない。**印を落とす変更を通さない**ための固定。
         """
         sql = mod_4_17.backfill_sql(self.p, None)
-        self.assertIn("discovery_method = 'caption_bare_handles'", sql)
-        # 収集経路そのものは書き換えない（元の情報を失わせない）
+        self.assertIn("seed_source = 'caption_bare_handles'", sql)
+        # 収集の情報は 1 つも書き換えない（元の情報を失わせない）
         self.assertNotIn("discovery_route =", sql)
+        self.assertNotIn("discovery_method =", sql)
 
     def test_backfill_limit_is_deterministic(self) -> None:
         self.assertIn("ORDER BY post_id LIMIT @row_limit",
