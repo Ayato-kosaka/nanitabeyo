@@ -87,6 +87,33 @@ def address_from_components(value: str | None) -> str:
     return "".join(text for _, text in sorted(selected))
 
 
+def country_from_components(value: str | None) -> str | None:
+    """既存PG行（Google由来）の address_components から国コードを取り出す。
+
+    #843 既存PG行だけは海外がありうるので «一律 JP» にしてはいけない。
+    Google の `country` component の shortText が ISO 3166-1 alpha-2 である。
+    引けない行は None のままにする（座標から国を推測しない）。
+    """
+
+    if not value:
+        return None
+    try:
+        components = json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return None
+    if not isinstance(components, list):
+        return None
+    for component in components:
+        if not isinstance(component, dict):
+            continue
+        if "country" not in (component.get("types") or []):
+            continue
+        short_text = component.get("shortText") or component.get("short_name")
+        if isinstance(short_text, str) and len(short_text) == 2 and short_text.isupper():
+            return short_text
+    return None
+
+
 def valid_coordinates(latitude: Any, longitude: Any) -> bool:
     """座標として成立しているか。**日本かどうかは見ない。**
 
@@ -105,7 +132,12 @@ def valid_coordinates(latitude: Any, longitude: Any) -> bool:
 
 
 def in_japan_bounds(latitude: Any, longitude: Any) -> bool:
-    """今回の探索範囲（日本）に入るか。
+    """今回の探索範囲に入るか。**«日本かどうか» の判定ではない。**
+
+    ⚠️ #843 この矩形は韓国全土とロシア沿海地方を含む。国を決める材料にしてはいけない。
+    国は `country_code`（1_3 が Overture の addresses[1].country から運ぶ値、
+    政府台帳・日本 extract なら 'JP'、既存PGは Google の country component）で決まる。
+    ここは «Google 照合の矩形を作れる範囲か» を見ているだけである。
 
     open data 側は日本のぶんしか取り込まないのでこれで絞る。
     既存PG行には課さない — 海外の店を «無かったこと» にしないため。
@@ -144,6 +176,7 @@ def build_common_row(
     name: str | None,
     name_language_code: str | None,
     address: str | None,
+    country_code: str | None,
     latitude: float | None,
     longitude: float | None,
     phone: str | None,
@@ -189,6 +222,9 @@ def build_common_row(
         "normalized_name_l1": normalize_name_l1(cleaned_name),
         "address": cleaned_address or None,
         "normalized_address": normalize_address(cleaned_address) or None,
+        # #843 国は «取り込んだときに分かっていた値» だけを入れる。
+        # 座標から推測した値をここに混ぜると、後段が «根拠のある国» と区別できない。
+        "country_code": country_code or None,
         "latitude": latitude,
         "longitude": longitude,
         "location": f"POINT({longitude} {latitude})",
@@ -233,6 +269,8 @@ def iter_source_records(
             name=row.name,
             name_language_code=row.name_language_code,
             address=address_from_components(row.address_components_json),
+            # #843/#843 既存PG行は海外がありうる。Google の country component から引く。
+            country_code=country_from_components(row.address_components_json),
             latitude=row.latitude,
             longitude=row.longitude,
             phone=None,
@@ -286,6 +324,8 @@ def iter_source_records(
             name=row.name,
             name_language_code="ja",
             address=row.address,
+            # #843 1_3 が addresses[1].country で絞ったうえで残した実測値。
+            country_code=row.address_country,
             latitude=row.latitude,
             longitude=row.longitude,
             phone=next(iter(row.phones or ()), None),
@@ -322,6 +362,8 @@ def iter_source_records(
             name=row.name,
             name_language_code="ja",
             address=row.address,
+            # #843 IFAS は厚労省の食品営業許可台帳なので、行が在る時点で日本である。
+            country_code="JP",
             latitude=row.latitude,
             longitude=row.longitude,
             phone=row.phone,
@@ -367,6 +409,8 @@ def iter_source_records(
             name=row.name,
             name_language_code="ja",
             address=row.address,
+            # #843 自治体の食品営業許可台帳なので日本である。
+            country_code="JP",
             latitude=row.latitude,
             longitude=row.longitude,
             phone=None,
@@ -401,6 +445,9 @@ def iter_source_records(
             name=row.name,
             name_language_code="ja",
             address=row.address,
+            # #843 1_5 に渡す PBF は geofabrik の japan-latest（日本のextract）なので
+            # 日本である。別の extract を入れるなら、ここも source_uri から決め直すこと。
+            country_code="JP",
             latitude=row.latitude,
             longitude=row.longitude,
             phone=row.phone,

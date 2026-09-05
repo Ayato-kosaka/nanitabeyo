@@ -7,6 +7,10 @@ import unittest
 from pathlib import Path
 from datetime import date, datetime, timezone
 
+import importlib
+
+import duckdb
+
 from entity_resolution import EntityResolver, SourceRecord
 from google_place_matching import (
     TextSearchResult,
@@ -73,6 +77,83 @@ class EntityResolutionTest(unittest.TestCase):
         ]
         seeds, _ = EntityResolver().resolve(records)
         self.assertEqual("existing_pg_carry_forward", seeds[0].seed_origin())
+
+
+class CountryCodeTest(unittest.TestCase):
+    """#843 国は «取り込んだときの値» で決める。座標の矩形から断定しない。"""
+
+    def test_seed_takes_country_from_the_canonical_source(self) -> None:
+        records = [
+            SourceRecord(
+                "ifas", "i1", "対馬食堂", "長崎県対馬市厳原町1-1", 34.2, 129.29,
+                country_code="JP",
+            ),
+            SourceRecord(
+                "overture", "o1", "対馬食堂", "長崎県対馬市厳原町1-1", 34.2, 129.29,
+                country_code="JP",
+            ),
+        ]
+        seeds, _ = EntityResolver().resolve(records)
+        self.assertEqual(1, len(seeds))
+        self.assertEqual("JP", seeds[0].country_code)
+
+    def test_seed_keeps_a_country_when_the_canonical_source_has_none(self) -> None:
+        # 国を持たないソースが canonical になっても、持っているソースの値は消えない。
+        records = [
+            SourceRecord("overture", "o1", "無国籍亭", "東京都1-1", 35.0, 139.0),
+            SourceRecord(
+                "ifas", "i1", "無国籍亭", "東京都1-1", 35.0, 139.0, country_code="JP"
+            ),
+        ]
+        seeds, _ = EntityResolver().resolve(records)
+        self.assertEqual("JP", seeds[0].country_code)
+
+    def test_existing_pg_country_comes_from_google_address_components(self) -> None:
+        module = importlib.import_module("2_1_build_restaurant_source_records")
+        self.assertEqual(
+            "GE",
+            module.country_from_components(
+                '[{"longText":"Georgia","shortText":"GE","types":["country","political"]}]'
+            ),
+        )
+        # 国が引けない / 壊れた値は «日本» に倒さず None にする。
+        self.assertIsNone(module.country_from_components('[{"types":["locality"]}]'))
+        self.assertIsNone(module.country_from_components("not json"))
+        self.assertIsNone(module.country_from_components(None))
+
+
+class OvertureJapanFilterTest(unittest.TestCase):
+    """#843 日本の «矩形» は韓国と沿海地方を含む。国は country 列でしか決まらない。"""
+
+    # 対馬(129.29E)・釜山(129.07E)・ウラジオストク(131.89E) は、どれも
+    # 緯度20.0–46.5 / 経度122.0–154.0 の «日本の矩形» の中にある。
+    ROWS = """
+      SELECT * FROM (VALUES
+        ('tsushima', 'JP', 129.29, 34.20),
+        ('busan', 'KR', 129.07, 35.15),
+        ('vladivostok', 'RU', 131.89, 43.12)
+      ) AS t(id, country, lon, lat)
+    """
+    BBOX = "lon BETWEEN 122.0 AND 154.0 AND lat BETWEEN 20.0 AND 46.5"
+
+    def test_bbox_alone_lets_korea_and_russia_through(self) -> None:
+        rows = duckdb.connect().execute(
+            f"SELECT id FROM ({self.ROWS}) WHERE {self.BBOX} ORDER BY id"
+        ).fetchall()
+        self.assertEqual([("busan",), ("tsushima",), ("vladivostok",)], rows)
+
+    def test_country_filter_keeps_tsushima_and_drops_the_rest(self) -> None:
+        rows = duckdb.connect().execute(
+            f"SELECT id FROM ({self.ROWS}) WHERE country = 'JP' AND {self.BBOX}"
+        ).fetchall()
+        self.assertEqual([("tsushima",)], rows)
+
+    def test_loader_filters_on_country_not_on_the_bbox(self) -> None:
+        module = importlib.import_module("1_3_load_overture")
+        self.assertEqual(
+            "addresses[1].country = 'JP'", module.JAPAN_COUNTRY_PREDICATE
+        )
+        self.assertLessEqual(module.MAX_MISSING_COUNTRY_RATIO, 0.01)
 
 
 class NormalizationTest(unittest.TestCase):

@@ -116,6 +116,9 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.restaurant_overture_raw` (
   source_record_id   STRING NOT NULL,
   name               STRING,
   address            STRING,
+  -- #843 Overture の addresses[1].country（ISO 3166-1 alpha-2）。
+  -- 日本の絞り込みはこの列で行う。座標の矩形は韓国・沿海地方を含むので国にならない。
+  address_country    STRING,
   latitude           FLOAT64,
   longitude          FLOAT64,
   primary_category   STRING,
@@ -141,6 +144,10 @@ OPTIONS (
 -- sources列を後付けできるようにする。
 ALTER TABLE `${DATASET}.restaurant_overture_raw`
   ADD COLUMN IF NOT EXISTS sources_json STRING;
+
+-- #843 既存 Dataset にも国の列を後付けする。
+ALTER TABLE `${DATASET}.restaurant_overture_raw`
+  ADD COLUMN IF NOT EXISTS address_country STRING;
 
 CREATE TABLE IF NOT EXISTS `${DATASET}.restaurant_ifas_raw` (
   run_id             STRING NOT NULL,
@@ -242,6 +249,8 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.restaurant_source_records` (
   normalized_name_l1       STRING NOT NULL,
   address                  STRING,
   normalized_address       STRING,
+  -- #843 取り込み時点で分かる国（ISO 3166-1 alpha-2）。座標から推測しない。
+  country_code             STRING,
   latitude                 FLOAT64 NOT NULL,
   longitude                FLOAT64 NOT NULL,
   location                 GEOGRAPHY NOT NULL,
@@ -270,6 +279,9 @@ OPTIONS (
 ALTER TABLE `${DATASET}.restaurant_source_records`
   ADD COLUMN IF NOT EXISTS name_language_code STRING;
 
+ALTER TABLE `${DATASET}.restaurant_source_records`
+  ADD COLUMN IF NOT EXISTS country_code STRING;
+
 CREATE TABLE IF NOT EXISTS `${DATASET}.restaurant_seed_catalog` (
   run_id                    STRING NOT NULL,
   seed_id                   STRING NOT NULL,
@@ -277,6 +289,8 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.restaurant_seed_catalog` (
   normalized_name           STRING NOT NULL,
   canonical_address         STRING,
   normalized_address        STRING,
+  -- #843 source records の country_code を、canonical 列と同じ優先順位で畳んだ値。
+  country_code              STRING,
   latitude                  FLOAT64 NOT NULL,
   longitude                 FLOAT64 NOT NULL,
   location                  GEOGRAPHY NOT NULL,
@@ -302,6 +316,9 @@ CLUSTER BY s2_cell_id, seed_origin, normalized_name
 OPTIONS (
   description = 'ソース横断で名寄せした実店舗候補。Google Place ID 未確定行も保持する。'
 );
+
+ALTER TABLE `${DATASET}.restaurant_seed_catalog`
+  ADD COLUMN IF NOT EXISTS country_code STRING;
 
 CREATE TABLE IF NOT EXISTS `${DATASET}.restaurant_seed_source_links` (
   run_id            STRING NOT NULL,

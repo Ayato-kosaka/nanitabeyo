@@ -74,6 +74,7 @@ def iter_records(pipeline: BigQueryPipeline, run_id: str) -> Iterable[SourceReco
             normalized_name=row.normalized_name,
             normalized_name_l1=row.normalized_name_l1,
             normalized_address=row.normalized_address or "",
+            country_code=row.country_code,
             phone=row.phone,
             website=row.website,
             social_urls=tuple(row.social_urls or ()),

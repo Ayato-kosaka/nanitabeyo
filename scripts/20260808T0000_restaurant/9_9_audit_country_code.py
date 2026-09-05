@@ -12,8 +12,14 @@
 
 | 行の種類 | 根拠 | 確からしさ |
 |---|---|---|
-| パイプライン製 | 日本の座標矩形で絞って作っている（`1_3_load_overture.py` の bbox） | 構造的に JP |
+| パイプライン製 | 取り込み時の国（`1_3_load_overture.py` の `addresses[1].country`） | 出所のある値 |
 | アプリ製 | `address_components` の `country.shortText` | 値があれば確実 |
+
+⚠️ #843 かつてここは «日本の座標矩形で絞っているので構造的に JP» と書いていたが、
+**矩形（緯度20.0–46.5 / 経度122.0–154.0）は韓国全土とロシア沿海地方を含む**。
+run=restaurant-2026-08-23 の catalog 620,428 行のうち 97,726 行が韓国の店で、
+それでも全行 `country_code='JP'` になっていた。下の «矩形の外にある行» の数え方は
+その事故を検出できないので、判定の根拠としては使えない（残してあるのは座標破損の保険）。
 
 アプリ製は海外の店もありうる（ユーザーが旅行先で登録する）ので、
 **一律 'JP' で埋めてはいけない**。ここを 1 行ずつ数える。
@@ -82,7 +88,9 @@ def main() -> None:
             )
             total, pipeline_rows, app_rows, ok, ng = cursor.fetchone()
             LOGGER.info("restaurants 総数: %d行", total)
-            LOGGER.info("  パイプライン製: %d行 → 日本の座標矩形で作っているので JP", pipeline_rows)
+            LOGGER.info(
+                "  パイプライン製: %d行 → 取り込み時の country（1_3）を運んだ値", pipeline_rows
+            )
             LOGGER.info("  アプリ製      : %d行", app_rows)
             LOGGER.info("    国が引ける  : %d行", ok)
             LOGGER.info("    国が引けない: %d行  ← ここが 0 でないと NOT NULL にできない", ng)
@@ -123,7 +131,8 @@ def main() -> None:
                 """
             )
             LOGGER.info(
-                "パイプライン製で日本の矩形の外にある行: %d行  ← JP と断言してよいかの判定",
+                "パイプライン製で日本の矩形の外にある行: %d行  ← 座標破損の保険"
+                "（#843: 矩形の «中» は韓国を含むので、これが 0 でも JP の根拠にならない）",
                 cursor.fetchone()[0],
             )
     finally:
