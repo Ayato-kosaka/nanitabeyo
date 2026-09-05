@@ -525,6 +525,42 @@ SEED_STORE_RANK_SQL = """CASE r.discovery_route
 RESOLVED_STORE_RANK = 4
 
 
+TABLE_DISH_CATEGORY_IMAGES = "dish_category_images"
+
+
+# --- «その料理カテゴリの絵があるか» の唯一の判定 ---------------------------------
+#
+# 【設計】#1273: 取り込み投稿（render_type='external_embed'）はアプリ側に画像を 1 枚も
+# 持たない。`9_1` は thumbnail_url を常に NULL で組み（IG はサムネイル複製不可）、
+# `9_2` は thumbnail_path='' で dish_media を作る。したがって画面に絵を出す最後の受け皿は
+# **料理カテゴリの絵**（`dish_categories.image_url`）だけである
+# （api/src/v1/dish-media/dish-media.assembler.ts の thumbnailImageUrl）。
+#
+# その受け皿が «必ず埋まっている» と仮定したまま一度も数えていなかった。実測（dev / 2026-09-05、
+# scripts/db-checks/measure_delivered_but_invisible.py）:
+#
+#     usable 145,392 行のうち 3 段とも絵が無い行 = 3,119 行（2.15%）
+#     その 221 カテゴリは **1 つも JP ゲート（KPI が数える 134 カテゴリ）に無い**
+#     ＝ 落としても KPI（市区町村 × カテゴリのセルに異なり店 5 店）の分子は 0 組しか減らない
+#
+# `dish_categories.image_url` は `9_1_sync_dish_categories.py` が
+# `COALESCE(rep.image_url, '')`（`dish_category_images` の代表 1 枚）で作る。
+# つまり **この表に非空の行が無いカテゴリは、PostgreSQL でも必ず空文字になる**。
+# 配信の可否をここで判定できるのはそのためで、PG を見に行く必要はない。
+#
+# ⚠️ 判定をここに 1 本だけ置く。9_1（配る側）が個別に書き直すと、
+#    «絵が無いカテゴリへ配って真っ黒を作る» が黙って戻る。
+def category_with_image_cte_sql(images_table: str, *, cte_name: str = "category_with_image") -> str:
+    """絵を持つ料理カテゴリだけを列挙する CTE（列は ``dish_category_id`` 1 本）。"""
+    return (
+        f"{cte_name} AS (\n"
+        f"        SELECT DISTINCT dish_category_id\n"
+        f"        FROM `{images_table}`\n"
+        f"        WHERE image_url IS NOT NULL AND image_url != ''\n"
+        f"      )"
+    )
+
+
 def post_store_cte_sql(raw_table: str, *, latest_cte: str, runs_param: str | None = None) -> str:
     """«1 投稿 = 1 店» を確定する CTE 群（末尾の CTE 名は ``post_store``）を返す。
 
