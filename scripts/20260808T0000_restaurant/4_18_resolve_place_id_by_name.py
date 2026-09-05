@@ -387,7 +387,24 @@ NAME_SOURCES: tuple[tuple[str, Any], ...] = (
     ("quoted", lambda text: [store_name_from_text(text or "")] if store_name_from_text(text or "") else []),
     ("bracket", bracket_names_from_text),
 )
-DEFAULT_NAME_SOURCES = tuple(name for name, _ in NAME_SOURCES)
+# 既定で使う書き方。**「増えるから入れる」ではなく「実データの目視で決める」。**
+#
+# 2026-09-05 の実測（`1841_place_id_by_name/sample_name_sources.py`、
+# 未確定の投稿 243,454 件 / 新しく増えるキーから 120 件ずつ目視）:
+#
+# | 書き方  | 増える未問い合わせキー | 目視で «店名だった» 割合 | 採否 |
+# | ---     | ---: | ---: | --- |
+# | label   | 3,175 | 21/120 が誤り → 直して再測 98% | **入れる** |
+# | marker  | 1,151 | 約 40% が «休館日» «月曜休み» «住所» | 入れない |
+# | bracket | 16,843 | 約 46% が 地名・見出し・料理名 | 入れない |
+#
+# marker（🏠🍴📌）と bracket（【】）を入れないのは、**増える量ではなく確度**で決めた。
+# 📍 が «その行は店» を意味するのに対し、🏠 や 【】 は «その行は何かの見出し» でしかなく、
+# 住所・営業時間・地名・料理名が同じ形で書かれる。Text Search は 1 日 75,000 request の
+# 回数上限があるので、確度の低いキーを混ぜることは «その分だけ確かなキーを聞けない» と
+# 同義である。実装と `--name-sources` は残してあるので、枠が余ったときに測り直せる。
+DEFAULT_NAME_SOURCES = ("pin", "label", "quoted")
+ALL_NAME_SOURCES = tuple(name for name, _ in NAME_SOURCES)
 
 
 def iter_store_name_candidates(
@@ -464,18 +481,30 @@ def _is_probeable_name(name: str, *, labelled: bool = False) -> bool:
     return any(ch.isalpha() for ch in name)
 
 
+# 名前のうち地名が占める割合がこれ以上なら «地名の見出し» と見なす。
+# «名古屋市西区»（地名が 4/6）は落とし、«うどん 極 福岡市役所前店»（3/12）は残る値。
+_AREA_NAME_COVERAGE = 0.6
+
+
 def _is_area_name(name: str, pref: str, city: str, by_pair: dict, uniq: dict) -> bool:
     """その «名前» が地名そのものかを見る（店名ではないので Google へ投げない）。
 
-    【】は «【福岡市】» のように地名の見出しにも使われる。地名は Google で 1 件に
-    確定してしまう（市役所・駅）ので、**確定するぶんだけ危ない**。
-    完全一致だけを落とす（«うどん 極 福岡市役所前店» のような屋号を巻き込まないため）。
+    【】や見出しは «【福岡市】» «【名古屋市西区】» のように地名にも使われる。地名は
+    Google で 1 件に確定してしまう（市役所・駅）ので、**確定するぶんだけ危ない**。
+
+    完全一致だけでは «名古屋市西区» を取りこぼす（索引が持つのは «名古屋市» なので
+    文字列としては一致しない）。名前に占める地名の割合で見る。
     """
     flat = name.replace(" ", "")
+    if not flat:
+        return True
     if flat in (city, pref, pref + city) or flat in uniq:
         return True
     found = city_from_text(name, by_pair, uniq)
-    return found is not None and flat == (found[0] or "") + found[1]
+    if found is None:
+        return False
+    hit = (found[0] or "") + found[1]
+    return len(hit) / len(flat) >= _AREA_NAME_COVERAGE
 
 
 def build_name_keys(
@@ -572,7 +601,7 @@ def parse_args() -> argparse.Namespace:
                         "request 数はこの 2 倍。Text Search の 1 日上限 75,000 に合わせて刻む")
     p.add_argument("--source-run-id", default=None, help="対象を 1 つの収集 run に絞るとき")
     p.add_argument("--name-sources", default=",".join(DEFAULT_NAME_SOURCES),
-                   help="使う店名の書き方（" + ",".join(DEFAULT_NAME_SOURCES) + " から選ぶ）。"
+                   help="使う店名の書き方（" + ",".join(ALL_NAME_SOURCES) + " から選ぶ）。"
                         "取りこぼしを測るとき以外は既定のままでよい")
     p.add_argument("--execute", action="store_true", help="指定したときだけ Google API を叩く")
     p.add_argument("--dry-run", action="store_true", help="件数だけ数える（API も BigQuery 書き込みも無し）")
@@ -737,7 +766,7 @@ def main() -> None:
     by_pair, uniq, geo = load_city_index(args, pipeline)
     posts = load_posts(args, pipeline)
     sources = tuple(s.strip() for s in args.name_sources.split(",") if s.strip())
-    unknown = set(sources) - set(DEFAULT_NAME_SOURCES)
+    unknown = set(sources) - set(ALL_NAME_SOURCES)
     if unknown:
         raise SystemExit(f"--name-sources に知らない書き方があります: {sorted(unknown)}")
     keys, reasons = build_name_keys(posts, by_pair, uniq, geo["pref_of_unique_city"], sources)

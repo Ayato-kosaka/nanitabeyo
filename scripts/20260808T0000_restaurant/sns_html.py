@@ -269,6 +269,8 @@ def name_from_line_tail(after: str) -> str | None:
     if cutoff and cutoff.start() > 0:
         after = after[:cutoff.start()].strip()
     after = _RE_PIN_ALIAS_SEPARATOR.sub("", after).strip()
+    # ラベルの後ろが «【レミさんち】» のように括弧ごと残ることがある。括弧は屋号ではない。
+    after = after.strip("【】《》〈〉≪≫＜＞『』「」[]()（）").strip()
     normalized = normalize_match_text(after)
     if PIN_NAME_MIN_LENGTH <= len(normalized) <= PIN_NAME_MAX_LENGTH:
         return normalized
@@ -304,8 +306,14 @@ _STORE_LINE_MARKS = ("📌", "🏠", "🏡", "🏪", "🍴", "🍽")
 
 # «店名：» «【店名】» «🏠店名» のように **ラベルで店名だと書いてある**行。
 # 括弧・マーカーで飾られていても意味は同じなので、行頭の飾りをまとめて読み飛ばす。
+#
+# ⚠️ ラベルの直後が区切りであることを必ず確かめる（`(?=…)`）。これが無いと
+# «お店の instagram はありません» の «お店» をラベルと読んで «の instagram は
+# ありません» を店名として投げる。実測サンプル 120 件中 21 件がこの形だった。
 _RE_STORE_LABEL = re.compile(
-    r"^[\s\W_]{0,4}(?:店名|お店|店舗名|shop\s*name|shop|store)\s*[】》〉≫＞\]\)]?\s*[:：]?",
+    r"^[\s\W_]{0,4}(?:店名|お店|店舗名|shop\s*name|shop|store)"
+    r"(?=[\s:：・|｜】》〉≫＞』」\]\)]|$)"
+    r"\s*[】》〉≫＞』」\]\)]?\s*[:：]?",
     re.I)
 
 # 『』「」と同じ «括弧で囲まれた名前»。【】は媒体・個人どちらも店名に使う（実測 171,850 件）。

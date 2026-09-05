@@ -50,7 +50,7 @@ def main() -> None:
     per_source: dict[str, dict] = {}
     posts = list(resolver.load_posts(args, pipeline))
     print(f"読んだ投稿: {len(posts)} 件")
-    for source in resolver.DEFAULT_NAME_SOURCES:
+    for source in resolver.ALL_NAME_SOURCES:
         keys, reasons = resolver.build_name_keys(
             posts, by_pair, uniq, geo["pref_of_unique_city"], (source,))
         per_source[source] = {"keys": keys, "reasons": reasons}
@@ -58,7 +58,7 @@ def main() -> None:
     baseline = resolver.build_name_keys(
         posts, by_pair, uniq, geo["pref_of_unique_city"], ("pin", "quoted"))[0]
     every = resolver.build_name_keys(
-        posts, by_pair, uniq, geo["pref_of_unique_city"], resolver.DEFAULT_NAME_SOURCES)[0]
+        posts, by_pair, uniq, geo["pref_of_unique_city"], resolver.ALL_NAME_SOURCES)[0]
     base_ids = {(k.store_name, k.pref, k.city) for k in baseline}
 
     def undone(keys) -> list:
@@ -78,7 +78,7 @@ def main() -> None:
     print(f"増える未問い合わせキー:     {len(undone(every)) - len(undone(baseline))}")
 
     rng = random.Random(args.seed)
-    for source in resolver.DEFAULT_NAME_SOURCES:
+    for source in resolver.ALL_NAME_SOURCES:
         if source in ("pin", "quoted"):
             continue
         keys = per_source[source]["keys"]
