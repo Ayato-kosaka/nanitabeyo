@@ -25,7 +25,8 @@ import urllib.request
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url
+from common_sns import (PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_COVERAGE, TABLE_POST_RAW,
+                        TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url)
 
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
@@ -152,10 +153,31 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="business_discovery で投稿URLを収集する（ルート1/2）")
     p.add_argument("--run-id", default=None)
     p.add_argument("--account-run-id", default=None, help="読む sns_source_account の run_id（省略時は --run-id と同じ）")
+    # #1815 在庫の handle は «発見した run» ごとに分かれて入る（sitecrawl / fsq / catalog / 08-31 …）。
+    # 単一 run_id しか読めないと «別 run で発見した店» は永久に収集対象へ入らない。実測で
+    # 40,911 handle のうち 34,615（84.6%）が «一度も収集を試されていない» 状態だった。カンマ区切りで union する。
+    p.add_argument("--account-run-ids", default=None,
+                   help="読む sns_source_account の run_id をカンマ区切りで（--account-run-id より優先）")
+    # #1815 «既に投稿がある handle» の判定範囲。run = この出力 run だけ（従来）/ any = どの run でも
+    # 1 枚でも採れている handle は飛ばす。KPI は «異なり店» なので、同じ店を採り直しても 1 セルも増えない。
+    p.add_argument("--skip-collected-scope", default="run", choices=["run", "any"],
+                   help="収集済みと見なす範囲。any なら他 run で採れている handle も飛ばす（既定 run）")
+    # #1815 KPI 直結の並び替え。«あと 1〜3 店で 5 店に届くセル» を持つ市区町村の店から先に採る。
+    # 指定しなければ従来どおり handle の昇順（＝アルファベット順で頭から）。
+    p.add_argument("--priority-coverage-run-id", default=None,
+                   help="sns_coverage の run_id。指定すると «惜しいセル» の多い市区町村の店を優先する")
+    p.add_argument("--catalog-run-id", default=None,
+                   help="住所・座標を引く restaurant_catalog の run_id（省略時は最大の run）")
     p.add_argument("--account-type", default=None, choices=["influencer", "store_branch", "store_brand"],
                    help="対象を絞る（省略時は全部）")
     p.add_argument("--max-accounts", type=int, default=None, help="このバッチで処理するアカウント数上限")
-    p.add_argument("--limit-per-account", type=int, default=200, help="1 アカウントあたりの投稿数上限")
+    # #1815 既定を 200 → 10 へ。business_discovery は media.limit(N) を **1 コールで** 返すので
+    # N<=50 なら 1 アカウント = 1 コール、N=200 だと 4 コール（実測スループット 88/h 対 ~220/h）。
+    # 一方 KPI（市区町村×カテゴリの異なり店 5 店）に必要なのは «その店のカテゴリが 1 つ以上決まる»
+    # ことだけで、実測（柱1 の 2,104 店・投稿の 53.4% がカテゴリ付き）では
+    # 3 枚 81.7% / 5 枚 87.2% / **10 枚 90.3%** / 20 枚 93.4% / 全 94.5 枚 93.4%。
+    # 10 枚で満額の 96.7% を保ちつつ、API コールは 1/4、resolve の下流量は 1/9 になる。
+    p.add_argument("--limit-per-account", type=int, default=10, help="1 アカウントあたりの投稿数上限")
     # #1791 複数トークン並列化: business_discovery のレート制限は «アプリ(トークン)単位»。
     # シャードごとに別 Meta アプリのトークンを割り当てれば合算スループットが上がる。
     # 既定は従来どおり IG_TOKEN / IG_USER_ID。シャード2以降は --token-env IG_TOKEN_2 等で切替。
@@ -170,12 +192,24 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type, max_accounts,
-                   output_run_id: str | None = None, shard_count: int = 1, shard_index: int = 0):
+def _latest_catalog_run_id(pipeline: BigQueryPipeline) -> str:
+    for row in pipeline.execute(
+        f"SELECT run_id FROM `{pipeline.table('restaurant_catalog')}` "
+        f"GROUP BY run_id ORDER BY COUNT(*) DESC LIMIT 1"
+    ):
+        return row["run_id"]
+    raise RuntimeError("restaurant_catalog に run_id がありません。")
+
+
+def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, max_accounts,
+                   output_run_id: str | None = None, shard_count: int = 1, shard_index: int = 0,
+                   skip_collected_scope: str = "run",
+                   priority_coverage_run_id: str | None = None,
+                   catalog_run_id: str | None = None):
     from google.cloud import bigquery
-    where = "run_id = @rid AND provider = @prov"
+    where = "run_id IN UNNEST(@acc_rids) AND provider = @prov"
     params = [
-        bigquery.ScalarQueryParameter("rid", "STRING", account_run_id),
+        bigquery.ArrayQueryParameter("acc_rids", "STRING", list(account_run_ids)),
         bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
     ]
     if account_type:
@@ -187,23 +221,80 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_id: str, account_type
         where += " AND MOD(ABS(FARM_FINGERPRINT(handle)), @shard_count) = @shard_index"
         params.append(bigquery.ScalarQueryParameter("shard_count", "INT64", int(shard_count)))
         params.append(bigquery.ScalarQueryParameter("shard_index", "INT64", int(shard_index)))
-    # #1273 チャンク harvest 用: レート制限(~200/h)で全量が CI 1 ジョブ(6h)に収まらないので
-    # --max-accounts で分割する。ORDER BY handle LIMIT だけだと毎回同じ先頭 N を選び進まないため、
-    # **この出力 run に既に投稿がある handle は除外**して «まだ収集していない account» を進める。
-    # （投稿ゼロの account は毎回再試行され得るが、投稿を生む account は確実に前進する）。
-    skip_sql = ""
-    if output_run_id:
-        where += (" AND handle NOT IN ("
-                  f"SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` "
-                  "WHERE run_id = @out_rid AND account_id IS NOT NULL)")
-        params.append(bigquery.ScalarQueryParameter("out_rid", "STRING", output_run_id))
+
+    # #1273 チャンク harvest: レート制限で全量が CI 1 ジョブ(6h)に収まらないので --max-accounts で
+    # 分割する。毎回同じ先頭 N を選んで進まないのを防ぐため、**既に投稿がある handle は除外**する。
+    # #1815 scope=any にすると «他 run で採れている handle» も除外する（KPI は異なり店なので採り直しは無価値）。
+    if skip_collected_scope == "any":
+        collected_where = "account_id IS NOT NULL"
+    else:
+        collected_where = "run_id = @out_rid AND account_id IS NOT NULL"
+        params.append(bigquery.ScalarQueryParameter("out_rid", "STRING", output_run_id or ""))
+    where += (" AND handle NOT IN ("
+              f"SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` "
+              f"WHERE {collected_where})")
+
     limit_sql = f"LIMIT {int(max_accounts)}" if max_accounts else ""
-    sql = f"""
-      SELECT handle, account_type, discovery_seed_place_id
+    todo_sql = f"""
+      SELECT handle, ANY_VALUE(account_type) AS account_type,
+             ANY_VALUE(discovery_seed_place_id) AS discovery_seed_place_id
       FROM `{pipeline.table(TABLE_SOURCE_ACCOUNT)}`
       WHERE {where}
-      QUALIFY ROW_NUMBER() OVER (PARTITION BY handle ORDER BY discovered_at DESC) = 1
-      ORDER BY handle
+      GROUP BY handle
+    """
+
+    if not priority_coverage_run_id:
+        sql = f"WITH todo AS ({todo_sql}) SELECT * FROM todo ORDER BY handle {limit_sql}"
+        return list(pipeline.execute(sql, params))
+
+    # #1815 【設計】並びは «KPI にいちばん近いセルから». セルは (カテゴリ×市区町村) で、
+    # あと 1〜3 店で 5 店に届くセル（distinct_store_count 2..4）を市区町村ごとに重み付けして数え、
+    # その市区町村に居る店の handle を先に処理する。n=4 のセルは 1 店で埋まるので重い。
+    # 店の市区町村は 7_1 と同じ考え方で決める: 住所から取れないもの（実測 49%）は
+    # 最寄りの市区町村重心（20km 以内）を充てる。ここは «並び替え» なので厳密さより網羅を優先する。
+    catalog_run_id = catalog_run_id or _latest_catalog_run_id(pipeline)
+    params.append(bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id))
+    params.append(bigquery.ScalarQueryParameter("cov_rid", "STRING", priority_coverage_run_id))
+    sql = f"""
+      WITH todo AS ({todo_sql}),
+      cat AS (
+        SELECT google_place_id,
+               REGEXP_EXTRACT(address, r'({PREF_PATTERN})') AS pref,
+               REGEXP_EXTRACT(address, r'(?:{PREF_PATTERN})([^0-9０-９]{{2,8}}?[市区町村])') AS city,
+               latitude AS lat, longitude AS lng
+        FROM `{pipeline.table('restaurant_catalog')}`
+        WHERE run_id = @crid
+      ),
+      cityc AS (
+        SELECT pref, city, ST_GEOGPOINT(AVG(lng), AVG(lat)) AS g
+        FROM cat WHERE pref IS NOT NULL AND city IS NOT NULL AND lat IS NOT NULL
+        GROUP BY pref, city
+      ),
+      near AS (
+        SELECT region AS pref, city,
+               SUM(CASE distinct_store_count WHEN 4 THEN 3 WHEN 3 THEN 2 WHEN 2 THEN 1 ELSE 0 END) AS score
+        FROM `{pipeline.table(TABLE_COVERAGE)}`
+        WHERE run_id = @cov_rid AND source_route = 'all' AND region IS NOT NULL AND city IS NOT NULL
+        GROUP BY region, city
+      ),
+      t1 AS (
+        SELECT t.handle, t.account_type, t.discovery_seed_place_id, c.pref, c.city, c.lat, c.lng
+        FROM todo t LEFT JOIN cat c ON c.google_place_id = t.discovery_seed_place_id
+      ),
+      nn AS (
+        SELECT t.handle, cc.pref, cc.city
+        FROM t1 t JOIN cityc cc
+          ON t.city IS NULL AND t.lat IS NOT NULL
+         AND ST_DWITHIN(ST_GEOGPOINT(t.lng, t.lat), cc.g, 20000)
+        QUALIFY ROW_NUMBER() OVER (
+          PARTITION BY t.handle ORDER BY ST_DISTANCE(ST_GEOGPOINT(t.lng, t.lat), cc.g)) = 1
+      )
+      SELECT t.handle, t.account_type, t.discovery_seed_place_id
+      FROM t1 t
+      LEFT JOIN nn USING (handle)
+      LEFT JOIN near n
+        ON n.pref = COALESCE(t.pref, nn.pref) AND n.city = COALESCE(t.city, nn.city)
+      ORDER BY IFNULL(n.score, 0) DESC, t.handle
       {limit_sql}
     """
     return list(pipeline.execute(sql, params))
@@ -213,7 +304,9 @@ def main() -> None:
     configure_logging()
     args = parse_args()
     run_id = require_run_id(args.run_id)
-    account_run_id = args.account_run_id or run_id
+    account_run_ids = [x.strip() for x in (args.account_run_ids or "").split(",") if x.strip()] \
+        or [args.account_run_id or run_id]
+    account_run_id = ",".join(account_run_ids)
     token = os.getenv(args.token_env)
     if not token:
         raise RuntimeError(f"{args.token_env} 未設定（db-script-run.yml の secret）。")
@@ -223,9 +316,12 @@ def main() -> None:
     LOGGER.info("IG business account id = %s（token_env=%s）", ig, args.token_env)
 
     # output_run_id=run_id を渡すと «この run に既に投稿がある handle» を除外する（チャンク前進）。
-    accounts = _read_accounts(pipeline, account_run_id, args.account_type, args.max_accounts,
+    accounts = _read_accounts(pipeline, account_run_ids, args.account_type, args.max_accounts,
                               output_run_id=run_id,
-                              shard_count=args.shard_count, shard_index=args.shard_index)
+                              shard_count=args.shard_count, shard_index=args.shard_index,
+                              skip_collected_scope=args.skip_collected_scope,
+                              priority_coverage_run_id=args.priority_coverage_run_id,
+                              catalog_run_id=args.catalog_run_id)
     LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
     now = utc_now()
     now_iso = now.isoformat()
@@ -233,14 +329,19 @@ def main() -> None:
     with pipeline.step(run_id, "4_2_collect_account_posts", parameters={
         "account_run_id": account_run_id, "account_type": args.account_type,
         "max_accounts": args.max_accounts, "limit_per_account": args.limit_per_account,
+        "skip_collected_scope": args.skip_collected_scope,
+        "priority_coverage_run_id": args.priority_coverage_run_id,
+        "shard": f"{args.shard_index}/{args.shard_count}",
     }, repo_root=HERE.parents[1]) as result:
         # 収集は 413 アカウントを（レート制限のため）複数バッチに分けて回す。run_id 単位の
         # DELETE だと先行バッチを消してしまうので、**このバッチが担当するアカウント分だけ**を
         # 消してから入れ直す（バッチ冪等・他バッチ非破壊）。
         from google.cloud import bigquery
         handles = [acc["handle"] for acc in accounts]
-        if handles:
-            pipeline.execute(
+        # #1815 scope=any のときは «どの run でも投稿が無い handle» しか選んでいないので消す行が無い。
+        # 並列シャード中に無駄な DML を撃つと sns_post_raw の serialize 競合を増やすだけなので撃たない。
+        if handles and args.skip_collected_scope != "any":
+            pipeline.execute_dml_retrying(
                 f"DELETE FROM `{pipeline.table(TABLE_POST_RAW)}` "
                 f"WHERE run_id = @rid AND account_id IN UNNEST(@handles)",
                 [
