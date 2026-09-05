@@ -85,6 +85,13 @@ jobs:
       - name: ドキュメント管理規約を検査
         run: pnpm assert:doc-hygiene
 
+      # #843 「この鍵はどこに登録するのか」の表（docs/runbooks/secrets-and-env.md）が
+      # env.ts とずれていないことを検査する。2026-09-04 に Maps Embed のキーを
+      # GitHub のシークレットへ登録して «効かない» が沈黙した事故を、表の陳腐化で
+      # 再発させないため。env.ts と workflow を読むだけで依存ゼロ。
+      - name: 鍵と設定値の置き場の表を検査
+        run: pnpm assert:env-store-map
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
