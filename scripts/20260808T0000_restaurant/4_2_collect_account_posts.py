@@ -33,6 +33,9 @@ HERE = Path(__file__).resolve().parent
 GRAPH = "https://graph.facebook.com/v23.0"
 # #1273 4_19 が書く候補表（正本は 4_19_rank_account_candidates.py）。
 TABLE_ACCOUNT_CANDIDATE = "sns_account_candidate_v2"
+# BigQuery は ORDER BY の «裸の 0» を列番号と解釈して 400 を返す（2026-09-05 実測）。
+# 並べ替えを効かせないときはこの式を置く。
+_NO_ORDER = "CAST(0 AS INT64)"
 
 _ROUTE_BY_ACCOUNT_TYPE = {
     "influencer": "influencer",
@@ -418,7 +421,7 @@ def _read_candidates(pipeline: BigQueryPipeline, candidate_run_id: str, tiers, m
                  "LEFT JOIN tokmap t ON t.tok = c.region_token "
                  "LEFT JOIN prefscore p ON p.pref = t.pref")
     else:
-        pref_join, score_expr, joins = "", "0", ""
+        pref_join, score_expr, joins = "", _NO_ORDER, ""
 
     sql = f"""
       WITH cand AS (
@@ -513,7 +516,7 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
       GROUP BY handle
     """
 
-    layer_sql = _account_layer_sql("account_type", "handle") if layer_order else "0"
+    layer_sql = _account_layer_sql("account_type", "handle") if layer_order else _NO_ORDER
 
     if not priority_coverage_run_id:
         sql = (f"WITH todo AS ({todo_sql}) SELECT * FROM todo "
@@ -528,7 +531,7 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
     catalog_run_id = catalog_run_id or _latest_catalog_run_id(pipeline)
     params.append(bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id))
     params.append(bigquery.ScalarQueryParameter("cov_rid", "STRING", priority_coverage_run_id))
-    layer_sql_t = _account_layer_sql("t.account_type", "t.handle") if layer_order else "0"
+    layer_sql_t = _account_layer_sql("t.account_type", "t.handle") if layer_order else _NO_ORDER
     sql = f"""
       WITH todo AS ({todo_sql}),
       cat AS (
