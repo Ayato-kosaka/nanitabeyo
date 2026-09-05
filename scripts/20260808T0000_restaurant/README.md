@@ -79,7 +79,8 @@ SNS（#1273 Instagram）の料理媒体は、上の restaurants に **相乗り�
   │                                          ▼                       5_1  │
   │            sns_dish_media_catalog（google_place_id + QID）        9_1  │
   └──────────────────────────────────────────┼────────────────────────────┘
-                                             │ 9_2（dev 専用 / 既定 dry-run）
+                                             │ 9_2（品質ゲート 8_1 --sns-only が緑のときだけ
+                                             │     / dev 専用 / 既定 dry-run）
   ┌──────────────────────────────────────────▼────────────────────────────┐
   │ PostgreSQL                                                            │
   │  dishes                        … 無ければ作る。既存行は触らない        │
@@ -383,6 +384,32 @@ API keyはheaderで送り、query文字列・ID配列・HTTP status・採否だ�
 重複、参照切れ、既存PG欠損、座標/JSON不正、coverage直積欠損はERRORです。
 媒体の未充足率は初期投入を観測できるようWARNINGですが、最終充足判定では
 `--fail-on-warning`を付けます。9_* は最新ERRORが全件PASSしていなければ起動しません。
+
+SNS 経路（#1273 / `sns_dish_media_catalog` → 9_2）は **run_id が restaurant 側と別**なので、
+`--sns-run-id` で SNS の check を入れ、`--sns-only` で restaurant 側の check を外す
+（SNS の run_id には `restaurant_source_records` が 1 行も無く、restaurant の check は
+全て ERROR になる）。店の実在と国内判定は PostgreSQL ではなく `restaurant_catalog`
+（9_1 が PG へ配る表）と突き合わせるので、その run_id を明示する。
+
+```bash
+.venv/bin/python 8_1_validate_catalogs.py \
+  --run-id sns-catalog-2026-09-05 \
+  --sns-run-id sns-catalog-2026-09-05 \
+  --restaurant-catalog-run-id restaurant-2026-08-23 \
+  --sns-only
+```
+
+| check | 見るもの | 閾値 | 2026-09-05 実測 |
+| --- | --- | --- | --- |
+| `sns_dish_media_catalog_non_empty` | ERROR: catalog が空でない | ≥ 1 | 142,489 行 |
+| `sns_media_pg_unique_key_unique` | ERROR: PG の UNIQUE(provider, 投稿ID, dish) 相当の重複 | 0 | 0 |
+| `sns_media_required_fields_valid` | ERROR: canonical_url / provider / QID / row_hash が dmee の NOT NULL・CHECK に通る | 0 | 0 |
+| `sns_media_duplicate_post_rate` | ERROR: 同じ投稿が複数行に出ている割合（1 投稿 1 dish_media） | ≤ 3% | **1.409%**（2,008 行 / 1,388 投稿。全件が «同じ投稿に別の店»） |
+| `sns_media_store_inside_japan` | ERROR: restaurant_catalog に居るが日本の矩形の外 | 0 | 0 |
+| `sns_media_store_known_rate` | WARNING: restaurant_catalog に居ない店を指す割合（9_2 が落として続行する行） | ≤ 1% | 0.349%（497 行 / 84 店） |
+| `sns_media_jp_gate_category_rate` | WARNING: アプリの 134 カテゴリ外を指す割合（捨てずに配信する） | ≤ 30% | 18.702%（26,648 行 / 1,401 カテゴリ） |
+
+閾値の根拠は `8_1_validate_catalogs.py` の定数コメントにある（全て今日の実測が基準）。
 
 ### 9. PostgreSQL同期
 

@@ -57,6 +57,19 @@ DISH_MEDIA_ERROR_CHECKS = frozenset(
         "coverage_pair_unique",
     }
 )
+# #1273 SNS 経路（sns_dish_media_catalog → PostgreSQL(dev)）の ERROR check。
+# 上の 2 つと同じ役割で、9_2 がこの集合を required_checks に渡す。
+# 名前の正は 8_1_validate_catalogs.SNS_MEDIA_CHECKS（そちらは WARNING も含む）。
+SNS_DISH_MEDIA_ERROR_CHECKS = frozenset(
+    {
+        "jp_gate_category_count",
+        "sns_dish_media_catalog_non_empty",
+        "sns_media_pg_unique_key_unique",
+        "sns_media_required_fields_valid",
+        "sns_media_duplicate_post_rate",
+        "sns_media_store_inside_japan",
+    }
+)
 
 
 @dataclass
@@ -160,6 +173,12 @@ def assert_quality_gate_passed(
           UNION ALL
           SELECT MAX(calculated_at)
           FROM `{pipeline.dataset_ref}.dish_media_coverage_catalog` WHERE run_id = @run_id
+          UNION ALL
+          -- #1273 SNS 経路の catalog。ここに足さないと、SNS の run_id で 8_1 を回しても
+          -- catalog_built_at が NULL になり «品質ゲート後に catalog が更新されています»
+          -- で必ず落ちる（SNS の run_id には restaurant 側の catalog が 1 行も無い）。
+          SELECT MAX(built_at)
+          FROM `{pipeline.dataset_ref}.sns_dish_media_catalog` WHERE run_id = @run_id
         )
       )
       SELECT
