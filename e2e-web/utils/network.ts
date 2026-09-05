@@ -98,6 +98,31 @@ export async function stubEmptyDishMediaResults(context: BrowserContext): Promis
 }
 
 /**
+ * `POST /v1/maps/embed-token` を必ず失敗させ、**アプリ内地図を «鍵が無い» 状態へ落とす**。
+ *
+ * #843 / #1810 のアプリ内地図は、トークンが取れたら `router.push` でアプリ内へ遷移し、
+ * **取れなかったときだけ外部ブラウザ（別タブ）へ縮退する**
+ * （`app-expo/features/maps/hooks/useMapsEmbedModal.ts`）。
+ *
+ * 縮退側は «Cloud Run に鍵が入っていない環境» でしか自然には起きないので、
+ * e2e ではここで作る。実 API のキー設定に依存させない。
+ */
+export async function stubMapsEmbedTokenUnavailable(context: BrowserContext): Promise<void> {
+	await context.route("**/v1/maps/embed-token*", async (route: Route) => {
+		const origin = (await route.request().headerValue("origin")) ?? "*";
+		await route.fulfill({
+			status: 503,
+			contentType: "application/json",
+			headers: {
+				"access-control-allow-origin": origin,
+				"access-control-allow-credentials": "true",
+			},
+			body: JSON.stringify({ errorCode: "SERVICE_UNAVAILABLE", message: "stubbed: no maps embed key" }),
+		});
+	});
+}
+
+/**
  * `https://www.google.com/**` をスタブ HTML に差し替え、**実 Google への通信を遮断**する。
  *
  * 別タブが開いたことと、その URL さえ分かれば十分なので Google Maps 本体は読み込ませない。

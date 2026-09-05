@@ -2,59 +2,56 @@ import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
 import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { GoogleMapsFallbackDialog } from "../../pages/GoogleMapsFallbackDialog";
-import { stubEmptyDishMediaResults, stubGoogleMaps } from "../../utils/network";
+import { stubEmptyDishMediaResults, stubGoogleMaps, stubMapsEmbedTokenUnavailable } from "../../utils/network";
 
 /**
- * 🗺 Google マップ fallback は別タブで開く（#1121 の回帰テスト）
+ * 🗺 検索 0 件の退避導線（#1121 の回帰テスト / #843 #1810 で行き先が変わった）
  *
  * ## 背景 (#1121)
- * `/ja-JP/search/dish-categories` で検索結果が 0 件だったときに出る Google マップ fallback ダイアログの
+ * `/ja-JP/search/dish-categories` で検索結果が 0 件だったときの退避ダイアログの
  * 「Google マップで開く」を Web で押すと、`Linking.openURL()` が **同一タブ**を遷移させていた。
- * SPA から離脱するため、ブラウザバックで戻ってくると復元に失敗して壊れる、というのが報告された不具合。
- * PR #1151 で `app-expo/lib/openExternalUrl.ts` を導入し、Web では
- * `window.open(url, "_blank", "noopener,noreferrer")` で別タブに開くよう修正済み。
+ * SPA から離脱するため、ブラウザバックで戻ると復元に失敗して壊れる、というのが報告された不具合。
  *
- * ## このテストの検証内容
- * 1. 「Google マップで開く」で **新しいタブ**が開き、その URL が Google マップの検索 URL であること
- * 2. **元のページの URL が変わらない**こと（= SPA を離脱していない。#1121 の主症状）
+ * ## ⚠️ 2026-09-05: 行き先が «別タブの Google マップ» から «アプリ内地図» へ変わった
  *
- * 修正前は (1) で新しいタブが開かず `waitForEvent("page")` がタイムアウトし、
- * (2) も元タブの URL が www.google.com へ変わるため落ちる。
+ * #1810（#843 の①②）で退避先をアプリ内地図にした。`useMapsEmbedModal` は
+ * `POST /v1/maps/embed-token` が **成功したら `router.push` でアプリ内へ遷移**し、
+ * **失敗したときだけ** `openExternalUrl` で別タブを開く。
+ *
+ * この spec は «別タブが開く» を前提にしていたため、Cloud Run に鍵が入って
+ * embed-token が 201 を返し始めた **2026-09-04 以降ずっと落ちていた**
+ * （実測: run 33982422343 で `context.waitForEvent("page")` が 90 秒タイムアウト）。
+ * nightly が慢性的に赤かったので、**誰にも見えていなかった**。
+ *
+ * ⚠️ **直すのは spec の側である。** アプリ内地図が仕様（#1810 でオーナー確定）で、
+ *    «別タブで開く» はもう主経路ではない。
+ *
+ * ## それでも #1121 の保証は落とさない
+ *
+ * #1121 の主症状は «元のタブが SPA から離脱すること» であって «別タブかどうか» ではない。
+ * どちらの経路でも **元のタブが Google へ飛ばされない**ことを見る。
+ *
+ * | 経路 | 条件 | 期待 |
+ * | --- | --- | --- |
+ * | 主 | embed-token が取れる | **アプリ内地図の画面が開く。新しいタブは 1 枚も開かない** |
+ * | 縮退 | embed-token が 503 | **別タブで Google マップ。元タブの URL は変わらない**（#1121 のまま） |
  *
  * ## 外部への実通信はしない
- * 検証したいのは「別タブが開いたこと」と「その URL」だけなので、Google へのリクエストは
- * `stubGoogleMaps()` でスタブ HTML に差し替える。実 Google Maps へは 1 度も飛ばない。
+ * `stubGoogleMaps()` で Google へのリクエストはスタブ HTML に差し替える。
  *
  * ## 0 件状態の作り方
  * `stubEmptyDishMediaResults()` で dish-media 検索 / bulk-import だけを空配列に固定する
  * （トピック提案までは実 API のまま。dev DB への書き込みも発生しないので `@mutation` は不要）。
  */
-test.describe("Google マップ fallback (#1121)", () => {
+test.describe("検索 0 件の退避導線 (#1121 / #1810)", () => {
 	// トピック生成は実 API（AI）で実測 30 秒近くかかるため、dish-categories-flow.spec.ts と同様に延長する
 	test.setTimeout(90_000);
 
 	/** Google マップの検索 URL（app-expo/lib/googleMaps.ts の buildGoogleMapsSearchUrl 準拠） */
 	const GOOGLE_MAPS_SEARCH_URL = /^https:\/\/www\.google\.com\/maps\/search\//;
 
-	// ─ テストケース: 「Google マップで開く」は別タブで開き、元ページの URL を変えない ─
-	// 手順:
-	//   1. 検索結果が必ず 0 件になるようスタブし、Google への実通信も遮断する
-	//   2. 渋谷で検索 → トピック提案 → 先頭のトピックを選択
-	//   3. 0 件のため Google マップ fallback ダイアログが表示される
-	//   4. 「Google マップで開く」を押し、新しいタブ (page イベント) を捕まえる
-	//   5. 新しいタブの URL が Google マップの検索 URL であることを検証
-	//   6. 元のページの URL が押下前から変わっていないことを検証（#1121 の主症状）
-	//   7. 開いたタブがちょうど 1 枚であることを検証（同一タブ遷移でも二重起動でもない）
-	test("「Google マップで開く」は新しいタブで開き、元のページの URL は変わらない", async ({ appPage }) => {
-		const context = appPage.context();
-
-		await stubEmptyDishMediaResults(context);
-		await stubGoogleMaps(context);
-
-		// 「押したときだけ 1 枚開く」ことを見るため、テスト全体で開いたタブを数える
-		const openedPages: unknown[] = [];
-		context.on("page", (opened) => openedPages.push(opened));
-
+	/** 0 件の退避ダイアログが出るところまで進める（2 ケースで共通） */
+	async function openFallbackDialog(appPage: import("@playwright/test").Page) {
 		const searchPage = new SearchPage(appPage);
 		const dishCategoriesPage = new DishCategoriesPage(appPage);
 
@@ -64,14 +61,57 @@ test.describe("Google マップ fallback (#1121)", () => {
 		await dishCategoriesPage.expectLoaded();
 		await dishCategoriesPage.chooseFirstDishCategory();
 
-		// 0 件確定で fallback ダイアログが出る。#828 の実装は同時に result 画面を閉じるため、
+		// 0 件確定で退避ダイアログが出る。#828 の実装は同時に result 画面を閉じるため、
 		// このときの背後の画面はトピック画面に戻っている
 		const fallbackDialog = new GoogleMapsFallbackDialog(appPage);
 		await fallbackDialog.expectVisible();
+		return { dishCategoriesPage, fallbackDialog };
+	}
 
-		// 押下**前**の URL を控える。expo-router の静的書き出しではタブグループ内のネスト遷移で
-		// URL バーが表示内容と一致しないことがある（DishCategoriesPage のコメント参照）ため、
-		// 期待値を決め打ちせず「押す前後で変わらないこと」で判定する
+	// ─ 主経路: アプリ内地図が開く（新しいタブは開かない）─────────────────────
+	test("「Google マップで開く」でアプリ内地図が開き、新しいタブは開かない", async ({ appPage }) => {
+		const context = appPage.context();
+
+		await stubEmptyDishMediaResults(context);
+		await stubGoogleMaps(context);
+
+		// 「1 枚も開かない」ことを見るため、テスト全体で開いたタブを数える
+		const openedPages: unknown[] = [];
+		context.on("page", (opened) => openedPages.push(opened));
+
+		const { fallbackDialog } = await openFallbackDialog(appPage);
+
+		await fallbackDialog.confirmButton.click();
+
+		/*
+		アプリ内地図の本体（`features/maps/components/MapsEmbedModal.tsx`）が出るまで待つ。
+		⚠️ URL では判定しない。expo-router の静的書き出しではタブグループ内のネスト遷移で
+		   URL バーが表示内容と一致しないことがある（DishCategoriesPage のコメント参照）。
+		*/
+		await expect(appPage.getByTestId("maps-embed-modal-close")).toBeVisible({ timeout: 30_000 });
+
+		// ここが #1121 の保証。**元のタブが Google へ飛ばされていない**
+		expect(appPage.url()).not.toMatch(/^https:\/\/www\.google\.com\//);
+
+		// 主経路では別タブを開かない（外部ブラウザへ逃がすのは縮退のときだけ）
+		expect(openedPages).toHaveLength(0);
+	});
+
+	// ─ 縮退: 鍵が無いときは従来どおり別タブの Google マップ ────────────────────
+	test("embed-token が取れないときは、別タブで Google マップを開き元のページは変わらない", async ({ appPage }) => {
+		const context = appPage.context();
+
+		await stubEmptyDishMediaResults(context);
+		await stubGoogleMaps(context);
+		// 「Cloud Run に鍵が入っていない」状態を作る（実 API のキー設定に依存させない）
+		await stubMapsEmbedTokenUnavailable(context);
+
+		const openedPages: unknown[] = [];
+		context.on("page", (opened) => openedPages.push(opened));
+
+		const { dishCategoriesPage, fallbackDialog } = await openFallbackDialog(appPage);
+
+		// 押下**前**の URL を控える。期待値を決め打ちせず「押す前後で変わらないこと」で判定する
 		const urlBeforeClick = appPage.url();
 
 		const [newPage] = await Promise.all([context.waitForEvent("page"), fallbackDialog.confirmButton.click()]);
