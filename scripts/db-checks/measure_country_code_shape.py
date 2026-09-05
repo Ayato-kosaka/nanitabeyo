@@ -59,6 +59,8 @@ WITH comps AS (
   SELECT
     r.id,
     r.country_code AS stored_country_code,
+    r.address      AS stored_address,
+    r.subterritory_code AS stored_subterritory_code,
     (
       SELECT c
       FROM jsonb_array_elements(
@@ -75,6 +77,8 @@ derived AS (
   SELECT
     id,
     stored_country_code,
+    stored_address,
+    stored_subterritory_code,
     country_component,
     NULLIF(country_component ->> 'shortText', '') AS short_text,
     NULLIF(country_component ->> 'longText', '')  AS long_text,
@@ -99,10 +103,19 @@ SELECT
   )                                                               AS would_violate_check,
   -- 既に列へ入っている値のうち、形が壊れているもの（過去に入ってしまった分の確認）
   count(*) FILTER (
-    WHERE stored_country_code IS NOT NULL
+    WHERE NULLIF(stored_country_code, '') IS NOT NULL
       AND stored_country_code !~ '{COUNTRY_CODE_REGEX}'
   )                                                               AS stored_malformed,
-  count(*) FILTER (WHERE stored_country_code IS NOT NULL)          AS stored_present
+  -- ⚠️ **空文字と NULL を分けて数える。** 「NOT NULL だから埋まっている」は嘘になる。
+  --    パイプラインが '' を書いていると «100% 埋まっている» ように見えてしまう
+  count(*) FILTER (WHERE NULLIF(stored_country_code, '') IS NOT NULL)
+                                                                  AS stored_nonblank,
+  count(*) FILTER (WHERE stored_country_code = '')                AS stored_blank,
+  count(*) FILTER (WHERE stored_country_code IS NULL)             AS stored_null,
+  -- #1671 «62 万行は address / country_code が空» という前提そのものを確かめる
+  count(*) FILTER (WHERE NULLIF(stored_address, '') IS NOT NULL)   AS address_nonblank,
+  count(*) FILTER (WHERE NULLIF(stored_subterritory_code, '') IS NOT NULL)
+                                                                  AS subterritory_nonblank
 FROM derived
 """
 
@@ -167,7 +180,11 @@ def main() -> int:
                 falls_back,
                 would_violate,
                 stored_malformed,
-                stored_present,
+                stored_nonblank,
+                stored_blank,
+                stored_null,
+                address_nonblank,
+                subterritory_nonblank,
             ) = cur.fetchone()
 
             LOGGER.info("=" * 78)
@@ -186,8 +203,16 @@ def main() -> int:
                 "🔴 うち CHECK 違反になる形（= 保存で 500）", would_violate, total
             )
             LOGGER.info("")
-            _report("country_code が既に入っている行", stored_present, total)
+            LOGGER.info("## 列が実際に «埋まっている» のか（NULL と空文字を分ける）")
+            _report("country_code が入っている（空文字でない）", stored_nonblank, total)
+            _report("country_code が空文字 ''", stored_blank, total)
+            _report("country_code が NULL", stored_null, total)
             _report("🔴 うち形が壊れている行", stored_malformed, total)
+            LOGGER.info("")
+            _report("address が入っている（空文字でない）", address_nonblank, total)
+            _report(
+                "subterritory_code が入っている", subterritory_nonblank, total
+            )
 
             LOGGER.info("")
             LOGGER.info("## longText へ落ちるとき、実際に入ろうとする値")
