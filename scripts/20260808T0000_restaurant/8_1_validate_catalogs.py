@@ -17,6 +17,7 @@ from typing import Any
 
 from google.cloud import bigquery
 
+from common_sns import foreign_store_sql
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 
 LOGGER = logging.getLogger(__name__)
@@ -41,10 +42,10 @@ DISH_MEDIA_CHECKS = frozenset({
 # jp_gate_category_count をこの集合へ入れているのは、SNS だけを検証する
 # （--sns-only）ときにも «134 カテゴリの一覧そのものが壊れていないか» が要るからである。
 # sns_media_jp_gate_category_rate はその一覧を分母に使うので、一覧が壊れていれば率も嘘になる。
-# 取り込みから独立に «日本の店ではない» と言える文字の並び。
-# ハングル（音節・字母）とキリル文字。韓国の行の 95.0% が店名か住所に含む（2026-09-05 実測）。
-# f-string の中に直接書くと {} と \x がフォーマット指定子・エスケープと衝突するので定数に出す。
-FOREIGN_SCRIPT_REGEX = r"[\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{0400}-\x{04FF}]"
+# #1815 «その店は日本の店ではない» の判定は common_sns が唯一の正。ここへ写経しない。
+# 配信する側（9_1_build_sns_dish_media_catalog / 9_2 / 9_1_sync_restaurants）と
+# 検査する側（この file）が別々に判定を持つと、片方だけ直ったときに気づけない。
+FOREIGN_STORE_SQL = foreign_store_sql("rc")
 
 SNS_MEDIA_CHECKS = frozenset({
     "jp_gate_category_count",
@@ -114,10 +115,6 @@ SNS_OUTSIDE_JP_GATE_CATEGORY_RATE_MAX = 0.30
 # 9_2_sync_sns_dish_media.ALLOWED_PROVIDERS と一致していることは
 # test_8_1_sns_quality_gate.py が ast で読んで固定する（写経のずれを検知する）。
 DMEE_ALLOWED_PROVIDERS = ("instagram", "tiktok", "youtube", "x")
-
-# 日本の矩形。restaurant_overseas_only_from_existing_pg と同じ値を使う。
-JAPAN_BBOX = (20.0, 46.5, 122.0, 154.0)  # lat_min, lat_max, lng_min, lng_max
-
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -233,21 +230,22 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
         FROM `{dataset}.restaurant_catalog`
         WHERE run_id = @run_id
       ),
-      -- #843 «日本の外に居てよいのは、既に PG に在った店だけ» を守る。
+      -- #843/#1815 «日本の外に居てよいのは、既に PG に在った店だけ» を守る。
       --
-      -- ⚠️ #843 この check は **取り込みと同じ矩形を、取り込んだ結果へ当てている**。
-      -- 同じ述語で作ったものを同じ述語で検査しているので、構造上いつでも 0 になる。
-      -- 実際、韓国の店が 97,726 行入った run でも緑のままだった。座標が壊れた場合の
-      -- 保険としては残すが、«国が正しいか» は下の open_data_country_not_japan が見る。
+      -- ⚠️ **この check は 2026-09-05 まで «取り込みと同じ矩形を、取り込んだ結果へ»
+      -- 当てていた。** 同じ述語で選んだ行を同じ述語で検査するので構造上いつでも 0 になり、
+      -- 韓国の店が 100,063 行（16.13%）入った run でも observed_value=0.0 で PASS し続けた
+      -- （restaurant_quality_results の実測。2026-08-23 以降の全 run が 0.0）。
+      -- 判定を common_sns.foreign_store_sql（国・文字・**国外**領域の矩形の 3 本）へ
+      -- 置き換える。«日本を囲う矩形» は二度と使わない。
       overseas_not_existing AS (
         SELECT COUNT(*) AS invalid_count
-        FROM `{dataset}.restaurant_catalog` c
+        FROM `{dataset}.restaurant_catalog` rc
         JOIN `{dataset}.restaurant_seed_catalog` s
-          ON s.run_id = @run_id AND s.seed_id = c.seed_id
-        WHERE c.run_id = @run_id
+          ON s.run_id = @run_id AND s.seed_id = rc.seed_id
+        WHERE rc.run_id = @run_id
           AND s.existing_restaurant_id IS NULL
-          AND (c.latitude NOT BETWEEN 20.0 AND 46.5
-               OR c.longitude NOT BETWEEN 122.0 AND 154.0)
+          AND {FOREIGN_STORE_SQL}
       ),
       -- #843 «open data 由来の行は日本の店だけ» を、座標ではなく国で確かめる。
       --
@@ -255,6 +253,12 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
       -- 運ぶので、open data 由来（seed に existing_restaurant_id が無い）の行は
       -- 必ず country_code='JP' になる。ならない行が出たのは、取り込みの絞りか
       -- 国の引き回しのどちらかが壊れたときである。
+      --
+      -- ⚠️ #1815 水平展開の判定: **これも «取り込み条件を検査条件に流用» した形である。**
+      -- 取り込みが country='JP' で絞った結果に country='JP' を当てているので、
+      -- «国が間違っている行» は原理的に検出できない（配管が切れたことしか分からない）。
+      -- 消さずに残すのは «配管の検査» としては意味があるからで、**«国の検査» は
+      -- 上の overseas_not_existing が独立根拠で持つ**。この 2 つを混同しないこと。
       -- 既存PG由来の海外店は正当なので対象から外す（#843 と同じ扱い）。
       open_data_country_not_japan AS (
         SELECT COUNT(*) AS invalid_count
@@ -376,21 +380,13 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           -- ⚠️ **取り込みの矩形をここに使ってはいけない。** 1_3 は «緯度20.0–46.5 /
           -- 経度122.0–154.0» を日本と見なして取り込んでおり、その矩形は**韓国全土と
           -- ロシア沿海地方を含む**。同じ矩形を取り込み結果に当てると構造上いつでも緑になり、
-          -- 実際に韓国の店が入った run でも緑だった（配信カタログに 127 店 1,026 行が載り、
+          -- 実際に韓国の店が入った run でも緑だった（配信カタログに 126 店 1,025 行が載り、
           -- dev へ同期されるまで誰も気づかなかった）。
           --
-          -- 取り込みから**独立した**根拠で判定する:
-          --   (a) country_code が JP でない（1_3 が取り込んだ実測値。矩形からの推測ではない）
-          --   (b) 店名・住所にハングル or キリル文字がある（韓国の行の 95.0% が該当）
-          COUNTIF(
-            rc.google_place_id IS NOT NULL
-            AND (
-              COALESCE(rc.country_code, 'JP') != 'JP'
-              OR REGEXP_CONTAINS(
-                   CONCAT(COALESCE(rc.name, ''), ' ', COALESCE(rc.address, '')),
-                   r'{FOREIGN_SCRIPT_REGEX}')
-            )
-          ) AS overseas_rows
+          -- 判定は common_sns.foreign_store_sql が唯一の正（写経しない）。
+          -- 9_1_build_sns_dish_media_catalog も同じ判定で落としているので、ここが
+          -- 0 でないなら «古い 9_1 が組んだ catalog を検査している» ということである。
+          COUNTIF(rc.google_place_id IS NOT NULL AND {FOREIGN_STORE_SQL}) AS overseas_rows
         FROM `{dataset}.sns_dish_media_catalog` m
         LEFT JOIN `{dataset}.restaurant_catalog` rc
           ON rc.run_id = @restaurant_catalog_run_id
@@ -562,7 +558,6 @@ def query_parameters(args: argparse.Namespace, run_id: str) -> list[Any]:
     select_checks が結果集合から外す。
     """
 
-    lat_min, lat_max, lng_min, lng_max = JAPAN_BBOX
     return [
         bigquery.ScalarQueryParameter("run_id", "STRING", run_id),
         bigquery.ScalarQueryParameter(
@@ -588,10 +583,6 @@ def query_parameters(args: argparse.Namespace, run_id: str) -> list[Any]:
             "FLOAT64",
             SNS_OUTSIDE_JP_GATE_CATEGORY_RATE_MAX,
         ),
-        bigquery.ScalarQueryParameter("jp_lat_min", "FLOAT64", lat_min),
-        bigquery.ScalarQueryParameter("jp_lat_max", "FLOAT64", lat_max),
-        bigquery.ScalarQueryParameter("jp_lng_min", "FLOAT64", lng_min),
-        bigquery.ScalarQueryParameter("jp_lng_max", "FLOAT64", lng_max),
     ]
 
 

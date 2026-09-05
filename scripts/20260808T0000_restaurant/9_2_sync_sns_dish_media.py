@@ -19,6 +19,12 @@
   --schema は dev しか受け付けない（argparse の choices と実行時 assert の二重）。
   public（本番）への適用はリリース手順の一部であり、このスクリプトの守備範囲ではない。
 
+【日本以外の店は入れない】
+  #1815: `restaurant_catalog` の国・住所・座標と突き合わせ、日本以外の店の行は PG へ
+  渡さない。判定は `common_sns.foreign_store_sql`（写経しない）。9_1_build も同じ判定で
+  落としているので普通はここで 0 件になるが、**古い 9_1 が組んだ catalog を読んだとき**に
+  ここが最後の砦になる（127 店 / 1,026 行が dev へ入った事故は、ここに何も無かった）。
+
 【既定は dry-run】
   --execute を明示しない限り書き込まない。dry-run も本番と同じ DML を同じ transaction で
   流し、FK / UNIQUE / CHECK を全て通してから rollback する（9_1_sync_restaurants.py と同じ作法）。
@@ -35,7 +41,11 @@ from typing import Any
 
 from google.cloud import bigquery
 
-from common_sns import TABLE_DISH_MEDIA_CATALOG
+from common_sns import (
+    TABLE_DISH_MEDIA_CATALOG,
+    TABLE_RESTAURANT_CATALOG,
+    foreign_store_sql,
+)
 from normalization import build_dish_media_id
 from pg_sync_common import (
     SyncStats,
@@ -56,6 +66,9 @@ TARGET_TABLES = ("dishes", "dish_media", "dish_media_external_embeddings")
 # ⚠️ DB は 4 種を許すが、アプリが取り込むのは 3 種（X は対象外）。ここは «PG が受け取れるか»
 #    を見る側なので DB の CHECK に合わせる。狭めると «PG が受け取れる行を手前で捨てる»。
 ALLOWED_PROVIDERS = ("instagram", "tiktok", "youtube", "x")
+
+# #1815 «日本以外の店» の判定は common_sns が唯一の正。ここへ写経しない。
+FOREIGN_STORE_SQL = foreign_store_sql("rc")
 
 
 # =============================================================================
@@ -264,6 +277,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     # dev 固定。choices を 1 個にして argparse の段階で public を弾く（CLAUDE.md「DB を変更するときの規則」）
     parser.add_argument("--schema", choices=["dev"], default="dev")
+    # #1815 sns_dish_media_catalog は店の国を持たない。国を持つのは restaurant_catalog だけ。
+    parser.add_argument(
+        "--restaurant-catalog-run-id",
+        required=True,
+        help="日本以外の店を落とすために突き合わせる restaurant_catalog の run_id"
+        "（例: restaurant-2026-08-23）。SNS の run_id とは別なので必須にしている",
+    )
     parser.add_argument(
         "--execute",
         action="store_true",
@@ -336,13 +356,20 @@ def catalog_query(pipeline: BigQueryPipeline, run_ids: list[str] | None) -> str:
     畳んだ件数は呼び出し側がログへ出す。捨てた側は «別の候補があった» という事実なので、
     黙って消えないようにする。
     """
-    where = "WHERE run_id IN UNNEST(@run_ids)" if run_ids is not None else ""
+    # #1815 で restaurant_catalog を JOIN したので、run_id は別名つきで書く。
+    where = "m.run_id IN UNNEST(@run_ids)" if run_ids is not None else "TRUE"
     return f"""
       WITH src AS (
-        SELECT provider, external_content_id, canonical_url, google_place_id,
-               dish_category_id, thumbnail_url, row_hash, built_at
-        FROM `{pipeline.table(TABLE_DISH_MEDIA_CATALOG)}`
-        {where}
+        SELECT m.provider, m.external_content_id, m.canonical_url, m.google_place_id,
+               m.dish_category_id, m.thumbnail_url, m.row_hash, m.built_at
+        FROM `{pipeline.table(TABLE_DISH_MEDIA_CATALOG)}` m
+        -- #1815 日本以外の店は PG へ渡さない。catalog に居ない店はここで落とさない
+        -- （PG に居るかどうかで落とすのは PostgreSQL 側の SQL_COUNT_PLAN の仕事）。
+        LEFT JOIN `{pipeline.table(TABLE_RESTAURANT_CATALOG)}` rc
+          ON rc.run_id = @restaurant_catalog_run_id
+         AND rc.google_place_id = m.google_place_id
+        WHERE {where}
+          AND NOT IFNULL({FOREIGN_STORE_SQL}, FALSE)
       ),
       ranked AS (
         SELECT *, ROW_NUMBER() OVER (
@@ -366,16 +393,22 @@ def catalog_query(pipeline: BigQueryPipeline, run_ids: list[str] | None) -> str:
 
 def catalog_stats_query(pipeline: BigQueryPipeline, run_ids: list[str] | None) -> str:
     """catalog の «読む前» の内訳。何を落としたかを理由ごとに数える。"""
-    where = "WHERE run_id IN UNNEST(@run_ids)" if run_ids is not None else ""
+    where = "m.run_id IN UNNEST(@run_ids)" if run_ids is not None else "TRUE"
     return f"""
       WITH src AS (
-        SELECT provider, external_content_id, canonical_url, google_place_id,
-               dish_category_id
-        FROM `{pipeline.table(TABLE_DISH_MEDIA_CATALOG)}`
-        {where}
+        SELECT m.provider, m.external_content_id, m.canonical_url, m.google_place_id,
+               m.dish_category_id,
+               IFNULL({FOREIGN_STORE_SQL}, FALSE) AS store_is_foreign
+        FROM `{pipeline.table(TABLE_DISH_MEDIA_CATALOG)}` m
+        LEFT JOIN `{pipeline.table(TABLE_RESTAURANT_CATALOG)}` rc
+          ON rc.run_id = @restaurant_catalog_run_id
+         AND rc.google_place_id = m.google_place_id
+        WHERE {where}
       )
       SELECT
         COUNT(*) AS catalog_rows,
+        COUNTIF(store_is_foreign) AS foreign_store_rows,
+        COUNT(DISTINCT IF(store_is_foreign, google_place_id, NULL)) AS foreign_store_count,
         COUNT(DISTINCT CONCAT(provider, '|', external_content_id)) AS distinct_posts,
         COUNTIF(canonical_url IS NULL OR canonical_url = '') AS missing_canonical_url,
         COUNTIF(google_place_id IS NULL OR google_place_id = '') AS missing_place_id,
@@ -385,9 +418,14 @@ def catalog_stats_query(pipeline: BigQueryPipeline, run_ids: list[str] | None) -
     """
 
 
-def query_parameters(run_ids: list[str] | None) -> list[Any]:
+def query_parameters(
+    run_ids: list[str] | None, restaurant_catalog_run_id: str
+) -> list[Any]:
     params: list[Any] = [
-        bigquery.ArrayQueryParameter("providers", "STRING", list(ALLOWED_PROVIDERS))
+        bigquery.ArrayQueryParameter("providers", "STRING", list(ALLOWED_PROVIDERS)),
+        bigquery.ScalarQueryParameter(
+            "restaurant_catalog_run_id", "STRING", restaurant_catalog_run_id
+        ),
     ]
     if run_ids is not None:
         params.append(bigquery.ArrayQueryParameter("run_ids", "STRING", run_ids))
@@ -395,7 +433,10 @@ def query_parameters(run_ids: list[str] | None) -> list[Any]:
 
 
 def export_catalog(
-    pipeline: BigQueryPipeline, run_ids: list[str] | None, path: Path
+    pipeline: BigQueryPipeline,
+    run_ids: list[str] | None,
+    path: Path,
+    restaurant_catalog_run_id: str,
 ) -> tuple[int, int]:
     """catalog を CSV へ stream する。戻り値は (書いた行数, KPI 134 カテゴリ外の行数)。
 
@@ -406,7 +447,9 @@ def export_catalog(
 
     kpi_qids, _ = _kpi_tables()
 
-    job_config = bigquery.QueryJobConfig(query_parameters=query_parameters(run_ids))
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=query_parameters(run_ids, restaurant_catalog_run_id)
+    )
     rows = pipeline.client.query(
         catalog_query(pipeline, run_ids),
         job_config=job_config,
@@ -535,7 +578,7 @@ def main() -> None:
             iter(
                 pipeline.execute(
                     catalog_stats_query(pipeline, catalog_run_ids),
-                    query_parameters(catalog_run_ids),
+                    query_parameters(catalog_run_ids, args.restaurant_catalog_run_id),
                 )
             )
         )
@@ -554,7 +597,17 @@ def main() -> None:
             if value:
                 LOGGER.warning("BigQuery 側で落とす: %s = %d 行", label, value)
 
-        staged, outside_kpi = export_catalog(pipeline, catalog_run_ids, catalog_path)
+        if bq_stats.foreign_store_rows:
+            LOGGER.warning(
+                "BigQuery 側で落とす: 日本以外の店 = %d 行 / %d 店。"
+                "9_1_build_sns_dish_media_catalog が同じ判定で落としているはずなので、"
+                "ここで 0 でないなら古い catalog を読んでいる（#1815）",
+                bq_stats.foreign_store_rows,
+                bq_stats.foreign_store_count,
+            )
+        staged, outside_kpi = export_catalog(
+            pipeline, catalog_run_ids, catalog_path, args.restaurant_catalog_run_id
+        )
         collapsed = bq_stats.catalog_rows - staged
         LOGGER.info("PG へ渡す候補: %d 行（1 投稿 1 行に畳んだ結果）", staged)
         if collapsed > 0:

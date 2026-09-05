@@ -241,6 +241,12 @@ class SyncSideContractTest(unittest.TestCase):
 
 
 
+def _strip_sql_comments(sql: str) -> str:
+    """`--` 行コメントを落とす。«矩形の値が式に現れないこと» を、事故の説明を書いた
+    コメント（そこには当然その値が出てくる）と取り違えないため。"""
+    return "\n".join(line.split("--")[0] for line in sql.splitlines())
+
+
 class OverseasCheckIsIndependentTest(unittest.TestCase):
     """#1815 «取り込みと同じ矩形で取り込み結果を検査する» を二度としないための固定。
 
@@ -250,17 +256,20 @@ class OverseasCheckIsIndependentTest(unittest.TestCase):
     """
 
     def test_check_does_not_use_the_ingest_bounding_box(self) -> None:
-        sql = _sql()
-        state = sql.split("sns_media_store_state AS (")[1].split("AS overseas_rows")[0]
-        for param in ("@jp_lat_min", "@jp_lat_max", "@jp_lng_min", "@jp_lng_max"):
-            self.assertNotIn(param, state,
+        # 形そのものを止める固定は test_ingest_predicate_not_reused.py が持つ。
+        # ここは «この check の中に取り込み矩形の値が現れない» だけを見る。
+        state = _strip_sql_comments(
+            _sql().split("sns_media_store_state AS (")[1].split("AS overseas_rows")[0]
+        )
+        for literal in ("20.0", "46.5", "122.0", "154.0"):
+            self.assertNotIn(literal, state,
                              "取り込みの矩形を判定に使うと構造上いつでも緑になる")
 
     def test_check_uses_country_and_script_evidence(self) -> None:
         sql = _sql()
         state = sql.split("sns_media_store_state AS (")[1].split("AS overseas_rows")[0]
         self.assertIn("country_code", state)
-        self.assertIn("AC00", state)  # ハングル音節。取り込みから独立した根拠
+        self.assertIn("가-힣", state)  # ハングル音節。取り込みから独立した根拠
 
 if __name__ == "__main__":
     unittest.main()

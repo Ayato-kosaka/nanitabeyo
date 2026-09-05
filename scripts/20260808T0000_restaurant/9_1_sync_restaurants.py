@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""BigQuery restaurant_catalogをPostgreSQL restaurantsへ安全に同期する。"""
+"""BigQuery restaurant_catalogをPostgreSQL restaurantsへ安全に同期する。
+
+#1815: **日本以外の店は配信しない。** 判定は `common_sns.foreign_store_sql`（写経しない）。
+8_1 の `restaurant_overseas_only_from_existing_pg` は «取り込みの矩形を取り込み結果へ当てる»
+という作りだったため構造上いつでも緑で、韓国の店 100,063 行（16.13%）を止められなかった。
+ここが «日本以外の店を restaurants へ作らない» を実際に守る場所である。
+既存 PG 由来の海外店（ユーザーが旅行先で登録したもの等）は従来どおり通す。
+"""
 
 from __future__ import annotations
 
@@ -22,9 +29,13 @@ from pg_sync_common import (
     new_sync_id,
     write_sync_log,
 )
+from common_sns import foreign_store_sql
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 
 LOGGER = logging.getLogger(__name__)
+
+# #1815 «日本以外の店» の判定は common_sns が唯一の正。ここへ写経しない。
+FOREIGN_STORE_SQL = foreign_store_sql("rc")
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,18 +60,27 @@ def csv_value(value: Any) -> Any:
     return value
 
 
+# #1815 «配信しない行» の条件。既存 PG 由来（seed に existing_restaurant_id がある）の
+# 海外店は従来どおり通す。ユーザーが旅行先で登録した店を月次バッチが締め出さないため
+# （8_1 の restaurant_overseas_only_from_existing_pg が守ろうとしていた規則と同じ）。
+DROP_FOREIGN_SQL = f"(s.existing_restaurant_id IS NULL AND {FOREIGN_STORE_SQL})"
+
+
 def export_catalog(pipeline: BigQueryPipeline, run_id: str, path: Path) -> int:
     query = f"""
       SELECT
-        seed_id, google_place_id, match_method,
-        name, name_language_code,
-        latitude, longitude, image_url, image_path, address_components_json,
-        plus_code_json, address, country_code,
-        phone, website, TO_JSON_STRING(social_urls) AS social_urls_json,
-        TO_JSON_STRING(source_names) AS source_names_json, row_hash
-      FROM `{pipeline.dataset_ref}.restaurant_catalog`
-      WHERE run_id = @run_id
-      ORDER BY google_place_id
+        rc.seed_id, rc.google_place_id, rc.match_method,
+        rc.name, rc.name_language_code,
+        rc.latitude, rc.longitude, rc.image_url, rc.image_path, rc.address_components_json,
+        rc.plus_code_json, rc.address, rc.country_code,
+        rc.phone, rc.website, TO_JSON_STRING(rc.social_urls) AS social_urls_json,
+        TO_JSON_STRING(rc.source_names) AS source_names_json, rc.row_hash
+      FROM `{pipeline.dataset_ref}.restaurant_catalog` rc
+      LEFT JOIN `{pipeline.dataset_ref}.restaurant_seed_catalog` s
+        ON s.run_id = @run_id AND s.seed_id = rc.seed_id
+      WHERE rc.run_id = @run_id
+        AND NOT {DROP_FOREIGN_SQL}
+      ORDER BY rc.google_place_id
     """
     config = bigquery.QueryJobConfig(
         query_parameters=[bigquery.ScalarQueryParameter("run_id", "STRING", run_id)]
@@ -75,6 +95,28 @@ def export_catalog(pipeline: BigQueryPipeline, run_id: str, path: Path) -> int:
             writer.writerow(csv_value(value) for value in row.values())
             count += 1
     return count
+
+
+def count_dropped_foreign(pipeline: BigQueryPipeline, run_id: str) -> tuple[int, int]:
+    """配信しなかった «日本以外の店» を (行数, catalog 全体の行数) で返す。
+
+    落とした行が «黙って消える» のを防ぐ。数はログと run のパラメータに残す。
+    """
+    query = f"""
+      SELECT COUNTIF({DROP_FOREIGN_SQL}) AS dropped, COUNT(*) AS total
+      FROM `{pipeline.dataset_ref}.restaurant_catalog` rc
+      LEFT JOIN `{pipeline.dataset_ref}.restaurant_seed_catalog` s
+        ON s.run_id = @run_id AND s.seed_id = rc.seed_id
+      WHERE rc.run_id = @run_id
+    """
+    row = next(
+        iter(
+            pipeline.execute(
+                query, [bigquery.ScalarQueryParameter("run_id", "STRING", run_id)]
+            )
+        )
+    )
+    return int(row["dropped"] or 0), int(row["total"] or 0)
 
 
 def load_staging(connection: Any, path: Path) -> None:
@@ -434,6 +476,15 @@ def main() -> None:
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as stream:
         staging_path = Path(stream.name)
     try:
+        dropped_foreign, catalog_total = count_dropped_foreign(pipeline, run_id)
+        if dropped_foreign:
+            LOGGER.warning(
+                "#1815 日本以外の店 %d 行 / catalog %d 行（%.2f%%）を配信しません。"
+                "catalog 自体は直っていないので、1_3/3_4 を流し直すまでこの数は残ります",
+                dropped_foreign,
+                catalog_total,
+                100.0 * dropped_foreign / catalog_total if catalog_total else 0.0,
+            )
         row_count = export_catalog(pipeline, run_id, staging_path)
         if row_count == 0:
             raise RuntimeError("restaurant_catalogが0件です")
