@@ -14,10 +14,48 @@
 import {
 	buildCurrencyChoices,
 	getCurrencyCodeFromAddressComponents,
+	getCurrencyCodeFromRestaurant,
 	getMinorUnitDigits,
 	resolveCurrencyCodeFromLocale,
 	toMinorAmountInteger,
 } from "./googlePlaces";
+
+describe("#1780 店から通貨を引くときの出所", () => {
+	// dev 実測: 621,974 店のうち address_components に country があるのは 2,476 店
+	// （0.40%）だけ。一方 country_code 列は 621,964 店（100.00%）が埋まっている。
+	// 列を見なければ、ほぼ全ての店でユーザーに通貨を選ばせることになる。
+	it("address_components が空でも、country_code 列から通貨が決まる", () => {
+		expect(
+			getCurrencyCodeFromRestaurant({ address_components: [], country_code: "JP" }),
+		).toBe("JPY");
+	});
+
+	it("address_components が無くても（列だけでも）決まる", () => {
+		expect(getCurrencyCodeFromRestaurant({ country_code: "US" })).toBe("USD");
+	});
+
+	it("⚠️ address_components を優先する（列で上書きしない）", () => {
+		const addressComponents = [{ shortText: "US", longText: "United States", types: ["country"] }];
+
+		expect(
+			getCurrencyCodeFromRestaurant({
+				address_components: addressComponents,
+				country_code: "JP",
+			}),
+		).toBe("USD");
+	});
+
+	it("⚠️ どちらからも引けなければ null（黙って既定値へ倒さない）", () => {
+		// ここで 'JPY' などを返すと、円 0 桁 / ドル 2 桁の取り違えで
+		// 「1000円」が 100000 として送信される（実際に起きた）
+		expect(getCurrencyCodeFromRestaurant({ address_components: [], country_code: null })).toBeNull();
+		expect(getCurrencyCodeFromRestaurant({})).toBeNull();
+	});
+
+	it("知らない国コードなら null", () => {
+		expect(getCurrencyCodeFromRestaurant({ country_code: "ZZ" })).toBeNull();
+	});
+});
 
 describe("通貨が未確定のときの金額変換", () => {
 	it.each([null, undefined, ""])("通貨コードが %p なら例外を投げる", (code) => {
