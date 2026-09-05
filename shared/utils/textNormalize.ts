@@ -580,14 +580,90 @@ function outerEdgeKind(text: string, index: number, step: number): EdgeKind {
 	return edgeKindOfCodePoint(code);
 }
 
-function edgeAllows(inner: EdgeKind, outer: EdgeKind): boolean {
+/**
+ * 左隣のカタカナを許してよい `surface` の最小長（#1273）。
+ *
+ * 2 文字のカタカナ（`パイ` `ハム` `カツ`…）まで緩めると、`スパイ`→`パイ`、`エビフライ`→`ライ` の
+ * ような «たまたま末尾が一致しただけ» が通る。実測でも 2 文字ちょうどのカタカナ表記は辞書に
+ * 62 件あり（`モテ` `ラク` `ソト` 等、日本語の普通の語と衝突するものを含む）、緩める価値が無い。
+ */
+export const KATAKANA_HEAD_RELAX_MIN_LENGTH = 3;
+
+/**
+ * 左隣のカタカナを許すために、**直前のカタカナの並び**に要求する最小長（#1273）。
+ *
+ * ## なぜ «直前が何文字か» で決めるのか（ストップリストを持たないための鍵）
+ *
+ * 複合語なら左に付くのは**語**（`フルーツ`タルト / `クリスマス`ケーキ / `スープ`カレー /
+ * `ミスター`ドーナツ / `ボドゲ`カフェ）だが、誤爆はどれも**語を途中で切っている**
+ * （`アド|バイス` / `アラ|フォー` / `タン|ブラー` / `ス|クランブル` / `ガス|コンロ` /
+ * `マイ|クラ` / `ア|ドリア` / `テー|ブル` / `ヘル|メット` / `バー|ジョン`）。
+ * 切れ端は 1〜2 文字にしかならないので、**直前の並びが 3 文字以上あることを要求する**だけで
+ * 語リストを持たずに分けられる。
+ *
+ * 実測（skipped_no_category 148,480 投稿）: 直前の長さを見ずに緩めると +3,810 投稿だが
+ * 上記の誤爆が混ざる。3 文字以上を要求すると +3,460 投稿（91% を維持）で、
+ * 1/20 標本に現れた誤爆は**全て消えた**。代わりに `ミニ`クレープ `ヒレ`ステーキ のような
+ * 2 文字の修飾語は落ちる（取りこぼしの側に倒す）。
+ */
+export const KATAKANA_MODIFIER_MIN_LENGTH = 3;
+
+/**
+ * 左隣のカタカナを**許さない**カタカナ表記（#1273）。
+ * `KATAKANA_MODIFIER_MIN_LENGTH` で落ちきらなかったものだけを、**実測の件数を根拠に**置く。
+ * **思い付きで足さないこと。** 増えるようなら、それは規則の側を見直す合図である。
+ *
+ * - `フォー`（ベトナム料理）: 直前 3 文字以上の条件を足しても 47 投稿が残り、その中身は
+ *   `ツーアンドフォー`(15) `トゥエンティフォー`(9+4) `コーチャンフォー`(5) `サーティーフォー`(3) …
+ *   と**数字・屋号ばかりで、本物は 2 投稿だけ**（`ベトナムフォー` `トムヤムクンフォー`）。
+ *   厳格な境界のままなら誤爆はゼロ（`フォー` が付いた 156 投稿のうち 146 が単独出現）。
+ */
+export const KATAKANA_HEAD_RELAX_DENYLIST: ReadonlySet<string> = new Set(["フォー"]);
+
+/** `text` の `index` の直前に続いているカタカナ（`ー` を含む）の文字数 */
+function precedingKatakanaRunLength(text: string, index: number): number {
+	let count = 0;
+	for (let i = index - 1; i >= 0; i -= 1) {
+		const code = text.charCodeAt(i);
+		if (!isKatakanaCodePoint(code) && !isProlongedCodePoint(code)) break;
+		count += 1;
+	}
+	return count;
+}
+
+/**
+ * @param side `surface` のどちら側の端を見ているか。**カタカナだけ左右で規則が違う**（下の表を参照）
+ * @param surface 一致した辞書側の表記。カタカナの左側の緩和が長さに依存するため受け取る
+ * @param modifierLength `side === "leading"` のとき、直前に続いているカタカナの並びの長さ
+ */
+function edgeAllows(
+	inner: EdgeKind,
+	outer: EdgeKind,
+	side: "leading" | "trailing",
+	surface: string,
+	modifierLength: number,
+): boolean {
 	switch (inner) {
 		// ラテン文字は語の途中に埋もれてはいけない（`ice` が `nice` に当たらないように）
 		case "latin":
 			return outer !== "latin";
-		// カタカナ語はカタカナの並びとして自己完結する（`パイ` が `パイナップル` に当たらないように）
+		/*
+		#1273 カタカナは **左右で規則を変える**。日本語のカタカナ複合語は主要部が右端に来るので、
+		`バスクチーズケーキ` は `チーズケーキ` の一種、`スープカレー` は `カレー` の一種である。
+		つまり «左に何か付いている» のは上位語の具体化であって、意味は変わらない。
+		逆に «右に何か付いている» と別語になる（`フォーク` は `フォー` ではない / `パイナップル`
+		は `パイ` ではない）。両側を禁じていた結果、実測で skipped_no_category のうち
+		«KPI カテゴリ名がキャプションに出ているのに候補ゼロ» の 82% がここで落ちていた。
+		左を緩める条件は `KATAKANA_MODIFIER_MIN_LENGTH` の doc を参照。
+		*/
 		case "katakana":
-			return outer !== "katakana";
+			if (outer !== "katakana") return true;
+			return (
+				side === "leading" &&
+				surface.length >= KATAKANA_HEAD_RELAX_MIN_LENGTH &&
+				modifierLength >= KATAKANA_MODIFIER_MIN_LENGTH &&
+				!KATAKANA_HEAD_RELAX_DENYLIST.has(surface)
+			);
 		// ひらがなには境界を課さない。日本語の助詞はひらがなで、
 		// 課すと「おいしいうどん」の `うどん` すら弾いてしまうため（取りこぼしの害の方が大きい）
 		case "hiragana":
@@ -611,14 +687,18 @@ function edgeAllows(inner: EdgeKind, outer: EdgeKind): boolean {
  * | surface の端 | 隣がこれなら不一致にする | 例 |
  * | --- | --- | --- |
  * | ラテン文字・数字・`_` | ラテン文字・数字・`_` | `ice` ⊄ `nice` |
- * | カタカナ（`ー` は内側で解決） | カタカナ（`ー` は外側で解決） | `パイ` ⊄ `パイナップル` / `カレー` ⊄ `カレーライス` |
+ * | カタカナ（末尾側。`ー` は内側で解決） | カタカナ（`ー` は外側で解決） | `フォー` ⊄ `フォーク` / `パイ` ⊄ `パイナップル` |
+ * | カタカナ（先頭側。3 文字以上 かつ 直前のカタカナが 3 文字以上） | 適用しない | `チーズケーキ` ⊂ `バスクチーズケーキ` |
+ * | カタカナ（先頭側。それ以外） | カタカナ | `パイ` ⊄ `スパイ` / `フォー` ⊄ `アラフォー` |
  * | ひらがな | 適用しない | `うどん` ⊂ `おいしいうどん` を通すため |
  * | 漢字 | 適用しない | `味噌ラーメン` ⊂ `絶品味噌ラーメン` を通すため |
  * | その他の文字体系 | あらゆる語構成文字 | キリル・ハングル等は空白で区切られる前提 |
  */
 export function isWordBoundaryMatch(text: string, start: number, end: number, surface: string): boolean {
-	if (!edgeAllows(leadingEdgeKind(surface), outerEdgeKind(text, start, -1))) return false;
-	if (!edgeAllows(trailingEdgeKind(surface), outerEdgeKind(text, end, 1))) return false;
+	const modifierLength = precedingKatakanaRunLength(text, start);
+	if (!edgeAllows(leadingEdgeKind(surface), outerEdgeKind(text, start, -1), "leading", surface, modifierLength))
+		return false;
+	if (!edgeAllows(trailingEdgeKind(surface), outerEdgeKind(text, end, 1), "trailing", surface, 0)) return false;
 	return true;
 }
 

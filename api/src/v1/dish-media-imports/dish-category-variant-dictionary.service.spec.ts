@@ -186,4 +186,25 @@ describe('buildJapaneseLabelVariants', () => {
     expect(buildJapaneseLabelVariants(null)).toEqual([]);
     expect(buildJapaneseLabelVariants(undefined)).toEqual([]);
   });
+
+  /*
+    #1273 «カタカナ語 ＋ 業態語» の複合。カタカナの語境界は右へ伸びない（`フォー` ⊄ `フォーク`）
+    ので、`イタリアンレストラン` は表記として持たない限り `イタリアン` に当たらない。
+    実測で skipped_no_category のうち 790 投稿がこの形だけを理由に候補ゼロだった。
+  */
+  it('業態語が付いた複合表記も足す（右境界では届かないため）', () => {
+    const surfaces = buildJapaneseLabelVariants([
+      { id: 'Q1', labels: { ja: 'イタリアン' } },
+      { id: 'Q2', labels: { ja: 'アフタヌーン' } },
+    ]).map((e) => e.surfaceForm);
+
+    expect(surfaces).toEqual(
+      expect.arrayContaining([
+        'イタリアン',
+        'イタリアンレストラン',
+        'イタリアンバル',
+        'アフタヌーンティー',
+      ]),
+    );
+  });
 });

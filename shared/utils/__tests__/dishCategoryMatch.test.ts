@@ -46,6 +46,10 @@ const DICT: DishCategoryVariantEntry[] = [
 	{ dishCategoryId: "steak", surfaceForm: "steak", source: "canonical-label-en" },
 	{ dishCategoryId: "hot-dog", surfaceForm: "hot dog", source: "canonical-label-en" },
 	{ dishCategoryId: "pho", surfaceForm: "pho", source: "canonical-label-en" },
+	// #1273 カタカナ複合語の «主要部» を確かめるための組（`バスクチーズケーキ` / `スープカレー`）
+	{ dishCategoryId: "cake", surfaceForm: "ケーキ", source: "wikidata-label" },
+	{ dishCategoryId: "cheesecake", surfaceForm: "チーズケーキ", source: "wikidata-label" },
+	{ dishCategoryId: "pho", surfaceForm: "フォー", source: "wikidata-label" },
 
 	// ここから下が「実データに実在する誤爆源」。独立レビュー M-4 の実測に基づく
 	{ dishCategoryId: "pie", surfaceForm: "パイ", source: "wikidata-label" },
@@ -93,6 +97,29 @@ test("誤爆させない: 「パイナップル」の `パイ` をパイとし�
 	const result = run(caption("パイナップルジュースが最高だった件"));
 	assert.deepEqual(ids(result), []);
 	assert.equal(result.shouldPrefill, false);
+});
+
+// ---------------------------------------------------------------------------
+// #1273 カタカナ複合語の «主要部»
+//
+// 実測: skipped_no_category のうち «KPI カテゴリ名がキャプションに literal で出ているのに
+// 候補ゼロ» だった 9,917 投稿の 82% が、カタカナの左隣を禁じていたせいで落ちていた。
+// ---------------------------------------------------------------------------
+
+test("取りこぼさない: カタカナ複合語の «後ろ» に立つ料理名を拾う（#1273）", () => {
+	assert.deepEqual(ids(run(caption("スープカレーを食べた"))), ["curry"]);
+	assert.deepEqual(ids(run(caption("クリスマスケーキを予約した"))), ["cake"]);
+});
+
+test("取りこぼしても取り違えない: より具体的（長い）カテゴリが 1 位（#1273）", () => {
+	// `バスクチーズケーキ` は `ケーキ` にも当たるが、順位は長い表記の方が上でなければならない
+	assert.deepEqual(ids(run(caption("バスクチーズケーキが名物"))), ["cheesecake", "cake"]);
+});
+
+test("誤爆させない: `アラフォー` は語を途中で切っているので `フォー` にしない（#1273）", () => {
+	assert.deepEqual(ids(run(caption("アラフォー女子会でした"))), []);
+	// 本来の言及は落とさない
+	assert.deepEqual(ids(run(caption("ベトナムのフォーが絶品だった"))), ["pho"]);
 });
 
 test("誤爆させない: 1 文字の別名は本文走査に載せない", () => {

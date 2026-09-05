@@ -121,6 +121,44 @@ export const DISH_CATEGORY_JA_LABEL_SYNONYMS: Record<
 };
 
 /**
+ * #1273 «カタカナ語 ＋ 業態語» の複合表記。
+ *
+ * ## なぜ `DISH_CATEGORY_JA_LABEL_SYNONYMS` と分けるか
+ *
+ * 収録の基準が違う。上は「同じ料理を別の綴りで書いただけ」だが、ここは
+ * **語境界の規則では原理的に届かない形**を表記として持つためのものである。
+ * カタカナの語境界は「右へは伸ばさない」（`フォー` ⊄ `フォーク` を守るため。
+ * `textNormalize.ts` の表）ので、`イタリアン` は `イタリアンレストラン` に当たらない。
+ * 左（`バスクチーズケーキ` → `チーズケーキ`）と違って、右は緩めると必ず誤爆するので、
+ * **書かれる形をそのまま辞書に載せる以外に方法が無い**。
+ *
+ * ## 収録の基準
+ *
+ * 「その形で書かれていたせいで候補ゼロになっていた」ことを BigQuery で数えたものだけを、
+ * 件数（行末のコメント）つきで置く。**思い付きで足さないこと。**
+ * `カフェオレ` `カフェラテ`（飲み物）や `フレンチブルドッグ`（犬）のように
+ * **右に伸びると別物になる**ものは入れない ＝ 右境界で落ちたままにする。
+ */
+export const DISH_CATEGORY_JA_VENUE_COMPOUNDS: Record<
+  string,
+  readonly string[]
+> = {
+  アフタヌーン: ['アフタヌーンティー'], // 105
+  イタリアン: ['イタリアンレストラン', 'イタリアンバル', 'イタリアンダイニング'], // 173 / 29 / 18
+  フレンチ: ['フレンチレストラン'], // 93
+  // ⚠️ `カフェタイム`（実測 47）と `カフェスペース`（58）は**入れない**。
+  // 実キャプション 1,798 件のハーネスで、営業時間の定型文（`ランチタイム11:30〜/カフェタイムは
+  // 14:30〜16:30`）や施設案内に出るため、**本題の料理を押しのけて 1 位になった**
+  // （パフェ→カフェ / プリンアラモード→カフェ / かき氷→カフェ）。業態語として採るのは
+  // «その店の業態そのものを名乗っている» 形（レストラン / バル / ダイニング / ショップ）だけにする。
+  カフェ: ['カフェレストラン', 'カフェバー', 'カフェダイニング'], // 111 / 47
+
+  ラーメン: ['ラーメンショップ'], // 70
+  ハンバーガー: ['ハンバーガーショップ'], // 31
+  ケーキ: ['ケーキショップ'], // 22
+};
+
+/**
  * #1273 各カテゴリの `labels.ja`（＋表記ゆれ）を照合辞書のエントリへ変換する純関数。
  *
  * `dish_category_variants` はグローバル一意化で自分の日本語ラベルを失っているカテゴリがある
@@ -129,7 +167,8 @@ export const DISH_CATEGORY_JA_LABEL_SYNONYMS: Record<
  *
  * - `labels` が Json（`{ [lang]: string }`）でないもの、`ja` が空・非文字列のものは黙って捨てる
  * - `source` は `wikidata-label` 相当（本文走査の減点なし）。`labels.ja` は Wikidata の ja ラベルそのもの
- * - 表記ゆれは `DISH_CATEGORY_JA_LABEL_SYNONYMS` を **正規化前の ja ラベル**で引いて足す
+ * - 表記ゆれは `DISH_CATEGORY_JA_LABEL_SYNONYMS` と `DISH_CATEGORY_JA_VENUE_COMPOUNDS` を
+ *   **正規化前の ja ラベル**で引いて足す
  */
 export function buildJapaneseLabelVariants(
   categories: readonly { id: string; labels: unknown }[] | null | undefined,
@@ -156,7 +195,10 @@ export function buildJapaneseLabelVariants(
       source: 'wikidata-label',
     });
 
-    for (const synonym of DISH_CATEGORY_JA_LABEL_SYNONYMS[ja] ?? []) {
+    for (const synonym of [
+      ...(DISH_CATEGORY_JA_LABEL_SYNONYMS[ja] ?? []),
+      ...(DISH_CATEGORY_JA_VENUE_COMPOUNDS[ja] ?? []),
+    ]) {
       out.push({
         dishCategoryId: category.id,
         surfaceForm: synonym,
