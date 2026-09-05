@@ -49,6 +49,8 @@ class SourceRecord:
     normalized_name: str = ""
     normalized_name_l1: str = ""
     normalized_address: str = ""
+    # #843 取り込み時点で分かっていた国（ISO 3166-1 alpha-2）。座標から推測しない。
+    country_code: str | None = None
     phone: str | None = None
     website: str | None = None
     social_urls: tuple[str, ...] = ()
@@ -88,6 +90,7 @@ class Seed:
     normalized_name: str
     normalized_name_l1: str
     normalized_address: str
+    country_code: str | None
     latitude: float
     longitude: float
     phone: str | None
@@ -125,6 +128,10 @@ class Seed:
             self.canonical_source = record.source
             self.canonical_name = record.name
             self.canonical_address = record.address
+            # #843 国も canonical と同じ優先順位で決める（overture > existing_pg >
+            # osm > ifas > food_permit）。値が無いソースが勝ったときは、
+            # 下の or で他ソースの値が残る。
+            self.country_code = record.country_code or self.country_code
             # 正規化値は候補比較のたびに再計算せず、canonical変更時だけ更新する。
             self.normalized_name = record.normalized_name
             self.normalized_name_l1 = record.normalized_name_l1
@@ -132,6 +139,7 @@ class Seed:
             self.latitude = record.latitude
             self.longitude = record.longitude
 
+        self.country_code = self.country_code or record.country_code
         self.phone = self.phone or record.phone
         self.website = self.website or record.website
         self.image_url = self.image_url or record.image_url
@@ -301,6 +309,7 @@ class EntityResolver:
             normalized_name=record.normalized_name,
             normalized_name_l1=record.normalized_name_l1,
             normalized_address=record.normalized_address,
+            country_code=record.country_code,
             latitude=record.latitude,
             longitude=record.longitude,
             phone=record.phone,
@@ -390,6 +399,7 @@ def seed_to_bq_row(seed: Seed, run_id: str) -> dict[str, Any]:
         "normalized_name": seed.normalized_name,
         "canonical_address": seed.canonical_address or None,
         "normalized_address": seed.normalized_address or None,
+        "country_code": seed.country_code or None,
         "latitude": seed.latitude,
         "longitude": seed.longitude,
         "location": f"POINT({seed.longitude} {seed.latitude})",

@@ -69,16 +69,44 @@ def main() -> None:
           -- existing（＝PG に入っている Google 由来の住所）は carry-forward しない。
           -- Google の住所は ToS 3.2.3 で保持できないので、そちらへ寄せてはいけない。
           NULLIF(s.canonical_address, '') AS address,
-          -- #1681 ISO-3166-1 alpha-2。
-          -- open data は日本の矩形で絞って取り込んでいるので、矩形内なら JP と断言できる
-          -- （実測: パイプライン製 569,661 行のうち矩形外は 0 行）。
-          -- 矩形外は既存PG由来の海外店（2_1 の require_japan=False で通した分）で、
-          -- 国を断定する材料がここには無いので NULL にする。PG 側で別途埋める。
-          CASE
-            WHEN s.latitude BETWEEN 20.0 AND 46.5
-             AND s.longitude BETWEEN 122.0 AND 154.0
-            THEN 'JP'
-          END AS country_code,
+          -- #1681/#843 ISO-3166-1 alpha-2。**取り込み時の国情報だけで決める。**
+          --
+          -- 以前はここが «日本の矩形の中なら JP» という座標からの断定で、コメントにも
+          -- «矩形内なら JP と断言できる» と書いてあった。**断言できていなかった。**
+          -- 矩形（緯度20.0–46.5 / 経度122.0–154.0）は韓国全土とロシア沿海地方を含み、
+          -- run=restaurant-2026-08-23 の 620,428 行のうち 97,726 行（15.75%）が韓国、
+          -- 358 行が沿海地方の店なのに、全 620,428 行が country_code='JP' になっていた。
+          --
+          -- 1_3 が Overture の addresses[1].country で日本を絞り、2_1 がその値を
+          -- source record の country_code として運び、2_2 が canonical と同じ優先順位で
+          -- seed へ畳む。ここはその結果を読むだけにする。
+          --
+          -- 既存PG由来の海外店（2_1 の require_japan=False で通した分）は、
+          -- Google の address_components に country があればそこから引く。
+          -- **どちらも無い行は NULL のままにする。座標から推測して埋めない。**
+          --
+          -- PostgreSQL 側は `country_code ~ '^[A-Z]{{2}}$'` の CHECK を持つので、
+          -- 形の合わない値は NULL に落として 9_1 を落とさない。
+          (
+            SELECT IF(REGEXP_CONTAINS(candidate, r'^[A-Z]{{2}}$'), candidate, NULL)
+            FROM (
+              SELECT COALESCE(
+                NULLIF(s.country_code, ''),
+                (
+                  SELECT JSON_VALUE(component, '$.shortText')
+                  FROM UNNEST(JSON_QUERY_ARRAY(SAFE.PARSE_JSON(COALESCE(
+                    NULLIF(existing.address_components_json, ''),
+                    NULLIF(s.address_components_json, ''),
+                    '[]'
+                  )))) AS component
+                  WHERE 'country' IN UNNEST(
+                    IFNULL(JSON_VALUE_ARRAY(component, '$.types'), [])
+                  )
+                  LIMIT 1
+                )
+              ) AS candidate
+            )
+          ) AS country_code,
           -- #843 独立レビュー②: 同じ place_id へ当たった «負けた seed» の連絡先を拾う。
           --
           -- 3_3 は同じ place_id に複数の seed が当たったとき 1 つだけ残し、

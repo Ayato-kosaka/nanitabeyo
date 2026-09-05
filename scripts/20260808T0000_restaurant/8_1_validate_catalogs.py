@@ -129,10 +129,10 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
       ),
       -- #843 «日本の外に居てよいのは、既に PG に在った店だけ» を守る。
       --
-      -- オープンデータは日本の矩形で絞って取り込んでいるので、open data 由来の
-      -- 行が矩形の外に出ることは無い。出たなら座標か取り込み範囲が壊れている。
-      -- 一方、既存 PG 由来（seed に existing_restaurant_id がある）の海外店は
-      -- 正当なので通す。矩形を «全行必須» にせず、この形で残す。
+      -- ⚠️ #843 この check は **取り込みと同じ矩形を、取り込んだ結果へ当てている**。
+      -- 同じ述語で作ったものを同じ述語で検査しているので、構造上いつでも 0 になる。
+      -- 実際、韓国の店が 97,726 行入った run でも緑のままだった。座標が壊れた場合の
+      -- 保険としては残すが、«国が正しいか» は下の open_data_country_not_japan が見る。
       overseas_not_existing AS (
         SELECT COUNT(*) AS invalid_count
         FROM `{dataset}.restaurant_catalog` c
@@ -142,6 +142,22 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           AND s.existing_restaurant_id IS NULL
           AND (c.latitude NOT BETWEEN 20.0 AND 46.5
                OR c.longitude NOT BETWEEN 122.0 AND 154.0)
+      ),
+      -- #843 «open data 由来の行は日本の店だけ» を、座標ではなく国で確かめる。
+      --
+      -- 1_3 が Overture の addresses[1].country='JP' で絞り、2_1→2_2→3_4 がその値を
+      -- 運ぶので、open data 由来（seed に existing_restaurant_id が無い）の行は
+      -- 必ず country_code='JP' になる。ならない行が出たのは、取り込みの絞りか
+      -- 国の引き回しのどちらかが壊れたときである。
+      -- 既存PG由来の海外店は正当なので対象から外す（#843 と同じ扱い）。
+      open_data_country_not_japan AS (
+        SELECT COUNT(*) AS invalid_count
+        FROM `{dataset}.restaurant_catalog` c
+        JOIN `{dataset}.restaurant_seed_catalog` s
+          ON s.run_id = @run_id AND s.seed_id = c.seed_id
+        WHERE c.run_id = @run_id
+          AND s.existing_restaurant_id IS NULL
+          AND c.country_code IS DISTINCT FROM 'JP'
       ),
       -- #843 «合併したら元より減った» を捕まえる。
       --
@@ -284,6 +300,9 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
         UNION ALL SELECT 'restaurant_overseas_only_from_existing_pg', 'ERROR',
           CAST(invalid_count AS FLOAT64), 0.0, invalid_count = 0
           FROM overseas_not_existing
+        UNION ALL SELECT 'restaurant_open_data_country_is_japan', 'ERROR',
+          CAST(invalid_count AS FLOAT64), 0.0, invalid_count = 0
+          FROM open_data_country_not_japan
         UNION ALL SELECT 'restaurant_merge_no_data_loss', 'ERROR',
           CAST(lost_name_rows + lost_social_rows + lost_phone_rows + lost_website_rows AS FLOAT64),
           0.0,
