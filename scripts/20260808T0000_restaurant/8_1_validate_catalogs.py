@@ -41,6 +41,11 @@ DISH_MEDIA_CHECKS = frozenset({
 # jp_gate_category_count をこの集合へ入れているのは、SNS だけを検証する
 # （--sns-only）ときにも «134 カテゴリの一覧そのものが壊れていないか» が要るからである。
 # sns_media_jp_gate_category_rate はその一覧を分母に使うので、一覧が壊れていれば率も嘘になる。
+# 取り込みから独立に «日本の店ではない» と言える文字の並び。
+# ハングル（音節・字母）とキリル文字。韓国の行の 95.0% が店名か住所に含む（2026-09-05 実測）。
+# f-string の中に直接書くと {} と \x がフォーマット指定子・エスケープと衝突するので定数に出す。
+FOREIGN_SCRIPT_REGEX = r"[\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{0400}-\x{04FF}]"
+
 SNS_MEDIA_CHECKS = frozenset({
     "jp_gate_category_count",
     "sns_dish_media_catalog_non_empty",
@@ -368,10 +373,23 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
         SELECT
           COUNT(*) AS row_count,
           COUNTIF(rc.google_place_id IS NULL) AS unknown_store_rows,
+          -- ⚠️ **取り込みの矩形をここに使ってはいけない。** 1_3 は «緯度20.0–46.5 /
+          -- 経度122.0–154.0» を日本と見なして取り込んでおり、その矩形は**韓国全土と
+          -- ロシア沿海地方を含む**。同じ矩形を取り込み結果に当てると構造上いつでも緑になり、
+          -- 実際に韓国の店が入った run でも緑だった（配信カタログに 127 店 1,026 行が載り、
+          -- dev へ同期されるまで誰も気づかなかった）。
+          --
+          -- 取り込みから**独立した**根拠で判定する:
+          --   (a) country_code が JP でない（1_3 が取り込んだ実測値。矩形からの推測ではない）
+          --   (b) 店名・住所にハングル or キリル文字がある（韓国の行の 95.0% が該当）
           COUNTIF(
             rc.google_place_id IS NOT NULL
-            AND (rc.latitude NOT BETWEEN @jp_lat_min AND @jp_lat_max
-                 OR rc.longitude NOT BETWEEN @jp_lng_min AND @jp_lng_max)
+            AND (
+              COALESCE(rc.country_code, 'JP') != 'JP'
+              OR REGEXP_CONTAINS(
+                   CONCAT(COALESCE(rc.name, ''), ' ', COALESCE(rc.address, '')),
+                   r'{FOREIGN_SCRIPT_REGEX}')
+            )
           ) AS overseas_rows
         FROM `{dataset}.sns_dish_media_catalog` m
         LEFT JOIN `{dataset}.restaurant_catalog` rc

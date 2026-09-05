@@ -240,5 +240,27 @@ class SyncSideContractTest(unittest.TestCase):
         self.assertIn("sns_dish_media_catalog` WHERE run_id = @run_id", source)
 
 
+
+class OverseasCheckIsIndependentTest(unittest.TestCase):
+    """#1815 «取り込みと同じ矩形で取り込み結果を検査する» を二度としないための固定。
+
+    韓国の店 97,726 行が入った run でも `sns_media_store_inside_japan` は緑だった。
+    1_3 が日本と見なす矩形（緯度20.0–46.5 / 経度122.0–154.0）が韓国全土を含むため、
+    同じ矩形を出力に当てると構造上落ちない。実測でも旧判定 0 行 / 新判定 948 行。
+    """
+
+    def test_check_does_not_use_the_ingest_bounding_box(self) -> None:
+        sql = _sql()
+        state = sql.split("sns_media_store_state AS (")[1].split("AS overseas_rows")[0]
+        for param in ("@jp_lat_min", "@jp_lat_max", "@jp_lng_min", "@jp_lng_max"):
+            self.assertNotIn(param, state,
+                             "取り込みの矩形を判定に使うと構造上いつでも緑になる")
+
+    def test_check_uses_country_and_script_evidence(self) -> None:
+        sql = _sql()
+        state = sql.split("sns_media_store_state AS (")[1].split("AS overseas_rows")[0]
+        self.assertIn("country_code", state)
+        self.assertIn("AC00", state)  # ハングル音節。取り込みから独立した根拠
+
 if __name__ == "__main__":
     unittest.main()
