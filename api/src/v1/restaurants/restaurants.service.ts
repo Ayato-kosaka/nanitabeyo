@@ -201,12 +201,15 @@ export class RestaurantsService {
     googlePlaceId: string,
     languageCode: string,
   ): Promise<google.maps.places.v1.IPlace> {
+    // #1780 ⚠️ **保存しない値を要求しない。**
+    // `plusCode` は保存もしなければ読み手も 1 つも無いので落とした。
+    // `addressComponents` は残す。保存はしないが、確認ページの初期値
+    // （表示用住所・国・州）を **その場で組み立てる**ために要る。
     const fieldMask = [
       'id',
       'displayName',
       'location',
       'addressComponents',
-      'plusCode',
     ].join(',');
 
     const placeDetail = await this.externalApi.callPlaceDetails(
@@ -282,12 +285,26 @@ export class RestaurantsService {
       // 【非推奨カラム】だがスキーマ上必須であれば空文字で維持
       image_url: '',
       image_path: null,
-      // as を利用して Prisma.JsonValue にキャスト（JSON として保持する前提）
-      address_components:
-        placeDetail.addressComponents as unknown as Prisma.InputJsonValue,
-      plus_code: placeDetail.plusCode
-        ? (placeDetail.plusCode as unknown as Prisma.InputJsonValue)
-        : undefined,
+      /*
+        #1780 【設計】**Google 由来の生データ（addressComponents / plusCode）を保存しない。**
+
+        #843 §4 の方針そのもの。ここは «取得はする / 保存はしない» に変えた。
+        `addressComponents` は上の `confirmed` を作るために **その場で使う**が、
+        列（address / country_code / subterritory_code）へ畳んだあとは捨てる。
+
+        ⚠️ **これで «情報が減る» ことはない。** 実測で、アプリが
+        `address_components` から読んでいるのは «国 / 州 / 表示用住所» の 3 つだけで、
+        いずれも列に入っている。しかも dev の 621,974 店のうち 619,498 店
+        （99.60%）は元から `address_components` が空で、**その 99.60% が
+        既に列だけで動いている**（#1850 の命名 / #1869 の通貨）。
+        新規店をその 99.60% と同じ形にするだけである。
+
+        ⚠️ `plus_code` は **読み手が 1 つも無い**（API レスポンス型にも app-expo にも
+        参照ゼロ。2026-09-05 に grep で確認）。保存をやめて失うものは無い。
+
+        列は残す（削除は #1779）。既存行の値もそのまま残す。
+      */
+      address_components: [] as unknown as Prisma.InputJsonValue,
       // created_at は DB デフォルトがあれば省略可能だが、既存互換のため残す
       created_at: new Date(),
     };
