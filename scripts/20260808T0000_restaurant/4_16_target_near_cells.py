@@ -34,6 +34,16 @@ n=1 のセルは 4 店で 1 セルなので同じ 1 店の単価が 4 倍違う�
    → `4_2_collect_account_posts.py --account-run-id <run-id>`
      / `4_7_collect_search_api_posts.py --store-mode --account-run-id <run-id>`
 4. `near_cell_targets.csv` — セル×候補店の全量（人が見て妥当か判断するための台帳）
+5. `sns_target_cells` — 狙い先の台帳テーブル（セル 1 行。現在の n / あと何店 / 優先度 /
+   経路別の候補店数 / 候補店の明細）。**このスクリプトが作る新しいテーブルで、
+   `sns_post_raw` などの既存テーブルには一切書かない。**
+
+## 到達手段の数え方（2026-09-05 に直したところ）
+以前は候補プールの段階で «website も handle も無い店» を SQL で捨てていたため、
+`unreachable` の割合が «捨てたあとの残り» に対する比になっており、
+**«この作戦で届かない店が何割か» を過小に出していた**。いまは捨てずに数え、
+`no_website` / `crawl_failed` も経路として明示する（実測: 狙う市区町村の catalog 店
+443,599 軒のうち届かないのは 72.7%）。
 
 BigQuery は読み取りが主で、書くのは上の 2/3（**新しい run_id にだけ足す**。既存 run_id は触らない）。
 PostgreSQL には触らない。
@@ -41,6 +51,7 @@ PostgreSQL には触らない。
 ## 使い方（db-script-run.yml）
   script_path: scripts/20260808T0000_restaurant/4_16_target_near_cells.py
   args: --run-id sns-2026-09-05-nearcell --min-stores 4 --max-stores 4 --limit 20000
+  # n=4 → n=3 → n=2 の順に効率が良い（n=4 は 1 店で 1 セル、n=2 は 3 店で 1 セル）
   # 動作確認は --dry-run（BQ を読み、件数と表だけ出して書き込まない）
 """
 
@@ -59,6 +70,31 @@ from common_sns import (PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_
 
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
+
+# このスクリプトが作る «狙い先» テーブル。セル 1 行。
+# 既存の sns_* テーブル（sns_post_raw / sns_name_place_lookup 等）には書かない。
+TABLE_TARGET_CELLS = "sns_target_cells"
+TARGET_CELLS_DDL = """
+CREATE TABLE IF NOT EXISTS `{table}` (
+  run_id STRING NOT NULL,
+  coverage_run_id STRING,
+  catalog_run_id STRING,
+  region STRING,
+  city STRING,
+  dish_category_id STRING,
+  dish_category_label STRING,
+  distinct_store_count INT64,   -- いまそのセルにある異なり店（7_1 が数えたもの）
+  stores_needed INT64,          -- ≥5 まであと何店
+  priority INT64,               -- 小さいほど «同じ 1 店あたりの効き» が大きい（= stores_needed）
+  candidate_total INT64,        -- 近傍のカテゴリ一致候補（到達手段が無いものも含む）
+  candidate_reachable INT64,    -- そのうち既存の収集経路へ渡せるもの
+  fillable BOOL,                -- 届く候補が stores_needed 以上あるか（上限の判定）
+  candidate_by_route ARRAY<STRUCT<route STRING, stores INT64>>,
+  candidates ARRAY<STRUCT<google_place_id STRING, name STRING, evidence STRING,
+                          route STRING, handle STRING, website STRING, dispatched BOOL>>,
+  computed_at TIMESTAMP
+)
+"""
 
 # --- 店 → 料理カテゴリ の当てはめ語 ------------------------------------------------
 #
@@ -256,8 +292,10 @@ def parse_args() -> argparse.Namespace:
     # 引くと同名別 QID を拾って 134→140 に膨らみ、アプリに出ないカテゴリを数えてしまう（#1815）。
     p.add_argument("--kpi-gate-feature-key", default="region:country:JP",
                    help="KPI 対象カテゴリを決める dish_category_features_catalog の gate key（7_1 と同じ）")
-    p.add_argument("--min-stores", type=int, default=4, help="狙うセルの現店数の下限（既定 4）")
-    p.add_argument("--max-stores", type=int, default=4, help="狙うセルの現店数の上限（既定 4。3 も狙うなら --min-stores 3）")
+    # 既定は n=2〜4（«あと 1〜3 店» で ≥5 になるセル）。優先度は sns_target_cells.priority
+    # （= stores_needed）が持つので、n=4 → 3 → 2 の順で使う側が絞れる。
+    p.add_argument("--min-stores", type=int, default=2, help="狙うセルの現店数の下限（既定 2）")
+    p.add_argument("--max-stores", type=int, default=4, help="狙うセルの現店数の上限（既定 4）")
     p.add_argument("--per-cell", type=int, default=20, help="1 セルあたりに出す候補店の上限")
     p.add_argument("--limit", type=int, default=None, help="出力する候補店（異なり店）の総数上限")
     p.add_argument("--top", type=int, default=20, help="標準出力へ出すセルの表の行数")
@@ -366,12 +404,17 @@ def store_pool_sql(pipeline: BigQueryPipeline) -> str:
         GROUP BY a.discovery_seed_place_id
       ),
       -- 4_4 が既に crawl 済みの店（もう一度 crawl せず 4_10 の埋め込み走査へ回せる）
+      -- ⚠️ handle / status は ANY_VALUE で採ると «handle が取れた行» を取りこぼす
+      --    （1 店に複数 URL の行が並ぶ）。handle は «取れている行» を優先し、
+      --    status は 4_10 が走査できるものを優先する。
       site AS (
         SELECT google_place_id,
                ANY_VALUE(website) AS website, ANY_VALUE(host) AS host,
-               ANY_VALUE(handle) AS handle, ANY_VALUE(status) AS status,
-               ANY_VALUE(is_aggregator_host) AS is_aggregator_host,
-               ANY_VALUE(corroborated) AS corroborated
+               MAX(NULLIF(handle, '')) AS handle,
+               ANY_VALUE(status HAVING MIN CASE WHEN status IN ('ok', 'no_handle') THEN 0
+                                                WHEN status = 'website_is_ig' THEN 1 ELSE 2 END) AS status,
+               LOGICAL_OR(IFNULL(is_aggregator_host, FALSE)) AS is_aggregator_host,
+               LOGICAL_OR(IFNULL(corroborated, FALSE)) AS corroborated
         FROM `{pipeline.table(TABLE_STORE_SITE_IG)}`
         WHERE website IS NOT NULL AND website != ''
         GROUP BY google_place_id
@@ -385,8 +428,11 @@ def store_pool_sql(pipeline: BigQueryPipeline) -> str:
         LEFT JOIN collected ON collected.pid = c.google_place_id
         LEFT JOIN acct a ON a.pid = c.google_place_id
         LEFT JOIN site s ON s.google_place_id = c.google_place_id
+        -- ⚠️ ここで «website も handle も無い店» を落としてはいけない。落とすと
+        --    「到達手段が無い候補が何 %」が «落としたあとの残り» に対する比になり、
+        --    この作戦の上限を過小に見せる（2026-09-05 に直した）。経路の判定は
+        --    `_route_of` 1 箇所だけが持ち、SQL はそのための列を返すだけにする。
         WHERE collected.pid IS NULL
-          AND ((c.website IS NOT NULL AND c.website != '') OR a.handle IS NOT NULL)
       ),
       -- 住所から市区町村が取れない店は 7_1 と同じ «1.5km 以内の最近傍» で補う
       need AS (SELECT google_place_id, location FROM act WHERE city IS NULL AND location IS NOT NULL),
@@ -422,7 +468,18 @@ def store_pool_sql(pipeline: BigQueryPipeline) -> str:
     """
 
 
-def read_store_pool(pipeline: BigQueryPipeline, catalog_run_id: str, cities):
+def scan_store_pool(pipeline: BigQueryPipeline, catalog_run_id: str, cities):
+    """狙う市区町村の catalog 店を 1 行ずつ見て «経路の内訳» と «カテゴリが当たった店» を返す。
+
+    ⚠️ 全行を list に載せない。狙う市区町村（n=2〜4 で 612 市区町村）の catalog 店は
+    443,599 軒あり、そのまま dict にすると Actions の runner でメモリを食い切る。
+    ここで «カテゴリが 1 つも当たらない店» をその場で捨てる（候補になり得ないので）。
+
+    Returns:
+        (by_city, route_counts) —
+        `by_city[(region, city)]` は当てはめカテゴリを持つ店の list、
+        `route_counts[route]` は **捨てる前の全店** の経路内訳（＝上限の分母）。
+    """
     from google.cloud import bigquery
     params = [
         bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id),
@@ -430,17 +487,44 @@ def read_store_pool(pipeline: BigQueryPipeline, catalog_run_id: str, cities):
         bigquery.ArrayQueryParameter("cities_region", "STRING", [r for r, _ in cities]),
         bigquery.ArrayQueryParameter("cities_city", "STRING", [c for _, c in cities]),
     ]
-    return [dict(r) for r in pipeline.execute(store_pool_sql(pipeline), params)]
-
-
-def build_targets(cells, stores, qid_label, per_cell: int):
-    """セル × 候補店を作る。«店名一致 > ジャンル一致»、«handle あり > website だけ» の順に並べる。"""
     by_city: dict[tuple[str, str], list[dict]] = defaultdict(list)
-    for s in stores:
-        s["categories"] = match_categories(s.get("name"), s.get("source_categories"), CATEGORY_KEYWORDS)
-        if s["categories"]:
-            by_city[(s["region"], s["city"])].append(s)
+    route_counts: dict[str, int] = defaultdict(int)
+    total = 0
+    for row in pipeline.execute(store_pool_sql(pipeline), params):
+        total += 1
+        store = dict(row)
+        route = _route_of(store)
+        route_counts[route] += 1
+        cats = match_categories(store.get("name"), store.get("source_categories"), CATEGORY_KEYWORDS)
+        if not cats:
+            continue
+        # 保持するのは候補になり得る店だけ。列も台帳に要るものへ絞る。
+        by_city[(store["region"], store["city"])].append({
+            "google_place_id": store["google_place_id"], "name": store.get("name"),
+            "website": store.get("website"), "handle": store.get("handle"),
+            "account_id": store.get("account_id"), "account_type": store.get("account_type"),
+            "discovery_method": store.get("discovery_method"),
+            "site_website": store.get("site_website"), "site_host": store.get("site_host"),
+            "site_handle": store.get("site_handle"), "site_status": store.get("site_status"),
+            "is_aggregator_host": store.get("is_aggregator_host"),
+            "corroborated": store.get("corroborated"),
+            "route": route, "categories": cats,
+        })
+    route_counts["__total__"] = total
+    return by_city, route_counts
 
+
+# 候補店の並び順。«店名一致 > ジャンル一致»、そのうえで «届く経路が強い順»。
+_ROUTE_ORDER = {"account": 0, "site_embed": 1, "site_crawl": 2, "crawl_failed": 3, "no_website": 4}
+
+
+def build_targets(cells, by_city, qid_label, per_cell: int):
+    """セル × 候補店を作る。
+
+    ⚠️ 届かない候補（crawl_failed / no_website）も **落とさずに数える**。落とすと
+    «そのセルはそもそも届く候補が無い» という事実が台帳から消え、上限を見誤る。
+    収集へ渡すのは `REACHABLE_ROUTES` のものだけ（呼び出し側で絞る）。
+    """
     targets = []
     for cell in cells:
         label = qid_label.get(cell["dish_category_id"])
@@ -450,18 +534,25 @@ def build_targets(cells, stores, qid_label, per_cell: int):
             if not evidence:
                 continue
             cands.append((0 if evidence == "name" else 1,
-                          0 if s.get("handle") else 1,
+                          _ROUTE_ORDER.get(s["route"], 9),
                           s["google_place_id"], s, evidence))
         cands.sort(key=lambda t: (t[0], t[1], t[2]))
+        by_route: dict[str, int] = defaultdict(int)
+        for _, _, _, s, _ev in cands:
+            by_route[s["route"]] += 1
+        reachable = [(s, ev) for _, _, _, s, ev in cands if s["route"] in REACHABLE_ROUTES]
         targets.append({
             "region": cell["region"], "city": cell["city"],
             "dish_category_id": cell["dish_category_id"], "label": label,
             "distinct_store_count": cell["distinct_store_count"],
-            "candidates": [{"store": s, "evidence": ev} for _, _, _, s, ev in cands[:per_cell]],
+            # 台帳・収集に渡すのは «届く候補» を優先順に per_cell 件まで
+            "candidates": [{"store": s, "evidence": ev} for s, ev in reachable[:per_cell]],
             "candidate_total": len(cands),
+            "candidate_reachable": len(reachable),
+            "candidate_by_route": dict(by_route),
         })
-    # «あと 1 店» のセルを先に、その中で候補が多い順（埋まる確率が高い順）
-    targets.sort(key=lambda t: (-t["distinct_store_count"], -t["candidate_total"]))
+    # «あと 1 店» のセルを先に、その中で «届く候補» が多い順（埋まる確率が高い順）
+    targets.sort(key=lambda t: (-t["distinct_store_count"], -t["candidate_reachable"]))
     return targets
 
 
@@ -469,16 +560,30 @@ def build_targets(cells, stores, qid_label, per_cell: int):
 # fetch_failed / robots_blocked は «4_4 が既に読めなかった» 店なので、渡しても同じ結果になる。
 _SITE_STATUS_SCANNABLE = ("ok", "no_handle")
 
+# 投稿を取りに行ける経路。これ以外は «この作戦では届かない»。
+REACHABLE_ROUTES = ("account", "site_embed", "site_crawl")
+
 
 def _route_of(store: dict) -> str:
-    """その店を渡す既存経路を決める。渡せる経路が無いものは 'unreachable'。"""
-    if store.get("handle"):
+    """その店へ投稿を取りに行ける既存経路を決める。届かないものは理由まで返す。
+
+    ⚠️ 2026-09-05 に 2 つ直した。
+    1. **サイト側で判明している handle を見ていなかった。** `sns_store_site_ig.handle`
+       （`status='website_is_ig'`＝公式サイト欄が IG の URL そのもの、を含む）は
+       4_4 が既に確定させた handle なのに、`sns_source_account` に行が無いだけで
+       `unreachable` に落ちていた。実測で 6,859 店がこれに当たる。
+    2. **届かない理由を 1 語に潰していた。** «サイトを持っていない»（＝この作戦の
+       上限を決める）と «クロールに失敗した»（＝再挑戦の余地がある）は別物なので分ける。
+    """
+    if store.get("handle") or store.get("site_handle"):
         return "account"          # 4_2 --account-run-id / 4_7 --store-mode
     if store.get("site_status") in _SITE_STATUS_SCANNABLE:
         return "site_embed"       # 4_10 --site-run-id（crawl 済みなので取り直さない）
     if not store.get("site_status") and (store.get("website") or "").startswith("http"):
         return "site_crawl"       # 4_4 --stores-file（まだ crawl していない）
-    return "unreachable"          # crawl 済みで到達不能（fetch_failed / robots_blocked 等）
+    if store.get("site_status"):
+        return "crawl_failed"     # 4_4 が読めなかった（fetch_failed / robots_blocked）
+    return "no_website"           # 公式サイトも handle も無い＝渡せる入力が無い
 
 
 def main() -> None:
@@ -504,13 +609,24 @@ def main() -> None:
         LOGGER.warning("該当セルがありません。--coverage-run-id / --min-stores を確認してください。")
         return
 
-    pool = read_store_pool(pipeline, catalog_run_id, cities)
-    stores = [s for s in pool if _route_of(s) != "unreachable"]
-    LOGGER.info("狙う市区町村の未収集店 %d 軒（うち渡せる経路がある %d 軒。"
-                "残りは 4_4 が既に読めなかったサイトなので渡しても同じ結果になる）", len(pool), len(stores))
+    by_city, route_counts = scan_store_pool(pipeline, catalog_run_id, cities)
+    pool_total = route_counts.pop("__total__", 0)
+    reachable_total = sum(route_counts.get(r, 0) for r in REACHABLE_ROUTES)
+    unreachable_total = pool_total - reachable_total
+    LOGGER.info("狙う市区町村の未収集店 %d 軒 | 届く %d 軒 (%.1f%%) / 届かない %d 軒 (%.1f%%)",
+                pool_total, reachable_total, 100.0 * reachable_total / max(pool_total, 1),
+                unreachable_total, 100.0 * unreachable_total / max(pool_total, 1))
+    for r, n in sorted(route_counts.items(), key=lambda kv: -kv[1]):
+        LOGGER.info("  経路 %-13s %7d 軒 (%.1f%%)", r, n, 100.0 * n / max(pool_total, 1))
 
-    targets = build_targets(cells, stores, qid_label, args.per_cell)
+    targets = build_targets(cells, by_city, qid_label, args.per_cell)
     filled = [t for t in targets if t["candidates"]]
+    # 上限の正直な見積り: «届く候補が need 店以上あるセル» しか埋まりようがない
+    fillable = [t for t in targets if t["candidate_reachable"] >= 5 - t["distinct_store_count"]]
+    cand_route: dict[str, int] = defaultdict(int)
+    for t in targets:
+        for r, n in t["candidate_by_route"].items():
+            cand_route[r] += n
 
     # --limit は «異なり候補店» の総数で効かせる（同じ店が複数セルを埋めることがある）
     picked: dict[str, dict] = {}
@@ -533,7 +649,7 @@ def main() -> None:
 
     by_route: dict[str, list[dict]] = defaultdict(list)
     for pid, s in picked.items():
-        by_route[_route_of(s)].append(s)
+        by_route[s["route"]].append(s)
 
     # --- 当てられなかったカテゴリを黙って落とさない -----------------------------------
     cell_labels = {qid_label.get(c["dish_category_id"]) for c in cells}
@@ -563,7 +679,7 @@ def main() -> None:
                     continue
                 w.writerow([t["region"], t["city"], t["label"], t["dish_category_id"],
                             t["distinct_store_count"], s["google_place_id"], s["name"],
-                            c["evidence"], _route_of(s), s.get("handle") or "",
+                            c["evidence"], s["route"], s.get("handle") or s.get("site_handle") or "",
                             s.get("website") or ""])
 
     (out_dir / "unmapped_categories.json").write_text(json.dumps({
@@ -582,6 +698,25 @@ def main() -> None:
     print()
     for route, rows in sorted(by_route.items()):
         print(f"  経路 {route}: {len(rows)} 軒")
+
+    # --- 上限を «盛らずに» 出す ------------------------------------------------------
+    # 分母は «狙うセルにカテゴリが当たった候補店»（届かないものも含む全量）。
+    # 到達手段が無い割合をここで出さないと、この作戦で埋められる上限を見誤る。
+    cand_all = sum(cand_route.values())
+    cand_unreach = sum(n for r, n in cand_route.items() if r not in REACHABLE_ROUTES)
+    need_total = sum(5 - t["distinct_store_count"] for t in targets)
+    print()
+    print(f"■ 上限（盛らない）")
+    print(f"  狙うセル {len(cells)} / 必要店数の総和 {need_total}")
+    print(f"  候補店（セル×店、届かないものも含む） {cand_all} / うち到達手段が無い "
+          f"{cand_unreach} ({100.0 * cand_unreach / max(cand_all, 1):.1f}%)")
+    for r, n in sorted(cand_route.items(), key=lambda kv: -kv[1]):
+        print(f"    候補の経路 {r:<13} {n:>8} ({100.0 * n / max(cand_all, 1):.1f}%)")
+    print(f"  届く候補が必要数以上あるセル（＝理屈のうえで埋まりうる上限） {len(fillable)} / {len(cells)}")
+    print(f"  ↑ここから «収集 → resolve が狙ったカテゴリに当たる» 確率が掛かる。"
+          f"実測の当たり率は 66.7%（店名がカテゴリ語を含む既収集店 654 軒中 436 軒が"
+          f"そのカテゴリの投稿を持っていた）ので、期待値は {len(fillable)} 本ではなく"
+          f"その 2/3 程度が上限。")
     if no_rule:
         print(f"  当てられないカテゴリ（当てはめ語が無い）: {len(no_rule)} 件 — {'、'.join(no_rule)}")
     if no_candidate:
@@ -600,9 +735,13 @@ def main() -> None:
     }, repo_root=None) as result:
         # 3) 店アカ経路: 4_1 が作った行を «狙う店の分だけ» 新 run_id へ複製する
         #    （handle を新しく作らない。4_2 --account-run-id / 4_7 --store-mode がそのまま読める）
+        # handle は 4_1 の店アカ（`handle`）か、4_4 がサイトから確定させたもの（`site_handle`）。
+        # どちらも «既に確定している handle» で、ここで新しく作ることはしない。
         acc_rows = [{
-            "account_id": s.get("account_id") or s["handle"], "provider": PROVIDER_INSTAGRAM,
-            "handle": s["handle"], "account_type": s.get("account_type") or "store_branch",
+            "account_id": s.get("account_id") or s.get("handle") or s["site_handle"],
+            "provider": PROVIDER_INSTAGRAM,
+            "handle": s.get("handle") or s["site_handle"],
+            "account_type": s.get("account_type") or "store_branch",
             "discovery_method": s.get("discovery_method"),
             "discovery_seed_place_id": s["google_place_id"],
             "followers": None, "media_count": None,
@@ -623,7 +762,38 @@ def main() -> None:
         pipeline.delete_run_rows(TABLE_STORE_SITE_IG, run_id)
         n_site = pipeline.load_json_rows(TABLE_STORE_SITE_IG, site_rows) if site_rows else 0
 
+        # 5) 狙い先の台帳テーブル（このスクリプトが作る新しいテーブル。
+        #    既存の sns_post_raw / sns_name_place_lookup には一切書かない）
+        pipeline.execute(TARGET_CELLS_DDL.format(table=pipeline.table(TABLE_TARGET_CELLS)))
+        target_rows = [{
+            "run_id": run_id, "coverage_run_id": coverage_run_id, "catalog_run_id": catalog_run_id,
+            "region": t["region"], "city": t["city"],
+            "dish_category_id": t["dish_category_id"], "dish_category_label": t["label"],
+            "distinct_store_count": t["distinct_store_count"],
+            "stores_needed": 5 - t["distinct_store_count"],
+            # 優先度は «同じ 1 店で埋まるセルが多い順» ＝ 必要店数が少ない順。
+            # n=4 は 1 店で 1 セル、n=1 は 4 店で 1 セルなので単価が 4 倍違う。
+            "priority": 5 - t["distinct_store_count"],
+            "candidate_total": t["candidate_total"],
+            "candidate_reachable": t["candidate_reachable"],
+            "fillable": t["candidate_reachable"] >= 5 - t["distinct_store_count"],
+            "candidate_by_route": [{"route": r, "stores": n}
+                                   for r, n in sorted(t["candidate_by_route"].items())],
+            "candidates": [{
+                "google_place_id": c["store"]["google_place_id"],
+                "name": c["store"].get("name"),
+                "evidence": c["evidence"], "route": c["store"]["route"],
+                "handle": c["store"].get("handle") or c["store"].get("site_handle"),
+                "website": c["store"].get("website"),
+                "dispatched": c["store"]["google_place_id"] in picked,
+            } for c in t["candidates"]],
+            "computed_at": now_iso,
+        } for t in targets]
+        pipeline.delete_run_rows(TABLE_TARGET_CELLS, run_id)
+        n_target = pipeline.load_json_rows(TABLE_TARGET_CELLS, target_rows) if target_rows else 0
+
         result["row_count"] = n_acc + n_site
+        result["target_cells"] = n_target
         result["cells"] = len(cells)
         result["cells_with_candidates"] = len(filled)
         result["candidate_stores"] = len(picked)
