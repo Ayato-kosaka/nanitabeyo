@@ -252,6 +252,17 @@ def normalize_match_text(value: str | None) -> str:
     return " ".join(unicodedata.normalize("NFKC", capped).split()).lower()
 
 
+_BRACKET_PAIRS = {"【": "】", "《": "》", "〈": "〉", "≪": "≫", "＜": "＞",
+                  "『": "』", "「": "」", "[": "]", "(": ")", "（": "）"}
+
+
+def _strip_wrapping_brackets(value: str) -> str:
+    """名前全体を包んでいる括弧だけを外す（対になっていないものは触らない）。"""
+    while len(value) >= 2 and _BRACKET_PAIRS.get(value[0]) == value[-1]:
+        value = value[1:-1].strip()
+    return value
+
+
 def name_from_line_tail(after: str) -> str | None:
     """行のうち «マーカー / ラベルより後ろ» から店名を切り出す（📍行の後処理そのもの）。
 
@@ -270,7 +281,9 @@ def name_from_line_tail(after: str) -> str | None:
         after = after[:cutoff.start()].strip()
     after = _RE_PIN_ALIAS_SEPARATOR.sub("", after).strip()
     # ラベルの後ろが «【レミさんち】» のように括弧ごと残ることがある。括弧は屋号ではない。
-    after = after.strip("【】《》〈〉≪≫＜＞『』「」[]()（）").strip()
+    # ⚠️ 対になっているときだけ外す。左右を別々に削ると «徳兵衛(とくべえ)» の «)» だけが
+    # 落ちて «徳兵衛(とくべえ» になる（実測でこの形を出した）。
+    after = _strip_wrapping_brackets(after)
     normalized = normalize_match_text(after)
     if PIN_NAME_MIN_LENGTH <= len(normalized) <= PIN_NAME_MAX_LENGTH:
         return normalized
