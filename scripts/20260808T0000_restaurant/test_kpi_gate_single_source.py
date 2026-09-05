@@ -52,6 +52,37 @@ class KpiGateSingleSource(unittest.TestCase):
         self.assertIn("kpi_gate_category_sql", src,
                       "7_1 が KPI ゲートの共通判定を使っていない")
 
+    def test_nobody_outside_common_sns_counts_kpi_with_the_140_table(self) -> None:
+        """«KPI» と名乗って数えるのに 140 QID の表を使わない。
+
+        写経の禁止（上のテスト）だけでは **逆向きの間違い**が通ってしまう。
+        実例 2026-09-05: `9_2_sync_sns_dish_media.export_catalog` は戻り値を
+        «KPI 134 カテゴリ外の行数» と書きながら `_kpi_tables()`（140 QID）で数えていた。
+        catalog run `sns-catalog-2026-09-05c` の異なり店で **134 は 18,747 / 140 は 19,005**、
+        258 店ずれる。同じ日に上がってきた «KPI 19,005 店» もこの 140 側の数字だった。
+
+        `_kpi_tables()` は private で、**カテゴリを «選ぶ» ため**（`pick_kpi_category`）の
+        ものである。common_sns の外へ持ち出した時点で «数える» 用途に化けるので、
+        持ち出し自体を禁止する。
+
+        当てはまらないもの（なぜ当てはまらないかを残す。書かないと次の人がまた調べ直す）:
+        - `4_7_collect_search_api_posts.py`: 140 の **ラベル**で検索クエリを組む。
+          «どこを採りに行くか» の targeting であって KPI を数えていない
+        - `4_18_resolve_place_id_by_name.py`: 140 の **ラベル**を店名から落とすために使う。
+          同上
+        """
+        me = Path(__file__).name
+        offenders = []
+        for p in sorted(HERE.glob("*.py")):
+            if p.name in (me, "common_sns.py"):
+                continue
+            if "_kpi_tables" in p.read_text():
+                offenders.append(p.name)
+        self.assertEqual(
+            offenders, [],
+            "KPI を数えるなら kpi_gate_category_sql（JP ゲート＝134）を通す。"
+            "_kpi_tables() は 140 QID で、選ぶため専用: " + ", ".join(offenders))
+
 
 if __name__ == "__main__":
     unittest.main()
