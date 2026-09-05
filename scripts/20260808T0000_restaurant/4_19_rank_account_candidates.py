@@ -147,9 +147,46 @@ REGION_TOKENS: tuple[str, ...] = (
 )
 
 
+# ハンドルに使える文字は `[a-z0-9._]`。語の «切れ目» は «英字でないもの» か端である。
+# `\b` は使わない（`[a-z0-9._]` では数字が語中扱いになり `lunch2024` が切れない）。
+_TOKEN_LEFT = r"(?:^|[^a-z])"
+_TOKEN_RIGHT = r"(?:[^a-z]|$)"
+
+
 def _token_regex(tokens: tuple[str, ...]) -> str:
-    """RE2 の交替パターンを作る。長い語を先に置いて `food` が `foodie` を食べないようにする。"""
-    return "(" + "|".join(sorted(tokens, key=len, reverse=True)) + ")"
+    """RE2 の交替パターンを作る。**語の切れ目を要求する**（捕捉グループ 1 が語本体）。
+
+    ⚠️ 部分一致で当てないこと。2026-09-05 の実測で、境界を見ずに当てていたため
+    A 段 273 件のうち **71 件（26%）が誤爆**していた:
+    `eat` → `nationaltheatre_tokyo` / `aichi_creative` / `meat` / `great` / `sweat`、
+    `umai` → `sumai_yokohama`（住まい）、`oishi` → `mariakoishikawa`。
+    (`1273_instagram_seed_poc/handle_spelling_yield.py` の `artifact_sql()` が数える)
+
+    長い語を先に置くのは `food` が `foodie` を食べないようにするため。
+
+    ## 境界を要求した影響（2026-09-05 実測・handle 163,215 件）
+
+    料理語に当たる handle は **2,101 → 437 件（-79.2%）**。増えたものは 0 件。
+    落ちた 1,664 件の内訳（上位）:
+
+    | 語 | 落ちた | 例 |
+    | --- | ---: | --- |
+    | `eat` | 671 | `_creative_mongsim` `_alittlebeat` `1to.ma1weather` |
+    | `food` | 227 | `_foodholiday_` `_sora7.foodtruck_` |
+    | `gohan` | 130 | `ai.ouchigohan` `_gohanyasan` |
+    | `meshi` | 114 | `aya_sameshima` / `anagomeshi_ueno` |
+    | `guru` | 101 | `amigurumikei` `asahiguruma` |
+    | `oishi` / `umai` | 167 | `chihiroishino` `adrans.kansai.sumai` |
+
+    ⚠️ **区切り無しの連結（`ouchigohan` `anagomeshi_ueno` `bimigurume_tokyo`）も一緒に落ちる。**
+    それでもこの規則を採るのは、**段が取れ高を予測しないと実証済み**だからである
+    （C 地域語 0.057 / D 料理語 0.056 / E 語なし 0.055 で差が無い）。
+    段は `4_2 --candidate-tiers` の絞り込みラベルとしてしか使わないので、
+    «取りこぼし» の実害は無く、«誤爆したラベルが人を誤解させる» 害の方が大きい。
+    **段を再び優先順位に使いたくなったら、まずその予測力を測り直すこと。**
+    """
+    alternation = "|".join(sorted(tokens, key=len, reverse=True))
+    return f"{_TOKEN_LEFT}({alternation}){_TOKEN_RIGHT}"
 
 
 CANDIDATE_SCHEMA = [
