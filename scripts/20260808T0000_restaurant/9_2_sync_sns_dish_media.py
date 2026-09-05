@@ -443,9 +443,16 @@ def export_catalog(
     fetchall しない。全国分を一度にメモリへ載せないための作法（9_1_sync_restaurants と同じ）。
     """
     # KPI（アプリの 134 カテゴリ）の判定は common_sns が唯一の正。ここへ写経しない。
-    from common_sns import _kpi_tables
+    #
+    # ⚠️ ここは common_sns の «選ぶため» の表（kpi_dish_categories.json の **140 QID**）を
+    #    読んでいた。140 はラベル照合の語彙であって KPI の分母ではないので、«KPI 134 カテゴリ外の行数» と
+    #    名乗りながら 140 で数えていた。実測 2026-09-05（catalog run sns-catalog-2026-09-05c）:
+    #    異なり店は 134 で 18,747 / 140 で 19,005 と **258 店ずれる**。
+    #    KPI と名乗って数えるものは必ず `kpi_gate_category_sql`（JP ゲート＝134）を通す。
+    from common_sns import kpi_gate_category_sql
 
-    kpi_qids, _ = _kpi_tables()
+    kpi_qids = {r["item_qid"] for r in pipeline.execute(
+        kpi_gate_category_sql(pipeline.config.dish_dataset_ref, key_param=None))}
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=query_parameters(run_ids, restaurant_catalog_run_id)
