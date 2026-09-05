@@ -769,6 +769,68 @@ def probe_key(client: FreePlacesClient, cache: ProbeCache, key: NameKey,
     return results[0], results[1]
 
 
+def probe_todo(
+    todo: list[NameKey],
+    keys: dict[NameKey, dict[str, Any]],
+    probe,
+    *,
+    workers: int,
+    run_id: str,
+    now: str,
+) -> tuple[list[dict[str, Any]], dict[str, int], bool]:
+    """キーを並列に聞いて、書き出す行を作る。戻り値は (行, 判定の内訳, 上限に当たったか)。
+
+    ⚠️ 日次上限に当たったら、まだ順番待ちのキーを **聞かずに捨てる**。例外を投げて
+    `with ThreadPoolExecutor` を抜けるだけでは止まらない。shutdown は投入済みのタスクを
+    全部実行してから返るので、45,000 件を submit してあると残り全部が 429 を貰いに行き、
+    上限に当たった後も数時間走り続ける。
+
+    捨てたキーの行は **作らない**。作ると `load_done_keys` が «聞いた» と見なして、
+    次の run が二度と聞かなくなる（= そのキーは永久に確定しない）。
+    """
+    quota_exhausted = threading.Event()
+    rows: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+
+    def work(key: NameKey) -> dict[str, Any] | None:
+        if quota_exhausted.is_set():
+            return None
+        try:
+            box_result, area_result = probe(key)
+        except DailyQuotaExhausted:
+            quota_exhausted.set()
+            return None
+        decision = decide_name_match(box_result, area_result)
+        entry = keys[key]
+        return {
+            "store_name": key.store_name,
+            "area_pref": key.pref,
+            "area_city": key.city,
+            "name_source": entry["name_source"],
+            "google_place_id": decision.place_id,
+            "decision": decision.decision,
+            "box_place_ids": list(box_result.place_ids),
+            "area_place_ids": list(area_result.place_ids),
+            "post_count": len(entry["post_ids"]),
+            "sample_post_id": entry["post_ids"][0],
+            "algorithm_version": ALGORITHM_VERSION,
+            "resolved_at": now,
+            "run_id": run_id,
+        }
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(work, key) for key in todo]
+        for i, future in enumerate(as_completed(futures), start=1):
+            row = future.result()
+            if row is None:  # 上限に当たった後のキー。聞いていないので «済み» にしない
+                continue
+            rows.append(row)
+            counts[row["decision"]] = counts.get(row["decision"], 0) + 1
+            if i % 200 == 0:
+                LOGGER.info("  %d/%d 件（確定 %d）", i, len(todo), counts.get(DECISION_MATCHED, 0))
+    return rows, counts, quota_exhausted.is_set()
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
@@ -818,41 +880,15 @@ def main() -> None:
     client = FreePlacesClient(api_key(), rate_limiter=limiter)
     started_at = time.monotonic()
     cache = ProbeCache(Path(args.cache))
-    rows: list[dict[str, Any]] = []
-    counts: dict[str, int] = {}
     now = utc_now().isoformat()
 
-    def work(key: NameKey) -> dict[str, Any]:
-        box_result, area_result = probe_key(client, cache, key, geo["boxes"][(key.pref, key.city)])
-        decision = decide_name_match(box_result, area_result)
-        entry = keys[key]
-        return {
-            "store_name": key.store_name,
-            "area_pref": key.pref,
-            "area_city": key.city,
-            "name_source": entry["name_source"],
-            "google_place_id": decision.place_id,
-            "decision": decision.decision,
-            "box_place_ids": list(box_result.place_ids),
-            "area_place_ids": list(area_result.place_ids),
-            "post_count": len(entry["post_ids"]),
-            "sample_post_id": entry["post_ids"][0],
-            "algorithm_version": ALGORITHM_VERSION,
-            "resolved_at": now,
-            "run_id": run_id,
-        }
-
-    try:
-        with ThreadPoolExecutor(max_workers=args.workers) as pool:
-            futures = {pool.submit(work, key): key for key in todo}
-            for i, future in enumerate(as_completed(futures), start=1):
-                row = future.result()
-                rows.append(row)
-                counts[row["decision"]] = counts.get(row["decision"], 0) + 1
-                if i % 200 == 0:
-                    LOGGER.info("  %d/%d 件（確定 %d）", i, len(todo), counts.get(DECISION_MATCHED, 0))
-    except DailyQuotaExhausted:
-        LOGGER.error("Text Search の日次上限に当たりました。ここまでの結果だけ書き出します")
+    rows, counts, hit_quota = probe_todo(
+        todo, keys, lambda key: probe_key(client, cache, key, geo["boxes"][(key.pref, key.city)]),
+        workers=args.workers, run_id=run_id, now=now)
+    if hit_quota:
+        LOGGER.error("Text Search の日次上限に当たりました（%d/%d 件で打ち切り）。"
+                     "ここまでの結果だけ書き出します。残りは次の run で聞き直します",
+                     len(rows), len(todo))
 
     LOGGER.info("判定の内訳: %s", json.dumps(counts, ensure_ascii=False, sort_keys=True))
     matched = counts.get(DECISION_MATCHED, 0)

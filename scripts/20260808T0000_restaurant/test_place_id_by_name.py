@@ -339,6 +339,52 @@ class PinNameRuleDriftTest(unittest.TestCase):
         self.assertEqual("📍", sns_html._PIN_MARK)
 
 
+class DailyQuotaStopsWithoutMarkingKeysDoneTest(unittest.TestCase):
+    """日次上限に当たったキーを «聞いた» ことにしない（= 次の run が聞き直せる）。
+
+    行を作ってしまうと `load_done_keys` が拾い、そのキーは**二度と聞かれない**。
+    また、投入済みタスクを最後まで走らせると上限に当たった後も 429 を貰い続ける
+    （45,000 件 submit してあると数時間）。両方をここで固定する。
+    """
+
+    def _keys(self, n: int):
+        keys = [resolver.NameKey(f"店{i}", "東京都", "八王子市") for i in range(n)]
+        return keys, {k: {"post_ids": [f"p{i}"], "name_source": "pin"}
+                      for i, k in enumerate(keys)}
+
+    def test_keys_after_the_quota_is_hit_produce_no_rows(self) -> None:
+        todo, keys = self._keys(50)
+        asked: list[str] = []
+        ok = SearchResult(("PLACE",), 200)
+
+        def probe(key):
+            asked.append(key.store_name)
+            if len(asked) > 5:
+                raise free_places.DailyQuotaExhausted("PerDayPerProject")
+            return ok, ok
+
+        rows, counts, hit_quota = probe_todo_with(todo, keys, probe)
+        self.assertTrue(hit_quota)
+        self.assertLessEqual(len(rows), 5)
+        # 聞いていないキーの行が混ざっていないこと（混ざると永久に聞き直されない）
+        self.assertTrue({r["store_name"] for r in rows} <= set(asked))
+        # 上限の後は «聞かずに降りる»。50 件を最後まで聞きに行かない
+        self.assertLess(len(asked), 50)
+        self.assertEqual(counts.get(resolver.DECISION_MATCHED, 0), len(rows))
+
+    def test_without_the_quota_every_key_gets_a_row(self) -> None:
+        todo, keys = self._keys(20)
+        ok = SearchResult(("PLACE",), 200)
+        rows, counts, hit_quota = probe_todo_with(todo, keys, lambda key: (ok, ok))
+        self.assertFalse(hit_quota)
+        self.assertEqual(20, len(rows))
+        self.assertEqual(20, counts[resolver.DECISION_MATCHED])
+
+
+def probe_todo_with(todo, keys, probe):
+    return resolver.probe_todo(todo, keys, probe, workers=4, run_id="t", now="2026-09-05T00:00:00")
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -422,6 +468,52 @@ class NameSourcesTest(unittest.TestCase):
                                 ("店名：まる屋", "label")]:
             self.assertTrue(pattern.search(caption), f"{source}: {caption} が SQL で落ちる")
             self.assertIsNotNone(self._one(caption, source), caption)
+
+
+class DailyQuotaStopsWithoutMarkingKeysDoneTest(unittest.TestCase):
+    """日次上限に当たったキーを «聞いた» ことにしない（= 次の run が聞き直せる）。
+
+    行を作ってしまうと `load_done_keys` が拾い、そのキーは**二度と聞かれない**。
+    また、投入済みタスクを最後まで走らせると上限に当たった後も 429 を貰い続ける
+    （45,000 件 submit してあると数時間）。両方をここで固定する。
+    """
+
+    def _keys(self, n: int):
+        keys = [resolver.NameKey(f"店{i}", "東京都", "八王子市") for i in range(n)]
+        return keys, {k: {"post_ids": [f"p{i}"], "name_source": "pin"}
+                      for i, k in enumerate(keys)}
+
+    def test_keys_after_the_quota_is_hit_produce_no_rows(self) -> None:
+        todo, keys = self._keys(50)
+        asked: list[str] = []
+        ok = SearchResult(("PLACE",), 200)
+
+        def probe(key):
+            asked.append(key.store_name)
+            if len(asked) > 5:
+                raise free_places.DailyQuotaExhausted("PerDayPerProject")
+            return ok, ok
+
+        rows, counts, hit_quota = probe_todo_with(todo, keys, probe)
+        self.assertTrue(hit_quota)
+        self.assertLessEqual(len(rows), 5)
+        # 聞いていないキーの行が混ざっていないこと（混ざると永久に聞き直されない）
+        self.assertTrue({r["store_name"] for r in rows} <= set(asked))
+        # 上限の後は «聞かずに降りる»。50 件を最後まで聞きに行かない
+        self.assertLess(len(asked), 50)
+        self.assertEqual(counts.get(resolver.DECISION_MATCHED, 0), len(rows))
+
+    def test_without_the_quota_every_key_gets_a_row(self) -> None:
+        todo, keys = self._keys(20)
+        ok = SearchResult(("PLACE",), 200)
+        rows, counts, hit_quota = probe_todo_with(todo, keys, lambda key: (ok, ok))
+        self.assertFalse(hit_quota)
+        self.assertEqual(20, len(rows))
+        self.assertEqual(20, counts[resolver.DECISION_MATCHED])
+
+
+def probe_todo_with(todo, keys, probe):
+    return resolver.probe_todo(todo, keys, probe, workers=4, run_id="t", now="2026-09-05T00:00:00")
 
 
 if __name__ == "__main__":
