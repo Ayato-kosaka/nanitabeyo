@@ -46,6 +46,7 @@
     午後4時〜午後10時         … 午前/午後の自由記述
     11:30〜(L.O.14:00)       … 終了時刻が無い
     ランチ営業のみ            … 時刻が無い
+    新春セミナー 13:00-15:00  … 営業時間の話だと読める語が無い（曜日も区分も無い場合）
 
 ## 使い方
 
@@ -105,6 +106,17 @@ _AMPM_RE = re.compile(r"午前|午後")
 
 # 「定休日 …」「（木曜定休）」の休業日宣言を拾う
 _CLOSED_DECLARATION_RE = re.compile(r"(?:定休日|休業日|定休)")
+
+# 「曜日が書かれていない時刻」を «毎日» と読んでよいと判断するための手がかり。
+#
+# ⚠️ **ここがこのモジュールで唯一 «書かれていないことを補う» 場所である。**
+#    自由記述では、時刻の区間はページ中にいくらでも出てくる（セミナー告知、ラストオーダー、
+#    アクセスの電車時刻…）。曜日の手がかりが無いものを無条件に «毎日の営業時間» と読むと、
+#    **営業時間ではない数字で全曜日を埋める**（実測: 「新春セミナー 13:00-15:00」で 7 行できた）。
+#
+#    そこで «営業時間の話をしている» と読める語が本文にあるときだけ、この補完を許す。
+#    語が無ければ `None` を返す = unknown のまま残す（候補から消えないので害が無い）。
+_OPENING_CONTEXT_RE = re.compile(r"営業時間|営業日|開店|オープン|OPEN|Open|ランチ|ディナー")
 
 
 def _normalize(text: str) -> str:
@@ -250,6 +262,9 @@ def parse_jp_site_opening_hours(text: str | None) -> list[OpeningHourRow] | None
         if day_rows:
             rows = day_rows
         else:
+            # 曜日も区分も無い形。**営業時間の話だと読める語が無ければ諦める**（上の注記）
+            if not _OPENING_CONTEXT_RE.search(normalized):
+                return None
             spans = _parse_spans(normalized)
             if not spans:
                 return None

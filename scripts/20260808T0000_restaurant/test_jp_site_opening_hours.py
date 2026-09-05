@@ -112,6 +112,22 @@ class WholeTextIsRefusedTest(unittest.TestCase):
         """終了時刻が無い「11:30〜」は区間にならない。"""
         self.assertIsNone(parse("営業時間 11:30〜 ラストオーダーは14:00です"))
 
+    def test_time_span_without_opening_context_is_refused(self) -> None:
+        """⚠️ **実際に踏んだ穴。** 曜日も区分も無い時刻を無条件に «毎日の営業時間» と
+        読むと、**営業時間ではない数字で全曜日を埋める**。
+
+        自由記述のページには時刻の区間がいくらでも出てくる（催しの告知、ラストオーダー、
+        アクセスの電車時刻…）。«営業時間の話をしている» と読める語が無ければ諦める。
+        """
+        self.assertIsNone(parse("新春セミナーのご案内 13:00-15:00 会場は2階です"))
+        self.assertIsNone(parse("第3回 料理教室 10:00-12:00 参加費は無料です"))
+
+    def test_opening_context_allows_the_every_day_reading(self) -> None:
+        """逆に «営業時間» と書いてあれば、曜日が無くても毎日として読む。"""
+        rows = parse("営業時間 11:00-14:00")
+        assert rows is not None
+        self.assertEqual(dows(rows), set(range(7)))
+
 
 class GrammarTest(unittest.TestCase):
     def test_no_weekday_means_every_day(self) -> None:
