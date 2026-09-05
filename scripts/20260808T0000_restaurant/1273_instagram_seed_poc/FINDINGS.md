@@ -286,3 +286,79 @@ P1: 未収集 17,456 店アカ handle を検索で投稿化（You.com 20k/Tavily
 **限界（正直に）**: A 段の未収集は 154 件しかない。伸びの本体は C 段（14,405 件・1.09 店/コール）で、
 これは «2 週間ぶんの IG 枠» に相当する。A 段を増やすには «ご当地グルメアカウントを新しく見つける»
 必要があり、そこは本 script の範囲外（検索 API 枠 ~26k/月 を 47 都道府県ぶん使うのが次の候補）。
+
+---
+
+## 2026-09-05 — 却下確定: ハンドルの **綴り** では取れ高を予測できない（蒸し返さない）
+
+再実行用の script: [`handle_spelling_yield.py`](handle_spelling_yield.py)（BQ 読み取りのみ・IG コール 0）。
+
+### 何を試そうとしたか
+
+直前の節（`4_19_rank_account_candidates.py`）の較正表で «A 段 = 料理語×地域語 が 18.625 店/コール、
+D 段 = 店アカウント の 86 倍» と出たので、**`sapporo_gourmet` 型のハンドルを地域語×料理語×区切り文字で
+機械的に組み立て、実在するものだけ残せば A 段を量産できる**、という案が立った。
+
+### 結論 — 成立しない。**IG のコールを 1 回も使わずに否定できた**
+
+較正表は成果を `sns_post_resolved` の matched で数えていた。成果を
+**«配信カタログ `sns_dish_media_catalog` に載った異なり店»** に替え、さらに
+**«人が選んだ一覧（`discovery_method='influencer_list'`）に載っているか»** で層別すると、
+効いていたのは綴りではなく curation だった。
+
+| 段（ハンドルの綴り） | curated あり | **curated なし** | 収集済アカウント（curated あり / なし） |
+| --- | ---: | ---: | --- |
+| A 料理語 × 地域語 | 49.911 | **0.061** | 45 / 212 |
+| B 料理語のみ | 38.960 | **0.121** | 25 / 704 |
+| C 地域語のみ | 38.280 | **0.134** | 132 / 5,820 |
+| D 店アカウント | — | **0.592** | 0 / 5,364 |
+| E 語なし | 21.377 | **0.051** | 175 / 42,110 |
+
+（分母＝収集済アカウント数＝business_discovery のコール数、分子＝そのアカウント由来で
+配信カタログに載った異なり `google_place_id` の合計）
+
+- 未収集プールはほぼ全部 curated ではない。**組み立てたハンドルの期待値は 0.05〜0.13 店/コール**で、
+  店アカウント（**0.592**）より **1 桁悪い**。
+- 非 curated の中では **A 段が最下位**。綴りの «効果» は大きさどころか**符号が逆**である。
+- 直前の節にある «選択バイアス除去（cc_wat_profile / embedded_authors だけで 4.698 対 0.067）» は
+  **確認になっていなかった**。成果を matched で数えていたうえ、`influencer_list` に載っている
+  ハンドルが他の discovery_method からも入るため、経路で切っても curation は抜けない。
+  **バイアスの確認は、指標を確定させてからでないと確認にならない。**
+
+### なぜ綴りが効いて見えたか（2 つ）
+
+1. **選択バイアス**: A 段の収集済み 257 件のうち 45 件（17.5%）が `influencer_list`。
+   この 45 件が段の合計（2,259 店）のうち 2,246 店、**99.4%** を作っていた。
+2. **部分文字列の誤爆**: `FOOD_TOKENS` の `eat` が theatre / create / meat / great / breath /
+   retreat / sweat に、`umai` が sumai（住まい）に、`oishi` が koishikawa に当たる。
+   A 段 273 件のうち **71 件（26%）は料理語が部分文字列でしか当たっていない**
+   （`nationaltheatre_tokyo` `sumai_yokohama` `mariakoishikawa` `aichi_creative`
+   `kodamaya_retreat_matsumoto` …）。`4_19` の段は**この誤爆を含んだまま**である。
+
+### 綴りの «型» 自体は実在する（が、取れ高を予測しない）
+
+A 段の実在ハンドルのうち誤爆でない 74 件を数えた分布（`shapes()`）。組み立て案はここから型を取っていた。
+
+| 並び × 区切り | 件数 | 例 |
+| --- | ---: | --- |
+| 地域語 `_` 料理語 | 21 | `okayama_gourmet` `kagawa_lunch` `gifu_gourmet` |
+| 地域語 + 語 + 料理語 | 12 | `kagoshima_no1_foods` `tokyo_highcosper_gourmet` |
+| 地域語 直結 料理語 | 12 | `okayamagurume` `yamaguchigurume` `fukuieat` |
+| 料理語 + 語 + 地域語 | 12 | `gourmetdemiyazaki` `tabimeshi_fukushima` |
+| 地域語 `.` 料理語 | 8 | `toyama.gourmet` `shiga.meshi` `tokushima.food` |
+| 料理語 `_` 地域語 | 6 | `gourmet_wakayama` `gurume_fukushima` |
+| 地域語 `__` 料理語 | 3 | `aichi__gourmet` `tochigi__gurume` `oita__gohan` |
+
+接尾辞は 74 件中 47 件が無し、7 件が数字（`osaka_gourmet1` `tokyogourmet3` `chiba.gourmet2021`）、
+3 件が `_`（`osaka_gourmet_` `hiroshimagurume_`）。**型は確かに予測可能**で、
+数字・`_` 付きが存在することは «素の形は既に誰かが取っている» ことまで示唆する。
+**それでも組み立てが効かない**のは、当たり外れを決めているのが綴りではなく
+«そのアカウントが多店舗を回るキュレーターかどうか» だからである。
+
+### 蒸し返さないために
+
+- **綴り（地域語・料理語・区切り）から «1 コールあたり異なり店» を予測しようとしない。**
+  やるなら `handle_spelling_yield.py` を 1 回回す。答えは上の表に出る。
+- 段別の取れ高を語るときは、**成果を配信カタログの異なり店で数え、curation で層別してから**にする。
+  matched で数えた段の差は curation の写し絵である。
+- `4_19` の段は `eat` 系の部分文字列誤爆を 26% 含む。段を使い続けるなら、まずそこを直す。
