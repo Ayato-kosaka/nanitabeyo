@@ -256,6 +256,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="表示する修復 SQL。省略すると両方を表示する",
     )
     parser.add_argument(
+        "--counts-only",
+        action="store_true",
+        help="数だけを出し、修復 SQL を表示しない。SQL が長いので «何行あるか» "
+        "だけを見たいとき（run ログを読むとき）に使う",
+    )
+    parser.add_argument(
         "--apply",
         action="store_true",
         help="修復 SQL を実際に流す。**dev 専用**で、--repair の指定が要る。"
@@ -361,6 +367,11 @@ def main() -> None:
                     LOGGER.warning("  %d 行に適用しました", cursor.rowcount)
             connection.commit()
             LOGGER.warning("適用してコミットしました（schema=%s）", args.schema)
+            return
+
+        if args.counts_only:
+            LOGGER.info("")
+            LOGGER.info("--counts-only のため修復 SQL は表示しません（1 行も書き換えていません）")
             return
 
         for name in ([args.repair] if args.repair else sorted(REPAIRS)):
