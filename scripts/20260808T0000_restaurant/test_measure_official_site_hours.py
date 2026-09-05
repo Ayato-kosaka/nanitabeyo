@@ -121,6 +121,44 @@ class NonJapanesePageTest(unittest.TestCase):
         self.assertEqual(self.classify(html), "no_hours_mentioned")
 
 
+class AsciiUrlTest(unittest.TestCase):
+    """⚠️ **こちらのバグを塞ぐ番人。** 300 件の実測（run 33990366415）で
+    `UnicodeEncodeError` が 1 件出た。HTTP のリクエスト行は ASCII なので、
+    ホスト名やパスに日本語が入っていると **送信の時点で落ちる**。
+    「到達できなかった」に数えていたが、**相手には 1 回も届いていない**。
+    """
+
+    def test_already_encoded_url_is_not_double_encoded(self) -> None:
+        """⚠️ いちばん壊しやすいところ。**二重エンコードすると 404 になる。**
+
+        実際の標本にこの URL があった。`%e7` を `%25e7` にしてはいけない。
+        """
+        url = "https://www.terakoyahonpo.jp/kanto/%e7%86%b1%e6%b5%b7%e5%ba%97"
+        self.assertEqual(measure.to_ascii_url(url), url)
+
+    def test_japanese_host_and_path_become_sendable(self) -> None:
+        got = measure.to_ascii_url("http://日本語.jp/メニュー")
+        self.assertEqual(got, "http://xn--wgv71a119e.jp/%E3%83%A1%E3%83%8B%E3%83%A5%E3%83%BC")
+        got.encode("ascii")  # 送れること（ここが本題）
+
+    def test_tilde_is_preserved(self) -> None:
+        """`~user` 形式は標本に実在する（http://www9.ocn.ne.jp/~ka-na-ya）。"""
+        url = "http://www9.ocn.ne.jp/~ka-na-ya"
+        self.assertEqual(measure.to_ascii_url(url), url)
+
+    def test_fragment_is_dropped_and_space_encoded(self) -> None:
+        """フラグメントはサーバへ送らない。空白は送れないのでエンコードする。"""
+        self.assertEqual(
+            measure.to_ascii_url("https://example.com/a b?q=café&x=1#frag"),
+            "https://example.com/a%20b?q=caf%C3%A9&x=1",
+        )
+
+    def test_host_that_cannot_be_idna_is_left_alone(self) -> None:
+        """アンダースコア入りホストは IDNA にできない。**落とさず素通しする。**"""
+        url = "http://my_host.example.com/x"
+        self.assertEqual(measure.to_ascii_url(url), url)
+
+
 class SamplingTest(unittest.TestCase):
     """標本の作り方。**ここが狂うと数字の意味が変わる。**"""
 

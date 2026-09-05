@@ -149,9 +149,44 @@ def html_to_text(html: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def to_ascii_url(url: str) -> str:
+    """非 ASCII を含む URL を、そのまま送れる形へ直す。
+
+    ⚠️ **これはこちらのバグを塞ぐためのもので、相手の都合ではない。**
+    300 件の実測（run 33990366415）で `UnicodeEncodeError` が 1 件出た。HTTP の
+    リクエスト行は ASCII なので、**ホスト名やパスに日本語が入っていると送信の時点で
+    落ちる**。「到達できなかった」に数えていたが、**相手には 1 回も届いていない**。
+
+    - ホスト名は IDNA（punycode）へ。`日本語.jp` → `xn--wgv71a119e.jp`
+    - パス・クエリはパーセントエンコードへ
+
+    ⚠️ `safe` に `%` を含めること。含めないと **すでにエンコード済みの URL を
+    二重エンコードする**（実際の標本に `%e7%86%b1%e6%b5%b7%e5%ba%97` があり、
+    `%25e7...` にすると 404 になる）。
+    """
+    parts = urllib.parse.urlsplit(url)
+    host = parts.hostname or ""
+    try:
+        netloc = host.encode("idna").decode("ascii")
+    except (UnicodeError, ValueError):
+        # 空ラベル・アンダースコア入りなど IDNA にできないホスト。触らずに渡す
+        netloc = host
+    if parts.port:
+        netloc = f"{netloc}:{parts.port}"
+    return urllib.parse.urlunsplit(
+        (
+            parts.scheme,
+            netloc,
+            urllib.parse.quote(parts.path, safe="/%~"),
+            urllib.parse.quote(parts.query, safe="%=&?+;,:@!$'()*~"),
+            "",  # フラグメントはサーバへ送らないので落とす
+        )
+    )
+
+
 def fetch(url: str, timeout: float) -> tuple[str | None, str]:
     """(本文, 失敗理由) を返す。成功なら理由は空文字。**再試行しない。**"""
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    req = urllib.request.Request(to_ascii_url(url), headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as res:
             ctype = res.headers.get("Content-Type", "")
@@ -185,7 +220,9 @@ def robots_allows(url: str, cache: dict[str, urllib.robotparser.RobotFileParser 
        «置いていない»（= 制限なし）が実測 10 件中 3 件あった。取れないことを禁止と
        読むと、制限を課していないサイトまで数から落ちて母数が歪む。
     """
-    parts = urllib.parse.urlsplit(url)
+    # ⚠️ ここも ASCII へ直す。**本文と robots.txt は同じホストを叩く**ので、
+    #    片方だけ直すと «robots は取れないのに本文は取れる» というちぐはぐが起きる。
+    parts = urllib.parse.urlsplit(to_ascii_url(url))
     origin = f"{parts.scheme}://{parts.netloc}"
     if origin not in cache:
         rp = urllib.robotparser.RobotFileParser()
@@ -199,7 +236,7 @@ def robots_allows(url: str, cache: dict[str, urllib.robotparser.RobotFileParser 
         except Exception:  # noqa: BLE001
             cache[origin] = None  # 取れなかった = 制限なしとして扱う
     rp = cache[origin]
-    return True if rp is None else rp.can_fetch(USER_AGENT, url)
+    return True if rp is None else rp.can_fetch(USER_AGENT, to_ascii_url(url))
 
 
 # ⚠️ **国で絞る。** パーサは日本語専用なので、韓国語サイトを母数に混ぜると
