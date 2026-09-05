@@ -116,6 +116,17 @@ class SqlContractTest(unittest.TestCase):
         # 1 投稿に 2 店当たったものは書かない
         self.assertIn("WHERE n_place = 1", sql)
 
+    def test_backfill_marks_what_it_wrote(self) -> None:
+        """後入れした seed は discovery_method で識別できること。
+
+        ここで入れる seed は目視 200 件で誤帰属 4%。収集時に確定した seed とは確度が違うので、
+        混ざると監査も巻き戻しもできない。**印を落とす変更を通さない**ための固定。
+        """
+        sql = mod_4_17.backfill_sql(self.p, None)
+        self.assertIn("discovery_method = 'caption_bare_handles'", sql)
+        # 収集経路そのものは書き換えない（元の情報を失わせない）
+        self.assertNotIn("discovery_route =", sql)
+
     def test_backfill_limit_is_deterministic(self) -> None:
         self.assertIn("ORDER BY post_id LIMIT @row_limit",
                       mod_4_17.backfill_sql(self.p, 1000))
