@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 """#1273 収集する «順番» を決める: 未収集ハンドルを «1 コールあたり何店取れるか» で並べる。
 
+⚠️ **2026-09-05 訂正 — 下の較正表の «段の差» は綴りの効果ではない。**
+成果を `sns_post_resolved` の matched ではなく **配信カタログ（`sns_dish_media_catalog`）の
+異なり店**で数え直し、«人が選んだ一覧（`influencer_list`）に載っているか» で層別すると、
+curated なしでは A 段 0.061 / B 0.121 / C 0.134 / D 店アカウント 0.592 / E 0.051 で、
+**A 段は最下位**になる（未収集プールはほぼ全部 curated なし）。下の «選択バイアス除去
+（4.698 対 0.067）» は成果を matched で数えていたため確認になっていない。
+実測と再実行用の script は
+`1273_instagram_seed_poc/FINDINGS.md` の «ハンドルの綴りでは取れ高を予測できない» と
+`1273_instagram_seed_poc/handle_spelling_yield.py`。
+また `FOOD_TOKENS` の `eat` が theatre/create/meat/great/breath/retreat/sweat に、
+`umai` が sumai に、`oishi` が koishikawa に当たるため、**A 段 273 件の 26%（71 件）は
+料理語が部分文字列でしか当たっていない**。この script の順番を使い続けるなら先にそこを直すこと。
+
 ## なぜこれが要るか（2026-09-05 実測）
 
 投稿収集（`4_2_collect_account_posts.py`）の律速は **Instagram Graph API の
