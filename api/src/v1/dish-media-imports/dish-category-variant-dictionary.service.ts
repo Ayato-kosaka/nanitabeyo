@@ -30,91 +30,24 @@ import {
   type DishCategoryVariantEntry,
   type DishCategoryVariantIndex,
 } from '../../../../shared/utils/dishCategoryMatch';
-import { normalizeMatchText } from '../../../../shared/utils/textNormalize';
+import { buildJapaneseLabelVariants } from '../../../../shared/utils/dishCategoryDictionary';
 
 /** 辞書として読む行数の上限。実測見込み（約 5,000 行）の 10 倍を安全余裕として取る */
 export const DISH_CATEGORY_VARIANT_LOAD_LIMIT = 50_000;
 
 /**
- * #1273 日本語の表記ゆれ・略称の追い足し（キーは各カテゴリの `labels.ja` の**正規化前の値**）。
+ * #1273 日本語ラベルの足し戻し（`buildJapaneseLabelVariants` / `DISH_CATEGORY_JA_LABEL_SYNONYMS`）は
+ * **`shared/utils/dishCategoryDictionary.ts` が正**。ここからは再輸出するだけにしてある。
  *
- * ## なぜ QID ではなくラベルをキーにするか
- *
- * QID をキーにすると「アプリに存在しない QID を指す幽霊エントリ」が混ざりうる。
- * `labels.ja` をキーにすれば、`buildJapaneseLabelVariants` が **実在するカテゴリにしか**
- * 別名を足せない（キーが一致した行にだけ足す）ので、アプリのカテゴリ集合が変わっても腐らない。
- *
- * ## 収録の基準（precision を落とさないもの «だけ»）
- *
- * ここに入れてよいのは「その料理を**別の綴りで書いただけ**」の表記ゆれと、
- * 誤解の余地がない略称に限る（`焼き鳥`↔`焼鳥`、`唐揚げ`↔`から揚げ`、`牛タン焼き`→`牛タン`）。
- * `カツ` `丼` `鍋` のような **他カテゴリと衝突する断片は入れない**（本文走査で誤爆するため）。
- * 本文走査に載るのは文字種別の最小長（漢字 2 / かな 3 / ラテン 4）を満たすものだけで、
- * `すし` `鮨` のような 2 文字以下は完全一致（ハッシュタグ等）でしか当たらない（誤爆しない）。
+ * 照合規則（`dishCategoryMatch.ts`）と同じく、辞書の作り方も api の外に置く。
+ * NestJS / Prisma を読み込まずにこの純関数だけを呼べるようにしておかないと、辞書の当たり方を
+ * オフラインで測り直す側が **表記ゆれの表を書き写す**方向へ逃げ、本番だけ直したときに
+ * 測定側が古い表のまま緑になる（CLAUDE.md「本番のロジックをテストへ写経しない」）。
  */
-export const DISH_CATEGORY_JA_LABEL_SYNONYMS: Record<
-  string,
-  readonly string[]
-> = {
-  焼き鳥: ['焼鳥', 'やきとり'],
-  そば: ['蕎麦'],
-  唐揚げ: ['から揚げ', 'からあげ', '唐揚'],
-  お好み焼き: ['お好み焼'],
-  たこ焼き: ['たこ焼', 'タコ焼き', 'タコ焼'],
-  とんかつ: ['トンカツ', '豚カツ'],
-  牛タン焼き: ['牛タン', '牛たん'],
-  餃子: ['ぎょうざ', 'ギョーザ', 'ギョウザ'],
-  ウナギ: ['うなぎ', '鰻'],
-  寿司: ['すし', '鮨'],
-  担担麺: ['担々麺', 'タンタンメン'],
-};
-
-/**
- * #1273 各カテゴリの `labels.ja`（＋表記ゆれ）を照合辞書のエントリへ変換する純関数。
- *
- * `dish_category_variants` はグローバル一意化で自分の日本語ラベルを失っているカテゴリがある
- * （`findAllCategoryLabelsForMatching` の doc 参照）。表示名の正である `labels.ja` を
- * 辞書へ足し戻すことで、キャプションに料理名が明記されていれば必ず候補が出るようにする。
- *
- * - `labels` が Json（`{ [lang]: string }`）でないもの、`ja` が空・非文字列のものは黙って捨てる
- * - `source` は `wikidata-label` 相当（本文走査の減点なし）。`labels.ja` は Wikidata の ja ラベルそのもの
- * - 表記ゆれは `DISH_CATEGORY_JA_LABEL_SYNONYMS` を **正規化前の ja ラベル**で引いて足す
- */
-export function buildJapaneseLabelVariants(
-  categories: readonly { id: string; labels: unknown }[] | null | undefined,
-): DishCategoryVariantEntry[] {
-  const out: DishCategoryVariantEntry[] = [];
-  for (const category of categories ?? []) {
-    if (
-      !category ||
-      typeof category.id !== 'string' ||
-      category.id.length === 0
-    )
-      continue;
-
-    const labels = category.labels;
-    if (labels === null || typeof labels !== 'object' || Array.isArray(labels))
-      continue;
-
-    const ja = (labels as Record<string, unknown>).ja;
-    if (typeof ja !== 'string' || normalizeMatchText(ja).length === 0) continue;
-
-    out.push({
-      dishCategoryId: category.id,
-      surfaceForm: ja,
-      source: 'wikidata-label',
-    });
-
-    for (const synonym of DISH_CATEGORY_JA_LABEL_SYNONYMS[ja] ?? []) {
-      out.push({
-        dishCategoryId: category.id,
-        surfaceForm: synonym,
-        source: 'wikidata-label',
-      });
-    }
-  }
-  return out;
-}
+export {
+  DISH_CATEGORY_JA_LABEL_SYNONYMS,
+  buildJapaneseLabelVariants,
+} from '../../../../shared/utils/dishCategoryDictionary';
 
 /** キャッシュの寿命（ms）。6 時間 */
 export const DISH_CATEGORY_VARIANT_CACHE_TTL_MS = 6 * 60 * 60 * 1_000;

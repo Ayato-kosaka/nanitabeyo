@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 
 import {
 	classifySurfaceScript,
+	isKatakanaOnlySurface,
 	clampConfidence,
 	confidenceMargin,
 	extractBareHandles,
@@ -148,6 +149,17 @@ test("classifySurfaceScript: 漢字が無くかなを含めば kana", () => {
 	assert.equal(classifySurfaceScript("ラーメン"), "kana");
 	assert.equal(classifySurfaceScript("らーめん"), "kana");
 	assert.equal(classifySurfaceScript("ぱい"), "kana");
+});
+
+test("#1273 isKatakanaOnlySurface: ひらがなが 1 文字でも混ざれば false（本文走査の最小長を分ける根拠）", () => {
+	// 長音符はカタカナの並びの一部として数える
+	assert.equal(isKatakanaOnlySurface("ピザ"), true);
+	assert.equal(isKatakanaOnlySurface("ラーメン"), true);
+	assert.equal(isKatakanaOnlySurface("ー"), false);
+	// ひらがな・漢字・ラテン文字が混ざったものは «カタカナだけ» ではない
+	for (const mixed of ["らーめん", "ちきん南蛮", "カレーうどん", "焼きそば", "ramen", ""]) {
+		assert.equal(isKatakanaOnlySurface(mixed), false, mixed);
+	}
 });
 
 test("classifySurfaceScript: ラテン文字・数字・記号だけなら latin", () => {

@@ -10,6 +10,11 @@ jest.mock('src/core/config/env', () => ({
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishCategoryVariantsRepository } from '../dish-category-variants/dish-category-variants.repository';
 import {
+  DISH_CATEGORY_JA_LABEL_SYNONYMS as SHARED_JA_LABEL_SYNONYMS,
+  buildJapaneseLabelVariants as sharedBuildJapaneseLabelVariants,
+} from '../../../../shared/utils/dishCategoryDictionary';
+import {
+  DISH_CATEGORY_JA_LABEL_SYNONYMS,
   buildJapaneseLabelVariants,
   DISH_CATEGORY_VARIANT_CACHE_TTL_MS,
   DISH_CATEGORY_VARIANT_LOAD_LIMIT,
@@ -170,5 +175,19 @@ describe('buildJapaneseLabelVariants', () => {
   it('null / 非配列でも空配列を返す', () => {
     expect(buildJapaneseLabelVariants(null)).toEqual([]);
     expect(buildJapaneseLabelVariants(undefined)).toEqual([]);
+  });
+
+  /*
+  #1273 表記ゆれの表と、それを辞書へ足す関数は **shared に 1 つだけ**置く。
+
+  もとは api の Service の中にあり、NestJS と Prisma を読み込まずには呼べなかった。
+  そのため «辞書の当たり方をオフラインで測り直す» 側が表を手元へ書き写す方向へ逃げやすく、
+  写した時点で本番だけを直したときに測定側が古い表のまま緑になる
+  （CLAUDE.md「本番のロジックをテストへ写経しない」）。ここが再び api 側の実体に戻ったら、
+  同じ形の事故が復活する。
+  */
+  it('#1273 表記ゆれの表と足し戻しの実体は shared に 1 つだけある（api は再輸出）', () => {
+    expect(buildJapaneseLabelVariants).toBe(sharedBuildJapaneseLabelVariants);
+    expect(DISH_CATEGORY_JA_LABEL_SYNONYMS).toBe(SHARED_JA_LABEL_SYNONYMS);
   });
 });

@@ -485,6 +485,30 @@ export function classifySurfaceScript(surface: string): SurfaceScript {
 	return "latin";
 }
 
+/**
+ * その表記が **カタカナ（と長音符）だけ**でできているか（#1273）。
+ *
+ * 本文走査の最小長を «かな» でひとまとめにすると、ひらがなの都合でカタカナまで巻き添えになる。
+ * この 2 つは実データでの振る舞いがまるで違うので、`isBodyScanEligible` はここで分ける
+ * （根拠は `dishCategoryMatch.ts` 冒頭の表）。長音符 `ー` は前後がカタカナのときだけ現れるので、
+ * カタカナの並びの一部として数える。**ひらがなが 1 文字でも混ざれば `false`。**
+ */
+export function isKatakanaOnlySurface(surface: string): boolean {
+	if (surface.length === 0) return false;
+
+	let hasKatakana = false;
+	for (let i = 0; i < surface.length; ) {
+		const code = surface.codePointAt(i) ?? 0;
+		const width = code > 0xffff ? 2 : 1;
+
+		if (isKatakanaCodePoint(code)) hasKatakana = true;
+		else if (!isProlongedCodePoint(code)) return false;
+
+		i += width;
+	}
+	return hasKatakana;
+}
+
 // ---------------------------------------------------------------------------
 // 語境界
 // ---------------------------------------------------------------------------

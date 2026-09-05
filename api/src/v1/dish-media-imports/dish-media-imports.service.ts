@@ -1104,6 +1104,29 @@ export class DishMediaImportsService {
     });
 
     if (matched.candidates.length === 0) {
+      /*
+      #1273 **候補ゼロは «理由つき» で残す。**
+
+      SNS 取り込みの一括 resolve は候補ゼロを `skipped_no_category` として BigQuery へ書くが、
+      そこに残っていたのは候補の «件数» だけだった。そのため「キャプションが取れていない」
+      「キャプションはあるが料理名が 1 語も無い」「料理名はあったが語境界で落とした」を
+      後から区別できず、40 万行の実キャプションを手で読み直すまで «どれを直せば何件戻るか» が
+      分からなかった（CLAUDE.md「見えないものは «無い» ではない」）。
+      `warn` ではなく `log` なのは、候補ゼロが**異常ではない**（料理の話でない投稿は普通にある）ため。
+      */
+      this.logger.log(
+        'SnsImportDishCategoryNoCandidate',
+        'findDishCategoryCandidates',
+        {
+          reason: matched.noCandidate?.reason ?? null,
+          textLength: matched.noCandidate?.textLength ?? 0,
+          boundaryRejectedCount: matched.noCandidate?.boundaryRejectedCount ?? 0,
+          // どの語で落ちているかを BigQuery 側で数えられるようにする（上位 3 件）
+          boundaryRejectedSamples:
+            matched.noCandidate?.boundaryRejectedSamples ?? [],
+          scannableCount: index.scannable.length,
+        },
+      );
       return {
         candidates: [],
         prefillDishCategoryId: matched.prefillDishCategoryId,

@@ -453,15 +453,100 @@ test("source を渡さない呼び出し側でも取りこぼしが増えない�
 
 test("本文走査の最小長は、文字種ごとに設計どおりの値になっている", () => {
 	const { bodyScanMinLength } = DISH_CATEGORY_MATCH_TUNING;
-	assert.deepEqual(bodyScanMinLength, { han: 2, kana: 3, latin: 4, other: 4 });
+	assert.deepEqual(bodyScanMinLength, { han: 2, kana: 3, katakana: 2, latin: 4, other: 4 });
 
-	// 漢字を含む 2 文字は載る / かなのみ 2 文字は載らない
+	// 漢字を含む 2 文字は載る
 	assert.equal(isBodyScanEligible("寿司"), true);
-	assert.equal(isBodyScanEligible("ぱい"), false);
-	assert.equal(isBodyScanEligible("パイ"), false);
 	assert.equal(isBodyScanEligible("うどん"), true);
 	assert.equal(isBodyScanEligible("abc"), false);
 	assert.equal(isBodyScanEligible("soup"), true);
 	assert.equal(isBodyScanEligible("гля"), false);
 	assert.equal(isBodyScanEligible("глясе"), true);
+});
+
+/*
+#1273 ここから 3 本は «かなをひとくくりにして長さで落とす» という形が戻らないことを固定する。
+
+もとは «かな 2 文字» をまとめて本文走査から外していた。外したかったのは `ぱい`（`お腹いっぱい`）
+`もち`（`もちろん`）のような **ひらがなが日本語の文に埋もれる**ケースで、カタカナは長さではなく
+**語境界**が止めている（`パイ` の直後が `ナ` なら不一致）。長さで二重に落としていたぶん、
+カタカナ 2 文字の料理名（`ピザ`）が丸ごと落ちていた。
+
+テストは個別の表記ではなく «この形» を固定する:
+  - カタカナだけの 2 文字は本文走査に載る
+  - ひらがなを 1 文字でも含む 2 文字は載らない
+  - 載せたカタカナ 2 文字が、長いカタカナ語の途中で当たることは無い（語境界が止める）
+*/
+/*
+#1273 «候補ゼロ» の理由が結果に必ず載ることを固定する。
+
+もとは «候補が 0 件» としか分からず、キャプションが取れていないのか / 料理名が 1 語も無いのか /
+規則で落としたのかを **後から区別する手段が無かった**。理由を返さない形へ戻すと、同じ調査を
+また実キャプションを手で読んでやり直すことになる（CLAUDE.md「見えないものは «無い» ではない」）。
+テストは個別の文言ではなく «ゼロなら必ず理由が付く / ゼロでなければ付かない» という形を固定する。
+*/
+test("#1273 候補が出たときは理由を付けない・出なかったときは必ず付ける", () => {
+	const entries: DishCategoryVariantEntry[] = [{ dishCategoryId: "ramen", surfaceForm: "ラーメン" }];
+
+	const hit = matchDishCategories(caption("今日はラーメンを食べた"), entries);
+	assert.ok(hit.candidates.length > 0);
+	assert.equal(hit.noCandidate, null);
+
+	for (const texts of [caption(""), caption("今日はいい天気でした"), caption("パイナップルジュース")]) {
+		const miss = matchDishCategories(texts, [
+			...entries,
+			{ dishCategoryId: "pie", surfaceForm: "パイ" },
+		]);
+		assert.deepEqual(miss.candidates, []);
+		assert.notEqual(miss.noCandidate, null);
+	}
+});
+
+test("#1273 候補ゼロの理由は «テキスト無し / 1 語も無い / 語境界で落とした» を区別する", () => {
+	const entries: DishCategoryVariantEntry[] = [
+		{ dishCategoryId: "ramen", surfaceForm: "ラーメン" },
+		{ dishCategoryId: "pie", surfaceForm: "パイ" },
+	];
+
+	assert.equal(matchDishCategories(caption(""), entries).noCandidate?.reason, "no_text");
+	assert.equal(matchDishCategories(caption("今日はいい天気でした"), entries).noCandidate?.reason, "no_surface_in_text");
+
+	// `パイ` は本文に現れているが、直後がカタカナなので語境界で落とす
+	const blocked = matchDishCategories(caption("パイナップルジュースが美味しい"), entries).noCandidate;
+	assert.equal(blocked?.reason, "blocked_by_word_boundary");
+	assert.equal(blocked?.boundaryRejectedCount, 1);
+	assert.deepEqual(blocked?.boundaryRejectedSamples, ["パイ"]);
+	assert.ok((blocked?.textLength ?? 0) > 0);
+});
+
+test("#1273 カタカナだけの 2 文字は本文走査に載る（ひらがなを含む 2 文字は載らない）", () => {
+	for (const katakana of ["ピザ", "パイ", "パン", "カツ"]) {
+		assert.equal(isBodyScanEligible(katakana), true, katakana);
+	}
+	for (const hiragana of ["ぱい", "もち", "そば", "すし", "うに", "ぴざ"]) {
+		assert.equal(isBodyScanEligible(hiragana), false, hiragana);
+	}
+});
+
+test("#1273 カタカナ 2 文字の料理名が本文で拾える", () => {
+	const entries: DishCategoryVariantEntry[] = [{ dishCategoryId: "pizza", surfaceForm: "ピザ" }];
+	assert.deepEqual(
+		matchDishCategories(caption("焼きたてのピザはもちろん、たっぷり野菜のサラダも"), entries).candidates.map(
+			(candidate) => candidate.dishCategoryId,
+		),
+		["pizza"],
+	);
+});
+
+test("#1273 カタカナ 2 文字を載せても、長いカタカナ語の途中では当たらない", () => {
+	// 最小長で二重に落としていたものを語境界だけで止める。ここが緩むと `パイナップル` が復活する
+	const entries: DishCategoryVariantEntry[] = [
+		{ dishCategoryId: "pie", surfaceForm: "パイ" },
+		{ dishCategoryId: "pizza", surfaceForm: "ピザ" },
+	];
+	assert.deepEqual(matchDishCategories(caption("パイナップルジュースが美味しい"), entries).candidates, []);
+	assert.deepEqual(matchDishCategories(caption("ピザーラではなくピザーロ"), entries).candidates, []);
+	// ひらがなを含む 2 文字は、そもそも本文走査に載らないので «近く» の意味でも当たらない
+	const soba: DishCategoryVariantEntry[] = [{ dishCategoryId: "soba", surfaceForm: "そば" }];
+	assert.deepEqual(matchDishCategories(caption("バス停のすぐそばにあります"), soba).candidates, []);
 });

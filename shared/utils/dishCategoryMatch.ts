@@ -63,9 +63,33 @@
  * | `surface_form` の文字種 | 最小長 | 根拠 |
  * | --- | --- | --- |
  * | 漢字を含む | 2 | `寿司` `豆腐` のような 2 文字が主力。漢字 2 文字が無関係な語に埋もれる頻度は低い |
- * | かなのみ | 3 | 実測 111 件ある CJK 2 文字以下がここで全部落ちる（`ぱい` `パイ` `もち` …） |
+ * | **カタカナのみ** | **2** | 下の「ひらがなとカタカナを分ける理由」を参照（#1273 実測） |
+ * | ひらがなを含むかな | 3 | ひらがな 2 文字は助詞・活用と衝突する（`〜のそば` `〜ですし` `〜のように`） |
  * | ラテン文字のみ | 4 | 実測でラテン 3 文字以下は 28 件。落としても損失が小さく、誤爆の削減が大きい |
  * | その他の文字体系 | 4 | 実測 2,727 件。日本語・英語のキャプションに紛れ込む理由が無いので厳しくしてよい |
+ *
+ * ### ひらがなとカタカナを分ける理由（#1273 / `skipped_no_category` の実測）
+ *
+ * もとは «かな» でひとまとめに 3 文字としていた。これは `ぱい`（`お腹いっぱい`）と
+ * `パイ`（`パイナップル`）を同じ «2 文字のかな» として一緒に落とすための値だったが、
+ * **`パイ` を止めているのは長さではなく語境界**である（`パイ` の直後が `ナ` ＝ カタカナなので
+ * `isWordBoundaryMatch` が不一致にする）。長さで二重に落としていたぶん、カタカナ 2 文字の
+ * 料理名まで巻き添えになっていた。
+ *
+ * `skipped_no_category` の実キャプション 14,889 件（候補ゼロだったもの）を数え直した結果:
+ *
+ * | 表記 | 文字種 | 出現 | 料理を指していたか |
+ * | --- | --- | --- | --- |
+ * | `ピザ` | カタカナ | 54 | **ほぼ全部**（`しらすのピザ` `焼きたてのピザ` `ピザ工房`。唯一の例外が `ピザ釜`） |
+ * | `そば` | ひらがな | 104 | 約半分が `バス停すぐそば` `神社そばの` ＝ «近く» の意味 |
+ * | `すし` | ひらがな | 29 | ほぼ全部が `〜ですし` `〜になりますし` ＝ 接続助詞 |
+ * | `うに` | ひらがな | 493 | ほぼ全部が `〜のように` |
+ * | `もち` | ひらがな | 349 | ほぼ全部が `もちろん` |
+ *
+ * ひらがなには語境界を課していない（`おいしいうどん` を落とさないため）ので、2 文字まで
+ * 下げると上表の «近く / ですし / ように / もちろん» を全部拾ってしまう。**ひらがなは 3 のまま、
+ * カタカナだけ 2 へ下げる。** この分割で候補ゼロの 14,889 件のうち 41 件が拾えるようになり、
+ * 新たに当たった 41 件は目視で全件が本当にピザの投稿だった（誤爆ゼロ）。
  *
  * **(2) 語境界**（`isWordBoundaryMatch`）。文字種ごとの規則は `textNormalize.ts` の表を参照。
  * 要点は「ラテン文字は語の途中に埋もれない」「カタカナはカタカナの並びの途中に埋もれない」で、
@@ -82,6 +106,7 @@ import {
 	classifySurfaceScript,
 	confidenceMargin,
 	extractHashtags,
+	isKatakanaOnlySurface,
 	isWordBoundaryMatch,
 	normalizeExtractedTexts,
 	normalizeMatchText,
@@ -170,7 +195,10 @@ export const DISH_CATEGORY_MATCH_TUNING = {
 	/** 本文走査に載せる最小長（`surface_form` の文字種別） */
 	bodyScanMinLength: {
 		han: 2,
+		/** ひらがなを含む «かな»。日本語の助詞・活用と衝突するので 3 のまま（冒頭の表） */
 		kana: 3,
+		/** カタカナだけでできた表記。語境界が効くので 2 まで下げてよい（冒頭の表） */
+		katakana: 2,
 		latin: 4,
 		other: 4,
 	},
@@ -243,9 +271,47 @@ export type DishCategoryCandidate = {
 	evidence: DishCategoryMatchEvidence[];
 };
 
+/**
+ * 候補が 1 件も出なかったときの «なぜゼロだったか»（#1273）。
+ *
+ * ## なぜ要るか（これが無くて 1 日ぶんの調査が要った）
+ *
+ * SNS 取り込みの一括 resolve は候補ゼロを `skipped_no_category` として記録するが、記録される
+ * のは **候補の «件数»** だけだった。そのため「キャプションが取れていない」「キャプションは
+ * あるが料理名が 1 語も無い」「料理名はあったが規則で落とした」を **後から区別する手段が無く**、
+ * 40 万行の実キャプションを手で読み直すまで «どれを直せば何件戻るか» が分からなかった
+ * （CLAUDE.md「見えないものは «無い» ではない」）。ゼロの理由は、ゼロを返す側が持っている。
+ *
+ * ⚠️ **`minLength` で落ちたぶんはここに出ない。** 索引が最小長を満たさない行を
+ * 保持していないため（保持すると本文走査が全行走査になり、コストが倍になる）。
+ * ここで区別できるのは «テキストが無い / 1 語も無い / 語境界で落とした» の 3 つ。
+ */
+export type DishCategoryNoCandidateReason =
+	/** 正規化後のテキストが 1 文字も無い（キャプションが取れていない） */
+	| "no_text"
+	/** テキストはあるが、辞書のどの表記も 1 度も現れなかった */
+	| "no_surface_in_text"
+	/** 表記は現れたが、すべて語境界で不一致にした（`パイナップル` の `パイ` など） */
+	| "blocked_by_word_boundary";
+
+export type DishCategoryNoCandidateDiagnosis = {
+	reason: DishCategoryNoCandidateReason;
+	/** 正規化後のテキストの総文字数 */
+	textLength: number;
+	/** 本文に現れたが語境界で落とした表記の異なり数 */
+	boundaryRejectedCount: number;
+	/** 上のうち代表 3 件（長い順）。ログに出して «どの語で落ちているか» を数えるため */
+	boundaryRejectedSamples: string[];
+};
+
 export type DishCategoryMatchResult = {
 	/** 信頼度の降順。同点なら長い `surface_form` が当たった方が上 */
 	candidates: DishCategoryCandidate[];
+	/**
+	 * `candidates` が空のときだけ入る «ゼロの理由»。候補があるときは `null`。
+	 * 呼び出し側はこれをログ／`resolve_reason` へ落とすこと（詳細は型の doc）。
+	 */
+	noCandidate: DishCategoryNoCandidateDiagnosis | null;
 	/** `true` のときだけ確認画面へ prefill してよい。**それでもユーザーが直せる状態で見せること** */
 	shouldPrefill: boolean;
 	/** `shouldPrefill` が `true` のときの `dish_category_id`。それ以外は `null` */
@@ -377,7 +443,11 @@ export function buildDishCategoryVariantIndex(
 /** 本文走査に載せてよい長さか（文字種別の最小長。冒頭の表を参照） */
 export function isBodyScanEligible(normalizedSurfaceForm: string): boolean {
 	const script = classifySurfaceScript(normalizedSurfaceForm);
-	return normalizedSurfaceForm.length >= DISH_CATEGORY_MATCH_TUNING.bodyScanMinLength[script];
+	const minLength =
+		script === "kana" && isKatakanaOnlySurface(normalizedSurfaceForm)
+			? DISH_CATEGORY_MATCH_TUNING.bodyScanMinLength.katakana
+			: DISH_CATEGORY_MATCH_TUNING.bodyScanMinLength[script];
+	return normalizedSurfaceForm.length >= minLength;
 }
 
 // ---------------------------------------------------------------------------
@@ -575,6 +645,8 @@ function collectBodyScanMatches(
 	index: DishCategoryVariantIndex,
 	normalized: NormalizedText,
 	collector: EvidenceCollector,
+	// #1273 «本文には現れたのに語境界で落とした» 表記を控える（候補ゼロの理由づけにだけ使う）
+	boundaryRejected: Set<string>,
 ): void {
 	for (const { entry, surfaceForm } of index.scannable) {
 		let found = 0;
@@ -595,10 +667,34 @@ function collectBodyScanMatches(
 					score: scoreEvidence("body-scan", surfaceForm, entry.source, false),
 				});
 				found += 1;
+			} else {
+				boundaryRejected.add(surfaceForm);
 			}
 			at = normalized.text.indexOf(surfaceForm, at + 1);
 		}
 	}
+}
+
+/** 候補ゼロの理由を組み立てる。**候補があるときは呼ばない。** */
+function diagnoseNoCandidate(
+	normalizedTexts: readonly NormalizedText[],
+	boundaryRejected: ReadonlySet<string>,
+): DishCategoryNoCandidateDiagnosis {
+	let textLength = 0;
+	for (const normalized of normalizedTexts) textLength += normalized.text.length;
+
+	// `Set` を直接展開しない（この package の target では downlevelIteration が要るため）
+	const rejected: string[] = [];
+	boundaryRejected.forEach((surfaceForm) => rejected.push(surfaceForm));
+	const samples = rejected.sort((a, b) => b.length - a.length || (a < b ? -1 : 1)).slice(0, 3);
+
+	return {
+		reason:
+			textLength === 0 ? "no_text" : boundaryRejected.size > 0 ? "blocked_by_word_boundary" : "no_surface_in_text",
+		textLength,
+		boundaryRejectedCount: boundaryRejected.size,
+		boundaryRejectedSamples: samples,
+	};
 }
 
 /**
@@ -660,11 +756,12 @@ export function matchDishCategoriesWithIndex(
 	const { adjustment, threshold } = DISH_CATEGORY_MATCH_TUNING;
 	const normalizedTexts = normalizeExtractedTexts(texts);
 	const collector: EvidenceCollector = { items: [], seen: new Set<string>() };
+	const boundaryRejected = new Set<string>();
 
 	for (const normalized of normalizedTexts) {
 		collectExactTextMatches(index, normalized, collector);
 		collectHashtagMatches(index, normalized, collector);
-		collectBodyScanMatches(index, normalized, collector);
+		collectBodyScanMatches(index, normalized, collector, boundaryRejected);
 	}
 
 	// カテゴリごとにまとめる
@@ -728,6 +825,8 @@ export function matchDishCategoriesWithIndex(
 
 	return {
 		candidates: top,
+		// #1273 ゼロの理由は «ゼロを返す側» が持つ。候補があるときは null（型の doc 参照）
+		noCandidate: candidates.length === 0 ? diagnoseNoCandidate(normalizedTexts, boundaryRejected) : null,
 		shouldPrefill,
 		prefillDishCategoryId: shouldPrefill ? candidates[0].dishCategoryId : null,
 		normalizedTexts,
