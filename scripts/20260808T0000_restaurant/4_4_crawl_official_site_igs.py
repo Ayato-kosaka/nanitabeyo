@@ -147,13 +147,27 @@ def _read_catalog_stores(pipeline: BigQueryPipeline, catalog_run_id: str,
     return stores
 
 
-def _delete_batch_rows(pipeline: BigQueryPipeline, run_id: str, place_ids) -> int:
+def _read_stores_table(pipeline: BigQueryPipeline, table: str, limit, offset: int):
+    """crawl 対象を «別のテーブル» から読む（#1273 4_16 が出した狙い先の site_crawl 候補）。
+
+    列は `google_place_id` / `name` / `website` の 3 つだけを見る。crawl の中身
+    （robots 尊重・handle 抽出）には触らないので、狙い先だけを差し替えられる。
+    """
+    limit_sql = f"LIMIT {int(limit)}" if limit else ""
+    offset_sql = f"OFFSET {int(offset)}" if offset else ""
+    sql = (f"SELECT google_place_id, name, website FROM `{pipeline.table(table)}` "
+           f"WHERE website IS NOT NULL AND website != '' ORDER BY google_place_id {limit_sql} {offset_sql}")
+    return [{"id": r["google_place_id"], "name": r["name"], "website": r["website"]}
+            for r in pipeline.execute(sql)]
+
+
+def _delete_batch_rows(pipeline: BigQueryPipeline, run_id: str, place_ids, table: str) -> int:
     """このバッチの place_id 群だけを run_id 内で削除（他バッチを消さない冪等化）。"""
     if not place_ids:
         return 0
     from google.cloud import bigquery
     sql = (
-        f"DELETE FROM `{pipeline.table(TABLE_STORE_SITE_IG)}` "
+        f"DELETE FROM `{pipeline.table(table)}` "
         f"WHERE run_id = @rid AND google_place_id IN UNNEST(@ids)"
     )
     job = pipeline.client.query(
@@ -197,6 +211,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--stores-file", default=None,
                    help="BQ を読まず、この JSON（[{google_place_id,name,website}]）を crawl 対象にする")
     p.add_argument("--out-file", default=None, help="生成した行を NDJSON で書き出す先（検証用）")
+    # #1273 狙い撃ちの crawl を «共有テーブルへ書かずに» 回すための差し替え口。
+    # crawl の中身は一切変えず、読む場所と書く場所だけを別テーブルにできる
+    # （他ワーカーが sns_store_site_ig へ同時に書いている間も回せる）。
+    p.add_argument("--stores-table", default=None,
+                   help="crawl 対象を読むテーブル（google_place_id / name / website を持つこと）")
+    p.add_argument("--out-table", default=TABLE_STORE_SITE_IG,
+                   help=f"crawl 結果の書き込み先テーブル（既定 {TABLE_STORE_SITE_IG}）")
     return p.parse_args()
 
 
@@ -214,6 +235,9 @@ def main() -> None:
         if args.limit or args.offset:
             stores = stores[args.offset: (args.offset + args.limit) if args.limit else None]
         pipeline = None if args.dry_run else BigQueryPipeline()
+    elif args.stores_table:
+        pipeline = BigQueryPipeline()
+        stores = _read_stores_table(pipeline, args.stores_table, args.limit, args.offset)
     else:
         pipeline = BigQueryPipeline()
         stores = _read_catalog_stores(pipeline, args.catalog_run_id, args.limit, args.offset,
@@ -242,14 +266,21 @@ def main() -> None:
 
     with pipeline.step(run_id, "4_4_crawl_official_site_igs",
                        parameters={"catalog_run_id": args.catalog_run_id,
-                                   "offset": args.offset, "limit": args.limit},
+                                   "offset": args.offset, "limit": args.limit,
+                                   "stores_table": args.stores_table, "out_table": args.out_table},
                        repo_root=HERE.parents[1]) as result:
         place_ids = [s["id"] for s in stores if s.get("id")]
-        deleted = _delete_batch_rows(pipeline, run_id, place_ids)
+        if args.out_table != TABLE_STORE_SITE_IG:
+            # 差し替え先は «同じ形» でなければ 4_10 / 4_16 が読めない。schema を写経せず複製する。
+            pipeline.execute(
+                f"CREATE TABLE IF NOT EXISTS `{pipeline.table(args.out_table)}` "
+                f"LIKE `{pipeline.table(TABLE_STORE_SITE_IG)}`"
+            )
+        deleted = _delete_batch_rows(pipeline, run_id, place_ids, args.out_table)
         LOGGER.info("バッチ冪等化: run_id=%s の %d place_id を DELETE（%d 行）", run_id, len(place_ids), deleted)
-        count = pipeline.load_json_rows(TABLE_STORE_SITE_IG, rows)
+        count = pipeline.load_json_rows(args.out_table, rows)
         result["row_count"] = count
-        LOGGER.info("sns_store_site_ig に %d 行を投入しました。", count)
+        LOGGER.info("%s に %d 行を投入しました。", args.out_table, count)
 
 
 if __name__ == "__main__":

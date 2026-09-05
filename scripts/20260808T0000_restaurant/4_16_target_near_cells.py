@@ -302,6 +302,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--out-dir", default=str(HERE / "_transient" / "near_cells"),
                    help="JSON / CSV の出力先ディレクトリ")
     p.add_argument("--dry-run", action="store_true", help="BQ へ書き込まない（読み取りと件数・表は出す）")
+    # #1273 他ワーカーが sns_source_account / sns_store_site_ig へ同時に書いている間は、
+    # このスクリプトが作る sns_target_cells «だけ» を書く。狙い先の台帳は先に確定させ、
+    # 収集経路への投入（＝共有テーブルへの複製）はオーナーの判断を待つ。
+    p.add_argument("--targets-only", action="store_true",
+                   help="sns_target_cells だけを書き、共有テーブル（sns_source_account / "
+                        "sns_store_site_ig）への複製はしない")
     return p.parse_args()
 
 
@@ -747,8 +753,12 @@ def main() -> None:
             "followers": None, "media_count": None,
             "discovered_at": now_iso, "run_id": run_id,
         } for s in by_route["account"]]
-        pipeline.delete_run_rows(TABLE_SOURCE_ACCOUNT, run_id)
-        n_acc = pipeline.load_json_rows(TABLE_SOURCE_ACCOUNT, acc_rows) if acc_rows else 0
+        if args.targets_only:
+            n_acc = 0
+            LOGGER.info("--targets-only のため sns_source_account への複製 %d 行は保留します", len(acc_rows))
+        else:
+            pipeline.delete_run_rows(TABLE_SOURCE_ACCOUNT, run_id)
+            n_acc = pipeline.load_json_rows(TABLE_SOURCE_ACCOUNT, acc_rows) if acc_rows else 0
 
         # 4) 埋め込み走査経路: 4_4 が既に crawl した行を «狙う店の分だけ» 新 run_id へ複製する
         #    （4_10 --site-run-id がそのまま読める。サイトを取り直さない）
@@ -759,8 +769,12 @@ def main() -> None:
             "source_tags": [], "corroborated": s.get("corroborated"), "error": None,
             "crawled_at": now_iso, "run_id": run_id,
         } for s in by_route["site_embed"]]
-        pipeline.delete_run_rows(TABLE_STORE_SITE_IG, run_id)
-        n_site = pipeline.load_json_rows(TABLE_STORE_SITE_IG, site_rows) if site_rows else 0
+        if args.targets_only:
+            n_site = 0
+            LOGGER.info("--targets-only のため sns_store_site_ig への複製 %d 行は保留します", len(site_rows))
+        else:
+            pipeline.delete_run_rows(TABLE_STORE_SITE_IG, run_id)
+            n_site = pipeline.load_json_rows(TABLE_STORE_SITE_IG, site_rows) if site_rows else 0
 
         # 5) 狙い先の台帳テーブル（このスクリプトが作る新しいテーブル。
         #    既存の sns_post_raw / sns_name_place_lookup には一切書かない）
