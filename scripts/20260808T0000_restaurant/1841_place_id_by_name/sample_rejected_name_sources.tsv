@@ -1,0 +1,242 @@
+# 既定から外した書き方の目視サンプル（2026-09-05, seed 1273）。«店名でないもの» が marker 約 40% / bracket 約 46%。
+source	store_name	area	sample_post_id
+marker	大衆食堂ミッキー	沖縄県沖縄市	C2RwX2rvq0x
+marker	琉球海鮮酒場 琉星	沖縄県那覇市	C_nDaglP8qF
+marker	野崎漬物	宮崎県宮崎市	DWBoaj6Ecnj
+marker	黒墨商店 沖縄店	沖縄県浦添市	DOLNsOgE3Xr
+marker	イセキヤ工務店の【家づくりのポイント 3選】	茨城県つくば市	DIVuXLwPJAZ
+marker	大衆中華 足立屋	沖縄県沖縄市	C2Zfc29vw1X
+marker	すし直売所 魚まる uomaru.kyozuka	沖縄県浦添市	C_27AZYvoCl
+marker	ひろしまスタジアムパークhiropa(ヒロパ)	広島県広島市	DRMoWmNks0i
+marker	サンチクジュ港川	沖縄県浦添市	DKUA4Mex5S4
+marker	ソジュハンザン029 国際通り店	沖縄県那覇市	DRwVWNKE9SS
+marker	やきいも仮面自販機	沖縄県中頭郡北谷町	DW3dWQ7Tqkp
+marker	居酒屋 彩月	岡山県岡山市	DT6qPb6k3ir
+marker	kobashicafe.otaba	石川県金沢市	Dapx5RFEyTC
+marker	炭火焼肉 肉郎	宮崎県宮崎市	DQqHpmTEihx
+marker	お食事処 伊吹	岐阜県中津川市	DAFEaPkyRfD
+marker	タコライスcafe きじむなぁ 国際通り桜坂店	沖縄県那覇市	DWoEPF-TKWr
+marker	鳥福(torifuku)	東京都渋谷区	DKoZGLvxqgE
+marker	天婦羅いやさか(食べログ3.56)	東京都千代田区	DVS1XzokVJV
+marker	kuracafe_odoriba	石川県金沢市	DXtz6jvkUaH
+marker	gelato monica	宮崎県宮崎市	DSTPNFfE5P3
+marker	ˊ˗ 〗	石川県金沢市	Cf6TKkIpXwF
+marker	英国屋(えいこくや)	宮崎県日南市	DSLbvNYk1ZK
+marker	living house. 金沢店	石川県金沢市	Dc0tamPBB4L
+marker	イワナガ食堂	宮崎県宮崎市	DO0UdWOkbAy
+marker	tavolo_del_gufo	石川県金沢市	DSSLr-AEeUH
+marker	toi toi toi	愛媛県東温市	DVN42SMj664
+marker	amayadori_cafe_komeko	石川県河北郡津幡町	DJwVHYsJukT
+marker	レンタルバイクサキハマ	沖縄県那覇市	DEmbzgvTUks
+marker	レストラン カシュカシュ	千葉県浦安市	DTe8glwkx-t
+marker	お店のアカウント	徳島県徳島市	C_nWQTLB_rF
+marker	(店 名)	神奈川県川崎市	DVBA8dAkl20
+marker	店名】	和歌山県海南市	DaPtA3gOlEI
+marker	周辺施設:	熊本県菊池郡菊陽町	DRWorZjEY9c
+marker	本格台湾薬膳火鍋とあぐーしゃぶの店 麗〜うらら〜	沖縄県名護市	DFUvMX8TISJ
+marker	gocchosun(ごっちょぉさん)	宮城県仙台市	C1y-3eVS2rs
+marker	炭火焼肉ホルモンさわいし(sawaishi)	神奈川県川崎市	DDwFHBITV9d
+marker	大仙市北楢岡船戸187	秋田県大仙市	DDwk8DEB6vI
+marker	ベトナムちゃん北谷	沖縄県中頭郡北谷町	DBLksvMyNsI
+marker	omusubi_hono_tokushima	徳島県徳島市	DTPvkCrCadk
+marker	心技体酒場	東京都足立区	DYKQWF4yluQ
+marker	shop info	千葉県松戸市	Db7vSruTq0W
+marker	むかん(mukan)	神奈川県横浜市	DC-7Qwnz6Fu
+marker	もぐもぐレポート	埼玉県本庄市	DH5vyWxTLDh
+marker	sea-life tsurigasaki	千葉県長生郡一宮町	DZMnHZBz2fx
+marker	七兵衛(shichibei)	東京都新宿区	DCteREOzrrz
+marker	(店 名)	石川県金沢市	DV3F6q5ko0n
+marker	acatoki	三重県度会郡玉城町	Dat17CnTMvh
+marker	桂宮(keikyu)	神奈川県横浜市	DTzChe9E0DK
+marker	call me anne	千葉県千葉市	DXOfjSxTglJ
+marker	条件に合う住宅会社探し	石川県金沢市	Da5I7LIgaqM
+marker	日曜休み	愛知県名古屋市	DSAELYaD0g_
+marker	サラズキッチン	沖縄県名護市	DcxNt01j0bA
+marker	粉処ふじ田	沖縄県沖縄市	C2mUzj0RReO
+marker	会社名:株式会社源吉兆庵	岡山県岡山市	DHA2cYPPpzT
+marker	kizaha coffee	沖縄県国頭郡大宜味村	C0oLU91vepJ
+marker	imaderi	奈良県橿原市	DYWBZwuyLap
+marker	cona	千葉県流山市	DYomkM8zm9c
+marker	麺や新倉	愛媛県松山市	DSMyUyPj9Zp
+marker	bar 十鹿	愛媛県松山市	DX1RipAxskx
+marker	個室居酒屋 囲 千葉駅前店	千葉県千葉市	DZzRfaCTAlQ
+marker	店名 】	広島県福山市	DKcJitahuec
+marker	フルハウス	京都府京都市	DLjDEiuz6gX
+marker	会社名:三井不動産リアルティ中国株式会社	広島県広島市	DHBaTv6PxTH
+marker	ご紹介します(*^^*)⁡	香川県高松市	DBqcmTxTiNc
+marker	株式会社トップライン 愛知県小牧市	愛知県小牧市	CLV824epu_w
+marker	津市下弁財町津興808	三重県津市下弁財町	DWlRddPSJta
+marker	店名】	広島県江田島市	DW-cYlNkqw4
+marker	チーズケーキと焼き菓子の店シンシアリー	沖縄県うるま市	C6Vu8_JvKL6
+marker	三善建設 新モデルハウス	熊本県熊本市	DcVjLfFR-wH
+marker	octa scone [オクタスコーン]	三重県鈴鹿市	DawXTsNTwK2
+marker	ˊ˗〗	石川県小松市	ChcSd7SpjEO
+marker	松翔苑 蒲田店 matsushouen	東京都大田区	DRGp2J9EfT0
+marker	スリーリトルバーズ	滋賀県守山市	DY0tK0hpbIp
+marker	伊勢市御薗町長屋2136	三重県四日市	DY6obvBvFAe
+marker	ファミリーマート 宮城店 徒歩約6分	沖縄県那覇市	DFCj3jDz7wv
+marker	主力商品	東京都台東区	DcyHcJzSRsb
+marker	akirashiomoto2	石川県かほく市	C_8Ep7SSeqp
+marker	もぐもぐレポート	群馬県太田市	DG-bSVkzw9c
+marker	ヤサイな仲間たちファーム(深谷テラスパーク)	埼玉県深谷市	DTnIlxoD8ji
+marker	松阪市黒田町1641	三重県松阪市	DUu7HfsEtNG
+marker	上越市大日31だいにちスローライフビレッジ	新潟県上越市	DbDJLozBiuy
+marker	ナムチニ82カフェ	東京都新宿区	CzONAxDvIGm
+marker	稲毛海浜公園プール	千葉県千葉市	Dao_dBiThtg
+marker	新潟市中央区女池1790	新潟県新潟市	DQjFu6CEyHh
+marker	キッチンカー名 :boston beach	愛媛県松山市	DTpeW9YkWA2
+marker	伊勢市小木町564	三重県伊勢市	DbDG3SzPQdh
+marker	たんすき	宮崎県都城市	DRsfaO0k6Rq
+marker	オシャレなカフェレストラン	石川県金沢市	C0554DdJDWC
+marker	ヤマダフォト	石川県能美市	DTpdoEND-n8
+marker	le'to cafe	滋賀県彦根市	DZhZ1obh0eB
+marker	chicci本店	宮城県仙台市	C8UChocSr98
+marker	the bifteki	千葉県印西市	DVk4sNDk7t0
+marker	. cafelaqoo_	石川県白山市	DcV5C1CE11C
+marker	月曜休み	神奈川県横浜市	DaNfCMKvl7k
+marker	離乳食&キッズコーナーあり	山梨県北杜市	DQvsORWD7GO
+marker	アグー豚しゃぶしゃぶ翡翠	沖縄県国頭郡本部町	DZMzUKIvnWx
+marker	石窯パン工房 マルコポーロ 本店	沖縄県沖縄市	DIQqBxixS_G
+marker	お店情報	京都府京都市	DYLrk2FTH7n
+marker	a long vacation	沖縄県那覇市	DG-MO9cRd5c
+marker	年末年始・毎月第2月曜休み	東京都杉並区	DaSvJRUvFhw
+marker	ひねり蛇口ハイ テルマエ 千葉駅前泉	千葉県千葉市	DcImiq5zYue
+marker	不定休	東京都目黒区	DTIV01fD361
+marker	crepe&deli eden	沖縄県うるま市	C-M5MYVveOB
+marker	三条市大島960	新潟県三条市	DYEmZOZSdLg
+marker	北の鮮魚便北海丼 本部店	沖縄県国頭郡本部町	DV8RZ-fk2Vu
+marker	お店の雰囲気	島根県安来市	DVezg8-kzYl
+marker	中華どんぶりの店	沖縄県宜野湾市	C3zniO_v3Wm
+marker	店名】	長崎県佐世保市	C_fPlAOSS74
+marker	岩見沢市栗沢町栗丘124	北海道岩見沢市	C5iIJxFROxs
+marker	ーーー	福井県福井市	DbondaQT9XL
+marker	つけ麺 椛	宮崎県宮崎市	DVdbZIfEeVu
+marker	村田様邸 上棟式	埼玉県川口市	DaNeNZmOE7C
+marker	uriboo178	石川県金沢市	DEmuhraSeSG
+marker	もぐもぐレポート	群馬県伊勢崎市	DI02mGVTxBl
+marker	しんまち食堂	宮崎県児湯郡新富町	DVvSqxuEQ6C
+marker	ランチ・ディナー	宮崎県西諸県郡高原町	Dbz_PKUjwQr
+marker	夜の森birth	愛媛県松山市	DL7aCBCT1sA
+marker	雑貨カフェcalan	大阪府池田市	Db0sfYiNLhL
+marker	上越市富岡	新潟県上越市	DYopjxbyRSK
+marker	東京カステラパーク(151万再生)	千葉県香取郡多古町	DSzdoSKk_49
+bracket	韓美 (kanbi_tenjin)さん	福岡県福岡市	DW3yZ9qkU5X
+bracket	泉佐野市周辺	大阪府泉南郡田尻町	DQ8wVi8CT1k
+bracket	peaceman	宮崎県串間市	DSzaQfhD2C-
+bracket	営業日のお知らせ	東京都中野区	DY81TPeGhLj
+bracket	年末年始休業日のお知らせ	大阪府高槻市	DRt8rcZk4xF
+bracket	焼鳥 酉乃洲	東京都渋谷区	C2jwcu6yNij
+bracket	さつまっこ 平和島店	東京都大田区	CY6TOlZFX0t
+bracket	鉄板焼 こころ	兵庫県神戸市	DNwnspf5G2J
+bracket	highcook_oyama	栃木県小山市	C5QWEK3ya95
+bracket	古河の古民家カフェsunrose	茨城県古河市	CFw5LfjgBbw
+bracket	プリムローズガーデン	鳥取県西伯郡大山町	C0wAx-9LBV-
+bracket	ちいかわ焼き イオンモール幕張新都心店	千葉県千葉市	DbiNq-OR1fR
+bracket	menu	東京都渋谷区	DcsFjqjEVDT
+bracket	エコルシェ横須賀	神奈川県横須賀市	CRppZNJHVDa
+bracket	チャーシュー丼専門店	愛媛県松山市	C6YJyMQyQzT
+bracket	リオーネ	東京都練馬区	DBORYO1Tlz0
+bracket	和菓子司 まるしん	埼玉県吉川市	DS9miolAX6D
+bracket	dartera	静岡県富士市	DY9LmaJyj4X
+bracket	りんご飴専門店 飴のち林檎	香川県高松市	DNHr-xDx1Bj
+bracket	出店一覧 大正通りポケット	大阪府羽曳野市	DLtbl7FxMHP
+bracket	館内利用時間	埼玉県八潮市	DLcLyS4TEoH
+bracket	勝山屋	福井県吉田郡永平寺町	CvZncKvJdYm
+bracket	スパイスカレー	岡山県岡山市	DUf3DjTCZAr
+bracket	テレビ朝日	神奈川県小田原市	CiuwgzkPlzw
+bracket	事前注意	長崎県大村市	DbIF0OGTExr
+bracket	徳島県名西郡	徳島県徳島市	C-ewsrVhRq6
+bracket	鳥取島根の情報	鳥取県米子市	DW-AFABk_HQ
+bracket	和歌山ラーメン/和歌山グルメ	和歌山県和歌山市	C6QeeHFSpjy
+bracket	札幌 parfaiteria pal	北海道札幌市	DWiGU9VkgdG
+bracket	仕出し刺し盛り	長崎県佐世保市	COC15-nJQiM
+bracket	ゆう菜屋	秋田県秋田市	Cx5ZpnMBVPQ
+bracket	ond hotel(オンドホテル)	佐賀県武雄市	C8y47i6Py7P
+bracket	串処ぼうず 安行店	埼玉県川口市	DTeqtrvk9jm
+bracket	くらしき旅倶楽部(倉敷市観光公式)	岡山県倉敷市	CmpvcqlhMz8
+bracket	アップル・サンライズ	埼玉県さいたま市	CkkNMpwyDzF
+bracket	三原・カキ氷	広島県三原市	C9_6UyFPWx_
+bracket	つるや池袋西口店	東京都豊島区	Cj7157myHa3
+bracket	joy+me	栃木県佐野市	CLc_k8wngDV
+bracket	薬味牛タン	大阪府大阪市	DHNY3XyzLCp
+bracket	とりでん 平塚駅前店	神奈川県平塚市	Czfh3ACSCgR
+bracket	chocolate cookie bread	福岡県糟屋郡志免町	DbQXVZ8JlQU
+bracket	はまぶら	静岡県浜松市	C7llBWqvPmp
+bracket	肉のほそだ	岡山県岡山市	DBlVMu6SVTG
+bracket	らぁめん高砂家	福岡県福岡市	Csi0pLZy4Lv
+bracket	一念100	東京都豊島区	DYKulh1k6Tw
+bracket	ルール	東京都武蔵野市	DazlKu8vXft
+bracket	大阪グルメ	大分県中津市	DB3knLSPhbu
+bracket	中華そば 朔望	岩手県遠野市	DOfxv7ikl3_
+bracket	元中日ドラゴンズ	愛知県小牧市	CTLel-_HKDK
+bracket	休館日	青森県青森市	C-1fkJ_T3P_
+bracket	西千葉キャンパス南門エリア	群馬県みどり市	DHF8L4kTeBg
+bracket	ギャラリーカフェ 風の時計	広島県福山市	DBKmUESS3PA
+bracket	イタリア料理×日本料理	山口県防府市	C8qagseys_n
+bracket	実演販売	富山県富山市	DHX1c95Txuk
+bracket	gap/gap kids ららぽーと海老名店	神奈川県海老名市	DRvrwuLDFCH
+bracket	こだわりのショートケーキ	埼玉県志木市	DE_TTtGTztP
+bracket	shevron cafe	三重県志摩市	CVH_PVap0Ca
+bracket	e-pick clothing store	福井県福井市	DX-hqkfv5EK
+bracket	野球カステラ愛好会	兵庫県神戸市	DV0A_VSvflL
+bracket	#肉兵衛	愛知県犬山市	DMZjmnrBFDa
+bracket	マイルドブレンド	宮城県仙台市	CWelaykhRLQ
+bracket	焼菓子店 mimi	長野県千曲市	C3M7pPVBhfU
+bracket	中華料理 蘭風	山口県下関市	DNqTAWCS2FT
+bracket	じばさん定食 お品書き	石川県白山市	CQCVQMKAJ59
+bracket	ドッグラン	岐阜県土岐市	DA-tGTbzABm
+bracket	グランレイク鳥取	鳥取県東伯郡湯梨浜町	DGuyHSzv8wJ
+bracket	淡路島ペット	兵庫県南あわじ市	CWc5ylwvCJN
+bracket	天ぷら 深川	北海道深川市	C5ccDhGyB-c
+bracket	岐阜焼肉	岐阜県可児市	C2t4gkrhD41
+bracket	ライトアップ期間	埼玉県秩父郡小鹿野町	DTkYcZrkbYo
+bracket	ランチ・デイナー	広島県広島市	CyLkOyqBb1J
+bracket	とんかつ あげ幕	北海道釧路市	C4hPPv8S0z7
+bracket	和海の宿 ささ游	千葉県長生郡白子町	DU2nloakweg
+bracket	荻窪ラーメン十八番 浜松店	静岡県浜松市	C1RT261v36W
+bracket	毎日投稿	東京都品川区	DX10o1cScQA
+bracket	茜の湯 小浜温泉	長崎県雲仙市	DXQzajqk7u6
+bracket	中華料理 鳳凰	群馬県前橋市	C3iANRhvsnl
+bracket	名古屋市西区	愛知県名古屋市	BTtBu-FF-lj
+bracket	取材記事	東京都墨田区	CLdnEPjDphn
+bracket	大切なお知らせ	三重県津市一志町	DJB0jOyBUYe
+bracket	完全個室/都度払い	大阪府大阪市	Cp2tYKPPAT2
+bracket	味の宿 花椿	三重県鳥羽市	DUiB1LEE7rX
+bracket	#カツオ	鹿児島県鹿児島市	CHzV0LxH-fm
+bracket	岡崎公園乙川河川緑地	愛知県岡崎市	DAsv2T7TEFC
+bracket	熊本市隠れ家カフェ5選	熊本県熊本市	Cx7uz9JJIro
+bracket	北部九州	佐賀県西松浦郡有田町	C45D71wrXSe
+bracket	群馬県千代田町	群馬県邑楽郡千代田町	DHDFDiNhk1y
+bracket	定番ケーキの紹介	奈良県奈良市	DLHOpyIT9sp
+bracket	高岡市・氷見市	富山県高岡市	DS1xAYIFZ2Q
+bracket	ライブ配信	岐阜県各務原市	CW2zTPLlwPC
+bracket	hug coffee	静岡県藤枝市	DawW3rjp3ON
+bracket	徳島県海部郡	徳島県徳島市	Cm2YqgahWKh
+bracket	うなぎ 竹屋	佐賀県唐津市	DErmVAaPyae
+bracket	第8回	宮崎県都城市	C2PKY9PtmGu
+bracket	施工内容	福岡県福岡市	DOdPfyPE03R
+bracket	女性専用	大阪府大阪市	DZGcAxlT1P-
+bracket	わかまつ食堂	沖縄県那覇市	DawQ-RMRQfw
+bracket	仙台市宮城野区	宮城県仙台市	B5rK6z-lDxS
+bracket	料 金	神奈川県小田原市	DNIF2r7JgyB
+bracket	愛媛・宇和島	愛媛県宇和島市	DFt1SwWTbAz
+bracket	明太中毒	福岡県福岡市	C_-n_j4SPF2
+bracket	a5ランク伊萬里牛と糸島産ご飯の焼肉店	福岡県糸島市	C5U2UJNyNDn
+bracket	新店情報	東京都墨田区	DVKnTzzAfj-
+bracket	クレープきみ屋	石川県金沢市	Ct6FgnRJSoh
+bracket	越前鮮魚と炭火焼き 炭と魚	福井県鯖江市	DWbBv80y_qb
+bracket	泉大津市・忠岡町	大阪府泉大津市	C4c_on3x42f
+bracket	四川麻婆豆腐	長野県長野市	DBBCFTshODk
+bracket	お盆も超満員御礼	佐賀県唐津市	DNatAZnh9Bw
+bracket	a bagel okinawa	沖縄県国頭郡金武町	Dcnvx8gRnLk
+bracket	茶月 -satsuki	熊本県山鹿市	DBlbffvPJvX
+bracket	サウィ食堂の歴史	広島県広島市	DY4PL-SysPz
+bracket	讃岐手打ちうどん 麗	神奈川県横浜市	DGFBju2hRU_
+bracket	営業日	東京都板橋区	CTlcBJslEGk
+bracket	中目黒	東京都目黒区	CJ5XVaVhgAN
+bracket	vlogグルメ日本一	東京都新宿区	C_2h8EbosTI
+bracket	観光辻馬車	大分県由布市	Cwmtbr2Ljt0
+bracket	善光寺御開帳	長野県長野市	DYwa5tivMM2
+bracket	究極の血抜き魚の刺盛り	愛知県瀬戸市	BoX9VVFhFa_
+bracket	ランチ	岩手県花巻市	C6ftjy4xSMs
+bracket	ラビスタ東京ベイ	東京都江東区	DbOA_MXiP9U
