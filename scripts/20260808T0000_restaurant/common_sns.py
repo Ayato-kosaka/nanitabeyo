@@ -383,6 +383,20 @@ def classify(resp: dict[str, Any]) -> ResolveOutcome:
 # 数える側と配る側がずれると、KPI は «報告のための数字» になって意味を失う。
 STORE_ID_SQL = "COALESCE(NULLIF(r.discovery_seed_place_id, ''), v.google_place_id)"
 
+# --- «その投稿の resolve 結果はどれか» の唯一の判定 ------------------------------
+#
+# 【設計】再解決は非破壊追記なので、1 つの post_id に複数の resolve_version が並ぶ
+# （実測: sns-2026-09-03-storecap は raw 87,304 に対し resolved 183,132 行）。
+# 集計・配信のどちらも «その投稿の最新の判断» だけを見なければならない。
+#
+# ⚠️ **この判定も 3 通りに分かれていた。** 7_1 は (provider, post_id) の最新、4_7 は
+# (run_id, provider, post_id) の最新、**9_1 は絞っていなかった**。そのため 9_1 の出力は
+# 171,531 行 / 139,774 投稿＝ **18.5% が重複**し、うち 20,536 は «同じ投稿に別カテゴリ» だった。
+# dish_media は 1 投稿 1 行なので、これは同じ投稿が 2 つの料理として並ぶことを意味する。
+LATEST_RESOLVED_QUALIFY = (
+    "QUALIFY ROW_NUMBER() OVER (PARTITION BY provider, post_id ORDER BY resolved_at DESC) = 1"
+)
+
 # 上の店 ID が非 NULL になる行の条件。matched か、seed を持っているか。
 STORE_KNOWN_SQL = (
     "(v.status = 'matched' "

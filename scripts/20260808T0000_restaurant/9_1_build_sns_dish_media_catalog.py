@@ -15,7 +15,7 @@ from pipeline_common import (
 )
 from common_sns import (
     PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_DISH_MEDIA_CATALOG,
-    STORE_ID_SQL, STORE_KNOWN_SQL,
+    STORE_ID_SQL, STORE_KNOWN_SQL, LATEST_RESOLVED_QUALIFY,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -25,6 +25,9 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="matched の ready 行を sns_dish_media_catalog に組む")
     p.add_argument("--run-id", default=None)
     p.add_argument("--resolved-run-id", default=None, help="読む resolved/raw の run_id（省略時 --run-id）")
+    # #1273 収集は run_id ごとに分かれており、配信は «全 run の union» で組む（7_1 と同じ形）。
+    p.add_argument("--resolved-run-ids", default=None,
+                   help="union する run_id をカンマ区切りで（--resolved-run-id より優先）")
     return p.parse_args()
 
 
@@ -32,25 +35,33 @@ def main() -> None:
     configure_logging()
     args = parse_args()
     run_id = require_run_id(args.run_id)
-    src_run_id = args.resolved_run_id or run_id
+    src_run_ids = ([x.strip() for x in args.resolved_run_ids.split(",") if x.strip()]
+                   if args.resolved_run_ids else [args.resolved_run_id or run_id])
     pipeline = BigQueryPipeline()
     now_iso = utc_now().isoformat()
 
     from google.cloud import bigquery
+    # ⚠️ raw の結合に run_id 条件を付けない。raw と resolved が別の run に分かれている投稿を
+    #    落としてしまう（7_1 は union で引くので、付けると 7_1 と数が合わなくなる）。
     sql = f"""
+      WITH v AS (
+        SELECT * FROM `{pipeline.table(TABLE_POST_RESOLVED)}`
+        WHERE run_id IN UNNEST(@srcs)
+        {LATEST_RESOLVED_QUALIFY}
+      )
       SELECT v.post_id, {STORE_ID_SQL} AS google_place_id, v.dish_category_id,
              ANY_VALUE(r.canonical_url) AS canonical_url
-      FROM `{pipeline.table(TABLE_POST_RESOLVED)}` v
+      FROM v
       JOIN `{pipeline.table(TABLE_POST_RAW)}` r
-        ON r.run_id = @src AND r.provider = v.provider AND r.post_id = v.post_id
-      WHERE v.run_id = @src AND {STORE_KNOWN_SQL}
+        ON r.run_id IN UNNEST(@srcs) AND r.provider = v.provider AND r.post_id = v.post_id
+      WHERE {STORE_KNOWN_SQL}
         AND {STORE_ID_SQL} IS NOT NULL AND v.dish_category_id IS NOT NULL
       GROUP BY v.post_id, google_place_id, v.dish_category_id
     """
-    params = [bigquery.ScalarQueryParameter("src", "STRING", src_run_id)]
+    params = [bigquery.ArrayQueryParameter("srcs", "STRING", src_run_ids)]
 
     with pipeline.step(run_id, "9_1_build_sns_dish_media_catalog",
-                       parameters={"resolved_run_id": src_run_id}, repo_root=None) as result:
+                       parameters={"resolved_run_ids": ",".join(src_run_ids)}, repo_root=None) as result:
         rows = []
         for r in pipeline.execute(sql, params):
             payload = {
