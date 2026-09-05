@@ -98,37 +98,51 @@ test.describe("検索 0 件の退避導線 (#1121 / #1810)", () => {
 	});
 
 	// ─ 縮退: 鍵が無いときは従来どおり別タブの Google マップ ────────────────────
-	test("embed-token が取れないときは、別タブで Google マップを開き元のページは変わらない", async ({ appPage }) => {
-		const context = appPage.context();
+	test.describe("縮退（embed-token が取れないとき）", () => {
+		/*
+		⚠️ **この spec は 503 を «わざと» 起こす。** `stubMapsEmbedTokenUnavailable` が
+		   `POST /v1/maps/embed-token` を 503 にするので、ブラウザは必ず
+		   `Failed to load resource: … 503 …` を console error に出す。
+		   auto フィクスチャはそれを拾って落とすので、**この 1 本だけ**許容する
+		   （run 33983313938 で実測。本体のアサーションは全部通っていた）。
 
-		await stubEmptyDishMediaResults(context);
-		await stubGoogleMaps(context);
-		// 「Cloud Run に鍵が入っていない」状態を作る（実 API のキー設定に依存させない）
-		await stubMapsEmbedTokenUnavailable(context);
+		⚠️ `KNOWN_CONSOLE_NOISE` へ入れないこと。あちらは全 spec に効くので、
+		   **本当に壊れて 503 になった場合まで見えなくなる**。許容範囲はこの describe に閉じる。
+		*/
+		test.use({ allowedConsoleErrors: ["/v1/maps/embed-token"] });
 
-		const openedPages: unknown[] = [];
-		context.on("page", (opened) => openedPages.push(opened));
+		test("embed-token が取れないときは、別タブで Google マップを開き元のページは変わらない", async ({ appPage }) => {
+			const context = appPage.context();
 
-		const { dishCategoriesPage, fallbackDialog } = await openFallbackDialog(appPage);
+			await stubEmptyDishMediaResults(context);
+			await stubGoogleMaps(context);
+			// 「Cloud Run に鍵が入っていない」状態を作る（実 API のキー設定に依存させない）
+			await stubMapsEmbedTokenUnavailable(context);
 
-		// 押下**前**の URL を控える。期待値を決め打ちせず「押す前後で変わらないこと」で判定する
-		const urlBeforeClick = appPage.url();
+			const openedPages: unknown[] = [];
+			context.on("page", (opened) => openedPages.push(opened));
 
-		const [newPage] = await Promise.all([context.waitForEvent("page"), fallbackDialog.confirmButton.click()]);
+			const { dishCategoriesPage, fallbackDialog } = await openFallbackDialog(appPage);
 
-		// window.open 直後は about:blank のことがあるため、URL が確定するまで待ってから検証する
-		await newPage.waitForURL(GOOGLE_MAPS_SEARCH_URL, { timeout: 15_000 });
-		expect(newPage.url()).toMatch(GOOGLE_MAPS_SEARCH_URL);
-		// 検索地点の言語 (ja) が Google マップ側にも引き継がれていること（buildGoogleMapsSearchUrl の hl）
-		expect(newPage.url()).toContain("hl=ja");
+			// 押下**前**の URL を控える。期待値を決め打ちせず「押す前後で変わらないこと」で判定する
+			const urlBeforeClick = appPage.url();
 
-		// ここが #1121 の主症状。修正前は元タブが www.google.com/... へ遷移し、戻ると壊れていた
-		expect(appPage.url()).toBe(urlBeforeClick);
-		// 元タブがアプリを表示したまま生きていること（別タブ起動なので離脱していない）
-		await expect(dishCategoriesPage.headerTitle.last()).toBeVisible();
+			const [newPage] = await Promise.all([context.waitForEvent("page"), fallbackDialog.confirmButton.click()]);
 
-		expect(openedPages).toHaveLength(1);
+			// window.open 直後は about:blank のことがあるため、URL が確定するまで待ってから検証する
+			await newPage.waitForURL(GOOGLE_MAPS_SEARCH_URL, { timeout: 15_000 });
+			expect(newPage.url()).toMatch(GOOGLE_MAPS_SEARCH_URL);
+			// 検索地点の言語 (ja) が Google マップ側にも引き継がれていること（buildGoogleMapsSearchUrl の hl）
+			expect(newPage.url()).toContain("hl=ja");
 
-		await newPage.close();
+			// ここが #1121 の主症状。修正前は元タブが www.google.com/... へ遷移し、戻ると壊れていた
+			expect(appPage.url()).toBe(urlBeforeClick);
+			// 元タブがアプリを表示したまま生きていること（別タブ起動なので離脱していない）
+			await expect(dishCategoriesPage.headerTitle.last()).toBeVisible();
+
+			expect(openedPages).toHaveLength(1);
+
+			await newPage.close();
+		});
 	});
 });
