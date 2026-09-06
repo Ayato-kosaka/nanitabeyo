@@ -120,7 +120,10 @@ jobs:
       # 0 行 → 30 万行へ増える直前に、番人が restaurants 側しか数えていないと気付いたため
       # 足した。数え方だけを psycopg2 の要らない場所へ出してあるのでここで回せる。
       - name: EXPLAIN の行数の数え方のユニットテスト
-        run: python3 -m unittest scripts/db-checks/test_explain_rows_read.py
+        run: |
+          python3 -m unittest \
+            scripts/db-checks/test_explain_rows_read.py \
+            scripts/db-checks/test_explain_opening_status_binds.py
 
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
