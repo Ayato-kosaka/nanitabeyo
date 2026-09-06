@@ -1224,7 +1224,9 @@
 		"steps": {
 			"paste": "粘贴链接",
 			"dish": "选择菜品类别",
-			"restaurant": "选择店铺"
+			"restaurant": "选择店铺",
+			"restaurantConfirm": "确认识别到的店铺",
+			"dishConfirm": "确认识别到的菜品"
 		},
 		"pickRestaurant": {
 			"title": "在地图上选择店铺",
@@ -1232,7 +1234,7 @@
 			"done": "已选择“{{name}}”"
 		},
 		"result": {
-			"summary": "读取完成",
+			"summary": "已从该帖子中找到候选，请在下方选择正确的一项。",
 			"noInfo": "无法从该帖子读取信息。在下方选择店铺和菜品类别即可保存。",
 			"fetchFailed": "暂时无法获取该帖子的信息（稍后重试通常可以成功）。你也可以直接在下方选择店铺和菜品分类后保存。",
 			"showFullCaption": "查看更多",
@@ -1251,6 +1253,11 @@
 			"shortlink_target_unsupported": "该短链接指向的内容无法导入。",
 			"metadata_content_unavailable": "该帖子已被删除或设为私密。",
 			"youtube_not_shorts": "YouTube 仅支持导入 Shorts（竖屏短视频）。"
+		},
+		"candidates": {
+			"heading": "从帖子中识别到的候选",
+			"hint": "请点击正确的一项。",
+			"fallbackHeading": "没有正确的候选？自己搜索"
 		}
 	},
 	"Tutorial": {

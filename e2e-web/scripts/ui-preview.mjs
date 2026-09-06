@@ -375,6 +375,35 @@ const RESOLVE_FETCH_FAILED = {
 	restaurantSearch: { performed: false, reason: "no_extracted_text", scannedCount: 0 },
 };
 
+/*
+#1918 **取れたが手がかりがゼロだった**（`status: ok` で候補ゼロ）状態。
+
+Instagram はサーバ側にメタデータ取得手段が無いため、**これは異常系ではなく主要経路**である。
+②③ を «読み取り結果 → 手入力» の並びへ組み替えるにあたり、
+«候補が 1 つも無いのに «読み取った◯◯を確認» と出ていないか» をここで目視する。
+*/
+const RESOLVE_NO_CANDIDATES = {
+	status: "ok",
+	reason: "resolved",
+	source: {
+		provider: "instagram",
+		externalContentId: "DJWtHU4Ta0v",
+		canonicalUrl: "https://www.instagram.com/reel/DJWtHU4Ta0v/",
+		mediaIndex: null,
+	},
+	metadata: {
+		title: "今日のごはん🍚 #おうちごはん",
+		description: null,
+		authorName: "example.gurume",
+		authorUrl: null,
+		thumbnailUrl: null,
+		extractedTexts: [],
+	},
+	candidates: { dishCategories: [], restaurants: [] },
+	prefill: { dishCategoryId: null, restaurantId: null },
+	restaurantSearch: { performed: true, reason: "searched", scannedCount: 8 },
+};
+
 // Google Maps JS API のスタブ。LoadScript がアプリ全体を包んでおり、
 // これが読めないと画面全体が «Loading...» のまま止まる
 const MAPS_STUB = `
@@ -692,6 +721,19 @@ await page.waitForTimeout(800);
 await shot("sns-import-resolved-bottom");
 
 // 3a. #1834 取りに行って失敗した状態（«読み取れなかった» と «情報が無かった» の書き分け）
+// #1918 候補ゼロ（主要経路）。手入力欄が «逃げ道» として説明されているかを見る
+resolveResponse = RESOLVE_NO_CANDIDATES;
+await goto("/ja-JP/add-record");
+await page
+	.getByTestId("sns-import-screen")
+	.waitFor({ timeout: 120000 })
+	.catch((e) => console.log("sns wait:", e.message));
+await page.waitForTimeout(2000);
+await page.getByTestId("sns-import-url-input").fill("https://www.instagram.com/reel/DJWtHU4Ta0v/");
+await page.getByTestId("sns-import-resolve-button").click();
+await page.waitForTimeout(2500);
+await shot("sns-import-no-candidates");
+
 resolveResponse = RESOLVE_FETCH_FAILED;
 await goto("/ja-JP/add-record");
 await page

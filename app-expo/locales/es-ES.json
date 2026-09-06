@@ -1224,7 +1224,9 @@
 		"steps": {
 			"paste": "Pega la URL",
 			"dish": "Elige la categoría del plato",
-			"restaurant": "Elige el local"
+			"restaurant": "Elige el local",
+			"restaurantConfirm": "Confirma el local detectado",
+			"dishConfirm": "Confirma el plato detectado"
 		},
 		"pickRestaurant": {
 			"title": "Elegir un local en el mapa",
@@ -1232,7 +1234,7 @@
 			"done": "Has elegido «{{name}}»"
 		},
 		"result": {
-			"summary": "Lectura completada",
+			"summary": "Hemos detectado algunas opciones en la publicación. Elige las correctas abajo.",
 			"noInfo": "No se pudo leer información de esta publicación. Elige el local y la categoría abajo para guardarla.",
 			"fetchFailed": "No hemos podido obtener los datos de esta publicación ahora mismo (suele funcionar si lo intentas de nuevo en un momento). Aun así puedes elegir el restaurante y la categoría de plato abajo para guardarla.",
 			"showFullCaption": "Ver más",
@@ -1251,6 +1253,11 @@
 			"shortlink_target_unsupported": "Ese enlace corto no lleva a una publicación que podamos importar.",
 			"metadata_content_unavailable": "Esta publicación se ha eliminado o es privada.",
 			"youtube_not_shorts": "De YouTube solo podemos importar Shorts (vídeos verticales cortos)."
+		},
+		"candidates": {
+			"heading": "Detectado en la publicación",
+			"hint": "Toca la opción correcta.",
+			"fallbackHeading": "¿Ninguna es correcta? Búscalo tú"
 		}
 	},
 	"Tutorial": {
