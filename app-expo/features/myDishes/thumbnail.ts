@@ -6,13 +6,18 @@ import type { MyDishItem } from "@shared/api/v1/res";
  * `dishMedia === null`（写真なしの記録。#1395 で `dish_reviews.created_dish_media_id` の
  * NOT NULL を解除済み）でも**灰色プレースホルダーにしない**。
  * `dish.categoryImageUrl`（`dish_categories.image_url`。NOT NULL・#1398 PR1 でマージ済み）
- * → `restaurant.image_url` の順で実画像へフォールバックし、3 つとも無いときだけ null を返す
+ * → `restaurant.imageUrls?.sm` の順で実画像へフォールバックし、3 つとも無いときだけ null を返す
  * （呼び出し側はそのときだけ無地背景 / アイコンにしてよい）。
  *
  * list / calendar の 2 ビューがこの関数を共有する（#1398 PR5 で calendar.ts から切り出した。
  * Calendar 側の挙動は変えていない）。Map のピンは店舗単位で `dish` を持たないため対象外
- * （`representativeThumbnailUrl ?? restaurant.image_url` を `MyDishesMapView.tsx` 側で直接使う。
+ * （`representativeThumbnailUrl ?? restaurant.imageUrls?.sm` を `MyDishesMapView.tsx` 側で直接使う。
  * 設計書 (2/2) §5-2）。
+ *
+ * ⚠️ #1779 **`restaurant.image_url` は使わない。** #1680 が「店の画像は `imageUrls` から取る」と
+ * 決めたのに、list / calendar / 地図の 3 箇所だけ移行から漏れていた（`myDishCard.tsx:46` を参照）。
+ * `image_url` は非空 2,423 行のうち 2,321 行が Google の写真 URI で、ToS 3.2.3 により保持できない。
+ * 列ごと落とすため、ここを最後に移す。`imageUrls` は `image_path` を持つ行にだけ付く。
  *
  * ## R5 の申し送り: 他人の写真が代表画像になることがある（#1395 m-7 で決め切った仕様）
  *
@@ -22,7 +27,7 @@ import type { MyDishItem } from "@shared/api/v1/res";
  * （サーバ側 `COALESCE(own_media_id, fb.id)` の fb 側）。これは意図した挙動であり、バグではない。
  */
 export const resolveMyDishThumbnailUrl = (item: MyDishItem): string | null =>
-	item.dishMedia?.thumbnailImageUrl ?? item.dish?.categoryImageUrl ?? item.restaurant?.image_url ?? null;
+	item.dishMedia?.thumbnailImageUrl ?? item.dish?.categoryImageUrl ?? item.restaurant?.imageUrls?.sm ?? null;
 
 /**
  * #1513 サムネイル枠に何を描くか。
@@ -38,7 +43,7 @@ export type MyDishThumbnail = { kind: "photo"; url: string } | { kind: "deleted"
  *
  * `isOwnMediaDeleted === true`（自分の投稿が削除済み）のとき、サーバーは `dishMedia` を
  * null にして返す。ここで `resolveMyDishThumbnailUrl` をそのまま呼ぶと
- * `categoryImageUrl` / `restaurant.image_url` へ落ちてしまい、**自分が消した写真の跡地に
+ * `categoryImageUrl` / `restaurant.imageUrls` へ落ちてしまい、**自分が消した写真の跡地に
  * 別の絵が入って「消えたこと」が伝わらない**（オーナー確定: 黙って差し替えない）。
  *
  * 分岐をこの 1 関数に置くのは、list / calendar / 地図ピンで判断がずれないようにするため。

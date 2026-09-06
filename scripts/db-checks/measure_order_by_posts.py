@@ -224,25 +224,9 @@ def run_counts(cur, schema):
     return with_posts
 
 
-def restaurants_rows_read(plan):
-    """実行計画から «restaurants を読んだ延べ行数» を拾う。
-
-    LATERAL の主キー探索は «loops 回まわって 0〜1 行» なので、
-    行数ではなく **loops × rows** で数える（半径に比例するかを見るのが目的）。
-    """
-    total = 0
-    detail = []
-    for line in plan:
-        s = line.strip()
-        if not re.search(r"\bon (restaurants|idx_restaurants_location)\b", s):
-            continue
-        m = re.search(r"actual time=[\d.]+\.\.[\d.]+ rows=(\d+) loops=(\d+)", s)
-        if not m:
-            continue
-        rows = int(m.group(1)) * int(m.group(2))
-        total += rows
-        detail.append((s[:110], rows))
-    return total, detail
+# ⚠️ 数え方の実装は `explain_rows_read.py` が正本（3 本のスクリプトが共有する判定なので、
+#    psycopg2 を要らない場所へ出して CI のテストで縛ってある）。ここへ書き戻さないこと。
+from explain_rows_read import restaurants_rows_read  # noqa: E402,F401
 
 
 def explain(cur, sql, nparams, params, generic):

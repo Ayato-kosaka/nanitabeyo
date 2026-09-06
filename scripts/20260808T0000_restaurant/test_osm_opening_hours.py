@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import datetime
 import sys
 import unittest
 from pathlib import Path
@@ -152,6 +153,59 @@ class RefusedFormsTest(unittest.TestCase):
 
     def test_refuses_broken_times(self) -> None:
         for value in ("Mo 25:00-99:00", "Mo 09:70-17:00", "Mo 09:00-48:00"):
+            self.assertIsNone(parse(value), value)
+
+
+class ValueFitsThePostgresColumnTest(unittest.TestCase):
+    """⚠️ **#1895 の水平展開。** «吐いた値が列の定義域に入るか» を誰も見ていなかった。
+
+    日本語パーサ側（`jp_site_opening_hours.py`）が `26:00` をそのまま返し、
+    3 時間 41 分走ったクロールが `DatetimeFieldOverflow` で落ちた。原因は
+    「終了側の 24 時超えだけ折り返して開始側を素通しした」ことだが、**それを
+    見逃した理由は「crosses_midnight の整合しか見ておらず、時刻そのものが
+    DB へ入る値かを見ていなかった」**ことである。
+
+    このパーサは今のところ `0 <= oh <= 23` を明示的に検査して弾いており、
+    同じ欠陥は無い（`_parse_time_span`）。**が、それを固定しているものが無い。**
+    弾く側を «26:00 も折り返そう» と親切にした瞬間に、同じ穴が開く。
+
+    ⚠️ PostgreSQL の TIME は列の**型の定義域**（00:00:00〜24:00:00）であって
+    CHECK 制約ではない。migration を読んでも書いていないので、ここで縛る。
+    `datetime.time.fromisoformat` は 00:00〜23:59 しか通さない（= TIME より厳しい）。
+    """
+
+    def test_every_emitted_time_is_a_valid_postgres_time(self) -> None:
+        values = [
+            "24/7",
+            "Mo-Su 18:00-26:00",
+            "Mo-Fr 11:00-14:00,17:00-22:00; Sa 12:00-15:00",
+            "Mo 00:00-24:00",
+            "Mo 18:00-02:00",
+            "11:00-15:00, 17:00-22:00",
+            "Mo-Fr 09:00-17:00; Su off",
+            "Mo-Su 06:00-47:00",
+            # ⚠️ いまは弾かれるので 0 行になる（それでよい）。**将来「折り返そう」と
+            #    親切にしたときに、ここが «24:00 が出た» と言って落ちる**のが狙い。
+            "Mo 24:00-26:00",
+            "Mo 26:00-28:00",
+        ]
+        for value in values:
+            for row in parse(value) or []:
+                with self.subTest(value=value, row=row):
+                    datetime.time.fromisoformat(row.opens_at)
+                    datetime.time.fromisoformat(row.closes_at)
+                    self.assertIn(row.day_of_week, range(7))
+                    # DB の CHECK: crosses_midnight = (closes_at <= opens_at)
+                    self.assertEqual(row.crosses_midnight, row.closes_at <= row.opens_at)
+
+    def test_opening_time_past_24_is_refused_not_silently_folded(self) -> None:
+        """⚠️ **開始側が 24 を超えたら «扱えない» にすること。**
+
+        折り返すなら曜日も 1 日ずらさなければならず（`Mo 26:00-28:00` は
+        日本語の慣習では火曜未明）、OSM でその表記が出る根拠は測れていない。
+        測れていないものを推測で埋めない、がこのパーサの方針である（上のクラス）。
+        """
+        for value in ("Mo 24:00-26:00", "Mo 26:00-28:00", "Mo 25:00-27:00"):
             self.assertIsNone(parse(value), value)
 
 
