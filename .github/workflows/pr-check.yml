@@ -125,6 +125,15 @@ jobs:
             scripts/db-checks/test_explain_rows_read.py \
             scripts/db-checks/test_explain_opening_status_binds.py
 
+      # #1666 進捗ログが `continue` の後ろにあって出ない形（run 34022514117 は 3,000 件で
+      # 6 行しか出さず、原因の読み違えを招いた）と、フォレンジックの SQL が本番の
+      # «候補の並び» を写経していないこと。どちらもソースを AST で読むだけで回せる。
+      - name: 進捗ログと候補の並びの回帰テスト
+        run: |
+          python3 -m unittest \
+            scripts/db-checks/test_progress_log_reachable.py \
+            scripts/db-checks/test_inspect_opening_hours_reach.py
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査

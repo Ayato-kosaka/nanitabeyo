@@ -150,6 +150,12 @@ def main() -> int:
     last_request_at = 0.0
 
     for i, (rid, name, url, _cc, _lat, _lon) in enumerate(rows, start=1):
+        # ⚠️ 進捗ログは **ループの先頭**に置く。`continue` の後ろへ置くと
+        #    «最後まで通った件» のときしか出ない。2026-09-06 の run 34022514117 は
+        #    3,000 件で 6 行しか出ず、«前半 1,350 件で parsed が 1» を «前半が異常» と
+        #    読み違える原因になった（実際は普通の並びだった）。
+        if (i - 1) % 25 == 0 and i > 1:
+            print(f"  … {i - 1}/{len(rows)} 件（{dict(counts)}）", flush=True)
         wait = args.min_interval - (time.monotonic() - last_request_at)
         if wait > 0:
             time.sleep(wait)
@@ -172,8 +178,6 @@ def main() -> int:
             if bucket in examples and len(examples[bucket]) < 5:
                 examples[bucket].append(f"{name} {url}")
 
-        if i % 25 == 0:
-            print(f"  … {i}/{len(rows)} 件（{dict(counts)}）", flush=True)
 
     total = len(rows)
     reached = counts["parsed"] + counts["mentions_hours_unparsed"] + counts["no_hours_mentioned"]
