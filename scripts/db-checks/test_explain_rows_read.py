@@ -20,6 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import explain_rows_read  # noqa: E402
 from explain_rows_read import restaurants_rows_read, table_rows_read  # noqa: E402
 
 # 実際の EXPLAIN (ANALYZE, BUFFERS) の行から必要な部分だけ写したもの。
@@ -101,6 +102,65 @@ class AnalyzeIsRequiredTest(unittest.TestCase):
     def test_a_plan_without_analyze_counts_as_zero(self) -> None:
         plan = ["  ->  Seq Scan on restaurant_opening_hours roh  (cost=0..99999 rows=1240000 width=30)"]
         self.assertEqual(table_rows_read(plan, "restaurant_opening_hours")[0], 0)
+
+
+
+class RoundingFloorTest(unittest.TestCase):
+    """#1666 `rows=` は 1 loop あたりの平均が整数へ丸められた値である。
+
+    ⚠️ **0 を «読んでいない» と読んではいけない。** 2026-09-06 に dev で実測した
+       プラン行（run 34036910547）をそのまま入力にする。この節は
+       `Buffers: shared hit=2000` で **2,000 回バッファに触っている**のに `rows=0` である。
+    """
+
+    # 実測そのまま（整形もしていない）
+    REAL_PLAN_LINE = (
+        "->  Index Scan using idx_restaurant_hours_exceptions_date on "
+        "restaurant_hours_exceptions rhe  (cost=0.15..1.27 rows=1 width=69) "
+        "(actual time=0.001..0.001 rows=0 loops=1000)"
+    )
+
+    def test_real_plan_line_is_reported_as_below_the_floor(self) -> None:
+        total, _detail, floor_loops = explain_rows_read.table_rows_read_with_floor(
+            [self.REAL_PLAN_LINE], "restaurant_hours_exceptions"
+        )
+        self.assertEqual(total, 0, "延べ行数は 0 と数えられる（丸めのため）")
+        self.assertEqual(
+            floor_loops,
+            1000,
+            "⚠️ 丸めの下限に当たったことを報告していない。0 行を «軽い» と読んでしまう",
+        )
+
+    def test_loops_one_is_not_treated_as_below_the_floor(self) -> None:
+        """loops=1 の 0 行は **本当に 0 行**である（丸めようがない）。"""
+        line = (
+            "->  Index Scan using x on restaurant_opening_hours roh "
+            "(cost=0.15..1.27 rows=1 width=69) (actual time=0.001..0.001 rows=0 loops=1)"
+        )
+        _total, _detail, floor_loops = explain_rows_read.table_rows_read_with_floor(
+            [line], "restaurant_opening_hours"
+        )
+        self.assertEqual(floor_loops, 0)
+
+    def test_nonzero_rows_is_not_below_the_floor(self) -> None:
+        """1 行でも出ていれば丸めの下限ではない。"""
+        line = (
+            "->  Index Scan using x on restaurant_opening_hours roh "
+            "(cost=0.15..1.27 rows=1 width=69) (actual time=0.001..0.001 rows=2 loops=1000)"
+        )
+        total, _detail, floor_loops = explain_rows_read.table_rows_read_with_floor(
+            [line], "restaurant_opening_hours"
+        )
+        self.assertEqual(total, 2000)
+        self.assertEqual(floor_loops, 0)
+
+    def test_rows_read_keeps_its_old_shape(self) -> None:
+        """既存の呼び出し元を壊さない（2 つ組のまま）。"""
+        total, detail = explain_rows_read.table_rows_read(
+            [self.REAL_PLAN_LINE], "restaurant_hours_exceptions"
+        )
+        self.assertEqual(total, 0)
+        self.assertEqual(len(detail), 1)
 
 
 if __name__ == "__main__":

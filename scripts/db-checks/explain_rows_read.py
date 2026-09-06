@@ -14,6 +14,29 @@
 
 LATERAL や Nested Loop の内側は「loops 回まわって毎回 0〜N 行」なので、`rows=` だけを
 見ると **1 桁小さく見える**。半径に比例して重くなるかを見るのが目的なので、延べで数える。
+
+## ⚠️ この数え方には **下限がある**。0 を «読んでいない» と読んではいけない
+
+`rows=` は **1 loop あたりの平均で、整数に丸められて**表示される。
+1 loop あたり 0.5 行未満なら `rows=0` になり、掛け算の結果も 0 になる。
+
+2026-09-06 に dev で実測した実物（[run 34036910547](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34036910547)）:
+
+    -> Index Scan using idx_restaurant_hours_exceptions_date on restaurant_hours_exceptions rhe
+       (cost=0.15..1.27 rows=1 width=69) (actual time=0.001..0.001 rows=0 loops=1000)
+       Buffers: shared hit=2000
+
+**2,000 回バッファに触っているのに «0 行» である。**
+
+営業時間テーブルは «候補 1,000 件のうち十数件しか当たらない» ので、まさにこの範囲に落ちる
+（東京駅の近い順 1,000 件のうち、今日の曜日の行を持つ店は 11 店 / run 34036860847）。
+つまり `restaurant_opening_hours から延べ 0 行 ✅` は **«軽い» の根拠にならない**。
+
+- **捕まえられるもの**: 全件走査へ倒れる致命的な劣化（rows が桁で大きくなる）
+- **捕まえられないもの**: 0 行と «loops × 0.49 行» の区別（loops=1000 なら最大 499 行）
+
+そこで `rows_read` は «丸めの下限に当たったか» も返す。呼び出し側はそれを
+`✅` ではなく **「測定下限未満」** として出すこと。**0 を根拠に «閉じている» と書かない。**
 """
 
 from __future__ import annotations
@@ -31,8 +54,20 @@ def rows_read(plan, pattern):
 
     戻り値は `(合計行数, [(計画の行, その行数), ...])`。
     """
+    total, detail, _ = rows_read_with_floor(plan, pattern)
+    return total, detail
+
+
+def rows_read_with_floor(plan, pattern):
+    """`rows_read` に «丸めの下限に当たったか» を足して返す。
+
+    戻り値は `(合計行数, [(計画の行, その行数), ...], 下限に当たった loops の最大値)`。
+    3 つ目が 0 より大きいとき、合計行数は **下限であって実測ではない**。
+    その節は 1 loop あたり 0.5 行未満で、延べ最大 `loops × 0.5` 行を読みうる。
+    """
     total = 0
     detail = []
+    floor_loops = 0
     for line in plan:
         s = line.strip()
         if not pattern.search(s):
@@ -40,10 +75,15 @@ def rows_read(plan, pattern):
         m = _ACTUAL_RE.search(s)
         if not m:
             continue
-        n = int(m.group(1)) * int(m.group(2))
-        total += n
-        detail.append((s[:110], n))
-    return total, detail
+        rows = int(m.group(1))
+        loops = int(m.group(2))
+        total += rows * loops
+        detail.append((s[:110], rows * loops))
+        # rows=0 なのに何度も回っている節は «読んでいない» とは限らない。
+        # 1 loop あたり 0.5 行未満が丸められているだけかもしれない。
+        if rows == 0 and loops > 1:
+            floor_loops = max(floor_loops, loops)
+    return total, detail, floor_loops
 
 
 # `restaurants` 本体と、その位置索引。
@@ -57,10 +97,24 @@ def restaurants_rows_read(plan):
     return rows_read(plan, _RESTAURANTS_RE)
 
 
-def table_rows_read(plan, table):
-    """実行計画から «`table` を読んだ延べ行数» を拾う。
+def _table_pattern(table):
+    """索引経由（`Index Scan using idx_… on <table>`）でも表名で当たる形。
 
-    索引経由（`Index Scan using idx_… on <table>`）でも表名で当たるように、
-    `on <table>` の形を見る。別表の接頭辞に巻き込まれないよう前後を \b で閉じる。
+    別表の接頭辞（`restaurant_opening_hours` と `restaurants`）に巻き込まれないよう
+    前後を \b で閉じる。
     """
-    return rows_read(plan, re.compile(rf"\bon {re.escape(table)}\b"))
+    return re.compile(rf"\bon {re.escape(table)}\b")
+
+
+def table_rows_read(plan, table):
+    """実行計画から «`table` を読んだ延べ行数» を拾う。"""
+    return rows_read(plan, _table_pattern(table))
+
+
+def table_rows_read_with_floor(plan, table):
+    """`table_rows_read` に «丸めの下限に当たったか» を足して返す。
+
+    ⚠️ 3 つ目が 0 より大きいとき、**合計行数を «軽い» の根拠にしてはいけない**
+    （このファイル冒頭の注記）。
+    """
+    return rows_read_with_floor(plan, _table_pattern(table))
