@@ -398,6 +398,18 @@ export class SettingsScreen {
 	}
 
 	/**
+	 * #1629 アカウント管理ページが出ていることを確かめる（スクロールはしない）。
+	 *
+	 * ⚠️ `expectLoaded()`（マイページ本体 = `settings-scroll`）と**対**である。
+	 * ログアウト行・削除行を触ったあとは **アカウント管理ページに居る**ので、
+	 * そこで `expectLoaded()` を呼ぶと `settings-scroll` が無く 25 秒待って落ちる
+	 * （run 34019438392 で実測）。«どちらの画面に居るか» を取り違えないこと。
+	 */
+	async expectAccountLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitFor(element(this.accountScroll)).toExist().withTimeout(timeout);
+	}
+
+	/**
 	 * アカウント管理ページの行が **見える位置まで** スクロールする。
 	 *
 	 * ⚠️ `expectRowVisible()` と対になっている。あちらはマイページ本体
