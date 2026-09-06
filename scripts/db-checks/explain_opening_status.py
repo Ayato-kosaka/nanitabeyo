@@ -62,12 +62,13 @@ import psycopg2
 
 # ⚠️ 道具立ては写経しない。EXPLAIN の回し方・行数の数え方・測る地点は
 #    measure_order_by_posts.py が正本で、そこを直せばここも一緒に直る。
+# ⚠️ 数え方の実装は `explain_rows_read.py` が正本。写経しないこと。
+from explain_rows_read import restaurants_rows_read, table_rows_read  # noqa: E402
 from measure_order_by_posts import (
     CASES,
     REPEATS,
     explain,
     one,
-    restaurants_rows_read,
     section,
 )
 
@@ -84,11 +85,28 @@ KNN_LIMIT = max(1000, 50 * LIMIT)
 # その数倍に収まっていれば «半径に比例していない»。半径内を舐めるプランへ倒れると桁が変わる
 ROWS_BUDGET = KNN_LIMIT * 4
 
-QUERIES = ("opening_status.hours", "opening_status.exceptions")
+# ⚠️ **`restaurants` の行数だけでは «閉じている» を主張できない。**
+#
+# このスクリプトが守りたいのは「営業時間テーブルが埋まっても検索 1 回の重さが増えない」
+# だが、上の ROWS_BUDGET は `restaurants` / `idx_restaurants_location` を読んだ行しか
+# 数えていない（`restaurants_rows_read` の実装がその 2 つに限っている）。
+# つまり **営業時間テーブル側を全件舐めるプランへ倒れても緑のまま**だった。
+# «測っていないもの» を «測った» と言わないために、こちらも数えて判定に入れる。
+#
+# 上限の出し方: 候補は KNN で KNN_LIMIT 件に落ち、曜日は 2 日ぶんしか引かない。
+# dev 実測で 1 店あたり約 9.8 行 / 週 = 1 曜日あたり約 1.4 行なので、
+# 期待値は KNN_LIMIT × 2 × 1.4 ≒ 2,800 行。ここは «桁が変わったこと» を捕まえるのが
+# 目的なので、10 行/曜日 まで許して 7 倍の余裕を置く。
+# 半径内を舐めるプランへ倒れると 100 万行の桁になるので、この幅で十分に分かれる。
+HOURS_ROWS_BUDGET = KNN_LIMIT * 2 * 10
 
-# 曜日・例外日は now から決まる。EXPLAIN では «どの日か» は結果を変えないので固定値でよい
-SAMPLE_DOW = (5, 4)
-SAMPLE_DATES = ("2026-09-04", "2026-09-03")
+# 数える対象。QUERIES と 1 対 1 で対応させる（片方だけ増やさないこと）
+HOURS_TABLES = {
+    "opening_status.hours": "restaurant_opening_hours",
+    "opening_status.exceptions": "restaurant_hours_exceptions",
+}
+
+QUERIES = ("opening_status.hours", "opening_status.exceptions")
 
 
 def load_sql(name):
@@ -208,15 +226,31 @@ def run_explain(cur, full_plan, do_assert):
                         f"{name} / {label} / {mode.strip()} plan: restaurants を延べ "
                         f"{rows:,} 行読んでいる（上限 {ROWS_BUDGET:,} 行）"
                     )
+
+                # ⚠️ 営業時間テーブル側も数える（上の HOURS_ROWS_BUDGET の注記）
+                table = HOURS_TABLES[name]
+                h_rows, h_detail = table_rows_read(plan, table)
+                h_verdict = (
+                    " ✅" if h_rows <= HOURS_ROWS_BUDGET else "  ❌ 候補集合の外まで読んでいる"
+                )
+                if h_rows > HOURS_ROWS_BUDGET:
+                    failures.append(
+                        f"{name} / {label} / {mode.strip()} plan: {table} を延べ "
+                        f"{h_rows:,} 行読んでいる（上限 {HOURS_ROWS_BUDGET:,} 行）"
+                    )
+
                 ms = runs[-1]["exec"]
                 logger.info(
-                    "   %s: %8.1f ms / restaurants から延べ %s 行%s",
+                    "   %s: %8.1f ms / restaurants から延べ %s 行%s / %s から延べ %s 行%s",
                     mode,
                     ms if ms is not None else -1,
                     f"{rows:,}",
                     verdict,
+                    table,
+                    f"{h_rows:,}",
+                    h_verdict,
                 )
-                for text, n in detail:
+                for text, n in detail + h_detail:
                     logger.info("        %s  => %s 行", text, f"{n:,}")
                 if full_plan:
                     for line in plan:
@@ -226,6 +260,7 @@ def run_explain(cur, full_plan, do_assert):
     if not failures:
         logger.info(
             "✅ custom / generic のどちらでも «営業時間の引き上げは候補集合に閉じている»"
+            "（restaurants 側・営業時間テーブル側の **両方**で確認した）"
         )
         return 0
     for f in failures:

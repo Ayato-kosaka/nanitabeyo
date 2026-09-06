@@ -107,6 +107,12 @@ jobs:
             scripts/20260808T0000_restaurant/test_measure_official_site_hours.py \
             scripts/20260808T0000_restaurant/test_crawl_official_site_hours.py
 
+      # #1666 EXPLAIN の «延べ行数» の数え方（explain_rows_read.py）。営業時間テーブルが
+      # 0 行 → 30 万行へ増える直前に、番人が restaurants 側しか数えていないと気付いたため
+      # 足した。数え方だけを psycopg2 の要らない場所へ出してあるのでここで回せる。
+      - name: EXPLAIN の行数の数え方のユニットテスト
+        run: python3 -m unittest scripts/db-checks/test_explain_rows_read.py
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
