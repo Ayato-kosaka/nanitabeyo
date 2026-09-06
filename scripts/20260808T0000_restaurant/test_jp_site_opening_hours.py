@@ -25,6 +25,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from jp_site_opening_hours import parse_jp_site_opening_hours as parse
+from jp_site_opening_hours import parse_jp_site_opening_hours_with_reason as parse_with_reason  # noqa: E402
 
 # 0 = 日曜 … 6 = 土曜
 SUN, MON, TUE, WED, THU, FRI, SAT = range(7)
@@ -357,6 +358,52 @@ class ContractWithOsmParserTest(unittest.TestCase):
         rows = parse("土曜 10:00-12:00")
         assert rows is not None
         self.assertEqual(dows(rows), {6})
+
+
+class RealExcerptsFromTheCrawlTest(unittest.TestCase):
+    """#1666 2026-09-06 の実測（[run 34044086520](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34044086520)）で
+    «諦めた» 側に入っていた実物の断片。**推測ではなく実データで直したことを固定する。**
+    """
+
+    def test_no_closed_days_is_an_answer_not_a_failure(self) -> None:
+        """「定休日 なし」は «読めなかった» ではなく «休みが無い» である。"""
+        rows, reason = parse_with_reason("営業時間 18:00～翌1:00 定休日 なし クレジットカード 利用可能")
+        self.assertIsNone(reason)
+        self.assertEqual(len(rows), 7, "休みが無いと書いてあるので 7 日ぶん")
+
+    def test_year_round_open_is_an_answer(self) -> None:
+        rows, reason = parse_with_reason("営業時間 11:00-14:00 年中無休")
+        self.assertIsNone(reason)
+        self.assertEqual(len(rows), 7)
+
+    def test_next_day_marker_is_accepted(self) -> None:
+        """「翌」は日をまたぐことの明示。受けても曜日は増えない。"""
+        rows, _reason = parse_with_reason("営業時間 18:00～翌1:00 年中無休")
+        self.assertTrue(all(r.crosses_midnight for r in rows))
+        self.assertEqual({r.opens_at for r in rows}, {"18:00"})
+        self.assertEqual({r.closes_at for r in rows}, {"01:00"})
+
+    def test_irregular_closure_is_still_given_up(self) -> None:
+        """⚠️ 「不定休」は «無休» ではない。休みはあるが日が決まっていない。
+
+        営業時間だけ入れると **休みの日に «開いている» と言う**ことになる。
+        3 値判定で害があるのは間違った open だけなので、ここは諦めたままが正しい。
+        """
+        for text in (
+            "営業時間 17:00〜24:00(L.O.23:30) 定休日 不定休",
+            "営業時間 17：30～22：00 休業日 定休：日曜日・他に不定休あり",
+        ):
+            rows, reason = parse_with_reason(text)
+            self.assertIsNone(rows, text)
+            self.assertEqual(reason, "unparseable_closure", text)
+
+    def test_closed_days_without_a_value_is_still_given_up(self) -> None:
+        """「定休日:」だけで値が無いページは、読めないままにする。"""
+        rows, reason = parse_with_reason(
+            "所在地: 埼玉県秩父郡長瀞町長瀞477-3 電話番号: 0494-66-0153 定休日: 営業時間: 駐車場:"
+        )
+        self.assertIsNone(rows)
+        self.assertEqual(reason, "closed_days_unreadable")
 
 
 if __name__ == "__main__":
