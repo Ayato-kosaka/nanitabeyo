@@ -37,6 +37,24 @@ LATERAL や Nested Loop の内側は「loops 回まわって毎回 0〜N 行」�
 
 そこで `rows_read` は «丸めの下限に当たったか» も返す。呼び出し側はそれを
 `✅` ではなく **「測定下限未満」** として出すこと。**0 を根拠に «閉じている» と書かない。**
+
+## ⚠️ ただし «測れない» を «判定できない» にしてもいけない
+
+2026-09-06 に上の «測定下限未満» を出すようにしたところ、番人は営業時間テーブルについて
+**二度と ✅ を出せなくなった**。丸めの下限に当たる限り常に «確かめられていない» になるためで、
+これは «0 行 ✅» と逆向きの同じ間違い（数字の意味を確かめずに結論を固定している）である。
+
+丸めの誤差には **上界がある**。`rows` は 1 loop あたりの平均を四捨五入した値なので、
+
+    実際の延べ行数 ≤ (rows + 0.5) × loops = rows × loops + loops / 2
+
+`loops = 1` の節は平均を取っていないので誤差はゼロ。したがって
+
+    上界 = Σ rows_i × loops_i + Σ_{loops_i > 1} loops_i / 2
+
+**この上界が予算を下回るなら、丸めを最大に見積もっても予算内である**と言い切れる。
+逆に下界が予算を超えていれば、丸めがどちらへ転んでも超過である。両方に当てはまらないときだけ
+«判定できない» になる。`rows_read_with_bound` はこの下界と上界を返す。
 """
 
 from __future__ import annotations
@@ -65,7 +83,20 @@ def rows_read_with_floor(plan, pattern):
     3 つ目が 0 より大きいとき、合計行数は **下限であって実測ではない**。
     その節は 1 loop あたり 0.5 行未満で、延べ最大 `loops × 0.5` 行を読みうる。
     """
-    total = 0
+    lower, _upper, detail, floor_loops = rows_read_with_bound(plan, pattern)
+    return lower, detail, floor_loops
+
+
+def rows_read_with_bound(plan, pattern):
+    """下界と **上界** を返す。上界は «丸めを最大に見積もった延べ行数» である。
+
+    戻り値は `(下界, 上界, [(計画の行, その行数), ...], 下限に当たった loops の最大値)`。
+
+    上界の出し方はこのファイル冒頭の注記のとおり。`loops = 1` の節は平均を取っていない
+    ので誤差ゼロ、`loops > 1` の節は 1 節あたり `loops / 2` を足す。
+    """
+    lower = 0
+    slack = 0
     detail = []
     floor_loops = 0
     for line in plan:
@@ -77,13 +108,29 @@ def rows_read_with_floor(plan, pattern):
             continue
         rows = int(m.group(1))
         loops = int(m.group(2))
-        total += rows * loops
+        lower += rows * loops
         detail.append((s[:110], rows * loops))
+        if loops > 1:
+            # rows は 1 loop あたりの平均の四捨五入。誤差は 1 節あたり loops / 2 未満。
+            slack += loops // 2
         # rows=0 なのに何度も回っている節は «読んでいない» とは限らない。
         # 1 loop あたり 0.5 行未満が丸められているだけかもしれない。
         if rows == 0 and loops > 1:
             floor_loops = max(floor_loops, loops)
-    return total, detail, floor_loops
+    return lower, lower + slack, detail, floor_loops
+
+
+def verdict_against_budget(lower, upper, budget):
+    """予算に対する判定を «確定» / «超過» / «判定できない» の 3 値で返す。
+
+    ⚠️ **下界だけで ✅ を出さない**（0 行 ✅ の再発）。
+       **上界に当たったからといって «判定できない» で止めない**（その逆の再発）。
+    """
+    if upper <= budget:
+        return "within"
+    if lower > budget:
+        return "over"
+    return "unknown"
 
 
 # `restaurants` 本体と、その位置索引。
@@ -95,6 +142,11 @@ _RESTAURANTS_RE = re.compile(r"\bon (restaurants|idx_restaurants_location)\b")
 def restaurants_rows_read(plan):
     """実行計画から «restaurants を読んだ延べ行数» を拾う。"""
     return rows_read(plan, _RESTAURANTS_RE)
+
+
+def restaurants_rows_read_with_bound(plan):
+    """`restaurants_rows_read` の下界・上界つき。予算判定にはこちらを使うこと。"""
+    return rows_read_with_bound(plan, _RESTAURANTS_RE)
 
 
 def _table_pattern(table):
@@ -118,3 +170,8 @@ def table_rows_read_with_floor(plan, table):
     （このファイル冒頭の注記）。
     """
     return rows_read_with_floor(plan, _table_pattern(table))
+
+
+def table_rows_read_with_bound(plan, table):
+    """`table_rows_read` の下界・上界つき。予算判定にはこちらを使うこと。"""
+    return rows_read_with_bound(plan, _table_pattern(table))

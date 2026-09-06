@@ -226,7 +226,10 @@ def run_counts(cur, schema):
 
 # ⚠️ 数え方の実装は `explain_rows_read.py` が正本（3 本のスクリプトが共有する判定なので、
 #    psycopg2 を要らない場所へ出して CI のテストで縛ってある）。ここへ書き戻さないこと。
-from explain_rows_read import restaurants_rows_read  # noqa: E402,F401
+from explain_rows_read import (  # noqa: E402,F401
+    restaurants_rows_read_with_bound,
+    verdict_against_budget,
+)
 
 
 def explain(cur, sql, nparams, params, generic):
@@ -348,17 +351,23 @@ def _measure_case(
                 continue
             ms = runs[-1]["exec"]
 
-            rows, detail = restaurants_rows_read(plan)
+            # ⚠️ 丸めの下界だけで判定しない（explain_rows_read.py 冒頭の注記）。
+            rows, rows_upper, detail, _ = restaurants_rows_read_with_bound(plan)
             # ⚠️ **custom / generic の両方を判定する。**
             #    #1686 のあと «generic だけ» を見ていたせいで、custom plan が
             #    11〜13 秒のまま «✅» と表示されて見落とした（dev run 33229509189）。
             #    どちらか一方でも半径内を舐めていたら赤にする
-            verdict = " ✅" if rows <= budget else "  ❌ 半径内の全店を読んでいる"
-            if rows > budget:
+            state = verdict_against_budget(rows, rows_upper, budget)
+            if state == "within":
+                verdict = " ✅"
+            elif state == "over":
+                verdict = "  ❌ 半径内の全店を読んでいる"
                 failures.append(
                     f"{shape_name} / {label} / {mode.strip()} plan: "
                     f"restaurants を延べ {rows:,} 行 読んでいる（上限 {budget:,} 行）"
                 )
+            else:
+                verdict = f"  ⚠️ 判定できない（丸めの上界 {rows_upper:,} 行 > 上限）"
             logger.info(
                 "   %s: %8.1f ms / restaurants から延べ %s 行%s",
                 mode,
