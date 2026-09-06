@@ -65,7 +65,22 @@ export class SettingsScreen {
 	readonly privacyItem = by.id("settings-privacy");
 	/** 著作権行（既存 testID） */
 	readonly copyrightItem = by.id("settings-copyright");
-	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID） */
+	/**
+	 * #1629 «アカウント管理» への遷移行（マイページ本体にある）。
+	 * ログアウト行・削除行はこの先の `profile/account` にあり、マイページ本体には無い。
+	 */
+	readonly accountItem = by.id("settings-account");
+	/**
+	 * #1629 アカウント管理ページの本体（遷移が終わったかの判定に使う）。
+	 *
+	 * ⚠️ **`account-settings-screen` を使ってはいけない。** あれは `ScreenHeader` に
+	 * 渡している «接頭辞» であって、その id を持つ要素は 1 つも描かれない。
+	 * `ScreenHeader` は `${testID}-title` と `${testID}-back` しか付けない
+	 * （`app-expo/components/ScreenHeader.tsx`）。実際に待って落ちた（run 34017672693）。
+	 * 実体のある ScrollView を待つ。
+	 */
+	readonly accountScroll = by.id("account-settings-scroll");
+	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID。`profile/account` にある） */
 	readonly logoutItem = by.id("settings-logout");
 	/**
 	 * #1504 端末設定行（規約カードの直上）。
@@ -352,13 +367,98 @@ export class SettingsScreen {
 		 «開始点が可視範囲の外» の問題（run 32908255134 / 32916602453）にも当たらない。
 		 既に一番上なら Detox が «これ以上スクロールできない» と投げるので、そこは握る。
 		*/
-		await element(by.id("settings-scroll"))
+		await this.scrollUntilVisible(by.id("settings-scroll"), matcher);
+	}
+
+	/**
+	 * #1583 / #1629 / #1779 «出現待ち → 一番上へ戻す → 下へ探す» の作法。
+	 *
+	 * ⚠️ **画面ごとにスクロール容器が違う。** マイページ本体を割ったので、いまは 3 つある。
+	 *
+	 * | 画面 | 容器 |
+	 * | --- | --- |
+	 * | マイページ本体 | `settings-scroll` |
+	 * | アカウント管理（`profile/account`） | `account-settings-scroll` |
+	 * | なに食べよについて（`profile/about`） | `about-scroll` |
+	 *
+	 * **作法を写経して 3 つ持たない。** 容器だけを引数にする。片方だけ直すと、また
+	 * «画面は出ているのに行が見つからない» に戻る（#1579 で 2 回踏んだ）。
+	 */
+	private async scrollUntilVisible(
+		container: Detox.NativeMatcher,
+		matcher: Detox.NativeMatcher,
+		timeout: number = DEFAULT_TIMEOUT,
+	): Promise<void> {
+		await waitFor(element(container)).toExist().withTimeout(timeout);
+		await element(container)
 			.scrollTo("top")
 			.catch(() => undefined);
 		await waitFor(element(matcher))
 			.toBeVisible()
-			.whileElement(by.id("settings-scroll"))
+			.whileElement(container)
 			.scroll(300, "down");
+	}
+
+	/**
+	 * #1583 «なに食べよについて»（`profile/about`）の行が **見える位置まで** スクロールする。
+	 *
+	 * ⚠️ **`waitUntilVisible` で足りると思ってはいけない。** 規約 4 行・応援する・
+	 * バージョンはこのページの下側にあり、**初期表示では画面外**にいる。スクロールせずに
+	 * 待つと 25 秒待って落ちる（run 34022380038 の Android で «著作権» と «バージョン» が実測）。
+	 *
+	 * `expectRowVisible()`（マイページ本体）/ `expectAccountRowVisible()`（アカウント管理）と
+	 * **対**である。`openAbout()` で移動してから使うこと。
+	 */
+	async expectAboutRowVisible(
+		matcher: Detox.NativeMatcher,
+		timeout: number = DEFAULT_TIMEOUT,
+	): Promise<void> {
+		await this.scrollUntilVisible(by.id("about-scroll"), matcher, timeout);
+	}
+
+	/**
+	 * #1629 «アカウント管理»（`profile/account`）へ移動する。
+	 *
+	 * ⚠️ **ログアウト行とアカウント削除行はマイページ本体には無い。**
+	 * `app-expo/app/[locale]/(tabs)/profile/index.tsx` に
+	 * 「⚠️ ログアウトとアカウント削除をこの一覧へ戻さないこと」と明記されているとおり、
+	 * «押すと戻れない» 行は閲覧系の行と分けて別ページに置く、というのがアプリ側の仕様である。
+	 *
+	 * ここが追随できていなかったため、`settings-scroll`（マイページ本体）を下へ送りながら
+	 * `settings-logout` を探し続け、**永久に見つからず** `Got: was null` で落ちていた
+	 * （2026-09-04 / 09-05 の nightly。#1579）。
+	 *
+	 * 既にアカウント管理ページに居るときは移動しない（spec が続けて 2 つの行を触るため）。
+	 */
+	async gotoAccount(): Promise<void> {
+		if (await existsNow(this.accountScroll)) return;
+		await this.expectRowVisible(this.accountItem);
+		await tapWhenVisible(this.accountItem);
+		await waitFor(element(this.accountScroll)).toExist().withTimeout(DEFAULT_TIMEOUT);
+	}
+
+	/**
+	 * #1629 アカウント管理ページが出ていることを確かめる（スクロールはしない）。
+	 *
+	 * ⚠️ `expectLoaded()`（マイページ本体 = `settings-scroll`）と**対**である。
+	 * ログアウト行・削除行を触ったあとは **アカウント管理ページに居る**ので、
+	 * そこで `expectLoaded()` を呼ぶと `settings-scroll` が無く 25 秒待って落ちる
+	 * （run 34019438392 で実測）。«どちらの画面に居るか» を取り違えないこと。
+	 */
+	async expectAccountLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitFor(element(this.accountScroll)).toExist().withTimeout(timeout);
+	}
+
+	/**
+	 * アカウント管理ページの行が **見える位置まで** スクロールする。
+	 *
+	 * ⚠️ `expectRowVisible()` と対になっている。あちらはマイページ本体
+	 * （`settings-scroll`）、こちらはアカウント管理ページ（`account-settings-scroll`）を送る。
+	 * **スクロールするコンテナが違うだけで、作法（出現待ち → 一番上へ戻す → 下へ探す）は同じ。**
+	 * 片方だけ直すと、また «画面は出ているのに行が見つからない» に戻る。
+	 */
+	async expectAccountRowVisible(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await this.scrollUntilVisible(this.accountScroll, matcher, timeout);
 	}
 
 	async openDeviceSettings(): Promise<void> {
@@ -428,13 +528,14 @@ export class SettingsScreen {
 	 * `whileElement(...).scroll()` は「見つかるまでスクロールする」Detox の標準手段で、
 	 * 既に見えている場合は 1 度も動かさずに返る（画面が大きい端末でも安全）。
 	 *
-	 * ⚠️ スクロール対象の `settings-scroll` は #1402 でも据え置いてある（マイページ本体の ScrollView）。
-	 * 項目が «プロフィール要約 + いいね/保存の 2 行» の分だけ下へずれたので、この関数の重要度は上がった。
+	 * ⚠️ **スクロール対象はマイページ本体ではない。** #1629 でログアウト行は
+	 * `profile/account` へ移っており、`settings-scroll`（マイページ本体）をいくら下へ
+	 * 送っても見つからない。`gotoAccount()` で移動してから、あちらの
+	 * `account-settings-scroll` を送る。
 	 */
 	async scrollToLogout(): Promise<void> {
-		// #1583 コンテナの出現待ちを含む `expectRowVisible()` を通す
-		//（素の whileElement(...).scroll() は «画面がまだ無い» と即死する）
-		await this.expectRowVisible(this.logoutItem);
+		await this.gotoAccount();
+		await this.expectAccountRowVisible(this.logoutItem);
 	}
 
 	/**
@@ -444,10 +545,8 @@ export class SettingsScreen {
 	 * （`scrollToLogout()` と同じ事情。#1131 で CI が実際に赤くなった）。
 	 */
 	async scrollToDeleteAccount(): Promise<void> {
-		await waitFor(element(this.deleteAccountItem))
-			.toBeVisible()
-			.whileElement(by.id("settings-scroll"))
-			.scroll(300, "down");
+		await this.gotoAccount();
+		await this.expectAccountRowVisible(this.deleteAccountItem);
 	}
 
 	/**
