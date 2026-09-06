@@ -230,11 +230,9 @@ WITH
         r.name_language_code,
         r.latitude,
         r.longitude,
-        r.image_url,
-        r.image_path,
+          r.image_path,
         r.address_components,
-        r.plus_code,
-        r.created_at,
+          r.created_at,
         -- #843 catalog 同期の metadata
         r.source_seed_id,
         r.source_names,

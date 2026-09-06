@@ -504,20 +504,16 @@ export class DishesService {
             existingGoogleImportEntry?.restaurant.longitude ??
             place.location!.longitude!,
           location: existingGoogleImportEntry?.restaurant.location ?? null,
-          // #1053 Photo Media を skip したときは新しい photoUri が無いので既存値を維持する。
-          image_url:
-            photoMedia?.photoUri ??
-            existingGoogleImportEntry?.restaurant.image_url ??
-            '',
+          // #1779 `image_url` は削除予定の列（Google の写真 URI をそのまま持つため
+          // Places ToS 3.2.3 に反する）。**新しく値を作らない。**
+          // 表示は `image_path` 由来の `imageUrls` から組み立てる（#1680 / #1902）。
+          image_url: '',
           image_path: mediaPath,
           address_components:
             existingGoogleImportEntry?.restaurant.address_components ??
             JSON.parse(JSON.stringify(place.addressComponents)),
-          plus_code:
-            existingGoogleImportEntry?.restaurant.plus_code ??
-            (place.plusCode
-              ? JSON.parse(JSON.stringify(place.plusCode))
-              : null),
+          // #1779 `plus_code` も削除予定の列で、読み手が 1 つも無い。値を作らない。
+          plus_code: null,
           created_at:
             existingGoogleImportEntry?.restaurant.created_at ??
             new Date().toISOString(),
@@ -948,7 +944,7 @@ export class DishesService {
       ...entry,
       restaurant: {
         ...entry.restaurant,
-        image_url: photoUri,
+        // #1779 `image_url` はレスポンス契約から外した。表示用 URL は imageUrls で返す
         imageUrls: {
           sm: photoUri,
           md: photoUri,

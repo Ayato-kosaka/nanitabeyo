@@ -20,7 +20,8 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
-import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
+import type { RestaurantsEntity } from "@shared/api/v1/res";
+
 import { InitialMediaPreview } from "./InitialMediaPreview";
 import {
 	buildCurrencyChoices,
@@ -58,7 +59,7 @@ import { ScrollView } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 
 interface ReviewFormProps {
-	restaurant: SupabaseRestaurants;
+	restaurant: RestaurantsEntity;
 	/** Initial price value */
 	initialPrice?: string;
 	/** Initial review text */
