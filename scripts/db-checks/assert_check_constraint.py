@@ -14,6 +14,22 @@ migration が «流れた» ことと、制約が «変わった» ことは別�
 `assert_index_valid.py`（`CREATE INDEX CONCURRENTLY` が INVALID を残す問題）と
 同じ形の «適用後に自分で確かめる» 番人である。
 
+## ⚠️ 書いた SQL の文字列がそのまま返ってくるわけではない
+
+PostgreSQL は制約式を**正規化して**保存する。`BETWEEN` は残らない。
+
+    書いた式 : length(subterritory_code) BETWEEN 3 AND 100
+    返る定義 : CHECK (((subterritory_code IS NULL)
+                 OR ((length(subterritory_code) >= 3)
+                 AND (length(subterritory_code) <= 100))))
+
+だから `--contains "BETWEEN 3 AND 100"` は **適用が成功していても落ちる**
+（2026-09-06 に実際にやった）。**`--contains` には «正規化後の形» を渡すこと。**
+分からなければ、まず適当な値で 1 回落として、出力の「実際 :」を見るのが早い。
+
+そのために、食い違ったときは**必ず実際の定義を出す**ようにしてある。
+「期待と違います」だけを出すと、次に何を渡せばよいのか分からない。
+
 ## 読み取り専用である
 
 `pg_constraint` を SELECT するだけ。DDL も DML も行わない。
