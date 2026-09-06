@@ -70,9 +70,9 @@ dry-runし、同じrun_idを段階的に昇格させます。Cloud Schedulerは�
   └────────────────────────────────────────────────────────────────────────┘
 
 権利確認済みSNS URL
-  -> dish_media_social_raw              (4_1)
-  -> dish/dish_media/coverage catalog   (4_2)
-  -> PostgreSQL dishes/dish_media       (9_2)
+  -> dish_media_social_raw              (4_1 … ⚠️ 未実装)
+  -> dish/dish_media/coverage catalog   (4_2 … ⚠️ 未実装)
+  -> PostgreSQL dishes/dish_media       (9_2 … ⚠️ 未実装)
 ```
 
 **この図の要点は矢印ではなく、下の箱の中の 2 行**である。
@@ -349,10 +349,29 @@ API keyはheaderで送り、query文字列・ID配列・HTTP status・採否だ�
 
 ### 4. SNS料理媒体とcoverage
 
+> ## ⚠️ このステップのスクリプトは **このリポジトリに存在しません**（2026-09-06 確認）
+>
+> `4_1_load_social_media.py` / `4_2_build_dish_media_catalog.py` /
+> `9_2_sync_dishes_and_media.py` は、**どのブランチにも、git 履歴のどこにも
+> ありません**（`git log --all -- <path>` が 0 件）。
+> 下のコマンドは **いま実行できません。**
+>
+> それでも **dev にはこのステップが作ったとしか思えない行があります**
+> （2026-09-05 に 3 回、dishes 47,668 行 / dish_media 167,188 行。
+> `render_type='external_embed'`・`user_id IS NULL`・カテゴリは Wikidata の QID。
+> 実測: [run 34033080376](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34033080376)）。
+>
+> **つまり dev の料理データの約 94% は、このリポジトリから再現できません。**
+> 消えたブランチから流したものと思われます。#1779 に記録してあります。
+>
+> **この節を «動く手順» として読まないでください。** 設計の記録として残しています
+> （入力形式の例 [`social_media.example.csv`](./social_media.example.csv) は実在します）。
+
 入力はUTF-8 CSVまたはNDJSONです。必要列と例は
 [`social_media.example.csv`](./social_media.example.csv)を参照してください。
 
 ```bash
+# ⚠️ 未実装。このファイルは存在しません
 .venv/bin/python 4_1_load_social_media.py \
   --observed-date 2026-08-12 \
   --input data/social-media-2026-08-12.csv \
@@ -360,6 +379,7 @@ API keyはheaderで送り、query文字列・ID配列・HTTP status・採否だ�
   --source-release 2026-08-12 \
   --license-id official-oembed-terms
 
+# ⚠️ 未実装。このファイルは存在しません
 .venv/bin/python 4_2_build_dish_media_catalog.py \
   --observed-from 2026-01-01 --observed-to 2026-08-12 \
   --target-per-cell-category 1 --expected-category-count 134
@@ -384,12 +404,14 @@ dry-runも実際のDMLとconstraint検査をtransaction内で行い、最後にr
 .venv/bin/python 9_1_sync_restaurants.py --schema dev --dry-run
 .venv/bin/python 9_1_sync_restaurants.py --schema dev
 
+# ⚠️ 未実装。このファイルは存在しません（上の「4. SNS料理媒体とcoverage」の注記を参照）
 .venv/bin/python 9_2_sync_dishes_and_media.py --schema dev --dry-run
 .venv/bin/python 9_2_sync_dishes_and_media.py --schema dev
 
 # publicは明示的な二重確認flagが必要
 .venv/bin/python 9_1_sync_restaurants.py --schema public --dry-run --allow-public
 .venv/bin/python 9_1_sync_restaurants.py --schema public --allow-public
+# ⚠️ 未実装（同上）
 .venv/bin/python 9_2_sync_dishes_and_media.py --schema public --dry-run --allow-public
 .venv/bin/python 9_2_sync_dishes_and_media.py --schema public --allow-public
 ```
