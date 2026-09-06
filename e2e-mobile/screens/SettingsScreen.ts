@@ -367,13 +367,53 @@ export class SettingsScreen {
 		 «開始点が可視範囲の外» の問題（run 32908255134 / 32916602453）にも当たらない。
 		 既に一番上なら Detox が «これ以上スクロールできない» と投げるので、そこは握る。
 		*/
-		await element(by.id("settings-scroll"))
+		await this.scrollUntilVisible(by.id("settings-scroll"), matcher);
+	}
+
+	/**
+	 * #1583 / #1629 / #1779 «出現待ち → 一番上へ戻す → 下へ探す» の作法。
+	 *
+	 * ⚠️ **画面ごとにスクロール容器が違う。** マイページ本体を割ったので、いまは 3 つある。
+	 *
+	 * | 画面 | 容器 |
+	 * | --- | --- |
+	 * | マイページ本体 | `settings-scroll` |
+	 * | アカウント管理（`profile/account`） | `account-settings-scroll` |
+	 * | なに食べよについて（`profile/about`） | `about-scroll` |
+	 *
+	 * **作法を写経して 3 つ持たない。** 容器だけを引数にする。片方だけ直すと、また
+	 * «画面は出ているのに行が見つからない» に戻る（#1579 で 2 回踏んだ）。
+	 */
+	private async scrollUntilVisible(
+		container: Detox.NativeMatcher,
+		matcher: Detox.NativeMatcher,
+		timeout: number = DEFAULT_TIMEOUT,
+	): Promise<void> {
+		await waitFor(element(container)).toExist().withTimeout(timeout);
+		await element(container)
 			.scrollTo("top")
 			.catch(() => undefined);
 		await waitFor(element(matcher))
 			.toBeVisible()
-			.whileElement(by.id("settings-scroll"))
+			.whileElement(container)
 			.scroll(300, "down");
+	}
+
+	/**
+	 * #1583 «なに食べよについて»（`profile/about`）の行が **見える位置まで** スクロールする。
+	 *
+	 * ⚠️ **`waitUntilVisible` で足りると思ってはいけない。** 規約 4 行・応援する・
+	 * バージョンはこのページの下側にあり、**初期表示では画面外**にいる。スクロールせずに
+	 * 待つと 25 秒待って落ちる（run 34022380038 の Android で «著作権» と «バージョン» が実測）。
+	 *
+	 * `expectRowVisible()`（マイページ本体）/ `expectAccountRowVisible()`（アカウント管理）と
+	 * **対**である。`openAbout()` で移動してから使うこと。
+	 */
+	async expectAboutRowVisible(
+		matcher: Detox.NativeMatcher,
+		timeout: number = DEFAULT_TIMEOUT,
+	): Promise<void> {
+		await this.scrollUntilVisible(by.id("about-scroll"), matcher, timeout);
 	}
 
 	/**
@@ -418,14 +458,7 @@ export class SettingsScreen {
 	 * 片方だけ直すと、また «画面は出ているのに行が見つからない» に戻る。
 	 */
 	async expectAccountRowVisible(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitFor(element(this.accountScroll)).toExist().withTimeout(timeout);
-		await element(this.accountScroll)
-			.scrollTo("top")
-			.catch(() => undefined);
-		await waitFor(element(matcher))
-			.toBeVisible()
-			.whileElement(this.accountScroll)
-			.scroll(300, "down");
+		await this.scrollUntilVisible(this.accountScroll, matcher, timeout);
 	}
 
 	async openDeviceSettings(): Promise<void> {
