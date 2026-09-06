@@ -211,6 +211,65 @@ class GrammarTest(unittest.TestCase):
         self.assertEqual(len(rows), 7)
 
 
+class LateNightNotationTest(unittest.TestCase):
+    """⚠️ **本番が落ちた**（run 34004377387）。3,000 件の取り込みが 2,000 件目付近で停止。
+
+        psycopg2.errors.DatetimeFieldOverflow: date/time field value out of range: "26:00"
+
+    PostgreSQL の `TIME` は 00:00:00〜24:00:00 しか受け付けない。`_parse_spans` は
+    終了側の 24 時超えだけ折り返して **開始側を素通ししていた**ため、`26:00` が
+    そのまま INSERT され、そこまでの取り込みごと落ちた。
+    """
+
+    def test_span_that_starts_after_midnight_is_folded_and_moves_to_the_next_day(self) -> None:
+        """「月 26:00-28:00」は日本語の慣習で **火 02:00-04:00**。曜日もずらす。
+
+        ⚠️ 曜日を据え置くと «月の未明に開いている» という別の店の営業時間になる。
+        """
+        rows = parse("月曜 26:00-28:00")
+        assert rows is not None
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual((row.opens_at, row.closes_at), ("02:00", "04:00"))
+        self.assertEqual(row.day_of_week, 2, "月(1) の 26:00 は 火(2)")
+        self.assertFalse(row.crosses_midnight, "02:00-04:00 はそれ自体は日をまたがない")
+
+    def test_closing_side_fold_is_unchanged(self) -> None:
+        """⚠️ 回帰の番人。開始側を直すときに、既に正しかった終了側を壊さないこと。"""
+        rows = parse("営業時間 18:00-26:00")
+        assert rows is not None
+        row = rows[0]
+        self.assertEqual((row.opens_at, row.closes_at), ("18:00", "02:00"))
+        self.assertTrue(row.crosses_midnight)
+        self.assertEqual(row.day_of_week, 0, "開始が 24 時前なら曜日はずれない")
+
+    def test_every_emitted_time_is_a_valid_postgres_time(self) -> None:
+        """⚠️ **これが無かったから落ちた。**
+
+        `crosses_midnight` の整合は見ていたが、**時刻そのものが DB へ入る値か**を
+        見ていなかった。PostgreSQL の `TIME` に入らない値を 1 つでも出したら赤にする。
+        """
+        import datetime
+
+        texts = [
+            "営業時間 26:00-28:00",
+            "営業時間 25:00-27:00",
+            "営業時間 24:00-26:00",
+            "営業時間 18:00-26:00",
+            "営業時間 20:00-25:00",
+            "営業時間 11:30～14:30 18:00～21:00 定休日 月曜",
+            "月・水・金 18:00-23:00",
+            "平日 11:00-15:00 土日 10:00-16:00",
+        ]
+        for text in texts:
+            for row in parse(text) or []:
+                with self.subTest(text=text, row=row):
+                    # fromisoformat は 00:00〜23:59 しか受け付けない = TIME より厳しい
+                    datetime.time.fromisoformat(row.opens_at)
+                    datetime.time.fromisoformat(row.closes_at)
+                    self.assertIn(row.day_of_week, range(7))
+
+
 class ContractWithOsmParserTest(unittest.TestCase):
     """`osm_opening_hours.py` と同じ行の形を返す（DB の列がひとつだから）。"""
 
