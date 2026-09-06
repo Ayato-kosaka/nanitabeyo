@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import datetime
 import re
 import sys
 import unittest
@@ -249,8 +250,6 @@ class LateNightNotationTest(unittest.TestCase):
         `crosses_midnight` の整合は見ていたが、**時刻そのものが DB へ入る値か**を
         見ていなかった。PostgreSQL の `TIME` に入らない値を 1 つでも出したら赤にする。
         """
-        import datetime
-
         texts = [
             "営業時間 26:00-28:00",
             "営業時間 25:00-27:00",
@@ -268,6 +267,76 @@ class LateNightNotationTest(unittest.TestCase):
                     datetime.time.fromisoformat(row.opens_at)
                     datetime.time.fromisoformat(row.closes_at)
                     self.assertIn(row.day_of_week, range(7))
+
+
+class EveryTimeNotationIsSafeToInsertTest(unittest.TestCase):
+    """⚠️ **同じ形で 3 回取り込みを止めた。個別のケースを足すのをやめ、全部試す。**
+
+    | run | 出てしまった値 | 例外 |
+    | --- | --- | --- |
+    | 34004377387 | `opens_at='26:00'` | `DatetimeFieldOverflow`（3 時間 41 分ぶんが停止） |
+    | 34014768463 | `closes_at='-9:00'` | `InvalidDatetimeFormat`（1 時間 57 分ぶんが停止） |
+
+    2 回とも「そのケースを試していなかった」ために起きた。**ケースを 1 つずつ足す限り、
+    試していない組み合わせは必ず残る。** 表記が取りうる範囲を機械的に全部当てる。
+
+    ここが緑である限り、パーサの分岐をどう間違えても **DB へ入らない値は出ない**
+    （出口の `_span_or_none` が捨てるため）。取り込みが途中で止まることは無くなる。
+    """
+
+    def test_no_notation_in_range_can_produce_an_invalid_row(self) -> None:
+        checked = 0
+        for oh in range(0, 48):
+            for ch in range(0, 48):
+                for om, cm in ((0, 0), (30, 45)):
+                    text = f"営業時間 {oh}:{om:02d}-{ch}:{cm:02d}"
+                    for row in parse(text) or []:
+                        checked += 1
+                        with self.subTest(text=text, row=row):
+                            # PostgreSQL の TIME より厳しい（00:00〜23:59 しか通さない）
+                            datetime.time.fromisoformat(row.opens_at)
+                            datetime.time.fromisoformat(row.closes_at)
+                            self.assertIn(row.day_of_week, range(7))
+                            # DB の CHECK: crosses_midnight = (closes_at <= opens_at)
+                            self.assertEqual(
+                                row.crosses_midnight, row.closes_at <= row.opens_at
+                            )
+        # 全部 None になっていたら «検査したつもり» なので、実際に行が出たことを確かめる
+        self.assertGreater(checked, 1000, "行が 1 つも出ていない。テストが空回りしている")
+
+    def test_the_notation_that_broke_production_is_refused(self) -> None:
+        """`26:00-15:00`。開始が翌日なのに終了がそれより前で、時間が巻き戻る。
+
+        ⚠️ 直す前は `closes_at='-9:00'` を作って取り込みごと落ちた（run 34014768463）。
+        読み方を決められないので **捨てる**（推測しない）。
+        """
+        self.assertIsNone(parse("営業時間 26:00-15:00"))
+        self.assertIsNone(parse("営業時間 25:00-03:00"))
+
+    def test_the_readings_we_do_support_are_unchanged(self) -> None:
+        """⚠️ 捨てる条件を広げすぎていないこと。読めていたものは読めたまま。"""
+        expected = {
+            "営業時間 26:00-28:00": ("02:00", "04:00", False),
+            "営業時間 18:00-26:00": ("18:00", "02:00", True),
+            "営業時間 24:00-26:00": ("00:00", "02:00", False),
+            "営業時間 18:00-02:00": ("18:00", "02:00", True),
+            "営業時間 20:00-25:00": ("20:00", "01:00", True),
+            "営業時間 11:00-11:00": ("11:00", "11:00", True),
+        }
+        for text, (opens, closes, crosses) in expected.items():
+            rows = parse(text)
+            self.assertIsNotNone(rows, text)
+            assert rows is not None
+            row = rows[0]
+            with self.subTest(text=text):
+                self.assertEqual((row.opens_at, row.closes_at, row.crosses_midnight),
+                                 (opens, closes, crosses))
+
+    def test_a_span_starting_next_day_shifts_the_weekday(self) -> None:
+        """「月 26:00-28:00」は火 02:00-04:00。曜日を据え置くと別の店の営業時間になる。"""
+        rows = parse("月曜 26:00-28:00")
+        assert rows is not None
+        self.assertEqual({r.day_of_week for r in rows}, {2})  # 月(1) + 1 = 火(2)
 
 
 class ContractWithOsmParserTest(unittest.TestCase):
