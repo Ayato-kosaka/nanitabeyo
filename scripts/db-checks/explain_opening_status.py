@@ -109,6 +109,35 @@ HOURS_TABLES = {
 QUERIES = ("opening_status.hours", "opening_status.exceptions")
 
 
+def sample_bind_values():
+    """EXPLAIN に流す «今日と昨日» を作る。
+
+    ⚠️ **ここを消さないこと。** #1898 で私はこの 2 つの定数を消してしまい、
+       `bind()` が `NameError: SAMPLE_DOW` で落ちるようにした。つまり
+       «営業時間テーブルが埋まっても重くならない» を守るはずの番人が、
+       **測る前に落ちる**状態で main に入っていた（run 34035482145 で発覚）。
+       «測っていなかった» を直した PR で、«動かない» にしてしまっていた。
+
+    `day_of_week` は **0 = 日曜 … 6 = 土曜**（PostgreSQL の `EXTRACT(DOW)` と同じ並び。
+    `scripts/20260808T0000_restaurant/osm_opening_hours.py` が正本）。
+
+    ⚠️ 日付を固定値で埋め込まないこと。過去の日付にすると
+       `restaurant_hours_exceptions` 側が 1 行も当たらず、
+       **«例外テーブルを読まないプラン» を測って «軽い» と誤読する**。
+    """
+    import datetime
+
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+    # isoweekday(): 月=1 … 日=7。%7 で 日=0 … 土=6 になり EXTRACT(DOW) と揃う
+    return {
+        "dowToday": today.isoweekday() % 7,
+        "dowYesterday": yesterday.isoweekday() % 7,
+        "dateToday": today.isoformat(),
+        "dateYesterday": yesterday.isoformat(),
+    }
+
+
 def load_sql(name):
     """実装が組み立てた SQL とバインド値の «名前の列» を読む。
 
@@ -143,11 +172,16 @@ def bind(names, lat, lng, radius):
         "lng": lng,
         "radius": radius,
         "knnLimit": KNN_LIMIT,
-        "dowToday": SAMPLE_DOW[0],
-        "dowYesterday": SAMPLE_DOW[1],
-        "dateToday": SAMPLE_DATES[0],
-        "dateYesterday": SAMPLE_DATES[1],
+        **sample_bind_values(),
     }
+    missing = [n for n in names if n not in values]
+    if missing:
+        # ⚠️ ここで «名前が足りない» を明示的に落とす。KeyError のまま投げると
+        #    «番人が壊れている» のか «SQL が変わった» のか読み分けられない。
+        raise SystemExit(
+            f"❌ バインド値が用意できていない名前があります: {missing}\n"
+            "   SQL のバインド名を増やしたなら sample_bind_values() か bind() へ足すこと。"
+        )
     return [values[n] for n in names]
 
 
