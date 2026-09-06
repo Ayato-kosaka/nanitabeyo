@@ -61,6 +61,32 @@ class SafetyTest(unittest.TestCase):
             sys.argv = argv
 
 
+class ConnectSignatureTest(unittest.TestCase):
+    """⚠️ **実際に落ちた**（run 33999525073）。
+
+        TypeError: connect_postgres() missing 1 required keyword-only argument: 'allow_public'
+
+    `pg_sync_common` は psycopg2 を要求するので **CI では import できない**。つまり
+    DB へ繋ぐ行の «呼び方» は型検査でもユニットテストでも捕まらず、**実際に走らせて
+    初めて落ちる**。外部サイトへ出る直前で落ちたので実害は無かったが、
+    20 分のクロールの途中で落ちていたら相手のサイトを叩いた分が無駄になっていた。
+
+    完全には防げないので、**せめてこの 1 行の形をソースとして固定する**。
+    ⚠️ これは «呼び方が変わっていないか» しか見ない。CI で DB 層を import できない
+    という限界は残っている（そう報告すること。«テストで守られている» と言わない）。
+    """
+
+    def test_connect_postgres_is_called_with_allow_public(self) -> None:
+        source = (HERE / "6_3_crawl_official_site_hours.py").read_text()
+        self.assertIn("connect_postgres(args.schema, allow_public=", source)
+
+    def test_public_is_never_allowed_from_this_script(self) -> None:
+        """このスクリプトは public を上で弾くので、常に False であること。"""
+        source = (HERE / "6_3_crawl_official_site_hours.py").read_text()
+        self.assertIn("allow_public=False", source)
+        self.assertNotIn("allow_public=True", source)
+
+
 class WriteShapeTest(unittest.TestCase):
     """書き込みの形。**ここが狂うと «休みの日に開いている» と表示される。**"""
 
