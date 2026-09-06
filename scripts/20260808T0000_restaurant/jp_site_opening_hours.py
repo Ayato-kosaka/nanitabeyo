@@ -224,21 +224,49 @@ def _parse_closed_days(text: str) -> list[int] | None:
     return sorted(set(closed))
 
 
-def _rows_for(dows: list[int], spans: list[tuple[str, str, bool]]) -> list[OpeningHourRow]:
+def _rows_for(dows: list[int], spans: list[tuple[str, str, bool, int]]) -> list[OpeningHourRow]:
+    """曜日 × 区間で行を作る。
+
+    ⚠️ `day_offset` は «開始が翌日へずれる» 区間のためにある（`26:00-28:00` など）。
+    「月 26:00-28:00」は日本語の慣習で **火 02:00-04:00** を指すので、曜日をずらす。
+    ずらさないと «月の 02:00 に開いている» という別の店の営業時間になる。
+    """
     return [
-        OpeningHourRow(day_of_week=dow, opens_at=o, closes_at=c, crosses_midnight=x)
+        OpeningHourRow(day_of_week=(dow + off) % 7, opens_at=o, closes_at=c, crosses_midnight=x)
         for dow in sorted(set(dows))
-        for (o, c, x) in spans
+        for (o, c, x, off) in spans
     ]
 
 
-def _parse_spans(segment: str) -> list[tuple[str, str, bool]]:
-    """区間をすべて拾う。`26:00` のような 24 時超え表記は翌日へ折り返す。"""
-    spans: list[tuple[str, str, bool]] = []
+def _parse_spans(segment: str) -> list[tuple[str, str, bool, int]]:
+    """区間をすべて拾う。`26:00` のような 24 時超え表記は翌日へ折り返す。
+
+    返すのは `(opens, closes, crosses_midnight, day_offset)`。
+
+    ⚠️ **開始側の折り返しを忘れていて本番が落ちた**（run 34004377387、3,000 件の
+    取り込みが 2,000 件目付近で停止）。
+
+        psycopg2.errors.DatetimeFieldOverflow: date/time field value out of range: "26:00"
+
+    PostgreSQL の `TIME` は 00:00:00〜24:00:00 しか受け付けない。終了側（`ch`）だけ
+    折り返していて、開始側（`oh`）を素通ししていたため `26:00` がそのまま INSERT され、
+    **そこまでの取り込みごと落ちた**。
+
+    ⚠️ 折り返すときは **曜日もずらす**。「月 26:00-28:00」は火 02:00-04:00 を指すので、
+    曜日を据え置くと «月の未明に開いている» という別の営業時間になる。
+    """
+    spans: list[tuple[str, str, bool, int]] = []
     for m in _TIME_SPAN_RE.finditer(segment):
         oh, om, ch, cm = (int(g) for g in m.groups())
         if oh > 47 or ch > 47 or om > 59 or cm > 59:
             continue
+        day_offset = 0
+        if oh >= 24:
+            # 区間まるごとが翌日にある（26:00-28:00 = 翌 02:00-04:00）。
+            # 終了側も同じだけずらす。ここで ch を一緒に引かないと 28:00 が残る。
+            oh -= 24
+            ch -= 24
+            day_offset = 1
         crosses = False
         if ch >= 24:
             ch -= 24
@@ -247,7 +275,7 @@ def _parse_spans(segment: str) -> list[tuple[str, str, bool]]:
         closes = f"{ch:02d}:{cm:02d}"
         if not crosses and (ch, cm) <= (oh, om):
             crosses = True  # 18:00-02:00 のような深夜営業
-        spans.append((opens, closes, crosses))
+        spans.append((opens, closes, crosses, day_offset))
     return spans
 
 
