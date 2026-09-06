@@ -238,6 +238,46 @@ def _rows_for(dows: list[int], spans: list[tuple[str, str, bool, int]]) -> list[
     ]
 
 
+_DAY_MINUTES = 24 * 60
+
+
+def _span_or_none(
+    opens_min: int, closes_min: int, crosses: bool, day_offset: int
+) -> tuple[str, str, bool, int] | None:
+    """出口の検査。**DB へ入らない値をここで捨てる。**
+
+    ⚠️ **これが無かったせいで、取り込みが 2 回止まった。**
+
+    | いつ | 出てしまった値 | 何が起きたか |
+    | --- | --- | --- |
+    | run 34004377387 | `opens_at='26:00'` | `DatetimeFieldOverflow` で 3 時間 41 分ぶんが停止 |
+    | run 34014768463 | `closes_at='-9:00'` | `InvalidDatetimeFormat` で 1 時間 57 分ぶんが停止 |
+
+    どちらも «パーサの分岐の間違い» だが、**止まった理由は «間違った値がそのまま
+    INSERT されたこと»** である。分岐は今後も間違えうるので、値の側で塞ぐ。
+
+    検査するのは 3 つ。
+
+    1. 時刻が PostgreSQL の `TIME` に入るか（00:00〜23:59）。
+       ⚠️ これは CHECK 制約ではなく **列の型の定義域**なので migration には書いていない
+    2. 曜日のずれが 0 か 1 か（`(dow + offset) % 7` に渡す値）
+    3. `crosses_midnight = (closes_at <= opens_at)` — DB の CHECK と同じ規則
+
+    1 つでも外れたら `None` を返して **その区間を捨てる**。営業時間が 1 つ減るだけで、
+    3 値判定では `unknown`（＝ 今までどおり候補に残る）に戻る。**取り込み全体を
+    止めるより害が小さい。**
+    """
+    if not (0 <= opens_min < _DAY_MINUTES and 0 <= closes_min < _DAY_MINUTES):
+        return None
+    if day_offset not in (0, 1):
+        return None
+    opens = f"{opens_min // 60:02d}:{opens_min % 60:02d}"
+    closes = f"{closes_min // 60:02d}:{closes_min % 60:02d}"
+    if crosses != (closes <= opens):
+        return None
+    return (opens, closes, crosses, day_offset)
+
+
 def _parse_spans(segment: str) -> list[tuple[str, str, bool, int]]:
     """区間をすべて拾う。`26:00` のような 24 時超え表記は翌日へ折り返す。
 
@@ -254,28 +294,49 @@ def _parse_spans(segment: str) -> list[tuple[str, str, bool, int]]:
 
     ⚠️ 折り返すときは **曜日もずらす**。「月 26:00-28:00」は火 02:00-04:00 を指すので、
     曜日を据え置くと «月の未明に開いている» という別の営業時間になる。
+
+    ⚠️ **同じ形で 3 回落とした**（#1895 は開始側の折り返し漏れ、run 34014768463 は
+    引き算で負の時刻）。原因は毎回ちがう分岐だが、**欠陥は 1 つ**である。
+
+        時分を «その場の引き算» で組み立てて、出した値が DB へ入るかを誰も見ていなかった。
+
+    そこで書き方を 2 つ変えた。
+
+    1. **分に直してから計算する。** 時と分を別々に引き算すると、繰り下がりのたびに
+       新しい分岐が要り、その 1 つを忘れると負の時刻が出る
+    2. **出口で必ず検査する**（`_span_or_none`）。通らないものは «推測しない» 側へ倒して捨てる。
+       ここを通らない値は DB へ行かないので、次に別の分岐を間違えても取り込みは止まらない
     """
     spans: list[tuple[str, str, bool, int]] = []
     for m in _TIME_SPAN_RE.finditer(segment):
         oh, om, ch, cm = (int(g) for g in m.groups())
         if oh > 47 or ch > 47 or om > 59 or cm > 59:
             continue
-        day_offset = 0
-        if oh >= 24:
-            # 区間まるごとが翌日にある（26:00-28:00 = 翌 02:00-04:00）。
-            # 終了側も同じだけずらす。ここで ch を一緒に引かないと 28:00 が残る。
-            oh -= 24
-            ch -= 24
-            day_offset = 1
-        crosses = False
-        if ch >= 24:
-            ch -= 24
-            crosses = True
-        opens = f"{oh:02d}:{om:02d}"
-        closes = f"{ch:02d}:{cm:02d}"
-        if not crosses and (ch, cm) <= (oh, om):
-            crosses = True  # 18:00-02:00 のような深夜営業
-        spans.append((opens, closes, crosses, day_offset))
+
+        # ⚠️ 「26:00-15:00」のように **開始が翌日なのに終了がそれより前**の表記は、
+        #    どう読んでも時間が巻き戻る。読み方を決められないので捨てる
+        #    （`osm_opening_hours` と同じ «分からないものは推測しない»）。
+        #    run 34014768463 はここを引き算で押し通して closes_at='-9:00' を作った。
+        if oh >= 24 and (ch, cm) <= (oh, om):
+            continue
+
+        opens_min = oh * 60 + om
+        closes_min = ch * 60 + cm
+        if closes_min <= opens_min:
+            # 18:00-02:00 / 11:00-11:00（24 時間営業）。終了は翌日側にある
+            closes_min += _DAY_MINUTES
+
+        # 区間まるごとが翌日にあるぶんだけ曜日をずらす（26:00-28:00 = 翌 02:00-04:00）
+        day_offset, opens_min = divmod(opens_min, _DAY_MINUTES)
+        closes_min -= day_offset * _DAY_MINUTES
+
+        crosses = closes_min >= _DAY_MINUTES
+        if crosses:
+            closes_min -= _DAY_MINUTES
+
+        span = _span_or_none(opens_min, closes_min, crosses, day_offset)
+        if span is not None:
+            spans.append(span)
     return spans
 
 
