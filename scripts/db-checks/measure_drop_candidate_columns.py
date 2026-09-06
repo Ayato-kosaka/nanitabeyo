@@ -16,7 +16,7 @@ CLAUDE.md「承認を求めるときは、判断に必要な材料を全部そ�
 | `dishes.name` | 表示名はカテゴリのローカライズ表記から引く（PR #1901 で読み手 0、#1903 で書き手 0） |
 | `restaurants.image_url` | 店の画像は `image_path` 由来の `imageUrls` から取る（#1680 / #1902） |
 | `restaurants.plus_code` | 読み手が 1 つも無い（#1780 で新規保存も停止済み） |
-| `dishes.data_origin` | `restaurant_recommendation` を書く経路が 1 つも実装されていない |
+| `dishes.data_origin` | 読み手が 1 つも無い。**ただし dev の 94.6% が `restaurant_recommendation`** なので、`synced_at` で同じ区別が付くことを併せて測る |
 
 ## 読み取り専用である
 
@@ -50,6 +50,23 @@ DISHES_SQL = """
     count(*) FILTER (WHERE data_origin = 'user_or_google')      AS origin_user_or_google,
     count(*) FILTER (WHERE data_origin = 'restaurant_recommendation')
                                                                 AS origin_recommendation
+  FROM dishes
+"""
+
+# data_origin を落としても «パイプライン製かどうか» が分かるか。
+# `synced_at IS NOT NULL` と 1 対 1 なら、data_origin は完全に冗長である。
+DATA_ORIGIN_REDUNDANCY_SQL = """
+  SELECT
+    count(*) FILTER (
+      WHERE data_origin = 'restaurant_recommendation' AND synced_at IS NULL
+    ) AS reco_without_synced_at,
+    count(*) FILTER (
+      WHERE data_origin = 'user_or_google' AND synced_at IS NOT NULL
+    ) AS user_with_synced_at,
+    min(created_at) FILTER (WHERE data_origin = 'restaurant_recommendation')
+      AS reco_first_created_at,
+    max(created_at) FILTER (WHERE data_origin = 'restaurant_recommendation')
+      AS reco_last_created_at
   FROM dishes
 """
 
@@ -93,6 +110,14 @@ def main() -> int:
             cur.execute(DISHES_SQL)
             dishes_total, with_name, origin_user, origin_reco = cur.fetchone()
 
+            cur.execute(DATA_ORIGIN_REDUNDANCY_SQL)
+            (
+                reco_without_synced_at,
+                user_with_synced_at,
+                reco_first_created_at,
+                reco_last_created_at,
+            ) = cur.fetchone()
+
             cur.execute(RESTAURANTS_SQL)
             (
                 restaurants_total,
@@ -117,9 +142,15 @@ def main() -> int:
     logger.info("")
     logger.info("## dishes.data_origin — 消すと «BigQuery 生成かどうか» を失う")
     logger.info("  user_or_google           : %12s", f"{origin_user:,}")
+    logger.info("  restaurant_recommendation: %12s", f"{origin_reco:,}")
     logger.info(
-        "  restaurant_recommendation: %12s  ← 0 なら «区別すべき行が 1 つも無い»",
-        f"{origin_reco:,}",
+        "  ⚠️ synced_at で代替できるか — 食い違い: reco なのに synced_at が NULL=%s / "
+        "user なのに synced_at が非 NULL=%s（両方 0 なら data_origin は完全に冗長）",
+        f"{reco_without_synced_at:,}",
+        f"{user_with_synced_at:,}",
+    )
+    logger.info(
+        "  reco 行の created_at: %s 〜 %s", reco_first_created_at, reco_last_created_at
     )
     logger.info("")
     logger.info("## restaurants.image_url — 消すと Google 由来の写真 URI を失う")
@@ -139,6 +170,10 @@ def main() -> int:
         "dishes_with_name": with_name,
         "dishes_data_origin_user_or_google": origin_user,
         "dishes_data_origin_restaurant_recommendation": origin_reco,
+        "dishes_reco_without_synced_at": reco_without_synced_at,
+        "dishes_user_with_synced_at": user_with_synced_at,
+        "dishes_reco_first_created_at": str(reco_first_created_at),
+        "dishes_reco_last_created_at": str(reco_last_created_at),
         "restaurants_total": restaurants_total,
         "restaurants_with_image_url": with_image_url,
         "restaurants_image_url_google": image_url_google,
