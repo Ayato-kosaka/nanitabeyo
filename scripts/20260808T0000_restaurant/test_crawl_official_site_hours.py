@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import sys
 import unittest
 from pathlib import Path
@@ -29,6 +30,7 @@ _spec.loader.exec_module(crawler)
 
 import official_site_crawl as shared  # noqa: E402
 from jp_site_opening_hours import parse_jp_site_opening_hours  # noqa: E402
+import jp_site_opening_hours as jp_site  # noqa: E402
 
 
 class SafetyTest(unittest.TestCase):
@@ -156,7 +158,74 @@ class SharedWithMeasurementTest(unittest.TestCase):
         measure = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(measure)
         self.assertIs(measure.fetch, shared.fetch)
-        self.assertIs(measure.classify_page, shared.classify_page)
+        # 6_2 は «諦めた理由» も数えるので理由つきの方を使う。どちらでも
+        # **箱の判定は同じ**でなければならない（下の 2 本で縛る）。
+        self.assertIs(measure.classify_page_with_reason, shared.classify_page_with_reason)
+
+
+class ClassifyReasonTest(unittest.TestCase):
+    """#1666 理由を足したせいで «箱» が動いていないことを縛る。
+
+    ⚠️ 判定が動くと、直す前（parsed 12% / unparsed 23.9%）と直した後を
+       **比べられなくなる**。理由は数えるためだけに足したものであって、
+       «読める / 読めない» の境界を変えるものではない。
+    """
+
+    # ⚠️ **期待する箱を明示で書く。** «classify_page と classify_page_with_reason が
+    #    一致するか» を見てはいけない（前者は後者へ委譲しているので、どう壊しても
+    #    必ず一致する = 何も縛れない）。実際にこの形で書いて、判定を壊しても
+    #    緑のままになることを確かめた。縛るなら «この文はこの箱» を直接書く。
+    EXPECTED = (
+        ("営業時間 11:30〜14:30 定休日 月曜", "parsed", None),
+        ("営業時間 11:30〜14:30 定休日 第2・第4水曜", "mentions_hours_unparsed", "nth_week"),
+        ("営業時間 11:30〜14:30 不定休", "mentions_hours_unparsed", "unparseable_closure"),
+        ("営業時間 午前11時〜午後2時", "mentions_hours_unparsed", "ampm"),
+        ("営業時間 11:30〜14:30 定休日 年末年始", "mentions_hours_unparsed", "closed_days_unreadable"),
+        ("当店の紹介です。11:30〜14:30 に何かします", "no_hours_mentioned", None),
+        ("OPEN 11:00-14:00 Closed on Mondays", "not_japanese_page", None),
+        ("", "not_japanese_page", None),
+    )
+
+    SAMPLES = tuple(text for text, _bucket, _reason in EXPECTED)
+
+    def test_buckets_are_what_they_were_before_the_reason_was_added(self) -> None:
+        for text, bucket, _reason in self.EXPECTED:
+            self.assertEqual(
+                shared.classify_page(text),
+                bucket,
+                f"箱が動いた。直す前の数字（parsed 12% / unparsed 23.9%）と"
+                f"比べられなくなる: {text!r}",
+            )
+
+    def test_reasons_are_what_the_parser_actually_gives_up_on(self) -> None:
+        for text, _bucket, reason in self.EXPECTED:
+            self.assertEqual(shared.classify_page_with_reason(text)[1], reason, repr(text))
+
+    def test_classify_page_stays_a_thin_delegate(self) -> None:
+        """判定を 2 箇所に持たない（持つと片方だけ直ってずれる）。"""
+        source = inspect.getsource(shared.classify_page)
+        self.assertIn("classify_page_with_reason", source)
+
+    def test_reason_is_only_attached_to_the_unparsed_bucket(self) -> None:
+        for text in self.SAMPLES:
+            bucket, reason = shared.classify_page_with_reason(text)
+            if bucket == "mentions_hours_unparsed":
+                self.assertIn(reason, jp_site.GIVE_UP_REASONS, f"未知の理由: {reason!r}")
+            else:
+                self.assertIsNone(reason, f"{bucket} に理由が付いている: {text!r}")
+
+    def test_every_reason_name_is_declared(self) -> None:
+        """パーサが返す理由は必ず GIVE_UP_REASONS に載っていること。"""
+        for text in self.SAMPLES:
+            _rows, reason = jp_site.parse_jp_site_opening_hours_with_reason(text)
+            if reason is not None:
+                self.assertIn(reason, jp_site.GIVE_UP_REASONS)
+
+    def test_parse_without_reason_matches_parse_with_reason(self) -> None:
+        """公開関数が薄いラッパのままであること（判定を 2 箇所に持たない）。"""
+        for text in self.SAMPLES:
+            rows, _reason = jp_site.parse_jp_site_opening_hours_with_reason(text)
+            self.assertEqual(rows, jp_site.parse_jp_site_opening_hours(text))
 
 
 class CandidateSqlTest(unittest.TestCase):

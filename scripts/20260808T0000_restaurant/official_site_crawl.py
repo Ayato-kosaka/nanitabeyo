@@ -31,7 +31,11 @@ import urllib.parse
 import urllib.request
 import urllib.robotparser
 
-from jp_site_opening_hours import is_japanese_text, parse_jp_site_opening_hours
+from jp_site_opening_hours import (
+    is_japanese_text,
+    parse_jp_site_opening_hours,
+    parse_jp_site_opening_hours_with_reason,
+)
 
 USER_AGENT = "NanitabeyoResearchBot/1.0 (+https://github.com/Ayato-kosaka/nanitabeyo; research)"
 MAX_BYTES = 2_000_000  # 実測で生 HTML 1.4MB のサイトがあった。それが入る程度で頭打ちにする
@@ -77,13 +81,29 @@ def classify_page(text: str) -> str:
     **仮名を 1 文字も含まない日本語ページ**で、パーサは読める。`is_japanese_text` が
     その形を含めて判定するので、ここではそれを呼ぶだけにする。
     """
+    bucket, _reason = classify_page_with_reason(text)
+    return bucket
+
+
+def classify_page_with_reason(text: str) -> tuple[str, str | None]:
+    """`classify_page` に «パーサが諦めた理由» を足して返す。
+
+    ⚠️ 理由が付くのは `mentions_hours_unparsed` のときだけである。それ以外の箱では
+       `None` を返す（`no_hours_mentioned` は «そもそも営業時間の話が無い» ので、
+       パーサの伸びしろの話ではない）。理由の名前は
+       `jp_site_opening_hours.GIVE_UP_REASONS`。
+
+    ⚠️ **箱の判定は 1 つも変えないこと**（`classify_page` と同じ結果を返す）。
+       ここが動くと «測った数字» と «直す前の数字» が比べられなくなる。
+    """
     if not is_japanese_text(text):
-        return "not_japanese_page"
-    if parse_jp_site_opening_hours(text) is not None:
-        return "parsed"
+        return "not_japanese_page", None
+    rows, reason = parse_jp_site_opening_hours_with_reason(text)
+    if rows is not None:
+        return "parsed", None
     if _HOURS_MENTION_RE.search(text):
-        return "mentions_hours_unparsed"
-    return "no_hours_mentioned"
+        return "mentions_hours_unparsed", reason
+    return "no_hours_mentioned", None
 
 
 def html_to_text(html: str) -> str:
