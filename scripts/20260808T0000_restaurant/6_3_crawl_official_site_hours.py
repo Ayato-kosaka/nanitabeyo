@@ -164,7 +164,9 @@ def main() -> int:
     from pipeline_common import configure_logging
 
     configure_logging()
-    connection = connect_postgres(args.schema)
+    # ⚠️ `allow_public` は **キーワード必須**（pg_sync_common の事故防止）。
+    #    ここは public を上で弾いてあるので必ず False。二重の歯止めにしてある。
+    connection = connect_postgres(args.schema, allow_public=False)
     try:
         only_missing = ONLY_MISSING_CLAUSE.format(schema=args.schema) if args.only_missing else ""
         sql = CANDIDATE_SQL.format(schema=args.schema, only_missing=only_missing)
