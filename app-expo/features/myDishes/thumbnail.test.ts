@@ -25,8 +25,9 @@ const makeItem = (
 		restaurant: {
 			id: "restaurant-1",
 			name: "テスト食堂",
-			// ⚠️ #1779 `image_url` は **落とす列**。ここに値を入れたまま残すのは、
-			//    «誤ってフォールバック先に戻したら赤くする» ためである（下のテスト参照）
+			// ⚠️ #1779 `image_url` は **レスポンス契約から外した列**（DB からも落とす）。
+			//    それでも «古い API から来た余計なキー» を実体として置いておく。
+			//    誤ってフォールバック先へ戻したら赤くするためである（下のテスト参照）
 			image_url: overrides.restaurantImageUrl ?? null,
 			imageUrls: overrides.restaurantImageUrl ? { sm: overrides.restaurantImageUrl, md: overrides.restaurantImageUrl } : undefined,
 		},
@@ -49,8 +50,10 @@ describe("#1779 `restaurant.image_url` へは落とさない", () => {
 	*/
 	it("imageUrls が無ければ、image_url があっても null を返す", () => {
 		const item = makeItem({ thumbnailImageUrl: null, categoryImageUrl: null, restaurantImageUrl: null });
-		// 実データと同じく «image_url だけ在る» 行を作る（imageUrls は image_path 由来なので付かない）
-		item.restaurant.image_url = "https://lh3.googleusercontent.com/places/legacy.jpg";
+		// 実データと同じく «image_url だけ在る» 行を作る（imageUrls は image_path 由来なので付かない）。
+		// 型からは外した列なので、実体だけを置く（古い API のレスポンスを模す）。
+		(item.restaurant as unknown as Record<string, unknown>).image_url =
+			"https://lh3.googleusercontent.com/places/legacy.jpg";
 		expect(resolveMyDishThumbnailUrl(item)).toBeNull();
 	});
 });

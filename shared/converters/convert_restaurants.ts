@@ -48,7 +48,20 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
  * @param prisma アプリ内部で操作される Prisma 型オブジェクト
  * @returns API 通信用の Supabase 型オブジェクト
  */
-export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): SupabaseRestaurants {
+/**
+ * #1779 落とす列（image_url / plus_code）は **渡されなくてもよい**。
+ *
+ * 読み手（`restaurants.repository.ts` の `ReadableRestaurant`）は既にこの 2 列を
+ * SELECT していない。列が実際に DB から落ちたら、この 2 行と下の 2 つの `??` を消す
+ * （`infra/supabase/migrations/README.md`「手で追従させるのは shared/converters/ だけ」）。
+ */
+type PrismaRestaurantsForResponse = Omit<
+  PrismaRestaurants,
+  'image_url' | 'plus_code'
+> &
+  Partial<Pick<PrismaRestaurants, 'image_url' | 'plus_code'>>;
+
+export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurantsForResponse): SupabaseRestaurants {
   return {
     id: prisma.id,
     google_place_id: prisma.google_place_id,
@@ -57,14 +70,14 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     latitude: prisma.latitude,
     longitude: prisma.longitude,
     location: null,
-    image_url: prisma.image_url,
+    image_url: prisma.image_url ?? '',
     image_path: prisma.image_path,
     created_by_source: prisma.created_by_source,
     address: prisma.address,
     country_code: prisma.country_code,
     subterritory_code: prisma.subterritory_code,
     address_components: prisma.address_components,
-    plus_code: prisma.plus_code,
+    plus_code: prisma.plus_code ?? null,
     created_at: prisma.created_at?.toISOString() ?? null,
     source_seed_id: prisma.source_seed_id,
     source_names: prisma.source_names,

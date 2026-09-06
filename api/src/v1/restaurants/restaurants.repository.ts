@@ -13,8 +13,19 @@ import { QueryRestaurantsDto, QuerySavedRestaurantsDto } from '@shared/v1/dto';
 import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
 import { roundToOneDecimal } from '../../core/utils/backend-utils';
 
+/**
+ * #1779 検索・保存一覧が読む店の形。**落とす列（image_url / plus_code）は読まない。**
+ *
+ * `PrismaRestaurants` は生成物なので、そのまま使うと «落とすと決めた列» を
+ * SELECT し続けてしまう。ここで先に外し、列が実際に落ちても型が変わらないようにする。
+ */
+export type ReadableRestaurant = Omit<
+  PrismaRestaurants,
+  'image_url' | 'plus_code'
+>;
+
 export type RestaurantWithMeta = {
-  restaurant: PrismaRestaurants;
+  restaurant: ReadableRestaurant;
   meta: {
     reviewCount: number;
     averageRating: number;
@@ -24,7 +35,7 @@ export type RestaurantWithMeta = {
 };
 
 export type SavedRestaurantWithMeta = {
-  restaurant: PrismaRestaurants;
+  restaurant: ReadableRestaurant;
   meta: {
     reviewCount: number;
     averageRating: number;
@@ -81,10 +92,8 @@ export class RestaurantsRepository {
         | 'name_language_code'
         | 'latitude'
         | 'longitude'
-        | 'image_url'
         | 'image_path'
         | 'address_components'
-        | 'plus_code'
         | 'created_at'
         | 'source_seed_id'
         | 'source_names'
@@ -223,10 +232,8 @@ export class RestaurantsRepository {
       r.name_language_code,
       r.latitude,
       r.longitude,
-      r.image_url,
       r.image_path,
       r.address_components,
-      r.plus_code,
       r.created_at,
       -- #843 catalog 同期の metadata
       r.source_seed_id,
@@ -283,10 +290,8 @@ export class RestaurantsRepository {
         name_language_code: row.name_language_code,
         latitude: row.latitude,
         longitude: row.longitude,
-        image_url: row.image_url,
         image_path: row.image_path,
         address_components: row.address_components,
-        plus_code: row.plus_code,
         created_at: row.created_at,
         source_seed_id: row.source_seed_id,
         source_names: row.source_names,
@@ -765,10 +770,8 @@ export class RestaurantsRepository {
         | 'name_language_code'
         | 'latitude'
         | 'longitude'
-        | 'image_url'
         | 'image_path'
         | 'address_components'
-        | 'plus_code'
         | 'created_at'
         | 'source_seed_id'
         | 'source_names'
@@ -793,11 +796,9 @@ export class RestaurantsRepository {
         r.name_language_code,
         r.latitude,
         r.longitude,
-        r.image_url,
-        r.image_path,
+          r.image_path,
         r.address_components,
-        r.plus_code,
-        r.created_at,
+          r.created_at,
         -- #843 catalog 同期の metadata
         r.source_seed_id,
         r.source_names,

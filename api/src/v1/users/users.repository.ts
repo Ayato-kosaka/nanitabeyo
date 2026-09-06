@@ -9,6 +9,7 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaUsers } from '../../../../shared/converters/convert_users';
 import { PrismaDishes } from '../../../../shared/converters/convert_dishes';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
+import type { ReadableRestaurant } from '../restaurants/restaurants.repository';
 import { Prisma } from '../../../../shared/prisma/client';
 import { QueryMyDishesDto, MyDishStatus } from '@shared/v1/dto';
 import { MY_DISH_MAP_PINS_LIMIT } from '@shared/v1/res';
@@ -43,7 +44,7 @@ export type MyDishRowEntity = {
    */
   isOwnMediaDeleted: boolean;
   distanceMeters: number | null;
-  restaurant: PrismaRestaurants;
+  restaurant: ReadableRestaurant;
   dish: PrismaDishes & {
     reviewCount: number;
     averageRating: number;
@@ -64,7 +65,7 @@ export type MyDishRowEntity = {
 
 /** #1395 Map ピン 1 件ぶんの生データ */
 export type MyDishPinEntity = {
-  restaurant: PrismaRestaurants;
+  restaurant: ReadableRestaurant;
   counts: { want: number; eaten: number };
   latestOccurredAt: Date;
   /** 代表メディアのサムネイル組み立てに必要な最小限の列 */
@@ -97,10 +98,8 @@ type RestaurantColumns = {
   r_name_language_code: string;
   r_latitude: number;
   r_longitude: number;
-  r_image_url: string;
   r_image_path: string | null;
   r_address_components: Prisma.JsonValue;
-  r_plus_code: Prisma.JsonValue | null;
   r_created_at: Date;
 };
 
@@ -149,14 +148,16 @@ type MyDishPinRawRow = RestaurantColumns & {
 
 /*
 #843 で `restaurants` / `dishes` に «推薦カタログの同期メタ» が増えた。
-この画面はどれも使わないが、`PrismaRestaurants` / `PrismaDishes` を満たす必要がある。
+この画面はどれも使わないが、`ReadableRestaurant` / `PrismaDishes` を満たす必要がある。
 
 **SQL で引かずに既定値で埋める。** 使わない列のために毎ページ 4 列を余計に読むのは
 無駄で、ここは 964MB の dish_reviews を含む経路である（#1395 B-2 の判断と同じ）。
 返り値がそのままクライアントへ出るわけではなく、`RestaurantsEntity` へ畳まれる際に
 落ちるので、既定値で埋めても API の応答は変わらない。
 */
-const toRestaurant = (row: RestaurantColumns): PrismaRestaurants => ({
+// #1779 落とす列（image_url / plus_code）は SELECT もしないし、既定値でも埋めない。
+// `ReadableRestaurant` はその 2 列を外した形なので、そのまま満たせる。
+const toRestaurant = (row: RestaurantColumns): ReadableRestaurant => ({
   source_seed_id: null,
   source_names: [],
   source_row_hash: null,
@@ -177,10 +178,8 @@ const toRestaurant = (row: RestaurantColumns): PrismaRestaurants => ({
   name_language_code: row.r_name_language_code,
   latitude: row.r_latitude,
   longitude: row.r_longitude,
-  image_url: row.r_image_url,
   image_path: row.r_image_path,
   address_components: row.r_address_components,
-  plus_code: row.r_plus_code,
   created_at: row.r_created_at,
 });
 

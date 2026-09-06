@@ -96,7 +96,9 @@ export class RestaurantsService {
    *    最初から問い合わせない。
    */
   private async fetchFallbackThumbnails(
-    restaurants: PrismaRestaurants[],
+    // #1779 使うのは id と image_path だけ。落とす列（image_url / plus_code）を
+    // 読まない呼び出し元からも渡せるよう、必要な 2 列だけを要求する。
+    restaurants: Pick<PrismaRestaurants, 'id' | 'image_path'>[],
   ): Promise<Map<string, ThumbnailUrlSource>> {
     const ids = restaurants.filter((r) => !r.image_path).map((r) => r.id);
     if (ids.length === 0) return new Map();

@@ -3,7 +3,10 @@
 //
 
 import { Injectable } from '@nestjs/common';
-import { RestaurantsEntity } from '@shared/v1/res';
+import {
+  RestaurantsEntity,
+  stripDroppedRestaurantColumns,
+} from '@shared/v1/res';
 import { StorageService } from '../../core/storage/storage.service';
 import {
   buildDishMediaThumbnailUrl,
@@ -12,9 +15,9 @@ import {
 import { buildResizedPath } from '../../core/storage/storage.utils';
 import {
   convertPrismaToSupabase_Restaurants,
-  PrismaRestaurants,
   SupabaseRestaurants,
 } from '../../../../shared/converters/convert_restaurants';
+import type { ReadableRestaurant } from './restaurants.repository';
 
 @Injectable()
 export class RestaurantsAssembler {
@@ -41,7 +44,7 @@ export class RestaurantsAssembler {
    *    はめているだけなので、大きい絵が来ても見た目は変わらない。
    */
   enrichRestaurantsWithImageUrls(
-    restaurants: PrismaRestaurants,
+    restaurants: ReadableRestaurant,
     fallbackThumbnail?: ThumbnailUrlSource | null,
   ): RestaurantsEntity {
     const supabaseRestaurants: SupabaseRestaurants =
@@ -88,6 +91,8 @@ export class RestaurantsAssembler {
       if (url) imageUrls = { sm: url, md: url };
     }
 
-    return { ...supabaseRestaurants, imageUrls };
+    // #1779 落とす列（image_url / plus_code）はレスポンスへ載せない。
+    // 型の Omit だけでは実行時に残るので、ここで実体からも取り除く。
+    return { ...stripDroppedRestaurantColumns(supabaseRestaurants), imageUrls };
   }
 }
