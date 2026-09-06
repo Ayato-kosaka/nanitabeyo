@@ -128,7 +128,6 @@ export class ShareLinkTargetResolvers {
         thumbnail_path: true,
         dishes: {
           select: {
-            name: true,
             category_id: true,
             restaurants: { select: { name: true } },
           },
@@ -141,23 +140,41 @@ export class ShareLinkTargetResolvers {
       throw new NotFoundException('share target not found');
     }
 
-    // 料理名は dishes.name が優先。無ければ料理カテゴリのローカライズ名へ落とす。
-    // どちらも無ければ店舗名だけのカードにする（タイトルが空になる方が悪い）
-    const localizedCategory = head.dishes.name
-      ? null
-      : await this.prisma.dish_category_localized_text.findUnique({
-          where: {
-            dish_category_id_locale: {
-              dish_category_id: head.dishes.category_id,
-              locale,
-            },
+    /*
+      #1851 【修正】料理名は **料理カテゴリのローカライズ表記** を使う。
+
+      ⚠️ **`dishes.name` を使ってはいけない。** あれは «その店でのその料理の呼び名» で、
+      パイプライン製の店では英語ラベル、SNS 取り込み由来ではローマ字が入る。
+      アプリ内は #1375（オーナー実機指摘「うどんで絞ったら udon が出る」）で
+      `dish_categories` の表記へ切り替え済みだが、**共有カードだけが取り残されていた**。
+
+      しかも `dishes.name` は NOT NULL なので、旧実装の
+      `head.dishes.name ?? localizedCategory?.topic_title` は **1 度も右辺へ落ちない**。
+      つまり «無ければローカライズ名へ» は書いてあるだけで、実際には
+      **常に英語・ローマ字が SNS のカードに出ていた**。
+
+      落とす順は `topic_title`（ロケール別の見出し）→ 店舗名。
+      いちばん最後を店舗名にするのは «タイトルが空になる方が悪い» ため（従来どおり）。
+
+      ⚠️ **`dish_categories.labels` へは落とさない。** あちらは «言語コード» キーで、
+      ロケール（`ja-JP`）から言語（`ja`）へ落とす規則が要る。その規則は
+      `app-expo/features/myDishes/dishCategoryLabel.ts` が正本なので、
+      ここへ書き写すと «片方だけ直った» が起きる。`topic_title` はロケールで直接引けるため、
+      写経せずに済むこちらだけを使う。
+    */
+    const localizedCategory =
+      await this.prisma.dish_category_localized_text.findUnique({
+        where: {
+          dish_category_id_locale: {
+            dish_category_id: head.dishes.category_id,
+            locale,
           },
-          select: { topic_title: true },
-        });
+        },
+        select: { topic_title: true },
+      });
 
     const restaurantName = head.dishes.restaurants.name;
-    const dishName =
-      head.dishes.name ?? localizedCategory?.topic_title ?? restaurantName;
+    const dishName = localizedCategory?.topic_title ?? restaurantName;
     const text = DISH_MEDIA_PREVIEW_TEXT[locale];
 
     return {
