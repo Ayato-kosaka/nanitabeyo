@@ -20,7 +20,13 @@ dev には OSM 由来 100,309 行（13,065 店）と公式サイト由来 1,456 
 1. `restaurant_opening_hours` の総行数と、`source` 別・`day_of_week` 別の分布
 2. 営業時間を持つ店が **東京駅から近い順 1,000 件**の中に何店あるか
    （＝ 番人が測っている候補集合と同じ切り口）
-3. 同じことを 50km / 全国でも見る
+3. 公式サイト由来の行が **いつ取れたか**（`fetched_at` の分布）
+
+   ⚠️ 2026-09-06 のクロール（run 34022514117 / 3,000 件）は、進捗ログ上
+      **1,350 件目で parsed が 1 件**、3,000 件目で 150 件だった。後半だけなら
+      約 10.7% で標本 300 件のときの 11.3% と一致する。**前半だけが極端に取れていない。**
+      理由が分からないまま «5.0%» を前提に計画を立てないよう、まず実データで
+      «本当に後半へ偏っているか» を確かめる。
 
 ## 読み取り専用である
 
@@ -45,6 +51,18 @@ TOTALS_SQL = """
   FROM restaurant_opening_hours
   GROUP BY source
   ORDER BY 2 DESC
+"""
+
+# 公式サイト由来の行が «いつ取れたか»。クロールは逐次コミットなので、
+# fetched_at の分布がそのまま «いつ parsed できたか» になる。
+FETCHED_AT_SQL = """
+  SELECT date_trunc('hour', fetched_at) AS hour,
+         count(*) AS rows,
+         count(DISTINCT restaurant_id) AS restaurants
+  FROM restaurant_opening_hours
+  WHERE source = 'official_site'
+  GROUP BY 1
+  ORDER BY 1
 """
 
 DOW_SQL = """
@@ -116,6 +134,9 @@ def main() -> int:
             cur.execute(DOW_SQL)
             dows = cur.fetchall()
 
+            cur.execute(FETCHED_AT_SQL)
+            fetched = cur.fetchall()
+
             reach = []
             for label, lng, lat in POINTS:
                 cur.execute(REACH_SQL, (lng, lat, dow_today))
@@ -140,6 +161,17 @@ def main() -> int:
         mark = "  ← 今日" if dow == dow_today else ""
         logger.info("  %s : %10s 行%s", dow, f"{rows:,}", mark)
         result["by_dow"][str(dow)] = rows
+
+    logger.info("")
+    logger.info("## 公式サイト由来の行が取れた時刻（1 時間ごと）")
+    logger.info("   ⚠️ 後半へ極端に偏っていれば、前半で何かが起きていた")
+    result["official_site_fetched_at"] = {}
+    for hour, rows, restaurants in fetched:
+        logger.info("  %s : %8s 行 / %6s 店", hour, f"{rows:,}", f"{restaurants:,}")
+        result["official_site_fetched_at"][str(hour)] = {
+            "rows": rows,
+            "restaurants": restaurants,
+        }
 
     logger.info("")
     logger.info("## 近い順 %s 件のうち、営業時間を持つ店", f"{KNN_LIMIT:,}")
