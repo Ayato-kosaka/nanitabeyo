@@ -242,5 +242,39 @@ class CandidateSqlTest(unittest.TestCase):
         self.assertIn("%(seed)s", crawler.CANDIDATE_SQL)
 
 
+class HoursExcerptTest(unittest.TestCase):
+    """#1666 «諦めた箇所» の抜粋は **診断専用**で、判定にも長さにも影響しない。
+
+    ⚠️ 出力先は public リポジトリの Actions ログである。他人のサイトの本文を
+       «診断に要る最小限» を超えて転記しないことを、ここで長さとして縛る。
+    """
+
+    def test_excerpt_is_bounded(self) -> None:
+        text = "あ" * 500 + "営業時間" + "い" * 500
+        excerpt = shared.hours_excerpt(text)
+        self.assertIsNotNone(excerpt)
+        self.assertLessEqual(
+            len(excerpt),
+            shared.EXCERPT_WIDTH * 2 + len("営業時間"),
+            "⚠️ 抜粋が長すぎる。他人のサイトの本文を必要以上に転記している",
+        )
+
+    def test_excerpt_contains_the_hours_mention(self) -> None:
+        excerpt = shared.hours_excerpt("前置き。営業時間 11:30〜14:30 です。")
+        self.assertIn("営業時間", excerpt)
+
+    def test_no_mention_yields_none(self) -> None:
+        self.assertIsNone(shared.hours_excerpt("この文には手がかりがありません。"))
+        self.assertIsNone(shared.hours_excerpt(""))
+
+    def test_excerpt_does_not_change_the_bucket(self) -> None:
+        """抜粋を取っても分類は動かない（診断が判定へ漏れていないこと）。"""
+        for text, bucket, _reason in ClassifyReasonTest.EXPECTED:
+            before = shared.classify_page(text)
+            shared.hours_excerpt(text)
+            self.assertEqual(shared.classify_page(text), before)
+            self.assertEqual(before, bucket)
+
+
 if __name__ == "__main__":
     unittest.main()

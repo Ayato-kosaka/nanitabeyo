@@ -75,6 +75,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 #    ここへ書き写さないこと。書き写すと «測った数字» と «6_3 が入れた行» がずれる。
 from official_site_crawl import (  # noqa: E402
     classify_page_with_reason,
+    hours_excerpt,
     fetch,
     html_to_text,
     robots_allows,
@@ -110,6 +111,12 @@ def main() -> int:
     )
     p.add_argument("--min-interval", type=float, default=2.0, help="1 件あたり最低これだけ空ける秒数")
     p.add_argument("--timeout", type=float, default=20.0, help="1 件あたりのタイムアウト秒")
+    p.add_argument(
+        "--excerpts-per-reason",
+        type=int,
+        default=5,
+        help="諦めた理由ごとに、本文の抜粋を何件まで出すか（0 で出さない）",
+    )
     p.add_argument("--dry-run", action="store_true", help="ネットワークへ出ず、対象だけ出す")
     args = p.parse_args()
 
@@ -146,6 +153,8 @@ def main() -> int:
     # ⚠️ «諦めた理由» の内訳。これが無いと mentions_hours_unparsed（実測 23.9%）の
     #    どこを直せば効くのかが分からず、「たぶん第 2 水曜だろう」で直すことになる。
     give_up_reasons: Counter[str] = Counter()
+    # 理由ごとの «諦めた箇所» の抜粋。推測で直さないための材料（#1666）。
+    give_up_examples: dict[str, list[str]] = {}
     robots_cache: dict[str, urllib.robotparser.RobotFileParser | None] = {}
     # not_japanese_page も例を残す。«日本にある韓国料理店なのか国コードの誤りなのか» を
     # 後から人が確かめられる唯一の手がかりになる。
@@ -176,10 +185,18 @@ def main() -> int:
             counts["unreachable"] += 1
             failure_reasons[reason] += 1
         else:
-            bucket, give_up = classify_page_with_reason(html_to_text(html))
+            # ⚠️ 本文は 1 度だけ作る。分類と抜粋で別々に作ると、
+            #    «分類が見た文» と «抜粋に出す文» がずれうる。
+            page_text = html_to_text(html)
+            bucket, give_up = classify_page_with_reason(page_text)
             counts[bucket] += 1
             if give_up:
                 give_up_reasons[give_up] += 1
+                bucket_examples = give_up_examples.setdefault(give_up, [])
+                if len(bucket_examples) < args.excerpts_per_reason:
+                    excerpt = hours_excerpt(page_text)
+                    if excerpt:
+                        bucket_examples.append(excerpt)
             if bucket in examples and len(examples[bucket]) < 5:
                 examples[bucket].append(f"{name} {url}")
 
@@ -208,6 +225,12 @@ def main() -> int:
         for reason, n in give_up_reasons.most_common():
             print(f"  {n:4d}  ({pct(n, counts['mentions_hours_unparsed'])})  {reason}")
         print("  ⚠️ 理由の意味は jp_site_opening_hours.GIVE_UP_REASONS の脇に書いてある")
+
+        if args.excerpts_per_reason:
+            print("\nそれぞれの «諦めた箇所» の抜粋（推測で直さないための材料）")
+            for reason, _n in give_up_reasons.most_common():
+                for excerpt in give_up_examples.get(reason, []):
+                    print(f"  [{reason}] {excerpt}")
 
     if failure_reasons:
         print("\n到達できなかった理由の内訳")

@@ -106,6 +106,29 @@ def classify_page_with_reason(text: str) -> tuple[str, str | None]:
     return "no_hours_mentioned", None
 
 
+# 診断用の抜粋の長さ。**短く保つこと。**
+#
+# ⚠️ ここで出すのは **他人のサイトの本文**であり、行き先は public リポジトリの
+#    Actions ログである。営業時間の記載そのものは店が公開している事実情報だが、
+#    «診断に要る最小限» を超えて転記する理由は無い。前後 60 文字までにしてある。
+EXCERPT_WIDTH = 60
+
+
+def hours_excerpt(text: str, width: int = EXCERPT_WIDTH) -> str | None:
+    """営業時間の話をしている箇所の短い抜粋を返す（**診断専用**）。
+
+    ⚠️ 判定には使わない。`classify_page` の結果を変えてはいけない。
+       これは «no_time_span が 39.4% だが、どんな表記で落ちているのか» を
+       推測せずに見るためだけにある（#1666）。
+    """
+    match = _HOURS_MENTION_RE.search(text)
+    if not match:
+        return None
+    start = max(0, match.start() - width)
+    end = min(len(text), match.end() + width)
+    return text[start:end].strip()
+
+
 def html_to_text(html: str) -> str:
     """script / style / タグを落として本文だけにする。
 
