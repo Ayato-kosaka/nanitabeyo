@@ -70,8 +70,16 @@ export class SettingsScreen {
 	 * ログアウト行・削除行はこの先の `profile/account` にあり、マイページ本体には無い。
 	 */
 	readonly accountItem = by.id("settings-account");
-	/** #1629 アカウント管理ページそのもの（遷移が終わったかの判定に使う） */
-	readonly accountScreen = by.id("account-settings-screen");
+	/**
+	 * #1629 アカウント管理ページの本体（遷移が終わったかの判定に使う）。
+	 *
+	 * ⚠️ **`account-settings-screen` を使ってはいけない。** あれは `ScreenHeader` に
+	 * 渡している «接頭辞» であって、その id を持つ要素は 1 つも描かれない。
+	 * `ScreenHeader` は `${testID}-title` と `${testID}-back` しか付けない
+	 * （`app-expo/components/ScreenHeader.tsx`）。実際に待って落ちた（run 34017672693）。
+	 * 実体のある ScrollView を待つ。
+	 */
+	readonly accountScroll = by.id("account-settings-scroll");
 	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID。`profile/account` にある） */
 	readonly logoutItem = by.id("settings-logout");
 	/**
@@ -383,10 +391,10 @@ export class SettingsScreen {
 	 * 既にアカウント管理ページに居るときは移動しない（spec が続けて 2 つの行を触るため）。
 	 */
 	async gotoAccount(): Promise<void> {
-		if (await existsNow(this.accountScreen)) return;
+		if (await existsNow(this.accountScroll)) return;
 		await this.expectRowVisible(this.accountItem);
 		await tapWhenVisible(this.accountItem);
-		await waitFor(element(this.accountScreen)).toExist().withTimeout(DEFAULT_TIMEOUT);
+		await waitFor(element(this.accountScroll)).toExist().withTimeout(DEFAULT_TIMEOUT);
 	}
 
 	/**
@@ -398,15 +406,13 @@ export class SettingsScreen {
 	 * 片方だけ直すと、また «画面は出ているのに行が見つからない» に戻る。
 	 */
 	async expectAccountRowVisible(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitFor(element(by.id("account-settings-scroll")))
-			.toExist()
-			.withTimeout(timeout);
-		await element(by.id("account-settings-scroll"))
+		await waitFor(element(this.accountScroll)).toExist().withTimeout(timeout);
+		await element(this.accountScroll)
 			.scrollTo("top")
 			.catch(() => undefined);
 		await waitFor(element(matcher))
 			.toBeVisible()
-			.whileElement(by.id("account-settings-scroll"))
+			.whileElement(this.accountScroll)
 			.scroll(300, "down");
 	}
 
