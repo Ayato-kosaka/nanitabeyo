@@ -1224,7 +1224,9 @@
 		"steps": {
 			"paste": "URL を貼る",
 			"dish": "料理カテゴリーを選ぶ",
-			"restaurant": "お店を選ぶ"
+			"restaurant": "お店を選ぶ",
+			"restaurantConfirm": "読み取ったお店を確認",
+			"dishConfirm": "読み取った料理を確認"
 		},
 		"pickRestaurant": {
 			"title": "地図からお店を選ぶ",
@@ -1232,7 +1234,7 @@
 			"done": "「{{name}}」を選びました"
 		},
 		"result": {
-			"summary": "読み取りました",
+			"summary": "投稿から候補が見つかりました。下で合っているものを選んでください。",
 			"noInfo": "この投稿から読み取れる情報はありませんでした。下でお店と料理カテゴリーを選ぶと保存できます。",
 			"fetchFailed": "投稿の情報を取得できませんでした（時間をおくと取得できることがあります）。このまま下でお店と料理カテゴリーを選んでも保存できます。",
 			"showFullCaption": "もっと見る",
@@ -1251,6 +1253,11 @@
 			"shortlink_target_unsupported": "この短縮 URL の先は取り込める投稿ではありませんでした。",
 			"metadata_content_unavailable": "この投稿は削除されたか、非公開になっています。",
 			"youtube_not_shorts": "YouTube は Shorts（縦向きの短い動画）だけ取り込めます。"
+		},
+		"candidates": {
+			"heading": "投稿から読み取った候補",
+			"hint": "合っているものをタップしてください",
+			"fallbackHeading": "候補に正解が無いときは自分で探す"
 		}
 	},
 	"Tutorial": {

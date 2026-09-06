@@ -1224,7 +1224,9 @@
 		"steps": {
 			"paste": "Collez l’URL",
 			"dish": "Choisissez la catégorie du plat",
-			"restaurant": "Choisissez l’établissement"
+			"restaurant": "Choisissez l’établissement",
+			"restaurantConfirm": "Vérifiez le restaurant détecté",
+			"dishConfirm": "Vérifiez le plat détecté"
 		},
 		"pickRestaurant": {
 			"title": "Choisir un établissement sur la carte",
@@ -1232,7 +1234,7 @@
 			"done": "« {{name}} » sélectionné"
 		},
 		"result": {
-			"summary": "Lecture terminée",
+			"summary": "Nous avons détecté des propositions dans cette publication. Choisissez les bonnes ci-dessous.",
 			"noInfo": "Aucune information n’a pu être lue depuis cette publication. Choisissez l’établissement et la catégorie ci-dessous pour l’enregistrer.",
 			"fetchFailed": "Impossible de récupérer les informations de cette publication pour le moment (réessayer un peu plus tard fonctionne souvent). Tu peux quand même choisir le restaurant et la catégorie de plat ci-dessous pour l'enregistrer.",
 			"showFullCaption": "Voir plus",
@@ -1251,6 +1253,11 @@
 			"shortlink_target_unsupported": "Ce lien raccourci ne mène pas à une publication importable.",
 			"metadata_content_unavailable": "Cette publication a été supprimée ou est privée.",
 			"youtube_not_shorts": "Pour YouTube, seuls les Shorts (courtes vidéos verticales) peuvent être importés."
+		},
+		"candidates": {
+			"heading": "Détecté dans la publication",
+			"hint": "Touchez la bonne proposition.",
+			"fallbackHeading": "Aucune ne convient ? Cherchez vous-même"
 		}
 	},
 	"Tutorial": {

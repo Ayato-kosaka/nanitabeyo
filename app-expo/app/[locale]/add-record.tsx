@@ -57,7 +57,7 @@ import {
 } from "react-native";
 import { ChevronLeft, Search, X } from "lucide-react-native";
 import { resolveProviderIcon, resolveProviderLabel } from "@/features/dishMedia/providerIcon";
-import { resolveResultSummaryKey } from "@/features/dishMedia/snsImportResultMessage";
+import { resolveResultSummaryKey, resolveStepHeadingKeys } from "@/features/dishMedia/snsImportResultMessage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -76,6 +76,8 @@ import { resolveSnsShareIntakeView } from "@/lib/snsShareIntake";
 import { getCurrentLocationPosition } from "@/hooks/useCurrentLocationPosition";
 import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
 import { RestaurantNameSearch } from "@/features/restaurantPicker/components/RestaurantNameSearch";
+// #1918 チップの正本。選択状態を «色だけ» で表さない（チェックバッジが付く）
+import { SelectableChip } from "@/features/search/components/SelectableChip";
 import {
 	usePickedRestaurantStore,
 	type PickedRestaurant,
@@ -355,6 +357,32 @@ export default function SnsImportScreen() {
 		}
 	}, [area, callBackend, input, isResolving, lightImpact, locale, logFrontendEvent, showSnackbar]);
 
+	/*
+	#1918【チーム指摘】見出しは «候補があるかどうか» で «確認» / «選ぶ» に振れる。
+	判断は純関数（`resolveStepHeadingKeys`）に置き、ここでは受け取るだけにする。
+	三項を JSX へ書くとテストできず、店舗と料理を 1 フラグでまとめる事故が起きる。
+	*/
+	const stepHeadingKeys = resolveStepHeadingKeys(resolved);
+
+	/*
+	#1918 いま選んでいるものが «読み取り候補» のどれかか。
+
+	候補ブロックを畳まなくしたことで、**選んだ値がチップ（チェック付き）と
+	検索欄の両方に出る**ようになった。しかも検索欄は «候補に正解が無いときは自分で探す»
+	の下にあるので、「正解が無いとき用の欄に、いま選んだ答えが入っている」という
+	矛盾した見え方になる（実際に ui-preview で撮って気づいた）。
+
+	選択がチップ由来なら **チップだけが状態を持ち、検索欄は空（プレースホルダ）**にする。
+	自分で検索して選んだ場合はチップに出ないので、従来どおり検索欄が名前を出す。
+
+	状態を増やさず `resolved` から導けるようにしてあるのは、«選択元» を別の state で
+	持つとチップの選び直しと検索での選び直しでずれるからである。
+	*/
+	const isRestaurantFromCandidates =
+		restaurantId !== null && !!resolved?.candidates.restaurants.some((c) => c.restaurantId === restaurantId);
+	const isDishCategoryFromCandidates =
+		dishCategoryId !== null && !!resolved?.candidates.dishCategories.some((c) => c.dishCategoryId === dishCategoryId);
+
 	/** 店名検索（自前 `restaurants`）から選んだ。候補が 0 件でもここから必ず選べる */
 	const handleSelectRestaurantFromSearch = useCallback(
 		(result: QueryRestaurantsResponse[number]) => {
@@ -440,8 +468,15 @@ export default function SnsImportScreen() {
 			setDishCategoryId(suggestion.dishCategoryId);
 			setDishCategoryLabel(suggestion.label);
 			setDishCategoryQuery("");
+			/*
+			#1918 **検索結果も畳む。** 以前は結果チップの行が `!dishCategoryLabel` で
+			隠れていたので、ここで畳まなくても消えていた。読み取り候補と検索結果を
+			別の行へ分けた結果その巻き添えが無くなり、**選んだ後も候補が残る**ようになる。
+			空文字は `useDishCategorySearch` が «候補なし» として扱う（下の X と同じ手）。
+			*/
+			void searchDishCategories("");
 		},
-		[lightImpact],
+		[lightImpact, searchDishCategories],
 	);
 
 	const handleSave = useCallback(async () => {
@@ -800,7 +835,7 @@ export default function SnsImportScreen() {
 									<View style={styles.card}>
 										<StepHeading
 											step={2}
-											title={i18n.t("SnsImport.steps.restaurant")}
+											title={i18n.t(stepHeadingKeys.restaurant)}
 											testID="sns-import-step-restaurant"
 										/>
 										{/* #1375 実機確認（5 巡目）: 店選択は «1 つの入力欄» に畳んだ。
@@ -811,7 +846,8 @@ export default function SnsImportScreen() {
 										<RestaurantNameSearch
 											regionRef={regionRef}
 											onSelectRestaurant={handleSelectRestaurantFromSearch}
-											selectedName={restaurantName}
+											// #1918 チップ由来の選択はチップ側が持つ（下の «自分で探す» 欄には出さない）
+											selectedName={isRestaurantFromCandidates ? null : restaurantName}
 											onClearSelection={() => {
 												setRestaurantId(null);
 												setRestaurantName(null);
@@ -834,21 +870,70 @@ export default function SnsImportScreen() {
 												onPress: handleOpenMapPicker,
 												testID: "sns-import-restaurant-search-map-fallback",
 											}}
+											// #1918 この画面だけ «読み取り結果 → 手入力» の並びにする。
+											// 「食べたを記録」タブ側（上の RestaurantNameSearch）は候補を渡さないので従来のまま
+											candidatesLabels={{
+												heading: i18n.t("SnsImport.candidates.heading"),
+												hint: i18n.t("SnsImport.candidates.hint"),
+												fallbackHeading: i18n.t("SnsImport.candidates.fallbackHeading"),
+											}}
 											testID="sns-import-restaurant-search"
 										/>
 									</View>
 
 									<View style={styles.card}>
-										<StepHeading step={3} title={i18n.t("SnsImport.steps.dish")} testID="sns-import-step-dish" />
-										{/* #1375 実機確認（5 巡目）: ② と同じ形へ揃えた。
-								    検索欄（アイコン付き・全幅）→ その下に小さい候補、という並びで、
-								    ② の店選択と寸法・角丸・文字サイズが一致する（実機指摘「幅が不揃い」） */}
+										<StepHeading step={3} title={i18n.t(stepHeadingKeys.dishCategory)} testID="sns-import-step-dish" />
+										{/* #1375 実機確認（5 巡目）: ② と同じ形へ揃えた（寸法・角丸・文字サイズ）。
+								    #1918: 並びも ② と同じ «読み取り候補 → 手入力 → 検索結果» にする。
+								    以前は «検索欄 → 候補» の順で、しかも読み取り候補と検索結果が
+								    **同じ列に同じ見た目で混ざっていた**ので、どれが投稿由来か区別できなかった */}
+										{(resolved?.candidates.dishCategories.length ?? 0) > 0 && (
+											<View style={styles.candidateBlock}>
+												<Text style={styles.candidateHeading} testID="sns-import-dish-category-candidates-heading">
+													{i18n.t("SnsImport.candidates.heading")}
+												</Text>
+												<Text style={styles.candidateHint}>{i18n.t("SnsImport.candidates.hint")}</Text>
+												<View style={styles.candidateRow}>
+													{(resolved?.candidates.dishCategories ?? []).map((candidate) => {
+														// 表示名は **ユーザーの言語を優先**（labelEn 直参照だと日本語 UI に英語が混ざる）
+														const label =
+															candidate.labels?.[locale.split("-")[0]] ?? candidate.labelEn ?? candidate.dishCategoryId;
+														return (
+															<SelectableChip
+																key={candidate.dishCategoryId}
+																testID={`sns-import-dish-category-${candidate.dishCategoryId}`}
+																label={label}
+																selected={dishCategoryId === candidate.dishCategoryId}
+																role="radio"
+																onPress={() => {
+																	lightImpact();
+																	setDishCategoryId(candidate.dishCategoryId);
+																	setDishCategoryLabel(label);
+																}}
+															/>
+														);
+													})}
+												</View>
+											</View>
+										)}
+
+										{/* 手入力は «逃げ道» だと言い切る。候補が無いなら «逃げ道» ではなく唯一の道なので出さない
+										    （読み取り結果の 1 行が既に «情報がありませんでした» と言っている） */}
+										{(resolved?.candidates.dishCategories.length ?? 0) > 0 && (
+											<Text style={styles.fallbackHeading} testID="sns-import-dish-category-fallback-heading">
+												{i18n.t("SnsImport.candidates.fallbackHeading")}
+											</Text>
+										)}
+
 										<View style={styles.searchField}>
 											<Search size={18} color={colors.textSecondary} style={styles.searchFieldIcon} />
 											<TextInput
 												testID="sns-import-dish-category-search-input"
 												value={
-													dishCategoryLabel && dishCategoryQuery.length === 0 ? dishCategoryLabel : dishCategoryQuery
+													// #1918 チップ由来の選択はチップ側が持つ
+													dishCategoryLabel && dishCategoryQuery.length === 0 && !isDishCategoryFromCandidates
+														? dishCategoryLabel
+														: dishCategoryQuery
 												}
 												onChangeText={(text) => {
 													setDishCategoryQuery(text);
@@ -859,10 +944,13 @@ export default function SnsImportScreen() {
 												autoCapitalize="none"
 												style={[
 													styles.searchFieldInput,
-													!!dishCategoryLabel && dishCategoryQuery.length === 0 && styles.searchFieldInputSelected,
+													!!dishCategoryLabel &&
+														dishCategoryQuery.length === 0 &&
+														!isDishCategoryFromCandidates &&
+														styles.searchFieldInputSelected,
 												]}
 											/>
-											{(!!dishCategoryLabel || dishCategoryQuery.length > 0) && (
+											{((!!dishCategoryLabel && !isDishCategoryFromCandidates) || dishCategoryQuery.length > 0) && (
 												<TouchableOpacity
 													testID="sns-import-dish-category-clear"
 													style={styles.searchFieldClear}
@@ -882,48 +970,20 @@ export default function SnsImportScreen() {
 											)}
 										</View>
 
-										{/* 候補は入力欄の下に小さく（読み取り結果 → 手入力の検索結果の順） */}
-										{!dishCategoryLabel && (
+										{/* #1918 **自分で検索した結果だけ**をここへ出す（入力欄の直下 ＝ ② の結果パネルと同じ位置）。
+										    読み取り候補と混ぜていたのが「どれが投稿由来か分からない」の原因だった。
+										    押すと即確定して行ごと消えるので、選択強調は持たせない */}
+										{dishCategorySuggestions.length > 0 && (
 											<View style={styles.candidateRow}>
-												{(resolved?.candidates.dishCategories ?? []).map((candidate) => (
-													<TouchableOpacity
-														key={candidate.dishCategoryId}
-														testID={`sns-import-dish-category-${candidate.dishCategoryId}`}
-														onPress={() => {
-															lightImpact();
-															setDishCategoryId(candidate.dishCategoryId);
-															setDishCategoryLabel(
-																candidate.labels?.[locale.split("-")[0]] ??
-																	candidate.labelEn ??
-																	candidate.dishCategoryId,
-															);
-														}}
-														accessibilityRole="button"
-														accessibilityState={{ selected: dishCategoryId === candidate.dishCategoryId }}
-														style={[
-															styles.candidateChip,
-															dishCategoryId === candidate.dishCategoryId && styles.candidateChipSelected,
-														]}>
-														<Text
-															style={[
-																styles.candidateLabel,
-																dishCategoryId === candidate.dishCategoryId && styles.candidateLabelSelected,
-															]}>
-															{candidate.labels?.[locale.split("-")[0]] ??
-																candidate.labelEn ??
-																candidate.dishCategoryId}
-														</Text>
-													</TouchableOpacity>
-												))}
 												{dishCategorySuggestions.map((suggestion) => (
-													<TouchableOpacity
+													<SelectableChip
 														key={suggestion.dishCategoryId}
 														testID={`sns-import-dish-category-suggestion-${suggestion.dishCategoryId}`}
+														label={suggestion.label}
+														selected={false}
+														role="radio"
 														onPress={() => handleSelectDishCategoryFromSearch(suggestion)}
-														accessibilityRole="button"
-														style={styles.candidateChip}>
-														<Text style={styles.candidateLabel}>{suggestion.label}</Text>
-													</TouchableOpacity>
+													/>
 												))}
 											</View>
 										)}
@@ -1255,28 +1315,32 @@ const createStyles = (c: Palette) =>
 		searchFieldClear: {
 			padding: 12,
 		},
+		// #1918 候補ブロック（②の RestaurantNameSearch と同じ寸法・同じ文言規則で揃える）
+		candidateBlock: {
+			marginBottom: 12,
+		},
+		candidateHeading: {
+			fontSize: 14,
+			fontWeight: "700",
+			color: c.textPrimary,
+		},
+		candidateHint: {
+			marginTop: 2,
+			fontSize: 12,
+			color: c.textSecondary,
+		},
+		// 手入力は «逃げ道»。候補の見出しより一段弱くして主従を見た目で表す
+		fallbackHeading: {
+			marginBottom: 6,
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.textSecondaryStrong,
+		},
 		candidateRow: {
 			marginTop: 8,
 			flexDirection: "row",
 			flexWrap: "wrap",
 			gap: 6,
-		},
-		candidateChip: {
-			paddingHorizontal: 10,
-			paddingVertical: 5,
-			borderRadius: 14,
-			backgroundColor: c.surfaceSubtle,
-		},
-		candidateChipSelected: {
-			backgroundColor: c.brandTintAlt,
-		},
-		candidateLabel: {
-			fontSize: 12,
-			color: c.textSecondaryStrong,
-		},
-		candidateLabelSelected: {
-			color: c.brand,
-			fontWeight: "700",
 		},
 		chipRow: {
 			marginTop: 8,

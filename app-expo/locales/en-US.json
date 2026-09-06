@@ -1224,7 +1224,9 @@
 		"steps": {
 			"paste": "Paste the URL",
 			"dish": "Pick the dish category",
-			"restaurant": "Pick the shop"
+			"restaurant": "Pick the shop",
+			"restaurantConfirm": "Check the shop we found",
+			"dishConfirm": "Check the dish we found"
 		},
 		"pickRestaurant": {
 			"title": "Pick a shop on the map",
@@ -1232,7 +1234,7 @@
 			"done": "Picked “{{name}}”"
 		},
 		"result": {
-			"summary": "Read successfully",
+			"summary": "We found some candidates in this post. Pick the right ones below.",
 			"noInfo": "No information could be read from this post. Pick the shop and dish category below to save it.",
 			"fetchFailed": "We couldn't fetch this post's details right now (trying again in a moment often works). You can still pick the shop and dish category below to save it.",
 			"showFullCaption": "Show more",
@@ -1251,6 +1253,11 @@
 			"shortlink_target_unsupported": "That short link doesn't point to a post we can import.",
 			"metadata_content_unavailable": "This post has been deleted or is private.",
 			"youtube_not_shorts": "For YouTube we can only import Shorts (short vertical videos)."
+		},
+		"candidates": {
+			"heading": "Found in the post",
+			"hint": "Tap the one that is right.",
+			"fallbackHeading": "None of these? Search yourself"
 		}
 	},
 	"Tutorial": {
