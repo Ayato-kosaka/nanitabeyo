@@ -113,7 +113,13 @@ jobs:
     needs: prepare
     if: ${{ inputs.platform != 'ios' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # #1579 【設計】既定スコープ（tier1-2）は spec 39 本あり、1 本あたり 39〜65 秒かかる。
+    # 90 分では **一度も完走できず**、12 回連続の schedule が全て «途中で打ち切り» に
+    # なっていた（失敗した spec は 0 本。ログ上、最後まで PASS だけが並んでいた）。
+    # 「flaky で落ちている」ではなく「予算が足りていない」なので、まず完走させて
+    # 実所要時間を測る。測ったあとに «この枠で収まるスコープ» を決め直す。
+    # ⚠️ iOS 側（macOS ランナー = 分の単価が 10 倍）はここでは触っていない。
+    timeout-minutes: 180
 
     steps:
       - name: ⏬ Checkout repository
