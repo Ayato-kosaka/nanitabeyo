@@ -76,6 +76,10 @@ def main() -> int:
 
     resolved_counts: Counter[str] = Counter()
     transitions: Counter[tuple[str | None, str | None]] = Counter()
+    # ⚠️ 9_1 の同期が上書きするのは created_by_source='pipeline' の行だけである。
+    #    全行で «NULL になる» を数えると、触らないユーザー作成の行まで数えてしまう。
+    pipeline_transitions: Counter[tuple[str | None, str | None]] = Counter()
+    by_source: Counter[str] = Counter()
     unresolved_empty = 0
     unresolved_with_address = 0
     unresolved_samples: list[str] = []
@@ -93,11 +97,14 @@ def main() -> int:
         with conn.cursor(name="country_scan") as cur:
             cur.itersize = 10_000
             cur.execute(ROWS_SQL)
-            for current, address, _source in cur:
+            for current, address, source in cur:
                 total += 1
                 resolved = country_code_from_address(address)
                 resolved_counts[resolved or "(決められない)"] += 1
                 transitions[(current, resolved)] += 1
+                by_source[source or "(NULL)"] += 1
+                if source == "pipeline":
+                    pipeline_transitions[(current, resolved)] += 1
                 if resolved is None:
                     if not address:
                         unresolved_empty += 1
@@ -146,6 +153,23 @@ def main() -> int:
         for address in unresolved_samples:
             logger.info("    %s", address)
 
+    logger.info("")
+    logger.info("## created_by_source の内訳")
+    for source, count in by_source.most_common():
+        logger.info("  %-12s : %12s", source, f"{count:,}")
+
+    logger.info("")
+    logger.info("## ⚠️ 9_1 が実際に上書きする行だけ（created_by_source='pipeline'）")
+    pipeline_total = sum(pipeline_transitions.values())
+    for (current, resolved), count in pipeline_transitions.most_common(10):
+        logger.info(
+            "  %-8s → %-14s %12s",
+            current or "NULL",
+            resolved or "(決められない)",
+            f"{count:,}",
+        )
+    logger.info("  合計 : %s", f"{pipeline_total:,}")
+
     changed = sum(
         c
         for (current, resolved), c in transitions.items()
@@ -180,6 +204,10 @@ def main() -> int:
         "changed": changed,
         "to_null": to_null,
         "filled_from_null": filled,
+        "by_created_by_source": dict(by_source),
+        "pipeline_transitions": {
+            f"{c or 'NULL'}->{r or 'NULL'}": n for (c, r), n in pipeline_transitions.items()
+        },
     }
     logger.info("")
     logger.info("=" * 78)
