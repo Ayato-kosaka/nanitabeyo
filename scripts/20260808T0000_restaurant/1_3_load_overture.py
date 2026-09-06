@@ -16,6 +16,7 @@ from pipeline_common import (
     require_run_id,
     sha256_file,
 )
+from search_bounds import search_bounds_sql
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -41,6 +42,7 @@ def build_filtered_parquet(
 ) -> int:
     source_path = sql_literal(str(source.resolve()))
     destination_path = sql_literal(str(destination.resolve()))
+    bounds_sql = search_bounds_sql("bbox.ymin", "bbox.xmin")
     connection = duckdb.connect()
     try:
         # raw snapshotそのものはローカルファイルのchecksumで固定する。BigQueryには、
@@ -81,13 +83,17 @@ def build_filtered_parquet(
               coalesce(to_json(socials)::VARCHAR, '[]'))) AS record_hash,
             current_timestamp AS ingested_at
           FROM read_parquet({source_path})
-          -- 日本の絞り込みは住所ではなく座標で行う。addresses[1].country = 'JP' は
+          -- ⚠️ #1881 これは **取り込みの探索範囲**であって «日本» ではない。矩形は国境で
+          -- はなく、朝鮮半島もウラジオストクも入る。国コードは country_resolution.py が
+          -- 住所から決める（この矩形を国の判定へ使ったのが #1881 の欠陥である）。
+          -- 範囲そのものは狭めない（オーナー確定 B: 韓国の店は持っていてよい）。
+          --
+          -- 絞り込みは住所ではなく座標で行う。addresses[1].country = 'JP' は
           -- 住所が付いていない行を丸ごと落とし、実測で22%（約29万行）を捨てていた
           -- （#1276 PoC）。住所はクエリBを組むのに使うだけで、名寄せの判定は
           -- 店名と座標があれば成立する。カテゴリも taxonomy だけでは
           -- パン屋・菓子店が欠けるため basic_category を併用する。
-          WHERE bbox.xmin BETWEEN 122.0 AND 154.0
-            AND bbox.ymin BETWEEN 20.0 AND 46.5
+          WHERE {bounds_sql}
             AND (
               list_contains(taxonomy.hierarchy, 'food_and_drink')
               OR basic_category IN (

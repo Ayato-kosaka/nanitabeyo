@@ -18,9 +18,13 @@
 
 from __future__ import annotations
 
+import sys
 import unittest
+from pathlib import Path
 
-from country_resolution import country_code_from_address
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from country_resolution import RULES, country_code_from_address, country_code_sql
 
 # (住所, 人が付けた国コード, なぜそう読めるか)
 #
@@ -130,6 +134,60 @@ class CountryCodeFromAddressTest(unittest.TestCase):
                 ("KR", "JP"),
                 f"{address!r} を国コードと読んでいる",
             )
+
+
+class RulesAreDefinedOnlyOnceTest(unittest.TestCase):
+    """#1881 の本当の欠陥は «同じ規則が 7 箇所に写経されていた» ことだった。
+
+    Python と BigQuery SQL が **同じ `RULES` から作られている**ことを固定する。
+    片方へ規則を書き足したら、ここが赤くなる。
+    """
+
+    def test_sql_has_exactly_one_branch_per_rule(self) -> None:
+        sql = country_code_sql("s.canonical_address")
+        self.assertEqual(
+            sql.count("WHEN REGEXP_CONTAINS("),
+            len(RULES),
+            "SQL の分岐数が RULES と違う（どちらかへ規則を直接書いた）",
+        )
+
+    def test_sql_carries_every_rule_verbatim(self) -> None:
+        sql = country_code_sql("s.canonical_address")
+        for pattern, code in RULES:
+            self.assertIn(pattern, sql, f"{code} の規則が SQL へ運ばれていない")
+
+    def test_sql_uses_the_given_address_expression(self) -> None:
+        sql = country_code_sql("t.address")
+        self.assertIn("REGEXP_CONTAINS(t.address,", sql)
+        self.assertNotIn("canonical_address", sql)
+
+    def test_no_pattern_uses_constructs_bigquery_re2_lacks(self) -> None:
+        """RE2 に無い構文を混ぜない（Python では通っても BigQuery で落ちる）。"""
+        forbidden = ("(?=", "(?!", "(?<=", "(?<!", "\\1", "\\p{")
+        for pattern, code in RULES:
+            for token in forbidden:
+                self.assertNotIn(
+                    token, pattern, f"{code} の規則が RE2 に無い構文を使っている: {token}"
+                )
+
+    def test_ignorecase_flag_is_inline_so_it_survives_into_sql(self) -> None:
+        """`re.IGNORECASE` で書くと SQL へ運べない。先頭の `(?i)` で書く。"""
+        for pattern, code in RULES:
+            if "(?i)" in pattern:
+                self.assertTrue(
+                    pattern.startswith("(?i)"),
+                    f"{code} の規則の (?i) が先頭に無い: {pattern}",
+                )
+
+
+class RomanSuffixTablesAreDisjointTest(unittest.TestCase):
+    """ローマ字の接尾辞は «両方の言語に出る綴りを入れない» ことだけが安全性の根拠。"""
+
+    def test_kr_and_jp_suffix_tables_do_not_overlap(self) -> None:
+        from country_resolution import _JP_ROMAN_SUFFIXES, _KR_ROMAN_SUFFIXES
+
+        overlap = set(_KR_ROMAN_SUFFIXES) & set(_JP_ROMAN_SUFFIXES)
+        self.assertEqual(overlap, set(), f"両方の表に載っている綴り: {overlap}")
 
 
 if __name__ == "__main__":

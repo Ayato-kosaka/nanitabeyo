@@ -107,6 +107,15 @@ jobs:
             scripts/20260808T0000_restaurant/test_measure_official_site_hours.py \
             scripts/20260808T0000_restaurant/test_crawl_official_site_hours.py
 
+      # #1881 住所から国コードを決める判定（country_resolution.py）。
+      # ここが崩れると **韓国の店が日本の店として出る**（矩形で決めていた頃は
+      # dev の 98,139 行がそうだった）。純関数なので DB もネットワークも要らない。
+      - name: 住所からの国コード判定のユニットテスト
+        run: |
+          python3 -m unittest \
+            scripts/20260808T0000_restaurant/test_country_resolution.py \
+            scripts/20260808T0000_restaurant/test_search_bounds.py
+
       # #1666 EXPLAIN の «延べ行数» の数え方（explain_rows_read.py）。営業時間テーブルが
       # 0 行 → 30 万行へ増える直前に、番人が restaurants 側しか数えていないと気付いたため
       # 足した。数え方だけを psycopg2 の要らない場所へ出してあるのでここで回せる。

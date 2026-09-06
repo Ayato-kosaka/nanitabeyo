@@ -8,6 +8,7 @@ from pathlib import Path
 
 from google.cloud import bigquery
 
+from country_resolution import country_code_sql
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -43,6 +44,10 @@ def main() -> None:
     # 新規seedの address_components をGoogle由来に見せかけて合成しない。
     # 既存PG値はそのまま維持し、未取得は空配列とする。将来 Place Details を
     # 正式に取得する場合は、別raw/detail stepからこのcatalogへ昇格させる。
+    # #1881 住所からの国コード判定。正本は country_resolution.RULES で、
+    # Python（同期・監査・テスト）と この SQL が同じ 1 本から作られる。
+    country_code_case = country_code_sql("s.canonical_address")
+
     catalog_sql = f"""
       CREATE OR REPLACE TABLE `{pipeline.dataset_ref}.restaurant_catalog`
       CLUSTER BY google_place_id, seed_id
@@ -69,16 +74,18 @@ def main() -> None:
           -- existing（＝PG に入っている Google 由来の住所）は carry-forward しない。
           -- Google の住所は ToS 3.2.3 で保持できないので、そちらへ寄せてはいけない。
           NULLIF(s.canonical_address, '') AS address,
-          -- #1681 ISO-3166-1 alpha-2。
-          -- open data は日本の矩形で絞って取り込んでいるので、矩形内なら JP と断言できる
-          -- （実測: パイプライン製 569,661 行のうち矩形外は 0 行）。
-          -- 矩形外は既存PG由来の海外店（2_1 の require_japan=False で通した分）で、
-          -- 国を断定する材料がここには無いので NULL にする。PG 側で別途埋める。
-          CASE
-            WHEN s.latitude BETWEEN 20.0 AND 46.5
-             AND s.longitude BETWEEN 122.0 AND 154.0
-            THEN 'JP'
-          END AS country_code,
+          -- #1881 ISO-3166-1 alpha-2 を **住所から**決める。
+          --
+          -- ⚠️ ここは長らく «緯度経度の矩形（20.0〜46.5N / 122.0〜154.0E）の中なら JP»
+          --    だった。**矩形は国境ではない。** 朝鮮半島もウラジオストクも丸ごと
+          --    入るので、dev の 98,139 行が «日本にない JP» になっていた。
+          --
+          -- 判定は `country_resolution.py` の `RULES` **1 本だけ**が正本で、
+          -- Python も この SQL もそこから作る。**ここへ規則を書き足さないこと。**
+          -- 7 箇所へ写経した矩形を、検証スクリプトまでが使っていたのが #1881 である。
+          --
+          -- 手掛かりが無い住所は NULL のままにする（分からないのに断言しない）。
+          {country_code_case} AS country_code,
           -- #843 独立レビュー②: 同じ place_id へ当たった «負けた seed» の連絡先を拾う。
           --
           -- 3_3 は同じ place_id に複数の seed が当たったとき 1 つだけ残し、
