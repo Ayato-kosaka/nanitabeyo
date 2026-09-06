@@ -74,7 +74,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # ⚠️ 取りに行く作法（robots / UA / 上限 / 分類）は official_site_crawl に 1 本化してある。
 #    ここへ書き写さないこと。書き写すと «測った数字» と «6_3 が入れた行» がずれる。
 from official_site_crawl import (  # noqa: E402
-    classify_page,
+    classify_page_with_reason,
     fetch,
     html_to_text,
     robots_allows,
@@ -143,6 +143,9 @@ def main() -> int:
 
     counts: Counter[str] = Counter()
     failure_reasons: Counter[str] = Counter()
+    # ⚠️ «諦めた理由» の内訳。これが無いと mentions_hours_unparsed（実測 23.9%）の
+    #    どこを直せば効くのかが分からず、「たぶん第 2 水曜だろう」で直すことになる。
+    give_up_reasons: Counter[str] = Counter()
     robots_cache: dict[str, urllib.robotparser.RobotFileParser | None] = {}
     # not_japanese_page も例を残す。«日本にある韓国料理店なのか国コードの誤りなのか» を
     # 後から人が確かめられる唯一の手がかりになる。
@@ -173,8 +176,10 @@ def main() -> int:
             counts["unreachable"] += 1
             failure_reasons[reason] += 1
         else:
-            bucket = classify_page(html_to_text(html))
+            bucket, give_up = classify_page_with_reason(html_to_text(html))
             counts[bucket] += 1
+            if give_up:
+                give_up_reasons[give_up] += 1
             if bucket in examples and len(examples[bucket]) < 5:
                 examples[bucket].append(f"{name} {url}")
 
@@ -197,6 +202,12 @@ def main() -> int:
     print(f"  parsed（$0 で構造化できた）        : {counts['parsed']}  ({pct(counts['parsed'], reached)})")
     print(f"  mentions_hours_unparsed（LLM 候補）: {counts['mentions_hours_unparsed']}  ({pct(counts['mentions_hours_unparsed'], reached)})")
     print(f"  no_hours_mentioned（記載なし）     : {counts['no_hours_mentioned']}  ({pct(counts['no_hours_mentioned'], reached)})")
+
+    if give_up_reasons:
+        print("\nmentions_hours_unparsed の内訳（← パーサのどこを直せば効くか）")
+        for reason, n in give_up_reasons.most_common():
+            print(f"  {n:4d}  ({pct(n, counts['mentions_hours_unparsed'])})  {reason}")
+        print("  ⚠️ 理由の意味は jp_site_opening_hours.GIVE_UP_REASONS の脇に書いてある")
 
     if failure_reasons:
         print("\n到達できなかった理由の内訳")

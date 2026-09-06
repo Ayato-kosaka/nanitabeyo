@@ -340,27 +340,61 @@ def _parse_spans(segment: str) -> list[tuple[str, str, bool, int]]:
     return spans
 
 
+# 諦めた理由の名前。**数え上げてどこを直すか決めるためにある。**
+#
+# ⚠️ 2026-09-06 のクロール（3,000 件）で `mentions_hours_unparsed` が **717 件（23.9%）**
+#    あり、parsed の 12% に対していちばん大きい伸びしろだった。ところが «諦めた» としか
+#    分からないので、5 つある諦め条件のどれが効いているのか誰にも言えなかった。
+#    「たぶん第 2 水曜だろう」で直さないために、理由を名前で返す。
+GIVE_UP_REASONS = (
+    "empty",  # 文章が無い
+    "not_japanese",  # 日本語ページではない
+    "nth_week",  # 「第 2・第 4 水曜」。曜日へ落とせない
+    "unparseable_closure",  # 「不定休」「要問合せ」など
+    "ampm",  # 「午前 11 時」。時刻の解釈が割れる
+    "closed_days_unreadable",  # 「定休日」と書いてあるのに曜日が読めない
+    "no_opening_context",  # 曜日も区分も無く、営業時間の話だとも読めない
+    "no_time_span",  # 時刻の区間が 1 つも拾えない
+    "all_days_closed",  # 定休日で 7 曜日すべて落ちた
+)
+
+
 def parse_jp_site_opening_hours(text: str | None) -> list[OpeningHourRow] | None:
     """日本語の自由記述から営業時間の行を作る。扱えない文章は `None`。"""
+    rows, _reason = parse_jp_site_opening_hours_with_reason(text)
+    return rows
+
+
+def parse_jp_site_opening_hours_with_reason(
+    text: str | None,
+) -> tuple[list[OpeningHourRow] | None, str | None]:
+    """`parse_jp_site_opening_hours` に «諦めた理由» を足して返す。
+
+    戻り値は `(行, 理由)`。読めたときは `(行, None)`、諦めたときは `(None, 理由)` で、
+    理由は `GIVE_UP_REASONS` のいずれか。
+
+    ⚠️ **判定は 1 つも変えないこと。** ここが «読める / 読めない» の境界を動かすと、
+       理由を数えるために命中率が変わってしまい、何を測ったのか分からなくなる。
+    """
     if not text:
-        return None
+        return None, "empty"
 
     normalized = _normalize(text)
     # 日本語専用パーサなので、日本語でない文章は読まずに諦める（上の注記）
     if not is_japanese_text(normalized):
-        return None
+        return None, "not_japanese"
 
     # ── 諦める条件を先に見る（部分的に読めても入れない） ──────────────
     if _NTH_WEEK_RE.search(normalized):
-        return None
+        return None, "nth_week"
     if _UNPARSEABLE_CLOSURE_RE.search(normalized):
-        return None
+        return None, "unparseable_closure"
     if _AMPM_RE.search(normalized):
-        return None
+        return None, "ampm"
 
     closed_days = _parse_closed_days(normalized)
     if closed_days is None:
-        return None
+        return None, "closed_days_unreadable"
 
     # ── 区分ごとに «その区分の文» を切り出して時刻を拾う ───────────────
     # 例: "平日 11:00-14:30 ディナー 17:00-21:30 土日祝 11:00-14:30"
@@ -395,16 +429,16 @@ def parse_jp_site_opening_hours(text: str | None) -> list[OpeningHourRow] | None
         else:
             # 曜日も区分も無い形。**営業時間の話だと読める語が無ければ諦める**（上の注記）
             if not _OPENING_CONTEXT_RE.search(normalized):
-                return None
+                return None, "no_opening_context"
             spans = _parse_spans(normalized)
             if not spans:
-                return None
+                return None, "no_time_span"
             rows = _rows_for([0, 1, 2, 3, 4, 5, 6], spans)
 
     # ── 定休日を落とす ────────────────────────────────────────────
     rows = [r for r in rows if r.day_of_week not in closed_days]
     if not rows:
-        return None
+        return None, "all_days_closed"
 
     # 同じ (曜日, 開始, 終了) が重複しうるので畳む
     seen: set[tuple[int, str, str, bool]] = set()
@@ -414,4 +448,4 @@ def parse_jp_site_opening_hours(text: str | None) -> list[OpeningHourRow] | None
         if key not in seen:
             seen.add(key)
             unique.append(r)
-    return unique
+    return unique, None
