@@ -126,16 +126,24 @@ export class DishesService {
       },
     );
 
-    const dishNameFromLabels: string =
-      (dishCategory.labels && dishCategory.labels[languageCode]) ||
-      dishCategory.label_en;
+    /*
+      #1779 【削除】`dishes.name` へ «推測名» を入れるのをやめた。
 
-    // 新規作成（推測名を注入。なければフォールバック）
+      この列は «その店でのその料理の呼び名» だが、**読み手が 1 つも無い**。
+      表示はすべて `dish_categories`（`labels` / `topic_title`）から引いている
+      （#1375 でアプリ内、#1851 で共有カードが移行済み）。
+
+      オーナー確定（#1629）:
+      > dishes.name を使うのではなく、dish_categories から locale で引いて欲しい。
+      > dishes.name は廃止にしても良いカラムだと思っています。
+
+      ⚠️ ここで `languageCode` を使っていた «唯一の理由» がこの推測名だったが、
+      `languageCode` は下の `resolveLocalLanguageCode` の結果として他でも使う。
+    */
     const newDish = await this.prisma.prisma.$transaction(async (tx) => {
       return this.repo.createOrGetDishForCategory(tx, {
         restaurant_id: dto.restaurantId,
         category_id: dto.dishCategoryId,
-        name: dishNameFromLabels,
       });
     });
 
@@ -537,7 +545,8 @@ export class DishesService {
           id: existingGoogleImportEntry?.dish.id ?? 'unknown',
           restaurant_id: restaurant.id,
           category_id: dto.categoryId,
-          name: existingGoogleImportEntry?.dish.name ?? dto.categoryName,
+          // #1779 `dishes.name` は廃止する列なので値を作らない（読み手ゼロ）
+          name: null,
           created_at:
             existingGoogleImportEntry?.dish.created_at ??
             new Date().toISOString(),
