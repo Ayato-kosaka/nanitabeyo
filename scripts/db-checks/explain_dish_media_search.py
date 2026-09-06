@@ -58,7 +58,8 @@ from measure_order_by_posts import (
     REPEATS,
     explain,
     one,
-    restaurants_rows_read,
+    restaurants_rows_read_with_bound,
+    verdict_against_budget,
     section,
 )
 
@@ -185,13 +186,19 @@ def run_explain(cur, full_plan, do_assert):
             if timed_out:
                 continue
 
-            rows, detail = restaurants_rows_read(plan)
-            verdict = " ✅" if rows <= ROWS_BUDGET else "  ❌ 半径内の全店を読んでいる"
-            if rows > ROWS_BUDGET:
+            # ⚠️ 丸めの下界だけで判定しない（explain_rows_read.py 冒頭の注記）。
+            rows, rows_upper, detail, _ = restaurants_rows_read_with_bound(plan)
+            state = verdict_against_budget(rows, rows_upper, ROWS_BUDGET)
+            if state == "within":
+                verdict = " ✅"
+            elif state == "over":
+                verdict = "  ❌ 半径内の全店を読んでいる"
                 failures.append(
                     f"{label} / {mode.strip()} plan: restaurants を延べ {rows:,} 行 "
                     f"読んでいる（上限 {ROWS_BUDGET:,} 行）"
                 )
+            else:
+                verdict = f"  ⚠️ 判定できない（丸めの上界 {rows_upper:,} 行 > 上限）"
             ms = runs[-1]["exec"]
             logger.info(
                 "   %s: %8.1f ms / restaurants から延べ %s 行%s",

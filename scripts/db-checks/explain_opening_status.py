@@ -64,8 +64,9 @@ import psycopg2
 #    measure_order_by_posts.py が正本で、そこを直せばここも一緒に直る。
 # ⚠️ 数え方の実装は `explain_rows_read.py` が正本。写経しないこと。
 from explain_rows_read import (  # noqa: E402
-    restaurants_rows_read,
-    table_rows_read_with_floor,
+    restaurants_rows_read_with_bound,
+    table_rows_read_with_bound,
+    verdict_against_budget,
 )
 from measure_order_by_posts import (
     CASES,
@@ -258,40 +259,43 @@ def run_explain(cur, full_plan, do_assert):
                 if timed_out:
                     continue
 
-                rows, detail = restaurants_rows_read(plan)
-                verdict = " ✅" if rows <= ROWS_BUDGET else "  ❌ 半径内の全店を読んでいる"
-                if rows > ROWS_BUDGET:
+                rows, rows_upper, detail, _ = restaurants_rows_read_with_bound(plan)
+                r_state = verdict_against_budget(rows, rows_upper, ROWS_BUDGET)
+                if r_state == "within":
+                    verdict = " ✅"
+                elif r_state == "over":
+                    verdict = "  ❌ 半径内の全店を読んでいる"
                     failures.append(
                         f"{name} / {label} / {mode.strip()} plan: restaurants を延べ "
                         f"{rows:,} 行読んでいる（上限 {ROWS_BUDGET:,} 行）"
                     )
+                else:
+                    verdict = f"  ⚠️ 判定できない（丸めの上界 {rows_upper:,} 行 > 上限）"
 
                 # ⚠️ 営業時間テーブル側も数える（上の HOURS_ROWS_BUDGET の注記）
                 table = HOURS_TABLES[name]
-                h_rows, h_detail, h_floor_loops = table_rows_read_with_floor(plan, table)
+                h_rows, h_upper, h_detail, h_floor_loops = table_rows_read_with_bound(plan, table)
+                h_state = verdict_against_budget(h_rows, h_upper, HOURS_ROWS_BUDGET)
 
                 # ⚠️ **0 行を «軽い» の根拠にしない。**
                 #    rows= は 1 loop あたりの平均が整数へ丸められた値なので、
                 #    1 loop あたり 0.5 行未満だと必ず 0 になる（explain_rows_read の注記）。
                 #    営業時間テーブルは «候補 1,000 件のうち十数件しか当たらない» ので、
                 #    まさにこの範囲に落ちる。上限は超えていないが、測れてもいない。
-                if h_floor_loops:
-                    h_verdict = (
-                        f"  ⚠️ 測定下限未満（loops={h_floor_loops:,}。"
-                        f"延べ最大 {h_floor_loops // 2:,} 行までは 0 と表示される）"
-                    )
-                elif h_rows <= HOURS_ROWS_BUDGET:
-                    h_verdict = " ✅"
-                else:
+                if h_state == "within":
+                    # 丸めを最大に見積もっても上限内。**下界が 0 でも、これは根拠になる。**
+                    h_verdict = f" ✅（丸めの上界でも {h_upper:,} 行 ≤ {HOURS_ROWS_BUDGET:,} 行）"
+                elif h_state == "over":
                     h_verdict = "  ❌ 候補集合の外まで読んでいる"
-
-                # 上限超過の判定は «丸めの下限» でも成立する（下限でも超えているなら本当に超えている）
-                if h_rows > HOURS_ROWS_BUDGET:
                     failures.append(
                         f"{name} / {label} / {mode.strip()} plan: {table} を延べ "
                         f"{h_rows:,} 行読んでいる（上限 {HOURS_ROWS_BUDGET:,} 行）"
                     )
-                if h_floor_loops:
+                else:
+                    h_verdict = (
+                        f"  ⚠️ 判定できない（丸めの上界 {h_upper:,} 行 > 上限 "
+                        f"{HOURS_ROWS_BUDGET:,} 行。loops={h_floor_loops:,}）"
+                    )
                     measured_floor.append(f"{name} / {label} / {mode.strip()} plan: {table}")
 
                 ms = runs[-1]["exec"]
@@ -314,8 +318,8 @@ def run_explain(cur, full_plan, do_assert):
     section("3. 判定")
     if measured_floor:
         logger.info(
-            "⚠️ 営業時間テーブル側は **測れていない**（rows= が丸められて 0 になった節が"
-            " %d 件）。全件走査へ倒れる劣化は捕まえられるが、«閉じている» の根拠にはならない:",
+            "⚠️ 営業時間テーブル側は **判定できていない**（丸めの上界が上限を超える節が"
+            " %d 件）。丸めがどちらへ転ぶかで結論が変わるため、«閉じている» とは書けない:",
             len(measured_floor),
         )
         for line in measured_floor:
