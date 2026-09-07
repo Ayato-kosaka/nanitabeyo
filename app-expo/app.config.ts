@@ -1,5 +1,9 @@
 import { ExpoConfig, ConfigContext } from "@expo/config";
 import { version } from "./package.json";
+// #1920 【設計】`locales` を持たない端末言語（= 開発地域 en）へ出す既定値。
+// **ここへ文字列を書き写さない。** 正は `languages/*.json` の 1 箇所だけで、
+// 写した複製は片方だけ直したときに古いまま残る（CLAUDE.md「本番のロジックをテストへ写経しない」と同型）。
+import { ios as defaultIosStrings } from "./languages/en-US.json";
 
 // #1552 【設計】ホーム画面で開発版・プレビュー版を見分けるため、ビルドプロファイルに応じて
 // DEV / PREV ラベル入りアイコンへ差し替える。EAS_BUILD_PROFILE は EAS Build が自動で
@@ -51,7 +55,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			],
 			CFBundleAllowMixedLocalizations: true,
 			CFBundleLocalizations: ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"],
-			CFBundleDisplayName: "$(CFBundleDisplayName)",
+			// #1920 【設計】ここは «翻訳を持たない言語で出る既定値»。
+			// 以前は `"$(CFBundleDisplayName)"` と書かれていたが、`CFBundleDisplayName` という
+			// **ビルド設定は存在しない**ので、Xcode の展開結果は空文字になっていた（= 既定値が無い）。
+			// 端末言語ごとの実際の表示名は下の `locales` が `<lang>.lproj/InfoPlist.strings` として
+			// 焼き込み、こちらより優先される。
+			CFBundleDisplayName: defaultIosStrings.CFBundleDisplayName,
 		},
 		config: {
 			googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY,
@@ -178,16 +187,27 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				},
 			},
 		],
+		// #1920 §水平展開 【仕様】カメラ / マイク / 写真ライブラリの許可ダイアログ。
+		//
+		// #1486 §5 が位置情報でやったのと**同じ扱い**に揃えた。ここに書くのは
+		// «翻訳を持たない言語で出る既定値» だけで、端末言語ごとの本文は `languages/*.json` にある。
+		//
+		// 旧文（「identify spots and give audio guides」「save captured spot photos」）は
+		// このアプリの実態と違うテンプレートの残りで、しかも `languages/*.json` に載っていなかったため
+		// **日本語端末でも英語のまま出ていた**。共有シートの表示名（#1920 本体）と同じ欠陥である。
 		[
 			"expo-camera",
 			{
-				cameraPermission: "$(PRODUCT_NAME) uses the camera to identify spots and give audio guides.",
+				cameraPermission: defaultIosStrings.NSCameraUsageDescription,
+				microphonePermission: defaultIosStrings.NSMicrophoneUsageDescription,
 			},
 		],
 		[
 			"expo-image-picker",
 			{
-				photosPermission: "Used to save captured spot photos to your library.",
+				photosPermission: defaultIosStrings.NSPhotoLibraryUsageDescription,
+				cameraPermission: defaultIosStrings.NSCameraUsageDescription,
+				microphonePermission: defaultIosStrings.NSMicrophoneUsageDescription,
 			},
 		],
 		[
@@ -204,10 +224,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				// ここに残す英文は「日本語以外の端末で出る既定値」。旧文の
 				// 「location-based guides（現地ガイド）」はこのアプリの実態と違ったため、
 				// 日本語版と同じ意味（近くのおすすめの店を提案する）に揃えてある。
-				locationAlwaysAndWhenInUsePermission:
-					"$(PRODUCT_NAME) uses your location to suggest recommended restaurants near you.",
-				locationAlwaysPermission: "$(PRODUCT_NAME) uses your location to suggest recommended restaurants near you.",
-				locationWhenInUsePermission: "$(PRODUCT_NAME) uses your location to suggest recommended restaurants near you.",
+				//
+				// #1920 §水平展開 その英文は `languages/en-US.json` にも同じものが必要で、
+				// 実際には 2 箇所が `$(PRODUCT_NAME)` の有無でずれていた。**正を 1 箇所にする。**
+				locationAlwaysAndWhenInUsePermission: defaultIosStrings.NSLocationAlwaysAndWhenInUseUsageDescription,
+				locationAlwaysPermission: defaultIosStrings.NSLocationAlwaysUsageDescription,
+				locationWhenInUsePermission: defaultIosStrings.NSLocationWhenInUseUsageDescription,
 				isIosBackgroundLocationEnabled: false,
 				isAndroidBackgroundLocationEnabled: false,
 			},
@@ -280,6 +302,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		"expo-font",
 		"expo-web-browser",
 		"expo-localization",
+		// #1920 【設計】Share Extension のバンドルへ表示名の翻訳を焼き込む。
+		// 下の `locales` はアプリ本体ターゲットにしか翻訳を置かないため、これが無いと
+		// 共有シートに出る名前だけが英語のまま出荷される。理由はプラグイン内のコメント参照。
+		//
+		// ⚠️ **`expo-share-intent` より «前» に書くこと。** 同じ mod（`ios.xcodeproj`）へ積んだ
+		// plugin は **後から登録したものが先に走る**（@expo/config-plugins の `withMod` が
+		// 新しい action で既存の chain を包む形なので LIFO になる）。後ろに書くと
+		// ShareExtension ターゲットが生える前に走って prebuild ごと落ちる。
+		// 順序は `__tests__/appConfigNativeStringLocales.test.ts` が固定している。
+		"./plugins/withShareExtensionLocales",
 		// #1400 (PR3) iOS の共有シートから SNS の URL / テキストを受け取る Share Extension。
 		//
 		// ## Android は **plugin に任せない**（`disableAndroid: true`）
@@ -369,8 +401,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			// #492 【設計】ATT (App Tracking Transparency) ダイアログ設定
 			"expo-tracking-transparency",
 			{
-				userTrackingPermission:
-					"This identifier will be used to deliver personalized ads to you. By allowing, you help us improve our service.",
+				// #1920 §水平展開 本文の正は `languages/*.json`（ここは翻訳を持たない言語の既定値）。
+				userTrackingPermission: defaultIosStrings.NSUserTrackingUsageDescription,
 			},
 		],
 	],
