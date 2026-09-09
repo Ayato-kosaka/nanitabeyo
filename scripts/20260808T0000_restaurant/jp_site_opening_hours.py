@@ -108,6 +108,20 @@ _UNPARSEABLE_CLOSURE_RE = re.compile(r"不定休|臨時休業|要問合せ|要�
 # 午前/午後の自由記述。時刻の解釈が割れるので諦める
 _AMPM_RE = re.compile(r"午前|午後")
 
+# 「営業日 水曜日から土曜日」「営業曜日: 月・水・金」— **開いている曜日の宣言**。
+#
+# ⚠️ これは «休みの日» ではなく «開いている日» である。読めないまま «曜日の指定が無い» と
+#    見なすと、下の «毎日» のフォールバックへ落ちて **週 4 日の店を «毎日開いている» と言う**。
+#    3 値判定で害があるのは間違った open だけなので、これは最も避けたい向きの誤りである。
+#
+# 2026-09-06 の実測（[run 34044086520](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34044086520)）
+# の抜粋に実物があった:
+#     「住所 富山県氷見市鞍川62-5 営業日 水曜日から土曜日 営業時間：10時～17時」
+#
+# ⚠️ 「翌営業日」「営業日以降」のような **日数の数え方**は営業曜日の宣言ではない。
+#    除くために、直後に曜日が来るものだけを見る。
+_OPEN_DAYS_DECLARATION_RE = re.compile(r"営業(?:日|曜日)\s*[:：]?\s*(?=[月火水木金土日])")
+
 # 「定休日 …」「（木曜定休）」の休業日宣言を拾う
 _CLOSED_DECLARATION_RE = re.compile(r"(?:定休日|休業日|定休)")
 
@@ -376,6 +390,7 @@ GIVE_UP_REASONS = (
     "closed_days_unreadable",  # 「定休日」と書いてあるのに曜日が読めない
     "no_opening_context",  # 曜日も区分も無く、営業時間の話だとも読めない
     "no_time_span",  # 時刻の区間が 1 つも拾えない
+    "open_days_unreadable",  # 「営業日 水曜日から土曜日」— 開いている曜日が書いてあるのに読めない
     "all_days_closed",  # 定休日で 7 曜日すべて落ちた
 )
 
@@ -448,6 +463,12 @@ def parse_jp_site_opening_hours_with_reason(
         if day_rows:
             rows = day_rows
         else:
+            # ⚠️ **«毎日» と見なす前に、開いている曜日の宣言が無いことを確かめる。**
+            #    「営業日 水曜日から土曜日」を読み落としたまま毎日にすると、
+            #    週 4 日の店を «毎日開いている» と言うことになる。読めないなら諦める。
+            if _OPEN_DAYS_DECLARATION_RE.search(normalized):
+                return None, "open_days_unreadable"
+
             # 曜日も区分も無い形。**営業時間の話だと読める語が無ければ諦める**（上の注記）
             if not _OPENING_CONTEXT_RE.search(normalized):
                 return None, "no_opening_context"
