@@ -62,6 +62,8 @@ import { useSharedValueState } from "@/hooks/useSharedValueState";
 import { useLogger } from "@/hooks/useLogger";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { RestaurantAvatar } from "@/components/RestaurantAvatar";
+import { RestaurantOpeningHours } from "@/features/restaurant/components/RestaurantOpeningHours";
+import type { GetRestaurantOpeningHoursResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -109,9 +111,16 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 type SelectedRestaurantDetailsProps = {
 	// #644 【設計】レストランエントリ（restaurant + meta 情報）
 	restaurantEntry: RestaurantEntry;
+	/*
+	#1666 営業時間。**画面（ルート）が取ってきて渡す。** ここで取りに行かないのは、
+	`useAPICall` を import すると `lib/supabase` まで芋づるで入り、この画面を描く
+	既存テストが `supabaseUrl is required.` で suite ごと落ちるため
+	（`features/restaurant/hooks/useRestaurantOpeningHours.ts` の冒頭に経緯）。
+	*/
+	openingHours?: GetRestaurantOpeningHoursResponse | null;
 };
 
-export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestaurantDetailsProps) {
+export function SelectedRestaurantDetails({ restaurantEntry, openingHours }: SelectedRestaurantDetailsProps) {
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
@@ -273,10 +282,13 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 							/>
 						</View>
 					</View>
+					{/* #1666 営業時間。**データを持たない店では何も描かない**（コンポーネント側で null を返す）。
+					    «営業中» のバッジは出さない（判定が JST 固定で、海外の店では嘘になる） */}
+					<RestaurantOpeningHours hours={openingHours ?? null} />
 				</Card>
 			</View>
 		),
-		[handleHeaderLayout, restaurant, meta, handleOpenGoogleMaps, colors, styles],
+		[handleHeaderLayout, restaurant, meta, openingHours, handleOpenGoogleMaps, colors, styles],
 	);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);

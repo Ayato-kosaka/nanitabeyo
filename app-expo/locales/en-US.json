@@ -752,7 +752,19 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "Restaurant Details",
-			"openInGoogleMaps": "Open in Google Maps"
+			"openInGoogleMaps": "Open in Google Maps",
+			"openingHours": {
+				"title": "Opening hours",
+				"closed": "Closed",
+				"nextDay": "{{time}} (next day)",
+				"provenance": "From {{sources}} · fetched {{date}}",
+				"sources": {
+					"osm": "OpenStreetMap",
+					"official_site": "the shop’s own site",
+					"user": "a user report",
+					"owner": "the shop"
+				}
+			}
 		}
 	},
 	"Feedback": {

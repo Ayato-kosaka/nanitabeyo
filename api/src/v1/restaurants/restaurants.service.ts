@@ -28,6 +28,7 @@ import {
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
   GetRestaurantByIdResponse,
+  GetRestaurantOpeningHoursResponse,
   ErrorCode,
 } from '@shared/v1/res';
 import { RestaurantsRepository } from './restaurants.repository';
@@ -53,6 +54,14 @@ import {
   buildDisplayAddress,
   extractCountryName,
 } from './restaurant-display-address';
+// #1666 «どの出所を採るか» と «曜日ごとの並べ方» は判定側と同じ 1 実装を使う
+import {
+  buildWeeklyOpeningHours,
+  minutesToHhMm,
+  usedHoursSources,
+  type RestaurantOpeningHourRow,
+} from '../../../../shared/utils/openingHours';
+import { timeColumnToMinutes } from './restaurant-opening-status';
 
 @Injectable()
 export class RestaurantsService {
@@ -815,6 +824,68 @@ export class RestaurantsService {
     return {
       data: dishMediaEntryItemsResult.items,
       nextCursor: dishMediaByRestaurant.nextCursor,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* GET /v1/restaurants/:id/opening-hours                               */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1666 店舗詳細に出す «通常の 1 週間の営業時間»。
+   *
+   * ⚠️ **«いま開いているか» は返さない。** 判定は JST 固定で、店ごとのタイムゾーンを
+   * 解決する仕組みがまだ無い（`shared/utils/openingHours.ts` の注記）。dev には韓国に
+   * ある店が居るので、JST で «営業中» と書くとその店では嘘になる。時刻そのものは
+   * 店の現地時刻なので出してよい。
+   *
+   * ⚠️ **店が存在しなくても 404 にしない。** 呼び出し側（店舗詳細）は既に店を持っている。
+   * 「営業時間を知らない」と「店が無い」を別の失敗として扱わせる理由が無く、
+   * どちらでも画面は «欄を出さない» になる。
+   */
+  async getRestaurantOpeningHours(
+    restaurantId: string,
+  ): Promise<GetRestaurantOpeningHoursResponse> {
+    const rows = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.repo.findRestaurantOpeningHours(tx, restaurantId),
+    );
+
+    this.logger.debug('GetRestaurantOpeningHours', 'getRestaurantOpeningHours', {
+      restaurantId,
+      rowCount: rows.length,
+    });
+
+    if (rows.length === 0) return { days: [], sources: [], fetchedAt: null };
+
+    const hourRows: RestaurantOpeningHourRow[] = rows.map((row) => ({
+      source: row.source,
+      dayOfWeek: row.day_of_week,
+      opensAtMinutes: timeColumnToMinutes(row.opens_at),
+      closesAtMinutes: timeColumnToMinutes(row.closes_at),
+      crossesMidnight: row.crosses_midnight,
+    }));
+
+    const days = buildWeeklyOpeningHours(hourRows).map((day) => ({
+      dayOfWeek: day.dayOfWeek,
+      spans: day.spans.map((span) => ({
+        opensAt: minutesToHhMm(span.opensAtMinutes),
+        closesAt: minutesToHhMm(span.closesAtMinutes),
+        crossesMidnight: span.crossesMidnight,
+      })),
+    }));
+
+    const fetchedAt = rows
+      .map((row) => row.fetched_at)
+      .reduce<Date | null>(
+        (latest, current) =>
+          latest === null || current > latest ? current : latest,
+        null,
+      );
+
+    return {
+      days,
+      sources: usedHoursSources(hourRows),
+      fetchedAt: fetchedAt?.toISOString() ?? null,
     };
   }
 

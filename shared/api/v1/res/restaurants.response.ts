@@ -99,6 +99,31 @@ export type QueryRestaurantBidsResponse = SupabaseRestaurantBids[];
 /** GET /v1/restaurants/by-google-place-id のレスポンス型 */
 export type QueryRestaurantsByGooglePlaceIdResponse = RestaurantsEntity;
 
+/**
+ * GET /v1/restaurants/:id/opening-hours のレスポンス型
+ *
+ * #1666 店舗詳細に出す «通常の 1 週間の営業時間»。
+ *
+ * ⚠️ **«いま開いているか» は返さない。** 判定（`resolveOpeningStatus`）は JST 固定で、
+ * 店ごとのタイムゾーンを解決する仕組みがまだ無い（`shared/utils/openingHours.ts` の注記）。
+ * dev には韓国にある店が居るので、JST で «営業中» と書くとその店では嘘になる。
+ * 一方 `opens_at` / `closes_at` は **店の現地時刻**なので、時刻そのものは出してよい。
+ *
+ * ⚠️ 営業時間が 1 件も無い店では `days` が空配列になる。**その場合は欄ごと出さない。**
+ */
+export type GetRestaurantOpeningHoursResponse = {
+	/** 0 = 日曜 … 6 = 土曜の 7 要素。`spans` が空の曜日は **定休**（不明ではない） */
+	days: {
+		dayOfWeek: number;
+		/** その曜日の営業コマ。`HH:MM`（店の現地時刻）。`crossesMidnight` なら閉店は翌日 */
+		spans: { opensAt: string; closesAt: string; crossesMidnight: boolean }[];
+	}[];
+	/** 週の中で実際に採られた出所（`official_site` / `osm` など）。曜日ごとに違いうる */
+	sources: string[];
+	/** いちばん新しい取得時刻（ISO 8601）。データが無ければ null */
+	fetchedAt: string | null;
+};
+
 /** GET /v1/restaurants/:id のレスポンス型 */
 export type GetRestaurantByIdResponse = {
 	restaurant: RestaurantsEntity;

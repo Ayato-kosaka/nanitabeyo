@@ -752,7 +752,19 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "レストラン詳細",
-			"openInGoogleMaps": "Google マップで開く"
+			"openInGoogleMaps": "Google マップで開く",
+			"openingHours": {
+				"title": "営業時間",
+				"closed": "定休",
+				"nextDay": "翌{{time}}",
+				"provenance": "{{sources}} より取得（{{date}}）",
+				"sources": {
+					"osm": "OpenStreetMap",
+					"official_site": "店の公式サイト",
+					"user": "利用者の報告",
+					"owner": "店からの登録"
+				}
+			}
 		}
 	},
 	"Feedback": {

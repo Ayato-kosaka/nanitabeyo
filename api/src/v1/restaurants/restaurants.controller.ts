@@ -41,6 +41,7 @@ import {
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
   GetRestaurantByIdResponse,
+  GetRestaurantOpeningHoursResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -166,6 +167,28 @@ export class RestaurantsController {
   ): Promise<GetRestaurantByIdResponse> {
     // #644 【設計】restaurant.id でレストラン詳細と統計情報を取得
     return this.restaurantsService.getRestaurantById(params.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*             GET /v1/restaurants/:id/opening-hours                  */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1666 店舗詳細に出す «通常の 1 週間の営業時間»。
+   *
+   * ⚠️ **`GET /:id` へ相乗りさせないこと。** 店舗詳細はストアのキャッシュを優先して開く
+   * （`app/[locale]/restaurant/[restaurantId].tsx`）ので、`GET /:id` に足すと
+   * **キャッシュ経由で開いたときだけ営業時間が出ない**という状態になる。
+   */
+  @Get(':id/opening-hours')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '#1666 店舗の通常の1週間の営業時間' })
+  @ApiParam({ name: 'id', description: 'Restaurant ID' })
+  @ApiResponse({ status: 200, description: '取得成功（データが無ければ days は空）' })
+  async getRestaurantOpeningHours(
+    @Param() params: RestaurantIdParamsDto,
+  ): Promise<GetRestaurantOpeningHoursResponse> {
+    return this.restaurantsService.getRestaurantOpeningHours(params.id);
   }
 
   /* ------------------------------------------------------------------ */

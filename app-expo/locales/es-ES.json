@@ -752,7 +752,19 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "Detalles del restaurante",
-			"openInGoogleMaps": "Abrir en Google Maps"
+			"openInGoogleMaps": "Abrir en Google Maps",
+			"openingHours": {
+				"title": "Horario",
+				"closed": "Cerrado",
+				"nextDay": "{{time}} (día siguiente)",
+				"provenance": "De {{sources}} · obtenido el {{date}}",
+				"sources": {
+					"osm": "OpenStreetMap",
+					"official_site": "la web del local",
+					"user": "un aviso de usuario",
+					"owner": "el local"
+				}
+			}
 		}
 	},
 	"Feedback": {

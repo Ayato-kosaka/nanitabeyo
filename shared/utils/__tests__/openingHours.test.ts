@@ -9,8 +9,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+	buildWeeklyOpeningHours,
 	deriveJstCalendarContext,
+	minutesToHhMm,
 	resolveOpeningStatus,
+	usedHoursSources,
 	type OpeningStatusCalendarContext,
 	type RestaurantHoursExceptionRow,
 	type RestaurantOpeningHourRow,
@@ -192,4 +195,105 @@ test("deriveJstCalendarContext は UTC 日付をまたがない時間帯でも J
 	assert.equal(context.todayDate, "2026-09-08");
 	assert.equal(context.todayDayOfWeek, 2);
 	assert.deepEqual(context.window, getTimeSlotWindow("dinner"));
+});
+
+/* ==========================================================================
+ * #1666 表示（GET /v1/restaurants/:id/opening-hours）
+ * ========================================================================== */
+
+test("buildWeeklyOpeningHours: 行が 1 つも無ければ空配列（欄ごと出さないため）", () => {
+	assert.deepEqual(buildWeeklyOpeningHours([]), []);
+});
+
+test("buildWeeklyOpeningHours: 行が 1 つでもあれば 7 曜日ぶん返し、行の無い曜日は «定休»（空 spans）", () => {
+	/*
+	⚠️ ここがこの関数のいちばん大事な取り決めである。«その曜日に行が無い» を «不明» と
+	読むと、`resolveOpeningStatus`（絞り込み側）が `closed` と判定する店を、詳細画面だけ
+	«分からない» と表示することになる。同じデータに 2 つの意味を持たせない。
+	*/
+	const days = buildWeeklyOpeningHours([hourRow({ dayOfWeek: 1 })]);
+	assert.equal(days.length, 7);
+	assert.equal(days[1].spans.length, 1);
+	for (const dow of [0, 2, 3, 4, 5, 6]) {
+		assert.deepEqual(days[dow].spans, [], `dow=${dow} は定休（空）であるべき`);
+	}
+});
+
+test("buildWeeklyOpeningHours: 同じ曜日に複数コマがあれば開始時刻の順に並べる", () => {
+	const days = buildWeeklyOpeningHours([
+		hourRow({ dayOfWeek: 3, opensAtMinutes: 17 * 60, closesAtMinutes: 21 * 60 }),
+		hourRow({ dayOfWeek: 3, opensAtMinutes: 11 * 60, closesAtMinutes: 14 * 60 }),
+	]);
+	assert.deepEqual(
+		days[3].spans.map((s) => s.opensAtMinutes),
+		[11 * 60, 17 * 60],
+	);
+});
+
+test("buildWeeklyOpeningHours: 出所は **曜日ごと** に優先順位で選ぶ", () => {
+	/*
+	⚠️ 週全体で 1 つの出所に決めてはいけない。公式サイトが月〜金しか書いていない店で
+	週まるごと official_site を採ると、**土日が消える**。
+	*/
+	const days = buildWeeklyOpeningHours([
+		hourRow({ dayOfWeek: 1, source: "official_site", opensAtMinutes: 9 * 60 }),
+		hourRow({ dayOfWeek: 1, source: "osm", opensAtMinutes: 10 * 60 }),
+		hourRow({ dayOfWeek: 6, source: "osm", opensAtMinutes: 8 * 60 }),
+	]);
+	assert.deepEqual(
+		days[1].spans.map((s) => s.opensAtMinutes),
+		[9 * 60],
+		"月曜は official_site が勝つ",
+	);
+	assert.deepEqual(
+		days[6].spans.map((s) => s.opensAtMinutes),
+		[8 * 60],
+		"土曜は osm しか無いので残る",
+	);
+});
+
+test("buildWeeklyOpeningHours: 優先順位は resolveOpeningStatus と同じ規則である", () => {
+	/*
+	⚠️ 写経していないことの確認。表示が official_site を採るなら、絞り込みも
+	official_site の時間で判定していなければならない。**同じ入力で突き合わせる。**
+	*/
+	const rows: RestaurantOpeningHourRow[] = [
+		// 火曜: official_site は昼だけ / osm は昼と夜。official_site が勝つので夜は «閉まっている»
+		hourRow({ dayOfWeek: 2, source: "official_site", opensAtMinutes: 11 * 60, closesAtMinutes: 14 * 60 }),
+		hourRow({ dayOfWeek: 2, source: "osm", opensAtMinutes: 11 * 60, closesAtMinutes: 14 * 60 }),
+		hourRow({ dayOfWeek: 2, source: "osm", opensAtMinutes: 17 * 60, closesAtMinutes: 21 * 60 }),
+	];
+	const days = buildWeeklyOpeningHours(rows);
+	assert.deepEqual(
+		days[2].spans.map((s) => s.opensAtMinutes),
+		[11 * 60],
+		"表示: 夜のコマは出ない",
+	);
+	assert.equal(
+		resolveOpeningStatus({
+			hours: rows,
+			exceptions: [],
+			context: TUESDAY_CONTEXT(getTimeSlotWindow("dinner")),
+		}),
+		"closed",
+		"絞り込み: 同じ入力で夜は closed。表示と食い違わない",
+	);
+});
+
+test("usedHoursSources: 曜日ごとに違う出所を **全部** 返す（片方を偽らない）", () => {
+	assert.deepEqual(
+		usedHoursSources([
+			hourRow({ dayOfWeek: 1, source: "official_site" }),
+			hourRow({ dayOfWeek: 1, source: "osm" }),
+			hourRow({ dayOfWeek: 6, source: "osm" }),
+		]),
+		["official_site", "osm"],
+	);
+});
+
+test("minutesToHhMm: 0 埋めする", () => {
+	assert.equal(minutesToHhMm(9 * 60), "09:00");
+	assert.equal(minutesToHhMm(9 * 60 + 5), "09:05");
+	assert.equal(minutesToHhMm(0), "00:00");
+	assert.equal(minutesToHhMm(23 * 60 + 59), "23:59");
 });

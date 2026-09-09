@@ -752,7 +752,19 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "تفاصيل المطعم",
-			"openInGoogleMaps": "الفتح في خرائط Google"
+			"openInGoogleMaps": "الفتح في خرائط Google",
+			"openingHours": {
+				"title": "ساعات العمل",
+				"closed": "مغلق",
+				"nextDay": "{{time}} (اليوم التالي)",
+				"provenance": "من {{sources}} · تم الجلب في {{date}}",
+				"sources": {
+					"osm": "OpenStreetMap",
+					"official_site": "موقع المطعم الرسمي",
+					"user": "بلاغ من مستخدم",
+					"owner": "تسجيل المطعم"
+				}
+			}
 		}
 	},
 	"Feedback": {
