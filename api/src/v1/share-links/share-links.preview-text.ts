@@ -44,39 +44,90 @@ export type SharePreviewVars = {
  */
 export const DISH_MEDIA_PREVIEW_TEXT: Record<
   PublicLocale,
-  { title: (v: SharePreviewVars) => string; description: (v: SharePreviewVars) => string }
+  {
+    title: (v: SharePreviewVars) => string;
+    description: (v: SharePreviewVars) => string;
+  }
 > = {
   'ja-JP': {
-    title: (v) => (v.count > 1 ? `${v.dishName} ほか${v.count - 1}件 - なに食べよ` : `${v.dishName} - ${v.restaurantName}`),
-    description: (v) => (v.count > 1 ? `${v.dishName}（${v.restaurantName}）を含む ${v.count} 件の料理。なに食べよ で写真とレビューを見る。` : `${v.restaurantName} の ${v.dishName}。なに食べよ で写真とレビューを見る。`),
+    title: (v) =>
+      v.count > 1
+        ? `${v.dishName} ほか${v.count - 1}件 - なに食べよ`
+        : `${v.dishName} - ${v.restaurantName}`,
+    description: (v) =>
+      v.count > 1
+        ? `${v.dishName}（${v.restaurantName}）を含む ${v.count} 件の料理。なに食べよ で写真とレビューを見る。`
+        : `${v.restaurantName} の ${v.dishName}。なに食べよ で写真とレビューを見る。`,
   },
   'en-US': {
-    title: (v) => (v.count > 1 ? `${v.dishName} and ${v.count - 1} more - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
-    description: (v) => (v.count > 1 ? `${v.count} dishes including ${v.dishName} at ${v.restaurantName}. See photos and reviews on CraveCatch.` : `${v.dishName} at ${v.restaurantName}. See photos and reviews on CraveCatch.`),
+    title: (v) =>
+      v.count > 1
+        ? `${v.dishName} and ${v.count - 1} more - CraveCatch`
+        : `${v.dishName} - ${v.restaurantName}`,
+    description: (v) =>
+      v.count > 1
+        ? `${v.count} dishes including ${v.dishName} at ${v.restaurantName}. See photos and reviews on CraveCatch.`
+        : `${v.dishName} at ${v.restaurantName}. See photos and reviews on CraveCatch.`,
   },
   'fr-FR': {
-    title: (v) => (v.count > 1 ? `${v.dishName} et ${v.count - 1} autres - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
-    description: (v) => (v.count > 1 ? `${v.count} plats dont ${v.dishName} chez ${v.restaurantName}. Photos et avis sur CraveCatch.` : `${v.dishName} chez ${v.restaurantName}. Photos et avis sur CraveCatch.`),
+    title: (v) =>
+      v.count > 1
+        ? `${v.dishName} et ${v.count - 1} autres - CraveCatch`
+        : `${v.dishName} - ${v.restaurantName}`,
+    description: (v) =>
+      v.count > 1
+        ? `${v.count} plats dont ${v.dishName} chez ${v.restaurantName}. Photos et avis sur CraveCatch.`
+        : `${v.dishName} chez ${v.restaurantName}. Photos et avis sur CraveCatch.`,
   },
   'zh-CN': {
-    title: (v) => (v.count > 1 ? `${v.dishName} 等 ${v.count} 道菜 - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
-    description: (v) => (v.count > 1 ? `包含 ${v.restaurantName} 的${v.dishName}在内的 ${v.count} 道菜。在 CraveCatch 查看照片和评价。` : `${v.restaurantName} 的${v.dishName}。在 CraveCatch 查看照片和评价。`),
+    title: (v) =>
+      v.count > 1
+        ? `${v.dishName} 等 ${v.count} 道菜 - CraveCatch`
+        : `${v.dishName} - ${v.restaurantName}`,
+    description: (v) =>
+      v.count > 1
+        ? `包含 ${v.restaurantName} 的${v.dishName}在内的 ${v.count} 道菜。在 CraveCatch 查看照片和评价。`
+        : `${v.restaurantName} 的${v.dishName}。在 CraveCatch 查看照片和评价。`,
   },
   'ar-SA': {
-    title: (v) => (v.count > 1 ? `${v.dishName} و${v.count - 1} أخرى - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
-    description: (v) => (v.count > 1 ? `${v.count} أطباق منها ${v.dishName} في ${v.restaurantName}. شاهد الصور والمراجعات على CraveCatch.` : `${v.dishName} في ${v.restaurantName}. شاهد الصور والمراجعات على CraveCatch.`),
+    title: (v) =>
+      v.count > 1
+        ? `${v.dishName} و${v.count - 1} أخرى - CraveCatch`
+        : `${v.dishName} - ${v.restaurantName}`,
+    description: (v) =>
+      v.count > 1
+        ? `${v.count} أطباق منها ${v.dishName} في ${v.restaurantName}. شاهد الصور والمراجعات على CraveCatch.`
+        : `${v.dishName} في ${v.restaurantName}. شاهد الصور والمراجعات على CraveCatch.`,
   },
   'ko-KR': {
-    title: (v) => (v.count > 1 ? `${v.dishName} 외 ${v.count - 1}건 - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
-    description: (v) => (v.count > 1 ? `${v.restaurantName}의 ${v.dishName}을(를) 포함한 ${v.count}건의 요리. CraveCatch에서 사진과 리뷰를 확인하세요.` : `${v.restaurantName}의 ${v.dishName}. CraveCatch에서 사진과 리뷰를 확인하세요.`),
+    title: (v) =>
+      v.count > 1
+        ? `${v.dishName} 외 ${v.count - 1}건 - CraveCatch`
+        : `${v.dishName} - ${v.restaurantName}`,
+    description: (v) =>
+      v.count > 1
+        ? `${v.restaurantName}의 ${v.dishName}을(를) 포함한 ${v.count}건의 요리. CraveCatch에서 사진과 리뷰를 확인하세요.`
+        : `${v.restaurantName}의 ${v.dishName}. CraveCatch에서 사진과 리뷰를 확인하세요.`,
   },
   'es-ES': {
-    title: (v) => (v.count > 1 ? `${v.dishName} y ${v.count - 1} más - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
-    description: (v) => (v.count > 1 ? `${v.count} platos incluyendo ${v.dishName} en ${v.restaurantName}. Fotos y reseñas en CraveCatch.` : `${v.dishName} en ${v.restaurantName}. Fotos y reseñas en CraveCatch.`),
+    title: (v) =>
+      v.count > 1
+        ? `${v.dishName} y ${v.count - 1} más - CraveCatch`
+        : `${v.dishName} - ${v.restaurantName}`,
+    description: (v) =>
+      v.count > 1
+        ? `${v.count} platos incluyendo ${v.dishName} en ${v.restaurantName}. Fotos y reseñas en CraveCatch.`
+        : `${v.dishName} en ${v.restaurantName}. Fotos y reseñas en CraveCatch.`,
   },
   'hi-IN': {
-    title: (v) => (v.count > 1 ? `${v.dishName} और ${v.count - 1} अन्य - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
-    description: (v) => (v.count > 1 ? `${v.restaurantName} के ${v.dishName} सहित ${v.count} व्यंजन। CraveCatch पर तस्वीरें और समीक्षाएँ देखें।` : `${v.restaurantName} का ${v.dishName}। CraveCatch पर तस्वीरें और समीक्षाएँ देखें।`),
+    title: (v) =>
+      v.count > 1
+        ? `${v.dishName} और ${v.count - 1} अन्य - CraveCatch`
+        : `${v.dishName} - ${v.restaurantName}`,
+    description: (v) =>
+      v.count > 1
+        ? `${v.restaurantName} के ${v.dishName} सहित ${v.count} व्यंजन। CraveCatch पर तस्वीरें और समीक्षाएँ देखें।`
+        : `${v.restaurantName} का ${v.dishName}। CraveCatch पर तस्वीरें और समीक्षाएँ देखें।`,
   },
 };
 
@@ -87,7 +138,10 @@ export const DISH_MEDIA_PREVIEW_TEXT: Record<
  * 対象固有の値を差し込まない共通テンプレートで足りる
  *（dish_media のような重い preview 生成を行わない、と設計で決めた部分）。
  */
-export const GROUP_VOTE_PREVIEW_TEXT: Record<PublicLocale, { title: string; description: string }> = {
+export const GROUP_VOTE_PREVIEW_TEXT: Record<
+  PublicLocale,
+  { title: string; description: string }
+> = {
   'ja-JP': {
     title: 'みんなで食べたいものを決めよう！',
     description: 'なに食べよ の友達投票に参加して、みんなで料理を選ぼう。',
@@ -98,7 +152,8 @@ export const GROUP_VOTE_PREVIEW_TEXT: Record<PublicLocale, { title: string; desc
   },
   'fr-FR': {
     title: 'Votons ensemble pour le repas !',
-    description: 'Rejoignez ce vote de groupe CraveCatch et choisissez un plat ensemble.',
+    description:
+      'Rejoignez ce vote de groupe CraveCatch et choisissez un plat ensemble.',
   },
   'zh-CN': {
     title: '一起来决定吃什么吧！',
@@ -114,11 +169,13 @@ export const GROUP_VOTE_PREVIEW_TEXT: Record<PublicLocale, { title: string; desc
   },
   'es-ES': {
     title: '¡Votemos qué comer juntos!',
-    description: 'Únete a esta votación de grupo en CraveCatch y elegid un plato juntos.',
+    description:
+      'Únete a esta votación de grupo en CraveCatch y elegid un plato juntos.',
   },
   'hi-IN': {
     title: 'मिलकर तय करें कि क्या खाना है!',
-    description: 'CraveCatch के ग्रुप वोट में शामिल हों और साथ मिलकर व्यंजन चुनें।',
+    description:
+      'CraveCatch के ग्रुप वोट में शामिल हों और साथ मिलकर व्यंजन चुनें।',
   },
 };
 

@@ -28,9 +28,6 @@ import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
     DishCategoryGroupVotesRepository,
     DishCategoryGroupVotesAssembler,
   ],
-  exports: [
-    DishCategoryGroupVotesService,
-    DishCategoryGroupVotesRepository,
-  ],
+  exports: [DishCategoryGroupVotesService, DishCategoryGroupVotesRepository],
 })
 export class DishCategoryGroupVotesModule {}

@@ -238,6 +238,43 @@ test("取りこぼさない: 店名が【】に囲まれていれば完全一致
 	assert.equal(result.prefillRestaurantId, "okage");
 });
 
+test("取りこぼさない: nameHints（📍pin 名）を渡すと含有 0.85 の候補が exact 昇格して prefill する（#1273）", () => {
+	// 店名を丸ごと 📍 行に書く投稿は、含有一致だと 0.85 止まりで無人取り込みの prefill（0.90）に
+	// 届かなかった。生キャプションから切り出した 📍pin 名を nameHints へ渡し、exact-name（1.00）へ
+	// 引き上げる。含有・曖昧一致には使わないので、渡しても誤爆は増えない。
+	const candidates: RestaurantSearchCandidate[] = [{ id: "sukiyaki", name: "すきやきの松伊" }];
+	const text = "📍すきやきの松伊 でランチ";
+
+	// nameHints 無し: 含有一致の 0.85 止まりで prefill しない
+	const without = matchRestaurantNames({ texts: caption(text), candidates });
+	assert.equal(confidenceOf(without, "sukiyaki"), base.nameContained);
+	assert.equal(without.candidates[0].evidence[0].kind, "name-contained");
+	assert.equal(without.shouldPrefill, false);
+
+	// nameHints あり: exact-name（1.00）へ昇格して prefill の土俵に乗る
+	const withHints = matchRestaurantNames({
+		texts: caption(text),
+		candidates,
+		nameHints: ["すきやきの松伊"],
+	});
+	assert.equal(confidenceOf(withHints, "sukiyaki"), base.exactName);
+	assert.equal(withHints.candidates[0].evidence[0].kind, "exact-name");
+	assert.equal(withHints.shouldPrefill, true);
+	assert.equal(withHints.prefillRestaurantId, "sukiyaki");
+});
+
+test("nameHints: 候補店名と一致しないヒントは無視する（壊れた入力でも例外を投げない）", () => {
+	const candidates: RestaurantSearchCandidate[] = [{ id: "sukiyaki", name: "すきやきの松伊" }];
+	// 一致しないヒント・空・null 混じりでも落ちない。候補が無ければ空のまま
+	const result = matchRestaurantNames({
+		texts: caption("今日はいい天気でした"),
+		candidates,
+		nameHints: ["まったく別の店", "", null as unknown as string],
+	});
+	assert.deepEqual(result.candidates, []);
+	assert.equal(result.shouldPrefill, false);
+});
+
 test("誤爆させない: 【店名】等の見出しラベルからは候補を作らない（#1273）", () => {
 	// 括弧を項目ラベルに使い値を次行に置くテンプレ。ラベル語「店名」は店ではない
 	const result = matchRestaurantNames({

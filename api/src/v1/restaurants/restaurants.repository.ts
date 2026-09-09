@@ -13,8 +13,19 @@ import { QueryRestaurantsDto, QuerySavedRestaurantsDto } from '@shared/v1/dto';
 import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
 import { roundToOneDecimal } from '../../core/utils/backend-utils';
 
+/**
+ * #1779 検索・保存一覧が読む店の形。**落とす列（image_url / plus_code）は読まない。**
+ *
+ * `PrismaRestaurants` は生成物なので、そのまま使うと «落とすと決めた列» を
+ * SELECT し続けてしまう。ここで先に外し、列が実際に落ちても型が変わらないようにする。
+ */
+export type ReadableRestaurant = Omit<
+  PrismaRestaurants,
+  'image_url' | 'plus_code'
+>;
+
 export type RestaurantWithMeta = {
-  restaurant: PrismaRestaurants;
+  restaurant: ReadableRestaurant;
   meta: {
     reviewCount: number;
     averageRating: number;
@@ -24,7 +35,7 @@ export type RestaurantWithMeta = {
 };
 
 export type SavedRestaurantWithMeta = {
-  restaurant: PrismaRestaurants;
+  restaurant: ReadableRestaurant;
   meta: {
     reviewCount: number;
     averageRating: number;
@@ -81,10 +92,8 @@ export class RestaurantsRepository {
         | 'name_language_code'
         | 'latitude'
         | 'longitude'
-        | 'image_url'
         | 'image_path'
         | 'address_components'
-        | 'plus_code'
         | 'created_at'
         | 'source_seed_id'
         | 'source_names'
@@ -93,6 +102,7 @@ export class RestaurantsRepository {
         | 'created_by_source'
         | 'address'
         | 'country_code'
+        | 'subterritory_code'
       > & {
         review_count: number;
         average_rating: number;
@@ -222,10 +232,8 @@ export class RestaurantsRepository {
       r.name_language_code,
       r.latitude,
       r.longitude,
-      r.image_url,
       r.image_path,
       r.address_components,
-      r.plus_code,
       r.created_at,
       -- #843 catalog 同期の metadata
       r.source_seed_id,
@@ -236,6 +244,7 @@ export class RestaurantsRepository {
       r.created_by_source,
       r.address,
       r.country_code,
+      r.subterritory_code,
       agg.review_count,
       agg.average_rating,
       c.last_saved_at
@@ -281,10 +290,8 @@ export class RestaurantsRepository {
         name_language_code: row.name_language_code,
         latitude: row.latitude,
         longitude: row.longitude,
-        image_url: row.image_url,
         image_path: row.image_path,
         address_components: row.address_components,
-        plus_code: row.plus_code,
         created_at: row.created_at,
         source_seed_id: row.source_seed_id,
         source_names: row.source_names,
@@ -293,6 +300,7 @@ export class RestaurantsRepository {
         created_by_source: row.created_by_source,
         address: row.address,
         country_code: row.country_code,
+        subterritory_code: row.subterritory_code,
       },
       meta: {
         reviewCount: row.review_count,
@@ -762,10 +770,8 @@ export class RestaurantsRepository {
         | 'name_language_code'
         | 'latitude'
         | 'longitude'
-        | 'image_url'
         | 'image_path'
         | 'address_components'
-        | 'plus_code'
         | 'created_at'
         | 'source_seed_id'
         | 'source_names'
@@ -774,6 +780,7 @@ export class RestaurantsRepository {
         | 'created_by_source'
         | 'address'
         | 'country_code'
+        | 'subterritory_code'
       > & {
         review_count: number;
         average_rating: number;
@@ -789,11 +796,9 @@ export class RestaurantsRepository {
         r.name_language_code,
         r.latitude,
         r.longitude,
-        r.image_url,
-        r.image_path,
+          r.image_path,
         r.address_components,
-        r.plus_code,
-        r.created_at,
+          r.created_at,
         -- #843 catalog 同期の metadata
         r.source_seed_id,
         r.source_names,
@@ -801,10 +806,9 @@ export class RestaurantsRepository {
         r.synced_at,
         -- #843 その行を誰が作ったか。9_1 の同期はこの値が 'pipeline' の行だけを上書きする
         r.created_by_source,
-      r.address,
-      r.country_code,
         r.address,
         r.country_code,
+        r.subterritory_code,
         c.total_cents,
         c.max_end_date,
         agg.review_count,
@@ -876,6 +880,72 @@ export class RestaurantsRepository {
     });
   }
 
+  /**
+   * #1671 【設計】**空いている住所・国コードだけを埋める。既にある値は上書きしない。**
+   *
+   * ⚠️ **«62 万行が空» は事実ではなかった**（2026-09-05 実測 / #1846 のついでに計測）。
+   *    dev の 621,974 店のうち `address` は 620,300 店（99.73%）、`country_code` は
+   *    621,964 店（100.00%）が既に埋まっている。空いているのは address が 1,674 行
+   *    （0.27%）、country_code が 10 行だけである。**この関数はほぼ no-op である。**
+   *    害は無い（空きしか埋めない）が、«62 万行のための機能» ではない。
+   *
+   * もともとの想定は «パイプライン製の行は address / country_code が空で、ユーザーが
+   * POI を押しても «既存店だからそのまま開く» 経路に入るため**永久に埋まらなかった**。
+   * 確認ページを通ったときだけ、ユーザーが確認した値でその穴を塞ぐ。
+   *
+   * ⚠️ **上書きはしない。** 既に誰かが確認して入れた値を、後から来た別のユーザーの
+   * 確認で書き換えると «最後に触った人が勝つ» になる。埋まっているものは触らない。
+   * （競合の解決を入れるなら #1827 の結論を待つ）
+   *
+   * ⚠️ 判定は **SQL の WHERE でやる**。読んでから TS で分岐して書くと、
+   * 同じ店を 2 人が同時に確認したときに後勝ちが起きる。
+   *
+   * @returns 実際に埋めた行数（0 なら既に埋まっていた）
+   */
+  async fillMissingAddress(
+    tx: Prisma.TransactionClient,
+    params: {
+      restaurantId: string;
+      address: string;
+      countryCode: string | null;
+      subterritoryCode: string | null;
+    },
+  ): Promise<number> {
+    const { restaurantId, address, countryCode, subterritoryCode } = params;
+
+    /*
+      #1671 【設計】**列ごとに «空いているものだけ» を埋める。**
+
+      ⚠️ 以前はここが `updateMany` で、WHERE に «どれか 1 つでも空なら» を書き、
+      SET では `address` を **無条件に**書いていた。そのため
+
+          address = '既に確認済みの住所' / country_code = NULL
+
+      の行が WHERE に引っかかり、**埋まっていた住所を上書きしていた**。
+      「埋まっているものは触らない」と書いてあるのに、そうなっていなかった。
+
+      Prisma の updateMany は «列ごとに条件を変える» を書けないので、生 SQL にする。
+      `COALESCE(NULLIF(col, ''), $新しい値)` なら、空（NULL または空文字）のときだけ
+      新しい値が入り、埋まっている列はそのままの値で上書きされる（＝実質そのまま）。
+
+      ⚠️ 判定は SQL の中に閉じること。読んでから TS で分岐して書くと、
+      同じ店を 2 人が同時に確認したときに後勝ちが起きる。
+    */
+    return tx.$executeRaw(Prisma.sql`
+      UPDATE restaurants
+      SET
+        address           = COALESCE(NULLIF(address, ''), ${address}),
+        country_code      = COALESCE(NULLIF(country_code, ''), ${countryCode}),
+        subterritory_code = COALESCE(NULLIF(subterritory_code, ''), ${subterritoryCode})
+      WHERE id = ${restaurantId}::uuid
+        AND (
+             NULLIF(address, '') IS NULL
+          OR NULLIF(country_code, '') IS NULL
+          OR NULLIF(subterritory_code, '') IS NULL
+        )
+    `);
+  }
+
   /* ------------------------------------------------------------------ */
   /*                   Restaurant review statistics (count + average rating)                       */
   /* ------------------------------------------------------------------ */
@@ -934,6 +1004,35 @@ export class RestaurantsRepository {
       totalCents,
       maxEndDate,
     };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*      #1666 店舗詳細に出す «通常の 1 週間の営業時間» を引く          */
+  /* ------------------------------------------------------------------ */
+  /**
+   * ⚠️ **1 店ぶんだけを引く。** `restaurant-opening-status.ts` の方は «近くの候補集合» へ
+   * 絞る必要があったが（62 万店 × 曜日を毎回引き上げていた）、ここは主キー前方一致の
+   * 1 店なので `idx_restaurant_opening_hours_lookup` がそのまま効く。
+   *
+   * 出所の優先順位は **解決しない**。ここは生の行を返し、解決は
+   * `shared/utils/openingHours.ts` の `buildWeeklyOpeningHours` が 1 箇所で行う
+   * （判定側と同じ規則を使うため。SQL へ書き写すと片方だけずれる）。
+   */
+  async findRestaurantOpeningHours(
+    tx: Prisma.TransactionClient,
+    restaurantId: string,
+  ) {
+    return tx.restaurant_opening_hours.findMany({
+      where: { restaurant_id: restaurantId },
+      select: {
+        source: true,
+        day_of_week: true,
+        opens_at: true,
+        closes_at: true,
+        crosses_midnight: true,
+        fetched_at: true,
+      },
+    });
   }
 
   /* ------------------------------------------------------------------ */

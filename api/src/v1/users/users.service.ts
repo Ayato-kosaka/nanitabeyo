@@ -818,7 +818,11 @@ export class UsersService {
   private async deleteStorageObjectsForUser(
     userId: string,
     avatarPath: string | null,
-    dishMedias: { id: string; media_path: string | null; thumbnail_path: string }[],
+    dishMedias: {
+      id: string;
+      media_path: string | null;
+      thumbnail_path: string;
+    }[],
   ): Promise<void> {
     try {
       // アバター: オリジナル + 派生（64 / 256）

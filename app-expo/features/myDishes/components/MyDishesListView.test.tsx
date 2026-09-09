@@ -3,7 +3,7 @@
 
 固定したいのは 3 点：
 1. `dishMedia === null` でも灰色プレースホルダーにせず、`dish.categoryImageUrl` →
-   `restaurant.image_url` の順で実画像を出す
+   `restaurant.imageUrls?.sm` の順で実画像を出す
 2. 実画像へフォールバックしても「写真なし」であること自体は分かる
    （`MyDishes.list.noPhoto` バッジが出る）
 3. 3 つとも無いときだけ、従来どおりの無地プレースホルダー（`my-dishes-list-item-placeholder`）
@@ -89,6 +89,10 @@ const makeItem = (
 			id: overrides.restaurantId ?? "restaurant-1",
 			name: "テスト食堂",
 			image_url: overrides.restaurantImageUrl ?? null,
+			// #1779 店の画像は `imageUrls` から取る（`image_url` は落とす列）
+			imageUrls: overrides.restaurantImageUrl
+				? { sm: overrides.restaurantImageUrl, md: overrides.restaurantImageUrl }
+				: undefined,
 		},
 		dish: { id: "dish-1", name: "ラーメン", categoryImageUrl: overrides.categoryImageUrl ?? null },
 		dishMedia:
@@ -151,7 +155,7 @@ describe("#1398 PR5 dishMedia === null の写真なしフォールバック", ()
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-placeholder")).toHaveLength(0);
 	});
 
-	it("categoryImageUrl も無ければ restaurant.image_url へ落ちる", async () => {
+	it("categoryImageUrl も無ければ restaurant.imageUrls?.sm へ落ちる", async () => {
 		mockUseMyDishesQuery.mockReturnValue({
 			items: [makeItem("review:1", { restaurantImageUrl: "https://example.com/restaurant.jpg" })],
 			isLoading: false,
@@ -199,7 +203,7 @@ describe("#1398 PR5 dishMedia === null の写真なしフォールバック", ()
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-no-photo-badge")).toHaveLength(0);
 	});
 
-	it("categoryImageUrl / restaurant.image_url も無いときだけ従来どおりの無地プレースホルダーになる", async () => {
+	it("categoryImageUrl / 店の画像も無いときだけ従来どおりの無地プレースホルダーになる", async () => {
 		mockUseMyDishesQuery.mockReturnValue({
 			items: [makeItem("review:1")],
 			isLoading: false,
@@ -229,7 +233,7 @@ describe("#1513 isOwnMediaDeleted の行は墓標になる（黙って消さな�
 		refresh: jest.fn(),
 	});
 
-	it("categoryImageUrl / restaurant.image_url があっても画像を出さず、墓標と「削除されました」を出す", async () => {
+	it("categoryImageUrl / 店の画像があっても画像を出さず、墓標と「削除されました」を出す", async () => {
 		mockUseMyDishesQuery.mockReturnValue(
 			queryResult([
 				makeItem("review:1", {

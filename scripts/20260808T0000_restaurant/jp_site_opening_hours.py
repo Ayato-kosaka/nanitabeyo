@@ -1,0 +1,546 @@
+#!/usr/bin/env python3
+"""#1666 店舗公式サイトの **日本語の自由記述**から `restaurant_opening_hours` の行を作る。
+
+## なぜこれが要るか
+
+営業時間の供給元は 2 つある。
+
+1. **OSM の `opening_hours`** … `osm_opening_hours.py`。仕様が決まった構造化テキストなので素直。
+   dev へ投入済み（13,065 店 / 100,309 行）だが、**62 万店に対する被覆は約 2%** しかない
+2. **店舗公式サイト** … website を持つ店が 282,163 店（45.4%）。ここが本命だが、自由記述である
+
+#843 の[実現性の実測（10 件）](https://github.com/Ayato-kosaka/nanitabeyo/issues/843#issuecomment-5429418172)
+では、到達できた 7 件のうち 5 件で営業時間の «記載» が見つかった。ただし記載の形はばらばらで、
+**「読める」と「機械で構造化できる」は別**である。このモジュールは後者だけを担う。
+
+## ⚠️ 分からないものは «推測しない»（`osm_opening_hours.py` と同じ規則）
+
+#1666 の 3 値判定（open / closed / **unknown**）では、unknown は «今までどおり候補に残る» ので
+**害が無い**。一方、間違って closed にすると **開いている店が検索から消える**。
+自由記述は OSM よりはるかに曖昧なので、この規則はここでこそ効く。
+
+**扱える形だけを扱い、少しでも解釈が割れるものは `None` を返す。**
+
+とくに次を守る。
+
+- **営業時間が読めても、定休日が読めなければ全体を `None` にする。**
+  «第 1・第 3 月曜定休» を落として時間だけ入れると、**休みの日に開いていることにされる**
+- 午前/午後・「〜時閉店」だけの片側記述・「ラストオーダー」しか書かれていない形は読まない
+
+## 対応している形
+
+    営業時間 11:00-14:00                     … 曜日を書かない形は «毎日»
+    営業時間 11:30～14:30 18:00～21:00        … 1 日に複数コマ
+    平日 11:00-14:30 / 土日 8:00-16:00        … 平日・土日・土日祝の区分
+    月曜-金曜 09:00-17:00                     … 曜日の範囲
+    月・水・金 18:00-23:00                    … 曜日の列挙
+    営業時間：9時30分～19時                   … 漢字表記の時刻（分は省略可）
+    定休日 月曜、火曜                          … その曜日を落とす
+    （木曜定休）                               … 括弧内の定休表記
+    18:00-26:00                              … 24 時超え表記（26:00 = 翌 2:00）
+    全角（１１：００～１４：３０）              … 全角数字・全角コロン・全角チルダ
+
+## 対応していない形（`None` を返す）
+
+    第1・第3月曜定休          … 第 n 週（OSM 側の Mo[1] と同じ理由で不可）
+    不定休 / 年中無休(要確認)  … 曜日へ落とせない
+    午後4時〜午後10時         … 午前/午後の自由記述
+    待ち時間 1時間〜2時間     … 「時間」は時刻ではない（`1時` と読まない）
+    11:30〜(L.O.14:00)       … 終了時刻が無い
+    ランチ営業のみ            … 時刻が無い
+    新春セミナー 13:00-15:00  … 営業時間の話だと読める語が無い（曜日も区分も無い場合）
+
+## 使い方
+
+    from jp_site_opening_hours import parse_jp_site_opening_hours
+
+    rows = parse_jp_site_opening_hours("営業時間 11:30～14:30 18:00～21:00 定休日 月曜、火曜")
+    # rows is None なら «この文章は扱えない»（unknown のまま残す）
+"""
+
+from __future__ import annotations
+
+import re
+import unicodedata
+
+from osm_opening_hours import OpeningHourRow
+
+# 0 = 日曜 … 6 = 土曜（PostgreSQL の EXTRACT(DOW) と同じ並び）
+_KANJI_TO_DOW = {
+    "日": 0,
+    "月": 1,
+    "火": 2,
+    "水": 3,
+    "木": 4,
+    "金": 5,
+    "土": 6,
+}
+# 曜日の «並び順»。「月曜-金曜」のような範囲を展開するために使う（日本語は月始まりで書く）
+_ORDER = ["月", "火", "水", "木", "金", "土", "日"]
+
+_WEEKDAYS = [1, 2, 3, 4, 5]  # 月〜金
+_WEEKEND = [6, 0]  # 土・日
+
+# 「平日」「土日」などの区分語。**「祝」は曜日ではないので、含まれていても曜日には足さない**
+# （祝日の扱いは restaurant_hours_exceptions の担当で、ここでは曜日だけを作る）
+_GROUP_TO_DOWS = {
+    "平日": _WEEKDAYS,
+    "土日": _WEEKEND,
+    "土日祝": _WEEKEND,
+    "土・日": _WEEKEND,
+    "土日祝日": _WEEKEND,
+    "毎日": [0, 1, 2, 3, 4, 5, 6],
+    "全日": [0, 1, 2, 3, 4, 5, 6],
+    "年中無休": [0, 1, 2, 3, 4, 5, 6],
+}
+
+# 時刻 1 つ分の書き方。全角は先に正規化してあるので ASCII だけを見る。
+#
+# ⚠️ **漢字表記（`9時30分`／`10時`）を受けるのは、実データにあったからである。**
+#    2026-09-06 の実測（[run 34044086520](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34044086520)）
+#    の `no_time_span` の抜粋 8 件のうち、営業時間が本当に書かれていた 1 件が
+#    「営業時間：9時30分～19時 毎週日曜定休」だった。コロン表記しか読めないので
+#    **時刻が 1 つも無いページ**として捨てていた。
+#
+# ⚠️ `時` の後ろの `間` を必ず除くこと。除かないと「待ち時間 1時間～2時間」を
+#    **01:00〜02:00 の営業時間**として読む。飲食店のページに «2.5時間飲み放題» の類は
+#    いくらでもあるので、ここは実害のある取りこぼしではなく実害のある誤読になる。
+_TIME_COLON = r"\d{1,2}:\d{2}"
+_TIME_KANJI = r"\d{1,2}\s*時(?!間)(?:\s*\d{1,2}\s*分)?"
+# ⚠️ **捕獲しない**。曜日つきの «場所探し»（`_DAY_SCOPED_TIMES_RE`）へも同じものを埋めるので、
+#    捕獲するとそちらの group 番号がずれる。時分の取り出しは `_time_to_hm` が担当する。
+_TIME = rf"(?:{_TIME_COLON}|{_TIME_KANJI})"
+
+# 開始と終了のあいだ。
+# ⚠️ 終了側の「翌」は **日をまたぐことの明示**である（「18:00～翌1:00」）。
+#    受けないと「翌」の付いた店をまるごと落とす。実測（run 34044086520）で
+#    `closed_days_unreadable` の抜粋に「営業時間 18:00～翌1:00 定休日 なし」があった。
+#    受けても曜日は増えない（開始 > 終了 なので crosses_midnight が立つだけ）。
+_SPAN_SEP = r"\s*[-~〜～]\s*(?:翌\s*)?"
+
+# 時刻の区間。`_parse_spans` はこの 2 つの捕獲（開始・終了のトークン）だけを見る
+_TIME_SPAN_RE = re.compile(rf"({_TIME}){_SPAN_SEP}({_TIME})")
+
+
+def _time_to_hm(token: str) -> tuple[int, int] | None:
+    """`_TIME` が拾ったトークンを (時, 分) にする。読めなければ None。
+
+    ⚠️ **`_TIME` が拾える形は、必ずここが読めること。** 片方だけ書き足すと
+       «拾ったのに読めない» 区間が黙って捨てられる。
+       `test_jp_site_opening_hours.py` の `TimeTokenFormsAgreeTest` が両者を突き合わせている。
+    """
+    m = re.fullmatch(r"(\d{1,2}):(\d{2})", token)
+    if m:
+        return int(m.group(1)), int(m.group(2))
+    m = re.fullmatch(r"(\d{1,2})\s*時(?:\s*(\d{1,2})\s*分)?", token)
+    if m:
+        # 「10時」は 10:00。分の記載が無いのは «0 分» であって «不明» ではない
+        return int(m.group(1)), int(m.group(2) or 0)
+    return None
+
+# 「第1・第3月曜」「第2週」など、週の序数が出たら **文章全体を諦める**
+_NTH_WEEK_RE = re.compile(r"第\s*\d\s*[,、・･]?\s*(?:第\s*\d\s*)*[週月火水木金土日]")
+
+# 曜日へ落とせない休業表記。出たら諦める
+_UNPARSEABLE_CLOSURE_RE = re.compile(r"不定休|臨時休業|要問合せ|要確認|応相談")
+
+# 午前/午後の自由記述。時刻の解釈が割れるので諦める
+_AMPM_RE = re.compile(r"午前|午後")
+
+# 「月曜-金曜 09:00-17:00」のように **曜日と時刻が並んでいる**箇所。
+#
+# ⚠️ **時刻の書き方をここへ書き写さないこと。** かつてここだけコロン表記のままだったため、
+#    `_TIME_SPAN_RE` に漢字表記や「翌」を足しても **曜日つきの記述では拾えない**状態が起きうる。
+#    そのとき「月曜 10時～17時」は曜日が読めない扱いになり、下の «毎日» のフォールバックへ
+#    落ちて **月曜だけの店を毎日開いていることにする**。3 値判定で害があるのは間違った
+#    open だけなので、この向きの取りこぼしがいちばん高くつく。同じ `_TIME` / `_SPAN_SEP` を埋める。
+_DAY_SCOPED_TIMES_RE = re.compile(
+    r"([月火水木金土日](?:曜日?)?(?:\s*[-~〜～・･,、]\s*[月火水木金土日](?:曜日?)?)*)"
+    r"\s*[:：]?\s*"
+    rf"((?:{_TIME}{_SPAN_SEP}{_TIME}[^月火水木金土日]*)+)"
+)
+
+# 「営業日 水曜日から土曜日」「営業曜日: 月・水・金」— **開いている曜日の宣言**。
+#
+# ⚠️ これは «休みの日» ではなく «開いている日» である。読めないまま «曜日の指定が無い» と
+#    見なすと、下の «毎日» のフォールバックへ落ちて **週 4 日の店を «毎日開いている» と言う**。
+#    3 値判定で害があるのは間違った open だけなので、これは最も避けたい向きの誤りである。
+#
+# 2026-09-06 の実測（[run 34044086520](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34044086520)）
+# の抜粋に実物があった:
+#     「住所 富山県氷見市鞍川62-5 営業日 水曜日から土曜日 営業時間：10時～17時」
+#
+# ⚠️ 「翌営業日」「営業日以降」のような **日数の数え方**は営業曜日の宣言ではない。
+#    除くために、直後に曜日が来るものだけを見る。
+_OPEN_DAYS_DECLARATION_RE = re.compile(r"営業(?:日|曜日)\s*[:：]?\s*(?=[月火水木金土日])")
+
+# 「定休日 …」「（木曜定休）」の休業日宣言を拾う
+_CLOSED_DECLARATION_RE = re.compile(r"(?:定休日|休業日|定休)")
+
+# 「年中無休」「無休」「定休日 なし」= **休みの曜日が 1 つも無い**という明示の宣言。
+#
+# ⚠️ これは «読めなかった» ではなく «読めて、答えが空» である。区別しないと、
+#    はっきり «無休» と書いてある店を丸ごと捨てる。2026-09-06 の実測
+#    （[run 34044086520](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34044086520)）で
+#    `closed_days_unreadable` に実際にこの形が入っていた:
+#      「営業時間 18:00～翌1:00 定休日 なし クレジットカード 利用可能」
+#
+# ⚠️ `不定休` を巻き込まないこと。«不定» は «無し» ではない（休みはあるが日が決まって
+#    いない）。営業時間だけ入れると、休みの日に «開いている» と言うことになる。
+#    `_UNPARSEABLE_CLOSURE_RE` が先に見て諦めるので、ここへは届かない。
+_NO_CLOSED_DAYS_RE = re.compile(r"年中無休|年内無休|無休|(?:定休日|休業日|定休)\s*[:：]?\s*(?:なし|無し|ナシ)")
+
+# 「曜日が書かれていない時刻」を «毎日» と読んでよいと判断するための手がかり。
+#
+# ⚠️ **ここがこのモジュールで唯一 «書かれていないことを補う» 場所である。**
+#    自由記述では、時刻の区間はページ中にいくらでも出てくる（セミナー告知、ラストオーダー、
+#    アクセスの電車時刻…）。曜日の手がかりが無いものを無条件に «毎日の営業時間» と読むと、
+#    **営業時間ではない数字で全曜日を埋める**（実測: 「新春セミナー 13:00-15:00」で 7 行できた）。
+#
+#    そこで «営業時間の話をしている» と読める語が本文にあるときだけ、この補完を許す。
+#    語が無ければ `None` を返す = unknown のまま残す（候補から消えないので害が無い）。
+_OPENING_CONTEXT_RE = re.compile(r"営業時間|営業日|開店|オープン|OPEN|Open|ランチ|ディナー")
+
+# 「この文章はそもそも日本語か」。**このモジュールの一番外側のブレーキ**である。
+#
+# ⚠️ 上の `_OPENING_CONTEXT_RE` に `OPEN` / `Open` が入っているせいで、
+#    **英語・韓国語のページが «営業時間の話をしている» と判定されていた**。
+#    このモジュールの休業日の判定（`定休日` / `不定休`）は日本語しか読まないので、
+#    いったん非日本語のページが通ると **止める仕組みが 1 つも無い**。実測:
+#      `OPEN 11:00-14:00 Closed on Mondays` → 月曜を含む 7 行（ページには休みと書いてある）
+#      `영업시간 OPEN 09:00-22:00`          → 7 行
+#
+#    そこで、時刻を読み始める前に «日本語が 1 つも無い文章» を落とす。
+#    判定は 2 本立てにする。仮名だけだと `営業時間 11:00-14:00 定休日 月曜` のような
+#    **仮名を 1 文字も含まない日本語ページ**を取りこぼすため、このパーサ自身が
+#    手がかりにしている日本語の語も日本語の証拠として数える。
+#    （中国語の «营业时间 / 營業時間» は字が違うので当たらない）
+#
+# ⚠️ 広げすぎても狭すぎても壊れる。**狭いと日本語ページを落として «構造化できた件数» を
+#    過小に報告し、広いと非日本語ページを読んで嘘の行を作る**。実際に
+#    `[月火水木金土日]曜` だけにしたら `月・水・金 18:00-23:00`（仮名も «曜» も無い
+#    正当な日本語）を落とした。曜日を **日本語の区切りで並べた形**も証拠に数える。
+_JAPANESE_KANA_RE = re.compile(r"[ぁ-んァ-ヴー]")
+_JAPANESE_HOURS_VOCAB_RE = re.compile(
+    r"営業時間|営業日|定休|休業|開店|閉店"
+    r"|[月火水木金土日]曜"
+    r"|[月火水木金土日]\s*[・･]\s*[月火水木金土日]"
+    r"|[月火水木金土日]\s*[-~〜～]\s*[月火水木金土日]"
+)
+
+
+def is_japanese_text(text: str) -> bool:
+    """日本語専用の処理に流してよい文章か。**日本語が 1 つも無ければ False**。
+
+    ⚠️ 判定を «外から与えられた国コード» でやらないこと。dev には `country_code = 'JP'` の
+    まま韓国にある店の行がある（#1666 の dry-run で座標まで確認。原因は
+    `3_4_build_restaurant_catalog.py` が矩形で国を決めていること）。仮にそれを直しても、
+    **日本にある韓国料理店の韓国語サイト**や **日本の店の英語サイト**は残る。
+    国は «どこにあるか» であって «何語で書いてあるか» ではない。判断の材料は文章だけにする。
+    """
+    return bool(_JAPANESE_KANA_RE.search(text) or _JAPANESE_HOURS_VOCAB_RE.search(text))
+
+
+def _normalize(text: str) -> str:
+    """全角を半角へ寄せ、空白を 1 種類に潰す。
+
+    ⚠️ `NFKC` は «１１：３０» を «11:30» にしてくれるが、**〜（U+301C）と～（U+FF5E）は
+       別物として残る**ものがあるので、区切り記号は正規表現側で両方受ける。
+    """
+    normalized = unicodedata.normalize("NFKC", text)
+    # 全角スペース・改行・タブをすべて半角スペース 1 個へ
+    return re.sub(r"\s+", " ", normalized.replace("　", " ")).strip()
+
+
+def _expand_day_tokens(token: str) -> list[int] | None:
+    """「月曜-金曜」「月・水・金」「土」→ dow のリスト。読めなければ None。"""
+    # 範囲: 月曜-金曜 / 月〜金
+    range_match = re.fullmatch(r"([月火水木金土日])(?:曜日?)?\s*[-~〜～]\s*([月火水木金土日])(?:曜日?)?", token)
+    if range_match:
+        start, end = range_match.group(1), range_match.group(2)
+        i, j = _ORDER.index(start), _ORDER.index(end)
+        span = _ORDER[i : j + 1] if i <= j else _ORDER[i:] + _ORDER[: j + 1]
+        return [_KANJI_TO_DOW[d] for d in span]
+
+    # 列挙: 月・水・金 / 月,水,金 / 月曜、火曜
+    parts = re.split(r"[・･,、]", token)
+    dows: list[int] = []
+    for part in parts:
+        m = re.fullmatch(r"\s*([月火水木金土日])(?:曜日?)?\s*", part)
+        if not m:
+            return None
+        dows.append(_KANJI_TO_DOW[m.group(1)])
+    return dows or None
+
+
+def _parse_closed_days(text: str) -> list[int] | None:
+    """定休日の宣言から «閉まっている曜日» を返す。宣言が無ければ空リスト。
+
+    ⚠️ **読めない定休表記があれば None を返す**（呼び出し側は文章全体を諦める）。
+       時間だけ入れて定休日を落とすと、休みの日に開いていることになる。
+    """
+    if not _CLOSED_DECLARATION_RE.search(text):
+        return []
+
+    # 「年中無休」「定休日 なし」= 休みの曜日は無い。**読めなかったのではない。**
+    if _NO_CLOSED_DAYS_RE.search(text):
+        return []
+
+    closed: list[int] = []
+    found_any = False
+
+    # 「（木曜定休）」「木曜定休」の形（曜日が先）
+    for m in re.finditer(r"([月火水木金土日](?:曜日?)?(?:\s*[・･,、]\s*[月火水木金土日](?:曜日?)?)*)\s*定休", text):
+        dows = _expand_day_tokens(m.group(1))
+        if dows is None:
+            return None
+        closed.extend(dows)
+        found_any = True
+
+    # 「定休日 月曜、火曜」の形（曜日が後）
+    for m in re.finditer(r"(?:定休日|休業日)\s*[:：]?\s*(?:毎週\s*)?([月火水木金土日](?:曜日?)?(?:\s*[・･,、]\s*[月火水木金土日](?:曜日?)?)*)", text):
+        dows = _expand_day_tokens(m.group(1))
+        if dows is None:
+            return None
+        closed.extend(dows)
+        found_any = True
+
+    if not found_any:
+        # 「定休日」と書いてあるのに曜日が読めなかった = 諦める
+        return None
+    return sorted(set(closed))
+
+
+def _rows_for(dows: list[int], spans: list[tuple[str, str, bool, int]]) -> list[OpeningHourRow]:
+    """曜日 × 区間で行を作る。
+
+    ⚠️ `day_offset` は «開始が翌日へずれる» 区間のためにある（`26:00-28:00` など）。
+    「月 26:00-28:00」は日本語の慣習で **火 02:00-04:00** を指すので、曜日をずらす。
+    ずらさないと «月の 02:00 に開いている» という別の店の営業時間になる。
+    """
+    return [
+        OpeningHourRow(day_of_week=(dow + off) % 7, opens_at=o, closes_at=c, crosses_midnight=x)
+        for dow in sorted(set(dows))
+        for (o, c, x, off) in spans
+    ]
+
+
+_DAY_MINUTES = 24 * 60
+
+
+def _span_or_none(
+    opens_min: int, closes_min: int, crosses: bool, day_offset: int
+) -> tuple[str, str, bool, int] | None:
+    """出口の検査。**DB へ入らない値をここで捨てる。**
+
+    ⚠️ **これが無かったせいで、取り込みが 2 回止まった。**
+
+    | いつ | 出てしまった値 | 何が起きたか |
+    | --- | --- | --- |
+    | run 34004377387 | `opens_at='26:00'` | `DatetimeFieldOverflow` で 3 時間 41 分ぶんが停止 |
+    | run 34014768463 | `closes_at='-9:00'` | `InvalidDatetimeFormat` で 1 時間 57 分ぶんが停止 |
+
+    どちらも «パーサの分岐の間違い» だが、**止まった理由は «間違った値がそのまま
+    INSERT されたこと»** である。分岐は今後も間違えうるので、値の側で塞ぐ。
+
+    検査するのは 3 つ。
+
+    1. 時刻が PostgreSQL の `TIME` に入るか（00:00〜23:59）。
+       ⚠️ これは CHECK 制約ではなく **列の型の定義域**なので migration には書いていない
+    2. 曜日のずれが 0 か 1 か（`(dow + offset) % 7` に渡す値）
+    3. `crosses_midnight = (closes_at <= opens_at)` — DB の CHECK と同じ規則
+
+    1 つでも外れたら `None` を返して **その区間を捨てる**。営業時間が 1 つ減るだけで、
+    3 値判定では `unknown`（＝ 今までどおり候補に残る）に戻る。**取り込み全体を
+    止めるより害が小さい。**
+    """
+    if not (0 <= opens_min < _DAY_MINUTES and 0 <= closes_min < _DAY_MINUTES):
+        return None
+    if day_offset not in (0, 1):
+        return None
+    opens = f"{opens_min // 60:02d}:{opens_min % 60:02d}"
+    closes = f"{closes_min // 60:02d}:{closes_min % 60:02d}"
+    if crosses != (closes <= opens):
+        return None
+    return (opens, closes, crosses, day_offset)
+
+
+def _parse_spans(segment: str) -> list[tuple[str, str, bool, int]]:
+    """区間をすべて拾う。`26:00` のような 24 時超え表記は翌日へ折り返す。
+
+    返すのは `(opens, closes, crosses_midnight, day_offset)`。
+
+    ⚠️ **開始側の折り返しを忘れていて本番が落ちた**（run 34004377387、3,000 件の
+    取り込みが 2,000 件目付近で停止）。
+
+        psycopg2.errors.DatetimeFieldOverflow: date/time field value out of range: "26:00"
+
+    PostgreSQL の `TIME` は 00:00:00〜24:00:00 しか受け付けない。終了側（`ch`）だけ
+    折り返していて、開始側（`oh`）を素通ししていたため `26:00` がそのまま INSERT され、
+    **そこまでの取り込みごと落ちた**。
+
+    ⚠️ 折り返すときは **曜日もずらす**。「月 26:00-28:00」は火 02:00-04:00 を指すので、
+    曜日を据え置くと «月の未明に開いている» という別の営業時間になる。
+
+    ⚠️ **同じ形で 3 回落とした**（#1895 は開始側の折り返し漏れ、run 34014768463 は
+    引き算で負の時刻）。原因は毎回ちがう分岐だが、**欠陥は 1 つ**である。
+
+        時分を «その場の引き算» で組み立てて、出した値が DB へ入るかを誰も見ていなかった。
+
+    そこで書き方を 2 つ変えた。
+
+    1. **分に直してから計算する。** 時と分を別々に引き算すると、繰り下がりのたびに
+       新しい分岐が要り、その 1 つを忘れると負の時刻が出る
+    2. **出口で必ず検査する**（`_span_or_none`）。通らないものは «推測しない» 側へ倒して捨てる。
+       ここを通らない値は DB へ行かないので、次に別の分岐を間違えても取り込みは止まらない
+    """
+    spans: list[tuple[str, str, bool, int]] = []
+    for m in _TIME_SPAN_RE.finditer(segment):
+        opens = _time_to_hm(m.group(1))
+        closes = _time_to_hm(m.group(2))
+        if opens is None or closes is None:
+            continue
+        (oh, om), (ch, cm) = opens, closes
+        if oh > 47 or ch > 47 or om > 59 or cm > 59:
+            continue
+
+        # ⚠️ 「26:00-15:00」のように **開始が翌日なのに終了がそれより前**の表記は、
+        #    どう読んでも時間が巻き戻る。読み方を決められないので捨てる
+        #    （`osm_opening_hours` と同じ «分からないものは推測しない»）。
+        #    run 34014768463 はここを引き算で押し通して closes_at='-9:00' を作った。
+        if oh >= 24 and (ch, cm) <= (oh, om):
+            continue
+
+        opens_min = oh * 60 + om
+        closes_min = ch * 60 + cm
+        if closes_min <= opens_min:
+            # 18:00-02:00 / 11:00-11:00（24 時間営業）。終了は翌日側にある
+            closes_min += _DAY_MINUTES
+
+        # 区間まるごとが翌日にあるぶんだけ曜日をずらす（26:00-28:00 = 翌 02:00-04:00）
+        day_offset, opens_min = divmod(opens_min, _DAY_MINUTES)
+        closes_min -= day_offset * _DAY_MINUTES
+
+        crosses = closes_min >= _DAY_MINUTES
+        if crosses:
+            closes_min -= _DAY_MINUTES
+
+        span = _span_or_none(opens_min, closes_min, crosses, day_offset)
+        if span is not None:
+            spans.append(span)
+    return spans
+
+
+# 諦めた理由の名前。**数え上げてどこを直すか決めるためにある。**
+#
+# ⚠️ 2026-09-06 のクロール（3,000 件）で `mentions_hours_unparsed` が **717 件（23.9%）**
+#    あり、parsed の 12% に対していちばん大きい伸びしろだった。ところが «諦めた» としか
+#    分からないので、5 つある諦め条件のどれが効いているのか誰にも言えなかった。
+#    「たぶん第 2 水曜だろう」で直さないために、理由を名前で返す。
+GIVE_UP_REASONS = (
+    "empty",  # 文章が無い
+    "not_japanese",  # 日本語ページではない
+    "nth_week",  # 「第 2・第 4 水曜」。曜日へ落とせない
+    "unparseable_closure",  # 「不定休」「要問合せ」など
+    "ampm",  # 「午前 11 時」。時刻の解釈が割れる
+    "closed_days_unreadable",  # 「定休日」と書いてあるのに曜日が読めない
+    "no_opening_context",  # 曜日も区分も無く、営業時間の話だとも読めない
+    "no_time_span",  # 時刻の区間が 1 つも拾えない
+    "open_days_unreadable",  # 「営業日 水曜日から土曜日」— 開いている曜日が書いてあるのに読めない
+    "all_days_closed",  # 定休日で 7 曜日すべて落ちた
+)
+
+
+def parse_jp_site_opening_hours(text: str | None) -> list[OpeningHourRow] | None:
+    """日本語の自由記述から営業時間の行を作る。扱えない文章は `None`。"""
+    rows, _reason = parse_jp_site_opening_hours_with_reason(text)
+    return rows
+
+
+def parse_jp_site_opening_hours_with_reason(
+    text: str | None,
+) -> tuple[list[OpeningHourRow] | None, str | None]:
+    """`parse_jp_site_opening_hours` に «諦めた理由» を足して返す。
+
+    戻り値は `(行, 理由)`。読めたときは `(行, None)`、諦めたときは `(None, 理由)` で、
+    理由は `GIVE_UP_REASONS` のいずれか。
+
+    ⚠️ **判定は 1 つも変えないこと。** ここが «読める / 読めない» の境界を動かすと、
+       理由を数えるために命中率が変わってしまい、何を測ったのか分からなくなる。
+    """
+    if not text:
+        return None, "empty"
+
+    normalized = _normalize(text)
+    # 日本語専用パーサなので、日本語でない文章は読まずに諦める（上の注記）
+    if not is_japanese_text(normalized):
+        return None, "not_japanese"
+
+    # ── 諦める条件を先に見る（部分的に読めても入れない） ──────────────
+    if _NTH_WEEK_RE.search(normalized):
+        return None, "nth_week"
+    if _UNPARSEABLE_CLOSURE_RE.search(normalized):
+        return None, "unparseable_closure"
+    if _AMPM_RE.search(normalized):
+        return None, "ampm"
+
+    closed_days = _parse_closed_days(normalized)
+    if closed_days is None:
+        return None, "closed_days_unreadable"
+
+    # ── 区分ごとに «その区分の文» を切り出して時刻を拾う ───────────────
+    # 例: "平日 11:00-14:30 ディナー 17:00-21:30 土日祝 11:00-14:30"
+    group_names = sorted(_GROUP_TO_DOWS, key=len, reverse=True)
+    group_re = re.compile("(" + "|".join(re.escape(g) for g in group_names) + ")")
+
+    rows: list[OpeningHourRow] = []
+    pieces = group_re.split(normalized)
+
+    if len(pieces) > 1:
+        # pieces = [先頭, 区分1, 本文1, 区分2, 本文2, ...]
+        for i in range(1, len(pieces), 2):
+            group, body = pieces[i], pieces[i + 1] if i + 1 < len(pieces) else ""
+            spans = _parse_spans(body)
+            if spans:
+                rows.extend(_rows_for(_GROUP_TO_DOWS[group], spans))
+    if not rows:
+        # 区分が無い / 区分の後に時刻が無い → 「曜日の明示」→「曜日なし = 毎日」の順で見る
+        day_rows: list[OpeningHourRow] = []
+        for m in _DAY_SCOPED_TIMES_RE.finditer(normalized):
+            if "定休" in m.group(0):
+                continue
+            dows = _expand_day_tokens(m.group(1))
+            spans = _parse_spans(m.group(2))
+            if dows and spans:
+                day_rows.extend(_rows_for(dows, spans))
+        if day_rows:
+            rows = day_rows
+        else:
+            # ⚠️ **«毎日» と見なす前に、開いている曜日の宣言が無いことを確かめる。**
+            #    「営業日 水曜日から土曜日」を読み落としたまま毎日にすると、
+            #    週 4 日の店を «毎日開いている» と言うことになる。読めないなら諦める。
+            if _OPEN_DAYS_DECLARATION_RE.search(normalized):
+                return None, "open_days_unreadable"
+
+            # 曜日も区分も無い形。**営業時間の話だと読める語が無ければ諦める**（上の注記）
+            if not _OPENING_CONTEXT_RE.search(normalized):
+                return None, "no_opening_context"
+            spans = _parse_spans(normalized)
+            if not spans:
+                return None, "no_time_span"
+            rows = _rows_for([0, 1, 2, 3, 4, 5, 6], spans)
+
+    # ── 定休日を落とす ────────────────────────────────────────────
+    rows = [r for r in rows if r.day_of_week not in closed_days]
+    if not rows:
+        return None, "all_days_closed"
+
+    # 同じ (曜日, 開始, 終了) が重複しうるので畳む
+    seen: set[tuple[int, str, str, bool]] = set()
+    unique: list[OpeningHourRow] = []
+    for r in sorted(rows):
+        key = (r.day_of_week, r.opens_at, r.closes_at, r.crosses_midnight)
+        if key not in seen:
+            seen.add(key)
+            unique.append(r)
+    return unique, None

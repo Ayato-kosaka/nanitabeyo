@@ -204,11 +204,34 @@ describe('#1629 半径で restaurants を引く箇所は «行数が半径に依
 });
 
 describe('#1629 計測スクリプトが読む SQL は repository が組み立てたものと同一である', () => {
+  /*
+    #1834 【設計】**LIMIT は literal なので «limit ごとに別のプラン» である。
+    だから「どの limit を測るか」も写経ではなく、ここで列挙して固定する。**
+
+    ここには長らく limit 20（クライアントの既定）しか無かった。ところが
+    `QueryRestaurantsDto.limit` は **@Max(100)** で、公開 API はそのまま 100 を受ける。
+    実際に本番で既定順 + limit 100 が **26.7 秒**かかっており（#1834）、
+    その組み合わせはラチェットの外側だったので誰も気づけなかった。
+
+    ⚠️ **「クライアントが今そう呼んでいないから」を理由に外さないこと。**
+       ここが守るのは «API が受け付ける最悪の形» であって «今の呼ばれ方» ではない。
+       limit の上限を変えたら、この列挙も一緒に変える。
+  */
   it.each([
     ['search_nearby_restaurants.default', {} as SearchDto],
     [
+      // 公開 API が受け付ける上限。既定順はここが最も重い
+      'search_nearby_restaurants.default_limit100',
+      { limit: 100 } as SearchDto,
+    ],
+    [
       'search_nearby_restaurants.distance',
       { orderByDistance: true } as SearchDto,
+    ],
+    [
+      // SNS 取り込み（dish-media-imports）が内部から呼ぶ形
+      'search_nearby_restaurants.distance_limit100',
+      { orderByDistance: true, limit: 100 } as SearchDto,
     ],
     ['search_nearby_restaurants.byname', { q: 'ZQNAME' } as SearchDto],
   ])('%s', async (name, dto) => {

@@ -61,11 +61,13 @@ import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
 import { useLogger } from "@/hooks/useLogger";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
-import { Image } from "expo-image";
-import { getCacheKeyForImage } from "@/lib/image";
+import { RestaurantAvatar } from "@/components/RestaurantAvatar";
+import { RestaurantOpeningHours } from "@/features/restaurant/components/RestaurantOpeningHours";
+import type { GetRestaurantOpeningHoursResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { useMapsEmbedModal } from "@/features/maps/hooks/useMapsEmbedModal";
 import { RestaurantEntry } from "@/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { useRouter } from "expo-router";
@@ -109,9 +111,16 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 type SelectedRestaurantDetailsProps = {
 	// #644 【設計】レストランエントリ（restaurant + meta 情報）
 	restaurantEntry: RestaurantEntry;
+	/*
+	#1666 営業時間。**画面（ルート）が取ってきて渡す。** ここで取りに行かないのは、
+	`useAPICall` を import すると `lib/supabase` まで芋づるで入り、この画面を描く
+	既存テストが `supabaseUrl is required.` で suite ごと落ちるため
+	（`features/restaurant/hooks/useRestaurantOpeningHours.ts` の冒頭に経緯）。
+	*/
+	openingHours?: GetRestaurantOpeningHoursResponse | null;
 };
 
-export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestaurantDetailsProps) {
+export function SelectedRestaurantDetails({ restaurantEntry, openingHours }: SelectedRestaurantDetailsProps) {
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
@@ -120,6 +129,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 	const { locale } = useLocale();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { showSnackbar } = useSnackbar();
+	const { showMapsEmbedModal } = useMapsEmbedModal();
 	const { restaurant, meta } = restaurantEntry;
 
 	/*
@@ -133,6 +143,13 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 	代わりに «Google マップで開く» を戻す。#1411 が入札の撤去と一緒に消したが、
 	これは店の情報（場所・営業時間・電話）へ辿り着く導線であって入札とは無関係で、
 	撤去する理由が申し送りに書かれていなかった。
+
+	#843【設計】**写真が取れない店（Google Places の呼び出し上限に当たった帰結）ほど、
+	この店の情報が欲しい。** 押した先を外部ブラウザへ直行させず、まずアプリ内地図
+	（mode=place, q=place_id:<google_place_id>）を出す。埋め込みが使えない/失敗したときの
+	退避として、従来の外部ブラウザ導線は `MapsEmbedModal` の中に残る（外へは出さない）。
+	`google_place_id` が無い店（理論上は無いはずだが型は optional）だけは、
+	従来どおり直接外部へ出す。
 	*/
 	const handleOpenGoogleMaps = useCallback(async () => {
 		lightImpact();
@@ -150,7 +167,18 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 				return;
 			}
-			await openExternalUrl(mapUrl);
+			if (!restaurant.google_place_id) {
+				await openExternalUrl(mapUrl);
+				return;
+			}
+			showMapsEmbedModal({
+				mode: "place",
+				q: `place_id:${restaurant.google_place_id}`,
+				hl: locale.split("-")[0],
+				title: restaurant.name,
+				externalUrl: mapUrl,
+				source: "restaurant_detail",
+			});
 		} catch (error) {
 			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 			logFrontendEvent({
@@ -163,7 +191,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				},
 			});
 		}
-	}, [lightImpact, logFrontendEvent, restaurant, showSnackbar]);
+	}, [lightImpact, locale, logFrontendEvent, restaurant, showMapsEmbedModal, showSnackbar]);
 
 	/*
 	#1629【オーナー確定】**一覧を押したら «その投稿を見る»（フィード）へ行く。**
@@ -213,20 +241,32 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
-						<Image
-							source={{
-								uri: restaurant.imageUrls?.md,
-								cacheKey: getCacheKeyForImage(restaurant.imageUrls?.md),
-							}}
+						{/* #1780 画像を持たない店（= これ以降に作られる店の全部）でも空の枠にしない */}
+						<RestaurantAvatar
+							testID="restaurant-detail-avatar"
+							uri={restaurant.imageUrls?.md}
 							style={styles.restaurantAvatar}
+							iconSize={26}
+							accessibilityLabel={restaurant.name}
 						/>
 						<View style={styles.restaurantDetails}>
 							<Text style={styles.restaurantName}>{restaurant.name}</Text>
-							<View style={styles.ratingContainer}>
-								<Stars rating={meta.averageRating} />
-								<Text style={styles.ratingText}>{meta.averageRating}</Text>
-								<Text style={styles.reviewCount}>({meta.reviewCount})</Text>
-							</View>
+							{/* #1667 【バグ】レビュー 0 件を rating=0（★ 空 5 つ）で描くと «最低評価» と
+							    見分けが付かない。
+							    【オーナー確定 2026-09-03】0 件のときは **何も出さない**。
+							    「未評価」というラベルも出さない（無いものを言葉で埋めない）。
+							    1 件以上のときの見た目は変えない（API の averageRating/reviewCount は non-null のまま） */}
+							{meta.reviewCount > 0 && (
+								<View style={styles.ratingContainer}>
+									<Stars rating={meta.averageRating} />
+									<Text testID="restaurant-detail-rating-value" style={styles.ratingText}>
+										{meta.averageRating}
+									</Text>
+									<Text testID="restaurant-detail-review-count" style={styles.reviewCount}>
+										({meta.reviewCount})
+									</Text>
+								</View>
+							)}
 							{/* #1629【オーナー確定】「写真・動画を投稿」を外し、«Google マップで開く» を戻した。
 							    投稿は «食べたを記録» のフローに 1 本化されている（上の設計コメント）。
 							    ⚠️ testID は e2e（restaurantDetailRoutes / RestaurantDetailPage 等）が見ている */}
@@ -242,10 +282,13 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 							/>
 						</View>
 					</View>
+					{/* #1666 営業時間。**データを持たない店では何も描かない**（コンポーネント側で null を返す）。
+					    «営業中» のバッジは出さない（判定が JST 固定で、海外の店では嘘になる） */}
+					<RestaurantOpeningHours hours={openingHours ?? null} />
 				</Card>
 			</View>
 		),
-		[handleHeaderLayout, restaurant, meta, handleOpenGoogleMaps, colors, styles],
+		[handleHeaderLayout, restaurant, meta, openingHours, handleOpenGoogleMaps, colors, styles],
 	);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
@@ -271,62 +314,62 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 
 const createStyles = (c: Palette) =>
 	StyleSheet.create({
-	restaurantInfo: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginVertical: 4,
-	},
-	restaurantAvatar: {
-		width: 60,
-		height: 60,
-		borderRadius: 20,
-	},
-	restaurantDetails: {
-		flex: 1,
-		marginLeft: 12,
-	},
-	restaurantName: {
-		fontSize: 18,
-		fontWeight: "bold",
-		color: c.textStrong,
-		marginBottom: 4,
-	},
-	ratingContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 4,
-	},
-	ratingText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: c.textStrong,
-		marginRight: 4,
-	},
-	reviewCount: {
-		fontSize: 12,
-		color: c.textMuted,
-	},
-	tabContainer: {
-		flexDirection: "row",
-		marginHorizontal: 16,
-		marginBottom: 16,
-	},
-	tab: {
-		flex: 1,
-		paddingVertical: 12,
-		alignItems: "center",
-	},
-	activeTab: {
-		borderBottomWidth: 2,
-		borderBottomColor: c.brand,
-	},
-	tabText: {
-		fontSize: 16,
-		color: c.textMuted,
-		fontWeight: "500",
-	},
-	activeTabText: {
-		color: c.brand,
-		fontWeight: "600",
-	},
-});
+		restaurantInfo: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginVertical: 4,
+		},
+		restaurantAvatar: {
+			width: 60,
+			height: 60,
+			borderRadius: 20,
+		},
+		restaurantDetails: {
+			flex: 1,
+			marginLeft: 12,
+		},
+		restaurantName: {
+			fontSize: 18,
+			fontWeight: "bold",
+			color: c.textStrong,
+			marginBottom: 4,
+		},
+		ratingContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: 4,
+		},
+		ratingText: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textStrong,
+			marginRight: 4,
+		},
+		reviewCount: {
+			fontSize: 12,
+			color: c.textMuted,
+		},
+		tabContainer: {
+			flexDirection: "row",
+			marginHorizontal: 16,
+			marginBottom: 16,
+		},
+		tab: {
+			flex: 1,
+			paddingVertical: 12,
+			alignItems: "center",
+		},
+		activeTab: {
+			borderBottomWidth: 2,
+			borderBottomColor: c.brand,
+		},
+		tabText: {
+			fontSize: 16,
+			color: c.textMuted,
+			fontWeight: "500",
+		},
+		activeTabText: {
+			color: c.brand,
+			fontWeight: "600",
+		},
+	});

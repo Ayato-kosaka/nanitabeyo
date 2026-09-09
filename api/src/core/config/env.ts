@@ -132,6 +132,18 @@ const envSchema = z.object({
    */
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  /**
+   * #843 Google Maps Embed API 用のキー（`GOOGLE_PLACE_API_KEY` とは別物）。
+   *
+   * Maps Embed API は無料・呼び出し上限なしの SKU で、`GET /v1/maps/embed` が
+   * 返す HTML の iframe src にだけ使う（レスポンス JSON やログには絶対に載せない）。
+   *
+   * ⚠️ **optional にしてある。** オーナーが GCP 側で Maps Embed API を有効化し、
+   * このキーを発行・設定するまでは値が無い。未設定でも API 全体は起動でき、
+   * `/v1/maps/embed` だけが 503 を返す（クライアントは既存の「Google マップで開く」
+   * 外部遷移へ縮退する）。
+   */
+  GOOGLE_MAPS_EMBED_API_KEY: z.string().optional(),
 });
 
 /**

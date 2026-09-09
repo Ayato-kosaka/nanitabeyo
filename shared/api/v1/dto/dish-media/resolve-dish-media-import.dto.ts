@@ -66,4 +66,27 @@ export class ResolveDishMediaImportDto {
 	@Min(1)
 	@Max(20)
 	limit?: number;
+
+	/**
+	 * 収集時に得ているキャプション本文（#1273 大量並列 resolve）。
+	 *
+	 * **渡された場合、サーバは Instagram を取りに行かない**。投稿ごとの IG 取得
+	 * （`/embed/captioned/`）がレート制限の元凶で、並列も長時間連続も頭打ちにしていた。
+	 * business_discovery のキャプションや、CC / 検索で拾った記事本文をここへ渡せば、
+	 * 店照合・カテゴリ判定は純粋なテキスト処理になり、IG を一切叩かず並列できる。
+	 * 空文字・未指定なら従来どおりサーバが provider の公式経路で取得する。
+	 */
+	@IsOptional()
+	@IsString()
+	@MaxLength(8192)
+	caption?: string;
+
+	/**
+	 * 収集時に判明している投稿者名（`caption` と併せて渡す）。店舗照合の author-name 用。
+	 * IG を叩かない経路では oEmbed の author_name が無いので、既知ならここで補う。
+	 */
+	@IsOptional()
+	@IsString()
+	@MaxLength(256)
+	authorName?: string;
 }

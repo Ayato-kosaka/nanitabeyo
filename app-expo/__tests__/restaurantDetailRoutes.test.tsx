@@ -126,6 +126,11 @@ jest.mock("@/lib/googlePlaces", () => ({
 	getGoogleMapsLink: jest.fn(async () => ({ mapUrl: "https://maps.google.com/?q=test", canOpen: true })),
 }));
 jest.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: jest.fn(async () => {}) }));
+// #843 «Google マップで開く» はアプリ内地図モーダルを開くようになった。Provider 抜きで
+// SelectedRestaurantDetails を描くため、フックだけ差し替える
+jest.mock("@/features/maps/hooks/useMapsEmbedModal", () => ({
+	useMapsEmbedModal: () => ({ showMapsEmbedModal: jest.fn() }),
+}));
 
 import RestaurantDetailScreen from "../app/[locale]/restaurant/[restaurantId]";
 import { useRestaurantStore } from "@/stores/useRestaurantStore";

@@ -53,6 +53,7 @@ import {
 import { protos } from '@googlemaps/places';
 import { selectGooglePlaceReviews } from './select-google-place-reviews';
 import { normalizeLanguageCode } from '../../../../shared/utils/languageCode';
+import { computePriceBand } from '../../../../shared/utils/priceBand';
 
 @Injectable()
 export class DishesService {
@@ -113,21 +114,36 @@ export class DishesService {
       throw new Error('Restaurant not found');
     }
 
-    // レストランの住所情報からローカル言語コードを推測
+    // レストランの住所情報からローカル言語コードを推測。
+    // #1671 ⚠️ **列も渡すこと。** パイプライン製の行は address_components が '[]' で
+    // （dev の 99.60% がそう）、渡さないと 'en' へ落ちて日本の店に英語の料理名が付く。
+    // 実測で全料理の 92.44%（36,051 件）がこれで英語名になっていた。
     const languageCode = this.locationsService.resolveLocalLanguageCode(
       restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[],
+      {
+        countryCode: restaurant.country_code,
+        subterritoryCode: restaurant.subterritory_code,
+      },
     );
 
-    const dishNameFromLabels: string =
-      (dishCategory.labels && dishCategory.labels[languageCode]) ||
-      dishCategory.label_en;
+    /*
+      #1779 【削除】`dishes.name` へ «推測名» を入れるのをやめた。
 
-    // 新規作成（推測名を注入。なければフォールバック）
+      この列は «その店でのその料理の呼び名» だが、**読み手が 1 つも無い**。
+      表示はすべて `dish_categories`（`labels` / `topic_title`）から引いている
+      （#1375 でアプリ内、#1851 で共有カードが移行済み）。
+
+      オーナー確定（#1629）:
+      > dishes.name を使うのではなく、dish_categories から locale で引いて欲しい。
+      > dishes.name は廃止にしても良いカラムだと思っています。
+
+      ⚠️ ここで `languageCode` を使っていた «唯一の理由» がこの推測名だったが、
+      `languageCode` は下の `resolveLocalLanguageCode` の結果として他でも使う。
+    */
     const newDish = await this.prisma.prisma.$transaction(async (tx) => {
       return this.repo.createOrGetDishForCategory(tx, {
         restaurant_id: dto.restaurantId,
         category_id: dto.dishCategoryId,
-        name: dishNameFromLabels,
       });
     });
 
@@ -488,20 +504,16 @@ export class DishesService {
             existingGoogleImportEntry?.restaurant.longitude ??
             place.location!.longitude!,
           location: existingGoogleImportEntry?.restaurant.location ?? null,
-          // #1053 Photo Media を skip したときは新しい photoUri が無いので既存値を維持する。
-          image_url:
-            photoMedia?.photoUri ??
-            existingGoogleImportEntry?.restaurant.image_url ??
-            '',
+          // #1779 `image_url` は削除予定の列（Google の写真 URI をそのまま持つため
+          // Places ToS 3.2.3 に反する）。**新しく値を作らない。**
+          // 表示は `image_path` 由来の `imageUrls` から組み立てる（#1680 / #1902）。
+          image_url: '',
           image_path: mediaPath,
           address_components:
             existingGoogleImportEntry?.restaurant.address_components ??
             JSON.parse(JSON.stringify(place.addressComponents)),
-          plus_code:
-            existingGoogleImportEntry?.restaurant.plus_code ??
-            (place.plusCode
-              ? JSON.parse(JSON.stringify(place.plusCode))
-              : null),
+          // #1779 `plus_code` も削除予定の列で、読み手が 1 つも無い。値を作らない。
+          plus_code: null,
           created_at:
             existingGoogleImportEntry?.restaurant.created_at ??
             new Date().toISOString(),
@@ -518,14 +530,19 @@ export class DishesService {
           // #1681 住所と国コードはオープンデータ由来で埋める列なので、この経路では
           // 作らない（Google の住所は ToS 3.2.3 で保持できない）。既存値は保つ。
           address: existingGoogleImportEntry?.restaurant.address ?? null,
-          country_code: existingGoogleImportEntry?.restaurant.country_code ?? null,
+          country_code:
+            existingGoogleImportEntry?.restaurant.country_code ?? null,
+          // #1671 同上。確認ページ経由でしか埋めない列なので、この経路では作らない
+          subterritory_code:
+            existingGoogleImportEntry?.restaurant.subterritory_code ?? null,
         };
 
         const dish: SupabaseDishes = {
           id: existingGoogleImportEntry?.dish.id ?? 'unknown',
           restaurant_id: restaurant.id,
           category_id: dto.categoryId,
-          name: existingGoogleImportEntry?.dish.name ?? dto.categoryName,
+          // #1779 `dishes.name` は廃止する列なので値を作らない（読み手ゼロ）
+          name: null,
           created_at:
             existingGoogleImportEntry?.dish.created_at ??
             new Date().toISOString(),
@@ -758,6 +775,15 @@ export class DishesService {
             categoryLabels: dto.categoryName
               ? { [dto.languageCode ?? 'ja']: dto.categoryName }
               : null,
+            // #1774 Google import 由来のレビューは価格を持たないため、実質常に null
+            // （cold-start の価格取得経路は #1774 の別スコープ）。ロジックは共通の
+            // computePriceBand を使い、repository 側と実装を二重管理しない。
+            priceBand: computePriceBand(
+              dishReviews.map((r) => ({
+                priceCents: r.price_cents,
+                currencyCode: r.currency_code,
+              })),
+            ),
           },
           dish_media: {
             ...dishMedia,
@@ -918,7 +944,7 @@ export class DishesService {
       ...entry,
       restaurant: {
         ...entry.restaurant,
-        image_url: photoUri,
+        // #1779 `image_url` はレスポンス契約から外した。表示用 URL は imageUrls で返す
         imageUrls: {
           sm: photoUri,
           md: photoUri,

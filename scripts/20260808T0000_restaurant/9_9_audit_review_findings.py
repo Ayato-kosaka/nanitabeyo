@@ -11,6 +11,7 @@ import logging
 
 from google.cloud import bigquery
 
+from search_bounds import outside_search_bounds_sql
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
 
 LOGGER = logging.getLogger(__name__)
@@ -89,26 +90,34 @@ def main() -> None:
         run_id,
     )
 
-    # ③ 海外行が seed / catalog に入っているか（次の全体 run で品質ゲートを落とすか）
+    # #1881 矩形は search_bounds.py 1 本が正本。ここへ数字を書き写さない
+    outside_bounds = outside_search_bounds_sql("latitude", "longitude")
+
+    # ③ 探索範囲の外の行が seed / catalog に入っているか（次の全体 run で品質ゲートを落とすか）
+    #
+    # ⚠️ #1881 **これは «海外か» の検査ではない。** 矩形（search_bounds.py）は
+    #    取り込みの探索範囲であって国境ではない。国コードの正しさは
+    #    country_resolution.py（住所から決める）の側で見ること。
     show(
         pipeline,
-        "③ 日本の矩形の外にある行（source_records / seed / catalog）",
+        "③ 取り込みの探索範囲の外にある行（source_records / seed / catalog）"
+        "  ⚠️ #1881 «日本の外» ではない。矩形は国境ではなく朝鮮半島も入る",
         f"""
         SELECT 'source_records' AS stage, source, COUNT(*) AS out_of_box
         FROM `{ds}.restaurant_source_records`
         WHERE run_id = @run_id
-          AND (latitude NOT BETWEEN 20.0 AND 46.5 OR longitude NOT BETWEEN 122.0 AND 154.0)
+          AND {outside_bounds}
         GROUP BY 1, 2
         UNION ALL
         SELECT 'seed_catalog', 'all', COUNT(*)
         FROM `{ds}.restaurant_seed_catalog`
         WHERE run_id = @run_id
-          AND (latitude NOT BETWEEN 20.0 AND 46.5 OR longitude NOT BETWEEN 122.0 AND 154.0)
+          AND {outside_bounds}
         UNION ALL
         SELECT 'restaurant_catalog', 'all', COUNT(*)
         FROM `{ds}.restaurant_catalog`
         WHERE run_id = @run_id
-          AND (latitude NOT BETWEEN 20.0 AND 46.5 OR longitude NOT BETWEEN 122.0 AND 154.0)
+          AND {outside_bounds}
         """,
         run_id,
     )

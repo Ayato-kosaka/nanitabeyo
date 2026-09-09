@@ -144,6 +144,13 @@ def main() -> int:
     downloaded = failed = skipped = 0
     total_bytes = 0
     for index, entry in enumerate(seen.values(), 1):
+        # ⚠️ 進捗ログは **ループの先頭**に置く。`continue` の後ろへ置くと
+        #    «最後まで通った件» のときしか出ない。2026-09-06 の run 34022514117 は
+        #    3,000 件で 6 行しか出ず、«前半 1,350 件で parsed が 1» を «前半が異常» と
+        #    読み違える原因になった（実際は普通の並びだった）。
+        if (index - 1) % 25 == 0 and index > 1:
+            print(f"  {index - 1}/{len(seen)} 取得 {downloaded} 失敗 {failed} "
+                  f"({total_bytes / 1e6:.0f}MB)", flush=True)
         stem = re.sub(r"[^0-9A-Za-z一-鿿ぁ-ヿ_.-]", "_", entry["organisation"])[:24]
         name = urllib.parse.unquote(entry["url"].rsplit("/", 1)[-1])[:96]
         target = arguments.output_dir / f"{stem}__{re.sub(r'[^0-9A-Za-z._-]', '_', name)}"
@@ -160,9 +167,6 @@ def main() -> int:
         except Exception as error:  # noqa: BLE001 - 自治体のサーバは何を返すか分からない
             failed += 1
             print(f"    ! {entry['organisation']} {name}: {error}")
-        if index % 25 == 0:
-            print(f"  {index}/{len(seen)} 取得 {downloaded} 失敗 {failed} "
-                  f"({total_bytes / 1e6:.0f}MB)", flush=True)
 
     print(json.dumps({"downloaded": downloaded, "skipped": skipped, "failed": failed,
                       "megabytes": round(total_bytes / 1e6, 1)}, ensure_ascii=False, indent=2))

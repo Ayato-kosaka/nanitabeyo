@@ -694,7 +694,7 @@ describe('buildMyDishMapPinsQuery が組み立てる SQL', () => {
     });
     expect(query).not.toBeNull();
     // 直径 100km ≒ 0.8983 度を 12 分割 ≒ 0.0749 度
-    const expected = (100_000 / 111_320) / 12;
+    const expected = 100_000 / 111_320 / 12;
     const cell = (query!.values as unknown[]).find(
       (v) => typeof v === 'number' && Math.abs(v - expected) < 1e-9,
     );

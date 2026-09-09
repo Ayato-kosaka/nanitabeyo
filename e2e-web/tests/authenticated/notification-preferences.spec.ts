@@ -102,54 +102,69 @@ test.describe("設定 > 通知カテゴリ別オン/オフ", () => {
 		}).toPass();
 		expect(stub.updates()).toEqual([{ category: "likes", enabled: true }]);
 	});
-
-	// ─ テストケース: 保存に失敗したらトグルが元へ戻る ─
-	// 手順:
-	//   1. PATCH が必ず 500 になるようスタブする
-	//   2. 「保存」の行をクリックする
-	//   3. PATCH が観測される（＝送ろうとはした）ことを検証
-	//   4. トグルがオンへ戻ることを検証
+	// ─────────────────────────────────────────────────────────────
+	// #1785 API を **わざと 500 にする**テストだけをここへ隔離する。
 	//
-	// 楽観更新したままロールバックしないと、ユーザーは「切ったつもり」で
-	// 通知を受け取り続ける。画面と実際の設定がずれる、最も気付きにくい壊れ方
-	test("保存に失敗したらトグルが元の値へ戻る", async ({ context, appPage }) => {
-		const stub = await stubNotificationPreferences(context, { failUpdates: true });
-
-		const settingsPage = new SettingsPage(appPage);
-		// #1629 通知カードは `profile/notifications` の専用ページへ移った
-		await settingsPage.gotoNotificationSettings();
-		await expect(settingsPage.notificationToggle("saves")).toBeVisible();
-
-		await settingsPage.notificationToggle("saves").click();
-
-		await expect(async () => {
-			expect(stub.updates()).toEqual([{ category: "saves", enabled: false }]);
-		}).toPass();
-		await expect(async () => {
-			expect(await settingsPage.isNotificationToggleOn("saves")).toBe(true);
-		}).toPass();
-	});
-
-	// ─ テストケース: 読み込みに失敗したらトグルを描かず、再試行を出す ─
-	// 手順:
-	//   1. GET が必ず 500 になるようスタブする
-	//   2. 設定画面を開く
-	//   3. 再試行行(settings-notifications-error)が表示されることを検証
-	//   4. トグルが 1 つも描かれないことを検証
+	// 500 を返させると、ブラウザ自身が
+	//   Failed to load resource: the server responded with a status of 500 ... [<URL>]
+	// を console error として必ず出す。これはアプリの不具合ではなく **このテストの仕掛け**
+	// そのものなので、REL-08 の «console error があれば失敗» ゲートに掛かって
+	// main が赤いまま放置されていた。
 	//
-	// 取得できないときに既定値(全部オン)を描くと、オフにしているユーザーへ
-	// 「オンです」と嘘をつくうえ、その状態で触ると意図しない上書きが起きる
-	test("読み込みに失敗したらトグルを描かず再試行を出す", async ({ context, appPage }) => {
-		await stubNotificationPreferences(context, { failLoad: true });
+	// 許容はこのエンドポイントに限定する。他の URL で 500 が出たら今までどおり落ちる。
+	// KNOWN_CONSOLE_NOISE（全 spec 共通）へ入れないのは、通知設定以外の 500 まで
+	// 見逃すようになってしまうため。
+	test.describe("API が失敗したとき", () => {
+		test.use({ allowedConsoleErrors: ["/v1/users/me/notification-preferences"] });
 
-		const settingsPage = new SettingsPage(appPage);
-		// #1629 通知カードは `profile/notifications` の専用ページへ移った
-		await settingsPage.gotoNotificationSettings();
+		// ─ テストケース: 保存に失敗したらトグルが元へ戻る ─
+		// 手順:
+		//   1. PATCH が必ず 500 になるようスタブする
+		//   2. 「保存」の行をクリックする
+		//   3. PATCH が観測される（＝送ろうとはした）ことを検証
+		//   4. トグルがオンへ戻ることを検証
+		//
+		// 楽観更新したままロールバックしないと、ユーザーは「切ったつもり」で
+		// 通知を受け取り続ける。画面と実際の設定がずれる、最も気付きにくい壊れ方
+		test("保存に失敗したらトグルが元の値へ戻る", async ({ context, appPage }) => {
+			const stub = await stubNotificationPreferences(context, { failUpdates: true });
 
-		await expect(settingsPage.notificationsErrorRow).toBeVisible();
-		await expect(settingsPage.notificationToggle("likes")).toHaveCount(0);
-		await expect(settingsPage.notificationToggle("saves")).toHaveCount(0);
-		await expect(settingsPage.notificationToggle("group_votes")).toHaveCount(0);
+			const settingsPage = new SettingsPage(appPage);
+			// #1629 通知カードは `profile/notifications` の専用ページへ移った
+			await settingsPage.gotoNotificationSettings();
+			await expect(settingsPage.notificationToggle("saves")).toBeVisible();
+
+			await settingsPage.notificationToggle("saves").click();
+
+			await expect(async () => {
+				expect(stub.updates()).toEqual([{ category: "saves", enabled: false }]);
+			}).toPass();
+			await expect(async () => {
+				expect(await settingsPage.isNotificationToggleOn("saves")).toBe(true);
+			}).toPass();
+		});
+
+		// ─ テストケース: 読み込みに失敗したらトグルを描かず、再試行を出す ─
+		// 手順:
+		//   1. GET が必ず 500 になるようスタブする
+		//   2. 設定画面を開く
+		//   3. 再試行行(settings-notifications-error)が表示されることを検証
+		//   4. トグルが 1 つも描かれないことを検証
+		//
+		// 取得できないときに既定値(全部オン)を描くと、オフにしているユーザーへ
+		// 「オンです」と嘘をつくうえ、その状態で触ると意図しない上書きが起きる
+		test("読み込みに失敗したらトグルを描かず再試行を出す", async ({ context, appPage }) => {
+			await stubNotificationPreferences(context, { failLoad: true });
+
+			const settingsPage = new SettingsPage(appPage);
+			// #1629 通知カードは `profile/notifications` の専用ページへ移った
+			await settingsPage.gotoNotificationSettings();
+
+			await expect(settingsPage.notificationsErrorRow).toBeVisible();
+			await expect(settingsPage.notificationToggle("likes")).toHaveCount(0);
+			await expect(settingsPage.notificationToggle("saves")).toHaveCount(0);
+			await expect(settingsPage.notificationToggle("group_votes")).toHaveCount(0);
+		});
 	});
 
 	// ─ テストケース: Web では OS 通知拒否の案内を出さない ─

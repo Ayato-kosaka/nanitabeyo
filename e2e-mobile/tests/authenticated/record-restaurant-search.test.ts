@@ -56,4 +56,61 @@ describeAuthenticated("食べたを記録の店名検索 @authenticated", () => 
 		await element(searchInput).replaceText("ラーメン");
 		await device.takeScreenshot("record-restaurant-search-typed");
 	});
+
+	/**
+	 * 📸 #1780 **画像の無い店が «灰色の四角» ではなくアイコンの受け皿になる**ことを
+	 * ネイティブで撮る。
+	 *
+	 * ## なぜ上のテストでは足りなかったか
+	 *
+	 * 上は «入力欄が潰れていない» ことだけを見るので、**結果が返る前にテストが終わる**。
+	 * 実際 run 33955792513 のスクリーンショットは 2 枚とも «検索中...» のままで、
+	 * 一覧が 1 行も写っていなかった。**撮れた枚数と «写っているか» は別である。**
+	 *
+	 * ## 何を見るか
+	 *
+	 * dev の 62 万店はパイプライン製で `image_url` を持たない（#1780 で新規保存も
+	 * やめた）。したがって検索結果はほぼ全部が «画像の無い店» になり、
+	 * `RestaurantAvatar` の受け皿（`...-image-placeholder`）が描かれるはずである。
+	 *
+	 * ⚠️ **この画面は Google を叩かない。** 店名検索は自社の
+	 * `GET /v1/restaurants/search`（#1416）で、Autocomplete も Text Search も
+	 * 呼ばない。オーナーの「place detail 使うので ci にしてはダメよ」に反しない。
+	 */
+	it("#1780 画像の無い店はアイコンの受け皿になる（灰色の四角にしない）", async () => {
+		await tabBar.gotoMyDishes();
+		await waitUntilVisible(myDishes.recordButton, DEFAULT_TIMEOUT);
+		await tapWhenVisible(myDishes.recordButton);
+
+		await waitUntilVisible(myDishes.snsImportEatenTab, DEFAULT_TIMEOUT);
+		await tapWhenVisible(myDishes.snsImportEatenTab);
+
+		const searchInput = by.id("sns-import-eaten-restaurant-search-input");
+		await waitUntilVisible(searchInput, DEFAULT_TIMEOUT);
+
+		/*
+		  ⚠️ **語の選び方に意味がある。「ラーメン」ではいけない。**
+
+		  当初は «dev の 62 万店はパイプライン製で画像を持たないから、何で検索しても
+		  画像なしが並ぶ» と考えたが、**実測で外れた**（run 33957116422 の
+		  スクリーンショットは «ラーメン» の結果 4 件が全部 画像あり）。
+		  店名検索は投稿のある店＝画像を持つ店を上位に返す。
+
+		  「8番ラーメン」は `scripts/db-checks/find_image_less_restaurant.py` が
+		  **image_url も dish_media も持たない**ことを dev で確認した店（14 店舗以上）。
+		*/
+		await element(searchInput).replaceText("8番ラーメン");
+
+		/*
+		  ⚠️ **結果が返るまで待つ。** ここを待たずに撮ると «検索中...» が写る
+		     （上のテストで実際にそうなった）。1 件目の受け皿が見えたら描画済みとみなす。
+		     dev のデータが変わって画像を持ってしまったら、ここで落ちて気付ける
+		     （そのときは上のスクリプトで別の店を探し直す）。
+		*/
+		await waitUntilVisible(
+			by.id("sns-import-eaten-restaurant-search-result-0-image-placeholder"),
+			DEFAULT_TIMEOUT,
+		);
+		await device.takeScreenshot("record-restaurant-search-no-image-placeholder");
+	});
 });

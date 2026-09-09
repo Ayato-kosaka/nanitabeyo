@@ -1,8 +1,13 @@
 {
 	"ios": {
 		"CFBundleDisplayName": "なに食べよ",
+		"NSCameraUsageDescription": "料理の写真や動画を撮影して投稿するために、カメラを使用します。",
+		"NSMicrophoneUsageDescription": "動画を撮影するときに、映像と一緒に音声を録音します。",
+		"NSPhotoLibraryUsageDescription": "撮影済みの写真や動画を投稿するために、写真ライブラリを使用します。",
 		"NSLocationWhenInUseUsageDescription": "現在地周辺のおすすめのお店を提案するために、位置情報を使用します。",
-		"NSLocationAlwaysAndWhenInUseUsageDescription": "現在地周辺のおすすめのお店を提案するために、位置情報を使用します。"
+		"NSLocationAlwaysAndWhenInUseUsageDescription": "現在地周辺のおすすめのお店を提案するために、位置情報を使用します。",
+		"NSLocationAlwaysUsageDescription": "現在地周辺のおすすめのお店を提案するために、位置情報を使用します。",
+		"NSUserTrackingUsageDescription": "関連性の高い広告を表示するために、この識別子を使用します。許可すると、サービスの改善にも役立ちます。"
 	},
 	"android": {
 		"app_name": "なに食べよ"

@@ -3,6 +3,8 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { SelectedRestaurantDetails } from "@/features/restaurant/components/SelectedRestaurantDetails";
+// #1666 営業時間はこの画面が取ってきて渡す（表示コンポーネントは取りに行かない）
+import { useRestaurantOpeningHours } from "@/features/restaurant/hooks/useRestaurantOpeningHours";
 import { useRestaurantStore, type RestaurantEntry } from "@/stores/useRestaurantStore";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -42,6 +44,8 @@ export default function RestaurantDetailScreen() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [restaurant, setRestaurant] = useState<RestaurantEntry | undefined>(undefined);
+	// #1666 営業時間。取れていない・持っていない店では null で、表示側が欄ごと出さない
+	const openingHours = useRestaurantOpeningHours(restaurantId);
 
 	/**
 	 * #1386 【設計】戻る導線。履歴があれば back（出発点の地図・店舗選択がマウントされたまま
@@ -148,7 +152,7 @@ export default function RestaurantDetailScreen() {
 					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
 				</View>
 			) : restaurant ? (
-				<SelectedRestaurantDetails restaurantEntry={restaurant} />
+				<SelectedRestaurantDetails restaurantEntry={restaurant} openingHours={openingHours} />
 			) : null}
 		</View>
 	);

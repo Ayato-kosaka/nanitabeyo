@@ -110,9 +110,12 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	"my-dishes/feed": "全画面 Feed。どの記録群を見るか（entriesKey / scope）がパラメータ前提",
 	"my-dishes/filters": "タブ内の絞り込み編集画面。共有フィルタの状態が前提",
 	"my-dishes/select-restaurant": "記録する店を選ぶ途中の画面。呼び出し元の文脈が前提",
+	// #1671 新規店舗の確認ページ。googlePlaceId が無いと下読みする対象が決まらない
+	"my-dishes/confirm-restaurant": "新規店舗の確認ページ。googlePlaceId パラメータ前提で、直リンクでは対象が決まらない",
 
 	// 検索フローの途中の画面。直リンクでは «前の画面で選んだ条件» が無い状態になる。
 	// フローとしての検証は tests/search/ の spec が持っている
-	"search/dish-categories": "検索フローの途中の画面。前画面の条件（場所・時間帯・シーン）が無い状態を直リンクの正とはしない",
+	"search/dish-categories":
+		"検索フローの途中の画面。前画面の条件（場所・時間帯・シーン）が無い状態を直リンクの正とはしない",
 	"search/result": "検索フローの途中の画面。検索条件のパラメータ前提のため直リンクの対象にしない",
 };

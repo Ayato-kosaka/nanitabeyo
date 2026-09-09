@@ -92,7 +92,9 @@ export class ShareLinksRepository {
    * 呼び出し側で区別できなくなり、revoke 済みリンクのログが「存在しない token」に
    * 化けて調査できなくなる。判定は Service で行う。
    */
-  async findByTokenDigest(tokenDigest: Buffer): Promise<ShareLinkRecord | null> {
+  async findByTokenDigest(
+    tokenDigest: Buffer,
+  ): Promise<ShareLinkRecord | null> {
     return this.prisma.share_links.findUnique({
       where: { token_digest: tokenDigest },
       select: SHARE_LINK_SELECT,

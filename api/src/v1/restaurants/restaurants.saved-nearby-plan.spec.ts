@@ -43,7 +43,8 @@ async function buildSavedRestaurantsSql(): Promise<string> {
       $queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
         // Prisma は ${} をバインドパラメータにするので、そこは $1, $2 … に置き換えて復元する
         captured = strings.reduce(
-          (acc, chunk, i) => acc + chunk + (i < values.length ? `$${i + 1}` : ''),
+          (acc, chunk, i) =>
+            acc + chunk + (i < values.length ? `$${i + 1}` : ''),
           '',
         );
         return Promise.resolve([]);
@@ -51,10 +52,7 @@ async function buildSavedRestaurantsSql(): Promise<string> {
     },
   };
   const logger = { debug: () => {} };
-  const repo = new RestaurantsRepository(
-    prisma as never,
-    logger as never,
-  );
+  const repo = new RestaurantsRepository(prisma as never, logger as never);
   await repo.searchNearbySavedRestaurants(
     { lat: 35.681236, lng: 139.767125, radius: 5480, limit: 20, offset: 0 },
     '11111111-1111-1111-1111-111111111111',
@@ -139,9 +137,13 @@ describe('#1629 保存したお店の近傍検索は «保存した店» を駆�
   });
 
   it('候補は集計より前に LIMIT / OFFSET で確定している（絞る → 集計する）', () => {
-    const candidates = body.match(/candidates\s+AS\s*\(([\s\S]*?)\n\s*\)\s*SELECT/i);
+    const candidates = body.match(
+      /candidates\s+AS\s*\(([\s\S]*?)\n\s*\)\s*SELECT/i,
+    );
     expect(candidates).not.toBeNull();
-    expect(candidates?.[1]).toMatch(/ORDER\s+BY[\s\S]*?LIMIT\s+\$\d+[\s\S]*?OFFSET\s+\$\d+/i);
+    expect(candidates?.[1]).toMatch(
+      /ORDER\s+BY[\s\S]*?LIMIT\s+\$\d+[\s\S]*?OFFSET\s+\$\d+/i,
+    );
   });
 
   it('索引に乗らない «バウンディングボックス + acos» へ戻っていない', () => {

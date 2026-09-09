@@ -698,6 +698,11 @@
 		"consent_review_copyright": "حقوق النشر",
 		"consent_review_suffix": " الخاصة بنا."
 	},
+	"MapsEmbed": {
+		"title": "الخريطة",
+		"unavailable": "معاينة الخريطة غير متاحة على هذا الجهاز",
+		"openExternal": "الفتح في خرائط Google"
+	},
 	"Restaurant": {
 		"Loading": {
 			"title": "نختار 5 مطاعم لتسهيل اختيارك",
@@ -747,7 +752,19 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "تفاصيل المطعم",
-			"openInGoogleMaps": "الفتح في خرائط Google"
+			"openInGoogleMaps": "الفتح في خرائط Google",
+			"openingHours": {
+				"title": "ساعات العمل",
+				"closed": "مغلق",
+				"nextDay": "{{time}} (اليوم التالي)",
+				"provenance": "من {{sources}} · تم الجلب في {{date}}",
+				"sources": {
+					"osm": "OpenStreetMap",
+					"official_site": "موقع المطعم الرسمي",
+					"user": "بلاغ من مستخدم",
+					"owner": "تسجيل المطعم"
+				}
+			}
 		}
 	},
 	"Feedback": {
@@ -985,7 +1002,21 @@
 		"unsavedHint": "يمكنك أيضًا اختيار مطاعم لم تحفظها: اكتب اسم المطعم في البحث أعلاه، أو اضغط على أيقونة المطعم على الخريطة.",
 		"pickTitle": "اختيار مطعم",
 		"pickOnMap": "ابحث عن مطعم على الخريطة",
-		"pickConfirm": "اختيار هذا المكان"
+		"pickConfirm": "اختيار هذا المكان",
+		"confirmPage": {
+			"title": "تأكيد بيانات المطعم",
+			"lead": "سنضيف المطعم بهذه البيانات. صحّح ما هو غير صحيح.",
+			"nameLabel": "الاسم",
+			"namePlaceholder": "أدخل اسم المطعم",
+			"locationLabel": "الموقع",
+			"locationHint": "تأكّد من صحة هذا الموقع.",
+			"addressLabel": "العنوان",
+			"addressPlaceholder": "أدخل العنوان",
+			"countryLabel": "الدولة",
+			"countryUnknown": "غير معروف",
+			"submit": "الإضافة بهذه البيانات",
+			"expired": "انتهت صلاحية هذا التأكيد. يُرجى اختيار المطعم مرة أخرى."
+		}
 	},
 	"MyDishes": {
 		"actions": {
@@ -1205,7 +1236,9 @@
 		"steps": {
 			"paste": "الصق الرابط",
 			"dish": "اختر فئة الطبق",
-			"restaurant": "اختر المطعم"
+			"restaurant": "اختر المطعم",
+			"restaurantConfirm": "تأكيد المتجر المكتشف",
+			"dishConfirm": "تأكيد الطبق المكتشف"
 		},
 		"pickRestaurant": {
 			"title": "اختيار مطعم على الخريطة",
@@ -1213,8 +1246,9 @@
 			"done": "تم اختيار «{{name}}»"
 		},
 		"result": {
-			"summary": "تمت القراءة",
+			"summary": "وجدنا بعض الخيارات في هذا المنشور. اختر الصحيح منها بالأسفل.",
 			"noInfo": "تعذّر قراءة معلومات من هذا المنشور. اختر المطعم وفئة الطبق أدناه للحفظ.",
+			"fetchFailed": "تعذّر جلب معلومات هذا المنشور الآن (غالبًا ما تنجح المحاولة بعد قليل). ويمكنك مع ذلك اختيار المطعم وفئة الطبق أدناه لحفظه.",
 			"showFullCaption": "عرض المزيد",
 			"collapseCaption": "عرض أقل"
 		},
@@ -1224,6 +1258,18 @@
 			"change": "تغيير",
 			"hint": "اختر المطعم أولاً، ثم اختر الطبق، وأضف صورة (اختيارية) ومراجعة قصيرة والسعر وتقييمك.",
 			"done": "تم تسجيله كمأكول"
+		},
+		"reasons": {
+			"unsupported_url": "ندعم TikTok و YouTube Shorts و Instagram.",
+			"shortlink_expansion_failed": "تعذّر فتح هذا الرابط المختصر. الرجاء لصق رابط صفحة المنشور.",
+			"shortlink_target_unsupported": "هذا الرابط المختصر لا يؤدي إلى منشور يمكن استيراده.",
+			"metadata_content_unavailable": "تم حذف هذا المنشور أو أنه خاص.",
+			"youtube_not_shorts": "من YouTube يمكن استيراد Shorts فقط (مقاطع رأسية قصيرة)."
+		},
+		"candidates": {
+			"heading": "ما تم استخراجه من المنشور",
+			"hint": "اضغط على الخيار الصحيح.",
+			"fallbackHeading": "لا يوجد خيار صحيح؟ ابحث بنفسك"
 		}
 	},
 	"Tutorial": {
@@ -1285,5 +1331,9 @@
 				"dish_reviews": "مراجعة"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}} – {{max}}",
+		"openEnded": "{{symbol}}{{min}}+"
 	}
 }

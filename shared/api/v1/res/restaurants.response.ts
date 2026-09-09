@@ -3,9 +3,38 @@ import { SupabaseRestaurantBids } from "../../../converters/convert_restaurant_b
 import { DishMediaEntry } from "./dish-media.response";
 import { PaginatedResponse } from "./paginated-response";
 
-export type RestaurantsEntity = SupabaseRestaurants & {
-	// @deprecated image_url は非推奨。代わりに imageUrls を使うこと。
-	image_url: string;
+/**
+ * #1779 **落とすことが決まっている列。API のレスポンスへ載せない。**
+ *
+ * ここを `Omit` で先に外しておくと、列が実際に DB から落ちたあとも
+ * この型は 1 文字も変わらない（存在しないキーの `Omit` は無害）。
+ * 生成物である `SupabaseRestaurants` の増減に、契約側が振り回されなくなる。
+ *
+ * - `image_url` … Google の写真 URI をそのまま持つ列。Places ToS 3.2.3 で保持できない。
+ *   店の画像は `image_path` 由来の `imageUrls` から取る（#1680 / #1902）
+ * - `plus_code` … Open Location Code。読み手が 1 つも無く、#1780 で新規保存も止めた
+ */
+const DROPPED_RESTAURANT_COLUMNS = ["image_url", "plus_code"] as const;
+
+type DroppedRestaurantColumns = (typeof DROPPED_RESTAURANT_COLUMNS)[number];
+
+/**
+ * #1779 落とす列を実際のオブジェクトから取り除く。
+ *
+ * 型を `Omit` にしただけでは **実行時には残る**（スプレッドは余剰プロパティ検査を
+ * すり抜けるため）。レスポンスへ載せないことを保証するのはこの関数である。
+ *
+ * ⚠️ 列が DB から落ちたあとも、この関数は何も壊さない（無いキーの `delete` は no-op）。
+ */
+export const stripDroppedRestaurantColumns = <T extends object>(
+	row: T,
+): Omit<T, DroppedRestaurantColumns> => {
+	const stripped = { ...row } as Record<string, unknown>;
+	for (const column of DROPPED_RESTAURANT_COLUMNS) delete stripped[column];
+	return stripped as Omit<T, DroppedRestaurantColumns>;
+};
+
+export type RestaurantsEntity = Omit<SupabaseRestaurants, DroppedRestaurantColumns> & {
 	/** レストラン画像の署名付きCDN URL群（派生サイズ） */
 	imageUrls?: {
 		sm: string; // 64x64
@@ -25,6 +54,39 @@ export type CreateRestaurantResponse = {
 	meta: { reviewCount: number; averageRating: number; totalCents: number; maxEndDate: string | null };
 };
 
+/**
+ * POST /v1/restaurants/draft のレスポンス型
+ *
+ * #1671 確認ページへ出す **Google 由来の既定値**と、それを封じた署名トークン。
+ * まだ何も保存していない（店は「この内容で登録」を押すまで作られない）。
+ */
+export type CreateRestaurantDraftResponse = {
+	draft: {
+		googlePlaceId: string;
+		/** 現地の言語での表示名。確認ページの店名欄の初期値 */
+		name: string;
+		nameLanguageCode: string;
+		latitude: number;
+		longitude: number;
+		/** Google の addressComponents。監査用にそのまま返す */
+		addressComponents: unknown;
+		/** addressComponents から組み立てた表示用住所。住所欄の初期値（ユーザーが直せる） */
+		address: string;
+		/** addressComponents から解決した ISO 3166-1 alpha-2。判定できなければ null */
+		countryCode: string | null;
+		/**
+		 * 確認ページの «国» 欄に出す表示名（「日本」など）。**表示専用で保存しない。**
+		 * ユーザーに `JP` とだけ見せても «確認» にならないため。取れなければ null
+		 */
+		countryName: string | null;
+	};
+	/**
+	 * POST /v1/restaurants へそのまま渡すトークン。
+	 * ⚠️ 中身は署名済みで、クライアントが作り替えると作成が 400 になる。
+	 */
+	draftToken: string;
+};
+
 /** POST /v1/restaurants/:id/bids/intents のレスポンス型 */
 export type CreateRestaurantBidIntentResponse = { clientSecret: string };
 
@@ -36,6 +98,31 @@ export type QueryRestaurantBidsResponse = SupabaseRestaurantBids[];
 
 /** GET /v1/restaurants/by-google-place-id のレスポンス型 */
 export type QueryRestaurantsByGooglePlaceIdResponse = RestaurantsEntity;
+
+/**
+ * GET /v1/restaurants/:id/opening-hours のレスポンス型
+ *
+ * #1666 店舗詳細に出す «通常の 1 週間の営業時間»。
+ *
+ * ⚠️ **«いま開いているか» は返さない。** 判定（`resolveOpeningStatus`）は JST 固定で、
+ * 店ごとのタイムゾーンを解決する仕組みがまだ無い（`shared/utils/openingHours.ts` の注記）。
+ * dev には韓国にある店が居るので、JST で «営業中» と書くとその店では嘘になる。
+ * 一方 `opens_at` / `closes_at` は **店の現地時刻**なので、時刻そのものは出してよい。
+ *
+ * ⚠️ 営業時間が 1 件も無い店では `days` が空配列になる。**その場合は欄ごと出さない。**
+ */
+export type GetRestaurantOpeningHoursResponse = {
+	/** 0 = 日曜 … 6 = 土曜の 7 要素。`spans` が空の曜日は **定休**（不明ではない） */
+	days: {
+		dayOfWeek: number;
+		/** その曜日の営業コマ。`HH:MM`（店の現地時刻）。`crossesMidnight` なら閉店は翌日 */
+		spans: { opensAt: string; closesAt: string; crossesMidnight: boolean }[];
+	}[];
+	/** 週の中で実際に採られた出所（`official_site` / `osm` など）。曜日ごとに違いうる */
+	sources: string[];
+	/** いちばん新しい取得時刻（ISO 8601）。データが無ければ null */
+	fetchedAt: string | null;
+};
 
 /** GET /v1/restaurants/:id のレスポンス型 */
 export type GetRestaurantByIdResponse = {
