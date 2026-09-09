@@ -3,12 +3,19 @@ const path = require("node:path");
 
 const { withXcodeProject, IOSConfig } = require("expo/config-plugins");
 
-// `@expo/plist` は Expo の config plugin 基盤が持っている依存で、このパッケージの直接の依存ではない。
-// pnpm の厳密な node_modules では素の require が解決できないため、`expo/config-plugins` の
-// 位置から辿る。**依存を 1 つ増やさないための解決であって、深追いする意味は無い。**
-const plist = require(
-	require.resolve("@expo/plist", { paths: [path.dirname(require.resolve("expo/config-plugins"))] }),
-).default;
+/**
+ * `@expo/plist` は Expo の config plugin 基盤が持っている依存で、このパッケージの直接の依存ではない。
+ * pnpm の厳密な node_modules では素の require が解決できないため、`expo/config-plugins` の
+ * 位置から辿る。**依存を 1 つ増やさないための解決であって、深追いする意味は無い。**
+ *
+ * ⚠️ **モジュールの読み込み時に解決しないこと（= トップレベルへ書かないこと）。**
+ * この plugin ファイルは prebuild だけでなく **`eas update`（OTA）でも読み込まれる**
+ * （`expo config` が plugins を resolve するため。ファイルを消して実際に確かめた）。
+ * トップレベルで解決すると、解決に失敗した瞬間に **OTA 配信ごと落ちる**。
+ * ここで要るのは prebuild のときだけなので、mod の中まで遅らせる。
+ */
+const requirePlist = () =>
+	require(require.resolve("@expo/plist", { paths: [path.dirname(require.resolve("expo/config-plugins"))] })).default;
 
 /**
  * #1920 【設計】iOS Share Extension のバンドルへ、アプリ本体と同じ表示名の翻訳を焼き込む。
@@ -126,6 +133,7 @@ const withShareExtensionLocales = (config) =>
 		//    - CFBundleLocalizations: このバンドルがどの言語を持つかの宣言。
 		//    - CFBundleAllowMixedLocalizations: 本体の infoPlist と同じ扱いに揃える。
 		const infoPlistPath = path.join(extensionDir, `${EXTENSION_TARGET_NAME}-Info.plist`);
+		const plist = requirePlist();
 		const infoPlist = plist.parse(await fs.promises.readFile(infoPlistPath, "utf8"));
 		// 既定値は開発地域（`CFBundleDevelopmentRegion` = `$(DEVELOPMENT_LANGUAGE)` = `en`）の翻訳。
 		const fallback = readIosLocalization(projectRoot, locales[DEVELOPMENT_LANGUAGE]).CFBundleDisplayName;
