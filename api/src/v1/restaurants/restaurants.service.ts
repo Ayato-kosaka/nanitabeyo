@@ -274,6 +274,20 @@ export class RestaurantsService {
 
     const restaurantData: Prisma.restaurantsCreateInput = {
       google_place_id: googlePlaceId,
+      /*
+        #1671 完了条件「確認された値が `created_by_source='user'` で保存される」。
+
+        ⚠️ **DB の DEFAULT に頼らず、ここで明示する。**
+        列は `NOT NULL DEFAULT 'user'`（20260827T0000）なので、書かなくても結果は同じである。
+        それでも書くのは、この経路が «ユーザーが作った行» であることが
+        **コードから読めない**状態を残さないためで、既定値を変える migration が
+        将来入ったときに、アプリ製の行の意味が黙って変わるのを防ぐ。
+
+        ⚠️ `created_by_source` は **その行を誰が作ったかという不変の履歴**である
+        （migration のコメント）。同期（`9_1`）が作る行は 'pipeline'。ここを
+        取り違えると、ユーザーの店が同期の上書き対象へ落ちる（#1643 の事故）。
+      */
+      created_by_source: 'user',
       // バリデーション済みのため非 null アサーション
       name: confirmed?.name ?? placeDetail.displayName!.text!,
       name_language_code: languageCode,

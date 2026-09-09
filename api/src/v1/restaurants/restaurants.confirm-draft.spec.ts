@@ -339,6 +339,33 @@ describe('#1671 確認ページ経由の店舗作成', () => {
       );
     });
 
+    it('#1671 created_by_source=\'user\' で保存される（完了条件）', async () => {
+      /*
+      ⚠️ **DB の DEFAULT に頼らない。** 列は NOT NULL DEFAULT 'user' なので
+      書かなくても結果は同じだが、既定値を変える migration が将来入ったときに
+      «アプリが作った行» の意味が黙って変わる。ここで固定する。
+
+      ⚠️ この値は «その行を誰が作ったかという不変の履歴» である。同期（9_1）が
+      作る行は 'pipeline' で、取り違えるとユーザーの店が同期の上書き対象へ落ちる
+      （#1643 の事故）。
+      */
+      const { draftToken } = await issueDraft();
+
+      await service.createRestaurant({
+        googlePlaceId: PLACE_ID,
+        draftToken,
+        name: 'ユーザーが確認した名前',
+        latitude: GOOGLE_LAT,
+        longitude: GOOGLE_LNG,
+      } as CreateRestaurantDto);
+
+      expect(dishesRepository.createOrGetRestaurant).toHaveBeenCalledWith(
+        TX,
+        expect.objectContaining({ created_by_source: 'user' }),
+        PLACE_ID,
+      );
+    });
+
     it('#1671 subterritory_code も保存される（料理を現地語で名付けるため）', async () => {
       const { draftToken } = await issueDraft();
 
