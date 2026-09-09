@@ -102,15 +102,23 @@ JP_LAT, JP_LNG = 36.2048, 138.2529
 #    ずれたら jest が赤くなる（写経しないための仕組み）。
 # (スナップショット名, limit, 説明, q)。q は店名検索の枝だけが使う（他は None）
 SHAPES = (
-    ("search_nearby_restaurants.default", 20, "既定順（投稿が多い順）・クライアント既定", None),
-    ("search_nearby_restaurants.default_limit100", 100, "既定順・API が受け付ける上限", None),
-    ("search_nearby_restaurants.distance_limit100", 100, "距離順・SNS 取り込みが内部から呼ぶ形", None),
+    ("search_nearby_restaurants.default", 20, "既定順（投稿が多い順）・クライアント既定", None, False),
+    ("search_nearby_restaurants.default_limit100", 100, "既定順・API が受け付ける上限", None, False),
+    ("search_nearby_restaurants.distance_limit100", 100, "距離順・SNS 取り込みが内部から呼ぶ形", None, False),
     # #1951 索引が効かない短い店名。中間一致だと 57 万行の Seq Scan になり本番 20.34 秒だった。
-    # 前方一致 / 語頭一致へ切り替わって Bitmap Index Scan に乗っているかをここで見る。
+    # 前方一致 / 語頭一致へ切り替わって索引に乗っているかをここで見る。
     # ⚠️ 「一蘭」は実際に本番で 20.34 秒かかった店名そのもの。合成値へ置き換えないこと。
-    ("search_nearby_restaurants.byname_short", 20, "店名 2 文字（#1951 の本命）", "一蘭"),
+    ("search_nearby_restaurants.byname_short", 20, "店名 2 文字（#1951 の本命）", "一蘭", False),
     # 比較対象。3 文字以上は従来どおり中間一致で索引に乗るはず
-    ("search_nearby_restaurants.byname", 20, "店名 3 文字以上（従来の中間一致）", "八王子"),
+    ("search_nearby_restaurants.byname", 20, "店名 3 文字以上（従来の中間一致）", "八王子", False),
+    #
+    # ⚠️ **対照群。これは «赤くなるのが正しい» 形である。**
+    #
+    # 検査そのものが働いていることを、毎回この 1 本で確かめる。#1629 / #1686 で
+    # «判定が空振りしていたのに ✅ と表示されて見落とす» を二度やっているので、
+    # «本物を入れたら赤くなるか» を検査の側に持たせる。
+    # 中身は «2 文字 × 中間一致» ＝ #1951 で直す前の形そのもの（本番 20.34 秒）。
+    ("search_nearby_restaurants.byname", 20, "⚠️対照群: 2 文字 × 中間一致（直す前の形）", "一蘭", True),
 )
 
 # 測る条件。(ラベル, 中心 lat, 中心 lng, 半径 m)
@@ -313,10 +321,10 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
         f"{with_posts:,}",
         ROWS_BUDGET_MULTIPLIER,
     )
-    logger.info("測る形: %s", " / ".join(f"{n}(limit {l})" for n, l, _, _ in SHAPES))
+    logger.info("測る形: %s", " / ".join(f"{n}(limit {l})" for n, l, _, _, _ in SHAPES))
     failures = []
 
-    for shape_name, shape_limit, shape_note, shape_q in SHAPES:
+    for shape_name, shape_limit, shape_note, shape_q, shape_expect_seq in SHAPES:
         sql, names = load_sql(shape_name)
         nparams = len(names)
         # 予算は limit ごとに変わる（近傍枠は limit 件ぶん走るため）
@@ -331,7 +339,7 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
             failures.extend(
                 _measure_case(
                     cur, schema, sql, nparams, names, label, lat, lng, radius,
-                    shape_limit, shape_name, budget, full_plan, shape_q,
+                    shape_limit, shape_name, budget, full_plan, shape_q, shape_expect_seq,
                 )
             )
 
@@ -352,9 +360,25 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
     return 1 if do_assert else 0
 
 
+def restaurants_seq_scanned(plan):
+    """実行計画に **restaurants のヒープ全走査（Seq Scan）** が出ているかを返す。
+
+    #1951 店名検索の枝は «行数の予算» では判定できない。posted / nearest の枝と違って
+    駆動表が restaurants ではなく、**索引エントリを何件舐めたか** が所要時間と直結しないためである
+    （dev の generic plan で GIST 索引を 62 万エントリ舐めても 120 ms。ヒープは 20 行しか触らない）。
+
+    ⚠️ 行数の予算をそのまま当てると **未変更の 3 文字の枝まで赤くなる**（実測でそうなった）。
+       «赤いのが普通» になった検査は、次に本物が来ても誰も見ない。
+
+    守りたいのは «57 万行の**太い行**をヒープから全部読む» ことだけなので、そこだけを見る。
+    それが本番で 20.34 秒だった形である（`%一蘭%` は trigram が取れず Seq Scan になる）。
+    """
+    return any(re.search(r"Seq Scan on restaurants\b", line) for line in plan)
+
+
 def _measure_case(
     cur, schema, sql, nparams, names, label, lat, lng, radius,
-    limit, shape_name, budget, full_plan, q=None,
+    limit, shape_name, budget, full_plan, q=None, expect_seq_scan=False,
 ):
     """1 つの «形 × 地点» を custom / generic の両方で測る。戻り値は失敗の一覧。"""
     failures = []
@@ -392,17 +416,42 @@ def _measure_case(
             #    #1686 のあと «generic だけ» を見ていたせいで、custom plan が
             #    11〜13 秒のまま «✅» と表示されて見落とした（dev run 33229509189）。
             #    どちらか一方でも半径内を舐めていたら赤にする
-            state = verdict_against_budget(rows, rows_upper, budget)
-            if state == "within":
-                verdict = " ✅"
-            elif state == "over":
-                verdict = "  ❌ 半径内の全店を読んでいる"
-                failures.append(
-                    f"{shape_name} / {label} / {mode.strip()} plan: "
-                    f"restaurants を延べ {rows:,} 行 読んでいる（上限 {budget:,} 行）"
-                )
+            if q is not None:
+                # #1951 店名検索の枝は «ヒープ全走査をしていないか» だけで判定する
+                #      （行数の予算は posted / nearest の形のためのもので、ここには当てはまらない。
+                #        理由は restaurants_seq_scanned の説明を読むこと）
+                seq = restaurants_seq_scanned(plan)
+                if expect_seq_scan:
+                    # 対照群。**Seq Scan になるのが正しい**。ならないなら検査が壊れている
+                    if seq:
+                        verdict = " ✅ 期待どおり Seq Scan（検査は働いている）"
+                    else:
+                        verdict = "  ❌ 対照群が Seq Scan にならない = 検査が働いていない"
+                        failures.append(
+                            f"{shape_name} / {label} / {mode.strip()} plan: "
+                            f"対照群（2 文字 × 中間一致）が Seq Scan にならなかった。"
+                            f"検査が空振りしている可能性がある"
+                        )
+                elif seq:
+                    verdict = "  ❌ restaurants を Seq Scan している（店名の照合が索引に乗っていない）"
+                    failures.append(
+                        f"{shape_name} / {label} / {mode.strip()} plan: "
+                        f"restaurants の Seq Scan。店名の照合が索引に乗っていない"
+                    )
+                else:
+                    verdict = " ✅ Seq Scan なし"
             else:
-                verdict = f"  ⚠️ 判定できない（丸めの上界 {rows_upper:,} 行 > 上限）"
+                state = verdict_against_budget(rows, rows_upper, budget)
+                if state == "within":
+                    verdict = " ✅"
+                elif state == "over":
+                    verdict = "  ❌ 半径内の全店を読んでいる"
+                    failures.append(
+                        f"{shape_name} / {label} / {mode.strip()} plan: "
+                        f"restaurants を延べ {rows:,} 行 読んでいる（上限 {budget:,} 行）"
+                    )
+                else:
+                    verdict = f"  ⚠️ 判定できない（丸めの上界 {rows_upper:,} 行 > 上限）"
             logger.info(
                 "   %s: %8.1f ms / restaurants から延べ %s 行%s",
                 mode,
