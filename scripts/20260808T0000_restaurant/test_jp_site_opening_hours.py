@@ -406,5 +406,42 @@ class RealExcerptsFromTheCrawlTest(unittest.TestCase):
         self.assertEqual(reason, "closed_days_unreadable")
 
 
+class OpenDaysDeclarationTest(unittest.TestCase):
+    """#1666 «開いている曜日» が書いてあるのに読めないとき、«毎日» と見なさない。
+
+    ⚠️ これを入れる前は、`営業日 水曜日から土曜日` を読み落として
+       **週 4 日の店を «毎日開いている»** と言っていた。3 値判定で害があるのは
+       間違った `open` だけなので、これは最も避けたい向きの誤りである。
+    """
+
+    def test_unreadable_open_days_are_given_up(self) -> None:
+        """実測の抜粋そのもの（run 34044086520）。"""
+        rows, reason = parse_with_reason(
+            "住所 富山県氷見市鞍川62-5 営業日 水曜日から土曜日 営業時間：10:00～17:00"
+        )
+        self.assertIsNone(rows, "⚠️ 週 4 日の店を毎日開いていると言っている")
+        self.assertEqual(reason, "open_days_unreadable")
+
+    def test_plain_every_day_page_is_unaffected(self) -> None:
+        """曜日の宣言が無いページは今までどおり «毎日»。"""
+        rows, reason = parse_with_reason("営業時間 11:00-14:00")
+        self.assertIsNone(reason)
+        self.assertEqual(len(rows), 7)
+
+    def test_business_day_counting_is_not_a_declaration(self) -> None:
+        """「翌営業日以降」は «日数の数え方» であって営業曜日の宣言ではない。"""
+        rows, reason = parse_with_reason(
+            "お問い合わせは翌営業日以降の回答となります 営業時間 11:00-14:00"
+        )
+        self.assertIsNone(reason)
+        self.assertEqual(len(rows), 7)
+
+    def test_readable_weekdays_still_win(self) -> None:
+        """曜日が読めるページは、この歯止めより先に読み取られる。"""
+        rows, reason = parse_with_reason("月曜-金曜 09:00-17:00")
+        self.assertIsNone(reason)
+        self.assertEqual({r.day_of_week for r in rows}, {1, 2, 3, 4, 5})
+
+
 if __name__ == "__main__":
     unittest.main()
