@@ -1,5 +1,5 @@
 /*
-#1920 【設計】«アプリ本体の `locales` が届かない場所に置かれたユーザー向けネイティブ文言が、
+#1928 【設計】«アプリ本体の `locales` が届かない場所に置かれたユーザー向けネイティブ文言が、
 日本語端末でも英語のまま出る» という欠陥を復活させないための回帰テスト。
 
 ## 何が起きたか
@@ -85,7 +85,7 @@ const userFacingNativeStrings = (): Map<string, string> => {
 	return collected;
 };
 
-describe("#1920 ネイティブに出る文言の翻訳", () => {
+describe("#1928 ネイティブに出る文言の翻訳", () => {
 	it("languages/*.json は 8 言語そろっていて、ios のキー集合が全言語で一致する", () => {
 		const files = languageFiles();
 		expect(files.length).toBe(8);
@@ -134,7 +134,7 @@ describe("#1920 ネイティブに出る文言の翻訳", () => {
 	});
 });
 
-describe("#1920 Share Extension のバンドルへ翻訳を届ける plugin", () => {
+describe("#1928 Share Extension のバンドルへ翻訳を届ける plugin", () => {
 	const pluginNames = () =>
 		(loadConfig().plugins ?? []).map((plugin) => (Array.isArray(plugin) ? plugin[0] : plugin) as string);
 

@@ -18,7 +18,7 @@ const requirePlist = () =>
 	require(require.resolve("@expo/plist", { paths: [path.dirname(require.resolve("expo/config-plugins"))] })).default;
 
 /**
- * #1920 【設計】iOS Share Extension のバンドルへ、アプリ本体と同じ表示名の翻訳を焼き込む。
+ * #1928 【設計】iOS Share Extension のバンドルへ、アプリ本体と同じ表示名の翻訳を焼き込む。
  *
  * ## 何が壊れていたか
  *
