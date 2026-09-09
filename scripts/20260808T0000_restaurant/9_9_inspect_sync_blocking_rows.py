@@ -65,10 +65,12 @@ BLOCKING_ROWS_SQL = """
       r.created_by_source,
       r.source_seed_id,
       r.created_at,
-      r.updated_at,
+      -- ⚠️ restaurants に updated_at は無い。同期が触ったかは synced_at で見る
+      r.synced_at,
       r.google_place_id,
       r.country_code,
-      (r.created_at IS DISTINCT FROM r.updated_at) AS edited_after_create
+      r.source_row_hash,
+      array_length(r.source_names, 1) AS source_name_count
   FROM restaurants r
   WHERE r.created_by_source <> 'pipeline'
     AND r.source_seed_id IS NOT NULL
@@ -120,10 +122,11 @@ def main() -> int:
         source,
         seed_id,
         created_at,
-        updated_at,
+        synced_at,
         place_id,
         country,
-        edited,
+        row_hash,
+        source_name_count,
     ) in rows:
         LOGGER.info("  ─" * 20)
         LOGGER.info("  id            : %s", rid)
@@ -131,9 +134,11 @@ def main() -> int:
         LOGGER.info("  created_by    : %s", source)
         LOGGER.info("  source_seed_id: %s", seed_id)
         LOGGER.info("  created_at    : %s", created_at)
-        LOGGER.info("  updated_at    : %s  (作成後に編集された: %s)", updated_at, edited)
+        LOGGER.info("  synced_at     : %s  (同期が触った形跡: %s)", synced_at, synced_at is not None)
         LOGGER.info("  google_place_id: %s", place_id)
         LOGGER.info("  country_code  : %s", country)
+        LOGGER.info("  source_row_hash: %s", row_hash)
+        LOGGER.info("  source_names の数: %s", source_name_count)
     LOGGER.info("")
     LOGGER.info("合計 %d 行", len(rows))
     return 0
