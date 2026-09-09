@@ -46,7 +46,20 @@ beforeEach(() => {
 
 describe("#1666 useRestaurantOpeningHours", () => {
 	it("店の詳細を開いたら、営業時間の API を 1 回だけ叩く", async () => {
-		mockCallBackend.mockResolvedValue({ days: [], sources: [], fetchedAt: null });
+		/*
+		⚠️ **応答は毎回 «新しいオブジェクト» を返すこと。**
+
+		同じ参照を返すと `setHours` で React が再レンダリングを打ち切るので、
+		**取得が毎レンダリング走る作りになっていてもこのテストは緑になる**。
+		実際、最初に書いた版は `mockResolvedValue({...})`（同じ参照）で、
+		再取得ループを 1 つも検出できなかった。
+
+		このアプリは #1629 で «リクエストの洪水» による 40 秒問題を踏んでいる。
+		店舗詳細を開くたびに営業時間を無限に引くのは、同じ形の事故である。
+		*/
+		mockCallBackend.mockImplementation(() =>
+			Promise.resolve({ days: [], sources: [], fetchedAt: null }),
+		);
 		await render(RESTAURANT_ID);
 
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
@@ -54,6 +67,28 @@ describe("#1666 useRestaurantOpeningHours", () => {
 			`v1/restaurants/${RESTAURANT_ID}/opening-hours`,
 			expect.objectContaining({ method: "GET" }),
 		);
+	});
+
+	it("応答が毎回 «別のオブジェクト» でも、取得は 1 回で止まる（再取得ループを作らない）", async () => {
+		/*
+		⚠️ `useEffect` の依存に **安定していない関数**が混ざると、
+		   fetch → setState → 再レンダリング → 依存が変わる → fetch … と回り続ける。
+
+		`callBackend`（`useCallback`）と `logFrontendEvent`（deps 空）はどちらも安定なので
+		いまは回らない。**それが崩れたらここが赤くなる**ようにしておく
+		（同じ画面の `GET /v1/restaurants/:id` も同じ形の useEffect を使っている）。
+		*/
+		mockCallBackend.mockImplementation(() =>
+			// 毎回 «別の» オブジェクト。同じ参照だと React が再レンダリングを打ち切ってしまう
+			Promise.resolve({ days: [{ dayOfWeek: 1, spans: [] }], sources: ["osm"], fetchedAt: null }),
+		);
+		await render(RESTAURANT_ID);
+		// レンダリングが落ち着くまで、もう数回まわす
+		for (let i = 0; i < 5; i++) {
+			await act(async () => {});
+		}
+
+		expect(mockCallBackend).toHaveBeenCalledTimes(1);
 	});
 
 	it("取れた値をそのまま返す", async () => {
