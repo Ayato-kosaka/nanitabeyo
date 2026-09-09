@@ -1451,7 +1451,7 @@ export type Database = {
           google_place_id: string
           id?: string
           image_path?: string | null
-          image_url: string
+          image_url?: string
           latitude: number
           location?: unknown
           longitude: number

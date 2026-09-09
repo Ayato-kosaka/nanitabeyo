@@ -60229,7 +60229,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -60256,7 +60256,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -60337,7 +60337,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -68405,7 +68405,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -68431,7 +68431,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -69119,7 +69119,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -69145,7 +69145,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -69339,7 +69339,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -69365,7 +69365,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -69459,7 +69459,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -69485,7 +69485,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -69579,7 +69579,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
@@ -69605,7 +69605,7 @@ export namespace Prisma {
     name_language_code: string
     latitude: number
     longitude: number
-    image_url: string
+    image_url?: string
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
