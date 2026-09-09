@@ -26,6 +26,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from jp_site_opening_hours import parse_jp_site_opening_hours as parse
 from jp_site_opening_hours import parse_jp_site_opening_hours_with_reason as parse_with_reason  # noqa: E402
+# 時刻トークンの歯止め（`時(?!間)`）は文章の外からは見えないので、直接あてる
+from jp_site_opening_hours import _TIME, _parse_spans, _time_to_hm  # noqa: E402
 
 # 0 = 日曜 … 6 = 土曜
 SUN, MON, TUE, WED, THU, FRI, SAT = range(7)
@@ -417,7 +419,7 @@ class OpenDaysDeclarationTest(unittest.TestCase):
     def test_unreadable_open_days_are_given_up(self) -> None:
         """実測の抜粋そのもの（run 34044086520）。"""
         rows, reason = parse_with_reason(
-            "住所 富山県氷見市鞍川62-5 営業日 水曜日から土曜日 営業時間：10:00～17:00"
+            "住所 富山県氷見市鞍川62-5 営業日 水曜日から土曜日 営業時間：10時～17時"
         )
         self.assertIsNone(rows, "⚠️ 週 4 日の店を毎日開いていると言っている")
         self.assertEqual(reason, "open_days_unreadable")
@@ -441,6 +443,129 @@ class OpenDaysDeclarationTest(unittest.TestCase):
         rows, reason = parse_with_reason("月曜-金曜 09:00-17:00")
         self.assertIsNone(reason)
         self.assertEqual({r.day_of_week for r in rows}, {1, 2, 3, 4, 5})
+
+
+class KanjiTimeNotationTest(unittest.TestCase):
+    """#1666 漢字表記の時刻（`9時30分～19時` / `10時～17時`）を読む。
+
+    2026-09-06 の実測（[run 34044086520](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34044086520)）で
+    `no_time_span` として捨てられていた抜粋 8 件のうち、**営業時間が本当に書かれていたのは
+    1 件だけ**で、それがこの書き方だった。他の 7 件は企業サイトやニュース記事で、
+    そもそも営業時間が無い（＝直す対象ではない）。**«時刻が拾えなかった» の大半は
+    パーサの穴ではない**ので、直したのはこの 1 形だけである。
+    """
+
+    def test_real_excerpt_with_kanji_time(self) -> None:
+        """実測の抜粋そのもの。日曜だけが休みで、残り 6 日に 09:30-19:00 が入る。"""
+        rows, reason = parse_with_reason(
+            "(株)土浦鈴木屋 〒300-0048 茨城県土浦市田中1-7-15 "
+            "営業時間：9時30分～19時 毎週日曜定休 E-Mail: key@example.jp"
+        )
+        self.assertIsNone(reason)
+        self.assertEqual(dows(rows), {MON, TUE, WED, THU, FRI, SAT})
+        self.assertEqual(spans(rows, MON), {("09:30", "19:00")})
+
+    def test_minutes_may_be_omitted(self) -> None:
+        """「10時」は 10:00。**分の記載が無いのは «0 分» であって «不明» ではない。**"""
+        rows, reason = parse_with_reason("営業時間 10時～17時 年中無休")
+        self.assertIsNone(reason)
+        self.assertEqual(spans(rows, MON), {("10:00", "17:00")})
+
+    def test_multiple_kanji_spans_and_closed_days(self) -> None:
+        rows, reason = parse_with_reason("営業時間 11時30分～14時30分 17時～21時 定休日 月曜、火曜")
+        self.assertIsNone(reason)
+        self.assertEqual(dows(rows), {SUN, WED, THU, FRI, SAT})
+        self.assertEqual(spans(rows, WED), {("11:30", "14:30"), ("17:00", "21:00")})
+
+    def test_next_day_marker_works_with_kanji(self) -> None:
+        rows, reason = parse_with_reason("営業時間 18時～翌1時 定休日 なし")
+        self.assertIsNone(reason)
+        self.assertTrue(all(r.crosses_midnight for r in rows))
+        self.assertEqual(spans(rows, MON), {("18:00", "01:00")})
+
+    def test_am_pm_is_still_given_up(self) -> None:
+        """⚠️ 漢字表記を受けても、午前/午後は諦めたままにする（解釈が割れる）。"""
+        rows, reason = parse_with_reason("営業時間：午前9時～午後5時")
+        self.assertIsNone(rows)
+        self.assertEqual(reason, "ampm")
+
+
+class DurationIsNotATimeTest(unittest.TestCase):
+    """⚠️ **「時間」は時刻ではない。** 「待ち時間 1時間～2時間」を 01:00-02:00 と読まない。
+
+    飲食店のページには «2.5時間飲み放題» «お一人様 2時間制» の類がいくらでもある。
+    ここを取り違えると、**営業時間ではない数字で全曜日を埋める**（3 値判定で唯一
+    害のある «間違った open»）。`_TIME_KANJI` の `時(?!間)` がこれを止めている。
+    """
+
+    def test_duration_on_the_closing_side_is_refused(self) -> None:
+        """⚠️ **効くのは終了側である。**
+
+        開始側（`1時間～…`）は `間` が区切り記号の手前に立つので、歯止めが無くても
+        区間にならない。危ないのは **終了側**で、区間の後ろは何が続いていても
+        regex が見ないため、`時(?!間)` が無いと「9時～2時間まで無料」を
+        **09:00〜翌 02:00 の営業時間**として読む（実測済み）。
+        """
+        self.assertEqual(_parse_spans("駐車場は9時～2時間まで無料"), [])
+        self.assertEqual(_parse_spans("11時～2時間"), [])
+
+    def test_a_duration_is_not_a_time_token(self) -> None:
+        self.assertIsNone(re.fullmatch(_TIME, "1時間"))
+        self.assertIsNotNone(re.fullmatch(_TIME, "1時"))
+
+    def test_normal_hours_on_a_page_that_also_mentions_durations(self) -> None:
+        """«2.5時間飲み放題» のような文言があっても、本物の営業時間は読める。"""
+        rows, reason = parse_with_reason("2.5時間飲み放題付 営業時間 11時～14時 年中無休")
+        self.assertIsNone(reason)
+        self.assertEqual(spans(rows, MON), {("11:00", "14:00")})
+
+    def test_duration_only_page_is_given_up(self) -> None:
+        """時間の «長さ» しか書いていないページからは、区間を 1 つも作らない。"""
+        rows, reason = parse_with_reason("営業時間 2.5時間飲み放題付のコースあり 年中無休")
+        self.assertIsNone(rows)
+        self.assertEqual(reason, "no_time_span")
+
+
+class KanjiTimeWithWeekdaysTest(unittest.TestCase):
+    """⚠️ **曜日つきの記述でも漢字表記を読むこと。**
+
+    時刻の書き方は 2 箇所で使われる（`_TIME_SPAN_RE` と `_DAY_SCOPED_TIMES_RE`）。
+    片方だけ漢字表記に対応させると、「月曜 10時～17時」で**曜日が読めない扱い**になり、
+    «毎日» のフォールバックへ落ちて **月曜だけの店を «毎日開いている» と言う**。
+    #1930 で塞いだのと同じ向きの誤りなので、ここで固定する。
+    """
+
+    def test_weekday_scoped_kanji_time(self) -> None:
+        rows, reason = parse_with_reason("月曜 10時～17時 年中無休")
+        self.assertIsNone(reason)
+        self.assertEqual(dows(rows), {MON}, "毎日にしてはいけない")
+
+    def test_weekday_range_with_kanji_time(self) -> None:
+        rows, reason = parse_with_reason("月曜-金曜 9時30分～17時 年中無休")
+        self.assertIsNone(reason)
+        self.assertEqual(dows(rows), {MON, TUE, WED, THU, FRI})
+        self.assertEqual(spans(rows, FRI), {("09:30", "17:00")})
+
+
+class TimeTokenFormsAgreeTest(unittest.TestCase):
+    """⚠️ **`_TIME` が拾える形は、必ず `_time_to_hm` が読めること。**
+
+    片方だけ書き足すと «拾ったのに読めない» 区間が黙って捨てられ、
+    «時刻の無いページ» と区別が付かなくなる（理由の集計が嘘になる）。
+    """
+
+    def test_every_matched_token_is_readable(self) -> None:
+        for token, expected in [
+            ("10:30", (10, 30)),
+            ("9:05", (9, 5)),
+            ("26:00", (26, 0)),
+            ("10時", (10, 0)),
+            ("10 時", (10, 0)),
+            ("9時30分", (9, 30)),
+            ("9 時 5 分", (9, 5)),
+        ]:
+            self.assertTrue(re.fullmatch(_TIME, token), token)
+            self.assertEqual(_time_to_hm(token), expected, token)
 
 
 if __name__ == "__main__":
