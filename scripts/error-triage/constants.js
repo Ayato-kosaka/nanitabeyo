@@ -217,6 +217,25 @@ const TRANSIENT_HTTP_STATUSES = Object.freeze([401, 408, 425, 426, 429]);
  */
 const EXCLUDED_HTTP_STATUSES = Object.freeze([...TRANSIENT_HTTP_STATUSES, 403, 404].sort((a, b) => a - b));
 
+/**
+ * 「これは障害だ」と見なす影響ユーザー数のしきい値（1 run = 25h 窓）。
+ *
+ * #1946 の反省から入れた。2026-09-04〜09-09 の 6 日間、`/v1/dish-media/search` が
+ * 本番 DB にテーブルが無いせいで 500 を返し続け、**1 日あたり 68〜151 ユーザー**が踏んでいた。
+ * Issue（#1853）は初日に立っていたのに、**38 件の中に埋もれて 6 日間気づかれなかった。**
+ *
+ * 原因は「起票はするが、重大さを区別しない」ことだった。480 ユーザーの全滅も
+ * 1 ユーザーの単発も «Issue が 1 件増えた» として同じ見え方になる。
+ *
+ * このしきい値を超えるグループを起票 / reopen したら run を **失敗させる**。
+ * 定期実行の失敗は GitHub が通知するので、«Issue が増えた» ではなく «壊れた» として届く。
+ *
+ * 50 という値の根拠: 直近の平常時のアクティブユーザーは 1 日 200〜400 人程度なので、
+ * 50 人は «1 割以上が踏んでいる» 水準にあたる。#1946 は初日から 151 人だった。
+ * 誤報を出すくらいなら見落とす、という向きには倒していない。**見落とす方が高くつく。**
+ */
+const SEV_ALERT_USER_THRESHOLD = 50;
+
 /** 除外理由の識別子（runSummary.excludedBreakdown の reason に載る値）。 */
 const EXCLUSION_REASONS = Object.freeze([
 	"unknown_build_meta", // E1 frontend の created_commit_id が unknown- 始まり
@@ -243,6 +262,7 @@ module.exports = Object.freeze({
 	LOCALE_BREAKDOWN_LIMIT,
 	MAX_BYTES_BILLED,
 	CREATE_LIMIT,
+	SEV_ALERT_USER_THRESHOLD,
 	REOPEN_LIMIT,
 	BODY_UPDATE_LIMIT,
 	REKEY_LIMIT,
