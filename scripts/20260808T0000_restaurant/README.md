@@ -385,6 +385,38 @@ API keyはheaderで送り、query文字列・ID配列・HTTP status・採否だ�
   --target-per-cell-category 1 --expected-category-count 134
 ```
 
+### 6. 営業時間（#1666）
+
+**Google を 1 回も叩きません。**供給元は OSM と店の公式サイトの 2 つだけです。
+
+```bash
+# OSM の opening_hours を restaurant_opening_hours へ入れる
+.venv/bin/python 6_1_load_osm_opening_hours.py --schema dev --execute
+
+# 公式サイトから «機械で構造化できる割合» を測る（**書き込まない**）
+.venv/bin/python 6_2_measure_official_site_hours.py --schema dev --limit 400
+
+# 測ったうえで実際に取り込む
+.venv/bin/python 6_3_crawl_official_site_hours.py --schema dev --limit 3000 --execute
+```
+
+⚠️ **相手のサイトへ出る処理です。** robots.txt を見て禁止なら取りに行かず、UA を名乗り、
+1 件あたり `--min-interval` 秒（既定 2.0）あけ、**再試行しません**。作法は
+`official_site_crawl.py` に 1 本化してあります。**ここへ書き写さないこと**
+（写すと «測った数字» と «6_3 が入れた行» がずれます）。
+
+⚠️ **`6_2` は測るだけ、`6_3` が入れる**という分担です。`6_2` の `parsed` は
+«構造化できた件数» であって «内容が正しい件数» ではありません。内容の正しさは
+`test_jp_site_opening_hours.py`（実サイトの原文）が担当します。**混ぜて報告しないこと。**
+
+⚠️ **分からないものは推測しません。** 営業時間が読めても定休日が読めなければ
+文章ごと諦めます（時間だけ入れると **休みの日に «開いている» と言う**ことになる）。
+3 値判定（open / closed / unknown）で害があるのは間違った `open` だけです。
+
+dev の実績（2026-09-09 時点）: OSM **13,065 店 / 100,309 行**、
+公式サイト **434 店 / 3,750 行**。日本語ページのうち構造化できたのは **25.4%**
+（[実測](https://github.com/Ayato-kosaka/nanitabeyo/issues/1666#issuecomment-5604319228)）。
+
 ### 8. 品質ゲート
 
 ```bash
@@ -443,8 +475,12 @@ bash tests/test_9_9_backfill.sh          # backfill の行選択（5項目）
 ## 保留機能の受け口
 
 - `restaurant_reviews_raw`: rating原値/正規化値、本文、言語、公開状態、権利根拠を保持
-- `restaurant_details_raw`: 営業時間、臨時休業、LO、個室、禁煙、駐車場、子連れ、
+- `restaurant_details_raw`: 臨時休業、LO、個室、禁煙、駐車場、子連れ、
   バリアフリー、Wi-Fi、決済、予約等を `attribute_key` + 型付きvalueで保持
+
+  ⚠️ **営業時間はここから外れました**（#1666）。専用の `restaurant_opening_hours` /
+  `restaurant_hours_exceptions` を持ち、dev へ投入済み・API と画面まで通っています
+  （上の「6. 営業時間」）。**保留機能ではありません。**
 
 どちらも現時点ではcatalog化・PostgreSQL同期・API配信しません。権利と鮮度SLA、優先source、
 競合解決規則が決まってから別stepで昇格します。
