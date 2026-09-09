@@ -1,182 +1,180 @@
 #!/usr/bin/env python3
-"""#1774 価格帯（priceBand）が実際に何件の料理で出せるのかを dev の実 DB で数える（読み取り専用）。
+"""#1774 «価格帯を出せる料理» が何割あるかを測る（読み取り専用）。
 
 ## なぜ要るか
 
-#1774 の完了条件は「`restaurant × dish_category` 単位で価格帯を返せる」「店提案または
-店舗詳細で表示できる」だが、**API は既に返しているのに画面がどこも描いていない**
-（`priceBand` を読む component が 1 つも無い。あるのはモックの `priceBand: null` だけ）。
+#1774 の完了条件に「#843 に coverage / 残課題を反映できる」がある。
+価格帯は **`restaurant × dish_category`**（＝ `dishes` 1 行。
+`@@unique([restaurant_id, category_id])`）ごとに出るので、母数は `dishes` である。
 
-これは #1375 でオーナーが踏んだ「作成側だけあって消費側が無い」形そのものである。
-**ただし、UI を作る前に «そもそも出せるデータがあるのか» を数える。**
-0 件なら、作るのは «常に何も出ない枠» であり、優先順位が変わる。
+## ⚠️ 判定の出どころ（写経していることを明記する）
 
-## 何を数えるか
+出せる / 出せないを決めているのは 2 箇所で、**この SQL はその両方を写している**。
 
-`shared/utils/priceBand.ts` の規則:
+1. 母数の絞り込み — `DishMediaRepository.findPriceBandsByDishIds`
 
-    PRICE_BAND_MIN_REVIEW_COUNT = 3
-    （1 件で「この店のカレーは 3000 円」と出すのは誤情報なので、3 件未満は返さない）
+       where: { dish_id: {in}, deleted_at: null, price_cents: { not: null },
+                ...NOT_AUTHORED_BY_DELETED_USER }
 
-⚠️ **判定条件を写経しない。** API（`findPriceBandsByDishIds`）と同じ where で数える。
-ずれると「画面には出ないのにスクリプトだけ緑」という嘘になる。
+   `NOT_AUTHORED_BY_DELETED_USER` は `OR: [{ user_id: null }, { users: { deleted_at: null } }]`
+   （`api/src/v1/dish-media/deleted-user-filter.ts`）。
 
-    deleted_at IS NULL
-    AND price_cents IS NOT NULL
-    AND NOT_AUTHORED_BY_DELETED_USER（作者が居ないか、居るなら退会していない）
+2. 帯の決定 — `shared/utils/priceBand.ts` の `computePriceBand` / `resolvePriceBand`
 
-⚠️ さらに `computePriceBand` は **通貨が混ざっている料理を捨てる**。ここでも同じく
-「通貨が 1 種類に定まるか」を見る（`currency_code` が NULL の行があると定まらない）。
+   - `currency_code` が NULL の行は除く（通貨バグの残骸。混ぜると中央値が最大 100 倍に壊れる）
+   - 通貨が混ざるときは **件数最多の通貨だけ**を採用（同数なら通貨コード昇順）
+   - 採用通貨の件数が `PRICE_BAND_MIN_REVIEW_COUNT`（= 3）未満なら null
+   - **刻みが定義されていない通貨は null**（`PRICE_BAND_STEPS_CENTS` は JPY のみ）
 
-## 使い方
+**どちらかが変わったらこの SQL も直すこと。** このリポジトリは «検知 SQL が本番の判定を
+写経していて、片方だけ直って緑のままだった» 事故を 2026-08-29 に起こしている。
 
-    script_path: scripts/db-checks/measure_price_band_coverage.py
-    args: --schema dev
+⚠️ 中央値そのものは計算しない。**中央値がいくつでも «出せるか出せないか» は変わらない**
+（刻みのどれかには必ず落ちる）ので、coverage には要らない。
 
-環境変数: DATABASE_URL（必須）
+## ⚠️ dev だけを見る
+
+本番の DB はオーナーの指示があるまで触らない。`--schema` は `dev` のみ受ける。
+
+実行:
+    python3 scripts/db-checks/measure_price_band_coverage.py --schema dev
 """
 
 from __future__ import annotations
 
 import argparse
 import logging
-import os
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "20260808T0000_restaurant"))
+
+from pg_sync_common import connect_postgres  # noqa: E402
+from pipeline_common import configure_logging  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
 
-# ⚠️ shared/utils/priceBand.ts の PRICE_BAND_MIN_REVIEW_COUNT と同じ値であること。
-#    ここだけ動かすと、画面に出る条件と数える条件がずれる。
+# `PRICE_BAND_MIN_REVIEW_COUNT`（shared/utils/priceBand.ts）
 MIN_REVIEW_COUNT = 3
-
-# API（dish-media.repository.ts findPriceBandsByDishIds）と同じ where。
-# 退会ユーザーの扱いは deleted-user-filter.ts の NOT_AUTHORED_BY_DELETED_USER に合わせる
-# （作者が居ない取り込みレビューは残し、作者が退会したものだけ外す）。
-PRICED_REVIEW_SQL = """
-  dr.deleted_at IS NULL
-  AND dr.price_cents IS NOT NULL
-  AND (
-    dr.user_id IS NULL
-    OR EXISTS (SELECT 1 FROM users u WHERE u.id = dr.user_id AND u.deleted_at IS NULL)
-  )
-"""
+# `PRICE_BAND_STEPS_CENTS` のキー（同上）。ここに無い通貨は帯を出せない
+CURRENCIES_WITH_STEPS = ("JPY",)
+# ⚠️ SQL の IN 句へ埋めるので **タプルの repr を使わない**。
+#    要素 1 個のタプルは `('JPY',)` となり、末尾のカンマで PostgreSQL の構文エラーになる
+#    （実際に 1 度書いてしまった）。
+CURRENCIES_IN_SQL = "(" + ", ".join(f"'{c}'" for c in CURRENCIES_WITH_STEPS) + ")"
 
 COVERAGE_SQL = f"""
-WITH priced AS (
+  WITH eligible AS (
+    SELECT r.dish_id, r.currency_code
+    FROM dish_reviews r
+    LEFT JOIN users u ON u.id = r.user_id
+    WHERE r.deleted_at IS NULL
+      AND r.price_cents IS NOT NULL
+      AND (r.user_id IS NULL OR u.deleted_at IS NULL)
+      AND r.currency_code IS NOT NULL
+  ),
+  per_currency AS (
+    SELECT dish_id, currency_code, COUNT(*) AS n
+    FROM eligible
+    GROUP BY 1, 2
+  ),
+  top_currency AS (
+    -- 件数最多の通貨。同数なら通貨コード昇順（computePriceBand と同じ決め方）
+    SELECT DISTINCT ON (dish_id) dish_id, currency_code, n
+    FROM per_currency
+    ORDER BY dish_id, n DESC, currency_code ASC
+  )
   SELECT
-    dr.dish_id,
-    count(*)                          AS n_priced,
-    count(DISTINCT dr.currency_code)  AS n_currencies,
-    count(*) FILTER (WHERE dr.currency_code IS NULL) AS n_null_currency
-  FROM dish_reviews dr
-  WHERE {PRICED_REVIEW_SQL}
-  GROUP BY dr.dish_id
-)
-SELECT
-  (SELECT count(*) FROM dishes)                                              AS dishes_total,
-  (SELECT count(*) FROM priced)                                              AS dishes_with_any_price,
-  (SELECT count(*) FROM priced WHERE n_priced >= {MIN_REVIEW_COUNT})          AS dishes_reaching_min,
-  (SELECT count(*) FROM priced
-     WHERE n_priced >= {MIN_REVIEW_COUNT} AND n_null_currency = 0 AND n_currencies = 1)
-                                                                             AS dishes_band_showable,
-  (SELECT count(*) FROM priced
-     WHERE n_priced >= {MIN_REVIEW_COUNT} AND (n_null_currency > 0 OR n_currencies > 1))
-                                                                             AS dishes_blocked_by_currency,
-  (SELECT count(*) FROM dish_reviews dr WHERE {PRICED_REVIEW_SQL})           AS priced_reviews_total
+      (SELECT COUNT(*) FROM dishes)                                        AS dishes,
+      (SELECT COUNT(*) FROM top_currency)                                  AS dishes_with_any_price,
+      (SELECT COUNT(*) FROM top_currency WHERE n >= {MIN_REVIEW_COUNT})    AS dishes_with_enough_reviews,
+      (SELECT COUNT(*) FROM top_currency
+        WHERE n >= {MIN_REVIEW_COUNT}
+          AND currency_code IN {CURRENCIES_IN_SQL})                   AS dishes_with_band,
+      (SELECT COUNT(DISTINCT d.restaurant_id)
+         FROM top_currency t JOIN dishes d ON d.id = t.dish_id
+        WHERE t.n >= {MIN_REVIEW_COUNT}
+          AND t.currency_code IN {CURRENCIES_IN_SQL})                 AS restaurants_with_band,
+      (SELECT COUNT(*) FROM restaurants)                                    AS restaurants
 """
 
-# 何件のレビューが付いている料理が多いのか（3 件の壁がどれだけ効いているか）
-DISTRIBUTION_SQL = f"""
-WITH priced AS (
-  SELECT dr.dish_id, count(*) AS n
-  FROM dish_reviews dr
-  WHERE {PRICED_REVIEW_SQL}
-  GROUP BY dr.dish_id
-)
-SELECT n, count(*) AS dishes
-FROM priced
-WHERE n < {MIN_REVIEW_COUNT}
-GROUP BY n
-ORDER BY n
+# «惜しい» の内訳。どこを直せば増えるのかを推測しないために出す
+SHORTFALL_SQL = f"""
+  WITH eligible AS (
+    SELECT r.dish_id, r.currency_code
+    FROM dish_reviews r
+    LEFT JOIN users u ON u.id = r.user_id
+    WHERE r.deleted_at IS NULL
+      AND r.price_cents IS NOT NULL
+      AND (r.user_id IS NULL OR u.deleted_at IS NULL)
+      AND r.currency_code IS NOT NULL
+  ),
+  per_currency AS (
+    SELECT dish_id, currency_code, COUNT(*) AS n FROM eligible GROUP BY 1, 2
+  ),
+  top_currency AS (
+    SELECT DISTINCT ON (dish_id) dish_id, currency_code, n
+    FROM per_currency ORDER BY dish_id, n DESC, currency_code ASC
+  )
+  SELECT
+      CASE
+        WHEN n < {MIN_REVIEW_COUNT} THEN '件数不足（' || n || ' 件）'
+        WHEN currency_code NOT IN {CURRENCIES_IN_SQL} THEN '刻み未定義の通貨（' || currency_code || '）'
+        ELSE '出せる'
+      END AS reason,
+      COUNT(*) AS dishes
+  FROM top_currency
+  GROUP BY 1
+  ORDER BY 2 DESC
+"""
+
+# 通貨バグの残骸がどれだけ残っているか（価格はあるのに通貨が無い行は母数から落ちる）
+CURRENCY_NULL_SQL = """
+  SELECT COUNT(*) FROM dish_reviews
+  WHERE deleted_at IS NULL AND price_cents IS NOT NULL AND currency_code IS NULL
 """
 
 
 def main() -> int:
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s - %(message)s"
-    )
+    configure_logging()
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--schema", default="dev")
+    parser.add_argument("--schema", default="dev", choices=["dev"])
     args = parser.parse_args()
 
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        LOGGER.error("❌ DATABASE_URL environment variable is required")
-        return 1
+    connection = connect_postgres(args.schema, allow_public=False)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET default_transaction_read_only = on")
 
-    import psycopg2
+            cursor.execute(COVERAGE_SQL)
+            (dishes, any_price, enough, with_band, r_with_band, restaurants) = cursor.fetchone()
+            pct = (with_band / dishes * 100) if dishes else 0.0
+            r_pct = (r_with_band / restaurants * 100) if restaurants else 0.0
 
-    with psycopg2.connect(database_url) as conn:
-        with conn.cursor() as cur:
-            cur.execute("SET default_transaction_read_only = on")
-            cur.execute(f'SET search_path TO "{args.schema}", extensions')
-
-            cur.execute(COVERAGE_SQL)
-            (
-                dishes_total,
-                with_any_price,
-                reaching_min,
-                showable,
-                blocked_by_currency,
-                priced_reviews,
-            ) = cur.fetchone()
-
-            LOGGER.info("=" * 70)
-            LOGGER.info("# #1774 価格帯を出せる料理はどれだけあるか（schema=%s）", args.schema)
-            LOGGER.info("=" * 70)
-            LOGGER.info("価格つきレビューの総数            : %s 件", f"{priced_reviews:,}")
-            LOGGER.info("")
-            _report("料理（dishes）の総数", dishes_total, dishes_total)
-            _report("価格つきレビューが 1 件以上ある料理", with_any_price, dishes_total)
-            _report(
-                f"価格つきレビューが {MIN_REVIEW_COUNT} 件以上ある料理",
-                reaching_min,
-                dishes_total,
-            )
-            _report("⭐ 価格帯を実際に出せる料理", showable, dishes_total)
-            LOGGER.info("")
-            LOGGER.info(
-                "うち通貨が定まらず出せないもの    : %s 件（通貨が NULL / 複数混在）",
-                f"{blocked_by_currency:,}",
-            )
+            LOGGER.info("===== #1774 «価格帯を出せる料理» の coverage（%s）=====", args.schema)
+            LOGGER.info("料理（restaurant × category）        : %8d", dishes)
+            LOGGER.info("  価格レビューが 1 件でもある        : %8d", any_price)
+            LOGGER.info("  採用通貨で %d 件以上               : %8d", MIN_REVIEW_COUNT, enough)
+            LOGGER.info("  **価格帯を出せる**                 : %8d  (%.4f%%)", with_band, pct)
+            LOGGER.info("店舗                                 : %8d", restaurants)
+            LOGGER.info("  価格帯を出せる料理を持つ店         : %8d  (%.4f%%)", r_with_band, r_pct)
 
             LOGGER.info("")
-            LOGGER.info("## %s 件の壁の手前にいる料理", MIN_REVIEW_COUNT)
-            cur.execute(DISTRIBUTION_SQL)
-            rows = cur.fetchall()
-            if rows:
-                for n, dishes in rows:
-                    LOGGER.info("    価格つきレビュー %s 件 : %s 料理", n, f"{dishes:,}")
-            else:
-                LOGGER.info("    （該当なし）")
+            LOGGER.info("出せない理由の内訳（価格レビューがある料理のみ）")
+            cursor.execute(SHORTFALL_SQL)
+            for reason, count in cursor.fetchall():
+                LOGGER.info("  %-28s %8d", reason, count)
 
+            cursor.execute(CURRENCY_NULL_SQL)
+            (currency_null,) = cursor.fetchone()
             LOGGER.info("")
-            if showable == 0:
-                LOGGER.info(
-                    "⚠️ **1 件も出せない。** いま価格帯の UI を作っても、常に何も出ない枠になる。"
-                )
-            else:
-                LOGGER.info(
-                    "⚠️ API は既にこの値を返しているが、**画面はどこも描いていない**"
-                    "（priceBand を読む component が無い）。"
-                )
+            LOGGER.info("価格はあるが通貨が無いレビュー（母数から落ちる）: %d 件", currency_null)
+            if currency_null:
+                LOGGER.warning("⚠️ #1774 の通貨バグの残骸が残っている。中央値が最大 100 倍に壊れるため除外されている")
+    finally:
+        connection.close()
     return 0
 
 
-def _report(label: str, n: int, total: int) -> None:
-    pct = (n / total * 100) if total else 0.0
-    LOGGER.info("%-34s: %s / %s （%.2f%%）", label, f"{n:,}", f"{total:,}", pct)
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
