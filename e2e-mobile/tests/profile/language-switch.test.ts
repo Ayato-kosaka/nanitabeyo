@@ -83,7 +83,9 @@ describeJapaneseLocale("表示言語の切り替え(#1508)", () => {
 		const languageScreen = new LanguageScreen();
 
 		// #1402 で独立した設定画面は廃止され、設定項目はマイページ本体へ統合された。
-		// 「マイページを開けば設定項目が同じ画面に居る」ので 1 階層減っている（theme.test.ts と同じ形）。
+		// #1579 ⚠️ **その後 #1583 で «言語» は端末設定ページへ移っている。**
+		//       いまは 1 階層戻っており、`openLanguage()` の中で端末設定へ遷移する。
+		//       この行の «統合された» だけを読んで «マイページに在る» と思わないこと。
 		await tabBar.gotoProfile();
 		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();

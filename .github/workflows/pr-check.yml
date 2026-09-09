@@ -144,6 +144,16 @@ jobs:
       - name: UI カタログの画面 ID を検査
         run: python3 -m unittest scripts/db-checks/test_catalog_screen_ids.py
 
+      # #1579 e2e が «その行が居る画面» の容器を送っているか。
+      #
+      # マイページは «設定項目が並ぶ 1 枚» から «サブ画面へ送るメニュー» へ変わり、
+      # 行の実体は端末設定 / テーマ / 通知 / アカウント / about へ散った。e2e はこの
+      # 移設に **3 度追随できず**、そのたびに «画面は出ているのに行が見つからない» で
+      # 25 秒待って落ちた（直近は 09-07〜09-09 の nightly が 3 夜連続 21 件）。
+      # 行も容器も文字列リテラルなので、Detox を回さずソースだけで突き合わせられる。
+      - name: 設定画面の «行 → 容器» の対応を検査
+        run: python3 -m unittest scripts/db-checks/test_settings_row_containers.py
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
