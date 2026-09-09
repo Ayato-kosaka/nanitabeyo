@@ -25,7 +25,8 @@ import urllib.request
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import (PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_COVERAGE, TABLE_POST_RAW,
+from common_sns import (PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_ACCOUNT_ATTEMPT, TABLE_COVERAGE,
+                        TABLE_POST_RAW,
                         TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url)
 
 LOGGER = logging.getLogger(__name__)
@@ -525,6 +526,14 @@ def _latest_catalog_run_id(pipeline: BigQueryPipeline) -> str:
     raise RuntimeError("restaurant_catalog に run_id がありません。")
 
 
+def _ensure_attempt_table(pipeline) -> None:
+    """呼んだ handle の台帳を用意する。無いと選択 SQL も投入も落ちるので、run の頭で必ず通す。"""
+    pipeline.execute(
+        f"CREATE TABLE IF NOT EXISTS `{pipeline.table(TABLE_ACCOUNT_ATTEMPT)}` ("
+        "provider STRING, handle STRING, run_id STRING, attempted_at TIMESTAMP, post_count INT64)"
+    )
+
+
 def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, max_accounts,
                    output_run_id: str | None = None, shard_count: int = 1, shard_index: int = 0,
                    skip_collected_scope: str = "run",
@@ -557,6 +566,14 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
     # #1815 scope=any にすると «他 run で採れている handle» も除外する（KPI は異なり店なので採り直しは無価値）。
     if skip_collected_scope == "any":
         collected_where = "account_id IS NOT NULL"
+        # #1815 投稿を 1 件も返さない handle（code 110 / business でない / 非公開）は sns_post_raw に
+        # 何も残さないので、上の «投稿がある handle を除く» では絶対に除外されない。並びが
+        # ORDER BY handle で決まる以上、そういう handle は毎回先頭に居座り、run を重ねるほど
+        # «新しい handle へ届く前に使い切るコール数» が増える。実測で 6 時間あたり 943→341
+        # アカウントまで落ちた。呼んだ事実そのものを台帳に残し、二度目を呼ばない。
+        where += (" AND handle NOT IN ("
+                  f"SELECT handle FROM `{pipeline.table(TABLE_ACCOUNT_ATTEMPT)}` "
+                  "WHERE provider = @prov)")
     else:
         collected_where = "run_id = @out_rid AND account_id IS NOT NULL"
         params.append(bigquery.ScalarQueryParameter("out_rid", "STRING", output_run_id or ""))
@@ -646,6 +663,7 @@ def main() -> None:
         raise RuntimeError(f"{args.token_env} 未設定（db-script-run.yml の secret）。")
 
     pipeline = BigQueryPipeline()
+    _ensure_attempt_table(pipeline)
     ig = resolve_ig_user_id(token, args.user_env)
     LOGGER.info("IG business account id = %s（token_env=%s）", ig, args.token_env)
 
@@ -703,15 +721,21 @@ def main() -> None:
         # 状態になり、生きているのか死んでいるのか外から判断できなかった。5 に下げる。
         FLUSH_EVERY = 5
         rows: list[dict] = []
+        # #1815 呼んだ handle の台帳。投稿が 0 件でも必ず 1 行残す（それが台帳の存在理由）。
+        # 投稿と同じ間隔で流すのは、6h timeout で «呼んだのに記録が無い» 状態を作らないため。
+        attempts: list[dict] = []
         seen: set[str] = set()
         total = 0
         processed = 0
 
         def _flush() -> None:
-            nonlocal rows, total
+            nonlocal rows, total, attempts
             if rows:
                 total += pipeline.load_json_rows(TABLE_POST_RAW, rows)
                 rows = []
+            if attempts:
+                pipeline.load_json_rows(TABLE_ACCOUNT_ATTEMPT, attempts)
+                attempts = []
 
         for acc in accounts:
             handle = acc["handle"]
@@ -736,6 +760,8 @@ def main() -> None:
                 })
                 n += 1
             LOGGER.info("  @%s: %d posts", handle, n)
+            attempts.append({"provider": PROVIDER_INSTAGRAM, "handle": handle, "run_id": run_id,
+                             "attempted_at": now_iso, "post_count": n})
             processed += 1
             if processed % FLUSH_EVERY == 0:
                 _flush()

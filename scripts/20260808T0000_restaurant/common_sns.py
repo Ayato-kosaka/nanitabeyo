@@ -32,6 +32,10 @@ from typing import Any
 TABLE_SOURCE_ACCOUNT = "sns_source_account"
 TABLE_STORE_SITE_IG = "sns_store_site_ig"
 TABLE_POST_RAW = "sns_post_raw"
+# #1815 «この handle に IG コールを使った» ことだけを残す台帳。投稿が 1 件も採れない handle
+# （code 110 / business でない / 非公開）は sns_post_raw に痕跡を残さないため、これが無いと
+# 毎回の run が同じ死に handle を呼び直し、クォータを食い潰す。
+TABLE_ACCOUNT_ATTEMPT = "sns_account_attempt"
 TABLE_POST_RESOLVED = "sns_post_resolved"
 TABLE_COVERAGE = "sns_coverage"
 TABLE_DISH_MEDIA_CATALOG = "sns_dish_media_catalog"
