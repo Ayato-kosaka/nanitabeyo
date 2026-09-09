@@ -108,8 +108,15 @@ export function deriveJstCalendarContext(nowUtc: Date, window: TimeSlotWindow): 
 	};
 }
 
-/** 複数 source が同じ日/同じ日付を主張するとき、優先順位に従って1つだけ選ぶ */
-function pickPrioritySource(sources: readonly string[]): string | null {
+/**
+ * 複数 source が同じ日/同じ日付を主張するとき、優先順位に従って1つだけ選ぶ。
+ *
+ * ⚠️ **export しているのは «表示» 側（GET /v1/restaurants/:id/opening-hours）にも
+ *    同じ規則が要るからである。** 週の一覧を組み立てるときに «どの出所を採るか» を
+ *    向こうへ書き写すと、判定（この下の resolveOpeningStatus）と表示が食い違い、
+ *    «一覧には公式サイトの時間が出ているのに、絞り込みは OSM で動く» という状態になる。
+ */
+export function pickPrioritySource(sources: readonly string[]): string | null {
 	if (sources.length === 0) return null;
 	for (const candidate of RESTAURANT_HOURS_SOURCE_PRIORITY) {
 		if (sources.includes(candidate)) return candidate;
@@ -236,4 +243,87 @@ export function resolveOpeningStatus(params: {
 		exceptions.some((e) => e.exceptionDate === todayDate || e.exceptionDate === yesterdayDate);
 
 	return hasKnownData ? 'closed' : 'unknown';
+}
+
+/* ==========================================================================
+ * 表示（GET /v1/restaurants/:id/opening-hours）
+ * ========================================================================== */
+
+/** 週の 1 日ぶん。`spans` が空なら **その曜日は定休**（データが無い＝不明、ではない。下記） */
+export type WeeklyOpeningHoursDay = {
+	/** 0 = 日曜 … 6 = 土曜 */
+	dayOfWeek: number;
+	spans: {
+		/** 0-1439（真夜中からの分） */
+		opensAtMinutes: number;
+		/** 0-1439（真夜中からの分） */
+		closesAtMinutes: number;
+		crossesMidnight: boolean;
+	}[];
+};
+
+/**
+ * #1666 店舗詳細に出す «1 週間の営業時間» を組み立てる。
+ *
+ * ⚠️ **«その曜日に行が無い» は «定休» である。«不明» ではない。**
+ * これは {@link resolveOpeningStatus} が既に採っている読み方で、あちらは
+ * 「営業時間データが 1 件でもあれば、窓に重ならない日は `closed`」と判定する。
+ * 表示だけ «不明» と書くと、**絞り込みでは消える店が、詳細では «分からない» と出る**。
+ * 同じデータに 2 つの意味を持たせないこと。
+ *
+ * ⚠️ 出所の優先順位は **曜日ごと**に解決する（{@link pickPrioritySource}）。
+ * 公式サイトが月〜金しか書いていない店で、土日だけ OSM を採るのが正しい。
+ * 週全体で 1 つの出所に決めると、公式サイトを採った時点で土日が消える。
+ *
+ * ⚠️ `restaurant_hours_exceptions`（特定日の休業・臨時営業）は **見ていない**。
+ * この表は «通常の週» を表す。いまは書き込む経路が 1 つも無く常に空だが、
+ * 埋まったら «今日は臨時休業» を別に出すこと（この表を書き換えないこと）。
+ *
+ * 行が 1 つも無いときは空配列を返す。呼び出し側は **欄ごと出さない**（#1666 の受け入れ条件 4）。
+ */
+export function buildWeeklyOpeningHours(rows: readonly RestaurantOpeningHourRow[]): WeeklyOpeningHoursDay[] {
+	if (rows.length === 0) return [];
+
+	const days: WeeklyOpeningHoursDay[] = [];
+	for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+		const rowsForDay = rows.filter((r) => r.dayOfWeek === dayOfWeek);
+		const source = pickPrioritySource(rowsForDay.map((r) => r.source));
+		const spans = rowsForDay
+			.filter((r) => r.source === source)
+			.map((r) => ({
+				opensAtMinutes: r.opensAtMinutes,
+				closesAtMinutes: r.closesAtMinutes,
+				crossesMidnight: r.crossesMidnight,
+			}))
+			.sort((a, b) => a.opensAtMinutes - b.opensAtMinutes || a.closesAtMinutes - b.closesAtMinutes);
+		days.push({ dayOfWeek, spans });
+	}
+	return days;
+}
+
+/**
+ * 表示に添える «どこから採ったか»。曜日ごとに違いうるので、**週で実際に採られた出所**を返す。
+ *
+ * ⚠️ 「1 つに決めて 1 つだけ出す」をしないこと。月〜金が公式サイト・土日が OSM の店で
+ * «公式サイト» とだけ書くと、土日の出所を偽ることになる。
+ */
+export function usedHoursSources(rows: readonly RestaurantOpeningHourRow[]): string[] {
+	const used = new Set<string>();
+	for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+		const source = pickPrioritySource(rows.filter((r) => r.dayOfWeek === dayOfWeek).map((r) => r.source));
+		if (source) used.add(source);
+	}
+	// ⚠️ `[...set]` は shared の tsconfig（target が古い）ではビルドが通らない
+	return Array.from(used).sort();
+}
+
+/**
+ * 「真夜中からの分」を `HH:MM` にする（表示用）。
+ *
+ * ⚠️ 0 埋めを落とさないこと。`9:0` は時刻として読めず、8 ロケールぶんの表示が壊れる。
+ */
+export function minutesToHhMm(minutes: number): string {
+	const h = Math.floor(minutes / 60);
+	const m = minutes % 60;
+	return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }

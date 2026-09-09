@@ -752,7 +752,19 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "레스토랑 상세",
-			"openInGoogleMaps": "Google 지도에서 열기"
+			"openInGoogleMaps": "Google 지도에서 열기",
+			"openingHours": {
+				"title": "영업시간",
+				"closed": "휴무",
+				"nextDay": "다음날 {{time}}",
+				"provenance": "{{sources}}에서 가져옴 ({{date}})",
+				"sources": {
+					"osm": "OpenStreetMap",
+					"official_site": "가게 공식 사이트",
+					"user": "이용자 제보",
+					"owner": "가게 등록"
+				}
+			}
 		}
 	},
 	"Feedback": {

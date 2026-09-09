@@ -561,6 +561,42 @@ await context.route("**/localhost:9999/**", (r) => {
 			})),
 			nextCursor: null,
 		});
+	// #1666 店舗詳細の «営業時間» 欄。
+	// ⚠️ `/v1/restaurants/:id` より **先に** 判定すること（後ろに置くと :id 側が先に当たる）。
+	// 火曜だけ 2 コマ、金曜は日またぎ、水曜は行を持たせない（= 定休として描かれる）。
+	if (/\/v1\/restaurants\/[^/]+\/opening-hours$/.test(p))
+		return env({
+			days: [
+				{ dayOfWeek: 0, spans: [{ opensAt: "11:00", closesAt: "20:00", crossesMidnight: false }] },
+				{ dayOfWeek: 1, spans: [{ opensAt: "11:00", closesAt: "14:00", crossesMidnight: false }] },
+				{
+					dayOfWeek: 2,
+					spans: [
+						{ opensAt: "11:00", closesAt: "14:00", crossesMidnight: false },
+						{ opensAt: "17:00", closesAt: "21:00", crossesMidnight: false },
+					],
+				},
+				{ dayOfWeek: 3, spans: [] },
+				{ dayOfWeek: 4, spans: [{ opensAt: "11:00", closesAt: "14:00", crossesMidnight: false }] },
+				{ dayOfWeek: 5, spans: [{ opensAt: "18:00", closesAt: "02:00", crossesMidnight: true }] },
+				{ dayOfWeek: 6, spans: [{ opensAt: "11:00", closesAt: "20:00", crossesMidnight: false }] },
+			],
+			sources: ["official_site", "osm"],
+			fetchedAt: "2026-09-06T13:25:55.000Z",
+		});
+	// 店舗詳細を URL 直リンクで開いたとき（ストアのキャッシュが無い経路）
+	if (/\/v1\/restaurants\/[^/]+$/.test(p))
+		return env({
+			restaurant: {
+				id: "r-1",
+				name: "醤油ラーメン一番",
+				google_place_id: "ChIJpreview1",
+				latitude: 35.6595,
+				longitude: 139.7005,
+				imageUrls: { sm: "https://img.example.invalid/r.jpg", md: "https://img.example.invalid/r.jpg" },
+			},
+			meta: { reviewCount: 12, averageRating: 4.2, totalCents: 0, maxEndDate: null },
+		});
 	// #1671 新規店舗の確認ページの下読み（保存しない）
 	if (p.endsWith("/v1/restaurants/draft"))
 		return env({
@@ -828,5 +864,15 @@ await page
 	.catch((e) => console.log("fill:", e.message));
 await page.waitForTimeout(800);
 await shot("confirm-restaurant-edited");
+
+// 7. #1666 店舗詳細の «営業時間»（通常の 1 週間 / 出所 / 取得日）
+//    ⚠️ «営業中» のバッジは出ないのが正しい（判定が JST 固定で、海外の店では嘘になる）
+await goto("/ja-JP/restaurant/r-1");
+await page
+	.getByTestId("restaurant-opening-hours")
+	.waitFor({ timeout: 120000 })
+	.catch((e) => console.log("opening-hours wait:", e.message));
+await page.waitForTimeout(1500);
+await shot("restaurant-opening-hours");
 
 await browser.close();

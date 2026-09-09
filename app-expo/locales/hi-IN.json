@@ -752,7 +752,19 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "रेस्टोरेंट विवरण",
-			"openInGoogleMaps": "Google मैप्स में खोलें"
+			"openInGoogleMaps": "Google मैप्स में खोलें",
+			"openingHours": {
+				"title": "खुलने का समय",
+				"closed": "बंद",
+				"nextDay": "अगले दिन {{time}}",
+				"provenance": "{{sources}} से लिया गया ({{date}})",
+				"sources": {
+					"osm": "OpenStreetMap",
+					"official_site": "दुकान की अपनी साइट",
+					"user": "उपयोगकर्ता की सूचना",
+					"owner": "दुकान द्वारा दर्ज"
+				}
+			}
 		}
 	},
 	"Feedback": {

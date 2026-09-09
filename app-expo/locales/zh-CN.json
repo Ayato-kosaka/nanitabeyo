@@ -752,7 +752,19 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "餐厅详情",
-			"openInGoogleMaps": "在 Google 地图中打开"
+			"openInGoogleMaps": "在 Google 地图中打开",
+			"openingHours": {
+				"title": "营业时间",
+				"closed": "休息",
+				"nextDay": "次日{{time}}",
+				"provenance": "来自 {{sources}}（{{date}} 获取）",
+				"sources": {
+					"osm": "OpenStreetMap",
+					"official_site": "店铺官网",
+					"user": "用户报告",
+					"owner": "店铺登记"
+				}
+			}
 		}
 	},
 	"Feedback": {

@@ -23,8 +23,14 @@ import {
 // #1666 引き上げる範囲は店提案の本体クエリと同じ候補集合に限る
 import { nearbyRestaurantsCte } from './nearby-restaurants-cte';
 
-/** Postgres の TIME（タイムゾーン無し）を Prisma が返す Date から「真夜中からの分」へ変換する */
-function timeToMinutes(value: Date): number {
+/**
+ * Postgres の TIME（タイムゾーン無し）を Prisma が返す Date から「真夜中からの分」へ変換する。
+ *
+ * ⚠️ **export しているのは «表示» 側（`getRestaurantOpeningHours`）も同じ変換が要るからである。**
+ * `getUTCHours()` を使うのが要点で（ホストのローカル TZ に引きずられないため）、
+ * これを向こうへ書き写すと、実行環境の TZ が UTC でないときに **判定と表示で時刻がずれる**。
+ */
+export function timeColumnToMinutes(value: Date): number {
   return value.getUTCHours() * 60 + value.getUTCMinutes();
 }
 
@@ -128,8 +134,8 @@ export async function fetchRestaurantOpeningStatuses(
     list.push({
       source: row.source,
       dayOfWeek: row.day_of_week,
-      opensAtMinutes: timeToMinutes(row.opens_at),
-      closesAtMinutes: timeToMinutes(row.closes_at),
+      opensAtMinutes: timeColumnToMinutes(row.opens_at),
+      closesAtMinutes: timeColumnToMinutes(row.closes_at),
       crossesMidnight: row.crosses_midnight,
     });
     hoursByRestaurant.set(row.restaurant_id, list);
@@ -145,8 +151,8 @@ export async function fetchRestaurantOpeningStatuses(
       source: row.source,
       exceptionDate: dateToYmd(row.exception_date),
       isClosed: row.is_closed,
-      opensAtMinutes: row.opens_at ? timeToMinutes(row.opens_at) : null,
-      closesAtMinutes: row.closes_at ? timeToMinutes(row.closes_at) : null,
+      opensAtMinutes: row.opens_at ? timeColumnToMinutes(row.opens_at) : null,
+      closesAtMinutes: row.closes_at ? timeColumnToMinutes(row.closes_at) : null,
     });
     exceptionsByRestaurant.set(row.restaurant_id, list);
   }

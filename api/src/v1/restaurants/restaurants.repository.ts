@@ -1007,6 +1007,35 @@ export class RestaurantsRepository {
   }
 
   /* ------------------------------------------------------------------ */
+  /*      #1666 店舗詳細に出す «通常の 1 週間の営業時間» を引く          */
+  /* ------------------------------------------------------------------ */
+  /**
+   * ⚠️ **1 店ぶんだけを引く。** `restaurant-opening-status.ts` の方は «近くの候補集合» へ
+   * 絞る必要があったが（62 万店 × 曜日を毎回引き上げていた）、ここは主キー前方一致の
+   * 1 店なので `idx_restaurant_opening_hours_lookup` がそのまま効く。
+   *
+   * 出所の優先順位は **解決しない**。ここは生の行を返し、解決は
+   * `shared/utils/openingHours.ts` の `buildWeeklyOpeningHours` が 1 箇所で行う
+   * （判定側と同じ規則を使うため。SQL へ書き写すと片方だけずれる）。
+   */
+  async findRestaurantOpeningHours(
+    tx: Prisma.TransactionClient,
+    restaurantId: string,
+  ) {
+    return tx.restaurant_opening_hours.findMany({
+      where: { restaurant_id: restaurantId },
+      select: {
+        source: true,
+        day_of_week: true,
+        opens_at: true,
+        closes_at: true,
+        crosses_midnight: true,
+        fetched_at: true,
+      },
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
   /*                          Check if restaurant exists                          */
   /* ------------------------------------------------------------------ */
   async restaurantExists(
