@@ -136,7 +136,8 @@ extracted AS (
     JSON_VALUE(payloadText, '$.status')                 AS feHttpStatus,  -- useAPICall.ts:278
     JSON_VALUE(payloadText, '$.endpoint')               AS feEndpoint,    -- useAPICall.ts:276
     JSON_VALUE(payloadText, '$.kind')                   AS feKind,        -- useLocationSearch.ts:314
-    JSON_VALUE(payloadText, '$.timedOut')               AS feTimedOut,    -- useAPICall.ts:279 自前の30秒タイマーだけが立てる
+    JSON_VALUE(payloadText, '$.timedOut')               AS feTimedOut,    -- useAPICall.ts 自前の30秒タイマーだけが立てる
+    JSON_VALUE(payloadText, '$.elapsedMs')              AS feElapsedMs,   -- useAPICall.ts #1951 スリープ判別用
     JSON_VALUE(payloadText, '$.errorPayload.errorCode') AS feErrorCode,
     JSON_VALUE(payloadText, '$.statusCode')             AS beHttpStatus,  -- api-exception.filter.ts:46
     JSON_VALUE(payloadText, '$.url')                    AS beUrl          -- api-exception.filter.ts:45
@@ -156,7 +157,7 @@ normalized AS (
     e.ingestedAt, e.userId, e.createdCommitId, e.createdAppVersion,
     e.surface, e.eventName, e.functionName, e.apiName, e.extMethod, e.extStatusCode,
     e.rawMessage, e.extErrorMessage,
-    e.feHttpStatus, e.feKind, e.feTimedOut, e.feErrorCode, e.beHttpStatus,
+    e.feHttpStatus, e.feKind, e.feTimedOut, e.feElapsedMs, e.feErrorCode, e.beHttpStatus,
     (
       SELECT ARRAY_AGG(
         TRIM(
@@ -289,10 +290,23 @@ keyed AS (
       --
       --      このファイルの原則どおり «見えるほうの失敗（Issue が立つ）» に倒す。
       --      件数は実測で 18 時間に 4 件なので、ノイズにはならない。
+      --
+      --      ⚠️ #1951 **端末がスリープしたぶんも除外へ戻す。**
+      --      timedOut を外した（上記）ら、今度は «端末がスリープして 30 秒タイマーが
+      --      復帰時に遅れて発火した» ぶんが起票されるようになった（health / reverse-geocoding が典型）。
+      --      本番実測に **2,329 秒 = 39 分**の «タイムアウト» があり、サーバが 39 分かかったのではなく
+      --      端末が寝ていただけである。
+      --      判別は経過時間で行う。自前のタイマーは 30 秒なので、そこから大きく外れた値は
+      --      «タイマー自体が遅れて発火した» ことを意味する。60 秒（上限の 2 倍）を境にする。
+      --      ⚠️ elapsedMs は #1951 で足した新しいキーなので、**古いビルドからは NULL で来る**。
+      --         NULL は «判別できない» なので **除外しない**（見える側の失敗に倒す）。
       WHEN n.surface = 'frontend'
        AND n.eventName = 'api_call_error'
        AND SAFE_CAST(n.feHttpStatus AS INT64) = 0
-       AND IFNULL(n.feTimedOut, '') != 'true'
+       AND (
+             IFNULL(n.feTimedOut, '') != 'true'
+             OR SAFE_CAST(n.feElapsedMs AS INT64) > 60000
+           )
         THEN 'client_network'
       -- (E4) 一時障害系ステータス。constants.js の TRANSIENT_HTTP_STATUSES が唯一の正
       --

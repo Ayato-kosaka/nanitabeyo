@@ -179,6 +179,15 @@ export const useAPICall = () => {
 			let endpoint = endpointName;
 			let networkError: unknown;
 			let didTimeout = false;
+			/*
+			#1834 / #1951 **経過時間を測る。**
+
+			`timedOut: true` だけでは «サーバが 30 秒返さなかった» と
+			«端末がスリープして 30 秒タイマーが復帰時に遅れて発火した» を区別できない。
+			error-triage は前者だけを起票したいので、判定材料をここで残す
+			（本番実測に **2,329 秒 = 39 分**の «タイムアウト» があり、これは明らかに後者）。
+			*/
+			const startedAt = Date.now();
 			const abortController = new AbortController();
 			const timeoutId = setTimeout(() => {
 				didTimeout = true;
@@ -305,6 +314,8 @@ export const useAPICall = () => {
 						status: 0,
 						error: toErrorLogMessage(networkError),
 						timedOut: didTimeout,
+						// #1951 «サーバが遅い» と «端末がスリープした» を error-triage が分けるための材料
+						elapsedMs: Date.now() - startedAt,
 					},
 				});
 				throw {
