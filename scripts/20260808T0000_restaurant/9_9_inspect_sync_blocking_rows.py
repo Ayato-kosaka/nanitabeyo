@@ -52,8 +52,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from pg_sync_common import connect_postgres  # noqa: E402
-from pipeline_common import configure_logging  # noqa: E402
+from pg_sync_common import connect_postgres, fetch_sync_windows  # noqa: E402
+from pipeline_common import BigQueryPipeline, configure_logging  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
 
@@ -78,6 +78,19 @@ BLOCKING_ROWS_SQL = """
   LIMIT 50
 """
 
+# ⚠️ 9_1 の validate_staging と **完全に同じ 3 条件**。窓は fetch_sync_windows から
+#    取る（9_1 / 9_9 backfill と同じ関数。写経すると別の行を見る）。
+BLOCKING_IN_WINDOW_SQL = """
+  SELECT
+      r.id::text, r.name, r.created_by_source, r.source_seed_id,
+      r.created_at, r.synced_at, r.google_place_id, r.country_code,
+      r.source_row_hash, array_length(r.source_names, 1)
+  FROM restaurants r
+  WHERE r.created_by_source <> 'pipeline'
+    AND r.source_seed_id IS NOT NULL
+    AND r.created_at BETWEEN %s AND %s
+"""
+
 SOURCE_BREAKDOWN_SQL = """
   SELECT created_by_source, COUNT(*) AS rows
   FROM restaurants
@@ -100,6 +113,13 @@ def main() -> int:
             breakdown = cursor.fetchall()
             cursor.execute(BLOCKING_ROWS_SQL)
             rows = cursor.fetchall()
+            # 9_1 が実際に止まる «窓の中» の行だけを、同じ関数から取った窓で絞る
+            in_window: list = []
+            for window in fetch_sync_windows(BigQueryPipeline(), args.schema, allow_empty=True):
+                cursor.execute(
+                    BLOCKING_IN_WINDOW_SQL, (window.started_at, window.finished_at)
+                )
+                in_window.extend(cursor.fetchall())
     finally:
         connection.close()
 
@@ -140,7 +160,30 @@ def main() -> int:
         LOGGER.info("  source_row_hash: %s", row_hash)
         LOGGER.info("  source_names の数: %s", source_name_count)
     LOGGER.info("")
-    LOGGER.info("合計 %d 行", len(rows))
+    LOGGER.info("上の一覧: %d 行（LIMIT 50。窓では絞っていない）", len(rows))
+
+    LOGGER.info("")
+    LOGGER.info("=" * 78)
+    LOGGER.info("# ⚠️ 9_1 が実際に止まっている行（同期の窓の中・9_1 と同じ 3 条件）")
+    LOGGER.info("=" * 78)
+    if not in_window:
+        LOGGER.info("  該当なし")
+    for (
+        rid, name, source, seed_id, created_at, synced_at,
+        place_id, country, row_hash, source_name_count,
+    ) in in_window:
+        LOGGER.info("  id             : %s", rid)
+        LOGGER.info("  name           : %s", name)
+        LOGGER.info("  created_by     : %s", source)
+        LOGGER.info("  source_seed_id : %s", seed_id)
+        LOGGER.info("  created_at     : %s", created_at)
+        LOGGER.info("  synced_at      : %s", synced_at)
+        LOGGER.info("  google_place_id: %s", place_id)
+        LOGGER.info("  country_code   : %s", country)
+        LOGGER.info("  source_row_hash: %s  ← None ならパイプラインは内容を書いていない", row_hash)
+        LOGGER.info("  source_names   : %s 件", source_name_count)
+    LOGGER.info("")
+    LOGGER.info("窓の中の該当行: %d 件（9_1 の報告と一致するはず）", len(in_window))
     return 0
 
 
