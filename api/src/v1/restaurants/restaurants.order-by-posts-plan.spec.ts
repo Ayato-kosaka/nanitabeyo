@@ -234,6 +234,15 @@ describe('#1629 計測スクリプトが読む SQL は repository が組み立�
       { orderByDistance: true, limit: 100 } as SearchDto,
     ],
     ['search_nearby_restaurants.byname', { q: 'ZQNAME' } as SearchDto],
+    [
+      /*
+        #1951 **索引が効かない短い店名の形**。中間一致（パーセントで囲む形）だと
+        pg_trgm が trigram を取れず 57 万行の Seq Scan になり、本番で 20.34 秒かかっていた。
+        前方一致 / 語頭一致の OR へ切り替わっていることを、計測スクリプトが読む SQL でも固定する。
+      */
+      'search_nearby_restaurants.byname_short',
+      { q: 'ZQ' } as SearchDto,
+    ],
   ])('%s', async (name, dto) => {
     const built = await build(dto);
     const sqlPath = join(SQL_DIR, `${name}.sql`);
@@ -251,15 +260,26 @@ describe('#1629 計測スクリプトが読む SQL は repository が組み立�
       重複しない番兵値で組み立て直して、値から名前を引く。
     */
     const probes = { lat: -11.5, lng: -22.5, radius: -33.5, limit: -44 };
+    /*
+      #1951 ⚠️ **番兵の店名は «短さの形» を保つこと。**
+      `buildNameMatch` は q の語数・文字数で **バインドの本数が変わる**（中間一致 1 本 /
+      前方一致・語頭一致 3 本）。短い q のケースまで長い番兵へ置き換えると、
+      «番兵で組んだ SQL» と «実際の SQL» の本数がずれて、後段の個数一致検査が落ちる。
+    */
+    const probeName = dto.q === undefined ? undefined : dto.q.length <= 2 ? 'ZQ' : 'ZQNAME';
     const probed = await build({
       ...dto,
       ...probes,
-      ...(dto.q === undefined ? {} : { q: 'ZQNAME' }),
+      ...(probeName === undefined ? {} : { q: probeName }),
     });
     const nameOf = new Map<unknown, string>([
       ...Object.entries(probes).map(([k, v]) => [v, k] as [unknown, string]),
       // 店名は ILIKE のワイルドカードに包まれて渡る
       ['%ZQNAME%', 'q'],
+      // #1951 短い店名は «前方一致 / 語頭一致» の 3 本になる（buildNameMatch）
+      ['ZQ%', 'q'],
+      ['% ZQ%', 'q'],
+      ['%\u3000ZQ%', 'q'],
     ]);
     const paramNames = probed.values.map((v) => {
       const found = nameOf.get(v);

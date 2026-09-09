@@ -6,6 +6,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isSubstringIndexable } from './restaurant-name-match-mode';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { Prisma } from '../../../../shared/prisma/client';
@@ -49,6 +50,31 @@ export type RestaurantDishMediaEntry = DishMediaEntryEntity & {
     averageRating: number;
   };
 };
+
+/**
+ * #1951 店名の照合条件を組み立てる。**中間一致で索引が効くときだけ中間一致にする。**
+ *
+ * 索引が効かない短い `q` は、前方一致（`一蘭%`）と語頭一致（`% 一蘭%`）の OR にする。
+ * どちらも pg_trgm が左パディングを付けて trigram を取れるので、BitmapOr で索引に乗る
+ * （実測 0.56 ms。判定と根拠は `restaurant-name-match-mode.ts`）。
+ *
+ * ⚠️ **返り値は必ず括弧で包むこと。** 呼び出し側は直後に `AND ST_DWithin(...)` を続けるので、
+ *    括弧が無いと `OR` が `AND` より弱く結合して**半径の外の店まで返る**。
+ * ⚠️ 全角空白（U+3000）も区切りとして拾う。日本語の店名は「一蘭　渋谷店」の形が普通にある。
+ *
+ * @param escaped LIKE のワイルドカードをエスケープ済みの検索語（バインドするのはこちら）
+ * @param raw     エスケープ**前**の検索語（語数・文字数の判定に使う。`\` が混ざると数がずれるため）
+ */
+function buildNameMatch(escaped: string, raw: string): Prisma.Sql {
+  if (isSubstringIndexable(raw)) {
+    return Prisma.sql`(r.name ILIKE ${'%' + escaped + '%'})`;
+  }
+  return Prisma.sql`(
+            r.name ILIKE ${escaped + '%'}
+         OR r.name ILIKE ${'% ' + escaped + '%'}
+         OR r.name ILIKE ${'%\u3000' + escaped + '%'}
+          )`;
+}
 
 @Injectable()
 export class RestaurantsRepository {
@@ -336,8 +362,26 @@ export class RestaurantsRepository {
     const escapedNameQuery = nameQuery
       ? nameQuery.replace(/[\\%_]/g, (c) => `\\${c}`)
       : null;
+    /*
+      #1951 【性能】**2 文字以下の店名は «中間一致» で引かない。前方一致 / 語頭一致へ切り替える。**
+
+      pg_trgm は LIKE のパターンから trigram（3 文字）を取り出せないと索引を使えない。
+      `%一蘭%` は両端が % なので trigram が 0 個で、**57 万行の Seq Scan** になる。
+      行が太い（address_components JSONB）ぶんリモートストレージの読みが効いて、
+      本番で **20.34 秒**かかっていた（一蘭 / 半径 1,500km。2026-09-09 実測）。
+
+      `一蘭%` なら `"  一"` `" 一蘭"` の 2 個が取れて索引が効く（実測 0.44 ms）。
+      空白区切りの語頭（`% 一蘭%`）も同じ理屈で拾えるので、
+      「一風堂 渋谷店」のような支店名つきの表記も当たる。
+
+      ⚠️ **判定を `length >= 3` にしないこと。** pg_trgm が見るのは «連続した語» なので、
+         語が 2 つあれば 1 文字ずつでも trigram は取れる。判定の正は
+         `restaurant-name-match-mode.ts` の `isSubstringIndexable` 1 箇所だけに置く。
+      ⚠️ 失うもの: 2 文字以下では **語中一致を拾わない**（「一蘭」で「博多一蘭本店」は出ない）。
+         3 文字目を打てば中間一致に戻る。判断ログは #1951。
+    */
     const nameFilter = escapedNameQuery
-      ? Prisma.sql`AND r.name ILIKE ${'%' + escapedNameQuery + '%'}`
+      ? Prisma.sql`AND ${buildNameMatch(escapedNameQuery, nameQuery as string)}`
       : Prisma.empty;
     // 店名で絞ったときは «投稿が多い順» ではなく距離順にする。
     // 店舗選択 UI で「一蘭」と打った結果が投稿数で並ぶのは不自然なため
@@ -493,6 +537,11 @@ export class RestaurantsRepository {
           再現環境（半径 1,500km・希少な店名）で Bitmap Index Scan on
           idx_restaurants_name_trgm → 8 ms。
 
+          ⚠️ #1951 **「trgm で絞れる」が成り立つのは «連続する語が 3 文字以上» のときだけ**である。
+             2 文字以下の中間一致（パーセントで囲む形）は trigram が 0 個で索引が使えず、
+             本番で **20.34 秒**かかっていた。だから照合の形そのものを
+             buildNameMatch が切り替える（前方一致 / 語頭一致）。ここの並べ方の話とは別の層。
+
           ⚠️ ここで «KNN + LIMIT を内側に閉じる» 形（nearest と同じ形）にしてはいけない。
              店名が希少だと «近い順に舐めて 20 件そろうまで» が全件走査になる。
 
@@ -507,7 +556,7 @@ export class RestaurantsRepository {
         SELECT r.id
         FROM restaurants r
         WHERE
-          r.name ILIKE ${'%' + escapedNameQuery + '%'}
+          ${buildNameMatch(escapedNameQuery, nameQuery as string)}
           AND ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
         ORDER BY ST_Distance(r.location, ${originPoint}) ASC LIMIT ${limitSql}`
             : Prisma.sql`

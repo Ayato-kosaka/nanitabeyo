@@ -100,10 +100,17 @@ JP_LAT, JP_LNG = 36.2048, 138.2529
 #    守るのは «API が受け付ける最悪の形» であって «今の呼ばれ方» ではない。
 # ⚠️ 名前は `restaurants.order-by-posts-plan.spec.ts` が書き出すスナップショットと一致させる。
 #    ずれたら jest が赤くなる（写経しないための仕組み）。
+# (スナップショット名, limit, 説明, q)。q は店名検索の枝だけが使う（他は None）
 SHAPES = (
-    ("search_nearby_restaurants.default", 20, "既定順（投稿が多い順）・クライアント既定"),
-    ("search_nearby_restaurants.default_limit100", 100, "既定順・API が受け付ける上限"),
-    ("search_nearby_restaurants.distance_limit100", 100, "距離順・SNS 取り込みが内部から呼ぶ形"),
+    ("search_nearby_restaurants.default", 20, "既定順（投稿が多い順）・クライアント既定", None),
+    ("search_nearby_restaurants.default_limit100", 100, "既定順・API が受け付ける上限", None),
+    ("search_nearby_restaurants.distance_limit100", 100, "距離順・SNS 取り込みが内部から呼ぶ形", None),
+    # #1951 索引が効かない短い店名。中間一致だと 57 万行の Seq Scan になり本番 20.34 秒だった。
+    # 前方一致 / 語頭一致へ切り替わって Bitmap Index Scan に乗っているかをここで見る。
+    # ⚠️ 「一蘭」は実際に本番で 20.34 秒かかった店名そのもの。合成値へ置き換えないこと。
+    ("search_nearby_restaurants.byname_short", 20, "店名 2 文字（#1951 の本命）", "一蘭"),
+    # 比較対象。3 文字以上は従来どおり中間一致で索引に乗るはず
+    ("search_nearby_restaurants.byname", 20, "店名 3 文字以上（従来の中間一致）", "八王子"),
 )
 
 # 測る条件。(ラベル, 中心 lat, 中心 lng, 半径 m)
@@ -176,7 +183,7 @@ def load_sql(name):
     return sql, names
 
 
-def bind(names, lat, lng, radius, limit):
+def bind(names, lat, lng, radius, limit, q=None):
     """バインド値を «名前の列» の順に並べる。
 
     ⚠️ ここを手書きの配列にしないこと。SQL の形を変えるとバインドの順番も変わり、
@@ -184,7 +191,35 @@ def bind(names, lat, lng, radius, limit):
        名前の列は jest が repository から書き出しているので、ずれようがない。
     """
     values = {"lat": lat, "lng": lng, "radius": radius, "limit": limit}
-    return [values[n] for n in names]
+    if q is None:
+        return [values[n] for n in names]
+
+    # #1951 店名の枝。中間一致は 1 本、短い店名は 前方一致 / 語頭一致 の 3 本になる。
+    # **バインドする順番はスナップショットの params.json が持っている**ので、
+    # ここでは «q が何本目か» を数えて、その本数ぶんのパターンを順に当てる。
+    # ⚠️ パターンの形を repository と別に書いているのはここだけである。ずれると
+    #    «別のクエリを測る» ことになるので、本数が合わなければ落とす。
+    patterns_by_count = {
+        1: ["%{}%".format(q)],
+        3: ["{}%".format(q), "% {}%".format(q), "%\u3000{}%".format(q)],
+    }
+    q_count = names.count("q")
+    patterns = patterns_by_count.get(q_count)
+    if patterns is None:
+        raise SystemExit(
+            "❌ q のバインドが {} 本ある形は想定していない。"
+            " repository の buildNameMatch を変えたなら、ここも一緒に直すこと".format(q_count)
+        )
+
+    out = []
+    q_index = 0
+    for n in names:
+        if n == "q":
+            out.append(patterns[q_index])
+            q_index += 1
+        else:
+            out.append(values[n])
+    return out
 
 
 def run_counts(cur, schema):
@@ -278,10 +313,10 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
         f"{with_posts:,}",
         ROWS_BUDGET_MULTIPLIER,
     )
-    logger.info("測る形: %s", " / ".join(f"{n}(limit {l})" for n, l, _ in SHAPES))
+    logger.info("測る形: %s", " / ".join(f"{n}(limit {l})" for n, l, _, _ in SHAPES))
     failures = []
 
-    for shape_name, shape_limit, shape_note in SHAPES:
+    for shape_name, shape_limit, shape_note, shape_q in SHAPES:
         sql, names = load_sql(shape_name)
         nparams = len(names)
         # 予算は limit ごとに変わる（近傍枠は limit 件ぶん走るため）
@@ -296,7 +331,7 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
             failures.extend(
                 _measure_case(
                     cur, schema, sql, nparams, names, label, lat, lng, radius,
-                    shape_limit, shape_name, budget, full_plan,
+                    shape_limit, shape_name, budget, full_plan, shape_q,
                 )
             )
 
@@ -319,7 +354,7 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
 
 def _measure_case(
     cur, schema, sql, nparams, names, label, lat, lng, radius,
-    limit, shape_name, budget, full_plan,
+    limit, shape_name, budget, full_plan, q=None,
 ):
     """1 つの «形 × 地点» を custom / generic の両方で測る。戻り値は失敗の一覧。"""
     failures = []
@@ -328,7 +363,7 @@ def _measure_case(
         logger.info("-" * 72)
         logger.info("## %s", label)
         logger.info("-" * 72)
-        params = bind(names, lat, lng, radius, limit)
+        params = bind(names, lat, lng, radius, limit, q)
         for generic in (False, True):
             mode = "generic" if generic else "custom "
             cur.execute("SET LOCAL statement_timeout = '120s'")
