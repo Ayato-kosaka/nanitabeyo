@@ -17,6 +17,7 @@ from typing import Any
 
 from google.cloud import bigquery
 
+from catalog_publish_values import preserved_mismatch_sql
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from search_bounds import outside_search_bounds_sql
 
@@ -63,6 +64,10 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
     # #1881 矩形は search_bounds.py 1 本が正本。ここへ数字を書き写さない
     outside_bounds = outside_search_bounds_sql("c.latitude", "c.longitude")
     dish_dataset = pipeline.config.dish_dataset_ref
+    # #1881 «配信する値» の作り方は catalog_publish_values が正本。3_4 と同じ式で比べる
+    preserved_mismatch = preserved_mismatch_sql(
+        catalog="catalog", existing="existing", seed="seed"
+    )
     # 全checkを1 Query Jobへまとめ、各checkごとに巨大catalogを何度も読み直さない。
     return f"""
       WITH
@@ -194,17 +199,14 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           ON catalog.run_id = @run_id
          AND catalog.seed_id = seed.seed_id
         WHERE seed.run_id = @run_id
+          -- ⚠️ **3_4 が入れる値と同じ規則で正規化してから比べる。**
+          --    かつて右辺を «正規化前の existing» にしていたため、existing が NULL の
+          --    列（image_url / address_components_json）は catalog が必ず '' / '[]' に
+          --    なり、**app 作成店 2,469 行が構造的に必ず不一致**になっていた
+          --    （run 34347785203 で列ごとに実測）。データではなくゲート側の欠陥だった。
+          --    式は catalog_publish_values が正本で、作る側（3_4）と同じ文字列を使う。
           AND (
-            catalog.name IS DISTINCT FROM existing.name
-            OR catalog.name_language_code
-              IS DISTINCT FROM COALESCE(NULLIF(existing.name_language_code, ''), 'ja')
-            OR catalog.latitude IS DISTINCT FROM existing.latitude
-            OR catalog.longitude IS DISTINCT FROM existing.longitude
-            OR catalog.image_url IS DISTINCT FROM existing.image_url
-            OR catalog.image_path IS DISTINCT FROM existing.image_path
-            OR catalog.address_components_json
-              IS DISTINCT FROM existing.address_components_json
-            OR catalog.plus_code_json IS DISTINCT FROM existing.plus_code_json
+            {preserved_mismatch}
           )
       ),
       target_categories AS (
