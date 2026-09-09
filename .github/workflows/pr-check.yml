@@ -135,6 +135,15 @@ jobs:
             scripts/db-checks/test_progress_log_reachable.py \
             scripts/db-checks/test_inspect_opening_hours_reach.py
 
+      # UI カタログの «撮る画面 ID» が catalog/screens.json に定義されているか。
+      #
+      # #1671 のネイティブ撮影テストは、定義の無い ID を渡していたため **1 度も撮れて
+      # いなかった**（getScreen が throw する。しかも catalog スコープは test_filter で
+      # 絞って回すので、そのファイルが実行されないまま «撮ってあります» と報告された）。
+      # ID は文字列リテラルなので、Detox を回さずにソースを読むだけで検査できる。
+      - name: UI カタログの画面 ID を検査
+        run: python3 -m unittest scripts/db-checks/test_catalog_screen_ids.py
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
