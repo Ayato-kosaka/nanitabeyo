@@ -9,6 +9,7 @@ from pathlib import Path
 from google.cloud import bigquery
 
 from country_resolution import country_code_sql
+from catalog_publish_values import COMPARED_COLUMNS, publish_value_sql
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -48,6 +49,14 @@ def main() -> None:
     # Python（同期・監査・テスト）と この SQL が同じ 1 本から作られる。
     country_code_case = country_code_sql("s.canonical_address")
 
+    # #1881 «配信する値» の作り方は catalog_publish_values が正本。
+    # 8_1 の existing_pg_serving_values_preserved も同じ式を呼ぶので、
+    # 片方だけ正規化して «構造的に必ず食い違う» 状態には戻らない。
+    publish_values = ",\n          ".join(
+        f"{publish_value_sql(column, existing='existing', seed='s')} AS {column}"
+        for column in COMPARED_COLUMNS
+    )
+
     catalog_sql = f"""
       CREATE OR REPLACE TABLE `{pipeline.dataset_ref}.restaurant_catalog`
       CLUSTER BY google_place_id, seed_id
@@ -58,18 +67,7 @@ def main() -> None:
           s.seed_id,
           s.existing_restaurant_id,
           m.google_place_id,
-          COALESCE(existing.name, s.canonical_name) AS name,
-          COALESCE(NULLIF(existing.name_language_code, ''), 'ja') AS name_language_code,
-          COALESCE(existing.latitude, s.latitude) AS latitude,
-          COALESCE(existing.longitude, s.longitude) AS longitude,
-          COALESCE(existing.image_url, s.image_url, '') AS image_url,
-          COALESCE(existing.image_path, s.image_path) AS image_path,
-          COALESCE(
-            NULLIF(existing.address_components_json, ''),
-            NULLIF(s.address_components_json, ''),
-            '[]'
-          ) AS address_components_json,
-          COALESCE(existing.plus_code_json, s.plus_code_json) AS plus_code_json,
+          {publish_values},
           -- #1681 表示用の1行住所。**オープンデータ由来だけを使う。**
           -- existing（＝PG に入っている Google 由来の住所）は carry-forward しない。
           -- Google の住所は ToS 3.2.3 で保持できないので、そちらへ寄せてはいけない。

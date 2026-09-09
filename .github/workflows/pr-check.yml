@@ -114,7 +114,8 @@ jobs:
         run: |
           python3 -m unittest \
             scripts/20260808T0000_restaurant/test_country_resolution.py \
-            scripts/20260808T0000_restaurant/test_search_bounds.py
+            scripts/20260808T0000_restaurant/test_search_bounds.py \
+            scripts/20260808T0000_restaurant/test_catalog_publish_values.py
 
       # #1666 EXPLAIN の «延べ行数» の数え方（explain_rows_read.py）。営業時間テーブルが
       # 0 行 → 30 万行へ増える直前に、番人が restaurants 側しか数えていないと気付いたため
