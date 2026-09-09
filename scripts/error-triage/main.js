@@ -16,7 +16,12 @@
 const { mkdirSync, readFileSync, writeFileSync, appendFileSync } = require("node:fs");
 const { dirname, join } = require("node:path");
 
-const { DEFAULT_LOOKBACK_HOURS, MAX_BYTES_BILLED, PARENT_ISSUE_NUMBER } = require("./constants");
+const {
+	DEFAULT_LOOKBACK_HOURS,
+	MAX_BYTES_BILLED,
+	PARENT_ISSUE_NUMBER,
+	SEV_ALERT_USER_THRESHOLD,
+} = require("./constants");
 const { assertSqlFpAlgoVersion } = require("./fingerprint");
 const { fetchTriageEnvelope } = require("./bq");
 const { applyPlan, collectIndexSources, createGitHubClient, parseRepository, resolveCommitDates } = require("./github");
@@ -25,6 +30,29 @@ const { buildPlan } = require("./triage");
 const { computeGeneratedAt, computeWindow, systemClock } = require("./window");
 
 const DEFAULT_SQL_PATH = join(__dirname, "sql", "error-triage.sql");
+
+/**
+ * #1946 「これは障害だ」と言える規模のものが起票・reopen されたら、run を **失敗させる**。
+ *
+ * 2026-09-04〜09-09 の 6 日間、`/v1/dish-media/search` が本番 DB にテーブルが無いせいで
+ * 500 を返し続け、1 日 68〜151 ユーザーが踏んでいた。Issue（#1853）は **初日に立っていた**のに、
+ * 38 件の中に埋もれて 6 日間気づかれなかった。起票はするが重大さを区別しない、という
+ * 設計そのものが原因である。
+ *
+ * 定期実行の失敗は GitHub が通知するので、«Issue が 1 件増えた» ではなく «壊れた» として届く。
+ *
+ * ⚠️ 対象は **この run で起票・reopen したもの**に限る。既に open で放置されているものを
+ * 毎日鳴らすと、鳴りっぱなしになって誰も見なくなる（既知の穴。塞ぐなら «未対応のまま N 日» の
+ * 側で数えるべきで、しきい値の話ではない）。`err/skip` 済みのものは起票されないので当たらない。
+ *
+ * @param {Record<string, any>} plan
+ * @returns {ReadonlyArray<Record<string, any>>} しきい値を超えた項目
+ */
+const findSevereItems = (plan) =>
+	(plan.items || []).filter(
+		(item) =>
+			["create", "reopen", "capped"].includes(item.action) && (item.affectedUsers ?? 0) >= SEV_ALERT_USER_THRESHOLD,
+	);
 
 /**
  * `--key value` 形式の argv を素朴に読む（依存パッケージを増やさないため）。
@@ -283,6 +311,20 @@ const runApply = async ({ options, env, clock = systemClock, fetchImpl, sleepImp
 	if (blocked) return 1;
 	if (applyResult.failures.length > 0) {
 		fail(`書き込みに ${applyResult.failures.length} 件失敗しました（詳細は Job Summary）`);
+		return 1;
+	}
+
+	// #1946 障害規模のものが立ったら、run を失敗させて通知に乗せる（起票だけでは埋もれる）
+	const severe = findSevereItems(plan);
+	if (severe.length > 0 && !dryRun) {
+		for (const item of severe) {
+			fail(
+				`影響ユーザー ${item.affectedUsers} 人（しきい値 ${SEV_ALERT_USER_THRESHOLD}）: ` +
+					`${item.surface} fp:${item.fingerprint}` +
+					(item.issueNumber ? ` → #${item.issueNumber}` : ""),
+			);
+		}
+		fail(`障害規模のエラーグループが ${severe.length} 件あります。Issue を確認してください`);
 		return 1;
 	}
 	return 0;
