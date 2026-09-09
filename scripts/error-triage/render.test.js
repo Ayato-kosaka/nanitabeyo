@@ -154,6 +154,21 @@ describe("renderIssueBody() — 障害規模ならオーナーを名指しする
 		expect(body).toContain("[!CAUTION]");
 	});
 
+	// ⚠️ 既存 Issue の body 更新では名指ししない。実測でしきい値超は毎日 3〜4 件あるので、
+	// 更新のたびに出すと «毎日飛ぶ» ことになり、鳴らないのと同じになる（#1946 オーナー指摘）
+	test("既存 body の更新では名指ししない（新規起票のときだけ）", () => {
+		const first = renderIssueBody({ group: severe, window: WINDOW, generatedAt: GENERATED_AT });
+		expect(first).toContain("@Ayato-kosaka");
+
+		const updated = renderIssueBody({
+			group: severe,
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+			existingBody: first,
+		});
+		expect(updated).not.toContain("@Ayato-kosaka");
+	});
+
 	// ⚠️ 普段の Issue でメンションを飛ばさないための逆側の番人。鳴りっぱなしは «鳴らない» と同じ
 	test("しきい値未満なら名指ししない", () => {
 		const body = renderIssueBody({

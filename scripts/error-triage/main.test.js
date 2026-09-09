@@ -344,7 +344,7 @@ describe("apply（triage Job）", () => {
 	// #1946 障害規模のものが埋もれないための番人。
 	// 2026-09-04〜09-09、/v1/dish-media/search が 1 日 68〜151 ユーザーに 500 を返し続けたが、
 	// Issue は初日に立っていたのに 38 件の中に埋もれて 6 日間気づかれなかった。
-	test("障害規模（影響ユーザーがしきい値以上）を起票したら、起票はしたうえで exit 1 にする", async () => {
+	test("障害規模（影響ユーザーがしきい値以上）を新規起票したら、起票はしたうえで exit 1 にする", async () => {
 		const workspace = makeWorkspace();
 		const fetchImpl = makeApplyFetch({
 			group: { ...GROUP, affectedUsers: SEV_ALERT_USER_THRESHOLD },

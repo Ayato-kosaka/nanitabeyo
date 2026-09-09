@@ -41,7 +41,7 @@ const DEFAULT_SQL_PATH = join(__dirname, "sql", "error-triage.sql");
  *
  * 定期実行の失敗は GitHub が通知するので、«Issue が 1 件増えた» ではなく «壊れた» として届く。
  *
- * ⚠️ 対象は **この run で起票・reopen したもの**に限る。既に open で放置されているものを
+ * ⚠️ 対象は **この run で新規起票したもの**に限る。既に open で放置されているものを
  * 毎日鳴らすと、鳴りっぱなしになって誰も見なくなる（既知の穴。塞ぐなら «未対応のまま N 日» の
  * 側で数えるべきで、しきい値の話ではない）。`err/skip` 済みのものは起票されないので当たらない。
  *
@@ -51,7 +51,11 @@ const DEFAULT_SQL_PATH = join(__dirname, "sql", "error-triage.sql");
 const findSevereItems = (plan) =>
 	(plan.items || []).filter(
 		(item) =>
-			["create", "reopen", "capped"].includes(item.action) && (item.affectedUsers ?? 0) >= SEV_ALERT_USER_THRESHOLD,
+			// ⚠️ **create だけ**。reopen / capped は含めない。
+			// 実測（本番 2026-08-27〜09-09）ではしきい値超のグループが毎日 3〜4 件あり、
+			// そのほぼ全部が err/skip 済みか対応済みの既知のものだった。既知のものまで鳴らすと
+			// 毎日赤くなり、«赤いのが普通» になって誰も見なくなる。鳴らすのは «新しくて大きい» ときだけ。
+			item.action === "create" && (item.affectedUsers ?? 0) >= SEV_ALERT_USER_THRESHOLD,
 	);
 
 /**
