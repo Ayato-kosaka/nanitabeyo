@@ -1305,6 +1305,44 @@ export type Database = {
           },
         ]
       }
+      restaurant_hours_exceptions: {
+        Row: {
+          closes_at: string | null
+          exception_date: string
+          fetched_at: string
+          is_closed: boolean
+          opens_at: string | null
+          restaurant_id: string
+          source: string
+        }
+        Insert: {
+          closes_at?: string | null
+          exception_date: string
+          fetched_at: string
+          is_closed: boolean
+          opens_at?: string | null
+          restaurant_id: string
+          source: string
+        }
+        Update: {
+          closes_at?: string | null
+          exception_date?: string
+          fetched_at?: string
+          is_closed?: boolean
+          opens_at?: string | null
+          restaurant_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_hours_exceptions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_links: {
         Row: {
           created_at: string
@@ -1340,6 +1378,47 @@ export type Database = {
           },
         ]
       }
+      restaurant_opening_hours: {
+        Row: {
+          closes_at: string
+          crosses_midnight: boolean
+          day_of_week: number
+          fetched_at: string
+          opens_at: string
+          restaurant_id: string
+          source: string
+          source_url: string | null
+        }
+        Insert: {
+          closes_at: string
+          crosses_midnight?: boolean
+          day_of_week: number
+          fetched_at: string
+          opens_at: string
+          restaurant_id: string
+          source: string
+          source_url?: string | null
+        }
+        Update: {
+          closes_at?: string
+          crosses_midnight?: boolean
+          day_of_week?: number
+          fetched_at?: string
+          opens_at?: string
+          restaurant_id?: string
+          source?: string
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_opening_hours_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null
@@ -1360,6 +1439,7 @@ export type Database = {
           source_names: string[]
           source_row_hash: string | null
           source_seed_id: string | null
+          subterritory_code: string | null
           synced_at: string | null
         }
         Insert: {
@@ -1381,6 +1461,7 @@ export type Database = {
           source_names?: string[]
           source_row_hash?: string | null
           source_seed_id?: string | null
+          subterritory_code?: string | null
           synced_at?: string | null
         }
         Update: {
@@ -1402,6 +1483,7 @@ export type Database = {
           source_names?: string[]
           source_row_hash?: string | null
           source_seed_id?: string | null
+          subterritory_code?: string | null
           synced_at?: string | null
         }
         Relationships: []

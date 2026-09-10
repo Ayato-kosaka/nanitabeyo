@@ -81,5 +81,6 @@ console.error("  - 実装サマリー・完了報告 → PR 本文 / Issue コ�
 console.error("  - 横断的な仕様の要約     → docs/specs/<kebab-case>.md");
 console.error("  - 繰り返す運用手順       → docs/runbooks/<kebab-case>.md");
 console.error("  - 覆せない決定の記録     → docs/decisions/YYYYMMDD-<slug>.md");
+console.error("  - 原典つきの外部調査知識 → docs/research/<kebab-case>.md");
 console.error("");
 process.exit(1);

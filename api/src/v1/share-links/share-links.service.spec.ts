@@ -56,7 +56,12 @@ describe('ShareLinksService', () => {
         { provide: ShareLinkTargetResolvers, useValue: resolvers },
         {
           provide: AppLoggerService,
-          useValue: { log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+          useValue: {
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -68,9 +73,14 @@ describe('ShareLinksService', () => {
     it('共有 URL を組み立てて返す（クライアントに組み立てさせない）', () => {
       // 組み立てが app 側にもあると、development で作ったリンクが本番ドメインを指す形でずれる
       return service
-        .create({ target: { type: 'dish_media', params: { ids: ['a'] } } } as never, 'user-1')
+        .create(
+          { target: { type: 'dish_media', params: { ids: ['a'] } } } as never,
+          'user-1',
+        )
         .then((result) => {
-          expect(result.url).toBe(`https://app.nanitabeyo.net/s/${result.token}`);
+          expect(result.url).toBe(
+            `https://app.nanitabeyo.net/s/${result.token}`,
+          );
           expect(result.token.startsWith('s1_')).toBe(true);
         });
     });
@@ -90,16 +100,26 @@ describe('ShareLinksService', () => {
     // 同じ URL が閲覧者ごとに別の OGP を返す設計は成立しない
     it('locale は共有時点で固定して保存する', async () => {
       await service.create(
-        { target: { type: 'dish_media', params: { ids: ['a'] } }, locale: 'en-US' } as never,
+        {
+          target: { type: 'dish_media', params: { ids: ['a'] } },
+          locale: 'en-US',
+        } as never,
         'user-1',
       );
 
-      expect(resolvers.resolve).toHaveBeenCalledWith('dish_media', { ids: ['a'] }, 'en-US');
+      expect(resolvers.resolve).toHaveBeenCalledWith(
+        'dish_media',
+        { ids: ['a'] },
+        'en-US',
+      );
       expect(repository.create.mock.calls[0][0].previewLocale).toBe('en-US');
     });
 
     it('locale 未指定なら既定（ja-JP）で固定する', async () => {
-      await service.create({ target: { type: 'dish_media', params: { ids: ['a'] } } } as never, null);
+      await service.create(
+        { target: { type: 'dish_media', params: { ids: ['a'] } } } as never,
+        null,
+      );
 
       expect(repository.create.mock.calls[0][0].previewLocale).toBe('ja-JP');
     });
@@ -123,7 +143,9 @@ describe('ShareLinksService', () => {
 
     it('token_digest が衝突したら引き直す（500 にしない）', async () => {
       const conflict = Object.assign(new Error('unique'), { code: 'P2002' });
-      repository.create.mockRejectedValueOnce(conflict).mockResolvedValue({ id: 'share-link-1' });
+      repository.create
+        .mockRejectedValueOnce(conflict)
+        .mockResolvedValue({ id: 'share-link-1' });
 
       const result = await service.create(
         { target: { type: 'dish_media', params: { ids: ['a'] } } } as never,
@@ -138,7 +160,10 @@ describe('ShareLinksService', () => {
       repository.create.mockRejectedValue(new Error('connection lost'));
 
       await expect(
-        service.create({ target: { type: 'dish_media', params: { ids: ['a'] } } } as never, null),
+        service.create(
+          { target: { type: 'dish_media', params: { ids: ['a'] } } } as never,
+          null,
+        ),
       ).rejects.toThrow('connection lost');
     });
   });
@@ -147,7 +172,9 @@ describe('ShareLinksService', () => {
     it('有効なリンクを返す', async () => {
       repository.findByTokenDigest.mockResolvedValue(activeRecord());
 
-      await expect(service.findActiveByToken('s1_0123456789abcdefghijkl')).resolves.toMatchObject({
+      await expect(
+        service.findActiveByToken('s1_0123456789abcdefghijkl'),
+      ).resolves.toMatchObject({
         id: 'share-link-1',
       });
     });
@@ -157,7 +184,11 @@ describe('ShareLinksService', () => {
     it.each([
       ['形が不正', 'not-a-token', null],
       ['存在しない', 's1_0123456789abcdefghijkl', null],
-      ['revoked', 's1_0123456789abcdefghijkl', activeRecord({ status: 'revoked' })],
+      [
+        'revoked',
+        's1_0123456789abcdefghijkl',
+        activeRecord({ status: 'revoked' }),
+      ],
       [
         '期限切れ',
         's1_0123456789abcdefghijkl',
@@ -181,7 +212,9 @@ describe('ShareLinksService', () => {
         activeRecord({ expires_at: new Date(Date.now() + 60_000) }),
       );
 
-      await expect(service.findActiveByToken('s1_0123456789abcdefghijkl')).resolves.not.toBeNull();
+      await expect(
+        service.findActiveByToken('s1_0123456789abcdefghijkl'),
+      ).resolves.not.toBeNull();
     });
   });
 
@@ -195,17 +228,23 @@ describe('ShareLinksService', () => {
 
       expect(result).toEqual({
         schemaVersion: 1,
-        target: { type: 'dish_media', id: 'dish-media-1', params: { ids: ['dish-media-1'] } },
+        target: {
+          type: 'dish_media',
+          id: 'dish-media-1',
+          params: { ids: ['dish-media-1'] },
+        },
       });
       expect(JSON.stringify(result)).not.toContain('/posts');
     });
 
     it('無効なら 404', async () => {
-      repository.findByTokenDigest.mockResolvedValue(activeRecord({ status: 'revoked' }));
-
-      await expect(service.resolveForApp('s1_0123456789abcdefghijkl')).rejects.toBeInstanceOf(
-        NotFoundException,
+      repository.findByTokenDigest.mockResolvedValue(
+        activeRecord({ status: 'revoked' }),
       );
+
+      await expect(
+        service.resolveForApp('s1_0123456789abcdefghijkl'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });

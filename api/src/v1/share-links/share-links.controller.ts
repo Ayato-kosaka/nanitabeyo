@@ -3,11 +3,29 @@
 // #721 【設計】共有リンクの作成と、アプリ用の resolve。
 // SSR（`/s/:token`）は別 Controller（api/src/share/share.controller.ts）。
 
-import { Body, Controller, Get, Param, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { CreateShareLinkDto } from '@shared/v1/dto';
-import type { CreateShareLinkResponse, ResolveShareLinkResponse } from '@shared/v1/res';
+import type {
+  CreateShareLinkResponse,
+  ResolveShareLinkResponse,
+} from '@shared/v1/res';
 
 import { AuthAnonGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
@@ -64,12 +82,15 @@ export class ShareLinksController {
   @Get(':token/resolve')
   @ApiOperation({
     summary: '共有リンクの解決',
-    description: 'token から target_type / target_id / params を返す。無効なら 404。',
+    description:
+      'token から target_type / target_id / params を返す。無効なら 404。',
   })
   @ApiParam({ name: 'token', required: true })
   @ApiResponse({ status: 200, description: '解決成功' })
   @ApiResponse({ status: 404, description: '存在しない / revoked / 期限切れ' })
-  async resolve(@Param('token') token: string): Promise<ResolveShareLinkResponse> {
+  async resolve(
+    @Param('token') token: string,
+  ): Promise<ResolveShareLinkResponse> {
     return this.service.resolveForApp(token);
   }
 }

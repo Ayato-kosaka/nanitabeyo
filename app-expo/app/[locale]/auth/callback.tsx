@@ -25,8 +25,10 @@
   採用できない場合は従来どおり /[locale]/profile です。
 
 補足
-- セッションを確立できなかった場合は oauth_callback_no_result を error レベルで記録し、
+- セッションを確立できなかった場合は oauth_callback_no_result を記録し、
   成功ログもプロフィール作成も行いません。いずれの場合も next（無ければ /[locale]/profile）に遷移します。
+  レベルは «認証の戻りかどうか» で分けます（#1959）。intent 付き（＝ OAuth の redirectTo 経由）なら
+  error、intent なし（＝ この URL を直接開いただけ）なら warn。
 */
 import { useCallback, useEffect, useRef } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -193,9 +195,19 @@ export default function AuthCallbackScreen() {
 
 			if (!picked) {
 				// ここが従来の「無言の失敗」の出口。成功ログもプロフィール作成も行わない。
+				//
+				// #1959 【設計】ただし «認証の戻り» でないものまで error で積まない。
+				// OAuth の redirectTo には必ず intent が載る（AuthProvider の
+				// buildAuthCallbackQueryParams: signin なら intent=signin、リンクなら intent=link）ので、
+				// intent が無いのは «この URL を直接開いた»（履歴・ブックマーク・共有リンク・クローラ）である。
+				// 本番の実測 3 件（2026-09-09〜10 / es・es-ES・ja-JP 各 1 人）はいずれも
+				// intent も provider も無く、クエリもフラグメントも空で、locale_initialized から始まる
+				// コールドスタートだった＝ログイン試行そのものが存在しない。
+				// 直接開いただけの人は下の goAfterCallback() でプロフィールへ進むので実害も無い。
+				const isOAuthReturn = rest.intent != null;
 				logFrontendEvent({
 					event_name: "oauth_callback_no_result",
-					error_level: "error",
+					error_level: isOAuthReturn ? "error" : "warn",
 					payload: {
 						intent: rest.intent ?? null,
 						provider: rest.provider ?? null,

@@ -5,17 +5,7 @@
 // 変更前/変更後の画像を比較し、「変更後に差し替えるべきか」を目視でレビューするツール
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import {
-	View,
-	StyleSheet,
-	ScrollView,
-	Pressable,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	useWindowDimensions,
-	Keyboard,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Text, TextInput, TouchableOpacity, Keyboard } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, Circle, CheckCircle2, ArrowRight } from "lucide-react-native";
@@ -24,6 +14,9 @@ import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+// #1783 SSG(静的書き出し)では window が無く useWindowDimensions() が 0 を返し、
+// 負の px が HTML へ焼き付いてハイドレーション後も直らない（hooks/useContentWidth.ts 参照）
+import { useContentWidth, useWindowHeight } from "@/hooks/useContentWidth";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
@@ -1572,7 +1565,8 @@ export default function DishCategoryImageReviewPage() {
 	const insets = useSafeAreaInsets();
 	const { colors } = useAppTheme();
 	const styles = useThemedStyles(createStyles);
-	const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+	const screenWidth = useContentWidth();
+	const screenHeight = useWindowHeight();
 	const { showSnackbar } = useSnackbar();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();

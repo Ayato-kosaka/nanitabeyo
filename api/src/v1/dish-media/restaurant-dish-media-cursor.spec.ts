@@ -45,9 +45,7 @@ describe('#1599 restaurant dish-media カーソル', () => {
     ['null', null],
     ['undefined', undefined],
   ])('壊れたカーソル（%s）は null（先頭ページ）へ倒す', (_label, input) => {
-    expect(
-      parseRestaurantDishMediaCursor(input as string | null | undefined),
-    ).toBeNull();
+    expect(parseRestaurantDishMediaCursor(input)).toBeNull();
   });
 
   // UUID に `_` は現れないので、最初の `_` で割って問題ない

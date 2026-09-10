@@ -273,23 +273,55 @@ describeMutation("グリッドから開いたフィードで 2 つのセルが�
 	it("埋め込みカードから開いたフィードは、縦に送っても常に 1 つしか鳴らない", async () => {
 		await launchAppWithSession({ as: "authenticated" });
 
+		/*
+		⚠️ **同期機構はここで切る。«フィードに着いてから» では遅い（iOS で実測）。**
+
+		以前はここを «一覧の取得が遅いだけ» と読み、`selectView` のタイムアウトを 25 秒 →
+		120 秒へ伸ばした。**それは誤診だった。** 120 秒でも同じ場所で落ち、
+		run 33455299123 の Detox ログにはこう並んでいた（約 10 秒おき・2 分間ずっと）:
+
+		    The app is busy with the following tasks:
+		    • Run loop "Main Run Loop" is awake.
+		    • There are 2 work items pending on the dispatch queue: "Main Queue"
+
+		つまり Detox は **要素を探して待っていたのではなく、アプリが «暇» になるのを待っていた**。
+		同じ run の失敗時スクショにも、Detox 自身が出した可視判定用のコマ
+		（`DETOX_VISIBILITY_*`）にも、**グリッドは最初から完全に描かれている**。
+		待てば直る類ではないので、タイムアウトを伸ばしても永久に緑にならない。
+
+		iOS ではこの画面（埋め込みのカードが並ぶグリッド）に居る間、アプリが暇にならない。
+		この spec は画面を眺めて印を数えるだけで操作のタイミングに依存しないので、
+		**最初から明示的に待つ形へ倒す**のが正しい。
+		（フィード側で切る理由も同じで、`external-embed-feed.test.ts` の run 33065565293 で実測済み）
+
+		⚠️ 戻すときは «タイムアウトを伸ばす» で解決しようとしないこと。2 回とも失敗している。
+		*/
+		await device.disableSynchronization();
+
 		// 1. 食べたい/食べた → リスト（グリッド）
 		await tabBar.gotoMyDishes();
 		/*
-		⚠️ **`selectView` にも長いタイムアウトを渡すこと。**
+		⚠️ **`selectView` を使わない。器（`my-dishes-list-view`）の «可視» を待たない。**
 
-		一覧は約 964MB の `dish_reviews` を引くので、初回は既定（25 秒）では足りない。
-		下の `my-dishes-list` にだけ 120 秒を渡していたが、**その手前の `selectView` が
-		ビューの器の可視を既定のタイムアウトで待っていた**ため、iOS シミュレータでは
-		そちらが先に時間切れになっていた（run 33440630546 / iOS）。
+		iOS ではここが 2 度続けて時間切れになった（run 33455299123 / 33458271783）。
+		どちらも失敗時のコマと Detox 自身の可視判定用のコマ（`DETOX_VISIBILITY_*`）で
+		**グリッドは画面いっぱいに完全に描かれている**。タイムアウトを 25 秒 → 120 秒へ
+		伸ばしても、同期機構を切っても変わらなかった。**器の «可視» だけが真にならない。**
 
-		    Timed out while waiting for expectation: TOBEVISIBLE WITH MATCHER(id == "my-dishes-list-view") TIMEOUT(25s)
+		この spec が必要としているのは器ではなく **中のグリッド（`my-dishes-list`）**なので、
+		器の可視は待たずに中を待つ。器は «在ること» だけ確かめて、結果をログへ残す
+		（可視が真にならない理由の切り分けは、この spec の仕事ではない）。
 
-        失敗時のコマにはグリッドが**正しく描かれていた**。つまり «出ない» のではなく «間に合わない» だった。
-		Android は同じ操作が 25 秒に収まるので、この spec は Android でだけ緑になっていた。
+		⚠️ **タイムアウトを伸ばして直そうとしないこと。2 回失敗している。**
+		⚠️ 一覧は約 964MB の `dish_reviews` を引くので、初回は既定（25 秒）では足りない。
+		   長めに待つこと自体は必要である。
 		*/
-		await myDishes.selectView("list", 120_000);
+		await tapWhenVisible(myDishes.viewButton("list"), 120_000);
 		await waitUntilVisible(by.id("my-dishes-list"), 120_000);
+		// eslint-disable-next-line no-console -- 器の可視が真にならない件の切り分け材料を run のログへ残す
+		console.log(
+			`[diag] my-dishes-list-view exists=${await existsNow(myDishes.view("list"), MARKER_PROBE_MS, 0)}`,
+		);
 
 		/*
 		2. **埋め込みのカードを探す。** 取り込みが古いユーザーだと先頭付近には居ないので、
@@ -310,16 +342,7 @@ describeMutation("グリッドから開いたフィードで 2 つのセルが�
 			);
 		}
 
-		/*
-		3. **押す前に Detox の同期機構を切る。**
-
-		フィードへ着いた瞬間から埋め込みは鳴り続けるので、アプリは二度と «暇» にならない。
-		同期を有効にしたまま操作を続けると、アプリではなく待ち方の理由で落ちる
-		（`external-embed-feed.test.ts` の run 33065565293 で実測。同じ run の失敗時スクショには
-		フィードもリールも正しく写っていた）。この spec は画面を眺めて印を数えるだけで、
-		操作のタイミングに依存しないので、明示的に待つ形へ倒すのが正しい。
-		*/
-		await device.disableSynchronization();
+		// 3. 埋め込みのカードを押す（同期機構はこの spec の冒頭で切ってある）
 		await tapWhenVisible(embedCard, 30_000, 0);
 
 		/*

@@ -1,0 +1,19 @@
+[
+  "userId",
+  "lat",
+  "lng",
+  "radius",
+  "categoryId",
+  "limit",
+  "gumbelTau",
+  "pageSeed",
+  "lng",
+  "lat",
+  "radius",
+  "lng",
+  "lat",
+  "radius",
+  "knnLimit",
+  "closedRestaurantIds",
+  "openRestaurantIds"
+]

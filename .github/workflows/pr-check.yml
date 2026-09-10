@@ -85,6 +85,55 @@ jobs:
       - name: ドキュメント管理規約を検査
         run: pnpm assert:doc-hygiene
 
+      # #843 「この鍵はどこに登録するのか」の表（docs/runbooks/secrets-and-env.md）が
+      # env.ts とずれていないことを検査する。2026-09-04 に Maps Embed のキーを
+      # GitHub のシークレットへ登録して «効かない» が沈黙した事故を、表の陳腐化で
+      # 再発させないため。env.ts と workflow を読むだけで依存ゼロ。
+      - name: 鍵と設定値の置き場の表を検査
+        run: pnpm assert:env-store-map
+
+      # #1666 営業時間パーサ 2 本（OSM の opening_hours / 公式サイトの日本語自由記述）を回す。
+      # どちらも «分からないものは推測しない» を守るのが要で、崩れると **開いている店が
+      # 検索から消える**（間違って closed にする）。純関数なので DB もネットワークも要らない。
+      #
+      # ⚠️ scripts 配下には他にも test_*.py が 10 本あるが、psycopg2 等の依存が要るため
+      # ここでは回していない（依存を入れる話は別途）。**通っていないものを «通っている» と
+      # 数えないよう、対象をファイル名で明示している。**
+      - name: 営業時間パーサのユニットテスト
+        run: |
+          python3 -m unittest \
+            scripts/20260808T0000_restaurant/test_osm_opening_hours.py \
+            scripts/20260808T0000_restaurant/test_jp_site_opening_hours.py \
+            scripts/20260808T0000_restaurant/test_measure_official_site_hours.py \
+            scripts/20260808T0000_restaurant/test_crawl_official_site_hours.py
+
+      # #1881 住所から国コードを決める判定（country_resolution.py）。
+      # ここが崩れると **韓国の店が日本の店として出る**（矩形で決めていた頃は
+      # dev の 98,139 行がそうだった）。純関数なので DB もネットワークも要らない。
+      - name: 住所からの国コード判定のユニットテスト
+        run: |
+          python3 -m unittest \
+            scripts/20260808T0000_restaurant/test_country_resolution.py \
+            scripts/20260808T0000_restaurant/test_search_bounds.py
+
+      # #1666 EXPLAIN の «延べ行数» の数え方（explain_rows_read.py）。営業時間テーブルが
+      # 0 行 → 30 万行へ増える直前に、番人が restaurants 側しか数えていないと気付いたため
+      # 足した。数え方だけを psycopg2 の要らない場所へ出してあるのでここで回せる。
+      - name: EXPLAIN の行数の数え方のユニットテスト
+        run: |
+          python3 -m unittest \
+            scripts/db-checks/test_explain_rows_read.py \
+            scripts/db-checks/test_explain_opening_status_binds.py
+
+      # #1666 進捗ログが `continue` の後ろにあって出ない形（run 34022514117 は 3,000 件で
+      # 6 行しか出さず、原因の読み違えを招いた）と、フォレンジックの SQL が本番の
+      # «候補の並び» を写経していないこと。どちらもソースを AST で読むだけで回せる。
+      - name: 進捗ログと候補の並びの回帰テスト
+        run: |
+          python3 -m unittest \
+            scripts/db-checks/test_progress_log_reachable.py \
+            scripts/db-checks/test_inspect_opening_hours_reach.py
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
@@ -216,6 +265,13 @@ jobs:
       #   - e2e-mobile/tests/profile/settings.test.ts … ハプティクスの it が閉じずに通知の it を飲み込む
       # どちらもベース取り込みの衝突解消で «偶然» 見つかったもので、
       # 見つからなければそのまま出ていた。ローカル実測 1 秒未満。
+      # ⚠️ **ガード自身の自己診断を先に回す。** このガードは «通れば安全» ではなく
+      # «落ちたら確実に壊れている» 側なので、走査の下ごしらえ（文字列・コメント・正規表現を
+      # 潰す処理）が壊れると **本物の入れ子を黙って見逃す**。2026-09-05 に実際に 2 形
+      # （`//` を含む正規表現 / 文字列中の `https://`）で見逃していたことを実測した。
+      - name: e2e の入れ子検査そのものが壊れていないことを確認
+        run: pnpm assert:no-nested-e2e-tests -- --self-test
+
       - name: e2e の spec に入れ子の test が無いことを確認
         run: pnpm assert:no-nested-e2e-tests
 

@@ -59,6 +59,7 @@ export class DishMediaService {
       radius: dto.radius,
       categoryId: dto.categoryId,
       preferredLanguageCodes: dto.preferredLanguageCodes,
+      timeSlot: dto.timeSlot,
       userId,
     });
 

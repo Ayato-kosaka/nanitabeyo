@@ -86,7 +86,25 @@ SQL_DIR = Path(__file__).resolve().parent / "sql"
 TOKYO_LAT, TOKYO_LNG = 35.681236, 139.767125
 # 日本全体を映したときの地図の中心（app-expo の REGION_JP）と viewport の半径
 JP_LAT, JP_LNG = 36.2048, 138.2529
-LIMIT = 20
+
+# 測る «クエリの形»。(スナップショット名, limit, 説明)
+#
+# #1834 【設計】**LIMIT は SQL に literal で埋まる。つまり limit ごとに別のプランである。**
+#
+# ここは長らく «既定順 / limit 20» の 1 本しか測っていなかった。ところが
+# `QueryRestaurantsDto.limit` は @Max(100) なので、公開 API はそのまま 100 を受ける。
+# 本番で «既定順 + limit 100» が **26.7 秒**かかっていたのに、
+# ラチェットは緑のままだった（#1834。SNS 取り込みが内部から limit 100 で呼んでいた）。
+#
+# ⚠️ **「クライアントが今そう呼んでいないから」を理由に外さないこと。**
+#    守るのは «API が受け付ける最悪の形» であって «今の呼ばれ方» ではない。
+# ⚠️ 名前は `restaurants.order-by-posts-plan.spec.ts` が書き出すスナップショットと一致させる。
+#    ずれたら jest が赤くなる（写経しないための仕組み）。
+SHAPES = (
+    ("search_nearby_restaurants.default", 20, "既定順（投稿が多い順）・クライアント既定"),
+    ("search_nearby_restaurants.default_limit100", 100, "既定順・API が受け付ける上限"),
+    ("search_nearby_restaurants.distance_limit100", 100, "距離順・SNS 取り込みが内部から呼ぶ形"),
+)
 
 # 測る条件。(ラベル, 中心 lat, 中心 lng, 半径 m)
 #   ⚠️ 20,000m / limit 20 はオーナーが実際に踏んだ値。必ず含めること
@@ -206,25 +224,12 @@ def run_counts(cur, schema):
     return with_posts
 
 
-def restaurants_rows_read(plan):
-    """実行計画から «restaurants を読んだ延べ行数» を拾う。
-
-    LATERAL の主キー探索は «loops 回まわって 0〜1 行» なので、
-    行数ではなく **loops × rows** で数える（半径に比例するかを見るのが目的）。
-    """
-    total = 0
-    detail = []
-    for line in plan:
-        s = line.strip()
-        if not re.search(r"\bon (restaurants|idx_restaurants_location)\b", s):
-            continue
-        m = re.search(r"actual time=[\d.]+\.\.[\d.]+ rows=(\d+) loops=(\d+)", s)
-        if not m:
-            continue
-        rows = int(m.group(1)) * int(m.group(2))
-        total += rows
-        detail.append((s[:110], rows))
-    return total, detail
+# ⚠️ 数え方の実装は `explain_rows_read.py` が正本（3 本のスクリプトが共有する判定なので、
+#    psycopg2 を要らない場所へ出して CI のテストで縛ってある）。ここへ書き戻さないこと。
+from explain_rows_read import (  # noqa: E402,F401
+    restaurants_rows_read_with_bound,
+    verdict_against_budget,
+)
 
 
 def explain(cur, sql, nparams, params, generic):
@@ -269,23 +274,61 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
     logger.info("")
     logger.info(
         "判定: **custom / generic の両方**で、restaurants から読む延べ行数が "
-        "«投稿を持つ店 %s + limit %s» の %s 倍を超えたら赤",
+        "«投稿を持つ店 %s + その形の limit» の %s 倍を超えたら赤",
         f"{with_posts:,}",
-        LIMIT,
         ROWS_BUDGET_MULTIPLIER,
     )
-    budget = (with_posts + LIMIT) * ROWS_BUDGET_MULTIPLIER
-
-    sql, names = load_sql("search_nearby_restaurants.default")
-    nparams = len(names)
+    logger.info("測る形: %s", " / ".join(f"{n}(limit {l})" for n, l, _ in SHAPES))
     failures = []
 
-    for label, lat, lng, radius in CASES:
+    for shape_name, shape_limit, shape_note in SHAPES:
+        sql, names = load_sql(shape_name)
+        nparams = len(names)
+        # 予算は limit ごとに変わる（近傍枠は limit 件ぶん走るため）
+        budget = (with_posts + shape_limit) * ROWS_BUDGET_MULTIPLIER
+
+        logger.info("")
+        logger.info("=" * 72)
+        logger.info("# 形: %s（limit %s） — %s", shape_name, shape_limit, shape_note)
+        logger.info("=" * 72)
+
+        for label, lat, lng, radius in CASES:
+            failures.extend(
+                _measure_case(
+                    cur, schema, sql, nparams, names, label, lat, lng, radius,
+                    shape_limit, shape_name, budget, full_plan,
+                )
+            )
+
+    section("3. 判定")
+    if not failures:
+        logger.info(
+            "✅ どの形でも custom / generic の両方で «走る行数は半径に依存しない» が保てている"
+        )
+        return 0
+    for f in failures:
+        logger.error("❌ %s", f)
+    logger.error("")
+    logger.error(
+        "半径がプランナから見えない書き方へ戻っているか、"
+        "測っていない limit の組み合わせが増えている。"
+        "api/src/v1/restaurants/restaurants.repository.ts の posted CTE のコメントを読むこと。"
+    )
+    return 1 if do_assert else 0
+
+
+def _measure_case(
+    cur, schema, sql, nparams, names, label, lat, lng, radius,
+    limit, shape_name, budget, full_plan,
+):
+    """1 つの «形 × 地点» を custom / generic の両方で測る。戻り値は失敗の一覧。"""
+    failures = []
+    if True:
         logger.info("")
         logger.info("-" * 72)
         logger.info("## %s", label)
         logger.info("-" * 72)
-        params = bind(names, lat, lng, radius, LIMIT)
+        params = bind(names, lat, lng, radius, limit)
         for generic in (False, True):
             mode = "generic" if generic else "custom "
             cur.execute("SET LOCAL statement_timeout = '120s'")
@@ -300,7 +343,7 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
                     cur.connection.rollback()
                     cur.execute(f'SET search_path TO "{schema}", extensions')
                     logger.info("   %s: ⏱ 120 秒でタイムアウト（= 実用にならない）", mode)
-                    failures.append(f"{label} / {mode}: timeout")
+                    failures.append(f"{shape_name} / {label} / {mode}: timeout")
                     timed_out = True
                     break
                 runs.append(t)
@@ -308,17 +351,23 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
                 continue
             ms = runs[-1]["exec"]
 
-            rows, detail = restaurants_rows_read(plan)
+            # ⚠️ 丸めの下界だけで判定しない（explain_rows_read.py 冒頭の注記）。
+            rows, rows_upper, detail, _ = restaurants_rows_read_with_bound(plan)
             # ⚠️ **custom / generic の両方を判定する。**
             #    #1686 のあと «generic だけ» を見ていたせいで、custom plan が
             #    11〜13 秒のまま «✅» と表示されて見落とした（dev run 33229509189）。
             #    どちらか一方でも半径内を舐めていたら赤にする
-            verdict = " ✅" if rows <= budget else "  ❌ 半径内の全店を読んでいる"
-            if rows > budget:
+            state = verdict_against_budget(rows, rows_upper, budget)
+            if state == "within":
+                verdict = " ✅"
+            elif state == "over":
+                verdict = "  ❌ 半径内の全店を読んでいる"
                 failures.append(
-                    f"{label} / {mode.strip()} plan: restaurants を延べ {rows:,} 行 "
-                    f"読んでいる（上限 {budget:,} 行）"
+                    f"{shape_name} / {label} / {mode.strip()} plan: "
+                    f"restaurants を延べ {rows:,} 行 読んでいる（上限 {budget:,} 行）"
                 )
+            else:
+                verdict = f"  ⚠️ 判定できない（丸めの上界 {rows_upper:,} 行 > 上限）"
             logger.info(
                 "   %s: %8.1f ms / restaurants から延べ %s 行%s",
                 mode,
@@ -339,21 +388,7 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
             if full_plan:
                 for line in plan:
                     logger.info("        %s", line)
-
-    section("3. 判定")
-    if not failures:
-        logger.info(
-            "✅ custom / generic のどちらでも «走る行数は半径に依存しない» が保てている"
-        )
-        return 0
-    for f in failures:
-        logger.error("❌ %s", f)
-    logger.error("")
-    logger.error(
-        "半径がプランナから見えない書き方へ戻っている。"
-        "api/src/v1/restaurants/restaurants.repository.ts の posted CTE のコメントを読むこと。"
-    )
-    return 1 if do_assert else 0
+    return failures
 
 
 def main() -> int:

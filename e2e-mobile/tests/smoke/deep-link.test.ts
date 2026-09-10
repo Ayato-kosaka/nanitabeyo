@@ -49,9 +49,21 @@ const ROUTE_MARKER_IDS: Record<string, string> = {
 const markerIdFor = (route: string): string => {
 	if (ROUTE_MARKER_IDS[route]) return ROUTE_MARKER_IDS[route];
 	// 法務ページはタブの外。本文コンテナを印にする
-	if (route.startsWith("legal/")) return "legal-screen-document";
+	if (isOutsideTabs(route)) return "legal-screen-document";
 	return "tab-search";
 };
+
+/**
+ * そのルートが **タブレイアウトの外**か。
+ *
+ * #1785 `launchAppWithSession` は既定で «起動完了 = タブバー（`tab-search`）が見えた» まで待つ。
+ * 法務ページ（`app/[locale]/legal/[doc].tsx`）はタブの外にあるので、そこへ直リンクで
+ * **着地した場合はタブバーが 1 度も描かれない**。既定のまま待つと、画面は正しく出ているのに
+ * 120 秒のタイムアウトで落ちる（legal/ の 4 本が毎回これだった）。
+ *
+ * 待つべきはそのルート自身の印（`markerIdFor`）であって、タブバーではない。
+ */
+const isOutsideTabs = (route: string): boolean => route.startsWith("legal/");
 
 describe("ディープリンク @smoke", () => {
 	for (const route of DEEP_LINK_SMOKE_ROUTES) {
@@ -61,7 +73,13 @@ describe("ディープリンク @smoke", () => {
 		//   2. launchAppWithSession({ as: "anon", url }) でそのディープリンクから直接起動する
 		//   3. ルート固有（既定はタブバー）の testID が表示されることを検証
 		it(`${route} への直リンクが表示される`, async () => {
-			await launchAppWithSession({ as: "anon", url: localeDeepLink(route) });
+			// タブの外へ着地するルートでは «タブバーを待つ» 既定の起動完了判定を使わない
+			//（理由は isOutsideTabs）。代わりに直後の waitUntilVisible が着地を確かめる
+			await launchAppWithSession({
+				as: "anon",
+				url: localeDeepLink(route),
+				waitForReady: !isOutsideTabs(route),
+			});
 			await waitUntilVisible(by.id(markerIdFor(route)));
 		});
 	}

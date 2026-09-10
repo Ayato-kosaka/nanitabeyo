@@ -21,7 +21,12 @@
 // （logger 自身の出力・env 検証のようにログ基盤より前に走るもの）だけ、
 // **理由を書いて** ALLOWED へ足す。
 
-import { lineOf, listSourceFiles, readCode, toRepoPath } from '../../../test/source-scan';
+import {
+  lineOf,
+  listSourceFiles,
+  readCode,
+  toRepoPath,
+} from '../../../test/source-scan';
 
 /**
  * `console.*` を使ってよい場所。**理由を必ず書くこと。**
@@ -36,7 +41,8 @@ const ALLOWED: Readonly<Record<string, string>> = {
   'src/core/config/env.ts': 'DI 起動前に走る env 検証。logger がまだ無い',
 };
 
-const CONSOLE_PATTERN = /\bconsole\s*\.\s*(log|warn|error|info|debug|trace)\s*\(/g;
+const CONSOLE_PATTERN =
+  /\bconsole\s*\.\s*(log|warn|error|info|debug|trace)\s*\(/g;
 
 describe('#1599 api のアプリケーションコードは console.* を使わない', () => {
   const files = listSourceFiles();
@@ -66,7 +72,9 @@ describe('#1599 api のアプリケーションコードは console.* を使わ�
       // 説明コメント自体を違反と誤認しないため）
       const text = readCode(file);
       for (const match of text.matchAll(CONSOLE_PATTERN)) {
-        violations.push(`${path}:${lineOf(text, match.index)} → console.${match[1]}()`);
+        violations.push(
+          `${path}:${lineOf(text, match.index)} → console.${match[1]}()`,
+        );
       }
     }
 

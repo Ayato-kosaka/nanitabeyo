@@ -13,9 +13,11 @@ import {
 	classifySurfaceScript,
 	clampConfidence,
 	confidenceMargin,
+	extractBareHandles,
 	extractBracketedNames,
 	extractHashtags,
 	extractMentions,
+	extractPinNames,
 	isWordBoundaryMatch,
 	katakanaToHiragana,
 	MATCH_TEXT_MAX_FIELDS,
@@ -237,6 +239,87 @@ test("extractBracketedNames: 閉じ括弧が無い／長すぎるものは採ら
 	assert.deepEqual(extractBracketedNames(`【${"あ".repeat(41)}】`), []);
 	// 『』「」 は店名の目印にしない（料理名・CTA に使われる）
 	assert.deepEqual(extractBracketedNames("『養老パフェ』「行きたい！」"), []);
+});
+
+// ---------------------------------------------------------------------------
+// extractPinNames — 📍<店名> 行の切り出し（#1273）。生キャプションに対して動く
+// ---------------------------------------------------------------------------
+
+test("extractPinNames: 📍 直後の店名を切り出し、正規化して返す（#1273）", () => {
+	assert.deepEqual(extractPinNames("📍すきやきの松伊"), ["すきやきの松伊"]);
+	// 名前のあとに「住所：」が続く行は、そこで切って屋号だけを返す
+	assert.deepEqual(extractPinNames("📍下部ホテル 住所：山梨県南巨摩郡身延町"), ["下部ホテル"]);
+	// 📍 直後の区切り記号（・：）は落とす
+	assert.deepEqual(extractPinNames("📍・カフェふね"), ["カフェふね"]);
+	// 全角英字は NFKC で半角小文字へ寄る
+	assert.deepEqual(extractPinNames("📍Ｃａｆｅ Ｆｕｎｅ"), ["cafe fune"]);
+	// 「屋号｜別名」は屋号側を採る
+	assert.deepEqual(extractPinNames("📍CRESCENT｜松前カフェ"), ["crescent"]);
+});
+
+test("extractPinNames: 複数行のうち 📍 のある行だけを拾う", () => {
+	const caption = ["中華そば専門店 よしだ の一杯", "📍下部ホテル", "#ラーメン"].join("\n");
+	assert.deepEqual(extractPinNames(caption), ["下部ホテル"]);
+});
+
+test("誤爆させない: 住所ピン（📍住所：… / 📍東京都…）は店名として採らない（#1273）", () => {
+	assert.deepEqual(extractPinNames("📍住所：東京都八王子市東町1-3"), []);
+	assert.deepEqual(extractPinNames("📍 東京都八王子市東町1-3"), []);
+	assert.deepEqual(extractPinNames("📍所在地：大阪府大阪市北区"), []);
+	assert.deepEqual(extractPinNames("📍TEL 03-1234-5678"), []);
+	assert.deepEqual(extractPinNames("📍北海道札幌市中央区"), []);
+});
+
+test("誤爆させない: 📍 の無い行・長すぎ／短すぎる名前は採らない", () => {
+	assert.deepEqual(extractPinNames("【店名】\nスターバックス"), []);
+	assert.deepEqual(extractPinNames("今日はいい天気でした"), []);
+	// 1 文字は短すぎる（2〜40 の範囲外）
+	assert.deepEqual(extractPinNames("📍あ"), []);
+	// 40 文字を超える «名前» は店名ではない
+	assert.deepEqual(extractPinNames(`📍${"あ".repeat(41)}`), []);
+});
+
+test("extractPinNames: 壊れた入力でも例外を投げない", () => {
+	assert.deepEqual(extractPinNames(null), []);
+	assert.deepEqual(extractPinNames(undefined), []);
+	assert.deepEqual(extractPinNames(""), []);
+	assert.deepEqual(extractPinNames("📍"), []);
+});
+
+// ---------------------------------------------------------------------------
+// extractBareHandles — @ なしの «裸ハンドル» 行の切り出し（#1273）
+// ---------------------------------------------------------------------------
+
+test("extractBareHandles: 行まるごとが IG ハンドルの行を返す（#1273）", () => {
+	const caption = ["おすすめのカフェ", "cafe_fune", "また行きたい"].join("\n");
+	assert.deepEqual(extractBareHandles(caption), ["cafe_fune"]);
+	// 大文字は正規化で小文字へ寄る
+	assert.deepEqual(extractBareHandles("ShimobeHotel"), ["shimobehotel"]);
+	// 複数のハンドル行
+	assert.deepEqual(extractBareHandles(["cafe_fune", "shimobehotel"].join("\n")), [
+		"cafe_fune",
+		"shimobehotel",
+	]);
+});
+
+test("extractBareHandles: 投稿者自身のハンドルは除外する（先頭 @ は無視）", () => {
+	const caption = ["cafe_fune", "my_own_account"].join("\n");
+	assert.deepEqual(extractBareHandles(caption, "my_own_account"), ["cafe_fune"]);
+	assert.deepEqual(extractBareHandles(caption, "@my_own_account"), ["cafe_fune"]);
+});
+
+test("誤爆させない: 通常文・数字だけ・【】・空白を含む行はハンドルにしない", () => {
+	assert.deepEqual(extractBareHandles("今日はラーメンを食べた"), []);
+	assert.deepEqual(extractBareHandles("【店名】"), []);
+	assert.deepEqual(extractBareHandles("12345"), []); // 数字だけは弾く
+	assert.deepEqual(extractBareHandles("cafe fune"), []); // 空白を含む＝ハンドルではない
+	assert.deepEqual(extractBareHandles("@ippudo"), []); // @ 付きは extractMentions の担当
+});
+
+test("extractBareHandles: 壊れた入力でも例外を投げない", () => {
+	assert.deepEqual(extractBareHandles(null), []);
+	assert.deepEqual(extractBareHandles(undefined), []);
+	assert.deepEqual(extractBareHandles(""), []);
 });
 
 // ---------------------------------------------------------------------------

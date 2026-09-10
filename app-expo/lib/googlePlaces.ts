@@ -623,11 +623,36 @@ export function getCurrencyCodeFromAddressComponents(
 
 /**
  * レストランデータから通貨コードを決定
- * @param restaurant レストランデータ (address_components を含む)
+ *
+ * #1780 【設計】**`address_components` を先に見て、無ければ `country_code` 列へ落ちる。**
+ *
+ * 長らく `address_components` «だけ» を見ていたが、dev の実測で
+ * **621,974 店のうち 619,498 店（99.60%）は `address_components` に country を
+ * 持っていない**ことが分かった（パイプライン製の行は `'[]'`）。
+ * 一方 `country_code` **列**は 621,964 店（100.00%）が埋まっている。
+ *
+ * つまり **国は分かっているのに、通貨だけが国を知らず**、ユーザーに通貨を
+ * 選ばせていた。列を見れば、ほぼ全ての店でその手間が要らなくなる。
+ *
+ * ⚠️ **通貨が決まらないときに «黙って既定値» へ倒してはいけない。** JPY は
+ * 小数 0 桁・USD は 2 桁で、取り違えると「1000円」が 100000 として送信される
+ * （実際に起きた）。引けないときは従来どおり `null` を返し、呼び出し側が
+ * ユーザーに選ばせること。
+ *
+ * ⚠️ 順序を入れ替えないこと。`address_components` を先に見るのは、
+ * `resolveLocalLanguageCode`（api 側 #1671）と揃えるためである。
+ *
+ * @param restaurant レストランデータ
  * @returns ISO-4217 通貨コード または null
  */
-export function getCurrencyCodeFromRestaurant(restaurant: { address_components?: any }): string | null {
-	return getCurrencyCodeFromAddressComponents(restaurant.address_components);
+export function getCurrencyCodeFromRestaurant(restaurant: {
+	address_components?: any;
+	country_code?: string | null;
+}): string | null {
+	return (
+		getCurrencyCodeFromAddressComponents(restaurant.address_components) ??
+		getCurrencyCodeFromCountry(restaurant.country_code ?? null)
+	);
 }
 
 /**

@@ -28,21 +28,31 @@ describe('#721 CreateShareLinkDto を ValidationPipe へ通す', () => {
   it('dish_media の params が whitelist で消えない', async () => {
     const result = (await pipe.transform(
       {
-        target: { type: 'dish_media', params: { ids: ['44444444-4444-4444-8444-444444444444'] } },
+        target: {
+          type: 'dish_media',
+          params: { ids: ['44444444-4444-4444-8444-444444444444'] },
+        },
         locale: 'ja-JP',
       },
       metadata,
     )) as CreateShareLinkDto;
 
     // ⚠️ ここが本題。`@IsObject()` を外すと params が undefined になる
-    expect(result.target.params).toEqual({ ids: ['44444444-4444-4444-8444-444444444444'] });
+    expect(result.target.params).toEqual({
+      ids: ['44444444-4444-4444-8444-444444444444'],
+    });
     expect(result.target.type).toBe('dish_media');
     expect(result.locale).toBe('ja-JP');
   });
 
   it('友達投票の params も消えない', async () => {
     const result = (await pipe.transform(
-      { target: { type: 'dish_category_group_vote_sessions', params: { shareToken: 'abc123' } } },
+      {
+        target: {
+          type: 'dish_category_group_vote_sessions',
+          params: { shareToken: 'abc123' },
+        },
+      },
       metadata,
     )) as CreateShareLinkDto;
 
@@ -77,7 +87,10 @@ describe('#721 CreateShareLinkDto を ValidationPipe へ通す', () => {
   it('未知のロケールは弾く', async () => {
     await expect(
       pipe.transform(
-        { target: { type: 'dish_media', params: { ids: ['x'] } }, locale: 'xx-XX' },
+        {
+          target: { type: 'dish_media', params: { ids: ['x'] } },
+          locale: 'xx-XX',
+        },
         metadata,
       ),
     ).rejects.toThrow();

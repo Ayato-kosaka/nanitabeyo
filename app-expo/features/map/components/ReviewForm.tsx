@@ -20,7 +20,8 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { FixedColors, type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
-import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
+import type { RestaurantsEntity } from "@shared/api/v1/res";
+
 import { InitialMediaPreview } from "./InitialMediaPreview";
 import {
 	buildCurrencyChoices,
@@ -58,7 +59,7 @@ import { ScrollView } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 
 interface ReviewFormProps {
-	restaurant: SupabaseRestaurants;
+	restaurant: RestaurantsEntity;
 	/** Initial price value */
 	initialPrice?: string;
 	/** Initial review text */
@@ -1047,6 +1048,8 @@ export function ReviewForm({
 					   次にサーバから引き直したとき、正規の `labels` で上書きされる。
 					*/
 					categoryLabels: dishCategoryName ? { [toLanguageCode(locale)]: dishCategoryName } : null,
+					// #1774 投稿直後はレビュー1件目なので priceBand は集計不能（3件未満と同じ扱い）
+					priceBand: null,
 				};
 
 				// dish-media.media_path をアップロード

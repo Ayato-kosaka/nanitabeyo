@@ -141,6 +141,8 @@ const mockPin = {
 		latitude: 35.5,
 		longitude: 139.5,
 		image_url: "https://example.com/restaurant.jpg",
+		// #1779 店の画像は `imageUrls` から取る（`image_url` は落とす列）
+		imageUrls: { sm: "https://example.com/restaurant.jpg", md: "https://example.com/restaurant.jpg" },
 	},
 	counts: { want: 1, eaten: 2 },
 	latestOccurredAt: "2026-08-01T00:00:00.000Z",
@@ -773,7 +775,7 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 #1513 «自分の投稿が削除済み» のピン（`isOwnMediaDeleted`）。
 
 ピンは残す（店舗ごとの記録が消えたわけではない）。ただし写真は
-`restaurant.image_url` へも落とさず、吹き出しの中身を墓標へ差し替える。
+店の画像へも落とさず、吹き出しの中身を墓標へ差し替える。
 落としてしまうと「自分が消した写真の跡地に別の絵」になり、消えたことが伝わらない。
 */
 describe("#1513 削除済みのピンは墓標になる（ピン自体は消さない）", () => {
@@ -799,7 +801,7 @@ describe("#1513 削除済みのピンは墓標になる（ピン自体は消さ�
 		);
 		const tree = await render();
 
-		// restaurant.image_url（mockPin にある）へ落ちていないこと。
+		// 店の画像（mockPin にある）へ落ちていないこと。
 		// ⚠️ マーカーは mapReady の補正で 2 回描かれるので «全ての描画で» を見る（件数で数えない）
 		expect(pinUris.every((uri) => uri === undefined)).toBe(true);
 		expect(pinBubbleContents.filter(Boolean).length).toBeGreaterThan(0);
@@ -890,7 +892,7 @@ describe("#1375 Map のクラスタリング", () => {
 describe("地図に出ているピンと下部シートの一致", () => {
 	const pinAt = (id: string, latitude: number, longitude: number) =>
 		({
-			restaurant: { id, name: id, latitude, longitude, image_url: null },
+			restaurant: { id, name: id, latitude, longitude, image_url: null, imageUrls: undefined },
 			counts: { want: 0, eaten: 1 },
 			latestOccurredAt: "2026-08-01T00:00:00.000Z",
 			representativeThumbnailUrl: null,

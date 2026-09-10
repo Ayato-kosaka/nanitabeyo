@@ -11,9 +11,11 @@ import {
 	IsString,
 	IsArray,
 	ArrayMaxSize,
+	IsIn,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
 import { BCP47_LANGUAGE_TAG_PATTERN } from "../../../../utils/languageCode";
+import { TIME_SLOTS, type TimeSlot } from "../../../../utils/timeSlot";
 
 /**
  * Query parameters accepted by **GET /v1/dish-media/search**.
@@ -60,6 +62,15 @@ export class SearchDishMediaDto {
 	@Min(1)
 	@Max(100)
 	limit?: number;
+
+	/**
+	 * #288 選んだ時間帯。指定すると、営業時間が分かっていてこの時間帯には
+	 * 閉まっている店（`closed`）を候補から除外する。未指定なら除外も加点も行わない
+	 * （後方互換。既存クライアントはこのフィールドを送らない）。
+	 */
+	@IsOptional()
+	@IsIn(TIME_SLOTS)
+	timeSlot?: TimeSlot;
 
 	/**
 	 * レビュー表示で優先する元言語コードを、優先度の高い順に並べたリスト。

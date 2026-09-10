@@ -100,6 +100,21 @@ export function EditDishReviewModal({ review, onClose, onSaved, logPayload }: Pr
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 
 	/*
+	#1774 【設計】**通貨が分からない行では、価格の編集そのものを出さない。**
+
+	`price_cents` は最小単位の整数で、桁数は通貨ごとに違う（JPY は 0 桁、USD は 2 桁）。
+	通貨が無ければ «その整数が何円なのか» を決められないので、表示も再変換もできない。
+
+	dev の `dish_reviews` に `currency_code IS NULL` の行が 2 件残っている
+	（通貨未確定のまま既定 2 桁で換算していた頃の残骸。¥500 が 50,000 になっている）。
+	この行を開くと `toMinorAmountInteger()` が **try の外で throw** して、
+	`finally` の `setIsSubmitting(false)` にも届かず **保存ボタンが二度と押せなくなっていた**。
+	作成側は塞いだ（API の `@CurrencyCodeWithPrice()`）ので、この分岐は既存行の救済専用である。
+	価格は触らせず据え置き、コメントと評価だけ直せるようにする。
+	*/
+	const canEditPrice = currencyCode !== null;
+
+	/*
 	開いたときだけ現在値を流し込む。`review.id` を依存にしているので、
 	**入力中に親が再描画しても打った文字は消えない**（オブジェクトの同一性に依存させない）。
 	price_cents は最小単位なので表示用に戻す。
@@ -125,24 +140,25 @@ export function EditDishReviewModal({ review, onClose, onSaved, logPayload }: Pr
 		if (!review || isSubmitting) return;
 		setIsSubmitting(true);
 
+		// 通貨が無い行では価格を送らない（undefined = 据え置き）。currencyCode も同様に据え置く
 		const parsedAmount = parseAmountString(price);
-		const priceCents =
-			price.trim() === "" || Number.isNaN(parsedAmount) ? null : toMinorAmountInteger(parsedAmount, currencyCode);
+		const priceCents = !canEditPrice
+			? undefined
+			: price.trim() === "" || Number.isNaN(parsedAmount)
+				? null
+				: toMinorAmountInteger(parsedAmount, currencyCode);
 
 		try {
-			const updated = await callBackend<UpdateDishReviewDto, UpdateDishReviewResponse>(
-				`v1/dish-reviews/${review.id}`,
-				{
-					method: "PATCH",
-					requestPayload: {
-						lockNo: review.lock_no,
-						comment,
-						rating,
-						priceCents,
-						currencyCode,
-					},
+			const updated = await callBackend<UpdateDishReviewDto, UpdateDishReviewResponse>(`v1/dish-reviews/${review.id}`, {
+				method: "PATCH",
+				requestPayload: {
+					lockNo: review.lock_no,
+					comment,
+					rating,
+					priceCents,
+					currencyCode: canEditPrice ? currencyCode : undefined,
 				},
-			);
+			});
 
 			onSaved(updated);
 
@@ -173,7 +189,21 @@ export function EditDishReviewModal({ review, onClose, onSaved, logPayload }: Pr
 		} finally {
 			setIsSubmitting(false);
 		}
-	}, [review, isSubmitting, price, currencyCode, callBackend, comment, rating, logFrontendEvent, logPayload, onSaved, onClose, showSnackbar]);
+	}, [
+		review,
+		isSubmitting,
+		price,
+		currencyCode,
+		canEditPrice,
+		callBackend,
+		comment,
+		rating,
+		logFrontendEvent,
+		logPayload,
+		onSaved,
+		onClose,
+		showSnackbar,
+	]);
 
 	return (
 		<Modal visible={review !== null} transparent animationType="slide" onRequestClose={onClose}>
@@ -226,25 +256,34 @@ export function EditDishReviewModal({ review, onClose, onSaved, logPayload }: Pr
 										accessibilityRole="button"
 										accessibilityLabel={i18n.t("Stars.accessibility.rating", { rating: value })}
 										aria-selected={rating === value}>
-										<FontAwesome name={value <= rating ? "star" : "star-o"} size={28} color="gold" style={styles.star} />
+										<FontAwesome
+											name={value <= rating ? "star" : "star-o"}
+											size={28}
+											color="gold"
+											style={styles.star}
+										/>
 									</TouchableOpacity>
 								);
 							})}
 						</View>
 
-						<Text style={styles.fieldLabel}>{i18n.t("DishMediaContent.ownPost.editPrice")}</Text>
-						<View style={styles.priceRow}>
-							{currencySymbol ? <Text style={styles.currencySymbol}>{currencySymbol}</Text> : null}
-							<TextInput
-								testID="edit-review-price-input"
-								style={styles.priceInput}
-								value={price}
-								onChangeText={setPrice}
-								keyboardType="numeric"
-								placeholder="0"
-								placeholderTextColor={colors.textPlaceholder}
-							/>
-						</View>
+						{canEditPrice ? (
+							<>
+								<Text style={styles.fieldLabel}>{i18n.t("DishMediaContent.ownPost.editPrice")}</Text>
+								<View style={styles.priceRow}>
+									{currencySymbol ? <Text style={styles.currencySymbol}>{currencySymbol}</Text> : null}
+									<TextInput
+										testID="edit-review-price-input"
+										style={styles.priceInput}
+										value={price}
+										onChangeText={setPrice}
+										keyboardType="numeric"
+										placeholder="0"
+										placeholderTextColor={colors.textPlaceholder}
+									/>
+								</View>
+							</>
+						) : null}
 
 						<TouchableOpacity
 							testID="edit-review-submit-button"
