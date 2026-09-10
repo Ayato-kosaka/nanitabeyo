@@ -4,8 +4,15 @@ WORKDIR /app
 # pnpm を有効化
 RUN corepack enable
 
-# lockfile と api/package.json だけ先にコピーしてキャッシュ
-COPY pnpm-lock.yaml ./
+# lockfile と package.json だけ先にコピーしてキャッシュ。
+#
+# ⚠️ **root の package.json を必ず含めること。** corepack はここから `packageManager`
+#    （pnpm@10.8.0）を読む。無いと **その時の最新の pnpm** を落としてくるので、
+#    ビルドの結果が «上流が新しい版を出した日» に変わる。実際に 2026-09-10、
+#    pnpm 12.3.4 が降ってきて `pnpm fetch` が ERR_PNPM_NO_LOCKFILE で落ちた
+#    （12 は lockfile を親へ探しに行かなくなった）。コードは 5 日間 1 行も変えていない。
+# ⚠️ pnpm-workspace.yaml も要る。これが workspace の根を決める。
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY api/package.json ./api/
 
 # production 用の依存だけ取得（store は /root/.pnpm-store）
