@@ -40,8 +40,23 @@ description: ユーザーからの通報（content_reports）を捌く。通報�
 `content_reports` は PostgreSQL にある。**`db-script-run.yml`** で `scripts/` 配下の
 Python を資格情報つきで動かして読む。BigQuery ではない（error-triage とはここが違う）。
 
-集計は日次ワークフローが Issue に出す。**未処理 0 件の日は Issue を作らない**ので、
-`content-report` ラベルの open Issue が無ければその日は何もしなくてよい。
+⚠️ **«日次ワークフローが Issue に出す» という仕組みは存在しない**（2026-09-10 に確認）。
+以前ここには「未処理 0 件の日は Issue を作らないので、`content-report` ラベルの
+open Issue が無ければ何もしなくてよい」と書いてあったが、`.github/workflows/` に
+通報を集計するものは 1 つも無い。**ラベルが 0 件でも、通報が 0 件である根拠にはならない。**
+
+数えるところまでは、次を dispatch すれば自分で取れる。
+
+```
+workflow:     db-script-run.yml
+script_path:  scripts/db-checks/count_content_reports.py
+args:         --schema public
+```
+
+`status` 別の件数と、未処理の `target_type` × `reason_code` の内訳だけを出す
+（`reason_text` は**そもそも SELECT しない**ので、絶対条件 2 を構造的に満たす）。
+
+実測 2026-09-10: 本番（`public`）の通報は **0 件**。
 
 Issue に載せてよいのは次まで。
 
