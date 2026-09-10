@@ -33,10 +33,22 @@ import {
 export class ResultScreen {
 	/** 結果画面を閉じるボタン（トピック画面へ戻る） */
 	readonly closeButton = by.id("result-close-button");
-	/** いいねボタン（⚠️ フィードには複数カードが積まれるため atIndex で絞ること） */
-	readonly likeButton = by.id("dish-action-like");
-	/** 保存ボタン（⚠️ 同上） */
-	readonly saveButton = by.id("dish-action-save");
+	/**
+	 * いいねボタン。**いま真ん中に見えているカードのものへ限定する。**
+	 *
+	 * #1579 【バグ】ここは長らく `by.id("dish-action-like")` + `atIndex(0)` だった。
+	 * カルーセルは前後のセルも描くので、index 0 は **画面端で切れている隣のカード**を掴む。
+	 * Detox の `toBeVisible()` は «自分の面積の 75% 以上が見えていること» を要求するため、
+	 * 切れているボタンは **永遠に条件を満たさず 25 秒待って落ちる**。
+	 * 09-09 夜間では `reaction-rollback` の 3 件と `dish-media-unarrived-excluded` が
+	 * これで落ちていた（失敗のコマに «前後のカードのレールが画面端で切れている» が写っている）。
+	 *
+	 * ⚠️ **同じ注意は下の `activeCard` に #1742 で既に書かれていた**のに、こちらの 2 つが
+	 * 古い «atIndex で絞ること» のままだった。**片方だけ直すと、もう片方が残る。**
+	 */
+	readonly likeButton = by.id("dish-action-like").withAncestor(by.id("dish-media-card-active"));
+	/** 保存ボタン（⚠️ 同上。active なカードに限定する） */
+	readonly saveButton = by.id("dish-action-save").withAncestor(by.id("dish-media-card-active"));
 	/**
 	 * #1742 いま真ん中に見えているカード。押すと «このお店、気になる？» の ActionSheet が開く。
 	 *
@@ -53,7 +65,9 @@ export class ResultScreen {
 	 */
 	readonly actionSheetTitle = by.text("このお店、気になる？");
 	/** #1629 «…» メニューを開くボタン。シェアと報告はこの中にある */
-	readonly moreButton = by.id("dish-action-more");
+	// #1579 like / save と同じ理由で active なカードに限定する（レールの上にあるため）。
+	// ⚠️ 下の `reportButton` は «…» メニュー（別の Modal）の中なので、カードの子孫ではない。限定しない
+	readonly moreButton = by.id("dish-action-more").withAncestor(by.id("dish-media-card-active"));
 	/** 通報ボタン（#1514 SAF-01。**«…» メニューの中**。#1629 でレールから移動した） */
 	readonly reportButton = by.id("dish-action-report");
 	/** 通報シート本体（Modal） */

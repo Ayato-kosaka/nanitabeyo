@@ -71,7 +71,11 @@ describeJapaneseLocale("実体未着の料理メディアは結果フィード�
 		}
 
 		// カードが描けていること（オーバーレイの «無さ» だけを見ると、フィードが空でも緑になる）
-		await expect(element(result.likeButton).atIndex(0)).toBeVisible();
+		//
+		// #1579 【バグ】ここは `atIndex(0)` だった。カルーセルは前後のセルも描くので index 0 は
+		// **画面端で切れている隣のカード**を掴み、`toBeVisible()`（自分の面積の 75% 以上）を
+		// 永遠に満たさない。`likeButton` を active なカードの子孫へ限定したので index は要らない。
+		await expect(element(result.likeButton)).toBeVisible();
 
 		// ⚠️ `toBeNotVisible()` ではなく existsNow 系で見る。存在しない testID/text に対する
 		// Detox の否定アサーションはプラットフォームによって例外の出方が違うため、
