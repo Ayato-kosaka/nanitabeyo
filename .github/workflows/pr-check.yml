@@ -124,7 +124,8 @@ jobs:
         run: |
           python3 -m unittest \
             scripts/db-checks/test_explain_rows_read.py \
-            scripts/db-checks/test_explain_opening_status_binds.py
+            scripts/db-checks/test_explain_opening_status_binds.py \
+            scripts/db-checks/test_measure_order_by_posts_indexes.py
 
       # #1666 進捗ログが `continue` の後ろにあって出ない形（run 34022514117 は 3,000 件で
       # 6 行しか出さず、原因の読み違えを招いた）と、フォレンジックの SQL が本番の

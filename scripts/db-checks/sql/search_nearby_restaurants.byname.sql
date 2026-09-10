@@ -23,6 +23,11 @@ WITH
           再現環境（半径 1,500km・希少な店名）で Bitmap Index Scan on
           idx_restaurants_name_trgm → 8 ms。
 
+          ⚠️ #1951 **「trgm で絞れる」が成り立つのは «連続する語が 3 文字以上» のときだけ**である。
+             2 文字以下の中間一致（パーセントで囲む形）は trigram が 0 個で索引が使えず、
+             本番で **20.34 秒**かかっていた。だから照合の形そのものを
+             buildNameMatch が切り替える（前方一致 / 語頭一致）。ここの並べ方の話とは別の層。
+
           ⚠️ ここで «KNN + LIMIT を内側に閉じる» 形（nearest と同じ形）にしてはいけない。
              店名が希少だと «近い順に舐めて 20 件そろうまで» が全件走査になる。
 
@@ -35,7 +40,7 @@ WITH
         SELECT r.id
         FROM restaurants r
         WHERE
-          r.name ILIKE ?
+          (r.name ILIKE ?)
           AND ST_DWithin(r.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)
         ORDER BY ST_Distance(r.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) ASC LIMIT 20
       ),

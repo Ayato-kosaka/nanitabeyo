@@ -285,6 +285,68 @@ describe("#1629 外で店が決まったら、打っていた文字と検索結�
 既定 viewport ≒ 1km になり、そこに無い店は何を打っても出なかった（実ログの `radius: 1079`）。
 店名を打つ人は «その名前の店» を探しているので、半径は全国。並びは距離順のまま。
 */
+/*
+#1951 **1 文字では検索を投げない。**
+
+本番ログに `す` → `すり` → `すりー` がそのまま飛んでいた（IME の変換途中）。
+1 文字は全国 57 万店に対して絞り込みにならず、サーバ側の実測で **20.1 秒**かかる。
+
+守るのは «1 文字は投げない / 2 文字は投げる» の境目そのもの。
+⚠️ 2 文字を弾く方向へ動かさないこと。一蘭・魚金のような 2 文字の店名は実在し、
+   サーバ側は #1951 で 2 文字でも索引に乗るようにしてある。
+*/
+describe("#1951 1 文字では検索を投げない（2 文字からは投げる）", () => {
+	it("1 文字だけ入力しても callBackend を叩かない", async () => {
+		const tree = await render(<NameSearchHarness />);
+		const input = findByTestId(tree, "select-restaurant-name-search-input");
+
+		await act(async () => {
+			input.props.onChangeText("す");
+			jest.advanceTimersByTime(300);
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+
+		expect(nameSearchCalls()).toHaveLength(0);
+	});
+
+	it("2 文字なら投げる（一蘭・魚金のような実在の店名を捨てない）", async () => {
+		const tree = await render(<NameSearchHarness />);
+		const input = findByTestId(tree, "select-restaurant-name-search-input");
+
+		await act(async () => {
+			input.props.onChangeText("一蘭");
+			jest.advanceTimersByTime(300);
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+
+		expect(nameSearchCalls()).toHaveLength(1);
+		expect(nameSearchCalls()[0][1].requestPayload).toEqual(expect.objectContaining({ q: "一蘭" }));
+	});
+
+	it("2 文字から 1 文字へ消したら、それ以上叩かない", async () => {
+		const tree = await render(<NameSearchHarness />);
+		const input = findByTestId(tree, "select-restaurant-name-search-input");
+
+		await act(async () => {
+			input.props.onChangeText("一蘭");
+			jest.advanceTimersByTime(300);
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+		expect(nameSearchCalls()).toHaveLength(1);
+
+		await act(async () => {
+			input.props.onChangeText("一");
+			jest.advanceTimersByTime(300);
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+		expect(nameSearchCalls()).toHaveLength(1);
+	});
+});
+
 describe("#1629 店名検索の半径は «見えている範囲» ではなく «全国»", () => {
 	it("viewport が狭くても、全国ぶんの半径で問い合わせる", async () => {
 		const tree = await render(<NameSearchHarness />);

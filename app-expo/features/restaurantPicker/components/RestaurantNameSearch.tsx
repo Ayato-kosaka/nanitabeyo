@@ -24,6 +24,13 @@ type SearchStatus = "idle" | "debouncing" | "searching" | "success" | "empty" | 
 
 const DEBOUNCE_DELAY_MS = 300;
 /**
+ * #1951 検索を投げ始める最短の長さ（コードポイント）。
+ *
+ * 1 文字は IME の変換途中で飛んでくるうえ、全国 57 万店に対して絞り込みにならず、
+ * サーバ側の実測で **20.1 秒**かかる。2 文字は実在する店名（一蘭・魚金）なので投げる。
+ */
+const MIN_QUERY_LENGTH = 2;
+/**
  * #1629 店名検索の半径。**画面に見えている範囲ではなく «全国»**（理由は `runSearch` のコメント）。
  * 日本全体が入る 1,500km。`MAX_SEARCH_RADIUS_M`（地球の半周）まで広げないのは、
  * 地球の裏側の同名店が混ざっても選択肢として意味が無いからである。
@@ -152,6 +159,14 @@ export function RestaurantNameSearch({
 						     駆動表**で、半径は絞り込みにしか使われない。リポジトリ側の実測で
 						     «半径 1,500km・希少な店名で 8 ms»（`restaurants.repository.ts` の設計コメント）。
 						     半径を viewport に戻すと、この不具合がそのまま戻る。
+
+						  ⚠️ #1951 **「trgm が駆動表」が成り立つのは «連続する語が 3 文字以上» のときだけ**
+						     だった。2 文字以下の中間一致は trigram が取れず、プランナが位置索引だけで
+						     駆動して**半径内の行をヒープから全部読んで捨てる**形になり、
+						     本番で **20.34 秒**かかっていた。いまはサーバ側が短い店名を
+						     前方一致 / 語頭一致へ切り替えて索引に乗せている
+						     （`api/src/v1/restaurants/restaurant-name-match-mode.ts`）。
+						     **半径を広げたこと自体は正しく、直すべきは照合の形だった。**
 						*/
 						radius: NAME_SEARCH_RADIUS_M,
 						limit: RESULT_LIMIT,
@@ -209,8 +224,20 @@ export function RestaurantNameSearch({
 			}
 
 			const trimmed = text.trim();
-			if (trimmed.length === 0) {
-				// 入力が空になった時点で直前の in-flight 応答も無効化する
+			/*
+			#1951 **1 文字では叩かない。**
+
+			本番ログに `す` → `すり` → `すりー` がそのまま飛んでいた（IME の変換途中）。
+			1 文字は全国 57 万店に対して絞り込みの役に立たず、サーバ側では実測 **20.1 秒**かかる。
+			画面としても «全国の «す» を含む店の近い順 20 件» は選べるものではない。
+
+			⚠️ ここを «3 文字» にしないこと。2 文字の店名（一蘭・魚金・鳥貴）は実在し、
+			   サーバ側は #1951 で 2 文字でも索引に乗るようにしてある
+			   （`api/src/v1/restaurants/restaurant-name-match-mode.ts`）。
+			   ここで弾いてよいのは «絞り込みの役に立たない» 1 文字だけである。
+			*/
+			if (Array.from(trimmed).length < MIN_QUERY_LENGTH) {
+				// 入力が空 / 1 文字になった時点で直前の in-flight 応答も無効化する
 				latestRequestIdRef.current += 1;
 				setResults([]);
 				setStatus("idle");
