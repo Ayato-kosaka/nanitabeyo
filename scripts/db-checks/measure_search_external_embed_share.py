@@ -415,7 +415,7 @@ def measure_point(cur, sql, names, point, *, radius, limit, pages, categories, m
         "   %-12s %-24s %6s %6s %8s %6s %6s",
         "category_id",
         "label",
-        "在庫",
+        "在庫(埋込)",
         "返却",
         "うち埋込",
         "割合",
