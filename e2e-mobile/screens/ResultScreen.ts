@@ -375,11 +375,17 @@ export class ResultScreen {
  *
  * ⚠️ **«赤いから下げた» のではない。** 74% という数字を先に測り、
  * «ボタンの大部分は遮られていない» ことを確かめたうえで、その下に閾値を置いている。
+ *
+ * ⚠️ **これが効くのは «見えているか» を見るアサーションだけである。**
+ * **タップ動作は Espresso 側で 75% を要求しており、`toBeVisible(pct)` では変えられない**
+ * （実測: `Action will not be performed because the target view does not match ...
+ * covers at least <75> percent`）。タップが要るテストは
+ * [#1963](https://github.com/Ayato-kosaka/nanitabeyo/issues/1963) が直るまで通らない。
  * 60% にしたのは、**本当にレールが覆われる後退（半分以上隠れる等）はきちんと赤くする**ため。
  * ここを 1% などにすると «見えていなくても通る» テストになり、#1579 で潰してきた
  * «落ちないテスト» を自分で作ることになる。
  */
-const CARD_ACTION_VISIBLE_PERCENT = 60;
+export const CARD_ACTION_VISIBLE_PERCENT = 60;
 
 /**
  * #1579 カードのアクションをタップする。**落ちたときに «なぜ押せなかったか» を自分で吐く。**
