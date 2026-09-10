@@ -438,10 +438,21 @@ export class MyDishesScreen {
 	 *          「選択が消えた」を区別できるようにする）
 	 */
 	async isFilterStatusSelected(status: MyDishStatusName): Promise<boolean | null> {
-		// getAttributes() の戻り値は iOS / Android・単一 / 複数一致で型が分かれるため、
-		// isSubmitButtonEnabled と同じく必要なキーだけに絞ってキャストする
-		const attributes = (await element(this.filterStatusChip(status)).getAttributes()) as { selected?: boolean };
-		return attributes.selected ?? null;
+		/*
+		 ⚠️ **`getAttributes().selected` で読まないこと。**
+
+		 状態は `accessibilityState.selected` に載るが、**Android の Detox では属性として
+		 上がってこない**ため、ここは常に `null`（判定不能）を返していた。呼び出し側は
+		 `null !== true` で落ちるので、**フィルタが正しく効いていてもテストは失敗する**
+		 （#1579・3 夜連続）。`SettingsScreen.themeOptionCheck` と
+		 `NotificationSettingsSection.readStateSignature` に同じ注意がある。
+
+		 アプリ側が «選択済みのときだけ居る印»（`-selected`）を描くので、その有無で読む。
+		 ⚠️ 戻り値の型は `boolean | null` のままにしてある。**印が見つからない = 未選択**
+		    と断言できるのは、印が «選択済みなら必ず在る» ことに依っている。将来
+		    印を消したら、また判定不能へ戻す（`null` を返す）こと。
+		*/
+		return existsNow(by.id(`my-dishes-filter-status-${status}-selected`));
 	}
 }
 
