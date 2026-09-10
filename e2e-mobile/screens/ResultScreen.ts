@@ -391,6 +391,24 @@ async function tapCardActionWhenVisible(
 		} catch (attributesError) {
 			diagnostics = `getAttributes も失敗: ${String(attributesError)}`;
 		}
+
+		/*
+		#1579 «何 % 見えているのか» を数字にする。
+		属性が `visible:true` / `alpha:1` / 画面内に収まる frame を返しているのに 75% を満たさない、
+		という状態まで来たので、残る説明は **他のビューに覆われている** しかない。
+		Detox の `toBeVisible(pct)` は閾値を取れるので、通る一番大きい閾値を探して «実際の見え方» を出す。
+		⚠️ これは原因ではなく **測定**である。数字が出てから直し方を決めること。
+		*/
+		let largestPassing = 0;
+		for (const pct of [1, 10, 25, 50, 74]) {
+			try {
+				await waitFor(element(matcher)).toBeVisible(pct).withTimeout(2_000);
+				largestPassing = pct;
+			} catch {
+				break;
+			}
+		}
+		diagnostics += ` / 通った最大の可視率: ${largestPassing === 0 ? "1% すら通らない" : `${largestPassing}%`}（既定の要求は 75%）`;
 		// eslint-disable-next-line no-console
 		console.error(
 			`⚠️ ${testIdForDiagnostics} をタップできませんでした。一致した要素の属性: ${diagnostics}\n` +
