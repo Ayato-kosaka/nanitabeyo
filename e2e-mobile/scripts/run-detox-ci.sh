@@ -59,6 +59,31 @@ readonly EXIT_CODE=$?
 mkdir -p "${ARTIFACTS_DIR}"
 cp "${WORK_DIR}"/*.log "${ARTIFACTS_DIR}/" 2>/dev/null || true
 
+# ⚠️ #1579 【バグ】**待ち時間に上限を付けること。**
+#
+# #1027 は «端末が居るか» を条件に足してこのハングを塞いだつもりだったが、塞げていなかった。
+# run 34437874049（Android）は **テスト自体は 4.4 分で終わっている**のに、下の
+# `adb logcat -b crash -d` で **64.9 分**固まり、90 分のジョブ上限で打ち切られた
+# （ログの最後の行が «クラッシュログ…を回収します» のまま止まっている）。
+#
+# `-d` は «ダンプして終了» なので原理上ハングしないはずだが、テスト後の
+# エミュレータが応答しない状態だと adb 側で待ち続ける。**«端末が見えている» は
+# «端末が応答する» ではない。** 条件ではなく時間で切る。
+#
+# ⚠️ 後始末でジョブ時間を溶かすと、夜間は **残りの suite が走れなくなる**。
+# 収集は «取れたら嬉しい» ものであって、テストを走らせる時間を奪ってよいものではない。
+run_bounded() {
+	local seconds="$1"
+	shift
+	if command -v timeout >/dev/null 2>&1; then
+		timeout --signal=KILL "${seconds}" "$@"
+	else
+		# timeout が無い環境（macOS ランナー等）では従来どおり。ここは Android 分岐なので
+		# 実際には ubuntu ランナーしか通らないが、fail-open で壊さない
+		"$@"
+	fi
+}
+
 # 失敗時のみクラッシュログを回収する（成功時に置くとノイズにしかならない）。
 #
 # ⚠️ #1027 【バグ】判定を `command -v adb` にしてはいけない。
@@ -68,9 +93,9 @@ cp "${WORK_DIR}"/*.log "${ARTIFACTS_DIR}/" 2>/dev/null || true
 # ジョブのタイムアウトで打ち切られ、Artifact のアップロードにも到達しなかった。
 # 判定は「Android のスクリプトを実行したか」＋「実際に端末が見えているか」の 2 段にする。
 if [ "${EXIT_CODE}" -ne 0 ] && [[ "${SCRIPT_NAME}" == *android* ]] && command -v adb >/dev/null 2>&1; then
-	if adb devices | grep -qE '^\S+[[:space:]]+device$'; then
+	if run_bounded 30 adb devices | grep -qE '^\S+[[:space:]]+device$'; then
 		echo "▶ クラッシュログ（logcat の crash バッファ）を回収します"
-		adb logcat -b crash -d > "${ARTIFACTS_DIR}/logcat-crash.log" 2>&1 || true
+		run_bounded 60 adb logcat -b crash -d > "${ARTIFACTS_DIR}/logcat-crash.log" 2>&1 || true
 
 		# #1375 【重要】**crash バッファだけでは «落ちた理由» が分からないことがある。**
 		# run 32860661371（Android・案 A の埋め込み）で、アプリがランチャーへ戻る＝確実に
@@ -83,7 +108,7 @@ if [ "${EXIT_CODE}" -ne 0 ] && [[ "${SCRIPT_NAME}" == *android* ]] && command -v
 		#
 		# はいずれも **main バッファにしか出ない**。原因を «見えるように» するため
 		# main バッファも一緒に残す。全文だと数十 MB になり得るので末尾だけにする。
-		adb logcat -b main -d 2>/dev/null | tail -n 5000 > "${ARTIFACTS_DIR}/logcat-main-tail.log" || true
+		run_bounded 60 adb logcat -b main -d 2>/dev/null | tail -n 5000 > "${ARTIFACTS_DIR}/logcat-main-tail.log" || true
 	else
 		echo "▶ 接続中の Android 端末が無いため、クラッシュログの回収をスキップします"
 	fi
