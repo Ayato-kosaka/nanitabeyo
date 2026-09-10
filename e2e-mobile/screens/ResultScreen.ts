@@ -38,13 +38,16 @@ import {
  * Detox の `toBeVisible()` は «自分の面積の 75% 以上» を要求するため、切れているビューは
  * **永遠に条件を満たさない**（＝ 25 秒待って落ちる）。
  *
- * 目印 `dish-media-card-active` はアプリ側に既にある（`DishMediaContent.tsx`）。
+ * ⚠️ **カードの器（`dish-media-card-active`）で `withAncestor` する手は効かなかった。**
+ * 実測（run 34443948019）で «その祖先を持つ `dish-action-like` は 1 つも無い» になる。
+ * 器の View は RN の view flattening でネイティブ階層に残らないことがあり、祖先として辿れない。
+ * **押せるもの自身に印を付ける**（アプリ側が前面のカードにだけ `-active` を付ける）。
+ * #1579 で通知トグル・keep-alive・フィルタチップに使ったのと同じやり方である。
  *
  * ⚠️ **定義はここ 1 箇所だけにすること。** 各 spec へ書き写すと、片方だけ直った状態が残る。
  * `app-expo/scripts/assert-carousel-locator-scope.mjs` がこの規約を機械で縛っている。
  */
-export const activeCardChild = (testId: string): Detox.NativeMatcher =>
-	by.id(testId).withAncestor(by.id("dish-media-card-active"));
+export const activeCardChild = (testId: string): Detox.NativeMatcher => by.id(`${testId}-active`);
 
 /** #1579 «いま真ん中のカード» のいいねボタン（spec から到達判定に使う） */
 export const ACTIVE_CARD_LIKE = activeCardChild("dish-action-like");
@@ -84,9 +87,9 @@ export class ResultScreen {
 	 */
 	readonly actionSheetTitle = by.text("このお店、気になる？");
 	/** #1629 «…» メニューを開くボタン。シェアと報告はこの中にある */
-	// #1579 like / save と同じ理由で active なカードに限定する（レールの上にあるため）。
-	// ⚠️ 下の `reportButton` は «…» メニュー（別の Modal）の中なので、カードの子孫ではない。限定しない
-	readonly moreButton = activeCardChild("dish-action-more");
+	// ⚠️ #1579 `dish-action-more` はまだ `-active` を出していない（どの spec からも使われていないため）。
+	// 使うときは app-expo 側の `ActionButtons` で like / save と同じ suffix を出すこと。
+	readonly moreButton = by.id("dish-action-more");
 	/** 通報ボタン（#1514 SAF-01。**«…» メニューの中**。#1629 でレールから移動した） */
 	readonly reportButton = by.id("dish-action-report");
 	/** 通報シート本体（Modal） */

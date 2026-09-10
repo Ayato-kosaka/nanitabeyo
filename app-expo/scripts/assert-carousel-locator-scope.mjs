@@ -12,7 +12,11 @@ import { fileURLToPath } from "node:url";
  * 切れているビューは **永遠に条件を満たさず 25 秒待って落ちる**。
  *
  * 正しい書き方は `screens/ResultScreen.ts` の `activeCardChild()` を使うこと
- *（アプリ側の目印 `dish-media-card-active` の子孫へ限定する）。
+ *（アプリ側が **前面のカードのボタンにだけ** `-active` を付けている）。
+ *
+ * ⚠️ カードの器（`dish-media-card-active`）で `withAncestor` する手は **効かない**。
+ * run 34443948019 の実測で «その祖先を持つ dish-action-like は 1 つも無い» になった。
+ * 器の View は RN の view flattening でネイティブ階層に残らないことがある。
  *
  * ## なぜ機械で縛るのか
  * この注意は #1742 が `ResultScreen.ts` の `activeCard` に**日本語で書き残していた**。
@@ -32,7 +36,14 @@ const repoRoot = path.resolve(scriptDir, "..", "..");
 const E2E_ROOT = path.join(repoRoot, "e2e-mobile");
 
 /** «…» メニュー（別 Modal）の中に描かれるので、カードへ限定してはいけない */
-const NOT_CARD_CHILDREN = new Set(["dish-action-share", "dish-action-report"]);
+const NOT_CARD_CHILDREN = new Set([
+	// «…» メニュー（別 Modal）の中に描かれる。カードのレールではない
+	"dish-action-share",
+	"dish-action-report",
+	// まだ `-active` を出していない。使うときは app-expo 側で suffix を出すこと
+	"dish-action-more",
+	"dish-action-eaten",
+]);
 
 const ID_RE = /by\.id\(\s*["'`](dish-action-[a-z-]+)["'`]\s*\)/g;
 
@@ -102,10 +113,8 @@ export function findViolations(rawSource, relPath) {
 	const violations = [];
 	for (const m of source.matchAll(ID_RE)) {
 		const testId = m[1];
+		if (testId.endsWith("-active")) continue;
 		if (NOT_CARD_CHILDREN.has(testId)) continue;
-		// 同じ式のうちに withAncestor が続いていれば良い（改行を挟むこともある）
-		const after = source.slice(m.index + m[0].length, m.index + m[0].length + 120);
-		if (/^\s*\.withAncestor\(/.test(after)) continue;
 		const line = source.slice(0, m.index).split("\n").length;
 		violations.push({ file: relPath, line, testId });
 	}
@@ -120,19 +129,11 @@ export function findViolations(rawSource, relPath) {
  */
 const SELF_CHECKS = [
 	{ name: "素の by.id は落とす", src: 'const a = by.id("dish-action-like");', expect: 1 },
-	{
-		name: "withAncestor 付きは通す",
-		src: 'const a = by.id("dish-action-like").withAncestor(by.id("dish-media-card-active"));',
-		expect: 0,
-	},
-	{
-		name: "改行を挟んだ withAncestor も通す",
-		src: 'const a = by.id("dish-action-save")\n\t.withAncestor(by.id("dish-media-card-active"));',
-		expect: 0,
-	},
+	{ name: "-active 付きは通す", src: 'const a = by.id("dish-action-like-active");', expect: 0 },
+	{ name: "save も同じ", src: 'const a = by.id("dish-action-save");', expect: 1 },
 	{ name: "行コメントの中の例は落とさない", src: '// by.id("dish-action-like") だった\nconst a = 1;', expect: 0 },
 	{ name: "ブロックコメントの中の例は落とさない", src: '/**\n * `by.id("dish-action-like")`\n */\nconst a = 1;', expect: 0 },
-	{ name: "share / report は対象外", src: 'const a = by.id("dish-action-report");', expect: 0 },
+	{ name: "share / report / more は対象外", src: 'const a = by.id("dish-action-report");\nconst b = by.id("dish-action-more");', expect: 0 },
 	{
 		name: "コメントの後ろの実コードは見る",
 		src: '// by.id("dish-action-like") は駄目\nconst a = by.id("dish-action-save");',
@@ -146,6 +147,35 @@ if (selfFailures.length > 0) {
 	for (const c of selfFailures) {
 		console.error(`   ${c.name}: 期待 ${c.expect} 件`);
 	}
+	process.exit(1);
+}
+
+/**
+ * ⚠️ 上の走査は **文字列リテラルの `by.id("...")` しか見ていない**。
+ * 肝心の `activeCardChild()` はテンプレートリテラルで id を組み立てるので、
+ * **そこから `-active` が消えても検出できない**（実際、最初の版はこの欠陥注入をすり抜けた）。
+ * 一番効く 1 行こそ守られていない、という穴だったので個別に見る。
+ */
+function checkHelper() {
+	const rel = path.join("e2e-mobile", "screens", "ResultScreen.ts");
+	const src = readFileSync(path.join(repoRoot, rel), "utf8");
+	const idx = src.indexOf("activeCardChild = ");
+	if (idx < 0) {
+		return [`${rel}: activeCardChild の定義が見つかりません（名前を変えたならこのガードも直すこと）`];
+	}
+	const body = src.slice(idx, idx + 200);
+	if (!body.includes("-active")) {
+		return [`${rel}: activeCardChild が \`-active\` を付けていません（前面のカードを指せなくなります）`];
+	}
+	return [];
+}
+
+const helperProblems = checkHelper();
+if (helperProblems.length > 0) {
+	console.error("❌ active なカードを指すヘルパが壊れています（#1579）\n");
+	for (const m of helperProblems) console.error(`   ${m}`);
+	console.error("\n   アプリは前面のカードのボタンにだけ `-active` を付けています。");
+	console.error("   ここが素の testID へ戻ると、e2e は «画面端で切れている隣のカード» を掴みます。\n");
 	process.exit(1);
 }
 
@@ -166,6 +196,7 @@ if (violations.length > 0) {
 	}
 	console.error("\n   DishMediaFeed は前後のセルも描くので、素の by.id() は «画面端で切れている隣のカード» を掴みます。");
 	console.error("   Detox の toBeVisible() は «自分の面積の 75% 以上» を要求するため、永遠に満たされず 25 秒待って落ちます。");
+	console.error("   アプリは前面のカードのボタンにだけ `-active` を付けています。");
 	console.error("   `screens/ResultScreen.ts` の `activeCardChild(\"<testID>\")` を使ってください。\n");
 	process.exit(1);
 }
