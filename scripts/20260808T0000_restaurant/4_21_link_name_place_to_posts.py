@@ -91,8 +91,7 @@ sys.path.insert(0, str(HERE))
 # 4_18 は #1276 の課金ガード client を import するので、その置き場所も通しておく
 sys.path.insert(0, str(HERE / "1276_place_id_free_poc"))
 
-from common_sns import (PROVIDER_INSTAGRAM, SEED_IDENTITY_ROUTES,  # noqa: E402
-                        TABLE_POST_RAW)
+from common_sns import SEED_IDENTITY_ROUTES, TABLE_POST_RAW  # noqa: E402
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
@@ -458,6 +457,8 @@ def main() -> None:
     lookup_rows = load_lookup_rows(pipeline, args.lookup_jsonl) if pipeline or args.lookup_jsonl \
         else []
     identity_posts = load_identity_route_posts(pipeline)
+    if pipeline is None:
+        LOGGER.warning("オフライン入力のため identity key の経路を引けません（除外は効きません）")
     LOGGER.info("辞書 %d 行 / 看板の identity key を持つ投稿 %d 件（対象外）",
                 len(lookup_rows), len(identity_posts))
 
