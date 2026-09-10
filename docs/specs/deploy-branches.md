@@ -6,6 +6,12 @@ production workflow を dispatch する直前に `--ref` を決めるために�
 
 この表と実装がズレたら、**この表が正**である。ズレを見つけたらその場で直す。
 
+**この表は workflow 側で機械的に強制されている**（2026-09-10〜）。production を出す 5 つの
+workflow は、いずれも先頭で `github.ref_name` を検査して、表と違う ref なら実行を落とす。
+それまでこの表は**文書にしか無く**、実際に production チャンネルへの OTA が release ではない
+作業ブランチから流れた。ref を増やす・変えるときは、表と各 workflow の先頭ステップを
+**同じ PR で**直すこと。
+
 ## 面ごとのデプロイ元
 
 | 面     | 本番の ref    | workflow                      | production input                               | ref をどう進めるか                            |
