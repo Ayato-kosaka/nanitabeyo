@@ -20,6 +20,15 @@ export class LanguageScreen {
 	/** 「端末の設定に従う」行 */
 	readonly systemOption = by.id("language-option-system");
 
+	/**
+	 * #1579 «端末の設定に従う» 行の **ラベル（Text）**。
+	 *
+	 * ⚠️ `systemOption`（行そのもの）へ `toHaveText` を当てないこと。Android では
+	 * TouchableOpacity が ViewGroup になり、Detox の text マッチャは TextView しか見ないので
+	 * **必ず 25 秒待って落ちる**。文言の検証は必ずこちらへ当てる。
+	 */
+	readonly systemOptionLabel = by.id("language-option-system-label");
+
 	/** 選択肢の行を引く。`key` は `"system"` または公開ロケール（例: `"en-US"`） */
 	option(key: string): Detox.NativeMatcher {
 		return by.id(`language-option-${key}`);
@@ -53,7 +62,7 @@ export class LanguageScreen {
 	 * 固定で **どの言語でも変わらない**ので、切り替わりの観測点には使えない。
 	 */
 	async expectSystemOptionLabel(text: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitFor(element(this.systemOption)).toHaveText(text).withTimeout(timeout);
+		await waitFor(element(this.systemOptionLabel)).toHaveText(text).withTimeout(timeout);
 	}
 
 	/**
