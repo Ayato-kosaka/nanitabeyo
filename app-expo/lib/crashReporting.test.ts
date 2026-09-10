@@ -25,6 +25,11 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
 	default: { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn() },
 }));
 jest.mock("@/lib/logQueue", () => ({ enqueueLog: jest.fn() }));
+// #1830 commitId の一致/不一致で挙動が変わるようになったので、現在のビルドを固定する
+jest.mock("@/constants/Env", () => ({ Env: { APP_VERSION: "1.14.0", COMMIT_ID: "current-commit" } }));
+
+/** «同じビルドで落ちた» = 本物のクラッシュ。commitId が現在と一致している */
+const SAME_COMMIT = "current-commit";
 
 const storage = AsyncStorage as unknown as {
 	getItem: jest.Mock;
@@ -50,7 +55,9 @@ describe("前回の異常終了（ネイティブのクラッシュを次回起�
 				startedAt: "2026-08-25T00:00:00.000Z",
 				pathName: "/ja-JP/my-dishes",
 				appVersion: "1.14.0",
-				commitId: "abc123",
+				// #1830 本物のクラッシュは «同じビルドのまま» 落ちる。更新で入れ替わった場合と区別するため、
+				// ここは現在の commitId と一致させる（テストが守る «クラッシュが記録に残る» 意図は変えていない）
+				commitId: SAME_COMMIT,
 				platform: "android",
 			}),
 		);
@@ -71,6 +78,35 @@ describe("前回の異常終了（ネイティブのクラッシュを次回起�
 		storage.getItem.mockResolvedValue(null);
 		await expect(reportPreviousSessionCrash()).resolves.toBe(false);
 		expect(logged(PREVIOUS_SESSION_CRASHED_EVENT)).toHaveLength(0);
+	});
+
+	// #1830 【バグ】expo-updates のリロードを «異常終了» と数えていた件の番人。
+	// 本番実測（2026-09-06〜09-09 / 506 件）で **496 件（98%）** が更新直後だった。
+	it("更新でビルドが入れ替わっていたら «落ちた» と数えない", async () => {
+		storage.getItem.mockResolvedValue(
+			JSON.stringify({
+				startedAt: "2026-09-09T00:00:00.000Z",
+				pathName: "/ja-JP/search",
+				appVersion: "1.14.0",
+				commitId: "previous-commit", // ← 現在の commitId と違う = 更新が入った
+				platform: "ios",
+			}),
+		);
+
+		await expect(reportPreviousSessionCrash()).resolves.toBe(false);
+		expect(logged(PREVIOUS_SESSION_CRASHED_EVENT)).toHaveLength(0);
+		// 黙るだけでなく印は消すこと。残すと次の起動でも同じ判定を繰り返す
+		expect(storage.removeItem).toHaveBeenCalled();
+	});
+
+	// ⚠️ 逆側の番人。commitId が無いことを理由に本物のクラッシュを握り潰さない
+	it("印に commitId が無ければ、従来どおり «落ちた» として記録する", async () => {
+		storage.getItem.mockResolvedValue(
+			JSON.stringify({ startedAt: "2026-09-09T00:00:00.000Z", pathName: "/ja-JP", platform: "ios" }),
+		);
+
+		await expect(reportPreviousSessionCrash()).resolves.toBe(true);
+		expect(logged(PREVIOUS_SESSION_CRASHED_EVENT)).toHaveLength(1);
 	});
 
 	it("印が壊れていても «落ちた» という事実は残す", async () => {

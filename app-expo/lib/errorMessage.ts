@@ -29,6 +29,52 @@
 const readMessage = (error: unknown): unknown => (error as { message?: unknown } | null | undefined)?.message;
 
 /**
+ * #1891 【バグ】**`message` を持たない plain object が `"[object Object]"` になる。**
+ *
+ * このファイルは «plain object が `[object Object]` になる» のを直したはずだったが、
+ * 直したのは **`message` を持つ**ものだけだった。持たないものは `String(error)` へ落ち、
+ * 結局 `[object Object]` になる。
+ *
+ * 本番で観測した実物（2026-09-06 / `health_check_error`）:
+ *
+ *   {"error":"[object Object]","code":"network_error","status":0}
+ *
+ * `code` と `status` は呼び出し側が別で積んでいたので «回線起因» とは分かったが、
+ * `error` 自体は何も言っていない。
+ *
+ * ⚠️ **値は載せない。キー名だけにする。** catch した中身は任意で、URL・トークン・
+ * ユーザー入力が入りうる（このリポジトリは「生の URL は code / access_token を含むため
+ * 記録しない」という方針を持っている）。形が分かれば «どの型のエラーか» は判別でき、
+ * 値が要るものは呼び出し側が個別に積んでいる。
+ *
+ * 出力が変わるのは **今 `[object Object]` になっている入力だけ**なので、
+ * 既存ログの文字列一致で組んだ集計を壊さない（`[object Object]` で集計している所は無い）。
+ */
+const MAX_DESCRIBED_KEYS = 10;
+
+const describeShape = (error: unknown): string | null => {
+	if (error === null || typeof error !== "object") return null;
+	if (Array.isArray(error)) return `Array(${error.length})`;
+
+	let keys: string[];
+	try {
+		keys = Object.keys(error as Record<string, unknown>).sort();
+	} catch {
+		return null;
+	}
+	if (keys.length === 0) return null;
+
+	const shown = keys.slice(0, MAX_DESCRIBED_KEYS);
+	const omitted = keys.length - shown.length;
+	const name = (error as { constructor?: { name?: unknown } }).constructor?.name;
+	const label = typeof name === "string" && name ? name : "Object";
+	return `${label}{${shown.join(",")}${omitted > 0 ? `,…+${omitted}` : ""}}`;
+};
+
+/** message が読めない値の最終手段。plain object だけは形を残す（→ describeShape） */
+const fallbackDescription = (error: unknown): string => describeShape(error) ?? String(error);
+
+/**
  * (B) 用。ログ用にエラーを 1 行の文字列へ変換する（**message のみ**）。
  *
  * 置換前が `error instanceof Error ? error.message : String(error)` /
@@ -44,7 +90,7 @@ const readMessage = (error: unknown): unknown => (error as { message?: unknown }
  */
 export const toErrorLogMessage = (error: unknown): string => {
 	const message = readMessage(error);
-	return message ? String(message) : String(error);
+	return message ? String(message) : fallbackDescription(error);
 };
 
 /**
@@ -67,5 +113,5 @@ export const toErrorLogString = (error: unknown): string => {
 	if (error instanceof Error) return String(error);
 
 	const message = readMessage(error);
-	return message ? String(message) : String(error);
+	return message ? String(message) : fallbackDescription(error);
 };

@@ -8,6 +8,11 @@ on:
         required: true
         type: choice
         options: [development, production]
+      allow_schema_behind:
+        description: "本番 DB に未適用の migration があってもデプロイする（緊急時のみ。#1946 参照）"
+        required: false
+        default: false
+        type: boolean
 
 # 同じ環境への並列デプロイ競合を防ぐ
 concurrency:
@@ -97,6 +102,51 @@ jobs:
           fi
           pnpm -C api exec prisma validate --schema prisma/schema.prisma --config ../prisma.config.ts
           pnpm -C api exec prisma generate --schema prisma/schema.prisma --config ../prisma.config.ts
+
+      # ==========================================================================
+      # #1946 【バグ】**コードが DB より先に進んだままデプロイできてしまう。**
+      #
+      # 2026-09-05、restaurant_opening_hours を参照する API が本番へ出たが、その
+      # migration は public に当たっていなかった。/v1/dish-media/search が
+      # `relation "restaurant_opening_hours" does not exist` で 500 を返し続け、
+      # **6 日間・延べ 1,163 件・480 ユーザー**が踏んだ。
+      #
+      # migration-first は CLAUDE.md と db-migrate.yml に規約として書いてあったが、
+      # **規約は守られなかった**。守らせるのではなく、ここで止める。
+      #
+      # ⚠️ 上の «デプロイ時に生きた DB を introspect しない» 方針と矛盾しない。
+      # あれが禁じているのは **ビルドの成果物を DB の姿から作ること**（再現性が壊れ、
+      # ブランチ結合が起きる）である。ここは **前提条件を確かめるだけ**で、
+      # schema.prisma も Client も一切書き換えない。ビルドはブランチ自己完結のままである。
+      #
+      # 見るのは «足りない» 方向だけ。DB がコードより先に進んでいる（余分な列がある）のは
+      # additive な migration では正常なので、CREATE TABLE / ADD COLUMN だけを不足とみなす。
+      # ==========================================================================
+      - name: デプロイ先 DB に、コードが要求するテーブル・列が揃っているか検算する
+        run: |
+          set -euo pipefail
+          set -a; source ./api/.env; set +a
+
+          # 「DB → コード」方向の差分 = DB をコードへ追いつかせるために要る SQL
+          pnpm -C api exec prisma migrate diff \
+            --from-url "$DATABASE_URL" \
+            --to-schema-datamodel prisma/schema.prisma \
+            --script > /tmp/schema-behind.sql || true
+
+          MISSING=$(grep -E '^(CREATE TABLE|ALTER TABLE .* ADD COLUMN)' /tmp/schema-behind.sql || true)
+
+          if [ -z "$MISSING" ]; then
+            echo "デプロイ先 DB は、コードが要求するテーブル・列を満たしています。"
+            exit 0
+          fi
+
+          echo "$MISSING"
+          if [ "${{ github.event.inputs.allow_schema_behind }}" = "true" ]; then
+            echo "::warning::未適用の migration がありますが allow_schema_behind=true のため続行します（#1946）"
+            exit 0
+          fi
+          echo "::error::デプロイ先 DB に、コードが要求するテーブル・列がありません（上を参照）。db-migrate.yml で migration を先に当ててください。緊急時は allow_schema_behind=true。"
+          exit 1
 
       # ---------- Google Cloud へ OIDC でログイン ----------
       - name: Auth to Google Cloud (WIF)
