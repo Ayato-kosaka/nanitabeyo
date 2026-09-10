@@ -50,7 +50,16 @@ CALL_RE = re.compile(
     r"expectRowVisibleIn\(\s*SettingsScreen\.CONTAINERS\.(\w+)\s*,\s*this\.(\w+)",
     re.S,
 )
+# 素の testID。⚠️ これだけでは足りない（下の 2 つを必ず併せて見ること）
 TESTID_RE = re.compile(r'testID=\{?["`]([^"`{}]+)["`]\}?')
+# `tabBarButtonTestID: "tab-profile"` のように **prop 名が testID ではない**もの
+ALT_TESTID_RE = re.compile(r'\w*[Tt]est(?:ID|Id)\s*[:=]\s*["`]([^"`{}$]+)["`]')
+# `testID={`${testID}-title`}` のように **親から渡された id へ接尾辞を足す**もの。
+# ScreenHeader が `-title` / `-back` を、SettingsToggleItem が `-on` / `-switch` を作る。
+# ⚠️ 三項演算子を挟む形（ScreenHeader の
+#    `testID={testID ? ` + "`${testID}-title`" + ` : undefined}`）を必ず拾うこと。
+#    `testID={` の直後に限定すると、まさに ScreenHeader を取りこぼす（実際に踏んだ）。
+DERIVED_SUFFIX_RE = re.compile(r'testID[^\n]{0,80}?`\$\{\s*\w+\s*\}(-[\w-]+)`')
 # `import { X } from "@/features/..."` / "@/components/..."
 LOCAL_IMPORT_RE = re.compile(r'from\s+"(@/[^"]+)"')
 
@@ -76,21 +85,57 @@ def collect_testids(path: Path, depth: int = 3, seen: set[Path] | None = None) -
         return set()
     seen.add(path)
     src = path.read_text(encoding="utf-8")
-    ids = set(TESTID_RE.findall(src))
+    ids = set(TESTID_RE.findall(src)) | set(ALT_TESTID_RE.findall(src))
     for spec in LOCAL_IMPORT_RE.findall(src):
         child = _resolve(spec)
         if child is not None:
             ids |= collect_testids(child, depth - 1, seen)
+    ids |= {base + suf for base in set(ids) for suf in _derived_suffixes()}
     return ids
 
 
+_DERIVED_CACHE: set[str] | None = None
+
+
+def _derived_suffixes() -> set[str]:
+    """`${testID}-title` のように **親から渡された id へ足される接尾辞**を集める。
+
+    ⚠️ **これが無いと «在るのに無い» と誤判定する。** この検査を書いた同じ日に、
+    使い捨ての走査が `restaurant-detail-screen-title`（ScreenHeader が作る）と
+    `tab-profile`（`tabBarButtonTestID` という別の prop 名）を «アプリに存在しない» と
+    誤判定した。素の `testID=` だけを見ると 37 件の偽陽性が出る。
+    **偽陽性は «直っているのに赤い» を作るので、見逃しより質が悪い。**
+
+    全 tsx を舐めるので 1 回だけ計算して使い回す（毎回やると 100 倍以上遅くなる）。
+    """
+    global _DERIVED_CACHE
+    if _DERIVED_CACHE is None:
+        found: set[str] = set()
+        for root in (APP_DIR, REPO / "app-expo/components", REPO / "app-expo/features"):
+            for f in root.rglob("*.tsx"):
+                found |= set(DERIVED_SUFFIX_RE.findall(f.read_text(encoding="utf-8")))
+        _DERIVED_CACHE = found
+    return _DERIVED_CACHE
+
+
+_SCREENS_CACHE: dict[str, tuple[Path, set[str]]] | None = None
+
+
 def screens_by_container() -> dict[str, tuple[Path, set[str]]]:
-    """容器の testID → (その容器を持つ画面, その画面で描かれる testID 全部)。"""
+    """容器の testID → (その容器を持つ画面, その画面で描かれる testID 全部)。
+
+    ⚠️ 全画面 × import の再帰を舐めるので **1 回だけ**計算する。
+    setUp ごとにやり直すと、テスト 4 本で 28 秒かかった（実測）。
+    """
+    global _SCREENS_CACHE
+    if _SCREENS_CACHE is not None:
+        return _SCREENS_CACHE
     out: dict[str, tuple[Path, set[str]]] = {}
     for f in APP_DIR.rglob("*.tsx"):
         src = f.read_text(encoding="utf-8")
         for cid in re.findall(r'testID="([a-z0-9-]*scroll)"', src):
             out[cid] = (f, collect_testids(f))
+    _SCREENS_CACHE = out
     return out
 
 
@@ -110,6 +155,19 @@ class SettingsRowContainerTest(unittest.TestCase):
         self.assertGreater(len(self.containers), 3, "CONTAINERS を拾えていない")
         self.assertGreater(len(self.calls), 3, "expectRowVisibleIn の呼び出しを拾えていない")
         self.assertGreater(len(self.by_container), 3, "画面の容器を 1 つも拾えていない")
+
+    def test_derived_and_alternate_testids_are_seen(self) -> None:
+        """⚠️ 素の `testID=` だけを見る版へ戻さないための回帰テスト。
+
+        どちらも «アプリに実在するのに、素の走査では見つからない» 実例である。
+        ここが赤くなったら、走査が派生 id か別 prop 名を取りこぼしている。
+        """
+        self.assertIn("-title", _derived_suffixes(), "ScreenHeader の `${testID}-title` を拾えていない")
+        all_ids: set[str] = set()
+        for _cid, (_screen, ids) in self.by_container.items():
+            all_ids |= ids
+        tabs = collect_testids(APP_DIR / "[locale]" / "(tabs)" / "_layout.tsx")
+        self.assertIn("tab-profile", tabs, "`tabBarButtonTestID` の id を拾えていない")
 
     def test_containers_exist_in_app(self) -> None:
         """CONTAINERS に書いた容器が、アプリに実在すること。"""
