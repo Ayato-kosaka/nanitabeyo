@@ -355,6 +355,19 @@ export class MyDishesScreen {
 		return by.id(`my-dishes-${view}-view`);
 	}
 
+	/**
+	 * #1579 そのビューが **マウントされているか**（見えているかではない）を見る印。
+	 *
+	 * ⚠️ **`view()` の `toExist()` で代用しないこと。** 隠れている器は
+	 * `display: "none"` になり、React Native はそれをネイティブのビュー階層から外すので、
+	 * **Detox からは «無い» ものになる**（コンポーネント自体は生きていて、
+	 * viewport や スクロール位置は保たれている）。ここを取り違えて
+	 * `waitUntilExists(view("list"))` と書いていたため、3 夜連続で 25 秒待って落ちていた。
+	 */
+	mountedMarker(view: MyDishesViewName) {
+		return by.id(`my-dishes-${view}-mounted`);
+	}
+
 	/** ビュー切替ボタンをタップして、そのビューが見えるようになるまで待つ */
 	async selectView(view: MyDishesViewName, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await tapWhenVisible(this.viewButton(view), timeout);
