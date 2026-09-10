@@ -161,7 +161,8 @@ export function RestaurantNameSearch({
 						     半径を viewport に戻すと、この不具合がそのまま戻る。
 
 						  ⚠️ #1951 **「trgm が駆動表」が成り立つのは «連続する語が 3 文字以上» のときだけ**
-						     だった。2 文字以下の中間一致は trigram が取れず 57 万行の Seq Scan になり、
+						     だった。2 文字以下の中間一致は trigram が取れず、プランナが位置索引だけで
+						     駆動して**半径内の行をヒープから全部読んで捨てる**形になり、
 						     本番で **20.34 秒**かかっていた。いまはサーバ側が短い店名を
 						     前方一致 / 語頭一致へ切り替えて索引に乗せている
 						     （`api/src/v1/restaurants/restaurant-name-match-mode.ts`）。
