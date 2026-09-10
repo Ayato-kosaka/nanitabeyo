@@ -30,6 +30,7 @@ import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { FakeSafeFetchTransport } from '../../core/safe-fetch/testing/fake-safe-fetch.transport';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { RestaurantsRepository } from '../restaurants/restaurants.repository';
+import { isSubstringIndexable } from '../restaurants/restaurant-name-match-mode';
 import { DishCategoryVariantDictionaryService } from './dish-category-variant-dictionary.service';
 import { DishMediaImportsService } from './dish-media-imports.service';
 import { SnsOembedService } from './sns-oembed.service';
@@ -739,6 +740,123 @@ describe('DishMediaImportsService — 店舗候補', () => {
       reason: 'area_not_provided',
     });
     expect(harness.searchNearbyRestaurants).not.toHaveBeenCalled();
+  });
+
+  // #1841 «キャプションに店名が書いてあるのに候補に出ない» の回帰。
+  // それまで 📍店名 は候補セット内の加点にしか使っておらず、候補は地理でしか作っていなかった。
+  // 位置情報が無い（＝地理の候補セットが作れない）ときこそ、名指しが唯一の手掛かりになる。
+  it('#1841 位置情報が無くても、📍店名 があれば店名で引いて候補を返す', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '中華そば よしだ')],
+    });
+    harness.transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('📍中華そば よしだ\n美味しかった #ラーメン'),
+    });
+
+    const result = await harness.service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    expect(result.restaurantSearch).toMatchObject({ performed: true });
+    expect(result.candidates.restaurants[0]).toMatchObject({
+      restaurantId: 'r1',
+    });
+    // 店名は «名指し» なので、現在地に依存しない全国の半径で引く
+    expect(harness.searchNearbyRestaurants).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ q: '中華そば よしだ', radius: 2_000_000 }),
+    );
+  });
+
+  it('#1841 現在地から遠い店でも、📍店名 があれば店名の引きが現在地の半径に縛られない', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '中華そば よしだ')],
+    });
+    harness.transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('📍中華そば よしだ\n美味しかった #ラーメン'),
+    });
+
+    await harness.service.resolve({
+      url: TIKTOK_VIDEO_URL,
+      lat: 35.658,
+      lng: 139.701,
+      radius: 5000,
+    });
+
+    const calls = harness.searchNearbyRestaurants.mock.calls as [
+      unknown,
+      { q?: string; radius: number },
+    ][];
+    const byName = calls.filter((call) => call[1].q === '中華そば よしだ');
+    expect(byName).toHaveLength(1);
+    // 現在地の 5km ではなく全国で引いている（＝ 5km 圏外の店にも届く）
+    expect(byName[0][1].radius).toBe(2_000_000);
+  });
+
+  /*
+    #1841 / #1951 **2 文字の 📍店名も、そのまま全国半径で投げてよい。**
+
+    この 2 つが噛み合うと «短い店名 × 全国半径 × 最大 3 本» になる。#1951 の前は
+    2 文字の `q` が trgm 索引に乗らず 1 本 20 秒だったので、この形は最悪 60 秒だった。
+
+    直したのは repository 側 1 箇所（`isSubstringIndexable` → 前方一致 / 語頭一致）で、
+    **service 側には長さの門番を置かない**。置くと同じ判定が 2 箇所になってずれるうえ、
+    «キャプションに 2 文字の店名しか無い投稿» が候補ゼロになって UX を落とす。
+
+    ⚠️ このテストが守るのは «service が 2 文字を捨てないこと» と
+       «その 2 文字が repository では索引の効く形に振られること» の 2 つ。
+       SQL の形そのものは `restaurants.order-by-posts-plan.spec.ts` の
+       `byname_short` スナップショットが固定している。
+  */
+  it('#1841/#1951 📍店名が 2 文字でも捨てず、索引の効く形に振られる', async () => {
+    expect(isSubstringIndexable('一蘭')).toBe(false);
+
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
+    });
+    harness.transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('📍一蘭\n美味しかった #ラーメン'),
+    });
+
+    await harness.service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    const calls = harness.searchNearbyRestaurants.mock.calls as [
+      unknown,
+      { q?: string; radius: number },
+    ][];
+    const byName = calls.filter((call) => call[1].q === '一蘭');
+    expect(byName).toHaveLength(1);
+    expect(byName[0][1].radius).toBe(2_000_000);
+  });
+
+  it('#1841 📍行が無ければ店名では引かない（従来どおり地理だけ）', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
+    });
+    routeTikTok(harness.transport);
+
+    await harness.service.resolve({
+      url: TIKTOK_VIDEO_URL,
+      lat: 35.658,
+      lng: 139.701,
+      radius: 5000,
+    });
+
+    // author_name の引き（#1375）は従来どおり出る。増えていないことを見たいので、
+    // 全国半径（＝📍店名の引き）が 1 本も無いことを確かめる。
+    const calls = harness.searchNearbyRestaurants.mock.calls as [
+      unknown,
+      { q?: string; radius: number },
+    ][];
+    expect(calls.some((call) => call[1].radius === 2_000_000)).toBe(false);
+    expect(calls.map((call) => call[1].q)).toEqual([
+      undefined,
+      'Scout, Suki & Stella',
+    ]);
   });
 
   it('lat/lng/radius が揃ったときだけ探して順位付けする', async () => {
