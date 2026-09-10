@@ -100,24 +100,26 @@ JP_LAT, JP_LNG = 36.2048, 138.2529
 #    守るのは «API が受け付ける最悪の形» であって «今の呼ばれ方» ではない。
 # ⚠️ 名前は `restaurants.order-by-posts-plan.spec.ts` が書き出すスナップショットと一致させる。
 #    ずれたら jest が赤くなる（写経しないための仕組み）。
-# (スナップショット名, limit, 説明, q)。q は店名検索の枝だけが使う（他は None）
+# (スナップショット名, limit, 説明, q, 対照群か)。q は店名検索の枝だけが使う（他は None）
 SHAPES = (
     ("search_nearby_restaurants.default", 20, "既定順（投稿が多い順）・クライアント既定", None, False),
     ("search_nearby_restaurants.default_limit100", 100, "既定順・API が受け付ける上限", None, False),
     ("search_nearby_restaurants.distance_limit100", 100, "距離順・SNS 取り込みが内部から呼ぶ形", None, False),
-    # #1951 索引が効かない短い店名。中間一致だと 57 万行の Seq Scan になり本番 20.34 秒だった。
-    # 前方一致 / 語頭一致へ切り替わって索引に乗っているかをここで見る。
+    # #1951 trgm 索引が効かない短い店名。中間一致（`%一蘭%`）だと 2 文字から trigram が
+    # 取れず、半径内の行をヒープから全部読んで name で捨てる形になり本番 20.34 秒だった。
+    # 前方一致 / 語頭一致へ切り替わって trgm 索引に乗っているかをここで見る。
     # ⚠️ 「一蘭」は実際に本番で 20.34 秒かかった店名そのもの。合成値へ置き換えないこと。
     ("search_nearby_restaurants.byname_short", 20, "店名 2 文字（#1951 の本命）", "一蘭", False),
-    # 比較対象。3 文字以上は従来どおり中間一致で索引に乗るはず
+    # 比較対象。3 文字以上は従来どおり中間一致で trgm 索引に乗るはず
     ("search_nearby_restaurants.byname", 20, "店名 3 文字以上（従来の中間一致）", "八王子", False),
     #
-    # ⚠️ **対照群。これは «赤くなるのが正しい» 形である。**
+    # ⚠️ **対照群。これは «trgm 索引に乗らないのが正しい» 形である。**
     #
     # 検査そのものが働いていることを、毎回この 1 本で確かめる。#1629 / #1686 で
     # «判定が空振りしていたのに ✅ と表示されて見落とす» を二度やっているので、
     # «本物を入れたら赤くなるか» を検査の側に持たせる。
-    # 中身は «2 文字 × 中間一致» ＝ #1951 で直す前の形そのもの（本番 20.34 秒）。
+    # 中身は «2 文字 × 中間一致» ＝ #1951 で直す前の形そのもの（本番 20.34 秒 /
+    # dev generic・半径 1,500km で 20,220 ms）。
     ("search_nearby_restaurants.byname", 20, "⚠️対照群: 2 文字 × 中間一致（直す前の形）", "一蘭", True),
 )
 
@@ -324,7 +326,7 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
     logger.info("測る形: %s", " / ".join(f"{n}(limit {l})" for n, l, _, _, _ in SHAPES))
     failures = []
 
-    for shape_name, shape_limit, shape_note, shape_q, shape_expect_seq in SHAPES:
+    for shape_name, shape_limit, shape_note, shape_q, shape_is_control in SHAPES:
         sql, names = load_sql(shape_name)
         nparams = len(names)
         # 予算は limit ごとに変わる（近傍枠は limit 件ぶん走るため）
@@ -339,7 +341,7 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
             failures.extend(
                 _measure_case(
                     cur, schema, sql, nparams, names, label, lat, lng, radius,
-                    shape_limit, shape_name, budget, full_plan, shape_q, shape_expect_seq,
+                    shape_limit, shape_name, budget, full_plan, shape_q, shape_is_control,
                 )
             )
 
@@ -357,28 +359,57 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
         "測っていない limit の組み合わせが増えている。"
         "api/src/v1/restaurants/restaurants.repository.ts の posted CTE のコメントを読むこと。"
     )
+    logger.error(
+        f"店名の枝（q あり）が赤いときは {NAME_TRGM_INDEX} に乗らなくなっている。"
+        "api/src/v1/restaurants/restaurant-name-match-mode.ts と "
+        "restaurants.repository.ts の buildNameMatch を読むこと。"
+    )
     return 1 if do_assert else 0
 
 
-def restaurants_seq_scanned(plan):
-    """実行計画に **restaurants のヒープ全走査（Seq Scan）** が出ているかを返す。
+NAME_TRGM_INDEX = "idx_restaurants_name_trgm"
 
-    #1951 店名検索の枝は «行数の予算» では判定できない。posted / nearest の枝と違って
-    駆動表が restaurants ではなく、**索引エントリを何件舐めたか** が所要時間と直結しないためである
-    （dev の generic plan で GIST 索引を 62 万エントリ舐めても 120 ms。ヒープは 20 行しか触らない）。
 
-    ⚠️ 行数の予算をそのまま当てると **未変更の 3 文字の枝まで赤くなる**（実測でそうなった）。
-       «赤いのが普通» になった検査は、次に本物が来ても誰も見ない。
+def indexes_used(plan):
+    """実行計画が使った索引の名前を、出てきた順に重複なく返す。"""
+    seen = []
+    for line in plan:
+        m = re.search(
+            r"(?:Bitmap )?Index (?:Only )?Scan using ([a-zA-Z0-9_]+)", line
+        )
+        if m and m.group(1) not in seen:
+            seen.append(m.group(1))
+    return seen
 
-    守りたいのは «57 万行の**太い行**をヒープから全部読む» ことだけなので、そこだけを見る。
-    それが本番で 20.34 秒だった形である（`%一蘭%` は trigram が取れず Seq Scan になる）。
+
+def name_predicate_is_indexed(plan):
+    """店名の照合が **trgm 索引で駆動されている** かを返す。
+
+    #1951 店名検索の枝は «行数の予算» でも «Seq Scan の有無» でも判定できない。
+    dev で対照群（`%一蘭%` ＝ 直す前の形）を測って、両方とも当てにならないと分かった。
+
+    | 見ようとしたもの | なぜ駄目か（dev 実測 run 34418799779） |
+    | --- | --- |
+    | restaurants から読む延べ行数 | 直した形も generic plan では 62 万行と出る（GIST の索引エントリ数）。未変更の 3 文字の枝まで赤くなった |
+    | `Seq Scan on restaurants` | **対照群でも一度も出なかった。** プランナは GIST を駆動表に選び、太い行をヒープから読んで name を Filter する。同じコストの別の形である |
+    | 所要 ms | dev はキャッシュ次第で 3 ms と 1,383 ms が同じ形で出る。閾値が引けない |
+
+    ⚠️ **«本番は Seq Scan» はこちらの推測であって、測った事実ではなかった。**
+       実際に 20 秒を作っていたのは «半径内の 62 万行を**ヒープから全部読んで** name で捨てる»
+       ことで、その入口が Seq Scan か GIST かは本質ではない。
+
+    残るのは構造の事実 1 つだけである。**trgm 索引が使われているか。**
+    使われていれば店名で絞ってからヒープを触るので、半径内の行数と所要時間が切り離される
+    （dev generic / 半径 1,500km で、直した形は 165 ms・対照群は 20,220 ms。
+    どちらも GIST は 62 万エントリ舐めており、違いはこの索引の有無だけ）。
+    キャッシュにもサーバ負荷にも依存しない。
     """
-    return any(re.search(r"Seq Scan on restaurants\b", line) for line in plan)
+    return NAME_TRGM_INDEX in indexes_used(plan)
 
 
 def _measure_case(
     cur, schema, sql, nparams, names, label, lat, lng, radius,
-    limit, shape_name, budget, full_plan, q=None, expect_seq_scan=False,
+    limit, shape_name, budget, full_plan, q=None, is_control=False,
 ):
     """1 つの «形 × 地点» を custom / generic の両方で測る。戻り値は失敗の一覧。"""
     failures = []
@@ -417,29 +448,32 @@ def _measure_case(
             #    11〜13 秒のまま «✅» と表示されて見落とした（dev run 33229509189）。
             #    どちらか一方でも半径内を舐めていたら赤にする
             if q is not None:
-                # #1951 店名検索の枝は «ヒープ全走査をしていないか» だけで判定する
-                #      （行数の予算は posted / nearest の形のためのもので、ここには当てはまらない。
-                #        理由は restaurants_seq_scanned の説明を読むこと）
-                seq = restaurants_seq_scanned(plan)
-                if expect_seq_scan:
-                    # 対照群。**Seq Scan になるのが正しい**。ならないなら検査が壊れている
-                    if seq:
-                        verdict = " ✅ 期待どおり Seq Scan（検査は働いている）"
+                # #1951 店名検索の枝は «店名の照合が trgm 索引で駆動されているか» だけで判定する
+                #      （行数の予算も Seq Scan の有無も当てにならない。
+                #        理由は name_predicate_is_indexed の説明を読むこと）
+                indexed = name_predicate_is_indexed(plan)
+                if is_control:
+                    # 対照群。**trgm 索引に乗らないのが正しい**。乗ったら検査が壊れている
+                    if not indexed:
+                        verdict = " ✅ 期待どおり trgm 索引に乗らない（検査は働いている）"
                     else:
-                        verdict = "  ❌ 対照群が Seq Scan にならない = 検査が働いていない"
+                        verdict = "  ❌ 対照群が trgm 索引に乗った = 検査が働いていない"
                         failures.append(
                             f"{shape_name} / {label} / {mode.strip()} plan: "
-                            f"対照群（2 文字 × 中間一致）が Seq Scan にならなかった。"
+                            f"対照群（2 文字 × 中間一致）が {NAME_TRGM_INDEX} に乗ってしまった。"
                             f"検査が空振りしている可能性がある"
                         )
-                elif seq:
-                    verdict = "  ❌ restaurants を Seq Scan している（店名の照合が索引に乗っていない）"
+                elif not indexed:
+                    verdict = (
+                        f"  ❌ 店名の照合が {NAME_TRGM_INDEX} に乗っていない"
+                        f"（半径内の行をヒープから全部読んで捨てる形）"
+                    )
                     failures.append(
                         f"{shape_name} / {label} / {mode.strip()} plan: "
-                        f"restaurants の Seq Scan。店名の照合が索引に乗っていない"
+                        f"店名の照合が {NAME_TRGM_INDEX} に乗っていない"
                     )
                 else:
-                    verdict = " ✅ Seq Scan なし"
+                    verdict = f" ✅ {NAME_TRGM_INDEX} で駆動"
             else:
                 state = verdict_against_budget(rows, rows_upper, budget)
                 if state == "within":
@@ -467,6 +501,10 @@ def _measure_case(
                     t["plan"] if t["plan"] is not None else -1,
                     f'{t["jit"]:.1f} ms' if t["jit"] is not None else "なし",
                 )
+            if q is not None:
+                # ⚠️ 判定の根拠をそのまま出す。«❌ 索引に乗っていない» とだけ言われても
+                #    代わりに何が使われたのかが分からないと、次の人がまた EXPLAIN し直す
+                logger.info("        使った索引: %s", ", ".join(indexes_used(plan)) or "（なし）")
             for text, n in detail:
                 logger.info("        %s  => %s 行", text, f"{n:,}")
             if full_plan:

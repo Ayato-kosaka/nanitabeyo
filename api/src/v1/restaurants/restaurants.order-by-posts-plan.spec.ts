@@ -237,7 +237,8 @@ describe('#1629 計測スクリプトが読む SQL は repository が組み立�
     [
       /*
         #1951 **索引が効かない短い店名の形**。中間一致（パーセントで囲む形）だと
-        pg_trgm が trigram を取れず 57 万行の Seq Scan になり、本番で 20.34 秒かかっていた。
+        pg_trgm が trigram を取れず、半径内の行をヒープから全部読む形になって
+        本番で 20.34 秒かかっていた。
         前方一致 / 語頭一致の OR へ切り替わっていることを、計測スクリプトが読む SQL でも固定する。
       */
       'search_nearby_restaurants.byname_short',
