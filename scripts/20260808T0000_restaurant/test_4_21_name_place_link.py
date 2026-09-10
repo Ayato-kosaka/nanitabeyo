@@ -101,9 +101,19 @@ class OnlyStrictDecisionIsUsedTest(unittest.TestCase):
 
     def test_lookup_query_also_filters_on_the_same_constant(self) -> None:
         """SQL 側の絞りも 4_18 の定数を通す（文字列を書き写すと片方だけ古くなる）。"""
-        self.assertIn("WHERE decision = @decision", linker.LOOKUP_SQL)
+        self.assertIn("WHERE decision IN UNNEST(@decisions)", linker.LOOKUP_SQL)
         self.assertIn("resolver.DECISION_MATCHED", CODE)
         self.assertNotIn("city_box_unique_strict", CODE)
+
+    def test_lookup_query_reads_only_the_two_decisions_the_linker_uses(self) -> None:
+        """SQL が読む decision は、判定関数が使う 2 つと同じであること。
+
+        SQL 側だけに 3 つ目を足すと «判定関数は捨てるのに読んでいる» 行が増え、
+        逆に SQL 側だけ減らすと «判定関数は使うつもりなのに来ない» 規則ができる。
+        """
+        source = re.search(r'"decisions", "STRING", (\[[^\]]*\])', SOURCE).group(1)
+        self.assertEqual("[resolver.DECISION_MATCHED, DECISION_BOX_NOT_UNIQUE]",
+                         " ".join(source.split()))
 
 
 class ExistingSeedIsNeverOverwrittenTest(unittest.TestCase):
@@ -191,7 +201,10 @@ class ProvenanceIsKeptTest(unittest.TestCase):
 
     def test_backfill_marks_this_route_with_its_own_seed_source(self) -> None:
         self.assertEqual("name_place_lookup", linker.SEED_SOURCE)
-        self.assertIn("seed_source = @seed_source", linker.BACKFILL_SQL)
+        self.assertIn("seed_source = m.seed_source", linker.BACKFILL_SQL)
+        # 台帳の規則 → seed_source の対応は SQL の中だけで決まる（写経を 2 箇所に置かない）
+        self.assertIn("IF(link_rule = @box_one_rule, @seed_source_box_one, @seed_source)",
+                      linker.BACKFILL_SQL)
 
     def test_backfill_never_touches_the_discovery_columns(self) -> None:
         """«どうやって見つけたか» を «店をどう決めたか» で上書きしない（4_0b の設計）。"""
@@ -202,7 +215,7 @@ class ProvenanceIsKeptTest(unittest.TestCase):
         self.assertNotIn("discovery_query", set_clause)
         self.assertNotIn("caption", set_clause)
         self.assertRegex(set_clause.strip(),
-                         r"^discovery_seed_place_id = m\.google_place_id, seed_source = @seed_source$")
+                         r"^discovery_seed_place_id = m\.google_place_id, seed_source = m\.seed_source$")
 
     def test_link_row_carries_the_algorithm_version_of_the_lookup(self) -> None:
         rows, _ = _link({KEY: {"post_ids": ["P1"], "name_source": "pin"}},
