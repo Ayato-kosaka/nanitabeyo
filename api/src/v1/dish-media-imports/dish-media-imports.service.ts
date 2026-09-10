@@ -94,10 +94,14 @@ const AREA_RESTAURANT_LIMIT = 100;
 const AUTHOR_NAME_RESTAURANT_LIMIT = 20;
 
 /**
- * `author_name` を店名検索へ投げる最短の長さ。
+ * `author_name` / 📍店名 を店名検索へ投げる最短の長さ。
  *
- * 1 文字だと `restaurants.name ILIKE '%x%'` が実質全件に当たる。
+ * 1 文字だと候補が多すぎて `matchRestaurantNames` の 200 件枠を無駄に埋める。
  * 上限 64 は `QueryRestaurantsDto.q` の `@MaxLength(64)` と揃えてある。
+ *
+ * ⚠️ **短さの «速度» の心配はここでしない。** 2 文字の `q` が全国半径で 20 秒かかる問題は
+ *    #1951 で repository 側（`isSubstringIndexable` → 前方一致 / 語頭一致）に一本化した。
+ *    ここで «短いから投げない» と重ねると、判定が 2 箇所になってずれる。
  */
 const AUTHOR_NAME_QUERY_MIN_LENGTH = 2;
 const AUTHOR_NAME_QUERY_MAX_LENGTH = 64;
@@ -130,6 +134,11 @@ const CAPTION_ADDRESS_RADIUS_M = 1_000;
  * 半径は現在地に依存させない。店名は名指しなので、アプリの店名検索（全国）と同じ扱いでよい。
  * `q` があるときは trgm 索引が駆動表で、半径は絞り込みにしか効かない（`restaurants.repository.ts`）。
  * 2,000km なのは、日本の南西端（石垣島）が中心点から 1,508km あり 1,500km では入らないため。
+ *
+ * ⚠️ この «trgm 索引が駆動表» は、**#1951 が入って初めて店名の長さによらず成り立つ**。
+ *    それ以前は 2 文字以下の `q` が索引に乗らず、全国半径だと 1 本あたり 20 秒かかっていた
+ *    （最大 3 本投げるのでキャプション次第で 60 秒）。
+ *    `restaurant-name-match-mode.ts` の `isSubstringIndexable` を外すとここが再発する。
  */
 const PIN_NAME_SEARCH_RADIUS_M = 2_000_000;
 
