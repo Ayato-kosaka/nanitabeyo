@@ -26,8 +26,11 @@ n=1 のセルは 4 店で 1 セルなので同じ 1 店の単価が 4 倍違う�
   «当てられない» として出力する（黙って落とさない）。
 
 ## 出力（既存スクリプトの入力形式に合わせる）
-1. `site_crawl_stores.json` — `[{google_place_id, name, website}]`
-   → `4_4_crawl_official_site_igs.py --stores-file <this>`（未クロールの店をサイト crawl）
+1. `site_crawl_stores.json` — `[{google_place_id, name, website}]`（人が見る台帳。従来どおり残す）
+   ＋ `sns_site_crawl_target` へ同じ対象を **新 run_id** で書く（#1970。ジョブの runner 上にしか
+   残らないファイルだけでは `4_4` へ渡す手段が無かったため）
+   → `4_4_crawl_official_site_igs.py --stores-run-id <run-id>`（未クロールの店をサイト crawl。
+     `--stores-file <this>` も引き続き使える。両方は同時に渡せない）
 2. `sns_store_site_ig` へ狙う店の行を **新 run_id** で複製
    → `4_10_scan_store_site_embeds.py --site-run-id <run-id> --statuses ok,no_handle`
 3. `sns_source_account` へ狙う店の店アカ行を **新 run_id** で複製
@@ -73,7 +76,8 @@ from pathlib import Path
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (kpi_gate_category_sql,
     PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_COVERAGE,
-                        TABLE_SOURCE_ACCOUNT, TABLE_STORE_SITE_IG, TABLE_DISH_MEDIA_CATALOG)
+                        TABLE_SOURCE_ACCOUNT, TABLE_STORE_SITE_IG, TABLE_DISH_MEDIA_CATALOG,
+                        TABLE_SITE_CRAWL_TARGET)
 
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
@@ -634,6 +638,19 @@ def _route_of(store: dict) -> str:
     return "unreachable"          # crawl 済みで到達不能（fetch_failed / robots_blocked 等）
 
 
+def build_site_crawl_target_rows(site_crawl_stores: list[dict], run_id: str, now_iso: str) -> list[dict]:
+    """#1970 site_crawl 経路の対象を `sns_site_crawl_target` の行形式へ変換する（純関数）。
+
+    中身は既存の `site_crawl_stores.json`（人が見る台帳）と同じ店集合だが、run_id を
+    足すことでジョブを跨いで `4_4_crawl_official_site_igs.py --stores-run-id` から読める
+    ようにする。JSON 出力はそのまま残す（台帳としての役割は変えない）。
+    """
+    return [{
+        "run_id": run_id, "google_place_id": s["google_place_id"],
+        "name": s["name"], "website": s["website"], "created_at": now_iso,
+    } for s in site_crawl_stores]
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
@@ -790,6 +807,13 @@ def main() -> None:
         pipeline.delete_run_rows(TABLE_STORE_SITE_IG, run_id)
         n_site = pipeline.load_json_rows(TABLE_STORE_SITE_IG, site_rows) if site_rows else 0
 
+        # 5) site_crawl 経路: #1970 ジョブが終わると消える site_crawl_stores.json だけでは
+        #    4_4 --stores-file に渡す手段が無いので、他の 2 経路と同じく BigQuery へも書く。
+        #    JSON 出力（台帳）はそのまま残す。
+        site_crawl_rows = build_site_crawl_target_rows(site_crawl, run_id, now_iso)
+        pipeline.delete_run_rows(TABLE_SITE_CRAWL_TARGET, run_id)
+        n_site_crawl = pipeline.load_json_rows(TABLE_SITE_CRAWL_TARGET, site_crawl_rows) if site_crawl_rows else 0
+
         result["row_count"] = n_acc + n_site
         result["cells"] = len(cells)
         result["cells_with_candidates"] = len(filled)
@@ -797,13 +821,14 @@ def main() -> None:
         result["account_rows"] = n_acc
         result["site_rows"] = n_site
         result["site_crawl_stores"] = len(site_crawl)
+        result["site_crawl_rows"] = n_site_crawl
 
     LOGGER.info("次に流すもの: "
                 "4_2 --account-run-id %s（%d 軒）/ "
                 "4_10 --site-run-id %s --statuses ok,no_handle（%d 軒）/ "
-                "4_4 --stores-file %s（%d 軒）",
+                "4_4 --stores-run-id %s または --stores-file %s（%d 軒）",
                 run_id, len(by_route["account"]), run_id, len(by_route["site_embed"]),
-                out_dir / "site_crawl_stores.json", len(site_crawl))
+                run_id, out_dir / "site_crawl_stores.json", len(site_crawl))
 
 
 if __name__ == "__main__":

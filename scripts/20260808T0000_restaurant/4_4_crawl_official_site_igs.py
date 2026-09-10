@@ -23,6 +23,9 @@ DELETE してから load する（run_id 単位 DELETE は他バッチを消す�
   args: --run-id sns-2026-08-31 --catalog-run-id restaurant-2026-08-23 --limit 2000 --offset 0
   requirements_path: scripts/20260808T0000_restaurant/requirements.txt
   # 動作確認は --dry-run を足す（BQ を読み crawl するが書き込まない）
+  # #1970: 4_16_target_near_cells.py --cell-mode radius が狙った site_crawl 経路を crawl するには
+  #   args: --run-id sns-2026-09-11-nearcell-site --stores-run-id sns-2026-09-11-nearcell
+  #   （--stores-file との同時指定はエラーになる。どちらも無ければ従来どおり catalog を順に crawl する）
 """
 
 from __future__ import annotations
@@ -34,7 +37,7 @@ import sys
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import TABLE_STORE_SITE_IG
+from common_sns import TABLE_STORE_SITE_IG, TABLE_SITE_CRAWL_TARGET
 
 HERE = Path(__file__).resolve().parent
 POC_DIR = HERE / "1273_instagram_seed_poc"
@@ -147,6 +150,23 @@ def _read_catalog_stores(pipeline: BigQueryPipeline, catalog_run_id: str,
     return stores
 
 
+def _read_site_crawl_target_stores(pipeline: BigQueryPipeline, stores_run_id: str):
+    """#1970 4_16 が `sns_site_crawl_target` へ書いた狙いを、`--stores-file` と同じ
+
+    dict 形（`[{id, name, website}]`）で読む。既存の crawl 処理はそのまま使う。
+    """
+    from google.cloud import bigquery
+    sql = f"""
+      SELECT google_place_id, name, website
+      FROM `{pipeline.table(TABLE_SITE_CRAWL_TARGET)}`
+      WHERE run_id = @run_id
+      ORDER BY google_place_id
+    """
+    params = [bigquery.ScalarQueryParameter("run_id", "STRING", stores_run_id)]
+    return [{"id": row["google_place_id"], "name": row["name"], "website": row["website"]}
+            for row in pipeline.execute(sql, params)]
+
+
 def _delete_batch_rows(pipeline: BigQueryPipeline, run_id: str, place_ids) -> int:
     """このバッチの place_id 群だけを run_id 内で削除（他バッチを消さない冪等化）。"""
     if not place_ids:
@@ -183,7 +203,7 @@ def _crawl(stores, workers):
     return results
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="柱1: 店公式サイト crawl → 店固有 IG handle → sns_store_site_ig")
     p.add_argument("--run-id", default=None, help="この crawl の run_id（sns_store_site_ig / pipeline_runs 用）")
     p.add_argument("--catalog-run-id", default=DEFAULT_CATALOG_RUN_ID,
@@ -195,9 +215,20 @@ def parse_args() -> argparse.Namespace:
                    help="social_urls に既に instagram を持つ店も crawl する（既定は除外）")
     p.add_argument("--dry-run", action="store_true", help="BQ へ書き込まず summary だけ出す")
     p.add_argument("--stores-file", default=None,
-                   help="BQ を読まず、この JSON（[{google_place_id,name,website}]）を crawl 対象にする")
+                   help="BQ を読まず、この JSON（[{google_place_id,name,website}]）を crawl 対象にする"
+                        "（--stores-run-id と同時指定不可）")
+    # #1970: 4_16_target_near_cells.py --cell-mode radius が sns_site_crawl_target へ書いた
+    # site_crawl 経路の狙いを、ここから直接読めるようにする。--stores-file と同じ dict 形へ
+    # 変換するだけで、以降の crawl 処理（robots・間隔・並列度・抽出規則）は一切触らない。
+    p.add_argument("--stores-run-id", default=None,
+                   help="BQ の sns_site_crawl_target からこの run_id の行を crawl 対象にする"
+                        "（4_16_target_near_cells.py が書いた run_id。--stores-file と同時指定不可）")
     p.add_argument("--out-file", default=None, help="生成した行を NDJSON で書き出す先（検証用）")
-    return p.parse_args()
+    args = p.parse_args(argv)
+    if args.stores_file and args.stores_run_id:
+        p.error("--stores-file と --stores-run-id は同時に指定できません"
+                "（どちらを使ったか分からない状態を作らないため）")
+    return args
 
 
 def main() -> None:
@@ -206,7 +237,8 @@ def main() -> None:
     run_id = require_run_id(args.run_id)
     now_iso = utc_now().isoformat()
 
-    # crawl 対象の取得（BQ or ローカル JSON）
+    # crawl 対象の取得（BQ の catalog / sns_site_crawl_target、またはローカル JSON）。
+    # 既定（どちらの引数も無し）は従来どおり restaurant_catalog を順に読む（挙動を変えない）。
     if args.stores_file:
         raw = json.load(open(args.stores_file, encoding="utf-8"))
         stores = [{"id": s.get("google_place_id") or s.get("id"),
@@ -214,12 +246,17 @@ def main() -> None:
         if args.limit or args.offset:
             stores = stores[args.offset: (args.offset + args.limit) if args.limit else None]
         pipeline = None if args.dry_run else BigQueryPipeline()
+    elif args.stores_run_id:
+        pipeline = BigQueryPipeline()
+        stores = _read_site_crawl_target_stores(pipeline, args.stores_run_id)
+        if args.limit or args.offset:
+            stores = stores[args.offset: (args.offset + args.limit) if args.limit else None]
     else:
         pipeline = BigQueryPipeline()
         stores = _read_catalog_stores(pipeline, args.catalog_run_id, args.limit, args.offset,
                                       args.include_with_ig)
-    LOGGER.info("crawl 対象 %d 店（catalog_run_id=%s, offset=%s, limit=%s）",
-                len(stores), args.catalog_run_id, args.offset, args.limit)
+    LOGGER.info("crawl 対象 %d 店（catalog_run_id=%s, stores_run_id=%s, offset=%s, limit=%s）",
+                len(stores), args.catalog_run_id, args.stores_run_id, args.offset, args.limit)
     if not stores:
         LOGGER.warning("対象 0 店。終了します。")
         return
@@ -242,6 +279,7 @@ def main() -> None:
 
     with pipeline.step(run_id, "4_4_crawl_official_site_igs",
                        parameters={"catalog_run_id": args.catalog_run_id,
+                                   "stores_run_id": args.stores_run_id,
                                    "offset": args.offset, "limit": args.limit},
                        repo_root=HERE.parents[1]) as result:
         place_ids = [s["id"] for s in stores if s.get("id")]

@@ -31,6 +31,10 @@ from typing import Any
 # --- BigQuery テーブル名（dataset は pipeline_common の BQ_DATASET = restaurant_recommendation）---
 TABLE_SOURCE_ACCOUNT = "sns_source_account"
 TABLE_STORE_SITE_IG = "sns_store_site_ig"
+# #1970 site_crawl 経路（まだ公式サイトを crawl していない候補店）の狙いを渡す表。
+# 4_16 が書き、4_4 --stores-run-id が読む。4_16 の出力はジョブの runner 上にしか残らない
+# ファイル（site_crawl_stores.json）だったため、ジョブが終わると 4_4 へ渡す手段が無くなっていた。
+TABLE_SITE_CRAWL_TARGET = "sns_site_crawl_target"
 TABLE_POST_RAW = "sns_post_raw"
 # #1815 «この handle に IG コールを使った» ことだけを残す台帳。投稿が 1 件も採れない handle
 # （code 110 / business でない / 非公開）は sns_post_raw に痕跡を残さないため、これが無いと
