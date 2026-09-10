@@ -222,7 +222,7 @@ export class ResultScreen {
 	 * @param index フィード内の何枚目のカードか（既定 0 = 表示中のカード）
 	 */
 	async like(index = 0): Promise<void> {
-		await tapWhenVisible(this.likeButton, DEFAULT_TIMEOUT, index);
+		await tapCardActionWhenVisible(this.likeButton, "dish-action-like-active", index);
 	}
 
 	/**
@@ -232,7 +232,7 @@ export class ResultScreen {
 	 * @param index フィード内の何枚目のカードか（既定 0 = 表示中のカード）
 	 */
 	async save(index = 0): Promise<void> {
-		await tapWhenVisible(this.saveButton, DEFAULT_TIMEOUT, index);
+		await tapCardActionWhenVisible(this.saveButton, "dish-action-save-active", index);
 	}
 
 	/**
@@ -365,6 +365,42 @@ export class ResultScreen {
  * `atIndex()` で 1 件に絞っているため `label` を持つ形にしかならない。
  * 型定義がその絞り込みを表現できないので、ここで局所的に吸収する。
  */
+/**
+ * #1579 カードのアクションをタップする。**落ちたときに «なぜ押せなかったか» を自分で吐く。**
+ *
+ * `toBeVisible()` は «自分の面積の 75% 以上が見えていること» を要求する。これを満たせないとき、
+ * 素の失敗メッセージは «25 秒待っても一致しなかった» としか言わないので、
+ * «そもそも居ないのか / 居るが隠れているのか / 何枚一致しているのか» が区別できない。
+ *
+ * 実際 #1579 では、この区別が付かないまま **2 回続けて見当違いの直し方をした**
+ *（①カードの器へ `withAncestor` → 祖先が階層に無く «1 つも無い»／
+ *   ②押すもの自身へ `-active` → 一意にはなったが 75% を満たさないまま）。
+ * 3 回目を勘で当てにいかないための計装である。**成功時は何も出さない。**
+ */
+async function tapCardActionWhenVisible(
+	matcher: Detox.NativeMatcher,
+	testIdForDiagnostics: string,
+	index: number,
+): Promise<void> {
+	try {
+		await tapWhenVisible(matcher, DEFAULT_TIMEOUT, index);
+	} catch (error) {
+		let diagnostics = "（属性を取得できませんでした）";
+		try {
+			diagnostics = JSON.stringify(await element(matcher).getAttributes());
+		} catch (attributesError) {
+			diagnostics = `getAttributes も失敗: ${String(attributesError)}`;
+		}
+		// eslint-disable-next-line no-console
+		console.error(
+			`⚠️ ${testIdForDiagnostics} をタップできませんでした。一致した要素の属性: ${diagnostics}\n` +
+				`   （Detox の toBeVisible は «自分の面積の 75% 以上» を要求する。` +
+				`visible / width / height / 一致数 を見て «居ないのか / 隠れているのか» を切り分けること）`,
+		);
+		throw error;
+	}
+}
+
 async function readLabel(matcher: Detox.NativeMatcher, index: number): Promise<string> {
 	const attributes = (await element(matcher).atIndex(index).getAttributes()) as { label?: string };
 	return attributes.label ?? "";
