@@ -9,7 +9,7 @@
 | `search_nearby_restaurants.*.sql` | `api/src/v1/restaurants/restaurants.repository.ts` | `measure_order_by_posts.py` |
 | `opening_status.*.sql` | `api/src/v1/restaurants/restaurant-opening-status.ts` | `explain_opening_status.py` |
 | `usable_dish_media_conditions.sql` | `api/src/v1/dish-media/usable-dish-media-filter.ts` | `dish_media_coverage_sql.py` |
-| `dish_media_search.sql` | `api/src/v1/dish-media/dish-media.repository.ts`（`findDishMediaIds`） | `explain_dish_media_search.py` |
+| `dish_media_search.sql` | `api/src/v1/dish-media/dish-media.repository.ts`（`findDishMediaIds`） | `explain_dish_media_search.py` / `measure_search_external_embed_share.py`（読み方は `dish_media_search_sql.py` で共有） |
 
 ## なぜファイルにするのか
 
