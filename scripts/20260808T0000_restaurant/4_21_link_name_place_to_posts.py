@@ -350,7 +350,11 @@ LOOKUP_SQL = """
          IFNULL(i.catalog_box_place_ids, ARRAY<STRING>[]) AS catalog_box_place_ids
   FROM lookup l
   LEFT JOIN in_catalog i
-    USING (store_name, area_pref, area_city, decision, algorithm_version)
+    ON  i.store_name = l.store_name
+    AND i.area_pref = l.area_pref
+    AND i.area_city = l.area_city
+    AND i.decision = l.decision
+    AND i.algorithm_version = l.algorithm_version
 """
 
 

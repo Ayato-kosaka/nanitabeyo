@@ -10,14 +10,21 @@
 
 | # | パターン | ここで固定する形 |
 | --- | --- | --- |
-| a | strict 以外の decision を «たぶんこれ» として拾う | 判定関数も SQL も strict しか見ない |
+| a | 使ってよい decision 以外を «たぶんこれ» として拾う | 判定関数も SQL も 2 つの規則しか見ない |
 | b | 収集時に分かっている店を、名前由来の店で上書きする | SELECT 側と UPDATE 側の両方にガード |
 | c | 1 投稿に 2 店当たったのに片方を選ぶ | 判定関数も UPDATE も «決まらないなら書かない» |
 | d | 看板（アカウント/サイト）の投稿へ後入れして、その看板の他の投稿の seed を殺す | identity key を持つ経路を除外 |
+| e | 箱の候補が複数残っているのに «飲食店っぽい方» を選ぶ | catalog に居る候補が **ちょうど 1 件**のときだけ採る |
 
 d は #1846 の `post_store_cte_sql` を読んで見つけたもの。同じ看板が 2 店以上を指すと
 **その看板の seed が全部捨てられる**ので、後入れは «1 投稿を足して数十投稿を殺す» ことが
 できてしまう。
+
+e は `city_box_not_unique`（矩形の中に同名が 2 件以上）を救う規則
+（`box_one_in_catalog`）に対する固定である。救ってよいのは «候補のうち
+`restaurant_catalog` に居るのが 1 件だけ» のときだけで、**0 件（飲食店として知らない）と
+2 件以上（決められない）は採らない**。ここを «catalog に居るものを優先して 1 件選ぶ» へ
+緩めると、同名の別店を投稿へ貼る形が戻る。
 """
 
 from __future__ import annotations
@@ -62,10 +69,20 @@ OTHER_KEY = resolver.NameKey("まぼろし亭", "東京都", "荒川区")
 
 
 def _lookup(place_id: str, decision: str = resolver.DECISION_MATCHED,
-            key: resolver.NameKey = KEY) -> dict:
+            key: resolver.NameKey = KEY, catalog_box_place_ids: list | None = None) -> dict:
     return {"store_name": key.store_name, "area_pref": key.pref, "area_city": key.city,
             "google_place_id": place_id, "decision": decision,
+            "catalog_box_place_ids": catalog_box_place_ids or [],
             "algorithm_version": resolver.ALGORITHM_VERSION}
+
+
+def _box(catalog_box_place_ids: list, key: resolver.NameKey = KEY) -> dict:
+    """4_18 が «矩形の中で一意にならなかった» と書いた行。
+
+    `google_place_id` は NULL（4_18 が店を決めていない）。`catalog_box_place_ids` は
+    `box_place_ids` のうち `restaurant_catalog` に居たものだけ（絞りは LOOKUP_SQL 側）。
+    """
+    return _lookup(None, linker.DECISION_BOX_NOT_UNIQUE, key, catalog_box_place_ids)
 
 
 def _link(keys, lookup_rows, *, identity_route_posts=frozenset()):
@@ -84,7 +101,9 @@ class OnlyStrictDecisionIsUsedTest(unittest.TestCase):
         self.assertEqual(1, stats["matched_keys"])
 
     def test_every_rejected_decision_is_ignored(self) -> None:
-        # 4_18 が捨てた理由を 1 つずつ。どれも «決まらなかった» であって «たぶんこれ» ではない
+        # 4_18 が捨てた理由を 1 つずつ。どれも «決まらなかった» であって «たぶんこれ» ではない。
+        # `city_box_not_unique` だけは箱の規則で救う «場合がある» が、それは catalog に
+        # 候補が居るときだけ（ここでは 0 件）。素の decision では今までどおり 1 件も採らない
         for decision in ("city_box_not_unique", "no_candidate_in_city_box",
                          "area_query_empty", "area_query_not_unique", "probes_disagree",
                          "probe_missing", "api_error"):
@@ -194,6 +213,146 @@ class IdentityRouteIsExcludedTest(unittest.TestCase):
             self.assertIn(f"'{route}'", common_sns.SEED_IDENTITY_KEY_SQL)
         self.assertEqual(len(common_sns.SEED_IDENTITY_ROUTES),
                          common_sns.SEED_IDENTITY_KEY_SQL.count("WHEN "))
+
+
+class BoxOneInCatalogTest(unittest.TestCase):
+    """(e) 箱の候補のうち catalog に居るのが «ちょうど 1 件» のときだけ採る。
+
+    固定するのは «1 件のときだけ» という形そのものである。«catalog に居る方を優先して
+    1 件選ぶ» «一番近い方を採る» のような «選び方» へ緩めると、同名の別店を貼る形が戻る。
+    """
+
+    def test_two_candidates_in_the_catalog_are_not_linked(self) -> None:
+        """(a) catalog に居る候補が 2 件以上なら採らない — どちらか決める根拠が無い。"""
+        rows, stats = _link({KEY: {"post_ids": ["P1"], "name_source": "pin"}},
+                            [_box(["PLACE_A", "PLACE_B"])])
+        self.assertEqual([], rows, "catalog に 2 件あるのに片方を選んでいる")
+        self.assertEqual(1, stats["box_many_in_catalog"])
+        self.assertEqual(0, stats["box_one_keys"])
+
+    def test_many_candidates_in_the_catalog_are_not_linked(self) -> None:
+        # 2 件で止めない（3 件・5 件でも «たまたま先頭» を採らないこと）
+        for size in (3, 5, 20):
+            with self.subTest(candidates=size):
+                rows, stats = _link({KEY: {"post_ids": ["P1"], "name_source": "pin"}},
+                                    [_box([f"PLACE_{i}" for i in range(size)])])
+                self.assertEqual([], rows)
+                self.assertEqual(1, stats["box_many_in_catalog"])
+
+    def test_no_candidate_in_the_catalog_is_not_linked(self) -> None:
+        """(b) 0 件なら採らない — 箱の中に同名が複数あり、どれも飲食店として知らない。"""
+        for candidates in ([], [""], None):
+            with self.subTest(candidates=candidates):
+                rows, stats = _link({KEY: {"post_ids": ["P1"], "name_source": "pin"}},
+                                    [_box(candidates)])
+                self.assertEqual([], rows)
+                self.assertEqual(1, stats["box_zero_in_catalog"])
+                self.assertEqual(0, stats["box_one_keys"])
+
+    def test_exactly_one_candidate_in_the_catalog_is_linked(self) -> None:
+        """(c) 1 件のときだけ採る。«飲食店として知っているのが 1 件» が採用の理由である。"""
+        rows, stats = _link({KEY: {"post_ids": ["P1", "P2"], "name_source": "pin"}},
+                            [_box(["PLACE_A"])])
+        self.assertEqual(["P1", "P2"], [r["post_id"] for r in rows])
+        self.assertEqual(["PLACE_A", "PLACE_A"], [r["google_place_id"] for r in rows])
+        self.assertEqual(1, stats["box_one_keys"])
+        self.assertEqual(2, stats["linked_posts_box_one"])
+
+    def test_the_two_rules_are_never_mixed_in_the_ledger(self) -> None:
+        """どちらの規則で決まった店かが 1 行ごとに残る（混ぜると巻き戻せない）。"""
+        rows, _ = _link({KEY: {"post_ids": ["P1"], "name_source": "pin"},
+                         OTHER_KEY: {"post_ids": ["P2"], "name_source": "quoted"}},
+                        [_lookup("PLACE_A", key=KEY), _box(["PLACE_B"], key=OTHER_KEY)])
+        self.assertEqual({"P1": resolver.DECISION_MATCHED, "P2": "box_one_in_catalog"},
+                         {r["post_id"]: r["link_rule"] for r in rows})
+        self.assertEqual("box_one_in_catalog", linker.LINK_RULE_BOX_ONE)
+        self.assertEqual(resolver.DECISION_MATCHED, linker.LINK_RULE_STRICT)
+
+    def test_the_union_across_rows_must_still_be_one(self) -> None:
+        """同じキーの行が 2 本あり、合わせると 2 店になるなら採らない。
+
+        判定を変えた再実行が同じキーへ別の候補を書き残していることがある。
+        行ごとに «1 件» を見ると、run が違うだけの 2 店から片方を選んでしまう。
+        """
+        rows, stats = _link({KEY: {"post_ids": ["P1"], "name_source": "pin"}},
+                            [_box(["PLACE_A"]), _box(["PLACE_B"])])
+        self.assertEqual([], rows)
+        self.assertEqual(1, stats["box_many_in_catalog"])
+
+    def test_strict_wins_over_the_box_rule_on_the_same_key(self) -> None:
+        # 強い方（4_18 が確定させた店）を、緩い方で上書きしない
+        rows, _ = _link({KEY: {"post_ids": ["P1"], "name_source": "pin"}},
+                        [_lookup("PLACE_A"), _box(["PLACE_B"])])
+        self.assertEqual(["PLACE_A"], [r["google_place_id"] for r in rows])
+        self.assertEqual(resolver.DECISION_MATCHED, rows[0]["link_rule"])
+
+    def test_a_key_strict_called_ambiguous_is_not_rescued_by_the_box_rule(self) -> None:
+        """strict が «1 キー 2 店» で捨てたキーを、緩い方で救い直さない。"""
+        rows, stats = _link({KEY: {"post_ids": ["P1"], "name_source": "pin"}},
+                            [_lookup("PLACE_A"), _lookup("PLACE_B"), _box(["PLACE_C"])])
+        self.assertEqual([], rows)
+        self.assertEqual(1, stats["ambiguous_keys"])
+        self.assertEqual(0, stats["box_one_keys"])
+
+    def test_the_box_rule_obeys_the_two_stores_per_post_guard(self) -> None:
+        # 新しい規則で来た店も «1 投稿 2 店なら書かない» を通る
+        keys = {KEY: {"post_ids": ["P1", "P2"], "name_source": "pin"},
+                OTHER_KEY: {"post_ids": ["P1"], "name_source": "quoted"}}
+        rows, stats = _link(keys, [_box(["PLACE_A"], key=KEY),
+                                   _lookup("PLACE_B", key=OTHER_KEY)])
+        self.assertEqual(["P2"], [r["post_id"] for r in rows])
+        self.assertEqual(1, stats["ambiguous_posts"])
+
+    def test_the_box_rule_obeys_the_identity_route_exclusion(self) -> None:
+        rows, stats = _link({KEY: {"post_ids": ["P1", "P2"], "name_source": "pin"}},
+                            [_box(["PLACE_A"])], identity_route_posts={"P1"})
+        self.assertEqual(["P2"], [r["post_id"] for r in rows])
+        self.assertEqual(1, stats["identity_route_posts"])
+
+    def test_4_18_still_returns_the_decision_this_rule_keys_on(self) -> None:
+        """4_18 の判定関数を実際に呼んで «この decision を今も返すか» を確かめる。
+
+        4_18 側は文字列リテラルで定数になっていない。写した値が古くなっても例外は
+        出ず、**この規則が黙って 1 件も拾わなくなる**（catalog を引く SQL も空を返す）。
+        沈黙する壊れ方なので、値そのものではなく «4_18 の出力と一致すること» を固定する。
+        """
+        box = resolver.SearchResult(place_ids=("PLACE_A", "PLACE_B"), http_status=200)
+        area = resolver.SearchResult(place_ids=("PLACE_A",), http_status=200)
+        self.assertEqual(linker.DECISION_BOX_NOT_UNIQUE,
+                         resolver.decide_name_match(box, area).decision)
+
+    def test_the_catalog_is_what_narrows_the_candidates(self) -> None:
+        """候補を絞る辞書は `restaurant_catalog`（配信に出る店の全体）であること。
+
+        ここを別の表（seed / source_records）にすると «こちらが飲食店として
+        知っている» の意味が変わり、配信に出せない place_id を貼り始める。
+        """
+        self.assertIn("restaurant_catalog", linker.TABLE_CATALOG)
+        self.assertIn("FROM `__CATALOG__`", linker.LOOKUP_SQL)
+        self.assertIn("WHERE run_id = @catalog_run_id AND google_place_id IS NOT NULL",
+                      linker.LOOKUP_SQL)
+        # 箱の候補を catalog で絞るのは JOIN 側の仕事（Python へ catalog 全件を持ってこない）
+        self.assertIn("CROSS JOIN UNNEST(l.box_place_ids) AS p", linker.LOOKUP_SQL)
+        self.assertIn("JOIN catalog c ON c.pid = p", linker.LOOKUP_SQL)
+        self.assertIn("WHERE l.decision = @box_not_unique", linker.LOOKUP_SQL)
+
+    def test_the_rule_can_be_rolled_back_on_its_own(self) -> None:
+        """新しい規則で入れた seed だけを後から選べること（混ぜたら巻き戻せない）。"""
+        self.assertEqual("name_place_box_one_in_catalog", linker.SEED_SOURCE_BOX_ONE)
+        self.assertNotEqual(linker.SEED_SOURCE, linker.SEED_SOURCE_BOX_ONE)
+        self.assertIn("link_rule", linker.CREATE_LINK_TABLE_SQL)
+        # 台帳は既にあるので、列は ALTER で足さないと load が落ちる
+        self.assertIn("ADD COLUMN IF NOT EXISTS link_rule STRING", linker.ALTER_LINK_TABLE_SQL)
+        self.assertIn("pipeline.execute(ALTER_LINK_TABLE_SQL", SOURCE)
+
+    def test_update_refuses_a_post_whose_ledger_rows_disagree_on_the_rule(self) -> None:
+        # 台帳は追記。1 投稿に 2 規則が並んだら «どちらの seed_source か» が決まらない
+        self.assertIn("COUNT(DISTINCT IFNULL(link_rule, @strict_rule)) = 1", linker.BACKFILL_SQL)
+
+    def test_applied_count_is_measured_per_rule(self) -> None:
+        # 片方が 0 件なら «その規則が 1 件も通っていない» と分かる（合計だけだと隠れる）
+        self.assertIn("GROUP BY r.seed_source", linker.APPLIED_COUNT_SQL)
+        self.assertIn("r.seed_source IN UNNEST(@seed_sources)", linker.APPLIED_COUNT_SQL)
 
 
 class ProvenanceIsKeptTest(unittest.TestCase):
