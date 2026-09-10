@@ -2,13 +2,15 @@
 
 ⚠️ **このテストが守っているのは «検査が空振りしていることに気付けない» ことである。**
 
-`measure_order_by_posts.py` の店名検索の枝は «`idx_restaurants_name_trgm` が
-使われているか» だけで合否を出す。ところが最初の実装は
+`measure_order_by_posts.py` は各セルで «使った索引» をログへ出す。判定には使わないが、
+赤くなったときに «代わりに何が使われたのか» を読む唯一の手掛かりである。ところが最初の実装は
 `Index (Only )?Scan using <索引名>` しか拾っておらず、**Bitmap 経路の
 `Bitmap Index Scan on <索引名>` を 1 つも拾えなかった**。trgm 索引は必ず Bitmap 経路で
 出るので、**未変更の 3 文字の枝まで «索引に乗っていない» と赤くなった**
 （dev run 34419672593）。ノードの種類で前置詞が `using` / `on` に変わるという、
 PostgreSQL の EXPLAIN の書式の話である。
+
+あわせて、店名の枝の判定そのもの（`verdict_name_shapes`）もここで固定する。
 
 固定するのは «パターン»（CLAUDE.md §5）:
 **索引を使うノードの書き方が何通りあっても、名前を取りこぼさない。**
@@ -34,9 +36,11 @@ sys.modules.setdefault("psycopg2", types.ModuleType("psycopg2")).errors = (
 
 import measure_order_by_posts  # noqa: E402
 from measure_order_by_posts import (  # noqa: E402
+    CONTROL_MIN_SLOWDOWN,
+    NAME_SLOWDOWN_LIMIT,
     NAME_TRGM_INDEX,
     indexes_used,
-    name_predicate_is_indexed,
+    verdict_name_shapes,
 )
 
 # 実際の EXPLAIN (ANALYZE, BUFFERS) から必要な部分だけ写したもの。
@@ -95,30 +99,60 @@ class IndexesUsedTest(unittest.TestCase):
         )
 
 
-class NamePredicateIsIndexedTest(unittest.TestCase):
-    def test_trgm_index_present(self):
-        self.assertTrue(name_predicate_is_indexed(INDEXED_PLAN))
+class VerdictNameShapesTest(unittest.TestCase):
+    """#1951 店名の枝の判定は «3 文字の基準に対する倍率»。
 
-    def test_location_index_alone_is_not_enough(self):
-        """位置索引だけで駆動する形は «索引に乗っている» と数えない。これが 20 秒の形。"""
-        self.assertFalse(name_predicate_is_indexed(NOT_INDEXED_PLAN))
+    ⚠️ 構造で判定しようとして 3 回外している（延べ行数 / Seq Scan / 索引名の有無）。
+       絶対値の ms も dev では 3 ms と 8,117 ms が同じ形から出るので閾値が引けない。
+       ここで固定するのは «相対比較であること» と «対照群が検査の生死を見張ること» の 2 つ。
+    """
 
-    def test_index_name_is_not_matched_as_a_substring(self):
-        """別の索引名に trgm 索引名が含まれていても誤検出しない。"""
-        self.assertFalse(
-            name_predicate_is_indexed(
-                ["  ->  Bitmap Index Scan on idx_restaurants_name_trgm_old  (cost=0..1)"]
-            )
-        )
+    # run 34420435499 の実測（best-of-3）。合成値へ置き換えないこと。
+    REAL = {
+        ("short", "全国 1,500km", "generic"): 129.1,
+        ("baseline", "全国 1,500km", "generic"): 117.0,
+        ("control", "全国 1,500km", "generic"): 19365.0,
+        ("short", "東京駅から 20km", "custom"): 21.0,
+        ("baseline", "東京駅から 20km", "custom"): 18.9,
+        ("control", "東京駅から 20km", "custom"): 185.6,
+    }
 
-    def test_constant_matches_an_index_that_actually_exists(self):
-        """⚠️ 存在しない索引名を検査対象にすると、この検査は永久に赤くなる（あるいは
-        名前を変えた瞬間に永久に赤くなる）。migration に実在することをここで縛る。"""
-        self.assertRegex(
-            _migration_text(),
-            rf"CREATE INDEX[^;]*\b{NAME_TRGM_INDEX}\b",
-            f"{NAME_TRGM_INDEX} を作る migration が無い",
-        )
+    def test_real_measurements_pass(self):
+        self.assertEqual(verdict_name_shapes(dict(self.REAL)), [])
+
+    def test_regressed_short_shape_fails(self):
+        """2 文字が中間一致へ戻ったら赤。これが守りたい本体。"""
+        t = dict(self.REAL)
+        t[("short", "全国 1,500km", "generic")] = 19000.0
+        failures = verdict_name_shapes(t)
+        self.assertEqual(len(failures), 1)
+        self.assertIn("店名 2 文字", failures[0])
+
+    def test_control_that_is_no_longer_slow_fails(self):
+        """対照群が遅くなくなったら «検査が空振り» として赤。
+
+        検査そのものが働いていることを、毎回この 1 本で確かめる。
+        #1629 / #1686 / #1951 で «空振りを ✅ と読む» を三度やっている。
+        """
+        t = dict(self.REAL)
+        t[("control", "東京駅から 20km", "custom")] = 19.0
+        failures = verdict_name_shapes(t)
+        self.assertEqual(len(failures), 1)
+        self.assertIn("空振り", failures[0])
+
+    def test_missing_baseline_is_an_error_not_a_pass(self):
+        """基準が測れていないのに «緑» を返さない（空振りを緑と読まないため）。"""
+        t = {k: v for k, v in self.REAL.items() if k[0] != "baseline"}
+        self.assertTrue(verdict_name_shapes(t))
+
+    def test_thresholds_sit_between_the_measured_populations(self):
+        """閾値が実測の «直した形» と «直す前» の間にあること。
+
+        直した形は 3 文字の 0.97〜1.11 倍、対照群は 8.8〜436 倍だった（12 通り実測）。
+        どちらかの母集団へ閾値が食い込んだら、この検査は誤警報か空振りになる。
+        """
+        self.assertGreater(NAME_SLOWDOWN_LIMIT, 1.11)
+        self.assertLess(CONTROL_MIN_SLOWDOWN, 8.8)
 
 
 def _migration_text() -> str:
