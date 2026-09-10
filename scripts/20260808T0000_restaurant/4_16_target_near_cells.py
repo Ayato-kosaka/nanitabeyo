@@ -424,11 +424,19 @@ def read_radius_scores(pipeline: BigQueryPipeline, catalog_run_id: str, delivery
         FROM `{pipeline.table('restaurant_catalog')}`
         WHERE run_id = @crid AND location IS NOT NULL
       ),
+      -- ⚠️ GEOGRAPHY は SELECT DISTINCT / GROUP BY に置けない
+      --    （`Column location of type GEOGRAPHY cannot be used in SELECT DISTINCT`）。
+      --    «異なり» を取るのは place_id とカテゴリだけにして、座標は後から JOIN で付ける。
+      --    2026-09-10 に実際にこれで落ちた（テストは SQL を実行しないので緑のままだった）。
+      delivered_pairs AS (
+        SELECT DISTINCT google_place_id, dish_category_id
+        FROM `{pipeline.table(TABLE_DISH_MEDIA_CATALOG)}`
+        WHERE run_id = @drid AND dish_category_id IN UNNEST(@qids)
+      ),
       delivered AS (
-        SELECT DISTINCT m.google_place_id, m.dish_category_id, c.location
-        FROM `{pipeline.table(TABLE_DISH_MEDIA_CATALOG)}` m
-        JOIN catalog_loc c ON c.google_place_id = m.google_place_id
-        WHERE m.run_id = @drid AND m.dish_category_id IN UNNEST(@qids)
+        SELECT p.google_place_id, p.dish_category_id, c.location
+        FROM delivered_pairs p
+        JOIN catalog_loc c ON c.google_place_id = p.google_place_id
       )
       SELECT cand.google_place_id AS candidate_place_id, delivered.dish_category_id,
              COUNT(DISTINCT delivered.google_place_id) AS nearby_store_count
