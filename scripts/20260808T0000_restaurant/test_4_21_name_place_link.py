@@ -187,7 +187,7 @@ class AmbiguousPostIsDroppedTest(unittest.TestCase):
 
     def test_update_also_drops_a_post_that_has_two_places_in_the_ledger(self) -> None:
         # 台帳は追記なので、同じ投稿が複数行あり得る。書く側にも同じ判定を置く
-        self.assertIn("HAVING COUNT(DISTINCT google_place_id) = 1", linker.BACKFILL_SQL)
+        self.assertIn("HAVING COUNT(DISTINCT k.google_place_id) = 1", linker.BACKFILL_SQL)
 
 
 class IdentityRouteIsExcludedTest(unittest.TestCase):
@@ -347,7 +347,7 @@ class BoxOneInCatalogTest(unittest.TestCase):
 
     def test_update_refuses_a_post_whose_ledger_rows_disagree_on_the_rule(self) -> None:
         # 台帳は追記。1 投稿に 2 規則が並んだら «どちらの seed_source か» が決まらない
-        self.assertIn("COUNT(DISTINCT IFNULL(link_rule, @strict_rule)) = 1", linker.BACKFILL_SQL)
+        self.assertIn("COUNT(DISTINCT IFNULL(k.link_rule, @strict_rule)) = 1", linker.BACKFILL_SQL)
 
     def test_applied_count_is_measured_per_rule(self) -> None:
         # 片方が 0 件なら «その規則が 1 件も通っていない» と分かる（合計だけだと隠れる）
@@ -362,7 +362,7 @@ class ProvenanceIsKeptTest(unittest.TestCase):
         self.assertEqual("name_place_lookup", linker.SEED_SOURCE)
         self.assertIn("seed_source = m.seed_source", linker.BACKFILL_SQL)
         # 台帳の規則 → seed_source の対応は SQL の中だけで決まる（写経を 2 箇所に置かない）
-        self.assertIn("IF(link_rule = @box_one_rule, @seed_source_box_one, @seed_source)",
+        self.assertIn("IF(k.link_rule = @box_one_rule, @seed_source_box_one, @seed_source)",
                       linker.BACKFILL_SQL)
 
     def test_backfill_never_touches_the_discovery_columns(self) -> None:
@@ -435,6 +435,89 @@ class NoExternalApiTest(unittest.TestCase):
     def test_resolve_api_is_not_called_either(self) -> None:
         self.assertNotIn("mint_service_jwt", CODE)
         self.assertNotIn("backend_base_url", CODE)
+
+
+class HavingNeverReadsASelectAliasTest(unittest.TestCase):
+    """f: HAVING が SELECT の別名を指して、UPDATE «だけ» が黙って落ちる形を禁じる。
+
+    2026-09-10 の事故。BACKFILL_SQL がこう書かれていた。
+
+        SELECT post_id, ANY_VALUE(google_place_id) AS google_place_id
+        ...
+        HAVING COUNT(DISTINCT google_place_id) = 1
+
+    BigQuery の HAVING は **SELECT の別名を先に見る**ので、`google_place_id` は
+    元の列ではなく `ANY_VALUE(...)` を指し、«Aggregations of aggregations are not
+    allowed» で UPDATE だけが 400 になる。台帳への書き込みはその手前で成功しているから、
+    ログの途中には «貼れる投稿 30,834 件» と出る。**成果があったように読める**。
+    実際には `sns_post_raw` の seed は 1 件も増えていなかった（実測: 1,261,038 行中
+    `seed_source` が入っている行は 0 件）。
+
+    同じ罠は `common_sns.post_store` にも注意書きがある（あちらは候補列を `cand_place` へ
+    改名して避けている）。値ではなく **«HAVING の列は必ず修飾する»** という形で固定する。
+    """
+
+    #: `AS <名前>` / `) <名前>` で付く別名
+    ALIAS_RE = re.compile(r"\bAS\s+([A-Za-z_][A-Za-z0-9_]*)", re.I)
+    #: HAVING 節（次の主要な節、または末尾まで）
+    HAVING_RE = re.compile(
+        r"\bHAVING\b(.*?)(?=\b(?:SELECT|FROM|WHERE|GROUP\s+BY|ORDER\s+BY|LIMIT|UNION|\))\b|$)",
+        re.I | re.S)
+    #: 修飾されていない裸の識別子（`k.col` の col と `@param` は除く）
+    BARE_RE = re.compile(r"(?<![.@\w])([a-z_][a-z0-9_]*)\b")
+
+    #: SQL の予約語・関数名。裸で出てよい
+    SQL_WORDS = frozenset("""
+        and or not in is null distinct count sum min max any_value ifnull coalesce if
+        between like cast as true false unnest array struct safe_cast
+    """.split())
+
+    def _sql_constants(self) -> dict:
+        import re as _re
+        found = {}
+        for match in _re.finditer(r'^([A-Z0-9_]*SQL[A-Z0-9_]*)\s*=\s*"""(.*?)"""',
+                                  SOURCE, _re.S | _re.M):
+            found[match.group(1)] = match.group(2)
+        self.assertIn("BACKFILL_SQL", found, "読み取りが空振りしている（SQL 定数が拾えていない）")
+        return found
+
+    def test_every_having_column_is_qualified_or_not_an_alias(self) -> None:
+        for name, sql in self._sql_constants().items():
+            # コメント行を落とす（説明文の中の語を «実装» と誤判定しないため）
+            body = "\n".join(line for line in sql.splitlines()
+                              if not line.strip().startswith("--"))
+            aliases = {a.lower() for a in self.ALIAS_RE.findall(body)}
+            for having in self.HAVING_RE.findall(body):
+                for ident in self.BARE_RE.findall(having):
+                    if ident in self.SQL_WORDS:
+                        continue
+                    with self.subTest(sql=name, ident=ident):
+                        self.assertNotIn(
+                            ident, aliases,
+                            f"{name} の HAVING が SELECT の別名 `{ident}` を指す。"
+                            "テーブル別名で修飾するか、別名の方を改名すること")
+
+    def test_backfill_having_is_qualified(self) -> None:
+        """上の一般則が «HAVING が 1 つも見つからない» で空振りしていないことを確かめる。"""
+        body = linker.BACKFILL_SQL
+        havings = self.HAVING_RE.findall(body)
+        self.assertTrue(havings, "BACKFILL_SQL の HAVING が拾えていない")
+        self.assertIn("COUNT(DISTINCT k.google_place_id)", body,
+                      "HAVING の列が修飾されていない（別名を指して 400 になる形）")
+
+
+class ZeroAppliedIsNotSuccessTest(unittest.TestCase):
+    """g: 台帳に貼ったのに sns_post_raw が 1 件も変わらなかった run を、成功で終わらせない。
+
+    上の事故が 2 日ぶん見過ごされたのは、UPDATE が落ちたことではなく
+    **書いた先を数えていなかった**ことによる。`count_applied` は存在したのに、
+    合計 0 でもそのまま return していた。
+    """
+
+    def test_main_raises_when_nothing_was_applied(self) -> None:
+        self.assertIn("sum(applied.values()) == 0", CODE,
+                      "貼った件数が 0 のときに落とすガードが無い")
+        self.assertIn("raise SystemExit", CODE)
 
 
 if __name__ == "__main__":

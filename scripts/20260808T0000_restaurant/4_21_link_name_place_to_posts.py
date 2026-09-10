@@ -445,17 +445,22 @@ BACKFILL_SQL = """
   SET discovery_seed_place_id = m.google_place_id,
       seed_source = m.seed_source
   FROM (
-    SELECT post_id, ANY_VALUE(google_place_id) AS google_place_id,
+    -- ⚠️ HAVING の列は **必ず `k.` で修飾する**。修飾しないと HAVING は SELECT の別名を
+    --    先に見るので、`COUNT(DISTINCT google_place_id)` が同名の別名（ANY_VALUE(...)）を
+    --    指し «Aggregations of aggregations are not allowed» で UPDATE だけが落ちる。
+    --    2026-09-10 に実際にこれで落ち、台帳に 32,834 行あるのに seed が 1 件も入って
+    --    いなかった（common_sns.post_store にも同じ罠の注意書きがある）。
+    SELECT post_id, ANY_VALUE(k.google_place_id) AS google_place_id,
            -- どちらの規則で決まった店かを seed_source に残す（片方だけ巻き戻せるように）。
            -- link_rule が NULL なのは列を足す前に貼った行＝strict だけの run である
-           ANY_VALUE(IF(link_rule = @box_one_rule, @seed_source_box_one, @seed_source))
+           ANY_VALUE(IF(k.link_rule = @box_one_rule, @seed_source_box_one, @seed_source))
              AS seed_source
-    FROM `__LINK__`
-    WHERE run_id = @run_id
+    FROM `__LINK__` k
+    WHERE k.run_id = @run_id
     GROUP BY post_id
     -- 台帳は追記なので同じ投稿が複数行あり得る。2 店以上・2 規則以上なら書かない
-    HAVING COUNT(DISTINCT google_place_id) = 1
-       AND COUNT(DISTINCT IFNULL(link_rule, @strict_rule)) = 1
+    HAVING COUNT(DISTINCT k.google_place_id) = 1
+       AND COUNT(DISTINCT IFNULL(k.link_rule, @strict_rule)) = 1
   ) m
   WHERE r.post_id = m.post_id
     AND (r.discovery_seed_place_id IS NULL OR r.discovery_seed_place_id = '')
@@ -700,6 +705,14 @@ def main() -> None:
                     sum(applied.values()), applied[SEED_SOURCE], applied[SEED_SOURCE_BOX_ONE],
                     len(rows))
         result["row_count"] = sum(applied.values())
+        if rows and sum(applied.values()) == 0:
+            # 台帳には貼ったのに sns_post_raw が 1 件も変わっていない＝この run は
+            # «何もしていない»。2026-09-10 に UPDATE だけが 400 で落ち、ログの途中の
+            # «貼れる投稿 30,834 件» を成果として読んで 2 日ぶん先へ進めてしまった。
+            # 書いた先を数えて 0 なら、成功として終わらせない。
+            raise SystemExit(
+                f"台帳へ {len(rows)} 行貼ったのに sns_post_raw の seed が 1 件も増えていない。"
+                "backfill が効いていないので、成功にしない")
 
 
 if __name__ == "__main__":
