@@ -154,6 +154,16 @@ jobs:
       - name: 設定画面の «行 → 容器» の対応を検査
         run: python3 -m unittest scripts/db-checks/test_settings_row_containers.py
 
+      # #1404 / #1579 «履歴の無い着地でも行き止まりにならない» 保険を無効にする述語の検出。
+      #
+      # 戻る導線は `if (canDismiss()) back(); else replace(親)` と書く約束だが、ここを
+      # `canGoBack()` にすると (tabs) 配下ではタブ履歴まで数えて常に true になり、
+      # **replace が一度も働かない**（戻るが検索タブへ飛ぶ）。#1404 は 2 ファイルを直して
+      # 規約をコメントに残したが、**同じディレクトリの兄弟 8 枚が古い形のまま残っていた**。
+      # コメントは grep されないので機械で縛る。ファイル走査のみで依存ゼロ。
+      - name: «戻るの保険» を無効にする述語を検査
+        run: pnpm --filter app-expo assert:back-fallback-predicate
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査

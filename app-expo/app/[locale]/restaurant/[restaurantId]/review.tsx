@@ -83,7 +83,9 @@ export default function ReviewScreen() {
 	 * 親の再レンダーごとに identity が変わり、ReviewForm 側の effect が張り替わる。
 	 */
 	const handleBack = useCallback(() => {
-		if (router.canGoBack()) {
+		// #1404 兄弟の `dish-category.tsx` と述語を揃える。この画面は `(tabs)` の外なので
+		// 現時点では `canGoBack()` と同じ答えになるが、同じディレクトリで書き分けると次の人が迷う
+		if (router.canDismiss()) {
 			router.back();
 			return;
 		}

@@ -39,7 +39,11 @@ export default function ProfileSavedTopicsScreen() {
 			error_level: "log",
 			payload: {},
 		});
-		if (router.canGoBack()) {
+		// #1404 【バグ】`canGoBack()` は `(tabs)` 配下だとタブ履歴まで数え、URL 直リンク着地でも
+		// true を返す。すると下の replace（親へ倒す保険）が働かず、戻るが検索タブへ飛ぶ。
+		// «スタックが 2 枚以上あるか» だけを見る `canDismiss()` を使うこと
+		//（規約の正は同ディレクトリの `edit.tsx` の同名コメント）。
+		if (router.canDismiss()) {
 			router.back();
 			return;
 		}
