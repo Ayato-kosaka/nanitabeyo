@@ -339,5 +339,50 @@ class PinNameRuleDriftTest(unittest.TestCase):
         self.assertEqual("📍", sns_html._PIN_MARK)
 
 
+class ProgressIsWrittenBeforeTheEndTest(unittest.TestCase):
+    """4: 長い probe の成果を «最後の 1 回» に賭けない。
+
+    2026-09-10 まで、35,000 キーを 2 時間以上かけて probe したあと、**終わりに 1 回だけ**
+    BigQuery へ書いていた。job が時間で切られると
+
+    - その run の確定（数千キー）が**丸ごと消える**
+    - `--cache` の probe キャッシュも runner ごと消えるので、**Google への問い合わせもやり直し**
+    - 走っている最中に «何件進んだか» を BigQuery 側から数える手段が無い
+
+    という 3 つが同時に起きる。同じ日に 4_21 で «書けたつもりで 1 件も入っていない» のを
+    踏んだのと同じ «見えないから気づけない» の形なので、値ではなく形で固定する。
+    """
+
+    SOURCE = (HERE / "4_18_resolve_place_id_by_name.py").read_text(encoding="utf-8")
+
+    def _body(self) -> str:
+        """docstring とコメントを落とした «実行される行» だけ。"""
+        return "\n".join(
+            line for line in re.sub(r'""".*?"""', "", self.SOURCE, flags=re.S).splitlines()
+            if not line.strip().lstrip("#").startswith("  ⚠️") and not line.strip().startswith("#"))
+
+    def test_rows_are_flushed_inside_the_loop(self) -> None:
+        body = self._body()
+        # probe の完了ループの中で flush を呼んでいること
+        loop = body[body.index("for i, future in enumerate(as_completed"):]
+        loop = loop[:loop.index("except DailyQuotaExhausted")]
+        self.assertIn("flush()", loop,
+                      "probe のループの中で書き出していない（落ちたら全部消える）")
+
+    def test_a_final_flush_writes_the_remainder(self) -> None:
+        self.assertIn("flush(force=True)", self._body(),
+                      "端数を書き出す最後の flush が無い")
+
+    def test_the_summary_does_not_count_the_flushed_buffer(self) -> None:
+        """flush で空になるバッファを «この run の成果» として数えないこと。
+
+        `rows` は書き出すたびに空になるので、それで割ると確定率が壊れる。
+        """
+        body = self._body()
+        self.assertIn("all_rows", body, "全件を持つ入れ物が無い")
+        self.assertNotIn("100.0 * matched / max(len(rows), 1)", body,
+                         "空になるバッファで確定率を割っている")
+
+
 if __name__ == "__main__":
     unittest.main()

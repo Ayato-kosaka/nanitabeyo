@@ -702,7 +702,8 @@ def main() -> None:
 
     client = FreePlacesClient(api_key(), rate_limiter=RateLimiter(qps=args.qps))
     cache = ProbeCache(Path(args.cache))
-    rows: list[dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []          # まだ BigQuery へ書いていないぶん（flush で空になる）
+    all_rows: list[dict[str, Any]] = []      # この run で作った全行（集計と --out-jsonl 用）
     counts: dict[str, int] = {}
     now = utc_now().isoformat()
 
@@ -726,34 +727,57 @@ def main() -> None:
             "run_id": run_id,
         }
 
+    # ⚠️ **最後にまとめて書かない。** 2026-09-10 まで、35,000 キーを 2 時間以上かけて probe した
+    #    あと «終わりに 1 回だけ» BigQuery へ書いていた。job が時間で切られると
+    #    **その run の成果が丸ごと消え**、`--cache` の probe キャッシュも runner ごと消えるので
+    #    Google への問い合わせからやり直しになる。走っている最中に «何件進んだか» を
+    #    BigQuery 側から数える手段も無かった（同じ日に 4_21 で踏んだ «見えないから気づけない»
+    #    のと同じ形）。途中で落ちても、書けたぶんは次の run の «二度聞かない» が拾う。
+    FLUSH_EVERY = 2000
+    written = 0
+
+    def flush(*, force: bool = False) -> None:
+        nonlocal written
+        if pipeline is None or args.no_bq_write or not rows:
+            return
+        if not force and len(rows) < FLUSH_EVERY:
+            return
+        pipeline.execute(CREATE_TABLE_SQL.replace("__TABLE__", pipeline.table(TABLE_NAME_PLACE)))
+        pipeline.load_json_rows(TABLE_NAME_PLACE, rows)
+        written += len(rows)
+        LOGGER.info("%s へ %d 行を書きました（この run の累計 %d 行）",
+                    TABLE_NAME_PLACE, len(rows), written)
+        rows.clear()
+
     try:
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
             futures = {pool.submit(work, key): key for key in todo}
             for i, future in enumerate(as_completed(futures), start=1):
                 row = future.result()
                 rows.append(row)
+                all_rows.append(row)
                 counts[row["decision"]] = counts.get(row["decision"], 0) + 1
                 if i % 200 == 0:
                     LOGGER.info("  %d/%d 件（確定 %d）", i, len(todo), counts.get(DECISION_MATCHED, 0))
+                flush()
     except DailyQuotaExhausted:
         LOGGER.error("Text Search の日次上限に当たりました。ここまでの結果だけ書き出します")
 
     LOGGER.info("判定の内訳: %s", json.dumps(counts, ensure_ascii=False, sort_keys=True))
     matched = counts.get(DECISION_MATCHED, 0)
-    LOGGER.info("確定 %d / %d 件（%.1f%%）", matched, len(rows), 100.0 * matched / max(len(rows), 1))
+    LOGGER.info("確定 %d / %d 件（%.1f%%）", matched, len(all_rows),
+                100.0 * matched / max(len(all_rows), 1))
     LOGGER.info("Google への request 数: %d（すべて Text Search Essentials IDs Only = $0.00）",
                 client.request_count)
 
     if args.out_jsonl:
         with Path(args.out_jsonl).open("w", encoding="utf-8") as stream:
-            for row in rows:
+            for row in all_rows:
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-        LOGGER.info("%d 行を %s へ書きました", len(rows), args.out_jsonl)
+        LOGGER.info("%d 行を %s へ書きました", len(all_rows), args.out_jsonl)
 
-    if pipeline is not None and not args.no_bq_write and rows:
-        pipeline.execute(CREATE_TABLE_SQL.replace("__TABLE__", pipeline.table(TABLE_NAME_PLACE)))
-        pipeline.load_json_rows(TABLE_NAME_PLACE, rows)
-        LOGGER.info("%s へ %d 行を書きました", TABLE_NAME_PLACE, len(rows))
+    # 残り（FLUSH_EVERY に満たなかったぶん）を書く
+    flush(force=True)
 
 
 if __name__ == "__main__":
