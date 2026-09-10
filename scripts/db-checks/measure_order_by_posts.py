@@ -359,7 +359,9 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
     failures.extend(verdict_name_shapes(name_timings))
     if not failures:
         logger.info(
-            "✅ どの形でも custom / generic の両方で «走る行数は半径に依存しない» が保てている"
+            "✅ q の無い形は «走る行数が半径に依存しない»、"
+            "店名の形は «2 文字が 3 文字と同じ土俵に乗っている» を "
+            "custom / generic の両方で保てている"
         )
         return 0
     for f in failures:
