@@ -333,7 +333,7 @@ class BoxOneInCatalogTest(unittest.TestCase):
                       linker.LOOKUP_SQL)
         # 箱の候補を catalog で絞るのは JOIN 側の仕事（Python へ catalog 全件を持ってこない）
         self.assertIn("CROSS JOIN UNNEST(l.box_place_ids) AS p", linker.LOOKUP_SQL)
-        self.assertIn("JOIN catalog c ON c.pid = p", linker.LOOKUP_SQL)
+        self.assertIn("JOIN known_stores c ON c.pid = p", linker.LOOKUP_SQL)
         self.assertIn("WHERE l.decision = @box_not_unique", linker.LOOKUP_SQL)
 
     def test_the_rule_can_be_rolled_back_on_its_own(self) -> None:
@@ -504,6 +504,42 @@ class HavingNeverReadsASelectAliasTest(unittest.TestCase):
         self.assertTrue(havings, "BACKFILL_SQL の HAVING が拾えていない")
         self.assertIn("COUNT(DISTINCT k.google_place_id)", body,
                       "HAVING の列が修飾されていない（別名を指して 400 になる形）")
+
+
+class CteNameIsNotAReservedKeywordTest(unittest.TestCase):
+    """h: CTE 名に BigQuery の予約語を使わない。
+
+    2026-09-10、`WITH lookup AS (...)` と書いて
+    `400 Syntax error: Unexpected keyword LOOKUP at [2:8]` で落ちた。
+    テストは 43 件とも緑だった — **SQL を 1 度も実行しないから**である。
+    実行しないテストで守れる範囲として、せめて «予約語を CTE 名にした» は落とす。
+    """
+
+    #: BigQuery の予約語のうち、CTE 名として書きたくなるもの
+    RESERVED = frozenset("""
+        all and any array as asc assert_rows_modified at between by case cast collate
+        contains create cross cube current default define desc distinct else end enum
+        escape except exclude exists extract false fetch following for from full group
+        grouping groups hash having if ignore in inner intersect interval into is join
+        lateral left like limit lookup merge natural new no not null nulls of on or order
+        outer over partition preceding proto range recursive respect right rollup rows
+        select set some struct tablesample then to treat true unbounded union unnest using
+        when where window with within
+    """.split())
+
+    def test_no_cte_uses_a_reserved_keyword(self) -> None:
+        cte_re = re.compile(r"(?:\bWITH\b|,)\s*([A-Za-z_][A-Za-z0-9_]*)\s+AS\s*\(", re.I)
+        found_any = False
+        for match in re.finditer(r'^([A-Z0-9_]*SQL[A-Z0-9_]*)\s*=\s*"""(.*?)"""',
+                                 SOURCE, re.S | re.M):
+            name, sql = match.group(1), match.group(2)
+            for cte in cte_re.findall(sql):
+                found_any = True
+                with self.subTest(sql=name, cte=cte):
+                    self.assertNotIn(cte.lower(), self.RESERVED,
+                                     f"{name} の CTE 名 `{cte}` は BigQuery の予約語。"
+                                     "実行して初めて 400 になる（テストでは緑のまま）")
+        self.assertTrue(found_any, "CTE が 1 つも拾えていない（読み取りが空振り）")
 
 
 class ZeroAppliedIsNotSuccessTest(unittest.TestCase):

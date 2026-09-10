@@ -324,13 +324,15 @@ def build_link_rows(
 
 
 LOOKUP_SQL = """
-  WITH lookup AS (
+  -- ⚠️ CTE 名に BigQuery の予約語を使わない。`lookup` は予約語で、
+  --    `Unexpected keyword LOOKUP` になる（2026-09-10 に実際に落ちた）。
+  WITH name_lookup AS (
     SELECT store_name, area_pref, area_city, google_place_id, decision, algorithm_version,
            box_place_ids
     FROM `__TABLE__`
     WHERE decision IN UNNEST(@decisions)
   ),
-  catalog AS (
+  known_stores AS (
     -- «こちらが飲食店として知っている place_id» の全体。これが箱の候補を絞る辞書になる
     SELECT DISTINCT google_place_id AS pid
     FROM `__CATALOG__`
@@ -339,16 +341,16 @@ LOOKUP_SQL = """
   in_catalog AS (
     SELECT l.store_name, l.area_pref, l.area_city, l.decision, l.algorithm_version,
            ARRAY_AGG(DISTINCT c.pid) AS catalog_box_place_ids
-    FROM lookup l
+    FROM name_lookup l
     CROSS JOIN UNNEST(l.box_place_ids) AS p
-    JOIN catalog c ON c.pid = p
+    JOIN known_stores c ON c.pid = p
     WHERE l.decision = @box_not_unique
     GROUP BY 1, 2, 3, 4, 5
   )
   SELECT l.store_name, l.area_pref, l.area_city, l.google_place_id, l.decision,
          l.algorithm_version,
          IFNULL(i.catalog_box_place_ids, ARRAY<STRING>[]) AS catalog_box_place_ids
-  FROM lookup l
+  FROM name_lookup l
   LEFT JOIN in_catalog i
     ON  i.store_name = l.store_name
     AND i.area_pref = l.area_pref
