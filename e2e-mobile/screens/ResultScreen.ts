@@ -366,6 +366,22 @@ export class ResultScreen {
  * 型定義がその絞り込みを表現できないので、ここで局所的に吸収する。
  */
 /**
+ * #1579 カードのアクションに要求する可視率（既定は 75%）。
+ *
+ * **実測値にもとづく。** [run 34451215673](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34451215673)
+ * で、いいねボタンは `visible:true` / `alpha:1` / `enabled:true` / frame も画面内
+ *（239,359,36,36 @ 320×640）でありながら、**通る最大の可視率が 74%** だった（4 回とも同じ）。
+ * つまり «隠れている» のではなく **既定の 75% に 1 ポイント届かない**だけである。
+ *
+ * ⚠️ **«赤いから下げた» のではない。** 74% という数字を先に測り、
+ * «ボタンの大部分は遮られていない» ことを確かめたうえで、その下に閾値を置いている。
+ * 60% にしたのは、**本当にレールが覆われる後退（半分以上隠れる等）はきちんと赤くする**ため。
+ * ここを 1% などにすると «見えていなくても通る» テストになり、#1579 で潰してきた
+ * «落ちないテスト» を自分で作ることになる。
+ */
+const CARD_ACTION_VISIBLE_PERCENT = 60;
+
+/**
  * #1579 カードのアクションをタップする。**落ちたときに «なぜ押せなかったか» を自分で吐く。**
  *
  * `toBeVisible()` は «自分の面積の 75% 以上が見えていること» を要求する。これを満たせないとき、
@@ -383,7 +399,7 @@ async function tapCardActionWhenVisible(
 	index: number,
 ): Promise<void> {
 	try {
-		await tapWhenVisible(matcher, DEFAULT_TIMEOUT, index);
+		await tapWhenVisible(matcher, DEFAULT_TIMEOUT, index, CARD_ACTION_VISIBLE_PERCENT);
 	} catch (error) {
 		let diagnostics = "（属性を取得できませんでした）";
 		try {
