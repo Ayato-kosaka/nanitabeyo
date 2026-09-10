@@ -110,6 +110,7 @@ export const useAPICall = () => {
 				requestPayload,
 				isMultipart = false,
 				signal,
+				expectedStatuses,
 			}: {
 				method?: "GET" | "POST" | "PATCH" | "DELETE";
 				requestPayload: TRequest;
@@ -123,6 +124,22 @@ export const useAPICall = () => {
 				 * `code: "aborted"` の `ApiError` を投げる（リトライもしない）。
 				 */
 				signal?: AbortSignal;
+				/**
+				 * #1888 【設計】**この呼び出しでは «想定内» のステータス。** 指定したものは error ではなく warn で記録する。
+				 *
+				 * 回復可能かを知っているのは呼び出し元だけである。ここは全ての非 2xx を一律 error で
+				 * 記録するチョークポイントなので、«存在しないことを確かめるための問い合わせ» まで
+				 * 障害として積み上がる。
+				 *
+				 * 実例（本番 2026-09-02〜09-10 / 5 ユーザー / 3 日）: 初回ログイン直後に
+				 * `GET v1/users/<id>` が 404 を返すのは **サインアップ導線の正常な 1 段目**である
+				 * （useEnsureOwnProfileLoaded が 404 を受けて createUserProfile → 再取得する / #260）。
+				 * それが error として起票され続けていた。
+				 *
+				 * ⚠️ 記録自体は消さない。**レベルを下げるだけ**にする。消すと «想定内のはずが
+				 * 実は壊れていた» ときに何も残らない。
+				 */
+				expectedStatuses?: ReadonlyArray<number>;
 			},
 		): Promise<R> => {
 			// 🔐 認証トークンの有無をチェック
@@ -343,9 +360,11 @@ export const useAPICall = () => {
 				const backendErrorCode = errorPayload.errorCode || errorPayload.code;
 
 				// Log API error
+				// #1888 呼び出し元が «想定内» と宣言したステータスは warn。記録は消さない（上記 JSDoc）
+				const isExpectedStatus = (expectedStatuses ?? []).includes(response.status);
 				logFrontendEvent({
 					event_name: "api_call_error",
-					error_level: "error",
+					error_level: isExpectedStatus ? "warn" : "error",
 					payload: {
 						endpoint,
 						method,
