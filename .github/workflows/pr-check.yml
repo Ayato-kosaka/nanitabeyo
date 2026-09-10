@@ -164,6 +164,15 @@ jobs:
       - name: «戻るの保険» を無効にする述語を検査
         run: pnpm --filter app-expo assert:back-fallback-predicate
 
+      # #1742 / #1579 カルーセルは前後のセルも描くので、カード内の locator を素の by.id で
+      # 書くと «画面端で切れている隣のカード» を掴む。Detox の toBeVisible は «自分の面積の
+      # 75% 以上» を要求するため、切れたビューは永遠に満たされず 25 秒待って落ちる。
+      # この注意は #1742 が ResultScreen.ts にコメントで書き残していたのに、同じファイルの
+      # 真上の locator 2 つが古いまま残り、09-09 夜間の 4 件がこれで落ちていた。
+      # ガード自身の自己検査（両方向）も同じスクリプトの中で回る。
+      - name: カルーセルのカード内 locator の限定を検査
+        run: pnpm --filter app-expo assert:carousel-locator-scope
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査

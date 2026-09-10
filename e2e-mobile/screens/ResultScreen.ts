@@ -30,6 +30,25 @@ import {
  * 状態を反映する testID の追加後に、@mutation テスト（PR-6）側で検証する。
  * ここではフィード上のアクションを**タップできる**ところまでをヘルパとして提供する。
  */
+/**
+ * #1579 / #1742 **カルーセル・フィードの «いま真ん中のカード» の子孫へ限定する。**
+ *
+ * `DishMediaFeed` は前後のセルも描くので、`dish-action-*` のような «カードの中にあるもの» は
+ * 素の `by.id()` だと複数一致し、`atIndex(0)` は **画面端で切れている隣のカード**を掴む。
+ * Detox の `toBeVisible()` は «自分の面積の 75% 以上» を要求するため、切れているビューは
+ * **永遠に条件を満たさない**（＝ 25 秒待って落ちる）。
+ *
+ * 目印 `dish-media-card-active` はアプリ側に既にある（`DishMediaContent.tsx`）。
+ *
+ * ⚠️ **定義はここ 1 箇所だけにすること。** 各 spec へ書き写すと、片方だけ直った状態が残る。
+ * `app-expo/scripts/assert-carousel-locator-scope.mjs` がこの規約を機械で縛っている。
+ */
+export const activeCardChild = (testId: string): Detox.NativeMatcher =>
+	by.id(testId).withAncestor(by.id("dish-media-card-active"));
+
+/** #1579 «いま真ん中のカード» のいいねボタン（spec から到達判定に使う） */
+export const ACTIVE_CARD_LIKE = activeCardChild("dish-action-like");
+
 export class ResultScreen {
 	/** 結果画面を閉じるボタン（トピック画面へ戻る） */
 	readonly closeButton = by.id("result-close-button");
@@ -46,9 +65,9 @@ export class ResultScreen {
 	 * ⚠️ **同じ注意は下の `activeCard` に #1742 で既に書かれていた**のに、こちらの 2 つが
 	 * 古い «atIndex で絞ること» のままだった。**片方だけ直すと、もう片方が残る。**
 	 */
-	readonly likeButton = by.id("dish-action-like").withAncestor(by.id("dish-media-card-active"));
+	readonly likeButton = ACTIVE_CARD_LIKE;
 	/** 保存ボタン（⚠️ 同上。active なカードに限定する） */
-	readonly saveButton = by.id("dish-action-save").withAncestor(by.id("dish-media-card-active"));
+	readonly saveButton = activeCardChild("dish-action-save");
 	/**
 	 * #1742 いま真ん中に見えているカード。押すと «このお店、気になる？» の ActionSheet が開く。
 	 *
@@ -67,7 +86,7 @@ export class ResultScreen {
 	/** #1629 «…» メニューを開くボタン。シェアと報告はこの中にある */
 	// #1579 like / save と同じ理由で active なカードに限定する（レールの上にあるため）。
 	// ⚠️ 下の `reportButton` は «…» メニュー（別の Modal）の中なので、カードの子孫ではない。限定しない
-	readonly moreButton = by.id("dish-action-more").withAncestor(by.id("dish-media-card-active"));
+	readonly moreButton = activeCardChild("dish-action-more");
 	/** 通報ボタン（#1514 SAF-01。**«…» メニューの中**。#1629 でレールから移動した） */
 	readonly reportButton = by.id("dish-action-report");
 	/** 通報シート本体（Modal） */
