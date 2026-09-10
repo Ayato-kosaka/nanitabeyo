@@ -431,6 +431,21 @@ async function tapCardActionWhenVisible(
 			}
 		}
 		diagnostics += ` / 通った最大の可視率: ${largestPassing === 0 ? "1% すら通らない" : `${largestPassing}%`}（既定の要求は 75%）`;
+
+		/*
+		#1963 **どの祖先で切り取られているのかを、同じ失敗の中で測る。**
+		`getGlobalVisibleRect()` は «祖先の bounds によるクリップ» を反映するので、
+		ボタンの frame と祖先の frame を並べれば «どこではみ出しているか» が読める。
+		⚠️ コードを読んで座標を逆算する（＝推測する）のはもうやらない。**並べて比べる。**
+		*/
+		for (const ancestorTestId of ["dish-media-bottom-section", "dish-media-card-active", "dish-media-card"]) {
+			try {
+				const attributes = await element(by.id(ancestorTestId)).getAttributes();
+				diagnostics += `\n     祖先 ${ancestorTestId}: ${JSON.stringify(attributes)}`;
+			} catch (ancestorError) {
+				diagnostics += `\n     祖先 ${ancestorTestId}: 取得できず（${String(ancestorError).slice(0, 80)}）`;
+			}
+		}
 		// eslint-disable-next-line no-console
 		console.error(
 			`⚠️ ${testIdForDiagnostics} をタップできませんでした。一致した要素の属性: ${diagnostics}\n` +
