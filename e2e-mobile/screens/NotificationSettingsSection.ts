@@ -1,4 +1,4 @@
-import { DEFAULT_TIMEOUT, by, element, existsNow, tapWhenVisible, waitUntil, waitUntilVisible } from "../fixtures/e2e";
+import { DEFAULT_TIMEOUT, by, existsNow, tapWhenVisible, waitUntil, waitUntilVisible } from "../fixtures/e2e";
 
 /** 通知カテゴリ key（app 側 shared/api/v1/constants/notificationCategories.ts と一致させる） */
 export type NotificationCategoryKey = "likes" | "saves" | "group_votes";
@@ -68,19 +68,21 @@ export class NotificationSettingsSection {
 	}
 
 	/**
-	 * トグルの状態を表す文字列を読む。
+	 * トグルの状態を読む（"on" / "off"）。
 	 *
-	 * `getAttributes()` の戻り値は iOS / Android で形が分かれるため、
-	 * on/off を載せうる属性をまとめて 1 本の文字列にする。
-	 * **値そのものに意味は無く、変化の検出にだけ使う。**
+	 * ⚠️ **`getAttributes()` で読もうとしないこと。** 以前はここで行の
+	 * `value` / `text` / `label` を 1 本の文字列にしていたが、行は TouchableOpacity で、
+	 * その 3 つは **トグルを倒しても 1 文字も変わらない**（状態は
+	 * `accessibilityState.checked` に載るが、Android の Detox では属性として上がってこない。
+	 * `SettingsScreen.themeOptionCheck` に同じ注意がある）。
+	 * その結果、**トグルが正しく動いていても «状態変化» が永遠に成立せず 25 秒で落ちていた**
+	 * （#1579 / 3 夜連続で 2 件）。
+	 *
+	 * アプリ側が «オンのときだけ居る印»（`-on`）を描くようにしたので、その有無で判定する。
+	 * テーマ 3 択のチェックと同じ形で、両 OS で確実に読める。
 	 */
 	async readStateSignature(category: NotificationCategoryKey): Promise<string> {
-		const attributes = (await element(this.row(category)).getAttributes()) as {
-			value?: unknown;
-			text?: unknown;
-			label?: unknown;
-		};
-		return JSON.stringify([attributes.value, attributes.text, attributes.label]);
+		return (await existsNow(by.id(`settings-notifications-${category}-on`))) ? "on" : "off";
 	}
 
 	/**
