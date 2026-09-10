@@ -4,6 +4,8 @@ import {
 	element,
 	existsNow,
 	tapWhenVisible,
+	visibleNow,
+	waitUntil,
 	waitUntilGone,
 	waitUntilNotVisible,
 	waitUntilVisible,
@@ -236,7 +238,43 @@ export class MyDishesScreen {
 	readonly dishCategoryStepSuggestion = by.id("review-dish-category-step-search-suggestion-0");
 	readonly dishCategoryStepFirstItem = by.id("review-dish-category-step-item-0");
 
+	/** #1671 «お店の情報を確認» ページ（記録フローに後から挿さった一歩） */
+	readonly confirmRestaurantScreen = by.id("confirm-restaurant-screen");
+	readonly confirmRestaurantSubmit = by.id("confirm-restaurant-submit");
+
+	/**
+	 * #1579 【バグ】#1671 が記録フローへ «お店の情報を確認» を挿したのに、e2e が追随していなかった。
+	 *
+	 * `select-restaurant.tsx` は選ばれた店が **新規、または住所が空の既存店**なら
+	 * 確認ページへ push する（Google の値をそのまま自社データにしないため）。
+	 * したがって **出るかどうかはその時の dev データ次第**で、固定の手順にはできない。
+	 *
+	 * 09-09 夜間の `review-price-keyboard` はここで止まっており、失敗のコマは
+	 * 「お店の情報を確認」（スターバックス コーヒー 渋谷cocoti店）だった。
+	 * 料理カテゴリの手前で 90 秒待って落ちていたので «カテゴリ選択が壊れている» ように見えるが、
+	 * **そこへ到達していなかった**だけである。
+	 *
+	 * ⚠️ 同じ導線を通る `review-submit-loading` / `review-post` は @mutation なので夜間では
+	 *    走らない。**«夜間が緑» は «その導線が通る» の根拠にならない。**
+	 *    だからこの処理は spec 側ではなくここへ置いてある（3 本が黙ってずれる形にしない）。
+	 */
+	private async confirmRestaurantIfAsked(timeout: number): Promise<void> {
+		await waitUntil(
+			async () => {
+				// 料理カテゴリまで来ていれば確認ページは出なかった（既存店だった）
+				if (await visibleNow(this.dishCategoryStep, 1_000)) return true;
+				if (await visibleNow(this.confirmRestaurantScreen, 1_000)) {
+					await tapWhenVisible(this.confirmRestaurantSubmit, timeout);
+					return true;
+				}
+				return false;
+			},
+			{ timeout, description: "料理カテゴリの選択、または #1671 «お店の情報を確認» ページ" },
+		);
+	}
+
 	async chooseDishCategoryInRecordFlow(query: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await this.confirmRestaurantIfAsked(timeout);
 		await waitUntilVisible(this.dishCategoryStep, timeout);
 		/*
 		⚠️ #1629 **打つ前に必ずタップして «フォーカスさせる»。**
