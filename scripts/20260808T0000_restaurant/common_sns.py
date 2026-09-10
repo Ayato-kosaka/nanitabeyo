@@ -671,6 +671,55 @@ SEED_STORE_RANK_SQL = """CASE r.discovery_route
 RESOLVED_STORE_RANK = 4
 
 
+# --- «その店は信じてよいか» の唯一の閾値 -----------------------------------------
+#
+# 【設計】#1947: `restaurant_confidence` は `5_1_apply_resolve.py` が書いているのに、
+# **読む側が 1 つも無かった**（9_1 / 9_2 / 7_1 のどこにも閾値が無い）。`classify` は
+# 候補の rank1 を **信頼度を見ずに**採る（«天井を測る» ための意図的な設計）ので、
+# 0.35 の «たぶんこの店» が 0.99 の «確実にこの店» と同じ顔でユーザーへ出ていた。
+#
+# 現物 15 件（#1947 issuecomment-5611765586）で 0.60 未満の帯を見ると、«惜しい候補» ではなく
+# **無関係な施設**だった。信頼度 0.39 で配信されていたのは «観音寺市民会館»（香川県観音寺市）で、
+# 投稿本文は «店舗：洋食屋チン» と別の店を名乗っている。0.42 は «らーめん天» に付いた
+# «麺屋卓朗商店さんの15周年イベント» の投稿。料理の写真が違う店に付くのは、ユーザーが
+# その店まで歩いて行って «無い» と気づく壊れ方であり、カバレッジより先に守る下限である。
+#
+# 帯ごとの実測（配信カタログのうち **resolve が店を当てた 75,054 行**が分母。#1947）:
+#
+#   ≥0.95 31,439 行 / 0.85〜0.95 24,327 / 0.70〜0.85 9,576 / 0.60〜0.70 2,165 / **<0.60 7,547**
+#   → 0.60 で切ると −7,547 行 / −2,143 店（配信店 26,351 に対し −8.1%）
+#
+# ⚠️ **この値を SQL やスクリプトへ書き写さないこと。** 閾値が 2 箇所に分かれた時点で、
+#    片方だけ動かされて «配る側と数える側がずれる» が戻る（`STORE_ID_ANY_SQL` のコメント参照）。
+MIN_RESTAURANT_CONFIDENCE = 0.60
+
+
+def resolved_store_confidence_sql(*, store_cte: str = "ps", resolved_cte: str = "v",
+                                  threshold_param: str = "min_conf") -> str:
+    """«その行の店を信じてよいか» を返す SQL 述語（TRUE なら配信してよい）。
+
+    ⚠️ **seed 由来の行にはこのゲートを掛けない。** 柱1（店アカウント）/ 柱1-B（店サイト
+    埋め込み）/ 第三者ページの seed は **収集時点で店が確定している**（`store_rank` 1〜3）。
+    その行の `restaurant_confidence` は «resolve がついでに店名照合を試みた結果» であって、
+    **その行の店の確からしさを表していない**。seed 由来へ閾値を当てると、店が分かっている
+    投稿を «resolve が下手だった» という無関係な理由で落とすことになる。
+
+    落とすのは **resolve が店を決めた行だけ**（`store_rank` = `RESOLVED_STORE_RANK`）。
+
+    NULL は落とす側に倒す（fail-closed）。`classify` は候補に confidence が無いときに
+    NULL を書くので、resolve 由来の NULL は «確からしさを確かめられなかった» であり、
+    «高い» ではない。seed 由来の NULL はそもそもこの述語に掛からない（上の分岐で TRUE）。
+
+    Args:
+        store_cte: `post_store_cte_sql()` の `post_store` に付けた別名（`store_rank` を持つ）。
+        resolved_cte: 投稿ごとの最新 resolve 行の別名（`restaurant_confidence` を持つ）。
+        threshold_param: 閾値を渡すクエリパラメータ名（`@` は付けない）。
+    """
+    return (f"({store_cte}.store_rank != {RESOLVED_STORE_RANK}"
+            f" OR ({resolved_cte}.restaurant_confidence IS NOT NULL"
+            f" AND {resolved_cte}.restaurant_confidence >= @{threshold_param}))")
+
+
 TABLE_DISH_CATEGORY_IMAGES = "dish_category_images"
 
 

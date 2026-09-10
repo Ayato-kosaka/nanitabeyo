@@ -14,6 +14,10 @@ pg へ配信できる «確定行» を row_hash 付きで作る。pg には触�
 
 #1815: **日本以外の店は配信しない。** 判定は `common_sns.foreign_store_sql`
 （写経しないこと）。ここは配信経路の入口なので、ここで落とせば 9_2 まで届かない。
+
+#1947: **resolve が店を決めた行は、確からしさが `MIN_RESTAURANT_CONFIDENCE` 未満なら
+配信しない。** 判定は `common_sns.resolved_store_confidence_sql`（写経しないこと）。
+seed 由来（収集時点で店が確定している）行には掛けない — 理由は共通判定の docstring。
 """
 
 from __future__ import annotations
@@ -27,14 +31,17 @@ from pipeline_common import (
 from common_sns import (
     PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_DISH_MEDIA_CATALOG,
     TABLE_DISH_CATEGORY_IMAGES, TABLE_RESTAURANT_CATALOG,
-    LATEST_RESOLVED_QUALIFY, category_with_image_cte_sql, foreign_store_sql,
-    post_store_cte_sql,
+    LATEST_RESOLVED_QUALIFY, MIN_RESTAURANT_CONFIDENCE, category_with_image_cte_sql,
+    foreign_store_sql, post_store_cte_sql, resolved_store_confidence_sql,
 )
 
 LOGGER = logging.getLogger(__name__)
 
 # #1815 «日本以外の店» の判定は common_sns が唯一の正。ここへ写経しない。
 FOREIGN_STORE_SQL = foreign_store_sql("rc")
+# #1947 «resolve が決めた店を信じてよいか» も同じく common_sns が唯一の正。
+# 閾値の値（既定 0.60）はここに書かない。`MIN_RESTAURANT_CONFIDENCE` を通す。
+STORE_CONFIDENCE_SQL = resolved_store_confidence_sql()
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,6 +56,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--restaurant-catalog-run-id", required=True,
                    help="日本以外の店を落とすために突き合わせる restaurant_catalog の run_id"
                         "（例: restaurant-2026-08-23）。SNS の run_id とは別なので必須にしている")
+    # #1947 既定は common_sns の 1 箇所（ここへ数値を書かない）。帯ごとの効き方を測るときだけ動かす。
+    p.add_argument("--min-restaurant-confidence", type=float, default=MIN_RESTAURANT_CONFIDENCE,
+                   help="resolve が店を決めた行に要求する restaurant_confidence の下限"
+                        f"（既定 {MIN_RESTAURANT_CONFIDENCE}）。seed 由来の行には掛からない")
     return p.parse_args()
 
 
@@ -91,6 +102,10 @@ def main() -> None:
         ON rc.run_id = @rc_run AND rc.google_place_id = ps.google_place_id
       WHERE v.dish_category_id IS NOT NULL
         AND NOT IFNULL({FOREIGN_STORE_SQL}, FALSE)
+        -- #1947 resolve が店を決めた行だけ確からしさの下限を要求する。
+        -- ⚠️ seed 由来（store_rank 1〜3）へは掛からない式である。掛けると «店が分かっている
+        --    投稿» を resolve の下手さで落とすことになる（理由は common_sns の docstring）。
+        AND {STORE_CONFIDENCE_SQL}
       GROUP BY v.post_id, google_place_id, v.dish_category_id
     """
     # 落とした投稿は «黙って消える» のが一番まずい（次に誰かが «なぜ減った» を調べ直す）。
@@ -119,6 +134,16 @@ def main() -> None:
         WHERE v.dish_category_id IS NOT NULL
           AND {FOREIGN_STORE_SQL}
       ),
+      -- #1947 «resolve が決めた店の確からしさが足りず落とした» ぶん。
+      -- ⚠️ ここで数える店は «この投稿では落ちた» 店であって、別の投稿で配信され得る。
+      --    «丸ごと配信されなくなった店» ではないので、そう読み替えないこと。
+      low_confidence AS (
+        SELECT v.post_id, ps.google_place_id
+        FROM v
+        JOIN post_store ps ON ps.post_id = v.post_id
+        WHERE v.dish_category_id IS NOT NULL
+          AND NOT {STORE_CONFIDENCE_SQL}
+      ),
       seeded AS (
         SELECT DISTINCT r.post_id FROM `{pipeline.table(TABLE_POST_RAW)}` r
         WHERE r.provider = '{PROVIDER_INSTAGRAM}' AND r.run_id IN UNNEST(@srcs)
@@ -143,12 +168,16 @@ def main() -> None:
           WHERE v.dish_category_id IS NOT NULL
             AND v.post_id IN (SELECT post_id FROM post_store)
             AND v.dish_category_id NOT IN (SELECT dish_category_id FROM category_with_image)
-        ) AS no_category_image_categories
+        ) AS no_category_image_categories,
+        -- #1947 確からしさの下限で落とした投稿数と店数（seed 由来は掛からないので入らない）
+        (SELECT COUNT(DISTINCT post_id) FROM low_confidence) AS low_confidence_posts,
+        (SELECT COUNT(DISTINCT google_place_id) FROM low_confidence) AS low_confidence_stores
     """
 
     params = [
         bigquery.ArrayQueryParameter("srcs", "STRING", src_run_ids),
         bigquery.ScalarQueryParameter("rc_run", "STRING", args.restaurant_catalog_run_id),
+        bigquery.ScalarQueryParameter("min_conf", "FLOAT64", args.min_restaurant_confidence),
     ]
 
     # `pipeline.step` は parameters を **ブロックの終わりに** JSON 化するので、
@@ -156,6 +185,8 @@ def main() -> None:
     step_params: dict[str, object] = {
         "resolved_run_ids": ",".join(src_run_ids),
         "restaurant_catalog_run_id": args.restaurant_catalog_run_id,
+        # #1947 «どの閾値で組んだ catalog か» が後から分からないと、行数の増減を説明できない
+        "min_restaurant_confidence": args.min_restaurant_confidence,
     }
 
     with pipeline.step(run_id, "9_1_build_sns_dish_media_catalog",
@@ -187,13 +218,19 @@ def main() -> None:
             step_params["dropped_no_category_image_categories"] = int(
                 drop["no_category_image_categories"] or 0
             )
+            step_params["dropped_low_confidence_posts"] = int(drop["low_confidence_posts"] or 0)
+            step_params["dropped_low_confidence_stores"] = int(drop["low_confidence_stores"] or 0)
             LOGGER.info("配信しなかった投稿: 店を絞れず %d / 看板が複数店を指すのみ %d / "
-                        "日本以外の店 %d / カテゴリに絵が無い %d（%d カテゴリ）",
+                        "日本以外の店 %d / カテゴリに絵が無い %d（%d カテゴリ）/ "
+                        "店の確からしさが %.2f 未満 %d（%d 店・resolve 由来のみ）",
                         step_params["dropped_ambiguous_posts"],
                         step_params["dropped_shared_identity_posts"],
                         step_params["dropped_foreign_store_posts"],
                         step_params["dropped_no_category_image_posts"],
-                        step_params["dropped_no_category_image_categories"])
+                        step_params["dropped_no_category_image_categories"],
+                        args.min_restaurant_confidence,
+                        step_params["dropped_low_confidence_posts"],
+                        step_params["dropped_low_confidence_stores"])
         LOGGER.info("sns_dish_media_catalog に %d 件（配信可 ready・1 投稿 1 行）を組みました", count)
 
 
