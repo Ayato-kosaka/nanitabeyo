@@ -660,6 +660,14 @@ SEED_IDENTITY_KEY_SQL = r"""CASE r.discovery_route
         ELSE NULL
       END"""
 
+# 上の CASE が identity key を持たせる経路（WHEN 節と 1:1。増やしたら両方を直す）。
+#
+# 【設計】#1947: seed を **後から入れる** 側（4_21 の名前逆引き）は、この経路の投稿を
+# 対象にしてはいけない。看板（アカウント / サイトのドメイン）に別の店を後入れすると
+# その看板の `n_place` が 2 になり、`post_store_cte_sql` が **同じ看板で採れた他の投稿の
+# seed まで全部捨てる**。1 投稿を増やすために数十投稿を殺す形になる。
+SEED_IDENTITY_ROUTES = ("store_account", "store_site_embed")
+
 # 看板の «強さ»。小さいほど強い。同じ投稿に複数の候補が立ったときはここで決める。
 # 1: 店自身のアカウント > 2: 店の公式サイトの埋め込み > 3: 第三者ページの seed >
 # 4: resolve の店照合（seed がどれも使えないときだけ）。
