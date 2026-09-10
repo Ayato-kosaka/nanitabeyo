@@ -370,15 +370,25 @@ def run_explain(cur, schema, with_posts, full_plan, do_assert):
 NAME_TRGM_INDEX = "idx_restaurants_name_trgm"
 
 
+# ⚠️ **ノードの種類で前置詞が違う。**
+#    `Index Scan using X` / `Index Only Scan using X` に対して
+#    `Bitmap Index Scan on X` である（PostgreSQL の EXPLAIN の書式）。
+#    `using` だけを見ていたら **trgm 索引は必ず Bitmap 経路なので 1 つも拾えず**、
+#    未変更の 3 文字の枝まで «索引に乗っていない» と出た（run 34419672593）。
+INDEX_NODE = re.compile(
+    r"(?:Index Scan|Index Only Scan) using ([A-Za-z0-9_]+)"
+    r"|Bitmap Index Scan on ([A-Za-z0-9_]+)"
+)
+
+
 def indexes_used(plan):
     """実行計画が使った索引の名前を、出てきた順に重複なく返す。"""
     seen = []
     for line in plan:
-        m = re.search(
-            r"(?:Bitmap )?Index (?:Only )?Scan using ([a-zA-Z0-9_]+)", line
-        )
-        if m and m.group(1) not in seen:
-            seen.append(m.group(1))
+        for m in INDEX_NODE.finditer(line):
+            name = m.group(1) or m.group(2)
+            if name not in seen:
+                seen.append(name)
     return seen
 
 
