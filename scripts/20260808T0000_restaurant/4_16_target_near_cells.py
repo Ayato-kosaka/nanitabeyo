@@ -38,9 +38,26 @@ n=1 のセルは 4 店で 1 セルなので同じ 1 店の単価が 4 倍違う�
 BigQuery は読み取りが主で、書くのは上の 2/3（**新しい run_id にだけ足す**。既存 run_id は触らない）。
 PostgreSQL には触らない。
 
+## radius モード（#1970 `--cell-mode radius`）
+既定（`--cell-mode city`）は `sns_coverage` の市区町村セルを狙うが、アプリの検索半径は
+実際には 500m で、市区町村内に店が散っていればどの地点からも 5 店には見えない（#1970 実測）。
+
+radius モードは «セルを列挙する» のをやめ、**«候補店 1 軒が何セルを埋めるか» を数える**:
+未収集の候補店 X について、カテゴリ C ごとに「X から 500m 以内にある、C を配信済みの
+異なり店の数」（`read_radius_scores` の `nearby_store_count`）を数える。それが **3 か 4**
+なら、X はそのカテゴリの候補として採る（`qualifying_radius_scores` / `build_radius_targets`）。
+2 以下は «集めても届かない»、5 以上は «もう足りている» ので採らない（既定 `--min-stores 3
+--max-stores 4`。city モードの既定 4/4 とは異なる）。
+
+配信済みは `sns_dish_media_catalog`（`--delivery-run-id`、省略時は最新）。カテゴリの当てはめ
+（`CATEGORY_KEYWORDS` / `match_categories`）は city モードと同じものを通す（寿司屋を集めても
+ラーメンのセルは埋まらない）。«まだ投稿を取っていない» / «手が届く» の判定と出力形式は
+city モードと共通（`store_pool_sql` / `_route_of` をそのまま使う。新しい判定は書かない）。
+
 ## 使い方（db-script-run.yml）
   script_path: scripts/20260808T0000_restaurant/4_16_target_near_cells.py
   args: --run-id sns-2026-09-05-nearcell --min-stores 4 --max-stores 4 --limit 20000
+  # radius モード: args: --run-id sns-2026-09-11-nearcell --cell-mode radius --limit 20000
   # 動作確認は --dry-run（BQ を読み、件数と表だけ出して書き込まない）
 """
 
@@ -56,10 +73,15 @@ from pathlib import Path
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (kpi_gate_category_sql,
     PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_COVERAGE,
-                        TABLE_SOURCE_ACCOUNT, TABLE_STORE_SITE_IG)
+                        TABLE_SOURCE_ACCOUNT, TABLE_STORE_SITE_IG, TABLE_DISH_MEDIA_CATALOG)
 
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
+
+# #1970 radius モードが数える近傍半径。アプリの検索既定
+# （app-expo/features/dishCategories/constants.ts）と合わせる。ここでしか使わないので
+# 引数にはしない。
+RADIUS_METERS = 500.0
 
 # --- 店 → 料理カテゴリ の当てはめ語 ------------------------------------------------
 #
@@ -248,24 +270,36 @@ def match_categories(name: str | None, genre_tokens, rules) -> dict[str, str]:
     return hit
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="«あと1店で埋まるセル» の候補店を既存収集経路の入力形式で出す")
     p.add_argument("--run-id", default=None, help="出力 run_id（sns_source_account / sns_store_site_ig へ新規に足す）")
-    p.add_argument("--coverage-run-id", default=None, help="読む sns_coverage の run_id（省略時は最新）")
+    # #1970 city=市区町村セル（sns_coverage・既存の挙動）/ radius=候補店ごとに500m以内の
+    # 配信済み異なり店数を数える（sns_coverage は触らない。KPI の数え方の正本のため）。
+    p.add_argument("--cell-mode", choices=("city", "radius"), default="city",
+                   help="セルの粒度。city=市区町村（既定。既存の挙動のまま）/ "
+                        "radius=候補店ごとに500m以内の配信済み異なり店数を数える（#1970）")
+    p.add_argument("--coverage-run-id", default=None,
+                   help="[city] 読む sns_coverage の run_id（省略時は最新）")
+    p.add_argument("--delivery-run-id", default=None,
+                   help="[radius] 読む sns_dish_media_catalog の run_id（省略時は最新）")
     p.add_argument("--catalog-run-id", default=None, help="読む restaurant_catalog の run_id（省略時は最大件数の run）")
     # KPI 対象カテゴリの正は «アプリの JP ゲート»（7_1 / 8_1 と同じ）。日本語ラベルから QID を
     # 引くと同名別 QID を拾って 134→140 に膨らみ、アプリに出ないカテゴリを数えてしまう（#1815）。
     p.add_argument("--kpi-gate-feature-key", default="region:country:JP",
                    help="KPI 対象カテゴリを決める dish_category_features_catalog の gate key（7_1 と同じ）")
-    p.add_argument("--min-stores", type=int, default=4, help="狙うセルの現店数の下限（既定 4）")
-    p.add_argument("--max-stores", type=int, default=4, help="狙うセルの現店数の上限（既定 4。3 も狙うなら --min-stores 3）")
+    # 既定値はモードで違う（city=4/4 は既存の挙動、radius=3/4 は #1970 の «3 か 4»）ので
+    # ここではまだ確定させず、resolve_store_bounds() で --cell-mode を見てから決める。
+    p.add_argument("--min-stores", type=int, default=None,
+                   help="狙うセルの現店数の下限（既定 city=4 / radius=3）")
+    p.add_argument("--max-stores", type=int, default=None,
+                   help="狙うセルの現店数の上限（既定 4。city で 3 も狙うなら --min-stores 3）")
     p.add_argument("--per-cell", type=int, default=20, help="1 セルあたりに出す候補店の上限")
     p.add_argument("--limit", type=int, default=None, help="出力する候補店（異なり店）の総数上限")
     p.add_argument("--top", type=int, default=20, help="標準出力へ出すセルの表の行数")
     p.add_argument("--out-dir", default=str(HERE / "_transient" / "near_cells"),
                    help="JSON / CSV の出力先ディレクトリ")
     p.add_argument("--dry-run", action="store_true", help="BQ へ書き込まない（読み取りと件数・表は出す）")
-    return p.parse_args()
+    return p.parse_args(argv)
 
 
 def _latest_run_id(pipeline: BigQueryPipeline, table: str, order: str) -> str:
@@ -318,6 +352,117 @@ def read_cells(pipeline: BigQueryPipeline, coverage_run_id: str, qids, nmin: int
         bigquery.ScalarQueryParameter("nmax", "INT64", nmax),
     ]
     return [dict(r) for r in pipeline.execute(sql, params)]
+
+
+def resolve_store_bounds(cell_mode: str, min_stores: int | None, max_stores: int | None) -> tuple[int, int]:
+    """--min-stores / --max-stores の既定値を --cell-mode ごとに決める（純粋関数）。
+
+    city の既定 4/4 は既存の挙動そのまま。radius の既定 3/4 は #1970 で合意した
+    «3 か 4 のときだけ採る» を、引数を省略しても再現するため。
+    """
+    default_min = 3 if cell_mode == "radius" else 4
+    return (default_min if min_stores is None else min_stores,
+            4 if max_stores is None else max_stores)
+
+
+def qualifying_radius_scores(scores, nmin: int, nmax: int):
+    """候補店 × カテゴリ の500m近傍カウントから «nmin〜nmax» のものだけを残す（純粋関数）。
+
+    #1970: 既定 3〜4。**2 以下は集めても届かない、5 以上はもう足りている。ここを緩めない。**
+    """
+    return [r for r in scores if nmin <= r["nearby_store_count"] <= nmax]
+
+
+def build_radius_targets(cells, stores, qid_label):
+    """#1970 radius モード版の build_targets。«候補店 1 軒が何セルを埋めるか» を数える版。
+
+    city モードの build_targets は 1 セルに複数の候補店を並べるが、radius モードは
+    セルそのものが候補店を起点に決まる（cell = (候補店, カテゴリ)）ので候補は常に 1 件。
+    **カテゴリの当てはめ（match_categories）に失敗した候補は点数に数えない**
+    （寿司屋を集めてもラーメンのセルは埋まらない）。
+    """
+    by_pid = {s["google_place_id"]: s for s in stores}
+    targets = []
+    for cell in cells:
+        s = by_pid.get(cell["candidate_place_id"])
+        if s is None:
+            continue  # 収集済み・到達不能など、狙える候補プールに無い
+        label = qid_label.get(cell["dish_category_id"])
+        if not label:
+            continue
+        categories = s.get("categories")
+        if categories is None:
+            categories = match_categories(s.get("name"), s.get("source_categories"), CATEGORY_KEYWORDS)
+            s["categories"] = categories
+        evidence = categories.get(label)
+        if not evidence:
+            continue  # 当てはまらない候補は点数に数えない
+        targets.append({
+            "region": s.get("region"), "city": s.get("city"),
+            "dish_category_id": cell["dish_category_id"], "label": label,
+            "distinct_store_count": cell["nearby_store_count"],
+            "candidates": [{"store": s, "evidence": evidence}],
+            "candidate_total": 1,
+        })
+    targets.sort(key=lambda t: (-t["distinct_store_count"], t["region"] or "", t["city"] or ""))
+    return targets
+
+
+def read_radius_scores(pipeline: BigQueryPipeline, catalog_run_id: str, delivery_run_id: str,
+                        qids, radius_m: float):
+    """restaurant_catalog の店ごとに、カテゴリ別の «500m以内の配信済み異なり店数» を返す。
+
+    境界（3か4のときだけ採る）はここでは絞らない（BigQuery 無しでテストできるよう
+    Python 側の `qualifying_radius_scores` に一本化し、同じ境界値を SQL と二重に持たない）。
+    配信済みは `sns_dish_media_catalog`（run_id 指定）を、位置は `restaurant_catalog`
+    （同じ catalog_run_id）と突き合わせて取る。
+    """
+    from google.cloud import bigquery
+    sql = f"""
+      WITH catalog_loc AS (
+        SELECT google_place_id, location
+        FROM `{pipeline.table('restaurant_catalog')}`
+        WHERE run_id = @crid AND location IS NOT NULL
+      ),
+      delivered AS (
+        SELECT DISTINCT m.google_place_id, m.dish_category_id, c.location
+        FROM `{pipeline.table(TABLE_DISH_MEDIA_CATALOG)}` m
+        JOIN catalog_loc c ON c.google_place_id = m.google_place_id
+        WHERE m.run_id = @drid AND m.dish_category_id IN UNNEST(@qids)
+      )
+      SELECT cand.google_place_id AS candidate_place_id, delivered.dish_category_id,
+             COUNT(DISTINCT delivered.google_place_id) AS nearby_store_count
+      FROM catalog_loc AS cand
+      JOIN delivered
+        ON ST_DWITHIN(cand.location, delivered.location, @radius_m)
+        AND delivered.google_place_id != cand.google_place_id
+      GROUP BY candidate_place_id, dish_category_id
+    """
+    params = [
+        bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id),
+        bigquery.ScalarQueryParameter("drid", "STRING", delivery_run_id),
+        bigquery.ArrayQueryParameter("qids", "STRING", list(qids)),
+        bigquery.ScalarQueryParameter("radius_m", "FLOAT64", float(radius_m)),
+    ]
+    return [dict(r) for r in pipeline.execute(sql, params)]
+
+
+def read_all_cities(pipeline: BigQueryPipeline, catalog_run_id: str):
+    """radius モード用: 市区町村で絞らずに store_pool_sql を呼ぶための (region, city) 一覧。
+
+    «まだ投稿を取っていない» / «手が届く» の判定は store_pool_sql が持つ（ここでは書き直さない）。
+    ここは店の当落を決めない、絞りを外すためだけの一覧である。
+    """
+    from google.cloud import bigquery
+    pref = PREF_PATTERN
+    sql = f"""
+      SELECT DISTINCT REGEXP_EXTRACT(address, r'({pref})') AS region,
+             REGEXP_EXTRACT(address, r'(?:{pref})(.+?[市区町村])') AS city
+      FROM `{pipeline.table('restaurant_catalog')}`
+      WHERE run_id = @crid
+    """
+    params = [bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id)]
+    return sorted({(r["region"], r["city"]) for r in pipeline.execute(sql, params) if r["region"] and r["city"]})
 
 
 def store_pool_sql(pipeline: BigQueryPipeline) -> str:
@@ -486,22 +631,33 @@ def main() -> None:
     args = parse_args()
     run_id = require_run_id(args.run_id)
     pipeline = BigQueryPipeline()
-    coverage_run_id = args.coverage_run_id or _latest_run_id(pipeline, TABLE_COVERAGE, "MAX(computed_at)")
     catalog_run_id = args.catalog_run_id or _latest_run_id(pipeline, "restaurant_catalog", "COUNT(*)")
-    LOGGER.info("coverage_run_id=%s / catalog_run_id=%s", coverage_run_id, catalog_run_id)
-
+    nmin, nmax = resolve_store_bounds(args.cell_mode, args.min_stores, args.max_stores)
     qid_label = load_kpi_categories(pipeline, args.kpi_gate_feature_key)
-    all_cells = read_cells(pipeline, coverage_run_id, qid_label.keys(), args.min_stores, args.max_stores)
-    # region が取れないセルは市区町村を一意に指せない（«中央区» が何県のものか決まらない）ので狙えない
-    cells = [c for c in all_cells if c["region"]]
-    if len(cells) != len(all_cells):
-        LOGGER.warning("都道府県が取れないセル %d 件は狙えないので除外しました", len(all_cells) - len(cells))
-    cities = sorted({(c["region"], c["city"]) for c in cells})
+
+    coverage_run_id = None
+    delivery_run_id = None
+    if args.cell_mode == "city":
+        coverage_run_id = args.coverage_run_id or _latest_run_id(pipeline, TABLE_COVERAGE, "MAX(computed_at)")
+        LOGGER.info("coverage_run_id=%s / catalog_run_id=%s", coverage_run_id, catalog_run_id)
+        all_cells = read_cells(pipeline, coverage_run_id, qid_label.keys(), nmin, nmax)
+        # region が取れないセルは市区町村を一意に指せない（«中央区» が何県のものか決まらない）ので狙えない
+        cells = [c for c in all_cells if c["region"]]
+        if len(cells) != len(all_cells):
+            LOGGER.warning("都道府県が取れないセル %d 件は狙えないので除外しました", len(all_cells) - len(cells))
+        cities = sorted({(c["region"], c["city"]) for c in cells})
+    else:
+        delivery_run_id = args.delivery_run_id or _latest_run_id(pipeline, TABLE_DISH_MEDIA_CATALOG, "MAX(built_at)")
+        LOGGER.info("delivery_run_id=%s / catalog_run_id=%s", delivery_run_id, catalog_run_id)
+        scores = read_radius_scores(pipeline, catalog_run_id, delivery_run_id, qid_label.keys(), RADIUS_METERS)
+        cells = qualifying_radius_scores(scores, nmin, nmax)
+        cities = read_all_cities(pipeline, catalog_run_id)
+
     LOGGER.info("狙うセル %d（現店数 %d〜%d）| 市区町村 %d | カテゴリ %d",
-                len(cells), args.min_stores, args.max_stores, len(cities),
+                len(cells), nmin, nmax, len(cities),
                 len({c["dish_category_id"] for c in cells}))
     if not cells:
-        LOGGER.warning("該当セルがありません。--coverage-run-id / --min-stores を確認してください。")
+        LOGGER.warning("該当セルがありません。--coverage-run-id / --delivery-run-id / --min-stores を確認してください。")
         return
 
     pool = read_store_pool(pipeline, catalog_run_id, cities)
@@ -509,7 +665,8 @@ def main() -> None:
     LOGGER.info("狙う市区町村の未収集店 %d 軒（うち渡せる経路がある %d 軒。"
                 "残りは 4_4 が既に読めなかったサイトなので渡しても同じ結果になる）", len(pool), len(stores))
 
-    targets = build_targets(cells, stores, qid_label, args.per_cell)
+    targets = (build_targets(cells, stores, qid_label, args.per_cell) if args.cell_mode == "city"
+               else build_radius_targets(cells, stores, qid_label))
     filled = [t for t in targets if t["candidates"]]
 
     # --limit は «異なり候補店» の総数で効かせる（同じ店が複数セルを埋めることがある）
@@ -577,7 +734,7 @@ def main() -> None:
     print(f"{'都道府県':<5}{'市区町村':<9}{'カテゴリ':<9}{'今':>3} {'候補':>5}  候補店の例")
     for t in targets[:args.top]:
         ex = "、".join(f"{c['store']['name']}({c['evidence']})" for c in t["candidates"][:3]) or "-"
-        print(f"{t['region']:<5}{t['city']:<9}{t['label'] or '?':<9}{t['distinct_store_count']:>3} "
+        print(f"{t['region'] or '?':<5}{t['city'] or '?':<9}{t['label'] or '?':<9}{t['distinct_store_count']:>3} "
               f"{t['candidate_total']:>5}  {ex}")
     print()
     for route, rows in sorted(by_route.items()):
@@ -594,8 +751,10 @@ def main() -> None:
 
     now_iso = utc_now().isoformat()
     with pipeline.step(run_id, "4_16_target_near_cells", parameters={
-        "coverage_run_id": coverage_run_id, "catalog_run_id": catalog_run_id,
-        "min_stores": args.min_stores, "max_stores": args.max_stores,
+        "cell_mode": args.cell_mode,
+        "coverage_run_id": coverage_run_id, "delivery_run_id": delivery_run_id,
+        "catalog_run_id": catalog_run_id,
+        "min_stores": nmin, "max_stores": nmax,
         "per_cell": args.per_cell, "limit": args.limit,
     }, repo_root=None) as result:
         # 3) 店アカ経路: 4_1 が作った行を «狙う店の分だけ» 新 run_id へ複製する
