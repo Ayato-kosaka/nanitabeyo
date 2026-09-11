@@ -638,6 +638,23 @@ def _route_of(store: dict) -> str:
     return "unreachable"          # crawl 済みで到達不能（fetch_failed / robots_blocked 等）
 
 
+# #1970 `sns_site_crawl_target` は新しい表なので、**この script が作る**。
+# migration の DDL だけに頼ると、まだ当たっていない dataset で `Table was not found` になる
+# （2026-09-11 に実際にこれで落ちた）。この pipeline の他の script（4_21 の台帳・4_2 の
+# 呼んだ handle の台帳）と同じ作法に揃える。
+CREATE_SITE_CRAWL_TARGET_SQL = """
+CREATE TABLE IF NOT EXISTS `__TABLE__` (
+  run_id          STRING NOT NULL,
+  google_place_id STRING NOT NULL,
+  name            STRING,
+  website         STRING,
+  created_at      TIMESTAMP NOT NULL
+)
+CLUSTER BY run_id, google_place_id
+OPTIONS (description = '4_16 が radius モードで狙った site_crawl 経路の候補店。4_4 --stores-run-id が読む。#1970')
+"""
+
+
 def build_site_crawl_target_rows(site_crawl_stores: list[dict], run_id: str, now_iso: str) -> list[dict]:
     """#1970 site_crawl 経路の対象を `sns_site_crawl_target` の行形式へ変換する（純関数）。
 
@@ -811,6 +828,8 @@ def main() -> None:
         #    4_4 --stores-file に渡す手段が無いので、他の 2 経路と同じく BigQuery へも書く。
         #    JSON 出力（台帳）はそのまま残す。
         site_crawl_rows = build_site_crawl_target_rows(site_crawl, run_id, now_iso)
+        pipeline.execute(CREATE_SITE_CRAWL_TARGET_SQL.replace(
+            "__TABLE__", pipeline.table(TABLE_SITE_CRAWL_TARGET)))
         pipeline.delete_run_rows(TABLE_SITE_CRAWL_TARGET, run_id)
         n_site_crawl = pipeline.load_json_rows(TABLE_SITE_CRAWL_TARGET, site_crawl_rows) if site_crawl_rows else 0
 

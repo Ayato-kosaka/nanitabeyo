@@ -87,5 +87,37 @@ class DryRunDoesNotWriteSiteCrawlTargetTest(unittest.TestCase):
         self.assertIn("pipeline.load_json_rows(TABLE_SITE_CRAWL_TARGET, site_crawl_rows)", write_block)
 
 
+class TheScriptCreatesTheTableItOwnsTest(unittest.TestCase):
+    """新しい表を足したら、**それを書く script が作る**（migration の DDL に頼らない）。
+
+    2026-09-11、`sns_site_crawl_target` へ書く 4_16 が
+    `404 Table food-scroll:restaurant_recommendation.sns_site_crawl_target was not found`
+    で落ちた。DDL は migration ファイルに足してあったが、**その migration がまだ当たって
+    いない dataset では存在しない**。この pipeline の他の script（`4_21` の貼り付け台帳、
+    `4_2` の «呼んだ handle» の台帳）はどれも実行時に `CREATE TABLE IF NOT EXISTS` する。
+    そちらが正であり、4_16 だけが例外になっていた。
+
+    ⚠️ «テストが緑でも本番で落ちる» 形がこれで **今日 3 つ目**である
+    （予約語の CTE 名 / GEOGRAPHY の DISTINCT / 表の未作成）。どれも «SQL を実行しないから
+    分からない» ものなので、実行しなくても分かる形（＝ここ）で止める。
+    """
+
+    SOURCE = (HERE / "4_16_target_near_cells.py").read_text(encoding="utf-8")
+
+    def test_create_table_if_not_exists_is_declared(self) -> None:
+        self.assertIn("CREATE TABLE IF NOT EXISTS", self.SOURCE,
+                      "書き込む表を script が作っていない（migration 頼みになっている）")
+
+    def test_the_table_is_created_before_it_is_written(self) -> None:
+        """`load_json_rows` より前に `CREATE` を通していること（順序まで固定する）。"""
+        body = self.SOURCE
+        create_at = body.find("CREATE_SITE_CRAWL_TARGET_SQL.replace")
+        write_at = body.find("load_json_rows(TABLE_SITE_CRAWL_TARGET")
+        self.assertNotEqual(-1, create_at, "CREATE を実行している箇所が無い")
+        self.assertNotEqual(-1, write_at, "表へ書いている箇所が無い")
+        self.assertLess(create_at, write_at,
+                        "CREATE より先に書き込んでいる（初回の run が必ず落ちる）")
+
+
 if __name__ == "__main__":
     unittest.main()
