@@ -4,6 +4,8 @@ import {
 	element,
 	existsNow,
 	tapWhenVisible,
+	visibleNow,
+	waitUntil,
 	waitUntilGone,
 	waitUntilNotVisible,
 	waitUntilVisible,
@@ -236,7 +238,43 @@ export class MyDishesScreen {
 	readonly dishCategoryStepSuggestion = by.id("review-dish-category-step-search-suggestion-0");
 	readonly dishCategoryStepFirstItem = by.id("review-dish-category-step-item-0");
 
+	/** #1671 «お店の情報を確認» ページ（記録フローに後から挿さった一歩） */
+	readonly confirmRestaurantScreen = by.id("confirm-restaurant-screen");
+	readonly confirmRestaurantSubmit = by.id("confirm-restaurant-submit");
+
+	/**
+	 * #1579 【バグ】#1671 が記録フローへ «お店の情報を確認» を挿したのに、e2e が追随していなかった。
+	 *
+	 * `select-restaurant.tsx` は選ばれた店が **新規、または住所が空の既存店**なら
+	 * 確認ページへ push する（Google の値をそのまま自社データにしないため）。
+	 * したがって **出るかどうかはその時の dev データ次第**で、固定の手順にはできない。
+	 *
+	 * 09-09 夜間の `review-price-keyboard` はここで止まっており、失敗のコマは
+	 * 「お店の情報を確認」（スターバックス コーヒー 渋谷cocoti店）だった。
+	 * 料理カテゴリの手前で 90 秒待って落ちていたので «カテゴリ選択が壊れている» ように見えるが、
+	 * **そこへ到達していなかった**だけである。
+	 *
+	 * ⚠️ 同じ導線を通る `review-submit-loading` / `review-post` は @mutation なので夜間では
+	 *    走らない。**«夜間が緑» は «その導線が通る» の根拠にならない。**
+	 *    だからこの処理は spec 側ではなくここへ置いてある（3 本が黙ってずれる形にしない）。
+	 */
+	private async confirmRestaurantIfAsked(timeout: number): Promise<void> {
+		await waitUntil(
+			async () => {
+				// 料理カテゴリまで来ていれば確認ページは出なかった（既存店だった）
+				if (await visibleNow(this.dishCategoryStep, 1_000)) return true;
+				if (await visibleNow(this.confirmRestaurantScreen, 1_000)) {
+					await tapWhenVisible(this.confirmRestaurantSubmit, timeout);
+					return true;
+				}
+				return false;
+			},
+			{ timeout, description: "料理カテゴリの選択、または #1671 «お店の情報を確認» ページ" },
+		);
+	}
+
 	async chooseDishCategoryInRecordFlow(query: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await this.confirmRestaurantIfAsked(timeout);
 		await waitUntilVisible(this.dishCategoryStep, timeout);
 		/*
 		⚠️ #1629 **打つ前に必ずタップして «フォーカスさせる»。**
@@ -355,6 +393,19 @@ export class MyDishesScreen {
 		return by.id(`my-dishes-${view}-view`);
 	}
 
+	/**
+	 * #1579 そのビューが **マウントされているか**（見えているかではない）を見る印。
+	 *
+	 * ⚠️ **`view()` の `toExist()` で代用しないこと。** 隠れている器は
+	 * `display: "none"` になり、React Native はそれをネイティブのビュー階層から外すので、
+	 * **Detox からは «無い» ものになる**（コンポーネント自体は生きていて、
+	 * viewport や スクロール位置は保たれている）。ここを取り違えて
+	 * `waitUntilExists(view("list"))` と書いていたため、3 夜連続で 25 秒待って落ちていた。
+	 */
+	mountedMarker(view: MyDishesViewName) {
+		return by.id(`my-dishes-${view}-mounted`);
+	}
+
 	/** ビュー切替ボタンをタップして、そのビューが見えるようになるまで待つ */
 	async selectView(view: MyDishesViewName, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await tapWhenVisible(this.viewButton(view), timeout);
@@ -425,10 +476,21 @@ export class MyDishesScreen {
 	 *          「選択が消えた」を区別できるようにする）
 	 */
 	async isFilterStatusSelected(status: MyDishStatusName): Promise<boolean | null> {
-		// getAttributes() の戻り値は iOS / Android・単一 / 複数一致で型が分かれるため、
-		// isSubmitButtonEnabled と同じく必要なキーだけに絞ってキャストする
-		const attributes = (await element(this.filterStatusChip(status)).getAttributes()) as { selected?: boolean };
-		return attributes.selected ?? null;
+		/*
+		 ⚠️ **`getAttributes().selected` で読まないこと。**
+
+		 状態は `accessibilityState.selected` に載るが、**Android の Detox では属性として
+		 上がってこない**ため、ここは常に `null`（判定不能）を返していた。呼び出し側は
+		 `null !== true` で落ちるので、**フィルタが正しく効いていてもテストは失敗する**
+		 （#1579・3 夜連続）。`SettingsScreen.themeOptionCheck` と
+		 `NotificationSettingsSection.readStateSignature` に同じ注意がある。
+
+		 アプリ側が «選択済みのときだけ居る印»（`-selected`）を描くので、その有無で読む。
+		 ⚠️ 戻り値の型は `boolean | null` のままにしてある。**印が見つからない = 未選択**
+		    と断言できるのは、印が «選択済みなら必ず在る» ことに依っている。将来
+		    印を消したら、また判定不能へ戻す（`null` を返す）こと。
+		*/
+		return existsNow(by.id(`my-dishes-filter-status-${status}-selected`));
 	}
 }
 

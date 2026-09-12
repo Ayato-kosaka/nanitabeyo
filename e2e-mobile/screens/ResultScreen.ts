@@ -30,13 +30,47 @@ import {
  * 状態を反映する testID の追加後に、@mutation テスト（PR-6）側で検証する。
  * ここではフィード上のアクションを**タップできる**ところまでをヘルパとして提供する。
  */
+/**
+ * #1579 / #1742 **カルーセル・フィードの «いま真ん中のカード» の子孫へ限定する。**
+ *
+ * `DishMediaFeed` は前後のセルも描くので、`dish-action-*` のような «カードの中にあるもの» は
+ * 素の `by.id()` だと複数一致し、`atIndex(0)` は **画面端で切れている隣のカード**を掴む。
+ * Detox の `toBeVisible()` は «自分の面積の 75% 以上» を要求するため、切れているビューは
+ * **永遠に条件を満たさない**（＝ 25 秒待って落ちる）。
+ *
+ * ⚠️ **カードの器（`dish-media-card-active`）で `withAncestor` する手は効かなかった。**
+ * 実測（run 34443948019）で «その祖先を持つ `dish-action-like` は 1 つも無い» になる。
+ * 器の View は RN の view flattening でネイティブ階層に残らないことがあり、祖先として辿れない。
+ * **押せるもの自身に印を付ける**（アプリ側が前面のカードにだけ `-active` を付ける）。
+ * #1579 で通知トグル・keep-alive・フィルタチップに使ったのと同じやり方である。
+ *
+ * ⚠️ **定義はここ 1 箇所だけにすること。** 各 spec へ書き写すと、片方だけ直った状態が残る。
+ * `app-expo/scripts/assert-carousel-locator-scope.mjs` がこの規約を機械で縛っている。
+ */
+export const activeCardChild = (testId: string): Detox.NativeMatcher => by.id(`${testId}-active`);
+
+/** #1579 «いま真ん中のカード» のいいねボタン（spec から到達判定に使う） */
+export const ACTIVE_CARD_LIKE = activeCardChild("dish-action-like");
+
 export class ResultScreen {
 	/** 結果画面を閉じるボタン（トピック画面へ戻る） */
 	readonly closeButton = by.id("result-close-button");
-	/** いいねボタン（⚠️ フィードには複数カードが積まれるため atIndex で絞ること） */
-	readonly likeButton = by.id("dish-action-like");
-	/** 保存ボタン（⚠️ 同上） */
-	readonly saveButton = by.id("dish-action-save");
+	/**
+	 * いいねボタン。**いま真ん中に見えているカードのものへ限定する。**
+	 *
+	 * #1579 【バグ】ここは長らく `by.id("dish-action-like")` + `atIndex(0)` だった。
+	 * カルーセルは前後のセルも描くので、index 0 は **画面端で切れている隣のカード**を掴む。
+	 * Detox の `toBeVisible()` は «自分の面積の 75% 以上が見えていること» を要求するため、
+	 * 切れているボタンは **永遠に条件を満たさず 25 秒待って落ちる**。
+	 * 09-09 夜間では `reaction-rollback` の 3 件と `dish-media-unarrived-excluded` が
+	 * これで落ちていた（失敗のコマに «前後のカードのレールが画面端で切れている» が写っている）。
+	 *
+	 * ⚠️ **同じ注意は下の `activeCard` に #1742 で既に書かれていた**のに、こちらの 2 つが
+	 * 古い «atIndex で絞ること» のままだった。**片方だけ直すと、もう片方が残る。**
+	 */
+	readonly likeButton = ACTIVE_CARD_LIKE;
+	/** 保存ボタン（⚠️ 同上。active なカードに限定する） */
+	readonly saveButton = activeCardChild("dish-action-save");
 	/**
 	 * #1742 いま真ん中に見えているカード。押すと «このお店、気になる？» の ActionSheet が開く。
 	 *
@@ -53,6 +87,8 @@ export class ResultScreen {
 	 */
 	readonly actionSheetTitle = by.text("このお店、気になる？");
 	/** #1629 «…» メニューを開くボタン。シェアと報告はこの中にある */
+	// ⚠️ #1579 `dish-action-more` はまだ `-active` を出していない（どの spec からも使われていないため）。
+	// 使うときは app-expo 側の `ActionButtons` で like / save と同じ suffix を出すこと。
 	readonly moreButton = by.id("dish-action-more");
 	/** 通報ボタン（#1514 SAF-01。**«…» メニューの中**。#1629 でレールから移動した） */
 	readonly reportButton = by.id("dish-action-report");
@@ -186,7 +222,7 @@ export class ResultScreen {
 	 * @param index フィード内の何枚目のカードか（既定 0 = 表示中のカード）
 	 */
 	async like(index = 0): Promise<void> {
-		await tapWhenVisible(this.likeButton, DEFAULT_TIMEOUT, index);
+		await tapCardActionWhenVisible(this.likeButton, "dish-action-like-active", index);
 	}
 
 	/**
@@ -196,7 +232,7 @@ export class ResultScreen {
 	 * @param index フィード内の何枚目のカードか（既定 0 = 表示中のカード）
 	 */
 	async save(index = 0): Promise<void> {
-		await tapWhenVisible(this.saveButton, DEFAULT_TIMEOUT, index);
+		await tapCardActionWhenVisible(this.saveButton, "dish-action-save-active", index);
 	}
 
 	/**
@@ -329,6 +365,97 @@ export class ResultScreen {
  * `atIndex()` で 1 件に絞っているため `label` を持つ形にしかならない。
  * 型定義がその絞り込みを表現できないので、ここで局所的に吸収する。
  */
+/**
+ * #1579 カードのアクションに要求する可視率（既定は 75%）。
+ *
+ * **実測値にもとづく。** [run 34451215673](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34451215673)
+ * で、いいねボタンは `visible:true` / `alpha:1` / `enabled:true` / frame も画面内
+ *（239,359,36,36 @ 320×640）でありながら、**通る最大の可視率が 74%** だった（4 回とも同じ）。
+ * つまり «隠れている» のではなく **既定の 75% に 1 ポイント届かない**だけである。
+ *
+ * ⚠️ **«赤いから下げた» のではない。** 74% という数字を先に測り、
+ * «ボタンの大部分は遮られていない» ことを確かめたうえで、その下に閾値を置いている。
+ *
+ * ⚠️ **これが効くのは «見えているか» を見るアサーションだけである。**
+ * **タップ動作は Espresso 側で 75% を要求しており、`toBeVisible(pct)` では変えられない**
+ * （実測: `Action will not be performed because the target view does not match ...
+ * covers at least <75> percent`）。タップが要るテストは
+ * [#1963](https://github.com/Ayato-kosaka/nanitabeyo/issues/1963) が直るまで通らない。
+ * 60% にしたのは、**本当にレールが覆われる後退（半分以上隠れる等）はきちんと赤くする**ため。
+ * ここを 1% などにすると «見えていなくても通る» テストになり、#1579 で潰してきた
+ * «落ちないテスト» を自分で作ることになる。
+ */
+export const CARD_ACTION_VISIBLE_PERCENT = 60;
+
+/**
+ * #1579 カードのアクションをタップする。**落ちたときに «なぜ押せなかったか» を自分で吐く。**
+ *
+ * `toBeVisible()` は «自分の面積の 75% 以上が見えていること» を要求する。これを満たせないとき、
+ * 素の失敗メッセージは «25 秒待っても一致しなかった» としか言わないので、
+ * «そもそも居ないのか / 居るが隠れているのか / 何枚一致しているのか» が区別できない。
+ *
+ * 実際 #1579 では、この区別が付かないまま **2 回続けて見当違いの直し方をした**
+ *（①カードの器へ `withAncestor` → 祖先が階層に無く «1 つも無い»／
+ *   ②押すもの自身へ `-active` → 一意にはなったが 75% を満たさないまま）。
+ * 3 回目を勘で当てにいかないための計装である。**成功時は何も出さない。**
+ */
+async function tapCardActionWhenVisible(
+	matcher: Detox.NativeMatcher,
+	testIdForDiagnostics: string,
+	index: number,
+): Promise<void> {
+	try {
+		await tapWhenVisible(matcher, DEFAULT_TIMEOUT, index, CARD_ACTION_VISIBLE_PERCENT);
+	} catch (error) {
+		let diagnostics = "（属性を取得できませんでした）";
+		try {
+			diagnostics = JSON.stringify(await element(matcher).getAttributes());
+		} catch (attributesError) {
+			diagnostics = `getAttributes も失敗: ${String(attributesError)}`;
+		}
+
+		/*
+		#1579 «何 % 見えているのか» を数字にする。
+		属性が `visible:true` / `alpha:1` / 画面内に収まる frame を返しているのに 75% を満たさない、
+		という状態まで来たので、残る説明は **他のビューに覆われている** しかない。
+		Detox の `toBeVisible(pct)` は閾値を取れるので、通る一番大きい閾値を探して «実際の見え方» を出す。
+		⚠️ これは原因ではなく **測定**である。数字が出てから直し方を決めること。
+		*/
+		let largestPassing = 0;
+		for (const pct of [1, 10, 25, 50, 74]) {
+			try {
+				await waitFor(element(matcher)).toBeVisible(pct).withTimeout(2_000);
+				largestPassing = pct;
+			} catch {
+				break;
+			}
+		}
+		diagnostics += ` / 通った最大の可視率: ${largestPassing === 0 ? "1% すら通らない" : `${largestPassing}%`}（既定の要求は 75%）`;
+
+		/*
+		#1963 **どの祖先で切り取られているのかを、同じ失敗の中で測る。**
+		`getGlobalVisibleRect()` は «祖先の bounds によるクリップ» を反映するので、
+		ボタンの frame と祖先の frame を並べれば «どこではみ出しているか» が読める。
+		⚠️ コードを読んで座標を逆算する（＝推測する）のはもうやらない。**並べて比べる。**
+		*/
+		for (const ancestorTestId of ["dish-media-bottom-section", "dish-media-card-active", "dish-media-card"]) {
+			try {
+				const attributes = await element(by.id(ancestorTestId)).getAttributes();
+				diagnostics += `\n     祖先 ${ancestorTestId}: ${JSON.stringify(attributes)}`;
+			} catch (ancestorError) {
+				diagnostics += `\n     祖先 ${ancestorTestId}: 取得できず（${String(ancestorError).slice(0, 80)}）`;
+			}
+		}
+		// eslint-disable-next-line no-console
+		console.error(
+			`⚠️ ${testIdForDiagnostics} をタップできませんでした。一致した要素の属性: ${diagnostics}\n` +
+				`   （Detox の toBeVisible は «自分の面積の 75% 以上» を要求する。` +
+				`visible / width / height / 一致数 を見て «居ないのか / 隠れているのか» を切り分けること）`,
+		);
+		throw error;
+	}
+}
+
 async function readLabel(matcher: Detox.NativeMatcher, index: number): Promise<string> {
 	const attributes = (await element(matcher).atIndex(index).getAttributes()) as { label?: string };
 	return attributes.label ?? "";

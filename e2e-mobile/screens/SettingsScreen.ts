@@ -52,6 +52,34 @@ export class SettingsScreen {
 	readonly blockedDishCategoriesItem = by.id("settings-blocked-dish-categories");
 	/** 表示言語行（#1508。Card 2 の最終行として追加された） */
 	readonly languageItem = by.id("settings-language");
+
+	/**
+	 * #1579 **画面ごとのスクロール容器。ここが唯一の正である。**
+	 *
+	 * マイページは «設定項目が並ぶ 1 枚» から «サブ画面へ送るメニュー» へ変わっており、
+	 * 行の実体はもうマイページ本体には無い。行を探す前に **その行が居る画面へ遷移し、
+	 * その画面の容器を送る**こと。
+	 *
+	 * ⚠️ **6 つある。** 以前このコメントは 3 つ（settings / account / about）としか
+	 * 書いておらず、後から割れた 3 画面（端末設定 / テーマ / 通知）が漏れていた。
+	 * その結果 nightly が 21 件落ち続けた（#1579・3 度目の再発）。
+	 * `scripts/db-checks/test_settings_row_containers.py` が
+	 * «行 → 容器» の対応をアプリのソースと突き合わせて縛っている。
+	 */
+	static readonly CONTAINERS = {
+		settings: "settings-scroll",
+		account: "account-settings-scroll",
+		about: "about-scroll",
+		deviceSettings: "device-settings-scroll",
+		theme: "theme-settings-scroll",
+		notifications: "notification-settings-scroll",
+	} as const;
+
+	/** 端末設定ページ（`profile/device-settings`）の «表示テーマ» 行 */
+	readonly themeItem = by.id("settings-theme");
+
+	/** マイページ本体の «通知» 行（押すと `profile/notifications` へ送る） */
+	readonly notificationsItem = by.id("settings-notifications");
 	/**
 	 * 自分が作成/参加したグループ投票の一覧行（#1505 で追加）。
 	 * 対応画面: screens/MyDishCategoryGroupVotesScreen.ts
@@ -232,6 +260,13 @@ export class SettingsScreen {
 
 	/** テーマを選び、選択状態が切り替わるまで待つ（#1509） */
 	async selectTheme(preference: ThemePreferenceKey): Promise<void> {
+		/*
+		 ⚠️ **3 択は `profile/theme` にあり、容器は `theme-settings-scroll`。**
+		    素の `tapWhenVisible` だと «画面に居ない» ときも «下にいて見えない» ときも
+		    同じ 25 秒タイムアウトになり、どちらなのか分からないまま落ちる（#1579）。
+		    先に容器を送って «居るなら見えるところまで運ぶ» を通す。
+		*/
+		await this.expectRowVisibleIn(SettingsScreen.CONTAINERS.theme, this.themeOption(preference));
 		await tapWhenVisible(this.themeOption(preference));
 		await waitUntilVisible(this.themeOptionCheck(preference));
 	}
@@ -300,6 +335,9 @@ export class SettingsScreen {
 	 * ネイティブには代替経路が無いため settings.test.ts と同じく実 UI 導線をタップする。
 	 */
 	async openBlockedDishCategories(): Promise<void> {
+		// #1579 この行はマイページ本体（settings-scroll）に在るが、初期表示では画面外に
+		// いることがあり、素の tapWhenVisible だと 25 秒待って落ちる（3 夜連続で実測）
+		await this.expectRowVisibleIn(SettingsScreen.CONTAINERS.settings, this.blockedDishCategoriesItem);
 		await tapWhenVisible(this.blockedDishCategoriesItem);
 	}
 
@@ -311,10 +349,40 @@ export class SettingsScreen {
 	 * 見えるところまでスクロールしてから押す。既に見えていれば 1 度も動かさずに返る。
 	 */
 	async openLanguage(): Promise<void> {
-		// #1583 コンテナの出現待ちを含む `expectRowVisible()` を通す
-		//（素の whileElement(...).scroll() は «画面がまだ無い» と即死する）
-		await this.expectRowVisible(this.languageItem);
+		/*
+		 ⚠️ **`settings-language` はマイページ本体には無い。**
+		    #1583 で «端末設定»（`profile/device-settings.tsx`）へ移った。
+		    ここが追随できておらず、`settings-scroll`（マイページ本体）を下へ送りながら
+		    永久に見つからない行を探して 25 秒で落ちていた（#1579 / 3 夜連続で 3 件）。
+		    `openPrivacyPolicy()` が `openAbout()` を先に呼ぶのと同じ形にする。
+		*/
+		await this.openDeviceSettings();
+		await this.expectRowVisibleIn(SettingsScreen.CONTAINERS.deviceSettings, this.languageItem);
 		await tapWhenVisible(this.languageItem);
+	}
+
+	/**
+	 * #1579 «表示テーマ» の 3 択がある `profile/theme` まで進む。
+	 *
+	 * ⚠️ **端末設定ページに着いただけではテーマ 3 択は出ない。** 3 択は
+	 * `features/settings/components/ThemeSelector.tsx` にあり、それを描いているのは
+	 * `profile/theme.tsx`（容器 `theme-settings-scroll`）である。端末設定ページの
+	 * `settings-theme` 行を押して初めて着く。ここを踏まずに `selectTheme()` を呼ぶと
+	 * 25 秒待って落ちる（#1579 / 3 夜連続で 4 件）。
+	 */
+	async openThemeScreen(): Promise<void> {
+		await this.openDeviceSettings();
+		await this.expectRowVisibleIn(SettingsScreen.CONTAINERS.deviceSettings, this.themeItem);
+		await tapWhenVisible(this.themeItem);
+	}
+
+	/**
+	 * #1579 «通知» 設定（`profile/notifications`）まで進む。
+	 * `settings-notifications-card` はこの画面にしか無い。
+	 */
+	async openNotifications(): Promise<void> {
+		await this.expectRowVisibleIn(SettingsScreen.CONTAINERS.settings, this.notificationsItem);
+		await tapWhenVisible(this.notificationsItem);
 	}
 
 	/**
@@ -367,7 +435,7 @@ export class SettingsScreen {
 		 «開始点が可視範囲の外» の問題（run 32908255134 / 32916602453）にも当たらない。
 		 既に一番上なら Detox が «これ以上スクロールできない» と投げるので、そこは握る。
 		*/
-		await this.scrollUntilVisible(by.id("settings-scroll"), matcher);
+		await this.expectRowVisibleIn(SettingsScreen.CONTAINERS.settings, matcher, timeout);
 	}
 
 	/**
@@ -384,6 +452,22 @@ export class SettingsScreen {
 	 * **作法を写経して 3 つ持たない。** 容器だけを引数にする。片方だけ直すと、また
 	 * «画面は出ているのに行が見つからない» に戻る（#1579 で 2 回踏んだ）。
 	 */
+	/**
+	 * #1579 **容器を指定して行を探す、唯一の作法。**
+	 *
+	 * 画面ごとに専用メソッドを生やさないこと（`expectRowVisible` /
+	 * `expectAccountRowVisible` / `expectAboutRowVisible` が既にそうなっており、
+	 * **後から割れた 3 画面が漏れて nightly が 21 件落ちた**）。新しい画面が増えたら
+	 * `CONTAINERS` に足して、このメソッドへ容器を渡す。
+	 */
+	async expectRowVisibleIn(
+		containerId: string,
+		matcher: Detox.NativeMatcher,
+		timeout: number = DEFAULT_TIMEOUT,
+	): Promise<void> {
+		await this.scrollUntilVisible(by.id(containerId), matcher, timeout);
+	}
+
 	private async scrollUntilVisible(
 		container: Detox.NativeMatcher,
 		matcher: Detox.NativeMatcher,
@@ -413,7 +497,7 @@ export class SettingsScreen {
 		matcher: Detox.NativeMatcher,
 		timeout: number = DEFAULT_TIMEOUT,
 	): Promise<void> {
-		await this.scrollUntilVisible(by.id("about-scroll"), matcher, timeout);
+		await this.expectRowVisibleIn(SettingsScreen.CONTAINERS.about, matcher, timeout);
 	}
 
 	/**
@@ -458,7 +542,7 @@ export class SettingsScreen {
 	 * 片方だけ直すと、また «画面は出ているのに行が見つからない» に戻る。
 	 */
 	async expectAccountRowVisible(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await this.scrollUntilVisible(this.accountScroll, matcher, timeout);
+		await this.expectRowVisibleIn(SettingsScreen.CONTAINERS.account, matcher, timeout);
 	}
 
 	async openDeviceSettings(): Promise<void> {

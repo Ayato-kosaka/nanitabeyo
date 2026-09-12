@@ -44,13 +44,28 @@ interface ActionButtonsProps {
 	 * 食べたを記録する人は居ない、というオーナー判断。既定は true（既存フィードは不変）
 	 */
 	showRecordEaten?: boolean;
+	/**
+	 * #1579 【設計】**いま前面に見えているカードか。** true のときだけ、いいね／保存の testID へ
+	 * `-active` を付ける。
+	 *
+	 * フィードは前後のセルも描くので、`by.id("dish-action-like")` は複数一致し、
+	 * `atIndex(0)` は **画面端で切れている隣のカード**を掴む。Detox の `toBeVisible()` は
+	 * «自分の面積の 75% 以上» を要求するため、切れているビューは永遠に条件を満たさない。
+	 *
+	 * ⚠️ **`dish-media-card-active`（カードの器の testID）で `withAncestor` する手は効かない。**
+	 * 実測（run 34443948019）で «その祖先を持つ dish-action-like は 1 つも無い» になった。
+	 * 器の View は RN の view flattening でネイティブ階層に残らないことがある。
+	 * **押せるもの（TouchableOpacity）自身に印を付けるのが確実**で、これは #1579 で
+	 * 通知トグル・keep-alive・フィルタチップに使ったのと同じやり方である。
+	 */
+	isActive?: boolean;
 	id: string;
 	idType: IdType;
 	onLayout: (width: number) => void;
 	buttonsGesture: GestureType; // #694 【設計】親Tapとの競合を防ぐための Native Gesture
 }
 
-export function ActionButtons({ id, idType, onLayout, buttonsGesture, showRecordEaten = true }: ActionButtonsProps) {
+export function ActionButtons({ id, idType, onLayout, buttonsGesture, showRecordEaten = true, isActive = false }: ActionButtonsProps) {
 	const { logFrontendEvent } = useLogger();
 
 	// ログアウト時は AuthProvider がストアを消去してから旧画面の unmount が完了するまで、
@@ -81,6 +96,7 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture, showRecord
 			onLayout={onLayout}
 			buttonsGesture={buttonsGesture}
 			showRecordEaten={showRecordEaten}
+			isActive={isActive}
 		/>
 	);
 }
@@ -90,7 +106,12 @@ function ActionButtonsContent({
 	onLayout,
 	buttonsGesture,
 	showRecordEaten = true,
-}: Pick<ActionButtonsProps, "onLayout" | "buttonsGesture" | "showRecordEaten"> & { entry: NormalizedDishMediaEntry }) {
+	isActive = false,
+}: Pick<ActionButtonsProps, "onLayout" | "buttonsGesture" | "showRecordEaten" | "isActive"> & {
+	entry: NormalizedDishMediaEntry;
+}) {
+	// #1579 前面のカードだけ `-active` を付ける（e2e はこちらを掴む）
+	const activeSuffix = isActive ? "-active" : "";
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -407,7 +428,7 @@ function ActionButtonsContent({
 				<View style={styles.actionContainer}>
 					{/* #1031 【設計】Detox から状態(いいね済みか)を検証できるよう、状態別の accessibilityLabel を付与 */}
 					<TouchableOpacity
-						testID="dish-action-like"
+						testID={`dish-action-like${activeSuffix}`}
 						style={styles.actionButton}
 						onPress={handleLike}
 						hitSlop={buttonHitSlop}
@@ -439,7 +460,7 @@ function ActionButtonsContent({
 				    他と同じ 28 + ラベル付きに揃え、状態は «塗りの有無» で示す（バッジと同じ語彙） */}
 				<View style={styles.actionContainer}>
 					<TouchableOpacity
-						testID="dish-action-save"
+						testID={`dish-action-save${activeSuffix}`}
 						style={styles.actionButton}
 						onPress={handleSave}
 						hitSlop={buttonHitSlop}

@@ -5,6 +5,7 @@ import { DishCategorySelectScreen } from "../../screens/DishCategorySelectScreen
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { RestaurantDetailScreen } from "../../screens/RestaurantDetailScreen";
 import { RestaurantFeedScreen } from "../../screens/RestaurantFeedScreen";
+import { RestaurantReviewScreen } from "../../screens/RestaurantReviewScreen";
 
 /**
  * 🏪 店舗詳細とその配下 3 画面のルーティングテスト（#1386）
@@ -75,9 +76,15 @@ describe("店舗詳細のルート（#1386）", () => {
 	//   1. nanitabeyo:///ja-JP/restaurant/<id>/dish-category へ直接着地する
 	//   2. タイトルと検索入力欄が出ることを検証（= 独立した画面になっている）
 	//   3. Android はハードウェアバック / iOS はヘッダーの戻るボタンで離脱する
-	//   4. この画面から離れたことを検証
-	it("料理カテゴリ選択はディープリンクで着地でき、戻る操作で離脱できる", async () => {
+	//   4. **倒れる先（レビュー投稿）へ着いた**ことを検証する
+	//
+	// #1579 【バグ】ここは長らく «この画面から離れた»（= `expectClosed()`）だけを見ていた。
+	// **アプリごと終了しても «離れた» は成り立つ**ので、#1961（ハードウェアバックで
+	// Activity が終了する）が在るのに 3 夜連続で緑だった。実際 09-09 夜間の testDone.png は
+	// Android のランチャーである。«居なくなったこと» を «離脱できた» と読んではいけない。
+	it("料理カテゴリ選択はディープリンクで着地でき、戻る操作でレビュー投稿へ倒れる", async () => {
 		const dishCategoryScreen = new DishCategorySelectScreen();
+		const reviewScreen = new RestaurantReviewScreen();
 
 		await launchAppWithSession({
 			as: "anon",
@@ -92,9 +99,11 @@ describe("店舗詳細のルート（#1386）", () => {
 			await dishCategoryScreen.goBack();
 		}
 
-		// 遷移先（投稿フォーム）はマウント時にメディア選択を起動するため、ここでは
-		// 「この画面から離れた」ことまでを見る（フォーム側の検証は @mutation テストが持つ）
+		// 遷移先（投稿フォーム）はマウント時にメディア選択を起動するので、観測点は
+		// **ヘッダー**にする（フォーム本体の検証は @mutation テストが持つ）。
+		// 存在しない id なので中身は 404 になるが、ヘッダーは «データの分岐の外» にあるため出る。
 		await dishCategoryScreen.expectClosed();
+		await reviewScreen.expectOpened();
 	});
 
 	// ─ テストケース: フィードがルートで開け、× で店舗詳細へ倒れる ─

@@ -29,6 +29,8 @@ import { RestaurantDetailPage } from "../../pages/RestaurantDetailPage";
  * 一覧 API が返した全件が completed であることをアサートする。
  * `restaurant-routes.spec.ts` がモックを使うのは検証対象がルーティングだからで、方針が違う。
  *
+ * ⚠️ この spec が守るのは `render_type='stored'` の行だけである（理由は `expectAllArrived` 内）。
+ *
  * ⚠️ **dev DB に未着行が 1 件も無ければ、このテストは «素通り» する。**
  * それでも回帰ロックとしては機能する（述語を消した状態で未着行があれば赤になる）が、
  * 「未着行を必ず 1 件混ぜた状態」を作れるのは実 DB を握れる API の統合テストだけである。
@@ -38,17 +40,64 @@ import { RestaurantDetailPage } from "../../pages/RestaurantDetailPage";
 
 /** API が返した料理メディアが「実体到達済み」であることを検証する */
 function expectAllArrived(entries: DishMediaEntry[], source: string): void {
+	/*
+	⚠️ **この内訳を消さないこと。** 上のヘッダが言う «素通り» が実際に起きているかは、
+	   合否からは絶対に分からない（緑は «未着が無かった» と «そもそも見ていない» の
+	   どちらでも出る）。stored が 0 件なら、このアサーションは 1 度も走っていない。
+	   赤くはしない — dev の中身は #1273 のシードで日々変わり、たまたま全件が
+	   external_embed になった夜に «欠陥でもないのに main が赤い» を作るのは割に合わない。
+	*/
+	let stored = 0;
+	let externalEmbed = 0;
+
 	for (const entry of entries) {
 		const media = entry.dish_media;
+		if (media.render_type === "external_embed") externalEmbed++;
+		else stored++;
 		expect(
 			media.media_processing_status,
 			`${source}: dish_media ${media.id} が media_processing_status=${media.media_processing_status} のまま一覧に混ざっている（#1257）`,
 		).toBe("completed");
 
-		// #1257 の «見た目の症状» 側。動画は completed 以外だと mediaUrl が null で返るため、
-		// ステータスを見るアサーションが将来ゆるんでも、ここで再生不能カードを止められる
+		/*
+		#1257 の «見た目の症状» 側。動画は completed 以外だと mediaUrl が null で返るため、
+		ステータスを見るアサーションが将来ゆるんでも、ここで再生不能カードを止められる。
+
+		⚠️ **`mediaUrl` の有無で «実体が届いているか» を測ってよいのは
+		   `render_type='stored'` の行だけである。**
+
+		`render_type='external_embed'`（SNS 取り込み）の行は自ストレージに実体を持たず、
+		`DishMediaAssembler.getMediaUrl()` が **設計として先頭で `null` を返す**。
+		表示は provider 別コンポーネントが `canonicalUrl` から行う（#1395 / #1273 §14）。
+		つまりこれらの行では `mediaUrl === null` が **正常**であって、未着ではない。
+
+		ここを分けずに書いていたため、dev に external_embed の行が入って以降、
+		**この spec が main の nightly を落とし続けていた**。実際に開いて確かめたのは
+		2 夜ぶんで、どちらもこの 1 行だけが原因だった:
+		  - run 34277139685（09-08）… この file の 2 テストが両方とも落ち、他に失敗なし
+		  - run 34402066899（09-09）… 検索フィード側が落ちた
+		いずれも retry 3 回すべてが **別の dish_media** で落ちており（どれも UUIDv5 =
+		取り込み由来）、spec 冒頭が言う «dev データ都合のフレーク» ではなく、
+		条件が揃えば必ず起きる誤検知である。
+
+		⚠️ **代わりに «埋め込みが再生できること» をここでアサートすることはできない。**
+		その材料である `externalEmbed` は `GET /v1/dish-media?ids=` でしか詰めておらず
+		（`dish-media.repository.ts` の `dish_media_external_embeddings` の join）、
+		検索・店舗フィードでは常に `undefined` で返る。したがってこの spec が守るのは
+		**stored の行だけ**である。external_embed 側の «描けること» は
+		`app-expo` の `ExternalEmbedPlayer` のテストと e2e-mobile が持つ。
+
+		⚠️ `externalEmbed == null` を «stored の行» の判定に使わないこと。上のとおり
+		   この経路では常に null になる。判定は `render_type` で行う（#1399 の注記と同じ）。
+		*/
+		if (media.render_type === "external_embed") continue;
 		expect(media.mediaUrl, `${source}: dish_media ${media.id} の mediaUrl が空`).toBeTruthy();
 	}
+
+	test.info().annotations.push({
+		type: "coverage",
+		description: `${source}: stored ${stored} 件 / external_embed ${externalEmbed} 件（mediaUrl を見たのは stored の ${stored} 件だけ）`,
+	});
 }
 
 /**

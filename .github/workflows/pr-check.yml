@@ -145,6 +145,35 @@ jobs:
       - name: UI カタログの画面 ID を検査
         run: python3 -m unittest scripts/db-checks/test_catalog_screen_ids.py
 
+      # #1579 e2e が «その行が居る画面» の容器を送っているか。
+      #
+      # マイページは «設定項目が並ぶ 1 枚» から «サブ画面へ送るメニュー» へ変わり、
+      # 行の実体は端末設定 / テーマ / 通知 / アカウント / about へ散った。e2e はこの
+      # 移設に **3 度追随できず**、そのたびに «画面は出ているのに行が見つからない» で
+      # 25 秒待って落ちた（直近は 09-07〜09-09 の nightly が 3 夜連続 21 件）。
+      # 行も容器も文字列リテラルなので、Detox を回さずソースだけで突き合わせられる。
+      - name: 設定画面の «行 → 容器» の対応を検査
+        run: python3 -m unittest scripts/db-checks/test_settings_row_containers.py
+
+      # #1404 / #1579 «履歴の無い着地でも行き止まりにならない» 保険を無効にする述語の検出。
+      #
+      # 戻る導線は `if (canDismiss()) back(); else replace(親)` と書く約束だが、ここを
+      # `canGoBack()` にすると (tabs) 配下ではタブ履歴まで数えて常に true になり、
+      # **replace が一度も働かない**（戻るが検索タブへ飛ぶ）。#1404 は 2 ファイルを直して
+      # 規約をコメントに残したが、**同じディレクトリの兄弟 8 枚が古い形のまま残っていた**。
+      # コメントは grep されないので機械で縛る。ファイル走査のみで依存ゼロ。
+      - name: «戻るの保険» を無効にする述語を検査
+        run: pnpm --filter app-expo assert:back-fallback-predicate
+
+      # #1742 / #1579 カルーセルは前後のセルも描くので、カード内の locator を素の by.id で
+      # 書くと «画面端で切れている隣のカード» を掴む。Detox の toBeVisible は «自分の面積の
+      # 75% 以上» を要求するため、切れたビューは永遠に満たされず 25 秒待って落ちる。
+      # この注意は #1742 が ResultScreen.ts にコメントで書き残していたのに、同じファイルの
+      # 真上の locator 2 つが古いまま残り、09-09 夜間の 4 件がこれで落ちていた。
+      # ガード自身の自己検査（両方向）も同じスクリプトの中で回る。
+      - name: カルーセルのカード内 locator の限定を検査
+        run: pnpm --filter app-expo assert:carousel-locator-scope
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査

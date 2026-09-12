@@ -421,6 +421,8 @@ export default function DishMediaContent({
 						showRecordEaten={showRecordEaten}
 						onLayout={(width) => setRightActionsWidth(width)}
 						buttonsGesture={buttonsGesture}
+						/* #1579 前面のカードのボタンだけ e2e から一意に掴めるようにする */
+						isActive={isActive}
 					/>
 				</View>
 			</View>

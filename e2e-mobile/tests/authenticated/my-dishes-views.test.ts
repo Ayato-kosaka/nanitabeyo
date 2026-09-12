@@ -73,12 +73,12 @@ describeAuthenticated("my-dishes の 3 ビュー（ログイン済みユーザ�
 		// ② Map へ。list はアンマウントされず、隠れているだけ（keep-alive / M-1）
 		await myDishes.selectView("map");
 		await myDishes.expectOnlyViewVisible("map");
-		await waitUntilExists(myDishes.view("list"));
+		await waitUntilExists(myDishes.mountedMarker("list"));
 
 		// ③ Calendar へ
 		await myDishes.selectView("calendar");
 		await myDishes.expectOnlyViewVisible("calendar");
-		await waitUntilExists(myDishes.view("map"));
+		await waitUntilExists(myDishes.mountedMarker("map"));
 
 		// ④ list へ戻す
 		await myDishes.selectView("list");

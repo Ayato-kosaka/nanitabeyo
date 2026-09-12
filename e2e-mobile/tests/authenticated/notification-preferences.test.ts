@@ -57,6 +57,9 @@ describeAuthenticated("設定 > 通知カテゴリ別オン/オフ（ログイ�
 
 		await tabBar.gotoProfile();
 		await settingsScreen.expectLoaded();
+		// #1579 ⚠️ 通知カードはマイページ本体には無い。`profile/notifications` へ移った
+		//       （容器は notification-settings-scroll）。ここを踏まず 3 件落ちていた
+		await settingsScreen.openNotifications();
 		await section.expectVisible();
 
 		return section;

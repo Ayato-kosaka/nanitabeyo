@@ -39,8 +39,15 @@ export async function waitUntilVisible(
 	matcher: Detox.NativeMatcher,
 	timeout: number = DEFAULT_TIMEOUT,
 	index?: number,
+	visiblePercent?: number,
 ): Promise<void> {
-	await waitFor(target(matcher, index)).toBeVisible().withTimeout(timeout);
+	// #1579 【設計】既定（75%）で足りない要素だけ、**実測にもとづいて**閾値を渡せるようにする。
+	// ⚠️ «赤いから下げる» ために使わないこと。下げてよいのは «実機で何 % 見えているか» を
+	//    測って、その値が «ユーザーには問題無い» と説明できるときだけである。
+	const assertion = waitFor(target(matcher, index));
+	await (visiblePercent === undefined
+		? assertion.toBeVisible().withTimeout(timeout)
+		: assertion.toBeVisible(visiblePercent).withTimeout(timeout));
 }
 
 /**
@@ -78,8 +85,9 @@ export async function tapWhenVisible(
 	matcher: Detox.NativeMatcher,
 	timeout: number = DEFAULT_TIMEOUT,
 	index?: number,
+	visiblePercent?: number,
 ): Promise<void> {
-	await waitUntilVisible(matcher, timeout, index);
+	await waitUntilVisible(matcher, timeout, index, visiblePercent);
 
 	// #1027 【バグ】iOS は「見えているのに叩けない」状態が一時的に起こる。
 	// Detox の tap は対象の中心を hit-test して同じ View が返ることを要求するが、

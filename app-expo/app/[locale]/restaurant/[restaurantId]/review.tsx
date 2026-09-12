@@ -83,7 +83,9 @@ export default function ReviewScreen() {
 	 * 親の再レンダーごとに identity が変わり、ReviewForm 側の effect が張り替わる。
 	 */
 	const handleBack = useCallback(() => {
-		if (router.canGoBack()) {
+		// #1404 兄弟の `dish-category.tsx` と述語を揃える。この画面は `(tabs)` の外なので
+		// 現時点では `canGoBack()` と同じ答えになるが、同じディレクトリで書き分けると次の人が迷う
+		if (router.canDismiss()) {
 			router.back();
 			return;
 		}
@@ -153,46 +155,16 @@ export default function ReviewScreen() {
 		fetchRestaurant();
 	}, [restaurantId, callBackend, showSnackbar, logFrontendEvent]);
 
-	// #644 【設計】ローディング表示（キャッシュがない場合のみ）
-	if (isLoading && !restaurant) {
-		return (
-			<View style={styles.container}>
-				<ScreenHeader
-					title={i18n.t("Restaurant.review.title")}
-					onPressBack={() => {
-						lightImpact();
-						handleBack();
-					}}
-				/>
-				<View style={styles.loadingContainer}>
-					<LoadingIndicator size="large" />
-				</View>
-			</View>
-		);
-	}
-
-	// #644 【設計】エラー表示（レストランが見つからない場合など）
-	if (error && !restaurant) {
-		return (
-			<View style={styles.container}>
-				<ScreenHeader
-					title={i18n.t("Restaurant.review.title")}
-					onPressBack={() => {
-						lightImpact();
-						handleBack();
-					}}
-				/>
-				<View style={styles.errorContainer}>
-					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
-				</View>
-			</View>
-		);
-	}
-
-	if (!restaurant) {
-		return null;
-	}
-
+	// #1579 【設計】ヘッダーは «データの分岐の外» に 1 つだけ置く。
+	//
+	// 兄弟の `[restaurantId].tsx` が #1386 で既にそうしているのに、この画面だけ 3 分岐が
+	// それぞれ ScreenHeader を書き、さらに «どれにも当たらない» 4 つ目が `return null` で
+	// **ヘッダーごと消えていた**（= 戻る導線が取得結果に依存する行き止まり）。
+	//
+	// #1579 で分かったのは、それを見張るはずの e2e が «この画面から離れた» としか検証しておらず、
+	// **アプリが落ちても緑になっていた**こと（restaurant-routes の 2 本目）。«着いたこと» を
+	// 検証できるように、ヘッダーを分岐の外へ括り出して testID を与える。
+	// `ScreenHeader` はタイトルへ `${testID}-title` を付ける（screens/RestaurantReviewScreen.ts が見る）。
 	return (
 		<View style={styles.container}>
 			<ScreenHeader
@@ -201,21 +173,34 @@ export default function ReviewScreen() {
 					lightImpact();
 					handleBack();
 				}}
+				testID="restaurant-review-screen"
 			/>
 
-			{/*
-				#644 【設計】ReviewForm をメディア選択ありモードで表示
-				#1398 B2/B3 【設計】この経路だけ写真なしを許可する（`allowNoMedia`）。
-				着地時にピッカーが自動で開くのは従来どおりで、キャンセルすると画面が閉じる代わりに
-				「写真を追加」プレースホルダの付いたフォームへ留まる。退出は上の ScreenHeader の戻るで行う。
-				`review-from-media` 経路は allowNoMedia を渡さないので挙動が変わらない
-			*/}
-			<ReviewForm
-				restaurant={restaurant.restaurant}
-				allowNoMedia
-				onCancel={handleReviewCancel}
-				onSuccess={handleReviewSuccess}
-			/>
+			{/* #644 【設計】ローディング表示（キャッシュがない場合のみ） */}
+			{isLoading && !restaurant ? (
+				<View style={styles.loadingContainer}>
+					<LoadingIndicator size="large" />
+				</View>
+			) : /* #644 【設計】エラー表示（レストランが見つからない場合など） */
+			error && !restaurant ? (
+				<View style={styles.errorContainer}>
+					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
+				</View>
+			) : restaurant ? (
+				/*
+					#644 【設計】ReviewForm をメディア選択ありモードで表示
+					#1398 B2/B3 【設計】この経路だけ写真なしを許可する（`allowNoMedia`）。
+					着地時にピッカーが自動で開くのは従来どおりで、キャンセルすると画面が閉じる代わりに
+					「写真を追加」プレースホルダの付いたフォームへ留まる。退出は上の ScreenHeader の戻るで行う。
+					`review-from-media` 経路は allowNoMedia を渡さないので挙動が変わらない
+				*/
+				<ReviewForm
+					restaurant={restaurant.restaurant}
+					allowNoMedia
+					onCancel={handleReviewCancel}
+					onSuccess={handleReviewSuccess}
+				/>
+			) : null}
 		</View>
 	);
 }
