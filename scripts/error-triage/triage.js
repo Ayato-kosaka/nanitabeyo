@@ -12,6 +12,7 @@ const {
 	GROUP_LIMIT,
 	MIGRATABLE_ALGO_VERSIONS,
 	MIN_EVENTS_REOPEN,
+	STALE_BUILD_SUPPRESSION_DAYS,
 	PANIC_THRESHOLD,
 	REKEY_LIMIT,
 	REOPEN_LIMIT,
@@ -534,6 +535,7 @@ const isRegression = ({
 	entry,
 	graceHours = GRACE_HOURS,
 	minEventsReopen = MIN_EVENTS_REOPEN,
+	staleBuildSuppressionDays = STALE_BUILD_SUPPRESSION_DAYS,
 	commitDates = {},
 }) => {
 	if (!entry.closedAt) {
@@ -562,14 +564,28 @@ const isRegression = ({
 	}
 
 	// 旧ビルド由来だけなら抑止する。日時が1つも解決できないときはこの検査をスキップする。
+	//
+	// ⚠️ **抑止には期限がある。** この判定は「ユーザーが更新すればそのうち消える」という
+	// ネイティブの前提に立っているが、web は全員が同じ 1 本を読むので «更新していない人が残る»
+	// が起きず、放っておいても永久に消えない。実際に #1808（web の findNodeHandle）は
+	// close 後に 14 人が踏んでも 1 件も起票されなかった（2026-09-10〜15）。
+	// 期限を過ぎてもなお閾値以上出ているなら「そのうち消える」は外れているので人間が見る。
+	// 本当に旧ビルド滞留なら、reopen されたものへ err/skip を付ければ恒久的に止まる。
+	const suppressionDeadline = addHours(entry.closedAt, staleBuildSuppressionDays * 24).getTime();
+	const withinSuppressionWindow = toDate(group.lastSeenUtc).getTime() <= suppressionDeadline;
 	const knownDates = (group.commits || [])
 		.map((commit) => commitDates[commit.sha])
 		.filter(Boolean)
 		.map((date) => toDate(date).getTime());
-	if (knownDates.length > 0 && knownDates.every((date) => date < toDate(entry.closedAt).getTime())) {
+	if (
+		withinSuppressionWindow &&
+		knownDates.length > 0 &&
+		knownDates.every((date) => date < toDate(entry.closedAt).getTime())
+	) {
 		return {
 			regression: false,
 			reason: "全 commit が close 以前＝旧ビルド滞留",
+			staleBuildSuppressed: true,
 			eventsAfterGrace,
 			thresholdUtc,
 		};
@@ -706,6 +722,9 @@ const summarizeItem = (group, decision) => ({
 	lastSeenUtc: group.lastSeenUtc,
 	issueNumber: decision.issueNumber,
 	queue: classifyQueue(group),
+	// #1808 「旧ビルド滞留」で reopen を見送ったことを残す。これが無いと
+	// «抑止した» と «そもそも再発していない» が同じ noop に潰れて、後から気づけない
+	staleBuildSuppressed: decision.regression?.staleBuildSuppressed === true,
 });
 
 /**
@@ -884,10 +903,19 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 	const items = decisions.map(({ group, decision }) => summarizeItem(group, decision));
 
 	// `withheld` は「移行中なので起票しない」。0 のときもキーを出す（＝毎 run 数えられる）。
-	const counts = { create: 0, reopen: 0, capped: 0, invalid: 0, noop: 0, withheld: 0 };
+	const counts = { create: 0, reopen: 0, capped: 0, invalid: 0, noop: 0, withheld: 0, staleBuildSuppressed: 0 };
 	for (const item of items) {
 		counts[item.action] = (counts[item.action] || 0) + 1;
 		if (item.action.startsWith("noop")) counts.noop += 1;
+		if (item.staleBuildSuppressed) counts.staleBuildSuppressed += 1;
+	}
+
+	// #1808 抑止は «見えない失敗» なので、件数だけでなく警告としても出す。
+	// 抑止は期限つき（STALE_BUILD_SUPPRESSION_DAYS）だが、期限内でも «いま黙っているもの» は見えるべき。
+	for (const item of items.filter((entry) => entry.staleBuildSuppressed)) {
+		warnings.push(
+			`#${item.issueNumber}（fp:${item.fingerprint}）は再発していますが「全 commit が close 以前＝旧ビルド滞留」として reopen を見送りました（影響ユーザー ${item.affectedUsers} 人 / 最終観測 ${item.lastSeenUtc}）。close から ${STALE_BUILD_SUPPRESSION_DAYS} 日を過ぎてもなお出ている場合は自動で reopen されます`,
+		);
 	}
 
 	return {
