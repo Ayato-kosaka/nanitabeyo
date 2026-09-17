@@ -41,6 +41,11 @@ TABLE_POST_RAW = "sns_post_raw"
 # 毎回の run が同じ死に handle を呼び直し、クォータを食い潰す。
 TABLE_ACCOUNT_ATTEMPT = "sns_account_attempt"
 TABLE_POST_RESOLVED = "sns_post_resolved"
+# #1947 «キャプションから店名を抽出しようとして、どうなったか» を投稿単位で残す台帳。
+# 4_18 は内訳（店名なし / 地点なし / ok）を **ログにしか出していなかった**ため、
+# «#1776 の取り分 194,471 投稿のうち 8 割がどこで消えているか» を BigQuery から数えられず、
+# 規則を触っても効いたかどうか測れない状態だった（CLAUDE.md「見えないものは «無い» ではない」）。
+TABLE_NAME_EXTRACT_ATTEMPT = "sns_name_extract_attempt"
 TABLE_COVERAGE = "sns_coverage"
 TABLE_DISH_MEDIA_CATALOG = "sns_dish_media_catalog"
 # #1815 店の国・住所・座標を持つ唯一の表（9_1_sync_restaurants が PG へ配る表）。

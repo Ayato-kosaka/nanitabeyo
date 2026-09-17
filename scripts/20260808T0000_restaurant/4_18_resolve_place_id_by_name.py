@@ -161,7 +161,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # 課金ガードは #1276 の client が唯一の正。ここで HTTP を書き直さない（→ module docstring）。
 sys.path.insert(0, str(Path(__file__).resolve().parent / "1276_place_id_free_poc"))
 
-from common_sns import (TABLE_POST_RAW, TABLE_POST_RESOLVED, build_city_bbox_index,  # noqa: E402
+from common_sns import (TABLE_NAME_EXTRACT_ATTEMPT, TABLE_POST_RAW, TABLE_POST_RESOLVED,  # noqa: E402
+                        build_city_bbox_index,
                         build_city_index, city_from_text, city_index_sql)
 from free_places import (DailyQuotaExhausted, FreePlacesClient, RateLimiter,  # noqa: E402
                          SearchResult)
@@ -436,15 +437,38 @@ def build_name_keys(
     by_pair: dict,
     uniq: dict,
     pref_of_unique_city: dict,
+    attempts: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[NameKey, dict[str, Any]], dict[str, int]]:
-    """投稿を (店名, 市区町村) へ畳む。戻り値は (キー→{post_ids, name_source}, 落ちた理由の内訳)。"""
+    """投稿を (店名, 市区町村) へ畳む。戻り値は (キー→{post_ids, name_source}, 落ちた理由の内訳)。
+
+    ``attempts`` に list を渡すと、**投稿 1 件につき 1 行**の記録を append する
+    （#1947）。内訳は今までログにしか出しておらず、«取り分のどこで消えたか» を
+    BigQuery から数える手段が無かった。戻り値の形は変えない（4_21 が 2-tuple で
+    受けているので、そこを壊さずに足せる）。
+    """
     keys: dict[NameKey, dict[str, Any]] = {}
     reasons = {"no_store_name": 0, "no_area_hint": 0, "ok": 0}
+
+    def record(post: dict[str, Any], outcome: str, *, name: str | None = None,
+               source: str | None = None, pref: str | None = None,
+               city: str | None = None) -> None:
+        if attempts is None:
+            return
+        attempts.append({
+            "post_id": post.get("post_id"),
+            "outcome": outcome,
+            "store_name": name,
+            "name_source": source,
+            "area_pref": pref,
+            "area_city": city,
+        })
+
     for post in posts:
         caption = post.get("caption")
         found = extract_store_name(caption)
         if found is None:
             reasons["no_store_name"] += 1
+            record(post, "no_store_name")
             continue
         name, source = found
         # 地点は «キャプション優先、無ければ検索クエリ»（4_11 と同じ順序）
@@ -452,13 +476,16 @@ def build_name_keys(
                 or city_from_text(post.get("discovery_query") or "", by_pair, uniq))
         if area is None:
             reasons["no_area_hint"] += 1
+            record(post, "no_area_hint", name=name, source=source)
             continue
         pref, city = area
         pref = pref or pref_of_unique_city.get(city)
         if pref is None or (pref, city) not in by_pair:
             reasons["no_area_hint"] += 1
+            record(post, "no_area_hint", name=name, source=source, city=city)
             continue
         reasons["ok"] += 1
+        record(post, "ok", name=name, source=source, pref=pref, city=city)
         entry = keys.setdefault(NameKey(name, pref, city), {"post_ids": [], "name_source": source})
         entry["post_ids"].append(post["post_id"])
     return keys, reasons
@@ -647,6 +674,26 @@ OPTIONS (description = 'キャプションの店名 → google_place_id の逆�
 """
 
 
+# #1947 抽出台帳。**probe より前**に書く（Google を 1 回も叩かない `--dry-run` でも残す）。
+# «どこで消えたか» は API を呼ばずに分かる情報なので、ここが API の成否に引きずられては困る。
+CREATE_EXTRACT_ATTEMPT_SQL = """
+CREATE TABLE IF NOT EXISTS `__TABLE__` (
+  post_id          STRING NOT NULL,
+  outcome          STRING NOT NULL,
+  store_name       STRING,
+  name_source      STRING,
+  area_pref        STRING,
+  area_city        STRING,
+  algorithm_version STRING NOT NULL,
+  attempted_at     TIMESTAMP NOT NULL,
+  run_id           STRING NOT NULL
+)
+PARTITION BY DATE(attempted_at)
+CLUSTER BY outcome, run_id
+OPTIONS (description = 'キャプションからの店名抽出を投稿単位で残す台帳。outcome = ok / no_store_name / no_area_hint。#1947')
+"""
+
+
 def probe_key(client: FreePlacesClient, cache: ProbeCache, key: NameKey,
               box: tuple[float, float, float, float]) -> tuple[SearchResult, SearchResult]:
     seed_id = f"{key.store_name}{key.pref}{key.city}"
@@ -664,6 +711,31 @@ def probe_key(client: FreePlacesClient, cache: ProbeCache, key: NameKey,
     return results[0], results[1]
 
 
+def _write_extract_attempts(pipeline: BigQueryPipeline | None, args: argparse.Namespace,
+                            run_id: str, attempts: list[dict[str, Any]]) -> None:
+    """抽出の内訳を投稿単位で `sns_name_extract_attempt` へ残す（#1947）。
+
+    ⚠️ **`--execute` が無くても書く。** 内訳は Google を 1 回も叩かずに決まる情報で、
+    «取り分のどこで消えたか» を測るのが目的だから、API を呼ぶかどうかとは切り離す。
+    ＝ Google のクォータを 1 も使わずに内訳だけ採れる。
+
+    ただし `--dry-run` は «件数だけ数える（API も BigQuery 書き込みも無し）» と
+    宣言しているフラグなので、そちらは従って書かない。止めたいだけなら `--no-bq-write`。
+    """
+
+    if pipeline is None or args.dry_run or args.no_bq_write or not attempts:
+        return
+    now = utc_now().isoformat()
+    rows = [dict(a, algorithm_version=ALGORITHM_VERSION, attempted_at=now, run_id=run_id)
+            for a in attempts]
+    pipeline.execute(
+        CREATE_EXTRACT_ATTEMPT_SQL.replace("__TABLE__", pipeline.table(TABLE_NAME_EXTRACT_ATTEMPT)))
+    CHUNK = 5000
+    for i in range(0, len(rows), CHUNK):
+        pipeline.load_json_rows(TABLE_NAME_EXTRACT_ATTEMPT, rows[i:i + CHUNK])
+    LOGGER.info("%s へ %d 行（投稿単位の抽出内訳）を書きました", TABLE_NAME_EXTRACT_ATTEMPT, len(rows))
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
@@ -673,12 +745,15 @@ def main() -> None:
 
     by_pair, uniq, geo = load_city_index(args, pipeline)
     posts = load_posts(args, pipeline)
-    keys, reasons = build_name_keys(posts, by_pair, uniq, geo["pref_of_unique_city"])
+    attempts: list[dict[str, Any]] = []
+    keys, reasons = build_name_keys(posts, by_pair, uniq, geo["pref_of_unique_city"],
+                                    attempts=attempts)
     LOGGER.info("店が決まっていない投稿 %d 件を読みました（📍 か 『「 を含むものだけ）",
                 sum(reasons.values()))
     LOGGER.info("店名を採れた投稿 %d 件 / 店名なし %d 件 / 地点なし %d 件",
                 reasons["ok"], reasons["no_store_name"], reasons["no_area_hint"])
     LOGGER.info("異なり (店名, 市区町村) = %d 件（Google へ聞く回数はこの 2 倍）", len(keys))
+    _write_extract_attempts(pipeline, args, run_id, attempts)
 
     done = load_done_keys(pipeline) if not args.dry_run else set()
     todo = [k for k in keys if (k.store_name, k.pref, k.city) not in done]
