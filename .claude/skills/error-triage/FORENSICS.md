@@ -185,6 +185,46 @@ git merge-base --is-ancestor <修正のSHA> <ログのSHA> && echo 届いてい�
 **コードは直っており、配信されていないだけ**だった。Issue は close せず open のまま残し、
 「配信後 1 日ぶんの実測で 0 件になったら close」と書いた。
 
+⚠️ **「届いたか」は面ごとに別々に確かめること。** 配信の経路が 4 つあり、進み方がまったく違う。
+
+| 面 | 配信元 | 進み方 |
+| --- | --- | --- |
+| native（OTA） | `release/X.Y` → `eas-update.yml` | 端末が取りに来る。数時間〜数日で入れ替わる |
+| native（ストア） | `release/X.Y` → ビルド・審査 | ユーザーが更新するまで**何週間も残る** |
+| **web** | **`web` ブランチ** → `firebase-hosting-deploy.yml` | **デプロイした瞬間に全員が入れ替わる。その代わり、デプロイしなければ永久に古いまま** |
+| API / DB | `main` | デプロイ先が版を持つ |
+
+正本は [`docs/specs/deploy-branches.md`](../../../docs/specs/deploy-branches.md)。
+
+実例（2026-09-17 / [#1808](https://github.com/Ayato-kosaka/nanitabeyo/issues/1808) / [#1436](https://github.com/Ayato-kosaka/nanitabeyo/issues/1436)）:
+main に入れた修正 4 本が web に 1 本も載っていなかった。**web は 09-04 から 13 日間デプロイされておらず、
+`web` ブランチは main より 123 コミット遅れていた**（しかも最後のデプロイは規則に反して `main` から出ていた）。
+その 13 日間、直近 2 日で目立ったエラー 4 群（22 人 / 19 人 / 15 人 / 14 人）は**全部この古い web ビルド由来 100%** だった。
+
+## 6-2-2. surface（web / native）はログに列が無い。`created_commit_id` の分布で見分ける
+
+`jsonPayload` に platform / os の列は**無い**（実測: `request_id / id / function_name / payload /
+created_commit_id / log_type / event_name / error_level / response_payload / endpoint / method /
+request_payload / response_time_ms / user_id / api_name / status_code / created_app_version /
+path_name / created_at`）。それでも次で切り分けられる。
+
+- **web は単一デプロイ**なので、その面のイベントは `created_commit_id` が **1 つに揃う**
+- native は OTA 版・ストア版・旧版が**混ざる**
+- スタックトレースに `https://app.nanitabeyo.net/_expo/static/js/web/...` が出ていれば web で確定
+
+```sql
+SELECT jsonPayload.event_name AS ev,
+       SUBSTR(IFNULL(jsonPayload.created_commit_id,'(null)'),1,8) AS commit_sha,
+       COUNT(DISTINCT jsonPayload.user_id) AS users
+FROM `food-scroll.nanitabeyo_logs_prod.run_googleapis_com_stdout`
+WHERE timestamp >= TIMESTAMP '{{WINDOW_START}}' AND timestamp < TIMESTAMP '{{WINDOW_END}}'
+  AND jsonPayload.log_type = 'frontend_event_logs'
+  AND jsonPayload.event_name IN ({{EVENT_NAMES}})
+GROUP BY 1, 2 ORDER BY ev, users DESC
+```
+
+**1 つの commit に 100% 寄っていたら web を疑う。** 2026-09-17 の 4 群はいずれも `2bce1a3d` に 100% 寄っていた。
+
 ## 6-3. 「再発しているか」だけを見るクエリは payload を読まない
 
 `jsonPayload.payload` はスキャンバイトの約 85% を占めるが、**再発の有無は payload を見ずに判定できる**。

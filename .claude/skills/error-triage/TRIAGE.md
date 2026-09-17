@@ -26,6 +26,24 @@
 `err/skip` は「永久に見なくてよい」。「今は直さない」は close でも open でもなく、
 **open のまま理由を書く**のが正しい（close すると再発判定の対象になり、24h 後に勝手に reopen される）。
 
+### ⚠️ 「再発すれば自動 reopen される」を安全網にするなら、それが効く条件を確かめる
+
+2026-09-10 に 11 件を「1 件だけだから」「数日出ていないから」で close し、
+**「再発すれば自動 reopen される」と書いて閉じた。** その前提が成立していなかった。
+
+[#1808](https://github.com/Ayato-kosaka/nanitabeyo/issues/1808)（web の findNodeHandle）は close 後に **14 人**が踏んでも
+Issue が 1 件も立たなかった。`triage.js` の「全 commit が close 以前＝旧ビルド滞留」が
+**無期限に**効いていたためである（→ [PR #1988](https://github.com/Ayato-kosaka/nanitabeyo/pull/1988) で 7 日の期限と可視化を入れた）。
+
+close するときは、次を自分に聞くこと。
+
+- **その fingerprint の build は、これから新しくなるのか。** web は放っておいても新しくならない（→ FORENSICS §6-2）
+- **「まだ出ていない」と「見えていないだけ」を区別したか。** 件数は BigQuery で取る。
+  Issue 本文の更新日時は `BODY_UPDATE_LIMIT` に食われるので根拠にならない（→ FORENSICS §6-3）
+- 自動 reopen を根拠に close したなら、**run の warnings に抑止が出ていないか**を次の日に見る
+
+**件数が少ないことは close の理由になるが、「再発しても自動で戻る」は無条件の前提ではない。**
+
 ## ログレベルの定義（このリポジトリの標準）
 
 **トリアージはこの定義に照らして「事実の記録として正しいか」を判定する。**
