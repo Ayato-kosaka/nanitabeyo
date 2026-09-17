@@ -71,9 +71,9 @@ describe('#1599 DishesRepository.createOrGetDishForCategory', () => {
   it('既にあるなら 1 クエリで返し、書き込みを試みない', async () => {
     findFirst.mockResolvedValueOnce({ id: 'dish-1', ...dish });
 
-    await expect(repository.createOrGetDishForCategory(tx, dish)).resolves.toEqual(
-      { id: 'dish-1', ...dish },
-    );
+    await expect(
+      repository.createOrGetDishForCategory(tx, dish),
+    ).resolves.toEqual({ id: 'dish-1', ...dish });
 
     expect(findFirst).toHaveBeenCalledTimes(1);
     expect(findFirst).toHaveBeenCalledWith({ where });
@@ -85,9 +85,9 @@ describe('#1599 DishesRepository.createOrGetDishForCategory', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 'dish-2', ...dish });
 
-    await expect(repository.createOrGetDishForCategory(tx, dish)).resolves.toEqual(
-      { id: 'dish-2', ...dish },
-    );
+    await expect(
+      repository.createOrGetDishForCategory(tx, dish),
+    ).resolves.toEqual({ id: 'dish-2', ...dish });
 
     // #1599 `create` は P2002 を投げうるので、この経路では絶対に使わない。
     // tx 内で P2002 が出るとトランザクション全体が aborted になり、

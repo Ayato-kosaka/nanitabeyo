@@ -32,7 +32,9 @@ describe('formatCompositeCursor / parseCompositeCursor', () => {
 
   it('UUID に `|` は現れないので id 側が壊れない', () => {
     const uuid = '3f1a2b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b';
-    expect(parseCompositeCursor(formatCompositeCursor(AT, uuid))?.id).toBe(uuid);
+    expect(parseCompositeCursor(formatCompositeCursor(AT, uuid))?.id).toBe(
+      uuid,
+    );
   });
 
   // 壊れたカーソルは «先頭ページ» へ倒す。Invalid Date をそのまま Prisma へ渡すと 500 になり、
@@ -45,7 +47,7 @@ describe('formatCompositeCursor / parseCompositeCursor', () => {
     ['null', null],
     ['undefined', undefined],
   ])('壊れたカーソル（%s）は null を返す', (_label, input) => {
-    expect(parseCompositeCursor(input as string | null | undefined)).toBeNull();
+    expect(parseCompositeCursor(input)).toBeNull();
   });
 });
 
@@ -61,10 +63,7 @@ describe('buildCursorFilter', () => {
 
   it('複合カーソルは「時刻がより古い」か「同時刻で id がより小さい」', () => {
     expect(buildCursorFilter(formatCompositeCursor(AT, 'row-5'))).toEqual({
-      OR: [
-        { created_at: { lt: AT } },
-        { created_at: AT, id: { lt: 'row-5' } },
-      ],
+      OR: [{ created_at: { lt: AT } }, { created_at: AT, id: { lt: 'row-5' } }],
     });
   });
 
@@ -75,13 +74,11 @@ describe('buildCursorFilter', () => {
   });
 
   it('列名を差し替えられる（updated_at 順の一覧用）', () => {
-    expect(buildCursorFilter(formatCompositeCursor(AT, 'row-5'), 'updated_at'))
-      .toEqual({
-        OR: [
-          { updated_at: { lt: AT } },
-          { updated_at: AT, id: { lt: 'row-5' } },
-        ],
-      });
+    expect(
+      buildCursorFilter(formatCompositeCursor(AT, 'row-5'), 'updated_at'),
+    ).toEqual({
+      OR: [{ updated_at: { lt: AT } }, { updated_at: AT, id: { lt: 'row-5' } }],
+    });
   });
 });
 

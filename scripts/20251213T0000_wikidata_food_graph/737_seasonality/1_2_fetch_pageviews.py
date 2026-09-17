@@ -83,6 +83,12 @@ def main():
     not_found = []
 
     for i, item in enumerate(items, 1):
+        # ⚠️ 進捗ログは **ループの先頭**に置く。`continue` の後ろへ置くと
+        #    «最後まで通った件» のときしか出ない。2026-09-06 の run 34022514117 は
+        #    3,000 件で 6 行しか出ず、«前半 1,350 件で parsed が 1» を «前半が異常» と
+        #    読み違える原因になった（実際は普通の並びだった）。
+        if (i - 1) % 20 == 0 and i > 1:
+            logger.info(f"  ...{i - 1}/{len(items)} 件（累計 {len(rows)} 行）")
         if item["item_qid"] in done_qids:
             continue
 
@@ -115,8 +121,6 @@ def main():
         # 1 件ごとに書き出す（中断しても --resume で続きから）
         write_jsonl(rows, raw_path, force=True)
 
-        if i % 20 == 0:
-            logger.info(f"  ...{i}/{len(items)} 件（累計 {len(rows)} 行）")
 
     logger.info(f"取得完了: {len(rows)} 行 / 記事が見つからなかったもの {len(not_found)} 件")
     if not_found:

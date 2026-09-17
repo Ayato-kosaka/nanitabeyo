@@ -135,6 +135,24 @@ const PANIC_THRESHOLD = 50;
 const GRACE_HOURS = 24;
 /** 猶予後にこの件数以上出ていないと reopen しない（#1198 §5-A(2)）。 */
 const MIN_EVENTS_REOPEN = 3;
+/**
+ * 「旧ビルド滞留」を理由に reopen を抑止してよい期限（close からの日数）。
+ *
+ * ⚠️ この定数が無かったせいで、**close した Issue が永久に reopen されなくなる**事故が起きた。
+ * 2026-09-10 に close した #1808（web の findNodeHandle）は、09-13〜15 に 14 人が踏んでも
+ * 1 件も起票されなかった。イベントの build は全件 2bce1a3d（09-04）で、close（09-10）より
+ * 古いため「ユーザーが更新していないだけ」と判定され続けたからである。
+ *
+ * この抑止はネイティブの前提（ユーザーが更新するまで旧ビルドが動く）に立っているが、
+ * **web は全員が同じ 1 本を読むので「更新していない人が残る」が起きない**。web が古いのは
+ * サイトそのものが古いということで、放っておいても解消しない。ログに web / native を
+ * 区別する列は無い（jsonPayload に platform が無い）ので、surface では切り分けられない。
+ *
+ * そこで「そのうち消えるはず」という**楽観的な読みに期限を切る**。期限を過ぎてもなお
+ * 閾値以上出ているなら、その物語は外れているので人間が見るべきである。
+ * 本当に旧ビルド滞留なら、reopen されたものに `err/skip` を付ければ恒久的に止まる。
+ */
+const STALE_BUILD_SUPPRESSION_DAYS = 7;
 
 // ---------------------------------------------------------------------------
 // PR3: GitHub 同期側の定数
@@ -209,16 +227,39 @@ const TRANSIENT_HTTP_STATUSES = Object.freeze([401, 408, 425, 426, 429]);
  *   #1197 §4 の E6（backend 4xx 一律除外）をそのまま入れると、リリース直後の
  *   スキーマ不整合という最も検知したい事故が丸ごと消える。
  *
- * frontend の E4 と backend の E6 はこの同じ定数を共有する。
+ * ⚠️ #1834 **これは backend（E6）専用になった。** frontend（E4）は
+ * `TRANSIENT_HTTP_STATUSES` の方を使う。403 / 404 を除外する理由（外部スキャナ）は
+ * «Cloud Run が公開エンドポイントである» という backend 側の性質であって、
+ * 自分たちのアプリが呼んだときにしか出ない frontend のログには当てはまらないため。
+ * frontend の 404 は «存在しない URL を自分で叩いた» ＝ 実バグである。
  */
 const EXCLUDED_HTTP_STATUSES = Object.freeze([...TRANSIENT_HTTP_STATUSES, 403, 404].sort((a, b) => a - b));
+
+/**
+ * 「これは障害だ」と見なす影響ユーザー数のしきい値（1 run = 25h 窓）。
+ *
+ * #1946 の反省から入れた。2026-09-04〜09-09 の 6 日間、`/v1/dish-media/search` が
+ * 本番 DB にテーブルが無いせいで 500 を返し続け、**1 日あたり 68〜151 ユーザー**が踏んでいた。
+ * Issue（#1853）は初日に立っていたのに、**38 件の中に埋もれて 6 日間気づかれなかった。**
+ *
+ * 原因は「起票はするが、重大さを区別しない」ことだった。480 ユーザーの全滅も
+ * 1 ユーザーの単発も «Issue が 1 件増えた» として同じ見え方になる。
+ *
+ * このしきい値を超えるグループを起票 / reopen したら run を **失敗させる**。
+ * 定期実行の失敗は GitHub が通知するので、«Issue が増えた» ではなく «壊れた» として届く。
+ *
+ * 50 という値の根拠: 直近の平常時のアクティブユーザーは 1 日 200〜400 人程度なので、
+ * 50 人は «1 割以上が踏んでいる» 水準にあたる。#1946 は初日から 151 人だった。
+ * 誤報を出すくらいなら見落とす、という向きには倒していない。**見落とす方が高くつく。**
+ */
+const SEV_ALERT_USER_THRESHOLD = 50;
 
 /** 除外理由の識別子（runSummary.excludedBreakdown の reason に載る値）。 */
 const EXCLUSION_REASONS = Object.freeze([
 	"unknown_build_meta", // E1 frontend の created_commit_id が unknown- 始まり
 	"unauthenticated_race", // E2 Supabase access_token is missing
 	"client_network", // E3 frontend api_call_error かつ status=0
-	"transient_status", // E4 frontend の EXCLUDED_HTTP_STATUSES
+	"transient_status", // E4 frontend の TRANSIENT_HTTP_STATUSES（#1834 で 403/404 を外した）
 	// E5 端末が現在地を返せない（kind = denied/timeout/unavailable）。
 	//    「権限拒否」だけではないので user_denied_permission から改名した。除外の対象は
 	//    current_location_* の event に閉じてある（sql-generator.js の E5 を参照）。
@@ -239,12 +280,14 @@ module.exports = Object.freeze({
 	LOCALE_BREAKDOWN_LIMIT,
 	MAX_BYTES_BILLED,
 	CREATE_LIMIT,
+	SEV_ALERT_USER_THRESHOLD,
 	REOPEN_LIMIT,
 	BODY_UPDATE_LIMIT,
 	REKEY_LIMIT,
 	PANIC_THRESHOLD,
 	GRACE_HOURS,
 	MIN_EVENTS_REOPEN,
+	STALE_BUILD_SUPPRESSION_DAYS,
 	PARENT_ISSUE_NUMBER,
 	TRIAGE_LABEL,
 	SKIP_LABEL,

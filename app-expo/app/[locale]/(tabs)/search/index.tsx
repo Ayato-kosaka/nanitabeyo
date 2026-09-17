@@ -17,6 +17,7 @@ import {
 import { router } from "expo-router";
 import type { ExternalPathString } from "expo-router";
 import { SearchParams } from "@/types/search";
+import { resolveTimeSlotForMinutes } from "@shared/utils/timeSlot";
 import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { LocationPermissionError, type LocationPermissionErrorKind } from "@/hooks/locationPermissionError";
@@ -217,15 +218,10 @@ export default function SearchScreen() {
 		// ⚠️ 判定に «store が空でないか» を使わないこと。初回マウントで既定値を保存した瞬間に
 		// 成立してしまい、2 度目以降のマウントで自動選択が二度と働かなくなる（独立レビュー A-3）
 		if (restoredConditionsRef.current?.timeSlotTouched) return;
+		// #288 時間帯の窓の境界は shared/utils/timeSlot.ts が正本。ここへ書き写さない
+		// （openingHours.ts の営業時間フィルタと同じ境界を使う必要があるため）
 		const hour = new Date().getHours();
-		const TIME_SLOTS: { until: number; slot: SearchParams["timeSlot"] }[] = [
-			{ until: 5, slot: "late_night" },
-			{ until: 10, slot: "morning" },
-			{ until: 15, slot: "lunch" },
-			{ until: 22, slot: "dinner" },
-			{ until: 24, slot: "late_night" },
-		];
-		const slot = TIME_SLOTS.find((s) => hour < s.until)!.slot;
+		const slot = resolveTimeSlotForMinutes(hour * 60);
 		setTimeSlot(slot);
 	}, [logFrontendEvent]);
 

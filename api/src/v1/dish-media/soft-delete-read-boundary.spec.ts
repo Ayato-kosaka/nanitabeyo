@@ -77,9 +77,9 @@ const NESTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   // (placeId, categoryId) から決定論的に導出しており、再利用を諦めて作り直そうとしても
   // 同じ id になって `createDishMedia` の upsert が no-op になる（削除済みのまま）。
   // 復活させるのか作り直すのかは、その削除経路の仕様と一緒に決める必要がある。
-  'src/v1/dishes/dishes.repository.ts:225':
+  'src/v1/dishes/dishes.repository.ts:226':
     '#829 Google 取り込みの再利用探索（completed）。user_id: null の行は削除されない',
-  'src/v1/dishes/dishes.repository.ts:271':
+  'src/v1/dishes/dishes.repository.ts:272':
     '#829 Google 取り込みの再利用探索（未完了）。user_id: null の行は削除されない',
 };
 
@@ -160,7 +160,8 @@ describe('#1596 論理削除テーブルの読み取りは必ず deleted_at で�
           // `where: whereClause` のように変数で渡している場合は、
           // その変数の宣言まで見に行く（`dish-media.repository.ts` の一覧がこの形）。
           const satisfied =
-            args.includes('deleted_at') || whereVariableHasDeletedAt(text, args);
+            args.includes('deleted_at') ||
+            whereVariableHasDeletedAt(text, args);
 
           if (!satisfied) {
             const line = lineOf(text, at);
@@ -226,7 +227,10 @@ describe('#1596 論理削除テーブルの読み取りは必ず deleted_at で�
     expect(block.includes('deleted_at')).toBe(false);
 
     // 絞れば検出されない
-    const fixed = block.replace('orderBy:', 'where: { deleted_at: null },\n            orderBy:');
+    const fixed = block.replace(
+      'orderBy:',
+      'where: { deleted_at: null },\n            orderBy:',
+    );
     expect(fixed.includes('deleted_at')).toBe(true);
   });
 

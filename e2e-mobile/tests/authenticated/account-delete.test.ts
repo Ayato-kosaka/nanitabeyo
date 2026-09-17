@@ -97,9 +97,13 @@ describeAuthenticated("アカウント削除の確認（ログイン済みユー
 		await tapWhenVisible(settingsScreen.dialogCancelButton);
 		await waitUntilGone(settingsScreen.deleteAccountFinalTitle);
 
-		// 設定画面に留まり、削除行が «押せるまま» であること
+		// アカウント管理ページに留まり、削除行が «押せるまま» であること
 		// = セッションが生きている（削除もサインアウトも走っていない）ことの確認
-		await settingsScreen.expectLoaded();
+		//
+		// ⚠️ ここは `expectLoaded()`（マイページ本体）ではない。#1629 で削除行は
+		//    `profile/account` へ移っており、この時点で居るのはそちらである。
+		//    取り違えると `settings-scroll` が無く 25 秒待って落ちる（run 34019438392）。
+		await settingsScreen.expectAccountLoaded();
 		await settingsScreen.scrollToDeleteAccount();
 		assert.equal(
 			await visibleNow(settingsScreen.deleteAccountItem),

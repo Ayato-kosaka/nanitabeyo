@@ -4,19 +4,32 @@
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateShareLinkDto } from '@shared/v1/dto';
-import type { CreateShareLinkResponse, ResolveShareLinkResponse } from '@shared/v1/res';
+import type {
+  CreateShareLinkResponse,
+  ResolveShareLinkResponse,
+} from '@shared/v1/res';
 import {
   DEFAULT_PUBLIC_LOCALE,
   resolvePublicLocale,
   type PublicLocale,
 } from '@shared/v1/constants/publicLocales';
-import { SHARE_LINK_PATH_PREFIX, type ShareLinkTargetType } from '@shared/v1/constants/shareLinks';
+import {
+  SHARE_LINK_PATH_PREFIX,
+  type ShareLinkTargetType,
+} from '@shared/v1/constants/shareLinks';
 
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { env } from '../../core/config/env';
-import { ShareLinksRepository, type ShareLinkRecord } from './share-links.repository';
+import {
+  ShareLinksRepository,
+  type ShareLinkRecord,
+} from './share-links.repository';
 import { ShareLinkTargetResolvers } from './share-links.resolvers';
-import { generateShareToken, isValidShareTokenShape, toShareTokenDigest } from './share-links.token';
+import {
+  generateShareToken,
+  isValidShareTokenShape,
+  toShareTokenDigest,
+} from './share-links.token';
 
 /** token_digest の UNIQUE 衝突時に引き直す回数。128bit CSPRNG なので実際には 1 回目で通る */
 const TOKEN_COLLISION_RETRIES = 3;
@@ -42,15 +55,22 @@ export class ShareLinksService {
    * @param dto 対象と言語
    * @param userId 作成者（匿名ユーザーも作成できるので、記録用としてのみ使う）
    */
-  async create(dto: CreateShareLinkDto, userId: string | null): Promise<CreateShareLinkResponse> {
+  async create(
+    dto: CreateShareLinkDto,
+    userId: string | null,
+  ): Promise<CreateShareLinkResponse> {
     // locale は「共有した時点の言語」で固定する。以後、閲覧者の言語では変えない。
     // 未指定・未知のロケールは既定へ寄せる（作成そのものを失敗させない）
     const locale: PublicLocale = dto.locale
       ? resolvePublicLocale(dto.locale)
       : DEFAULT_PUBLIC_LOCALE;
 
-    const targetType = dto.target.type as ShareLinkTargetType;
-    const resolved = await this.resolvers.resolve(targetType, dto.target.params ?? {}, locale);
+    const targetType = dto.target.type;
+    const resolved = await this.resolvers.resolve(
+      targetType,
+      dto.target.params ?? {},
+      locale,
+    );
 
     for (let attempt = 0; attempt < TOKEN_COLLISION_RETRIES; attempt += 1) {
       const token = generateShareToken();
@@ -76,7 +96,11 @@ export class ShareLinksService {
 
         return { token, url: buildShareUrl(token), locale };
       } catch (error) {
-        if (!isUniqueViolation(error) || attempt === TOKEN_COLLISION_RETRIES - 1) throw error;
+        if (
+          !isUniqueViolation(error) ||
+          attempt === TOKEN_COLLISION_RETRIES - 1
+        )
+          throw error;
         // 128bit の衝突は現実には起きないが、起きたら 500 ではなく引き直す
         this.logger.warn('ShareLinkTokenCollision', 'create', { attempt });
       }
@@ -100,7 +124,9 @@ export class ShareLinksService {
   async findActiveByToken(token: string): Promise<ShareLinkRecord | null> {
     if (!isValidShareTokenShape(token)) return null;
 
-    const record = await this.repository.findByTokenDigest(toShareTokenDigest(token));
+    const record = await this.repository.findByTokenDigest(
+      toShareTokenDigest(token),
+    );
     if (!record) return null;
 
     if (record.status !== 'active') {
@@ -111,7 +137,9 @@ export class ShareLinksService {
       return null;
     }
     if (record.expires_at && record.expires_at.getTime() <= Date.now()) {
-      this.logger.log('ShareLinkExpired', 'findActiveByToken', { shareLinkId: record.id });
+      this.logger.log('ShareLinkExpired', 'findActiveByToken', {
+        shareLinkId: record.id,
+      });
       return null;
     }
     return record;

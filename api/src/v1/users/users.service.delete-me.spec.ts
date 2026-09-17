@@ -92,11 +92,18 @@ const softDeleteResult = {
 
 describe('UsersService#deleteMe (#1511)', () => {
   let service: UsersService;
-  let repo: jest.Mocked<Pick<
-    UsersRepository,
-    'getUserByIdIncludingDeleted' | 'findDishMediaPathsByUser' | 'softDeleteUserAccount'
-  >>;
-  let storage: { deleteFileIfExists: jest.Mock; deleteFilesByPrefix: jest.Mock };
+  let repo: jest.Mocked<
+    Pick<
+      UsersRepository,
+      | 'getUserByIdIncludingDeleted'
+      | 'findDishMediaPathsByUser'
+      | 'softDeleteUserAccount'
+    >
+  >;
+  let storage: {
+    deleteFileIfExists: jest.Mock;
+    deleteFilesByPrefix: jest.Mock;
+  };
   let supabaseAdmin: { deleteAuthUser: jest.Mock; isConfigured: jest.Mock };
 
   beforeEach(async () => {
@@ -154,8 +161,10 @@ describe('UsersService#deleteMe (#1511)', () => {
     });
 
     // ⚠️ 順序が本体。匿名化より «後» に avatar_path を読むと NULL になっていて実体が消せない
-    const readOrder = repo.getUserByIdIncludingDeleted.mock.invocationCallOrder[0];
-    const anonymizeOrder = repo.softDeleteUserAccount.mock.invocationCallOrder[0];
+    const readOrder =
+      repo.getUserByIdIncludingDeleted.mock.invocationCallOrder[0];
+    const anonymizeOrder =
+      repo.softDeleteUserAccount.mock.invocationCallOrder[0];
     const storageOrder = storage.deleteFileIfExists.mock.invocationCallOrder[0];
     const authOrder = supabaseAdmin.deleteAuthUser.mock.invocationCallOrder[0];
     expect(readOrder).toBeLessThan(anonymizeOrder);
@@ -163,17 +172,27 @@ describe('UsersService#deleteMe (#1511)', () => {
     expect(storageOrder).toBeLessThan(authOrder);
 
     // アバターと投稿メディアのオリジナルが対象になっていること
-    expect(storage.deleteFileIfExists).toHaveBeenCalledWith(liveUser.avatar_path);
-    expect(storage.deleteFileIfExists).toHaveBeenCalledWith(dishMediaRows[0].media_path);
-    expect(storage.deleteFileIfExists).toHaveBeenCalledWith(dishMediaRows[0].thumbnail_path);
+    expect(storage.deleteFileIfExists).toHaveBeenCalledWith(
+      liveUser.avatar_path,
+    );
+    expect(storage.deleteFileIfExists).toHaveBeenCalledWith(
+      dishMediaRows[0].media_path,
+    );
+    expect(storage.deleteFileIfExists).toHaveBeenCalledWith(
+      dishMediaRows[0].thumbnail_path,
+    );
 
     // 派生ファイル（サイズ・フォーマットを知らない）は前方一致で消していること
     const prefixes = storage.deleteFilesByPrefix.mock.calls.map((c) => c[0]);
     expect(prefixes).toEqual(
       expect.arrayContaining([
         expect.stringContaining(`resized-image/users/avatar_path/${USER_ID}`),
-        expect.stringContaining(`resized-image/dish_media/media_path/${dishMediaRows[0].id}`),
-        expect.stringContaining(`transcoded-video/dish_media/media_path/${dishMediaRows[0].id}`),
+        expect.stringContaining(
+          `resized-image/dish_media/media_path/${dishMediaRows[0].id}`,
+        ),
+        expect.stringContaining(
+          `transcoded-video/dish_media/media_path/${dishMediaRows[0].id}`,
+        ),
       ]),
     );
 
@@ -198,7 +217,9 @@ describe('UsersService#deleteMe (#1511)', () => {
 
     // avatar_path が既に NULL なので、オリジナルの削除は «呼ばれない»。
     // それでも派生の前方一致削除は走る（1 回目が途中で落ちていた場合の取りこぼし回収）
-    expect(storage.deleteFileIfExists).not.toHaveBeenCalledWith(liveUser.avatar_path);
+    expect(storage.deleteFileIfExists).not.toHaveBeenCalledWith(
+      liveUser.avatar_path,
+    );
     expect(storage.deleteFilesByPrefix).toHaveBeenCalled();
     expect(supabaseAdmin.deleteAuthUser).toHaveBeenCalledWith(USER_ID);
   });
@@ -206,7 +227,9 @@ describe('UsersService#deleteMe (#1511)', () => {
   it('存在しないユーザーは 404（匿名化も auth 削除も行わない）', async () => {
     repo.getUserByIdIncludingDeleted.mockResolvedValue(null as any);
 
-    await expect(service.deleteMe(USER_ID)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.deleteMe(USER_ID)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(repo.softDeleteUserAccount).not.toHaveBeenCalled();
     expect(supabaseAdmin.deleteAuthUser).not.toHaveBeenCalled();
   });
@@ -225,7 +248,9 @@ describe('UsersService#deleteMe (#1511)', () => {
   });
 
   it('auth 削除が失敗したら 503（再ログインできる状態を success にしない）', async () => {
-    supabaseAdmin.deleteAuthUser.mockRejectedValue(new Error('502 Bad Gateway'));
+    supabaseAdmin.deleteAuthUser.mockRejectedValue(
+      new Error('502 Bad Gateway'),
+    );
 
     await expect(service.deleteMe(USER_ID)).rejects.toBeInstanceOf(
       ServiceUnavailableException,

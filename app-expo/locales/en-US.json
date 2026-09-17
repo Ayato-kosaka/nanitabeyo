@@ -698,6 +698,11 @@
 		"consent_review_copyright": "Copyright",
 		"consent_review_suffix": "."
 	},
+	"MapsEmbed": {
+		"title": "Map",
+		"unavailable": "Map preview is unavailable on this device",
+		"openExternal": "Open in Google Maps"
+	},
 	"Restaurant": {
 		"Loading": {
 			"title": "Selecting 5 restaurants to make choosing easier",
@@ -747,7 +752,19 @@
 		"characterCount": "{{current}}/{{max}}",
 		"detail": {
 			"title": "Restaurant Details",
-			"openInGoogleMaps": "Open in Google Maps"
+			"openInGoogleMaps": "Open in Google Maps",
+			"openingHours": {
+				"title": "Opening hours",
+				"closed": "Closed",
+				"nextDay": "{{time}} (next day)",
+				"provenance": "From {{sources}} · fetched {{date}}",
+				"sources": {
+					"osm": "OpenStreetMap",
+					"official_site": "the shop’s own site",
+					"user": "a user report",
+					"owner": "the shop"
+				}
+			}
 		}
 	},
 	"Feedback": {
@@ -985,7 +1002,21 @@
 		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
 		"pickTitle": "Pick a shop",
 		"pickOnMap": "Find on map",
-		"pickConfirm": "Choose this place"
+		"pickConfirm": "Choose this place",
+		"confirmPage": {
+			"title": "Confirm restaurant details",
+			"lead": "We'll add the restaurant with these details. Correct anything that looks wrong.",
+			"nameLabel": "Name",
+			"namePlaceholder": "Enter the restaurant name",
+			"locationLabel": "Location",
+			"locationHint": "Check that this location is correct.",
+			"addressLabel": "Address",
+			"addressPlaceholder": "Enter the address",
+			"countryLabel": "Country",
+			"countryUnknown": "Unknown",
+			"submit": "Add with these details",
+			"expired": "This confirmation has expired. Please pick the restaurant again."
+		}
 	},
 	"MyDishes": {
 		"actions": {
@@ -1205,7 +1236,9 @@
 		"steps": {
 			"paste": "Paste the URL",
 			"dish": "Pick the dish category",
-			"restaurant": "Pick the shop"
+			"restaurant": "Pick the shop",
+			"restaurantConfirm": "Check the shop we found",
+			"dishConfirm": "Check the dish we found"
 		},
 		"pickRestaurant": {
 			"title": "Pick a shop on the map",
@@ -1213,8 +1246,9 @@
 			"done": "Picked “{{name}}”"
 		},
 		"result": {
-			"summary": "Read successfully",
+			"summary": "We found some candidates in this post. Pick the right ones below.",
 			"noInfo": "No information could be read from this post. Pick the shop and dish category below to save it.",
+			"fetchFailed": "We couldn't fetch this post's details right now (trying again in a moment often works). You can still pick the shop and dish category below to save it.",
 			"showFullCaption": "Show more",
 			"collapseCaption": "Show less"
 		},
@@ -1224,6 +1258,18 @@
 			"change": "Change",
 			"hint": "Pick a restaurant first. Then choose the dish, and add a photo (optional), a short review, the price and your rating.",
 			"done": "Recorded as eaten"
+		},
+		"reasons": {
+			"unsupported_url": "We support TikTok, YouTube Shorts and Instagram.",
+			"shortlink_expansion_failed": "We couldn't open that short link. Please paste the post page URL instead.",
+			"shortlink_target_unsupported": "That short link doesn't point to a post we can import.",
+			"metadata_content_unavailable": "This post has been deleted or is private.",
+			"youtube_not_shorts": "For YouTube we can only import Shorts (short vertical videos)."
+		},
+		"candidates": {
+			"heading": "Found in the post",
+			"hint": "Tap the one that is right.",
+			"fallbackHeading": "None of these? Search yourself"
 		}
 	},
 	"Tutorial": {
@@ -1285,5 +1331,9 @@
 				"dish_reviews": "Review"
 			}
 		}
+	},
+	"DishPriceBand": {
+		"range": "{{symbol}}{{min}}–{{max}}",
+		"openEnded": "{{symbol}}{{min}}+"
 	}
 }

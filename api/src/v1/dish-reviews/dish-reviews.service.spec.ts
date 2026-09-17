@@ -23,6 +23,7 @@ jest.mock('../../core/config/env', () => ({
 }));
 
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
@@ -149,6 +150,117 @@ describe('DishReviewsService #1513 編集・削除', () => {
         0,
         expect.objectContaining({ comment: '編集後のコメント', rating: 4 }),
       );
+    });
+
+    /*
+    #1774 `price_cents` は最小単位の整数で、桁数は通貨ごとに違う（JPY は 0 桁、USD は 2 桁）。
+    通貨の無い価格は数として意味を持たず、表示側 (`formatReviewPrice`) も `null` を返すので
+    «保存はされるが誰にも見えない行» になる。PATCH は «送らなかった項目は据え置き» なので、
+    **更新後の状態**で判定する。
+    */
+    describe('#1774 更新後に «価格はあるが通貨が無い» 状態を作らせない', () => {
+      const mockReview = (
+        overrides: Record<string, unknown> = {},
+      ): Record<string, unknown> => ({
+        id: REVIEW_ID,
+        user_id: OWNER_ID,
+        lock_no: 0,
+        deleted_at: null,
+        created_dish_media_id: 'media-uuid',
+        price_cents: null,
+        currency_code: null,
+        ...overrides,
+      });
+
+      it('通貨の無い既存行に価格だけ足そうとしたら 400', async () => {
+        repo.findReviewForMutation.mockResolvedValue(mockReview() as never);
+
+        await expect(
+          service.updateDishReview(
+            REVIEW_ID,
+            dto({ priceCents: 500 }),
+            OWNER_ID,
+          ),
+        ).rejects.toBeInstanceOf(BadRequestException);
+        expect(repo.updateDishReviewWithLock).not.toHaveBeenCalled();
+      });
+
+      it('価格を残したまま通貨だけ null にしようとしたら 400', async () => {
+        repo.findReviewForMutation.mockResolvedValue(
+          mockReview({ price_cents: 1200, currency_code: 'JPY' }) as never,
+        );
+
+        await expect(
+          service.updateDishReview(
+            REVIEW_ID,
+            dto({ currencyCode: null }),
+            OWNER_ID,
+          ),
+        ).rejects.toBeInstanceOf(BadRequestException);
+        expect(repo.updateDishReviewWithLock).not.toHaveBeenCalled();
+      });
+
+      it('通貨が既にある行なら価格だけの更新は通る（据え置きを見ている）', async () => {
+        repo.findReviewForMutation.mockResolvedValue(
+          mockReview({ price_cents: 1200, currency_code: 'JPY' }) as never,
+        );
+        repo.updateDishReviewWithLock.mockResolvedValue(1);
+        repo.getReviewRowById.mockResolvedValue(buildReviewRow() as never);
+
+        await service.updateDishReview(
+          REVIEW_ID,
+          dto({ priceCents: 900 }),
+          OWNER_ID,
+        );
+
+        expect(repo.updateDishReviewWithLock).toHaveBeenCalledWith(
+          TX,
+          REVIEW_ID,
+          0,
+          expect.objectContaining({ price_cents: 900 }),
+        );
+      });
+
+      it('価格と通貨を同時に消すのは通る（「価格を消す」の表現）', async () => {
+        repo.findReviewForMutation.mockResolvedValue(
+          mockReview({ price_cents: 1200, currency_code: 'JPY' }) as never,
+        );
+        repo.updateDishReviewWithLock.mockResolvedValue(1);
+        repo.getReviewRowById.mockResolvedValue(buildReviewRow() as never);
+
+        await service.updateDishReview(
+          REVIEW_ID,
+          dto({ priceCents: null, currencyCode: null }),
+          OWNER_ID,
+        );
+
+        expect(repo.updateDishReviewWithLock).toHaveBeenCalledWith(
+          TX,
+          REVIEW_ID,
+          0,
+          expect.objectContaining({ price_cents: null, currency_code: null }),
+        );
+      });
+
+      /*
+      ⚠️ この 1 本が «残骸の救済» を守っている。dev に `currency_code IS NULL` の行が
+         2 件あり、その行のコメントや評価は今後も直せなければならない。
+         価格に触らない更新まで 400 にすると、その行が永久に編集不能になる。
+      */
+      it('通貨の無い残骸行でも、価格に触らない更新は通る', async () => {
+        repo.findReviewForMutation.mockResolvedValue(
+          mockReview({ price_cents: 50_000, currency_code: null }) as never,
+        );
+        repo.updateDishReviewWithLock.mockResolvedValue(1);
+        repo.getReviewRowById.mockResolvedValue(buildReviewRow() as never);
+
+        await service.updateDishReview(REVIEW_ID, dto(), OWNER_ID);
+
+        expect(repo.updateDishReviewWithLock).toHaveBeenCalled();
+        expect(
+          repo.updateDishReviewWithLock.mock.calls[0][3],
+        ).not.toHaveProperty('price_cents');
+      });
     });
 
     it('メディア列は絶対に書き換えない（オーナー確定仕様: メディアは差し替え不可）', async () => {

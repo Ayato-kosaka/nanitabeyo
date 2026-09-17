@@ -75,24 +75,26 @@ describe('extractPostalAddress', () => {
     expect(
       extractPostalAddress(text('📍名古屋市東区葵3-12-18の【おかげ庵】さん')),
     ).toBe('名古屋市東区葵3-12-18');
-    expect(
-      extractPostalAddress(text('名古屋市中区栄３丁目５−１ 三越')),
-    ).toBe('名古屋市中区栄３丁目５−１');
-    expect(
-      extractPostalAddress(text('金沢市東山1丁目12-7 のカフェ')),
-    ).toBe('金沢市東山1丁目12-7');
+    expect(extractPostalAddress(text('名古屋市中区栄３丁目５−１ 三越'))).toBe(
+      '名古屋市中区栄３丁目５−１',
+    );
+    expect(extractPostalAddress(text('金沢市東山1丁目12-7 のカフェ'))).toBe(
+      '金沢市東山1丁目12-7',
+    );
   });
 
   it('都道府県付きの住所は、市区町村始まりより優先される（既存挙動を壊さない）', () => {
     // 都道府県起点の抽出が先に走るので、市区町村始まりのフォールバックは «追加» に留まる
-    expect(
-      extractPostalAddress(text('愛知県名古屋市東区葵3-12-18')),
-    ).toBe('愛知県名古屋市東区葵3-12-18');
+    expect(extractPostalAddress(text('愛知県名古屋市東区葵3-12-18'))).toBe(
+      '愛知県名古屋市東区葵3-12-18',
+    );
   });
 
   it('市区町村の直後が助詞・地番なしのときは住所と見なさない（誤ジオコーディングを防ぐ）', () => {
     // 「◯◯市の3店」のような助詞混じり（町名の 1 文字目がひらがな）は弾く
-    expect(extractPostalAddress(text('名古屋市の3店舗を紹介します'))).toBeNull();
+    expect(
+      extractPostalAddress(text('名古屋市の3店舗を紹介します')),
+    ).toBeNull();
     // 施設名だけ（地番の数字が無い）も採らない
     expect(extractPostalAddress(text('名古屋市役所の近くのカフェ'))).toBeNull();
     // 「市内」「区内」は市区町村トークンにしない

@@ -1,8 +1,13 @@
 {
 	"ios": {
 		"CFBundleDisplayName": "CraveCatch - Find your dish",
+		"NSCameraUsageDescription": "Usamos la cámara para que puedas tomar fotos y vídeos de platos y publicarlos.",
+		"NSMicrophoneUsageDescription": "Grabamos el audio junto con el vídeo cuando grabas uno.",
+		"NSPhotoLibraryUsageDescription": "Usamos tu fototeca para que puedas publicar fotos y vídeos que ya has tomado.",
 		"NSLocationWhenInUseUsageDescription": "Usamos tu ubicación para sugerirte restaurantes recomendados cerca de ti.",
-		"NSLocationAlwaysAndWhenInUseUsageDescription": "Usamos tu ubicación para sugerirte restaurantes recomendados cerca de ti."
+		"NSLocationAlwaysAndWhenInUseUsageDescription": "Usamos tu ubicación para sugerirte restaurantes recomendados cerca de ti.",
+		"NSLocationAlwaysUsageDescription": "Usamos tu ubicación para sugerirte restaurantes recomendados cerca de ti.",
+		"NSUserTrackingUsageDescription": "Este identificador se usará para mostrarte anuncios personalizados. Al permitirlo, nos ayudas a mejorar nuestro servicio."
 	},
 	"android": {
 		"app_name": "CraveCatch - Find your dish"

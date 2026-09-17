@@ -81,7 +81,9 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
     // 保存済み一覧は保存日時順で、店舗検索は KNN か投稿数順で切る。
     // どちらも «絞ってから集計する» ために LIMIT が候補側に居ること
     expect(source).toMatch(/ORDER BY\s+sr\.last_saved_at DESC\s+LIMIT /);
-    expect(source).toMatch(/ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT /);
+    expect(source).toMatch(
+      /ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT /,
+    );
   });
 
   it('重いレビュー集計（dish_reviews）は、候補 CTE より後ろにしか無い', () => {
@@ -110,8 +112,12 @@ describe('#1629 集計より前に候補を絞っている（索引に乗って�
       並べて limit 件» だった。半径が全国規模になると全国の店（57 万件）を集計することになる。
       いまは投稿テーブル（dish_media）駆動の投稿枠で、候補が最初から limit 件に収まる。
     */
-    expect(source).toMatch(/FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/);
-    expect(source).toMatch(/ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT /);
+    expect(source).toMatch(
+      /FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/,
+    );
+    expect(source).toMatch(
+      /ORDER BY pc\.post_count DESC, hit\.distance_m ASC LIMIT /,
+    );
   });
 });
 
@@ -129,7 +135,9 @@ describe('#1629 引きでも候補が必ず埋まる（投稿枠 + 近傍枠）'
     // 全店舗から «投稿を持つ店» を探すのではなく、生存している投稿の側から辿る。
     // 全国規模の半径でも、走る行数が店舗数（57 万）ではなく投稿数で決まるようにするため
     expect(source).toMatch(/posted AS \(/);
-    expect(source).toMatch(/FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/);
+    expect(source).toMatch(
+      /FROM dish_media dm\s+JOIN dishes d ON d\.id = dm\.dish_id/,
+    );
     /*
       ⚠️ **MATERIALIZED を外さないこと。** 外すと Postgres 12 以降は CTE を inline し、
       «restaurants → dishes → dish_media» の nested loop へ戻る。dev 実測で
@@ -150,7 +158,9 @@ describe('#1629 引きでも候補が必ず埋まる（投稿枠 + 近傍枠）'
       //    先頭から探すと空文字になって検査が丸ごと空振りする
       source.indexOf('base AS (', nearestAt),
     );
-    expect(nearest).toMatch(/ORDER BY r\.location <-> \$\{originPoint\} LIMIT /);
+    expect(nearest).toMatch(
+      /ORDER BY r\.location <-> \$\{originPoint\} LIMIT /,
+    );
     // 投稿枠と重複させない。
     // #1629 ただし **重複除去は近傍枠の中ではなく base で行う**。
     // KNN の副問い合わせの中に NOT EXISTS を置くと Hash Anti Join + restaurants の
@@ -159,7 +169,9 @@ describe('#1629 引きでも候補が必ず埋まる（投稿枠 + 近傍枠）'
     // 実際の構文だけを見る（設計コメントは NOT EXISTS という語に言及している）
     expect(nearest).not.toMatch(/NOT EXISTS \(SELECT/);
     const base = source.slice(source.indexOf('base AS ('));
-    expect(base).toMatch(/NOT EXISTS \(SELECT 1 FROM posted p WHERE p\.id = n\.id\)/);
+    expect(base).toMatch(
+      /NOT EXISTS \(SELECT 1 FROM posted p WHERE p\.id = n\.id\)/,
+    );
   });
 
   it('並びは «投稿が多い順 → 同数なら中心から近い順»', () => {

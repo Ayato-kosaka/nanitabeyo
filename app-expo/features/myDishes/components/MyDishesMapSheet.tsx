@@ -52,10 +52,11 @@ const getTileLayout = (_data: ArrayLike<MyDishPin> | null | undefined, index: nu
 const PinTile = memo(function PinTile({ pin, onPress }: { pin: MyDishPin; onPress: (pin: MyDishPin) => void }) {
 	const styles = useThemedStyles(createStyles);
 	const handlePress = useCallback(() => onPress(pin), [onPress, pin]);
-	// #1513 «自分の投稿が削除済み» のピンは `restaurant.image_url` へも落とさない
+	// #1513 «自分の投稿が削除済み» のピンは店の画像へも落とさない
 	// （跡地に別の絵を入れない）。帯のタイルもピンと同じ墓標にする。ピン側の分岐は
 	// `MyDishesMapView.tsx` の AvatarBubbleMarker にある
-	const uri = pin.isOwnMediaDeleted ? null : (pin.representativeThumbnailUrl ?? pin.restaurant.image_url ?? null);
+	// #1779 店の画像は `imageUrls` から取る（`image_url` は落とす列。`myDishCard.tsx:46` の規則）
+	const uri = pin.isOwnMediaDeleted ? null : (pin.representativeThumbnailUrl ?? pin.restaurant.imageUrls?.sm ?? null);
 
 	return (
 		<Pressable

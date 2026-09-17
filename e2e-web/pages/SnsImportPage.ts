@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
+import { waitForHydrated } from "../utils/hydration";
+
 /**
  * 📥 SNS 取り込み画面の Page Object（#1400 → #1375 実機確認で作り直し）
  *
@@ -84,6 +86,10 @@ export class SnsImportPage {
 		// （転送を挟むと «転送が壊れた» のか «画面が壊れた» のかが切り分けられない）
 		await this.page.goto(`/${locale}/add-record${query}`);
 		await expect(this.screen).toBeVisible();
+		// ⚠️ ここで止めてはいけない。静的エクスポートなので、上の `toBeVisible()` は
+		// **ビルド時に描かれた HTML** で満たされる（`?url=` はビルド時に存在しないので空）。
+		// 貼り付け欄が hydrate されるまで待つ。理由は `utils/hydration.ts`（#1785）
+		await waitForHydrated(this.urlInput);
 	}
 
 	/** 貼り付け欄にいま入っている文字列 */

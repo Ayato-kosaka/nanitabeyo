@@ -159,8 +159,7 @@ export class NotificationsService {
               )
             : undefined,
       dishCategoryGroupVoteSession:
-        item.notifications.target_table ===
-        'dish_category_group_vote_sessions'
+        item.notifications.target_table === 'dish_category_group_vote_sessions'
           ? (() => {
               const session = groupVoteSessionMap.get(
                 item.notifications.target_id,

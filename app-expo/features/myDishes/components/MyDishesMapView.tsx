@@ -355,15 +355,18 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						onPress={() => handlePinPress(cluster.pins[0])}
 						// #1398 PR5 写真なし（representativeThumbnailUrl === null）でも灰色プレースホルダーに
 						// しない（#1375 追補2 決定3）。`MyDishPin` はピン＝店舗単位で `dish` を持たないため、
-						// list / calendar と違い `categoryImageUrl` の段は無く `restaurant.image_url` へ直接
+						// list / calendar と違い `categoryImageUrl` の段は無く店の画像へ直接
 						// 落ちる（設計書 (2/2) §5-2 で確定。GET .../map-pins のレスポンスは変えない）
+						// #1779 その店の画像は `imageUrls` から取る（`image_url` は落とす列）
 						//
 						// #1513 ただし «自分の投稿が削除済み»（isOwnMediaDeleted）のピンは
-						// `restaurant.image_url` へも落とさない。ピンは残したまま中身を墓標へ差し替える
+						// 店の画像へも落とさない。ピンは残したまま中身を墓標へ差し替える
 						uri={
 							cluster.pins[0].isOwnMediaDeleted
 								? undefined
-								: (cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined)
+								: (cluster.pins[0].representativeThumbnailUrl ??
+									cluster.pins[0].restaurant.imageUrls?.sm ??
+									undefined)
 						}
 						bubbleContent={cluster.pins[0].isOwnMediaDeleted ? <DeletedMediaTombstone variant="pin" /> : undefined}
 					/>

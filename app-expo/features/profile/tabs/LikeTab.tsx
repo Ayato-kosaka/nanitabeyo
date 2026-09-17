@@ -5,7 +5,7 @@ import { router } from "expo-router";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import { EmptyState } from "@/components/EmptyState";
-import Stars from "@/components/Stars";
+import { DishRating } from "@/components/DishRating";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -138,10 +138,14 @@ export function LikeTab() {
 			return (
 				<ImageCard item={gridItem} onPress={() => handleItemPress(entry.dish_media.id, index)}>
 					<View style={styles.likeCardOverlay}>
-						<View style={styles.likeCardRating}>
-							<Stars rating={entry.dish.averageRating} />
-							<Text style={styles.likeCardRatingText}>({entry.dish.reviewCount})</Text>
-						</View>
+						{/* #1667 0 件のときは何も描かない。判定は DishRating に閉じてある */}
+						<DishRating
+							averageRating={entry.dish.averageRating}
+							reviewCount={entry.dish.reviewCount}
+							containerStyle={styles.likeCardRating}
+							countStyle={styles.likeCardRatingText}
+							testID="like-card-rating"
+						/>
 					</View>
 				</ImageCard>
 			);

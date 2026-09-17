@@ -448,7 +448,12 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
 
     const { db } = buildFakeDb(sessions);
 
-    const page = await repository.findMeSessions(db, 'user-me', 'not-a-date', 2);
+    const page = await repository.findMeSessions(
+      db,
+      'user-me',
+      'not-a-date',
+      2,
+    );
 
     expect(page.items.map((i) => i.id)).toEqual(['session-0']);
   });

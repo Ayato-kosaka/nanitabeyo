@@ -327,10 +327,8 @@ export const RESTAURANT_COLUMNS_SQL = Prisma.sql`
   r.name_language_code AS r_name_language_code,
   r.latitude           AS r_latitude,
   r.longitude          AS r_longitude,
-  r.image_url          AS r_image_url,
   r.image_path         AS r_image_path,
   r.address_components AS r_address_components,
-  r.plus_code          AS r_plus_code,
   r.created_at         AS r_created_at`;
 
 /**

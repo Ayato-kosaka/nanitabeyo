@@ -25,6 +25,29 @@ jobs:
         working-directory: app-expo
 
     steps:
+      # 【設計】デプロイ元ブランチの規則（docs/specs/deploy-branches.md）は **文書にしか無く**、
+      # production を出す workflow は 1 つも ref を検査していなかった。
+      # 2026-09-10 に実際に事故った: production チャンネルへの OTA を、release ではない
+      # 作業ブランチ（claude/ota-logfix-only）から流せてしまった。表が «正» である以上、
+      # 落とすのは人間の記憶ではなくここである。
+      #
+      # ⚠️ 逃げ道を作らないこと。「緊急だから別ブランチから」を許すと、
+      # «ストアに出した版» を固定するという release ブランチの存在理由が消える。
+      # 急ぐときは、出したい commit を正しいブランチへ載せてから流す。
+      - name: "🔒 production への OTA は release/X.Y からのみ"
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        if: ${{ github.event.inputs.channel == 'production' }}
+        run: |
+          set -euo pipefail
+          case "$REF_NAME" in
+            release/*) echo "✅ ref=$REF_NAME" ;;
+            *)
+              echo "::error::production チャンネルへの OTA は release/X.Y からのみです（docs/specs/deploy-branches.md）。指定された ref: $REF_NAME"
+              exit 1
+              ;;
+          esac
+
       - name: ⏬ Checkout repository
         uses: actions/checkout@v4
         with:

@@ -163,9 +163,71 @@ kind=null       commit 2f159544 / 24e95bcf /
 **見分け方**: 件数の commit 分布が「現行ビルドで 0、旧ビルドだけ」になっているか。
 現行ビルドにも出ているなら旧ビルド残存ではなく、現に生きているバグ。
 
+## 6-2. 直したのに件数が減らないときは、コードより先に「届いたか」を見る
+
+§6 の逆向き。**マージは配信ではない。** native アプリはユーザーが更新するか
+`eas-update`（OTA）が流れるまで古いバンドルのままなので、「直したはずなのに毎日同じ件数」は
+**修正が端末に載っていないだけ**であることが多い。コードを読み直す前に 2 行で決着する。
+
+```bash
+# 1. いまログに出ているビルドを数える（created_commit_id は payload の外なので安い）
+#    → 例: 直近3日が全件 e34d73c7
+# 2. 修正コミットがそのビルドに入っているか
+git merge-base --is-ancestor <修正のSHA> <ログのSHA> && echo 届いている || echo 届いていない
+```
+
+⚠️ **ancestry の false は、まず clone を疑う。** ローカルに無い commit でも false が返る。
+判定の前に `git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'` を通すこと。
+
+実例（2026-09-10 / [#1958](https://github.com/Ayato-kosaka/nanitabeyo/issues/1958)）:
+`previous_session_terminated` は修正（`ecaa3787` / 09-09 マージ）の後も 1 日 100 件前後で横ばいだった。
+ログの `created_commit_id` は全件 `e34d73c7`（09-06 の main）で、最後の `eas-update` もその commit。
+**コードは直っており、配信されていないだけ**だった。Issue は close せず open のまま残し、
+「配信後 1 日ぶんの実測で 0 件になったら close」と書いた。
+
+## 6-3. 「再発しているか」だけを見るクエリは payload を読まない
+
+`jsonPayload.payload` はスキャンバイトの約 85% を占めるが、**再発の有無は payload を見ずに判定できる**。
+`event_name` / `created_commit_id` / `user_id` / `timestamp` は payload の外にあるので、
+SELECT からも WHERE からも payload を外せば桁が 1 つ変わる。
+
+```sql
+SELECT jsonPayload.event_name AS event_name, DATE(timestamp) AS d,
+       COUNT(1) AS n, COUNT(DISTINCT jsonPayload.user_id) AS users
+FROM `food-scroll.nanitabeyo_logs_prod.run_googleapis_com_stdout`
+WHERE timestamp >= TIMESTAMP '{{WINDOW_START}}'
+  AND timestamp <  TIMESTAMP '{{WINDOW_END}}'
+  AND jsonPayload.error_level = 'error'
+  AND jsonPayload.event_name IN ({{EVENT_NAMES}})
+GROUP BY 1, 2 ORDER BY 1, 2
+```
+
+実測（2026-09-10 / 7.5 日 × 9 event 名）: **17MB**。同じ窓で payload を読むと 2〜3GB になる。
+**溜まった Issue をまとめて «まだ出ているか» で仕分けるときは、まずこれを 1 本投げる。**
+中身を読むのは、生きていると分かったものだけでよい。
+
+⚠️ **Issue 本文の «更新日時» を再発の判定に使わないこと。** 本文の自動更新には
+1 run あたりの上限（`BODY_UPDATE_LIMIT`）があり、当たらなかっただけの Issue と
+本当に出ていない Issue が見分けられない。判定は必ず BigQuery 側で取る。
+
 ---
 
 # 落とし穴
+
+## frontend ログの `user_id` は「そのログを出した瞬間の人」ではない
+
+`app-expo/lib/logQueue.ts` はログを 5 秒ためてから送り、`user_id` は
+**flush の時点でキャッシュしている値**（`onAuthStateChange` が更新する）を載せる。
+したがって「`user_id` が入っている＝ログイン済みだった」とは言えない。
+
+実例（2026-09-10 / [#1959](https://github.com/Ayato-kosaka/nanitabeyo/issues/1959)）:
+`oauth_callback_no_result` に `user_id` が入っていたので「ログイン済みの人が
+コールバックを開き直しただけ」と読みかけたが、同じ user_id が **5 秒後に
+`signInAnonymously` を出していた**。ログイン済みどころか、その時点でセッションが無い。
+
+**セッションの有無を知りたいときは、同じ user_id の前後のイベント列を並べて確かめる。**
+`locale_initialized` が直前にあればアプリのコールドスタート、`signInAnonymously` が
+直後にあればその時点まで無セッション、というように**周辺のログが状態を語る**。
 
 ## ビューを使うと 18.4GB/日 かかる
 

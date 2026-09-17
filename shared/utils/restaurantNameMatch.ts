@@ -108,6 +108,18 @@ export type RestaurantNameMatchInput = {
 	candidates: readonly RestaurantSearchCandidate[] | null | undefined;
 	/** 投稿者名（TikTok / YouTube の `author_name`）。単独では prefill しない */
 	authorName?: string | null;
+	/**
+	 * #1273 キャプション由来の «店名候補»（`📍<店名>` 行から切り出した名前など）。
+	 *
+	 * 候補店名と **exact 一致**したときだけ、`【】`(bracketed exact) と同じ扱い＝
+	 * `exact-name`（1.00 系）の根拠を立てる。含有一致（0.85）止まりで prefill 閾値
+	 * 0.90 に届かなかった «店名を丸ごと 📍 行に書く» 投稿を、無人取り込みの土俵へ乗せる。
+	 *
+	 * 生キャプションから切り出すのは呼び出し側（service）の責務（改行が要るため
+	 * `shared/utils/textNormalize.ts` の `extractPinNames` を使う）。ここは渡された
+	 * 名前が候補店名と一致するかだけを見る。含有・曖昧一致には使わない（誤爆を増やさない）。
+	 */
+	nameHints?: readonly string[] | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -259,6 +271,26 @@ export function buildMatchKeys(normalized: string): MatchKeys {
 		symbolStripped: stripMatchSymbols(normalized),
 		kanaFoldedSymbolStripped: stripMatchSymbols(kanaFolded),
 	};
+}
+
+/**
+ * #1273 `nameHints`（📍pin 名など）を照合キーへ畳む。空・重複は落とす。
+ *
+ * 渡ってくる時点で `extractPinNames` が正規化済みだが、由来を問わず素通しできるよう
+ * ここでも `normalizeMatchText` を通し直す（二重にかけても結果は変わらない）。
+ */
+function buildNameHintKeys(hints: readonly string[] | null | undefined): MatchKeys[] {
+	if (!Array.isArray(hints)) return [];
+
+	const seen = new Set<string>();
+	const keys: MatchKeys[] = [];
+	for (const hint of hints) {
+		const normalized = normalizeMatchText(hint);
+		if (normalized.length === 0 || seen.has(normalized)) continue;
+		seen.add(normalized);
+		keys.push(buildMatchKeys(normalized));
+	}
+	return keys;
 }
 
 /** キー種別の一覧。強い（＝原形に近い）順に並べてある */
@@ -473,6 +505,7 @@ function collectForCandidate(
 	candidate: RestaurantSearchCandidate,
 	prepared: readonly PreparedText[],
 	normalizedAuthorName: string,
+	nameHintKeys: readonly MatchKeys[],
 ): RestaurantMatchEvidence[] {
 	const { threshold } = RESTAURANT_NAME_MATCH_TUNING;
 	const evidence: RestaurantMatchEvidence[] = [];
@@ -484,6 +517,32 @@ function collectForCandidate(
 	const split = splitRestaurantName(normalizedName);
 	const baseKeys = buildMatchKeys(split.base);
 	const branchMatched = branchAppears(split.branch, prepared);
+
+	// #1273 nameHints（📍pin 名など）と候補店名の完全一致。`【】`(bracketed exact) と
+	// 同じく exact-name（1.00 系）として立てる。生キャプションから切り出すのは呼び出し側で、
+	// ここは «渡された候補店名» と exact 一致するかだけを見る（含有・曖昧一致には使わない）。
+	// 一致は最も強いキー（KEY_KINDS は normalized 優先の順）で 1 本立てれば十分なので break する。
+	for (const hintKeys of nameHintKeys) {
+		for (const keyKind of KEY_KINDS) {
+			const nameKey = keyOf(nameKeys, keyKind);
+			if (nameKey.length === 0) continue;
+			if (keyOf(hintKeys, keyKind) !== nameKey) continue;
+			evidence.push({
+				kind: "exact-name",
+				keyKind,
+				matchedName: nameKey,
+				branchAlsoMatched: false,
+				// pin 名は正規化でオフセットが原文とずれる（改行の圧縮）ので位置は返さない。
+				// author-name と同じく «テキスト上の 1 点» を指せない根拠として null にする
+				fieldIndex: null,
+				field: null,
+				start: null,
+				end: null,
+				score: scoreFor("exact-name", keyKind, false),
+			});
+			break;
+		}
+	}
 
 	for (const text of prepared) {
 		for (const keyKind of KEY_KINDS) {
@@ -630,6 +689,7 @@ export function matchRestaurantNames(
 	const normalizedTexts = normalizeExtractedTexts(input?.texts);
 	const prepared = prepareTexts(normalizedTexts);
 	const normalizedAuthorName = normalizeMatchText(input?.authorName);
+	const nameHintKeys = buildNameHintKeys(input?.nameHints);
 
 	const candidates: RestaurantCandidateMatch[] = [];
 	const rawCandidates = Array.isArray(input?.candidates) ? input.candidates : [];
@@ -640,7 +700,7 @@ export function matchRestaurantNames(
 		if (typeof raw.id !== "string" || raw.id.length === 0) continue;
 		if (typeof raw.name !== "string") continue;
 
-		const evidence = collectForCandidate(raw, prepared, normalizedAuthorName);
+		const evidence = collectForCandidate(raw, prepared, normalizedAuthorName, nameHintKeys);
 		if (evidence.length === 0) continue;
 
 		evidence.sort(compareEvidence);

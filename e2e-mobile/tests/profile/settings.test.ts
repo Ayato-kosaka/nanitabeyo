@@ -52,7 +52,11 @@ describe("設定項目（匿名ユーザー）", () => {
 
 		// #1583 `expectLoaded()` は «最上段が見えたか» しか見ない（スクロールしない）ので、
 		//       2 枚目のカードの行はここで明示的に運ぶ
-		await settingsScreen.expectRowVisible(settingsScreen.feedbackItem);
+		//
+		// ⚠️ #1579 «ご意見・不具合»（settings-feedback）はここで探さない。#1583 で
+		//    `profile/about` へ移っており、マイページ本体には無い（about.tsx:123）。
+		//    移設に追随できておらず 25 秒待って落ちていた。あちらの有無は下の
+		//    «なに食べよについて» のテストが見ている。
 		await settingsScreen.expectRowVisible(settingsScreen.blockedDishCategoriesItem);
 		// #1583 下 2 行は初期表示で画面外にいるので、見えるところまで運んでから確かめる
 		await settingsScreen.expectRowVisible(settingsScreen.deviceSettingsItem);
@@ -72,12 +76,17 @@ describe("設定項目（匿名ユーザー）", () => {
 		await settingsScreen.expectLoaded();
 		await settingsScreen.openAbout();
 
-		await waitUntilVisible(settingsScreen.leaveReviewItem);
-		await waitUntilVisible(settingsScreen.guidelinesItem);
-		await waitUntilVisible(settingsScreen.termsItem);
-		await waitUntilVisible(settingsScreen.privacyItem);
-		await waitUntilVisible(settingsScreen.copyrightItem);
-		await waitUntilVisible(settingsScreen.versionSection);
+		// ⚠️ #1579 このページは下側の行が **初期表示で画面外**にいる。素の
+		//    `waitUntilVisible` だとスクロールしないので «著作権» と «バージョン» で
+		//    25 秒待って落ちていた（run 34022380038 で実測）。
+		//    «ご意見・不具合» もこのページにある（#1583 で移設）。
+		await settingsScreen.expectAboutRowVisible(settingsScreen.leaveReviewItem);
+		await settingsScreen.expectAboutRowVisible(settingsScreen.feedbackItem);
+		await settingsScreen.expectAboutRowVisible(settingsScreen.guidelinesItem);
+		await settingsScreen.expectAboutRowVisible(settingsScreen.termsItem);
+		await settingsScreen.expectAboutRowVisible(settingsScreen.privacyItem);
+		await settingsScreen.expectAboutRowVisible(settingsScreen.copyrightItem);
+		await settingsScreen.expectAboutRowVisible(settingsScreen.versionSection);
 
 		// #1583 1 画面を 3 画面へ割った以上、**帰ってこられること**まで見る。
 		// 分割そのものより «行き止まりを作る» ほうが起きやすい事故で、
@@ -146,7 +155,8 @@ describe("設定項目（匿名ユーザー）", () => {
 		// #1583 バージョンは «なに食べよについて» ページへ移った
 		await settingsScreen.openAbout();
 
-		await waitUntilVisible(settingsScreen.versionSection);
+		// ⚠️ #1579 バージョンはこのページの最下段。スクロールしないと届かない
+		await settingsScreen.expectAboutRowVisible(settingsScreen.versionSection);
 
 		const versionText = await settingsScreen.getVersionText();
 		assert.match(versionText, /^\d+\.\d+\.\d+\([^)]+\)$/, `実測: "${versionText}"`);

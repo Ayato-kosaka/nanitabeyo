@@ -7,6 +7,7 @@ import {
 	isRetryableAuthError,
 	parseRetryAfterMs,
 	resolveAuthCooldownMs,
+	summarizeAuthError,
 } from "./authRecovery";
 
 /**
@@ -111,5 +112,65 @@ describe("resolveAuthCooldownMs", () => {
 
 	it("Retry-After が極端に長くても上限で頭打ちにする（UI が固まって見えないように）", () => {
 		expect(resolveAuthCooldownMs(authApiError(429), 60 * 60_000)).toBe(RATE_LIMIT_MAX_COOLDOWN_MS);
+	});
+});
+
+describe("#1771 summarizeAuthError", () => {
+	// 本番で観測した実物（2026-09-01 / authInitError）。cf-ray はリクエストごとに変わるため、
+	// これをそのまま message にすると 1 回の失敗ごとに別 fingerprint になる（#1771 / #1772 が 2 件立った）
+	const serializedResponse = JSON.stringify({
+		type: "default",
+		status: 504,
+		ok: false,
+		statusText: "",
+		headers: { map: { "cf-ray": "a33fa5d02967f6c9-NRT", "content-length": "24" } },
+	});
+
+	it("Response の文字列化は status だけへ畳む", () => {
+		expect(summarizeAuthError({ message: serializedResponse })).toEqual({ message: "HTTP 504", status: 504 });
+	});
+
+	it("毎回変わるヘッダが入っていても message は安定する（fingerprint が割れない）", () => {
+		const another = JSON.stringify({
+			type: "default",
+			status: 504,
+			ok: false,
+			headers: { map: { "cf-ray": "ffffffffffffffff-NRT", "content-length": "77" } },
+		});
+		expect(summarizeAuthError({ message: serializedResponse }).message).toBe(
+			summarizeAuthError({ message: another }).message,
+		);
+	});
+
+	it("error 自身が持つ status を優先する", () => {
+		expect(summarizeAuthError({ message: serializedResponse, status: 500 })).toEqual({
+			message: "HTTP 504",
+			status: 500,
+		});
+	});
+
+	// ⚠️ 通常の message を畳まないための番人。原因の手がかりを消さない
+	it("通常の message はそのまま残す", () => {
+		expect(summarizeAuthError({ message: "Network request failed", status: 0 })).toEqual({
+			message: "Network request failed",
+			status: 0,
+		});
+	});
+
+	it("JSON に見えて status を持たないものは畳まない", () => {
+		const noStatus = '{"detail":"nope"}';
+		expect(summarizeAuthError({ message: noStatus })).toEqual({ message: noStatus, status: undefined });
+	});
+
+	it("壊れた JSON でも落ちない", () => {
+		expect(summarizeAuthError({ message: '{"status":' })).toEqual({ message: '{"status":', status: undefined });
+	});
+
+	it("長すぎる message は切り詰める", () => {
+		expect(summarizeAuthError({ message: "x".repeat(500) }).message).toHaveLength(200);
+	});
+
+	it("message を持たない値でも落ちない", () => {
+		expect(summarizeAuthError(null)).toEqual({ message: "", status: undefined });
 	});
 });

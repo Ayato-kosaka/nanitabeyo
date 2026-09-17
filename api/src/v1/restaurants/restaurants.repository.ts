@@ -6,6 +6,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isSubstringIndexable } from './restaurant-name-match-mode';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { Prisma } from '../../../../shared/prisma/client';
@@ -13,8 +14,19 @@ import { QueryRestaurantsDto, QuerySavedRestaurantsDto } from '@shared/v1/dto';
 import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
 import { roundToOneDecimal } from '../../core/utils/backend-utils';
 
+/**
+ * #1779 検索・保存一覧が読む店の形。**落とす列（image_url / plus_code）は読まない。**
+ *
+ * `PrismaRestaurants` は生成物なので、そのまま使うと «落とすと決めた列» を
+ * SELECT し続けてしまう。ここで先に外し、列が実際に落ちても型が変わらないようにする。
+ */
+export type ReadableRestaurant = Omit<
+  PrismaRestaurants,
+  'image_url' | 'plus_code'
+>;
+
 export type RestaurantWithMeta = {
-  restaurant: PrismaRestaurants;
+  restaurant: ReadableRestaurant;
   meta: {
     reviewCount: number;
     averageRating: number;
@@ -24,7 +36,7 @@ export type RestaurantWithMeta = {
 };
 
 export type SavedRestaurantWithMeta = {
-  restaurant: PrismaRestaurants;
+  restaurant: ReadableRestaurant;
   meta: {
     reviewCount: number;
     averageRating: number;
@@ -38,6 +50,31 @@ export type RestaurantDishMediaEntry = DishMediaEntryEntity & {
     averageRating: number;
   };
 };
+
+/**
+ * #1951 店名の照合条件を組み立てる。**中間一致で索引が効くときだけ中間一致にする。**
+ *
+ * 索引が効かない短い `q` は、前方一致（`一蘭%`）と語頭一致（`% 一蘭%`）の OR にする。
+ * どちらも pg_trgm が左パディングを付けて trigram を取れるので、BitmapOr で索引に乗る
+ * （実測 0.56 ms。判定と根拠は `restaurant-name-match-mode.ts`）。
+ *
+ * ⚠️ **返り値は必ず括弧で包むこと。** 呼び出し側は直後に `AND ST_DWithin(...)` を続けるので、
+ *    括弧が無いと `OR` が `AND` より弱く結合して**半径の外の店まで返る**。
+ * ⚠️ 全角空白（U+3000）も区切りとして拾う。日本語の店名は「一蘭　渋谷店」の形が普通にある。
+ *
+ * @param escaped LIKE のワイルドカードをエスケープ済みの検索語（バインドするのはこちら）
+ * @param raw     エスケープ**前**の検索語（語数・文字数の判定に使う。`\` が混ざると数がずれるため）
+ */
+function buildNameMatch(escaped: string, raw: string): Prisma.Sql {
+  if (isSubstringIndexable(raw)) {
+    return Prisma.sql`(r.name ILIKE ${'%' + escaped + '%'})`;
+  }
+  return Prisma.sql`(
+            r.name ILIKE ${escaped + '%'}
+         OR r.name ILIKE ${'% ' + escaped + '%'}
+         OR r.name ILIKE ${'%\u3000' + escaped + '%'}
+          )`;
+}
 
 @Injectable()
 export class RestaurantsRepository {
@@ -81,10 +118,8 @@ export class RestaurantsRepository {
         | 'name_language_code'
         | 'latitude'
         | 'longitude'
-        | 'image_url'
         | 'image_path'
         | 'address_components'
-        | 'plus_code'
         | 'created_at'
         | 'source_seed_id'
         | 'source_names'
@@ -93,6 +128,7 @@ export class RestaurantsRepository {
         | 'created_by_source'
         | 'address'
         | 'country_code'
+        | 'subterritory_code'
       > & {
         review_count: number;
         average_rating: number;
@@ -222,10 +258,8 @@ export class RestaurantsRepository {
       r.name_language_code,
       r.latitude,
       r.longitude,
-      r.image_url,
       r.image_path,
       r.address_components,
-      r.plus_code,
       r.created_at,
       -- #843 catalog 同期の metadata
       r.source_seed_id,
@@ -236,6 +270,7 @@ export class RestaurantsRepository {
       r.created_by_source,
       r.address,
       r.country_code,
+      r.subterritory_code,
       agg.review_count,
       agg.average_rating,
       c.last_saved_at
@@ -281,10 +316,8 @@ export class RestaurantsRepository {
         name_language_code: row.name_language_code,
         latitude: row.latitude,
         longitude: row.longitude,
-        image_url: row.image_url,
         image_path: row.image_path,
         address_components: row.address_components,
-        plus_code: row.plus_code,
         created_at: row.created_at,
         source_seed_id: row.source_seed_id,
         source_names: row.source_names,
@@ -293,6 +326,7 @@ export class RestaurantsRepository {
         created_by_source: row.created_by_source,
         address: row.address,
         country_code: row.country_code,
+        subterritory_code: row.subterritory_code,
       },
       meta: {
         reviewCount: row.review_count,
@@ -328,8 +362,29 @@ export class RestaurantsRepository {
     const escapedNameQuery = nameQuery
       ? nameQuery.replace(/[\\%_]/g, (c) => `\\${c}`)
       : null;
+    /*
+      #1951 【性能】**2 文字以下の店名は «中間一致» で引かない。前方一致 / 語頭一致へ切り替える。**
+
+      pg_trgm は LIKE のパターンから trigram（3 文字）を取り出せないと索引を使えない。
+      `%一蘭%` は両端が % なので trigram が 0 個。索引が使えないとプランナは
+      **位置索引だけを駆動表**にして半径内の行をヒープから全部読み、name で捨てる。
+      行が太い（address_components JSONB）ぶんリモートストレージの読みが効いて、
+      本番で **20.34 秒**かかっていた（一蘭 / 半径 1,500km。2026-09-09 実測）。
+      入口が Seq Scan とは限らない（dev では位置索引経由で 20,220 ms）。詳細は
+      `restaurant-name-match-mode.ts`。
+
+      `一蘭%` なら `"  一"` `" 一蘭"` の 2 個が取れて索引が効く（実測 0.44 ms）。
+      空白区切りの語頭（`% 一蘭%`）も同じ理屈で拾えるので、
+      「一風堂 渋谷店」のような支店名つきの表記も当たる。
+
+      ⚠️ **判定を `length >= 3` にしないこと。** pg_trgm が見るのは «連続した語» なので、
+         語が 2 つあれば 1 文字ずつでも trigram は取れる。判定の正は
+         `restaurant-name-match-mode.ts` の `isSubstringIndexable` 1 箇所だけに置く。
+      ⚠️ 失うもの: 2 文字以下では **語中一致を拾わない**（「一蘭」で「博多一蘭本店」は出ない）。
+         3 文字目を打てば中間一致に戻る。判断ログは #1951。
+    */
     const nameFilter = escapedNameQuery
-      ? Prisma.sql`AND r.name ILIKE ${'%' + escapedNameQuery + '%'}`
+      ? Prisma.sql`AND ${buildNameMatch(escapedNameQuery, nameQuery as string)}`
       : Prisma.empty;
     // 店名で絞ったときは «投稿が多い順» ではなく距離順にする。
     // 店舗選択 UI で「一蘭」と打った結果が投稿数で並ぶのは不自然なため
@@ -485,6 +540,11 @@ export class RestaurantsRepository {
           再現環境（半径 1,500km・希少な店名）で Bitmap Index Scan on
           idx_restaurants_name_trgm → 8 ms。
 
+          ⚠️ #1951 **「trgm で絞れる」が成り立つのは «連続する語が 3 文字以上» のときだけ**である。
+             2 文字以下の中間一致（パーセントで囲む形）は trigram が 0 個で索引が使えず、
+             本番で **20.34 秒**かかっていた。だから照合の形そのものを
+             buildNameMatch が切り替える（前方一致 / 語頭一致）。ここの並べ方の話とは別の層。
+
           ⚠️ ここで «KNN + LIMIT を内側に閉じる» 形（nearest と同じ形）にしてはいけない。
              店名が希少だと «近い順に舐めて 20 件そろうまで» が全件走査になる。
 
@@ -499,7 +559,7 @@ export class RestaurantsRepository {
         SELECT r.id
         FROM restaurants r
         WHERE
-          r.name ILIKE ${'%' + escapedNameQuery + '%'}
+          ${buildNameMatch(escapedNameQuery, nameQuery as string)}
           AND ST_DWithin(r.location, ${originPoint}, ${radiusInMeters})
         ORDER BY ST_Distance(r.location, ${originPoint}) ASC LIMIT ${limitSql}`
             : Prisma.sql`
@@ -762,10 +822,8 @@ export class RestaurantsRepository {
         | 'name_language_code'
         | 'latitude'
         | 'longitude'
-        | 'image_url'
         | 'image_path'
         | 'address_components'
-        | 'plus_code'
         | 'created_at'
         | 'source_seed_id'
         | 'source_names'
@@ -774,6 +832,7 @@ export class RestaurantsRepository {
         | 'created_by_source'
         | 'address'
         | 'country_code'
+        | 'subterritory_code'
       > & {
         review_count: number;
         average_rating: number;
@@ -789,11 +848,9 @@ export class RestaurantsRepository {
         r.name_language_code,
         r.latitude,
         r.longitude,
-        r.image_url,
-        r.image_path,
+          r.image_path,
         r.address_components,
-        r.plus_code,
-        r.created_at,
+          r.created_at,
         -- #843 catalog 同期の metadata
         r.source_seed_id,
         r.source_names,
@@ -801,10 +858,9 @@ export class RestaurantsRepository {
         r.synced_at,
         -- #843 その行を誰が作ったか。9_1 の同期はこの値が 'pipeline' の行だけを上書きする
         r.created_by_source,
-      r.address,
-      r.country_code,
         r.address,
         r.country_code,
+        r.subterritory_code,
         c.total_cents,
         c.max_end_date,
         agg.review_count,
@@ -876,6 +932,72 @@ export class RestaurantsRepository {
     });
   }
 
+  /**
+   * #1671 【設計】**空いている住所・国コードだけを埋める。既にある値は上書きしない。**
+   *
+   * ⚠️ **«62 万行が空» は事実ではなかった**（2026-09-05 実測 / #1846 のついでに計測）。
+   *    dev の 621,974 店のうち `address` は 620,300 店（99.73%）、`country_code` は
+   *    621,964 店（100.00%）が既に埋まっている。空いているのは address が 1,674 行
+   *    （0.27%）、country_code が 10 行だけである。**この関数はほぼ no-op である。**
+   *    害は無い（空きしか埋めない）が、«62 万行のための機能» ではない。
+   *
+   * もともとの想定は «パイプライン製の行は address / country_code が空で、ユーザーが
+   * POI を押しても «既存店だからそのまま開く» 経路に入るため**永久に埋まらなかった**。
+   * 確認ページを通ったときだけ、ユーザーが確認した値でその穴を塞ぐ。
+   *
+   * ⚠️ **上書きはしない。** 既に誰かが確認して入れた値を、後から来た別のユーザーの
+   * 確認で書き換えると «最後に触った人が勝つ» になる。埋まっているものは触らない。
+   * （競合の解決を入れるなら #1827 の結論を待つ）
+   *
+   * ⚠️ 判定は **SQL の WHERE でやる**。読んでから TS で分岐して書くと、
+   * 同じ店を 2 人が同時に確認したときに後勝ちが起きる。
+   *
+   * @returns 実際に埋めた行数（0 なら既に埋まっていた）
+   */
+  async fillMissingAddress(
+    tx: Prisma.TransactionClient,
+    params: {
+      restaurantId: string;
+      address: string;
+      countryCode: string | null;
+      subterritoryCode: string | null;
+    },
+  ): Promise<number> {
+    const { restaurantId, address, countryCode, subterritoryCode } = params;
+
+    /*
+      #1671 【設計】**列ごとに «空いているものだけ» を埋める。**
+
+      ⚠️ 以前はここが `updateMany` で、WHERE に «どれか 1 つでも空なら» を書き、
+      SET では `address` を **無条件に**書いていた。そのため
+
+          address = '既に確認済みの住所' / country_code = NULL
+
+      の行が WHERE に引っかかり、**埋まっていた住所を上書きしていた**。
+      「埋まっているものは触らない」と書いてあるのに、そうなっていなかった。
+
+      Prisma の updateMany は «列ごとに条件を変える» を書けないので、生 SQL にする。
+      `COALESCE(NULLIF(col, ''), $新しい値)` なら、空（NULL または空文字）のときだけ
+      新しい値が入り、埋まっている列はそのままの値で上書きされる（＝実質そのまま）。
+
+      ⚠️ 判定は SQL の中に閉じること。読んでから TS で分岐して書くと、
+      同じ店を 2 人が同時に確認したときに後勝ちが起きる。
+    */
+    return tx.$executeRaw(Prisma.sql`
+      UPDATE restaurants
+      SET
+        address           = COALESCE(NULLIF(address, ''), ${address}),
+        country_code      = COALESCE(NULLIF(country_code, ''), ${countryCode}),
+        subterritory_code = COALESCE(NULLIF(subterritory_code, ''), ${subterritoryCode})
+      WHERE id = ${restaurantId}::uuid
+        AND (
+             NULLIF(address, '') IS NULL
+          OR NULLIF(country_code, '') IS NULL
+          OR NULLIF(subterritory_code, '') IS NULL
+        )
+    `);
+  }
+
   /* ------------------------------------------------------------------ */
   /*                   Restaurant review statistics (count + average rating)                       */
   /* ------------------------------------------------------------------ */
@@ -934,6 +1056,35 @@ export class RestaurantsRepository {
       totalCents,
       maxEndDate,
     };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*      #1666 店舗詳細に出す «通常の 1 週間の営業時間» を引く          */
+  /* ------------------------------------------------------------------ */
+  /**
+   * ⚠️ **1 店ぶんだけを引く。** `restaurant-opening-status.ts` の方は «近くの候補集合» へ
+   * 絞る必要があったが（62 万店 × 曜日を毎回引き上げていた）、ここは主キー前方一致の
+   * 1 店なので `idx_restaurant_opening_hours_lookup` がそのまま効く。
+   *
+   * 出所の優先順位は **解決しない**。ここは生の行を返し、解決は
+   * `shared/utils/openingHours.ts` の `buildWeeklyOpeningHours` が 1 箇所で行う
+   * （判定側と同じ規則を使うため。SQL へ書き写すと片方だけずれる）。
+   */
+  async findRestaurantOpeningHours(
+    tx: Prisma.TransactionClient,
+    restaurantId: string,
+  ) {
+    return tx.restaurant_opening_hours.findMany({
+      where: { restaurant_id: restaurantId },
+      select: {
+        source: true,
+        day_of_week: true,
+        opens_at: true,
+        closes_at: true,
+        crosses_midnight: true,
+        fetched_at: true,
+      },
+    });
   }
 
   /* ------------------------------------------------------------------ */

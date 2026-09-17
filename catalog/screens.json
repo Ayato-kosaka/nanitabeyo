@@ -1075,6 +1075,27 @@
 			]
 		},
 		{
+			"id": "my-dishes-confirm-restaurant",
+			"name": "新規店舗の確認ページ",
+			"route": "/[locale]/my-dishes/confirm-restaurant",
+			"url": "/ja-JP/my-dishes/confirm-restaurant?googlePlaceId=ChIJE2MvXVTmHWARPKqtRuhauM8",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "optional",
+					"session": "authenticated",
+					"note": "dev に居る google_place_id を使う。dev に無い店だとサーバが Place Details を 2 回叩いて課金する"
+				}
+			},
+			"state": "店名・地図・住所・国の 4 項目を確認する（#1671）",
+			"description": "POI タップ・店名検索から新規店舗を作る前に、Google の値をユーザーが確認・修正する画面。ここで確定した値が自社データになる。",
+			"from": ["店舗選択（レビュー投稿）"],
+			"to": ["店舗詳細"]
+		},
+		{
 			"id": "review-restaurant-detail",
 			"name": "店舗詳細",
 			"route": "/[locale]/restaurant/[restaurantId]",
@@ -1102,6 +1123,28 @@
 				"ログイン（ゲストが投稿を押したとき）"
 			],
 			"note": "レストラン選択で POST /v1/restaurants が走る（同一 Place は upsert のため重複しない）。#1386 でルート化そのものの検証は e2e-web の tests/my-dishes/restaurant-routes.spec.ts / e2e-mobile の tests/my-dishes/restaurant-routes.test.ts が API モック・ディープリンクで持つ。"
+		},
+		{
+			"id": "review-restaurant-detail-opening-hours",
+			"name": "店舗詳細（営業時間あり）",
+			"route": "/[locale]/restaurant/[restaurantId]",
+			"url": "/ja-JP/restaurant/000745eb-de1e-4cb8-be06-c466a05e0de5",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon",
+					"note": "web は e2e-web/scripts/ui-preview.mjs がモックで撮る（docs/evidence/1666/）"
+				},
+				"mobile": {
+					"capture": "optional",
+					"session": "anon",
+					"note": "Detox は API をモックできないので dev の実データを使う。営業時間を持つ店が dev から消えたら撮れずに素通りする"
+				}
+			},
+			"state": "営業時間を持つ店。曜日ごとの時間・定休・日またぎ・出所と取得日が出る（#1666）",
+			"description": "店舗詳細のうち «営業時間» 欄が描かれる状態。データを持たない店ではこの欄ごと出ないため、実データを持つ店を指定して撮る。",
+			"from": ["店舗選択（レビュー投稿）", "URL 直リンク"],
+			"to": ["投稿フィード"]
 		},
 		{
 			"id": "review-post-form",

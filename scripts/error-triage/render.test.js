@@ -25,7 +25,7 @@ const {
 	sanitizeInlineText,
 	shouldUpdateBody,
 } = require("./render");
-const { FP_ALGO_VERSION } = require("./constants");
+const { FP_ALGO_VERSION, SEV_ALERT_USER_THRESHOLD } = require("./constants");
 const { computeFingerprint } = require("./fingerprint");
 const { buildEnvelope, buildPlan } = require("./triage");
 const { computeWindow } = require("./window");
@@ -139,6 +139,45 @@ describe("renderIssueBody() — 新規起票", () => {
 
 	it("firstSeen マーカーは今回の観測値になる", () => {
 		expect(extractFirstSeenUtc(body)).toBe("2026-08-06T00:14:02Z");
+	});
+});
+
+// #1946 障害規模のものが 38 件の中に埋もれないための番人。
+// Issue（#1853）は初日に立っていたのに 6 日間気づかれなかった。
+describe("renderIssueBody() — 障害規模ならオーナーを名指しする", () => {
+	const severe = { ...backendGroup, affectedUsers: SEV_ALERT_USER_THRESHOLD };
+
+	test("しきい値以上なら @Ayato-kosaka と影響ユーザー数を先頭に出す", () => {
+		const body = renderIssueBody({ group: severe, window: WINDOW, generatedAt: GENERATED_AT });
+		expect(body).toContain("@Ayato-kosaka");
+		expect(body).toContain(`影響ユーザー ${SEV_ALERT_USER_THRESHOLD} 人`);
+		expect(body).toContain("[!CAUTION]");
+	});
+
+	// ⚠️ 既存 Issue の body 更新では名指ししない。実測でしきい値超は毎日 3〜4 件あるので、
+	// 更新のたびに出すと «毎日飛ぶ» ことになり、鳴らないのと同じになる（#1946 オーナー指摘）
+	test("既存 body の更新では名指ししない（新規起票のときだけ）", () => {
+		const first = renderIssueBody({ group: severe, window: WINDOW, generatedAt: GENERATED_AT });
+		expect(first).toContain("@Ayato-kosaka");
+
+		const updated = renderIssueBody({
+			group: severe,
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+			existingBody: first,
+		});
+		expect(updated).not.toContain("@Ayato-kosaka");
+	});
+
+	// ⚠️ 普段の Issue でメンションを飛ばさないための逆側の番人。鳴りっぱなしは «鳴らない» と同じ
+	test("しきい値未満なら名指ししない", () => {
+		const body = renderIssueBody({
+			group: { ...backendGroup, affectedUsers: SEV_ALERT_USER_THRESHOLD - 1 },
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+		});
+		expect(body).not.toContain("@Ayato-kosaka");
+		expect(body).not.toContain("[!CAUTION]");
 	});
 });
 

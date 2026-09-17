@@ -156,6 +156,27 @@ export async function reportPreviousSessionCrash(): Promise<boolean> {
 	} catch {
 		// 壊れていても «落ちた» という事実は残す
 	}
+	// #1830 【バグ】**自分たちが起こしたリロードを «異常終了» と数えていた。**
+	//
+	// expo-updates が新しいバンドルを取り込むと、アプリは «前面に居たまま» JS をリロードする。
+	// AppState は background を通らないので下の 4) の消去が走らず、印が残ったまま次のセッションが
+	// 始まる。その結果 «前回は落ちて終わった» と記録される。
+	//
+	// 実測（本番 2026-09-06〜09-09 / 506 件）: **496 件（98%）で previousCommitId が
+	// 現在の commitId と違っていた**＝更新が入った直後だった。前回セッションの開始からの
+	// 中央値も **6 秒**で、クラッシュではなくリロードの形をしている。
+	// 影響はアクティブユーザーの **48〜63%/日**で、error-triage には 14 件の Issue が立った。
+	//
+	// commitId が変わっていたら «更新で入れ替わった» のであって落ちたのではない。印だけ消して黙る。
+	//
+	// ⚠️ 代償: «落ちた直後に更新が入って、その次の起動で報告される» ケースは取りこぼす。
+	// 更新の配信中に落ちたときだけの狭い窓で、496 件の誤検知を残す不利益の方がはるかに大きい。
+	// ストア更新でも commitId は変わるので、そちらも同じ扱いになる（アプリが入れ替わっただけ）。
+	if (previous.commitId && previous.commitId !== Env.COMMIT_ID) {
+		await clearLiveSession();
+		return false;
+	}
+
 	logCrashEvent(PREVIOUS_SESSION_CRASHED_EVENT, previous.pathName ?? null, {
 		// ⚠️ message は fingerprint の素材。画面ごとに分かれてほしいので画面名を入れる
 		message: `previous session terminated at ${previous.pathName ?? "unknown"}`,

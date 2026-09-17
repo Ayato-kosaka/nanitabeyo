@@ -2,15 +2,21 @@
 //
 // #721 共有カードの HTML が、JS 無しで OGP を持ち、外部由来の文字列で壊れないことを固定する。
 
-import { escapeHtml, renderSharePage, type SharePageParams } from './share-page.html';
+import {
+  escapeHtml,
+  renderSharePage,
+  type SharePageParams,
+} from './share-page.html';
 
 const BASE_PARAMS: SharePageParams = {
   title: '唐揚げ定食 - からあげ食堂',
-  description: 'からあげ食堂 の 唐揚げ定食。なに食べよ で写真とレビューを見る。',
+  description:
+    'からあげ食堂 の 唐揚げ定食。なに食べよ で写真とレビューを見る。',
   imageUrl: 'https://app.nanitabeyo.net/s/s1_abc/og-image',
   canonicalUrl: 'https://app.nanitabeyo.net/s/s1_abc',
   ogLocale: 'ja_JP',
-  openInAppUrl: 'https://oia-relay.web.app/oia/open/?u=https%3A%2F%2Fapp.nanitabeyo.net%2Fja-JP%2Fposts',
+  openInAppUrl:
+    'https://oia-relay.web.app/oia/open/?u=https%3A%2F%2Fapp.nanitabeyo.net%2Fja-JP%2Fposts',
   openInWebUrl: 'https://app.nanitabeyo.net/ja-JP/posts?ids=a',
   labels: { openInApp: 'アプリで開く', openInWeb: 'ブラウザで見る' },
 };
@@ -20,12 +26,20 @@ describe('#721 共有カードの HTML', () => {
     const html = renderSharePage(BASE_PARAMS);
 
     // ここが本題。クローラは初回レスポンスの HTML しか見ない
-    expect(html).toContain('<meta property="og:title" content="唐揚げ定食 - からあげ食堂">');
+    expect(html).toContain(
+      '<meta property="og:title" content="唐揚げ定食 - からあげ食堂">',
+    );
     expect(html).toContain('<meta property="og:type" content="article">');
-    expect(html).toContain(`<meta property="og:url" content="${BASE_PARAMS.canonicalUrl}">`);
-    expect(html).toContain(`<meta property="og:image" content="${BASE_PARAMS.imageUrl}">`);
+    expect(html).toContain(
+      `<meta property="og:url" content="${BASE_PARAMS.canonicalUrl}">`,
+    );
+    expect(html).toContain(
+      `<meta property="og:image" content="${BASE_PARAMS.imageUrl}">`,
+    );
     expect(html).toContain('<meta property="og:locale" content="ja_JP">');
-    expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
+    expect(html).toContain(
+      '<meta name="twitter:card" content="summary_large_image">',
+    );
     // #1194 script は「人間を対象ページへ送る」ためだけに 1 つだけ入る。
     // ⚠️ OGP がそれに依存していないこと（= JS 無効でも読めること）が本題なので、
     // 「script が無い」ではなく「OGP が head の静的な meta として出ている」で守る。
@@ -59,7 +73,8 @@ describe('#721 共有カードの HTML', () => {
   it('script へ埋め込む URL は < を \\u003C へ落とす', () => {
     const html = renderSharePage({
       ...BASE_PARAMS,
-      openInWebUrl: 'https://app.nanitabeyo.net/ja-JP/posts?ids=</script><script>alert(1)</script>',
+      openInWebUrl:
+        'https://app.nanitabeyo.net/ja-JP/posts?ids=</script><script>alert(1)</script>',
     });
 
     // 埋め込んだ側が script を閉じられていないこと（開始タグは元の 1 つだけ）
@@ -107,13 +122,19 @@ describe('#721 共有カードの HTML', () => {
     });
 
     it('description も同様にエスケープする', () => {
-      const html = renderSharePage({ ...BASE_PARAMS, description: '"><img src=x onerror=alert(1)>' });
+      const html = renderSharePage({
+        ...BASE_PARAMS,
+        description: '"><img src=x onerror=alert(1)>',
+      });
 
       expect(html).not.toContain('<img src=x');
     });
 
     it('画像 URL も属性値としてエスケープする', () => {
-      const html = renderSharePage({ ...BASE_PARAMS, imageUrl: 'https://x/"><script>' });
+      const html = renderSharePage({
+        ...BASE_PARAMS,
+        imageUrl: 'https://x/"><script>',
+      });
 
       expect(html).not.toContain('"><script>');
     });

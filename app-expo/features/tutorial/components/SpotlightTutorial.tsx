@@ -535,6 +535,18 @@ export function SpotlightTutorial<K extends string>({
 
 		// 読み上げ開始後、タイトルへフォーカスを移す。親Viewをaccessibleにすると
 		// 子の「スキップ」「次へ」が1要素へ統合されるため、タイトルだけを対象にする。
+		//
+		// ⚠️ #1808 **web では呼ばない。** react-native-web の `findNodeHandle` は
+		// null を返すのではなく **throw する**（"findNodeHandle is not supported on web.
+		// Use the ref property on the component instead."）。ここは setTimeout の中なので
+		// その例外を拾う者が居らず、**未捕捉エラーとしてアプリごと落ちていた**
+		// （本番 2026-09-13〜15 に 14 人 / 全件 /my-dishes / isFatal: true）。
+		//
+		// web の読み上げは直前の `announceForAccessibility`（RN Web では aria-live）が担う。
+		// フォーカス移動だけが web で落ちる。DOM の focus() へ寄せるには Text を focusable に
+		// する必要があり、タブ順序を変えてしまうので、ここでは移動を諦めて落とさないことを採る。
+		if (Platform.OS === "web") return;
+
 		const focusTimeoutId = setTimeout(() => {
 			const nodeHandle = findNodeHandle(titleRef.current);
 			if (nodeHandle) {

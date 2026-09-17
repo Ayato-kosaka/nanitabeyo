@@ -4,7 +4,7 @@ import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import { FixedColors } from "@/constants/Palette";
 import { Text } from "react-native";
-import Stars from "@/components/Stars";
+import { DishRating } from "@/components/DishRating";
 import { useDishMediaEntriesStore, selectIdsByKey, selectEntryByMediaId } from "@/stores/useDishMediaEntriesStore";
 import { useRestaurantDishMediaFetcher } from "../../hooks/useRestaurantDishMediaFetcher";
 import { shallow } from "zustand/shallow";
@@ -92,10 +92,14 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 					onPress={() => handleItemPress(index, entry.dish_media.id)}>
 					<View style={styles.reviewCardOverlay}>
 						<Text style={styles.reviewCardTitle}>{entry.dish.name}</Text>
-						<View style={styles.reviewCardRating}>
-							<Stars rating={entry.dish.averageRating} />
-							<Text style={styles.reviewCardRatingText}>({entry.dish.reviewCount})</Text>
-						</View>
+						{/* #1667 0 件のときは何も描かない。判定は DishRating に閉じてある */}
+						<DishRating
+							averageRating={entry.dish.averageRating}
+							reviewCount={entry.dish.reviewCount}
+							containerStyle={styles.reviewCardRating}
+							countStyle={styles.reviewCardRatingText}
+							testID="restaurant-review-card-rating"
+						/>
 					</View>
 				</ImageCard>
 			);

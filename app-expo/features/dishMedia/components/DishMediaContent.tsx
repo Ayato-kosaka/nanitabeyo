@@ -8,6 +8,7 @@ import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import i18n from "@/lib/i18n";
+import { DishPriceBand } from "@/components/DishPriceBand";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import {
 	NormalizedDishMediaEntry,
@@ -388,7 +389,17 @@ export default function DishMediaContent({
 					<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
 					{/* #956 【仕様】評価表示は「投稿者が付けた星」(DishReviewsSection側)のみとし、
 					    平均評価はレビュー数が少ないフェーズでは目安として機能しないため表示しない */}
-					<View style={styles.priceRatingContainer}></View>
+					{/* #1774 価格帯はここに出す。API は前から返していたが、**読む画面が無かった**。
+					    根拠（価格つきレビュー3件以上・通貨が定まる）が無ければ何も描かない。
+					    ⚠️ «3件未満なら» のような条件をここへ書かないこと。判定は
+					    shared/utils/priceBand.ts が唯一の置き場で、ここは値の有無だけを見る */}
+					<View style={styles.priceRatingContainer}>
+						<DishPriceBand
+							priceBand={dishMediaEntry.dish.priceBand}
+							style={styles.priceBandText}
+							testID="dish-media-price-band"
+						/>
+					</View>
 				</View>
 				<View style={styles.headerRight}></View>
 			</View>
@@ -463,6 +474,13 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 12,
+	},
+	// #1774 動画・写真の上に重なるので、menuName と同じ «白 + 影» で読めるようにする
+	priceBandText: {
+		color: FixedColors.onMedia,
+		textShadowColor: "rgba(0, 0, 0, 0.5)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 3,
 	},
 	price: {
 		fontSize: 20,

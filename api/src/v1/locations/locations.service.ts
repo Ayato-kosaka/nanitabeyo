@@ -62,9 +62,34 @@ export class LocationsService {
   ) {}
 
   /**
-   * addressComponents から国コード (ISO-2) と州コード (ISO-3166-2) を抽出
+   * #1671 addressComponents から国コード (ISO-2) だけを取り出す公開口。
+   *
+   * 確認ページ（POST /v1/restaurants/draft）が「この店はどの国か」を出すために使う。
+   * ⚠️ **判定は `extractLocationCodes` に委譲する。** ここへ同じ find を書き写すと、
+   * shortText 欠損の扱い（#677）のような細部が片方だけ直って静かにずれる。
    */
-  private extractLocationCodes(
+  extractCountryCode(
+    addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
+  ): string | null {
+    return this.extractLocationCodes(addressComponents).countryCode;
+  }
+
+  /**
+   * #1671 addressComponents から «国» と «サブ領域» を 1 度に取り出す公開口。
+   *
+   * ⚠️ **`extractCountryCode` と別に呼び分けないこと。** 2 つの値は同じ
+   * `addressComponents` から同時に決まる（`subterritoryCode` は `countryCode` を
+   * 前置きした連結）。片方だけ取り直すと、shortText 欠損の扱い（#677）が
+   * 片方にだけ効いて静かにずれる。
+   *
+   * ⚠️ 返る `subterritoryCode` は **ISO 3166-2 とは限らない**。中身は
+   * `${countryCode}-${administrative_area_level_1.shortText}` で、日本では
+   * `JP-Oita` のように英語名が入る。`subterritory_overrides.json` との
+   * **完全一致引き**にしか使わないので、一致しなければ国レベルへ落ちるだけである
+   * （DB 側に ISO の形を要求する CHECK を置かない理由もこれ。
+   *   migration 20260904T0000 のコメントを参照）。
+   */
+  extractLocationCodes(
     addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
   ): {
     countryCode: string | null;
@@ -77,7 +102,9 @@ export class LocationsService {
     // `addressComponents.find is not a function` で POST /v1/dishes が 500 になる。
     // Google API 由来の呼び出し元は手前で存在チェックしているが、DB 由来の経路には
     // それが無い。フロント側（app-expo/lib/googlePlaces.ts）には同じガードがある。
-    const components = Array.isArray(addressComponents) ? addressComponents : [];
+    const components = Array.isArray(addressComponents)
+      ? addressComponents
+      : [];
     const countryComponent = components.find((component) =>
       component?.types?.includes('country'),
     );
@@ -144,17 +171,48 @@ export class LocationsService {
   }
 
   /**
-   * addressComponents から最適な言語コードを解決
+   * 最適な言語コードを解決する。
+   *
+   * #1671 【設計】**`addressComponents` を先に見て、無ければ保存済みの列へ落ちる。**
+   *
+   * 長らく `addressComponents` «だけ» を見ていたが、dev の実測で
+   * **621,974 店のうち 619,498 店（99.60%）は `addressComponents` に country を
+   * 持っていない**ことが分かった（パイプライン製の行は `address_components_json`
+   * が `'[]'`）。その結果 `'en'` へ落ち、**36,051 件（全料理の 92.44%）が
+   * 英語名で作られていた**（run 33939661379）。日本の店に英語の料理名が付く。
+   *
+   * 一方 `country_code` **列**は 621,964 店（100.00%）が埋まっている。
+   * 国は分かっているのに、命名だけが国を知らない状態だった。
+   *
+   * ⚠️ **順序を入れ替えないこと。** `addressComponents` を先に見るのは、
+   * そちらには州（`administrative_area_level_1`）も入っており、
+   * スイス・スペイン・ベルギーのように州で言語が変わる国で精度が高いからである。
+   * 列を先に見ると、いま正しく引けている 0.40% がむしろ悪くなる。
+   *
+   * ⚠️ **国と州は «組» で選ぶ。** 片方を components、もう片方を列から取ると、
+   * 別の国の州コードを混ぜかねない（`JP` + `CH-GE` のような組）。
    */
   resolveLocalLanguageCode(
     addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
+    /** 店に保存済みの値。`addressComponents` から引けなかったときだけ使う */
+    stored?: {
+      countryCode?: string | null;
+      subterritoryCode?: string | null;
+    },
   ): string {
-    const { countryCode, subterritoryCode } =
-      this.extractLocationCodes(addressComponents);
+    const derived = this.extractLocationCodes(addressComponents);
+    const useDerived = derived.countryCode !== null;
+    const countryCode = useDerived
+      ? derived.countryCode
+      : stored?.countryCode || null;
+    const subterritoryCode = useDerived
+      ? derived.subterritoryCode
+      : stored?.subterritoryCode || null;
 
     if (!countryCode) {
       this.logger.warn('CountryCodeNotFound', 'resolveLocalLanguageCode', {
         addressComponents,
+        storedCountryCode: stored?.countryCode ?? null,
       });
       return 'en'; // フォールバック
     }
@@ -167,6 +225,8 @@ export class LocationsService {
     this.logger.debug('LanguageResolution', 'resolveLocalLanguageCode', {
       countryCode,
       subterritoryCode,
+      // どちらを使ったか。«列から読めた件数» を後から BigQuery で追えるようにする
+      source: useDerived ? 'addressComponents' : 'storedColumns',
       candidates,
     });
 

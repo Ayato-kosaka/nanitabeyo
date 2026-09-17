@@ -25,10 +25,10 @@ from normalization import (
     s2_cell_id,
 )
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
+from search_bounds import in_search_bounds
 
 LOGGER = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[2]
-JAPAN_BOUNDS = {"min_lat": 20.0, "max_lat": 46.5, "min_lon": 122.0, "max_lon": 154.0}
 
 
 def parse_args() -> argparse.Namespace:
@@ -104,10 +104,15 @@ def valid_coordinates(latitude: Any, longitude: Any) -> bool:
     return -90.0 <= latitude <= 90.0 and -180.0 <= longitude <= 180.0
 
 
-def in_japan_bounds(latitude: Any, longitude: Any) -> bool:
-    """今回の探索範囲（日本）に入るか。
+def in_scope_bounds(latitude: Any, longitude: Any) -> bool:
+    """取り込みの探索範囲に入るか。
 
-    open data 側は日本のぶんしか取り込まないのでこれで絞る。
+    ⚠️ #1881 **«日本にあるか» ではない。** かつて `in_japan_bounds` という名前で、
+       同じ矩形が国コードの判定にも使い回されていた（朝鮮半島もウラジオストクも
+       この矩形に入るので、dev の 98,139 行が «日本にない JP» になった）。
+       矩形の定義は `search_bounds.py` 1 本に寄せてある。国コードは
+       `country_resolution.py` が住所から決める。
+
     既存PG行には課さない — 海外の店を «無かったこと» にしないため。
     Google 照合へ回すかどうかも、最終的にはこの判定で決まる（3_2 は
     seed の座標を使って矩形を組み立てるので、範囲外の seed は候補にならない）。
@@ -115,10 +120,7 @@ def in_japan_bounds(latitude: Any, longitude: Any) -> bool:
 
     if not valid_coordinates(latitude, longitude):
         return False
-    return (
-        JAPAN_BOUNDS["min_lat"] <= latitude <= JAPAN_BOUNDS["max_lat"]
-        and JAPAN_BOUNDS["min_lon"] <= longitude <= JAPAN_BOUNDS["max_lon"]
-    )
+    return in_search_bounds(latitude, longitude)
 
 
 def query_rows(
@@ -173,7 +175,7 @@ def build_common_row(
     cleaned_name = (name or "").strip()
     if not cleaned_name:
         return None
-    in_scope = in_japan_bounds if require_japan else valid_coordinates
+    in_scope = in_scope_bounds if require_japan else valid_coordinates
     if not in_scope(latitude, longitude):
         return None
     assert latitude is not None and longitude is not None

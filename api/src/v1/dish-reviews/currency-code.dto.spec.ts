@@ -70,6 +70,52 @@ describe('#1599 currencyCode は英字 3 文字だけ通す', () => {
   });
 
   /**
+   * #1774 `price_cents` は最小単位の整数で、桁数は通貨ごとに違う（JPY は 0 桁、USD は 2 桁）。
+   * 通貨の無い価格は数として意味を持たず、表示側も `null` にするので
+   * **保存はされるが誰にも見えない行**になる。境界で 400 にする。
+   */
+  describe('#1774 価格を送るなら通貨も要る', () => {
+    const build = (
+      Dto: typeof CreateDishReviewDto | typeof CreateDishMediaReviewDto,
+      body: Record<string, unknown>,
+    ) =>
+      validateSync(
+        plainToInstance(Dto as typeof CreateDishReviewDto, {
+          dishId: '11111111-1111-4111-8111-111111111111',
+          comment: 'おいしい',
+          languageCode: 'ja',
+          rating: 5,
+          ...body,
+        }),
+      )
+        .map((e) => e.property)
+        .sort();
+
+    it.each([[CreateDishReviewDto], [CreateDishMediaReviewDto]])(
+      '%p: priceCents があるのに currencyCode が無いと弾く',
+      (Dto) => {
+        expect(build(Dto, { priceCents: 500 })).toContain('currencyCode');
+      },
+    );
+
+    it('priceCents と currencyCode が揃っていれば通る', () => {
+      expect(
+        build(CreateDishReviewDto, { priceCents: 500, currencyCode: 'JPY' }),
+      ).not.toContain('currencyCode');
+    });
+
+    it('priceCents が無ければ currencyCode も省略できる', () => {
+      expect(build(CreateDishReviewDto, {})).not.toContain('currencyCode');
+    });
+
+    it('priceCents があっても currencyCode の «形» の検査は効いたまま', () => {
+      expect(
+        build(CreateDishReviewDto, { priceCents: 500, currencyCode: 'JPYY' }),
+      ).toContain('currencyCode');
+    });
+  });
+
+  /**
    * ⚠️ ここが本命。`@IsISO4217CurrencyCode()` へ «改善» したくなるが、
    * class-validator の一覧は古く、**アプリ自身が送りうる ZWG
    * （ジンバブエ・ゴールド、2024 年導入）を弾いてしまう**。
@@ -80,7 +126,16 @@ describe('#1599 currencyCode は英字 3 文字だけ通す', () => {
     // **一覧をここへ書き写すと必ずずれる**ので、正本のソースから読み取る。
     // 対応通貨が増えたときに、この検査が «その通貨は弾かれる» と教えてくれる。
     const source = readFileSync(
-      join(__dirname, '..', '..', '..', '..', 'app-expo', 'lib', 'googlePlaces.ts'),
+      join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        'app-expo',
+        'lib',
+        'googlePlaces.ts',
+      ),
       'utf8',
     );
     const start = source.indexOf('export const COUNTRY_TO_CURRENCY_MAP');

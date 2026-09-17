@@ -29,6 +29,7 @@ import {
 import {
   QueryRestaurantsDto,
   CreateRestaurantDto,
+  CreateRestaurantDraftDto,
   QueryRestaurantDishMediaDto,
   QueryRestaurantsByGooglePlaceIdDto,
   RestaurantIdParamsDto,
@@ -36,9 +37,11 @@ import {
 import {
   QueryRestaurantsResponse,
   CreateRestaurantResponse,
+  CreateRestaurantDraftResponse,
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
   GetRestaurantByIdResponse,
+  GetRestaurantOpeningHoursResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -102,6 +105,31 @@ export class RestaurantsController {
   }
 
   /* ------------------------------------------------------------------ */
+  /*                  POST /v1/restaurants/draft                        */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * #1671 確認ページへ出す値を、**店を作らずに**取ってくる。
+   *
+   * ⚠️ このパスは `POST /v1/restaurants` より **先に** 宣言する必要はない
+   * （どちらも固定パスで衝突しない）が、`@Get(':id')` より前に置く決まりは守ること。
+   */
+  @Post('draft')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({
+    summary: '#1671 確認ページ用に Google Place の値を下読みする（保存しない）',
+  })
+  @ApiResponse({ status: 201, description: '下読み成功' })
+  @ApiResponse({ status: 404, description: 'Google Place が見つからない' })
+  @ApiResponse({ status: 422, description: '飲食店ではない Place' })
+  async createRestaurantDraft(
+    @Body() dto: CreateRestaurantDraftDto,
+  ): Promise<CreateRestaurantDraftResponse> {
+    return this.restaurantsService.createRestaurantDraft(dto);
+  }
+
+  /* ------------------------------------------------------------------ */
   /*            GET /v1/restaurants/by-google-place-id                  */
   /* ------------------------------------------------------------------ */
   @Get('by-google-place-id')
@@ -139,6 +167,28 @@ export class RestaurantsController {
   ): Promise<GetRestaurantByIdResponse> {
     // #644 【設計】restaurant.id でレストラン詳細と統計情報を取得
     return this.restaurantsService.getRestaurantById(params.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*             GET /v1/restaurants/:id/opening-hours                  */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1666 店舗詳細に出す «通常の 1 週間の営業時間»。
+   *
+   * ⚠️ **`GET /:id` へ相乗りさせないこと。** 店舗詳細はストアのキャッシュを優先して開く
+   * （`app/[locale]/restaurant/[restaurantId].tsx`）ので、`GET /:id` に足すと
+   * **キャッシュ経由で開いたときだけ営業時間が出ない**という状態になる。
+   */
+  @Get(':id/opening-hours')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '#1666 店舗の通常の1週間の営業時間' })
+  @ApiParam({ name: 'id', description: 'Restaurant ID' })
+  @ApiResponse({ status: 200, description: '取得成功（データが無ければ days は空）' })
+  async getRestaurantOpeningHours(
+    @Param() params: RestaurantIdParamsDto,
+  ): Promise<GetRestaurantOpeningHoursResponse> {
+    return this.restaurantsService.getRestaurantOpeningHours(params.id);
   }
 
   /* ------------------------------------------------------------------ */

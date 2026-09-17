@@ -318,6 +318,24 @@ describe("#1370 next（ログイン後の行き先）", () => {
 		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/(tabs)/review");
 	});
 
+	// #1959 レベルの軸は «認証の戻りかどうか»。この 2 件で «直接開いただけ» と
+	// «本当に無言で失敗した» が同じ深刻さに戻らないことを固定する
+	it("intent 付きで結果が無いのは «無言の失敗» なので error のまま", async () => {
+		mockParams = { locale: "ja-JP", intent: "signin" };
+
+		await render();
+
+		expect(findLoggedEvent("oauth_callback_no_result")?.error_level).toBe("error");
+	});
+
+	it("intent 無しで開かれた callback は失敗ではないので error で積まない", async () => {
+		mockParams = { locale: "ja-JP" };
+
+		await render();
+
+		expect(findLoggedEvent("oauth_callback_no_result")?.error_level).toBe("warn");
+	});
+
 	// 設計 #1359 §4-3: ここは callback へもう一度戻ってくる経路。next を落とすと
 	// «昇格を諦めて既存アカウントへ切り替えた人だけ» が元の画面へ戻れなくなる
 	it("競合から「切り替える」を選んだ 2 周目にも next を載せる", async () => {

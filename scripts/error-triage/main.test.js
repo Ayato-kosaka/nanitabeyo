@@ -9,7 +9,7 @@ const { mkdtempSync, readFileSync, writeFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 
-const { MAX_BYTES_BILLED, GROUP_LIMIT, FP_ALGO_VERSION } = require("./constants");
+const { MAX_BYTES_BILLED, GROUP_LIMIT, FP_ALGO_VERSION, SEV_ALERT_USER_THRESHOLD } = require("./constants");
 const { DEFAULT_SQL_PATH, main, parseArgs, requireEnv } = require("./main");
 const { generateErrorTriageSql } = require("./sql-generator");
 
@@ -243,12 +243,12 @@ const { PARENT_ISSUE_NUMBER, TRIAGE_LABEL } = require("./constants");
  * BigQuery と GitHub の両方を1つの fetch で捌く（実際の Job も同じ Node プロセス1本で動く）。
  * BigQuery へは PLAN と同じ2レスポンス、GitHub へは最小限の偽サーバ。
  */
-const makeApplyFetch = ({ issues = existingIssues, subIssues = [] } = {}) => {
+const makeApplyFetch = ({ issues = existingIssues, subIssues = [], group = GROUP } = {}) => {
 	const calls = [];
 	const state = { issues: JSON.parse(JSON.stringify(issues)), subIssues: [...subIssues], comments: {}, next: 6000 };
 	const bqResponses = [
 		{ totalBytesProcessed: "665800" },
-		{ jobComplete: true, totalRows: "2", totalBytesProcessed: "665800", rows: [row(GROUP), row(RUN_SUMMARY)] },
+		{ jobComplete: true, totalRows: "2", totalBytesProcessed: "665800", rows: [row(group), row(RUN_SUMMARY)] },
 	];
 	let bqIndex = 0;
 
@@ -339,6 +339,38 @@ describe("apply（triage Job）", () => {
 		expect(post.body.labels).toEqual([TRIAGE_LABEL]);
 		expect(post.body.body).toContain("https://github.test/Ayato-kosaka/nanitabeyo/actions/runs/31215551992");
 		expect(post.body.body).toContain(`親: #${PARENT_ISSUE_NUMBER}`);
+	});
+
+	// #1946 障害規模のものが埋もれないための番人。
+	// 2026-09-04〜09-09、/v1/dish-media/search が 1 日 68〜151 ユーザーに 500 を返し続けたが、
+	// Issue は初日に立っていたのに 38 件の中に埋もれて 6 日間気づかれなかった。
+	test("障害規模（影響ユーザーがしきい値以上）を新規起票したら、起票はしたうえで exit 1 にする", async () => {
+		const workspace = makeWorkspace();
+		const fetchImpl = makeApplyFetch({
+			group: { ...GROUP, affectedUsers: SEV_ALERT_USER_THRESHOLD },
+		});
+
+		const code = await main({
+			argv: ["apply", "--out", workspace.planPath],
+			env: APPLY_ENV,
+			clock,
+			fetchImpl,
+			sleepImpl: async () => {},
+		});
+
+		// ⚠️ 「鳴らす」だけで、起票そのものは従来どおり行う。
+		//    ここで書き込みを止めると、通知に気づかなかったとき記録すら残らない
+		expect(code).toBe(1);
+		const out = JSON.parse(readFileSync(workspace.planPath, "utf8"));
+		expect(out.applyResult.created).toHaveLength(1);
+	});
+
+	test("しきい値未満なら従来どおり exit 0（普段の run を鳴らさない）", async () => {
+		const fetchImpl = makeApplyFetch({
+			group: { ...GROUP, affectedUsers: SEV_ALERT_USER_THRESHOLD - 1 },
+		});
+		const code = await main({ argv: ["apply"], env: APPLY_ENV, clock, fetchImpl, sleepImpl: async () => {} });
+		expect(code).toBe(0);
 	});
 
 	test("--dry-run は GitHub へ1バイトも書かない", async () => {

@@ -38,11 +38,18 @@ describe('DishCategoryVariantsService（#1629 候補の落とし方）', () => {
         {
           provide: PrismaService,
           // withTransaction は «渡された関数をそのまま走らせる» だけの薄い包み
-          useValue: { withTransaction: (fn: (tx: unknown) => unknown) => fn({}) },
+          useValue: {
+            withTransaction: (fn: (tx: unknown) => unknown) => fn({}),
+          },
         },
         {
           provide: AppLoggerService,
-          useValue: { debug: jest.fn(), log: jest.fn(), warn: jest.fn(), error: jest.fn() },
+          useValue: {
+            debug: jest.fn(),
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -55,7 +62,10 @@ describe('DishCategoryVariantsService（#1629 候補の落とし方）', () => {
       { id: 'Q1', labels: { ja: 'ラーメン' }, label_en: 'Ramen' },
     ]);
 
-    const result = await service.findDishCategoryVariants({ q: 'ラーメン', lang: 'ja' } as never);
+    const result = await service.findDishCategoryVariants({
+      q: 'ラーメン',
+      lang: 'ja',
+    } as never);
 
     expect(result).toEqual([{ dishCategoryId: 'Q1', label: 'ラーメン' }]);
     expect(repo.findDishCategoryVariantsLoosely).not.toHaveBeenCalled();
@@ -68,7 +78,10 @@ describe('DishCategoryVariantsService（#1629 候補の落とし方）', () => {
       { id: 'Q1', labels: { ja: 'ラーメン' }, label_en: 'Ramen' },
     ]);
 
-    const result = await service.findDishCategoryVariants({ q: '背脂ラーメン', lang: 'ja' } as never);
+    const result = await service.findDishCategoryVariants({
+      q: '背脂ラーメン',
+      lang: 'ja',
+    } as never);
 
     expect(repo.findDishCategoryVariantsLoosely).toHaveBeenCalledTimes(1);
     expect(result).toEqual([{ dishCategoryId: 'Q1', label: 'ラーメン' }]);

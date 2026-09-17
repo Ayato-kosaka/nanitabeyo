@@ -97,3 +97,45 @@ export const resolveAuthCooldownMs = (error: unknown, retryAfterMs: number | nul
 	const requested = retryAfterMs != null && retryAfterMs > 0 ? retryAfterMs : RATE_LIMIT_MIN_COOLDOWN_MS;
 	return Math.min(RATE_LIMIT_MAX_COOLDOWN_MS, Math.max(RATE_LIMIT_MIN_COOLDOWN_MS, requested));
 };
+
+/** ログへ残す message の上限。fingerprint の材料になるので長すぎる値を通さない。 */
+const AUTH_ERROR_MESSAGE_MAX_LENGTH = 200;
+
+/**
+ * #1771 【バグ】supabase-js は fetch の `Response` をそのまま文字列化した `message` を投げてくることがある。
+ *
+ * 本番で観測した実物（2026-09-01 / authInitError）:
+ *
+ *   {"type":"default","status":504,"ok":false,"statusText":"",
+ *    "headers":{"map":{"alt-svc":"...","cf-ray":"a33fa5d02967f6c9-NRT","content-length":"24",...}}}
+ *
+ * この中の `cf-ray` はリクエストごとに変わるため、**1 回の失敗ごとに別の messagePattern**
+ * になり、fingerprint が毎回新しくなる。同じ 504 が起票され続ける（実際に #1771 と #1772 が
+ * パス違いで 2 件立った）。
+ *
+ * そこで、message が Response の文字列化に見えるときは **status だけを残して畳む**。
+ * あわせて、エラーが `status` を直接持たない場合の補完にも使う（504 が status:null で
+ * 記録されると、除外ルールも severity 判定もステータスを見られない）。
+ *
+ * ⚠️ ここで畳んでよいのは «毎回変わるうえに読んでも意味が無い» 部分だけ。
+ * 通常の message（"Network request failed" 等）はそのまま残すこと。原因の手がかりが消える。
+ */
+export const summarizeAuthError = (error: unknown): { message: string; status: number | undefined } => {
+	const rawMessage = (error as { message?: unknown } | null | undefined)?.message;
+	const message = typeof rawMessage === "string" ? rawMessage : "";
+	const directStatus = getAuthErrorStatus(error);
+
+	// Response の文字列化とみなせるのは «JSON オブジェクトで、数値の status を持つ» ものだけ
+	if (message.startsWith("{")) {
+		try {
+			const parsed = JSON.parse(message) as { status?: unknown };
+			if (typeof parsed.status === "number") {
+				return { message: `HTTP ${parsed.status}`, status: directStatus ?? parsed.status };
+			}
+		} catch {
+			// JSON として読めないならただの長い message。下の truncate に任せる
+		}
+	}
+
+	return { message: message.slice(0, AUTH_ERROR_MESSAGE_MAX_LENGTH), status: directStatus };
+};

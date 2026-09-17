@@ -140,7 +140,9 @@ describe('DishCategoryVariantDictionaryService', () => {
 
 describe('buildJapaneseLabelVariants', () => {
   it('labels.ja とその表記ゆれをエントリ化する', () => {
-    const out = buildJapaneseLabelVariants([{ id: 'Q1', labels: { ja: '餃子' } }]);
+    const out = buildJapaneseLabelVariants([
+      { id: 'Q1', labels: { ja: '餃子' } },
+    ]);
 
     const surfaces = out.map((e) => e.surfaceForm);
     expect(surfaces).toContain('餃子');

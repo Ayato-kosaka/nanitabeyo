@@ -118,7 +118,11 @@ describe('#1510 SET-02 通知カテゴリ別の受信設定', () => {
 
     it('未知のカテゴリは 400 で弾き、DB に幽霊行を作らない', async () => {
       await expect(
-        service.updateMyNotificationPreference(USER_ID, 'unknown_category', false),
+        service.updateMyNotificationPreference(
+          USER_ID,
+          'unknown_category',
+          false,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(repo.upsertNotificationPreference).not.toHaveBeenCalled();

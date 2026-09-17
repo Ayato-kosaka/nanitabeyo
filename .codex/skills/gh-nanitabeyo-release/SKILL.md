@@ -10,6 +10,7 @@ description: nanitabeyoのリリース担当者として、mainから新しいre
 ## 必須リソース
 
 - フルリリースでは最初に[references/release-policy.md](references/release-policy.md)、[references/deployment-matrix.md](references/deployment-matrix.md)、[references/release-note-style.md](references/release-note-style.md)を最後まで読む。
+- **production workflowをdispatchする前に、毎回[docs/specs/deploy-branches.md](../../../docs/specs/deploy-branches.md)を開いて面ごとの`--ref`を確認する。** 面によってデプロイ元ブランチが違う（native/OTAは`release/X.Y`、webは`web`、API/DBは`main`）。記憶や「前回と同じ」で決めない。
 - `gh`が無い、cloneがshallowなど実行環境が標準と異なる場合は[references/execution-environments.md](references/execution-environments.md)を読む。
 - OTA判定または旧releaseへの展開では[references/ota-safety-rules.md](references/ota-safety-rules.md)を最後まで読み、すべてのsource/target組で`scripts/audit-ota-inputs.sh`を実行する。
 - production workflowの実行前に、対象SHAを含むGo/No-Go表を提示して明示承認を得る。
@@ -115,7 +116,7 @@ API/clientの後方互換性から実行順を決める。破壊的DB変更はex
 
 承認済みの依存順で1工程ずつ実行し、各工程のterminal stateとpost-deploy checkを確認してから次へ進む。
 
-- GitHub workflowは`scripts/dispatch-and-watch-release-workflow.sh`を使う。
+- GitHub workflowは`scripts/dispatch-and-watch-release-workflow.sh`を使う。`--ref`は[docs/specs/deploy-branches.md](../../../docs/specs/deploy-branches.md)の表で面ごとに決める。scriptは面と合わない`--ref`をdispatch前に停止するので、停止したら**refではなく表を確認する**（表が正）。
 - EAS Updateは対象ごとに`scripts/dispatch-and-watch-update.sh`を使う。
 - migrationとdata operationは承認された正確な対象だけを実行する。対象を省略して「全部」を暗黙適用しない。
 - native workflowは`--no-wait`のため、Actions完了後もEAS buildとsubmissionを個別に追跡する。

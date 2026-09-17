@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { asApiList } from "@/lib/apiList";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
-import { Image } from "expo-image";
 // #1375（6 巡目・オーナー指示）右のボタンは «地図から探す» なので、
 // 1 地点を指す MapPin ではなく «折り畳んだ地図» の Map を使う（ピンだと «現在地» に見える）
 import { Map as MapIcon, Search, X } from "lucide-react-native";
@@ -10,7 +9,9 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { getCacheKeyForImage } from "@/lib/image";
+import { RestaurantAvatar } from "@/components/RestaurantAvatar";
+// #1918 チップの正本。選択状態を «色だけ» で表さない（チェックバッジが付く）
+import { SelectableChip } from "@/features/search/components/SelectableChip";
 import i18n from "@/lib/i18n";
 import type { QueryRestaurantsDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
@@ -22,6 +23,13 @@ type RestaurantSearchResult = QueryRestaurantsResponse[number];
 type SearchStatus = "idle" | "debouncing" | "searching" | "success" | "empty" | "error";
 
 const DEBOUNCE_DELAY_MS = 300;
+/**
+ * #1951 検索を投げ始める最短の長さ（コードポイント）。
+ *
+ * 1 文字は IME の変換途中で飛んでくるうえ、全国 57 万店に対して絞り込みにならず、
+ * サーバ側の実測で **20.1 秒**かかる。2 文字は実在する店名（一蘭・魚金）なので投げる。
+ */
+const MIN_QUERY_LENGTH = 2;
 /**
  * #1629 店名検索の半径。**画面に見えている範囲ではなく «全国»**（理由は `runSearch` のコメント）。
  * 日本全体が入る 1,500km。`MAX_SEARCH_RADIUS_M`（地球の半周）まで広げないのは、
@@ -62,13 +70,31 @@ export type RestaurantNameSearchProps = {
 	 */
 	mapAction?: { onPress: () => void; testID?: string; accessibilityLabel?: string };
 	/**
-	 * #1375 読み取り結果などの «候補»。入力欄の **下に小さく** 並べる（実機指摘）。
-	 * 呼び出し元がチップを自前で組むと画面ごとに寸法がずれるため、ここで描く。
+	 * #1375 読み取り結果などの «候補»。
+	 *
+	 * #1918【チーム指摘】**入力欄の «上» へ移した。** 以前は下に小さく置いていたが、
+	 * 並び順は優先順位として読まれるので «まず自分で検索する画面» に見えていた
+	 * （「手入力方式もあるんかな？」）。読み取り結果が主、手入力が逃げ道である。
 	 */
 	candidates?: { id: string; label: string; testID?: string }[];
 	/** 選択済み候補の id（候補チップの強調に使う） */
 	selectedCandidateId?: string | null;
 	onSelectCandidate?: (id: string) => void;
+	/**
+	 * #1918 候補ブロックの見出し。**渡した画面だけ** «読み取り結果 → 手入力» の形になる。
+	 *
+	 * 渡さない画面（「食べたを記録」タブ）は `candidates` 自体を渡していないので
+	 * 候補ブロックが 1 つも描かれず、見た目は従来のまま変わらない。
+	 *
+	 * - `heading` / `hint` … 候補があるときに候補チップの上へ出す
+	 * - `fallbackHeading` … 候補と入力欄の間。「候補に正解が無いときは自分で探す」
+	 *
+	 * ⚠️ **候補ゼロのときは何も足さない。** 読み取り結果の 1 行が既に
+	 * 「この投稿から読み取れる情報はありませんでした。下でお店と料理カテゴリーを選ぶと
+	 * 保存できます」と言っており、カードごとに言い直すと同じ事実が 3 箇所に出る
+	 * （design-guidelines §4「ラベルを言い直すだけの帯を置かない」）。撮って気づいた。
+	 */
+	candidatesLabels?: { heading: string; hint: string; fallbackHeading: string };
 	testID?: string;
 };
 
@@ -89,6 +115,7 @@ export function RestaurantNameSearch({
 	candidates,
 	selectedCandidateId,
 	onSelectCandidate,
+	candidatesLabels,
 	testID = "restaurant-name-search",
 }: RestaurantNameSearchProps) {
 	const { colors } = useAppTheme();
@@ -132,6 +159,14 @@ export function RestaurantNameSearch({
 						     駆動表**で、半径は絞り込みにしか使われない。リポジトリ側の実測で
 						     «半径 1,500km・希少な店名で 8 ms»（`restaurants.repository.ts` の設計コメント）。
 						     半径を viewport に戻すと、この不具合がそのまま戻る。
+
+						  ⚠️ #1951 **「trgm が駆動表」が成り立つのは «連続する語が 3 文字以上» のときだけ**
+						     だった。2 文字以下の中間一致は trigram が取れず、プランナが位置索引だけで
+						     駆動して**半径内の行をヒープから全部読んで捨てる**形になり、
+						     本番で **20.34 秒**かかっていた。いまはサーバ側が短い店名を
+						     前方一致 / 語頭一致へ切り替えて索引に乗せている
+						     （`api/src/v1/restaurants/restaurant-name-match-mode.ts`）。
+						     **半径を広げたこと自体は正しく、直すべきは照合の形だった。**
 						*/
 						radius: NAME_SEARCH_RADIUS_M,
 						limit: RESULT_LIMIT,
@@ -189,8 +224,20 @@ export function RestaurantNameSearch({
 			}
 
 			const trimmed = text.trim();
-			if (trimmed.length === 0) {
-				// 入力が空になった時点で直前の in-flight 応答も無効化する
+			/*
+			#1951 **1 文字では叩かない。**
+
+			本番ログに `す` → `すり` → `すりー` がそのまま飛んでいた（IME の変換途中）。
+			1 文字は全国 57 万店に対して絞り込みの役に立たず、サーバ側では実測 **20.1 秒**かかる。
+			画面としても «全国の «す» を含む店の近い順 20 件» は選べるものではない。
+
+			⚠️ ここを «3 文字» にしないこと。2 文字の店名（一蘭・魚金・鳥貴）は実在し、
+			   サーバ側は #1951 で 2 文字でも索引に乗るようにしてある
+			   （`api/src/v1/restaurants/restaurant-name-match-mode.ts`）。
+			   ここで弾いてよいのは «絞り込みの役に立たない» 1 文字だけである。
+			*/
+			if (Array.from(trimmed).length < MIN_QUERY_LENGTH) {
+				// 入力が空 / 1 文字になった時点で直前の in-flight 応答も無効化する
 				latestRequestIdRef.current += 1;
 				setResults([]);
 				setStatus("idle");
@@ -288,8 +335,58 @@ export function RestaurantNameSearch({
 	// 確定名が出ている間は結果パネルを出さない（選び終えた欄の下に候補一覧が残らないように）
 	const showResultsPanel = status !== "idle" && !showsSelectedName;
 
+	const hasCandidates = !!candidates && candidates.length > 0;
+
 	return (
 		<View style={styles.container}>
+			{/*
+			#1918【チーム指摘】「読み取ってからの操作が直感的に分かりにくい」
+			「最初見た時『手入力方式もあるんかな？』ってなった」。
+
+			**候補を入力欄の «上» へ出す。** 以前は入力欄が先で、その下に見出しの無い
+			チップが並んでいた。並び順は優先順位として読まれるので «まず自分で検索する画面»
+			に見え、チップが «読み取った結果» だと気づけない。順序を «読み取り結果 →
+			見つからなければ手入力» にして、見出しでそう言い切る。
+
+			⚠️ **選び終えても畳まない。** 以前は選ぶと候補列ごと消えていたが、
+			それでは «何を確認したのか» が画面から消える。選んだチップにチェックが付いた
+			状態で残すことが «確認» の核心である（選び直しも 1 タップでできる）。
+			*/}
+			{hasCandidates && (
+				<View style={styles.candidateBlock}>
+					{!!candidatesLabels && (
+						<>
+							<Text style={styles.candidateHeading} testID={`${testID}-candidates-heading`}>
+								{candidatesLabels.heading}
+							</Text>
+							<Text style={styles.candidateHint}>{candidatesLabels.hint}</Text>
+						</>
+					)}
+					<View style={styles.candidateRow}>
+						{candidates!.map((candidate) => (
+							<SelectableChip
+								key={candidate.id}
+								testID={candidate.testID}
+								label={candidate.label}
+								selected={selectedCandidateId === candidate.id}
+								role="radio"
+								onPress={() => {
+									lightImpact();
+									onSelectCandidate?.(candidate.id);
+								}}
+							/>
+						))}
+					</View>
+				</View>
+			)}
+
+			{/* 手入力は «逃げ道» だと言い切る。候補が無いなら «逃げ道» ではなく唯一の道なので出さない */}
+			{hasCandidates && !!candidatesLabels && (
+				<Text style={styles.fallbackHeading} testID={`${testID}-fallback-heading`}>
+					{candidatesLabels.fallbackHeading}
+				</Text>
+			)}
+
 			<View style={styles.inputContainer}>
 				<Search size={18} color={colors.textSecondary} style={styles.searchIcon} />
 				<TextInput
@@ -328,29 +425,6 @@ export function RestaurantNameSearch({
 				)}
 			</View>
 
-			{/* #1375 候補は入力欄の «下に小さく»。選び終えたら畳む（もう選ぶものが無いため） */}
-			{!showsSelectedName && candidates && candidates.length > 0 && (
-				<View style={styles.candidateRow}>
-					{candidates.map((candidate) => (
-						<TouchableOpacity
-							key={candidate.id}
-							testID={candidate.testID}
-							onPress={() => {
-								lightImpact();
-								onSelectCandidate?.(candidate.id);
-							}}
-							accessibilityRole="button"
-							accessibilityState={{ selected: selectedCandidateId === candidate.id }}
-							style={[styles.candidateChip, selectedCandidateId === candidate.id && styles.candidateChipSelected]}>
-							<Text
-								style={[styles.candidateLabel, selectedCandidateId === candidate.id && styles.candidateLabelSelected]}>
-								{candidate.label}
-							</Text>
-						</TouchableOpacity>
-					))}
-				</View>
-			)}
-
 			{showResultsPanel && (
 				<View style={styles.resultsPanel}>
 					{(status === "debouncing" || status === "searching") && (
@@ -374,12 +448,13 @@ export function RestaurantNameSearch({
 									accessibilityRole="button"
 									accessibilityLabel={result.restaurant.name}
 									testID={`${testID}-result-${index}`}>
-									<Image
-										source={{
-											uri: result.restaurant.imageUrls?.sm,
-											cacheKey: getCacheKeyForImage(result.restaurant.imageUrls?.sm),
-										}}
+									{/* #1780 画像を持たない店でも灰色の四角にしない */}
+									<RestaurantAvatar
+										testID={`${testID}-result-${index}-image`}
+										uri={result.restaurant.imageUrls?.sm}
 										style={styles.resultImage}
+										iconSize={18}
+										accessibilityLabel={result.restaurant.name}
 									/>
 									<Text style={styles.resultName} numberOfLines={1} ellipsizeMode="tail">
 										{result.restaurant.name}
@@ -481,29 +556,35 @@ const createStyles = (c: Palette) =>
 			borderLeftWidth: StyleSheet.hairlineWidth,
 			borderLeftColor: c.borderMuted,
 		},
+		// #1918 候補ブロック（入力欄の «上»）。チップ自体は共通の `SelectableChip` が持つので
+		// ここは «見出し + 並べ方» だけを持つ。自前の chip スタイルは捨てた
+		// （選択を色だけで表さない = チェックバッジ付きへ揃えるため）
+		candidateBlock: {
+			marginBottom: 12,
+		},
+		// design-guidelines §2 セクション見出し（14–15 / 700）。見出しを消さない
+		candidateHeading: {
+			fontSize: 14,
+			fontWeight: "700",
+			color: c.textPrimary,
+		},
+		candidateHint: {
+			marginTop: 2,
+			fontSize: 12,
+			color: c.textSecondary,
+		},
 		candidateRow: {
 			marginTop: 8,
 			flexDirection: "row",
 			flexWrap: "wrap",
 			gap: 6,
 		},
-		// 候補は «小さく»（実機指摘）。本文のチップ（13pt）より一回り下げる
-		candidateChip: {
-			paddingHorizontal: 10,
-			paddingVertical: 5,
-			borderRadius: 14,
-			backgroundColor: c.surfaceSubtle,
-		},
-		candidateChipSelected: {
-			backgroundColor: c.brandTintAlt,
-		},
-		candidateLabel: {
-			fontSize: 12,
-			color: c.textSecondaryStrong,
-		},
-		candidateLabelSelected: {
-			color: c.brand,
+		// 手入力は «逃げ道»。候補の見出しより一段弱くして、主従が見た目で分かるようにする
+		fallbackHeading: {
+			marginBottom: 6,
+			fontSize: 13,
 			fontWeight: "700",
+			color: c.textSecondaryStrong,
 		},
 		resultsPanel: {
 			marginTop: 12,

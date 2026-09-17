@@ -43,7 +43,14 @@ const makeItem = (
 		occurredAt: overrides.occurredAt ?? localNoonIso(2026, 8, 10),
 		savedAt: null,
 		eatenAt: overrides.occurredAt ?? localNoonIso(2026, 8, 10),
-		restaurant: { id: "restaurant-1", name: "テスト食堂", image_url: overrides.restaurantImageUrl ?? null },
+		restaurant: {
+			id: "restaurant-1",
+			name: "テスト食堂",
+			// ⚠️ #1779 `image_url` は **落とす列**。ここに値を入れたまま残すのは、
+			//    «誤ってフォールバック先に戻したら赤くする» ためである（下のテスト参照）
+			image_url: overrides.restaurantImageUrl ?? null,
+			imageUrls: overrides.restaurantImageUrl ? { sm: overrides.restaurantImageUrl, md: overrides.restaurantImageUrl } : undefined,
+		},
 		dish: { id: "dish-1", name: "ラーメン", categoryImageUrl: overrides.categoryImageUrl ?? null },
 		dishMedia:
 			overrides.thumbnailImageUrl === undefined || overrides.thumbnailImageUrl === null
@@ -107,7 +114,7 @@ describe("resolveDayThumbnailUrl（#1375 追補2 決定3）", () => {
 		expect(resolveDayThumbnailUrl(item)).toBe("https://example.com/category.jpg");
 	});
 
-	it("categoryImageUrl も無ければ restaurant.image_url へ落ちる", () => {
+	it("categoryImageUrl も無ければ restaurant.imageUrls?.sm へ落ちる", () => {
 		const item = makeItem({
 			thumbnailImageUrl: null,
 			categoryImageUrl: null,

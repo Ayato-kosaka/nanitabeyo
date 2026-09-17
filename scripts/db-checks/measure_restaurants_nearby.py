@@ -411,6 +411,13 @@ def run_trgm_diagnosis(cur):
 
     # コスト見積もりで負けているだけなら、seqscan を切れば索引が選ばれる。
     # 2 文字で切っても Seq Scan のままなら «原理的に使えない» が確定する。
+    #
+    # ⚠️ **ここで出る Seq Scan を «本番のプラン» と読まないこと。**（#1951）
+    #    この SQL は ST_DWithin を含まないので、プランナには位置索引という選択肢が無い。
+    #    本番（`search_nearby_restaurants`）は半径があるぶん位置索引を駆動表に選び、
+    #    **Seq Scan にはならない**。それでも半径内の太い行をヒープから全部読んで
+    #    name で捨てるので、同じだけ遅い（dev 実測 17〜20 秒 / run 34421334747）。
+    #    ここで確かめているのは «trgm 索引が使えるかどうか» の 1 点だけである。
     for label, pattern in (("2 文字（一蘭）", "%一蘭%"), ("4 文字（ラーメン）", "%ラーメン%")):
         sql = "SELECT r.id FROM restaurants r WHERE r.name ILIKE %s LIMIT 100"
         plan, exec_ms = explain(cur, sql, (pattern,))

@@ -283,6 +283,116 @@ export function extractBracketedNames(normalizedText: string): BracketedNameToke
 }
 
 // ---------------------------------------------------------------------------
+// 📍pin 名 / 裸ハンドルの抽出（#1273）
+//
+// **この 2 関数だけは «正規化前の生テキスト» を受ける。** `normalizeMatchText` は改行を
+// 空白へ潰すので、行単位の構造（📍 で始まる店名行 / ハンドルだけの行）を先に見てからでないと
+// 拾えない。実キャプション 1,800 件の実測（`resolve_matching_probe.mjs`）で分かったこと:
+//
+//  - 店ハンドルは `@` なしの «裸行»（`cafe_fune` `shimobehotel`）が 43.8%、`@mention` は 0.4%。
+//    現行の `extractMentions`（@ 必須）はここをほぼ全部取りこぼす。
+//  - 店名が `📍<店名>` 行にあり、含有一致 0.85 止まりで prefill 閾値 0.90 を越えられないものが
+//    «住所あり» population の 11%。📍店名を exact(1.0) へ昇格すれば自動 prefill が成立する。
+//
+// ここは «切り出し» だけを担い、点数付けは `restaurantNameMatch.ts`（nameHints）が持つ。
+// ---------------------------------------------------------------------------
+
+const PIN_MARK = "📍";
+
+/** 📍 の直後が住所・電話等で始まる «住所ピン»。店名ではないので採らない */
+const PIN_ADDRESS_LEAD = /^(?:住所|所在地|場所|アクセス|〒|tel|電話|address)/i;
+
+/** 📍 の直後が都道府県名で始まる «住所ピン»（`📍東京都…`） */
+const PIN_PREFECTURE_LEAD = /^(?:東京都|北海道|(?:大阪|京都)府|[一-龥]{2,3}県)/;
+
+/** 店名の後ろに続く «住所・電話・営業情報» の始まり。ここで名前を打ち切る */
+const PIN_NAME_CUTOFF = /(?:\s住所|住所[:：]|〒|\stel|tel[:：]|☎|営業時間|定休日|アクセス|\s{2,})/i;
+
+/** 📍 直後の先頭に付く区切り記号（`📍：` `📍・` など）を落とす */
+const PIN_LEAD_SEPARATOR = /^[\s：:・|｜]+/;
+
+/** 読みの別名など、`｜` / `|` 以降を落とす（`CRESCENT｜松前カフェ` → `CRESCENT`） */
+const PIN_ALIAS_SEPARATOR = /[｜|].*$/;
+
+/** 📍店名として採ってよい正規化後の長さの範囲 */
+export const PIN_NAME_MIN_LENGTH = 2;
+export const PIN_NAME_MAX_LENGTH = 40;
+
+/**
+ * 各行の `📍` 直後に書かれた **店名**を切り出す（#1273）。**生キャプションを渡すこと。**
+ *
+ * 住所ピン（`📍住所：…` `📍東京都…`）は店ではないので落とす。店名のあとに「住所：」「〒」
+ * 「TEL」「営業時間」「定休日」等が続く行は、そこで切って屋号だけを返す。`｜`/`|` 以降も切る。
+ * 返す値は `normalizeMatchText` を通してあり、長さ 2〜40 に収まるものだけ。**例外は投げない。**
+ */
+export function extractPinNames(rawText: string | null | undefined): string[] {
+	if (typeof rawText !== "string" || rawText.length === 0) return [];
+
+	const capped = rawText.length > MATCH_TEXT_MAX_LENGTH ? rawText.slice(0, MATCH_TEXT_MAX_LENGTH) : rawText;
+	const names: string[] = [];
+
+	for (const rawLine of capped.split(/\r?\n/)) {
+		const line = rawLine.trim();
+		// 1 行に複数の 📍 があっても «店名を指す» のは最後の 1 個（先頭は絵文字装飾のことが多い）
+		const pinAt = line.lastIndexOf(PIN_MARK);
+		if (pinAt === -1) continue;
+
+		let after = line.slice(pinAt + PIN_MARK.length).replace(PIN_LEAD_SEPARATOR, "").trim();
+		if (after.length === 0) continue;
+
+		// 住所・都道府県で始まるなら «住所ピン»。店名ではない
+		if (PIN_ADDRESS_LEAD.test(after) || PIN_PREFECTURE_LEAD.test(after)) continue;
+
+		// 名前の後ろに住所・電話・営業情報が続く行は、そこで切る
+		const cutoff = after.search(PIN_NAME_CUTOFF);
+		if (cutoff > 0) after = after.slice(0, cutoff).trim();
+
+		// 「屋号｜別名」は屋号側を採る
+		after = after.replace(PIN_ALIAS_SEPARATOR, "").trim();
+
+		const normalized = normalizeMatchText(after);
+		if (normalized.length < PIN_NAME_MIN_LENGTH || normalized.length > PIN_NAME_MAX_LENGTH) continue;
+		names.push(normalized);
+	}
+
+	return names;
+}
+
+/** 裸ハンドルとして採ってよい形。英小文字始まり・`[a-z0-9._]`・2〜30 文字 */
+const BARE_HANDLE_PATTERN = /^[a-z0-9][a-z0-9._]{1,29}$/;
+
+/** 数字だけのハンドルは無い（IG のハンドルは英字を必ず含む）ので弾く判定 */
+const HAS_LATIN_LETTER = /[a-z]/;
+
+/**
+ * 行まるごとが IG ハンドル（`@` なしの «裸行»）である行を返す（#1273）。**生キャプションを渡すこと。**
+ *
+ * `extractMentions` が `@` 必須で取りこぼす «裸ハンドル»（`cafe_fune`）を拾う。投稿者自身の
+ * ハンドルは除外する（`ownHandle`。先頭 `@` は無視して比べる）。返す値は正規化済み（小文字）。
+ *
+ * **この関数の出力を店 ID へ解決する «ハンドル→店ID辞書» はまだ無い（別 Issue）。**
+ * 現状は抽出だけを固定し、辞書が入ったところで照合へ繋ぐ。
+ */
+export function extractBareHandles(rawText: string | null | undefined, ownHandle?: string | null): string[] {
+	if (typeof rawText !== "string" || rawText.length === 0) return [];
+
+	const capped = rawText.length > MATCH_TEXT_MAX_LENGTH ? rawText.slice(0, MATCH_TEXT_MAX_LENGTH) : rawText;
+	const own = typeof ownHandle === "string" ? normalizeMatchText(ownHandle).replace(/^@/, "") : "";
+	const handles: string[] = [];
+
+	for (const rawLine of capped.split(/\r?\n/)) {
+		// normalizeMatchText で NFKC・小文字化・前後空白除去まで済ませてから形を見る
+		const line = normalizeMatchText(rawLine);
+		if (!BARE_HANDLE_PATTERN.test(line)) continue;
+		if (!HAS_LATIN_LETTER.test(line)) continue;
+		if (own.length > 0 && line === own) continue;
+		handles.push(line);
+	}
+
+	return handles;
+}
+
+// ---------------------------------------------------------------------------
 // 文字種の判定
 //
 // 「短い別名が無関係な文中で誤爆する」問題に効かせるための土台。

@@ -204,13 +204,46 @@ describe('#1629 半径で restaurants を引く箇所は «行数が半径に依
 });
 
 describe('#1629 計測スクリプトが読む SQL は repository が組み立てたものと同一である', () => {
+  /*
+    #1834 【設計】**LIMIT は literal なので «limit ごとに別のプラン» である。
+    だから「どの limit を測るか」も写経ではなく、ここで列挙して固定する。**
+
+    ここには長らく limit 20（クライアントの既定）しか無かった。ところが
+    `QueryRestaurantsDto.limit` は **@Max(100)** で、公開 API はそのまま 100 を受ける。
+    実際に本番で既定順 + limit 100 が **26.7 秒**かかっており（#1834）、
+    その組み合わせはラチェットの外側だったので誰も気づけなかった。
+
+    ⚠️ **「クライアントが今そう呼んでいないから」を理由に外さないこと。**
+       ここが守るのは «API が受け付ける最悪の形» であって «今の呼ばれ方» ではない。
+       limit の上限を変えたら、この列挙も一緒に変える。
+  */
   it.each([
     ['search_nearby_restaurants.default', {} as SearchDto],
+    [
+      // 公開 API が受け付ける上限。既定順はここが最も重い
+      'search_nearby_restaurants.default_limit100',
+      { limit: 100 } as SearchDto,
+    ],
     [
       'search_nearby_restaurants.distance',
       { orderByDistance: true } as SearchDto,
     ],
+    [
+      // SNS 取り込み（dish-media-imports）が内部から呼ぶ形
+      'search_nearby_restaurants.distance_limit100',
+      { orderByDistance: true, limit: 100 } as SearchDto,
+    ],
     ['search_nearby_restaurants.byname', { q: 'ZQNAME' } as SearchDto],
+    [
+      /*
+        #1951 **索引が効かない短い店名の形**。中間一致（パーセントで囲む形）だと
+        pg_trgm が trigram を取れず、半径内の行をヒープから全部読む形になって
+        本番で 20.34 秒かかっていた。
+        前方一致 / 語頭一致の OR へ切り替わっていることを、計測スクリプトが読む SQL でも固定する。
+      */
+      'search_nearby_restaurants.byname_short',
+      { q: 'ZQ' } as SearchDto,
+    ],
   ])('%s', async (name, dto) => {
     const built = await build(dto);
     const sqlPath = join(SQL_DIR, `${name}.sql`);
@@ -228,15 +261,26 @@ describe('#1629 計測スクリプトが読む SQL は repository が組み立�
       重複しない番兵値で組み立て直して、値から名前を引く。
     */
     const probes = { lat: -11.5, lng: -22.5, radius: -33.5, limit: -44 };
+    /*
+      #1951 ⚠️ **番兵の店名は «短さの形» を保つこと。**
+      `buildNameMatch` は q の語数・文字数で **バインドの本数が変わる**（中間一致 1 本 /
+      前方一致・語頭一致 3 本）。短い q のケースまで長い番兵へ置き換えると、
+      «番兵で組んだ SQL» と «実際の SQL» の本数がずれて、後段の個数一致検査が落ちる。
+    */
+    const probeName = dto.q === undefined ? undefined : dto.q.length <= 2 ? 'ZQ' : 'ZQNAME';
     const probed = await build({
       ...dto,
       ...probes,
-      ...(dto.q === undefined ? {} : { q: 'ZQNAME' }),
+      ...(probeName === undefined ? {} : { q: probeName }),
     });
     const nameOf = new Map<unknown, string>([
       ...Object.entries(probes).map(([k, v]) => [v, k] as [unknown, string]),
       // 店名は ILIKE のワイルドカードに包まれて渡る
       ['%ZQNAME%', 'q'],
+      // #1951 短い店名は «前方一致 / 語頭一致» の 3 本になる（buildNameMatch）
+      ['ZQ%', 'q'],
+      ['% ZQ%', 'q'],
+      ['%\u3000ZQ%', 'q'],
     ]);
     const paramNames = probed.values.map((v) => {
       const found = nameOf.get(v);

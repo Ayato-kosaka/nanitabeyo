@@ -482,7 +482,12 @@ describe('DishMediaService #1560 投稿とレビューの 1 トランザクシ�
         { provide: PrismaService, useValue: prisma },
         {
           provide: AppLoggerService,
-          useValue: { debug: jest.fn(), warn: jest.fn(), error: jest.fn(), log: jest.fn() },
+          useValue: {
+            debug: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            log: jest.fn(),
+          },
         },
         { provide: TranscoderService, useValue: {} },
         { provide: CloudTasksService, useValue: cloudTasks },
@@ -521,7 +526,10 @@ describe('DishMediaService #1560 投稿とレビューの 1 トランザクシ�
 
   it('外部呼び出し（リサイズの enqueue）はコミット後に行う', async () => {
     await service.createDishMedia(
-      { ...baseDto, review: { comment: 'x', languageCode: 'ja-JP', rating: 5 } },
+      {
+        ...baseDto,
+        review: { comment: 'x', languageCode: 'ja-JP', rating: 5 },
+      },
       CREATOR_ID,
     );
 

@@ -13,7 +13,11 @@ import { UsersRepository } from './users.repository';
  */
 type Tx = {
   $queryRaw: jest.Mock;
-  dish_media_likes: { findMany: jest.Mock; deleteMany: jest.Mock; count: jest.Mock };
+  dish_media_likes: {
+    findMany: jest.Mock;
+    deleteMany: jest.Mock;
+    count: jest.Mock;
+  };
   dish_media_analysis_results: { updateMany: jest.Mock };
   reactions: { deleteMany: jest.Mock };
   user_device_tokens: { deleteMany: jest.Mock };
@@ -40,7 +44,9 @@ function buildTx(likedMediaIds: string[]): Tx {
       // ループが残っていたら呼ばれてしまう
       count: jest.fn().mockResolvedValue(0),
     },
-    dish_media_analysis_results: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    dish_media_analysis_results: {
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
     reactions: { deleteMany: none },
     user_device_tokens: { deleteMany: none },
     user_notification_cursors: { deleteMany: none },
@@ -56,12 +62,18 @@ function buildRepository(tx: Tx): UsersRepository {
   };
   return new UsersRepository(
     prisma as never,
-    { debug: jest.fn(), log: jest.fn(), warn: jest.fn(), error: jest.fn() } as never,
+    {
+      debug: jest.fn(),
+      log: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    } as never,
   );
 }
 
 /** タグ付きテンプレートで渡された SQL を 1 本の文字列に戻す */
-const sqlTextOf = (call: unknown[]): string => (call[0] as string[]).join(' ? ');
+const sqlTextOf = (call: unknown[]): string =>
+  (call[0] as string[]).join(' ? ');
 
 describe('#1599 退会処理の like_total 引き直しは件数に依らず 1 クエリ', () => {
   it.each([1, 10, 3000])(
@@ -157,12 +169,12 @@ describe('#1599 退会処理の like_total 引き直しは件数に依らず 1 �
 
     await buildRepository(tx).softDeleteUserAccount(USER_ID);
 
-    expect(tx.dish_media_likes.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
-      tx.$queryRaw.mock.invocationCallOrder[0],
-    );
-    // 控えるのは消す前（消した後だと対象が分からなくなる）
-    expect(tx.dish_media_likes.findMany.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(
       tx.dish_media_likes.deleteMany.mock.invocationCallOrder[0],
-    );
+    ).toBeLessThan(tx.$queryRaw.mock.invocationCallOrder[0]);
+    // 控えるのは消す前（消した後だと対象が分からなくなる）
+    expect(
+      tx.dish_media_likes.findMany.mock.invocationCallOrder[0],
+    ).toBeLessThan(tx.dish_media_likes.deleteMany.mock.invocationCallOrder[0]);
   });
 });

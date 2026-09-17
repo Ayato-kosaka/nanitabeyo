@@ -70,6 +70,16 @@ export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin
 								contentFit="cover"
 								transition={0}
 								cachePolicy={"disk"}
+								/*
+								#1785 **空の `accessibilityLabel` を «付け忘れ» と読まないこと。**
+								expo-image は web で `alt={accessibilityLabel}` を出すので、未指定だと
+								`alt` の無い `<img>` になり、axe の `image-alt`(critical) で落ちる
+								（実測: マイページの監査。tests/profile/theme.spec.ts）。
+
+								この画像は装飾である。**すぐ隣に表示名（ゲストなら «ゲスト»）が文字で出ている**ので、
+								読み上げに名前を 2 度言わせる意味は無い。WCAG の «装飾画像は空の代替テキスト» に従う。
+								*/
+								accessibilityLabel=""
 							/>
 						) : avatarUrl ? (
 							// avatarUrl がある場合はその画像を表示
@@ -80,6 +90,8 @@ export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin
 								contentFit="cover"
 								transition={0}
 								cachePolicy={"disk"}
+								// #1785 装飾（隣に表示名が出ている）。理由は上の guest-icon 側のコメント
+								accessibilityLabel=""
 							/>
 						) : (
 							// avatarUrl がない場合のフォールバック

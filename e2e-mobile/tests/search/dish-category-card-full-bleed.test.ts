@@ -3,6 +3,7 @@ import { strict as assert } from "node:assert";
 import { by, element, launchAppWithSession } from "../../fixtures/e2e";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
+import { DISH_CATEGORY_CARD_GUTTER_RATIO } from "@app-expo/features/dishCategories/carouselLayout";
 
 /**
  * 📐 候補カルーセルの横余白撤去(#1212)の回帰テスト(実 API / ネイティブ)
@@ -54,6 +55,8 @@ describe("候補カルーセルのカード幅とスナップ位置(#1212)", () 
 	const dishCategories = new DishCategoriesScreen();
 	/** アクティブなカードの swipe area(前後の事前描画カードには付かない。上記コメント参照） */
 	const activeSwipeArea = by.id("dish-categories-tutorial-target-swipe");
+	/** カルーセルの器。**等倍で描かれる**ので、スワイプはここを掴む（#1785。下のコメント参照） */
+	const carouselContainer = by.id("dish-categories-carousel");
 
 	beforeAll(async () => {
 		await launchAppWithSession({ as: "anon" });
@@ -68,24 +71,33 @@ describe("候補カルーセルのカード幅とスナップ位置(#1212)", () 
 		await dishCategories.expectLoaded();
 	});
 
-	// ─ テストケース: カード幅は画面幅いっぱいで、左右の余白が無い ─
+	// ─ テストケース: カードは画面幅そのものから作られている(左右 16px の余白が無い) ─
 	// 手順:
 	//   1. beforeAll でトピック画面に到達済み
 	//   2. アクティブなカードの swipe area の矩形(frame)を読む
-	//   3. 左端の余白比率(frame.x / frame.width)が無視できるほど小さいことを検証する
+	//   3. 左端の余白比率(frame.x / frame.width)が **parallax の scale から決まる比**に
+	//      収まっていることを検証する
 	// 余白比率で比較するのは、iOS(pt)/Android(物理ピクセル)で単位が異なっても同じ閾値で
-	// 判定できるようにするため。旧実装(余白16pxずつ)なら比率は端末幅375px相当で約4.6%になり、
-	// 1%未満という閾値は「余白ゼロ」だけを通す
-	it("カード幅は画面幅いっぱいで、左右の余白が無い", async () => {
+	// 判定できるようにするため。
+	//
+	// ⚠️ **比率はゼロにはならない**(#1785)。`parallax` はアクティブなカードにも `scale` を
+	//    掛けるので、カードを画面幅いっぱいに作っても描画は `scale` 倍され、その差の半分が
+	//    左右に空く。これは #1629 でオーナーが «直す必要はない» と確定した挙動である
+	//    (`scale: 1` にした変更は差し戻し済み。commit 18df368e)。
+	//    #1212 が消したのは «カードの寸法に入っていた左右 16px» の方であり、ここが守るのはそちら。
+	//    16px が戻ると比率は端末幅 360px 相当で約 11% になり、この閾値を明確に超える。
+	//    期待値は写経せず `DISH_CATEGORY_CARD_GUTTER_RATIO` から引く。
+	it("カード幅は画面幅から作られている(左右の余白が無い)", async () => {
 		const frame = await frameAt(activeSwipeArea, 0);
 		assert.ok(frame, "アクティブなカードの swipe area (dish-categories-tutorial-target-swipe) が見つかりません");
 
 		const gutterRatio = frame.x / frame.width;
 		assert.ok(
-			gutterRatio < 0.01,
+			gutterRatio < DISH_CATEGORY_CARD_GUTTER_RATIO + 0.02,
 			[
 				"カード左端に余白が残っています(#1212 の再発)。",
 				`  frame.x=${frame.x} frame.width=${frame.width} 比率=${gutterRatio}`,
+				`  parallax の scale から決まる比は ${DISH_CATEGORY_CARD_GUTTER_RATIO}（+0.02 まで許容）。`,
 				"  useDishCategoryCardSize({ fullBleed: true }) が正しく渡っているか確認してください。",
 			].join("\n"),
 		);
@@ -103,7 +115,11 @@ describe("候補カルーセルのカード幅とスナップ位置(#1212)", () 
 		const beforeFrame = await frameAt(activeSwipeArea, 0);
 		assert.ok(beforeFrame, "スワイプ前のアクティブなカードの swipe area が見つかりません");
 
-		await element(activeSwipeArea).atIndex(0).swipe("left", "fast", 0.75);
+		// ⚠️ **カードそのものを掴まないこと**（#1785）。`parallax` はアクティブなカードを
+		//    `scale` 倍に描くので、Espresso の «対象が 90% 以上見えていること» を構造的に
+		//    満たせない（実測 81% で "Action will not be performed" になる）。
+		//    等倍で描かれる器（カルーセルのコンテナ）を掴む。スワイプの届く先は同じである
+		await element(carouselContainer).atIndex(0).swipe("left", "fast", 0.75);
 
 		// reanimated のスナップアニメーション完了を待つ。画面遷移を伴わない操作のため、
 		// Detox の同期機構だけでは完了を検知できず、アニメーション時間ぶんを明示的に待つ

@@ -44,6 +44,11 @@ export default function MyDishesStackLayout() {
 			 * URL 共有はすべて Navigator の既定挙動で賄える。
 			 */}
 			<Stack.Screen name="feed" />
+			{/*
+			 * #1671 POI / 店名検索から新規に店を作るときの確認ページ。
+			 * ダイアログではなくルートにする（店名・座標・住所・国の 4 つを確認させるため）。
+			 */}
+			<Stack.Screen name="confirm-restaurant" />
 		</Stack>
 	);
 }

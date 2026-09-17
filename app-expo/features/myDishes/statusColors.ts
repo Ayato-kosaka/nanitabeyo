@@ -1,6 +1,10 @@
 import type { MyDishStatus } from "@shared/api/v1/dto";
 
-import { FixedColors } from "@/constants/Palette";
+// #1834 続き ⚠️ **ここを `@/` 別名へ戻さないこと。**
+// e2e-web の spec（reactions / reaction-rollback）はこのモジュールから
+// «どちらの状態にどちらの色を当てるか» を引く。Playwright は TS を変換するだけで
+// `@/` を解決しないため、別名にすると spec 側が色を写経する形へ逆戻りする。
+import { FixedColors } from "../../constants/Palette";
 
 /**
  * #1375 my-dishes 全体で «食べたい / 食べた» を表す記号色。
@@ -22,6 +26,22 @@ import { FixedColors } from "@/constants/Palette";
 記号にも使っていたため、«押すもの» と «状態を表すだけのもの» が同じ強さで並んでいた。
 オーナー指示でオレンジへ分けた。
 
+## #1834 色相で分ける（10 巡目・オーナー指示）
+
+チーム指摘: 「食べたい、食べたはオレンジ、オレンジ囲みで色分けされてるが、食べたいの
+ボタンは緑色にするとか、色を変えたほうが視覚的に見分けられやすいと思った」。
+
+【判断ログ】2026-09-04 — 案を 3 つ出し（A 現状 / B 白塗り + 緑枠 / C 緑塗り）、
+**オーナー指示は C「食べたい は緑塗りにして欲しい。合う色で」**。
+→ **両方を «塗る» ことにし、区別は色相 1 本で持つ。**
+
+⚠️ **この節の上に書いてある «塗りの有無で区別する»（5 巡目）は、ここで上書きされている。**
+   塗りの有無が持っていた «色覚に依存しない» 性質は失われる。代わりに色相の差を
+   十分に取り（緑 `#2E7D32` / オレンジ `#ED6C02` は明度も色相も離してある）、
+   バッジには**必ず «食べたい» / «食べた» の文字を添える**ことで色だけに頼らない状態を保つ
+   （地図の帯・カレンダーの点は文字が入らないので、凡例を必ず一緒に出す。
+   `MyDishStatusLegend` がその役目）。
+
 ⚠️ **`#ED6C02` は白文字とのコントラスト比 3.11:1** で、太字の数字・アイコン（UI 部品）の
 下限 3:1 を満たす。**これより明るいオレンジ（`#F97316` = 2.8、`#FB8C00` = 2.37）へ
 動かさないこと。** 上に載る白文字が読めなくなる。
@@ -29,6 +49,27 @@ import { FixedColors } from "@/constants/Palette";
 ⚠️ これは **状態を区別するための記号色**であって、「この色を CTA 以外へ広げてよい」という
 意味ではない（`docs/design-guidelines.md` §1）。新しい画面へ足したくなったら、
 まず状態の記号かどうかを確かめること。
+
+## #1834 続き 緑を «食べた» へ移す（11 巡目・オーナー指示）
+
+【判断ログ】2026-09-05 — オーナー指摘:
+
+> 🟢→完了してるイメージがある色やから（食べた）の方を🟢に
+> （食べたいと食べたのテーマカラーを逆）するのはどうやろか？
+
+**🟢 は «完了» の含意を持つ。まだ食べていない «食べたい» に当てると意味が逆になる。**
+→ 10 巡目で決めた 2 色（`#2E7D32` / `#ED6C02`）は値をそのままに、**当てる状態だけを入れ替えた**。
+
+| 状態 | 塗り |
+| --- | --- |
+| want（食べたい） | **オレンジ `#ED6C02`** |
+| eaten（食べた） | **緑 `#2E7D32`** |
+
+値を動かしていないので、10 巡目で取った «白文字が読める暗さ»（下の 2 つの ⚠️）は
+そのまま生きている。色相 1 本で区別している以上、**文字と凡例も従来どおり必ず添える**。
+
+⚠️ この向きは `statusBadges.test.tsx` が «どちらの状態にどちらの色か» まで縛っている。
+   10 巡目までは «2 色が違うこと» しか見ておらず、入れ替えても緑のまま通ってしまった。
  *
  * ## 3 つ組で持つ理由
  *
@@ -46,15 +87,22 @@ export type MyDishStatusPaint = {
 };
 
 /**
- * 状態の記号に使うオレンジ。記号としてはこの 1 色だけを使う。
+ * 状態の記号に使うオレンジ（#1834 続き・11 巡目から **«食べたい» 側**）。
  *
  * ⚠️ 明るくしない（白文字が読めなくなる。上のコントラストの注記を参照）。
  */
 export const MY_DISH_STATUS_ORANGE = FixedColors.myDishStatusOrange;
 
+/**
+ * #1834 状態の記号に使う緑（#1834 続き・11 巡目から **«食べた» 側**。🟢 = 完了）。
+ *
+ * ⚠️ 明るくしない（上に載る白文字が読めなくなる。`constants/Palette.ts` の注記を参照）。
+ */
+export const MY_DISH_STATUS_GREEN = FixedColors.myDishStatusGreen;
+
 export const MY_DISH_STATUS_COLORS: Record<MyDishStatus, MyDishStatusPaint> = {
-	want: { fill: FixedColors.myDishStatusOn, border: MY_DISH_STATUS_ORANGE, on: MY_DISH_STATUS_ORANGE },
-	eaten: { fill: MY_DISH_STATUS_ORANGE, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
+	want: { fill: MY_DISH_STATUS_ORANGE, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
+	eaten: { fill: MY_DISH_STATUS_GREEN, border: FixedColors.myDishStatusOn, on: FixedColors.myDishStatusOn },
 };
 
 /** 件数の内訳。`countMyDishStatuses` の返り値 */

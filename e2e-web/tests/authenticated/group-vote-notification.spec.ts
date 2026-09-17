@@ -123,7 +123,21 @@ test.describe("友達投票の完了通知（ホスト側）", () => {
 
 		await voteRow.click();
 
-		await appPage.waitForURL(`**${voteResultScreenPath()}`);
-		expect(new URL(appPage.url()).pathname).toBe(voteResultScreenPath());
+		/*
+		⚠️ **glob で待たないこと**（#1785）。expo-router はこの遷移で `shareToken` を
+		パスへ埋めたうえ **クエリにも付ける**ので、実際の URL は
+
+		    /ja-JP/search/dish-category-group-votes/e2e-1506-share-token?shareToken=e2e-1506-share-token
+
+		になる。`waitForURL("**" + path)` はクエリ込みの URL 全体に掛かるため一致せず、
+		«遷移していない» のと同じ見た目（30 秒のタイムアウト）で落ちていた。実際には
+		遷移も描画も成功している（実ブラウザで確認済み）。
+
+		この spec が守りたいのは «押したら結果画面（その shareToken）へ着く» ことなので、
+		パス名で待つ。遷移が起きなければ・別の画面へ行けば、これまでどおり落ちる。
+		*/
+		await expect
+			.poll(() => new URL(appPage.url()).pathname, { message: "投票結果画面へ遷移しない" })
+			.toBe(voteResultScreenPath());
 	});
 });

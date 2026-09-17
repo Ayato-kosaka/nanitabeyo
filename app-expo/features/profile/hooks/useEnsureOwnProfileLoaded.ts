@@ -122,6 +122,9 @@ export function useEnsureOwnProfileLoaded(): {
 				const data = await callBackend<{}, GetUserProfileResponse>(`v1/users/${user?.id}`, {
 					method: "GET",
 					requestPayload: {},
+					// #1888 404 は «まだプロフィールが無い» という想定内の答えで、下の catch が
+					// createUserProfile → 再取得で回復させる（#260）。障害ではないので error で積まない。
+					expectedStatuses: [404],
 				});
 				// #467 【設計】アバター画像をプリフェッチして表示を高速化
 				const avatarUrl = data.avatarUrls?.md;

@@ -65,7 +65,8 @@ export class DishCategoryGroupVotesController {
   })
   @ApiResponse({
     status: 201,
-    description: '作成成功（冪等キーによる再送で既存セッションを返した場合も 201）',
+    description:
+      '作成成功（冪等キーによる再送で既存セッションを返した場合も 201）',
   })
   async create(
     @Body() dto: CreateDishCategoryGroupVoteDto,

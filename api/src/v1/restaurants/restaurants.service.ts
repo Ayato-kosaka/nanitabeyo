@@ -5,6 +5,7 @@
 // ❸ Handles Google Place API integration, restaurant creation/search, dish media queries
 
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -16,15 +17,18 @@ import { Prisma } from '../../../../shared/prisma/client';
 import {
   QueryRestaurantsDto,
   CreateRestaurantDto,
+  CreateRestaurantDraftDto,
   QueryRestaurantDishMediaDto,
   QueryRestaurantsByGooglePlaceIdDto,
 } from '@shared/v1/dto';
 import {
   QueryRestaurantsResponse,
   CreateRestaurantResponse,
+  CreateRestaurantDraftResponse,
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
   GetRestaurantByIdResponse,
+  GetRestaurantOpeningHoursResponse,
   ErrorCode,
 } from '@shared/v1/res';
 import { RestaurantsRepository } from './restaurants.repository';
@@ -32,12 +36,32 @@ import { DishesRepository } from '../dishes/dishes.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { LocationsService } from '../locations/locations.service';
-import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
-import { StorageService } from 'src/core/storage/storage.service';
 import { RestaurantsAssembler } from './restaurants.assembler';
 import { isFoodAndDrinkPlaceForUser } from '../../../../shared/utils/google_places_restaurant_type';
 import { google } from '@googlemaps/places/build/protos/protos';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
+// #1780 店の代替画像（dish_media サムネイル）の入力型
+import type { ThumbnailUrlSource } from '../dish-media/dish-media-thumbnail';
+import {
+  diffConfirmedRestaurantValues,
+  signRestaurantDraftToken,
+  verifyRestaurantDraftToken,
+  type ConfirmedRestaurantValues,
+  type RestaurantDraftTokenPayload,
+} from './restaurant-draft.token';
+import { env } from '../../core/config/env';
+import {
+  buildDisplayAddress,
+  extractCountryName,
+} from './restaurant-display-address';
+// #1666 «どの出所を採るか» と «曜日ごとの並べ方» は判定側と同じ 1 実装を使う
+import {
+  buildWeeklyOpeningHours,
+  minutesToHhMm,
+  usedHoursSources,
+  type RestaurantOpeningHourRow,
+} from '../../../../shared/utils/openingHours';
+import { timeColumnToMinutes } from './restaurant-opening-status';
 
 @Injectable()
 export class RestaurantsService {
@@ -51,8 +75,6 @@ export class RestaurantsService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaRepository: DishMediaRepository,
     private readonly locationsService: LocationsService,
-    private readonly cloudTasksService: CloudTasksService,
-    private readonly storageService: StorageService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -68,6 +90,30 @@ export class RestaurantsService {
   ): Promise<PrismaRestaurants | null> {
     return this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
       this.repo.findRestaurantByGooglePlaceId(tx, googlePlaceId),
+    );
+  }
+
+  /**
+   * #1780 【設計】**`image_path` を持たない店の «顔» を dish_media サムネイルで埋める。**
+   *
+   * #1793 で Google の写真の複製をやめたので、これ以降に作られる店の `image_path` は
+   * 必ず null になる。何もしないと **新しい店は全部«画像なし»** で、店詳細・店名検索・
+   * 保存済み店・地図ピンが空の枠を描く（#1780 完了条件 4）。
+   *
+   * ⚠️ **1 クエリでまとめて引く。** ここを店ごとに引くと、店名検索や近隣一覧が
+   *    店の数だけクエリを撃つ（N+1）。`image_path` を持つ店は代替が要らないので
+   *    最初から問い合わせない。
+   */
+  private async fetchFallbackThumbnails(
+    // #1779 使うのは id と image_path だけ。落とす列（image_url / plus_code）を
+    // 読まない呼び出し元からも渡せるよう、必要な 2 列だけを要求する。
+    restaurants: Pick<PrismaRestaurants, 'id' | 'image_path'>[],
+  ): Promise<Map<string, ThumbnailUrlSource>> {
+    const ids = restaurants.filter((r) => !r.image_path).map((r) => r.id);
+    if (ids.length === 0) return new Map();
+
+    return this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+      this.dishMediaRepository.findFallbackThumbnailsByRestaurantIds(tx, ids),
     );
   }
 
@@ -160,18 +206,21 @@ export class RestaurantsService {
   /**
    * レストラン作成用に Place 詳細を取得し、必須フィールドをバリデーションする
    * - 不足フィールドがあれば Error を投げる（既存挙動を維持）
+   * #1780 Google 写真の自社 Storage 保存をやめたため、photos は fieldMask から外し必須にもしない
    */
   private async fetchAndValidatePlaceDetail(
     googlePlaceId: string,
     languageCode: string,
   ): Promise<google.maps.places.v1.IPlace> {
+    // #1780 ⚠️ **保存しない値を要求しない。**
+    // `plusCode` は保存もしなければ読み手も 1 つも無いので落とした。
+    // `addressComponents` は残す。保存はしないが、確認ページの初期値
+    // （表示用住所・国・州）を **その場で組み立てる**ために要る。
     const fieldMask = [
       'id',
       'displayName',
       'location',
       'addressComponents',
-      'plusCode',
-      'photos',
     ].join(',');
 
     const placeDetail = await this.externalApi.callPlaceDetails(
@@ -190,7 +239,6 @@ export class RestaurantsService {
     if (typeof placeDetail.location?.longitude !== 'number')
       missingFields.push('location.longitude');
     if (!placeDetail.addressComponents) missingFields.push('addressComponents');
-    if (!placeDetail.photos) missingFields.push('photos');
 
     if (missingFields.length > 0) {
       // ここは既存実装同様、詳細な place をログに出している（PII 対応は別課題として後回し）
@@ -208,64 +256,80 @@ export class RestaurantsService {
   }
 
   /**
-   * Google Place の写真を Storage にアップロードする
-   * - 写真がない場合は何もしない
-   * - 新規作成時は Resize が終わっていないため、UploadResult.signedUrl を返す
-   */
-  private async uploadRestaurantImageIfAny(
-    placeDetail: google.maps.places.v1.IPlace,
-    googlePlaceId: string,
-  ): Promise<{ imagePath: string | null; imageSignedUrl?: string }> {
-    const photoMedia = await this.locationsService.tryGetPhotoMedia(
-      placeDetail.photos!,
-      false,
-    );
-
-    if (!photoMedia) {
-      return { imagePath: null, imageSignedUrl: undefined };
-    }
-
-    const result = await this.storageService.uploadFile({
-      buffer: photoMedia.buffer,
-      mimeType: 'image/jpeg',
-      resourceType: 'google-maps',
-      usageType: 'photo',
-      identifier: googlePlaceId,
-    });
-
-    return {
-      imagePath: result.path,
-      imageSignedUrl: result.signedUrl,
-    };
-  }
-
-  /**
    * restaurants テーブルにレコードを登録
    * - Prisma.restaurantsCreateInput を利用し、id など DB が付与する値は指定しない
+   * #1780 Google 写真の自社 Storage 保存をやめたため、image_path は常に null で作成する
    */
   private async createRestaurantRecord(params: {
     googlePlaceId: string;
     languageCode: string;
     placeDetail: google.maps.places.v1.IPlace;
-    imagePath: string | null;
+    /**
+     * #1671 確認ページでユーザーが確定させた値。
+     * **これが渡されたときは Google の値ではなくこちらを保存する**（それがこの機能の目的）。
+     */
+    confirmed?: ConfirmedRestaurantValues;
   }): Promise<PrismaRestaurants> {
-    const { googlePlaceId, languageCode, placeDetail, imagePath } = params;
+    const { googlePlaceId, languageCode, placeDetail, confirmed } = params;
 
     const restaurantData: Prisma.restaurantsCreateInput = {
       google_place_id: googlePlaceId,
-      name: placeDetail.displayName!.text!, // バリデーション済みのため非 null アサーション
+      /*
+        #1671 完了条件「確認された値が `created_by_source='user'` で保存される」。
+
+        ⚠️ **DB の DEFAULT に頼らず、ここで明示する。**
+        列は `NOT NULL DEFAULT 'user'`（20260827T0000）なので、書かなくても結果は同じである。
+        それでも書くのは、この経路が «ユーザーが作った行» であることが
+        **コードから読めない**状態を残さないためで、既定値を変える migration が
+        将来入ったときに、アプリ製の行の意味が黙って変わるのを防ぐ。
+
+        ⚠️ `created_by_source` は **その行を誰が作ったかという不変の履歴**である
+        （migration のコメント）。同期（`9_1`）が作る行は 'pipeline'。ここを
+        取り違えると、ユーザーの店が同期の上書き対象へ落ちる（#1643 の事故）。
+      */
+      created_by_source: 'user',
+      // バリデーション済みのため非 null アサーション
+      name: confirmed?.name ?? placeDetail.displayName!.text!,
       name_language_code: languageCode,
-      latitude: placeDetail.location!.latitude!,
-      longitude: placeDetail.location!.longitude!,
+      latitude: confirmed?.latitude ?? placeDetail.location!.latitude!,
+      longitude: confirmed?.longitude ?? placeDetail.location!.longitude!,
+      // #1671 パイプライン製の行が空のとき、確認ページを通ったときだけ埋める。
+      // ⚠️ «62 万行が空» は実測では成り立っていない（2026-09-05: address 99.73% /
+      //    country_code 100.00% が充填済み）。空きは 0.27% 程度である。
+      // 確認ページを通ったときだけ、ユーザーが確認した値で埋める。
+      // ⚠️ 確認を通っていない経路（draftToken なし）では **触らない**。
+      //    Google の値を «確認済み» の顔で入れないため（それがこのチケットの主旨）。
+      ...(confirmed
+        ? {
+            address: confirmed.address,
+            country_code: confirmed.countryCode,
+            // #1671 料理の命名（現地言語の解決）に使う。確認ページを通ったときだけ入れる
+            subterritory_code: confirmed.subterritoryCode,
+          }
+        : {}),
       // 【非推奨カラム】だがスキーマ上必須であれば空文字で維持
       image_url: '',
-      image_path: imagePath,
-      // as を利用して Prisma.JsonValue にキャスト（JSON として保持する前提）
-      address_components:
-        placeDetail.addressComponents as unknown as Prisma.InputJsonValue,
-      plus_code: placeDetail.plusCode
-        ? (placeDetail.plusCode as unknown as Prisma.InputJsonValue)
-        : undefined,
+      image_path: null,
+      /*
+        #1780 【設計】**Google 由来の生データ（addressComponents / plusCode）を保存しない。**
+
+        #843 §4 の方針そのもの。ここは «取得はする / 保存はしない» に変えた。
+        `addressComponents` は上の `confirmed` を作るために **その場で使う**が、
+        列（address / country_code / subterritory_code）へ畳んだあとは捨てる。
+
+        ⚠️ **これで «情報が減る» ことはない。** 実測で、アプリが
+        `address_components` から読んでいるのは «国 / 州 / 表示用住所» の 3 つだけで、
+        いずれも列に入っている。しかも dev の 621,974 店のうち 619,498 店
+        （99.60%）は元から `address_components` が空で、**その 99.60% が
+        既に列だけで動いている**（#1850 の命名 / #1869 の通貨）。
+        新規店をその 99.60% と同じ形にするだけである。
+
+        ⚠️ `plus_code` は **読み手が 1 つも無い**（API レスポンス型にも app-expo にも
+        参照ゼロ。2026-09-05 に grep で確認）。保存をやめて失うものは無い。
+
+        列は残す（削除は #1779）。既存行の値もそのまま残す。
+      */
+      address_components: [] as unknown as Prisma.InputJsonValue,
       // created_at は DB デフォルトがあれば省略可能だが、既存互換のため残す
       created_at: new Date(),
     };
@@ -279,59 +343,230 @@ export class RestaurantsService {
     );
   }
 
-  /**
-   * レストラン画像のリサイズタスクを Cloud Tasks に enqueue する
-   * - 画像がない場合は何もしない
-   */
-  private async enqueueImageResizeIfNeeded(
-    restaurantId: string,
-    imagePath: string | null,
-  ): Promise<void> {
-    if (!imagePath) return;
+  /* ------------------------------------------------------------------ */
+  /* POST /v1/restaurants/draft (#1671 確認ページの下読み)                */
+  /* ------------------------------------------------------------------ */
 
-    // 既存実装通りに 256 / 64 の 2 パターンをキューイング
-    await this.cloudTasksService.enqueueResizeImage({
-      table: 'restaurants',
-      column: 'image_path',
-      recordId: restaurantId,
-      size: 256,
-      aspectRatio: 9 / 16,
-      originalPath: imagePath,
+  /**
+   * #1671 既にある店の «確認ページの初期値» を、**自社 DB だけ**から組み立てる。
+   * Google は 1 回も叩かない（→ `createRestaurantDraft` の冒頭コメント）。
+   */
+  private buildDraftFromExistingRestaurant(
+    existing: PrismaRestaurants,
+  ): CreateRestaurantDraftResponse {
+    const addressComponents = Array.isArray(existing.address_components)
+      ? (existing.address_components as unknown as Parameters<
+          typeof buildDisplayAddress
+        >[0])
+      : [];
+
+    // 列が空なら addressComponents から組み立てて初期値にする。
+    // どちらも空なら空欄で出し、ユーザーが 1 から書く
+    const derived = this.locationsService.extractLocationCodes(
+      addressComponents as Parameters<
+        LocationsService['extractLocationCodes']
+      >[0],
+    );
+    const countryCode = existing.country_code || derived.countryCode;
+    const subterritoryCode =
+      existing.subterritory_code || derived.subterritoryCode;
+    const address =
+      existing.address || buildDisplayAddress(addressComponents, countryCode);
+
+    const payload: RestaurantDraftTokenPayload = {
+      googlePlaceId: existing.google_place_id,
+      name: existing.name,
+      nameLanguageCode: existing.name_language_code,
+      latitude: existing.latitude,
+      longitude: existing.longitude,
+      addressComponentsJson: JSON.stringify(addressComponents),
+      plusCodeJson: existing.plus_code
+        ? JSON.stringify(existing.plus_code)
+        : null,
+      address,
+      countryCode,
+      subterritoryCode,
+    };
+
+    this.logger.debug('RestaurantDraftFromExisting', 'createRestaurantDraft', {
+      restaurantId: existing.id,
+      googlePlaceId: existing.google_place_id,
     });
-    await this.cloudTasksService.enqueueResizeImage({
-      table: 'restaurants',
-      column: 'image_path',
-      recordId: restaurantId,
-      size: 64,
-      aspectRatio: 9 / 16,
-      originalPath: imagePath,
-    });
+
+    return {
+      draft: {
+        googlePlaceId: payload.googlePlaceId,
+        name: payload.name,
+        nameLanguageCode: payload.nameLanguageCode,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        addressComponents,
+        address,
+        countryCode,
+        countryName: extractCountryName(addressComponents),
+      },
+      draftToken: signRestaurantDraftToken(
+        payload,
+        env.SUPABASE_JWT_SECRET,
+        Date.now(),
+      ),
+    };
   }
 
   /**
-   * レスポンス用のレストランデータを組み立てる
-   * - 基本は assembler.enrichRestaurantsWithImageUrls に統一
-   * - 新規作成時のみ、UploadResult.signedUrl で imageUrls を上書きする
+   * #1671 【設計】**店を作らずに、確認ページへ出す値だけを返す。**
+   *
+   * `createRestaurant` の «Google から取るところ» と同じ手順を踏むが、DB へは一切書かない。
+   * 返す `draftToken` に Google 由来の既定値を署名して封じてあるので、
+   * 続く `POST /v1/restaurants` は **Google を 1 回も叩かずに**
+   * 「ユーザーが既定値を書き換えたか」を判定できる（→ `restaurant-draft.token.ts`）。
+   *
+   * ⚠️ **Google の呼び出し回数は増えない。** 従来 `createRestaurant` が行っていた
+   * 2 回（言語判定・詳細取得）が、そのままここへ前倒しされるだけである。
+   * ユーザーがキャンセルした場合は、従来なら «作られてしまっていた行» が減る。
    */
-  private buildRestaurantWithImageOverride(
-    restaurant: PrismaRestaurants,
-    options?: { uploadedSignedUrl?: string },
-  ) {
-    // まずは既存の assembler ロジックで統一的に変換
-    const base = this.assembler.enrichRestaurantsWithImageUrls(restaurant);
-
-    // 新規作成時など、アップロード直後に signedUrl を優先したい場合のみ上書き
-    if (options?.uploadedSignedUrl) {
-      return {
-        ...base,
-        imageUrls: {
-          sm: options.uploadedSignedUrl,
-          md: options.uploadedSignedUrl,
-        },
-      };
+  async createRestaurantDraft(
+    dto: CreateRestaurantDraftDto,
+  ): Promise<CreateRestaurantDraftResponse> {
+    /*
+     * ⚠️ **既にある店なら Google を 1 回も叩かない。**
+     *
+     * #1671 で «住所が空の既存店も確認ページへ回す» ようにしたが、素朴に実装すると
+     * この下読みが走り、**それまで 0 回だった経路へ Place Details が 2 回**（#1781 の
+     * ⑥ Essentials + ⑦ Pro）増える。«ほぼ全部が住所空» という当初の想定は実測では
+     * 誤りだった（2026-09-05: address は 99.73% が充填済み）が、**この節の結論は
+     * 変わらない**。既存店の下読みで Google を叩けば «POI を押すたびに 2 回» になり、
+     * それは住所が空かどうかと無関係だからである。#1781 の実測では ④⑥⑦ 合計で月 3,887 回、
+     * Pro の無料枠は月 5,000 回しかないため、**#843 の趣旨に反して課金が始まりうる**。
+     *
+     * 既にある店の名前・座標は**自社 DB に入っている**。足りないのは住所で、それは
+     * ユーザーが確認画面で入れる。**Google に聞く理由が無い。**
+     */
+    const existing = await this.findRestaurantByGooglePlaceId(
+      dto.googlePlaceId,
+    );
+    if (existing) {
+      return this.buildDraftFromExistingRestaurant(existing);
     }
 
-    return base;
+    const { languageCode, placeDetailForLocalLang } =
+      await this.resolveRestaurantLanguage(dto.googlePlaceId);
+
+    this.ensureIsFoodAndDrink(placeDetailForLocalLang, dto.googlePlaceId);
+
+    let placeDetail: google.maps.places.v1.IPlace;
+    try {
+      placeDetail = await this.fetchAndValidatePlaceDetail(
+        dto.googlePlaceId,
+        languageCode,
+      );
+    } catch (error) {
+      // createRestaurant と同じマッピング（Place 詳細が取れない = 404）
+      this.logger.error('GooglePlaceDetailsFailed', 'createRestaurantDraft', {
+        googlePlaceId: dto.googlePlaceId,
+        error: (error as Error).message,
+      });
+      throw new NotFoundException('Google Place not found or invalid');
+    }
+
+    const addressComponents = placeDetail.addressComponents ?? [];
+    // #1671 国とサブ領域は同じ addressComponents から同時に決まる。呼び分けない
+    const { countryCode, subterritoryCode } =
+      this.locationsService.extractLocationCodes(
+        addressComponents as Parameters<
+          LocationsService['extractLocationCodes']
+        >[0],
+      );
+
+    const payload: RestaurantDraftTokenPayload = {
+      googlePlaceId: dto.googlePlaceId,
+      name: placeDetail.displayName!.text!,
+      nameLanguageCode: languageCode,
+      latitude: placeDetail.location!.latitude!,
+      longitude: placeDetail.location!.longitude!,
+      addressComponentsJson: JSON.stringify(addressComponents),
+      plusCodeJson: placeDetail.plusCode
+        ? JSON.stringify(placeDetail.plusCode)
+        : null,
+      address: buildDisplayAddress(addressComponents, countryCode),
+      countryCode,
+      subterritoryCode,
+    };
+
+    this.logger.debug('RestaurantDraftIssued', 'createRestaurantDraft', {
+      googlePlaceId: dto.googlePlaceId,
+      countryCode,
+      subterritoryCode,
+    });
+
+    return {
+      draft: {
+        googlePlaceId: payload.googlePlaceId,
+        name: payload.name,
+        nameLanguageCode: payload.nameLanguageCode,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        addressComponents,
+        address: payload.address,
+        countryCode,
+        // 表示専用。保存するのは countryCode のままなので、トークンには封じない
+        countryName: extractCountryName(addressComponents),
+      },
+      draftToken: signRestaurantDraftToken(
+        payload,
+        env.SUPABASE_JWT_SECRET,
+        Date.now(),
+      ),
+    };
+  }
+
+  /**
+   * #1671 `draftToken` を検証し、**保存に使う値**と**書き換えられた項目**を返す。
+   *
+   * トークンが無ければ `null`（＝従来どおり Google の値をそのまま保存する経路）。
+   * トークンが壊れている・期限切れ・別の店のものなら 400 で弾く。
+   */
+  private resolveConfirmedValues(dto: CreateRestaurantDto): {
+    baseline: RestaurantDraftTokenPayload;
+    confirmed: ConfirmedRestaurantValues;
+    changedFields: string[];
+  } | null {
+    if (!dto.draftToken) return null;
+
+    const baseline = verifyRestaurantDraftToken(
+      dto.draftToken,
+      env.SUPABASE_JWT_SECRET,
+      Date.now(),
+    );
+    if (!baseline) {
+      throw new BadRequestException(
+        'draftToken is invalid or expired. Re-open the confirmation page.',
+      );
+    }
+
+    // ⚠️ 別の店のトークンを付け替えて «確認済み» を騙れないようにする。
+    //    ここが無いと、A 店の下読みで得たトークンで B 店を好きな値で作れる。
+    if (baseline.googlePlaceId !== dto.googlePlaceId) {
+      throw new BadRequestException(
+        'draftToken was issued for a different googlePlaceId.',
+      );
+    }
+
+    const confirmed: ConfirmedRestaurantValues = {
+      name: dto.name ?? baseline.name,
+      latitude: dto.latitude ?? baseline.latitude,
+      longitude: dto.longitude ?? baseline.longitude,
+      address: dto.address ?? baseline.address,
+      countryCode: dto.countryCode ?? baseline.countryCode,
+      // #1671 ⚠️ ユーザーは編集できないので dto を見ない。トークンの値をそのまま通す
+      subterritoryCode: baseline.subterritoryCode,
+    };
+
+    return {
+      baseline,
+      confirmed,
+      changedFields: diffConfirmedRestaurantValues(baseline, confirmed),
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -356,9 +591,17 @@ export class RestaurantsService {
       count: results.length,
     });
 
+    // #1780 画像を持たない店の代替サムネイルを 1 クエリでまとめて引いてから詰める
+    const fallbacks = await this.fetchFallbackThumbnails(
+      results.map((r) => r.restaurant),
+    );
+
     // レスポンス変換は assembler に統一
     return results.map((r) => ({
-      restaurant: this.assembler.enrichRestaurantsWithImageUrls(r.restaurant),
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+        r.restaurant,
+        fallbacks.get(r.restaurant.id),
+      ),
       meta: r.meta,
     }));
   }
@@ -379,16 +622,112 @@ export class RestaurantsService {
     );
 
     if (existingRestaurant) {
-      // 既存レストランの場合はメタ情報を取得して返すだけ
-      const meta = await this.fetchRestaurantMeta(existingRestaurant.id);
+      /*
+       * #1671 【設計】**既存店でも «空いている住所・国コード» は埋める。**
+       *
+       * ⚠️ **«62 万行が空» は実測では成り立っていない**（2026-09-05）。
+       *    dev では address 99.73% / country_code 100.00% が既に埋まっており、
+       *    ここが効くのは 0.27% 程度である。当初の想定は次のとおりだった:
+       *
+       * パイプライン製の行は `address` / `country_code` が空のままで、
+       * ユーザーが POI を押しても «既存店だからそのまま開く» のでこの穴は
+       * **永久に埋まらなかった**（チケット本文の指摘そのもの）。
+       *
+       * 確認ページを通ってきた（= draftToken がある）ときだけ埋める。
+       * ⚠️ 既に入っている値は上書きしない（→ `fillMissingAddress` のコメント）。
+       */
+      let restaurant = existingRestaurant;
+      const confirmationForExisting = this.resolveConfirmedValues(dto);
+
+      if (confirmationForExisting) {
+        const filled = await this.prisma.withTransaction(
+          (tx: Prisma.TransactionClient) =>
+            this.repo.fillMissingAddress(tx, {
+              restaurantId: existingRestaurant.id,
+              address: confirmationForExisting.confirmed.address,
+              countryCode: confirmationForExisting.confirmed.countryCode,
+              subterritoryCode:
+                confirmationForExisting.confirmed.subterritoryCode,
+            }),
+        );
+
+        if (filled > 0) {
+          this.logger.log('RestaurantAddressFilled', 'createRestaurant', {
+            restaurantId: existingRestaurant.id,
+            changedFields: confirmationForExisting.changedFields,
+          });
+          // 埋めた値を返す（呼び出し元が古い値をキャッシュしないため）
+          restaurant =
+            (await this.findRestaurantByGooglePlaceId(dto.googlePlaceId)) ??
+            existingRestaurant;
+        }
+      }
+
+      const meta = await this.fetchRestaurantMeta(restaurant.id);
+      const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
 
       return {
-        restaurant: this.buildRestaurantWithImageOverride(existingRestaurant),
+        restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+          restaurant,
+          fallbacks.get(restaurant.id),
+        ),
         meta,
       };
     }
 
     // 2. 新規作成フロー
+    //
+    // #1671 確認ページを通ってきた場合（draftToken あり）は、Google 由来の値も
+    // 現地言語コードも**署名済みトークンの中に入っている**ので、
+    // **Google を 1 回も叩かずに**そのまま登録できる。
+    const confirmation = this.resolveConfirmedValues(dto);
+
+    if (confirmation) {
+      const { baseline, confirmed, changedFields } = confirmation;
+
+      const restaurant = await this.createRestaurantRecord({
+        googlePlaceId: dto.googlePlaceId,
+        languageCode: baseline.nameLanguageCode,
+        // トークンへ封じた Google 由来の値を、Place 詳細の代わりに使う
+        placeDetail: {
+          displayName: { text: baseline.name },
+          location: {
+            latitude: baseline.latitude,
+            longitude: baseline.longitude,
+          },
+          addressComponents: JSON.parse(
+            baseline.addressComponentsJson,
+          ) as google.maps.places.v1.IPlace['addressComponents'],
+          plusCode: baseline.plusCodeJson
+            ? (JSON.parse(
+                baseline.plusCodeJson,
+              ) as google.maps.places.v1.IPlace['plusCode'])
+            : undefined,
+        },
+        confirmed,
+      });
+
+      // ⚠️ **書き換えを «記録する» ところまでがこのチケットの要件**である。
+      //    どう扱うか（追認する / 荒らしとして扱う）は #1827 で決めるので、
+      //    ここでは判断せず、後から数えられる形で残すだけにする。
+      this.logger.log('RestaurantCreatedFromConfirmation', 'createRestaurant', {
+        restaurantId: restaurant.id,
+        googlePlaceId: restaurant.google_place_id,
+        changedFields,
+        userEditedDefaults: changedFields.length > 0,
+      });
+
+      const meta = await this.fetchRestaurantMeta(restaurant.id);
+      const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
+      return {
+        restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+          restaurant,
+          fallbacks.get(restaurant.id),
+        ),
+        meta,
+      };
+    }
+
     // 2-1. 対象の Google Place ID の restaurant の現地の言語コードを特定
     const { languageCode: restaurantLanguageCode, placeDetailForLocalLang } =
       await this.resolveRestaurantLanguage(dto.googlePlaceId);
@@ -398,7 +737,6 @@ export class RestaurantsService {
 
     // 2-3. Place 詳細を取得して DB 登録まで実行
     let restaurant: PrismaRestaurants;
-    let imageSignedUrl: string | undefined;
 
     try {
       const placeDetail = await this.fetchAndValidatePlaceDetail(
@@ -406,19 +744,11 @@ export class RestaurantsService {
         restaurantLanguageCode,
       );
 
-      const { imagePath, imageSignedUrl: uploadedSignedUrl } =
-        await this.uploadRestaurantImageIfAny(placeDetail, dto.googlePlaceId);
-
-      imageSignedUrl = uploadedSignedUrl;
-
       restaurant = await this.createRestaurantRecord({
         googlePlaceId: dto.googlePlaceId,
         languageCode: restaurantLanguageCode,
         placeDetail,
-        imagePath,
       });
-
-      await this.enqueueImageResizeIfNeeded(restaurant.id, imagePath);
 
       this.logger.debug('RestaurantCreated', 'createRestaurant', {
         restaurantId: restaurant.id,
@@ -438,11 +768,18 @@ export class RestaurantsService {
     // 既存実装との相性を保ちつつ meta は常に fetch する
     const meta = await this.fetchRestaurantMeta(restaurant.id);
 
+    /*
+    #1780 作ったばかりの店には dish_media がまだ 1 件も無いので、ここは必ず空振りする。
+    それでも呼ぶのは、**既存店が createRestaurant を通り抜けてくる**（同じ place_id で
+    2 回目以降）ときに «画像がある店だけ画像が出ない» のを作らないため。
+    */
+    const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
+
     return {
-      restaurant: this.buildRestaurantWithImageOverride(restaurant, {
-        // 新規作成時のみ、Resize 前の signedUrl を返す仕様
-        uploadedSignedUrl: imageSignedUrl,
-      }),
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+        restaurant,
+        fallbacks.get(restaurant.id),
+      ),
       meta,
     };
   }
@@ -505,6 +842,68 @@ export class RestaurantsService {
   }
 
   /* ------------------------------------------------------------------ */
+  /* GET /v1/restaurants/:id/opening-hours                               */
+  /* ------------------------------------------------------------------ */
+  /**
+   * #1666 店舗詳細に出す «通常の 1 週間の営業時間»。
+   *
+   * ⚠️ **«いま開いているか» は返さない。** 判定は JST 固定で、店ごとのタイムゾーンを
+   * 解決する仕組みがまだ無い（`shared/utils/openingHours.ts` の注記）。dev には韓国に
+   * ある店が居るので、JST で «営業中» と書くとその店では嘘になる。時刻そのものは
+   * 店の現地時刻なので出してよい。
+   *
+   * ⚠️ **店が存在しなくても 404 にしない。** 呼び出し側（店舗詳細）は既に店を持っている。
+   * 「営業時間を知らない」と「店が無い」を別の失敗として扱わせる理由が無く、
+   * どちらでも画面は «欄を出さない» になる。
+   */
+  async getRestaurantOpeningHours(
+    restaurantId: string,
+  ): Promise<GetRestaurantOpeningHoursResponse> {
+    const rows = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.repo.findRestaurantOpeningHours(tx, restaurantId),
+    );
+
+    this.logger.debug('GetRestaurantOpeningHours', 'getRestaurantOpeningHours', {
+      restaurantId,
+      rowCount: rows.length,
+    });
+
+    if (rows.length === 0) return { days: [], sources: [], fetchedAt: null };
+
+    const hourRows: RestaurantOpeningHourRow[] = rows.map((row) => ({
+      source: row.source,
+      dayOfWeek: row.day_of_week,
+      opensAtMinutes: timeColumnToMinutes(row.opens_at),
+      closesAtMinutes: timeColumnToMinutes(row.closes_at),
+      crossesMidnight: row.crosses_midnight,
+    }));
+
+    const days = buildWeeklyOpeningHours(hourRows).map((day) => ({
+      dayOfWeek: day.dayOfWeek,
+      spans: day.spans.map((span) => ({
+        opensAt: minutesToHhMm(span.opensAtMinutes),
+        closesAt: minutesToHhMm(span.closesAtMinutes),
+        crossesMidnight: span.crossesMidnight,
+      })),
+    }));
+
+    const fetchedAt = rows
+      .map((row) => row.fetched_at)
+      .reduce<Date | null>(
+        (latest, current) =>
+          latest === null || current > latest ? current : latest,
+        null,
+      );
+
+    return {
+      days,
+      sources: usedHoursSources(hourRows),
+      fetchedAt: fetchedAt?.toISOString() ?? null,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
   /* GET /v1/restaurants/:id (restaurant by ID)                          */
   /* ------------------------------------------------------------------ */
   async getRestaurantById(
@@ -546,8 +945,13 @@ export class RestaurantsService {
       averageRating: reviewStats.averageRating,
     });
 
+    const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
+
     return {
-      restaurant: this.assembler.enrichRestaurantsWithImageUrls(restaurant),
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(
+        restaurant,
+        fallbacks.get(restaurant.id),
+      ),
       meta: {
         reviewCount: reviewStats.reviewCount,
         averageRating: reviewStats.averageRating,
@@ -592,6 +996,10 @@ export class RestaurantsService {
     });
 
     // ここも assembler に統一
-    return this.assembler.enrichRestaurantsWithImageUrls(restaurant);
+    const fallbacks = await this.fetchFallbackThumbnails([restaurant]);
+    return this.assembler.enrichRestaurantsWithImageUrls(
+      restaurant,
+      fallbacks.get(restaurant.id),
+    );
   }
 }

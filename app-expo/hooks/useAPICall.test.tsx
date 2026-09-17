@@ -173,6 +173,70 @@ describe("#1194 認証初期化の決着を待ってから諦める", () => {
  * メンテナンスを名乗ってよいのは Remote Config の `is_maintenance` を読んだ
  * `MaintenanceGuard` の `SERVICE_MAINTENANCE` だけである。
  */
+// #1888 «想定内» のステータスは error で積まない。
+// 初回ログイン直後の GET v1/users/<id> → 404 は、useEnsureOwnProfileLoaded が
+// createUserProfile → 再取得で回復させるサインアップ導線の正常な 1 段目（#260）。
+// それが 5 ユーザー / 3 日ぶん error として起票されていた。
+describe("#1888 expectedStatuses は error ではなく warn で記録する", () => {
+	const jsonResponse = (status: number, body: unknown) => ({
+		response: { ok: false, status, headers: { get: () => null }, json: async () => body },
+		endpoint: "https://api.example.test/v1/users/u1",
+	});
+
+	const { fetchWithAuth } = jest.requireMock("@/lib/fetchWithAuth") as { fetchWithAuth: jest.Mock };
+	const { logFrontendEvent } = (
+		jest.requireMock("@/hooks/useLogger") as {
+			useLogger: () => { logFrontendEvent: jest.Mock };
+		}
+	).useLogger();
+
+	const apiCallErrorLevel = () =>
+		logFrontendEvent.mock.calls
+			.map(([e]) => e as { event_name: string; error_level: string })
+			.find((e) => e.event_name === "api_call_error")?.error_level;
+
+	beforeEach(() => {
+		(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+		mockSession = { access_token: "token-1" };
+		mockWaitForAuthResolved = jest.fn(async () => true);
+		logFrontendEvent.mockClear();
+		fetchWithAuth.mockReset();
+		fetchWithAuth.mockResolvedValue(jsonResponse(404, { success: false, message: "User not found" }));
+	});
+
+	afterAll(() => {
+		fetchWithAuth.mockReset();
+	});
+
+	it("宣言したステータスなら warn で記録する（記録自体は消さない）", async () => {
+		const callBackend = renderCallBackend();
+		await callBackend("v1/users/u1", { method: "GET", requestPayload: {}, expectedStatuses: [404] }).catch(
+			() => undefined,
+		);
+
+		// ⚠️ «消す» のではなく «下げる»。消すと «想定内のはずが実は壊れていた» ときに何も残らない
+		expect(apiCallErrorLevel()).toBe("warn");
+	});
+
+	// 逆側の番人。既定の挙動を変えていないこと
+	it("宣言していなければ従来どおり error", async () => {
+		const callBackend = renderCallBackend();
+		await callBackend("v1/users/u1", { method: "GET", requestPayload: {} }).catch(() => undefined);
+
+		expect(apiCallErrorLevel()).toBe("error");
+	});
+
+	it("宣言しても別のステータスは error のまま", async () => {
+		fetchWithAuth.mockResolvedValue(jsonResponse(500, { success: false, message: "boom" }));
+		const callBackend = renderCallBackend();
+		await callBackend("v1/users/u1", { method: "GET", requestPayload: {}, expectedStatuses: [404] }).catch(
+			() => undefined,
+		);
+
+		expect(apiCallErrorLevel()).toBe("error");
+	});
+});
+
 describe("#1642 メンテナンス告知は SERVICE_MAINTENANCE のときだけ", () => {
 	/** 指定の JSON ボディと status を返す `fetchWithAuth` の戻り値を組み立てる */
 	const jsonResponse = (status: number, body: unknown) => ({
@@ -186,7 +250,9 @@ describe("#1642 メンテナンス告知は SERVICE_MAINTENANCE のときだけ"
 	});
 
 	const { fetchWithAuth } = jest.requireMock("@/lib/fetchWithAuth") as { fetchWithAuth: jest.Mock };
-	const { showDialog } = (jest.requireMock("@/contexts/DialogProvider") as { useDialog: () => { showDialog: jest.Mock } }).useDialog();
+	const { showDialog } = (
+		jest.requireMock("@/contexts/DialogProvider") as { useDialog: () => { showDialog: jest.Mock } }
+	).useDialog();
 
 	beforeEach(() => {
 		(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -215,7 +281,10 @@ describe("#1642 メンテナンス告知は SERVICE_MAINTENANCE のときだけ"
 		const error: ApiError = await callBackend("v1/dishes/bulk-import", {
 			method: "POST",
 			requestPayload: {},
-		}).then(() => null as never, (e) => e);
+		}).then(
+			() => null as never,
+			(e) => e,
+		);
 
 		expect(showDialog).not.toHaveBeenCalled();
 		expect(error?.code).toBe("http_error");
@@ -232,7 +301,10 @@ describe("#1642 メンテナンス告知は SERVICE_MAINTENANCE のときだけ"
 		const error: ApiError = await callBackend("v1/dishes/bulk-import", {
 			method: "POST",
 			requestPayload: {},
-		}).then(() => null as never, (e) => e);
+		}).then(
+			() => null as never,
+			(e) => e,
+		);
 
 		expect(showDialog).not.toHaveBeenCalled();
 		expect(error?.code).toBe("http_error");
@@ -253,7 +325,10 @@ describe("#1642 メンテナンス告知は SERVICE_MAINTENANCE のときだけ"
 		const error: ApiError = await callBackend("v1/dishes/bulk-import", {
 			method: "POST",
 			requestPayload: {},
-		}).then(() => null as never, (e) => e);
+		}).then(
+			() => null as never,
+			(e) => e,
+		);
 
 		expect(showDialog).toHaveBeenCalledTimes(1);
 		expect(showDialog.mock.calls[0][0]).toBe("Error.maintenanceMessage");

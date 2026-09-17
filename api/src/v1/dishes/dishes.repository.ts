@@ -94,7 +94,8 @@ export class DishesRepository {
       id?: string;
       restaurant_id: string;
       category_id: string;
-      name: string | null;
+      /** #1779 廃止予定の列。読み手が無いので渡さなくてよい（省略時は NULL） */
+      name?: string | null;
       created_at?: Date;
       updated_at?: Date;
       lock_no?: number;

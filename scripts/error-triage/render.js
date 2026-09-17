@@ -19,6 +19,7 @@ const {
 	BODY_STALE_DAYS,
 	FP_ALGO_VERSION,
 	SCHEMA_VERSION,
+	SEV_ALERT_USER_THRESHOLD,
 	SUB_ISSUE_SOFT_LIMIT,
 	SUB_ISSUE_WARN_THRESHOLD,
 } = require("./constants");
@@ -263,7 +264,15 @@ const formatLocaleCounts = (localeCounts) => {
  * }} params
  * @returns {string}
  */
-const renderAutoSection = ({ group, window, generatedAt, firstSeenUtc, parentIssue = 1196, runUrl = null }) => {
+const renderAutoSection = ({
+	group,
+	window,
+	generatedAt,
+	firstSeenUtc,
+	parentIssue = 1196,
+	runUrl = null,
+	isNewIssue = false,
+}) => {
 	const key = group.groupKey || {};
 	const rows = [
 		["どこで", `\`${group.surface}\` / ${describeLocation(group)}${key.eventName ? ` / \`${key.eventName}\`` : ""}`],
@@ -280,10 +289,36 @@ const renderAutoSection = ({ group, window, generatedAt, firstSeenUtc, parentIss
 		["観測窓", `\`${window.startUtc}\` 〜 \`${window.endUtc}\`（${window.lookbackHours}h スライド窓）`],
 	];
 	const runLink = runUrl ? ` / <a href="${runUrl}">run</a>` : "";
+
+	// #1946 障害規模のものは、本文の先頭でオーナーを名指しする。
+	//
+	// 起票だけでは埋もれる。2026-09-04〜09-09 の 6 日間、/v1/dish-media/search が
+	// 1 日 68〜151 ユーザーに 500 を返し続けたが、Issue は初日に立っていたのに
+	// 38 件の中に埋もれて誰も気づかなかった。
+	//
+	// ⚠️ **通知が飛ぶのは起票のときだけ**である。この自動領域は body 更新のたびに
+	// 書き直されるが、body 編集では通知が飛ばない（上の「扱い方」に書いてあるとおり）。
+	// 結果として «毎日メンションで鳴らす» にはならない。鳴るのは 1 回きりでよい。
+	//
+	// ⚠️ **新規起票のときだけ**名指しする。既存 Issue の body 更新では出さない。
+	// 実測（本番 2026-08-27〜09-09）では、しきい値を超えるグループが **毎日 3〜4 件**ある
+	// （ほぼ全部が err/skip 済みの Places クォータ連鎖と、修正済みの previous_session_terminated）。
+	// reopen まで含めて鳴らすと «毎日飛ぶ» ことになり、鳴らないのと同じになる。
+	// 名指しは «新しくて大きいものが出た» ときだけに取っておく。
+	const severe = isNewIssue && (group.affectedUsers ?? 0) >= SEV_ALERT_USER_THRESHOLD;
+	const severeBanner = severe
+		? [
+				"> [!CAUTION]",
+				`> **影響ユーザー ${group.affectedUsers} 人**（しきい値 ${SEV_ALERT_USER_THRESHOLD}）。障害規模です。 @Ayato-kosaka`,
+				"",
+			]
+		: [];
+
 	return [
 		AUTO_START_MARKER,
 		renderFirstSeenMarker(firstSeenUtc),
 		"",
+		...severeBanner,
 		"|  |  |",
 		"|---|---|",
 		...rows.map(([label, value]) => `| **${label}** | ${value} |`),
@@ -355,7 +390,17 @@ const PRESERVED_BODY_NOTICE = "（自動領域のマーカーが見つからな�
  */
 const renderIssueBody = ({ group, window, generatedAt, existingBody = null, parentIssue = 1196, runUrl = null }) => {
 	const firstSeenUtc = minTimestamp(extractFirstSeenUtc(existingBody), group.firstSeenUtc);
-	const autoSection = renderAutoSection({ group, window, generatedAt, firstSeenUtc, parentIssue, runUrl });
+	// #1946 «新規起票か» は existingBody の有無で決まる（更新経路では必ず既存 body が渡る）
+	const isNewIssue = !existingBody || existingBody.trim() === "";
+	const autoSection = renderAutoSection({
+		group,
+		window,
+		generatedAt,
+		firstSeenUtc,
+		parentIssue,
+		runUrl,
+		isNewIssue,
+	});
 
 	const replaced = replaceAutoSection(existingBody, autoSection);
 	if (replaced !== null) return replaced;
