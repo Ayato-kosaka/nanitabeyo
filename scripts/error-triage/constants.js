@@ -135,6 +135,24 @@ const PANIC_THRESHOLD = 50;
 const GRACE_HOURS = 24;
 /** 猶予後にこの件数以上出ていないと reopen しない（#1198 §5-A(2)）。 */
 const MIN_EVENTS_REOPEN = 3;
+/**
+ * 「旧ビルド滞留」を理由に reopen を抑止してよい期限（close からの日数）。
+ *
+ * ⚠️ この定数が無かったせいで、**close した Issue が永久に reopen されなくなる**事故が起きた。
+ * 2026-09-10 に close した #1808（web の findNodeHandle）は、09-13〜15 に 14 人が踏んでも
+ * 1 件も起票されなかった。イベントの build は全件 2bce1a3d（09-04）で、close（09-10）より
+ * 古いため「ユーザーが更新していないだけ」と判定され続けたからである。
+ *
+ * この抑止はネイティブの前提（ユーザーが更新するまで旧ビルドが動く）に立っているが、
+ * **web は全員が同じ 1 本を読むので「更新していない人が残る」が起きない**。web が古いのは
+ * サイトそのものが古いということで、放っておいても解消しない。ログに web / native を
+ * 区別する列は無い（jsonPayload に platform が無い）ので、surface では切り分けられない。
+ *
+ * そこで「そのうち消えるはず」という**楽観的な読みに期限を切る**。期限を過ぎてもなお
+ * 閾値以上出ているなら、その物語は外れているので人間が見るべきである。
+ * 本当に旧ビルド滞留なら、reopen されたものに `err/skip` を付ければ恒久的に止まる。
+ */
+const STALE_BUILD_SUPPRESSION_DAYS = 7;
 
 // ---------------------------------------------------------------------------
 // PR3: GitHub 同期側の定数
@@ -269,6 +287,7 @@ module.exports = Object.freeze({
 	PANIC_THRESHOLD,
 	GRACE_HOURS,
 	MIN_EVENTS_REOPEN,
+	STALE_BUILD_SUPPRESSION_DAYS,
 	PARENT_ISSUE_NUMBER,
 	TRIAGE_LABEL,
 	SKIP_LABEL,

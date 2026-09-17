@@ -279,6 +279,49 @@ describe("isRegression() — hourlyCounts ベース（矛盾B / S5）", () => {
 		expect(result.reason).toMatch(/旧ビルド滞留/);
 	});
 
+	// #1808 «抑止» を «再発していない» と区別できること。
+	// この 3 本は個別の値ではなく «抑止に期限がある» というパターンを縛る。
+	it("抑止したことが呼び出し側から見える（noop と区別できる）", () => {
+		const result = isRegression({
+			group,
+			entry,
+			commitDates: { "9f2c1ab4d7e0": "2026-08-01T00:00:00Z" },
+		});
+		expect(result.staleBuildSuppressed).toBe(true);
+	});
+
+	it("close から STALE_BUILD_SUPPRESSION_DAYS を過ぎたら、全 commit が古くても reopen する", () => {
+		// web は全員が同じ 1 本を読むので «更新していない人が残る» が起きず、
+		// 旧ビルド滞留の抑止が永久に効き続けて Issue が二度と立たなくなっていた（#1808）。
+		const longAfter = {
+			...group,
+			lastSeenUtc: "2026-08-20T23:00:00Z",
+			hourlyCounts: [{ hourUtc: "2026-08-20T23:00:00Z", count: 15 }],
+		};
+		const result = isRegression({
+			group: longAfter,
+			entry,
+			commitDates: { "9f2c1ab4d7e0": "2026-08-01T00:00:00Z" },
+		});
+		expect(result.regression).toBe(true);
+		expect(result.staleBuildSuppressed).toBeUndefined();
+	});
+
+	it("期限内なら従来どおり抑止する（期限を入れて «常に reopen» になっていない）", () => {
+		const justInside = {
+			...group,
+			lastSeenUtc: "2026-08-11T00:00:00Z",
+			hourlyCounts: [{ hourUtc: "2026-08-11T00:00:00Z", count: 15 }],
+		};
+		const result = isRegression({
+			group: justInside,
+			entry,
+			commitDates: { "9f2c1ab4d7e0": "2026-08-01T00:00:00Z" },
+		});
+		expect(result.regression).toBe(false);
+		expect(result.reason).toMatch(/旧ビルド滞留/);
+	});
+
 	it("commit 日時が1つも解決できないときは時刻ルールだけで判定する", () => {
 		expect(isRegression({ group, entry, commitDates: {} }).regression).toBe(true);
 	});
