@@ -211,6 +211,67 @@ def store_name_from_text(text: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# 【店名】の切り出し（#1947 / 親 #1273）
+#
+# **判定の正は `shared/utils/textNormalize.ts` の `extractBracketedNames`** である。
+# TS 側（resolve API が使う）には #1273 の時点でこの規則が在ったが、**Python 側（4_18 が
+# 作る «店名 → place_id» の辞書）には無かった**。そのため:
+#
+#   - `4_18` の投稿抽出条件は `📍|[『「]` で、**`【` を含むキャプションは 1 件も読まれない**
+#   - 2026-09-17 実測: 店の手がかりが皆無な 194,471 投稿のうち **26,700 件が `【…】` を持つ**
+#     （抽出の入口で切られていた 89,325 件の 29.9%）
+#
+# TS のコメントにある実測どおり、グルメ紹介キャプションは **屋号を `【】` に入れる**ことが
+# 圧倒的に多い。`『』`「」` は料理名（`『酒蔵の御三時 養老パフェ』`）や CTA（`「行きたい！」`）
+# にも使われるので、`【】` の方が店名の目印として強い。
+#
+# ⚠️ **新しい規則を作っているのではなく、TS に在る規則を Python へ写している。**
+# 定数は 1 対 1 に写し、`test_place_id_by_name.py::BracketedNameRuleDriftTest` が TS の
+# 定義と突き合わせて固定する。TS を直せばテストが赤くなるので、片側だけ育つことはない。
+# ---------------------------------------------------------------------------
+
+_RE_BRACKETED_NAME = re.compile(r"【([^【】]{1,40})】")
+
+# 括弧を «見出しラベル» に使うテンプレの語。店名ではないので採らない
+# （実測 `toyamashokujikai` の投稿: `【店名】\nil gotti` のように値は次行に書かれる）。
+BRACKET_LABEL_WORDS = frozenset({
+    "店名",
+    "住所",
+    "所在地",
+    "場所",
+    "営業時間",
+    "営業日",
+    "定休日",
+    "アクセス",
+    "電話",
+    "電話番号",
+    "メニュー",
+    "価格",
+    "料金",
+    "予約",
+    "駐車場",
+    "時間",
+    "最寄り駅",
+})
+
+
+def bracketed_names_from_text(text: str | None) -> list[str]:
+    """`【…】` に囲まれた店名候補を、出てくる順に返す。**例外は投げない。**
+
+    TS の `extractBracketedNames` と同じ規則。見出しラベル語は落とす。
+    """
+
+    if not text:
+        return []
+    names: list[str] = []
+    for match in _RE_BRACKETED_NAME.finditer(text):
+        body = match.group(1).strip()
+        if body and body not in BRACKET_LABEL_WORDS:
+            names.append(body)
+    return names
+
+
+# ---------------------------------------------------------------------------
 # 📍<店名> 行の切り出し（#1841 / 親 #1273）
 #
 # **判定の正は `shared/utils/textNormalize.ts` の `extractPinNames`** である。

@@ -161,14 +161,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # 課金ガードは #1276 の client が唯一の正。ここで HTTP を書き直さない（→ module docstring）。
 sys.path.insert(0, str(Path(__file__).resolve().parent / "1276_place_id_free_poc"))
 
-from common_sns import (TABLE_NAME_EXTRACT_ATTEMPT, TABLE_POST_RAW, TABLE_POST_RESOLVED,  # noqa: E402
+from common_sns import (PREF_PATTERN, TABLE_NAME_EXTRACT_ATTEMPT,  # noqa: E402
+                        TABLE_POST_RAW, TABLE_POST_RESOLVED,
                         build_city_bbox_index,
                         build_city_index, city_from_text, city_index_sql)
 from free_places import (DailyQuotaExhausted, FreePlacesClient, RateLimiter,  # noqa: E402
                          SearchResult)
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now  # noqa: E402
 import sns_html  # noqa: E402
-from sns_html import pin_names_from_text, store_name_from_text, normalize_match_text  # noqa: E402
+from sns_html import (bracketed_names_from_text, pin_names_from_text,  # noqa: E402
+                      store_name_from_text, normalize_match_text)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -371,10 +373,21 @@ def extract_store_name(caption: str | None) -> tuple[str, str] | None:
     """キャプションから (店名, どこから採ったか) を返す。**規則を新しく作らない。**
 
     - 📍行: `shared/utils/textNormalize.ts` の `extractPinNames`（Python 版は `sns_html`）
+    - 【】: 同 `extractBracketedNames`（#1947 で Python へ写した。**TS には元から在った**）
     - 『』「」: `sns_html.store_name_from_text`（#1812 で入れた既存の規則）
 
     📍 を先に見るのは、4_11 が『』「」から採った店名を «📍店名» としてキャプション先頭へ
     足しているため（同じ店名を 2 経路で採らないよう、先に 📍 を見れば済む）。
+
+    #1947 【】は **最後の手段**（📍 →『』「」→【】）。TS のコメントは Instagram の
+    キャプションを見て「屋号を `【】` に入れることが圧倒的に多い」と言っているが、
+    **グルメ媒体の記事文は `【】` を «地域» のラベルに使う**:
+
+        「【高松市】『店名:panda火鍋』が話題」 → 店は `panda火鍋`、`高松市` は地域
+
+    先に見ると地域名を店名として Google へ投げてしまう（既存テストがこれを固定していた）。
+    したがって他の規則が何も採れなかったときだけ使う。**それでも効く**のは、
+    実測 26,700 投稿が «`【…】` しか手がかりが無い» 群だからである。
     """
     for name in pin_names_from_text(caption):
         probe = strip_probe_label(name)
@@ -386,7 +399,20 @@ def extract_store_name(caption: str | None) -> tuple[str, str] | None:
         probe = strip_probe_label(normalized)
         if _is_probeable_name(probe, labelled=probe != normalized):
             return probe, "quoted"
+    for raw in bracketed_names_from_text(caption):
+        if _RE_AREA_LABEL.search(raw):
+            continue  # 「【高松市】」のような地域ラベル。店名ではない
+        normalized = normalize_match_text(raw)
+        probe = strip_probe_label(normalized)
+        if _is_probeable_name(probe, labelled=probe != normalized):
+            return probe, "bracketed"
     return None
+
+
+# #1947 `【…】` の中身が «地域» のときは店名として扱わない。グルメ媒体の記事は
+# 「【高松市】『店名』が話題」の形で地域をラベルにする。都道府県は `common_sns.PREF_PATTERN`
+# が唯一の正なので、そこから作る（47 個の列挙をここへ写経しない）。
+_RE_AREA_LABEL = re.compile(rf"^(?:{PREF_PATTERN})$|[市区町村]$")
 
 
 def _is_probeable_name(name: str, *, labelled: bool = False) -> bool:
@@ -584,7 +610,11 @@ def load_city_index(args: argparse.Namespace, pipeline: BigQueryPipeline | None)
 # 抽出は 📍行 と『』「」しか見ないので、どちらも無いキャプションは読むだけ無駄である。
 # 実測（2026-09-05、BigQuery）: 店が決まっていない caption 付き投稿 342,392 件のうち、
 # 📍 か 『「 を含むのは 181,692 件（53%）。残り 160,700 件を読まずに済む。
-CAPTION_HAS_NAME_MARK = r"📍|[『「]"
+# #1947 `【` を足した。TS の resolve は元から `【店名】` を店名として見ているのに、
+# ここが `📍|[『「]` だったため **`【…】` だけを持つキャプションが 1 件も読まれていなかった**。
+# 実測: 店の手がかりが皆無な 194,471 投稿のうち 26,700 件（入口で切られていた 89,325 件の
+# 29.9%）が `【…】` を持つ。
+CAPTION_HAS_NAME_MARK = r"📍|[『「【]"
 
 POSTS_SQL = """
   WITH r AS (

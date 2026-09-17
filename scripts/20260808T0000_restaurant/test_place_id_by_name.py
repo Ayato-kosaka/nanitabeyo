@@ -339,6 +339,125 @@ class PinNameRuleDriftTest(unittest.TestCase):
         self.assertEqual("📍", sns_html._PIN_MARK)
 
 
+class BracketedNameRuleDriftTest(unittest.TestCase):
+    """#1947 `【店名】` の規則が TS 側（正）と同じであることを固定する。
+
+    この規則は **TS には #1273 の時点から在った**（`extractBracketedNames`）。
+    Python 側（`4_18` が作る «店名 → place_id» 辞書）にだけ無く、さらに投稿の抽出条件が
+    `📍|[『「]` だったため **`【…】` だけを持つキャプションが 1 件も読まれていなかった**。
+
+    2026-09-17 実測: 店の手がかりが皆無な 194,471 投稿のうち **26,700 件が `【…】` を持つ**
+    （抽出の入口で切られていた 89,325 件の 29.9%）。
+
+    ⚠️ 新しい規則を作ったのではなく写しただけなので、**TS を直したらここが赤くなる**のが正しい。
+    赤くなったら Python 側を TS に合わせること（逆ではない）。
+    """
+
+    def setUp(self) -> None:
+        self.source = TEXT_NORMALIZE_TS.read_text(encoding="utf-8")
+
+    def test_pattern_matches_the_typescript_source(self) -> None:
+        match = re.search(r"^const BRACKETED_NAME_PATTERN = /(.*)/([gimsuy]*);$",
+                          self.source, re.M)
+        self.assertIsNotNone(match, "BRACKETED_NAME_PATTERN が textNormalize.ts に見つからない")
+        self.assertEqual(match.group(1), sns_html._RE_BRACKETED_NAME.pattern)
+
+    def test_label_words_match_the_typescript_source(self) -> None:
+        """見出しラベル語の集合がずれないこと。
+
+        ずれると «店名» «住所» のような語が店名として Google へ投げられ、
+        誤帰属（他店の投稿を «この店» として出す）につながる。
+        """
+        block = re.search(
+            r"const BRACKET_LABEL_WORDS: ReadonlySet<string> = new Set\(\[(.*?)\]\);",
+            self.source, re.S)
+        self.assertIsNotNone(block, "BRACKET_LABEL_WORDS が textNormalize.ts に見つからない")
+        ts_words = set(re.findall(r'"([^"]+)"', block.group(1)))
+        self.assertEqual(ts_words, set(sns_html.BRACKET_LABEL_WORDS))
+
+
+class BracketedNameExtractionTest(unittest.TestCase):
+    """切り出しの挙動。TS のコメントに載っている実キャプションの形をそのまま使う。"""
+
+    def test_takes_the_shop_name_out_of_the_brackets(self) -> None:
+        got = sns_html.bracketed_names_from_text(
+            "📍住所…の【おかげ庵】さん okagean_official")
+        self.assertEqual(got, ["おかげ庵"])
+
+    def test_drops_heading_label_templates(self) -> None:
+        """`【店名】` は見出しで、値は次行に在る。ラベル語を店名にしない。"""
+        self.assertEqual(sns_html.bracketed_names_from_text("【店名】\nil gotti"), [])
+
+    def test_ignores_empty_and_overlong_bodies(self) -> None:
+        self.assertEqual(sns_html.bracketed_names_from_text("【】"), [])
+        self.assertEqual(sns_html.bracketed_names_from_text("【" + "x" * 41 + "】"), [])
+        self.assertEqual(sns_html.bracketed_names_from_text("【" + "x" * 40 + "】"),
+                         ["x" * 40])
+
+    def test_returns_every_candidate_in_order(self) -> None:
+        self.assertEqual(
+            sns_html.bracketed_names_from_text("【一番】と【二番】"), ["一番", "二番"])
+
+    def test_no_brackets_is_empty_not_an_error(self) -> None:
+        for text in (None, "", "括弧のない文"):
+            self.assertEqual(sns_html.bracketed_names_from_text(text), [])
+
+
+class BracketedIsTheLastResortTest(unittest.TestCase):
+    """#1947 `【】` は **最後の手段**であること（📍 →『』「」→【】）を固定する。
+
+    TS のコメントは Instagram のキャプションを見て「屋号を `【】` に入れることが圧倒的に
+    多い」と言っているが、**グルメ媒体の記事文は `【】` を «地域» のラベルに使う**。
+    最初にこれを «屋号の目印» と読んで `【】` を優先したところ、既存のテストが
+    `【高松市】『店名:panda火鍋』` で «高松市» を店名として拾うことを検出した。
+    順序と地域ラベルの除外を、その実例で固定しておく。
+    """
+
+    def test_quoted_still_wins_over_brackets_in_media_headlines(self) -> None:
+        self.assertEqual(("panda火鍋", "quoted"),
+                         resolver.extract_store_name("【高松市】『店名:panda火鍋』が話題"))
+
+    def test_pin_still_wins_over_brackets(self) -> None:
+        self.assertEqual(("おかげ庵", "pin"),
+                         resolver.extract_store_name("📍おかげ庵\n【名古屋市】の名店"))
+
+    def test_brackets_are_used_when_nothing_else_matches(self) -> None:
+        """これが増分の本体。`【…】` しか手がかりが無い投稿を採る。"""
+        self.assertEqual(("おかげ庵", "bracketed"),
+                         resolver.extract_store_name("本日は【おかげ庵】へ。東京都中央区"))
+
+    def test_area_labels_in_brackets_are_not_store_names(self) -> None:
+        for area in ("高松市", "東京都", "中央区", "北海道", "大阪府", "渋谷区", "軽井沢町"):
+            with self.subTest(area=area):
+                self.assertIsNone(resolver.extract_store_name(f"【{area}】のグルメ特集"))
+
+    def test_the_prefecture_list_is_not_transcribed_here(self) -> None:
+        """47 都道府県の列挙は `common_sns.PREF_PATTERN` が唯一の正。写経しない。"""
+        source = (HERE / "4_18_resolve_place_id_by_name.py").read_text(encoding="utf-8")
+        self.assertIn("PREF_PATTERN", source)
+        self.assertNotIn("青森県|岩手県", source)
+
+
+class CaptionMarkFilterCoversBracketsTest(unittest.TestCase):
+    """#1947 投稿を読む SQL の入口が `【` を通すこと。
+
+    抽出規則を足しても、**投稿を読む段で落としていたら 1 件も増えない**。
+    実際にこれが起きていた（規則は TS に在ったが、こちらの SQL が `【` を通さなかった）。
+    """
+
+    def test_the_sql_filter_includes_the_bracket(self) -> None:
+        self.assertIn("【", resolver.CAPTION_HAS_NAME_MARK)
+
+    def test_the_filter_still_matches_what_the_extractor_reads(self) -> None:
+        """入口の条件と抽出規則が食い違わないこと。
+
+        `【…】` を持つキャプションが入口を通り、かつ店名が採れることを 1 本で確かめる。
+        """
+        caption = "本日は【おかげ庵】へ。東京都中央区"
+        self.assertRegex(caption, resolver.CAPTION_HAS_NAME_MARK)
+        self.assertEqual(sns_html.bracketed_names_from_text(caption), ["おかげ庵"])
+
+
 class ProgressIsWrittenBeforeTheEndTest(unittest.TestCase):
     """4: 長い probe の成果を «最後の 1 回» に賭けない。
 
