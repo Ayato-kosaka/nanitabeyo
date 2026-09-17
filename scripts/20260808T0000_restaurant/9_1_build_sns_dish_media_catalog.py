@@ -32,7 +32,7 @@ from common_sns import (
     PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_POST_RESOLVED, TABLE_DISH_MEDIA_CATALOG,
     TABLE_DISH_CATEGORY_IMAGES, TABLE_RESTAURANT_CATALOG,
     LATEST_RESOLVED_QUALIFY, MIN_RESTAURANT_CONFIDENCE, category_with_image_cte_sql,
-    foreign_store_sql, post_store_cte_sql, resolved_store_confidence_sql,
+    foreign_store_sql, post_store_cte_sql, resolve_run_ids, resolved_store_confidence_sql,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -50,7 +50,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--resolved-run-id", default=None, help="読む resolved/raw の run_id（省略時 --run-id）")
     # #1273 収集は run_id ごとに分かれており、配信は «全 run の union» で組む（7_1 と同じ形）。
     p.add_argument("--resolved-run-ids", default=None,
-                   help="union する run_id をカンマ区切りで（--resolved-run-id より優先）")
+                   help="union する run_id をカンマ区切りで（--resolved-run-id より優先）。"
+                        "all を渡すと sns_post_resolved に在る run を全部 union する")
     # #1815 店の国は sns_post_resolved も sns_post_raw も持っていない。9_1_sync_restaurants が
     # PG へ配る `restaurant_catalog` だけが持っているので、その run_id を要求する。
     p.add_argument("--restaurant-catalog-run-id", required=True,
@@ -67,9 +68,12 @@ def main() -> None:
     configure_logging()
     args = parse_args()
     run_id = require_run_id(args.run_id)
-    src_run_ids = ([x.strip() for x in args.resolved_run_ids.split(",") if x.strip()]
-                   if args.resolved_run_ids else [args.resolved_run_id or run_id])
     pipeline = BigQueryPipeline()
+    # #1947 手書きの run_id リストは «貼り忘れた run が黙って落ちる»。`all` で全 run を union する。
+    src_run_ids = resolve_run_ids(
+        pipeline, TABLE_POST_RESOLVED, args.resolved_run_ids,
+        fallback=args.resolved_run_id or run_id)
+    LOGGER.info("union する resolved run: %d 本", len(src_run_ids))
     now_iso = utc_now().isoformat()
 
     from google.cloud import bigquery

@@ -17,7 +17,8 @@ from pipeline_common import BigQueryPipeline, configure_logging, require_run_id,
 from common_sns import (LATEST_RESOLVED_QUALIFY, PREF_PATTERN, TABLE_POST_RAW,
                         kpi_gate_category_sql,
                         TABLE_POST_RESOLVED, TABLE_COVERAGE,
-                        post_store_cte_sql)
+                        TABLE_RESTAURANT_CATALOG, latest_run_id, post_store_cte_sql,
+                        resolve_run_ids)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -42,8 +43,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--resolved-run-id", default=None, help="読む sns_post_resolved の run_id（省略時は --run-id）")
     # #1273 収集は run_id ごと（fsq / catalog / 08-30 インフル / search / storecap …）に分かれており、
     # 全国カバレッジは «全 run の union» で数える。カンマ区切りで複数 run を渡すと union する。
+    # #1947 «全 run の union» を呼び出し側の手書きリストに頼っていたため、run を足した人が
+    # 貼り忘れた分が黙って落ちる形になっていた（実際に cov18 は 41 run 分で止まり、
+    # 8 run 分の resolve 結果がカバレッジに反映されていなかった）。`all` を正の使い方にする。
     p.add_argument("--resolved-run-ids", default=None,
-                   help="union する run_id をカンマ区切りで（--resolved-run-id より優先）")
+                   help="union する run_id をカンマ区切りで（--resolved-run-id より優先）。"
+                        "all を渡すと sns_post_resolved に在る run を全部 union する")
     # KPI は «アプリの 134 カテゴリ限定» で見る（resolve の語彙は 1,577 QID あり、分母が違うと ≥5 セル数が
     # 全く別物になる。2026-09-03 実測: 全 QID 58 セル / 134 限定 32 セル）。
     #
@@ -60,13 +65,7 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def _latest_catalog_run_id(pipeline: BigQueryPipeline) -> str:
-    for row in pipeline.execute(
-        f"SELECT run_id, COUNT(*) c FROM `{pipeline.table('restaurant_catalog')}` "
-        f"GROUP BY run_id ORDER BY c DESC LIMIT 1"
-    ):
-        return row["run_id"]
-    raise RuntimeError("restaurant_catalog に run_id がありません。")
+# #1947 «最新の run_id を引く» は common_sns.latest_run_id が唯一の正（私有コピーを置かない）。
 
 
 def main() -> None:
@@ -74,9 +73,11 @@ def main() -> None:
     args = parse_args()
     run_id = require_run_id(args.run_id)
     resolved_run_id = args.resolved_run_id or run_id
-    resolved_run_ids = [x.strip() for x in (args.resolved_run_ids or "").split(",") if x.strip()] or [resolved_run_id]
     pipeline = BigQueryPipeline()
-    catalog_run_id = args.catalog_run_id or _latest_catalog_run_id(pipeline)
+    resolved_run_ids = resolve_run_ids(
+        pipeline, TABLE_POST_RESOLVED, args.resolved_run_ids, fallback=resolved_run_id)
+    LOGGER.info("union する resolved run: %d 本", len(resolved_run_ids))
+    catalog_run_id = args.catalog_run_id or latest_run_id(pipeline, TABLE_RESTAURANT_CATALOG)
     now_iso = utc_now().isoformat()
 
     from google.cloud import bigquery

@@ -225,7 +225,20 @@ def q_grid_accuracy(ds: str, dish_ds: str, keywords: dict) -> str:
     """
 
 
-def q_report(ds: str, dish_ds: str, keywords: dict, coverage_run_id: str) -> str:
+def _coverage_run_predicate(ds: str, coverage_run_id: str | None) -> str:
+    """`sns_coverage` の run_id 条件。``None`` なら «最新の run» を SQL 内で引く。
+
+    #1947 ここを Python 側で解決すると `--print-sql`（BigQuery へ繋がないモード）で
+    使えなくなるので、述語そのものを副問い合わせにする。
+    """
+
+    if coverage_run_id:
+        return f"run_id = '{coverage_run_id}'"
+    return (f"run_id = (SELECT run_id FROM `{ds}.{TABLE_COVERAGE}` "
+            f"GROUP BY run_id ORDER BY MAX(computed_at) DESC LIMIT 1)")
+
+
+def q_report(ds: str, dish_ds: str, keywords: dict, coverage_run_id: str | None) -> str:
     """上限A（推定）と上限C（実測）を 1 本のクエリで «section, key, a, b, c, d» の縦持ちで返す。
 
     高い CTE（62 万店 × 133 語の当てはめ）を 1 回だけ評価するため、切り口ごとにクエリを
@@ -245,7 +258,7 @@ def q_report(ds: str, dish_ds: str, keywords: dict, coverage_run_id: str) -> str
       achieved AS (
         SELECT dish_category_id AS item_qid, region, city, distinct_store_count
         FROM `{ds}.{TABLE_COVERAGE}`
-        WHERE run_id = '{coverage_run_id}' AND source_route = 'all' AND city IS NOT NULL
+        WHERE {_coverage_run_predicate(ds, coverage_run_id)} AND source_route = 'all' AND city IS NOT NULL
           AND dish_category_id IN (SELECT item_qid FROM gate)
       ),
       store_cnt AS (
@@ -312,7 +325,7 @@ def q_report(ds: str, dish_ds: str, keywords: dict, coverage_run_id: str) -> str
     """
 
 
-def q_inventory(ds: str, dish_ds: str, coverage_run_id: str) -> str:
+def q_inventory(ds: str, dish_ds: str, coverage_run_id: str | None) -> str:
     """上限B（在庫）: いま手元にある «店 × カテゴリ» を理想的に配ったときの ≥5 セル数。
 
     7_1（上限C）との違いは «店の決め方» だけにする。7_1 は 1 投稿 1 店を厳密に決める
@@ -382,7 +395,11 @@ QUERIES = {"report": q_report, "grid_accuracy": q_grid_accuracy, "inventory": q_
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="KPI の到達可能上限（上限A/B/C）を測る。読み取りのみ")
-    p.add_argument("--coverage-run-id", default="cov15", help="読む sns_coverage の run_id（上限C）")
+    # #1947 既定を文字列リテラル（`"cov15"` = 2026-09-05 の台帳）にしていたため、引数を省くと
+    # **4 世代前のカバレッジで上限を報告**していた。台帳は数日おきに作り直されるので、
+    # 既定は «最新を自分で引く»。過去の台帳と比べたいときだけ明示する。
+    p.add_argument("--coverage-run-id", default=None,
+                   help="読む sns_coverage の run_id（上限C。省略時は最新）")
     p.add_argument("--project", default="food-scroll")
     p.add_argument("--dataset", default="restaurant_recommendation")
     p.add_argument("--dish-dataset", default="wikidata_food_graph")

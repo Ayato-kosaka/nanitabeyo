@@ -17,7 +17,7 @@ CC WAT（4_9）と同じ仕掛けだが、あちらは «日本語のどこか�
 
 ## 使い方（db-script-run.yml）
   script_path: scripts/20260808T0000_restaurant/4_10_scan_store_site_embeds.py
-  args: --run-id sns-2026-09-04-siteembed --site-run-id sns-2026-09-04-sitecrawl --shards 4 --shard 0
+  args: --run-id sns-2026-09-04-siteembed --site-run-ids all --shards 4 --shard 0
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from datetime import timezone
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW
+from common_sns import PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_STORE_SITE_IG, resolve_run_ids
 from sns_html import RE_KANA, captions_from_html, page_text
 
 HERE = Path(__file__).resolve().parent
@@ -78,8 +78,14 @@ def scan_store(store: dict, per_store: int = 10) -> list[dict]:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="店の公式サイトに埋め込まれた Instagram 投稿を採る")
     p.add_argument("--run-id", default=None)
-    p.add_argument("--site-run-id", default="sns-2026-09-04-sitecrawl",
-                   help="読む sns_store_site_ig の run_id")
+    # #1947 既定を文字列リテラル `"sns-2026-09-04-sitecrawl"` にしていたため、引数を省くと
+    # **その 1 run（202,040 行）しか見ない**。sns_store_site_ig は run ごとに «別の店» が
+    # 追記される表で、実測で 09-11 の近傍セル crawl 5 run 分 25,696 行が後から入っていた。
+    # つまり #1970 が «カバレッジの薄いセルを埋めるため» に見つけた店を、この scan は
+    # 黙って 1 軒も見ていなかった。ここは «最新» ではなく **全 run の union** が正。
+    p.add_argument("--site-run-ids", default="all",
+                   help="読む sns_store_site_ig の run_id をカンマ区切りで。"
+                        "既定 all（この表は run ごとに別の店が追記されるので union が正）")
     p.add_argument("--shards", type=int, default=1)
     p.add_argument("--shard", type=int, default=0)
     p.add_argument("--limit", type=int, default=0, help="0 なら全件")
@@ -94,20 +100,20 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def _read_stores(pipeline: BigQueryPipeline, site_run_id: str, shards: int, shard: int, limit: int,
-                 statuses: list[str]):
+def _read_stores(pipeline: BigQueryPipeline, site_run_ids: list[str], shards: int, shard: int,
+                 limit: int, statuses: list[str]):
     shard_filter = "AND MOD(ABS(FARM_FINGERPRINT(google_place_id)), @shards) = @shard" if shards > 1 else ""
     sql = f"""
       SELECT google_place_id, ANY_VALUE(website) website, ANY_VALUE(host) host,
              ANY_VALUE(handle) handle
       FROM `{pipeline.table('sns_store_site_ig')}`
-      WHERE run_id = @srid AND status IN UNNEST(@statuses)
+      WHERE run_id IN UNNEST(@srids) AND status IN UNNEST(@statuses)
         AND website IS NOT NULL AND website != '' {shard_filter}
       GROUP BY google_place_id
       {f'LIMIT {int(limit)}' if limit else ''}
     """
     from google.cloud import bigquery
-    params = [bigquery.ScalarQueryParameter("srid", "STRING", site_run_id),
+    params = [bigquery.ArrayQueryParameter("srids", "STRING", site_run_ids),
               bigquery.ArrayQueryParameter("statuses", "STRING", statuses)]
     if shards > 1:
         params += [bigquery.ScalarQueryParameter("shards", "INT64", shards),
@@ -122,12 +128,13 @@ def main() -> None:
     pipeline = BigQueryPipeline()
 
     statuses = [x.strip() for x in args.statuses.split(",") if x.strip()]
-    stores = _read_stores(pipeline, args.site_run_id, args.shards, args.shard, args.limit, statuses)
-    LOGGER.info("対象 %d 店（site_run_id=%s, shard=%d/%d）", len(stores), args.site_run_id,
+    site_run_ids = resolve_run_ids(pipeline, TABLE_STORE_SITE_IG, args.site_run_ids)
+    stores = _read_stores(pipeline, site_run_ids, args.shards, args.shard, args.limit, statuses)
+    LOGGER.info("対象 %d 店（site_run_ids=%s, shard=%d/%d）", len(stores), ",".join(site_run_ids),
                 args.shard, args.shards)
 
     with pipeline.step(run_id, "4_10_scan_store_site_embeds", parameters={
-        "site_run_id": args.site_run_id, "shards": args.shards, "shard": args.shard,
+        "site_run_ids": site_run_ids, "shards": args.shards, "shard": args.shard,
         "statuses": args.statuses, "stores": len(stores),
     }, repo_root=None) as result:
         now = utc_now().astimezone(timezone.utc).isoformat()

@@ -32,7 +32,7 @@ n=1 のセルは 4 店で 1 セルなので同じ 1 店の単価が 4 倍違う�
    → `4_4_crawl_official_site_igs.py --stores-run-id <run-id>`（未クロールの店をサイト crawl。
      `--stores-file <this>` も引き続き使える。両方は同時に渡せない）
 2. `sns_store_site_ig` へ狙う店の行を **新 run_id** で複製
-   → `4_10_scan_store_site_embeds.py --site-run-id <run-id> --statuses ok,no_handle`
+   → `4_10_scan_store_site_embeds.py --site-run-ids all --statuses ok,no_handle`
 3. `sns_source_account` へ狙う店の店アカ行を **新 run_id** で複製
    → `4_2_collect_account_posts.py --account-run-id <run-id>`
      / `4_7_collect_search_api_posts.py --store-mode --account-run-id <run-id>`
@@ -77,7 +77,7 @@ from pipeline_common import BigQueryPipeline, configure_logging, require_run_id,
 from common_sns import (kpi_gate_category_sql,
     PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_COVERAGE,
                         TABLE_SOURCE_ACCOUNT, TABLE_STORE_SITE_IG, TABLE_DISH_MEDIA_CATALOG,
-                        TABLE_SITE_CRAWL_TARGET)
+                        TABLE_SITE_CRAWL_TARGET, TABLE_RESTAURANT_CATALOG, latest_run_id)
 
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
@@ -306,12 +306,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-def _latest_run_id(pipeline: BigQueryPipeline, table: str, order: str) -> str:
-    for row in pipeline.execute(
-        f"SELECT run_id FROM `{pipeline.table(table)}` GROUP BY run_id ORDER BY {order} DESC LIMIT 1"
-    ):
-        return row["run_id"]
-    raise RuntimeError(f"{table} に run_id がありません。")
+# #1947 «最新の run_id を引く» は common_sns.latest_run_id が唯一の正。ここに私有コピーを
+# 置いていたため、同じ台帳を読む 4_2 / 7_1 / 7_3 / 9_1 はこの形を持てず、呼び出し側が
+# 古い run_id を貼り続ける事故（収集ラウンド 6〜10 が 6 日前のカバレッジで走った）が起きた。
 
 
 def load_kpi_categories(pipeline: BigQueryPipeline, gate_key: str) -> dict[str, str]:
@@ -632,7 +629,7 @@ def _route_of(store: dict) -> str:
     if store.get("handle"):
         return "account"          # 4_2 --account-run-id / 4_7 --store-mode
     if store.get("site_status") in _SITE_STATUS_SCANNABLE:
-        return "site_embed"       # 4_10 --site-run-id（crawl 済みなので取り直さない）
+        return "site_embed"       # 4_10 --site-run-ids（crawl 済みなので取り直さない）
     if not store.get("site_status") and (store.get("website") or "").startswith("http"):
         return "site_crawl"       # 4_4 --stores-file（まだ crawl していない）
     return "unreachable"          # crawl 済みで到達不能（fetch_failed / robots_blocked 等）
@@ -673,14 +670,14 @@ def main() -> None:
     args = parse_args()
     run_id = require_run_id(args.run_id)
     pipeline = BigQueryPipeline()
-    catalog_run_id = args.catalog_run_id or _latest_run_id(pipeline, "restaurant_catalog", "COUNT(*)")
+    catalog_run_id = args.catalog_run_id or latest_run_id(pipeline, TABLE_RESTAURANT_CATALOG)
     nmin, nmax = resolve_store_bounds(args.cell_mode, args.min_stores, args.max_stores)
     qid_label = load_kpi_categories(pipeline, args.kpi_gate_feature_key)
 
     coverage_run_id = None
     delivery_run_id = None
     if args.cell_mode == "city":
-        coverage_run_id = args.coverage_run_id or _latest_run_id(pipeline, TABLE_COVERAGE, "MAX(computed_at)")
+        coverage_run_id = args.coverage_run_id or latest_run_id(pipeline, TABLE_COVERAGE)
         LOGGER.info("coverage_run_id=%s / catalog_run_id=%s", coverage_run_id, catalog_run_id)
         all_cells = read_cells(pipeline, coverage_run_id, qid_label.keys(), nmin, nmax)
         # region が取れないセルは市区町村を一意に指せない（«中央区» が何県のものか決まらない）ので狙えない
@@ -689,7 +686,7 @@ def main() -> None:
             LOGGER.warning("都道府県が取れないセル %d 件は狙えないので除外しました", len(all_cells) - len(cells))
         cities = sorted({(c["region"], c["city"]) for c in cells})
     else:
-        delivery_run_id = args.delivery_run_id or _latest_run_id(pipeline, TABLE_DISH_MEDIA_CATALOG, "MAX(built_at)")
+        delivery_run_id = args.delivery_run_id or latest_run_id(pipeline, TABLE_DISH_MEDIA_CATALOG)
         LOGGER.info("delivery_run_id=%s / catalog_run_id=%s", delivery_run_id, catalog_run_id)
         scores = read_radius_scores(pipeline, catalog_run_id, delivery_run_id, qid_label.keys(), RADIUS_METERS)
         cells = qualifying_radius_scores(scores, nmin, nmax)
@@ -813,7 +810,7 @@ def main() -> None:
         n_acc = pipeline.load_json_rows(TABLE_SOURCE_ACCOUNT, acc_rows) if acc_rows else 0
 
         # 4) 埋め込み走査経路: 4_4 が既に crawl した行を «狙う店の分だけ» 新 run_id へ複製する
-        #    （4_10 --site-run-id がそのまま読める。サイトを取り直さない）
+        #    （4_10 --site-run-ids all がそのまま読める。サイトを取り直さない）
         site_rows = [{
             "google_place_id": s["google_place_id"], "website": s["site_website"],
             "host": s.get("site_host"), "is_aggregator_host": s.get("is_aggregator_host"),
@@ -842,11 +839,13 @@ def main() -> None:
         result["site_crawl_stores"] = len(site_crawl)
         result["site_crawl_rows"] = n_site_crawl
 
+    # #1947 4_10 へは «この run だけ» ではなく all を渡す。この行が run_id を指していたため、
+    # 後から入った近傍セル crawl の店（実測 25,696 行）を scan が黙って見ない形になっていた。
     LOGGER.info("次に流すもの: "
                 "4_2 --account-run-id %s（%d 軒）/ "
-                "4_10 --site-run-id %s --statuses ok,no_handle（%d 軒）/ "
+                "4_10 --site-run-ids all --statuses ok,no_handle（この run で %d 軒 追加）/ "
                 "4_4 --stores-run-id %s または --stores-file %s（%d 軒）",
-                run_id, len(by_route["account"]), run_id, len(by_route["site_embed"]),
+                run_id, len(by_route["account"]), len(by_route["site_embed"]),
                 run_id, out_dir / "site_crawl_stores.json", len(site_crawl))
 
 

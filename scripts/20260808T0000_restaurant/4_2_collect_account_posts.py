@@ -27,7 +27,7 @@ from pathlib import Path
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_ACCOUNT_ATTEMPT, TABLE_COVERAGE,
                         TABLE_POST_RAW,
-                        TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url)
+                        TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url, latest_run_id)
 
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
@@ -234,8 +234,14 @@ def parse_args() -> argparse.Namespace:
                    help="sns_account_candidate_v2 の run_id。指定するとこの候補表を段の順に処理する")
     p.add_argument("--tiers", default=None,
                    help="処理する段をカンマ区切りで（例 A_food_region,B_food,C_region）。省略時は全部")
+    # #1947 既定を «並べ替えなし» にしていたため、呼び出し側は run_id を毎回手で貼る必要があり、
+    # 実際に収集ラウンド 6〜10 が `sns-2026-09-04-cov11`（20 run 分・6 日前）のまま走った。
+    # そのあいだ台帳は cov18（41 run 分）まで進んでおり、**既に埋まったセルを «惜しいセル» として
+    # 優先し続けていた**。KPI 直結の並べ替えを «貼り忘れたら消える» 作りにしない。
+    # 省略時は最新の sns_coverage を自分で引く。並べ替えを切るときだけ `off` を明示する。
     p.add_argument("--priority-coverage-run-id", default=None,
-                   help="sns_coverage の run_id。指定すると «惜しいセル» の多い市区町村の店を優先する")
+                   help="sns_coverage の run_id。«惜しいセル» の多い市区町村の店を優先する。"
+                        "省略時は最新の run を自動で使う。off で並べ替えを切る")
     p.add_argument("--catalog-run-id", default=None,
                    help="住所・座標を引く restaurant_catalog の run_id（省略時は最大の run）")
     p.add_argument("--account-type", default=None,
@@ -651,6 +657,23 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
     return list(pipeline.execute(sql, params))
 
 
+def _resolve_priority_coverage_run_id(pipeline, spec: str | None) -> str | None:
+    """`--priority-coverage-run-id` を解決する。省略時は **最新の** sns_coverage を使う。
+
+    #1947 «貼り忘れたら静かに古いスナップショットで走る» を作らないための既定。
+    並べ替えを意図して切るときは `off`（または `none`）を明示する。
+    """
+
+    if spec and spec.lower() in ("off", "none"):
+        LOGGER.info("priority_coverage: off（KPI 順の並べ替えをしない）")
+        return None
+    if spec:
+        return spec
+    run_id = latest_run_id(pipeline, TABLE_COVERAGE)
+    LOGGER.info("priority_coverage_run_id を省略したので最新を使う: %s", run_id)
+    return run_id
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
@@ -664,6 +687,8 @@ def main() -> None:
 
     pipeline = BigQueryPipeline()
     _ensure_attempt_table(pipeline)
+    priority_coverage_run_id = _resolve_priority_coverage_run_id(
+        pipeline, args.priority_coverage_run_id)
     ig = resolve_ig_user_id(token, args.user_env)
     LOGGER.info("IG business account id = %s（token_env=%s）", ig, args.token_env)
 
@@ -673,7 +698,7 @@ def main() -> None:
         accounts = _read_candidates(
             pipeline, args.candidate_run_id, tiers, args.max_accounts,
             shard_count=args.shard_count, shard_index=args.shard_index,
-            priority_coverage_run_id=args.priority_coverage_run_id,
+            priority_coverage_run_id=priority_coverage_run_id,
             catalog_run_id=args.catalog_run_id)
         from collections import Counter
         LOGGER.info("候補表の段の内訳: %s", dict(Counter(a["tier"] for a in accounts)))
@@ -682,7 +707,7 @@ def main() -> None:
                                   output_run_id=run_id,
                                   shard_count=args.shard_count, shard_index=args.shard_index,
                                   skip_collected_scope=args.skip_collected_scope,
-                                  priority_coverage_run_id=args.priority_coverage_run_id,
+                                  priority_coverage_run_id=priority_coverage_run_id,
                                   catalog_run_id=args.catalog_run_id,
                                   layer_order=args.order_by_account_layer)
     LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
@@ -693,7 +718,7 @@ def main() -> None:
         "account_run_id": account_run_id, "account_type": args.account_type,
         "max_accounts": args.max_accounts, "limit_per_account": args.limit_per_account,
         "skip_collected_scope": args.skip_collected_scope,
-        "priority_coverage_run_id": args.priority_coverage_run_id,
+        "priority_coverage_run_id": priority_coverage_run_id,
         "shard": f"{args.shard_index}/{args.shard_count}",
         "candidate_run_id": args.candidate_run_id, "tiers": args.tiers,
         "order_by_account_layer": args.order_by_account_layer,

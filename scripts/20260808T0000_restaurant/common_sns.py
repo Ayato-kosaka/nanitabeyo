@@ -49,6 +49,69 @@ TABLE_RESTAURANT_CATALOG = "restaurant_catalog"
 
 PROVIDER_INSTAGRAM = "instagram"
 
+# --- 派生台帳の run_id を «最新» に解決する（#1947）---
+# 派生台帳（sns_coverage / sns_dish_media_catalog / sns_post_resolved）は数日おきに
+# 作り直され、run_id が増えていく。読む側が run_id を **手渡しでしか受け取れない**設計だと、
+# 呼び出し側（workflow の dispatch 引数・既定値のリテラル）が古い run_id を貼り続けたときに
+# **黙って古いスナップショットで走り続ける**。実際に起きた 2 件:
+#
+#   1. 4_2 の `--priority-coverage-run-id` に `sns-2026-09-04-cov11`（20 run 分・09-04 時点）を
+#      貼ったまま収集ラウンド 6〜10 を回した。そのあいだに台帳は cov18（41 run 分・09-10）まで
+#      進んでおり、**既に埋まったセルを «惜しいセル» として優先し続けていた**。
+#   2. 7_3 の `--coverage-run-id` は既定値が文字列 `"cov15"`（09-05）。引数を省くと
+#      4 世代前のカバレッジで上限を報告する。
+#
+# 対策は «省略時は最新を自分で引く»。4_16 が既にこの形で書けていたので、それを正として
+# ここへ移し、台帳を読む全 script から呼ぶ（写経すると片方だけ直る）。
+LATEST_RUN_ID_ORDER = {
+    TABLE_COVERAGE: "MAX(computed_at)",
+    TABLE_DISH_MEDIA_CATALOG: "MAX(built_at)",
+    TABLE_POST_RESOLVED: "MAX(resolved_at)",
+    # restaurant_catalog は «最新» ではなく «件数が最大» で選ぶ。作りかけの run が
+    # 最新になることがあり、そちらを引くと店が消える。
+    TABLE_RESTAURANT_CATALOG: "COUNT(*)",
+}
+
+
+def latest_run_id(pipeline, table: str, order: str | None = None) -> str:
+    """``table`` の run_id のうち «最新» を 1 つ返す。
+
+    ``order`` を省略すると ``LATEST_RUN_ID_ORDER`` の既定（表ごとに «最新» の定義が違う）を使う。
+    """
+
+    order = order or LATEST_RUN_ID_ORDER.get(table)
+    if not order:
+        raise RuntimeError(f"{table} の «最新» の定義が LATEST_RUN_ID_ORDER にありません。")
+    for row in pipeline.execute(
+        f"SELECT run_id FROM `{pipeline.table(table)}` GROUP BY run_id ORDER BY {order} DESC LIMIT 1"
+    ):
+        return row["run_id"]
+    raise RuntimeError(f"{table} に run_id がありません。")
+
+
+def resolve_run_ids(pipeline, table: str, spec: str | None, *, fallback: str | None = None) -> list[str]:
+    """``--...-run-ids`` の指定を run_id のリストへ解決する。
+
+    - ``"all"``: ``table`` に在る run_id を**全部**返す。カバレッジやカタログの再構築は
+      «全 run の union» で数えるのが正なので、ここを手書きのリストに頼ると
+      **run を足した人が貼り忘れた分が黙って落ちる**（#1947）。
+    - カンマ区切り: そのまま並びを保って返す。
+    - 空: ``fallback`` を 1 件だけ返す。
+    """
+
+    ids = [x.strip() for x in (spec or "").split(",") if x.strip()]
+    if [x.lower() for x in ids] == ["all"]:
+        return [
+            row["run_id"]
+            for row in pipeline.execute(
+                f"SELECT DISTINCT run_id FROM `{pipeline.table(table)}` "
+                f"WHERE run_id IS NOT NULL ORDER BY run_id"
+            )
+        ]
+    if ids:
+        return ids
+    return [fallback] if fallback else []
+
 # --- 日本の都道府県（正本）---
 # «..[都府県]» のような形で書くと «神奈川県» の後ろ 3 文字だけを拾うなど静かに間違える。
 # 47 個は閉じた集合なので列挙する。7_1（住所→都道府県/市区町村）・4_9（ソースページの地域）・
