@@ -256,6 +256,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--order-by-account-layer", action="store_true",
                    help="account_type × 食語 の層の順に並べる（influencer → store_branch+食語 → …）")
     p.add_argument("--max-accounts", type=int, default=None, help="このバッチで処理するアカウント数上限")
+    # #1947 **稼働率の問題。** IG のクォータは «時間あたり» の制限（約 200 コール/時・アプリ単位）
+    # なので、**ジョブが走っていない時間ぶんは永久に捨てている**。件数だけで区切ると
+    # 「900 件 = 3 時間 31 分で終了 → 次を投げるまで数時間ずっと空白」になり、
+    # 2026-09-17 の実測で **上限 4,800 件/日に対して実効 1,300 件/日（稼働率 27%）**だった。
+    #
+    # 時間で区切れば 1 ディスパッチで GitHub Actions の枠（上限 6 時間）を使い切れる。
+    # 使い方: `--max-accounts` を大きめ（在庫ぶん）に、`--max-minutes 330` で 5.5 時間回す。
+    # 0 なら無制限（従来どおり `--max-accounts` だけで止まる）。
+    p.add_argument("--max-minutes", type=int, default=0,
+                   help="この時間（分）を超えたら、切りのよいところで止める。0 で無制限。"
+                        "IG のクォータは時間あたりなので、件数ではなく時間で区切る方が取り切れる")
     # #1815 既定を 200 → 10 へ。business_discovery は media.limit(N) を **1 コールで** 返すので
     # N<=50 なら 1 アカウント = 1 コール、N=200 だと 4 コール（実測スループット 88/h 対 ~220/h）。
     #
@@ -716,7 +727,8 @@ def main() -> None:
 
     with pipeline.step(run_id, "4_2_collect_account_posts", parameters={
         "account_run_id": account_run_id, "account_type": args.account_type,
-        "max_accounts": args.max_accounts, "limit_per_account": args.limit_per_account,
+        "max_accounts": args.max_accounts, "max_minutes": args.max_minutes,
+        "limit_per_account": args.limit_per_account,
         "skip_collected_scope": args.skip_collected_scope,
         "priority_coverage_run_id": priority_coverage_run_id,
         "shard": f"{args.shard_index}/{args.shard_count}",
@@ -752,6 +764,10 @@ def main() -> None:
         seen: set[str] = set()
         total = 0
         processed = 0
+        # #1947 時間予算。`time.monotonic` を使う（壁時計は NTP 補正で巻き戻ることがある）。
+        started_monotonic = time.monotonic()
+        budget_seconds = max(0, args.max_minutes) * 60
+        stopped_on_time = False
 
         def _flush() -> None:
             nonlocal rows, total, attempts
@@ -791,11 +807,21 @@ def main() -> None:
             if processed % FLUSH_EVERY == 0:
                 _flush()
                 LOGGER.info("  … %d/%d アカウント処理・%d 投稿ロード済み（逐次）", processed, len(accounts), total)
+            # #1947 予算を超えたら止める。**必ず flush してから抜ける**（呼んだのに記録が無い
+            # 状態を作らない）。残りは次の run が «二度呼ばない» 台帳で自然に拾う。
+            if budget_seconds and (time.monotonic() - started_monotonic) >= budget_seconds:
+                stopped_on_time = True
+                LOGGER.info("--max-minutes %d に達したので %d/%d アカウントで止めます",
+                            args.max_minutes, processed, len(accounts))
+                break
 
         _flush()
         count = total
         result["row_count"] = count
-        LOGGER.info("sns_post_raw に %d 投稿を投入しました（%d アカウント）", count, len(accounts))
+        elapsed_min = (time.monotonic() - started_monotonic) / 60
+        LOGGER.info("sns_post_raw に %d 投稿を投入しました（%d/%d アカウント・%.1f 分・%s）",
+                    count, processed, len(accounts), elapsed_min,
+                    "時間で打ち切り" if stopped_on_time else "在庫を処理しきった")
 
 
 if __name__ == "__main__":
