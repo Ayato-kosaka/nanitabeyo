@@ -324,6 +324,27 @@ export default function MyDishesScreen() {
 					// PR5 の Calendar も同じで、inverted リストのスクロール位置（どこまで遡ったか）が
 					// ビュー切替のたびに最新月へ戻らないのは、この器がアンマウントしないからである。
 					<>
+						{/*
+						#1579 ⚠️ **«マウントされている» ことを外から見えるようにする印。**
+
+						keep-alive の器は隠れているとき `display: "none"` になる（`hiddenView`）。
+						React のコンポーネントは生きたままなので **viewport の useRef も
+						スクロール位置も保たれる**（それが keep-alive の目的）が、
+						`display: "none"` の React Native はネイティブのビュー階層から外すため、
+						**Detox の `toExist()` からは «無い» ものになる**。
+
+						そのため e2e は «隠れている兄弟ビューがまだ在る» ことを直接は確かめられず、
+						`waitUntilExists(my-dishes-list-view)` が 25 秒待って落ちていた
+						（#1579・夜間で 3 夜連続）。**アプリは正しく、テストが
+						«観測できないもの» を見に行っていた。**
+
+						そこで «どのビューがマウントされているか» だけを、隠れた器の **外側**に
+						置いた大きさゼロの印で表に出す。見た目には一切影響しない。
+						通知トグルの `-on` と同じ考え方（Android で読めない状態は、印にする）。
+						*/}
+						{mountedViews.map((v) => (
+							<View key={`${v}-mounted`} testID={`my-dishes-${v}-mounted`} />
+						))}
 						{MY_DISHES_VIEWS.map((v) => {
 							if (!mountedViews.includes(v)) return null;
 							const isActive = v === activeView;

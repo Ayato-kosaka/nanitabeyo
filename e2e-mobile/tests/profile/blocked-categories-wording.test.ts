@@ -93,7 +93,13 @@ describeJapaneseLocale("ブロック済み料理カテゴリの文言(#1132)", (
 		await tabBar.gotoProfile();
 		await settingsScreen.expectLoaded();
 
-		await waitUntilVisible(settingsScreen.blockedDishCategoriesItem);
+		// #1579 ⚠️ 素の `waitUntilVisible` では駄目。この行は初期表示で画面外にいることがあり、
+		//       スクロールせずに待つと 25 秒待って落ちる（実測）。ヘルパー側は直したが、
+		//       **テストが直接待っているこの呼び出しが取り残されていた**
+		await settingsScreen.expectRowVisibleIn(
+			SettingsScreen.CONTAINERS.settings,
+			settingsScreen.blockedDishCategoriesItem,
+		);
 
 		const hasOldWording = await settingsScreen.hasText(OLD_WORDING);
 		assert.equal(hasOldWording, false, `マイページの導線に旧文言「${OLD_WORDING}」が残っている`);

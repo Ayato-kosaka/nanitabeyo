@@ -29,6 +29,26 @@ const DETAIL_URL_PATTERN = /\/v1\/dish-category-group-votes\/[^/?]+(\?.*)?$/;
 /** ログインユーザーのプロフィール取得 API（useEnsureOwnProfileLoaded が叩く） */
 const OWN_PROFILE_URL_PATTERN = /\/v1\/users\/[^/?]+(\?.*)?$/;
 
+/*
+#1666 水平展開の判定（2026-09-12）: **ここには «網» を張らない。**
+
+`utils/restaurantDetail.ts` では «画面が新しく呼ぶようになった API にモックが追随せず、
+実 API へ漏れて 400 になり console error ゲートが無関係な理由で赤くする» 事故が起きたので、
+固定していないサブリソースを受け止める網を張った。同じ形かどうかをここでも当たり直した。
+
+固定していないのは次の 3 本だが、**どれも画面を開いただけでは飛ばない**
+（`features/dishCategoryGroupVotes/hooks/useDishCategoryGroupVoteActions.ts` で
+いずれも `useCallback`。候補の削除・復元・候補を開く操作の中でしか呼ばれない）。
+
+- `DELETE /v1/dish-category-group-votes/:id/candidates/:candidateId`
+- `POST   /v1/dish-category-group-votes/:id/candidates/:candidateId/restore`
+- `GET    /v1/dish-category-group-votes/:id/candidates/:candidateId/dish-media`
+
+⚠️ これらを押す spec を書くときは、網ではなく **個別に固定する**こと。
+   押した結果（何が送られたか / 画面がどう変わるか）が検証対象になるので、
+   «エラーにしないだけ» の網では代用できない。
+*/
+
 /**
  * 投票画面の URL。
  * `app/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]/vote.tsx` に対応する

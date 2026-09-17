@@ -15,7 +15,7 @@ import { LegalScreen } from "../../screens/LegalScreen";
 import { LoginScreen } from "../../screens/LoginScreen";
 import { OnboardingScreen } from "../../screens/OnboardingScreen";
 import { ProfileScreen } from "../../screens/ProfileScreen";
-import { ResultScreen } from "../../screens/ResultScreen";
+import { ACTIVE_CARD_LIKE, ResultScreen } from "../../screens/ResultScreen";
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { SelectRestaurantScreen } from "../../screens/SelectRestaurantScreen";
@@ -379,8 +379,11 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 				"profile-food-feed",
 				async () => {
 					// グリッドのセルに testID が無いため、フィード固有のアクションボタンで到達を判定する
+					// #1579 ⚠️ **active なカードへ限定すること。** ここは縦フィードで前後のセルも描かれるので、
+					// 素の `by.id("dish-action-like")` は複数一致になり Detox が例外を投げる。
+					// `captureScreenIfReachable` が握り潰すため、**この画面が黙って撮られなくなる**
 					await element(by.id("like-tab-grid")).tap();
-					await waitUntilVisible(by.id("dish-action-like"), DEFAULT_TIMEOUT);
+					await waitUntilVisible(ACTIVE_CARD_LIKE, DEFAULT_TIMEOUT);
 				},
 				{ settleMs: 5_000 },
 			);
@@ -478,7 +481,9 @@ describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mut
 				await tolerate(() => myDishesScreen.rate(5));
 				await tapWhenVisible(myDishesScreen.submitButton);
 				// 投稿が成功すると /post/[id] へ遷移し、いいね等のアクションが並ぶ
-				await waitUntilVisible(by.id("dish-action-like"), 60_000);
+				// #1579 この画面はカードが 1 枚（ids は 1 件）なので今は素でも一致するが、
+				// 同じ規約に揃える（`assert-carousel-locator-scope.mjs` が縛っている）
+				await waitUntilVisible(ACTIVE_CARD_LIKE, 60_000);
 			},
 			{ settleMs: 4_000 },
 		);

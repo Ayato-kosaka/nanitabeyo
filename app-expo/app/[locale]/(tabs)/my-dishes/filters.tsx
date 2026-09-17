@@ -150,6 +150,18 @@ function Chip({
 			accessibilityRole="button"
 			accessibilityState={{ selected, disabled: !!disabled }}
 			style={[styles.chip, selected && styles.chipSelected, disabled && styles.chipDisabled]}>
+			{/*
+			#1579 ⚠️ **選択済みのときだけ居る印。E2E の判定はこれを使う。**
+
+			状態は `accessibilityState.selected` に載っているが、**Android の Detox では
+			属性として上がってこない**ので `getAttributes()` は `selected` を返さない。
+			`isFilterStatusSelected()` はそれを `null`（判定不能）として返しており、
+			**フィルタが正しく効いていてもテストが «選択済みでない» と読んでいた**
+			（#1579・夜間で 3 夜連続）。
+
+			通知トグルの `-on` / テーマ 3 択のチェックと同じ形。見た目には影響しない。
+			*/}
+			{selected && <View testID={testID ? `${testID}-selected` : undefined} />}
 			<Text style={[styles.chipLabel, selected && styles.chipLabelSelected, disabled && styles.chipLabelDisabled]}>
 				{label}
 			</Text>

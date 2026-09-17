@@ -1,5 +1,9 @@
 import type { Page } from "@playwright/test";
-import type { GetRestaurantByIdResponse, QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
+import type {
+	GetRestaurantByIdResponse,
+	GetRestaurantOpeningHoursResponse,
+	QueryRestaurantDishMediaResponse,
+} from "@shared/api/v1/res";
 
 /**
  * 🏪 店舗詳細まわり（#1386 でルート化した 4 画面）の E2E 用ユーティリティ
@@ -39,6 +43,31 @@ const DETAIL_URL_PATTERN = /\/v1\/restaurants\/(?!search)[^/?]+(\?.*)?$/;
 /** `GET /v1/restaurants/:id/dish-media` */
 const DISH_MEDIA_URL_PATTERN = /\/v1\/restaurants\/[^/?]+\/dish-media(\?.*)?$/;
 
+/**
+ * `GET /v1/restaurants/:id/opening-hours`（#1666 で店舗詳細が呼ぶようになった）。
+ *
+ * ⚠️ これを固定していないと **実 API へ漏れる**。`MOCK_RESTAURANT_ID` は UUID ではないので
+ * `RestaurantIdParamsDto` の `@IsUUID()` が弾いて **400** になり、console error ゲート
+ * （`fixtures/test.ts`）がこの spec を «ルーティングとは無関係な理由で» 落とす。
+ * 実際に 2026-09-09〜09-12 の夜間で 3 夜落ちた（#1666 をマージした日から）。
+ */
+const OPENING_HOURS_URL_PATTERN = /\/v1\/restaurants\/[^/?]+\/opening-hours(\?.*)?$/;
+
+/**
+ * `MOCK_RESTAURANT_ID` 配下の **まだ個別に固定していない** サブリソースを受け止める網。
+ *
+ * ## なぜ «個別に足す» だけで終わらせないのか
+ * 上の opening-hours の事故は «画面が新しい API を呼ぶようになったのに、ここが追随していない»
+ * という **形** の欠陥で、同じ形は画面へ 1 本 API が足されるたびに再発する。
+ * 個別のパターンを足して回るのは «次に足した人» を待つことなので、形ごと塞ぐ。
+ *
+ * この店は実在しないので、ここへ来たリクエストは **実 API では必ず 400 / 404 になる**。
+ * つまり網で受けて困るものは無い（受けなければ console error ゲートで落ちるだけ）。
+ * ⚠️ 網は «エラーにしない» だけで «正しい中身を返す» わけではない。中身が要る API は
+ * 上のように個別のパターンで固定すること（網より **後に** 登録すれば個別の方が勝つ）。
+ */
+const MOCK_RESTAURANT_ANY_SUBRESOURCE_PATTERN = new RegExp(`/v1/restaurants/${MOCK_RESTAURANT_ID}(/[^?]*)?(\\?.*)?$`);
+
 /** 店舗詳細の URL（`app/[locale]/restaurant/[restaurantId].tsx`） */
 export function restaurantDetailPath(restaurantId: string = MOCK_RESTAURANT_ID, locale = "ja-JP"): string {
 	return `/${locale}/restaurant/${restaurantId}`;
@@ -69,6 +98,16 @@ function buildRestaurantDetail(): GetRestaurantByIdResponse {
 		} as unknown as GetRestaurantByIdResponse["restaurant"],
 		meta: { reviewCount: 0, averageRating: 0, totalCents: 0, maxEndDate: null },
 	};
+}
+
+/**
+ * 固定の営業時間。**既定は «1 件も無い»**（`days` が空なら画面は欄ごと出さない）。
+ *
+ * ルーティングの検証に営業時間は要らないので、ここでは «出さない» を固定する。
+ * 中身を検証したくなったら `buildRestaurantDetail` と同じくオプションで分岐させること。
+ */
+function buildOpeningHours(): GetRestaurantOpeningHoursResponse {
+	return { days: [], sources: [], fetchedAt: null };
 }
 
 /** グリッドに 1 件だけ出すときの dish_media id。押下先（feed）のアサーションから参照する */
@@ -108,13 +147,33 @@ function buildDishMedia(withItem: boolean): QueryRestaurantDishMediaResponse {
 }
 
 /**
- * 店舗詳細に必要な 2 本の API を固定レスポンスへ差し替える。
+ * 店舗詳細が呼ぶ API を固定レスポンスへ差し替える。
  *
  * `page.goto()` より前に呼ぶこと（route の登録前に飛んだリクエストは素通しになる）。
+ *
+ * ⚠️ **Playwright は «後から登録した route を先に» 見る。** 登録順は «広い → 狭い» にすること。
+ * 先頭の網（`MOCK_RESTAURANT_ANY_SUBRESOURCE_PATTERN`）は最初に登録するので、
+ * あとから登録した個別パターンが必ず勝つ。
  */
 export async function mockRestaurantDetail(page: Page, options: { withDishMedia?: boolean } = {}): Promise<void> {
-	// ⚠️ Playwright は «後から登録した route を先に» 見る。dish-media の方を後に登録して、
-	// 詳細用パターン（末尾セグメント無し）と取り違えないようにする
+	/*
+	いちばん広い網を «最初に» 登録する（= いちばん弱い）。個別に固定していないサブリソースが
+	実 API へ漏れて 400 / 404 になり、console error ゲートで «無関係な理由の赤» を作るのを防ぐ。
+
+	⚠️ 握り潰さない。**どの URL が網に落ちたかを CI のログへ必ず出す。**
+	   黙って 200 を返すと «画面に何も出ない理由» が誰にも分からなくなる。
+	*/
+	await page.route(MOCK_RESTAURANT_ANY_SUBRESOURCE_PATTERN, async (route) => {
+		process.stdout.write(
+			`[mockRestaurantDetail] 固定していない店舗 API が呼ばれた: ${route.request().url()}\n` +
+				"  → 中身が要るなら utils/restaurantDetail.ts へ個別のパターンを足すこと\n",
+		);
+		await route.fulfill({
+			status: 200,
+			contentType: "application/json",
+			body: JSON.stringify({ success: true, data: null }),
+		});
+	});
 	await page.route(DETAIL_URL_PATTERN, async (route) => {
 		await route.fulfill({
 			status: 200,
@@ -127,6 +186,13 @@ export async function mockRestaurantDetail(page: Page, options: { withDishMedia?
 			status: 200,
 			contentType: "application/json",
 			body: JSON.stringify({ success: true, data: buildDishMedia(options.withDishMedia === true) }),
+		});
+	});
+	await page.route(OPENING_HOURS_URL_PATTERN, async (route) => {
+		await route.fulfill({
+			status: 200,
+			contentType: "application/json",
+			body: JSON.stringify({ success: true, data: buildOpeningHours() }),
 		});
 	});
 }

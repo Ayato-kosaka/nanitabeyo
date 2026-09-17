@@ -165,7 +165,17 @@ export default function LanguageScreen() {
 										accessibilityRole="button"
 										accessibilityState={{ selected: isSelected, disabled: isSwitching || preference === null }}
 										testID={`language-option-${option.key}`}>
-										<Text style={styles.rowLabel}>{option.label}</Text>
+										{/*
+										  #1579 ⚠️ **ラベルの検証はこの Text に当てること。**
+										  親の TouchableOpacity は Android では ViewGroup になるので、
+										  そこへ Detox の `toHaveText` を当てても
+										  «an instance of android.widget.TextView» に一致せず 25 秒待って落ちる。
+										  テーマ 3 択のチェックを素の View で包んであるのと同じ理由
+										  （`SettingsScreen.themeOptionCheck` のコメント参照）。
+										*/}
+										<Text style={styles.rowLabel} testID={`language-option-${option.key}-label`}>
+											{option.label}
+										</Text>
 										{isSelected && (
 											<Check
 												size={20}

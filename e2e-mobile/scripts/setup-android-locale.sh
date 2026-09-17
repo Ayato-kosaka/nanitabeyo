@@ -62,6 +62,29 @@ if [ "${actual_locale}" != "${EXPECTED_LOCALE}" ]; then
 	exit 1
 fi
 
+# ⚠️ #1579 【観測】**上の検査は «自分が書いた property» を読み返しているだけである。**
+#
+# アプリが実際に使うのは `persist.sys.locale` そのものではなく、そこから種を得て
+# システムが持つ **LocaleList（実行時 configuration）** である。property が ja-JP でも
+# 実行時 configuration が en-US のままなら、**ja-JP 前提の spec は英語の画面に対して走る**
+#（`describeJapaneseLocale` は端末のロケールを見るので skip もされない）。
+#
+# 実際 run 34437874049（絞って回した Android）は、このスクリプトが
+# «✅ システムロケールを ja-JP に固定しました» を出しているのに、
+# 失敗のコマのアプリが **英語で描かれていた**（"Confirm restaurant details"）。
+# 同じコミットの夜間 34406713535 は日本語（「お店の情報を確認」）だった。
+#
+# **原因は未特定。** まず «アプリから見えるロケール» を毎回ログへ出して観測できるようにする。
+# ここではまだ落とさない（落とすかどうかは、実測が揃ってから決める）。
+runtime_config="$(adb shell am get-config 2>/dev/null | tr -d '\r' | head -n 1)"
+system_locales="$(adb shell settings get system system_locales 2>/dev/null | tr -d '\r')"
+echo "▶ 実行時 configuration: ${runtime_config}"
+echo "▶ settings system_locales: ${system_locales}"
+
+if [[ "${runtime_config}" != *"-ja-rJP-"* ]]; then
+	echo "::warning::実行時 configuration に ja-rJP が見当たりません。ja-JP 前提の spec が英語の画面に対して走っている可能性があります（#1579）。"
+fi
+
 echo "✅ システムロケールを ${EXPECTED_LOCALE} に固定しました"
 
 # ── ソフトキーボード(IME)の無効化 ──────────────────────────────────────────────

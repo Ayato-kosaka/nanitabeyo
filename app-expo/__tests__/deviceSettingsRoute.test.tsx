@@ -21,6 +21,13 @@ import TestRenderer from "react-test-renderer";
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
+// #1404 離脱の判定は canGoBack ではなく canDismiss（スタックが 2 枚以上か）を見る。
+// canGoBack はタブナビゲータまでさかのぼるため、(tabs) 配下へ直リンク着地しても
+// initialRouteName="search" のぶん true になり、親へ倒す保険が働かない
+let mockCanDismiss = true;
+// 「canGoBack は true だが canDismiss は false」を作れるように別々に持つ。
+// ⚠️ canGoBack は **常に true** にしてある。(tabs) 配下の直リンク着地で実際にそうなるからで、
+//    実装が `canGoBack()` へ戻ったら下の «履歴が無ければ replace» が赤くなる
 let mockCanGoBack = true;
 // ⚠️ スタブ本体をファクトリの «外» に置かないこと（profileEditRoute.test.tsx と同じ巻き上げの注意）
 jest.mock("expo-router", () => {
@@ -29,7 +36,7 @@ jest.mock("expo-router", () => {
 		replace: (href: unknown) => mockReplace(href),
 		back: () => mockBack(),
 		canGoBack: () => mockCanGoBack,
-		canDismiss: () => false,
+		canDismiss: () => mockCanDismiss,
 	};
 	return {
 		router: stub,
@@ -153,6 +160,7 @@ beforeEach(() => {
 	mockBack.mockClear();
 	mockLightImpact.mockClear();
 	mockSetHapticsEnabled.mockClear();
+	mockCanDismiss = true;
 	mockCanGoBack = true;
 	mockHapticsEnabled = true;
 });
@@ -281,7 +289,7 @@ describe("#1504 端末設定ページ", () => {
 	});
 
 	it("戻るを押すと、履歴があれば back で戻る", async () => {
-		mockCanGoBack = true;
+		mockCanDismiss = true;
 		const tree = await render(<DeviceSettingsScreen />);
 
 		await press(tree, "device-settings-screen-back");
@@ -291,8 +299,10 @@ describe("#1504 端末設定ページ", () => {
 	});
 
 	// URL 直リンク・web のリロードで着地した場合。back すると «アプリの外» へ出てしまう
+	// ⚠️ ここが赤くなったら実装が `canGoBack()` へ戻っている（mockCanGoBack は常に true）。
+	// 実機・E2E でしか気付けない形になるので、この 1 行で止める（profileEditRoute.test.tsx と同じ）
 	it("戻るを押したとき履歴が無ければマイページへ replace する", async () => {
-		mockCanGoBack = false;
+		mockCanDismiss = false;
 		const tree = await render(<DeviceSettingsScreen />);
 
 		await press(tree, "device-settings-screen-back");
