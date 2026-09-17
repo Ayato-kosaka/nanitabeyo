@@ -45,16 +45,34 @@ export default function ResultScreen() {
 	const { colors } = useAppTheme();
 
 	// #633 【防御】entriesKey が undefined の場合は戻る（クラッシュ防止）
+	//
+	// #1436 【設計】レベルは «パラメータ付きで来るはずの遷移が壊れた» と «この URL を直接開いた» で分ける。
+	// この画面はアプリ内の 2 箇所（search/dish-categories.tsx・DishCategoryGroupVoteResultScreen.tsx）
+	// からしか push されず、どちらも必ず entriesKey を渡す。したがって **1 つもパラメータが無い**のは
+	// 遷移の失敗ではなく、web で URL を直接開いた（共有リンク・ブックマーク・クローラ）ということである。
+	// publicRoutes.ts も「検索条件のパラメータ前提のため直リンクの対象にしない」と宣言している画面。
+	//
+	// 本番実測（2026-09-16〜17 / 7 人）は全件が `locale_initialized` から **この URL でコールドスタート**し、
+	// その後 signInAnonymously していた＝初回訪問者の直リンクだった。障害ではないので error で積まない。
+	//
+	// ⚠️ **payload に null を明示すること。** 以前は `{ entriesKey, location }` を渡していたが、
+	// どちらも undefined だと JSON から消えて `{}` になり、**2 つのどちらだったのか後から分からなかった**。
 	useEffect(() => {
 		if (!entriesKey) {
+			const isDirectVisit = !location && !category && !dishImageUrl;
 			logFrontendEvent({
 				event_name: "result_screen_invalid_entrieskey",
-				error_level: "error",
-				payload: { entriesKey, location },
+				error_level: isDirectVisit ? "warn" : "error",
+				payload: {
+					entriesKey: entriesKey ?? null,
+					location: location ?? null,
+					category: category ?? null,
+					isDirectVisit,
+				},
 			});
 			router.back();
 		}
-	}, [entriesKey, location, logFrontendEvent]);
+	}, [entriesKey, location, category, dishImageUrl, logFrontendEvent]);
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey || "", idType)(state),
