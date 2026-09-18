@@ -46,6 +46,9 @@ TABLE_POST_RESOLVED = "sns_post_resolved"
 # «#1776 の取り分 194,471 投稿のうち 8 割がどこで消えているか» を BigQuery から数えられず、
 # 規則を触っても効いたかどうか測れない状態だった（CLAUDE.md「見えないものは «無い» ではない」）。
 TABLE_NAME_EXTRACT_ATTEMPT = "sns_name_extract_attempt"
+# #1947 配信中の外部埋め込みが «まだ生きているか» の台帳（4_22 が append-only で積む）。
+# PostgreSQL の embed_status へ反映するのは別ステップ（UPDATE なのでオーナー承認が要る）。
+TABLE_EMBED_LIVENESS = "sns_embed_liveness"
 TABLE_COVERAGE = "sns_coverage"
 TABLE_DISH_MEDIA_CATALOG = "sns_dish_media_catalog"
 # #1815 店の国・住所・座標を持つ唯一の表（9_1_sync_restaurants が PG へ配る表）。
