@@ -204,3 +204,88 @@ class TimeBudgetTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --- 2026-09-18: 本番で 2,400 件を unknown で書いた欠陥 ------------------------------
+# 原因は «埋め込みを取るのに店サイト向けのブラウザ UA を使っていた» ことだった。
+# ブラウザ UA には本文の無い JS シェル（約 620KB）が返り、キャプションも削除の文言も
+# 含まれないので、判定器は全件 unknown を返す。実測（同日）:
+#
+#   | UA | 生きている投稿 | 存在しない投稿 |
+#   | --- | --- | --- |
+#   | Mozilla/5.0 …Chrome | 625,796 B・印なし | 629,215 B・印なし |
+#   | nanitabeyo-poc/1.0   | 248,972 B・Caption+View profile | 231,846 B・削除の文言 |
+class EmbedNeedsABotUaTest(unittest.TestCase):
+    """埋め込み SSR は **bot UA にしか本文を返さない**。既定を使っていたら落ちる。"""
+
+    def setUp(self):
+        self.code = _executable_source(HERE / "4_22_probe_embed_liveness.py")
+
+    def test_fetch_is_given_an_explicit_ua(self):
+        # `p1.fetch(...)` を UA 指定なしで呼んでいたら、それは既定のブラウザ UA である
+        self.assertIn("ua=", self.code,
+                      "埋め込みの fetch に UA を明示していない（既定はブラウザ UA で本文が返らない）")
+
+    def test_the_ua_is_not_a_browser_one(self):
+        self.assertNotIn("Mozilla", self.code)
+        self.assertNotIn("Chrome", self.code)
+
+    def test_it_uses_the_shared_bot_ua_constant(self):
+        # 写経して別の UA を持たない（1 つの正本を指す）
+        self.assertIn("p1.BOT_UA", self.code)
+
+    def test_fetch_accepts_a_ua_override(self):
+        """`p1.fetch` 側に受け口があること。無ければ 4_22 の指定は黙って無視される。"""
+        import pillar1_site_extract as p1
+        import inspect
+        self.assertIn("ua", inspect.signature(p1.fetch).parameters)
+
+    def test_the_default_ua_is_still_a_browser_one_for_store_sites(self):
+        """店サイト側の既定は変えない（bot UA だと 403 が量産される。p1 の注記）。"""
+        import pillar1_site_extract as p1
+        self.assertIn("Mozilla", p1.UA)
+
+
+class DetectorThatCannotDetectMustStopTest(unittest.TestCase):
+    """«判定できていない» まま走り続けないこと。原因ではなく «無 signal» で止める。"""
+
+    def setUp(self):
+        self.code = _executable_source(HERE / "4_22_probe_embed_liveness.py")
+
+    def test_it_aborts_when_nothing_is_decisive(self):
+        self.assertIn("SystemExit", self.code)
+
+    def test_the_gate_looks_at_alive_and_dead_not_at_the_cause(self):
+        # UA でも HTML 変更でも同じ形で止まること。原因名で分岐していたら意味が無い
+        gate = self.code[self.code.index("calibration_n"):]
+        self.assertIn("alive", gate)
+        self.assertIn("dead", gate)
+
+    def test_the_threshold_is_small_enough_to_matter(self):
+        self.assertLessEqual(m.CALIBRATION_N, 200,
+                             "12,000 件の run で «早めに気づく» 役に立たない大きさ")
+
+    def test_it_flushes_before_aborting(self):
+        """何が返っていたかを残さずに死ぬと、次も同じ調査をやり直すことになる。"""
+        abort = self.code.index("SystemExit")
+        self.assertIn("flush(force=True)", self.code[max(0, abort - 400):abort])
+
+    def test_the_gate_can_be_disabled_but_is_on_by_default(self):
+        self.assertIn('"--calibration-n"', SOURCE)
+        self.assertIn("default=CALIBRATION_N", SOURCE)
+
+
+class NoMarkerKeepsTheBodySizeTest(unittest.TestCase):
+    """«印が無い» とき本文の大きさを残す。620KB なら JS シェルだと 1 query で分かる。"""
+
+    def test_size_is_recorded(self):
+        liveness, evidence = m.classify(CHANGED_HTML, None)
+        self.assertEqual("unknown", liveness)
+        self.assertTrue(evidence.startswith("no_marker:"), evidence)
+        self.assertIn(str(len(CHANGED_HTML)), evidence)
+
+    def test_the_js_shell_is_distinguishable_from_a_small_change(self):
+        shell = b"x" * 620_000
+        _, big = m.classify(shell, None)
+        _, small = m.classify(CHANGED_HTML, None)
+        self.assertNotEqual(big, small)

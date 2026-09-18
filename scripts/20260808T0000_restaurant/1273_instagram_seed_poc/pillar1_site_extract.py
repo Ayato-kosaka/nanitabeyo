@@ -248,12 +248,20 @@ def robots_allows(url):
         return True
 
 
-def fetch(url, timeout=20):
+def fetch(url, timeout=20, ua=None):
+    """`ua` を渡すと既定のブラウザ UA を差し替える。
+
+    ⚠️ 既定（ブラウザ UA）は «店の公式サイト» を測るためのものである（上記 UA の注記）。
+    **instagram.com の埋め込み SSR にこの既定を使ってはいけない。** ブラウザ UA には
+    本文の無い JS シェル（約 620KB）が返り、キャプションも削除の文言も含まれないため、
+    判定器は «全件 unknown» を返す（2026-09-18 に 2,400 件を無駄にした）。
+    呼び出し側が bot UA（`BOT_UA` 等）を明示すること。
+    """
     last = None
     for attempt in range(2):
         try:
             req = urllib.request.Request(url, headers={
-                "User-Agent": UA,
+                "User-Agent": ua or UA,
                 "Accept-Language": "ja,en;q=0.8",
             })
             with urllib.request.urlopen(req, timeout=timeout) as r:

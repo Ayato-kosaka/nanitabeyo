@@ -136,7 +136,15 @@ def classify(raw: bytes | None, error: str | None) -> tuple[str, str]:
         return "alive", "alive_ui_no_caption"
     if has_dead_mark and not has_alive_ui:
         return "dead", "removal_notice"
-    return "unknown", "no_marker"
+    # ⚠️ «印が 1 つも無い» は判定器が壊れている可能性を含む。本文の大きさを残しておくと
+    # «JS シェルが返っていた» のような原因を BigQuery 側だけで切り分けられる（#1947）。
+    return "unknown", f"no_marker:{len(raw)}b"
+
+
+# #1947 «判定できない判定器を走らせ続けない»。2026-09-18 に、ブラウザ UA で JS シェルを
+# 受け取り続けたまま 2,400 件を unknown で書き、Instagram へ無駄な問い合わせを積んだ。
+# 原因が UA でも provider の HTML 変更でも同じなので、**原因ではなく «無signal» で止める。**
+CALIBRATION_N = 50
 
 
 def parse_args() -> argparse.Namespace:
@@ -151,6 +159,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--sleep-ms", type=int, default=1000,
                    help="1 件ごとの間隔。**測定であって収集ではない**ので既定 1 req/sec")
     p.add_argument("--no-bq-write", action="store_true", help="BigQuery へ書かない（数えるだけ）")
+    p.add_argument("--calibration-n", type=int, default=CALIBRATION_N,
+                   help="この件数までに alive/dead が 1 件も出なければ判定器が壊れているとみなして中止。0 で無効")
     return p.parse_args()
 
 
@@ -194,7 +204,8 @@ def main() -> None:
             rows = []
 
         for i, t in enumerate(targets, 1):
-            raw, err = p1.fetch(embed_url(t["post_id"]))
+            # ⚠️ 既定のブラウザ UA では本文の無い JS シェルが返る（p1.fetch の注記）。
+            raw, err = p1.fetch(embed_url(t["post_id"]), ua=p1.BOT_UA)
             liveness, evidence = classify(raw, err)
             counts[liveness] = counts.get(liveness, 0) + 1
             rows.append({
@@ -206,6 +217,15 @@ def main() -> None:
                 "checked_at": utc_now().isoformat(), "run_id": run_id,
             })
             flush()
+            if args.calibration_n and i >= args.calibration_n and not (
+                    counts.get("alive", 0) or counts.get("dead", 0)):
+                # 書けるぶんは残す（何が返っていたかが evidence に入っている）
+                flush(force=True)
+                result["row_count"] = written
+                raise SystemExit(
+                    f"判定器が {i} 件連続で判定できていません（{counts}）。"
+                    "埋め込みの HTML が想定と違う可能性があるため中止します。"
+                    f"`{TABLE_EMBED_LIVENESS}` の run_id={run_id} の evidence を見てください")
             if i % 100 == 0:
                 LOGGER.info("  … %d/%d %s", i, len(targets), counts)
             if budget and (time.monotonic() - started) >= budget:
