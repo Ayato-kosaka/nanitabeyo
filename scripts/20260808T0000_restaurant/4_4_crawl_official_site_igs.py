@@ -203,11 +203,22 @@ def _crawl(stores, workers):
     return results
 
 
+def _chunks(seq, size: int):
+    """`size` 件ずつに切る。**途中で書き出すため**に要る（#1947）。"""
+    size = max(1, int(size))
+    for i in range(0, len(seq), size):
+        yield seq[i:i + size]
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="柱1: 店公式サイト crawl → 店固有 IG handle → sns_store_site_ig")
     p.add_argument("--run-id", default=None, help="この crawl の run_id（sns_store_site_ig / pipeline_runs 用）")
     p.add_argument("--catalog-run-id", default=DEFAULT_CATALOG_RUN_ID,
                    help="読む restaurant_catalog の run_id（既定 restaurant-2026-08-23）")
+    # #1947 crawl は数時間かかる。最後に 1 回だけ書くと job が時間で切られた瞬間に全部消える
+    # （#1273 の 4_18 で実際に起きた形）。この件数ごとに BigQuery へ書き出す。
+    p.add_argument("--chunk-size", type=int, default=500,
+                   help="この件数ごとに BigQuery へ書き出す（落ちても書けたぶんは残る）")
     p.add_argument("--limit", type=int, default=None, help="バッチの店数上限")
     p.add_argument("--offset", type=int, default=0, help="バッチ開始位置（google_place_id 昇順）")
     p.add_argument("--workers", type=int, default=8, help="crawl 並列数（低速維持のため控えめ）")
@@ -261,18 +272,29 @@ def main() -> None:
         LOGGER.warning("対象 0 店。終了します。")
         return
 
-    fetch_records = _crawl(stores, args.workers)
-    rows = build_store_site_rows(fetch_records, run_id, now_iso)
-    summary = summarize_rows(rows)
-    LOGGER.info("生成行 summary: %s", json.dumps(summary, ensure_ascii=False))
+    # #1947 **chunk ごとに crawl して、その都度書き出す。**
+    # 以前は全件 crawl してから最後に 1 回だけ書いていたため、job が時間で切られると
+    # 数時間ぶんの crawl が丸ごと消えた（同じ形を #1273 の 4_18 で踏んでいる）。
+    # `all_rows` は summary と --out-file のために全件を持つ（書き出し済みも含む）。
+    all_rows: list[dict] = []
 
-    if args.out_file:
-        with open(args.out_file, "w", encoding="utf-8") as f:
-            for r in rows:
-                f.write(json.dumps(r, ensure_ascii=False) + "\n")
-        LOGGER.info("行を書き出しました: %s", args.out_file)
+    def crawl_chunk(chunk):
+        return build_store_site_rows(_crawl(chunk, args.workers), run_id, now_iso)
+
+    def finish():
+        summary = summarize_rows(all_rows)
+        LOGGER.info("生成行 summary: %s", json.dumps(summary, ensure_ascii=False))
+        if args.out_file:
+            with open(args.out_file, "w", encoding="utf-8") as f:
+                for r in all_rows:
+                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
+            LOGGER.info("行を書き出しました: %s", args.out_file)
+        return summary
 
     if args.dry_run:
+        for chunk in _chunks(stores, args.chunk_size):
+            all_rows.extend(crawl_chunk(chunk))
+        summary = finish()
         LOGGER.info("[dry-run] BQ へは書き込みません。")
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         return
@@ -280,14 +302,22 @@ def main() -> None:
     with pipeline.step(run_id, "4_4_crawl_official_site_igs",
                        parameters={"catalog_run_id": args.catalog_run_id,
                                    "stores_run_id": args.stores_run_id,
-                                   "offset": args.offset, "limit": args.limit},
+                                   "offset": args.offset, "limit": args.limit,
+                                   "chunk_size": args.chunk_size},
                        repo_root=HERE.parents[1]) as result:
-        place_ids = [s["id"] for s in stores if s.get("id")]
-        deleted = _delete_batch_rows(pipeline, run_id, place_ids)
-        LOGGER.info("バッチ冪等化: run_id=%s の %d place_id を DELETE（%d 行）", run_id, len(place_ids), deleted)
-        count = pipeline.load_json_rows(TABLE_STORE_SITE_IG, rows)
-        result["row_count"] = count
-        LOGGER.info("sns_store_site_ig に %d 行を投入しました。", count)
+        written = 0
+        for chunk in _chunks(stores, args.chunk_size):
+            rows = crawl_chunk(chunk)
+            all_rows.extend(rows)
+            # 冪等化は «この chunk の店» だけを消す（全件 DELETE だと前の chunk が消える）
+            place_ids = [s["id"] for s in chunk if s.get("id")]
+            deleted = _delete_batch_rows(pipeline, run_id, place_ids)
+            written += pipeline.load_json_rows(TABLE_STORE_SITE_IG, rows) if rows else 0
+            LOGGER.info("chunk 完了: %d 店 / DELETE %d 行 / 累計 %d 行（%d/%d 店）",
+                        len(chunk), deleted, written, len(all_rows), len(stores))
+        result["row_count"] = written
+        LOGGER.info("sns_store_site_ig に %d 行を投入しました。", written)
+    finish()
 
 
 if __name__ == "__main__":
