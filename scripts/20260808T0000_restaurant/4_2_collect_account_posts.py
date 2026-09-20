@@ -98,6 +98,10 @@ def pace_for_app_usage() -> None:
 # handle が引けない（code 110）も別扱いのまま（そのアカウントだけ飛ばす）。
 TRANSIENT_RETRIES = 3
 TRANSIENT_BACKOFF_S = (5.0, 20.0, 60.0)
+# 一時エラーで飛ばすのが «連続» でこの数に達したら、相手が落ちていると見なして止める。
+# 1 件ずつ飛ばすだけだと、IG 障害中に 6,000 アカウントを «呼んだが 0 件» にして
+# 台帳へ焼き付けてしまい、次の run が二度と拾わなくなる。
+MAX_CONSECUTIVE_TRANSIENT = 20
 
 
 def _is_transient(err: dict, http_status: int) -> bool:
@@ -119,11 +123,23 @@ def _get(url: str, timeout: float = 30.0) -> dict:
                            e, delay, attempt + 1, TRANSIENT_RETRIES)
             time.sleep(delay)
     assert last is not None
-    raise RuntimeError(str(last))
+    # ⚠️ ここで素の RuntimeError を投げると **ラウンド全体が死ぬ**。
+    # 2026-09-20、1 アカウントの IG 500（`is_transient: true`）で
+    # `--max-minutes 330` の収集が開始 2 分で落ちた。相手が «一時的» と言っている
+    # 失敗は «そのアカウントを飛ばす» で扱う（code 110 と同じ）。
+    raise TransientExhausted(str(last))
 
 
 class _TransientIGError(RuntimeError):
     """相手が «あとで試して» と言った失敗。_get の中だけで使う。"""
+
+
+class TransientExhausted(RuntimeError):
+    """一時エラーの再送を使い切った。**そのアカウントだけ飛ばす**（ラウンドは続ける）。
+
+    ⚠️ ただし «全部これで飛ばす» と、IG が落ちているのに黙ってキューを消費してしまう。
+    連続回数を呼び出し側が数え、閾値を超えたら止める（`4_22` の較正ガードと同じ規律）。
+    """
 
 
 def _get_once(url: str, timeout: float = 30.0) -> dict:
@@ -188,6 +204,10 @@ def discover_media(ig: str, token: str, handle: str, per_account_limit: int, pag
         except AccountNotDiscoverable as e:
             LOGGER.info("  @%s: skip（%s）", handle, str(e)[:80])
             return
+        except TransientExhausted as e:
+            # 再送を使い切った一時エラー。このアカウントは諦めてラウンドは続ける。
+            LOGGER.warning("  @%s: 一時エラーで諦め（%s）", handle, str(e)[:120])
+            raise
         bd = d.get("business_discovery")
         if not bd:  # username が business/creator でない、非公開、存在しない 等
             return
@@ -778,11 +798,29 @@ def main() -> None:
                 pipeline.load_json_rows(TABLE_ACCOUNT_ATTEMPT, attempts)
                 attempts = []
 
+        # #1947 «相手の一時障害で 1 アカウント落ちたらラウンドごと死ぬ» を止める。
+        # ただし全部これで飛ばすと、IG が落ちているのに黙ってキューを食い潰すので、
+        # **連続** で続いたら止める（`4_22` の較正ガードと同じ規律）。
+        consecutive_transient = 0
         for acc in accounts:
             handle = acc["handle"]
             route = _ROUTE_BY_ACCOUNT_TYPE.get(acc["account_type"], "influencer")
             n = 0
-            for media_id, permalink, caption in discover_media(ig, token, handle, args.limit_per_account):
+            try:
+                media_iter = list(discover_media(ig, token, handle, args.limit_per_account))
+            except TransientExhausted as e:
+                consecutive_transient += 1
+                if consecutive_transient >= MAX_CONSECUTIVE_TRANSIENT:
+                    _flush()
+                    raise SystemExit(
+                        f"IG の一時エラーが {consecutive_transient} アカウント連続で続いた"
+                        f"（最後: {str(e)[:200]}）。相手側が落ちている可能性が高いので止める。"
+                        f"ここで続けると «呼んだが 0 件» の台帳だけが積み上がる。") from e
+                LOGGER.warning("  @%s: 一時エラーで飛ばす（連続 %d 件目）",
+                               handle, consecutive_transient)
+                continue
+            consecutive_transient = 0
+            for media_id, permalink, caption in media_iter:
                 # 投稿の一意キーは shortcode（検索ルート4_3と揃え、跨ルート重複解決を防ぐ）
                 pid = ig_shortcode_from_url(permalink) or media_id
                 if pid in seen:
