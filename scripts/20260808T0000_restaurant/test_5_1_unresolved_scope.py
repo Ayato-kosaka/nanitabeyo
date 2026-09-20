@@ -126,3 +126,45 @@ class FindingNothingAtAllIsAMistakeNotAPauseTest(unittest.TestCase):
         source = (HERE / "5_1_apply_resolve.py").read_text(encoding="utf-8")
         self.assertIn("idle_sleep_s", source)
         self.assertIn("未処理なし", source)
+
+
+class CaughtUpIsNotAnErrorTest(unittest.TestCase):
+    """2026-09-20 20:30: 追いついているだけの resolve が **exit 1 で赤くなった**。
+
+    同日の «対象 0 件で 1 時間アイドル» を直したガードが、«0 件» の意味を 1 つしか
+    見ていなかった。赤が常態になると本物の失敗が埋もれるので、2 つを分ける。
+
+    | 収集 run に投稿が | 未 resolve が | 意味 | どうする |
+    | --- | --- | --- | --- |
+    | 無い | 0 | run_id の指定間違い | 落ちる |
+    | ある | 0 | 追いついた | 正常終了 |
+    """
+
+    def test_it_asks_whether_the_collection_run_exists_at_all(self) -> None:
+        source = (HERE / "5_1_apply_resolve.py").read_text(encoding="utf-8")
+        self.assertIn("def _raw_run_has_any_post(", source)
+
+    def test_the_guard_branches_on_that_answer(self) -> None:
+        import ast
+        source = (HERE / "5_1_apply_resolve.py").read_text(encoding="utf-8")
+        main = next(n for n in ast.walk(ast.parse(source))
+                    if isinstance(n, ast.FunctionDef) and n.name == "main")
+        calls = [n for n in ast.walk(main) if isinstance(n, ast.Call)
+                 and getattr(n.func, "id", "") == "_raw_run_has_any_post"]
+        self.assertTrue(calls, "main が «収集 run に投稿があるか» を聞いていない")
+
+    def test_catching_up_returns_instead_of_exiting_nonzero(self) -> None:
+        """追いついたときに SystemExit を投げないこと（CI が赤くなる）。"""
+        source = (HERE / "5_1_apply_resolve.py").read_text(encoding="utf-8")
+        self.assertIn("追いついている", source)
+        # 指定間違いのメッセージは «投稿が 1 件も無い» の方を指すこと
+        self.assertIn("に投稿が 1 件も無い", source)
+
+    def test_the_misspecified_case_still_exits(self) -> None:
+        import ast
+        source = (HERE / "5_1_apply_resolve.py").read_text(encoding="utf-8")
+        main = next(n for n in ast.walk(ast.parse(source))
+                    if isinstance(n, ast.FunctionDef) and n.name == "main")
+        raises = [n for n in ast.walk(main) if isinstance(n, ast.Raise)
+                  and "SystemExit" in ast.dump(n)]
+        self.assertTrue(raises, "指定間違いで落ちる分岐まで消してはいけない")

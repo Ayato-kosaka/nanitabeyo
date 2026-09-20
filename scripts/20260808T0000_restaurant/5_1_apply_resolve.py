@@ -256,6 +256,20 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
     return list(pipeline.execute(sql, params))
 
 
+def _raw_run_has_any_post(pipeline: BigQueryPipeline, raw_run_id: str) -> bool:
+    """その収集 run に投稿が «1 件でも» あるか。
+
+    «未 resolve が 0» が «追いついた» なのか «run_id を間違えた» なのかを分ける唯一の判定。
+    """
+    from google.cloud import bigquery  # noqa: PLC0415  認証があるときだけ読む
+    where = run_id_filter_sql("run_id", "@raw_rid", raw_run_id)
+    sql = f"SELECT COUNT(*) AS n FROM `{pipeline.table(TABLE_POST_RAW)}` WHERE {where} LIMIT 1"
+    params = [bigquery.ScalarQueryParameter("raw_rid", "STRING", raw_run_id)]
+    for row in pipeline.execute(sql, params):
+        return bool(dict(row)["n"])
+    return False
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
@@ -381,12 +395,25 @@ def main() -> None:
 
         run_batch(posts)
         # ⚠️ 2026-09-20: `--raw-run-id` を渡し忘れて «resolve 側の run_id» が入り、
-        # 対象 0 件のまま 2 シャードが 1 時間アイドルした。最初の取り出しが 0 件なのは
-        # «追いついた» ではなく **指定を間違えた**ことの方が多い。待たずに落ちる
-        # （`4_22` / `7_4` と同じ «判定できない判定器は黙って続けない» 規律）。
+        # 対象 0 件のまま 2 シャードが 1 時間アイドルした。
+        #
+        # ただし «0 件» には **意味の違う 2 つ**がある。最初の版はこれを区別せず、
+        # **追いついているだけの正常な run まで exit 1 で赤くしていた**（同日 20:30）。
+        # 赤が常態になると、本物の失敗が埋もれる。
+        #
+        # | 収集 run に投稿が | 未 resolve が | 意味 | どうする |
+        # | --- | --- | --- | --- |
+        # | **無い** | 0 | run_id の**指定間違い** | 落ちる |
+        # | ある | 0 | **追いついた** | 正常終了 |
         if not posts and total == 0:
+            if _raw_run_has_any_post(pipeline, raw_run_id):
+                LOGGER.info(
+                    "収集 run %r に未 resolve の投稿は 1 件も無い（追いついている）。正常終了する。",
+                    raw_run_id)
+                result["row_count"] = 0
+                return
             raise SystemExit(
-                f"収集 run {raw_run_id!r} に未 resolve の投稿が 1 件も無い。"
+                f"収集 run {raw_run_id!r} に投稿が 1 件も無い。"
                 f"`--raw-run-id` は «収集（sns_post_raw）» の run_id を渡すところで、"
                 f"省略すると `--run-id`（{run_id!r}）が使われる。"
                 f"複数 run をまとめて掃くときは `%` を含むパターンか "
