@@ -28,6 +28,36 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
+# --- 「溜まっていく表」を run をまたいで読むための絞り込み（#1947） -------------------
+# 2026-09-20: `5_1` が `--raw-run-id` 完全一致でしか収集 run を絞れず、**複数 run にまたがって
+# 溜まった未 resolve 212,301 件を 1 回で掃けなかった**。同じ形が «収集や巡回の成果を読む»
+# 入口に横並びであったので、判定を 1 箇所にまとめてそこから呼ぶ（写経しない）。
+#
+# ⚠️ この helper は «積み上がる表»（sns_post_raw / sns_store_site_ig など）専用である。
+# `restaurant_catalog` のような «その run_id がスナップショットそのもの» の表には使わない。
+# あちらは run_id を緩めると別々の時点のデータが混ざる。
+RUN_ID_ALL = "ALL"
+
+
+def run_id_filter_sql(column: str, param: str, run_id: str | None) -> str:
+    """`run_id` の絞り込み SQL を返す。
+
+    - `ALL`      → 絞らない（`TRUE`）
+    - `%` を含む → `LIKE`（例: `sns-2026-09-%`）
+    - それ以外   → 完全一致（既定の挙動。既存の呼び出しを変えない）
+    """
+    if run_id == RUN_ID_ALL:
+        return "TRUE"
+    if run_id and "%" in run_id:
+        return f"{column} LIKE {param}"
+    return f"{column} = {param}"
+
+
+def run_id_arg_help(what: str) -> str:
+    """`--*-run-id` の help を揃える（argparse は %% でリテラルの % を書く）。"""
+    return (f"{what}。`%%` を含めると LIKE、`{RUN_ID_ALL}` で run を限定しない")
+
+
 # --- BigQuery テーブル名（dataset は pipeline_common の BQ_DATASET = restaurant_recommendation）---
 TABLE_SOURCE_ACCOUNT = "sns_source_account"
 TABLE_STORE_SITE_IG = "sns_store_site_ig"

@@ -21,6 +21,9 @@ import urllib.error
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (
     PROVIDER_INSTAGRAM,
+    RUN_ID_ALL,
+    run_id_arg_help,
+    run_id_filter_sql,
     posts_with_category_sql,
     TABLE_POST_RAW,
     TABLE_POST_RESOLVED,
@@ -87,8 +90,8 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="sns_post_raw を resolve に通して sns_post_resolved を作る")
     p.add_argument("--run-id", default=None)
     p.add_argument("--raw-run-id", default=None,
-                   help="読む «収集» の run_id（sns_post_raw.run_id。省略時は --run-id）。"
-                        f"`%%` を含めると LIKE、`{RAW_RUN_ID_ALL}` で全 run が対象になる")
+                   help=run_id_arg_help(
+                       "読む «収集» の run_id（sns_post_raw.run_id。省略時は --run-id）"))
     p.add_argument("--resolve-version", default="dev", help="この resolve デプロイの識別（再処理管理用）")
     p.add_argument("--limit", type=int, default=500, help="このバッチで処理する未処理投稿数の上限")
     p.add_argument("--sleep-ms", type=int, default=150, help="resolve 呼び出しの間隔（--concurrency 1 のときだけ効く。dev API 負荷対策）")
@@ -171,10 +174,6 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-# `--raw-run-id` に渡すと «収集 run を限定しない»（溜まった未 resolve を全部掃く）
-RAW_RUN_ID_ALL = "ALL"
-
-
 def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_id: str,
                       resolve_version: str, limit: int, shards: int = 1, shard: int = 0,
                       reresolve_prev_status: str | None = None, caption_regexp: str | None = None,
@@ -226,14 +225,8 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
         ) WHERE rn = 1 AND status = @prev_status
       )"""
     # #1947: 溜まった未 resolve は **複数の収集 run にまたがる**（2026-09-20 に 212,301 件）。
-    # run を 1 本ずつ指定していると掃き切れないので、`%` を含むときは LIKE、
-    # `ALL` のときは全 run を対象にする。既定（完全一致）の挙動は変えない。
-    if raw_run_id == RAW_RUN_ID_ALL:
-        raw_run_filter = "TRUE"
-    elif "%" in raw_run_id:
-        raw_run_filter = "r.run_id LIKE @raw_rid"
-    else:
-        raw_run_filter = "r.run_id = @raw_rid"
+    # 判定は common_sns が唯一の正（同じ分岐を各 script へ写経しない）。
+    raw_run_filter = run_id_filter_sql("r.run_id", "@raw_rid", raw_run_id)
     sql = f"""
       SELECT r.post_id, r.canonical_url, r.discovery_route,
              r.discovery_area_lat, r.discovery_area_lng,
@@ -397,7 +390,7 @@ def main() -> None:
                 f"`--raw-run-id` は «収集（sns_post_raw）» の run_id を渡すところで、"
                 f"省略すると `--run-id`（{run_id!r}）が使われる。"
                 f"複数 run をまとめて掃くときは `%` を含むパターンか "
-                f"`{RAW_RUN_ID_ALL}` を渡すこと。")
+                f"`{RUN_ID_ALL}` を渡すこと。")
         while deadline and time.monotonic() < deadline:
             _flush()
             posts = fetch()

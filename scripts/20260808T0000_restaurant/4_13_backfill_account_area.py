@@ -41,7 +41,7 @@ import argparse
 import logging
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
-from common_sns import TABLE_POST_RAW, TABLE_POST_RESOLVED
+from common_sns import TABLE_POST_RAW, TABLE_POST_RESOLVED, run_id_arg_help, run_id_filter_sql
 
 LOGGER = logging.getLogger(__name__)
 CHUNK = 5000  # 1 回の UPDATE に載せる件数（配列パラメータのサイズを抑える）
@@ -55,7 +55,8 @@ MIN_ANCHORS = 2
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="アカウントの matched 店の重心から discovery_area_lat/lng を埋める")
-    p.add_argument("--run-id", default=None, help="対象の sns_post_raw.run_id")
+    p.add_argument("--run-id", default=None,
+                   help=run_id_arg_help("対象の sns_post_raw.run_id"))
     p.add_argument("--max-spread-m", type=int, default=MAX_MEDIAN_SPREAD_M,
                    help="重心を採用するアカウントの散らばり上限（中央値距離, m）")
     p.add_argument("--min-anchors", type=int, default=MIN_ANCHORS,
@@ -134,7 +135,8 @@ def main() -> None:
     posts = list(pipeline.execute(
         f"""SELECT post_id, account_id
             FROM `{pipeline.table(TABLE_POST_RAW)}`
-            WHERE run_id = @rid AND discovery_area_lat IS NULL AND account_id IS NOT NULL
+            WHERE {run_id_filter_sql("run_id", "@rid", run_id)}
+              AND discovery_area_lat IS NULL AND account_id IS NOT NULL
             QUALIFY ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY fetched_at DESC) = 1""",
         [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
     LOGGER.info("地点が無い投稿 %d 件を見ます", len(posts))

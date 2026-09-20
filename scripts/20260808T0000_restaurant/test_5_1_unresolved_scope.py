@@ -95,7 +95,7 @@ class BacklogSpansManyRunsTest(unittest.TestCase):
         self.assertNotIn("r.run_id = @raw_rid", sql)
 
     def test_all_does_not_restrict_the_collection_run(self) -> None:
-        sql = _sql_for_run(apply_resolve.RAW_RUN_ID_ALL)
+        sql = _sql_for_run(apply_resolve.RUN_ID_ALL)
         self.assertNotIn("@raw_rid", sql)
         self.assertIn("WHERE TRUE AND v.post_id IS NULL", sql)
 

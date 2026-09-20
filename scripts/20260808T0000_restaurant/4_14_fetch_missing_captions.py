@@ -45,7 +45,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
-from common_sns import TABLE_POST_RAW, TABLE_POST_RESOLVED, posts_with_category_sql
+from common_sns import TABLE_POST_RAW, TABLE_POST_RESOLVED, posts_with_category_sql, run_id_arg_help, run_id_filter_sql
 from sns_html import caption_from_embed_html
 
 LOGGER = logging.getLogger(__name__)
@@ -58,7 +58,8 @@ _RE_CODE = re.compile(r"instagram\.com/(?:p|reel|tv)/([A-Za-z0-9_-]{5,})")
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="キャプションが空の投稿へ埋め込み SSR から本文を入れる")
-    p.add_argument("--run-id", default=None, help="対象の sns_post_raw.run_id")
+    p.add_argument("--run-id", default=None,
+                   help=run_id_arg_help("対象の sns_post_raw.run_id"))
     p.add_argument("--only-with-seed", action="store_true",
                    help="discovery_seed_place_id を持つ投稿だけ（店が確定済み＝最も確実に効く）")
     # #1273 「caption を入れてから resolve する」段取りで使う。caption 空の投稿には
@@ -124,7 +125,8 @@ def _fetch_caption(code: str, timeout: float = 20.0) -> tuple[str | None, int]:
 
 def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store: int,
                 only_unresolved: bool = False,
-                only_resolved_without_category: bool = False) -> str:
+                only_resolved_without_category: bool = False,
+                run_id: str | None = None) -> str:
     seed_filter = ("AND discovery_seed_place_id IS NOT NULL AND discovery_seed_place_id != ''"
                    if only_with_seed else "")
     # 「まだ resolve していない投稿」= resolved に post_id が 1 行も無いもの。run_id や
@@ -153,7 +155,8 @@ def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store:
     return f"""
       SELECT post_id, canonical_url
       FROM `{pipeline.table(TABLE_POST_RAW)}`
-      WHERE run_id = @rid AND (caption IS NULL OR LENGTH(caption) = 0)
+      WHERE {run_id_filter_sql("run_id", "@rid", run_id)}
+        AND (caption IS NULL OR LENGTH(caption) = 0)
         AND canonical_url IS NOT NULL {seed_filter} {unresolved_filter}
       {per_store}
     """
@@ -168,7 +171,7 @@ def main() -> None:
 
     rows = list(pipeline.execute(
         _select_sql(pipeline, args.only_with_seed, args.max_per_store, args.only_unresolved,
-                    args.only_resolved_without_category),
+                    args.only_resolved_without_category, run_id),
         [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
     targets = []
     for r in rows:

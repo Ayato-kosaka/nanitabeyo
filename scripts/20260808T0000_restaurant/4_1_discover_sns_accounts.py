@@ -21,7 +21,7 @@ from datetime import date
 from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
-from common_sns import PROVIDER_INSTAGRAM, TABLE_SOURCE_ACCOUNT, TABLE_STORE_SITE_IG
+from common_sns import PROVIDER_INSTAGRAM, TABLE_SOURCE_ACCOUNT, TABLE_STORE_SITE_IG, run_id_arg_help, run_id_filter_sql
 
 LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
@@ -55,7 +55,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--catalog-run-id", default=None,
                    help="open_data_socials 用。読む restaurant_catalog の run_id（省略時は最新）")
     p.add_argument("--crawl-run-id", default=None,
-                   help="official_site_crawl 用。読む sns_store_site_ig の run_id（省略時は --run-id と同じ）")
+                   help=run_id_arg_help(
+                       "official_site_crawl 用。読む sns_store_site_ig の run_id"
+                       "（省略時は --run-id と同じ）"))
     p.add_argument("--limit", type=int, default=None, help="open_data_socials の上限（動作確認用）")
     p.add_argument("--caption-run-ids", default=None,
                    help="caption_mentions 用。caption を読む sns_post_raw の run_id をカンマ区切りで（省略時は全 run）")
@@ -192,7 +194,7 @@ def _rows_from_official_site_crawl(pipeline: BigQueryPipeline, crawl_run_id: str
     sql = f"""
       SELECT DISTINCT google_place_id, handle
       FROM `{pipeline.table(TABLE_STORE_SITE_IG)}`
-      WHERE run_id = @crid AND handle IS NOT NULL
+      WHERE {run_id_filter_sql("run_id", "@crid", crawl_run_id)} AND handle IS NOT NULL
     """
     params = [bigquery.ScalarQueryParameter("crid", "STRING", crawl_run_id)]
     pairs = [(row["google_place_id"], row["handle"]) for row in pipeline.execute(sql, params)]

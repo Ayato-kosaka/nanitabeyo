@@ -29,7 +29,8 @@ import argparse
 import logging
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
-from common_sns import (TABLE_POST_RAW, area_from_text, build_city_index, city_index_sql)
+from common_sns import (TABLE_POST_RAW, area_from_text, build_city_index, city_index_sql,
+                        run_id_arg_help, run_id_filter_sql)
 from sns_html import store_name_from_text
 
 LOGGER = logging.getLogger(__name__)
@@ -38,7 +39,8 @@ CHUNK = 5000  # 1 回の UPDATE に載せる件数（配列パラメータのサ
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="caption の市区町村名から discovery_area_lat/lng を埋める")
-    p.add_argument("--run-id", default=None, help="対象の sns_post_raw.run_id")
+    p.add_argument("--run-id", default=None,
+                   help=run_id_arg_help("対象の sns_post_raw.run_id"))
     p.add_argument("--catalog-run-id", default="restaurant-2026-08-23")
     p.add_argument("--dry-run", action="store_true", help="何件埋まるかだけ数える")
     return p.parse_args()
@@ -59,7 +61,7 @@ def main() -> None:
     posts = list(pipeline.execute(
         f"""SELECT post_id, caption, discovery_area_lat, author_name, discovery_query
             FROM `{pipeline.table(TABLE_POST_RAW)}`
-            WHERE run_id = @rid AND caption IS NOT NULL
+            WHERE {run_id_filter_sql("run_id", "@rid", run_id)} AND caption IS NOT NULL
               AND (discovery_area_lat IS NULL OR NOT STARTS_WITH(caption, "📍"))
             QUALIFY ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY fetched_at DESC) = 1""",
         [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
