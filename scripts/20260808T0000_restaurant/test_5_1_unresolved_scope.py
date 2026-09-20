@@ -70,3 +70,59 @@ class UnresolvedScopeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _sql_for_run(raw_run_id: str) -> str:
+    pipeline = _FakePipeline()
+    apply_resolve._fetch_unresolved(pipeline, raw_run_id, "res-run", "v1", 100)
+    return " ".join(pipeline.sql.split())
+
+
+class BacklogSpansManyRunsTest(unittest.TestCase):
+    """#1947 2026-09-20: 未 resolve の滞留 212,301 件は **複数の収集 run にまたがる**。
+
+    `--raw-run-id` が完全一致しか受け付けないと、run を 1 本ずつ指定しない限り
+    掃き切れない。`%` を含むときは LIKE、`ALL` のときは run を限定しない。
+    """
+
+    def test_exact_match_is_still_the_default(self) -> None:
+        """既存の «1 run だけ解く» 使い方を壊さないこと。"""
+        self.assertIn("r.run_id = @raw_rid", _sql_for_run("sns-2026-09-20-targeted22"))
+
+    def test_a_pattern_sweeps_several_runs(self) -> None:
+        sql = _sql_for_run("sns-2026-09-%")
+        self.assertIn("r.run_id LIKE @raw_rid", sql)
+        self.assertNotIn("r.run_id = @raw_rid", sql)
+
+    def test_all_does_not_restrict_the_collection_run(self) -> None:
+        sql = _sql_for_run(apply_resolve.RAW_RUN_ID_ALL)
+        self.assertNotIn("@raw_rid", sql)
+        self.assertIn("WHERE TRUE AND v.post_id IS NULL", sql)
+
+
+class FindingNothingAtAllIsAMistakeNotAPauseTest(unittest.TestCase):
+    """2026-09-20: `--raw-run-id` を渡し忘れて «resolve 側の run_id» が入り、
+    対象 0 件のまま 2 シャードが 1 時間アイドルした（`--max-minutes 330` なので
+    5.5 時間そうなるはずだった）。
+
+    **1 件も処理しないまま «未処理なし» が出るのは «追いついた» ではなく «指定間違い»。**
+    `4_22`（全件 unknown）/ `7_4`（全部 0）と同じ «黙って続けない» 規律をここにも置く。
+    """
+
+    def test_it_exits_when_the_first_fetch_is_empty(self) -> None:
+        import ast
+        source = (HERE / "5_1_apply_resolve.py").read_text(encoding="utf-8")
+        main = next(n for n in ast.walk(ast.parse(source))
+                    if isinstance(n, ast.FunctionDef) and n.name == "main")
+        guards = [n for n in ast.walk(main)
+                  if isinstance(n, ast.If) and "total" in ast.dump(n.test)
+                  and "posts" in ast.dump(n.test)
+                  and any(isinstance(c, ast.Raise) for c in ast.walk(n))]
+        self.assertTrue(
+            guards, "main に «1 件も処理せず対象 0 件なら落ちる» 分岐が無い")
+
+    def test_the_idle_wait_still_exists_for_a_genuine_catch_up(self) -> None:
+        """本当に追いついたときは待ってよい。落とすのは «最初から 0 件» のときだけ。"""
+        source = (HERE / "5_1_apply_resolve.py").read_text(encoding="utf-8")
+        self.assertIn("idle_sleep_s", source)
+        self.assertIn("未処理なし", source)

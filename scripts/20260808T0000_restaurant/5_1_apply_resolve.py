@@ -86,7 +86,9 @@ def _cond_key(post, resp) -> str:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="sns_post_raw を resolve に通して sns_post_resolved を作る")
     p.add_argument("--run-id", default=None)
-    p.add_argument("--raw-run-id", default=None, help="読む sns_post_raw の run_id（省略時は --run-id）")
+    p.add_argument("--raw-run-id", default=None,
+                   help="読む «収集» の run_id（sns_post_raw.run_id。省略時は --run-id）。"
+                        f"`%%` を含めると LIKE、`{RAW_RUN_ID_ALL}` で全 run が対象になる")
     p.add_argument("--resolve-version", default="dev", help="この resolve デプロイの識別（再処理管理用）")
     p.add_argument("--limit", type=int, default=500, help="このバッチで処理する未処理投稿数の上限")
     p.add_argument("--sleep-ms", type=int, default=150, help="resolve 呼び出しの間隔（--concurrency 1 のときだけ効く。dev API 負荷対策）")
@@ -169,6 +171,10 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+# `--raw-run-id` に渡すと «収集 run を限定しない»（溜まった未 resolve を全部掃く）
+RAW_RUN_ID_ALL = "ALL"
+
+
 def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_id: str,
                       resolve_version: str, limit: int, shards: int = 1, shard: int = 0,
                       reresolve_prev_status: str | None = None, caption_regexp: str | None = None,
@@ -219,6 +225,15 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
           WHERE run_id = @resolve_rid
         ) WHERE rn = 1 AND status = @prev_status
       )"""
+    # #1947: 溜まった未 resolve は **複数の収集 run にまたがる**（2026-09-20 に 212,301 件）。
+    # run を 1 本ずつ指定していると掃き切れないので、`%` を含むときは LIKE、
+    # `ALL` のときは全 run を対象にする。既定（完全一致）の挙動は変えない。
+    if raw_run_id == RAW_RUN_ID_ALL:
+        raw_run_filter = "TRUE"
+    elif "%" in raw_run_id:
+        raw_run_filter = "r.run_id LIKE @raw_rid"
+    else:
+        raw_run_filter = "r.run_id = @raw_rid"
     sql = f"""
       SELECT r.post_id, r.canonical_url, r.discovery_route,
              r.discovery_area_lat, r.discovery_area_lng,
@@ -227,7 +242,7 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
            AND v.resolve_version = @resolve_version
-      WHERE r.run_id = @raw_rid AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter} {ids_filter} {anywhere_filter} {no_category_filter}
+      WHERE {raw_run_filter} AND v.post_id IS NULL {shard_filter} {prev_filter} {caption_filter} {area_filter} {ids_filter} {anywhere_filter} {no_category_filter}
       QUALIFY ROW_NUMBER() OVER (PARTITION BY r.post_id ORDER BY r.fetched_at DESC) = 1
       LIMIT {int(limit)}
     """
@@ -372,6 +387,17 @@ def main() -> None:
                         _handle(*fut.result())
 
         run_batch(posts)
+        # ⚠️ 2026-09-20: `--raw-run-id` を渡し忘れて «resolve 側の run_id» が入り、
+        # 対象 0 件のまま 2 シャードが 1 時間アイドルした。最初の取り出しが 0 件なのは
+        # «追いついた» ではなく **指定を間違えた**ことの方が多い。待たずに落ちる
+        # （`4_22` / `7_4` と同じ «判定できない判定器は黙って続けない» 規律）。
+        if not posts and total == 0:
+            raise SystemExit(
+                f"収集 run {raw_run_id!r} に未 resolve の投稿が 1 件も無い。"
+                f"`--raw-run-id` は «収集（sns_post_raw）» の run_id を渡すところで、"
+                f"省略すると `--run-id`（{run_id!r}）が使われる。"
+                f"複数 run をまとめて掃くときは `%` を含むパターンか "
+                f"`{RAW_RUN_ID_ALL}` を渡すこと。")
         while deadline and time.monotonic() < deadline:
             _flush()
             posts = fetch()
