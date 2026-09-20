@@ -120,3 +120,39 @@ class TheHistogramIsReportedTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ItRefusesToReportWhenItMeasuredNothingTest(unittest.TestCase):
+    """2026-09-20: 配信側の run_id を取り違えて «平均 0.0 / ゼロ被覆 100%» を出した。
+
+    `delivered` が空でも SQL は素直に 0 を返す。0 は «被覆が無い» ではなく
+    **«測れていない»** である。判定できない判定器は結果を出さずに落ちること
+    （`4_22` の較正ガードと同じ規律）。
+    """
+
+    def test_the_sql_reports_whether_anything_was_delivered(self):
+        """«判定できたか» を結果に同梱していること。無いとガードが書けない。"""
+        self.assertIn("delivered_pairs", SQL)
+        self.assertIn("delivered_stores", SQL)
+
+    def test_main_aborts_instead_of_printing_zeroes(self):
+        """delivered_pairs=0 のとき SystemExit で落ち、print しないこと。"""
+        source = ast.parse(SOURCE)
+        main = next(n for n in ast.walk(source)
+                    if isinstance(n, ast.FunctionDef) and n.name == "main")
+        raises = [n for n in ast.walk(main) if isinstance(n, ast.Raise)]
+        self.assertTrue(raises, "main に «測れていないときに落ちる» 分岐が無い")
+        guarded = [n for n in ast.walk(main)
+                   if isinstance(n, ast.If) and "delivered_pairs" in ast.dump(n.test)]
+        self.assertTrue(guarded, "delivered_pairs を見た分岐が main に無い")
+
+    def test_a_restaurant_catalog_run_id_is_rejected(self):
+        """地点抽出用の catalog run_id を配信側へ渡したら、その場で止めること。"""
+        self.assertTrue(m.SAMPLE_CATALOG_RUN_ID.startswith(m.SAMPLE_CATALOG_PREFIX))
+        self.assertIn("SAMPLE_CATALOG_PREFIX", SOURCE)
+
+    def test_the_argument_says_it_is_the_delivery_run(self):
+        """«catalog» という名前だけだと restaurant_catalog と取り違える（実際にした）。"""
+        self.assertIn("--delivery-run-id", SOURCE)
+        # 旧名は alias として残し、過去の dispatch を黙って壊さないこと
+        self.assertIn("--catalog-run-id", SOURCE)

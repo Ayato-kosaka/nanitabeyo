@@ -110,7 +110,10 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int = SAMPLE_N,
       (SELECT COUNTIF(stores = 3) FROM cell) AS cells_at_3,
       (SELECT COUNTIF(stores BETWEEN 1 AND 2) FROM cell) AS cells_at_1_2,
       (SELECT COUNTIF(stores >= 5) FROM cell) AS cells_ge5,
-      (SELECT SUM(GREATEST(0, 5 - stores)) FROM cell WHERE stores < 5) AS slots_to_reach5
+      (SELECT SUM(GREATEST(0, 5 - stores)) FROM cell WHERE stores < 5) AS slots_to_reach5,
+      -- ⚠️ 判定器が «判定できたか» を結果に同梱する。0 のときは測定不能であって «被覆 0» ではない
+      (SELECT COUNT(*) FROM delivered) AS delivered_pairs,
+      (SELECT COUNT(DISTINCT pid) FROM delivered) AS delivered_stores
     FROM per_point
     """
 
@@ -118,8 +121,12 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int = SAMPLE_N,
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description=f"アプリの近傍（{SAMPLE_N} 地点 × 半径 {RADIUS_M}m）で KPI を測る。読み取りのみ")
-    p.add_argument("--catalog-run-id", required=True,
-                   help="測る配信カタログの run_id（sns_dish_media_catalog）")
+    # ⚠️ 2026-09-20: ここへ restaurant_catalog の run_id（`restaurant-2026-08-23`）を渡して
+    # 全部 0 の結果を出した。名前が «catalog» なので取り違える。主たる名前を配信側に寄せ、
+    # 旧名は alias として残す（過去の dispatch を黙って壊さない）。
+    p.add_argument("--delivery-run-id", "--catalog-run-id", dest="delivery_run_id", required=True,
+                   help="測る «配信» カタログの run_id（sns_dish_media_catalog.run_id。"
+                        "restaurant_catalog の run_id ではない）")
     p.add_argument("--project", default="food-scroll")
     p.add_argument("--dataset", default="restaurant_recommendation")
     p.add_argument("--dish-dataset", default="wikidata_food_graph")
@@ -128,8 +135,17 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+SAMPLE_CATALOG_PREFIX = "restaurant-"
+
+
 def main() -> None:
     args = parse_args()
+    if args.delivery_run_id.startswith(SAMPLE_CATALOG_PREFIX):
+        raise SystemExit(
+            f"--delivery-run-id に restaurant_catalog の run_id "
+            f"（{args.delivery_run_id!r}）が渡されている。ここは «配信» の run_id "
+            f"（sns_dish_media_catalog.run_id、例: sns-2026-09-19-cat10）を渡すところで、"
+            f"地点の抽出に使う catalog は定数 SAMPLE_CATALOG_RUN_ID で固定されている。")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     ds = f"{args.project}.{args.dataset}"
     sql = build_sql(ds, f"{args.project}.{args.dish_dataset}")
@@ -140,13 +156,22 @@ def main() -> None:
     from pipeline_common import BigQueryPipeline  # noqa: PLC0415
     pipeline = BigQueryPipeline()
     rows = list(pipeline.execute(sql, [
-        bigquery.ScalarQueryParameter("catalog_run_id", "STRING", args.catalog_run_id),
+        bigquery.ScalarQueryParameter("catalog_run_id", "STRING", args.delivery_run_id),
         bigquery.ScalarQueryParameter("sample_catalog_run_id", "STRING", SAMPLE_CATALOG_RUN_ID),
     ]))
     for row in rows:
         d = dict(row)
-        LOGGER.info("近傍 %s 地点 × %s カテゴリ（半径 %sm / catalog=%s）",
-                    d["points"], d["gate_categories"], RADIUS_M, args.catalog_run_id)
+        # ⚠️ 配信側が 1 行も無いとき、この物差しは «被覆 0%» ではなく «測れていない» である。
+        # 2026-09-20 に run_id を取り違えて «平均 0.0 / ゼロ被覆 100%» を出した。
+        # 判定できない判定器は、結果を出さずに落ちること（4_22 の較正ガードと同じ規律）。
+        if not d["delivered_pairs"]:
+            raise SystemExit(
+                f"配信カタログ run_id={args.delivery_run_id!r} が 1 行も無い。"
+                f"測定不能であって «被覆 0» ではない。"
+                f"`SELECT DISTINCT run_id FROM sns_dish_media_catalog` で run_id を確かめること。")
+        LOGGER.info("近傍 %s 地点 × %s カテゴリ（半径 %sm / 配信=%s: %s 店 / %s 店×カテゴリ）",
+                    d["points"], d["gate_categories"], RADIUS_M, args.delivery_run_id,
+                    d["delivered_stores"], d["delivered_pairs"])
         LOGGER.info("  5 店以上あるカテゴリ数: 平均 %s / ゼロ被覆の地点 %s%%",
                     d["mean_cats_ge5"], d["pct_zero"])
         LOGGER.info("  セル: 達成 %s / あと1店 %s / あと2店 %s / 1〜2店 %s（5 店までの延べ %s 店）",
