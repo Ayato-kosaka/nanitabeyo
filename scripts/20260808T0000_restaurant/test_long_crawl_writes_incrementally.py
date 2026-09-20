@@ -100,3 +100,40 @@ class UnjudgedScriptsAreRecordedTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CrawlRemembersItsOwnLedgerTest(unittest.TestCase):
+    """#1947 **巡回は «前に自分が巡回した店» を除外すること。**
+
+    `4_4` は `restaurant_catalog.social_urls` に instagram が入っている店しか除外して
+    いなかった。巡回の成果は `sns_store_site_ig` に入り catalog には戻らないので、
+    offset をずらして流しても同じ店を踏み続ける。
+
+    実測（2026-09-20）: その日に巡回した **93,500 店のうち 91,830 店（98.2%）が
+    過去に巡回済み**。48,000 店を追加で巡回して新しく handle を得た店は 1,000 件未満だった。
+    «未巡回が 228,700 店ある» という試算も、この取りこぼしのせいで誤っていた
+    （実際の未巡回は 51,520 店）。
+    """
+
+    def setUp(self):
+        self.src = _source("4_4_crawl_official_site_igs.py")
+
+    def test_it_excludes_stores_already_in_its_own_ledger(self):
+        self.assertIn("sns_store_site_ig", self.src)
+        body = self.src[self.src.index("def _read_catalog_stores"):]
+        body = body[:body.index("\ndef ", 1)]
+        self.assertIn("NOT IN", body,
+                      "巡回台帳を見て除外していない（同じ店を何度も踏む）")
+
+    def test_skipping_is_the_default(self):
+        self.assertIn("skip_crawled: bool = True", self.src)
+        # 再巡回はオプトイン。既定で二度踏まない
+        self.assertIn('"--include-crawled"', self.src)
+
+    def test_the_catalog_only_filter_is_not_enough_on_its_own(self):
+        """social_urls の除外«だけ»に戻さない（それが今回の欠陥そのもの）。"""
+        body = self.src[self.src.index("def _read_catalog_stores"):]
+        body = body[:body.index("\ndef ", 1)]
+        self.assertIn("social_urls", body)
+        self.assertIn("where_crawled", body,
+                      "social_urls の除外だけに戻っている")

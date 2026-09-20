@@ -122,15 +122,26 @@ def summarize_rows(rows):
 # --- BigQuery I/O --------------------------------------------------------------
 
 def _read_catalog_stores(pipeline: BigQueryPipeline, catalog_run_id: str,
-                         limit, offset, include_with_ig: bool):
+                         limit, offset, include_with_ig: bool,
+                         skip_crawled: bool = True):
     """restaurant_catalog の website 保有店を google_place_id 昇順で読む。
 
     既に social_urls に instagram を持つ店は open_data_socials 経路で拾えるため既定で除外する
     （--include-with-ig で含める）。ORDER BY google_place_id でバッチ間を互いに素にする。
+
+    ⚠️ #1947 **`social_urls` を見るだけでは «前に自分で巡回した店» を除外できない。**
+    巡回の成果は `sns_store_site_ig` に入り、`restaurant_catalog.social_urls` には戻らないため、
+    offset をずらして流しても同じ店を何度も踏む。2026-09-20 の実測では、その日に巡回した
+    93,500 店のうち **91,830 店（98.2%）が過去に巡回済み**で、新しく handle を得た店は
+    1,000 件に満たなかった。`skip_crawled`（既定 True）で自分の台帳も見る。
     """
     from google.cloud import bigquery
     where_ig = "" if include_with_ig else (
         "AND NOT EXISTS (SELECT 1 FROM UNNEST(social_urls) u WHERE LOWER(u) LIKE '%instagram.com/%')"
+    )
+    where_crawled = "" if not skip_crawled else (
+        f"AND google_place_id NOT IN "
+        f"(SELECT google_place_id FROM `{pipeline.table('sns_store_site_ig')}`)"
     )
     limit_sql = f"LIMIT {int(limit)}" if limit else ""
     offset_sql = f"OFFSET {int(offset)}" if offset else ""
@@ -140,6 +151,7 @@ def _read_catalog_stores(pipeline: BigQueryPipeline, catalog_run_id: str,
       WHERE run_id = @crid
         AND website IS NOT NULL AND website != ''
         {where_ig}
+        {where_crawled}
       ORDER BY google_place_id
       {limit_sql} {offset_sql}
     """
@@ -217,6 +229,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="読む restaurant_catalog の run_id（既定 restaurant-2026-08-23）")
     # #1947 crawl は数時間かかる。最後に 1 回だけ書くと job が時間で切られた瞬間に全部消える
     # （#1273 の 4_18 で実際に起きた形）。この件数ごとに BigQuery へ書き出す。
+    # #1947 自分の巡回台帳（sns_store_site_ig）も見て二度踏まない。既定 True。
+    p.add_argument("--include-crawled", action="store_true",
+                   help="過去に巡回済みの店も対象に含める（既定は除外。再巡回したいときだけ）")
     p.add_argument("--chunk-size", type=int, default=500,
                    help="この件数ごとに BigQuery へ書き出す（落ちても書けたぶんは残る）")
     p.add_argument("--limit", type=int, default=None, help="バッチの店数上限")
@@ -265,7 +280,8 @@ def main() -> None:
     else:
         pipeline = BigQueryPipeline()
         stores = _read_catalog_stores(pipeline, args.catalog_run_id, args.limit, args.offset,
-                                      args.include_with_ig)
+                                      args.include_with_ig,
+                                      skip_crawled=not args.include_crawled)
     LOGGER.info("crawl 対象 %d 店（catalog_run_id=%s, stores_run_id=%s, offset=%s, limit=%s）",
                 len(stores), args.catalog_run_id, args.stores_run_id, args.offset, args.limit)
     if not stores:
