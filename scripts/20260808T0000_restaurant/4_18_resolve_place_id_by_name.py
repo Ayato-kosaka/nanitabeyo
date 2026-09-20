@@ -785,7 +785,13 @@ def main() -> None:
     LOGGER.info("異なり (店名, 市区町村) = %d 件（Google へ聞く回数はこの 2 倍）", len(keys))
     _write_extract_attempts(pipeline, args, run_id, attempts)
 
-    done = load_done_keys(pipeline) if not args.dry_run else set()
+    # ⚠️ ここを `if not args.dry_run else set()` にしてはいけない（2026-09-20 に踏んだ）。
+    # dry run は «本当に流したら何件 Google へ聞くか» を、**課金する前に**知るためのもの。
+    # 済みキーを読まないと «全キー» を答えてしまい、実際の 1,000 倍を報告する
+    # （同日: dry run「未問い合わせ 60,442 件」→ 実行「55 件（済み 60,413）」）。
+    # `load_done_keys` は pipeline が None（--offline）なら自分で空集合を返すので、
+    # ここで場合分けする必要は無い。
+    done = load_done_keys(pipeline)
     todo = [k for k in keys if (k.store_name, k.pref, k.city) not in done]
     LOGGER.info("うち未問い合わせ %d 件（済み %d 件は聞き直さない）", len(todo), len(keys) - len(todo))
 
