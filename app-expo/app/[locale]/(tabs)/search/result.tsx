@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { X, Share2 } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
 import { LinearGradient } from "expo-linear-gradient";
@@ -35,6 +36,7 @@ export default function ResultScreen() {
 		// 店舗提案の取得完了まで表示し続けるためのローディング演出に使う（無ければ従来のローディングにfallback）。
 		dishImageUrl?: string;
 	}>();
+	const insets = useSafeAreaInsets();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { shareRestaurant } = useDishMediaActions({ source: "search_result_screen" });
@@ -195,7 +197,8 @@ export default function ResultScreen() {
 	return (
 		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			{/* Header with Back Button */}
-			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
+			{/* #1962 【設計】top は端末の安全領域から取る（理由は `restaurant/[restaurantId]/feed.tsx` の同じ箇所） */}
+			<View style={{ ...styles.closeButtonContainer, top: insets.top }}>
 				<TouchableOpacity
 					testID="result-close-button"
 					style={styles.closeButton}

@@ -18,9 +18,10 @@ ScreenHeader を載せないのは、フィードが全画面のメディアで�
 1 枚あたりの表示領域が縮むため（既存のフィード 2 画面と同じ判断）。
 */
 import React, { useCallback, useEffect, useMemo } from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { X } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { FixedColors } from "@/constants/Palette";
@@ -36,6 +37,7 @@ import { shallow } from "zustand/shallow";
 
 export default function RestaurantFeedScreen() {
 	const { restaurantId, initialIndex } = useLocalSearchParams<{ restaurantId: string; initialIndex?: string }>();
+	const insets = useSafeAreaInsets();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
@@ -86,7 +88,13 @@ export default function RestaurantFeedScreen() {
 	return (
 		<View style={styles.container} testID="restaurant-feed-screen">
 			{/* ⚠️ 閉じる導線は «下の分岐の外» に置くこと。ここで詰まると戻る手段が無くなる */}
-			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
+			{/* #1962 【設計】top は端末の安全領域から取る。以前は `Platform.OS === "ios" ? 40 : 0` の
+			    固定値だった。Expo SDK 54 の Android は edge-to-edge が強制なので `top: 0` は
+			    ステータスバーの下を意味し、padding 12 のこのボタン（48dp）は中心が y=24dp ＝
+			    ステータスバーの内側に入る。見えてはいるがタップはシステム側に吸われ、実機ログで
+			    `restaurant_feed_closed` が 0 件だった（#1962）。同じ固定値は 4 画面にあったので
+			    まとめて `insets.top` にした（`my-dishes/feed` `search/result` `profile/search-results`） */}
+			<View style={{ ...styles.closeButtonContainer, top: insets.top }}>
 				<TouchableOpacity
 					testID="restaurant-feed-close-button"
 					style={styles.closeButton}

@@ -53,9 +53,10 @@ date の全日をページとして持っても、マウントは `windowSize` �
 push が壊れないようにするため。
 */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { X } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FixedColors } from "@/constants/Palette";
 import { MY_DISHES_EVENTS } from "@/features/myDishes/analytics";
@@ -87,6 +88,8 @@ export default function MyDishesFeedScreen() {
 		itemKey?: string | string[];
 		dishMediaId?: string | string[];
 	}>();
+
+	const insets = useSafeAreaInsets();
 
 	const restaurantId = firstParam(restaurantIdParam);
 	const date = firstParam(dateParam);
@@ -237,7 +240,8 @@ export default function MyDishesFeedScreen() {
 			{/* ⚠️ 閉じる導線は «ページャの外» に 1 つだけ置くこと。ページ側に持たせると
 			    ページ間を動く途中で 2 つ見えるし、ここで詰まると戻る手段が無くなる
 			    （`restaurant/[restaurantId]/feed.tsx` と同じ判断） */}
-			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
+			{/* #1962 【設計】top は端末の安全領域から取る（理由は `restaurant/[restaurantId]/feed.tsx` の同じ箇所） */}
+			<View style={{ ...styles.closeButtonContainer, top: insets.top }}>
 				<TouchableOpacity
 					testID="my-dishes-feed-close-button"
 					style={styles.closeButton}
