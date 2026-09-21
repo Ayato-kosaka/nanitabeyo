@@ -43,7 +43,7 @@ class PostStoreCteTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.sql = common_sns.post_store_cte_sql(
-            "proj.ds.sns_post_raw", latest_cte="v", runs_param="srcs")
+            "proj.ds.sns_post_raw", latest_cte="v")
 
     def test_identity_key_covers_both_single_store_routes(self) -> None:
         # 看板が «1 店を名乗る» のはこの 2 経路だけ。第三者ページ（cc_wat 等）は
@@ -62,16 +62,19 @@ class PostStoreCteTest(unittest.TestCase):
         self.assertIn("IFNULL(k.n_place, 0) <= 1", self.sql)
 
     def test_identity_share_is_counted_across_all_runs(self) -> None:
-        """共有度の集計だけは run で絞らない（絞ると «この run では 1 店» で見逃す）。"""
+        """共有度の集計は run で絞らない（絞ると «この run では 1 店» で見逃す）。"""
         head = self.sql[self.sql.index("seed_identity AS ("):self.sql.index("identity_place_count")]
         self.assertNotIn("run_id", head)
-        # 候補の側は run で絞る（呼び出し側が渡した場合）
-        self.assertIn("r.run_id IN UNNEST(@srcs)", self.sql)
 
-    def test_runs_param_is_optional(self) -> None:
-        no_runs = common_sns.post_store_cte_sql(
-            "proj.ds.sns_post_raw", latest_cte="latest", runs_param=None)
-        self.assertNotIn("UNNEST(@", no_runs)
+    def test_candidate_side_is_not_scoped_by_run_either(self) -> None:
+        """#1947 候補の側も run で絞らない。
+
+        2026-09-21 まで `runs_param` があり、呼び出し側（9_1 / 7_1）はそこへ
+        **resolve の run_id** を渡していた。収集と resolve の run_id を別名にした途端、
+        seed が 1 つも引けなくなる（実測で店 5,141 / 投稿 210,437 を落としていた）。
+        引数ごと廃止してある。詳細は `test_raw_is_not_scoped_by_resolve_run.py`。
+        """
+        self.assertNotIn("UNNEST(@", self.sql)
 
     def test_ambiguous_post_is_dropped_not_guessed(self) -> None:
         """候補が 1 店に絞れない投稿は落とす（間違った店に付けるより落とす）。"""

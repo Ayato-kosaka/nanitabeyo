@@ -107,8 +107,9 @@ def main() -> None:
       -- ⚠️ #1846: **店の決め方は `post_store` が唯一の正**（9_1 と同じもの）。ここに
       -- «seed があればそれ» を書き戻すと、チェーンのブランドサイト / ブランドアカウント由来の
       -- 投稿が複数店に計上され、KPI だけが増えて配信されない状態に戻る。
-      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="latest",
-                          runs_param="resolved_rids")},
+      -- ⚠️ raw を `@resolved_rids` で絞らない。これは resolve の run_id であって収集の
+      -- run_id ではなく、絞ると配信（9_1）が配った店を計上側が数え落とす。
+      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="latest")},
       base AS (
         SELECT DISTINCT
           ps.google_place_id,
@@ -116,7 +117,7 @@ def main() -> None:
         FROM latest v
         JOIN post_store ps ON ps.post_id = v.post_id
         JOIN `{pipeline.table(TABLE_POST_RAW)}` r
-          ON r.run_id IN UNNEST(@resolved_rids) AND r.provider = v.provider AND r.post_id = v.post_id
+          ON r.provider = v.provider AND r.post_id = v.post_id
         WHERE v.dish_category_id IS NOT NULL
       ),
       cat AS (

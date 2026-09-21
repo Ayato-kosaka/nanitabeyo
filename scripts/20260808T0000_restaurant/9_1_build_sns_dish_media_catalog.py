@@ -78,8 +78,10 @@ def main() -> None:
 
     from google.cloud import bigquery
     images_table = f"{pipeline.config.dish_dataset_ref}.{TABLE_DISH_CATEGORY_IMAGES}"
-    # ⚠️ raw の結合に run_id 条件を付けない。raw と resolved が別の run に分かれている投稿を
-    #    落としてしまう（7_1 は union で引くので、付けると 7_1 と数が合わなくなる）。
+    # ⚠️ raw の結合に run_id 条件を付けない。`@srcs` は **resolve の run_id** であって
+    #    収集の run_id ではない。2026-09-21 まではここに `r.run_id IN UNNEST(@srcs)` が
+    #    書いてあり、resolve の run を収集と別名にした途端に seed を 1 つも引けなくなった
+    #    （この SQL のまま A/B して、店 5,141 / 投稿 210,437 を落としていたと実測）。
     # ⚠️ 店は `post_store`（common_sns.post_store_cte_sql）が唯一の正。ここで
     #    `COALESCE(seed, resolve)` を書き直すと «1 投稿が 2 店に紐づく» が戻る（#1846）。
     sql = f"""
@@ -88,7 +90,7 @@ def main() -> None:
         WHERE run_id IN UNNEST(@srcs)
         {LATEST_RESOLVED_QUALIFY}
       ),
-      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="v", runs_param="srcs")},
+      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="v")},
       {category_with_image_cte_sql(images_table)}
       SELECT v.post_id, ps.google_place_id, v.dish_category_id,
              ANY_VALUE(r.canonical_url) AS canonical_url
@@ -98,7 +100,7 @@ def main() -> None:
       -- ⚠️ この JOIN を外すと «真っ黒なセル» が戻る。外すなら先に KPI への影響を測り直すこと。
       JOIN category_with_image ci ON ci.dish_category_id = v.dish_category_id
       JOIN `{pipeline.table(TABLE_POST_RAW)}` r
-        ON r.run_id IN UNNEST(@srcs) AND r.provider = v.provider AND r.post_id = v.post_id
+        ON r.provider = v.provider AND r.post_id = v.post_id
       -- #1815 店の国はここでしか分からない。LEFT JOIN なのは «catalog に居ない店» を
       -- ここで落とさないため（落とす／落とさないは 9_2 が PG の実在で決めており、
       -- ここで先に落とすと «PG に居ない店» の件数が二重に減って追えなくなる）。
@@ -120,7 +122,7 @@ def main() -> None:
         WHERE run_id IN UNNEST(@srcs)
         {LATEST_RESOLVED_QUALIFY}
       ),
-      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="v", runs_param="srcs")},
+      {post_store_cte_sql(pipeline.table(TABLE_POST_RAW), latest_cte="v")},
       {category_with_image_cte_sql(images_table)},
       -- カテゴリが付いていない投稿はそもそも配信対象外なので、数えるのは «カテゴリはあるのに
       -- 店が決まらなかったせいで落ちた» ぶんだけにする（そうしないと «落とした数» が水増しになる）
@@ -150,7 +152,7 @@ def main() -> None:
       ),
       seeded AS (
         SELECT DISTINCT r.post_id FROM `{pipeline.table(TABLE_POST_RAW)}` r
-        WHERE r.provider = '{PROVIDER_INSTAGRAM}' AND r.run_id IN UNNEST(@srcs)
+        WHERE r.provider = '{PROVIDER_INSTAGRAM}'
           AND r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''
           AND r.post_id IN (SELECT post_id FROM with_category)
       )

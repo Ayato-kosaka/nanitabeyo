@@ -95,7 +95,7 @@ class GateBehaviourTest(unittest.TestCase):
         gate = common_sns.resolved_store_confidence_sql().replace("@min_conf", repr(threshold))
         sql = _to_duckdb(f"""
             WITH v AS (SELECT * FROM `resolved` {common_sns.LATEST_RESOLVED_QUALIFY}),
-            {common_sns.post_store_cte_sql("raw", latest_cte="v", runs_param=None)}
+            {common_sns.post_store_cte_sql("raw", latest_cte="v")}
             SELECT v.post_id, ps.google_place_id
             FROM v JOIN post_store ps ON ps.post_id = v.post_id
             WHERE v.dish_category_id IS NOT NULL AND {gate}
@@ -106,7 +106,7 @@ class GateBehaviourTest(unittest.TestCase):
         gate = common_sns.resolved_store_confidence_sql().replace("@min_conf", repr(threshold))
         sql = _to_duckdb(f"""
             WITH v AS (SELECT * FROM `resolved` {common_sns.LATEST_RESOLVED_QUALIFY}),
-            {common_sns.post_store_cte_sql("raw", latest_cte="v", runs_param=None)}
+            {common_sns.post_store_cte_sql("raw", latest_cte="v")}
             SELECT v.post_id, {gate} AS keep
             FROM v JOIN post_store ps ON ps.post_id = v.post_id
         """)

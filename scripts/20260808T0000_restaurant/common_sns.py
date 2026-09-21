@@ -905,11 +905,19 @@ def category_with_image_cte_sql(images_table: str, *, cte_name: str = "category_
     )
 
 
-def post_store_cte_sql(raw_table: str, *, latest_cte: str, runs_param: str | None = None) -> str:
+def post_store_cte_sql(raw_table: str, *, latest_cte: str) -> str:
     """«1 投稿 = 1 店» を確定する CTE 群（末尾の CTE 名は ``post_store``）を返す。
 
     ⚠️ **配信（9_1）と計上（7_1）は必ずこれを使う。** 店の決め方を SQL へ書き写すと、
     数える側と配る側がずれる（`STORE_ID_ANY_SQL` のコメント参照）。
+
+    ⚠️ **seed 側（`sns_post_raw`）を run_id で絞る引数は置かない。** 2026-09-21 まで
+    `runs_param` があり、配信 9_1 / 計上 7_1 はそこへ **resolve の run_id** を渡していた。
+    resolve の run を収集と別名（`resolve-2026-09-20-*`）にした途端、**その日に resolve した
+    331,147 行が seed を 1 つも引けなくなった**。実測（`9_1` の SQL をそのまま A/B）で
+    **店 5,141 / 投稿 210,437 を «店が分からない» として落としていた**。
+    raw は «その投稿の素性» であって run のスナップショットではない。どの run から引いても
+    同じものが返るので、絞る理由がそもそも無い。
 
     規則は 2 つだけ。
 
@@ -924,10 +932,7 @@ def post_store_cte_sql(raw_table: str, *, latest_cte: str, runs_param: str | Non
         raw_table: ``sns_post_raw`` の完全修飾名。
         latest_cte: 直前に定義済みの «投稿ごとの最新 resolve» CTE 名
             （``status`` / ``google_place_id`` / ``post_id`` を持つこと）。
-        runs_param: seed を採る run を絞るクエリパラメータ名（``@`` は付けない）。
-            None なら全 run。**共有度の集計は常に全 run で行う**。
     """
-    run_filter = f"AND r.run_id IN UNNEST(@{runs_param})" if runs_param else ""
     return f"""
       seed_identity AS (
         -- 共有度は «全 run» で測る。run を絞ると看板の共有に気づけない。
@@ -945,7 +950,7 @@ def post_store_cte_sql(raw_table: str, *, latest_cte: str, runs_param: str | Non
                {SEED_STORE_RANK_SQL} AS store_rank
         FROM `{raw_table}` r
         LEFT JOIN identity_place_count k ON k.identity_key = {SEED_IDENTITY_KEY_SQL}
-        WHERE r.provider = '{PROVIDER_INSTAGRAM}' {run_filter}
+        WHERE r.provider = '{PROVIDER_INSTAGRAM}'
           AND r.discovery_seed_place_id IS NOT NULL AND r.discovery_seed_place_id != ''
           AND ({SEED_IDENTITY_KEY_SQL} IS NULL OR IFNULL(k.n_place, 0) <= 1)
         UNION ALL

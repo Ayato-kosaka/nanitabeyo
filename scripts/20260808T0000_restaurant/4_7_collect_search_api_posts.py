@@ -463,9 +463,12 @@ def _read_cell_targets(pipeline: BigQueryPipeline, max_queries, offset: int, sha
     sql = f"""
       WITH K AS (SELECT qid, label FROM UNNEST(@kpi_qids) qid WITH OFFSET o JOIN UNNEST(@kpi_labels) label WITH OFFSET o2 ON o = o2),
       latest AS (
-        SELECT run_id, provider, post_id, status, google_place_id, dish_category_id
+        SELECT provider, post_id, status, google_place_id, dish_category_id
         FROM `{pipeline.table(TABLE_POST_RESOLVED)}`
-        QUALIFY ROW_NUMBER() OVER (PARTITION BY run_id, provider, post_id ORDER BY resolved_at DESC) = 1
+        -- ⚠️ run ごとではなく **投稿ごと**の最新を採る。run ごとにすると下の raw 結合で
+        --    run_id を突き合わせたくなり、収集と resolve の run_id を別名にした瞬間に
+        --    «どのセルが埋まっているか» が丸ごと引けなくなる（2026-09-21）。
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY provider, post_id ORDER BY resolved_at DESC) = 1
       ),
       cat AS (
         SELECT google_place_id, name, location,
@@ -476,7 +479,7 @@ def _read_cell_targets(pipeline: BigQueryPipeline, max_queries, offset: int, sha
       usable AS (
         SELECT DISTINCT {STORE_ID_ANY_SQL} AS place, v.dish_category_id AS c
         FROM latest v JOIN `{pipeline.table(TABLE_POST_RAW)}` r
-          ON r.run_id = v.run_id AND r.provider = v.provider AND r.post_id = v.post_id
+          ON r.provider = v.provider AND r.post_id = v.post_id
         WHERE v.dish_category_id IN (SELECT qid FROM K) AND {STORE_KNOWN_ANY_SQL}
       ),
       need AS (SELECT u.place, ca.location FROM (SELECT DISTINCT place FROM usable) u JOIN cat ca ON ca.google_place_id = u.place WHERE ca.city IS NULL AND ca.location IS NOT NULL),
