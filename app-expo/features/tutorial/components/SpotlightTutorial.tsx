@@ -545,8 +545,6 @@ export function SpotlightTutorial<K extends string>({
 		// web の読み上げは直前の `announceForAccessibility`（RN Web では aria-live）が担う。
 		// フォーカス移動だけが web で落ちる。DOM の focus() へ寄せるには Text を focusable に
 		// する必要があり、タブ順序を変えてしまうので、ここでは移動を諦めて落とさないことを採る。
-		if (Platform.OS === "web") return;
-
 		const focusTimeoutId = setTimeout(() => {
 			const nodeHandle = findNodeHandle(titleRef.current);
 			if (nodeHandle) {
