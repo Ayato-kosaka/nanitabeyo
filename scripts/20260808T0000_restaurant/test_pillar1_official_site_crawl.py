@@ -76,7 +76,7 @@ class BuildStoreSiteRowsTest(unittest.TestCase):
             {"id": "P_OK_NOHANDLE", "name": "z", "website": "http://z.example",
              "host": "z.example", "status": "ok", "new_handles": {}},
         ]
-        rows = mod_4_4.build_store_site_rows(recs, "run-x", "2026-08-31T00:00:00+00:00")
+        rows = mod_4_4.build_store_site_rows(recs, "run-x")
         by_pid = {r["google_place_id"]: r for r in rows}
         self.assertEqual("fetch_failed", by_pid["P_FAIL"]["status"])
         self.assertEqual("URLError", by_pid["P_FAIL"]["error"])
@@ -89,7 +89,7 @@ class BuildStoreSiteRowsTest(unittest.TestCase):
         recs = [{"id": "P1", "name": "Koukakurou", "website": "http://koukakurou.jp",
                  "host": "koukakurou.jp", "status": "ok",
                  "new_handles": {"koukakurou": ["ig_url"], "tabelog": ["ig_url"]}}]
-        rows = mod_4_4.build_store_site_rows(recs, "run-x", "2026-08-31T00:00:00+00:00")
+        rows = mod_4_4.build_store_site_rows(recs, "run-x")
         handles = sorted(r["handle"] for r in rows)
         self.assertEqual(["koukakurou"], handles)  # tabelog は blocklist で落ちる
         self.assertEqual("ok", rows[0]["status"])
@@ -98,7 +98,7 @@ class BuildStoreSiteRowsTest(unittest.TestCase):
     def test_on_real_322_sample(self) -> None:
         with open(SAMPLE, encoding="utf-8") as _f:
             recs = json.load(_f)
-        rows = mod_4_4.build_store_site_rows(recs, "run-322", "2026-08-31T00:00:00+00:00")
+        rows = mod_4_4.build_store_site_rows(recs, "run-322")
         summ = mod_4_4.summarize_rows(rows)
         # 実標本で «店固有 handle が取れる» ことを固定（回帰時に気づけるよう下限で縛る）
         self.assertGreaterEqual(summ["stores_with_store_specific_handle"], 40)
@@ -132,7 +132,7 @@ class GlobalChainRemovalTest(unittest.TestCase):
     def test_end_to_end_322_sample_to_store_branch(self) -> None:
         with open(SAMPLE, encoding="utf-8") as _f:
             recs = json.load(_f)
-        rows = mod_4_4.build_store_site_rows(recs, "run-322", "2026-08-31T00:00:00+00:00")
+        rows = mod_4_4.build_store_site_rows(recs, "run-322")
         pairs = [(r["google_place_id"], r["handle"]) for r in rows if r["handle"]]
         import datetime
         now = datetime.datetime(2026, 8, 31, tzinfo=datetime.timezone.utc)

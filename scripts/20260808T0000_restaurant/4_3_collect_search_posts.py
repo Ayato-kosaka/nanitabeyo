@@ -88,7 +88,6 @@ def main() -> None:
     pipeline = BigQueryPipeline()
     cells = _read_cells(Path(args.queries_file), args.max_queries)
     LOGGER.info("%d クエリを SERPER で引きます（無料枠のみ）", len(cells))
-    now_iso = utc_now().isoformat()
     sleep_s = max(args.sleep_ms, 0) / 1000.0
 
     with pipeline.step(run_id, "4_3_collect_search_posts", parameters={
@@ -121,7 +120,8 @@ def main() -> None:
                     "discovery_seed_place_id": None,
                     "discovery_area_lat": lat, "discovery_area_lng": lng,
                     "discovery_category_id": cat,
-                    "fetched_at": now_iso, "run_id": run_id,
+                    # ⚠️ #1947 run 開始時刻を焼き付けない（4_2 のコメント参照）
+                    "fetched_at": utc_now().isoformat(), "run_id": run_id,
                 })
             if sleep_s:
                 time.sleep(sleep_s)

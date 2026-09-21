@@ -53,7 +53,7 @@ DEFAULT_CATALOG_RUN_ID = "restaurant-2026-08-23"
 _STATUS_PASSTHROUGH = {"website_is_ig", "fetch_failed", "robots_blocked", "no_website"}
 
 
-def build_store_site_rows(fetch_records, run_id: str, now_iso: str):
+def build_store_site_rows(fetch_records, run_id: str):
     """process_store の出力（+ google_place_id を id に載せたもの）→ sns_store_site_ig の行群。
 
     純関数。ネットワーク・BQ に触れないので、既存の fetch 済み JSON でユニット検証できる。
@@ -71,7 +71,9 @@ def build_store_site_rows(fetch_records, run_id: str, now_iso: str):
             "host": rec.get("host"),
             "is_aggregator_host": bool(rec.get("aggregator_host", False)),
             "error": rec.get("error"),
-            "crawled_at": now_iso,
+            # ⚠️ #1947 run 開始時刻を焼き付けない。巡回は数時間かかるので、run 単位だと
+            #    «いつ巡回したか» が丸ごと同じ値になり、進み方も追えない。
+            "crawled_at": utc_now().isoformat(),
             "run_id": run_id,
         }
         raw_status = rec.get("status")
@@ -258,7 +260,6 @@ def main() -> None:
     configure_logging()
     args = parse_args()
     run_id = require_run_id(args.run_id)
-    now_iso = utc_now().isoformat()
 
     # crawl 対象の取得（BQ の catalog / sns_site_crawl_target、またはローカル JSON）。
     # 既定（どちらの引数も無し）は従来どおり restaurant_catalog を順に読む（挙動を変えない）。
@@ -292,7 +293,7 @@ def main() -> None:
     all_rows: list[dict] = []
 
     def crawl_chunk(chunk):
-        return build_store_site_rows(_crawl(chunk, args.workers), run_id, now_iso)
+        return build_store_site_rows(_crawl(chunk, args.workers), run_id)
 
     def finish():
         summary = summarize_rows(all_rows)

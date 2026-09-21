@@ -214,7 +214,7 @@ def build_rows(posts: dict[str, dict], run_id: str, now_iso: str) -> list[dict]:
             "discovery_area_lat": None,
             "discovery_area_lng": None,
             "discovery_category_id": None,
-            "fetched_at": now_iso,
+            "fetched_at": utc_now().isoformat(),
             "run_id": run_id,
         })
     return rows

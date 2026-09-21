@@ -402,7 +402,6 @@ def main() -> None:
     with pipeline.step(run_id, "4_12_crawl_gourmet_media", parameters={
         "hosts": len(mine), "shards": args.shards, "shard": args.shard,
     }, repo_root=None) as result:
-        now = utc_now().astimezone(timezone.utc).isoformat()
         rows: list[dict] = []
         seen: set[str] = set()
         total = with_area = 0
@@ -448,7 +447,7 @@ def main() -> None:
                         "discovery_seed_place_id": None,
                         "discovery_area_lat": r["area"][0] if r["area"] else None,
                         "discovery_area_lng": r["area"][1] if r["area"] else None,
-                        "discovery_category_id": None, "fetched_at": now, "run_id": run_id,
+                        "discovery_category_id": None, "fetched_at": utc_now().isoformat(), "run_id": run_id,
                         "caption": r["caption"], "author_name": None,
                     })
             pool.shutdown()

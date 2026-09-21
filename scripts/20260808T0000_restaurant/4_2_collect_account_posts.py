@@ -743,7 +743,6 @@ def main() -> None:
                                   layer_order=args.order_by_account_layer)
     LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
     now = utc_now()
-    now_iso = now.isoformat()
 
     with pipeline.step(run_id, "4_2_collect_account_posts", parameters={
         "account_run_id": account_run_id, "account_type": args.account_type,
@@ -835,12 +834,16 @@ def main() -> None:
                     "discovery_area_lat": None, "discovery_area_lng": None,
                     "discovery_category_id": None,
                     "caption": caption, "author_name": handle,
-                    "fetched_at": now_iso, "run_id": run_id,
+                    # ⚠️ #1947 run 開始時刻を焼き付けない。5.5h の run 全行が同じ時刻になり、
+                    #    `fetched_at DESC` で «最新の raw» を選ぶ判定（5_1 / 4_11 / 4_13 /
+                    #    4_17 / 4_21 / 4_14）が run 単位の粗さになる。実測で 221,126 投稿が
+                    #    複数行を持ち、うち 200,057 は run をまたいでいる。
+                    "fetched_at": utc_now().isoformat(), "run_id": run_id,
                 })
                 n += 1
             LOGGER.info("  @%s: %d posts", handle, n)
             attempts.append({"provider": PROVIDER_INSTAGRAM, "handle": handle, "run_id": run_id,
-                             "attempted_at": now_iso, "post_count": n})
+                             "attempted_at": utc_now().isoformat(), "post_count": n})
             processed += 1
             if processed % FLUSH_EVERY == 0:
                 _flush()

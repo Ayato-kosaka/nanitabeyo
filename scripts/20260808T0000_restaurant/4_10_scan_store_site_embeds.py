@@ -137,7 +137,6 @@ def main() -> None:
         "site_run_ids": site_run_ids, "shards": args.shards, "shard": args.shard,
         "statuses": args.statuses, "stores": len(stores),
     }, repo_root=None) as result:
-        now = utc_now().astimezone(timezone.utc).isoformat()
         rows: list[dict] = []
         seen: set[str] = set()
         total = with_caption = hit_stores = 0
@@ -166,7 +165,7 @@ def main() -> None:
                     "discovery_method": "store_site_embed", "discovery_query": r["host"],
                     "discovery_seed_place_id": r["place_id"], "discovery_area_lat": None,
                     "discovery_area_lng": None, "discovery_category_id": None,
-                    "fetched_at": now, "run_id": run_id,
+                    "fetched_at": utc_now().isoformat(), "run_id": run_id,
                     "caption": r["caption"], "author_name": r["handle"],
                 })
             if n % args.flush_every == 0:

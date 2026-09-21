@@ -643,7 +643,6 @@ def main() -> None:
     import contextlib
 
     pipeline = None if args.out_jsonl else BigQueryPipeline()
-    now_iso = utc_now().isoformat()
 
     step = (contextlib.nullcontext({}) if pipeline is None else pipeline.step(
         run_id,
@@ -694,7 +693,8 @@ def main() -> None:
                         # #1273 検索結果の title+snippet を caption として保存。resolve へ渡すと
                         # IG を取りに行かず店/カテゴリ照合でき、大量並列できる（空なら NULL）。
                         "caption": caption or None,
-                        "fetched_at": now_iso,
+                        # ⚠️ #1947 run 開始時刻を焼き付けない（4_2 のコメント参照）
+                        "fetched_at": utc_now().isoformat(),
                         "run_id": run_id,
                     }
                 )

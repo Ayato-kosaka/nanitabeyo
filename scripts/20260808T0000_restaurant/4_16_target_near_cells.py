@@ -804,7 +804,7 @@ def main() -> None:
             "discovery_method": s.get("discovery_method"),
             "discovery_seed_place_id": s["google_place_id"],
             "followers": None, "media_count": None,
-            "discovered_at": now_iso, "run_id": run_id,
+            "discovered_at": utc_now().isoformat(), "run_id": run_id,
         } for s in by_route["account"]]
         pipeline.delete_run_rows(TABLE_SOURCE_ACCOUNT, run_id)
         n_acc = pipeline.load_json_rows(TABLE_SOURCE_ACCOUNT, acc_rows) if acc_rows else 0
@@ -816,7 +816,7 @@ def main() -> None:
             "host": s.get("site_host"), "is_aggregator_host": s.get("is_aggregator_host"),
             "status": s.get("site_status") or "ok", "handle": s.get("site_handle"),
             "source_tags": [], "corroborated": s.get("corroborated"), "error": None,
-            "crawled_at": now_iso, "run_id": run_id,
+            "crawled_at": utc_now().isoformat(), "run_id": run_id,
         } for s in by_route["site_embed"]]
         pipeline.delete_run_rows(TABLE_STORE_SITE_IG, run_id)
         n_site = pipeline.load_json_rows(TABLE_STORE_SITE_IG, site_rows) if site_rows else 0

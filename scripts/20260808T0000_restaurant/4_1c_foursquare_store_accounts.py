@@ -314,7 +314,9 @@ def _store_branch_rows(pairs, run_id: str, now):
             "account_type": "store_branch", "discovery_method": DISCOVERY_METHOD,
             "discovery_seed_place_id": pid,
             "followers": None, "media_count": None,
-            "discovered_at": now.isoformat(), "run_id": run_id,
+            # ⚠️ #1947 run 開始時刻を焼き付けない。`discovered_at DESC` は 4_7 が
+            #    «そのハンドルの最新の発見» を選ぶのに使っている。
+            "discovered_at": utc_now().isoformat(), "run_id": run_id,
         })
     return rows, dropped_chain
 

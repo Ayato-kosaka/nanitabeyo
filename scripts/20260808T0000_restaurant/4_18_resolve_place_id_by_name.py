@@ -834,7 +834,8 @@ def main() -> None:
             "post_count": len(entry["post_ids"]),
             "sample_post_id": entry["post_ids"][0],
             "algorithm_version": ALGORITHM_VERSION,
-            "resolved_at": now,
+            # ⚠️ #1947 run 開始時刻を焼き付けない（3_3 が attempted_at DESC で最新を選ぶ）
+            "resolved_at": utc_now().isoformat(),
             "run_id": run_id,
         }
 

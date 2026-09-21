@@ -185,7 +185,7 @@ def build_rows(posts: dict[str, dict], crawl: str, run_id: str, now_iso: str) ->
             "discovery_area_lng": None,
             "discovery_category_id": None,
             "caption": meta.get("caption"),
-            "fetched_at": now_iso,
+            "fetched_at": utc_now().isoformat(),
             "run_id": run_id,
         })
     return rows

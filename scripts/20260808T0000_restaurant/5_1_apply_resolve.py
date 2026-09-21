@@ -290,7 +290,6 @@ def main() -> None:
     pipeline = BigQueryPipeline()
     client = ResolveClient(keep_alive=not args.no_keep_alive,
                            retries=args.resolve_retries)  # base_url は common_sns の BACKEND_BASE_URL
-    now_iso = utc_now().isoformat()
     sleep_s = max(args.sleep_ms, 0) / 1000.0
     timings = Timings()
     bq = Timings()
@@ -379,7 +378,16 @@ def main() -> None:
                 "category_confidence": outcome.category_confidence,
                 "resolve_reason": outcome.resolve_reason,
                 "resolve_version": args.resolve_version,
-                "resolved_at": now_iso, "run_id": run_id,
+                # ⚠️ #1947 **run の開始時刻を使い回さない。** 2026-09-21 まで run の先頭で
+                # 1 度だけ取った値を全行へ入れており、5.5 時間の run の全 65 万行が同じ
+                # 時刻になっていた。実害は 2 つ:
+                #   1. `LATEST_RESOLVED_QUALIFY` は «その投稿の現在の正» を
+                #      `resolved_at DESC` で決める。run 単位の時刻だと、**後から出した
+                #      結果より、先に始まった別 run の古い結果が勝つ**ことがある
+                #      （同じ shard を跨いで走った e-run と f-run で実際に重なっていた）。
+                #   2. «1 時間あたりどれだけ解けたか» が表から測れない。進み方が測れないと
+                #      «間に合うか» に答えられない（実際にこの測定ができず詰まった）。
+                "resolved_at": utc_now().isoformat(), "run_id": run_id,
             })
             if outcome.status == "matched":
                 matched += 1

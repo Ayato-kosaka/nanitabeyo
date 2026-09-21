@@ -260,7 +260,6 @@ def main() -> None:
     with pipeline.step(run_id, "4_9_scan_cc_wat_instagram", parameters={
         "crawl": args.crawl, "shards": args.shards, "shard": args.shard, "files": len(mine),
     }, repo_root=None) as result:
-        now = utc_now().astimezone(timezone.utc).isoformat()
         rows: list[dict] = []
         acc_rows: list[dict] = []
         seen_posts: set[str] = set()
@@ -298,7 +297,7 @@ def main() -> None:
                     "discovery_area_lat": row["area"][0] if row["area"] else None,
                     "discovery_area_lng": row["area"][1] if row["area"] else None,
                     "discovery_category_id": None,
-                    "fetched_at": now, "run_id": run_id,
+                    "fetched_at": utc_now().isoformat(), "run_id": run_id,
                     "caption": row["caption"], "author_name": row["handle"],
                 })
             for h in profiles:
@@ -309,7 +308,7 @@ def main() -> None:
                     "account_id": h, "provider": PROVIDER_INSTAGRAM, "handle": h,
                     "account_type": "unknown", "discovery_method": "cc_wat_profile",
                     "discovery_seed_place_id": None, "followers": None, "media_count": None,
-                    "discovered_at": now, "run_id": run_id,
+                    "discovered_at": utc_now().isoformat(), "run_id": run_id,
                 })
             if n % args.flush_every == 0:
                 LOGGER.info("  %d/%d 本 | caption付き投稿 %d（店確定 %d / 地点あり %d） | handle %d | %.0fMB",
