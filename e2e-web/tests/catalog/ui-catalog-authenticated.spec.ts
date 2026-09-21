@@ -53,7 +53,8 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 					await expect(firstCell).toBeVisible({ timeout: 30_000 });
 					await firstCell.click();
 					// フィード固有のアクションボタンの出現で到達を判定する
-					await expect(appPage.getByTestId("dish-action-like").first()).toBeVisible({ timeout: 20_000 });
+					// #1944 前面のカードにだけ `-active` が付く（素の id は画面外の隣のカード）
+					await expect(appPage.getByTestId("dish-action-like-active").first()).toBeVisible({ timeout: 20_000 });
 				},
 				{ settleMs: 6_000 },
 			);
