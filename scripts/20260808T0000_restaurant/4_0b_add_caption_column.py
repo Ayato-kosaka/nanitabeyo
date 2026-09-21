@@ -39,7 +39,7 @@ def main() -> None:
     for col in ("caption", "author_name", "seed_source"):
         sql = f"ALTER TABLE `{table}` ADD COLUMN IF NOT EXISTS {col} STRING"
         LOGGER.info("適用: %s", sql)
-        pipeline.client.query(sql, location=pipeline.config.region).result()
+        pipeline.execute(sql)
     LOGGER.info("sns_post_raw に caption / author_name / seed_source 列を追加しました（冪等）。")
 
 

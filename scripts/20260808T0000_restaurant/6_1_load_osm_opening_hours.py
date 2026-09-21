@@ -201,9 +201,7 @@ def fetch_matches(catalog_run_id: str, limit: int | None):
             bigquery.ScalarQueryParameter("near_radius_m", "FLOAT64", float(NEAR_RADIUS_M)),
         ]
     )
-    rows = pipeline.client.query(
-        sql, job_config=job_config, location=pipeline.config.region
-    ).result()
+    rows = pipeline.execute(sql, job_config.query_parameters)
     return [(r.google_place_id, r.opening_hours, r.match_tier) for r in rows]
 
 

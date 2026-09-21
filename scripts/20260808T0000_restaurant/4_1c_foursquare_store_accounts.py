@@ -327,16 +327,13 @@ def _delete_source_rows(pipeline: BigQueryPipeline, run_id: str) -> int:
         f"DELETE FROM `{pipeline.table(TABLE_SOURCE_ACCOUNT)}` "
         f"WHERE run_id = @rid AND discovery_method = @dm"
     )
-    job = pipeline.client.query(
+    return pipeline.execute_dml(
         sql,
-        job_config=bigquery.QueryJobConfig(query_parameters=[
+        [
             bigquery.ScalarQueryParameter("rid", "STRING", run_id),
             bigquery.ScalarQueryParameter("dm", "STRING", DISCOVERY_METHOD),
-        ]),
-        location=pipeline.config.region,
-    )
-    job.result()
-    return int(job.num_dml_affected_rows or 0)
+        ],
+        what="前回分の削除")
 
 
 def main() -> None:

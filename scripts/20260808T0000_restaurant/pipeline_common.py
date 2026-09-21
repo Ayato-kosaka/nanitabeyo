@@ -134,12 +134,77 @@ class BigQueryPipeline:
             raise ValueError(f"不正なBigQueryテーブル名です: {table_name!r}")
         return f"{self.dataset_ref}.{table_name}"
 
+    # #1947【設計】BigQuery 側の一時障害（5xx / 429 / 接続断）で **長時間ジョブを殺さない**。
+    #
+    # 2026-09-21、5.5 時間の収集ラウンドが開始 137 分で落ちた。原因は収集そのものではなく、
+    # 途中の flush が `load_json_rows` → `job.result()` で踏んだ
+    # `InternalServerError: 500 GET .../jobs/<id>`（**ジョブの結果を聞きに行く GET**）だった。
+    # 相手側の一時障害で、こちらは 285/6000 アカメントまでしか進めず 2.7 時間を捨てた。
+    # これは前日 IG API で直したもの（`4_2` の `TransientExhausted`）と**同じ形**で、
+    # あのときは IG の呼び出しだけを見て BigQuery の呼び出しを見ていなかった。
+    #
+    # ⚠️ **一時エラーでジョブを投げ直さないこと。** polling の 500 は «ジョブが失敗した» では
+    #    なく «結果を聞けなかった» である。投げ直すと load は同じ行を二重に入れ、DML は
+    #    同じ更新を二度当てる。**投げ直してよいのは «まだジョブが出来ていない» ときだけ**な
+    #    ので、ここでは job を握ったまま `result()` を掛け直す。
+    def _run_job(self, submit, *, what: str, attempts: int = 6, base_sleep_s: float = 5.0):
+        """ジョブを投げて完走させ、``(job, job.result() の戻り)`` を返す。
+
+        Args:
+            submit: ジョブを作って返す callable（``client.query`` / ``load_table_from_file``）。
+                **一時エラーのたびに呼ばれるわけではない**（上の ⚠️ を参照）。
+            what: ログに出す «何をしていたか»。
+        """
+        from google.api_core.exceptions import ServerError, TooManyRequests
+        from requests.exceptions import ConnectionError as RequestsConnectionError
+        from requests.exceptions import Timeout as RequestsTimeout
+
+        transient = (ServerError, TooManyRequests,
+                     RequestsConnectionError, RequestsTimeout)
+        job = None
+        for i in range(attempts):
+            try:
+                if job is None:
+                    job = submit()
+                return job, job.result()
+            except transient as e:  # noqa: PERF203 - 待って掛け直すためのループ
+                if i == attempts - 1:
+                    raise
+                wait = base_sleep_s * (2 ** i)
+                LOGGER.warning(
+                    "BigQuery の一時エラー（%s）。%.0fs 待って%sします（%d/%d）: %s",
+                    what, wait,
+                    "同じジョブを見に行き直" if job is not None else "投げ直",
+                    i + 1, attempts - 1, e)
+                time.sleep(wait)
+
     def execute(
         self, sql: str, parameters: list[bigquery.ScalarQueryParameter] | None = None
     ) -> Any:
         job_config = bigquery.QueryJobConfig(query_parameters=parameters or [])
-        job = self.client.query(sql, job_config=job_config, location=self.config.region)
-        return job.result()
+        _, result = self._run_job(
+            lambda: self.client.query(sql, job_config=job_config,
+                                      location=self.config.region),
+            what="query")
+        return result
+
+    def execute_dml(
+        self, sql: str, parameters: list[bigquery.ScalarQueryParameter] | None = None,
+        *, what: str = "DML",
+    ) -> int:
+        """UPDATE/DELETE/MERGE を実行し、**影響行数**を返す。
+
+        #1947 これを置くまで、6 つの script が «query して job.result() して
+        `num_dml_affected_rows` を読む» 同じ 8 行を写経しており、**そのどれもが
+        BigQuery の一時的な 5xx で落ちる**状態だった（`_run_job` の設計コメント参照）。
+        影響行数が要るときは `execute` ではなくこちらを使う。
+        """
+        job_config = bigquery.QueryJobConfig(query_parameters=parameters or [])
+        job, _ = self._run_job(
+            lambda: self.client.query(sql, job_config=job_config,
+                                      location=self.config.region),
+            what=what)
+        return int(job.num_dml_affected_rows or 0)
 
     def execute_dml_retrying(
         self, sql: str, parameters: list[bigquery.ScalarQueryParameter] | None = None,
@@ -203,12 +268,13 @@ class BigQueryPipeline:
             )
 
         job_config = bigquery.QueryJobConfig(query_parameters=parameters)
-        job = self.client.query(
-            f"DELETE FROM `{table_id}` WHERE {where}",
-            job_config=job_config,
-            location=self.config.region,
-        )
-        job.result()
+        job, _ = self._run_job(
+            lambda: self.client.query(
+                f"DELETE FROM `{table_id}` WHERE {where}",
+                job_config=job_config,
+                location=self.config.region,
+            ),
+            what=f"DELETE {table_name}")
         return int(job.num_dml_affected_rows or 0)
 
     def load_json_rows(
@@ -246,14 +312,9 @@ class BigQueryPipeline:
                 source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
                 write_disposition=write_disposition,
             )
-            with temporary_path.open("rb") as stream:
-                job = self.client.load_table_from_file(
-                    stream,
-                    self.table(table_name),
-                    job_config=job_config,
-                    location=self.config.region,
-                )
-            job.result()
+            job, _ = self._run_job(
+                lambda: self._submit_load(temporary_path, table_name, job_config),
+                what=f"load {table_name}")
             if int(job.output_rows or 0) != count:
                 raise RuntimeError(
                     f"Load Job件数不一致: input={count}, output={job.output_rows}, table={table_name}"
@@ -261,6 +322,16 @@ class BigQueryPipeline:
             return count
         finally:
             temporary_path.unlink(missing_ok=True)
+
+    def _submit_load(self, path: Path, table_name: str, job_config) -> Any:
+        """ファイルを開いて Load Job を作って返す（投げるだけ。完走は `_run_job` が見る）。"""
+        with path.open("rb") as stream:
+            return self.client.load_table_from_file(
+                stream,
+                self.table(table_name),
+                job_config=job_config,
+                location=self.config.region,
+            )
 
     def load_ndjson_file(
         self,
@@ -279,14 +350,9 @@ class BigQueryPipeline:
             source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
             write_disposition=write_disposition,
         )
-        with path.open("rb") as stream:
-            job = self.client.load_table_from_file(
-                stream,
-                self.table(table_name),
-                job_config=job_config,
-                location=self.config.region,
-            )
-        job.result()
+        job, _ = self._run_job(
+            lambda: self._submit_load(path, table_name, job_config),
+            what=f"load {table_name}")
         return int(job.output_rows or 0)
 
     def load_parquet(
@@ -311,14 +377,9 @@ class BigQueryPipeline:
         # 宛先テーブルのスキーマを明示して推定を使わせない（NULL が実際に
         # 入っていればこの指定でも load 時に落ちる。それは落ちるべきである）。
         job_config.schema = self.client.get_table(self.table(table_name)).schema
-        with path.open("rb") as stream:
-            job = self.client.load_table_from_file(
-                stream,
-                self.table(table_name),
-                job_config=job_config,
-                location=self.config.region,
-            )
-        job.result()
+        job, _ = self._run_job(
+            lambda: self._submit_load(path, table_name, job_config),
+            what=f"load {table_name}")
         return int(job.output_rows or 0)
 
     def append_manifest(self, row: Mapping[str, Any]) -> None:

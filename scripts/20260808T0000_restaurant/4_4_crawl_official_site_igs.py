@@ -188,16 +188,13 @@ def _delete_batch_rows(pipeline: BigQueryPipeline, run_id: str, place_ids) -> in
         f"DELETE FROM `{pipeline.table(TABLE_STORE_SITE_IG)}` "
         f"WHERE run_id = @rid AND google_place_id IN UNNEST(@ids)"
     )
-    job = pipeline.client.query(
+    return pipeline.execute_dml(
         sql,
-        job_config=bigquery.QueryJobConfig(query_parameters=[
+        [
             bigquery.ScalarQueryParameter("rid", "STRING", run_id),
             bigquery.ArrayQueryParameter("ids", "STRING", list(place_ids)),
-        ]),
-        location=pipeline.config.region,
-    )
-    job.result()
-    return int(job.num_dml_affected_rows or 0)
+        ],
+        what="crawl 済みの印を付ける")
 
 
 def _crawl(stores, workers):

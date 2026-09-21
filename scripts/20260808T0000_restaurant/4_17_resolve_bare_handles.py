@@ -297,14 +297,9 @@ def backfill_sql(pipeline: BigQueryPipeline, limit: int | None,
 def backfill_seed(pipeline: BigQueryPipeline, limit: int | None,
                   *, corroborated_only: bool = True) -> int:
     """`backfill_sql` を実行し、埋めた行数を返す。"""
-    from google.cloud import bigquery
-    job = pipeline.client.query(
+    n = pipeline.execute_dml(
         backfill_sql(pipeline, limit, corroborated_only=corroborated_only),
-        job_config=bigquery.QueryJobConfig(query_parameters=_params(limit)),
-        location=pipeline.config.region,
-    )
-    job.result()
-    n = int(job.num_dml_affected_rows or 0)
+        _params(limit), what="backfill sns_post_raw")
     LOGGER.info("discovery_seed_place_id を後入れした行: %d", n)
     return n
 
@@ -377,14 +372,11 @@ def delete_own_account_rows(pipeline: BigQueryPipeline, run_id: str) -> int:
     job = pipeline.client.query(
         f"DELETE FROM `{pipeline.table(TABLE_SOURCE_ACCOUNT)}` "
         f"WHERE run_id = @rid AND discovery_method = @dm",
-        job_config=bigquery.QueryJobConfig(query_parameters=[
+        [
             bigquery.ScalarQueryParameter("rid", "STRING", run_id),
             bigquery.ScalarQueryParameter("dm", "STRING", DISCOVERY_METHOD),
-        ]),
-        location=pipeline.config.region,
-    )
-    job.result()
-    return int(job.num_dml_affected_rows or 0)
+        ],
+        what=f"DELETE {TABLE_SOURCE_ACCOUNT}")
 
 
 def main() -> None:
