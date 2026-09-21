@@ -95,6 +95,18 @@ export function SettingsToggleItem({
 				accessibilityHint={isWeb ? undefined : description}
 				accessibilityState={isWeb ? undefined : { checked: value, disabled: !!disabled }}
 				/*
+				#1579 ⚠️ **オンのときだけ居る印。E2E の状態判定はこれを使う。**
+
+				Detox の `getAttributes()` は行（TouchableOpacity）から `value` / `text` /
+				`label` しか返さず、**`accessibilityState.checked` は Android で上がってこない**
+				（`SettingsScreen.themeOptionCheck` に同じ注意がある）。そのため
+				«属性の文字列が変わるのを待つ» 作りだと、トグルが正しく動いていても
+				**シグネチャが一生変わらず 25 秒で落ちる**（#1579 で実測）。
+
+				テーマ 3 択のチェックを素の View で包んであるのと同じ形にして、
+				«その View が居るか» で判定できるようにする。見た目には影響しない。
+				*/
+				/*
 				#1629 【修正】react-native-web は `accessibilityState.checked` を DOM の
 				`aria-checked` へ変換しない（`SelectableChip` / `ThemeSelector` と同じ既知の非対応）。
 				その結果 web では **`role="switch"` なのに `aria-checked` を持たない行**になり、
@@ -120,6 +132,7 @@ export function SettingsToggleItem({
 					1 組で渡す（つまみの白は iOS の既定と同じなので、ライトの見た目は変わらない）。
 					`ios_backgroundColor` はオフのときレールの下に見える色で、これも合わせる。
 					*/}
+					{value && <View testID={testID ? `${testID}-on` : undefined} />}
 					<Switch
 						value={value}
 						onValueChange={onValueChange}

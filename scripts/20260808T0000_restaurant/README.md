@@ -349,29 +349,45 @@ API keyはheaderで送り、query文字列・ID配列・HTTP status・採否だ�
 
 ### 4. SNS料理媒体とcoverage
 
-> ## ⚠️ このステップのスクリプトは **このリポジトリに存在しません**（2026-09-06 確認）
+> ## ⚠️ このステップのスクリプトは **`main` にはありません**（#1273 の作業ブランチに在ります）
 >
-> `4_1_load_social_media.py` / `4_2_build_dish_media_catalog.py` /
-> `9_2_sync_dishes_and_media.py` は、**どのブランチにも、git 履歴のどこにも
-> ありません**（`git log --all -- <path>` が 0 件）。
-> 下のコマンドは **いま実行できません。**
+> **下のコマンドはいま実行できません。** ただし «再現できない» わけではありません。
 >
-> それでも **dev にはこのステップが作ったとしか思えない行があります**
-> （2026-09-05 に 3 回、dishes 47,668 行 / dish_media 167,188 行。
-> `render_type='external_embed'`・`user_id IS NULL`・カテゴリは Wikidata の QID。
-> 実測: [run 34033080376](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34033080376)）。
+> ### 2026-09-06 の «存在しません» は、調べ方を間違えていました（2026-09-09 訂正）
 >
-> **つまり dev の料理データの約 94% は、このリポジトリから再現できません。**
-> 消えたブランチから流したものと思われます。#1779 に記録してあります。
+> 当時は下に書いてある **計画上のファイル名**をそのまま `git log --all` に掛けて、
+> 0 件だったので «どのブランチにも履歴にも無い / 消えたブランチから流した» と結論しました。
+> 実際には **同じ工程が別の名前で実装されていた**だけです。
 >
-> **この節を «動く手順» として読まないでください。** 設計の記録として残しています
-> （入力形式の例 [`social_media.example.csv`](./social_media.example.csv) は実在します）。
+> | 計画上の名前（実在しない） | 実際に在るもの（`claude/instagram-seed-data-poc-te51my`） |
+> | --- | --- |
+> | `4_1_load_social_media.py` | `4_1_discover_sns_accounts.py` |
+> | `4_2_build_dish_media_catalog.py` | `4_2_collect_account_posts.py` / `9_1_build_sns_dish_media_catalog.py` |
+> | `9_2_sync_dishes_and_media.py` | **`9_2_sync_sns_dish_media.py`** |
+>
+> **dev の料理データを書いたのは `9_2_sync_sns_dish_media.py` です。** その docstring が
+> 書き込み先を `dishes` → `dish_media`（`render_type='external_embed'` の器）→
+> `dish_media_external_embeddings` と明記しており、dev に在る行の形
+> （`external_embed` / `user_id IS NULL` / カテゴリは Wikidata の QID）と一致します。
+> `--schema` は dev しか受け付けません。
+>
+> ⚠️ **したがって «約 94% が再現できない» は誤りです。** #1273 がマージされれば `main` からも
+> 再現できます。それまでは上のブランチに在ります。**«消えたブランチ» は存在しません。**
+>
+> **この節を «動く手順» として読まないでください**（名前も引数も上の実物とは違います）。
+> 設計の記録として残しています。入力形式の例
+> [`social_media.example.csv`](./social_media.example.csv) は実在します。
+>
+> ### 教訓
+>
+> **«在るはずのものが無い» と結論する前に、名前ではなく «その工程が何をするか» で探すこと。**
+> 名前で 0 件だったことは «無い» の証拠になりません。
 
 入力はUTF-8 CSVまたはNDJSONです。必要列と例は
 [`social_media.example.csv`](./social_media.example.csv)を参照してください。
 
 ```bash
-# ⚠️ 未実装。このファイルは存在しません
+# ⚠️ この名前のファイルは実在しません（実物は 4_1_discover_sns_accounts.py。引数も違います）
 .venv/bin/python 4_1_load_social_media.py \
   --observed-date 2026-08-12 \
   --input data/social-media-2026-08-12.csv \
@@ -379,7 +395,7 @@ API keyはheaderで送り、query文字列・ID配列・HTTP status・採否だ�
   --source-release 2026-08-12 \
   --license-id official-oembed-terms
 
-# ⚠️ 未実装。このファイルは存在しません
+# ⚠️ この名前のファイルは実在しません（実物は 4_2_collect_account_posts.py / 9_1_build_sns_dish_media_catalog.py）
 .venv/bin/python 4_2_build_dish_media_catalog.py \
   --observed-from 2026-01-01 --observed-to 2026-08-12 \
   --target-per-cell-category 1 --expected-category-count 134

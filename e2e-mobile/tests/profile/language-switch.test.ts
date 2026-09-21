@@ -83,7 +83,9 @@ describeJapaneseLocale("表示言語の切り替え(#1508)", () => {
 		const languageScreen = new LanguageScreen();
 
 		// #1402 で独立した設定画面は廃止され、設定項目はマイページ本体へ統合された。
-		// 「マイページを開けば設定項目が同じ画面に居る」ので 1 階層減っている（theme.test.ts と同じ形）。
+		// #1579 ⚠️ **その後 #1583 で «言語» は端末設定ページへ移っている。**
+		//       いまは 1 階層戻っており、`openLanguage()` の中で端末設定へ遷移する。
+		//       この行の «統合された» だけを読んで «マイページに在る» と思わないこと。
 		await tabBar.gotoProfile();
 		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
@@ -154,19 +156,39 @@ describeJapaneseLocale("表示言語の切り替え(#1508)", () => {
 		await languageScreen.expectLoaded();
 		await languageScreen.expectHeaderTitle(PAGE_TITLE["ja-JP"]);
 
+		/*
+		 #1579 ⚠️ **切り替えたら言語画面には残らない。** #1629【28】でそう決めてある。
+		    `handleSelect` は `router.replace(localeSwitchLandingPath(...))` を呼び、
+		    `localeSwitchLandingPath("/ja-JP/profile/language", "en-US")` は
+		    **"/en-US/profile"**（タブの根）を返す。`lib/localeSwitch.test.ts` が
+		    «いまのパスをそのまま返してはいけない» を単体テストで固定している。
+
+		    元々この spec は «選んだらその場でヘッダーが変わる» 前提で書かれており、
+		    アプリが根へ降りたあとに言語画面のヘッダーを探し続けて 25 秒で落ちていた。
+		    **アプリではなく spec の側が古い。** 切り替えるたびに開き直して確かめる。
+		*/
+		const reopenLanguage = async (): Promise<void> => {
+			await settingsScreen.expectLoaded();
+			await settingsScreen.openLanguage();
+			await languageScreen.expectLoaded();
+		};
+
 		// 1 回目: 日本語 → 英語
 		await languageScreen.select("en-US");
+		await reopenLanguage();
 		await languageScreen.expectHeaderTitle(PAGE_TITLE["en-US"]);
 		await languageScreen.expectSystemOptionLabel(SYSTEM_DEFAULT_LABEL["en-US"]);
 
 		// 2 回目: 英語 → 韓国語
 		await languageScreen.select("ko-KR");
+		await reopenLanguage();
 		await languageScreen.expectHeaderTitle(PAGE_TITLE["ko-KR"]);
 		await languageScreen.expectSystemOptionLabel(SYSTEM_DEFAULT_LABEL["ko-KR"]);
 
 		// 3 回目: 韓国語 → 端末の設定に従う（= ja-JP へ戻る）。
 		// ⚠️ この行は後始末そのもの。消すと端末に韓国語設定が残り、後続の spec を巻き込む
 		await languageScreen.select("system");
+		await reopenLanguage();
 		await languageScreen.expectHeaderTitle(PAGE_TITLE["ja-JP"]);
 		await languageScreen.expectSystemOptionLabel(SYSTEM_DEFAULT_LABEL["ja-JP"]);
 	});

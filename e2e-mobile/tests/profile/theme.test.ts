@@ -50,8 +50,10 @@ describe("表示テーマ（#1509 SET-05）", () => {
 		await tabBar.gotoProfile();
 		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
-		// #1583 表示テーマは «端末設定» ページへ移った。マイページにはもう無い
-		await settingsScreen.openDeviceSettings();
+		// #1583 表示テーマは «端末設定» ページへ移った。マイページにはもう無い。
+		// #1579 ⚠️ さらにそこから «表示テーマ» 行を押して `profile/theme` まで行かないと
+		//       3 択（settings-theme-*）は出ない。端末設定で止まっていたため 4 件落ちていた
+		await settingsScreen.openThemeScreen();
 		return settingsScreen;
 	};
 

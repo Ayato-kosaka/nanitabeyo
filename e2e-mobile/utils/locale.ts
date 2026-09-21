@@ -61,8 +61,45 @@ export function localeDeepLink(pathname = ""): string {
  * @returns 例: "ja-JP"。取得できなかった場合は null
  * @失敗時 adb の実行に失敗しても例外は投げず null を返す（ロケール検証は fail-fast させない方針）
  */
+/**
+ * `am get-config` の出力から «アプリが実際に使うロケール» を取り出す。
+ *
+ * 例: `config: mcc310-mnc260-ja-rJP-ldltr-sw320dp-w320dp-h616dp-normal-...` → `"ja-JP"`
+ *
+ * 純粋関数にしてあるのは、adb 無しで両方向を確かめられるようにするため。
+ */
+export function parseLocaleFromAmGetConfig(output: string | null): string | null {
+	if (!output) return null;
+	const matched = /-([a-z]{2})-r([A-Z]{2})(?=-|$)/.exec(output);
+	return matched ? `${matched[1]}-${matched[2]}` : null;
+}
+
+/**
+ * #1579 【バグ】**`persist.sys.locale` を見てはいけない。**
+ *
+ * これを見ていたせいで、**端末が ja-JP なのに ja-JP 前提の spec が黙って skip されていた**。
+ * 同じ run のログに両方が並んで出ている（[run 34453015222](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/34453015222)）:
+ *
+ *     ▶ 実行時 configuration: config: mcc310-mnc260-ja-rJP-ldltr-...   ← 端末は ja-JP
+ *     ⚠️ Android ロケールが ja-JP ではない（現在: en-US）ため … skip します
+ *
+ * `persist.sys.locale` は root でしか書けない保護プロパティで、エミュレータを
+ * `-no-snapshot-save` で回している CI では **テスト実行時に空へ戻っていることがある**。
+ * 空だと `||` が `ro.product.locale`（AVD のビルド値 = `en-US`）へ落ちる。
+ * 一方 **LocaleList（実行時 configuration）は zygote 再起動時に効いたまま**なので、
+ * アプリは日本語で描かれている。**プロパティは «設定した記録» であって «いま効いている値» ではない。**
+ *
+ * ⚠️ skip は pass ではない。#1579 で潰してきた «落ちないテスト» と同じ害があり、
+ * しかも skip は失敗すら出さないぶん見つけにくい。
+ */
 export function getAndroidSystemLocale(): string | null {
 	try {
+		// 1. アプリが実際に使う値（LocaleList）を最優先で見る
+		const fromRuntime = parseLocaleFromAmGetConfig(adb(["shell", "am", "get-config"]));
+		if (fromRuntime) return fromRuntime;
+
+		// 2. 取れなければ従来どおり。⚠️ ro.product.locale は «AVD の作りつけの値» なので
+		//    «設定が効いていない» ことの証拠にはなっても «効いている» の証拠にはならない
 		return adb(["shell", "getprop", "persist.sys.locale"]) || adb(["shell", "getprop", "ro.product.locale"]) || null;
 	} catch {
 		return null;

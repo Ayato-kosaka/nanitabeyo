@@ -1,5 +1,12 @@
-import { by, describeJapaneseLocale, element, expect, launchAppWithSession, visibleNow } from "../../fixtures/e2e";
-import { ResultScreen } from "../../screens/ResultScreen";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	describeJapaneseLocale,
+	launchAppWithSession,
+	visibleNow,
+	waitUntilVisible,
+} from "../../fixtures/e2e";
+import { CARD_ACTION_VISIBLE_PERCENT, ResultScreen } from "../../screens/ResultScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 
@@ -71,7 +78,14 @@ describeJapaneseLocale("実体未着の料理メディアは結果フィード�
 		}
 
 		// カードが描けていること（オーバーレイの «無さ» だけを見ると、フィードが空でも緑になる）
-		await expect(element(result.likeButton).atIndex(0)).toBeVisible();
+		//
+		// #1579 【バグ】ここは `atIndex(0)` だった。いまはアプリが前面のカードのボタンにだけ
+		// `-active` を出すので一意に指せる（index は要らない）。
+		//
+		// ⚠️ 可視率は **既定の 75% ではなく実測にもとづく 60%** を要求する。
+		// このボタンの `getGlobalVisibleRect()` は **74%** しか無い（#1963）。
+		// ここが見たいのは «カードが描けていること» なので 60% で目的を満たす。
+		await waitUntilVisible(result.likeButton, DEFAULT_TIMEOUT, undefined, CARD_ACTION_VISIBLE_PERCENT);
 
 		// ⚠️ `toBeNotVisible()` ではなく existsNow 系で見る。存在しない testID/text に対する
 		// Detox の否定アサーションはプラットフォームによって例外の出方が違うため、
