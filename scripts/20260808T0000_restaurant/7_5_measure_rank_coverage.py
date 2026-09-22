@@ -135,13 +135,14 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
     """
 
 
-def _deficit(pts: list[dict], *, top_pct: int, target_pct: int) -> None:
-    """«上位 top_pct% の target_pct% を達成» に必要な «あと何店» を出す。
+def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = False) -> list[str]:
+    """«上位 top_pct% の target_pct% を達成» に必要な «あと何店» を出し、**埋めるべき地点を返す**。
 
     合格線は地点単位（その地点で 5 店揃うカテゴリが 1 つ以上）なので、
     **未達地点ごとに «いちばん惜しいカテゴリ» の不足分だけ**を数える。
     1 地点に 1 カテゴリ作れば達成になるので、全カテゴリを埋める必要は無い。
     """
+    log = (lambda *a: None) if quiet else LOGGER.info
     n = len(pts)
     k = max(1, round(n * top_pct / 100))
     band = pts[:k]                      # 既に «検索結果の量» の多い順に並んでいる前提
@@ -149,40 +150,41 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int) -> None:
     ng = [p_ for p_ in band if p_["cats_ge5"] == 0]
     need_points = max(0, round(k * target_pct / 100) - len(ok))
 
-    LOGGER.info("③ 合格線«上位 %d%% の %d%%» までの費用", top_pct, target_pct)
-    LOGGER.info("  上位 %d%% = %d 地点 / 達成 %d 地点（%.1f%%）→ **あと %d 地点**",
+    log("③ 合格線«上位 %d%% の %d%%» までの費用", top_pct, target_pct)
+    log("  上位 %d%% = %d 地点 / 達成 %d 地点（%.1f%%）→ **あと %d 地点**",
                 top_pct, k, len(ok), 100.0 * len(ok) / k, need_points)
     if not need_points:
-        LOGGER.info("  → 既に達成している")
-        return
+        log("  → 既に達成している")
+        return []
 
     # 未達地点を «いちばん惜しいカテゴリの不足店数» の小さい順に並べ、安い方から need_points 件
     costs = sorted((max(0, 5 - max(p_["cell_stores"], default=0)), p_["point"]) for p_ in ng)
     picked = costs[:need_points]
     if len(picked) < need_points:
-        LOGGER.info("  ⚠️ 未達地点が %d 件しか無く、%d 件には届かない（この分母では達成不能）",
+        log("  ⚠️ 未達地点が %d 件しか無く、%d 件には届かない（この分母では達成不能）",
                     len(picked), need_points)
     total = sum(c for c, _ in picked)
-    LOGGER.info("  安い順に %d 地点を埋めるのに必要な店数 = **%d 店**（1 地点あたり平均 %.1f 店）",
+    log("  安い順に %d 地点を埋めるのに必要な店数 = **%d 店**（1 地点あたり平均 %.1f 店）",
                 len(picked), total, total / len(picked) if picked else 0)
     by_point = {p_["point"]: p_ for p_ in pts}
     reach = [by_point[pid]["reachable_500m"] for _, pid in picked]
     have = sum(1 for r in reach if r > 0)
-    LOGGER.info("  **そのうち «まだ呼んでいない・手が届く店» が 500m 圏にある地点 = %d / %d**"
+    log("  **そのうち «まだ呼んでいない・手が届く店» が 500m 圏にある地点 = %d / %d**"
                 "（合計 %d 店・中央値 %d 店）",
                 have, len(picked), sum(reach), sorted(reach)[len(reach) // 2] if reach else 0)
     if have < len(picked):
-        LOGGER.info("  ⚠️ 残り %d 地点は «撃てる弾が 1 つも無い»。収集では埋まらないので、"
+        log("  ⚠️ 残り %d 地点は «撃てる弾が 1 つも無い»。収集では埋まらないので、"
                     "発見（#1777）か店台帳の拡張が要る", len(picked) - have)
 
     hist: dict[int, int] = {}
     for c, _ in picked:
         hist[c] = hist.get(c, 0) + 1
-    LOGGER.info("  内訳（その地点の «いちばん惜しいカテゴリ» にあと何店必要か）:")
+    log("  内訳（その地点の «いちばん惜しいカテゴリ» にあと何店必要か）:")
     for c in sorted(hist):
-        LOGGER.info("    あと %d 店: %d 地点", c, hist[c])
-    LOGGER.info("  ⚠️ «その 500m 圏に、そのカテゴリで配信できる店が実在するか» は別問題。"
-                "これは «閾値までの距離» であって «実現できる» ことの保証ではない")
+        log("    あと %d 店: %d 地点", c, hist[c])
+    log("  ⚠️ «その 500m 圏に、そのカテゴリで配信できる店が実在するか» は別問題。"
+        "これは «閾値までの距離» であって «実現できる» ことの保証ではない")
+    return [pid for _, pid in picked]
 
 
 def _curve(label: str, flags: list[bool]) -> None:
@@ -206,6 +208,49 @@ def _curve(label: str, flags: list[bool]) -> None:
     LOGGER.info("  → **達成率 70%% を保てるのは上位 %d%% まで**（%d 件）", best, max(1, round(n * best / 100)))
 
 
+def fetch_points(pipeline, *, delivery_run_id: str, project: str = "food-scroll",
+                 dataset: str = "restaurant_recommendation",
+                 dish_dataset: str = "wikidata_food_graph") -> list[dict]:
+    """313 地点それぞれの «配信店数 / 5 店カテゴリ数 / 撃てる弾の数» を返す。
+
+    ⚠️ **この関数が物差しの唯一の入口**。呼び出し側で SQL を写経しない（#1947）。
+    """
+    from google.cloud import bigquery  # noqa: PLC0415  認証があるときだけ読む
+    m74 = _load_7_4()
+    sql = build_sql(f"{project}.{dataset}", f"{project}.{dish_dataset}",
+                    sample_n=m74.SAMPLE_N, sample_run=m74.SAMPLE_CATALOG_RUN_ID,
+                    radius_m=m74.RADIUS_M)
+    rows = list(pipeline.execute(sql, [
+        bigquery.ScalarQueryParameter("catalog_run_id", "STRING", delivery_run_id),
+        bigquery.ScalarQueryParameter("sample_catalog_run_id", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
+    ]))
+    return [{"point": r["point"], "stores_500m": int(r["stores_500m"] or 0),
+             "cats_ge5": int(r["cats_ge5"] or 0), "cats_any": int(r["cats_any"] or 0),
+             "cell_stores": [int(x) for x in (r["cell_stores"] or [])],
+             "reachable_500m": int(r["reachable_500m"] or 0)} for r in rows]
+
+
+def select_gap_points(pipeline, *, delivery_run_id: str, top_pct: int = 70,
+                      target_pct: int = 70, reachable_only: bool = True,
+                      quiet: bool = True, **kw) -> list[str]:
+    """**合格線に足りない地点**（安い順）の google_place_id を返す。
+
+    `4_2` が «この地点の 500m 圏の店だけ呼ぶ» ための入口。
+    `reachable_only=True` なら «まだ呼んでいない handle が 500m 圏にある» 地点だけ返す
+    （弾の無い地点を混ぜると «撃ったのに動かない» の原因が分からなくなる）。
+    """
+    pts = fetch_points(pipeline, delivery_run_id=delivery_run_id, **kw)
+    if not pts or not any(p_["stores_500m"] for p_ in pts):
+        raise SystemExit(
+            f"配信カタログ run_id={delivery_run_id!r} が 500m 圏に 1 店も無い。測定不能である。")
+    pts.sort(key=lambda x: -x["stores_500m"])
+    picked = _deficit(pts, top_pct=top_pct, target_pct=target_pct, quiet=quiet)
+    if not reachable_only:
+        return picked
+    reach = {p_["point"]: p_["reachable_500m"] for p_ in pts}
+    return [pid for pid in picked if reach.get(pid, 0) > 0]
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description="検索結果の多い順に «5 店出る» 割合を測る。読み取りのみ")
     p.add_argument("--delivery-run-id", "--catalog-run-id", dest="delivery_run_id", required=True,
@@ -215,6 +260,10 @@ def main() -> int:
     p.add_argument("--dish-dataset", default="wikidata_food_graph")
     p.add_argument("--print-sql", action="store_true", help="SQL を出すだけ（接続しない）")
     p.add_argument("--dump-json", default=None, help="地点ごとの生データの書き出し先")
+    p.add_argument("--emit-gap-points", action="store_true",
+                   help="③ で選んだ «撃てる弾のある未達地点» の google_place_id を出す"
+                        "（4_2 --gap-points-delivery-run-id が同じ判定を自分で呼ぶので、"
+                        "これは人が確かめるため）")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -226,25 +275,16 @@ def main() -> int:
             f"渡されている。ここは «配信» の run_id（sns_dish_media_catalog.run_id）である。")
 
     ds = f"{args.project}.{args.dataset}"
-    sql = build_sql(ds, f"{args.project}.{args.dish_dataset}",
-                    sample_n=m74.SAMPLE_N, sample_run=m74.SAMPLE_CATALOG_RUN_ID,
-                    radius_m=m74.RADIUS_M)
     if args.print_sql:
-        print(sql)
+        print(build_sql(ds, f"{args.project}.{args.dish_dataset}",
+                        sample_n=m74.SAMPLE_N, sample_run=m74.SAMPLE_CATALOG_RUN_ID,
+                        radius_m=m74.RADIUS_M))
         return 0
 
-    from google.cloud import bigquery  # noqa: PLC0415  認証があるときだけ読む
     from pipeline_common import BigQueryPipeline  # noqa: PLC0415
     pipeline = BigQueryPipeline()
-    rows = list(pipeline.execute(sql, [
-        bigquery.ScalarQueryParameter("catalog_run_id", "STRING", args.delivery_run_id),
-        bigquery.ScalarQueryParameter("sample_catalog_run_id", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
-    ]))
-
-    pts = [{"point": r["point"], "stores_500m": int(r["stores_500m"] or 0),
-            "cats_ge5": int(r["cats_ge5"] or 0), "cats_any": int(r["cats_any"] or 0),
-            "cell_stores": [int(x) for x in (r["cell_stores"] or [])],
-            "reachable_500m": int(r["reachable_500m"] or 0)} for r in rows]
+    pts = fetch_points(pipeline, delivery_run_id=args.delivery_run_id, project=args.project,
+                       dataset=args.dataset, dish_dataset=args.dish_dataset)
 
     # ⚠️ 判定器が «判定できたか» を先に言う。配信が 0 行なら «被覆 0» ではなく «測定不能»
     if not pts or not any(p_["stores_500m"] for p_ in pts):
@@ -266,7 +306,11 @@ def main() -> int:
     LOGGER.info("  ⚠️ ②の母数は «1 店以上返る検索» のみ（0 店の組み合わせは含まない。含めると分母は 313×134=41,942）")
 
     # ③ 合格線までの «あと何店» — オーナーの条件「上位 X% で Y% 達成」を満たす費用
-    _deficit(pts, top_pct=70, target_pct=70)
+    picked = _deficit(pts, top_pct=70, target_pct=70)
+    if args.emit_gap_points:
+        reach = {p_["point"]: p_["reachable_500m"] for p_ in pts}
+        shoot = [pid for pid in picked if reach.get(pid, 0) > 0]
+        LOGGER.info("  ⚑ 撃てる弾のある未達地点 %d 件: %s", len(shoot), ",".join(shoot))
 
     mid = pts[len(pts) // 2]["stores_500m"]
     LOGGER.info("参考: 地点あたりの配信店数 最大 %d / 中央値 %d / 最小 %d",

@@ -326,6 +326,13 @@ def parse_args() -> argparse.Namespace:
     # #1791 並列シャード: 複数トークンで «互いに素な» アカウント集合を同時に回すための分割。
     # handle のハッシュで N 分割し、各シャードは自分の担当分だけ処理する（重複収集を防ぐ）。
     p.add_argument("--shard-count", type=int, default=1, help="アカウントの分割数（#1791 並列用。既定 1=分割なし）")
+    # #1947 «合格線に足りない地点の 500m 圏» だけを撃つ。ゴール（上位 70% の 70% で 5 店）に
+    # 直結する弾だけに quota を使うための絞り込み。**どの地点が足りないかは 7_5 が決める**
+    # （判定を 2 箇所に書くと静かにずれる。7_5.select_gap_points がその唯一の入口）。
+    p.add_argument("--gap-points-delivery-run-id", default=None,
+                   help="sns_dish_media_catalog の run_id。合格線に足りない地点の 500m 圏の店だけ収集する")
+    p.add_argument("--gap-top-pct", type=int, default=70, help="«検索結果の多い順»の上位何%%を見るか")
+    p.add_argument("--gap-target-pct", type=int, default=70, help="その帯で何%%の達成を目指すか")
     p.add_argument("--shard-index", type=int, default=0, help="このシャードの担当インデックス（0..shard-count-1）")
     return p.parse_args()
 
@@ -466,6 +473,35 @@ REGION_TOKEN_PREF_SQL = """
 """
 
 
+def _load_sibling(fname: str, name: str):
+    """同じディレクトリの script を module として読む（判定を写経しないため）。"""
+    import importlib.util  # noqa: PLC0415
+    spec = importlib.util.spec_from_file_location(name, HERE / fname)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def _resolve_gap_points(pipeline, args):
+    """#1947 «合格線に足りない地点» を 7_5 に決めさせる。返り値は (地点, 半径m, 座標のrun_id)。"""
+    if not args.gap_points_delivery_run_id:
+        return None, 500, None
+    if args.candidate_run_id:
+        raise SystemExit("--gap-points-delivery-run-id は --candidate-run-id と併用できない"
+                         "（候補表は seed の店を持たないので 500m 圏で絞れない）。")
+    m75 = _load_sibling("7_5_measure_rank_coverage.py", "m75")
+    m74 = m75._load_7_4()
+    pts = m75.select_gap_points(pipeline, delivery_run_id=args.gap_points_delivery_run_id,
+                                top_pct=args.gap_top_pct, target_pct=args.gap_target_pct)
+    LOGGER.info("#1947 合格線（上位 %d%% の %d%%）に足りず «撃てる弾» のある地点 = %d 件: %s",
+                args.gap_top_pct, args.gap_target_pct, len(pts), ",".join(pts))
+    if not pts:
+        raise SystemExit(
+            "合格線に足りない地点が 0 件（既に達成しているか、弾のある地点が 1 つも無い）。"
+            "--gap-points-delivery-run-id を外して通常ラウンドを回すこと。")
+    return pts, m74.RADIUS_M, m74.SAMPLE_CATALOG_RUN_ID
+
+
 def _tier_rank_sql(column: str) -> str:
     cases = " ".join(f"WHEN '{t}' THEN {i}" for i, t in enumerate(TIER_ORDER))
     return f"CASE {column} {cases} ELSE {len(TIER_ORDER)} END"
@@ -592,7 +628,10 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
                    skip_collected_scope: str = "run",
                    priority_coverage_run_id: str | None = None,
                    catalog_run_id: str | None = None,
-                   layer_order: bool = False):
+                   layer_order: bool = False,
+                   near_points: list[str] | None = None,
+                   near_radius_m: int = 500,
+                   geo_catalog_run_id: str | None = None):
     from google.cloud import bigquery
     # #1815 発見 run は増え続けるので «全部» を指定できるようにする（列挙を書き写さない）。
     if list(account_run_ids) == ["all"]:
@@ -633,6 +672,22 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
     where += (" AND handle NOT IN ("
               f"SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` "
               f"WHERE {collected_where})")
+
+    # #1947 «合格線に足りない地点の 500m 圏の店» だけに絞る。地点・店の座標は **7_4 と同じ
+    # サンプルカタログ run** から引く（7_5 の store_loc と同じ母集団。別 run を混ぜると
+    # «撃てる弾 123 店» と実際に呼ぶ件数がずれる）。
+    if near_points:
+        cat_tbl = pipeline.table('restaurant_catalog')
+        params.append(bigquery.ScalarQueryParameter("geo_rid", "STRING", geo_catalog_run_id))
+        params.append(bigquery.ArrayQueryParameter("gap_pts", "STRING", list(near_points)))
+        where += f""" AND discovery_seed_place_id IN (
+          SELECT s.google_place_id
+          FROM (SELECT google_place_id, ANY_VALUE(location) AS location FROM `{cat_tbl}`
+                WHERE run_id = @geo_rid GROUP BY google_place_id) s
+          JOIN (SELECT google_place_id, ANY_VALUE(location) AS location FROM `{cat_tbl}`
+                WHERE run_id = @geo_rid AND google_place_id IN UNNEST(@gap_pts)
+                GROUP BY google_place_id) g
+            ON ST_DWithin(s.location, g.location, {int(near_radius_m)}))"""
 
     limit_sql = f"LIMIT {int(max_accounts)}" if max_accounts else ""
     todo_sql = f"""
@@ -736,6 +791,7 @@ def main() -> None:
     _ensure_attempt_table(pipeline)
     priority_coverage_run_id = _resolve_priority_coverage_run_id(
         pipeline, args.priority_coverage_run_id)
+    near_points, near_radius_m, geo_catalog_run_id = _resolve_gap_points(pipeline, args)
     ig = resolve_ig_user_id(token, args.user_env)
     LOGGER.info("IG business account id = %s（token_env=%s）", ig, args.token_env)
 
@@ -756,7 +812,9 @@ def main() -> None:
                                   skip_collected_scope=args.skip_collected_scope,
                                   priority_coverage_run_id=priority_coverage_run_id,
                                   catalog_run_id=args.catalog_run_id,
-                                  layer_order=args.order_by_account_layer)
+                                  layer_order=args.order_by_account_layer,
+                                  near_points=near_points, near_radius_m=near_radius_m,
+                                  geo_catalog_run_id=geo_catalog_run_id)
     LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
     now = utc_now()
 
@@ -769,6 +827,8 @@ def main() -> None:
         "shard": f"{args.shard_index}/{args.shard_count}",
         "candidate_run_id": args.candidate_run_id, "tiers": args.tiers,
         "order_by_account_layer": args.order_by_account_layer,
+        "gap_points_delivery_run_id": args.gap_points_delivery_run_id,
+        "gap_points": ",".join(near_points) if near_points else None,
     }, repo_root=HERE.parents[1]) as result:
         # 収集は 413 アカウントを（レート制限のため）複数バッチに分けて回す。run_id 単位の
         # DELETE だと先行バッチを消してしまうので、**このバッチが担当するアカウント分だけ**を
