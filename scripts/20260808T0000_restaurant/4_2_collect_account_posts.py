@@ -26,6 +26,7 @@ from pathlib import Path
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (PREF_PATTERN, PROVIDER_INSTAGRAM, TABLE_ACCOUNT_ATTEMPT, TABLE_COVERAGE,
+                        called_handles_sql,
                         TABLE_POST_RAW,
                         TABLE_SOURCE_ACCOUNT, ig_shortcode_from_url, latest_run_id)
 
@@ -657,21 +658,25 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
     # 分割する。毎回同じ先頭 N を選んで進まないのを防ぐため、**既に投稿がある handle は除外**する。
     # #1815 scope=any にすると «他 run で採れている handle» も除外する（KPI は異なり店なので採り直しは無価値）。
     if skip_collected_scope == "any":
-        collected_where = "account_id IS NOT NULL"
         # #1815 投稿を 1 件も返さない handle（code 110 / business でない / 非公開）は sns_post_raw に
-        # 何も残さないので、上の «投稿がある handle を除く» では絶対に除外されない。並びが
+        # 何も残さないので、«投稿がある handle を除く» だけでは絶対に除外されない。並びが
         # ORDER BY handle で決まる以上、そういう handle は毎回先頭に居座り、run を重ねるほど
         # «新しい handle へ届く前に使い切るコール数» が増える。実測で 6 時間あたり 943→341
         # アカウントまで落ちた。呼んだ事実そのものを台帳に残し、二度目を呼ばない。
+        #
+        # ⚠️ **«呼んだ» の定義は common_sns.called_handles_sql が唯一の正**（写経しない）。
+        #    2026-09-22、7_5 が台帳だけで数えて «撃てる弾 123 店» と報告し、ここが実際に
+        #    呼べたのは 20 件だった。**同じ判定を 2 箇所に書いた時点でずれる。**
         where += (" AND handle NOT IN ("
-                  f"SELECT handle FROM `{pipeline.table(TABLE_ACCOUNT_ATTEMPT)}` "
-                  "WHERE provider = @prov)")
+                  + called_handles_sql(pipeline.table(TABLE_ACCOUNT_ATTEMPT),
+                                       pipeline.table(TABLE_POST_RAW)) + ")")
     else:
-        collected_where = "run_id = @out_rid AND account_id IS NOT NULL"
+        # scope=run は «この出力 run で既に採れた handle» だけを飛ばす（チャンク前進用）。
+        # 意図的に上より狭い。ここを called_handles_sql に寄せると分割収集ができなくなる。
         params.append(bigquery.ScalarQueryParameter("out_rid", "STRING", output_run_id or ""))
-    where += (" AND handle NOT IN ("
-              f"SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` "
-              f"WHERE {collected_where})")
+        where += (" AND handle NOT IN ("
+                  f"SELECT DISTINCT account_id FROM `{pipeline.table(TABLE_POST_RAW)}` "
+                  "WHERE run_id = @out_rid AND account_id IS NOT NULL)")
 
     # #1947 «合格線に足りない地点の 500m 圏の店» だけに絞る。地点・店の座標は **7_4 と同じ
     # サンプルカタログ run** から引く（7_5 の store_loc と同じ母集団。別 run を混ぜると

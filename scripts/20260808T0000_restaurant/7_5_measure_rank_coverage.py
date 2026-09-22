@@ -40,9 +40,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from common_sns import (TABLE_DISH_MEDIA_CATALOG, TABLE_RESTAURANT_CATALOG,  # noqa: E402
+from common_sns import (PROVIDER_INSTAGRAM,  # noqa: E402
+                        TABLE_DISH_MEDIA_CATALOG, TABLE_POST_RAW,
+                        TABLE_RESTAURANT_CATALOG,
                         TABLE_SOURCE_ACCOUNT, TABLE_ACCOUNT_ATTEMPT,
-                        kpi_gate_category_sql)
+                        called_handles_sql, kpi_gate_category_sql)
 
 LOGGER = logging.getLogger("7_5")
 
@@ -58,6 +60,8 @@ def _load_7_4():
 
 def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m: int) -> str:
     """地点ごと・セルごとの生の行を返す（集計は Python 側でやる）。"""
+    called_sql = called_handles_sql(f"{ds}.{TABLE_ACCOUNT_ATTEMPT}", f"{ds}.{TABLE_POST_RAW}",
+                                    provider_param="prov")
     # ⚠️ 相関サブクエリで «その地点の 500m 圏» を数えない。BigQuery は
     #    「Correlated subqueries that reference other tables are not supported」で落ちる
     #    （2026-09-22 に踏んだ）。地点×店を 1 度 JOIN で展開してから GROUP BY する。
@@ -98,14 +102,15 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
     pt_stores AS (
       SELECT point, COUNT(DISTINCT store) AS stores_500m FROM near GROUP BY point
     ),
-    -- ④ «手が届く» 店 = IG handle を既に持っている（sns_source_account の seed）。
-    --    «まだ呼んでいない» = sns_account_attempt に無い（#1970 で «候補 593 → 実弾 73» を
-    --    外した反省。候補数と実弾を混同しない）。
+    -- ④ «手が届く» 店 = IG handle を既に持っていて、**まだ呼んでいない**もの。
+    --    ⚠️ «呼んだ» の定義は common_sns.called_handles_sql が唯一の正。ここへ写経しない。
+    --    2026-09-22、台帳（sns_account_attempt）だけで数えて «撃てる弾 123 店» と報告したが、
+    --    実際に 4_2 が呼べたのは **20 件**だった（台帳は #1815 の途中からしか無い）。
     reachable AS (
       SELECT DISTINCT a.discovery_seed_place_id AS gpid
       FROM `{ds}.{TABLE_SOURCE_ACCOUNT}` a
       WHERE a.discovery_seed_place_id IS NOT NULL
-        AND a.handle NOT IN (SELECT handle FROM `{ds}.{TABLE_ACCOUNT_ATTEMPT}`)
+        AND a.handle NOT IN ({called_sql})
     ),
     pt_reach AS (
       SELECT p.pid AS point, COUNT(DISTINCT s.google_place_id) AS reachable_500m
@@ -223,6 +228,7 @@ def fetch_points(pipeline, *, delivery_run_id: str, project: str = "food-scroll"
     rows = list(pipeline.execute(sql, [
         bigquery.ScalarQueryParameter("catalog_run_id", "STRING", delivery_run_id),
         bigquery.ScalarQueryParameter("sample_catalog_run_id", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
+        bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
     ]))
     return [{"point": r["point"], "stores_500m": int(r["stores_500m"] or 0),
              "cats_ge5": int(r["cats_ge5"] or 0), "cats_any": int(r["cats_any"] or 0),

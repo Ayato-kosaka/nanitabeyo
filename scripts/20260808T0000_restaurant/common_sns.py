@@ -1046,6 +1046,30 @@ GENERIC_HANDLE_STOPWORDS: tuple[str, ...] = (
 BARE_HANDLE_MAX_POSTERS = 4
 
 
+def called_handles_sql(attempt_table: str, post_raw_table: str, *,
+                       provider_param: str = "prov") -> str:
+    """**«もう呼んだ handle»** の唯一の定義（SELECT 1 列 `handle` を返す SQL 片）。
+
+    ⚠️ **`sns_account_attempt` だけを見てはいけない。** この台帳は #1815 の途中からしか無く、
+    それ以前に呼んだ handle は 1 行も入っていない。台帳だけで «まだ呼んでいない» を数えると:
+
+    - `7_6` は «0 件しか呼んでいないのに配信店 2 万» という嘘の行を出した（2026-09-22）
+    - `7_5` は «撃てる弾 123 店» と報告したが、実際に `4_2` が呼べたのは **20 件**だった
+      （`4_2` は «投稿がある handle» も除くので、台帳より広い条件で除外している）
+
+    **投稿が 1 枚でもある handle は «呼んだ»** に数える。これでも «呼んで 1 枚も返さず、
+    台帳ができる前だった» handle は数えられない（過小評価は残る）が、**過大評価は消える**。
+    弾の数を多めに言う方が、少なめに言うより害が大きい（計画がその分だけ楽観になる）。
+
+    ⚠️ **この関数を通さずに «呼んだ» を書かないこと。** 2 箇所に書いた時点でずれる。
+    """
+    return f"""
+      SELECT handle FROM `{attempt_table}` WHERE provider = @{provider_param}
+      UNION DISTINCT
+      SELECT DISTINCT account_id FROM `{post_raw_table}` WHERE account_id IS NOT NULL
+    """
+
+
 def bare_handle_candidate_sql(post_raw_table: str) -> str:
     """キャプション → 素のハンドル候補までの CTE 群を返す（`WITH` の中身。末尾カンマ無し）。
 

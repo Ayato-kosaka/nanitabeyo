@@ -32,7 +32,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from common_sns import (PROVIDER_INSTAGRAM, TABLE_ACCOUNT_ATTEMPT,  # noqa: E402
-                        TABLE_DISH_MEDIA_CATALOG, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT)
+                        TABLE_DISH_MEDIA_CATALOG, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT,
+                        called_handles_sql)
 
 LOGGER = logging.getLogger("7_6")
 
@@ -46,6 +47,8 @@ def build_sql(ds: str, group_col: str = "run_id") -> str:
     if group_col not in ("run_id", "account_type"):
         raise ValueError(f"group_col は run_id か account_type のみ: {group_col!r}")
     key = f"IFNULL(ro.{group_col}, '(不明)')" if group_col == "account_type" else f"ro.{group_col}"
+    called_sql = called_handles_sql(f"{ds}.{TABLE_ACCOUNT_ATTEMPT}", f"{ds}.{TABLE_POST_RAW}",
+                                    provider_param="prov")
     src_key = (f"IFNULL({group_col}, '(不明)')" if group_col == "account_type" else group_col)
     return f"""
     WITH src AS (
@@ -58,15 +61,8 @@ def build_sql(ds: str, group_col: str = "run_id") -> str:
     route AS (
       SELECT handle, run_id, discovery_method, account_type FROM src WHERE rn = 1
     ),
-    -- ⚠️ **呼んだ台帳（sns_account_attempt）は #1815 の途中からしか無い。**
-    --    それ以前に呼んだ handle は台帳に居ないので、台帳だけを分母にすると
-    --    古い経路が «0 件しか呼んでいないのに 2 万店» という嘘の行になる（2026-09-22 実測）。
-    --    投稿が 1 枚でもある handle は «呼んだ» に数える。
-    att AS (
-      SELECT DISTINCT handle FROM `{ds}.{TABLE_ACCOUNT_ATTEMPT}` WHERE provider = @prov
-      UNION DISTINCT
-      SELECT DISTINCT account_id FROM `{ds}.{TABLE_POST_RAW}` WHERE account_id IS NOT NULL
-    ),
+    -- ⚠️ «呼んだ» の定義は common_sns.called_handles_sql が唯一の正。ここへ写経しない。
+    att AS ({called_sql}),
     raw AS (
       SELECT account_id AS handle, post_id
       FROM `{ds}.{TABLE_POST_RAW}` WHERE account_id IS NOT NULL

@@ -41,8 +41,30 @@ _GROUP_BY = re.compile(
 _GEO_COLUMN = re.compile(r"(?<![\w.])(?:\w+\.)?location\b", re.I)
 
 
+#: Python のコメント行（`# …`）。説明文の «GROUP BY» を実装と読み違えないため
+_PY_COMMENT_LINE = re.compile(r"^[ \t]*#[^\n]*$", re.M)
+
+
 def _strip_sql_comments(text: str) -> str:
-    return _SQL_COMMENT.sub("", text)
+    return _PY_COMMENT_LINE.sub("", _SQL_COMMENT.sub("", text))
+
+
+def _until_closing_paren(items: str) -> str:
+    """節の並びを «その節を閉じる括弧» で切る。
+
+    ⚠️ これが無いと `GROUP BY google_place_id) s JOIN (… ANY_VALUE(location) …)` のように
+    **同じ行で閉じた副問い合わせの続き**まで «GROUP BY の並び» と読み、正しい SQL を
+    赤くする（2026-09-22 に 2 件の偽陽性を出した）。番人が嘘をつくと、本物の違反を隠す。
+    """
+    depth = 0
+    for i, ch in enumerate(items):
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            if depth == 0:
+                return items[:i]
+            depth -= 1
+    return items
 
 
 def geography_violations(source: str) -> list[tuple[str, str]]:
@@ -51,8 +73,9 @@ def geography_violations(source: str) -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
     for clause, pattern in (("SELECT DISTINCT", _SELECT_DISTINCT), ("GROUP BY", _GROUP_BY)):
         for match in pattern.finditer(body):
-            if _GEO_COLUMN.search(match.group(1)):
-                found.append((clause, " ".join(match.group(1).split())[:120]))
+            items = _until_closing_paren(match.group(1))
+            if _GEO_COLUMN.search(items):
+                found.append((clause, " ".join(items.split())[:120]))
     return found
 
 
@@ -69,6 +92,27 @@ class GeographyIsNeverGroupedTest(unittest.TestCase):
                     f"{path.name}: GEOGRAPHY の列を DISTINCT / GROUP BY に置いている。"
                     "«異なり» は place_id 側で取り、座標は後から JOIN で付けること")
         self.assertGreater(checked, 20, "走査が空振りしている（scripts が拾えていない）")
+
+
+    def test_it_does_not_flag_the_correct_shape(self) -> None:
+        """正しい形（«異なり» は place_id で取り、座標は ANY_VALUE で拾う）を赤くしない。
+
+        番人が正常を赤くすると、開発者は番人を無視するようになり、本物の違反が通る。
+        2026-09-22 に 2 件の偽陽性を出した実物で固定する。
+        """
+        ok_same_line_close = """
+          SELECT s.google_place_id
+          FROM (SELECT google_place_id, ANY_VALUE(location) AS location FROM `c`
+                WHERE run_id = @geo_rid GROUP BY google_place_id) s
+          JOIN (SELECT google_place_id, ANY_VALUE(location) AS location FROM `c`
+                WHERE google_place_id IN UNNEST(@pts) GROUP BY google_place_id) g
+            ON ST_DWithin(s.location, g.location, 500)
+        """
+        self.assertEqual([], geography_violations(ok_same_line_close))
+
+    def test_a_python_comment_is_not_an_implementation(self) -> None:
+        prose = "# 地点×店を 1 度 JOIN で展開してから GROUP BY する。\nSQL = f\"\"\"SELECT location FROM t\"\"\"\n"
+        self.assertEqual([], geography_violations(prose))
 
     def test_the_check_catches_the_shape_that_actually_failed(self) -> None:
         """番人が空振りしていないこと。2026-09-10 に実際に 400 になった形で確かめる。"""
