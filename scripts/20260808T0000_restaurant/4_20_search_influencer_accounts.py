@@ -246,7 +246,7 @@ def probe_rate_sql(pipeline: BigQueryPipeline) -> str:
 def ensure_table(pipeline: BigQueryPipeline) -> None:
     table_id = pipeline.table(TABLE_QUERY_CANDIDATE)
     try:
-        current = pipeline.client.get_table(table_id)
+        current = pipeline.get_table(table_id)
     except NotFound:
         pipeline.client.create_table(bigquery.Table(table_id, schema=CANDIDATE_SCHEMA))
         return

@@ -200,5 +200,136 @@ class SweptSitesAreRecordedTest(unittest.TestCase):
                          "影響行数が要るなら `pipeline.execute_dml()` を使う（写経しない）")
 
 
+class AuthRefreshIsTransientTest(unittest.TestCase):
+    """#1947 2026-09-22: **資格情報の更新の一時失敗**が 5.5 時間の run を 22 秒で殺した。
+
+    ## 欠陥をパターンで 1 文にすると
+
+    **«外部の一時失敗を再送する» 集合が、外部呼び出しの一部（認証の往復）を数えていなかった。**
+
+    2026-09-21 に «横展開の対象は壊れた API 名ではなく外部呼び出し全部» と決めたのに、
+    そのときは «BigQuery の呼び出し» までで数え、その下で毎回走る WIF のトークン取得を
+    見ていなかった。実際の落ち方:
+
+        google.auth.exceptions.RefreshError: ('Unable to retrieve Identity Pool subject
+        token', 'upstream connect error or disconnect/reset before headers.
+        reset reason: overflow')
+
+    ⚠️ **トークンは run の途中でも期限切れで更新される。** «起動時だけ» の対策では足りない。
+    """
+
+    def setUp(self) -> None:
+        patcher = mock.patch.object(pipeline_common.time, "sleep")
+        self.sleep = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.pipeline = SimpleNamespace()
+
+    def test_refresh_error_is_in_the_retried_set(self) -> None:
+        from google.auth.exceptions import RefreshError, TransportError
+
+        auth = pipeline_common._auth_transient_exc()
+        self.assertIn(RefreshError, auth)
+        self.assertIn(TransportError, auth)
+
+    def test_run_job_retries_a_token_refresh_failure(self) -> None:
+        """«開始 22 秒で死ぬ» を復活させない。"""
+        from google.auth.exceptions import RefreshError
+
+        job = _Job(fail_times=2, exc=RefreshError("Unable to retrieve Identity Pool subject token"))
+        submit, box = _submitter(lambda: job)
+        got_job, result = RUN_JOB(self.pipeline, submit, what="query x")
+        self.assertEqual("rows", result)
+        self.assertIs(job, got_job)
+        self.assertEqual(1, box.count, "認証の失敗でジョブを投げ直している")
+
+    def test_run_call_retries_idempotent_reads(self) -> None:
+        """`get_table` のような «ジョブにならない» 読み取りも掛け直す。"""
+        from google.auth.exceptions import RefreshError
+
+        calls = SimpleNamespace(n=0)
+
+        def fn():
+            calls.n += 1
+            if calls.n <= 2:
+                raise RefreshError("token")
+            return "schema"
+
+        got = pipeline_common.BigQueryPipeline._run_call(self.pipeline, fn, what="get_table x")
+        self.assertEqual("schema", got)
+        self.assertEqual(3, calls.n)
+
+    def test_non_idempotent_write_retries_only_before_it_was_sent(self) -> None:
+        """⚠️ **ここが安全側の固定。**
+
+        `insert_rows_json` は再送すると行が二重に入る。トークン取得の失敗は «相手へ
+        届く前» と言い切れるので掛け直してよいが、**届いたあとの 5xx は掛け直さない**。
+        """
+        from google.auth.exceptions import RefreshError
+
+        calls = SimpleNamespace(n=0)
+
+        def fn_auth():
+            calls.n += 1
+            if calls.n == 1:
+                raise RefreshError("token")
+            return []
+
+        self.assertEqual([], pipeline_common._retry_auth_only(fn_auth, what="insert"))
+        self.assertEqual(2, calls.n, "認証の失敗は掛け直してよい")
+
+        sent = SimpleNamespace(n=0)
+
+        def fn_sent():
+            sent.n += 1
+            raise InternalServerError("500 POST insertAll")
+
+        with self.assertRaises(InternalServerError):
+            pipeline_common._retry_auth_only(fn_sent, what="insert")
+        self.assertEqual(1, sent.n,
+                         "届いたあとの 5xx で冪等でない挿入を再送している（行が二重に入る）")
+
+    # #1947 2026-09-22 の水平展開。`pipeline.client.*` を直に叩いていた箇所を
+    # 全部当たり直した一覧。**空にしないこと**（空にすると «調べた» 記録が消える）。
+    #   (ファイル, 何を呼んでいたか, 冪等か, どう直したか)
+    SWEPT_CLIENT_CALLS = (
+        ("pipeline_common.py", "get_table（load のスキーマ取得）", True,
+         "読み取りなので _run_call。pipeline.get_table() に寄せた"),
+        ("pipeline_common.py", "insert_rows_json（source manifest）", False,
+         "認証の失敗だけ掛け直す _retry_auth_only。pipeline.insert_rows_json() に寄せた"),
+        ("pipeline_common.py", "insert_rows_json（pipeline run ログ）", False,
+         "同上"),
+        ("3_2_search_google_place_ids.py", "insert_rows_json", False,
+         "pipeline.insert_rows_json() へ。Places 検索は長時間走るので認証更新を挟む"),
+        ("8_1_validate_catalogs.py", "insert_rows_json", False, "pipeline.insert_rows_json() へ"),
+        ("pg_sync_common.py", "insert_rows_json", False, "pipeline.insert_rows_json() へ"),
+        ("4_20_search_influencer_accounts.py", "get_table", True, "pipeline.get_table() へ"),
+    )
+
+    def test_every_swept_client_call_has_a_reason(self) -> None:
+        for name, where, _, why in self.SWEPT_CLIENT_CALLS:
+            self.assertTrue(why.strip(), f"{name} / {where} に理由が無い")
+        self.assertTrue(self.SWEPT_CLIENT_CALLS, "水平展開の一覧を空にしてはいけない")
+
+    def test_no_script_calls_the_raw_client_for_these(self) -> None:
+        """`pipeline.client.insert_rows_json` / `.get_table` の直呼びを増やさせない。
+
+        素で呼ぶと資格情報の更新の一時失敗で長時間ジョブが死ぬ。雑に再送すると
+        `insert_rows_json` は行が二重に入る。入口は `pipeline_common` の 2 つだけ。
+        """
+        offenders = []
+        for path in sorted(HERE.glob("*.py")):
+            if path.name.startswith("test_"):
+                continue
+            for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                stripped = line.strip()
+                if "lambda: self.client." in stripped:
+                    continue  # 入口（_run_call / _retry_auth_only）の実装そのもの
+                for bad in ("client.insert_rows_json(", "client.get_table("):
+                    if bad in stripped:
+                        offenders.append(f"{path.name}:{i} {stripped[:70]}")
+        self.assertEqual([], offenders,
+                         "pipeline.insert_rows_json() / pipeline.get_table() を使う（直呼びしない）")
+
+
 if __name__ == "__main__":
     unittest.main()

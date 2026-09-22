@@ -244,7 +244,7 @@ def flush_rows(pipeline: BigQueryPipeline, rows: list[dict[str, Any]]) -> None:
     last_error: Exception | None = None
     for retry in range(3):
         try:
-            errors = pipeline.client.insert_rows_json(
+            errors = pipeline.insert_rows_json(
                 pipeline.table("restaurant_google_place_match_attempts"),
                 rows,
                 row_ids=[row["attempt_id"] for row in rows],

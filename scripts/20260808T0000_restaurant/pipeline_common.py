@@ -115,6 +115,62 @@ class PipelineConfig:
         return f"{self.project_id}.{DISH_CATEGORY_DATASET}"
 
 
+def _auth_transient_exc() -> tuple[type[BaseException], ...]:
+    """**資格情報の更新が一時的に失敗した**もの。リクエストが相手へ届く前の失敗である。
+
+    #1947 2026-09-22: 5.5 時間の resolve が **開始 22 秒で死んだ**。原因は BigQuery では
+    なく WIF の subject token 取得だった:
+
+        google.auth.exceptions.RefreshError: ('Unable to retrieve Identity Pool subject
+        token', 'upstream connect error or disconnect/reset before headers.
+        reset reason: overflow')
+
+    «外部の一時失敗は再送する» 集合に **資格情報の更新が入っていなかった**。
+    2026-09-21 に «横展開の対象は壊れた API 名ではなく外部呼び出し全部» と決めたのに、
+    そのときは «BigQuery の呼び出し» までで数え、その下で毎回走る**認証の往復**を
+    見ていなかった。トークンは run の途中でも期限切れで更新されるので、
+    «起動時だけ» の対策では足りない。
+
+    ⚠️ この集合だけは **冪等でない書き込みでも再送してよい**。トークンの更新は
+       リクエストを送る前に走るので、失敗した時点で**相手には何も届いていない**。
+    """
+    from google.auth.exceptions import RefreshError, TransportError
+
+    return (RefreshError, TransportError)
+
+
+def _sent_transient_exc() -> tuple[type[BaseException], ...]:
+    """**リクエストが相手へ届いたあと**に起きうる一時失敗。
+
+    ⚠️ こちらは «送れてしまった» 可能性があるので、**冪等でない書き込みを再送しては
+       いけない**（`_run_job` の ⚠️ を参照。load は行が二重に入り、DML は二度当たる）。
+    """
+    from google.api_core.exceptions import ServerError, TooManyRequests
+    from requests.exceptions import ConnectionError as RequestsConnectionError
+    from requests.exceptions import Timeout as RequestsTimeout
+
+    return (ServerError, TooManyRequests, RequestsConnectionError, RequestsTimeout)
+
+
+def _retry_auth_only(fn, *, what: str, attempts: int = 6, base_sleep_s: float = 5.0):
+    """**冪等でない呼び出し**を、資格情報の更新の失敗にだけ限って掛け直す。
+
+    `insert_rows_json` のようなストリーミング挿入は再送すると行が二重に入るので、
+    «相手へ届く前だと確実に言える» `_auth_transient_exc` だけを拾う。
+    """
+    transient = _auth_transient_exc()
+    for i in range(attempts):
+        try:
+            return fn()
+        except transient as e:  # noqa: PERF203 - 待って掛け直すためのループ
+            if i == attempts - 1:
+                raise
+            wait = base_sleep_s * (2 ** i)
+            LOGGER.warning("%s で資格情報の更新が一時失敗（%s）。%.0f 秒待って掛け直します（%d/%d）",
+                           what, e, wait, i + 1, attempts)
+            time.sleep(wait)
+
+
 class BigQueryPipeline:
     """手動パイプライン向けの小さなBigQueryラッパー。"""
 
@@ -155,12 +211,7 @@ class BigQueryPipeline:
                 **一時エラーのたびに呼ばれるわけではない**（上の ⚠️ を参照）。
             what: ログに出す «何をしていたか»。
         """
-        from google.api_core.exceptions import ServerError, TooManyRequests
-        from requests.exceptions import ConnectionError as RequestsConnectionError
-        from requests.exceptions import Timeout as RequestsTimeout
-
-        transient = (ServerError, TooManyRequests,
-                     RequestsConnectionError, RequestsTimeout)
+        transient = _auth_transient_exc() + _sent_transient_exc()
         job = None
         for i in range(attempts):
             try:
@@ -177,6 +228,45 @@ class BigQueryPipeline:
                     "同じジョブを見に行き直" if job is not None else "投げ直",
                     i + 1, attempts - 1, e)
                 time.sleep(wait)
+
+    def _run_call(self, fn, *, what: str, attempts: int = 6, base_sleep_s: float = 5.0):
+        """**冪等な**呼び出し（読み取り）を、一時エラーで掛け直す。
+
+        `_run_job` はジョブを握って `result()` を掛け直す形なので、`get_table` のような
+        «ジョブにならない» 呼び出しには使えない。読み取りは何度やっても同じなので、
+        届く前（`_auth_transient_exc`）も届いたあと（`_sent_transient_exc`）も拾ってよい。
+
+        ⚠️ **書き込みには使わないこと。** 冪等でない書き込みは `_retry_auth_only`。
+        """
+        transient = _auth_transient_exc() + _sent_transient_exc()
+        for i in range(attempts):
+            try:
+                return fn()
+            except transient as e:  # noqa: PERF203 - 待って掛け直すためのループ
+                if i == attempts - 1:
+                    raise
+                wait = base_sleep_s * (2 ** i)
+                LOGGER.warning("%s の一時エラー（%s）。%.0f 秒待って掛け直します（%d/%d）",
+                               what, e, wait, i + 1, attempts)
+                time.sleep(wait)
+
+    def get_table(self, table_id: str):
+        """`client.get_table` の一時エラーを飲み込む入口。読み取りなので冪等。
+
+        ⚠️ **`pipeline.client.get_table` を直に呼ばないこと。** 資格情報の更新の
+           一時失敗（#1947）で長時間ジョブが死ぬ。回帰テストが直呼びを禁止している。
+        """
+        return self._run_call(lambda: self.client.get_table(table_id),
+                              what=f"get_table {table_id}")
+
+    def insert_rows_json(self, table_id: str, rows):
+        """`client.insert_rows_json` の入口。**冪等でない**ので認証の失敗だけ掛け直す。
+
+        ⚠️ **`pipeline.client.insert_rows_json` を直に呼ばないこと。** 素で呼ぶと
+           資格情報の更新の一時失敗で死に、雑に再送すると行が二重に入る（#1947）。
+        """
+        return _retry_auth_only(lambda: self.client.insert_rows_json(table_id, rows),
+                                what=f"insert_rows_json {table_id}")
 
     def execute(
         self, sql: str, parameters: list[bigquery.ScalarQueryParameter] | None = None
@@ -376,16 +466,15 @@ class BigQueryPipeline:
         # REQUIRED 列が "changed mode from REQUIRED to NULLABLE" で落ちる。
         # 宛先テーブルのスキーマを明示して推定を使わせない（NULL が実際に
         # 入っていればこの指定でも load 時に落ちる。それは落ちるべきである）。
-        job_config.schema = self.client.get_table(self.table(table_name)).schema
+        job_config.schema = self.get_table(self.table(table_name)).schema
         job, _ = self._run_job(
             lambda: self._submit_load(path, table_name, job_config),
             what=f"load {table_name}")
         return int(job.output_rows or 0)
 
     def append_manifest(self, row: Mapping[str, Any]) -> None:
-        errors = self.client.insert_rows_json(
-            self.table("restaurant_source_manifests"), [dict(row)]
-        )
+        errors = self.insert_rows_json(
+            self.table("restaurant_source_manifests"), [dict(row)])
         if errors:
             raise RuntimeError(f"source manifestの記録に失敗しました: {errors}")
 
@@ -424,9 +513,8 @@ class BigQueryPipeline:
                 "started_at": started_at.isoformat(),
                 "finished_at": utc_now().isoformat(),
             }
-            errors = self.client.insert_rows_json(
-                self.table("restaurant_pipeline_runs"), [row]
-            )
+            errors = self.insert_rows_json(
+                self.table("restaurant_pipeline_runs"), [row])
             if errors:
                 LOGGER.error("pipeline runログの記録に失敗しました: %s", errors)
 

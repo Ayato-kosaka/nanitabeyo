@@ -665,7 +665,7 @@ def main() -> None:
                     "checked_at": checked_at.isoformat(),
                 }
             )
-        errors = pipeline.client.insert_rows_json(
+        errors = pipeline.insert_rows_json(
             pipeline.table("restaurant_quality_results"), rows
         )
         if errors:

@@ -292,7 +292,7 @@ def write_sync_log(
         "started_at": started_at.isoformat(),
         "finished_at": utc_now().isoformat(),
     }
-    errors = pipeline.client.insert_rows_json(
+    errors = pipeline.insert_rows_json(
         pipeline.table("restaurant_pg_sync_logs"), [row], row_ids=[sync_id]
     )
     if errors:
