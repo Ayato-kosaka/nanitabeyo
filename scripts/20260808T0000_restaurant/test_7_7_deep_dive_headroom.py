@@ -47,6 +47,40 @@ class TheOutcomeIsDistinctStoresNotPostsTest(unittest.TestCase):
         self.assertIn("external_content_id AS post_id", SQL)
 
 
+class TheCandidatesAreChosenByEvidenceNotByLabelTest(unittest.TestCase):
+    """種類ではなく実績で選ぶ。
+
+    store_branch は帯が上がっても «店/アカ» が伸びない（0.74 → 1.06）。
+    自分の店しか投稿しないので当然で、深掘りしても KPI は動かない。
+    伸びるのは influencer 的な振る舞いのアカウントだけなので、**ラベルではなく
+    «実際に何店 連れてきたか» で選ぶ**。
+    """
+
+    def test_candidates_need_both_posts_and_stores(self):
+        sql = m.build_candidate_sql("food-scroll.restaurant_recommendation")
+        self.assertIn(f"p.stores >= {m.DEEP_DIVE_MIN_STORES}", sql)
+        self.assertIn(f"p.posts >= {m.DEEP_DIVE_MIN_POSTS}", sql)
+
+    def test_the_threshold_matches_the_validated_judge(self):
+        """4_20 の judge（25 投稿の probe で異なり店 4 以上）と同じ 4 店を使う。"""
+        self.assertEqual(4, m.DEEP_DIVE_MIN_STORES)
+
+    def test_it_says_candidates_are_not_ammunition(self):
+        rows = [{"account_type": "unknown", "accounts": 100, "posts": 5000, "stores": 900}]
+        lines: list[str] = []
+        h = logging.Handler()
+        h.emit = lambda rec: lines.append(rec.getMessage())  # type: ignore[assignment]
+        m.LOGGER.addHandler(h)
+        m.LOGGER.setLevel(logging.INFO)
+        try:
+            m.report_candidates(rows)
+        finally:
+            m.LOGGER.removeHandler(h)
+        body = "\n".join(lines)
+        self.assertIn("実弾ではない", body)
+        self.assertIn("既に配信済みの店を採り直しても", body)
+
+
 class ItSaysWhatItCannotSayTest(unittest.TestCase):
     def test_the_report_refuses_to_claim_causation(self):
         rows = [{"bucket": "50-50", "account_type": "influencer", "accounts": 10,

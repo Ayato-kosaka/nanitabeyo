@@ -85,6 +85,75 @@ def build_sql(ds: str) -> str:
     """
 
 
+#: 深掘り候補の判定。`4_20` の judge（«25 投稿の probe で異なり配信店 4 以上» → 総配信店 10 以上を
+#: precision 95.1%）を、既に収集済みのアカウントへ当てるための近似である。
+#: ⚠️ probe は 25 投稿ちょうどだが、ここは «集めた全部» を見るので **judge より甘い**。
+#: «候補の上限» として読むこと（#1970 で候補数を実弾と取り違えた形を繰り返さない）。
+DEEP_DIVE_MIN_STORES = 4
+DEEP_DIVE_MIN_POSTS = 50
+
+
+def build_candidate_sql(ds: str) -> str:
+    """**上限で切られた、既に良いと分かっているアカウント**を数える。
+
+    store_branch は帯が上がっても «店/アカ» が伸びない（自分の店しか投稿しないので当然）。
+    伸びるのは influencer 的なアカウントだけなので、**種類ではなく実績で選ぶ**。
+    """
+    return f"""
+    WITH cat AS (
+      SELECT DISTINCT external_content_id AS post_id, google_place_id
+      FROM `{ds}.{TABLE_DISH_MEDIA_CATALOG}` WHERE run_id = @cat_rid
+    ),
+    raw AS (
+      SELECT account_id AS handle, post_id
+      FROM `{ds}.{TABLE_POST_RAW}` WHERE account_id IS NOT NULL
+    ),
+    typ AS (
+      SELECT handle, account_type FROM (
+        SELECT handle, account_type,
+               ROW_NUMBER() OVER (PARTITION BY handle ORDER BY discovered_at, run_id) AS rn
+        FROM `{ds}.{TABLE_SOURCE_ACCOUNT}`
+        WHERE provider = @prov AND handle IS NOT NULL
+      ) WHERE rn = 1
+    ),
+    per AS (
+      SELECT r.handle,
+             COUNT(DISTINCT r.post_id) AS posts,
+             COUNT(DISTINCT c.google_place_id) AS stores
+      FROM raw r LEFT JOIN cat c ON c.post_id = r.post_id
+      GROUP BY r.handle
+    )
+    SELECT IFNULL(t.account_type, '(不明)') AS account_type,
+           COUNT(*) AS accounts,
+           SUM(p.posts) AS posts,
+           SUM(p.stores) AS stores
+    FROM per p LEFT JOIN typ t USING (handle)
+    WHERE p.stores >= {DEEP_DIVE_MIN_STORES} AND p.posts >= {DEEP_DIVE_MIN_POSTS}
+    GROUP BY account_type
+    ORDER BY stores DESC
+    """
+
+
+def report_candidates(rows: list[dict], *, accounts_per_hour: float = 205.0) -> None:
+    LOGGER.info("")
+    LOGGER.info("■ 深掘り候補（集めた投稿 %d 以上 かつ 異なり配信店 %d 以上）",
+                DEEP_DIVE_MIN_POSTS, DEEP_DIVE_MIN_STORES)
+    LOGGER.info("%-14s %10s %11s %10s %10s", "account_type", "アカウント", "投稿", "配信店", "店/アカ")
+    total_acc = 0
+    for r in rows:
+        acc = int(r["accounts"] or 0)
+        total_acc += acc
+        LOGGER.info("%-14s %10d %11d %10d %10.2f", r["account_type"], acc,
+                    int(r["posts"] or 0), int(r["stores"] or 0),
+                    (int(r["stores"] or 0) / acc) if acc else 0.0)
+    LOGGER.info("%-14s %10d", "合計", total_acc)
+    LOGGER.info("  → もう一度呼び直すのに要る時間 = **%.1f 時間**（%.0f アカウント/時）",
+                total_acc / accounts_per_hour, accounts_per_hour)
+    LOGGER.info("⚠️ これは «候補» であって実弾ではない。実弾は 4_2 の «未収集分 N 件» で数える。")
+    LOGGER.info("⚠️ 深掘りで増えるのは «そのアカウントがまだ投稿していない店» だけ。"
+                "既に配信済みの店を採り直しても KPI は 1 ミリも動かない。")
+
+
 def report(rows: list[dict]) -> None:
     order = {f"{lo}-{hi if hi < 10 ** 9 else ''}": i for i, (lo, hi) in enumerate(BUCKETS)}
     LOGGER.info("%-12s %-14s %9s %10s %9s %10s %10s",
@@ -115,6 +184,7 @@ def main() -> int:
     sql = build_sql(f"{args.project}.{args.dataset}")
     if args.print_sql:
         print(sql)
+        print(build_candidate_sql(f"{args.project}.{args.dataset}"))
         return 0
 
     from google.cloud import bigquery  # noqa: PLC0415
@@ -129,6 +199,11 @@ def main() -> int:
             f"配信カタログ run_id={args.delivery_run_id!r} に紐づく投稿が 1 件も無い。"
             "測定不能であって «伸びしろ 0» ではない。")
     report(rows)
+    cand = [dict(r) for r in pipeline.execute(build_candidate_sql(f"{args.project}.{args.dataset}"), [
+        bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
+        bigquery.ScalarQueryParameter("cat_rid", "STRING", args.delivery_run_id),
+    ])]
+    report_candidates(cand)
     return 0
 
 
