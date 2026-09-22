@@ -235,9 +235,13 @@ def main() -> int:
                 (args.schema,),
             )
             hit, read = cur.fetchone()
-            if hit is not None and read is not None and (hit + read) > 0:
+            # ⚠️ sum() は numeric なので psycopg2 は Decimal で返す。float と混ぜて
+            #    演算すると TypeError で落ちる（2026-09-22 に踏んだ）。先に float へ寄せる。
+            hit = float(hit) if hit is not None else 0.0
+            read = float(read) if read is not None else 0.0
+            if hit + read > 0:
                 logger.info(
-                    "  heap キャッシュヒット率: %.2f%%（hit=%s / read=%s・起動からの累計）",
+                    "  heap キャッシュヒット率: %.2f%%（hit=%.0f / read=%.0f・起動からの累計）",
                     100.0 * hit / (hit + read), hit, read,
                 )
             else:
