@@ -28,7 +28,7 @@ import { AUTHENTICATED_AVAILABLE_ENV, writeSessionToEnv } from "../utils/session
  * ## セキュリティ（#1030 レビュー B-2）
  * - トークンは **ディスクへ書かない**（`process.env` のみ）。Artifact 経由の漏洩面を作らないため
  * - トークンそのものは **絶対にログへ出さない**（このファイルは成否だけを出力する）
- * - run 終了時に fixtures/globalTeardown.ts が `signOut({ scope: "global" })` で revoke する
+ * - run 終了時に fixtures/globalTeardown.ts が `signOut({ scope: "local" })` で revoke する（#2001）
  */
 
 // #1030 【設計】M-6: Detox 公式の globalSetup。型定義が提供されていないため require で読み込む

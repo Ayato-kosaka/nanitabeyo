@@ -24,7 +24,8 @@
 		"reset": "node ./scripts/reset-project.js",
 		"assert:keyboard-avoidance": "node ./scripts/assert-keyboard-avoidance.mjs",
 		"assert:back-fallback-predicate": "node ./scripts/assert-back-fallback-predicate.mjs",
-		"assert:carousel-locator-scope": "node ./scripts/assert-carousel-locator-scope.mjs"
+		"assert:carousel-locator-scope": "node ./scripts/assert-carousel-locator-scope.mjs",
+		"assert:session-revoke-scope": "node ./scripts/assert-session-revoke-scope.mjs"
 	},
 	"dependencies": {
 		"@expo/metro-runtime": "~6.1.2",

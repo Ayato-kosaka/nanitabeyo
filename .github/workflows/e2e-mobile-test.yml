@@ -323,6 +323,21 @@ jobs:
           # .detoxrc.js の video 設定を黙って上書きして動画が出なくなる（run 32605810775 で実測）
           DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && 'all' || 'none' }}
 
+      # 📏 #2001 「この run は最後まで走ったのか」を実行後に突き合わせる。
+      # iOS は 3 時間の timeout-minutes に当たって毎晩打ち切られていたのに、GitHub 上は
+      # `cancelled` としか出ないため、**45 suite 中 31 しか走っていないことに 13 夜以上
+      # 誰も気付けなかった**（tests/smoke/boot.test.ts すら未実行だった）。
+      # ⚠️ `if: always()` であること。ジョブが timeout で cancel されても always() のステップは
+      # 猶予時間の中で動く（run 35662317482 で実測）。打ち切られたときこそ回ってほしい。
+      - name: 📏 実行された suite を突き合わせる (Android)
+        if: always()
+        # カタログ収集では run を赤くしない（理由は上の «Run Detox tests» と同じ）。
+        # 打ち切りの事実は Job Summary と ::error:: 注釈には出るので、見えなくはならない
+        continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
+        run: node e2e-mobile/scripts/assert-suite-coverage.mjs ${{ needs.prepare.outputs.android_script }}
+        env:
+          DETOX_TEST_FILTER: ${{ inputs.test_filter }}
+
       # 📋 UI カタログ（scope=catalog*）: 画面定義と突き合わせて一覧を生成する
       - name: 📋 Generate UI catalog document (Android)
         if: ${{ always() && startsWith(inputs.scope, 'catalog') }}
@@ -371,7 +386,22 @@ jobs:
     # そのうえで Tier1-2 の全 spec を実行し、失敗があれば --retries 1 でもう 1 周するため、
     # 120 分でもテスト実行の途中で打ち切られた（run 30432596949 は 84 分走って未完）。
     # iOS は Detox の同期機構を切っている分どの待機もポーリングになり Android より遅い（#1040）
-    timeout-minutes: 180
+    #
+    # #2001 【実測】180 分でも足りていなかった。直近 12 run のうち 9 回が 3 時間で打ち切られ、
+    # **45 suite 中 31 しか実行できていなかった**（run 35662317482 で実測。setup 6 分 +
+    # ビルド 30 分 + テスト 144 分で打ち切り）。必要な時間を見積もり直す:
+    #
+    #   Android の 1 巡目 40 suite 合計          59 分
+    #   iOS / Android の所要比（実走 21 suite）  x3.43
+    #   → 45 suite の 1 巡目                     約 201 分
+    #   + setup 6 分 + ビルド 30 分 + リトライ巡  約 260 分
+    #
+    # 300 分は上の見積りに 15% ほどの余裕を足した値（GitHub のジョブ上限は 360 分）。
+    # ⚠️ 勘で伸ばしてよい値ではない。**足りているかどうかは «実行された suite を突き合わせる»
+    # ステップが毎晩判定する**ので、また打ち切られたら Job Summary に出る。そのときは時間を
+    # 足すのではなく、ジョブを shard するか iOS の起動コスト（テスト時間の 52%・中央値 70 秒／回。
+    # 原因調査は #1040）を削ること。
+    timeout-minutes: 300
 
     steps:
       - name: ⏬ Checkout repository
@@ -554,6 +584,21 @@ jobs:
           # ⚠️ 値は none|failing|all 以外を渡さないこと。不正値でも Detox はエラーにせず
           # .detoxrc.js の video 設定を黙って上書きして動画が出なくなる（run 32605810775 で実測）
           DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && 'all' || 'none' }}
+
+      # 📏 #2001 「この run は最後まで走ったのか」を実行後に突き合わせる。
+      # iOS は 3 時間の timeout-minutes に当たって毎晩打ち切られていたのに、GitHub 上は
+      # `cancelled` としか出ないため、**45 suite 中 31 しか走っていないことに 13 夜以上
+      # 誰も気付けなかった**（tests/smoke/boot.test.ts すら未実行だった）。
+      # ⚠️ `if: always()` であること。ジョブが timeout で cancel されても always() のステップは
+      # 猶予時間の中で動く（run 35662317482 で実測）。打ち切られたときこそ回ってほしい。
+      - name: 📏 実行された suite を突き合わせる (iOS)
+        if: always()
+        # カタログ収集では run を赤くしない（理由は上の «Run Detox tests» と同じ）。
+        # 打ち切りの事実は Job Summary と ::error:: 注釈には出るので、見えなくはならない
+        continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
+        run: node e2e-mobile/scripts/assert-suite-coverage.mjs ${{ needs.prepare.outputs.ios_script }}
+        env:
+          DETOX_TEST_FILTER: ${{ inputs.test_filter }}
 
       # 📋 UI カタログ（scope=catalog*）: 画面定義と突き合わせて一覧を生成する
       - name: 📋 Generate UI catalog document (iOS)
