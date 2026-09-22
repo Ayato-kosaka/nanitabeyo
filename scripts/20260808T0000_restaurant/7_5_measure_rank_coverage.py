@@ -116,6 +116,46 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
     """
 
 
+def _deficit(pts: list[dict], *, top_pct: int, target_pct: int) -> None:
+    """«上位 top_pct% の target_pct% を達成» に必要な «あと何店» を出す。
+
+    合格線は地点単位（その地点で 5 店揃うカテゴリが 1 つ以上）なので、
+    **未達地点ごとに «いちばん惜しいカテゴリ» の不足分だけ**を数える。
+    1 地点に 1 カテゴリ作れば達成になるので、全カテゴリを埋める必要は無い。
+    """
+    n = len(pts)
+    k = max(1, round(n * top_pct / 100))
+    band = pts[:k]                      # 既に «検索結果の量» の多い順に並んでいる前提
+    ok = [p_ for p_ in band if p_["cats_ge5"] >= 1]
+    ng = [p_ for p_ in band if p_["cats_ge5"] == 0]
+    need_points = max(0, round(k * target_pct / 100) - len(ok))
+
+    LOGGER.info("③ 合格線«上位 %d%% の %d%%» までの費用", top_pct, target_pct)
+    LOGGER.info("  上位 %d%% = %d 地点 / 達成 %d 地点（%.1f%%）→ **あと %d 地点**",
+                top_pct, k, len(ok), 100.0 * len(ok) / k, need_points)
+    if not need_points:
+        LOGGER.info("  → 既に達成している")
+        return
+
+    # 未達地点を «いちばん惜しいカテゴリの不足店数» の小さい順に並べ、安い方から need_points 件
+    costs = sorted((max(0, 5 - max(p_["cell_stores"], default=0)), p_["point"]) for p_ in ng)
+    picked = costs[:need_points]
+    if len(picked) < need_points:
+        LOGGER.info("  ⚠️ 未達地点が %d 件しか無く、%d 件には届かない（この分母では達成不能）",
+                    len(picked), need_points)
+    total = sum(c for c, _ in picked)
+    LOGGER.info("  安い順に %d 地点を埋めるのに必要な店数 = **%d 店**（1 地点あたり平均 %.1f 店）",
+                len(picked), total, total / len(picked) if picked else 0)
+    hist: dict[int, int] = {}
+    for c, _ in picked:
+        hist[c] = hist.get(c, 0) + 1
+    LOGGER.info("  内訳（その地点の «いちばん惜しいカテゴリ» にあと何店必要か）:")
+    for c in sorted(hist):
+        LOGGER.info("    あと %d 店: %d 地点", c, hist[c])
+    LOGGER.info("  ⚠️ «その 500m 圏に、そのカテゴリで配信できる店が実在するか» は別問題。"
+                "これは «閾値までの距離» であって «実現できる» ことの保証ではない")
+
+
 def _curve(label: str, flags: list[bool]) -> None:
     """濃い順に並んだ bool 列から «上位 X% の達成率» を出す。"""
     n = len(flags)
@@ -194,6 +234,9 @@ def main() -> int:
     _curve("② 検索（地点 × カテゴリ）を «返る店数» の多い順に並べ、5 店以上返る割合",
            [s_ >= 5 for s_ in cells])
     LOGGER.info("  ⚠️ ②の母数は «1 店以上返る検索» のみ（0 店の組み合わせは含まない。含めると分母は 313×134=41,942）")
+
+    # ③ 合格線までの «あと何店» — オーナーの条件「上位 X% で Y% 達成」を満たす費用
+    _deficit(pts, top_pct=70, target_pct=70)
 
     mid = pts[len(pts) // 2]["stores_500m"]
     LOGGER.info("参考: 地点あたりの配信店数 最大 %d / 中央値 %d / 最小 %d",
