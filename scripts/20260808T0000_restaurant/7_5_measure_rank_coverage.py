@@ -57,6 +57,9 @@ def _load_7_4():
 
 def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m: int) -> str:
     """地点ごと・セルごとの生の行を返す（集計は Python 側でやる）。"""
+    # ⚠️ 相関サブクエリで «その地点の 500m 圏» を数えない。BigQuery は
+    #    「Correlated subqueries that reference other tables are not supported」で落ちる
+    #    （2026-09-22 に踏んだ）。地点×店を 1 度 JOIN で展開してから GROUP BY する。
     return f"""
     WITH gate AS ({kpi_gate_category_sql(dish_ds, key_param=None)}),
     pts AS (
@@ -65,6 +68,7 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       WHERE run_id = @sample_catalog_run_id AND country_code = 'JP'
       ORDER BY FARM_FINGERPRINT(google_place_id) LIMIT {int(sample_n)}
     ),
+    -- GEOGRAPHY は DISTINCT に置けないので «店の異なり» を取ってから座標を付ける
     store_loc AS (
       SELECT google_place_id, ANY_VALUE(location) AS location
       FROM `{ds}.{TABLE_RESTAURANT_CATALOG}`
@@ -77,23 +81,38 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       JOIN gate g ON g.item_qid = c.dish_category_id
       WHERE c.run_id = @catalog_run_id
     ),
-    cell AS (
-      SELECT p.pid AS point, d.cat, COUNT(DISTINCT d.pid) AS stores
+    -- 地点 × 配信店 × カテゴリ を 1 度だけ展開する（以降は全部ここから数える）
+    near AS (
+      SELECT p.pid AS point, d.pid AS store, d.cat AS cat
       FROM pts p
       JOIN delivered d ON TRUE
       JOIN store_loc s ON s.google_place_id = d.pid
       WHERE ST_DWithin(p.location, s.location, {int(radius_m)})
-      GROUP BY point, d.cat
+    ),
+    cell AS (
+      SELECT point, cat, COUNT(DISTINCT store) AS stores
+      FROM near GROUP BY point, cat
+    ),
+    -- その地点の «検索結果の量» = 500m 圏の配信店の異なり数（カテゴリ問わず）
+    pt_stores AS (
+      SELECT point, COUNT(DISTINCT store) AS stores_500m FROM near GROUP BY point
+    ),
+    per_point AS (
+      SELECT point,
+             COUNTIF(stores >= 5) AS cats_ge5,
+             COUNT(*) AS cats_any,
+             ARRAY_AGG(stores ORDER BY stores DESC) AS cell_stores
+      FROM cell GROUP BY point
     )
     SELECT
       p.pid AS point,
-      -- その地点の «検索結果の量» = 500m 以内で配信されている異なり店数（カテゴリ問わず）
-      (SELECT COUNT(DISTINCT d.pid) FROM delivered d JOIN store_loc s ON s.google_place_id = d.pid
-       WHERE ST_DWithin(p.location, s.location, {int(radius_m)})) AS stores_500m,
-      (SELECT COUNT(*) FROM cell c WHERE c.point = p.pid AND c.stores >= 5) AS cats_ge5,
-      (SELECT COUNT(*) FROM cell c WHERE c.point = p.pid) AS cats_any,
-      ARRAY(SELECT c.stores FROM cell c WHERE c.point = p.pid ORDER BY c.stores DESC) AS cell_stores
+      IFNULL(ps.stores_500m, 0) AS stores_500m,
+      IFNULL(pp.cats_ge5, 0) AS cats_ge5,
+      IFNULL(pp.cats_any, 0) AS cats_any,
+      IFNULL(pp.cell_stores, []) AS cell_stores
     FROM pts p
+    LEFT JOIN pt_stores ps ON ps.point = p.pid
+    LEFT JOIN per_point pp ON pp.point = p.pid
     """
 
 

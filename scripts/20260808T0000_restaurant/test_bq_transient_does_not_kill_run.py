@@ -331,5 +331,55 @@ class AuthRefreshIsTransientTest(unittest.TestCase):
                          "pipeline.insert_rows_json() / pipeline.get_table() を使う（直呼びしない）")
 
 
+class EntryPointDoesNotNarrowSignatureTest(unittest.TestCase):
+    """#1947 2026-09-22: **入口へ寄せたときに引数を狭めて本番を落とした。**
+
+    直呼び（`pipeline.client.insert_rows_json`）を入口（`pipeline.insert_rows_json`）へ
+    寄せた際、入口を `(table_id, rows)` だけにした。`pg_sync_common.write_sync_log` は
+    `row_ids=` を渡しているので **TypeError で落ち、dev 同期が «最後のログ書き込みだけ» で
+    失敗した**（本体の DML は成功していたのに）。
+
+    ⚠️ **文字列 grep のテストではこれを検出できない。** 直呼びが消えたことは確認できても、
+       «同じ引数で呼べるか» は確認していなかった。**実際に呼ぶ**テストをここに置く。
+    """
+
+    def setUp(self) -> None:
+        patcher = mock.patch.object(pipeline_common.time, "sleep")
+        patcher.start(); self.addCleanup(patcher.stop)
+        self.calls = []
+
+        class _Client:
+            def insert_rows_json(_s, table_id, rows, **kw):
+                self.calls.append(("insert", table_id, rows, kw)); return []
+            def get_table(_s, table_id, **kw):
+                self.calls.append(("get", table_id, kw)); return "table"
+
+        # get_table は self._run_call を通るので、本物を束ねて渡す（挙動を写経しない）
+        self.pipeline = SimpleNamespace(client=_Client())
+        self.pipeline._run_call = (
+            lambda fn, **kw: pipeline_common.BigQueryPipeline._run_call(self.pipeline, fn, **kw))
+
+    def test_insert_rows_json_passes_row_ids_through(self) -> None:
+        """`pg_sync_common.write_sync_log` が実際に使っている形。"""
+        out = pipeline_common.BigQueryPipeline.insert_rows_json(
+            self.pipeline, "proj.ds.restaurant_pg_sync_logs", [{"a": 1}], row_ids=["sync-1"])
+        self.assertEqual([], out)
+        self.assertEqual(("insert", "proj.ds.restaurant_pg_sync_logs", [{"a": 1}],
+                          {"row_ids": ["sync-1"]}), self.calls[0])
+
+    def test_get_table_accepts_kwargs(self) -> None:
+        pipeline_common.BigQueryPipeline.get_table(self.pipeline, "proj.ds.t", retry=None)
+        self.assertEqual(("get", "proj.ds.t", {"retry": None}), self.calls[0])
+
+    def test_entry_points_accept_arbitrary_kwargs(self) -> None:
+        """入口が **kwargs を受けること自体を固定する（将来また狭めさせない）。"""
+        import inspect
+        for name in ("insert_rows_json", "get_table"):
+            sig = inspect.signature(getattr(pipeline_common.BigQueryPipeline, name))
+            kinds = [p.kind for p in sig.parameters.values()]
+            self.assertIn(inspect.Parameter.VAR_KEYWORD, kinds,
+                          f"{name} が **kwargs を受けない（呼び出し側のシグネチャを狭めている）")
+
+
 if __name__ == "__main__":
     unittest.main()

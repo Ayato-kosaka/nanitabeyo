@@ -250,23 +250,30 @@ class BigQueryPipeline:
                                what, e, wait, i + 1, attempts)
                 time.sleep(wait)
 
-    def get_table(self, table_id: str):
+    def get_table(self, table_id: str, **kwargs):
         """`client.get_table` の一時エラーを飲み込む入口。読み取りなので冪等。
 
         ⚠️ **`pipeline.client.get_table` を直に呼ばないこと。** 資格情報の更新の
            一時失敗（#1947）で長時間ジョブが死ぬ。回帰テストが直呼びを禁止している。
         """
-        return self._run_call(lambda: self.client.get_table(table_id),
+        return self._run_call(lambda: self.client.get_table(table_id, **kwargs),
                               what=f"get_table {table_id}")
 
-    def insert_rows_json(self, table_id: str, rows):
+    def insert_rows_json(self, table_id: str, rows, **kwargs):
         """`client.insert_rows_json` の入口。**冪等でない**ので認証の失敗だけ掛け直す。
 
         ⚠️ **`pipeline.client.insert_rows_json` を直に呼ばないこと。** 素で呼ぶと
            資格情報の更新の一時失敗で死に、雑に再送すると行が二重に入る（#1947）。
+
+        ⚠️ **`**kwargs` を素通しすること。** 2026-09-22、直呼びを入口へ寄せたときに
+           引数を `(table_id, rows)` だけにしてしまい、`row_ids=` を渡している
+           `pg_sync_common.write_sync_log` が TypeError で落ちた
+           （dev 同期が最後のログ書き込みだけで失敗した）。**入口は呼び出し側の
+           シグネチャを狭めてはいけない。**
         """
-        return _retry_auth_only(lambda: self.client.insert_rows_json(table_id, rows),
-                                what=f"insert_rows_json {table_id}")
+        return _retry_auth_only(
+            lambda: self.client.insert_rows_json(table_id, rows, **kwargs),
+            what=f"insert_rows_json {table_id}")
 
     def execute(
         self, sql: str, parameters: list[bigquery.ScalarQueryParameter] | None = None
