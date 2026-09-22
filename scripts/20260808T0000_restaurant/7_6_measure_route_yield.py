@@ -54,8 +54,10 @@ def build_sql(ds: str) -> str:
       SELECT account_id AS handle, post_id
       FROM `{ds}.{TABLE_POST_RAW}` WHERE account_id IS NOT NULL
     ),
+    -- ⚠️ 配信カタログ側の投稿キーは **external_content_id**（`post_id` ではない。
+    --    9_1 が `external_content_id: r["post_id"]` として書いている）。
     cat AS (
-      SELECT DISTINCT post_id, google_place_id
+      SELECT DISTINCT external_content_id AS post_id, google_place_id
       FROM `{ds}.{TABLE_DISH_MEDIA_CATALOG}` WHERE run_id = @cat_rid
     ),
     pair AS (

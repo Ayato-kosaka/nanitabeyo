@@ -39,6 +39,10 @@ class TheCountingRulesAreFixedTest(unittest.TestCase):
         self.assertIn("COUNT(DISTINCT p.google_place_id)", SQL)
         self.assertNotIn("status='matched'", SQL.replace(" ", ""))
 
+    def test_the_catalog_post_key_is_external_content_id(self):
+        """配信カタログ側の投稿キーは `post_id` ではない（2026-09-22 に 400 で落ちた）。"""
+        self.assertIn("external_content_id AS post_id", SQL)
+
     def test_it_separates_stores_only_this_route_delivered(self):
         """重なる店はその経路を止めても失われない。止めてよいかは独占店で見る。"""
         self.assertIn("n_routes = 1", SQL)
