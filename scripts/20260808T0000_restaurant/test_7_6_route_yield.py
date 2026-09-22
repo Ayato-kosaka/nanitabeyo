@@ -58,6 +58,24 @@ class TheCountingRulesAreFixedTest(unittest.TestCase):
         self.assertIn("n_routes = 1", SQL)
 
 
+class TheCollectionRoundViewAnswersWasThisRoundWorthItTest(unittest.TestCase):
+    """経路の表だけでは «そのラウンドに quota を使って良かったか» に答えられない。
+
+    2026-09-22: Foursquare 経路は 15,984 件を登録したが «最初に見つけた» のは 43 件。
+    実際に呼んだ 1,488 件の成果は、その handle を先に見つけた他経路の行へ散っていた。
+    """
+
+    def test_it_groups_by_the_collection_run_not_the_discovery_run(self):
+        sql = m.build_run_sql("food-scroll.restaurant_recommendation")
+        self.assertIn("COUNT(DISTINCT raw.account_id) AS accounts", sql)
+        self.assertNotIn("sns_source_account", sql)
+
+    def test_a_store_counts_once_per_round_even_with_many_posts(self):
+        sql = m.build_run_sql("food-scroll.restaurant_recommendation")
+        self.assertIn("COUNT(DISTINCT c.google_place_id)", sql)
+        self.assertIn("COUNT(DISTINCT raw.post_id) AS posts", sql)
+
+
 class ItRefusesToReportWhenItCannotMeasureTest(unittest.TestCase):
     def test_per_account_yield_uses_attempted_as_the_denominator(self):
         rows = [{"run_id": "r1", "discovery_method": "fsq", "registered": 1200,

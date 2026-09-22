@@ -115,6 +115,60 @@ def build_sql(ds: str) -> str:
     """
 
 
+def build_run_sql(ds: str) -> str:
+    """**収集ラウンドごと**の «1 アカウントあたり配信店»。
+
+    経路ごとの表（`build_sql`）は «その handle を最初に見つけた run» に成果を付けるので、
+    «別経路が既に知っていた handle を、あるラウンドが初めて呼んだ» 場合、そのラウンドの
+    働きは別経路の行に乗る。**«そのラウンドに quota を使って良かったか» はここで見る。**
+    （2026-09-22: Foursquare 経路は 15,984 件を登録したが «最初に見つけた» のは 43 件で、
+      実際に呼んだ 1,488 件の成果は他経路の行へ散っていた。）
+    """
+    return f"""
+    WITH cat AS (
+      SELECT DISTINCT external_content_id AS post_id, google_place_id
+      FROM `{ds}.{TABLE_DISH_MEDIA_CATALOG}` WHERE run_id = @cat_rid
+    ),
+    raw AS (
+      SELECT run_id, post_id, account_id
+      FROM `{ds}.{TABLE_POST_RAW}` WHERE account_id IS NOT NULL
+    ),
+    pair AS (
+      SELECT r.run_id, c.google_place_id FROM raw r JOIN cat c ON c.post_id = r.post_id
+    ),
+    store_runs AS (
+      SELECT google_place_id, COUNT(DISTINCT run_id) AS n_runs FROM pair GROUP BY 1
+    )
+    SELECT raw.run_id,
+           COUNT(DISTINCT raw.account_id) AS accounts,
+           COUNT(DISTINCT raw.post_id) AS posts,
+           COUNT(DISTINCT c.google_place_id) AS delivered_stores,
+           COUNT(DISTINCT IF(sr.n_runs = 1, c.google_place_id, NULL)) AS exclusive_stores
+    FROM raw
+    LEFT JOIN cat c ON c.post_id = raw.post_id
+    LEFT JOIN store_runs sr ON sr.google_place_id = c.google_place_id
+    GROUP BY 1
+    ORDER BY delivered_stores DESC
+    """
+
+
+def report_runs(rows: list[dict], *, top: int = 25) -> None:
+    LOGGER.info("")
+    LOGGER.info("■ 収集ラウンドごと（«このラウンドに quota を使って良かったか»）")
+    LOGGER.info("%-34s %8s %9s %8s %8s %8s",
+                "収集 run", "アカウント", "投稿", "配信店", "独占店", "店/アカ")
+    for r in rows[:top]:
+        acc = int(r["accounts"] or 0)
+        per = (int(r["delivered_stores"] or 0) / acc) if acc else 0.0
+        LOGGER.info("%-34s %8d %9d %8d %8d %8.2f", (r["run_id"] or "(不明)")[:34], acc,
+                    int(r["posts"] or 0), int(r["delivered_stores"] or 0),
+                    int(r["exclusive_stores"] or 0), per)
+    if len(rows) > top:
+        LOGGER.info("  …（配信店の多い順に %d 件まで。全 %d ラウンド）", top, len(rows))
+    LOGGER.info("⚠️ «独占店» はそのラウンドだけが連れてきた店。重なる店は、そのラウンドを"
+                "止めても他のラウンドが拾っている。")
+
+
 def report(rows: list[dict], *, accounts_per_hour: float) -> None:
     """経路ごとの «1 アカウントあたり配信店» と «残りを撃ち切る時間» を出す。"""
     LOGGER.info("%-30s %8s %8s %8s %9s %8s %8s %8s",
@@ -163,6 +217,7 @@ def main() -> int:
                    help="Meta アプリ 1 個あたりの実効スループット（既定 205）")
     p.add_argument("--project", default="food-scroll")
     p.add_argument("--dataset", default="restaurant_recommendation")
+    p.add_argument("--top-runs", type=int, default=25, help="収集ラウンドの表に出す件数")
     p.add_argument("--print-sql", action="store_true")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -170,6 +225,7 @@ def main() -> int:
     sql = build_sql(f"{args.project}.{args.dataset}")
     if args.print_sql:
         print(sql)
+        print(build_run_sql(f"{args.project}.{args.dataset}"))
         return 0
 
     from google.cloud import bigquery  # noqa: PLC0415
@@ -185,6 +241,11 @@ def main() -> int:
             f"配信カタログ run_id={args.delivery_run_id!r} に紐づく投稿が 1 件も無い。"
             f"測定不能であって «歩留まり 0» ではない。run_id を確かめること。")
     report(rows, accounts_per_hour=args.accounts_per_hour)
+
+    run_rows = [dict(r) for r in pipeline.execute(build_run_sql(f"{args.project}.{args.dataset}"), [
+        bigquery.ScalarQueryParameter("cat_rid", "STRING", args.delivery_run_id),
+    ])]
+    report_runs(run_rows, top=args.top_runs)
     return 0
 
 
