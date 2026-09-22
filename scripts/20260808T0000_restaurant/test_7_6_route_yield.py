@@ -76,6 +76,23 @@ class TheCollectionRoundViewAnswersWasThisRoundWorthItTest(unittest.TestCase):
         self.assertIn("COUNT(DISTINCT raw.post_id) AS posts", sql)
 
 
+class TheSameCountingServesBothViewsTest(unittest.TestCase):
+    """経路の表と種類の表を別々の SQL に書かない（合計が食い違うと、どちらが正か分からない）。"""
+
+    def test_account_type_uses_the_same_query(self):
+        """群の名前以外は 1 文字も違わないこと。"""
+        def norm(sql: str) -> str:
+            for expr in ("IFNULL(ro.account_type, '(不明)')", "ro.run_id",
+                         "IFNULL(account_type, '(不明)')"):
+                sql = sql.replace(expr, "<KEY>")
+            return sql.replace("run_id AS k", "<KEY> AS k")
+        self.assertEqual(norm(m.build_sql("d")), norm(m.build_sql("d", "account_type")))
+
+    def test_it_refuses_an_unknown_grouping(self):
+        with self.assertRaises(ValueError):
+            m.build_sql("d", "handle")
+
+
 class ItRefusesToReportWhenItCannotMeasureTest(unittest.TestCase):
     def test_per_account_yield_uses_attempted_as_the_denominator(self):
         rows = [{"run_id": "r1", "discovery_method": "fsq", "registered": 1200,

@@ -37,16 +37,27 @@ from common_sns import (PROVIDER_INSTAGRAM, TABLE_ACCOUNT_ATTEMPT,  # noqa: E402
 LOGGER = logging.getLogger("7_6")
 
 
-def build_sql(ds: str) -> str:
+def build_sql(ds: str, group_col: str = "run_id") -> str:
+    """`group_col`（`run_id` = 発見経路 / `account_type` = アカウントの種類）ごとに数える。
+
+    ⚠️ 2 つの見方を別々の SQL に書かない。同じ数え方でないと «経路で見た合計» と
+    «種類で見た合計» が食い違い、どちらが正か分からなくなる。
+    """
+    if group_col not in ("run_id", "account_type"):
+        raise ValueError(f"group_col は run_id か account_type のみ: {group_col!r}")
+    key = f"IFNULL(ro.{group_col}, '(不明)')" if group_col == "account_type" else f"ro.{group_col}"
+    src_key = (f"IFNULL({group_col}, '(不明)')" if group_col == "account_type" else group_col)
     return f"""
     WITH src AS (
-      SELECT handle, run_id, discovery_method,
+      SELECT handle, run_id, discovery_method, account_type,
              ROW_NUMBER() OVER (PARTITION BY handle ORDER BY discovered_at, run_id) AS rn
       FROM `{ds}.{TABLE_SOURCE_ACCOUNT}`
       WHERE provider = @prov AND handle IS NOT NULL
     ),
     -- ⚠️ 1 handle = 1 経路。重複発見を両方に数えると合計が在庫を超える
-    route AS (SELECT handle, run_id, discovery_method FROM src WHERE rn = 1),
+    route AS (
+      SELECT handle, run_id, discovery_method, account_type FROM src WHERE rn = 1
+    ),
     -- ⚠️ **呼んだ台帳（sns_account_attempt）は #1815 の途中からしか無い。**
     --    それ以前に呼んだ handle は台帳に居ないので、台帳だけを分母にすると
     --    古い経路が «0 件しか呼んでいないのに 2 万店» という嘘の行になる（2026-09-22 実測）。
@@ -67,50 +78,50 @@ def build_sql(ds: str) -> str:
       FROM `{ds}.{TABLE_DISH_MEDIA_CATALOG}` WHERE run_id = @cat_rid
     ),
     pair AS (
-      SELECT ro.run_id, ro.handle, c.google_place_id
+      SELECT {key} AS k, ro.handle, c.google_place_id
       FROM raw r JOIN cat c ON c.post_id = r.post_id
       JOIN route ro ON ro.handle = r.handle
     ),
-    -- その店を連れてきた経路が 1 本だけか（＝その経路を止めたら失う店か）
+    -- その店を連れてきた群が 1 つだけか（＝その群を止めたら失う店か）
     store_routes AS (
-      SELECT google_place_id, COUNT(DISTINCT run_id) AS n_routes FROM pair GROUP BY 1
+      SELECT google_place_id, COUNT(DISTINCT k) AS n_routes FROM pair GROUP BY 1
     ),
     posts AS (
-      SELECT ro.run_id, COUNT(*) AS posts
+      SELECT {key} AS k, COUNT(*) AS posts
       FROM raw r JOIN route ro ON ro.handle = r.handle GROUP BY 1
     ),
     stores AS (
-      SELECT p.run_id,
+      SELECT p.k,
              COUNT(DISTINCT p.google_place_id) AS delivered_stores,
              COUNT(DISTINCT IF(sr.n_routes = 1, p.google_place_id, NULL)) AS exclusive_stores
       FROM pair p JOIN store_routes sr USING (google_place_id)
       GROUP BY 1
     ),
     acc AS (
-      SELECT ro.run_id,
+      SELECT {key} AS k,
              ANY_VALUE(ro.discovery_method) AS discovery_method,
              COUNT(DISTINCT ro.handle) AS discovered,
              COUNT(DISTINCT IF(a.handle IS NOT NULL, ro.handle, NULL)) AS attempted
       FROM route ro LEFT JOIN att a ON a.handle = ro.handle
       GROUP BY 1
     ),
-    -- その run が登録した handle 全部（他の run が先に見つけていた分も含む）。
-    -- «登録 − 在庫» がその経路の重複ぶん。新しい経路が本当に射程を広げたかはここで分かる。
+    -- その群が登録した handle 全部（他が先に見つけていた分も含む）。
+    -- «登録 − 新規» が重複ぶん。新しい経路が本当に射程を広げたかはここで分かる。
     registered AS (
-      SELECT run_id, COUNT(DISTINCT handle) AS registered
+      SELECT {src_key} AS k, COUNT(DISTINCT handle) AS registered
       FROM `{ds}.{TABLE_SOURCE_ACCOUNT}` WHERE provider = @prov AND handle IS NOT NULL
       GROUP BY 1
     )
-    SELECT acc.run_id, acc.discovery_method,
+    SELECT acc.k AS run_id, acc.discovery_method,
            IFNULL(registered.registered, 0) AS registered,
            acc.discovered, acc.attempted,
            IFNULL(posts.posts, 0) AS posts,
            IFNULL(stores.delivered_stores, 0) AS delivered_stores,
            IFNULL(stores.exclusive_stores, 0) AS exclusive_stores
     FROM acc
-    LEFT JOIN registered USING (run_id)
-    LEFT JOIN posts USING (run_id)
-    LEFT JOIN stores USING (run_id)
+    LEFT JOIN registered USING (k)
+    LEFT JOIN posts USING (k)
+    LEFT JOIN stores USING (k)
     ORDER BY delivered_stores DESC
     """
 
@@ -169,10 +180,11 @@ def report_runs(rows: list[dict], *, top: int = 25) -> None:
                 "止めても他のラウンドが拾っている。")
 
 
-def report(rows: list[dict], *, accounts_per_hour: float) -> None:
+def report(rows: list[dict], *, accounts_per_hour: float, label: str = "発見 run（経路）",
+           with_burn: bool = True) -> None:
     """経路ごとの «1 アカウントあたり配信店» と «残りを撃ち切る時間» を出す。"""
     LOGGER.info("%-30s %8s %8s %8s %9s %8s %8s %8s",
-                "発見 run（経路）", "登録", "新規", "呼んだ", "投稿", "配信店", "独占店", "店/アカ")
+                label, "登録", "新規", "呼んだ", "投稿", "配信店", "独占店", "店/アカ")
     tot = {k: 0 for k in ("registered", "discovered", "attempted", "posts",
                           "delivered_stores", "exclusive_stores")}
     for r in rows:
@@ -196,7 +208,9 @@ def report(rows: list[dict], *, accounts_per_hour: float) -> None:
     LOGGER.info("⚠️ «呼んだ» は台帳（#1815 以降）＋投稿のある handle。**呼んで 1 枚も返さず、"
                 "台帳より前だった handle は数えられない**（古い経路ほど過小になる）。")
 
-    # 残弾を撃ち切るのに要る時間（経路ごと）
+    if not with_burn:
+        return
+    # 残弾を撃ち切るのに要る時間（群ごと）
     LOGGER.info("")
     LOGGER.info("残弾（在庫 − 呼んだ）を %.0f アカウント/時 で撃ち切るのに要る時間:", accounts_per_hour)
     for r in sorted(rows, key=lambda x: -(int(x["discovered"] or 0) - int(x["attempted"] or 0))):  # noqa: E501
@@ -246,6 +260,16 @@ def main() -> int:
         bigquery.ScalarQueryParameter("cat_rid", "STRING", args.delivery_run_id),
     ])]
     report_runs(run_rows, top=args.top_runs)
+
+    # ③ アカウントの種類ごと（«次の 1 コールを誰に使うか» の答えはここに出る）
+    type_rows = [dict(r) for r in pipeline.execute(
+        build_sql(f"{args.project}.{args.dataset}", "account_type"), [
+            bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
+            bigquery.ScalarQueryParameter("cat_rid", "STRING", args.delivery_run_id),
+        ])]
+    LOGGER.info("")
+    LOGGER.info("■ アカウントの種類ごと（残弾の «質»）")
+    report(type_rows, accounts_per_hour=args.accounts_per_hour, label="account_type")
     return 0
 
 
