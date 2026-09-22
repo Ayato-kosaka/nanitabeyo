@@ -119,6 +119,20 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       JOIN reachable r ON r.gpid = s.google_place_id
       GROUP BY point
     ),
+    -- ⑤ «ハンドルすら無い» 店 = 収集では届かないが、**発見（#1777 の巡回）なら届く**店。
+    --    ④ が 0 の地点で «もう打つ手が無い» と言わないために数える。巡回の打率は約 36.8%。
+    handled AS (
+      SELECT DISTINCT discovery_seed_place_id AS gpid
+      FROM `{ds}.{TABLE_SOURCE_ACCOUNT}` WHERE discovery_seed_place_id IS NOT NULL
+    ),
+    pt_nohandle AS (
+      SELECT p.pid AS point, COUNT(DISTINCT s.google_place_id) AS no_handle_500m
+      FROM pts p
+      JOIN store_loc s ON ST_DWithin(p.location, s.location, {int(radius_m)})
+      LEFT JOIN handled h ON h.gpid = s.google_place_id
+      WHERE h.gpid IS NULL
+      GROUP BY point
+    ),
     per_point AS (
       SELECT point,
              COUNTIF(stores >= 5) AS cats_ge5,
@@ -132,11 +146,13 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       IFNULL(pp.cats_ge5, 0) AS cats_ge5,
       IFNULL(pp.cats_any, 0) AS cats_any,
       IFNULL(pp.cell_stores, []) AS cell_stores,
-      IFNULL(pr.reachable_500m, 0) AS reachable_500m
+      IFNULL(pr.reachable_500m, 0) AS reachable_500m,
+      IFNULL(pn.no_handle_500m, 0) AS no_handle_500m
     FROM pts p
     LEFT JOIN pt_stores ps ON ps.point = p.pid
     LEFT JOIN per_point pp ON pp.point = p.pid
     LEFT JOIN pt_reach pr ON pr.point = p.pid
+    LEFT JOIN pt_nohandle pn ON pn.point = p.pid
     """
 
 
@@ -178,8 +194,17 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = Fa
                 "（合計 %d 店・中央値 %d 店）",
                 have, len(picked), sum(reach), sorted(reach)[len(reach) // 2] if reach else 0)
     if have < len(picked):
-        log("  ⚠️ 残り %d 地点は «撃てる弾が 1 つも無い»。収集では埋まらないので、"
-                    "発見（#1777）か店台帳の拡張が要る", len(picked) - have)
+        log("  ⚠️ 残り %d 地点は «撃てる弾が 1 つも無い»。収集では埋まらない", len(picked) - have)
+        # ⚠️ «収集では埋まらない» で止めない。**次に何をすれば届くのか**まで出す。
+        dry = [pid for _, pid in picked if by_point[pid]["reachable_500m"] == 0]
+        nh = [by_point[pid]["no_handle_500m"] for pid in dry]
+        with_nh = sum(1 for n in nh if n > 0)
+        log("  → そのうち **«ハンドルすら無い店» が 500m 圏にある地点 = %d / %d**"
+            "（合計 %d 店・中央値 %d 店）。巡回（#1777）で handle を掘れば届く",
+            with_nh, len(dry), sum(nh), sorted(nh)[len(nh) // 2] if nh else 0)
+        if with_nh < len(dry):
+            log("  ⚠️ さらに %d 地点は «500m 圏の店を全部知っていて、全部呼び終えた»。"
+                "ここは店台帳そのものが薄い（発見でも収集でも届かない）", len(dry) - with_nh)
 
     hist: dict[int, int] = {}
     for c, _ in picked:
@@ -233,7 +258,8 @@ def fetch_points(pipeline, *, delivery_run_id: str, project: str = "food-scroll"
     return [{"point": r["point"], "stores_500m": int(r["stores_500m"] or 0),
              "cats_ge5": int(r["cats_ge5"] or 0), "cats_any": int(r["cats_any"] or 0),
              "cell_stores": [int(x) for x in (r["cell_stores"] or [])],
-             "reachable_500m": int(r["reachable_500m"] or 0)} for r in rows]
+             "reachable_500m": int(r["reachable_500m"] or 0),
+             "no_handle_500m": int(r["no_handle_500m"] or 0)} for r in rows]
 
 
 def select_gap_points(pipeline, *, delivery_run_id: str, top_pct: int = 70,

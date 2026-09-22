@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 import sys
 import unittest
 from pathlib import Path
@@ -48,9 +49,11 @@ class _StubPipeline:
         return list(self.rows)
 
 
-def _point(pid: str, *, stores: int, best_cell: int, reachable: int) -> dict:
+def _point(pid: str, *, stores: int, best_cell: int, reachable: int,
+           no_handle: int = 0) -> dict:
     return {"point": pid, "stores_500m": stores, "cats_ge5": 1 if best_cell >= 5 else 0,
-            "cats_any": 1, "cell_stores": [best_cell], "reachable_500m": reachable}
+            "cats_any": 1, "cell_stores": [best_cell], "reachable_500m": reachable,
+            "no_handle_500m": no_handle}
 
 
 class SevenFiveDecidesWhichPointsToShootTest(unittest.TestCase):
@@ -70,6 +73,24 @@ class SevenFiveDecidesWhichPointsToShootTest(unittest.TestCase):
     def test_already_passing_points_are_not_picked(self):
         pts = [_point("ok", stores=99, best_cell=7, reachable=5)]
         self.assertEqual([], m75._deficit(pts, top_pct=100, target_pct=100, quiet=True))
+
+    def test_it_says_which_dry_points_can_still_be_reached_by_crawling(self):
+        """«撃てる弾が無い» で止めない。巡回（#1777）で届く地点を数えて出す。"""
+        pts = [_point("dry_but_crawlable", stores=90, best_cell=4, reachable=0, no_handle=7),
+               _point("truly_dry", stores=80, best_cell=4, reachable=0, no_handle=0)]
+        lines: list[str] = []
+        h = logging.Handler()
+        h.emit = lambda rec: lines.append(rec.getMessage())  # type: ignore[assignment]
+        m75.LOGGER.addHandler(h)
+        m75.LOGGER.setLevel(logging.INFO)
+        try:
+            m75._deficit(pts, top_pct=100, target_pct=100)
+        finally:
+            m75.LOGGER.removeHandler(h)
+        body = "\n".join(lines)
+        self.assertIn("ハンドルすら無い店", body)
+        self.assertIn("= 1 / 2", body)
+        self.assertIn("店台帳そのものが薄い", body)
 
     def test_the_cheapest_points_come_first(self):
         """«あと 1 店» の地点を «あと 4 店» より先に撃つ。"""
