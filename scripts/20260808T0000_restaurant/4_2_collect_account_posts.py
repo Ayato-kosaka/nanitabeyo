@@ -57,7 +57,17 @@ class AccountNotDiscoverable(Exception):
 # これを見ずに投げ続けると 100% で (#4) を食らい、以後 1 時間近くロックされる。実測でも
 # «最初の 5 分で 37 アカウント → 次の 53 分で 0» というバースト→全損の形になっていた。
 # 使用率が上がったら自分で減速する方が、同じ枠で連続的に多く取れる。
-_APP_USAGE = {"pct": 0}
+# #1947 x-app-usage は «柱1 の天井» そのものなので、run のログから読めるようにする。
+#
+# 2026-09-22 に踏んだ: 同じ引数の収集ラウンドで 155〜226 アカウント/時と 46% ぶれていた。
+# エラーも停止も無く、アカウント間隔が一様に伸びていた（p50 21.8s 対 15.3s・60 秒超が
+# 27 回 対 0 回）。原因は下の `pace_for_app_usage` が使用率の段に応じて自分で待っていた
+# ことだが、**その待機は DEBUG でしか出しておらず、ログから «どの段で回っていたか» が
+# 分からなかった**。«Meta アプリを増やすと何アカウント/時 増えるか»（#1791）は柱1 最大の
+# 打ち手なので、その試算の分母をログから取れるようにしておく。
+#
+# 毎コール出すと 6,000 アカメのログが埋まるので «段が変わったとき» と «run の最後» だけ出す。
+_APP_USAGE = {"pct": 0, "peak": 0, "tier": None, "waited_s": 0.0}
 
 
 def _note_usage(headers) -> None:
@@ -70,14 +80,20 @@ def _note_usage(headers) -> None:
         return
     _APP_USAGE["pct"] = max(int(d.get("call_count") or 0), int(d.get("total_time") or 0),
                             int(d.get("total_cputime") or 0))
+    _APP_USAGE["peak"] = max(_APP_USAGE["peak"], _APP_USAGE["pct"])
 
 
 def pace_for_app_usage() -> None:
     """x-app-usage の使用率に応じて呼び出し前に待つ（100% に当てない）。"""
     pct = _APP_USAGE["pct"]
     delay = 60 if pct >= 95 else 20 if pct >= 85 else 8 if pct >= 75 else 2 if pct >= 60 else 0
+    # 段が変わった瞬間だけ INFO で出す（毎コールだとログが埋まる）。
+    if delay != _APP_USAGE["tier"]:
+        LOGGER.info("x-app-usage %d%% → 1 コールあたり %ds 待つ段に入りました", pct, delay)
+        _APP_USAGE["tier"] = delay
     if delay:
         LOGGER.debug("x-app-usage %d%% のため %ds 待機", pct, delay)
+        _APP_USAGE["waited_s"] += delay
         time.sleep(delay)
 
 
@@ -863,6 +879,17 @@ def main() -> None:
         LOGGER.info("sns_post_raw に %d 投稿を投入しました（%d/%d アカウント・%.1f 分・%s）",
                     count, processed, len(accounts), elapsed_min,
                     "時間で打ち切り" if stopped_on_time else "在庫を処理しきった")
+        # #1947 柱1 の天井の実測。«アプリを 1 個足すと何アカウント/時 増えるか» の材料。
+        # waited_s は «自分で待った合計» なので、これが経過時間に占める割合が
+        # «アプリ 1 個のクォータにどれだけ張り付いていたか» の下限になる。
+        if elapsed_min > 0:
+            LOGGER.info(
+                "x-app-usage: 最終 %d%% / 最大 %d%% ・ 自分で待った合計 %.1f 分"
+                "（経過の %.1f%%）・ 実効 %.1f アカウント/時",
+                _APP_USAGE["pct"], _APP_USAGE["peak"], _APP_USAGE["waited_s"] / 60,
+                100.0 * (_APP_USAGE["waited_s"] / 60) / elapsed_min,
+                60 * processed / elapsed_min,
+            )
 
 
 if __name__ == "__main__":
