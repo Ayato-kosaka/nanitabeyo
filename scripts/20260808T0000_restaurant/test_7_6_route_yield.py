@@ -34,6 +34,16 @@ class TheCountingRulesAreFixedTest(unittest.TestCase):
         self.assertIn("sns_account_attempt", SQL)
         self.assertIn("IF(a.handle IS NOT NULL, ro.handle, NULL)", SQL)
 
+    def test_handles_with_posts_count_as_called_even_without_the_ledger(self):
+        """台帳（#1815 以降）だけを分母にすると、古い経路が «0 件呼んで 2 万店» になる。"""
+        self.assertIn("UNION DISTINCT", SQL)
+        self.assertIn("SELECT DISTINCT account_id FROM `food-scroll.restaurant_recommendation"
+                      ".sns_post_raw`", SQL)
+
+    def test_it_shows_how_many_handles_a_route_only_re_registered(self):
+        """«登録 − 新規» が大きい経路は、射程を広げずに同じ handle を入れ直しただけ。"""
+        self.assertIn("registered AS (", SQL)
+
     def test_the_outcome_is_distinct_delivered_stores_not_matched_rows(self):
         self.assertIn("sns_dish_media_catalog", SQL)
         self.assertIn("COUNT(DISTINCT p.google_place_id)", SQL)
@@ -50,8 +60,9 @@ class TheCountingRulesAreFixedTest(unittest.TestCase):
 
 class ItRefusesToReportWhenItCannotMeasureTest(unittest.TestCase):
     def test_per_account_yield_uses_attempted_as_the_denominator(self):
-        rows = [{"run_id": "r1", "discovery_method": "fsq", "discovered": 1000,
-                 "attempted": 100, "posts": 500, "delivered_stores": 50, "exclusive_stores": 40}]
+        rows = [{"run_id": "r1", "discovery_method": "fsq", "registered": 1200,
+                 "discovered": 1000, "attempted": 100, "posts": 500,
+                 "delivered_stores": 50, "exclusive_stores": 40}]
         lines: list[str] = []
         h = logging.Handler()
         h.emit = lambda rec: lines.append(rec.getMessage())  # type: ignore[assignment]
@@ -67,8 +78,9 @@ class ItRefusesToReportWhenItCannotMeasureTest(unittest.TestCase):
 
     def test_a_route_that_was_never_called_is_not_reported_as_zero_yield(self):
         """1 度も呼んでいない経路に «見込み 0» と書くと、良い燃料を捨てる。"""
-        rows = [{"run_id": "new", "discovery_method": "fsq", "discovered": 15984,
-                 "attempted": 0, "posts": 0, "delivered_stores": 0, "exclusive_stores": 0}]
+        rows = [{"run_id": "new", "discovery_method": "fsq", "registered": 15984,
+                 "discovered": 15984, "attempted": 0, "posts": 0,
+                 "delivered_stores": 0, "exclusive_stores": 0}]
         lines: list[str] = []
         h = logging.Handler()
         h.emit = lambda rec: lines.append(rec.getMessage())  # type: ignore[assignment]

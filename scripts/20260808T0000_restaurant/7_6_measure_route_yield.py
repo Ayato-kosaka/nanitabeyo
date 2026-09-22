@@ -47,8 +47,14 @@ def build_sql(ds: str) -> str:
     ),
     -- ⚠️ 1 handle = 1 経路。重複発見を両方に数えると合計が在庫を超える
     route AS (SELECT handle, run_id, discovery_method FROM src WHERE rn = 1),
+    -- ⚠️ **呼んだ台帳（sns_account_attempt）は #1815 の途中からしか無い。**
+    --    それ以前に呼んだ handle は台帳に居ないので、台帳だけを分母にすると
+    --    古い経路が «0 件しか呼んでいないのに 2 万店» という嘘の行になる（2026-09-22 実測）。
+    --    投稿が 1 枚でもある handle は «呼んだ» に数える。
     att AS (
       SELECT DISTINCT handle FROM `{ds}.{TABLE_ACCOUNT_ATTEMPT}` WHERE provider = @prov
+      UNION DISTINCT
+      SELECT DISTINCT account_id FROM `{ds}.{TABLE_POST_RAW}` WHERE account_id IS NOT NULL
     ),
     raw AS (
       SELECT account_id AS handle, post_id
@@ -87,12 +93,22 @@ def build_sql(ds: str) -> str:
              COUNT(DISTINCT IF(a.handle IS NOT NULL, ro.handle, NULL)) AS attempted
       FROM route ro LEFT JOIN att a ON a.handle = ro.handle
       GROUP BY 1
+    ),
+    -- その run が登録した handle 全部（他の run が先に見つけていた分も含む）。
+    -- «登録 − 在庫» がその経路の重複ぶん。新しい経路が本当に射程を広げたかはここで分かる。
+    registered AS (
+      SELECT run_id, COUNT(DISTINCT handle) AS registered
+      FROM `{ds}.{TABLE_SOURCE_ACCOUNT}` WHERE provider = @prov AND handle IS NOT NULL
+      GROUP BY 1
     )
-    SELECT acc.run_id, acc.discovery_method, acc.discovered, acc.attempted,
+    SELECT acc.run_id, acc.discovery_method,
+           IFNULL(registered.registered, 0) AS registered,
+           acc.discovered, acc.attempted,
            IFNULL(posts.posts, 0) AS posts,
            IFNULL(stores.delivered_stores, 0) AS delivered_stores,
            IFNULL(stores.exclusive_stores, 0) AS exclusive_stores
     FROM acc
+    LEFT JOIN registered USING (run_id)
     LEFT JOIN posts USING (run_id)
     LEFT JOIN stores USING (run_id)
     ORDER BY delivered_stores DESC
@@ -101,28 +117,35 @@ def build_sql(ds: str) -> str:
 
 def report(rows: list[dict], *, accounts_per_hour: float) -> None:
     """経路ごとの «1 アカウントあたり配信店» と «残りを撃ち切る時間» を出す。"""
-    LOGGER.info("%-34s %9s %9s %9s %9s %9s %9s",
-                "発見 run（経路）", "在庫", "呼んだ", "投稿", "配信店", "独占店", "店/アカ")
-    tot = {k: 0 for k in ("discovered", "attempted", "posts", "delivered_stores", "exclusive_stores")}
+    LOGGER.info("%-30s %8s %8s %8s %9s %8s %8s %8s",
+                "発見 run（経路）", "登録", "新規", "呼んだ", "投稿", "配信店", "独占店", "店/アカ")
+    tot = {k: 0 for k in ("registered", "discovered", "attempted", "posts",
+                          "delivered_stores", "exclusive_stores")}
     for r in rows:
         for k in tot:
             tot[k] += int(r[k] or 0)
         per = (r["delivered_stores"] / r["attempted"]) if r["attempted"] else 0.0
-        LOGGER.info("%-34s %9d %9d %9d %9d %9d %9.2f",
-                    (r["run_id"] or "(不明)")[:34], r["discovered"], r["attempted"],
-                    r["posts"], r["delivered_stores"], r["exclusive_stores"], per)
+        LOGGER.info("%-30s %8d %8d %8d %9d %8d %8d %8.2f",
+                    (r["run_id"] or "(不明)")[:30], r["registered"], r["discovered"],
+                    r["attempted"], r["posts"], r["delivered_stores"],
+                    r["exclusive_stores"], per)
     per_all = (tot["delivered_stores"] / tot["attempted"]) if tot["attempted"] else 0.0
-    LOGGER.info("%-34s %9d %9d %9d %9d %9d %9.2f", "合計", tot["discovered"], tot["attempted"],
-                tot["posts"], tot["delivered_stores"], tot["exclusive_stores"], per_all)
+    LOGGER.info("%-30s %8d %8d %8d %9d %8d %8d %8.2f", "合計", tot["registered"],
+                tot["discovered"], tot["attempted"], tot["posts"],
+                tot["delivered_stores"], tot["exclusive_stores"], per_all)
     LOGGER.info("")
     LOGGER.info("⚠️ «配信店» は経路間で重なる（合計は異なり店の合計ではない）。"
                 "止めてよいかは «独占店» で見る。")
     LOGGER.info("⚠️ «店/アカ» は **呼んだ** アカウントあたり。在庫あたりではない。")
+    LOGGER.info("⚠️ «登録» はその run が入れた handle 全部、«新規» はその run が最初に見つけた分。"
+                "差が大きい経路は、射程を広げずに同じ handle を入れ直しただけである。")
+    LOGGER.info("⚠️ «呼んだ» は台帳（#1815 以降）＋投稿のある handle。**呼んで 1 枚も返さず、"
+                "台帳より前だった handle は数えられない**（古い経路ほど過小になる）。")
 
     # 残弾を撃ち切るのに要る時間（経路ごと）
     LOGGER.info("")
     LOGGER.info("残弾（在庫 − 呼んだ）を %.0f アカウント/時 で撃ち切るのに要る時間:", accounts_per_hour)
-    for r in sorted(rows, key=lambda x: -(int(x["discovered"] or 0) - int(x["attempted"] or 0))):
+    for r in sorted(rows, key=lambda x: -(int(x["discovered"] or 0) - int(x["attempted"] or 0))):  # noqa: E501
         left = int(r["discovered"] or 0) - int(r["attempted"] or 0)
         if left <= 0:
             continue
