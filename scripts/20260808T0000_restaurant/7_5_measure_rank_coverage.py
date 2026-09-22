@@ -41,6 +41,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from common_sns import (TABLE_DISH_MEDIA_CATALOG, TABLE_RESTAURANT_CATALOG,  # noqa: E402
+                        TABLE_SOURCE_ACCOUNT, TABLE_ACCOUNT_ATTEMPT,
                         kpi_gate_category_sql)
 
 LOGGER = logging.getLogger("7_5")
@@ -97,6 +98,22 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
     pt_stores AS (
       SELECT point, COUNT(DISTINCT store) AS stores_500m FROM near GROUP BY point
     ),
+    -- ④ «手が届く» 店 = IG handle を既に持っている（sns_source_account の seed）。
+    --    «まだ呼んでいない» = sns_account_attempt に無い（#1970 で «候補 593 → 実弾 73» を
+    --    外した反省。候補数と実弾を混同しない）。
+    reachable AS (
+      SELECT DISTINCT a.discovery_seed_place_id AS gpid
+      FROM `{ds}.{TABLE_SOURCE_ACCOUNT}` a
+      WHERE a.discovery_seed_place_id IS NOT NULL
+        AND a.handle NOT IN (SELECT handle FROM `{ds}.{TABLE_ACCOUNT_ATTEMPT}`)
+    ),
+    pt_reach AS (
+      SELECT p.pid AS point, COUNT(DISTINCT s.google_place_id) AS reachable_500m
+      FROM pts p
+      JOIN store_loc s ON ST_DWithin(p.location, s.location, {int(radius_m)})
+      JOIN reachable r ON r.gpid = s.google_place_id
+      GROUP BY point
+    ),
     per_point AS (
       SELECT point,
              COUNTIF(stores >= 5) AS cats_ge5,
@@ -109,10 +126,12 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       IFNULL(ps.stores_500m, 0) AS stores_500m,
       IFNULL(pp.cats_ge5, 0) AS cats_ge5,
       IFNULL(pp.cats_any, 0) AS cats_any,
-      IFNULL(pp.cell_stores, []) AS cell_stores
+      IFNULL(pp.cell_stores, []) AS cell_stores,
+      IFNULL(pr.reachable_500m, 0) AS reachable_500m
     FROM pts p
     LEFT JOIN pt_stores ps ON ps.point = p.pid
     LEFT JOIN per_point pp ON pp.point = p.pid
+    LEFT JOIN pt_reach pr ON pr.point = p.pid
     """
 
 
@@ -146,6 +165,16 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int) -> None:
     total = sum(c for c, _ in picked)
     LOGGER.info("  安い順に %d 地点を埋めるのに必要な店数 = **%d 店**（1 地点あたり平均 %.1f 店）",
                 len(picked), total, total / len(picked) if picked else 0)
+    by_point = {p_["point"]: p_ for p_ in pts}
+    reach = [by_point[pid]["reachable_500m"] for _, pid in picked]
+    have = sum(1 for r in reach if r > 0)
+    LOGGER.info("  **そのうち «まだ呼んでいない・手が届く店» が 500m 圏にある地点 = %d / %d**"
+                "（合計 %d 店・中央値 %d 店）",
+                have, len(picked), sum(reach), sorted(reach)[len(reach) // 2] if reach else 0)
+    if have < len(picked):
+        LOGGER.info("  ⚠️ 残り %d 地点は «撃てる弾が 1 つも無い»。収集では埋まらないので、"
+                    "発見（#1777）か店台帳の拡張が要る", len(picked) - have)
+
     hist: dict[int, int] = {}
     for c, _ in picked:
         hist[c] = hist.get(c, 0) + 1
@@ -214,7 +243,8 @@ def main() -> int:
 
     pts = [{"point": r["point"], "stores_500m": int(r["stores_500m"] or 0),
             "cats_ge5": int(r["cats_ge5"] or 0), "cats_any": int(r["cats_any"] or 0),
-            "cell_stores": [int(x) for x in (r["cell_stores"] or [])]} for r in rows]
+            "cell_stores": [int(x) for x in (r["cell_stores"] or [])],
+            "reachable_500m": int(r["reachable_500m"] or 0)} for r in rows]
 
     # ⚠️ 判定器が «判定できたか» を先に言う。配信が 0 行なら «被覆 0» ではなく «測定不能»
     if not pts or not any(p_["stores_500m"] for p_ in pts):
