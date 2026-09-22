@@ -205,6 +205,70 @@ def main() -> int:
                 logger.info("      last_analyze=%s / last_autoanalyze=%s", ana, autoana)
                 logger.info("      last_autovacuum=%s", autovac)
 
+            # ── 4b. 作業セットがメモリに載るか ───────────────────────────
+            # 2026-09-22 に踏んだ: dev の «店名の絞り込みも無い» 最小の近傍クエリが
+            # 半径 500m で 3.1 秒、5km で 98 秒かかっていた。索引は正しく選ばれていて
+            # （idx_restaurants_location の Index Scan）、500m は 766 行しか返さない。
+            # プランの問題ではなく、`pg_stat_activity` が全部 `wait=IO/DataFileRead`
+            # だった＝**ディスクから読んでいた**。接続数は 6/60 で枯れていなかった。
+            #
+            # «統計が腐ったか / 索引があるか» だけでは、この «載らないから遅い» を
+            # 切り分けられない。判定に要るのはキャッシュヒット率と作業セットの大きさなので、
+            # ここで採る。allowlist（RECOMMENDATION_TABLES）は推薦クエリ用の固定なので
+            # そちらは変えず、この節はスキーマ全体をメタデータだけで見る。
+            section("4b. キャッシュヒット率と作業セットの大きさ")
+            cur.execute("SHOW shared_buffers")
+            logger.info("  shared_buffers: %s", cur.fetchone()[0])
+            cur.execute("SHOW effective_cache_size")
+            logger.info("  effective_cache_size: %s", cur.fetchone()[0])
+
+            # ヒット率は «起動からの累計» である。いま飽和しているかではなく
+            # «全体としてメモリに載っているか» を見る数字なので、瞬間値と混同しない。
+            cur.execute(
+                """
+                SELECT
+                  sum(heap_blks_hit) AS hit,
+                  sum(heap_blks_read) AS read
+                FROM pg_statio_user_tables
+                WHERE schemaname = %s
+                """,
+                (args.schema,),
+            )
+            hit, read = cur.fetchone()
+            if hit is not None and read is not None and (hit + read) > 0:
+                logger.info(
+                    "  heap キャッシュヒット率: %.2f%%（hit=%s / read=%s・起動からの累計）",
+                    100.0 * hit / (hit + read), hit, read,
+                )
+            else:
+                logger.info("  heap キャッシュヒット率: 統計なし")
+
+            cur.execute(
+                """
+                SELECT pg_size_pretty(sum(pg_total_relation_size(relid)))
+                FROM pg_stat_user_tables WHERE schemaname = %s
+                """,
+                (args.schema,),
+            )
+            logger.info("  スキーマ %s の合計サイズ: %s", args.schema, cur.fetchone()[0])
+
+            logger.info("")
+            logger.info("  大きいテーブル上位 10:")
+            cur.execute(
+                """
+                SELECT relname, n_live_tup,
+                       pg_size_pretty(pg_total_relation_size(relid)) AS total,
+                       pg_size_pretty(pg_indexes_size(relid)) AS idx
+                FROM pg_stat_user_tables
+                WHERE schemaname = %s
+                ORDER BY pg_total_relation_size(relid) DESC
+                LIMIT 10
+                """,
+                (args.schema,),
+            )
+            for name, live, total, idx in cur.fetchall():
+                logger.info("    %-28s live=%-10s 合計=%-10s 索引=%s", name, live, total, idx)
+
             # ── 5. 推薦の主テーブルに索引があるか ────────────────────────
             section("5. dish_category_features の索引")
             cur.execute(
