@@ -271,8 +271,18 @@ def parse_args() -> argparse.Namespace:
 
 
 def log_probe_report(pipeline: BigQueryPipeline, run_id: str) -> None:
-    rows = list(pipeline.execute(probe_rate_sql(pipeline),
-                                 [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
+    # ⚠️ `--report-only` は **検索しない**。候補表がまだ無いのに «通過率 0%» と刷ると、
+    #    «検索しても濃い候補が出ない» と読めてしまう（実際は 1 度も検索していないだけ）。
+    #    2026-09-22 に生の 404 で落ち、何が足りないのか分からなかったので、ここで言い切る。
+    try:
+        rows = list(pipeline.execute(probe_rate_sql(pipeline),
+                                     [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
+    except NotFound as e:
+        raise SystemExit(
+            f"候補表 {TABLE_QUERY_CANDIDATE} がまだ無い（run_id={run_id!r}）。"
+            "**これは «検索しても候補が出なかった» ではなく «まだ 1 度も検索していない» である。**"
+            "--report-only を外して実行すると、SERPER で検索して候補表を作る"
+            "（IG のコールは 1 回も使わない）。") from e
     LOGGER.info("判定器（%d 投稿の probe で異なり店 %d 以上）の通過率:",
                 PROBE_POSTS, PROBE_MIN_STORES)
     LOGGER.info("母集団 | 収集済アカウント | 通過 | 通過率 | 通過分の総配信店")

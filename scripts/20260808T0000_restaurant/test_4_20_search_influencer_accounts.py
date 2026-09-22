@@ -82,3 +82,27 @@ class ThresholdTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ItSaysWhenItHasNeverSearchedTest(unittest.TestCase):
+    """«まだ 1 度も検索していない» を «検索しても候補が出なかった» と読ませない。
+
+    2026-09-22、`--report-only` を先に流して生の 404 で落ちた。候補表が無いのは
+    «この経路が駄目» の証拠ではなく、単にまだ蛇口をひねっていないだけである。
+    """
+
+    def test_a_missing_candidate_table_explains_what_to_do(self):
+        from google.api_core.exceptions import NotFound
+
+        class _Pipe:
+            def table(self, name):
+                return f"p.d.{name}"
+
+            def execute(self, sql, params=None):
+                raise NotFound("Table p.d.sns_influencer_query_candidate was not found")
+
+        with self.assertRaises(SystemExit) as cm:
+            finder.log_probe_report(_Pipe(), "infl-x")
+        msg = str(cm.exception)
+        self.assertIn("まだ 1 度も検索していない", msg)
+        self.assertIn("--report-only を外して", msg)
