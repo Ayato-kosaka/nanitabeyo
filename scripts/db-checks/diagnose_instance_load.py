@@ -73,6 +73,12 @@ def main() -> int:
         choices=("restaurants", "dish_media", "dishes", "none"),
         help="created_at の日別ヒストグラムを採るテーブル（allowlist）",
     )
+    parser.add_argument(
+        "--growth-schema",
+        default="public",
+        choices=("public", "dev"),
+        help="ヒストグラムを採るスキーマ。dev を見るのは «共有インスタンスの相棒がいつ太ったか» を知るため",
+    )
     args = parser.parse_args()
 
     database_url = os.getenv("DATABASE_URL")
@@ -224,12 +230,12 @@ def main() -> int:
             # ── 7. いつ積まれたか ────────────────────────────────────────
             # «09-21 に何かが変わった» の «何か» がデータ量なら、ここに段差が出る
             if args.growth_table != "none":
-                section(f"7. {args.growth_table} が積まれた日（public / 直近 21 日）")
+                section(f"7. {args.growth_table} が積まれた日（{args.growth_schema} / 直近 21 日）")
                 try:
                     cur.execute(
                         f"""
                         SELECT date_trunc('day', created_at)::date, count(*)
-                        FROM public.{args.growth_table}
+                        FROM {args.growth_schema}.{args.growth_table}
                         WHERE created_at >= now() - interval '21 days'
                         GROUP BY 1 ORDER BY 1
                         """
