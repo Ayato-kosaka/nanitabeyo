@@ -213,14 +213,36 @@ def main() -> int:
             logger.info("接続先: user=%s db=%s schema=%s", user, db, args.schema)
             logger.info("今日の day_of_week（0=日曜）: %s", dow_today)
 
-            cur.execute(TOTALS_SQL)
-            totals = cur.fetchall()
+            # #1666 【設計】**1 本が時間切れになっても、取れた分は捨てない。**
+            #
+            # 2026-09-23、dev でこのスクリプトが «候補の並び» のクエリで
+            # `statement timeout` に当たり、**その前に成功していた 3 本ぶんの集計まで
+            # 道連れで失われた**（[run 35888800398]）。全部のクエリを先に流してから
+            # まとめて表示する作りだったためである。
+            #
+            # 測りに来たのに «1 本も数字が出ない» のがいちばん困るので、
+            # ①各セクションは取れた直後に出す ②時間切れはそのセクションだけ諦める
+            # の 2 点に変える。⚠️ 諦めたことは **必ず出力に残す**
+            # （黙って欠けると «0 件» と区別が付かない。#1898 と同じ形）。
+            failed_sections: list[str] = []
 
-            cur.execute(DOW_SQL)
-            dows = cur.fetchall()
+            def run_section(label: str, sql: str, params=None):
+                """1 セクションぶんのクエリ。時間切れなら None を返して先へ進む。"""
+                try:
+                    cur.execute(sql, params)
+                    return cur.fetchall()
+                except psycopg2.errors.QueryCanceled:
+                    # ⚠️ 例外でトランザクションが中断しているので、次のクエリの前に戻す
+                    conn.rollback()
+                    cur.execute("SET default_transaction_read_only = on")
+                    cur.execute(f'SET search_path TO "{args.schema}", extensions')
+                    logger.warning("⏱️ %s は statement timeout で取れませんでした", label)
+                    failed_sections.append(label)
+                    return None
 
-            cur.execute(FETCHED_AT_SQL)
-            fetched = cur.fetchall()
+            totals = run_section("source 別の集計", TOTALS_SQL)
+            dows = run_section("day_of_week 別の集計", DOW_SQL)
+            fetched = run_section("公式サイト由来の取得時刻", FETCHED_AT_SQL)
 
             candidate_sql = CANDIDATE_SQL.format(schema=args.schema, only_missing="")
             rank_params = {
@@ -231,16 +253,24 @@ def main() -> int:
                 "source": CRAWL_SOURCE,
                 "cutoff": args.crashed_before,
             }
-            cur.execute(RANK_SQL.format(candidate_sql=candidate_sql), rank_params)
-            ranks = cur.fetchall()
+            ranks = run_section(
+                "候補の並び（rank）", RANK_SQL.format(candidate_sql=candidate_sql), rank_params
+            )
+            histogram = run_section(
+                "候補の並びのヒストグラム",
+                HISTOGRAM_SQL.format(candidate_sql=candidate_sql),
+                rank_params,
+            )
 
-            cur.execute(HISTOGRAM_SQL.format(candidate_sql=candidate_sql), rank_params)
-            histogram = cur.fetchall()
-
+            # ⚠️ ここがこのスクリプトの**主目的**（番人の «0 行 ✅» の切り分け）なので、
+            #    上の重いクエリが落ちても必ず試す。1 地点ずつ独立に扱う
             reach = []
             for label, lng, lat in POINTS:
-                cur.execute(REACH_SQL, (lng, lat, dow_today))
-                reach.append((label, *cur.fetchone()))
+                row = run_section(f"近い順の到達（{label}）", REACH_SQL, (lng, lat, dow_today))
+                if row:
+                    reach.append((label, *row[0]))
+
+            result["failed_sections"] = failed_sections
 
     logger.info("")
     logger.info("=" * 78)
@@ -249,24 +279,30 @@ def main() -> int:
 
     logger.info("")
     logger.info("## restaurant_opening_hours（source 別）")
+    if totals is None:
+        logger.info("  （statement timeout で取れませんでした）")
     result["by_source"] = {}
-    for source, rows, restaurants in totals:
+    for source, rows, restaurants in totals or ():
         logger.info("  %-16s : %10s 行 / %8s 店", source, f"{rows:,}", f"{restaurants:,}")
         result["by_source"][source] = {"rows": rows, "restaurants": restaurants}
 
     logger.info("")
     logger.info("## day_of_week 別（0=日曜 … 6=土曜）")
+    if dows is None:
+        logger.info("  （statement timeout で取れませんでした）")
     result["by_dow"] = {}
-    for dow, rows in dows:
+    for dow, rows in dows or ():
         mark = "  ← 今日" if dow == dow_today else ""
         logger.info("  %s : %10s 行%s", dow, f"{rows:,}", mark)
         result["by_dow"][str(dow)] = rows
 
     logger.info("")
     logger.info("## 公式サイト由来の行が取れた時刻（1 時間ごと）")
+    if fetched is None:
+        logger.info("  （statement timeout で取れませんでした）")
     logger.info("   ⚠️ 後半へ極端に偏っていれば、前半で何かが起きていた")
     result["official_site_fetched_at"] = {}
-    for hour, rows, restaurants in fetched:
+    for hour, rows, restaurants in fetched or ():
         logger.info("  %s : %8s 行 / %6s 店", hour, f"{rows:,}", f"{restaurants:,}")
         result["official_site_fetched_at"][str(hour)] = {
             "rows": rows,
@@ -275,11 +311,13 @@ def main() -> int:
 
     logger.info("")
     logger.info("## 候補の並び（md5(restaurant_id || seed)）の何番目で読めたか")
+    if ranks is None:
+        logger.info("  （statement timeout で取れませんでした）")
     logger.info("   crashed  = 途中で落ちた回（〜07:41）が書いた店")
     logger.info("   completed = 通した回（08:40〜13:25）が書いた店")
     logger.info("   ⚠️ 2 つの rank が重なっていなければ «前半は既に読めなかった店だけ» である")
     result["rank_by_run"] = {}
-    for run, stores, mn, p25, med, p75, mx in ranks:
+    for run, stores, mn, p25, med, p75, mx in ranks or ():
         logger.info(
             "  %-10s : %4s 店 / rank min=%s p25=%s 中央=%s p75=%s max=%s",
             run,
@@ -301,8 +339,10 @@ def main() -> int:
 
     logger.info("")
     logger.info("## 同じ並びで 500 件ごとに «読めた店»")
+    if histogram is None:
+        logger.info("  （statement timeout で取れませんでした）")
     result["rank_histogram"] = {}
-    for bucket, crashed, completed in histogram:
+    for bucket, crashed, completed in histogram or ():
         logger.info(
             "  %6s-%-6s : 落ちた回 %3s 店 / 通した回 %3s 店",
             f"{bucket:,}",
@@ -333,6 +373,11 @@ def main() -> int:
             "with_hours_today": with_today,
         }
 
+    logger.info("")
+    if result.get("failed_sections"):
+        logger.info("⏱️ statement timeout で取れなかったセクション: %s",
+                    ", ".join(result["failed_sections"]))
+        logger.info("   ⚠️ **これは «0 件» ではない。** 測れなかっただけである")
     logger.info("")
     logger.info("=" * 78)
     logger.info("# JSON（機械可読）")
