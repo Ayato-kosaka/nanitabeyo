@@ -108,6 +108,22 @@ def load_staging(connection: Any, path: Path) -> None:
                 stream,
             )
 
+        # #1881 【設計】**COPY の後に索引を張る。**
+        #
+        # apply_sync は staging を google_place_id で 7 回結合し、さらに
+        # `execute_in_key_ranges` がそれを範囲へ切って複数回流す。索引が無いと
+        # **範囲ごとに 62 万行の seq scan** になり、文を刻んだぶんだけ走査が増える
+        # （＝刻む前より遅くなる）。実際、索引無しでバッチ化した dry-run は
+        # 2 時間 15 分たっても終わらなかった。
+        #
+        # ⚠️ **COPY の «前» に張らないこと。** 索引付きの表へ 62 万行を COPY すると
+        #    行ごとに索引更新が走り、取り込み自体が遅くなる。まとめて入れてから張る。
+        #
+        # ⚠️ **ANALYZE も要る。** temp table は autovacuum の対象外なので、統計が
+        #    無いままだとプランナが行数を既定値で見積もり、索引を使わない判断をしうる。
+        cursor.execute("CREATE INDEX ON restaurant_sync_staging (google_place_id)")
+        cursor.execute("ANALYZE restaurant_sync_staging")
+
 
 def calculate_stats(connection: Any) -> SyncStats:
     with connection.cursor() as cursor:
