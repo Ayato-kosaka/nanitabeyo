@@ -66,6 +66,27 @@ def main() -> int:
         if "%(lo)s" not in payload or "%(hi)s" not in payload:
             failures.append(f"範囲条件（%(lo)s / %(hi)s）がありません: {head}")
 
+    # #1881 値 UPDATE は «SET する列» と «変化したかを見る列» の両方を必要とする。
+    # 2 箇所へ書き下すと、列を足したとき片方を忘れて
+    # **「その列だけ永久に更新されない」** 形が作れる（落ちず・壊れず・気付けない）。
+    # 列の一覧を 1 箇所から組み立てていることを縛る。
+    # ⚠️ SQL の中身で «値 UPDATE» を見分けないこと。provenance UPDATE も
+    #    `created_by_source = 'pipeline'` を CASE の中に持つので両方に当たる
+    #    （最初そう書いて誤検知した）。`execute_in_key_ranges` へ渡すラベルで見分ける。
+    value_update_calls = [p for _, p in calls if '"値 UPDATE"' in p]
+    if len(value_update_calls) != 1:
+        failures.append(f"値 UPDATE が一意に見つかりません（{len(value_update_calls)} 件）")
+    for payload in value_update_calls:
+        if "{_set_clause()}" not in payload:
+            failures.append(
+                "値 UPDATE の SET が列を直書きしています（SYNCED_COLUMNS から組み立てること）"
+            )
+        if "{_changed_predicate()}" not in payload:
+            failures.append(
+                "値 UPDATE に «中身が同じ行を書き直さない» 条件がありません"
+                "（_changed_predicate から組み立てること）"
+            )
+
     if staging_calls == 0:
         print("❌ staging を読む文が 1 つも見つかりません（探し方が壊れています）")
         return 1

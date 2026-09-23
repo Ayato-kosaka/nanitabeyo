@@ -340,6 +340,43 @@ def execute_in_key_ranges(
     return total
 
 
+# #1881 【設計】**同期が書き戻す列は、ここ 1 箇所で持つ。**
+#
+# 値 UPDATE は «SET する列» と «変化したかを見る列» の 2 つを必要とする。2 箇所に
+# 書くと、列を足したとき片方を忘れて **「その列だけ永久に更新されない」** 形が作れる
+# （落ちず・壊れず・気付けない。CLAUDE.md「同じ判定を 2 箇所に書いた時点でずれる」）。
+# 列名と staging 側の式を 1 つの表にして、SET も比較もここから組み立てる。
+SYNCED_COLUMNS: list[tuple[str, str]] = [
+    ("name", "s.name"),
+    ("name_language_code", "s.name_language_code"),
+    ("latitude", "s.latitude"),
+    ("longitude", "s.longitude"),
+    ("image_url", "s.image_url"),
+    ("image_path", "s.image_path"),
+    ("address_components", "s.address_components_json::jsonb"),
+    (
+        "plus_code",
+        "CASE WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb END",
+    ),
+    ("address", "s.address"),
+    ("country_code", "s.country_code"),
+]
+
+
+def _set_clause() -> str:
+    return ",\n              ".join(f"{column} = {expr}" for column, expr in SYNCED_COLUMNS)
+
+
+def _changed_predicate() -> str:
+    """値が実際に違う行だけに絞る述語。
+
+    ⚠️ **`IS DISTINCT FROM` を行コンストラクタで使う。** `<>` だと NULL が絡んだ
+       ときに UNKNOWN になり、「片方が NULL の変化」を取りこぼす。
+    """
+    left = ", ".join(f"r.{column}" for column, _ in SYNCED_COLUMNS)
+    right = ", ".join(expr for _, expr in SYNCED_COLUMNS)
+    return f"({left})\n                  IS DISTINCT FROM ({right})"
+
 def apply_sync(connection: Any) -> None:
     with connection.cursor() as cursor:
         # #1881 staging を全件なめる 4 文は、この範囲ごとに流す（→ staging_key_ranges）
@@ -445,25 +482,21 @@ def apply_sync(connection: Any) -> None:
         execute_in_key_ranges(
             cursor,
             "値 UPDATE",
-            """
+            f"""
             UPDATE restaurants r
             SET
-              name = s.name,
-              name_language_code = s.name_language_code,
-              latitude = s.latitude,
-              longitude = s.longitude,
-              image_url = s.image_url,
-              image_path = s.image_path,
-              address_components = s.address_components_json::jsonb,
-              plus_code = CASE
-                WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb
-              END,
-              address = s.address,
-              country_code = s.country_code
+              {_set_clause()}
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
               AND r.created_by_source = 'pipeline'
               AND r.source_row_hash IS DISTINCT FROM s.row_hash
+              -- #1881 **中身が同じ行を書き直さない。**
+              --
+              -- ハッシュの差だけを条件にしていたため、値が 1 つも変わっていない行まで
+              -- 全部書き直していた（dev で 621,966 行全部が該当し、5 万行あたり
+              -- 約 25 分。全体で 6 時間を超えてジョブの上限に当たる）。
+              -- ハッシュは «見に行くべきか» の粗い篩で、«書くべきか» ではない。
+              AND {_changed_predicate()}
               AND s.google_place_id > %(lo)s
               AND s.google_place_id <= %(hi)s
             """,
