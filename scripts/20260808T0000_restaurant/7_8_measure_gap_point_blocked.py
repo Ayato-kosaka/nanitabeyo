@@ -31,7 +31,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from common_sns import (LATEST_RESOLVED_QUALIFY,  # noqa: E402
+from common_sns import (LATEST_RESOLVED_QUALIFY, MIN_RESTAURANT_CONFIDENCE,  # noqa: E402
                         TABLE_DISH_CATEGORY_IMAGES, TABLE_POST_RAW, TABLE_POST_RESOLVED,
                         TABLE_RESTAURANT_CATALOG, category_with_image_cte_sql,
                         post_store_cte_sql, resolved_store_confidence_sql)
@@ -131,6 +131,10 @@ def main() -> int:
         build_sql(ds, f"{args.project}.{args.dish_dataset}", radius_m=m74.RADIUS_M), [
             bigquery.ScalarQueryParameter("geo_rid", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
             bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
+            # ⚠️ resolved_store_confidence_sql() は @min_conf を使う。束ね忘れると
+            #    «Query parameter not found» で落ちる（2026-09-23 に踏んだ）。
+            #    閾値の値はここに書かず 9_1 と同じ定数を通す。
+            bigquery.ScalarQueryParameter("min_conf", "FLOAT64", MIN_RESTAURANT_CONFIDENCE),
         ])]
     r = rows[0] if rows else {}
     near = int(r.get("posts_near") or 0)
@@ -145,12 +149,13 @@ def main() -> int:
                 int(r.get("category_without_image") or 0),
                 int(r.get("categories_without_image") or 0),
                 int(r.get("stores_blocked_by_image") or 0))
-    LOGGER.info("  店の確からしさ 0.60 未満          : %8d 件（%d 店）",
+    LOGGER.info("  店の確からしさ %.2f 未満          : %8d 件（%d 店）",
+                MIN_RESTAURANT_CONFIDENCE,
                 int(r.get("low_confidence") or 0),
                 int(r.get("stores_blocked_by_confidence") or 0))
     LOGGER.info("")
     LOGGER.info("⚠️ «絵が無い» は **絵を 1 枚足せば通る**（品質ゲートを緩めない）。")
-    LOGGER.info("⚠️ «確からしさ 0.60 未満» を通すのは **品質ゲートを緩めること**で、"
+    LOGGER.info("⚠️ «確からしさが足りない» 分を通すのは **品質ゲートを緩めること**で、"
                 "オーナー判断の領分である。ここでは数えるだけ。")
     LOGGER.info("⚠️ 店数は «そのゲートで止まっている店» であって、"
                 "«通せば合格線に乗る店» ではない（カテゴリが合っているかは別問題）。")

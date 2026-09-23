@@ -62,3 +62,21 @@ class ItUsesTheProductionRulesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheConfidenceThresholdIsBoundTest(unittest.TestCase):
+    """`@min_conf` を束ね忘れると 400 で落ちる（2026-09-23 に踏んだ）。"""
+
+    def test_the_parameter_is_bound_from_the_shared_constant(self):
+        self.assertIn('ScalarQueryParameter("min_conf"', SRC)
+        self.assertIn("MIN_RESTAURANT_CONFIDENCE", SRC)
+
+    def test_the_threshold_value_is_not_written_in_the_code(self):
+        """閾値の数字をコードやログ文言に書くと、9_1 を変えたときに静かにずれる。
+
+        docstring の «0.60» は 9_1 の実測結果の引用なので対象外。**実行される行だけ**を見る。
+        """
+        body = SRC.split('"""', 2)[-1]
+        code = "\n".join(ln for ln in body.splitlines()
+                          if not ln.lstrip().startswith("#"))
+        self.assertNotIn("0.60", code)
