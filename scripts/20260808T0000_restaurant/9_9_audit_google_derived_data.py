@@ -130,6 +130,31 @@ def main() -> None:
             LOGGER.info(
                 "住所と写真の両方を持つ行（規約上いちばん重い）: %d行", cursor.fetchone()[0]
             )
+
+            # #1779 「address が空 かつ address_components あり」の 1,675 行を、
+            # **誰が作った行か**で割る。ここで打ち手が変わる。
+            #
+            #   pipeline 製 … catalog 側に address が無い。9_1 を流しても埋まらないので、
+            #                 埋めるなら address_components から組み立てるしかない
+            #   app 製      … 確認ページ（#1671）を通れば fillMissingAddress が埋める。
+            #                 放っておいても «ユーザーが触ったときに» 解消しうる
+            #
+            # 割らずに «1,675 行を埋める» と決めると、片方に効かない打ち手を選ぶ。
+            cursor.execute(
+                """
+                SELECT created_by_source, COUNT(*)
+                FROM restaurants
+                WHERE (address IS NULL OR address = '')
+                  AND jsonb_typeof(address_components) = 'array'
+                  AND jsonb_array_length(address_components) > 0
+                GROUP BY created_by_source
+                ORDER BY 2 DESC
+                """
+            )
+            LOGGER.info("")
+            LOGGER.info("#1779 address が空 かつ address_components あり — 作成元の内訳")
+            for source, count in cursor.fetchall():
+                LOGGER.info("  %-12s %8d行", source, count)
     finally:
         # 読み取りしかしていないが、明示的に閉じる。
         connection.rollback()
