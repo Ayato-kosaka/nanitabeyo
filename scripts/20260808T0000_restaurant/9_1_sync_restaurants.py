@@ -238,11 +238,105 @@ def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
         )
 
 
+# #1881 【設計】**staging を全件なめる文を、1 文で書かない。**
+#
+# 2026-09-23、dev の dry-run が値 UPDATE（apply_sync の 1 文目の大物）で
+# `canceling statement due to statement timeout` に当たって落ちた
+# （[run 35888471165]。同期 session の statement_timeout は既に 30 分ある）。
+#
+# 原因は «たまたま重かった» ではない。国コードの是正で **catalog の row_hash が
+# 全行変わった**ため、`source_row_hash IS DISTINCT FROM s.row_hash` に
+# **621,966 行すべてが当たった**（ログの `update=621966`）。
+# 普段は差分だけなので通るが、列の意味を直すたびに全行更新は必ず起きる。
+#
+# したがって «速くする» のではなく **«1 文あたりの行数を有限にする»** のが正しい。
+# staging を google_place_id 順に切り、(lo, hi] の範囲ごとに同じ文を流す。
+#
+# ⚠️ **境界は staging 側の値で切る。** restaurants 側で切ると、staging に無い行まで
+#    走査範囲へ入る。
+# ⚠️ **1 トランザクションのままにする。** 途中で commit すると、失敗したときに
+#    «半分だけ新しい» 状態が残る（advisory xact lock も外れる）。timeout は
+#    «1 文» に掛かるので、文を刻めばトランザクションは長いままでよい。
+BATCH_SIZE = 50_000
+
+# 下限の番兵。google_place_id は非空文字列なので、`> ''` は「全部」を意味する
+_FIRST_LOWER_BOUND = ""
+
+
+def staging_key_ranges(cursor: Any, batch_size: int = BATCH_SIZE) -> list[tuple[str, str]]:
+    """staging を `google_place_id` 順に `batch_size` 件ずつ切り、`(lo, hi]` を返す。
+
+    返す範囲は **重なりが無く、staging の全行をちょうど 1 回ずつ覆う**。
+    staging が空なら空リストを返す（呼び出し側は 1 文も流さない）。
+    """
+    cursor.execute(
+        """
+        SELECT google_place_id
+        FROM (
+          SELECT
+            google_place_id,
+            row_number() OVER (ORDER BY google_place_id) AS rn,
+            count(*)     OVER ()                        AS total
+          FROM restaurant_sync_staging
+        ) t
+        WHERE rn %% %(size)s = 0 OR rn = total
+        ORDER BY google_place_id
+        """,
+        {"size": batch_size},
+    )
+    upper_bounds = [row[0] for row in cursor.fetchall()]
+    ranges: list[tuple[str, str]] = []
+    lower = _FIRST_LOWER_BOUND
+    for upper in upper_bounds:
+        ranges.append((lower, upper))
+        lower = upper
+
+    # ⚠️ **覆えていないことを «静かに» 通さない。** 範囲の上端が staging の最大値と
+    #    一致しなければ、最後の一群が 1 文も流れないまま «成功» になる。
+    #    落ちない・壊れない・気付けない形なので、ここで必ず止める。
+    cursor.execute(
+        "SELECT max(google_place_id), count(*) FROM restaurant_sync_staging"
+    )
+    max_key, row_count = cursor.fetchone()
+    if row_count and (not ranges or ranges[-1][1] != max_key):
+        raise RuntimeError(
+            "staging の範囲分割が全行を覆っていません "
+            f"(rows={row_count} last_upper={ranges[-1][1] if ranges else None} max={max_key})"
+        )
+    return ranges
+
+
+def execute_in_key_ranges(
+    cursor: Any, label: str, sql: str, ranges: list[tuple[str, str]]
+) -> int:
+    """`sql` を範囲ごとに流す。`sql` は `%(lo)s` / `%(hi)s` を含むこと。
+
+    ⚠️ **進捗を数字で出す。** 1 文が 30 分掛かって落ちたときに «生きているのか
+       止まっているのか» が分からなかったのが、今回いちばん困った点である。
+    """
+    total = 0
+    for index, (lower, upper) in enumerate(ranges, start=1):
+        cursor.execute(sql, {"lo": lower, "hi": upper})
+        total += cursor.rowcount if cursor.rowcount and cursor.rowcount > 0 else 0
+        LOGGER.info(
+            "%s: batch %s/%s done (rows so far: %s)", label, index, len(ranges), total
+        )
+    return total
+
+
 def apply_sync(connection: Any) -> None:
     with connection.cursor() as cursor:
+        # #1881 staging を全件なめる 4 文は、この範囲ごとに流す（→ staging_key_ranges）
+        key_ranges = staging_key_ranges(cursor)
+        LOGGER.info(
+            "staging を %s 件ずつ %s 個の範囲へ切りました", BATCH_SIZE, len(key_ranges)
+        )
+
         # 既存PGのPlace ID変更は人手overrideを明示した場合だけ許す。restaurant UUIDを
         # 維持するため、削除→再作成ではなく既存行のID列だけを更新する。
-        cursor.execute(
+        execute_in_key_ranges(
+            cursor,
+            "place id 付け替え",
             """
             UPDATE restaurants r
             SET google_place_id = s.google_place_id
@@ -250,11 +344,16 @@ def apply_sync(connection: Any) -> None:
             WHERE r.source_seed_id = s.seed_id
               AND r.google_place_id <> s.google_place_id
               AND s.match_method = 'manual_override'
-            """
+              AND s.google_place_id > %(lo)s
+              AND s.google_place_id <= %(hi)s
+            """,
+            key_ranges,
         )
 
         # seedが別restaurantへ付け替わった場合、旧行は削除せずprovenanceだけ外す。
-        cursor.execute(
+        execute_in_key_ranges(
+            cursor,
+            "provenance 外し",
             """
             UPDATE restaurants r
             SET source_seed_id = NULL,
@@ -263,7 +362,10 @@ def apply_sync(connection: Any) -> None:
             FROM restaurant_sync_staging s
             WHERE r.source_seed_id = s.seed_id
               AND r.google_place_id <> s.google_place_id
-            """
+              AND s.google_place_id > %(lo)s
+              AND s.google_place_id <= %(hi)s
+            """,
+            key_ranges,
         )
 
         # まず不足行だけ追加する。
@@ -275,7 +377,9 @@ def apply_sync(connection: Any) -> None:
         # 一方この列は «1_2 がどのスキーマを読んだか» に依存しており、
         # dev の catalog を public へ流すと dev の UUID が public の主キーに
         # なりえた。結果を変えない依存は外す。
-        cursor.execute(
+        execute_in_key_ranges(
+            cursor,
+            "不足行 INSERT",
             """
             INSERT INTO restaurants (
               id, google_place_id, name, name_language_code, latitude, longitude,
@@ -300,8 +404,11 @@ def apply_sync(connection: Any) -> None:
               -- アプリ製の行が 'user' のまま残るのが、この設計の要点である。
               'pipeline'
             FROM restaurant_sync_staging s
+            WHERE s.google_place_id > %(lo)s
+              AND s.google_place_id <= %(hi)s
             ON CONFLICT (google_place_id) DO NOTHING
-            """
+            """,
+            key_ranges,
         )
 
         # パイプラインが作った行だけ、再実行時にcanonical値を更新する。
@@ -319,7 +426,9 @@ def apply_sync(connection: Any) -> None:
         # `source_seed_id IS NULL` は条件に使えない。この直後の provenance
         # UPDATE が **アプリ製の行にも source_seed_id を付ける**ため、2回目の
         # 実行で条件が反転してしまう。
-        cursor.execute(
+        execute_in_key_ranges(
+            cursor,
+            "値 UPDATE",
             """
             UPDATE restaurants r
             SET
@@ -339,7 +448,10 @@ def apply_sync(connection: Any) -> None:
             WHERE r.google_place_id = s.google_place_id
               AND r.created_by_source = 'pipeline'
               AND r.source_row_hash IS DISTINCT FROM s.row_hash
-            """
+              AND s.google_place_id > %(lo)s
+              AND s.google_place_id <= %(hi)s
+            """,
+            key_ranges,
         )
 
         # #1681 電話・公式サイト・SNS を restaurant_links へ入れる。
@@ -358,12 +470,16 @@ def apply_sync(connection: Any) -> None:
         # **オープンデータ由来の行だけ**を、今回の catalog に無いものに限って消す。
         # ユーザー・オーナー・公式サイト由来（source <> 'open_data'）は触らない。
         # 対象も staging に居る店に限る（catalog に載らなかった店の履歴は消さない）。
-        cursor.execute(
+        execute_in_key_ranges(
+            cursor,
+            "links DELETE",
             """
             DELETE FROM restaurant_links l
             USING restaurants r, restaurant_sync_staging s
             WHERE l.restaurant_id = r.id
               AND r.google_place_id = s.google_place_id
+              AND s.google_place_id > %(lo)s
+              AND s.google_place_id <= %(hi)s
               AND l.source = 'open_data'
               AND NOT EXISTS (
                 SELECT 1
@@ -384,15 +500,20 @@ def apply_sync(connection: Any) -> None:
                 ) AS cur
                 WHERE cur.kind = l.kind AND cur.value = l.value
               )
-            """
+            """,
+            key_ranges,
         )
 
-        cursor.execute(
+        execute_in_key_ranges(
+            cursor,
+            "links INSERT",
             """
             INSERT INTO restaurant_links (restaurant_id, kind, value, source, fetched_at)
             SELECT r.id, v.kind, v.value, 'open_data', CURRENT_TIMESTAMP
             FROM restaurant_sync_staging s
             JOIN restaurants r ON r.google_place_id = s.google_place_id
+              AND s.google_place_id > %(lo)s
+              AND s.google_place_id <= %(hi)s
             CROSS JOIN LATERAL (
               -- 電話・サイトは 1 本ずつ、SNS は配列。1 つの SELECT に畳んで
               -- 空文字と NULL を同じ「無い」として落とす。
@@ -416,12 +537,15 @@ def apply_sync(connection: Any) -> None:
               WHERE NULLIF(btrim(u.value), '') IS NOT NULL
             ) AS v
             ON CONFLICT (restaurant_id, kind, value) DO NOTHING
-            """
+            """,
+            key_ranges,
         )
 
         # provenanceは既存行にも付ける。これによりPG表示値を維持しつつ、どのseedが
         # 根拠になったかと最終同期時刻を追跡できる。
-        cursor.execute(
+        execute_in_key_ranges(
+            cursor,
+            "provenance UPDATE",
             """
             UPDATE restaurants r
             SET
@@ -443,7 +567,10 @@ def apply_sync(connection: Any) -> None:
               synced_at = CURRENT_TIMESTAMP
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
-            """
+              AND s.google_place_id > %(lo)s
+              AND s.google_place_id <= %(hi)s
+            """,
+            key_ranges,
         )
 
 
