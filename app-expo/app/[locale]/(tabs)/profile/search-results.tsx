@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect } from "react";
-import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { X } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,6 +16,7 @@ import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 const idType = "dish_media" as const;
 export default function ProfileSearchResultScreen() {
 	const { entriesKey } = useLocalSearchParams<{ entriesKey: string }>();
+	const insets = useSafeAreaInsets();
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
 		[entriesKey],
@@ -50,7 +52,8 @@ export default function ProfileSearchResultScreen() {
 	return (
 		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			{/* Header with Back Button */}
-			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
+			{/* #1962 【設計】top は端末の安全領域から取る（理由は `restaurant/[restaurantId]/feed.tsx` の同じ箇所） */}
+			<View style={{ ...styles.closeButtonContainer, top: insets.top }}>
 				{/* #1133 この画面には testID を持つ要素が 1 つも無く、E2E から「ここへ着いた」ことを
 				    観測できなかった。地図やリストは読み込み状態で見た目が変わるため、常に描画される
 				    閉じるボタンを到達判定の観測点にする（見た目は変わらない） */}
