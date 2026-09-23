@@ -75,10 +75,14 @@ def main() -> int:
     from google.cloud import logging as gcl
 
     client = gcl.Client(project=PROJECT)
+    # ⚠️ 絞り込みは **サーバ側**で掛ける。クライアント側で捨てると
+    # 無関係な行で page/limit を食い潰し、«遅いものが 1 件も無かった» という
+    # 嘘の結論が出る（最初の実行で実際にこれを踏んだ）。
     log_filter = (
         'resource.type="cloud_run_revision" '
         f'resource.labels.service_name="{SERVICE}" '
         'logName:"run.googleapis.com%2Frequests" '
+        f'httpRequest.requestUrl:"{args.url_contains}" '
         f'timestamp>="{args.since}" timestamp<"{args.until}"'
     )
 
@@ -92,17 +96,29 @@ def main() -> int:
     all_by_instance: dict[str, int] = collections.Counter()
     slow_rows: list[tuple[str, float, str]] = []
 
+    dumped = False
     for entry in client.list_entries(filter_=log_filter, page_size=1000):
+        if not dumped:
+            dumped = True
+            LOGGER.info("--- 生の 1 件（フィールド名を確かめるため）---")
+            LOGGER.info("  http_request: %s", getattr(entry, "http_request", None))
+            LOGGER.info("  labels      : %s", dict(entry.labels or {}))
+            LOGGER.info("  resource    : %s", getattr(getattr(entry, "resource", None), "labels", None))
+            LOGGER.info("-" * 40)
         total += 1
         if total > args.limit:
             LOGGER.info("（--limit %s に達したので打ち切り）", args.limit)
             break
         http = getattr(entry, "http_request", None) or {}
-        url = http.get("requestUrl") or http.get("request_url") or ""
-        if args.url_contains not in url:
-            continue
         matched += 1
-        instance = (entry.labels or {}).get("run.googleapis.com/instanceId", "(unknown)")
+        labels = dict(entry.labels or {})
+        resource_labels = dict(getattr(getattr(entry, "resource", None), "labels", None) or {})
+        instance = (
+            labels.get("run.googleapis.com/instanceId")
+            or labels.get("instanceId")
+            or resource_labels.get("instanceId")
+            or "(unknown)"
+        )
         short = instance[-12:] if instance != "(unknown)" else instance
         all_by_instance[short] += 1
         seconds = _parse_latency(http.get("latency"))
