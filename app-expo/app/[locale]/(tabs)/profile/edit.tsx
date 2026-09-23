@@ -37,6 +37,7 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { type Palette } from "@/constants/Palette";
 import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+import { useAndroidHardwareBack } from "@/hooks/useAndroidHardwareBack";
 
 export default function ProfileEditScreen() {
 	const { lightImpact } = useHaptics();
@@ -143,6 +144,10 @@ export default function ProfileEditScreen() {
 		});
 		leave();
 	}, [lightImpact, logFrontendEvent, leave]);
+
+	// #1961 システムの戻る（Android）も、この画面の戻る導線へ倒す。
+	// 繋がないと、共有リンクで着地したときスタックが 1 枚なので OS がアプリを終了する。
+	useAndroidHardwareBack(handleBack);
 
 	// 保存の成否・スナックバーの表示は ProfileEditForm 側が持つ。ここは成功時の離脱だけを担う
 	const handleSaved = useCallback(() => {
