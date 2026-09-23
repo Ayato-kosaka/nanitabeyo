@@ -180,6 +180,27 @@ def main() -> int:
         median = slow_positions[len(slow_positions) // 2]
         LOGGER.info("  遅いリクエストの «順番» の中央値: %s 番目", median)
 
+    # #2006 «そのインスタンスは全部遅いのか、一部だけ遅いのか»。
+    # 全部遅い＝接続プール / CPU などインスタンスの状態。一部だけ＝クエリや入力の差。
+    LOGGER.info("")
+    LOGGER.info("-" * 72)
+    LOGGER.info("# インスタンスごとの速さ（3 件以上捌いたものだけ / p50 の遅い順）")
+    LOGGER.info("-" * 72)
+    LOGGER.info("  %-14s %5s %9s %9s %9s  %s", "instance", "件数", "p50", "p95", "最大", "生存時間")
+    stats = []
+    for instance, rows in per_instance.items():
+        values = sorted(seconds for _, seconds in rows if seconds is not None)
+        if len(values) < 3:
+            continue
+        times = sorted(ts for ts, _ in rows)
+        span_min = (times[-1] - times[0]).total_seconds() / 60
+        p50 = values[len(values) // 2]
+        p95 = values[min(len(values) - 1, int(len(values) * 0.95))]
+        stats.append((p50, p95, values[-1], len(values), instance, span_min))
+    for p50, p95, mx, n, instance, span_min in sorted(stats, reverse=True):
+        mark = " ⚠️" if p50 >= 2.0 else ""
+        LOGGER.info("  %-14s %5d %8.2fs %8.2fs %8.1fs  %6.0f 分%s", instance, n, p50, p95, mx, span_min, mark)
+
     LOGGER.info("")
     LOGGER.info("-" * 72)
     LOGGER.info("# 遅いリクエスト（先頭 25 件）")
