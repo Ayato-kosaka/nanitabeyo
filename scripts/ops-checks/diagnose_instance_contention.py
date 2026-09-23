@@ -118,9 +118,14 @@ def main() -> int:
         for req in reqs:
             if args.target not in req.url:
                 continue
+            # ⚠️ **区間全体の重なりを数えてはいけない。**
+            # 60 秒のリクエストは 0.5 秒のものより桁違いに多くの相手と重なるので、
+            # 「遅い＝同居が多い」が測り方から自動的に出てしまう（同語反復）。
+            # 聞きたいのは «到着した瞬間、既に混んでいたか» なので、
+            # **req.start の時点で飛んでいたもの**だけを数える。
             overlapping = [
                 other for other in reqs
-                if other is not req and other.start < req.end and other.end > req.start
+                if other is not req and other.start <= req.start < other.end
             ]
             concurrency = len(overlapping)
             if req.latency >= SLOW_SECONDS:
@@ -143,7 +148,7 @@ def main() -> int:
 
     LOGGER.info("")
     LOGGER.info("-" * 76)
-    LOGGER.info("# %s のリクエストが «何本と同居していたか»", args.target)
+    LOGGER.info("# %s が «到着した瞬間» に飛んでいたリクエスト数", args.target)
     LOGGER.info("-" * 76)
     _stats("遅い（%.0fs 以上）" % SLOW_SECONDS, slow_conc)
     _stats("速い", fast_conc)
