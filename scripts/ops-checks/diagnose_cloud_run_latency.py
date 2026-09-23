@@ -95,6 +95,7 @@ def main() -> int:
     slow_by_instance: dict[str, int] = collections.Counter()
     all_by_instance: dict[str, int] = collections.Counter()
     slow_rows: list[tuple[str, float, str]] = []
+    all_rows: list[tuple] = []
 
     dumped = False
     for entry in client.list_entries(filter_=log_filter, page_size=1000):
@@ -122,6 +123,7 @@ def main() -> int:
         short = instance[-12:] if instance != "(unknown)" else instance
         all_by_instance[short] += 1
         seconds = _parse_latency(http.get("latency"))
+        all_rows.append((entry.timestamp, seconds, short))
         if seconds is not None and seconds >= SLOW_SECONDS:
             slow_by_instance[short] += 1
             slow_rows.append((entry.timestamp.isoformat(), seconds, short))
@@ -146,6 +148,37 @@ def main() -> int:
     LOGGER.info("")
     LOGGER.info("  インスタンス数: 全体 %s / 遅いものが出た %s",
                 len(all_by_instance), len(slow_by_instance))
+
+    # #2006 «インスタンスの最初のほうだけ遅い» ＝ コールドスタート / 接続プールの立ち上がり。
+    # «途中から遅くなる» ＝ そのインスタンスが後から劣化している。別の打ち手になるので分ける。
+    LOGGER.info("")
+    LOGGER.info("-" * 72)
+    LOGGER.info("# 遅いのはインスタンスの «何番目» のリクエストか")
+    LOGGER.info("-" * 72)
+    per_instance: dict[str, list] = collections.defaultdict(list)
+    for ts, seconds, instance in all_rows:
+        per_instance[instance].append((ts, seconds))
+    bucket = collections.Counter()
+    slow_positions: list[int] = []
+    for instance, rows in per_instance.items():
+        rows.sort(key=lambda row: row[0])
+        for position, (_, seconds) in enumerate(rows, start=1):
+            if seconds is not None and seconds >= SLOW_SECONDS:
+                slow_positions.append(position)
+                if position == 1:
+                    bucket["1 番目"] += 1
+                elif position <= 3:
+                    bucket["2〜3 番目"] += 1
+                elif position <= 10:
+                    bucket["4〜10 番目"] += 1
+                else:
+                    bucket["11 番目以降"] += 1
+    for name in ("1 番目", "2〜3 番目", "4〜10 番目", "11 番目以降"):
+        LOGGER.info("  %-12s %3d 件", name, bucket.get(name, 0))
+    if slow_positions:
+        slow_positions.sort()
+        median = slow_positions[len(slow_positions) // 2]
+        LOGGER.info("  遅いリクエストの «順番» の中央値: %s 番目", median)
 
     LOGGER.info("")
     LOGGER.info("-" * 72)
