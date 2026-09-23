@@ -195,15 +195,27 @@ def run_counts(cur):
     total = one(cur, "SELECT count(*) FROM restaurants")
     logger.info("restaurants の総件数: %s", f"{total:,}")
 
+    hours_rows = 0
     for table in ("restaurant_opening_hours", "restaurant_hours_exceptions"):
         n = one(cur, f"SELECT count(*) FROM {table}")
+        hours_rows += n
         logger.info("%-32s %10s 行", table, f"{n:,}")
 
     logger.info("")
-    logger.info(
-        "⚠️ 営業時間テーブルが空のうちは «読んだ行数» では何も分からない。"
-        "効いているかどうかは **候補集合の作り方** に出る（下の restaurants の延べ行数）"
-    )
+    # #1666 この注意書きは «テーブルが空のとき» にしか当てはまらない。dev には OSM 由来の
+    # 10 万行が入った（2026-09 時点）ので、条件を付けずに出すと «読んだ行数を見るな» という
+    # 誤った指示になる。実際の行数で分岐させる。
+    if hours_rows == 0:
+        logger.info(
+            "⚠️ 営業時間テーブルが空なので «読んだ行数» では何も分からない。"
+            "効いているかどうかは **候補集合の作り方** に出る（下の restaurants の延べ行数）"
+        )
+    else:
+        logger.info(
+            "営業時間テーブルに %s 行ある。**読んだ行数と候補集合の作り方の両方**を見ること"
+            "（片方だけでは «索引に乗っているのに候補が広すぎる» を見落とす）",
+            f"{hours_rows:,}",
+        )
     logger.info("")
     for label, lat, lng, radius in CASES:
         n = one(

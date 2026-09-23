@@ -32,6 +32,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
+import { useAndroidHardwareBack } from "@/hooks/useAndroidHardwareBack";
 
 export default function SavedTopicLocationScreen() {
 	const { colors } = useAppTheme();
@@ -56,6 +57,10 @@ export default function SavedTopicLocationScreen() {
 		// #1402 マイページの 4 グリッドタブ廃止により `?tab=saved-dish-categories` は «単独のルート» になった
 		router.replace({ pathname: "/[locale]/(tabs)/profile/saved-dish-categories", params: { locale } });
 	}, [lightImpact, logFrontendEvent, locale, dishCategoryId]);
+
+	// #1961 システムの戻る（Android）も、この画面の戻る導線へ倒す。
+	// 繋がないと、共有リンクで着地したときスタックが 1 枚なので OS がアプリを終了する。
+	useAndroidHardwareBack(handleBack);
 
 	return (
 		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>

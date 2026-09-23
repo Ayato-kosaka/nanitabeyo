@@ -16,6 +16,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
 import { type Palette } from "@/constants/Palette";
 import { useThemedStyles } from "@/contexts/ThemeProvider";
+import { useAndroidHardwareBack } from "@/hooks/useAndroidHardwareBack";
 
 /*
  * 店舗詳細画面（アプリ唯一の店舗詳細）
@@ -63,6 +64,10 @@ export default function RestaurantDetailScreen() {
 		}
 		router.replace({ pathname: "/[locale]/(tabs)/my-dishes", params: { locale } });
 	}, [lightImpact, locale]);
+
+	// #1961 システムの戻る（Android）も、この画面の戻る導線へ倒す。
+	// 繋がないと、共有リンクで着地したときスタックが 1 枚なので OS がアプリを終了する。
+	useAndroidHardwareBack(handleBack);
 
 	/*
 	 * #1264 【設計】**画面が開いたことを、無条件に 1 回だけ記録する。**

@@ -79,6 +79,9 @@ jobs:
     outputs:
       android_script: ${{ steps.resolve.outputs.android_script }}
       ios_script: ${{ steps.resolve.outputs.ios_script }}
+      # #2001 iOS を何分割で流すか（JSON 配列）。既定スコープの全件だけ 2 分割し、
+      # 絞った実行（tier1 / mutation / probe / catalog / test_filter 付き）は 1 本で流す
+      ios_shards: ${{ steps.resolve.outputs.ios_shards }}
     steps:
       # #1029 【設計】Tier の選択をここで 1 箇所に集約し、各ジョブは受け取った script 名を実行するだけにする。
       # schedule 実行では inputs が空になるため、既定（tier1-2）へフォールバックする
@@ -87,6 +90,7 @@ jobs:
         shell: bash
         env:
           SCOPE: ${{ inputs.scope || 'tier1-2' }}
+          TEST_FILTER: ${{ inputs.test_filter }}
         run: |
           set -euo pipefail
           case "$SCOPE" in
@@ -106,7 +110,22 @@ jobs:
           esac
           echo "android_script=$android" >> "$GITHUB_OUTPUT"
           echo "ios_script=$ios" >> "$GITHUB_OUTPUT"
-          echo "scope=$SCOPE -> android:$android / ios:$ios" >> "$GITHUB_STEP_SUMMARY"
+
+          # #2001 【設計】iOS の分割。**全件を流すときだけ 2 分割する。**
+          # 絞った実行まで分割すると、数本の spec のために macOS ランナーを 2 台使い、
+          # どちらも 30 分の Detox ビルドを踏むことになる（エビデンス撮影の待ち時間が倍になる）。
+          # 値は jest の `--shard` にそのまま渡す（"off" は分割なし）。
+          #
+          # ⚠️ **`arg` と `tag` の 2 つを持たせること。** Artifact 名に `/` は使えず、
+          # `detox-report-ios-1/2` は «The artifact name is not valid … Forward slash /» で
+          # 落ちる（run 35807721930 で実測）。jest へ渡すのは `arg`、名前に使うのは `tag`。
+          if [ "$SCOPE" = "tier1-2" ] && [ -z "${TEST_FILTER}" ]; then
+            shards='[{"arg":"1/2","tag":"1-of-2"},{"arg":"2/2","tag":"2-of-2"}]'
+          else
+            shards='[{"arg":"off","tag":"off"}]'
+          fi
+          echo "ios_shards=$shards" >> "$GITHUB_OUTPUT"
+          echo "scope=$SCOPE -> android:$android / ios:$ios / ios_shards:$shards" >> "$GITHUB_STEP_SUMMARY"
 
   e2e-android:
     name: Detox E2E Android (development)
@@ -323,6 +342,21 @@ jobs:
           # .detoxrc.js の video 設定を黙って上書きして動画が出なくなる（run 32605810775 で実測）
           DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && 'all' || 'none' }}
 
+      # 📏 #2001 「この run は最後まで走ったのか」を実行後に突き合わせる。
+      # iOS は 3 時間の timeout-minutes に当たって毎晩打ち切られていたのに、GitHub 上は
+      # `cancelled` としか出ないため、**45 suite 中 31 しか走っていないことに 13 夜以上
+      # 誰も気付けなかった**（tests/smoke/boot.test.ts すら未実行だった）。
+      # ⚠️ `if: always()` であること。ジョブが timeout で cancel されても always() のステップは
+      # 猶予時間の中で動く（run 35662317482 で実測）。打ち切られたときこそ回ってほしい。
+      - name: 📏 実行された suite を突き合わせる (Android)
+        if: always()
+        # カタログ収集では run を赤くしない（理由は上の «Run Detox tests» と同じ）。
+        # 打ち切りの事実は Job Summary と ::error:: 注釈には出るので、見えなくはならない
+        continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
+        run: node e2e-mobile/scripts/assert-suite-coverage.mjs ${{ needs.prepare.outputs.android_script }}
+        env:
+          DETOX_TEST_FILTER: ${{ inputs.test_filter }}
+
       # 📋 UI カタログ（scope=catalog*）: 画面定義と突き合わせて一覧を生成する
       - name: 📋 Generate UI catalog document (Android)
         if: ${{ always() && startsWith(inputs.scope, 'catalog') }}
@@ -361,9 +395,16 @@ jobs:
           retention-days: 7
 
   e2e-ios:
-    name: Detox E2E iOS (development)
+    # #2001 分割して流すときは «どちらの分か» が一目で分かるようにする
+    name: Detox E2E iOS (development) ${{ matrix.shard.arg != 'off' && format('[{0}]', matrix.shard.arg) || '' }}
     needs: prepare
     if: ${{ inputs.platform != 'android' }}
+    strategy:
+      # 片方が落ちても、もう片方は最後まで走らせる（片側だけの結果で «赤» を読むと
+      # また «完走していない run の途中経過» を読むことになる。#2001 の元の事故と同じ形）
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.prepare.outputs.ios_shards) }}
     # macos-latest は macos-26 への移行が進行中のため、eas.json の EAS ビルド環境
     # （macos-sequoia-15.6-xcode-26.2）に合わせて macos-15 を明示固定する（#1029）
     runs-on: macos-15
@@ -371,7 +412,35 @@ jobs:
     # そのうえで Tier1-2 の全 spec を実行し、失敗があれば --retries 1 でもう 1 周するため、
     # 120 分でもテスト実行の途中で打ち切られた（run 30432596949 は 84 分走って未完）。
     # iOS は Detox の同期機構を切っている分どの待機もポーリングになり Android より遅い（#1040）
-    timeout-minutes: 180
+    #
+    # #2001 【実測】180 分では全く足りていなかった。直近 12 run のうち 9 回が 3 時間で打ち切られ、
+    # **45 suite 中 31 しか実行できていなかった**（run 35662317482。setup 6 分 + ビルド 30 分 +
+    # テスト 144 分で打ち切り）。
+    #
+    # ⚠️ **1 本で流したまま時間を足す案は捨てた。** 2 夜ぶん測ったところ、必要な時間の見積りが
+    # 安定しないためである（iOS / Android の所要比が 09-21 は x3.43、09-22 は x7.51。
+    # Android 側の所要が夜ごとに 59 分 / 32 分と動くので、比を掛ける見積りは当てにならない）。
+    # 09-22 の実測で引き直すと **1 本なら約 316 分**必要で、上限 360 分に対する余裕が
+    # ほとんど無い（この夜は 1 suite が 41 分かかっている）。
+    #
+    # そこで **jest の `--shard` で 2 分割**した。分割は prepare が決める（全件のときだけ）。
+    # 分割後の見積り（09-22 の Android 実測で各 shard の重さを出して比例配分）:
+    #
+    #   shard 1/2 … 23 suite（Android 換算 17.5 分）→ テスト約 131 分
+    #   shard 2/2 … 22 suite（Android 換算 14.9 分）→ テスト約 112 分
+    #   + setup 6 分 + ビルド 30 分 + リトライ巡    → 各 170〜190 分
+    #
+    # 240 分はこれに 25% ほどの余裕を足した値。**足りているかは «実行された suite を
+    # 突き合わせる» ステップが毎晩判定する**ので、また打ち切られたら Job Summary に出る。
+    # そのときは時間を足すのではなく、分割数を増やすか iOS の起動コスト（テスト時間の
+    # 52%・中央値 70 秒／回）を削ること。後者の実測と調査は #2003（#1040 は «同期が
+    # アイドルにならない» 問題で、iOS は同期を切る方針で closed 済み。起動が 70 秒かかる
+    # 理由はそこでは説明されていない）。
+    #
+    # ⚠️ **分割できるのは、この PR の① で revoke を `scope: "local"` にしたからである。**
+    # global のままだと、先に終わった shard の後始末がもう片方のセッションを失効させる
+    # （Android / iOS の並走で実際に起きていたのと同じ事故）。
+    timeout-minutes: 240
 
     steps:
       - name: ⏬ Checkout repository
@@ -543,7 +612,7 @@ jobs:
         # ソフトウェアキーボードの無効化は **Detox がシミュレータを起こす前**に済ませる必要がある
         run: |
           bash e2e-mobile/scripts/setup-ios-simulator.sh
-          bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }}
+          bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }} ${{ matrix.shard.arg != 'off' && format('--shard={0}', matrix.shard.arg) || '' }}
         # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
@@ -554,6 +623,21 @@ jobs:
           # ⚠️ 値は none|failing|all 以外を渡さないこと。不正値でも Detox はエラーにせず
           # .detoxrc.js の video 設定を黙って上書きして動画が出なくなる（run 32605810775 で実測）
           DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && 'all' || 'none' }}
+
+      # 📏 #2001 「この run は最後まで走ったのか」を実行後に突き合わせる。
+      # iOS は 3 時間の timeout-minutes に当たって毎晩打ち切られていたのに、GitHub 上は
+      # `cancelled` としか出ないため、**45 suite 中 31 しか走っていないことに 13 夜以上
+      # 誰も気付けなかった**（tests/smoke/boot.test.ts すら未実行だった）。
+      # ⚠️ `if: always()` であること。ジョブが timeout で cancel されても always() のステップは
+      # 猶予時間の中で動く（run 35662317482 で実測）。打ち切られたときこそ回ってほしい。
+      - name: 📏 実行された suite を突き合わせる (iOS)
+        if: always()
+        # カタログ収集では run を赤くしない（理由は上の «Run Detox tests» と同じ）。
+        # 打ち切りの事実は Job Summary と ::error:: 注釈には出るので、見えなくはならない
+        continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
+        run: node e2e-mobile/scripts/assert-suite-coverage.mjs ${{ needs.prepare.outputs.ios_script }} ${{ matrix.shard.arg != 'off' && format('--shard={0}', matrix.shard.arg) || '' }}
+        env:
+          DETOX_TEST_FILTER: ${{ inputs.test_filter }}
 
       # 📋 UI カタログ（scope=catalog*）: 画面定義と突き合わせて一覧を生成する
       - name: 📋 Generate UI catalog document (iOS)
@@ -570,7 +654,7 @@ jobs:
         if: ${{ always() && startsWith(inputs.scope, 'catalog') }}
         uses: actions/upload-artifact@v4
         with:
-          name: ui-catalog-screenshots-ios
+          name: ui-catalog-screenshots-ios${{ matrix.shard.tag != 'off' && format('-{0}', matrix.shard.tag) || '' }}
           path: |
             e2e-mobile/screenshots/**/*.png
             e2e-mobile/screenshots/UI_CATALOG.md
@@ -583,7 +667,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: detox-report-ios
+          # #2001 分割したぶんだけ名前を分ける（同名の Artifact は同じ run 内で衝突する）
+          name: detox-report-ios${{ matrix.shard.tag != 'off' && format('-{0}', matrix.shard.tag) || '' }}
           path: e2e-mobile/artifacts/
           if-no-files-found: ignore
           # #1030 レビュー B-2: artifact には長期資格情報が載りうるため保存期間を短くする
