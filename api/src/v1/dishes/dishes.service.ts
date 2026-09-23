@@ -885,7 +885,12 @@ export class DishesService {
               ...convertSupabaseToPrisma_Restaurants(restaurant),
               address_components:
                 restaurant.address_components as Prisma.InputJsonValue,
-              plus_code: restaurant.plus_code as Prisma.InputJsonValue,
+              // #1779 【設計】**Google の plusCode を保存しない。** 読み手が 1 つも無く
+              // （API レスポンス型にも app-expo にも参照ゼロ）、ToS 3.2.3 で無期限に
+              // 保存してよいのは place_id だけである。同じ経路の image_url /
+              // address_components が既に «値を作らない» になっているのに、
+              // ここだけ Google の値を書き続けていた。列は残す（削除は #1779 本体）。
+              plus_code: Prisma.DbNull,
             },
             restaurant.google_place_id,
           );
