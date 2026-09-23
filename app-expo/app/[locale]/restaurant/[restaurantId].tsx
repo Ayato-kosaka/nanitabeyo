@@ -69,6 +69,26 @@ export default function RestaurantDetailScreen() {
 	// 繋がないと、共有リンクで着地したときスタックが 1 枚なので OS がアプリを終了する。
 	useAndroidHardwareBack(handleBack);
 
+	/*
+	 * #1264 【設計】**画面が開いたことを、無条件に 1 回だけ記録する。**
+	 *
+	 * ⚠️ この下の `*_loaded` は «API を叩いて成功したとき» にしか出ない。キャッシュがある
+	 * ときは early return するので、`fromCache: true` は **一度も記録されたことがない**
+	 * （本番 90 日で 0 行。実測）。この画面はほぼ常にキャッシュ経由で開かれるため、
+	 * «何回開かれたか» が本番で 1 件も取れていなかった。
+	 *
+	 * リポジトリの既存の慣習（`screen_view` + `payload.screen`）に合わせる。
+	 * ⚠️ 旧ビルドが出している `screen: "review"` とは**別の名前**にすること。
+	 * 現行コードに出所が無いイベントと混ぜると、世代の違うものを縦に並べた偽のファネルになる。
+	 */
+	useEffect(() => {
+		logFrontendEvent({
+			event_name: "screen_view",
+			error_level: "log",
+			payload: { screen: "restaurant_detail" },
+		});
+	}, [logFrontendEvent]);
+
 	// #644 【設計】restaurant.id でレストラン詳細を取得（ストアキャッシュ優先）
 	useEffect(() => {
 		if (!restaurantId) return;
