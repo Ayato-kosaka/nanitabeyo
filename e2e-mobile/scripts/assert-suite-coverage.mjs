@@ -6,8 +6,9 @@ import { fileURLToPath } from "node:url";
 /**
  * 📏 「この run は最後まで走ったのか」を実行後に突き合わせるゲート（#2001）。
  *
- * 使い方: node e2e-mobile/scripts/assert-suite-coverage.mjs <pnpm スクリプト名>
+ * 使い方: node e2e-mobile/scripts/assert-suite-coverage.mjs <pnpm スクリプト名> [jest へ渡す追加引数...]
  *   例)   node e2e-mobile/scripts/assert-suite-coverage.mjs test:ci:ios
+ *   例)   node e2e-mobile/scripts/assert-suite-coverage.mjs test:ci:ios --shard=1/2
  *
  * ## なぜ必要か
  * iOS ジョブは 3 時間の `timeout-minutes` に当たって **毎晩打ち切られていた**。
@@ -33,6 +34,10 @@ import { fileURLToPath } from "node:url";
  * tier の絞り込み（`--testPathPattern`）と `RUN_MUTATION` / `RUN_CATALOG` / `DETOX_TEST_FILTER` の
  * 解釈は package.json と jest.config.js が正である。ここで同じ条件を書き直すと、
  * 片方だけ直ったときに **緑のまま嘘をつく**。実際に走るときと同じ引数で `jest --listTests` を呼ぶ。
+ *
+ * ⚠️ **`--shard` も同じ理由でそのまま渡すこと。** 分割して流しているのに «期待» を 45 件のまま
+ * 数えると、**毎晩「22 件が未実行」と誤報する**。run-detox-ci.sh が jest へ渡すのと
+ * 同じ引数を、このスクリプトにも同じように渡す（workflow 側で 1 か所から両方へ配っている）。
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -40,6 +45,8 @@ const e2eRoot = path.resolve(here, "..");
 const repoRoot = path.resolve(e2eRoot, "..");
 
 const scriptName = process.argv[2];
+/** 実行時に jest へ渡した追加引数（現状は `--shard=N/M`）。期待側にも同じものを効かせる */
+const extraJestArgs = process.argv.slice(3);
 if (!scriptName) {
 	console.error("::error::実行した pnpm スクリプト名を渡してください（例: test:ci:ios）");
 	process.exit(1);
@@ -82,7 +89,7 @@ const { env: scriptEnv, jestArgs } = parseScript(command);
 function expectedSuites() {
 	const out = execFileSync(
 		process.execPath,
-		[path.join(e2eRoot, "node_modules", "jest", "bin", "jest.js"), "--listTests", ...jestArgs],
+		[path.join(e2eRoot, "node_modules", "jest", "bin", "jest.js"), "--listTests", ...jestArgs, ...extraJestArgs],
 		{ cwd: e2eRoot, env: { ...process.env, ...scriptEnv }, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
 	);
 	return out
@@ -117,7 +124,7 @@ try {
 const unreported = expected ? expected.filter((f) => !reported.has(f)) : [];
 
 const lines = [];
-lines.push(`## Detox suite coverage (${scriptName})`);
+lines.push(`## Detox suite coverage (${[scriptName, ...extraJestArgs].join(" ")})`);
 lines.push("");
 if (finished) {
 	lines.push(`✅ **完走しました** — 報告された suite: ${reported.size}${expected ? ` / 期待 ${expected.length}` : ""}`);

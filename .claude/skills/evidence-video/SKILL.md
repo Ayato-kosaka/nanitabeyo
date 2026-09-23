@@ -75,6 +75,9 @@ dispatch が来ると、**自分の待機分が押し出されて cancelled に�
 2. 完了後、Artifact `detox-report-android` / `detox-report-ios` をダウンロードすると
    `artifacts/` 配下にテストごとの `test.mp4` が入っている。チャットへは必要な分だけ
    `SendUserFile` で転送する
+   - ⚠️ #2001 で **iOS は «全件・filter 無し» のときだけ 2 分割**して流すようになった。
+     そのときに限り Artifact は `detox-report-ios-1/2` / `detox-report-ios-2/2` に分かれる。
+     エビデンス撮影は必ず `test_filter` を付ける（= 分割されない）ので、**この手順のままでよい**
 3. CI の GitHub Actions を消費するだけで **EAS のビルド枠は消費しない**
    （CLAUDE.md の EAS Build 規則とは無関係に自由に実行してよい）
 
