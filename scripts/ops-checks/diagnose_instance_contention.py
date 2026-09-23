@@ -156,6 +156,42 @@ def main() -> int:
     LOGGER.info("  ⚠️ 遅い側の同時実行が速い側より明らかに大きければ «同居による競合» で確定。")
     LOGGER.info("     同じなら競合ではなく、インスタンス自体の別の問題へ戻る。")
 
+    # #2006 到着時の同時実行が «遅い側も速い側も 0» だったので、競合ではない。
+    # 残る筋は «アイドル後の最初の 1 本»。Cloud Run は待機中の CPU を絞るので、
+    # 間が空いたあとのリクエストは暖機からやり直しになる。
+    LOGGER.info("")
+    LOGGER.info("-" * 76)
+    LOGGER.info("# 直前のリクエストからの «空白時間»（同じインスタンス上）")
+    LOGGER.info("-" * 76)
+    slow_gaps: list[float] = []
+    fast_gaps: list[float] = []
+    for instance, reqs in by_instance.items():
+        reqs.sort(key=lambda r: r.start)
+        previous_end = None
+        for req in reqs:
+            gap = None if previous_end is None else max(0.0, (req.start - previous_end).total_seconds())
+            previous_end = max(previous_end, req.end) if previous_end else req.end
+            if args.target not in req.url or gap is None:
+                continue
+            (slow_gaps if req.latency >= SLOW_SECONDS else fast_gaps).append(gap)
+
+    def _gap_stats(name: str, values: list[float]) -> None:
+        if not values:
+            LOGGER.info("  %-22s （該当なし）", name)
+            return
+        values = sorted(values)
+        LOGGER.info(
+            "  %-22s 件数 %4d / 中央値 %7.1f 秒 / 平均 %7.1f 秒 / 最大 %7.1f 秒",
+            name, len(values), values[len(values) // 2],
+            sum(values) / len(values), values[-1],
+        )
+
+    _gap_stats("遅い（%.0fs 以上）" % SLOW_SECONDS, slow_gaps)
+    _gap_stats("速い", fast_gaps)
+    LOGGER.info("")
+    LOGGER.info("  ⚠️ 遅い側の空白が明らかに長ければ «アイドル後の暖機» で確定。")
+    LOGGER.info("     同じなら、それも違う。")
+
     LOGGER.info("")
     LOGGER.info("-" * 76)
     LOGGER.info("# 遅いときに同居していた相手（上位 12）")
