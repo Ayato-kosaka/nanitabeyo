@@ -34,7 +34,8 @@ sys.path.insert(0, str(HERE))
 from common_sns import (LATEST_RESOLVED_QUALIFY, MIN_RESTAURANT_CONFIDENCE,  # noqa: E402
                         TABLE_DISH_CATEGORY_IMAGES, TABLE_POST_RAW, TABLE_POST_RESOLVED,
                         TABLE_RESTAURANT_CATALOG, category_with_image_cte_sql,
-                        post_store_cte_sql, resolved_store_confidence_sql)
+                        kpi_gate_category_sql, post_store_cte_sql,
+                        resolved_store_confidence_sql)
 
 LOGGER = logging.getLogger("7_8")
 
@@ -47,7 +48,14 @@ def _load(fname: str, name: str):
 
 
 def build_sql(ds: str, dish_ds: str, *, radius_m: int) -> str:
-    """未達地点の 500m 圏の店に紐づく投稿を、配信できない理由で数える。"""
+    """未達地点の 500m 圏の店に紐づく投稿を、配信できない理由で数える。
+
+    ⚠️ **KPI のゲート（134 カテゴリ）の内と外を必ず分けて出す。**
+    2026-09-23、«絵の無い 20 カテゴリに絵を足せば 29 店が通る» と報告して外した。
+    その 20 カテゴリは **全部ゲートの外**で、絵を足しても KPI には 1 ミリも効かない
+    （ゲート内 134 カテゴリは既に全部絵を持っている）。
+    **ゲートの外の数字を «あと N 店で届く» の材料に混ぜてはいけない。**
+    """
     images = f"{dish_ds}.{TABLE_DISH_CATEGORY_IMAGES}"
     return f"""
     WITH pts AS (
@@ -70,13 +78,21 @@ def build_sql(ds: str, dish_ds: str, *, radius_m: int) -> str:
       {LATEST_RESOLVED_QUALIFY}
     ),
     {post_store_cte_sql(f"{ds}.{TABLE_POST_RAW}", latest_cte="v")},
-    {category_with_image_cte_sql(images)}
+    {category_with_image_cte_sql(images)},
+    gate AS ({kpi_gate_category_sql(dish_ds, key_param=None)})
     SELECT
       COUNT(*) AS posts_near,
       COUNTIF(v.dish_category_id IS NULL) AS no_category,
       COUNTIF(v.dish_category_id IS NOT NULL
               AND v.dish_category_id NOT IN (SELECT dish_category_id FROM category_with_image)
              ) AS category_without_image,
+      -- ⚠️ KPI に効きうるのはゲート内だけ。ここが 0 なら «絵を足す» は打ち手にならない
+      COUNTIF(v.dish_category_id IS NOT NULL
+              AND v.dish_category_id IN (SELECT item_qid FROM gate)
+              AND v.dish_category_id NOT IN (SELECT dish_category_id FROM category_with_image)
+             ) AS category_without_image_in_gate,
+      COUNTIF(v.dish_category_id IS NOT NULL
+              AND v.dish_category_id NOT IN (SELECT item_qid FROM gate)) AS outside_gate,
       COUNT(DISTINCT IF(v.dish_category_id IS NOT NULL
               AND v.dish_category_id NOT IN (SELECT dish_category_id FROM category_with_image),
               v.dish_category_id, NULL)) AS categories_without_image,
@@ -145,16 +161,24 @@ def main() -> int:
 
     LOGGER.info("未達地点の 500m 圏の店に紐づく resolve 済み投稿 = %d 件", near)
     LOGGER.info("  カテゴリが付いていない            : %8d", int(r.get("no_category") or 0))
-    LOGGER.info("  **カテゴリに絵が無い**             : %8d 件（%d カテゴリ・**%d 店**）",
+    LOGGER.info("  カテゴリが KPI のゲートの外        : %8d （**KPI には効かない**）",
+                int(r.get("outside_gate") or 0))
+    LOGGER.info("  カテゴリに絵が無い                : %8d 件（%d カテゴリ・%d 店）",
                 int(r.get("category_without_image") or 0),
                 int(r.get("categories_without_image") or 0),
                 int(r.get("stores_blocked_by_image") or 0))
+    in_gate = int(r.get("category_without_image_in_gate") or 0)
+    LOGGER.info("    **うち KPI のゲート内**          : %8d 件 ← 絵を足して効くのはここだけ", in_gate)
+    if not in_gate:
+        LOGGER.info("    → **絵を足しても KPI は動かない。**"
+                    "ゲート内の 134 カテゴリは既に全部絵を持っている")
     LOGGER.info("  店の確からしさ %.2f 未満          : %8d 件（%d 店）",
                 MIN_RESTAURANT_CONFIDENCE,
                 int(r.get("low_confidence") or 0),
                 int(r.get("stores_blocked_by_confidence") or 0))
     LOGGER.info("")
-    LOGGER.info("⚠️ «絵が無い» は **絵を 1 枚足せば通る**（品質ゲートを緩めない）。")
+    LOGGER.info("⚠️ «絵が無い» が KPI に効くのは **ゲート内のカテゴリだけ**。"
+                "ゲート外の件数を «あと N 店で届く» の材料に混ぜない（2026-09-23 に混ぜて外した）。")
     LOGGER.info("⚠️ «確からしさが足りない» 分を通すのは **品質ゲートを緩めること**で、"
                 "オーナー判断の領分である。ここでは数えるだけ。")
     LOGGER.info("⚠️ 店数は «そのゲートで止まっている店» であって、"

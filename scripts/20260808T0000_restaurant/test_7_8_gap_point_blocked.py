@@ -45,6 +45,31 @@ class TheGatesAreCountedSeparatelyTest(unittest.TestCase):
         self.assertIn("オーナー判断の領分", SRC)
 
 
+class AnyLeverMustReachTheKpiGateTest(unittest.TestCase):
+    """KPI は 134 カテゴリのゲートを通った分しか数えない。
+
+    2026-09-23、«絵の無い 20 カテゴリに絵を足せば 29 店が通る» と報告して外した。
+    その 20 カテゴリは **全部ゲートの外**で、絵を足しても KPI には 1 ミリも効かない
+    （実測: ゲート内 134 カテゴリのうち絵が無いものは **0**）。
+
+    > **打ち手を出す前に、それが KPI のゲートを通るのかを確かめる。**
+    """
+
+    def test_the_image_gap_is_split_by_the_kpi_gate(self):
+        self.assertIn("category_without_image_in_gate", SQL)
+        self.assertIn("gate AS (", SQL)
+
+    def test_it_also_counts_what_falls_outside_the_gate(self):
+        """ゲート外の件数を隠さない（隠すと «なぜ増えないのか» が追えなくなる）。"""
+        self.assertIn("outside_gate", SQL)
+
+    def test_the_gate_comes_from_common_sns(self):
+        self.assertIn("kpi_gate_category_sql", SRC)
+
+    def test_it_says_so_when_the_image_lever_is_dead(self):
+        self.assertIn("絵を足しても KPI は動かない", SRC)
+
+
 class ItUsesTheProductionRulesTest(unittest.TestCase):
     def test_the_gates_come_from_common_sns(self):
         """9_1 と同じ式を借りる（写経すると 9_1 だけ直したときに静かにずれる）。"""
