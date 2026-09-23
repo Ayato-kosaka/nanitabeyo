@@ -48,6 +48,17 @@ const NOT_CARD_CHILDREN = new Set([
 const ID_RE = /by\.id\(\s*["'`](dish-action-[a-z-]+)["'`]\s*\)/g;
 
 /**
+ * #1944 web 側（Playwright）も同じ欠陥を踏む。`getByTestId("dish-action-like")` /
+ * `[data-testid="dish-action-like"]` は **画面外の隣のカードにしか付かない id** を指す。
+ *
+ * 09-21 の夜間で `dish-media-accessibility` が «element(s) not found» で落ち、
+ * `reaction-rollback` 3 件と `dish-media-unarrived-excluded` 2 件が flaky になった。
+ * **mobile だけ追随して web を直し忘れた**のが原因で、ガードが mobile しか見ていなかった。
+ */
+const WEB_ID_RE = /(?:getByTestId\(\s*["'`]|data-testid="|data-testid=\\?["']?)(dish-action-[a-z-]+)["'`\]]/g;
+const WEB_ROOT = path.join(repoRoot, "e2e-web");
+
+/**
  * コメントと文字列リテラルを **同じ長さの空白へ潰す**（index を保つので行番号がずれない）。
  *
  * ⚠️ これが無いと **説明文の中の `by.id("dish-action-like")` を «違反» と読む**。
@@ -121,6 +132,20 @@ export function findViolations(rawSource, relPath) {
 	return violations;
 }
 
+/** web 側（Playwright）の 1 ファイルを検査する（#1944） */
+export function findWebViolations(rawSource, relPath) {
+	const source = blankComments(rawSource);
+	const violations = [];
+	for (const m of source.matchAll(WEB_ID_RE)) {
+		const testId = m[1];
+		if (testId.endsWith("-active")) continue;
+		if (NOT_CARD_CHILDREN.has(testId)) continue;
+		const line = source.slice(0, m.index).split("\n").length;
+		violations.push({ file: relPath, line, testId });
+	}
+	return violations;
+}
+
 /**
  * ガード自身の自己検査。**両方向**（欠陥を落とすこと / 正しいものを落とさないこと）を見る。
  *
@@ -139,9 +164,21 @@ const SELF_CHECKS = [
 		src: '// by.id("dish-action-like") は駄目\nconst a = by.id("dish-action-save");',
 		expect: 1,
 	},
+]
+
+/** #1944 web 側の自己検査（同じく両方向） */
+const WEB_SELF_CHECKS = [
+	{ name: "素の getByTestId は落とす", src: 'page.getByTestId("dish-action-like");', expect: 1 },
+	{ name: "-active 付きは通す", src: 'page.getByTestId("dish-action-like-active");', expect: 0 },
+	{ name: "data-testid セレクタも落とす", src: 'page.locator(\'[data-testid="dish-action-save"]\');', expect: 1 },
+	{ name: "コメントの中の例は落とさない", src: '// getByTestId("dish-action-like") だった\nconst a = 1;', expect: 0 },
+	{ name: "report / more は対象外", src: 'page.getByTestId("dish-action-report");', expect: 0 },
 ];
 
-const selfFailures = SELF_CHECKS.filter((c) => findViolations(c.src, "self-check.ts").length !== c.expect);
+const selfFailures = [
+	...SELF_CHECKS.filter((c) => findViolations(c.src, "self-check.ts").length !== c.expect),
+	...WEB_SELF_CHECKS.filter((c) => findWebViolations(c.src, "self-check.ts").length !== c.expect),
+];
 if (selfFailures.length > 0) {
 	console.error("❌ ガード自身が壊れています（自己検査に失敗）\n");
 	for (const c of selfFailures) {
@@ -201,4 +238,24 @@ if (violations.length > 0) {
 	process.exit(1);
 }
 
-console.log(`✅ e2e-mobile ${files.length} ファイル: カード内 locator はすべて active なカードへ限定されています`);
+// #1944 web 側も同じ規約で縛る（mobile だけ直して web を忘れたのが 09-21 の夜間の原因）
+const webFiles = collect(WEB_ROOT);
+if (webFiles.length === 0) {
+	console.error(`❌ 検査対象が 1 件も見つかりません（${WEB_ROOT}）。パスが変わっていませんか`);
+	process.exit(1);
+}
+
+const webViolations = webFiles.flatMap((f) => findWebViolations(readFileSync(f, "utf8"), path.relative(repoRoot, f)));
+
+if (webViolations.length > 0) {
+	console.error("❌ web 側のカード内 locator が active なカードへ限定されていません（#1944）\n");
+	for (const v of webViolations) {
+		console.error(`   ${v.file}:${v.line}  ${v.testId}`);
+	}
+	console.error("\n   アプリは前面のカードのボタンにだけ `-active` を付けています（#1944）。");
+	console.error("   素の id は **画面外の隣のカード** にしか付かないので、`.first()` で絞っても掴めません。");
+	console.error("   `dish-action-<name>-active` を使ってください。\n");
+	process.exit(1);
+}
+
+console.log(`✅ e2e-mobile ${files.length} / e2e-web ${webFiles.length} ファイル: カード内 locator はすべて active なカードへ限定されています`);

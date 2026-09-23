@@ -173,7 +173,7 @@ export default function LanguageScreen() {
 										  テーマ 3 択のチェックを素の View で包んであるのと同じ理由
 										  （`SettingsScreen.themeOptionCheck` のコメント参照）。
 										*/}
-										<Text style={styles.rowLabel} testID={`language-option-${option.key}-label`}>
+										<Text style={styles.rowLabel} testID={`language-label-${option.key}`}>
 											{option.label}
 										</Text>
 										{isSelected && (
