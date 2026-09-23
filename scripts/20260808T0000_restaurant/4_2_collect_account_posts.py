@@ -330,6 +330,13 @@ def parse_args() -> argparse.Namespace:
     # #1947 «合格線に足りない地点の 500m 圏» だけを撃つ。ゴール（上位 70% の 70% で 5 店）に
     # 直結する弾だけに quota を使うための絞り込み。**どの地点が足りないかは 7_5 が決める**
     # （判定を 2 箇所に書くと静かにずれる。7_5.select_gap_points がその唯一の入口）。
+    # #1947 «上限で切られた、既に良いと分かっているアカウント» を深く掘り直す。
+    # 7_7 の実測: store_branch は帯が上がっても伸びない（0.74→1.06）が、influencer は
+    # 1.07 → 24.12 → 46.22 → 98.09 店/アカ と伸びる。**ラベルではなく実績で選ぶ。**
+    # ⚠️ 深掘りは «同じ handle を呼び直す» ので `--skip-collected-scope run` と対で使う
+    #   （any だと投稿のある handle が全部落ちて 0 件になる）。
+    p.add_argument("--deep-dive-delivery-run-id", default=None,
+                   help="sns_dish_media_catalog の run_id。7_7 の判定で «深掘り候補» だけを呼び直す")
     p.add_argument("--gap-points-delivery-run-id", default=None,
                    help="sns_dish_media_catalog の run_id。合格線に足りない地点の 500m 圏の店だけ収集する")
     p.add_argument("--gap-top-pct", type=int, default=70, help="«検索結果の多い順»の上位何%%を見るか")
@@ -483,6 +490,23 @@ def _load_sibling(fname: str, name: str):
     return m
 
 
+def _resolve_deep_dive(pipeline, args) -> str | None:
+    """#1947 深掘り候補の handle を選ぶ SQL 片を返す（判定は 7_7 が唯一の正）。"""
+    if not args.deep_dive_delivery_run_id:
+        return None
+    if args.skip_collected_scope == "any":
+        raise SystemExit(
+            "--deep-dive-delivery-run-id は --skip-collected-scope any と併用できない。"
+            "深掘りは **同じ handle を呼び直す** ので、投稿のある handle を除くと 0 件になる。"
+            "`--skip-collected-scope run` と新しい --run-id で使うこと。")
+    m77 = _load_sibling("7_7_measure_deep_dive_headroom.py", "m77")
+    LOGGER.info("#1947 深掘り: 投稿 %d 以上 かつ 異なり配信店 %d 以上 のアカウントだけを呼び直す"
+                "（基準カタログ %s）",
+                m77.DEEP_DIVE_MIN_POSTS, m77.DEEP_DIVE_MIN_STORES,
+                args.deep_dive_delivery_run_id)
+    return m77.candidate_handles_sql(pipeline.dataset_ref)
+
+
 def _resolve_gap_points(pipeline, args):
     """#1947 «合格線に足りない地点» を 7_5 に決めさせる。返り値は (地点, 半径m, 座標のrun_id)。"""
     if not args.gap_points_delivery_run_id:
@@ -632,7 +656,9 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
                    layer_order: bool = False,
                    near_points: list[str] | None = None,
                    near_radius_m: int = 500,
-                   geo_catalog_run_id: str | None = None):
+                   geo_catalog_run_id: str | None = None,
+                   deep_dive_sql: str | None = None,
+                   deep_dive_catalog_run_id: str | None = None):
     from google.cloud import bigquery
     # #1815 発見 run は増え続けるので «全部» を指定できるようにする（列挙を書き写さない）。
     if list(account_run_ids) == ["all"]:
@@ -693,6 +719,13 @@ def _read_accounts(pipeline: BigQueryPipeline, account_run_ids, account_type, ma
                 WHERE run_id = @geo_rid AND google_place_id IN UNNEST(@gap_pts)
                 GROUP BY google_place_id) g
             ON ST_DWithin(s.location, g.location, {int(near_radius_m)}))"""
+
+    # #1947 深掘り: «既に良いと分かっているアカウント» だけへ絞る。判定は 7_7 が持つ。
+    # ⚠️ 7_7 の SQL は @cat_rid を使う。**ここで束ねないと «Query parameter not found» で落ちる。**
+    if deep_dive_sql:
+        where += f" AND handle IN ({deep_dive_sql})"
+        params.append(bigquery.ScalarQueryParameter(
+            "cat_rid", "STRING", deep_dive_catalog_run_id or ""))
 
     limit_sql = f"LIMIT {int(max_accounts)}" if max_accounts else ""
     todo_sql = f"""
@@ -797,6 +830,7 @@ def main() -> None:
     priority_coverage_run_id = _resolve_priority_coverage_run_id(
         pipeline, args.priority_coverage_run_id)
     near_points, near_radius_m, geo_catalog_run_id = _resolve_gap_points(pipeline, args)
+    deep_dive_sql = _resolve_deep_dive(pipeline, args)
     ig = resolve_ig_user_id(token, args.user_env)
     LOGGER.info("IG business account id = %s（token_env=%s）", ig, args.token_env)
 
@@ -819,7 +853,9 @@ def main() -> None:
                                   catalog_run_id=args.catalog_run_id,
                                   layer_order=args.order_by_account_layer,
                                   near_points=near_points, near_radius_m=near_radius_m,
-                                  geo_catalog_run_id=geo_catalog_run_id)
+                                  geo_catalog_run_id=geo_catalog_run_id,
+                                  deep_dive_sql=deep_dive_sql,
+                                  deep_dive_catalog_run_id=args.deep_dive_delivery_run_id)
     LOGGER.info("%d アカウントを処理します（未収集分。max=%s）", len(accounts), args.max_accounts)
     now = utc_now()
 
@@ -834,6 +870,7 @@ def main() -> None:
         "order_by_account_layer": args.order_by_account_layer,
         "gap_points_delivery_run_id": args.gap_points_delivery_run_id,
         "gap_points": ",".join(near_points) if near_points else None,
+        "deep_dive_delivery_run_id": args.deep_dive_delivery_run_id,
     }, repo_root=HERE.parents[1]) as result:
         # 収集は 413 アカウントを（レート制限のため）複数バッチに分けて回す。run_id 単位の
         # DELETE だと先行バッチを消してしまうので、**このバッチが担当するアカウント分だけ**を

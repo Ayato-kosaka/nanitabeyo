@@ -101,3 +101,66 @@ class ItSaysWhatItCannotSayTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheSameJudgeSelectsAndCountsTest(unittest.TestCase):
+    """«測った候補» と «実際に呼ぶ相手» が別の条件になると、結果を読み違える。"""
+
+    def test_the_handle_query_uses_the_same_thresholds(self):
+        sql = m.candidate_handles_sql("food-scroll.restaurant_recommendation")
+        self.assertIn(f"posts >= {m.DEEP_DIVE_MIN_POSTS}", sql)
+        self.assertIn(f"stores >= {m.DEEP_DIVE_MIN_STORES}", sql)
+
+    def test_it_returns_only_handles(self):
+        sql = m.candidate_handles_sql("d")
+        self.assertTrue(sql.strip().startswith("SELECT handle FROM ("), sql[:60])
+
+    def test_four_two_does_not_rewrite_the_judge(self):
+        src = (HERE / "4_2_collect_account_posts.py").read_text(encoding="utf-8")
+        self.assertIn("candidate_handles_sql", src)
+        self.assertNotIn("DEEP_DIVE_MIN_STORES =", src)
+
+    def test_deep_dive_refuses_the_scope_that_would_empty_it(self):
+        """scope=any は «投稿のある handle» を除く。深掘りは呼び直しなので 0 件になる。"""
+        import importlib.util as _iu
+        spec = _iu.spec_from_file_location("m42d", HERE / "4_2_collect_account_posts.py")
+        m42 = _iu.module_from_spec(spec)
+        spec.loader.exec_module(m42)
+
+        class _Args:
+            deep_dive_delivery_run_id = "sns-x-cat17"
+            skip_collected_scope = "any"
+        with self.assertRaises(SystemExit) as cm:
+            m42._resolve_deep_dive(object(), _Args())
+        self.assertIn("同じ handle を呼び直す", str(cm.exception))
+
+
+class TheDeepDiveQueryBindsItsParameterTest(unittest.TestCase):
+    """7_7 の SQL は @cat_rid を使う。束ね忘れると «Query parameter not found» で落ちる。"""
+
+    def test_four_two_binds_cat_rid(self):
+        import importlib.util as _iu
+
+        class _Pipe:
+            dataset_ref = "p.d"
+
+            def __init__(self):
+                self.calls = []
+
+            def table(self, n):
+                return f"p.d.{n}"
+
+            def execute(self, sql, parameters=None):
+                self.calls.append((sql, list(parameters or [])))
+                return []
+
+        spec = _iu.spec_from_file_location("m42b", HERE / "4_2_collect_account_posts.py")
+        m42 = _iu.module_from_spec(spec)
+        spec.loader.exec_module(m42)
+        pipe = _Pipe()
+        m42._read_accounts(pipe, ["all"], None, 10, output_run_id="r",
+                           deep_dive_sql=m.candidate_handles_sql(pipe.dataset_ref),
+                           deep_dive_catalog_run_id="sns-x-cat17")
+        sql, params = pipe.calls[-1]
+        self.assertIn("cat_rid", [p.name for p in params])
+        self.assertIn(f"posts >= {m.DEEP_DIVE_MIN_POSTS}", sql)

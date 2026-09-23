@@ -134,6 +134,29 @@ def build_candidate_sql(ds: str) -> str:
     """
 
 
+def candidate_handles_sql(ds: str) -> str:
+    """深掘り候補の **handle だけ**を返す SQL 片（`4_2 --deep-dive-delivery-run-id` が使う）。
+
+    ⚠️ 判定（投稿 %d 以上 かつ 異なり配信店 %d 以上）は `build_candidate_sql` と
+    **同じ定数**を使う。呼び出し側で書き直すと «測った候補» と «実際に呼ぶ相手» がずれる。
+    """ % (DEEP_DIVE_MIN_POSTS, DEEP_DIVE_MIN_STORES)
+    return f"""
+      SELECT handle FROM (
+        SELECT r.account_id AS handle,
+               COUNT(DISTINCT r.post_id) AS posts,
+               COUNT(DISTINCT c.google_place_id) AS stores
+        FROM `{ds}.{TABLE_POST_RAW}` r
+        LEFT JOIN (
+          SELECT DISTINCT external_content_id AS post_id, google_place_id
+          FROM `{ds}.{TABLE_DISH_MEDIA_CATALOG}` WHERE run_id = @cat_rid
+        ) c ON c.post_id = r.post_id
+        WHERE r.account_id IS NOT NULL
+        GROUP BY r.account_id
+      )
+      WHERE posts >= {DEEP_DIVE_MIN_POSTS} AND stores >= {DEEP_DIVE_MIN_STORES}
+    """
+
+
 def report_candidates(rows: list[dict], *, accounts_per_hour: float = 205.0) -> None:
     LOGGER.info("")
     LOGGER.info("■ 深掘り候補（集めた投稿 %d 以上 かつ 異なり配信店 %d 以上）",
