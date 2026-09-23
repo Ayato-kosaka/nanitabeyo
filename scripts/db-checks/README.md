@@ -61,8 +61,28 @@
 # db-script-run.yml を workflow_dispatch で実行する
 script_path:       scripts/db-checks/measure_dish_media_coverage.py
 args:              --schema dev
-requirements_path: scripts/20251213T0000_wikidata_food_graph/requirements.txt
+requirements_path: scripts/20260808T0000_restaurant/requirements.txt
 ```
+
+⚠️ **`requirements_path` はこの 1 本で固定する（`scripts/20260808T0000_restaurant/requirements.txt`）。**
+ここに `scripts/20251213T0000_wikidata_food_graph/requirements.txt` と書いてあった時期があり、
+**`measure_dish_media_coverage.py` が `ModuleNotFoundError: No module named 's2sphere'` で落ちた**。
+`normalization.s2_cell_id()` は `s2sphere` を**関数の中で**読むので、import 行を見ても気づけない。
+
+全スクリプトの import を当たり直した結果（2026-09-21）:
+
+| 必要なもの | どのスクリプトか | どこに入っているか |
+| --- | --- | --- |
+| `psycopg2-binary` | ほぼ全部 | 両方に入っている |
+| `s2sphere` | `measure_dish_media_coverage.py`（`normalization.s2_cell_id()` 経由・遅延 import） | **20260808T0000_restaurant のみ** |
+| `google-cloud-bigquery` / `-storage` | `measure_price_band_coverage.py` / `measure_rating_coverage.py`（`pg_sync_common` 経由） | **20260808T0000_restaurant のみ** |
+
+つまり **20260808T0000_restaurant の 1 本がすべてを覆う**。迷ったらこれを指定すること。
+
+⚠️ **重いクエリは `--statement-timeout-s` で殺される。** 既定 300 秒で、超えると
+`QueryCanceled` になる（`measure_dish_media_coverage.py` の Stage5 が代表例）。
+落ちたときは **`--s2-level` を小さく（粗く）するか `--statement-timeout-s` を伸ばす**。
+この 2 つは «DB が壊れている» のサインではないので、先に閾値を疑うこと。
 
 `--assert` を持つスクリプトは、劣化していたら終了コード 1 を返す（ラチェットとして使える）。
 
@@ -72,8 +92,9 @@ requirements_path: scripts/20251213T0000_wikidata_food_graph/requirements.txt
 ## #1782 の coverage を追うとき
 
 ```
-script_path: scripts/db-checks/measure_dish_media_coverage.py
-args:        --schema dev --out-json /tmp/coverage.json
+script_path:       scripts/db-checks/measure_dish_media_coverage.py
+args:              --schema dev --out-json /tmp/coverage.json
+requirements_path: scripts/20260808T0000_restaurant/requirements.txt
 ```
 
 出るもの（JSON にも同じものが入る）:

@@ -187,9 +187,37 @@ export const test = base.extend<AppOptions & AppFixtures>({
 	consoleErrors: [
 		async ({ page, allowedConsoleErrors }, use, testInfo) => {
 			const errors: string[] = [];
-			const isIgnored = (text: string) =>
-				KNOWN_CONSOLE_NOISE.some((pattern) => pattern.test(text)) ||
-				allowedConsoleErrors.some((allowed) => text.includes(allowed));
+			/*
+			#1834 **飲み込んだ数と内訳を必ず残す。**
+
+			除外規則は «相手側の都合で必ず出るもの» を消すために置くが、放っておくと
+			**自分側の失敗まで一緒に飲み込む**。実際に #1666 の取りこぼしがこの形だった
+			（CLAUDE.md「直したら、同じ形をしたものを全部探して一括で直す」の実例）。
+
+			誰も数えていないリストは «効きすぎているか» を判定できないので、
+			どの規則が何件消したかを毎回レポートへ残す。**赤にはしない**
+			（ここで落とすと «既知のノイズ» という設計そのものが成り立たない）。
+			数え方は «規則ごとの件数» で、本文は代表 1 件だけ添える（全文は量が読めない）。
+			*/
+			const ignored = new Map<string, { count: number; sample: string }>();
+			const noteIgnored = (label: string, text: string) => {
+				const entry = ignored.get(label);
+				if (entry) entry.count += 1;
+				else ignored.set(label, { count: 1, sample: text });
+			};
+			const isIgnored = (text: string) => {
+				const pattern = KNOWN_CONSOLE_NOISE.find((candidate) => candidate.test(text));
+				if (pattern) {
+					noteIgnored(`KNOWN_CONSOLE_NOISE ${String(pattern)}`, text);
+					return true;
+				}
+				const allowed = allowedConsoleErrors.find((candidate) => text.includes(candidate));
+				if (allowed !== undefined) {
+					noteIgnored(`allowedConsoleErrors ${JSON.stringify(allowed)}`, text);
+					return true;
+				}
+				return false;
+			};
 
 			/*
 			#1629 ⚠️ **メッセージ本文だけを記録しないこと。**
@@ -239,6 +267,23 @@ export const test = base.extend<AppOptions & AppFixtures>({
 			if (errors.length > 0) {
 				await testInfo.attach("console-errors.txt", {
 					body: errors.join("\n\n"),
+					contentType: "text/plain",
+				});
+			}
+
+			// #1834 飲み込んだぶんの内訳。**赤にはしない**が、毎回 «何件消したか» を残す
+			if (ignored.size > 0) {
+				const total = [...ignored.values()].reduce((sum, entry) => sum + entry.count, 0);
+				const breakdown = [...ignored.entries()]
+					.sort((a, b) => b[1].count - a[1].count)
+					.map(([label, entry]) => `${String(entry.count).padStart(4)} 件  ${label}\n           例: ${entry.sample}`)
+					.join("\n\n");
+				testInfo.annotations.push({
+					type: "ignored-console-errors",
+					description: `${total} 件を除外規則で飲み込んだ（内訳は console-errors-ignored.txt）`,
+				});
+				await testInfo.attach("console-errors-ignored.txt", {
+					body: `合計 ${total} 件を除外した。\n\n${breakdown}\n`,
 					contentType: "text/plain",
 				});
 			}
