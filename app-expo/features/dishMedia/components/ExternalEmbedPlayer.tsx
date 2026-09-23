@@ -1491,7 +1491,7 @@ export function ExternalEmbedPlayer({
 			setUnplayableKind(silentTimeout ? "load_failed" : (parsed.kind ?? null));
 			logFrontendEvent({
 				event_name: "external_embed_unplayable",
-				error_level: "warn",
+				error_level: "error",
 				payload: {
 					provider: embed.provider,
 					kind: parsed.kind ?? null,
@@ -1889,7 +1889,7 @@ export function ExternalEmbedPlayer({
 						onRenderProcessGone={() => {
 							logFrontendEvent({
 								event_name: "external_embed_render_process_gone",
-								error_level: "warn",
+								error_level: "error",
 								payload: { provider: embed.provider, platform: "android" },
 							});
 							setRenderProcessGone(true);
@@ -1897,7 +1897,7 @@ export function ExternalEmbedPlayer({
 						onContentProcessDidTerminate={() => {
 							logFrontendEvent({
 								event_name: "external_embed_render_process_gone",
-								error_level: "warn",
+								error_level: "error",
 								payload: { provider: embed.provider, platform: "ios" },
 							});
 							setRenderProcessGone(true);
