@@ -115,10 +115,14 @@ jobs:
           # 絞った実行まで分割すると、数本の spec のために macOS ランナーを 2 台使い、
           # どちらも 30 分の Detox ビルドを踏むことになる（エビデンス撮影の待ち時間が倍になる）。
           # 値は jest の `--shard` にそのまま渡す（"off" は分割なし）。
+          #
+          # ⚠️ **`arg` と `tag` の 2 つを持たせること。** Artifact 名に `/` は使えず、
+          # `detox-report-ios-1/2` は «The artifact name is not valid … Forward slash /» で
+          # 落ちる（run 35807721930 で実測）。jest へ渡すのは `arg`、名前に使うのは `tag`。
           if [ "$SCOPE" = "tier1-2" ] && [ -z "${TEST_FILTER}" ]; then
-            shards='["1/2","2/2"]'
+            shards='[{"arg":"1/2","tag":"1-of-2"},{"arg":"2/2","tag":"2-of-2"}]'
           else
-            shards='["off"]'
+            shards='[{"arg":"off","tag":"off"}]'
           fi
           echo "ios_shards=$shards" >> "$GITHUB_OUTPUT"
           echo "scope=$SCOPE -> android:$android / ios:$ios / ios_shards:$shards" >> "$GITHUB_STEP_SUMMARY"
@@ -392,7 +396,7 @@ jobs:
 
   e2e-ios:
     # #2001 分割して流すときは «どちらの分か» が一目で分かるようにする
-    name: Detox E2E iOS (development) ${{ matrix.shard != 'off' && format('[{0}]', matrix.shard) || '' }}
+    name: Detox E2E iOS (development) ${{ matrix.shard.arg != 'off' && format('[{0}]', matrix.shard.arg) || '' }}
     needs: prepare
     if: ${{ inputs.platform != 'android' }}
     strategy:
@@ -608,7 +612,7 @@ jobs:
         # ソフトウェアキーボードの無効化は **Detox がシミュレータを起こす前**に済ませる必要がある
         run: |
           bash e2e-mobile/scripts/setup-ios-simulator.sh
-          bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }} ${{ matrix.shard != 'off' && format('--shard={0}', matrix.shard) || '' }}
+          bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }} ${{ matrix.shard.arg != 'off' && format('--shard={0}', matrix.shard.arg) || '' }}
         # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
@@ -631,7 +635,7 @@ jobs:
         # カタログ収集では run を赤くしない（理由は上の «Run Detox tests» と同じ）。
         # 打ち切りの事実は Job Summary と ::error:: 注釈には出るので、見えなくはならない
         continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
-        run: node e2e-mobile/scripts/assert-suite-coverage.mjs ${{ needs.prepare.outputs.ios_script }} ${{ matrix.shard != 'off' && format('--shard={0}', matrix.shard) || '' }}
+        run: node e2e-mobile/scripts/assert-suite-coverage.mjs ${{ needs.prepare.outputs.ios_script }} ${{ matrix.shard.arg != 'off' && format('--shard={0}', matrix.shard.arg) || '' }}
         env:
           DETOX_TEST_FILTER: ${{ inputs.test_filter }}
 
@@ -650,7 +654,7 @@ jobs:
         if: ${{ always() && startsWith(inputs.scope, 'catalog') }}
         uses: actions/upload-artifact@v4
         with:
-          name: ui-catalog-screenshots-ios${{ matrix.shard != 'off' && format('-{0}', matrix.shard) || '' }}
+          name: ui-catalog-screenshots-ios${{ matrix.shard.tag != 'off' && format('-{0}', matrix.shard.tag) || '' }}
           path: |
             e2e-mobile/screenshots/**/*.png
             e2e-mobile/screenshots/UI_CATALOG.md
@@ -664,7 +668,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           # #2001 分割したぶんだけ名前を分ける（同名の Artifact は同じ run 内で衝突する）
-          name: detox-report-ios${{ matrix.shard != 'off' && format('-{0}', matrix.shard) || '' }}
+          name: detox-report-ios${{ matrix.shard.tag != 'off' && format('-{0}', matrix.shard.tag) || '' }}
           path: e2e-mobile/artifacts/
           if-no-files-found: ignore
           # #1030 レビュー B-2: artifact には長期資格情報が載りうるため保存期間を短くする
