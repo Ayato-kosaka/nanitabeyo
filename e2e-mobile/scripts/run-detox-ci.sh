@@ -15,11 +15,14 @@
 # - ここで追加収集するのは **crash バッファのみ**（`adb logcat -b crash`）。
 #   クラッシュのスタックトレースだけが入るバッファで、Intent extras は含まれない
 #
-# 使い方: bash e2e-mobile/scripts/run-detox-ci.sh <pnpm スクリプト名>
+# 使い方: bash e2e-mobile/scripts/run-detox-ci.sh <pnpm スクリプト名> [jest へ渡す追加引数...]
 #   例)    bash e2e-mobile/scripts/run-detox-ci.sh test:ci:android
+#   例)    bash e2e-mobile/scripts/run-detox-ci.sh test:ci:ios --shard=1/2
 set -uo pipefail
 
 readonly SCRIPT_NAME="${1:?実行する pnpm スクリプト名を渡してください（例: test:ci:android）}"
+shift || true
+EXTRA_JEST_ARGS=("$@")
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly ARTIFACTS_DIR="${REPO_ROOT}/e2e-mobile/artifacts"
 # ⚠️ 実行中は artifacts/ の外へ書くこと。Detox は起動時に artifacts のルートを作り直すため、
@@ -48,11 +51,34 @@ if [[ -n "${DETOX_TEST_FILTER:-}" ]]; then
   echo "▶ spec を絞り込みます (jest.config.js が AND で適用): ${DETOX_TEST_FILTER}"
 fi
 
-echo "▶ pnpm --filter e2e-mobile run ${SCRIPT_NAME}"
+# 🔀 追加の jest 引数（現状は #2001 の `--shard=N/M` だけ）。
+#
+# ⚠️ **pnpm の `--` は 1 つだけ付ける。** 実測（pnpm 10）:
+#   `pnpm run test:ci:ios -- --shard=1/2`
+#     → `detox test --configuration ios.sim.release … -- --shard=1/2`
+# となり、detox が `--` 以降をそのまま jest へ渡す（detox CLI の仕様）。2 つ付けると
+# jest 側に裸の `--` が余分に届く。
+#
+# ⚠️ **スクリプト定義が既に `--` を持っている場合は、こちらで `--` を足してはいけない。**
+# tier を絞るスクリプト（test:ci:smoke:ios 等）は `-- --testPathPattern …` を持っており、
+# そこへ更に `--` を足すと jest の引数列の途中に裸の `--` が入る。その場合は区切り無しで
+# 後ろへ並べる（同じ `--` 区間の続きになる）。
+PASSTHROUGH=()
+if [ ${#EXTRA_JEST_ARGS[@]} -gt 0 ]; then
+	# package.json の定義を読むのは **写経しないため**（`--` を持つかどうかを目で判断しない）
+	script_def="$(node -e 'const p=require(process.argv[1]);process.stdout.write(p.scripts[process.argv[2]] ?? "")' "${REPO_ROOT}/e2e-mobile/package.json" "${SCRIPT_NAME}")"
+	case " ${script_def} " in
+		*" -- "*) PASSTHROUGH=("${EXTRA_JEST_ARGS[@]}") ;;
+		*)        PASSTHROUGH=("--" "${EXTRA_JEST_ARGS[@]}") ;;
+	esac
+	echo "▶ jest へ追加で渡す引数: ${EXTRA_JEST_ARGS[*]}"
+fi
+
+echo "▶ pnpm --filter e2e-mobile run ${SCRIPT_NAME} ${PASSTHROUGH[*]:-}"
 
 # tee でジョブログと収集用ファイルの両方へ出す。冒頭の `set -o pipefail` により
 # tee ではなく pnpm 側の終了コードが $? に残る（`set -e` は付けない。後始末を必ず走らせるため）
-pnpm --filter e2e-mobile run "${SCRIPT_NAME}" 2>&1 | tee "${WORK_DIR}/detox-run.log"
+pnpm --filter e2e-mobile run "${SCRIPT_NAME}" ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"} 2>&1 | tee "${WORK_DIR}/detox-run.log"
 readonly EXIT_CODE=$?
 
 # ⚠️ 収集物のコピーは **後始末より先に**行う。後続がハングしても実行ログだけは必ず Artifact に残す

@@ -174,6 +174,14 @@ jobs:
       - name: カルーセルのカード内 locator の限定を検査
         run: pnpm --filter app-expo assert:carousel-locator-scope
 
+      # #2001 テストの後始末（globalTeardown / 使い捨てセッション）が `signOut({ scope: "global" })`
+      # を撃つと、テストユーザーの **全セッション**が失効する。e2e-mobile の Android ジョブと
+      # iOS ジョブは同じ workflow run の中で並走しているため、Android の後始末が iOS の走行中の
+      # セッションをその場で殺していた（2026-09-21 の夜間で iOS の 19 失敗のうち 11 件）。
+      # 後始末は警告どまりで run を赤くしない設計なので、実行時には気付けない。書いた時点で止める。
+      - name: テストの後始末の revoke scope を検査
+        run: pnpm --filter app-expo assert:session-revoke-scope
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
