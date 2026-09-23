@@ -68,3 +68,25 @@ class ItDoesNotReinventTheOtherScriptsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ItAlsoSaysWhatCrawlingCannotReachTest(unittest.TestCase):
+    """«巡回対象 N 店» だけを出すと «まだ余地がある» に読める。
+
+    実際は一巡した時点でその N は 0 になり、**公式サイトを持たない店だけが残る**。
+    残りの大きさを併記しないと «次にどの経路が要るか» を判断できない
+    （2026-09-23: 1 周目 1,239 店 → 2 周目 589 店 と減り、打率も 20.5% → 10.9% に落ちた）。
+    """
+
+    def test_it_counts_stores_without_a_website(self):
+        sql = m.build_unreachable_sql("food-scroll.restaurant_recommendation", radius_m=500)
+        self.assertIn("without_website", sql)
+        self.assertIn("with_website", sql)
+        self.assertIn("no_handle_total", sql)
+
+    def test_it_only_counts_stores_we_have_no_handle_for(self):
+        sql = m.build_unreachable_sql("d", radius_m=500)
+        self.assertIn("WHERE h.gpid IS NULL", sql)
+
+    def test_the_report_warns_that_crawling_cannot_reach_them(self):
+        self.assertIn("巡回が届かない", SRC)

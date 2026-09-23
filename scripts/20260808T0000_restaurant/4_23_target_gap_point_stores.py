@@ -88,6 +88,45 @@ def build_sql(ds: str, *, radius_m: int) -> str:
     """
 
 
+def build_unreachable_sql(ds: str, *, radius_m: int) -> str:
+    """**巡回では絶対に届かない店**（handle 未知 かつ 公式サイトが無い）を数える。
+
+    «巡回対象が N 店» だけを報告すると «あと N 店あるから大丈夫» に読める。
+    実際には巡回を一巡した時点でその N は 0 になり、**サイトの無い店だけが残る**。
+    残りの大きさを一緒に出さないと «次にどの経路が要るか» の判断材料にならない。
+    """
+    return f"""
+    WITH pts AS (
+      SELECT google_place_id AS pid, ANY_VALUE(location) AS location
+      FROM `{ds}.{TABLE_RESTAURANT_CATALOG}`
+      WHERE run_id = @geo_rid AND google_place_id IN UNNEST(@gap_pts)
+      GROUP BY google_place_id
+    ),
+    stores AS (
+      SELECT google_place_id, ANY_VALUE(website) AS website, ANY_VALUE(location) AS location
+      FROM `{ds}.{TABLE_RESTAURANT_CATALOG}`
+      WHERE run_id = @geo_rid
+      GROUP BY google_place_id
+    ),
+    handled AS (
+      SELECT DISTINCT discovery_seed_place_id AS gpid
+      FROM `{ds}.{TABLE_SOURCE_ACCOUNT}` WHERE discovery_seed_place_id IS NOT NULL
+    ),
+    near AS (
+      SELECT DISTINCT s.google_place_id, s.website
+      FROM stores s
+      JOIN pts p ON ST_DWithin(p.location, s.location, {int(radius_m)})
+      LEFT JOIN handled h ON h.gpid = s.google_place_id
+      WHERE h.gpid IS NULL
+    )
+    SELECT
+      COUNT(*) AS no_handle_total,
+      COUNTIF(website IS NOT NULL AND website != '') AS with_website,
+      COUNTIF(website IS NULL OR website = '') AS without_website
+    FROM near
+    """
+
+
 def main() -> int:
     configure_logging()
     p = argparse.ArgumentParser(
@@ -126,6 +165,18 @@ def main() -> int:
             bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
         ])]
     LOGGER.info("巡回対象（handle 未知・サイトあり）= **%d 店**（半径 %dm）", len(rows), m74.RADIUS_M)
+
+    # ⚠️ «巡回で届く分» だけを見て «まだ余地がある» と読まない。届かない分を必ず併記する。
+    u = [dict(r) for r in pipeline.execute(build_unreachable_sql(ds, radius_m=m74.RADIUS_M), [
+        bigquery.ScalarQueryParameter("geo_rid", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
+        bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
+    ])]
+    if u:
+        tot = int(u[0].get("no_handle_total") or 0)
+        wo = int(u[0].get("without_website") or 0)
+        LOGGER.info("  内訳: handle 未知 %d 店 = サイトあり %d ＋ **サイト無し %d**",
+                    tot, int(u[0].get("with_website") or 0), wo)
+        LOGGER.info("  ⚠️ **サイト無しの %d 店には巡回が届かない。** 一巡したら別の経路が要る", wo)
     if not rows:
         raise SystemExit(
             "対象が 0 店。**«巡回しても無駄» ではなく «サイトを持つ handle 未知の店が無い»** である。"
