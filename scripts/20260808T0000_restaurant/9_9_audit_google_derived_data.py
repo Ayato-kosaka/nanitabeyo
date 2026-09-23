@@ -74,6 +74,24 @@ CHECKS: list[tuple[str, str]] = [
         "image_path（自社 Storage へ複製した Google 写真）",
         "image_path IS NOT NULL AND image_path <> ''",
     ),
+    # #1779 **列を消したら «何を失うか»** を数える。
+    #
+    # `address_components` を読んでいるのは `buildDraftFromExistingRestaurant` の
+    # 1 箇所だけで、しかも `existing.address || buildDisplayAddress(...)` という
+    # **`address` 列が空のときだけ効く保険**である。つまり列を消して実際に困るのは
+    # 「`address` が空 かつ `address_components` が入っている」行だけ。
+    # ここが 0 なら、消しても確認ページの初期値は 1 文字も変わらない。
+    (
+        "⚠️ address が空 かつ address_components あり（#1779 で失うもの）",
+        "(address IS NULL OR address = '') "
+        "AND jsonb_typeof(address_components) = 'array' "
+        "AND jsonb_array_length(address_components) > 0",
+    ),
+    # 逆側も出す。«消しても困らない» の母数がどれだけあるかを同じ場で見るため
+    (
+        "address が埋まっている（address_components が無くても出せる）",
+        "address IS NOT NULL AND address <> ''",
+    ),
 ]
 
 
