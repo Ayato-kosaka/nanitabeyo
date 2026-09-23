@@ -41,7 +41,9 @@ class TheGatesAreCountedSeparatelyTest(unittest.TestCase):
                       "              AND NOT (", SQL)
 
     def test_it_never_proposes_loosening_the_gate(self):
-        self.assertIn("品質ゲートを緩めない", SRC)
+        """«緩める» は数えるだけで、打ち手として出さない。"""
+        self.assertIn("«緩める» 提案はしない", SRC)
+        self.assertIn("品質ゲートを緩めること", SRC)
         self.assertIn("オーナー判断の領分", SRC)
 
 
