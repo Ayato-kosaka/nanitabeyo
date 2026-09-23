@@ -10,6 +10,22 @@ error-triage は **`error_level = 'error'` しか収集しない**（`.claude/sk
 ただし «だから全部 error に上げる» のは早い。件数を見ずに上げると Issue が洪水になり、
 error-triage そのものが読まれなくなる。**上げる前にここで実数を数える。**
 
+## ⚠️ いまは Actions から実行できない（2026-09-23 実測）
+
+`db-script-run.yml` の WIF サービスアカウントは **ログのデータセットを読めない**:
+
+    403 Access Denied: Table food-scroll:nanitabeyo_logs_prod.run_googleapis_com_stdout:
+    User does not have permission to query table
+
+つまり **未解決事項 F（埋め込み失敗が error-triage に乗らない）は、件数を数える段で
+止まっている**。動かすには次のどちらかが要る:
+
+1. claude.ai の BigQuery コネクタを再認証する（error-triage が使っている経路）
+2. WIF の SA に `nanitabeyo_logs_prod` の読み取りを付ける
+
+**件数を見ずに `error_level` を上げてはいけない。** Issue が洪水になると
+error-triage そのものが読まれなくなり、いま見えている障害まで見えなくなる。
+
 ## 使い方
 
     python3 scripts/db-checks/count_embed_event_volume.py --days 7
