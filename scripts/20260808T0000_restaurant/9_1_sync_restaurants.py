@@ -180,6 +180,33 @@ def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
         # 「パイプラインが INSERT した行」の定義は backfill（9_9）と同じ
         # ——**同期の実行窓に作られた行**——でなければならない。判定を
         # 二重に書かないよう、窓の取得は pg_sync_common に寄せてある。
+        #
+        # ⚠️ #1881 【バグ】**窓で絞るだけでは足りない。アプリが同期の窓の中で店を
+        # 作ると必ず誤検知する。** 実際に dev で 9_1 が止まった（2026-09-09）:
+        #
+        #   08-29 22:24  ユーザーがアプリで「スターバックス コーヒー 渋谷cocoti店」を作成
+        #   09-01 01:45  同期が走る。同じ google_place_id なので INSERT は ON CONFLICT で
+        #                弾かれたが、**下の provenance UPDATE が設計どおり**この行へ
+        #                seed と synced_at を刻んだ
+        #   → この検査が «backfill 漏れ 1 件» として発火し、同期が通らなくなった
+        #
+        # 案内どおり 9_9_backfill_created_by_source.py を流すこともできない。あれ自身が
+        # 「ユーザーの行を pipeline へ誤って書き換える」として実行を拒否する。
+        # **データは壊れていない。検査の条件が足りていなかった。**
+        #
+        # 探したいのは「パイプラインが INSERT したのに backfill されていない行」。
+        # それを取り違えずに言い表せる事実が 1 つある:
+        #
+        #   - INSERT は source_row_hash を必ず入れる（下の INSERT 列）
+        #   - provenance UPDATE は source_row_hash を **pipeline の行にしか**刻まない
+        #     （下の CASE 式。理由もそこに書いてある）
+        #
+        # ⇒ **source_row_hash が NULL の行は、パイプラインが中身を 1 度も書いていない
+        #    = アプリ製**と言い切れる。`source_seed_id` の有無では言い切れない。
+        #
+        # ⚠️ この SQL は tests/extract_backfill_detect_sql.py が **1 行へ畳んで**
+        # 取り出す。SQL 文字列の中に `--` コメントを書くと、畳んだ瞬間に後続が
+        # 全部コメントになる。**説明はこの Python コメント側に書くこと。**
         unbackfilled = 0
         for window in sync_windows:
             cursor.execute(
@@ -188,6 +215,8 @@ def validate_staging(connection: Any, sync_windows: list[Any]) -> None:
                 FROM restaurants r
                 WHERE r.created_by_source <> 'pipeline'
                   AND r.source_seed_id IS NOT NULL
+                  /* #1881 パイプラインが中身を書いた行だけを見る（理由は上のコメント） */
+                  AND r.source_row_hash IS NOT NULL
                   AND r.created_at BETWEEN %s AND %s
                 """,
                 (window.started_at, window.finished_at),

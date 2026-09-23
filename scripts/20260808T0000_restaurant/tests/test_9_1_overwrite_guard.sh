@@ -176,7 +176,23 @@ q "UPDATE restaurants SET source_seed_id=gen_random_uuid() WHERE google_place_id
 q "UPDATE restaurants SET created_by_source='user' WHERE google_place_id='PLACE_BRAND_NEW';" >/dev/null
 [ "$(detect)" != "0" ] || fail "backfill 忘れを検知できていない（素通りする検査）"
 q "UPDATE restaurants SET created_by_source='pipeline' WHERE google_place_id='PLACE_BRAND_NEW';" >/dev/null
-echo "✅ 5. backfill 忘れの検知は、忘れているときだけ発火する（アプリ製の行では発火しない）"
+
+# 5-d. ⚠️ #1881 **アプリが «実行窓の中» で作った行でも発火させない。**
+#      5-b は窓の外の行しか見ていなかったため、この形を通していた。実際に dev で
+#      9_1 が止まっている（08-29 にユーザーが作った店を、09-01 の同期の provenance
+#      UPDATE が設計どおり刻み、この検査が backfill 漏れと誤認した）。
+#      見分けは source_row_hash。**パイプラインが中身を書いていない行は NULL のまま。**
+q "UPDATE restaurants SET created_at='2026-08-24 12:00:00+00', source_row_hash=NULL
+   WHERE google_place_id='PLACE_MADE_BY_APP';" >/dev/null
+[ "$(detect)" = "0" ] || fail "アプリ製の行（実行窓の中）を backfill 漏れと誤検知した（#1881）"
+
+# 5-e. 逆向き: パイプラインが INSERT した行（source_row_hash あり）が窓の中で
+#      'user' のままなら、**これまでどおり発火する**。5-d で検査を緩めすぎていない。
+q "UPDATE restaurants SET created_by_source='user' WHERE google_place_id='PLACE_BRAND_NEW';" >/dev/null
+[ "$(detect)" != "0" ] || fail "本物の backfill 忘れを見落とした（検査を緩めすぎ・#1881）"
+q "UPDATE restaurants SET created_by_source='pipeline' WHERE google_place_id='PLACE_BRAND_NEW';" >/dev/null
+
+echo "✅ 5. backfill 忘れの検知は、忘れているときだけ発火する（アプリ製の行は窓の内外どちらでも発火しない）"
 
 # --- 6. CHECK 制約が想定外の値を弾く ---
 if psql -h /tmp -p "$PGPORT" -U postgres -q -c \
