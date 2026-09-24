@@ -387,7 +387,7 @@ PR4 で Map に入れた「エリアで絞り込み中 + 解除」の帯と同�
 #1513 «自分の投稿が削除済み» の日（代表の行が `isOwnMediaDeleted`）。
 
 日付の数字と件数バッジは残す（その日に記録があること自体は変わらない）。
-写真の枠だけを墓標へ差し替え、`categoryImageUrl` / `restaurant.image_url` へは落とさない。
+写真の枠だけを墓標へ差し替え、`categoryImageUrl` / `restaurant.imageUrls` へは落とさない。
 */
 describe("#1513 削除済みの日は墓標になる（日付は残す）", () => {
 	it("categoryImageUrl があっても画像を出さず、墓標を出す", async () => {
