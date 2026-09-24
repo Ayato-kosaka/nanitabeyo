@@ -767,6 +767,40 @@
 				"showAll": "全部星期",
 				"hideAll": "收起"
 			}
+		},
+		"report": {
+			"action": "信息有误",
+			"title": "信息有误",
+			"description": "请选择有误的项目并发送。我们会先核实再修改，因此不会立即变更。",
+			"fields": {
+				"name": "店名",
+				"closed": "已停业",
+				"opening_hours": "营业时间"
+			},
+			"valueLabel": {
+				"name": "正确的店名",
+				"opening_hours": "正确的营业时间"
+			},
+			"valuePlaceholder": {
+				"name": "例：〇〇总店",
+				"opening_hours": "例：周一至周五 11:00–14:00 / 17:00–22:00，周末休息"
+			},
+			"submit": "发送",
+			"submitting": "发送中...",
+			"accepted": {
+				"title": "已收到",
+				"description": "我们会先核实再反映。不会单独告知处理结果。",
+				"close": "关闭"
+			},
+			"errors": {
+				"submitFailed": "发送失败，请重试。"
+			},
+			"accessibility": {
+				"open": "报告{{name}}的信息有误",
+				"field": "项目：{{field}}",
+				"fieldSelected": "项目：{{field}}（已选）",
+				"submit": "发送{{name}}的信息更正"
+			}
 		}
 	},
 	"Feedback": {

@@ -767,6 +767,40 @@
 				"showAll": "모든 요일",
 				"hideAll": "접기"
 			}
+		},
+		"report": {
+			"action": "정보가 달라요",
+			"title": "정보가 달라요",
+			"description": "잘못된 항목을 선택해 보내 주세요. 운영진이 확인한 뒤에 반영하므로 바로 바뀌지는 않습니다.",
+			"fields": {
+				"name": "가게 이름",
+				"closed": "폐업했어요",
+				"opening_hours": "영업시간"
+			},
+			"valueLabel": {
+				"name": "올바른 가게 이름",
+				"opening_hours": "올바른 영업시간"
+			},
+			"valuePlaceholder": {
+				"name": "예: 〇〇 본점",
+				"opening_hours": "예: 월~금 11:00~14:00 / 17:00~22:00, 주말 휴무"
+			},
+			"submit": "보내기",
+			"submitting": "전송 중...",
+			"accepted": {
+				"title": "접수되었습니다",
+				"description": "운영진이 확인한 뒤에 반영합니다. 결과를 개별로 알려 드리지는 않습니다.",
+				"close": "닫기"
+			},
+			"errors": {
+				"submitFailed": "보내지 못했습니다. 다시 시도해 주세요."
+			},
+			"accessibility": {
+				"open": "{{name}}의 잘못된 정보 신고",
+				"field": "항목: {{field}}",
+				"fieldSelected": "항목: {{field}}(선택됨)",
+				"submit": "{{name}}의 정보 수정 보내기"
+			}
 		}
 	},
 	"Feedback": {
