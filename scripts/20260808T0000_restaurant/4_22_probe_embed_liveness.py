@@ -146,6 +146,16 @@ def classify(raw: bytes | None, error: str | None) -> tuple[str, str]:
 # 原因が UA でも provider の HTML 変更でも同じなので、**原因ではなく «無signal» で止める。**
 CALIBRATION_N = 50
 
+#: «判定できなかった» がこの割合を超えたら、その run の dead 率は信じない。
+#:
+#: 2026-09-18 の run は **9,936 件で dead 0.00%** と報告したが、同じ run の 26% が
+#: `no_marker`（印が 1 つも無い本文）だった。2026-09-24 に `no_marker` の URL を 2 件
+#: 手で引き直したら、**1 件は «may have been removed» の削除通知が出ていた**。
+#: つまり削除は `unknown` に紛れていて、**要約行だけ見ると «死亡ゼロ» に見える**。
+#: 判定器そのものは壊れていない（今日の 2 件は alive / dead に正しく分かれる）ので、
+#: **落とさずに «この数字は当てにならない» と言わせる**のが正しい。
+UNKNOWN_SHARE_WARN = 0.10
+
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="配信中の埋め込みの死活を測る（BigQuery へ追記のみ）")
@@ -236,7 +246,18 @@ def main() -> None:
         flush(force=True)
         result["row_count"] = written
         total = sum(counts.values()) or 1
-        LOGGER.info("結果: %s（dead %.2f%%）", counts, 100 * counts.get("dead", 0) / total)
+        unknown_share = counts.get("unknown", 0) / total
+        LOGGER.info("結果: %s（dead %.2f%% / **判定できず %.2f%%**）",
+                    counts, 100 * counts.get("dead", 0) / total, 100 * unknown_share)
+        # ⚠️ 落とさない。判定器が壊れているとは限らず、«この run の dead 率を信じるな» と
+        #    言えれば足りる。ここを赤くすると、本物の異常が埋もれる。
+        if unknown_share > UNKNOWN_SHARE_WARN:
+            LOGGER.warning(
+                "⚠️ 判定できなかったものが %.1f%% あります。**この run の dead %% は当てになりません。**"
+                " `%s` の run_id=%s を `evidence` で分けて、`no_marker:<bytes>` が何を返して"
+                "いたかを見てください（過去に «本文の無い JS シェル» で 26%% が unknown になり、"
+                "その中に本物の削除が紛れていました）。",
+                100 * unknown_share, TABLE_EMBED_LIVENESS, run_id)
 
 
 if __name__ == "__main__":

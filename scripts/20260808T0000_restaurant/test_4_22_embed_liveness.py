@@ -289,3 +289,40 @@ class NoMarkerKeepsTheBodySizeTest(unittest.TestCase):
         _, big = m.classify(shell, None)
         _, small = m.classify(CHANGED_HTML, None)
         self.assertNotEqual(big, small)
+
+
+class TheUnknownShareIsNotHidden(unittest.TestCase):
+    """#1947 «dead 0.00%» を、判定できなかった割合を伏せたまま報告しない。
+
+    2026-09-18 の run は 9,936 件で **dead 0.00%** と要約したが、同じ run の 26% が
+    `no_marker` だった。2026-09-24 にその URL を 2 件手で引き直したところ、**1 件は
+    «may have been removed» の削除通知**が出ていた。削除は `unknown` に紛れており、
+    要約行だけ見ると «死亡ゼロ» に見える。
+
+    ⚠️ ここは **落とさない**。判定器が壊れているとは限らず（今日の 2 件は alive / dead に
+    正しく分かれる）、«この run の dead 率を信じるな» と言えれば足りる。
+    赤くすると本物の異常が埋もれる（`5_1` と lanes.py で踏んだ形）。
+    """
+
+    SRC = (Path(__file__).resolve().parent / "4_22_probe_embed_liveness.py").read_text(
+        encoding="utf-8")
+
+    def test_the_summary_prints_the_unknown_share(self) -> None:
+        self.assertIn("判定できず", self.SRC)
+        self.assertIn("unknown_share", self.SRC)
+
+    def test_a_high_share_warns_that_the_dead_rate_is_untrustworthy(self) -> None:
+        self.assertIn("UNKNOWN_SHARE_WARN", self.SRC)
+        self.assertIn("当てになりません", self.SRC)
+
+    def test_it_warns_rather_than_fails(self) -> None:
+        import ast
+        tree = ast.parse(self.SRC)
+        fn = next(n for n in ast.walk(tree)
+                  if isinstance(n, ast.FunctionDef) and n.name == "main")
+        body = ast.get_source_segment(self.SRC, fn) or ""
+        after = body.partition("unknown_share >")[2]
+        self.assertNotIn("SystemExit", after,
+                         "判定できない割合が高いだけで落としている。赤が常態になると"
+                         "本物の失敗が埋もれる")
+        self.assertIn("LOGGER.warning", after)
