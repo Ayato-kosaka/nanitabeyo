@@ -138,6 +138,58 @@ class WriteShapeTest(unittest.TestCase):
             self.assertIn(row.day_of_week, range(7))
 
 
+class OneHopTest(unittest.TestCase):
+    """#1666 «トップで読めなければ 1 ホップ辿る» の配線を縛る。
+
+    効果は実測済み（近い順 120 件で parsed 24.2% → 33.3% /
+    [run 35997159216](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35997159216)）。ここで見るのは **配線**である。
+    """
+
+    def test_crawler_uses_the_shared_pick_hop(self) -> None:
+        """⚠️ 測る側（6_4）と入れる側（6_3）が同じ選び方を使うこと。
+
+        片方へ写経すると «測った数字» と «入れた行» が別のものを指し始める。
+        """
+        self.assertIs(crawler.pick_hop, shared.pick_hop)
+
+    def test_hop_is_on_by_default_and_can_be_turned_off(self) -> None:
+        with mock.patch.object(sys, "argv", ["6_3", "--limit", "1"]):
+            self.assertTrue(crawler.parse_args().hop)
+        with mock.patch.object(sys, "argv", ["6_3", "--limit", "1", "--no-hop"]):
+            self.assertFalse(crawler.parse_args().hop)
+
+    def test_hop_only_runs_when_the_top_page_failed(self) -> None:
+        """⚠️ トップで読めたら辿らない（無駄な 1 リクエストを相手へ投げない）。"""
+        source = inspect.getsource(crawler.main)
+        self.assertIn('if args.hop and bucket != "parsed":', source)
+
+    def test_hop_respects_robots_and_the_interval(self) -> None:
+        """⚠️ 辿る先にも robots とレート制御を効かせる。"""
+        source = inspect.getsource(crawler.main)
+        hop_block = source[source.index('if args.hop and bucket != "parsed":') :]
+        self.assertIn("robots_allows(hop_url", hop_block)
+        self.assertIn("args.min_interval", hop_block)
+
+    def test_source_url_becomes_the_hopped_page(self) -> None:
+        """⚠️ 辿った先で読めたら出所 URL もそちらにする。
+
+        トップの URL のまま入れると «どのページから採ったか» が後から分からなくなる。
+        """
+        source = inspect.getsource(crawler.main)
+        hop_block = source[source.index('if args.hop and bucket != "parsed":') :]
+        self.assertIn("url = hop_url", hop_block)
+
+    def test_hop_adds_at_most_one_request(self) -> None:
+        """⚠️ 1 店につき追加 1 リクエストまで。ループにしない。"""
+        source = inspect.getsource(crawler.main)
+        hop_block = source[
+            source.index('if args.hop and bucket != "parsed":') : source.index("counts[bucket] += 1")
+        ]
+        self.assertEqual(hop_block.count("fetch("), 1, "辿る先の fetch が 1 回より多い")
+        self.assertNotIn("while ", hop_block)
+        self.assertNotIn("for ", hop_block)
+
+
 class SharedWithMeasurementTest(unittest.TestCase):
     """⚠️ **6_2（測る）と 6_3（入れる）が同じ作法で叩くこと。**
 

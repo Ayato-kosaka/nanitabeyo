@@ -42,20 +42,20 @@ from __future__ import annotations
 
 import argparse
 import logging
-import re
 import sys
 import time
 from collections import Counter
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # ⚠️ 取りに行く作法・分類はクローラと同じものを使う（写経しない）。
 from official_site_crawl import (  # noqa: E402
+    HOP_PATTERNS,
     classify_page_with_reason,
     fetch,
     html_to_text,
+    pick_hop,
     robots_allows,
 )
 
@@ -70,55 +70,6 @@ SOURCE = _crawler.SOURCE
 parse_near = _crawler.parse_near
 
 LOGGER = logging.getLogger(__name__)
-
-# «営業時間がありそうなページ» を指すリンク。日本語サイトの実地の言い回しに合わせる。
-# ⚠️ 上から順に強い。最初に当たったものを 1 つだけ辿る。
-HOP_PATTERNS: tuple[tuple[str, str], ...] = (
-    ("hours", r"営業時間|営業案内|営業のご案内"),
-    ("store", r"店舗案内|店舗情報|店舗一覧|各店舗|ショップ一覧"),
-    ("access", r"アクセス|所在地|店舗概要|ご利用案内"),
-    ("about", r"当店|お店について|概要|インフォメーション|information|info"),
-    ("en", r"(?i)\b(hours|opening|access|location|store|shop)\b"),
-)
-
-_ANCHOR_RE = re.compile(r"<a\b[^>]*href\s*=\s*[\"']([^\"']+)[\"'][^>]*>(.*?)</a>", re.I | re.S)
-_TAG_RE = re.compile(r"<[^>]+>")
-
-
-def anchors(html: str) -> list[tuple[str, str]]:
-    """`(href, リンク文字列)` を取り出す。"""
-    out: list[tuple[str, str]] = []
-    for m in _ANCHOR_RE.finditer(html):
-        href = m.group(1).strip()
-        text = _TAG_RE.sub(" ", m.group(2))
-        out.append((href, " ".join(text.split())))
-    return out
-
-
-def pick_hop(html: str, base_url: str) -> tuple[str | None, str | None]:
-    """辿る先を 1 つ選ぶ。`(url, どの規則で選んだか)`。
-
-    ⚠️ **同じホストの中だけ**へ辿る。外部（集約サイト・SNS）へ出ると、
-       «その店の営業時間» ではないページを読むことになる。
-    """
-    base_host = urlparse(base_url).netloc.lower()
-    found = anchors(html)
-    for label, pattern in HOP_PATTERNS:
-        rx = re.compile(pattern)
-        for href, text in found:
-            if not href or href.startswith(("#", "mailto:", "tel:", "javascript:")):
-                continue
-            target = urljoin(base_url, href)
-            if urlparse(target).scheme not in ("http", "https"):
-                continue
-            if urlparse(target).netloc.lower() != base_host:
-                continue
-            if target.rstrip("/") == base_url.rstrip("/"):
-                continue
-            if rx.search(text) or rx.search(href):
-                return target, label
-    return None, None
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
