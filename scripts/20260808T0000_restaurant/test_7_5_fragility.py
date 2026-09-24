@@ -47,6 +47,37 @@ class TheCellDefinitionIsShared(unittest.TestCase):
         self.assertIn("single_post_stores", sql)
 
 
+def _last_line_before_main_select(sql: str) -> str:
+    """WITH 節の最後の行（コメント・空行を除く）を返す。"""
+    lines = sql.splitlines()
+    idx = max(i for i, l in enumerate(lines) if l.strip().startswith("SELECT"))
+    for l in reversed(lines[:idx]):
+        t = l.strip()
+        if t and not t.startswith("--"):
+            return t
+    return ""
+
+
+class TheWithClauseDoesNotEndWithAComma(unittest.TestCase):
+    """#1947 «WITH の最後に , を残したまま本体の SELECT へ入る» を静的に止める。
+
+    2026-09-24 に踏んだ: `achieving AS (...)` を消して素の SELECT にしたとき、その前の
+    `cell AS (...)` の後ろのカンマを消し忘れ、BigQuery が
+    «Trailing comma after the WITH clause before the main query is not allowed» で 400。
+    ⚠️ **コメント行を挟むと目で見つけにくい**（実際その形で見落とした）ので機械で見る。
+    """
+
+    def test_fragility_sql(self) -> None:
+        last = _last_line_before_main_select(
+            m.build_fragility_sql(DS, DISH, sample_n=313, radius_m=500))
+        self.assertFalse(last.endswith(","), f"WITH 節がカンマで終わっている: {last!r}")
+
+    def test_rank_sql(self) -> None:
+        last = _last_line_before_main_select(
+            m.build_sql(DS, DISH, sample_n=313, sample_run="r", radius_m=500))
+        self.assertFalse(last.endswith(","), f"WITH 節がカンマで終わっている: {last!r}")
+
+
 class ACellFallsOnlyWhenItRunsOutOfSlack(unittest.TestCase):
     def test_no_single_post_store_means_it_cannot_fall(self) -> None:
         self.assertEqual(m._cell_fall_probability(5, 0), 0.0)

@@ -201,7 +201,7 @@ def build_fragility_sql(ds: str, dish_ds: str, *, sample_n: int, radius_m: int) 
       FROM near n
       LEFT JOIN posts_per_store_cat pc ON pc.store = n.store AND pc.cat = n.cat
       GROUP BY n.point, n.cat
-    ),
+    )
     -- ⚠️ 集計は Python 側でやる（この script の既定の形）。ここは «セルごとの生の行» まで。
     --    最悪ケースだけでなく **期待値**（死亡率 6.53%% での二項分布）も出したいので、
     --    セルごとの «余裕» と «1 本しか無い店の数» をそのまま返す。
