@@ -11,6 +11,19 @@ name: Migration Order Check
 # ここでは PR が追加する *.sql が base の最後尾より後ろであることだけを検査する。
 # 依存ゼロの bash なので fork からの PR でも動く。
 # 運用の全体像: infra/supabase/migrations/README.md
+#
+# ⚠️ **比べる相手は base ブランチの «いまの先頭» である**（2026-09-24）。
+#    もともと `github.event.pull_request.base.sha`（= PR イベント時点の main の
+#    スナップショット）と比べていたため、**PR が開いている間に main が migration を
+#    得ても再検査されず、緑のまま古くなった**。
+#
+#    実際に #2012（`20260923T0000_create_restaurant_reports.sql`）で起きた。
+#    出した 9/23 時点の main の最後尾は `20260906T0000_...` で緑だったが、
+#    その後 #2043 が `20260924T0000` / `20260924T0100` を main へ入れたので、
+#    **あのファイルは適用列の途中へ割り込む名前になっていた**。緑のままだった。
+#
+#    答えるべき問いは «ブランチを切った時点で順序が正しかったか» ではなく
+#    **«いま main へマージしたら順序が壊れるか»** である。
 # ==============================================================================
 
 on:
@@ -36,10 +49,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: base を取得して順序を検査
+      - name: base ブランチのいまの先頭を取得して順序を検査
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          # ⚠️ `base.sha`（イベント時点のスナップショット）ではなく **ブランチ名**を使う。
+          #    理由は冒頭の注記。
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
-          git fetch --no-tags --depth=1 origin "$BASE_SHA"
-          bash scripts/assert-migration-filename-order.sh "$BASE_SHA"
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          bash scripts/assert-migration-filename-order.sh FETCH_HEAD
