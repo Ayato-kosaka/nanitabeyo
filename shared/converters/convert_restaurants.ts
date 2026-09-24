@@ -7,11 +7,32 @@ export type PrismaRestaurants = Omit<Prisma.RestaurantsGroupByOutputType, '_coun
 export type SupabaseRestaurants = TableRow<'restaurants'>;
 
 /**
+ * #1779 落とすことが決まっている列。**この 1 箇所だけが正**で、両方向の変換が
+ * ここから «渡されなくてもよい» 形を組み立てる。列が DB から落ちたら、この配列と
+ * 各方向の `??` を一緒に消す。
+ */
+const DROPPED_COLUMNS = ['image_url', 'plus_code', 'address_components'] as const;
+
+/**
+ * #1779 落とす列は **渡されなくてもよい**（→ `PrismaRestaurantsForResponse` と同じ理由）。
+ *
+ * この向きの入力はレスポンス型（`RestaurantsEntity`）から来ることがあり、そちらは
+ * 既に 3 列を落としてある。列が実際に DB から落ちたら、下の 3 つの `??` ごと消す。
+ */
+type SupabaseRestaurantsForPrisma = Omit<
+  SupabaseRestaurants,
+  (typeof DROPPED_COLUMNS)[number]
+> &
+  Partial<Pick<SupabaseRestaurants, (typeof DROPPED_COLUMNS)[number]>>;
+
+/**
  * Supabase 型 → Prisma 型 に変換
  * @param supabase 通信用の Supabase 型オブジェクト
  * @returns アプリ内部用の Prisma 型オブジェクト
  */
-export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurants): PrismaRestaurants {
+export function convertSupabaseToPrisma_Restaurants(
+  supabase: SupabaseRestaurantsForPrisma,
+): PrismaRestaurants {
   return {
     id: supabase.id,
     google_place_id: supabase.google_place_id,
@@ -20,7 +41,7 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     latitude: supabase.latitude,
     longitude: supabase.longitude,
 
-    image_url: supabase.image_url,
+    image_url: supabase.image_url ?? '',
     image_path: supabase.image_path,
     // #843 その行を誰が作ったか（user / owner / pipeline / manual）。
     // 9_1 の同期はこの値が 'pipeline' の行だけを上書きする。
@@ -32,8 +53,8 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     // #1671 州・県の識別子。ISO 3166-2 «風» だが ISO そのものではない
     // （値は country_code + '-' + Google の administrative_area_level_1.shortText）。
     subterritory_code: supabase.subterritory_code,
-    address_components: supabase.address_components,
-    plus_code: supabase.plus_code,
+    address_components: supabase.address_components ?? [],
+    plus_code: supabase.plus_code ?? null,
     created_at: new Date(supabase.created_at),
     // #843 店提案 catalog との名寄せ監査用の metadata（migration 20260823T0000）
     source_seed_id: supabase.source_seed_id,
@@ -55,7 +76,6 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
  * SELECT していない。列が実際に DB から落ちたら、この 3 行と下の 3 つの `??` を消す
  * （`infra/supabase/migrations/README.md`「手で追従させるのは shared/converters/ だけ」）。
  */
-const DROPPED_COLUMNS = ['image_url', 'plus_code', 'address_components'] as const;
 
 type PrismaRestaurantsForResponse = Omit<
   PrismaRestaurants,
