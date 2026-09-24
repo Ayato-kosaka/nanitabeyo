@@ -763,7 +763,9 @@
 					"official_site": "le site du restaurant",
 					"user": "un signalement d’utilisateur",
 					"owner": "le restaurant"
-				}
+				},
+				"showAll": "Tous les jours",
+				"hideAll": "Réduire"
 			}
 		}
 	},

@@ -763,7 +763,9 @@
 					"official_site": "가게 공식 사이트",
 					"user": "이용자 제보",
 					"owner": "가게 등록"
-				}
+				},
+				"showAll": "모든 요일",
+				"hideAll": "접기"
 			}
 		}
 	},
