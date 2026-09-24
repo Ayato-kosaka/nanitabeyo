@@ -690,13 +690,120 @@ describe('#1671 確認ページ経由の店舗作成', () => {
       });
     });
 
-    it('住所の列が空なら addressComponents から組み立てて初期値にする', async () => {
+    /*
+      #1779 【設計】**`address_components` の保険を外した。列だけを見る。**
+
+      以前はここが «列が空なら addressComponents から組み立てる» を検査していた。
+      その列は Google 由来の住所そのもので Places ToS 3.2.3 により保持できないため
+      落とす。保険が無くなったので、**空欄で出てユーザーが 1 から書く**のが正しい。
+
+      dev 実測（2026-09-24 / run 35963398137）で失うのは 1,675 行（0.27%）。
+      ⚠️ オープンデータでは埋まらない（catalog 側で住所が空の 1,666 行は全部
+      `existing_pg` = その行自身が出所という閉じた輪だった）。埋まるのは確認ページを
+      ユーザーが通ったとき（`fillMissingAddress`）だけである。
+    */
+    it('⚠️ 住所の列が空なら空欄で出す（addressComponents からは組み立てない）', async () => {
       const { draft } = await service.createRestaurantDraft({
         googlePlaceId: PLACE_ID,
       });
-      // 国名（日本）は住所文字列から外れ、都道府県だけが残る
-      expect(draft.address).toBe('東京都');
-      expect(draft.countryCode).toBe('JP');
+      expect(draft.address).toBe('');
+      expect(draft.countryCode).toBeNull();
+      // 列を落とすので、レスポンスへも中身を載せない
+      expect(draft.addressComponents).toEqual([]);
+    });
+
+    it('国名は country_code 列から出す（Google の longText に頼らない）', async () => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue({
+        ...EXISTING_ROW,
+        country_code: 'JP',
+        name_language_code: 'ja',
+      });
+
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+      expect(draft.countryName).toBe('日本');
+    });
+
+    /*
+      #1779 ⚠️ **国名が取れなかったことを «見えるように» する。**
+
+      runtime が小さい ICU で組まれていると国名が 1 件も出ず、画面は `JP` とだけ
+      表示する。壊れてはいないので誰も報告せず、**オーナーが踏むまで気づけない**
+      （CLAUDE.md「見えないものは «無い» ではない」）。数えられる形で残す。
+    */
+    it('国名が引けなかったら warn を出す（静かに JP 表示へ落ちない）', async () => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue({
+        ...EXISTING_ROW,
+        // 割り当てられていないコード。ICU はコードをそのまま返す
+        country_code: 'QQ',
+      });
+
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+      expect(draft.countryName).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'CountryNameNotResolved',
+        'createRestaurantDraft',
+        expect.objectContaining({ countryCode: 'QQ' }),
+      );
+    });
+
+    /*
+      #1779 ⚠️ **`ZZ`（CLDR の «不明な地域»）を国名として出さない。**
+
+      ICU は `ZZ` へ「不明な地域」という **もっともらしい名前** を返すので、
+      «コードがそのまま返ったら null» の判定では捕まらない（実測）。これを
+      国名の欄へ出すと、ユーザーは «不明な地域» という国に居ることになる。
+      確認のための欄なので、コード表示へ落ちるほうが正しい。
+    */
+    it('⚠️ ZZ（不明な地域）を国名として出さない', async () => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue({
+        ...EXISTING_ROW,
+        country_code: 'ZZ',
+      });
+
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+      expect(draft.countryName).toBeNull();
+    });
+
+    it('国コードが無い行では warn を出さない（引けないのが正しい状態）', async () => {
+      await service.createRestaurantDraft({ googlePlaceId: PLACE_ID });
+      expect(logger.warn).not.toHaveBeenCalledWith(
+        'CountryNameNotResolved',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    /*
+      #1779 ⚠️ **列が `undefined` で来ても署名済みトークンが壊れないこと。**
+
+      トークンの形は `subterritoryCode` が «null または string» であることを要求する
+      （`isSignedPayloadShape`）。`undefined` を入れると `JSON.stringify` がキーごと
+      落とし、**署名は通るのに検証で «invalid or expired» になる**（作成が 400）。
+      保険を外したときに実際にこれを踏んだので、杭として残す。
+    */
+    it('subterritory_code が列に無くてもトークンは検証を通る', async () => {
+      const withoutSubterritory = { ...EXISTING_ROW };
+      delete (withoutSubterritory as Record<string, unknown>).subterritory_code;
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue(withoutSubterritory);
+
+      const { draftToken } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+
+      await expect(
+        service.createRestaurant({
+          googlePlaceId: PLACE_ID,
+          draftToken,
+          address: '東京都渋谷区神南1-2-3',
+          countryCode: 'JP',
+        } as CreateRestaurantDto),
+      ).resolves.toBeDefined();
     });
 
     it('住所の列が既に入っていれば、そちらを優先する', async () => {
