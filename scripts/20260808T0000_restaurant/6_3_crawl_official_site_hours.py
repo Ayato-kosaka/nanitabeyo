@@ -74,6 +74,7 @@ from official_site_crawl import (  # noqa: E402
     fetch,
     hours_excerpt,
     html_to_text,
+    pick_hop,
     robots_allows,
 )
 from jp_site_opening_hours import parse_jp_site_opening_hours  # noqa: E402
@@ -223,6 +224,15 @@ def parse_args() -> argparse.Namespace:
             "⚠️ 出力先は public リポジトリの Actions ログなので、少なく保つ"
         ),
     )
+    parser.add_argument(
+        "--no-hop",
+        dest="hop",
+        action="store_false",
+        help=(
+            "website のトップで営業時間が読めなくても «店舗一覧 / アクセス» へ辿らない。"
+            "⚠️ 既定は辿る（実測で parsed が 24.2%% → 33.3%%）"
+        ),
+    )
     parser.add_argument("--dry-run", action="store_true", help="ネットワークへ出ず、DB へも書かない")
     return parser.parse_args()
 
@@ -354,6 +364,8 @@ def main() -> int:
         # 分からず、「たぶん第 2 水曜だろう」で直すことになる。
         give_up_reasons: Counter[str] = Counter()
         give_up_examples: dict[str, list[str]] = {}
+        # #1666 1 ホップ辿って救出できた件数と、どのリンクで辿ったか
+        hop_labels: Counter[str] = Counter()
         robots_cache: dict = {}
         last_request_at = 0.0
         pending_ids: list[str] = []
@@ -399,6 +411,43 @@ def main() -> int:
                 # ⚠️ `classify_page_with_reason` は箱の判定を変えない（あちらの注記）。
                 #    入れる行も変わらない（`bucket != "parsed"` はそのまま）。
                 bucket, give_up = classify_page_with_reason(text)
+
+                # #1666 【設計】**トップで読めなければ 1 ホップだけ辿る。**
+                #
+                # 東京駅の窓は website 保有 634 店を全部歩いた上で 14.4% で頭打ちになった。
+                # 諦めた理由の最大 `no_time_span` の候補は集約サイト・ブランドのトップ・
+                # 商品ページで、**そもそも営業時間が載っていないページを読んでいた**。
+                # 近い順 120 件で測ると parsed が **24.2% → 33.3%**（[run 35997159216](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35997159216)）。
+                #
+                # ⚠️ **1 店につき追加 1 リクエストまで。** 辿り始めると際限が無く、
+                #    相手への負荷も全件へ広げたときの所要時間も読めなくなる。
+                # ⚠️ **同じホストの中だけ**（`pick_hop` が保証する）。外部の集約サイトへ
+                #    出ると «その店の営業時間» ではないページを読むことになる。
+                if args.hop and bucket != "parsed":
+                    hop_url, hop_label = pick_hop(html, url)
+                    if hop_url:
+                        wait = args.min_interval - (time.monotonic() - last_request_at)
+                        if wait > 0:
+                            time.sleep(wait)
+                        last_request_at = time.monotonic()
+                        try:
+                            if robots_allows(hop_url, robots_cache, args.timeout):
+                                hop_html, _hop_reason = fetch(hop_url, args.timeout)
+                            else:
+                                hop_html = None
+                        except Exception:  # noqa: BLE001 — 相手のサイトは何でも返してくる
+                            hop_html = None
+                        if hop_html is not None:
+                            hop_text = html_to_text(hop_html)
+                            hop_bucket, hop_give_up = classify_page_with_reason(hop_text)
+                            if hop_bucket == "parsed":
+                                # 辿った先で読めた。**出所 URL も辿った先にする**
+                                # （どのページから採ったかが後から分からなくなる）
+                                counts["hopped"] += 1
+                                hop_labels[hop_label] += 1
+                                text, bucket, give_up = hop_text, hop_bucket, hop_give_up
+                                url = hop_url
+
                 counts[bucket] += 1
                 if give_up:
                     give_up_reasons[give_up] += 1
@@ -460,6 +509,12 @@ def main() -> int:
             "parsed_but_empty",
         ):
             LOGGER.info("  %-24s: %d", key, counts[key])
+        if counts["hopped"]:
+            LOGGER.info(
+                "  うち 1 ホップ辿って読めた : %d 店（トップでは読めなかった）", counts["hopped"]
+            )
+            for label, n in hop_labels.most_common():
+                LOGGER.info("      %4d  %s", n, label)
         LOGGER.info("書き込んだ店         : %d 店 / %d 行", written_stores, written_rows)
         if failure_reasons:
             LOGGER.info("到達できなかった理由の内訳")
