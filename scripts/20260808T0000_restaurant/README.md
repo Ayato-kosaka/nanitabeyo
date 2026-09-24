@@ -65,6 +65,7 @@ dry-runし、同じrun_idを段階的に昇格させます。Cloud Schedulerは�
   │    created_by_source='pipeline' … 9_1 が毎回上書きしてよい行            │
   │    created_by_source='user'     … **9_1 は表示値を絶対に触らない**      │
   │                                    （アプリが POI 押下で作った行）      │
+  │                                    ただし住所/国の **空欄だけ**は埋める │
   │  restaurant_links … 電話/サイト/SNS。open_data 由来だけを              │
   │                     ON CONFLICT DO NOTHING で足す（ユーザー追加を消さない）│
   └────────────────────────────────────────────────────────────────────────┘
@@ -475,7 +476,7 @@ BigQueryに無いPostgreSQL行は削除しません。`--skip-backup` は復旧�
 「たまたま条件に当たっていないだけ」と区別できないので、実物の PostgreSQL で確かめます。
 
 ```bash
-bash tests/test_9_1_overwrite_guard.sh   # 上書きガード本体（6項目）
+bash tests/test_9_1_overwrite_guard.sh   # 上書きガード本体（7項目）
 bash tests/test_9_9_backfill.sh          # backfill の行選択（5項目）
 ```
 

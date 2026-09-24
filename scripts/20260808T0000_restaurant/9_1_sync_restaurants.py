@@ -503,6 +503,73 @@ def apply_sync(connection: Any) -> None:
             key_ranges,
         )
 
+        # #1779 【設計】**アプリ製の行の «空欄だけ» をオープンデータで埋める。**
+        #
+        # ## 何が抜けていたか
+        #
+        # 上の値 UPDATE は `created_by_source = 'pipeline'` に限っている（アプリが
+        # 作った行の表示値を上書きしないため。2026-08-24 の事故）。その結果、
+        # **アプリ製の行の `address` / `country_code` は誰も埋めない**状態だった。
+        # dev の実測（2026-09-24）で `address` が空のまま `address_components` に
+        # 頼っている行が 1,675 行あり、**全部がアプリ製**だった。
+        #
+        # しかもこれは «過去の負債» ではなく **今も増える**。Google 一括取り込み
+        # （`dishes.service.ts`）は `address: null` を入れ、その理由をこう書いている:
+        #
+        #   > 住所と国コードはオープンデータ由来で埋める列なので、この経路では作らない
+        #
+        # «オープンデータ由来で埋める» 担当がここ（9_1）で、それが抜けていた。
+        #
+        # ## なぜ address_components から組み立てないのか
+        #
+        # 組み立てられはする（`restaurant-display-address.ts`）。しかしそれは
+        # **Google 由来の住所を、別の列へ移し替えるだけ**で、#843 の目的
+        # （Google 由来データを保持しない）に反する。`address` へ入れてよいのは
+        # «オープンデータの住所» か «ユーザーが確認した住所»（#1671）だけである。
+        #
+        # ## 上書きとの違い
+        #
+        # **空欄にしか書かない。** `COALESCE(NULLIF(既存, ''), ...)` なので、
+        # 値が入っている行は 1 文字も変わらない。#1671 の `fillMissingAddress`
+        # （確認ページが既存店の空欄を埋める）と同じ約束を、同期側にも置く。
+        #
+        # ⚠️ **`source_row_hash` を触らないこと。** アプリ製の行でこれが NULL で
+        #    あることが «パイプラインが中身を書いた行» の判別条件になっている
+        #    （backfill 忘れの検知 / provenance UPDATE）。ここで刻むと、アプリ製の
+        #    行が «パイプライン製» と数えられて検知が誤発火する。
+        #
+        # ⚠️ **`subterritory_code` は埋められない。** staging に列が無い（catalog が
+        #    州を持っていない）。`address_components` を落として州を失う行が何行
+        #    あるかは `9_9_audit_google_derived_data.py` が数える。
+        execute_in_key_ranges(
+            cursor,
+            "アプリ製の行の空欄 UPDATE",
+            """
+            UPDATE restaurants r
+            SET
+              address = COALESCE(NULLIF(r.address, ''), NULLIF(s.address, ''), r.address),
+              country_code = COALESCE(
+                NULLIF(r.country_code, ''), NULLIF(s.country_code, ''), r.country_code
+              )
+            FROM restaurant_sync_staging s
+            WHERE r.google_place_id = s.google_place_id
+              AND r.created_by_source <> 'pipeline'
+              -- 実際に埋まる行だけに絞る。«片方でも空いていて、catalog が値を持つ» 行。
+              -- ⚠️ これが無いと全アプリ行を毎回書き直す（#1881 で 62 万行を書き直して
+              --    6 時間コースに当てたのと同じ形）。
+              AND (
+                (NULLIF(r.address, '') IS NULL AND NULLIF(s.address, '') IS NOT NULL)
+                OR (
+                  NULLIF(r.country_code, '') IS NULL
+                  AND NULLIF(s.country_code, '') IS NOT NULL
+                )
+              )
+              AND s.google_place_id > %(lo)s
+              AND s.google_place_id <= %(hi)s
+            """,
+            key_ranges,
+        )
+
         # #1681 電話・公式サイト・SNS を restaurant_links へ入れる。
         #
         # BigQuery はこれらを計算済みなのに PG に受け口が無く、9_1 が捨てていた

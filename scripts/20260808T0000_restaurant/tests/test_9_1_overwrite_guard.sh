@@ -235,5 +235,102 @@ if psql -h /tmp -p "$PGPORT" -U postgres -q -c \
 fi
 echo "✅ 6. CHECK 制約が想定外の値を弾く"
 
+# --- 7. #1779 アプリ製の行の «空欄だけ» をオープンデータで埋める ---
+#
+# 値 UPDATE は `created_by_source = 'pipeline'` に限っているため、**アプリ製の行の
+# `address` / `country_code` は誰も埋めていなかった**（dev で 1,675 行）。埋める文を
+# 足したので、«空欄は埋まる» と «入っている値は 1 文字も変わらない» の両方を見る。
+#
+# ⚠️ **SQL は 9_1 のソースから抜き出す。写経しない**（→ 4 / 4-b と同じ理由）。
+FILL_SQL="$(python3 "$REPO_ROOT/scripts/20260808T0000_restaurant/tests/extract_fill_app_blanks_sql.py")"
+
+psql -h /tmp -p "$PGPORT" -U postgres -q <<'SQL'
+SET search_path = dev;
+-- アプリ製・空欄（空文字）: 埋まってほしい
+UPDATE restaurants SET address = '', country_code = ''
+WHERE google_place_id = 'PLACE_MADE_BY_APP';
+-- アプリ製・NULL: 埋まってほしい（'' と NULL の両方を通す）
+INSERT INTO restaurants (google_place_id, name, name_language_code, latitude, longitude,
+  image_url, address_components, address, country_code, created_by_source)
+VALUES ('PLACE_APP_NULL_ADDR','アプリ製で住所が NULL の店','ja',35.1,139.1,'',
+        '[{"types":["country"],"shortText":"JP"}]', NULL, NULL, 'user');
+-- アプリ製・値あり: **触られてはいけない**
+UPDATE restaurants SET address = 'ユーザーが確認した住所', country_code = 'JP'
+WHERE google_place_id = 'PLACE_IN_SNAPSHOT';
+-- パイプライン製: この文の対象外（埋めるのは値 UPDATE の仕事）
+UPDATE restaurants SET address = '', country_code = ''
+WHERE google_place_id = 'PLACE_BRAND_NEW';
+-- ⚠️ **片方だけ空いているアプリ製の行**: WHERE は通るので **SET が試される**。
+--    これが無いと «WHERE で弾いているだけ» の状態でもテストが緑になる
+--    （実際に対照実験でそうなった: SET の COALESCE を壊しても 7 が通った）。
+INSERT INTO restaurants (google_place_id, name, name_language_code, latitude, longitude,
+  image_url, address_components, address, country_code, created_by_source)
+VALUES ('PLACE_APP_HALF_FILLED','住所はあるが国コードが無い店','ja',35.3,139.3,'','[]',
+        'ユーザーが確認した住所（半分）', NULL, 'user');
+-- catalog に住所が無いアプリ製の行: 触られず NULL のまま残ること
+INSERT INTO restaurants (google_place_id, name, name_language_code, latitude, longitude,
+  image_url, address_components, address, country_code, created_by_source)
+VALUES ('PLACE_APP_NO_CATALOG','catalog に住所が無い店','ja',35.2,139.2,'','[]',
+        NULL, NULL, 'user');
+
+INSERT INTO restaurant_sync_staging (google_place_id, address, country_code, row_hash)
+VALUES ('PLACE_APP_NULL_ADDR','オープンデータ住所 NULL 側','JP','hash-D'),
+       ('PLACE_APP_NO_CATALOG',NULL,NULL,'hash-E'),
+       ('PLACE_APP_HALF_FILLED','オープンデータ住所 半分の行','JP','hash-F');
+UPDATE restaurant_sync_staging SET address = 'オープンデータ住所 空文字側', country_code = 'JP'
+WHERE google_place_id = 'PLACE_MADE_BY_APP';
+UPDATE restaurant_sync_staging SET address = 'オープンデータ住所 上書き禁止', country_code = 'US'
+WHERE google_place_id = 'PLACE_IN_SNAPSHOT';
+UPDATE restaurant_sync_staging SET address = 'オープンデータ住所 パイプライン', country_code = 'JP'
+WHERE google_place_id = 'PLACE_BRAND_NEW';
+SQL
+
+psql -h /tmp -p "$PGPORT" -U postgres -q <<SQL
+SET search_path = dev;
+$FILL_SQL;
+SQL
+
+[ "$(q "SELECT address FROM restaurants WHERE google_place_id='PLACE_MADE_BY_APP';")" = "オープンデータ住所 空文字側" ] \
+  || fail "アプリ製の空文字の address が埋まらなかった（#1779）"
+[ "$(q "SELECT country_code FROM restaurants WHERE google_place_id='PLACE_MADE_BY_APP';")" = "JP" ] \
+  || fail "アプリ製の空文字の country_code が埋まらなかった（#1779）"
+[ "$(q "SELECT address FROM restaurants WHERE google_place_id='PLACE_APP_NULL_ADDR';")" = "オープンデータ住所 NULL 側" ] \
+  || fail "アプリ製の NULL の address が埋まらなかった（#1779）"
+[ "$(q "SELECT address FROM restaurants WHERE google_place_id='PLACE_IN_SNAPSHOT';")" = "ユーザーが確認した住所" ] \
+  || fail "**値が入っているアプリ製の行の address を上書きした**（#1779）"
+[ "$(q "SELECT country_code FROM restaurants WHERE google_place_id='PLACE_IN_SNAPSHOT';")" = "JP" ] \
+  || fail "**値が入っているアプリ製の行の country_code を上書きした**（#1779）"
+[ "$(q "SELECT address FROM restaurants WHERE google_place_id='PLACE_BRAND_NEW';")" = "" ] \
+  || fail "パイプライン製の行をこの文が触った（値 UPDATE の担当範囲を侵している）"
+[ "$(q "SELECT address IS NULL FROM restaurants WHERE google_place_id='PLACE_APP_NO_CATALOG';")" = "t" ] \
+  || fail "catalog に住所が無い行を触って NULL を壊した（#1779）"
+
+# 片方だけ空いている行: **空いている側だけ**が埋まること。
+# ⚠️ ここが «WHERE で弾いているだけ» と «SET が守っている» を分ける唯一の検査である。
+[ "$(q "SELECT country_code FROM restaurants WHERE google_place_id='PLACE_APP_HALF_FILLED';")" = "JP" ] \
+  || fail "片方だけ空いている行の country_code が埋まらなかった（#1779）"
+[ "$(q "SELECT address FROM restaurants WHERE google_place_id='PLACE_APP_HALF_FILLED';")" = "ユーザーが確認した住所（半分）" ] \
+  || fail "**SET が既存の address を上書きした**（WHERE を通る行で COALESCE が効いていない・#1779）"
+
+# ⚠️ **`source_row_hash` を刻んでいないこと。** アプリ製の行でこれが NULL である
+#    ことが «パイプラインが中身を書いた行» の判別条件（5-d）である。
+[ "$(q "SELECT count(*) FROM restaurants
+        WHERE created_by_source <> 'pipeline' AND source_row_hash IS NOT NULL;")" = "0" ] \
+  || fail "アプリ製の行に source_row_hash を刻んだ（backfill 検知が誤発火する・#1779）"
+
+# 2 回目は 0 行。«埋まる行だけに絞る» 条件が効いていなければ毎回全アプリ行を書き直す。
+REFILLED="$(psql -h /tmp -p "$PGPORT" -U postgres -t -A -q <<SQL | tail -1
+SET search_path = dev;
+WITH touched AS (
+$FILL_SQL
+  RETURNING 1
+)
+SELECT count(*) FROM touched;
+SQL
+)"
+[ "$REFILLED" = "0" ] \
+  || fail "埋め終わった行を $REFILLED 行書き直した（毎回全アプリ行を更新する形・#1779）"
+echo "✅ 7. アプリ製の行は «空欄だけ» が埋まり、入っている値は変わらない（#1779）"
+
 echo
-echo "すべて通過（6/6）"
+echo "すべて通過（7/7）"
