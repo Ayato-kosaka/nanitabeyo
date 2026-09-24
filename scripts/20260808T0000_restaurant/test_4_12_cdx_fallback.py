@@ -280,3 +280,26 @@ class Discover415Unchanged(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DoneHostsAreCountedAcrossRuns(unittest.TestCase):
+    """#1947 «もう汲んだ host» を run_id で数えると、新しい run で全部 «未処理» に戻る。
+
+    2026-09-24 に発覚: 候補 886 host のうち投稿が採れているのは 233 だけで、
+    残り 653 は未読のまま止まっていた。`--skip-done-hosts` が «この run_id で採れた host»
+    しか見ていなかったため、run を改めるたびに濃い host から読み直していた。
+    """
+
+    def test_does_not_filter_by_run_id(self) -> None:
+        sql = crawler.done_hosts_sql("p.d.sns_post_raw")
+        self.assertNotIn("run_id", sql)
+
+    def test_filters_by_discovery_method(self) -> None:
+        sql = crawler.done_hosts_sql("p.d.sns_post_raw")
+        self.assertIn("discovery_method IN UNNEST(@dms)", sql)
+        self.assertIn("discovery_query", sql)
+
+    def test_the_bound_methods_are_exactly_what_this_script_writes(self) -> None:
+        """@dms に渡すのは 4_12 が書く値そのもの。写経すると片方だけ増えてずれる。"""
+        self.assertEqual(sorted(crawler.DISCOVERY_METHOD.values()),
+                         ["media_embed", "media_embed_cdx"])

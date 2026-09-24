@@ -109,6 +109,22 @@ CDX_MAX_BLOCKS = 40
 DISCOVERY_METHOD = {"sitemap": "media_embed", "cdx": "media_embed_cdx"}
 
 
+def done_hosts_sql(post_raw_table: str) -> str:
+    """**«4_12 がもう汲んだ host»** の唯一の定義（`host` 1 列を返す SQL）。
+
+    ⚠️ #1947 **run_id で数えないこと。** 2026-09-05 に汲んだ host も «済み» である。
+    `run_id = @rid` で絞っていたため、**新しい run_id を付けた瞬間に済みの host が
+    全部 «未処理» へ戻っていた**。host は «濃い順» に並んでいるので、読み直すのは
+    よりによって本命の媒体であり、6 時間の枠をそこで使い切る。相手のサイトにも
+    同じ記事を二度取りに行くことになる（`--skip-done-hosts` はそれを防ぐ機能である）。
+
+    «4_12 が汲んだ» の正は **`discovery_method`**（この script だけが書く値）であって
+    run_id ではない。2026-09-21 の «raw を resolve の run_id で絞っていた» と同じ形。
+    """
+    return (f"SELECT DISTINCT discovery_query host FROM `{post_raw_table}` "
+            "WHERE discovery_method IN UNNEST(@dms) AND discovery_query IS NOT NULL")
+
+
 def _get(url: str, limit: int = 1_500_000) -> bytes | None:
     try:
         req = urllib.request.Request(url, headers=UA)
@@ -352,10 +368,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--shard", type=int, default=0)
     p.add_argument("--workers", type=int, default=6, help="1 host 内で同時に読む記事数")
     p.add_argument("--flush-every", type=int, default=1, help="何 host ごとに BQ へ流すか")
-    # シャード数を変えて流し直すことがあるので、その run で既に投稿を採れた host は飛ばす。
-    # 再開可能にしておかないと、割り当てが変わるたびに同じ媒体を読み直して相手にも迷惑をかける。
+    # シャード数を変えて流し直す・日を改めて続きを汲むことがあるので、4_12 が既に投稿を
+    # 採れた host は飛ばす。再開可能にしておかないと、割り当てが変わるたびに同じ媒体を
+    # 読み直して相手にも迷惑をかける。**run_id は問わない**（下の実装のコメントを読むこと）。
     p.add_argument("--skip-done-hosts", action="store_true",
-                   help="この run_id で既に投稿を採れている host を対象から外す")
+                   help="4_12 が既に投稿を採れている host を対象から外す（run_id は問わない）")
     # sitemap を持たない host（実測で未クロール host の 38%）を CDX で救う。既定で有効。
     p.add_argument("--no-cdx-fallback", action="store_true",
                    help="sitemap が無い host を CDX から読むフォールバックを止める")
@@ -390,9 +407,8 @@ def main() -> None:
     hosts = list(dict.fromkeys(hosts))
     if args.skip_done_hosts:
         done = {r["host"] for r in pipeline.execute(
-            f"SELECT DISTINCT discovery_query host FROM `{pipeline.table(TABLE_POST_RAW)}` "
-            "WHERE run_id = @rid AND discovery_query IS NOT NULL",
-            [bigquery.ScalarQueryParameter("rid", "STRING", run_id)])}
+            done_hosts_sql(pipeline.table(TABLE_POST_RAW)),
+            [bigquery.ArrayQueryParameter("dms", "STRING", sorted(DISCOVERY_METHOD.values()))])}
         before = len(hosts)
         hosts = [h for h in hosts if h not in done]
         LOGGER.info("処理済み host %d 件を除外（%d → %d）", len(done), before, len(hosts))
