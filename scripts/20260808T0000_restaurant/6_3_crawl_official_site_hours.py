@@ -70,8 +70,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # ⚠️ 取りに行く作法はここに 1 本化してある。写経しないこと。
 from official_site_crawl import (  # noqa: E402
-    classify_page,
+    classify_page_with_reason,
     fetch,
+    hours_excerpt,
     html_to_text,
     robots_allows,
 )
@@ -213,6 +214,15 @@ def parse_args() -> argparse.Namespace:
         action="store_false",
         help="既に official_site の行がある店も対象にする（全部取り直すとき）",
     )
+    parser.add_argument(
+        "--excerpts-per-reason",
+        type=int,
+        default=3,
+        help=(
+            "諦めた理由ごとに、本文の抜粋を何件まで出すか（0 で出さない）。"
+            "⚠️ 出力先は public リポジトリの Actions ログなので、少なく保つ"
+        ),
+    )
     parser.add_argument("--dry-run", action="store_true", help="ネットワークへ出ず、DB へも書かない")
     return parser.parse_args()
 
@@ -340,6 +350,10 @@ def main() -> int:
 
         counts: Counter[str] = Counter()
         failure_reasons: Counter[str] = Counter()
+        # #1666 パーサが諦めた理由の内訳。これが無いと «209 件のどこを直せば効くのか» が
+        # 分からず、「たぶん第 2 水曜だろう」で直すことになる。
+        give_up_reasons: Counter[str] = Counter()
+        give_up_examples: dict[str, list[str]] = {}
         robots_cache: dict = {}
         last_request_at = 0.0
         pending_ids: list[str] = []
@@ -374,8 +388,25 @@ def main() -> int:
                     continue
 
                 text = html_to_text(html)
-                bucket = classify_page(text)
+                # #1666 【設計】**諦めた理由も一緒に数える。**
+                #
+                # 2026-09-24 の東京駅 800 件で `mentions_hours_unparsed` は **209 件
+                # （26.1%）**あり、**入れられた 162 件（20.3%）より多い**
+                # （[run 35970682759](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35970682759)）。
+                # ここがいちばん伸びしろのある箱なのに、`classify_page` を使っていたので
+                # **理由を捨てていた**。ページはもう取ってあるので、追加の通信は発生しない。
+                #
+                # ⚠️ `classify_page_with_reason` は箱の判定を変えない（あちらの注記）。
+                #    入れる行も変わらない（`bucket != "parsed"` はそのまま）。
+                bucket, give_up = classify_page_with_reason(text)
                 counts[bucket] += 1
+                if give_up:
+                    give_up_reasons[give_up] += 1
+                    examples = give_up_examples.setdefault(give_up, [])
+                    if len(examples) < args.excerpts_per_reason:
+                        excerpt = hours_excerpt(text)
+                        if excerpt:
+                            examples.append(excerpt)
                 if bucket != "parsed":
                     # ⚠️ 読めなかったものは **入れない**。分からないものを推測しない。
                     #    既存の official_site 行があっても **消さない**（上の注記）。
@@ -434,6 +465,13 @@ def main() -> int:
             LOGGER.info("到達できなかった理由の内訳")
             for reason, n in failure_reasons.most_common(12):
                 LOGGER.info("  %4d  %s", n, reason)
+        if give_up_reasons:
+            # ⚠️ ここが «パーサを直せばどれだけ増えるか» の唯一の手掛かりである
+            LOGGER.info("パーサが諦めた理由の内訳（mentions_hours_unparsed の中身）")
+            for reason, n in give_up_reasons.most_common():
+                LOGGER.info("  %4d  %s", n, reason)
+                for excerpt in give_up_examples.get(reason, ()):
+                    LOGGER.info("        例: %s", excerpt)
         LOGGER.info("戻すには: DELETE FROM %s.restaurant_opening_hours WHERE source = '%s';", args.schema, SOURCE)
     finally:
         connection.close()
