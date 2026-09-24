@@ -14,7 +14,11 @@ import { LocationsService } from './locations.service';
  *
  * ここで縛るのは 3 つ。
  *
- * 1. **原寸を超えて要求しない**（#429 の事情。縮める方向だけに使う）
+ * 1. **縮める方向だけに使う**（既に小さい写真は原寸のまま通す）。
+ *    ⚠️ #429 が記録した 400 は «原寸を超えるな» ではなく
+ *    «`max_width_px` は原寸と **一致** しなければならない» だった。現在の公式
+ *    ドキュメントは 1〜4800 の任意の整数を許しており一致要求は無いが、万一
+ *    生きていた場合の保険は下の describe で縛る
  * 2. **短辺で切る**。長辺だけで切ると横長のパノラマで短辺が 1,024 を割り、
  *    フルスクリーン派生が拡大になる
  * 3. **幅と高さの両方を返す**。`getPhotoMedia` は幅が無いときだけ高さを見るので、
@@ -44,7 +48,7 @@ describe('#819 Google の写真を原寸で頼まない', () => {
     });
   });
 
-  it('原寸より大きくは要求しない（#429）', () => {
+  it('既に小さい写真はそのまま（原寸より大きくは要求しない）', () => {
     // 既に小さい写真はそのまま
     expect(LocationsService.cappedPhotoSize(800, 600)).toEqual({
       widthPx: 800,
@@ -88,5 +92,92 @@ describe('#819 Google の写真を原寸で頼まない', () => {
         Math.min(LARGEST_DISPLAYED_PX, Math.min(w, h)),
       );
     }
+  });
+});
+
+/**
+ * #819 【設計】**上限つきの要求が失敗したら、同じ写真を原寸でもう 1 度試す。**
+ *
+ * #429（2025-11）は `maxWidthPx: 1280` に対して Google がこう返したと記録している。
+ *
+ * > max_width_px or max_height_px must match original width or height.
+ *
+ * 現在の公式ドキュメントは «1〜4800 の任意の整数» で原寸との一致を要求していないが、
+ * **もし今も生きていたら全候補が 400 で落ち、`tryGetPhotoMedia` は `null` を返し、
+ * `bulkImportFromGoogle` は «写真が無い» として店を丸ごと捨てる**。
+ * ドキュメントを信じて静かに壊れるより、1 度だけ原寸へ落ちる。
+ */
+describe('#819 上限つきの要求が弾かれたときの保険', () => {
+  const photo = { name: 'places/p/photos/x', widthPx: 3024, heightPx: 4032 };
+
+  function build() {
+    const getPhotoMedia = jest.fn();
+    const logger = { debug: jest.fn(), warn: jest.fn(), error: jest.fn(), log: jest.fn() };
+    const service = new LocationsService(
+      logger as never,
+      { getPhotoMedia } as never,
+    );
+    return { service, getPhotoMedia, logger };
+  }
+
+  it('上限つきが 400 になったら、同じ写真を原寸で 1 度だけやり直す', async () => {
+    const { service, getPhotoMedia, logger } = build();
+    getPhotoMedia
+      .mockRejectedValueOnce(
+        new Error('max_width_px or max_height_px must match original width or height.'),
+      )
+      .mockResolvedValueOnce({ photoUri: 'https://example.test/original.jpg' });
+
+    await expect(service.tryGetPhotoMedia([photo] as never)).resolves.toEqual({
+      photoUri: 'https://example.test/original.jpg',
+    });
+
+    expect(getPhotoMedia).toHaveBeenCalledTimes(2);
+    // 1 回目は上限つき（短辺 1280）
+    expect(getPhotoMedia.mock.calls[0].slice(1, 3)).toEqual([1280, 1707]);
+    // 2 回目は原寸
+    expect(getPhotoMedia.mock.calls[1].slice(1, 3)).toEqual([3024, 4032]);
+    // ⚠️ 通ったことを数えられること（通り続けているなら上限は効いていない）
+    expect(logger.warn).toHaveBeenCalledWith(
+      'PhotoMediaCappedRetryAtOriginal',
+      'tryGetPhotoMedia',
+      expect.objectContaining({ requestedWidthPx: 1280 }),
+    );
+  });
+
+  it('⚠️ 縮めていない写真では原寸のやり直しをしない（無駄な 2 回目を撃たない）', async () => {
+    const { service, getPhotoMedia, logger } = build();
+    // 既に小さい写真は縮まらないので、失敗しても «同じ要求» を繰り返す意味が無い
+    getPhotoMedia.mockRejectedValue(new Error('boom'));
+
+    await expect(
+      service.tryGetPhotoMedia([
+        { name: 'places/p/photos/small', widthPx: 800, heightPx: 600 },
+      ] as never),
+    ).resolves.toBeNull();
+
+    expect(getPhotoMedia).toHaveBeenCalledTimes(1);
+    expect(logger.warn).not.toHaveBeenCalledWith(
+      'PhotoMediaCappedRetryAtOriginal',
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it('原寸のやり直しも失敗したら、次の候補へ進む', async () => {
+    const { service, getPhotoMedia } = build();
+    getPhotoMedia
+      .mockRejectedValueOnce(new Error('capped failed'))
+      .mockRejectedValueOnce(new Error('original failed'))
+      .mockResolvedValueOnce({ photoUri: 'https://example.test/second.jpg' });
+
+    await expect(
+      service.tryGetPhotoMedia([
+        photo,
+        { name: 'places/p/photos/y', widthPx: 2000, heightPx: 3000 },
+      ] as never),
+    ).resolves.toEqual({ photoUri: 'https://example.test/second.jpg' });
+
+    expect(getPhotoMedia).toHaveBeenCalledTimes(3);
   });
 });
