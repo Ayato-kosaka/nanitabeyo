@@ -154,11 +154,42 @@ DOW_SQL = """
 
 # 東京駅から近い順 KNN_LIMIT 件のうち、営業時間を持つ店が何店あるか。
 # ⚠️ 番人と同じ «KNN で候補を絞ってから» の形にする。半径で絞ると別のものを測る。
+#
+# #1666 【設計】**«いま何店あるか» だけでなく «上限は何店か» も一緒に出す。**
+#
+# 2026-09-24、東京駅の窓は 26/1,000 だった。この数字だけでは
+# «クロールを続ければ埋まるのか、そもそも埋まらないのか» が分からず、
+# 「この水準で完了と言えるか」をオーナーへ出せない。上限を決めるのは
+#
+#   1. **website を持つ店が窓に何店あるか** — 公式サイトで取れる母数。ここが天井
+#   2. **source 別の内訳** — OSM が既に稼いでいる分と、クロールで増えた分
+#   3. **窓が実際に何メートルまで届いているか** — `--near-radius-m` に渡す値。
+#      ⚠️ これを推測で決めると «半径が広すぎて窓の外を歩く» に戻る（+9 しか動かなかった原因）
+#
+# ⚠️ website の条件は `6_3` の候補条件と**同じ形**で書く。ずれると
+#    «母数はあるのにクローラが行かない» が «母数が無い» に見える。
+WEBSITE_EXISTS = """
+    EXISTS (
+      SELECT 1 FROM restaurant_links l
+      WHERE l.restaurant_id = c.id
+        AND l.kind = 'website'
+        AND NULLIF(btrim(l.value), '') IS NOT NULL
+        AND l.value ~* '^https?://'
+    )
+"""
+
+# ⚠️ 距離の式を **ORDER BY へ書き出す**。`ORDER BY 2` のような位置指定にすると
+#    KNN インデックスが使われる保証が無く、62 万行で statement timeout に落ちる。
+#    そのために位置パラメータ（%s）ではなく **名前付き**にしてある（同じ値を 2 回渡せる）。
+_NEAREST = "r.location <-> ST_SetSRID(ST_MakePoint(%(lng)s, %(lat)s), 4326)::geography"
+
 REACH_SQL = f"""
   WITH candidates AS (
-    SELECT r.id
+    SELECT
+      r.id,
+      {_NEAREST} AS distance_m
     FROM restaurants r
-    ORDER BY r.location <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography
+    ORDER BY {_NEAREST}
     LIMIT {KNN_LIMIT}
   )
   SELECT
@@ -168,8 +199,23 @@ REACH_SQL = f"""
     )) AS with_any_hours,
     count(*) FILTER (WHERE EXISTS (
       SELECT 1 FROM restaurant_opening_hours roh
-      WHERE roh.restaurant_id = c.id AND roh.day_of_week = %s
-    )) AS with_hours_today
+      WHERE roh.restaurant_id = c.id AND roh.day_of_week = %(dow)s
+    )) AS with_hours_today,
+    count(*) FILTER (WHERE {WEBSITE_EXISTS}) AS with_website,
+    count(*) FILTER (WHERE EXISTS (
+      SELECT 1 FROM restaurant_opening_hours roh
+      WHERE roh.restaurant_id = c.id AND roh.source = 'official_site'
+    )) AS with_official_site_hours,
+    count(*) FILTER (WHERE EXISTS (
+      SELECT 1 FROM restaurant_opening_hours roh
+      WHERE roh.restaurant_id = c.id AND roh.source = 'osm'
+    )) AS with_osm_hours,
+    -- クロールがまだ当たっていない母数。**次に --limit へ渡す値**
+    count(*) FILTER (WHERE {WEBSITE_EXISTS} AND NOT EXISTS (
+      SELECT 1 FROM restaurant_opening_hours roh
+      WHERE roh.restaurant_id = c.id AND roh.source = 'official_site'
+    )) AS website_not_yet_crawled,
+    max(c.distance_m)::int AS window_radius_m
   FROM candidates c
 """
 
@@ -273,7 +319,11 @@ def main() -> int:
             #    上の重いクエリが落ちても必ず試す。1 地点ずつ独立に扱う
             reach = []
             for label, lng, lat in POINTS:
-                row = run_section(f"近い順の到達（{label}）", REACH_SQL, (lng, lat, dow_today))
+                row = run_section(
+                    f"近い順の到達（{label}）",
+                    REACH_SQL,
+                    {"lng": lng, "lat": lat, "dow": dow_today},
+                )
                 if row:
                     reach.append((label, *row[0]))
 
@@ -366,7 +416,17 @@ def main() -> int:
     logger.info("## 近い順 %s 件のうち、営業時間を持つ店", f"{KNN_LIMIT:,}")
     logger.info("   ⚠️ ここが 0 なら、番人の «0 行 ✅» は «当たっていないから 0» である")
     result["reach"] = {}
-    for label, candidates, with_any, with_today in reach:
+    for (
+        label,
+        candidates,
+        with_any,
+        with_today,
+        with_website,
+        with_official,
+        with_osm,
+        not_yet,
+        window_radius_m,
+    ) in reach:
         logger.info(
             "  %-8s : 候補 %s 件 / 営業時間あり %s 店 / 今日の曜日の行あり %s 店",
             label,
@@ -374,10 +434,28 @@ def main() -> int:
             f"{with_any:,}",
             f"{with_today:,}",
         )
+        # 上限と内訳。«続ければ埋まるのか» はこの 3 つで決まる
+        logger.info(
+            "             内訳: official_site %s 店 / osm %s 店",
+            f"{with_official:,}",
+            f"{with_osm:,}",
+        )
+        logger.info(
+            "             上限: website を持つ店 %s 店（うち未クロール %s 店）"
+            " / この窓の半径 %s m",
+            f"{with_website:,}",
+            f"{not_yet:,}",
+            f"{window_radius_m:,}",
+        )
         result["reach"][label] = {
             "candidates": candidates,
             "with_any_hours": with_any,
             "with_hours_today": with_today,
+            "with_website": with_website,
+            "with_official_site_hours": with_official,
+            "with_osm_hours": with_osm,
+            "website_not_yet_crawled": not_yet,
+            "window_radius_m": window_radius_m,
         }
 
     logger.info("")
