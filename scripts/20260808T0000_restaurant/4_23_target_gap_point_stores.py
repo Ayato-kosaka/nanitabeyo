@@ -274,6 +274,14 @@ def main() -> int:
                     int(u[0].get("crawlable_now") or 0), int(u[0].get("already_crawled") or 0))
         LOGGER.info("  ⚠️ **サイト無しの %d 店には巡回が届かない。** 一巡したら別の経路が要る", wo)
     if not rows:
+        # ⚠️ 0 店には **意味の違う 2 つ**がある。混ぜると «次に何が要るか» が分からなくなる。
+        done = int(u[0].get("already_crawled") or 0) if u else 0
+        wo = int(u[0].get("without_website") or 0) if u else 0
+        if done:
+            raise SystemExit(
+                f"対象が 0 店。**巡回経路は尽きた**（サイトを持つ {done} 店は巡り終えて "
+                f"handle が出なかった）。残る {wo} 店はサイトを持たないので巡回では届かない。"
+                "**次は別の経路（検索など）が要る。**")
         raise SystemExit(
             "対象が 0 店。**«巡回しても無駄» ではなく «サイトを持つ handle 未知の店が無い»** である。"
             "ここは店台帳そのものが薄いので、発見でも収集でも届かない。")
