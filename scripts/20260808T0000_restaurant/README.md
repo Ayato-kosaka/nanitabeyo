@@ -449,6 +449,17 @@ dev の実績（2026-09-09 時点）: OSM **13,065 店 / 100,309 行**、
 必ず `dev --dry-run`、`dev`、動作確認、`public --dry-run`、`public` の順に進めます。
 dry-runも実際のDMLとconstraint検査をtransaction内で行い、最後にrollbackします。
 
+⚠️ **`db-script-run.yml` から流すときは、下の例に 2 つ足りません。** ローカルは
+`RESTAURANT_PIPELINE_RUN_ID` を env で持てますが、workflow は持てないので
+`--run-id`（→ 上の「GitHub Actions」§3）と、既定が別ディレクトリを指している
+`requirements_path` を明示します。忘れると **27 秒で `ValueError: run_id が
+ありません`** で落ちます（2026-09-24 に踏みました）。
+
+```
+args:              --schema dev --run-id restaurant-2026-08-23
+requirements_path: scripts/20260808T0000_restaurant/requirements.txt
+```
+
 ```bash
 .venv/bin/python 9_1_sync_restaurants.py --schema dev --dry-run
 .venv/bin/python 9_1_sync_restaurants.py --schema dev
