@@ -200,6 +200,13 @@ jobs:
       - name: テストの後始末の revoke scope を検査
         run: pnpm --filter app-expo assert:session-revoke-scope
 
+      # #1933 migration の «ファイル名順 = 適用順» を守るガード自身のテスト。
+      # ガードには 2026-09-24 までテストが無く、実際に 1 件擦り抜けた
+      # （#2012 が «PR イベント時点の main» と比べていたため、開いている間に main が
+      #  migration を得ても再検査されず緑のまま古くなった）。依存ゼロの bash。
+      - name: migration 順序ガードの自己テスト
+        run: bash scripts/test-assert-migration-filename-order.sh
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
