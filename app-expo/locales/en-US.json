@@ -766,6 +766,15 @@
 				},
 				"showAll": "All days",
 				"hideAll": "Collapse"
+			},
+			"reviews": {
+				"empty": {
+					"title": "No posts yet",
+					"description": "Once you log a dish here as eaten, it shows up in this tab."
+				},
+				"error": {
+					"title": "Couldn't load the posts"
+				}
 			}
 		},
 		"report": {

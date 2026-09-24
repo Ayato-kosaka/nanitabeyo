@@ -766,6 +766,15 @@
 				},
 				"showAll": "全部星期",
 				"hideAll": "收起"
+			},
+			"reviews": {
+				"empty": {
+					"title": "还没有投稿",
+					"description": "把这家店的菜记录为「吃过」后，就会显示在这里。"
+				},
+				"error": {
+					"title": "无法加载投稿"
+				}
 			}
 		},
 		"report": {
