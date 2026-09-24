@@ -406,6 +406,25 @@ export class RestaurantsService {
       googlePlaceId: existing.google_place_id,
     });
 
+    // #1779 国名は ICU（`Intl.DisplayNames`）で出す。
+    //
+    // ⚠️ **取れなかったことを «見えるように» する。** runtime が小さい ICU で
+    //    組まれていると国名が 1 件も出ず、画面は `JP` とだけ表示する。壊れてはいない
+    //    ので誰も報告せず、**オーナーが踏むまで気づけない**形になる
+    //    （CLAUDE.md「見えないものは «無い» ではない」）。
+    //    国コードは自社パイプラインが入れた ISO なので、ここは通常 0 件である。
+    const countryName = countryNameFromCode(
+      countryCode,
+      existing.name_language_code,
+    );
+    if (countryCode && !countryName) {
+      this.logger.warn('CountryNameNotResolved', 'createRestaurantDraft', {
+        restaurantId: existing.id,
+        countryCode,
+        nameLanguageCode: existing.name_language_code,
+      });
+    }
+
     return {
       draft: {
         googlePlaceId: payload.googlePlaceId,
@@ -417,10 +436,7 @@ export class RestaurantsService {
         address,
         countryCode,
         // #1779 国名は `country_code` 列から ICU で出す。Google の longText に頼らない
-        countryName: countryNameFromCode(
-          countryCode,
-          existing.name_language_code,
-        ),
+        countryName,
       },
       draftToken: signRestaurantDraftToken(
         payload,

@@ -110,17 +110,33 @@ export function extractCountryName(
  * 聞かずに同じものが出せる**。`JP` → 日本 / Japan / 일본。
  *
  * ⚠️ **コードがそのまま返ってきたら null を返す。** ICU が小さい build（small-icu）
- *    では `of('JP')` が `'JP'` を返す。そのまま渡すと «国名» の欄にコードが出て、
- *    しかも «名前が取れた» ように見える。取れなかったことを呼び出し側へ伝える。
+ *    では `of('JP')` が `'JP'` を返す。割り当てられていないコード（`QQ` 等）でも
+ *    同じである。そのまま渡すと «国名» の欄にコードが出て、しかも «名前が取れた»
+ *    ように見える。取れなかったことを呼び出し側へ伝える。
+ *
+ * ⚠️ **CLDR の «国ではないコード» を弾く。** ICU はこれらへ「もっともらしい名前」を
+ *    返すので、上のコード一致では捕まらない（実測）。
+ *
+ *    | コード | ICU（ja） | 正体 |
+ *    | --- | --- | --- |
+ *    | `ZZ` | 不明な地域 | CLDR の «不明» |
+ *    | `XA` | 疑似アクセント | 疑似ロケールの試験用 |
+ *    | `XB` | 疑似 Bidi | 同上 |
+ *
+ *    これを国名として画面へ出すと、**ユーザーは «不明な地域» という国に居ることに
+ *    なる**（確認のための欄なので、むしろコード表示のほうが正しい）。
  *
  * ⚠️ **言語は店の現地言語で揃える。** 従来の `longText` も Place Details を
  *    現地言語で叩いた結果だったので、そこと同じにする。
  */
+const NOT_A_COUNTRY_CODES = new Set(['ZZ', 'XA', 'XB']);
+
 export function countryNameFromCode(
   countryCode: string | null | undefined,
   languageCode: string | null | undefined,
 ): string | null {
   if (!countryCode) return null;
+  if (NOT_A_COUNTRY_CODES.has(countryCode.toUpperCase())) return null;
 
   try {
     const name = new Intl.DisplayNames([languageCode || 'en'], {

@@ -726,6 +726,60 @@ describe('#1671 確認ページ経由の店舗作成', () => {
     });
 
     /*
+      #1779 ⚠️ **国名が取れなかったことを «見えるように» する。**
+
+      runtime が小さい ICU で組まれていると国名が 1 件も出ず、画面は `JP` とだけ
+      表示する。壊れてはいないので誰も報告せず、**オーナーが踏むまで気づけない**
+      （CLAUDE.md「見えないものは «無い» ではない」）。数えられる形で残す。
+    */
+    it('国名が引けなかったら warn を出す（静かに JP 表示へ落ちない）', async () => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue({
+        ...EXISTING_ROW,
+        // 割り当てられていないコード。ICU はコードをそのまま返す
+        country_code: 'QQ',
+      });
+
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+      expect(draft.countryName).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'CountryNameNotResolved',
+        'createRestaurantDraft',
+        expect.objectContaining({ countryCode: 'QQ' }),
+      );
+    });
+
+    /*
+      #1779 ⚠️ **`ZZ`（CLDR の «不明な地域»）を国名として出さない。**
+
+      ICU は `ZZ` へ「不明な地域」という **もっともらしい名前** を返すので、
+      «コードがそのまま返ったら null» の判定では捕まらない（実測）。これを
+      国名の欄へ出すと、ユーザーは «不明な地域» という国に居ることになる。
+      確認のための欄なので、コード表示へ落ちるほうが正しい。
+    */
+    it('⚠️ ZZ（不明な地域）を国名として出さない', async () => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue({
+        ...EXISTING_ROW,
+        country_code: 'ZZ',
+      });
+
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+      expect(draft.countryName).toBeNull();
+    });
+
+    it('国コードが無い行では warn を出さない（引けないのが正しい状態）', async () => {
+      await service.createRestaurantDraft({ googlePlaceId: PLACE_ID });
+      expect(logger.warn).not.toHaveBeenCalledWith(
+        'CountryNameNotResolved',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    /*
       #1779 ⚠️ **列が `undefined` で来ても署名済みトークンが壊れないこと。**
 
       トークンの形は `subterritoryCode` が «null または string» であることを要求する
