@@ -99,8 +99,32 @@ WHERE l.kind = 'website'
   AND l.value ~* '^https?://'
   AND (%(country)s = 'ALL' OR r.country_code = %(country)s)
   {only_missing}
+  {near}
 ORDER BY md5(l.restaurant_id::text || %(seed)s)
 LIMIT %(limit)s
+"""
+
+# #1666 【設計】**1 つの地点のまわりだけを対象にできるようにする。**
+#
+# 既定の並びは `md5(restaurant_id || seed)` で、**日本全国から均等に散らす**。
+# 全体の coverage を上げるにはそれでよいが、«その地点でユーザーが見る画面» は動かない。
+# 実測（run 35967307893）で近い順 1,000 件のうち営業時間を持つ店は
+# 東京駅 17 / 大阪駅 34 / 札幌駅 64 しかなく、全国へ 2,000 件撒いても
+# **この数字は 1 件も動かない**（1,000 件のうち何件当たるかの期待値がほぼ 0）。
+#
+# だから «どこを» 絞れるようにする。1 エリアを実用水準まで上げてから
+# «この水準で満たしたと言えるか» をオーナーへ出す、という順にできる。
+#
+# ⚠️ **並びは変えない。** `md5(...)` のままにしてある。並びは
+#    `inspect_opening_hours_reach.py` が «前半が picked over か» を測る根拠なので、
+#    絞り込みのために並びまで変えると、あちらの数字の意味が黙って変わる。
+#    半径の中はどうせ `--limit` まで全部当たるので、順は問題にならない。
+NEAR_CLAUSE = """
+  AND ST_DWithin(
+        r.location,
+        ST_SetSRID(ST_MakePoint(%(near_lon)s, %(near_lat)s), 4326)::geography,
+        %(near_radius_m)s
+      )
 """
 
 ONLY_MISSING_CLAUSE = """
@@ -134,6 +158,17 @@ def parse_args() -> argparse.Namespace:
         help="⚠️ 必須。既定値を置くと、うっかり 28 万サイトへ出て行く",
     )
     parser.add_argument("--seed", default="1666", help="同じ seed なら同じ順に当たる")
+    # #1666 1 エリアだけを対象にする（→ NEAR_CLAUSE のコメント）
+    parser.add_argument(
+        "--near",
+        help='"緯度,経度" を渡すと、その地点の半径内だけを対象にする（例: "35.681,139.767" 東京駅）',
+    )
+    parser.add_argument(
+        "--near-radius-m",
+        type=float,
+        default=3000.0,
+        help="--near の半径（メートル、既定 3000）",
+    )
     parser.add_argument("--min-interval", type=float, default=2.0)
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--commit-every", type=int, default=50, help="この店数ごとに commit する")
@@ -145,6 +180,31 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--dry-run", action="store_true", help="ネットワークへ出ず、DB へも書かない")
     return parser.parse_args()
+
+
+def parse_near(value: str | None) -> tuple[float | None, float | None]:
+    """`--near` の "緯度,経度" を読む。渡されなければ (None, None)。
+
+    ⚠️ **黙って «全国» へ落ちないこと。** 読めない値を None にして通すと、
+    1 エリアのつもりで 28 万サイトへ出て行く。壊れた入力は例外で止める。
+    """
+    if value is None or value.strip() == "":
+        return None, None
+
+    parts = value.split(",")
+    if len(parts) != 2:
+        raise ValueError(f'--near は "緯度,経度" の形で渡してください: {value!r}')
+    try:
+        lat = float(parts[0].strip())
+        lon = float(parts[1].strip())
+    except ValueError as error:
+        raise ValueError(f"--near の数値が読めません: {value!r}") from error
+
+    if not -90.0 <= lat <= 90.0:
+        raise ValueError(f"緯度が範囲外です: {lat}")
+    if not -180.0 <= lon <= 180.0:
+        raise ValueError(f"経度が範囲外です: {lon}")
+    return lat, lon
 
 
 def flush(cursor, schema: str, restaurant_ids: list[str], rows: list[tuple]) -> None:
@@ -175,24 +235,39 @@ def main() -> int:
     connection = connect_postgres(args.schema, allow_public=False)
     try:
         only_missing = ONLY_MISSING_CLAUSE.format(schema=args.schema) if args.only_missing else ""
-        sql = CANDIDATE_SQL.format(schema=args.schema, only_missing=only_missing)
+        near_lat, near_lon = parse_near(args.near)
+        sql = CANDIDATE_SQL.format(
+            schema=args.schema,
+            only_missing=only_missing,
+            near=NEAR_CLAUSE if near_lat is not None else "",
+        )
         params = {
             "country": args.country,
             "seed": args.seed,
             "limit": args.limit,
             "source": SOURCE,
+            # ⚠️ 絞っていないときも渡す。psycopg2 は SQL に出てこない名前を無視するので
+            #    害が無く、渡し忘れで «絞ったのに全国» になる形を作らない
+            "near_lat": near_lat,
+            "near_lon": near_lon,
+            "near_radius_m": args.near_radius_m,
         }
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             candidates = cursor.fetchall()
 
         LOGGER.info(
-            "対象: %d 件（schema=%s / country=%s / seed=%s / only_missing=%s）",
+            "対象: %d 件（schema=%s / country=%s / seed=%s / only_missing=%s / 範囲=%s）",
             len(candidates),
             args.schema,
             args.country,
             args.seed,
             args.only_missing,
+            (
+                f"{near_lat},{near_lon} の半径 {args.near_radius_m:.0f}m"
+                if near_lat is not None
+                else "全国"
+            ),
         )
         if args.dry_run:
             for rid, name, url in candidates[:20]:
