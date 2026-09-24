@@ -568,5 +568,65 @@ class TimeTokenFormsAgreeTest(unittest.TestCase):
             self.assertEqual(_time_to_hm(token), expected, token)
 
 
+
+class BracketedDayGroupTest(unittest.TestCase):
+    """#1666 【バグ】曜日と時刻のあいだの «閉じ括弧» と «祝» で、全曜日へ全部の時間帯を入れていた。
+
+    2026-09-24 の全国標本（[run 36035662552]）の抜粋に実物があった:
+
+        営業時間 【日～木・祝・祝後日】 17:00～23:00 【金・土・祝前日】 17:00 - 00:00
+
+    `】` が曜日と時刻のあいだの区切りを通れず、`_DAY_SCOPED_TIMES_RE` に 1 つも当たらないため
+    «曜日の手がかりが無い» と見なされ、«毎日» のフォールバックへ落ちて
+    **日〜木も 24:00 まで開いていることにしていた**。
+
+    ⚠️ これは «取りこぼし» ではなく **«間違った open を書く»** 向きの誤りである。
+    3 値判定で害があるのは間違った open だけなので、このモジュールでいちばん高くつく。
+    """
+
+    def _by_day(self, text: str) -> dict[int, set[str]]:
+        rows = parse(text)
+        self.assertIsNotNone(rows, text)
+        out: dict[int, set[str]] = {}
+        for row in rows or []:
+            out.setdefault(row.day_of_week, set()).add(f"{row.opens_at}-{row.closes_at}")
+        return out
+
+    # 0=日 … 6=土
+    EXPECTED = {
+        0: {"17:00-23:00"}, 1: {"17:00-23:00"}, 2: {"17:00-23:00"},
+        3: {"17:00-23:00"}, 4: {"17:00-23:00"},
+        5: {"17:00-00:00"}, 6: {"17:00-00:00"},
+    }
+
+    def test_bracketed_groups_stay_separate(self) -> None:
+        self.assertEqual(
+            self._by_day("営業時間 【日～木】 17:00～23:00 【金・土】 17:00～24:00"),
+            self.EXPECTED,
+        )
+
+    def test_holiday_tokens_inside_the_group_do_not_break_it(self) -> None:
+        """`祝` / `祝前日` / `祝後日` は曜日ではないので **足さない**が、読み飛ばせること。"""
+        self.assertEqual(
+            self._by_day("営業時間 【日～木・祝・祝後日】 17:00～23:00 【金・土・祝前日】 17:00 - 00:00"),
+            self.EXPECTED,
+        )
+
+    def test_unbracketed_form_is_unchanged(self) -> None:
+        """括弧が無い形は前から正しく読めていた。壊していないことを固定する。"""
+        self.assertEqual(
+            self._by_day("営業時間 日～木 17:00～23:00 金・土 17:00～24:00"),
+            self.EXPECTED,
+        )
+
+    def test_does_not_bind_times_that_are_not_opening_hours(self) -> None:
+        """⚠️ 括弧を許したことで «無関係な数字を曜日へ結びつける» 方向へ振れていないこと。
+
+        許したのは **閉じ括弧だけ**で、任意の文字を跨がせていない。
+        """
+        self.assertIsNone(
+            parse("アクセス 東京駅（JR）徒歩 5 分 セミナー 13:00-15:00")
+        )
+
 if __name__ == "__main__":
     unittest.main()
