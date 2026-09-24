@@ -69,9 +69,26 @@ import sns_html  # noqa: E402
 LOGGER = logging.getLogger(__name__)
 
 # 削除・非公開のときに埋め込み SSR が返す文言（2026-09-18 実測）。
+# ⚠️ **文言で死活を判定しない。** #1947 2026-09-24 に真因が確定した:
+# Instagram は削除通知を **閲覧者の言語で返す**。GitHub Actions の runner は日本語を受け取る
+# ため、英語の文言（"may have been removed"）が 1 度も当たらず、**12,596 + 2,000 件すべてが
+# `no_marker` に落ちて «dead 0.00%» と報告され続けていた**。
+#
+# 実測（同じ投稿・UA 固定で `Accept-Language` だけ変えた）:
+#
+# | Accept-Language | 本文 |
+# | --- | --- |
+# | 既定（英語） | `<div class="ebmMessage">The link to this photo or video may be broken, or the post may have been removed.</div>` |
+# | `ja-JP` | `<div class="ebmMessage">写真・動画のリンクに問題があるか、投稿が削除された可能性があります。</div>` |
+#
+# **`ebmMessage` は言語に依らない**（削除 5 件で 1、生存 3 件で 0）。これを正にする。
+# 文言は «構造が変わったとき気づく» ための副証拠として残す。
+DEAD_STRUCTURE_MARKER = 'class="ebmMessage"'
 DEAD_MARKERS = (
+    DEAD_STRUCTURE_MARKER,
     "may have been removed",
     "isn't available",
+    "投稿が削除された可能性があります",
 )
 # 生存のときだけ出る UI（キャプションが空の投稿でも出る）。
 ALIVE_MARKERS = (
@@ -135,7 +152,10 @@ def classify(raw: bytes | None, error: str | None) -> tuple[str, str]:
         # キャプションが空の投稿。生きてはいる。
         return "alive", "alive_ui_no_caption"
     if has_dead_mark and not has_alive_ui:
-        return "dead", "removal_notice"
+        # どの印で判定したかを残す。構造の印だけが当たって文言が当たらない日が来たら、
+        # それは «また別の言語が来た» の合図である（逆も同じ）。
+        hit = "structure" if DEAD_STRUCTURE_MARKER in text else "text"
+        return "dead", f"removal_notice:{hit}"
     # ⚠️ «印が 1 つも無い» は判定器が壊れている可能性を含む。本文の大きさを残しておくと
     # «JS シェルが返っていた» のような原因を BigQuery 側だけで切り分けられる（#1947）。
     return "unknown", f"no_marker:{len(raw)}b"

@@ -64,7 +64,9 @@ class ClassifyTest(unittest.TestCase):
     def test_dead_only_on_the_removal_notice(self):
         liveness, evidence = m.classify(DEAD_HTML, None)
         self.assertEqual(liveness, "dead")
-        self.assertEqual(evidence, "removal_notice")
+        # #1947 evidence は «どの印で判定したか» を後ろに付ける（構造 / 文言）。
+        # 構造だけ当たって文言が当たらない日が来たら «また別の言語» の合図になる。
+        self.assertTrue(evidence.startswith("removal_notice"), evidence)
 
     def test_alive_when_the_post_has_no_caption(self):
         """キャプションが空の投稿を «削除済み» にしない。"""
@@ -326,3 +328,57 @@ class TheUnknownShareIsNotHidden(unittest.TestCase):
                          "判定できない割合が高いだけで落としている。赤が常態になると"
                          "本物の失敗が埋もれる")
         self.assertIn("LOGGER.warning", after)
+
+
+def _load_module():
+    import importlib.util
+    here = Path(__file__).resolve().parent
+    spec = importlib.util.spec_from_file_location("m422", here / "4_22_probe_embed_liveness.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class DeathIsDetectedRegardlessOfLanguage(unittest.TestCase):
+    """#1947 削除通知は **閲覧者の言語で返る**。文言で判定しない。
+
+    2026-09-24 に真因が確定した。GitHub Actions の runner は日本語の通知を受け取るので、
+    英語の文言（"may have been removed"）が 1 度も当たらず、**12,596 + 2,000 件すべてが
+    `no_marker` に落ちて «dead 0.00%» と報告され続けていた**。同じ投稿・同じ UA で
+    `Accept-Language` だけ変えると本文が英語⇄日本語で入れ替わる。
+
+    `class="ebmMessage"` は言語に依らない（削除 5 件で 1・生存 3 件で 0 を実測）。
+    """
+
+    MOD = _load_module()
+
+    def _html(self, message: str) -> bytes:
+        return (f'<html><body><div class="ebmMessage">{message}</div></body></html>'
+                ).encode("utf-8")
+
+    def test_japanese_removal_notice_is_dead(self) -> None:
+        liveness, evidence = self.MOD.classify(
+            self._html("写真・動画のリンクに問題があるか、投稿が削除された可能性があります。"), None)
+        self.assertEqual(liveness, "dead")
+        self.assertTrue(evidence.startswith("removal_notice"))
+
+    def test_english_removal_notice_is_dead(self) -> None:
+        liveness, _ = self.MOD.classify(
+            self._html("The link to this photo or video may be broken, "
+                       "or the post may have been removed."), None)
+        self.assertEqual(liveness, "dead")
+
+    def test_an_unknown_language_still_reads_as_dead(self) -> None:
+        """⚠️ **ここが本丸。** 文言を 1 つも知らない言語でも構造で判定できること。"""
+        liveness, evidence = self.MOD.classify(self._html("Ссылка может быть недействительна."), None)
+        self.assertEqual(liveness, "dead")
+        self.assertEqual(evidence, "removal_notice:structure")
+
+    def test_the_structure_marker_is_the_primary_one(self) -> None:
+        self.assertIn(self.MOD.DEAD_STRUCTURE_MARKER, self.MOD.DEAD_MARKERS)
+        self.assertEqual(self.MOD.DEAD_STRUCTURE_MARKER, 'class="ebmMessage"')
+
+    def test_evidence_says_which_marker_fired(self) -> None:
+        """構造だけ当たって文言が当たらない日が来たら «また別の言語» の合図になる。"""
+        _, evidence = self.MOD.classify(self._html("なにか別の文言"), None)
+        self.assertEqual(evidence, "removal_notice:structure")
