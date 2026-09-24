@@ -427,6 +427,76 @@ export class LocationsService {
   }
 
   /**
+   * #819 【設計】**Google へ «表示に要る分» までしか頼まない。**
+   *
+   * ## 何が起きていたか
+   *
+   * ここは長く `photo.widthPx` をそのまま `maxWidthPx` に渡していた（＝原寸）。
+   * 本番 30 日の実測（`PhotoMediaSuccess` n=6,045 / 2026-08-25〜09-24）では:
+   *
+   * | | |
+   * | --- | ---: |
+   * | 中央値の要求幅 | **3,024px** |
+   * | 3,000px 以上 | 4,146 件（68.6%） |
+   * | 2,000px 以上 | 5,199 件（86.0%） |
+   * | 1,280px 以下 | 535 件（8.9%） |
+   *
+   * 一方 **アプリが表示する最大は 1,024px** である（`dish-media.assembler.ts` の
+   * `getMediaUrl` がフルスクリーンに渡すのは size 1024 の派生、サムネイルは 256）。
+   * つまり原寸で取った 3,024px は **1 度も表示されない**。
+   *
+   * さらに悪いのは bulk-import の同期レスポンスで、リサイズが焼き上がる前は
+   * **その原寸の Google URI を `thumbnailImageUrl` として返す**（`dishes.service.ts`）。
+   * 店舗選択画面が並べる «サムネイル» が 3,024px の JPEG だった（#819 の症状）。
+   *
+   * ## 上限の決め方
+   *
+   * **短辺 1,280px。** 派生の最大が 1,024 なので、どちらの軸に 1,024 が当たっても
+   * 拡大が起きない余裕（1,280 ≥ 1,024）を残す。`getPhotoMedia` の既定値も 1,280 で、
+   * そこと揃える。
+   *
+   * ⚠️ **原寸より大きくは要求しない。** 縮める方向だけに使う（`Math.min`）。
+   *    #429 が «そのままのサイズを指定する» と書いた事情（原寸超えの要求）を
+   *    踏まないためである。
+   *
+   * ⚠️ **短辺で決める。** 長辺（幅）だけで切ると、横長のパノラマで短辺が
+   *    1,024 を割り、フルスクリーン派生が拡大になる。
+   */
+  private static readonly PHOTO_SHORT_EDGE_CAP_PX = 1280;
+
+  /**
+   * 原寸を «短辺 1,280px» まで縮めた要求サイズを返す。
+   *
+   * ⚠️ **幅と高さの両方を返す。** `getPhotoMedia` は幅が無いときだけ高さを見るので、
+   *    幅だけ縮めると «幅が分からない写真» が高さ原寸で素通りする。
+   *
+   * 幅も高さも分からない写真は縮めない（判断材料が無いので原寸のまま頼む）。
+   */
+  static cappedPhotoSize(
+    widthPx: number | null | undefined,
+    heightPx: number | null | undefined,
+  ): { widthPx?: number; heightPx?: number } {
+    const cap = LocationsService.PHOTO_SHORT_EDGE_CAP_PX;
+
+    if (!widthPx || !heightPx) {
+      // 片方しか分からない。短辺が決まらないので、その 1 辺を上限で切る
+      const known = widthPx || heightPx;
+      if (!known) return {};
+      const capped = Math.min(known, cap);
+      return widthPx ? { widthPx: capped } : { heightPx: capped };
+    }
+
+    const shortEdge = Math.min(widthPx, heightPx);
+    if (shortEdge <= cap) return { widthPx, heightPx }; // 既に小さい。縮めない
+
+    const scale = cap / shortEdge;
+    return {
+      widthPx: Math.round(widthPx * scale),
+      heightPx: Math.round(heightPx * scale),
+    };
+  }
+
+  /**
    * 写真候補を選択する優先順位ロジック
    */
   private selectBestPhoto(photos: PhotoCandidate[]): PhotoCandidate | null {
@@ -507,10 +577,16 @@ export class LocationsService {
       if (!photo.name) continue;
 
       try {
+        // #819 原寸ではなく «表示に要る分» まで縮めて頼む（→ `cappedPhotoSize`）。
+        // #429 の「原寸を超えて要求しない」は Math.min で保たれている。
+        const requested = LocationsService.cappedPhotoSize(
+          photo.widthPx,
+          photo.heightPx,
+        );
         const result = await this.externalApiService.getPhotoMedia(
           photo.name,
-          photo.widthPx || undefined, // #429 API の仕様により、そのままのサイズを指定する。
-          photo.heightPx || undefined,
+          requested.widthPx,
+          requested.heightPx,
           { skipHttpRedirect },
         );
 
@@ -519,6 +595,9 @@ export class LocationsService {
             photoName: photo.name,
             widthPx: photo.widthPx,
             heightPx: photo.heightPx,
+            // #819 原寸と «実際に頼んだ幅» は別物になった。原寸だけ出すと
+            // 上限が効いているかを後から数えられない
+            requestedWidthPx: requested.widthPx,
           });
           return result;
         } else throw new Error('No photo media returned');
