@@ -24,7 +24,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from country_resolution import RULES, country_code_from_address, country_code_sql
+from country_resolution import (
+    RULES,
+    country_code_from_address,
+    country_code_sql,
+    matched_rule,
+)
 
 # (住所, 人が付けた国コード, なぜそう読めるか)
 #
@@ -134,6 +139,48 @@ class CountryCodeFromAddressTest(unittest.TestCase):
                 ("KR", "JP"),
                 f"{address!r} を国コードと読んでいる",
             )
+
+
+class MatchedRuleTest(unittest.TestCase):
+    """#1881 «どの規則がこの国コードを出したか» を機械的に引けること。
+
+    監査が «日本の外に居る JP» の直し方を決めるのに使う。当たった 1 本によって
+    手当てが変わる（綴りの衝突なら規則を直す / 住所が空なら同期を直す）。
+    """
+
+    def test_agrees_with_country_code_from_address_on_every_labelled_address(
+        self,
+    ) -> None:
+        """⚠️ 2 つの関数が別々に走査していないことを縛る（片方だけ直る事故を防ぐ）。"""
+        disagreed: list[str] = []
+        for address, _expected, why in LABELLED_REAL_ADDRESSES:
+            hit = matched_rule(address)
+            from_code = country_code_from_address(address)
+            via_rule = hit[2] if hit else None
+            if via_rule != from_code:
+                disagreed.append(
+                    f"{address!r}: matched_rule={via_rule} / "
+                    f"country_code_from_address={from_code}（{why}）"
+                )
+        self.assertEqual(disagreed, [], "\n".join(disagreed))
+
+    def test_points_at_a_real_entry_of_RULES(self) -> None:
+        """返す添字とパターンが `RULES` の実体と一致すること（写経ではないこと）。"""
+        for address, expected, why in LABELLED_REAL_ADDRESSES:
+            if expected is None:
+                continue
+            hit = matched_rule(address)
+            self.assertIsNotNone(hit, f"{address!r} で当たった規則を返せていない（{why}）")
+            index, pattern, code = hit  # type: ignore[misc]
+            self.assertEqual(
+                (pattern, code),
+                RULES[index],
+                f"{address!r} の添字 {index} が RULES の中身と違う",
+            )
+
+    def test_returns_none_when_nothing_matches(self) -> None:
+        for address in ("", "   ", None, "Main Street", "19-6 Higashimarunouchi"):
+            self.assertIsNone(matched_rule(address), f"{address!r} を断言している")
 
 
 class RulesAreDefinedOnlyOnceTest(unittest.TestCase):

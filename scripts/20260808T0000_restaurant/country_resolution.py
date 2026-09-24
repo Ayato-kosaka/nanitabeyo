@@ -106,21 +106,38 @@ _COMPILED: tuple[tuple[re.Pattern[str], str], ...] = tuple(
 )
 
 
-def country_code_from_address(address: str | None) -> str | None:
-    """住所の文字列だけから ISO 3166-1 alpha-2 を返す。決められなければ None。
+def matched_rule(address: str | None) -> tuple[int, str, str] | None:
+    """当たった規則を `(RULES の添字, パターン, 国コード)` で返す。当たらなければ None。
 
-    ⚠️ **緯度経度は見ない。** 座標で国を決めるのが #1881 の欠陥そのものなので、
-       この関数へ座標を渡せるようにしてはいけない。
+    #1881 【設計】**«どの規則がその国コードを出したか» を機械的に引けるようにする。**
+
+    2026-09-24 に «日本の外に居る JP» が 8 行まで減ったあと、監査は
+    «作成元 / components の国» までは出せたのに **どの規則が JP と言ったのかを
+    出せず、直し方を決められなかった**。規則は 25 本あり、当たった 1 本によって
+    手当てが全く違う（綴りの衝突なら規則を直す / 住所が空なら同期の取りこぼし）。
+
+    ⚠️ `country_code_from_address()` は **この関数を通して**答えを出す。
+       «同じ走査を 2 回書く» を避けるため（片方だけ直す事故が起きる）。
     """
     if not address:
         return None
     text = address.strip()
     if not text:
         return None
-    for pattern, code in _COMPILED:
+    for index, (pattern, code) in enumerate(_COMPILED):
         if pattern.search(text):
-            return code
+            return index, RULES[index][0], code
     return None
+
+
+def country_code_from_address(address: str | None) -> str | None:
+    """住所の文字列だけから ISO 3166-1 alpha-2 を返す。決められなければ None。
+
+    ⚠️ **緯度経度は見ない。** 座標で国を決めるのが #1881 の欠陥そのものなので、
+       この関数へ座標を渡せるようにしてはいけない。
+    """
+    hit = matched_rule(address)
+    return hit[2] if hit else None
 
 
 def country_code_sql(address_expr: str) -> str:
