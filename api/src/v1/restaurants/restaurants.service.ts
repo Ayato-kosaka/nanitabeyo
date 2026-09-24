@@ -52,6 +52,7 @@ import {
 import { env } from '../../core/config/env';
 import {
   buildDisplayAddress,
+  countryNameFromCode,
   extractCountryName,
 } from './restaurant-display-address';
 // #1666 «どの出所を採るか» と «曜日ごとの並べ方» は判定側と同じ 1 実装を使う
@@ -354,24 +355,38 @@ export class RestaurantsService {
   private buildDraftFromExistingRestaurant(
     existing: PrismaRestaurants,
   ): CreateRestaurantDraftResponse {
-    const addressComponents = Array.isArray(existing.address_components)
-      ? (existing.address_components as unknown as Parameters<
-          typeof buildDisplayAddress
-        >[0])
-      : [];
+    /*
+      #1779 【設計】**既存店の下読みは «列だけ» から作る。**
 
-    // 列が空なら addressComponents から組み立てて初期値にする。
-    // どちらも空なら空欄で出し、ユーザーが 1 から書く
-    const derived = this.locationsService.extractLocationCodes(
-      addressComponents as Parameters<
-        LocationsService['extractLocationCodes']
-      >[0],
-    );
-    const countryCode = existing.country_code || derived.countryCode;
-    const subterritoryCode =
-      existing.subterritory_code || derived.subterritoryCode;
-    const address =
-      existing.address || buildDisplayAddress(addressComponents, countryCode);
+      ここは長く `existing.address_components` を «列が空のときの保険» として読み、
+      `buildDisplayAddress` / `extractLocationCodes` に通していた。その列は
+      Google 由来の住所そのもので、Places ToS 3.2.3 により保持できないので落とす。
+
+      ⚠️ **保険を外すと失うものがある。** dev 実測（2026-09-24 / run 35963398137）:
+
+      | 失うもの | 行数 | 落ちた先 |
+      | --- | ---: | --- |
+      | 住所の初期値 | 1,675（0.27%） | 空欄。ユーザーが 1 から書く |
+      | 国コード | 12 | null。料理の命名が `'en'` へ落ちる |
+      | 州（言語が変わる 7 か国のみ） | 27 | null。その国の第 1 言語が使われる |
+
+      ⚠️ **オープンデータでは埋まらない**ことも実測済み。catalog 側で住所が空の
+      1,666 行は全部 `existing_pg`（= この行自身）が出所で、自分を出所にして
+      回る閉じた輪になっていた。埋まるのは確認ページをユーザーが通ったとき
+      （`fillMissingAddress`）だけである。
+
+      ⚠️ **`addressComponentsJson` はトークンの形として残す**（`'[]'` を入れる）。
+      署名済みトークンの検証が形で決まるため、デプロイ前に発行されたトークンを
+      落とさないためである。中身はもう使わない。
+    */
+    // ⚠️ **`?? null` を省かない。** トークンの形は `subterritoryCode` が
+    //    «null または string» であることを要求する（`isSignedPayloadShape`）。
+    //    列が `undefined` で来ると `JSON.stringify` がキーごと落とし、
+    //    **署名は通るのに検証で «invalid or expired» になる**（作成が 400 で落ちる）。
+    //    以前は `|| derived.subterritoryCode` が undefined を null へ潰していた。
+    const countryCode = existing.country_code ?? null;
+    const subterritoryCode = existing.subterritory_code ?? null;
+    const address = existing.address || '';
 
     const payload: RestaurantDraftTokenPayload = {
       googlePlaceId: existing.google_place_id,
@@ -379,10 +394,8 @@ export class RestaurantsService {
       nameLanguageCode: existing.name_language_code,
       latitude: existing.latitude,
       longitude: existing.longitude,
-      addressComponentsJson: JSON.stringify(addressComponents),
-      plusCodeJson: existing.plus_code
-        ? JSON.stringify(existing.plus_code)
-        : null,
+      addressComponentsJson: '[]',
+      plusCodeJson: null,
       address,
       countryCode,
       subterritoryCode,
@@ -400,10 +413,14 @@ export class RestaurantsService {
         nameLanguageCode: payload.nameLanguageCode,
         latitude: payload.latitude,
         longitude: payload.longitude,
-        addressComponents,
+        addressComponents: [],
         address,
         countryCode,
-        countryName: extractCountryName(addressComponents),
+        // #1779 国名は `country_code` 列から ICU で出す。Google の longText に頼らない
+        countryName: countryNameFromCode(
+          countryCode,
+          existing.name_language_code,
+        ),
       },
       draftToken: signRestaurantDraftToken(
         payload,

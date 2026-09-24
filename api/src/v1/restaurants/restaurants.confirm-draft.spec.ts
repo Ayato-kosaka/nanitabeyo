@@ -690,13 +690,66 @@ describe('#1671 確認ページ経由の店舗作成', () => {
       });
     });
 
-    it('住所の列が空なら addressComponents から組み立てて初期値にする', async () => {
+    /*
+      #1779 【設計】**`address_components` の保険を外した。列だけを見る。**
+
+      以前はここが «列が空なら addressComponents から組み立てる» を検査していた。
+      その列は Google 由来の住所そのもので Places ToS 3.2.3 により保持できないため
+      落とす。保険が無くなったので、**空欄で出てユーザーが 1 から書く**のが正しい。
+
+      dev 実測（2026-09-24 / run 35963398137）で失うのは 1,675 行（0.27%）。
+      ⚠️ オープンデータでは埋まらない（catalog 側で住所が空の 1,666 行は全部
+      `existing_pg` = その行自身が出所という閉じた輪だった）。埋まるのは確認ページを
+      ユーザーが通ったとき（`fillMissingAddress`）だけである。
+    */
+    it('⚠️ 住所の列が空なら空欄で出す（addressComponents からは組み立てない）', async () => {
       const { draft } = await service.createRestaurantDraft({
         googlePlaceId: PLACE_ID,
       });
-      // 国名（日本）は住所文字列から外れ、都道府県だけが残る
-      expect(draft.address).toBe('東京都');
-      expect(draft.countryCode).toBe('JP');
+      expect(draft.address).toBe('');
+      expect(draft.countryCode).toBeNull();
+      // 列を落とすので、レスポンスへも中身を載せない
+      expect(draft.addressComponents).toEqual([]);
+    });
+
+    it('国名は country_code 列から出す（Google の longText に頼らない）', async () => {
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue({
+        ...EXISTING_ROW,
+        country_code: 'JP',
+        name_language_code: 'ja',
+      });
+
+      const { draft } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+      expect(draft.countryName).toBe('日本');
+    });
+
+    /*
+      #1779 ⚠️ **列が `undefined` で来ても署名済みトークンが壊れないこと。**
+
+      トークンの形は `subterritoryCode` が «null または string» であることを要求する
+      （`isSignedPayloadShape`）。`undefined` を入れると `JSON.stringify` がキーごと
+      落とし、**署名は通るのに検証で «invalid or expired» になる**（作成が 400）。
+      保険を外したときに実際にこれを踏んだので、杭として残す。
+    */
+    it('subterritory_code が列に無くてもトークンは検証を通る', async () => {
+      const withoutSubterritory = { ...EXISTING_ROW };
+      delete (withoutSubterritory as Record<string, unknown>).subterritory_code;
+      repo.findRestaurantByGooglePlaceId.mockResolvedValue(withoutSubterritory);
+
+      const { draftToken } = await service.createRestaurantDraft({
+        googlePlaceId: PLACE_ID,
+      });
+
+      await expect(
+        service.createRestaurant({
+          googlePlaceId: PLACE_ID,
+          draftToken,
+          address: '東京都渋谷区神南1-2-3',
+          countryCode: 'JP',
+        } as CreateRestaurantDto),
+      ).resolves.toBeDefined();
     });
 
     it('住所の列が既に入っていれば、そちらを優先する', async () => {
