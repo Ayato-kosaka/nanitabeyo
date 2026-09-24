@@ -244,7 +244,11 @@ def main() -> int:
             dows = run_section("day_of_week 別の集計", DOW_SQL)
             fetched = run_section("公式サイト由来の取得時刻", FETCHED_AT_SQL)
 
-            candidate_sql = CANDIDATE_SQL.format(schema=args.schema, only_missing="")
+            # #1666 `near=""` で «全国» のままにする。ここは «クローラが歩く順» を
+            # 測る場所なので、エリアで絞ってはいけない（絞ると rank の意味が変わる）。
+            candidate_sql = CANDIDATE_SQL.format(
+                schema=args.schema, only_missing="", near=""
+            )
             rank_params = {
                 "country": args.country,
                 "seed": args.seed,

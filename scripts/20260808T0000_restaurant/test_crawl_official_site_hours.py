@@ -278,3 +278,56 @@ class HoursExcerptTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NearFilterTest(unittest.TestCase):
+    """#1666 `--near` で 1 エリアだけを対象にできること。
+
+    全国へ均等に撒くと «その地点でユーザーが見る画面» は動かない。実測
+    （run 35967307893）で近い順 1,000 件のうち営業時間を持つ店は東京駅 17 /
+    大阪駅 34 / 札幌駅 64 しかなく、全国へ 2,000 件撒いても 1 件も動かない。
+
+    ⚠️ ここで縛るのは 2 つ。**黙って «全国» へ落ちないこと**（1 エリアのつもりで
+    28 万サイトへ出て行く形）と、**並びを変えていないこと**（並びは
+    `inspect_opening_hours_reach.py` が «前半が picked over か» を測る根拠）。
+    """
+
+    def test_near_is_off_by_default(self) -> None:
+        self.assertEqual(crawler.parse_near(None), (None, None))
+        self.assertEqual(crawler.parse_near(""), (None, None))
+        self.assertEqual(crawler.parse_near("   "), (None, None))
+
+    def test_near_is_parsed(self) -> None:
+        self.assertEqual(crawler.parse_near("35.681,139.767"), (35.681, 139.767))
+        # 空白は許す（コピペしやすさのため）
+        self.assertEqual(crawler.parse_near(" 35.681 , 139.767 "), (35.681, 139.767))
+
+    def test_broken_near_raises_instead_of_falling_back_to_nationwide(self) -> None:
+        broken = (
+            "35.681",             # 経度が無い
+            "35.681,139.767,0",  # 余分な項
+            "abc,139",           # 緯度が数値でない
+            "35.681,abc",        # 経度が数値でない
+            "91,139",            # 緯度が範囲外
+            "35,181",            # 経度が範囲外（打ち間違いで起こりやすい形）
+        )
+        for value in broken:
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    crawler.parse_near(value)
+
+    def test_candidate_sql_has_a_near_placeholder_and_keeps_the_order(self) -> None:
+        sql = crawler.CANDIDATE_SQL
+        self.assertIn("{near}", sql)
+        # 並びは md5(...) のまま（→ クラスの docstring）
+        self.assertIn("ORDER BY md5(l.restaurant_id::text || %(seed)s)", sql)
+
+        without = sql.format(schema="dev", only_missing="", near="")
+        with_near = sql.format(schema="dev", only_missing="", near=crawler.NEAR_CLAUSE)
+        self.assertNotIn("ST_DWithin", without)
+        self.assertIn("ST_DWithin", with_near)
+        # 半径も地点もパラメータで渡す（SQL へ焼き込まない）
+        for name in ("%(near_lat)s", "%(near_lon)s", "%(near_radius_m)s"):
+            self.assertIn(name, with_near)
+        # 絞っても並びは変わらない
+        self.assertIn("ORDER BY md5(l.restaurant_id::text || %(seed)s)", with_near)
