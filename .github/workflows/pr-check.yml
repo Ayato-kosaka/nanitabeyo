@@ -155,6 +155,11 @@ jobs:
             scripts/db-checks/test_inspect_opening_hours_reach.py \
             scripts/db-checks/test_sql_percent_escaping.py
 
+      # #1933 «1 報告 = 1 Issue» の起票が、public な Issue へユーザーの自由入力
+      # （proposed_value）や報告者の uid を出さないこと。取ってこない形で守っている
+      - name: 店舗情報の報告の起票の回帰テスト
+        run: python3 -m unittest discover -s scripts/restaurant-reports -p "test_*.py"
+
       # UI カタログの «撮る画面 ID» が catalog/screens.json に定義されているか。
       #
       # #1671 のネイティブ撮影テストは、定義の無い ID を渡していたため **1 度も撮れて
