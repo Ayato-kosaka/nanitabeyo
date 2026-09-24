@@ -287,8 +287,10 @@ describe('#1671 確認ページ経由の店舗作成', () => {
 
       const [, data] = dishesRepository.createOrGetRestaurant.mock.calls[0];
 
-      // #843 §4 の方針。取得はするが保存しない
-      expect(data.address_components).toEqual([]);
+      // #843 §4 の方針。取得はするが保存しない。
+      // #1779 2026-09-24 に `address_components` / `plus_code` を列ごと削除したので、
+      // ⚠️ «空配列が入っていること» ではなく **どちらもキーが無いこと**を縛る。
+      expect(data).not.toHaveProperty('address_components');
       expect(data).not.toHaveProperty('plus_code');
     });
 

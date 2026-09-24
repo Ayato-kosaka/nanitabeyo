@@ -8,6 +8,8 @@ import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import i18n from "@/lib/i18n";
+// #1629 / #1779 `dishes.name` は廃止。カテゴリの表記を locale で引く。
+import { resolveDishCategoryLabel } from "@/features/myDishes/dishCategoryLabel";
 import { DishPriceBand } from "@/components/DishPriceBand";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import {
@@ -143,6 +145,13 @@ export default function DishMediaContent({
 
 	// #630 【設計】背景画像として使用する URI を統一（動画/画像で分岐）
 	const bgUri = useMemo(() => getDishMediaBackgroundImageUri(dishMediaEntry), [dishMediaEntry]);
+	// #937 【仕様】alt / accessibilityLabel は «料理名 → 無ければ店舗名»。
+	// #1629 で «料理名» の出所は `dish_categories.labels`（locale 引き）に確定し、
+	// #1779 で `dishes.name` は列ごと削除した。落ちたときの店舗名フォールバックは元のまま。
+	const dishCategoryLabelForA11y = useMemo(
+		() => resolveDishCategoryLabel(dishMediaEntry.dish.categoryLabels, i18n.locale),
+		[dishMediaEntry.dish.categoryLabels],
+	);
 
 	// #630 【設計】防御的プログラミング: bgUri が undefined の場合に警告
 	useEffect(() => {
@@ -301,8 +310,8 @@ export default function DishMediaContent({
 							contentFit="cover"
 							recyclingKey={`${dishMediaEntry.dish_media.id}::${bgUri ?? ""}`}
 							// #937 【仕様】料理名(無ければ店舗名)を伝える情報画像として alt/accessibilityLabel を付与する
-							alt={dishMediaEntry.dish.name ?? dishMediaEntry.restaurant.name}
-							accessibilityLabel={dishMediaEntry.dish.name ?? dishMediaEntry.restaurant.name}
+							alt={dishCategoryLabelForA11y ?? dishMediaEntry.restaurant.name}
+							accessibilityLabel={dishCategoryLabelForA11y ?? dishMediaEntry.restaurant.name}
 						/>
 					)}
 					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示。

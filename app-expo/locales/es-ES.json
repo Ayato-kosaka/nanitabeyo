@@ -763,7 +763,9 @@
 					"official_site": "la web del local",
 					"user": "un aviso de usuario",
 					"owner": "el local"
-				}
+				},
+				"showAll": "Todos los días",
+				"hideAll": "Contraer"
 			}
 		}
 	},

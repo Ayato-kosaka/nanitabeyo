@@ -763,7 +763,9 @@
 					"official_site": "店铺官网",
 					"user": "用户报告",
 					"owner": "店铺登记"
-				}
+				},
+				"showAll": "全部星期",
+				"hideAll": "收起"
 			}
 		}
 	},

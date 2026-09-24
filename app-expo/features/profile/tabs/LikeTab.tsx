@@ -6,6 +6,8 @@ import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import { EmptyState } from "@/components/EmptyState";
 import { DishRating } from "@/components/DishRating";
+// #1629 / #1779 `dishes.name` は廃止。カテゴリの表記を locale で引く。
+import { resolveDishCategoryLabel } from "@/features/myDishes/dishCategoryLabel";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -132,7 +134,7 @@ export function LikeTab() {
 			const gridItem = {
 				id: item.id,
 				imageUrl: entry.dish_media.thumbnailImageUrl ?? "",
-				title: entry.dish.name ?? undefined,
+				title: resolveDishCategoryLabel(entry.dish.categoryLabels, i18n.locale) ?? undefined,
 			};
 
 			return (

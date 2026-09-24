@@ -296,7 +296,10 @@ export function ReviewForm({
 	const mediaSelectionAttemptRef = useRef(0);
 
 	// 料理カテゴリの状態管理
-	const [dishCategoryName, setDishCategoryName] = useState(prefilledMedia?.dish.name ?? "");
+	// #1629 / #1779 `dishes.name` は廃止。初期値はカテゴリの表記を locale で引く。
+	const [dishCategoryName, setDishCategoryName] = useState(
+		resolveDishCategoryLabel(prefilledMedia?.dish.categoryLabels, i18n.locale) ?? "",
+	);
 	const [dishCategoryId, setDishCategoryId] = useState<string | null>(prefilledMedia?.dish.category_id ?? null);
 	const [dishCategoryError, setDishCategoryError] = useState<string | null>(null);
 

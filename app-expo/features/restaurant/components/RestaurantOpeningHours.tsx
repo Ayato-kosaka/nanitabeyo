@@ -25,11 +25,24 @@ JST で «営業中» と書くと、その店では嘘になる。
 
 営業時間が 1 件も無い店では、**この欄ごと出さない**（「情報なし」とも書かない。
 #1667 でレビュー 0 件のときに «何も出さない» と決めたのと同じ扱い）。
+
+## ⚠️ 既定は «畳んだ要約»（2026-09-24 オーナー指摘）
+
+> 既にひらいてるのは NG。UX が悪すぎる。
+
+7 曜日を常時展開していたので、店舗詳細が縦に 9 行占有されていた。既定は
+**連続する同じ時間帯をまとめた要約**（たいてい 2〜3 行）にし、押すと 7 曜日の表が開く。
+
+⚠️ **«本日の営業時間» にはしない。** «今日» を出すには店のタイムゾーンが要り、
+判定は JST 固定である（上の注記）。韓国の店で «本日 11:00–22:00» と書けば嘘になる。
+曜日のまとめ方は時差に依存しないので、要約なら安全に畳める。
+
+⚠️ 開閉は **ナビゲーション扱い**なので赤を使わない（`docs/design-guidelines.md` §1）。
 */
 
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Clock } from "lucide-react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { Clock, ChevronDown, ChevronUp } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useThemedStyles, useAppTheme } from "@/contexts/ThemeProvider";
 import { type Palette } from "@/constants/Palette";
@@ -54,7 +67,31 @@ function formatSpan(span: { opensAt: string; closesAt: string; crossesMidnight: 
 	return `${span.opensAt}–${closesAt}`;
 }
 
+/**
+ * 連続する曜日で同じ本文のものを 1 行へまとめる（`月–金 11:00–22:00`）。
+ *
+ * ⚠️ «今日» を使わない（タイムゾーンに依存しないこと）。並びは日曜始まり固定で、
+ * `CALENDAR_WEEKDAY_KEYS` の順をそのまま畳む。飛び石（月と水だけ同じ）は
+ * **まとめない** — 連続していないものを 1 行にすると読み手が誤解する。
+ */
+export function groupConsecutiveDays(
+	textOf: (dayOfWeek: number) => string,
+): { fromDay: number; toDay: number; text: string }[] {
+	const groups: { fromDay: number; toDay: number; text: string }[] = [];
+	for (let dayOfWeek = 0; dayOfWeek < CALENDAR_WEEKDAY_KEYS.length; dayOfWeek++) {
+		const text = textOf(dayOfWeek);
+		const last = groups[groups.length - 1];
+		if (last && last.text === text && last.toDay === dayOfWeek - 1) {
+			last.toDay = dayOfWeek;
+		} else {
+			groups.push({ fromDay: dayOfWeek, toDay: dayOfWeek, text });
+		}
+	}
+	return groups;
+}
+
 export function RestaurantOpeningHours({ hours }: Props) {
+	const [expanded, setExpanded] = useState(false);
 	const styles = useThemedStyles(createStyles);
 	const { colors } = useAppTheme();
 
@@ -65,30 +102,74 @@ export function RestaurantOpeningHours({ hours }: Props) {
 	   想定外の応答（この API を持たない古い API の 404 本文など）で
 	   `Cannot read properties of undefined` になり、**店舗詳細ごと落ちた**（実測）。
 	   営業時間は «あれば出す» 情報で、これが原因で店の画面が開けないのは割に合わない。
+
+	⚠️ **判定は早期 return より前に置くが、フックはさらにその前に置く。**
+	   `useMemo` を early return の後ろへ書いて lint に落とされた（2026-09-24）。
+	   `hours` が null → 値ありへ変わるとフックの呼び出し順が変わり、React が壊れる。
 	*/
-	if (!hours || !Array.isArray(hours.days) || hours.days.length === 0) return null;
+	const hasHours = Boolean(hours && Array.isArray(hours.days) && hours.days.length > 0);
+
+	const textOf = (dayOfWeek: number) => {
+		const spans = hours?.days?.find((d) => d.dayOfWeek === dayOfWeek)?.spans ?? [];
+		return spans.length === 0
+			? i18n.t("Restaurant.detail.openingHours.closed")
+			: spans.map(formatSpan).join("  ");
+	};
+	const labelOf = (dayOfWeek: number) =>
+		i18n.t(`MyDishes.calendar.weekdays.${CALENDAR_WEEKDAY_KEYS[dayOfWeek]}`);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	const groups = useMemo(() => (hasHours ? groupConsecutiveDays(textOf) : []), [hours, hasHours]);
+
+	if (!hasHours || !hours) return null;
+
+	const rows = expanded
+		? CALENDAR_WEEKDAY_KEYS.map((_key, dayOfWeek) => ({
+				key: `d${dayOfWeek}`,
+				dayOfWeek,
+				label: labelOf(dayOfWeek),
+				text: textOf(dayOfWeek),
+			}))
+		: groups.map((g) => ({
+				key: `g${g.fromDay}`,
+				dayOfWeek: g.fromDay,
+				// `月–金` / 単日ならそのまま
+				label: g.fromDay === g.toDay ? labelOf(g.fromDay) : `${labelOf(g.fromDay)}–${labelOf(g.toDay)}`,
+				text: g.text,
+			}));
 
 	return (
 		<View style={styles.container} testID="restaurant-opening-hours">
-			<View style={styles.titleRow}>
+			{/* 見出しそのものを開閉のトグルにする（押せるものは押せる見た目にする = §3） */}
+			<Pressable
+				style={styles.titleRow}
+				onPress={() => setExpanded((v) => !v)}
+				accessibilityRole="button"
+				accessibilityState={{ expanded }}
+				accessibilityLabel={i18n.t(
+					expanded ? "Restaurant.detail.openingHours.hideAll" : "Restaurant.detail.openingHours.showAll",
+				)}
+				testID="restaurant-opening-hours-toggle">
 				<Clock size={16} color={colors.textSecondary} />
 				<Text style={styles.title}>{i18n.t("Restaurant.detail.openingHours.title")}</Text>
-			</View>
+				<View style={styles.titleSpacer} />
+				<Text style={styles.toggleText}>
+					{i18n.t(
+						expanded ? "Restaurant.detail.openingHours.hideAll" : "Restaurant.detail.openingHours.showAll",
+					)}
+				</Text>
+				{expanded ? (
+					<ChevronUp size={16} color={colors.textSecondary} />
+				) : (
+					<ChevronDown size={16} color={colors.textSecondary} />
+				)}
+			</Pressable>
 
-			{CALENDAR_WEEKDAY_KEYS.map((key, dayOfWeek) => {
-				const day = hours.days.find((d) => d.dayOfWeek === dayOfWeek);
-				const spans = day?.spans ?? [];
-				return (
-					<View key={key} style={styles.dayRow} testID={`restaurant-opening-hours-day-${dayOfWeek}`}>
-						<Text style={styles.dayLabel}>{i18n.t(`MyDishes.calendar.weekdays.${key}`)}</Text>
-						<Text style={styles.daySpans}>
-							{spans.length === 0
-								? i18n.t("Restaurant.detail.openingHours.closed")
-								: spans.map(formatSpan).join("  ")}
-						</Text>
-					</View>
-				);
-			})}
+			{rows.map((row) => (
+				<View key={row.key} style={styles.dayRow} testID={`restaurant-opening-hours-day-${row.dayOfWeek}`}>
+					<Text style={styles.dayLabel}>{row.label}</Text>
+					<Text style={styles.daySpans}>{row.text}</Text>
+				</View>
+			))}
 
 			{/* #1666 完了条件「**出所・鮮度を含めて**保持 / 表示できる」。
 			    出所は曜日ごとに違いうるので、実際に採られたものを全部並べる（片方を偽らない） */}
@@ -111,12 +192,17 @@ export function RestaurantOpeningHours({ hours }: Props) {
 const createStyles = (colors: Palette) =>
 	StyleSheet.create({
 		container: { marginTop: 14 },
-		titleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
+		// 見出し行がトグル。押せる高さを確保する（44 未満にしない）
+		titleRow: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 },
+		titleSpacer: { flex: 1 },
+		// §1 ナビゲーション相当なので赤を使わない。§2 補足は 12–13 / 400
+		toggleText: { fontSize: 12, color: colors.textSecondary },
 		// §2 セクション見出しは 14–15 / 700
 		title: { fontSize: 14, fontWeight: "700", color: colors.textStrong },
 		dayRow: { flexDirection: "row", alignItems: "flex-start", paddingVertical: 2 },
 		// 曜日の列幅を固定して時刻の左端を揃える（揃っていないと表として読めない）
-		dayLabel: { width: 28, fontSize: 13, color: colors.textSecondary },
+		// 畳んだときは `月–金` が入るので幅を広げる（28 だと折り返す）
+		dayLabel: { width: 56, fontSize: 13, color: colors.textSecondary },
 		daySpans: { flex: 1, fontSize: 13, color: colors.textStrong },
 		// §2 補足は 12–13 / 400、色は副文字色
 		provenance: { marginTop: 8, fontSize: 12, color: colors.textSecondary },

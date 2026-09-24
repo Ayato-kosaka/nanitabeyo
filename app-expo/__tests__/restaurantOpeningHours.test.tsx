@@ -13,6 +13,9 @@
 ⚠️ **«営業中» のバッジを描いてはいけない。** 判定は JST 固定で、dev には韓国にある店が
 居る（#1881）。JST で «営業中» と書くとその店では嘘になる。
 
+⚠️ **既定は «畳んだ要約»**（2026-09-24 オーナー指摘「既にひらいてるのは NG」）。
+7 曜日の表は押して開く。**両方の状態を見る** — 片方だけ縛ると、もう片方が壊れても緑になる。
+
 取得側（`useRestaurantOpeningHours`）は `restaurantOpeningHoursFetch.test.tsx` が見る。
 このファイルは **渡された値をどう描くか**だけを見る。
 */
@@ -43,7 +46,11 @@ jest.mock("@/contexts/ThemeProvider", () => ({
 	useThemedStyles: (factory: (colors: Record<string, string>) => unknown) => factory({} as never),
 	useAppTheme: () => ({ colors: {} }),
 }));
-jest.mock("lucide-react-native", () => ({ Clock: () => null }));
+jest.mock("lucide-react-native", () => ({
+	Clock: () => null,
+	ChevronDown: () => null,
+	ChevronUp: () => null,
+}));
 
 import { RestaurantOpeningHours } from "@/features/restaurant/components/RestaurantOpeningHours";
 import type { GetRestaurantOpeningHoursResponse } from "@shared/api/v1/res";
@@ -57,6 +64,14 @@ const render = async (hours: Hours | null) => {
 		tree = TestRenderer.create(<RestaurantOpeningHours hours={hours} />);
 	});
 	return tree;
+};
+
+/** 見出し行を押して 7 曜日の表を開く */
+const expand = async (tree: TestRenderer.ReactTestRenderer) => {
+	const toggle = tree.root.findByProps({ testID: "restaurant-opening-hours-toggle" });
+	await act(async () => {
+		toggle.props.onPress();
+	});
 };
 
 /** 描かれている文字列を全部集める（どの Text に入っているかは問わない） */
@@ -109,6 +124,7 @@ describe("#1666 店舗詳細の営業時間", () => {
 
 	it("行の無い曜日は «定休» と描く（«不明» にしない）", async () => {
 		const tree = await render(week({ 1: [span("11:00", "14:00")] }));
+		await expand(tree);
 		const rendered = texts(tree);
 		expect(rendered).toContain("11:00–14:00");
 		expect(rendered.filter((t) => t === "Restaurant.detail.openingHours.closed")).toHaveLength(6);
@@ -116,11 +132,13 @@ describe("#1666 店舗詳細の営業時間", () => {
 
 	it("日またぎのコマは閉店側に «翌» を付ける（付けないと 8 時間営業に見える）", async () => {
 		const tree = await render(week({ 5: [span("18:00", "02:00", true)] }));
+		await expand(tree);
 		expect(texts(tree)).toContain("18:00–Restaurant.detail.openingHours.nextDay(time=02:00)");
 	});
 
 	it("1 日に複数コマがあれば全部出す", async () => {
 		const tree = await render(week({ 3: [span("11:00", "14:00"), span("17:00", "21:00")] }));
+		await expand(tree);
 		expect(texts(tree)).toContain("11:00–14:00  17:00–21:00");
 	});
 
@@ -131,12 +149,16 @@ describe("#1666 店舗詳細の営業時間", () => {
 		   週の始まりが 2 種類になる。
 		*/
 		const tree = await render(week({ 0: [span("10:00", "18:00")] }));
+		await expand(tree);
 		for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
 			expect(
 				tree.root.findAllByProps({ testID: `restaurant-opening-hours-day-${dayOfWeek}` }).length,
 			).toBeGreaterThan(0);
 		}
-		expect(texts(tree)[1]).toBe("MyDishes.calendar.weekdays.sun");
+		// ⚠️ index 固定で取らない（トグルの文言が先頭側に入る）。日曜が最初の曜日行であることを見る
+		const weekdayLabels = texts(tree).filter((t) => t.startsWith("MyDishes.calendar.weekdays."));
+		expect(weekdayLabels[0]).toBe("MyDishes.calendar.weekdays.sun");
+		expect(weekdayLabels).toHaveLength(7);
 	});
 
 	it("出所と取得日を添える（完了条件「出所・鮮度を含めて表示できる」）", async () => {
@@ -149,6 +171,48 @@ describe("#1666 店舗詳細の営業時間", () => {
 				"sources=Restaurant.detail.openingHours.sources.official_site / " +
 				"Restaurant.detail.openingHours.sources.osm,date=2026-09-06)",
 		);
+	});
+
+	it("既定は畳まれていて、7 曜日の表は出ていない", async () => {
+		// オーナー指摘「既にひらいてるのは NG」。既定で 7 行占有しないこと
+		const tree = await render(week({ 0: [span("10:00", "18:00")] }));
+		const weekdayLabels = texts(tree).filter((t) => t.startsWith("MyDishes.calendar.weekdays."));
+		expect(weekdayLabels.length).toBeLessThan(7);
+		// ⚠️ `findAllByProps` は Pressable の内部ホストまで拾う（testID が伝播して 3 件になる）。
+		//    件数ではなく «トグルが在ること» を見る
+		expect(
+			tree.root.findAllByProps({ testID: "restaurant-opening-hours-toggle" }).length,
+		).toBeGreaterThan(0);
+	});
+
+	it("畳んだときは連続する同じ時間帯を 1 行へまとめる", async () => {
+		// 月〜金が同じ、土日が定休 → «月–金» と «土» «日» ではなく、連続をまとめる
+		const weekday = [span("11:00", "22:00")];
+		const tree = await render(week({ 1: weekday, 2: weekday, 3: weekday, 4: weekday, 5: weekday }));
+		const rendered = texts(tree);
+		// 月–金 が 1 行にまとまる
+		expect(rendered).toContain(
+			"MyDishes.calendar.weekdays.mon–MyDishes.calendar.weekdays.fri",
+		);
+		// 11:00–22:00 は 1 回だけ（5 回出ていたら畳めていない）
+		expect(rendered.filter((t) => t === "11:00–22:00")).toHaveLength(1);
+	});
+
+	it("開くと 7 曜日、もう一度押すと畳む", async () => {
+		const tree = await render(week({ 0: [span("10:00", "18:00")] }));
+		await expand(tree);
+		expect(texts(tree).filter((t) => t.startsWith("MyDishes.calendar.weekdays."))).toHaveLength(7);
+		await expand(tree);
+		expect(
+			texts(tree).filter((t) => t.startsWith("MyDishes.calendar.weekdays.")).length,
+		).toBeLessThan(7);
+	});
+
+	it("⚠️ «営業中» のバッジを描かない（判定は JST 固定なので嘘になりうる）", async () => {
+		const tree = await render(week({ 0: [span("00:00", "23:59")] }));
+		const rendered = texts(tree).join("|");
+		expect(rendered).not.toContain("openNow");
+		expect(rendered).not.toContain("isOpen");
 	});
 
 	it("知らない出所が来たら、素の名前をそのまま出す（«[missing …]» を画面に出さない）", async () => {
