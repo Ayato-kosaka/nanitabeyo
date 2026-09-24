@@ -117,6 +117,16 @@ jobs:
             scripts/20260808T0000_restaurant/test_search_bounds.py \
             scripts/20260808T0000_restaurant/test_catalog_publish_values.py
 
+      # #1674 catalog に «PostgreSQL のスキーマに依存する識別子» が戻っていないこと。
+      # かつて catalog は `existing_restaurant_id`（dev の restaurants.id）を持っており、
+      # **dev で作った catalog を `9_1 --schema public` で流すと dev の UUID が本番の
+      # 主キーになった**（止めるはずの検証は JOIN 経由なので 0 件ヒットで素通りした）。
+      # 列を外して塞いだので、ここでは «戻っていないこと» を縛る。ソースを読むだけ。
+      - name: catalog がスキーマに依存していないことを検査
+        run: |
+          python3 -m unittest \
+            scripts/20260808T0000_restaurant/test_catalog_schema_independence.py
+
       # #1779 «州で言語が変わる国» のリストを、監査スクリプトが本番の JSON から引いて
       # いること。写経すると **JSON に国が増えても監査だけが «影響なし» と言い続ける**
       # （`address_components` を落とす判断の根拠が静かに古くなる）。依存ゼロ。
