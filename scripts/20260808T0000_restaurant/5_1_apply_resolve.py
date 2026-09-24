@@ -33,6 +33,30 @@ from common_sns import (
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_AREA_RADIUS_M = 3000
+# #1947 `--max-minutes` を確かめる間隔（投稿数）。1 バッチ（--limit）を丸ごと回し切って
+# から締め切りを見ると、遅いときに何時間も超過する。200 件なら遅い日（3,400 投稿/時）でも
+# 3.5 分以内に必ず締め切りを見る。
+DEADLINE_CHECK_EVERY = 200
+
+
+def deadline_chunks(batch: list, deadline: float, *,
+                    chunk: int = DEADLINE_CHECK_EVERY, now=time.monotonic):
+    """`batch` を `chunk` 件ずつ返す。**1 塊ごとに締め切りを見て、越えていたら止める。**
+
+    #1947 ここを «1 バッチ回し切ってから締め切りを見る» に戻さないこと。
+    `--limit` は 20,000 件で、resolve が遅い日（実測 3,400 投稿/時）は 1 バッチが
+    約 6 時間になる。締め切りをバッチの外でしか見ないと `--max-minutes 270` の run が
+    310 分を越えても止まれず、**GitHub の 360 分打ち切り**に当たる
+    （2026-09-22 に 361 分ちょうどで cancelled され、5.5 時間ぶんの集計を失っている）。
+
+    止めた残りは未 resolve のまま残るので、次の run が拾う（取りこぼしにはならない）。
+
+    `deadline` が 0 のときは «締め切り無し» として全部返す。
+    """
+    for i in range(0, len(batch), max(chunk, 1)):
+        if deadline and now() >= deadline:
+            return
+        yield i, batch[i:i + max(chunk, 1)]
 
 
 # #1273 【設計】resolve のスループットを «推測で語らない» ための計測。
@@ -399,19 +423,39 @@ def main() -> None:
         concurrency = max(args.concurrency, 1)
 
         def run_batch(batch: list) -> None:
-            if concurrency == 1:
-                # 直列（従来どおり）。caption 無し＝IG 取得経路はここで回す（並列 IG はレート制限）。
-                for post in batch:
-                    _handle(*_resolve_one(post))
-                    if sleep_s:
-                        time.sleep(sleep_s)
-            else:
-                # 大量並列。caption 付き（IG 非取得）でだけ concurrency を上げること。
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as ex:
-                    futs = [ex.submit(_resolve_one, post) for post in batch]
-                    for fut in concurrent.futures.as_completed(futs):
-                        _handle(*fut.result())
+            # #1947 【設計】`--max-minutes` を **バッチの中でも**見る。
+            #
+            # 以前は締め切りを «バッチとバッチの間» でしか見ていなかった。1 バッチは
+            # `--limit` 件（運用では 20,000 件）なので、**resolve が遅くなるとそのまま
+            # 締め切りを何時間も越える**。2026-09-23 に dev の DB が詰まって
+            # 3,400 投稿/時まで落ちたとき、1 バッチの所要が約 6 時間になり、
+            # `--max-minutes 270` の run が 310 分を越えても止まれなかった
+            # （GitHub の 1 job 上限は 360 分。過去に 361 分ちょうどで cancelled され、
+            #   5.5 時間ぶんの集計を失っている）。
+            #
+            # ⚠️ ここで «バッチを小さくする» 方向に直さないこと。バッチの大きさは
+            #    «BigQuery から未処理を取り出す回数»（1 回 37 秒）とのトレードオフで
+            #    決まっている。**締め切りの見方**だけを直す。
+            #    途中で止めた残りは未 resolve のまま残るので、次の run が拾う。
+            done = 0
+            for i, chunk in deadline_chunks(batch, deadline):
+                done = i + len(chunk)
+                if concurrency == 1:
+                    # 直列（従来どおり）。caption 無し＝IG 取得経路はここで回す（並列 IG はレート制限）。
+                    for post in chunk:
+                        _handle(*_resolve_one(post))
+                        if sleep_s:
+                            time.sleep(sleep_s)
+                else:
+                    # 大量並列。caption 付き（IG 非取得）でだけ concurrency を上げること。
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as ex:
+                        futs = [ex.submit(_resolve_one, post) for post in chunk]
+                        for fut in concurrent.futures.as_completed(futs):
+                            _handle(*fut.result())
+            if done < len(batch):
+                LOGGER.info("締め切り（--max-minutes %d）に達したので、このバッチの残り "
+                            "%d 件は次の run へ回します", args.max_minutes, len(batch) - done)
 
         run_batch(posts)
         # ⚠️ 2026-09-20: `--raw-run-id` を渡し忘れて «resolve 側の run_id» が入り、
