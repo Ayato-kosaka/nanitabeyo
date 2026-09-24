@@ -171,10 +171,11 @@ def build_sql(ds: str, *, radius_m: int, require_website: bool = True,
     ),
     -- 一度巡って handle が出なかった店も除く（定義は `_crawled_cte` の 1 箇所だけ）。
     -- 検索経路では空にする（サイトを経由しないので、この事実は関係が無い）。
-    -- ⚠️ 空の側も **STRING で型を付ける**。裸の NULL は INT64 になり、
-    --    `c.gpid = s.google_place_id` が «No matching signature for operator =» で 400 になる。
+    -- ⚠️ 空の側は **型付きの空テーブル**にする。2026-09-24 に 2 回踏んだ:
+    --    `SELECT NULL AS gpid` → INT64 になり «No matching signature for operator =» で 400。
+    --    `SELECT CAST(NULL AS STRING) AS gpid WHERE FALSE` → «FROM の無い WHERE» で 400。
     crawled AS ({_crawled_cte(ds) if exclude_crawled
-                 else "SELECT CAST(NULL AS STRING) AS gpid WHERE FALSE"})
+                 else "SELECT gpid FROM UNNEST(CAST([] AS ARRAY<STRING>)) AS gpid"})
     SELECT s.google_place_id, s.name, s.website, s.address
     FROM stores s
     JOIN pts p ON ST_DWithin(p.location, s.location, {int(radius_m)})
@@ -243,9 +244,25 @@ def main() -> int:
     p.add_argument("--project", default="food-scroll")
     p.add_argument("--dataset", default="restaurant_recommendation")
     p.add_argument("--dry-run", action="store_true", help="件数だけ出して書き込まない")
+    # #1947 生成した SQL を BigQuery の dry run へ通してから dispatch するため。
+    # 2026-09-24 に SQL の構文だけで run を 2 本無駄にした（INT64 の NULL / FROM の無い WHERE）。
+    p.add_argument("--print-sql", action="store_true",
+                   help="SQL を出して終わる（BigQuery へは接続しない）")
     args = p.parse_args()
-    run_id = require_run_id(args.run_id)
 
+    # ⚠️ run_id を要求するより前に返す。SQL を見るだけなのに run_id を要求すると、
+    #    «SQL を確かめる» のに «実行するつもりの run_id» を考えさせることになる。
+    if args.print_sql:
+        m74p = _load("7_4_measure_neighborhood_313.py", "m74p")
+        ds = f"{args.project}.{args.dataset}"
+        for kw in ({}, {"require_website": False, "exclude_crawled": False}):
+            print(f"-- build_sql({kw})")
+            print(build_sql(ds, radius_m=m74p.RADIUS_M, **kw))
+            print(f"-- build_unreachable_sql()")
+        print(build_unreachable_sql(ds, radius_m=m74p.RADIUS_M))
+        return 0
+
+    run_id = require_run_id(args.run_id)
     from google.cloud import bigquery  # noqa: PLC0415
     pipeline = BigQueryPipeline()
     m75 = _load("7_5_measure_rank_coverage.py", "m75")

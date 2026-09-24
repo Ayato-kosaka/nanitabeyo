@@ -210,8 +210,12 @@ class TheCrawlExclusionIsOptional(unittest.TestCase):
         """裸の `NULL` は INT64 になり、STRING の place_id と比べた瞬間 400 で落ちる
         （2026-09-24 に run 1152 で踏んだ）。"""
         sql = m.build_sql(self.DS, radius_m=500, require_website=False, exclude_crawled=False)
-        self.assertIn("CAST(NULL AS STRING)", sql)
-        self.assertNotIn("SELECT NULL AS gpid", sql)
+        # ⚠️ コメント行を外してから見る。**コメントは «踏んだ間違い» を名前で残している**ので、
+        #    生のテキストで探すとコメント自体に当たって偽陽性になる（ここで実際に踏んだ）。
+        body = "\n".join(l for l in sql.splitlines() if not l.strip().startswith("--"))
+        self.assertIn("UNNEST(CAST([] AS ARRAY<STRING>))", body)
+        self.assertNotIn("SELECT NULL AS gpid", body)
+        self.assertNotIn("AS gpid WHERE FALSE", body)
 
     def test_both_paths_still_drop_stores_whose_handle_is_known(self) -> None:
         for sql in (m.build_sql(self.DS, radius_m=500),
