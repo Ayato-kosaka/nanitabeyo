@@ -152,7 +152,8 @@ jobs:
         run: |
           python3 -m unittest \
             scripts/db-checks/test_progress_log_reachable.py \
-            scripts/db-checks/test_inspect_opening_hours_reach.py
+            scripts/db-checks/test_inspect_opening_hours_reach.py \
+            scripts/db-checks/test_sql_percent_escaping.py
 
       # UI カタログの «撮る画面 ID» が catalog/screens.json に定義されているか。
       #
