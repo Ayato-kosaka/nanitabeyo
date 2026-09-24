@@ -487,7 +487,7 @@ BigQueryに無いPostgreSQL行は削除しません。`--skip-backup` は復旧�
 「たまたま条件に当たっていないだけ」と区別できないので、実物の PostgreSQL で確かめます。
 
 ```bash
-bash tests/test_9_1_overwrite_guard.sh   # 上書きガード本体（7項目）
+bash tests/test_9_1_overwrite_guard.sh   # 上書きガード本体（8項目）
 bash tests/test_9_9_backfill.sh          # backfill の行選択（5項目）
 ```
 
