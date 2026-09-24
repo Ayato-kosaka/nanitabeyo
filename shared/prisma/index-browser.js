@@ -339,11 +339,9 @@ exports.Prisma.DishesScalarFieldEnum = {
   id: 'id',
   restaurant_id: 'restaurant_id',
   category_id: 'category_id',
-  name: 'name',
   created_at: 'created_at',
   updated_at: 'updated_at',
   lock_no: 'lock_no',
-  data_origin: 'data_origin',
   synced_at: 'synced_at'
 };
 
@@ -508,6 +506,22 @@ exports.Prisma.Restaurant_opening_hoursScalarFieldEnum = {
   source_url: 'source_url'
 };
 
+exports.Prisma.Restaurant_reportsScalarFieldEnum = {
+  id: 'id',
+  restaurant_id: 'restaurant_id',
+  reporter_user_id: 'reporter_user_id',
+  field: 'field',
+  proposed_value: 'proposed_value',
+  status: 'status',
+  resolved_at: 'resolved_at',
+  resolution_note: 'resolution_note',
+  github_issue_number: 'github_issue_number',
+  created_version: 'created_version',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  lock_no: 'lock_no'
+};
+
 exports.Prisma.RestaurantsScalarFieldEnum = {
   id: 'id',
   google_place_id: 'google_place_id',
@@ -515,9 +529,6 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   name_language_code: 'name_language_code',
   latitude: 'latitude',
   longitude: 'longitude',
-  image_url: 'image_url',
-  address_components: 'address_components',
-  plus_code: 'plus_code',
   created_at: 'created_at',
   image_path: 'image_path',
   source_seed_id: 'source_seed_id',
@@ -693,6 +704,7 @@ exports.Prisma.ModelName = {
   restaurant_hours_exceptions: 'restaurant_hours_exceptions',
   restaurant_links: 'restaurant_links',
   restaurant_opening_hours: 'restaurant_opening_hours',
+  restaurant_reports: 'restaurant_reports',
   restaurants: 'restaurants',
   role_permissions: 'role_permissions',
   roles: 'roles',
