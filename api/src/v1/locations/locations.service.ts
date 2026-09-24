@@ -427,6 +427,79 @@ export class LocationsService {
   }
 
   /**
+   * #819 【設計】**Google へ «表示に要る分» までしか頼まない。**
+   *
+   * ## 何が起きていたか
+   *
+   * ここは長く `photo.widthPx` をそのまま `maxWidthPx` に渡していた（＝原寸）。
+   * 本番 30 日の実測（`PhotoMediaSuccess` n=6,045 / 2026-08-25〜09-24）では:
+   *
+   * | | |
+   * | --- | ---: |
+   * | 中央値の要求幅 | **3,024px** |
+   * | 3,000px 以上 | 4,146 件（68.6%） |
+   * | 2,000px 以上 | 5,199 件（86.0%） |
+   * | 1,280px 以下 | 535 件（8.9%） |
+   *
+   * 一方 **アプリが表示する最大は 1,024px** である（`dish-media.assembler.ts` の
+   * `getMediaUrl` がフルスクリーンに渡すのは size 1024 の派生、サムネイルは 256）。
+   * つまり原寸で取った 3,024px は **1 度も表示されない**。
+   *
+   * さらに悪いのは bulk-import の同期レスポンスで、リサイズが焼き上がる前は
+   * **その原寸の Google URI を `thumbnailImageUrl` として返す**（`dishes.service.ts`）。
+   * 店舗選択画面が並べる «サムネイル» が 3,024px の JPEG だった（#819 の症状）。
+   *
+   * ## 上限の決め方
+   *
+   * **短辺 1,280px。** 派生の最大が 1,024 なので、どちらの軸に 1,024 が当たっても
+   * 拡大が起きない余裕（1,280 ≥ 1,024）を残す。`getPhotoMedia` の既定値も 1,280 で、
+   * そこと揃える。
+   *
+   * ⚠️ **縮める方向だけに使う**（既に小さい写真は原寸のまま通す）。
+   *    #429 が «そのままのサイズを指定する» と書いた事情は «原寸超えの要求» ではなく
+   *    «`max_width_px` は原寸と **一致** しなければならない» という 400 だった
+   *    （2025-11 の実測）。現在の公式ドキュメントは 1〜4800 の任意の整数を許して
+   *    いて一致要求は無い。**それでも信じ切らない**ための保険を
+   *    `tryGetPhotoMedia` の catch に置いてある。
+   *
+   * ⚠️ **短辺で決める。** 長辺（幅）だけで切ると、横長のパノラマで短辺が
+   *    1,024 を割り、フルスクリーン派生が拡大になる。
+   */
+  private static readonly PHOTO_SHORT_EDGE_CAP_PX = 1280;
+
+  /**
+   * 原寸を «短辺 1,280px» まで縮めた要求サイズを返す。
+   *
+   * ⚠️ **幅と高さの両方を返す。** `getPhotoMedia` は幅が無いときだけ高さを見るので、
+   *    幅だけ縮めると «幅が分からない写真» が高さ原寸で素通りする。
+   *
+   * 幅も高さも分からない写真は縮めない（判断材料が無いので原寸のまま頼む）。
+   */
+  static cappedPhotoSize(
+    widthPx: number | null | undefined,
+    heightPx: number | null | undefined,
+  ): { widthPx?: number; heightPx?: number } {
+    const cap = LocationsService.PHOTO_SHORT_EDGE_CAP_PX;
+
+    if (!widthPx || !heightPx) {
+      // 片方しか分からない。短辺が決まらないので、その 1 辺を上限で切る
+      const known = widthPx || heightPx;
+      if (!known) return {};
+      const capped = Math.min(known, cap);
+      return widthPx ? { widthPx: capped } : { heightPx: capped };
+    }
+
+    const shortEdge = Math.min(widthPx, heightPx);
+    if (shortEdge <= cap) return { widthPx, heightPx }; // 既に小さい。縮めない
+
+    const scale = cap / shortEdge;
+    return {
+      widthPx: Math.round(widthPx * scale),
+      heightPx: Math.round(heightPx * scale),
+    };
+  }
+
+  /**
    * 写真候補を選択する優先順位ロジック
    */
   private selectBestPhoto(photos: PhotoCandidate[]): PhotoCandidate | null {
@@ -506,11 +579,18 @@ export class LocationsService {
     for (const photo of allCandidates) {
       if (!photo.name) continue;
 
+      // #819 原寸ではなく «表示に要る分» まで縮めて頼む（→ `cappedPhotoSize`）。
+      // ⚠️ `catch` から見えるよう try の外で組む（失敗時に原寸へ落ちるため）。
+      const requested = LocationsService.cappedPhotoSize(
+        photo.widthPx,
+        photo.heightPx,
+      );
+
       try {
         const result = await this.externalApiService.getPhotoMedia(
           photo.name,
-          photo.widthPx || undefined, // #429 API の仕様により、そのままのサイズを指定する。
-          photo.heightPx || undefined,
+          requested.widthPx,
+          requested.heightPx,
           { skipHttpRedirect },
         );
 
@@ -519,10 +599,62 @@ export class LocationsService {
             photoName: photo.name,
             widthPx: photo.widthPx,
             heightPx: photo.heightPx,
+            // #819 原寸と «実際に頼んだ幅» は別物になった。原寸だけ出すと
+            // 上限が効いているかを後から数えられない
+            requestedWidthPx: requested.widthPx,
           });
           return result;
         } else throw new Error('No photo media returned');
       } catch (error) {
+        // #819 【設計】**上限つきの要求が失敗したら、同じ写真を原寸でもう 1 度試す。**
+        //
+        // #429（2025-11）は `maxWidthPx: 1280` に対して Google がこう返したと記録している:
+        //
+        //   > max_width_px or max_height_px must match original width or height.
+        //
+        // 現在の公式ドキュメントは «1〜4800 の任意の整数» で、原寸との一致は要求して
+        // いない（実測より新しい記述なので、あの制約は無くなったと読める）。しかし
+        // **もし今も生きていたら、全候補が 400 で落ちて `null` が返り、
+        // `bulkImportFromGoogle` は «写真が無い» として店を丸ごと捨てる**。
+        // ドキュメントを信じて静かに壊れるより、1 度だけ原寸へ落ちる。
+        //
+        // ⚠️ この経路は «期待どおりなら 1 度も通らない» ものである。通ったことを
+        //    数えられるよう専用のイベント名で残す（通り続けているなら上限は
+        //    効いていないので、#819 の直しは成立していない）。
+        const askedForSmaller =
+          requested.widthPx !== (photo.widthPx || undefined) ||
+          requested.heightPx !== (photo.heightPx || undefined);
+
+        if (askedForSmaller) {
+          this.logger.warn('PhotoMediaCappedRetryAtOriginal', 'tryGetPhotoMedia', {
+            photoName: photo.name,
+            widthPx: photo.widthPx,
+            heightPx: photo.heightPx,
+            requestedWidthPx: requested.widthPx,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          try {
+            const retried = await this.externalApiService.getPhotoMedia(
+              photo.name,
+              photo.widthPx || undefined,
+              photo.heightPx || undefined,
+              { skipHttpRedirect },
+            );
+            if (retried) return retried;
+          } catch (retryError) {
+            this.logger.warn('PhotoMediaFallback', 'tryGetPhotoMedia', {
+              photoName: photo.name,
+              widthPx: photo.widthPx,
+              heightPx: photo.heightPx,
+              error:
+                retryError instanceof Error
+                  ? retryError.message
+                  : 'Unknown error',
+            });
+            continue;
+          }
+        }
+
         this.logger.warn('PhotoMediaFallback', 'tryGetPhotoMedia', {
           photoName: photo.name,
           widthPx: photo.widthPx,
