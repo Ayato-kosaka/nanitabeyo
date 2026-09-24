@@ -210,11 +210,23 @@ REACH_SQL = f"""
       SELECT 1 FROM restaurant_opening_hours roh
       WHERE roh.restaurant_id = c.id AND roh.source = 'osm'
     )) AS with_osm_hours,
-    -- クロールがまだ当たっていない母数。**次に --limit へ渡す値**
+    -- ⚠️ **«まだクロールしていない» ではない。** website はあるが official_site の行が
+    --    無い店、つまり «**まだ歩いていない** か **歩いたが取れなかった**» の合計である。
+    --
+    --    #1666 【設計】2026-09-24 に `website_not_yet_crawled` という名前で出していて、
+    --    **私がそれを «未訪問» と読んで «歩けば 19.7% で取れる» と見積もり、
+    --    東京駅を 24.3% まで上げられると報告した。誤りだった。**
+    --    実際には東京駅の 634 店はすでに全部歩いてあり（run 35978146756 が 700 件）、
+    --    残り 582 店は **歩いて失敗した店**だった（dry-run が同じ 582 件を再提示する）。
+    --    再訪しても同じ失敗を繰り返すだけで、ほぼ 1 件も増えない。
+    --
+    --    ⚠️ **区別できないのはクローラが «失敗した試行» を記録していないから**である。
+    --    `restaurant_opening_hours` には成功した行しか入らないので、DB からは
+    --    «未訪問» と «訪問して失敗» を見分けられない。見分けたいなら試行の記録が要る。
     count(*) FILTER (WHERE {WEBSITE_EXISTS} AND NOT EXISTS (
       SELECT 1 FROM restaurant_opening_hours roh
       WHERE roh.restaurant_id = c.id AND roh.source = 'official_site'
-    )) AS website_not_yet_crawled,
+    )) AS website_without_official_site_hours,
     max(c.distance_m)::int AS window_radius_m
   FROM candidates c
 """
@@ -424,7 +436,7 @@ def main() -> int:
         with_website,
         with_official,
         with_osm,
-        not_yet,
+        without_hours,
         window_radius_m,
     ) in reach:
         logger.info(
@@ -441,10 +453,11 @@ def main() -> int:
             f"{with_osm:,}",
         )
         logger.info(
-            "             上限: website を持つ店 %s 店（うち未クロール %s 店）"
+            "             上限: website を持つ店 %s 店"
+            "（うち official_site の行が無い %s 店 = 未訪問 + 訪問して失敗）"
             " / この窓の半径 %s m",
             f"{with_website:,}",
-            f"{not_yet:,}",
+            f"{without_hours:,}",
             f"{window_radius_m:,}",
         )
         result["reach"][label] = {
@@ -454,7 +467,7 @@ def main() -> int:
             "with_website": with_website,
             "with_official_site_hours": with_official,
             "with_osm_hours": with_osm,
-            "website_not_yet_crawled": not_yet,
+            "website_without_official_site_hours": without_hours,
             "window_radius_m": window_radius_m,
         }
 
