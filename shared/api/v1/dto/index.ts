@@ -106,3 +106,4 @@ export {
 
 export { CreateContentReportDto } from "./content-reports/create-content-report.dto";
 export { QueryMeContentReportsDto } from "./content-reports/query-me-content-reports.dto";
+export { CreateRestaurantReportDto } from "./restaurant-reports/create-restaurant-report.dto";
