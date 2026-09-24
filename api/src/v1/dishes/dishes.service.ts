@@ -509,9 +509,16 @@ export class DishesService {
           // 表示は `image_path` 由来の `imageUrls` から組み立てる（#1680 / #1902）。
           image_url: '',
           image_path: mediaPath,
-          address_components:
-            existingGoogleImportEntry?.restaurant.address_components ??
-            JSON.parse(JSON.stringify(place.addressComponents)),
+          // #1779 既存行からの carry-forward はやめた。`RestaurantsEntity` が
+          // `address_components` を載せなくなったので、そもそも読めない。
+          // ⚠️ **この経路が Google の値を書くこと自体は変えていない**
+          //    （#1780 の 2026-09-02 判断ログで «投稿が貯まるまでの繋ぎ» として
+          //    現状維持と決まっている。止めるのは #1264 の決着後）。
+          //    変わるのは «既存の google-import 行を上書きするかどうか» だけで、
+          //    どちらも同じ Google 由来の値である。
+          address_components: JSON.parse(
+            JSON.stringify(place.addressComponents),
+          ),
           // #1779 `plus_code` も削除予定の列で、読み手が 1 つも無い。値を作らない。
           plus_code: null,
           created_at:

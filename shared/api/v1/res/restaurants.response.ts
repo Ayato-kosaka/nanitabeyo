@@ -13,8 +13,17 @@ import { PaginatedResponse } from "./paginated-response";
  * - `image_url` … Google の写真 URI をそのまま持つ列。Places ToS 3.2.3 で保持できない。
  *   店の画像は `image_path` 由来の `imageUrls` から取る（#1680 / #1902）
  * - `plus_code` … Open Location Code。読み手が 1 つも無く、#1780 で新規保存も止めた
+ * - `address_components` … Google の住所の構造化データ。同じく ToS 3.2.3 で保持できない。
+ *   国は `country_code` 列（dev 実測で 621,964 / 621,976 ＝ 100.00% 充填）、表示住所は
+ *   `address` 列から取る。アプリ側の通貨判定（`getCurrencyCodeFromRestaurant`）は
+ *   **この列が無ければ `country_code` へ落ちる**ので、外しても決まらなくなるのは
+ *   `country_code` も空な 12 行だけで、そこは従来どおりユーザーに選ばせる
  */
-const DROPPED_RESTAURANT_COLUMNS = ["image_url", "plus_code"] as const;
+export const DROPPED_RESTAURANT_COLUMNS = [
+  "image_url",
+  "plus_code",
+  "address_components",
+] as const;
 
 type DroppedRestaurantColumns = (typeof DROPPED_RESTAURANT_COLUMNS)[number];
 

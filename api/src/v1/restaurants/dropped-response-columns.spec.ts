@@ -1,5 +1,8 @@
 import { RestaurantsAssembler } from './restaurants.assembler';
-import { stripDroppedRestaurantColumns } from '@shared/v1/res';
+import {
+  DROPPED_RESTAURANT_COLUMNS,
+  stripDroppedRestaurantColumns,
+} from '@shared/v1/res';
 import type { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import type { StorageService } from '../../core/storage/storage.service';
 
@@ -39,7 +42,25 @@ describe('#1779 落とす列はレスポンスへ載らない', () => {
       created_at: new Date('2026-01-01T00:00:00Z'),
     }) as unknown as PrismaRestaurants;
 
-  const DROPPED = ['image_url', 'plus_code'] as const;
+  /*
+    #1779 ⚠️ **一覧を写経しない。** ここに列名を書き下していたため、
+    `address_components` を本番の一覧へ足しても **このテストは 1 度も見ていなかった**
+    （2026-09-24 に対照実験で発覚: 本番の一覧から列を消してもテストは緑のまま）。
+    本番の一覧をそのまま読む。
+  */
+  const DROPPED = DROPPED_RESTAURANT_COLUMNS;
+
+  /*
+    ⚠️ **上の `it.each` は «一覧に載っているものが出ない» しか見ない。**
+    一覧から列を消すと、その列のテストごと消えるので気づけない。
+    «#1779 で落とすと決めた列が一覧から抜けていないこと» をここで別に縛る。
+    列を足すときは本番の一覧とこの 1 行の両方を直す（どちらかだけでは赤くなる）。
+  */
+  it('落とす列の一覧が #1779 の決定と一致する（縮んだら赤くなる）', () => {
+    expect([...DROPPED].sort()).toEqual(
+      ['address_components', 'image_url', 'plus_code'].sort(),
+    );
+  });
 
   it.each(DROPPED)('assembler の出力に `%s` が現れない', (column) => {
     const entity = assembler.enrichRestaurantsWithImageUrls(rowFromDb());
@@ -53,7 +74,10 @@ describe('#1779 落とす列はレスポンスへ載らない', () => {
 
     expect(entity.id).toBe('rest-1');
     expect(entity.name).toBe('エビデンス用ラーメン');
-    expect(entity.address_components).toBeNull();
+    // #1779 address_components も落とす列に入ったので、ここでは «残す列» として使えない。
+    // 代わりに緯度と image_path（表示に使う列）で «消しすぎ» を見る。
+    expect(entity.latitude).toBe(35);
+    expect(entity.image_path).toBe('dev/restaurants/image_path/rest-1/orig.jpg');
     expect(entity.imageUrls?.sm).toContain('signed=1');
   });
 
