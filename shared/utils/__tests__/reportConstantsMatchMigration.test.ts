@@ -19,7 +19,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -33,6 +33,36 @@ import {
 } from "../../api/v1/constants/restaurantReports";
 
 const MIGRATIONS = join(__dirname, "..", "..", "..", "infra", "supabase", "migrations");
+
+/**
+ * テーブル名から migration ファイルを **探して** 読む。
+ *
+ * ⚠️ **ファイル名を書かない。** migration の名前は «適用列に並ぶ順序» なので、
+ * main が別の migration を得ると rename されることがある（`migrations/README.md`）。
+ * 実際に `20260923T0000_create_restaurant_reports.sql` は
+ * `20260924T0200_...` へ rename され、**名前を書いていたこのテストが落ちた**（#1933 / 2026-09-24）。
+ *
+ * 日付を書かず、**ファイル名にそのテーブル名を含むもの**を名前順に連結する
+ * （`…_create_restaurant_reports.sql` / 将来の `…_add_restaurant_reports_*.sql`）。
+ * 連結するのは、あとから別の migration が同じ制約を DROP → ADD し直しても
+ * «最後に現れたもの» を採れば現行の値域になるためである（`checkValues` の注記）。
+ *
+ * ⚠️ **中身の grep で «そのテーブルに触れているファイル» を集めてはいけない。**
+ * 最初そう書いて `content_reports.status` が落ちた。`restaurant_reports` の migration は
+ * コメントで `content_reports` に言及しているので拾われ、**そちらの `status IN (...)` が
+ * «最後に現れたもの» になって別のテーブルの値域を上書きした**。
+ * 列の正規表現はテーブルで絞られていないので、集める側で絞る。
+ */
+function migrationSqlForTable(table: string): string {
+	const files = readdirSync(MIGRATIONS)
+		.filter((f) => f.endsWith(".sql") && f.includes(table))
+		.sort();
+	assert.ok(
+		files.length > 0,
+		`ファイル名に ${table} を含む migration が 1 本も無い（テーブル名が変わった？）`,
+	);
+	return files.map((f) => readFileSync(join(MIGRATIONS, f), "utf8")).join("\n");
+}
 
 /**
  * `CHECK (<column> IN ('a', 'b', …))` から値の集合を取り出す。
@@ -59,46 +89,46 @@ function checkValues(sql: string, column: string): string[] {
 }
 
 const CASES: {
-	migration: string;
+	table: string;
 	column: string;
 	constant: readonly string[];
 	label: string;
 }[] = [
 	{
-		migration: "20260826T0300_create_content_reports.sql",
+		table: "content_reports",
 		column: "target_type",
 		constant: CONTENT_REPORT_TARGET_TYPES,
 		label: "content_reports.target_type",
 	},
 	{
-		migration: "20260826T0300_create_content_reports.sql",
+		table: "content_reports",
 		column: "reason_code",
 		constant: CONTENT_REPORT_REASON_CODES,
 		label: "content_reports.reason_code",
 	},
 	{
-		migration: "20260826T0300_create_content_reports.sql",
+		table: "content_reports",
 		column: "status",
 		constant: CONTENT_REPORT_STATUSES,
 		label: "content_reports.status",
 	},
 	{
-		migration: "20260923T0000_create_restaurant_reports.sql",
+		table: "restaurant_reports",
 		column: "field",
 		constant: RESTAURANT_REPORT_FIELDS,
 		label: "restaurant_reports.field",
 	},
 	{
-		migration: "20260923T0000_create_restaurant_reports.sql",
+		table: "restaurant_reports",
 		column: "status",
 		constant: RESTAURANT_REPORT_STATUSES,
 		label: "restaurant_reports.status",
 	},
 ];
 
-for (const { migration, column, constant, label } of CASES) {
+for (const { table, column, constant, label } of CASES) {
 	test(`${label} — 定数と CHECK 制約が同じ集合`, () => {
-		const sql = readFileSync(join(MIGRATIONS, migration), "utf8");
+		const sql = migrationSqlForTable(table);
 		assert.deepEqual(
 			[...checkValues(sql, column)].sort(),
 			[...constant].sort(),
@@ -108,6 +138,18 @@ for (const { migration, column, constant, label } of CASES) {
 }
 
 test("値の抽出そのものが壊れていないこと（空集合を «一致» と呼ばない）", () => {
-	const sql = readFileSync(join(MIGRATIONS, CASES[0].migration), "utf8");
+	const sql = migrationSqlForTable(CASES[0].table);
 	assert.ok(checkValues(sql, CASES[0].column).length > 0);
+});
+
+test("migration を «名前» ではなくテーブル名で探していること", () => {
+	// ⚠️ ファイル名を書き戻すと、rename で黙って落ちる（#1933 / 2026-09-24 に実際に落ちた）。
+	//    migration の名前は «適用列に並ぶ順序» なので、main の状況で変わる。
+	const source = readFileSync(__filename.replace(/\.js$/, ".ts"), "utf8");
+	const hardcoded = source.match(/"\d{8}T\d{4}_[^"]*\.sql"/g);
+	assert.equal(
+		hardcoded,
+		null,
+		`migration のファイル名が直接書かれている: ${hardcoded?.join(", ")}`,
+	);
 });
