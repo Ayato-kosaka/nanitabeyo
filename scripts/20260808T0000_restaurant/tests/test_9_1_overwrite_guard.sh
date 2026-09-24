@@ -332,5 +332,43 @@ SQL
   || fail "埋め終わった行を $REFILLED 行書き直した（毎回全アプリ行を更新する形・#1779）"
 echo "✅ 7. アプリ製の行は «空欄だけ» が埋まり、入っている値は変わらない（#1779）"
 
+# --- 8. #1779 落とす 3 列は、パイプライン製の行でも **更新しない** ---
+#
+# 列が DB から消えたあと SET しようとすると同期が落ちるので、消す前に書く側を止めた。
+# ⚠️ «たまたま同じ値だから変わらない» と «そもそも SET していない» は別である。
+#    catalog 側をわざと別物にして、それでも変わらないことを見る。
+psql -h /tmp -p "$PGPORT" -U postgres -q <<'SQL'
+SET search_path = dev;
+UPDATE restaurants
+SET address_components = '[{"types":["country"],"shortText":"XX"}]',
+    image_url = 'https://app/keep-me.jpg',
+    plus_code = '{"globalCode":"KEEP+ME"}'
+WHERE google_place_id = 'PLACE_BRAND_NEW';
+-- catalog 側は全部別物にし、ハッシュも変えて «見に行く» 状態にする
+UPDATE restaurant_sync_staging
+SET address_components_json = '[{"types":["country"],"shortText":"ZZ"}]',
+    image_url = 'https://opendata/overwrite.jpg',
+    plus_code_json = '{"globalCode":"OVER+WRITE"}',
+    name = 'オープンデータ名C（8 用）',
+    row_hash = 'hash-C8'
+WHERE google_place_id = 'PLACE_BRAND_NEW';
+SQL
+
+psql -h /tmp -p "$PGPORT" -U postgres -q <<SQL
+SET search_path = dev;
+$VALUE_UPDATE_SQL;
+SQL
+
+# 残す列は追随する（この文がちゃんと走ったことの確認。走っていなければ次の 3 行は無意味）
+[ "$(q "SELECT name FROM restaurants WHERE google_place_id='PLACE_BRAND_NEW';")" = "オープンデータ名C（8 用）" ] \
+  || fail "値 UPDATE が走っていない（8 の前提が崩れている）"
+[ "$(q "SELECT address_components->0->>'shortText' FROM restaurants WHERE google_place_id='PLACE_BRAND_NEW';")" = "XX" ] \
+  || fail "**address_components を更新した**（列を消したあと同期が落ちる・#1779）"
+[ "$(q "SELECT image_url FROM restaurants WHERE google_place_id='PLACE_BRAND_NEW';")" = "https://app/keep-me.jpg" ] \
+  || fail "**image_url を更新した**（同上・#1779）"
+[ "$(q "SELECT plus_code->>'globalCode' FROM restaurants WHERE google_place_id='PLACE_BRAND_NEW';")" = "KEEP+ME" ] \
+  || fail "**plus_code を更新した**（同上・#1779）"
+echo "✅ 8. 落とす 3 列は catalog が別物でも更新されない（#1779）"
+
 echo
-echo "すべて通過（7/7）"
+echo "すべて通過（8/8）"

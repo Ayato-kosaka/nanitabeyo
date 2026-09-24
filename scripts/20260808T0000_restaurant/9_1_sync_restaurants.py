@@ -346,18 +346,25 @@ def execute_in_key_ranges(
 # 書くと、列を足したとき片方を忘れて **「その列だけ永久に更新されない」** 形が作れる
 # （落ちず・壊れず・気付けない。CLAUDE.md「同じ判定を 2 箇所に書いた時点でずれる」）。
 # 列名と staging 側の式を 1 つの表にして、SET も比較もここから組み立てる。
+# #1779 【設計】**落とす 3 列（image_url / address_components / plus_code）は
+# 同期でも «更新しない»。**
+#
+# 列が DB から消えたあと `s.address_components_json::jsonb` を SET しようとすると
+# 同期が落ちる。消す前に、書く側を先に止めておく（expand → コード移行 → contract）。
+#
+# ⚠️ **値は失わない。** パイプライン製の行が持っているのは
+# `image_url = ''` / `address_components = '[]'` / `plus_code = NULL` で、
+# catalog 側も同じものを入れていた（Google の写真・住所はオープンデータには無い）。
+# 更新をやめても行の中身は 1 つも変わらない。
+#
+# ⚠️ **`_changed_predicate()` の対象も同時に狭まる**（この一覧から組み立てているため）。
+# 狭まる方向なので «書かなくてよい行を書く» ことは増えない。
 SYNCED_COLUMNS: list[tuple[str, str]] = [
     ("name", "s.name"),
     ("name_language_code", "s.name_language_code"),
     ("latitude", "s.latitude"),
     ("longitude", "s.longitude"),
-    ("image_url", "s.image_url"),
     ("image_path", "s.image_path"),
-    ("address_components", "s.address_components_json::jsonb"),
-    (
-        "plus_code",
-        "CASE WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb END",
-    ),
     ("address", "s.address"),
     ("country_code", "s.country_code"),
 ]
@@ -434,9 +441,17 @@ def apply_sync(connection: Any) -> None:
             cursor,
             "不足行 INSERT",
             """
+            -- #1779 落とす列のうち image_url（DEFAULT ''）と plus_code（NULL 可）は
+            -- **もう列挙しない**。DB 側の既定値で通るので、消したあともこの文は動く。
+            --
+            -- ⚠️ `address_components` だけはまだ列挙している。
+            --    `JSONB NOT NULL` で **既定値が無い**ため、外すと INSERT が落ちる。
+            --    `image_url` に DEFAULT '' を足した migration（20260909 の A）と同じ形の
+            --    expand が 1 本必要で、それはオーナー承認が要る。承認が下りたら
+            --    この 2 行を消す。
             INSERT INTO restaurants (
               id, google_place_id, name, name_language_code, latitude, longitude,
-              image_url, image_path, address_components, plus_code,
+              image_path, address_components,
               address, country_code,
               source_seed_id, source_names, source_row_hash, synced_at,
               created_by_source
@@ -444,8 +459,7 @@ def apply_sync(connection: Any) -> None:
             SELECT
               gen_random_uuid(),
               s.google_place_id, s.name, s.name_language_code, s.latitude, s.longitude,
-              s.image_url, s.image_path, s.address_components_json::jsonb,
-              CASE WHEN s.plus_code_json IS NULL THEN NULL ELSE s.plus_code_json::jsonb END,
+              s.image_path, s.address_components_json::jsonb,
               s.address, s.country_code,
               s.seed_id,
               ARRAY(SELECT jsonb_array_elements_text(s.source_names_json::jsonb)),
