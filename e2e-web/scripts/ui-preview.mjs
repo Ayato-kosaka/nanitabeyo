@@ -23,8 +23,12 @@ UI を変更したら、**納品前に自分でレンダリングして自分の
    ENV
    npx expo start --web --port 8081
 
-   ⚠️ 撮り終えたら app-expo/.env は必ず消すこと（残すと typecheck 用の
-   .expo/types が dev server に再生成されるだけで害は無いが、紛らわしい）。
+   ⚠️ 撮り終えたら **app-expo/.env と app-expo/.expo を両方消すこと**。
+   ⚠️ **«害は無い» は誤りだった（2026-09-24 実測）。** dev server は
+   `.expo/types/router.d.ts`（expo-router のルート型）を作り直すが、これが
+   **ルート一覧を取りこぼした形で残る**ことがあり、次の `pnpm --filter app-expo typecheck`
+   が `app/s/[token].tsx` の `router.replace("/ja-JP")` で TS2345 になる。
+   自分の変更のせいだと読み違える。`rm -rf app-expo/.expo` で直る。
 
 2. このスクリプトを叩く（e2e-web の依存で動く）
 
@@ -536,6 +540,9 @@ await context.route("**/localhost:9999/**", (r) => {
 				meta: { averageRating: 3.9, reviewCount: 4 },
 			},
 		]);
+	// #1264 «投稿が 1 件も無い店» を撮るための口。本番の自社 UGC は 90 日で 21 件しか無く、
+	//       ほとんどの店がこちら側である。`r-empty` のときだけ空で返す
+	if (/\/v1\/restaurants\/r-empty\/dish-media$/.test(p)) return env({ data: [], nextCursor: null });
 	if (/\/v1\/restaurants\/[^/]+\/dish-media$/.test(p))
 		return env({
 			data: [1, 2, 3, 4].map((n) => ({
@@ -607,10 +614,15 @@ await context.route("**/localhost:9999/**", (r) => {
 	//    `router.back()` で戻るため、**撮れていたのは 1 つ前の画面だった**。
 	//    `…/opening-hours` `…/dish-media` も同じ理由で上に置いてある。
 	// 店舗詳細を URL 直リンクで開いたとき（ストアのキャッシュが無い経路）
+	//
+	// ⚠️ **`id` は URL の id をそのまま返すこと。** 固定値を返していたため、
+	//    `/restaurant/r-empty` を開いても画面が `restaurant.id = "r-1"` を掴み、
+	//    タブは `/v1/restaurants/r-1/dish-media` を引いていた（2026-09-24 に実測）。
+	//    «別の店を開いたのに同じ店の中身が出る» ので、空の面が撮れない。
 	if (/\/v1\/restaurants\/[^/]+$/.test(p))
 		return env({
 			restaurant: {
-				id: "r-1",
+				id: p.split("/").pop(),
 				name: "醤油ラーメン一番",
 				google_place_id: "ChIJpreview1",
 				latitude: 35.6595,
@@ -927,5 +939,14 @@ await page
 	.catch((e) => console.log("report accepted wait:", e.message));
 await page.waitForTimeout(600);
 await shot("restaurant-report-5-accepted");
+
+// 9. #1264 投稿が 1 件も無い店。**見出しの下が真っ白** だったところに «レビューなし» を出す
+await goto("/ja-JP/restaurant/r-empty");
+await page
+	.getByTestId("restaurant-reviews-empty")
+	.waitFor({ timeout: 60000 })
+	.catch((e) => console.log("reviews empty wait:", e.message));
+await page.waitForTimeout(800);
+await shot("restaurant-reviews-empty");
 
 await browser.close();

@@ -766,6 +766,15 @@
 				},
 				"showAll": "Tous les jours",
 				"hideAll": "Réduire"
+			},
+			"reviews": {
+				"empty": {
+					"title": "Aucune publication pour l’instant",
+					"description": "Dès que vous enregistrez un plat d’ici comme mangé, il apparaît dans cet onglet."
+				},
+				"error": {
+					"title": "Impossible de charger les publications"
+				}
 			}
 		},
 		"report": {

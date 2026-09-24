@@ -766,6 +766,15 @@
 				},
 				"showAll": "Todos los días",
 				"hideAll": "Contraer"
+			},
+			"reviews": {
+				"empty": {
+					"title": "Aún no hay publicaciones",
+					"description": "Cuando registres un plato de aquí como comido, aparecerá en esta pestaña."
+				},
+				"error": {
+					"title": "No se pudieron cargar las publicaciones"
+				}
 			}
 		},
 		"report": {

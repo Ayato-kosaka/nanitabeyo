@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { ImageOff } from "lucide-react-native";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
-import { FixedColors } from "@/constants/Palette";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { Text } from "react-native";
 import { DishRating } from "@/components/DishRating";
 // #1629 料理の表示名は `dish_categories.labels` から locale で引く（`dishes.name` は使わない）。
@@ -28,6 +30,87 @@ interface RestaurantReviewsTabProps {
 	 */
 	onItemPress: (index: number, dishMediaId: string) => void;
 }
+
+/**
+ * #1264 投稿が 1 件も無いときの面。
+ *
+ * ⚠️ **ここが無いと «見出しの下が真っ白» になる。** 本番の自社 UGC は 90 日で 21 件しか無く、
+ * ほとんどの店でこのタブは空である。#1264 の完了条件
+ * «レビュー、または **適切な「レビューなし」状態** を表示できる» はこの面のことで、
+ * それまで 1 度も描かれていなかった。
+ *
+ * ⚠️ **投稿ボタンをここへ置かないこと。** #1629 でオーナーが «写真・動画を投稿» を
+ * この画面から外し、投稿は «食べたを記録» のフローへ 1 本化すると決めている。
+ * 案内文はそのフロー（画面下のタブから辿れる）を指す。
+ * デザインガイドライン §4 の «案内文が指す導線がその画面から実際に辿れること» は、
+ * タブバーが常に見えているので満たしている。
+ */
+function ReviewsEmptyState() {
+	const styles = useThemedStyles(createEmptyStyles);
+	const { colors } = useAppTheme();
+	return (
+		<View style={styles.container} testID="restaurant-reviews-empty">
+			<ImageOff size={28} color={colors.textTertiary} />
+			<Text style={styles.title}>{i18n.t("Restaurant.detail.reviews.empty.title")}</Text>
+			<Text style={styles.description}>{i18n.t("Restaurant.detail.reviews.empty.description")}</Text>
+		</View>
+	);
+}
+
+/**
+ * #1264 取得に失敗したときの面。
+ *
+ * ⚠️ **空と同じ見た目にしないこと。** «まだ投稿がありません» と出すと、
+ * 通信が落ちているだけなのに «この店には投稿が無い» と読ませてしまう。
+ */
+function ReviewsErrorState({ onRetry }: { onRetry: () => void }) {
+	const styles = useThemedStyles(createEmptyStyles);
+	return (
+		<View style={styles.container} testID="restaurant-reviews-error">
+			<Text style={styles.title}>{i18n.t("Restaurant.detail.reviews.error.title")}</Text>
+			<TouchableOpacity onPress={onRetry} accessibilityRole="button" style={styles.retry} testID="restaurant-reviews-retry">
+				<Text style={styles.retryLabel}>{i18n.t("Common.retry")}</Text>
+			</TouchableOpacity>
+		</View>
+	);
+}
+
+const createEmptyStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			alignItems: "center",
+			justifyContent: "center",
+			paddingVertical: 48,
+			paddingHorizontal: 24,
+			gap: 8,
+		},
+		title: {
+			fontSize: 15,
+			fontWeight: "700",
+			color: c.textPrimaryAlt,
+			textAlign: "center",
+		},
+		description: {
+			fontSize: 13,
+			lineHeight: 19,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+		// 副 CTA なので灰（デザインガイドライン §1。この面に赤は置かない）
+		retry: {
+			marginTop: 4,
+			minHeight: 44,
+			justifyContent: "center",
+			paddingHorizontal: 20,
+			borderRadius: 12,
+			backgroundColor: c.surfaceMuted,
+		},
+		retryLabel: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textSecondaryStrong,
+		},
+	});
 
 /**
  * レストランのレビュー（料理メディア）タブコンポーネント
@@ -121,6 +204,19 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 		fetchInitialByKey(entriesKey, {}, fetcher);
 	}, [entriesKey, fetchInitialByKey, fetcher]);
 
+	/**
+	 * #1264 空の面を出してよいのは «取り終えて 0 件だったとき» だけ。
+	 *
+	 * ⚠️ `ListEmptyComponent` は **読み込み中も data が空なら描かれる**。
+	 * 条件を付けないと、開いた瞬間に «まだ投稿がありません» が一瞬出てから
+	 * タイルが現れる（取得できているのに «無い» と読ませる）。
+	 */
+	const listEmptyComponent = useMemo(() => {
+		if (error) return <ReviewsErrorState onRetry={handleRefresh} />;
+		if (!hasFetchedInitial || isLoading) return null;
+		return <ReviewsEmptyState />;
+	}, [error, hasFetchedInitial, isLoading, handleRefresh]);
+
 	return (
 		<GridList
 			data={ids.map((id) => ({ id }))}
@@ -131,6 +227,7 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 			onEndReached={handleLoadMore}
 			onRefresh={handleRefresh}
 			refreshing={isLoading}
+			ListEmptyComponent={listEmptyComponent}
 		/>
 	);
 }
