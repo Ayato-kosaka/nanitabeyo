@@ -147,17 +147,38 @@ class SharedWithMeasurementTest(unittest.TestCase):
 
     def test_crawler_uses_the_shared_fetch_and_classify(self) -> None:
         self.assertIs(crawler.fetch, shared.fetch)
-        self.assertIs(crawler.classify_page, shared.classify_page)
+        # #1666 6_3 も «理由つき» を使う。ページはもう取ってあるのに理由を捨てていた
+        # （mentions_hours_unparsed が 209 件 = parsed の 162 件より多いのに、
+        #  どこを直せば効くのか分からない状態だった）。
+        self.assertIs(
+            crawler.classify_page_with_reason, shared.classify_page_with_reason
+        )
+        self.assertIs(crawler.hours_excerpt, shared.hours_excerpt)
         self.assertIs(crawler.robots_allows, shared.robots_allows)
         self.assertIs(crawler.html_to_text, shared.html_to_text)
 
-    def test_measurement_uses_the_same_shared_module(self) -> None:
+    def test_crawler_and_measurement_classify_with_the_same_function(self) -> None:
+        """⚠️ 6_2（測る）と 6_3（入れる）が **同じ関数オブジェクト**を見ていること。
+
+        別々のものを使い始めると «測った数字» と «入れた行» が別のものを指す。
+        """
+        measure = self._load_measurement()
+        self.assertIs(
+            crawler.classify_page_with_reason, measure.classify_page_with_reason
+        )
+
+    @staticmethod
+    def _load_measurement():
         spec = importlib.util.spec_from_file_location(
             "measure_official_site_hours", HERE / "6_2_measure_official_site_hours.py"
         )
         assert spec and spec.loader
         measure = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(measure)
+        return measure
+
+    def test_measurement_uses_the_same_shared_module(self) -> None:
+        measure = self._load_measurement()
         self.assertIs(measure.fetch, shared.fetch)
         # 6_2 は «諦めた理由» も数えるので理由つきの方を使う。どちらでも
         # **箱の判定は同じ**でなければならない（下の 2 本で縛る）。
