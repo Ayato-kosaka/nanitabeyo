@@ -594,7 +594,7 @@ def apply_sync(connection: Any) -> None:
         # 根拠になったかと最終同期時刻を追跡できる。
         execute_in_key_ranges(
             cursor,
-            "provenance UPDATE",
+            "provenance UPDATE（中身）",
             """
             UPDATE restaurants r
             SET
@@ -612,8 +612,44 @@ def apply_sync(connection: Any) -> None:
               source_row_hash = CASE
                 WHEN r.created_by_source = 'pipeline' THEN s.row_hash
                 ELSE r.source_row_hash
-              END,
-              synced_at = CURRENT_TIMESTAMP
+              END
+            FROM restaurant_sync_staging s
+            WHERE r.google_place_id = s.google_place_id
+              -- #1881 **中身が変わる行だけ書く。** 下の `synced_at` と違い、
+              -- この 3 列は毎回変わるものではない。`source_names` は行ごとに
+              -- jsonb を配列へ展開するので、変わらない行まで舐めると高くつく
+              -- （dev の実測で 50,000 行あたり 28 分。13 バッチで約 6 時間）。
+              AND (
+                r.source_seed_id IS DISTINCT FROM s.seed_id
+                OR r.source_names IS DISTINCT FROM ARRAY(
+                     SELECT jsonb_array_elements_text(s.source_names_json::jsonb)
+                   )
+                OR (
+                  r.created_by_source = 'pipeline'
+                  AND r.source_row_hash IS DISTINCT FROM s.row_hash
+                )
+              )
+              AND s.google_place_id > %(lo)s
+              AND s.google_place_id <= %(hi)s
+            """,
+            key_ranges,
+        )
+
+        # #1881 【設計】**`synced_at` だけは «変わらない行» にも必ず押す。**
+        #
+        # ⚠️ **上の «中身が変わる行だけ» と同じ扱いにしてはいけない。**
+        #    `9_9_audit_sync_drift.py` は «最新同期より古い `synced_at`» を
+        #    「今回の catalog に居なかった行」の印として使っている。変わらない行の
+        #    `synced_at` を据え置くと、**その全部が «消えた店» として報告される**
+        #    （落ちず・壊れず・誤報だけが増える）。意味を変えずに、書く内容だけ軽くする。
+        #
+        # 列 1 本の UPDATE なので、上の jsonb 展開つき UPDATE より 1 行あたりが軽い。
+        execute_in_key_ranges(
+            cursor,
+            "provenance UPDATE（synced_at）",
+            """
+            UPDATE restaurants r
+            SET synced_at = CURRENT_TIMESTAMP
             FROM restaurant_sync_staging s
             WHERE r.google_place_id = s.google_place_id
               AND s.google_place_id > %(lo)s
