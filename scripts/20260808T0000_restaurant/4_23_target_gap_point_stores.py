@@ -92,15 +92,35 @@ TERMINAL_CRAWL_STATUS = ("no_handle", "no_website", "robots_blocked", "website_i
 DEAD_SITE_ERROR_RE = (r"Name or service not known|No address associated"
                       r"|name resolution|HTTP Error 404|HTTP Error 403")
 
+# 同じ店で `fetch_failed` がこの回数ぶんの run に出たら、もう撃たない。
+#
+# 「一時的な失敗は撃ち直す」は正しいが、**何度でも撃ち直してよい** という意味ではない。
+# 2026-09-24、«一時的な失敗しか無い» 25 店だけを選んで巡り直したところ **0 件**
+# （timeout 12 / TLS 7 / 接続拒否・400・530 各 1）。同じ日の 130 店も 0 件で、
+# 両方とも «毎回 fetch_failed になる店» だった。合計 155 店・handle 0 件。
+# 1 度きりの失敗は撃ち直し、2 度目からは «そういうサイト» と見なす。
+MAX_FETCH_ATTEMPTS = 2
+
 
 def _crawled_cte(ds: str) -> str:
     """**もう巡って handle が出なかった店** の唯一の定義（`gpid` 1 列を返す SQL 片）。"""
     return f"""
-      SELECT DISTINCT google_place_id AS gpid
-      FROM `{ds}.{TABLE_STORE_SITE_IG}`
-      WHERE status IN UNNEST(@terminal)
-         OR (status = 'fetch_failed'
-             AND REGEXP_CONTAINS(IFNULL(error, ''), @dead_site_re))
+      SELECT DISTINCT gpid FROM (
+        SELECT google_place_id AS gpid
+        FROM `{ds}.{TABLE_STORE_SITE_IG}`
+        WHERE status IN UNNEST(@terminal)
+           OR (status = 'fetch_failed'
+               AND REGEXP_CONTAINS(IFNULL(error, ''), @dead_site_re))
+        UNION ALL
+        -- 何度撃っても届かない店（理由は毎回ちがっても結果は同じ）
+        SELECT gpid FROM (
+          SELECT google_place_id AS gpid
+          FROM `{ds}.{TABLE_STORE_SITE_IG}`
+          WHERE status = 'fetch_failed'
+          GROUP BY google_place_id
+          HAVING COUNT(DISTINCT run_id) >= @max_attempts
+        )
+      )
     """
 
 
@@ -232,6 +252,7 @@ def main() -> int:
             bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
             bigquery.ArrayQueryParameter("terminal", "STRING", list(TERMINAL_CRAWL_STATUS)),
             bigquery.ScalarQueryParameter("dead_site_re", "STRING", DEAD_SITE_ERROR_RE),
+            bigquery.ScalarQueryParameter("max_attempts", "INT64", MAX_FETCH_ATTEMPTS),
         ])]
     LOGGER.info("巡回対象（handle 未知・サイトあり・**まだ巡っていない**）= **%d 店**（半径 %dm）",
                 len(rows), m74.RADIUS_M)
@@ -242,6 +263,7 @@ def main() -> int:
         bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
         bigquery.ArrayQueryParameter("terminal", "STRING", list(TERMINAL_CRAWL_STATUS)),
         bigquery.ScalarQueryParameter("dead_site_re", "STRING", DEAD_SITE_ERROR_RE),
+        bigquery.ScalarQueryParameter("max_attempts", "INT64", MAX_FETCH_ATTEMPTS),
     ])]
     if u:
         tot = int(u[0].get("no_handle_total") or 0)

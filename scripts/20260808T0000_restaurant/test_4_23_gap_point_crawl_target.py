@@ -125,11 +125,21 @@ class AlreadyCrawledStoresAreNotTargetedAgain(unittest.TestCase):
 
     def test_the_exclusion_is_defined_once(self) -> None:
         """同じ判定を 2 箇所に書かない（片方だけ直った状態を作らない）。"""
+        import ast
         src = SRC
         self.assertEqual(src.count("sns_store_site_ig"), 0,
                          "テーブル名を直書きしている。common_sns の定数を使う")
-        self.assertEqual(src.count("TABLE_STORE_SITE_IG}`"), 1,
-                         "巡回済みの定義が 2 箇所にある。`_crawled_cte` の 1 箇所に集める")
+        # 巡回済み台帳を読むのは `_crawled_cte` の中だけ。
+        # ⚠️ «テーブル名が 1 回しか出ない» で縛らない。同じ関数の中で 2 回読むのは重複ではなく、
+        #    そう縛ると «定義を 1 箇所に集める» のではなく «SQL を捻じ曲げる» 方向へ誘導される。
+        tree = ast.parse(src)
+        fn = next(n for n in ast.walk(tree)
+                  if isinstance(n, ast.FunctionDef) and n.name == "_crawled_cte")
+        inside = ast.get_source_segment(src, fn) or ""
+        self.assertEqual(src.count("TABLE_STORE_SITE_IG}`"),
+                         inside.count("TABLE_STORE_SITE_IG}`"),
+                         "巡回済み台帳を `_crawled_cte` の外でも読んでいる。1 箇所に集める")
+        self.assertGreaterEqual(inside.count("TABLE_STORE_SITE_IG}`"), 1)
         self.assertEqual(src.count("_crawled_cte(ds)"), 2,
                          "build_sql と build_unreachable_sql の両方が同じ定義を使うこと")
 
@@ -160,6 +170,18 @@ class AlreadyCrawledStoresAreNotTargetedAgain(unittest.TestCase):
         for sql in (m.build_sql(self.DS, radius_m=500),
                     m.build_unreachable_sql(self.DS, radius_m=500)):
             self.assertIn("@dead_site_re", sql)
+
+    def test_repeated_fetch_failures_stop_being_retried(self) -> None:
+        """«一時的» は «何度でも撃ち直してよい» ではない。
+
+        2026-09-24、一時的な失敗しか無い 25 店を巡り直して **0 件**、その前の 130 店も
+        **0 件**（合計 155 店・handle 0）。2 度目からは «そういうサイト» と見なす。
+        """
+        self.assertEqual(m.MAX_FETCH_ATTEMPTS, 2)
+        for sql in (m.build_sql(self.DS, radius_m=500),
+                    m.build_unreachable_sql(self.DS, radius_m=500)):
+            self.assertIn("@max_attempts", sql)
+            self.assertIn("COUNT(DISTINCT run_id)", sql)
 
     def test_report_splits_crawlable_from_already_crawled(self) -> None:
         """«まだ N 店ある» と誤読させない。これから巡れる分と巡り終えた分を分けて出す。"""
