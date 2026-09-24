@@ -529,6 +529,20 @@ def apply_sync(connection: Any) -> None:
               AND r.google_place_id = s.google_place_id
               AND s.google_place_id > %(lo)s
               AND s.google_place_id <= %(hi)s
+              -- #1881 **リンクが変わりえない行は触らない。**
+              --
+              -- `row_hash` は phone / website / social_urls を**含めて**計算している
+              -- （`3_4_build_restaurant_catalog.py`）。したがって **ハッシュが一致する行は
+              -- リンクも前回のままでよい**。
+              --
+              -- ⚠️ 成り立つ理由は順序にある。リンクの DELETE / INSERT は
+              -- `source_row_hash` を書く provenance UPDATE より **前**に流れ、全体が
+              -- 1 トランザクションである。つまり «そのハッシュが刻まれている» ことは
+              -- «そのハッシュのリンクを書き切った» ことを意味する。
+              --
+              -- ⚠️ アプリ製の行は `source_row_hash` が NULL なので
+              -- `IS DISTINCT FROM` は真になり、**ちゃんと対象に残る**。
+              AND r.source_row_hash IS DISTINCT FROM s.row_hash
               AND l.source = 'open_data'
               AND NOT EXISTS (
                 SELECT 1
@@ -563,6 +577,20 @@ def apply_sync(connection: Any) -> None:
             JOIN restaurants r ON r.google_place_id = s.google_place_id
               AND s.google_place_id > %(lo)s
               AND s.google_place_id <= %(hi)s
+              -- #1881 **リンクが変わりえない行は触らない。**
+              --
+              -- `row_hash` は phone / website / social_urls を**含めて**計算している
+              -- （`3_4_build_restaurant_catalog.py`）。したがって **ハッシュが一致する行は
+              -- リンクも前回のままでよい**。
+              --
+              -- ⚠️ 成り立つ理由は順序にある。リンクの DELETE / INSERT は
+              -- `source_row_hash` を書く provenance UPDATE より **前**に流れ、全体が
+              -- 1 トランザクションである。つまり «そのハッシュが刻まれている» ことは
+              -- «そのハッシュのリンクを書き切った» ことを意味する。
+              --
+              -- ⚠️ アプリ製の行は `source_row_hash` が NULL なので
+              -- `IS DISTINCT FROM` は真になり、**ちゃんと対象に残る**。
+              AND r.source_row_hash IS DISTINCT FROM s.row_hash
             CROSS JOIN LATERAL (
               -- 電話・サイトは 1 本ずつ、SNS は配列。1 つの SELECT に畳んで
               -- 空文字と NULL を同じ「無い」として落とす。
