@@ -242,6 +242,9 @@ def main() -> int:
                                    reachable_only=False)
     LOGGER.info("合格線（上位 %d%% の %d%%）に足りない地点 = %d 件",
                 args.gap_top_pct, args.gap_target_pct, len(points))
+    # #1947 どの地点かをログに残す。«残り N 地点» だけだと、その地点の周りを別の角度から
+    # 調べ直す（未 resolve の在庫がそこに有るか等）たびに、この判定をもう一度書く羽目になる。
+    LOGGER.info("  足りない地点の google_place_id: %s", ",".join(points))
     if not points:
         raise SystemExit("足りない地点が 0 件（既に達成している）。巡回の対象も無い。")
 
