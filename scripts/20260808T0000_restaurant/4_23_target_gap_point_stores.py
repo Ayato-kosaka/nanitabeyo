@@ -70,6 +70,28 @@ LOGGER = logging.getLogger(__name__)
 #    **4_1 が handle を登録しなかった店は漏れる**（上の 56 店がそれ）。
 TERMINAL_CRAWL_STATUS = ("no_handle", "no_website", "robots_blocked", "website_is_ig", "ok")
 
+# `fetch_failed` のうち **サイトがもう存在しない** ものも終端に入れる。
+#
+# `4_4` は届かなかった理由をすべて `fetch_failed` にまとめてしまうので、status だけでは
+# «相手の一時的な不調» と «ドメインごと消えている» を区別できない。区別しないと、
+# 死んだ URL を毎周巡り直し続ける（2026-09-24 の 130 店は **全件 fetch_failed** で、
+# その 75% が DNS 不存在・404・403 だった）。
+#
+# 何を終端と見るかは gapcrawl1 → gapcrawl2 の転換率で決めた:
+#
+# | 1 周目の理由 | 店 | 2 周目で handle が出た | 判定 |
+# | --- | ---: | ---: | --- |
+# | 名前が引けない（DNS） | 66 | **0** | 終端。サイトが無い |
+# | 404 | 34 | **0** | 終端 |
+# | 403 | 22 | **0** | 終端。相手が拒んでいる |
+# | timeout | 11 | 0 | **終端にしない**（標本が小さい） |
+# | TLS 証明書 | 5 | 0 | **終端にしない**（同上） |
+# | 429 / 5xx / 切断 | 14 | **6（43%）** | **終端にしない。**明らかに一時的 |
+#
+# ⚠️ 429 と 5xx をここへ入れないこと（#1815 «一時的な失敗を恒久的な失敗として扱わない»）。
+DEAD_SITE_ERROR_RE = (r"Name or service not known|No address associated"
+                      r"|name resolution|HTTP Error 404|HTTP Error 403")
+
 
 def _crawled_cte(ds: str) -> str:
     """**もう巡って handle が出なかった店** の唯一の定義（`gpid` 1 列を返す SQL 片）。"""
@@ -77,6 +99,8 @@ def _crawled_cte(ds: str) -> str:
       SELECT DISTINCT google_place_id AS gpid
       FROM `{ds}.{TABLE_STORE_SITE_IG}`
       WHERE status IN UNNEST(@terminal)
+         OR (status = 'fetch_failed'
+             AND REGEXP_CONTAINS(IFNULL(error, ''), @dead_site_re))
     """
 
 
@@ -207,6 +231,7 @@ def main() -> int:
             bigquery.ScalarQueryParameter("geo_rid", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
             bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
             bigquery.ArrayQueryParameter("terminal", "STRING", list(TERMINAL_CRAWL_STATUS)),
+            bigquery.ScalarQueryParameter("dead_site_re", "STRING", DEAD_SITE_ERROR_RE),
         ])]
     LOGGER.info("巡回対象（handle 未知・サイトあり・**まだ巡っていない**）= **%d 店**（半径 %dm）",
                 len(rows), m74.RADIUS_M)
@@ -216,6 +241,7 @@ def main() -> int:
         bigquery.ScalarQueryParameter("geo_rid", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
         bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
         bigquery.ArrayQueryParameter("terminal", "STRING", list(TERMINAL_CRAWL_STATUS)),
+        bigquery.ScalarQueryParameter("dead_site_re", "STRING", DEAD_SITE_ERROR_RE),
     ])]
     if u:
         tot = int(u[0].get("no_handle_total") or 0)

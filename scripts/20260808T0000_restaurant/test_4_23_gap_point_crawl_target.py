@@ -133,6 +133,34 @@ class AlreadyCrawledStoresAreNotTargetedAgain(unittest.TestCase):
         self.assertEqual(src.count("_crawled_cte(ds)"), 2,
                          "build_sql と build_unreachable_sql の両方が同じ定義を使うこと")
 
+    def test_dead_sites_are_terminal_but_transient_server_errors_are_not(self) -> None:
+        """`fetch_failed` を «全部一時的» とも «全部恒久的» とも扱わない。
+
+        gapcrawl1 → gapcrawl2 の転換率で決めた: DNS 不存在 66 店・404 34 店・403 22 店は
+        **1 件も** handle が出ず、429 / 5xx / 切断の 14 店は **6 件（43%）** 出た。
+        """
+        import re as _re
+        rx = _re.compile(m.DEAD_SITE_ERROR_RE)
+        for dead in ("URLError: <urlopen error [Errno -2] Name or service not known>",
+                     "URLError: <urlopen error [Errno -5] No address associated with hostname>",
+                     "URLError: <urlopen error [Errno -3] Temporary failure in name resolution>",
+                     "HTTPError: HTTP Error 404: Not Found",
+                     "HTTPError: HTTP Error 403: Forbidden"):
+            self.assertTrue(rx.search(dead), f"終端にできていない: {dead}")
+        for alive in ("HTTPError: HTTP Error 429: Too Many Requests",
+                      "HTTPError: HTTP Error 500: Internal Server Error",
+                      "HTTPError: HTTP Error 502: Bad Gateway",
+                      "RemoteDisconnected: Remote end closed connection without response",
+                      "URLError: <urlopen error [SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ...>",
+                      "URLError: <urlopen error timed out>"):
+            self.assertIsNone(rx.search(alive),
+                              f"一時的な失敗を恒久的として切り捨てている（#1815）: {alive}")
+
+    def test_dead_site_rule_is_applied_in_the_shared_cte(self) -> None:
+        for sql in (m.build_sql(self.DS, radius_m=500),
+                    m.build_unreachable_sql(self.DS, radius_m=500)):
+            self.assertIn("@dead_site_re", sql)
+
     def test_report_splits_crawlable_from_already_crawled(self) -> None:
         """«まだ N 店ある» と誤読させない。これから巡れる分と巡り終えた分を分けて出す。"""
         sql = m.build_unreachable_sql(self.DS, radius_m=500)
