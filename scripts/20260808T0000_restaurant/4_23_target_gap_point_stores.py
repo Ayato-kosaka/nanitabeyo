@@ -41,10 +41,31 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from common_sns import (TABLE_RESTAURANT_CATALOG,  # noqa: E402
-                        TABLE_SITE_CRAWL_TARGET, TABLE_SOURCE_ACCOUNT)
+                        TABLE_SITE_CRAWL_TARGET, TABLE_SOURCE_ACCOUNT,
+                        TABLE_STORE_SITE_IG)
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
+
+# #1947 **一度巡って handle が出なかった店**。次の周回で «対象» に数え直さない。
+#
+# 2026-09-22〜23 の 3 周で巡回の打率が 36.8% → 20.5% → **10.9%** と半減し続けたのは、
+# 相手が減ったからではなく **失敗した店を毎回また分母へ入れていた**からである
+# （`handled` は «handle を知っている店» しか除いていなかった）。
+# «巡回対象 N 店» が «これから掘れる N 店» を意味しなくなり、周回の見積もりが毎回外れた。
+#
+# ⚠️ `fetch_failed` は入れない。**相手側の一時的な失敗**なので、次の周回で撃ち直す価値がある
+#    （#1815 と同じ «一時的な失敗を恒久的な失敗として扱わない» 規律）。
+TERMINAL_CRAWL_STATUS = ("no_handle", "no_website", "robots_blocked", "website_is_ig")
+
+
+def _crawled_cte(ds: str) -> str:
+    """**もう巡って handle が出なかった店** の唯一の定義（`gpid` 1 列を返す SQL 片）。"""
+    return f"""
+      SELECT DISTINCT google_place_id AS gpid
+      FROM `{ds}.{TABLE_STORE_SITE_IG}`
+      WHERE status IN UNNEST(@terminal)
+    """
 
 
 def _load(fname: str, name: str):
@@ -78,12 +99,16 @@ def build_sql(ds: str, *, radius_m: int) -> str:
     handled AS (
       SELECT DISTINCT discovery_seed_place_id AS gpid
       FROM `{ds}.{TABLE_SOURCE_ACCOUNT}` WHERE discovery_seed_place_id IS NOT NULL
-    )
+    ),
+    -- 一度巡って handle が出なかった店も除く（定義は `_crawled_cte` の 1 箇所だけ）
+    crawled AS ({_crawled_cte(ds)})
     SELECT s.google_place_id, s.name, s.website
     FROM stores s
     JOIN pts p ON ST_DWithin(p.location, s.location, {int(radius_m)})
     LEFT JOIN handled h ON h.gpid = s.google_place_id
-    WHERE h.gpid IS NULL AND s.website IS NOT NULL AND s.website != ''
+    LEFT JOIN crawled c ON c.gpid = s.google_place_id
+    WHERE h.gpid IS NULL AND c.gpid IS NULL
+      AND s.website IS NOT NULL AND s.website != ''
     GROUP BY s.google_place_id, s.name, s.website
     """
 
@@ -112,18 +137,24 @@ def build_unreachable_sql(ds: str, *, radius_m: int) -> str:
       SELECT DISTINCT discovery_seed_place_id AS gpid
       FROM `{ds}.{TABLE_SOURCE_ACCOUNT}` WHERE discovery_seed_place_id IS NOT NULL
     ),
+    crawled AS ({_crawled_cte(ds)}),
     near AS (
-      SELECT DISTINCT s.google_place_id, s.website
+      SELECT DISTINCT s.google_place_id, s.website, c.gpid IS NOT NULL AS done
       FROM stores s
       JOIN pts p ON ST_DWithin(p.location, s.location, {int(radius_m)})
       LEFT JOIN handled h ON h.gpid = s.google_place_id
+      LEFT JOIN crawled c ON c.gpid = s.google_place_id
       WHERE h.gpid IS NULL
-    )
+    ),
+    has_site AS (SELECT *, website IS NOT NULL AND website != '' AS site FROM near)
     SELECT
       COUNT(*) AS no_handle_total,
-      COUNTIF(website IS NOT NULL AND website != '') AS with_website,
-      COUNTIF(website IS NULL OR website = '') AS without_website
-    FROM near
+      COUNTIF(site) AS with_website,
+      COUNTIF(NOT site) AS without_website,
+      -- **もう巡ったが handle が出なかった**分。ここを分けないと «まだ N 店ある» と誤読する
+      COUNTIF(site AND done) AS already_crawled,
+      COUNTIF(site AND NOT done) AS crawlable_now
+    FROM has_site
     """
 
 
@@ -163,19 +194,24 @@ def main() -> int:
         build_sql(ds, radius_m=m74.RADIUS_M), [
             bigquery.ScalarQueryParameter("geo_rid", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
             bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
+            bigquery.ArrayQueryParameter("terminal", "STRING", list(TERMINAL_CRAWL_STATUS)),
         ])]
-    LOGGER.info("巡回対象（handle 未知・サイトあり）= **%d 店**（半径 %dm）", len(rows), m74.RADIUS_M)
+    LOGGER.info("巡回対象（handle 未知・サイトあり・**まだ巡っていない**）= **%d 店**（半径 %dm）",
+                len(rows), m74.RADIUS_M)
 
     # ⚠️ «巡回で届く分» だけを見て «まだ余地がある» と読まない。届かない分を必ず併記する。
     u = [dict(r) for r in pipeline.execute(build_unreachable_sql(ds, radius_m=m74.RADIUS_M), [
         bigquery.ScalarQueryParameter("geo_rid", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
         bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
+        bigquery.ArrayQueryParameter("terminal", "STRING", list(TERMINAL_CRAWL_STATUS)),
     ])]
     if u:
         tot = int(u[0].get("no_handle_total") or 0)
         wo = int(u[0].get("without_website") or 0)
         LOGGER.info("  内訳: handle 未知 %d 店 = サイトあり %d ＋ **サイト無し %d**",
                     tot, int(u[0].get("with_website") or 0), wo)
+        LOGGER.info("    サイトありの内訳: **これから巡れる %d** ＋ もう巡って handle が出なかった %d",
+                    int(u[0].get("crawlable_now") or 0), int(u[0].get("already_crawled") or 0))
         LOGGER.info("  ⚠️ **サイト無しの %d 店には巡回が届かない。** 一巡したら別の経路が要る", wo)
     if not rows:
         raise SystemExit(

@@ -51,6 +51,8 @@ _BUILDERS = [
      {"radius_m": 500}),
     ("4_23_target_gap_point_stores.py", "build_sql",
      ("food-scroll.restaurant_recommendation",), {"radius_m": 500}),
+    ("4_23_target_gap_point_stores.py", "build_unreachable_sql",
+     ("food-scroll.restaurant_recommendation",), {"radius_m": 500}),
 ]
 
 

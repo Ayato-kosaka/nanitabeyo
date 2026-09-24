@@ -90,3 +90,45 @@ class ItAlsoSaysWhatCrawlingCannotReachTest(unittest.TestCase):
 
     def test_the_report_warns_that_crawling_cannot_reach_them(self):
         self.assertIn("巡回が届かない", SRC)
+
+
+class AlreadyCrawledStoresAreNotTargetedAgain(unittest.TestCase):
+    """#1947 一度巡って handle が出なかった店を、次の周回でまた «対象» に数えない。
+
+    2026-09-22〜23 の 3 周で巡回の打率が 36.8% → 20.5% → **10.9%** と半減し続けた。
+    相手が減ったからではなく、**失敗した店を毎回また分母へ入れていた**（除いていたのは
+    «handle を知っている店» だけだった）。«巡回対象 N 店» が «これから掘れる N 店» を
+    意味しなくなり、周回ごとの見積もりが外れ続けた。
+
+    ⚠️ 値ではなく **パターン**を固定する。
+    """
+
+    DS = "food-scroll.restaurant_recommendation"
+
+    def test_terminal_statuses_are_excluded(self) -> None:
+        sql = m.build_sql(self.DS, radius_m=500)
+        self.assertIn("sns_store_site_ig", sql,
+                      "巡回済みの台帳を見ていない。失敗した店をまた対象に数えてしまう")
+        self.assertIn("@terminal", sql)
+
+    def test_transient_failures_stay_retryable(self) -> None:
+        """`fetch_failed` は **相手側の一時的な失敗**。恒久的な失敗として切り捨てない。"""
+        self.assertNotIn("fetch_failed", m.TERMINAL_CRAWL_STATUS)
+        for st in ("no_handle", "no_website", "robots_blocked", "website_is_ig"):
+            self.assertIn(st, m.TERMINAL_CRAWL_STATUS)
+
+    def test_the_exclusion_is_defined_once(self) -> None:
+        """同じ判定を 2 箇所に書かない（片方だけ直った状態を作らない）。"""
+        src = SRC
+        self.assertEqual(src.count("sns_store_site_ig"), 0,
+                         "テーブル名を直書きしている。common_sns の定数を使う")
+        self.assertEqual(src.count("TABLE_STORE_SITE_IG}`"), 1,
+                         "巡回済みの定義が 2 箇所にある。`_crawled_cte` の 1 箇所に集める")
+        self.assertEqual(src.count("_crawled_cte(ds)"), 2,
+                         "build_sql と build_unreachable_sql の両方が同じ定義を使うこと")
+
+    def test_report_splits_crawlable_from_already_crawled(self) -> None:
+        """«まだ N 店ある» と誤読させない。これから巡れる分と巡り終えた分を分けて出す。"""
+        sql = m.build_unreachable_sql(self.DS, radius_m=500)
+        self.assertIn("crawlable_now", sql)
+        self.assertIn("already_crawled", sql)
