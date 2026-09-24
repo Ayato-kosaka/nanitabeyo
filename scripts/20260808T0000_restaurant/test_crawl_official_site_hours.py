@@ -316,6 +316,30 @@ class NearFilterTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     crawler.parse_near(value)
 
+    def test_search_path_includes_extensions_for_postgis(self) -> None:
+        """#1666 ⚠️ **PostGIS（`geography` / `ST_DWithin`）は `extensions` に居る。**
+
+        `connect_postgres` が張る search_path は `<schema>, public` で `extensions` が
+        無いため、`--near` の SQL が `type "geography" does not exist` で落ちた
+        （run 35969811492）。テーブルは `{schema}.` で修飾していたので気づけず、
+        **型と関数の解決だけが search_path に依存していた**。
+
+        ここが消えると «絞ったつもりで落ちる» に戻るので、文字列として縛る。
+        """
+        source = inspect.getsource(crawler)
+        self.assertIn("SET search_path TO {}, extensions, public", source)
+        # ⚠️ 共有ヘルパ（connect_postgres）側を広げていないこと。あれは 9_1 ほか
+        #    全部の同期が使うので、PostGIS が要るこのスクリプトへ閉じる。
+        #    ⚠️ **`extensions` の語だけで探さない。** あのファイルは
+        #       `from psycopg2.extensions import connection` を import している
+        #       （最初そう書いて誤検知した）。search_path の行だけを見る。
+        shared_source = (HERE / "pg_sync_common.py").read_text(encoding="utf-8")
+        search_path_lines = [
+            line for line in shared_source.splitlines() if "SET search_path" in line
+        ]
+        self.assertEqual(len(search_path_lines), 1, search_path_lines)
+        self.assertNotIn("extensions", search_path_lines[0])
+
     def test_candidate_sql_has_a_near_placeholder_and_keeps_the_order(self) -> None:
         sql = crawler.CANDIDATE_SQL
         self.assertIn("{near}", sql)

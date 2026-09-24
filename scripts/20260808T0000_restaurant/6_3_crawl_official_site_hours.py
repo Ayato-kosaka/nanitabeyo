@@ -228,12 +228,33 @@ def main() -> int:
 
     from pg_sync_common import connect_postgres
     from pipeline_common import configure_logging
+    from psycopg2 import sql as sql_module
 
     configure_logging()
     # ⚠️ `allow_public` は **キーワード必須**（pg_sync_common の事故防止）。
     #    ここは public を上で弾いてあるので必ず False。二重の歯止めにしてある。
     connection = connect_postgres(args.schema, allow_public=False)
     try:
+        # #1666 【設計】**PostGIS は `extensions` スキーマに居る。**
+        #
+        # `connect_postgres` が張る search_path は `<schema>, public` で、そこに
+        # `extensions` が無い。そのため `--near` の SQL が
+        # **`type "geography" does not exist` で落ちた**（run 35969811492）。
+        # テーブルは `{schema}.` で修飾しているので気づけなかった。型と関数の解決だけが
+        # search_path に依存していた。
+        #
+        # `inspect_opening_hours_reach.py` は自前の接続で
+        # `SET search_path TO "<schema>", extensions` を張っている。同じ形へ揃える。
+        #
+        # ⚠️ **`connect_postgres` 側を広げない。** あれは 9_1 ほか全部の同期が使う。
+        #    PostGIS を要るのはこのスクリプトだけなので、影響範囲をここへ閉じる。
+        with connection.cursor() as cursor:
+            cursor.execute(
+                sql_module.SQL("SET search_path TO {}, extensions, public").format(
+                    sql_module.Identifier(args.schema)
+                )
+            )
+
         only_missing = ONLY_MISSING_CLAUSE.format(schema=args.schema) if args.only_missing else ""
         near_lat, near_lon = parse_near(args.near)
         sql = CANDIDATE_SQL.format(
