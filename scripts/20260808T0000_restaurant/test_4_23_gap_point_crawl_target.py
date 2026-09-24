@@ -188,3 +188,27 @@ class AlreadyCrawledStoresAreNotTargetedAgain(unittest.TestCase):
         sql = m.build_unreachable_sql(self.DS, radius_m=500)
         self.assertIn("crawlable_now", sql)
         self.assertIn("already_crawled", sql)
+
+
+class TheCrawlExclusionIsOptional(unittest.TestCase):
+    """#1947 巡回用の除外を «検索» 経路へ引き継がせない。
+
+    除外しているのは «その店のサイトに Instagram が載っていなかった» という事実で、
+    «その店に Instagram が無い» ではない。検索（4_24）はサイトを経由しないので、
+    そのまま使うと 457 店を理由なく捨てる。
+    ⚠️ 一方で «handle を既に知っている» の除外は、どちらの経路でも同じである。
+    """
+
+    DS = "food-scroll.restaurant_recommendation"
+
+    def test_search_path_keeps_crawled_stores(self) -> None:
+        sql = m.build_sql(self.DS, radius_m=500, require_website=False, exclude_crawled=False)
+        self.assertNotIn("sns_store_site_ig", sql)
+        self.assertNotIn("@terminal", sql)
+
+    def test_both_paths_still_drop_stores_whose_handle_is_known(self) -> None:
+        for sql in (m.build_sql(self.DS, radius_m=500),
+                    m.build_sql(self.DS, radius_m=500, require_website=False,
+                                exclude_crawled=False)):
+            self.assertIn("handled", sql)
+            self.assertIn("WHERE h.gpid IS NULL", sql)

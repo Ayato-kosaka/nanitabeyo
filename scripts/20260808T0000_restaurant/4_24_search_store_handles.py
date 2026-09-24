@@ -140,9 +140,12 @@ def main() -> int:
 
     ds = f"{args.project}.{args.dataset}"
     stores = [dict(r) for r in pipeline.execute(
-        # ⚠️ require_website=False。検索はサイトが無い店にも届くので、ここで絞ると
-        #    943 店（この地点群の handle 未知の 65%）を最初から捨てることになる。
-        m423.build_sql(ds, radius_m=m74.RADIUS_M, require_website=False), [
+        # ⚠️ require_website=False / exclude_crawled=False。
+        #    前者: 検索はサイトが無い店にも届く（絞ると 943 店を捨てる）。
+        #    後者: «サイトを巡ったが handle が出なかった» は «その店に Instagram が無い» では
+        #          ない。検索はサイトを経由しないので、外すと 457 店を理由なく捨てる。
+        m423.build_sql(ds, radius_m=m74.RADIUS_M, require_website=False,
+                       exclude_crawled=False), [
             bigquery.ScalarQueryParameter("geo_rid", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
             bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
             bigquery.ArrayQueryParameter("terminal", "STRING", list(m423.TERMINAL_CRAWL_STATUS)),

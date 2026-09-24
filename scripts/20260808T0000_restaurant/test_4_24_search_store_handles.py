@@ -50,6 +50,15 @@ class ItDoesNotThrowAwayStoresWithoutAWebsite(unittest.TestCase):
         self.assertIn("require_website=False", SRC,
                       "サイトのある店だけに絞っている。943 店（65%）を最初から捨てることになる")
 
+    def test_it_does_not_inherit_the_crawl_only_exclusion(self) -> None:
+        """«サイトを巡ったが handle が出なかった» は «その店に Instagram が無い» ではない。
+
+        検索はサイトを経由しないので、巡回用の除外をそのまま使うと **457 店を理由なく
+        捨てる**（2026-09-24 の --report-only で 1,432 → 975 に減っていた）。
+        """
+        self.assertIn("exclude_crawled=False", SRC,
+                      "巡回用の除外を引き継いでいる。検索では関係が無い事実で絞っている")
+
     def test_the_handle_unknown_rule_is_not_copied(self) -> None:
         """«handle を知らない» の定義は `4_23` のものを呼ぶ（写経しない）。"""
         self.assertIn("m423.build_sql(", SRC)

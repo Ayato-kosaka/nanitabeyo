@@ -131,14 +131,21 @@ def _load(fname: str, name: str):
     return m
 
 
-def build_sql(ds: str, *, radius_m: int, require_website: bool = True) -> str:
+def build_sql(ds: str, *, radius_m: int, require_website: bool = True,
+              exclude_crawled: bool = True) -> str:
     """足りない地点の 500m 圏で «handle を知らない» 店を返す。
 
     `require_website=True`（既定）は巡回（`4_4`）の対象。公式サイトが無いと辿れないので絞る。
     `require_website=False` は **検索で handle を探す経路**（`4_24`）の対象。
     検索はサイトが無い店にも届くので、ここで絞ると **943 店を最初から捨てる**ことになる。
-    ⚠️ 2 つの経路で «handle を知らない» の定義を分けないこと。分けた瞬間に、
-       片方だけ直った状態ができる。
+    `exclude_crawled=True`（既定）は «公式サイトを巡ったが handle が出なかった店» も外す。
+    巡回にとっては «同じサイトをもう一度読む» だけなので無駄である。
+    ⚠️ **検索（`4_24`）では `False` にすること。** 除外しているのは «その店の **サイト**に
+       Instagram が載っていなかった» という事実であって、«その店に Instagram が無い» では
+       ない。検索はサイトを経由しないので、ここで外すと **457 店を理由なく捨てる**。
+
+    ⚠️ «handle を **既に知っている**» 店の除外（`handled`）は、どちらの経路でも同じである。
+       そこは分けないこと。分けた瞬間に、片方だけ直った状態ができる。
 
     ⚠️ 座標は `7_5` と同じサンプルカタログ run から引く（別 run を混ぜると
     «2,662 店» と実際の対象がずれる）。
@@ -162,8 +169,9 @@ def build_sql(ds: str, *, radius_m: int, require_website: bool = True) -> str:
       SELECT DISTINCT discovery_seed_place_id AS gpid
       FROM `{ds}.{TABLE_SOURCE_ACCOUNT}` WHERE discovery_seed_place_id IS NOT NULL
     ),
-    -- 一度巡って handle が出なかった店も除く（定義は `_crawled_cte` の 1 箇所だけ）
-    crawled AS ({_crawled_cte(ds)})
+    -- 一度巡って handle が出なかった店も除く（定義は `_crawled_cte` の 1 箇所だけ）。
+    -- 検索経路では空にする（サイトを経由しないので、この事実は関係が無い）。
+    crawled AS ({_crawled_cte(ds) if exclude_crawled else "SELECT NULL AS gpid"})
     SELECT s.google_place_id, s.name, s.website, s.address
     FROM stores s
     JOIN pts p ON ST_DWithin(p.location, s.location, {int(radius_m)})
