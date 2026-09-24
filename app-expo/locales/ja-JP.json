@@ -767,6 +767,40 @@
 				"showAll": "すべての曜日",
 				"hideAll": "閉じる"
 			}
+		},
+		"report": {
+			"action": "この情報が違う",
+			"title": "この情報が違う",
+			"description": "違っている項目を選んで送ってください。運営が確認してから直します。すぐには変わりません。",
+			"fields": {
+				"name": "店名",
+				"closed": "閉店した",
+				"opening_hours": "営業時間"
+			},
+			"valueLabel": {
+				"name": "正しい店名",
+				"opening_hours": "正しい営業時間"
+			},
+			"valuePlaceholder": {
+				"name": "例: 〇〇本店",
+				"opening_hours": "例: 月〜金 11:00〜14:00 / 17:00〜22:00、土日祝 休み"
+			},
+			"submit": "送る",
+			"submitting": "送信中...",
+			"accepted": {
+				"title": "受け付けました",
+				"description": "運営が確認してから反映します。結果を個別にお知らせすることはありません。",
+				"close": "閉じる"
+			},
+			"errors": {
+				"submitFailed": "送信できませんでした。もう一度お試しください。"
+			},
+			"accessibility": {
+				"open": "{{name}}の情報の誤りを報告",
+				"field": "項目: {{field}}",
+				"fieldSelected": "項目: {{field}}（選択中）",
+				"submit": "{{name}}の情報の誤りを送る"
+			}
 		}
 	},
 	"Feedback": {

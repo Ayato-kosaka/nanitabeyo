@@ -584,19 +584,6 @@ await context.route("**/localhost:9999/**", (r) => {
 			sources: ["official_site", "osm"],
 			fetchedAt: "2026-09-06T13:25:55.000Z",
 		});
-	// 店舗詳細を URL 直リンクで開いたとき（ストアのキャッシュが無い経路）
-	if (/\/v1\/restaurants\/[^/]+$/.test(p))
-		return env({
-			restaurant: {
-				id: "r-1",
-				name: "醤油ラーメン一番",
-				google_place_id: "ChIJpreview1",
-				latitude: 35.6595,
-				longitude: 139.7005,
-				imageUrls: { sm: "https://img.example.invalid/r.jpg", md: "https://img.example.invalid/r.jpg" },
-			},
-			meta: { reviewCount: 12, averageRating: 4.2, totalCents: 0, maxEndDate: null },
-		});
 	// #1671 新規店舗の確認ページの下読み（保存しない）
 	if (p.endsWith("/v1/restaurants/draft"))
 		return env({
@@ -613,6 +600,28 @@ await context.route("**/localhost:9999/**", (r) => {
 			},
 			draftToken: "rdt1.preview.token",
 		});
+	// ⚠️ **`/v1/restaurants/:id` は «/v1/restaurants/ の下の 1 階層» を全部拾う。**
+	//    `…/draft` のような **決め打ちのサブパスは、必ずこれより先に**判定すること
+	//    （メソッドを見ていないので POST /v1/restaurants/draft もこの正規表現に当たる）。
+	//    実際 2026-09-24 に draft がこれに飲まれており、確認ページは下読みに失敗して
+	//    `router.back()` で戻るため、**撮れていたのは 1 つ前の画面だった**。
+	//    `…/opening-hours` `…/dish-media` も同じ理由で上に置いてある。
+	// 店舗詳細を URL 直リンクで開いたとき（ストアのキャッシュが無い経路）
+	if (/\/v1\/restaurants\/[^/]+$/.test(p))
+		return env({
+			restaurant: {
+				id: "r-1",
+				name: "醤油ラーメン一番",
+				google_place_id: "ChIJpreview1",
+				latitude: 35.6595,
+				longitude: 139.7005,
+				imageUrls: { sm: "https://img.example.invalid/r.jpg", md: "https://img.example.invalid/r.jpg" },
+			},
+			meta: { reviewCount: 12, averageRating: 4.2, totalCents: 0, maxEndDate: null },
+		});
+	// #1933 «この情報が違う» の受付。受付番号だけを返す（画面はこれで «受け付けました» へ進む）
+	if (p.endsWith("/v1/restaurant-reports"))
+		return env({ reportId: "00000000-0000-4000-8000-0000000009aa", status: "pending", alreadyReported: false });
 	if (p.includes("/v1/logs")) return env({});
 	return env({});
 });
@@ -874,5 +883,49 @@ await page
 	.catch((e) => console.log("opening-hours wait:", e.message));
 await page.waitForTimeout(1500);
 await shot("restaurant-opening-hours");
+
+// 8. #1933 «この情報が違う» の報告シート（入口 → 項目を選ぶ → 値を入れる → 受付）
+//    ⚠️ 撮るのは «入口が押せること» と «送ったあと画面が «受け付けました» で止まること»。
+//       店の情報がその場で変わらない（受け入れ条件 5）のは、この 4 枚を並べれば目で分かる
+await page
+	.getByTestId("restaurant-detail-report-button")
+	.click()
+	.catch((e) => console.log("report open:", e.message));
+await page.waitForTimeout(900);
+await shot("restaurant-report-1-fields");
+
+// 値を伴わない項目（閉店した）: 入力欄が出ないことを撮る
+await page
+	.getByTestId("restaurant-report-field-closed")
+	.click()
+	.catch((e) => console.log("report closed:", e.message));
+await page.waitForTimeout(600);
+await shot("restaurant-report-2-closed-no-input");
+
+// 値を伴う項目（営業時間）: 入力欄が **空で** 出ることを撮る
+await page
+	.getByTestId("restaurant-report-field-opening_hours")
+	.click()
+	.catch((e) => console.log("report hours:", e.message));
+await page.waitForTimeout(600);
+await shot("restaurant-report-3-hours-empty-input");
+
+await page
+	.getByTestId("restaurant-report-value-input")
+	.fill("月〜金 11:00〜14:00 / 17:00〜22:00、土日祝 休み")
+	.catch((e) => console.log("report fill:", e.message));
+await page.waitForTimeout(400);
+await shot("restaurant-report-4-filled");
+
+await page
+	.getByTestId("restaurant-report-submit")
+	.click()
+	.catch((e) => console.log("report submit:", e.message));
+await page
+	.getByTestId("restaurant-report-accepted")
+	.waitFor({ timeout: 30000 })
+	.catch((e) => console.log("report accepted wait:", e.message));
+await page.waitForTimeout(600);
+await shot("restaurant-report-5-accepted");
 
 await browser.close();

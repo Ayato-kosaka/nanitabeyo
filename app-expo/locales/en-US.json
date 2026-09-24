@@ -767,6 +767,40 @@
 				"showAll": "All days",
 				"hideAll": "Collapse"
 			}
+		},
+		"report": {
+			"action": "Report incorrect info",
+			"title": "Report incorrect info",
+			"description": "Pick what's wrong and send it. We review every report before changing anything, so nothing changes right away.",
+			"fields": {
+				"name": "Restaurant name",
+				"closed": "Permanently closed",
+				"opening_hours": "Opening hours"
+			},
+			"valueLabel": {
+				"name": "Correct name",
+				"opening_hours": "Correct opening hours"
+			},
+			"valuePlaceholder": {
+				"name": "e.g. Joe's Diner",
+				"opening_hours": "e.g. Mon–Fri 11:00–14:00 / 17:00–22:00, closed weekends"
+			},
+			"submit": "Send",
+			"submitting": "Sending...",
+			"accepted": {
+				"title": "Thanks — we got it",
+				"description": "We'll review it before applying any change. We won't notify you of the outcome individually.",
+				"close": "Close"
+			},
+			"errors": {
+				"submitFailed": "Couldn't send that. Please try again."
+			},
+			"accessibility": {
+				"open": "Report incorrect info for {{name}}",
+				"field": "Item: {{field}}",
+				"fieldSelected": "Item: {{field}} (selected)",
+				"submit": "Send the correction for {{name}}"
+			}
 		}
 	},
 	"Feedback": {

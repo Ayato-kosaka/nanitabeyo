@@ -767,6 +767,40 @@
 				"showAll": "Todos los días",
 				"hideAll": "Contraer"
 			}
+		},
+		"report": {
+			"action": "Información incorrecta",
+			"title": "Información incorrecta",
+			"description": "Elige qué está mal y envíalo. Lo revisamos antes de cambiar nada, así que no cambia de inmediato.",
+			"fields": {
+				"name": "Nombre del local",
+				"closed": "Ha cerrado",
+				"opening_hours": "Horario"
+			},
+			"valueLabel": {
+				"name": "Nombre correcto",
+				"opening_hours": "Horario correcto"
+			},
+			"valuePlaceholder": {
+				"name": "Ej.: Casa Pepe",
+				"opening_hours": "Ej.: lun–vie 11:00–14:00 / 17:00–22:00, cerrado fines de semana"
+			},
+			"submit": "Enviar",
+			"submitting": "Enviando...",
+			"accepted": {
+				"title": "Recibido",
+				"description": "Lo revisaremos antes de aplicar cambios. No te avisaremos del resultado de forma individual.",
+				"close": "Cerrar"
+			},
+			"errors": {
+				"submitFailed": "No se pudo enviar. Inténtalo de nuevo."
+			},
+			"accessibility": {
+				"open": "Informar de un error en {{name}}",
+				"field": "Elemento: {{field}}",
+				"fieldSelected": "Elemento: {{field}} (seleccionado)",
+				"submit": "Enviar la corrección de {{name}}"
+			}
 		}
 	},
 	"Feedback": {

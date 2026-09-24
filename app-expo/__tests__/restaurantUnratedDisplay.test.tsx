@@ -16,6 +16,10 @@ jest.mock("expo-router", () => ({
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+// #1933 店舗詳細が «この情報が違う» の報告シートを持つようになり、その先で
+// useAPICall → AuthProvider → lib/supabase が実 env（SUPABASE_URL）を要求する。
+// この spec の関心は #1667 の «レビュー 0 件のときの見た目» なので、通信の層は差し替える
+jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: jest.fn() }) }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
 jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaFrame: () => ({ x: 0, y: 0, width: 390, height: 800 }),
