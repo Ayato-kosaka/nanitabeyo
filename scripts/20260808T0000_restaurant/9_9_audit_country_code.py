@@ -98,17 +98,37 @@ def main() -> None:
             LOGGER.info("    国が引けない: %d行  ← ここが 0 でないと NOT NULL にできない", ng)
 
             # アプリ製の国の内訳。'JP' 以外があるなら «一律 JP» は誤りだと分かる。
+            #
+            # #1881 **座標の範囲も一緒に出す。** 国コードだけを並べても «その値が合って
+            # いるか» は人が判定できない。実際に `GE`（ジョージア）308 行が出たときに
+            # 「`DE`（ドイツ）の間違いではないか」を疑ったが、**確かめる材料がその場に
+            # 無かった**ので保留になった。座標の箱を添えれば、コーカサス（41-43N /
+            # 40-47E）と中欧（47-55N / 6-15E）はひと目で見分けられる。
+            #
+            # ⚠️ 国ごとの正しい矩形は持っていない（国境のポリゴンが要る）。ここが出すのは
+            #    **人が «その国と言われて納得できるか» を判定するための材料**であって、
+            #    機械的な合否ではない。合否を出せるふりをしない。
             cursor.execute(
                 f"""
-                SELECT {COUNTRY_EXPR} AS cc, COUNT(*)
+                SELECT {COUNTRY_EXPR} AS cc, COUNT(*),
+                       round(min(latitude)::numeric, 1), round(max(latitude)::numeric, 1),
+                       round(min(longitude)::numeric, 1), round(max(longitude)::numeric, 1)
                 FROM restaurants
                 WHERE created_by_source <> 'pipeline'
                 GROUP BY 1 ORDER BY 2 DESC LIMIT 20
                 """
             )
-            LOGGER.info("アプリ製の国の内訳:")
-            for cc, count in cursor.fetchall():
-                LOGGER.info("  %-6s %d行", cc if cc else "(引けない)", count)
+            LOGGER.info("アプリ製の国の内訳（座標の箱は «納得できるか» の材料。合否ではない）:")
+            for cc, count, lat_min, lat_max, lon_min, lon_max in cursor.fetchall():
+                LOGGER.info(
+                    "  %-6s %6d行  lat %6s〜%-6s lon %7s〜%-7s",
+                    cc if cc else "(引けない)",
+                    count,
+                    lat_min,
+                    lat_max,
+                    lon_min,
+                    lon_max,
+                )
 
             # 形式が ISO-3166-1 alpha-2 になっているか（CHECK 制約を張れるか）
             cursor.execute(
