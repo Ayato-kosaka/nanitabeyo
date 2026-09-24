@@ -100,9 +100,35 @@ WHERE l.kind = 'website'
   AND (%(country)s = 'ALL' OR r.country_code = %(country)s)
   {only_missing}
   {near}
-ORDER BY md5(l.restaurant_id::text || %(seed)s)
+{order}
 LIMIT %(limit)s
 """
+
+# 並びは 2 通り。**呼ぶ側が必ずどちらかを指定する**（既定を SQL 側へ埋めない）。
+#
+# ⚠️ `inspect_opening_hours_reach.py` は rank ヒストグラムの根拠に
+#    `ORDER_BY_SEED` を **名指しで**使う。既定を暗黙にしておくと、こちらの既定を
+#    変えた瞬間にあちらの数字の意味が黙って変わる。
+ORDER_BY_SEED = "ORDER BY md5(l.restaurant_id::text || %(seed)s)"
+
+# #1666 【設計】**近い順に歩けるようにする。** 実測（2026-09-24）で必要だと分かった。
+#
+# `--near 東京駅 --near-radius-m 3000 --limit 800` を流し、162 店 2,944 行を入れた
+# （[run 35970682759](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35970682759)）。
+# ところが番人が測る «近い順 1,000 件のうち営業時間を持つ店» は
+# **17 → 26 の +9 しか動かなかった**（run 35974849965）。
+#
+# 理由は並びである。半径 3km の候補プールは近い順 1,000 件の窓より **約 18 倍広く**、
+# そこから md5 順に 800 件引いたので窓へ入ったのは約 44 件、parsed 率 20.3% をかけて
+# +9 店 — 実測とぴたり合う。
+#
+# ⚠️ もとのコメントは «半径の中はどうせ --limit まで全部当たるので、順は問題にならない»
+#    と書いていた。**これは誤りだった**。`--limit` が半径内の候補数より小さいときは、
+#    並びが «どの 800 件を引くか» を決める。
+ORDER_BY_DISTANCE = (
+    "ORDER BY r.location <-> "
+    "ST_SetSRID(ST_MakePoint(%(near_lon)s, %(near_lat)s), 4326)::geography"
+)
 
 # #1666 【設計】**1 つの地点のまわりだけを対象にできるようにする。**
 #
@@ -115,10 +141,10 @@ LIMIT %(limit)s
 # だから «どこを» 絞れるようにする。1 エリアを実用水準まで上げてから
 # «この水準で満たしたと言えるか» をオーナーへ出す、という順にできる。
 #
-# ⚠️ **並びは変えない。** `md5(...)` のままにしてある。並びは
+# ⚠️ **既定の並びは変えない。** `ORDER_BY_SEED` のままにしてある。並びは
 #    `inspect_opening_hours_reach.py` が «前半が picked over か» を測る根拠なので、
-#    絞り込みのために並びまで変えると、あちらの数字の意味が黙って変わる。
-#    半径の中はどうせ `--limit` まで全部当たるので、順は問題にならない。
+#    絞り込みのために既定まで変えると、あちらの数字の意味が黙って変わる。
+#    近い順に歩きたいときは `--order distance` を明示する（→ `ORDER_BY_DISTANCE`）。
 NEAR_CLAUSE = """
   AND ST_DWithin(
         r.location,
@@ -168,6 +194,15 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=3000.0,
         help="--near の半径（メートル、既定 3000）",
+    )
+    parser.add_argument(
+        "--order",
+        choices=["seed", "distance"],
+        default="seed",
+        help=(
+            "候補の並び。既定の seed は全国均等（md5）。distance は --near の地点から"
+            "近い順で、1 エリアの画面を実用水準まで上げたいときに使う（--near が必須）"
+        ),
     )
     parser.add_argument("--min-interval", type=float, default=2.0)
     parser.add_argument("--timeout", type=float, default=15.0)
@@ -257,10 +292,16 @@ def main() -> int:
 
         only_missing = ONLY_MISSING_CLAUSE.format(schema=args.schema) if args.only_missing else ""
         near_lat, near_lon = parse_near(args.near)
+        # ⚠️ 基準の地点が無いのに «近い順» は作れない。黙って seed 順へ落とすと、
+        #    «近い順のつもりで全国均等を歩く» という気づけない形になる。止める。
+        if args.order == "distance" and near_lat is None:
+            raise ValueError("--order distance には --near が要ります（基準の地点が無いと近い順に並べられません）")
+        order = ORDER_BY_DISTANCE if args.order == "distance" else ORDER_BY_SEED
         sql = CANDIDATE_SQL.format(
             schema=args.schema,
             only_missing=only_missing,
             near=NEAR_CLAUSE if near_lat is not None else "",
+            order=order,
         )
         params = {
             "country": args.country,
@@ -278,7 +319,7 @@ def main() -> int:
             candidates = cursor.fetchall()
 
         LOGGER.info(
-            "対象: %d 件（schema=%s / country=%s / seed=%s / only_missing=%s / 範囲=%s）",
+            "対象: %d 件（schema=%s / country=%s / seed=%s / only_missing=%s / 範囲=%s / 並び=%s）",
             len(candidates),
             args.schema,
             args.country,
@@ -289,6 +330,7 @@ def main() -> int:
                 if near_lat is not None
                 else "全国"
             ),
+            args.order,
         )
         if args.dry_run:
             for rid, name, url in candidates[:20]:
