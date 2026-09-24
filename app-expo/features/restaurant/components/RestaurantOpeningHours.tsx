@@ -102,11 +102,15 @@ export function RestaurantOpeningHours({ hours }: Props) {
 	   想定外の応答（この API を持たない古い API の 404 本文など）で
 	   `Cannot read properties of undefined` になり、**店舗詳細ごと落ちた**（実測）。
 	   営業時間は «あれば出す» 情報で、これが原因で店の画面が開けないのは割に合わない。
+
+	⚠️ **判定は早期 return より前に置くが、フックはさらにその前に置く。**
+	   `useMemo` を early return の後ろへ書いて lint に落とされた（2026-09-24）。
+	   `hours` が null → 値ありへ変わるとフックの呼び出し順が変わり、React が壊れる。
 	*/
-	if (!hours || !Array.isArray(hours.days) || hours.days.length === 0) return null;
+	const hasHours = Boolean(hours && Array.isArray(hours.days) && hours.days.length > 0);
 
 	const textOf = (dayOfWeek: number) => {
-		const spans = hours.days.find((d) => d.dayOfWeek === dayOfWeek)?.spans ?? [];
+		const spans = hours?.days?.find((d) => d.dayOfWeek === dayOfWeek)?.spans ?? [];
 		return spans.length === 0
 			? i18n.t("Restaurant.detail.openingHours.closed")
 			: spans.map(formatSpan).join("  ");
@@ -114,7 +118,9 @@ export function RestaurantOpeningHours({ hours }: Props) {
 	const labelOf = (dayOfWeek: number) =>
 		i18n.t(`MyDishes.calendar.weekdays.${CALENDAR_WEEKDAY_KEYS[dayOfWeek]}`);
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	const groups = useMemo(() => groupConsecutiveDays(textOf), [hours]);
+	const groups = useMemo(() => (hasHours ? groupConsecutiveDays(textOf) : []), [hours, hasHours]);
+
+	if (!hasHours || !hours) return null;
 
 	const rows = expanded
 		? CALENDAR_WEEKDAY_KEYS.map((_key, dayOfWeek) => ({
