@@ -212,9 +212,24 @@ def main() -> None:
             LOGGER.info("  合計（下限）             %d行", subtotal)
 
             # 例を出す。数字だけだと «本当に日本でないのか» を人が確かめられない。
+            #
+            # #1881 【設計】**«誰が付けた JP なのか» も一緒に出す。**
+            #
+            # 2026-09-24 に残り 8 行まで減ったあと、«全部アプリ製» までは分かったが
+            # **どこから `'JP'` が来たのかが分からず、直し方を決められなかった**。
+            # 候補は 3 つあり、手当てが全く違う。
+            #
+            #   1. `address_components` の country が本当に JP（Google がそう返した）
+            #   2. `address_components` は KR なのに列が JP（列を書いた経路の誤り）
+            #   3. `address_components` に country が無く、別の経路が JP を入れた
+            #
+            # 行ごとに «列の値 / components の country / 作成元» を並べれば、
+            # 次に見る人がコードを読まずに切り分けられる。
             cursor.execute(
-                """
-                SELECT name, latitude, longitude
+                f"""
+                SELECT name, latitude, longitude, created_by_source,
+                       {COUNTRY_EXPR} AS components_country,
+                       source_row_hash IS NOT NULL AS pipeline_wrote_values
                 FROM restaurants
                 WHERE country_code = 'JP'
                   AND latitude BETWEEN 34.0 AND 43.0
@@ -223,8 +238,24 @@ def main() -> None:
                 LIMIT 10
                 """
             )
-            for name, lat, lon in cursor.fetchall():
-                LOGGER.info("    例: (%.3f, %.3f) %s", lat, lon, name)
+            for (
+                name,
+                lat,
+                lon,
+                created_by_source,
+                components_country,
+                pipeline_wrote_values,
+            ) in cursor.fetchall():
+                LOGGER.info(
+                    "    例: (%.3f, %.3f) %-28s 作成元=%-8s components の国=%-6s "
+                    "パイプラインが中身を書いた=%s",
+                    lat,
+                    lon,
+                    name,
+                    created_by_source,
+                    components_country if components_country else "(無し)",
+                    pipeline_wrote_values,
+                )
     finally:
         connection.rollback()
         connection.close()
