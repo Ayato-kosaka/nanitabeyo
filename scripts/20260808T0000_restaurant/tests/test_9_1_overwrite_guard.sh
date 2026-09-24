@@ -55,12 +55,16 @@ CREATE TABLE restaurants (
   google_place_id TEXT UNIQUE NOT NULL, name TEXT NOT NULL, name_language_code TEXT NOT NULL,
   latitude DOUBLE PRECISION NOT NULL, longitude DOUBLE PRECISION NOT NULL,
   image_url TEXT NOT NULL, image_path TEXT, address_components JSONB NOT NULL, plus_code JSONB,
+  -- #1881 値 UPDATE をソースから抜き出して流すので、**その SQL が触る列は全部要る**。
+  -- 簡略化した写経をやめた時点で、器も本物へ寄せる必要が出た。
+  address TEXT, country_code TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), source_seed_id UUID,
   source_names TEXT[] NOT NULL DEFAULT '{}', source_row_hash TEXT, synced_at TIMESTAMPTZ);
 CREATE TABLE restaurant_sync_staging (
   seed_id UUID, existing_restaurant_id UUID, google_place_id TEXT, name TEXT,
   name_language_code TEXT, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION,
   image_url TEXT, image_path TEXT, address_components_json TEXT, plus_code_json TEXT,
+  address TEXT, country_code TEXT,
   source_names_json TEXT, row_hash TEXT, match_method TEXT);
 
 -- ① スナップショットに載っていた店 / ② 窓の間にアプリが作った店（事故った形）
@@ -70,10 +74,16 @@ VALUES ('11111111-1111-1111-1111-111111111111','PLACE_IN_SNAPSHOT','スナップ
 INSERT INTO restaurants (id, google_place_id, name, name_language_code, latitude, longitude, image_url, image_path, address_components)
 VALUES ('22222222-2222-2222-2222-222222222222','PLACE_MADE_BY_APP','アプリが窓の間に作った店','ja',35.5,139.5,
         'https://app/user-photo.jpg','gs://app/user.jpg','[{"types":["country"],"shortText":"JP"}]');
-INSERT INTO restaurant_sync_staging VALUES
-  ('aaaaaaaa-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','PLACE_IN_SNAPSHOT','オープンデータ名A','ja',35.0,139.0,'',NULL,'[]',NULL,'["overture"]','hash-A','box_unique_strict'),
-  ('aaaaaaaa-0000-0000-0000-000000000002',NULL,'PLACE_MADE_BY_APP','オープンデータ名B','ja',35.5,139.5,'',NULL,'[]',NULL,'["overture"]','hash-B','box_unique_strict'),
-  ('aaaaaaaa-0000-0000-0000-000000000003',NULL,'PLACE_BRAND_NEW','オープンデータ名C','ja',36.0,140.0,'',NULL,'[]',NULL,'["overture"]','hash-C','box_unique_strict');
+-- ⚠️ **列名を明示する。** 位置指定の VALUES にしていたため、列を 1 つ足しただけで
+--    すべての値がずれ、関係のないテストが «前提が崩れている» で落ちた（2026-09-23 に踏んだ）。
+INSERT INTO restaurant_sync_staging
+  (seed_id, existing_restaurant_id, google_place_id, name, name_language_code,
+   latitude, longitude, image_url, image_path, address_components_json, plus_code_json,
+   address, country_code, source_names_json, row_hash, match_method)
+VALUES
+  ('aaaaaaaa-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','PLACE_IN_SNAPSHOT','オープンデータ名A','ja',35.0,139.0,'',NULL,'[]',NULL,NULL,NULL,'["overture"]','hash-A','box_unique_strict'),
+  ('aaaaaaaa-0000-0000-0000-000000000002',NULL,'PLACE_MADE_BY_APP','オープンデータ名B','ja',35.5,139.5,'',NULL,'[]',NULL,NULL,NULL,'["overture"]','hash-B','box_unique_strict'),
+  ('aaaaaaaa-0000-0000-0000-000000000003',NULL,'PLACE_BRAND_NEW','オープンデータ名C','ja',36.0,140.0,'',NULL,'[]',NULL,NULL,NULL,'["overture"]','hash-C','box_unique_strict');
 SQL
 
 # --- 1. 旧ガードで事故が «再現すること» を確かめる（再現しないならテストが無意味） ---
@@ -132,17 +142,41 @@ SQL
 echo "✅ 3. 新ガードではアプリの行が丸ごと保たれ、新規行は pipeline になる"
 
 # --- 4. 逆向き: pipeline 行はオープンデータの更新に追随する（黙って止まらない） ---
-psql -h /tmp -p "$PGPORT" -U postgres -q <<'SQL'
+#
+# ⚠️ **値 UPDATE は 9_1 のソースから抜き出す。写経しない。**
+#    2026-09-23 まで、ここは `UPDATE ... SET name = s.name ...` と簡略化して写経しており、
+#    本番へ «中身が同じ行は書き直さない» 条件を足しても **テストは 1 度も通らないまま緑**だった。
+VALUE_UPDATE_SQL="$(python3 "$REPO_ROOT/scripts/20260808T0000_restaurant/tests/extract_value_update_sql.py")"
+
+psql -h /tmp -p "$PGPORT" -U postgres -q <<SQL
 SET search_path = dev;
 UPDATE restaurant_sync_staging SET name='オープンデータ名C（改名後）', row_hash='hash-C2'
 WHERE google_place_id='PLACE_BRAND_NEW';
-UPDATE restaurants r SET name = s.name FROM restaurant_sync_staging s
-WHERE r.google_place_id = s.google_place_id AND r.created_by_source='pipeline'
-  AND r.source_row_hash IS DISTINCT FROM s.row_hash;
+$VALUE_UPDATE_SQL;
 SQL
 [ "$(q "SELECT name FROM restaurants WHERE google_place_id='PLACE_BRAND_NEW';")" = "オープンデータ名C（改名後）" ] \
   || fail "pipeline 行がオープンデータの更新に追随していない（更新が黙って止まっている）"
 echo "✅ 4. pipeline 行はオープンデータの更新に追随する"
+
+# --- 4-b. #1881 **ハッシュだけが違い、中身が同じ行は書き直さない** ---
+#
+# dev で «全行のハッシュが変わったが値はほとんど同じ» が起きたとき、62 万行を全部
+# 書き直して 6 時間コースになった。ハッシュは «見に行くべきか» の篩であって
+# «書くべきか» ではない。ここが 0 行でなければ、その直しは効いていない。
+q "UPDATE restaurant_sync_staging SET row_hash='hash-C3' WHERE google_place_id='PLACE_BRAND_NEW';" >/dev/null
+# ⚠️ `SET search_path` のコマンド出力が混ざるので **最後の 1 行だけ**を取る
+CHANGED="$(psql -h /tmp -p "$PGPORT" -U postgres -t -A -q <<SQL | tail -1
+SET search_path = dev;
+WITH touched AS (
+$VALUE_UPDATE_SQL
+  RETURNING 1
+)
+SELECT count(*) FROM touched;
+SQL
+)"
+[ "$CHANGED" = "0" ] \
+  || fail "中身が同じ行を $CHANGED 行書き直した（#1881 の «書く行を減らす» が効いていない）"
+echo "✅ 4-b. ハッシュだけが違う行は書き直さない（#1881）"
 
 # --- 5. backfill 忘れの検知は、忘れているときだけ発火する ---
 #
