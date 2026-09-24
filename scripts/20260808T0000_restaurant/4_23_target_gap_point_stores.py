@@ -54,9 +54,21 @@ LOGGER = logging.getLogger(__name__)
 # （`handled` は «handle を知っている店» しか除いていなかった）。
 # «巡回対象 N 店» が «これから掘れる N 店» を意味しなくなり、周回の見積もりが毎回外れた。
 #
-# ⚠️ `fetch_failed` は入れない。**相手側の一時的な失敗**なので、次の周回で撃ち直す価値がある
+# どの status を «終端» と見るかは **実データで決めた**（gapcrawl-2026-09-22 を
+# gapcrawl2-2026-09-23 が 540 店ぶん巡り直していたので、その転換率をそのまま数えた）:
+#
+# | 1 周目の status | 2 周目で handle が出た | 判定 |
+# | --- | ---: | --- |
+# | `no_handle` 325 店 | **0 店（0.0%）** | 終端。巡り直す価値が無い |
+# | `robots_blocked` 7 店 | **0 店（0.0%）** | 終端。相手が拒んでいる |
+# | `ok` 56 店 | 53 店 | 終端。**同じ handle を採り直しているだけ**で新規はゼロ |
+# | `fetch_failed` 152 店 | **6 店（3.9%）** | **終端にしない。**撃ち直す価値がある |
+#
+# ⚠️ `fetch_failed` を入れないこと。**相手側の一時的な失敗**である
 #    （#1815 と同じ «一時的な失敗を恒久的な失敗として扱わない» 規律）。
-TERMINAL_CRAWL_STATUS = ("no_handle", "no_website", "robots_blocked", "website_is_ig")
+# ⚠️ `ok` を外さないこと。handle が出た店は `handled` でも除かれるはずだが、
+#    **4_1 が handle を登録しなかった店は漏れる**（上の 56 店がそれ）。
+TERMINAL_CRAWL_STATUS = ("no_handle", "no_website", "robots_blocked", "website_is_ig", "ok")
 
 
 def _crawled_cte(ds: str) -> str:

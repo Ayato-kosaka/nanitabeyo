@@ -114,8 +114,14 @@ class AlreadyCrawledStoresAreNotTargetedAgain(unittest.TestCase):
     def test_transient_failures_stay_retryable(self) -> None:
         """`fetch_failed` は **相手側の一時的な失敗**。恒久的な失敗として切り捨てない。"""
         self.assertNotIn("fetch_failed", m.TERMINAL_CRAWL_STATUS)
-        for st in ("no_handle", "no_website", "robots_blocked", "website_is_ig"):
+        for st in ("no_handle", "no_website", "robots_blocked", "website_is_ig", "ok"):
             self.assertIn(st, m.TERMINAL_CRAWL_STATUS)
+
+    def test_a_store_that_already_gave_its_handles_is_terminal(self) -> None:
+        """`ok` も終端。**4_1 が登録しなかった店が `handled` から漏れる**ので、
+        ここで止めないと «同じ handle を採り直すだけ» の巡回が毎周混ざる
+        （gapcrawl2 の 56 店がそれで、新規はゼロだった）。"""
+        self.assertIn("ok", m.TERMINAL_CRAWL_STATUS)
 
     def test_the_exclusion_is_defined_once(self) -> None:
         """同じ判定を 2 箇所に書かない（片方だけ直った状態を作らない）。"""
