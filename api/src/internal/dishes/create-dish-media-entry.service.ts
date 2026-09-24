@@ -355,10 +355,9 @@ export class CreateDishMediaEntryService {
           tx,
           {
             ...convertSupabaseToPrisma_Restaurants(payload.restaurants),
-            address_components: payload.restaurants
-              .address_components as Prisma.InputJsonValue,
-            // #1779 【設計】Google の plusCode を保存しない（読み手ゼロ / ToS 3.2.3）。
-            // dishes.service.ts の一括取り込みと同じ扱いに揃える
+            // #1779 【設計】Google の addressComponents / plusCode を保存しない
+            // （読み手ゼロ / ToS 3.2.3）。dishes.service.ts の一括取り込みと同じ扱いに揃える
+            address_components: [] as unknown as Prisma.InputJsonValue,
             plus_code: Prisma.DbNull,
           },
           payload.restaurants.google_place_id,
