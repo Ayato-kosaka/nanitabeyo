@@ -58,15 +58,15 @@ def _load_7_4():
     return m
 
 
-def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m: int) -> str:
-    """地点ごと・セルごとの生の行を返す（集計は Python 側でやる）。"""
-    called_sql = called_handles_sql(f"{ds}.{TABLE_ACCOUNT_ATTEMPT}", f"{ds}.{TABLE_POST_RAW}",
-                                    provider_param="prov")
-    # ⚠️ 相関サブクエリで «その地点の 500m 圏» を数えない。BigQuery は
-    #    「Correlated subqueries that reference other tables are not supported」で落ちる
-    #    （2026-09-22 に踏んだ）。地点×店を 1 度 JOIN で展開してから GROUP BY する。
+def _base_cte_sql(ds: str, dish_ds: str, *, sample_n: int, radius_m: int) -> str:
+    """«地点 × 配信店 × カテゴリ» を 1 度だけ展開する CTE 群（末尾は ``near``）。
+
+    ⚠️ **ここが «5 店» の判定の土台である。** 合格線を測る `build_sql` と、
+    脆さを測る `build_fragility_sql` の両方がこれを使う。
+    書き写して 2 つにすると «測る側と配る側がずれる»（`post_store_cte_sql` と同じ規律）。
+    """
     return f"""
-    WITH gate AS ({kpi_gate_category_sql(dish_ds, key_param=None)}),
+    gate AS ({kpi_gate_category_sql(dish_ds, key_param=None)}),
     pts AS (
       SELECT google_place_id AS pid, location
       FROM `{ds}.{TABLE_RESTAURANT_CATALOG}`
@@ -93,7 +93,19 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       JOIN delivered d ON TRUE
       JOIN store_loc s ON s.google_place_id = d.pid
       WHERE ST_DWithin(p.location, s.location, {int(radius_m)})
-    ),
+    )
+    """
+
+
+def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m: int) -> str:
+    """地点ごと・セルごとの生の行を返す（集計は Python 側でやる）。"""
+    called_sql = called_handles_sql(f"{ds}.{TABLE_ACCOUNT_ATTEMPT}", f"{ds}.{TABLE_POST_RAW}",
+                                    provider_param="prov")
+    # ⚠️ 相関サブクエリで «その地点の 500m 圏» を数えない。BigQuery は
+    #    「Correlated subqueries that reference other tables are not supported」で落ちる
+    #    （2026-09-22 に踏んだ）。地点×店を 1 度 JOIN で展開してから GROUP BY する。
+    return f"""
+    WITH {_base_cte_sql(ds, dish_ds, sample_n=sample_n, radius_m=radius_m)},
     cell AS (
       SELECT point, cat, COUNT(DISTINCT store) AS stores
       FROM near GROUP BY point, cat
@@ -155,6 +167,47 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
     LEFT JOIN pt_nohandle pn ON pn.point = p.pid
     """
 
+
+
+
+def build_fragility_sql(ds: str, dish_ds: str, *, sample_n: int, radius_m: int) -> str:
+    """達成しているセルが «投稿 1 本しか無い店» にどれだけ寄りかかっているかを数える。
+
+    #1947 2026-09-24、配信中の埋め込みの **6.53% が既に削除済み**だと実測した。
+    ところが `9_1`（配信）も `7_5`（合格線）も `7_4`（カバレッジ）も
+    **死活を 1 度も見ていない**。つまり «5 店» の中に «開くと利用できません» が混ざりうる。
+
+    ⚠️ 下がり幅は 6.53% ではない。投稿が 1 本死んでも、**その店に別の生きた投稿があれば
+    店は残る**。落ちるのは «そのカテゴリで投稿が 1 本しか無い店» だけである。
+    ここで数えるのは **最悪ケースの上限**（その手の店が全部死んだら何地点落ちるか）で、
+    «たぶん小さい» を数字に変えるためのものである。
+
+    判定（«5 店以上»・500m・134 カテゴリのゲート）は `_base_cte_sql` の 1 箇所を使う。
+    """
+    return f"""
+    WITH {_base_cte_sql(ds, dish_ds, sample_n=sample_n, radius_m=radius_m)},
+    -- その店がそのカテゴリで配信している «投稿の本数»。1 本なら、それが死ぬと店ごと落ちる。
+    posts_per_store_cat AS (
+      SELECT google_place_id AS store, dish_category_id AS cat,
+             COUNT(DISTINCT external_content_id) AS posts
+      FROM `{ds}.{TABLE_DISH_MEDIA_CATALOG}`
+      WHERE run_id = @catalog_run_id
+      GROUP BY store, cat
+    ),
+    cell AS (
+      SELECT n.point, n.cat,
+             COUNT(DISTINCT n.store) AS stores,
+             COUNT(DISTINCT IF(IFNULL(pc.posts, 0) <= 1, n.store, NULL)) AS single_post_stores
+      FROM near n
+      LEFT JOIN posts_per_store_cat pc ON pc.store = n.store AND pc.cat = n.cat
+      GROUP BY n.point, n.cat
+    ),
+    -- ⚠️ 集計は Python 側でやる（この script の既定の形）。ここは «セルごとの生の行» まで。
+    --    最悪ケースだけでなく **期待値**（死亡率 6.53%% での二項分布）も出したいので、
+    --    セルごとの «余裕» と «1 本しか無い店の数» をそのまま返す。
+    SELECT point, cat, stores, single_post_stores
+    FROM cell WHERE stores >= 5
+    """
 
 def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = False) -> list[str]:
     """«上位 top_pct% の target_pct% を達成» に必要な «あと何店» を出し、**埋めるべき地点を返す**。
@@ -296,6 +349,11 @@ def main() -> int:
                    help="③ で選んだ «撃てる弾のある未達地点» の google_place_id を出す"
                         "（4_2 --gap-points-delivery-run-id が同じ判定を自分で呼ぶので、"
                         "これは人が確かめるため）")
+    # #1947 配信中の 6.53% が既に削除済みなのに、9_1 / 7_5 / 7_4 は死活を見ていない。
+    #       «下がり幅はたぶん小さい» を数字に変えるための計測。
+    p.add_argument("--fragility", action="store_true",
+                   help="達成しているセルのうち «投稿 1 本しか無い店» に寄りかかっている数を出す"
+                        "（その手の店が全部死んだら何地点落ちるか＝最悪ケースの上限）")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -348,10 +406,85 @@ def main() -> int:
     LOGGER.info("参考: 地点あたりの配信店数 最大 %d / 中央値 %d / 最小 %d",
                 pts[0]["stores_500m"], mid, pts[-1]["stores_500m"])
 
+    if args.fragility:
+        _report_fragility(pipeline, ds, args, m74)
+
     if args.dump_json:
         Path(args.dump_json).write_text(json.dumps(pts, ensure_ascii=False), encoding="utf-8")
         LOGGER.info("地点ごとの生データ: %s", args.dump_json)
     return 0
+
+
+def _report_fragility(pipeline, ds: str, args, m74) -> None:
+    """«達成» が投稿 1 本に寄りかかっている量を出す。
+
+    ⚠️ ここで出るのは **最悪ケースの上限**（1 本しか無い店が全部死んだ場合）。
+       実際の死亡率は 6.53% なので、落ちる地点はこれよりずっと少ない。
+       «上限» と言い切らずに «これだけ落ちる» と書かないこと。
+    """
+    from google.cloud import bigquery  # noqa: PLC0415
+    rows = [dict(r) for r in pipeline.execute(
+        build_fragility_sql(ds, f"{args.project}.{args.dish_dataset}",
+                            sample_n=m74.SAMPLE_N, radius_m=m74.RADIUS_M), [
+            bigquery.ScalarQueryParameter("sample_catalog_run_id", "STRING",
+                                          m74.SAMPLE_CATALOG_RUN_ID),
+            bigquery.ScalarQueryParameter("catalog_run_id", "STRING", args.delivery_run_id),
+        ])]
+    if not rows:
+        return
+    by_point: dict[str, list[tuple[int, int]]] = {}
+    for r in rows:
+        by_point.setdefault(r["point"], []).append(
+            (int(r["stores"]), int(r["single_post_stores"])))
+    achieving = len(by_point)
+    cells = len(rows)
+    worst_cells = sum(1 for st, sp in ((a, b) for v in by_point.values() for a, b in v)
+                      if st - sp < 5)
+    worst_points = sum(1 for v in by_point.values() if all(st - sp < 5 for st, sp in v))
+    expected_points = sum(
+        _prod(_cell_fall_probability(st, sp) for st, sp in v) for v in by_point.values())
+    LOGGER.info("④ 死んだ埋め込みに対する «脆さ»（配信の %.2f%% が既に削除済み・実測）",
+                100 * DEAD_SHARE)
+    LOGGER.info("  達成している 地点 %d / セル %d", achieving, cells)
+    LOGGER.info("  «投稿 1 本しか無い店» が全部落ちると 5 店を割るセル = **%d**", worst_cells)
+    LOGGER.info("  → **最悪ケース**（その手の店が全部死んだ場合）に落ちる地点 = **%d / %d**",
+                worst_points, achieving)
+    LOGGER.info("  → **期待値**（死亡率 %.2f%% の二項分布）で落ちる地点 = **%.1f / %d**",
+                100 * DEAD_SHARE, expected_points, achieving)
+    LOGGER.info("  ⚠️ 最悪ケースは **上限**であって «これだけ落ちる» ではない。"
+                "判断には期待値の方を使うこと")
+
+
+#: 配信中の埋め込みの死亡率。`4_22_probe_embed_liveness.py` の実測（2026-09-24・1,500 投稿で
+#: 98 件 = 6.53%、95% 信頼区間 5.3〜7.8%）。**推測値を置かない。** 測り直したら書き換える。
+DEAD_SHARE = 0.0653
+
+
+def _prod(xs) -> float:
+    out = 1.0
+    for x in xs:
+        out *= x
+    return out
+
+
+def _cell_fall_probability(stores: int, single_post_stores: int,
+                           dead_share: float = DEAD_SHARE) -> float:
+    """そのセルが «5 店» を割る確率。
+
+    投稿が 2 本以上ある店は、1 本死んでも残る（確率はごく小さいので 0 と見なす）。
+    落ちうるのは «そのカテゴリで投稿が 1 本しか無い店» だけなので、
+    **k 個の独立な試行のうち、余裕（stores - 5）を超えて死ぬ確率**になる。
+    """
+    slack = stores - 5
+    k = min(single_post_stores, stores)
+    if slack >= k:
+        return 0.0
+    # P(X > slack), X ~ Binomial(k, dead_share)
+    from math import comb  # noqa: PLC0415
+    tail = 0.0
+    for i in range(slack + 1, k + 1):
+        tail += comb(k, i) * (dead_share ** i) * ((1 - dead_share) ** (k - i))
+    return min(1.0, tail)
 
 
 if __name__ == "__main__":
