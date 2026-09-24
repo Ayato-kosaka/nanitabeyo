@@ -131,8 +131,14 @@ def _load(fname: str, name: str):
     return m
 
 
-def build_sql(ds: str, *, radius_m: int) -> str:
-    """足りない地点の 500m 圏で «handle を知らない・サイトがある» 店を返す。
+def build_sql(ds: str, *, radius_m: int, require_website: bool = True) -> str:
+    """足りない地点の 500m 圏で «handle を知らない» 店を返す。
+
+    `require_website=True`（既定）は巡回（`4_4`）の対象。公式サイトが無いと辿れないので絞る。
+    `require_website=False` は **検索で handle を探す経路**（`4_24`）の対象。
+    検索はサイトが無い店にも届くので、ここで絞ると **943 店を最初から捨てる**ことになる。
+    ⚠️ 2 つの経路で «handle を知らない» の定義を分けないこと。分けた瞬間に、
+       片方だけ直った状態ができる。
 
     ⚠️ 座標は `7_5` と同じサンプルカタログ run から引く（別 run を混ぜると
     «2,662 店» と実際の対象がずれる）。
@@ -146,7 +152,7 @@ def build_sql(ds: str, *, radius_m: int) -> str:
     ),
     stores AS (
       SELECT google_place_id, ANY_VALUE(name) AS name, ANY_VALUE(website) AS website,
-             ANY_VALUE(location) AS location
+             ANY_VALUE(address) AS address, ANY_VALUE(location) AS location
       FROM `{ds}.{TABLE_RESTAURANT_CATALOG}`
       WHERE run_id = @geo_rid
       GROUP BY google_place_id
@@ -158,14 +164,14 @@ def build_sql(ds: str, *, radius_m: int) -> str:
     ),
     -- 一度巡って handle が出なかった店も除く（定義は `_crawled_cte` の 1 箇所だけ）
     crawled AS ({_crawled_cte(ds)})
-    SELECT s.google_place_id, s.name, s.website
+    SELECT s.google_place_id, s.name, s.website, s.address
     FROM stores s
     JOIN pts p ON ST_DWithin(p.location, s.location, {int(radius_m)})
     LEFT JOIN handled h ON h.gpid = s.google_place_id
     LEFT JOIN crawled c ON c.gpid = s.google_place_id
     WHERE h.gpid IS NULL AND c.gpid IS NULL
-      AND s.website IS NOT NULL AND s.website != ''
-    GROUP BY s.google_place_id, s.name, s.website
+      {"AND s.website IS NOT NULL AND s.website != ''" if require_website else ""}
+    GROUP BY s.google_place_id, s.name, s.website, s.address
     """
 
 

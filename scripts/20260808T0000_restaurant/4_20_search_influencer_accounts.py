@@ -243,8 +243,16 @@ def probe_rate_sql(pipeline: BigQueryPipeline) -> str:
     """
 
 
-def ensure_table(pipeline: BigQueryPipeline) -> None:
-    table_id = pipeline.table(TABLE_QUERY_CANDIDATE)
+def ensure_table(pipeline: BigQueryPipeline, table_name: str = None) -> None:
+    """候補表を用意する。
+
+    #1947 `table_name` を受けるのは、**店名検索（`4_24`）が同じ形の別表を使う**ため。
+    同じ «作る／列が変わっていたら作り直す» を 2 箇所に書くと、片方だけ直った状態ができる。
+    ⚠️ 2 つの表を混ぜないこと。`region` の意味が違う
+    （influencer 探索＝都道府県 / 店名検索＝探していた店の place_id）。
+    """
+    table_name = table_name or TABLE_QUERY_CANDIDATE
+    table_id = pipeline.table(table_name)
     try:
         current = pipeline.get_table(table_id)
     except NotFound:
@@ -252,7 +260,7 @@ def ensure_table(pipeline: BigQueryPipeline) -> None:
         return
     want = [(f.name, f.field_type, f.mode) for f in CANDIDATE_SCHEMA]
     if want != [(f.name, f.field_type, f.mode) for f in current.schema]:
-        LOGGER.warning("%s の列が変わっているため作り直します", TABLE_QUERY_CANDIDATE)
+        LOGGER.warning("%s の列が変わっているため作り直します", table_name)
         pipeline.client.delete_table(table_id)
         pipeline.client.create_table(bigquery.Table(table_id, schema=CANDIDATE_SCHEMA))
 
