@@ -42,6 +42,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from country_resolution import matched_rule  # noqa: E402
 from pg_sync_common import connect_postgres  # noqa: E402
 from pipeline_common import configure_logging  # noqa: E402
 
@@ -225,11 +226,24 @@ def main() -> None:
             #
             # 行ごとに «列の値 / components の country / 作成元» を並べれば、
             # 次に見る人がコードを読まずに切り分けられる。
+            #
+            # #1881 【設計】**住所と «当たった規則» も出す。** 2026-09-24 の run
+            # 35974852677 は «全部パイプライン製 / components の国は無し» までは
+            # 出せたが、そこで詰まった。国コードは住所から決まる（`country_resolution`）
+            # のに、**その入力である住所を出していなかった**ので、
+            #
+            #   - 住所の綴りが KR と JP で衝突している（規則を直す）のか
+            #   - 住所が空で、古い JP が同期から取り残されている（同期を直す）のか
+            #
+            # を区別できなかった。規則は 25 本あり、**当たった 1 本が分かれば
+            # 手当ては一意に決まる**。判定は `matched_rule()` を呼んで出す
+            # （正本をここへ写経すると #1881 の «循環する検証» が再発する）。
             cursor.execute(
                 f"""
                 SELECT name, latitude, longitude, created_by_source,
                        {COUNTRY_EXPR} AS components_country,
-                       source_row_hash IS NOT NULL AS pipeline_wrote_values
+                       source_row_hash IS NOT NULL AS pipeline_wrote_values,
+                       address
                 FROM restaurants
                 WHERE country_code = 'JP'
                   AND latitude BETWEEN 34.0 AND 43.0
@@ -245,6 +259,7 @@ def main() -> None:
                 created_by_source,
                 components_country,
                 pipeline_wrote_values,
+                address,
             ) in cursor.fetchall():
                 LOGGER.info(
                     "    例: (%.3f, %.3f) %-28s 作成元=%-8s components の国=%-6s "
@@ -255,6 +270,14 @@ def main() -> None:
                     created_by_source,
                     components_country if components_country else "(無し)",
                     pipeline_wrote_values,
+                )
+                hit = matched_rule(address)
+                LOGGER.info(
+                    "         住所=%s / 住所から引くと=%s（規則 #%s: %s）",
+                    repr(address) if address else "(空)",
+                    hit[2] if hit else "(決められない)",
+                    hit[0] if hit else "-",
+                    hit[1] if hit else "-",
                 )
     finally:
         connection.rollback()
