@@ -619,6 +619,58 @@ class BracketedDayGroupTest(unittest.TestCase):
             self.EXPECTED,
         )
 
+    # ⚠️ **記号を «列挙» して直したのが間違いだった。** 2026-09-24 に `】` だけを足したところ、
+    #    下の記号は **同じ誤りのまま残っていた**（実測で 5 種）。列挙をやめ、
+    #    «語でも数字でも曜日でもない記号が数文字» という形で許す。
+    BRACKETS = ["【%s】", "[%s]", "（%s）", "(%s)", "〈%s〉", "《%s》", "＜%s＞", "<%s>", "「%s」", "［%s］", "■%s■", "●%s", "%s"]
+
+    def test_every_bracket_shape_keeps_the_groups_separate(self) -> None:
+        for shape in self.BRACKETS:
+            with self.subTest(shape=shape % "X"):
+                text = f'営業時間 {shape % "日～木"} 17:00～23:00 {shape % "金・土"} 17:00～24:00'
+                self.assertEqual(self._by_day(text), self.EXPECTED, text)
+
+    def test_does_not_jump_over_a_date(self) -> None:
+        """⚠️ 記号を跨がせても **数字は跨がせない**。跨ぐと日付を飛び越えて時刻を掴む。"""
+        rows = parse("営業時間 月曜 12 月 1 日 10:00-17:00")
+        # ⚠️ この入力自体は «1 日» の `日` を日曜と読む **別の既知の誤り**を踏むので、
+        #    ここでは «月曜へ 10:00-17:00 を結びつけていないこと» だけを見る。
+        self.assertIsNotNone(rows)
+        self.assertNotIn(1, {row.day_of_week for row in rows or []})
+
+
+class DayHintUnboundTest(unittest.TestCase):
+    """⚠️ 曜日ごとの時刻が 2 組以上あるのに結びつかなかったら、**«毎日» にしない**。
+
+    記号は無限に増えるので、区切りの書き方を広げるだけでは同じ形がまた起きる。
+    «曜日 → 時刻» の組が 2 つ以上見えているのに 1 つも結びつかなかったときは
+    **諦める**（`day_hint_unbound`）。全部を全曜日へ配るのは
+    «間違った open を書く» 向きの誤りで、3 値判定でいちばん高くつく。
+    """
+
+    def test_gives_up_when_two_day_groups_did_not_bind(self) -> None:
+        # 曜日と時刻のあいだに «語» が挟まり、どの正規表現でも結びつかない形
+        text = "営業時間 日～木 のディナーは 17:00～23:00 金・土 のディナーは 17:00～24:00"
+        rows, reason = parse_with_reason(text)
+        self.assertIsNone(rows)
+        self.assertEqual(reason, "day_hint_unbound")
+
+    def test_does_not_give_up_on_lunch_and_dinner_with_a_closed_day(self) -> None:
+        """⚠️ `定休日 月曜` の «時刻が続かない曜日» で発火させないこと。
+
+        最初この番人を «曜日が書かれていて時間帯が 2 つ以上» で書いたところ、
+        昼夜 2 コマ + 月曜定休の実データを 3 件落とした。
+        """
+        rows, reason = parse_with_reason("営業時間 11:30～14:30 18:00～21:00 定休日 月曜")
+        self.assertIsNotNone(rows, reason)
+        self.assertNotIn(1, {row.day_of_week for row in rows or []})
+
+    def test_does_not_give_up_when_there_is_no_day_hint(self) -> None:
+        rows, reason = parse_with_reason("営業時間 11:00～14:00 17:00～21:00")
+        self.assertIsNotNone(rows, reason)
+        self.assertEqual(len({row.day_of_week for row in rows or []}), 7)
+
+
     def test_does_not_bind_times_that_are_not_opening_hours(self) -> None:
         """⚠️ 括弧を許したことで «無関係な数字を曜日へ結びつける» 方向へ振れていないこと。
 
