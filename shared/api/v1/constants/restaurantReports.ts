@@ -4,7 +4,9 @@
  * API・app・e2e がこの 1 ファイルだけを見るようにする。
  *
  * ⚠️ ここの配列は **`restaurant_reports` の CHECK 制約と同じ集合**でなければならない
- * （migration: `infra/supabase/migrations/20260923T0000_create_restaurant_reports.sql`）。
+ * （migration: `infra/supabase/migrations/` の `*_create_restaurant_reports.sql`。
+ * ⚠️ 日付を書かない。migration の名前は «適用列に並ぶ順序» なので main の状況で変わり、
+ * 実際に `20260923T0000_...` → `20260924T0200_...` へ rename された）。
  * 片方だけ増やすと、API は 201 を返すのに INSERT が落ちる（`content_reports` で
  * 同じ形の落とし穴が既に文書化されている）。
  *
