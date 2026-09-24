@@ -49,6 +49,8 @@ _BUILDERS = [
     ("7_8_measure_gap_point_blocked.py", "build_sql",
      ("food-scroll.restaurant_recommendation", "food-scroll.wikidata_food_graph"),
      {"radius_m": 500}),
+    ("7_8_measure_gap_point_blocked.py", "build_no_category_reason_sql",
+     ("food-scroll.restaurant_recommendation",), {"radius_m": 500}),
     ("4_23_target_gap_point_stores.py", "build_sql",
      ("food-scroll.restaurant_recommendation",), {"radius_m": 500}),
     ("4_23_target_gap_point_stores.py", "build_unreachable_sql",

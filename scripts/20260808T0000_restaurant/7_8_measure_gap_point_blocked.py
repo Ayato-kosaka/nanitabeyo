@@ -32,7 +32,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from common_sns import (LATEST_RESOLVED_QUALIFY, MIN_RESTAURANT_CONFIDENCE,  # noqa: E402
-                        TABLE_DISH_CATEGORY_IMAGES, TABLE_POST_RAW, TABLE_POST_RESOLVED,
+                        PROVIDER_INSTAGRAM, TABLE_DISH_CATEGORY_IMAGES, TABLE_POST_RAW, TABLE_POST_RESOLVED,
                         TABLE_RESTAURANT_CATALOG, category_with_image_cte_sql,
                         kpi_gate_category_sql, post_store_cte_sql,
                         resolved_store_confidence_sql)
@@ -112,6 +112,65 @@ def build_sql(ds: str, dish_ds: str, *, radius_m: int) -> str:
     """
 
 
+def build_no_category_reason_sql(ds: str, *, radius_m: int) -> str:
+    """#1947 «カテゴリが付かない» 投稿が、**どこで**付かなかったのかを分ける。
+
+    2026-09-23 から «合格線の地点の近くでカテゴリの付かない投稿» が打ち手未特定のまま
+    残っていた。«何件あるか» は 7_8 が出していたが、**なぜ付かないか**を数えていなかったので
+    打ち手が出せなかった。理由を 3 つに分ける。
+
+    | 分け方 | 意味 | 打ち手 |
+    | --- | --- | --- |
+    | **キャプションが無い** | resolve に渡す文字が存在しない | `4_14` でキャプションを後入れする |
+    | キャプションはあるが候補 0（`cat=0`） | 文字はあるが料理名を取れていない | 抽出側の改善 |
+    | それ以外 | 候補は出たが採れなかった | resolve のしきい値 |
+
+    ⚠️ 店との結び付けは `post_store_cte_sql` を使う（`build_sql` と同じ定義）。
+       «seed も使う» ことを忘れて resolve 済みの店だけで数えると、桁が変わる。
+    """
+    return f"""
+    WITH pts AS (
+      SELECT google_place_id AS pid, ANY_VALUE(location) AS location
+      FROM `{ds}.{TABLE_RESTAURANT_CATALOG}`
+      WHERE run_id = @geo_rid AND google_place_id IN UNNEST(@gap_pts)
+      GROUP BY google_place_id
+    ),
+    store_loc AS (
+      SELECT google_place_id, ANY_VALUE(location) AS location
+      FROM `{ds}.{TABLE_RESTAURANT_CATALOG}` WHERE run_id = @geo_rid
+      GROUP BY google_place_id
+    ),
+    near_store AS (
+      SELECT DISTINCT s.google_place_id
+      FROM store_loc s JOIN pts p ON ST_DWithin(p.location, s.location, {int(radius_m)})
+    ),
+    v AS (
+      SELECT * FROM `{ds}.{TABLE_POST_RESOLVED}`
+      {LATEST_RESOLVED_QUALIFY}
+    ),
+    {post_store_cte_sql(f"{ds}.{TABLE_POST_RAW}", latest_cte="v")},
+    raw1 AS (
+      SELECT post_id, ANY_VALUE(caption) AS caption
+      FROM `{ds}.{TABLE_POST_RAW}` WHERE provider = @prov GROUP BY post_id
+    )
+    SELECT
+      CASE
+        WHEN raw1.caption IS NULL OR raw1.caption = '' THEN 'A キャプションが無い'
+        WHEN REGEXP_CONTAINS(IFNULL(v.resolve_reason, ''), r'\\|cat=0\\|') THEN 'B 文字はあるが料理名を取れない'
+        ELSE 'C 候補は出たが採れなかった'
+      END AS reason,
+      COUNT(*) AS posts,
+      COUNT(DISTINCT ps.google_place_id) AS stores,
+      ROUND(AVG(LENGTH(IFNULL(raw1.caption, '')))) AS avg_caption_len
+    FROM v
+    JOIN post_store ps ON ps.post_id = v.post_id
+    JOIN near_store n ON n.google_place_id = ps.google_place_id
+    LEFT JOIN raw1 ON raw1.post_id = v.post_id
+    WHERE v.dish_category_id IS NULL
+    GROUP BY reason ORDER BY posts DESC
+    """
+
+
 def main() -> int:
     p = argparse.ArgumentParser(
         description="合格線に足りない地点の近くで «配信していない投稿» を理由別に数える。読み取りのみ")
@@ -152,6 +211,12 @@ def main() -> int:
             #    閾値の値はここに書かず 9_1 と同じ定数を通す。
             bigquery.ScalarQueryParameter("min_conf", "FLOAT64", MIN_RESTAURANT_CONFIDENCE),
         ])]
+    reason_rows = [dict(x) for x in pipeline.execute(
+        build_no_category_reason_sql(ds, radius_m=m74.RADIUS_M), [
+            bigquery.ScalarQueryParameter("geo_rid", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
+            bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
+            bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
+        ])]
     r = rows[0] if rows else {}
     near = int(r.get("posts_near") or 0)
     if not near:
@@ -176,6 +241,15 @@ def main() -> int:
                 MIN_RESTAURANT_CONFIDENCE,
                 int(r.get("low_confidence") or 0),
                 int(r.get("stores_blocked_by_confidence") or 0))
+    # #1947 «カテゴリが付かない» の内訳。件数だけでは打ち手が出せず、2026-09-23 から
+    #       «打ち手未特定» のまま残っていた項目。
+    LOGGER.info("")
+    LOGGER.info("  «カテゴリが付かない» の内訳（どこで付かなかったか）:")
+    for x in reason_rows:
+        LOGGER.info("    %-28s : %8d 件（%d 店・キャプション平均 %d 文字）",
+                    x.get("reason"), int(x.get("posts") or 0),
+                    int(x.get("stores") or 0), int(x.get("avg_caption_len") or 0))
+    LOGGER.info("    → **A はキャプションの後入れ（4_14）で動く。B は抽出側、C はしきい値。**")
     LOGGER.info("")
     LOGGER.info("⚠️ «絵が無い» が KPI に効くのは **ゲート内のカテゴリだけ**。"
                 "ゲート外の件数を «あと N 店で届く» の材料に混ぜない（2026-09-23 に混ぜて外した）。")

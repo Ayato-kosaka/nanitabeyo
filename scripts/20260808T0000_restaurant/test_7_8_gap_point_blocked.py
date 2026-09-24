@@ -107,3 +107,28 @@ class TheConfidenceThresholdIsBoundTest(unittest.TestCase):
         code = "\n".join(ln for ln in body.splitlines()
                           if not ln.lstrip().startswith("#"))
         self.assertNotIn("0.60", code)
+
+
+class WhyTheCategoryIsMissingIsBrokenDown(unittest.TestCase):
+    """#1947 «カテゴリが付かない» を件数だけで止めない。
+
+    2026-09-23 から «合格線の地点の近くでカテゴリの付かない投稿» が «打ち手未特定» の
+    まま残っていた。件数は出ていたが **どこで付かなかったか**を数えていなかったので、
+    打ち手（キャプション後入れ / 抽出改善 / しきい値）を選べなかった。
+    """
+
+    DS = "food-scroll.restaurant_recommendation"
+
+    def test_it_splits_by_where_it_failed(self) -> None:
+        sql = m.build_no_category_reason_sql(self.DS, radius_m=500)
+        self.assertIn("キャプションが無い", sql)
+        self.assertIn("cat=0", sql)
+        self.assertIn("dish_category_id IS NULL", sql)
+
+    def test_it_uses_the_shared_store_linkage(self) -> None:
+        """«seed も使う» 結び付けを写経しない（resolve 済みの店だけで数えると桁が変わる）。"""
+        sql = m.build_no_category_reason_sql(self.DS, radius_m=500)
+        self.assertIn("post_store", sql)
+        src = (HERE / "7_8_measure_gap_point_blocked.py").read_text(encoding="utf-8")
+        self.assertEqual(src.count("post_store_cte_sql("), 2,
+                         "2 つの build_sql が同じ定義を呼ぶこと（片方だけ写経しない）")
