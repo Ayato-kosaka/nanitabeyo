@@ -114,17 +114,31 @@ export class DishesService {
       throw new Error('Restaurant not found');
     }
 
-    // レストランの住所情報からローカル言語コードを推測。
-    // #1671 ⚠️ **列も渡すこと。** パイプライン製の行は address_components が '[]' で
-    // （dev の 99.60% がそう）、渡さないと 'en' へ落ちて日本の店に英語の料理名が付く。
-    // 実測で全料理の 92.44%（36,051 件）がこれで英語名になっていた。
-    const languageCode = this.locationsService.resolveLocalLanguageCode(
-      restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[],
-      {
-        countryCode: restaurant.country_code,
-        subterritoryCode: restaurant.subterritory_code,
-      },
-    );
+    /*
+      レストランの住所情報からローカル言語コードを推測する。
+
+      #1671 ⚠️ **列を渡すこと。** パイプライン製の行は `address_components` が `'[]'` で
+      （dev の 99.60% がそう）、渡さないと `'en'` へ落ちて日本の店に英語の料理名が付く。
+      実測で全料理の 92.44%（36,051 件）がこれで英語名になっていた。
+
+      #1779 【設計】**`address_components` は渡さない（`[]` を渡す）。**
+
+      あの列は Google 由来の住所そのもので Places ToS 3.2.3 により保持できないため
+      落とす。落ちたあとに読もうとすると、この経路が実行時に壊れる。
+
+      ⚠️ **失うものは測ってある**（dev / 2026-09-24 / run 35963398137）。
+      `address_components` を持つ 2,479 行のうち:
+
+      - `country_code` 列が空なのは **12 行**。ここだけが `'en'` へ落ちる
+      - «州で言語が変わる国»（BE/CA/CH/ES/GB/IN/ZA）で `subterritory_code` が空なのは
+        **27 行**。ここはその国の第 1 言語が使われる（GB→en / ES→es 等）
+
+      残る 99.60% は元から列だけで動いているので、挙動は変わらない。
+    */
+    const languageCode = this.locationsService.resolveLocalLanguageCode([], {
+      countryCode: restaurant.country_code,
+      subterritoryCode: restaurant.subterritory_code,
+    });
 
     /*
       #1779 【削除】`dishes.name` へ «推測名» を入れるのをやめた。
@@ -509,16 +523,24 @@ export class DishesService {
           // 表示は `image_path` 由来の `imageUrls` から組み立てる（#1680 / #1902）。
           image_url: '',
           image_path: mediaPath,
-          // #1779 既存行からの carry-forward はやめた。`RestaurantsEntity` が
-          // `address_components` を載せなくなったので、そもそも読めない。
-          // ⚠️ **この経路が Google の値を書くこと自体は変えていない**
-          //    （#1780 の 2026-09-02 判断ログで «投稿が貯まるまでの繋ぎ» として
-          //    現状維持と決まっている。止めるのは #1264 の決着後）。
-          //    変わるのは «既存の google-import 行を上書きするかどうか» だけで、
-          //    どちらも同じ Google 由来の値である。
-          address_components: JSON.parse(
-            JSON.stringify(place.addressComponents),
-          ),
+          // #1779 【設計】**Google の addressComponents を保存しない。**
+          //
+          // 同じ経路の `image_url` は #1680、`plus_code` は #2015 で既に «値を
+          // 作らない» になっていた。**`address_components` だけが残っていた。**
+          // ToS 3.2.3 が無期限の保存を許すのは `place_id` だけである。
+          //
+          // ⚠️ **読み手はもう 1 つも無い。** 確認ページは列へ移し（#2035）、
+          //    料理の命名も `country_code` / `subterritory_code` 列から決めるように
+          //    したので（このファイルの上の方）、保存しても誰も読まない。
+          //
+          // ⚠️ **#1780 の «現状維持» を破っていない。** あれは «Google 一括取り込み
+          //    そのものを #1264 まで残す» という判断で、**生データを保存し続ける**
+          //    という判断ではない（同じ判断ログが «保存しない» と書いている）。
+          //    取り込みは動いたまま、保存だけをやめる。
+          //
+          // ⚠️ ここは Cloud Tasks の payload（`SupabaseRestaurants`）を組む場所なので、
+          //    型は `Json`。`Prisma.InputJsonValue` へキャストすると通らない。
+          address_components: [],
           // #1779 `plus_code` も削除予定の列で、読み手が 1 つも無い。値を作らない。
           plus_code: null,
           created_at:
@@ -890,13 +912,10 @@ export class DishesService {
             tx,
             {
               ...convertSupabaseToPrisma_Restaurants(restaurant),
-              address_components:
-                restaurant.address_components as Prisma.InputJsonValue,
-              // #1779 【設計】**Google の plusCode を保存しない。** 読み手が 1 つも無く
-              // （API レスポンス型にも app-expo にも参照ゼロ）、ToS 3.2.3 で無期限に
-              // 保存してよいのは place_id だけである。同じ経路の image_url /
-              // address_components が既に «値を作らない» になっているのに、
-              // ここだけ Google の値を書き続けていた。列は残す（削除は #1779 本体）。
+              // #1779 【設計】**Google の addressComponents / plusCode を保存しない。**
+              // 読み手が 1 つも無く、ToS 3.2.3 で無期限に保存してよいのは
+              // `place_id` だけである。列は残る（削除は #1779 本体）。
+              address_components: [] as unknown as Prisma.InputJsonValue,
               plus_code: Prisma.DbNull,
             },
             restaurant.google_place_id,
