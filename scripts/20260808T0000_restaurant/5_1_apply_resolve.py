@@ -390,6 +390,12 @@ def main() -> None:
         FLUSH_EVERY = args.flush_every if args.flush_every > 0 else min(200 * max(args.concurrency, 1), 2000)
         rows: list[dict] = []
         n_ok = n_err = 0
+        # ⚠️ #1947 **要約は累積で出す。** n_ok / n_err は «追加バッチ» の頭で 0 に戻すので、
+        #    これを最後の要約に載せると «最後のバッチ 1 本ぶんの失敗数» を run 全体の数として
+        #    報告してしまう（total / matched は累積なので、混ぜると桁が合わない）。
+        #    2026-09-24 に dev の API が 9 時間 500 を返し続けたのに、run のログは
+        #    «resolve失敗=<最後のバッチ>» としか言わず、止まっていることに気づけなかった。
+        tot_ok = tot_err = 0
         dumped = 0
         total = 0
         matched = 0
@@ -425,9 +431,10 @@ def main() -> None:
 
         def _handle(post, resp) -> None:
             """resolve 結果を集約する。**メインスレッドだけが呼ぶ**ので lock 不要。"""
-            nonlocal n_ok, n_err, dumped, matched
+            nonlocal n_ok, n_err, tot_ok, tot_err, dumped, matched
             if resp is None:
                 n_err += 1
+                tot_err += 1
                 return
             if dumped < args.debug_dump:
                 import json as _json
@@ -436,6 +443,7 @@ def main() -> None:
                 dumped += 1
             outcome = classify(resp)
             n_ok += 1
+            tot_ok += 1
             rows.append({
                 "post_id": post["post_id"], "provider": PROVIDER_INSTAGRAM,
                 "status": outcome.status,
@@ -545,9 +553,42 @@ def main() -> None:
         LOGGER.info("実効スループット: %d 件 / %.1f 秒 = **%.2f 投稿/秒**（= %.0f 投稿/時, concurrency=%d, shard=%d/%d）",
                     total, elapsed, total / elapsed if elapsed else 0.0,
                     3600 * total / elapsed if elapsed else 0.0, concurrency, args.shard, args.shards)
-        LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d, 429/5xx の投げ直し=%d 回）を投入しました",
-                    total, matched, n_err, client.retried)
+        LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d〈run 全体の累積〉, "
+                    "429/5xx の投げ直し=%d 回）を投入しました",
+                    total, matched, tot_err, client.retried)
+        note = failure_share_note(tot_ok, tot_err)
+        if note:
+            LOGGER.warning("%s", note)
         _report_first_time_share(pipeline, run_id, args)
+
+
+FAILURE_SHARE_WARN = 0.5
+FAILURE_SHARE_MIN_CALLS = 500
+
+
+def failure_share_note(ok: int, err: int) -> str | None:
+    """resolve の失敗が «多すぎる» ときだけ文言を返す（そうでなければ None）。
+
+    ⚠️ #1947 **落とさない・赤くしない。** 相手が一時的に重いだけの run を赤くするのは、
+    見落とすのと同じくらい悪い（`5_1` と `lanes.py` で実際にやった）。ここは
+    «気づけない» をなくすためのものである。
+
+    なぜ要るか: 2026-09-24、dev の API が落ちた列を読み続けて **9 時間 500 を返し**、
+    店を 1 件も引けなかったのに、run は success で終わり続けた。半分以上の呼び出しが
+    失敗しているのは «相手が壊れている» 以外にほぼ無いので、そこだけを言う。
+
+    小さい標本で騒がないよう、**FAILURE_SHARE_MIN_CALLS 回以上呼んだ run だけ**を対象にする。
+    """
+    calls = ok + err
+    if calls < FAILURE_SHARE_MIN_CALLS or err == 0:
+        return None
+    share = err / calls
+    if share < FAILURE_SHARE_WARN:
+        return None
+    return (f"⚠️ 呼び出しの {share:.1%}（{err}/{calls}）が失敗しています。"
+            "resolve の相手（dev の API）が壊れている可能性が高いので、"
+            "«この run は成功した» と読まないこと。"
+            "失敗した投稿は行を作っていないので、直ってから解き直せます")
 
 
 def _report_first_time_share(pipeline: BigQueryPipeline, run_id: str, args) -> None:
