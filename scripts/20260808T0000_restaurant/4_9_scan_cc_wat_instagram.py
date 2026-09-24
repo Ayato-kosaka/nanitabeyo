@@ -36,6 +36,22 @@ from common_sns import (PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT
                         area_from_text, build_city_index, city_index_sql)
 
 LOGGER = logging.getLogger(__name__)
+
+
+def select_files(paths: list[str], *, shards: int, shard: int,
+                 max_files: int, skip_files: int = 0) -> list[str]:
+    """このジョブが読む WAT ファイルを選ぶ（純関数）。
+
+    ⚠️ **`--skip-files` が «続きから» の唯一の手段である。** ストライプは必ず先頭から
+    始まるので、`--shards` / `--shard` をどう変えても 0 番付近から取り直すことになる。
+    2026-09-04 の 5 ラウンドはすべてファイル 0〜15,999 番に当たっており、
+    crawl 10 万本のうち **16.0% しか読めていなかった**（`restaurant_pipeline_runs` の
+    `parameters_json` で実測: shards=8 × files=2000 と shards=6 × files=1600）。
+
+    次のラウンドは `--skip-files` に «そのシャードで既に読んだ本数» を渡すこと。
+    """
+    stripe = [p for i, p in enumerate(paths) if i % max(shards, 1) == shard]
+    return stripe[skip_files: skip_files + max_files]
 BASE = "https://data.commoncrawl.org/"
 UA = {"User-Agent": "nanitabeyo-research/1.0 (+dish_media seed; contact via github.com/Ayato-kosaka/nanitabeyo)"}
 
@@ -235,6 +251,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--shards", type=int, default=1, help="WAT ファイルの分割数")
     p.add_argument("--shard", type=int, default=0)
     p.add_argument("--max-files", type=int, default=200, help="このジョブで流す WAT 数")
+    # ⚠️ #1947 **これが無いと «続きから» が撃てない。** シャードは毎回ストライプの先頭から
+    #    取り直すので、`--shards/--shard` をどう変えても **必ず 0 番から**になる。
+    #    2026-09-04 の 5 ラウンドが全部 0〜15,999 番に当たっていたのはこのためで、
+    #    crawl 10 万本のうち **16.0% しか走査できていなかった**（残り 84% は未読のまま）。
+    p.add_argument("--skip-files", type=int, default=0,
+                   help="このシャードの先頭から読み飛ばす WAT 数（続きから流すため）")
     p.add_argument("--flush-every", type=int, default=10, help="何ファイルごとに BQ へ流すか")
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
@@ -254,8 +276,10 @@ def main() -> None:
 
     with _open(f"{BASE}crawl-data/{args.crawl}/wat.paths.gz") as r:
         paths = [p for p in gzip.decompress(r.read()).decode().split("\n") if p.strip()]
-    mine = [p for i, p in enumerate(paths) if i % max(args.shards, 1) == args.shard][: args.max_files]
-    LOGGER.info("crawl %s: 全 %d ファイル中このシャードは %d 本", args.crawl, len(paths), len(mine))
+    mine = select_files(paths, shards=args.shards, shard=args.shard,
+                        max_files=args.max_files, skip_files=args.skip_files)
+    LOGGER.info("crawl %s: 全 %d ファイル中このシャードは %d 本（先頭 %d 本を読み飛ばし）",
+                args.crawl, len(paths), len(mine), args.skip_files)
 
     with pipeline.step(run_id, "4_9_scan_cc_wat_instagram", parameters={
         "crawl": args.crawl, "shards": args.shards, "shard": args.shard, "files": len(mine),
