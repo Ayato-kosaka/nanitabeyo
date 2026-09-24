@@ -518,10 +518,8 @@ export class DishesService {
             existingGoogleImportEntry?.restaurant.longitude ??
             place.location!.longitude!,
           location: existingGoogleImportEntry?.restaurant.location ?? null,
-          // #1779 `image_url` は削除予定の列（Google の写真 URI をそのまま持つため
-          // Places ToS 3.2.3 に反する）。**新しく値を作らない。**
+          // #1779 `image_url` は **2026-09-24 に列ごと削除した**（migration 20260924T0100）。
           // 表示は `image_path` 由来の `imageUrls` から組み立てる（#1680 / #1902）。
-          image_url: '',
           image_path: mediaPath,
           // #1779 【設計】**Google の addressComponents を保存しない。**
           //
@@ -538,11 +536,6 @@ export class DishesService {
           //    という判断ではない（同じ判断ログが «保存しない» と書いている）。
           //    取り込みは動いたまま、保存だけをやめる。
           //
-          // ⚠️ ここは Cloud Tasks の payload（`SupabaseRestaurants`）を組む場所なので、
-          //    型は `Json`。`Prisma.InputJsonValue` へキャストすると通らない。
-          address_components: [],
-          // #1779 `plus_code` も削除予定の列で、読み手が 1 つも無い。値を作らない。
-          plus_code: null,
           created_at:
             existingGoogleImportEntry?.restaurant.created_at ??
             new Date().toISOString(),
@@ -570,8 +563,7 @@ export class DishesService {
           id: existingGoogleImportEntry?.dish.id ?? 'unknown',
           restaurant_id: restaurant.id,
           category_id: dto.categoryId,
-          // #1779 `dishes.name` は廃止する列なので値を作らない（読み手ゼロ）
-          name: null,
+          // #1779 `dishes.name` は **2026-09-24 に列ごと削除した**（migration 20260924T0100）。
           created_at:
             existingGoogleImportEntry?.dish.created_at ??
             new Date().toISOString(),
@@ -579,8 +571,8 @@ export class DishesService {
             existingGoogleImportEntry?.dish.updated_at ??
             new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish.lock_no ?? 0,
-          // #843 catalog 同期ではない行の既定値（DB 側の DEFAULT と同じ）
-          data_origin: 'user_or_google',
+          // #1779 `data_origin` は **2026-09-24 に列ごと削除した**（migration 20260924T0100）。
+          // 同じ区別は `synced_at` で付く（dev 実測で 1 対 1）。
           synced_at: null,
         };
 
@@ -912,11 +904,8 @@ export class DishesService {
             tx,
             {
               ...convertSupabaseToPrisma_Restaurants(restaurant),
-              // #1779 【設計】**Google の addressComponents / plusCode を保存しない。**
-              // 読み手が 1 つも無く、ToS 3.2.3 で無期限に保存してよいのは
-              // `place_id` だけである。列は残る（削除は #1779 本体）。
-              address_components: [] as unknown as Prisma.InputJsonValue,
-              plus_code: Prisma.DbNull,
+              // #1779 `address_components` / `plus_code` は **2026-09-24 に列ごと削除した**
+              // （migration 20260924T0100）。ToS 3.2.3 で保存してよいのは `place_id` だけ。
             },
             restaurant.google_place_id,
           );

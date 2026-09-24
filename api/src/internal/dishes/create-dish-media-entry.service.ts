@@ -355,10 +355,8 @@ export class CreateDishMediaEntryService {
           tx,
           {
             ...convertSupabaseToPrisma_Restaurants(payload.restaurants),
-            // #1779 【設計】Google の addressComponents / plusCode を保存しない
-            // （読み手ゼロ / ToS 3.2.3）。dishes.service.ts の一括取り込みと同じ扱いに揃える
-            address_components: [] as unknown as Prisma.InputJsonValue,
-            plus_code: Prisma.DbNull,
+            // #1779 `address_components` / `plus_code` は **2026-09-24 に列ごと削除した**
+            // （migration 20260924T0100）。指定すると存在しない列への INSERT で落ちる。
           },
           payload.restaurants.google_place_id,
           { updateImagePath },

@@ -5,6 +5,10 @@ import { ImageCard } from "@/components/ImageCardGrid";
 import { FixedColors } from "@/constants/Palette";
 import { Text } from "react-native";
 import { DishRating } from "@/components/DishRating";
+// #1629 料理の表示名は `dish_categories.labels` から locale で引く（`dishes.name` は使わない）。
+// #1779 で `dishes.name` は列ごと削除した。
+import { resolveDishCategoryLabel } from "@/features/myDishes/dishCategoryLabel";
+import i18n from "@/lib/i18n";
 import { useDishMediaEntriesStore, selectIdsByKey, selectEntryByMediaId } from "@/stores/useDishMediaEntriesStore";
 import { useRestaurantDishMediaFetcher } from "../../hooks/useRestaurantDishMediaFetcher";
 import { shallow } from "zustand/shallow";
@@ -87,11 +91,13 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 					item={{
 						id: entry.dish_media.id,
 						imageUrl: entry.dish_media.thumbnailImageUrl ?? "",
-						title: entry.dish.name ?? undefined,
+						title: resolveDishCategoryLabel(entry.dish.categoryLabels, i18n.locale) ?? undefined,
 					}}
 					onPress={() => handleItemPress(index, entry.dish_media.id)}>
 					<View style={styles.reviewCardOverlay}>
-						<Text style={styles.reviewCardTitle}>{entry.dish.name}</Text>
+						<Text style={styles.reviewCardTitle}>
+							{resolveDishCategoryLabel(entry.dish.categoryLabels, i18n.locale)}
+						</Text>
 						{/* #1667 0 件のときは何も描かない。判定は DishRating に閉じてある */}
 						<DishRating
 							averageRating={entry.dish.averageRating}

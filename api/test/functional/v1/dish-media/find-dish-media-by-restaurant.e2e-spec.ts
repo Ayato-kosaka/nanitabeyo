@@ -97,8 +97,6 @@ maybeDescribe(
           name_language_code: 'ja',
           latitude: 35.68944,
           longitude: 139.69167,
-          image_url: 'https://example.com/image.png',
-          address_components: {},
         },
       });
 
@@ -108,7 +106,6 @@ maybeDescribe(
             id: DISH_IDS[key],
             restaurant_id: RESTAURANT_ID,
             category_id: CATEGORY_IDS[key],
-            name: `Test Dish #1257 (${key})`,
           },
         });
       }

@@ -308,8 +308,7 @@ export class RestaurantsService {
             subterritory_code: confirmed.subterritoryCode,
           }
         : {}),
-      // 【非推奨カラム】だがスキーマ上必須であれば空文字で維持
-      image_url: '',
+      // #1779 `image_url` は **2026-09-24 に列ごと削除した**（migration 20260924T0100）。
       image_path: null,
       /*
         #1780 【設計】**Google 由来の生データ（addressComponents / plusCode）を保存しない。**
@@ -328,9 +327,8 @@ export class RestaurantsService {
         ⚠️ `plus_code` は **読み手が 1 つも無い**（API レスポンス型にも app-expo にも
         参照ゼロ。2026-09-05 に grep で確認）。保存をやめて失うものは無い。
 
-        列は残す（削除は #1779）。既存行の値もそのまま残す。
+        **2026-09-24 に列ごと削除した**（migration 20260924T0100）。
       */
-      address_components: [] as unknown as Prisma.InputJsonValue,
       // created_at は DB デフォルトがあれば省略可能だが、既存互換のため残す
       created_at: new Date(),
     };

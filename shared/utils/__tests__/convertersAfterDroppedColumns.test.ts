@@ -1,26 +1,41 @@
 /**
- * #1779 **落とす列が DB から消えたあとも converters が動くこと**を固定する。
+ * #1779 **落とした列が converters の出力に «復活していない» こと**を固定する。
  *
- * `infra/supabase/migrations/README.md` は「手で追従させるのは `shared/converters/` だけ」
- * と決めている。ところが converters は生成型（`TableRow` / `Prisma...GroupByOutputType`）を
- * そのまま引数に取っていたため、**列が落ちた瞬間に型が合わなくなる**形だった。
+ * ## 経緯（このテストは 1 度書き直している）
  *
- * ⚠️ **型を緩めただけでは «落ちたあと» を試していない。** 実行時にキーが無いオブジェクトを
- * 渡して、既定値へ落ちることまで見る。ここが無いと、contract migration を当てた直後に
- * `undefined` が DB へ流れる（`address_components` は `JSONB NOT NULL`）。
+ * 最初の版は «列が落ちたあとも既定値（`''` / `null` / `[]`）へ落ちること» を縛っていた。
+ * それは **列がまだ DB にある間**の不変条件で、`address_components` が `JSONB NOT NULL`
+ * だったため `undefined` を流さないことに意味があった。
  *
- * 落とす列（#1779）:
+ * **2026-09-24 に列を実際に dev から削除した**（migration
+ * `20260924T0100_drop_google_derived_columns.sql` / run 35990341765）。
+ * もう列は存在しないので、正しい不変条件は逆になる:
+ *
+ * > **落とした列のキーを出力に含めてはいけない。**
+ *
+ * 含めると、`INSERT` / `UPDATE` が存在しない列を指定して落ちる。
+ *
+ * ⚠️ このとき `DROPPED_COLUMNS` を `keyof` の制約に使う型（`Omit` + `Partial<Pick<…>>`）が
+ *    `TS2344` で落ちた。**列が消えた瞬間に壊れる形**だったので、型から名前ごと消した。
+ *
+ * 落とした列:
  *   restaurants … image_url / plus_code / address_components
  *   dishes      … name / data_origin
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { convertSupabaseToPrisma_Restaurants } from "../../converters/convert_restaurants";
+import {
+	convertSupabaseToPrisma_Restaurants,
+	convertPrismaToSupabase_Restaurants,
+} from "../../converters/convert_restaurants";
 import { convertSupabaseToPrisma_Dishes, convertPrismaToSupabase_Dishes } from "../../converters/convert_dishes";
 
-/** restaurants の «落とす列を 1 つも持たない» 行。migration 後の世界を模す */
-const restaurantWithoutDroppedColumns = {
+const RESTAURANT_DROPPED = ["image_url", "plus_code", "address_components"] as const;
+const DISH_DROPPED = ["name", "data_origin"] as const;
+
+/** migration 適用後の restaurants の行（落とした列は存在しない） */
+const restaurantRow = {
 	id: "11111111-1111-1111-1111-111111111111",
 	google_place_id: "place-1",
 	name: "エビデンス用ラーメン",
@@ -40,35 +55,32 @@ const restaurantWithoutDroppedColumns = {
 	synced_at: null,
 };
 
-test("#1779 restaurants: 落とす 3 列が無くても変換できる", () => {
-	const prisma = convertSupabaseToPrisma_Restaurants(restaurantWithoutDroppedColumns as never);
-
-	// ⚠️ `undefined` を返してはいけない。address_components は JSONB NOT NULL で、
-	//    そのまま INSERT すると落ちる
-	assert.deepEqual(prisma.address_components, []);
-	assert.equal(prisma.image_url, "");
-	assert.equal(prisma.plus_code, null);
+test("#1779 restaurants: 落とした 3 列が出力に復活しない（Supabase → Prisma）", () => {
+	const prisma = convertSupabaseToPrisma_Restaurants(restaurantRow as never) as Record<string, unknown>;
+	for (const col of RESTAURANT_DROPPED) {
+		assert.ok(!(col in prisma), `${col} が出力に復活している。存在しない列を INSERT して落ちる`);
+	}
 	// 残す列は素通しであること（消しすぎの検知）
 	assert.equal(prisma.name, "エビデンス用ラーメン");
 	assert.equal(prisma.address, "東京都千代田区");
 	assert.equal(prisma.country_code, "JP");
+	assert.equal(prisma.image_path, "dev/restaurants/image_path/rest-1/orig.jpg");
 });
 
-test("#1779 restaurants: 列があるときは値をそのまま使う（既定値で潰さない）", () => {
-	const prisma = convertSupabaseToPrisma_Restaurants({
-		...restaurantWithoutDroppedColumns,
-		image_url: "https://example.test/a.jpg",
-		plus_code: { globalCode: "8Q7XMQ4V+9G" },
-		address_components: [{ types: ["country"], shortText: "JP" }],
-	} as never);
-
-	assert.equal(prisma.image_url, "https://example.test/a.jpg");
-	assert.deepEqual(prisma.plus_code, { globalCode: "8Q7XMQ4V+9G" });
-	assert.deepEqual(prisma.address_components, [{ types: ["country"], shortText: "JP" }]);
+test("#1779 restaurants: 落とした 3 列が出力に復活しない（Prisma → Supabase）", () => {
+	const supabase = convertPrismaToSupabase_Restaurants({
+		...restaurantRow,
+		created_at: new Date("2026-09-24T00:00:00.000Z"),
+		synced_at: null,
+	} as never) as Record<string, unknown>;
+	for (const col of RESTAURANT_DROPPED) {
+		assert.ok(!(col in supabase), `${col} が出力に復活している`);
+	}
+	assert.equal(supabase.country_code, "JP");
 });
 
-/** dishes の «落とす列を 1 つも持たない» 行 */
-const dishWithoutDroppedColumns = {
+/** migration 適用後の dishes の行 */
+const dishRow = {
 	id: "22222222-2222-2222-2222-222222222222",
 	restaurant_id: "11111111-1111-1111-1111-111111111111",
 	category_id: "33333333-3333-3333-3333-333333333333",
@@ -78,19 +90,37 @@ const dishWithoutDroppedColumns = {
 	synced_at: null,
 };
 
-test("#1779 dishes: 落とす 2 列が無くても変換できる（両方向）", () => {
-	const prisma = convertSupabaseToPrisma_Dishes(dishWithoutDroppedColumns as never);
-	assert.equal(prisma.name, null);
-	// DB 側の DEFAULT と同じ値へ落ちること（列が残っている間の INSERT を壊さない）
-	assert.equal(prisma.data_origin, "user_or_google");
+test("#1779 dishes: 落とした 2 列が出力に復活しない（両方向）", () => {
+	const prisma = convertSupabaseToPrisma_Dishes(dishRow as never) as Record<string, unknown>;
+	for (const col of DISH_DROPPED) {
+		assert.ok(!(col in prisma), `${col} が出力に復活している`);
+	}
 	assert.equal(prisma.lock_no, 0);
 
 	const supabase = convertPrismaToSupabase_Dishes({
-		...dishWithoutDroppedColumns,
+		...dishRow,
 		created_at: new Date("2026-09-24T00:00:00.000Z"),
 		updated_at: new Date("2026-09-24T00:00:00.000Z"),
 		synced_at: null,
-	} as never);
-	assert.equal(supabase.name, null);
-	assert.equal(supabase.data_origin, "user_or_google");
+	} as never) as Record<string, unknown>;
+	for (const col of DISH_DROPPED) {
+		assert.ok(!(col in supabase), `${col} が出力に復活している`);
+	}
+});
+
+test("#1779 生成型に落とした列が残っていないこと（DB と型のずれの検知）", () => {
+	// ⚠️ converters を直すだけでなく **生成型そのもの**を見る。introspect が古いまま
+	//    main へ入ると、型にはある / DB には無い というずれが静かに残る。
+	const types = require("node:fs").readFileSync(
+		require("node:path").join(__dirname, "..", "..", "supabase", "database.types.ts"),
+		"utf8",
+	) as string;
+	const restaurants = /\n {6}restaurants: \{\n {8}Row: \{\n([\s\S]*?)\n {8}\}\n/.exec(types);
+	assert.ok(restaurants, "restaurants の Row 定義が見つからない");
+	for (const col of RESTAURANT_DROPPED) {
+		assert.ok(
+			!new RegExp(`^\\s+${col}\\??:`, "m").test(restaurants[1]),
+			`database.types.ts の restaurants に ${col} が残っている（introspect が古い）`,
+		);
+	}
 });
