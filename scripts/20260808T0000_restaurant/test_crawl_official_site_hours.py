@@ -18,6 +18,7 @@ import importlib.util
 import inspect
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -238,8 +239,18 @@ class CandidateSqlTest(unittest.TestCase):
         self.assertIn("^https?://", crawler.CANDIDATE_SQL)
 
     def test_candidates_are_reproducible_by_seed(self) -> None:
-        self.assertIn("md5(", crawler.CANDIDATE_SQL)
-        self.assertIn("%(seed)s", crawler.CANDIDATE_SQL)
+        self.assertIn("md5(", crawler.ORDER_BY_SEED)
+        self.assertIn("%(seed)s", crawler.ORDER_BY_SEED)
+
+    def test_seed_order_is_the_default(self) -> None:
+        """⚠️ 既定が seed であること。`inspect_opening_hours_reach.py` の rank
+        ヒストグラムはこの並びを根拠にしているので、既定が黙って変わってはいけない。
+
+        既定値は help 文字列ではなく、**実際に parse させて**確かめる。
+        """
+        with mock.patch.object(sys, "argv", ["6_3", "--limit", "1"]):
+            args = crawler.parse_args()
+        self.assertEqual(args.order, "seed")
 
 
 class HoursExcerptTest(unittest.TestCase):
@@ -340,18 +351,44 @@ class NearFilterTest(unittest.TestCase):
         self.assertEqual(len(search_path_lines), 1, search_path_lines)
         self.assertNotIn("extensions", search_path_lines[0])
 
-    def test_candidate_sql_has_a_near_placeholder_and_keeps_the_order(self) -> None:
+    def test_candidate_sql_has_a_near_placeholder_and_the_order_is_injected(self) -> None:
         sql = crawler.CANDIDATE_SQL
         self.assertIn("{near}", sql)
-        # 並びは md5(...) のまま（→ クラスの docstring）
-        self.assertIn("ORDER BY md5(l.restaurant_id::text || %(seed)s)", sql)
+        # 並びは «呼ぶ側が渡すもの»。SQL へ既定を焼き込まない
+        self.assertIn("{order}", sql)
+        self.assertNotIn("ORDER BY", sql)
 
-        without = sql.format(schema="dev", only_missing="", near="")
-        with_near = sql.format(schema="dev", only_missing="", near=crawler.NEAR_CLAUSE)
+        fmt = dict(schema="dev", only_missing="", order=crawler.ORDER_BY_SEED)
+        without = sql.format(near="", **fmt)
+        with_near = sql.format(near=crawler.NEAR_CLAUSE, **fmt)
         self.assertNotIn("ST_DWithin", without)
         self.assertIn("ST_DWithin", with_near)
         # 半径も地点もパラメータで渡す（SQL へ焼き込まない）
         for name in ("%(near_lat)s", "%(near_lon)s", "%(near_radius_m)s"):
             self.assertIn(name, with_near)
-        # 絞っても並びは変わらない
+        # 絞っても seed の並びは変わらない
         self.assertIn("ORDER BY md5(l.restaurant_id::text || %(seed)s)", with_near)
+
+    def test_distance_order_sorts_by_the_near_point(self) -> None:
+        """#1666 `--order distance` は `--near` の地点から近い順（KNN の `<->`）。"""
+        order = crawler.ORDER_BY_DISTANCE
+        self.assertIn("<->", order)
+        self.assertIn("r.location", order)
+        # 地点はパラメータで渡す（SQL へ焼き込まない）
+        for name in ("%(near_lat)s", "%(near_lon)s"):
+            self.assertIn(name, order)
+        # ⚠️ PostGIS の型が要る。`::geography` を落とすと距離が «度» になり、
+        #    緯度によって並びが歪む（東京では経度 1 度 ≒ 90km、緯度 1 度 ≒ 111km）。
+        self.assertIn("::geography", order)
+
+    def test_the_two_orders_are_different(self) -> None:
+        self.assertNotEqual(crawler.ORDER_BY_SEED, crawler.ORDER_BY_DISTANCE)
+
+    def test_distance_order_without_near_is_refused(self) -> None:
+        """⚠️ 黙って seed 順へ落ちないこと。«近い順のつもりで全国を歩く» は気づけない。
+
+        `main()` は DB へ繋いでしまうので、判定の条件を **ソースの文字列として**縛る。
+        """
+        source = inspect.getsource(crawler.main)
+        self.assertIn('args.order == "distance" and near_lat is None', source)
+        self.assertIn("raise ValueError", source)

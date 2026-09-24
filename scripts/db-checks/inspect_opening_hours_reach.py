@@ -51,6 +51,9 @@ from importlib import import_module  # noqa: E402
 
 _crawler = import_module("6_3_crawl_official_site_hours")
 CANDIDATE_SQL = _crawler.CANDIDATE_SQL
+# ⚠️ **並びを名指しで取る。** ここが測るのは «md5 の並びの中で何番目か» なので、
+#    クローラの既定が変わってもこちらの数字の意味が変わらないようにしてある。
+ORDER_BY_SEED = _crawler.ORDER_BY_SEED
 CRAWL_SOURCE = _crawler.SOURCE
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -247,7 +250,7 @@ def main() -> int:
             # #1666 `near=""` で «全国» のままにする。ここは «クローラが歩く順» を
             # 測る場所なので、エリアで絞ってはいけない（絞ると rank の意味が変わる）。
             candidate_sql = CANDIDATE_SQL.format(
-                schema=args.schema, only_missing="", near=""
+                schema=args.schema, only_missing="", near="", order=ORDER_BY_SEED
             )
             rank_params = {
                 "country": args.country,
