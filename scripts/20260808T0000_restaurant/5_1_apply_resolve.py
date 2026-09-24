@@ -39,6 +39,29 @@ DEFAULT_AREA_RADIUS_M = 3000
 DEADLINE_CHECK_EVERY = 200
 
 
+def first_time_share_sql(table: str) -> str:
+    """この run が解いた投稿のうち «どこにも結果が無かった＝初めて解いた» 数を返す SQL。
+
+    #1947 これが無いと «毎ラウンドがゼロから全投稿を解き直している» のが外から見えない。
+    2026-09-21〜24 の 3.5 日、書いた 4,626,900 行のうち初回は 256,078 行（5.5%）だったが、
+    ログには «N 件を投入しました» としか出ておらず、**4 日間だれも気づけなかった**。
+    速度ではなく «仕事になっている割合» を出す。
+    """
+    return f"""
+    WITH mine AS (
+      SELECT DISTINCT post_id FROM `{table}`
+      WHERE run_id = @rid AND resolve_version = @ver AND post_id IS NOT NULL
+    ),
+    others AS (
+      SELECT DISTINCT post_id FROM `{table}`
+      WHERE (run_id != @rid OR resolve_version != @ver) AND post_id IS NOT NULL
+    )
+    SELECT COUNT(*) AS posts,
+           COUNTIF(o.post_id IS NULL) AS first_time
+    FROM mine m LEFT JOIN others o USING (post_id)
+    """
+
+
 def deadline_chunks(batch: list, deadline: float, *,
                     chunk: int = DEADLINE_CHECK_EVERY, now=time.monotonic):
     """`batch` を `chunk` 件ずつ返す。**1 塊ごとに締め切りを見て、越えていたら止める。**
@@ -524,6 +547,39 @@ def main() -> None:
                     3600 * total / elapsed if elapsed else 0.0, concurrency, args.shard, args.shards)
         LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d, 429/5xx の投げ直し=%d 回）を投入しました",
                     total, matched, n_err, client.retried)
+        _report_first_time_share(pipeline, run_id, args)
+
+
+def _report_first_time_share(pipeline: BigQueryPipeline, run_id: str, args) -> None:
+    """«この run の仕事のうち、何割が初めて解いた投稿か» をログへ出す。
+
+    ⚠️ 落とさない・赤くしない。**意図した解き直し**（resolve を改善したので全部やり直す）
+    では 0% が正しい。ここは «気づけない» をなくすためのものであって、門ではない。
+    """
+    from google.cloud import bigquery  # noqa: PLC0415
+    try:
+        rows = [dict(r) for r in pipeline.execute(
+            first_time_share_sql(pipeline.table(TABLE_POST_RESOLVED)), [
+                bigquery.ScalarQueryParameter("rid", "STRING", run_id),
+                bigquery.ScalarQueryParameter("ver", "STRING", args.resolve_version),
+            ])]
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.info("初回割合の集計に失敗（本体の結果には影響しない）: %s", exc)
+        return
+    if not rows or not rows[0].get("posts"):
+        return
+    posts = int(rows[0]["posts"])
+    first = int(rows[0].get("first_time") or 0)
+    pct = 100.0 * first / posts
+    LOGGER.info("この run が解いた %d 投稿のうち «初めて解いた» のは **%d（%.1f%%）**",
+                posts, first, pct)
+    if pct < 50.0 and not args.skip_resolved_anywhere:
+        LOGGER.warning(
+            "⚠️ 仕事の %.1f%% が «すでに解いた投稿の解き直し» です。積み残しを消すつもりなら "
+            "`--skip-resolved-anywhere` を付けてください（«未処理» の定義は «この run_id × "
+            "この resolve_version で未処理» なので、ラウンドごとに run_id を変えると毎回 "
+            "ゼロから解き直します）。**意図した解き直しなら、この警告は正しい状態です。**",
+            100.0 - pct)
 
 
 if __name__ == "__main__":
