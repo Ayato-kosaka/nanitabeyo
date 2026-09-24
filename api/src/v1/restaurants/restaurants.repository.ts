@@ -15,14 +15,15 @@ import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
 import { roundToOneDecimal } from '../../core/utils/backend-utils';
 
 /**
- * #1779 検索・保存一覧が読む店の形。**落とす列（image_url / plus_code）は読まない。**
+ * #1779 検索・保存一覧が読む店の形。
+ * **落とす列（image_url / plus_code / address_components）は読まない。**
  *
  * `PrismaRestaurants` は生成物なので、そのまま使うと «落とすと決めた列» を
  * SELECT し続けてしまう。ここで先に外し、列が実際に落ちても型が変わらないようにする。
  */
 export type ReadableRestaurant = Omit<
   PrismaRestaurants,
-  'image_url' | 'plus_code'
+  'image_url' | 'plus_code' | 'address_components'
 >;
 
 export type RestaurantWithMeta = {

@@ -639,8 +639,12 @@ export function getCurrencyCodeFromAddressComponents(
  * （実際に起きた）。引けないときは従来どおり `null` を返し、呼び出し側が
  * ユーザーに選ばせること。
  *
- * ⚠️ 順序を入れ替えないこと。`address_components` を先に見るのは、
- * `resolveLocalLanguageCode`（api 側 #1671）と揃えるためである。
+ * ⚠️ **#1779 以降、API のレスポンスに `address_components` は載らない**
+ * （`DROPPED_RESTAURANT_COLUMNS`）。つまりこの関数は実質 `country_code` だけで決まる。
+ * 引数を残してあるのは、**Google から取ったばかりの生データを渡す呼び出し**
+ * （POI 押下の確認ページなど、レスポンス経由ではない経路）のためである。
+ * 決まらなくなるのは `country_code` も空な行だけで、dev 実測で 12 行。
+ * そこは従来どおりユーザーに選ばせる。
  *
  * @param restaurant レストランデータ
  * @returns ISO-4217 通貨コード または null
