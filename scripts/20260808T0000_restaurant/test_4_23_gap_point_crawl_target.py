@@ -206,6 +206,13 @@ class TheCrawlExclusionIsOptional(unittest.TestCase):
         self.assertNotIn("sns_store_site_ig", sql)
         self.assertNotIn("@terminal", sql)
 
+    def test_the_empty_side_is_typed(self) -> None:
+        """裸の `NULL` は INT64 になり、STRING の place_id と比べた瞬間 400 で落ちる
+        （2026-09-24 に run 1152 で踏んだ）。"""
+        sql = m.build_sql(self.DS, radius_m=500, require_website=False, exclude_crawled=False)
+        self.assertIn("CAST(NULL AS STRING)", sql)
+        self.assertNotIn("SELECT NULL AS gpid", sql)
+
     def test_both_paths_still_drop_stores_whose_handle_is_known(self) -> None:
         for sql in (m.build_sql(self.DS, radius_m=500),
                     m.build_sql(self.DS, radius_m=500, require_website=False,

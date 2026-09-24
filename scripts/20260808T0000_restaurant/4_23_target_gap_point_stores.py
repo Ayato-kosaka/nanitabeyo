@@ -171,7 +171,10 @@ def build_sql(ds: str, *, radius_m: int, require_website: bool = True,
     ),
     -- 一度巡って handle が出なかった店も除く（定義は `_crawled_cte` の 1 箇所だけ）。
     -- 検索経路では空にする（サイトを経由しないので、この事実は関係が無い）。
-    crawled AS ({_crawled_cte(ds) if exclude_crawled else "SELECT NULL AS gpid"})
+    -- ⚠️ 空の側も **STRING で型を付ける**。裸の NULL は INT64 になり、
+    --    `c.gpid = s.google_place_id` が «No matching signature for operator =» で 400 になる。
+    crawled AS ({_crawled_cte(ds) if exclude_crawled
+                 else "SELECT CAST(NULL AS STRING) AS gpid WHERE FALSE"})
     SELECT s.google_place_id, s.name, s.website, s.address
     FROM stores s
     JOIN pts p ON ST_DWithin(p.location, s.location, {int(radius_m)})
