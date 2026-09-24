@@ -335,6 +335,16 @@ def network_hosts(index_urls: list[str]) -> list[str]:
     return out
 
 
+def out_of_time(elapsed_s: float, max_minutes: int) -> bool:
+    """締め切りを過ぎたか（純関数）。`max_minutes <= 0` は «無制限»。
+
+    ⚠️ #1947 GitHub の 1 job は 360 分で打ち切られる。打ち切りは `cancelled` として
+    現れるので «失敗» のガードには引っかからず、**この run が何 host 読んだかが
+    どこにも残らない**（`pipeline.step` の行も書かれない）。自分から降りること。
+    """
+    return max_minutes > 0 and elapsed_s > max_minutes * 60
+
+
 def _read_hosts(pipeline: BigQueryPipeline, run_ids: list[str], min_posts: int, limit: int) -> list[str]:
     """CC WAT の結果から «飲食の投稿が濃い host» を採る。井戸を見つけるのは CC の役目。"""
     from google.cloud import bigquery
@@ -378,6 +388,12 @@ def parse_args() -> argparse.Namespace:
                    help="sitemap が無い host を CDX から読むフォールバックを止める")
     p.add_argument("--cdx-crawl", default=CDX_CRAWL, help="フォールバックに使う Common Crawl の版")
     p.add_argument("--cdx-cache-dir", default=CDX_CACHE_DIR)
+    # ⚠️ #1947 **GitHub の 1 job は 360 分で打ち切られる。** 既定 330 分で自分から降りて
+    #    要約と pipeline_runs の行を残す。打ち切られると «この run が何 host 読んだか» が
+    #    どこにも残らない（2026-09-24 に shard 0/2/3 が 392 分で cancelled になった）。
+    #    投稿は host ごとに流しているので、打ち切られても取ったぶんは消えない。
+    p.add_argument("--max-minutes", type=int, default=330,
+                   help="この分数を超えたら次の host へ進まずに終える（0 で無制限）")
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
 
@@ -431,7 +447,12 @@ def main() -> None:
                 pipeline.load_json_rows(TABLE_POST_RAW, rows)
             rows = []
 
+        t_start = time.monotonic()
         for n, host in enumerate(mine, 1):
+            if out_of_time(time.monotonic() - t_start, args.max_minutes):
+                LOGGER.info("締め切り（%d 分）に達したので %d/%d host で終えます",
+                            args.max_minutes, n - 1, len(mine))
+                break
             if not _robots_allows(host):
                 LOGGER.info("  %s: robots で全面禁止。飛ばします", host)
                 continue

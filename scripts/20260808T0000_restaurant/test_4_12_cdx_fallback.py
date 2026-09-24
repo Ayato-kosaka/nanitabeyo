@@ -303,3 +303,32 @@ class DoneHostsAreCountedAcrossRuns(unittest.TestCase):
         """@dms に渡すのは 4_12 が書く値そのもの。写経すると片方だけ増えてずれる。"""
         self.assertEqual(sorted(crawler.DISCOVERY_METHOD.values()),
                          ["media_embed", "media_embed_cdx"])
+
+
+class TheCrawlerStepsDownBeforeGitHubKillsIt(unittest.TestCase):
+    """#1947 GitHub の 1 job は 360 分で打ち切られる。打ち切りは `cancelled` として現れ、
+    «失敗» のガードには引っかからないので、**何 host 読んだかがどこにも残らない**
+    （2026-09-24 に shard 0/2/3 が 392 分で cancelled になった）。自分から降りること。
+    """
+
+    def test_zero_means_unlimited(self) -> None:
+        self.assertFalse(crawler.out_of_time(10 ** 9, 0))
+
+    def test_inside_the_budget(self) -> None:
+        self.assertFalse(crawler.out_of_time(329 * 60, 330))
+
+    def test_past_the_budget(self) -> None:
+        self.assertTrue(crawler.out_of_time(331 * 60, 330))
+
+    def test_the_default_leaves_room_under_the_360_minute_cap(self) -> None:
+        import argparse as _argparse
+        import sys as _sys
+        argv = _sys.argv
+        try:
+            _sys.argv = ["4_12", "--run-id", "x"]
+            args = crawler.parse_args()
+        finally:
+            _sys.argv = argv
+        self.assertGreater(args.max_minutes, 0)
+        self.assertLessEqual(args.max_minutes, 340,
+                             "360 分の打ち切りに対して余裕が要る（最後の host が長い）")
