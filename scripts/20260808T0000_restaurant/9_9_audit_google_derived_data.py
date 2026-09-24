@@ -48,6 +48,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pg_sync_common import connect_postgres  # noqa: E402
 from pipeline_common import configure_logging  # noqa: E402
 
+# #1779 州で言語が変わる国。**本番が読む JSON から引く**（→ そのモジュールの docstring）
+from subterritory_overrides import subterritory_override_countries  # noqa: E402
+
 LOGGER = logging.getLogger(__name__)
 
 # 「Google 由来の値が入っている」の判定。列ごとに «空でない» の意味が違う。
@@ -173,6 +176,51 @@ def main() -> None:
             LOGGER.info("#1779 address が空 かつ address_components あり — 作成元の内訳")
             for source, count in cursor.fetchall():
                 LOGGER.info("  %-12s %8d行", source, count)
+
+            # #1779 **住所のほかに何を失うか**を、同じ場で数える。
+            #
+            # `address_components` の読み手は 2 つある。`buildDisplayAddress`（住所）と
+            # `extractLocationCodes`（国 + 州）である。上の集計は住所だけを見ているので、
+            # 「住所は困らない」でも国・州が抜ける行があるなら、そこが次の障害になる。
+            cursor.execute(
+                """
+                SELECT
+                  COUNT(*) AS with_components,
+                  COUNT(*) FILTER (WHERE country_code IS NULL OR country_code = '')
+                    AS country_missing
+                FROM restaurants
+                WHERE jsonb_typeof(address_components) = 'array'
+                  AND jsonb_array_length(address_components) > 0
+                """
+            )
+            with_components, country_missing = cursor.fetchone()
+            LOGGER.info("")
+            LOGGER.info(
+                "#1779 address_components あり %d行 のうち country_code が空: %d行",
+                with_components,
+                country_missing,
+            )
+
+            # 州は «上書きを持つ国» でしか結果を変えない
+            # （→ `subterritory_overrides.py` の docstring）。
+            # ここが 0 なら、州を失っても料理名の言語は 1 件も変わらない。
+            override_countries = subterritory_override_countries()
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM restaurants
+                WHERE jsonb_typeof(address_components) = 'array'
+                  AND jsonb_array_length(address_components) > 0
+                  AND (subterritory_code IS NULL OR subterritory_code = '')
+                  AND country_code = ANY(%s)
+                """,
+                (override_countries,),
+            )
+            LOGGER.info(
+                "#1779 うち «州で言語が変わる国» (%s) かつ subterritory_code が空: %d行",
+                ",".join(override_countries),
+                cursor.fetchone()[0],
+            )
     finally:
         # 読み取りしかしていないが、明示的に閉じる。
         connection.rollback()

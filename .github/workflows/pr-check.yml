@@ -117,6 +117,14 @@ jobs:
             scripts/20260808T0000_restaurant/test_search_bounds.py \
             scripts/20260808T0000_restaurant/test_catalog_publish_values.py
 
+      # #1779 «州で言語が変わる国» のリストを、監査スクリプトが本番の JSON から引いて
+      # いること。写経すると **JSON に国が増えても監査だけが «影響なし» と言い続ける**
+      # （`address_components` を落とす判断の根拠が静かに古くなる）。依存ゼロ。
+      - name: 州で言語が変わる国の引き方を検査
+        run: |
+          python3 -m unittest \
+            scripts/20260808T0000_restaurant/test_subterritory_overrides.py
+
       # #1666 EXPLAIN の «延べ行数» の数え方（explain_rows_read.py）。営業時間テーブルが
       # 0 行 → 30 万行へ増える直前に、番人が restaurants 側しか数えていないと気付いたため
       # 足した。数え方だけを psycopg2 の要らない場所へ出してあるのでここで回せる。
