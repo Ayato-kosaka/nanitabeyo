@@ -303,6 +303,8 @@ def main() -> None:
         "radius_m": args.radius_m,
         "algorithm_version": ALGORITHM_VERSION,
         "include_osm_only": args.include_osm_only,
+        # ⚠️ #1947 `resume_days` は «どこまで遡って解き直すか» ＝ 続きの位置。
+        "resume_days": args.resume_days,
     }
     with pipeline.step(
         run_id,

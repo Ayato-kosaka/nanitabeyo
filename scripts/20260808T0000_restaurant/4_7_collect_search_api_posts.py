@@ -647,7 +647,10 @@ def main() -> None:
     step = (contextlib.nullcontext({}) if pipeline is None else pipeline.step(
         run_id,
         "4_7_collect_search_api_posts",
-        parameters={"provider": args.provider, "queries": len(cells), "num": args.num},
+        # ⚠️ #1947 `query_offset` を落とさないこと。`queries` は «本数» でしかなく、
+        #   «query 一覧のどこから流したか» はこれが無いと復元できない。
+        parameters={"provider": args.provider, "queries": len(cells), "num": args.num,
+                    "query_offset": args.query_offset},
         repo_root=Path(__file__).resolve().parents[1],
     ))
     with step as result:

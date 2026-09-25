@@ -326,7 +326,9 @@ def main(argv=None) -> None:
     rows = build_rows(posts, run_id, now_iso)
     pipeline = BigQueryPipeline()
     with pipeline.step(run_id, "4_6_collect_wayback_instagram_posts", parameters={
+        # ⚠️ #1947 `page_size` が無いと offset/max_pages を «何件ぶん» に換算できない。
         "types": types, "page_offset": args.page_offset, "max_pages": args.max_pages,
+        "page_size": args.page_size,
     }, repo_root=Path(__file__).resolve().parents[1]) as result:
         if rows:
             ids = sorted(posts.keys())

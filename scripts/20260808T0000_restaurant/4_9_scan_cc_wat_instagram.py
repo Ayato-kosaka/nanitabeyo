@@ -38,6 +38,18 @@ from common_sns import (PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT
 LOGGER = logging.getLogger(__name__)
 
 
+def _index_range(shards: int, shard: int, skip_files: int, n: int) -> str:
+    """このジョブが読む WAT の «crawl 全体での» ファイル番号の範囲を `"16000-31992"` の形で返す。
+
+    #1947 `shards`/`shard`/`skip_files` の 3 つを人が暗算しないと «どこを読んだか» が
+    分からないのを、記録の側で解いておく。`n == 0` のときは `"-"`。
+    """
+    if n <= 0:
+        return "-"
+    s = max(shards, 1)
+    return f"{skip_files * s + shard}-{(skip_files + n - 1) * s + shard}"
+
+
 def select_files(paths: list[str], *, shards: int, shard: int,
                  max_files: int, skip_files: int = 0) -> list[str]:
     """このジョブが読む WAT ファイルを選ぶ（純関数）。
@@ -282,7 +294,14 @@ def main() -> None:
                 args.crawl, len(paths), len(mine), args.skip_files)
 
     with pipeline.step(run_id, "4_9_scan_cc_wat_instagram", parameters={
+        # ⚠️ #1947 **`skip_files` を落とさないこと。** ここは «次はどこから流せばよいか» を
+        #   後から復元できる唯一の durable な記録である（台帳はコンテナと一緒に消える）。
+        #   2026-09-04 の 5 ラウンドは `files` と `shards/shard` しか残しておらず、
+        #   「どの WAT を読んだのか」が 3 週間分からないままだった（実際は 16% だけ）。
         "crawl": args.crawl, "shards": args.shards, "shard": args.shard, "files": len(mine),
+        "skip_files": args.skip_files, "total_files": len(paths),
+        # 人が読むのはストライプ上の位置ではなく «crawl の何番目のファイルか» である。
+        "file_index_range": _index_range(args.shards, args.shard, args.skip_files, len(mine)),
     }, repo_root=None) as result:
         rows: list[dict] = []
         acc_rows: list[dict] = []

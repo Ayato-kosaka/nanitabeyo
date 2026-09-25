@@ -433,6 +433,14 @@ def main() -> None:
 
     with pipeline.step(run_id, "4_12_crawl_gourmet_media", parameters={
         "hosts": len(mine), "shards": args.shards, "shard": args.shard,
+        # ⚠️ #1947 これが無いと `hosts` が «未読の host 数» なのか «読み直しを含む数» なのか
+        #   区別できない（«どこまで進んだか» は done_hosts_sql で復元するが、その復元が
+        #   効いていたかどうか自体はここにしか残らない）。
+        "skip_done_hosts": args.skip_done_hosts, "max_hosts": args.max_hosts,
+        "max_minutes": args.max_minutes,
+        # host 一覧の出どころ（＝母集団）と、host 内 URL のオフセット。
+        "hosts_from_run_ids": args.hosts_from_run_ids,
+        "skip_urls_per_host": args.skip_urls_per_host,
     }, repo_root=None) as result:
         rows: list[dict] = []
         seen: set[str] = set()

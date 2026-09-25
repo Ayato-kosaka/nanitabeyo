@@ -390,7 +390,11 @@ def main() -> None:
     LOGGER.info("引き当てに使う辞書: %s",
                 "裏取り済みのみ（既定）" if corr else "裏取り無しも含める")
 
-    with pipeline.step(run_id, "4_17_resolve_bare_handles", repo_root=HERE.parents[1]) as result:
+    # ⚠️ #1947 `skip_accounts` は «一覧の先頭から何件飛ばしたか» ＝ 続きの位置そのもの。
+    #   記録が無いと、次の run をどこから流せばよいかが run の記録から復元できない。
+    with pipeline.step(run_id, "4_17_resolve_bare_handles", parameters={
+        "skip_accounts": args.skip_accounts, "corroborated_only": corr,
+    }, repo_root=HERE.parents[1]) as result:
         stats = report_stats(pipeline, corroborated_only=corr)
 
         if args.sample_out:

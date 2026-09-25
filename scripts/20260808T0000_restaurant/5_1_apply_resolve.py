@@ -383,6 +383,10 @@ def main() -> None:
     with pipeline.step(run_id, "5_1_apply_resolve", parameters={
         "raw_run_id": raw_run_id, "resolve_version": args.resolve_version, "limit": args.limit,
         "shards": args.shards, "shard": args.shard,
+        # ⚠️ #1947 **このフラグを落とさないこと。** «未 resolve» の意味そのものを変えるので、
+        #   無いと記録だけ見て «積み残しを消したラウンド» と «全部解き直したラウンド» を
+        #   区別できない。2026-09-24 は後者で、書いた 78,366 行のうち初回は 5.0% だった。
+        "skip_resolved_anywhere": args.skip_resolved_anywhere,
     }, repo_root=None) as result:
         # 数千件の resolve は 1〜2h かかる。末尾一括ロードだと進捗が見えず timeout で全ロストするので
         # FLUSH_EVERY 件ごとに逐次ロードする（WRITE_APPEND。再実行時は resolved 済みを LEFT JOIN でskip）。
