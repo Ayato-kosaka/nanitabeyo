@@ -112,21 +112,17 @@ def build_sql(ds: str, dish_ds: str, *, radius_m: int) -> str:
     """
 
 
-def build_no_category_reason_sql(ds: str, *, radius_m: int) -> str:
-    """#1947 «カテゴリが付かない» 投稿が、**どこで**付かなかったのかを分ける。
+# #1947 «B 文字はあるが料理名を取れない» の判定。**1 箇所だけに書く。**
+# 数える式と実例を拾う式で別々に書くと、片方だけ直って «数は出るのに実例が出ない» になる。
+B_NO_DISH_NAME_SQL = r"REGEXP_CONTAINS(IFNULL(v.resolve_reason, ''), r'\|cat=0\|')"
 
-    2026-09-23 から «合格線の地点の近くでカテゴリの付かない投稿» が打ち手未特定のまま
-    残っていた。«何件あるか» は 7_8 が出していたが、**なぜ付かないか**を数えていなかったので
-    打ち手が出せなかった。理由を 3 つに分ける。
 
-    | 分け方 | 意味 | 打ち手 |
-    | --- | --- | --- |
-    | **キャプションが無い** | resolve に渡す文字が存在しない | `4_14` でキャプションを後入れする |
-    | キャプションはあるが候補 0（`cat=0`） | 文字はあるが料理名を取れていない | 抽出側の改善 |
-    | それ以外 | 候補は出たが採れなかった | resolve のしきい値 |
+def _near_gap_ctes_sql(ds: str, *, radius_m: int) -> str:
+    """未達地点の近傍の店 × その店の最新 resolve × 生キャプション、までの `WITH` ブロック。
 
-    ⚠️ 店との結び付けは `post_store_cte_sql` を使う（`build_sql` と同じ定義）。
-       «seed も使う» ことを忘れて resolve 済みの店だけで数えると、桁が変わる。
+    #1947 «内訳を数える» と «実例を見る» で **同じ母集団**を使うために 1 箇所へ寄せる。
+    写経して 2 本に分けると、片方だけ直ったときに «数は 1,683 件なのに実例が出ない» に
+    なる（このリポジトリで fixture と検知 SQL で 2 回起きている形）。
     """
     return f"""
     WITH pts AS (
@@ -152,11 +148,54 @@ def build_no_category_reason_sql(ds: str, *, radius_m: int) -> str:
     raw1 AS (
       SELECT post_id, ANY_VALUE(caption) AS caption
       FROM `{ds}.{TABLE_POST_RAW}` WHERE provider = @prov GROUP BY post_id
-    )
+    )"""
+
+
+def build_no_category_sample_sql(ds: str, *, radius_m: int) -> str:
+    """«B 文字はあるが料理名を取れない» の実例を返す（抽出側を直すための入力）。
+
+    #1947 2026-09-25 の実測で、未達 22 地点の近くに «キャプションが平均 232 文字あるのに
+    料理名を 1 つも取れていない» 投稿が 1,683 件（109 店）あった。件数だけでは
+    «抽出を直せば動く» とも «この文章では無理» とも言えない。**実物を見るまで打ち手にしない。**
+    """
+    return f"""
+    {_near_gap_ctes_sql(ds, radius_m=radius_m)}
+    SELECT v.post_id, ps.google_place_id, v.resolve_reason,
+           LENGTH(raw1.caption) AS caption_len, raw1.caption
+    FROM v
+    JOIN post_store ps ON ps.post_id = v.post_id
+    JOIN near_store n ON n.google_place_id = ps.google_place_id
+    LEFT JOIN raw1 ON raw1.post_id = v.post_id
+    WHERE v.dish_category_id IS NULL
+      AND raw1.caption IS NOT NULL AND raw1.caption != ''
+      AND {B_NO_DISH_NAME_SQL}
+    ORDER BY FARM_FINGERPRINT(v.post_id)
+    LIMIT @n
+    """
+
+
+def build_no_category_reason_sql(ds: str, *, radius_m: int) -> str:
+    """#1947 «カテゴリが付かない» 投稿が、**どこで**付かなかったのかを分ける。
+
+    2026-09-23 から «合格線の地点の近くでカテゴリの付かない投稿» が打ち手未特定のまま
+    残っていた。«何件あるか» は 7_8 が出していたが、**なぜ付かないか**を数えていなかったので
+    打ち手が出せなかった。理由を 3 つに分ける。
+
+    | 分け方 | 意味 | 打ち手 |
+    | --- | --- | --- |
+    | **キャプションが無い** | resolve に渡す文字が存在しない | `4_14` でキャプションを後入れする |
+    | キャプションはあるが候補 0（`cat=0`） | 文字はあるが料理名を取れていない | 抽出側の改善 |
+    | それ以外 | 候補は出たが採れなかった | resolve のしきい値 |
+
+    ⚠️ 店との結び付けは `post_store_cte_sql` を使う（`build_sql` と同じ定義）。
+       «seed も使う» ことを忘れて resolve 済みの店だけで数えると、桁が変わる。
+    """
+    return f"""
+    {_near_gap_ctes_sql(ds, radius_m=radius_m)}
     SELECT
       CASE
         WHEN raw1.caption IS NULL OR raw1.caption = '' THEN 'A キャプションが無い'
-        WHEN REGEXP_CONTAINS(IFNULL(v.resolve_reason, ''), r'\\|cat=0\\|') THEN 'B 文字はあるが料理名を取れない'
+        WHEN {B_NO_DISH_NAME_SQL} THEN 'B 文字はあるが料理名を取れない'
         ELSE 'C 候補は出たが採れなかった'
       END AS reason,
       COUNT(*) AS posts,
@@ -181,6 +220,8 @@ def main() -> int:
     p.add_argument("--dataset", default="restaurant_recommendation")
     p.add_argument("--dish-dataset", default="wikidata_food_graph")
     p.add_argument("--print-sql", action="store_true")
+    p.add_argument("--sample-b", type=int, default=0,
+                   help="«B 文字はあるが料理名を取れない» の実例を N 件出す（抽出側を直す入力）")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -250,6 +291,21 @@ def main() -> int:
                     x.get("reason"), int(x.get("posts") or 0),
                     int(x.get("stores") or 0), int(x.get("avg_caption_len") or 0))
     LOGGER.info("    → **A はキャプションの後入れ（4_14）で動く。B は抽出側、C はしきい値。**")
+    if args.sample_b:
+        LOGGER.info("")
+        LOGGER.info("  B の実例（%d 件・抽出側を直すための入力）:", args.sample_b)
+        for x in pipeline.execute(
+                build_no_category_sample_sql(ds, radius_m=m74.RADIUS_M), [
+                    bigquery.ScalarQueryParameter("geo_rid", "STRING", m74.SAMPLE_CATALOG_RUN_ID),
+                    bigquery.ArrayQueryParameter("gap_pts", "STRING", points),
+                    bigquery.ScalarQueryParameter("prov", "STRING", PROVIDER_INSTAGRAM),
+                    bigquery.ScalarQueryParameter("n", "INT64", args.sample_b),
+                ]):
+            LOGGER.info("    --- %s / %s（%s 文字）", x["post_id"], x["google_place_id"],
+                        x["caption_len"])
+            LOGGER.info("    reason: %s", x["resolve_reason"])
+            # 改行はログを分断するので 1 行へ畳む。全文を出す（要約すると打ち手が出せない）。
+            LOGGER.info("    caption: %s", " ⏎ ".join(str(x["caption"]).splitlines()))
     LOGGER.info("")
     LOGGER.info("⚠️ «絵が無い» が KPI に効くのは **ゲート内のカテゴリだけ**。"
                 "ゲート外の件数を «あと N 店で届く» の材料に混ぜない（2026-09-23 に混ぜて外した）。")

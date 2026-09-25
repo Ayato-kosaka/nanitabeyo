@@ -132,3 +132,49 @@ class WhyTheCategoryIsMissingIsBrokenDown(unittest.TestCase):
         src = (HERE / "7_8_measure_gap_point_blocked.py").read_text(encoding="utf-8")
         self.assertEqual(src.count("post_store_cte_sql("), 2,
                          "2 つの build_sql が同じ定義を呼ぶこと（片方だけ写経しない）")
+
+
+class TheSampleAndTheCountSeeTheSameThing(unittest.TestCase):
+    """#1947 «B を 1,683 件と数える式» と «B の実例を出す式» が同じ母集団であること。
+
+    2026-09-25、未達 22 地点の近くに «キャプションが平均 232 文字あるのに料理名を 1 つも
+    取れていない» 投稿が 1,683 件（109 店）あると分かった。ここから抽出側を直すには
+    実物が要るが、**数える式と拾う式を別々に書くと片方だけ直って «数は出るのに実例が
+    出ない» になる**（このリポジトリで fixture と検知 SQL で 2 回起きた形）。
+    """
+
+    DS = "food-scroll.restaurant_recommendation"
+
+    def test_both_come_from_one_cte_definition(self) -> None:
+        a = m.build_no_category_reason_sql(self.DS, radius_m=500)
+        b = m.build_no_category_sample_sql(self.DS, radius_m=500)
+        cte = m._near_gap_ctes_sql(self.DS, radius_m=500)
+        self.assertIn(cte, a)
+        self.assertIn(cte, b)
+
+    def test_the_b_condition_is_written_once(self) -> None:
+        """B の判定（`cat=0`）は定数 1 本で、両方の SQL がそれを埋め込んでいること。"""
+        import re
+        a = m.build_no_category_reason_sql(self.DS, radius_m=500)
+        b = m.build_no_category_sample_sql(self.DS, radius_m=500)
+        self.assertIn(m.B_NO_DISH_NAME_SQL, a)
+        self.assertIn(m.B_NO_DISH_NAME_SQL, b)
+        src = (HERE / "7_8_measure_gap_point_blocked.py").read_text(encoding="utf-8")
+        body = "\n".join(ln for ln in src.splitlines() if not ln.lstrip().startswith("#"))
+        literal = re.findall(r"REGEXP_CONTAINS\(IFNULL\(v\.resolve_reason", body)
+        self.assertEqual(len(literal), 1,
+                         "判定の実体は 1 箇所だけ（他は B_NO_DISH_NAME_SQL を埋める）")
+
+    def test_the_sample_only_returns_b(self) -> None:
+        sql = m.build_no_category_sample_sql(self.DS, radius_m=500)
+        self.assertIn("dish_category_id IS NULL", sql)
+        self.assertIn("cat=0", sql)
+        # A（キャプションが無い）を実例に混ぜない。混ざると «抽出が悪い» を読み違える。
+        self.assertIn("caption IS NOT NULL", sql)
+        self.assertIn("LIMIT @n", sql)
+
+    def test_the_sample_prints_the_whole_caption(self) -> None:
+        """要約した実例からは打ち手が出せない。全文を出していること。"""
+        src = (HERE / "7_8_measure_gap_point_blocked.py").read_text(encoding="utf-8")
+        self.assertIn('LOGGER.info("    caption: %s"', src)
+        self.assertNotIn("caption[:", src)
