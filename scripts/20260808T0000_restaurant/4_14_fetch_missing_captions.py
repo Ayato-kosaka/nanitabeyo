@@ -221,7 +221,7 @@ def main() -> None:
         SELECT @pids[OFFSET(o)] AS post_id, @caps[OFFSET(o)] AS caption
         FROM UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH(@pids) - 1)) o
       ) s
-      WHERE t.run_id = @rid AND t.post_id = s.post_id
+      WHERE {run_id_filter_sql("t.run_id", "@rid", run_id)} AND t.post_id = s.post_id
         AND (t.caption IS NULL OR LENGTH(t.caption) = 0)
     """
 
@@ -232,12 +232,19 @@ def main() -> None:
         done = 0
         for i in range(0, len(batch), CHUNK):
             part = batch[i:i + CHUNK]
-            pipeline.execute_dml_retrying(sql, [
+            # ⚠️ #1947 **投げた件数ではなく «実際に書き換わった行数» を数えること。**
+            #   `--run-id ALL` のとき UPDATE 側が run_id を絞ったままだと 1 行も当たらないが、
+            #   len(part) を足していたので «書き戻し 50,000 件» と出て気づけなかった。
+            affected = pipeline.execute_dml_retrying(sql, [
                 bigquery.ScalarQueryParameter("rid", "STRING", run_id),
                 bigquery.ArrayQueryParameter("pids", "STRING", [b["post_id"] for b in part]),
                 bigquery.ArrayQueryParameter("caps", "STRING", [b["caption"] for b in part]),
             ])
-            done += len(part)
+            if affected < len(part):
+                LOGGER.warning("  %d 件投げて %d 行しか書き換わっていません"
+                               "（対象が既に埋まっている / run_id の絞りがずれている）",
+                               len(part), affected)
+            done += affected
         return done
 
     written = 0

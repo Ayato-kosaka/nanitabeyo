@@ -319,7 +319,10 @@ class BigQueryPipeline:
 
         for i in range(attempts):
             try:
-                return self.execute(sql, parameters)
+                # ⚠️ #1947 **影響行数を返すこと。** 後埋め系はここの戻り値でしか
+                #   «書けたのか / 1 行も当たらなかったのか» を知れない。rows を返していた
+                #   ころ、呼び出し側は «投げた件数» を完了件数として出していた。
+                return self.execute_dml(sql, parameters, what="DML（同時更新の再試行つき）")
             except BadRequest as e:  # noqa: PERF203 - リトライ対象を message で見分ける
                 if "serialize access" not in str(e) or i == attempts - 1:
                     raise

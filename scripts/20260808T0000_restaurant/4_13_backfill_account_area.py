@@ -156,18 +156,18 @@ def main() -> None:
         SELECT @pids[OFFSET(o)] AS post_id, @lats[OFFSET(o)] AS lat, @lngs[OFFSET(o)] AS lng
         FROM UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH(@pids) - 1)) o
       ) s
-      WHERE t.run_id = @rid AND t.post_id = s.post_id AND t.discovery_area_lat IS NULL
+      WHERE {run_id_filter_sql("t.run_id", "@rid", run_id)} AND t.post_id = s.post_id
+        AND t.discovery_area_lat IS NULL
     """
     done = 0
     for i in range(0, len(hits), CHUNK):
         chunk = hits[i:i + CHUNK]
-        pipeline.execute_dml_retrying(sql, [
+        done += pipeline.execute_dml_retrying(sql, [
             bigquery.ScalarQueryParameter("rid", "STRING", run_id),
             bigquery.ArrayQueryParameter("pids", "STRING", [h["post_id"] for h in chunk]),
             bigquery.ArrayQueryParameter("lats", "FLOAT64", [h["lat"] for h in chunk]),
             bigquery.ArrayQueryParameter("lngs", "FLOAT64", [h["lng"] for h in chunk]),
         ])
-        done += len(chunk)
         LOGGER.info("  %d/%d 件へ地点を入れました", done, len(hits))
     LOGGER.info("アカウント重心による地点の後埋め完了: %d 件", done)
 

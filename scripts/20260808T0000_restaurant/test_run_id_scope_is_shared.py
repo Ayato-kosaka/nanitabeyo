@@ -14,14 +14,24 @@
 | `9_1 --resolved-run-ids` | `sns_post_resolved` | 既に `all` を持つ（#1273 で対応済み） |
 | `4_2 --account-run-ids` | `sns_source_account` | 既に複数指定できる |
 | `4_18 --source-run-id` | `sns_post_raw` | 既に «未指定なら全 run»（`@x IS NULL OR run_id = @x`） |
+| `4_11` / `4_13` / `4_14` の **UPDATE 側** | `sns_post_raw` | **当てはまる → 2026-09-25 に直した** |
 | `7_2_report_funnel` | 各表 | **当てはまらない。** «1 run の内訳» を出す道具で、混ぜると意味が壊れる |
 | `restaurant_catalog` を読む全て | — | **当てはまらない。** run_id が «スナップショットそのもの»。 |
 |  |  | 緩めると別時点のデータが混ざる（`3_x` / `7_4` / `9_2` / `pg_sync_common`） |
+
+2026-09-25 の追記。上の表で «直した» と書いた `4_11` / `4_13` / `4_14` は、**SELECT 側だけ**
+だった。同じ script の UPDATE は `WHERE t.run_id = @rid` のままで、`--run-id ALL` を渡すと
+**対象は全 run から選ばれるのにどの行にも当たらない**（`'ALL'` に一致する行は無い）。
+しかも完了ログは «投げた件数»（`len(chunk)`）を足していたので、**1 行も書けていないのに
+「書き戻し N 件」と出る**。読む側だけ直して書く側を残すと、この形になる。
+以後、**同じ run_id を使う SELECT と DML は同じ helper を通す**ことをここで固定し、
+`execute_dml_retrying` は «影響行数» を返して、完了件数はそれで数える。
 
 **未判定を «当てはまらない» と書かない。** 上の «当てはまらない» は理由つきで残す。
 """
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -95,6 +105,56 @@ class NobodyCopiesTheJudgementTest(unittest.TestCase):
         for name in DELIBERATELY_SINGLE_RUN:
             with self.subTest(script=name):
                 self.assertTrue((HERE / name).exists(), f"{name} が存在しない")
+
+
+class TheWriteSideUsesTheSameScope(unittest.TestCase):
+    """#1947 読む側だけ直して書く側を残さない（2026-09-25）。"""
+
+    # run_id_filter_sql を使う script で、**同じ param を生比較してよい**もの。理由を必ず書く。
+    RAW_COMPARISON_IS_CORRECT = {
+        # 別の表（restaurant_catalog）の «スナップショットを指す run_id»。
+        # 緩めると別時点のカタログが混ざる（module docstring の最終行と同じ判定）。
+        ("4_1_discover_sns_accounts.py", "@crid"),
+        # この run 自身の id で «今回自分が書いた行» だけを消す DELETE。常に単一の値。
+        ("4_1_discover_sns_accounts.py", "@rid"),
+    }
+
+    @staticmethod
+    def _params_passed_to_helper(source: str) -> set[str]:
+        return set(re.findall(r'run_id_filter_sql\(\s*"[^"]+"\s*,\s*"(@\w+)"', source))
+
+    def test_no_script_compares_the_same_param_raw(self) -> None:
+        bad: list[str] = []
+        for path in sorted(HERE.glob("[0-9]*.py")):
+            source = path.read_text(encoding="utf-8")
+            for param in self._params_passed_to_helper(source):
+                if (path.name, param) in self.RAW_COMPARISON_IS_CORRECT:
+                    continue
+                if re.search(r"run_id\s*=\s*" + re.escape(param) + r"\b", source):
+                    bad.append(f"{path.name}: run_id = {param}")
+        self.assertEqual(
+            bad, [],
+            "同じ run_id を SELECT では helper 経由、DML では生比較で絞っている。"
+            "helper を通すか、正しい理由を書いて RAW_COMPARISON_IS_CORRECT へ入れること:\n  "
+            + "\n  ".join(bad))
+
+    def test_backfills_count_what_actually_changed(self) -> None:
+        """完了件数は «投げた件数» ではなく «書き換わった行数» で数えること。"""
+        for name in ("4_11_backfill_post_area.py", "4_13_backfill_account_area.py",
+                     "4_14_fetch_missing_captions.py"):
+            with self.subTest(script=name):
+                body = "\n".join(
+                    ln for ln in (HERE / name).read_text(encoding="utf-8").splitlines()
+                    if not ln.lstrip().startswith("#"))
+                self.assertNotIn("done += len(", body)
+                self.assertNotIn("ndone += len(", body)
+
+    def test_the_retrying_helper_returns_affected_rows(self) -> None:
+        """`execute_dml_retrying` が rows ではなく影響行数を返すこと（数える根拠）。"""
+        src = (HERE / "pipeline_common.py").read_text(encoding="utf-8")
+        body = src[src.index("def execute_dml_retrying("):][:2000]
+        self.assertIn("self.execute_dml(", body)
+        self.assertNotIn("return self.execute(sql, parameters)", body)
 
 
 if __name__ == "__main__":

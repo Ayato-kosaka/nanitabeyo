@@ -106,7 +106,8 @@ def main() -> None:
         SELECT @pids[OFFSET(o)] AS post_id, @lats[OFFSET(o)] AS lat, @lngs[OFFSET(o)] AS lng
         FROM UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH(@pids) - 1)) o
       ) s
-      WHERE t.run_id = @rid AND t.post_id = s.post_id AND t.discovery_area_lat IS NULL
+      WHERE {run_id_filter_sql("t.run_id", "@rid", run_id)} AND t.post_id = s.post_id
+        AND t.discovery_area_lat IS NULL
     """
     done = 0
     for i in range(0, len(hits), CHUNK):
@@ -117,8 +118,7 @@ def main() -> None:
             bigquery.ArrayQueryParameter("lats", "FLOAT64", [h["lat"] for h in chunk]),
             bigquery.ArrayQueryParameter("lngs", "FLOAT64", [h["lng"] for h in chunk]),
         ]
-        pipeline.execute_dml_retrying(sql, params)
-        done += len(chunk)
+        done += pipeline.execute_dml_retrying(sql, params)
         LOGGER.info("  %d/%d 件へ地点を入れました", done, len(hits))
     LOGGER.info("地点の後埋め完了: %d 件", done)
 
@@ -131,17 +131,18 @@ def main() -> None:
         SELECT @pids[OFFSET(o)] AS post_id, @names[OFFSET(o)] AS name
         FROM UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH(@pids) - 1)) o
       ) s
-      WHERE t.run_id = @rid AND t.post_id = s.post_id AND NOT STARTS_WITH(t.caption, "📍")
+      WHERE {run_id_filter_sql("t.run_id", "@rid", run_id)} AND t.post_id = s.post_id
+        AND NOT STARTS_WITH(t.caption, "📍")
     """
     ndone = 0
     for i in range(0, len(names), CHUNK):
         chunk = names[i:i + CHUNK]
-        pipeline.execute_dml_retrying(name_sql, [
+        n_written = pipeline.execute_dml_retrying(name_sql, [
             bigquery.ScalarQueryParameter("rid", "STRING", run_id),
             bigquery.ArrayQueryParameter("pids", "STRING", [h["post_id"] for h in chunk]),
             bigquery.ArrayQueryParameter("names", "STRING", [h["name"] for h in chunk]),
         ])
-        ndone += len(chunk)
+        ndone += n_written
         LOGGER.info("  📍行 %d/%d 件", ndone, len(names))
     LOGGER.info("📍行の後埋め完了: %d 件", ndone)
 
