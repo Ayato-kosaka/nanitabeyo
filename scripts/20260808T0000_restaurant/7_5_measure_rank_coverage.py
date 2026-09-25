@@ -145,6 +145,16 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       WHERE h.gpid IS NULL
       GROUP BY point
     ),
+    -- ⑥ その地点の 500m 圏に **台帳として何軒あるか**（配信できているかは問わない）。
+    --    #1947 «全部知っていて全部呼び終えた» 地点に対して «では何軒あるのか» を
+    --    答えられないと、«薄い» が «あと少し» なのか «物理的に無理» なのか分けられない。
+    --    5 店揃えるには最低 5 軒要るので、5 軒未満の地点は供給をいくら足しても達成できない。
+    pt_all AS (
+      SELECT p.pid AS point, COUNT(DISTINCT s.google_place_id) AS catalog_stores_500m
+      FROM pts p
+      JOIN store_loc s ON ST_DWithin(p.location, s.location, {int(radius_m)})
+      GROUP BY point
+    ),
     per_point AS (
       SELECT point,
              COUNTIF(stores >= 5) AS cats_ge5,
@@ -159,12 +169,14 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       IFNULL(pp.cats_any, 0) AS cats_any,
       IFNULL(pp.cell_stores, []) AS cell_stores,
       IFNULL(pr.reachable_500m, 0) AS reachable_500m,
-      IFNULL(pn.no_handle_500m, 0) AS no_handle_500m
+      IFNULL(pn.no_handle_500m, 0) AS no_handle_500m,
+      IFNULL(pa.catalog_stores_500m, 0) AS catalog_stores_500m
     FROM pts p
     LEFT JOIN pt_stores ps ON ps.point = p.pid
     LEFT JOIN per_point pp ON pp.point = p.pid
     LEFT JOIN pt_reach pr ON pr.point = p.pid
     LEFT JOIN pt_nohandle pn ON pn.point = p.pid
+    LEFT JOIN pt_all pa ON pa.point = p.pid
     """
 
 
@@ -256,8 +268,16 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = Fa
             "（合計 %d 店・中央値 %d 店）。巡回（#1777）で handle を掘れば届く",
             with_nh, len(dry), sum(nh), sorted(nh)[len(nh) // 2] if nh else 0)
         if with_nh < len(dry):
+            exhausted = [pid for pid in dry if by_point[pid]["no_handle_500m"] == 0]
+            # ⚠️ «薄い» で止めない。**何軒あるのか**まで出す。5 軒未満なら供給を足しても届かない。
+            dens = sorted(by_point[pid].get("catalog_stores_500m", 0) for pid in exhausted)
+            hopeless = sum(1 for d in dens if d < 5)
             log("  ⚠️ さらに %d 地点は «500m 圏の店を全部知っていて、全部呼び終えた»。"
-                "ここは店台帳そのものが薄い（発見でも収集でも届かない）", len(dry) - with_nh)
+                "ここは店台帳そのものが薄い（発見でも収集でも届かない）", len(exhausted))
+            if dens:
+                log("     500m 圏の台帳の店数: 中央値 %d 軒 / 最小 %d 軒 / 最大 %d 軒。"
+                    "**5 軒未満＝供給をいくら足しても 5 店は作れない地点 = %d / %d**",
+                    dens[len(dens) // 2], dens[0], dens[-1], hopeless, len(dens))
 
     hist: dict[int, int] = {}
     for c, _ in picked:
