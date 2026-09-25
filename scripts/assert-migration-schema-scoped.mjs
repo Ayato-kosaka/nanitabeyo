@@ -135,32 +135,37 @@ export function findSchemaEscapes(filePath, targetSchema = "dev") {
 	return violations;
 }
 
-const args = process.argv.slice(2);
-const targetOptionIndex = args.indexOf("--target-schema");
-const targetSchema = targetOptionIndex === -1 ? "dev" : args[targetOptionIndex + 1];
-if (!["dev", "public"].includes(targetSchema)) {
-	console.error("--target-schema は dev または public を指定してください。");
-	process.exit(2);
+// ⚠️ **import されたときは CLI を動かさないこと。** ガードを import して使い回す
+// （`assert-drop-safe-for-deployed-code.mjs` が `stripSqlNoise` を使う）ときに、
+// この下の処理が走って «使い方» を出して exit 2 する（実際に踏んだ）。
+if (import.meta.url === `file://${process.argv[1]}`) {
+	const args = process.argv.slice(2);
+	const targetOptionIndex = args.indexOf("--target-schema");
+	const targetSchema = targetOptionIndex === -1 ? "dev" : args[targetOptionIndex + 1];
+	if (!["dev", "public"].includes(targetSchema)) {
+		console.error("--target-schema は dev または public を指定してください。");
+		process.exit(2);
+	}
+	if (targetOptionIndex !== -1) args.splice(targetOptionIndex, 2);
+
+	const files = args;
+	if (files.length === 0) {
+		console.error(
+			"使い方: node scripts/assert-migration-schema-scoped.mjs --target-schema <dev|public> <file.sql> [...]",
+		);
+		process.exit(2);
+	}
+
+	const allViolations = files.flatMap((file) => findSchemaEscapes(file, targetSchema));
+
+	if (allViolations.length > 0) {
+		console.error("❌ 適用先スキーマから出る可能性のある記述が見つかりました。");
+		for (const v of allViolations) console.error(`   ${v}`);
+		console.error("");
+		console.error("   本番と開発は同じ DB の別スキーマです。対象外スキーマの修飾を外すか、");
+		console.error("   migration の適用先が正しいか確認してください。");
+		process.exit(1);
+	}
+
+	console.log(`✅ ${files.length} ファイルすべてが ${targetSchema} スキーマにスコープされています`);
 }
-if (targetOptionIndex !== -1) args.splice(targetOptionIndex, 2);
-
-const files = args;
-if (files.length === 0) {
-	console.error(
-		"使い方: node scripts/assert-migration-schema-scoped.mjs --target-schema <dev|public> <file.sql> [...]",
-	);
-	process.exit(2);
-}
-
-const allViolations = files.flatMap((file) => findSchemaEscapes(file, targetSchema));
-
-if (allViolations.length > 0) {
-	console.error("❌ 適用先スキーマから出る可能性のある記述が見つかりました。");
-	for (const v of allViolations) console.error(`   ${v}`);
-	console.error("");
-	console.error("   本番と開発は同じ DB の別スキーマです。対象外スキーマの修飾を外すか、");
-	console.error("   migration の適用先が正しいか確認してください。");
-	process.exit(1);
-}
-
-console.log(`✅ ${files.length} ファイルすべてが ${targetSchema} スキーマにスコープされています`);
