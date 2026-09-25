@@ -44,6 +44,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import logging
+import re
 import sys
 import time
 from collections import Counter
@@ -86,6 +87,33 @@ def measure_html(html: str) -> tuple[str, bool, bool]:
     usable = bool(entries_with_times(html))
     written = bool(extract_opening_hours_entries(html))
     return bucket, usable, written and not usable
+
+
+# 取りに行けなかった理由のまとめ方。**「到達できなかった」で 1 つに束ねてはいけない**
+# （#1884）。中身は «消えたサイト» と «拒否されたサイト» と «遅いサイト» で、
+# 打つ手がまるで違う。前者は URL を捨てる話、後者 2 つはクロールの作法の話である。
+_FAILURE_GROUPS: tuple[tuple[str, str], ...] = (
+    ("dead_404", r"^http_(404|410)$"),
+    ("forbidden_403", r"^http_(401|403)$"),
+    ("server_5xx", r"^http_5\d\d$"),
+    ("other_http", r"^http_\d+$"),
+    ("dns_or_refused", r"(?i)name or service|nodename|getaddrinfo|refused|unreachable"),
+    ("timeout", r"(?i)timed? ?out|timeout"),
+    ("tls", r"(?i)ssl|certificate|tlsv"),
+    ("not_html", r"^not_html"),
+)
+
+
+def classify_failure(reason: str) -> str:
+    """`fetch` が返した理由を «打つ手が同じもの» へまとめる。
+
+    ⚠️ **知らない形を `other` に落として黙らないこと。** 実際の文字列も一緒に出すので、
+       次に読む人が «other が多いのはなぜか» を推測せずに追える。
+    """
+    for label, pattern in _FAILURE_GROUPS:
+        if re.search(pattern, reason):
+            return label
+    return "other"
 
 
 def main() -> int:
@@ -164,6 +192,9 @@ def main() -> int:
     cross: Counter[tuple[bool, bool]] = Counter()
     unreachable = 0
     blocked = 0
+    # #1884 «到達できなかった» の内訳。束ねたままでは打つ手が決まらない
+    failure_groups: Counter[str] = Counter()
+    failure_examples: dict[str, str] = {}
     jsonld_without_times = 0
     # 本文では取れず JSON-LD で取れた（= 増えぶんそのもの）
     gained: list[tuple[str, str, object]] = []
@@ -178,15 +209,20 @@ def main() -> int:
             time.sleep(wait)
         last_request_at = time.monotonic()
 
-    def get(url: str) -> str | None:
+    def get(url: str) -> tuple[str | None, str]:
+        """(本文, 失敗理由) を返す。
+
+        ⚠️ **理由を捨てないこと。** 最初に書いたとき `html, _reason = fetch(...)` と
+           受け流しており、«到達できなかった 178 件» の中身が run のログにも残らなかった
+           （#1884 が欲しい数字そのものを、計算してから捨てていた）。
+        """
         throttle()
         try:
             if not robots_allows(url, robots_cache, args.timeout):
-                return None
-            html, _reason = fetch(url, args.timeout)
-        except Exception:  # noqa: BLE001
-            return None
-        return html
+                return None, "robots"
+            return fetch(url, args.timeout)
+        except Exception as error:  # noqa: BLE001
+            return None, f"{type(error).__name__}({str(error)[:40]})"
 
     for i, (_rid, name, url) in enumerate(candidates, start=1):
         if i % 25 == 0:
@@ -206,9 +242,11 @@ def main() -> int:
             blocked += 1
             continue
 
-        html = get(url)
+        html, reason = get(url)
         if html is None:
             unreachable += 1
+            failure_groups[classify_failure(reason)] += 1
+            failure_examples.setdefault(classify_failure(reason), reason)
             continue
 
         bucket, usable, written_only = measure_html(html)
@@ -220,7 +258,7 @@ def main() -> int:
         if bucket != "parsed":
             hop_url, _label = pick_hop(html, url)
             if hop_url:
-                hop_html = get(hop_url)
+                hop_html, _hop_reason = get(hop_url)
                 if hop_html is not None:
                     hop_bucket, hop_usable, hop_written_only = measure_html(hop_html)
                     if hop_bucket == "parsed":
@@ -243,6 +281,16 @@ def main() -> int:
     LOGGER.info("===== 結果 =====")
     LOGGER.info("標本            : %d 件", total)
     LOGGER.info("  到達できなかった: %d 件", unreachable)
+    if unreachable:
+        # #1884 内訳を出す。«消えた» と «拒否された» と «遅い» は打つ手が違う
+        for label, n in failure_groups.most_common():
+            LOGGER.info(
+                "      %-16s %4d 件（%.1f%% の標本）  例: %s",
+                label,
+                n,
+                100 * n / total if total else 0,
+                failure_examples.get(label, "")[:48],
+            )
     LOGGER.info("  robots で不可   : %d 件", blocked)
     LOGGER.info("  読めた（= 交差表の母数）: %d 件", walked)
     LOGGER.info("")

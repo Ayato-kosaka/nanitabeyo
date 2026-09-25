@@ -96,6 +96,68 @@ class SharesTheCrawlerPartsTest(unittest.TestCase):
         self.assertNotIn("re.compile", source)
 
 
+class ClassifyFailureTest(unittest.TestCase):
+    """#1884 «到達できなかった» を束ねずに分けられること。
+
+    ⚠️ 束ねたままだと打つ手が決まらない。«消えたサイト» は URL を捨てる話、
+       «拒否された / 遅い» はクロールの作法の話で、まるで違う。
+    """
+
+    CASES = {
+        "http_404": "dead_404",
+        "http_410": "dead_404",
+        "http_403": "forbidden_403",
+        "http_401": "forbidden_403",
+        "http_503": "server_5xx",
+        "http_418": "other_http",
+        "urlerror([Errno -2] Name or service not known)": "dns_or_refused",
+        "urlerror([Errno 111] Connection refused)": "dns_or_refused",
+        "urlerror(timed out)": "timeout",
+        "TimeoutError(timed out)": "timeout",
+        "urlerror([SSL: CERTIFICATE_VERIFY_FAILED])": "tls",
+        "not_html(application/pdf)": "not_html",
+    }
+
+    def test_every_real_shape_lands_in_a_group(self) -> None:
+        for reason, want in self.CASES.items():
+            with self.subTest(reason=reason):
+                self.assertEqual(measure.classify_failure(reason), want)
+
+    def test_unknown_shapes_fall_to_other_rather_than_a_wrong_group(self) -> None:
+        self.assertEqual(measure.classify_failure("SomethingNew(???)"), "other")
+
+    def test_404_is_not_counted_as_forbidden(self) -> None:
+        """⚠️ «消えた» と «拒否された» を混ぜると、#1884 の «URL を捨てるべき件数» が狂う。"""
+        self.assertNotEqual(
+            measure.classify_failure("http_404"), measure.classify_failure("http_403")
+        )
+
+    def test_the_reason_is_not_thrown_away(self) -> None:
+        """⚠️ 最初は `html, _reason = fetch(...)` と受け流しており、内訳がログにも残らなかった。
+
+        ⚠️ **素朴に文字列で探してはいけない。** その «やってはいけない形» を注記として
+           docstring に書いてあるので、ソースを grep すると自分の注記に当たる（実際に踏んだ）。
+           AST で «fetch の戻りを捨てている代入» を探す。
+        """
+        import ast
+
+        tree = ast.parse((HERE / "6_5_measure_jsonld_opening_hours.py").read_text(encoding="utf-8"))
+        discarded = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign):
+                continue
+            call = node.value
+            if not (isinstance(call, ast.Call) and getattr(call.func, "id", None) == "fetch"):
+                continue
+            for target in node.targets:
+                if isinstance(target, ast.Tuple):
+                    for element in target.elts:
+                        if isinstance(element, ast.Name) and element.id.startswith("_"):
+                            discarded.append(element.id)
+        self.assertEqual(discarded, [], f"fetch の戻りを捨てている: {discarded}")
+        self.assertIn("failure_groups[classify_failure(reason)]", inspect.getsource(measure.main))
+
+
 class ReadOnlyTest(unittest.TestCase):
     SOURCE = (HERE / "6_5_measure_jsonld_opening_hours.py").read_text(encoding="utf-8")
 
