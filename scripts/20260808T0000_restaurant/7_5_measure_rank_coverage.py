@@ -253,6 +253,16 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = Fa
     log("  安い順に %d 地点を埋めるのに必要な店数 = **%d 店**（1 地点あたり平均 %.1f 店）",
                 len(picked), total, total / len(picked) if picked else 0)
     by_point = {p_["point"]: p_ for p_ in pts}
+    # ⚠️ #1947 **天井は毎回出す。** «台帳が薄い» 分岐の中だけに置いていたので、
+    #    薄い地点が 0 件のとき（＝ふつうの状態）に 1 度も出ずに終わっていた。
+    #    KPI は «同じカテゴリで異なり 5 店» なので、500m 圏の台帳が 5 軒未満の地点は
+    #    供給をいくら足しても達成できない。«あと 1 店» と «そもそも作れない» は別物である。
+    dens_all = sorted(by_point[pid].get("catalog_stores_500m", 0) for _, pid in picked)
+    if dens_all:
+        log("  未達 %d 地点の 500m 圏にある **台帳の店数**: 中央値 %d 軒 / 最小 %d 軒 / 最大 %d 軒"
+            "（**5 軒未満＝供給をいくら足しても 5 店は作れない地点 = %d**）",
+            len(dens_all), dens_all[len(dens_all) // 2], dens_all[0], dens_all[-1],
+            sum(1 for d in dens_all if d < 5))
     reach = [by_point[pid]["reachable_500m"] for _, pid in picked]
     have = sum(1 for r in reach if r > 0)
     log("  **そのうち «まだ呼んでいない・手が届く店» が 500m 圏にある地点 = %d / %d**"
@@ -275,9 +285,9 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = Fa
             log("  ⚠️ さらに %d 地点は «500m 圏の店を全部知っていて、全部呼び終えた»。"
                 "ここは店台帳そのものが薄い（発見でも収集でも届かない）", len(exhausted))
             if dens:
-                log("     500m 圏の台帳の店数: 中央値 %d 軒 / 最小 %d 軒 / 最大 %d 軒。"
-                    "**5 軒未満＝供給をいくら足しても 5 店は作れない地点 = %d / %d**",
-                    dens[len(dens) // 2], dens[0], dens[-1], hopeless, len(dens))
+                log("     そのうち台帳が 5 軒未満（＝供給では届かない）= **%d / %d**"
+                    "（中央値 %d 軒 / 最小 %d 軒）", hopeless, len(dens),
+                    dens[len(dens) // 2], dens[0])
 
     hist: dict[int, int] = {}
     for c, _ in picked:

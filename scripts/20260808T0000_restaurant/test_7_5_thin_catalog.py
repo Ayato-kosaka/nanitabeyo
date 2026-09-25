@@ -66,6 +66,15 @@ class ThinIsReportedAsANumber(unittest.TestCase):
         self.assertIn("catalog_stores_500m", body)
         self.assertIn("供給をいくら足しても 5 店は作れない地点", body)
 
+    def test_the_ceiling_is_printed_outside_the_thin_branch(self) -> None:
+        """#1947 «薄い地点が 0 件» のときも天井が出ること。
+
+        最初の版は «全部呼び終えた» 分岐の中だけに置いていたので、cat25（薄い地点 0 件）
+        では 1 度も出ずに終わった。分岐に入らなくても未達地点の軒数は毎回出す。
+        """
+        self.assertLess(SRC.index("台帳の店数"), SRC.index("«撃てる弾が 1 つも無い»"),
+                        "天井の出力が «撃てる弾が無い» 分岐より後ろにある")
+
     def test_it_uses_five_because_that_is_the_kpi(self) -> None:
         """«5 軒未満» のしきい値が KPI の «5 店» と同じ数であること。"""
         self.assertIn("d < 5", SRC)
