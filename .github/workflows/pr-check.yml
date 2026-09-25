@@ -105,7 +105,9 @@ jobs:
             scripts/20260808T0000_restaurant/test_osm_opening_hours.py \
             scripts/20260808T0000_restaurant/test_jp_site_opening_hours.py \
             scripts/20260808T0000_restaurant/test_measure_official_site_hours.py \
-            scripts/20260808T0000_restaurant/test_crawl_official_site_hours.py
+            scripts/20260808T0000_restaurant/test_crawl_official_site_hours.py \
+            scripts/20260808T0000_restaurant/test_jsonld_opening_hours.py \
+            scripts/20260808T0000_restaurant/test_measure_jsonld_opening_hours.py
 
       # #1881 住所から国コードを決める判定（country_resolution.py）。
       # ここが崩れると **韓国の店が日本の店として出る**（矩形で決めていた頃は
