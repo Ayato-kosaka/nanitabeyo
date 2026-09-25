@@ -120,6 +120,31 @@ TRANSIENT_BACKOFF_S = (5.0, 20.0, 60.0)
 # 台帳へ焼き付けてしまい、次の run が二度と拾わなくなる。
 MAX_CONSECUTIVE_TRANSIENT = 20
 
+# #1947 **«例外は出ないが 0 件が返り続ける» を止める。**
+# 2026-09-25、`4_14` が «HTTP 200・失敗 0» のまま 13,100 件連続で空を返され、
+# それに 2 時間気づかずに走り続けた（相手が静かに閉じたのを、道具が成功と数えていた）。
+# 同じ形がここにもある。上の `consecutive_transient` は **例外のときしか**増えないので、
+# IG が 200 で空のメディア一覧を返し続けると «呼んだが 0 件» の台帳だけが積み上がり、
+# 205 件/時の枠を空振りで食い潰す（このすぐ上のコメントが自分でその危険を書いている）。
+#
+# しきい値は実測から決める。2026-09-15 以降の 37,858 回の呼び出しで
+# **0 件は 20.3%**、**自然に起きた 0 件の最長連続は 221**（`sns_account_attempt`）。
+# 観測された最長の 2 倍以上を取って 500 とする。«正常なのに赤くする» 方が害が大きいので、
+# 途中（半分）で警告だけ出して、越えたら止める。
+MAX_CONSECUTIVE_EMPTY_ACCOUNTS = 500
+
+
+def empty_streak_action(streak: int, limit: int = MAX_CONSECUTIVE_EMPTY_ACCOUNTS) -> str | None:
+    """0 件が続いたときに «何もしない / 警告 / 中止» のどれかを返す（純関数）。
+
+    ⚠️ 回避策は実装しない。ここでやるのは «気づいて止まる» だけ。
+    """
+    if streak >= limit:
+        return "stop"
+    if streak >= limit // 2:
+        return "warn"
+    return None
+
 
 def _is_transient(err: dict, http_status: int) -> bool:
     """相手が «一時的» と言っているか。ここだけが再送の可否を決める。"""
@@ -919,6 +944,7 @@ def main() -> None:
         # ただし全部これで飛ばすと、IG が落ちているのに黙ってキューを食い潰すので、
         # **連続** で続いたら止める（`4_22` の較正ガードと同じ規律）。
         consecutive_transient = 0
+        consecutive_empty = 0
         for acc in accounts:
             handle = acc["handle"]
             route = _ROUTE_BY_ACCOUNT_TYPE.get(acc["account_type"], "influencer")
@@ -962,6 +988,21 @@ def main() -> None:
             LOGGER.info("  @%s: %d posts", handle, n)
             attempts.append({"provider": PROVIDER_INSTAGRAM, "handle": handle, "run_id": run_id,
                              "attempted_at": utc_now().isoformat(), "post_count": n})
+            # #1947 «例外は出ないが 0 件» が続いたら降りる（定数の上のコメントに根拠）。
+            consecutive_empty = consecutive_empty + 1 if n == 0 else 0
+            action = empty_streak_action(consecutive_empty)
+            if action == "warn":
+                LOGGER.warning("  ⚠️ 0 件のアカウントが %d 件続いています"
+                               "（例外は出ていない）。相手が静かに閉じた可能性がある",
+                               consecutive_empty)
+            elif action == "stop":
+                _flush()
+                raise SystemExit(
+                    f"0 件のアカウントが {consecutive_empty} 件連続しました"
+                    f"（例外は 1 度も出ていない）。実測では 0 件は 20.3%% で、"
+                    f"自然に起きた最長連続は 221 件なので、相手が静かに閉じたとみなして止める。"
+                    f"ここで続けると 205 件/時の枠を空振りで消費するだけになる。"
+                    f"時間を空けてから次のラウンドを流すこと（回避策は実装しない）。")
             processed += 1
             if processed % FLUSH_EVERY == 0:
                 _flush()

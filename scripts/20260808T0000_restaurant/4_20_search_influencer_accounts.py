@@ -97,6 +97,10 @@ HERE = Path(__file__).resolve().parent
 TABLE_QUERY_CANDIDATE = "sns_influencer_query_candidate"
 
 # probe の閾値。上の表（25 投稿で異なり店 4 以上 → 総配信店 10 以上を precision 95.1%）が根拠。
+#: 200 が返るのに 0 件、がこれだけ続いたら «キーか枠が死んだ» とみなして止める（#1947）。
+#: 上の consecutive_failures は例外のときしか増えないので、この形は素通りしていた。
+MAX_CONSECUTIVE_EMPTY_QUERIES = 50
+
 PROBE_POSTS = 25
 PROBE_MIN_STORES = 4
 # 損得の分岐点。これを下回ったら «この経路はやらない» と判定する（docstring の式）。
@@ -338,6 +342,7 @@ def main() -> None:
         rows: list[dict] = []
         seen: set[tuple[str, str]] = set()
         consecutive_failures = 0
+        consecutive_empty = 0
         for i, (pref, q) in enumerate(queries, start=1):
             try:
                 res = serper_search(key, q, args.num)
@@ -354,7 +359,19 @@ def main() -> None:
                         f"SERPER が {consecutive_failures} 回連続で失敗しました（最後の本文: {body}）。"
                         "キーか無料枠を確認してください。") from e
                 continue
-            for handle, origin, rank in handles_from(res):
+            # #1947 «200 が返るのに 0 件» が続くのは、キーか枠が死んだ合図である。
+            # 上の `consecutive_failures` は **例外のときしか**増えないので、SERPER が
+            # 200 で空を返すようになると、残りのクエリを全部投げてクレジットだけ溶かす。
+            # 2026-09-25 に `4_14` で同じ形（HTTP 200・失敗 0 のまま空が 13,100 件連続）を
+            # 踏んだので、ここも «気づいて止まる» を入れる（回避策は実装しない）。
+            found = list(handles_from(res))
+            consecutive_empty = consecutive_empty + 1 if not found else 0
+            if consecutive_empty >= MAX_CONSECUTIVE_EMPTY_QUERIES:
+                raise RuntimeError(
+                    f"SERPER が {consecutive_empty} クエリ連続で 0 件を返しました"
+                    f"（HTTP は成功したまま）。キーか無料枠が死んでいる可能性が高いので止める。"
+                    f"ここで続けても残りのクエリぶんのクレジットを消費するだけになる。")
+            for handle, origin, rank in found:
                 if (handle, q) in seen:
                     continue
                 seen.add((handle, q))

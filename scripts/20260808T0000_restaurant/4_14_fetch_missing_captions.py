@@ -123,6 +123,29 @@ def _fetch_caption(code: str, timeout: float = 20.0) -> tuple[str | None, int]:
     return caption_from_embed_html(raw), status
 
 
+# #1947 **«200 が返るのに本文が空» が続くのは、相手が静かに閉じた合図である。**
+# 2026-09-25 の run 1235: 最初の 3,500 件は 64% が本文ありだったのに、4,000 件あたりから
+# **13,100 件連続で空**になり、それでも HTTP は 200・失敗 0 のまま 2 時間走り続けた。
+# `--max-consecutive-errors` は非 200 しか数えないので、この形は 1 度も引っかからない。
+# 空が続く確率は（ブロック前の実測 36% でも）300 連続で事実上ゼロなので、そこで降りる。
+SOFT_BLOCK_EMPTY_STREAK = 300
+
+
+def soft_block_note(empty_streak: int, ok: int, empty: int,
+                    threshold: int = SOFT_BLOCK_EMPTY_STREAK) -> str | None:
+    """«静かに閉じられた» と判定できるなら、降りる理由の文言を返す。
+
+    ⚠️ **回避策（IP を分ける等）は実装しない。** ここでやるのは «気づいて止まる» だけ。
+    """
+    if empty_streak < threshold:
+        return None
+    got = ok + empty
+    return (f"本文が空の応答が {empty_streak} 回続きました（HTTP は 200・失敗 0 のまま）。"
+            f"相手が静かに閉じたとみなしてこのバッチを降ります。"
+            f"ここまで {got} 件取得し、本文が取れたのは {ok} 件"
+            f"（{100.0 * ok / got:.1f}%）です")
+
+
 def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store: int,
                 only_unresolved: bool = False,
                 only_resolved_without_category: bool = False,
@@ -199,7 +222,8 @@ def main() -> None:
     deadline = time.monotonic() + args.max_minutes * 60
     pacer = Pacer(args.rate_per_sec)
     got: Queue = Queue()
-    state = {"consecutive_errors": 0, "stop": False, "ok": 0, "empty": 0, "err": 0}
+    state = {"consecutive_errors": 0, "consecutive_empty": 0, "stop": False,
+             "ok": 0, "empty": 0, "err": 0, "stopped_by": ""}
     lock = threading.Lock()
 
     def work(item: tuple[str, str]) -> None:
@@ -213,9 +237,17 @@ def main() -> None:
                 state["consecutive_errors"] = 0
                 if cap:
                     state["ok"] += 1
+                    state["consecutive_empty"] = 0
                     got.put({"post_id": post_id, "caption": cap})
                 else:
                     state["empty"] += 1
+                    state["consecutive_empty"] += 1
+                    note = soft_block_note(state["consecutive_empty"],
+                                           state["ok"], state["empty"])
+                    if note and not state["stop"]:
+                        LOGGER.warning("%s", note)
+                        state["stop"] = True
+                        state["stopped_by"] = "soft_block"
             else:
                 state["err"] += 1
                 state["consecutive_errors"] += 1
@@ -268,8 +300,14 @@ def main() -> None:
             if state["stop"] or time.monotonic() > deadline:
                 break
     written += flush()
-    LOGGER.info("キャプション後入れ完了: 書き戻し %d 件（本文あり %d / 空 %d / 失敗 %d）",
-                written, state["ok"], state["empty"], state["err"])
+    got_n = state["ok"] + state["empty"]
+    LOGGER.info("キャプション後入れ完了: 書き戻し %d 件（本文あり %d / 空 %d / 失敗 %d"
+                "・本文が取れた割合 %.1f%%）",
+                written, state["ok"], state["empty"], state["err"],
+                100.0 * state["ok"] / got_n if got_n else 0.0)
+    if state["stopped_by"] == "soft_block":
+        LOGGER.warning("⚠️ **相手に静かに閉じられて降りた**ぶん、対象はまだ残っています。"
+                       "時間を空けてから次のラウンドを流すこと（回避策は実装しない）")
 
 
 if __name__ == "__main__":
