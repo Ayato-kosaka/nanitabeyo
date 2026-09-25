@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
-import { Heart, Bookmark, MapPinned, UtensilsCrossed } from "lucide-react-native";
+import { Heart, Bookmark, MapPinned, Store, UtensilsCrossed } from "lucide-react-native";
 import { router } from "expo-router";
 import i18n from "@/lib/i18n";
 // #1629 いいね数の表示は消したが、楽観更新の整形に使うため import は残す（下のコメント参照）
@@ -347,10 +347,28 @@ function ActionButtonsContent({
 		});
 	}, [lightImpact, logFrontendEvent, locale, restaurant, dishMediaId]);
 
-	const handleViewRestaurant = () => {
+	/**
+	 * #1264 【設計】**結果フィードから店舗詳細へ行けるようにする。**
+	 *
+	 * #1071 はこのボタンを «押しても何も起きないので本番では出さない» として落とし、
+	 * «店舗詳細画面が実装されたら復活させる» と書き残していた。その条件は満たされている
+	 * （`app/[locale]/restaurant/[restaurantId].tsx`。マイ料理のカードと共有リンクは既にここへ push する）。
+	 *
+	 * ## なぜ «あとで整える細部» ではないのか（本番 90 日の実測 / #1264）
+	 *
+	 * 検索結果まで来たのは **15,936 人**、そこから店舗詳細へ到達したのは **21 人（0.13%）**。
+	 * サーバ側でも `getRestaurantDishMedia` が **46 回** / `getRestaurantById` が **3 回**しかない。
+	 * レビューを出す面も «食べた» の記録の入口もこの画面の側にあるので、
+	 * **導線が無いあいだは «レビュー表示が無い» のと同じ**だった（自社 UGC は 90 日で 9 件）。
+	 *
+	 * ⚠️ フォームの側は詰まっていない。`POST /v1/dishes` 9 → `dish-media` 9 → `dish-reviews` 9 で
+	 * 入った人は全員書き終えている。直すべき段はここである。
+	 *
+	 * ⚠️ `restaurant_view_clicked` は残す。本番 90 日で **0 行**（ボタンが無かったので当然）なので、
+	 * この行がこれから増えるかどうかが «導線が効いたか» の唯一の観測点になる。
+	 */
+	const handleViewRestaurant = useCallback(() => {
 		lightImpact();
-		// router.push("/(tabs)/(home)/restaurant/1");
-
 		logFrontendEvent({
 			event_name: "restaurant_view_clicked",
 			error_level: "log",
@@ -360,7 +378,11 @@ function ActionButtonsContent({
 				fromDishMediaId: dishMediaId,
 			},
 		});
-	};
+		router.push({
+			pathname: "/[locale]/restaurant/[restaurantId]",
+			params: { locale, restaurantId: restaurant.id },
+		});
+	}, [lightImpact, logFrontendEvent, locale, restaurant, dishMediaId]);
 
 	const handleMapPinPress = useCallback(() => {
 		return openInGoogleMaps({
@@ -403,27 +425,32 @@ function ActionButtonsContent({
 	return (
 		<GestureDetector gesture={buttonsGesture}>
 			<View style={styles.rightActions} onLayout={handleLayout}>
-				{/* #1071 【リリース差分】店舗アバターボタンは押しても何も起きないため本番では出さない。
-				    店舗詳細への遷移は handleViewRestaurant 内 (router.push) がコメントアウトされたままで、
-				    コメントに残る遷移先ルート /(tabs)/(home)/restaurant/1 も存在しない。
-				    ログ送信 (restaurant_view_clicked) だけが走る状態なので、ボタン自体を落とす。
-				    店舗詳細画面が実装されたら、このコメントを外して復活させる。
-				<TouchableOpacity
-					style={styles.actionButton}
-					onPress={handleViewRestaurant}
-					hitSlop={buttonHitSlop}
-					accessibilityRole="button"
-					accessibilityLabel={i18n.t("DishMediaContent.accessibility.viewRestaurant", { name: restaurant.name })}>
-					<Image
-						source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
-						style={styles.restaurantAvatar}
-						onError={() => console.log("Failed to load restaurant avatar")}
-						// #937 【仕様】店舗名を伝える情報画像として alt/accessibilityLabel を付与する(ボタン自体のrole/labelは#939で対応)
-						alt={restaurant.name}
-						accessibilityLabel={restaurant.name}
-					/>
-				</TouchableOpacity>
-				*/}
+				{/* #1264 店舗詳細への導線。#1071 が «画面が実装されたら復活させる» と残していたもの
+				    （理由と実測は handleViewRestaurant の設計コメント）。
+				    ⚠️ 店の写真は無い店がある（`imageUrls` は `image_path` 由来 / #1680 #1902）ので、
+				       無いときはアイコンに倒す。**空の丸を出さない。** */}
+				<View style={styles.actionContainer}>
+					<TouchableOpacity
+						testID={`dish-action-restaurant${activeSuffix}`}
+						style={styles.actionButton}
+						onPress={handleViewRestaurant}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishMediaContent.accessibility.viewRestaurant", { name: restaurant.name })}>
+						{restaurant.imageUrls?.sm ? (
+							<Image
+								source={{ uri: restaurant.imageUrls.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls.sm) }}
+								style={styles.restaurantAvatar}
+								// #937 【仕様】店舗名を伝える情報画像として alt/accessibilityLabel を付与する
+								alt={restaurant.name}
+								accessibilityLabel={restaurant.name}
+							/>
+						) : (
+							<Store size={28} color={FixedColors.onMedia} />
+						)}
+					</TouchableOpacity>
+				</View>
+
 
 				<View style={styles.actionContainer}>
 					{/* #1031 【設計】Detox から状態(いいね済みか)を検証できるよう、状態別の accessibilityLabel を付与 */}
