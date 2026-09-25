@@ -54,8 +54,33 @@ migration は「それを使うコードがまだ無い main」へ先にマー�
 - OK: テーブル追加・NULLABLE 列追加・インデックス追加・制約の緩和
 - NG（そのままでは流せない）: 列削除・リネーム・NOT NULL 化など、既存コードを壊す変更
   → **expand / contract** に分ける:
-  ① 新しい形を追加（expand）→ ② コードを移行してリリース → ③ 古い形を削除（contract）。
-  ①と③は別々の migration・別々の承認になる
+  ① 新しい形を追加（expand）→ ② コードを移行して**適用先の環境へデプロイし終える** →
+  ③ 古い形を削除（contract）。①と③は別々の migration・別々の承認になる
+
+### ⚠️ ② は「main へマージする」ではない。「**その環境で動いているコードを入れ替える**」である
+
+2026-09-24 にこれを取り違えて事故った（[#2052](https://github.com/Ayato-kosaka/nanitabeyo/issues/2052)）。
+`20260924T0100_drop_google_derived_columns.sql` を dev へ当てた **33 秒後**から
+**dev の API が全件 500 になり、14 時間直らなかった**（約 15 万件）。
+
+② のつもりで[追従の PR](https://github.com/Ayato-kosaka/nanitabeyo/pull/2051) を main へマージしてはいたが、
+**dev の Cloud Run に載っていたのは 2026-09-10 の版**で、落とした 5 列をまだ読んでいた。
+`shared` のビルド検算は通る（main は直っている）ので、**この取り違えは既存の門番では止まらない**。
+
+**環境ごとに ② を数える。** dev へ contract を当てるなら dev の API を、
+`public` へ当てるなら production の API を、それぞれ先に出し終えていること。
+
+### 機械で止めている（2026-09-25 以降）
+
+`db-migrate.yml` は**適用より前**に
+[`scripts/assert-drop-safe-for-deployed-code.mjs`](../../../scripts/assert-drop-safe-for-deployed-code.mjs)
+を走らせ、落とす列が **`api-deploy.yml` の «成功した最新 run» の `schema.prisma`** に
+まだ宣言されていれば落とす（`dev` → `Deploy (development)` / `public` → `Deploy (production)`）。
+
+- 落とす DDL が 1 つも無い migration（71 本のうち 67 本）では何もしない
+- 載っている版が分からないときも**落ちる**（`--allow-unknown-deployment` で明示的に降りる）
+- ⚠️ **見ているのは列の削除・改名とテーブル削除だけ**である。
+  `NOT NULL` 化と型の縮小は同じ向きの事故になりうるが、まだ見ていない
 
 ## 規則 4. 実適用は**勝手に流さない**（1 本ごとにオーナー承認）
 
