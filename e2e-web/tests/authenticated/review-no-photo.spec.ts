@@ -122,10 +122,12 @@ test.describe("写真なしの食べた記録（#1398）", () => {
 		await captureEvidence(appPage, testInfo, "1398-pr7-no-photo-form");
 
 		// Q2 の条件: 退出手段が残っていること。
-		// review.tsx の ScreenHeader は testID を渡していないので既定の `screen-header-back`。
-		// #1404 のとおり画面ごとの id を持つ画面（店舗詳細 = restaurant-detail-screen-back）とは
-		// 別物なので、ここで strict mode violation は起きない
-		const backButton = appPage.getByTestId("screen-header-back");
+		// ⚠️ #2071 **ここは `screen-header-back` を見てはいけない。** #1579 で review.tsx の
+		// ヘッダーを分岐の外へ括り出したときに `testID="restaurant-review-screen"` が付き、
+		// `ScreenHeader` の規約（#1404）で戻るボタンの id が `restaurant-review-screen-back` へ
+		// 変わった。e2e-mobile の Screen Object は同じ PR で追随したが、**こちらは取り残された**。
+		// 結果、09-21 以降の夜間で «戻るボタンが 0 件» と言い続けていた（アプリは壊れていない）。
+		const backButton = appPage.getByTestId("restaurant-review-screen-back");
 		await expect(backButton).toHaveCount(1);
 		await backButton.click();
 
