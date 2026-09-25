@@ -97,7 +97,15 @@ _FAILURE_GROUPS: tuple[tuple[str, str], ...] = (
     ("forbidden_403", r"^http_(401|403)$"),
     ("server_5xx", r"^http_5\d\d$"),
     ("other_http", r"^http_\d+$"),
-    ("dns_or_refused", r"(?i)name or service|nodename|getaddrinfo|refused|unreachable"),
+    # ⚠️ **`other` に実物を出しておいたおかげで、ここの穴が実測で見つかった**（2026-09-25）。
+    #    `[Errno -3] Temporary failure in name resolution` を 11 件取りこぼしており、
+    #    名前解決の失敗が «分類不能» に落ちていた。`name resolution` を足した。
+    #    ⚠️ Errno -3 は名前に「Temporary」と入るが、**実態は DNS に無いドメイン**である
+    #    （消えたサイトの多く）。«一時障害» と読んで別扱いにしない。
+    (
+        "dns_or_refused",
+        r"(?i)name or service|name resolution|nodename|getaddrinfo|refused|unreachable",
+    ),
     ("timeout", r"(?i)timed? ?out|timeout"),
     ("tls", r"(?i)ssl|certificate|tlsv"),
     ("not_html", r"^not_html"),

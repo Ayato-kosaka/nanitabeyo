@@ -112,6 +112,9 @@ class ClassifyFailureTest(unittest.TestCase):
         "http_418": "other_http",
         "urlerror([Errno -2] Name or service not known)": "dns_or_refused",
         "urlerror([Errno 111] Connection refused)": "dns_or_refused",
+        # ⚠️ 2026-09-25 の実測で other へ 11 件落ちていた形。名前に「Temporary」と入るが
+        #    実態は DNS に無いドメインなので、一時障害として別扱いにしない
+        "urlerror([Errno -3] Temporary failure in name resolution)": "dns_or_refused",
         "urlerror(timed out)": "timeout",
         "TimeoutError(timed out)": "timeout",
         "urlerror([SSL: CERTIFICATE_VERIFY_FAILED])": "tls",
