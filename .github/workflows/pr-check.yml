@@ -213,6 +213,14 @@ jobs:
       - name: migration 順序ガードの自己テスト
         run: bash scripts/test-assert-migration-filename-order.sh
 
+      # #2052 «落とす列を、いま載っているコードが読んでいないか» のガード自身のテスト。
+      # 2026-09-24 に contract を先に当てて **dev の API が 14 時間 500 を返した**
+      # （約 15 万件）。expand → コードを出す → contract の真ん中が抜けていた。
+      # ⚠️ 論理と «配線»（適用より前に走るか）の両方を縛る。抜けたのは配線のほう。
+      #    ネットワークも DB も要らない bash。
+      - name: 列を落とす順序ガードの自己テスト
+        run: bash scripts/test-assert-drop-safe-for-deployed-code.sh
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
