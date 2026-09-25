@@ -55,6 +55,55 @@ const IMMEDIATE_RELOAD_WINDOW_MS = 15_000;
 /** reload の前に、溜まっているログを送り切るための猶予 */
 const FLUSH_GRACE_MS = 1_200;
 
+/**
+ * #2069 【設計】**«撃ち直せば直る失敗» と «撃ち直しても直らない失敗» を分ける。**
+ *
+ * 2026-09-24 から本番の OTA が **1 件も届かなくなった**（Expo 無料枠の
+ * «Monthly Updating Users» 超過で更新チェックが全件 429）。それでも 2 日間・800 件超の間、
+ * **起票が 1 件も無かった**。失敗を全部 `warn` で記録していて、error-triage は
+ * `error_level = 'error'` しか集めないためである。
+ *
+ * 回線が細いときに失敗するのは本当に «正常な範囲» で、次の前面復帰で撃ち直せば直る。
+ * 一方で **枠の使い切り・認可の失敗は、何度撃ち直しても直らない**。
+ * 同じ `warn` へ混ぜると、後者が前者に飲み込まれて誰にも見えなくなる。
+ *
+ * ⚠️ **判定は本文の文字列でしかできない。** `expo-updates` は `checkForUpdateAsync` の失敗を
+ * ステータスコードを持たない `Error` で投げるので、`error.status` のような構造化された値が無い
+ * （実測のメッセージ: `HTTP response error 429: The number of Monthly Updating Users has
+ * exceeded the Free tier's quota for this account. …`）。だから **文字列で当てる**。
+ *
+ * ⚠️ **判定に外れたら `warn` に倒す**（= 従来どおり）。恒久的な失敗を取りこぼす方が、
+ * 回線起因を `error` に上げて毎晩起票されるより安い、という判断ではない。逆である:
+ * 偽陽性で «直っているのに赤い» を作ると次から誰も見ないので、**確実に恒久的なものだけ**を上げる。
+ * 取りこぼしが出たらここへ 1 行足す。
+ *
+ * ⚠️ **既に分かっている取りこぼしが 1 つある。** 本番 30 日で
+ * `Call to function 'ExpoUpdates.checkForUpdateAsync' has been rejected. → Caused by:
+ * Failed to check for update` が **141 件 / 48 ユーザー / 09-12 から連続**で出ているが、
+ * このネイティブ側の文言は **理由を一切含まない**ので、429 なのか回線なのか判別できない。
+ * だから `warn` のままになる。切り分けられるように `platform` を payload へ載せた
+ * （iOS は HTTP の本文が上がってくるのに Android は上がってこない、という仮説を測るため）。
+ */
+const PERMANENT_FAILURE_PATTERNS: readonly RegExp[] = [
+	// 枠の使い切り。Expo の無料枠（MAU）超過がこれ
+	/\b429\b/,
+	/quota/i,
+	/exceeded/i,
+	// 認可。プロジェクト設定やトークンが壊れている状態で、撃ち直しても直らない
+	/\b401\b/,
+	/\b403\b/,
+	/unauthorized/i,
+	/forbidden/i,
+];
+
+/**
+ * 更新チェックの失敗が «撃ち直しても直らない» ものかどうか。
+ *
+ * 判定できないもの（回線・DNS・Expo 側の 5xx など）は `false` を返す。テストから直接呼ぶため export する。
+ */
+export const isPermanentUpdateFailure = (message: string): boolean =>
+	PERMANENT_FAILURE_PATTERNS.some((pattern) => pattern.test(message));
+
 export const OtaUpdateApplier = () => {
 	const { logFrontendEvent } = useLogger();
 
@@ -140,11 +189,15 @@ export const OtaUpdateApplier = () => {
 				applyPendingUpdate(toUpdateId, { reason: "launch" });
 			}
 		} catch (error) {
-			// 回線が細い・Expo が落ちている等で失敗するのは正常な範囲。次の前面復帰で撃ち直す
+			// 回線が細い・Expo が落ちている等で失敗するのは正常な範囲。次の前面復帰で撃ち直す。
+			// ⚠️ ただし «撃ち直しても直らない» 失敗をここへ混ぜない（#2069）。
+			const message = toErrorLogMessage(error);
+			const permanent = isPermanentUpdateFailure(message);
 			logFrontendEvent({
 				event_name: "ota_update_check_failed",
-				error_level: "warn",
-				payload: { error: toErrorLogMessage(error), channel: Updates.channel },
+				error_level: permanent ? "error" : "warn",
+				// ⚠️ platform を載せるのは «判定できなかった失敗» を後から切り分けるため（下の注記）
+				payload: { error: message, channel: Updates.channel, permanent, platform: Platform.OS },
 			});
 		} finally {
 			isCheckingRef.current = false;

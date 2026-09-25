@@ -12,7 +12,14 @@
 
 const { readFileSync } = require("node:fs");
 
-const { EXCLUDED_HTTP_STATUSES, FP_ALGO_VERSION, GROUP_LIMIT, MESSAGE_PATTERN_MAX_LENGTH, TRANSIENT_HTTP_STATUSES } = require("./constants");
+const {
+	EXCLUDED_HTTP_STATUSES,
+	FP_ALGO_VERSION,
+	FRONTEND_EXCLUDED_HTTP_STATUSES,
+	GROUP_LIMIT,
+	MESSAGE_PATTERN_MAX_LENGTH,
+	TRANSIENT_HTTP_STATUSES,
+} = require("./constants");
 const { assertSqlFpAlgoVersion, FINGERPRINT_KEY_FIELDS, parseSqlFpAlgoVersion } = require("./fingerprint");
 const { NORMALIZE_RULES, POST_RULE_STEPS, SQL_EXPR_PLACEHOLDER } = require("./normalize-rules");
 const { SQL_FILE_PATH, readGeneratedSql } = require("./generate-sql");
@@ -427,12 +434,43 @@ describe("除外ルール: constants.js が唯一の正", () => {
 		expect(generated).toContain(`SAFE_CAST(n.beHttpStatus AS INT64) IN (${list})`);
 	});
 
-	test("frontend（E4）は TRANSIENT_HTTP_STATUSES を使う（403 / 404 を除外しない）", () => {
-		const list = TRANSIENT_HTTP_STATUSES.join(", ");
+	test("frontend（E4）は FRONTEND_EXCLUDED_HTTP_STATUSES を使う（403 / 404 / 429 を除外しない）", () => {
+		const list = FRONTEND_EXCLUDED_HTTP_STATUSES.join(", ");
 		expect(generated).toContain(`SAFE_CAST(n.feHttpStatus AS INT64) IN (${list})`);
-		for (const status of [403, 404]) {
-			expect(TRANSIENT_HTTP_STATUSES).not.toContain(status);
+		for (const status of [403, 404, 429]) {
+			expect(FRONTEND_EXCLUDED_HTTP_STATUSES).not.toContain(status);
 		}
+	});
+
+	/*
+	#2069 **frontend の 429 を «一時障害» として除外規則へ戻さない。**
+
+	これは #1834 で 403 / 404 を外したのと同じパターンである（«相手側の一時的な都合を前提にした
+	除外が、恒久的な自分側の失敗も一緒に飲み込んでいた»）。frontend のログは自分たちのアプリが
+	呼んだときにしか出ないので、そこに出る 429 は **自分たち（または自分たちが使っている外部
+	サービス）が枠を使い切った** という意味で、放っておいて直らない。
+
+	実測（本番 30 日）: frontend の api_call_error 429 は 2,968 件 / 1,215 ユーザーで、
+	1 件も起票されていなかった。同じ期間に Expo 無料枠の超過で OTA 配信が 2 日間 100% 失敗
+	していたのも誰も知らなかった。
+
+	⚠️ 一方で **backend（E6）は 429 を除外したまま**にする。あちらは公開エンドポイントなので
+	外部からの呼び出しにレート制限が当たり、«自分たちの枠» の話とは別物である。
+	*/
+	test("frontend（E4）は 429 を除外しないが、backend（E6）は除外する", () => {
+		expect(FRONTEND_EXCLUDED_HTTP_STATUSES).not.toContain(429);
+		expect(EXCLUDED_HTTP_STATUSES).toContain(429);
+		expect(generated).not.toContain("SAFE_CAST(n.feHttpStatus AS INT64) IN (401, 408, 425, 426, 429)");
+	});
+
+	/*
+	⚠️ `TRANSIENT_HTTP_STATUSES` は **app-expo/lib/logQueue.ts の TRANSIENT_STATUSES と同一定義**で、
+	«ログの再送をするか» を決めるためのものである。429 は再送が正しいので、**あちらから 429 を
+	抜いてはいけない**。E4 から 429 を外すために元の定数を書き換えると、ログの再送が壊れる。
+	*/
+	test("TRANSIENT_HTTP_STATUSES 側は 429 を保ったまま（logQueue.ts との同一性）", () => {
+		expect(TRANSIENT_HTTP_STATUSES).toContain(429);
+		expect(FRONTEND_EXCLUDED_HTTP_STATUSES).toEqual(TRANSIENT_HTTP_STATUSES.filter((status) => status !== 429));
 	});
 
 	/*
