@@ -27,7 +27,7 @@
 
 const {
 	EXCLUDED_HTTP_STATUSES,
-	TRANSIENT_HTTP_STATUSES,
+	FRONTEND_EXCLUDED_HTTP_STATUSES,
 	FP_ALGO_VERSION,
 	GROUP_LIMIT,
 	LOCALE_BREAKDOWN_LIMIT,
@@ -185,8 +185,11 @@ const excludedStatusList = () => EXCLUDED_HTTP_STATUSES.join(", ");
  * #1834 backend（E6）と**同じ定数を共有していたのをやめた**。403 / 404 の除外理由は
  * «公開エンドポイントに外部スキャナが来る» という backend 側の性質で、
  * 自分たちのアプリしか作れない frontend のログには当てはまらない（E4 のコメント参照）。
+ *
+ * ⚠️ #2069 **429 もここから外した。** 理由は constants.js の
+ * `FRONTEND_EXCLUDED_HTTP_STATUSES` にある（同じパターンの 2 例目）。
  */
-const transientStatusList = () => TRANSIENT_HTTP_STATUSES.join(", ");
+const transientStatusList = () => FRONTEND_EXCLUDED_HTTP_STATUSES.join(", ");
 
 /**
  * `sql/error-triage.sql` の全文を生成する。
@@ -482,7 +485,13 @@ ${pathLocaleExpression}
              OR SAFE_CAST(n.feElapsedMs AS INT64) > 60000
            )
         THEN 'client_network'
-      -- (E4) 一時障害系ステータス。constants.js の TRANSIENT_HTTP_STATUSES が唯一の正
+      -- (E4) 一時障害系ステータス。constants.js の FRONTEND_EXCLUDED_HTTP_STATUSES が唯一の正
+      --
+      --      ⚠️ #2069 **429 を外した。** frontend のログは «自分たちのアプリが呼んだときにしか
+      --      出ない» ので、ここに出る 429 は «自分たち（または使っている外部サービス）が枠を
+      --      使い切った» という意味で、放っておいて直らない。実測（本番 30 日）で
+      --      **2,968 件 / 1,215 ユーザー**が除外されており、同じ期間に Expo 無料枠の超過で
+      --      **OTA 配信が 2 日間 100% 失敗**していたのも起票 0 件だった。#1834 と同じパターン。
       --
       --      ⚠️ #1834 **frontend では 403 / 404 を除外しない**（backend の E6 とは定数を分ける）。
       --      403 / 404 を除外していた理由は «Cloud Run が公開エンドポイントなので外部スキャナの

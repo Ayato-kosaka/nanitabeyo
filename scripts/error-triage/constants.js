@@ -217,6 +217,32 @@ const CREATE_RECHECK_DELAY_MS = 3000;
 const TRANSIENT_HTTP_STATUSES = Object.freeze([401, 408, 425, 426, 429]);
 
 /**
+ * frontend（E4）がトリアージ対象から除外する HTTP ステータス。
+ *
+ * ⚠️ #2069 **429 を外した。** これは `TRANSIENT_HTTP_STATUSES` から 429 を抜いたものであって、
+ * あちらは書き換えていない（あちらは `app-expo/lib/logQueue.ts` と «ログの再送をするか» を
+ * 揃えるための定義で、429 は再送が正しい）。
+ *
+ * 外した理由は #1834 と同じパターンである: **相手側の一時的な都合を前提にした除外が、
+ * 恒久的な自分側の失敗も一緒に飲み込んでいた。** frontend のログは
+ * «自分たちのアプリが呼んだときにしか出ない» ので、そこに出る 429 は
+ * **自分たち（または自分たちが使っている外部サービス）が枠を使い切った**という意味であり、
+ * 放っておいて直るものではない。
+ *
+ * 実測（本番 30 日 / #2069）: frontend の `api_call_error` 429 は **2,968 件 / 1,215 ユーザー**で、
+ * `/my-dishes` や `/search/dish-categories` といった通常の画面に出ている。1 件も起票されていなかった。
+ * 同じ期間、Expo 無料枠の枠超過で **OTA 配信が 2 日間 100% 失敗**していたのも誰も知らなかった。
+ *
+ * 401 / 408 / 425 / 426 は残す。401 は flush 中のトークン失効レース（E2 も別途扱う）、
+ * 408 は経路タイムアウト、425 はリプレイ懸念の再送要求、426 はアプリバージョン起因で、
+ * **どれも «放っておくと直らない» の反例が実データで出ていない**。出たら同じように外す。
+ *
+ * backend（E6）は `EXCLUDED_HTTP_STATUSES` のまま 429 を除外する。あちらは公開エンドポイントで
+ * 外部からの呼び出しにレート制限が当たるので、自分たちの枠の話とは別である。
+ */
+const FRONTEND_EXCLUDED_HTTP_STATUSES = Object.freeze(TRANSIENT_HTTP_STATUSES.filter((status) => status !== 429));
+
+/**
  * トリアージ対象から除外する HTTP ステータス（横断レビュー §6-4 / S3 の結論）。
  *
  * = TRANSIENT_HTTP_STATUSES + 403 + 404。
@@ -300,6 +326,7 @@ module.exports = Object.freeze({
 	GET_RETRY_LIMIT,
 	CREATE_RECHECK_DELAY_MS,
 	TRANSIENT_HTTP_STATUSES,
+	FRONTEND_EXCLUDED_HTTP_STATUSES,
 	EXCLUDED_HTTP_STATUSES,
 	EXCLUSION_REASONS,
 });

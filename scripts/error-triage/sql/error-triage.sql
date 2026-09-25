@@ -308,7 +308,13 @@ keyed AS (
              OR SAFE_CAST(n.feElapsedMs AS INT64) > 60000
            )
         THEN 'client_network'
-      -- (E4) 一時障害系ステータス。constants.js の TRANSIENT_HTTP_STATUSES が唯一の正
+      -- (E4) 一時障害系ステータス。constants.js の FRONTEND_EXCLUDED_HTTP_STATUSES が唯一の正
+      --
+      --      ⚠️ #2069 **429 を外した。** frontend のログは «自分たちのアプリが呼んだときにしか
+      --      出ない» ので、ここに出る 429 は «自分たち（または使っている外部サービス）が枠を
+      --      使い切った» という意味で、放っておいて直らない。実測（本番 30 日）で
+      --      **2,968 件 / 1,215 ユーザー**が除外されており、同じ期間に Expo 無料枠の超過で
+      --      **OTA 配信が 2 日間 100% 失敗**していたのも起票 0 件だった。#1834 と同じパターン。
       --
       --      ⚠️ #1834 **frontend では 403 / 404 を除外しない**（backend の E6 とは定数を分ける）。
       --      403 / 404 を除外していた理由は «Cloud Run が公開エンドポイントなので外部スキャナの
@@ -319,7 +325,7 @@ keyed AS (
       --      上位を独占しており除外は妥当。frontend の 403/404 は 30 日で **0 行**なので、
       --      外してもノイズは増えない。
       WHEN n.surface = 'frontend'
-       AND SAFE_CAST(n.feHttpStatus AS INT64) IN (401, 408, 425, 426, 429)
+       AND SAFE_CAST(n.feHttpStatus AS INT64) IN (401, 408, 425, 426)
         THEN 'transient_status'
       -- (E5) 端末が現在地を返せない。kind の値集合は denied/timeout/unavailable/unsupported の4値
       --      （locationPermissionError.ts）。denied / timeout / unavailable を除外する。
