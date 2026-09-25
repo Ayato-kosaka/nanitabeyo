@@ -80,5 +80,34 @@ class ThinIsReportedAsANumber(unittest.TestCase):
         self.assertIn("d < 5", SRC)
 
 
+class NoColumnIsDroppedOnTheWayOut(unittest.TestCase):
+    """#1947 SQL へ足した列を Python 側で落とさない（2026-09-25）。
+
+    `catalog_stores_500m` を `build_sql` の SELECT へ足したが `fetch_points` が組む dict へ
+    足し忘れた。読み出し側が `.get(..., 0)` だったので **例外も出ず 0 が返り**、
+    «未達 22 地点の台帳は 0 軒» という、すぐ次の行（同じ地点に 1,458 店ある）と
+    真っ向から矛盾する数字をログへ出した。
+
+    このテストは列名を並べ直すのではなく、**SELECT の別名を機械的に拾って
+    `fetch_points` のキーと突き合わせる**（次に列を足した人も自動で守られる）。
+    """
+
+    def test_every_selected_alias_becomes_a_key(self) -> None:
+        import re
+        sql = _sql()
+        tail = sql[sql.rindex("\n    SELECT\n"):]
+        aliases = set(re.findall(r"\bAS (\w+)\s*(?:,|\n)", tail))
+        body = SRC[SRC.index("def fetch_points("):]
+        body = body[:body.index("def select_gap_points(")]
+        keys = set(re.findall(r'"(\w+)":', body))
+        missing = sorted(aliases - keys)
+        self.assertEqual(missing, [],
+                         f"build_sql が返す列を fetch_points が落としている: {missing}")
+
+    def test_the_reader_fails_loudly_on_a_missing_key(self) -> None:
+        """`.get(key, 0)` で黙って 0 を返さないこと（落ちないと気づけない）。"""
+        self.assertNotIn('.get("catalog_stores_500m"', SRC)
+
+
 if __name__ == "__main__":
     unittest.main()

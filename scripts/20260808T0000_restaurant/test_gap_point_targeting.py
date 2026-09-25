@@ -50,10 +50,18 @@ class _StubPipeline:
 
 
 def _point(pid: str, *, stores: int, best_cell: int, reachable: int,
-           no_handle: int = 0) -> dict:
+           no_handle: int = 0, catalog_stores: int = 50) -> dict:
+    """`fetch_points` が返す 1 地点ぶんの形。
+
+    ⚠️ #1947 **ここへ列を足し忘れると、本番だけが新しい列を読んで KeyError になる。**
+    `test_7_5_thin_catalog` が «SELECT の別名を全部 dict のキーにしていること» を
+    機械的に見ているので、本番へ列を足したらこの fixture にも足すこと。
+    `catalog_stores` の既定を大きめにしてあるのは、**既定で «天井に当たらない» 地点**に
+    しておかないと «薄いから届かない» 側の分岐へ落ちてしまうためである。
+    """
     return {"point": pid, "stores_500m": stores, "cats_ge5": 1 if best_cell >= 5 else 0,
             "cats_any": 1, "cell_stores": [best_cell], "reachable_500m": reachable,
-            "no_handle_500m": no_handle}
+            "no_handle_500m": no_handle, "catalog_stores_500m": catalog_stores}
 
 
 class SevenFiveDecidesWhichPointsToShootTest(unittest.TestCase):

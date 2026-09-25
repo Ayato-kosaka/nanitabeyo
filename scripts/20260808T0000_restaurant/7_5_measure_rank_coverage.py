@@ -257,7 +257,7 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = Fa
     #    薄い地点が 0 件のとき（＝ふつうの状態）に 1 度も出ずに終わっていた。
     #    KPI は «同じカテゴリで異なり 5 店» なので、500m 圏の台帳が 5 軒未満の地点は
     #    供給をいくら足しても達成できない。«あと 1 店» と «そもそも作れない» は別物である。
-    dens_all = sorted(by_point[pid].get("catalog_stores_500m", 0) for _, pid in picked)
+    dens_all = sorted(by_point[pid]["catalog_stores_500m"] for _, pid in picked)
     if dens_all:
         log("  未達 %d 地点の 500m 圏にある **台帳の店数**: 中央値 %d 軒 / 最小 %d 軒 / 最大 %d 軒"
             "（**5 軒未満＝供給をいくら足しても 5 店は作れない地点 = %d**）",
@@ -280,7 +280,7 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = Fa
         if with_nh < len(dry):
             exhausted = [pid for pid in dry if by_point[pid]["no_handle_500m"] == 0]
             # ⚠️ «薄い» で止めない。**何軒あるのか**まで出す。5 軒未満なら供給を足しても届かない。
-            dens = sorted(by_point[pid].get("catalog_stores_500m", 0) for pid in exhausted)
+            dens = sorted(by_point[pid]["catalog_stores_500m"] for pid in exhausted)
             hopeless = sum(1 for d in dens if d < 5)
             log("  ⚠️ さらに %d 地点は «500m 圏の店を全部知っていて、全部呼び終えた»。"
                 "ここは店台帳そのものが薄い（発見でも収集でも届かない）", len(exhausted))
@@ -342,7 +342,13 @@ def fetch_points(pipeline, *, delivery_run_id: str, project: str = "food-scroll"
              "cats_ge5": int(r["cats_ge5"] or 0), "cats_any": int(r["cats_any"] or 0),
              "cell_stores": [int(x) for x in (r["cell_stores"] or [])],
              "reachable_500m": int(r["reachable_500m"] or 0),
-             "no_handle_500m": int(r["no_handle_500m"] or 0)} for r in rows]
+             "no_handle_500m": int(r["no_handle_500m"] or 0),
+             # ⚠️ #1947 **SQL へ列を足したら、ここへも足すこと。** 2026-09-25、
+             #   `catalog_stores_500m` を SELECT へ足してここへ足し忘れ、読み出し側の
+             #   `.get(..., 0)` が黙って 0 を返して «未達 22 地点の台帳は 0 軒» という
+             #   **その次の行と矛盾する数字**を出した（同じ地点に 1,458 店あると出ている）。
+             #   落ちたら気づけるように、読み出し側は `.get` ではなく `[...]` を使う。
+             "catalog_stores_500m": int(r["catalog_stores_500m"] or 0)} for r in rows]
 
 
 def select_gap_points(pipeline, *, delivery_run_id: str, top_pct: int = 70,
