@@ -138,3 +138,42 @@ class GroupsAreDisjointTest(unittest.TestCase):
                              f"{name} が «最新の resolve» の判定を写経している")
         self.assertIn("COALESCE(dish_category_id IS NOT NULL, FALSE)",
                       common_sns.LATEST_RESOLVED_QUALIFY)
+
+
+class OnePostAppearsOnceInTheSourceTest(unittest.TestCase):
+    """#1947 UPDATE の source へ同じ post_id を 2 行渡さない（2026-09-25 の run 1234）。
+
+    同じ投稿は複数の収集 run に入る。実測で **caption 空の 324,291 行に対し post_id は
+    242,719 件**（最悪 1 投稿が 10 行）。`--run-id ALL` / `%` を渡すと SELECT がその重複を
+    そのまま返し、`UPDATE ... FROM` の source が 1 つの target に複数当たって BigQuery が
+    `400 Scalar subquery produced more than one element` で落ちる。
+
+    `t.run_id = @rid` が付いていたころは «1 行も当たらない» 方で隠れていた（同じ日に直した）。
+    畳むのは **1 店あたりの打ち切りより先**でなければならない。さもないと同じ投稿の重複が
+    その店の枠を食う。`4_11` / `4_13` は元からこの形なので、ここで 3 本まとめて固定する。
+    """
+
+    BACKFILLS = ("4_11_backfill_post_area.py", "4_13_backfill_account_area.py",
+                 "4_14_fetch_missing_captions.py")
+
+    def test_every_backfill_collapses_to_one_row_per_post(self) -> None:
+        want = "ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY fetched_at DESC) = 1"
+        for name in self.BACKFILLS:
+            with self.subTest(script=name):
+                body = " ".join((HERE / name).read_text(encoding="utf-8").split())
+                self.assertIn(" ".join(want.split()), body,
+                              f"{name} が post_id で 1 本に畳んでいない")
+
+    def test_the_collapse_happens_before_the_per_store_cap(self) -> None:
+        sql = _select(only_with_seed=False, max_per_store=20,
+                      only_resolved_without_category=True, run_id="ALL")
+        collapse = sql.index("PARTITION BY post_id ORDER BY fetched_at DESC) = 1")
+        cap = sql.index("PARTITION BY COALESCE(NULLIF(discovery_seed_place_id")
+        self.assertLess(collapse, cap,
+                        "post_id の畳み込みが 1 店あたりの打ち切りより後ろにある")
+
+    def test_all_really_removes_the_run_restriction(self) -> None:
+        """`ALL` で «全 run» になっていること（これが効くから重複が出る）。"""
+        sql = _select(only_with_seed=False, max_per_store=0, run_id="ALL")
+        self.assertIn("WHERE TRUE", sql)
+        self.assertNotIn("run_id = @rid", sql)

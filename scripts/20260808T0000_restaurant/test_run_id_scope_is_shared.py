@@ -126,7 +126,11 @@ class TheWriteSideUsesTheSameScope(unittest.TestCase):
     def test_no_script_compares_the_same_param_raw(self) -> None:
         bad: list[str] = []
         for path in sorted(HERE.glob("[0-9]*.py")):
-            source = path.read_text(encoding="utf-8")
+            raw = path.read_text(encoding="utf-8")
+            # ⚠️ コメント行は外す。«直したときに残した経緯の説明» が生比較に見えて
+            #    緑を赤にした（2026-09-25）。正常なのに赤くするガードも同じくらい悪い。
+            source = "\n".join(ln for ln in raw.splitlines()
+                               if not ln.lstrip().startswith("#"))
             for param in self._params_passed_to_helper(source):
                 if (path.name, param) in self.RAW_COMPARISON_IS_CORRECT:
                     continue

@@ -152,12 +152,23 @@ def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store:
         PARTITION BY COALESCE(NULLIF(discovery_seed_place_id, ''), account_id, post_id)
         ORDER BY fetched_at DESC
       ) <= {int(max_per_store)}"""
+    # ⚠️ #1947 **post_id で先に 1 本に畳むこと。** 同じ投稿は複数の収集 run に入るので、
+    #   `--run-id ALL` / `%` だと同じ post_id が何行も返る。そのまま UPDATE の source へ
+    #   渡すと BigQuery が `Scalar subquery produced more than one element` で落ちる
+    #   （2026-09-25 の run 1234。`t.run_id = @rid` が付いていたころは «1 行も当たらない»
+    #   方で隠れていた）。畳むのは per_store の打ち切りより**先**でなければならない。
+    #   さもないと同じ投稿の重複が 1 店あたりの枠を食う。`4_11` / `4_13` は既にこの形。
     return f"""
+      WITH one_row_per_post AS (
+        SELECT post_id, canonical_url, discovery_seed_place_id, account_id, fetched_at
+        FROM `{pipeline.table(TABLE_POST_RAW)}`
+        WHERE {run_id_filter_sql("run_id", "@rid", run_id)}
+          AND (caption IS NULL OR LENGTH(caption) = 0)
+          AND canonical_url IS NOT NULL {seed_filter} {unresolved_filter}
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY fetched_at DESC) = 1
+      )
       SELECT post_id, canonical_url
-      FROM `{pipeline.table(TABLE_POST_RAW)}`
-      WHERE {run_id_filter_sql("run_id", "@rid", run_id)}
-        AND (caption IS NULL OR LENGTH(caption) = 0)
-        AND canonical_url IS NOT NULL {seed_filter} {unresolved_filter}
+      FROM one_row_per_post
       {per_store}
     """
 
