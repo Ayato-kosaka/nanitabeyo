@@ -201,9 +201,20 @@ check "載っている版が分からなくても、落とす DDL が無けれ�
 # --- B. 配線（実際に抜けたのはここ） -----------------------------------------
 echo "B. 配線"
 
+# ⚠️ **`… | grep -q` にしないこと（#2075）。** このファイルは `set -o pipefail` で走る。
+#    `grep -q` は最初の一致で即座に終わるので上流が SIGPIPE で殺され、pipefail が
+#    その **141 をパイプライン全体の終了コードにする**。つまり «一致しているのに ng» になる。
+#    小さいファイルでは上流が書き終わるほうが速いので普通は通り、**CI でだけ稀に赤くなる**
+#    （実測: 2026-09-26 の main https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36206053417
+#    で «actions: read がある» だけが ng。同じ commit をローカルで回すと 18/18 緑だった。
+#    400,000 行のファイルで再現すると 5 回とも 141 を返し、変数に受ける形は 5 回とも 0 だった）。
+#    だから **一度変数へ受けてから** `grep` する。
 wf_code() { grep -v '^[[:space:]]*#' "$1"; }
 
-wf_code "$MIGRATE_WF" | grep -q 'assert-drop-safe-for-deployed-code\.mjs'
+MIGRATE_WF_CODE="$(wf_code "$MIGRATE_WF")"
+API_WF_CODE="$(wf_code "$API_WF")"
+
+grep -q 'assert-drop-safe-for-deployed-code\.mjs' <<< "$MIGRATE_WF_CODE"
 check "db-migrate.yml がこの門番を呼んでいる" ok $?
 
 # ⚠️ **適用より «前» に走ること。** 後ろだと落ちても列は戻らない（既存の shared 検算がそれ）
@@ -213,12 +224,18 @@ apply_line=$(grep -n 'bash scripts/apply-migration\.sh' "$MIGRATE_WF" | head -1 
 check "門番が migration の適用より前に走る" ok $?
 
 # 判定には api-deploy の run を読む必要がある
-wf_code "$MIGRATE_WF" | grep -q 'actions: read'
+grep -q 'actions: read' <<< "$MIGRATE_WF_CODE"
 check "db-migrate.yml の job に actions: read がある" ok $?
 
 # ⚠️ 判定は api-deploy.yml の **job 名**に依存している。名前を変えるとここが黙って効かなくなる
-wf_code "$API_WF" | grep -qF 'name: Deploy (${{ github.event.inputs.target }})'
+grep -qF 'name: Deploy (${{ github.event.inputs.target }})' <<< "$API_WF_CODE"
 check "api-deploy.yml の job 名が Deploy (<target>) のまま（判定の根拠）" ok $?
+
+# ⚠️ #2075 この形へ戻さないための自己検査。コメント行は除いて数える
+#    （この注意書き自身を «違反» と読まないため）。
+PIPED_GREP_Q=$(grep -vE '^[[:space:]]*#' "$0" | grep -cE '\|[[:space:]]*grep[[:space:]]+-q' || true)
+[ "$PIPED_GREP_Q" -eq 0 ]
+check "パイプの下流で grep -q を使っていない（pipefail で 141 になる）" ok $?
 
 echo ""
 echo "pass $pass / fail $fail"

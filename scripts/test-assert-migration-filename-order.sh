@@ -111,14 +111,31 @@ echo "B. workflow の配線"
 #    ファイル全体を grep すると «使っている» と誤検知する（最初そう書いて落ちた）。
 workflow_code() { grep -v '^[[:space:]]*#' "$WORKFLOW"; }
 
-workflow_code | grep -q 'pull_request\.base\.ref'
+# ⚠️ **`… | grep -q` にしないこと（#2075）。** このファイルは `set -o pipefail` で走る。
+#    `grep -q` は最初の一致で即座に終わるので上流が SIGPIPE で殺され、pipefail が
+#    その **141 をパイプライン全体の終了コードにする** — つまり «一致しているのに ng» になる。
+#    小さいファイルでは普通は通るので、**CI でだけ稀に赤くなる**（実測: 2026-09-26 の main
+#    https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36206053417 で
+#    `test-assert-drop-safe-for-deployed-code.sh` の 1 行だけが ng。同じ commit をローカルで
+#    回すと全部緑だった）。
+#
+# ⚠️ **否定形（`! … | grep -q`）はもっと悪い。** 141 も «非ゼロ» なので `!` が true にしてしまい、
+#    **パターンが在っても «無い» と言い切る**。落ちない検査になる。
+WORKFLOW_CODE="$(workflow_code)"
+
+grep -q 'pull_request\.base\.ref' <<< "$WORKFLOW_CODE"
 check "base ブランチ名（base.ref）を使っている" ok $?
 
-! workflow_code | grep -q 'pull_request\.base\.sha'
+! grep -q 'pull_request\.base\.sha' <<< "$WORKFLOW_CODE"
 check "base.sha（イベント時点のスナップショット）を使っていない" ok $?
 
-workflow_code | grep -q 'assert-migration-filename-order\.sh FETCH_HEAD'
+grep -q 'assert-migration-filename-order\.sh FETCH_HEAD' <<< "$WORKFLOW_CODE"
 check "取得した «いまの先頭»（FETCH_HEAD）を渡している" ok $?
+
+# ⚠️ #2075 この形へ戻さないための自己検査。コメント行は除いて数える
+PIPED_GREP_Q=$(grep -vE '^[[:space:]]*#' "$0" | grep -cE '\|[[:space:]]*grep[[:space:]]+-q' || true)
+[ "$PIPED_GREP_Q" -eq 0 ]
+check "パイプの下流で grep -q を使っていない（pipefail で 141 になる）" ok $?
 
 echo ""
 echo "pass $pass / fail $fail"
