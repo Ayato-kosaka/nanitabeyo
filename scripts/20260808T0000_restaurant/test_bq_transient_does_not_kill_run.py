@@ -35,7 +35,8 @@ from unittest import mock
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from google.api_core.exceptions import BadRequest, InternalServerError, TooManyRequests  # noqa: E402
+from google.api_core.exceptions import (  # noqa: E402
+    BadRequest, Forbidden, InternalServerError, TooManyRequests)
 
 import pipeline_common  # noqa: E402
 
@@ -379,6 +380,184 @@ class EntryPointDoesNotNarrowSignatureTest(unittest.TestCase):
             kinds = [p.kind for p in sig.parameters.values()]
             self.assertIn(inspect.Parameter.VAR_KEYWORD, kinds,
                           f"{name} が **kwargs を受けない（呼び出し側のシグネチャを狭めている）")
+
+
+def _forbidden(body: str, content_type: str = "application/json"):
+    """本物の HTTP 応答から `Forbidden` を作る（**例外の形を写経しない**）。
+
+    ⚠️ `Forbidden("...")` を手で組むと `errors` が空になり、**HTML の拒否と
+       `accessDenied` の区別が付かないまま緑になる**。ライブラリに解釈させる。
+    """
+    import json as _json
+
+    from google.api_core import exceptions as _ex
+
+    class _Resp:
+        status_code = 403
+        headers = {"content-type": content_type}
+
+        def __init__(self, text: str) -> None:
+            self.text = text
+            self.request = SimpleNamespace(
+                method="POST",
+                url="https://bigquery.googleapis.com/bigquery/v2/projects/food-scroll/jobs")
+
+        def json(self):
+            return _json.loads(self.text)
+
+    return _ex.from_http_response(_Resp(body))
+
+
+GFE_403_HTML = (
+    "<!DOCTYPE html><html lang=en><title>Error 403 (Forbidden)!!1</title>"
+    "<p><b>403.</b> Your client does not have permission to get URL "
+    "<code>/bigquery/v2/projects/food-scroll/jobs</code> from this server.</html>")
+
+
+def _bq_403(reason: str, message: str):
+    import json as _json
+    return _forbidden(_json.dumps({"error": {
+        "code": 403, "message": message,
+        "errors": [{"message": message, "domain": "global", "reason": reason}]}}))
+
+
+class Forbidden403IsNotAlwaysPermanentTest(unittest.TestCase):
+    """#1947 **再送の可否を «HTTP の番号» で決めない。**
+
+    2026-09-26、11 レーンのうち 1 本が **起動 12 秒で死んだ**。返ってきたのは BigQuery の
+    JSON ではなく Google のフロントエンドの HTML（`Error 403 (Forbidden)!!1`）で、
+    **同じ 8 秒に同じ資格情報で投げた 2 本は通っている**。それでも再送集合が 5xx と 429
+    しか見ていなかったので即死した。
+
+    ⚠️ 逆に **本物の `accessDenied` を再送してはいけない**。155 秒かけて同じ理由で
+       落ちるだけになり、原因が «一時エラーの再送ログ» に埋まる。
+    """
+
+    def setUp(self) -> None:
+        patcher = mock.patch.object(pipeline_common.time, "sleep")
+        self.sleep = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.pipeline = SimpleNamespace()
+
+    def test_front_end_rejection_has_no_reason_and_is_retried(self) -> None:
+        exc = _forbidden(GFE_403_HTML, content_type="text/html")
+        self.assertEqual([], exc.errors, "HTML の拒否は BigQuery の理由を持たない")
+        self.assertTrue(pipeline_common._is_transient_forbidden(exc))
+        self.assertTrue(pipeline_common._is_sent_transient(exc))
+
+    def test_access_denied_is_permanent(self) -> None:
+        exc = _bq_403("accessDenied", "Access Denied: Table food-scroll:ds.t")
+        self.assertFalse(pipeline_common._is_transient_forbidden(exc))
+        self.assertFalse(pipeline_common._is_sent_transient(exc))
+
+    def test_rate_limit_403_is_retried(self) -> None:
+        """429 を再送しているのに、同じことを 403 で言われたら殺す、は筋が通らない。"""
+        for reason in ("rateLimitExceeded", "quotaExceeded"):
+            with self.subTest(reason=reason):
+                self.assertTrue(pipeline_common._is_transient_forbidden(
+                    _bq_403(reason, "Exceeded rate limits")))
+
+    def test_run_job_survives_a_front_end_rejection_at_submit(self) -> None:
+        """run 1290 の «起動 12 秒で死ぬ» を復活させない（投入そのものが弾かれた形）。"""
+        state = SimpleNamespace(n=0)
+
+        def submit():
+            state.n += 1
+            if state.n <= 2:
+                raise _forbidden(GFE_403_HTML, content_type="text/html")
+            return _Job()
+
+        _, result = RUN_JOB(self.pipeline, submit, what="query x")
+        self.assertEqual("rows", result)
+        self.assertEqual(3, state.n, "フロントエンドの拒否でジョブを投げ直している")
+
+    def test_run_job_does_not_retry_access_denied(self) -> None:
+        state = SimpleNamespace(n=0)
+
+        def submit():
+            state.n += 1
+            raise _bq_403("accessDenied", "Access Denied")
+
+        with self.assertRaises(Forbidden):
+            RUN_JOB(self.pipeline, submit, what="query x")
+        self.assertEqual(1, state.n, "恒久エラーを 6 回投げ直している（原因が埋まる）")
+
+    def test_non_idempotent_write_does_not_retry_a_403(self) -> None:
+        """⚠️ 安全側。HTML の拒否は実際には «届く前» だが、**そう証明できない**。
+
+        `insert_rows_json` は再送すると行が二重に入るので、`_retry_auth_only` は
+        «届く前だと言い切れる» 資格情報の失敗だけを拾い続ける。
+        """
+        state = SimpleNamespace(n=0)
+
+        def fn():
+            state.n += 1
+            raise _forbidden(GFE_403_HTML, content_type="text/html")
+
+        with self.assertRaises(Forbidden):
+            pipeline_common._retry_auth_only(fn, what="insert")
+        self.assertEqual(1, state.n)
+
+    # #1947 2026-09-26 の水平展開。**「再送するかどうかを HTTP の番号で決めている」**
+    # 箇所を全部当たり直した一覧。**空にしないこと**（空にすると «調べた» 記録が消える）。
+    #   (ファイル, 何を相手にしているか, 当てはまるか, 判定の根拠)
+    SWEPT_RETRY_CLASSIFIERS = (
+        ("pipeline_common.py", "BigQuery（全 script が通る）", True,
+         "5xx と 429 しか見ておらず、フロントエンドの HTML 403 で run が即死した。"
+         "述語 _is_transient_forbidden を足した（accessDenied は即死のまま）"),
+        ("pipeline_common.py", "insert_rows_json（冪等でない挿入）", False,
+         "意図して狭い。HTML の 403 は実際には «届く前» だが、そう証明できない。"
+         "行が二重に入る害の方が大きいので、資格情報の失敗だけ拾い続ける"),
+        ("google_place_matching.py", "Places Text Search（googleapis.com）", False,
+         "実測: restaurant_google_place_match_attempts の 5,944,111 件（2026 年）に "
+         "403 は 0 件（200=3,353,054 / 429=15,605 / 400=4）。403 は http_status へ残るので、"
+         "出れば観測できる。3_2 / 4_18 もこの入口を通る"),
+        ("1276_place_id_free_poc/free_places.py", "Places（#1276 の PoC）", False,
+         "調達の本番経路ではない実験コード。上と同じ相手なので、上の実測がそのまま当たる"),
+        ("4_7_collect_search_api_posts.py", "検索 API（serper / tavily / linkup）", False,
+         "上限は 429 と 432 と本文（_LOOKS_LIKE_QUOTA）で判定済み。"
+         "これらの 403 は鍵・プランの恒久エラーで、待っても直らない"),
+        ("4_20_search_influencer_accounts.py", "SERPER", False,
+         "そもそも番号で分けていない。本文を出して 5 回連続の失敗で止める形"),
+        ("4_2_collect_account_posts.py", "Instagram Graph API", False,
+         "IG の上限は code 4/17/613 と 429 で来て RateLimited として別扱い。"
+         "403 はトークン失効で恒久。Google のフロントエンドとは別の経路"),
+        ("4_14_fetch_missing_captions.py", "Instagram の埋め込みページ", False,
+         "番号で再送しない設計。取れなければ «取れなかった» として次へ進む"),
+        ("common_sns.py", "自分たちの backend API（resolve）", False,
+         "429/5xx を投げ直す。403 は JWT の失効で恒久であり、待っても直らない"),
+    )
+
+    def test_every_swept_classifier_has_a_reason(self) -> None:
+        """⚠️ **当てはまらないものは «なぜか» を書いて残す。** 書かないと次に同じ調査をする。"""
+        self.assertGreaterEqual(len(self.SWEPT_RETRY_CLASSIFIERS), 9)
+        for path, target, matched, why in self.SWEPT_RETRY_CLASSIFIERS:
+            with self.subTest(path=path, target=target):
+                self.assertTrue(why.strip(), f"{path} の判定の根拠が空")
+                self.assertIsInstance(matched, bool)
+
+    def test_swept_files_still_exist(self) -> None:
+        """挙げたファイルが消えたら、一覧の方を直す（嘘の «調べた» を残さない）。"""
+        here = Path(__file__).resolve().parent
+        for path, _, _, _ in self.SWEPT_RETRY_CLASSIFIERS:
+            with self.subTest(path=path):
+                self.assertTrue((here / path).exists(), f"{path} が無い")
+
+    def test_retry_decision_is_a_predicate_not_a_tuple_of_numbers(self) -> None:
+        """**パターンの固定**: 再送の可否は述語で決める（番号の集合では表せない）。
+
+        403 のように «同じ番号に恒久と一時が混ざっている» ものがあるので、
+        `except <例外のタプル>` へ戻すと同じ欠陥が復活する。
+        """
+        import inspect
+        for name in ("_run_job", "_run_call"):
+            src = inspect.getsource(getattr(pipeline_common.BigQueryPipeline, name))
+            self.assertIn("_is_sent_transient(", src, f"{name} が述語を通っていない")
+            self.assertNotIn("except transient", src,
+                             f"{name} が例外のタプルで選り分けている（403 を表せない）")
+        src = inspect.getsource(pipeline_common._retry_auth_only)
+        self.assertIn("_is_auth_transient(", src)
+        self.assertNotIn("except transient", src)
 
 
 if __name__ == "__main__":

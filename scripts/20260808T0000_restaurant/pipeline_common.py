@@ -152,18 +152,72 @@ def _sent_transient_exc() -> tuple[type[BaseException], ...]:
     return (ServerError, TooManyRequests, RequestsConnectionError, RequestsTimeout)
 
 
+# #1947【設計】**再送するかどうかを «HTTP の番号» で決めてはいけない。**
+#
+# 2026-09-26、11 レーンのうち 1 本（媒体クロール shard 0 / run 1290）が **起動 12 秒で死んだ**。
+# 落ちたのは最初のクエリの投入で、返ってきたのは BigQuery の JSON エラーではなく
+# Google のフロントエンドの HTML だった:
+#
+#     Forbidden: 403 POST https://bigquery.googleapis.com/bigquery/v2/projects/food-scroll/jobs
+#     <title>Error 403 (Forbidden)!!1</title>
+#     Your client does not have permission to get URL /bigquery/v2/projects/food-scroll/jobs
+#
+# 権限の問題ではない。**同じ 8 秒のあいだに同じ資格情報で投げた run 1289 / 1291 は通っている**。
+# つまり «BigQuery へ届く前に、フロントエンドが番号だけ返して弾いた» 一時失敗である。
+# それでも `_sent_transient_exc` が 5xx と 429 しか見ていなかったので、即死になった。
+#
+# ⚠️ **403 を丸ごと再送してはいけない。** 本物の `accessDenied` は待っても直らず、
+#    再送すると «155 秒かけて同じ理由で落ちる» だけになって原因が埋まる
+#    （実測: 直近 30 日の失敗ジョブに `accessDenied` が 3 件ある）。
+#    見分けるのは番号ではなく **BigQuery が理由を付けているか**である。
+#    HTML の拒否は `errors == []`、本物は `errors[0]["reason"] == "accessDenied"`。
+_RETRYABLE_403_REASONS = frozenset({"rateLimitExceeded", "quotaExceeded"})
+
+
+def _is_transient_forbidden(exc: BaseException) -> bool:
+    """その 403 が «待てば直る» ものか（純関数）。
+
+    - 理由が付いていない → フロントエンドの拒否。**届いていない**ので再送してよい
+    - 理由が `rateLimitExceeded` / `quotaExceeded` → 相手が «多すぎる» と言っている。
+      429 を再送している以上、同じものを 403 で返されたときだけ殺すのは筋が通らない
+    - それ以外（`accessDenied` など） → 恒久エラー。**即座に落とす**
+    """
+    from google.api_core.exceptions import Forbidden
+
+    if not isinstance(exc, Forbidden):
+        return False
+    reasons = {e.get("reason") for e in (getattr(exc, "errors", None) or [])
+               if isinstance(e, dict)}
+    if not reasons:
+        return True
+    return bool(reasons & _RETRYABLE_403_REASONS)
+
+
+def _is_auth_transient(exc: BaseException) -> bool:
+    """`_auth_transient_exc` の述語版（**届く前**の失敗か）。"""
+    return isinstance(exc, _auth_transient_exc())
+
+
+def _is_sent_transient(exc: BaseException) -> bool:
+    """`_sent_transient_exc` の述語版（**届いたあと**にも起きうる一時失敗か）。
+
+    ⚠️ 番号で足すのではなく、ここへ足すこと。403 のように «同じ番号に恒久と一時が
+       混ざっている» ものがあり、番号の集合では表せない。
+    """
+    return isinstance(exc, _sent_transient_exc()) or _is_transient_forbidden(exc)
+
+
 def _retry_auth_only(fn, *, what: str, attempts: int = 6, base_sleep_s: float = 5.0):
     """**冪等でない呼び出し**を、資格情報の更新の失敗にだけ限って掛け直す。
 
     `insert_rows_json` のようなストリーミング挿入は再送すると行が二重に入るので、
     «相手へ届く前だと確実に言える» `_auth_transient_exc` だけを拾う。
     """
-    transient = _auth_transient_exc()
     for i in range(attempts):
         try:
             return fn()
-        except transient as e:  # noqa: PERF203 - 待って掛け直すためのループ
-            if i == attempts - 1:
+        except Exception as e:  # noqa: PERF203,BLE001 - 述語で選り分けて掛け直す
+            if not _is_auth_transient(e) or i == attempts - 1:
                 raise
             wait = base_sleep_s * (2 ** i)
             LOGGER.warning("%s で資格情報の更新が一時失敗（%s）。%.0f 秒待って掛け直します（%d/%d）",
@@ -211,15 +265,14 @@ class BigQueryPipeline:
                 **一時エラーのたびに呼ばれるわけではない**（上の ⚠️ を参照）。
             what: ログに出す «何をしていたか»。
         """
-        transient = _auth_transient_exc() + _sent_transient_exc()
         job = None
         for i in range(attempts):
             try:
                 if job is None:
                     job = submit()
                 return job, job.result()
-            except transient as e:  # noqa: PERF203 - 待って掛け直すためのループ
-                if i == attempts - 1:
+            except Exception as e:  # noqa: PERF203,BLE001 - 述語で選り分けて掛け直す
+                if not (_is_auth_transient(e) or _is_sent_transient(e)) or i == attempts - 1:
                     raise
                 wait = base_sleep_s * (2 ** i)
                 LOGGER.warning(
@@ -238,12 +291,11 @@ class BigQueryPipeline:
 
         ⚠️ **書き込みには使わないこと。** 冪等でない書き込みは `_retry_auth_only`。
         """
-        transient = _auth_transient_exc() + _sent_transient_exc()
         for i in range(attempts):
             try:
                 return fn()
-            except transient as e:  # noqa: PERF203 - 待って掛け直すためのループ
-                if i == attempts - 1:
+            except Exception as e:  # noqa: PERF203,BLE001 - 述語で選り分けて掛け直す
+                if not (_is_auth_transient(e) or _is_sent_transient(e)) or i == attempts - 1:
                     raise
                 wait = base_sleep_s * (2 ** i)
                 LOGGER.warning("%s の一時エラー（%s）。%.0f 秒待って掛け直します（%d/%d）",
