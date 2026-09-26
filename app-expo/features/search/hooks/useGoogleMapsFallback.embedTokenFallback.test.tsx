@@ -90,6 +90,7 @@ describe("#1810 useGoogleMapsFallback: トークン取得の成否でルート�
 
 		act(() => {
 			hook.showGoogleMapsFallbackDialog({
+			reason: "empty",
 				category: "ラーメン",
 				location: { latitude: 35.6, longitude: 139.7 },
 				locale: "ja-JP",
@@ -112,6 +113,7 @@ describe("#1810 useGoogleMapsFallback: トークン取得の成否でルート�
 
 		act(() => {
 			hook.showGoogleMapsFallbackDialog({
+			reason: "empty",
 				category: "ラーメン",
 				location: { latitude: 35.6, longitude: 139.7 },
 				locale: "ja-JP",

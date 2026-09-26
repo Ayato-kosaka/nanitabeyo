@@ -20,7 +20,7 @@ import { DishSelectionExpandLoading } from "@/features/dishMedia/components/Dish
 import { useDishMediaActions } from "@/features/dishMedia/hooks/useDishMediaActions";
 import i18n from "@/lib/i18n";
 import { useLocale } from "@/hooks/useLocale";
-import { useGoogleMapsFallback } from "@/features/search/hooks/useGoogleMapsFallback";
+import { googleMapsFallbackReasonFor, useGoogleMapsFallback } from "@/features/search/hooks/useGoogleMapsFallback";
 import { FixedColors } from "@/constants/Palette";
 import { useAppTheme } from "@/contexts/ThemeProvider";
 
@@ -81,7 +81,10 @@ export default function ResultScreen() {
 		// `idType` はモジュール定数（26 行目）なので依存に含めない
 		[entriesKey],
 	);
-	const { ids, isLoading } = useDishMediaEntriesStore(selector, shallow);
+	// #843 【修正】`error` も読む。これまで `{ ids, isLoading }` だけを取り出していたため、
+	// **取得が失敗して 0 件になったのか、本当に 0 件だったのかが区別できていなかった**
+	// （selector は最初から `error` を返していた）。区別は下の退避導線のログに乗せる。
+	const { ids, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 	const initialLocation = useMemo(() => {
 		if (typeof location === "string") {
 			try {
@@ -120,6 +123,10 @@ export default function ResultScreen() {
 		shownGoogleMapsFallbackKeyRef.current = fallbackKey;
 
 		showGoogleMapsFallbackDialog({
+			// #843 【修正】`ids.length === 0` は «無かった» と «取れなかった» の両方で立つ。
+			// `errorByKey` は `handleAsyncAction` の catch が **isLoading を false にする前に**
+			// 立てているので（.catch → .finally の順）、ここで読めば取り違えない。
+			reason: googleMapsFallbackReasonFor(error),
 			entriesKey,
 			category,
 			location: initialLocation,
@@ -132,6 +139,7 @@ export default function ResultScreen() {
 	}, [
 		category,
 		entriesKey,
+		error,
 		ids.length,
 		initialLocation,
 		isLoading,
