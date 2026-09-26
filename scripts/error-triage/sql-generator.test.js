@@ -14,6 +14,7 @@ const { readFileSync } = require("node:fs");
 
 const {
 	ACCEPTED_QUOTA_EXTERNAL_APIS,
+	ACCEPTED_QUOTA_MESSAGE_PATTERN,
 	EXCLUDED_HTTP_STATUSES,
 	EXTERNAL_TRANSIENT_HTTP_STATUSES,
 	FP_ALGO_VERSION,
@@ -513,6 +514,32 @@ describe("除外ルール: constants.js が唯一の正", () => {
 	test("E7 は status_code = 0 を除外しない", () => {
 		expect(generated).toContain(`n.extStatusCode IN (${EXTERNAL_TRANSIENT_HTTP_STATUSES.join(", ")})`);
 		expect(EXTERNAL_TRANSIENT_HTTP_STATUSES).not.toContain(0);
+	});
+
+	/*
+	#2076 **frontend の 429 も «承知の上» のものだけ除外する。**
+
+	#2069 で status ごと外した結果、2026-09-26 の夜間 Error Triage が
+	**影響ユーザー 57 人（しきい値 50 = 障害規模）** で落ちた。中身は #1781 で «枠は上げない» と
+	決着済みの Text Search クォータで、これを毎晩鳴らすと **本物の障害がその中に埋もれる**
+	（#1946 で 6 日間気づけなかったのと同じ形を、こちらから作ることになる）。
+
+	⚠️ **status ごと除外へ戻してはいけない。** 名前で分ける。正は
+	`ACCEPTED_QUOTA_EXTERNAL_APIS` の 1 箇所で、frontend には api_name 列が無いので
+	`rawMessage` を見る。
+	*/
+	test("E4 の 429 は «承知の上» のメッセージのときだけ除外する", () => {
+		expect(FRONTEND_EXCLUDED_HTTP_STATUSES).not.toContain(429);
+		expect(generated).toContain("SAFE_CAST(n.feHttpStatus AS INT64) = 429");
+		expect(generated).toContain(ACCEPTED_QUOTA_MESSAGE_PATTERN);
+	});
+
+	test("承知の上のメッセージは api_name の配列から組む（正を 2 箇所に置かない）", () => {
+		for (const name of ACCEPTED_QUOTA_EXTERNAL_APIS) {
+			expect(ACCEPTED_QUOTA_MESSAGE_PATTERN).toContain(name);
+		}
+		// ⚠️ Photos を混ぜない。混ぜるとあちらの枠超過が二度と起票されない（#819 の再発）
+		expect(ACCEPTED_QUOTA_MESSAGE_PATTERN).not.toContain("Photos");
 	});
 
 	/*

@@ -281,6 +281,31 @@ const EXTERNAL_TRANSIENT_HTTP_STATUSES = Object.freeze([408, 502, 503, 504]);
 const ACCEPTED_QUOTA_EXTERNAL_APIS = Object.freeze(['Google Places Text Search API']);
 
 /**
+ * 429（クォータ超過）を «承知の上» として除外してよい **frontend** の条件。
+ *
+ * ⚠️ #2076 **#2070 で frontend の 429 を除外しないようにしたが、括り方が広すぎた。**
+ * 2026-09-26 の夜間 Error Triage が **影響ユーザー 57 人（しきい値 50）** で落ちた。中身は
+ *
+ *     api_call_error / /search/dish-categories / 429 /
+ *     route: /v1/dishes/bulk-import / errorCode: EXTERNAL_QUOTA_EXCEEDED /
+ *     "Google Places Text Search API quota exceeded …"
+ *
+ * で、**#1781 で «枠は上げない» と決着済みの Text Search クォータ**だった。
+ * これを毎晩 «障害規模» として鳴らすと、**本物の障害がその中に埋もれる**（#1946 で 6 日間
+ * 気づけなかったのと同じ形を、こちらから作ることになる）。
+ *
+ * ⚠️ だからといって 429 をまた status ごと除外に戻さない。#2069 の実測どおり
+ * frontend の 429 は «自分たちが枠を使い切った» で放っておいて直らない。**承知の上のものだけ**
+ * を名前で除外する。`ACCEPTED_QUOTA_EXTERNAL_APIS` と同じ配列から組むので、正は 1 箇所である。
+ *
+ * ⚠️ frontend では `api_name` 列が無い。使えるのは `rawMessage` だけで、そこに外部 API の名前が
+ * そのまま入っている（上の実例）。
+ */
+const ACCEPTED_QUOTA_MESSAGE_PATTERN = ACCEPTED_QUOTA_EXTERNAL_APIS.map((name) =>
+	name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+).join('|');
+
+/**
  * トリアージ対象から除外する HTTP ステータス（横断レビュー §6-4 / S3 の結論）。
  *
  * = TRANSIENT_HTTP_STATUSES + 403 + 404。
@@ -367,6 +392,7 @@ module.exports = Object.freeze({
 	FRONTEND_EXCLUDED_HTTP_STATUSES,
 	EXTERNAL_TRANSIENT_HTTP_STATUSES,
 	ACCEPTED_QUOTA_EXTERNAL_APIS,
+	ACCEPTED_QUOTA_MESSAGE_PATTERN,
 	EXCLUDED_HTTP_STATUSES,
 	EXCLUSION_REASONS,
 });
