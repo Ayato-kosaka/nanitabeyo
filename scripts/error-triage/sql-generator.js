@@ -28,6 +28,7 @@
 const {
 	EXCLUDED_HTTP_STATUSES,
 	ACCEPTED_QUOTA_EXTERNAL_APIS,
+	ACCEPTED_QUOTA_MESSAGE_PATTERN,
 	EXTERNAL_TRANSIENT_HTTP_STATUSES,
 	FRONTEND_EXCLUDED_HTTP_STATUSES,
 	FP_ALGO_VERSION,
@@ -514,8 +515,16 @@ ${pathLocaleExpression}
       --      実測: backend の 403/404 は WordPress スキャナ（/wp-json/... /.env /wp-login.php）が
       --      上位を独占しており除外は妥当。frontend の 403/404 は 30 日で **0 行**なので、
       --      外してもノイズは増えない。
+      --
+      --      ⚠️ #2076 **429 は «承知の上» のものだけ除外する。** #2069 で status ごと外したところ、
+      --      #1781 で «枠は上げない» と決着済みの Text Search クォータが毎晩 «影響 57 人 =
+      --      障害規模» として夜間 Error Triage を落とした。本物の障害がその中に埋もれるので、
+      --      名前で分ける。⚠️ frontend に api_name 列は無いので rawMessage で見る
+      --      （実例: "Google Places Text Search API quota exceeded …"）。
       WHEN n.surface = 'frontend'
-       AND SAFE_CAST(n.feHttpStatus AS INT64) IN (${transientStatusList()})
+       AND (SAFE_CAST(n.feHttpStatus AS INT64) IN (${transientStatusList()})
+            OR (SAFE_CAST(n.feHttpStatus AS INT64) = 429
+                AND REGEXP_CONTAINS(IFNULL(n.rawMessage, ''), r'''${ACCEPTED_QUOTA_MESSAGE_PATTERN}''')))
         THEN 'transient_status'
       -- (E5) 端末が現在地を返せない。kind の値集合は denied/timeout/unavailable/unsupported の4値
       --      （locationPermissionError.ts）。denied / timeout / unavailable を除外する。
