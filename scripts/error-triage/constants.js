@@ -243,6 +243,44 @@ const TRANSIENT_HTTP_STATUSES = Object.freeze([401, 408, 425, 426, 429]);
 const FRONTEND_EXCLUDED_HTTP_STATUSES = Object.freeze(TRANSIENT_HTTP_STATUSES.filter((status) => status !== 429));
 
 /**
+ * external（E7）が «相手が応答した上での一時障害» として除外する HTTP ステータス。
+ *
+ * ⚠️ #2073 **429 をここから外した。** #1834 は «429 の Google Places クォータだけが該当し、
+ * それは除外のまま» と書いて意図的に残したが、**status 1 つで括ったせいで «知っている枠» と
+ * «知らない枠» が一緒に消えていた。**
+ *
+ * 実測（本番 90 日 / external_api_logs の `status_code = 429`）:
+ *
+ * | api_name | 件数 | 最終 |
+ * | --- | ---: | --- |
+ * | Google Places Text Search API | 44,511 | 09-26（継続中） |
+ * | **Google Places Photos API** | **3,181** | 09-13 |
+ *
+ * 前者は #1781 で «枠は上げない» と決着済みの既知の状態である。**後者は誰も知らなかった。**
+ * 78 日間 1 件も起票されないまま #819（「bulk-import した画像の読み込みが遅い」）の裏で
+ * 写真取得の約 14% を落としていた。**日次クォータの超過は «一時障害» ではない**
+ * （その日は以後ずっと失敗し、原因はこちら側の呼び出し量である）。
+ *
+ * だから 429 は `ACCEPTED_QUOTA_EXTERNAL_APIS` に載っている API のときだけ除外する。
+ *
+ * ⚠️ `extErrorMessage` では分けられない。`external_api_logs.error_message` は列としては
+ * 存在するが 429 の行では **全件 NULL** で、生成 SQL も `CAST(NULL AS STRING)` を入れている。
+ * 分けられるのは `api_name` だけである。
+ */
+const EXTERNAL_TRANSIENT_HTTP_STATUSES = Object.freeze([408, 502, 503, 504]);
+
+/**
+ * 429（クォータ超過）を «承知の上» として除外してよい外部 API の名前。
+ *
+ * ⚠️ **ここへ足すのは «枠を上げない» という判断が下りているものだけ**にする。
+ * 足すと、その API の枠超過は二度と起票されない。
+ *
+ * - `Google Places Text Search API` … #1781 で «枠は上げない» で確定（2026-09-23）。
+ *   #843 そのものが «Google 依存を外す» ための課題なので、枠超過は課題の動機であって新しい不具合ではない。
+ */
+const ACCEPTED_QUOTA_EXTERNAL_APIS = Object.freeze(['Google Places Text Search API']);
+
+/**
  * トリアージ対象から除外する HTTP ステータス（横断レビュー §6-4 / S3 の結論）。
  *
  * = TRANSIENT_HTTP_STATUSES + 403 + 404。
@@ -327,6 +365,8 @@ module.exports = Object.freeze({
 	CREATE_RECHECK_DELAY_MS,
 	TRANSIENT_HTTP_STATUSES,
 	FRONTEND_EXCLUDED_HTTP_STATUSES,
+	EXTERNAL_TRANSIENT_HTTP_STATUSES,
+	ACCEPTED_QUOTA_EXTERNAL_APIS,
 	EXCLUDED_HTTP_STATUSES,
 	EXCLUSION_REASONS,
 });

@@ -366,10 +366,20 @@ keyed AS (
       --      **こちらの出口が塞がれているのか**を区別しない。実際に
       --      「Cloud Run から vt.tiktok.com へ接続できない」（sns-oembed.service.ts の
       --      設計コメント）を人力で突き止める羽目になっており、その間ここは黙っていた。
-      --      408 / 429 / 5xx は «相手が応答した上での一時障害» なので除外のまま残す。
-      --      実測ノイズ: 30 日で 0 行（429 の Google Places クォータだけが該当し、それは除外のまま）。
+      --      408 / 5xx は «相手が応答した上での一時障害» なので除外のまま残す。
+      --
+      --      ⚠️ #2073 **429 は «承知の上» の API 名のときだけ除外する。**
+      --      #1834 は «429 の Google Places クォータだけが該当し、それは除外のまま» と書いて
+      --      意図的に残したが、**status 1 つで括ったせいで «知っている枠» と «知らない枠» が
+      --      一緒に消えていた**。本番 90 日の実測では Text Search の 44,511 件（#1781 で
+      --      «枠は上げない» で決着済み）と並んで **Photos の 3,181 件**があり、後者は
+      --      **78 日間 1 件も起票されないまま** #819 の裏で写真取得の約 14% を落としていた。
+      --      日次クォータの超過はその日ずっと失敗し、原因はこちら側の呼び出し量なので
+      --      «一時障害» ではない。⚠️ 分けられるのは api_name だけである
+      --      （error_message は 429 の行では全件 NULL）。
       WHEN n.surface = 'external'
-       AND (n.extStatusCode IN (408, 429, 502, 503, 504)
+       AND (n.extStatusCode IN (408, 502, 503, 504)
+            OR (n.extStatusCode = 429 AND n.apiName IN ('Google Places Text Search API'))
             OR REGEXP_CONTAINS(IFNULL(n.extErrorMessage, ''),
                  r'''(ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|fetch failed)'''))
         THEN 'external_transient'
