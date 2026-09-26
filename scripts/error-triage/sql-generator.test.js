@@ -13,7 +13,9 @@
 const { readFileSync } = require("node:fs");
 
 const {
+	ACCEPTED_QUOTA_EXTERNAL_APIS,
 	EXCLUDED_HTTP_STATUSES,
+	EXTERNAL_TRANSIENT_HTTP_STATUSES,
 	FP_ALGO_VERSION,
 	FRONTEND_EXCLUDED_HTTP_STATUSES,
 	GROUP_LIMIT,
@@ -509,7 +511,36 @@ describe("除外ルール: constants.js が唯一の正", () => {
 	相手が落ちているのか、こちらの出口が塞がれているのかを区別しないため。
 	*/
 	test("E7 は status_code = 0 を除外しない", () => {
-		expect(generated).toContain("n.extStatusCode IN (408, 429, 502, 503, 504)");
+		expect(generated).toContain(`n.extStatusCode IN (${EXTERNAL_TRANSIENT_HTTP_STATUSES.join(", ")})`);
+		expect(EXTERNAL_TRANSIENT_HTTP_STATUSES).not.toContain(0);
+	});
+
+	/*
+	#2073 **外部 API の 429（クォータ超過）を status だけで «一時障害» にしない。**
+
+	#1834 は «429 の Google Places クォータだけが該当し、それは除外のまま» と書いて意図的に
+	残したが、**status 1 つで括ったせいで «知っている枠» と «知らない枠» が一緒に消えていた。**
+
+	実測（本番 90 日 / external_api_logs の status_code = 429）:
+	  - Google Places Text Search API … 44,511 件（#1781 で «枠は上げない» で決着済み）
+	  - Google Places Photos API      …  3,181 件 ← **78 日間 1 件も起票されていなかった**
+
+	後者は #819（「bulk-import した画像の読み込みが遅い」）の裏で写真取得の約 14% を落としていた。
+	日次クォータの超過はその日ずっと失敗し、原因はこちら側の呼び出し量なので «一時障害» ではない。
+
+	⚠️ 分けられるのは api_name だけである（error_message は 429 の行では全件 NULL で、
+	   生成 SQL も CAST(NULL AS STRING) を入れている）。
+	*/
+	test("E7 の 429 は «承知の上» の api_name のときだけ除外する", () => {
+		expect(EXTERNAL_TRANSIENT_HTTP_STATUSES).not.toContain(429);
+		const list = ACCEPTED_QUOTA_EXTERNAL_APIS.map((name) => `'${name}'`).join(", ");
+		expect(generated).toContain(`n.extStatusCode = 429 AND n.apiName IN (${list})`);
+	});
+
+	test("承知の上の枠は Text Search だけ（Photos を混ぜない）", () => {
+		expect(ACCEPTED_QUOTA_EXTERNAL_APIS).toContain("Google Places Text Search API");
+		// ⚠️ ここへ足すとその API の枠超過は二度と起票されない。#819 を再発させないための縛り
+		expect(ACCEPTED_QUOTA_EXTERNAL_APIS).not.toContain("Google Places Photos API");
 	});
 
 	test("400 / 409 / 422 は除外リストに入っていない（レビュー §6-4）", () => {
