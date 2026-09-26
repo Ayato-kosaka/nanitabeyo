@@ -235,6 +235,64 @@ describe('DishesService.bulkImportFromGoogle', () => {
     });
   });
 
+  /*
+  #819 【設計】**取り込み直後にアプリへ返す URL は «表示するサイズ» にする。**
+
+  一括取り込みの同期レスポンスは GCS の実体がまだ無いあいだ Google の photoUri を
+  そのまま返している（#829）。その URL は原寸（本番の要求幅の中央値 3,024px）を指しており、
+  同じ写真を suffix だけ変えて取り直すと **9,492,691 B → 206,195 B（−97.8%）** だった
+  （2026-09-26 実測 / サイズの根拠と表は google-photo-uri.ts）。
+
+  ⚠️ **fixture を実物の形にしておくこと。** 元は 'https://google/photo.jpg' で、
+     googleusercontent ではないため書き換えが働かず、**この検査は緑のまま何も見ていなかった。**
+  */
+  describe('#819 返す URL のサイズ', () => {
+    const LH3_TOKEN =
+      'ACvplmOjjlLdKVtBAaBUR86KfOMvDsBEFATbxsEZRGmydFXZhM5I0thIfh3NCAvJp9Rm';
+    const ORIGINAL_URI = `https://lh3.googleusercontent.com/grass-cs/${LH3_TOKEN}=s4800-w3024`;
+
+    beforeEach(() => {
+      locations.searchRestaurants.mockResolvedValue({
+        places: [buildPlace(PLACE_ID)],
+      });
+      locations.tryGetPhotoMedia.mockResolvedValue({ photoUri: ORIGINAL_URI });
+    });
+
+    it('imageUrls は GCS 側で焼くサイズ（sm 64 / md 256）を指す', async () => {
+      const result = await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(result[0].restaurant.imageUrls).toEqual({
+        sm: `https://lh3.googleusercontent.com/grass-cs/${LH3_TOKEN}=w64-rj`,
+        md: `https://lh3.googleusercontent.com/grass-cs/${LH3_TOKEN}=w256-rj`,
+      });
+    });
+
+    it('mediaUrl は表示上限 1,024px / thumbnail は 256px', async () => {
+      const result = await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(result[0].dish_media.mediaUrl).toBe(
+        `https://lh3.googleusercontent.com/grass-cs/${LH3_TOKEN}=w1024-rj`,
+      );
+      expect(result[0].dish_media.thumbnailImageUrl).toBe(
+        `https://lh3.googleusercontent.com/grass-cs/${LH3_TOKEN}=w256-rj`,
+      );
+    });
+
+    /*
+    ⚠️ **ダウンロードする方は原寸のままにする。** こちらは GCS へ再ホストして
+       自前の派生サイズを焼く元になるので、縮めた絵を master にしてはいけない。
+       «レスポンスと同じにすれば簡単» と揃えられないよう、ここで縛る。
+    */
+    it('enqueue する photoUri は原寸のまま（master を縮めない）', async () => {
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      // ⚠️ mock.calls[0][0] を触ると any 経由になる。既存の型で見られる形で書く
+      expect(cloudTasks.enqueueCreateDishMediaEntry).toHaveBeenCalledWith(
+        expect.objectContaining({ photoUri: [ORIGINAL_URI] }),
+      );
+    });
+  });
+
   describe('#829 completed 再利用', () => {
     beforeEach(() => {
       locations.searchRestaurants.mockResolvedValue({

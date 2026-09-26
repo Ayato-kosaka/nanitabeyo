@@ -55,6 +55,9 @@ import { selectGooglePlaceReviews } from './select-google-place-reviews';
 import { normalizeLanguageCode } from '../../../../shared/utils/languageCode';
 import { computePriceBand } from '../../../../shared/utils/priceBand';
 
+// #819 Google の photoUri は原寸を指している。表示するサイズへ書き換えて返す
+import { withGooglePhotoWidth } from '../../core/external-api/google-photo-uri';
+
 @Injectable()
 export class DishesService {
   constructor(
@@ -772,8 +775,10 @@ export class DishesService {
             imageUrls: {
               // canSkipPhotoMedia は existingGoogleImportEntry がある場合のみ true になるため、
               // 新規作成パスに到達した時点で photoMedia は必ず取得済み。
-              sm: photoMedia!.photoUri,
-              md: photoMedia!.photoUri,
+              // #819 幅は GCS 側で焼くサイズと同じにする（restaurants.assembler.ts: sm 64 / md 256）。
+              // 原寸のまま返すと 1 枚 9.5 MB のことがあり、表示枠は 40〜64px である。
+              sm: withGooglePhotoWidth(photoMedia!.photoUri, 64),
+              md: withGooglePhotoWidth(photoMedia!.photoUri, 256),
             },
           },
           dish: {
@@ -810,8 +815,9 @@ export class DishesService {
             ...dishMedia,
             media_processing_status: 'completed', // クライアント側には処理済みの画像を返す
             thumbnail_processing_status: 'completed',
-            mediaUrl: photoMedia!.photoUri,
-            thumbnailImageUrl: photoMedia!.photoUri,
+            // #819 mediaUrl は全画面の表示上限（1,024px）、thumbnail は dish_media が焼いている 256px に合わせる
+            mediaUrl: withGooglePhotoWidth(photoMedia!.photoUri, 1024),
+            thumbnailImageUrl: withGooglePhotoWidth(photoMedia!.photoUri, 256),
             isMine: false, // インポートなので自分のものではない
             isSaved: false, // 初期状態では保存されていない
             isLiked: false, // 初期状態ではいいねされていない
@@ -965,17 +971,18 @@ export class DishesService {
       restaurant: {
         ...entry.restaurant,
         // #1779 `image_url` はレスポンス契約から外した。表示用 URL は imageUrls で返す
+        // #819 原寸ではなく表示するサイズを渡す（サイズの根拠は google-photo-uri.ts）
         imageUrls: {
-          sm: photoUri,
-          md: photoUri,
+          sm: withGooglePhotoWidth(photoUri, 64),
+          md: withGooglePhotoWidth(photoUri, 256),
         },
       },
       dish_media: {
         ...entry.dish_media,
         media_processing_status: 'completed',
         thumbnail_processing_status: 'completed',
-        mediaUrl: photoUri,
-        thumbnailImageUrl: photoUri,
+        mediaUrl: withGooglePhotoWidth(photoUri, 1024),
+        thumbnailImageUrl: withGooglePhotoWidth(photoUri, 256),
       },
     };
   }
