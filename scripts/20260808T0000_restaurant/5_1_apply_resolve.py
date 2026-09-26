@@ -170,6 +170,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--debug-dump", type=int, default=0, help="先頭 N 件の resolve 生レスポンスをログに出す（診断用）")
     # 18k+ の再 resolve を数時間で終えるため、post_id ハッシュで水平分割して複数 run を並列に回す。
     # 各シャードは互いに素な post_id 集合を担当するので二重 resolve/二重挿入が起きない。
+    p.add_argument("--post-ids-table", default=None,
+                   help="この表に載っている post_id だけを解く（例: sns_caption_backfilled）。"
+                        "4_14 が後入れしたキャプションを «埋めたものだけ» 解き直すための入口。"
+                        "⚠️ このときは --skip-resolved-anywhere を付けない（付けると全部飛ぶ）")
     p.add_argument("--shards", type=int, default=1, help="並列シャード総数（既定1=分割なし）")
     p.add_argument("--shard", type=int, default=0, help="このバッチが担当するシャード番号 [0, shards)")
     # 再解決を «非破壊» のパイプライン一級操作にする（delete 不要）。resolve 改善後は
@@ -258,7 +262,7 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
                       reresolve_prev_status: str | None = None, caption_regexp: str | None = None,
                       only_with_area: bool = False, post_ids: list[str] | None = None,
                       only_without_area: bool = False, skip_resolved_anywhere: bool = False,
-                      only_without_category: bool = False):
+                      only_without_category: bool = False, post_ids_table: str | None = None):
     """未 resolve（この run × **この resolve_version** で未処理）の投稿を取り出す。
 
     version を anti-join に含めるので、--resolve-version を上げると全投稿が «その version では未処理»
@@ -276,6 +280,12 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
         area_filter = "AND r.discovery_area_lat IS NULL"
     # 特定の投稿だけを解き直す（原因調査用）。--debug-dump と併せて生レスポンスを見る。
     ids_filter = "AND r.post_id IN UNNEST(@post_ids)" if post_ids else ""
+    # #1947 **«4_14 がキャプションを埋めた投稿» だけを解き直すための入口。**
+    #   後入れした投稿は既に resolved 行を持つので `--skip-resolved-anywhere` では必ず飛ぶ。
+    #   全国を `--only-without-category` で解き直すのは対象 100 万件超（うち 83% は料理語を
+    #   含まないので直しても 0）で筋が悪い。**埋めた post_id の表を狙い撃ちする。**
+    if post_ids_table:
+        ids_filter += f" AND r.post_id IN (SELECT post_id FROM `{post_ids_table}`)"
     # «どこかに結果がある» 投稿を丸ごと外す。run をまたいだ二重 resolve を止めるためのもの。
     # «いまカテゴリが付いている» の判定は common_sns が唯一の正（写経しない）。
     no_category_filter = ""
@@ -369,7 +379,8 @@ def main() -> None:
                                      args.caption_regexp, args.only_with_area,
                                      [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None,
                                      args.only_without_area, args.skip_resolved_anywhere,
-                                     args.only_without_category)
+                                     args.only_without_category,
+                                     pipeline.table(args.post_ids_table) if args.post_ids_table else None)
         finally:
             bq.add("BQ:未処理の取り出し(1回)", time.perf_counter() - t0)
 
@@ -387,6 +398,7 @@ def main() -> None:
         #   無いと記録だけ見て «積み残しを消したラウンド» と «全部解き直したラウンド» を
         #   区別できない。2026-09-24 は後者で、書いた 78,366 行のうち初回は 5.0% だった。
         "skip_resolved_anywhere": args.skip_resolved_anywhere,
+        "post_ids_table": args.post_ids_table,
     }, repo_root=None) as result:
         # 数千件の resolve は 1〜2h かかる。末尾一括ロードだと進捗が見えず timeout で全ロストするので
         # FLUSH_EVERY 件ごとに逐次ロードする（WRITE_APPEND。再実行時は resolved 済みを LEFT JOIN でskip）。

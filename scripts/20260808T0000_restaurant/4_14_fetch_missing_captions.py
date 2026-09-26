@@ -44,12 +44,31 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 
-from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
+from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import TABLE_POST_RAW, TABLE_POST_RESOLVED, posts_with_category_sql, run_id_arg_help, run_id_filter_sql
 from sns_html import caption_from_embed_html
 
 LOGGER = logging.getLogger(__name__)
 CHUNK = 2000  # 1 回の UPDATE に載せる件数
+
+#: #1947 **埋めた post_id を残す表。** これが無いと 2 段目（後入れした投稿だけを解き直す）が
+#: 作れない。実際に 2026-09-25 は 7 ラウンドで約 2 万件のキャプションを埋めたのに、
+#: 走っている resolve は `--skip-resolved-anywhere` で必ず飛ばすため **カテゴリへ 1 件も
+#: 効いていなかった**（同日の実測: 直近 8 時間の resolve は 200,254 行 = 200,254 投稿で
+#: 解き直しゼロ）。全国を `--only-without-category` で解き直すのは対象 100 万件超・うち
+#: 83% は料理語を含まないので筋が悪い。**埋めたものだけを狙い撃ちする**のが正しい形。
+TABLE_CAPTION_BACKFILLED = "sns_caption_backfilled"
+
+CREATE_BACKFILLED_SQL = """
+CREATE TABLE IF NOT EXISTS `__TABLE__` (
+  post_id   STRING NOT NULL,
+  run_id    STRING NOT NULL,
+  filled_at TIMESTAMP NOT NULL
+)
+PARTITION BY DATE(filled_at)
+CLUSTER BY post_id
+OPTIONS (description = '4_14 がキャプションを後入れした投稿。2 段目の解き直しの対象。append-only。#1947')
+"""
 FLUSH_EVERY = 500  # 取れたぶんを途中で書き戻す間隔（6 時間で切られても失わない）
 UA = "nanitabeyo-sns-seed/1.0"
 EMBED = "https://www.instagram.com/p/{code}/embed/captioned/"
@@ -219,6 +238,10 @@ def main() -> None:
     if args.dry_run or not targets:
         return
 
+    if not args.dry_run:
+        pipeline.execute(CREATE_BACKFILLED_SQL.replace(
+            "__TABLE__", pipeline.table(TABLE_CAPTION_BACKFILLED)))
+
     deadline = time.monotonic() + args.max_minutes * 60
     pacer = Pacer(args.rate_per_sec)
     got: Queue = Queue()
@@ -283,6 +306,13 @@ def main() -> None:
                 bigquery.ArrayQueryParameter("pids", "STRING", [b["post_id"] for b in part]),
                 bigquery.ArrayQueryParameter("caps", "STRING", [b["caption"] for b in part]),
             ])
+            # #1947 **埋めた post_id を残す**（2 段目の解き直しの対象になる）。
+            #   ここで落とすと «キャプションはあるのにカテゴリが付かない» が永久に残る。
+            if not args.dry_run:
+                now = utc_now().isoformat()
+                pipeline.load_json_rows(TABLE_CAPTION_BACKFILLED, [
+                    {"post_id": b["post_id"], "run_id": run_id, "filled_at": now}
+                    for b in part])
             if affected < len(part):
                 LOGGER.warning("  %d 件投げて %d 行しか書き換わっていません"
                                "（対象が既に埋まっている / run_id の絞りがずれている）",
