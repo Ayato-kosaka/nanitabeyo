@@ -76,7 +76,11 @@ fi
 #
 # **原因は未特定。** まず «アプリから見えるロケール» を毎回ログへ出して観測できるようにする。
 # ここではまだ落とさない（落とすかどうかは、実測が揃ってから決める）。
-runtime_config="$(adb shell am get-config 2>/dev/null | tr -d '\r' | head -n 1)"
+# ⚠️ **`| head -n 1` をパイプの下流に置かないこと（#2075）。** このファイルは `set -euo pipefail`。
+#    `am get-config` の出力は数十行あるので、`head` が閉じた時点で上流が SIGPIPE で殺され、
+#    `pipefail` の 141 が代入の終了コードになり **`set -e` がここで死ぬ**。一度変数へ受ける。
+am_get_config="$(adb shell am get-config 2>/dev/null || true)"
+runtime_config="$(head -n 1 <<< "${am_get_config//$'\r'/}")"
 system_locales="$(adb shell settings get system system_locales 2>/dev/null | tr -d '\r')"
 echo "▶ 実行時 configuration: ${runtime_config}"
 echo "▶ settings system_locales: ${system_locales}"

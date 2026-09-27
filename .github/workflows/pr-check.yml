@@ -223,6 +223,20 @@ jobs:
       - name: 列を落とす順序ガードの自己テスト
         run: bash scripts/test-assert-drop-safe-for-deployed-code.sh
 
+      # #2075 `pipefail` の下でパイプの下流に «途中で読むのをやめるもの»（`grep -q` / `head`）を
+      # 置くと、上流が SIGPIPE で殺されて 141 が**パイプライン全体の終了コードになる**。
+      # «一致しているのに ng» / «在っても無いと言い切る» / «値は取れているのに set -e で死ぬ»
+      # のどれかになり、**上流の出力が小さいうちは通るので CI でだけ稀に負ける**
+      # （2026-09-26 の main https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36206053417 ）。
+      # ⚠️ #2075 ではこの形を 2 ファイルだけ直し、**同じファイルの `| head -1` を取り残した**。
+      #    だから «そのファイルを見る自己検査» ではなく **repo 全体を見る 1 本**に集約してある。
+      #    node だけで走るので shared build より前に置ける。
+      - name: pipefail の下の早期終了パイプを検査
+        run: node scripts/assert-no-pipefail-early-exit-pipe.mjs
+
+      - name: 早期終了パイプのガード自身のテスト
+        run: bash scripts/test-assert-no-pipefail-early-exit-pipe.sh
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査

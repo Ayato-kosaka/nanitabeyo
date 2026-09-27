@@ -132,10 +132,9 @@ check "base.sha（イベント時点のスナップショット）を使って�
 grep -q 'assert-migration-filename-order\.sh FETCH_HEAD' <<< "$WORKFLOW_CODE"
 check "取得した «いまの先頭»（FETCH_HEAD）を渡している" ok $?
 
-# ⚠️ #2075 この形へ戻さないための自己検査。コメント行は除いて数える
-PIPED_GREP_Q=$(grep -vE '^[[:space:]]*#' "$0" | grep -cE '\|[[:space:]]*grep[[:space:]]+-q' || true)
-[ "$PIPED_GREP_Q" -eq 0 ]
-check "パイプの下流で grep -q を使っていない（pipefail で 141 になる）" ok $?
+# ⚠️ #2075 この形へ戻さないための検査は **`scripts/assert-no-pipefail-early-exit-pipe.mjs`
+#    へ集約した**（このファイルだけを見る自己検査は `| head -1` を取りこぼしていた）。
+#    自己テストは `scripts/test-assert-no-pipefail-early-exit-pipe.sh`。
 
 echo ""
 echo "pass $pass / fail $fail"

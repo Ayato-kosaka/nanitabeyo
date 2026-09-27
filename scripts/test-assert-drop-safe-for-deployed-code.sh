@@ -218,8 +218,13 @@ grep -q 'assert-drop-safe-for-deployed-code\.mjs' <<< "$MIGRATE_WF_CODE"
 check "db-migrate.yml がこの門番を呼んでいる" ok $?
 
 # ⚠️ **適用より «前» に走ること。** 後ろだと落ちても列は戻らない（既存の shared 検算がそれ）
-guard_line=$(grep -n 'assert-drop-safe-for-deployed-code\.mjs' "$MIGRATE_WF" | head -1 | cut -d: -f1)
-apply_line=$(grep -n 'bash scripts/apply-migration\.sh' "$MIGRATE_WF" | head -1 | cut -d: -f1)
+# ⚠️ **`| head -1` も同じ形である（#2075 の修正で取り残していた）。** `grep -q` だけを直して
+#    ここを残したので、«同じ考え違いが他所にも書かれている» 状態が続いていた。
+#    ⚠️ **`head -1` を `read -r` へ替えるだけでは直らない**（1 行で閉じるのは同じ。実測で 141）。
+#    **上流を先に変数へ受け切って**から先頭行を取る。
+first_line_no() { local hits; hits="$(grep -n "$1" "$2" || true)"; head -1 <<< "$hits" | cut -d: -f1; }
+guard_line=$(first_line_no 'assert-drop-safe-for-deployed-code\.mjs' "$MIGRATE_WF")
+apply_line=$(first_line_no 'bash scripts/apply-migration\.sh' "$MIGRATE_WF")
 [ -n "$guard_line" ] && [ -n "$apply_line" ] && [ "$guard_line" -lt "$apply_line" ]
 check "門番が migration の適用より前に走る" ok $?
 
@@ -231,11 +236,9 @@ check "db-migrate.yml の job に actions: read がある" ok $?
 grep -qF 'name: Deploy (${{ github.event.inputs.target }})' <<< "$API_WF_CODE"
 check "api-deploy.yml の job 名が Deploy (<target>) のまま（判定の根拠）" ok $?
 
-# ⚠️ #2075 この形へ戻さないための自己検査。コメント行は除いて数える
-#    （この注意書き自身を «違反» と読まないため）。
-PIPED_GREP_Q=$(grep -vE '^[[:space:]]*#' "$0" | grep -cE '\|[[:space:]]*grep[[:space:]]+-q' || true)
-[ "$PIPED_GREP_Q" -eq 0 ]
-check "パイプの下流で grep -q を使っていない（pipefail で 141 になる）" ok $?
+# ⚠️ #2075 この形へ戻さないための検査は **`scripts/assert-no-pipefail-early-exit-pipe.mjs`
+#    へ集約した**（このファイルだけを見る自己検査は `| head -1` を取りこぼしていた）。
+#    自己テストは `scripts/test-assert-no-pipefail-early-exit-pipe.sh`。
 
 echo ""
 echo "pass $pass / fail $fail"

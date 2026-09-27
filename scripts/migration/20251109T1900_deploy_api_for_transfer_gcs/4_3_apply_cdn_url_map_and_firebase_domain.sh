@@ -36,7 +36,19 @@ log "URL map YAML: ${URL_MAP_YAML}"
 
 # 1. URL マップの検証（オプション：構文チェック）
 log "Validating URL map configuration..."
-if run_cmd gcloud compute url-maps validate --source="${URL_MAP_YAML}" 2>&1 | grep -q "is valid"; then
+# ⚠️ **`… | grep -q` にしないこと（#2075）。** このスクリプトは `pipefail` で走る。
+#    `grep -q` は最初の一致で即座に終わるので上流の `gcloud` が SIGPIPE で殺され、
+#    `pipefail` が **その 141 をパイプライン全体の終了コードにする**。
+#    ⚠️ **否定形（`! … | grep -q`）はもっと悪い。141 も «非ゼロ» なので `!` が true にし、
+#    «既に在るものを無い» と判定して作りに行く**。`set -e` の下では次の作成が
+#    「already exists」で落ちるので、このスクリプトが謳っている **冪等性が崩れる**。
+#    だから **一度変数へ受けてから** `grep` する（#2075 で 141 を実測済み）。
+#    ここは肯定形なので、141 になると «valid なのに unexpected output» と読んで warn へ落ちる。
+#    ⚠️ `|| true` を落とさないこと。ここは **意図して fail-open**（else が
+#    「continuing anyway」と書いている）。`set -Eeuo pipefail` の下で素の代入にすると
+#    validate が非ゼロを返した時点でスクリプトが死に、warn へ落ちる道が消える。
+url_map_validation="$(run_cmd gcloud compute url-maps validate --source="${URL_MAP_YAML}" 2>&1 || true)"
+if grep -q "is valid" <<< "${url_map_validation}"; then
   ok "URL map YAML is valid"
 else
   warn "URL map validation returned unexpected output (continuing anyway)"
