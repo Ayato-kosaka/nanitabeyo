@@ -1183,6 +1183,33 @@ def store_handle_dict_sql(store_site_ig_table: str, source_account_table: str,
       )"""
 
 
+def store_site_host_sql(catalog_table: str, *, run_id_param: str = "crid") -> str:
+    """`restaurant_catalog` の website のホスト → google_place_id を返す SELECT（唯一の正）。
+
+    **«その店の公式サイトのホスト» が分かる店の集合**である。二箇所で要る:
+
+    - `4_9`（CC WAT 走査）は «この URL は誰の店のページか» の辞書としてこれを引く。
+      ホストが辞書に無いページは、どれだけ Instagram が貼られていても **店を決められない**
+    - `7_5` は «未達地点の handle 無し店のうち、そもそもサイトから掘れるのは何軒か»
+      （= CC WAT と #1777 の巡回の天井）を数えるのにこれを引く
+
+    2 店以上が同じホストならチェーン公式なので捨てる（`store_handle_dict_sql` と同じ規律）。
+    ⚠️ 2026-09-27、この判定は 4_9 の中にしか無く、天井を測ろうとして写経しかけた。
+    写経した複製は、片方だけ直したときに緑のまま古い判定を守り続ける。
+    """
+    return f"""
+      SELECT host, ANY_VALUE(pid) AS place_id
+      FROM (
+        SELECT google_place_id AS pid,
+               LOWER(REGEXP_REPLACE(REGEXP_EXTRACT(website, r'^https?://([^/?#]+)'),
+                                    r'^www\\.', '')) AS host
+        FROM `{catalog_table}`
+        WHERE run_id = @{run_id_param} AND website IS NOT NULL AND website != '')
+      WHERE host IS NOT NULL AND host != ''
+      GROUP BY host
+      HAVING COUNT(DISTINCT pid) = 1"""
+
+
 # --- «その店は日本の店か» の唯一の判定 ---------------------------------------------
 #
 # 【設計】#1815 / #1273: `restaurant_catalog` 620,428 行のうち **100,058 行（16.13%）が

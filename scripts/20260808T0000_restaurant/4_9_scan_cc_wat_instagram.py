@@ -33,7 +33,8 @@ from datetime import timezone
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
 from common_sns import (PROVIDER_INSTAGRAM, TABLE_POST_RAW, TABLE_SOURCE_ACCOUNT,
-                        area_from_text, build_city_index, city_index_sql)
+                        area_from_text, build_city_index, city_index_sql,
+                        store_site_host_sql)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -98,17 +99,12 @@ def _host_of(uri: str) -> str:
 
 
 def _store_hosts(pipeline: BigQueryPipeline, catalog_run_id: str) -> dict[str, str]:
-    """カタログ店の website ホスト → google_place_id。2 店以上が同じホストならチェーン扱いで捨てる。"""
-    sql = f"""
-      WITH h AS (
-        SELECT google_place_id,
-               LOWER(REGEXP_REPLACE(REGEXP_EXTRACT(website, r'^https?://([^/?#]+)'), r'^www\\.', '')) AS host
-        FROM `{pipeline.table('restaurant_catalog')}`
-        WHERE run_id = @crid AND website IS NOT NULL AND website != '')
-      SELECT host, ANY_VALUE(google_place_id) place_id
-      FROM h WHERE host IS NOT NULL AND host != ''
-      GROUP BY host HAVING COUNT(DISTINCT google_place_id) = 1
+    """カタログ店の website ホスト → google_place_id。
+
+    ⚠️ 判定は `common_sns.store_site_host_sql` が唯一の正（7_5 が天井を数えるのに
+    同じ辞書を引く）。ここへ写経しないこと。
     """
+    sql = store_site_host_sql(pipeline.table('restaurant_catalog'))
     from google.cloud import bigquery
     params = [bigquery.ScalarQueryParameter("crid", "STRING", catalog_run_id)]
     return {r["host"]: r["place_id"] for r in pipeline.execute(sql, params)}

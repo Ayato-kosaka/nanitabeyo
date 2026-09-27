@@ -50,7 +50,8 @@ class _StubPipeline:
 
 
 def _point(pid: str, *, stores: int, best_cell: int, reachable: int,
-           no_handle: int = 0, catalog_stores: int = 50) -> dict:
+           no_handle: int = 0, catalog_stores: int = 50,
+           no_handle_site: int | None = None) -> dict:
     """`fetch_points` が返す 1 地点ぶんの形。
 
     ⚠️ #1947 **ここへ列を足し忘れると、本番だけが新しい列を読んで KeyError になる。**
@@ -58,10 +59,19 @@ def _point(pid: str, *, stores: int, best_cell: int, reachable: int,
     機械的に見ているので、本番へ列を足したらこの fixture にも足すこと。
     `catalog_stores` の既定を大きめにしてあるのは、**既定で «天井に当たらない» 地点**に
     しておかないと «薄いから届かない» 側の分岐へ落ちてしまうためである。
+
+    `no_handle_site`（handle 無しのうちサイトから掘れる店）は既定で `no_handle` と同数、
+    つまり **いちばん楽観的な世界**にしてある。既定を 0 にすると «巡回でも掘れない» の
+    警告が全ての fixture で出てしまい、その警告を見ている試験が意味を失う。
     """
+    site = no_handle if no_handle_site is None else no_handle_site
+    assert site <= no_handle, (
+        "サイトから掘れる店が handle 無しの店より多い fixture は作れない"
+        f"（{site} > {no_handle}）")
     return {"point": pid, "stores_500m": stores, "cats_ge5": 1 if best_cell >= 5 else 0,
             "cats_any": 1, "cell_stores": [best_cell], "reachable_500m": reachable,
-            "no_handle_500m": no_handle, "catalog_stores_500m": catalog_stores}
+            "no_handle_500m": no_handle, "catalog_stores_500m": catalog_stores,
+            "no_handle_site_500m": site}
 
 
 class SevenFiveDecidesWhichPointsToShootTest(unittest.TestCase):
@@ -99,6 +109,24 @@ class SevenFiveDecidesWhichPointsToShootTest(unittest.TestCase):
         self.assertIn("ハンドルすら無い店", body)
         self.assertIn("= 1 / 2", body)
         self.assertIn("店台帳そのものが薄い", body)
+
+    def test_a_dry_point_whose_stores_have_no_website_is_called_out(self):
+        """handle 無しの店があっても «サイトから掘れない» なら在庫と呼ばせない。"""
+        pts = [_point("no_site", stores=90, best_cell=4, reachable=0,
+                      no_handle=64, no_handle_site=0)]
+        lines: list[str] = []
+        h = logging.Handler()
+        h.emit = lambda rec: lines.append(rec.getMessage())  # type: ignore[assignment]
+        m75.LOGGER.addHandler(h)
+        m75.LOGGER.setLevel(logging.INFO)
+        try:
+            m75._deficit(pts, top_pct=100, target_pct=100)
+        finally:
+            m75.LOGGER.removeHandler(h)
+        body = "\n".join(lines)
+        self.assertIn("サイトから掘れる店", body)
+        self.assertIn("合計 0 店 / 64 店", body)
+        self.assertIn("在庫ではない", body)
 
     def test_the_cheapest_points_come_first(self):
         """«あと 1 店» の地点を «あと 4 店» より先に撃つ。"""

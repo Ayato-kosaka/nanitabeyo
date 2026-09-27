@@ -44,7 +44,8 @@ from common_sns import (PROVIDER_INSTAGRAM,  # noqa: E402
                         TABLE_DISH_MEDIA_CATALOG, TABLE_POST_RAW,
                         TABLE_RESTAURANT_CATALOG,
                         TABLE_SOURCE_ACCOUNT, TABLE_ACCOUNT_ATTEMPT,
-                        called_handles_sql, kpi_gate_category_sql)
+                        called_handles_sql, kpi_gate_category_sql,
+                        store_site_host_sql)
 
 LOGGER = logging.getLogger("7_5")
 
@@ -145,6 +146,24 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       WHERE h.gpid IS NULL
       GROUP BY point
     ),
+    -- ⑦ ⑤ のうち **サイトから掘れる** 店 = 公式サイトのホストが台帳で一意に決まる店。
+    --    CC WAT（4_9）も巡回（#1777）も «ページのホストがその店のサイト» のときしか
+    --    店を決められないので、これが handle 発見の天井である。
+    --    2026-09-27、⑤ が 1,580 店あるのに合格線が 15 カタログ動かなかった。
+    --    ⑤ の大きさは «掘れる» ことを意味しない。⑦ を並べないと «あと 1,580 店ある» を
+    --    在庫と読み違える（実際そう読み違えた）。
+    store_host AS ({store_site_host_sql(f"{ds}.{TABLE_RESTAURANT_CATALOG}",
+                                        run_id_param="sample_catalog_run_id")}
+    ),
+    pt_nohandle_site AS (
+      SELECT p.pid AS point, COUNT(DISTINCT s.google_place_id) AS no_handle_site_500m
+      FROM pts p
+      JOIN store_loc s ON ST_DWithin(p.location, s.location, {int(radius_m)})
+      JOIN store_host sh ON sh.place_id = s.google_place_id
+      LEFT JOIN handled h ON h.gpid = s.google_place_id
+      WHERE h.gpid IS NULL
+      GROUP BY point
+    ),
     -- ⑥ その地点の 500m 圏に **台帳として何軒あるか**（配信できているかは問わない）。
     --    #1947 «全部知っていて全部呼び終えた» 地点に対して «では何軒あるのか» を
     --    答えられないと、«薄い» が «あと少し» なのか «物理的に無理» なのか分けられない。
@@ -170,13 +189,15 @@ def build_sql(ds: str, dish_ds: str, *, sample_n: int, sample_run: str, radius_m
       IFNULL(pp.cell_stores, []) AS cell_stores,
       IFNULL(pr.reachable_500m, 0) AS reachable_500m,
       IFNULL(pn.no_handle_500m, 0) AS no_handle_500m,
-      IFNULL(pa.catalog_stores_500m, 0) AS catalog_stores_500m
+      IFNULL(pa.catalog_stores_500m, 0) AS catalog_stores_500m,
+      IFNULL(pns.no_handle_site_500m, 0) AS no_handle_site_500m
     FROM pts p
     LEFT JOIN pt_stores ps ON ps.point = p.pid
     LEFT JOIN per_point pp ON pp.point = p.pid
     LEFT JOIN pt_reach pr ON pr.point = p.pid
     LEFT JOIN pt_nohandle pn ON pn.point = p.pid
     LEFT JOIN pt_all pa ON pa.point = p.pid
+    LEFT JOIN pt_nohandle_site pns ON pns.point = p.pid
     """
 
 
@@ -277,6 +298,19 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = Fa
         log("  → そのうち **«ハンドルすら無い店» が 500m 圏にある地点 = %d / %d**"
             "（合計 %d 店・中央値 %d 店）。巡回（#1777）で handle を掘れば届く",
             with_nh, len(dry), sum(nh), sorted(nh)[len(nh) // 2] if nh else 0)
+        # ⚠️ **«ハンドルすら無い店» の数を在庫として読まないための行。** サイトの
+        #    ホストが台帳で一意に決まる店だけが CC WAT / 巡回で掘れる（4_9 の辞書と同じ判定）。
+        ns = [by_point[pid]["no_handle_site_500m"] for pid in dry]
+        with_ns = sum(1 for n in ns if n > 0)
+        log("     うち **サイトから掘れる店**（公式サイトのホストが台帳で一意）= "
+            "**合計 %d 店 / %d 店**（%s）・そういう店がある地点 = %d / %d。"
+            "ここが CC WAT（4_9）と巡回（#1777）の天井である",
+            sum(ns), sum(nh),
+            f"{sum(ns) / sum(nh):.1%}" if sum(nh) else "-", with_ns, len(dry))
+        if sum(ns) == 0 and sum(nh) > 0:
+            log("     ⚠️ **巡回でも CC WAT でも 1 店も掘れない。**"
+                " «あと %d 店ある» は在庫ではない（サイトが台帳に無い／チェーン共有）",
+                sum(nh))
         if with_nh < len(dry):
             exhausted = [pid for pid in dry if by_point[pid]["no_handle_500m"] == 0]
             # ⚠️ «薄い» で止めない。**何軒あるのか**まで出す。5 軒未満なら供給を足しても届かない。
@@ -348,7 +382,8 @@ def fetch_points(pipeline, *, delivery_run_id: str, project: str = "food-scroll"
              #   `.get(..., 0)` が黙って 0 を返して «未達 22 地点の台帳は 0 軒» という
              #   **その次の行と矛盾する数字**を出した（同じ地点に 1,458 店あると出ている）。
              #   落ちたら気づけるように、読み出し側は `.get` ではなく `[...]` を使う。
-             "catalog_stores_500m": int(r["catalog_stores_500m"] or 0)} for r in rows]
+             "catalog_stores_500m": int(r["catalog_stores_500m"] or 0),
+             "no_handle_site_500m": int(r["no_handle_site_500m"] or 0)} for r in rows]
 
 
 def gap_point_lines(picked: list[str], pts: list[dict]) -> list[str]:
