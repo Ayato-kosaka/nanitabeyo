@@ -19,6 +19,22 @@ API の側が一度も試されないまま «却下» の見た目になって�
 ⚠️ **これは規約の迂回ではない。** 公式に文書化された endpoint を、文書化された
 クォータの内側で呼ぶ。scrape もしないし、IP も分散しない。
 
+## ⚠️ 2026-09-27 の実測: **いまのアプリでは呼べない**（窓は 1 個も使っていない）
+
+1 タグの probe（[run 1467](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36359318122)）
+の応答:
+
+    IG API 400 (#10) To use 'Instagram Public Content Access', your use of this
+    endpoint must be reviewed and approved by Facebook.
+
+つまり止めているのは **«7 日で 30 タグ» のクォータではなく、App Review が要る権限**
+（`Instagram Public Content Access`）である。business_discovery とは別の審査で、
+**オーナーが Meta の App Review に出す以外に通す道が無い**（[#1791](https://github.com/Ayato-kosaka/nanitabeyo/issues/1791) と同じ性質の作業）。
+
+権限が下りたらこの script はそのまま動く。**それまで dispatch しても 400 で終わる**ので、
+`--probe` で 1 タグだけ試して «下りたか» を確かめるところから始めること
+（400 は窓を消費しない ＝ 何度でも確認できる）。
+
 ## 唯一の希少資源＝«7 日で 30 タグ»
 
 `ig_hashtag_search` は **1 IG ユーザにつき 7 日で 30 個の異なるタグ**しか引けない。
