@@ -91,12 +91,25 @@ class TheCaptionRoundSaysWhyItStopped(unittest.TestCase):
     def test_it_says_how_far_it_got_against_the_target(self) -> None:
         self.assertIn("件しか当たれずに降りました", self.s)
 
-    def test_only_a_block_asks_for_a_pause(self) -> None:
-        """締め切り切れは «時間を空けろ» ではない（相手は閉じていない）。"""
+    def test_a_block_says_the_rest_is_carried_over_and_not_worked_around(self) -> None:
+        """遮断で降りたときは «残りは次が引き継ぐ» と言い、回避策は勧めない。
+
+        ⚠️ «時間を空けてから流せ» と書いていたが、**18 ラウンドの実測で否定された**。
+        間隔 1〜263 分に対し到達点は 3,755〜17,103 件で相関が無い（最長 263 分は 5,373 件、
+        唯一の完走は 25 分の間隔のあと）。助言が間違っていたので文言を直した。
+        """
         i = self.s.index("件しか当たれずに降りました")
         tail = self.s[i:i + 500]
         self.assertIn('("soft_block", "http_block")', tail)
         self.assertIn("回避策は実装しない", tail)
+        self.assertNotIn("時間を空けてから", tail)
+
+    def test_the_falsified_advice_is_not_left_in_the_tool(self) -> None:
+        self.assertNotIn("時間を空けてから次のラウンドを流すこと", self.s)
+
+    def test_the_measurement_that_falsified_it_is_recorded(self) -> None:
+        """助言を消した理由を道具の中に残す（理由の無い削除は誰かが戻す）。"""
+        self.assertIn("18 ラウンドの実測で否定された", self.s)
 
 
 class TheSearchRoundSaysWhyItStopped(unittest.TestCase):
