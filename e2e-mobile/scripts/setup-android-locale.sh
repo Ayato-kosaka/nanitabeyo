@@ -22,17 +22,48 @@ readonly EXPECTED_LOCALE="ja-JP"
 
 echo "▶ Android のシステムロケールを ${EXPECTED_LOCALE} へ設定します"
 
+# ⚠️ **adbd の再起動をまたぐ adb を «1 回で成功する» 前提で書かないこと（2026-09-27 に実測）。**
+#
+# エミュレータは snapshot から起き上がった直後、adbd が数秒のあいだ上がったり落ちたりする。
+# 2026-09-27 の夜間は runner の boot 判定でも `adb: device offline` が 1 回出ており、
+# その 3 秒後に走ったこの `adb root` が `adb: unable to connect for root: closed` で
+# 非ゼロになり、`set -e` が **テストを 1 本も走らせないまま Android ジョブを落とした**
+# （run 36352812664 / 21:47 に着火。前夜 36273907923 の同じ行は `restarting adbd as root`
+# で通っており、**コードの変化ではなく adbd の立ち上がりの速さの差**である）。
+#
+# だから ①`adb root` の **前にも** `wait-for-device` を入れ、②接続断で落ちうる adb は
+# 数回試す。⚠️ 再試行の告知は **stderr** へ出すこと（`$( … )` で値を受ける呼び出しがあり、
+# stdout へ混ぜると取り出した値が壊れる）。
+adb_retry() { # adb_retry <試行回数> <adb の引数...>
+	local attempts="$1"
+	shift
+	local i=1
+	until adb "$@"; do
+		if [ "${i}" -ge "${attempts}" ]; then
+			echo "::error::adb $* が ${attempts} 回とも失敗しました（adbd へ接続できません）。" >&2
+			return 1
+		fi
+		echo "▶ adb $* に失敗しました。adbd の再接続を待って再試行します（${i}/${attempts}）" >&2
+		adb wait-for-device || true
+		sleep 2
+		i=$((i + 1))
+	done
+}
+
+# ⚠️ **ここの wait は «root の後» ではなく «root の前» にも要る。** 後ろだけでは
+#    root そのものが接続断に当たったときに吸収できない（上の実測がそれ）。
+adb wait-for-device
 # adb root は adbd を再起動するため、直後の接続断を wait-for-device で吸収する
-adb root
+adb_retry 5 root
 adb wait-for-device
 
-adb shell setprop persist.sys.locale "${EXPECTED_LOCALE}"
-adb shell setprop persist.sys.language ja
-adb shell setprop persist.sys.country JP
+adb_retry 5 shell setprop persist.sys.locale "${EXPECTED_LOCALE}"
+adb_retry 5 shell setprop persist.sys.language ja
+adb_retry 5 shell setprop persist.sys.country JP
 
 # setprop しただけでは起動済みのアプリ/システム UI へ反映されない。
 # zygote を再起動して、以降に起動するプロセスが新しいロケールを読むようにする
-adb shell setprop ctl.restart zygote
+adb_retry 5 shell setprop ctl.restart zygote
 
 # zygote 再起動でシステムサーバが一度落ちる。落ちる前に boot_completed を読むと
 # 「まだ 1 のまま」を掴んでしまうため、先に少し待ってからポーリングする
@@ -53,7 +84,7 @@ done
 adb unroot || true
 adb wait-for-device
 
-actual_locale="$(adb shell getprop persist.sys.locale | tr -d '\r')"
+actual_locale="$(adb_retry 5 shell getprop persist.sys.locale | tr -d '\r')"
 echo "▶ system locale: ${actual_locale}"
 
 # 反映に失敗したまま進むと「ja-JP 前提の spec が黙って無意味になる」ので、ここで落として原因を明示する
@@ -81,7 +112,9 @@ fi
 #    `pipefail` の 141 が代入の終了コードになり **`set -e` がここで死ぬ**。一度変数へ受ける。
 am_get_config="$(adb shell am get-config 2>/dev/null || true)"
 runtime_config="$(head -n 1 <<< "${am_get_config//$'\r'/}")"
-system_locales="$(adb shell settings get system system_locales 2>/dev/null | tr -d '\r')"
+# ⚠️ ここは **観測用**なので、adb が失敗してもジョブを落とさない（`|| true`）。
+system_locales="$(adb shell settings get system system_locales 2>/dev/null || true)"
+system_locales="${system_locales//$'\r'/}"
 echo "▶ 実行時 configuration: ${runtime_config}"
 echo "▶ settings system_locales: ${system_locales}"
 
