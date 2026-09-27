@@ -69,6 +69,50 @@ PARTITION BY DATE(filled_at)
 CLUSTER BY post_id
 OPTIONS (description = '4_14 がキャプションを後入れした投稿。2 段目の解き直しの対象。append-only。#1947')
 """
+# #1947 **«取りに行ったが本文が無かった» を記録していなかった。**
+#
+# 2026-09-27 に実測した欠陥である。対象の条件は «caption が空» だけで、
+# `random.shuffle` してから `--limit` で切るので、**一度取って空だった投稿が毎ラウンド
+# また引かれる**。成功だけが `sns_caption_backfilled` に残り（キャプションが入るので
+# 対象から外れる）、空は何も残らないので永久に対象のままになる。
+#
+# 実測（2026-09-27）: 対象プール（`--only-with-seed --max-per-store 20`）は **60,589 投稿**。
+# ラウンド 23〜34 の «空» の合計だけで **約 30,000**。つまり **プールの半分近くが
+# «もう空だと分かっている投稿»** で、レート制限のある予算をそれに使っている。
+# «本文が取れた割合» が 54〜57% → 40.8〜43.9% へ下がったのも、間隔ではなくこれで説明が付く
+# （間隔は 30 分 / 2h24m / 4h22m と変えたが 42.1% / 40.8% / 43.9% で相関しなかった）。
+#
+# ⚠️ **記録を足すのが先で、除外は後である。** «空は二度と取れない» は**まだ実測していない**
+# （#1947 の 4_23 は `no_handle` を 325 店で 0/325 と測ってから終端にした）。
+# ここでは全試行を記録し、除外は `--skip-known-empty` の明示指定でだけ効かせる。
+# 数ラウンドぶん溜まったら «2 度目で本文が取れた率» を測り、既定を決める。
+TABLE_CAPTION_ATTEMPT = "sns_caption_attempt"
+
+CREATE_ATTEMPT_SQL = """
+CREATE TABLE IF NOT EXISTS `__TABLE__` (
+  post_id      STRING NOT NULL,
+  run_id       STRING NOT NULL,
+  attempted_at TIMESTAMP NOT NULL,
+  outcome      STRING NOT NULL  -- 'ok'（本文あり） / 'empty'（200 だが本文なし） / 'error'
+)
+PARTITION BY DATE(attempted_at)
+CLUSTER BY post_id, outcome
+OPTIONS (description = '4_14 がキャプションを取りに行った試行。空も残す。append-only。#1947')
+"""
+
+
+def known_empty_sql(attempt_table: str) -> str:
+    """**一度取って本文が無かった** post_id を返す SELECT（唯一の正）。
+
+    `outcome='ok'` が 1 度でもあれば «取れる投稿» なので除かない（あとで空に
+    なっただけの可能性がある）。除くのは «空しか返ってきていない» 投稿だけ。
+    """
+    return f"""
+      SELECT post_id FROM `{attempt_table}`
+      GROUP BY post_id
+      HAVING COUNTIF(outcome = 'ok') = 0 AND COUNTIF(outcome = 'empty') > 0"""
+
+
 FLUSH_EVERY = 500  # 取れたぶんを途中で書き戻す間隔（6 時間で切られても失わない）
 UA = "nanitabeyo-sns-seed/1.0"
 EMBED = "https://www.instagram.com/p/{code}/embed/captioned/"
@@ -102,6 +146,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-consecutive-errors", type=int, default=50,
                    help="非 200 がこれだけ続いたらバッチを打ち切る")
     p.add_argument("--dry-run", action="store_true", help="対象件数だけ数える")
+    p.add_argument("--skip-known-empty", action="store_true",
+                   help="一度取って本文が無かった投稿を対象から外す"
+                        "（⚠️ «二度目で取れる率» を実測するまで既定にしない）")
     return p.parse_args()
 
 
@@ -168,7 +215,8 @@ def soft_block_note(empty_streak: int, ok: int, empty: int,
 def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store: int,
                 only_unresolved: bool = False,
                 only_resolved_without_category: bool = False,
-                run_id: str | None = None) -> str:
+                run_id: str | None = None,
+                skip_known_empty: bool = False) -> str:
     seed_filter = ("AND discovery_seed_place_id IS NOT NULL AND discovery_seed_place_id != ''"
                    if only_with_seed else "")
     # 「まだ resolve していない投稿」= resolved に post_id が 1 行も無いもの。run_id や
@@ -200,13 +248,18 @@ def _select_sql(pipeline: BigQueryPipeline, only_with_seed: bool, max_per_store:
     #   （2026-09-25 の run 1234。`t.run_id = @rid` が付いていたころは «1 行も当たらない»
     #   方で隠れていた）。畳むのは per_store の打ち切りより**先**でなければならない。
     #   さもないと同じ投稿の重複が 1 店あたりの枠を食う。`4_11` / `4_13` は既にこの形。
+    # ⚠️ 既定では外さない（→ TABLE_CAPTION_ATTEMPT のコメント）。
+    empty_filter = ""
+    if skip_known_empty:
+        empty_filter = ("\n          AND post_id NOT IN ("
+                        + known_empty_sql(pipeline.table(TABLE_CAPTION_ATTEMPT)) + ")")
     return f"""
       WITH one_row_per_post AS (
         SELECT post_id, canonical_url, discovery_seed_place_id, account_id, fetched_at
         FROM `{pipeline.table(TABLE_POST_RAW)}`
         WHERE {run_id_filter_sql("run_id", "@rid", run_id)}
           AND (caption IS NULL OR LENGTH(caption) = 0)
-          AND canonical_url IS NOT NULL {seed_filter} {unresolved_filter}
+          AND canonical_url IS NOT NULL {seed_filter} {unresolved_filter}{empty_filter}
         QUALIFY ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY fetched_at DESC) = 1
       )
       SELECT post_id, canonical_url
@@ -224,7 +277,8 @@ def main() -> None:
 
     rows = list(pipeline.execute(
         _select_sql(pipeline, args.only_with_seed, args.max_per_store, args.only_unresolved,
-                    args.only_resolved_without_category, run_id),
+                    args.only_resolved_without_category, run_id,
+                    skip_known_empty=args.skip_known_empty),
         [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
     targets = []
     for r in rows:
@@ -232,7 +286,12 @@ def main() -> None:
         if m:
             targets.append((r["post_id"], m.group(1)))
     random.shuffle(targets)  # 1 店に固まらせず、全店へ均等に効かせる
+    # ⚠️ #1947 **上限で切る前の件数も出す。** 2026-09-27 に «プールは何件か» を dry run で
+    #    聞いたら «20000 件» しか返らず（`--limit` で切った後の数だった）、道具に聞いても
+    #    答えられなかった。«残り» を知るための dry run が «上限» を返してはいけない。
+    pool = len(targets)
     targets = targets[:args.limit]
+    LOGGER.info("対象プール %d 件（--limit 適用後 %d 件）", pool, len(targets))
     LOGGER.info("キャプションが空で取りにいける投稿 %d 件（%.1f 時間ぶん @ %.1f/s）",
                 len(targets), len(targets) / max(args.rate_per_sec, 0.01) / 3600, args.rate_per_sec)
     if args.dry_run or not targets:
@@ -241,10 +300,13 @@ def main() -> None:
     if not args.dry_run:
         pipeline.execute(CREATE_BACKFILLED_SQL.replace(
             "__TABLE__", pipeline.table(TABLE_CAPTION_BACKFILLED)))
+        pipeline.execute(CREATE_ATTEMPT_SQL.replace(
+            "__TABLE__", pipeline.table(TABLE_CAPTION_ATTEMPT)))
 
     deadline = time.monotonic() + args.max_minutes * 60
     pacer = Pacer(args.rate_per_sec)
     got: Queue = Queue()
+    attempts: Queue = Queue()   # 空も error も入る（成功だけ残すと同じ投稿を引き直す）
     state = {"consecutive_errors": 0, "consecutive_empty": 0, "stop": False,
              "ok": 0, "empty": 0, "err": 0, "stopped_by": ""}
     lock = threading.Lock()
@@ -256,6 +318,12 @@ def main() -> None:
         pacer.wait()
         cap, status = _fetch_caption(code)
         with lock:
+            # ⚠️ **結果は «空» も含めて必ず台帳へ積む。** 空を残さないと次のラウンドが
+            #    同じ投稿をまた引く（→ TABLE_CAPTION_ATTEMPT のコメント）。
+            attempts.put({"post_id": post_id,
+                          "attempted_at": utc_now().isoformat(),
+                          "outcome": "ok" if (status == 200 and cap) else
+                                     "empty" if status == 200 else "error"})
             if status == 200:
                 state["consecutive_errors"] = 0
                 if cap:
@@ -291,6 +359,24 @@ def main() -> None:
         AND (t.caption IS NULL OR LENGTH(t.caption) = 0)
     """
 
+    def flush_attempts() -> int:
+        """試行台帳を吐く。**本文が取れた件数とは独立に必ず呼ぶ。**
+
+        ⚠️ 空しか返らなかったラウンドでも記録が残らなければ意味が無いので、
+        `flush()` の «取れたものがある» 分岐の中へ入れてはいけない。
+        """
+        rows_ = []
+        while not attempts.empty():
+            rows_.append(attempts.get())
+        if not rows_ or args.dry_run:
+            return 0
+        # ⚠️ #1947 «行が起きた時刻» に run 単位の変数を焼き付けない（7942e1cb で 13 script
+        #    を直した形）。試行した瞬間を work() が持っているので、それをそのまま使う。
+        pipeline.load_json_rows(TABLE_CAPTION_ATTEMPT, [
+            {"post_id": r["post_id"], "run_id": run_id,
+             "attempted_at": r["attempted_at"], "outcome": r["outcome"]} for r in rows_])
+        return len(rows_)
+
     def flush() -> int:
         batch = []
         while not got.empty():
@@ -321,20 +407,26 @@ def main() -> None:
         return done
 
     written = 0
+    logged = 0
     with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
         for idx, _ in enumerate(pool.map(work, targets), 1):
             if idx % FLUSH_EVERY == 0:
                 written += flush()
+                logged += flush_attempts()
                 LOGGER.info("  %d/%d 取得（本文あり %d / 空 %d / 失敗 %d）→ 書き戻し累計 %d",
                             idx, len(targets), state["ok"], state["empty"], state["err"], written)
             if state["stop"] or time.monotonic() > deadline:
                 break
     written += flush()
+    logged += flush_attempts()
     got_n = state["ok"] + state["empty"]
     LOGGER.info("キャプション後入れ完了: 書き戻し %d 件（本文あり %d / 空 %d / 失敗 %d"
                 "・本文が取れた割合 %.1f%%）",
                 written, state["ok"], state["empty"], state["err"],
                 100.0 * state["ok"] / got_n if got_n else 0.0)
+    LOGGER.info("試行台帳（%s）へ %d 件（空も error も含む）。"
+                "«2 度目で本文が取れた率» が測れるようになったら --skip-known-empty の既定を決める",
+                TABLE_CAPTION_ATTEMPT, logged)
     if state["stopped_by"] == "soft_block":
         LOGGER.warning("⚠️ **相手に静かに閉じられて降りた**ぶん、対象はまだ残っています。"
                        "時間を空けてから次のラウンドを流すこと（回避策は実装しない）")

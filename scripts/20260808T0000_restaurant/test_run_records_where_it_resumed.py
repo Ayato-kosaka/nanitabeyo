@@ -32,6 +32,10 @@ NOT_A_POSITION = {
     # 任意の下位ステップを on/off するだけで、どこから流すかには関わらない。
     ("4_21_link_name_place_to_posts.py", "skip_backfill"),
     ("8_1_validate_catalogs.py", "skip_dish_media_checks"),
+    # 対象集合のフィルタ（«一度取って空だった投稿を外すか»）。ラウンドは毎回プール全体を
+    # shuffle して引くので «続きの位置» という概念が無い。どのラウンドで外したかは
+    # `sns_caption_attempt.run_id` と dispatch 台帳で追える（#1947・2026-09-27）。
+    ("4_14_fetch_missing_captions.py", "skip_known_empty"),
     # «同期前にバックアップを取るか» の安全弁。位置ではない
     # （データ損失の監査という別の観点では記録する価値があるが、それはこの規則の外）。
     ("9_1_sync_restaurants.py", "skip_backup"),
