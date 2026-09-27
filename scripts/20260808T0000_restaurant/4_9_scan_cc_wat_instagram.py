@@ -29,6 +29,7 @@ import json
 import logging
 import re
 import urllib.request
+import time
 from datetime import timezone
 
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id, utc_now
@@ -266,6 +267,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--skip-files", type=int, default=0,
                    help="このシャードの先頭から読み飛ばす WAT 数（続きから流すため）")
     p.add_argument("--flush-every", type=int, default=10, help="何ファイルごとに BQ へ流すか")
+    # ⚠️ #1947 GitHub の job 上限は 360 分で、**そこで殺されると «完了» の行が出ない**。
+    #    2,000 file の 1 シャードは 199 → 228 → 240 分と伸びていて（2026-09-27 実測）、
+    #    いずれ上限に当たる。当たった run は «赤» になり、何本読めたのかも分からなくなる
+    #    （行は --flush-every ごとに入っているので失われないが、報告に使えない）。
+    #    自分で締め切りを持って «途中までの結果» を出して終わる。
+    p.add_argument("--max-minutes", type=int, default=300,
+                   help="この分数で打ち切る（GitHub の 360 分上限の手前で自分から降りる）")
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
 
@@ -315,7 +323,15 @@ def main() -> None:
 
         # 1 ジョブ内のスレッド並列は測って捨てた: 単発 78MB/s に対し 6 並列で合計 46MB/s と
         # 遅くなる（回線が上限で、並べても増えない）。並列化はジョブ（=シャード）を増やす側でやる。
+        deadline = time.monotonic() + args.max_minutes * 60
+        stopped_early = 0
         for n, path in enumerate(mine, 1):
+            if time.monotonic() > deadline:
+                stopped_early = n - 1
+                LOGGER.warning("--max-minutes %d に達したので %d/%d 本で降ります"
+                               "（読んだぶんは BQ へ入っています）",
+                               args.max_minutes, stopped_early, len(mine))
+                break
             posts, profiles, nbytes = scan_file(BASE + path, store_hosts, by_pair, uniq)
             total_mb += nbytes / 1048576
             for code, row in posts.items():
@@ -359,6 +375,8 @@ def main() -> None:
         result["seed_trusted"] = total_seed
         result["handles"] = len(seen_handles)
         result["with_area"] = total_area
+        result["files_read"] = stopped_early or len(mine)
+        result["stopped_by"] = "max_minutes" if stopped_early else "all_files"
         LOGGER.info("完了: caption付き投稿 %d（店確定 %d / 地点あり %d）| handle %d | %.0fMB",
                     total_posts, total_seed, total_area, len(seen_handles), total_mb)
 
