@@ -28,12 +28,24 @@ import { captureScreenIfReachable } from "../../utils/catalog";
  * dev のデータが入れ替わって居なくなったら `captureScreenIfReachable` が
  * «撮れなかった» を残して素通りする（ジョブは赤くしない）。
  *
- * ## ⚠️ dev の API に `/opening-hours` が乗るまでは撮れない
+ * ## dev の API に `/opening-hours` が乗るまでは撮れなかった（2026-09-25 に解消）
  *
  * このエンドポイントは [PR #1935](https://github.com/Ayato-kosaka/nanitabeyo/pull/1935) で
- * 入ったばかりで、dev で動いている API は 2026-09-04/05 のビルドである。
- * 入れ替わるまでは 404 になり、画面は欄を出さない（＝ここは素通りする）。
- * **それが «撮れなかった» としてログに残ることこそが、この test の役目**でもある。
+ * 入ったばかりで、しばらく dev の API は 2026-09-04/05 のビルドのままだった。その間は 404 に
+ * なり、画面は欄を出さない（＝素通りする）。**それが «撮れなかった» としてログに残ること**も
+ * この test の役目である。
+ *
+ * ⚠️ **2026-09-25 に dev の API が main の `c035cf99d` へ入れ替わり、この前提は解消した。**
+ * 2026-09-27 に Android で実際に撮れている（CoCo壱番屋 / 日〜土 00:00–01:00・11:00–翌00:00 /
+ * 「OpenStreetMap より取得（2026-08-23）」まで出ている）:
+ * https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36326930363
+ *
+ * ## ⚠️ この test は **夜間には走らない**
+ *
+ * `e2e-mobile-test.yml` の schedule は `scope=tier1-2` で、`catalog` は
+ * «この scope を明示したときだけ走る» 側に置かれている。つまりここの絵は
+ * **誰かが `scope=catalog` で手動実行したときの鮮度**しか持たない。
+ * «前提が解消したのに 2 日間誰も気づかなかった» のはそのためである。
  */
 const DEV_RESTAURANT_WITH_HOURS = "000745eb-de1e-4cb8-be06-c466a05e0de5"; // CoCo壱番屋
 
