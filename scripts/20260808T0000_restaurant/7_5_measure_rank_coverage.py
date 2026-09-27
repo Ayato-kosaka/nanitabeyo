@@ -351,6 +351,25 @@ def fetch_points(pipeline, *, delivery_run_id: str, project: str = "food-scroll"
              "catalog_stores_500m": int(r["catalog_stores_500m"] or 0)} for r in rows]
 
 
+def gap_point_lines(picked: list[str], pts: list[dict]) -> list[str]:
+    """`--emit-gap-points` が出す行（純関数）。
+
+    #1947 【設計】2026-09-27 まで «撃てる弾のある未達地点» の 1 行しか出していなかった。
+    その結果、**弾が 0 件のとき未達地点の id がどこにも出ず**、「ではその地点に何が
+    足りないのか」を他の道具（台帳の website の有無など）で調べられなかった。
+    合格線に届かない状態がまさにそれだったので、**弾の有無を問わない一覧を必ず出す**。
+
+    ⚠️ «撃てる弾のある» の行は `4_2 --gap-points-delivery-run-id` が同じ判定を自分で
+    呼ぶ «収集の入口» である。意味を変えずに残すこと。
+    """
+    reach = {p_["point"]: p_["reachable_500m"] for p_ in pts}
+    shoot = [pid for pid in picked if reach.get(pid, 0) > 0]
+    return [
+        f"  ⚑ 撃てる弾のある未達地点 {len(shoot)} 件: {','.join(shoot)}",
+        f"  ⚑ 未達地点（弾の有無を問わない）{len(picked)} 件: {','.join(picked)}",
+    ]
+
+
 def select_gap_points(pipeline, *, delivery_run_id: str, top_pct: int = 70,
                       target_pct: int = 70, reachable_only: bool = True,
                       quiet: bool = True, **kw) -> list[str]:
@@ -434,9 +453,8 @@ def main() -> int:
     # ③ 合格線までの «あと何店» — オーナーの条件「上位 X% で Y% 達成」を満たす費用
     picked = _deficit(pts, top_pct=70, target_pct=70)
     if args.emit_gap_points:
-        reach = {p_["point"]: p_["reachable_500m"] for p_ in pts}
-        shoot = [pid for pid in picked if reach.get(pid, 0) > 0]
-        LOGGER.info("  ⚑ 撃てる弾のある未達地点 %d 件: %s", len(shoot), ",".join(shoot))
+        for line in gap_point_lines(picked, pts):
+            LOGGER.info("%s", line)
 
     mid = pts[len(pts) // 2]["stores_500m"]
     LOGGER.info("参考: 地点あたりの配信店数 最大 %d / 中央値 %d / 最小 %d",
