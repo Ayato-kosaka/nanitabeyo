@@ -119,7 +119,11 @@ run_bounded() {
 # ジョブのタイムアウトで打ち切られ、Artifact のアップロードにも到達しなかった。
 # 判定は「Android のスクリプトを実行したか」＋「実際に端末が見えているか」の 2 段にする。
 if [ "${EXIT_CODE}" -ne 0 ] && [[ "${SCRIPT_NAME}" == *android* ]] && command -v adb >/dev/null 2>&1; then
-	if run_bounded 30 adb devices | grep -qE '^\S+[[:space:]]+device$'; then
+	# ⚠️ #2075 `… | grep -q` にしない（pipefail が SIGPIPE の 141 を拾い、«端末が見えている
+	#    のに見えていない» と読む）。ここは #1579 で意図して fail-open にした経路なので、
+	#    **その fail-open は保ったまま**（`|| true`）判定だけを正しくする。
+	adb_devices="$(run_bounded 30 adb devices || true)"
+	if grep -qE '^\S+[[:space:]]+device$' <<< "$adb_devices"; then
 		echo "▶ クラッシュログ（logcat の crash バッファ）を回収します"
 		run_bounded 60 adb logcat -b crash -d > "${ARTIFACTS_DIR}/logcat-crash.log" 2>&1 || true
 

@@ -184,8 +184,18 @@ CDN_KEY_SECRET_B64_STD="$(base64 < "${RAW_BIN}" | tr -d '\n')"                  
 CDN_KEY_SECRET_B64URL="$(echo -n "${CDN_KEY_SECRET_B64_STD}" | tr '+/' '-_' | tr -d '=')" # GCP登録用
 
 # 既存同名キーがあれば削除（冪等）
-if gcloud compute backend-buckets describe "${BACKEND_BUCKET_NAME}" \
-    --format="get(cdnPolicy.signedUrlKeyNames)" | grep -qw "${KEY_NAME}"; then
+# ⚠️ **`… | grep -q` にしないこと（#2075）。** このスクリプトは `pipefail` で走る。
+#    `grep -q` は最初の一致で即座に終わるので上流の `gcloud` が SIGPIPE で殺され、
+#    `pipefail` が **その 141 をパイプライン全体の終了コードにする**。
+#    ⚠️ **否定形（`! … | grep -q`）はもっと悪い。141 も «非ゼロ» なので `!` が true にし、
+#    «既に在るものを無い» と判定して作りに行く**。`set -e` の下では次の作成が
+#    「already exists」で落ちるので、このスクリプトが謳っている **冪等性が崩れる**。
+#    だから **一度変数へ受けてから** `grep` する（#2075 で 141 を実測済み）。
+#    ここは肯定形なので、141 になると «在る鍵を無い» と読んで削除を飛ばし、
+#    直後の add-signed-url-key が「already exists」で落ちる。
+existing_signed_url_keys="$(gcloud compute backend-buckets describe "${BACKEND_BUCKET_NAME}" \
+    --format="get(cdnPolicy.signedUrlKeyNames)")"
+if grep -qw "${KEY_NAME}" <<< "${existing_signed_url_keys}"; then
   echo "♻️  Removing existing signed-url key: ${KEY_NAME}"
   gcloud compute backend-buckets delete-signed-url-key "${BACKEND_BUCKET_NAME}" \
     --key-name="${KEY_NAME}" --quiet || true
