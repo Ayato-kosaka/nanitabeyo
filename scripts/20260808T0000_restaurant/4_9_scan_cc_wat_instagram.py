@@ -231,6 +231,7 @@ def scan_file(url: str, store_hosts: dict[str, str], by_pair, uniq):
     posts: dict[str, dict] = {}
     profiles: set[str] = set()
     seen_bytes = 0
+    truncated = False
     try:
         with _open(url) as resp:
             gz = gzip.GzipFile(fileobj=resp)
@@ -249,7 +250,8 @@ def scan_file(url: str, store_hosts: dict[str, str], by_pair, uniq):
                         posts[code] = row
     except (EOFError, OSError) as e:  # ストリーム断でも取れた分は使う
         LOGGER.warning("  stream ended early (%s) after %.0fMB", type(e).__name__, seen_bytes / 1048576)
-    return posts, profiles, seen_bytes
+        truncated = True
+    return posts, profiles, seen_bytes, truncated
 
 
 def parse_args() -> argparse.Namespace:
@@ -324,16 +326,23 @@ def main() -> None:
         # 1 ジョブ内のスレッド並列は測って捨てた: 単発 78MB/s に対し 6 並列で合計 46MB/s と
         # 遅くなる（回線が上限で、並べても増えない）。並列化はジョブ（=シャード）を増やす側でやる。
         deadline = time.monotonic() + args.max_minutes * 60
-        stopped_early = 0
+        # ⚠️ #1947 «何本で降りたか» を 0 で表すと `stopped_early or len(mine)` が
+        #    **1 本目で降りた run を «全部読んだ» と報告する**（falsy な 0）。
+        #    降りたかどうかはフラグで、本数は別の変数で持つ。
+        stopped_early = False
+        files_done = 0
+        total_truncated = 0
         for n, path in enumerate(mine, 1):
             if time.monotonic() > deadline:
-                stopped_early = n - 1
+                stopped_early = True
                 LOGGER.warning("--max-minutes %d に達したので %d/%d 本で降ります"
                                "（読んだぶんは BQ へ入っています）",
-                               args.max_minutes, stopped_early, len(mine))
+                               args.max_minutes, files_done, len(mine))
                 break
-            posts, profiles, nbytes = scan_file(BASE + path, store_hosts, by_pair, uniq)
+            posts, profiles, nbytes, truncated = scan_file(BASE + path, store_hosts, by_pair, uniq)
             total_mb += nbytes / 1048576
+            if truncated:
+                total_truncated += 1
             for code, row in posts.items():
                 if code in seen_posts:
                     continue
@@ -365,6 +374,7 @@ def main() -> None:
                     "discovery_seed_place_id": None, "followers": None, "media_count": None,
                     "discovered_at": utc_now().isoformat(), "run_id": run_id,
                 })
+            files_done = n
             if n % args.flush_every == 0:
                 LOGGER.info("  %d/%d 本 | caption付き投稿 %d（店確定 %d / 地点あり %d） | handle %d | %.0fMB",
                             n, len(mine), total_posts, total_seed, total_area,
@@ -375,10 +385,17 @@ def main() -> None:
         result["seed_trusted"] = total_seed
         result["handles"] = len(seen_handles)
         result["with_area"] = total_area
-        result["files_read"] = stopped_early or len(mine)
+        result["files_read"] = files_done
+        result["files_truncated"] = total_truncated
         result["stopped_by"] = "max_minutes" if stopped_early else "all_files"
-        LOGGER.info("完了: caption付き投稿 %d（店確定 %d / 地点あり %d）| handle %d | %.0fMB",
-                    total_posts, total_seed, total_area, len(seen_handles), total_mb)
+        LOGGER.info("%s: caption付き投稿 %d（店確定 %d / 地点あり %d）| handle %d | %.0fMB"
+                    " | %d/%d 本",
+                    "途中で降りました" if stopped_early else "完了",
+                    total_posts, total_seed, total_area, len(seen_handles), total_mb,
+                    files_done, len(mine))
+        if total_truncated:
+            LOGGER.warning("⚠️ **%d/%d 本は途中で切れています**（そのぶん収穫が落ちています）",
+                           total_truncated, files_done)
 
 
 if __name__ == "__main__":

@@ -657,6 +657,7 @@ def main() -> None:
         rows = []
         seen = set()
         n_ok = n_skip = n_seeded = 0
+        stopped_by = ""
         for i, (q, cat, lat, lng) in enumerate(cells):
             st = stores[i] if i < len(stores) else None
             if st is not None and not st.get("place_id"):
@@ -664,6 +665,11 @@ def main() -> None:
             try:
                 urls = _fetch_with_retry(fetch, key, q, args.num, args.max_retries, args.provider)
             except _QuotaExhausted:
+                # ⚠️ #1947 «相手の残高切れで降りた» を result に残す。ここを黙って break
+                #    していたので、最終要約は «188 クエリ中 成功 12» とだけ出て、
+                #    **予算で止めたのか閉じられたのかが要約から読めなかった**
+                #    （4_14 で同じ形の誤報を 3 ラウンド出したのと同じ欠陥）。
+                stopped_by = "quota"
                 break
             if urls is None:
                 n_skip += 1
@@ -734,10 +740,15 @@ def main() -> None:
         result["queries_ok"] = n_ok
         result["queries_skipped"] = n_skip
         result["posts_seeded"] = n_seeded
+        result["stopped_by"] = stopped_by or "all_queries"
         LOGGER.info(
             "sns_post_raw に %d 投稿を投入しました（%s / 検索 %d クエリ中 成功 %d・スキップ %d）",
             count, args.provider, len(cells), n_ok, n_skip,
         )
+        if stopped_by == "quota":
+            LOGGER.warning("⚠️ **%s の残高切れで %d/%d クエリで降りました。"
+                           "残りは投げていません。**次の run が続きから引き直します",
+                           args.provider, n_ok + n_skip, len(cells))
 
 
 if __name__ == "__main__":

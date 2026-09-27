@@ -88,6 +88,14 @@ OPTIONS (description = '4_14 がキャプションを後入れした投稿。2 �
 # 数ラウンドぶん溜まったら «2 度目で本文が取れた率» を測り、既定を決める。
 TABLE_CAPTION_ATTEMPT = "sns_caption_attempt"
 
+# 降りた理由 → 日本語。**新しい降り方を足すときは必ずここにも足す**
+#（要約はこの表を引くので、足し忘れると «理由不明のまま降りた» と出て気づける）。
+STOPPED_BY_LABEL = {
+    "soft_block": "空だけが続く静かな遮断",
+    "http_block": "非 200 の連続（相手側の遮断）",
+    "max_minutes": "自分で決めた締め切り（--max-minutes）",
+}
+
 CREATE_ATTEMPT_SQL = """
 CREATE TABLE IF NOT EXISTS `__TABLE__` (
   post_id      STRING NOT NULL,
@@ -313,7 +321,12 @@ def main() -> None:
 
     def work(item: tuple[str, str]) -> None:
         post_id, code = item
-        if state["stop"] or time.monotonic() > deadline:
+        if state["stop"]:
+            return
+        if time.monotonic() > deadline:
+            with lock:
+                if not state["stopped_by"]:
+                    state["stopped_by"] = "max_minutes"
             return
         pacer.wait()
         cap, status = _fetch_caption(code)
@@ -346,6 +359,11 @@ def main() -> None:
                     if not state["stop"]:
                         LOGGER.warning("非 200 が %d 回続いたのでこのバッチを打ち切ります",
                                        state["consecutive_errors"])
+                        # ⚠️ #1947 ここで stopped_by を入れ忘れていたため、**相手に閉じられて
+                        #    降りたラウンドが «完了» と同じ見た目で終わっていた**（第39〜41
+                        #    ラウンドを «完走した» と誤って報告した）。降りた理由は分岐ごとに
+                        #    別の場所へ書かず、必ずこの 1 箇所へ集める。
+                        state["stopped_by"] = "http_block"
                     state["stop"] = True
 
     sql = f"""
@@ -415,21 +433,34 @@ def main() -> None:
                 logged += flush_attempts()
                 LOGGER.info("  %d/%d 取得（本文あり %d / 空 %d / 失敗 %d）→ 書き戻し累計 %d",
                             idx, len(targets), state["ok"], state["empty"], state["err"], written)
-            if state["stop"] or time.monotonic() > deadline:
+            if state["stop"]:
+                break
+            if time.monotonic() > deadline:
+                if not state["stopped_by"]:
+                    state["stopped_by"] = "max_minutes"
                 break
     written += flush()
     logged += flush_attempts()
     got_n = state["ok"] + state["empty"]
-    LOGGER.info("キャプション後入れ完了: 書き戻し %d 件（本文あり %d / 空 %d / 失敗 %d"
+    tried = got_n + state["err"]
+    LOGGER.info("キャプション後入れ%s: 書き戻し %d 件（本文あり %d / 空 %d / 失敗 %d"
                 "・本文が取れた割合 %.1f%%）",
+                "完了" if not state["stopped_by"] else "は途中で降りました",
                 written, state["ok"], state["empty"], state["err"],
                 100.0 * state["ok"] / got_n if got_n else 0.0)
     LOGGER.info("試行台帳（%s）へ %d 件（空も error も含む）。"
                 "«2 度目で本文が取れた率» が測れるようになったら --skip-known-empty の既定を決める",
                 TABLE_CAPTION_ATTEMPT, logged)
-    if state["stopped_by"] == "soft_block":
-        LOGGER.warning("⚠️ **相手に静かに閉じられて降りた**ぶん、対象はまだ残っています。"
-                       "時間を空けてから次のラウンドを流すこと（回避策は実装しない）")
+    # ⚠️ #1947 «降りた理由» は 1 箇所（state["stopped_by"]）に集め、要約は必ずそれを読む。
+    #    以前は soft_block だけを見ていたので、**非 200 連続で閉じられたラウンドが «完了» と
+    #    同じ見た目で終わり**、3 ラウンド続けて «完走した» と誤って報告した。
+    if state["stopped_by"]:
+        LOGGER.warning("⚠️ **%s で %d/%d 件しか当たれずに降りました。対象はまだ残っています。**%s",
+                       STOPPED_BY_LABEL.get(state["stopped_by"], state["stopped_by"]),
+                       tried, len(targets),
+                       "時間を空けてから次のラウンドを流すこと（回避策は実装しない）"
+                       if state["stopped_by"] in ("soft_block", "http_block")
+                       else "次のラウンドが残りを引き継ぎます")
 
 
 if __name__ == "__main__":

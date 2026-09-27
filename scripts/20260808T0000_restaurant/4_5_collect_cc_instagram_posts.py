@@ -120,10 +120,15 @@ def harvest_wat_file(path: str, *, jp_only: bool, max_posts: int | None,
     cur_host = ""
     cur_jp = False
     gz = _open_stream(url)
+    truncated = ""
     while True:
         try:
             line = gz.readline()
-        except Exception:  # 途中で切れても、そこまでの収穫は活かす
+        except Exception as e:  # 途中で切れても、そこまでの収穫は活かす
+            # ⚠️ #1947 «途中で切れた» を統計へ残す。以前は黙って break していたので、
+            #    半分しか読めていないファイルが «読んだ 1 本» として数えられ、
+            #    要約の wat_files_read が実際より多く見えた（4_14 と同じ形の欠陥）。
+            truncated = f"{type(e).__name__}: {e}"[:120]
             break
         if not line:
             break
@@ -166,6 +171,7 @@ def harvest_wat_file(path: str, *, jp_only: bool, max_posts: int | None,
         "raw_link_hits": file_hits,
         "new_distinct_posts": file_new,
         "seconds": round(time.time() - t0, 1),
+        "truncated": truncated,
     }
 
 
@@ -241,8 +247,15 @@ def main(argv=None) -> None:
         "mean_distinct_per_file": round(
             sum(s["new_distinct_posts"] for s in file_stats) / max(len(file_stats), 1), 1
         ),
+        # «読んだ» のうち、途中で切れて最後まで読めていない本数。
+        "wat_files_truncated": sum(1 for s in file_stats if s.get("truncated")),
     }
     LOGGER.info("SUMMARY %s", json.dumps(summary, ensure_ascii=False))
+    if summary["wat_files_truncated"]:
+        LOGGER.warning("⚠️ **%d/%d 本は途中で切れています**（wat_files_read はそれも 1 本と"
+                       "数えているので、1 本あたりの収穫を過小に見せます）。例: %s",
+                       summary["wat_files_truncated"], len(file_stats),
+                       next(s["truncated"] for s in file_stats if s.get("truncated")))
 
     if args.sample_out:
         sample = [
