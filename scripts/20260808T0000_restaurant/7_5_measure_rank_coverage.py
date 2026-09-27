@@ -307,6 +307,13 @@ def _deficit(pts: list[dict], *, top_pct: int, target_pct: int, quiet: bool = Fa
             "ここが CC WAT（4_9）と巡回（#1777）の天井である",
             sum(ns), sum(nh),
             f"{sum(ns) / sum(nh):.1%}" if sum(nh) else "-", with_ns, len(dry))
+        # ⚠️ **この数を «残り» と読まないこと。** もう巡って handle が出なかった店も
+        #    入っている «これまでの合計» である。2026-09-27 の実測では天井 204 店に対し
+        #    «これから巡れる» は 0 店だった（サイトを持つ 550 店は巡り終えていた）。
+        #    残りを出すのは `4_23_target_gap_point_stores.py --dry-run` だけである。
+        log("     ⚠️ これは «これまでの合計» で、**残りではない**"
+            "（巡り終えた店も入っている）。残りは"
+            " `4_23_target_gap_point_stores.py --dry-run` に聞くこと")
         if sum(ns) == 0 and sum(nh) > 0:
             log("     ⚠️ **巡回でも CC WAT でも 1 店も掘れない。**"
                 " «あと %d 店ある» は在庫ではない（サイトが台帳に無い／チェーン共有）",

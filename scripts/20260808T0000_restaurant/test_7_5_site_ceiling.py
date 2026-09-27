@@ -109,6 +109,15 @@ class TheCeilingIsReported(unittest.TestCase):
         self.assertIn("在庫ではない", SRC)
         self.assertIn("if sum(ns) == 0 and sum(nh) > 0:", SRC)
 
+    def test_it_says_the_ceiling_is_not_the_remainder(self) -> None:
+        """2026-09-27、天井 204 店に対し «これから巡れる» は 0 店だった。
+
+        天井を «残り» と読むと «まだ 204 店ある» になる。残りを出す道具の名前を
+        同じ行に書いておく（自分の SQL で数えた数を在庫として報告しないため）。
+        """
+        self.assertIn("**残りではない**", SRC)
+        self.assertIn("4_23_target_gap_point_stores.py --dry-run", SRC)
+
     def test_the_share_is_printed_and_never_divides_by_zero(self) -> None:
         self.assertIn('if sum(nh) else "-"', SRC)
 
