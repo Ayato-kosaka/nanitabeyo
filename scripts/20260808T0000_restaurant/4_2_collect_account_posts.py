@@ -68,7 +68,17 @@ class AccountNotDiscoverable(Exception):
 # 打ち手なので、その試算の分母をログから取れるようにしておく。
 #
 # 毎コール出すと 6,000 アカメのログが埋まるので «段が変わったとき» と «run の最後» だけ出す。
-_APP_USAGE = {"pct": 0, "peak": 0, "tier": None, "waited_s": 0.0}
+# 3 つの使用率のどれが天井に当たっているかは **1 つに畳むと分からなくなる**。
+# 2026-09-27、同じ引数の収集ラウンドで実効が 159.8 → 307.7 アカウント/時（1.93 倍）に
+# 上がった。コードも «1 アカウントあたりの投稿数»（35.4〜35.6）も変わっていないのに、
+# コール総数が 45% 増えて **使用率の最大が 93% → 85% へ下がった**。
+# 相手側の枠が緩んだと読めるが、**どの資源（呼数 / 時間 / CPU 時間）が緩んだのかは
+# max に畳んだ数字からは言えなかった**。#1791（アプリを増やすと何倍になるか）の答えは
+# «当たっている資源がアプリ単位か» で変わるので、3 つとも残す。
+_USAGE_FIELDS = ("call_count", "total_time", "total_cputime")
+_APP_USAGE = {"pct": 0, "peak": 0, "tier": None, "waited_s": 0.0,
+              "fields": dict.fromkeys(_USAGE_FIELDS, 0),
+              "peak_fields": dict.fromkeys(_USAGE_FIELDS, 0)}
 
 
 def _note_usage(headers) -> None:
@@ -79,9 +89,25 @@ def _note_usage(headers) -> None:
         d = json.loads(raw)
     except Exception:  # noqa: BLE001 - ヘッダが壊れていても本処理は止めない
         return
-    _APP_USAGE["pct"] = max(int(d.get("call_count") or 0), int(d.get("total_time") or 0),
-                            int(d.get("total_cputime") or 0))
+    cur = {k: int(d.get(k) or 0) for k in _USAGE_FIELDS}
+    _APP_USAGE["fields"] = cur
+    _APP_USAGE["peak_fields"] = {k: max(_APP_USAGE["peak_fields"][k], v)
+                                 for k, v in cur.items()}
+    _APP_USAGE["pct"] = max(cur.values())
     _APP_USAGE["peak"] = max(_APP_USAGE["peak"], _APP_USAGE["pct"])
+
+
+def binding_usage_field() -> str:
+    """いま天井に当たっている資源の名前（最大値を出しているもの）。純関数にしない理由は無い。"""
+    peak = _APP_USAGE["peak_fields"]
+    return max(_USAGE_FIELDS, key=lambda k: peak[k])
+
+
+def usage_fields_text(which: str = "peak_fields") -> str:
+    """3 つの使用率を «呼数 12% / 時間 85% / CPU 3%» の形で返す。"""
+    f = _APP_USAGE[which]
+    return (f"呼数 {f['call_count']}% / 時間 {f['total_time']}%"
+            f" / CPU {f['total_cputime']}%")
 
 
 def pace_for_app_usage() -> None:
@@ -1028,10 +1054,12 @@ def main() -> None:
         if elapsed_min > 0:
             LOGGER.info(
                 "x-app-usage: 最終 %d%% / 最大 %d%% ・ 自分で待った合計 %.1f 分"
-                "（経過の %.1f%%）・ 実効 %.1f アカウント/時",
+                "（経過の %.1f%%）・ 実効 %.1f アカウント/時"
+                " ・ 最大の内訳 %s（天井に当たっているのは %s）・ 最終の内訳 %s",
                 _APP_USAGE["pct"], _APP_USAGE["peak"], _APP_USAGE["waited_s"] / 60,
                 100.0 * (_APP_USAGE["waited_s"] / 60) / elapsed_min,
                 60 * processed / elapsed_min,
+                usage_fields_text(), binding_usage_field(), usage_fields_text("fields"),
             )
 
 
