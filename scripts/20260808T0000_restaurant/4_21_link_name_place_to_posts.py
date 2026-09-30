@@ -707,6 +707,17 @@ def main() -> None:
                     sum(applied.values()), applied[SEED_SOURCE], applied[SEED_SOURCE_BOX_ONE],
                     len(rows))
         result["row_count"] = sum(applied.values())
+        # #1947 【設計】⚠️ **鎖の «次の段» を必ず名指しする。**
+        #   2026-09-30 に、後入れキャプションの解き直し（`5_1 --post-ids-table`）を
+        #   17 時間流し忘れた。**段がレーンに分かれていると、出力が «次の段の入力» で
+        #   あることを誰も言わない限り忘れる。**（`4_14` にも同じ行がある）
+        if sum(applied.values()):
+            LOGGER.info(
+                "⚠️ **この %d 投稿はまだ解き直されていません。**"
+                "次: `5_1_apply_resolve.py --raw-run-id ALL --post-ids-table %s`"
+                "（⚠️ **--skip-resolved-anywhere は付けない**）。"
+                "これを流すまで配信カタログの店は増えません",
+                sum(applied.values()), TABLE_NAME_PLACE_LINK)
         if rows and sum(applied.values()) == 0:
             # 台帳には貼ったのに sns_post_raw が 1 件も変わっていない＝この run は
             # «何もしていない»。2026-09-10 に UPDATE だけが 400 で落ち、ログの途中の
