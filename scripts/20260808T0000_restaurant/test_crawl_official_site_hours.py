@@ -368,6 +368,55 @@ class CandidateSqlTest(unittest.TestCase):
         self.assertTrue(args.only_missing)
         self.assertIsNone(args.stale_before)
 
+    def test_stale_before_drops_rows_when_the_page_was_read_but_unparsable(self) -> None:
+        """#1666 【バグ】**冪等性は «パースできた店» にしか成り立っていなかった。**
+
+        2026-09-30 に `--stale-before` で 618 店を歩いたところ、564 店は書き直せたが
+        **54 店が古い行を持ったまま残った**（修正前の行 6,039 → 833 行 / 79 店。
+        79 = 未対象 25 + これ 54）。`fetched_at` が古いままなので **次の run でも
+        また候補に選ばれ**、同じサイトを毎回叩き続けることになる。
+
+        しかも残るのは «前のパーサが書いた、間違っているかもしれない行» である。
+        `--stale-before` はパーサの誤りを直したあとに使うものなので、
+        «古いデータは良いデータ» という既定の前提はそこでは成り立たない。
+        """
+        self.assertIn("mentions_hours_unparsed", crawler.DROPPABLE_WHEN_STALE)
+        self.assertIn("no_hours_mentioned", crawler.DROPPABLE_WHEN_STALE)
+
+    def test_stale_before_never_drops_rows_when_the_page_was_not_reached(self) -> None:
+        """⚠️ «届かなかった» と «読めた上で読めなかった» を混ぜない。
+
+        相手側の一時的な都合で消すと、元のページが消えていれば二度と戻らない。
+        """
+        for bucket in ("unreachable", "blocked_by_robots", "not_japanese_page"):
+            self.assertNotIn(bucket, crawler.DROPPABLE_WHEN_STALE, bucket)
+
+    def test_drop_stale_deletes_only_official_site_rows_and_inserts_nothing(self) -> None:
+        """消すだけ。入れ直さない（入れ直す行が無いので `flush` とは別の関数）。"""
+        calls = []
+
+        class FakeCursor:
+            def execute(self, sql, params=None):
+                calls.append((sql, params))
+
+        crawler.drop_stale(FakeCursor(), "dev", ["a", "b"])
+        self.assertEqual(len(calls), 1)
+        sql, params = calls[0]
+        self.assertIn("DELETE FROM dev.restaurant_opening_hours", sql)
+        self.assertEqual(params[0], crawler.SOURCE)
+        self.assertEqual(params[1], ["a", "b"])
+
+    def test_drop_stale_does_nothing_for_an_empty_list(self) -> None:
+        """⚠️ 空で呼ばれたときに «source = official_site の全行» を消さないこと。"""
+        calls = []
+
+        class FakeCursor:
+            def execute(self, sql, params=None):
+                calls.append(sql)
+
+        crawler.drop_stale(FakeCursor(), "dev", [])
+        self.assertEqual(calls, [])
+
     def test_only_http_urls_are_crawled(self) -> None:
         self.assertIn("^https?://", crawler.CANDIDATE_SQL)
 
