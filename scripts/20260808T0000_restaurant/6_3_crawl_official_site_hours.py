@@ -198,6 +198,13 @@ STALE_BEFORE_CLAUSE = """
   )
 """
 
+# #1666 【設計】`--stale-before` のとき、**古い行を消してよい**分類。
+#
+# ⚠️ ここへ `unreachable` / `blocked_by_robots` / `not_japanese_page` を足さないこと。
+#    それらは «相手へ届かなかった» であって «読んだ結果 読めなかった» ではない。
+#    一時的な不通で既存のデータを消すと、二度と戻らない（元のページが消えていれば）。
+DROPPABLE_WHEN_STALE = frozenset({"mentions_hours_unparsed", "no_hours_mentioned"})
+
 DELETE_SQL = """
 DELETE FROM {schema}.restaurant_opening_hours
 WHERE source = %s AND restaurant_id = ANY(%s::uuid[])
@@ -336,6 +343,17 @@ def flush(cursor, schema: str, restaurant_ids: list[str], rows: list[tuple]) -> 
         execute_values(cursor, INSERT_SQL.format(schema=schema), rows)
 
 
+def drop_stale(cursor, schema: str, restaurant_ids: list[str]) -> None:
+    """`--stale-before` で «読めた上で読めなかった» 店の古い行を消す（入れ直さない）。
+
+    ⚠️ **`flush` と分けてあるのは、入れ直す行が無いからである。** `flush` へ空の
+    `rows` で渡しても消せるが、«消すだけ» という意図が呼び出し側から読めなくなる。
+    """
+    if not restaurant_ids:
+        return
+    cursor.execute(DELETE_SQL.format(schema=schema), (SOURCE, restaurant_ids))
+
+
 def main() -> int:
     args = parse_args()
 
@@ -441,6 +459,8 @@ def main() -> int:
         robots_cache: dict = {}
         last_request_at = 0.0
         pending_ids: list[str] = []
+        # `--stale-before` で «読めた上で読めなかった» 店。古い行を消すだけで入れ直さない
+        stale_drop_ids: list[str] = []
         pending_rows: list[tuple] = []
         written_rows = 0
         written_stores = 0
@@ -532,6 +552,31 @@ def main() -> int:
                     # ⚠️ 読めなかったものは **入れない**。分からないものを推測しない。
                     #    既存の official_site 行があっても **消さない**（上の注記）。
                     #    一度読めなかっただけで良いデータを捨てないため。
+                    #
+                    # #1666 【バグ】⚠️ **`--stale-before` のときだけは «読めた上で読めなかった» を消す。**
+                    #
+                    # 2026-09-30 に `--stale-before` で 618 店を歩いたところ、564 店は
+                    # 書き直せたが **54 店が «古い行を持ったまま» 残った**（実測。修正前の行は
+                    # 6,039 → 833 行 / 79 店 = 25 未対象 + 54 これ）。この 54 店は
+                    # `fetched_at` が古いままなので **次の run でもまた候補に選ばれる**。
+                    # つまり «上書きした店は候補から外れる» という冪等性が、
+                    # **パースに失敗した店については成り立っていなかった**。
+                    # 同じサイトを毎回叩き続けることになる。
+                    #
+                    # さらに悪いのは «古い行が残る» ことそのものである。`--stale-before` は
+                    # **パーサの誤りを直したあとの入れ直し**に使うので、残った古い行は
+                    # «前のパーサが書いた、間違っているかもしれない行» である。
+                    # «一度読めなかっただけで良いデータを捨てない» という既定の理屈は、
+                    # **古いデータが良いという前提**に立っている。修正のあとはその前提が崩れる。
+                    #
+                    # ⚠️ ただし **«届かなかった» と «読めた上で読めなかった» を混ぜない。**
+                    # `unreachable` / `blocked_by_robots` / `not_japanese_page` は
+                    # 相手側の一時的な都合でも起きるので、**消さない**（既定の理屈がそのまま当たる）。
+                    # 消すのは **ページを取れて分類まで進んだのに新しいパーサが行を作れなかった**
+                    # とき、つまり `mentions_hours_unparsed` / `no_hours_mentioned` だけ。
+                    if args.stale_before is not None and bucket in DROPPABLE_WHEN_STALE:
+                        stale_drop_ids.append(rid)
+                        counts["dropped_stale_unparsable"] += 1
                     continue
 
                 parsed = parse_jp_site_opening_hours(text)
@@ -560,12 +605,17 @@ def main() -> int:
 
                 if len(pending_ids) >= args.commit_every:
                     flush(cursor, args.schema, pending_ids, pending_rows)
+                    # ⚠️ 消すだけの店も同じトランザクションで片付ける。別にすると
+                    #    «消したが入れ直していない» 中間状態がコミットの境目に残る
+                    drop_stale(cursor, args.schema, stale_drop_ids)
                     connection.commit()
                     written_rows += len(pending_rows)
                     pending_ids, pending_rows = [], []
+                    stale_drop_ids = []
 
 
             flush(cursor, args.schema, pending_ids, pending_rows)
+            drop_stale(cursor, args.schema, stale_drop_ids)
             connection.commit()
             written_rows += len(pending_rows)
 
