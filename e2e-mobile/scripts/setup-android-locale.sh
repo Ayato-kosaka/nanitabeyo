@@ -19,6 +19,9 @@
 set -euo pipefail
 
 readonly EXPECTED_LOCALE="ja-JP"
+# `am get-config` の表記は `-ja-rJP-` なので、言語 / 国を別々に持つ
+readonly EXPECTED_LANGUAGE="ja"
+readonly EXPECTED_COUNTRY="JP"
 
 echo "▶ Android のシステムロケールを ${EXPECTED_LOCALE} へ設定します"
 
@@ -58,8 +61,8 @@ adb_retry 5 root
 adb wait-for-device
 
 adb_retry 5 shell setprop persist.sys.locale "${EXPECTED_LOCALE}"
-adb_retry 5 shell setprop persist.sys.language ja
-adb_retry 5 shell setprop persist.sys.country JP
+adb_retry 5 shell setprop persist.sys.language "${EXPECTED_LANGUAGE}"
+adb_retry 5 shell setprop persist.sys.country "${EXPECTED_COUNTRY}"
 
 # setprop しただけでは起動済みのアプリ/システム UI へ反映されない。
 # zygote を再起動して、以降に起動するプロセスが新しいロケールを読むようにする
@@ -84,42 +87,50 @@ done
 adb unroot || true
 adb wait-for-device
 
-actual_locale="$(adb_retry 5 shell getprop persist.sys.locale | tr -d '\r')"
-echo "▶ system locale: ${actual_locale}"
+# ⚠️ #1579 【修正】**落とす基準は «アプリから見えるロケール» の側へ置く。**
+#
+# ここは長いあいだ重みが逆だった。
+#
+# | 読んでいた値 | それは何か | 旧: 一致しなかったら |
+# | --- | --- | --- |
+# | `getprop persist.sys.locale` | **自分がさっき書いた property**（«設定した記録»） | **exit 1** |
+# | `am get-config` の `-ja-rJP-` | **アプリが実際に使う LocaleList**（«いま効いている値»） | `::warning::` だけ |
+#
+# property が空へ戻っていてもアプリは日本語で描かれていた（run 34453015222）。
+# つまり **弱い証拠で落として、強い証拠では落としていなかった**。入れ替える。
+#
+# 落とす側へ回す代わり、観測は数回試す。1 回の adb の不通で落とすと
+# «テストを 1 本も走らせないまま Android ジョブが落ちる» が戻ってくる（run 36352812664）。
+# ⚠️ **`| head` をパイプの下流に置かないこと（#2075）。** このファイルは `set -euo pipefail` で、
+#    `head` が閉じた瞬間に上流が SIGPIPE で殺され、141 が代入の終了コードになって `set -e` が死ぬ。
+#    一度変数へ受けてから `<<<` で渡す。
+echo "▶ アプリから見えるロケール（実行時 configuration）を観測します"
+runtime_config=""
+for attempt in 1 2 3 4 5; do
+	am_get_config="$(adb shell am get-config 2>/dev/null || true)"
+	am_get_config="${am_get_config//$'\r'/}"
+	# ⚠️ 1 行目に決め打ちせず **出力全体**から探す（`config:` が先頭に来ない実装差に耐える）
+	if [[ "${am_get_config}" == *"-${EXPECTED_LANGUAGE}-r${EXPECTED_COUNTRY}-"* ]]; then
+		runtime_config="$(head -n 1 <<< "${am_get_config}")"
+		break
+	fi
+	echo "▶ 実行時 configuration に ${EXPECTED_LANGUAGE}-r${EXPECTED_COUNTRY} が見えません。adbd の再接続を待って再試行します（${attempt}/5）"
+	adb wait-for-device || true
+	sleep 2
+done
 
-# 反映に失敗したまま進むと「ja-JP 前提の spec が黙って無意味になる」ので、ここで落として原因を明示する
-if [ "${actual_locale}" != "${EXPECTED_LOCALE}" ]; then
-	echo "::error::システムロケールを ${EXPECTED_LOCALE} へ設定できませんでした（現在: ${actual_locale}）。"
-	exit 1
-fi
-
-# ⚠️ #1579 【観測】**上の検査は «自分が書いた property» を読み返しているだけである。**
-#
-# アプリが実際に使うのは `persist.sys.locale` そのものではなく、そこから種を得て
-# システムが持つ **LocaleList（実行時 configuration）** である。property が ja-JP でも
-# 実行時 configuration が en-US のままなら、**ja-JP 前提の spec は英語の画面に対して走る**
-#（`describeJapaneseLocale` は端末のロケールを見るので skip もされない）。
-#
-# 実際 run 34437874049（絞って回した Android）は、このスクリプトが
-# «✅ システムロケールを ja-JP に固定しました» を出しているのに、
-# 失敗のコマのアプリが **英語で描かれていた**（"Confirm restaurant details"）。
-# 同じコミットの夜間 34406713535 は日本語（「お店の情報を確認」）だった。
-#
-# **原因は未特定。** まず «アプリから見えるロケール» を毎回ログへ出して観測できるようにする。
-# ここではまだ落とさない（落とすかどうかは、実測が揃ってから決める）。
-# ⚠️ **`| head -n 1` をパイプの下流に置かないこと（#2075）。** このファイルは `set -euo pipefail`。
-#    `am get-config` の出力は数十行あるので、`head` が閉じた時点で上流が SIGPIPE で殺され、
-#    `pipefail` の 141 が代入の終了コードになり **`set -e` がここで死ぬ**。一度変数へ受ける。
-am_get_config="$(adb shell am get-config 2>/dev/null || true)"
-runtime_config="$(head -n 1 <<< "${am_get_config//$'\r'/}")"
-# ⚠️ ここは **観測用**なので、adb が失敗してもジョブを落とさない（`|| true`）。
+# ⚠️ 以下 2 つは **診断表示専用**。判定へ使わない（上の表のとおり «記録» であって «効いている値» ではない）
+persist_locale="$(adb shell getprop persist.sys.locale 2>/dev/null || true)"
+persist_locale="${persist_locale//$'\r'/}"
 system_locales="$(adb shell settings get system system_locales 2>/dev/null || true)"
 system_locales="${system_locales//$'\r'/}"
-echo "▶ 実行時 configuration: ${runtime_config}"
-echo "▶ settings system_locales: ${system_locales}"
+echo "▶ 実行時 configuration: ${runtime_config:-(ja-rJP を観測できず)}"
+echo "▶ 診断: persist.sys.locale=${persist_locale:-(空)} / settings system_locales=${system_locales:-(空)}"
 
-if [[ "${runtime_config}" != *"-ja-rJP-"* ]]; then
-	echo "::warning::実行時 configuration に ja-rJP が見当たりません。ja-JP 前提の spec が英語の画面に対して走っている可能性があります（#1579）。"
+if [ -z "${runtime_config}" ]; then
+	echo "::error::アプリから見えるロケールが ${EXPECTED_LOCALE} になりませんでした（am get-config に -${EXPECTED_LANGUAGE}-r${EXPECTED_COUNTRY}- が 5 回とも現れず）。"
+	echo "::error::ja-JP 前提の spec が英語の画面に対して走るため、ここで止めます（#1579）。診断値は上の行。"
+	exit 1
 fi
 
 echo "✅ システムロケールを ${EXPECTED_LOCALE} に固定しました"
