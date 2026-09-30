@@ -12,38 +12,97 @@ import { ResultPage } from "../../pages/ResultPage";
  *       タイムアウトを長めに設定すること。
  */
 
+/** Places の日次上限だけが持つ errorCode（`shared/api/v1/res/base-response.ts` の `ErrorCode`） */
+const QUOTA_ERROR_CODE = "EXTERNAL_QUOTA_EXCEEDED";
+
+/** 観測した bulk-import の失敗。`errorCode` はレスポンス本文が読めなかったとき null */
+type BulkImportFailure = { status: number; errorCode: string | null };
+
 /**
  * トピック選択 → 結果フィード表示。**Places クォータ枯渇の日はここで skip する。**
  *
  * 結果フィードの取得（`POST /v1/dishes/bulk-import`）はサーバ側で Google Places Text Search を
  * 叩く。このプロジェクトの SearchText クォータは **45 リクエスト/日で、引き上げない方針**
  * （オーナー判断 2026-08-22: E2E のために課金を発生させない）。枯渇した日はテストの検証対象
- * （UI とフロー）と無関係な 500 になるため、その失敗モード**だけ**を検知して skip する。
+ * （UI とフロー）と無関係な失敗になるため、その失敗モード**だけ**を検知して skip する。
  * それ以外の失敗（画面が出ない・遷移しない等）は通常どおり fail させる。
+ *
+ * ## #1579 【バグ】«どの番号が上限なのか» を確かめずに 5xx を上限と呼んでいた
+ *
+ * 旧実装は `status >= 500` を «クォータ枯渇» と呼んでいた。**上限は 500 では返ってこない。**
+ * `api/src/core/external-api/external-api.service.ts` は上流の 429 / RESOURCE_EXHAUSTED を
+ * **429 + `errorCode: EXTERNAL_QUOTA_EXCEEDED`** で返す（#1629 で 500 から外し、#1642 で
+ * 503 から 429 へ戻した。503 は `MaintenanceGuard` の番号なので実機にメンテ告知が出た）。
+ * つまり旧実装は両方向に外していた:
+ *
+ * | 起きたこと | 旧実装 | 正しい扱い |
+ * | --- | --- | --- |
+ * | Places の日次上限（429 / `EXTERNAL_QUOTA_EXCEEDED`） | **skip しない**（< 500）→ 赤 | skip |
+ * | 無関係な 500（converter 追従漏れ・未処理例外など） | **skip する**（上限だと名乗る）| 赤 |
+ *
+ * 下段が重い。**skip は pass ではない**のに失敗すら出さないので、本物のバグが «クォータの日» の
+ * 顔をして消える。列を足したあと converter / 生 SQL が落ちる事故はこのリポジトリで 2 回起きている。
+ *
+ * だから «外部の都合» と名乗ってよいのは **番号と errorCode の両方が一致したときだけ**にする。
+ * 一致しなかった失敗は、観測できた内容をログへ出してから元の例外を投げ直す（原因追跡のため）。
  */
 async function chooseDishCategoryOrSkipOnQuota(
 	appPage: import("@playwright/test").Page,
 	dishCategoriesPage: DishCategoriesPage,
 	resultPage: ResultPage,
 ): Promise<void> {
-	const serverErrors: number[] = [];
+	// 本文を読むのは非同期なので、Promise のまま溜めて catch でまとめて待つ
+	const failures: Promise<BulkImportFailure>[] = [];
 	const onResponse = (response: import("@playwright/test").Response) => {
-		if (response.url().includes("/v1/dishes/bulk-import") && response.status() >= 500) {
-			serverErrors.push(response.status());
-		}
+		if (!response.url().includes("/v1/dishes/bulk-import")) return;
+		if (response.status() < 400) return;
+		const status = response.status();
+		failures.push(
+			response.text().then(
+				(text) => ({ status, errorCode: readErrorCode(text) }),
+				// 本文が読めなくても «失敗があった» ことは残す（null は «読めなかった»）
+				() => ({ status, errorCode: null }),
+			),
+		);
 	};
 	appPage.on("response", onResponse);
 	try {
 		await dishCategoriesPage.chooseFirstDishCategory();
 		await resultPage.expectLoaded();
 	} catch (error) {
-		if (serverErrors.length > 0) {
-			test.skip(true, `Places SearchText クォータ枯渇（bulk-import が ${serverErrors[0]}）。45/日・引き上げない方針のため skip`);
+		const observed = await Promise.all(failures);
+		const quota = observed.find((f) => f.status === 429 && f.errorCode === QUOTA_ERROR_CODE);
+		if (quota) {
+			test.skip(
+				true,
+				`Places SearchText クォータ枯渇（bulk-import が 429 / ${QUOTA_ERROR_CODE}）。45/日・引き上げない方針のため skip`,
+			);
+		}
+		if (observed.length > 0) {
+			// ⚠️ ここで skip しない。番号が違う失敗は «外部の都合» ではないので赤にする
+			console.error(
+				`bulk-import の失敗を観測しましたが、クォータ枯渇（429 / ${QUOTA_ERROR_CODE}）ではありません: ` +
+					observed.map((f) => `${f.status} / ${f.errorCode ?? "(本文を読めず)"}`).join(", "),
+			);
 		}
 		throw error;
 	} finally {
 		appPage.off("response", onResponse);
 	}
+}
+
+/** API のエラー本文（`BaseResponse`）から `errorCode` を取り出す。読めなければ null */
+function readErrorCode(text: string): string | null {
+	try {
+		const parsed: unknown = JSON.parse(text);
+		if (parsed && typeof parsed === "object" && "errorCode" in parsed) {
+			const code = (parsed as { errorCode?: unknown }).errorCode;
+			return typeof code === "string" ? code : null;
+		}
+	} catch {
+		// JSON でない本文（プロキシの HTML エラーページなど）
+	}
+	return null;
 }
 
 test.describe("検索フロー(実 API)", () => {
