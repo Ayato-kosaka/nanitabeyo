@@ -241,7 +241,13 @@ def main() -> int:
     LOGGER.info("合格線（上位 %d%% の %d%%）に足りない地点 = %d 件",
                 args.gap_top_pct, args.gap_target_pct, len(points))
     if not points:
-        raise SystemExit("足りない地点が 0 件（既に達成している）。")
+        # #1947 【設計】⚠️ **ここは測定 script なので、0 地点は «測れた» ＝成功である。**
+        #   合格線に届いた瞬間に非ゼロ終了すると、レーンの見張りが «直近の失敗» として
+        #   赤く出し、本物の failure をその偽陽性が隠す（2026-09-30 の run 1534 の形）。
+        #   ⚠️ 下の «500m 圏に resolve 済みの投稿が 0» は別物で、そちらは以降の比率の
+        #   分母が 0 になり **測れない**ので非ゼロのままにする。
+        LOGGER.info("足りない地点が 0 件（既に達成している）。測るものが無いので終わります。")
+        return 0
 
     rows = [dict(r) for r in pipeline.execute(
         build_sql(ds, f"{args.project}.{args.dish_dataset}", radius_m=m74.RADIUS_M), [

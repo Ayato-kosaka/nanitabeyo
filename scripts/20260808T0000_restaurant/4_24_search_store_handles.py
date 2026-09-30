@@ -136,7 +136,13 @@ def main() -> int:
     LOGGER.info("合格線（上位 %d%% の %d%%）に足りない地点 = %d 件",
                 args.gap_top_pct, args.gap_target_pct, len(points))
     if not points:
-        raise SystemExit("足りない地点が 0 件（既に達成している）。探す対象も無い。")
+        # #1947 【設計】4_23 と同じ規律。**合格線に届いた瞬間に赤くしない。**
+        #   `--report-only`（SERPER を呼ばず数えるだけ）なら成功として終わる。
+        msg = "足りない地点が 0 件（既に達成している）。探す対象も無い。"
+        if args.report_only:
+            LOGGER.info("%s（--report-only なので成功として終わります）", msg)
+            return 0
+        raise SystemExit(msg)
 
     ds = f"{args.project}.{args.dataset}"
     stores = [dict(r) for r in pipeline.execute(

@@ -280,7 +280,14 @@ def main() -> int:
     # 調べ直す（未 resolve の在庫がそこに有るか等）たびに、この判定をもう一度書く羽目になる。
     LOGGER.info("  足りない地点の google_place_id: %s", ",".join(points))
     if not points:
-        raise SystemExit("足りない地点が 0 件（既に達成している）。巡回の対象も無い。")
+        # #1947 【設計】⚠️ **合格線に届いた瞬間に赤くしないこと。** 0 地点は «勝った» のであって
+        #   失敗ではない。`--dry-run`（数えるだけ）なら成功として終わる。書き込む実行は
+        #   後段（`4_4`）が対象行を前提にするので従来どおり非ゼロで止める。
+        msg = "足りない地点が 0 件（既に達成している）。巡回の対象も無い。"
+        if args.dry_run:
+            LOGGER.info("%s（--dry-run なので成功として終わります）", msg)
+            return 0
+        raise SystemExit(msg)
 
     ds = f"{args.project}.{args.dataset}"
     rows = [dict(r) for r in pipeline.execute(
@@ -315,13 +322,23 @@ def main() -> int:
         done = int(u[0].get("already_crawled") or 0) if u else 0
         wo = int(u[0].get("without_website") or 0) if u else 0
         if done:
-            raise SystemExit(
-                f"対象が 0 店。**巡回経路は尽きた**（サイトを持つ {done} 店は巡り終えて "
-                f"handle が出なかった）。残る {wo} 店はサイトを持たないので巡回では届かない。"
-                "**次は別の経路（検索など）が要る。**")
-        raise SystemExit(
-            "対象が 0 店。**«巡回しても無駄» ではなく «サイトを持つ handle 未知の店が無い»** である。"
-            "ここは店台帳そのものが薄いので、発見でも収集でも届かない。")
+            msg = (f"対象が 0 店。**巡回経路は尽きた**（サイトを持つ {done} 店は巡り終えて "
+                   f"handle が出なかった）。残る {wo} 店はサイトを持たないので巡回では届かない。"
+                   "**次は別の経路（検索など）が要る。**")
+        else:
+            msg = ("対象が 0 店。**«巡回しても無駄» ではなく «サイトを持つ handle 未知の店が無い»** である。"
+                   "ここは店台帳そのものが薄いので、発見でも収集でも届かない。")
+        # #1947 【設計】⚠️ **`--dry-run` で 0 店は «失敗» ではない。**
+        #   `--dry-run` は «いま何店あるか» を数えるためだけの実行なので、0 と数え切れたなら
+        #   それは成功である。ここで非ゼロ終了すると、レーンの見張り（`lanes.py`）が
+        #   «直近の失敗» として赤く出し、**本物の failure をその偽陽性が隠す**
+        #   （2026-09-30 の run 1534 で実際に起きた。CLAUDE.md の «正常なのに赤くするガードも
+        #   同じくらい悪い» の形）。**判断の材料（上の内訳ログと下のメッセージ）は落とさない。**
+        #   `--dry-run` でない実行は、後段（`4_4`）が対象行を前提にするので非ゼロで止める。
+        if args.dry_run:
+            LOGGER.error("%s（--dry-run なので数え切れた時点で成功として終わります）", msg)
+            return 0
+        raise SystemExit(msg)
     if args.dry_run:
         LOGGER.info("--dry-run のため書き込みません")
         return 0
