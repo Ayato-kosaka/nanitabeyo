@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import sys
 import time
 import urllib.error
 
@@ -262,7 +263,8 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
                       reresolve_prev_status: str | None = None, caption_regexp: str | None = None,
                       only_with_area: bool = False, post_ids: list[str] | None = None,
                       only_without_area: bool = False, skip_resolved_anywhere: bool = False,
-                      only_without_category: bool = False, post_ids_table: str | None = None):
+                      only_without_category: bool = False, post_ids_table: str | None = None,
+                      post_ids_table_ts: str | None = None):
     """未 resolve（この run × **この resolve_version** で未処理）の投稿を取り出す。
 
     version を anti-join に含めるので、--resolve-version を上げると全投稿が «その version では未処理»
@@ -316,10 +318,24 @@ def _fetch_unresolved(pipeline: BigQueryPipeline, raw_run_id: str, resolve_run_i
     # #1947: 溜まった未 resolve は **複数の収集 run にまたがる**（2026-09-20 に 212,301 件）。
     # 判定は common_sns が唯一の正（同じ分岐を各 script へ写経しない）。
     raw_run_filter = run_id_filter_sql("r.run_id", "@raw_rid", raw_run_id)
+    # #1947 **«入力がいつのものか» と «同じ version で最後に解いたのはいつか» を一緒に持ち帰る。**
+    #   これが無いと «入力が 1 つも変わっていないのに 150 分かけて全部解き直すラウンド» を
+    #   走り切ってからしか気づけない（下の `count_inputs_newer_than_last_resolve`）。
+    input_at = "r.fetched_at"
+    if post_ids_table and post_ids_table_ts:
+        # 店名リンクのように «古い投稿へ新しいリンクが付いた» ときは、raw の fetched_at では
+        # なくリンク台帳の時刻が入力の新しさである。列名はテーブルごとに違うので呼び側が渡す。
+        input_at = (f"GREATEST(r.fetched_at, COALESCE((SELECT MAX(t.{post_ids_table_ts}) "
+                    f"FROM `{post_ids_table}` t WHERE t.post_id = r.post_id), r.fetched_at))")
     sql = f"""
       SELECT r.post_id, r.canonical_url, r.discovery_route,
              r.discovery_area_lat, r.discovery_area_lng,
-             r.caption, r.author_name
+             r.caption, r.author_name,
+             {input_at} AS input_at,
+             (SELECT MAX(v2.resolved_at)
+                FROM `{pipeline.table(TABLE_POST_RESOLVED)}` v2
+               WHERE v2.post_id = r.post_id AND v2.resolve_version = @resolve_version
+             ) AS same_version_resolved_at
       FROM `{pipeline.table(TABLE_POST_RAW)}` r
       LEFT JOIN `{pipeline.table(TABLE_POST_RESOLVED)}` v
         ON v.run_id = @resolve_rid AND v.provider = r.provider AND v.post_id = r.post_id
@@ -368,6 +384,27 @@ def main() -> None:
     client = ResolveClient(keep_alive=not args.no_keep_alive,
                            retries=args.resolve_retries)  # base_url は common_sns の BACKEND_BASE_URL
     sleep_s = max(args.sleep_ms, 0) / 1000.0
+    # #1947 `--post-ids-table` の «入力の時刻» 列を、表名の対応表を書かずにその場で聞く。
+    #   1 本に決まらない（0 本 / 2 本以上）ときは raw の fetched_at だけで見る。
+    #   ⚠️ そのときは門を緩める側へ倒す（正常なのに赤くしない）。
+    post_ids_table_ts = None
+    if args.post_ids_table:
+        try:
+            from google.cloud import bigquery as _bq  # noqa: PLC0415
+            cols = [dict(r)["column_name"] for r in pipeline.execute(
+                single_timestamp_column_sql(pipeline.dataset_ref, args.post_ids_table),
+                [_bq.ScalarQueryParameter("tbl", "STRING", args.post_ids_table)])]
+        except Exception as exc:  # noqa: BLE001
+            cols = []
+            LOGGER.info("%s の時刻列を聞けませんでした（門は緩める側へ倒します）: %s",
+                        args.post_ids_table, str(exc)[:160])
+        if len(cols) == 1:
+            post_ids_table_ts = cols[0]
+            LOGGER.info("%s の «入力の時刻» は %s 列として見ます", args.post_ids_table, post_ids_table_ts)
+        else:
+            LOGGER.warning("⚠️ %s の TIMESTAMP 列が %d 本あるので入力の新しさは "
+                           "sns_post_raw.fetched_at だけで見ます（%s）",
+                           args.post_ids_table, len(cols), ", ".join(cols) or "なし")
     timings = Timings()
     bq = Timings()
 
@@ -380,7 +417,8 @@ def main() -> None:
                                      [x.strip() for x in (args.post_ids or "").split(",") if x.strip()] or None,
                                      args.only_without_area, args.skip_resolved_anywhere,
                                      args.only_without_category,
-                                     pipeline.table(args.post_ids_table) if args.post_ids_table else None)
+                                     pipeline.table(args.post_ids_table) if args.post_ids_table else None,
+                                     post_ids_table_ts)
         finally:
             bq.add("BQ:未処理の取り出し(1回)", time.perf_counter() - t0)
 
@@ -390,6 +428,22 @@ def main() -> None:
     LOGGER.info("未 resolve %d 投稿を処理します（resolve_version=%s, shard=%d/%d, 狙い撃ち=%s）",
                 len(posts), args.resolve_version, args.shard, args.shards,
                 args.reresolve_prev_status or "全未処理")
+
+    # #1947 **入力が 1 件も新しくないラウンドは、走らせずにここで赤くする。**
+    #   2026-09-27〜28 に店名リンクを 3 ラウンド（計 7.5 時間）流し、3 回とも同じ
+    #   matched=400〜402 を返していた（実測: 73,890 投稿すべてがリンク作成より後に解かれ済み）。
+    #   末尾の «100% が解き直し» 警告では次のラウンドを止められない。**取り出した直後に見る。**
+    if posts:
+        fresh = count_inputs_newer_than_last_resolve(posts)
+        LOGGER.info("そのうち «入力が前回解いたときより新しい» のは %d 件です", fresh)
+        if fresh == 0:
+            LOGGER.error(
+                "⚠️ **取り出した %d 件は全部、入力が前回解いたときより古いままです。"
+                "このラウンドは同じ答えを返すだけなので走らせません。**\n"
+                "  ・積み残し（どこにも結果が無い投稿）を消すなら `--skip-resolved-anywhere`\n"
+                "  ・resolve や店名辞書を直したので全部解き直すなら `--resolve-version` を上げる\n"
+                "  （version を上げたラウンドはここで止まりません）", len(posts))
+            sys.exit(1)
 
     with pipeline.step(run_id, "5_1_apply_resolve", parameters={
         "raw_run_id": raw_run_id, "resolve_version": args.resolve_version, "limit": args.limit,
@@ -605,6 +659,47 @@ def failure_share_note(ok: int, err: int) -> str | None:
             "resolve の相手（dev の API）が壊れている可能性が高いので、"
             "«この run は成功した» と読まないこと。"
             "失敗した投稿は行を作っていないので、直ってから解き直せます")
+
+
+def single_timestamp_column_sql(dataset_ref: str, table_name: str) -> str:
+    """`table_name` の TIMESTAMP 列を列挙する SQL。
+
+    #1947 `--post-ids-table` に渡される表の «入力の時刻» の列名は表ごとに違う
+    （`sns_caption_backfilled` は `filled_at`、`sns_name_place_post_link` は `linked_at`）。
+    **script 側に表名→列名の対応を書かない。** 増えた表で必ず陳腐化するので、その場で聞く。
+    """
+    return f"""
+      SELECT column_name FROM `{dataset_ref}.INFORMATION_SCHEMA.COLUMNS`
+      WHERE table_name = @tbl AND data_type = 'TIMESTAMP'
+      ORDER BY ordinal_position
+    """
+
+
+def count_inputs_newer_than_last_resolve(posts) -> int:
+    """取り出した投稿のうち «入力が前回解いたときより新しい＝解き直す意味がある» 数を返す。
+
+    #1947 ⚠️ **これは門である。** 2026-09-27〜28 に店名リンクの resolve を 3 ラウンド
+    （1444 / 1456 / 1464、各 150 分 = 計 7.5 時間）流したが、実測では
+    `sns_name_place_post_link` の 73,890 投稿は **全部がリンク作成より後に解かれており**
+    （`input_newer = 0`, `never_resolved = 0`）、3 ラウンドとも matched=400〜402 の
+    **同じ結果**を返していた。ログ末尾の «仕事の 100% が解き直し» という警告は出ていたが、
+    それは **150 分使い切ったあと**であり、次のラウンドを止める役には立たなかった。
+
+    ⚠️ «解き直しに意味が無い» という意味ではない。resolve や店名辞書を直した直後の
+    解き直しは効く（2026-09-21 は店獲得の 76% が解き直しから出た）。その操作は
+    `--resolve-version` を上げて行うので、**新しい version では 1 件も
+    `same_version_resolved_at` を持たず、ここは 0 を返さない**（正常なのに赤くしない）。
+    """
+    fresh = 0
+    for post in posts:
+        last = post.get("same_version_resolved_at") if hasattr(post, "get") else post["same_version_resolved_at"]
+        if last is None:
+            fresh += 1
+            continue
+        got = post.get("input_at") if hasattr(post, "get") else post["input_at"]
+        if got is None or got > last:
+            fresh += 1
+    return fresh
 
 
 def _report_first_time_share(pipeline: BigQueryPipeline, run_id: str, args) -> None:
