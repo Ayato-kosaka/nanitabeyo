@@ -308,6 +308,66 @@ class CandidateSqlTest(unittest.TestCase):
         self.assertIn("NOT EXISTS", crawler.ONLY_MISSING_CLAUSE)
         self.assertIn("restaurant_opening_hours", crawler.ONLY_MISSING_CLAUSE)
 
+    def test_stale_before_targets_only_stores_whose_rows_are_all_old(self) -> None:
+        """#1666 パーサを直したあとの入れ直しで、**相手のサイトを無駄に叩かない**。
+
+        `--no-only-missing` は端から全部歩くので、残り 643 店を直すのに約 4,400 件を
+        叩き直すことになる（2026-09-30 の実測）。`--stale-before` はその対象を
+        «古い行しか持たない店» へ絞る。
+        """
+        clause = crawler.STALE_BEFORE_CLAUSE
+        # 行を «持っている» ことと、«新しい行が 1 行も無い» ことの両方
+        self.assertIn("AND EXISTS", clause)
+        self.assertIn("AND NOT EXISTS", clause)
+        self.assertIn("fetched_at >= %(stale_before)s", clause)
+        self.assertIn("restaurant_opening_hours", clause)
+        # 閾値は SQL へ焼き込まずパラメータで渡す
+        self.assertNotIn("2026-", clause)
+
+    def test_stale_before_is_idempotent_by_construction(self) -> None:
+        """⚠️ **上書きした店が次の run でも候補に残らないこと。**
+
+        `EXISTS` だけにすると、歩き直して fetched_at を更新した店が毎回候補に戻り、
+        **同じサイトを永遠に叩き続ける**。`fetched_at >= 閾値` の否定がそれを防ぐ。
+        """
+        clause = crawler.STALE_BEFORE_CLAUSE
+        after_not_exists = clause.split("AND NOT EXISTS", 1)[1]
+        self.assertIn("fetched_at >=", after_not_exists)
+
+    def test_stale_before_and_only_missing_are_refused_together(self) -> None:
+        """背反なので、黙ってどちらかを優先せず止める。"""
+        with mock.patch.object(
+            sys, "argv", ["6_3", "--limit", "1", "--stale-before", "2026-09-24T19:55:00+00:00"]
+        ):
+            with self.assertRaises(ValueError) as caught:
+                crawler.parse_args()
+        self.assertIn("--no-only-missing", str(caught.exception))
+
+    def test_stale_before_accepts_a_valid_timestamp_with_no_only_missing(self) -> None:
+        with mock.patch.object(
+            sys,
+            "argv",
+            ["6_3", "--limit", "1", "--no-only-missing", "--stale-before", "2026-09-24T19:55:00+00:00"],
+        ):
+            args = crawler.parse_args()
+        self.assertEqual(args.stale_before, "2026-09-24T19:55:00+00:00")
+        self.assertFalse(args.only_missing)
+
+    def test_stale_before_refuses_an_unreadable_timestamp(self) -> None:
+        """⚠️ 読めない値で «全国» へ出て行かない（--near と同じ作法）。"""
+        with mock.patch.object(
+            sys, "argv", ["6_3", "--limit", "1", "--no-only-missing", "--stale-before", "きのう"]
+        ):
+            with self.assertRaises(ValueError):
+                crawler.parse_args()
+
+    def test_only_missing_is_still_the_default(self) -> None:
+        """既定は変えていない（--stale-before を足しただけ）。"""
+        with mock.patch.object(sys, "argv", ["6_3", "--limit", "1"]):
+            args = crawler.parse_args()
+        self.assertTrue(args.only_missing)
+        self.assertIsNone(args.stale_before)
+
     def test_only_http_urls_are_crawled(self) -> None:
         self.assertIn("^https?://", crawler.CANDIDATE_SQL)
 

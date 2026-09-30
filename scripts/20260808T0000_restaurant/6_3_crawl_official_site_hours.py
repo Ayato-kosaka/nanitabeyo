@@ -162,6 +162,42 @@ ONLY_MISSING_CLAUSE = """
   )
 """
 
+# #1666 【設計】**パーサを直したあと «古い行を持つ店だけ» を歩き直せるようにする。**
+#
+# ## なぜ要るか（2026-09-30 の実測）
+#
+# [#2060](https://github.com/Ayato-kosaka/nanitabeyo/pull/2060) は «【】 で曜日を区切ると
+# 全曜日へ全部の時間帯を入れる» という **間違った営業時間を書く** バグの修正で、
+# その PR 本文自身が «マージ後に `--no-only-missing` で流し直して上書きする» と書いていた。
+# ところが `--no-only-missing` は **既に読めた店も含めて端から全部**歩くので、
+# 残り 643 店を直すために約 4,400 件の候補を叩き直すことになる。
+#
+# **相手のサイトを無駄に二度叩かないために、対象を «古い行を持つ店» へ絞れる必要がある。**
+#
+# ## 条件が 2 つある理由
+#
+# 1. `EXISTS` … official_site の行を **持っている**（＝ `--only-missing` の裏返し）
+# 2. `NOT EXISTS (… fetched_at >= 閾値)` … その店の行が **1 行も新しくない**
+#
+# 2 が要るのは **冪等性のため**である。1 だけだと、歩き直して上書きした店が
+# 次の run でも候補に残り、**永遠に同じサイトを叩き続ける**。2 を入れると
+# 上書きした瞬間に候補から外れるので、`--limit` で分割して何回流しても収束する。
+#
+# ⚠️ **`--only-missing` とは同時に使えない**（「行が無い店」と「古い行を持つ店」は背反）。
+#    両方指定されたら `parse_args()` で止める。黙ってどちらかを優先すると、
+#    «絞ったつもりで別の集合を歩く» という気づけない形になる。
+STALE_BEFORE_CLAUSE = """
+  AND EXISTS (
+    SELECT 1 FROM {schema}.restaurant_opening_hours h
+    WHERE h.restaurant_id = r.id AND h.source = %(source)s
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM {schema}.restaurant_opening_hours h
+    WHERE h.restaurant_id = r.id AND h.source = %(source)s
+      AND h.fetched_at >= %(stale_before)s
+  )
+"""
+
 DELETE_SQL = """
 DELETE FROM {schema}.restaurant_opening_hours
 WHERE source = %s AND restaurant_id = ANY(%s::uuid[])
@@ -216,6 +252,15 @@ def parse_args() -> argparse.Namespace:
         help="既に official_site の行がある店も対象にする（全部取り直すとき）",
     )
     parser.add_argument(
+        "--stale-before",
+        default=None,
+        help=(
+            "この時刻より古い official_site の行**しか**持たない店だけを対象にする"
+            "（例: 2026-09-24T19:55:00+00:00）。パーサを直したあとの入れ直しに使う。"
+            "⚠️ --only-missing とは同時に使えない（背反なので）"
+        ),
+    )
+    parser.add_argument(
         "--excerpts-per-reason",
         type=int,
         default=3,
@@ -234,7 +279,25 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--dry-run", action="store_true", help="ネットワークへ出ず、DB へも書かない")
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # ⚠️ 「行が無い店」と「古い行を持つ店」は背反。黙ってどちらかを優先すると
+    #    «絞ったつもりで別の集合を歩く» という気づけない形になるので、ここで止める。
+    if args.stale_before is not None and args.only_missing:
+        raise ValueError(
+            "--stale-before は --no-only-missing と一緒に使ってください"
+            "（--only-missing は «official_site の行が無い店»、--stale-before は «古い行を持つ店» で背反です）"
+        )
+    if args.stale_before is not None:
+        # 読めない時刻で «全国» へ出て行かないよう、ここで形を確かめる（--near と同じ作法）
+        try:
+            dt.datetime.fromisoformat(args.stale_before)
+        except ValueError as error:
+            raise ValueError(
+                f"--stale-before が ISO 8601 として読めません: {args.stale_before!r}"
+            ) from error
+
+    return args
 
 
 def parse_near(value: str | None) -> tuple[float | None, float | None]:
@@ -310,7 +373,14 @@ def main() -> int:
                 )
             )
 
-        only_missing = ONLY_MISSING_CLAUSE.format(schema=args.schema) if args.only_missing else ""
+        if args.stale_before is not None:
+            # «古い行を持つ店だけ» を歩く。上書きした店は fetched_at が新しくなるので
+            # 次の run では候補から外れる（分割して流しても収束する）
+            only_missing = STALE_BEFORE_CLAUSE.format(schema=args.schema)
+        elif args.only_missing:
+            only_missing = ONLY_MISSING_CLAUSE.format(schema=args.schema)
+        else:
+            only_missing = ""
         near_lat, near_lon = parse_near(args.near)
         # ⚠️ 基準の地点が無いのに «近い順» は作れない。黙って seed 順へ落とすと、
         #    «近い順のつもりで全国均等を歩く» という気づけない形になる。止める。
@@ -332,6 +402,8 @@ def main() -> int:
             #    害が無く、渡し忘れで «絞ったのに全国» になる形を作らない
             "near_lat": near_lat,
             "near_lon": near_lon,
+            # ⚠️ 絞っていないときも渡す（near_lat と同じ理由）
+            "stale_before": args.stale_before,
             "near_radius_m": args.near_radius_m,
         }
         with connection.cursor() as cursor:
