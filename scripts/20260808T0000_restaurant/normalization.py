@@ -167,3 +167,26 @@ def s2_cell_id(latitude: float, longitude: float, level: int = 15) -> int:
         CellId.from_lat_lng(LatLng.from_degrees(latitude, longitude)).parent(level).id()
     )
     return unsigned - 2**64 if unsigned >= 2**63 else unsigned
+
+
+def s2_cell_center(cell_id: int) -> tuple[float, float]:
+    """`s2_cell_id()` の逆。セル ID からそのセルの**幾何中心**を返す（緯度, 経度）。
+
+    ⚠️ **符号付き ↔ 符号なしの変換を 2 箇所に書かないため、ここに置く。**
+    `s2_cell_id()` が `unsigned - 2**64` で符号付きへ落としているので、戻すときは
+    負なら `+ 2**64` する。
+
+    ⚠️ 実測しておく（2026-10-01）: この `+ 2**64` を**外しても壊れない**。
+    s2sphere は負の ID をそのまま受けても **約 5mm しか違わない点**を返すので、
+    セルへ丸め直せば同じセルになる。つまりこれは «いま効いているバグの修正» ではなく、
+    **逆変換の定義をここ 1 箇所に閉じるため**の記述である。
+
+    用途: 店が 1 件も無いセルには «セル内 restaurants の重心» が作れないので、
+    代表点としてこの幾何中心を使う（#843 の fallback 計測）。
+    """
+
+    from s2sphere import CellId  # 大容量名寄せ以外では依存を読み込まない
+
+    unsigned = cell_id + 2**64 if cell_id < 0 else cell_id
+    lat_lng = CellId(unsigned).to_lat_lng()
+    return lat_lng.lat().degrees, lat_lng.lng().degrees
