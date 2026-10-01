@@ -322,27 +322,68 @@ def apply_temp_file_limit(cur, limit_mb: int) -> bool:
     ([#2006](https://github.com/Ayato-kosaka/nanitabeyo/issues/2006))、
     «共有ディスクを埋める» ではなく **«自分のクエリだけが落ちる»** に倒しておく。
 
-    ⚠️ `temp_file_limit` は PGC_SUSET（superuser だけが変えられる）なので、
-    **張れないことがある**。張れなかったときに測定ごと止めるのは過剰なので、
-    «張れたか» をログへ出して続行する。**黙って続行しない**のが肝で、
-    «上限があるつもりで走っていた» を作らない。
+    ## ⚠️ 【バグ】試して失敗するのではなく、**先に聞く**
+
+    `temp_file_limit` は PGC_SUSET（superuser だけが変えられる）で、Supabase の
+    `postgres` ロールは superuser ではない。最初の実装は «SET して、失敗したら警告して
+    続行» にしていたが、**失敗した SET がトランザクションを abort させ、次の文が
+    `InFailedSqlTransaction: current transaction is aborted` で死んだ**
+    ([run 36819189609](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36819189609)。
+    起点の畳み込みは効いて 904,118 → 148,892 行になっていたのに、**その先で止めたのは
+    この «保険» 自身**だった）。
+
+    だから **`is_superuser` を先に見て、張れないなら SET を投げない**。
+    投げなければ abort も起きない。⚠️ それでも別の理由で失敗しうるので、
+    except では **ROLLBACK で後続が使える状態へ戻す**（«保険» が本体を殺さないように）。
+
+    ⚠️ **黙って続行しない。** 張れなかったことはログへ出す
+    （«上限があるつもりで走っていた» を作らない）。
     """
     if limit_mb <= 0:
         logger.info("一時ファイルの上限: 指定なし（--temp-file-limit-mb 0）")
         return False
+
+    if not is_superuser(cur):
+        logger.warning(
+            "⚠️ 一時ファイルの上限（%s MB）は張れません。"
+            "temp_file_limit は superuser だけが変えられ、この接続は superuser ではない。"
+            "このまま走るので、溢れると共有ディスクの側で落ちる（#1782）",
+            f"{limit_mb:,}",
+        )
+        return False
+
     try:
         cur.execute(f"SET temp_file_limit = '{limit_mb}MB'")
     except psycopg2.Error as error:
+        # ⚠️ ここへ来たら «abort されたトランザクション» を畳んでおく。
+        #    畳まないと、この保険のせいで本体（Stage5）が 1 文も走らない
+        try:
+            cur.execute("ROLLBACK")
+        except psycopg2.Error:
+            pass
         logger.warning(
-            "⚠️ 一時ファイルの上限を張れませんでした（%s）。"
-            "superuser でないと temp_file_limit は変えられない。"
-            "このまま走るので、溢れると共有ディスクの側で落ちる: %s",
-            f"{limit_mb} MB",
+            "⚠️ 一時ファイルの上限を張れませんでした（%s MB）。このまま走る: %s",
+            f"{limit_mb:,}",
             str(error).strip().splitlines()[0] if str(error).strip() else error.__class__.__name__,
         )
         return False
+
     logger.info("一時ファイルの上限: %s MB（超えたらこのクエリだけが落ちる）", f"{limit_mb:,}")
     return True
+
+
+def is_superuser(cur) -> bool:
+    """この接続が superuser か（読み取りだけ。読めなければ False に倒す）。
+
+    ⚠️ **«分からない» を «superuser» 側へ倒してはいけない。** 倒すと SET を投げて
+    また abort する（#1782 の run 36819189609 がそれ）。
+    """
+    try:
+        cur.execute("SELECT current_setting('is_superuser', true)")
+        value = cur.fetchone()[0]
+    except psycopg2.Error:
+        return False
+    return str(value).lower() == "on"
 
 
 def run_stage5(

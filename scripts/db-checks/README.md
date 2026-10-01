@@ -94,9 +94,16 @@ requirements_path: scripts/20260808T0000_restaurant/requirements.txt
 ⚠️ **このインスタンスは dev と public が同居している**（[#2006](https://github.com/Ayato-kosaka/nanitabeyo/issues/2006)）。
 «読み取り専用だから安全» は一時ファイルには当てはまらない。
 そのため Stage5 は `--temp-file-limit-mb`（既定 4096）で**自分のセッションの一時ファイルに
-上限を張る**。⚠️ `temp_file_limit` は superuser でないと張れないので、**張れなかったときは
-ログに `⚠️ 一時ファイルの上限を張れませんでした` が出る**。その run は共有ディスクの側で
-落ちうるので、出ていたら起点の行数を先に見ること。
+上限を張る**。⚠️ `temp_file_limit` は **superuser でないと張れず、Supabase の `postgres` は
+superuser ではない**ので、実際にはほぼ毎回 `⚠️ 一時ファイルの上限（4,096 MB）は張れません`
+が出る。**出ていたらその run は共有ディスクの側で落ちうる**ので、起点の行数を先に見ること。
+
+⚠️ **この «保険» は一度、本体を殺した。** «SET して失敗したら警告して続行» と書いていたら、
+失敗した SET がトランザクションを abort させ、次の文が `InFailedSqlTransaction` で死んだ
+（[run 36819189609](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36819189609)。
+起点の畳み込みは効いて 904,118 → 148,892 行になっていたのに、止めたのは保険自身だった）。
+いまは **`is_superuser` を先に聞いて、張れないなら SET を投げない**。
+**失敗しうる文を «保険» として足すときは、失敗が本体へ波及しないかまで見ること。**
 
 `--assert` を持つスクリプトは、劣化していたら終了コード 1 を返す（ラチェットとして使える）。
 
