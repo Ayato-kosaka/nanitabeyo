@@ -95,13 +95,16 @@ dish_media が近くにある組み合わせだけ**であり、usable dish_medi
    代表点を `ST_DWithin` で INNER JOIN する。`area_cells_tmp` 側に代表点の
    GiST 式索引を張ってあるため（`build_area_cells_temp_index_sql`）、
    全 area_cells を毎回スキャンしない
-3. `(s2_cell_id, category_id)` で `GROUP BY` し `COUNT(DISTINCT restaurant_id)` を取る
+3. `(s2_cell_id, category_id)` で `GROUP BY` し `COUNT(*)` を取る
+   （起点が «(店, カテゴリ) 重複なし» なので DISTINCT は要らない）
 
 INNER JOIN なので、この集計には **coverage が非ゼロの組み合わせしか現れない**。
-「5 店舗以上」「1〜4 店舗」の件数はこの集計から `FILTER` で数え（`build_stage5_summary_sql`）、
-「0 店舗」の件数は「全組み合わせ数（area セル数 × カテゴリ数、別の軽いクエリで数える）
-− この集計の行数」の引き算で出す（`covered_zero`）。**16.8M 件を 1 行ずつ返す・
-列挙することはしない。** 上位 20 件（`build_stage5_top_cells_sql`）だけを別クエリで取る。
+⚠️ **この重い集計はバッチあたり 1 回だけ評価する**（`build_stage5_matched_rows_sql`）。
+件数バケット・上位セル・惜しいセル・カテゴリ別は、その行から `Stage5Accumulator` が作る
+（以前は 4 本のクエリに分けており、**同じ集計を 4 回評価**していた。run 36820246635 は
+65 分でも終わらなかった）。「0 店舗」の件数は「全組み合わせ数（area セル数 × カテゴリ数、
+別の軽いクエリで数える）− この集計の行数」の引き算で出す（`covered_zero`）。
+**16.8M 件を 1 行ずつ返す・列挙することはしない。**
 
 ## 読み取り専用である（ただし全区間ではない）
 
@@ -443,63 +446,40 @@ def run_stage5(
             f"{len(batches):,}",
         )
 
-    def sql_kwargs(batched: bool) -> dict:
-        return {
-            "radius_m": radius_m,
-            "area_table_name": area_table_name,
-            "driver_table_name": driver_table_name,
-            "batched": batched,
-        }
+    # 引き当て表は 1 回だけ取る（1 行ごとに文字列や店舗数を運ばない。#1782）
+    cur.execute(coverage_sql.jp_gate_category_select_sql())
+    category_labels = {category_id: label for category_id, label in cur.fetchall()}
+    cur.execute(coverage_sql.build_area_cell_restaurant_counts_sql(area_table_name))
+    cell_restaurant_counts = {cell_id: count for cell_id, count in cur.fetchall()}
 
-    covered_at_or_above_min = 0
-    covered_below_min = 0
-    covered_total = 0
-    top_rows: list[tuple] = []
-    shortfall_rows: list[tuple] = []
-    # category_id -> [label, shortfall_cells, covered_cells, best_cell_restaurants]
-    category_totals: dict[str, list] = {}
+    accumulator = coverage_sql.Stage5Accumulator(
+        min_restaurants=min_restaurants,
+        top_n=coverage_sql.DEFAULT_TOP_CELLS_LIMIT,
+    )
 
     try:
         for index, params in enumerate(batches if batches is not None else [None], start=1):
-            batched = params is not None
-            kwargs = sql_kwargs(batched)
-
-            cur.execute(coverage_sql.build_stage5_summary_sql(min_restaurants=min_restaurants, **kwargs), params)
-            at_or_above, below, total = cur.fetchone()
-            covered_at_or_above_min += at_or_above
-            covered_below_min += below
-            covered_total += total
-
-            cur.execute(coverage_sql.build_stage5_top_cells_sql(**kwargs), params)
-            top_rows.extend(cur.fetchall())
-
-            # #1782 完了条件2「不足セルが一覧で出る」。
-            # ⚠️ «閾値に満たない全部» は dev 実測で 1,646 万行あり、一覧にしても打ち手は決まらない。
-            #    打ち手が決まるのは «1 件以上あるが届いていない» セル（あと 1〜4 件で成立に変わる）。
+            # ⚠️ **重い集計はバッチあたり 1 回だけ。** 4 本に分けていた頃は同じ集計を
+            #    4 回評価しており、dev では 65 分でも終わらなかった（run 36820246635）
             cur.execute(
-                coverage_sql.build_stage5_shortfall_cells_sql(min_restaurants=min_restaurants, **kwargs),
+                coverage_sql.build_stage5_matched_rows_sql(
+                    radius_m=radius_m,
+                    area_table_name=area_table_name,
+                    driver_table_name=driver_table_name,
+                    batched=params is not None,
+                ),
                 params,
             )
-            shortfall_rows.extend(cur.fetchall())
+            accumulator.add_rows(cur.fetchall())
 
-            cur.execute(
-                coverage_sql.build_stage5_shortfall_by_category_sql(min_restaurants=min_restaurants, **kwargs),
-                params,
-            )
-            for category_id, category_label, shortfall, covered, best in cur.fetchall():
-                entry = category_totals.setdefault(category_id, [category_label, 0, 0, 0])
-                entry[1] += shortfall or 0
-                entry[2] += covered or 0
-                entry[3] = max(entry[3], best or 0)
-
-            if batched and (index % 10 == 0 or index == len(batches)):
+            if batches is not None and (index % 10 == 0 or index == len(batches)):
                 # ⚠️ 進捗は «数字が動いていること» を外から確かめるために出す。
                 #    出さないと «生きているのか» が分からず、待つしかなくなる
                 logger.info(
                     "  Stage5 進捗: %s / %s バッチ（coverage 成立 %s 件）",
                     f"{index:,}",
                     f"{len(batches):,}",
-                    f"{covered_at_or_above_min:,}",
+                    f"{accumulator.covered_at_or_above_min:,}",
                 )
     except psycopg2.errors.QueryCanceled:
         logger.error(
@@ -511,20 +491,29 @@ def run_stage5(
         )
         raise
 
-    # ⚠️ 上位 N は «各バッチの上位 N» からの再選択で一括と同じ値になる（セルで割っているので
-    #    同じ (セル, カテゴリ) が 2 つのバッチへ現れない）。並びは SQL と同じ鍵を使う
-    def top_key(row: tuple) -> tuple:
-        return (-row[4], row[0], row[2])
+    covered_at_or_above_min = accumulator.covered_at_or_above_min
+    covered_below_min = accumulator.covered_below_min
+    covered_total = accumulator.covered_total
 
-    top_rows = sorted(top_rows, key=top_key)[: coverage_sql.DEFAULT_TOP_CELLS_LIMIT]
-    shortfall_rows = sorted(shortfall_rows, key=top_key)[: coverage_sql.DEFAULT_TOP_CELLS_LIMIT]
+    def decorate(rows: list[tuple]) -> list[tuple]:
+        """(セル, カテゴリ, 店舗数) へ、引き当て表から店舗数とラベルを付け直す。"""
+        return [
+            (
+                s2_cell_id,
+                cell_restaurant_counts.get(s2_cell_id),
+                category_id,
+                category_labels.get(category_id),
+                count,
+            )
+            for s2_cell_id, category_id, count in rows
+        ]
+
+    top_rows = decorate(accumulator.top_cells())
+    shortfall_rows = decorate(accumulator.shortfall_cells())
     shortfall_category_rows = [
-        (category_id, label, shortfall, covered, best)
-        for category_id, (label, shortfall, covered, best) in sorted(
-            category_totals.items(), key=lambda item: (-item[1][1], item[0])
-        )
-        if shortfall > 0
-    ][: coverage_sql.DEFAULT_TOP_CELLS_LIMIT]
+        (category_id, category_labels.get(category_id), shortfall, covered, best)
+        for category_id, shortfall, covered, best in accumulator.shortfall_by_category()
+    ]
 
     covered_zero = total_combos - covered_total
     coverage_rate = (covered_at_or_above_min / total_combos) if total_combos else None

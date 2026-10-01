@@ -108,7 +108,7 @@ class FakeCursor:
             return (self._is_superuser,)
         if "current_user" in self._last_sql:
             return ("test_user", "test_db")
-        if "covered_at_or_above_min" in self._last_sql:
+        if "count(*) AS restaurants_with_usable_media" in self._last_sql:
             # Stage5 のバケット集計クエリ(build_stage5_summary_sql)は3列返す。
             return (0, 0, 0)
         return (0,)
@@ -182,7 +182,7 @@ class TempFileLimitTest(unittest.TestCase):
         self.assertTrue(self._sql_with(cursor, "is_superuser"), "先に聞いていること")
         self.assertFalse(self._sql_with(cursor, "temp_file_limit"), "聞いた結果、投げていないこと")
         # 本体は最後まで走る
-        self.assertTrue(self._sql_with(cursor, "covered_at_or_above_min"))
+        self.assertTrue(self._sql_with(cursor, "count(*) AS restaurants_with_usable_media"))
 
     def test_sets_the_limit_when_superuser(self) -> None:
         cursor = self._run([], is_superuser="on")
@@ -193,7 +193,7 @@ class TempFileLimitTest(unittest.TestCase):
         executed = cursor.executed_sql
         limit_idx = next(i for i, sql in enumerate(executed) if "temp_file_limit" in sql)
         aggregation_idx = next(
-            i for i, sql in enumerate(executed) if "covered_at_or_above_min" in sql
+            i for i, sql in enumerate(executed) if "count(*) AS restaurants_with_usable_media" in sql
         )
         self.assertLess(limit_idx, aggregation_idx)
 
@@ -220,7 +220,7 @@ class TempFileLimitTest(unittest.TestCase):
         self.assertTrue(self._sql_with(cursor, "temp_file_limit"), "試みていること")
         self.assertTrue(self._sql_with(cursor, "ROLLBACK"), "abort を畳んでいること")
         self.assertTrue(
-            self._sql_with(cursor, "covered_at_or_above_min"), "本体が最後まで走ること"
+            self._sql_with(cursor, "count(*) AS restaurants_with_usable_media"), "本体が最後まで走ること"
         )
 
 
@@ -252,42 +252,54 @@ class Stage5CellBatchTest(unittest.TestCase):
         sut.main()
         return cursor
 
-    def test_batched_sql_restricts_to_the_batch_cells(self) -> None:
-        cursor = self._run(["--cell-batch-size", "2"])
-        summaries = [
+    @staticmethod
+    def _aggregations(cursor: FakeCursor) -> list[tuple]:
+        """Stage5 の **重い集計** の実行だけを取り出す。"""
+        return [
             (sql, params)
             for sql, params in zip(cursor.executed_sql, cursor.executed_params)
-            if "covered_at_or_above_min" in sql
+            if "count(*) AS restaurants_with_usable_media" in sql
         ]
-        # セル 5 件を 2 件ずつ → 3 バッチ
-        self.assertEqual(3, len(summaries))
-        for sql, params in summaries:
+
+    def test_batched_sql_restricts_to_the_batch_cells(self) -> None:
+        cursor = self._run(["--cell-batch-size", "2"])
+        aggregations = self._aggregations(cursor)
+        # セル 5 件を 2 件ずつ → 3 バッチ。**バッチあたり 1 回だけ**
+        self.assertEqual(3, len(aggregations))
+        for sql, params in aggregations:
             self.assertIn("ac.s2_cell_id = ANY(%(cell_ids)s::bigint[])", sql)
             self.assertIn("cell_ids", params)
-        self.assertEqual([[10, 20], [30, 40], [50]], [p["cell_ids"] for _, p in summaries])
+        self.assertEqual([[10, 20], [30, 40], [50]], [p["cell_ids"] for _, p in aggregations])
+
+    def test_the_heavy_aggregation_runs_once_per_batch(self) -> None:
+        """⚠️ #1782 2026-10-01: 以前は 4 本（件数 / 上位 / 惜しい / カテゴリ別）に分けて
+        **同じ集計を 4 回評価**しており、dev では 65 分でも終わらなかった
+        （[run 36820246635](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36820246635)）。
+        バッチ数と等しいことを縛る。
+        """
+        cursor = self._run(["--cell-batch-size", "1"])
+        self.assertEqual(5, len(self._aggregations(cursor)))
 
     def test_zero_runs_the_aggregation_once_without_the_predicate(self) -> None:
         cursor = self._run(["--cell-batch-size", "0"])
-        summaries = [sql for sql in cursor.executed_sql if "covered_at_or_above_min" in sql]
-        self.assertEqual(1, len(summaries))
-        self.assertNotIn("cell_ids", summaries[0])
+        aggregations = self._aggregations(cursor)
+        self.assertEqual(1, len(aggregations))
+        self.assertNotIn("cell_ids", aggregations[0][0])
 
-    def test_batched_category_rollup_keeps_every_category(self) -> None:
-        """⚠️ バッチごとに `HAVING > 0` / `LIMIT` を付けるとカテゴリが切り捨てられ、
-        足し合わせた結果が一括と変わる。付けていないことを縛る。
+    def test_the_sql_carries_no_threshold_or_ordering(self) -> None:
+        """閾値・並べ替え・上限は Python 側（Stage5Accumulator）だけに置く。"""
+        cursor = self._run(["--cell-batch-size", "2"])
+        for sql, _ in self._aggregations(cursor):
+            for forbidden in ("HAVING", "ORDER BY", "LIMIT", "FILTER (WHERE"):
+                self.assertNotIn(forbidden, sql)
+
+    def test_lookup_tables_are_fetched_once_not_per_row(self) -> None:
+        """カテゴリ名と «セルの店舗数» は引き当て表から 1 回だけ取る
+        （1 行ごとに文字列を運ぶと数百万行ぶんの転送になる）。
         """
         cursor = self._run(["--cell-batch-size", "2"])
-        rollups = [sql for sql in cursor.executed_sql if "AS shortfall_cells" in sql]
-        self.assertEqual(3, len(rollups))
-        for sql in rollups:
-            self.assertNotIn("HAVING", sql)
-            self.assertNotIn("LIMIT", sql)
-
-    def test_unbatched_category_rollup_still_filters_and_limits_in_sql(self) -> None:
-        cursor = self._run(["--cell-batch-size", "0"])
-        rollup = next(sql for sql in cursor.executed_sql if "AS shortfall_cells" in sql)
-        self.assertIn("HAVING", rollup)
-        self.assertIn("LIMIT", rollup)
+        counts = [sql for sql in cursor.executed_sql if "restaurant_count FROM" in sql]
+        self.assertEqual(1, len(counts))
 
 
 class ReadOnlySwitchOrderTest(unittest.TestCase):
