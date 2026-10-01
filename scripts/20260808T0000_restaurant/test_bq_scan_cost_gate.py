@@ -13,6 +13,7 @@ import ast
 import importlib.util
 import pathlib
 import sys
+import types
 import unittest
 
 HERE = pathlib.Path(__file__).parent
@@ -190,6 +191,73 @@ class 費用がループの回転数に比例しない(unittest.TestCase):
     def test_既定値が事故前の値に戻っていない(self):
         self.assertIn('"--select-interval-min", type=float, default=30.0', RESOLVE_SRC)
         self.assertIn('"--max-selects", type=int, default=12', RESOLVE_SRC)
+
+
+class 門が閉じたら本番クエリは1本も走らない(unittest.TestCase):
+    """**ここが «課金しない» の本体である。** 見積もりで止めた後に実行されたら意味が無い。
+
+    ネットワークへは出ない（client を差し替える）。
+    """
+
+    def _pipeline(self, *, estimated_gib: float, allow_gib=None, budget_gib=None):
+        pl = object.__new__(PC.BigQueryPipeline)
+        pl.config = types.SimpleNamespace(region="asia-northeast1", project_id="p",
+                                          dataset_ref="p.d")
+        pl.scans = PC.ScanLedger(gate_gib=1.0, allow_gib=allow_gib, budget_gib=budget_gib)
+        pl.ran = []
+        pl.dry_runs = []
+
+        def fake_dry_run(sql, parameters=None):
+            pl.dry_runs.append(sql)
+            return int(estimated_gib * GIB)
+
+        def fake_run_job(submit, *, what, **kw):
+            pl.ran.append(what)
+            job = types.SimpleNamespace(total_bytes_billed=int(estimated_gib * GIB),
+                                        num_dml_affected_rows=0)
+            return job, []
+
+        pl.dry_run_bytes = fake_dry_run
+        pl._run_job = fake_run_job
+        return pl
+
+    def test_門を超えたら本番クエリを投げずに例外(self):
+        pl = self._pipeline(estimated_gib=4.58)
+        with self.assertRaises(PC.ScanTooLarge):
+            pl.execute("SELECT * FROM t")
+        self.assertEqual(pl.ran, [], "止めたはずなのに本番クエリが走っている（＝課金する）")
+        self.assertEqual(len(pl.dry_runs), 1, "見積もりは実行前に 1 回だけ")
+
+    def test_例外の文面が次の行動を名指しする(self):
+        pl = self._pipeline(estimated_gib=4.58)
+        with self.assertRaises(PC.ScanTooLarge) as cm:
+            pl.execute("SELECT * FROM t")
+        msg = str(cm.exception)
+        self.assertIn("4.58 GiB", msg)
+        self.assertIn("BQ_ALLOW_SCAN_GIB", msg)
+        self.assertIn("safety-policy.md", msg)
+
+    def test_宣言があれば走って台帳へ積まれる(self):
+        pl = self._pipeline(estimated_gib=4.58, allow_gib=5.0)
+        pl.execute("SELECT * FROM t")
+        self.assertEqual(len(pl.ran), 1)
+        self.assertEqual(pl.scans.queries, 1)
+        self.assertEqual(pl.scans.billed_bytes, int(4.58 * GIB))
+
+    def test_予算を超えたら本番クエリを投げない(self):
+        pl = self._pipeline(estimated_gib=0.5, allow_gib=1.0, budget_gib=1.0)
+        pl.execute("SELECT 1")   # 0.5 GiB
+        pl.execute("SELECT 1")   # 累計 1.0 GiB
+        self.assertEqual(len(pl.ran), 2)
+        with self.assertRaises(PC.ScanBudgetExceeded):
+            pl.execute("SELECT 1")
+        self.assertEqual(len(pl.ran), 2, "予算超過なのに 3 本目が走っている")
+
+    def test_DMLも門で止まる(self):
+        pl = self._pipeline(estimated_gib=3.66)   # 4_14 の UPDATE の実測
+        with self.assertRaises(PC.ScanTooLarge):
+            pl.execute_dml("UPDATE t SET a = 1 WHERE TRUE")
+        self.assertEqual(pl.ran, [])
 
 
 # --- 門を通る経路の判定表 ---------------------------------------------------------
