@@ -340,8 +340,9 @@ def _stage5_matched_sql(
     INNER JOIN のため、この SELECT には usable dish_media が半径内に 1 件も無い
     area × category は最初から現れない（coverageが0の組み合わせは、呼び出し側が
     「全組み合わせ数 − この結果の行数」で引き算して出す。0件を1行ずつ列挙しない）。
-    build_stage5_summary_sql() と build_stage5_top_cells_sql() の両方がこれを
-    CTE として土台にする（集計そのものを二重に書かない）。
+    ⚠️ **この集計は 1 回だけ評価する。** 件数バケット・上位セル・惜しいセル・カテゴリ別は
+    {@link build_stage5_matched_rows_sql} が返す行から {@link Stage5Accumulator} が作る
+    （以前は 4 本のクエリに分けており、同じ集計を 4 回評価していた。run 36820246635）。
 
     ⚠️ `count(*)` でよい理由と、JP gate の絞り込みをここに書かない理由は
     {@link build_stage5_driver_temp_table_sql} にある。
@@ -349,9 +350,7 @@ def _stage5_matched_sql(
     return (
         "SELECT\n"
         "  ac.s2_cell_id,\n"
-        "  ac.restaurant_count,\n"
         "  t.category_id,\n"
-        "  t.category_label,\n"
         "  count(*) AS restaurants_with_usable_media\n"
         f"FROM {driver_table_name} t\n"
         f"JOIN {area_table_name} ac\n"
@@ -362,117 +361,112 @@ def _stage5_matched_sql(
         "     )\n"
         # バッチ実行では «このバッチのセルだけ» へ絞る（%(cell_ids)s は呼び出し側がバインドする）
         + ("WHERE ac.s2_cell_id = ANY(%(cell_ids)s::bigint[])\n" if batched else "")
-        + "GROUP BY ac.s2_cell_id, ac.restaurant_count, t.category_id, t.category_label"
+        + "GROUP BY ac.s2_cell_id, t.category_id"
     )
 
 
-def build_stage5_summary_sql(
+def build_stage5_matched_rows_sql(
     radius_m: float = DEFAULT_RADIUS_M,
-    min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
     area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
     driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
     batched: bool = False,
 ) -> str:
-    """Stage5: coverage が非ゼロの area × category を、min_restaurants 基準でバケット集計する。
+    """Stage5 の集計を **1 回だけ**評価し、(セル, カテゴリ, 店舗数) をそのまま返す。
 
-    16.8M 行を1行ずつ返す代わりに、`>= min_restaurants` / `< min_restaurants` の
-    2バケットの件数だけを返す。coverageが0の件数は呼び出し側が全組み合わせ数から
-    このクエリの `covered_total` を引いて出す。
+    ## なぜ 1 回にするのか（#1782 2026-10-01）
+
+    以前はこの集計を土台に **4 本のクエリ**（件数バケット / 上位セル / 惜しいセル /
+    カテゴリ別）を投げていた。SQL としては «同じ集計を 1 箇所に書く» を守れていたが、
+    **実行は 4 回**で、dev 実測ではバッチあたり 4 回 × 63 バッチ = 252 回の重い集計になり、
+    [run 36820246635](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36820246635) は
+    **65 分経っても終わらなかった**。dev と public は同じインスタンスなので
+    （[#2006](https://github.com/Ayato-kosaka/nanitabeyo/issues/2006)）、
+    **4 倍の仕事は 4 倍の迷惑**である。
+
+    1 回だけ評価して行を受け取り、4 つの出し方は Python 側（{@link aggregate_stage5_rows}）
+    で作る。⚠️ **定義はこの関数（= `_stage5_matched_sql`）に 1 箇所だけ残る。**
+    閾値や並べ替えを SQL と Python の 2 箇所へ書かないため、SQL 側には
+    `HAVING` も `ORDER BY` も `LIMIT` も置かない。
+
+    ## 行数
+
+    返るのは «coverage が非ゼロの (セル, カテゴリ)» だけ（INNER JOIN なので 0 件は出ない）。
+    `category_label` と `restaurant_count` は**ここに含めない**（それぞれ 134 行 /
+    125,834 行の引き当て表から Python 側で付ける。1 行ごとに文字列を運ばない）。
     """
-    return (
-        "WITH matched AS (\n"
-        f"{_stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)}\n"
-        ")\n"
-        "SELECT\n"
-        f"  count(*) FILTER (WHERE restaurants_with_usable_media >= {min_restaurants})"
-        " AS covered_at_or_above_min,\n"
-        f"  count(*) FILTER (WHERE restaurants_with_usable_media < {min_restaurants})"
-        " AS covered_below_min,\n"
-        "  count(*) AS covered_total\n"
-        "FROM matched"
-    )
+    return _stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)
 
 
-def build_stage5_shortfall_cells_sql(
-    top_n: int = DEFAULT_TOP_CELLS_LIMIT,
-    radius_m: float = DEFAULT_RADIUS_M,
-    min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
-    area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
-    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
-    batched: bool = False,
+def build_area_cell_restaurant_counts_sql(
+    table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
 ) -> str:
-    """#1782 完了条件2: **あと少しで成立する** area × category を、惜しい順に出す。
+    """セルごとの店舗数の引き当て表（1 行ごとに運ばないため、まとめて 1 回取る）。"""
+    return f"SELECT s2_cell_id, restaurant_count FROM {table_name}"
 
-    ⚠️ 「不足セル」を素直に «閾値に満たない全部» と読むと 16,467,553 行になる
-       （dev 実測: 0 店舗 16,389,774 + 1〜4 店舗 77,779）。**一覧にしても打ち手は決まらない。**
 
-    打ち手が決まるのは «1 件以上あるが閾値に届いていない» セルである。ここは投稿が
-    あと 1〜4 件増えれば成立に変わる。0 店舗のセルは «そのエリアにその料理の店を
-    見つけるところから» なので、投稿の追加では動かず、性質が違う（#1273 の担当）。
+class Stage5Accumulator:
+    """Stage5 の 4 つの出し方を、**1 回の集計結果から**作る（#1782 2026-10-01）。
 
-    多い順に並べるのは «いちばん惜しいものから潰す» ため。
+    以前は «件数バケット / 上位セル / 惜しいセル / カテゴリ別» を **SQL 4 本**で出していた。
+    同じ重い集計を 4 回評価することになり、dev では 65 分でも終わらなかった
+    （[run 36820246635](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36820246635)）。
+
+    ⚠️ **閾値と並べ替えはここだけに書く。** SQL 側には `HAVING` / `ORDER BY` / `LIMIT` を
+    置かない（2 箇所に書くとずれ、片方だけ直ったときにテストが緑のまま嘘を守る）。
+
+    ⚠️ **バッチをまたいで足せるのは、セルで割っているからである。** Stage5 の出力行は
+    (セル, カテゴリ) で、セルはどのバッチにも 1 回しか現れない = 完全な分割なので、
+    件数は足し算、上位 N は «各バッチの上位 N» からの再選択、カテゴリ別はキーごとの
+    足し算（最大値は最大値）で **一括と同じ値**になる。
     """
-    return (
-        _stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)
-        + f"\nHAVING count(*) < {min_restaurants}"
-        + "\nORDER BY restaurants_with_usable_media DESC, ac.s2_cell_id, t.category_id"
-        + f"\nLIMIT {top_n}"
-    )
 
+    def __init__(self, min_restaurants: int = DEFAULT_MIN_RESTAURANTS, top_n: int = DEFAULT_TOP_CELLS_LIMIT):
+        self.min_restaurants = min_restaurants
+        self.top_n = top_n
+        self.covered_at_or_above_min = 0
+        self.covered_below_min = 0
+        self.covered_total = 0
+        self._top: list[tuple] = []
+        self._shortfall: list[tuple] = []
+        # category_id -> [shortfall_cells, covered_cells, best_cell_restaurants]
+        self._by_category: dict[str, list[int]] = {}
 
-def build_stage5_shortfall_by_category_sql(
-    top_n: int = DEFAULT_TOP_CELLS_LIMIT,
-    radius_m: float = DEFAULT_RADIUS_M,
-    min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
-    area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
-    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
-    batched: bool = False,
-) -> str:
-    """#1782 完了条件2: 惜しいセルをカテゴリ単位でまとめる（«どの料理から手を付けるか»）。
+    @staticmethod
+    def _order_key(row: tuple) -> tuple:
+        """SQL の `ORDER BY restaurants_with_usable_media DESC, s2_cell_id, category_id` と同じ鍵。"""
+        s2_cell_id, category_id, count = row
+        return (-count, s2_cell_id, category_id)
 
-    セル一覧はエリアの粒度が細かすぎて（S2 level 14 = 約 1.3km 四方）、
-    隣接セルが同じ店を見るので同じ行が並ぶ。**打ち手はカテゴリ単位で決まる**ので、
-    «惜しいセルを最も多く抱えているカテゴリ» を出す。
-    """
-    return (
-        "WITH matched AS (\n"
-        f"{_stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)}\n"
-        ")\n"
-        "SELECT\n"
-        "  category_id,\n"
-        "  category_label,\n"
-        f"  count(*) FILTER (WHERE restaurants_with_usable_media < {min_restaurants})"
-        " AS shortfall_cells,\n"
-        f"  count(*) FILTER (WHERE restaurants_with_usable_media >= {min_restaurants})"
-        " AS covered_cells,\n"
-        "  max(restaurants_with_usable_media) AS best_cell_restaurants\n"
-        "FROM matched\n"
-        "GROUP BY category_id, category_label\n"
-        # ⚠️ バッチでは HAVING / LIMIT を付けない。付けるとバッチごとに **カテゴリが切り捨て**
-        #    られ、足し合わせた結果が一括と変わる（JP gate は 134 件なので全件返して安い）。
-        #    絞り込みと並べ替えは呼び出し側が全バッチを足したあとで行う
-        + (
-            ""
-            if batched
-            else (
-                f"HAVING count(*) FILTER (WHERE restaurants_with_usable_media < {min_restaurants}) > 0\n"
-                "ORDER BY shortfall_cells DESC, category_id\n"
-                f"LIMIT {top_n}"
-            )
-        )
-    )
+    def add_rows(self, rows) -> None:
+        """1 バッチぶんの `(s2_cell_id, category_id, restaurants_with_usable_media)` を足す。"""
+        for row in rows:
+            _, category_id, count = row
+            self.covered_total += 1
+            entry = self._by_category.setdefault(category_id, [0, 0, 0])
+            if count >= self.min_restaurants:
+                self.covered_at_or_above_min += 1
+                entry[1] += 1
+            else:
+                self.covered_below_min += 1
+                entry[0] += 1
+                self._shortfall.append(row)
+            entry[2] = max(entry[2], count)
+            self._top.append(row)
+        # ⚠️ 上位 N だけ残して捨てる（全行を抱えない。dev では 600 万行オーダーになる）
+        self._top = sorted(self._top, key=self._order_key)[: self.top_n]
+        self._shortfall = sorted(self._shortfall, key=self._order_key)[: self.top_n]
 
+    def top_cells(self) -> list[tuple]:
+        return list(self._top)
 
-def build_stage5_top_cells_sql(
-    top_n: int = DEFAULT_TOP_CELLS_LIMIT,
-    radius_m: float = DEFAULT_RADIUS_M,
-    area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
-    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
-    batched: bool = False,
-) -> str:
-    """Stage5: coverage（usable dish_media を持つ店舗数）が多い順に上位 top_n 件。"""
-    return (
-        _stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)
-        + "\nORDER BY restaurants_with_usable_media DESC, ac.s2_cell_id, t.category_id"
-        + f"\nLIMIT {top_n}"
-    )
+    def shortfall_cells(self) -> list[tuple]:
+        return list(self._shortfall)
+
+    def shortfall_by_category(self) -> list[tuple]:
+        """«惜しいセルを最も多く抱えているカテゴリ» 順。惜しいセルが 0 のカテゴリは出さない。"""
+        rows = [
+            (category_id, shortfall, covered, best)
+            for category_id, (shortfall, covered, best) in self._by_category.items()
+            if shortfall > 0
+        ]
+        return sorted(rows, key=lambda row: (-row[1], row[0]))[: self.top_n]
