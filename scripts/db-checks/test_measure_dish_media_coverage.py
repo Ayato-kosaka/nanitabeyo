@@ -32,14 +32,18 @@ except ImportError:
     fake_errors = types.ModuleType("psycopg2.errors")
     fake_extras = types.ModuleType("psycopg2.extras")
 
-    class ReadOnlySqlTransaction(Exception):
+    class Error(Exception):
+        """psycopg2.Error（例外の基底）。temp_file_limit を張れなかった側で要る。"""
+
+    class ReadOnlySqlTransaction(Error):
         pass
 
-    class QueryCanceled(Exception):
+    class QueryCanceled(Error):
         pass
 
     fake_errors.ReadOnlySqlTransaction = ReadOnlySqlTransaction
     fake_errors.QueryCanceled = QueryCanceled
+    fake_psycopg2.Error = Error
     fake_psycopg2.errors = fake_errors
     fake_psycopg2.connect = mock.MagicMock()
     # execute_values はテスト対象内で locations が空（FakeCursor.fetchall() == []）の
@@ -56,13 +60,18 @@ import measure_dish_media_coverage as sut
 class FakeCursor:
     """cur.execute() の呼び出し列を、実行順のまま記録するだけの最小フェイク。"""
 
-    def __init__(self) -> None:
+    def __init__(self, fail_on: str | None = None) -> None:
         self.executed_sql: list[str] = []
         self._last_sql = ""
+        # «この部分文字列を含む SQL だけ失敗させる» 口（temp_file_limit は superuser
+        # でないと張れないので、張れなかった側の挙動も縛るために要る）
+        self._fail_on = fail_on
 
     def execute(self, sql, *args, **kwargs) -> None:
         self.executed_sql.append(sql)
         self._last_sql = sql
+        if self._fail_on and self._fail_on in sql:
+            raise sut.psycopg2.Error(f"permission denied to set parameter: {self._fail_on}")
 
     def fetchone(self):
         if "current_user" in self._last_sql:
@@ -98,6 +107,58 @@ class FakeConnection:
 
     def __exit__(self, *exc_info: object) -> bool:
         return False
+
+
+class TempFileLimitTest(unittest.TestCase):
+    """#1782 2026-10-01 の DiskFull。**共有ディスクを埋める代わりに自分だけ落ちる**へ倒す。
+
+    dev と public は同じ Postgres インスタンスなので（#2006）、Stage5 の一時ファイルが
+    溢れると本番側の書き込みまで巻き込みうる。`temp_file_limit` は superuser でないと
+    張れないことがあるので、**張れたかどうかをログに出して続行する**（黙って続行しない）。
+    """
+
+    def _run(self, argv: list[str], fail_on: str | None = None) -> FakeCursor:
+        cursor = FakeCursor(fail_on=fail_on)
+        connection = FakeConnection(cursor)
+        patchers = [
+            mock.patch.object(sut.psycopg2, "connect", return_value=connection),
+            mock.patch.dict(sut.os.environ, {"DATABASE_URL": "postgres://fake"}),
+            mock.patch.object(sys, "argv", ["measure_dish_media_coverage.py", *argv]),
+        ]
+        for p in patchers:
+            p.start()
+            self.addCleanup(p.stop)
+        sut.main()
+        return cursor
+
+    def test_limit_is_set_before_the_stage5_aggregation(self) -> None:
+        cursor = self._run([])
+        executed = cursor.executed_sql
+        limit_idx = next(i for i, sql in enumerate(executed) if "temp_file_limit" in sql)
+        aggregation_idx = next(
+            i for i, sql in enumerate(executed) if "covered_at_or_above_min" in sql
+        )
+        self.assertLess(limit_idx, aggregation_idx)
+
+    def test_limit_is_set_before_statement_timeout(self) -> None:
+        """⚠️ 時間で殺される前にディスクで殺せる順でなければ意味が無い。"""
+        cursor = self._run([])
+        executed = cursor.executed_sql
+        limit_idx = next(i for i, sql in enumerate(executed) if "temp_file_limit" in sql)
+        timeout_idx = next(i for i, sql in enumerate(executed) if "SET statement_timeout" in sql)
+        self.assertLess(limit_idx, timeout_idx)
+
+    def test_zero_means_do_not_set_it(self) -> None:
+        cursor = self._run(["--temp-file-limit-mb", "0"])
+        self.assertFalse([sql for sql in cursor.executed_sql if "temp_file_limit" in sql])
+
+    def test_measurement_continues_when_the_limit_cannot_be_set(self) -> None:
+        """superuser でない接続でも測定そのものは止めない（止めるのは過剰）。"""
+        cursor = self._run([], fail_on="temp_file_limit")
+        # SET は試みている
+        self.assertTrue([sql for sql in cursor.executed_sql if "temp_file_limit" in sql])
+        # そのあと Stage5 の集計まで到達している
+        self.assertTrue([sql for sql in cursor.executed_sql if "covered_at_or_above_min" in sql])
 
 
 class ReadOnlySwitchOrderTest(unittest.TestCase):

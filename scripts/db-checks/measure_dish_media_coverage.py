@@ -310,6 +310,41 @@ def run_stage4(cur, table_name: str) -> list[dict]:
     return result
 
 
+def apply_temp_file_limit(cur, limit_mb: int) -> bool:
+    """このセッションが書ける一時ファイルの上限を張る（張れたら True）。
+
+    ## なぜ要るか（#1782 2026-10-01）
+
+    Stage5 が `DiskFull: could not write to file "base/pgsql_tmp/..."` で落ちた
+    ([run 36816039711](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36816039711))。
+    起点を畳んで溢れないようにしたが、⚠️ **溢れる量は供給側（#1273 / #1263 の取り込み）が
+    増えれば また増える**。dev と public は同じ Postgres インスタンスなので
+    ([#2006](https://github.com/Ayato-kosaka/nanitabeyo/issues/2006))、
+    «共有ディスクを埋める» ではなく **«自分のクエリだけが落ちる»** に倒しておく。
+
+    ⚠️ `temp_file_limit` は PGC_SUSET（superuser だけが変えられる）なので、
+    **張れないことがある**。張れなかったときに測定ごと止めるのは過剰なので、
+    «張れたか» をログへ出して続行する。**黙って続行しない**のが肝で、
+    «上限があるつもりで走っていた» を作らない。
+    """
+    if limit_mb <= 0:
+        logger.info("一時ファイルの上限: 指定なし（--temp-file-limit-mb 0）")
+        return False
+    try:
+        cur.execute(f"SET temp_file_limit = '{limit_mb}MB'")
+    except psycopg2.Error as error:
+        logger.warning(
+            "⚠️ 一時ファイルの上限を張れませんでした（%s）。"
+            "superuser でないと temp_file_limit は変えられない。"
+            "このまま走るので、溢れると共有ディスクの側で落ちる: %s",
+            f"{limit_mb} MB",
+            str(error).strip().splitlines()[0] if str(error).strip() else error.__class__.__name__,
+        )
+        return False
+    logger.info("一時ファイルの上限: %s MB（超えたらこのクエリだけが落ちる）", f"{limit_mb:,}")
+    return True
+
+
 def run_stage5(
     cur,
     driver_table_name: str,
@@ -318,8 +353,12 @@ def run_stage5(
     radius_m: float,
     min_restaurants: int,
     statement_timeout_s: int,
+    temp_file_limit_mb: int,
 ) -> dict:
     section("Stage5: area(S2セル) x dish_category(JP gate) の coverage")
+
+    # ⚠️ statement_timeout より前に張る（時間で殺される前にディスクで殺せるようにする）
+    apply_temp_file_limit(cur, temp_file_limit_mb)
 
     cur.execute(coverage_sql.build_area_cell_count_sql(area_table_name))
     total_area_cells = cur.fetchone()[0]
@@ -507,6 +546,16 @@ def parse_args() -> argparse.Namespace:
         help="Stage5 の集計クエリに許す最大秒数（既定: 300）",
     )
     parser.add_argument(
+        "--temp-file-limit-mb",
+        type=int,
+        default=4096,
+        help=(
+            "Stage5 が書ける一時ファイルの上限（MB。既定: 4096 / 0 で指定しない）。"
+            "dev と public は同じインスタンスなので、共有ディスクを埋める代わりに"
+            "このクエリだけが落ちるようにする（#1782）"
+        ),
+    )
+    parser.add_argument(
         "--out-json",
         default=None,
         help="結果 JSON の書き出し先（省略時はファイルへ書かない。標準出力へは常に出す）",
@@ -574,6 +623,7 @@ def main() -> int:
                 radius_m=args.radius_m,
                 min_restaurants=args.min_restaurants,
                 statement_timeout_s=args.statement_timeout_s,
+                temp_file_limit_mb=args.temp_file_limit_mb,
             )
 
     result = {
