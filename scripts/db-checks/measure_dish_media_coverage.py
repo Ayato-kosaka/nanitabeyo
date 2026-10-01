@@ -194,7 +194,17 @@ _RESTAURANT_PIPELINE_DIR = (
 if str(_RESTAURANT_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(_RESTAURANT_PIPELINE_DIR))
 
-from normalization import s2_cell_id  # noqa: E402  (sys.path 設定の直後で読む必要がある)
+# ⚠️ `requirements_path` を間違えると、ここが素の ModuleNotFoundError: s2sphere で落ちる。
+# db-script-run.yml の既定（wikidata 側）には s2sphere が無い。2026-10-01 に実際に
+# 1 run 無駄にしたので、«何を渡せばよいか» をその場で言うようにする。
+try:
+    from normalization import s2_cell_id  # noqa: E402  (sys.path 設定の直後で読む必要がある)
+except ModuleNotFoundError as _error:  # pragma: no cover - 依存の欠落は CI では起きない
+    raise SystemExit(
+        f"❌ S2 セル化に要る依存が入っていない（{_error.name}）。\n"
+        "   db-script-run.yml の requirements_path は既定（wikidata 側）ではなく\n"
+        "   scripts/20260808T0000_restaurant/requirements.txt を渡すこと。"
+    ) from _error
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
