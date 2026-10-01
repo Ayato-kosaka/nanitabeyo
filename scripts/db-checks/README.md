@@ -84,6 +84,20 @@ requirements_path: scripts/20260808T0000_restaurant/requirements.txt
 落ちたときは **`--s2-level` を小さく（粗く）するか `--statement-timeout-s` を伸ばす**。
 この 2 つは «DB が壊れている» のサインではないので、先に閾値を疑うこと。
 
+⚠️ **ただし `DiskFull` は閾値の問題ではない。** 2026-10-01 に Stage5 が
+`DiskFull: could not write to file "base/pgsql_tmp/..."` で落ちた
+（[run 36816039711](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36816039711)）。
+半径 20km の `ST_DWithin` は 1 行が数千セルに当たるので、**起点の行数がそのまま
+中間結果の倍率になる**。`--statement-timeout-s` を伸ばしても溢れる量は変わらない。
+見るのは時間ではなく **ログの «Stage5 の起点» の行数**で、そこが大きいなら
+起点の畳み込み（`build_stage5_driver_temp_table_sql`）が効いていない。
+⚠️ **このインスタンスは dev と public が同居している**（[#2006](https://github.com/Ayato-kosaka/nanitabeyo/issues/2006)）。
+«読み取り専用だから安全» は一時ファイルには当てはまらない。
+そのため Stage5 は `--temp-file-limit-mb`（既定 4096）で**自分のセッションの一時ファイルに
+上限を張る**。⚠️ `temp_file_limit` は superuser でないと張れないので、**張れなかったときは
+ログに `⚠️ 一時ファイルの上限を張れませんでした` が出る**。その run は共有ディスクの側で
+落ちうるので、出ていたら起点の行数を先に見ること。
+
 `--assert` を持つスクリプトは、劣化していたら終了コード 1 を返す（ラチェットとして使える）。
 
 ⚠️ **`--schema public`（本番）は、オーナーが `public` という語を自分から出したときにしか

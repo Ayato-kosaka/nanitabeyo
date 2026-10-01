@@ -13,10 +13,15 @@ area・category は当初グリッド近似 / dish_categories 全件（誤って
 from __future__ import annotations
 
 import re
+import sys
 import unittest
 from pathlib import Path
 
-import dish_media_coverage_sql as sut
+# ⚠️ `python3 -m unittest scripts/db-checks/test_...py` のようにリポジトリルートから
+#    呼ばれても import できるようにする（CI はこの形で回す。#1782 2026-10-01）。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import dish_media_coverage_sql as sut  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -120,8 +125,8 @@ class Stage5ShortfallTest(unittest.TestCase):
         sql = sut.build_stage5_shortfall_cells_sql()
         # 集計本体は INNER JOIN なので 0 店舗のセルは最初から現れない。
         # そのうえで閾値未満へ絞る
-        self.assertIn("HAVING count(DISTINCT t.restaurant_id) < 5", sql)
-        self.assertIn(f"FROM {sut.DEFAULT_TEMP_TABLE_NAME} t", sql)
+        self.assertIn("HAVING count(*) < 5", sql)
+        self.assertIn(f"FROM {sut.DEFAULT_STAGE5_DRIVER_TABLE_NAME} t", sql)
 
     def test_shortfall_cells_are_ordered_closest_to_the_threshold_first(self) -> None:
         # «いちばん惜しいものから潰す» ための並び
@@ -132,7 +137,7 @@ class Stage5ShortfallTest(unittest.TestCase):
 
     def test_shortfall_respects_a_custom_threshold(self) -> None:
         sql = sut.build_stage5_shortfall_cells_sql(min_restaurants=3)
-        self.assertIn("HAVING count(DISTINCT t.restaurant_id) < 3", sql)
+        self.assertIn("HAVING count(*) < 3", sql)
         self.assertNotIn("< 5", sql)
 
     def test_shortfall_by_category_rolls_up_for_deciding_what_to_work_on(self) -> None:
@@ -146,7 +151,7 @@ class Stage5ShortfallTest(unittest.TestCase):
         matched = sut._stage5_matched_sql(
             sut.DEFAULT_RADIUS_M,
             sut.DEFAULT_AREA_CELLS_TABLE_NAME,
-            sut.DEFAULT_TEMP_TABLE_NAME,
+            sut.DEFAULT_STAGE5_DRIVER_TABLE_NAME,
         )
         self.assertIn(matched, sut.build_stage5_shortfall_cells_sql())
         self.assertIn(matched, sut.build_stage5_shortfall_by_category_sql())
@@ -220,10 +225,18 @@ class JpGateCategoryTest(unittest.TestCase):
         self.assertIn("score > 0", source)
 
     def test_stage5_uses_jp_gate_categories_not_all_dish_categories(self) -> None:
-        sql = sut.build_stage5_top_cells_sql()
-        self.assertIn("jp_gate_categories", sql)
-        self.assertIn("region:country:JP", sql)
-        self.assertNotIn("CROSS JOIN dish_categories c", sql)
+        """JP gate の絞り込みは **起点を畳む側**（driver 一時テーブル）に移した。
+
+        ⚠️ 移した先で絞っていることを確かめる。Stage5 の集計本体から
+        `jp_gate_categories` が消えただけを見て «絞らなくなった» と読まないため、
+        driver の SQL に対して同じ 3 点を当てる。
+        """
+        driver_sql = sut.build_stage5_driver_temp_table_sql()
+        self.assertIn("jp_gate_categories", driver_sql)
+        self.assertIn("region:country:JP", driver_sql)
+        self.assertNotIn("CROSS JOIN dish_categories c", driver_sql)
+        # 集計本体は driver を読むだけ（絞り込みを二重に書かない）
+        self.assertNotIn("jp_gate_categories", sut.build_stage5_top_cells_sql())
 
 
 class RadiusTest(unittest.TestCase):
@@ -243,20 +256,84 @@ class Stage5InvertedJoinTest(unittest.TestCase):
     このテストは、その向きが逆戻りしていないことを生成された SQL 文字列で検査する。
     """
 
-    def test_matched_aggregation_starts_from_media_table_not_area_cells(self) -> None:
+    def test_matched_aggregation_starts_from_the_driver_not_area_cells(self) -> None:
         sql = sut.build_stage5_top_cells_sql(
-            area_table_name="area_cells_tmp", media_table_name="usable_dish_media_tmp"
+            area_table_name="area_cells_tmp", driver_table_name="stage5_driver_tmp"
         )
-        self.assertIn("FROM usable_dish_media_tmp t", sql)
+        self.assertIn("FROM stage5_driver_tmp t", sql)
         self.assertIn("JOIN area_cells_tmp ac", sql)
         self.assertNotIn("CROSS JOIN", sql)
         self.assertNotIn("LEFT JOIN", sql)
+
+    def test_aggregation_does_not_reference_a_table_it_no_longer_joins(self) -> None:
+        """⚠️ 2026-10-01 に **実際に取り残した**。起点を driver へ移したとき、
+        `ORDER BY ... c.category_id` だけが消えた別名 `c` を指したまま残っていた
+        （テストが拾ったので DB へは出ていない）。別名は driver の `t` だけである。
+        """
+        for sql in (
+            sut.build_stage5_top_cells_sql(),
+            sut.build_stage5_shortfall_cells_sql(),
+            sut.build_stage5_summary_sql(),
+            sut.build_stage5_shortfall_by_category_sql(),
+        ):
+            self.assertNotIn("c.category_id", sql)
+            self.assertNotIn("c.category_label", sql)
+
+    def test_aggregation_no_longer_needs_count_distinct(self) -> None:
+        """#1782 2026-10-01 の DiskFull。
+
+        半径 20km の `ST_DWithin` は 1 行が数千セルに当たるので、起点の行数が
+        そのまま中間結果の倍率になる。起点を (店, カテゴリ) へ畳んだので
+        `count(DISTINCT ...)`（溢れるのはここ）は要らない。
+        ⚠️ `count(DISTINCT` が戻ってきたら、起点の畳み込みが壊れたサインである。
+        """
+        for sql in (
+            sut.build_stage5_top_cells_sql(),
+            sut.build_stage5_shortfall_cells_sql(),
+            sut.build_stage5_summary_sql(),
+            sut.build_stage5_shortfall_by_category_sql(),
+        ):
+            self.assertNotIn("count(DISTINCT", sql)
+            self.assertIn("count(*) AS restaurants_with_usable_media", sql)
 
     def test_old_full_cross_join_functions_are_gone(self) -> None:
         # 撤回した「area_cells起点・不足セルを1行ずつ返す」旧実装が復活していないことを保証する。
         self.assertFalse(hasattr(sut, "build_shortage_cells_sql"))
         self.assertFalse(hasattr(sut, "build_stage5_coverage_sql"))
         self.assertFalse(hasattr(sut, "_stage5_base_sql"))
+
+
+class Stage5DriverTest(unittest.TestCase):
+    """#1782 2026-10-01 の DiskFull の修正。起点を «(店, カテゴリ) 1 行» へ畳む。
+
+    `count(*)` が元の `count(DISTINCT t.restaurant_id)` と同じ値になるのは、
+    **driver が (restaurant_id, category_id) ごとに 1 行**で、その location が
+    **店の座標（`r.location`）**だからである。この 2 つが前提なので、ここで縛る。
+    """
+
+    def test_driver_is_distinct_on_restaurant_and_category(self) -> None:
+        sql = sut.build_stage5_driver_temp_table_sql()
+        self.assertIn("SELECT DISTINCT", sql)
+        for column in ("t.restaurant_id", "c.category_id", "c.category_label", "t.location"):
+            self.assertIn(column, sql)
+
+    def test_driver_location_is_the_restaurant_location(self) -> None:
+        """⚠️ ここが投稿側の列へ変わると count(*) は count(DISTINCT) と一致しなくなる。"""
+        self.assertIn("r.location AS location", sut.usable_dish_media_select_sql())
+
+    def test_driver_reads_the_usable_temp_table_and_does_not_repeat_the_conditions(self) -> None:
+        sql = sut.build_stage5_driver_temp_table_sql()
+        self.assertIn(f"FROM {sut.DEFAULT_TEMP_TABLE_NAME} t", sql)
+        # 本番の 5 条件は usable 一時テーブル側にしか書かない
+        self.assertNotIn("playback_status", sql)
+
+    def test_driver_indexes_cover_both_join_keys(self) -> None:
+        indexes = sut.build_stage5_driver_temp_index_sql()
+        self.assertTrue(any("USING GIST (location)" in sql for sql in indexes))
+        self.assertTrue(any("(category_id)" in sql for sql in indexes))
+
+    def test_driver_table_name_differs_from_the_usable_table(self) -> None:
+        self.assertNotEqual(sut.DEFAULT_STAGE5_DRIVER_TABLE_NAME, sut.DEFAULT_TEMP_TABLE_NAME)
 
 
 class MinRestaurantsBucketTest(unittest.TestCase):
@@ -298,7 +375,7 @@ class MinRestaurantsBucketTest(unittest.TestCase):
         matched_sql = sut._stage5_matched_sql(
             radius_m=sut.DEFAULT_RADIUS_M,
             area_table_name=sut.DEFAULT_AREA_CELLS_TABLE_NAME,
-            media_table_name=sut.DEFAULT_TEMP_TABLE_NAME,
+            driver_table_name=sut.DEFAULT_STAGE5_DRIVER_TABLE_NAME,
         )
         summary_sql = sut.build_stage5_summary_sql()
         top_cells_sql = sut.build_stage5_top_cells_sql()
@@ -332,7 +409,7 @@ class AreaCellsGistIndexTest(unittest.TestCase):
         matched_sql = sut._stage5_matched_sql(
             radius_m=sut.DEFAULT_RADIUS_M,
             area_table_name="area_cells_tmp",
-            media_table_name=sut.DEFAULT_TEMP_TABLE_NAME,
+            driver_table_name=sut.DEFAULT_STAGE5_DRIVER_TABLE_NAME,
         )
         self.assertIn(
             "ST_SetSRID(ST_MakePoint(ac.center_lng, ac.center_lat), 4326)::geography",

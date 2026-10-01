@@ -271,6 +271,25 @@ def build_area_cells_temp_table(cur, table_name: str, s2_level: int) -> int:
     return len(area_cells)
 
 
+def build_stage5_driver_temp_table(cur, driver_table_name: str, media_table_name: str) -> int:
+    """Stage5 の起点を «(店, カテゴリ) 1 行» へ畳む（DDL なので read-only 切り替えより前）。
+
+    ⚠️ 畳んでも数字が変わらない理由は
+    `dish_media_coverage_sql.build_stage5_driver_temp_table_sql()` の docstring にある。
+    """
+    cur.execute(coverage_sql.build_stage5_driver_temp_table_sql(driver_table_name, media_table_name))
+    for index_sql in coverage_sql.build_stage5_driver_temp_index_sql(driver_table_name):
+        cur.execute(index_sql)
+    cur.execute(f"ANALYZE {driver_table_name}")
+    cur.execute(coverage_sql.build_stage5_driver_count_sql(driver_table_name))
+    rows = cur.fetchone()[0]
+    logger.info(
+        "Stage5 の起点（JP gate の (店, カテゴリ) 重複なし）: %s 行",
+        f"{rows:,}",
+    )
+    return rows
+
+
 def run_stage4(cur, table_name: str) -> list[dict]:
     section("Stage4: category ごとの usable dish_media を持つ店舗数（地理条件なし）")
     cur.execute(coverage_sql.build_stage4_category_coverage_sql(table_name))
@@ -291,16 +310,55 @@ def run_stage4(cur, table_name: str) -> list[dict]:
     return result
 
 
+def apply_temp_file_limit(cur, limit_mb: int) -> bool:
+    """このセッションが書ける一時ファイルの上限を張る（張れたら True）。
+
+    ## なぜ要るか（#1782 2026-10-01）
+
+    Stage5 が `DiskFull: could not write to file "base/pgsql_tmp/..."` で落ちた
+    ([run 36816039711](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36816039711))。
+    起点を畳んで溢れないようにしたが、⚠️ **溢れる量は供給側（#1273 / #1263 の取り込み）が
+    増えれば また増える**。dev と public は同じ Postgres インスタンスなので
+    ([#2006](https://github.com/Ayato-kosaka/nanitabeyo/issues/2006))、
+    «共有ディスクを埋める» ではなく **«自分のクエリだけが落ちる»** に倒しておく。
+
+    ⚠️ `temp_file_limit` は PGC_SUSET（superuser だけが変えられる）なので、
+    **張れないことがある**。張れなかったときに測定ごと止めるのは過剰なので、
+    «張れたか» をログへ出して続行する。**黙って続行しない**のが肝で、
+    «上限があるつもりで走っていた» を作らない。
+    """
+    if limit_mb <= 0:
+        logger.info("一時ファイルの上限: 指定なし（--temp-file-limit-mb 0）")
+        return False
+    try:
+        cur.execute(f"SET temp_file_limit = '{limit_mb}MB'")
+    except psycopg2.Error as error:
+        logger.warning(
+            "⚠️ 一時ファイルの上限を張れませんでした（%s）。"
+            "superuser でないと temp_file_limit は変えられない。"
+            "このまま走るので、溢れると共有ディスクの側で落ちる: %s",
+            f"{limit_mb} MB",
+            str(error).strip().splitlines()[0] if str(error).strip() else error.__class__.__name__,
+        )
+        return False
+    logger.info("一時ファイルの上限: %s MB（超えたらこのクエリだけが落ちる）", f"{limit_mb:,}")
+    return True
+
+
 def run_stage5(
     cur,
-    media_table_name: str,
+    driver_table_name: str,
     area_table_name: str,
     s2_level: int,
     radius_m: float,
     min_restaurants: int,
     statement_timeout_s: int,
+    temp_file_limit_mb: int,
 ) -> dict:
     section("Stage5: area(S2セル) x dish_category(JP gate) の coverage")
+
+    # ⚠️ statement_timeout より前に張る（時間で殺される前にディスクで殺せるようにする）
+    apply_temp_file_limit(cur, temp_file_limit_mb)
 
     cur.execute(coverage_sql.build_area_cell_count_sql(area_table_name))
     total_area_cells = cur.fetchone()[0]
@@ -322,7 +380,7 @@ def run_stage5(
                 radius_m=radius_m,
                 min_restaurants=min_restaurants,
                 area_table_name=area_table_name,
-                media_table_name=media_table_name,
+                driver_table_name=driver_table_name,
             )
         )
         covered_at_or_above_min, covered_below_min, covered_total = cur.fetchone()
@@ -331,7 +389,7 @@ def run_stage5(
             coverage_sql.build_stage5_top_cells_sql(
                 radius_m=radius_m,
                 area_table_name=area_table_name,
-                media_table_name=media_table_name,
+                driver_table_name=driver_table_name,
             )
         )
         top_rows = cur.fetchall()
@@ -344,7 +402,7 @@ def run_stage5(
                 radius_m=radius_m,
                 min_restaurants=min_restaurants,
                 area_table_name=area_table_name,
-                media_table_name=media_table_name,
+                driver_table_name=driver_table_name,
             )
         )
         shortfall_rows = cur.fetchall()
@@ -354,14 +412,16 @@ def run_stage5(
                 radius_m=radius_m,
                 min_restaurants=min_restaurants,
                 area_table_name=area_table_name,
-                media_table_name=media_table_name,
+                driver_table_name=driver_table_name,
             )
         )
         shortfall_category_rows = cur.fetchall()
     except psycopg2.errors.QueryCanceled:
         logger.error(
             "❌ Stage5 が %s 秒でタイムアウトしました。--s2-level を小さく（粗く）するか、"
-            "--statement-timeout-s を伸ばして再実行してください。",
+            "--statement-timeout-s を伸ばして再実行してください。"
+            "（起点の行数は上の «Stage5 の起点» のログに出ている。"
+            "そこが大きいなら時間ではなく起点の問題である）",
             statement_timeout_s,
         )
         raise
@@ -486,6 +546,16 @@ def parse_args() -> argparse.Namespace:
         help="Stage5 の集計クエリに許す最大秒数（既定: 300）",
     )
     parser.add_argument(
+        "--temp-file-limit-mb",
+        type=int,
+        default=4096,
+        help=(
+            "Stage5 が書ける一時ファイルの上限（MB。既定: 4096 / 0 で指定しない）。"
+            "dev と public は同じインスタンスなので、共有ディスクを埋める代わりに"
+            "このクエリだけが落ちるようにする（#1782）"
+        ),
+    )
+    parser.add_argument(
         "--out-json",
         default=None,
         help="結果 JSON の書き出し先（省略時はファイルへ書かない。標準出力へは常に出す）",
@@ -535,6 +605,10 @@ def main() -> int:
             section("restaurants を S2 セルへ集計して一時テーブルへ materialize")
             build_area_cells_temp_table(cur, area_table_name, args.s2_level)
 
+            driver_table_name = coverage_sql.DEFAULT_STAGE5_DRIVER_TABLE_NAME
+            section("Stage5 の起点を (店, カテゴリ) へ畳んで一時テーブルへ materialize")
+            build_stage5_driver_temp_table(cur, driver_table_name, table_name)
+
             # 一時テーブルの作成が終わった直後に read-only へ切り替える。
             # 以降（Stage4 / Stage5）は永続テーブルへの書き込みがセッションレベルで拒否される。
             cur.execute("SET default_transaction_read_only = on")
@@ -543,12 +617,13 @@ def main() -> int:
             stage4_category_coverage = run_stage4(cur, table_name)
             stage5 = run_stage5(
                 cur,
-                table_name,
+                driver_table_name,
                 area_table_name,
                 s2_level=args.s2_level,
                 radius_m=args.radius_m,
                 min_restaurants=args.min_restaurants,
                 statement_timeout_s=args.statement_timeout_s,
+                temp_file_limit_mb=args.temp_file_limit_mb,
             )
 
     result = {
