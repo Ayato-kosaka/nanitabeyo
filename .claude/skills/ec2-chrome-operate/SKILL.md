@@ -236,6 +236,8 @@ for this session. Before any browser action, you MUST call the AskUserQuestion t
 
 **撮り方:**
 - 素の EC2 には `xdotool` / ImageMagick / `scrot` / `xclip` がどれも入っていない。`apt-get install -y xdotool imagemagick xclip` を本命プロンプトの前に流しておけば以後は残る。
+- **`computer` の `save_to_disk` は JPG で保存される。** Drive へ上げる手順に「PNG を」と書くと JPG の証跡が丸ごと漏れる（2026-10-02、本命の証跡 3 枚が上がらず、誤ったウィンドウの PNG 1 枚だけが上がった）。アップロード対象は「ディレクトリ内の画像すべて（png/jpg）」と書くこと。
+- **Anthropic サポート（Intercom の Fin）は、最初のメッセージを送る前にチャットデータ利用条件への Accept / Decline を求める。** 無人の agent はこれを «オーナーの同意» として止まる（正しい挙動）。サポート起票をさせるなら、ブートの前にオーナーに同意してもらうか、プロンプトに同意の委任を明記する。
 - 方法は2つ: ブラウザ側のページキャプチャ（`computer` の `screenshot` + `save_to_disk`）か、`DISPLAY=:20 import -window root /home/ubuntu/evidence/xxx.png`（X は 1600x1200）。
 - `import -window root` は「X の最前面ウィンドウ」を撮る。複数タブ・複数ウィンドウがあると目的の画面が前面とは限らない（Gmail タブが前面のまま GCP 請求画面を撮ろうとして別の画面が写った実績あり）。撮る前に `DISPLAY=:20 xdotool search --name "Google Chrome" windowactivate --sync` で前面化するか、ブラウザ側のページキャプチャを使う。
 
