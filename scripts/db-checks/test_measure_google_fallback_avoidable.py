@@ -369,5 +369,44 @@ class RadiusSweepTest(unittest.TestCase):
         self.assertIn("fetch_matched_counts(\n", SOURCE)
 
 
+class FeedDepthTest(unittest.TestCase):
+    """«1 件返る» と «枠が埋まる» を取り違えないこと（#843 2026-10-01）。
+
+    Google を呼ばない境目は **1 件**だが、画面の枠は **5 件**
+    （Remote Config `v1_search_result_restaurants_number` の既定）。
+    本番実測では 0 件でなかった検索のうち 5 件まで埋まったのは **44%** だけだった。
+    «半径を広げれば届く» が 1 件だけなのか枠まで埋まるのかで、打ち手の価値が変わる。
+    """
+
+    DEMAND = [
+        sut.DemandRow((1, "Q1", 500.0, 10)),  # 7 店 → 1/3/5 すべて満たす
+        sut.DemandRow((2, "Q1", 500.0, 20)),  # 4 店 → 1/3 のみ
+        sut.DemandRow((3, "Q1", 500.0, 30)),  # 1 店 → 1 のみ
+        sut.DemandRow((4, "Q1", 500.0, 40)),  # 0 店 → どれも満たさない
+    ]
+    COUNTS = {(1, "Q1"): 7, (2, "Q1"): 4, (3, "Q1"): 1}
+
+    def test_thresholds_are_monotonic_and_weighted_by_searches(self) -> None:
+        served = sut.sweep_served_by_threshold(self.DEMAND, self.COUNTS)
+        self.assertEqual({1: 60, 3: 30, 5: 10}, served)
+        # 閾値が厳しくなるほど減る（増えたら数え方が壊れている）
+        values = [served[t] for t in sut.FEED_THRESHOLDS]
+        self.assertEqual(values, sorted(values, reverse=True))
+
+    def test_five_is_the_production_feed_size(self) -> None:
+        """5 は画面の枠。ここを変えるなら Remote Config の既定と揃えること。"""
+        self.assertIn(5, sut.FEED_THRESHOLDS)
+        self.assertEqual(1, sut.FEED_THRESHOLDS[0], "1 件（Google を呼ばない境目）が先頭であること")
+
+    def test_missing_pairs_count_as_zero_not_as_served(self) -> None:
+        served = sut.sweep_served_by_threshold([sut.DemandRow((9, "Q9", 500.0, 5))], {})
+        self.assertEqual({1: 0, 3: 0, 5: 0}, served)
+
+    def test_sweep_json_keeps_the_one_or_more_number_at_the_top_level(self) -> None:
+        """既存の読み手（#843 のコメント）が見ている `searches_served` を壊さない。"""
+        self.assertIn('"searches_served": served[1]', SOURCE)
+        self.assertIn('"served_by_threshold"', SOURCE)
+
+
 if __name__ == "__main__":
     unittest.main()
