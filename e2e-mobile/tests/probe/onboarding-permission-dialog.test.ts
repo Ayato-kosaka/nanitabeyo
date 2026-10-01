@@ -1,10 +1,10 @@
-import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { LAUNCH_TIMEOUT, describeProbe, device, launchAppWithSession } from "../../fixtures/e2e";
 import { LoginScreen } from "../../screens/LoginScreen";
 import { OnboardingScreen } from "../../screens/OnboardingScreen";
+import { adbSync } from "../../utils/adb";
 
 /**
  * 🔬 #1736 「OS の許可ダイアログの **背後に何が描かれているか**」を実機の絵で確定させる @probe
@@ -44,8 +44,8 @@ describeProbe("#1736 位置情報の許可ダイアログの背後 @probe", () =
 	const APP_ID = "com.nanitabeyo";
 	const LOCATION_PERMISSIONS = ["android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"];
 
-	const adb = (...args: string[]): Buffer =>
-		execFileSync("adb", ["-s", device.id, ...args], { maxBuffer: 64 * 1024 * 1024 });
+	// #1579 adb は必ず utils/adb.ts を経由する（上限なしの adb を増やさないため）
+	const adb = (...args: string[]): string => adbSync(args, { maxBuffer: 64 * 1024 * 1024 });
 
 	it("ダイアログが出ている瞬間の画面を撮る", async () => {
 		if (device.getPlatform() !== "android") {

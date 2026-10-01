@@ -237,6 +237,19 @@ jobs:
       - name: 早期終了パイプのガード自身のテスト
         run: bash scripts/test-assert-no-pipefail-early-exit-pipe.sh
 
+      # #1579 adb は «相手が居ないと返ってこない» サブコマンド（`wait-for-device`）を持つ。
+      # 2026-09-30 の夜間 iOS は、ロケール観測の再試行に入れた `adb wait-for-device` が
+      # **macOS ランナーに在る adb × 現れないシミュレータ UDID** で無限に待ち、
+      # 全 spec が import する fixtures/e2e.ts のモジュール評価で jest が固まって
+      # **1 suite も走らないまま 240 分で打ち切られた**（run 36787284601 / 報告 0 of 期待 23）。
+      # ⚠️ 当時 adb の呼び出しは 6 箇所あり、**どれ 1 つも上限を渡していなかった**。
+      #    だから «その 1 行» ではなく «上限の宿る入口を 1 本に保つ» を縛る。node だけで走る。
+      - name: 上限の無い adb 呼び出しを検査
+        run: node scripts/assert-adb-sync-timeout.mjs
+
+      - name: adb 上限ガード自身のテスト
+        run: bash scripts/test-assert-adb-sync-timeout.sh
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査

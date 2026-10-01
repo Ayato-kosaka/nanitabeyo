@@ -1,6 +1,4 @@
-import { execFileSync } from "node:child_process";
-
-import { device } from "detox";
+import { adbSync, isAndroidDevice } from "./adb";
 
 /**
  * 🌏 デバイスロケール固定ヘルパ
@@ -75,6 +73,14 @@ const LOCALE_OBSERVE_ATTEMPTS = 3;
 const LOCALE_OBSERVE_RETRY_MS = 1_000;
 
 /**
+ * 再試行の前に端末の再接続を待つ上限（ms）。
+ *
+ * ⚠️ `adb wait-for-device` は **端末が現れるまで無限に待つ**。上限を外すと
+ * «観測» が «無限の待機» に化ける（#1579 の真因そのもの）。
+ */
+const LOCALE_WAIT_FOR_DEVICE_MS = 5_000;
+
+/**
  * Android の **実行時ロケール**（LocaleList = アプリが実際に使う値）を観測する。
  *
  * @returns 例: `"ja-JP"`。**観測できなかった場合は null**（«違うロケールだった» ではない）
@@ -114,14 +120,27 @@ const LOCALE_OBSERVE_RETRY_MS = 1_000;
  * - 2 / 3 は人間が原因を追うための **診断表示専用**（{@link describeAndroidLocaleProps}）
  * - 1 は adbd の一瞬の不通で落ちうるので、**数回試す**（`e2e-mobile/scripts/setup-android-locale.sh`
  *   の `adb_retry` と同じ形。あちらは «接続断で落ちうる adb» を、こちらは «観測» を守っている）
+ *
+ * ## ⚠️ #1579 【バグ】その «数回試す» が、こんどは iOS を 3 時間半固めた
+ *
+ * 上の修正で入れた再試行は `adb wait-for-device` で再接続を待っていた。**あれには上限が無い。**
+ * macOS ランナーには adb が在り、iOS の `device.id` は現れないシミュレータの UDID なので、
+ * **`describeJapaneseLocale`（= 全 spec が import するモジュールの評価）で jest が固まった**。
+ * 2026-09-30 の夜間 iOS は 2 シャードとも **1 suite も走らないまま** 240 分で打ち切られた。
+ *
+ * だから観測は 2 つの歯止めを持つ: **Android 以外では adb を 1 回も呼ばない**（{@link isAndroidDevice}）、
+ * **adb の呼び出しには必ず上限を課す**（`utils/adb.ts`。経緯と CI のガードはそちらに書いてある）。
  */
 export function getAndroidRuntimeLocale(attempts = LOCALE_OBSERVE_ATTEMPTS): string | null {
+	// ⚠️ #1579 Android 以外では adb を 1 回も呼ばない（理由は utils/adb.ts 冒頭）
+	if (!isAndroidDevice()) return null;
+
 	for (let attempt = 1; attempt <= attempts; attempt += 1) {
 		let output: string | null = null;
 		try {
-			output = adb(["shell", "am", "get-config"]);
+			output = adbSync(["shell", "am", "get-config"]);
 		} catch {
-			// adb が無い（iOS / ローカル）か、一瞬の不通。どちらもここでは区別せず次の試行へ
+			// adb が無い（ローカル）か、一瞬の不通。どちらもここでは区別せず次の試行へ
 			output = null;
 		}
 
@@ -130,8 +149,10 @@ export function getAndroidRuntimeLocale(attempts = LOCALE_OBSERVE_ATTEMPTS): str
 
 		if (attempt < attempts) {
 			try {
-				// 不通が原因なら、再接続を待つのが一番短い。online なら即座に返る
-				adb(["wait-for-device"]);
+				// 不通が原因なら、再接続を待つのが一番短い。online なら即座に返る。
+				// ⚠️ #1579 `wait-for-device` は **上限を持たない**サブコマンドなので、
+				//    上限を明示する（既定の 30 秒は «観測の再試行» には長すぎる）
+				adbSync(["wait-for-device"], { timeoutMs: LOCALE_WAIT_FOR_DEVICE_MS });
 			} catch {
 				// 観測用なので、待てなくても黙って次の試行へ
 			}
@@ -151,7 +172,7 @@ export function getAndroidRuntimeLocale(attempts = LOCALE_OBSERVE_ATTEMPTS): str
 export function describeAndroidLocaleProps(): string {
 	const read = (prop: string): string => {
 		try {
-			return adb(["shell", "getprop", prop]) || "(空)";
+			return adbSync(["shell", "getprop", prop]) || "(空)";
 		} catch {
 			return "(読めず)";
 		}
@@ -170,10 +191,10 @@ export function describeAndroidLocaleProps(): string {
  */
 export function setAndroidSystemLocale(): boolean {
 	try {
-		adb(["shell", "setprop", "persist.sys.locale", E2E_LOCALE]);
+		adbSync(["shell", "setprop", "persist.sys.locale", E2E_LOCALE]);
 		// #1031 【設計】プロパティを反映させるには Android のランタイム（zygote）再起動が必要。
 		// `stop; start` 相当を ctl.restart で行う（adb root を必要としないため CI のエミュレータでも通る）
-		adb(["shell", "setprop", "ctl.restart", "zygote"]);
+		adbSync(["shell", "setprop", "ctl.restart", "zygote"]);
 		return true;
 	} catch {
 		return false;
@@ -225,18 +246,4 @@ export function warnIfAndroidLocaleMismatch(): boolean {
 /** 同期的に待つ（観測の再試行の間隔用。テスト実行前の 1 回だけなので async 化しない） */
 function sleepSync(ms: number): void {
 	Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-/**
- * 現在の Detox デバイスに対して adb コマンドを実行する。
- *
- * @param args adb のサブコマンド（`-s <deviceId>` は自動で前置する）
- * @returns 標準出力（前後の空白を除去したもの）
- * @失敗時 adb が見つからない / コマンドが失敗した場合は例外を投げる（呼び出し側で握り潰すこと）
- */
-function adb(args: string[]): string {
-	return execFileSync("adb", ["-s", device.id, ...args], {
-		encoding: "utf8",
-		stdio: ["ignore", "pipe", "ignore"],
-	}).trim();
 }
