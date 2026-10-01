@@ -52,6 +52,58 @@ def _index_range(shards: int, shard: int, skip_files: int, n: int) -> str:
     return f"{skip_files * s + shard}-{(skip_files + n - 1) * s + shard}"
 
 
+def stripe_indices(shards: int, shard: int, skip_files: int, n: int) -> set[int]:
+    """このジョブが読む WAT の «crawl 全体でのファイル番号» の集合（純関数）。
+
+    `_index_range` が人向けに畳んでいるものを、集合として返すだけ。
+    `shards` が違うラウンド同士を比べられるのは、この «絶対番号» の上でだけである
+    （ストライプ上の `skip_files` は `shards` が違うと別の場所を指す）。
+    """
+    s = max(shards, 1)
+    return {(skip_files + j) * s + shard for j in range(max(n, 0))}
+
+
+def already_read_indices(records) -> set[int]:
+    """すでに読んだ «crawl 全体でのファイル番号» の集合。
+
+    #1947 ⚠️ **この判定を人の暗算に任せた結果、2026-10-01 に 5 ラウンド（約 25 レーン時間）が
+    «もう読んだファイル» を読み直した。** CC-MAIN-2026-34 は 9 月に 100,000 本すべて
+    読み終わっていたのに、`--skip-files 0 / 500 / 1000` を投げ直していた。新規投稿は
+    82,938 件中 **2,440 件（2.9%）**で、しかも run は緑で «成功» と出た。
+    唯一の durable な記録は `restaurant_pipeline_runs.parameters_json` なので、
+    **投げる前にそこを読む**。
+
+    `records` は `shards` / `shard` / `skip_files` / `files`（＋あれば実際に読んだ
+    `files_read`）を持つ dict の列。**`files_read` がある行はそちらを使う**
+    （`--max-minutes` で途中で降りた run は `files` 本を読んでいない）。
+    """
+    read: set[int] = set()
+    for r in records:
+        n = r.get("files_read")
+        if n is None:
+            n = r.get("files") or 0
+        read |= stripe_indices(int(r.get("shards") or 1), int(r.get("shard") or 0),
+                               int(r.get("skip_files") or 0), int(n))
+    return read
+
+
+def unread_skip(shards: int, shard: int, max_files: int, already: set[int],
+                stripe_len: int) -> int | None:
+    """まだ 1 本も読んでいない窓の先頭（`--skip-files` に渡す値）。無ければ None。
+
+    «重なりゼロの窓» を先頭から探す。半端に重なる窓を返さないのは、
+    «どこまで読んだか» が次のラウンドでまた曖昧になるからである。
+    """
+    step = max(max_files, 1)
+    for skip in range(0, max(stripe_len, 0), step):
+        n = min(step, stripe_len - skip)
+        if n <= 0:
+            return None
+        if not (stripe_indices(shards, shard, skip, n) & already):
+            return skip
+    return None
+
+
 def select_files(paths: list[str], *, shards: int, shard: int,
                  max_files: int, skip_files: int = 0) -> list[str]:
     """このジョブが読む WAT ファイルを選ぶ（純関数）。
@@ -97,6 +149,29 @@ def _host_of(uri: str) -> str:
     if h.startswith("www."):
         h = h[4:]
     return h.split(":")[0]
+
+
+def _coverage(pipeline: BigQueryPipeline, crawl: str) -> list[dict]:
+    """その crawl で «すでに読んだ» ラウンドの記録（唯一の正）。
+
+    `restaurant_pipeline_runs` の `parameters_json` が durable な記録である
+    （台帳はコンテナと一緒に消える）。失敗した run は読めていない前提で外す。
+    """
+    from google.cloud import bigquery
+    sql = f"""
+      SELECT CAST(JSON_VALUE(parameters_json, '$.shards') AS INT64) AS shards,
+             CAST(JSON_VALUE(parameters_json, '$.shard') AS INT64) AS shard,
+             CAST(JSON_VALUE(parameters_json, '$.skip_files') AS INT64) AS skip_files,
+             CAST(JSON_VALUE(parameters_json, '$.files') AS INT64) AS files,
+             CAST(JSON_VALUE(parameters_json, '$.files_read') AS INT64) AS files_read
+      FROM `{pipeline.table('restaurant_pipeline_runs')}`
+      WHERE started_at >= TIMESTAMP('2026-01-01')
+        AND step_name = '4_9_scan_cc_wat_instagram'
+        AND status = 'succeeded'
+        AND JSON_VALUE(parameters_json, '$.crawl') = @crawl
+    """
+    params = [bigquery.ScalarQueryParameter("crawl", "STRING", crawl)]
+    return [dict(r) for r in pipeline.execute(sql, params)]
 
 
 def _store_hosts(pipeline: BigQueryPipeline, catalog_run_id: str) -> dict[str, str]:
@@ -266,8 +341,16 @@ def parse_args() -> argparse.Namespace:
     #    取り直すので、`--shards/--shard` をどう変えても **必ず 0 番から**になる。
     #    2026-09-04 の 5 ラウンドが全部 0〜15,999 番に当たっていたのはこのためで、
     #    crawl 10 万本のうち **16.0% しか走査できていなかった**（残り 84% は未読のまま）。
-    p.add_argument("--skip-files", type=int, default=0,
-                   help="このシャードの先頭から読み飛ばす WAT 数（続きから流すため）")
+    #    #1947 `auto` を既定にしないのは、既存の dispatch（数字を渡す）を壊さないため。
+    #    ただし数字を渡したときも «もう読んだ範囲» なら止める（下の --allow-reread）。
+    p.add_argument("--skip-files", default="0",
+                   help="このシャードの先頭から読み飛ばす WAT 数（続きから流すため）。"
+                        "`auto` で «まだ読んでいない窓» を記録から自分で決める")
+    # ⚠️ #1947 2026-10-01、読み終わった crawl へ skip 0/500/1000 を投げ直して
+    #    約 25 レーン時間を捨てた（新規投稿 2.9%）。しかも run は緑だった。
+    #    «もう読んだ範囲» を投げたら止める。意図して読み直すときだけこれを付ける。
+    p.add_argument("--allow-reread", action="store_true",
+                   help="すでに読んだ範囲でも読み直す（既定は止める）")
     p.add_argument("--flush-every", type=int, default=10, help="何ファイルごとに BQ へ流すか")
     # ⚠️ #1947 GitHub の job 上限は 360 分で、**そこで殺されると «完了» の行が出ない**。
     #    2,000 file の 1 シャードは 199 → 228 → 240 分と伸びていて（2026-09-27 実測）、
@@ -294,21 +377,62 @@ def main() -> None:
 
     with _open(f"{BASE}crawl-data/{args.crawl}/wat.paths.gz") as r:
         paths = [p for p in gzip.decompress(r.read()).decode().split("\n") if p.strip()]
-    mine = select_files(paths, shards=args.shards, shard=args.shard,
-                        max_files=args.max_files, skip_files=args.skip_files)
-    LOGGER.info("crawl %s: 全 %d ファイル中このシャードは %d 本（先頭 %d 本を読み飛ばし）",
-                args.crawl, len(paths), len(mine), args.skip_files)
+    stripe_len = len([i for i in range(len(paths)) if i % max(args.shards, 1) == args.shard])
+    already = already_read_indices(_coverage(pipeline, args.crawl))
+    LOGGER.info("crawl %s: 全 %d ファイル中 **%d 本（%.1f%%）は既に読み終えています**"
+                "（記録は restaurant_pipeline_runs）",
+                args.crawl, len(paths), len(already), 100.0 * len(already) / max(len(paths), 1))
 
-    with pipeline.step(run_id, "4_9_scan_cc_wat_instagram", parameters={
+    if str(args.skip_files).lower() == "auto":
+        auto = unread_skip(args.shards, args.shard, args.max_files, already, stripe_len)
+        if auto is None:
+            # ⚠️ **ここで赤くしない。** crawl を読み終わったのは異常ではなく «終わり» である。
+            #   次にやることを名指しして 0 で降りる（collinfo.json に 128 crawl ある）。
+            LOGGER.warning(
+                "crawl %s の shard %d/%d は **読み終わっています**（未読の窓がありません）。"
+                "次: 別の crawl を指定してください（`https://index.commoncrawl.org/collinfo.json` に "
+                "128 crawl あり、採掘済みは CC-MAIN-2026-34 と CC-MAIN-2026-39 の 2 つだけ）",
+                args.crawl, args.shard, args.shards)
+            return
+        LOGGER.info("--skip-files auto → %d（記録から «まだ読んでいない窓» を選びました）", auto)
+        skip_files = auto
+    else:
+        skip_files = int(args.skip_files)
+
+    mine = select_files(paths, shards=args.shards, shard=args.shard,
+                        max_files=args.max_files, skip_files=skip_files)
+    overlap = len(stripe_indices(args.shards, args.shard, skip_files, len(mine)) & already)
+    if overlap and not args.allow_reread:
+        # #1947 【設計】2026-10-01、読み終わった CC-MAIN-2026-34 へ skip 0/500/1000 を
+        #   投げ直し、約 25 レーン時間で新規投稿 2.9%（82,938 → 2,440）しか出なかった。
+        #   **run は緑で «成功» と出たので、気づいたのは翌日 BigQuery を数えたときである。**
+        #   «仕事が無いのに黙って成功する» のが最悪なので、ここで止める。
+        raise SystemExit(
+            f"投げ直しです: crawl {args.crawl} shard {args.shard}/{args.shards} の "
+            f"skip {skip_files}〜{skip_files + len(mine)} は {len(mine)} 本のうち "
+            f"**{overlap} 本が既読**です（{100.0 * overlap / max(len(mine), 1):.0f}%）。"
+            f"`--skip-files auto` で未読の窓へ進めるか、意図して読み直すなら "
+            f"`--allow-reread` を付けてください")
+    LOGGER.info("crawl %s: このシャードは %d 本中 %d 本（先頭 %d 本を読み飛ばし・既読の重なり %d 本）",
+                args.crawl, stripe_len, len(mine), skip_files, overlap)
+
+    # ⚠️ #1947 `parameters` は `step()` の `finally` で JSON 化されるので、**ここを
+    #   走行中に書き換えると durable な記録に残る**。`files_read` を入れておかないと
+    #   «--max-minutes で途中で降りた run» が «files 本ぜんぶ読んだ» ことになり、
+    #   次のラウンドが未読のファイルを読み飛ばす。
+    step_params = {
         # ⚠️ #1947 **`skip_files` を落とさないこと。** ここは «次はどこから流せばよいか» を
         #   後から復元できる唯一の durable な記録である（台帳はコンテナと一緒に消える）。
         #   2026-09-04 の 5 ラウンドは `files` と `shards/shard` しか残しておらず、
         #   「どの WAT を読んだのか」が 3 週間分からないままだった（実際は 16% だけ）。
         "crawl": args.crawl, "shards": args.shards, "shard": args.shard, "files": len(mine),
-        "skip_files": args.skip_files, "total_files": len(paths),
+        "skip_files": skip_files, "total_files": len(paths),
         # 人が読むのはストライプ上の位置ではなく «crawl の何番目のファイルか» である。
-        "file_index_range": _index_range(args.shards, args.shard, args.skip_files, len(mine)),
-    }, repo_root=None) as result:
+        "file_index_range": _index_range(args.shards, args.shard, skip_files, len(mine)),
+        "files_read": 0,
+    }
+    with pipeline.step(run_id, "4_9_scan_cc_wat_instagram",
+                       parameters=step_params, repo_root=None) as result:
         rows: list[dict] = []
         acc_rows: list[dict] = []
         seen_posts: set[str] = set()
@@ -375,6 +499,7 @@ def main() -> None:
                     "discovered_at": utc_now().isoformat(), "run_id": run_id,
                 })
             files_done = n
+            step_params["files_read"] = files_done
             if n % args.flush_every == 0:
                 LOGGER.info("  %d/%d 本 | caption付き投稿 %d（店確定 %d / 地点あり %d） | handle %d | %.0fMB",
                             n, len(mine), total_posts, total_seed, total_area,
