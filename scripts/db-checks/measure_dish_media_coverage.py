@@ -271,6 +271,25 @@ def build_area_cells_temp_table(cur, table_name: str, s2_level: int) -> int:
     return len(area_cells)
 
 
+def build_stage5_driver_temp_table(cur, driver_table_name: str, media_table_name: str) -> int:
+    """Stage5 の起点を «(店, カテゴリ) 1 行» へ畳む（DDL なので read-only 切り替えより前）。
+
+    ⚠️ 畳んでも数字が変わらない理由は
+    `dish_media_coverage_sql.build_stage5_driver_temp_table_sql()` の docstring にある。
+    """
+    cur.execute(coverage_sql.build_stage5_driver_temp_table_sql(driver_table_name, media_table_name))
+    for index_sql in coverage_sql.build_stage5_driver_temp_index_sql(driver_table_name):
+        cur.execute(index_sql)
+    cur.execute(f"ANALYZE {driver_table_name}")
+    cur.execute(coverage_sql.build_stage5_driver_count_sql(driver_table_name))
+    rows = cur.fetchone()[0]
+    logger.info(
+        "Stage5 の起点（JP gate の (店, カテゴリ) 重複なし）: %s 行",
+        f"{rows:,}",
+    )
+    return rows
+
+
 def run_stage4(cur, table_name: str) -> list[dict]:
     section("Stage4: category ごとの usable dish_media を持つ店舗数（地理条件なし）")
     cur.execute(coverage_sql.build_stage4_category_coverage_sql(table_name))
@@ -293,7 +312,7 @@ def run_stage4(cur, table_name: str) -> list[dict]:
 
 def run_stage5(
     cur,
-    media_table_name: str,
+    driver_table_name: str,
     area_table_name: str,
     s2_level: int,
     radius_m: float,
@@ -322,7 +341,7 @@ def run_stage5(
                 radius_m=radius_m,
                 min_restaurants=min_restaurants,
                 area_table_name=area_table_name,
-                media_table_name=media_table_name,
+                driver_table_name=driver_table_name,
             )
         )
         covered_at_or_above_min, covered_below_min, covered_total = cur.fetchone()
@@ -331,7 +350,7 @@ def run_stage5(
             coverage_sql.build_stage5_top_cells_sql(
                 radius_m=radius_m,
                 area_table_name=area_table_name,
-                media_table_name=media_table_name,
+                driver_table_name=driver_table_name,
             )
         )
         top_rows = cur.fetchall()
@@ -344,7 +363,7 @@ def run_stage5(
                 radius_m=radius_m,
                 min_restaurants=min_restaurants,
                 area_table_name=area_table_name,
-                media_table_name=media_table_name,
+                driver_table_name=driver_table_name,
             )
         )
         shortfall_rows = cur.fetchall()
@@ -354,14 +373,16 @@ def run_stage5(
                 radius_m=radius_m,
                 min_restaurants=min_restaurants,
                 area_table_name=area_table_name,
-                media_table_name=media_table_name,
+                driver_table_name=driver_table_name,
             )
         )
         shortfall_category_rows = cur.fetchall()
     except psycopg2.errors.QueryCanceled:
         logger.error(
             "❌ Stage5 が %s 秒でタイムアウトしました。--s2-level を小さく（粗く）するか、"
-            "--statement-timeout-s を伸ばして再実行してください。",
+            "--statement-timeout-s を伸ばして再実行してください。"
+            "（起点の行数は上の «Stage5 の起点» のログに出ている。"
+            "そこが大きいなら時間ではなく起点の問題である）",
             statement_timeout_s,
         )
         raise
@@ -535,6 +556,10 @@ def main() -> int:
             section("restaurants を S2 セルへ集計して一時テーブルへ materialize")
             build_area_cells_temp_table(cur, area_table_name, args.s2_level)
 
+            driver_table_name = coverage_sql.DEFAULT_STAGE5_DRIVER_TABLE_NAME
+            section("Stage5 の起点を (店, カテゴリ) へ畳んで一時テーブルへ materialize")
+            build_stage5_driver_temp_table(cur, driver_table_name, table_name)
+
             # 一時テーブルの作成が終わった直後に read-only へ切り替える。
             # 以降（Stage4 / Stage5）は永続テーブルへの書き込みがセッションレベルで拒否される。
             cur.execute("SET default_transaction_read_only = on")
@@ -543,7 +568,7 @@ def main() -> int:
             stage4_category_coverage = run_stage4(cur, table_name)
             stage5 = run_stage5(
                 cur,
-                table_name,
+                driver_table_name,
                 area_table_name,
                 s2_level=args.s2_level,
                 radius_m=args.radius_m,

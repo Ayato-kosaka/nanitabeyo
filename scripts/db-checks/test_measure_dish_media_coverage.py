@@ -17,7 +17,12 @@ from __future__ import annotations
 import sys
 import types
 import unittest
+from pathlib import Path
 from unittest import mock
+
+# ⚠️ `python3 -m unittest scripts/db-checks/test_...py` のようにリポジトリルートから
+#    呼ばれても import できるようにする（CI はこの形で回す。#1782 2026-10-01）。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 try:
     import psycopg2  # noqa: F401
@@ -150,15 +155,52 @@ class ReadOnlySwitchOrderTest(unittest.TestCase):
             i for i, sql in enumerate(executed) if sql.startswith("CREATE TEMP TABLE")
         ]
         self.assertEqual(
-            2,
+            3,
             len(create_temp_table_indices),
-            "usable_dish_media_tmp と area_cells_tmp の2本が作られているはず",
+            "usable_dish_media_tmp / area_cells_tmp / stage5_driver_tmp の3本が作られているはず",
         )
         area_cells_create_idx = next(
             i for i, sql in enumerate(executed) if "area_cells_tmp" in sql and sql.startswith("CREATE TEMP TABLE")
         )
         read_only_idx = executed.index("SET default_transaction_read_only = on")
         self.assertLess(area_cells_create_idx, read_only_idx)
+
+    def test_stage5_driver_temp_table_is_built_before_read_only_switch(self) -> None:
+        """#1782 2026-10-01 の DiskFull の修正で 3 本目の一時テーブルが増えた。
+
+        ⚠️ **これは DDL なので read-only へ切り替える前でなければ落ちる**
+        （run 33674497269 で踏んだのと同じ形。read-only トランザクションは
+        一時テーブルであっても CREATE を通さない）。順序をここで固定する。
+        """
+        sut.main()
+        executed = self.cursor.executed_sql
+
+        driver_create_idx = next(
+            i
+            for i, sql in enumerate(executed)
+            if sut.coverage_sql.DEFAULT_STAGE5_DRIVER_TABLE_NAME in sql
+            and sql.startswith("CREATE TEMP TABLE")
+        )
+        read_only_idx = executed.index("SET default_transaction_read_only = on")
+        self.assertLess(driver_create_idx, read_only_idx)
+
+    def test_stage5_driver_is_built_after_the_tables_it_reads(self) -> None:
+        """driver は usable 一時テーブルを読むので、その後でなければ作れない。"""
+        sut.main()
+        executed = self.cursor.executed_sql
+        usable_create_idx = next(
+            i
+            for i, sql in enumerate(executed)
+            if sut.coverage_sql.DEFAULT_TEMP_TABLE_NAME in sql
+            and sql.startswith("CREATE TEMP TABLE")
+        )
+        driver_create_idx = next(
+            i
+            for i, sql in enumerate(executed)
+            if sut.coverage_sql.DEFAULT_STAGE5_DRIVER_TABLE_NAME in sql
+            and sql.startswith("CREATE TEMP TABLE")
+        )
+        self.assertLess(usable_create_idx, driver_create_idx)
 
     def test_restaurant_locations_are_read_before_area_cells_temp_table(self) -> None:
         sut.main()

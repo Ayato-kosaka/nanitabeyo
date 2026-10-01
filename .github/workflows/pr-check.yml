@@ -157,6 +157,19 @@ jobs:
             scripts/db-checks/test_inspect_opening_hours_reach.py \
             scripts/db-checks/test_sql_percent_escaping.py
 
+      # #1782 #843 の見出し指標（area × dish_category の coverage）を作る SQL の組み立てと、
+      # 一時テーブルを作る順序（read-only へ切り替える前であること）。
+      # ⚠️ **この 44 本は 2026-10-01 まで CI で 1 度も走っていなかった。**
+      #    同じ日に Stage5 の起点を畳んだとき、`ORDER BY ... c.category_id` だけが
+      #    消えた別名を指したまま残っており（= dev へ投げれば必ず SQL エラー）、
+      #    手元で回したこのテストが拾った。CI で走っていなければ気付けなかった。
+      #    psycopg2 をフェイクへ差し替えてあるので DB も要らない。
+      - name: coverage 計測（#1782）の SQL と順序のユニットテスト
+        run: |
+          python3 -m unittest \
+            scripts/db-checks/test_dish_media_coverage_sql.py \
+            scripts/db-checks/test_measure_dish_media_coverage.py
+
       # #1933 «1 報告 = 1 Issue» の起票が、public な Issue へユーザーの自由入力
       # （proposed_value）や報告者の uid を出さないこと。取ってこない形で守っている
       - name: 店舗情報の報告の起票の回帰テスト

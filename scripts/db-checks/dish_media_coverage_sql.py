@@ -29,6 +29,7 @@ DEFAULT_RADIUS_M = 20_000
 DEFAULT_MIN_RESTAURANTS = 5
 DEFAULT_TEMP_TABLE_NAME = "usable_dish_media_tmp"
 DEFAULT_AREA_CELLS_TABLE_NAME = "area_cells_tmp"
+DEFAULT_STAGE5_DRIVER_TABLE_NAME = "stage5_driver_tmp"
 DEFAULT_TOP_CELLS_LIMIT = 20
 
 
@@ -237,45 +238,107 @@ def build_jp_gate_category_count_sql() -> str:
     return f"SELECT count(*) FROM (\n{jp_gate_category_select_sql()}\n) AS jp_gate_categories"
 
 
+def build_stage5_driver_temp_table_sql(
+    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
+    media_table_name: str = DEFAULT_TEMP_TABLE_NAME,
+) -> str:
+    """Stage5 の **起点**を «これ以上小さくできない形» まで畳んだ一時テーブル。
+
+    ## なぜ要るか（#1782 2026-10-01 の DiskFull）
+
+    2026-09-02 に «起点を少ない側（usable dish_media）に変える» 修正を入れた
+    （[run 33698994719](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/33698994719)
+    で `area_cells CROSS JOIN jp_gate_categories` が 300 秒を超えたため）。
+    **向きは正しかったが、«少ない側» を最小にしていなかった。**
+
+    | 起点に残っていた無駄 | dev 実測（2026-10-01） |
+    | --- | --- |
+    | 同じ (店, カテゴリ) の投稿が何行も並ぶ | usable dish_media **904,118 行**（09-03 は 4,906 行） |
+    | JP gate に入らないカテゴリの行まで join している | usable がある category は **2,776** / JP gate は **134** |
+
+    半径 20km の `ST_DWithin` は 1 行が数千セルに当たるので、行数がそのまま中間結果の
+    倍率になる。904,118 行 × 数千セルのハッシュ集約が溢れ、
+    [run 36816039711](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36816039711) は
+    `DiskFull: could not write to file "base/pgsql_tmp/..."` で落ちた。
+    ⚠️ **このインスタンスは dev と public が同居している**（#2006）。«読み取り専用だから
+    安全» は一時ファイルには当てはまらない。起点を小さくするのは速度の話ではなく、
+    **共有ディスクを食い潰さないための修正**である。
+
+    ## 畳んでも数字が変わらない理由（ここが崩れたら count(*) は使えない）
+
+    `usable_dish_media_select_sql()` の `location` は **`r.location`（店の座標）**なので、
+    (restaurant_id, category_id) が決まれば location は 1 つに決まる。したがって
+    `DISTINCT (restaurant_id, category_id, location)` は **(店, カテゴリ) ごとに 1 行**で、
+    セル × カテゴリごとの `count(*)` は元の `count(DISTINCT t.restaurant_id)` と
+    **同じ値**になる。⚠️ `location` を投稿側の列に変えたらこの等式は壊れる。
+    test_dish_media_coverage_sql.py がこの前提を縛っている。
+
+    JP gate の絞り込みもここで済ませる（Stage5 の 4 本すべてが INNER JOIN で
+    同じ絞り込みをしていたので、意味は変わらない）。Stage4 は**この表を使わない**
+    （あちらは全カテゴリを出すのが仕事）。
+    """
+    return (
+        f"CREATE TEMP TABLE {driver_table_name} AS\n"
+        "WITH jp_gate_categories AS (\n"
+        f"{jp_gate_category_select_sql()}\n"
+        ")\n"
+        "SELECT DISTINCT\n"
+        "  t.restaurant_id,\n"
+        "  c.category_id,\n"
+        "  c.category_label,\n"
+        "  t.location\n"
+        f"FROM {media_table_name} t\n"
+        "JOIN jp_gate_categories c ON c.category_id = t.category_id"
+    )
+
+
+def build_stage5_driver_temp_index_sql(
+    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
+) -> list[str]:
+    return [
+        f"CREATE INDEX ON {driver_table_name} USING GIST (location)",
+        f"CREATE INDEX ON {driver_table_name} (category_id)",
+    ]
+
+
+def build_stage5_driver_count_sql(
+    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
+) -> str:
+    """畳んだ起点の行数（«何をどれだけ小さくできたか» をログに出すため）。"""
+    return f"SELECT count(*) FROM {driver_table_name}"
+
+
 def _stage5_matched_sql(
     radius_m: float,
     area_table_name: str,
-    media_table_name: str,
+    driver_table_name: str,
 ) -> str:
-    """Stage5 集計本体。usable dish_media を起点に、半径内の area_cell を引く向き。
-
-    以前は `area_cells CROSS JOIN jp_gate_categories`（分母全体。dev実測で1,686万行）を
-    先に作ってから usable dish_media を LEFT JOIN していたため、中身が入らない
-    組み合わせまで全部 ST_DWithin を評価しており、300秒のstatement_timeoutで
-    QueryCanceled になった（run: 33698994719）。usable dish_media は dev実測で
-    4,906行しかなく、coverageが非ゼロになり得るのはこの行が近くにある組み合わせだけ
-    なので、起点をこちら（少ない側）に変える。
+    """Stage5 集計本体。畳んだ起点（(店, カテゴリ) 1 行）から半径内の area_cell を引く。
 
     INNER JOIN のため、この SELECT には usable dish_media が半径内に 1 件も無い
     area × category は最初から現れない（coverageが0の組み合わせは、呼び出し側が
     「全組み合わせ数 − この結果の行数」で引き算して出す。0件を1行ずつ列挙しない）。
     build_stage5_summary_sql() と build_stage5_top_cells_sql() の両方がこれを
     CTE として土台にする（集計そのものを二重に書かない）。
+
+    ⚠️ `count(*)` でよい理由と、JP gate の絞り込みをここに書かない理由は
+    {@link build_stage5_driver_temp_table_sql} にある。
     """
     return (
-        "WITH jp_gate_categories AS (\n"
-        f"{jp_gate_category_select_sql()}\n"
-        ")\n"
         "SELECT\n"
         "  ac.s2_cell_id,\n"
         "  ac.restaurant_count,\n"
-        "  c.category_id,\n"
-        "  c.category_label,\n"
-        "  count(DISTINCT t.restaurant_id) AS restaurants_with_usable_media\n"
-        f"FROM {media_table_name} t\n"
-        "JOIN jp_gate_categories c ON c.category_id = t.category_id\n"
+        "  t.category_id,\n"
+        "  t.category_label,\n"
+        "  count(*) AS restaurants_with_usable_media\n"
+        f"FROM {driver_table_name} t\n"
         f"JOIN {area_table_name} ac\n"
         "  ON ST_DWithin(\n"
         "       t.location,\n"
         f"       {_area_cell_point_expr('ac')},\n"
         f"       {radius_m}\n"
         "     )\n"
-        "GROUP BY ac.s2_cell_id, ac.restaurant_count, c.category_id, c.category_label"
+        "GROUP BY ac.s2_cell_id, ac.restaurant_count, t.category_id, t.category_label"
     )
 
 
@@ -283,7 +346,7 @@ def build_stage5_summary_sql(
     radius_m: float = DEFAULT_RADIUS_M,
     min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
     area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
-    media_table_name: str = DEFAULT_TEMP_TABLE_NAME,
+    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
 ) -> str:
     """Stage5: coverage が非ゼロの area × category を、min_restaurants 基準でバケット集計する。
 
@@ -293,7 +356,7 @@ def build_stage5_summary_sql(
     """
     return (
         "WITH matched AS (\n"
-        f"{_stage5_matched_sql(radius_m, area_table_name, media_table_name)}\n"
+        f"{_stage5_matched_sql(radius_m, area_table_name, driver_table_name)}\n"
         ")\n"
         "SELECT\n"
         f"  count(*) FILTER (WHERE restaurants_with_usable_media >= {min_restaurants})"
@@ -310,7 +373,7 @@ def build_stage5_shortfall_cells_sql(
     radius_m: float = DEFAULT_RADIUS_M,
     min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
     area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
-    media_table_name: str = DEFAULT_TEMP_TABLE_NAME,
+    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
 ) -> str:
     """#1782 完了条件2: **あと少しで成立する** area × category を、惜しい順に出す。
 
@@ -324,9 +387,9 @@ def build_stage5_shortfall_cells_sql(
     多い順に並べるのは «いちばん惜しいものから潰す» ため。
     """
     return (
-        _stage5_matched_sql(radius_m, area_table_name, media_table_name)
-        + f"\nHAVING count(DISTINCT t.restaurant_id) < {min_restaurants}"
-        + "\nORDER BY restaurants_with_usable_media DESC, ac.s2_cell_id, c.category_id"
+        _stage5_matched_sql(radius_m, area_table_name, driver_table_name)
+        + f"\nHAVING count(*) < {min_restaurants}"
+        + "\nORDER BY restaurants_with_usable_media DESC, ac.s2_cell_id, t.category_id"
         + f"\nLIMIT {top_n}"
     )
 
@@ -336,7 +399,7 @@ def build_stage5_shortfall_by_category_sql(
     radius_m: float = DEFAULT_RADIUS_M,
     min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
     area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
-    media_table_name: str = DEFAULT_TEMP_TABLE_NAME,
+    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
 ) -> str:
     """#1782 完了条件2: 惜しいセルをカテゴリ単位でまとめる（«どの料理から手を付けるか»）。
 
@@ -346,7 +409,7 @@ def build_stage5_shortfall_by_category_sql(
     """
     return (
         "WITH matched AS (\n"
-        f"{_stage5_matched_sql(radius_m, area_table_name, media_table_name)}\n"
+        f"{_stage5_matched_sql(radius_m, area_table_name, driver_table_name)}\n"
         ")\n"
         "SELECT\n"
         "  category_id,\n"
@@ -368,11 +431,11 @@ def build_stage5_top_cells_sql(
     top_n: int = DEFAULT_TOP_CELLS_LIMIT,
     radius_m: float = DEFAULT_RADIUS_M,
     area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
-    media_table_name: str = DEFAULT_TEMP_TABLE_NAME,
+    driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
 ) -> str:
     """Stage5: coverage（usable dish_media を持つ店舗数）が多い順に上位 top_n 件。"""
     return (
-        _stage5_matched_sql(radius_m, area_table_name, media_table_name)
-        + "\nORDER BY restaurants_with_usable_media DESC, ac.s2_cell_id, c.category_id"
+        _stage5_matched_sql(radius_m, area_table_name, driver_table_name)
+        + "\nORDER BY restaurants_with_usable_media DESC, ac.s2_cell_id, t.category_id"
         + f"\nLIMIT {top_n}"
     )
