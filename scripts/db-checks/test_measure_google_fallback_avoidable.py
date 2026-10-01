@@ -408,5 +408,53 @@ class FeedDepthTest(unittest.TestCase):
         self.assertIn('"served_by_threshold"', SOURCE)
 
 
+class LeverCeilingTest(unittest.TestCase):
+    """«返せた» と «crawl で届く» を足し算できる形で分けること（#843 2026-10-01）。
+
+    以前のコメントで «打ち手は足し算できません。重なっています» と書いたが、
+    **重なるのは «分け方が重なっていた» からである**。同じ半径で
+    «返せた / 半径内に店はあるが投稿が無い / 半径内に店が無い» へ分ければ、
+    3 つは排反で需要の全部になり、**天井 = 返せた + crawl** が言える。
+    """
+
+    DEMAND = [
+        sut.DemandRow((1, "Q1", 500.0, 10)),  # 投稿あり → served
+        sut.DemandRow((2, "Q1", 500.0, 20)),  # 投稿なし・店あり → crawlable
+        sut.DemandRow((3, "Q1", 500.0, 30)),  # 投稿なし・店なし → no_restaurant
+    ]
+
+    def test_three_buckets_cover_all_demand(self) -> None:
+        split = sut.split_unserved(self.DEMAND, {(1, "Q1"): 2}, {1: 5, 2: 7})
+        self.assertEqual({"served": 10, "crawlable": 20, "no_restaurant": 30}, split)
+        self.assertEqual(
+            sum(row.searches for row in self.DEMAND), sum(split.values()),
+            "3 つの合計が需要と一致しない（«足し算できる» と言えなくなる）",
+        )
+
+    def test_served_wins_over_crawlable(self) -> None:
+        """投稿があるなら «crawl で届く» 側へ数えない（二重計上を防ぐ）。"""
+        split = sut.split_unserved(
+            [sut.DemandRow((1, "Q1", 500.0, 10))], {(1, "Q1"): 1}, {1: 99}
+        )
+        self.assertEqual(10, split["served"])
+        self.assertEqual(0, split["crawlable"])
+
+    def test_restaurants_within_radius_is_not_restaurants_in_cell(self) -> None:
+        """半径内の店舗数は `area_cells.restaurant_count`（セルの中）とは別の量。
+
+        半径を広げるとセルの外の店が入るので、同じ数にはならない。
+        SQL も別の関数に分けてあることを縛る。
+        """
+        sql = coverage_sql.build_restaurants_within_radius_sql(radius_m=1234, batched=True)
+        self.assertIn("FROM restaurants r", sql)
+        self.assertIn("restaurants_within_radius", sql)
+        self.assertIn("1234", sql)
+        # 代表点の式は共有（GiST 式索引と JOIN 条件を揃えるため）
+        self.assertIn("ST_MakePoint(ac.center_lng, ac.center_lat)", sql)
+        # «セルの中» を数える既存の関数と混ざっていないこと
+        self.assertNotIn("restaurants_within_radius",
+                         coverage_sql.build_area_cell_restaurant_counts_sql())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -38,8 +38,11 @@
 1. 需要の重みを入れた «返せた率»
    （`--radius-sweep` を渡すと、半径 × **1 / 3 / 5 件以上**のマトリクスも出す。
    ⚠️ **«Google を呼ばない» は 1 件、«画面の枠が埋まる» は 5 件**で、別の水準である）
-2. 返せなかった検索が多いカテゴリ（上位 15）
-3. **«需要があって供給が無い (セル, カテゴリ)» の一覧**（`--out-targets` で全件を CSV へ）。
+2. 半径ごとの **«天井»**: «返せた / 半径内に店はあるが投稿が無い（crawl で届く）/
+   半径内に店が無い» の 3 つ。**排反で需要の全部になる**ので、
+   «半径を広げる» と «crawl する» を足して読める
+3. 返せなかった検索が多いカテゴリ（上位 15）
+4. **«需要があって供給が無い (セル, カテゴリ)» の一覧**（`--out-targets` で全件を CSV へ）。
    2026-10-01 の実測で **返せない理由はカテゴリ不足ではなく地理の偏り**だと分かった
    （ラーメンは全国 6,180 店に在庫があるのに、ラーメンの検索の 83% が返せない）。
    ⚠️ **2 種類を混ぜないこと**: «店はあるが投稿が無い»（crawl で埋まる）と
@@ -214,6 +217,52 @@ def add_missing_demand_cells(cur, cell_ids: list[int], known: set[int]) -> int:
     )
     cur.execute(f"ANALYZE {AREA_TABLE}")
     return len(rows)
+
+
+def fetch_restaurants_within(
+    cur, radius_m: float, cell_ids: list[int], cell_batch_size: int
+) -> dict[int, int]:
+    """セルの代表点から半径内にある restaurants の件数（投稿の有無を問わない）。
+
+    «返せなかった» を «crawl で埋まる» と «店の記録が無い» に分けるために要る。
+    SQL は `coverage_sql.build_restaurants_within_radius_sql` に 1 箇所だけ置く。
+    """
+    sql = coverage_sql.build_restaurants_within_radius_sql(
+        radius_m=radius_m, area_table_name=AREA_TABLE, batched=True
+    )
+    counts: dict[int, int] = {}
+    chunks = batched(cell_ids, cell_batch_size)
+    for index, chunk in enumerate(chunks, 1):
+        cur.execute(sql, {"cell_ids": chunk})
+        for cell_id, restaurants in cur.fetchall():
+            counts[cell_id] = restaurants
+        logger.info("  半径 %sm の店舗数: batch %s/%s（店のあるセル %s 件）",
+                    f"{radius_m:,.0f}", index, len(chunks), f"{len(counts):,}")
+    return counts
+
+
+def split_unserved(
+    demand: list[DemandRow],
+    counts: dict[tuple[int, str], int],
+    restaurants_within: dict[int, int],
+) -> dict[str, int]:
+    """その半径で «返せなかった» 検索を、打ち手ごとに分ける。
+
+    - `crawlable`: 半径内に店はあるが、その料理の投稿が無い → crawl で埋まる
+    - `no_restaurant`: 半径内に店が 1 件も無い → 店舗マスタ側（#843 §1）
+
+    ⚠️ **3 つで需要の全部になる**（`served + crawlable + no_restaurant`）。
+    そうならない分け方にすると «足し算できる» と誤読される。
+    """
+    served = crawlable = no_restaurant = 0
+    for row in demand:
+        if counts.get((row.cell_id, row.category_id), 0) >= 1:
+            served += row.searches
+        elif restaurants_within.get(row.cell_id, 0) >= 1:
+            crawlable += row.searches
+        else:
+            no_restaurant += row.searches
+    return {"served": served, "crawlable": crawlable, "no_restaurant": no_restaurant}
 
 
 def existing_area_cells(cur, cell_ids: list[int]) -> set[int]:
@@ -522,7 +571,7 @@ def main() -> int:
 
             restaurants_by_cell = cell_restaurant_counts(cur, all_cells)
 
-            sweep: list[tuple[float, dict[int, int]]] = []
+            sweep: list[tuple[float, dict[int, int], dict[str, int]]] = []
             sweep_radii = [
                 float(value) for value in args.radius_sweep.split(",") if value.strip()
             ]
@@ -532,7 +581,14 @@ def main() -> int:
                 swept = fetch_matched_counts(
                     cur, radius_m, sorted(known_cells), args.cell_batch_size
                 )
-                sweep.append((radius_m, sweep_served_by_threshold(demand, swept)))
+                within = fetch_restaurants_within(
+                    cur, radius_m, sorted(known_cells), args.cell_batch_size
+                )
+                sweep.append((
+                    radius_m,
+                    sweep_served_by_threshold(demand, swept),
+                    split_unserved(demand, swept, within),
+                ))
 
     summary = summarize(demand, counts, known_cells, restaurants_by_cell)
     report(summary)
@@ -546,12 +602,29 @@ def main() -> int:
         header = "  %8s" + "  %14s" * len(FEED_THRESHOLDS)
         logger.info(header, "半径", *[f"{t} 件以上" for t in FEED_THRESHOLDS])
         total = summary["demand_searches"]
-        for radius_m, served in sweep:
+        for radius_m, served, _split in sweep:
             cells = [
                 f"{served[t]:,} ({served[t] / total * 100:.1f}%)" if total else "—"
                 for t in FEED_THRESHOLDS
             ]
             logger.info(header, f"{radius_m:,.0f}m", *cells)
+
+        section("その半径での «天井»（返せた + crawl で届く + 店の記録が無い）")
+        logger.info("⚠️ 3 つで需要の全部になる。«返せた» と «crawl» は重ならない")
+        logger.info("")
+        ceiling_header = "  %8s  %16s  %16s  %16s  %10s"
+        logger.info(ceiling_header, "半径", "返せた", "crawl で届く",
+                    "店の記録が無い", "天井")
+        for radius_m, _served, split in sweep:
+            ceiling = split["served"] + split["crawlable"]
+            logger.info(
+                ceiling_header,
+                f"{radius_m:,.0f}m",
+                f"{split['served']:,} ({split['served'] / total * 100:.1f}%)",
+                f"{split['crawlable']:,} ({split['crawlable'] / total * 100:.1f}%)",
+                f"{split['no_restaurant']:,} ({split['no_restaurant'] / total * 100:.1f}%)",
+                f"{ceiling / total * 100:.1f}%",
+            )
         summary["radius_sweep"] = [
             {
                 "radius_m": radius_m,
@@ -563,8 +636,13 @@ def main() -> int:
                     for t in FEED_THRESHOLDS
                 },
             }
-            for radius_m, served in sweep
+            for radius_m, served, _split in sweep
         ]
+        for entry, (_radius, _served, split) in zip(summary["radius_sweep"], sweep):
+            entry["unserved_split"] = split
+            entry["ceiling_rate"] = (
+                (split["served"] + split["crawlable"]) / total if total else None
+            )
 
     if args.out_targets:
         with args.out_targets.open("w", newline="", encoding="utf-8") as handle:

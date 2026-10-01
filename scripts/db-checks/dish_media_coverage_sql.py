@@ -420,6 +420,43 @@ def build_stage5_matched_rows_sql(
     return _stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)
 
 
+def build_restaurants_within_radius_sql(
+    radius_m: float = DEFAULT_RADIUS_M,
+    area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
+    batched: bool = False,
+) -> str:
+    """セルの代表点から半径 `radius_m` 以内にある **restaurants の件数**（投稿の有無を問わない）。
+
+    ## なぜ要るか（#843 2026-10-01）
+
+    «返せなかった» を 2 つに分けるために要る。
+
+    | 半径内に店が | 意味 | 打ち手 |
+    | --- | --- | --- |
+    | **ある** | 店はあるのにその料理の投稿が無い | **crawl で埋まる** |
+    | **ない** | そもそも店の記録が無い | 店舗マスタ側（#843 §1） |
+
+    ⚠️ `area_cells.restaurant_count` は **«セルの中»** の件数で、ここは **«半径内»**。
+    半径を広げると «セルの外の店» が入ってくるので、別の量である。混同しないこと。
+
+    代表点の式は `_area_cell_point_expr()` を通す（GiST 式索引と JOIN 条件を揃える）。
+    """
+    return (
+        "SELECT\n"
+        "  ac.s2_cell_id,\n"
+        "  count(*) AS restaurants_within_radius\n"
+        "FROM restaurants r\n"
+        f"JOIN {area_table_name} ac\n"
+        "  ON ST_DWithin(\n"
+        "       r.location,\n"
+        f"       {_area_cell_point_expr('ac')},\n"
+        f"       {radius_m}\n"
+        "     )\n"
+        + ("WHERE ac.s2_cell_id = ANY(%(cell_ids)s::bigint[])\n" if batched else "")
+        + "GROUP BY ac.s2_cell_id"
+    )
+
+
 def build_area_cell_restaurant_counts_sql(
     table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
 ) -> str:
