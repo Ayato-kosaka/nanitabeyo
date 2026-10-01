@@ -166,12 +166,12 @@ class TheGateIsBeforeTheWork(unittest.TestCase):
     """門は «取り出した直後»。150 分使ってからの警告では次のラウンドを止められない。"""
 
     def test_the_gate_runs_before_the_pipeline_step_opens(self) -> None:
-        gate = SOURCE.index("count_inputs_newer_than_last_resolve(posts)")
+        gate = SOURCE.index("select_inputs_newer_than_last_resolve(posts)\n        fresh = len(fresh_posts)")
         step = SOURCE.index('with pipeline.step(run_id, "5_1_apply_resolve"')
         self.assertLess(gate, step, "門が仕事の開始より後ろにある")
 
     def test_a_stale_round_exits_nonzero(self) -> None:
-        tail = SOURCE[SOURCE.index("count_inputs_newer_than_last_resolve(posts)"):]
+        tail = SOURCE[SOURCE.index("select_inputs_newer_than_last_resolve(posts)\n        fresh = len(fresh_posts)"):]
         head = tail[:tail.index('with pipeline.step(run_id, "5_1_apply_resolve"')]
         self.assertIn("if fresh == 0:", head)
         self.assertIn("sys.exit(1)", head)
@@ -184,17 +184,58 @@ class TheGateIsBeforeTheWork(unittest.TestCase):
         self.assertIn("--resolve-version", head)
 
 
+class OnlyTheFreshOnesAreWorked(unittest.TestCase):
+    """#1947 **«0 件でなければ全部やる» では足りなかった。**
+
+    2026-10-01 の run 1570 は 130,400 件を 150 分かけて解き matched 10,111 を出したが、
+    «入力が新しい» のは **464 件（0.36%）**・«初めて解いた» は **0.0%** だった。
+    門は «走らせない» ではなく **«新しいものだけ走らせる»** でなければ、
+    ほぼ全部が前のラウンドと同じ答えを出し直す仕事になる。
+    """
+
+    def test_the_fresh_subset_replaces_the_work_list(self) -> None:
+        tail = SOURCE[SOURCE.index("fresh_posts = select_inputs_newer_than_last_resolve(posts)"):]
+        head = tail[:tail.index('with pipeline.step(run_id, "5_1_apply_resolve"')]
+        self.assertIn("if fresh and fresh < len(posts):", head,
+                      "«一部だけ新しい» を扱う分岐が無い")
+        self.assertIn("posts = fresh_posts", head,
+                      "新しいものだけに絞り込んでいない（数えただけで終わっている）")
+
+    def test_a_full_redo_is_not_trimmed(self) -> None:
+        """⚠️ 逆側。`--resolve-version` を上げた全件やり直しで 1 件も捨てない。"""
+        rows = [{"same_version_resolved_at": None, "input_at": None} for _ in range(5)]
+        self.assertEqual(len(apply_resolve.select_inputs_newer_than_last_resolve(rows)), 5)
+
+    def test_only_the_newer_inputs_survive(self) -> None:
+        import datetime as _dt
+        old = _dt.datetime(2026, 9, 1, tzinfo=_dt.timezone.utc)
+        new = _dt.datetime(2026, 10, 1, tzinfo=_dt.timezone.utc)
+        rows = [
+            {"same_version_resolved_at": new, "input_at": old},   # 解いた後に入力は変わっていない
+            {"same_version_resolved_at": old, "input_at": new},   # 入力の方が新しい
+            {"same_version_resolved_at": None, "input_at": old},  # まだ解いていない
+        ]
+        got = apply_resolve.select_inputs_newer_than_last_resolve(rows)
+        self.assertEqual(len(got), 2)
+        self.assertNotIn(rows[0], got)
+
+    def test_the_reason_is_written_down(self) -> None:
+        """理由の無い絞り込みは、次の人に «勝手に捨てている» と外される。"""
+        self.assertIn("130,400", SOURCE)
+        self.assertIn("464", SOURCE)
+
+
 class TheMeasurementThatMotivatedItIsRecorded(unittest.TestCase):
     """«なぜこの門が要るのか» を消さない（理由の無い門は次の人に外される）。"""
 
     def test_the_wasted_rounds_are_written_down(self) -> None:
-        doc = apply_resolve.count_inputs_newer_than_last_resolve.__doc__ or ""
+        doc = apply_resolve.select_inputs_newer_than_last_resolve.__doc__ or ""
         self.assertIn("73,890", doc)
         self.assertIn("7.5 時間", doc)
 
     def test_the_counter_example_is_written_down(self) -> None:
         """«解き直しが効いた日» を書いておかないと、門を «解き直し禁止» と誤読される。"""
-        doc = apply_resolve.count_inputs_newer_than_last_resolve.__doc__ or ""
+        doc = apply_resolve.select_inputs_newer_than_last_resolve.__doc__ or ""
         self.assertIn("76%", doc)
 
 

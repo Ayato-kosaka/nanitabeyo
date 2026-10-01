@@ -434,8 +434,26 @@ def main() -> None:
     #   matched=400〜402 を返していた（実測: 73,890 投稿すべてがリンク作成より後に解かれ済み）。
     #   末尾の «100% が解き直し» 警告では次のラウンドを止められない。**取り出した直後に見る。**
     if posts:
-        fresh = count_inputs_newer_than_last_resolve(posts)
+        fresh_posts = select_inputs_newer_than_last_resolve(posts)
+        fresh = len(fresh_posts)
         LOGGER.info("そのうち «入力が前回解いたときより新しい» のは %d 件です", fresh)
+        if fresh and fresh < len(posts):
+            # #1947 【設計】⚠️ **«0 件でなければ全部やる» では足りなかった。**
+            #   2026-10-01 の run 1570 は 130,400 件を 150 分かけて解き、matched 10,111 を
+            #   出したが «入力が新しい» のは **464 件（0.36%）** しかなく、
+            #   «初めて解いた» は **0.0%**。つまり 2.5 時間のほぼ全部が、前のラウンドと
+            #   同じ答えを出し直す仕事だった（配信カタログの増分は cat42 で +1,345 投稿、
+            #   cat43 で +289 投稿にとどまる）。
+            #   **門は «走らせない» ではなく «新しいものだけ走らせる» にする。**
+            #   ⚠️ resolve や辞書を直して全部やり直すときは `--resolve-version` を上げる。
+            #   その version では `same_version_resolved_at` が全件 NULL なので
+            #   ここは全件を «新しい» と数え、1 件も捨てない（正常なのに削らない）。
+            LOGGER.warning(
+                "⚠️ **取り出した %d 件のうち %d 件（%.2f%%）だけが «入力が前回より新しい» です。"
+                "残り %d 件は同じ答えを返すだけなので、このラウンドから外します。**\n"
+                "  ・全部を解き直したいなら `--resolve-version` を上げてください",
+                len(posts), fresh, 100.0 * fresh / len(posts), len(posts) - fresh)
+            posts = fresh_posts
         if fresh == 0:
             LOGGER.error(
                 "⚠️ **取り出した %d 件は全部、入力が前回解いたときより古いままです。"
@@ -675,8 +693,8 @@ def single_timestamp_column_sql(dataset_ref: str, table_name: str) -> str:
     """
 
 
-def count_inputs_newer_than_last_resolve(posts) -> int:
-    """取り出した投稿のうち «入力が前回解いたときより新しい＝解き直す意味がある» 数を返す。
+def select_inputs_newer_than_last_resolve(posts) -> list:
+    """取り出した投稿のうち «入力が前回解いたときより新しい＝解き直す意味がある» ものだけを返す。
 
     #1947 ⚠️ **これは門である。** 2026-09-27〜28 に店名リンクの resolve を 3 ラウンド
     （1444 / 1456 / 1464、各 150 分 = 計 7.5 時間）流したが、実測では
@@ -690,16 +708,21 @@ def count_inputs_newer_than_last_resolve(posts) -> int:
     `--resolve-version` を上げて行うので、**新しい version では 1 件も
     `same_version_resolved_at` を持たず、ここは 0 を返さない**（正常なのに赤くしない）。
     """
-    fresh = 0
+    fresh = []
     for post in posts:
         last = post.get("same_version_resolved_at") if hasattr(post, "get") else post["same_version_resolved_at"]
         if last is None:
-            fresh += 1
+            fresh.append(post)
             continue
         got = post.get("input_at") if hasattr(post, "get") else post["input_at"]
         if got is None or got > last:
-            fresh += 1
+            fresh.append(post)
     return fresh
+
+
+def count_inputs_newer_than_last_resolve(posts) -> int:
+    """`select_inputs_newer_than_last_resolve` の件数。**判定は 1 箇所にしか書かない。**"""
+    return len(select_inputs_newer_than_last_resolve(posts))
 
 
 def _report_first_time_share(pipeline: BigQueryPipeline, run_id: str, args) -> None:
