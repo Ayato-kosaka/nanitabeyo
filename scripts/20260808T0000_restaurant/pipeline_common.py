@@ -225,6 +225,90 @@ def _retry_auth_only(fn, *, what: str, attempts: int = 6, base_sleep_s: float = 
             time.sleep(wait)
 
 
+GIB = 1024 ** 3
+TIB = 1024 ** 4
+
+# #1947【設計】BigQuery のスキャン課金を «見えない» ままにしない。
+#
+# 2026-10-01、`5_1` の対象抽出クエリ（1 回 4.58 GiB）が **12 秒おきに 1 日 1,900 回**実行され、
+# 2026-09 以降で約 40 TiB（≒$240）を使った。run は全部緑で、**8 日間誰も気づかなかった**。
+# 気づけなかった理由は «遅さ» を測って «読んだ量» を測っていなかったことである
+# （`5_1` は `BigQuery の待ち時間` を秒で丁寧に出していたが、バイト数は一度も出していない）。
+#
+# ⚠️ ルールは前から存在した（`.codex/bigquery/safety-policy.md`）。
+#   「BigQuery is billable. Ask the user before running a query that dry-runs at 1 GB or more.」
+#   **人が守るルールだったので守られなかった。コードの側に置き直す。**
+#
+# dry run は **課金ゼロ**なので、実行前に必ず見積もれる。見積もりが門より大きければ止める。
+# 大きいスキャンが要る処理は «要ることを宣言» する（`allow_scan_gib` か `BQ_ALLOW_SCAN_GIB`）。
+SCAN_GATE_GIB = 1.0          # safety-policy.md の «1 GB 以上は確認» をそのまま門にする
+USD_PER_TIB = 6.0            # 概算表示専用。**正は請求画面**（リージョンで単価が違う）
+
+
+def _opt_float(raw: str | None) -> float | None:
+    """環境変数を float に。空文字と未設定は «無指定»（None）として扱う。"""
+    if raw is None or not str(raw).strip():
+        return None
+    return float(raw)
+
+
+def usd_for_bytes(n: int) -> float:
+    """スキャン量の概算ドル。表示専用で、請求額の根拠にはしない。"""
+    return n / TIB * USD_PER_TIB
+
+
+def scan_verdict(estimated_bytes: int, *, gate_gib: float, allow_gib: float | None,
+                 billed_bytes: int = 0, budget_gib: float | None = None) -> str:
+    """このクエリを投げてよいか（純関数）。``"ok"`` / ``"gate"`` / ``"over_budget"``。
+
+    - ``gate``: 見積もりが門（既定 1 GiB）を超え、かつ «要る» と宣言されていない
+    - ``over_budget``: この run の累計＋見積もりが予算を超える
+
+    ⚠️ **両方に当たるときは `gate` を先に返す。** «予算が広いから門を通す» を作らない。
+    """
+    if allow_gib is None or estimated_bytes > allow_gib * GIB:
+        if estimated_bytes > gate_gib * GIB:
+            return "gate"
+    if budget_gib is not None and (billed_bytes + estimated_bytes) > budget_gib * GIB:
+        return "over_budget"
+    return "ok"
+
+
+class ScanTooLarge(RuntimeError):
+    """見積もりが門を超えたのに «要る» と宣言されていないクエリ。"""
+
+
+class ScanBudgetExceeded(RuntimeError):
+    """この run のスキャン予算（`BQ_MAX_BILLED_GIB`）を超えた。"""
+
+
+class ScanLedger:
+    """この run が «いくら読んだか» を数える。**秒ではなくバイトを数える。**"""
+
+    def __init__(self, gate_gib: float, allow_gib: float | None,
+                 budget_gib: float | None) -> None:
+        self.gate_gib = gate_gib
+        self.allow_gib = allow_gib
+        self.budget_gib = budget_gib
+        self.billed_bytes = 0
+        self.queries = 0
+        self.estimated_bytes = 0
+
+    def verdict(self, estimated_bytes: int, allow_gib: float | None) -> str:
+        return scan_verdict(estimated_bytes, gate_gib=self.gate_gib,
+                            allow_gib=self.allow_gib if allow_gib is None else allow_gib,
+                            billed_bytes=self.billed_bytes, budget_gib=self.budget_gib)
+
+    def add(self, billed_bytes: int, estimated_bytes: int = 0) -> None:
+        self.billed_bytes += int(billed_bytes or 0)
+        self.estimated_bytes += int(estimated_bytes or 0)
+        self.queries += 1
+
+    def summary(self) -> str:
+        return (f"BigQuery スキャン課金: 累計 {self.billed_bytes / GIB:.2f} GiB"
+                f"（≒${usd_for_bytes(self.billed_bytes):.2f}）/ クエリ {self.queries} 本")
+
+
 class BigQueryPipeline:
     """手動パイプライン向けの小さなBigQueryラッパー。"""
 
@@ -234,6 +318,14 @@ class BigQueryPipeline:
         # google-cloud-bigquery のバージョン差で constructor 引数が変わった際に
         # 全スクリプトが起動不能になるため、安定している project だけを渡す。
         self.client = bigquery.Client(project=self.config.project_id)
+        # #1947 スキャン課金の門と台帳。**dispatch 側が «大きいスキャンが要る» を宣言する**。
+        #   BQ_ALLOW_SCAN_GIB: このジョブで許す 1 クエリあたりの上限（宣言）
+        #   BQ_MAX_BILLED_GIB: この run 全体の予算。超えたら止まる
+        self.scans = ScanLedger(
+            gate_gib=float(os.getenv("BQ_SCAN_GATE_GIB") or SCAN_GATE_GIB),
+            allow_gib=_opt_float(os.getenv("BQ_ALLOW_SCAN_GIB")),
+            budget_gib=_opt_float(os.getenv("BQ_MAX_BILLED_GIB")),
+        )
 
     @property
     def dataset_ref(self) -> str:
@@ -327,19 +419,70 @@ class BigQueryPipeline:
             lambda: self.client.insert_rows_json(table_id, rows, **kwargs),
             what=f"insert_rows_json {table_id}")
 
-    def execute(
-        self, sql: str, parameters: list[bigquery.ScalarQueryParameter] | None = None
-    ) -> Any:
+    def dry_run_bytes(self, sql: str,
+                      parameters: list[bigquery.ScalarQueryParameter] | None = None) -> int:
+        """このクエリが読むバイト数の見積もり。**dry run は課金ゼロ**なので必ず先に通す。"""
+        cfg = bigquery.QueryJobConfig(query_parameters=parameters or [],
+                                      dry_run=True, use_query_cache=False)
+        # ⚠️ #1947 **dry run も «外部呼び出し» である。** ここを素で呼んでいたのを
+        #   既存の回帰テスト（test_bq_transient_does_not_kill_run）が見つけた。
+        #   見積もりの 1 回の 5xx で 5.5 時間の run が死ぬのは、このリポジトリが
+        #   2 度踏んだ形そのもの（`_run_job` の設計コメント）。必ず通す。
+        #   dry run は job を «作るだけ» で result() を持たないので、submit だけ掛け直す。
+        job, _ = self._run_job(
+            lambda: self.client.query(sql, job_config=cfg, location=self.config.region),
+            what="dry run（見積もり・課金ゼロ）")
+        return int(job.total_bytes_processed or 0)
+
+    def _query(self, sql: str, parameters, *, what: str, allow_scan_gib: float | None):
+        """**すべてのクエリが通る 1 箇所。** 見積もり → 門 → 実行 → 台帳。
+
+        #1947 ここを «1 箇所» にしておくのが要点である。6 つの script が
+        `client.query` を写経していたころ、一時障害の扱いが script ごとに違っていた
+        （`_run_job` の設計コメント）。費用も同じで、**入口が分かれていると片方だけ守られる**。
+        """
+        est = self.dry_run_bytes(sql, parameters)
+        verdict = self.scans.verdict(est, allow_scan_gib)
+        if verdict == "gate":
+            raise ScanTooLarge(
+                f"このクエリは dry run で {est / GIB:.2f} GiB"
+                f"（≒${usd_for_bytes(est):.2f}）読みます。"
+                f"門は {self.scans.gate_gib:.2f} GiB です（`.codex/bigquery/safety-policy.md`:"
+                f" «Ask the user before running a query that dry-runs at 1 GB or more»）。\n"
+                f"2026-10-01、この門が無かったために 4.58 GiB のクエリが 1 日 1,900 回走り、"
+                f"約 40 TiB（≒$240）を使いました。\n"
+                f"→ 読む量を減らせないか先に見てください（判定に要らない大きな列を外す／"
+                f"パーティション列 `fetched_at` で区切る）。\n"
+                f"→ 本当に要るなら、**オーナーの承認を得てから** dispatch で "
+                f"`BQ_ALLOW_SCAN_GIB` を宣言してください（この run の 1 クエリ上限）。\n"
+                f"SQL の先頭: {' '.join(sql.split())[:160]}")
+        if verdict == "over_budget":
+            raise ScanBudgetExceeded(
+                f"この run のスキャン予算 {self.scans.budget_gib:.1f} GiB を超えます"
+                f"（累計 {self.scans.billed_bytes / GIB:.2f} GiB ＋ 見積もり {est / GIB:.2f} GiB）。"
+                f"止めます。{self.scans.summary()}")
         job_config = bigquery.QueryJobConfig(query_parameters=parameters or [])
-        _, result = self._run_job(
+        job, result = self._run_job(
             lambda: self.client.query(sql, job_config=job_config,
                                       location=self.config.region),
-            what="query")
+            what=what)
+        billed = int(getattr(job, "total_bytes_billed", 0) or 0)
+        self.scans.add(billed, est)
+        # ⚠️ **毎本出す。** «たまに出す» と、ループの中の 1 本が見えなくなる（今回の原因）。
+        LOGGER.info("BQ %s: %.3f GiB 課金（≒$%.3f）| %s",
+                    what, billed / GIB, usd_for_bytes(billed), self.scans.summary())
+        return job, result
+
+    def execute(
+        self, sql: str, parameters: list[bigquery.ScalarQueryParameter] | None = None,
+        *, allow_scan_gib: float | None = None,
+    ) -> Any:
+        _, result = self._query(sql, parameters, what="query", allow_scan_gib=allow_scan_gib)
         return result
 
     def execute_dml(
         self, sql: str, parameters: list[bigquery.ScalarQueryParameter] | None = None,
-        *, what: str = "DML",
+        *, what: str = "DML", allow_scan_gib: float | None = None,
     ) -> int:
         """UPDATE/DELETE/MERGE を実行し、**影響行数**を返す。
 
@@ -348,11 +491,7 @@ class BigQueryPipeline:
         BigQuery の一時的な 5xx で落ちる**状態だった（`_run_job` の設計コメント参照）。
         影響行数が要るときは `execute` ではなくこちらを使う。
         """
-        job_config = bigquery.QueryJobConfig(query_parameters=parameters or [])
-        job, _ = self._run_job(
-            lambda: self.client.query(sql, job_config=job_config,
-                                      location=self.config.region),
-            what=what)
+        job, _ = self._query(sql, parameters, what=what, allow_scan_gib=allow_scan_gib)
         return int(job.num_dml_affected_rows or 0)
 
     def execute_dml_retrying(
@@ -394,6 +533,7 @@ class BigQueryPipeline:
         *,
         partition_field: str | None = None,
         partition_date: date | None = None,
+        allow_scan_gib: float | None = None,
     ) -> int:
         """同じrun_idの途中再実行を冪等にする。
 
@@ -419,14 +559,11 @@ class BigQueryPipeline:
                 bigquery.ScalarQueryParameter("partition_date", "DATE", partition_date)
             )
 
-        job_config = bigquery.QueryJobConfig(query_parameters=parameters)
-        job, _ = self._run_job(
-            lambda: self.client.query(
-                f"DELETE FROM `{table_id}` WHERE {where}",
-                job_config=job_config,
-                location=self.config.region,
-            ),
-            what=f"DELETE {table_name}")
+        # #1947 DELETE も読んだぶんだけ課金される。**門と台帳を通す 1 箇所へ寄せる。**
+        #   この経路は «門を通らずに query している» とテストが指摘して見つかった。
+        job, _ = self._query(
+            f"DELETE FROM `{table_id}` WHERE {where}", parameters,
+            what=f"DELETE {table_name}", allow_scan_gib=allow_scan_gib)
         return int(job.num_dml_affected_rows or 0)
 
     def load_json_rows(
@@ -567,14 +704,22 @@ class BigQueryPipeline:
                 "step_name": step_name,
                 "status": status,
                 "code_version": current_git_revision(repo_root) if repo_root else None,
+                # #1947 **費用を durable な記録に残す。** 2026-10-01 まで、run のログにも
+                #   この表にも «読んだバイト数» がどこにも無く、8 日間気づけなかった。
+                #   `finally` で畳むので、ここに入るのは **run が実際に読んだ合計**である。
                 "parameters_json": json.dumps(
-                    parameters or {}, ensure_ascii=False, default=json_default
+                    {**(parameters or {}),
+                     "bq_scan_billed_gib": round(self.scans.billed_bytes / GIB, 3),
+                     "bq_scan_usd_est": round(usd_for_bytes(self.scans.billed_bytes), 3),
+                     "bq_queries": self.scans.queries},
+                    ensure_ascii=False, default=json_default
                 ),
                 "row_count": result["row_count"],
                 "error_message": error_message,
                 "started_at": started_at.isoformat(),
                 "finished_at": utc_now().isoformat(),
             }
+            LOGGER.info("%s（step %s・%s）", self.scans.summary(), step_name, status)
             errors = self.insert_rows_json(
                 self.table("restaurant_pipeline_runs"), [row])
             if errors:

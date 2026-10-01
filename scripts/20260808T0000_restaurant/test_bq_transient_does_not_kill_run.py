@@ -148,10 +148,29 @@ class EveryJobGoesThroughTheRetryTest(unittest.TestCase):
                          "load_json_rows / load_ndjson_file / load_parquet の 3 経路すべて")
 
     def test_query_paths_go_through_run_job(self) -> None:
+        """**«外部呼び出しが素で書かれていないか» を数ではなく構造で見る。**
+
+        ⚠️ 2026-10-01 に数で書いていたこのテストが壊れた。`execute` / `execute_dml` /
+        `delete_run_rows` を費用の門（`_query`）へ 1 本化したので `self._run_job(` の
+        **出現回数が 5 から 4 へ減った**。意図（素の呼び出しを残さない）は満たされている
+        のに落ちたので、数ではなく «どのメソッドが素で client を叩いているか» で見る。
+        そのときこのテストは **dry run が `_run_job` を通っていない**のを実際に見つけた
+        （見積もりの 1 回の 5xx で 5.5 時間の run が死ぬ形）。数で書いていたら見つからなかった。
+        """
+        import ast
         src = (HERE / "pipeline_common.py").read_text(encoding="utf-8")
         self.assertIn("self._run_job(", src)
-        self.assertGreaterEqual(src.count("self._run_job("), 5,
-                                "execute / delete_run_rows / load 3 経路")
+        allowed = {"_run_job", "_submit_load"}
+        bare = []
+        for node in ast.walk(ast.parse(src)):
+            if not isinstance(node, ast.FunctionDef) or node.name in allowed:
+                continue
+            body = ast.get_source_segment(src, node) or ""
+            for call in ("self.client.query(", "self.client.load_table_from_file("):
+                if call in body and "self._run_job(" not in body:
+                    bare.append(f"{node.name} -> {call}")
+        self.assertEqual([], bare,
+                         f"素で BigQuery を叩いている経路がある: {bare}")
 
 
 # --- 掃いた箇所の判定表 -----------------------------------------------------------

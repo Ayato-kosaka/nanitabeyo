@@ -63,6 +63,32 @@ def first_time_share_sql(table: str) -> str:
     """
 
 
+def select_again(*, selects_done: int, max_selects: int, last_select_at: float,
+                 min_interval_s: float, now: float) -> tuple[str, float]:
+    """もう一度 «未処理はどれ？» を聞きに行ってよいか（純関数）。
+
+    返り値は ``("ok", 0.0)`` / ``("wait", 待つ秒数)`` / ``("capped", 0.0)``。
+
+    #1947【設計】**この問いかけ自体が高い。**
+    2026-10-01、この抽出クエリは 1 回 4.58 GiB 読み、ループが 1 バッチ終えるたびに
+    聞き直していた。バッチが 12 秒で終わるので **1 日 1,900 回・8.5 TiB（≒$51/日）**。
+    «処理した仕事の量» ではなく **«ループが何周したか» で費用が決まっていた**。
+
+    直し方は «聞く回数を仕事から切り離す» ことである。収集ジョブが裏で走っているので
+    «新しく届いた投稿を拾う» 機能自体は要る（だから 1 回で終わりにはしない）。
+    要らないのは «12 秒ごとに聞くこと» である。時間で間隔を空け、回数に上限を置く。
+
+    ⚠️ **上限に当たったら «正常終了» させる（赤くしない）。** 取り切れなかった残りは
+    次の run が拾う。ここで落とすと、本物の失敗が赤の中に埋もれる。
+    """
+    if selects_done >= max_selects:
+        return "capped", 0.0
+    waited = now - last_select_at
+    if waited < min_interval_s:
+        return "wait", min_interval_s - waited
+    return "ok", 0.0
+
+
 def deadline_chunks(batch: list, deadline: float, *,
                     chunk: int = DEADLINE_CHECK_EVERY, now=time.monotonic):
     """`batch` を `chunk` 件ずつ返す。**1 塊ごとに締め切りを見て、越えていたら止める。**
@@ -192,6 +218,15 @@ def parse_args() -> argparse.Namespace:
                    help="0 より大きいと、未処理が無くなるかこの時間まで取得と resolve を繰り返す")
     p.add_argument("--idle-sleep-s", type=int, default=120,
                    help="未処理が無かったときに次を見に行くまでの待ち時間")
+    # #1947 ⚠️ **抽出クエリは 1 回 4.58 GiB 読む。** 既定の 12 秒間隔では 1 日 $51 になる
+    #   （→ `select_again` の設計コメント）。既定を «30 分おき・最大 12 回» にして、
+    #   5.5 時間の run が使う抽出ぶんを 55 GiB（≒$0.32）に収める。
+    p.add_argument("--select-interval-min", type=float, default=30.0,
+                   help="«未処理はどれ？» を聞き直す最短間隔（分）。"
+                        "この問いかけ自体が重いので、仕事の速さと切り離して時間で間隔を空ける")
+    p.add_argument("--max-selects", type=int, default=12,
+                   help="1 run で «未処理はどれ？» を聞く最大回数。"
+                        "達したら正常終了し、残りは次の run が拾う")
     p.add_argument("--area-radius-m", type=int, default=DEFAULT_AREA_RADIUS_M,
                    help="lat/lng と一緒に渡す検索半径（m）。市区町村の重心を地点にしている経路では "
                         "3km だと届かない（実測: 重心から店までの中央値 7,253m）")
@@ -621,9 +656,36 @@ def main() -> None:
                 f"省略すると `--run-id`（{run_id!r}）が使われる。"
                 f"複数 run をまとめて掃くときは `%` を含むパターンか "
                 f"`{RUN_ID_ALL}` を渡すこと。")
+        # #1947 ループ前に 1 回 fetch しているので、それを 1 回ぶんとして数える。
+        selects_done = 1
+        last_select_at = time.monotonic()
         while deadline and time.monotonic() < deadline:
             _flush()
+            gate, wait_s = select_again(
+                selects_done=selects_done, max_selects=args.max_selects,
+                last_select_at=last_select_at,
+                min_interval_s=args.select_interval_min * 60.0, now=time.monotonic())
+            if gate == "capped":
+                LOGGER.info(
+                    "«未処理はどれ？» の問いかけを %d 回使い切りました（--max-selects）。"
+                    "この問いかけは 1 回で数 GiB 読むので、ここで正常終了します。"
+                    "残りは次の run が拾います（%s）",
+                    selects_done, pipeline.scans.summary())
+                break
+            if gate == "wait":
+                # 締め切りまでに間隔が開かないなら、待たずに終わる（空回りさせない）。
+                if time.monotonic() + wait_s >= deadline:
+                    LOGGER.info("次に聞き直せる時刻が締め切りを越えるので終了します（%s）",
+                                pipeline.scans.summary())
+                    break
+                LOGGER.info("次の問いかけまで %.0f 分待ちます（残り %.0f 分・%s）",
+                            wait_s / 60, (deadline - time.monotonic()) / 60,
+                            pipeline.scans.summary())
+                time.sleep(min(wait_s, max(deadline - time.monotonic(), 0)))
+                continue
             posts = fetch()
+            selects_done += 1
+            last_select_at = time.monotonic()
             if not posts:
                 LOGGER.info("未処理なし。%d 秒待って見直します（残り %.0f 分）",
                             args.idle_sleep_s, (deadline - time.monotonic()) / 60)

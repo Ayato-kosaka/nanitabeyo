@@ -610,6 +610,27 @@ DB 変更はコード変更の PR に混ぜず、**DB 変更だけのサブ Issu
 
 **詳細と、直接書き換えるときの冪等化の作法は `infra/supabase/migrations/README.md` を読むこと。**
 
+## BigQuery を叩くときの規則 — 費用は «秒» ではなく «読んだバイト» で出る
+
+2026-10-01、`5_1` の対象抽出クエリ（1 回 **4.58 GiB**）が **12 秒おきに 1 日 1,900 回**実行され、
+2026-09 以降で約 **40 TiB（≒$240）** を使った。**run は全部緑で、8 日間誰も気づかなかった。**
+気づけなかったのは «遅さ» を秒で丁寧に測って、**«読んだ量» をどこにも出していなかった**ため。
+
+- **費用の正は [`.codex/bigquery/safety-policy.md`](.codex/bigquery/safety-policy.md)。
+  BigQuery を触る前に読む。** 「Ask the user before running a query that dry-runs at 1 GB or more」
+  は前から書かれていた。**人が守る形だったので守られなかったので、`pipeline_common` の門にした**
+- 1 クエリ 1 GiB 超は `ScanTooLarge` で止まる。**本当に要るなら、オーナーの承認を得てから**
+  `db-script-run.yml` の `bq_allow_scan_gib` で宣言する（workflow の入力に残るので後から追える）。
+  長時間ジョブには `bq_max_billed_gib`（run 全体の予算）も付ける
+- **ループの中で大きなクエリを呼ばない。** «次の対象はどれ？» の問いかけ自体が重いなら、
+  **仕事の速さと切り離して時間で間隔を空け、回数に上限を置く**（`5_1` の `select_again`）。
+  費用が «仕事の量» ではなく **«ループの回転数»** に比例していたら、それが欠陥である
+- **判定に要らない大きな列を選抜クエリで読まない。** `sns_post_raw` は `caption` 列だけで
+  **3.90 GB（テーブルの 77%）**、`post_id` だけなら 87 MB。«どれが終わってないか» の判定に本文は要らない
+- **パーティション列で区切る**（`sns_post_raw` は `fetched_at` の日次・31 本）。`ALL` は全期間を読む
+- **報告には «その作業で使った BigQuery 課金量» を必ず添える。** 秒数だけでは費用は見えない。
+  run の合計は `restaurant_pipeline_runs.parameters_json` の `bq_scan_billed_gib` に残る
+
 ## ドキュメントを作る・直すときの規則
 
 過去に、実装のたびに `*_IMPLEMENTATION.md` / `*_SUMMARY.md` を生成してマージ後も

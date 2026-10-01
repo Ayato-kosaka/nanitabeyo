@@ -72,6 +72,20 @@ on:
         required: false
         default: ""
         type: string
+      # #1947 2026-10-01、4.58 GiB のクエリが 12 秒おきに 1 日 1,900 回走り、
+      # 2026-09 以降で約 40 TiB（≒$240）を使った。run は全部緑で 8 日間気づかなかった。
+      # 以後 1 クエリ 1 GiB 超は既定で止まる。要るなら **ここで宣言する**
+      # （宣言が workflow の入力として残るので、後から «誰が許したか» を追える）。
+      bq_allow_scan_gib:
+        description: "1 クエリで許すスキャン量の上限（GiB）。空なら 1 GiB で止まる。大きいスキャンが要る処理だけ、オーナー承認のうえで宣言する"
+        required: false
+        default: ""
+        type: string
+      bq_max_billed_gib:
+        description: "この run 全体のスキャン予算（GiB）。超えたらジョブを止める。空なら無制限（非推奨）"
+        required: false
+        default: ""
+        type: string
 
 # 既定（suffix 空）は従来どおり db-script-run 全体で直列化する。
 # 互いに書き先が重ならないスクリプトを並走させたいときだけ、呼び出し側が
@@ -101,6 +115,9 @@ jobs:
     environment: development
     env:
       DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+      # #1947 BigQuery のスキャン課金の門と予算。判定は pipeline_common が持つ（唯一の正）。
+      BQ_ALLOW_SCAN_GIB: ${{ inputs.bq_allow_scan_gib }}
+      BQ_MAX_BILLED_GIB: ${{ inputs.bq_max_billed_gib }}
       # #843 店提案パイプライン（scripts/20260808T0000_restaurant/3_2）が使う
       # Google Places Text Search (IDs Only) 専用キー。APIサーバーの
       # GOOGLE_MAPS_API_KEY とは別に発行し、キー側もText Search APIのみに制限する。
