@@ -41,8 +41,12 @@ except ImportError:
     class QueryCanceled(Error):
         pass
 
+    class InFailedSqlTransaction(Error):
+        pass
+
     fake_errors.ReadOnlySqlTransaction = ReadOnlySqlTransaction
     fake_errors.QueryCanceled = QueryCanceled
+    fake_errors.InFailedSqlTransaction = InFailedSqlTransaction
     fake_psycopg2.Error = Error
     fake_psycopg2.errors = fake_errors
     fake_psycopg2.connect = mock.MagicMock()
@@ -60,20 +64,48 @@ import measure_dish_media_coverage as sut
 class FakeCursor:
     """cur.execute() の呼び出し列を、実行順のまま記録するだけの最小フェイク。"""
 
-    def __init__(self, fail_on: str | None = None) -> None:
+    def __init__(
+        self,
+        fail_on: str | None = None,
+        is_superuser: str = "off",
+        cell_ids: list[int] | None = None,
+    ) -> None:
         self.executed_sql: list[str] = []
+        self.executed_params: list[object] = []
         self._last_sql = ""
         # «この部分文字列を含む SQL だけ失敗させる» 口（temp_file_limit は superuser
         # でないと張れないので、張れなかった側の挙動も縛るために要る）
         self._fail_on = fail_on
+        self._is_superuser = is_superuser
+        self._cell_ids = [10, 20, 30, 40, 50] if cell_ids is None else cell_ids
+        # ⚠️ **PostgreSQL の «失敗した文のあとは ROLLBACK まで何も通らない» を再現する。**
+        #    2026-10-01 に、これを再現していなかったせいで «失敗しても続行する» の
+        #    テストが緑のまま、実機（run 36819189609）では次の文が
+        #    InFailedSqlTransaction で死んだ。**フェイクが優しすぎると、
+        #    テストは «直っている» と言い続ける。**
+        self._aborted = False
 
     def execute(self, sql, *args, **kwargs) -> None:
+        if sql.strip().upper().startswith("ROLLBACK"):
+            self._aborted = False
+            self.executed_sql.append(sql)
+            self.executed_params.append(None)
+            self._last_sql = sql
+            return
+        if self._aborted:
+            raise sut.psycopg2.errors.InFailedSqlTransaction(
+                "current transaction is aborted, commands ignored until end of transaction block"
+            )
         self.executed_sql.append(sql)
+        self.executed_params.append(args[0] if args else None)
         self._last_sql = sql
         if self._fail_on and self._fail_on in sql:
+            self._aborted = True
             raise sut.psycopg2.Error(f"permission denied to set parameter: {self._fail_on}")
 
     def fetchone(self):
+        if "is_superuser" in self._last_sql:
+            return (self._is_superuser,)
         if "current_user" in self._last_sql:
             return ("test_user", "test_db")
         if "covered_at_or_above_min" in self._last_sql:
@@ -82,6 +114,10 @@ class FakeCursor:
         return (0,)
 
     def fetchall(self):
+        # Stage5 の分割はセル ID の一覧から作るので、空だとバッチが 0 本になり
+        # 集計そのものが走らない。フェイクでも «セルがある» 状態を作る
+        if "SELECT s2_cell_id FROM" in self._last_sql:
+            return [(cell_id,) for cell_id in self._cell_ids]
         return []
 
     def __enter__(self) -> "FakeCursor":
@@ -113,12 +149,17 @@ class TempFileLimitTest(unittest.TestCase):
     """#1782 2026-10-01 の DiskFull。**共有ディスクを埋める代わりに自分だけ落ちる**へ倒す。
 
     dev と public は同じ Postgres インスタンスなので（#2006）、Stage5 の一時ファイルが
-    溢れると本番側の書き込みまで巻き込みうる。`temp_file_limit` は superuser でないと
-    張れないことがあるので、**張れたかどうかをログに出して続行する**（黙って続行しない）。
+    溢れると本番側の書き込みまで巻き込みうる。
+
+    ⚠️ **ただし «保険» が本体を殺してはいけない。** `temp_file_limit` は superuser だけが
+    変えられ、**失敗した SET はトランザクションを abort させる**。最初の実装は
+    «試して失敗したら警告して続行» で、[run 36819189609](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36819189609)
+    では次の文が `InFailedSqlTransaction` で死んだ（起点の畳み込みは効いていたのに、
+    止めたのはこの保険自身だった）。だから **先に `is_superuser` を聞く**。
     """
 
-    def _run(self, argv: list[str], fail_on: str | None = None) -> FakeCursor:
-        cursor = FakeCursor(fail_on=fail_on)
+    def _run(self, argv: list[str], fail_on: str | None = None, is_superuser: str = "off") -> FakeCursor:
+        cursor = FakeCursor(fail_on=fail_on, is_superuser=is_superuser)
         connection = FakeConnection(cursor)
         patchers = [
             mock.patch.object(sut.psycopg2, "connect", return_value=connection),
@@ -131,8 +172,24 @@ class TempFileLimitTest(unittest.TestCase):
         sut.main()
         return cursor
 
+    @staticmethod
+    def _sql_with(cursor: FakeCursor, needle: str) -> list[str]:
+        return [sql for sql in cursor.executed_sql if needle in sql]
+
+    def test_does_not_even_try_when_the_connection_is_not_superuser(self) -> None:
+        """⚠️ **投げなければ abort しない。** ここが run 36819189609 の直し方そのもの。"""
+        cursor = self._run([], is_superuser="off")
+        self.assertTrue(self._sql_with(cursor, "is_superuser"), "先に聞いていること")
+        self.assertFalse(self._sql_with(cursor, "temp_file_limit"), "聞いた結果、投げていないこと")
+        # 本体は最後まで走る
+        self.assertTrue(self._sql_with(cursor, "covered_at_or_above_min"))
+
+    def test_sets_the_limit_when_superuser(self) -> None:
+        cursor = self._run([], is_superuser="on")
+        self.assertTrue(self._sql_with(cursor, "temp_file_limit"))
+
     def test_limit_is_set_before_the_stage5_aggregation(self) -> None:
-        cursor = self._run([])
+        cursor = self._run([], is_superuser="on")
         executed = cursor.executed_sql
         limit_idx = next(i for i, sql in enumerate(executed) if "temp_file_limit" in sql)
         aggregation_idx = next(
@@ -142,23 +199,95 @@ class TempFileLimitTest(unittest.TestCase):
 
     def test_limit_is_set_before_statement_timeout(self) -> None:
         """⚠️ 時間で殺される前にディスクで殺せる順でなければ意味が無い。"""
-        cursor = self._run([])
+        cursor = self._run([], is_superuser="on")
         executed = cursor.executed_sql
         limit_idx = next(i for i, sql in enumerate(executed) if "temp_file_limit" in sql)
         timeout_idx = next(i for i, sql in enumerate(executed) if "SET statement_timeout" in sql)
         self.assertLess(limit_idx, timeout_idx)
 
-    def test_zero_means_do_not_set_it(self) -> None:
+    def test_zero_means_do_not_even_ask(self) -> None:
         cursor = self._run(["--temp-file-limit-mb", "0"])
-        self.assertFalse([sql for sql in cursor.executed_sql if "temp_file_limit" in sql])
+        self.assertFalse(self._sql_with(cursor, "temp_file_limit"))
+        self.assertFalse(self._sql_with(cursor, "is_superuser"))
 
-    def test_measurement_continues_when_the_limit_cannot_be_set(self) -> None:
-        """superuser でない接続でも測定そのものは止めない（止めるのは過剰）。"""
-        cursor = self._run([], fail_on="temp_file_limit")
-        # SET は試みている
-        self.assertTrue([sql for sql in cursor.executed_sql if "temp_file_limit" in sql])
-        # そのあと Stage5 の集計まで到達している
-        self.assertTrue([sql for sql in cursor.executed_sql if "covered_at_or_above_min" in sql])
+    def test_a_failed_set_is_rolled_back_so_stage5_still_runs(self) -> None:
+        """superuser だと答えたのに SET が失敗する場合（別の理由）でも本体を殺さない。
+
+        ⚠️ FakeCursor は «失敗した文のあとは ROLLBACK まで何も通らない» を再現する。
+        ROLLBACK を出していなければ、このテストは Stage5 へ到達できず落ちる。
+        """
+        cursor = self._run([], fail_on="temp_file_limit", is_superuser="on")
+        self.assertTrue(self._sql_with(cursor, "temp_file_limit"), "試みていること")
+        self.assertTrue(self._sql_with(cursor, "ROLLBACK"), "abort を畳んでいること")
+        self.assertTrue(
+            self._sql_with(cursor, "covered_at_or_above_min"), "本体が最後まで走ること"
+        )
+
+
+class Stage5CellBatchTest(unittest.TestCase):
+    """#1782 Stage5 をセルで分割する。
+
+    ⚠️ **速度の設定ではない。** dev と public は同じ Postgres インスタンスで、
+    `temp_file_limit` は superuser でないと張れない（run 36819189609 で実測）。
+    つまり **一時ファイルを抑える手段はこの分割しかない**。
+    半径 20km の `ST_DWithin` は 1 行が数百〜千セルに当たるので、分割しないと
+    中間結果が «起点の行数 × セル数» そのままになり、起点は供給側が増えるほど増える
+    （usable dish_media は 09-03 の 4,906 行から 904,118 行になった）。
+
+    割っても数字が変わらないのは、Stage5 の出力行が (セル, カテゴリ) で、
+    **セルがどのバッチにも 1 回しか現れない = 完全な分割**だからである。
+    """
+
+    def _run(self, argv: list[str], cell_ids: list[int] | None = None) -> FakeCursor:
+        cursor = FakeCursor(cell_ids=cell_ids)
+        connection = FakeConnection(cursor)
+        patchers = [
+            mock.patch.object(sut.psycopg2, "connect", return_value=connection),
+            mock.patch.dict(sut.os.environ, {"DATABASE_URL": "postgres://fake"}),
+            mock.patch.object(sys, "argv", ["measure_dish_media_coverage.py", *argv]),
+        ]
+        for p in patchers:
+            p.start()
+            self.addCleanup(p.stop)
+        sut.main()
+        return cursor
+
+    def test_batched_sql_restricts_to_the_batch_cells(self) -> None:
+        cursor = self._run(["--cell-batch-size", "2"])
+        summaries = [
+            (sql, params)
+            for sql, params in zip(cursor.executed_sql, cursor.executed_params)
+            if "covered_at_or_above_min" in sql
+        ]
+        # セル 5 件を 2 件ずつ → 3 バッチ
+        self.assertEqual(3, len(summaries))
+        for sql, params in summaries:
+            self.assertIn("ac.s2_cell_id = ANY(%(cell_ids)s::bigint[])", sql)
+            self.assertIn("cell_ids", params)
+        self.assertEqual([[10, 20], [30, 40], [50]], [p["cell_ids"] for _, p in summaries])
+
+    def test_zero_runs_the_aggregation_once_without_the_predicate(self) -> None:
+        cursor = self._run(["--cell-batch-size", "0"])
+        summaries = [sql for sql in cursor.executed_sql if "covered_at_or_above_min" in sql]
+        self.assertEqual(1, len(summaries))
+        self.assertNotIn("cell_ids", summaries[0])
+
+    def test_batched_category_rollup_keeps_every_category(self) -> None:
+        """⚠️ バッチごとに `HAVING > 0` / `LIMIT` を付けるとカテゴリが切り捨てられ、
+        足し合わせた結果が一括と変わる。付けていないことを縛る。
+        """
+        cursor = self._run(["--cell-batch-size", "2"])
+        rollups = [sql for sql in cursor.executed_sql if "AS shortfall_cells" in sql]
+        self.assertEqual(3, len(rollups))
+        for sql in rollups:
+            self.assertNotIn("HAVING", sql)
+            self.assertNotIn("LIMIT", sql)
+
+    def test_unbatched_category_rollup_still_filters_and_limits_in_sql(self) -> None:
+        cursor = self._run(["--cell-batch-size", "0"])
+        rollup = next(sql for sql in cursor.executed_sql if "AS shortfall_cells" in sql)
+        self.assertIn("HAVING", rollup)
+        self.assertIn("LIMIT", rollup)
 
 
 class ReadOnlySwitchOrderTest(unittest.TestCase):
