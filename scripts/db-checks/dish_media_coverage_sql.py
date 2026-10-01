@@ -32,6 +32,15 @@ DEFAULT_AREA_CELLS_TABLE_NAME = "area_cells_tmp"
 DEFAULT_STAGE5_DRIVER_TABLE_NAME = "stage5_driver_tmp"
 DEFAULT_TOP_CELLS_LIMIT = 20
 
+# Stage5 を一度に何セルぶんずつ集計するか。
+#
+# ⚠️ **これは速度の設定ではなく «共有ディスクを食い潰さない» ための設定である**（#1782）。
+# dev と public は同じ Postgres インスタンスで、`temp_file_limit` は superuser でないと
+# 張れない（run 36819189609 で実測）。つまり **一時ファイルを抑える手段はこれだけ**。
+# 半径 20km の ST_DWithin は 1 行が数百〜千セルに当たるので、分割しないと中間結果の
+# 大きさが «起点の行数 × セル数» そのままになる（起点は供給側が増えるほど増える）。
+DEFAULT_CELL_BATCH_SIZE = 2_000
+
 
 def _area_cell_point_expr(alias: str = "") -> str:
     """area_cells_tmp の代表点(center_lat/center_lng)を geography の点として表す式。
@@ -212,6 +221,18 @@ def build_area_cell_count_sql(table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME) -
     return f"SELECT count(*) FROM {table_name}"
 
 
+def build_area_cell_ids_sql(table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME) -> str:
+    """Stage5 を分割するためのセル ID の一覧（昇順）。
+
+    ⚠️ **セルで割るのは、割っても数字が変わらないからである。** Stage5 の出力行は
+    (セル, カテゴリ) で、セルはどのバッチにも 1 回しか現れない = 完全な分割になる。
+    だから件数は足し算、上位 N は «各バッチの上位 N» からの再選択、カテゴリ別の
+    集計はキーごとの足し算（最大値は最大値）で **一括と同じ値**になる。
+    カテゴリで割ると «カテゴリ別上位 N» が崩れるので、セルで割る。
+    """
+    return f"SELECT s2_cell_id FROM {table_name} ORDER BY s2_cell_id"
+
+
 def jp_gate_category_select_sql() -> str:
     """JP gate（8_1_validate_catalogs.py の `target_categories` CTE と同じ条件）を
     通過した dish_category だけを列挙する。
@@ -312,6 +333,7 @@ def _stage5_matched_sql(
     radius_m: float,
     area_table_name: str,
     driver_table_name: str,
+    batched: bool = False,
 ) -> str:
     """Stage5 集計本体。畳んだ起点（(店, カテゴリ) 1 行）から半径内の area_cell を引く。
 
@@ -338,7 +360,9 @@ def _stage5_matched_sql(
         f"       {_area_cell_point_expr('ac')},\n"
         f"       {radius_m}\n"
         "     )\n"
-        "GROUP BY ac.s2_cell_id, ac.restaurant_count, t.category_id, t.category_label"
+        # バッチ実行では «このバッチのセルだけ» へ絞る（%(cell_ids)s は呼び出し側がバインドする）
+        + ("WHERE ac.s2_cell_id = ANY(%(cell_ids)s::bigint[])\n" if batched else "")
+        + "GROUP BY ac.s2_cell_id, ac.restaurant_count, t.category_id, t.category_label"
     )
 
 
@@ -347,6 +371,7 @@ def build_stage5_summary_sql(
     min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
     area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
     driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
+    batched: bool = False,
 ) -> str:
     """Stage5: coverage が非ゼロの area × category を、min_restaurants 基準でバケット集計する。
 
@@ -356,7 +381,7 @@ def build_stage5_summary_sql(
     """
     return (
         "WITH matched AS (\n"
-        f"{_stage5_matched_sql(radius_m, area_table_name, driver_table_name)}\n"
+        f"{_stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)}\n"
         ")\n"
         "SELECT\n"
         f"  count(*) FILTER (WHERE restaurants_with_usable_media >= {min_restaurants})"
@@ -374,6 +399,7 @@ def build_stage5_shortfall_cells_sql(
     min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
     area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
     driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
+    batched: bool = False,
 ) -> str:
     """#1782 完了条件2: **あと少しで成立する** area × category を、惜しい順に出す。
 
@@ -387,7 +413,7 @@ def build_stage5_shortfall_cells_sql(
     多い順に並べるのは «いちばん惜しいものから潰す» ため。
     """
     return (
-        _stage5_matched_sql(radius_m, area_table_name, driver_table_name)
+        _stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)
         + f"\nHAVING count(*) < {min_restaurants}"
         + "\nORDER BY restaurants_with_usable_media DESC, ac.s2_cell_id, t.category_id"
         + f"\nLIMIT {top_n}"
@@ -400,6 +426,7 @@ def build_stage5_shortfall_by_category_sql(
     min_restaurants: int = DEFAULT_MIN_RESTAURANTS,
     area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
     driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
+    batched: bool = False,
 ) -> str:
     """#1782 完了条件2: 惜しいセルをカテゴリ単位でまとめる（«どの料理から手を付けるか»）。
 
@@ -409,7 +436,7 @@ def build_stage5_shortfall_by_category_sql(
     """
     return (
         "WITH matched AS (\n"
-        f"{_stage5_matched_sql(radius_m, area_table_name, driver_table_name)}\n"
+        f"{_stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)}\n"
         ")\n"
         "SELECT\n"
         "  category_id,\n"
@@ -421,9 +448,18 @@ def build_stage5_shortfall_by_category_sql(
         "  max(restaurants_with_usable_media) AS best_cell_restaurants\n"
         "FROM matched\n"
         "GROUP BY category_id, category_label\n"
-        f"HAVING count(*) FILTER (WHERE restaurants_with_usable_media < {min_restaurants}) > 0\n"
-        "ORDER BY shortfall_cells DESC, category_id\n"
-        f"LIMIT {top_n}"
+        # ⚠️ バッチでは HAVING / LIMIT を付けない。付けるとバッチごとに **カテゴリが切り捨て**
+        #    られ、足し合わせた結果が一括と変わる（JP gate は 134 件なので全件返して安い）。
+        #    絞り込みと並べ替えは呼び出し側が全バッチを足したあとで行う
+        + (
+            ""
+            if batched
+            else (
+                f"HAVING count(*) FILTER (WHERE restaurants_with_usable_media < {min_restaurants}) > 0\n"
+                "ORDER BY shortfall_cells DESC, category_id\n"
+                f"LIMIT {top_n}"
+            )
+        )
     )
 
 
@@ -432,10 +468,11 @@ def build_stage5_top_cells_sql(
     radius_m: float = DEFAULT_RADIUS_M,
     area_table_name: str = DEFAULT_AREA_CELLS_TABLE_NAME,
     driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
+    batched: bool = False,
 ) -> str:
     """Stage5: coverage（usable dish_media を持つ店舗数）が多い順に上位 top_n 件。"""
     return (
-        _stage5_matched_sql(radius_m, area_table_name, driver_table_name)
+        _stage5_matched_sql(radius_m, area_table_name, driver_table_name, batched)
         + "\nORDER BY restaurants_with_usable_media DESC, ac.s2_cell_id, t.category_id"
         + f"\nLIMIT {top_n}"
     )

@@ -386,6 +386,22 @@ def is_superuser(cur) -> bool:
     return str(value).lower() == "on"
 
 
+def stage5_cell_batches(cur, area_table_name: str, cell_batch_size: int) -> list[dict] | None:
+    """Stage5 を分割するためのバインドパラメータ列（分割しないなら None）。
+
+    ⚠️ **セルで割る理由と «割っても数字が変わらない» 理由は
+    `dish_media_coverage_sql.build_area_cell_ids_sql()` の docstring にある。**
+    """
+    if cell_batch_size <= 0:
+        return None
+    cur.execute(coverage_sql.build_area_cell_ids_sql(area_table_name))
+    cell_ids = [row[0] for row in cur.fetchall()]
+    return [
+        {"cell_ids": cell_ids[start : start + cell_batch_size]}
+        for start in range(0, len(cell_ids), cell_batch_size)
+    ]
+
+
 def run_stage5(
     cur,
     driver_table_name: str,
@@ -395,6 +411,7 @@ def run_stage5(
     min_restaurants: int,
     statement_timeout_s: int,
     temp_file_limit_mb: int,
+    cell_batch_size: int,
 ) -> dict:
     section("Stage5: area(S2セル) x dish_category(JP gate) の coverage")
 
@@ -415,57 +432,99 @@ def run_stage5(
     )
 
     cur.execute(f"SET statement_timeout = '{statement_timeout_s}s'")
+
+    batches = stage5_cell_batches(cur, area_table_name, cell_batch_size)
+    if batches is None:
+        logger.info("Stage5 の分割: なし（--cell-batch-size 0）")
+    else:
+        logger.info(
+            "Stage5 の分割: %s セルずつ %s 回（一度に作る中間結果を小さく保つ。#1782）",
+            f"{cell_batch_size:,}",
+            f"{len(batches):,}",
+        )
+
+    def sql_kwargs(batched: bool) -> dict:
+        return {
+            "radius_m": radius_m,
+            "area_table_name": area_table_name,
+            "driver_table_name": driver_table_name,
+            "batched": batched,
+        }
+
+    covered_at_or_above_min = 0
+    covered_below_min = 0
+    covered_total = 0
+    top_rows: list[tuple] = []
+    shortfall_rows: list[tuple] = []
+    # category_id -> [label, shortfall_cells, covered_cells, best_cell_restaurants]
+    category_totals: dict[str, list] = {}
+
     try:
-        cur.execute(
-            coverage_sql.build_stage5_summary_sql(
-                radius_m=radius_m,
-                min_restaurants=min_restaurants,
-                area_table_name=area_table_name,
-                driver_table_name=driver_table_name,
-            )
-        )
-        covered_at_or_above_min, covered_below_min, covered_total = cur.fetchone()
+        for index, params in enumerate(batches if batches is not None else [None], start=1):
+            batched = params is not None
+            kwargs = sql_kwargs(batched)
 
-        cur.execute(
-            coverage_sql.build_stage5_top_cells_sql(
-                radius_m=radius_m,
-                area_table_name=area_table_name,
-                driver_table_name=driver_table_name,
-            )
-        )
-        top_rows = cur.fetchall()
+            cur.execute(coverage_sql.build_stage5_summary_sql(min_restaurants=min_restaurants, **kwargs), params)
+            at_or_above, below, total = cur.fetchone()
+            covered_at_or_above_min += at_or_above
+            covered_below_min += below
+            covered_total += total
 
-        # #1782 完了条件2「不足セルが一覧で出る」。
-        # ⚠️ «閾値に満たない全部» は dev 実測で 1,646 万行あり、一覧にしても打ち手は決まらない。
-        #    打ち手が決まるのは «1 件以上あるが届いていない» セル（あと 1〜4 件で成立に変わる）。
-        cur.execute(
-            coverage_sql.build_stage5_shortfall_cells_sql(
-                radius_m=radius_m,
-                min_restaurants=min_restaurants,
-                area_table_name=area_table_name,
-                driver_table_name=driver_table_name,
-            )
-        )
-        shortfall_rows = cur.fetchall()
+            cur.execute(coverage_sql.build_stage5_top_cells_sql(**kwargs), params)
+            top_rows.extend(cur.fetchall())
 
-        cur.execute(
-            coverage_sql.build_stage5_shortfall_by_category_sql(
-                radius_m=radius_m,
-                min_restaurants=min_restaurants,
-                area_table_name=area_table_name,
-                driver_table_name=driver_table_name,
+            # #1782 完了条件2「不足セルが一覧で出る」。
+            # ⚠️ «閾値に満たない全部» は dev 実測で 1,646 万行あり、一覧にしても打ち手は決まらない。
+            #    打ち手が決まるのは «1 件以上あるが届いていない» セル（あと 1〜4 件で成立に変わる）。
+            cur.execute(
+                coverage_sql.build_stage5_shortfall_cells_sql(min_restaurants=min_restaurants, **kwargs),
+                params,
             )
-        )
-        shortfall_category_rows = cur.fetchall()
+            shortfall_rows.extend(cur.fetchall())
+
+            cur.execute(
+                coverage_sql.build_stage5_shortfall_by_category_sql(min_restaurants=min_restaurants, **kwargs),
+                params,
+            )
+            for category_id, category_label, shortfall, covered, best in cur.fetchall():
+                entry = category_totals.setdefault(category_id, [category_label, 0, 0, 0])
+                entry[1] += shortfall or 0
+                entry[2] += covered or 0
+                entry[3] = max(entry[3], best or 0)
+
+            if batched and (index % 10 == 0 or index == len(batches)):
+                # ⚠️ 進捗は «数字が動いていること» を外から確かめるために出す。
+                #    出さないと «生きているのか» が分からず、待つしかなくなる
+                logger.info(
+                    "  Stage5 進捗: %s / %s バッチ（coverage 成立 %s 件）",
+                    f"{index:,}",
+                    f"{len(batches):,}",
+                    f"{covered_at_or_above_min:,}",
+                )
     except psycopg2.errors.QueryCanceled:
         logger.error(
-            "❌ Stage5 が %s 秒でタイムアウトしました。--s2-level を小さく（粗く）するか、"
+            "❌ Stage5 が %s 秒でタイムアウトしました。--cell-batch-size を小さくするか、"
             "--statement-timeout-s を伸ばして再実行してください。"
             "（起点の行数は上の «Stage5 の起点» のログに出ている。"
             "そこが大きいなら時間ではなく起点の問題である）",
             statement_timeout_s,
         )
         raise
+
+    # ⚠️ 上位 N は «各バッチの上位 N» からの再選択で一括と同じ値になる（セルで割っているので
+    #    同じ (セル, カテゴリ) が 2 つのバッチへ現れない）。並びは SQL と同じ鍵を使う
+    def top_key(row: tuple) -> tuple:
+        return (-row[4], row[0], row[2])
+
+    top_rows = sorted(top_rows, key=top_key)[: coverage_sql.DEFAULT_TOP_CELLS_LIMIT]
+    shortfall_rows = sorted(shortfall_rows, key=top_key)[: coverage_sql.DEFAULT_TOP_CELLS_LIMIT]
+    shortfall_category_rows = [
+        (category_id, label, shortfall, covered, best)
+        for category_id, (label, shortfall, covered, best) in sorted(
+            category_totals.items(), key=lambda item: (-item[1][1], item[0])
+        )
+        if shortfall > 0
+    ][: coverage_sql.DEFAULT_TOP_CELLS_LIMIT]
 
     covered_zero = total_combos - covered_total
     coverage_rate = (covered_at_or_above_min / total_combos) if total_combos else None
@@ -587,6 +646,15 @@ def parse_args() -> argparse.Namespace:
         help="Stage5 の集計クエリに許す最大秒数（既定: 300）",
     )
     parser.add_argument(
+        "--cell-batch-size",
+        type=int,
+        default=coverage_sql.DEFAULT_CELL_BATCH_SIZE,
+        help=(
+            f"Stage5 を何セルずつ集計するか（既定: {coverage_sql.DEFAULT_CELL_BATCH_SIZE} / 0 で一括）。"
+            "⚠️ 速度ではなく «共有ディスクを食い潰さない» ための設定（#1782）"
+        ),
+    )
+    parser.add_argument(
         "--temp-file-limit-mb",
         type=int,
         default=4096,
@@ -665,6 +733,7 @@ def main() -> int:
                 min_restaurants=args.min_restaurants,
                 statement_timeout_s=args.statement_timeout_s,
                 temp_file_limit_mb=args.temp_file_limit_mb,
+                cell_batch_size=args.cell_batch_size,
             )
 
     result = {

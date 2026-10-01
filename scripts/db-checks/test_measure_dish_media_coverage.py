@@ -64,13 +64,20 @@ import measure_dish_media_coverage as sut
 class FakeCursor:
     """cur.execute() の呼び出し列を、実行順のまま記録するだけの最小フェイク。"""
 
-    def __init__(self, fail_on: str | None = None, is_superuser: str = "off") -> None:
+    def __init__(
+        self,
+        fail_on: str | None = None,
+        is_superuser: str = "off",
+        cell_ids: list[int] | None = None,
+    ) -> None:
         self.executed_sql: list[str] = []
+        self.executed_params: list[object] = []
         self._last_sql = ""
         # «この部分文字列を含む SQL だけ失敗させる» 口（temp_file_limit は superuser
         # でないと張れないので、張れなかった側の挙動も縛るために要る）
         self._fail_on = fail_on
         self._is_superuser = is_superuser
+        self._cell_ids = [10, 20, 30, 40, 50] if cell_ids is None else cell_ids
         # ⚠️ **PostgreSQL の «失敗した文のあとは ROLLBACK まで何も通らない» を再現する。**
         #    2026-10-01 に、これを再現していなかったせいで «失敗しても続行する» の
         #    テストが緑のまま、実機（run 36819189609）では次の文が
@@ -82,6 +89,7 @@ class FakeCursor:
         if sql.strip().upper().startswith("ROLLBACK"):
             self._aborted = False
             self.executed_sql.append(sql)
+            self.executed_params.append(None)
             self._last_sql = sql
             return
         if self._aborted:
@@ -89,6 +97,7 @@ class FakeCursor:
                 "current transaction is aborted, commands ignored until end of transaction block"
             )
         self.executed_sql.append(sql)
+        self.executed_params.append(args[0] if args else None)
         self._last_sql = sql
         if self._fail_on and self._fail_on in sql:
             self._aborted = True
@@ -105,6 +114,10 @@ class FakeCursor:
         return (0,)
 
     def fetchall(self):
+        # Stage5 の分割はセル ID の一覧から作るので、空だとバッチが 0 本になり
+        # 集計そのものが走らない。フェイクでも «セルがある» 状態を作る
+        if "SELECT s2_cell_id FROM" in self._last_sql:
+            return [(cell_id,) for cell_id in self._cell_ids]
         return []
 
     def __enter__(self) -> "FakeCursor":
@@ -209,6 +222,72 @@ class TempFileLimitTest(unittest.TestCase):
         self.assertTrue(
             self._sql_with(cursor, "covered_at_or_above_min"), "本体が最後まで走ること"
         )
+
+
+class Stage5CellBatchTest(unittest.TestCase):
+    """#1782 Stage5 をセルで分割する。
+
+    ⚠️ **速度の設定ではない。** dev と public は同じ Postgres インスタンスで、
+    `temp_file_limit` は superuser でないと張れない（run 36819189609 で実測）。
+    つまり **一時ファイルを抑える手段はこの分割しかない**。
+    半径 20km の `ST_DWithin` は 1 行が数百〜千セルに当たるので、分割しないと
+    中間結果が «起点の行数 × セル数» そのままになり、起点は供給側が増えるほど増える
+    （usable dish_media は 09-03 の 4,906 行から 904,118 行になった）。
+
+    割っても数字が変わらないのは、Stage5 の出力行が (セル, カテゴリ) で、
+    **セルがどのバッチにも 1 回しか現れない = 完全な分割**だからである。
+    """
+
+    def _run(self, argv: list[str], cell_ids: list[int] | None = None) -> FakeCursor:
+        cursor = FakeCursor(cell_ids=cell_ids)
+        connection = FakeConnection(cursor)
+        patchers = [
+            mock.patch.object(sut.psycopg2, "connect", return_value=connection),
+            mock.patch.dict(sut.os.environ, {"DATABASE_URL": "postgres://fake"}),
+            mock.patch.object(sys, "argv", ["measure_dish_media_coverage.py", *argv]),
+        ]
+        for p in patchers:
+            p.start()
+            self.addCleanup(p.stop)
+        sut.main()
+        return cursor
+
+    def test_batched_sql_restricts_to_the_batch_cells(self) -> None:
+        cursor = self._run(["--cell-batch-size", "2"])
+        summaries = [
+            (sql, params)
+            for sql, params in zip(cursor.executed_sql, cursor.executed_params)
+            if "covered_at_or_above_min" in sql
+        ]
+        # セル 5 件を 2 件ずつ → 3 バッチ
+        self.assertEqual(3, len(summaries))
+        for sql, params in summaries:
+            self.assertIn("ac.s2_cell_id = ANY(%(cell_ids)s::bigint[])", sql)
+            self.assertIn("cell_ids", params)
+        self.assertEqual([[10, 20], [30, 40], [50]], [p["cell_ids"] for _, p in summaries])
+
+    def test_zero_runs_the_aggregation_once_without_the_predicate(self) -> None:
+        cursor = self._run(["--cell-batch-size", "0"])
+        summaries = [sql for sql in cursor.executed_sql if "covered_at_or_above_min" in sql]
+        self.assertEqual(1, len(summaries))
+        self.assertNotIn("cell_ids", summaries[0])
+
+    def test_batched_category_rollup_keeps_every_category(self) -> None:
+        """⚠️ バッチごとに `HAVING > 0` / `LIMIT` を付けるとカテゴリが切り捨てられ、
+        足し合わせた結果が一括と変わる。付けていないことを縛る。
+        """
+        cursor = self._run(["--cell-batch-size", "2"])
+        rollups = [sql for sql in cursor.executed_sql if "AS shortfall_cells" in sql]
+        self.assertEqual(3, len(rollups))
+        for sql in rollups:
+            self.assertNotIn("HAVING", sql)
+            self.assertNotIn("LIMIT", sql)
+
+    def test_unbatched_category_rollup_still_filters_and_limits_in_sql(self) -> None:
+        cursor = self._run(["--cell-batch-size", "0"])
+        rollup = next(sql for sql in cursor.executed_sql if "AS shortfall_cells" in sql)
+        self.assertIn("HAVING", rollup)
+        self.assertIn("LIMIT", rollup)
 
 
 class ReadOnlySwitchOrderTest(unittest.TestCase):
