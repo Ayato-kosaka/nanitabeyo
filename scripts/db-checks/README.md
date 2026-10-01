@@ -81,8 +81,16 @@ requirements_path: scripts/20260808T0000_restaurant/requirements.txt
 
 ⚠️ **重いクエリは `--statement-timeout-s` で殺される。** 既定 300 秒で、超えると
 `QueryCanceled` になる（`measure_dish_media_coverage.py` の Stage5 が代表例）。
-落ちたときは **`--s2-level` を小さく（粗く）するか `--statement-timeout-s` を伸ばす**。
-この 2 つは «DB が壊れている» のサインではないので、先に閾値を疑うこと。
+⚠️ **ここに «落ちたら `--s2-level` を小さく（粗く）する» と書いてあったのを外した（2026-10-01）。**
+`--s2-level` は **area の定義そのもの**なので、変えると `2.34% → 13.3% → 29.1%` の推移と
+**並べられない数字**になる。落ちたときの手は «定義を変える» ではなく、下の 2 つである:
+
+| 症状 | 見るもの | 手 |
+| --- | --- | --- |
+| `QueryCanceled`（既定 300 秒） | 時間 | `--statement-timeout-s` を伸ばす |
+| `DiskFull` | **ログの «Stage5 の起点» の行数** | `--cell-batch-size` を**小さく**する（下記） |
+
+どちらも «DB が壊れている» のサインではないので、先に閾値を疑うこと。
 
 ⚠️ **ただし `DiskFull` は閾値の問題ではない。** 2026-10-01 に Stage5 が
 `DiskFull: could not write to file "base/pgsql_tmp/..."` で落ちた
