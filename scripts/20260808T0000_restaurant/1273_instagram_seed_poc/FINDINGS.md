@@ -1520,3 +1520,18 @@ CC WAT の供給が «新しくなくなった» からで、未採掘 crawl を
 回帰テストは `test_budget_not_spent_on_known_dead_work.py`（9 件・2 スクリプトを横断）。
 `ExclusionIsOptInUntilMeasured` は «実測が済んだので» `ExclusionIsTheDefaultOnceMeasured` へ
 **逆向きに固定し直した**（全体 848 件 OK）。
+
+### ⚠️ «CC WAT の単位収穫は最下位» の判定も、この読み直し期間の測定だった（交絡）
+
+2026-10-01 の午前に `7_6` のルート別収穫表を根拠に «CC WAT は 0.02〜0.03 店/アカウントで
+最下位・09-04 から 10 分の 1 に落ちた» と書き、**レーンを 4 → 2 に減らした**。
+
+その «10 分の 1» は、**9 月下旬以降の CC WAT が読み終わった crawl を読み直していた**ことで
+説明が付く（新規投稿 2.9%）。同じアカウント・同じ投稿を数え直していたのだから、
+«アカウントあたりの新しい店» は当然落ちる。**ルートの性質ではなく、在庫の枯れである。**
+
+→ レーンを **2 → 4 へ戻した**（未採掘の CC-MAIN-2026-30、
+[1667](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36931526359) /
+[1668](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36931535603)）。
+ラウンドが終わったら、**未採掘 crawl での** «アカウントあたりの配信可能な店» を測り直して
+`7_6` の表を更新する。それまで «CC WAT は最下位» を根拠に使わない。
