@@ -170,6 +170,16 @@ jobs:
             scripts/db-checks/test_dish_media_coverage_sql.py \
             scripts/db-checks/test_measure_dish_media_coverage.py
 
+      # #843 需要の重みを入れた «Google fallback を避けられる率»。
+      #
+      # 見出し指標（coverage）は area × category を**均等に**数えるが、fallback が起きるのは
+      # «ユーザーが実際にした検索が 0 件» のときだけ。本番実測では一様格子 1.92% に対して
+      # 実際の検索は 28.6% が 0 件でなく、**15 倍**違う（人は店と投稿がある場所で検索する）。
+      # ここで縛るのは «定義を写経していないこと» と «判定できないセルを «返せた» 側へ
+      # 混ぜないこと»。どちらも率の誤報に直結する。
+      - name: 需要の重みづけ fallback 率（#843）のユニットテスト
+        run: python3 -m unittest scripts/db-checks/test_measure_google_fallback_avoidable.py
+
       # #1933 «1 報告 = 1 Issue» の起票が、public な Issue へユーザーの自由入力
       # （proposed_value）や報告者の uid を出さないこと。取ってこない形で守っている
       - name: 店舗情報の報告の起票の回帰テスト

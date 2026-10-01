@@ -262,6 +262,7 @@ def build_jp_gate_category_count_sql() -> str:
 def build_stage5_driver_temp_table_sql(
     driver_table_name: str = DEFAULT_STAGE5_DRIVER_TABLE_NAME,
     media_table_name: str = DEFAULT_TEMP_TABLE_NAME,
+    include_jp_gate: bool = True,
 ) -> str:
     """Stage5 の **起点**を «これ以上小さくできない形» まで畳んだ一時テーブル。
 
@@ -297,7 +298,29 @@ def build_stage5_driver_temp_table_sql(
     JP gate の絞り込みもここで済ませる（Stage5 の 4 本すべてが INNER JOIN で
     同じ絞り込みをしていたので、意味は変わらない）。Stage4 は**この表を使わない**
     （あちらは全カテゴリを出すのが仕事）。
+
+    ## `include_jp_gate=False` を使う場面（#843 2026-10-01）
+
+    **本番の検索は JP gate を見ない。** `findDishMediaIds` は
+    `d.category_id = <リクエストされたカテゴリ>` で絞るだけで、gate は
+    «日本で出すカテゴリ» を選ぶ別の仕組みである。したがって
+    «ユーザーの検索が返せたか» を測るときに gate で絞ると、
+    **gate の外にある供給（dev 実測で usable があるカテゴリ 2,776 / gate は 134）を
+    無いものとして数えてしまう**。そのときだけ `False` を渡す。
+    #843 の見出し指標（coverage）は gate を分母の定義に含めるので `True` のまま。
     """
+    if not include_jp_gate:
+        # gate で絞らない。category_label は gate 表から来るので、ここでは NULL を置く
+        # （呼び出し側が label を使わないことを前提にする。使うなら dish_categories から引くこと）。
+        return (
+            f"CREATE TEMP TABLE {driver_table_name} AS\n"
+            "SELECT DISTINCT\n"
+            "  t.restaurant_id,\n"
+            "  t.category_id,\n"
+            "  NULL::text AS category_label,\n"
+            "  t.location\n"
+            f"FROM {media_table_name} t"
+        )
     return (
         f"CREATE TEMP TABLE {driver_table_name} AS\n"
         "WITH jp_gate_categories AS (\n"
