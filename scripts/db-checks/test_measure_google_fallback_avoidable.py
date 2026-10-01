@@ -271,6 +271,17 @@ class CrawlTargetsTest(unittest.TestCase):
         # 店舗数が分からないので、全部 «店の記録すら無い» 側へは倒さず 0 として扱う
         self.assertEqual(2, summary["crawl_targets_no_restaurant"])
 
+    def test_crawl_scale_counts_cells_distinctly(self) -> None:
+        """セルはカテゴリをまたいで重複する。店数を二重に数えると規模を誤る。"""
+        demand = [
+            sut.DemandRow((2, "Q1", 500.0, 1)),
+            sut.DemandRow((2, "Q2", 500.0, 1)),  # 同じセル・別カテゴリ
+            sut.DemandRow((3, "Q1", 500.0, 1)),  # 店の記録が無いので規模に入らない
+        ]
+        summary = sut.summarize(demand, {}, {2}, {2: 45})
+        self.assertEqual(1, summary["no_media_cells_distinct"])
+        self.assertEqual(45, summary["restaurants_in_no_media_cells"])
+
     def test_full_target_list_is_not_inlined_into_the_json_line(self) -> None:
         """JSON は 1 行で Job Summary に貼られる。数千行を混ぜると読めなくなる。"""
         self.assertIn('if key != "crawl_targets"', SOURCE)

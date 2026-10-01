@@ -283,6 +283,17 @@ def summarize(
             {"category_id": category_id, "unserved": unserved, "searches": searches}
             for category_id, unserved, searches in worst
         ],
+        # ⚠️ «狙い撃ちの crawl がどれだけの規模になるか» を出す。
+        #    全件クロール（restaurant_links の website 282,163 サイト）の代わりに
+        #    «需要がある所だけ» を回るなら、相手はこのセル群の店だけである。
+        #    セルはカテゴリをまたいで重複するので、**セルの異なり**で数える。
+        "no_media_cells_distinct": len({
+            t["s2_cell_id"] for t in targets if t["kind"] == "no_media"
+        }),
+        "restaurants_in_no_media_cells": sum(
+            counts_by_cell.get(cell_id, 0)
+            for cell_id in {t["s2_cell_id"] for t in targets if t["kind"] == "no_media"}
+        ),
         "crawl_targets_total": len(targets),
         "crawl_targets_no_media": sum(1 for t in targets if t["kind"] == "no_media"),
         "crawl_targets_no_restaurant": sum(1 for t in targets if t["kind"] == "no_restaurant"),
@@ -331,6 +342,10 @@ def report(summary: dict) -> None:
     logger.info("  ▶ 店の記録すら無い（crawl では埋まらない）: %s 組 / 検索 %s 件",
                 f"{summary['crawl_targets_no_restaurant']:,}",
                 f"{summary['unserved_searches_in_cells_without_restaurants']:,}")
+    logger.info("")
+    logger.info("狙い撃ちの crawl の規模: セル %s 件 / そこに在る店 %s 件",
+                f"{summary['no_media_cells_distinct']:,}",
+                f"{summary['restaurants_in_no_media_cells']:,}")
     logger.info("")
     logger.info("上位 20 組（--out-targets で全件を CSV へ書ける）")
     logger.info("  %-21s %-12s %6s %8s  %s", "s2_cell_id", "category", "検索", "店数", "種別")
