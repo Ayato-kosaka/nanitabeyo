@@ -14,6 +14,7 @@ DB 接続を実際には張らず、psycopg2.connect をフェイクへ差し替
 
 from __future__ import annotations
 
+import re
 import sys
 import types
 import unittest
@@ -440,6 +441,65 @@ class ComputeAreaCellsTest(unittest.TestCase):
     def test_empty_locations_produce_no_cells(self) -> None:
         with mock.patch.object(sut, "s2_cell_id"):
             self.assertEqual([], sut.compute_area_cells([], s2_level=14))
+
+
+class ProductionRadiusIsNotClaimedTest(unittest.TestCase):
+    """既定値を «本番と同じ» と書かせない（2026-10-01 に実際に書かれていた）。
+
+    欠陥をパターンで言い直すと **«プロダクトの既定と違う値を既定にしたまま、
+    «プロダクトと同じ» と説明していた»**。`--radius-m` の help は
+    「店提案と同じ半径検索の半径（既定: 20000）」と書いてあったが、アプリの既定は
+    **500m**（`DEFAULT_SEARCH_RADIUS`）で **40 倍**違っていた。
+    #843 の見出し指標（2.34% → 13.3% → 29.1%）はすべてこの 20km で測ったものなので、
+    «ユーザーの検索が通る率» として読むと桁を取り違える。
+
+    ここでは **アプリ側の定数ファイルから実際の既定値を読み出して**、help に
+    その数字が書かれていることを検査する。値を 2 箇所へ書き写さないので、
+    アプリが既定半径を変えたらこのテストが落ちて説明の更新を促す。
+    """
+
+    APP_CONSTANTS = (
+        Path(__file__).resolve().parents[2]
+        / "app-expo"
+        / "features"
+        / "dishCategories"
+        / "constants.ts"
+    )
+
+    def _app_default_search_radius(self) -> int:
+        source = self.APP_CONSTANTS.read_text(encoding="utf-8")
+        match = re.search(r"DEFAULT_SEARCH_RADIUS\s*=\s*(\d+)", source)
+        self.assertIsNotNone(
+            match,
+            f"{self.APP_CONSTANTS} から DEFAULT_SEARCH_RADIUS を読めない"
+            "（アプリ側で名前が変わったなら、このテストと help の説明も直すこと）",
+        )
+        return int(match.group(1))
+
+    def _radius_help(self) -> str:
+        parser = sut.build_arg_parser()
+        for action in parser._actions:  # noqa: SLF001 argparse の公開 API が無い
+            if "--radius-m" in action.option_strings:
+                return action.help or ""
+        self.fail("--radius-m が見つからない")
+
+    def test_help_does_not_claim_equivalence_with_production(self) -> None:
+        self.assertNotIn("店提案と同じ半径", self._radius_help())
+
+    def test_help_names_the_app_default_radius(self) -> None:
+        self.assertIn(str(self._app_default_search_radius()), self._radius_help())
+
+    def test_min_restaurants_help_says_it_is_not_the_fallback_threshold(self) -> None:
+        parser = sut.build_arg_parser()
+        helps = [
+            action.help or ""
+            for action in parser._actions  # noqa: SLF001
+            if "--min-restaurants" in action.option_strings
+        ]
+        self.assertEqual(1, len(helps))
+        # Google fallback は «0 件» のときだけ起きる（dishMediaSearch.ts）。
+        # 既定の 5 を «fallback の境目» と読ませない。
+        self.assertIn("0 件", helps[0])
 
 
 if __name__ == "__main__":

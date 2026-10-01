@@ -65,6 +65,13 @@
 - **「日本のどこでも店提案が動く」とは言えない。** S2セルは restaurants が実在する
   座標から作るため、店舗が1件も無い空白地帯はそもそもセルとして現れず、
   `covered_zero_restaurants`（coverageゼロの件数）にも含まれない
+- ⚠️ **既定の半径（20,000m）と閾値（5 店舗）で測った数字は、«ユーザーの検索が通る率» では
+  ない。** アプリの既定の検索半径は **500m**（`DEFAULT_SEARCH_RADIUS`）で、既定値は
+  その **40 倍**である。さらに Google fallback が起きるのは `dish-media/search` が
+  **0 件**のときだけ（`app-expo/lib/dishMediaSearch.ts`）なので、閾値 5 は fallback の
+  境目でもない。#843 の «Google Text Search fallback を不要にする» を測るなら
+  `--radius-m 500 --min-restaurants 1` で回し、既定値の系列（2.34% → 13.3% → 29.1%）とは
+  **別の量として扱うこと**（混ぜると «塗れた面積» と «検索が通る率» を取り違える）
 - **異なる `--s2-level` で測った数字とは比較できない。** レベルを変えるとセルの粒度も
   coverage の件数も変わる。前提（`assumptions` フィールド）が同じ実行同士でしか比べられない
 - **店舗詳細画面（`findDishMediaByRestaurant`）の「使える」件数とは一致しない。**
@@ -148,7 +155,11 @@ DDL を流す区間は手順2・3（一時テーブルの作成）だけに限�
 
 S2 level や半径・閾値を変えたいときは引数を足す:
 
+    # 既定値の系列（#843 の完了条件の文言どおり: 半径 20km / 5 店舗以上）
     args: --schema dev --s2-level 14 --radius-m 20000 --min-restaurants 5
+
+    # «ユーザーの検索が自社 DB で通るか»（= Google fallback を避けられるか）
+    args: --schema dev --s2-level 14 --radius-m 500 --min-restaurants 1
 
 ローカルでの単体テスト（DB 接続なし、SQL の組み立てだけを検査）:
 
@@ -183,7 +194,17 @@ _RESTAURANT_PIPELINE_DIR = (
 if str(_RESTAURANT_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(_RESTAURANT_PIPELINE_DIR))
 
-from normalization import s2_cell_id  # noqa: E402  (sys.path 設定の直後で読む必要がある)
+# ⚠️ `requirements_path` を間違えると、ここが素の ModuleNotFoundError: s2sphere で落ちる。
+# db-script-run.yml の既定（wikidata 側）には s2sphere が無い。2026-10-01 に実際に
+# 1 run 無駄にしたので、«何を渡せばよいか» をその場で言うようにする。
+try:
+    from normalization import s2_cell_id  # noqa: E402  (sys.path 設定の直後で読む必要がある)
+except ModuleNotFoundError as _error:  # pragma: no cover - 依存の欠落は CI では起きない
+    raise SystemExit(
+        f"❌ S2 セル化に要る依存が入っていない（{_error.name}）。\n"
+        "   db-script-run.yml の requirements_path は既定（wikidata 側）ではなく\n"
+        "   scripts/20260808T0000_restaurant/requirements.txt を渡すこと。"
+    ) from _error
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -601,7 +622,13 @@ def run_stage5(
     }
 
 
-def parse_args() -> argparse.Namespace:
+def build_arg_parser() -> argparse.ArgumentParser:
+    """引数定義を組み立てる（`parse_args` から分けてテストが help を読めるようにする）。
+
+    ⚠️ 既定値の «説明» をここ以外に書かないこと。2026-10-01 に `--radius-m` の help が
+    «店提案と同じ半径» と言ったまま 40 倍ずれていた（アプリの既定は 500m）。
+    `test_measure_dish_media_coverage.py` がアプリ側の定数と突き合わせている。
+    """
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -620,13 +647,27 @@ def parse_args() -> argparse.Namespace:
         "--radius-m",
         type=float,
         default=coverage_sql.DEFAULT_RADIUS_M,
-        help=f"店提案と同じ半径検索の半径（メートル。既定: {coverage_sql.DEFAULT_RADIUS_M}）",
+        help=(
+            "半径検索の半径（メートル。既定: "
+            f"{coverage_sql.DEFAULT_RADIUS_M}）。"
+            "⚠️ 既定値は本番の検索半径ではない。アプリの既定は 500m "
+            "（app-expo/features/dishCategories/constants.ts の DEFAULT_SEARCH_RADIUS）で、"
+            "本番ログの実測でも Google へ落ちた検索 2,065 通りのうち 1,772 通りが 500m だった。"
+            "«ユーザーの検索が自社 DB で通るか» を測るなら --radius-m 500 --min-restaurants 1 で回すこと"
+        ),
     )
     parser.add_argument(
         "--min-restaurants",
         type=int,
         default=coverage_sql.DEFAULT_MIN_RESTAURANTS,
-        help=f"不足セルと判定する閾値（この店舗数未満。既定: {coverage_sql.DEFAULT_MIN_RESTAURANTS}）",
+        help=(
+            "不足セルと判定する閾値（この店舗数未満。既定: "
+            f"{coverage_sql.DEFAULT_MIN_RESTAURANTS}）。"
+            "⚠️ 既定の 5 は #843 の完了条件の文言で、Google fallback の閾値ではない。"
+            "fallback は dish-media/search が 0 件のときだけ起きる"
+            "（app-expo/lib/dishMediaSearch.ts の `if (dishItems.length > 0) return`）ので、"
+            "«fallback を避けられるか» を測るなら 1 を渡すこと"
+        ),
     )
     parser.add_argument(
         "--statement-timeout-s",
@@ -658,7 +699,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="結果 JSON の書き出し先（省略時はファイルへ書かない。標準出力へは常に出す）",
     )
-    return parser.parse_args()
+    return parser
+
+
+def parse_args() -> argparse.Namespace:
+    return build_arg_parser().parse_args()
 
 
 def main() -> int:
