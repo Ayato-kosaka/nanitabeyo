@@ -194,17 +194,10 @@ _RESTAURANT_PIPELINE_DIR = (
 if str(_RESTAURANT_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(_RESTAURANT_PIPELINE_DIR))
 
-# ⚠️ `requirements_path` を間違えると、ここが素の ModuleNotFoundError: s2sphere で落ちる。
-# db-script-run.yml の既定（wikidata 側）には s2sphere が無い。2026-10-01 に実際に
-# 1 run 無駄にしたので、«何を渡せばよいか» をその場で言うようにする。
-try:
-    from normalization import s2_cell_id  # noqa: E402  (sys.path 設定の直後で読む必要がある)
-except ModuleNotFoundError as _error:  # pragma: no cover - 依存の欠落は CI では起きない
-    raise SystemExit(
-        f"❌ S2 セル化に要る依存が入っていない（{_error.name}）。\n"
-        "   db-script-run.yml の requirements_path は既定（wikidata 側）ではなく\n"
-        "   scripts/20260808T0000_restaurant/requirements.txt を渡すこと。"
-    ) from _error
+# ⚠️ ここは落ちない。`normalization` は `s2sphere` を **`s2_cell_id()` の中で** import する
+# （大容量名寄せ以外では依存を読み込まない設計）。依存が無いことが分かるのは
+# **呼んだ瞬間**なので、親切なメッセージは `compute_area_cells` 側に置いてある。
+from normalization import s2_cell_id  # noqa: E402  (sys.path 設定の直後で読む必要がある)
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -263,7 +256,18 @@ def compute_area_cells(
     """
     cells: dict[int, list[float]] = {}
     for latitude, longitude in locations:
-        cell_id = s2_cell_id(float(latitude), float(longitude), s2_level)
+        try:
+            cell_id = s2_cell_id(float(latitude), float(longitude), s2_level)
+        except ModuleNotFoundError as error:
+            # ⚠️ `normalization.s2_cell_id()` は `s2sphere` を **関数の中で** import するので、
+            #    依存の欠落はここで初めて分かる（import 時には分からない）。
+            #    db-script-run.yml の requirements_path 既定（wikidata 側）には s2sphere が無く、
+            #    2026-10-01 に素の ModuleNotFoundError で 1 run 無駄にした（run 36909321990）。
+            raise SystemExit(
+                f"❌ S2 セル化に要る依存が入っていない（{error.name}）。\n"
+                "   db-script-run.yml の requirements_path は既定（wikidata 側）ではなく\n"
+                "   scripts/20260808T0000_restaurant/requirements.txt を渡すこと。"
+            ) from error
         agg = cells.setdefault(cell_id, [0.0, 0.0, 0])
         agg[0] += float(latitude)
         agg[1] += float(longitude)
