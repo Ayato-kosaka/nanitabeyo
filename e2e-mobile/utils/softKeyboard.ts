@@ -1,6 +1,6 @@
-import { execFileSync } from "node:child_process";
-
 import { device } from "detox";
+
+import { adbSync } from "./adb";
 
 /**
  * ⌨️ ソフトウェアキーボード（IME）を **本当に出すため**のヘルパ（Android 専用）
@@ -49,9 +49,8 @@ let lastEnableAttempt: { available: string[]; target: string | null; enabled: st
 /** 現在の Detox デバイスに対して adb を実行する。失敗しても例外を投げない */
 function adbQuiet(args: string[]): string {
 	try {
-		return execFileSync("adb", ["-s", device.id, ...args], {
-			encoding: "utf8",
-			stdio: ["ignore", "pipe", "ignore"],
+		// #1579 実体は上限付きの adbSync。**ここで execFileSync を直に呼ばないこと**
+		return adbSync(args, {
 			/*
 			#1629 ⚠️ **maxBuffer を既定（1 MB）のままにしないこと。**
 			`dumpsys input_method` の全文は 1 MB を超えることがあり、超えると execFileSync が
@@ -60,7 +59,7 @@ function adbQuiet(args: string[]): string {
 			端末側で grep して小さくするのが本筋だが、保険として広げておく。
 			*/
 			maxBuffer: 16 * 1024 * 1024,
-		}).trim();
+		});
 	} catch {
 		return "";
 	}

@@ -1,9 +1,9 @@
 import { strict as assert } from "node:assert";
-import { execFileSync } from "child_process";
 import { by, describeAuthenticated, device, element, launchAppWithSession, waitFor } from "../../fixtures/e2e";
 import { DEFAULT_TIMEOUT, existsNow, tapWhenVisible } from "../../utils/waits";
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { TabBar } from "../../screens/TabBar";
+import { adbSync } from "../../utils/adb";
 
 /*
 ⚠️ `by` / `element` / `device` は **必ず `fixtures/e2e` から import すること。**
@@ -68,8 +68,8 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 	 * ⚠️ **CI 全体（ワークフローや AVD）へ入れないこと。** 起動直後の権限ダイアログを
 	 *    前提にしているオンボーディングの spec の挙動が変わる。ここだけで付与する。
 	 */
-	const adb = (...args: string[]): string =>
-		execFileSync("adb", ["-s", device.id, ...args], { stdio: "pipe" }).toString().trim();
+	// #1579 adb は必ず utils/adb.ts を経由する（上限なしの adb を増やさないため）
+	const adb = (...args: string[]): string => adbSync(args);
 
 	const grantAndroidLocation = (): boolean => {
 		if (device.getPlatform() !== "android") return true; // iOS は launchApp で付与済み
@@ -229,7 +229,7 @@ describeAuthenticated("お店を選ぶ地図の「このエリアで再検索」
 		await device.takeScreenshot("search-this-area-02-panned");
 		console.log(`[search-this-area] 動かした直後のマーカー: ${await markerReport()}`);
 
-const dense1 = await measureOnce("03-panned");
+		const dense1 = await measureOnce("03-panned");
 
 		// 地図を動かしてからもう 1 回。こちらが «普段の操作» に近い
 		await element(map).swipe("left", "fast", 0.5, 0.5, 0.35);

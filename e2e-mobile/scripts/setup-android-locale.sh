@@ -37,6 +37,31 @@ echo "▶ Android のシステムロケールを ${EXPECTED_LOCALE} へ設定し
 # だから ①`adb root` の **前にも** `wait-for-device` を入れ、②接続断で落ちうる adb は
 # 数回試す。⚠️ 再試行の告知は **stderr** へ出すこと（`$( … )` で値を受ける呼び出しがあり、
 # stdout へ混ぜると取り出した値が壊れる）。
+# ⚠️ #1579 【修正】**`adb wait-for-device` には上限が無い**（指定端末が現れるまで無限に待つ）。
+# 2026-09-30 の夜間 iOS は、これをロケール観測の再試行へ使ったせいで
+# **1 suite も走らないまま 240 分の timeout で打ち切られた**
+# （[run 36787284601](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36787284601) /
+# `assert-suite-coverage` は 2 シャードとも «報告 0 / 期待 23»）。
+#
+# ここは «端末が居る» 前提の場所なので当時は無害だったが、形は同じである。
+# エミュレータが snapshot から起き上がれなかったら、この行は **90 分の job timeout まで
+# 無言で待ち**、やはり «テストを 1 本も走らせないまま赤» になる。
+# だから «待つ» には必ず上限を置き、超えたら «待てなかった» と**言って**から進む。
+ADB_WAIT_TIMEOUT_SEC=60
+
+adb_wait_for_device() { # adb_wait_for_device [--required]
+	timeout "${ADB_WAIT_TIMEOUT_SEC}" adb wait-for-device && return 0
+	local msg="エミュレータが ${ADB_WAIT_TIMEOUT_SEC} 秒以内に online になりません"
+	if [ "${1:-}" = "--required" ]; then
+		echo "::error::${msg}。ここから先は端末が要るので中断します。" >&2
+		return 1
+	fi
+	# 再試行の «ついで» の待機なので、待てなくても止めない
+	# （止めると «1 回の adb の不通でテストを 1 本も走らせずに落ちる» へ戻る。run 36352812664）
+	echo "▶ ${msg}。待たずに次へ進みます" >&2
+	return 0
+}
+
 adb_retry() { # adb_retry <試行回数> <adb の引数...>
 	local attempts="$1"
 	shift
@@ -47,7 +72,7 @@ adb_retry() { # adb_retry <試行回数> <adb の引数...>
 			return 1
 		fi
 		echo "▶ adb $* に失敗しました。adbd の再接続を待って再試行します（${i}/${attempts}）" >&2
-		adb wait-for-device || true
+		adb_wait_for_device
 		sleep 2
 		i=$((i + 1))
 	done
@@ -55,10 +80,10 @@ adb_retry() { # adb_retry <試行回数> <adb の引数...>
 
 # ⚠️ **ここの wait は «root の後» ではなく «root の前» にも要る。** 後ろだけでは
 #    root そのものが接続断に当たったときに吸収できない（上の実測がそれ）。
-adb wait-for-device
+adb_wait_for_device --required
 # adb root は adbd を再起動するため、直後の接続断を wait-for-device で吸収する
 adb_retry 5 root
-adb wait-for-device
+adb_wait_for_device --required
 
 adb_retry 5 shell setprop persist.sys.locale "${EXPECTED_LOCALE}"
 adb_retry 5 shell setprop persist.sys.language "${EXPECTED_LANGUAGE}"
@@ -71,7 +96,7 @@ adb_retry 5 shell setprop ctl.restart zygote
 # zygote 再起動でシステムサーバが一度落ちる。落ちる前に boot_completed を読むと
 # 「まだ 1 のまま」を掴んでしまうため、先に少し待ってからポーリングする
 sleep 10
-adb wait-for-device
+adb_wait_for_device --required
 
 echo "▶ システムサーバの再起動完了を待ちます"
 deadline=$((SECONDS + 180))
@@ -85,7 +110,7 @@ done
 
 # 以降のテストは非 root で動かしたいので戻す（unroot も adbd を再起動する）
 adb unroot || true
-adb wait-for-device
+adb_wait_for_device --required
 
 # ⚠️ #1579 【修正】**落とす基準は «アプリから見えるロケール» の側へ置く。**
 #
@@ -115,7 +140,7 @@ for attempt in 1 2 3 4 5; do
 		break
 	fi
 	echo "▶ 実行時 configuration に ${EXPECTED_LANGUAGE}-r${EXPECTED_COUNTRY} が見えません。adbd の再接続を待って再試行します（${attempt}/5）"
-	adb wait-for-device || true
+	adb_wait_for_device
 	sleep 2
 done
 

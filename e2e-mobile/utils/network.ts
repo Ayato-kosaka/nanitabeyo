@@ -1,6 +1,6 @@
-import { execFileSync } from "node:child_process";
-
 import { device } from "detox";
+
+import { adbSync } from "./adb";
 
 /**
  * 📵 端末のネットワークを一時的に落とすヘルパ（Android エミュレータ専用）
@@ -87,8 +87,6 @@ export function enableNetwork(): boolean {
  * @失敗時 adb が見つからない / コマンドが失敗した場合は例外を投げる
  */
 function adb(args: string[]): string {
-	return execFileSync("adb", ["-s", device.id, ...args], {
-		encoding: "utf8",
-		stdio: ["ignore", "pipe", "ignore"],
-	}).trim();
+	// #1579 実体は上限付きの adbSync。**ここで execFileSync を直に呼ばないこと**
+	return adbSync(args);
 }
