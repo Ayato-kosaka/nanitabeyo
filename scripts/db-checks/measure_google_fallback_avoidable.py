@@ -33,6 +33,16 @@
    `build_stage5_matched_rows_sql` を 1 回評価し、(セル, カテゴリ) → 店舗数を得る
 5. **落ちた回数で重みづけて**「1 件以上返せた / 返せなかった」を足す
 
+## 出すもの
+
+1. 需要の重みを入れた «返せた率»（下界と上界）
+2. 返せなかった検索が多いカテゴリ（上位 15）
+3. **«需要があって供給が無い (セル, カテゴリ)» の一覧**（`--out-targets` で全件を CSV へ）。
+   2026-10-01 の実測で **返せない理由はカテゴリ不足ではなく地理の偏り**だと分かった
+   （ラーメンは全国 6,180 店に在庫があるのに、ラーメンの検索の 83% が返せない）。
+   ⚠️ **2 種類を混ぜないこと**: «店はあるが投稿が無い»（crawl で埋まる）と
+   «店の記録すら無い»（crawl では埋まらない）。`kind` 列で分けてある
+
 ## ⚠️ この数字が言えないこと
 
 - **セルへ集計したぶんの誤差がある。** 需要は level 14 セル（1 辺およそ 560m）へ丸めてあり、
@@ -182,10 +192,21 @@ def existing_area_cells(cur, cell_ids: list[int]) -> set[int]:
     return {row[0] for row in cur.fetchall()}
 
 
+def cell_restaurant_counts(cur, cell_ids: list[int]) -> dict[int, int]:
+    """需要のセルごとの店舗数。«投稿が無い» と «店の記録が無い» を分けるために要る。"""
+    cur.execute(
+        f"SELECT s2_cell_id, restaurant_count FROM {AREA_TABLE}"
+        " WHERE s2_cell_id = ANY(%(cell_ids)s::bigint[])",
+        {"cell_ids": cell_ids},
+    )
+    return {cell_id: count for cell_id, count in cur.fetchall()}
+
+
 def summarize(
     demand: list[DemandRow],
     counts: dict[tuple[int, str], int],
     known_cells: set[int],
+    restaurants_by_cell: dict[int, int] | None = None,
 ) -> dict:
     """需要の重みづけで «返せた / 返せなかった» を足す。
 
@@ -225,6 +246,30 @@ def summarize(
         key=lambda item: (-item[1], item[0]),
     )[:15]
 
+    # ⚠️ ここが «次に何を crawl すべきか» の出口である（#843 §3）。
+    #    2026-10-01 の実測で «返せないのはカテゴリ不足ではなく地理の偏り» と分かった
+    #    （ラーメンは全国 6,180 店に在庫があるのに検索の 83% が返せない）。
+    #    だから «需要があって供給が無いセル» を名指しできないと手が打てない。
+    #    2 種類に分ける: 店はあるが投稿が無い（crawl すれば埋まる）/ 店の記録すら無い（別問題）。
+    counts_by_cell = restaurants_by_cell or {}
+    targets: list[dict] = []
+    for row in demand:
+        if row.cell_id in known_cells and counts.get((row.cell_id, row.category_id), 0) >= 1:
+            continue
+        restaurants = counts_by_cell.get(row.cell_id, 0)
+        targets.append(
+            {
+                "s2_cell_id": row.cell_id,
+                "category_id": row.category_id,
+                "unserved_searches": row.searches,
+                "restaurants_in_cell": restaurants,
+                # crawl で埋まる見込みがあるのは «店はあるが投稿が無い» 側だけ
+                "kind": "no_media" if restaurants > 0 else "no_restaurant",
+            }
+        )
+    targets.sort(key=lambda t: (-t["unserved_searches"], -t["restaurants_in_cell"],
+                                t["s2_cell_id"], t["category_id"]))
+
     return {
         "demand_pairs": pairs_total,
         "demand_searches": total_searches,
@@ -238,6 +283,16 @@ def summarize(
             {"category_id": category_id, "unserved": unserved, "searches": searches}
             for category_id, unserved, searches in worst
         ],
+        "crawl_targets_total": len(targets),
+        "crawl_targets_no_media": sum(1 for t in targets if t["kind"] == "no_media"),
+        "crawl_targets_no_restaurant": sum(1 for t in targets if t["kind"] == "no_restaurant"),
+        "unserved_searches_in_cells_with_restaurants": sum(
+            t["unserved_searches"] for t in targets if t["kind"] == "no_media"
+        ),
+        "unserved_searches_in_cells_without_restaurants": sum(
+            t["unserved_searches"] for t in targets if t["kind"] == "no_restaurant"
+        ),
+        "crawl_targets": targets,
     }
 
 
@@ -268,6 +323,23 @@ def report(summary: dict) -> None:
         logger.info("  %-12s 返せなかった %4s 件 / 需要 %4s 件",
                     item["category_id"], item["unserved"], item["searches"])
 
+    section("次に何を埋めるべきか（需要があって供給が無い (セル, カテゴリ)）")
+    logger.info("対象 %s 組。2 種類に分かれる:", f"{summary['crawl_targets_total']:,}")
+    logger.info("  ▶ 店はあるが投稿が無い（crawl で埋まる）:   %s 組 / 検索 %s 件",
+                f"{summary['crawl_targets_no_media']:,}",
+                f"{summary['unserved_searches_in_cells_with_restaurants']:,}")
+    logger.info("  ▶ 店の記録すら無い（crawl では埋まらない）: %s 組 / 検索 %s 件",
+                f"{summary['crawl_targets_no_restaurant']:,}",
+                f"{summary['unserved_searches_in_cells_without_restaurants']:,}")
+    logger.info("")
+    logger.info("上位 20 組（--out-targets で全件を CSV へ書ける）")
+    logger.info("  %-21s %-12s %6s %8s  %s", "s2_cell_id", "category", "検索", "店数", "種別")
+    for target in summary["crawl_targets"][:20]:
+        logger.info("  %-21s %-12s %6s %8s  %s",
+                    target["s2_cell_id"], target["category_id"],
+                    target["unserved_searches"], target["restaurants_in_cell"],
+                    target["kind"])
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -286,6 +358,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--statement-timeout-s", type=int, default=600,
                         help="1 文あたりの上限秒（既定: 600）")
     parser.add_argument("--out-json", type=Path, default=None, help="JSON の書き出し先")
+    parser.add_argument("--out-targets", type=Path, default=None,
+                        help="«需要があって供給が無い (セル, カテゴリ)» の全件を CSV へ書く")
     return parser
 
 
@@ -358,14 +432,31 @@ def main() -> int:
                     fetch_matched_counts(cur, radius_m, cells, args.cell_batch_size)
                 )
 
-    summary = summarize(demand, counts, known_cells)
+            restaurants_by_cell = cell_restaurant_counts(cur, all_cells)
+
+    summary = summarize(demand, counts, known_cells, restaurants_by_cell)
     report(summary)
 
+    if args.out_targets:
+        with args.out_targets.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=["s2_cell_id", "category_id", "unserved_searches",
+                            "restaurants_in_cell", "kind"],
+            )
+            writer.writeheader()
+            writer.writerows(summary["crawl_targets"])
+        logger.info("ターゲットを書き出した: %s（%s 組）",
+                    args.out_targets, f"{summary['crawl_targets_total']:,}")
+
+    # ⚠️ `crawl_targets` は数千行あるので JSON の 1 行へ混ぜない
+    #    （Job Summary が読めなくなる）。全件は --out-targets の CSV が正。
     payload = {
         "demand_csv": str(args.demand_csv),
         "schema": args.schema,
         "s2_level": args.s2_level,
-        **summary,
+        **{key: value for key, value in summary.items() if key != "crawl_targets"},
+        "crawl_targets_top20": summary["crawl_targets"][:20],
     }
     line = json.dumps(payload, ensure_ascii=False)
     section("JSON（機械可読。db-script-run.yml の Job Summary から回収する）")

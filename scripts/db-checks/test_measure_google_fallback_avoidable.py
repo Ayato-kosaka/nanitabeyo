@@ -216,5 +216,66 @@ class MissingS2DependencyTest(unittest.TestCase):
         self.assertNotIn("try:\n    from normalization import", source)
 
 
+class CrawlTargetsTest(unittest.TestCase):
+    """«次に何を埋めるか» の出口を縛る（#843 §3）。
+
+    2026-10-01 の実測で «返せないのはカテゴリ不足ではなく地理の偏り» と分かった
+    （ラーメンは全国 6,180 店に在庫があるのに検索の 83% が返せない）。
+    だから **需要があって供給が無いセルを名指しできる**ことが成果物である。
+
+    ⚠️ **2 種類を混ぜないこと。** 店はあるが投稿が無いセルは crawl で埋まるが、
+    店の記録すら無いセルは crawl では埋まらない（別の問題）。混ぜると
+    «crawl すれば解決する» という誤った見通しになる。
+    """
+
+    DEMAND = [
+        sut.DemandRow((1, "Q1", 500.0, 10)),   # 供給あり → ターゲットではない
+        sut.DemandRow((2, "Q1", 500.0, 7)),    # 店はあるが投稿が無い
+        sut.DemandRow((3, "Q1", 500.0, 4)),    # 店の記録すら無い
+    ]
+    COUNTS = {(1, "Q1"): 3}
+    KNOWN = {1, 2}
+    RESTAURANTS = {1: 120, 2: 45}
+
+    def _summary(self) -> dict:
+        return sut.summarize(self.DEMAND, self.COUNTS, self.KNOWN, self.RESTAURANTS)
+
+    def test_served_pairs_are_not_targets(self) -> None:
+        targets = self._summary()["crawl_targets"]
+        self.assertNotIn((1, "Q1"), [(t["s2_cell_id"], t["category_id"]) for t in targets])
+        self.assertEqual(2, len(targets))
+
+    def test_kind_separates_crawlable_from_not(self) -> None:
+        by_cell = {t["s2_cell_id"]: t for t in self._summary()["crawl_targets"]}
+        self.assertEqual("no_media", by_cell[2]["kind"])
+        self.assertEqual(45, by_cell[2]["restaurants_in_cell"])
+        self.assertEqual("no_restaurant", by_cell[3]["kind"])
+        self.assertEqual(0, by_cell[3]["restaurants_in_cell"])
+
+    def test_unserved_searches_split_by_kind(self) -> None:
+        summary = self._summary()
+        self.assertEqual(7, summary["unserved_searches_in_cells_with_restaurants"])
+        self.assertEqual(4, summary["unserved_searches_in_cells_without_restaurants"])
+        self.assertEqual(1, summary["crawl_targets_no_media"])
+        self.assertEqual(1, summary["crawl_targets_no_restaurant"])
+        self.assertEqual(2, summary["crawl_targets_total"])
+
+    def test_targets_are_ranked_by_demand(self) -> None:
+        targets = self._summary()["crawl_targets"]
+        self.assertEqual([7, 4], [t["unserved_searches"] for t in targets])
+
+    def test_summarize_works_without_restaurant_counts(self) -> None:
+        """店舗数を渡さなくても落ちないこと（渡さない呼び出しが残っていてもよい）。"""
+        summary = sut.summarize(self.DEMAND, self.COUNTS, self.KNOWN)
+        self.assertEqual(2, summary["crawl_targets_total"])
+        # 店舗数が分からないので、全部 «店の記録すら無い» 側へは倒さず 0 として扱う
+        self.assertEqual(2, summary["crawl_targets_no_restaurant"])
+
+    def test_full_target_list_is_not_inlined_into_the_json_line(self) -> None:
+        """JSON は 1 行で Job Summary に貼られる。数千行を混ぜると読めなくなる。"""
+        self.assertIn('if key != "crawl_targets"', SOURCE)
+        self.assertIn('"crawl_targets_top20"', SOURCE)
+
+
 if __name__ == "__main__":
     unittest.main()
