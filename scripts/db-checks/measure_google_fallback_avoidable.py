@@ -36,6 +36,8 @@
 ## 出すもの
 
 1. 需要の重みを入れた «返せた率»
+   （`--radius-sweep` を渡すと、半径 × **1 / 3 / 5 件以上**のマトリクスも出す。
+   ⚠️ **«Google を呼ばない» は 1 件、«画面の枠が埋まる» は 5 件**で、別の水準である）
 2. 返せなかった検索が多いカテゴリ（上位 15）
 3. **«需要があって供給が無い (セル, カテゴリ)» の一覧**（`--out-targets` で全件を CSV へ）。
    2026-10-01 の実測で **返せない理由はカテゴリ不足ではなく地理の偏り**だと分かった
@@ -97,6 +99,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_DEMAND_CSV = Path(__file__).resolve().parent / "data" / "google_fallback_demand.csv"
 #: 需要 CSV を作った S2 レベル（CSV の先頭に書いてある前提と必ず揃える）。
 DEMAND_S2_LEVEL = 14
+#: フィードの «埋まり具合» を見る閾値。5 は Remote Config
+#: `v1_search_result_restaurants_number` の既定（= 画面に並ぶ枠の数）。
+FEED_THRESHOLDS = (1, 3, 5)
 #: 1 回のクエリへ渡すセル数。coverage 計測の既定と同じ理由（一時ファイルを膨らませない）。
 DEFAULT_CELL_BATCH_SIZE = coverage_sql.DEFAULT_CELL_BATCH_SIZE
 AREA_TABLE = coverage_sql.DEFAULT_AREA_CELLS_TABLE_NAME
@@ -228,6 +233,33 @@ def cell_restaurant_counts(cur, cell_ids: list[int]) -> dict[int, int]:
         {"cell_ids": cell_ids},
     )
     return {cell_id: count for cell_id, count in cur.fetchall()}
+
+
+def sweep_served_by_threshold(
+    demand: list[DemandRow],
+    counts: dict[tuple[int, str], int],
+    thresholds: tuple[int, ...] = FEED_THRESHOLDS,
+) -> dict[int, int]:
+    """閾値ごとに «その半径で何件の検索が埋まったか» を落ちた回数で重みづけて足す。
+
+    ## なぜ閾値を分けるのか（#843 2026-10-01）
+
+    «Google を呼ばない» の境目は **1 件**だが、ユーザーが見るフィードの枠は
+    **5 件**である（Remote Config `v1_search_result_restaurants_number` の既定。
+    本番実測では 0 件でなかった検索のうち 5 件まで埋まったのは 44% だけだった）。
+    «半径を広げれば届く» が **1 件だけ返る** のと **5 件埋まる** のでは打ち手の価値が違う。
+
+    ⚠️ **これは近似である。** 数えているのは «半径内にその料理の投稿を持つ店が何店あるか» で、
+    本番の検索が返す行数そのものではない（本番は店ごとに 1 件へ畳んでから上位 limit 件を選ぶ）。
+    «枠を埋められる在庫があるか» の上界として読むこと。
+    """
+    served = {threshold: 0 for threshold in thresholds}
+    for row in demand:
+        restaurants = counts.get((row.cell_id, row.category_id), 0)
+        for threshold in thresholds:
+            if restaurants >= threshold:
+                served[threshold] += row.searches
+    return served
 
 
 def summarize(
@@ -490,7 +522,7 @@ def main() -> int:
 
             restaurants_by_cell = cell_restaurant_counts(cur, all_cells)
 
-            sweep: list[tuple[float, int]] = []
+            sweep: list[tuple[float, dict[int, int]]] = []
             sweep_radii = [
                 float(value) for value in args.radius_sweep.split(",") if value.strip()
             ]
@@ -500,11 +532,7 @@ def main() -> int:
                 swept = fetch_matched_counts(
                     cur, radius_m, sorted(known_cells), args.cell_batch_size
                 )
-                sweep.append((
-                    radius_m,
-                    sum(row.searches for row in demand
-                        if swept.get((row.cell_id, row.category_id), 0) >= 1),
-                ))
+                sweep.append((radius_m, sweep_served_by_threshold(demand, swept)))
 
     summary = summarize(demand, counts, known_cells, restaurants_by_cell)
     report(summary)
@@ -513,14 +541,28 @@ def main() -> int:
         section("半径を広げたらどこまで届くか（同じ需要・同じ在庫）")
         logger.info("⚠️ アプリの既定は 500m。ユーザーは画面のスライダで変えられる")
         logger.info("")
-        logger.info("  %8s  %10s  %8s", "半径", "返せた検索", "率")
+        logger.info("⚠️ «1 件以上» は Google を呼ばない境目、«5 件以上» は画面の枠が埋まる目安")
+        logger.info("")
+        header = "  %8s" + "  %14s" * len(FEED_THRESHOLDS)
+        logger.info(header, "半径", *[f"{t} 件以上" for t in FEED_THRESHOLDS])
         total = summary["demand_searches"]
         for radius_m, served in sweep:
-            logger.info("  %7sm  %10s  %7.2f%%", f"{radius_m:,.0f}", f"{served:,}",
-                        served / total * 100 if total else 0.0)
+            cells = [
+                f"{served[t]:,} ({served[t] / total * 100:.1f}%)" if total else "—"
+                for t in FEED_THRESHOLDS
+            ]
+            logger.info(header, f"{radius_m:,.0f}m", *cells)
         summary["radius_sweep"] = [
-            {"radius_m": radius_m, "searches_served": served,
-             "served_rate": served / total if total else None}
+            {
+                "radius_m": radius_m,
+                "searches_served": served[1],
+                "served_rate": served[1] / total if total else None,
+                "served_by_threshold": {
+                    str(t): {"searches": served[t],
+                             "rate": served[t] / total if total else None}
+                    for t in FEED_THRESHOLDS
+                },
+            }
             for radius_m, served in sweep
         ]
 
