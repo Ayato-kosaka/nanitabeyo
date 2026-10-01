@@ -35,7 +35,7 @@
 
 ## 出すもの
 
-1. 需要の重みを入れた «返せた率»（下界と上界）
+1. 需要の重みを入れた «返せた率»
 2. 返せなかった検索が多いカテゴリ（上位 15）
 3. **«需要があって供給が無い (セル, カテゴリ)» の一覧**（`--out-targets` で全件を CSV へ）。
    2026-10-01 の実測で **返せない理由はカテゴリ不足ではなく地理の偏り**だと分かった
@@ -48,10 +48,9 @@
 - **セルへ集計したぶんの誤差がある。** 需要は level 14 セル（1 辺およそ 560m）へ丸めてあり、
   判定はそのセルの代表点（セル内 restaurants の重心）から半径を取る。
   ユーザーの実際の地点はセルの中のどこかなので、**最大でセルの対角ぶんずれる**
-- **`area_cells` に無いセルは «返せなかった» 側へ数える。** セルは restaurants の座標から
-  作るので、店が 1 件も無いセルは現れない。ただし**その地点から 500m 以内に隣のセルの店が
-  ある可能性は残る**ので、この扱いは **«返せた» の下界**になる。
-  下界と上界の両方を出す（上界 = 代表点が無いセルを分母から除いたときの率）
+- **代表点の作り方が 2 通りある。** 店があるセルは «セル内 restaurants の重心»、
+  店が 1 件も無いセルは «S2 セルの幾何中心»（2026-10-01 からこちらも判定する。
+  それまでは «判定不能» として需要の 19.8% を落としていた）
 - **timeSlot の除外を見ていない。** `BulkImportFromGoogle` の dto は timeSlot を持たない。
   時間帯で除外される検索があるぶん、**「返せた」は上に寄る**
 - **14 日ぶんの需要**である。率は 4 か月安定しているが、母数は月ごとに大きく違う
@@ -90,6 +89,7 @@ from measure_dish_media_coverage import (  # noqa: E402
     build_usable_dish_media_temp_table,
     section,
 )
+from normalization import s2_cell_center  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -181,6 +181,34 @@ def fetch_matched_counts(
             f"{len(counts):,}",
         )
     return counts
+
+
+def add_missing_demand_cells(cur, cell_ids: list[int], known: set[int]) -> int:
+    """`area_cells` に無い需要セルを、**S2 セルの幾何中心**を代表点として足す。
+
+    ## なぜ要るか（#843 2026-10-01）
+
+    `area_cells` は restaurants の座標から作るので、**店が 1 件も無いセルは現れない**。
+    そのセルの需要（実測で全需要の 19.8%）は «判定できない» まま残り、
+    «半径を広げたら届くのか» を問うことすらできなかった。
+
+    幾何中心を代表点にすれば判定できる。⚠️ **代表点の作り方が 2 通りになる**ので、
+    足したセルは `restaurant_count = 0` で区別できるようにしておく
+    （店のあるセルは «セル内 restaurants の重心»、無いセルは «セルの幾何中心»）。
+    中心の計算は `normalization.s2_cell_center()`（`s2_cell_id()` の逆）に 1 箇所だけ置く。
+    """
+    missing = [cell_id for cell_id in cell_ids if cell_id not in known]
+    if not missing:
+        return 0
+    rows = []
+    for cell_id in missing:
+        latitude, longitude = s2_cell_center(cell_id)
+        rows.append((cell_id, latitude, longitude, 0))
+    psycopg2.extras.execute_values(
+        cur, coverage_sql.build_area_cells_insert_sql(AREA_TABLE), rows
+    )
+    cur.execute(f"ANALYZE {AREA_TABLE}")
+    return len(rows)
 
 
 def existing_area_cells(cur, cell_ids: list[int]) -> set[int]:
@@ -375,6 +403,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out-json", type=Path, default=None, help="JSON の書き出し先")
     parser.add_argument("--out-targets", type=Path, default=None,
                         help="«需要があって供給が無い (セル, カテゴリ)» の全件を CSV へ書く")
+    parser.add_argument("--radius-sweep", default="",
+                        help="カンマ区切りの半径（m）。指定すると «その半径だったら何 % 返せたか» を"
+                             " 並べて出す（例: 500,1000,2000,5000）。"
+                             " アプリの既定は 500m で、ユーザーは画面のスライダで変えられるので、"
+                             " «既定を広げる / 0 件なら自動で広げる» が効くかどうかがここで分かる")
     return parser
 
 
@@ -422,6 +455,18 @@ def main() -> int:
             logger.info("起点（JP gate で絞らない (店, カテゴリ)）: %s 行",
                         f"{cur.fetchone()[0]:,}")
 
+            # ⚠️ **ここは read-only へ切り替える前でなければならない。**
+            #    店が 1 件も無い需要セルを «判定不能» のまま残さないために一時テーブルへ足す
+            #    （INSERT なので read-only トランザクションでは通らない）。
+            all_cells = sorted({row.cell_id for row in demand})
+            with_restaurants = existing_area_cells(cur, all_cells)
+            logger.info("需要のセル %s 件のうち、restaurants が在るセル %s 件",
+                        f"{len(all_cells):,}", f"{len(with_restaurants):,}")
+            added = add_missing_demand_cells(cur, all_cells, with_restaurants)
+            logger.info("店が 1 件も無いセル %s 件を、セルの幾何中心を代表点として足した",
+                        f"{added:,}")
+            known_cells = set(all_cells)
+
             cur.execute("SET default_transaction_read_only = on")
 
             section("2. 需要にある半径ごとに 1 回ずつ集計する")
@@ -433,10 +478,6 @@ def main() -> int:
                 for radius, rows in sorted(by_radius.items())))
 
             counts: dict[tuple[int, str], int] = {}
-            all_cells = sorted({row.cell_id for row in demand})
-            known_cells = existing_area_cells(cur, all_cells)
-            logger.info("需要のセル %s 件のうち、restaurants が在るセル %s 件",
-                        f"{len(all_cells):,}", f"{len(known_cells):,}")
 
             for radius_m, rows in sorted(by_radius.items()):
                 cells = sorted({row.cell_id for row in rows if row.cell_id in known_cells})
@@ -449,8 +490,39 @@ def main() -> int:
 
             restaurants_by_cell = cell_restaurant_counts(cur, all_cells)
 
+            sweep: list[tuple[float, int]] = []
+            sweep_radii = [
+                float(value) for value in args.radius_sweep.split(",") if value.strip()
+            ]
+            for radius_m in sorted(sweep_radii):
+                logger.info("")
+                logger.info("▶ 半径 %sm で測り直す", f"{radius_m:,.0f}")
+                swept = fetch_matched_counts(
+                    cur, radius_m, sorted(known_cells), args.cell_batch_size
+                )
+                sweep.append((
+                    radius_m,
+                    sum(row.searches for row in demand
+                        if swept.get((row.cell_id, row.category_id), 0) >= 1),
+                ))
+
     summary = summarize(demand, counts, known_cells, restaurants_by_cell)
     report(summary)
+
+    if sweep:
+        section("半径を広げたらどこまで届くか（同じ需要・同じ在庫）")
+        logger.info("⚠️ アプリの既定は 500m。ユーザーは画面のスライダで変えられる")
+        logger.info("")
+        logger.info("  %8s  %10s  %8s", "半径", "返せた検索", "率")
+        total = summary["demand_searches"]
+        for radius_m, served in sweep:
+            logger.info("  %7sm  %10s  %7.2f%%", f"{radius_m:,.0f}", f"{served:,}",
+                        served / total * 100 if total else 0.0)
+        summary["radius_sweep"] = [
+            {"radius_m": radius_m, "searches_served": served,
+             "served_rate": served / total if total else None}
+            for radius_m, served in sweep
+        ]
 
     if args.out_targets:
         with args.out_targets.open("w", newline="", encoding="utf-8") as handle:

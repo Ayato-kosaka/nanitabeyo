@@ -163,8 +163,13 @@ class DefinitionsAreNotRewrittenTest(unittest.TestCase):
         self.assertNotIn("jp_gate", sql)
         self.assertIn("jp_gate", coverage_sql.build_stage5_driver_temp_table_sql())
 
-    def test_only_select_and_set_statements_are_executed(self) -> None:
-        """書き込みを 1 文も持たないこと（DDL は一時テーブルぶんだけ、共有の道具経由）。"""
+    def test_writes_touch_only_temp_tables(self) -> None:
+        """実テーブルへ 1 文も書かないこと。
+
+        ⚠️ «SELECT と SET だけ» ではもう縛れない。店が 1 件も無い需要セルを
+        «判定不能» のまま残さないため、一時テーブル（`AREA_TABLE`）へ INSERT する
+        ようになった（#843 2026-10-01）。縛るべきは «実テーブルを書かないこと» である。
+        """
         tree = ast.parse(SOURCE)
         literals: list[str] = []
         for node in ast.walk(tree):
@@ -175,12 +180,35 @@ class DefinitionsAreNotRewrittenTest(unittest.TestCase):
                     if isinstance(arg, (ast.Constant, ast.JoinedStr)):
                         literals.append(ast.unparse(arg))
         self.assertTrue(literals, "execute の呼び出しが 1 つも見つからない")
+        # 一時テーブルの名前は f-string の {AREA_TABLE} などで埋まるので、
+        # 「書き込み系の動詞で始まる文は、一時テーブルの変数しか参照していない」を見る。
+        temp_names = {"AREA_TABLE", "MEDIA_TABLE", "DRIVER_TABLE"}
         for literal in literals:
             head = literal.strip("'\"f ").upper()
+            if head.startswith(("SELECT", "SET")):
+                continue
             self.assertTrue(
-                head.startswith("SELECT") or head.startswith("SET"),
-                f"SELECT / SET 以外を実行している: {literal}",
+                head.startswith(("ANALYZE", "INSERT INTO", "CREATE TEMP TABLE", "CREATE INDEX")),
+                f"想定外の文を実行している: {literal}",
             )
+            self.assertTrue(
+                any(name in literal for name in temp_names),
+                f"一時テーブル以外へ書き込んでいる: {literal}",
+            )
+
+    def test_missing_cells_are_added_before_switching_to_read_only(self) -> None:
+        """INSERT は read-only へ切り替える **前**にしかできない。
+
+        2026-09-02 に coverage 計測で同じ順序を間違えて
+        `psycopg2.errors.ReadOnlySqlTransaction` で落ちている（run 33674497269）。
+        PostgreSQL の read-only トランザクションは一時テーブルでも DDL/DML を通さない。
+        """
+        insert_at = SOURCE.index("add_missing_demand_cells(cur")
+        read_only_at = SOURCE.index('cur.execute("SET default_transaction_read_only = on")')
+        self.assertLess(
+            insert_at, read_only_at,
+            "需要セルの追加が read-only への切り替えより後ろにある（必ず落ちる）",
+        )
 
     def test_public_schema_is_not_selectable(self) -> None:
         """本番を測るのはオーナーが public と言ったときだけ（#843 の規則）。"""
@@ -286,6 +314,59 @@ class CrawlTargetsTest(unittest.TestCase):
         """JSON は 1 行で Job Summary に貼られる。数千行を混ぜると読めなくなる。"""
         self.assertIn('if key != "crawl_targets"', SOURCE)
         self.assertIn('"crawl_targets_top20"', SOURCE)
+
+
+class S2CellCenterTest(unittest.TestCase):
+    """`s2_cell_center()` が `s2_cell_id()` の逆であること（負の符号付き ID を含めて）。
+
+    ⚠️ **このテストで «符号変換の間違い» は捕まらない。実測した（2026-10-01）。**
+    `+ 2**64` を外して負の ID をそのまま s2sphere へ渡しても、返る点は
+    **約 5mm しか動かない**（例: face 4 のセルで緯度の 7 桁目だけ違う）。
+    セルへ丸め直せば同じセルになるので、往復は通ってしまう。
+    `s2_cell_center()` の `+ 2**64` は «正しい逆» を 1 箇所に置くためのもので、
+    いま効いているバグを止めているわけではない。ここで縛れているのは
+    **「中心をセルへ丸め直すと元のセルに戻る」**ことだけである。
+    """
+
+    def test_round_trips_including_negative_signed_ids(self) -> None:
+        try:
+            import s2sphere  # noqa: F401
+        except ImportError:
+            self.skipTest("s2sphere が無い環境（CI では lazy import なので import 時に落ちない）")
+
+        from normalization import s2_cell_center, s2_cell_id
+
+        negatives = 0
+        for lat in range(-80, 85, 7):
+            for lng in range(-180, 180, 11):
+                cell_id = s2_cell_id(float(lat), float(lng), 14)
+                center_lat, center_lng = s2_cell_center(cell_id)
+                self.assertEqual(
+                    cell_id, s2_cell_id(center_lat, center_lng, 14),
+                    f"({lat}, {lng}) の往復が壊れている",
+                )
+                if cell_id < 0:
+                    negatives += 1
+        self.assertGreater(negatives, 0, "負の符号付き ID が 1 つも無い（テストになっていない）")
+
+
+class RadiusSweepTest(unittest.TestCase):
+    """«半径を広げたら届くのか» を問える形になっていること（#843 2026-10-01）。
+
+    アプリの既定は 500m で、ユーザーは画面のスライダで変えられる。
+    «既定を広げる / 0 件なら自動で広げる» はこちらで完全に制御できる打ち手なので、
+    効くかどうかを測れる状態にしておく。
+    """
+
+    def test_sweep_option_exists_and_is_off_by_default(self) -> None:
+        parser = sut.build_arg_parser()
+        sweep = next(a for a in parser._actions if "--radius-sweep" in a.option_strings)  # noqa: SLF001
+        self.assertEqual("", sweep.default)
+
+    def test_sweep_reuses_the_same_matched_rows_query(self) -> None:
+        """スイープ用に別の SQL を書いていないこと（同じ判定を 2 箇所に置かない）。"""
+        self.assertEqual(1, SOURCE.count("coverage_sql.build_stage5_matched_rows_sql"))
+        self.assertIn("fetch_matched_counts(\n", SOURCE)
 
 
 if __name__ == "__main__":
