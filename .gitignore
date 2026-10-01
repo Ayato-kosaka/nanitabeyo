@@ -31,6 +31,10 @@ api/.runtimeconfig.json
 # --- Functional Test Results ---
 test-results/
 *.csv
+# ⚠️ #843 計測の «需要分布» は入力データなのでリポジトリへ入れる。
+#    上の `*.csv` に黙って飲み込まれ、`git add -A` が無言で落として
+#    CI だけが FileNotFoundError で落ちた（2026-10-01 / run 36911256084）。
+!scripts/db-checks/data/*.csv
 # 店舗媒体パイプラインの入力契約を示す、意図的に管理する最小サンプル。
 !scripts/20260808T0000_restaurant/social_media.example.csv
 *.log
