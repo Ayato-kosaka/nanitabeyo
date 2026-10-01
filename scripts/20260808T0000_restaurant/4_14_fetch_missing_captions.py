@@ -86,6 +86,20 @@ OPTIONS (description = '4_14 がキャプションを後入れした投稿。2 �
 # （#1947 の 4_23 は `no_handle` を 325 店で 0/325 と測ってから終端にした）。
 # ここでは全試行を記録し、除外は `--skip-known-empty` の明示指定でだけ効かせる。
 # 数ラウンドぶん溜まったら «2 度目で本文が取れた率» を測り、既定を決める。
+#
+# ✅ 2026-10-01、その実測をして**既定を «除く» へ変えた**（`sns_caption_attempt` 154,107 投稿）。
+#
+#   | 1 リクエストを何に使うか | 本文が取れた率 |
+#   | --- | ---: |
+#   | **一度も試していない投稿**（初回） | **54.35%**（83,764 / 154,107） |
+#   | 一度空だった投稿の再試行 | **2.82%**（138 / 4,902） |
+#
+#   **19 倍ちがう。** 1 ラウンドの到達は遮断で 1,742〜17,103 件に限られるので、
+#   «何件撃てるか» ではなく **«その枠を何に使うか»** が収穫を決める。
+#   ⚠️ **ただし 0 ではない**（70,164 件 × 2.82% ≒ 1,978 件はまだ取れる）。捨てないので、
+#   新規の在庫が無いときは `--include-known-empty` で山を崩しに行ける。
+#   ⚠️ これは `4_9` の読み直しと**同じ欠陥の形**である:
+#   **自分の記録を読めば «ほぼ無駄» と分かる仕事に、限られた予算を使っていた。**
 TABLE_CAPTION_ATTEMPT = "sns_caption_attempt"
 
 # 降りた理由 → 日本語。**新しい降り方を足すときは必ずここにも足す**
@@ -179,9 +193,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-consecutive-errors", type=int, default=50,
                    help="非 200 がこれだけ続いたらバッチを打ち切る")
     p.add_argument("--dry-run", action="store_true", help="対象件数だけ数える")
+    # 2026-10-01 に実測して既定を «除く» へ変えた（→ TABLE_CAPTION_ATTEMPT のコメント）。
+    # 古い dispatch が渡してくる `--skip-known-empty` は受け取るだけで何も変えない。
     p.add_argument("--skip-known-empty", action="store_true",
-                   help="一度取って本文が無かった投稿を対象から外す"
-                        "（⚠️ «二度目で取れる率» を実測するまで既定にしない）")
+                   help="（既定で有効。互換のため残している）一度取って本文が無かった投稿を外す")
+    p.add_argument("--include-known-empty", action="store_true",
+                   help="一度空だった投稿も対象に戻す（再試行で本文が取れるのは 2.82%。"
+                        "新規の在庫が無いときに 70,164 件の山を崩すため）")
     return p.parse_args()
 
 
@@ -308,10 +326,15 @@ def main() -> None:
     pipeline = BigQueryPipeline()
     from google.cloud import bigquery
 
+    # #1947 【設計】«一度空だった投稿» は既定で外す。判定は 1 箇所（ここ）にしか書かない。
+    #   実測 2.82% 対 54.35%（→ TABLE_CAPTION_ATTEMPT のコメント）。
+    skip_known_empty = not args.include_known_empty
+    LOGGER.info("一度空だった投稿は %s（再試行で本文が取れるのは 2.82%%・初回は 54.35%%）",
+                "対象から外します" if skip_known_empty else "**対象に戻します**")
     rows = list(pipeline.execute(
         _select_sql(pipeline, args.only_with_seed, args.max_per_store, args.only_unresolved,
                     args.only_resolved_without_category, run_id,
-                    skip_known_empty=args.skip_known_empty),
+                    skip_known_empty=skip_known_empty),
         [bigquery.ScalarQueryParameter("rid", "STRING", run_id)]))
     targets = []
     for r in rows:

@@ -69,9 +69,25 @@ class EveryOutcomeIsRecorded(unittest.TestCase):
         self.assertIn("args.dry_run", body)
 
 
-class ExclusionIsOptInUntilMeasured(unittest.TestCase):
-    def test_the_default_does_not_exclude(self) -> None:
-        self.assertNotIn("sns_caption_attempt", _sql())
+class ExclusionIsTheDefaultOnceMeasured(unittest.TestCase):
+    """2026-10-01 に «2 度目で取れる率» を実測し（2.82% 対 初回 54.35%）既定を «除く» へ変えた。
+
+    ⚠️ この class は 2026-10-01 までは `ExclusionIsOptInUntilMeasured` という名前で
+    «既定では除かない» を固定していた。**実測が済んだので逆向きに固定し直す。**
+    `_select_sql` 自身は引数で両方できるままにしてある（捨てていないことを下で固定する）。
+    """
+
+    def test_the_default_excludes(self) -> None:
+        self.assertIn("skip_known_empty = not args.include_known_empty", SRC)
+
+    def test_bringing_them_back_is_still_possible(self) -> None:
+        # 2.82% は 0 ではない（70,164 件 × 2.82% ≒ 1,978 件）。新規在庫が無い日に崩しに行ける。
+        self.assertIn("--include-known-empty", SRC)
+        self.assertNotIn("sns_caption_attempt", _sql(skip_known_empty=False))
+
+    def test_the_numbers_behind_the_default_are_written_down(self) -> None:
+        for n in ("54.35", "2.82", "154,107"):
+            self.assertIn(n, SRC, f"{n} が消えると、次に誰かが理由なく既定を戻す")
 
     def test_the_flag_excludes(self) -> None:
         self.assertIn("sns_caption_attempt", _sql(skip_known_empty=True))
@@ -85,8 +101,9 @@ class ExclusionIsOptInUntilMeasured(unittest.TestCase):
         """error しか無い投稿（相手の一時障害）を終端にしない。"""
         self.assertIn("COUNTIF(outcome = 'empty') > 0", m.known_empty_sql("t"))
 
-    def test_the_flag_help_says_it_is_not_the_default(self) -> None:
-        self.assertIn("既定にしない", SRC)
+    def test_which_side_it_ran_on_is_in_the_log(self) -> None:
+        head = SRC[SRC.index("skip_known_empty = not args.include_known_empty"):]
+        self.assertIn("LOGGER.info", head[:400])
 
 
 class TheDryRunAnswersThePoolQuestion(unittest.TestCase):
