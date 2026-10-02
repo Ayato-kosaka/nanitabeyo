@@ -15,6 +15,7 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import os
 import random
 import re
@@ -38,6 +39,9 @@ from typing import Any
 # あちらは run_id を緩めると別々の時点のデータが混ざる。
 RUN_ID_ALL = "ALL"
 
+
+
+LOGGER = logging.getLogger(__name__)
 
 def run_id_filter_sql(column: str, param: str, run_id: str | None) -> str:
     """`run_id` の絞り込み SQL を返す。
@@ -363,6 +367,47 @@ class ResolveOutcome:
     resolve_reason: str | None
 
 
+class ApiCallBudgetExceeded(RuntimeError):
+    """この run の API 呼び出し予算を超えた。"""
+
+
+class ApiCallLedger:
+    """この run が «API を何回叩いたか» を数える。
+
+    #1947【設計】2026-10-01、`5_1` が dev の resolve API を **1 時間に約 8.5 万回**叩き、
+    1 回ごとに 3〜5 行のログが出て、dev のログは 9 月上旬の 1 日数万行から
+    **400〜600 万行/日** へ増えた（合計 84 GiB・ログ保管 ≒¥6,098・Cloud Run ≒¥5,000）。
+
+    ⚠️ **BigQuery のスキャン課金と «同じ形» である**（→ `pipeline_common.ScanLedger`）。
+    どちらも «呼んだ回数・読んだ量» をどこにも数えておらず、**費用が仕事の量ではなく
+    ループの回転数に比例**していた。緑のまま気づけなかったのも同じ理由である。
+
+    ⚠️ **1 回ごとにログを出さないこと。** それをやると «ログ行数で課金された» 事故を
+    こちらで再現する。一定回数ごとと run の最後にだけ出す。
+    """
+
+    REPORT_EVERY = 5_000
+
+    def __init__(self, max_calls: int | None = None) -> None:
+        self.max_calls = max_calls
+        self.calls = 0
+        self.retried = 0
+
+    def would_exceed(self) -> bool:
+        """次の 1 回で予算を超えるか（純関数的に判定できるようにしておく）。"""
+        return self.max_calls is not None and self.calls >= self.max_calls
+
+    def count(self) -> bool:
+        """1 回ぶん数える。**この呼び出しの区切りで報告すべきなら True** を返す。"""
+        self.calls += 1
+        return self.calls % self.REPORT_EVERY == 0
+
+    def summary(self) -> str:
+        budget = "無制限" if self.max_calls is None else f"{self.max_calls:,} 回"
+        return (f"API 呼び出し: {self.calls:,} 回（予算 {budget}）"
+                f"・投げ直し {self.retried:,} 回")
+
+
 class ResolveClient:
     """resolve API を «URL を渡すだけ» で叩く薄いクライアント。
 
@@ -371,7 +416,7 @@ class ResolveClient:
     """
 
     def __init__(self, base_url: str | None = None, *, jwt_ttl: int = 600, timeout: float = 20.0,
-                 keep_alive: bool = True, retries: int = 2):
+                 keep_alive: bool = True, retries: int = 2, max_calls: int | None = None):
         self.base_url = (base_url or backend_base_url()).rstrip("/")
         self.jwt_ttl = jwt_ttl
         self.timeout = timeout
@@ -385,6 +430,11 @@ class ResolveClient:
         self.retries = max(retries, 0)
         # リトライした回数（診断用。呼び出し側がログへ出す）
         self.retried = 0
+        # #1947 **呼んだ回数を数えて、予算で止める。** 既定は環境変数 API_MAX_CALLS。
+        #   ログ課金・Cloud Run 課金はどちらもこの回数にほぼ比例する。
+        self.ledger = ApiCallLedger(
+            max_calls=int(os.environ["API_MAX_CALLS"])
+            if (os.environ.get("API_MAX_CALLS") or "").strip() else max_calls)
         self._jwt: str | None = None
         self._jwt_exp = 0.0
         self._jwt_lock = threading.Lock()
@@ -508,6 +558,15 @@ class ResolveClient:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
 
+        if self.ledger.would_exceed():
+            raise ApiCallBudgetExceeded(
+                f"この run の API 呼び出し予算を使い切りました（{self.ledger.summary()}）。"
+                f"2026-10-01、ここに上限が無かったために dev の resolve API を 1 時間に "
+                f"約 8.5 万回叩き、ログ 400〜600 万行/日（ログ保管 ≒¥6,098・"
+                f"Cloud Run ≒¥5,000）を発生させました。"
+                f"続けるなら `--max-api-calls` か環境変数 `API_MAX_CALLS` を上げてください")
+        if self.ledger.count():
+            LOGGER.info("%s", self.ledger.summary())
         for attempt in range(self.retries + 1):
             try:
                 return once()
@@ -520,6 +579,7 @@ class ResolveClient:
                 if attempt >= self.retries:
                     raise
             self.retried += 1
+            self.ledger.retried += 1
             time.sleep(self._backoff_s(attempt))
         raise urllib.error.URLError("unreachable")
 

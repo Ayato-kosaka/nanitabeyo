@@ -221,6 +221,13 @@ def parse_args() -> argparse.Namespace:
     # #1947 ⚠️ **抽出クエリは 1 回 4.58 GiB 読む。** 既定の 12 秒間隔では 1 日 $51 になる
     #   （→ `select_again` の設計コメント）。既定を «30 分おき・最大 12 回» にして、
     #   5.5 時間の run が使う抽出ぶんを 55 GiB（≒$0.32）に収める。
+    # #1947 ⚠️ **呼んだ回数がそのままログ課金と Cloud Run 課金になる。**
+    #   2026-10-01、dev の resolve API を 1 時間に約 8.5 万回叩き、1 回 3〜5 行のログで
+    #   dev のログが 400〜600 万行/日（合計 84 GiB）になった。既定で 1 run 20 万回に上限を置く
+    #   （5.5 時間 × 実測 8.5 万回/時 ≒ 47 万回なので、既定は «当たる» 側に置いてある）。
+    p.add_argument("--max-api-calls", type=int, default=200_000,
+                   help="1 run で resolve API を叩く上限。0 で無制限（非推奨）。"
+                       "超えたら ApiCallBudgetExceeded で止まる")
     p.add_argument("--select-interval-min", type=float, default=30.0,
                    help="«未処理はどれ？» を聞き直す最短間隔（分）。"
                         "この問いかけ自体が重いので、仕事の速さと切り離して時間で間隔を空ける")
@@ -417,7 +424,9 @@ def main() -> None:
     raw_run_id = args.raw_run_id or run_id
     pipeline = BigQueryPipeline()
     client = ResolveClient(keep_alive=not args.no_keep_alive,
-                           retries=args.resolve_retries)  # base_url は common_sns の BACKEND_BASE_URL
+                           retries=args.resolve_retries,
+                           max_calls=args.max_api_calls or None,
+                           )  # base_url は common_sns の BACKEND_BASE_URL
     sleep_s = max(args.sleep_ms, 0) / 1000.0
     # #1947 `--post-ids-table` の «入力の時刻» 列を、表名の対応表を書かずにその場で聞く。
     #   1 本に決まらない（0 本 / 2 本以上）ときは raw の fetched_at だけで見る。
@@ -498,7 +507,10 @@ def main() -> None:
                 "  （version を上げたラウンドはここで止まりません）", len(posts))
             sys.exit(1)
 
-    with pipeline.step(run_id, "5_1_apply_resolve", parameters={
+    # ⚠️ #1947 `parameters` は `step()` の `finally` で JSON 化されるので、**走行中に
+    #   書き換えると durable な記録に残る**（`4_9` と同じ手）。API の呼び出し回数は
+    #   ログ課金と Cloud Run 課金にほぼ比例するので、run の記録へ必ず残す。
+    step_params = {
         "raw_run_id": raw_run_id, "resolve_version": args.resolve_version, "limit": args.limit,
         "shards": args.shards, "shard": args.shard,
         # ⚠️ #1947 **このフラグを落とさないこと。** «未 resolve» の意味そのものを変えるので、
@@ -506,7 +518,11 @@ def main() -> None:
         #   区別できない。2026-09-24 は後者で、書いた 78,366 行のうち初回は 5.0% だった。
         "skip_resolved_anywhere": args.skip_resolved_anywhere,
         "post_ids_table": args.post_ids_table,
-    }, repo_root=None) as result:
+        "max_api_calls": args.max_api_calls,
+        "api_calls": 0,
+    }
+    with pipeline.step(run_id, "5_1_apply_resolve",
+                       parameters=step_params, repo_root=None) as result:
         # 数千件の resolve は 1〜2h かかる。末尾一括ロードだと進捗が見えず timeout で全ロストするので
         # FLUSH_EVERY 件ごとに逐次ロードする（WRITE_APPEND。再実行時は resolved 済みを LEFT JOIN でskip）。
         # 既定は並列度に合わせる。直列（concurrency=1）のときは従来どおり 200 のまま。
@@ -525,6 +541,9 @@ def main() -> None:
 
         def _flush() -> None:
             nonlocal rows, total
+            # #1947 ⚠️ **最後にだけ書くと «途中で殺された run» が 0 回と記録される。**
+            #   flush のたびに反映しておく（1 回ごとではないのでログは増えない）。
+            step_params["api_calls"] = client.ledger.calls
             if rows:
                 t0 = time.perf_counter()
                 n = len(rows)
@@ -706,6 +725,10 @@ def main() -> None:
         LOGGER.info("sns_post_resolved に %d 件（matched=%d, resolve失敗=%d〈run 全体の累積〉, "
                     "429/5xx の投げ直し=%d 回）を投入しました",
                     total, matched, tot_err, client.retried)
+        # #1947 **呼んだ回数を報告に必ず載せる。** 秒数とスループットだけでは
+        #   «ログ課金と Cloud Run 課金がいくらになったか» が誰にも見えなかった。
+        LOGGER.info("%s", client.ledger.summary())
+        step_params["api_calls"] = client.ledger.calls
         note = failure_share_note(tot_ok, tot_err)
         if note:
             LOGGER.warning("%s", note)
