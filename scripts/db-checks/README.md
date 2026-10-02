@@ -27,9 +27,17 @@
   ┌──────────────────────┐      │ sql/dish_media_  │      ┌────────────────────┐
   │ dish-media.          │─jest→│ search.sql       │─読む→│ explain_dish_media_│
   │ repository.ts        │      └──────────────────┘      │ search.py          │
-  └──────────────────────┘                                └────────────────────┘
+  └──────────────────────┘                                ├────────────────────┤
+                                                          │ measure_search_    │
+                                                          │ external_embed_    │
+                                                          │ share.py           │
+                                                          └────────────────────┘
         ↑ ここだけが正本            ↑ 手で書かない              ↑ 条件を書き足さない
 ```
+
+`dish_media_search.sql` を読む 2 本は、読み方とバインド値の並べ方を
+`dish_media_search_sql.py`（DB 接続を持たない純関数だけ）から import して共有する。
+片方だけが古い並びでバインドすると **別のクエリを測って «測れている» と読む**（#1629）。
 
 **同じ判定を 2 箇所に書いた時点で、ずれるのは時間の問題である。**
 実際に 2026-08-28 に fixture で、08-29 に検知 SQL で、09-04 に coverage 計測で
@@ -52,6 +60,7 @@
 | `measure_restaurants_nearby.py` / `measure_saved_restaurants.py` / `measure_wide_area_search.py` / `measure_map_pins_distribution.py` | 近傍検索まわりの実測 | `--schema dev` |
 | `measure_restaurant_images.py` | **#1780** Google 由来画像を消したときに「見た目が変わる」店の数 | `--schema dev` |
 | `measure_external_embed_thumbnails.py` | 外部埋め込みのサムネイル欠落 | `--schema dev` |
+| `measure_search_external_embed_share.py` | **#1947** アプリの検索が SNS 由来の外部埋め込み（`render_type='external_embed'`）を実際に返しているか。地点 × カテゴリごとに «半径内の在庫» と «返った行» を並べる | `--schema dev --radius 500` |
 | `audit_schema_drift.py` / `audit_schema_indexes.py` / `assert_index_valid.py` | スキーマ・索引の点検 | `--schema dev` |
 | `diagnose_slow_db.py` | 遅いクエリの切り分け | `--schema dev` |
 

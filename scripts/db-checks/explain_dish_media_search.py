@@ -24,7 +24,8 @@ GIST 索引の見積りが既定値へ落ち、restaurants を駆動表にする
 一致することを機械検査している**ので、写経がずれることは起きない。
 
 道具立て（EXPLAIN の回し方・行数の数え方・測る地点）は `measure_order_by_posts.py`
-から import する（同じ判定を 2 箇所に書かない）。
+から、SQL の読み方とバインド値の並べ方は `dish_media_search_sql.py` から import する
+（同じ判定を 2 箇所に書かない）。
 
 ## 読み取り専用である
 
@@ -43,16 +44,21 @@ SELECT と、SELECT に対する PREPARE / EXPLAIN しか実行しない。接�
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import os
-import re
 import sys
 import uuid
-from pathlib import Path
 
 import psycopg2
 
+from dish_media_search_sql import (
+    DEFAULT_LIMIT,
+    NAME,
+    SQL_DIR,
+    bind_search_params,
+    knn_candidate_limit,
+    load_search_sql,
+)
 from measure_order_by_posts import (
     CASES,
     REPEATS,
@@ -66,16 +72,11 @@ from measure_order_by_posts import (
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-SQL_DIR = Path(__file__).resolve().parent / "sql"
-NAME = "dish_media_search"
-
 # 店提案の返却件数。knnCandidateLimit(5) = max(1000, 50*5) = 1000
-LIMIT = 5
-KNN_LIMIT = max(1000, 50 * LIMIT)
+LIMIT = DEFAULT_LIMIT
+KNN_LIMIT = knn_candidate_limit(LIMIT)
 ROWS_BUDGET = KNN_LIMIT * 4
 
-# 実装側の定数（dish-media.repository.ts の GUMBLE_TAU）。params.json の名前と対応する
-GUMBEL_TAU = 0.216
 # 実在しなくてよい（候補が 0 件でも «どう絞るか» の計画は同じ）
 SAMPLE_USER_ID = "11111111-1111-4111-8111-111111111111"
 # JP gate を通る実在カテゴリ（yakitori）。dev で最も投稿が多い部類
@@ -83,50 +84,21 @@ SAMPLE_CATEGORY_ID = "Q483163"
 
 
 def load_sql():
-    """実装が組み立てた SQL とバインド値の «名前の列» を読む。
-
-    バインド位置は半角疑問符なので $1, $2 … へ直す。
-    ⚠️ SQL のコメントに半角疑問符が混ざっていると位置がずれる（jest が個数を検査している）。
-    """
-    raw = (SQL_DIR / f"{NAME}.sql").read_text(encoding="utf-8").rstrip().rstrip(";")
-    names = json.loads((SQL_DIR / f"{NAME}.params.json").read_text(encoding="utf-8"))
-    counter = [0]
-
-    def to_positional(_match):
-        counter[0] += 1
-        return f"${counter[0]}"
-
-    sql = re.sub(r"\?", to_positional, raw)
-    if counter[0] != len(names):
-        raise SystemExit(
-            f"❌ {NAME}: プレースホルダ {counter[0]} 個に対して名前が {len(names)} 個。"
-            " UPDATE_RESTAURANT_SQL_SNAPSHOT=1 で書き出し直すこと"
-        )
-    return sql, names
+    return load_search_sql()
 
 
 def bind(names, lat, lng, radius):
-    """バインド値を «名前の列» の順に並べる。
-
-    ⚠️ 手書きの配列にしないこと。SQL の形を変えると順番も変わり、radius と limit が
-       入れ替わったまま «別のクエリを測って» 読み違えた実績がある（#1629）。
-    """
-    values = {
-        "userId": SAMPLE_USER_ID,
-        "lat": lat,
-        "lng": lng,
-        "radius": radius,
-        "categoryId": SAMPLE_CATEGORY_ID,
-        "limit": LIMIT,
-        "knnLimit": KNN_LIMIT,
-        "gumbelTau": GUMBEL_TAU,
-        "pageSeed": str(uuid.uuid4()),
-        # timeSlot 未指定と同じ状態（除外も加点も起きない）。
-        # 営業時間つきの経路は explain_opening_status.py が別に測る
-        "closedRestaurantIds": [],
-        "openRestaurantIds": [],
-    }
-    return [values[n] for n in names]
+    return bind_search_params(
+        names,
+        user_id=SAMPLE_USER_ID,
+        lat=lat,
+        lng=lng,
+        radius=radius,
+        category_id=SAMPLE_CATEGORY_ID,
+        limit=LIMIT,
+        knn_limit=KNN_LIMIT,
+        page_seed=str(uuid.uuid4()),
+    )
 
 
 def run_counts(cur):
