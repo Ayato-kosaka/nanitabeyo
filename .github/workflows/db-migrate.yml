@@ -82,6 +82,8 @@ jobs:
     environment: ${{ inputs.target_schema == 'public' && 'production' || 'development' }}
     permissions:
       contents: write
+      # #2052 «いま載っているコードの版» を api-deploy.yml の run から引くために要る
+      actions: read
     env:
       DB_SCHEMA: ${{ inputs.target_schema }}
       PROTECTED_SCHEMA: ${{ inputs.target_schema == 'public' && 'dev' || 'public' }}
@@ -183,6 +185,25 @@ jobs:
         # （実際 20260623T0000_create_dish_category_group_votes.sql が該当する）。
         # コメントと文字列リテラルを落としてから見るために専用スクリプトへ切り出してある
         run: xargs -a /tmp/targets.txt node scripts/assert-migration-schema-scoped.mjs --target-schema "${DB_SCHEMA}"
+
+      # ── 安全ゲート 2.5: 落とす列を «いま載っているコード» がまだ読んでいないか ──
+      #
+      # 2026-09-24 に事故った（#2052）。`20260924T0100_drop_google_derived_columns.sql` を
+      # dev へ当てた 33 秒後から **dev の API が全件 500 になり、14 時間直らなかった**
+      # （約 15 万件）。expand → **コードを出す** → contract の真ん中が抜けていた。
+      #
+      # ⚠️ **この下にある «shared がビルドできることを検算する» はここを守らない。**
+      #    ① 見ているのはリポジトリのコードであって «いま載っているコード» ではない
+      #    ② しかも **DDL が当たった後**に走るので、落ちても列は戻らない
+      #
+      # だからこのゲートは **適用より前**に置く。落とす DDL が 1 つも無い migration
+      # （71 本のうち 67 本）では何もしないので、普段の流し方は変わらない。
+      - name: 落とす列を «いま載っているコード» が読んでいないか検査
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: xargs -a /tmp/targets.txt node scripts/assert-drop-safe-for-deployed-code.mjs --target-schema "${DB_SCHEMA}"
 
       # ── 安全ゲート 3: 事後の検算に使う対象外スキーマのスナップショット ──────
       - name: 接続先と対象外スキーマのスナップショットを取る

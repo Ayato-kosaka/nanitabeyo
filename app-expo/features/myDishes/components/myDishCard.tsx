@@ -18,7 +18,7 @@ import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
  *
  * ## ⚠️ 画像のフォールバックは呼び出し側で変わる
  *
- * この Sheet は `dish.categoryImageUrl` → `restaurant.image_url` の順で **実画像**
+ * この Sheet は `dish.categoryImageUrl` → `restaurant.imageUrls?.sm` の順で **実画像**
  * （#1375 追補2 決定3）を使う（`fallback: "category"`）。
  *
  * 一覧ビュー（`MyDishesListView`）は本 PR（#1397 PR3）の時点では灰色プレースホルダーの

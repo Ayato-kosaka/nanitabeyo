@@ -65,6 +65,13 @@
 - **「日本のどこでも店提案が動く」とは言えない。** S2セルは restaurants が実在する
   座標から作るため、店舗が1件も無い空白地帯はそもそもセルとして現れず、
   `covered_zero_restaurants`（coverageゼロの件数）にも含まれない
+- ⚠️ **既定の半径（20,000m）と閾値（5 店舗）で測った数字は、«ユーザーの検索が通る率» では
+  ない。** アプリの既定の検索半径は **500m**（`DEFAULT_SEARCH_RADIUS`）で、既定値は
+  その **40 倍**である。さらに Google fallback が起きるのは `dish-media/search` が
+  **0 件**のときだけ（`app-expo/lib/dishMediaSearch.ts`）なので、閾値 5 は fallback の
+  境目でもない。#843 の «Google Text Search fallback を不要にする» を測るなら
+  `--radius-m 500 --min-restaurants 1` で回し、既定値の系列（2.34% → 13.3% → 29.1%）とは
+  **別の量として扱うこと**（混ぜると «塗れた面積» と «検索が通る率» を取り違える）
 - **異なる `--s2-level` で測った数字とは比較できない。** レベルを変えるとセルの粒度も
   coverage の件数も変わる。前提（`assumptions` フィールド）が同じ実行同士でしか比べられない
 - **店舗詳細画面（`findDishMediaByRestaurant`）の「使える」件数とは一致しない。**
@@ -95,13 +102,16 @@ dish_media が近くにある組み合わせだけ**であり、usable dish_medi
    代表点を `ST_DWithin` で INNER JOIN する。`area_cells_tmp` 側に代表点の
    GiST 式索引を張ってあるため（`build_area_cells_temp_index_sql`）、
    全 area_cells を毎回スキャンしない
-3. `(s2_cell_id, category_id)` で `GROUP BY` し `COUNT(DISTINCT restaurant_id)` を取る
+3. `(s2_cell_id, category_id)` で `GROUP BY` し `COUNT(*)` を取る
+   （起点が «(店, カテゴリ) 重複なし» なので DISTINCT は要らない）
 
 INNER JOIN なので、この集計には **coverage が非ゼロの組み合わせしか現れない**。
-「5 店舗以上」「1〜4 店舗」の件数はこの集計から `FILTER` で数え（`build_stage5_summary_sql`）、
-「0 店舗」の件数は「全組み合わせ数（area セル数 × カテゴリ数、別の軽いクエリで数える）
-− この集計の行数」の引き算で出す（`covered_zero`）。**16.8M 件を 1 行ずつ返す・
-列挙することはしない。** 上位 20 件（`build_stage5_top_cells_sql`）だけを別クエリで取る。
+⚠️ **この重い集計はバッチあたり 1 回だけ評価する**（`build_stage5_matched_rows_sql`）。
+件数バケット・上位セル・惜しいセル・カテゴリ別は、その行から `Stage5Accumulator` が作る
+（以前は 4 本のクエリに分けており、**同じ集計を 4 回評価**していた。run 36820246635 は
+65 分でも終わらなかった）。「0 店舗」の件数は「全組み合わせ数（area セル数 × カテゴリ数、
+別の軽いクエリで数える）− この集計の行数」の引き算で出す（`covered_zero`）。
+**16.8M 件を 1 行ずつ返す・列挙することはしない。**
 
 ## 読み取り専用である（ただし全区間ではない）
 
@@ -145,7 +155,11 @@ DDL を流す区間は手順2・3（一時テーブルの作成）だけに限�
 
 S2 level や半径・閾値を変えたいときは引数を足す:
 
+    # 既定値の系列（#843 の完了条件の文言どおり: 半径 20km / 5 店舗以上）
     args: --schema dev --s2-level 14 --radius-m 20000 --min-restaurants 5
+
+    # «ユーザーの検索が自社 DB で通るか»（= Google fallback を避けられるか）
+    args: --schema dev --s2-level 14 --radius-m 500 --min-restaurants 1
 
 ローカルでの単体テスト（DB 接続なし、SQL の組み立てだけを検査）:
 
@@ -180,6 +194,9 @@ _RESTAURANT_PIPELINE_DIR = (
 if str(_RESTAURANT_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(_RESTAURANT_PIPELINE_DIR))
 
+# ⚠️ ここは落ちない。`normalization` は `s2sphere` を **`s2_cell_id()` の中で** import する
+# （大容量名寄せ以外では依存を読み込まない設計）。依存が無いことが分かるのは
+# **呼んだ瞬間**なので、親切なメッセージは `compute_area_cells` 側に置いてある。
 from normalization import s2_cell_id  # noqa: E402  (sys.path 設定の直後で読む必要がある)
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -239,7 +256,18 @@ def compute_area_cells(
     """
     cells: dict[int, list[float]] = {}
     for latitude, longitude in locations:
-        cell_id = s2_cell_id(float(latitude), float(longitude), s2_level)
+        try:
+            cell_id = s2_cell_id(float(latitude), float(longitude), s2_level)
+        except ModuleNotFoundError as error:
+            # ⚠️ `normalization.s2_cell_id()` は `s2sphere` を **関数の中で** import するので、
+            #    依存の欠落はここで初めて分かる（import 時には分からない）。
+            #    db-script-run.yml の requirements_path 既定（wikidata 側）には s2sphere が無く、
+            #    2026-10-01 に素の ModuleNotFoundError で 1 run 無駄にした（run 36909321990）。
+            raise SystemExit(
+                f"❌ S2 セル化に要る依存が入っていない（{error.name}）。\n"
+                "   db-script-run.yml の requirements_path は既定（wikidata 側）ではなく\n"
+                "   scripts/20260808T0000_restaurant/requirements.txt を渡すこと。"
+            ) from error
         agg = cells.setdefault(cell_id, [0.0, 0.0, 0])
         agg[0] += float(latitude)
         agg[1] += float(longitude)
@@ -271,6 +299,25 @@ def build_area_cells_temp_table(cur, table_name: str, s2_level: int) -> int:
     return len(area_cells)
 
 
+def build_stage5_driver_temp_table(cur, driver_table_name: str, media_table_name: str) -> int:
+    """Stage5 の起点を «(店, カテゴリ) 1 行» へ畳む（DDL なので read-only 切り替えより前）。
+
+    ⚠️ 畳んでも数字が変わらない理由は
+    `dish_media_coverage_sql.build_stage5_driver_temp_table_sql()` の docstring にある。
+    """
+    cur.execute(coverage_sql.build_stage5_driver_temp_table_sql(driver_table_name, media_table_name))
+    for index_sql in coverage_sql.build_stage5_driver_temp_index_sql(driver_table_name):
+        cur.execute(index_sql)
+    cur.execute(f"ANALYZE {driver_table_name}")
+    cur.execute(coverage_sql.build_stage5_driver_count_sql(driver_table_name))
+    rows = cur.fetchone()[0]
+    logger.info(
+        "Stage5 の起点（JP gate の (店, カテゴリ) 重複なし）: %s 行",
+        f"{rows:,}",
+    )
+    return rows
+
+
 def run_stage4(cur, table_name: str) -> list[dict]:
     section("Stage4: category ごとの usable dish_media を持つ店舗数（地理条件なし）")
     cur.execute(coverage_sql.build_stage4_category_coverage_sql(table_name))
@@ -291,16 +338,113 @@ def run_stage4(cur, table_name: str) -> list[dict]:
     return result
 
 
+def apply_temp_file_limit(cur, limit_mb: int) -> bool:
+    """このセッションが書ける一時ファイルの上限を張る（張れたら True）。
+
+    ## なぜ要るか（#1782 2026-10-01）
+
+    Stage5 が `DiskFull: could not write to file "base/pgsql_tmp/..."` で落ちた
+    ([run 36816039711](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36816039711))。
+    起点を畳んで溢れないようにしたが、⚠️ **溢れる量は供給側（#1273 / #1263 の取り込み）が
+    増えれば また増える**。dev と public は同じ Postgres インスタンスなので
+    ([#2006](https://github.com/Ayato-kosaka/nanitabeyo/issues/2006))、
+    «共有ディスクを埋める» ではなく **«自分のクエリだけが落ちる»** に倒しておく。
+
+    ## ⚠️ 【バグ】試して失敗するのではなく、**先に聞く**
+
+    `temp_file_limit` は PGC_SUSET（superuser だけが変えられる）で、Supabase の
+    `postgres` ロールは superuser ではない。最初の実装は «SET して、失敗したら警告して
+    続行» にしていたが、**失敗した SET がトランザクションを abort させ、次の文が
+    `InFailedSqlTransaction: current transaction is aborted` で死んだ**
+    ([run 36819189609](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36819189609)。
+    起点の畳み込みは効いて 904,118 → 148,892 行になっていたのに、**その先で止めたのは
+    この «保険» 自身**だった）。
+
+    だから **`is_superuser` を先に見て、張れないなら SET を投げない**。
+    投げなければ abort も起きない。⚠️ それでも別の理由で失敗しうるので、
+    except では **ROLLBACK で後続が使える状態へ戻す**（«保険» が本体を殺さないように）。
+
+    ⚠️ **黙って続行しない。** 張れなかったことはログへ出す
+    （«上限があるつもりで走っていた» を作らない）。
+    """
+    if limit_mb <= 0:
+        logger.info("一時ファイルの上限: 指定なし（--temp-file-limit-mb 0）")
+        return False
+
+    if not is_superuser(cur):
+        logger.warning(
+            "⚠️ 一時ファイルの上限（%s MB）は張れません。"
+            "temp_file_limit は superuser だけが変えられ、この接続は superuser ではない。"
+            "このまま走るので、溢れると共有ディスクの側で落ちる（#1782）",
+            f"{limit_mb:,}",
+        )
+        return False
+
+    try:
+        cur.execute(f"SET temp_file_limit = '{limit_mb}MB'")
+    except psycopg2.Error as error:
+        # ⚠️ ここへ来たら «abort されたトランザクション» を畳んでおく。
+        #    畳まないと、この保険のせいで本体（Stage5）が 1 文も走らない
+        try:
+            cur.execute("ROLLBACK")
+        except psycopg2.Error:
+            pass
+        logger.warning(
+            "⚠️ 一時ファイルの上限を張れませんでした（%s MB）。このまま走る: %s",
+            f"{limit_mb:,}",
+            str(error).strip().splitlines()[0] if str(error).strip() else error.__class__.__name__,
+        )
+        return False
+
+    logger.info("一時ファイルの上限: %s MB（超えたらこのクエリだけが落ちる）", f"{limit_mb:,}")
+    return True
+
+
+def is_superuser(cur) -> bool:
+    """この接続が superuser か（読み取りだけ。読めなければ False に倒す）。
+
+    ⚠️ **«分からない» を «superuser» 側へ倒してはいけない。** 倒すと SET を投げて
+    また abort する（#1782 の run 36819189609 がそれ）。
+    """
+    try:
+        cur.execute("SELECT current_setting('is_superuser', true)")
+        value = cur.fetchone()[0]
+    except psycopg2.Error:
+        return False
+    return str(value).lower() == "on"
+
+
+def stage5_cell_batches(cur, area_table_name: str, cell_batch_size: int) -> list[dict] | None:
+    """Stage5 を分割するためのバインドパラメータ列（分割しないなら None）。
+
+    ⚠️ **セルで割る理由と «割っても数字が変わらない» 理由は
+    `dish_media_coverage_sql.build_area_cell_ids_sql()` の docstring にある。**
+    """
+    if cell_batch_size <= 0:
+        return None
+    cur.execute(coverage_sql.build_area_cell_ids_sql(area_table_name))
+    cell_ids = [row[0] for row in cur.fetchall()]
+    return [
+        {"cell_ids": cell_ids[start : start + cell_batch_size]}
+        for start in range(0, len(cell_ids), cell_batch_size)
+    ]
+
+
 def run_stage5(
     cur,
-    media_table_name: str,
+    driver_table_name: str,
     area_table_name: str,
     s2_level: int,
     radius_m: float,
     min_restaurants: int,
     statement_timeout_s: int,
+    temp_file_limit_mb: int,
+    cell_batch_size: int,
 ) -> dict:
     section("Stage5: area(S2セル) x dish_category(JP gate) の coverage")
+
+    # ⚠️ statement_timeout より前に張る（時間で殺される前にディスクで殺せるようにする）
+    apply_temp_file_limit(cur, temp_file_limit_mb)
 
     cur.execute(coverage_sql.build_area_cell_count_sql(area_table_name))
     total_area_cells = cur.fetchone()[0]
@@ -316,55 +460,85 @@ def run_stage5(
     )
 
     cur.execute(f"SET statement_timeout = '{statement_timeout_s}s'")
+
+    batches = stage5_cell_batches(cur, area_table_name, cell_batch_size)
+    if batches is None:
+        logger.info("Stage5 の分割: なし（--cell-batch-size 0）")
+    else:
+        logger.info(
+            "Stage5 の分割: %s セルずつ %s 回（一度に作る中間結果を小さく保つ。#1782）",
+            f"{cell_batch_size:,}",
+            f"{len(batches):,}",
+        )
+
+    # 引き当て表は 1 回だけ取る（1 行ごとに文字列や店舗数を運ばない。#1782）
+    cur.execute(coverage_sql.jp_gate_category_select_sql())
+    category_labels = {category_id: label for category_id, label in cur.fetchall()}
+    cur.execute(coverage_sql.build_area_cell_restaurant_counts_sql(area_table_name))
+    cell_restaurant_counts = {cell_id: count for cell_id, count in cur.fetchall()}
+
+    accumulator = coverage_sql.Stage5Accumulator(
+        min_restaurants=min_restaurants,
+        top_n=coverage_sql.DEFAULT_TOP_CELLS_LIMIT,
+    )
+
     try:
-        cur.execute(
-            coverage_sql.build_stage5_summary_sql(
-                radius_m=radius_m,
-                min_restaurants=min_restaurants,
-                area_table_name=area_table_name,
-                media_table_name=media_table_name,
+        for index, params in enumerate(batches if batches is not None else [None], start=1):
+            # ⚠️ **重い集計はバッチあたり 1 回だけ。** 4 本に分けていた頃は同じ集計を
+            #    4 回評価しており、dev では 65 分でも終わらなかった（run 36820246635）
+            cur.execute(
+                coverage_sql.build_stage5_matched_rows_sql(
+                    radius_m=radius_m,
+                    area_table_name=area_table_name,
+                    driver_table_name=driver_table_name,
+                    batched=params is not None,
+                ),
+                params,
             )
-        )
-        covered_at_or_above_min, covered_below_min, covered_total = cur.fetchone()
+            accumulator.add_rows(cur.fetchall())
 
-        cur.execute(
-            coverage_sql.build_stage5_top_cells_sql(
-                radius_m=radius_m,
-                area_table_name=area_table_name,
-                media_table_name=media_table_name,
-            )
-        )
-        top_rows = cur.fetchall()
-
-        # #1782 完了条件2「不足セルが一覧で出る」。
-        # ⚠️ «閾値に満たない全部» は dev 実測で 1,646 万行あり、一覧にしても打ち手は決まらない。
-        #    打ち手が決まるのは «1 件以上あるが届いていない» セル（あと 1〜4 件で成立に変わる）。
-        cur.execute(
-            coverage_sql.build_stage5_shortfall_cells_sql(
-                radius_m=radius_m,
-                min_restaurants=min_restaurants,
-                area_table_name=area_table_name,
-                media_table_name=media_table_name,
-            )
-        )
-        shortfall_rows = cur.fetchall()
-
-        cur.execute(
-            coverage_sql.build_stage5_shortfall_by_category_sql(
-                radius_m=radius_m,
-                min_restaurants=min_restaurants,
-                area_table_name=area_table_name,
-                media_table_name=media_table_name,
-            )
-        )
-        shortfall_category_rows = cur.fetchall()
+            if batches is not None and (index % 10 == 0 or index == len(batches)):
+                # ⚠️ 進捗は «数字が動いていること» を外から確かめるために出す。
+                #    出さないと «生きているのか» が分からず、待つしかなくなる
+                logger.info(
+                    "  Stage5 進捗: %s / %s バッチ（coverage 成立 %s 件）",
+                    f"{index:,}",
+                    f"{len(batches):,}",
+                    f"{accumulator.covered_at_or_above_min:,}",
+                )
     except psycopg2.errors.QueryCanceled:
         logger.error(
-            "❌ Stage5 が %s 秒でタイムアウトしました。--s2-level を小さく（粗く）するか、"
-            "--statement-timeout-s を伸ばして再実行してください。",
+            "❌ Stage5 が %s 秒でタイムアウトしました。--cell-batch-size を小さくするか、"
+            "--statement-timeout-s を伸ばして再実行してください。"
+            "（起点の行数は上の «Stage5 の起点» のログに出ている。"
+            "そこが大きいなら時間ではなく起点の問題である）",
             statement_timeout_s,
         )
         raise
+
+    covered_at_or_above_min = accumulator.covered_at_or_above_min
+    covered_below_min = accumulator.covered_below_min
+    covered_total = accumulator.covered_total
+
+    def decorate(rows: list[tuple]) -> list[tuple]:
+        """(セル, カテゴリ, 店舗数) へ、引き当て表から店舗数とラベルを付け直す。"""
+        return [
+            (
+                s2_cell_id,
+                cell_restaurant_counts.get(s2_cell_id),
+                category_id,
+                category_labels.get(category_id),
+                count,
+            )
+            for s2_cell_id, category_id, count in rows
+        ]
+
+    top_rows = decorate(accumulator.top_cells())
+    shortfall_rows = decorate(accumulator.shortfall_cells())
+    shortfall_category_rows = [
+        (category_id, category_labels.get(category_id), shortfall, covered, best)
+        for category_id, shortfall, covered, best in accumulator.shortfall_by_category()
+    ]
 
     covered_zero = total_combos - covered_total
     coverage_rate = (covered_at_or_above_min / total_combos) if total_combos else None
@@ -452,7 +626,13 @@ def run_stage5(
     }
 
 
-def parse_args() -> argparse.Namespace:
+def build_arg_parser() -> argparse.ArgumentParser:
+    """引数定義を組み立てる（`parse_args` から分けてテストが help を読めるようにする）。
+
+    ⚠️ 既定値の «説明» をここ以外に書かないこと。2026-10-01 に `--radius-m` の help が
+    «店提案と同じ半径» と言ったまま 40 倍ずれていた（アプリの既定は 500m）。
+    `test_measure_dish_media_coverage.py` がアプリ側の定数と突き合わせている。
+    """
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -471,13 +651,27 @@ def parse_args() -> argparse.Namespace:
         "--radius-m",
         type=float,
         default=coverage_sql.DEFAULT_RADIUS_M,
-        help=f"店提案と同じ半径検索の半径（メートル。既定: {coverage_sql.DEFAULT_RADIUS_M}）",
+        help=(
+            "半径検索の半径（メートル。既定: "
+            f"{coverage_sql.DEFAULT_RADIUS_M}）。"
+            "⚠️ 既定値は本番の検索半径ではない。アプリの既定は 500m "
+            "（app-expo/features/dishCategories/constants.ts の DEFAULT_SEARCH_RADIUS）で、"
+            "本番ログの実測でも Google へ落ちた検索 2,065 通りのうち 1,772 通りが 500m だった。"
+            "«ユーザーの検索が自社 DB で通るか» を測るなら --radius-m 500 --min-restaurants 1 で回すこと"
+        ),
     )
     parser.add_argument(
         "--min-restaurants",
         type=int,
         default=coverage_sql.DEFAULT_MIN_RESTAURANTS,
-        help=f"不足セルと判定する閾値（この店舗数未満。既定: {coverage_sql.DEFAULT_MIN_RESTAURANTS}）",
+        help=(
+            "不足セルと判定する閾値（この店舗数未満。既定: "
+            f"{coverage_sql.DEFAULT_MIN_RESTAURANTS}）。"
+            "⚠️ 既定の 5 は #843 の完了条件の文言で、Google fallback の閾値ではない。"
+            "fallback は dish-media/search が 0 件のときだけ起きる"
+            "（app-expo/lib/dishMediaSearch.ts の `if (dishItems.length > 0) return`）ので、"
+            "«fallback を避けられるか» を測るなら 1 を渡すこと"
+        ),
     )
     parser.add_argument(
         "--statement-timeout-s",
@@ -486,11 +680,34 @@ def parse_args() -> argparse.Namespace:
         help="Stage5 の集計クエリに許す最大秒数（既定: 300）",
     )
     parser.add_argument(
+        "--cell-batch-size",
+        type=int,
+        default=coverage_sql.DEFAULT_CELL_BATCH_SIZE,
+        help=(
+            f"Stage5 を何セルずつ集計するか（既定: {coverage_sql.DEFAULT_CELL_BATCH_SIZE} / 0 で一括）。"
+            "⚠️ 速度ではなく «共有ディスクを食い潰さない» ための設定（#1782）"
+        ),
+    )
+    parser.add_argument(
+        "--temp-file-limit-mb",
+        type=int,
+        default=4096,
+        help=(
+            "Stage5 が書ける一時ファイルの上限（MB。既定: 4096 / 0 で指定しない）。"
+            "dev と public は同じインスタンスなので、共有ディスクを埋める代わりに"
+            "このクエリだけが落ちるようにする（#1782）"
+        ),
+    )
+    parser.add_argument(
         "--out-json",
         default=None,
         help="結果 JSON の書き出し先（省略時はファイルへ書かない。標準出力へは常に出す）",
     )
-    return parser.parse_args()
+    return parser
+
+
+def parse_args() -> argparse.Namespace:
+    return build_arg_parser().parse_args()
 
 
 def main() -> int:
@@ -535,6 +752,10 @@ def main() -> int:
             section("restaurants を S2 セルへ集計して一時テーブルへ materialize")
             build_area_cells_temp_table(cur, area_table_name, args.s2_level)
 
+            driver_table_name = coverage_sql.DEFAULT_STAGE5_DRIVER_TABLE_NAME
+            section("Stage5 の起点を (店, カテゴリ) へ畳んで一時テーブルへ materialize")
+            build_stage5_driver_temp_table(cur, driver_table_name, table_name)
+
             # 一時テーブルの作成が終わった直後に read-only へ切り替える。
             # 以降（Stage4 / Stage5）は永続テーブルへの書き込みがセッションレベルで拒否される。
             cur.execute("SET default_transaction_read_only = on")
@@ -543,12 +764,14 @@ def main() -> int:
             stage4_category_coverage = run_stage4(cur, table_name)
             stage5 = run_stage5(
                 cur,
-                table_name,
+                driver_table_name,
                 area_table_name,
                 s2_level=args.s2_level,
                 radius_m=args.radius_m,
                 min_restaurants=args.min_restaurants,
                 statement_timeout_s=args.statement_timeout_s,
+                temp_file_limit_mb=args.temp_file_limit_mb,
+                cell_batch_size=args.cell_batch_size,
             )
 
     result = {

@@ -19,25 +19,84 @@
 set -euo pipefail
 
 readonly EXPECTED_LOCALE="ja-JP"
+# `am get-config` の表記は `-ja-rJP-` なので、言語 / 国を別々に持つ
+readonly EXPECTED_LANGUAGE="ja"
+readonly EXPECTED_COUNTRY="JP"
 
 echo "▶ Android のシステムロケールを ${EXPECTED_LOCALE} へ設定します"
 
-# adb root は adbd を再起動するため、直後の接続断を wait-for-device で吸収する
-adb root
-adb wait-for-device
+# ⚠️ **adbd の再起動をまたぐ adb を «1 回で成功する» 前提で書かないこと（2026-09-27 に実測）。**
+#
+# エミュレータは snapshot から起き上がった直後、adbd が数秒のあいだ上がったり落ちたりする。
+# 2026-09-27 の夜間は runner の boot 判定でも `adb: device offline` が 1 回出ており、
+# その 3 秒後に走ったこの `adb root` が `adb: unable to connect for root: closed` で
+# 非ゼロになり、`set -e` が **テストを 1 本も走らせないまま Android ジョブを落とした**
+# （run 36352812664 / 21:47 に着火。前夜 36273907923 の同じ行は `restarting adbd as root`
+# で通っており、**コードの変化ではなく adbd の立ち上がりの速さの差**である）。
+#
+# だから ①`adb root` の **前にも** `wait-for-device` を入れ、②接続断で落ちうる adb は
+# 数回試す。⚠️ 再試行の告知は **stderr** へ出すこと（`$( … )` で値を受ける呼び出しがあり、
+# stdout へ混ぜると取り出した値が壊れる）。
+# ⚠️ #1579 【修正】**`adb wait-for-device` には上限が無い**（指定端末が現れるまで無限に待つ）。
+# 2026-09-30 の夜間 iOS は、これをロケール観測の再試行へ使ったせいで
+# **1 suite も走らないまま 240 分の timeout で打ち切られた**
+# （[run 36787284601](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36787284601) /
+# `assert-suite-coverage` は 2 シャードとも «報告 0 / 期待 23»）。
+#
+# ここは «端末が居る» 前提の場所なので当時は無害だったが、形は同じである。
+# エミュレータが snapshot から起き上がれなかったら、この行は **90 分の job timeout まで
+# 無言で待ち**、やはり «テストを 1 本も走らせないまま赤» になる。
+# だから «待つ» には必ず上限を置き、超えたら «待てなかった» と**言って**から進む。
+ADB_WAIT_TIMEOUT_SEC=60
 
-adb shell setprop persist.sys.locale "${EXPECTED_LOCALE}"
-adb shell setprop persist.sys.language ja
-adb shell setprop persist.sys.country JP
+adb_wait_for_device() { # adb_wait_for_device [--required]
+	timeout "${ADB_WAIT_TIMEOUT_SEC}" adb wait-for-device && return 0
+	local msg="エミュレータが ${ADB_WAIT_TIMEOUT_SEC} 秒以内に online になりません"
+	if [ "${1:-}" = "--required" ]; then
+		echo "::error::${msg}。ここから先は端末が要るので中断します。" >&2
+		return 1
+	fi
+	# 再試行の «ついで» の待機なので、待てなくても止めない
+	# （止めると «1 回の adb の不通でテストを 1 本も走らせずに落ちる» へ戻る。run 36352812664）
+	echo "▶ ${msg}。待たずに次へ進みます" >&2
+	return 0
+}
+
+adb_retry() { # adb_retry <試行回数> <adb の引数...>
+	local attempts="$1"
+	shift
+	local i=1
+	until adb "$@"; do
+		if [ "${i}" -ge "${attempts}" ]; then
+			echo "::error::adb $* が ${attempts} 回とも失敗しました（adbd へ接続できません）。" >&2
+			return 1
+		fi
+		echo "▶ adb $* に失敗しました。adbd の再接続を待って再試行します（${i}/${attempts}）" >&2
+		adb_wait_for_device
+		sleep 2
+		i=$((i + 1))
+	done
+}
+
+# ⚠️ **ここの wait は «root の後» ではなく «root の前» にも要る。** 後ろだけでは
+#    root そのものが接続断に当たったときに吸収できない（上の実測がそれ）。
+adb_wait_for_device --required
+# adb root は adbd を再起動するため、直後の接続断を wait-for-device で吸収する
+adb_retry 5 root
+adb_wait_for_device --required
+
+adb_retry 5 shell setprop persist.sys.locale "${EXPECTED_LOCALE}"
+adb_retry 5 shell setprop persist.sys.language "${EXPECTED_LANGUAGE}"
+adb_retry 5 shell setprop persist.sys.country "${EXPECTED_COUNTRY}"
 
 # setprop しただけでは起動済みのアプリ/システム UI へ反映されない。
 # zygote を再起動して、以降に起動するプロセスが新しいロケールを読むようにする
-adb shell setprop ctl.restart zygote
+adb_retry 5 shell setprop ctl.restart zygote
 
 # zygote 再起動でシステムサーバが一度落ちる。落ちる前に boot_completed を読むと
 # 「まだ 1 のまま」を掴んでしまうため、先に少し待ってからポーリングする
 sleep 10
-adb wait-for-device
+adb_wait_for_device --required
 
 echo "▶ システムサーバの再起動完了を待ちます"
 deadline=$((SECONDS + 180))
@@ -51,38 +110,52 @@ done
 
 # 以降のテストは非 root で動かしたいので戻す（unroot も adbd を再起動する）
 adb unroot || true
-adb wait-for-device
+adb_wait_for_device --required
 
-actual_locale="$(adb shell getprop persist.sys.locale | tr -d '\r')"
-echo "▶ system locale: ${actual_locale}"
+# ⚠️ #1579 【修正】**落とす基準は «アプリから見えるロケール» の側へ置く。**
+#
+# ここは長いあいだ重みが逆だった。
+#
+# | 読んでいた値 | それは何か | 旧: 一致しなかったら |
+# | --- | --- | --- |
+# | `getprop persist.sys.locale` | **自分がさっき書いた property**（«設定した記録»） | **exit 1** |
+# | `am get-config` の `-ja-rJP-` | **アプリが実際に使う LocaleList**（«いま効いている値»） | `::warning::` だけ |
+#
+# property が空へ戻っていてもアプリは日本語で描かれていた（run 34453015222）。
+# つまり **弱い証拠で落として、強い証拠では落としていなかった**。入れ替える。
+#
+# 落とす側へ回す代わり、観測は数回試す。1 回の adb の不通で落とすと
+# «テストを 1 本も走らせないまま Android ジョブが落ちる» が戻ってくる（run 36352812664）。
+# ⚠️ **`| head` をパイプの下流に置かないこと（#2075）。** このファイルは `set -euo pipefail` で、
+#    `head` が閉じた瞬間に上流が SIGPIPE で殺され、141 が代入の終了コードになって `set -e` が死ぬ。
+#    一度変数へ受けてから `<<<` で渡す。
+echo "▶ アプリから見えるロケール（実行時 configuration）を観測します"
+runtime_config=""
+for attempt in 1 2 3 4 5; do
+	am_get_config="$(adb shell am get-config 2>/dev/null || true)"
+	am_get_config="${am_get_config//$'\r'/}"
+	# ⚠️ 1 行目に決め打ちせず **出力全体**から探す（`config:` が先頭に来ない実装差に耐える）
+	if [[ "${am_get_config}" == *"-${EXPECTED_LANGUAGE}-r${EXPECTED_COUNTRY}-"* ]]; then
+		runtime_config="$(head -n 1 <<< "${am_get_config}")"
+		break
+	fi
+	echo "▶ 実行時 configuration に ${EXPECTED_LANGUAGE}-r${EXPECTED_COUNTRY} が見えません。adbd の再接続を待って再試行します（${attempt}/5）"
+	adb_wait_for_device
+	sleep 2
+done
 
-# 反映に失敗したまま進むと「ja-JP 前提の spec が黙って無意味になる」ので、ここで落として原因を明示する
-if [ "${actual_locale}" != "${EXPECTED_LOCALE}" ]; then
-	echo "::error::システムロケールを ${EXPECTED_LOCALE} へ設定できませんでした（現在: ${actual_locale}）。"
+# ⚠️ 以下 2 つは **診断表示専用**。判定へ使わない（上の表のとおり «記録» であって «効いている値» ではない）
+persist_locale="$(adb shell getprop persist.sys.locale 2>/dev/null || true)"
+persist_locale="${persist_locale//$'\r'/}"
+system_locales="$(adb shell settings get system system_locales 2>/dev/null || true)"
+system_locales="${system_locales//$'\r'/}"
+echo "▶ 実行時 configuration: ${runtime_config:-(ja-rJP を観測できず)}"
+echo "▶ 診断: persist.sys.locale=${persist_locale:-(空)} / settings system_locales=${system_locales:-(空)}"
+
+if [ -z "${runtime_config}" ]; then
+	echo "::error::アプリから見えるロケールが ${EXPECTED_LOCALE} になりませんでした（am get-config に -${EXPECTED_LANGUAGE}-r${EXPECTED_COUNTRY}- が 5 回とも現れず）。"
+	echo "::error::ja-JP 前提の spec が英語の画面に対して走るため、ここで止めます（#1579）。診断値は上の行。"
 	exit 1
-fi
-
-# ⚠️ #1579 【観測】**上の検査は «自分が書いた property» を読み返しているだけである。**
-#
-# アプリが実際に使うのは `persist.sys.locale` そのものではなく、そこから種を得て
-# システムが持つ **LocaleList（実行時 configuration）** である。property が ja-JP でも
-# 実行時 configuration が en-US のままなら、**ja-JP 前提の spec は英語の画面に対して走る**
-#（`describeJapaneseLocale` は端末のロケールを見るので skip もされない）。
-#
-# 実際 run 34437874049（絞って回した Android）は、このスクリプトが
-# «✅ システムロケールを ja-JP に固定しました» を出しているのに、
-# 失敗のコマのアプリが **英語で描かれていた**（"Confirm restaurant details"）。
-# 同じコミットの夜間 34406713535 は日本語（「お店の情報を確認」）だった。
-#
-# **原因は未特定。** まず «アプリから見えるロケール» を毎回ログへ出して観測できるようにする。
-# ここではまだ落とさない（落とすかどうかは、実測が揃ってから決める）。
-runtime_config="$(adb shell am get-config 2>/dev/null | tr -d '\r' | head -n 1)"
-system_locales="$(adb shell settings get system system_locales 2>/dev/null | tr -d '\r')"
-echo "▶ 実行時 configuration: ${runtime_config}"
-echo "▶ settings system_locales: ${system_locales}"
-
-if [[ "${runtime_config}" != *"-ja-rJP-"* ]]; then
-	echo "::warning::実行時 configuration に ja-rJP が見当たりません。ja-JP 前提の spec が英語の画面に対して走っている可能性があります（#1579）。"
 fi
 
 echo "✅ システムロケールを ${EXPECTED_LOCALE} に固定しました"

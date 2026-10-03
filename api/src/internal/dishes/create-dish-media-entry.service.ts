@@ -355,9 +355,8 @@ export class CreateDishMediaEntryService {
           tx,
           {
             ...convertSupabaseToPrisma_Restaurants(payload.restaurants),
-            address_components: payload.restaurants
-              .address_components as Prisma.InputJsonValue,
-            plus_code: payload.restaurants.plus_code as Prisma.InputJsonValue,
+            // #1779 `address_components` / `plus_code` は **2026-09-24 に列ごと削除した**
+            // （migration 20260924T0100）。指定すると存在しない列への INSERT で落ちる。
           },
           payload.restaurants.google_place_id,
           { updateImagePath },

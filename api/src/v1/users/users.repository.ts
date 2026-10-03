@@ -99,7 +99,6 @@ type RestaurantColumns = {
   r_latitude: number;
   r_longitude: number;
   r_image_path: string | null;
-  r_address_components: Prisma.JsonValue;
   r_created_at: Date;
 };
 
@@ -155,8 +154,8 @@ type MyDishPinRawRow = RestaurantColumns & {
 返り値がそのままクライアントへ出るわけではなく、`RestaurantsEntity` へ畳まれる際に
 落ちるので、既定値で埋めても API の応答は変わらない。
 */
-// #1779 落とす列（image_url / plus_code）は SELECT もしないし、既定値でも埋めない。
-// `ReadableRestaurant` はその 2 列を外した形なので、そのまま満たせる。
+// #1779 落とす列（image_url / plus_code / address_components）は SELECT もしないし、
+// 既定値でも埋めない。`ReadableRestaurant` はその 3 列を外した形なので、そのまま満たせる。
 const toRestaurant = (row: RestaurantColumns): ReadableRestaurant => ({
   source_seed_id: null,
   source_names: [],
@@ -179,7 +178,6 @@ const toRestaurant = (row: RestaurantColumns): ReadableRestaurant => ({
   latitude: row.r_latitude,
   longitude: row.r_longitude,
   image_path: row.r_image_path,
-  address_components: row.r_address_components,
   created_at: row.r_created_at,
 });
 

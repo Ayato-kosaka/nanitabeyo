@@ -65,7 +65,9 @@ def main() -> None:
       WITH publish_values AS (
         SELECT
           s.seed_id,
-          s.existing_restaurant_id,
+          -- ⚠️ `s.existing_restaurant_id` を **この射影へ入れない**（→ 最終 SELECT の
+          --    直前のコメント）。下の JOIN 条件では使うが、CTE の列として持ち出すと
+          --    «最終 SELECT に 1 行足すだけで catalog へ漏れる» 状態になる。
           m.google_place_id,
           {publish_values},
           -- #1681 表示用の1行住所。**オープンデータ由来だけを使う。**

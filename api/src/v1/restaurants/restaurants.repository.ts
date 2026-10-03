@@ -15,14 +15,15 @@ import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
 import { roundToOneDecimal } from '../../core/utils/backend-utils';
 
 /**
- * #1779 検索・保存一覧が読む店の形。**落とす列（image_url / plus_code）は読まない。**
+ * #1779 検索・保存一覧が読む店の形。
+ * **落とす列（image_url / plus_code / address_components）は読まない。**
  *
  * `PrismaRestaurants` は生成物なので、そのまま使うと «落とすと決めた列» を
  * SELECT し続けてしまう。ここで先に外し、列が実際に落ちても型が変わらないようにする。
  */
 export type ReadableRestaurant = Omit<
   PrismaRestaurants,
-  'image_url' | 'plus_code'
+  'image_url' | 'plus_code' | 'address_components'
 >;
 
 export type RestaurantWithMeta = {
@@ -119,7 +120,6 @@ export class RestaurantsRepository {
         | 'latitude'
         | 'longitude'
         | 'image_path'
-        | 'address_components'
         | 'created_at'
         | 'source_seed_id'
         | 'source_names'
@@ -259,7 +259,8 @@ export class RestaurantsRepository {
       r.latitude,
       r.longitude,
       r.image_path,
-      r.address_components,
+      -- #1779 address_components は SELECT しない（落とす列。国は country_code、
+      -- 表示住所は address が正）。JSONB ぶん行が太るので読むだけで損をする
       r.created_at,
       -- #843 catalog 同期の metadata
       r.source_seed_id,
@@ -317,7 +318,6 @@ export class RestaurantsRepository {
         latitude: row.latitude,
         longitude: row.longitude,
         image_path: row.image_path,
-        address_components: row.address_components,
         created_at: row.created_at,
         source_seed_id: row.source_seed_id,
         source_names: row.source_names,
@@ -823,7 +823,6 @@ export class RestaurantsRepository {
         | 'latitude'
         | 'longitude'
         | 'image_path'
-        | 'address_components'
         | 'created_at'
         | 'source_seed_id'
         | 'source_names'
@@ -849,7 +848,7 @@ export class RestaurantsRepository {
         r.latitude,
         r.longitude,
           r.image_path,
-        r.address_components,
+          -- #1779 address_components は SELECT しない（落とす列）
           r.created_at,
         -- #843 catalog 同期の metadata
         r.source_seed_id,

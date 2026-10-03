@@ -36,6 +36,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import i18n from "@/lib/i18n";
+import { useAndroidHardwareBack } from "@/hooks/useAndroidHardwareBack";
 
 export default function DeviceSettingsScreen() {
 	const styles = useThemedStyles(createStyles);
@@ -69,6 +70,10 @@ export default function DeviceSettingsScreen() {
 		}
 		router.replace({ pathname: "/[locale]/(tabs)/profile", params: { locale } });
 	}, [lightImpact, logFrontendEvent, locale]);
+
+	// #1961 システムの戻る（Android）も、この画面の戻る導線へ倒す。
+	// 繋がないと、共有リンクで着地したときスタックが 1 枚なので OS がアプリを終了する。
+	useAndroidHardwareBack(handleBack);
 
 	// #1629 【仕様】言語はマイページ本体から移設。端末設定の 1 ブロック目に集める（オーナー指示）
 	const handleNavigateToLanguage = useCallback(() => {

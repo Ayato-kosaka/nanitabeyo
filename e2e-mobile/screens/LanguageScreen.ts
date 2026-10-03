@@ -27,7 +27,7 @@ export class LanguageScreen {
 	 * TouchableOpacity が ViewGroup になり、Detox の text マッチャは TextView しか見ないので
 	 * **必ず 25 秒待って落ちる**。文言の検証は必ずこちらへ当てる。
 	 */
-	readonly systemOptionLabel = by.id("language-option-system-label");
+	readonly systemOptionLabel = by.id("language-label-system");
 
 	/** 選択肢の行を引く。`key` は `"system"` または公開ロケール（例: `"en-US"`） */
 	option(key: string): Detox.NativeMatcher {

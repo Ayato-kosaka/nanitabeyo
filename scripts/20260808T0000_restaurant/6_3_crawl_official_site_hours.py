@@ -70,9 +70,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # ⚠️ 取りに行く作法はここに 1 本化してある。写経しないこと。
 from official_site_crawl import (  # noqa: E402
-    classify_page,
+    classify_page_with_reason,
     fetch,
+    hours_excerpt,
     html_to_text,
+    pick_hop,
     robots_allows,
 )
 from jp_site_opening_hours import parse_jp_site_opening_hours  # noqa: E402
@@ -99,8 +101,58 @@ WHERE l.kind = 'website'
   AND l.value ~* '^https?://'
   AND (%(country)s = 'ALL' OR r.country_code = %(country)s)
   {only_missing}
-ORDER BY md5(l.restaurant_id::text || %(seed)s)
+  {near}
+{order}
 LIMIT %(limit)s
+"""
+
+# 並びは 2 通り。**呼ぶ側が必ずどちらかを指定する**（既定を SQL 側へ埋めない）。
+#
+# ⚠️ `inspect_opening_hours_reach.py` は rank ヒストグラムの根拠に
+#    `ORDER_BY_SEED` を **名指しで**使う。既定を暗黙にしておくと、こちらの既定を
+#    変えた瞬間にあちらの数字の意味が黙って変わる。
+ORDER_BY_SEED = "ORDER BY md5(l.restaurant_id::text || %(seed)s)"
+
+# #1666 【設計】**近い順に歩けるようにする。** 実測（2026-09-24）で必要だと分かった。
+#
+# `--near 東京駅 --near-radius-m 3000 --limit 800` を流し、162 店 2,944 行を入れた
+# （[run 35970682759](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35970682759)）。
+# ところが番人が測る «近い順 1,000 件のうち営業時間を持つ店» は
+# **17 → 26 の +9 しか動かなかった**（run 35974849965）。
+#
+# 理由は並びである。半径 3km の候補プールは近い順 1,000 件の窓より **約 18 倍広く**、
+# そこから md5 順に 800 件引いたので窓へ入ったのは約 44 件、parsed 率 20.3% をかけて
+# +9 店 — 実測とぴたり合う。
+#
+# ⚠️ もとのコメントは «半径の中はどうせ --limit まで全部当たるので、順は問題にならない»
+#    と書いていた。**これは誤りだった**。`--limit` が半径内の候補数より小さいときは、
+#    並びが «どの 800 件を引くか» を決める。
+ORDER_BY_DISTANCE = (
+    "ORDER BY r.location <-> "
+    "ST_SetSRID(ST_MakePoint(%(near_lon)s, %(near_lat)s), 4326)::geography"
+)
+
+# #1666 【設計】**1 つの地点のまわりだけを対象にできるようにする。**
+#
+# 既定の並びは `md5(restaurant_id || seed)` で、**日本全国から均等に散らす**。
+# 全体の coverage を上げるにはそれでよいが、«その地点でユーザーが見る画面» は動かない。
+# 実測（run 35967307893）で近い順 1,000 件のうち営業時間を持つ店は
+# 東京駅 17 / 大阪駅 34 / 札幌駅 64 しかなく、全国へ 2,000 件撒いても
+# **この数字は 1 件も動かない**（1,000 件のうち何件当たるかの期待値がほぼ 0）。
+#
+# だから «どこを» 絞れるようにする。1 エリアを実用水準まで上げてから
+# «この水準で満たしたと言えるか» をオーナーへ出す、という順にできる。
+#
+# ⚠️ **既定の並びは変えない。** `ORDER_BY_SEED` のままにしてある。並びは
+#    `inspect_opening_hours_reach.py` が «前半が picked over か» を測る根拠なので、
+#    絞り込みのために既定まで変えると、あちらの数字の意味が黙って変わる。
+#    近い順に歩きたいときは `--order distance` を明示する（→ `ORDER_BY_DISTANCE`）。
+NEAR_CLAUSE = """
+  AND ST_DWithin(
+        r.location,
+        ST_SetSRID(ST_MakePoint(%(near_lon)s, %(near_lat)s), 4326)::geography,
+        %(near_radius_m)s
+      )
 """
 
 ONLY_MISSING_CLAUSE = """
@@ -109,6 +161,49 @@ ONLY_MISSING_CLAUSE = """
     WHERE h.restaurant_id = r.id AND h.source = %(source)s
   )
 """
+
+# #1666 【設計】**パーサを直したあと «古い行を持つ店だけ» を歩き直せるようにする。**
+#
+# ## なぜ要るか（2026-09-30 の実測）
+#
+# [#2060](https://github.com/Ayato-kosaka/nanitabeyo/pull/2060) は «【】 で曜日を区切ると
+# 全曜日へ全部の時間帯を入れる» という **間違った営業時間を書く** バグの修正で、
+# その PR 本文自身が «マージ後に `--no-only-missing` で流し直して上書きする» と書いていた。
+# ところが `--no-only-missing` は **既に読めた店も含めて端から全部**歩くので、
+# 残り 643 店を直すために約 4,400 件の候補を叩き直すことになる。
+#
+# **相手のサイトを無駄に二度叩かないために、対象を «古い行を持つ店» へ絞れる必要がある。**
+#
+# ## 条件が 2 つある理由
+#
+# 1. `EXISTS` … official_site の行を **持っている**（＝ `--only-missing` の裏返し）
+# 2. `NOT EXISTS (… fetched_at >= 閾値)` … その店の行が **1 行も新しくない**
+#
+# 2 が要るのは **冪等性のため**である。1 だけだと、歩き直して上書きした店が
+# 次の run でも候補に残り、**永遠に同じサイトを叩き続ける**。2 を入れると
+# 上書きした瞬間に候補から外れるので、`--limit` で分割して何回流しても収束する。
+#
+# ⚠️ **`--only-missing` とは同時に使えない**（「行が無い店」と「古い行を持つ店」は背反）。
+#    両方指定されたら `parse_args()` で止める。黙ってどちらかを優先すると、
+#    «絞ったつもりで別の集合を歩く» という気づけない形になる。
+STALE_BEFORE_CLAUSE = """
+  AND EXISTS (
+    SELECT 1 FROM {schema}.restaurant_opening_hours h
+    WHERE h.restaurant_id = r.id AND h.source = %(source)s
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM {schema}.restaurant_opening_hours h
+    WHERE h.restaurant_id = r.id AND h.source = %(source)s
+      AND h.fetched_at >= %(stale_before)s
+  )
+"""
+
+# #1666 【設計】`--stale-before` のとき、**古い行を消してよい**分類。
+#
+# ⚠️ ここへ `unreachable` / `blocked_by_robots` / `not_japanese_page` を足さないこと。
+#    それらは «相手へ届かなかった» であって «読んだ結果 読めなかった» ではない。
+#    一時的な不通で既存のデータを消すと、二度と戻らない（元のページが消えていれば）。
+DROPPABLE_WHEN_STALE = frozenset({"mentions_hours_unparsed", "no_hours_mentioned"})
 
 DELETE_SQL = """
 DELETE FROM {schema}.restaurant_opening_hours
@@ -134,6 +229,26 @@ def parse_args() -> argparse.Namespace:
         help="⚠️ 必須。既定値を置くと、うっかり 28 万サイトへ出て行く",
     )
     parser.add_argument("--seed", default="1666", help="同じ seed なら同じ順に当たる")
+    # #1666 1 エリアだけを対象にする（→ NEAR_CLAUSE のコメント）
+    parser.add_argument(
+        "--near",
+        help='"緯度,経度" を渡すと、その地点の半径内だけを対象にする（例: "35.681,139.767" 東京駅）',
+    )
+    parser.add_argument(
+        "--near-radius-m",
+        type=float,
+        default=3000.0,
+        help="--near の半径（メートル、既定 3000）",
+    )
+    parser.add_argument(
+        "--order",
+        choices=["seed", "distance"],
+        default="seed",
+        help=(
+            "候補の並び。既定の seed は全国均等（md5）。distance は --near の地点から"
+            "近い順で、1 エリアの画面を実用水準まで上げたいときに使う（--near が必須）"
+        ),
+    )
     parser.add_argument("--min-interval", type=float, default=2.0)
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--commit-every", type=int, default=50, help="この店数ごとに commit する")
@@ -143,8 +258,78 @@ def parse_args() -> argparse.Namespace:
         action="store_false",
         help="既に official_site の行がある店も対象にする（全部取り直すとき）",
     )
+    parser.add_argument(
+        "--stale-before",
+        default=None,
+        help=(
+            "この時刻より古い official_site の行**しか**持たない店だけを対象にする"
+            "（例: 2026-09-24T19:55:00+00:00）。パーサを直したあとの入れ直しに使う。"
+            "⚠️ --only-missing とは同時に使えない（背反なので）"
+        ),
+    )
+    parser.add_argument(
+        "--excerpts-per-reason",
+        type=int,
+        default=3,
+        help=(
+            "諦めた理由ごとに、本文の抜粋を何件まで出すか（0 で出さない）。"
+            "⚠️ 出力先は public リポジトリの Actions ログなので、少なく保つ"
+        ),
+    )
+    parser.add_argument(
+        "--no-hop",
+        dest="hop",
+        action="store_false",
+        help=(
+            "website のトップで営業時間が読めなくても «店舗一覧 / アクセス» へ辿らない。"
+            "⚠️ 既定は辿る（実測で parsed が 24.2%% → 33.3%%）"
+        ),
+    )
     parser.add_argument("--dry-run", action="store_true", help="ネットワークへ出ず、DB へも書かない")
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # ⚠️ 「行が無い店」と「古い行を持つ店」は背反。黙ってどちらかを優先すると
+    #    «絞ったつもりで別の集合を歩く» という気づけない形になるので、ここで止める。
+    if args.stale_before is not None and args.only_missing:
+        raise ValueError(
+            "--stale-before は --no-only-missing と一緒に使ってください"
+            "（--only-missing は «official_site の行が無い店»、--stale-before は «古い行を持つ店» で背反です）"
+        )
+    if args.stale_before is not None:
+        # 読めない時刻で «全国» へ出て行かないよう、ここで形を確かめる（--near と同じ作法）
+        try:
+            dt.datetime.fromisoformat(args.stale_before)
+        except ValueError as error:
+            raise ValueError(
+                f"--stale-before が ISO 8601 として読めません: {args.stale_before!r}"
+            ) from error
+
+    return args
+
+
+def parse_near(value: str | None) -> tuple[float | None, float | None]:
+    """`--near` の "緯度,経度" を読む。渡されなければ (None, None)。
+
+    ⚠️ **黙って «全国» へ落ちないこと。** 読めない値を None にして通すと、
+    1 エリアのつもりで 28 万サイトへ出て行く。壊れた入力は例外で止める。
+    """
+    if value is None or value.strip() == "":
+        return None, None
+
+    parts = value.split(",")
+    if len(parts) != 2:
+        raise ValueError(f'--near は "緯度,経度" の形で渡してください: {value!r}')
+    try:
+        lat = float(parts[0].strip())
+        lon = float(parts[1].strip())
+    except ValueError as error:
+        raise ValueError(f"--near の数値が読めません: {value!r}") from error
+
+    if not -90.0 <= lat <= 90.0:
+        raise ValueError(f"緯度が範囲外です: {lat}")
+    if not -180.0 <= lon <= 180.0:
+        raise ValueError(f"経度が範囲外です: {lon}")
+    return lat, lon
 
 
 def flush(cursor, schema: str, restaurant_ids: list[str], rows: list[tuple]) -> None:
@@ -158,6 +343,17 @@ def flush(cursor, schema: str, restaurant_ids: list[str], rows: list[tuple]) -> 
         execute_values(cursor, INSERT_SQL.format(schema=schema), rows)
 
 
+def drop_stale(cursor, schema: str, restaurant_ids: list[str]) -> None:
+    """`--stale-before` で «読めた上で読めなかった» 店の古い行を消す（入れ直さない）。
+
+    ⚠️ **`flush` と分けてあるのは、入れ直す行が無いからである。** `flush` へ空の
+    `rows` で渡しても消せるが、«消すだけ» という意図が呼び出し側から読めなくなる。
+    """
+    if not restaurant_ids:
+        return
+    cursor.execute(DELETE_SQL.format(schema=schema), (SOURCE, restaurant_ids))
+
+
 def main() -> int:
     args = parse_args()
 
@@ -168,31 +364,83 @@ def main() -> int:
 
     from pg_sync_common import connect_postgres
     from pipeline_common import configure_logging
+    from psycopg2 import sql as sql_module
 
     configure_logging()
     # ⚠️ `allow_public` は **キーワード必須**（pg_sync_common の事故防止）。
     #    ここは public を上で弾いてあるので必ず False。二重の歯止めにしてある。
     connection = connect_postgres(args.schema, allow_public=False)
     try:
-        only_missing = ONLY_MISSING_CLAUSE.format(schema=args.schema) if args.only_missing else ""
-        sql = CANDIDATE_SQL.format(schema=args.schema, only_missing=only_missing)
+        # #1666 【設計】**PostGIS は `extensions` スキーマに居る。**
+        #
+        # `connect_postgres` が張る search_path は `<schema>, public` で、そこに
+        # `extensions` が無い。そのため `--near` の SQL が
+        # **`type "geography" does not exist` で落ちた**（run 35969811492）。
+        # テーブルは `{schema}.` で修飾しているので気づけなかった。型と関数の解決だけが
+        # search_path に依存していた。
+        #
+        # `inspect_opening_hours_reach.py` は自前の接続で
+        # `SET search_path TO "<schema>", extensions` を張っている。同じ形へ揃える。
+        #
+        # ⚠️ **`connect_postgres` 側を広げない。** あれは 9_1 ほか全部の同期が使う。
+        #    PostGIS を要るのはこのスクリプトだけなので、影響範囲をここへ閉じる。
+        with connection.cursor() as cursor:
+            cursor.execute(
+                sql_module.SQL("SET search_path TO {}, extensions, public").format(
+                    sql_module.Identifier(args.schema)
+                )
+            )
+
+        if args.stale_before is not None:
+            # «古い行を持つ店だけ» を歩く。上書きした店は fetched_at が新しくなるので
+            # 次の run では候補から外れる（分割して流しても収束する）
+            only_missing = STALE_BEFORE_CLAUSE.format(schema=args.schema)
+        elif args.only_missing:
+            only_missing = ONLY_MISSING_CLAUSE.format(schema=args.schema)
+        else:
+            only_missing = ""
+        near_lat, near_lon = parse_near(args.near)
+        # ⚠️ 基準の地点が無いのに «近い順» は作れない。黙って seed 順へ落とすと、
+        #    «近い順のつもりで全国均等を歩く» という気づけない形になる。止める。
+        if args.order == "distance" and near_lat is None:
+            raise ValueError("--order distance には --near が要ります（基準の地点が無いと近い順に並べられません）")
+        order = ORDER_BY_DISTANCE if args.order == "distance" else ORDER_BY_SEED
+        sql = CANDIDATE_SQL.format(
+            schema=args.schema,
+            only_missing=only_missing,
+            near=NEAR_CLAUSE if near_lat is not None else "",
+            order=order,
+        )
         params = {
             "country": args.country,
             "seed": args.seed,
             "limit": args.limit,
             "source": SOURCE,
+            # ⚠️ 絞っていないときも渡す。psycopg2 は SQL に出てこない名前を無視するので
+            #    害が無く、渡し忘れで «絞ったのに全国» になる形を作らない
+            "near_lat": near_lat,
+            "near_lon": near_lon,
+            # ⚠️ 絞っていないときも渡す（near_lat と同じ理由）
+            "stale_before": args.stale_before,
+            "near_radius_m": args.near_radius_m,
         }
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             candidates = cursor.fetchall()
 
         LOGGER.info(
-            "対象: %d 件（schema=%s / country=%s / seed=%s / only_missing=%s）",
+            "対象: %d 件（schema=%s / country=%s / seed=%s / only_missing=%s / 範囲=%s / 並び=%s）",
             len(candidates),
             args.schema,
             args.country,
             args.seed,
             args.only_missing,
+            (
+                f"{near_lat},{near_lon} の半径 {args.near_radius_m:.0f}m"
+                if near_lat is not None
+                else "全国"
+            ),
+            args.order,
         )
         if args.dry_run:
             for rid, name, url in candidates[:20]:
@@ -202,9 +450,17 @@ def main() -> int:
 
         counts: Counter[str] = Counter()
         failure_reasons: Counter[str] = Counter()
+        # #1666 パーサが諦めた理由の内訳。これが無いと «209 件のどこを直せば効くのか» が
+        # 分からず、「たぶん第 2 水曜だろう」で直すことになる。
+        give_up_reasons: Counter[str] = Counter()
+        give_up_examples: dict[str, list[str]] = {}
+        # #1666 1 ホップ辿って救出できた件数と、どのリンクで辿ったか
+        hop_labels: Counter[str] = Counter()
         robots_cache: dict = {}
         last_request_at = 0.0
         pending_ids: list[str] = []
+        # `--stale-before` で «読めた上で読めなかった» 店。古い行を消すだけで入れ直さない
+        stale_drop_ids: list[str] = []
         pending_rows: list[tuple] = []
         written_rows = 0
         written_stores = 0
@@ -236,12 +492,91 @@ def main() -> int:
                     continue
 
                 text = html_to_text(html)
-                bucket = classify_page(text)
+                # #1666 【設計】**諦めた理由も一緒に数える。**
+                #
+                # 2026-09-24 の東京駅 800 件で `mentions_hours_unparsed` は **209 件
+                # （26.1%）**あり、**入れられた 162 件（20.3%）より多い**
+                # （[run 35970682759](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35970682759)）。
+                # ここがいちばん伸びしろのある箱なのに、`classify_page` を使っていたので
+                # **理由を捨てていた**。ページはもう取ってあるので、追加の通信は発生しない。
+                #
+                # ⚠️ `classify_page_with_reason` は箱の判定を変えない（あちらの注記）。
+                #    入れる行も変わらない（`bucket != "parsed"` はそのまま）。
+                bucket, give_up = classify_page_with_reason(text)
+
+                # #1666 【設計】**トップで読めなければ 1 ホップだけ辿る。**
+                #
+                # 東京駅の窓は website 保有 634 店を全部歩いた上で 14.4% で頭打ちになった。
+                # 諦めた理由の最大 `no_time_span` の候補は集約サイト・ブランドのトップ・
+                # 商品ページで、**そもそも営業時間が載っていないページを読んでいた**。
+                # 近い順 120 件で測ると parsed が **24.2% → 33.3%**（[run 35997159216](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35997159216)）。
+                #
+                # ⚠️ **1 店につき追加 1 リクエストまで。** 辿り始めると際限が無く、
+                #    相手への負荷も全件へ広げたときの所要時間も読めなくなる。
+                # ⚠️ **同じホストの中だけ**（`pick_hop` が保証する）。外部の集約サイトへ
+                #    出ると «その店の営業時間» ではないページを読むことになる。
+                if args.hop and bucket != "parsed":
+                    hop_url, hop_label = pick_hop(html, url)
+                    if hop_url:
+                        wait = args.min_interval - (time.monotonic() - last_request_at)
+                        if wait > 0:
+                            time.sleep(wait)
+                        last_request_at = time.monotonic()
+                        try:
+                            if robots_allows(hop_url, robots_cache, args.timeout):
+                                hop_html, _hop_reason = fetch(hop_url, args.timeout)
+                            else:
+                                hop_html = None
+                        except Exception:  # noqa: BLE001 — 相手のサイトは何でも返してくる
+                            hop_html = None
+                        if hop_html is not None:
+                            hop_text = html_to_text(hop_html)
+                            hop_bucket, hop_give_up = classify_page_with_reason(hop_text)
+                            if hop_bucket == "parsed":
+                                # 辿った先で読めた。**出所 URL も辿った先にする**
+                                # （どのページから採ったかが後から分からなくなる）
+                                counts["hopped"] += 1
+                                hop_labels[hop_label] += 1
+                                text, bucket, give_up = hop_text, hop_bucket, hop_give_up
+                                url = hop_url
+
                 counts[bucket] += 1
+                if give_up:
+                    give_up_reasons[give_up] += 1
+                    examples = give_up_examples.setdefault(give_up, [])
+                    if len(examples) < args.excerpts_per_reason:
+                        excerpt = hours_excerpt(text)
+                        if excerpt:
+                            examples.append(excerpt)
                 if bucket != "parsed":
                     # ⚠️ 読めなかったものは **入れない**。分からないものを推測しない。
                     #    既存の official_site 行があっても **消さない**（上の注記）。
                     #    一度読めなかっただけで良いデータを捨てないため。
+                    #
+                    # #1666 【バグ】⚠️ **`--stale-before` のときだけは «読めた上で読めなかった» を消す。**
+                    #
+                    # 2026-09-30 に `--stale-before` で 618 店を歩いたところ、564 店は
+                    # 書き直せたが **54 店が «古い行を持ったまま» 残った**（実測。修正前の行は
+                    # 6,039 → 833 行 / 79 店 = 25 未対象 + 54 これ）。この 54 店は
+                    # `fetched_at` が古いままなので **次の run でもまた候補に選ばれる**。
+                    # つまり «上書きした店は候補から外れる» という冪等性が、
+                    # **パースに失敗した店については成り立っていなかった**。
+                    # 同じサイトを毎回叩き続けることになる。
+                    #
+                    # さらに悪いのは «古い行が残る» ことそのものである。`--stale-before` は
+                    # **パーサの誤りを直したあとの入れ直し**に使うので、残った古い行は
+                    # «前のパーサが書いた、間違っているかもしれない行» である。
+                    # «一度読めなかっただけで良いデータを捨てない» という既定の理屈は、
+                    # **古いデータが良いという前提**に立っている。修正のあとはその前提が崩れる。
+                    #
+                    # ⚠️ ただし **«届かなかった» と «読めた上で読めなかった» を混ぜない。**
+                    # `unreachable` / `blocked_by_robots` / `not_japanese_page` は
+                    # 相手側の一時的な都合でも起きるので、**消さない**（既定の理屈がそのまま当たる）。
+                    # 消すのは **ページを取れて分類まで進んだのに新しいパーサが行を作れなかった**
+                    # とき、つまり `mentions_hours_unparsed` / `no_hours_mentioned` だけ。
+                    if args.stale_before is not None and bucket in DROPPABLE_WHEN_STALE:
+                        stale_drop_ids.append(rid)
+                        counts["dropped_stale_unparsable"] += 1
                     continue
 
                 parsed = parse_jp_site_opening_hours(text)
@@ -270,12 +605,17 @@ def main() -> int:
 
                 if len(pending_ids) >= args.commit_every:
                     flush(cursor, args.schema, pending_ids, pending_rows)
+                    # ⚠️ 消すだけの店も同じトランザクションで片付ける。別にすると
+                    #    «消したが入れ直していない» 中間状態がコミットの境目に残る
+                    drop_stale(cursor, args.schema, stale_drop_ids)
                     connection.commit()
                     written_rows += len(pending_rows)
                     pending_ids, pending_rows = [], []
+                    stale_drop_ids = []
 
 
             flush(cursor, args.schema, pending_ids, pending_rows)
+            drop_stale(cursor, args.schema, stale_drop_ids)
             connection.commit()
             written_rows += len(pending_rows)
 
@@ -291,11 +631,24 @@ def main() -> int:
             "parsed_but_empty",
         ):
             LOGGER.info("  %-24s: %d", key, counts[key])
+        if counts["hopped"]:
+            LOGGER.info(
+                "  うち 1 ホップ辿って読めた : %d 店（トップでは読めなかった）", counts["hopped"]
+            )
+            for label, n in hop_labels.most_common():
+                LOGGER.info("      %4d  %s", n, label)
         LOGGER.info("書き込んだ店         : %d 店 / %d 行", written_stores, written_rows)
         if failure_reasons:
             LOGGER.info("到達できなかった理由の内訳")
             for reason, n in failure_reasons.most_common(12):
                 LOGGER.info("  %4d  %s", n, reason)
+        if give_up_reasons:
+            # ⚠️ ここが «パーサを直せばどれだけ増えるか» の唯一の手掛かりである
+            LOGGER.info("パーサが諦めた理由の内訳（mentions_hours_unparsed の中身）")
+            for reason, n in give_up_reasons.most_common():
+                LOGGER.info("  %4d  %s", n, reason)
+                for excerpt in give_up_examples.get(reason, ()):
+                    LOGGER.info("        例: %s", excerpt)
         LOGGER.info("戻すには: DELETE FROM %s.restaurant_opening_hours WHERE source = '%s';", args.schema, SOURCE)
     finally:
         connection.close()

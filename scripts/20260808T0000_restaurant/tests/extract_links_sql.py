@@ -29,8 +29,21 @@ def main() -> None:
     found = re.findall(PATTERNS[args.which], src, re.S)
     if len(found) != 1:
         sys.exit(f"{args.which} の SQL を一意に取れませんでした（{len(found)}件）")
+    sql = found[0]
+
+    # #1881 バッチの範囲条件（`%(lo)s` / `%(hi)s`）を落とす。
+    #
+    # 本番では staging を google_place_id 順に切って同じ文を流すが、psql は
+    # psycopg2 の名前付きプレースホルダを解釈できない（`syntax error at or near "%"`）。
+    # このテストが見たいのは **リンクの取捨選択のロジック**なので、範囲だけ外して流す。
+    #
+    # ⚠️ **«範囲条件が付いていること» 自体は、ここではなく
+    #    `test_9_1_batched_statements.py` が縛る。** ここで黙って落とすだけだと、
+    #    付け忘れてもテストが緑のままになる。
+    sql = re.sub(r"\n\s*AND s\.google_place_id (>|<=) %\(\w+\)s", "", sql)
+
     # psycopg2 のリテラル %% は psql では % 一つ
-    sys.stdout.write(found[0].replace("%%", "%"))
+    sys.stdout.write(sql.replace("%%", "%"))
 
 
 if __name__ == "__main__":

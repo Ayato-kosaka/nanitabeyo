@@ -92,6 +92,24 @@ export default function ReviewFromMediaScreen() {
 	}, []);
 
 	// #644 【設計】restaurant.id と dishMediaId でデータを取得
+	/*
+	 * #1264 【設計】**画面が開いたことを、無条件に 1 回だけ記録する。**
+	 *
+	 * ⚠️ この下の `review_from_media_screen_loaded` は «両方のキャッシュが無くて API を
+	 * 叩いたとき» にしか出ない（両方あれば early return）。本番 90 日で **3 件**しか
+	 * 出ておらず、«この画面が何回開かれたか» を表していない。
+	 *
+	 * リポジトリの既存の慣習（`screen_view` + `payload.screen`）に合わせる。
+	 * ⚠️ 旧ビルドが出している `screen: "review"` とは**別の名前**にすること。
+	 */
+	useEffect(() => {
+		logFrontendEvent({
+			event_name: "screen_view",
+			error_level: "log",
+			payload: { screen: "review_from_media" },
+		});
+	}, [logFrontendEvent]);
+
 	useEffect(() => {
 		if (!restaurantId || !dishMediaId) return;
 

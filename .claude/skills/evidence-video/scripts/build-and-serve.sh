@@ -20,7 +20,15 @@ restore_config() {
 stop_server() {
 	# ⚠️ pkill -f は自分ごと殺すので使わない（CLAUDE.md のプロセス停止規則）
 	local pid
-	pid=$(ps -eo pid,cmd | grep "[s]erve-spa.mjs" | awk '{print $1}' | head -1)
+	# ⚠️ **`| head` をパイプの下流に置かないこと（#2075）。** このファイルは `set -euo pipefail`。
+	#    `head` は 1 行読んだら閉じるので上流が SIGPIPE で殺され、`pipefail` がその **141 を
+	#    パイプライン全体の終了コードにする**。代入の右辺が非ゼロになると `set -e` が
+	#    **この行でスクリプトを殺す**（値そのものは取れているのに死ぬ）。一度変数へ受ける。
+	ps_lines="$(ps -eo pid,cmd)"
+	#    ⚠️ **`head -1` を `read -r` へ置き換えるだけでは直らない**（1 行で閉じるのは同じなので
+	#    上流はやはり SIGPIPE で死ぬ。実測で 3 回とも 141 だった）。**上流を先に変数へ受け切る**。
+	serve_pids="$(grep "[s]erve-spa.mjs" <<< "$ps_lines" | awk '{print $1}' || true)"
+	pid="$(head -1 <<< "$serve_pids")"
 	[ -n "${pid:-}" ] && kill "$pid" && echo "server (pid $pid) stopped" || echo "server not running"
 }
 
@@ -72,7 +80,10 @@ stop)
 	rm -rf "$APP_DIR/dist-local"
 	rm -f "$APP_DIR/.env"
 	echo "cleaned. git status:"
-	git -C "$REPO_ROOT" status --short | head -5
+	# ⚠️ #2075 `| head -5` は上流の git を SIGPIPE で殺し、`pipefail` の 141 で
+	#    `set -e` がここで死ぬ（変更が 6 件以上あると起きる）。一度変数へ受ける。
+	git_status="$(git -C "$REPO_ROOT" status --short)"
+	head -5 <<< "$git_status"
 	;;
 *)
 	echo "usage: build-and-serve.sh [start|stop]"; exit 1 ;;

@@ -22,6 +22,9 @@ import React from "react";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { View } from "react-native";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
+// #1629 / #1779 `dishes.name` は廃止。カテゴリの表記を locale で引く。
+import { resolveDishCategoryLabel } from "@/features/myDishes/dishCategoryLabel";
+import i18n from "@/lib/i18n";
 
 type FeedDishMediaViewerProps = {
 	initialIndex: number;
@@ -35,7 +38,7 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 		<View style={{ height: frame.height }}>
 			<DishMediaFeed
 				initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
-				getTitle={(item) => item.dish.name}
+				getTitle={(item) => resolveDishCategoryLabel(item.dish.categoryLabels, i18n.locale)}
 				entriesKey={entriesKey}
 				idType="dish_media"
 			/>

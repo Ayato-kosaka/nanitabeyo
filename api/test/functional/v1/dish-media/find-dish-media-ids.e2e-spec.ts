@@ -85,8 +85,6 @@ maybeDescribe(
             name_language_code: 'ja',
             latitude: 35.68944,
             longitude: 139.69167,
-            image_url: 'https://example.com/image.png',
-            address_components: {},
           },
         });
         await prisma.prisma.dishes.create({
@@ -94,7 +92,6 @@ maybeDescribe(
             id: DISH_IDS[status],
             restaurant_id: RESTAURANT_IDS[status],
             category_id: CATEGORY_ID,
-            name: `Test Dish #1257 (${status})`,
           },
         });
         await prisma.prisma.dish_media.create({

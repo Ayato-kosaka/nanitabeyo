@@ -39,22 +39,28 @@ CREATE SCHEMA IF NOT EXISTS dev;
 SET search_path = dev;
 CREATE TABLE restaurants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  google_place_id TEXT UNIQUE NOT NULL);
+  google_place_id TEXT UNIQUE NOT NULL,
+  -- #1881 リンクの DELETE / INSERT は «ハッシュが変わった行» だけを触るようになった。
+  -- 器にこの列が無いと、本物の SQL がそのまま流せない
+  source_row_hash TEXT);
 CREATE TABLE restaurant_links (
   restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
   kind TEXT NOT NULL, value TEXT NOT NULL, source TEXT NOT NULL,
   fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (restaurant_id, kind, value));
 CREATE TABLE restaurant_sync_staging (
-  google_place_id TEXT, phone TEXT, website TEXT, social_urls_json TEXT);
+  google_place_id TEXT, phone TEXT, website TEXT, social_urls_json TEXT, row_hash TEXT);
 
-INSERT INTO restaurants (google_place_id) VALUES
-  ('PLACE_IN_STAGING'), ('PLACE_NOT_IN_STAGING');
+-- ⚠️ 列名を明示する（位置指定にすると、列を足したとき全部の値がずれる）
+INSERT INTO restaurants (google_place_id, source_row_hash) VALUES
+  ('PLACE_IN_STAGING', 'hash-old'), ('PLACE_NOT_IN_STAGING', 'hash-old');
 
 -- 今回の catalog: 電話が新しい番号へ変わり、Instagram は据え置き
-INSERT INTO restaurant_sync_staging VALUES
+INSERT INTO restaurant_sync_staging
+  (google_place_id, phone, website, social_urls_json, row_hash)
+VALUES
   ('PLACE_IN_STAGING', '03-1111-1111', 'https://new.example.com',
-   '["https://instagram.com/keep"]');
+   '["https://instagram.com/keep"]', 'hash-new');
 SQL
 
 RID_IN=$(q "SELECT id FROM restaurants WHERE google_place_id='PLACE_IN_STAGING';")
@@ -108,5 +114,29 @@ apply_once
   || fail "2 回目で件数が変わった（冪等でない）"
 echo "✅ 5. 冪等（2 回流しても $BEFORE 件のまま）"
 
+# --- 6. #1881 ハッシュが一致する行は、リンクを 1 本も触らない ---
+#
+# row_hash は phone / website / social_urls を含めて計算されるので、ハッシュが同じなら
+# リンクも前回のままでよい。dev で links INSERT が **0 行しか入れないのに 2 時間 21 分**
+# かかっていた（620,000 行ぶんの LATERAL 展開と主キー探索を毎回やっていた）。
+#
+# 「触らない」を確かめるため、**catalog 側のリンクを全部変えたうえで**ハッシュだけ
+# 揃える。ハッシュを見ていなければ、ここでリンクが入れ替わってしまう。
+run_sql "
+UPDATE restaurants SET source_row_hash = 'hash-same';
+UPDATE restaurant_sync_staging SET row_hash = 'hash-same',
+  phone = '03-7777-7777', website = 'https://never-applied.example.com',
+  social_urls_json = '[\"https://instagram.com/never-applied\"]';
+"
+BEFORE6=$(q "SELECT COUNT(*) FROM restaurant_links;")
+apply_once
+[ "$(q "SELECT COUNT(*) FROM restaurant_links;")" = "$BEFORE6" ] \
+  || fail "ハッシュが同じなのにリンクの件数が変わった（#1881 の絞り込みが効いていない）"
+[ "$(q "SELECT COUNT(*) FROM restaurant_links WHERE value LIKE '%never-applied%';")" = "0" ] \
+  || fail "ハッシュが同じなのに新しいリンクが入った（#1881 の絞り込みが効いていない）"
+[ "$(q "SELECT COUNT(*) FROM restaurant_links WHERE kind='phone' AND value='03-1111-1111';")" = "1" ] \
+  || fail "ハッシュが同じなのに既存のリンクが消えた（#1881 の絞り込みが効いていない）"
+echo "✅ 6. ハッシュが一致する行はリンクを触らない（#1881）"
+
 echo
-echo "すべて通過（5/5）"
+echo "すべて通過（6/6）"

@@ -12,7 +12,17 @@
 
 const { readFileSync } = require("node:fs");
 
-const { EXCLUDED_HTTP_STATUSES, FP_ALGO_VERSION, GROUP_LIMIT, MESSAGE_PATTERN_MAX_LENGTH, TRANSIENT_HTTP_STATUSES } = require("./constants");
+const {
+	ACCEPTED_QUOTA_EXTERNAL_APIS,
+	ACCEPTED_QUOTA_MESSAGE_PATTERN,
+	EXCLUDED_HTTP_STATUSES,
+	EXTERNAL_TRANSIENT_HTTP_STATUSES,
+	FP_ALGO_VERSION,
+	FRONTEND_EXCLUDED_HTTP_STATUSES,
+	GROUP_LIMIT,
+	MESSAGE_PATTERN_MAX_LENGTH,
+	TRANSIENT_HTTP_STATUSES,
+} = require("./constants");
 const { assertSqlFpAlgoVersion, FINGERPRINT_KEY_FIELDS, parseSqlFpAlgoVersion } = require("./fingerprint");
 const { NORMALIZE_RULES, POST_RULE_STEPS, SQL_EXPR_PLACEHOLDER } = require("./normalize-rules");
 const { SQL_FILE_PATH, readGeneratedSql } = require("./generate-sql");
@@ -427,12 +437,43 @@ describe("除外ルール: constants.js が唯一の正", () => {
 		expect(generated).toContain(`SAFE_CAST(n.beHttpStatus AS INT64) IN (${list})`);
 	});
 
-	test("frontend（E4）は TRANSIENT_HTTP_STATUSES を使う（403 / 404 を除外しない）", () => {
-		const list = TRANSIENT_HTTP_STATUSES.join(", ");
+	test("frontend（E4）は FRONTEND_EXCLUDED_HTTP_STATUSES を使う（403 / 404 / 429 を除外しない）", () => {
+		const list = FRONTEND_EXCLUDED_HTTP_STATUSES.join(", ");
 		expect(generated).toContain(`SAFE_CAST(n.feHttpStatus AS INT64) IN (${list})`);
-		for (const status of [403, 404]) {
-			expect(TRANSIENT_HTTP_STATUSES).not.toContain(status);
+		for (const status of [403, 404, 429]) {
+			expect(FRONTEND_EXCLUDED_HTTP_STATUSES).not.toContain(status);
 		}
+	});
+
+	/*
+	#2069 **frontend の 429 を «一時障害» として除外規則へ戻さない。**
+
+	これは #1834 で 403 / 404 を外したのと同じパターンである（«相手側の一時的な都合を前提にした
+	除外が、恒久的な自分側の失敗も一緒に飲み込んでいた»）。frontend のログは自分たちのアプリが
+	呼んだときにしか出ないので、そこに出る 429 は **自分たち（または自分たちが使っている外部
+	サービス）が枠を使い切った** という意味で、放っておいて直らない。
+
+	実測（本番 30 日）: frontend の api_call_error 429 は 2,968 件 / 1,215 ユーザーで、
+	1 件も起票されていなかった。同じ期間に Expo 無料枠の超過で OTA 配信が 2 日間 100% 失敗
+	していたのも誰も知らなかった。
+
+	⚠️ 一方で **backend（E6）は 429 を除外したまま**にする。あちらは公開エンドポイントなので
+	外部からの呼び出しにレート制限が当たり、«自分たちの枠» の話とは別物である。
+	*/
+	test("frontend（E4）は 429 を除外しないが、backend（E6）は除外する", () => {
+		expect(FRONTEND_EXCLUDED_HTTP_STATUSES).not.toContain(429);
+		expect(EXCLUDED_HTTP_STATUSES).toContain(429);
+		expect(generated).not.toContain("SAFE_CAST(n.feHttpStatus AS INT64) IN (401, 408, 425, 426, 429)");
+	});
+
+	/*
+	⚠️ `TRANSIENT_HTTP_STATUSES` は **app-expo/lib/logQueue.ts の TRANSIENT_STATUSES と同一定義**で、
+	«ログの再送をするか» を決めるためのものである。429 は再送が正しいので、**あちらから 429 を
+	抜いてはいけない**。E4 から 429 を外すために元の定数を書き換えると、ログの再送が壊れる。
+	*/
+	test("TRANSIENT_HTTP_STATUSES 側は 429 を保ったまま（logQueue.ts との同一性）", () => {
+		expect(TRANSIENT_HTTP_STATUSES).toContain(429);
+		expect(FRONTEND_EXCLUDED_HTTP_STATUSES).toEqual(TRANSIENT_HTTP_STATUSES.filter((status) => status !== 429));
 	});
 
 	/*
@@ -471,7 +512,62 @@ describe("除外ルール: constants.js が唯一の正", () => {
 	相手が落ちているのか、こちらの出口が塞がれているのかを区別しないため。
 	*/
 	test("E7 は status_code = 0 を除外しない", () => {
-		expect(generated).toContain("n.extStatusCode IN (408, 429, 502, 503, 504)");
+		expect(generated).toContain(`n.extStatusCode IN (${EXTERNAL_TRANSIENT_HTTP_STATUSES.join(", ")})`);
+		expect(EXTERNAL_TRANSIENT_HTTP_STATUSES).not.toContain(0);
+	});
+
+	/*
+	#2076 **frontend の 429 も «承知の上» のものだけ除外する。**
+
+	#2069 で status ごと外した結果、2026-09-26 の夜間 Error Triage が
+	**影響ユーザー 57 人（しきい値 50 = 障害規模）** で落ちた。中身は #1781 で «枠は上げない» と
+	決着済みの Text Search クォータで、これを毎晩鳴らすと **本物の障害がその中に埋もれる**
+	（#1946 で 6 日間気づけなかったのと同じ形を、こちらから作ることになる）。
+
+	⚠️ **status ごと除外へ戻してはいけない。** 名前で分ける。正は
+	`ACCEPTED_QUOTA_EXTERNAL_APIS` の 1 箇所で、frontend には api_name 列が無いので
+	`rawMessage` を見る。
+	*/
+	test("E4 の 429 は «承知の上» のメッセージのときだけ除外する", () => {
+		expect(FRONTEND_EXCLUDED_HTTP_STATUSES).not.toContain(429);
+		expect(generated).toContain("SAFE_CAST(n.feHttpStatus AS INT64) = 429");
+		expect(generated).toContain(ACCEPTED_QUOTA_MESSAGE_PATTERN);
+	});
+
+	test("承知の上のメッセージは api_name の配列から組む（正を 2 箇所に置かない）", () => {
+		for (const name of ACCEPTED_QUOTA_EXTERNAL_APIS) {
+			expect(ACCEPTED_QUOTA_MESSAGE_PATTERN).toContain(name);
+		}
+		// ⚠️ Photos を混ぜない。混ぜるとあちらの枠超過が二度と起票されない（#819 の再発）
+		expect(ACCEPTED_QUOTA_MESSAGE_PATTERN).not.toContain("Photos");
+	});
+
+	/*
+	#2073 **外部 API の 429（クォータ超過）を status だけで «一時障害» にしない。**
+
+	#1834 は «429 の Google Places クォータだけが該当し、それは除外のまま» と書いて意図的に
+	残したが、**status 1 つで括ったせいで «知っている枠» と «知らない枠» が一緒に消えていた。**
+
+	実測（本番 90 日 / external_api_logs の status_code = 429）:
+	  - Google Places Text Search API … 44,511 件（#1781 で «枠は上げない» で決着済み）
+	  - Google Places Photos API      …  3,181 件 ← **78 日間 1 件も起票されていなかった**
+
+	後者は #819（「bulk-import した画像の読み込みが遅い」）の裏で写真取得の約 14% を落としていた。
+	日次クォータの超過はその日ずっと失敗し、原因はこちら側の呼び出し量なので «一時障害» ではない。
+
+	⚠️ 分けられるのは api_name だけである（error_message は 429 の行では全件 NULL で、
+	   生成 SQL も CAST(NULL AS STRING) を入れている）。
+	*/
+	test("E7 の 429 は «承知の上» の api_name のときだけ除外する", () => {
+		expect(EXTERNAL_TRANSIENT_HTTP_STATUSES).not.toContain(429);
+		const list = ACCEPTED_QUOTA_EXTERNAL_APIS.map((name) => `'${name}'`).join(", ");
+		expect(generated).toContain(`n.extStatusCode = 429 AND n.apiName IN (${list})`);
+	});
+
+	test("承知の上の枠は Text Search だけ（Photos を混ぜない）", () => {
+		expect(ACCEPTED_QUOTA_EXTERNAL_APIS).toContain("Google Places Text Search API");
+		// ⚠️ ここへ足すとその API の枠超過は二度と起票されない。#819 を再発させないための縛り
+		expect(ACCEPTED_QUOTA_EXTERNAL_APIS).not.toContain("Google Places Photos API");
 	});
 
 	test("400 / 409 / 422 は除外リストに入っていない（レビュー §6-4）", () => {

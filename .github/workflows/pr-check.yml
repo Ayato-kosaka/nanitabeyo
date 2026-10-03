@@ -105,7 +105,9 @@ jobs:
             scripts/20260808T0000_restaurant/test_osm_opening_hours.py \
             scripts/20260808T0000_restaurant/test_jp_site_opening_hours.py \
             scripts/20260808T0000_restaurant/test_measure_official_site_hours.py \
-            scripts/20260808T0000_restaurant/test_crawl_official_site_hours.py
+            scripts/20260808T0000_restaurant/test_crawl_official_site_hours.py \
+            scripts/20260808T0000_restaurant/test_jsonld_opening_hours.py \
+            scripts/20260808T0000_restaurant/test_measure_jsonld_opening_hours.py
 
       # #1881 住所から国コードを決める判定（country_resolution.py）。
       # ここが崩れると **韓国の店が日本の店として出る**（矩形で決めていた頃は
@@ -116,6 +118,24 @@ jobs:
             scripts/20260808T0000_restaurant/test_country_resolution.py \
             scripts/20260808T0000_restaurant/test_search_bounds.py \
             scripts/20260808T0000_restaurant/test_catalog_publish_values.py
+
+      # #1674 catalog に «PostgreSQL のスキーマに依存する識別子» が戻っていないこと。
+      # かつて catalog は `existing_restaurant_id`（dev の restaurants.id）を持っており、
+      # **dev で作った catalog を `9_1 --schema public` で流すと dev の UUID が本番の
+      # 主キーになった**（止めるはずの検証は JOIN 経由なので 0 件ヒットで素通りした）。
+      # 列を外して塞いだので、ここでは «戻っていないこと» を縛る。ソースを読むだけ。
+      - name: catalog がスキーマに依存していないことを検査
+        run: |
+          python3 -m unittest \
+            scripts/20260808T0000_restaurant/test_catalog_schema_independence.py
+
+      # #1779 «州で言語が変わる国» のリストを、監査スクリプトが本番の JSON から引いて
+      # いること。写経すると **JSON に国が増えても監査だけが «影響なし» と言い続ける**
+      # （`address_components` を落とす判断の根拠が静かに古くなる）。依存ゼロ。
+      - name: 州で言語が変わる国の引き方を検査
+        run: |
+          python3 -m unittest \
+            scripts/20260808T0000_restaurant/test_subterritory_overrides.py
 
       # #1666 EXPLAIN の «延べ行数» の数え方（explain_rows_read.py）。営業時間テーブルが
       # 0 行 → 30 万行へ増える直前に、番人が restaurants 側しか数えていないと気付いたため
@@ -134,7 +154,36 @@ jobs:
         run: |
           python3 -m unittest \
             scripts/db-checks/test_progress_log_reachable.py \
-            scripts/db-checks/test_inspect_opening_hours_reach.py
+            scripts/db-checks/test_inspect_opening_hours_reach.py \
+            scripts/db-checks/test_sql_percent_escaping.py
+
+      # #1782 #843 の見出し指標（area × dish_category の coverage）を作る SQL の組み立てと、
+      # 一時テーブルを作る順序（read-only へ切り替える前であること）。
+      # ⚠️ **この 44 本は 2026-10-01 まで CI で 1 度も走っていなかった。**
+      #    同じ日に Stage5 の起点を畳んだとき、`ORDER BY ... c.category_id` だけが
+      #    消えた別名を指したまま残っており（= dev へ投げれば必ず SQL エラー）、
+      #    手元で回したこのテストが拾った。CI で走っていなければ気付けなかった。
+      #    psycopg2 をフェイクへ差し替えてあるので DB も要らない。
+      - name: coverage 計測（#1782）の SQL と順序のユニットテスト
+        run: |
+          python3 -m unittest \
+            scripts/db-checks/test_dish_media_coverage_sql.py \
+            scripts/db-checks/test_measure_dish_media_coverage.py
+
+      # #843 需要の重みを入れた «Google fallback を避けられる率»。
+      #
+      # 見出し指標（coverage）は area × category を**均等に**数えるが、fallback が起きるのは
+      # «ユーザーが実際にした検索が 0 件» のときだけ。本番実測では一様格子 1.92% に対して
+      # 実際の検索は 28.6% が 0 件でなく、**15 倍**違う（人は店と投稿がある場所で検索する）。
+      # ここで縛るのは «定義を写経していないこと» と «判定できないセルを «返せた» 側へ
+      # 混ぜないこと»。どちらも率の誤報に直結する。
+      - name: 需要の重みづけ fallback 率（#843）のユニットテスト
+        run: python3 -m unittest scripts/db-checks/test_measure_google_fallback_avoidable.py
+
+      # #1933 «1 報告 = 1 Issue» の起票が、public な Issue へユーザーの自由入力
+      # （proposed_value）や報告者の uid を出さないこと。取ってこない形で守っている
+      - name: 店舗情報の報告の起票の回帰テスト
+        run: python3 -m unittest discover -s scripts/restaurant-reports -p "test_*.py"
 
       # UI カタログの «撮る画面 ID» が catalog/screens.json に定義されているか。
       #
@@ -173,6 +222,56 @@ jobs:
       # ガード自身の自己検査（両方向）も同じスクリプトの中で回る。
       - name: カルーセルのカード内 locator の限定を検査
         run: pnpm --filter app-expo assert:carousel-locator-scope
+
+      # #2001 テストの後始末（globalTeardown / 使い捨てセッション）が `signOut({ scope: "global" })`
+      # を撃つと、テストユーザーの **全セッション**が失効する。e2e-mobile の Android ジョブと
+      # iOS ジョブは同じ workflow run の中で並走しているため、Android の後始末が iOS の走行中の
+      # セッションをその場で殺していた（2026-09-21 の夜間で iOS の 19 失敗のうち 11 件）。
+      # 後始末は警告どまりで run を赤くしない設計なので、実行時には気付けない。書いた時点で止める。
+      - name: テストの後始末の revoke scope を検査
+        run: pnpm --filter app-expo assert:session-revoke-scope
+
+      # #1933 migration の «ファイル名順 = 適用順» を守るガード自身のテスト。
+      # ガードには 2026-09-24 までテストが無く、実際に 1 件擦り抜けた
+      # （#2012 が «PR イベント時点の main» と比べていたため、開いている間に main が
+      #  migration を得ても再検査されず緑のまま古くなった）。依存ゼロの bash。
+      - name: migration 順序ガードの自己テスト
+        run: bash scripts/test-assert-migration-filename-order.sh
+
+      # #2052 «落とす列を、いま載っているコードが読んでいないか» のガード自身のテスト。
+      # 2026-09-24 に contract を先に当てて **dev の API が 14 時間 500 を返した**
+      # （約 15 万件）。expand → コードを出す → contract の真ん中が抜けていた。
+      # ⚠️ 論理と «配線»（適用より前に走るか）の両方を縛る。抜けたのは配線のほう。
+      #    ネットワークも DB も要らない bash。
+      - name: 列を落とす順序ガードの自己テスト
+        run: bash scripts/test-assert-drop-safe-for-deployed-code.sh
+
+      # #2075 `pipefail` の下でパイプの下流に «途中で読むのをやめるもの»（`grep -q` / `head`）を
+      # 置くと、上流が SIGPIPE で殺されて 141 が**パイプライン全体の終了コードになる**。
+      # «一致しているのに ng» / «在っても無いと言い切る» / «値は取れているのに set -e で死ぬ»
+      # のどれかになり、**上流の出力が小さいうちは通るので CI でだけ稀に負ける**
+      # （2026-09-26 の main https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/36206053417 ）。
+      # ⚠️ #2075 ではこの形を 2 ファイルだけ直し、**同じファイルの `| head -1` を取り残した**。
+      #    だから «そのファイルを見る自己検査» ではなく **repo 全体を見る 1 本**に集約してある。
+      #    node だけで走るので shared build より前に置ける。
+      - name: pipefail の下の早期終了パイプを検査
+        run: node scripts/assert-no-pipefail-early-exit-pipe.mjs
+
+      - name: 早期終了パイプのガード自身のテスト
+        run: bash scripts/test-assert-no-pipefail-early-exit-pipe.sh
+
+      # #1579 adb は «相手が居ないと返ってこない» サブコマンド（`wait-for-device`）を持つ。
+      # 2026-09-30 の夜間 iOS は、ロケール観測の再試行に入れた `adb wait-for-device` が
+      # **macOS ランナーに在る adb × 現れないシミュレータ UDID** で無限に待ち、
+      # 全 spec が import する fixtures/e2e.ts のモジュール評価で jest が固まって
+      # **1 suite も走らないまま 240 分で打ち切られた**（run 36787284601 / 報告 0 of 期待 23）。
+      # ⚠️ 当時 adb の呼び出しは 6 箇所あり、**どれ 1 つも上限を渡していなかった**。
+      #    だから «その 1 行» ではなく «上限の宿る入口を 1 本に保つ» を縛る。node だけで走る。
+      - name: 上限の無い adb 呼び出しを検査
+        run: node scripts/assert-adb-sync-timeout.mjs
+
+      - name: adb 上限ガード自身のテスト
+        run: bash scripts/test-assert-adb-sync-timeout.sh
 
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。

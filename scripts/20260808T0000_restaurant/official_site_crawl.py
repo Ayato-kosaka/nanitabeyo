@@ -129,6 +129,70 @@ def hours_excerpt(text: str, width: int = EXCERPT_WIDTH) -> str | None:
     return text[start:end].strip()
 
 
+# ---------------------------------------------------------------------------
+# #1666 «営業時間のページへ 1 ホップ辿る»
+# ---------------------------------------------------------------------------
+#
+# 東京駅の窓は website 保有 634 店を全部歩いた上で 14.4% で頭打ちになった。
+# 諦めた理由の最大 `no_time_span` の候補 website は集約サイト・ブランドのトップ・
+# 商品ページで、**そもそも営業時間が載っていないページを読んでいた**。
+#
+# 近い順 120 件で測ると parsed が **29 件（24.2%）→ 40 件（33.3%）** へ増えた
+# （[run 35997159216](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35997159216)）。いちばん効いたのは «営業時間» ではなく
+# **«店舗一覧»（27 件）** — ブランドのトップに営業時間が無く店舗ページに載っている型。
+#
+# ⚠️ **ここに置くのは «測る側（6_4）と入れる側（6_3）で同じ選び方を使う» ため。**
+#    片方へ写経すると、測った数字と入れた行が別のものを指し始める。
+
+# «営業時間がありそうなページ» を指すリンク。日本語サイトの実地の言い回しに合わせる。
+# ⚠️ 上から順に強い。最初に当たったものを 1 つだけ辿る。
+HOP_PATTERNS: tuple[tuple[str, str], ...] = (
+    ("hours", r"営業時間|営業案内|営業のご案内"),
+    ("store", r"店舗案内|店舗情報|店舗一覧|各店舗|ショップ一覧"),
+    ("access", r"アクセス|所在地|店舗概要|ご利用案内"),
+    ("about", r"当店|お店について|概要|インフォメーション|information|info"),
+    ("en", r"(?i)\b(hours|opening|access|location|store|shop)\b"),
+)
+
+_ANCHOR_RE = re.compile(r"<a\b[^>]*href\s*=\s*[\"']([^\"']+)[\"'][^>]*>(.*?)</a>", re.I | re.S)
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def anchors(html: str) -> list[tuple[str, str]]:
+    """`(href, リンク文字列)` を取り出す。"""
+    out: list[tuple[str, str]] = []
+    for m in _ANCHOR_RE.finditer(html):
+        href = m.group(1).strip()
+        text = _TAG_RE.sub(" ", m.group(2))
+        out.append((href, " ".join(text.split())))
+    return out
+
+
+def pick_hop(html: str, base_url: str) -> tuple[str | None, str | None]:
+    """辿る先を 1 つ選ぶ。`(url, どの規則で選んだか)`。
+
+    ⚠️ **同じホストの中だけ**へ辿る。外部（集約サイト・SNS）へ出ると、
+       «その店の営業時間» ではないページを読むことになる。
+    """
+    base_host = urllib.parse.urlparse(base_url).netloc.lower()
+    found = anchors(html)
+    for label, pattern in HOP_PATTERNS:
+        rx = re.compile(pattern)
+        for href, text in found:
+            if not href or href.startswith(("#", "mailto:", "tel:", "javascript:")):
+                continue
+            target = urllib.parse.urljoin(base_url, href)
+            if urllib.parse.urlparse(target).scheme not in ("http", "https"):
+                continue
+            if urllib.parse.urlparse(target).netloc.lower() != base_host:
+                continue
+            if target.rstrip("/") == base_url.rstrip("/"):
+                continue
+            if rx.search(text) or rx.search(href):
+                return target, label
+    return None, None
+
+
 def html_to_text(html: str) -> str:
     """script / style / タグを落として本文だけにする。
 

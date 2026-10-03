@@ -3,9 +3,18 @@
 
 ## なぜ必要か
 
-オーナーの方針は「Google Place のデータは保存しない」である。ところが実際には
-`POST /v1/restaurants`（地図の POI 押下）と `dishes.service.ts` の Google 一括
-取り込みが、`address_components` / `plus_code` / 写真を保存し続けている。
+オーナーの方針は「Google Place のデータは保存しない」である。
+
+⚠️ **2026-09-21 時点の «保存している経路» は当初より減っている。** コードを当たり直した結果:
+
+- 地図の POI 押下（`POST /v1/restaurants`）は **もう保存していない**（#1780 / PR #1870 で停止）
+- `plus_code` は **どの経路も新しく書かない**（#1779。`dishes.service.ts` は `null` を入れる）
+- 写真の `image_url` も **新しく作らない**（#1779 / #1680。表示は自社側の `image_path` 由来）
+- **残っているのは Google 一括取り込み（`dishes.service.ts` の `address_components`）だけ**で、
+  これは «投稿が貯まるまでの繋ぎ» として現状維持と決まっている（#1780 2026-09-02 判断ログ）
+
+したがってこのスクリプトが数えるのは、**過去に積み上がった行**と、
+**一括取り込みが今も足している `address_components`** である。
 
 ToS 3.2.3 が無期限の保存を許すのは `place_id` **だけ**で、緯度経度は 30 日、
 それ以外（住所・店名・写真）は保存できない。
@@ -39,6 +48,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pg_sync_common import connect_postgres  # noqa: E402
 from pipeline_common import configure_logging  # noqa: E402
 
+# #1779 州で言語が変わる国。**本番が読む JSON から引く**（→ そのモジュールの docstring）
+from subterritory_overrides import subterritory_override_countries  # noqa: E402
+
 LOGGER = logging.getLogger(__name__)
 
 # 「Google 由来の値が入っている」の判定。列ごとに «空でない» の意味が違う。
@@ -64,6 +76,24 @@ CHECKS: list[tuple[str, str]] = [
     (
         "image_path（自社 Storage へ複製した Google 写真）",
         "image_path IS NOT NULL AND image_path <> ''",
+    ),
+    # #1779 **列を消したら «何を失うか»** を数える。
+    #
+    # `address_components` を読んでいるのは `buildDraftFromExistingRestaurant` の
+    # 1 箇所だけで、しかも `existing.address || buildDisplayAddress(...)` という
+    # **`address` 列が空のときだけ効く保険**である。つまり列を消して実際に困るのは
+    # 「`address` が空 かつ `address_components` が入っている」行だけ。
+    # ここが 0 なら、消しても確認ページの初期値は 1 文字も変わらない。
+    (
+        "⚠️ address が空 かつ address_components あり（#1779 で失うもの）",
+        "(address IS NULL OR address = '') "
+        "AND jsonb_typeof(address_components) = 'array' "
+        "AND jsonb_array_length(address_components) > 0",
+    ),
+    # 逆側も出す。«消しても困らない» の母数がどれだけあるかを同じ場で見るため
+    (
+        "address が埋まっている（address_components が無くても出せる）",
+        "address IS NOT NULL AND address <> ''",
     ),
 ]
 
@@ -120,6 +150,76 @@ def main() -> None:
             )
             LOGGER.info(
                 "住所と写真の両方を持つ行（規約上いちばん重い）: %d行", cursor.fetchone()[0]
+            )
+
+            # #1779 「address が空 かつ address_components あり」の 1,675 行を、
+            # **誰が作った行か**で割る。ここで打ち手が変わる。
+            #
+            #   pipeline 製 … catalog 側に address が無い。9_1 を流しても埋まらないので、
+            #                 埋めるなら address_components から組み立てるしかない
+            #   app 製      … 確認ページ（#1671）を通れば fillMissingAddress が埋める。
+            #                 放っておいても «ユーザーが触ったときに» 解消しうる
+            #
+            # 割らずに «1,675 行を埋める» と決めると、片方に効かない打ち手を選ぶ。
+            cursor.execute(
+                """
+                SELECT created_by_source, COUNT(*)
+                FROM restaurants
+                WHERE (address IS NULL OR address = '')
+                  AND jsonb_typeof(address_components) = 'array'
+                  AND jsonb_array_length(address_components) > 0
+                GROUP BY created_by_source
+                ORDER BY 2 DESC
+                """
+            )
+            LOGGER.info("")
+            LOGGER.info("#1779 address が空 かつ address_components あり — 作成元の内訳")
+            for source, count in cursor.fetchall():
+                LOGGER.info("  %-12s %8d行", source, count)
+
+            # #1779 **住所のほかに何を失うか**を、同じ場で数える。
+            #
+            # `address_components` の読み手は 2 つある。`buildDisplayAddress`（住所）と
+            # `extractLocationCodes`（国 + 州）である。上の集計は住所だけを見ているので、
+            # 「住所は困らない」でも国・州が抜ける行があるなら、そこが次の障害になる。
+            cursor.execute(
+                """
+                SELECT
+                  COUNT(*) AS with_components,
+                  COUNT(*) FILTER (WHERE country_code IS NULL OR country_code = '')
+                    AS country_missing
+                FROM restaurants
+                WHERE jsonb_typeof(address_components) = 'array'
+                  AND jsonb_array_length(address_components) > 0
+                """
+            )
+            with_components, country_missing = cursor.fetchone()
+            LOGGER.info("")
+            LOGGER.info(
+                "#1779 address_components あり %d行 のうち country_code が空: %d行",
+                with_components,
+                country_missing,
+            )
+
+            # 州は «上書きを持つ国» でしか結果を変えない
+            # （→ `subterritory_overrides.py` の docstring）。
+            # ここが 0 なら、州を失っても料理名の言語は 1 件も変わらない。
+            override_countries = subterritory_override_countries()
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM restaurants
+                WHERE jsonb_typeof(address_components) = 'array'
+                  AND jsonb_array_length(address_components) > 0
+                  AND (subterritory_code IS NULL OR subterritory_code = '')
+                  AND country_code = ANY(%s)
+                """,
+                (override_countries,),
+            )
+            LOGGER.info(
+                "#1779 うち «州で言語が変わる国» (%s) かつ subterritory_code が空: %d行",
+                ",".join(override_countries),
+                cursor.fetchone()[0],
             )
     finally:
         # 読み取りしかしていないが、明示的に閉じる。

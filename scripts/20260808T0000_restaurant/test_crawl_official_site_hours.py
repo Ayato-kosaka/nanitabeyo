@@ -18,6 +18,7 @@ import importlib.util
 import inspect
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -137,6 +138,58 @@ class WriteShapeTest(unittest.TestCase):
             self.assertIn(row.day_of_week, range(7))
 
 
+class OneHopTest(unittest.TestCase):
+    """#1666 «トップで読めなければ 1 ホップ辿る» の配線を縛る。
+
+    効果は実測済み（近い順 120 件で parsed 24.2% → 33.3% /
+    [run 35997159216](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35997159216)）。ここで見るのは **配線**である。
+    """
+
+    def test_crawler_uses_the_shared_pick_hop(self) -> None:
+        """⚠️ 測る側（6_4）と入れる側（6_3）が同じ選び方を使うこと。
+
+        片方へ写経すると «測った数字» と «入れた行» が別のものを指し始める。
+        """
+        self.assertIs(crawler.pick_hop, shared.pick_hop)
+
+    def test_hop_is_on_by_default_and_can_be_turned_off(self) -> None:
+        with mock.patch.object(sys, "argv", ["6_3", "--limit", "1"]):
+            self.assertTrue(crawler.parse_args().hop)
+        with mock.patch.object(sys, "argv", ["6_3", "--limit", "1", "--no-hop"]):
+            self.assertFalse(crawler.parse_args().hop)
+
+    def test_hop_only_runs_when_the_top_page_failed(self) -> None:
+        """⚠️ トップで読めたら辿らない（無駄な 1 リクエストを相手へ投げない）。"""
+        source = inspect.getsource(crawler.main)
+        self.assertIn('if args.hop and bucket != "parsed":', source)
+
+    def test_hop_respects_robots_and_the_interval(self) -> None:
+        """⚠️ 辿る先にも robots とレート制御を効かせる。"""
+        source = inspect.getsource(crawler.main)
+        hop_block = source[source.index('if args.hop and bucket != "parsed":') :]
+        self.assertIn("robots_allows(hop_url", hop_block)
+        self.assertIn("args.min_interval", hop_block)
+
+    def test_source_url_becomes_the_hopped_page(self) -> None:
+        """⚠️ 辿った先で読めたら出所 URL もそちらにする。
+
+        トップの URL のまま入れると «どのページから採ったか» が後から分からなくなる。
+        """
+        source = inspect.getsource(crawler.main)
+        hop_block = source[source.index('if args.hop and bucket != "parsed":') :]
+        self.assertIn("url = hop_url", hop_block)
+
+    def test_hop_adds_at_most_one_request(self) -> None:
+        """⚠️ 1 店につき追加 1 リクエストまで。ループにしない。"""
+        source = inspect.getsource(crawler.main)
+        hop_block = source[
+            source.index('if args.hop and bucket != "parsed":') : source.index("counts[bucket] += 1")
+        ]
+        self.assertEqual(hop_block.count("fetch("), 1, "辿る先の fetch が 1 回より多い")
+        self.assertNotIn("while ", hop_block)
+        self.assertNotIn("for ", hop_block)
+
+
 class SharedWithMeasurementTest(unittest.TestCase):
     """⚠️ **6_2（測る）と 6_3（入れる）が同じ作法で叩くこと。**
 
@@ -146,17 +199,38 @@ class SharedWithMeasurementTest(unittest.TestCase):
 
     def test_crawler_uses_the_shared_fetch_and_classify(self) -> None:
         self.assertIs(crawler.fetch, shared.fetch)
-        self.assertIs(crawler.classify_page, shared.classify_page)
+        # #1666 6_3 も «理由つき» を使う。ページはもう取ってあるのに理由を捨てていた
+        # （mentions_hours_unparsed が 209 件 = parsed の 162 件より多いのに、
+        #  どこを直せば効くのか分からない状態だった）。
+        self.assertIs(
+            crawler.classify_page_with_reason, shared.classify_page_with_reason
+        )
+        self.assertIs(crawler.hours_excerpt, shared.hours_excerpt)
         self.assertIs(crawler.robots_allows, shared.robots_allows)
         self.assertIs(crawler.html_to_text, shared.html_to_text)
 
-    def test_measurement_uses_the_same_shared_module(self) -> None:
+    def test_crawler_and_measurement_classify_with_the_same_function(self) -> None:
+        """⚠️ 6_2（測る）と 6_3（入れる）が **同じ関数オブジェクト**を見ていること。
+
+        別々のものを使い始めると «測った数字» と «入れた行» が別のものを指す。
+        """
+        measure = self._load_measurement()
+        self.assertIs(
+            crawler.classify_page_with_reason, measure.classify_page_with_reason
+        )
+
+    @staticmethod
+    def _load_measurement():
         spec = importlib.util.spec_from_file_location(
             "measure_official_site_hours", HERE / "6_2_measure_official_site_hours.py"
         )
         assert spec and spec.loader
         measure = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(measure)
+        return measure
+
+    def test_measurement_uses_the_same_shared_module(self) -> None:
+        measure = self._load_measurement()
         self.assertIs(measure.fetch, shared.fetch)
         # 6_2 は «諦めた理由» も数えるので理由つきの方を使う。どちらでも
         # **箱の判定は同じ**でなければならない（下の 2 本で縛る）。
@@ -234,12 +308,131 @@ class CandidateSqlTest(unittest.TestCase):
         self.assertIn("NOT EXISTS", crawler.ONLY_MISSING_CLAUSE)
         self.assertIn("restaurant_opening_hours", crawler.ONLY_MISSING_CLAUSE)
 
+    def test_stale_before_targets_only_stores_whose_rows_are_all_old(self) -> None:
+        """#1666 パーサを直したあとの入れ直しで、**相手のサイトを無駄に叩かない**。
+
+        `--no-only-missing` は端から全部歩くので、残り 643 店を直すのに約 4,400 件を
+        叩き直すことになる（2026-09-30 の実測）。`--stale-before` はその対象を
+        «古い行しか持たない店» へ絞る。
+        """
+        clause = crawler.STALE_BEFORE_CLAUSE
+        # 行を «持っている» ことと、«新しい行が 1 行も無い» ことの両方
+        self.assertIn("AND EXISTS", clause)
+        self.assertIn("AND NOT EXISTS", clause)
+        self.assertIn("fetched_at >= %(stale_before)s", clause)
+        self.assertIn("restaurant_opening_hours", clause)
+        # 閾値は SQL へ焼き込まずパラメータで渡す
+        self.assertNotIn("2026-", clause)
+
+    def test_stale_before_is_idempotent_by_construction(self) -> None:
+        """⚠️ **上書きした店が次の run でも候補に残らないこと。**
+
+        `EXISTS` だけにすると、歩き直して fetched_at を更新した店が毎回候補に戻り、
+        **同じサイトを永遠に叩き続ける**。`fetched_at >= 閾値` の否定がそれを防ぐ。
+        """
+        clause = crawler.STALE_BEFORE_CLAUSE
+        after_not_exists = clause.split("AND NOT EXISTS", 1)[1]
+        self.assertIn("fetched_at >=", after_not_exists)
+
+    def test_stale_before_and_only_missing_are_refused_together(self) -> None:
+        """背反なので、黙ってどちらかを優先せず止める。"""
+        with mock.patch.object(
+            sys, "argv", ["6_3", "--limit", "1", "--stale-before", "2026-09-24T19:55:00+00:00"]
+        ):
+            with self.assertRaises(ValueError) as caught:
+                crawler.parse_args()
+        self.assertIn("--no-only-missing", str(caught.exception))
+
+    def test_stale_before_accepts_a_valid_timestamp_with_no_only_missing(self) -> None:
+        with mock.patch.object(
+            sys,
+            "argv",
+            ["6_3", "--limit", "1", "--no-only-missing", "--stale-before", "2026-09-24T19:55:00+00:00"],
+        ):
+            args = crawler.parse_args()
+        self.assertEqual(args.stale_before, "2026-09-24T19:55:00+00:00")
+        self.assertFalse(args.only_missing)
+
+    def test_stale_before_refuses_an_unreadable_timestamp(self) -> None:
+        """⚠️ 読めない値で «全国» へ出て行かない（--near と同じ作法）。"""
+        with mock.patch.object(
+            sys, "argv", ["6_3", "--limit", "1", "--no-only-missing", "--stale-before", "きのう"]
+        ):
+            with self.assertRaises(ValueError):
+                crawler.parse_args()
+
+    def test_only_missing_is_still_the_default(self) -> None:
+        """既定は変えていない（--stale-before を足しただけ）。"""
+        with mock.patch.object(sys, "argv", ["6_3", "--limit", "1"]):
+            args = crawler.parse_args()
+        self.assertTrue(args.only_missing)
+        self.assertIsNone(args.stale_before)
+
+    def test_stale_before_drops_rows_when_the_page_was_read_but_unparsable(self) -> None:
+        """#1666 【バグ】**冪等性は «パースできた店» にしか成り立っていなかった。**
+
+        2026-09-30 に `--stale-before` で 618 店を歩いたところ、564 店は書き直せたが
+        **54 店が古い行を持ったまま残った**（修正前の行 6,039 → 833 行 / 79 店。
+        79 = 未対象 25 + これ 54）。`fetched_at` が古いままなので **次の run でも
+        また候補に選ばれ**、同じサイトを毎回叩き続けることになる。
+
+        しかも残るのは «前のパーサが書いた、間違っているかもしれない行» である。
+        `--stale-before` はパーサの誤りを直したあとに使うものなので、
+        «古いデータは良いデータ» という既定の前提はそこでは成り立たない。
+        """
+        self.assertIn("mentions_hours_unparsed", crawler.DROPPABLE_WHEN_STALE)
+        self.assertIn("no_hours_mentioned", crawler.DROPPABLE_WHEN_STALE)
+
+    def test_stale_before_never_drops_rows_when_the_page_was_not_reached(self) -> None:
+        """⚠️ «届かなかった» と «読めた上で読めなかった» を混ぜない。
+
+        相手側の一時的な都合で消すと、元のページが消えていれば二度と戻らない。
+        """
+        for bucket in ("unreachable", "blocked_by_robots", "not_japanese_page"):
+            self.assertNotIn(bucket, crawler.DROPPABLE_WHEN_STALE, bucket)
+
+    def test_drop_stale_deletes_only_official_site_rows_and_inserts_nothing(self) -> None:
+        """消すだけ。入れ直さない（入れ直す行が無いので `flush` とは別の関数）。"""
+        calls = []
+
+        class FakeCursor:
+            def execute(self, sql, params=None):
+                calls.append((sql, params))
+
+        crawler.drop_stale(FakeCursor(), "dev", ["a", "b"])
+        self.assertEqual(len(calls), 1)
+        sql, params = calls[0]
+        self.assertIn("DELETE FROM dev.restaurant_opening_hours", sql)
+        self.assertEqual(params[0], crawler.SOURCE)
+        self.assertEqual(params[1], ["a", "b"])
+
+    def test_drop_stale_does_nothing_for_an_empty_list(self) -> None:
+        """⚠️ 空で呼ばれたときに «source = official_site の全行» を消さないこと。"""
+        calls = []
+
+        class FakeCursor:
+            def execute(self, sql, params=None):
+                calls.append(sql)
+
+        crawler.drop_stale(FakeCursor(), "dev", [])
+        self.assertEqual(calls, [])
+
     def test_only_http_urls_are_crawled(self) -> None:
         self.assertIn("^https?://", crawler.CANDIDATE_SQL)
 
     def test_candidates_are_reproducible_by_seed(self) -> None:
-        self.assertIn("md5(", crawler.CANDIDATE_SQL)
-        self.assertIn("%(seed)s", crawler.CANDIDATE_SQL)
+        self.assertIn("md5(", crawler.ORDER_BY_SEED)
+        self.assertIn("%(seed)s", crawler.ORDER_BY_SEED)
+
+    def test_seed_order_is_the_default(self) -> None:
+        """⚠️ 既定が seed であること。`inspect_opening_hours_reach.py` の rank
+        ヒストグラムはこの並びを根拠にしているので、既定が黙って変わってはいけない。
+
+        既定値は help 文字列ではなく、**実際に parse させて**確かめる。
+        """
+        with mock.patch.object(sys, "argv", ["6_3", "--limit", "1"]):
+            args = crawler.parse_args()
+        self.assertEqual(args.order, "seed")
 
 
 class HoursExcerptTest(unittest.TestCase):
@@ -278,3 +471,106 @@ class HoursExcerptTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NearFilterTest(unittest.TestCase):
+    """#1666 `--near` で 1 エリアだけを対象にできること。
+
+    全国へ均等に撒くと «その地点でユーザーが見る画面» は動かない。実測
+    （run 35967307893）で近い順 1,000 件のうち営業時間を持つ店は東京駅 17 /
+    大阪駅 34 / 札幌駅 64 しかなく、全国へ 2,000 件撒いても 1 件も動かない。
+
+    ⚠️ ここで縛るのは 2 つ。**黙って «全国» へ落ちないこと**（1 エリアのつもりで
+    28 万サイトへ出て行く形）と、**並びを変えていないこと**（並びは
+    `inspect_opening_hours_reach.py` が «前半が picked over か» を測る根拠）。
+    """
+
+    def test_near_is_off_by_default(self) -> None:
+        self.assertEqual(crawler.parse_near(None), (None, None))
+        self.assertEqual(crawler.parse_near(""), (None, None))
+        self.assertEqual(crawler.parse_near("   "), (None, None))
+
+    def test_near_is_parsed(self) -> None:
+        self.assertEqual(crawler.parse_near("35.681,139.767"), (35.681, 139.767))
+        # 空白は許す（コピペしやすさのため）
+        self.assertEqual(crawler.parse_near(" 35.681 , 139.767 "), (35.681, 139.767))
+
+    def test_broken_near_raises_instead_of_falling_back_to_nationwide(self) -> None:
+        broken = (
+            "35.681",             # 経度が無い
+            "35.681,139.767,0",  # 余分な項
+            "abc,139",           # 緯度が数値でない
+            "35.681,abc",        # 経度が数値でない
+            "91,139",            # 緯度が範囲外
+            "35,181",            # 経度が範囲外（打ち間違いで起こりやすい形）
+        )
+        for value in broken:
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    crawler.parse_near(value)
+
+    def test_search_path_includes_extensions_for_postgis(self) -> None:
+        """#1666 ⚠️ **PostGIS（`geography` / `ST_DWithin`）は `extensions` に居る。**
+
+        `connect_postgres` が張る search_path は `<schema>, public` で `extensions` が
+        無いため、`--near` の SQL が `type "geography" does not exist` で落ちた
+        （run 35969811492）。テーブルは `{schema}.` で修飾していたので気づけず、
+        **型と関数の解決だけが search_path に依存していた**。
+
+        ここが消えると «絞ったつもりで落ちる» に戻るので、文字列として縛る。
+        """
+        source = inspect.getsource(crawler)
+        self.assertIn("SET search_path TO {}, extensions, public", source)
+        # ⚠️ 共有ヘルパ（connect_postgres）側を広げていないこと。あれは 9_1 ほか
+        #    全部の同期が使うので、PostGIS が要るこのスクリプトへ閉じる。
+        #    ⚠️ **`extensions` の語だけで探さない。** あのファイルは
+        #       `from psycopg2.extensions import connection` を import している
+        #       （最初そう書いて誤検知した）。search_path の行だけを見る。
+        shared_source = (HERE / "pg_sync_common.py").read_text(encoding="utf-8")
+        search_path_lines = [
+            line for line in shared_source.splitlines() if "SET search_path" in line
+        ]
+        self.assertEqual(len(search_path_lines), 1, search_path_lines)
+        self.assertNotIn("extensions", search_path_lines[0])
+
+    def test_candidate_sql_has_a_near_placeholder_and_the_order_is_injected(self) -> None:
+        sql = crawler.CANDIDATE_SQL
+        self.assertIn("{near}", sql)
+        # 並びは «呼ぶ側が渡すもの»。SQL へ既定を焼き込まない
+        self.assertIn("{order}", sql)
+        self.assertNotIn("ORDER BY", sql)
+
+        fmt = dict(schema="dev", only_missing="", order=crawler.ORDER_BY_SEED)
+        without = sql.format(near="", **fmt)
+        with_near = sql.format(near=crawler.NEAR_CLAUSE, **fmt)
+        self.assertNotIn("ST_DWithin", without)
+        self.assertIn("ST_DWithin", with_near)
+        # 半径も地点もパラメータで渡す（SQL へ焼き込まない）
+        for name in ("%(near_lat)s", "%(near_lon)s", "%(near_radius_m)s"):
+            self.assertIn(name, with_near)
+        # 絞っても seed の並びは変わらない
+        self.assertIn("ORDER BY md5(l.restaurant_id::text || %(seed)s)", with_near)
+
+    def test_distance_order_sorts_by_the_near_point(self) -> None:
+        """#1666 `--order distance` は `--near` の地点から近い順（KNN の `<->`）。"""
+        order = crawler.ORDER_BY_DISTANCE
+        self.assertIn("<->", order)
+        self.assertIn("r.location", order)
+        # 地点はパラメータで渡す（SQL へ焼き込まない）
+        for name in ("%(near_lat)s", "%(near_lon)s"):
+            self.assertIn(name, order)
+        # ⚠️ PostGIS の型が要る。`::geography` を落とすと距離が «度» になり、
+        #    緯度によって並びが歪む（東京では経度 1 度 ≒ 90km、緯度 1 度 ≒ 111km）。
+        self.assertIn("::geography", order)
+
+    def test_the_two_orders_are_different(self) -> None:
+        self.assertNotEqual(crawler.ORDER_BY_SEED, crawler.ORDER_BY_DISTANCE)
+
+    def test_distance_order_without_near_is_refused(self) -> None:
+        """⚠️ 黙って seed 順へ落ちないこと。«近い順のつもりで全国を歩く» は気づけない。
+
+        `main()` は DB へ繋いでしまうので、判定の条件を **ソースの文字列として**縛る。
+        """
+        source = inspect.getsource(crawler.main)
+        self.assertIn('args.order == "distance" and near_lat is None', source)
+        self.assertIn("raise ValueError", source)

@@ -4,7 +4,7 @@
 固定したいのは 3 点：
 1. バケットの基準は `occurredAt`（`savedAt` / `eatenAt` ではない）で、端末のローカル TZ で日へ落とす
 2. `meta.oldestOccurredAt` より古い月を生成しない（inverted リストが上へ伸び続けないための終端）
-3. `dishMedia === null` でも灰色プレースホルダーにせず、`categoryImageUrl` → `restaurant.image_url` を使う
+3. `dishMedia === null` でも灰色プレースホルダーにせず、`categoryImageUrl` → `restaurant.imageUrls?.sm` を使う
 
 ⚠️ ローカル TZ 依存を避けるため、テストデータの `occurredAt` は
 「ローカルの正午」から作る（`new Date(y, m, d, 12).toISOString()`）。

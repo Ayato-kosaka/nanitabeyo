@@ -2,7 +2,7 @@ import { act } from "react";
 import TestRenderer from "react-test-renderer";
 import { AppState } from "react-native";
 import * as Updates from "expo-updates";
-import { OtaUpdateApplier } from "./OtaUpdateApplier";
+import { isPermanentUpdateFailure, OtaUpdateApplier } from "./OtaUpdateApplier";
 import { flushLogQueue } from "@/lib/logQueue";
 
 /**
@@ -66,6 +66,13 @@ const mountAndSettle = async () => {
 	});
 	await flush();
 };
+
+/** #2069 直近の `ota_update_check_failed` の呼び出しそのもの（error_level も見たいので payload だけにしない） */
+const lastCheckFailedCall = () =>
+	mockLogFrontendEvent.mock.calls
+		.map(([arg]) => arg)
+		.reverse()
+		.find((arg) => arg?.event_name === "ota_update_check_failed");
 
 const lastAppliedPayload = () => {
 	const call = mockLogFrontendEvent.mock.calls
@@ -193,5 +200,62 @@ describe("OtaUpdateApplier", () => {
 		appState.advance(2_000);
 
 		expect(mockUpdates.reloadAsync).toHaveBeenCalledTimes(1);
+	});
+});
+
+/**
+ * #2069 **«撃ち直せば直る失敗» と «撃ち直しても直らない失敗» を同じ `warn` に混ぜない。**
+ *
+ * 2026-09-24 から本番の OTA が 1 件も届かなくなった（Expo 無料枠の MAU 超過で更新チェックが
+ * 全件 429）。それでも 2 日間・800 件超の間、起票が 1 件も無かった。失敗を全部 `warn` で
+ * 記録していて、error-triage は `error_level = 'error'` しか集めないためである。
+ *
+ * ここで固定するのは **パターン**（個別の文言ではなく「恒久的な失敗を warn に混ぜない」）である。
+ */
+describe("#2069 更新チェックの失敗を «直らないもの» と «直るもの» に分ける", () => {
+	// ⚠️ 期待値は **本番ログの実文言**（30 日で出ていた 6 種すべて）。写経ではなく実測から取った。
+	const PERMANENT = [
+		"HTTP response error 429: The number of Monthly Updating Users has exceeded the Free tier's quota for this account. Subscribe to Expo Application Services to remove this limit.",
+	];
+	const TRANSIENT = [
+		"Unknown error: リクエストがタイムアウトになりました。",
+		"Unknown error: ネットワーク接続が切れました。",
+		"Unknown error: TLSエラーが起きたため、セキュリティ保護された接続を確立できませんでした。",
+		"Failed to load all assets",
+		// ⚠️ ネイティブ側の包みは理由を含まないので **判定できない**。warn に倒す（既知の取りこぼし）
+		"Call to function 'ExpoUpdates.checkForUpdateAsync' has been rejected.\n→ Caused by: Failed to check for update",
+	];
+
+	test.each(PERMANENT)("恒久的と判定する: %s", (message) => {
+		expect(isPermanentUpdateFailure(message)).toBe(true);
+	});
+
+	test.each(TRANSIENT)("恒久的とは判定しない（warn のまま）: %s", (message) => {
+		expect(isPermanentUpdateFailure(message)).toBe(false);
+	});
+
+	it("枠の使い切りは error_level: error で記録する（error-triage が集める側へ載る）", async () => {
+		mockUpdates.checkForUpdateAsync.mockRejectedValue(new Error(PERMANENT[0]));
+		await mountAndSettle();
+
+		const logged = lastCheckFailedCall();
+		expect(logged?.error_level).toBe("error");
+		expect(logged?.payload?.permanent).toBe(true);
+	});
+
+	it("回線起因は warn のまま（毎晩起票させない）", async () => {
+		mockUpdates.checkForUpdateAsync.mockRejectedValue(new Error(TRANSIENT[0]));
+		await mountAndSettle();
+
+		const logged = lastCheckFailedCall();
+		expect(logged?.error_level).toBe("warn");
+		expect(logged?.payload?.permanent).toBe(false);
+	});
+
+	it("判定できなかった失敗を後から切り分けられるよう platform を残す", async () => {
+		mockUpdates.checkForUpdateAsync.mockRejectedValue(new Error(TRANSIENT[4]));
+		await mountAndSettle();
+
+		expect(lastCheckFailedCall()?.payload?.platform).toBeTruthy();
 	});
 });

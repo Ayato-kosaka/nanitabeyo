@@ -391,18 +391,15 @@ model dish_reviews {
   @@schema("dev")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dishes {
   id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   restaurant_id   String          @db.Uuid
   category_id     String
-  name            String?
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
   updated_at      DateTime        @default(now()) @db.Timestamptz(6)
   lock_no         Int             @default(0)
-  data_origin     String          @default("user_or_google")
   synced_at       DateTime?       @db.Timestamptz(6)
   dish_media      dish_media[]
   dish_reviews    dish_reviews[]
@@ -684,6 +681,31 @@ model restaurant_opening_hours {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model restaurant_reports {
+  id                  String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  restaurant_id       String      @db.Uuid
+  reporter_user_id    String      @db.Uuid
+  field               String
+  proposed_value      String?
+  status              String      @default("pending")
+  resolved_at         DateTime?   @db.Timestamptz(6)
+  resolution_note     String?
+  github_issue_number Int?
+  created_version     String      @default("unknown")
+  created_at          DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime    @default(now()) @db.Timestamptz(6)
+  lock_no             Int         @default(0)
+  restaurants         restaurants @relation(fields: [restaurant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([reporter_user_id, restaurant_id, field], map: "uq_restaurant_reports_reporter_target")
+  @@index([restaurant_id, field], map: "idx_restaurant_reports_restaurant")
+  @@index([status, created_at], map: "idx_restaurant_reports_status_created")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model restaurants {
   id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   google_place_id             String                        @unique
@@ -691,9 +713,6 @@ model restaurants {
   name_language_code          String
   latitude                    Float
   longitude                   Float
-  image_url                   String                        @default("")
-  address_components          Json
-  plus_code                   Json?
   created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
   location                    Unsupported("geography")?     @default(dbgenerated("(st_setsrid(st_makepoint(longitude, latitude), 4326))::geography"))
   image_path                  String?
@@ -710,6 +729,7 @@ model restaurants {
   restaurant_hours_exceptions restaurant_hours_exceptions[]
   restaurant_links            restaurant_links[]
   restaurant_opening_hours    restaurant_opening_hours[]
+  restaurant_reports          restaurant_reports[]
 
   @@index([created_by_source], map: "idx_restaurants_created_by_source")
   @@index([location], map: "idx_restaurants_location", type: Gist)

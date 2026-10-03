@@ -308,7 +308,13 @@ keyed AS (
              OR SAFE_CAST(n.feElapsedMs AS INT64) > 60000
            )
         THEN 'client_network'
-      -- (E4) 一時障害系ステータス。constants.js の TRANSIENT_HTTP_STATUSES が唯一の正
+      -- (E4) 一時障害系ステータス。constants.js の FRONTEND_EXCLUDED_HTTP_STATUSES が唯一の正
+      --
+      --      ⚠️ #2069 **429 を外した。** frontend のログは «自分たちのアプリが呼んだときにしか
+      --      出ない» ので、ここに出る 429 は «自分たち（または使っている外部サービス）が枠を
+      --      使い切った» という意味で、放っておいて直らない。実測（本番 30 日）で
+      --      **2,968 件 / 1,215 ユーザー**が除外されており、同じ期間に Expo 無料枠の超過で
+      --      **OTA 配信が 2 日間 100% 失敗**していたのも起票 0 件だった。#1834 と同じパターン。
       --
       --      ⚠️ #1834 **frontend では 403 / 404 を除外しない**（backend の E6 とは定数を分ける）。
       --      403 / 404 を除外していた理由は «Cloud Run が公開エンドポイントなので外部スキャナの
@@ -318,8 +324,16 @@ keyed AS (
       --      実測: backend の 403/404 は WordPress スキャナ（/wp-json/... /.env /wp-login.php）が
       --      上位を独占しており除外は妥当。frontend の 403/404 は 30 日で **0 行**なので、
       --      外してもノイズは増えない。
+      --
+      --      ⚠️ #2076 **429 は «承知の上» のものだけ除外する。** #2069 で status ごと外したところ、
+      --      #1781 で «枠は上げない» と決着済みの Text Search クォータが毎晩 «影響 57 人 =
+      --      障害規模» として夜間 Error Triage を落とした。本物の障害がその中に埋もれるので、
+      --      名前で分ける。⚠️ frontend に api_name 列は無いので rawMessage で見る
+      --      （実例: "Google Places Text Search API quota exceeded …"）。
       WHEN n.surface = 'frontend'
-       AND SAFE_CAST(n.feHttpStatus AS INT64) IN (401, 408, 425, 426, 429)
+       AND (SAFE_CAST(n.feHttpStatus AS INT64) IN (401, 408, 425, 426)
+            OR (SAFE_CAST(n.feHttpStatus AS INT64) = 429
+                AND REGEXP_CONTAINS(IFNULL(n.rawMessage, ''), r'''Google Places Text Search API''')))
         THEN 'transient_status'
       -- (E5) 端末が現在地を返せない。kind の値集合は denied/timeout/unavailable/unsupported の4値
       --      （locationPermissionError.ts）。denied / timeout / unavailable を除外する。
@@ -360,10 +374,20 @@ keyed AS (
       --      **こちらの出口が塞がれているのか**を区別しない。実際に
       --      「Cloud Run から vt.tiktok.com へ接続できない」（sns-oembed.service.ts の
       --      設計コメント）を人力で突き止める羽目になっており、その間ここは黙っていた。
-      --      408 / 429 / 5xx は «相手が応答した上での一時障害» なので除外のまま残す。
-      --      実測ノイズ: 30 日で 0 行（429 の Google Places クォータだけが該当し、それは除外のまま）。
+      --      408 / 5xx は «相手が応答した上での一時障害» なので除外のまま残す。
+      --
+      --      ⚠️ #2073 **429 は «承知の上» の API 名のときだけ除外する。**
+      --      #1834 は «429 の Google Places クォータだけが該当し、それは除外のまま» と書いて
+      --      意図的に残したが、**status 1 つで括ったせいで «知っている枠» と «知らない枠» が
+      --      一緒に消えていた**。本番 90 日の実測では Text Search の 44,511 件（#1781 で
+      --      «枠は上げない» で決着済み）と並んで **Photos の 3,181 件**があり、後者は
+      --      **78 日間 1 件も起票されないまま** #819 の裏で写真取得の約 14% を落としていた。
+      --      日次クォータの超過はその日ずっと失敗し、原因はこちら側の呼び出し量なので
+      --      «一時障害» ではない。⚠️ 分けられるのは api_name だけである
+      --      （error_message は 429 の行では全件 NULL）。
       WHEN n.surface = 'external'
-       AND (n.extStatusCode IN (408, 429, 502, 503, 504)
+       AND (n.extStatusCode IN (408, 502, 503, 504)
+            OR (n.extStatusCode = 429 AND n.apiName IN ('Google Places Text Search API'))
             OR REGEXP_CONTAINS(IFNULL(n.extErrorMessage, ''),
                  r'''(ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|fetch failed)'''))
         THEN 'external_transient'

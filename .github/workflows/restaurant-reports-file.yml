@@ -1,0 +1,99 @@
+name: Restaurant Reports — Issue 起票
+
+# ==============================================================================
+# #1933 受け入れ条件 7: «この情報が違う» の報告 1 件ごとに Issue を 1 本立てる。
+#
+# ## なぜ Job を «dry-run» と «起票» に分けるのか
+# `permissions:` は **Job 単位でしか効かない**。「フラグで dry-run」方式にすると、
+# dry-run のつもりの run が `issues: write` を持ったまま走る。error-triage.yml が
+# 同じ理由で同じ形にしてある（あちらの冒頭コメントが正）。
+#
+# ## なぜ受付 API から切り離すのか
+# 受付（POST /v1/restaurant-reports）の中で起票すると、受付の応答時間が GitHub の
+# 生死に縛られ、起票に失敗したときに «報告は消えたのか» が分からなくなる。
+# 受付は DB へ 1 行書くだけで完結させ、起票は `pending` の行を後から拾う。
+#
+# ⚠️ **自動実行（schedule）を置いていない。** public な repo へ Issue を立てる操作なので、
+#    当面は workflow_dispatch だけにする。頻度を決めるのはオーナーの判断である。
+# ==============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run（何が起票されるかだけ見る） / apply（実際に起票する）"
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - apply
+      limit:
+        description: "一度に起票する上限。⚠️ 溜まった報告を一度に全部立てないための歯止め"
+        required: true
+        default: "10"
+        type: string
+
+permissions: {}
+
+concurrency:
+  # 同じ報告を 2 つの run が同時に拾うと二重起票になる。索引でも防いでいるが、直列化もする
+  group: restaurant-reports-file
+  cancel-in-progress: false
+
+jobs:
+  # ---------------- dry-run: DB を読むだけ。GitHub へは書けない ----------------
+  plan:
+    name: 何が起票されるか（書き込みなし）
+    if: inputs.mode == 'dry-run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: development
+    permissions:
+      contents: read
+      # ⚠️ issues: write を**持たない**。この Job からは権限レベルで起票できない
+    env:
+      DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Python の依存を入れる
+        run: pip install --quiet psycopg2-binary
+
+      - name: 起票せずに一覧する
+        run: |
+          set -euo pipefail
+          python3 scripts/restaurant-reports/file_pending_reports.py \
+            --schema dev --limit "${{ inputs.limit }}" --dry-run
+
+  # ---------------- apply: Issue を立てる唯一の Job ----------------
+  apply:
+    name: Issue を起票する
+    if: inputs.mode == 'apply'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: development
+    permissions:
+      contents: read
+      # 一覧取得（索引）と起票。GITHUB_TOKEN に «作成だけ» の細粒度スコープが無いため、これが下限
+      issues: write
+    env:
+      DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Python の依存を入れる
+        run: pip install --quiet psycopg2-binary
+
+      - name: 未起票の報告を起票する
+        run: |
+          set -euo pipefail
+          python3 scripts/restaurant-reports/file_pending_reports.py \
+            --schema dev --limit "${{ inputs.limit }}"

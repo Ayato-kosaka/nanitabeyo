@@ -34,7 +34,9 @@ fi
 
 fail=0
 for f in $added; do
-  if ! echo "$f" | grep -Eq '^[0-9]{8}T[0-9]{4}_.+\.sql$'; then
+  # ⚠️ #2075 `… | grep -q` にしない（pipefail が SIGPIPE の 141 を拾い、否定形では
+  #    «形式に合っているのに合っていない» ではなく «合っていないのに合っている» と読む）
+  if ! grep -Eq '^[0-9]{8}T[0-9]{4}_.+\.sql$' <<< "$f"; then
     echo "::error::$f はファイル名形式 YYYYMMDDTHHMM_説明.sql に従っていません。"
     fail=1
     continue

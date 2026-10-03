@@ -107,7 +107,7 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 	const counts = useMemo(() => countMyDishStatuses(cell?.items ?? []), [cell?.items]);
 	const representative = cell && count > 0 ? cell.items[0] : null;
 	// #1396 【仕様】写真なしの記録（dishMedia === null）でも灰色プレースホルダーにしない。
-	// categoryImageUrl → restaurant.image_url の順で実画像へ落とす（#1375 追補2 決定3）
+	// categoryImageUrl → restaurant.imageUrls?.sm の順で実画像へ落とす（#1375 追補2 決定3）
 	//
 	// #1513 代表の行が «自分の投稿が削除済み» のときはフォールバックせず墓標を出す。
 	// 日付の数字は墓標の上に残す（記録がある日であることは変わらないため）ので、

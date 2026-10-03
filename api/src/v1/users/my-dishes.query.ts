@@ -328,7 +328,10 @@ export const RESTAURANT_COLUMNS_SQL = Prisma.sql`
   r.latitude           AS r_latitude,
   r.longitude          AS r_longitude,
   r.image_path         AS r_image_path,
-  r.address_components AS r_address_components,
+  -- #1779 address_components は SELECT しない（レスポンスにも載らない列）。
+  -- 国は country_code、表示住所は address 列が正。
+  -- ⚠️ ここは Prisma.sql のテンプレートリテラルなので、コメントにバッククォートを
+  --    書くと文字列が途中で閉じる（実際に踏んだ）。
   r.created_at         AS r_created_at`;
 
 /**

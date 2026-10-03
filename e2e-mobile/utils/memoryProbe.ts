@@ -1,6 +1,6 @@
-import { execFileSync } from "node:child_process";
-
 import { device } from "detox";
+
+import { adbSync } from "./adb";
 
 /**
  * 📈 #1641 **アプリのメモリ使用量を実機から読む（Android のみ）。**
@@ -40,11 +40,9 @@ export type MemorySnapshot = {
 
 const PACKAGE = "com.nanitabeyo";
 
+/** #1579 adb は必ず utils/adb.ts を経由する（上限なしの adb を増やさないため） */
 function adb(args: string[]): string {
-	return execFileSync("adb", ["-s", device.id, ...args], {
-		encoding: "utf8",
-		stdio: ["ignore", "pipe", "ignore"],
-	}).trim();
+	return adbSync(args);
 }
 
 /**

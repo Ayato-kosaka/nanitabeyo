@@ -33,7 +33,7 @@ import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
  * - **料理画像主体のグリッド**。3 ビューのうち一番単純なので、共有フィルタ store の
  *   挙動（フィルタ変更で取り直す / ビュー切替では取り直さない）をここで固定する。
  * - `dishMedia === null`（写真なしの「食べた」記録）は**灰色プレースホルダーにしない**。
- *   `resolveMyDishThumbnailUrl`（`categoryImageUrl` → `restaurant.image_url` の順）で実画像へ
+ *   `resolveMyDishThumbnailUrl`（`categoryImageUrl` → `restaurant.imageUrls?.sm` の順）で実画像へ
  *   フォールバックしつつ、「写真なし」であること自体は `MyDishes.list.noPhoto` バッジで示す
  *   （#1398 PR5 / #1375 追補2 決定3）。3 つとも無いときだけ従来どおりの無地プレースホルダー。
  * - #1513 `isOwnMediaDeleted`（自分の投稿が削除済み）の行は **フォールバックせず墓標**
@@ -66,7 +66,7 @@ const MyDishCard = memo(function MyDishCard({
 	const width = useMemo(() => (contentWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS, [contentWidth]);
 	const height = width / ASPECT_RATIO;
 
-	// #1398 PR5 写真なし（dishMedia === null）でも categoryImageUrl → restaurant.image_url へ
+	// #1398 PR5 写真なし（dishMedia === null）でも categoryImageUrl → restaurant.imageUrls?.sm へ
 	// フォールバックする。3 つとも無いときだけ null（= 無地プレースホルダー）
 	//
 	// #1513 ただし «自分の投稿が削除済み»（isOwnMediaDeleted）はフォールバックしない。
@@ -159,7 +159,7 @@ const MyDishCard = memo(function MyDishCard({
 					importantForAccessibility="no"
 				/>
 			) : (
-				// #1398 PR5 【仕様】categoryImageUrl / restaurant.image_url も無い異常系だけがここに来る
+				// #1398 PR5 【仕様】categoryImageUrl / restaurant.imageUrls も無い異常系だけがここに来る
 				// （dishMedia === null というだけではこの分岐に来ない。#1396 当時の「写真なし記録＝この
 				// プレースホルダー」という前提は変わったが、testID は e2e から未参照のため残している）
 				<View testID="my-dishes-list-item-placeholder" style={[StyleSheet.absoluteFill, styles.placeholder]}>

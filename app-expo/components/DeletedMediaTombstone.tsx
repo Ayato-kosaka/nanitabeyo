@@ -14,7 +14,7 @@ import type { Palette } from "@/constants/Palette";
  * カレンダーの日付が黙って減り、利用者から見て記録が失われたのと区別できない）。
  * 同じ理由で **別の写真へ差し替えてもいけない**（`isOwnMediaDeleted === true` のとき
  * サーバーは `dishMedia` を null にして返す。#1513 の API 側で確定済み）。
- * `dish.categoryImageUrl` / `restaurant.image_url` への通常のフォールバックもここでは行わない。
+ * `dish.categoryImageUrl` / `restaurant.imageUrls?.sm` への通常のフォールバックもここでは行わない。
  * 「自分が消した写真の跡地」に別の絵が入ると、消えたことが伝わらない。
  *
  * ## 墓標を出す画面 / 黙って除外する画面

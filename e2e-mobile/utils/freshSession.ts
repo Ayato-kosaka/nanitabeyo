@@ -91,10 +91,17 @@ export async function ensureFreshSession(owner: SessionOwner): Promise<E2ESessio
 	const { data, error } = await client.auth.refreshSession({ refresh_token: session.refreshToken });
 
 	if (error || !data.session) {
+		// #1962 【設計】ここは «掴み直せる失敗» である。詳細は下の relogin 関数の説明を読むこと。
+		const relogged = await reloginIfPossible(owner, url, anonKey, session.userId);
+		if (relogged) return relogged;
+
 		throw new Error(
 			[
 				`${owner} セッションの refresh に失敗しました: ${error?.message ?? "session is null"}`,
 				"  run が長時間化して refresh token が既にローテーション済み（reuse 検知）か、revoke 済みの可能性があります。",
+				owner === "authenticated"
+					? "  再ログインも行えませんでした（TEST_USER_EMAIL / TEST_USER_PASSWORD を確認すること）。"
+					: "  匿名セッションは 30 回/時/IP の枠を消費するため、ここでは再取得しません（globalSetup の 1 回だけに保つ）。",
 				"  このまま旧トークンで続けると 401 や起動ハングになるため、ここで止めています。",
 			].join("\n"),
 		);
@@ -104,6 +111,60 @@ export async function ensureFreshSession(owner: SessionOwner): Promise<E2ESessio
 		accessToken: data.session.access_token,
 		refreshToken: data.session.refresh_token,
 		userId: session.userId,
+	};
+	writeSessionToEnv(owner, fresh);
+	return fresh;
+}
+
+/**
+ * refresh に失敗した共有セッションを **パスワード再ログインで掴み直す**（#1962 / iOS 夜間）。
+ *
+ * ## なぜ refresh の失敗が «正常に起きる» のか
+ * アプリ側の Supabase クライアントは `autoRefreshToken: true` で動いている。
+ * テスト中にアプリが自分でローテーションすると、**env に残った refresh token はその瞬間に古くなる**。
+ * 次に Node 側がその旧トークンで refresh すると reuse 検知に当たり、セッションファミリごと失効する。
+ * つまりこれは «壊れた» のではなく、**共有セッションを 2 者が触る設計の必然**である。
+ *
+ * Android は全 suite が 16 分で終わるので踏まない。**iOS は 90〜150 分**かかるため必ず踏み、
+ * 以降の authenticated 起動が 600 秒タイムアウト → ジョブごと `cancelled` になっていた。
+ *
+ * ## 掴み直してよい条件
+ * - `authenticated` のみ。パスワードサインインは **匿名サインインの 30 回/時/IP とは別枠**なので、
+ *   再ログインしてもレート制限の予算を食わない（`utils/disposableSession.ts` の判断と同じ）。
+ * - `anon` は掴み直さない。匿名サインインは枠を消費するため、globalSetup の 1 回だけに保つ
+ *   （ここで増やすと «429 で run ごと落ちる» を自分で作る）。
+ *
+ * ## userId は変わらない
+ * 同じテストユーザーへログインし直すだけなので、アプリ側フックの «期待ユーザーとの一致»（#1030 B-1）は保たれる。
+ * run 終了時の global revoke（`utils/revokeSessions.ts`）は新しいファミリも巻き取る。
+ *
+ * @returns 掴み直せたら新しいセッション。条件を満たさない / 失敗したら null（呼び出し側が fail-loud する）
+ */
+async function reloginIfPossible(
+	owner: SessionOwner,
+	url: string,
+	anonKey: string,
+	userId: string,
+): Promise<E2ESession | null> {
+	if (owner !== "authenticated") return null;
+
+	const email = process.env.TEST_USER_EMAIL;
+	const password = process.env.TEST_USER_PASSWORD;
+	if (!email || !password) return null;
+
+	console.log("🔑 共有セッションの refresh に失敗したため、テストユーザーへログインし直します");
+
+	const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+	const { data, error } = await client.auth.signInWithPassword({ email, password });
+	if (error || !data.session) {
+		console.log(`⚠️ 再ログインにも失敗しました: ${error?.message ?? "session is null"}`);
+		return null;
+	}
+
+	const fresh: E2ESession = {
+		accessToken: data.session.access_token,
+		refreshToken: data.session.refresh_token,
+		userId: data.session.user.id || userId,
 	};
 	writeSessionToEnv(owner, fresh);
 	return fresh;

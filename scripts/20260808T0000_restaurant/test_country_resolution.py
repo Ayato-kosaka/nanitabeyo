@@ -24,7 +24,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from country_resolution import RULES, country_code_from_address, country_code_sql
+from country_resolution import (
+    RULES,
+    country_code_from_address,
+    country_code_sql,
+    matched_rule,
+)
 
 # (住所, 人が付けた国コード, なぜそう読めるか)
 #
@@ -54,6 +59,40 @@ LABELLED_REAL_ADDRESSES: tuple[tuple[str, str | None, str], ...] = (
     ("미래로 375", "KR", "ハングル"),
     ("중문관광로72번길 67", "KR", "ハングル（済州島 中文）"),
 
+    # --- #1881 «韓国だけの手掛かりが順番で負けていた» 8 行（run 35976523693） ---
+    #
+    # ⚠️ **ここは回帰テストの本体である。** 住所から引く方式に変えて誤ラベルは
+    #    85,685 → 8 行まで減ったが、残った 8 行はすべて «韓国にしか無い手掛かりが、
+    #    日本の弱い手掛かりより **後ろ** に置かれていて負けた» 形だった。
+    #    規則を足して直したのではなく **並べ直して**直したので、
+    #    並びが戻ったらここが落ちる。
+    ("中区茶洞125", "KR", "茶洞125（洞 + 番地）。«中区» は韓国にもある"),
+    (
+        "449-1001 Seonghwan-ri, Seonghwan-eup",
+        "KR",
+        "-eup（邑）。449-1001 は日本の郵便番号と同じ形だが韓国の番地",
+    ),
+    (
+        "656-1082 Seongsu-dong 1(il)-ga",
+        "KR",
+        "-dong（洞）。656-1082 も郵便番号の形をした番地",
+    ),
+    (
+        "Yeouido-dong, 36-2 大韓民国 ソウル 永登浦区 Yeoui-dong, 36-2 ソウル特別市",
+        "KR",
+        "«大韓民国» と書いてある。「ソウル」のカナに負けていた",
+    ),
+    (
+        "京畿道安養市東安区市民大路311金剛スマートビル208号",
+        "KR",
+        "«京畿道»。「スマートビル」のカナに負けていた",
+    ),
+    (
+        "京畿道平澤市中央市場路20番キル7",
+        "KR",
+        "«京畿道»。「キル」のカナに負けていた",
+    ),
+
     # --- dev に実在する日本の店 ------------------------------------------------
     # ⚠️ 対馬は **韓国のすぐ隣にある日本**。座標で切ると必ず巻き込まれる。
     ("長崎県対馬市厳原町宮谷２３６", "JP", "「長崎県対馬市」と書いてある"),
@@ -82,6 +121,15 @@ LABELLED_REAL_ADDRESSES: tuple[tuple[str, str | None, str], ...] = (
     ("2 Chome-7-24 Nagatsu", "JP", "Chome＝丁目。韓国の住所には出ない"),
     ("3 Chome-13-28 Haruyoshi", "JP", "Chome＝丁目"),
     ("Omachi, 2 Chome−4−1 Sanwa Bld, 1階", "JP", "Chome と「階」"),
+
+    # --- 日本側の «紛れ»。韓国の規則を強めたときに巻き込まないこと ---------------
+    #
+    # ⚠️ `洞` は日本の地名にもある。韓国の «동» は **行政単位なので直後に番地が来る**
+    #    ので、そこだけを当てている。日本の「洞爺湖町」を KR にしてはいけない。
+    ("北海道虻田郡洞爺湖町洞爺町78", "JP", "洞爺湖町。洞のあとに番地が来ない"),
+    # ⚠️ 郵便番号の規則を «韓国のローマ字接尾辞より後ろ» へ下げたが、
+    #    日本の郵便番号つき住所はいまも JP であること。
+    ("〒060-0001 札幌市中央区北1条西1-1", "JP", "郵便番号と「札幌市中央区」"),
 
     # --- 決められないもの（**None を返すのが正しい**） -------------------------
     ("", None, "空"),
@@ -134,6 +182,107 @@ class CountryCodeFromAddressTest(unittest.TestCase):
                 ("KR", "JP"),
                 f"{address!r} を国コードと読んでいる",
             )
+
+
+class RuleOrderIsByStrengthTest(unittest.TestCase):
+    """#1881 **強い手掛かりが弱い手掛かりより前にあること。**
+
+    2026-09-24 に残っていた誤ラベル 8 行は、規則が間違っていたのではなく
+    «韓国にしか無い手掛かりが、日本の弱い手掛かりより後ろに置かれていた» ことで
+    起きていた（[run 35976523693](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/35976523693)）。
+    直したのは並びなので、**並びそのものを縛る**。個別の住所だけを縛ると、
+    別の住所で同じ負け方が復活しても緑のままになる。
+    """
+
+    def _index(self, needle: str) -> int:
+        for i, (pattern, _code) in enumerate(RULES):
+            if needle in pattern:
+                return i
+        self.fail(f"規則が見つからない: {needle}")
+
+    def test_every_korean_rule_beats_katakana(self) -> None:
+        """⚠️ これが本体。外国の住所を片仮名で書けば 1 文字で日本になってしまう。
+
+        `京畿道…金剛スマートビル208号` は「スマートビル」の 3 文字で JP だった。
+        **カナは韓国のどの手掛かりよりも弱い。**
+        """
+        kana = self._index("[぀-ヿ]")
+        for i, (pattern, code) in enumerate(RULES):
+            if code == "KR":
+                self.assertLess(
+                    i,
+                    kana,
+                    f"KR の規則がカナより後ろにある（カナに負ける）: {pattern}",
+                )
+
+    def test_korean_romanised_suffixes_beat_the_japanese_postcode(self) -> None:
+        """`449-1001 Seonghwan-ri, Seonghwan-eup` が郵便番号の形で JP だった。
+
+        韓国の番地は 3 桁-4 桁の形を取りうる。`-eup` `-dong` の方が強い。
+        """
+        self.assertLess(
+            self._index("dong|gil|ro|myeon|eup|gu|si"),
+            self._index(r"〒?\d{3}-?\d{4}"),
+            "韓国のローマ字接尾辞が日本の郵便番号より後ろにある",
+        )
+
+    def test_explicit_country_beats_everything_else(self) -> None:
+        """住所に国名が書いてあるのに負ける、が起きないこと。"""
+        explicit = self._index("大韓民国")
+        for weaker in ("[가-힣]", "[぀-ヿ]", "[市区町村郡][^", r"〒?\d{3}-?\d{4}"):
+            self.assertLess(
+                explicit, self._index(weaker), f"«大韓民国» が {weaker} より後ろにある"
+            )
+
+    def test_korean_hanja_dong_beats_the_shared_administrative_units(self) -> None:
+        """`中区茶洞125` が `[市区町村郡]` で JP だった。«中区» は韓国にもある。"""
+        self.assertLess(
+            self._index("洞\\s*[0-9"),
+            self._index("[市区町村郡][^"),
+            "韓国の «洞 + 番地» が両国にある行政単位より後ろにある",
+        )
+
+
+class MatchedRuleTest(unittest.TestCase):
+    """#1881 «どの規則がこの国コードを出したか» を機械的に引けること。
+
+    監査が «日本の外に居る JP» の直し方を決めるのに使う。当たった 1 本によって
+    手当てが変わる（綴りの衝突なら規則を直す / 住所が空なら同期を直す）。
+    """
+
+    def test_agrees_with_country_code_from_address_on_every_labelled_address(
+        self,
+    ) -> None:
+        """⚠️ 2 つの関数が別々に走査していないことを縛る（片方だけ直る事故を防ぐ）。"""
+        disagreed: list[str] = []
+        for address, _expected, why in LABELLED_REAL_ADDRESSES:
+            hit = matched_rule(address)
+            from_code = country_code_from_address(address)
+            via_rule = hit[2] if hit else None
+            if via_rule != from_code:
+                disagreed.append(
+                    f"{address!r}: matched_rule={via_rule} / "
+                    f"country_code_from_address={from_code}（{why}）"
+                )
+        self.assertEqual(disagreed, [], "\n".join(disagreed))
+
+    def test_points_at_a_real_entry_of_RULES(self) -> None:
+        """返す添字とパターンが `RULES` の実体と一致すること（写経ではないこと）。"""
+        for address, expected, why in LABELLED_REAL_ADDRESSES:
+            if expected is None:
+                continue
+            hit = matched_rule(address)
+            self.assertIsNotNone(hit, f"{address!r} で当たった規則を返せていない（{why}）")
+            index, pattern, code = hit  # type: ignore[misc]
+            self.assertEqual(
+                (pattern, code),
+                RULES[index],
+                f"{address!r} の添字 {index} が RULES の中身と違う",
+            )
+
+    def test_returns_none_when_nothing_matches(self) -> None:
+        for address in ("", "   ", None, "Main Street", "19-6 Higashimarunouchi"):
+            self.assertIsNone(matched_rule(address), f"{address!r} を断言している")
 
 
 class RulesAreDefinedOnlyOnceTest(unittest.TestCase):

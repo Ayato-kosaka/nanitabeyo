@@ -42,6 +42,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from country_resolution import matched_rule  # noqa: E402
 from pg_sync_common import connect_postgres  # noqa: E402
 from pipeline_common import configure_logging  # noqa: E402
 
@@ -98,17 +99,37 @@ def main() -> None:
             LOGGER.info("    国が引けない: %d行  ← ここが 0 でないと NOT NULL にできない", ng)
 
             # アプリ製の国の内訳。'JP' 以外があるなら «一律 JP» は誤りだと分かる。
+            #
+            # #1881 **座標の範囲も一緒に出す。** 国コードだけを並べても «その値が合って
+            # いるか» は人が判定できない。実際に `GE`（ジョージア）308 行が出たときに
+            # 「`DE`（ドイツ）の間違いではないか」を疑ったが、**確かめる材料がその場に
+            # 無かった**ので保留になった。座標の箱を添えれば、コーカサス（41-43N /
+            # 40-47E）と中欧（47-55N / 6-15E）はひと目で見分けられる。
+            #
+            # ⚠️ 国ごとの正しい矩形は持っていない（国境のポリゴンが要る）。ここが出すのは
+            #    **人が «その国と言われて納得できるか» を判定するための材料**であって、
+            #    機械的な合否ではない。合否を出せるふりをしない。
             cursor.execute(
                 f"""
-                SELECT {COUNTRY_EXPR} AS cc, COUNT(*)
+                SELECT {COUNTRY_EXPR} AS cc, COUNT(*),
+                       round(min(latitude)::numeric, 1), round(max(latitude)::numeric, 1),
+                       round(min(longitude)::numeric, 1), round(max(longitude)::numeric, 1)
                 FROM restaurants
                 WHERE created_by_source <> 'pipeline'
                 GROUP BY 1 ORDER BY 2 DESC LIMIT 20
                 """
             )
-            LOGGER.info("アプリ製の国の内訳:")
-            for cc, count in cursor.fetchall():
-                LOGGER.info("  %-6s %d行", cc if cc else "(引けない)", count)
+            LOGGER.info("アプリ製の国の内訳（座標の箱は «納得できるか» の材料。合否ではない）:")
+            for cc, count, lat_min, lat_max, lon_min, lon_max in cursor.fetchall():
+                LOGGER.info(
+                    "  %-6s %6d行  lat %6s〜%-6s lon %7s〜%-7s",
+                    cc if cc else "(引けない)",
+                    count,
+                    lat_min,
+                    lat_max,
+                    lon_min,
+                    lon_max,
+                )
 
             # 形式が ISO-3166-1 alpha-2 になっているか（CHECK 制約を張れるか）
             cursor.execute(
@@ -192,9 +213,37 @@ def main() -> None:
             LOGGER.info("  合計（下限）             %d行", subtotal)
 
             # 例を出す。数字だけだと «本当に日本でないのか» を人が確かめられない。
+            #
+            # #1881 【設計】**«誰が付けた JP なのか» も一緒に出す。**
+            #
+            # 2026-09-24 に残り 8 行まで減ったあと、«全部アプリ製» までは分かったが
+            # **どこから `'JP'` が来たのかが分からず、直し方を決められなかった**。
+            # 候補は 3 つあり、手当てが全く違う。
+            #
+            #   1. `address_components` の country が本当に JP（Google がそう返した）
+            #   2. `address_components` は KR なのに列が JP（列を書いた経路の誤り）
+            #   3. `address_components` に country が無く、別の経路が JP を入れた
+            #
+            # 行ごとに «列の値 / components の country / 作成元» を並べれば、
+            # 次に見る人がコードを読まずに切り分けられる。
+            #
+            # #1881 【設計】**住所と «当たった規則» も出す。** 2026-09-24 の run
+            # 35974852677 は «全部パイプライン製 / components の国は無し» までは
+            # 出せたが、そこで詰まった。国コードは住所から決まる（`country_resolution`）
+            # のに、**その入力である住所を出していなかった**ので、
+            #
+            #   - 住所の綴りが KR と JP で衝突している（規則を直す）のか
+            #   - 住所が空で、古い JP が同期から取り残されている（同期を直す）のか
+            #
+            # を区別できなかった。規則は 25 本あり、**当たった 1 本が分かれば
+            # 手当ては一意に決まる**。判定は `matched_rule()` を呼んで出す
+            # （正本をここへ写経すると #1881 の «循環する検証» が再発する）。
             cursor.execute(
-                """
-                SELECT name, latitude, longitude
+                f"""
+                SELECT name, latitude, longitude, created_by_source,
+                       {COUNTRY_EXPR} AS components_country,
+                       source_row_hash IS NOT NULL AS pipeline_wrote_values,
+                       address
                 FROM restaurants
                 WHERE country_code = 'JP'
                   AND latitude BETWEEN 34.0 AND 43.0
@@ -203,8 +252,33 @@ def main() -> None:
                 LIMIT 10
                 """
             )
-            for name, lat, lon in cursor.fetchall():
-                LOGGER.info("    例: (%.3f, %.3f) %s", lat, lon, name)
+            for (
+                name,
+                lat,
+                lon,
+                created_by_source,
+                components_country,
+                pipeline_wrote_values,
+                address,
+            ) in cursor.fetchall():
+                LOGGER.info(
+                    "    例: (%.3f, %.3f) %-28s 作成元=%-8s components の国=%-6s "
+                    "パイプラインが中身を書いた=%s",
+                    lat,
+                    lon,
+                    name,
+                    created_by_source,
+                    components_country if components_country else "(無し)",
+                    pipeline_wrote_values,
+                )
+                hit = matched_rule(address)
+                LOGGER.info(
+                    "         住所=%s / 住所から引くと=%s（規則 #%s: %s）",
+                    repr(address) if address else "(空)",
+                    hit[2] if hit else "(決められない)",
+                    hit[0] if hit else "-",
+                    hit[1] if hit else "-",
+                )
     finally:
         connection.rollback()
         connection.close()

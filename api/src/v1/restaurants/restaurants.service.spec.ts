@@ -219,10 +219,11 @@ describe('RestaurantsService.createRestaurant', () => {
 
     await service.createRestaurant(dto);
 
-    expect(dishesRepository.createOrGetRestaurant).toHaveBeenCalledWith(
-      TX,
-      expect.objectContaining({ image_url: '', image_path: null }),
-      PLACE_ID,
-    );
+    const [, data] = dishesRepository.createOrGetRestaurant.mock.calls[0];
+    // #1779 `image_url` は 2026-09-24 に列ごと削除した（migration 20260924T0100）。
+    // ⚠️ «空文字が入っていること» ではなく **キーが無いこと**を縛る。
+    //    存在しない列を指定すると INSERT が落ちるので、空文字でも書いてはいけない。
+    expect(data).not.toHaveProperty('image_url');
+    expect(data.image_path).toBeNull();
   });
 });

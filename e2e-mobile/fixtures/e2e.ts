@@ -3,7 +3,8 @@ import { by, device, element, expect as detoxExpect, waitFor } from "detox";
 import { ensureFreshSession } from "../utils/freshSession";
 import {
 	E2E_LOCALE,
-	getAndroidSystemLocale,
+	describeAndroidLocaleProps,
+	getAndroidRuntimeLocale,
 	iosLanguageAndLocale,
 	localeDeepLink,
 	warnIfAndroidLocaleMismatch,
@@ -419,17 +420,29 @@ export const describeProbe: typeof describe = isProbeEnabled() ? describe : desc
  * （e2e-mobile-test.yml の adb setprop）、ローカルの手元エミュレータでは固定されていないことがある。
  * その場合に **120 秒待ってから失敗する**のは調査コストが高いので、spec ごと skip して理由を明示する。
  *
- * 判定は Android のシステムロケールのみを見る（iOS は launchApp の `languageAndLocale` で
- * 常に固定されるため。`getAndroidSystemLocale()` は iOS / adb 不在時に null を返すので skip しない）。
+ * 判定は Android の**実行時**ロケールのみを見る（iOS は launchApp の `languageAndLocale` で
+ * 常に固定されるため。`getAndroidRuntimeLocale()` は iOS / adb 不在時に null を返すので skip しない）。
+ *
+ * ⚠️ #1579 【バグ】**skip してよいのは «ja-JP ではない» と観測できたときだけである。**
+ * 観測できなかったとき（null）に skip すると、端末は ja-JP なのに spec が黙って消える。
+ * 2026-09-28 / 09-29 の夜間 Android が実際にそれで、`am get-config` の一瞬の失敗が
+ * `ro.product.locale`（AVD の作りつけ = `en-US`）へ落ちて «en-US だと観測できた» になっていた
+ * （経緯と run の一覧は {@link getAndroidRuntimeLocale}）。**観測できないなら走らせる。**
+ * ロケールが本当に違えば ja-JP の文言セレクタが落ちるので、黙って消えるより落ちる方が正しい。
  *
  * @example
  * describeJapaneseLocale("検索チュートリアル", () => { ... });
  */
 export const describeJapaneseLocale: typeof describe = (() => {
-	const androidLocale = getAndroidSystemLocale();
-	if (androidLocale !== null && androidLocale !== E2E_LOCALE) {
+	const androidLocale = getAndroidRuntimeLocale();
+	if (androidLocale === null) {
+		// iOS / adb 不在では毎 spec 出てしまうので、ここでは警告しない
+		// （Android CI での観測失敗は launchApp 時の warnIfAndroidLocaleMismatch() が 1 回出す）
+		return describe;
+	}
+	if (androidLocale !== E2E_LOCALE) {
 		console.warn(
-			`⚠️ Android ロケールが ${E2E_LOCALE} ではない（現在: ${androidLocale}）ため、ja-JP 前提の spec を skip します。`,
+			`⚠️ Android の実行時ロケールが ${E2E_LOCALE} ではない（${androidLocale} / ${describeAndroidLocaleProps()}）ため、ja-JP 前提の spec を skip します。`,
 		);
 		return describe.skip;
 	}

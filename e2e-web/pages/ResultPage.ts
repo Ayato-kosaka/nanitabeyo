@@ -33,9 +33,19 @@ export class ResultPage {
 	constructor(page: Page) {
 		this.page = page;
 		this.closeButton = page.getByTestId("result-close-button");
-		// フィードには複数カードが積まれるため、操作時は .first() 等で表示中カードに絞ること
-		this.likeButton = page.getByTestId("dish-action-like");
-		this.saveButton = page.getByTestId("dish-action-save");
+		/*
+		#1579 / #1944 ⚠️ **素の `dish-action-like` を掴まないこと。**
+
+		フィードは前後のセルも描く。#1944 でアプリ側が «いま前面のカード» のボタンにだけ
+		`-active` を付けるようになったので、**素の id は画面外の隣のカードにしか付かない**。
+		`.first()` で絞っても «見えていない隣» を掴むことになる（Detox 側で同じ事故を起こしたのが #1579）。
+
+		09-21 の夜間で `dish-media-accessibility` が «element(s) not found» で落ち、
+		`reaction-rollback` 3 件と `dish-media-unarrived-excluded` 2 件が flaky になったのは、
+		**mobile 側だけ追随して web を直し忘れた**ためである。
+		*/
+		this.likeButton = page.getByTestId("dish-action-like-active");
+		this.saveButton = page.getByTestId("dish-action-save-active");
 		this.moreButton = page.getByTestId("dish-action-more");
 		this.reportButton = page.getByTestId("dish-action-report");
 		this.reportSheet = page.getByTestId("report-sheet");

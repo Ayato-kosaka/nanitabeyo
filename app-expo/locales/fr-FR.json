@@ -763,7 +763,52 @@
 					"official_site": "le site du restaurant",
 					"user": "un signalement d’utilisateur",
 					"owner": "le restaurant"
+				},
+				"showAll": "Tous les jours",
+				"hideAll": "Réduire"
+			},
+			"reviews": {
+				"empty": {
+					"title": "Aucune publication pour l’instant",
+					"description": "Dès que vous enregistrez un plat d’ici comme mangé, il apparaît dans cet onglet."
+				},
+				"error": {
+					"title": "Impossible de charger les publications"
 				}
+			}
+		},
+		"report": {
+			"action": "Information incorrecte",
+			"title": "Information incorrecte",
+			"description": "Indiquez ce qui est faux et envoyez. Nous vérifions avant toute modification : rien ne change immédiatement.",
+			"fields": {
+				"name": "Nom de l'établissement",
+				"closed": "Définitivement fermé",
+				"opening_hours": "Horaires"
+			},
+			"valueLabel": {
+				"name": "Nom correct",
+				"opening_hours": "Horaires corrects"
+			},
+			"valuePlaceholder": {
+				"name": "Ex. : Chez Paul",
+				"opening_hours": "Ex. : lun–ven 11h00–14h00 / 17h00–22h00, fermé le week-end"
+			},
+			"submit": "Envoyer",
+			"submitting": "Envoi...",
+			"accepted": {
+				"title": "Bien reçu",
+				"description": "Nous vérifierons avant d'appliquer un changement. Le résultat ne vous sera pas communiqué individuellement.",
+				"close": "Fermer"
+			},
+			"errors": {
+				"submitFailed": "Envoi impossible. Veuillez réessayer."
+			},
+			"accessibility": {
+				"open": "Signaler une information incorrecte pour {{name}}",
+				"field": "Élément : {{field}}",
+				"fieldSelected": "Élément : {{field}} (sélectionné)",
+				"submit": "Envoyer la correction pour {{name}}"
 			}
 		}
 	},

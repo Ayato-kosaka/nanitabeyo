@@ -64,6 +64,8 @@ export function useCandidateDishMediaCache({
 				});
 				if (searchContext) {
 					showGoogleMapsFallbackDialog({
+						// 候補の保存済みステータスが empty。サーバが «0 件» と答えている
+						reason: "empty",
 						category: candidate.displayName,
 						location: searchContext.location,
 						locale,
@@ -107,6 +109,8 @@ export function useCandidateDishMediaCache({
 				// cache API は同時更新に負けた場合も永続化済みの候補を返すため、ローカル検索結果ではなくレスポンスを真実にする。
 				if (cacheResponse.dishMediaSearchStatus === "empty") {
 					showGoogleMapsFallbackDialog({
+						// cache API のレスポンスが empty。サーバが «0 件» と答えている
+						reason: "empty",
 						category: candidate.displayName,
 						location: searchContext.location,
 						locale,
@@ -127,6 +131,8 @@ export function useCandidateDishMediaCache({
 					},
 				});
 				showGoogleMapsFallbackDialog({
+					// #843 catch 節。取得に失敗しているので «0 件» ではない（Places の日次上限 429 など）
+					reason: "fetch_failed",
 					category: candidate.displayName,
 					location: searchContext.location,
 					locale,

@@ -55,6 +55,9 @@ import { selectGooglePlaceReviews } from './select-google-place-reviews';
 import { normalizeLanguageCode } from '../../../../shared/utils/languageCode';
 import { computePriceBand } from '../../../../shared/utils/priceBand';
 
+// #819 Google の photoUri は原寸を指している。表示するサイズへ書き換えて返す
+import { withGooglePhotoWidth } from '../../core/external-api/google-photo-uri';
+
 @Injectable()
 export class DishesService {
   constructor(
@@ -114,17 +117,31 @@ export class DishesService {
       throw new Error('Restaurant not found');
     }
 
-    // レストランの住所情報からローカル言語コードを推測。
-    // #1671 ⚠️ **列も渡すこと。** パイプライン製の行は address_components が '[]' で
-    // （dev の 99.60% がそう）、渡さないと 'en' へ落ちて日本の店に英語の料理名が付く。
-    // 実測で全料理の 92.44%（36,051 件）がこれで英語名になっていた。
-    const languageCode = this.locationsService.resolveLocalLanguageCode(
-      restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[],
-      {
-        countryCode: restaurant.country_code,
-        subterritoryCode: restaurant.subterritory_code,
-      },
-    );
+    /*
+      レストランの住所情報からローカル言語コードを推測する。
+
+      #1671 ⚠️ **列を渡すこと。** パイプライン製の行は `address_components` が `'[]'` で
+      （dev の 99.60% がそう）、渡さないと `'en'` へ落ちて日本の店に英語の料理名が付く。
+      実測で全料理の 92.44%（36,051 件）がこれで英語名になっていた。
+
+      #1779 【設計】**`address_components` は渡さない（`[]` を渡す）。**
+
+      あの列は Google 由来の住所そのもので Places ToS 3.2.3 により保持できないため
+      落とす。落ちたあとに読もうとすると、この経路が実行時に壊れる。
+
+      ⚠️ **失うものは測ってある**（dev / 2026-09-24 / run 35963398137）。
+      `address_components` を持つ 2,479 行のうち:
+
+      - `country_code` 列が空なのは **12 行**。ここだけが `'en'` へ落ちる
+      - «州で言語が変わる国»（BE/CA/CH/ES/GB/IN/ZA）で `subterritory_code` が空なのは
+        **27 行**。ここはその国の第 1 言語が使われる（GB→en / ES→es 等）
+
+      残る 99.60% は元から列だけで動いているので、挙動は変わらない。
+    */
+    const languageCode = this.locationsService.resolveLocalLanguageCode([], {
+      countryCode: restaurant.country_code,
+      subterritoryCode: restaurant.subterritory_code,
+    });
 
     /*
       #1779 【削除】`dishes.name` へ «推測名» を入れるのをやめた。
@@ -504,16 +521,24 @@ export class DishesService {
             existingGoogleImportEntry?.restaurant.longitude ??
             place.location!.longitude!,
           location: existingGoogleImportEntry?.restaurant.location ?? null,
-          // #1779 `image_url` は削除予定の列（Google の写真 URI をそのまま持つため
-          // Places ToS 3.2.3 に反する）。**新しく値を作らない。**
+          // #1779 `image_url` は **2026-09-24 に列ごと削除した**（migration 20260924T0100）。
           // 表示は `image_path` 由来の `imageUrls` から組み立てる（#1680 / #1902）。
-          image_url: '',
           image_path: mediaPath,
-          address_components:
-            existingGoogleImportEntry?.restaurant.address_components ??
-            JSON.parse(JSON.stringify(place.addressComponents)),
-          // #1779 `plus_code` も削除予定の列で、読み手が 1 つも無い。値を作らない。
-          plus_code: null,
+          // #1779 【設計】**Google の addressComponents を保存しない。**
+          //
+          // 同じ経路の `image_url` は #1680、`plus_code` は #2015 で既に «値を
+          // 作らない» になっていた。**`address_components` だけが残っていた。**
+          // ToS 3.2.3 が無期限の保存を許すのは `place_id` だけである。
+          //
+          // ⚠️ **読み手はもう 1 つも無い。** 確認ページは列へ移し（#2035）、
+          //    料理の命名も `country_code` / `subterritory_code` 列から決めるように
+          //    したので（このファイルの上の方）、保存しても誰も読まない。
+          //
+          // ⚠️ **#1780 の «現状維持» を破っていない。** あれは «Google 一括取り込み
+          //    そのものを #1264 まで残す» という判断で、**生データを保存し続ける**
+          //    という判断ではない（同じ判断ログが «保存しない» と書いている）。
+          //    取り込みは動いたまま、保存だけをやめる。
+          //
           created_at:
             existingGoogleImportEntry?.restaurant.created_at ??
             new Date().toISOString(),
@@ -541,8 +566,7 @@ export class DishesService {
           id: existingGoogleImportEntry?.dish.id ?? 'unknown',
           restaurant_id: restaurant.id,
           category_id: dto.categoryId,
-          // #1779 `dishes.name` は廃止する列なので値を作らない（読み手ゼロ）
-          name: null,
+          // #1779 `dishes.name` は **2026-09-24 に列ごと削除した**（migration 20260924T0100）。
           created_at:
             existingGoogleImportEntry?.dish.created_at ??
             new Date().toISOString(),
@@ -550,8 +574,8 @@ export class DishesService {
             existingGoogleImportEntry?.dish.updated_at ??
             new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish.lock_no ?? 0,
-          // #843 catalog 同期ではない行の既定値（DB 側の DEFAULT と同じ）
-          data_origin: 'user_or_google',
+          // #1779 `data_origin` は **2026-09-24 に列ごと削除した**（migration 20260924T0100）。
+          // 同じ区別は `synced_at` で付く（dev 実測で 1 対 1）。
           synced_at: null,
         };
 
@@ -751,8 +775,10 @@ export class DishesService {
             imageUrls: {
               // canSkipPhotoMedia は existingGoogleImportEntry がある場合のみ true になるため、
               // 新規作成パスに到達した時点で photoMedia は必ず取得済み。
-              sm: photoMedia!.photoUri,
-              md: photoMedia!.photoUri,
+              // #819 幅は GCS 側で焼くサイズと同じにする（restaurants.assembler.ts: sm 64 / md 256）。
+              // 原寸のまま返すと 1 枚 9.5 MB のことがあり、表示枠は 40〜64px である。
+              sm: withGooglePhotoWidth(photoMedia!.photoUri, 64),
+              md: withGooglePhotoWidth(photoMedia!.photoUri, 256),
             },
           },
           dish: {
@@ -789,8 +815,9 @@ export class DishesService {
             ...dishMedia,
             media_processing_status: 'completed', // クライアント側には処理済みの画像を返す
             thumbnail_processing_status: 'completed',
-            mediaUrl: photoMedia!.photoUri,
-            thumbnailImageUrl: photoMedia!.photoUri,
+            // #819 mediaUrl は全画面の表示上限（1,024px）、thumbnail は dish_media が焼いている 256px に合わせる
+            mediaUrl: withGooglePhotoWidth(photoMedia!.photoUri, 1024),
+            thumbnailImageUrl: withGooglePhotoWidth(photoMedia!.photoUri, 256),
             isMine: false, // インポートなので自分のものではない
             isSaved: false, // 初期状態では保存されていない
             isLiked: false, // 初期状態ではいいねされていない
@@ -883,9 +910,8 @@ export class DishesService {
             tx,
             {
               ...convertSupabaseToPrisma_Restaurants(restaurant),
-              address_components:
-                restaurant.address_components as Prisma.InputJsonValue,
-              plus_code: restaurant.plus_code as Prisma.InputJsonValue,
+              // #1779 `address_components` / `plus_code` は **2026-09-24 に列ごと削除した**
+              // （migration 20260924T0100）。ToS 3.2.3 で保存してよいのは `place_id` だけ。
             },
             restaurant.google_place_id,
           );
@@ -945,17 +971,18 @@ export class DishesService {
       restaurant: {
         ...entry.restaurant,
         // #1779 `image_url` はレスポンス契約から外した。表示用 URL は imageUrls で返す
+        // #819 原寸ではなく表示するサイズを渡す（サイズの根拠は google-photo-uri.ts）
         imageUrls: {
-          sm: photoUri,
-          md: photoUri,
+          sm: withGooglePhotoWidth(photoUri, 64),
+          md: withGooglePhotoWidth(photoUri, 256),
         },
       },
       dish_media: {
         ...entry.dish_media,
         media_processing_status: 'completed',
         thumbnail_processing_status: 'completed',
-        mediaUrl: photoUri,
-        thumbnailImageUrl: photoUri,
+        mediaUrl: withGooglePhotoWidth(photoUri, 1024),
+        thumbnailImageUrl: withGooglePhotoWidth(photoUri, 256),
       },
     };
   }

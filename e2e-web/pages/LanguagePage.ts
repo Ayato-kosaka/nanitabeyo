@@ -32,7 +32,14 @@ export class LanguagePage {
 		this.headerTitle = page.getByTestId("language-header-title");
 		this.backButton = page.getByTestId("language-header-back");
 		this.switchingOverlay = page.getByTestId("language-switching-overlay");
-		this.options = page.locator('[data-testid^="language-option-"]');
+		/*
+		#1944 ⚠️ **前方一致は «その prefix を共有する子孫» が足された瞬間に二重に数える。**
+		行の中のラベルへ `language-option-<key>-label` が足されたとき、この locator は
+		8 行を **16 件**として数え、09-21 の夜間で `toHaveCount` が落ちた。
+		アプリ側はラベルを `language-label-<key>`（prefix の外）へ改名したが、
+		同じ事故を繰り返さないよう **ここでも子孫を除外しておく**。
+		*/
+		this.options = page.locator('[data-testid^="language-option-"]:not([data-testid*="-label"])');
 	}
 
 	/**

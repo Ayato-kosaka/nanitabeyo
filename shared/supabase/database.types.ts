@@ -813,10 +813,8 @@ export type Database = {
         Row: {
           category_id: string
           created_at: string
-          data_origin: string
           id: string
           lock_no: number
-          name: string | null
           restaurant_id: string
           synced_at: string | null
           updated_at: string
@@ -824,10 +822,8 @@ export type Database = {
         Insert: {
           category_id: string
           created_at?: string
-          data_origin?: string
           id?: string
           lock_no?: number
-          name?: string | null
           restaurant_id: string
           synced_at?: string | null
           updated_at?: string
@@ -835,10 +831,8 @@ export type Database = {
         Update: {
           category_id?: string
           created_at?: string
-          data_origin?: string
           id?: string
           lock_no?: number
-          name?: string | null
           restaurant_id?: string
           synced_at?: string | null
           updated_at?: string
@@ -1419,23 +1413,76 @@ export type Database = {
           },
         ]
       }
+      restaurant_reports: {
+        Row: {
+          created_at: string
+          created_version: string
+          field: string
+          github_issue_number: number | null
+          id: string
+          lock_no: number
+          proposed_value: string | null
+          reporter_user_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          restaurant_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_version?: string
+          field: string
+          github_issue_number?: number | null
+          id?: string
+          lock_no?: number
+          proposed_value?: string | null
+          reporter_user_id: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          restaurant_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_version?: string
+          field?: string
+          github_issue_number?: number | null
+          id?: string
+          lock_no?: number
+          proposed_value?: string | null
+          reporter_user_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          restaurant_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_reports_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null
-          address_components: Json
           country_code: string | null
           created_at: string
           created_by_source: string
           google_place_id: string
           id: string
           image_path: string | null
-          image_url: string
           latitude: number
           location: unknown
           longitude: number
           name: string
           name_language_code: string
-          plus_code: Json | null
           source_names: string[]
           source_row_hash: string | null
           source_seed_id: string | null
@@ -1444,20 +1491,17 @@ export type Database = {
         }
         Insert: {
           address?: string | null
-          address_components: Json
           country_code?: string | null
           created_at?: string
           created_by_source?: string
           google_place_id: string
           id?: string
           image_path?: string | null
-          image_url?: string
           latitude: number
           location?: unknown
           longitude: number
           name: string
           name_language_code: string
-          plus_code?: Json | null
           source_names?: string[]
           source_row_hash?: string | null
           source_seed_id?: string | null
@@ -1466,20 +1510,17 @@ export type Database = {
         }
         Update: {
           address?: string | null
-          address_components?: Json
           country_code?: string | null
           created_at?: string
           created_by_source?: string
           google_place_id?: string
           id?: string
           image_path?: string | null
-          image_url?: string
           latitude?: number
           location?: unknown
           longitude?: number
           name?: string
           name_language_code?: string
-          plus_code?: Json | null
           source_names?: string[]
           source_row_hash?: string | null
           source_seed_id?: string | null

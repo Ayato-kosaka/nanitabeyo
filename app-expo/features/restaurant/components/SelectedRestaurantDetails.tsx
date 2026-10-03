@@ -49,7 +49,7 @@ map 側の店詳細は本番から到達不能で、入札の導線は事実上�
 
 import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
-import { MapPin } from "lucide-react-native";
+import { MapPin, MessageSquareWarning } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -63,6 +63,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { RestaurantAvatar } from "@/components/RestaurantAvatar";
 import { RestaurantOpeningHours } from "@/features/restaurant/components/RestaurantOpeningHours";
+import { ReportRestaurantSheet } from "@/features/restaurant/components/ReportRestaurantSheet";
 import type { GetRestaurantOpeningHoursResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
@@ -151,6 +152,20 @@ export function SelectedRestaurantDetails({ restaurantEntry, openingHours }: Sel
 	`google_place_id` が無い店（理論上は無いはずだが型は optional）だけは、
 	従来どおり直接外部へ出す。
 	*/
+	// #1933 «この情報が違う» の報告シート。開閉だけを持つ（店の表示はこの操作で変わらない）
+	const [reportVisible, setReportVisible] = useState(false);
+
+	/**
+	 * #1933 «この情報が違う» を開く。
+	 *
+	 * ⚠️ **この操作で店の表示を変えない。** 受け入れ条件 5（報告してもその場では変わらない）を
+	 * 守っているのは «シートが店のストアを触らないこと» なので、ここで先読みの更新を入れない。
+	 */
+	const handleOpenReport = useCallback(() => {
+		lightImpact();
+		setReportVisible(true);
+	}, [lightImpact]);
+
 	const handleOpenGoogleMaps = useCallback(async () => {
 		lightImpact();
 		logFrontendEvent({
@@ -285,10 +300,24 @@ export function SelectedRestaurantDetails({ restaurantEntry, openingHours }: Sel
 					{/* #1666 営業時間。**データを持たない店では何も描かない**（コンポーネント側で null を返す）。
 					    «営業中» のバッジは出さない（判定が JST 固定で、海外の店では嘘になる） */}
 					<RestaurantOpeningHours hours={openingHours ?? null} />
+					{/* #1933 «この情報が違う» の入口。
+					    ⚠️ **赤にしない。** この面の赤は «Google マップで開く» で既に 1 箇所使っており、
+					    デザインガイドライン §1 は «2 つ目以降のボタンは灰» と決めている。
+					    ⚠️ ただし «押せない説明文と同じ見た目» にもしない（同 §3）。
+					    アイコン + 下線 + 44dp のタップ領域で «押せる» を出す。 */}
+					<TouchableOpacity
+						style={styles.reportEntry}
+						onPress={handleOpenReport}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Restaurant.report.accessibility.open", { name: restaurant.name })}
+						testID="restaurant-detail-report-button">
+						<MessageSquareWarning size={14} color={colors.textSecondary} />
+						<Text style={styles.reportEntryLabel}>{i18n.t("Restaurant.report.action")}</Text>
+					</TouchableOpacity>
 				</Card>
 			</View>
 		),
-		[handleHeaderLayout, restaurant, meta, openingHours, handleOpenGoogleMaps, colors, styles],
+		[handleHeaderLayout, restaurant, meta, openingHours, handleOpenGoogleMaps, handleOpenReport, colors, styles],
 	);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
@@ -308,6 +337,18 @@ export function SelectedRestaurantDetails({ restaurantEntry, openingHours }: Sel
 					<RestaurantReviewsTab restaurantId={restaurant.id} onItemPress={handleDishMediaPress} />
 				</Tabs.Tab>
 			</Tabs.Container>
+			{/* #1933 報告シート。Modal なので描く位置はレイアウトに影響しない。
+			    ⚠️ **閉じたときに unmount させる**（`visible` だけで出し入れすると、
+			    前回の選択・入力が次に開いたときに残って誤送信になる。シート側も初期化するが、
+			    «残らない» を 2 重で担保する） */}
+			{reportVisible ? (
+				<ReportRestaurantSheet
+					visible
+					restaurantId={restaurant.id}
+					restaurantName={restaurant.name}
+					onClose={() => setReportVisible(false)}
+				/>
+			) : null}
 		</View>
 	);
 }
@@ -318,6 +359,20 @@ const createStyles = (c: Palette) =>
 			flexDirection: "row",
 			alignItems: "center",
 			marginVertical: 4,
+		},
+		// #1933 «この情報が違う» の入口。灰の文字ボタン（赤はこの面で 1 箇所だけ）。
+		// minHeight 44 はタップ領域の下限（#1671 で «押せない» を実機で踏んでいる）
+		reportEntry: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 6,
+			minHeight: 44,
+		},
+		reportEntryLabel: {
+			fontSize: 13,
+			color: c.textSecondary,
+			textDecorationLine: "underline",
 		},
 		restaurantAvatar: {
 			width: 60,

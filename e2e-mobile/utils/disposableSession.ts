@@ -120,8 +120,12 @@ export async function createDisposableAuthenticatedSession(): Promise<E2ESession
  * 発行した使い捨てセッションを revoke する（後始末）。
  *
  * ⚠️ `scope: "local"` で revoke すること。`global` にすると **共有セッション（globalSetup 発行）まで
- * 失効させ**、後続の `tests/authenticated/` を壊す（utils/revokeSessions.ts が run 終了時に行う
- * `global` な revoke は、run の最後だからこそ許されている）。
+ * 失効させ**、後続の `tests/authenticated/` を壊す。
+ *
+ * #2001 【訂正】ここにはかつて「run の最後に行う global な revoke（utils/revokeSessions.ts）は
+ * 許されている」と書いてあったが、**これが間違いだった**。Android ジョブと iOS ジョブは同じ
+ * workflow run の中で並走しているので、**片方の «run の最後» はもう片方の «run の途中»** である。
+ * revokeSessions.ts も local へ直した。後始末の scope は run の長さと関係なく local にすること。
  *
  * @param session 発行した使い捨てセッション
  * @失敗時 **例外を投げない**（警告のみ）。後始末の失敗で run を赤にしても得るものが無いため

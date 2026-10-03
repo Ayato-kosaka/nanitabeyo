@@ -38,6 +38,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import i18n from "@/lib/i18n";
 import type { DeleteMeResponse } from "@shared/api/v1/res";
+import { useAndroidHardwareBack } from "@/hooks/useAndroidHardwareBack";
 
 export default function AccountSettingsScreen() {
 	const styles = useThemedStyles(createStyles);
@@ -80,6 +81,10 @@ export default function AccountSettingsScreen() {
 		}
 		router.replace({ pathname: "/[locale]/(tabs)/profile", params: { locale } });
 	}, [lightImpact, logFrontendEvent, locale]);
+
+	// #1961 システムの戻る（Android）も、この画面の戻る導線へ倒す。
+	// 繋がないと、共有リンクで着地したときスタックが 1 枚なので OS がアプリを終了する。
+	useAndroidHardwareBack(handleBack);
 
 	// ログアウト処理を実行
 	// #950 【仕様】破壊的操作(セッション破棄)のため、押下直後に実行せず確認ダイアログを挟む

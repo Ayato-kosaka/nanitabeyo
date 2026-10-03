@@ -23,8 +23,12 @@ UI を変更したら、**納品前に自分でレンダリングして自分の
    ENV
    npx expo start --web --port 8081
 
-   ⚠️ 撮り終えたら app-expo/.env は必ず消すこと（残すと typecheck 用の
-   .expo/types が dev server に再生成されるだけで害は無いが、紛らわしい）。
+   ⚠️ 撮り終えたら **app-expo/.env と app-expo/.expo を両方消すこと**。
+   ⚠️ **«害は無い» は誤りだった（2026-09-24 実測）。** dev server は
+   `.expo/types/router.d.ts`（expo-router のルート型）を作り直すが、これが
+   **ルート一覧を取りこぼした形で残る**ことがあり、次の `pnpm --filter app-expo typecheck`
+   が `app/s/[token].tsx` の `router.replace("/ja-JP")` で TS2345 になる。
+   自分の変更のせいだと読み違える。`rm -rf app-expo/.expo` で直る。
 
 2. このスクリプトを叩く（e2e-web の依存で動く）
 
@@ -536,6 +540,9 @@ await context.route("**/localhost:9999/**", (r) => {
 				meta: { averageRating: 3.9, reviewCount: 4 },
 			},
 		]);
+	// #1264 «投稿が 1 件も無い店» を撮るための口。本番の自社 UGC は 90 日で 21 件しか無く、
+	//       ほとんどの店がこちら側である。`r-empty` のときだけ空で返す
+	if (/\/v1\/restaurants\/r-empty\/dish-media$/.test(p)) return env({ data: [], nextCursor: null });
 	if (/\/v1\/restaurants\/[^/]+\/dish-media$/.test(p))
 		return env({
 			data: [1, 2, 3, 4].map((n) => ({
@@ -584,19 +591,6 @@ await context.route("**/localhost:9999/**", (r) => {
 			sources: ["official_site", "osm"],
 			fetchedAt: "2026-09-06T13:25:55.000Z",
 		});
-	// 店舗詳細を URL 直リンクで開いたとき（ストアのキャッシュが無い経路）
-	if (/\/v1\/restaurants\/[^/]+$/.test(p))
-		return env({
-			restaurant: {
-				id: "r-1",
-				name: "醤油ラーメン一番",
-				google_place_id: "ChIJpreview1",
-				latitude: 35.6595,
-				longitude: 139.7005,
-				imageUrls: { sm: "https://img.example.invalid/r.jpg", md: "https://img.example.invalid/r.jpg" },
-			},
-			meta: { reviewCount: 12, averageRating: 4.2, totalCents: 0, maxEndDate: null },
-		});
 	// #1671 新規店舗の確認ページの下読み（保存しない）
 	if (p.endsWith("/v1/restaurants/draft"))
 		return env({
@@ -613,6 +607,33 @@ await context.route("**/localhost:9999/**", (r) => {
 			},
 			draftToken: "rdt1.preview.token",
 		});
+	// ⚠️ **`/v1/restaurants/:id` は «/v1/restaurants/ の下の 1 階層» を全部拾う。**
+	//    `…/draft` のような **決め打ちのサブパスは、必ずこれより先に**判定すること
+	//    （メソッドを見ていないので POST /v1/restaurants/draft もこの正規表現に当たる）。
+	//    実際 2026-09-24 に draft がこれに飲まれており、確認ページは下読みに失敗して
+	//    `router.back()` で戻るため、**撮れていたのは 1 つ前の画面だった**。
+	//    `…/opening-hours` `…/dish-media` も同じ理由で上に置いてある。
+	// 店舗詳細を URL 直リンクで開いたとき（ストアのキャッシュが無い経路）
+	//
+	// ⚠️ **`id` は URL の id をそのまま返すこと。** 固定値を返していたため、
+	//    `/restaurant/r-empty` を開いても画面が `restaurant.id = "r-1"` を掴み、
+	//    タブは `/v1/restaurants/r-1/dish-media` を引いていた（2026-09-24 に実測）。
+	//    «別の店を開いたのに同じ店の中身が出る» ので、空の面が撮れない。
+	if (/\/v1\/restaurants\/[^/]+$/.test(p))
+		return env({
+			restaurant: {
+				id: p.split("/").pop(),
+				name: "醤油ラーメン一番",
+				google_place_id: "ChIJpreview1",
+				latitude: 35.6595,
+				longitude: 139.7005,
+				imageUrls: { sm: "https://img.example.invalid/r.jpg", md: "https://img.example.invalid/r.jpg" },
+			},
+			meta: { reviewCount: 12, averageRating: 4.2, totalCents: 0, maxEndDate: null },
+		});
+	// #1933 «この情報が違う» の受付。受付番号だけを返す（画面はこれで «受け付けました» へ進む）
+	if (p.endsWith("/v1/restaurant-reports"))
+		return env({ reportId: "00000000-0000-4000-8000-0000000009aa", status: "pending", alreadyReported: false });
 	if (p.includes("/v1/logs")) return env({});
 	return env({});
 });
@@ -874,5 +895,58 @@ await page
 	.catch((e) => console.log("opening-hours wait:", e.message));
 await page.waitForTimeout(1500);
 await shot("restaurant-opening-hours");
+
+// 8. #1933 «この情報が違う» の報告シート（入口 → 項目を選ぶ → 値を入れる → 受付）
+//    ⚠️ 撮るのは «入口が押せること» と «送ったあと画面が «受け付けました» で止まること»。
+//       店の情報がその場で変わらない（受け入れ条件 5）のは、この 4 枚を並べれば目で分かる
+await page
+	.getByTestId("restaurant-detail-report-button")
+	.click()
+	.catch((e) => console.log("report open:", e.message));
+await page.waitForTimeout(900);
+await shot("restaurant-report-1-fields");
+
+// 値を伴わない項目（閉店した）: 入力欄が出ないことを撮る
+await page
+	.getByTestId("restaurant-report-field-closed")
+	.click()
+	.catch((e) => console.log("report closed:", e.message));
+await page.waitForTimeout(600);
+await shot("restaurant-report-2-closed-no-input");
+
+// 値を伴う項目（営業時間）: 入力欄が **空で** 出ることを撮る
+await page
+	.getByTestId("restaurant-report-field-opening_hours")
+	.click()
+	.catch((e) => console.log("report hours:", e.message));
+await page.waitForTimeout(600);
+await shot("restaurant-report-3-hours-empty-input");
+
+await page
+	.getByTestId("restaurant-report-value-input")
+	.fill("月〜金 11:00〜14:00 / 17:00〜22:00、土日祝 休み")
+	.catch((e) => console.log("report fill:", e.message));
+await page.waitForTimeout(400);
+await shot("restaurant-report-4-filled");
+
+await page
+	.getByTestId("restaurant-report-submit")
+	.click()
+	.catch((e) => console.log("report submit:", e.message));
+await page
+	.getByTestId("restaurant-report-accepted")
+	.waitFor({ timeout: 30000 })
+	.catch((e) => console.log("report accepted wait:", e.message));
+await page.waitForTimeout(600);
+await shot("restaurant-report-5-accepted");
+
+// 9. #1264 投稿が 1 件も無い店。**見出しの下が真っ白** だったところに «レビューなし» を出す
+await goto("/ja-JP/restaurant/r-empty");
+await page
+	.getByTestId("restaurant-reviews-empty")
+	.waitFor({ timeout: 60000 })
+	.catch((e) => console.log("reviews empty wait:", e.message));
+await page.waitForTimeout(800);
+await shot("restaurant-reviews-empty");
 
 await browser.close();

@@ -86,7 +86,7 @@ WITH
         r.latitude,
         r.longitude,
           r.image_path,
-        r.address_components,
+          -- #1779 address_components は SELECT しない（落とす列）
           r.created_at,
         -- #843 catalog 同期の metadata
         r.source_seed_id,

@@ -4,7 +4,8 @@ import { revokeAllSessions } from "../utils/revokeSessions";
  * 🧹 Jest globalTeardown（Detox 公式 globalTeardown のラッパー）
  *
  * ## 役割
- * 1. この run で発行したセッションを **`signOut({ scope: "global" })` で revoke する**（#1030 レビュー B-2 の MUST）
+ * 1. この run で発行したセッションを **`signOut({ scope: "local" })` で revoke する**（#1030 レビュー B-2 の MUST）
+ *    ⚠️ scope は local。global にすると並走中の別ジョブのセッションまで失効する（#2001 / utils/revokeSessions.ts 参照）
  * 2. Detox 公式の globalTeardown を呼ぶ（デバイスの後始末）
  *
  * ## ⚠️ Detox の globalTeardown は「置き換え」てはならない（#1030 レビュー M-6）

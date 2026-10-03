@@ -269,6 +269,31 @@ GROUP BY 1, 2 ORDER BY 1, 2
 `locale_initialized` が直前にあればアプリのコールドスタート、`signInAnonymously` が
 直後にあればその時点まで無セッション、というように**周辺のログが状態を語る**。
 
+## 同じ flush バッチの中では `timestamp` が順序の証拠にならない
+
+上の «前後のイベント列を並べる» をやるときに必ず踏む。`timestamp` は **Cloud Run がログを
+書いた時刻＝ flush の時刻**なので、同じバッチに入った 20 件は**全部ほぼ同じ値**になる。
+`ORDER BY timestamp` で «A の後に B が起きた» と読むと、**バッチ内では並び順が偶然で決まる**。
+
+イベントが起きた時刻は `jsonPayload.created_at`（`app-expo/hooks/useLogger.ts` が
+enqueue の瞬間に `new Date().toISOString()` で押す）の側にある。
+
+```sql
+-- 順序を問うときは created_at で並べる（timestamp は窓の枝刈りにだけ使う）
+SELECT jsonPayload.created_at AS created_at, jsonPayload.event_name AS event_name
+FROM `food-scroll.nanitabeyo_logs_prod.run_googleapis_com_stdout`
+WHERE timestamp >= TIMESTAMP '{{WINDOW_START}}'
+  AND timestamp <  TIMESTAMP '{{WINDOW_END}}'
+  AND jsonPayload.user_id = '{{USER_ID}}'
+ORDER BY jsonPayload.created_at
+```
+
+⚠️ **`timestamp` を WHERE から外さないこと。** パーティション枝刈りはこちらにしか効かない
+（`created_at` で絞ると全期間を舐める）。**窓は `timestamp`、順序は `created_at`** と使い分ける。
+
+実例（2026-09-10）: バッチ内の並びを時系列と読んで «B が原因で A が起きた» と因果を逆に組み立てかけた。
+5 秒の粒度より細かい順序は、この列でしか分からない。
+
 ## ビューを使うと 18.4GB/日 かかる
 
 `frontend_event_logs` などのビューは `created_at` が計算列（`TO_JSON_STRING(jsonPayload)` を含む）で、

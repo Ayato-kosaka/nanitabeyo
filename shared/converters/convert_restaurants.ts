@@ -7,11 +7,22 @@ export type PrismaRestaurants = Omit<Prisma.RestaurantsGroupByOutputType, '_coun
 export type SupabaseRestaurants = TableRow<'restaurants'>;
 
 /**
+ * #1779 `image_url` / `plus_code` / `address_components` は **2026-09-24 に dev から
+ * 実際に削除した**（migration `20260924T0100_drop_google_derived_columns.sql`）。
+ *
+ * ⚠️ もう «渡されなくてもよい列» ではなく **存在しない列**である。
+ *    `DROPPED_COLUMNS` を `keyof` の制約として使う形は、列が消えた瞬間に
+ *    `TS2344` で落ちる（実際に落ちた: run 35990341765）。型から名前ごと消すのが正しい。
+ */
+
+/**
  * Supabase 型 → Prisma 型 に変換
  * @param supabase 通信用の Supabase 型オブジェクト
  * @returns アプリ内部用の Prisma 型オブジェクト
  */
-export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurants): PrismaRestaurants {
+export function convertSupabaseToPrisma_Restaurants(
+  supabase: SupabaseRestaurants,
+): PrismaRestaurants {
   return {
     id: supabase.id,
     google_place_id: supabase.google_place_id,
@@ -20,7 +31,6 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     latitude: supabase.latitude,
     longitude: supabase.longitude,
 
-    image_url: supabase.image_url,
     image_path: supabase.image_path,
     // #843 その行を誰が作ったか（user / owner / pipeline / manual）。
     // 9_1 の同期はこの値が 'pipeline' の行だけを上書きする。
@@ -32,8 +42,6 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     // #1671 州・県の識別子。ISO 3166-2 «風» だが ISO そのものではない
     // （値は country_code + '-' + Google の administrative_area_level_1.shortText）。
     subterritory_code: supabase.subterritory_code,
-    address_components: supabase.address_components,
-    plus_code: supabase.plus_code,
     created_at: new Date(supabase.created_at),
     // #843 店提案 catalog との名寄せ監査用の metadata（migration 20260823T0000）
     source_seed_id: supabase.source_seed_id,
@@ -48,20 +56,7 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
  * @param prisma アプリ内部で操作される Prisma 型オブジェクト
  * @returns API 通信用の Supabase 型オブジェクト
  */
-/**
- * #1779 落とす列（image_url / plus_code）は **渡されなくてもよい**。
- *
- * 読み手（`restaurants.repository.ts` の `ReadableRestaurant`）は既にこの 2 列を
- * SELECT していない。列が実際に DB から落ちたら、この 2 行と下の 2 つの `??` を消す
- * （`infra/supabase/migrations/README.md`「手で追従させるのは shared/converters/ だけ」）。
- */
-type PrismaRestaurantsForResponse = Omit<
-  PrismaRestaurants,
-  'image_url' | 'plus_code'
-> &
-  Partial<Pick<PrismaRestaurants, 'image_url' | 'plus_code'>>;
-
-export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurantsForResponse): SupabaseRestaurants {
+export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): SupabaseRestaurants {
   return {
     id: prisma.id,
     google_place_id: prisma.google_place_id,
@@ -70,14 +65,11 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurantsFor
     latitude: prisma.latitude,
     longitude: prisma.longitude,
     location: null,
-    image_url: prisma.image_url ?? '',
     image_path: prisma.image_path,
     created_by_source: prisma.created_by_source,
     address: prisma.address,
     country_code: prisma.country_code,
     subterritory_code: prisma.subterritory_code,
-    address_components: prisma.address_components,
-    plus_code: prisma.plus_code ?? null,
     created_at: prisma.created_at?.toISOString() ?? null,
     source_seed_id: prisma.source_seed_id,
     source_names: prisma.source_names,

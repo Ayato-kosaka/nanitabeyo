@@ -51,6 +51,9 @@ from importlib import import_module  # noqa: E402
 
 _crawler = import_module("6_3_crawl_official_site_hours")
 CANDIDATE_SQL = _crawler.CANDIDATE_SQL
+# ⚠️ **並びを名指しで取る。** ここが測るのは «md5 の並びの中で何番目か» なので、
+#    クローラの既定が変わってもこちらの数字の意味が変わらないようにしてある。
+ORDER_BY_SEED = _crawler.ORDER_BY_SEED
 CRAWL_SOURCE = _crawler.SOURCE
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -151,11 +154,42 @@ DOW_SQL = """
 
 # 東京駅から近い順 KNN_LIMIT 件のうち、営業時間を持つ店が何店あるか。
 # ⚠️ 番人と同じ «KNN で候補を絞ってから» の形にする。半径で絞ると別のものを測る。
+#
+# #1666 【設計】**«いま何店あるか» だけでなく «上限は何店か» も一緒に出す。**
+#
+# 2026-09-24、東京駅の窓は 26/1,000 だった。この数字だけでは
+# «クロールを続ければ埋まるのか、そもそも埋まらないのか» が分からず、
+# 「この水準で完了と言えるか」をオーナーへ出せない。上限を決めるのは
+#
+#   1. **website を持つ店が窓に何店あるか** — 公式サイトで取れる母数。ここが天井
+#   2. **source 別の内訳** — OSM が既に稼いでいる分と、クロールで増えた分
+#   3. **窓が実際に何メートルまで届いているか** — `--near-radius-m` に渡す値。
+#      ⚠️ これを推測で決めると «半径が広すぎて窓の外を歩く» に戻る（+9 しか動かなかった原因）
+#
+# ⚠️ website の条件は `6_3` の候補条件と**同じ形**で書く。ずれると
+#    «母数はあるのにクローラが行かない» が «母数が無い» に見える。
+WEBSITE_EXISTS = """
+    EXISTS (
+      SELECT 1 FROM restaurant_links l
+      WHERE l.restaurant_id = c.id
+        AND l.kind = 'website'
+        AND NULLIF(btrim(l.value), '') IS NOT NULL
+        AND l.value ~* '^https?://'
+    )
+"""
+
+# ⚠️ 距離の式を **ORDER BY へ書き出す**。`ORDER BY 2` のような位置指定にすると
+#    KNN インデックスが使われる保証が無く、62 万行で statement timeout に落ちる。
+#    そのために位置パラメータ（%s）ではなく **名前付き**にしてある（同じ値を 2 回渡せる）。
+_NEAREST = "r.location <-> ST_SetSRID(ST_MakePoint(%(lng)s, %(lat)s), 4326)::geography"
+
 REACH_SQL = f"""
   WITH candidates AS (
-    SELECT r.id
+    SELECT
+      r.id,
+      {_NEAREST} AS distance_m
     FROM restaurants r
-    ORDER BY r.location <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography
+    ORDER BY {_NEAREST}
     LIMIT {KNN_LIMIT}
   )
   SELECT
@@ -165,8 +199,35 @@ REACH_SQL = f"""
     )) AS with_any_hours,
     count(*) FILTER (WHERE EXISTS (
       SELECT 1 FROM restaurant_opening_hours roh
-      WHERE roh.restaurant_id = c.id AND roh.day_of_week = %s
-    )) AS with_hours_today
+      WHERE roh.restaurant_id = c.id AND roh.day_of_week = %(dow)s
+    )) AS with_hours_today,
+    count(*) FILTER (WHERE {WEBSITE_EXISTS}) AS with_website,
+    count(*) FILTER (WHERE EXISTS (
+      SELECT 1 FROM restaurant_opening_hours roh
+      WHERE roh.restaurant_id = c.id AND roh.source = 'official_site'
+    )) AS with_official_site_hours,
+    count(*) FILTER (WHERE EXISTS (
+      SELECT 1 FROM restaurant_opening_hours roh
+      WHERE roh.restaurant_id = c.id AND roh.source = 'osm'
+    )) AS with_osm_hours,
+    -- ⚠️ **«まだクロールしていない» ではない。** website はあるが official_site の行が
+    --    無い店、つまり «**まだ歩いていない** か **歩いたが取れなかった**» の合計である。
+    --
+    --    #1666 【設計】2026-09-24 に `website_not_yet_crawled` という名前で出していて、
+    --    **私がそれを «未訪問» と読んで «歩けば 19.7%% で取れる» と見積もり、
+    --    東京駅を 24.3%% まで上げられると報告した。誤りだった。**
+    --    実際には東京駅の 634 店はすでに全部歩いてあり（run 35978146756 が 700 件）、
+    --    残り 582 店は **歩いて失敗した店**だった（dry-run が同じ 582 件を再提示する）。
+    --    再訪しても同じ失敗を繰り返すだけで、ほぼ 1 件も増えない。
+    --
+    --    ⚠️ **区別できないのはクローラが «失敗した試行» を記録していないから**である。
+    --    `restaurant_opening_hours` には成功した行しか入らないので、DB からは
+    --    «未訪問» と «訪問して失敗» を見分けられない。見分けたいなら試行の記録が要る。
+    count(*) FILTER (WHERE {WEBSITE_EXISTS} AND NOT EXISTS (
+      SELECT 1 FROM restaurant_opening_hours roh
+      WHERE roh.restaurant_id = c.id AND roh.source = 'official_site'
+    )) AS website_without_official_site_hours,
+    max(c.distance_m)::int AS window_radius_m
   FROM candidates c
 """
 
@@ -213,16 +274,42 @@ def main() -> int:
             logger.info("接続先: user=%s db=%s schema=%s", user, db, args.schema)
             logger.info("今日の day_of_week（0=日曜）: %s", dow_today)
 
-            cur.execute(TOTALS_SQL)
-            totals = cur.fetchall()
+            # #1666 【設計】**1 本が時間切れになっても、取れた分は捨てない。**
+            #
+            # 2026-09-23、dev でこのスクリプトが «候補の並び» のクエリで
+            # `statement timeout` に当たり、**その前に成功していた 3 本ぶんの集計まで
+            # 道連れで失われた**（[run 35888800398]）。全部のクエリを先に流してから
+            # まとめて表示する作りだったためである。
+            #
+            # 測りに来たのに «1 本も数字が出ない» のがいちばん困るので、
+            # ①各セクションは取れた直後に出す ②時間切れはそのセクションだけ諦める
+            # の 2 点に変える。⚠️ 諦めたことは **必ず出力に残す**
+            # （黙って欠けると «0 件» と区別が付かない。#1898 と同じ形）。
+            failed_sections: list[str] = []
 
-            cur.execute(DOW_SQL)
-            dows = cur.fetchall()
+            def run_section(label: str, sql: str, params=None):
+                """1 セクションぶんのクエリ。時間切れなら None を返して先へ進む。"""
+                try:
+                    cur.execute(sql, params)
+                    return cur.fetchall()
+                except psycopg2.errors.QueryCanceled:
+                    # ⚠️ 例外でトランザクションが中断しているので、次のクエリの前に戻す
+                    conn.rollback()
+                    cur.execute("SET default_transaction_read_only = on")
+                    cur.execute(f'SET search_path TO "{args.schema}", extensions')
+                    logger.warning("⏱️ %s は statement timeout で取れませんでした", label)
+                    failed_sections.append(label)
+                    return None
 
-            cur.execute(FETCHED_AT_SQL)
-            fetched = cur.fetchall()
+            totals = run_section("source 別の集計", TOTALS_SQL)
+            dows = run_section("day_of_week 別の集計", DOW_SQL)
+            fetched = run_section("公式サイト由来の取得時刻", FETCHED_AT_SQL)
 
-            candidate_sql = CANDIDATE_SQL.format(schema=args.schema, only_missing="")
+            # #1666 `near=""` で «全国» のままにする。ここは «クローラが歩く順» を
+            # 測る場所なので、エリアで絞ってはいけない（絞ると rank の意味が変わる）。
+            candidate_sql = CANDIDATE_SQL.format(
+                schema=args.schema, only_missing="", near="", order=ORDER_BY_SEED
+            )
             rank_params = {
                 "country": args.country,
                 "seed": args.seed,
@@ -231,16 +318,28 @@ def main() -> int:
                 "source": CRAWL_SOURCE,
                 "cutoff": args.crashed_before,
             }
-            cur.execute(RANK_SQL.format(candidate_sql=candidate_sql), rank_params)
-            ranks = cur.fetchall()
+            ranks = run_section(
+                "候補の並び（rank）", RANK_SQL.format(candidate_sql=candidate_sql), rank_params
+            )
+            histogram = run_section(
+                "候補の並びのヒストグラム",
+                HISTOGRAM_SQL.format(candidate_sql=candidate_sql),
+                rank_params,
+            )
 
-            cur.execute(HISTOGRAM_SQL.format(candidate_sql=candidate_sql), rank_params)
-            histogram = cur.fetchall()
-
+            # ⚠️ ここがこのスクリプトの**主目的**（番人の «0 行 ✅» の切り分け）なので、
+            #    上の重いクエリが落ちても必ず試す。1 地点ずつ独立に扱う
             reach = []
             for label, lng, lat in POINTS:
-                cur.execute(REACH_SQL, (lng, lat, dow_today))
-                reach.append((label, *cur.fetchone()))
+                row = run_section(
+                    f"近い順の到達（{label}）",
+                    REACH_SQL,
+                    {"lng": lng, "lat": lat, "dow": dow_today},
+                )
+                if row:
+                    reach.append((label, *row[0]))
+
+            result["failed_sections"] = failed_sections
 
     logger.info("")
     logger.info("=" * 78)
@@ -249,24 +348,30 @@ def main() -> int:
 
     logger.info("")
     logger.info("## restaurant_opening_hours（source 別）")
+    if totals is None:
+        logger.info("  （statement timeout で取れませんでした）")
     result["by_source"] = {}
-    for source, rows, restaurants in totals:
+    for source, rows, restaurants in totals or ():
         logger.info("  %-16s : %10s 行 / %8s 店", source, f"{rows:,}", f"{restaurants:,}")
         result["by_source"][source] = {"rows": rows, "restaurants": restaurants}
 
     logger.info("")
     logger.info("## day_of_week 別（0=日曜 … 6=土曜）")
+    if dows is None:
+        logger.info("  （statement timeout で取れませんでした）")
     result["by_dow"] = {}
-    for dow, rows in dows:
+    for dow, rows in dows or ():
         mark = "  ← 今日" if dow == dow_today else ""
         logger.info("  %s : %10s 行%s", dow, f"{rows:,}", mark)
         result["by_dow"][str(dow)] = rows
 
     logger.info("")
     logger.info("## 公式サイト由来の行が取れた時刻（1 時間ごと）")
+    if fetched is None:
+        logger.info("  （statement timeout で取れませんでした）")
     logger.info("   ⚠️ 後半へ極端に偏っていれば、前半で何かが起きていた")
     result["official_site_fetched_at"] = {}
-    for hour, rows, restaurants in fetched:
+    for hour, rows, restaurants in fetched or ():
         logger.info("  %s : %8s 行 / %6s 店", hour, f"{rows:,}", f"{restaurants:,}")
         result["official_site_fetched_at"][str(hour)] = {
             "rows": rows,
@@ -275,11 +380,13 @@ def main() -> int:
 
     logger.info("")
     logger.info("## 候補の並び（md5(restaurant_id || seed)）の何番目で読めたか")
+    if ranks is None:
+        logger.info("  （statement timeout で取れませんでした）")
     logger.info("   crashed  = 途中で落ちた回（〜07:41）が書いた店")
     logger.info("   completed = 通した回（08:40〜13:25）が書いた店")
     logger.info("   ⚠️ 2 つの rank が重なっていなければ «前半は既に読めなかった店だけ» である")
     result["rank_by_run"] = {}
-    for run, stores, mn, p25, med, p75, mx in ranks:
+    for run, stores, mn, p25, med, p75, mx in ranks or ():
         logger.info(
             "  %-10s : %4s 店 / rank min=%s p25=%s 中央=%s p75=%s max=%s",
             run,
@@ -301,8 +408,10 @@ def main() -> int:
 
     logger.info("")
     logger.info("## 同じ並びで 500 件ごとに «読めた店»")
+    if histogram is None:
+        logger.info("  （statement timeout で取れませんでした）")
     result["rank_histogram"] = {}
-    for bucket, crashed, completed in histogram:
+    for bucket, crashed, completed in histogram or ():
         logger.info(
             "  %6s-%-6s : 落ちた回 %3s 店 / 通した回 %3s 店",
             f"{bucket:,}",
@@ -319,7 +428,17 @@ def main() -> int:
     logger.info("## 近い順 %s 件のうち、営業時間を持つ店", f"{KNN_LIMIT:,}")
     logger.info("   ⚠️ ここが 0 なら、番人の «0 行 ✅» は «当たっていないから 0» である")
     result["reach"] = {}
-    for label, candidates, with_any, with_today in reach:
+    for (
+        label,
+        candidates,
+        with_any,
+        with_today,
+        with_website,
+        with_official,
+        with_osm,
+        without_hours,
+        window_radius_m,
+    ) in reach:
         logger.info(
             "  %-8s : 候補 %s 件 / 営業時間あり %s 店 / 今日の曜日の行あり %s 店",
             label,
@@ -327,12 +446,36 @@ def main() -> int:
             f"{with_any:,}",
             f"{with_today:,}",
         )
+        # 上限と内訳。«続ければ埋まるのか» はこの 3 つで決まる
+        logger.info(
+            "             内訳: official_site %s 店 / osm %s 店",
+            f"{with_official:,}",
+            f"{with_osm:,}",
+        )
+        logger.info(
+            "             上限: website を持つ店 %s 店"
+            "（うち official_site の行が無い %s 店 = 未訪問 + 訪問して失敗）"
+            " / この窓の半径 %s m",
+            f"{with_website:,}",
+            f"{without_hours:,}",
+            f"{window_radius_m:,}",
+        )
         result["reach"][label] = {
             "candidates": candidates,
             "with_any_hours": with_any,
             "with_hours_today": with_today,
+            "with_website": with_website,
+            "with_official_site_hours": with_official,
+            "with_osm_hours": with_osm,
+            "website_without_official_site_hours": without_hours,
+            "window_radius_m": window_radius_m,
         }
 
+    logger.info("")
+    if result.get("failed_sections"):
+        logger.info("⏱️ statement timeout で取れなかったセクション: %s",
+                    ", ".join(result["failed_sections"]))
+        logger.info("   ⚠️ **これは «0 件» ではない。** 測れなかっただけである")
     logger.info("")
     logger.info("=" * 78)
     logger.info("# JSON（機械可読）")

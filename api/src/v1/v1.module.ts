@@ -17,6 +17,7 @@ import { ContributionTasksModule } from './contribution-tasks/contribution-tasks
 import { DishCategoryGroupVotesModule } from './dish-category-group-votes/dish-category-group-votes.module';
 import { ShareLinksModule } from './share-links/share-links.module';
 import { ContentReportsModule } from './content-reports/content-reports.module';
+import { RestaurantReportsModule } from './restaurant-reports/restaurant-reports.module';
 import { MapsModule } from './maps/maps.module';
 
 @Module({
@@ -40,6 +41,7 @@ import { MapsModule } from './maps/maps.module';
     DishCategoryGroupVotesModule,
     ShareLinksModule,
     ContentReportsModule,
+    RestaurantReportsModule,
   ],
 })
 export class V1Module {}

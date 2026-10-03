@@ -100,10 +100,18 @@ gcloud services enable \
   --project="${PROJECT_ID}" --quiet
 
 # ----- 2. Create Service Account ---------------------------------------------
-if ! gcloud iam service-accounts list \
+# ⚠️ **`… | grep -q` にしないこと（#2075）。** このスクリプトは `pipefail` で走る。
+#    `grep -q` は最初の一致で即座に終わるので上流の `gcloud` が SIGPIPE で殺され、
+#    `pipefail` が **その 141 をパイプライン全体の終了コードにする**。
+#    ⚠️ **否定形（`! … | grep -q`）はもっと悪い。141 も «非ゼロ» なので `!` が true にし、
+#    «既に在るものを無い» と判定して作りに行く**。`set -e` の下では次の作成が
+#    「already exists」で落ちるので、このスクリプトが謳っている **冪等性が崩れる**。
+#    だから **一度変数へ受けてから** `grep` する（#2075 で 141 を実測済み）。
+existing_service_account="$(gcloud iam service-accounts list \
   --project="${PROJECT_ID}" \
   --filter="email=${SA_EMAIL}" \
-  --format="value(email)" | grep -q "${SA_EMAIL}"; then
+  --format="value(email)")"
+if ! grep -q "${SA_EMAIL}" <<< "${existing_service_account}"; then
   echo "✅ Creating Service Account…"
   gcloud iam service-accounts create "${SA_NAME}" \
     --description="Play Store submission & FCM (optional)" \

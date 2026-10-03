@@ -9,6 +9,9 @@
 2. ログイン済みで押すと restaurantId / dishMediaId 付きで review-from-media へ push すること
 の 2 点を固定する。「済」表示は付けない仕様（dish_reviews は再訪＝別レビューが正しい）なので、
 トグル状態の検証はしない。
+
+⚠️ #1264 でこのファイルはもう «食べた» 専用ではない。レール上の **遷移するボタン**（食べた /
+店舗詳細）をまとめて見る。モックが同じなので分けない（写経した複製を作らない）。
 */
 import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
@@ -295,5 +298,81 @@ describe("#1375 / #1834 記録済み・保存済みの色", () => {
 		);
 		await press(tree, "dish-action-eaten");
 		expect(mockPush).toHaveBeenCalledTimes(1);
+	});
+});
+
+
+/*
+#1264 【設計】結果フィードから店舗詳細へ行く導線。
+
+#1071 が «押しても何も起きないので出さない / 画面が実装されたら復活させる» として落としていた
+ボタンを、条件が満たされたので復活させた。ここで固定するのは 3 点。
+
+1. 押すと店舗詳細ルートへ **restaurantId 付きで** push すること（#1071 のコメントに残っていた
+   `/(tabs)/(home)/restaurant/1` は存在しないルートなので、そこへ戻さない）
+2. **ゲストにも出す**こと。レビューを読むのに認証は要らない（like/save と同じ扱い）
+3. 店の写真が無いときは **アイコンに倒す**こと。空の丸を出さない
+   （`imageUrls` は `image_path` 由来で、無い店がある / #1680 #1902）
+
+本番 90 日の実測では、検索結果まで来た 15,936 人のうち店舗詳細へ着いたのは 21 人（0.13%）だった。
+*/
+describe("#1264 ActionButtons の店舗詳細への導線", () => {
+	it("押すと restaurantId 付きで店舗詳細ルートへ push する", async () => {
+		mockUseAuth.mockReturnValue({ user: { id: "user-1", is_anonymous: false }, isAuthResolved: true });
+
+		const tree = await render(
+			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
+		);
+
+		expect(exists(tree, "dish-action-restaurant")).toBe(true);
+
+		await press(tree, "dish-action-restaurant");
+
+		expect(mockPush).toHaveBeenCalledTimes(1);
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/restaurant/[restaurantId]",
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
+		});
+	});
+
+	it("ゲストにも出す（レビューを読むのに認証は要らない）", async () => {
+		mockUseAuth.mockReturnValue({ user: { id: "anon-1", is_anonymous: true }, isAuthResolved: true });
+
+		const tree = await render(
+			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
+		);
+
+		// «食べた» はゲストに出さないが、こちらは出す。ゲスト判定をレール全体へ広げていないことを見る
+		expect(exists(tree, "dish-action-eaten")).toBe(false);
+		expect(exists(tree, "dish-action-restaurant")).toBe(true);
+	});
+
+	it("店の写真が無ければアイコンに倒す（空の丸を出さない）", async () => {
+		mockUseAuth.mockReturnValue({ user: { id: "user-1", is_anonymous: false }, isAuthResolved: true });
+
+		const tree = await render(
+			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
+		);
+
+		// entry は imageUrls を持たない（上のダミー）。lucide のモックは testID を icon-<名前> で出す
+		expect(exists(tree, "icon-Store")).toBe(true);
+	});
+
+	it("店の写真があればアイコンではなく写真を出す", async () => {
+		mockUseAuth.mockReturnValue({ user: { id: "user-1", is_anonymous: false }, isAuthResolved: true });
+		useDishMediaEntriesStore.getState().clearByKey();
+		useDishMediaEntriesStore.getState().upsertDishMediaEntries([
+			{
+				...entry,
+				restaurant: { ...entry.restaurant, imageUrls: { sm: "https://cdn.example.test/r.webp" } },
+			} as unknown as DishMediaEntry,
+		]);
+
+		const tree = await render(
+			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
+		);
+
+		expect(exists(tree, "dish-action-restaurant")).toBe(true);
+		expect(exists(tree, "icon-Store")).toBe(false);
 	});
 });
