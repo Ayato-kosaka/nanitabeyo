@@ -67,6 +67,11 @@
 | 2026-09-06 | Google Places Text Search の**日次クォータの引き上げ**（= 課金） | **しない。** 429 / `EXTERNAL_QUOTA_EXCEEDED` が何件・何人に出ていても、**枠を上げる案を出さない**。構造的な脱却（[#843](https://github.com/Ayato-kosaka/nanitabeyo/issues/843)）だけが打ち手である |
 | 2026-09-03 | Google レビューの保存をやめるか | **現状維持** |
 | 2026-08-31 | オープンデータに無い店の住所・電話・サイトをどう埋めるか（4 案） | **オーナーが決めるまで置く**（[#1744](https://github.com/Ayato-kosaka/nanitabeyo/issues/1744)）。こちらから急かさない |
+| 2026-09-03 | **Google を外す «ゴールライン»** を引くか（いつまでに依存 0 にするか） | **いまは決めない。** 期限を置かない前提で進める。[#843](https://github.com/Ayato-kosaka/nanitabeyo/issues/843) のクローズ基準も、これに伴って未確定のままにしてある |
+| 2026-09-03 | Google 一括取り込み（bulk-import）で**写真を自社 Storage へ保存するのをやめるか** | **現状維持。** 止めたのは POI 経路と新規店の 2 つだけで（[#1780](https://github.com/Ayato-kosaka/nanitabeyo/issues/1780)）、一括取り込みは残すと決めた |
+| 2026-09-02 | `restaurants.google_place_id` を **nullable にするか** | **しない。** NOT NULL のまま external ID として扱う（[#1318](https://github.com/Ayato-kosaka/nanitabeyo/issues/1318)） |
+| 2026-09-04 | [#1781](https://github.com/Ayato-kosaka/nanitabeyo/issues/1781) の **«月額上限の設定»** を完了条件に残すか | **外す。** GCP コンソール側の操作で、こちらからは設定も確認もできない |
+| 2026-10-03 | [#2006](https://github.com/Ayato-kosaka/nanitabeyo/issues/2006) の **09-21 の引き金を追い続けるか** | **追わない。**「任せます」で «再発時に分かる仕組み» へ振り替え（PR #2110 / #2112）。Supabase 側のログは保持期間切れで、**今ダッシュボードを見ても分からない** |
 
 ⚠️ **この表へ足すのは、オーナーが «やらない» と決めた瞬間である。** そのターンのうちに書く。
 「あとで Issue に書く」をすると、次のセッションのこちらが同じことを聞く。
