@@ -44,9 +44,12 @@
 """
 
 import argparse
+import datetime as dt
+import json
 import logging
 import os
 import sys
+import time
 
 import psycopg2
 
@@ -65,6 +68,84 @@ def section(title: str) -> None:
     logger.info("%s", "=" * 78)
 
 
+def snapshot(cur) -> dict:
+    """定点観測する数値だけを 1 回で採る（#2006）。
+
+    ⚠️ **ここが «時系列として残す値» の唯一の定義である。**
+    人間向けの詳細セクションとは別に置いているのは、詳細の方は «調査するときに読むもの» で
+    書式が変わってよく、こちらは **過去と比べられること** が唯一の価値だからである。
+    列を増やすのは構わないが、**既にある列の意味を変えてはいけない**（過去と比較できなくなる）。
+
+    #2006 の教訓: 本番の API が 09-21 から 18〜23 倍遅くなり、dev と本番が同時刻に遅いことまでは
+    Cloud Logging で言えたが、**インスタンスが何を使い切ったのかは分からなかった**。
+    `pg_stat_activity` は履歴を持たないビューなので、権限をもらっても «過去» は見えない。
+    だから «次に起きたときに分かる» 側へ投資する。
+    """
+    out: dict = {"captured_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+
+    # 素の往復。アプリを通さないので «DB が重いのか» を一発で言える
+    t0 = time.perf_counter()
+    cur.execute("SELECT 1")
+    cur.fetchall()
+    out["select1_ms"] = round((time.perf_counter() - t0) * 1000, 1)
+
+    cur.execute("SHOW max_connections")
+    out["max_connections"] = int(cur.fetchone()[0])
+
+    # 接続の内訳。共有インスタンスなので «誰が占めているか» まで要る
+    cur.execute(
+        """
+        SELECT coalesce(usename, '(none)'), coalesce(state, '-'), count(*)
+        FROM pg_stat_activity GROUP BY 1, 2
+        """
+    )
+    by_user: dict = {}
+    total = active = idle_in_tx = 0
+    for user, state, n in cur.fetchall():
+        total += n
+        if state == "active":
+            active += n
+        elif state == "idle in transaction":
+            idle_in_tx += n
+        by_user[f"{user}/{state}"] = n
+    out.update(connections=total, active=active, idle_in_transaction=idle_in_tx, by_user=by_user)
+
+    # 一番長く走っているもの。«誰かが占有している» の有無
+    cur.execute(
+        """
+        SELECT coalesce(usename, '(none)'),
+               coalesce(wait_event_type || '/' || wait_event, '-'),
+               round(EXTRACT(EPOCH FROM (now() - query_start))::numeric, 1)
+        FROM pg_stat_activity
+        WHERE state <> 'idle' AND pid <> pg_backend_pid() AND query_start IS NOT NULL
+        ORDER BY 3 DESC NULLS LAST LIMIT 1
+        """
+    )
+    row = cur.fetchone()
+    out["longest_running"] = (
+        {"user": row[0], "wait": row[1], "seconds": float(row[2])} if row and row[2] is not None else None
+    )
+
+    # キャッシュから落ちていないか。#2006 では同じクエリが初回 1,439ms / warm 15ms（約 90 倍）で、
+    # «プランが崩れる» ではなく «キャッシュから落ちる» だけで桁が変わる形をしていた。
+    # ⚠️ blks_* は累計なので、**差分を取るのは読む側の仕事**である（ここでは生の累計を残す）
+    cur.execute(
+        """
+        SELECT coalesce(sum(blks_hit), 0), coalesce(sum(blks_read), 0),
+               coalesce(sum(temp_bytes), 0), coalesce(sum(temp_files), 0),
+               coalesce(sum(deadlocks), 0)
+        FROM pg_stat_database WHERE datname IS NOT NULL
+        """
+    )
+    hit, read, temp_bytes, temp_files, deadlocks = cur.fetchone()
+    out.update(
+        blks_hit=int(hit), blks_read=int(read),
+        cache_hit_pct=round(100.0 * hit / (hit + read), 3) if (hit + read) else None,
+        temp_bytes=int(temp_bytes), temp_files=int(temp_files), deadlocks=int(deadlocks),
+    )
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -78,6 +159,12 @@ def main() -> int:
         default="public",
         choices=("public", "dev"),
         help="ヒストグラムを採るスキーマ。dev を見るのは «共有インスタンスの相棒がいつ太ったか» を知るため",
+    )
+    parser.add_argument(
+        "--format",
+        default="text",
+        choices=("text", "json"),
+        help="json は snapshot() の 1 行だけを出す（定期実行して過去と比べるため。#2006）",
     )
     args = parser.parse_args()
 
@@ -96,14 +183,19 @@ def main() -> int:
         with conn.cursor() as cur:
             cur.execute("SET statement_timeout = '15s'")
 
+            # 定点観測モード。**人間向けのセクションを 1 つも出さない。**
+            # 出力が 1 行であることが «後から機械で拾える» の前提なので、ここで返る
+            if args.format == "json":
+                print(json.dumps(snapshot(cur), ensure_ascii=False, sort_keys=True))
+                return 0
+
             # ── 1. 素の応答速度 ──────────────────────────────────────────
             section("1. 素の応答速度（いまインスタンスが重いか）")
-            import time as _t
             for label, sql in (("SELECT 1", "SELECT 1"), ("now()", "SELECT now()")):
-                t0 = _t.perf_counter()
+                t0 = time.perf_counter()
                 cur.execute(sql)
                 cur.fetchall()
-                logger.info("  %-12s %8.1f ms", label, (_t.perf_counter() - t0) * 1000)
+                logger.info("  %-12s %8.1f ms", label, (time.perf_counter() - t0) * 1000)
 
             # ── 2. いま走っているもの（インスタンス全体・長い順）─────────
             section("2. 実行中のクエリ（idle 以外・長い順・インスタンス全体）")
