@@ -40,12 +40,35 @@ REPO = "Ayato-kosaka/nanitabeyo"
 WORKFLOW = "db-instance-snapshot.yml"
 
 
+class _DropAuthOnRedirect(urllib.request.HTTPRedirectHandler):
+    """リダイレクト先へ Authorization を持ち越さない。
+
+    ⚠️ **ログ取得（`actions/jobs/{id}/logs`）は Azure Blob へ 302 する。**
+    `urllib` は既定でヘッダを維持したまま追うので、Azure が
+    `HTTP 401 Server failed to authenticate the request` を返す
+    （実測。curl は既定でホストを越えると auth を落とすので気づきにくい）。
+    GitHub の署名付き URL 自体に認可が入っているため、ヘッダは不要である。
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None:
+            new.headers = {k: v for k, v in new.headers.items() if k.lower() != "authorization"}
+            new.unredirected_hdrs = {
+                k: v for k, v in getattr(new, "unredirected_hdrs", {}).items() if k.lower() != "authorization"
+            }
+        return new
+
+
+_OPENER = urllib.request.build_opener(_DropAuthOnRedirect)
+
+
 def _api(path: str, token: str, raw: bool = False):
     req = urllib.request.Request(
         f"https://api.github.com/repos/{REPO}/{path}",
         headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
     )
-    with urllib.request.urlopen(req) as res:
+    with _OPENER.open(req) as res:
         body = res.read()
     return body.decode("utf-8", "replace") if raw else json.loads(body)
 
