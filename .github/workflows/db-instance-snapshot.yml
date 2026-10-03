@@ -1,0 +1,94 @@
+name: DB Instance Snapshot
+
+# 📈 Supabase インスタンスの状態を 30 分ごとに 1 行の JSON で残す（#2006）。
+#
+# ## なぜ要るのか
+#
+# 2026-09-21 から本番の `/v1/dish-media/search` が p95 1.7 秒 → 31 秒（18〜23 倍）になり、
+# 30 秒タイムアウトで 27 人が空振りした。09-24 に**こちらが何も適用しないまま自然に戻った**。
+#
+# 切り分けはここまで進んだ（すべて Cloud Logging / BigQuery だけで言えた）。
+#
+# - 遅延の 93% は `$queryRaw` 1 本の中。SQL 自体は本番実測で 13〜49ms（warm）
+# - デプロイ 0 本・本番データは 09-02 以降フラット。**コードもデータも動いていない**
+# - dev と本番が**同じ時刻に**遅くなる → 共有している Postgres インスタンス側の事象
+#
+# 最後の 1 段「**インスタンスが何を使い切ったのか**」だけが分からなかった。理由は単純で、
+# `pg_stat_activity` は履歴を持たないビューであり、**権限をもらっても «過去» は見えない**。
+# 事象が去ったあとに調べ始めても、もう何も残っていない。
+#
+# だから原因追及ではなく «次に起きたときに分かる» 側へ投資する。
+# ⚠️ **これは «直した» ではない。** 同じことは再発する。再発したときに、
+# 遅かった時刻のインスタンスの状態を**後から**読めるようにするのがこの workflow の役目である。
+#
+# ## 何を残すか / 残さないか
+#
+# 残す値の定義は `scripts/db-checks/diagnose_instance_load.py` の `snapshot()` **だけ**にある。
+# ここへ SQL を書き写さないこと（2 箇所に書いた判定は必ずずれる）。
+#
+# ⚠️ **保存先はこの job のログである（保持 90 日）。** BigQuery へ書けばもっと長く持てるが、
+# 実行 SA（feature-correction-writer）の dataEditor は `wikidata_food_graph` だけなので
+# 新しい権限が要る。90 日で足りなくなったらそのとき申請する（#2006 の窓は 3 日だった）。
+#
+# ## 読み方
+#
+# ```bash
+# python3 scripts/ops-checks/read_instance_snapshots.py --hours 72
+# ```
+#
+# ## 負荷
+#
+# 読むのは `pg_stat_activity` / `pg_stat_database` / `SHOW` だけで、いずれもカタログビューである。
+# 実テーブルを 1 行も読まない。接続は read-only、`statement_timeout` は 15 秒。
+# 30 分間隔にしたのは、#2006 の «遅い窓» がいずれも数時間だったため（分単位の解像度は要らない）。
+
+on:
+  schedule:
+    # 30 分ごと。cron は UTC 固定だが、間隔指定なのでタイムゾーンも DST も関係しない
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+# 前の run が詰まっていても積み上げない。定点観測なので 1 回飛ぶ方が安全
+concurrency:
+  group: db-instance-snapshot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    name: "インスタンスの状態を 1 行で残す"
+    runs-on: ubuntu-latest
+    environment: development
+    env:
+      DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Python をセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: psycopg2 をインストール
+        run: pip install --quiet psycopg2-binary==2.9.9
+
+      - name: スナップショットを採る
+        id: snap
+        run: |
+          set -euo pipefail
+          # ⚠️ 出力が 1 行であることが «後から機械で拾える» の前提。
+          # ここで整形や追記をしないこと（read_instance_snapshots.py が壊れる）
+          python3 scripts/db-checks/diagnose_instance_load.py --format json | tee /tmp/snapshot.json
+
+      - name: Job Summary へ出力
+        if: always()
+        run: |
+          {
+            echo '### DB Instance Snapshot'
+            echo '```json'
+            cat /tmp/snapshot.json 2>/dev/null || echo '(取得できませんでした)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
