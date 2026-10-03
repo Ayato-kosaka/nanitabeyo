@@ -92,75 +92,75 @@ Cloud Run の API は 503 を返し続けた。設定ミスではない。**置�
 GitHub 側に登録しても、下の «置き場» が Cloud Run のものは **届かない**。
 `api-deploy.yml` が橋渡ししているのは 2 個だけである。
 
-| 名前                             | 種別            | 置き場（誰が入れるか）                  | 未設定だと                   |
-| -------------------------------- | --------------- | --------------------------------------- | ---------------------------- |
-| `API_COMMIT_ID`                  | 設定値          | api-deploy.yml が自動で入れる           | **API が起動しない**         |
-| `API_NODE_ENV`                   | 設定値          | api-deploy.yml が自動で入れる           | **API が起動しない**         |
-| `CORS_ORIGIN`                    | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `DATABASE_URL`                   | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `DB_SCHEMA`                      | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `DB_POOL_MAX`                    | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `DB_POOL_CONNECTION_TIMEOUT_MS`  | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `DB_POOL_IDLE_TIMEOUT_MS`        | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `DB_POOL_MAX_LIFETIME_SECONDS`   | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `SUPABASE_JWT_SECRET`            | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `GOOGLE_PLACE_API_KEY`           | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `GCS_BUCKET_NAME`                | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `GCS_BUCKET_PUBLIC_NAME`         | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `GCS_STATIC_MASTER_DIR_PATH`     | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `CLAUDE_API_KEY`                 | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `GOOGLE_API_KEY`                 | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `GOOGLE_SEARCH_ENGINE_ID`        | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `GCP_PROJECT`                    | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `TASKS_LOCATION`                 | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `TRANSCODER_LOCATION`            | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `TRANSCODER_PUBSUB_TOPIC`        | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `CLOUD_RUN_URL`                  | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `TASKS_INVOKER_SA`               | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `PUBSUB_PUSH_SA`                 | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
+| 名前 | 種別 | 置き場（誰が入れるか） | 未設定だと |
+| --- | --- | --- | --- |
+| `API_COMMIT_ID` | 設定値 | api-deploy.yml が自動で入れる | **API が起動しない** |
+| `API_NODE_ENV` | 設定値 | api-deploy.yml が自動で入れる | **API が起動しない** |
+| `CORS_ORIGIN` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `DATABASE_URL` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `DB_SCHEMA` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `DB_POOL_MAX` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `DB_POOL_CONNECTION_TIMEOUT_MS` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `DB_POOL_IDLE_TIMEOUT_MS` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `DB_POOL_MAX_LIFETIME_SECONDS` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `SUPABASE_JWT_SECRET` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `GOOGLE_PLACE_API_KEY` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `GCS_BUCKET_NAME` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `GCS_BUCKET_PUBLIC_NAME` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `GCS_STATIC_MASTER_DIR_PATH` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `CLAUDE_API_KEY` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `GOOGLE_API_KEY` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `GOOGLE_SEARCH_ENGINE_ID` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `GCP_PROJECT` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `TASKS_LOCATION` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `TRANSCODER_LOCATION` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `TRANSCODER_PUBSUB_TOPIC` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `CLOUD_RUN_URL` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `TASKS_INVOKER_SA` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `PUBSUB_PUSH_SA` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
 | `GCS_DEV_SERVICE_ACCOUNT_BASE64` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `LOG_BATCH_MAX`                  | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `LOG_SPILL_THRESHOLD`            | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `PRISMA_OPEN_BASE_MS`            | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `PRISMA_OPEN_CAP_MS`             | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `PRISMA_MAX_RETRIES`             | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `PRISMA_TX_MAX_WAIT`             | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `PRISMA_TX_TIMEOUT`              | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `GITHUB_TOKEN`                   | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `GITHUB_REPO_OWNER`              | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `GITHUB_REPO_NAME`               | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `DEV_AUTH_IS_ANONYMOUS`          | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `CDN_HOST`                       | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `CDN_KEY_NAME`                   | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `CDN_KEY_SECRET_B64`             | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `CDN_SIGNED_COOKIE_TTL_SECONDS`  | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `CDN_PUBLIC_HOST`                | 設定値          | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない**         |
-| `WEB_BASE_URL`                   | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `SUPABASE_URL`                   | 設定値          | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `SUPABASE_SERVICE_ROLE_KEY`      | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
-| `GOOGLE_MAPS_EMBED_API_KEY`      | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `LOG_BATCH_MAX` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `LOG_SPILL_THRESHOLD` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `PRISMA_OPEN_BASE_MS` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `PRISMA_OPEN_CAP_MS` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `PRISMA_MAX_RETRIES` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `PRISMA_TX_MAX_WAIT` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `PRISMA_TX_TIMEOUT` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `GITHUB_TOKEN` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `GITHUB_REPO_OWNER` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `GITHUB_REPO_NAME` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `DEV_AUTH_IS_ANONYMOUS` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `CDN_HOST` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `CDN_KEY_NAME` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `CDN_KEY_SECRET_B64` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `CDN_SIGNED_COOKIE_TTL_SECONDS` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `CDN_PUBLIC_HOST` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | **API が起動しない** |
+| `WEB_BASE_URL` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `SUPABASE_URL` | 設定値 | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `SUPABASE_SERVICE_ROLE_KEY` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
+| `GOOGLE_MAPS_EMBED_API_KEY` | 🔑 シークレット | **Cloud Run（GCP コンソールで手入力）** | 起動する（その機能だけ縮退） |
 
 ## ② GitHub Actions だけが使う 16 個（API は読まない）
 
 CI 自身の資格情報である。**ここへ API の鍵を足しても、API には何も起きない。**
 
-| 名前                                     | 使っている workflow                                                                                                                                                                                            |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ADMOB_APP_ADS_TXT`                      | firebase-hosting-deploy.yml                                                                                                                                                                                    |
-| `CLAUDE_CODE_OAUTH_TOKEN`                | claude-worker.yml                                                                                                                                                                                              |
-| `EXPO_TOKEN`                             | claude-worker.yml, e2e-mobile-test.yml, e2e-web-test.yml, eas-build-develop.yml, eas-build-preview-prod.yml, eas-build-submit-prod.yml, eas-update.yml, firebase-hosting-deploy.yml, verify-share-link-seo.yml |
-| `FIREBASE_PROJECT_ID_PROD`               | firebase-hosting-deploy.yml                                                                                                                                                                                    |
-| `GCP_FEATURE_CORRECTION_SERVICE_ACCOUNT` | db-script-run.yml                                                                                                                                                                                              |
-| `GCP_PROJECT_ID`                         | api-deploy.yml, error-triage.yml                                                                                                                                                                               |
-| `GCP_SA_KEY`                             | db-script-run.yml, evidence-collect.yml, firebase-hosting-deploy.yml, pg-table-export.yml, pg-table-import.yml                                                                                                 |
-| `GCP_SERVICE_ACCOUNT`                    | api-deploy.yml                                                                                                                                                                                                 |
-| `GCP_TRIAGE_SERVICE_ACCOUNT`             | error-triage.yml                                                                                                                                                                                               |
-| `GCP_WIF_PROVIDER`                       | api-deploy.yml, db-script-run.yml, error-triage.yml                                                                                                                                                            |
-| `GCS_BUCKET_NAME_PROD`                   | pg-table-export.yml, pg-table-import.yml                                                                                                                                                                       |
-| `PLACES_TEXT_SEARCH_API_KEY`             | db-script-run.yml                                                                                                                                                                                              |
-| `POSTGRES_DATABASE_URL`                  | db-migrate.yml, db-script-run.yml, pg-table-export.yml, pg-table-import.yml, restaurant-reports-file.yml, verify-share-link-seo.yml                                                                            |
-| `PRISMA_DATABASE_URL`                    | api-deploy.yml                                                                                                                                                                                                 |
-| `TEST_USER_EMAIL`                        | claude-worker.yml, e2e-mobile-test.yml, e2e-web-test.yml                                                                                                                                                       |
-| `TEST_USER_PASSWORD`                     | claude-worker.yml, e2e-mobile-test.yml, e2e-web-test.yml                                                                                                                                                       |
+| 名前 | 使っている workflow |
+| --- | --- |
+| `ADMOB_APP_ADS_TXT` | firebase-hosting-deploy.yml |
+| `CLAUDE_CODE_OAUTH_TOKEN` | claude-worker.yml |
+| `EXPO_TOKEN` | claude-worker.yml, e2e-mobile-test.yml, e2e-web-test.yml, eas-build-develop.yml, eas-build-preview-prod.yml, eas-build-submit-prod.yml, eas-update.yml, firebase-hosting-deploy.yml, verify-share-link-seo.yml |
+| `FIREBASE_PROJECT_ID_PROD` | firebase-hosting-deploy.yml |
+| `GCP_FEATURE_CORRECTION_SERVICE_ACCOUNT` | db-script-run.yml |
+| `GCP_PROJECT_ID` | api-deploy.yml, error-triage.yml |
+| `GCP_SA_KEY` | db-script-run.yml, evidence-collect.yml, firebase-hosting-deploy.yml, pg-table-export.yml, pg-table-import.yml |
+| `GCP_SERVICE_ACCOUNT` | api-deploy.yml |
+| `GCP_TRIAGE_SERVICE_ACCOUNT` | error-triage.yml |
+| `GCP_WIF_PROVIDER` | api-deploy.yml, db-script-run.yml, error-triage.yml |
+| `GCS_BUCKET_NAME_PROD` | pg-table-export.yml, pg-table-import.yml |
+| `PLACES_TEXT_SEARCH_API_KEY` | db-script-run.yml |
+| `POSTGRES_DATABASE_URL` | db-instance-snapshot.yml, db-migrate.yml, db-script-run.yml, pg-table-export.yml, pg-table-import.yml, restaurant-reports-file.yml, verify-share-link-seo.yml |
+| `PRISMA_DATABASE_URL` | api-deploy.yml |
+| `TEST_USER_EMAIL` | claude-worker.yml, e2e-mobile-test.yml, e2e-web-test.yml |
+| `TEST_USER_PASSWORD` | claude-worker.yml, e2e-mobile-test.yml, e2e-web-test.yml |
 
 <!-- END generated: assert-env-store-map -->
