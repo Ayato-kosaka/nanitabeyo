@@ -137,11 +137,14 @@ def snapshot(cur) -> dict:
         FROM pg_stat_database WHERE datname IS NOT NULL
         """
     )
-    hit, read, temp_bytes, temp_files, deadlocks = cur.fetchone()
+    # ⚠️ psycopg2 は `sum()` を **decimal.Decimal** で返す。float と直接掛けると
+    # TypeError で落ちる（実 DB で実測。ローカルでは psycopg2 が入らず気づけなかった）。
+    # JSON へ出す値でもあるので、ここで全部 int へ寄せてから計算する
+    hit, read, temp_bytes, temp_files, deadlocks = (int(v) for v in cur.fetchone())
     out.update(
-        blks_hit=int(hit), blks_read=int(read),
+        blks_hit=hit, blks_read=read,
         cache_hit_pct=round(100.0 * hit / (hit + read), 3) if (hit + read) else None,
-        temp_bytes=int(temp_bytes), temp_files=int(temp_files), deadlocks=int(deadlocks),
+        temp_bytes=temp_bytes, temp_files=temp_files, deadlocks=deadlocks,
     )
     return out
 
