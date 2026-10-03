@@ -184,7 +184,17 @@ export default function ConfirmRestaurantScreen() {
 			const error = rawError as ApiError;
 
 			// 下読みから時間が経ってトークンが失効した場合など
-			if (error.status === 400) {
+			// #2090 【設計】**失効は «設計どおり» で、ユーザーは自力で復帰できる。**
+			// draftToken の TTL は 30 分（`restaurant-draft.token.ts`）で、超えたら
+			// 400 を返して «もう一度お店を選んでください» を出す。想定内の分岐なので
+			// error ではなく warn で記録する（error で記録すると error-triage が
+			// 1 件ごとに Issue を立て、本物の失敗がその中に埋もれる）。
+			//
+			// ⚠️ **else 側は error のままにしてある。** #2069 で «相手側の一時的な都合を
+			// 前提にした扱いが、恒久的な自分側の失敗も一緒に飲み込んでいた» 事故が起きた。
+			// «想定内だから warn» を分岐ごとに判定せず catch 全体へ広げてはいけない。
+			const recoverable = error.status === 400;
+			if (recoverable) {
 				showSnackbar(i18n.t("SelectRestaurant.confirmPage.expired"));
 			} else if (error.code === "network_error" || error.status === 0) {
 				showSnackbar(i18n.t("Common.errors.network"));
@@ -194,8 +204,8 @@ export default function ConfirmRestaurantScreen() {
 
 			logFrontendEvent({
 				event_name: "confirm_restaurant_create_error",
-				error_level: "error",
-				payload: { error, googlePlaceId: draft.googlePlaceId },
+				error_level: recoverable ? "warn" : "error",
+				payload: { error, googlePlaceId: draft.googlePlaceId, recoverable },
 			});
 		} finally {
 			setIsSubmitting(false);

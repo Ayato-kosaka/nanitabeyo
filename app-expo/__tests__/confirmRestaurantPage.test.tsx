@@ -53,7 +53,12 @@ jest.mock("@/contexts/SnackbarProvider", () => ({
 	useSnackbar: () => ({ showSnackbar: mockShowSnackbar }),
 }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
-jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+// ⚠️ #2090 `logFrontendEvent` は **ファクトリの外**に置く。インラインの `jest.fn()` だと
+// テストから参照できず、error_level をアサートできない（元はそうなっていた）。
+const mockLogFrontendEvent = jest.fn();
+jest.mock("@/hooks/useLogger", () => ({
+	useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }),
+}));
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("react-native-safe-area-context", () => ({
@@ -162,6 +167,52 @@ describe("#1671 新規店舗の確認ページ", () => {
 		);
 		// ⚠️ ここが緑のままだと «確認» になっていない
 		expect(mockCallBackend).not.toHaveBeenCalledWith("v1/restaurants", expect.anything());
+	});
+
+	/*
+	#2090 【設計】**«想定内の失敗» と «本物の失敗» をログレベルで分ける。**
+
+	draftToken の TTL は 30 分（`restaurant-draft.token.ts`）。超えると API が 400 を返し、
+	画面は «もう一度お店を選んでください» を出す。**ユーザーは自力で復帰できる**ので
+	これは error ではない。error で記録すると error-triage が 1 件ごとに Issue を立て、
+	本物の失敗がその中に埋もれる（実際に #2088 / #2089 / #2090 の 3 本が 1 人の 1 回で立った）。
+
+	⚠️ **固定したいのは «400 だけが warn» という形**であって、個別の文言ではない。
+	#2069 で «相手側の一時的な都合を前提にした扱いが、恒久的な自分側の失敗も一緒に
+	飲み込んでいた» 事故が起きている。catch 全体を warn へ倒す変更が入ったら、
+	下の 2 本目が赤くなる。
+	*/
+	describe("#2090 確定に失敗したときのログレベル", () => {
+		const submitFailingWith = async (error: unknown) => {
+			mockCallBackend.mockImplementation((path: string) => {
+				if (path === "v1/restaurants/draft") return Promise.resolve(DRAFT);
+				if (path === "v1/restaurants") return Promise.reject(error);
+				return Promise.resolve({});
+			});
+			const tree = await render(<ConfirmRestaurantScreen />);
+			await pressSubmit(tree);
+			return mockLogFrontendEvent.mock.calls
+				.map(([arg]) => arg)
+				.find((arg) => arg?.event_name === "confirm_restaurant_create_error");
+		};
+
+		it("トークン失効（400）は warn — ユーザーは選び直せる", async () => {
+			const logged = await submitFailingWith({ status: 400, code: "validation_error" });
+
+			expect(logged).toBeDefined();
+			expect(logged.error_level).toBe("warn");
+			expect(logged.payload.recoverable).toBe(true);
+			// 画面側も «選び直してください» を出していること（黙って warn にしていない）
+			expect(mockShowSnackbar).toHaveBeenCalledWith("SelectRestaurant.confirmPage.expired");
+		});
+
+		it("それ以外（500）は error のまま — catch 全体を warn へ倒さない", async () => {
+			const logged = await submitFailingWith({ status: 500, code: "internal_error" });
+
+			expect(logged).toBeDefined();
+			expect(logged.error_level).toBe("error");
+			expect(logged.payload.recoverable).toBe(false);
+		});
 	});
 
 	it("店名・住所・国の初期値に Google 由来の値が入る", async () => {
