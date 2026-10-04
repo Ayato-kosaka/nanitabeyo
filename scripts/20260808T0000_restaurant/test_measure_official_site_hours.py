@@ -205,5 +205,39 @@ class SafetyTest(unittest.TestCase):
             sys.argv = argv
 
 
+class ClosureTokenBreakdownTest(unittest.TestCase):
+    """#1666 `unparseable_closure` の語を **パーサから借りて**数えていること。
+
+    ⚠️ 休業表記の語（`不定休` / `臨時休業` / …）をここへ写経すると、
+    パーサ側を直したときに **計測だけが古い語で数え続ける**。
+    «本番のロジックをテストへ写経しない» と同じ形の事故である。
+    """
+
+    SOURCE = Path(measure.__file__).read_text(encoding="utf-8")
+
+    def test_borrows_the_explainer_from_the_parser(self) -> None:
+        self.assertIn("from jp_site_opening_hours import explain_unparseable_closure", self.SOURCE)
+        self.assertIn("explain_unparseable_closure(page_text)", self.SOURCE)
+
+    def test_excerpts_are_not_nested_under_the_new_breakdown(self) -> None:
+        """⚠️ 新しい内訳を «抜粋の手前» へ入れたせいで、抜粋が出なくなっていないこと。
+
+        2026-10-04 に実際にこれをやった。`if closure_tokens:` を抜粋ブロックの直前へ
+        挿し込んだため、**休業表記が 1 件も無い標本では抜粋が 1 行も出なくなった**。
+        抜粋は «推測で直さないための材料» なので、黙って消えるのが一番困る。
+        """
+        source = self.SOURCE
+        self.assertLess(
+            source.index("«諦めた箇所» の抜粋"),
+            source.index("if closure_tokens:"),
+            "抜粋の出力は closure_tokens の判定より前（= give_up_reasons の側）にあること",
+        )
+
+    def test_does_not_copy_the_closure_vocabulary(self) -> None:
+        for token in ["不定休", "臨時休業", "要問合せ", "要確認", "応相談"]:
+            with self.subTest(token=token):
+                self.assertNotIn(token, self.SOURCE)
+
+
 if __name__ == "__main__":
     unittest.main()

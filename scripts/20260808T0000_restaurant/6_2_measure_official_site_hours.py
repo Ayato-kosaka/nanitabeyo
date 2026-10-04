@@ -82,6 +82,11 @@ from official_site_crawl import (  # noqa: E402
     to_ascii_url,  # noqa: F401  — テストが参照する
 )
 
+# ⚠️ `unparseable_closure` の «語と文脈» の判定はパーサ側に 1 本化してある。
+#    休業表記の語をここへ書き写すと、パーサを直したときに計測だけが古い語で数え続ける。
+#    語の一覧は jp_site_opening_hours._UNPARSEABLE_CLOSURE_RE にある（そこが正）。
+from jp_site_opening_hours import explain_unparseable_closure  # noqa: E402
+
 # ⚠️ **国で絞る。** パーサは日本語専用なので、韓国語サイトを母数に混ぜると
 # «日本語ページの何割を読めるか» が薄まり、«LLM が要るか» の判断材料にならなくなる。
 # dry-run（run 33988256520）の標本 20 件に韓国語サイトが 3 件あって気づいた。
@@ -155,6 +160,10 @@ def main() -> int:
     give_up_reasons: Counter[str] = Counter()
     # 理由ごとの «諦めた箇所» の抜粋。推測で直さないための材料（#1666）。
     give_up_examples: dict[str, list[str]] = {}
+    # #1666 `unparseable_closure` は give-up の 36.7%（2026-10-04・標本 200 件）だが、
+    # 抜粋には «その店の休業指定» と «ナビゲーション / 免責文» が混ざっている。
+    # 語と文脈まで数えておかないと、どちらを直すべきかが分からない。
+    closure_tokens: Counter[str] = Counter()
     robots_cache: dict[str, urllib.robotparser.RobotFileParser | None] = {}
     # not_japanese_page も例を残す。«日本にある韓国料理店なのか国コードの誤りなのか» を
     # 後から人が確かめられる唯一の手がかりになる。
@@ -192,6 +201,11 @@ def main() -> int:
             counts[bucket] += 1
             if give_up:
                 give_up_reasons[give_up] += 1
+                if give_up == "unparseable_closure":
+                    explained = explain_unparseable_closure(page_text)
+                    if explained:
+                        token, context = explained
+                        closure_tokens[f"{token} / {context}"] += 1
                 bucket_examples = give_up_examples.setdefault(give_up, [])
                 if len(bucket_examples) < args.excerpts_per_reason:
                     excerpt = hours_excerpt(page_text)
@@ -231,6 +245,14 @@ def main() -> int:
             for reason, _n in give_up_reasons.most_common():
                 for excerpt in give_up_examples.get(reason, []):
                     print(f"  [{reason}] {excerpt}")
+
+    if closure_tokens:
+        # ⚠️ `elsewhere` は «直前 30 文字に 定休日/休業日/定休 が無い» という意味であって、
+        #    «その店の休業指定ではない» と確定したわけではない。直す前に抜粋で裏を取ること。
+        print("\nunparseable_closure の語と文脈（closed_declaration = 休業指定として書かれている）")
+        total_closure = sum(closure_tokens.values())
+        for label, n in closure_tokens.most_common():
+            print(f"  {n:4d}  ({pct(n, total_closure)})  {label}")
 
     if failure_reasons:
         print("\n到達できなかった理由の内訳")

@@ -28,6 +28,7 @@ from jp_site_opening_hours import parse_jp_site_opening_hours as parse
 from jp_site_opening_hours import parse_jp_site_opening_hours_with_reason as parse_with_reason  # noqa: E402
 # 時刻トークンの歯止め（`時(?!間)`）は文章の外からは見えないので、直接あてる
 from jp_site_opening_hours import _TIME, _parse_spans, _time_to_hm  # noqa: E402
+from jp_site_opening_hours import explain_unparseable_closure  # noqa: E402
 
 # 0 = 日曜 … 6 = 土曜
 SUN, MON, TUE, WED, THU, FRI, SAT = range(7)
@@ -679,6 +680,48 @@ class DayHintUnboundTest(unittest.TestCase):
         self.assertIsNone(
             parse("アクセス 東京駅（JR）徒歩 5 分 セミナー 13:00-15:00")
         )
+
+class ExplainUnparseableClosureTest(unittest.TestCase):
+    """#1666 `unparseable_closure` で止めた «語と文脈» を外から数えられること。
+
+    ⚠️ **これは判定を変えるものではない。** 2026-10-04 の標本 200 件で
+    `unparseable_closure` は give-up の 36.7% だったが、抜粋には
+    «その店の休業指定» と «サイトのナビゲーション / 免責文» が混ざっていた。
+    どちらがどれだけ効いているかを **測ってから直す**ための計測口である。
+    """
+
+    def test_reports_the_token_and_that_it_is_the_closure_spec(self) -> None:
+        """実データ（cafe-bar-paulownia.com・2026-10-04 取得）の原文。"""
+        self.assertEqual(
+            explain_unparseable_closure(
+                "営業時間 15:00 - Last （ご相談ください） 定休日 (水) 不定休日 (日)"
+            ),
+            ("不定休", "closed_declaration"),
+        )
+
+    def test_reports_navigation_and_disclaimer_as_elsewhere(self) -> None:
+        """⚠️ ここが «直す価値があるか» を決める。お知らせ見出しと免責文で止まっている。"""
+        for text in [
+            "店舗情報 臨時休業・臨時営業・臨時営業時間変更のお知らせ メニュー",
+            "★ 予告なく営業時間の変更・臨時休業する場合があります。 ★ 西新宿店",
+        ]:
+            with self.subTest(text=text):
+                self.assertEqual(explain_unparseable_closure(text)[1], "elsewhere")
+
+    def test_returns_none_when_nothing_matched(self) -> None:
+        self.assertIsNone(explain_unparseable_closure("営業時間 11:00-22:00 定休日 月曜"))
+        self.assertIsNone(explain_unparseable_closure(None))
+        self.assertIsNone(explain_unparseable_closure(""))
+
+    def test_does_not_change_the_verdict(self) -> None:
+        """⚠️ 計測口を足したことで **読める / 読めないが動いていない**こと。"""
+        rows, reason = parse_with_reason(
+            "営業時間 15:00 - Last （ご相談ください） 定休日 (水) 不定休日 (日)"
+        )
+        self.assertIsNone(rows)
+        self.assertEqual(reason, "unparseable_closure")
+        self.assertIsNotNone(parse("営業時間 11:00～14:00 17:00～21:00"))
+
 
 if __name__ == "__main__":
     unittest.main()
