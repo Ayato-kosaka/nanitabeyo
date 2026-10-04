@@ -482,6 +482,40 @@ def _parse_spans(segment: str) -> list[tuple[str, str, bool, int]]:
 #    あり、parsed の 12% に対していちばん大きい伸びしろだった。ところが «諦めた» としか
 #    分からないので、5 つある諦め条件のどれが効いているのか誰にも言えなかった。
 #    「たぶん第 2 水曜だろう」で直さないために、理由を名前で返す。
+# #1666 【設計】**`unparseable_closure` で止まった «語» と «その語が置かれていた文脈» を
+# 外から数えられるようにする。判定は変えない（`search` の結果を言い直すだけ）。**
+#
+# 2026-10-04 の標本 200 件（seed 16664）で `unparseable_closure` は give-up の **36.7%**
+# （60 件中 22 件）で、最大の `no_time_span`（41.7%）に次ぐ。ところが抜粋には
+# 「臨時休業・臨時営業・臨時営業時間変更のお知らせ」（サイトのナビゲーション）や
+# 「予告なく営業時間の変更・臨時休業する場合があります」（免責文）で止まっているものが
+# 混ざっており、**その店の休業指定ではない**。一方 「定休日 (水) 不定休日 (日)」のように
+# 本当に休業指定であるものもある。
+#
+# **どちらがどれだけ効いているのかを «測ってから» 直す**ために、ここで語と文脈を返す。
+# ⚠️ 直し方（文脈の外なら諦めない 等）はまだ入れていない。実データで分かってから入れる。
+_CLOSED_CONTEXT_WINDOW = 30
+
+
+def explain_unparseable_closure(text: str | None) -> tuple[str, str] | None:
+    """`unparseable_closure` を引き起こした語と、その語の文脈を返す。
+
+    返り値は `(語, 文脈)`。文脈は `closed_declaration`（直前 30 文字以内に
+    「定休日」「休業日」「定休」がある = 休業指定として書かれている）か
+    `elsewhere`（ナビゲーション・お知らせ・免責文の中にある可能性が高い）。
+    該当しなければ `None`。
+    """
+    if not text:
+        return None
+    normalized = _normalize(text)
+    match = _UNPARSEABLE_CLOSURE_RE.search(normalized)
+    if not match:
+        return None
+    before = normalized[max(0, match.start() - _CLOSED_CONTEXT_WINDOW) : match.start()]
+    context = "closed_declaration" if _CLOSED_DECLARATION_RE.search(before) else "elsewhere"
+    return match.group(0), context
+
+
 GIVE_UP_REASONS = (
     "empty",  # 文章が無い
     "not_japanese",  # 日本語ページではない
