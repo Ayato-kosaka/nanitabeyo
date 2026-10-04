@@ -47,6 +47,37 @@ class QueryShapeTest(unittest.TestCase):
         self.assertEqual(m.ONE_GIB, 1024**3)
 
 
+class LiteralQueryTest(unittest.TestCase):
+    """`db-script-run.yml` の SA は本番ログを読めない（2026-10-04 に 403 を実測）。
+    パラメータを渡せない経路へ SQL を手渡すための形を縛る。"""
+
+    SQL = m.build_literal_query(
+        "food-scroll",
+        "nanitabeyo_logs_prod",
+        dt.datetime(2026, 9, 11, tzinfo=dt.timezone.utc),
+        dt.datetime(2026, 10, 4, tzinfo=dt.timezone.utc),
+    )
+
+    def test_no_placeholder_is_left(self) -> None:
+        """⚠️ `@since` が残っていると «貼れば動く» にならない。"""
+        self.assertNotIn("@", self.SQL)
+
+    def test_keeps_the_cost_rules(self) -> None:
+        self.assertIn("run_googleapis_com_stdout", self.SQL)
+        self.assertIn("TIMESTAMP '2026-09-11 00:00:00'", self.SQL)
+        self.assertIn("TIMESTAMP '2026-10-04 00:00:00'", self.SQL)
+        self.assertNotIn("_event_logs`", self.SQL)
+
+    def test_still_counts_the_denominator(self) -> None:
+        self.assertIn(f"'{m.SEARCH_EVENT}'", self.SQL)
+        self.assertIn(f"'{m.FALLBACK_EVENT}'", self.SQL)
+
+    def test_rows_from_json(self) -> None:
+        self.assertEqual(
+            m.rows_from_json('[["2026-09-11", 300, 211]]'), [(dt.date(2026, 9, 11), 300, 211)]
+        )
+
+
 class RatioTest(unittest.TestCase):
     def test_zero_searches_is_not_zero_percent(self) -> None:
         self.assertIsNone(m.ratio(0, 0))
