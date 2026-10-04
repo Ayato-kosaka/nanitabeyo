@@ -38,13 +38,39 @@ https://github.com/Ayato-kosaka/nanitabeyo/issues/1781#issuecomment-5980631769
 - **必ず dry run してから実行する。** 見積もりが `--max-bytes`（既定 1 GiB）を
   超えたら**流さずに終わる**。1 GiB はポリシーの «ユーザーに聞く» 閾値である
 
+## ⚠️ `db-script-run.yml` からは流せない（2026-10-04 実測）
+
+あの workflow の SA（`feature-correction-writer@`）は `bigquery.jobUser` と
+`wikidata_food_graph` だけを持ち、**`nanitabeyo_logs_prod` を読めない**。
+実際に流すと 403 になる（[run 37217889244](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/37217889244)）。
+
+> Access Denied: Table food-scroll:nanitabeyo_logs_prod.run_googleapis_com_stdout:
+> User does not have permission to query table
+
+本番ログの READER を持つのは `error-triage.yml` の SA（`secrets.GCP_TRIAGE_SERVICE_ACCOUNT`）だけで、
+そちらは任意のスクリプトを流せない。**SA の権限を広げる提案はしない**（読める経路は既にある）。
+
 ## 使い方
 
-    script_path:       scripts/ops-checks/measure_google_fallback_rate.py
-    args:              --since 2026-09-11 --until 2026-10-04
-    requirements_path: scripts/ops-checks/requirements.txt
+1. **SQL だけ出して、本番ログを読める経路で流す**（Claude のセッションはこれができる）
 
-`--dry-run` は SQL と見積もりバイト数だけを出す（クエリは流さない）。
+       python3 scripts/ops-checks/measure_google_fallback_rate.py \
+           --since 2026-09-11 --until 2026-10-04 --print-sql
+
+   `--print-sql` は**ネットワークへ出ず、`google-cloud-bigquery` も要らない**。
+   日付を埋め込んだ SQL をそのまま出すので、結果を `--rows` で戻せば集計だけさせられる。
+
+2. **資格情報がある所で直接流す**（`google-cloud-bigquery` が要る）
+
+       python3 scripts/ops-checks/measure_google_fallback_rate.py \
+           --since 2026-09-11 --until 2026-10-04 --split-at 2026-09-24
+
+   `--dry-run` は見積もりバイト数と SQL だけを出す（クエリは流さない）。
+
+3. **1 の結果を貼って集計だけさせる**
+
+       python3 scripts/ops-checks/measure_google_fallback_rate.py \
+           --since … --until … --split-at … --rows '[["2026-09-11",300,211], …]'
 """
 
 from __future__ import annotations
@@ -156,59 +182,33 @@ def build_query(project: str, dataset: str) -> str:
     return DAILY_SQL.format(table=RAW_TABLE.format(project=project, dataset=dataset))
 
 
-def main() -> int:
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--project", default="food-scroll")
-    p.add_argument("--dataset", default="nanitabeyo_logs_prod")
-    p.add_argument("--since", required=True, help="開始（UTC・この日を含む）。例: 2026-09-11")
-    p.add_argument("--until", required=True, help="終了（UTC・この日を含まない）。例: 2026-10-04")
-    p.add_argument(
-        "--split-at",
-        help="この日で 2 つの窓に分け、回数の変化と率の変化を分けて出す（例: 2026-09-11）",
-    )
-    p.add_argument(
-        "--max-bytes",
-        type=int,
-        default=ONE_GIB,
-        help="dry run の見積もりがこれを超えたら流さない（既定 1 GiB = ポリシーの «聞く» 閾値）",
-    )
-    p.add_argument("--dry-run", action="store_true", help="SQL と見積もりだけ出し、クエリは流さない")
-    args = p.parse_args()
+def build_literal_query(project: str, dataset: str, since: dt.datetime, until: dt.datetime) -> str:
+    """`@since` などを埋め込んだ SQL。パラメータを渡せない経路（MCP の execute_sql 等）用。
 
-    since, until = _parse_day(args.since), _parse_day(args.until)
-    if since >= until:
-        print("❌ --since は --until より前である必要があります", file=sys.stderr)
-        return 2
+    ⚠️ **SQL の本体を 2 つ持たない。** `build_query()` の結果を置換するだけにしてある。
+    2 つ書くと «パラメータ版だけ直して、こちらは古いまま» になる。
+    """
+    sql = build_query(project, dataset)
+    for name, value in (
+        ("@since", f"TIMESTAMP '{since:%Y-%m-%d %H:%M:%S}'"),
+        ("@until", f"TIMESTAMP '{until:%Y-%m-%d %H:%M:%S}'"),
+        ("@search_event", f"'{SEARCH_EVENT}'"),
+        ("@fallback_event", f"'{FALLBACK_EVENT}'"),
+    ):
+        sql = sql.replace(name, value)
+    return sql
 
-    from google.cloud import bigquery  # 依存は scripts/ops-checks/requirements.txt
 
-    client = bigquery.Client(project=args.project)
-    sql = build_query(args.project, args.dataset)
-    params = [
-        bigquery.ScalarQueryParameter("since", "TIMESTAMP", since),
-        bigquery.ScalarQueryParameter("until", "TIMESTAMP", until),
-        bigquery.ScalarQueryParameter("search_event", "STRING", SEARCH_EVENT),
-        bigquery.ScalarQueryParameter("fallback_event", "STRING", FALLBACK_EVENT),
-    ]
+def rows_from_json(text: str) -> list[tuple[dt.date, int, int]]:
+    """`[["2026-09-11", 300, 211], …]` を (日付, 検索, 発火) にする。"""
+    import json
 
-    estimate = client.query(
-        sql, job_config=bigquery.QueryJobConfig(dry_run=True, use_query_cache=False, query_parameters=params)
-    )
-    scanned = estimate.total_bytes_processed or 0
-    print(f"見積もり: {scanned / 1024 / 1024:.1f} MB（上限 {args.max_bytes / 1024 / 1024:.0f} MB）")
-    if args.dry_run:
-        print(sql)
-        return 0
-    if scanned > args.max_bytes:
-        print(
-            f"❌ 見積もりが上限を超えました。窓を狭めるか、--max-bytes を明示してください"
-            f"（.codex/bigquery/safety-policy.md の «1 GB 以上は聞く»）",
-            file=sys.stderr,
-        )
-        return 2
+    return [(_parse_day(str(d)).date(), int(s), int(f)) for d, s, f in json.loads(text)]
 
-    job = client.query(sql, job_config=bigquery.QueryJobConfig(query_parameters=params))
-    rows = [(r["d"], int(r["searches"]), int(r["fallbacks"])) for r in job.result()]
+
+
+def _report(rows: list[tuple[dt.date, int, int]], args: argparse.Namespace) -> int:
+    """日ごと・窓の合計・（--split-at があれば）2 窓の比較を出す。"""
     if not rows:
         print("⚠️ 1 行も返りませんでした（窓が空か、イベント名が変わった可能性があります）")
         return 0
@@ -243,6 +243,79 @@ def main() -> int:
         if verdict["verdict"] == "volume_only":
             print("  ⚠️ 回数は動いていても **依存は動いていない**。«減った» と書かないこと")
     return 0
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--project", default="food-scroll")
+    p.add_argument("--dataset", default="nanitabeyo_logs_prod")
+    p.add_argument("--since", required=True, help="開始（UTC・この日を含む）。例: 2026-09-11")
+    p.add_argument("--until", required=True, help="終了（UTC・この日を含まない）。例: 2026-10-04")
+    p.add_argument(
+        "--split-at",
+        help="この日で 2 つの窓に分け、回数の変化と率の変化を分けて出す（例: 2026-09-11）",
+    )
+    p.add_argument(
+        "--max-bytes",
+        type=int,
+        default=ONE_GIB,
+        help="dry run の見積もりがこれを超えたら流さない（既定 1 GiB = ポリシーの «聞く» 閾値）",
+    )
+    p.add_argument("--dry-run", action="store_true", help="SQL と見積もりだけ出し、クエリは流さない")
+    p.add_argument(
+        "--print-sql",
+        action="store_true",
+        help="日付を埋め込んだ SQL だけを出す。ネットワークへ出ず google-cloud-bigquery も不要",
+    )
+    p.add_argument(
+        "--rows",
+        help='既に取った結果を渡して集計だけさせる。例: \'[["2026-09-11",300,211]]\'',
+    )
+    args = p.parse_args()
+
+    since, until = _parse_day(args.since), _parse_day(args.until)
+    if since >= until:
+        print("❌ --since は --until より前である必要があります", file=sys.stderr)
+        return 2
+
+    if args.print_sql:
+        print(build_literal_query(args.project, args.dataset, since, until))
+        return 0
+
+    if args.rows:
+        # 既に取った結果を集計するだけ。BigQuery へは出ない
+        return _report(rows_from_json(args.rows), args)
+
+    from google.cloud import bigquery  # 依存は scripts/ops-checks/requirements.txt
+
+    client = bigquery.Client(project=args.project)
+    sql = build_query(args.project, args.dataset)
+    params = [
+        bigquery.ScalarQueryParameter("since", "TIMESTAMP", since),
+        bigquery.ScalarQueryParameter("until", "TIMESTAMP", until),
+        bigquery.ScalarQueryParameter("search_event", "STRING", SEARCH_EVENT),
+        bigquery.ScalarQueryParameter("fallback_event", "STRING", FALLBACK_EVENT),
+    ]
+
+    estimate = client.query(
+        sql, job_config=bigquery.QueryJobConfig(dry_run=True, use_query_cache=False, query_parameters=params)
+    )
+    scanned = estimate.total_bytes_processed or 0
+    print(f"見積もり: {scanned / 1024 / 1024:.1f} MB（上限 {args.max_bytes / 1024 / 1024:.0f} MB）")
+    if args.dry_run:
+        print(sql)
+        return 0
+    if scanned > args.max_bytes:
+        print(
+            f"❌ 見積もりが上限を超えました。窓を狭めるか、--max-bytes を明示してください"
+            f"（.codex/bigquery/safety-policy.md の «1 GB 以上は聞く»）",
+            file=sys.stderr,
+        )
+        return 2
+
+    job = client.query(sql, job_config=bigquery.QueryJobConfig(query_parameters=params))
+    rows = [(r["d"], int(r["searches"]), int(r["fallbacks"])) for r in job.result()]
+    return _report(rows, args)
 
 
 if __name__ == "__main__":
