@@ -147,6 +147,15 @@ jobs:
             scripts/db-checks/test_explain_opening_status_binds.py \
             scripts/db-checks/test_measure_order_by_posts_indexes.py
 
+      # #1781 «Google へ落ちた率» の測り方。2026-09-16 に `回/日` を依存の減少として
+      # 報告した（検索数が半分になっていただけで率は不動だった）。同じ間違いを二度
+      # しないよう、«回数が半分でも率が同じなら volume_only» を番人にしてある。
+      # BigQuery も認証も要らない（純関数と SQL の形だけ）。
+      - name: Google fallback 率の測り方のユニットテスト
+        run: |
+          python3 -m unittest \
+            scripts/ops-checks/test_measure_google_fallback_rate.py
+
       # #1666 進捗ログが `continue` の後ろにあって出ない形（run 34022514117 は 3,000 件で
       # 6 行しか出さず、原因の読み違えを招いた）と、フォレンジックの SQL が本番の
       # «候補の並び» を写経していないこと。どちらもソースを AST で読むだけで回せる。
