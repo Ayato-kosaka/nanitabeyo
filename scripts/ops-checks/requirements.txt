@@ -1,3 +1,5 @@
 # scripts/ops-checks/ 用。Cloud Run の «アプリのログには出ない» 側を読むためだけの依存。
 google-cloud-monitoring==2.22.2
 google-cloud-logging==3.11.3
+# measure_google_fallback_rate.py 用（アプリの stdout を sink した BigQuery を読む）。
+google-cloud-bigquery==3.14.1
