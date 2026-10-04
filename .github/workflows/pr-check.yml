@@ -156,6 +156,15 @@ jobs:
           python3 -m unittest \
             scripts/ops-checks/test_measure_google_fallback_rate.py
 
+      # #843 台帳（Issue 本文）の書き換えを守る番人。本文は 65,536 文字で、超えた
+      # PATCH は **HTTP 200 を返しながら黙って切り捨てる**。台帳はこのプロジェクトの
+      # 現在地の唯一の正なので、切り捨ては気づかないデータ損失になる。
+      # ネットワークも token も要らない（上限・バッククォート・置換の一致だけ）。
+      - name: Issue 台帳の書き換えガードのユニットテスト
+        run: |
+          python3 -m unittest \
+            scripts/issue-ledger/test_edit_ledger.py
+
       # #1666 進捗ログが `continue` の後ろにあって出ない形（run 34022514117 は 3,000 件で
       # 6 行しか出さず、原因の読み違えを招いた）と、フォレンジックの SQL が本番の
       # «候補の並び» を写経していないこと。どちらもソースを AST で読むだけで回せる。
