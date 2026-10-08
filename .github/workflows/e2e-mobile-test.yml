@@ -423,7 +423,9 @@ jobs:
     # 09-22 の実測で引き直すと **1 本なら約 316 分**必要で、上限 360 分に対する余裕が
     # ほとんど無い（この夜は 1 suite が 41 分かかっている）。
     #
-    # そこで **jest の `--shard` で 2 分割**した。分割は prepare が決める（全件のときだけ）。
+    # そこで **2 分割**した。分割は prepare が決める（全件のときだけ）。割り当ては jest の
+    # `--shard` に作らせ、**実行へは «走らせる suite の一覧» として渡す**（#1579。下の
+    # «このシャードで走らせる suite を決める» ステップ）。
     # 分割後の見積り（09-22 の Android 実測で各 shard の重さを出して比例配分）:
     #
     #   shard 1/2 … 23 suite（Android 換算 17.5 分）→ テスト約 131 分
@@ -604,6 +606,35 @@ jobs:
           EXPO_PUBLIC_COMMIT_ID: ${{ github.sha }}
         run: pnpm --filter e2e-mobile build:ios
 
+      # 🔀 #1579 【バグ】このシャードで走らせる suite の一覧を **jest 自身に作らせて** env へ配る。
+      #
+      # `--shard=N/M` を実行コマンドへ付けると、Detox の `--retries 1` が呼び直す 2 巡目にも
+      # そのまま付き、**赤の約半分しか再実行されない**（jest の --shard は «渡されたリストを
+      # M 等分» するので、失敗分だけに縮んだリストがもう一度割られる）。理由と実測は
+      # e2e-mobile/jest.config.js の DETOX_SHARD_FILES のコメントにある。
+      #
+      # ⚠️ **割り当ては jest の `--shard` に決めさせること。** ここで割り方を書き直すと
+      # シャードごとの重さが変わり、240 分の timeout-minutes の見積り（上のコメント）が崩れる。
+      - name: 🔀 このシャードで走らせる suite を決める (iOS)
+        if: ${{ matrix.shard.arg != 'off' }}
+        working-directory: e2e-mobile
+        env:
+          SHARD_ARG: ${{ matrix.shard.arg }}
+          DETOX_TEST_FILTER: ${{ inputs.test_filter }}
+        run: |
+          set -euo pipefail
+          suites="$(node node_modules/jest/bin/jest.js --listTests --shard="$SHARD_ARG" \
+            | sed 's#.*/e2e-mobile/##' | sort)"
+          if [ -z "$suites" ]; then
+            echo "::error::シャード $SHARD_ARG の suite 一覧が空です（jest --listTests が何も返しませんでした）"
+            exit 1
+          fi
+          # ⚠️ 連結は tr で行う（macOS の paste の -s -d は実装差がある）。
+          #    末尾のカンマは jest.config.js 側が空要素として落とすので無害である。
+          echo "DETOX_SHARD_FILES=$(tr '\n' ',' <<< "$suites")" >> "$GITHUB_ENV"
+          echo "▶ shard $SHARD_ARG: $(grep -c . <<< "$suites") suite"
+          printf '  - %s\n' $suites
+
       # prepare ジョブが解決した Tier のスクリプトを実行する
       - name: 🧪 Run Detox tests (iOS)
         # UI カタログ収集では run を赤くしない（理由は Android ジョブの同ステップのコメント参照）
@@ -612,7 +643,7 @@ jobs:
         # ソフトウェアキーボードの無効化は **Detox がシミュレータを起こす前**に済ませる必要がある
         run: |
           bash e2e-mobile/scripts/setup-ios-simulator.sh
-          bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }} ${{ matrix.shard.arg != 'off' && format('--shard={0}', matrix.shard.arg) || '' }}
+          bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }}
         # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
@@ -635,7 +666,7 @@ jobs:
         # カタログ収集では run を赤くしない（理由は上の «Run Detox tests» と同じ）。
         # 打ち切りの事実は Job Summary と ::error:: 注釈には出るので、見えなくはならない
         continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
-        run: node e2e-mobile/scripts/assert-suite-coverage.mjs ${{ needs.prepare.outputs.ios_script }} ${{ matrix.shard.arg != 'off' && format('--shard={0}', matrix.shard.arg) || '' }}
+        run: node e2e-mobile/scripts/assert-suite-coverage.mjs ${{ needs.prepare.outputs.ios_script }}
         env:
           DETOX_TEST_FILTER: ${{ inputs.test_filter }}
 

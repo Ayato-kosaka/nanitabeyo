@@ -8,7 +8,8 @@ import { fileURLToPath } from "node:url";
  *
  * 使い方: node e2e-mobile/scripts/assert-suite-coverage.mjs <pnpm スクリプト名> [jest へ渡す追加引数...]
  *   例)   node e2e-mobile/scripts/assert-suite-coverage.mjs test:ci:ios
- *   例)   node e2e-mobile/scripts/assert-suite-coverage.mjs test:ci:ios --shard=1/2
+ *   例)   DETOX_SHARD_FILES=tests/a.test.ts,tests/b.test.ts \\
+ *         node e2e-mobile/scripts/assert-suite-coverage.mjs test:ci:ios
  *
  * ## なぜ必要か
  * iOS ジョブは 3 時間の `timeout-minutes` に当たって **毎晩打ち切られていた**。
@@ -35,9 +36,14 @@ import { fileURLToPath } from "node:url";
  * 解釈は package.json と jest.config.js が正である。ここで同じ条件を書き直すと、
  * 片方だけ直ったときに **緑のまま嘘をつく**。実際に走るときと同じ引数で `jest --listTests` を呼ぶ。
  *
- * ⚠️ **`--shard` も同じ理由でそのまま渡すこと。** 分割して流しているのに «期待» を 45 件のまま
- * 数えると、**毎晩「22 件が未実行」と誤報する**。run-detox-ci.sh が jest へ渡すのと
- * 同じ引数を、このスクリプトにも同じように渡す（workflow 側で 1 か所から両方へ配っている）。
+ * ⚠️ **シャード分割も同じ理由で «同じ env» の下で数えること。** 分割して流しているのに
+ * «期待» を 46 件のまま数えると、**毎晩「23 件が未実行」と誤報する**。
+ * 分割は `DETOX_SHARD_FILES`（jest.config.js が読む）で効いており、env は
+ * `--listTests` の呼び出しへそのまま引き継がれるので、このスクリプトに引数は要らない。
+ *
+ * ⚠️ **`--shard=N/M` を引数で渡す形へ戻さないこと（#1579）。** それは実行側へも付くことになり、
+ * Detox の `--retries 1` が呼び直す 2 巡目で **赤の約半分が再実行されなくなる**
+ * （jest の --shard は «渡されたリストを M 等分» するため）。理由と実測は jest.config.js にある。
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -45,7 +51,7 @@ const e2eRoot = path.resolve(here, "..");
 const repoRoot = path.resolve(e2eRoot, "..");
 
 const scriptName = process.argv[2];
-/** 実行時に jest へ渡した追加引数（現状は `--shard=N/M`）。期待側にも同じものを効かせる */
+/** 実行時に jest へ渡した追加引数（いまは workflow からは渡していない）。期待側にも同じものを効かせる */
 const extraJestArgs = process.argv.slice(3);
 if (!scriptName) {
 	console.error("::error::実行した pnpm スクリプト名を渡してください（例: test:ci:ios）");

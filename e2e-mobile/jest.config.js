@@ -61,6 +61,40 @@ if (testFilter) {
 	if (words.length > 0) testPathIgnorePatterns.push(`^(?!.*(?:${words.join("|")}))`);
 }
 
+// 🔀 シャード分割（#2001 の iOS 2 分割）。**`--shard` ではなく «残す suite の一覧» で絞る。**
+//
+// ⚠️ #1579 【バグ】`--shard=N/M` を使うと **retry で赤の半分が再実行されない**。
+// jest の `--shard` は «与えられたリストを sha1 順に並べて M 等分し N 番目を取る» 実装なので、
+// **失敗分だけに縮んだリストへ再適用すると、そのリストがもう一度割られる**。
+// Detox の `--retries 1` は失敗ファイルを並べて jest を呼び直すだけで、
+// 元の `-- --shard=N/M` もそのまま付くため、2 巡目は赤の約半分しか走らない。
+// 残った側は «直ったのか落ちたままか» が分からないまま緑/赤の数字に混ざる。
+// 2026-10-07 の夜間で対照が取れている（同じ run・違いは shard 指定の有無だけ）:
+//   Android（shard なし） 初回 6 failed → retry `Test Suites: 6 failed, 6 total`（全部）
+//   iOS [1/2]（shard あり） 初回 5 failed → retry `Test Suites: 3 failed, 3 total`（約半分）
+//
+// だから «件数で割る» のをやめ、**ファイルの同一性で選ぶ**。
+// `DETOX_SHARD_FILES` にこのシャードで走らせる spec の相対パスを並べて渡すと、
+// DETOX_TEST_FILTER と同じ否定先読みで (tier) AND (このシャード) を組む。
+// 部分集合へ再適用しても «そのシャードに属するファイル» は変わらないので **冪等**で、
+// retry は赤を全部やり直す。
+//
+// ⚠️ 一覧の作り手は **jest 自身**（`jest --listTests --shard=N/M`）にすること。
+// ここで割り当てを再実装すると、シャードごとの重さ（iOS は 3 時間の timeout と戦っている）が
+// 変わってしまう。workflow が 1 か所で `--listTests` を呼び、その出力をこの env へ配る。
+const shardFiles = (process.env.DETOX_SHARD_FILES || "").trim();
+if (shardFiles) {
+	const suffixes = shardFiles
+		.split(/[,\s]+/)
+		.filter(Boolean)
+		// 末尾一致で見るので先頭に / を足す。`a/b.test.ts` が `x/a/b.test.ts` に当たる事故を防ぐ
+		.map((file) => `/${file.replace(/^\/+/, "")}`.replace(/[.*+?^${}()[\]\\|]/g, "\\$&"));
+	if (suffixes.length === 0) {
+		throw new Error("DETOX_SHARD_FILES が空です（シャードの一覧が作れていません）");
+	}
+	testPathIgnorePatterns.push(`^(?!.*(?:${suffixes.join("|")})$)`);
+}
+
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
 	rootDir: ".",
