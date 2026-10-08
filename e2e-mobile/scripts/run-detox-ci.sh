@@ -17,7 +17,7 @@
 #
 # 使い方: bash e2e-mobile/scripts/run-detox-ci.sh <pnpm スクリプト名> [jest へ渡す追加引数...]
 #   例)    bash e2e-mobile/scripts/run-detox-ci.sh test:ci:android
-#   例)    bash e2e-mobile/scripts/run-detox-ci.sh test:ci:ios --shard=1/2
+#   例)    bash e2e-mobile/scripts/run-detox-ci.sh test:ci:ios --testPathPattern 'tests/smoke/'
 set -uo pipefail
 
 readonly SCRIPT_NAME="${1:?実行する pnpm スクリプト名を渡してください（例: test:ci:android）}"
@@ -51,7 +51,12 @@ if [[ -n "${DETOX_TEST_FILTER:-}" ]]; then
   echo "▶ spec を絞り込みます (jest.config.js が AND で適用): ${DETOX_TEST_FILTER}"
 fi
 
-# 🔀 追加の jest 引数（現状は #2001 の `--shard=N/M` だけ）。
+# 🔀 追加の jest 引数（いまは workflow からは渡していない）。
+#
+# ⚠️ **`--shard=N/M` をここへ渡さないこと（#1579）。** 渡すと Detox の `--retries 1` が
+# 呼び直す 2 巡目にも付き、**赤の約半分しか再実行されない**（jest の --shard は «渡された
+# リストを M 等分» するので、失敗分だけに縮んだリストがもう一度割られる）。
+# シャード分割は `DETOX_SHARD_FILES`（jest.config.js が読む env）で行う。
 #
 # ⚠️ **pnpm の `--` は 1 つだけ付ける。** 実測（pnpm 10）:
 #   `pnpm run test:ci:ios -- --shard=1/2`

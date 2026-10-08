@@ -291,6 +291,12 @@ jobs:
       - name: adb 上限ガード自身のテスト
         run: bash scripts/test-assert-adb-sync-timeout.sh
 
+      # ⚠️ #1579 iOS 夜間のシャード分割は «件数で割る» のをやめ «走らせる suite の一覧» で絞っている。
+      #    `--shard` に戻すと Detox の retry で赤の半分が再実行されなくなり、
+      #    «直ったのか落ちたままか» が分からないまま数字に混ざる。その性質を固定する。
+      - name: Detox のシャード指定が retry で再分割されないことを検査
+        run: bash e2e-mobile/scripts/test-shard-filter.sh
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
