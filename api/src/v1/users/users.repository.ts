@@ -106,7 +106,6 @@ type DishColumns = {
   d_id: string;
   d_restaurant_id: string;
   d_category_id: string;
-  d_name: string | null;
   d_created_at: Date;
   d_updated_at: Date;
   d_lock_no: number;
@@ -247,12 +246,17 @@ export class UsersRepository {
         dish: {
           // #843 の同期メタ。この画面では使わないが型を満たす必要がある
           // （SQL で引かない理由は toRestaurant の申し送りと同じ）
-          data_origin: 'user_or_google',
+          //
+          // #1779 ⚠️ **落とした列（dishes.name / dishes.data_origin）はここにも書かない。**
+          // `PrismaDishes` はもう両方を宣言していないが、この object は `page.map()` を
+          // 通るため **TS の余剰プロパティ検査が効かない**（literal の freshness が失われる）。
+          // そのため «型は緑のまま SQL だけが落ちた列を引き続ける» 状態が作れてしまう。
+          // 実際に 2026-10-13 の夜間で、SQL 側に残っていた呼び名の列が
+          // `column d.name does not exist` を投げ、GET /v1/users/me/dishes が 500 だった。
           synced_at: null,
           id: row.d_id,
           restaurant_id: row.d_restaurant_id,
           category_id: row.d_category_id,
-          name: row.d_name,
           created_at: row.d_created_at,
           updated_at: row.d_updated_at,
           lock_no: row.d_lock_no,
