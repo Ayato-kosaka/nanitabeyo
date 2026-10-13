@@ -679,15 +679,14 @@ export function buildMyDishesPageQuery(
     d.id            AS d_id,
     d.restaurant_id AS d_restaurant_id,
     d.category_id   AS d_category_id,
-    d.name          AS d_name,
     d.created_at    AS d_created_at,
     d.updated_at    AS d_updated_at,
     d.lock_no       AS d_lock_no,
     dc.image_url    AS d_category_image_url,
     -- #1375（オーナー指摘「うどんで絞ったら udon が出る」）カテゴリの正式表記。
-    -- 表示に使っていた d.name は «その店でのその料理の呼び名» で、SNS 取り込み由来だと
-    -- ローマ字や英語のまま入る。カテゴリ表の labels 列（言語コード → 表記）を一緒に返し、
-    -- クライアントが «ユーザーの言語の表記 → 無ければ d.name» の順で出せるようにする。
+    -- かつて表示に使っていた «その店でのその料理の呼び名» の列は、SNS 取り込み由来だと
+    -- ローマ字や英語のまま入るため #1901 で表示から外し、#1779 の contract で列ごと落とした。
+    -- 表記はここで返すカテゴリ表の labels 列（言語コード → 表記）だけから作る。
     -- 既に page CTE で LIMIT 済みの d に対する参照なので追加の走査は起きない（image_url と同じ）。
     --
     -- ⚠️ この SQL はテンプレートリテラルの中なので、コメントにバッククォートを書かないこと
