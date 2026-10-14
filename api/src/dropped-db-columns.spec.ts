@@ -16,6 +16,11 @@ import { join, relative } from 'node:path';
  *
  * 個別の行ではなく **«落とした列を SQL の列参照として書く» という形**を縛る。
  * 落とす列を増やしたときは、この表に 1 行足すだけで同じ網が張られる。
+ *
+ * 水平展開として、**この repo の migration が実際に実行した DROP COLUMN を全部**
+ * 表へ入れてある（rollback 手順のコメントの中の DROP は実行されていないので対象外）。
+ * #1779 の 5 列以外は適用済みで、いま参照は 1 件も無い（= 実害は出ていない）が、
+ * **落ちた列を書き戻せない網**にしておかないと、同じ形がまた作れてしまう。
  */
 
 const API_SRC = __dirname;
@@ -28,11 +33,24 @@ const API_SRC = __dirname;
  * ないので、`<別名>.<列>` の形（= SQL の列参照）だけを違反にする。素の識別子は見ない。
  */
 const DROPPED: { column: string; aliases: string[] }[] = [
+  // 20260924T0100（#1779 / #1681 後半）— Google 由来の列
   { column: 'name', aliases: ['d', 'dishes'] },
   { column: 'data_origin', aliases: ['d', 'dishes'] },
   { column: 'image_url', aliases: ['r', 'restaurants'] },
   { column: 'plus_code', aliases: ['r', 'restaurants'] },
   { column: 'address_components', aliases: ['r', 'restaurants'] },
+  // 20251224T0001（dish_categories を BigQuery 同期向けに整理）
+  { column: 'origin', aliases: ['dc', 'dish_categories'] },
+  { column: 'cuisine', aliases: ['dc', 'dish_categories'] },
+  { column: 'updated_at', aliases: ['dc', 'dish_categories'] },
+  { column: 'lock_no', aliases: ['dc', 'dish_categories'] },
+  // 20251108T1122（avatar → avatar_path。`\b` が `u.avatar_path` を守る）
+  { column: 'avatar', aliases: ['u', 'users'] },
+  // 20260824T0200（#1399 / #1483 — 誰も書かない列なので置かないと決めた）
+  {
+    column: 'published_at',
+    aliases: ['dmee', 'dish_media_external_embeddings'],
+  },
 ];
 
 /**
