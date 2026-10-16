@@ -41,6 +41,14 @@ import { fileURLToPath } from "node:url";
  * 分割は `DETOX_SHARD_FILES`（jest.config.js が読む）で効いており、env は
  * `--listTests` の呼び出しへそのまま引き継がれるので、このスクリプトに引数は要らない。
  *
+ * ## 落ちた suite 名は «注釈» へ出す（#1579）
+ * ジョブログは API から取ると **末尾が上限で切られ**、Detox が `--retries 1` で呼び直す
+ * 2 巡目のコマンド行（= 落ちたファイル名が並ぶ唯一の行）はその枠へ届かない。
+ * Artifact の全文も API からは Azure blob へのリダイレクトになり取得できない
+ * （3 夜続けて «落ちた suite 名が分からない» 状態になった）。
+ * 一方 **check-run の注釈は `GET /repos/:owner/:repo/check-runs/:id/annotations` で全文取れる**。
+ * そこで、ログを読めるこのステップから `::notice::` で suite 名を出しておく。
+ *
  * ⚠️ **`--shard=N/M` を引数で渡す形へ戻さないこと（#1579）。** それは実行側へも付くことになり、
  * Detox の `--retries 1` が呼び直す 2 巡目で **赤の約半分が再実行されなくなる**
  * （jest の --shard は «渡されたリストを M 等分» するため）。理由と実測は jest.config.js にある。
@@ -120,6 +128,39 @@ const reported = new Set([...log.matchAll(/\b(?:PASS|FAIL)\s+(tests\/\S+\.test\.
 const summaryLines = [...log.matchAll(/^\s*Test Suites:.*$/gm)].map((m) => m[0].trim());
 const finished = summaryLines.length > 0;
 
+/**
+ * 赤かった suite を «jest の実行 1 回ごと» に分けて返す（#1579）。
+ * `Test Suites: …` のサマリ行が 1 回ぶんの終わりなので、そこで区切る。
+ * `--retries 1` の 2 巡目には **1 巡目で落ちたファイルだけ**が渡るため、
+ * 1 要素目 = 初回の赤、最後の要素 = 再実行後も赤のまま（= この run の実質の赤）になる。
+ * サマリ行の後ろに FAIL が残っている（= 打ち切られた）ときも、最後の要素として拾う。
+ */
+function failedSuitesByAttempt(text) {
+	const attempts = [];
+	let current = new Set();
+	for (const line of text.split("\n")) {
+		const fail = line.match(/\bFAIL\s+(tests\/\S+\.test\.ts)/);
+		if (fail) {
+			current.add(fail[1]);
+			continue;
+		}
+		if (/^\s*Test Suites:/.test(line)) {
+			attempts.push([...current].sort());
+			current = new Set();
+		}
+	}
+	if (current.size > 0) attempts.push([...current].sort());
+	return attempts;
+}
+
+const failedAttempts = failedSuitesByAttempt(log);
+
+/** ログを読めるのはこのステップだけなので、suite 名は注釈へ出す（理由は冒頭の docstring） */
+function notice(title, message) {
+	const esc = (v) => String(v).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+	console.log(`::notice title=${esc(title)}::${esc(message)}`);
+}
+
 let expected;
 try {
 	expected = expectedSuites();
@@ -159,8 +200,28 @@ if (finished) {
 	}
 }
 
+// ⚠️ 完走・打ち切りのどちらでも出す。打ち切られた run でも «切られる前に赤だった suite» は知りたい
+if (failedAttempts.length > 0) {
+	lines.push("");
+	lines.push("### 落ちた suite");
+	lines.push("");
+	for (const [i, files] of failedAttempts.entries()) {
+		const label = i === 0 ? "初回" : `再実行 ${i} 回目`;
+		lines.push(files.length > 0 ? `- **${label}（${files.length} 件）**` : `- **${label}** — 赤なし`);
+		for (const f of files) lines.push(`  - \`${f}\``);
+	}
+}
+
 const body = lines.join("\n");
 console.log(body);
+for (const [i, files] of failedAttempts.entries()) {
+	if (files.length === 0) continue;
+	const label = i === 0 ? "初回" : `再実行 ${i} 回目`;
+	notice(
+		`落ちた suite（${[scriptName, ...extraJestArgs].join(" ")} / ${label}）`,
+		`${files.length} 件:\n${files.join("\n")}`,
+	);
+}
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, body + "\n");
 
 if (!finished) {
