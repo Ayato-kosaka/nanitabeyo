@@ -86,8 +86,21 @@ export default defineConfig({
 	// CI はリソースが限られるため並列数を絞る。ローカルは Playwright の自動判定に任せる
 	workers: process.env.CI ? 2 : undefined,
 
-	// HTML レポート（`pnpm report` で閲覧）+ コンソールの list 表示
-	reporter: [["html", { open: "never" }], ["list"]],
+	// HTML レポート（`pnpm report` で閲覧）+ コンソールの list 表示。
+	//
+	// ⚠️ CI では **github レポータを足す**（#1579）。ジョブログは API から取ると
+	// Azure blob へのリダイレクトになり取得できず、Artifact の HTML レポートも同じ理由で
+	// 回収できない夜がある（2026-10-19 の夜間 web はこれで «落ちた spec が分からない»
+	// 状態になった）。一方 **check-run の注釈は
+	// `GET /repos/:owner/:repo/check-runs/:id/annotations` で全文取れる**ので、
+	// github レポータが出す `::error file=…,line=…::` を注釈として残しておく。
+	// e2e-mobile 側で同じ欠陥を注釈で塞いだ（PR #2129）のと同じ手当てである。
+	//
+	// ⚠️ 注釈は 1 ステップあたり 10 件までしか残らない。赤が 10 件を超える夜は
+	// 先頭 10 件しか名前が分からないので、件数は list / HTML レポート側で確かめること。
+	reporter: process.env.CI
+		? [["github"], ["html", { open: "never" }], ["list"]]
+		: [["html", { open: "never" }], ["list"]],
 
 	// 既定では実行しないタグ。
 	// - @mutation (Tier 3): 共有 dev 環境の DB へ書き込むため「意図した時だけ」に限定する安全弁
