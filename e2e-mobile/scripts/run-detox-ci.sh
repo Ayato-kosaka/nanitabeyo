@@ -81,10 +81,54 @@ fi
 
 echo "▶ pnpm --filter e2e-mobile run ${SCRIPT_NAME} ${PASSTHROUGH[*]:-}"
 
+# 🩺 ランナーが消滅する «直前» の空きメモリを残す（#1579）
+#
+# 2026-10-16〜10-19 の 4 夜、Android ジョブがテスト実行中に失敗し、`if: always()` を
+# 付けたステップも post steps も **全部 skip** された（= ランナーが居なくなった）。
+# 10-19 の注釈で GitHub 自身がこう言っている:
+#
+#   The hosted runner lost communication with the server. Anything in your workflow
+#   that terminates the runner process, starves it for CPU/Memory, or blocks its
+#   network access can cause this error.
+#
+# つまり «こちらの負荷で枯渇させた» 可能性がある。ところが消滅するとログも Artifact も
+# 残らないので、**枯渇したのかどうかを確かめる材料が無い**。そこで `::notice` で
+# 定期的に空きメモリを出しておく（注釈はランナーが死んでも GitHub 側に残り、
+# `GET /repos/:owner/:repo/check-runs/:id/annotations` で全文取れる）。
+#
+# ⚠️ **プロセスのコマンド行を出してはいけない。** Detox は起動時の Intent extras へ
+# refresh_token を載せるため、`ps` の cmd 列には秘密が入りうる（.detoxrc.js の
+# `log: "none"` と同じ理由）。ここで出すのは **合計値だけ**にする。
+# ⚠️ 注釈には件数の上限があるので（GitHub のドキュメント上は 1 ステップ 10 件。
+# こちらで実測はしていない）**9 回で止める**。8 分間隔 × 9 = 72 分ぶんで、
+# 実測の step 21 は 34〜63 分だったので足りる。
+MEM_SAMPLER_PID=""
+if command -v free >/dev/null 2>&1; then
+	(
+		for i in $(seq 1 9); do
+			sleep 480
+			# free の «available» が枯渇の指標。used/total も一緒に出して傾きを見る
+			read -r _ total used avail <<< "$(free -m | awk '/^Mem:/ {print $1, $2, $3, $7}')"
+			swap_used="$(free -m | awk '/^Swap:/ {print $3}')"
+			echo "::notice title=android-mem::+$((i * 8))m total=${total}MB used=${used}MB available=${avail}MB swap_used=${swap_used}MB"
+		done
+	) &
+	MEM_SAMPLER_PID=$!
+fi
+
 # tee でジョブログと収集用ファイルの両方へ出す。冒頭の `set -o pipefail` により
 # tee ではなく pnpm 側の終了コードが $? に残る（`set -e` は付けない。後始末を必ず走らせるため）
+#
+# ⚠️ この行と `EXIT_CODE=$?` の間に **何も挟まないこと**（$? が上書きされる）。
+# メモリ採取の開始は上で済ませてある
 pnpm --filter e2e-mobile run "${SCRIPT_NAME}" ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"} 2>&1 | tee "${WORK_DIR}/detox-run.log"
 readonly EXIT_CODE=$?
+
+# ⚠️ `pkill -f` は自分のコマンド行にもパターンが当たって自滅するので PID で止める
+if [ -n "${MEM_SAMPLER_PID}" ]; then
+	kill "${MEM_SAMPLER_PID}" 2>/dev/null || true
+	wait "${MEM_SAMPLER_PID}" 2>/dev/null || true
+fi
 
 # ⚠️ 収集物のコピーは **後始末より先に**行う。後続がハングしても実行ログだけは必ず Artifact に残す
 mkdir -p "${ARTIFACTS_DIR}"
